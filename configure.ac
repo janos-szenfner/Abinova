@@ -25,8 +25,8 @@ AM_MAINTAINER_MODE([enable])
 #
 # versions requested.
 #
-GTK_VERSION_REQ=3.24.0
-GTK_ENCODED_VERSION="GDK_VERSION_3_24"
+GTK_VERSION_REQ=4.6.0
+GTK_ENCODED_VERSION="GDK_VERSION_4_6"
 
 # This check MUST be done early.
 #
@@ -94,14 +94,13 @@ opt_pkgs=''
 # gtk deps
 cairo_req='cairo-pdf cairo-ps pangocairo'
 #
-gtk_req="gtk+-3.0 >= $GTK_VERSION_REQ gtk+-unix-print-3.0 librsvg-2.0 >= 2.46.0 pango >= 1.44"
+gtk_req="gtk4 >= $GTK_VERSION_REQ gtk4-unix-print librsvg-2.0 >= 2.46.0 pango >= 1.44"
 dnl cairo-fc is needed but only available on cairo > 1.10
 dnl http://bugzilla.abisource.com/show_bug.cgi?id=13265
 PKG_CHECK_EXISTS(cairo >= 1.10, [gtk_req="$gtk_req cairo-fc"],[])
 gtk_pkgs="
   ${cairo_req}
   ${gtk_req}
-  ${goffice_req}
 "
 
 #
@@ -791,8 +790,18 @@ if test "$abi_cv_gio" = "yes"; then
 	AC_DEFINE([WITH_GIO], [1], [Define if using GIO])
 fi
 
-dnl It's always on with goffice.
-AC_DEFINE([HAVE_GO_MATH_EDITOR_NEW], [1], [Always defined to goffice])
+dnl goffice provides the LaTeX equation editor widget; it is GTK3-bound
+dnl so it is optional and off unless the pkg is present and requested.
+AC_ARG_WITH([goffice],
+	[AS_HELP_STRING([--with-goffice], [use libgoffice for the LaTeX editor (GTK3 only)])],
+	,[with_goffice="no"])
+if test "x$with_goffice" != "xno"; then
+	PKG_CHECK_MODULES(GOFFICE, [ $goffice_req ],
+		[AC_DEFINE([HAVE_GO_MATH_EDITOR_NEW], [1], [Use goffice math editor])],
+		[if test "x$with_goffice" = "xyes"; then
+			AC_MSG_ERROR([--with-goffice requested but $goffice_req not found])
+		fi])
+fi
 
 ALL_PLUGINS_="\
   m4_n([plugin_list])"
