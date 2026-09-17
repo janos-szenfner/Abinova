@@ -1,3 +1,0 @@
-#include <windows.h>
-
-#include "ap_Win32Res_EpubExportOptions.rc2"
