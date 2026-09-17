@@ -20,7 +20,6 @@ donor_widget (const char *selector)
 	static GtkWidget *textview = nullptr;
 	static GtkWidget *label = nullptr;
 	GtkWidget **slot = &label;
-	GtkWidget * (*ctor)(void) = nullptr;
 
 	if (strstr (selector, "Button") || strstr (selector, "button"))
 	  {
@@ -39,7 +38,6 @@ donor_widget (const char *selector)
 		  *slot = gtk_text_view_new ();
 		else
 		  *slot = gtk_label_new (nullptr);
-		(void)ctor;
 		/* intentional leak: style donors live as long as the app */
 		g_object_ref_sink (*slot);
 	  }

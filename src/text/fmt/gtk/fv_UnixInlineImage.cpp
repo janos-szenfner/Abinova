@@ -71,61 +71,17 @@ void FV_UnixVisualInlineImage::mouseDrag(UT_sint32 x, UT_sint32 y)
 	 UT_DEBUGMSG(("Got image buffer %p\n", pBuf.get()));
 	 if(pBuf)
 	 {
-       //
-       // write the image to a temperary file
-       //
 	     XAP_UnixApp * pXApp = static_cast<XAP_UnixApp *>(XAP_App::getApp());
-	     pXApp->removeTmpFile();
-	     char ** pszTmpName = pXApp->getTmpFile();
-	     //
-	     // Now write the contents of the buffer to a temp file.
-	     // g_file_open_tmp creates it securely (unpredictable name,
-	     // O_EXCL) - a predictable name here would be a
-	     // symlink-attack vector.
-	     //
-	     gchar *pszTmpPath = nullptr;
-	     int iTmpFd = g_file_open_tmp("abiword-XXXXXX.png", &pszTmpPath, nullptr);
-	     if (iTmpFd == -1)
+	     XAP_Frame * pFrame = static_cast<XAP_Frame*>(getView()->getParentData());
+	     XAP_UnixFrameImpl * pFrameImpl =static_cast<XAP_UnixFrameImpl *>( pFrame->getFrameImpl());
+	     GtkWidget * pWindow = pFrameImpl->getTopLevelWindow();
+	     if(!pXApp->dragImageToFile(pWindow, pBuf, x, y))
 	     {
 		 m_bDragOut = true;
 		 abortDrag();
 		 getView()->updateScreen(false);
 		 return;
 	     }
-	     UT_UTF8String sTmpF = pszTmpPath;
-	     g_free(pszTmpPath);
-	     FILE * fd = fdopen(iTmpFd,"w");
-	     if (fd)
-	     {
-		 fwrite(pBuf->getPointer(0),sizeof(UT_Byte),pBuf->getLength(),fd);
-		 fclose(fd);
-	     }
-	     else
-	     {
-		 close(iTmpFd);
-	     }
-
-       //
-       // OK set up the gtk drag and drop code to andle this
-       //
-	     XAP_Frame * pFrame = static_cast<XAP_Frame*>(getView()->getParentData());
-	     XAP_UnixFrameImpl * pFrameImpl =static_cast<XAP_UnixFrameImpl *>( pFrame->getFrameImpl());
-	     GtkWidget * pWindow = pFrameImpl->getTopLevelWindow();
-
-	     // GTK4: drag a GFile; the content provider offers text/uri-list
-	     GdkSurface * surface = gtk_native_get_surface(GTK_NATIVE(pWindow));
-	     GdkSeat * seat = gdk_display_get_default_seat(gtk_widget_get_display(pWindow));
-	     GdkDevice * device = seat ? gdk_seat_get_pointer(seat) : nullptr;
-	     GFile * tmpFile = g_file_new_for_path(sTmpF.utf8_str());
-	     GdkContentProvider * content =
-		     gdk_content_provider_new_typed(G_TYPE_FILE, tmpFile);
-	     g_object_unref(tmpFile);
-	     if (surface && device)
-		     gdk_drag_begin(surface, device, content, GDK_ACTION_COPY, x, y);
-	     g_object_unref(content);
-	     *pszTmpName = g_strdup(sTmpF.utf8_str());  
-	     UT_DEBUGMSG(("Created Tmp File %s XApp %s \n",sTmpF.utf8_str(),*pXApp->getTmpFile()));
-
 	 }
 	 //
 	 // OK quit dragging the image and return to the previous state

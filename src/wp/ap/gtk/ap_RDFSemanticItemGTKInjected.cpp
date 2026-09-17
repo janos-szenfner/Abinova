@@ -426,10 +426,11 @@ public:
         g_signal_connect (setAll, "clicked", G_CALLBACK (OnSemanticStylesheetsSet_cb), &combo_box_data[2] );
 
         g_signal_connect(GTK_WIDGET(gtk_builder_get_object(builder, "OK")), "clicked", G_CALLBACK(OnSemanticStylesheetsOk_cb), combo_box_data);
-    
+
         g_signal_connect (G_OBJECT(window), "response",  G_CALLBACK(OnSemanticStylesheetsDialogResponse), pView );
         gtk_widget_set_visible(window, TRUE);
-        
+        g_object_unref (builder);
+
     }
     std::pair<PT_DocPosition, PT_DocPosition> runInsertReferenceDialog(FV_View* pView) override
     {
@@ -496,10 +497,11 @@ public:
         g_object_set_data( G_OBJECT(tv),     G_OBJECT_WINDOW,   window );
         g_object_set_data( G_OBJECT(window), G_OBJECT_TREEVIEW, tv );
     
-        g_signal_connect (GTK_TREE_VIEW (tv), "row-activated", 
+        g_signal_connect (GTK_TREE_VIEW (tv), "row-activated",
                           G_CALLBACK (OnInsertReferenceDblClicked), static_cast <gpointer>(pView));
         g_signal_connect (G_OBJECT(window), "response",  G_CALLBACK(OnInsertReference), pView );
         gtk_widget_set_visible(window, TRUE);
+        g_object_unref (builder);
 
         std::pair< PT_DocPosition, PT_DocPosition > ret;
         return ret;

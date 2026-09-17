@@ -5858,7 +5858,8 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 	}
 
 	// return the indexed suggestion from the cache
-	if ((s_pvCachedSuggestions->getItemCount()) &&
+	if (s_pvCachedSuggestions &&
+		(s_pvCachedSuggestions->getItemCount()) &&
 		( ndx <= s_pvCachedSuggestions->getItemCount()))
 	{
 		UT_UCS4_cloneString(&szSuggest, s_pvCachedSuggestions->getNthItem(ndx-1));

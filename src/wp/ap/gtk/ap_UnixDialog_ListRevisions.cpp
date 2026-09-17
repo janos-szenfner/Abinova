@@ -82,6 +82,8 @@ AP_UnixDialog_ListRevisions::AP_UnixDialog_ListRevisions(XAP_DialogFactory * pDl
 
 AP_UnixDialog_ListRevisions::~AP_UnixDialog_ListRevisions(void)
 {
+  if (m_treeModel)
+    g_object_unref (G_OBJECT (m_treeModel));
 }
 
 void AP_UnixDialog_ListRevisions::runModal(XAP_Frame * pFrame)

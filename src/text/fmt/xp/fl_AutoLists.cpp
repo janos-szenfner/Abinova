@@ -74,7 +74,9 @@ const char * fl_AutoLists::getFmtList(UT_uint32 i)
     UT_uint32 j = i;
 	if(i > OTHER_NUMBERED_LISTS)
 		j -= (OTHER_NUMBERED_LISTS - DASHED_LIST);
-	return fmt_Lists[i];
+	if(j >= getFmtListsSize())
+		return nullptr;
+	return fmt_Lists[j];
 }
 
 

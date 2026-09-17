@@ -112,6 +112,7 @@ GtkWidget* createFontTabTreeView()
 	treeView = gtk_tree_view_new();
 	listStore = gtk_list_store_new(N_COLUMNS, G_TYPE_STRING);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(treeView), GTK_TREE_MODEL(listStore));
+	g_object_unref(G_OBJECT(listStore));
 	column = gtk_tree_view_column_new();
 	renderer = gtk_cell_renderer_text_new();
 	gtk_tree_view_column_pack_start(column, renderer, TRUE);
@@ -989,7 +990,7 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 		gtk_tree_path_free(path);
 	}
 
-	g_snprintf(sizeString, 60, "%s", std_size_string(UT_convertToPoints(getVal("font-size").c_str())));
+	g_snprintf(sizeString, sizeof(sizeString), "%s", std_size_string(UT_convertToPoints(getVal("font-size").c_str())));
 	foundAt = searchTreeView(GTK_TREE_VIEW(m_sizeList), 
 				 XAP_EncodingManager::fontsizes_mapping.lookupBySource(sizeString));
 

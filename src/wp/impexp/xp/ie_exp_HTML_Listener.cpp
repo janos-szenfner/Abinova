@@ -1191,10 +1191,13 @@ void IE_Exp_HTML_Listener::_openSection(PT_AttrPropIndex api, bool recursiveCall
 	const char* pszRightMargin = nullptr;
 	const char* pszTopMargin = nullptr;
 	const char* pszBottomMargin = nullptr;
-	pAP->getProperty("page-margin-left", (const gchar *&)pszLeftMargin);
-	pAP->getProperty("page-margin-right", (const gchar *&)pszRightMargin);
-	pAP->getProperty("page-margin-top", (const gchar *&)pszTopMargin);
-	pAP->getProperty("page-margin-bottom", (const gchar *&)pszBottomMargin);
+	if (pAP)
+	{
+		pAP->getProperty("page-margin-left", (const gchar *&)pszLeftMargin);
+		pAP->getProperty("page-margin-right", (const gchar *&)pszRightMargin);
+		pAP->getProperty("page-margin-top", (const gchar *&)pszTopMargin);
+		pAP->getProperty("page-margin-bottom", (const gchar *&)pszBottomMargin);
+	}
 	
 	if(pszLeftMargin && pszLeftMargin[0])
 	{
@@ -2365,7 +2368,7 @@ void IE_Exp_HTML_Listener::_openFrame(PT_AttrPropIndex api, const PX_ChangeRecor
     }
     
     const gchar *szType;
-    if (pAP->getProperty("frame-type", szType))
+    if (pAP && pAP->getProperty("frame-type", szType))
     {
         if (!strcmp(szType, "textbox"))
         {
@@ -2486,7 +2489,7 @@ void IE_Exp_HTML_Listener::_insertTOC(PT_AttrPropIndex api)
 
     const gchar *pValue = nullptr;
     bool hasHeading = true; // AbiWord's default
-    ok = pAP->getProperty("toc-has-heading", pValue);
+    ok = pAP && pAP->getProperty("toc-has-heading", pValue);
     if (ok && pValue)
     {
         hasHeading = (*pValue == '1');

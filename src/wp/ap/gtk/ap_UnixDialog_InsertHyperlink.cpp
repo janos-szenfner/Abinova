@@ -175,6 +175,7 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
 
   GtkTreeView * treeview;
   m_clist = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+  g_object_unref (G_OBJECT (store));
   treeview = GTK_TREE_VIEW(m_clist);
   gtk_tree_view_set_headers_visible(treeview, FALSE);
   gtk_tree_selection_set_mode(gtk_tree_view_get_selection(treeview), 

@@ -212,6 +212,10 @@ bool pt_PieceTable::_realInsertObject(PT_DocPosition dpos,
 	        UT_DEBUGMSG(("Object: szProps = |%s| \n",iter->c_str()));
 	        sProps += *iter + ":";
 	        ++iter;
+	        if (iter == properties.end())
+	        {
+	            break;
+	        }
 	        sProps += *iter;
 	        if(iter + 1 != properties.end())
 	        {

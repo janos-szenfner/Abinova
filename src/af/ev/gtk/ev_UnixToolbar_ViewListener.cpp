@@ -27,6 +27,7 @@
 
 EV_UnixToolbar_ViewListener::EV_UnixToolbar_ViewListener(EV_UnixToolbar * pUnixToolbar,
 														 AV_View * pView)
+	: m_lid(0)
 {
 	m_pUnixToolbar = pUnixToolbar;
 	m_pView = pView;

@@ -478,7 +478,7 @@ AP_UnixDialog_Tab::onAddTab ()
 		do {
 			gtk_tree_model_get (model, &iter, 0, &value, -1);
 			pos = strtof (value, nullptr);
-			free(value);
+			g_free(value);
 			if (pos > max)
 				max = pos;
 		} while (gtk_tree_model_iter_next(model, &iter));

@@ -35,6 +35,7 @@
 #include "xap_App.h"
 #include "xap_UnixDialogFactory.h"
 #include "xap_Unix_TB_CFactory.h"
+#include "ut_bytebuf.h"
 
 class AP_UnixToolbar_Icons;
 class AV_View;
@@ -106,6 +107,9 @@ public:
     char **                          getTmpFile(void)
 	{ return &m_szTmpFile;}
 	void                            removeTmpFile(void);
+	bool                            dragImageToFile(GtkWidget * window,
+													const UT_ConstByteBufPtr & pBuf,
+													gint x, gint y);
 	GtkApplication* getGtkApp() const
 	{ return m_gtkApp; }
 protected:

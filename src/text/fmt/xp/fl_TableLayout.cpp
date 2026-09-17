@@ -66,7 +66,7 @@ static void s_border_properties (const char * border_color, const char * border_
 
 
 static void s_border_properties_cell (const char * border_color, const char * border_style, const char * border_width,
-								 const char * color, PP_PropertyMap::Line & line, const PP_PropertyMap::Line lineTable);
+								 const char * color, PP_PropertyMap::Line & line, const PP_PropertyMap::Line & lineTable);
 
 static void s_background_properties (const char * pszBgStyle, const char * pszBgColor,
 									 const char * pszBackgroundColor,
@@ -3068,7 +3068,7 @@ static void s_border_properties_cell (const char * border_color,
 									  const char * border_width,
 									  const char * color, 
 									  PP_PropertyMap::Line & line,
-									  const PP_PropertyMap::Line lineTable
+									  const PP_PropertyMap::Line & lineTable
 									  )
 {
 	/* cell-border properties:

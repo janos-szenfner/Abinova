@@ -898,6 +898,7 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 
 	font_om = GTK_COMBO_BOX(gtk_combo_box_text_new());
 	gtk_combo_box_set_model(font_om, GTK_TREE_MODEL(font_om_menu));
+	g_object_unref (font_om_menu);
 	gtk_widget_show (GTK_WIDGET(font_om));
 	gtk_grid_attach (GTK_GRID (grid2), GTK_WIDGET(font_om), 1, 1, 1, 1);
 

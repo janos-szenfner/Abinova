@@ -297,9 +297,11 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 
 	GtkListStore* comboFind_model = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_POINTER);
 	gtk_combo_box_set_model(GTK_COMBO_BOX(m_comboFind), GTK_TREE_MODEL(comboFind_model));
+	g_object_unref(G_OBJECT(comboFind_model));
 
 	GtkListStore* comboReplace_model = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_POINTER);
 	gtk_combo_box_set_model(GTK_COMBO_BOX(m_comboReplace), GTK_TREE_MODEL(comboReplace_model));
+	g_object_unref(G_OBJECT(comboReplace_model));
 
 	GtkWidget * labelFind = GTK_WIDGET(gtk_builder_get_object(builder, "lblFind"));
 	GtkWidget * labelReplace = GTK_WIDGET(gtk_builder_get_object(builder, "lblReplace"));

@@ -90,6 +90,8 @@ static void s_TabLeader_changed(GtkWidget * wid, AP_UnixDialog_FormatTOC * me )
 
 	std::string sProp = value1;
 	std::string sVal = value2;
+	g_free(value1);
+	g_free(value2);
 	UT_String sNum =  UT_String_sprintf("%d",me->getDetailsLevel());
 	sProp += sNum.c_str();
 	me->setTOCProperty(sProp,sVal);

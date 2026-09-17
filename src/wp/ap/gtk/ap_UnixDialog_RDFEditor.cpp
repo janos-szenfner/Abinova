@@ -235,6 +235,9 @@ AP_UnixDialog_RDFEditor::GIterToStatement( GtkTreeIter* giter )
                         C_OBJ_COLUMN,  &o,
                         -1 );
     PD_RDFStatement st( getModel(), PD_URI(s), PD_URI(p), PD_Object(o) );
+    g_free( s );
+    g_free( p );
+    g_free( o );
     return st;
 }
 
@@ -755,6 +758,9 @@ AP_UnixDialog_RDFEditor::getSelection()
                             -1 );
 
         PD_RDFStatement st( getModel(), PD_URI(s), PD_URI(p), PD_Object(o) );
+        g_free( s );
+        g_free( p );
+        g_free( o );
         ret.push_back( st );
         xxx_UT_DEBUGMSG(("getSelection() st: %s\n", st.toString().utf8_str()));
     }

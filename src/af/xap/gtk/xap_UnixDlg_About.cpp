@@ -83,7 +83,11 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 	gtk_about_dialog_set_documenters(GTK_ABOUT_DIALOG(dlg), documenters);
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dlg), copyright);
 	if (logo)
-		gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(dlg), GDK_PAINTABLE(gdk_texture_new_for_pixbuf(logo)));
+	{
+		GdkTexture *texture = gdk_texture_new_for_pixbuf(logo);
+		gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(dlg), GDK_PAINTABLE(texture));
+		g_object_unref(texture);
+	}
 	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dlg), XAP_App::s_szBuild_Version);
 	gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dlg), website);
 	gtk_about_dialog_set_website_label(GTK_ABOUT_DIALOG(dlg), website);

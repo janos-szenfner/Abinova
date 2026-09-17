@@ -232,7 +232,7 @@ combo_box_set_active_text (GtkComboBox *combo,
 		gtk_tree_model_get (model, &iter, 
 							0, &value, 
 							-1);
-		if (0 == strcmp (text, value)) {
+		if (value && 0 == strcmp (text, value)) {
 			g_free (value); value = nullptr;
 			iter_valid = true;
 			break;
@@ -871,7 +871,7 @@ bool EV_UnixToolbar::synthesize(void)
 				EV_Toolbar_Control * pControl = pFactory->getControl(this, id);
 				UT_ASSERT(pControl);
 
-				GtkWidget *combo;
+				GtkWidget *combo = nullptr;
 				if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE) {
 					combo = gtk_combo_box_text_new_with_entry();
 					GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo)));

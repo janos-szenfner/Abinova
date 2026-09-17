@@ -50,8 +50,10 @@ bool DefaultReader::openFile (const char * szFilename)
 #ifdef _WIN32
 	WCHAR wFilename[MAX_PATH];
 	MultiByteToWideChar(CP_UTF8,0,szFilename,-1,wFilename,MAX_PATH);
+	if (in) fclose (in);
 	in = _wfopen (wFilename, L"r");
 #else
+	if (in) fclose (in);
 	in = fopen (szFilename, "r");
 #endif
 	return (in != nullptr);

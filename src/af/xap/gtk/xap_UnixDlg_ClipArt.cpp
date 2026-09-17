@@ -259,6 +259,7 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 
 		file_path = g_build_filename (this->dir_path, name, nullptr);
 		if (g_file_test (file_path, G_FILE_TEST_IS_DIR)) {
+			g_free (file_path);
 			goto next;
 		}
 
@@ -268,6 +269,8 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 		if (error) {
 			g_warning ("%s", error->message);
 			g_error_free (error);
+			g_free (file_path);
+			g_free (display_name);
 			goto next;
 		}
 
@@ -298,6 +301,7 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 next:
 		name = g_dir_read_name (dir);
 	}
+	g_dir_close (dir);
 	clipartCount = _count;
 
 	gtk_widget_hide (this->progress);

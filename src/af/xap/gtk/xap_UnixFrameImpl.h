@@ -164,6 +164,7 @@ protected:
 			static gint do_ZoomUpdate( gpointer /* xap_UnixFrame * */ p);
 			static void vScrollChanged(GtkAdjustment * w, gpointer /*data*/);
 			static void hScrollChanged(GtkAdjustment * w, gpointer /*data*/);
+			static gboolean _actualScroll(gpointer data);
 			static void destroy (GtkWidget * /*widget*/, gpointer /*data*/);
 			static void focus_in_event(GtkEventControllerFocus *c, GtkWidget *w);
 			static void focus_out_event(GtkEventControllerFocus *c, GtkWidget *w);
@@ -178,6 +179,8 @@ protected:
 	UT_sint32                   m_iNewHeight;
 	guint                       m_iZoomUpdateID;
 	guint                       m_iAbiRepaintID;
+	guint                       m_iScrollIdleID;
+	bool                        m_bScrollWait;
 
 
 	EV_UnixMenuPopup *			m_pUnixPopup; /* only valid while a context popup is up */

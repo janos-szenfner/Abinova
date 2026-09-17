@@ -373,6 +373,7 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 	// TODO nice to clear it up.
 
 	strncpy (p, m_pszDelim, sizeof(p));
+	p[sizeof(p) - 1] = '\0';
 	UT_uint32 rTmp;
 
 	i = 0;

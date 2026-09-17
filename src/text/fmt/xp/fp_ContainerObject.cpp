@@ -475,7 +475,7 @@ bool fp_Container::getPageRelativeOffsets(UT_Rect &r) const
 	
 	UT_return_val_if_fail(pColumnC,false);
 	fl_DocSectionLayout * pDSL = nullptr;
-	if(pColumnC->getContainerType() != FP_CONTAINER_FOOTNOTE || pColumnC->getContainerType() != FP_CONTAINER_ANNOTATION)
+	if(pColumnC->getContainerType() != FP_CONTAINER_FOOTNOTE && pColumnC->getContainerType() != FP_CONTAINER_ANNOTATION)
 	{
 		if(pColumnC->getContainerType() == FP_CONTAINER_FRAME)
 		{

@@ -960,6 +960,8 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	}
 	g_object_unref (G_OBJECT (input));
 	input = UT_go_file_open (file_name, nullptr);
+	if (!input)
+		goto Cleanup;
 	size_t num_bytes = gsf_input_size(input);
 	UT_Byte * bytes = (UT_Byte *) gsf_input_read(input, num_bytes,nullptr );
 	if(bytes == nullptr)

@@ -8909,13 +8909,6 @@ bool fl_BlockLayout::doclistener_populateObject(PT_BlockOffset blockOffset,
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		return false;
 	}
-
-	_assertRunListIntegrity();
-	updateEnclosingBlockIfNeeded();
-	if(isHidden() == FP_HIDDEN_FOLDED)
-	{
-		collapse();
-	}
 }
 
 bool fl_BlockLayout::doclistener_insertObject(const PX_ChangeRecord_Object * pcro)

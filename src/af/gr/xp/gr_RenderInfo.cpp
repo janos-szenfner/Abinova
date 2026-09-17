@@ -586,7 +586,7 @@ void GR_XPRenderInfo::_calculateCharAdvances()
 					// plus because pCharWidths[m] < 0
 					// -1 because it is between m-1 and m
 					UT_sint32 iAdv;
-					if(s_pWidthBuff[m] >= GR_OC_LEFT_FLUSHED)
+					if(s_pWidthBuff[m] & GR_OC_LEFT_FLUSHED)
 					{
 						UT_sint32 iThisWidth = s_pWidthBuff[m] & GR_OC_MAX_WIDTH;
 						iThisWidth -= iWidth;

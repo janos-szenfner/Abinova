@@ -3519,7 +3519,7 @@ void AP_TopRuler::mouseMotion(EV_EditModifierState /*ems*/, UT_sint32 x, UT_sint
 		UT_sint32 newMargin = m_draggingCenter - xAbsLeft;
 		UT_sint32 deltaLeftMargin = newMargin - m_infoCache.u.c.m_xaLeftMargin;
 		UT_sint32 newColumnWidth = m_infoCache.u.c.m_xColumnWidth - deltaLeftMargin / static_cast<UT_sint32>(m_infoCache.m_iNumColumns);
-		if(iFirstIndentL + m_infoCache.m_xrLeftIndent > m_infoCache.m_xrLeftIndent)
+		if(iFirstIndentL > 0)
 		{
 			if(iFirstIndentL + m_infoCache.m_xrLeftIndent > 0)
 			{

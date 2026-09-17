@@ -560,7 +560,11 @@ void GR_UnixCairoGraphics::_endPaint()
 void GR_UnixCairoGraphics::queueDraw(const UT_Rect* clip)
 {
 	UT_ASSERT(m_Widget);
+	if (!m_Widget)
+		return;
 
+	/* GTK4 removed gtk_widget_queue_draw_area/region: only
+	 * full-widget invalidation is available. */
 	UT_UNUSED(clip);
 	gtk_widget_queue_draw(m_Widget);
 }

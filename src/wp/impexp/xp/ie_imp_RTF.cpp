@@ -7547,7 +7547,7 @@ bool IE_Imp_RTF::ApplyParagraphAttributes(bool bDontInsert)
 	{
 		eol--;
 	}
-	if(propBuffer[eol] == ';')
+	if(eol >= 0 && propBuffer[eol] == ';')
 	{
 		propBuffer[eol] = 0;
 	}
@@ -10793,6 +10793,7 @@ bool IE_Imp_RTF::HandleRevisedTextTimestamp(UT_uint32 iDttm)
 	
 	std::vector<AD_Revision> & Rtbl = getDoc()->getRevisions();
 	UT_return_val_if_fail(Rtbl.empty(), true); // was false (This enables RTF spec to load)
+	UT_return_val_if_fail(static_cast<size_t>(m_currentRTFState.m_charProps.m_iCurrentRevisionId) <= Rtbl.size(), true);
 
 	// valid revision id's start at 1, but vector is 0-based
 	AD_Revision& rev = Rtbl[m_currentRTFState.m_charProps.m_iCurrentRevisionId - 1];

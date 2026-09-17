@@ -498,13 +498,14 @@ void Text_Listener::_handleDirMarker(PT_AttrPropIndex api)
 	bool bHaveProp = m_pDocument->getAttrProp (api, &pAP);
 	
 	UT_UCS4Char * pMarker = nullptr;
-		
+	/* these must live at function scope: pMarker may point at them
+	 * and is dereferenced after the property block below */
+	UT_UCS4Char cRLO = UCS_RLO;
+	UT_UCS4Char cLRO = UCS_LRO;
+	UT_UCS4Char cPDF = UCS_PDF;
+
 	if (bHaveProp && pAP)
 	{
-		UT_UCS4Char cRLO = UCS_RLO;
-		UT_UCS4Char cLRO = UCS_LRO;
-		UT_UCS4Char cPDF = UCS_PDF;
-
 		const gchar *szValue = nullptr;
 		if(pAP->getProperty("dir-override", szValue))
 		{

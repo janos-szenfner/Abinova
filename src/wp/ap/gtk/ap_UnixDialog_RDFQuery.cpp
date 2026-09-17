@@ -125,6 +125,8 @@ AP_UnixDialog_RDFQuery::AP_UnixDialog_RDFQuery(XAP_DialogFactory *pDlgFactory,
 AP_UnixDialog_RDFQuery::~AP_UnixDialog_RDFQuery ()
 {
 	UT_DEBUGMSG (("~AP_UnixDialog_RDFQuery ()\n"));
+	if (m_resultsModel)
+		g_object_unref (m_resultsModel);
 }
 
 
@@ -145,7 +147,8 @@ AP_UnixDialog_RDFQuery::addStatement( const PD_RDFStatement& st )
 void
 AP_UnixDialog_RDFQuery::setupBindingsView( std::map< std::string, std::string >& b )
 {
-    if( b.size() >= C_COLUMN_ARRAY_SIZE )
+    // the fill loop below writes b.size() + 2 entries
+    if( b.size() + 2 > C_COLUMN_ARRAY_SIZE )
     {
         return;
     }
@@ -158,6 +161,8 @@ AP_UnixDialog_RDFQuery::setupBindingsView( std::map< std::string, std::string >&
     
     GtkTreeStore* m = gtk_tree_store_newv( n_columns, types );
     gtk_tree_view_set_model( m_resultsView, GTK_TREE_MODEL( m ) );
+    if (m_resultsModel)
+        g_object_unref( m_resultsModel );
     m_resultsModel = m;
 
     while( GtkTreeViewColumn* tvc = gtk_tree_view_get_column( GTK_TREE_VIEW( m_resultsView ), 0 ))
@@ -317,6 +322,8 @@ AP_UnixDialog_RDFQuery::_constructWindow (XAP_Frame * /*pFrame*/)
     
     GtkTreeStore* m = gtk_tree_store_new( C_COLUMN_COUNT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING );
     gtk_tree_view_set_model( m_resultsView, GTK_TREE_MODEL( m ) );
+    if (m_resultsModel)
+        g_object_unref( m_resultsModel );
     m_resultsModel = m;
 
     int colid = 0;

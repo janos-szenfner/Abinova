@@ -145,6 +145,7 @@ bool AP_App::openCmdLinePlugins(const AP_Args * Args, bool &bSuccess)
 				auto moduleInfo = pModule->getModuleInfo();
 				UT_nonnull_or_continue(moduleInfo);
 				szName = moduleInfo->name;
+				UT_nonnull_or_continue(szName);
 				UT_DEBUGMSG(("%s\n", szName));
 				if(strcmp(szName,szRequest) == 0)
 				{
@@ -154,7 +155,7 @@ bool AP_App::openCmdLinePlugins(const AP_Args * Args, bool &bSuccess)
 		}
 		if(!bFound)
 		{
-			fprintf(stderr, "Plugin %s not found or loaded \n",szRequest);
+			fprintf(stderr, "Plugin %s not found or loaded \n", szRequest ? szRequest : "(null)");
 			bSuccess = false;
 			return false;
 		}

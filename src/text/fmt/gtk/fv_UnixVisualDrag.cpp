@@ -169,9 +169,10 @@ void FV_UnixVisualDrag::mouseDrag(UT_sint32 x, UT_sint32 y)
 		 gdk_content_provider_new_typed(G_TYPE_FILE, tmpFile);
 	 g_object_unref(tmpFile);
 	 // also offer the raw RTF payload for targets that accept it
+	 GBytes * rtfBytes = g_bytes_new(pBuf->getPointer(0), pBuf->getLength());
 	 GdkContentProvider * rtfContent =
-		 gdk_content_provider_new_for_bytes("text/rtf",
-				g_bytes_new(pBuf->getPointer(0), pBuf->getLength()));
+		 gdk_content_provider_new_for_bytes("text/rtf", rtfBytes);
+	 g_bytes_unref(rtfBytes);
 	 GdkContentProvider * contents[2] = { fileContent, rtfContent };
 	 GdkContentProvider * content =
 		 gdk_content_provider_new_union(contents, 2);

@@ -414,6 +414,7 @@ bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** format
 				UT_DEBUGMSG(("Found format %s on clipbaord \n",formatList[i]));
 			}
 		}
+		/* ctx.mime_type is borrowed from the clipboard — do not free */
 	}
 
 	return rval;

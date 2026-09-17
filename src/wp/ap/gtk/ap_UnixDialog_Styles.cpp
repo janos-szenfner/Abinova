@@ -417,19 +417,20 @@ void AP_UnixDialog_Styles::event_DeleteClicked(void)
 
 		UT_DEBUGMSG(("DOM: attempting to delete style %s\n", style));
 
-		if (!getDoc()->removeStyle(style)) // actually remove the style
+		bool removed = getDoc()->removeStyle(style); // actually remove the style
+		g_free(style);
+
+		if (!removed)
 		{
 			const XAP_StringSet * pSS = m_pApp->getStringSet();
 			std::string s;
 			pSS->getValueUTF8 (AP_STRING_ID_DLG_Styles_ErrStyleCantDelete,s);
-		
+
 			getFrame()->showMessageBox (s.c_str(),
 										XAP_Dialog_MessageBox::b_O,
 										XAP_Dialog_MessageBox::a_OK);
 			return;
 		}
-
-		g_free(style);
 
 		getFrame()->repopulateCombos();
 		_populateWindowData(); // force a refresh

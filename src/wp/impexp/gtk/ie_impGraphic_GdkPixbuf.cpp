@@ -351,7 +351,7 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 	for(i=0; i< vecStr.getItemCount(); i++)
 		pszStr[i] = vecStr.getNthItem(i);
 	pixbuf = gdk_pixbuf_new_from_xpm_data(pszStr);
-	DELETEP(pszStr);
+	FREEP(pszStr);
 	return pixbuf;
 }
 

@@ -188,8 +188,9 @@ void AP_UnixDialog_Stylist::setStyleInGUI(void)
 			{
 				gtk_tree_model_get(model, &child, 0, &entry, -1);
 
-				if (sLocCurStyle.c_str() == entry)
+				if (entry && sLocCurStyle.c_str() == entry)
 				{
+					g_free(entry);
 					gPathFull = gtk_tree_model_get_path(model, &child);
 					gPathRow = gtk_tree_model_get_path(model, &parent);
 					itering = FALSE;

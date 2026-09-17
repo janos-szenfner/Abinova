@@ -88,7 +88,7 @@ void XAP_Preview_Zoom::setFont(XAP_Preview_Zoom::tFont f)
 void XAP_Preview_Zoom::setZoomPercent(UT_uint32 percent)
 {
 	UT_ASSERT(m_gc);
-	UT_ASSERT(percent > 0 || percent < 1000);
+	UT_ASSERT(percent > 0 && percent < 1000);
 
 	m_zoomPercent = percent;
 	

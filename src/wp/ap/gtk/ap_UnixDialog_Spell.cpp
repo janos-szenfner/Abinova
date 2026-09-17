@@ -553,6 +553,7 @@ AP_UnixDialog_Spell::onSuggestionSelected ()
 	g_signal_handler_block(G_OBJECT(m_eChange), m_replaceHandlerID);
 	XAP_gtk_entry_set_text(GTK_ENTRY(m_eChange), newreplacement);
 	g_signal_handler_unblock(G_OBJECT(m_eChange), m_replaceHandlerID);
+	g_free(newreplacement);
 }
 
 /*!
@@ -576,15 +577,17 @@ AP_UnixDialog_Spell::onSuggestionChanged ()
 		{
 			gchar *label = nullptr;
 			gtk_tree_model_get (model, &iter, COLUMN_SUGGESTION, &label, -1);
-			if (g_ascii_strncasecmp (modtext, label, strlen (modtext)) == 0)
+			if (label && g_ascii_strncasecmp (modtext, label, strlen (modtext)) == 0)
 			{
 				GtkTreePath *path = gtk_tree_model_get_path (model, &iter);
 				g_signal_handler_block(G_OBJECT(selection), m_listHandlerID);
 				gtk_tree_selection_select_path (selection, path);
 				g_signal_handler_unblock(G_OBJECT(selection), m_listHandlerID);
 				gtk_tree_path_free (path);
-				return;			
+				g_free (label);
+				return;
 			}
+			g_free (label);
 		}
 	   	while (gtk_tree_model_iter_next (model, &iter));
 	}

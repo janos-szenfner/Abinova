@@ -1165,8 +1165,13 @@ bool AP_UnixApp::makePngPreview(const char * pszInFile, const char * pszPNGFile,
 	PD_Document * pNewDoc = new PD_Document();
 	error = pNewDoc->readFromFile(pszInFile,IEFT_Unknown, nullptr);
 
-	if (error != UT_OK) 
+	if (error != UT_OK)
 	{
+		pG->endPaint();
+		cairo_destroy(cr);
+		cairo_surface_destroy(surface);
+		DELETEP(pG);
+		UNREFP(pNewDoc);
 		return false;
 	}
 	AP_Preview_Abi * pPrevAbi = new AP_Preview_Abi(pG,iWidth,iHeight,nullptr, PREVIEW_ZOOMED,pNewDoc);

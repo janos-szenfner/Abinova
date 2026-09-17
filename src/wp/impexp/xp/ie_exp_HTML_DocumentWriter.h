@@ -114,8 +114,8 @@ public:
     virtual void insertMeta(const std::string& name, const std::string& content,
             const std::string& httpEquiv) override;
     virtual void insertText(const UT_UTF8String &text) override;
-    virtual void insertImage(const UT_UTF8String &url, const UT_UTF8String &width,
-        const UT_UTF8String &align, const UT_UTF8String &style,
+    virtual void insertImage(const UT_UTF8String &url, const UT_UTF8String &align,
+        const UT_UTF8String &style, const UT_UTF8String &title,
         const UT_UTF8String &alt) override;
     virtual void insertTOC(const gchar *title, const std::vector<UT_UTF8String> &items,
         const std::vector<UT_UTF8String> &itemUriList) override;

@@ -72,7 +72,7 @@ protected:
 	XAP_UnixApp *					m_pUnixApp;
 	XAP_Frame *						m_pFrame;
 	EV_UnixToolbar_ViewListener *	m_pViewListener;
-	AV_ListenerId					m_lid;	/* view listener id */
+	AV_ListenerId					m_lid = 0;	/* view listener id */
 
 	GtkWidget *						m_wToolbar;
 	GtkSizeGroup *					m_wVSizeGroup;

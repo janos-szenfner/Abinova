@@ -2115,13 +2115,10 @@ bool FV_View::cmdInsertRow(PT_DocPosition posRow, bool bBefore)
 		std::vector<UT_sint32>::iterator it = vColInsert.begin();
 		for (UT_sint32 k = 0; k < numCols;)
 		{
-			if (k == (*it))
+			if (it != vColInsert.end() && k == (*it))
 			{
 				++k;
-				if (it != vColInsert.end())
-				{
-					++it;
-				}
+				++it;
 				continue;
 			}
 			pCell = pTab->getCellAtRowColumn(iTopInsert,k);

@@ -252,7 +252,7 @@ std::string PP_Revision::toString() const
         ret << "!";
 
     // print the id with appropriate sign
-    ret << (int)(getId()* ((r_type == PP_REVISION_DELETION)?-1:1));
+    ret << (r_type == PP_REVISION_DELETION ? -static_cast<int>(getId()) : static_cast<int>(getId()));
     
     if(r_type != PP_REVISION_DELETION)
     {

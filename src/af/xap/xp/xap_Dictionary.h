@@ -39,7 +39,7 @@ public:
 
 	bool				load(void);
 	bool				save(void);
-	UT_uint32                       countCommonChars(UT_UCS4Char * pszNeedle, UT_UCS4Char *pszHaystack);
+	UT_uint32                       countCommonChars(UT_UCS4Char * pszHaystack, UT_UCS4Char *pszNeedle);
 	void                            suggestWord(UT_GenericVector<UT_UCS4Char *> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 len);
 	bool                            addWord(const char * pWord);
 	bool				addWord(const UT_UCS4Char * pWord, UT_uint32 len);

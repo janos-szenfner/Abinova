@@ -458,7 +458,7 @@ static EV_EditBits s_mapVirtualKeyCodeToNVK(guint keyval)
 
 	if (keyval > 0xFF00)
 		return s_Table_NVK_0xff[keyval - 0xFF00];
-	if (keyval > 0xFE00)
+	if (keyval > 0xFE00 && keyval < 0xFF00)
 		return s_Table_NVK_0xfe[keyval - 0xFE00];
 
 	if (keyval == 0x0020)

@@ -12784,6 +12784,8 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 				pBMax = pB;
 			}
 		}
+		if (!pBMax)
+			pBMax = vBlocks.getNthItem(0);
 		posAnnStart = pBMax->getPosition();
 		posAnnEnd = pBMax->getPosition(true) + pBMax->getLength();
 		if(posAnnStart < posStart)

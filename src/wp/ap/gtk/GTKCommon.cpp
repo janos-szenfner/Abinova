@@ -80,8 +80,11 @@ getSelectedText( GtkTreeView* tv, int colnum )
 
 	gchar *label = nullptr;
 	gtk_tree_model_get (model, &iter, colnum, &label, -1);
-    ret = label;
-    g_free(label);
+	if (label)
+	{
+		ret = label;
+		g_free(label);
+	}
 	return ret;
 }
 
@@ -384,7 +387,10 @@ public:
         nTypeList    = static_cast<IEFileType *>(UT_calloc(len + 1, sizeof(IEFileType)));
         if(!szDescList || !szSuffixList || !nTypeList)
         {
-            throw;
+            FREEP(nTypeList);
+            FREEP(szSuffixList);
+            FREEP(szDescList);
+            throw std::bad_alloc();
         }
     }
     

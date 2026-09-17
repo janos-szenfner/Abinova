@@ -1333,7 +1333,10 @@ abi_widget_get_content(AbiWidget * w, const char * extension_or_mimetype, const 
 	
 	UT_Error result = w->priv->m_pDoc->saveAs(GSF_OUTPUT(sink), ieft, true, (!exp_props || *exp_props == '\0' ? nullptr : exp_props));
 	if(result != UT_OK)
-		return nullptr; // leaks sink??
+	{
+		g_object_unref(G_OBJECT(sink));
+		return nullptr;
+	}
 	gsf_output_close(GSF_OUTPUT(sink));
 	guint32 size = gsf_output_size (GSF_OUTPUT(sink));
 	const guint8* ibytes = gsf_output_memory_get_bytes (sink);
@@ -1393,8 +1396,14 @@ abi_widget_get_selection(AbiWidget * w, const gchar * extension_or_mimetype, gin
 	IEFileType newFileType;
 	errorCode = IE_Exp::constructExporter(w->priv->m_pDoc, GSF_OUTPUT(sink), ieft, &pie, &newFileType);
 	if (errorCode)
+	{
+		g_object_unref(G_OBJECT(sink));
+		delete pDocRange;
 		return nullptr;
+	}
 	pie->copyToBuffer(pDocRange,&buf);
+	delete pDocRange;
+	delete pie;
 	guint32 size = buf.getLength();
 	gchar * szOut = g_new (gchar, size+1);
 	memcpy(szOut,buf.getPointer(0),size);
@@ -2079,6 +2088,18 @@ abi_widget_destroy_gtk (GObject *object)
 		// TODO: release the frame listener
 		if(abi->priv->m_pFrame)
 		{
+			// the loading-cursor timer holds a static pointer to this
+			// frame; if it is still armed, stop it before the frame dies
+			if (s_pLoadingFrame == abi->priv->m_pFrame)
+			{
+				if (s_pToUpdateCursor)
+				{
+					s_pToUpdateCursor->stop();
+					DELETEP(s_pToUpdateCursor);
+				}
+				s_pLoadingFrame = nullptr;
+				s_pLoadingDoc = nullptr;
+			}
 #ifdef LOGFILE
 			fprintf(getlogfile(),"frame count before forgetting = %d \n",pApp->getFrameCount());
 #endif

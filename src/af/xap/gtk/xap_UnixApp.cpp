@@ -149,6 +149,60 @@ void XAP_UnixApp::removeTmpFile(void)
 	m_szTmpFile = nullptr;
 }
 
+//
+// Write an image buffer to a secure temp file and start a GTK drag
+// offering it as a file copy. Shared by the frame-edit and
+// inline-image drag-out paths.
+//
+bool XAP_UnixApp::dragImageToFile(GtkWidget * window,
+								  const UT_ConstByteBufPtr & pBuf,
+								  gint x, gint y)
+{
+	//
+	// g_file_open_tmp creates the file securely (unpredictable name,
+	// O_EXCL) - a predictable name here would be a symlink-attack
+	// vector.
+	//
+	removeTmpFile();
+	gchar *pszTmpPath = nullptr;
+	int iTmpFd = g_file_open_tmp("abiword-XXXXXX.png", &pszTmpPath, nullptr);
+	if (iTmpFd == -1)
+	{
+		return false;
+	}
+	UT_UTF8String sTmpF = pszTmpPath;
+	g_free(pszTmpPath);
+	FILE * fd = fdopen(iTmpFd,"w");
+	if (fd)
+	{
+		fwrite(pBuf->getPointer(0),sizeof(UT_Byte),pBuf->getLength(),fd);
+		fclose(fd);
+	}
+	else
+	{
+		close(iTmpFd);
+		g_unlink(sTmpF.utf8_str());
+		return false;
+	}
+
+	//
+	// GTK4: drag a GFile; the content provider offers text/uri-list
+	//
+	GdkSurface * surface = gtk_native_get_surface(GTK_NATIVE(window));
+	GdkSeat * seat = gdk_display_get_default_seat(gtk_widget_get_display(window));
+	GdkDevice * device = seat ? gdk_seat_get_pointer(seat) : nullptr;
+	GFile * tmpFile = g_file_new_for_path(sTmpF.utf8_str());
+	GdkContentProvider * content =
+		gdk_content_provider_new_typed(G_TYPE_FILE, tmpFile);
+	g_object_unref(tmpFile);
+	if (surface && device)
+		gdk_drag_begin(surface, device, content, GDK_ACTION_COPY, x, y);
+	g_object_unref(content);
+	m_szTmpFile = g_strdup(sTmpF.utf8_str());
+	UT_DEBUGMSG(("Created Tmp File %s XApp %s \n",sTmpF.utf8_str(),m_szTmpFile));
+	return true;
+}
+
 bool XAP_UnixApp::initialize(const char * szKeyBindingsKey, const char * szKeyBindingsDefaultValue)
 {
 	// let our base class do it's thing.

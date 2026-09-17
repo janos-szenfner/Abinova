@@ -102,13 +102,6 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 	enum: uint8_t { S_START, S_INTOKEN, S_INDQUOTE, S_INSQUOTE } state;
 	state = S_START;
 
-#define GrowArrayIfNecessary()								\
-	do	{	if (k==count)									\
-			{	int newsize = (count+10)*sizeof(char *);	\
-				argv = (char **)g_try_realloc(argv,newsize);	\
-				count += 10;								\
-		}} while (0)
-
 	char * p = m_szBuf;
 	while (*p)
 	{
@@ -134,7 +127,14 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 			else
 				state=S_INTOKEN;
 
-			GrowArrayIfNecessary();
+			if (k==count)
+			{
+				char ** tmp = (char **)g_try_realloc(argv,(count+10)*sizeof(char *));
+				if (!tmp)
+					goto done;	/* OOM: keep already-parsed args */
+				argv = tmp;
+				count += 10;
+			}
 			argv[k++] = p++;
 			break;
 			
@@ -172,10 +172,12 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 			break;
 		}
 	}
-	
+
+done:
 	if (k==0)
 	{
 		FREEP(m_szBuf);
+		FREEP(argv);
 		return;
 	}
 

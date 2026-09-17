@@ -600,6 +600,8 @@ XAP_UnixFrameImpl::XAP_UnixFrameImpl(XAP_Frame *pFrame) :
 	m_iNewHeight(0),
 	m_iZoomUpdateID(0),
 	m_iAbiRepaintID(0),
+	m_iScrollIdleID(0),
+	m_bScrollWait(false),
 	m_pUnixPopup(nullptr),
 	m_dialogFactory(XAP_App::getApp(), pFrame),
 	m_iPreeditLen (0),
@@ -609,7 +611,7 @@ XAP_UnixFrameImpl::XAP_UnixFrameImpl(XAP_Frame *pFrame) :
 
 XAP_UnixFrameImpl::~XAP_UnixFrameImpl()
 {
-	if(m_bDoZoomUpdate) {
+	if(m_iZoomUpdateID) {
 		g_source_remove(m_iZoomUpdateID);
 	}
 
@@ -617,6 +619,10 @@ XAP_UnixFrameImpl::~XAP_UnixFrameImpl()
 	if(m_iAbiRepaintID)
 	{
 		g_source_remove(m_iAbiRepaintID);
+	}
+	if(m_iScrollIdleID)
+	{
+		g_source_remove(m_iScrollIdleID);
 	}
 
 	DELETEP(m_pUnixMenu);
@@ -737,6 +743,11 @@ gint XAP_UnixFrameImpl::_fe::do_ZoomUpdate(gpointer /* XAP_UnixFrameImpl * */ p)
 	if(!pView || pFrame->isFrameLocked() ||
 	   ((pUnixFrameImpl->m_bDoZoomUpdate) && (prevWidth == iNewWidth) && (prevHeight == iNewHeight)))
 	{
+		if(!pView)
+		{
+			// source stays alive — keep m_iZoomUpdateID so the dtor can remove it
+			return TRUE;
+		}
 		pUnixFrameImpl->m_iZoomUpdateID = 0;
 		pUnixFrameImpl->m_bDoZoomUpdate = false;
 		if(pView && !pFrame->isFrameLocked())
@@ -764,17 +775,17 @@ gint XAP_UnixFrameImpl::_fe::do_ZoomUpdate(gpointer /* XAP_UnixFrameImpl * */ p)
 		{
 			pView->setWindowSize(iNewWidth, iNewHeight);
 		}
-		//
-		// Come back later when we have a view
-		//
-   		if(!pView)
-			return TRUE;
 		return FALSE;
 	}
 	if(!pView || pFrame->isFrameLocked() ||
 	   ((prevWidth == iNewWidth) && (pFrame->getZoomType() != XAP_Frame::z_WHOLEPAGE)))
 	{
 		xxx_UT_DEBUGMSG(("Abandoning zoom widths are equal \n"));
+		if(!pView)
+		{
+			// source stays alive — keep m_iZoomUpdateID so the dtor can remove it
+			return TRUE;
+		}
 		pUnixFrameImpl->m_iZoomUpdateID = 0;
 		pUnixFrameImpl->m_bDoZoomUpdate = false;
 		if(pView && !pFrame->isFrameLocked())
@@ -800,11 +811,6 @@ gint XAP_UnixFrameImpl::_fe::do_ZoomUpdate(gpointer /* XAP_UnixFrameImpl * */ p)
 		}
 		if(pView)
 			pView->setWindowSize(iNewWidth, iNewHeight);
-		//
-		// Come back later when we have a view
-		//
-   		if(!pView)
-			return TRUE;
 		return FALSE;
 	}
 
@@ -825,7 +831,11 @@ gint XAP_UnixFrameImpl::_fe::do_ZoomUpdate(gpointer /* XAP_UnixFrameImpl * */ p)
 
 		// oops, we're not ready yet.
 		if (pView->isLayoutFilling())
+		{
+			pUnixFrameImpl->m_iZoomUpdateID = 0;
+			pUnixFrameImpl->m_bDoZoomUpdate = false;
 			return FALSE;
+		}
 
 		iNewWidth = pUnixFrameImpl->m_iNewWidth;
 		iNewHeight = pUnixFrameImpl->m_iNewHeight;
@@ -1112,44 +1122,50 @@ void XAP_UnixFrameImpl::_fe::draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 	}
 }
 
-static bool bScrollWait = false;
-
 class _ViewScroll
 {
 public:
-	_ViewScroll(AV_View * pView, UT_sint32 amount):
-		m_pView(pView),m_amount(amount)
+	_ViewScroll(XAP_UnixFrameImpl * pImpl, AV_View * pView, UT_sint32 amount):
+		m_pImpl(pImpl),m_pView(pView),m_amount(amount)
 	{
 	}
+	XAP_UnixFrameImpl * m_pImpl;
 	AV_View * m_pView;
 	UT_sint32 m_amount;
 };
 
-static gboolean _actualScroll(gpointer data)
+gboolean XAP_UnixFrameImpl::_fe::_actualScroll(gpointer data)
 {
 	_ViewScroll * pVS = reinterpret_cast<_ViewScroll *>(data);
 	AV_View * pView = pVS->m_pView;
 	xxx_UT_DEBUGMSG(("vScrollSchanged callback\n"));
-	if (pView)
+	pVS->m_pImpl->m_iScrollIdleID = 0;
+	pVS->m_pImpl->m_bScrollWait = false;
+	XAP_Frame * pFrame = pVS->m_pImpl->getFrame();
+	if (pView && pFrame && pFrame->getCurrentView() == pView)
 		pView->sendVerticalScrollEvent(pVS->m_amount);
-	bScrollWait = false;
-	delete pVS;
 	return FALSE;
+}
+
+static void _scrollDataFree(gpointer data)
+{
+	delete reinterpret_cast<_ViewScroll *>(data);
 }
 
 void XAP_UnixFrameImpl::_fe::vScrollChanged(GtkAdjustment * w, gpointer /*data*/)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
-	if(bScrollWait)
+	if(pUnixFrameImpl->m_bScrollWait)
 	{
 		xxx_UT_DEBUGMSG(("VScroll dropped!!! \n"));
 		return;
 	}
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
 	AV_View * pView = pFrame->getCurrentView();
-	_ViewScroll * pVS = new  _ViewScroll(pView,static_cast<UT_sint32>(gtk_adjustment_get_value(w)));
-	bScrollWait = true;
-	g_idle_add(_actualScroll, (gpointer) pVS);
+	_ViewScroll * pVS = new  _ViewScroll(pUnixFrameImpl,pView,static_cast<UT_sint32>(gtk_adjustment_get_value(w)));
+	pUnixFrameImpl->m_bScrollWait = true;
+	pUnixFrameImpl->m_iScrollIdleID =
+		g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, _actualScroll, pVS, _scrollDataFree);
 }
 
 void XAP_UnixFrameImpl::_fe::hScrollChanged(GtkAdjustment * w, gpointer /*data*/)
