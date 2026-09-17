@@ -170,7 +170,7 @@ void GR_RSVGVectorImage::renderToSurface(cairo_surface_t* surf) {
 	UT_String name;
 	getName(name);
 	DELETEP(m_rasterImage);
-	m_rasterImage = new GR_UnixImage(name.c_str(), rsvg_handle_get_pixbuf_and_error(m_svg, NULL));
+	m_rasterImage = new GR_UnixImage(name.c_str(), rsvg_handle_get_pixbuf(m_svg));
 	m_rasterImage->scale(getDisplayWidth(), getDisplayHeight());
 	cairo_destroy(cr);
 }

@@ -40,6 +40,20 @@ m4/plugin-configure.m4
 m4/plugin-list.m4
 m4/plugin-makefiles.m4
 
+# configure/build generated files
+*.pc
+com.abisource.AbiWord.metainfo.xml
+.dirstamp
+po/*.strings
+src/abi-resources.c
+src/abi-resources.h
+src/abiword
+src/plugins/abi-builtin-plugins-calls.inc
+src/plugins/abi-builtin-plugins-decls.inc
+src/plugins/builtin-stamp
+src/wp/ap/ap_wp_sidebar.cpp
+src/wp/test/unix/testwrap.sh
+
 # Build outputs
 *.o
 *.lo
