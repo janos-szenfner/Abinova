@@ -24,6 +24,7 @@
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
 #include "xap_UnixApp.h"
+#include <unistd.h>
 
 
 
@@ -69,8 +70,8 @@ void FV_UnixFrameEdit::mouseDrag(UT_sint32 x, UT_sint32 y)
      if(!m_bDragOut)
      {
 	 UT_ConstByteBufPtr pBuf;
-	 const char * pszData = getPNGImage(pBuf);
-	 UT_DEBUGMSG(("Got image buffer %p pszData %p \n", pBuf.get(), pszData));
+	 getPNGImage(pBuf);
+	 UT_DEBUGMSG(("Got image buffer %p\n", pBuf.get()));
 	 if(pBuf)
 	 {
        //
@@ -79,16 +80,32 @@ void FV_UnixFrameEdit::mouseDrag(UT_sint32 x, UT_sint32 y)
 	     XAP_UnixApp * pXApp = static_cast<XAP_UnixApp *>(XAP_App::getApp());
 	     pXApp->removeTmpFile();
 	     char ** pszTmpName = pXApp->getTmpFile();
-	     UT_UTF8String sTmpF = g_get_tmp_dir();
-	     sTmpF += "/";
-	     sTmpF += pszData;
-	     sTmpF += ".png";
 	     //
 	     // Now write the contents of the buffer to a temp file.
+	     // g_file_open_tmp creates it securely (unpredictable name,
+	     // O_EXCL) - a predictable name here would be a
+	     // symlink-attack vector.
 	     //
-	     FILE * fd = fopen(sTmpF.utf8_str(),"w");
-	     fwrite(pBuf->getPointer(0),sizeof(UT_Byte),pBuf->getLength(),fd);
-	     fclose(fd);
+	     gchar *pszTmpPath = nullptr;
+	     int iTmpFd = g_file_open_tmp("abiword-XXXXXX.png", &pszTmpPath, nullptr);
+	     if (iTmpFd == -1)
+	     {
+		 m_bDragOut = true;
+		 abortDrag();
+		 return;
+	     }
+	     UT_UTF8String sTmpF = pszTmpPath;
+	     g_free(pszTmpPath);
+	     FILE * fd = fdopen(iTmpFd,"w");
+	     if (fd)
+	     {
+		 fwrite(pBuf->getPointer(0),sizeof(UT_Byte),pBuf->getLength(),fd);
+		 fclose(fd);
+	     }
+	     else
+	     {
+		 close(iTmpFd);
+	     }
 
        //
        // OK set up the gtk drag and drop code to andle this

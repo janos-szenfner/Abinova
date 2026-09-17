@@ -22,15 +22,19 @@
 #include "xap_UnixDialog.h"
 #include "xap_UnixDialogHelper.h"
 
-static void s_delete_clicked(GtkWidget * widget, gpointer, gpointer)
+static gboolean s_delete_clicked(GtkWindow *, gpointer)
 {
-  abiDestroyWidget(widget);
+  /* GTK4: returning FALSE lets the default close-request handler
+   * destroy the window; modeless dialogs install their own
+   * close-request handler that runs the framework cleanup path
+   * (the GTK3 "destroy" signal does not exist anymore). */
+  return FALSE;
 }
 
 void XAP_UnixDialog::connectBasicSignals()
 {
   g_signal_connect(G_OBJECT(m_windowMain),
-                   "delete_event",
+                   "close-request",
                    G_CALLBACK(s_delete_clicked),
                    static_cast<gpointer>(this));
 }

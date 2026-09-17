@@ -137,7 +137,6 @@ AP_UnixDialog_RDFEditor__onDialogResponse ( GtkDialog * /*dialog*/,
 */
 gboolean
 AP_UnixDialog_RDFEditor__onDeleteWindow ( GtkWidget * /*widget*/,
-                                          GdkEvent  * /*event*/,
                                           gpointer  data )
 {
 	AP_UnixDialog_RDFEditor *dlg = static_cast <AP_UnixDialog_RDFEditor *>(data);
@@ -663,7 +662,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
 					  G_CALLBACK (AP_UnixDialog_RDFEditor__onActionExportRDFXML), static_cast <gpointer>(this));
     g_signal_connect (GTK_DIALOG (m_wDialog), "response",
 					  G_CALLBACK (AP_UnixDialog_RDFEditor__onDialogResponse), static_cast <gpointer>(this));
-	g_signal_connect (m_wDialog, "delete-event",
+	g_signal_connect (m_wDialog, "close-request",
 					  G_CALLBACK (AP_UnixDialog_RDFEditor__onDeleteWindow), static_cast <gpointer>(this));
 	g_signal_connect (m_resultsView, "cursor-changed",
 					  G_CALLBACK (AP_UnixDialog_RDFEditor__onCursorChanged), static_cast <gpointer>(this));

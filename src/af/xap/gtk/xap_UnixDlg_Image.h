@@ -67,8 +67,8 @@ class XAP_UnixDialog_Image: public XAP_Dialog_Image
 	static void s_WidthSpin_changed(GtkWidget * widget, XAP_UnixDialog_Image *dlg) ;
 
 	static void s_HeightEntry_changed(GtkWidget * widget, XAP_UnixDialog_Image *dlg) ;
-	static gboolean s_HeightEntry_FocusOut(GtkWidget * widget, GdkEvent  *event, XAP_UnixDialog_Image *dlg);
-	static gboolean s_WidthEntry_FocusOut(GtkWidget * widget, GdkEvent  *event, XAP_UnixDialog_Image *dlg);
+	static void s_HeightEntry_FocusOut(GtkEventControllerFocus *controller, XAP_UnixDialog_Image *dlg);
+	static void s_WidthEntry_FocusOut(GtkEventControllerFocus *controller, XAP_UnixDialog_Image *dlg);
 
 	static void s_WidthEntry_changed(GtkWidget * widget, XAP_UnixDialog_Image *dlg) ;
 

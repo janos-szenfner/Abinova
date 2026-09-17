@@ -43,10 +43,11 @@ static void s_close_clicked(GtkWidget * /*widget*/,AP_UnixDialog_Latex * dlg)
 	dlg->event_Close();
 }
 
-static void s_destroy_clicked(GtkWidget * /*widget*/,AP_UnixDialog_Latex * dlg)
+static gboolean s_destroy_clicked (GtkWidget * /*widget*/,AP_UnixDialog_Latex * dlg)
 {
 	UT_ASSERT(dlg);
 	dlg->event_Close();
+	return TRUE;
 }
 
 static void s_insert_clicked(GtkWidget * /*widget*/,AP_UnixDialog_Latex * dlg)
@@ -216,7 +217,7 @@ void AP_UnixDialog_Latex::constructDialog(void)
 	gtk_window_set_title (GTK_WINDOW(m_windowMain), m_sWindowName.utf8_str());
 
 	connectBasicSignals();
-	g_signal_connect(G_OBJECT(m_windowMain), "destroy",
+	g_signal_connect(G_OBJECT(m_windowMain), "close-request",
 					   G_CALLBACK(s_destroy_clicked),
 					   reinterpret_cast<gpointer>(this));
 	g_signal_connect(G_OBJECT(m_wClose), "clicked",

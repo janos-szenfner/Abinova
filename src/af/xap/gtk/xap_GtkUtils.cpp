@@ -73,16 +73,9 @@ void xap_gtk_container_add(GtkWidget* container, GtkWidget* child)
     gtk_widget_set_parent(child, container);
 }
 
-void xap_gtk_container_remove(GtkWidget* container, GtkWidget* child)
+void xap_gtk_container_remove(GtkWidget* /*container*/, GtkWidget* child)
 {
-  if (GTK_IS_BOX(container))
-    gtk_box_remove(GTK_BOX(container), child);
-  else if (GTK_IS_WINDOW(container) || GTK_IS_FRAME(container) ||
-           GTK_IS_SCROLLED_WINDOW(container) || GTK_IS_POPOVER(container) ||
-           GTK_IS_EXPANDER(container))
-    gtk_widget_unparent(child);
-  else
-    gtk_widget_unparent(child);
+  gtk_widget_unparent(child);
 }
 
 void XAP_gtk_widget_set_margin(GtkWidget* w, gint margin)
@@ -93,7 +86,3 @@ void XAP_gtk_widget_set_margin(GtkWidget* w, gint margin)
   gtk_widget_set_margin_end(w, margin);
 }
 
-void XAP_gtk_keyboard_ungrab(GtkWidget* /*widget*/)
-{
-  /* GTK4 removed the seat grab APIs; grabs are managed internally. */
-}

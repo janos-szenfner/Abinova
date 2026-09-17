@@ -125,7 +125,7 @@ protected:
 
 	void _imCommit (GtkIMContext * imc, const gchar * text);
 
-	virtual void dragText() override;
+
 
 	static void _imCommit_cb(GtkIMContext *imc, const gchar* text, gpointer data);
 	static void _imPreeditStart_cb (GtkIMContext *context, gpointer data);

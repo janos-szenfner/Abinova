@@ -3486,13 +3486,13 @@ void GR_CairoGraphics::restoreRectangle(UT_uint32 iIndex)
 
 	cairo_save(m_cr);
 	cairo_reset_clip(m_cr);
-	UT_Rect *r = m_vSaveRect[iIndex];
-	cairo_surface_t *s = m_vSaveRectBuf[iIndex];
-	double idx = static_cast<double>(_tduX(r->left)) - 0.5;
-	double idy = static_cast<double>(_tduY(r->top)) - 0.5;
-	cairo_surface_flush(cairo_get_target(m_cr));
+	UT_Rect *r = (iIndex < m_vSaveRect.size()) ? m_vSaveRect[iIndex] : nullptr;
+	cairo_surface_t *s = (iIndex < m_vSaveRectBuf.size()) ? m_vSaveRectBuf[iIndex] : nullptr;
 	if(s && r)
 	{
+		double idx = static_cast<double>(_tduX(r->left)) - 0.5;
+		double idy = static_cast<double>(_tduY(r->top)) - 0.5;
+		cairo_surface_flush(cairo_get_target(m_cr));
 		cairo_set_source_surface(m_cr, s, idx, idy);
 		cairo_paint(m_cr);
 	}

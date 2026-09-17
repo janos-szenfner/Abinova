@@ -2100,6 +2100,9 @@ abi_widget_destroy_gtk (GObject *object)
 #ifdef LOGFILE
 	fprintf(getlogfile(),"abiwidget destroyed in abi_widget_destroy_gtk\n");
 #endif
+
+	// chain up so GtkWidget::dispose unparents our child widget tree
+	G_OBJECT_CLASS (parent_class)->dispose (object);
 }
 
 

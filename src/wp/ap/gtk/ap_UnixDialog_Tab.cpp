@@ -140,7 +140,6 @@ AP_UnixDialog_Tab__onDeleteTab (GtkButton * /*widget*/,
 //! Callback for closing window via window manager.
 static gboolean
 AP_UnixDialog_Tab__onCloseWindow (GtkWidget * /*widget*/,
-								  GdkEvent  * /*event*/,
 								  gpointer   data)
 {
 	AP_UnixDialog_Tab *dlg = static_cast<AP_UnixDialog_Tab*>(data);
@@ -403,7 +402,7 @@ AP_UnixDialog_Tab::_connectSignals (GtkBuilder *builder)
 					  (gpointer)this);
 
     g_signal_connect (GTK_WIDGET(gtk_builder_get_object(builder, "ap_UnixDialog_Tab")), 
-					  "delete-event", 
+					  "close-request", 
 					  G_CALLBACK (AP_UnixDialog_Tab__onCloseWindow), 
 					  (gpointer)this);
 }

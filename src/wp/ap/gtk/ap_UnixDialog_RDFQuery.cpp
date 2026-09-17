@@ -80,7 +80,6 @@ AP_UnixDialog_RDFQuery__onDialogResponse (GtkDialog * /*dialog*/,
 */
 gboolean
 AP_UnixDialog_RDFQuery__onDeleteWindow (GtkWidget * /*widget*/,
-									GdkEvent  * /*event*/,
 									gpointer  data)
 {
 	AP_UnixDialog_RDFQuery *dlg = static_cast <AP_UnixDialog_RDFQuery *>(data);
@@ -356,7 +355,7 @@ AP_UnixDialog_RDFQuery::_constructWindow (XAP_Frame * /*pFrame*/)
 					  G_CALLBACK (AP_UnixDialog_RDFQuery__onShowAllClicked), static_cast <gpointer>(this));
 	g_signal_connect (GTK_DIALOG (m_wDialog), "response",
 					  G_CALLBACK (AP_UnixDialog_RDFQuery__onDialogResponse), static_cast <gpointer>(this));
-	g_signal_connect (m_wDialog, "delete-event",
+	g_signal_connect (m_wDialog, "close-request",
 					  G_CALLBACK (AP_UnixDialog_RDFQuery__onDeleteWindow), static_cast <gpointer>(this));
 
 #ifndef WITH_REDLAND

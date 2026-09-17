@@ -293,10 +293,6 @@ emit_selected (AbiTable *table)
 			       table->selected_rows, table->selected_cols);
 
 	gtk_popover_popdown(table->window);
-
-	while (g_main_context_pending(nullptr)) {
-		g_main_context_iteration(nullptr, false);
-	}
 }
 
 static void

@@ -121,11 +121,12 @@ static void s_reverse_find_toggled(GtkWidget * widget, AP_UnixDialog_Replace * d
 	dlg->event_ReverseFindToggled();
 }
 
-static void s_destroy_clicked(GtkWidget * /* widget */,
+static gboolean s_destroy_clicked (GtkWidget * /* widget */,
 			      AP_UnixDialog_Replace * dlg)
 {
 	UT_ASSERT(dlg);
 	dlg->event_Cancel();
+	return TRUE;
 }
 
 static void s_find_clicked(GtkWidget * /*btn*/, GtkWidget * dlg)
@@ -386,7 +387,7 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 	// the catch-alls
 	// Dont use gtk_signal_connect_after for modeless dialogs
 	g_signal_connect(G_OBJECT(m_windowMain),
-					   "destroy",
+					   "close-request",
 					   G_CALLBACK(s_destroy_clicked),
 					   (gpointer) this);
 

@@ -25,6 +25,7 @@
 #include "xap_App.h"
 #include "ut_string.h"
 #include <stdio.h>
+#include <unistd.h>
 #include "ut_uuid.h"
 #include "pd_Document.h"
 #include "ie_exp.h"
@@ -124,16 +125,34 @@ void FV_UnixVisualDrag::mouseDrag(UT_sint32 x, UT_sint32 y)
 	 sRaw = sProc.utf8_str();
 	 g_object_unref(G_OBJECT(sink));
 	 UNREFP(newDoc);
-	 UT_UTF8String sTmpF = g_get_tmp_dir();
-	 sTmpF += "/";
-	 sTmpF += sRaw;
-	 sTmpF += ".rtf";
 	 //
 	 // Now write the contents of the buffer to a temp file.
+	 // g_file_open_tmp creates it securely (unpredictable name,
+	 // O_EXCL) - a predictable name here would be a symlink-attack
+	 // vector.  Keep the (sanitized) drag text as a name prefix so
+	 // the file still gets a meaningful basename on drop.
 	 //
-	 FILE * fd = fopen(sTmpF.utf8_str(),"w");
-	 fwrite(pBuf->getPointer(0),sizeof(UT_Byte),pBuf->getLength(),fd);
-	 fclose(fd);
+	 UT_UTF8String sTmpl = sRaw;
+	 sTmpl += "-XXXXXX.rtf";
+	 gchar *pszTmpPath = nullptr;
+	 int iTmpFd = g_file_open_tmp(sTmpl.utf8_str(), &pszTmpPath, nullptr);
+	 if (iTmpFd == -1)
+	 {
+	     m_bDragOut = true;
+	     return;
+	 }
+	 UT_UTF8String sTmpF = pszTmpPath;
+	 g_free(pszTmpPath);
+	 FILE * fd = fdopen(iTmpFd,"w");
+	 if (fd)
+	 {
+	     fwrite(pBuf->getPointer(0),sizeof(UT_Byte),pBuf->getLength(),fd);
+	     fclose(fd);
+	 }
+	 else
+	 {
+	     close(iTmpFd);
+	 }
 	 //
 	 // Now setup the gtk drag and drop code to handle this.
 	 //

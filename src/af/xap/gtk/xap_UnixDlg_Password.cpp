@@ -85,8 +85,6 @@ void XAP_UnixDialog_Password::runModal(XAP_Frame * pFrame)
 		event_Cancel(); break;
 	}
 
-	XAP_gtk_keyboard_ungrab(cf);
-
 	abiDestroyWidget(cf);
 }
 

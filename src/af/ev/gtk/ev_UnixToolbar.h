@@ -56,7 +56,6 @@ public:
 	void      rebuildToolbar(UT_sint32 oldpos);
 	XAP_UnixApp *	getApp(void);
 	XAP_Frame * getFrame(void);
-	void setCurrentEvent(GdkEvent * event) {m_eEvent = event;}
 	virtual void show(void) override;
 	virtual void hide(void) override;
 
@@ -75,9 +74,7 @@ protected:
 	EV_UnixToolbar_ViewListener *	m_pViewListener;
 	AV_ListenerId					m_lid;	/* view listener id */
 
-	GdkEvent *                      m_eEvent;
 	GtkWidget *						m_wToolbar;
-	GtkSizeGroup *					m_wHSizeGroup;
 	GtkSizeGroup *					m_wVSizeGroup;
 	UT_GenericVector<_wd*>			m_vecToolbarWidgets;
 };

@@ -113,16 +113,6 @@ void AP_UnixRuler::_setView(AV_View* pView, GR_UnixCairoGraphics* pG)
     g_object_unref(w);
 }
 
-void AP_UnixRuler::getWidgetPosition(gint& x, gint& y) const
-{
-    // GTK4 widgets are windowless; report the allocation origin
-    x = y = 0;
-    GtkAllocation alloc;
-    gtk_widget_get_allocation(m_wRuler, &alloc);
-    x = alloc.x;
-    y = alloc.y;
-}
-
 void AP_UnixRuler::_fe::realize(AP_UnixRuler* self)
 {
     UT_ASSERT(!self->_getGraphics());

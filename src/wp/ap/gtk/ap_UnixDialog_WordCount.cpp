@@ -33,11 +33,12 @@
 #include "ap_Dialog_Id.h"
 #include "ap_UnixDialog_WordCount.h"
 
-static void s_destroy_clicked(GtkWidget * /* widget */,
+static gboolean s_destroy_clicked (GtkWidget * /* widget */,
 							  AP_UnixDialog_WordCount * dlg)
 {
 	UT_ASSERT(dlg);
 	dlg->event_OK();
+	return TRUE;
 }
 
 XAP_Dialog * AP_UnixDialog_WordCount::static_constructor(XAP_DialogFactory * pFactory, XAP_Dialog_Id id)
@@ -247,7 +248,7 @@ void AP_UnixDialog_WordCount::constructDialog(void)
 
    	g_signal_connect(G_OBJECT(m_windowMain), "response", 
 					 G_CALLBACK(s_response), this);
-	g_signal_connect(G_OBJECT(m_windowMain), "destroy",
+	g_signal_connect(G_OBJECT(m_windowMain), "close-request",
 					   G_CALLBACK(s_destroy_clicked),
 					   reinterpret_cast<gpointer>(this));
 

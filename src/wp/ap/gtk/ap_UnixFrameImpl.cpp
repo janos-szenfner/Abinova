@@ -39,6 +39,7 @@
 AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	XAP_UnixFrameImpl(static_cast<XAP_Frame *>(pUnixFrame)),
 	m_dArea(nullptr),
+	m_viewOverlay(nullptr),
 	m_pVadj(nullptr),
 	m_pHadj(nullptr),
 	m_hScroll(nullptr),
@@ -198,8 +199,6 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 
 	// create a drawing area in the for our document window.
 	m_dArea = ap_DocView_new();
-	gtk_widget_set_hexpand(m_dArea, TRUE);
-	gtk_widget_set_vexpand(m_dArea, TRUE);
 	g_object_set_data(G_OBJECT(m_dArea), "user_data", this);
 	UT_DEBUGMSG(("!!! drawing area m_dArea created! %p for %p \n",m_dArea,this));
 	gtk_widget_set_can_focus(m_dArea, true);	// allow it to be focussed
@@ -285,6 +284,15 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	gtk_widget_set_vexpand(m_innergrid, TRUE);
 	gtk_grid_attach(GTK_GRID(m_grid), m_innergrid, 0, 0, 1, 1); 
 
+	// GTK4: the drawing area sits in a GtkOverlay so that the text
+	// selection handles (FV_UnixSelectionHandles) can be added as
+	// overlay children on top of it.  GTK3 used child GdkWindows for
+	// these, which no longer exist.
+	m_viewOverlay = gtk_overlay_new();
+	gtk_widget_set_hexpand(m_viewOverlay, TRUE);
+	gtk_widget_set_vexpand(m_viewOverlay, TRUE);
+	gtk_overlay_set_child(GTK_OVERLAY(m_viewOverlay), m_dArea);
+
 	if ( bShowRulers )
 	{
 		gtk_grid_attach(GTK_GRID(m_innergrid), m_topRuler, 0, 0, 2, 1);
@@ -292,11 +300,11 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 		if (m_leftRuler)
 			gtk_grid_attach(GTK_GRID(m_innergrid), m_leftRuler, 0, 1, 1, 1);
 
-		gtk_grid_attach(GTK_GRID(m_innergrid), m_dArea,   1, 1, 1, 1); 
+		gtk_grid_attach(GTK_GRID(m_innergrid), m_viewOverlay, 1, 1, 1, 1);
 	}
 	else	// no rulers
 	{
-		gtk_grid_attach(GTK_GRID(m_innergrid), m_dArea,   1, 1, 1, 1); 
+		gtk_grid_attach(GTK_GRID(m_innergrid), m_viewOverlay, 1, 1, 1, 1);
 	}
 	// create a 3d box and put the table in it, so that we
 	// get a sunken in look.

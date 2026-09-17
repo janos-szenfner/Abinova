@@ -19,35 +19,148 @@
  * Author: Carlos Garnacho <carlos@lanedo.com>
  */
 
-/*
- * GTK4 port note: the original implementation (gtktexthandle.cpp)
- * created child GdkWindows overlaid on the drawing area.  GTK4 has no
- * child surfaces, so the text handles need to be reimplemented as
- * overlay widgets (e.g. inside a GtkOverlay over the drawing area).
- * Until that rewrite happens the selection handles are disabled;
- * text selection itself is unaffected.
- */
-
+#include "xap_Frame.h"
+#include "xap_UnixFrameImpl.h"
 #include "fv_UnixSelectionHandles.h"
+#include "fv_View.h"
+#include "gtktexthandleprivate.h"
+
+static void handle_dragged_cb (FvTextHandle         *handle,
+                               FvTextHandlePosition  pos,
+                               gint                  x,
+                               gint                  y,
+                               gpointer              user_data)
+{
+	FvTextHandleMode mode;
+	FV_UnixSelectionHandles *handles = static_cast<FV_UnixSelectionHandles *>(user_data);
+
+	mode = _fv_text_handle_get_mode (handle);
+
+	if (pos == FV_TEXT_HANDLE_POSITION_SELECTION_START) {
+		handles->updateSelectionStart ((UT_sint32)x, (UT_sint32)y);
+        }
+	else {
+		if (mode == FV_TEXT_HANDLE_MODE_SELECTION) {
+			handles->updateSelectionEnd ((UT_sint32)x, (UT_sint32)y);
+                }
+                else {
+			handles->updateCursor((UT_sint32)x, (UT_sint32)y);
+                }
+	}
+}
+
+/* The text handles live in the GtkOverlay that wraps the document
+ * drawing area (see AP_UnixFrameImpl::_createDocumentWindow).  The
+ * view can be created before the frame widget tree exists, so the
+ * handle object is created lazily on first use.
+ */
+void FV_UnixSelectionHandles::_ensureTextHandle()
+{
+	if (m_text_handle) {
+		return;
+	}
+
+	XAP_Frame * pFrame = static_cast<XAP_Frame*>(m_pView->getParentData());
+	// When saving to PDF (and printing) we don't have a frame
+	// See bug 13586
+	if (!pFrame) {
+		return;
+	}
+
+	XAP_UnixFrameImpl * pFrameImpl = static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl());
+	GtkWidget * pWidget = pFrameImpl->getViewWidget();
+	GtkWidget * pOverlay = pWidget ? gtk_widget_get_parent(pWidget) : nullptr;
+
+	if (pOverlay && GTK_IS_OVERLAY(pOverlay)) {
+		m_text_handle = _fv_text_handle_new (pOverlay);
+		g_signal_connect (m_text_handle, "handle-dragged",
+				  G_CALLBACK(handle_dragged_cb), this);
+	}
+}
 
 FV_UnixSelectionHandles::FV_UnixSelectionHandles(FV_View *view, FV_Selection selection)
 	: FV_SelectionHandles (view, selection)
+	, m_text_handle(nullptr)
 {
+	_ensureTextHandle();
 }
 
 FV_UnixSelectionHandles::~FV_UnixSelectionHandles()
 {
+	if(!m_text_handle) {
+		return;
+	}
+	g_object_unref (m_text_handle);
 }
 
 void FV_UnixSelectionHandles::hide()
 {
+	if(!m_text_handle) {
+		return;
+	}
+	_fv_text_handle_set_mode (m_text_handle, FV_TEXT_HANDLE_MODE_NONE);
 }
 
-void FV_UnixSelectionHandles::setCursorCoords(UT_sint32 /*x*/, UT_sint32 /*y*/, UT_uint32 /*height*/, bool /*visible*/)
+void FV_UnixSelectionHandles::setCursorCoords(UT_sint32 x, UT_sint32 y, UT_uint32 height, bool visible)
 {
+	_ensureTextHandle();
+
+	if(!m_text_handle) {
+		return;
+	}
+
+	GdkRectangle rect;
+
+	_fv_text_handle_set_mode(m_text_handle, FV_TEXT_HANDLE_MODE_CURSOR);
+	_fv_text_handle_set_visible (m_text_handle, FV_TEXT_HANDLE_POSITION_CURSOR, visible);
+
+	if (visible)
+	{
+		rect.x = (int)x;
+		rect.y = (int)y;
+		rect.width = 1;
+		rect.height = (int)height;
+		_fv_text_handle_set_position(m_text_handle,
+					     FV_TEXT_HANDLE_POSITION_CURSOR,
+					     &rect);
+	}
 }
 
-void FV_UnixSelectionHandles::setSelectionCoords(UT_sint32 /*start_x*/, UT_sint32 /*start_y*/, UT_uint32 /*start_height*/, bool /*start_visible*/,
-                                                 UT_sint32 /*end_x*/, UT_sint32 /*end_y*/, UT_uint32 /*end_height*/, bool /*end_visible*/)
+void FV_UnixSelectionHandles::setSelectionCoords(UT_sint32 start_x, UT_sint32 start_y, UT_uint32 start_height, bool start_visible,
+                                                 UT_sint32 end_x, UT_sint32 end_y, UT_uint32 end_height, bool end_visible)
 {
+	_ensureTextHandle();
+
+	if(!m_text_handle) {
+		return;
+	}
+
+	GdkRectangle rect;
+
+	_fv_text_handle_set_mode(m_text_handle, FV_TEXT_HANDLE_MODE_SELECTION);
+
+	_fv_text_handle_set_visible (m_text_handle, FV_TEXT_HANDLE_POSITION_SELECTION_START, start_visible);
+	_fv_text_handle_set_visible (m_text_handle, FV_TEXT_HANDLE_POSITION_SELECTION_END, end_visible);
+
+	if (start_visible)
+	{
+		rect.x = (int)start_x;
+		rect.y = (int)start_y;
+		rect.width = 1;
+		rect.height = (int)start_height;
+		_fv_text_handle_set_position(m_text_handle,
+					     FV_TEXT_HANDLE_POSITION_SELECTION_START,
+					     &rect);
+	}
+
+	if (end_visible)
+	{
+		rect.x = (int)end_x;
+		rect.y = (int)end_y;
+		rect.width = 1;
+		rect.height = (int)end_height;
+		_fv_text_handle_set_position(m_text_handle,
+					     FV_TEXT_HANDLE_POSITION_SELECTION_END,
+					     &rect);
+	}
 }

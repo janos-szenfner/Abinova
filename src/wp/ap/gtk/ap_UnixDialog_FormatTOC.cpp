@@ -43,9 +43,10 @@
 #include "ap_UnixDialog_FormatTOC.h"
 
 
-static void s_destroy_clicked(GtkWidget * /*wid*/, AP_UnixDialog_FormatTOC * me )
+static gboolean s_destroy_clicked (GtkWidget * /*wid*/, AP_UnixDialog_FormatTOC * me )
 {
    me->event_Close();
+	return TRUE;
 }
 
 void AP_UnixDialog_FormatTOC::s_NumType_changed(GtkWidget * wid, 
@@ -157,15 +158,15 @@ static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Fo
 	  abiDestroyWidget(widget);
 }
 
-static gboolean s_Text_changed (GtkWidget *widget, GdkEvent */*event*/, AP_UnixDialog_FormatTOC *me)
+static void s_Text_changed (GtkEventControllerFocus *controller, AP_UnixDialog_FormatTOC *me)
 {
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
 	std::string sVal(XAP_gtk_entry_get_text(GTK_ENTRY(widget)));
 	std::string sProp;
 	sProp = static_cast<const char *>(g_object_get_data(G_OBJECT(widget), "toc-prop"));
 	UT_String sNum = UT_String_sprintf("%d", me->getDetailsLevel());
 	sProp += sNum.c_str();
 	me->setTOCProperty(sProp, sVal);
-	return FALSE;
 }
 
 XAP_Dialog * AP_UnixDialog_FormatTOC::static_constructor(XAP_DialogFactory * pFactory,
@@ -804,7 +805,7 @@ void  AP_UnixDialog_FormatTOC::_connectSignals(void)
 	// the catch-alls
 	// Dont use gtk_signal_connect_after for modeless dialogs
 	g_signal_connect(G_OBJECT(m_windowMain),
-			   "destroy",
+			   "close-request",
 			   G_CALLBACK(s_destroy_clicked),
 			   (gpointer) this);
 	g_signal_connect(G_OBJECT(_getWidget("lbChangeHeadingStyle")),
@@ -841,12 +842,16 @@ void  AP_UnixDialog_FormatTOC::_connectSignals(void)
 					 "changed",
 					 G_CALLBACK(s_TabLeader_changed),
 					 (gpointer) this);
-	g_signal_connect(G_OBJECT(_getWidget("edTextBefore")),
-					 "focus-out-event",
-					 G_CALLBACK(s_Text_changed),
-					 (gpointer) this);
-	g_signal_connect(G_OBJECT(_getWidget("edTextAfter")),
-					 "focus-out-event",
-					 G_CALLBACK(s_Text_changed),
-					 (gpointer) this);
+	{
+		GtkWidget *w = _getWidget("edTextBefore");
+		GtkEventController *focus = gtk_event_controller_focus_new();
+		g_signal_connect(focus, "leave", G_CALLBACK(s_Text_changed), (gpointer) this);
+		gtk_widget_add_controller(w, focus);
+	}
+	{
+		GtkWidget *w = _getWidget("edTextAfter");
+		GtkEventController *focus = gtk_event_controller_focus_new();
+		g_signal_connect(focus, "leave", G_CALLBACK(s_Text_changed), (gpointer) this);
+		gtk_widget_add_controller(w, focus);
+	}
 }

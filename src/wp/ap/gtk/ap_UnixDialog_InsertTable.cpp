@@ -111,8 +111,6 @@ GtkWidget * AP_UnixDialog_InsertTable::_constructWindow(void)
 	// Update our member variables with the important widgets that 
 	// might need to be queried or altered later
 	window = GTK_WIDGET(gtk_builder_get_object(builder, "ap_UnixDialog_InsertTable"));
-    GtkWidget * widget = GTK_WIDGET(gtk_builder_get_object(builder, "rbAutoColSize"));
-    UT_ASSERT(widget); // it shouldn't happen if things are propoerly installed.
 	m_pColSpin = GTK_WIDGET(gtk_builder_get_object(builder, "sbNumCols"));
 	m_pRowSpin = GTK_WIDGET(gtk_builder_get_object(builder, "sbNumRows"));
 	m_pColWidthSpin = GTK_WIDGET(gtk_builder_get_object(builder, "sbColSize"));

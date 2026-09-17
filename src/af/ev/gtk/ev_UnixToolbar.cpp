@@ -606,9 +606,7 @@ EV_UnixToolbar::EV_UnixToolbar(XAP_UnixApp 	*pUnixApp,
 	m_pUnixApp(pUnixApp),
 	m_pFrame(pFrame),
 	m_pViewListener(nullptr),
-	m_eEvent(nullptr),
 	m_wToolbar(nullptr),
-	m_wHSizeGroup(nullptr),
 	m_wVSizeGroup(nullptr)
 {}
 
@@ -783,7 +781,6 @@ bool EV_UnixToolbar::synthesize(void)
 // XXX gtk3 - porting to GtkBox
 //	gtk_toolbar_set_show_arrow(GTK_TOOLBAR(m_wToolbar), TRUE);
 
-	//m_wHSizeGroup = gtk_size_group_new(GTK_SIZE_GROUP_HORIZONTAL);
 	m_wVSizeGroup = gtk_size_group_new(GTK_SIZE_GROUP_VERTICAL);
 
 	for (UT_uint32 k=0; (k < nrLabelItemsInLayout); k++)
@@ -887,8 +884,6 @@ bool EV_UnixToolbar::synthesize(void)
 					GtkEventController *keyController = gtk_event_controller_key_new();
 					g_signal_connect (G_OBJECT (keyController), "key-pressed", G_CALLBACK (_wd::s_key_press_event_cb), (gpointer) wd);
 					gtk_widget_add_controller (GTK_WIDGET (entry), keyController);
-					// same size for font and font-size combos
-					// gtk_size_group_add_widget (m_wHSizeGroup, combo);
 				}
 				else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT) {
 					gulong handler_id;
@@ -905,9 +900,6 @@ bool EV_UnixToolbar::synthesize(void)
 									  wd);
 					g_object_set_data (G_OBJECT (combo), PROP_HANDLER_ID,
 									   GUINT_TO_POINTER(handler_id));
-					// same size for font and font-size combos
-					// gtk_widget_set_size_request (combo, 0, -1);
-					// gtk_size_group_add_widget (m_wHSizeGroup, combo);
 				}
 				else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_ZOOM) {
 					combo = gtk_combo_box_text_new();

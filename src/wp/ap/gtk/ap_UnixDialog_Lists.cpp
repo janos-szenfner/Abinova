@@ -1167,12 +1167,13 @@ void AP_UnixDialog_Lists::_setRadioButtonLabels(void)
 	gtk_label_set_text( GTK_LABEL(m_wStartSub_label), s.c_str());
 }
 
-static void s_destroy_clicked(GtkWidget * /* widget */,
+static gboolean s_destroy_clicked (GtkWidget * /* widget */,
 			      AP_UnixDialog_Lists * dlg)
 {
 	UT_ASSERT(dlg);
 	dlg->setAnswer(AP_Dialog_Lists::a_QUIT);
 	dlg->destroy();
+	return TRUE;
 }
 
 void AP_UnixDialog_Lists::_connectSignals(void)
@@ -1212,7 +1213,7 @@ void AP_UnixDialog_Lists::_connectSignals(void)
 										  G_CALLBACK (s_valueChanged), this);
 
 	m_iStyleBoxID = g_signal_connect (G_OBJECT(m_wListStyleBox),
-					    "configure_event",
+					    "changed",
 					    G_CALLBACK (s_typeChanged),
 					    this);
 	// the expose event of the preview
@@ -1220,7 +1221,7 @@ void AP_UnixDialog_Lists::_connectSignals(void)
 							s_preview_draw,
 							reinterpret_cast<gpointer>(this), nullptr);
 	g_signal_connect(G_OBJECT(m_windowMain),
-					 "destroy",
+					 "close-request",
 					 G_CALLBACK(s_destroy_clicked),
 					 static_cast<gpointer>(this));
 }

@@ -126,7 +126,7 @@ private:
 static DragInfo * s_getDragInfo ()
 {
 	static DragInfo dragInfo;
-	bool			isInitialized = FALSE;
+	static bool		isInitialized = FALSE;
 
 	if (isInitialized) {
 		return &dragInfo;
@@ -587,11 +587,6 @@ s_drop_cb(GtkDropTargetAsync * /*target*/, GdkDrop *drop,
 	}
 }
 
-void XAP_UnixFrameImpl::dragText()
-{
-	// todo: GTK4 GtkDragSource/GtkDropTarget port
-}
-
 XAP_UnixFrameImpl::XAP_UnixFrameImpl(XAP_Frame *pFrame) :
 	XAP_FrameImpl(pFrame),
 	m_imContext(nullptr),
@@ -628,7 +623,9 @@ XAP_UnixFrameImpl::~XAP_UnixFrameImpl()
 	DELETEP(m_pUnixPopup);
 
 	// unref the input method context
-	g_object_unref (G_OBJECT (m_imContext));
+	if (m_imContext) {
+		g_object_unref (G_OBJECT (m_imContext));
+	}
 }
 
 

@@ -487,11 +487,12 @@ GtkWidget * AP_UnixDialog_FormatTable::_constructWindow(void)
 	return window;
 }
 
-static void s_destroy_clicked(GtkWidget * /* widget */,
+static gboolean s_destroy_clicked (GtkWidget * /* widget */,
 			      AP_UnixDialog_FormatTable * dlg)
 {
 	UT_ASSERT(dlg);
 	dlg->event_Close();
+	return TRUE;
 }
 
 void AP_UnixDialog_FormatTable::_connectSignals(void)
@@ -500,7 +501,7 @@ void AP_UnixDialog_FormatTable::_connectSignals(void)
 	// The catch-alls
 	// Dont use gtk_signal_connect_after for modeless dialogs
 	g_signal_connect(G_OBJECT(m_windowMain),
-							"destroy",
+							"close-request",
 							G_CALLBACK(s_destroy_clicked),
 							reinterpret_cast<gpointer>(this));
 

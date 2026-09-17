@@ -140,14 +140,11 @@ void XAP_UnixApp::removeTmpFile(void)
 {
 	if(m_szTmpFile)
 	{
-		if(g_file_test(m_szTmpFile,G_FILE_TEST_EXISTS))
-		{
 		//
 		// Remove the tempfile if it exists
 		//
-			g_unlink(m_szTmpFile);
-			delete [] m_szTmpFile;
-		}
+		g_unlink(m_szTmpFile);
+		g_free(m_szTmpFile);
 	}
 	m_szTmpFile = nullptr;
 }

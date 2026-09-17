@@ -57,26 +57,24 @@ void XAP_UnixDialog_Image::s_HeightEntry_changed(GtkWidget * widget, XAP_UnixDia
 	dlg->doHeightEntry();
 }
 
-gboolean XAP_UnixDialog_Image::s_HeightEntry_FocusOut(GtkWidget * widget, GdkEvent  * /*event*/, XAP_UnixDialog_Image *dlg)
+void XAP_UnixDialog_Image::s_HeightEntry_FocusOut(GtkEventControllerFocus * /*controller*/, XAP_UnixDialog_Image *dlg)
 {
-  if(!(widget && dlg))
+  if(!dlg)
     {
       UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-      return(TRUE);
+      return;
     }
   dlg->doHeightEntry();
-  return(FALSE);
 }
 
-gboolean XAP_UnixDialog_Image::s_WidthEntry_FocusOut(GtkWidget * widget, GdkEvent  * /*event*/, XAP_UnixDialog_Image *dlg)
+void XAP_UnixDialog_Image::s_WidthEntry_FocusOut(GtkEventControllerFocus * /*controller*/, XAP_UnixDialog_Image *dlg)
 {
-  if(!(widget && dlg))
+  if(!dlg)
     {
       UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-      return(TRUE);
+      return;
     }
   dlg->doWidthEntry();
-  return(FALSE);
 }
 
 void XAP_UnixDialog_Image::s_WidthEntry_changed(GtkWidget * widget, XAP_UnixDialog_Image *dlg)
@@ -422,15 +420,17 @@ void XAP_UnixDialog_Image::_connectSignals (void)
 								 G_CALLBACK(s_HeightEntry_changed),
 								 static_cast<gpointer>(this));
 
-  g_signal_connect_after(G_OBJECT(m_wHeightEntry),
-		   "focus_out_event",
+  GtkEventController *focusHeight = gtk_event_controller_focus_new();
+  g_signal_connect(focusHeight, "leave",
 		   G_CALLBACK(s_HeightEntry_FocusOut),
 		   static_cast<gpointer>(this));
+  gtk_widget_add_controller(m_wHeightEntry, focusHeight);
 
-  g_signal_connect_after(G_OBJECT(m_wWidthEntry),
-		   "focus_out_event",
+  GtkEventController *focusWidth = gtk_event_controller_focus_new();
+  g_signal_connect(focusWidth, "leave",
 		   G_CALLBACK(s_WidthEntry_FocusOut),
 		   static_cast<gpointer>(this));
+  gtk_widget_add_controller(m_wWidthEntry, focusWidth);
 
 
 

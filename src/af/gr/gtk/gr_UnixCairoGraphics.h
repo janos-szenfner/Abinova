@@ -122,7 +122,7 @@ protected:
 private:
 	void ensureBackSurface();
 
-	cairo_surface_t* m_dummySurface;
+	cairo_surface_t* m_backSurface;
 	cairo_t* m_frameCr;
 	int m_backW;
 	int m_backH;

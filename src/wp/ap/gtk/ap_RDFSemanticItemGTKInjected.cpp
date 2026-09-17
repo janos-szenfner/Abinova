@@ -240,8 +240,8 @@ ApplySemanticStylesheets( const std::string& semItemClassRestriction,
 }
 
 
-static gboolean
-OnSemanticStylesheetsSet_cb (GtkWidget *, GdkEvent *, combo_box_t *box)
+static void
+OnSemanticStylesheetsSet_cb (GtkWidget *, combo_box_t *box)
 {
     const char *t = getStylesheetName(box->ssList, gtk_combo_box_get_active_id(GTK_COMBO_BOX(box->combo_box)));
     std::string ssName = t ? t : box->defaultStylesheet;
@@ -251,15 +251,12 @@ OnSemanticStylesheetsSet_cb (GtkWidget *, GdkEvent *, combo_box_t *box)
     UT_DEBUGMSG(("OnSemanticStylesheetsSet_cb() ssName:%s\n", ssName.c_str()));
 
     ApplySemanticStylesheets(box->itemClass, ssName, true);
-
-    return false;
 }
 
-static gboolean
-OnSemanticStylesheetsOk_cb (GtkWidget *widget, GdkEvent *event, combo_box_t *box)
+static void
+OnSemanticStylesheetsOk_cb (GtkWidget *widget, combo_box_t *box)
 {
     UT_UNUSED(widget);
-    UT_UNUSED(event);
 
     for (int i = 0; box[i].itemClass; i++)
     {
@@ -277,8 +274,6 @@ OnSemanticStylesheetsOk_cb (GtkWidget *widget, GdkEvent *event, combo_box_t *box
 
         ApplySemanticStylesheets(box[i].itemClass, ssName, false);
     }
-    
-    return false;
 }
 
 /******************************/
@@ -422,15 +417,15 @@ public:
         gtk_window_set_title(GTK_WINDOW(window), text.c_str());
         _setIcon(window);
 
-        g_signal_connect (setContacts,  "button-release-event", G_CALLBACK (OnSemanticStylesheetsSet_cb),  &combo_box_data[0] );
-        g_signal_connect (setEvents,    "button-release-event", G_CALLBACK (OnSemanticStylesheetsSet_cb),    &combo_box_data[1] );
-        g_signal_connect (setLocations, "button-release-event", G_CALLBACK (OnSemanticStylesheetsSet_cb), &combo_box_data[2] );
+        g_signal_connect (setContacts,  "clicked", G_CALLBACK (OnSemanticStylesheetsSet_cb),  &combo_box_data[0] );
+        g_signal_connect (setEvents,    "clicked", G_CALLBACK (OnSemanticStylesheetsSet_cb),    &combo_box_data[1] );
+        g_signal_connect (setLocations, "clicked", G_CALLBACK (OnSemanticStylesheetsSet_cb), &combo_box_data[2] );
 
-        g_signal_connect (setAll, "button-release-event", G_CALLBACK (OnSemanticStylesheetsSet_cb),  &combo_box_data[0] );
-        g_signal_connect (setAll, "button-release-event", G_CALLBACK (OnSemanticStylesheetsSet_cb),    &combo_box_data[1] );
-        g_signal_connect (setAll, "button-release-event", G_CALLBACK (OnSemanticStylesheetsSet_cb), &combo_box_data[2] );
-    
-        g_signal_connect(GTK_WIDGET(gtk_builder_get_object(builder, "OK")), "button-release-event", G_CALLBACK(OnSemanticStylesheetsOk_cb), combo_box_data);                
+        g_signal_connect (setAll, "clicked", G_CALLBACK (OnSemanticStylesheetsSet_cb),  &combo_box_data[0] );
+        g_signal_connect (setAll, "clicked", G_CALLBACK (OnSemanticStylesheetsSet_cb),    &combo_box_data[1] );
+        g_signal_connect (setAll, "clicked", G_CALLBACK (OnSemanticStylesheetsSet_cb), &combo_box_data[2] );
+
+        g_signal_connect(GTK_WIDGET(gtk_builder_get_object(builder, "OK")), "clicked", G_CALLBACK(OnSemanticStylesheetsOk_cb), combo_box_data);
     
         g_signal_connect (G_OBJECT(window), "response",  G_CALLBACK(OnSemanticStylesheetsDialogResponse), pView );
         gtk_widget_set_visible(window, TRUE);

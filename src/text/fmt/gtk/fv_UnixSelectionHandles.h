@@ -23,6 +23,7 @@
 #define FV_UNIXSELECTIONHANDLES_H
 
 #include "fv_SelectionHandles.h"
+#include "gtktexthandleprivate.h"
 
 class ABI_EXPORT FV_UnixSelectionHandles : public FV_SelectionHandles
 {
@@ -36,6 +37,11 @@ public:
 	virtual void setCursorCoords (UT_sint32 x, UT_sint32 y, UT_uint32 height, bool visible) override;
 	virtual void setSelectionCoords (UT_sint32 start_x, UT_sint32 start_y, UT_uint32 start_height, bool start_visible,
 					 UT_sint32 end_x, UT_sint32 end_y, UT_uint32 end_height, bool end_visible) override;
+
+private:
+	void _ensureTextHandle(void);
+
+	FvTextHandle * m_text_handle;
 };
 
 #endif /* FV_UNIXSELECTIONHANDLES_H */

@@ -115,9 +115,10 @@ static void s_types_dblclicked(GtkTreeView *treeview,
 	me->event_Apply ();
 }
 
-static void s_destroy_clicked(GtkWidget * /*wid*/, AP_UnixDialog_Stylist * me )
+static gboolean s_destroy_clicked (GtkWidget * /*wid*/, AP_UnixDialog_Stylist * me )
 {
    me->event_Close();
+	return TRUE;
 }
 
 static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Stylist * dlg)
@@ -453,7 +454,7 @@ void  AP_UnixDialog_Stylist::_connectSignals(void)
 	// the catch-alls
 	// Dont use gtk_signal_connect_after for modeless dialogs
 	g_signal_connect(G_OBJECT(m_windowMain),
-			   "destroy",
+			   "close-request",
 			   G_CALLBACK(s_destroy_clicked),
 			   (gpointer) this);
 }

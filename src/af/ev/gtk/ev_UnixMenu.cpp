@@ -398,6 +398,12 @@ GSimpleAction * EV_UnixMenu::_createAction(XAP_Menu_Id id,
 			return *radioGroup;
 
 		g_snprintf(name, sizeof(name), "radio_%u", static_cast<unsigned>(id));
+		GAction * existing = g_action_map_lookup_action(G_ACTION_MAP(m_actionGroup), name);
+		if (existing)
+		{
+			*radioGroup = G_SIMPLE_ACTION(existing);
+			return *radioGroup;
+		}
 		GSimpleAction * action = g_simple_action_new_stateful(
 			name, G_VARIANT_TYPE_STRING, g_variant_new_string(""));
 		_wd * wd = new _wd(this, id);
@@ -586,7 +592,6 @@ void EV_UnixMenu::_buildItems(GMenu * pMenuRoot, bool isPopup)
 			GMenu * sub = g_menu_new();
 			_ItemRec rec;
 			rec.id = id;
-			rec.submenu = sub;
 
 			if (szLabelName && *szLabelName)
 			{
@@ -648,6 +653,7 @@ void EV_UnixMenu::_buildItems(GMenu * pMenuRoot, bool isPopup)
 		}
 		case EV_MLF_EndSubMenu:
 		{
+			g_object_unref(menuStack.top());
 			menuStack.pop();
 			g_object_unref(sectionStack.top());
 			sectionStack.pop();

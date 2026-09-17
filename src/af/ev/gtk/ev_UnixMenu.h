@@ -81,7 +81,6 @@ protected: // FIXME! These variables should be private.
 	struct _ItemRec
 	{
 		XAP_Menu_Id			id = XAP_Menu_Id(0);
-		GMenu *				submenu = nullptr;  // owning ref, for EV_MLF_BeginSubMenu
 		GSimpleAction *		action = nullptr;   // non-owning
 		std::string			label;              // last synced label
 		bool				present = false;

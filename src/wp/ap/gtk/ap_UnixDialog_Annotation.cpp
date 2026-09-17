@@ -40,10 +40,10 @@
 
 /*****************************************************************/
 
-static gboolean s_focus_out(GtkWidget *widget, GdkEvent *, gpointer /*user_data*/)
+static void s_focus_out(GtkEventControllerFocus *controller, gpointer /*user_data*/)
 {
+	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
 	gtk_editable_select_region(GTK_EDITABLE(widget), 0, 0);
-	return FALSE;
 }
 
 XAP_Dialog * AP_UnixDialog_Annotation::static_constructor(XAP_DialogFactory * pFactory,
@@ -176,8 +176,12 @@ GtkWidget * AP_UnixDialog_Annotation::_constructWindow ()
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbDescription")), pSS, AP_STRING_ID_DLG_Annotation_Description_LBL);
 	
 	// signals
-	g_signal_connect(G_OBJECT(m_entryTitle), "focus-out-event", G_CALLBACK(s_focus_out), static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_entryAuthor), "focus-out-event", G_CALLBACK(s_focus_out), static_cast<gpointer>(this));
+	GtkEventController *focusTitle = gtk_event_controller_focus_new();
+	g_signal_connect(focusTitle, "leave", G_CALLBACK(s_focus_out), static_cast<gpointer>(this));
+	gtk_widget_add_controller(m_entryTitle, focusTitle);
+	GtkEventController *focusAuthor = gtk_event_controller_focus_new();
+	g_signal_connect(focusAuthor, "leave", G_CALLBACK(s_focus_out), static_cast<gpointer>(this));
+	gtk_widget_add_controller(m_entryAuthor, focusAuthor);
 	
 	// now set the text in all the fields
 	std::string prop;

@@ -122,10 +122,11 @@ void AP_UnixDialog_MailMerge::event_Close()
 	destroy();
 }
 
-static void s_destroy_clicked(GtkWidget * /*widget*/,
+static gboolean s_destroy_clicked (GtkWidget * /*widget*/,
 							  AP_UnixDialog_MailMerge * dlg)
 {
 	dlg->event_Close();
+	return TRUE;
 }
 
 static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_MailMerge * dlg)
@@ -192,7 +193,7 @@ GtkWidget * AP_UnixDialog_MailMerge::_constructWindow(void)
 	// the catch-alls
 	// Dont use gtk_signal_connect_after for modeless dialogs
 	g_signal_connect(G_OBJECT(m_windowMain),
-			   "destroy",
+			   "close-request",
 			   G_CALLBACK(s_destroy_clicked),
 			   (gpointer) this);
 

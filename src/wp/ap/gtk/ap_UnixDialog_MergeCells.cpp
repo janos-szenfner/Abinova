@@ -290,11 +290,12 @@ GtkWidget * AP_UnixDialog_MergeCells::_constructWindowContents(void)
 	return m_wContents;
 }
 
-static void s_destroy_clicked(GtkWidget * /* widget */,
+static gboolean s_destroy_clicked (GtkWidget * /* widget */,
 			      AP_UnixDialog_MergeCells * dlg)
 {
 	UT_ASSERT(dlg);
 	dlg->event_Close();
+	return TRUE;
 }
 
 
@@ -307,7 +308,7 @@ void AP_UnixDialog_MergeCells::_connectSignals(void)
 	// the catch-alls
 	// Dont use gtk_signal_connect_after for modeless dialogs
 	g_signal_connect(G_OBJECT(m_windowMain),
-			   "destroy",
+			   "close-request",
 			   G_CALLBACK(s_destroy_clicked),
 			   static_cast<gpointer>(this));
 

@@ -42,8 +42,6 @@ public:
     virtual GtkWidget* getWidget() override
         { return m_wRuler; }
 
-    void getWidgetPosition(gint& x, gint& y) const;
-
     void _ruler_style_context_changed();
 protected:
     GtkWidget* _createWidget(gint w, gint h);

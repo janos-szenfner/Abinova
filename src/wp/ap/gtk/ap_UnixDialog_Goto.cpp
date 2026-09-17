@@ -212,7 +212,6 @@ AP_UnixDialog_Goto__onDialogResponse (GtkDialog * /*dialog*/,
 */
 gboolean
 AP_UnixDialog_Goto__onDeleteWindow (GtkWidget * /*widget*/,
-									GdkEvent  * /*event*/,
 									gpointer  data)
 {
 	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
@@ -673,7 +672,7 @@ AP_UnixDialog_Goto::_constructWindow (XAP_Frame * /*pFrame*/)
 
 	g_signal_connect (GTK_DIALOG (m_wDialog), "response",
 					  G_CALLBACK (AP_UnixDialog_Goto__onDialogResponse), static_cast <gpointer>(this));
-	g_signal_connect (m_wDialog, "delete-event",
+	g_signal_connect (m_wDialog, "close-request",
 					  G_CALLBACK (AP_UnixDialog_Goto__onDeleteWindow), static_cast <gpointer>(this));
 
 	g_object_unref(G_OBJECT(builder));

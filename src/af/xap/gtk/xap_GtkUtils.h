@@ -55,4 +55,3 @@ void XAP_gtk_entry_set_text(GtkEntry* entry, const gchar* text)
   gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(buffer), text, g_utf8_strlen(text, -1));
 }
 
-void XAP_gtk_keyboard_ungrab(GtkWidget *widget);

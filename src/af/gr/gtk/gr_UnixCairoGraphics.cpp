@@ -75,7 +75,7 @@ GR_UnixCairoGraphicsBase::GR_UnixCairoGraphicsBase(cairo_t *cr, UT_uint32 iDevic
 
 GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 	: GR_UnixCairoGraphicsBase(),
-	  m_dummySurface(nullptr),
+	  m_backSurface(nullptr),
 	  m_frameCr(nullptr),
 	  m_backW(0),
 	  m_backH(0),
@@ -99,11 +99,14 @@ GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 GR_UnixCairoGraphics::~GR_UnixCairoGraphics()
 {
 	if (m_Widget) {
+		if (m_Signal) {
+			g_signal_handler_disconnect (G_OBJECT (m_Widget), m_Signal);
+		}
 		g_object_remove_weak_pointer (G_OBJECT (m_Widget),
 									  reinterpret_cast<gpointer*>(&m_Widget));
 	}
-	if (m_dummySurface) {
-		cairo_surface_destroy (m_dummySurface);
+	if (m_backSurface) {
+		cairo_surface_destroy (m_backSurface);
 	}
 	if (m_styleBg) {
 		g_object_unref(m_styleBg);
@@ -231,9 +234,9 @@ GR_Font * GR_UnixCairoGraphics::getGUIFont(void)
 {
 	if (!m_pPFontGUI)
 	{
-		PangoContext* context = gtk_widget_get_pango_context(m_Widget);
-		const PangoFontDescription* fontDesc = pango_context_get_font_description(context);
-		const char *guiFontName = pango_font_description_get_family(fontDesc);
+		PangoContext* context = m_Widget ? gtk_widget_get_pango_context(m_Widget) : nullptr;
+		const PangoFontDescription* fontDesc = context ? pango_context_get_font_description(context) : nullptr;
+		const char *guiFontName = fontDesc ? pango_font_description_get_family(fontDesc) : nullptr;
 
 		if (!guiFontName)
 			guiFontName = "'Times New Roman'";
@@ -380,7 +383,9 @@ void GR_UnixCairoGraphics::setCursor(GR_Graphics::Cursor c)
 	const char* cursor_name = _getCursor(c);
 	m_cursor = c;
 	xxx_UT_DEBUGMSG(("cursor set to %d	gdk %s \n", c, cursor_name));
-	gtk_widget_set_cursor_from_name(m_Widget, cursor_name);
+	if (m_Widget) {
+		gtk_widget_set_cursor_from_name(m_Widget, cursor_name);
+	}
 }
 
 
@@ -479,11 +484,11 @@ void GR_UnixCairoGraphics::ensureBackSurface()
 {
 	int w = m_Widget ? MAX(1, gtk_widget_get_width (m_Widget)) : 1;
 	int h = m_Widget ? MAX(1, gtk_widget_get_height (m_Widget)) : 1;
-	if (m_dummySurface && w == m_backW && h == m_backH)
+	if (m_backSurface && w == m_backW && h == m_backH)
 		return;
-	if (m_dummySurface)
-		cairo_surface_destroy (m_dummySurface);
-	m_dummySurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
+	if (m_backSurface)
+		cairo_surface_destroy (m_backSurface);
+	m_backSurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
 	m_backW = w;
 	m_backH = h;
 }
@@ -494,7 +499,7 @@ cairo_t * GR_UnixCairoGraphics::beginFrame()
 	 * painting goes to the persistent backing surface, which is then
 	 * blitted to GTK's cairo_t in endFrame(). */
 	ensureBackSurface();
-	m_frameCr = cairo_create (m_dummySurface);
+	m_frameCr = cairo_create (m_backSurface);
 	m_cr = m_frameCr;
 	return m_frameCr;
 }
@@ -507,10 +512,10 @@ void GR_UnixCairoGraphics::endFrame(cairo_t *gtkCr)
 		m_frameCr = nullptr;
 	}
 	m_cr = nullptr;
-	if (gtkCr && m_dummySurface)
+	if (gtkCr && m_backSurface)
 	{
 		cairo_save (gtkCr);
-		cairo_set_source_surface (gtkCr, m_dummySurface, 0, 0);
+		cairo_set_source_surface (gtkCr, m_backSurface, 0, 0);
 		cairo_paint (gtkCr);
 		cairo_restore (gtkCr);
 	}
@@ -529,7 +534,7 @@ void GR_UnixCairoGraphics::_beginPaint()
 		 * picks the change up via queueDraw()/flush(). */
 		UT_ASSERT(m_Widget);
 		ensureBackSurface();
-		m_cr = cairo_create (m_dummySurface);
+		m_cr = cairo_create (m_backSurface);
 		m_CairoCreated = true;
 	}
 
