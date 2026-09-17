@@ -45,4 +45,4 @@ CLEANFILES = vgcore.* \
 
 EXTRA_DIST = \
 	xp/main.cpp \
-	xp/all_test.h \
+	xp/all_test.h

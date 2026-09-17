@@ -55,7 +55,7 @@ AC_ARG_ENABLE([embedded],
 	no)
 		;;
 	*)
-		AC_MSG_ERROR(bad value $enableval for --enable-embedded) ;;
+		AC_MSG_ERROR([bad value $enableval for --enable-embedded]) ;;
 	esac
 ],[
 	abi_cv_embedded_platform="no"
