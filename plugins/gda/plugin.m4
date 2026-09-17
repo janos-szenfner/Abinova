@@ -6,18 +6,7 @@ if test "$enable_gda" != ""; then
 
 PKG_CHECK_EXISTS([ $gda_pkgs ], 
 [
-	AC_MSG_CHECKING([for gtk toolkit])
-	if test "$TOOLKIT" = "gtk"; then
-	  AC_MSG_RESULT([yes])
-	  gda_deps="yes"
-	else
-	  AC_MSG_RESULT([no])
-	  if test "$enable_gda" = "auto"; then
-	    AC_MSG_WARN([gda plugin: only supported with gtk])
-	  else
-	    AC_MSG_ERROR([gda plugin: only supported with gtk])
-	  fi
-	fi
+	gda_deps="yes"
 ], [
 	test "$enable_gda" = "auto" && AC_MSG_WARN([gda plugin: dependencies not satisfied - $gda_pkgs])
 ])

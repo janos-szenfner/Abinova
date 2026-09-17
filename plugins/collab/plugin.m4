@@ -1,4 +1,3 @@
-if test "$TOOLKIT" != "qt" ; then
 collab_req="libgsf-1 >= 1.12 libxml-2.0 >= 2.4.0"
 collab_telepathy_req="dbus-glib-1 >= 0.70 telepathy-glib >= 0.14.5"
 collab_xmpp_req="loudmouth-1.0 >= 1.3.2 gtk+-3.0"
@@ -210,9 +209,7 @@ fi
 if test "$enable_collab_backend_tcp" = "yes" || \
    test "$enable_collab_backend_service" = "yes"; then
 	COLLAB_LIBS="$COLLAB_LIBS -lgcrypt"
-	if test "$TOOLKIT" != "win"; then
-		COLLAB_LIBS="$COLLAB_LIBS -lpthread"
-	fi
+	COLLAB_LIBS="$COLLAB_LIBS -lpthread"
 fi
 
 
@@ -222,8 +219,6 @@ COLLAB_CFLAGS="$COLLAB_CFLAGS "'${PLUGIN_CFLAGS}'
 COLLAB_LIBS="$COLLAB_LIBS "'${PLUGIN_LIBS}'
 
 fi # plugin conditional
-
-fi # platform
 
 AM_CONDITIONAL([COLLAB_BACKEND_FAKE], [test "$enable_collab_backend_fake" = "yes"])
 AM_CONDITIONAL([COLLAB_BACKEND_TELEPATHY], [test "$enable_collab_backend_telepathy" = "yes"])

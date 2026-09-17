@@ -7,10 +7,6 @@ if test "$enable_paint" != ""; then
 test "$enable_paint" = "auto" && PLUGINS="$PLUGINS paint"
 
 # TODO check for libpng
-if test "$TOOLKIT" = "win"; then
-	PAINT_LIBS="-lgdi32 $PNG_LIBS"
-	PAINT_CFLAGS="$PAINT_CFLAGS $PNG_CFLAGS"
-fi
 
 PAINT_CFLAGS="$PAINT_CFLAGS "'${PLUGIN_CFLAGS}'
 PAINT_LIBS="$PAINT_LIBS "'${PLUGIN_LIBS}'

@@ -18,12 +18,10 @@ if test "$enable_aiksaurus" = "yes" || \
    test "$aiksaurus_deps" = "yes"; then
 
 use_builtin_aiksaurus_gtk="no"
-if test "$TOOLKIT" = "gtk"; then
 PKG_CHECK_EXISTS([ $aiksaurus_gtk_pkgs ], 
 [
   aiksaurus_pkgs="$aiksaurus_pkgs $aiksaurus_gtk_pkgs"
 ], [use_builtin_aiksaurus_gtk="yes"])
-fi
 
 if test "$enable_aiksaurus_builtin" = "yes"; then
 AC_MSG_ERROR([aiksaurus plugin: static linking not supported])

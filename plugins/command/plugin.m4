@@ -1,23 +1,18 @@
 command_deps="no"
 
 if test "$enable_command" != ""; then
-    if test "$TOOLKIT" != "gtk"; then
-		command_deps="no"
-		AC_MSG_WARN([command plugin: only supported on UNIX/gtk platforms])
-	else 
-		# stolen from the original plugin.m4 in abiword-plugins
-		AC_CHECK_HEADER(readline/readline.h,[
-				AC_CHECK_HEADER(readline/history.h,[
-						AC_CHECK_LIB(readline,readline,[
-								command_deps="yes"
-						],[     AC_CHECK_LIB(readline,rl_initialize,[
-										command_deps="yes"
+	# stolen from the original plugin.m4 in abiword-plugins
+	AC_CHECK_HEADER(readline/readline.h,[
+			AC_CHECK_HEADER(readline/history.h,[
+					AC_CHECK_LIB(readline,readline,[
+							command_deps="yes"
+					],[     AC_CHECK_LIB(readline,rl_initialize,[
+									command_deps="yes"
 
-								],,)
-						],)
-				])
-		])
-	fi
+							],,)
+					],)
+			])
+	])
 fi
 
 if test "$enable_command" = "yes" || \
