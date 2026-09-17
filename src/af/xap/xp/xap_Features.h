@@ -30,15 +30,7 @@
 #include "config.h"
 #endif
 
-#ifdef TOOLKIT_COCOA
-# include "xap_CocoaFeatures.h"
-#elif defined(TOOLKIT_WIN)
-# include "xap_Win32Features.h"
-#elif defined(TOOLKIT_GTK_ALL)
 # include "xap_UnixFeatures.h"
-#elif defined(TOOLKIT_QT)
-# include "xap_QtFeatures.h"
-#endif
 
 #if defined(EMBEDDED_TARGET)
 # include "xap_EmbeddedFeatures.h"
@@ -52,9 +44,6 @@
 
 	Platforms: pick up the one you prefer. By defautl XOR since it worked since
  */
-#ifndef XAP_DONTUSE_XOR
-# define XAP_DONTUSE_XOR 0
-#endif
 
 /**
 	On MacOS (X), apps can be open without any window so we should allow this.

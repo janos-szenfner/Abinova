@@ -24,12 +24,7 @@
 #include <limits>
 #include <algorithm>
 
-#ifndef TOOLKIT_COCOA
 # include <glib.h>
-#else
-# include "ut_mutex.h"
-# include "xap_CocoaTimer.h"
-#endif
 
 #include "ut_unixTimer.h"
 #include "ut_assert.h"
@@ -91,11 +86,7 @@ UT_sint32 UT_UNIXTimer::set(UT_uint32 iMilliseconds)
 					 std::numeric_limits<millisec_t>::max()
 					 ));
 
-#ifndef TOOLKIT_COCOA
 	m_iGtkTimerId = g_timeout_add_full(0, iMilliseconds, _Timer_Proc, this, nullptr);
-#else
-	m_iGtkTimerId = XAP_newCocoaTimer(iMilliseconds, _Timer_Proc, this);
-#endif
 
 	if (getIdentifier() == 0)
 		setIdentifier(m_iGtkTimerId);
@@ -114,11 +105,7 @@ void UT_UNIXTimer::stop()
 	if (m_iGtkTimerId != 0)
 	{
 //		UT_DEBUGMSG(("ut_unixTimer.cpp: timer [%d] (with id [%d]) stopped\n", getIdentifier(), m_iGtkTimerId));
-#ifndef TOOLKIT_COCOA
 		g_source_remove(m_iGtkTimerId);
-#else
-		XAP_stopCocoaTimer (m_iGtkTimerId);
-#endif
 		m_iGtkTimerId = 0;
 	}
 }

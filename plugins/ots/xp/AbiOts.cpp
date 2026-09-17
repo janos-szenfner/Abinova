@@ -47,15 +47,12 @@
 
 #include <ots/libots.h>
 
-#ifdef TOOLKIT_GTK_ALL
 #include <gtk/gtk.h>
 #include "xap_UnixApp.h"
 #include "xap_UnixDialogHelper.h"
-#endif
 
 static const char* Ots_MenuLabel = "&Summarize";
 static const char* Ots_MenuTooltip = "Summarize your document or selected text";
-#ifdef TOOLKIT_GTK_ALL
 
 static int getSummaryPercent(void)
 {
@@ -76,15 +73,6 @@ static int getSummaryPercent(void)
   return value;
 }
 
-#else
-
-static int getSummaryPercent(void)
-{
-  /* TODO: dialog to get the data */
-  return 20;
-}
-
-#endif
 
 bool 
 AbiOts_invoke(AV_View* /*v*/, EV_EditMethodCallData * /*d*/)
@@ -194,11 +182,7 @@ Ots_addToMenus()
   
   EV_Menu_Action* myAction = new EV_Menu_Action(newID,                     // id that the layout said we could use
 						0,                      // no, we don't have a sub menu.
-#ifdef TOOLKIT_GTK_ALL
 						1,                      // yes, we raise a dialog.
-#else
-						0,                      // no dialog
-#endif
 						0,                      // no, we don't have a checkbox.
 						0,                      // not a radio button
 						"AbiOts_invoke",  // name of callback function to call.

@@ -36,17 +36,8 @@
 #include "pd_Document.h"
 #include "ie_imp.h"
 
-#if defined(TOOLKIT_WIN)
-
-#include "ut_Win32LocaleString.h"
-#include "ap_Win32App.h" //needed for AP_Win32App::s_fromWinLocaleToUTF8()
-
-AP_App::AP_App (HINSTANCE hInstance, const char * szAppName)
-  : XAP_App_BaseClass ( hInstance, szAppName )
-#else
 AP_App::AP_App (const char * szAppName)
   : XAP_App_BaseClass(szAppName, "com.abisource.AbiWord")
-#endif
 {
 }
 

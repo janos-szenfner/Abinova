@@ -237,11 +237,7 @@ static void s_internal_init ()
  */
 const char * ucs2Internal ()
 {
-#if defined(TOOLKIT_WIN)
-  // we special-case the win32 build, otherwise spelling and other stuff
-  // just doesn't work
-  return "UCS-2LE";
-#elif defined(_LIBICONV_H)
+#if defined(_LIBICONV_H)
   // libiconv seems to prefer UCS-2-INTERNAL to UCS-2BE and UCS-2LE
   return "UCS-2-INTERNAL";
 #elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
@@ -260,11 +256,7 @@ const char * ucs2Internal ()
  */
 const char * ucs4Internal ()
 {
-#if defined(TOOLKIT_WIN)
-  // we special-case the win32 build, otherwise spelling and other stuff
-  // just doesn't work
-  return "UCS-4LE";
-#elif defined(_LIBICONV_H)
+#if defined(_LIBICONV_H)
   // libiconv seems to prefer UCS-4-INTERNAL to UCS-4BE and UCS-4LE
   return "UCS-4-INTERNAL";
 #elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)

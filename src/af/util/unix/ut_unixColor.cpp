@@ -24,7 +24,6 @@
 #include "ut_unixColor.h"
 #include "ut_assert.h"
 
-#if defined(TOOLKIT_GTK)
 
 UT_RGBColor* UT_UnixGdkRGBAToRGBColor(const GdkRGBA &color)
 {
@@ -43,4 +42,3 @@ GdkRGBA* UT_UnixRGBColorToGdkRGBA(const UT_RGBColor &rgb)
 	return gdk_rgba_copy(&color);
 }
 
-#endif

@@ -789,16 +789,10 @@ class ABI_EXPORT GR_Graphics
 
 	// only called by GR_Painter
 	virtual void drawLine(UT_sint32 x1, UT_sint32 y1, UT_sint32 x2, UT_sint32 y2) = 0;
-#if XAP_DONTUSE_XOR
-#else
 	virtual void xorLine(UT_sint32 x1, UT_sint32 y1, UT_sint32 x2, UT_sint32 y2) = 0;
-#endif
 	virtual void invertRect(const UT_Rect* pRect) = 0;
-#if XAP_DONTUSE_XOR
-#else
 	void xorRect(UT_sint32 x, UT_sint32 y, UT_sint32 w, UT_sint32 h);
 	void xorRect(const UT_Rect& r);
-#endif
 
 	virtual void fillRect(GR_Image *pImg, const UT_Rect &src, const UT_Rect & dest);
 	virtual void fillRect(const UT_RGBColor& c, const UT_Rect &r);

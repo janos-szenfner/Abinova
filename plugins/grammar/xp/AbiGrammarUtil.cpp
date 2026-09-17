@@ -35,14 +35,10 @@
 #include "ut_sleep.h"
 #include <sys/types.h>  
 #include <sys/stat.h>
-#ifdef TOOLKIT_WIN
-#include <windows.h>
-#else
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include "ut_files.h"
-#endif
 #include "AbiGrammarUtil.h"
 
 PieceOfText::PieceOfText(void):

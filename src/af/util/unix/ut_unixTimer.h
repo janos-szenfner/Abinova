@@ -28,9 +28,6 @@
 
 #include "ut_timer.h"
 
-#ifdef TOOLKIT_COCOA
-#include <objc/objc.h>
-#endif
 
 
 class UT_UNIXTimer : public UT_Timer
@@ -46,16 +43,6 @@ private:
 	typedef UT_sint32 millisec_t;
 	millisec_t m_iMilliseconds;
 	UT_uint32 m_iGtkTimerId;
-#ifdef TOOLKIT_COCOA
-	/* these are here for Cocoa timer */
-	static id s_timerMutex;
-	static id s_timerIds;
-	static int s_lastTimerId;
-
-	friend void _checkLock(void);
-	friend void XAP_stopCocoaTimer (UT_uint32 timerId);
-	friend UT_uint32 XAP_newCocoaTimer (UT_uint32 time, int (*proc)(void *), void *p);
-#endif
 };
 
 #endif /* UT_UNIXTIMER_H */

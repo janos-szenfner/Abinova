@@ -753,11 +753,7 @@ UT_Error IE_Imp_Text::_recognizeEncoding(const char *szBuf, UT_uint32 iNumbytes)
 			_setEncoding(XAP_EncodingManager::get_instance()->getUCS2LEName());
 		else
 			_setEncoding(
-#ifdef TOOLKIT_WIN
-				XAP_EncodingManager::get_instance()->getNative8BitEncodingName()
-#else
 				"ISO-8859-1"
-#endif
 			);
 	}
 

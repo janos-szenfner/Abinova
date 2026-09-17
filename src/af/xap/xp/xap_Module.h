@@ -34,13 +34,7 @@
 
 #include "ut_types.h"
 
-#ifdef TOOLKIT_WIN
-  #define WIN32_LEAN_AND_MEAN
-  #include <windows.h>
-  #define ABI_PLUGIN_DECLARE(name) static HANDLE s_hModule = static_cast<HANDLE>(nullptr); extern "C" {BOOL APIENTRY DllMain( HANDLE hModule, DWORD /*ul_reason_for_call*/, LPVOID /*lpReserved*/ ) { s_hModule = hModule; return TRUE; } }
-#else
   #define ABI_PLUGIN_DECLARE(name)
-#endif
 
 // we want to have C linkage for both
 // this and for all of our required functions

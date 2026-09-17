@@ -66,7 +66,6 @@ BeginLayout(ExtraOps, AP_STRING_ID_TB_Extra, AP_PREF_KEY_ExtraBarVisible)
 	ToolbarItem(AP_TOOLBAR_ID_EDIT_REMOVEHEADER)
 	ToolbarItem(AP_TOOLBAR_ID_EDIT_REMOVEFOOTER)
 
-#ifndef TOOLKIT_WIN
 	Spacer()
 	ToolbarItem(AP_TOOLBAR_ID_SEMITEM_THIS)
 	ToolbarItem(AP_TOOLBAR_ID_SEMITEM_NEXT)
@@ -74,6 +73,5 @@ BeginLayout(ExtraOps, AP_STRING_ID_TB_Extra, AP_PREF_KEY_ExtraBarVisible)
 	ToolbarItem(AP_TOOLBAR_ID_SEMITEM_EDIT)
 	ToolbarItem(AP_TOOLBAR_ID_SEMITEM_STYLESHEET_APPLY)
 
-#endif
 
 EndLayout()

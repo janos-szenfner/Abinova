@@ -23,7 +23,6 @@
 #include "config.h"
 #endif
 
-#ifdef TOOLKIT_GTK_ALL
 #include <gdk/gdk.h>
 
 #include <gtk/gtk.h>
@@ -35,4 +34,3 @@
 UT_RGBColor* UT_UnixGdkRGBAToRGBColor(const GdkRGBA &color);
 GdkRGBA* UT_UnixRGBColorToGdkRGBA(const UT_RGBColor &rgb);
 
-#endif

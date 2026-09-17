@@ -234,8 +234,4 @@ private:
 	UT_sint32           m_minPageLength;
 	PT_DocPosition       m_draggingDocPos;
 	bool                m_bIsHidden;
-#if XAP_DONTUSE_XOR
-	UT_Rect				m_guideCacheRect;
-	GR_Image*			m_guideCache;
-#endif
 };

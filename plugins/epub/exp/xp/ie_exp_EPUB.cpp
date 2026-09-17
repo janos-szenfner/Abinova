@@ -29,10 +29,8 @@ IE_Exp_EPUB::IE_Exp_EPUB(PD_Document * pDocument) :
 {
     registerDialogs();
 //FIXME:FIDENCIO: Remove this clause when Cocoa's dialog is implemented
-#ifndef TOOLKIT_COCOA
     AP_Dialog_EpubExportOptions::getEpubExportDefaults(
     &m_exp_opt, XAP_App::getApp());
-#endif
 }
 IE_Exp_EPUB::~IE_Exp_EPUB()
 {
@@ -864,9 +862,6 @@ UT_Error IE_Exp_EPUB::doOptions()
     }
 
 //FIXME:FIDENCIO: Remove this clause when Cocoa's dialog is implemented
-#ifdef TOOLKIT_COCOA
-    return UT_OK;
-#else
     /* run the dialog
      */
 
@@ -898,7 +893,6 @@ UT_Error IE_Exp_EPUB::doOptions()
         return UT_SAVE_CANCELLED;
     }
     return UT_OK;
-#endif
 }
 
 void IE_Exp_EPUB::registerDialogs()
@@ -908,7 +902,6 @@ void IE_Exp_EPUB::registerDialogs()
 #ifdef _WIN32
     XAP_DialogFactory * pFactory = static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
 	m_iDialogExport = pFactory->registerDialog(ap_Dialog_EpubExportOptions_Constructor, XAP_DLGT_NON_PERSISTENT);
-#elif defined TOOLKIT_COCOA
 #else
     XAP_DialogFactory * pFactory = static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
 	m_iDialogExport = pFactory->registerDialog(ap_Dialog_EpubExportOptions_Constructor, XAP_DLGT_NON_PERSISTENT);

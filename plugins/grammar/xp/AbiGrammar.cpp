@@ -46,14 +46,10 @@
 #include "ut_sleep.h"
 #include <sys/types.h>  
 #include <sys/stat.h>
-#ifdef TOOLKIT_WIN
-#include <windows.h>
-#else
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include "ut_files.h"
-#endif
 
 
 // -----------------------------------------------------------------------
@@ -143,14 +139,6 @@ int abi_plugin_register (XAP_ModuleInfo * mi)
     // Add to AbiWord's plugin listeners
     XAP_App * pApp = XAP_App::getApp();
 
-#ifdef TOOLKIT_COCOA
-    if (const char * resources = getenv ("ABIWORD_COCOA_BUNDLED_RESOURCES"))
-    {
-        UT_UTF8String dict_dir = resources;
-	dict_dir += "/link-grammar";
-        setenv ("DICTPATH", dict_dir.utf8_str (), 1);
-    }
-#endif
 
     pAbiGrammar = new AbiGrammar();
     pApp->addListener(pAbiGrammar, &listenerID);

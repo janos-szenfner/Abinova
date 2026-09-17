@@ -9215,13 +9215,11 @@ bool IE_Imp_RTF::RegisterFont(RTFFontTableItem::FontFamilyEnum fontFamily,
                               UT_uint16 fontIndex,
                               int charSet, int codepage,
                               UT_UTF8String sFontNamesAndPanose[]) {
-#ifndef TOOLKIT_COCOA
 	/*work around "helvetica" font name -replace it with "Helvetic"*/
 	if (sFontNamesAndPanose[SFontTableState::MainFontName] == "helvetica")
 	{
 		sFontNamesAndPanose[SFontTableState::MainFontName] = "Helvetic";
 	}
-#endif /* ! TOOLKIT_COCOA */
 
 
 	// Create the font entry and put it into the font table

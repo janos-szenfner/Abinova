@@ -35,9 +35,6 @@
 /* GTK build supports platforms without PATH_MAX; we leave the warning in for
  * other platforms to avoid headaches
  */
-#if !defined(PATH_MAX) && !defined(TOOLKIT_GTK_ALL)
-#error Huh, neither MAXPATHLEN nor PATH_MAX available, fix for this platform needed.
-#endif
 
 #include "ut_types.h"
 #include "ut_string_class.h"

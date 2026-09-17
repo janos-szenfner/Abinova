@@ -384,10 +384,4 @@ private:
                                                  // holding the cell
 	bool                m_bIsHidden;
 	UT_sint32           m_iOrigPosition;
-#if XAP_DONTUSE_XOR
-	UT_Rect				m_guideCacheRect;
-	UT_Rect				m_otherGuideCacheRect;
-	GR_Image*			m_guideCache;
-	GR_Image*			m_otherGuideCache;
-#endif
 };

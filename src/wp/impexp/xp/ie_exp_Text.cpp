@@ -48,9 +48,6 @@
 #include "xap_Dlg_Encoding.h"
 #include "ap_Prefs.h"
 #include "ut_string_class.h"
-#ifdef TOOLKIT_WIN
-  #include "ut_Win32OS.h"
-#endif
 
 
 /*****************************************************************/

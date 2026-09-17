@@ -126,20 +126,9 @@ void AP_Dialog_Options::_storeWindowData(void)
 	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_CursorBlink, _gatherViewCursorBlink() );
 	
 // Not implemented for UNIX or Win32. No need for it.
-#if !defined(TOOLKIT_GTK_ALL) && !defined(TOOLKIT_COCOA) && !defined (TOOLKIT_WIN) 
-	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_RulerVisible, _gatherViewShowRuler() );
-	UT_uint32 i;
-	for (i = 0; i < m_pApp->getToolbarFactory()->countToolbars(); i++) {
-		Save_Pref_Bool( pPrefsScheme, m_pApp->getToolbarFactory()->prefKeyForToolbar(i), _gatherViewShowToolbar(i));
-	}
-
-	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_StatusBarVisible, _gatherViewShowStatusBar() );
-#endif
 
 	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_ParaVisible, _gatherViewUnprintable() );
-#if defined(TOOLKIT_GTK_ALL)
 	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_EnableSmoothScrolling, _gatherEnableSmoothScrolling() );
-#endif
     Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_InsertModeToggle, _gatherEnableOverwrite() );
 	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_AutoLoadPlugins, _gatherAutoLoadPlugins() );
 	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_DefaultDirectionRtl, _gatherOtherDirectionRtl() );
@@ -172,40 +161,6 @@ void AP_Dialog_Options::_storeWindowData(void)
 	// If we changed whether the ruler is to be visible
 	// or hidden, then update the current window:
 	// (If we didn't change anything, leave it alone)
-#if !defined(TOOLKIT_GTK_ALL) && !defined(TOOLKIT_COCOA) && !defined (TOOLKIT_WIN) 
-	if (pFrameData && _gatherViewShowRuler() != pFrameData->m_bShowRuler )
-	{
-		pFrameData->m_bShowRuler = _gatherViewShowRuler() ;
-		if (!pFrameData->m_bIsFullScreen)
-		{
-			m_pFrame->toggleRuler(pFrameData->m_bShowRuler);
-		}
-	}
-
-	// Same for status bar
-	if (pFrameData && _gatherViewShowStatusBar() != pFrameData->m_bShowStatusBar)
-	{
-		pFrameData->m_bShowStatusBar = _gatherViewShowStatusBar();
-		if (!pFrameData->m_bIsFullScreen)
-		{
-			m_pFrame->toggleStatusBar(pFrameData->m_bShowStatusBar);
-		}
-	}
-
-
-	if(pFrameData) {
-		for (i = 0; i < m_pApp->getToolbarFactory()->countToolbars(); i++) {
-			if (_gatherViewShowToolbar(i) != pFrameData->m_bShowBar[i])
-			{
-				pFrameData->m_bShowBar[i] = _gatherViewShowToolbar(i);
-				if (!pFrameData->m_bIsFullScreen)
-				{
-					m_pFrame->toggleBar(i, pFrameData->m_bShowBar[i]);
-				}
-			}
-		}
-	}
-#endif
 	
 	if (pFrameData &&  _gatherViewUnprintable() != pFrameData->m_bShowPara )
 	{
@@ -218,12 +173,10 @@ void AP_Dialog_Options::_storeWindowData(void)
 		pView->setShowPara(pFrameData->m_bShowPara);
 	}
 
-#if defined(TOOLKIT_GTK_ALL)
 	if ( _gatherEnableSmoothScrolling() != XAP_App::getApp()->isSmoothScrollingEnabled() )
 	{
 		XAP_App::getApp()->setEnableSmoothScrolling(_gatherEnableSmoothScrolling());
 	}
-#endif
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save ruler units value
 	pPrefsScheme->setValue((gchar*)AP_PREF_KEY_RulerUnits,
@@ -342,18 +295,6 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
 
 		case id_CHECK_VIEW_SHOW_RULER:
-#if !defined(TOOLKIT_GTK_ALL) && !defined(TOOLKIT_COCOA) && !defined (TOOLKIT_WIN) 
-			{
-				bool tmpbool = _gatherViewShowRuler();
-				Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_RulerVisible, tmpbool);
-				if (pFrameData && (tmpbool != pFrameData->m_bShowRuler))
-				{
-					pFrameData->m_bShowRuler = _gatherViewShowRuler() ;
-					m_pFrame->toggleRuler(pFrameData->m_bShowRuler);
-				}
-			}
-			
-#endif
 			break;
 
 		case id_LIST_VIEW_RULER_UNITS:
@@ -367,18 +308,6 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
 
 		case id_CHECK_VIEW_SHOW_STATUS_BAR:
-#if !defined(TOOLKIT_GTK_ALL) && !defined(TOOLKIT_COCOA) && !defined (TOOLKIT_WIN) 
-			{
-				bool tmpbool = _gatherViewShowStatusBar();
-				Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_StatusBarVisible, tmpbool);
-				if (pFrameData && (tmpbool != pFrameData->m_bShowStatusBar))
-				{
-					pFrameData->m_bShowStatusBar = tmpbool;
-					m_pFrame->toggleStatusBar(pFrameData->m_bShowStatusBar);
-				}
-			}
-			
-#endif
 			break;
 
 		case id_PUSH_CHOOSE_COLOR_FOR_TRANSPARENT:
@@ -392,10 +321,8 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
 
 		case id_CHECK_ENABLE_SMOOTH_SCROLLING:
-#if defined(TOOLKIT_GTK_ALL)
 			Save_Pref_Bool (pPrefsScheme, XAP_PREF_KEY_EnableSmoothScrolling,
 					_gatherEnableSmoothScrolling());
-#endif
 			break;
         case id_CHECK_ENABLE_OVERWRITE:
 			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_InsertModeToggle,
@@ -532,21 +459,6 @@ void AP_Dialog_Options::_populateWindowData(void)
 	}
 
 
-#if !defined(TOOLKIT_GTK_ALL) && !defined(TOOLKIT_COCOA) && !defined (TOOLKIT_WIN)
-	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_RulerVisible, b)) {
-		_setViewShowRuler(b);
-	}
-	UT_uint32 i;
-	for (i = 0; i < m_pApp->getToolbarFactory()->countToolbars(); i++) {
-		if (pPrefs->getPrefsValueBool((gchar*)m_pApp->getToolbarFactory()->prefKeyForToolbar(i),&b)) {
-			_setViewShowToolbar (i, b);
-		}
-	}
-
-	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_StatusBarVisible, b)) {
-		_setViewShowStatusBar (b);
-	}
-#endif
 
 
 	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_InsertModeToggle, b)) {
@@ -561,11 +473,9 @@ void AP_Dialog_Options::_populateWindowData(void)
 		_setViewCursorBlink(b);
 	}
 
-#if defined(TOOLKIT_GTK_ALL)
 	if (pPrefs->getPrefsValueBool(XAP_PREF_KEY_EnableSmoothScrolling, b)) {
 		_setEnableSmoothScrolling(b);
 	}
-#endif
 	if (pPrefs->getPrefsValueBool(XAP_PREF_KEY_AutoLoadPlugins, b)) {
 		_setAutoLoadPlugins(b);
 	}
@@ -698,16 +608,6 @@ void AP_Dialog_Options::_initEnableControls()
 	// If the prefs color for transparent is white initially disable the choose
 	// color button
 	// On UNIX/GTK, we have a nice color chooser and ignore this setting.
-#ifndef TOOLKIT_GTK_ALL
-	if(strcmp(m_CurrentTransparentColor,"ffffff") == 0)
-	{
-		_controlEnable( id_PUSH_CHOOSE_COLOR_FOR_TRANSPARENT, false);
-	}
-	else
-	{
-		_controlEnable( id_PUSH_CHOOSE_COLOR_FOR_TRANSPARENT, true);
-	}
-#endif
 
 	_initEnableControlsPlatformSpecific();
 }

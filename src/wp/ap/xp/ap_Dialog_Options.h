@@ -152,10 +152,6 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 
 	SET_GATHER			(ViewShowRuler, 	bool);
 	SET_GATHER			(ViewShowStatusBar, bool);
-#if !defined (TOOLKIT_GTK_ALL) && !defined(TOOLKIT_COCOA)
-	virtual bool _gatherViewShowToolbar(UT_uint32 t) = 0;
-	virtual void _setViewShowToolbar(UT_uint32 row, bool b) = 0;
-#endif
 	SET_GATHER			(ViewRulerUnits,	UT_Dimension);
 	SET_GATHER			(OuterQuoteStyle,	gint);
 	SET_GATHER			(InnerQuoteStyle,	gint);
@@ -164,9 +160,7 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	SET_GATHER			(ViewAll,			bool);
 	SET_GATHER			(ViewHiddenText,	bool);
 	SET_GATHER			(ViewUnprintable,	bool);
-#if defined(TOOLKIT_GTK_ALL)
 	SET_GATHER			(EnableSmoothScrolling, bool);
-#endif
 	SET_GATHER			(AutoLoadPlugins, bool);
 
 	SET_GATHER			(OtherDirectionRtl, bool);

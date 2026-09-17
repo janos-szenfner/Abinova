@@ -51,14 +51,10 @@
 #include "fv_Selection.h"
 #include "fv_InlineImage.h"
 
-#ifdef TOOLKIT_GTK_ALL
 #include "fv_UnixVisualDrag.h"
 #include "fv_UnixFrameEdit.h"
 #include "fv_UnixInlineImage.h"
 #include "fv_UnixSelectionHandles.h"
-#else
-#include "fv_VisualDragText.h"
-#endif
 #include "fv_SelectionHandles.h"
 
 #define AUTO_SCROLL_MSECS	100
@@ -1111,9 +1107,6 @@ private:
 	UT_sint32			m_iyResizeOrigin;
 	bool				m_bIsResizingImage;
 	UT_Rect				m_curImageSel;
-#if XAP_DONTUSE_XOR
-	GR_Image*			m_curImageSelCache;
-#endif
 	// properties for image dragging
 	bool				m_bIsDraggingImage;
 	fp_Run *			m_pDraggedImageRun;
@@ -1151,16 +1144,8 @@ private:
 	mutable fv_PropCache        m_BlockProps;
 	mutable fv_PropCache        m_SecProps;
 	AV_ListenerId       m_CaretListID;
-#ifdef TOOLKIT_GTK_ALL
 	FV_UnixFrameEdit    m_FrameEdit;
-#else
-	FV_FrameEdit        m_FrameEdit;
-#endif
-#ifdef TOOLKIT_GTK_ALL
 	FV_UnixVisualDrag   m_VisualDragText;
-#else
-	FV_VisualDragText   m_VisualDragText;
-#endif
 	FV_Selection        m_Selection;
 	bool                m_bShowRevisions;
 
@@ -1169,11 +1154,7 @@ private:
 	bool                m_bDontNotifyListeners;
 	UT_ByteBuf *        m_pLocalBuf;
 	UT_sint32           m_iGrabCell;
-#ifdef TOOLKIT_GTK_ALL
 	FV_UnixVisualInlineImage  m_InlineImage;
-#else
-	FV_VisualInlineImage  m_InlineImage;
-#endif
 	bool                m_bInsertAtTablePending;
 	PT_DocPosition      m_iPosAtTable;
 	UT_GenericVector<fv_CaretProps *> m_vecCarets;
@@ -1185,11 +1166,7 @@ private:
     int                 m_bubbleBlockerCount;
 	UT_sint32           m_iOldPageCount;
 
-#if defined(TOOLKIT_GTK_ALL)
 	FV_UnixSelectionHandles m_SelectionHandles;
-#else
-	FV_SelectionHandles m_SelectionHandles;
-#endif
 
 public:
 	bool registerDoubleBufferingObject(FV_ViewDoubleBuffering *obj);

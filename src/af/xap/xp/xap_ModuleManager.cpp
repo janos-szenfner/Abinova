@@ -37,19 +37,8 @@
 
 // the loader manages instances of one of these target classes
 
-#if defined (TOOLKIT_WIN)
-  #include "xap_Win32Module.h"
-  #define MODULE_CLASS XAP_Win32Module
-#elif defined (TOOLKIT_COCOA)
-  #include "xap_CocoaModule.h"
-  #define MODULE_CLASS XAP_CocoaModule
-#elif defined(TOOLKIT_QT)
-  #include "xap_QtModule.h"
-  #define MODULE_CLASS XAP_QtModule
-#else
   #include "xap_UnixModule.h"
   #define MODULE_CLASS XAP_UnixModule
-#endif
 
 // log information about plugin loading into the <log> section of AbiWord.profile
 // (we save the prefs file after each call, so as to maximise the information we have in

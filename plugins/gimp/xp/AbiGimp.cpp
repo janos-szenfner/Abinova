@@ -192,11 +192,9 @@ AbiGimp_RemoveFromMenus ()
 ABI_BUILTIN_FAR_CALL
 int abi_plugin_register (XAP_ModuleInfo * mi)
 {
-#if !defined(TOOLKIT_WIN)
   // gimp doesn't exist, don't let the plugin get loaded
   if (!progExists("gimp"))
     return 0;
-#endif
 
     mi->name = "AbiGimp";
     mi->desc = "Use this to edit an image with the GIMP from within AbiWord";

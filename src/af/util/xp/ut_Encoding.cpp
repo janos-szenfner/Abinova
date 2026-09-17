@@ -149,10 +149,6 @@ static enc_entry s_Table[] =
 	{enc_armscii,			nullptr, XAP_STRING_ID_ENC_ARME_ARMSCII},
 	{enc_big5,				nullptr, XAP_STRING_ID_ENC_CHTR_BIG5},
 	{enc_big5hkscs,				nullptr, XAP_STRING_ID_ENC_CHTR_BIG5HKSCS},
-#ifdef TOOLKIT_WIN
-	{enc_cp437,				nullptr, XAP_STRING_ID_ENC_US_DOS},
-	{enc_cp850,				nullptr, XAP_STRING_ID_ENC_MLNG_DOS},
-#endif
 	{enc_cp874,				nullptr, XAP_STRING_ID_ENC_THAI_WIN},
 	{enc_cp932,				nullptr, XAP_STRING_ID_ENC_JAPN_WIN},
 	{enc_cp936,				nullptr, XAP_STRING_ID_ENC_CHSI_WIN},

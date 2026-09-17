@@ -59,30 +59,12 @@
 #include "fp_TableContainer.h"
 #include "fl_BlockLayout.h"
 
-#ifdef TOOLKIT_WIN
-#include "ap_Win32App.h" 
-#endif
 
 #define ABIWORD_VIEW  	FV_View * pView = static_cast<FV_View *>(pAV_View)
 
 static char *s_escapeMenuString(char *p_str)
 {
-#ifdef TOOLKIT_WIN
-	int l = strlen(p_str)+1;
-	char *c = p_str, *d, *r;
-	while (*c) if (*c++=='&') l++;
-	d=r=(char*)g_malloc(l);
-	c = p_str;
-	while (*c) {
-		if (*c=='&') *d++='&';
-		*d++=*c++;
-	}
-	*d=0;
-	
-	return r;
-#else
 	return g_strdup(p_str);
-#endif
 }
 
 /*****************************************************************/

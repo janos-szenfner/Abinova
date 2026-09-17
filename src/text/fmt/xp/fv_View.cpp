@@ -274,9 +274,6 @@ FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
 		m_iyResizeOrigin(0),
 		m_bIsResizingImage(false),
 		m_curImageSel(-1,-1,-1,-1),
-#if XAP_DONTUSE_XOR
-		m_curImageSelCache(nullptr),
-#endif
 		m_bIsDraggingImage(false),
 		m_pDraggedImageRun(nullptr),
 		m_dragImageRect(-1,-1,-1,-1),

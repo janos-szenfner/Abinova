@@ -99,9 +99,6 @@ static struct _im s_imTable[] =
 #ifdef DEBUG
 XAP_Toolbar_Icons iconsdebug;
 
-#if defined (TOOLKIT_WIN)
-#include "xap_Win32Toolbar_Icons.h"
-#endif
 
 #endif
 

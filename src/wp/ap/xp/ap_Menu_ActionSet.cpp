@@ -85,14 +85,9 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FILE_PROPERTIES, 0,1,0,0, "dlgMetaData", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_CLOSE,		0,0,0,0,	"closeWindow",		nullptr,					nullptr);
 	_s(AP_MENU_ID_FILE_PAGESETUP,	0,1,0,0,	"pageSetup",		nullptr,					nullptr);
-#if TOOLKIT_GTK_ALL
 	_s(AP_MENU_ID_FILE_PRINT,  0,1,0,0,	"cairoPrint",nullptr,nullptr);
 	_s(AP_MENU_ID_FILE_PRINT_PREVIEW, 0,1,0,0, "cairoPrintPreview", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_PRINT_DIRECTLY, 0,1,0,0, "cairoPrintDirectly", nullptr, nullptr);
-#else
-	_s(AP_MENU_ID_FILE_PRINT,		0,1,0,0,	"print",			nullptr,					nullptr);
-	_s(AP_MENU_ID_FILE_PRINT_PREVIEW, 0,1,0,0, "printPreview", nullptr, nullptr);
-#endif
 	_s(AP_MENU_ID_FILE_RECENT,	1,0,0,0,	nullptr, ap_GetState_Recent,nullptr);
 	_s(AP_MENU_ID_FILE_RECENT_1,	0,0,0,0,	"openRecent_1",		nullptr,					ap_GetLabel_Recent);
 	_s(AP_MENU_ID_FILE_RECENT_2,	0,0,0,0,	"openRecent_2",		nullptr,					ap_GetLabel_Recent);

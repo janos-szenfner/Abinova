@@ -796,8 +796,6 @@ void GR_Graphics::fillRect(const UT_RGBColor& c, const UT_Rect &r)
 {
 	fillRect(c, r.left, r.top, r.width, r.height);
 }
-#if XAP_DONTUSE_XOR
-#else
 void GR_Graphics::xorRect(UT_sint32 x, UT_sint32 y, UT_sint32 w, UT_sint32 h)
 {
 	xorLine(x,     y,     x + w, y);
@@ -811,7 +809,6 @@ void GR_Graphics::xorRect(const UT_Rect& r)
 	xorRect(r.left, r.top, r.width, r.height);
 }
 
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////
 //
@@ -1731,15 +1728,7 @@ bool GR_GraphicsFactory::isRegistered(UT_uint32 iClassId) const
 	return true;
 }
 
-#if defined(TOOLKIT_GTK)
 #include "gr_CairoNullGraphics.h"
-#elif defined(TOOLKIT_WIN)
-#include "gr_Win32Graphics.h"
-#elif defined(TOOLKIT_COCOA)
-#warning implement offscreen
-#else
-#warning un-handled case
-#endif
 
 /**
  * Creates an offscreen graphics context. Only used for measuring font metrics and whatnot, not actually for drawing
@@ -1749,14 +1738,8 @@ GR_Graphics* GR_Graphics::newNullGraphics()
 {
 	// todo: support other platforms when possible
 
-#if defined(TOOLKIT_GTK)
 	GR_CairoNullGraphicsAllocInfo ai;
 	return XAP_App::getApp()->newGraphics(GRID_CAIRO_NULL, (GR_AllocInfo&)ai);
-#elif defined(TOOLKIT_WIN)
-	GR_Win32AllocInfo ai (GR_Win32Graphics::createbestmetafilehdc(), GR_Win32Graphics::getDocInfo(), nullptr);
-	return XAP_App::getApp()->newGraphics(GRID_WIN32, (GR_AllocInfo&)ai);
-#elif defined(TOOLKIT_COCOA)
-#endif
 
 	return nullptr;
 }

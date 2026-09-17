@@ -213,11 +213,6 @@ bool AP_Args::doWindowlessArgs(bool & bSuccessful)
  	if (m_iVersion)
  	{		
  		printf("%s\n", PACKAGE_VERSION);
-		#ifdef TOOLKIT_WIN
-#define ABI_WIDE_STRING(t) Z(t)
-#define Z(t) L##t
-			MessageBoxW(nullptr, ABI_WIDE_STRING(PACKAGE_VERSION), L"Version", MB_OK);
-		#endif
 		exit(0);
  	}
 

@@ -36,14 +36,10 @@
 #include "ut_sleep.h"
 #include <sys/types.h>  
 #include <sys/stat.h>
-#ifdef TOOLKIT_WIN
-#include <windows.h>
-#else
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include "ut_files.h"
-#endif
 #include "../linkgrammarwrap/LinkGrammarWrap.h"
 #include "AbiGrammarUtil.h"
 #include "ut_growbuf.h"

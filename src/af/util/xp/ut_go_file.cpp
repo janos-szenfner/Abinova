@@ -35,22 +35,12 @@
 #include <glib/gstdio.h>
 #include <libxml/encoding.h>
 
-#if TOOLKIT_COCOA
-#include <CoreFoundation/CoreFoundation.h>
-#include <ApplicationServices/ApplicationServices.h>
-#endif
 
 #include <stdio.h>
 
-#ifdef TOOLKIT_GTK_ALL
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
-#endif
 
-#ifdef TOOLKIT_QT
-#include <QUrl>
-#include <QDesktopServices>
-#endif
 
 #if defined G_OS_WIN32
 #include <windows.h>
@@ -1356,7 +1346,6 @@ UT_go_file_get_date_changed (char const *uri)
 }
 
 /* ------------------------------------------------------------------------- */
-#ifdef TOOLKIT_GTK_ALL
 // We need this for systems where gtk_show_uri() is broken
 // Don't get me started.
 // Note that if gtk_show_uri() fails but returns true, then
@@ -1441,7 +1430,6 @@ fallback_open_uri(const gchar* url, GError** err)
 	g_free (browser);
 	g_free (clean_url);
 }
-#endif
 
 #ifdef G_OS_WIN32
 #undef _
@@ -1455,21 +1443,6 @@ UT_go_url_show (gchar const *url)
 	UT_Win32LocaleString str;
 	str.fromUTF8 (url);
 	ShellExecuteW (nullptr, L"open", str.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-	return nullptr;
-#elif TOOLKIT_COCOA
-	CFStringRef urlStr = CFStringCreateWithCString(kCFAllocatorDefault, url, kCFStringEncodingUTF8);
-	CFURLRef cfUrl = CFURLCreateWithString(kCFAllocatorDefault, urlStr, nullptr);
-	OSStatus err = LSOpenCFURLRef(cfUrl, nullptr);
-	CFRelease(cfUrl);
-	CFRelease(urlStr);
-	if (err != noErr) {
-		;
-	}
-	return nullptr;
-#elif TOOLKIT_QT
-	if(!QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode))) {
-		;
-	}
 	return nullptr;
 #else
 	GError *err = nullptr;

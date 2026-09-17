@@ -55,34 +55,18 @@ BeginLayout(Main,0)
 #ifdef ENABLE_PRINT
 		Separator()
 		MenuItem(AP_MENU_ID_FILE_PAGESETUP)
-#if defined(TOOLKIT_GTK_ALL) || defined (TOOLKIT_WIN)
 		MenuItem(AP_MENU_ID_FILE_PRINT_PREVIEW)
-#endif
 		MenuItem(AP_MENU_ID_FILE_PRINT)
 #endif
 #if !XAP_SIMPLE_MENU
 		Separator()
 		MenuItem(AP_MENU_ID_FILE_PROPERTIES)
 		Separator()
-#ifdef TOOLKIT_GTK_ALL
 		// GNOME HIG style recent files
 		MenuItem(AP_MENU_ID_FILE_RECENT_1)
 		MenuItem(AP_MENU_ID_FILE_RECENT_2)
 		MenuItem(AP_MENU_ID_FILE_RECENT_3)
 		MenuItem(AP_MENU_ID_FILE_RECENT_4)
-#else
-		BeginSubMenu(AP_MENU_ID_FILE_RECENT)
-			MenuItem(AP_MENU_ID_FILE_RECENT_1)
-			MenuItem(AP_MENU_ID_FILE_RECENT_2)
-			MenuItem(AP_MENU_ID_FILE_RECENT_3)
-			MenuItem(AP_MENU_ID_FILE_RECENT_4)
-			MenuItem(AP_MENU_ID_FILE_RECENT_5)
-			MenuItem(AP_MENU_ID_FILE_RECENT_6)
-			MenuItem(AP_MENU_ID_FILE_RECENT_7)
-			MenuItem(AP_MENU_ID_FILE_RECENT_8)
-			MenuItem(AP_MENU_ID_FILE_RECENT_9)
-		EndSubMenu()
-#endif
 		Separator()
 #endif
 #if  !XAP_SIMPLE_MENU
@@ -326,9 +310,7 @@ BeginLayout(Main,0)
 
 #if !XAP_SIMPLE_MENU
 		MenuItem(AP_MENU_ID_TOOLS_PLUGINS)
-#ifndef TOOLKIT_WIN
 		MenuItem(AP_MENU_ID_TOOLS_SCRIPTS)
-#endif
 		MenuItem(AP_MENU_ID_TOOLS_MAILMERGE)
 #if XAP_PREFSMENU_UNDER_TOOLS
 		Separator()
@@ -496,9 +478,6 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_HELP_CHECKVER)
 		MenuItem(AP_MENU_ID_HELP_REPORT_BUG)
 		Separator()
-#ifndef TOOLKIT_GTK_ALL
-		MenuItem(AP_MENU_ID_HELP_CREDITS)
-#endif
 		MenuItem(AP_MENU_ID_HELP_ABOUT)
 	EndSubMenu()
 #endif

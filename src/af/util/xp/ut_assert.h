@@ -71,27 +71,6 @@ extern int ABI_EXPORT UT_Win32ThrowAssert(const char * pCondition, const char * 
 
 #endif // ifdef NDEBUG
 
-// MacOS code.
-#elif defined(TOOLKIT_COCOA)
-#	ifdef NDEBUG
-// When NDEBUG is defined, assert() does nothing.
-// So we let the system header files take care of it.
-#		include <assert.h>
-#		define UT_ASSERT assert
-#	else
-// Please keep the "/**/" to stop MSVC dependency generator complaining.
-#		include /**/ "xap_CocoaAssert.h"
-#			define UT_ASSERT(expr)								\
-			{												\
-				static bool __bOnceOnly = false;			\
-				if (!__bOnceOnly && !(expr)) {				\
-					if (XAP_CocoaAssertMsg(#expr,			\
-						__FILE__, __LINE__)) {				\
-						__bOnceOnly = true;					\
-					}										\
-				} \
-			}
-#	endif
 #else
 
 // A Unix variant, possibly Gnome.

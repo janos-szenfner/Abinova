@@ -53,14 +53,10 @@
 #include <goffice/goffice.h>
 #include <sys/types.h>  
 #include <sys/stat.h>
-#ifdef TOOLKIT_WIN
-#include <windows.h>
-#else
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include "ut_files.h"
-#endif
 
 #ifndef HAVE_LSM_ITEX_TO_MATHML
 /* Lasem - SVG and Mathml library

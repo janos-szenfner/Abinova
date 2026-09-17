@@ -37,9 +37,7 @@ BeginLayout(FileEditOps, AP_STRING_ID_TB_Standard, AP_PREF_KEY_StandardBarVisibl
 	ToolbarItem(AP_TOOLBAR_ID_FILE_SAVE)
 #ifdef ENABLE_PRINT
 	Spacer()
-#if defined(TOOLKIT_GTK_ALL) || defined (TOOLKIT_WIN)
 	ToolbarItem(AP_TOOLBAR_ID_FILE_PRINT_PREVIEW)
-#endif
 	ToolbarItem(AP_TOOLBAR_ID_FILE_PRINT)
 #endif
 
@@ -60,13 +58,11 @@ BeginLayout(FileEditOps, AP_STRING_ID_TB_Standard, AP_PREF_KEY_StandardBarVisibl
 	Spacer()
 	ToolbarItem(AP_TOOLBAR_ID_ZOOM)
 
-#ifndef TOOLKIT_WIN
 	Spacer()
 	ToolbarItem(AP_TOOLBAR_ID_REVISIONS_NEW)
 	ToolbarItem(AP_TOOLBAR_ID_REVISIONS_SELECT)
 	ToolbarItem(AP_TOOLBAR_ID_REVISIONS_SHOW_FINAL)
 	ToolbarItem(AP_TOOLBAR_ID_REVISIONS_FIND_PREV)
 	ToolbarItem(AP_TOOLBAR_ID_REVISIONS_FIND_NEXT)
-#endif
 
 EndLayout()

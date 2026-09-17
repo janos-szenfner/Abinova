@@ -30,9 +30,6 @@
 #include "ie_impexp_WordPerfect.h"
 
 
-#if defined(TOOLKIT_WIN) && !defined(__MINGW32__)
-extern double rint(double x);
-#endif /* _WIN32 */
 
 IE_Exp_WordPerfect_Sniffer::IE_Exp_WordPerfect_Sniffer() 
     : IE_ExpSniffer(IE_MIMETYPE_WP_6)

@@ -24,13 +24,9 @@
 #include "config.h"
 #endif
 
-#ifdef TOOLKIT_WIN
-#include <io.h>
-#else
 // this ansi header is not available on Windows.
 // needed for close()
 #include <unistd.h>
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3787,24 +3783,8 @@ s_closeWindow (AV_View * pAV_View, EV_EditMethodCallData * pCallData,
 Defun(closeWindow)
 {
 	CHECK_FRAME;
-#if !defined(TOOLKIT_GTK_ALL)
-	UT_return_val_if_fail (pAV_View, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-	XAP_App * pApp = XAP_App::getApp();
-	UT_return_val_if_fail(pApp, false);
-
-	XAP_Prefs * pPrefs = pApp->getPrefs();
-	UT_return_val_if_fail(pPrefs, false);
-
-	bool close = false;
-
-	pPrefs->getPrefsValueBool(AP_PREF_KEY_CloseOnLastDoc, close);
-	return s_closeWindow (pAV_View, pCallData, close);
-#else
 	// must, to comply with the HIG
 	return s_closeWindow (pAV_View, pCallData, true);
-#endif
 }
 
 Defun(closeWindowX)
@@ -8129,7 +8109,6 @@ static bool s_doParagraphDlg(FV_View * pView)
 
 static bool s_doOptionsDlg(FV_View * pView, int which = -1)
 {
-#ifndef TOOLKIT_COCOA
 	UT_return_val_if_fail(pView, false);
 	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
 	UT_return_val_if_fail(pFrame, false);
@@ -8138,14 +8117,6 @@ static bool s_doOptionsDlg(FV_View * pView, int which = -1)
 
 	XAP_DialogFactory * pDialogFactory
 		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
-#else
-	UT_UNUSED(pView);
-
-	XAP_Frame * pFrame = 0; // don't necessarily have a frame in Cocoa-FE
-
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
-#endif
 	XAP_TabbedDialog_NonPersistent * pDialog
 		= static_cast<XAP_TabbedDialog_NonPersistent *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_OPTIONS));
 	UT_return_val_if_fail(pDialog, false);
@@ -8680,10 +8651,6 @@ bool s_actuallyPrint(PD_Document *doc,  GR_Graphics *pGraphics,
 }
 
 #ifdef ENABLE_PRINT
-#if defined(TOOLKIT_COCOA)
-/* declare but possibly not implment them */
-bool s_doPrint(FV_View * pView, bool bTryToSuppressDialog, bool bPrintDirectly);
-#else
 static bool s_doPrint(FV_View * pView, bool bTryToSuppressDialog,bool bPrintDirectly)
 {
 	UT_return_val_if_fail (pView, false);
@@ -8836,7 +8803,6 @@ UT_return_val_if_fail(pDialog, false);
 
 	return bOK;
 }
-#endif
 #endif
 
 #ifdef ENABLE_PRINT
@@ -9724,19 +9690,12 @@ Defun1(dlgSpellPrefs)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	
-#ifdef TOOLKIT_COCOA
-    return s_doOptionsDlg(pView, 4); // spelling tab
-#endif
 
-#if !defined (TOOLKIT_WIN) && !defined (TOOLKIT_GTK_ALL)
-    return s_doOptionsDlg(pView, 1); // spelling tab
-#else
     // spelling tab in Windows in the tab num 2
     // becuase 1, is language selection. For UNIX, it's
     // tab 2 as well. We should use an enumerator instead
     // of fixed values. Jordi,
 	return s_doOptionsDlg(pView, 2);
-#endif
 }
 #endif
 
