@@ -1,6 +1,3 @@
-if TOOLKIT_COCOA
-
-else
 SUBDIRS = xp
 
 plugindir = $(ABIWORD_PLUGINSDIR)
@@ -17,4 +14,3 @@ command_la_LDFLAGS = \
 
 command_la_SOURCES = 
 
-endif

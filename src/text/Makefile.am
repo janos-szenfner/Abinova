@@ -236,7 +236,6 @@ libtext_la_SOURCES += \
 	ptbl/xp/pd_RDFSupportRed.h
 endif
 
-if TOOLKIT_GTK_ALL
 AM_CPPFLAGS += \
 	$(IMPEXP_CPPFLAGS)
 
@@ -251,7 +250,6 @@ libtext_la_SOURCES += \
 	fmt/gtk/fv_UnixSelectionHandles.h \
 	fmt/gtk/gtktexthandle.cpp \
 	fmt/gtk/gtktexthandleprivate.h
-endif
 
 EXTRA_DIST = \
 	fmt/xp/t/fl_AutoNum.t.cpp \

@@ -120,7 +120,6 @@ libutil_la_SOURCES = \
 	xp/ut_xml_libxml2.cpp \
 	xp/ut_conversion.h
 
-if PLATFORM_UNIX
 libutil_la_SOURCES += \
 	unix/ut_debugmsg.cpp \
 	unix/ut_files.cpp \
@@ -138,38 +137,6 @@ libutil_la_SOURCES += \
 	unix/ut_unixTimer.cpp \
 	unix/ut_unixTimer.h \
 	$(NULL)
-endif
-if PLATFORM_WIN
-libutil_la_SOURCES += \
-	xp/ut_stack.cpp \
-	xp/ut_stack.h \
-	win/ut_debugmsg.cpp \
-	win/ut_mutexImpl.h \
-	win/ut_path.cpp \
-	win/ut_sleep.cpp \
-	win/ut_sleep.h \
-	win/ut_Win32Idle.cpp \
-	win/ut_Win32Idle.h \
-	win/ut_Win32Locale.cpp \
-	win/ut_Win32Locale.h \
-	win/ut_Win32Misc.cpp \
-	win/ut_Win32OS.cpp \
-	win/ut_Win32OS.h \
-	win/ut_Win32String.cpp \
-	win/ut_Win32Timer.cpp \
-	win/ut_Win32Timer.h \
-	win/ut_Win32Uuid.cpp \
-	win/ut_Win32Uuid.h \
-	win/ut_Xpm2Bmp.cpp \
-	win/ut_Xpm2Bmp.h \
-	win/ut_Win32LocaleString.cpp \
-	win/ut_Win32LocaleString.h \
-	$(NULL)
-
-rc2files = \
-	win/ut_Win32Resources.rc2
-
-endif
 
 EXTRA_DIST = \
 	xp/t/ut_bytebuf.t.cpp \
@@ -182,5 +149,4 @@ EXTRA_DIST = \
 	xp/t/ut_types.t.cpp \
 	xp/t/ut_units.t.cpp \
 	xp/t/ut_uuid.t.cpp \
-	xp/t/ut_vector.t.cpp \
-	$(rc2files)
+	xp/t/ut_vector.t.cpp

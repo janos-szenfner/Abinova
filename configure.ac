@@ -62,15 +62,6 @@ AC_ARG_ENABLE([embedded],
 	abi_cv_embedded_target="no"
 ])
 
-AC_ARG_ENABLE([qt],
-	[AS_HELP_STRING([--enable-qt], [Build using Qt4])],
-[
-	abi_cv_qt="yes"
-],
-[
-	abi_cv_qt="no"
-])
-
 #
 # setting the deps requirement is done further down
 #
@@ -81,12 +72,7 @@ glib_req='glib-2.0 >= 2.74.0 gthread-2.0 >= 2.74.0 gobject-2.0 >= 2.74.0'
 gsf_req='libgsf-1 >= 1.14.26'
 wv_req='wv-1.0 >= 1.2.0'
 
-dnl Do NOT get goffice on Qt
-dnl It will link Gtk+ 3 but Qt will dlopen Gtk+ 2
-dnl This cause kaboom.
-if test "x$abi_cv_qt" = "xno"; then
 goffice_req='libgoffice-0.10 >= 0.10.12'
-fi
 
 xslt_req='libxslt'
 xp_pkgs="
@@ -118,16 +104,6 @@ gtk_pkgs="
   ${goffice_req}
 "
 
-# qt5 deps
-qt_pkgs="Qt5Gui Qt5Widgets   ${cairo_req}"
-
-# cocoa deps
-cocoa_pkgs="$enchant_req $cairo_req gmodule-2.0   ${goffice_req}"
-
-
-# win32 deps
-win_pkgs="$enchant_req"
-
 #
 # System tests
 #
@@ -135,14 +111,8 @@ win_pkgs="$enchant_req"
 AC_PROG_CC
 AC_PROG_CXX
 AX_CXX_COMPILE_STDCXX_17(noext,mandatory)
-#AC_PROG_OBJC
 AC_PROG_INSTALL
-# For libtool 1.5.x compatability (LT_INIT is deprecated version of LT_INIT)
-m4_ifdef([LT_INIT], [LT_INIT([disable-static win32-dll])], [AC_REQUIRE(AC_CANONICAL_HOST)_LT_SET_OPTION([LT_INIT],[win32-dll])
-m4_warn([obsolete],[AC_LIBTOOL_WIN32_DLL: Remove this warning and the call to _LT_SET_OPTION when you
-put the 'win32-dll' option into LT_INIT's first parameter.])
-])
-m4_ifdef([LT_INIT], [], [LT_INIT])
+LT_INIT([disable-static])
 AC_PROG_LN_S
 
 AC_CHECK_PROG(HAVE_PERL, perl, yes, no)
@@ -151,27 +121,8 @@ if test "x$HAVE_PERL" = "xno"; then
 fi
 
 
-AC_MSG_CHECKING([for platform and toolkit])
-case ${host_os} in
-  *darwin*)
-    PLATFORM="unix"
-    TOOLKIT="cocoa"
-    CXXFLAGS="$CXXFLAGS -stdlib=libc++"
-    ;;
-  *mingw*)
-    PLATFORM="win"
-    TOOLKIT="win"
-    ;;
-  *)
-    PLATFORM="unix"
-    if test "x$abi_cv_qt" = "xyes"; then
-      TOOLKIT="qt"
-    else
-      TOOLKIT="gtk"
-    fi
-    ;;
-esac
-AC_MSG_RESULT([$PLATFORM / $TOOLKIT])
+PLATFORM="unix"
+TOOLKIT="gtk"
 AC_SUBST([PLATFORM])
 AC_DEFINE_UNQUOTED(PLATFORM, "$PLATFORM", The platform that is compiled for)
 AC_SUBST([TOOLKIT])
@@ -188,22 +139,13 @@ AC_CHECK_FUNCS([localeconv strcspn strncasecmp strtoul],
 	AC_MSG_ERROR([$function_err])
 ])
 
-if test "$PLATFORM" = "cocoa"; then
-        AC_CHECK_FUNCS([floor mkdir],
-        [], [
-	    AC_MSG_ERROR([$function_err])
-        ])
-elif test "$PLATFORM" = "unix"; then
-	AC_CHECK_HEADERS([sys/time.h], [], [$header_err])
-	AC_FUNC_STRTOD
-	AC_TYPE_UINT32_T
-        AC_CHECK_FUNCS([alarm gettimeofday],
-        [], [
-	    AC_MSG_ERROR([$function_err])
-        ])
-dnl elif test "$PLATFORM" = "win"; then
-
-fi
+AC_CHECK_HEADERS([sys/time.h], [], [$header_err])
+AC_FUNC_STRTOD
+AC_TYPE_UINT32_T
+AC_CHECK_FUNCS([alarm gettimeofday],
+[], [
+	AC_MSG_ERROR([$function_err])
+])
 
 #
 # Features
@@ -265,8 +207,7 @@ AC_ARG_ENABLE([print],
 	abi_cv_print="yes"
 ])
 
-if test "$abi_cv_print" = "yes" &&
-   test "$TOOLKIT" = "gtk"; then
+if test "$abi_cv_print" = "yes"; then
 	opt_pkgs="$opt_pkgs"
 fi
 
@@ -276,16 +217,12 @@ AC_ARG_ENABLE([spell],
 	abi_cv_spell="$enableval"
 ],[
 	# autodetect
-	if test "$PLATFORM" = "unix"; then
-		PKG_CHECK_EXISTS([ $enchant_req ],
-		[
-			abi_cv_spell="yes"
-		], [
-			abi_cv_spell="no"
-		])
-	else
+	PKG_CHECK_EXISTS([ $enchant_req ],
+	[
 		abi_cv_spell="yes"
-	fi
+	], [
+		abi_cv_spell="no"
+	])
 ])
 
 if test "$abi_cv_spell" = "yes"; then
@@ -475,10 +412,6 @@ AC_ARG_WITH([champlain],
 	[AS_HELP_STRING([--with-champlain], [use champlain to display maps])],
 	,[with_champlain="check"])
 
-if test "$TOOLKIT" = "qt"; then
-    with_champlain=no
-fi
-
 if test "x$with_champlain" != "xno"; then
     PKG_CHECK_MODULES(CHAMPLAIN, [ $champlain_req ],,
     [if test "x$with_champlain" = "xyes"; then
@@ -502,22 +435,12 @@ if test "x$with_champlain" != "xno"; then
 	LDFLAGS_cache=$LDFLAGS
 	LDFLAGS=" $CHAMPLAIN_LIBS "
 
-	if test "x$abi_cv_gtk2" = "xyes"; then
- 	  echo -n "checking whether CHAMPLAIN uses GTK+2... "
- 	  
-		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <champlain-gtk/champlain-gtk.h>],[
- #if GTK_MAJOR_VERSION > 2
- #error bad
- #endif
-                               ])], gtk_matches=yes, gtk_matches=no)
-	else
  	  echo -n "checking whether CHAMPLAIN uses GTK+3... "
 		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <champlain-gtk/champlain-gtk.h>],[
  #if GTK_MAJOR_VERSION < 3
  #error bad
  #endif
                                ])], gtk_matches=yes, gtk_matches=no)
-	fi
         echo "$gtk_matches"        
 
 	LDFLAGS=$LDFLAGS_cache
@@ -677,45 +600,18 @@ AX_BOOST_BASE([1.40.0],,[AC_MSG_ERROR([`boost' not found.])])
 
 deps_pkgs="$xp_pkgs $opt_pkgs"
 SYSTEM_LIBS=
-SYSTEM_CFLAGS=
-if test "$TOOLKIT" = "win"; then
-	deps_pkgs="$deps_pkgs $win_pkgs"
-	# nonstandard dlls go below the blank line
-	SYSTEM_LIBS="-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -lkernel32 -lole32 -loleaut32 -lshell32 -luser32 -luuid -lversion -lwinspool \
-		      $PNG_LIBS -lz -ljpeg"
-	SYSTEM_CFLAGS="-mthreads"
-elif test "$TOOLKIT" = "cocoa"; then
-	deps_pkgs="$deps_pkgs $cocoa_pkgs"
-	SYSTEM_CLFLAGS="-DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_11"
-	SYSTEM_LIBS="-framework Cocoa"
-	AC_CHECK_PROG([CONVERT], [convert], convert, AC_MSG_ERROR(Cannot find ImageMagick convert))
-elif test "$TOOLKIT" = "qt"; then
-        deps_pkgs="$deps_pkgs $qt_pkgs"
-else
-	SYSTEM_CFLAGS=$PNG_CFLAGS
-	SYSTEM_LIBS="$PNG_LIBS -ljpeg"
-	deps_pkgs="$deps_pkgs $gtk_pkgs x11"
-fi
+SYSTEM_CFLAGS=$PNG_CFLAGS
+SYSTEM_LIBS="$PNG_LIBS -ljpeg"
+deps_pkgs="$deps_pkgs $gtk_pkgs x11"
 
 PKG_CHECK_MODULES(DEPS,[$deps_pkgs])
 
-if test "$TOOLKIT" = "gtk"; then
-       DEPS_CFLAGS="$DEPS_CFLAGS -DGDK_VERSION_MIN_REQUIRED=$GTK_ENCODED_VERSION -DGDK_VERSION_MAX_ALLOWED=$GTK_ENCODED_VERSION -DGDK_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED"
-fi
+DEPS_CFLAGS="$DEPS_CFLAGS -DGDK_VERSION_MIN_REQUIRED=$GTK_ENCODED_VERSION -DGDK_VERSION_MAX_ALLOWED=$GTK_ENCODED_VERSION -DGDK_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED"
 
 dnl make that for all.
-if test "$TOOLKIT" = "gtk" -o "$TOOLKIT" = "qt"; then
-	dnl move away
-	AC_DEFINE([WITH_CAIRO], [1], [Using Cairo])
-	WITH_CAIRO=1
-fi
+AC_DEFINE([WITH_CAIRO], [1], [Using Cairo])
+WITH_CAIRO=1
 AM_CONDITIONAL([WITH_CAIRO], test "$WITH_CAIRO" = "1")
-
-MOC=moc
-if test "$TOOLKIT" = qt; then
-   MOC=`pkg-config Qt5 --variable=moc`
-fi
-AC_SUBST([MOC])
 
 AC_SUBST([DEPS_CFLAGS])
 
@@ -800,28 +696,10 @@ ABIWORD_SERIES="abi_series"
 AC_DEFINE_UNQUOTED([ABIWORD_SERIES], [ "$ABIWORD_SERIES" ], [major.minor])
 AC_SUBST(ABIWORD_SERIES)
 AC_SUBST(ABIWORD_HEADERSDIR, "${includedir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
-if test "$TOOLKIT" = "cocoa"; then
-AC_SUBST(ABIWORD_CONTENTSDIR, "/AbiWord.app/Contents")
-AC_SUBST(ABIWORD_DATADIR,    "${ABIWORD_CONTENTSDIR}/Resources")
-AC_SUBST(ABIWORD_UIDIR,      "${ABIWORD_CONTENTSDIR}/Resources")
-AC_SUBST(ABIWORD_MACOSDIR,   "${ABIWORD_CONTENTSDIR}/MacOS")
-AC_SUBST(ABIWORD_PLUGINSDIR, "${ABIWORD_CONTENTSDIR}/PlugIns")
-AC_SUBST(ABIWORD_LIBDIR,     "${ABIWORD_CONTENTSDIR}/Frameworks")
-else
 AC_SUBST(ABIWORD_DATADIR,    "${datadir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
 AC_SUBST(ABIWORD_UIDIR,   "${ABIWORD_DATADIR}/ui")
 AC_SUBST(ABIWORD_LIBDIR,     "${libdir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
 AC_SUBST(ABIWORD_PLUGINSDIR, "${ABIWORD_LIBDIR}/plugins")
-fi
-
-# maybe just switch on TOOLKIT instead of the fancy TARGET defines
-AM_CONDITIONAL([TOOLKIT_COCOA], test "$TOOLKIT" = "cocoa")
-AM_CONDITIONAL([TOOLKIT_GTK], test "$TOOLKIT" = "gtk")
-AM_CONDITIONAL([TOOLKIT_QT], test "$TOOLKIT" = "qt")
-AM_CONDITIONAL([TOOLKIT_WIN], test "$TOOLKIT" = "win")
-
-AM_CONDITIONAL([PLATFORM_UNIX], test "$PLATFORM" = "unix")
-AM_CONDITIONAL([PLATFORM_WIN], test "$PLATFORM" = "win")
 
 if test "$enable_shared" = ""; then
 	enable_shared="no"
@@ -831,51 +709,16 @@ if test "$enable_static" = ""; then
 	enable_static="no"
 fi
 
-if test "$TOOLKIT" = "win"; then
-	AC_DEFINE([TOOLKIT_WIN], [1], [Build win32 user interface])
-	case ${host} in
-	  *-w64-mingw*)
-		AC_DEFINE([UNICODE], [1], [Build a full unicode AbiWord])
-		;;
-	  *)
-dnl on Mingw32 it is defined.
-		AC_DEFINE([_WIN32_IE], [0x0501], [minimal comctl.dll v4.70 for toolbars])
-		AC_DEFINE([_WIN32_WINNT], [0x0500], [support collaboration plugin in Windows 2000 or higher])
-	  	;;
-	esac
-elif test "$TOOLKIT" = "cocoa"; then
-	AC_DEFINE([TOOLKIT_COCOA], [1], [Build cocoa user interface])
-	AC_DEFINE([XAP_DONTUSE_XOR], [1], [do not use XOR drawing functions])
-	# override static/shared, on cocoa. shared only
-	enable_shared="yes"
-	enable_static="no"
-elif test "$TOOLKIT" = "gtk"; then
-	AC_DEFINE([TOOLKIT_GTK], [1], [Build gtk+ user interface])
-	AC_DEFINE([TOOLKIT_GTK_ALL], [1], [Build gtk+ user interface])
-dnl We have no reason to mess with that.
-dnl	# build static binary by default
-dnl	if test "$enable_shared" = "no" && \
-dnl	   test "$enable_static" = "no"; then 
-dnl		enable_shared="no"
-dnl		enable_static="yes"
-dnl	fi
-elif test "$TOOLKIT" = "qt"; then
-     AC_DEFINE([TOOLKIT_QT], [1], [Build using Qt5])
-fi
+AC_DEFINE([TOOLKIT_GTK], [1], [Build gtk+ user interface])
+AC_DEFINE([TOOLKIT_GTK_ALL], [1], [Build gtk+ user interface])
 AM_CONDITIONAL([ENABLE_DYNAMIC], test "$enable_shared" = "yes")
 AM_CONDITIONAL([ENABLE_STATIC], test "$enable_static" = "yes")
 
 PKG_CHECK_MODULES(PLUGIN,[$glib_req])
 PLUGIN_CFLAGS="$PLUGIN_CFLAGS "'${WP_CPPFLAGS} -DABI_DLL'
-if test "$TOOLKIT" = "gtk"  || test "$TOOLKIT" = "qt" && 
-   test "$enable_shared" = "yes"; then
-	# link plugins to work around gcc visibility issue with 
+if test "$enable_shared" = "yes"; then
+	# link plugins to work around gcc visibility issue with
 	# derived classes in dlopened modules
-	PLUGIN_LIBS='${top_builddir}/src/libabiword-'"$ABIWORD_SERIES"'.la'" $PLUGIN_LIBS"
-elif test "$TOOLKIT" = "win"; then
-	PLUGIN_CFLAGS="$PLUGIN_CFLAGS "'-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0500'
-	PLUGIN_LIBS='${top_builddir}/src/libabiword-'"$ABIWORD_SERIES"'.la'" $PLUGIN_LIBS"
-elif test "$TOOLKIT" = "cocoa" ; then 
 	PLUGIN_LIBS='${top_builddir}/src/libabiword-'"$ABIWORD_SERIES"'.la'" $PLUGIN_LIBS"
 fi
 AC_SUBST([PLUGIN_CFLAGS])
@@ -950,7 +793,6 @@ fi
 
 dnl It's always on with goffice.
 AC_DEFINE([HAVE_GO_MATH_EDITOR_NEW], [1], [Always defined to goffice])
-AM_CONDITIONAL([TOOLKIT_GTK_ALL], test "$TOOLKIT" = "gtk")
 
 ALL_PLUGINS_="\
   m4_n([plugin_list])"
@@ -1041,7 +883,6 @@ fi
 AC_SUBST(VALGRIND)
 
 dnl Introspection support
-if test "$TOOLKIT" = "gtk"; then
 GIR_REQ=1.0.0
 AC_ARG_ENABLE(introspection,
           AS_HELP_STRING([--enable-introspection[=@<:@no/auto/yes@:>@]],
@@ -1126,7 +967,6 @@ AC_ARG_WITH([typelib-dir],
 	[TYPELIBDIR=$INTROSPECTION_TYPELIBDIR]
 )
 AC_SUBST(TYPELIBDIR)
-fi
 
 AM_CONDITIONAL(HAVE_INTROSPECTION, test "x$found_introspection" = "xyes")
 
@@ -1149,9 +989,7 @@ AC_CONFIG_FILES([libabiword.pc
   src/wp/impexp/Makefile
   src/wp/test/Makefile
   src/wp/test/unix/testwrap.sh
-  src/wp/test/win/testwrap.sh
   src/wp/main/Makefile
-  src/wp/main/cocoa/bundle/Info.plist
   user/Makefile
   user/wp/Makefile
   user/wp/clipart/Makefile

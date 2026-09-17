@@ -17,7 +17,6 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301 USA.
 
-if PLATFORM_UNIX
 TESTS = unix/testwrap.sh
 
 check_SCRIPTS = testwrap.sh-stamp unix/testwrap.sh
@@ -38,7 +37,6 @@ AbiWord_test_SOURCES = unix/test_main.cpp \
 testwrap.sh-stamp: unix/testwrap.sh
 	chmod a+x unix/testwrap.sh
 	touch $@
-endif
 
 CLEANFILES = vgcore.* \
 	supp.txt \
@@ -48,5 +46,3 @@ CLEANFILES = vgcore.* \
 EXTRA_DIST = \
 	xp/main.cpp \
 	xp/all_test.h \
-	win/test_main.cpp \
-	cocoa/test_main.cpp

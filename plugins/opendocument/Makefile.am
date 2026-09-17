@@ -26,9 +26,6 @@ opendocument_la_LDFLAGS = \
 	-avoid-version \
 	-module \
 	-no-undefined
-if TOOLKIT_COCOA
-opendocument_la_LDFLAGS += -headerpad_max_install_names
-endif # TOOLKIT_COCOA
 
 opendocument_la_SOURCES = \
         common/xp/crypto/gc-pbkdf2-sha1.c \
@@ -163,12 +160,6 @@ opendocument_la_SOURCES = \
 	$(NULL)
 
 
-if TOOLKIT_COCOA
-install-data-hook:
-	install_name_tool -change $(ABIWORD_LIBDIR)/libabiword-@ABIWORD_SERIES@.dylib \
-		@executable_path/../Frameworks/libabiword-@ABIWORD_SERIES@.dylib \
-		$(DESTDIR)/$(plugindir)/opendocument.so
-endif # TOOLKIT_COCOA
 
 EXTRA_DIST = \
 	common/xp/crypto/README \

@@ -3,7 +3,6 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/af/tf/xp/ \
 	-DABI_BUILD_VERSION=\"$(VERSION)\"
 
-if !TOOLKIT_WIN
 
 plugindir = $(ABIWORD_PLUGINSDIR)
 plugin_LTLIBRARIES = testharness.la
@@ -41,4 +40,3 @@ testharness_la_SOURCES = \
 	@top_srcdir@/src/wp/impexp/xp/t/ie_Table.t.cpp \
 	$(NULL)
 
-endif

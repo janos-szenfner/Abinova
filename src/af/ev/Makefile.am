@@ -39,7 +39,6 @@ libev_la_SOURCES = \
 	xp/ev_Toolbar_Layouts.cpp \
 	xp/ev_Toolbar_Layouts.h
 
-if TOOLKIT_GTK_ALL
 libev_la_SOURCES += \
 	gtk/ev_UnixFontCombo.cpp \
 	gtk/ev_UnixFontCombo.h \
@@ -57,61 +56,6 @@ libev_la_SOURCES += \
 	gtk/ev_UnixToolbar.h \
 	gtk/ev_UnixToolbar_ViewListener.cpp \
 	gtk/ev_UnixToolbar_ViewListener.h
-endif
 
-if TOOLKIT_COCOA
-AM_CPPFLAGS += \
-	-x objective-c++
 
-libev_la_SOURCES += \
-	cocoa/ev_CocoaKeyboard.h \
-	cocoa/ev_CocoaKeyboard.cpp \
-	cocoa/ev_CocoaMenu.h \
-	cocoa/ev_CocoaMenu.cpp \
-	cocoa/ev_CocoaMenuBar.h \
-	cocoa/ev_CocoaMenuPopup.h \
-	cocoa/ev_CocoaMouse.h \
-	cocoa/ev_CocoaMouse.cpp \
-	cocoa/ev_CocoaToolbar.h \
-	cocoa/ev_CocoaToolbar.cpp \
-	cocoa/ev_CocoaToolbar_ViewListener.h \
-	cocoa/ev_CocoaToolbar_ViewListener.cpp
-endif
 
-if TOOLKIT_WIN
-libev_la_SOURCES += \
-	win/ev_Win32Keyboard.cpp \
-	win/ev_Win32Keyboard.h \
-	win/ev_Win32Menu.cpp \
-	win/ev_Win32Menu.h \
-	win/ev_Win32Mouse.cpp \
-	win/ev_Win32Mouse.h \
-	win/ev_Win32Toolbar.cpp \
-	win/ev_Win32Toolbar.h \
-	win/ev_Win32Toolbar_ViewListener.cpp \
-	win/ev_Win32Toolbar_ViewListener.h
-endif
-
-if TOOLKIT_QT
-include ${top_srcdir}/moc.mk
-
-$(libqt_la_OBJECTS) : \
-	moc_ev_QtMenuSlot.cpp \
-	$(NULL)
-
-libev_la_SOURCES += \
-	qt/ev_QtKeyboard.cpp \
-	qt/ev_QtKeyboard.h \
-	qt/ev_QtMouse.cpp \
-	qt/ev_QtMouse.h \
-	qt/ev_QtMenu.cpp \
-	qt/ev_QtMenu.h \
-	qt/ev_QtMenuBar.cpp \
-	qt/ev_QtMenuBar.h \
-	qt/ev_QtToolbar.cpp \
-	qt/ev_QtToolbar.h \
-	qt/ev_QtMenuSlot.cpp \
-	qt/ev_QtMenuSlot.h \
-	$(NULL)
-
-endif

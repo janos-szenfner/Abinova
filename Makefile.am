@@ -5,7 +5,6 @@ DIST_SUBDIRS = src plugins po user icons tools
 
 SUBDIRS = src plugins po user
 
-if TOOLKIT_GTK_ALL
 
 SUBDIRS += icons
 
@@ -23,16 +22,13 @@ pkgconfig_DATA = abiword-$(ABIWORD_SERIES).pc
 
 dist_man1_MANS = abiword.1
 
-endif
 
-if TOOLKIT_GTK
 # we disable introspection for distcheck as it fails because of
 # installation needing sudo
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-introspection=no \
 	--with-gir-dir=\$${datadir}/gir-1.0 \
 	--with-typelib-dir=\$${libdir}/girepository-1.0
-endif
 
 EXTRA_DIST = \
 	AUTHORS \
@@ -47,9 +43,7 @@ EXTRA_DIST = \
 	abiword.desktop \
 	abiword.keys \
 	abiword.png \
-	libabiword.pc.in \
-	compile-resource \
-	lt-compile-resource
+	libabiword.pc.in
 
 DISTCLEANFILES = \
 	abiword-$(ABIWORD_SERIES).pc \
@@ -61,15 +55,6 @@ DISTCLEANFILES = \
 abiword-$(ABIWORD_SERIES).pc: libabiword.pc
 	cp $< $@
 
-if TOOLKIT_WIN
-zip:
-	rm -rf $(PACKAGE)-$(VERSION)
-	make DESTDIR=$(abs_builddir)/zip install
-	mv zip$(prefix) $(PACKAGE)-$(VERSION)
-	cd $(PACKAGE)-$(VERSION)
-	zip -r $(PACKAGE)-$(VERSION).zip $(PACKAGE)-$(VERSION) -x \*.a \*.la
-	rm -rf $(PACKAGE)-$(VERSION) ./zip
-endif
 
 # needed to make sure we don't include .svn directories.
 dist-hook:

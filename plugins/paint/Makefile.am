@@ -1,7 +1,7 @@
 
 AM_CPPFLAGS = \
 	$(PAINT_CFLAGS) \
-	-I$(srcdir)/$(PLATFORM) \
+	-I$(srcdir)/unix \
 	-DABI_BUILD_VERSION=\"$(VERSION)\"
 
 if PAINT_BUILTIN
@@ -28,22 +28,10 @@ paint_la_SOURCES = \
 	xp/AbiPaint.cpp \
 	xp/AbiPaint.h
 
-if TOOLKIT_GTK_ALL
 paint_la_SOURCES += \
 	unix/ut_process.h \
 	unix/ut_UnixProcess.cpp
-endif
 
-if TOOLKIT_WIN
-paint_la_SOURCES += \
-	win/bmp2png.cpp \
-	win/png2bmp.cpp \
-	win/pngdib.c \
-	win/pngdib.h \
-	win/ut_process.h \
-	win/ut_Win32Process.cpp
-endif
 
 EXTRA_DIST = \
-	win/pngdib.readme
 	plugin.m4

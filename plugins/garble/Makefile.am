@@ -1,6 +1,3 @@
-if TOOLKIT_COCOA
-
-else
 SUBDIRS = xp
 
 plugindir = $(ABIWORD_PLUGINSDIR)
@@ -21,4 +18,3 @@ nodist_EXTRA_garble_la_SOURCES = dummy.cpp
 EXTRA_DIST = \
 	plugin.m4
 
-endif

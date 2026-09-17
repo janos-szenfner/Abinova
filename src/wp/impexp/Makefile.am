@@ -107,34 +107,13 @@ libimpexp_la_SOURCES = \
 	xp/ie_exp_DocRangeListener.cpp \
         xp/ie_exp_DocRangeListener.h
 
-if TOOLKIT_GTK_ALL
 libimpexp_la_SOURCES += \
 	gtk/ie_exp_PDF.cpp \
 	gtk/ie_exp_PDF.h \
 	gtk/ie_impexp_RegisterUnix.cpp \
 	gtk/ie_impGraphic_GdkPixbuf.cpp \
 	gtk/ie_impGraphic_GdkPixbuf.h
-endif
 
-if TOOLKIT_COCOA
-AM_CPPFLAGS += \
-	-x objective-c++
-libimpexp_la_SOURCES += \
-	cocoa/ie_impexp_RegisterCocoa.cpp \
-	cocoa/ie_impGraphic_Cocoa.cpp \
-	cocoa/ie_impGraphic_Cocoa.h
-endif
 
-if TOOLKIT_WIN
-libimpexp_la_SOURCES += \
-	win/ie_impexp_RegisterWin32.cpp \
-	win/ie_impGraphic_Win32GDIPlus.cpp \
-	win/ie_impGraphic_Win32Native.cpp \
-	win/ie_impGraphic_Win32Native.h
-endif
 
-if TOOLKIT_QT
-libimpexp_la_SOURCES += \
-	qt/ie_impexp_RegisterQt.cpp
-endif
 

@@ -1,5 +1,4 @@
 
-if TOOLKIT_GTK_ALL
 
 SUBDIRS = unix
 
@@ -25,4 +24,3 @@ gdict_la_SOURCES =
 EXTRA_DIST = \
 	plugin.m4
 
-endif

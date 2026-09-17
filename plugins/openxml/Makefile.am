@@ -22,9 +22,6 @@ openxml_la_LDFLAGS = \
 	-avoid-version \
 	-module \
 	-no-undefined
-if TOOLKIT_COCOA
-openxml_la_LDFLAGS += -headerpad_max_install_names
-endif # TOOLKIT_COCOA
 
 openxml_la_SOURCES = \
 	common/xp/ie_impexp_OpenXML.cpp \
@@ -126,12 +123,6 @@ openxml_la_SOURCES = \
 	$(NULL)
 
 
-if TOOLKIT_COCOA
-install-data-hook:
-	install_name_tool -change $(ABIWORD_LIBDIR)/libabiword-@ABIWORD_SERIES@.dylib \
-		@executable_path/../Frameworks/libabiword-@ABIWORD_SERIES@.dylib \
-		$(DESTDIR)/$(plugindir)/openxml.so
-endif # TOOLKIT_COCOA
 
 # This is checked into the repository.
 common/xp/OXML_LangToScriptConverter.h: $(srcdir)/common/xp/OXML_LangToScriptConverter.gperf

@@ -36,7 +36,6 @@ libgr_la_SOURCES += \
 	xp/gr_CairoNullGraphics.cpp
 endif
 
-if TOOLKIT_GTK_ALL
 libgr_la_SOURCES += \
 	gtk/gr_CairoPrintGraphics.cpp \
 	gtk/gr_CairoPrintGraphics.h \
@@ -46,36 +45,6 @@ libgr_la_SOURCES += \
 	gtk/gr_UnixImage.h \
 	gtk/gr_CairoImage.h \
 	gtk/gr_CairoImage.cpp
-endif
 
-if TOOLKIT_COCOA
-AM_CPPFLAGS += \
-	-x objective-c++
-libgr_la_SOURCES += \
-	cocoa/gr_CoreGraphicsUtils.h \
-	cocoa/gr_CocoaGraphics.h \
-	cocoa/gr_CocoaGraphics.cpp \
-	cocoa/gr_CocoaFont.h \
-	cocoa/gr_CocoaFont.cpp \
-	cocoa/gr_CocoaImage.h \
-	cocoa/gr_CocoaImage.cpp
-endif
 
-if TOOLKIT_WIN
-libgr_la_SOURCES += \
-	win/gr_Win32CharWidths.cpp \
-	win/gr_Win32CharWidths.h \
-	win/gr_Win32Graphics.cpp \
-	win/gr_Win32Graphics.h \
-	win/gr_Win32Image.cpp \
-	win/gr_Win32Image.h \
-	win/gr_Win32Uniscribe.h \
-	win/gr_Win32USPGraphics.cpp \
-	win/gr_Win32USPGraphics.h
-endif
 
-if TOOLKIT_QT
-libgr_la_SOURCES += \
-	qt/gr_QtGraphics.cpp \
-	qt/gr_QtGraphics.h
-endif
