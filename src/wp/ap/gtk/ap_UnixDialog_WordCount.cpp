@@ -141,7 +141,7 @@ void AP_UnixDialog_WordCount::destroy(void)
 	m_pAutoUpdateWC->stop();
 	m_answer = AP_Dialog_WordCount::a_CANCEL;	
 	modeless_cleanup();
-	gtk_widget_destroy(m_windowMain); // TOPLEVEL
+	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
 	DELETEP(m_pAutoUpdateWC);
 }
@@ -251,7 +251,7 @@ void AP_UnixDialog_WordCount::constructDialog(void)
 					   G_CALLBACK(s_destroy_clicked),
 					   reinterpret_cast<gpointer>(this));
 
-	gtk_widget_show_all (m_windowMain);
+	gtk_widget_set_visible(m_windowMain, TRUE);
 	g_object_unref(G_OBJECT(builder));
 }
 

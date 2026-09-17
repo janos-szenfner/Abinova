@@ -34,7 +34,7 @@ public:
 	ev_UnixKeyboard(EV_EditEventMapper * pEEM);
 	virtual ~ev_UnixKeyboard(void);
 
-	bool keyPressEvent(AV_View * pView, GdkEventKey* e);
+	bool keyPressEvent(AV_View * pView, GdkEvent* e);
 	bool charDataEvent (AV_View * pView, EV_EditBits state, const char * txt, size_t len);
 };
 

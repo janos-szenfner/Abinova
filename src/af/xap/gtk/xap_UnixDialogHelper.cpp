@@ -40,7 +40,6 @@
 #include <gdk/gdk.h>
 
 #include <gdk/gdkkeysyms.h>
-#include <goffice/gtk/goffice-gtk.h>
 
 #include "ut_debugmsg.h"
 #include "ut_assert.h"
@@ -57,32 +56,25 @@
 /*****************************************************************/
 /*****************************************************************/
 
-static gboolean focus_in_event(GtkWidget *widget,GdkEvent */*event*/,gpointer /*user_data*/)
+static void focus_in_event(GtkEventControllerFocus* /*controller*/, GtkWidget *widget)
 {
       XAP_Frame *pFrame=static_cast<XAP_Frame *>(g_object_get_data(G_OBJECT(widget), "frame"));
 	  if (pFrame && pFrame->getCurrentView())
 		  pFrame->getCurrentView()->focusChange(AV_FOCUS_NEARBY);
-      return FALSE;
 }
 
-static gboolean destroy_event(GtkWidget * /*widget*/ ,GdkEvent */*event*/,gpointer /*user_data*/)
-{
-      return FALSE;
-}
-
-static gboolean focus_out_event(GtkWidget *widget,GdkEvent */*event*/,gpointer /*user_data*/)
+static void focus_out_event(GtkEventControllerFocus* /*controller*/, GtkWidget *widget)
 {
       XAP_Frame *pFrame=static_cast<XAP_Frame *>(g_object_get_data(G_OBJECT(widget), "frame"));
-      if(pFrame == nullptr) return FALSE;
+      if(pFrame == nullptr) return;
       AV_View * pView = pFrame->getCurrentView();
       if(pView!= nullptr)
       {
 	     pView->focusChange(AV_FOCUS_NONE);
       }
-      return FALSE;
 }
 
-static gboolean focus_out_event_Modeless(GtkWidget *widget,GdkEvent */*event*/,gpointer /*user_data*/)
+static void focus_out_event_Modeless(GtkEventControllerFocus* /*controller*/, GtkWidget *widget)
 {
       XAP_App *pApp = static_cast<XAP_App *>(g_object_get_data(G_OBJECT(widget), "pApp"));
       XAP_Frame *pFrame = pApp->getLastFocussedFrame();
@@ -91,21 +83,20 @@ static gboolean focus_out_event_Modeless(GtkWidget *widget,GdkEvent */*event*/,g
           if(nframes > 0 && nframes < 10) {
               pFrame = pApp->getFrame(0);
           } else {
-              return FALSE;
+              return;
           }
       }
-      if(pFrame == static_cast<XAP_Frame *>(nullptr)) return FALSE;
+      if(pFrame == static_cast<XAP_Frame *>(nullptr)) return;
       AV_View * pView = pFrame->getCurrentView();
       UT_ASSERT_HARMLESS(pView);
       if(pView!= nullptr)
       {
 	     pView->focusChange(AV_FOCUS_NONE);
       }
-      return FALSE;
 }
 
 
-static gboolean focus_in_event_Modeless(GtkWidget *widget,GdkEvent */*event*/,gpointer /*user_data*/)
+static void focus_in_event_Modeless(GtkEventControllerFocus* /*controller*/, GtkWidget *widget)
 {
       XAP_App *pApp=static_cast<XAP_App *>(g_object_get_data(G_OBJECT(widget), "pApp"));
       XAP_Frame *pFrame= pApp->getLastFocussedFrame();
@@ -118,22 +109,24 @@ static gboolean focus_in_event_Modeless(GtkWidget *widget,GdkEvent */*event*/,gp
 	     }
              else
 	     {
-	            return FALSE;
+	            return;
 	      }
       }
-      if(pFrame == static_cast<XAP_Frame *>(nullptr)) return FALSE;
+      if(pFrame == static_cast<XAP_Frame *>(nullptr)) return;
       AV_View * pView = pFrame->getCurrentView();
       if(pView!= nullptr)
       {
             pView->focusChange(AV_FOCUS_MODELESS);
       }
-      return FALSE;
 }
 
 
-static gboolean focus_in_event_ModelessOther(GtkWidget *widget,GdkEvent */*event*/,
-                                             std::function<gboolean(int)> *other_function)
+static void focus_in_event_ModelessOther(GtkEventControllerFocus* /*controller*/,
+                                         GtkWidget *widget)
 {
+      std::function<gboolean(int)> *other_function =
+          static_cast<std::function<gboolean(int)> *>(
+              g_object_get_data(G_OBJECT(widget), "other-function"));
       XAP_App *pApp = static_cast<XAP_App *>(g_object_get_data(G_OBJECT(widget), "pApp"));
       XAP_Frame *pFrame = pApp->getLastFocussedFrame();
       if (pFrame == nullptr) {
@@ -141,18 +134,31 @@ static gboolean focus_in_event_ModelessOther(GtkWidget *widget,GdkEvent */*event
           if (nframes > 0 && nframes < 10) {
               pFrame = pApp->getFrame(0);
           } else {
-              return FALSE;
+              return;
 	      }
       }
       if (pFrame == nullptr) {
-          return FALSE;
+          return;
       }
       AV_View * pView = pFrame->getCurrentView();
       if(pView!= nullptr) {
             pView->focusChange(AV_FOCUS_MODELESS);
-            (*other_function)(0);
+            if (other_function) {
+                (*other_function)(0);
+            }
       }
-      return FALSE;
+}
+
+static void abi_attach_focus_controller(GtkWidget *widget,
+                                        GCallback enter_cb,
+                                        GCallback leave_cb)
+{
+      GtkEventController *foc = gtk_event_controller_focus_new();
+      if (enter_cb)
+          g_signal_connect(foc, "enter", enter_cb, widget);
+      if (leave_cb)
+          g_signal_connect(foc, "leave", leave_cb, widget);
+      gtk_widget_add_controller(widget, foc);
 }
 
 /*****************************************************************/
@@ -184,12 +190,8 @@ void connectFocus(GtkWidget *widget,const XAP_Frame *frame)
 {
       g_object_set_data(G_OBJECT(widget), "frame",
 					  const_cast<void *>(static_cast<const void *>(frame)));
-      g_signal_connect(G_OBJECT(widget), "focus_in_event",
-					 G_CALLBACK(focus_in_event), nullptr);
-      g_signal_connect(G_OBJECT(widget), "focus_out_event",
-					 G_CALLBACK(focus_out_event), nullptr);
-      g_signal_connect(G_OBJECT(widget), "destroy",
-					 G_CALLBACK(destroy_event), nullptr);
+      abi_attach_focus_controller(widget, G_CALLBACK(focus_in_event),
+                                  G_CALLBACK(focus_out_event));
 }
 
 void connectFocusModelessOther(GtkWidget *widget,const XAP_App * pApp,
@@ -197,13 +199,10 @@ void connectFocusModelessOther(GtkWidget *widget,const XAP_App * pApp,
 {
       g_object_set_data(G_OBJECT(widget), "pApp",
 					  const_cast<void *>(static_cast<const void *>(pApp)));
-      g_signal_connect(G_OBJECT(widget), "focus_in_event",
-					 G_CALLBACK(focus_in_event_ModelessOther),
-					 (gpointer) other_function); // leave as C-style cast
-      g_signal_connect(G_OBJECT(widget), "focus_out_event",
-					 G_CALLBACK(focus_out_event_Modeless), nullptr);
-      g_signal_connect(G_OBJECT(widget), "destroy",
-					 G_CALLBACK(focus_out_event_Modeless), nullptr);
+      g_object_set_data(G_OBJECT(widget), "other-function",
+					  (gpointer) other_function); // leave as C-style cast
+      abi_attach_focus_controller(widget, G_CALLBACK(focus_in_event_ModelessOther),
+                                  G_CALLBACK(focus_out_event_Modeless));
 }
 
 
@@ -211,12 +210,8 @@ void connectFocusModeless(GtkWidget *widget,const XAP_App * pApp)
 {
       g_object_set_data(G_OBJECT(widget), "pApp",
 					  const_cast<void *>(static_cast<const void *>(pApp)));
-      g_signal_connect(G_OBJECT(widget), "focus_in_event",
-					 G_CALLBACK(focus_in_event_Modeless), nullptr);
-      g_signal_connect(G_OBJECT(widget), "focus_out_event",
-					 G_CALLBACK(focus_out_event_Modeless), nullptr);
-      g_signal_connect(G_OBJECT(widget), "destroy",
-		       G_CALLBACK(destroy_event), nullptr);
+      abi_attach_focus_controller(widget, G_CALLBACK(focus_in_event_Modeless),
+                                  G_CALLBACK(focus_out_event_Modeless));
 }
 
 
@@ -262,13 +257,13 @@ static void sDoHelp ( XAP_Dialog * pDlg )
 /*!
  * Catch F1 keypress over a dialog and open up the help file, if any
  */
-static gint modal_keypress_cb ( GtkWidget * /*wid*/, GdkEventKey * event, 
-								XAP_Dialog * pDlg )
+static gboolean modal_keypress_cb ( GtkEventControllerKey * /*controller*/,
+									guint keyval, guint /*keycode*/,
+									GdkModifierType /*state*/,
+									XAP_Dialog * pDlg )
 {
-	guint ev_keyval = 0;
-	gdk_event_get_keyval((GdkEvent*)event, &ev_keyval);
 	// propagate keypress up if not F1
-	if (ev_keyval == GDK_KEY_F1 || ev_keyval == GDK_KEY_Help)
+	if (keyval == GDK_KEY_F1 || keyval == GDK_KEY_Help)
 	{
 		sDoHelp( pDlg ) ;
 
@@ -279,22 +274,12 @@ static gint modal_keypress_cb ( GtkWidget * /*wid*/, GdkEventKey * event,
 	return FALSE ;		
 }
 
-/*!
- * Catch F1 keypress over a dialog and open up the help file, if any
- */
-static gint nonmodal_keypress_cb ( GtkWidget * /*wid*/, GdkEventKey * event,
-								   XAP_Dialog * pDlg )
+static void abi_attach_help_key_controller(GtkWidget *widget, XAP_Dialog *pDlg)
 {
-	guint ev_keyval = 0;
-	gdk_event_get_keyval((GdkEvent*)event, &ev_keyval);
-	// propagate keypress up if not F1
-	if (ev_keyval == GDK_KEY_F1 || ev_keyval == GDK_KEY_Help)
-	{
-		sDoHelp( pDlg ) ;
-		return TRUE ;
-	}
-
-	return FALSE ;
+	GtkEventController *keyc = gtk_event_controller_key_new();
+	g_signal_connect(keyc, "key-pressed",
+					 G_CALLBACK(modal_keypress_cb), pDlg);
+	gtk_widget_add_controller(widget, keyc);
 }
 
 static void help_button_cb (GObject * /*button*/, XAP_Dialog * pDlg)
@@ -335,22 +320,13 @@ void centerDialog(GtkWidget * parent, GtkWidget * child, bool set_transient_for)
 	UT_return_if_fail(parent);
 	UT_return_if_fail(child);
 
-	if (GTK_IS_DIALOG(child))
-	  go_dialog_guess_alternative_button_order(GTK_DIALOG(child));
 	if(GTK_IS_WINDOW(parent) != TRUE)
 		parent  = gtk_widget_get_parent(parent);
-	xxx_UT_DEBUGMSG(("center IS WIDGET_TOP_LEVL %d \n",(GTK_WIDGET_TOPLEVEL(parent))));
 	xxx_UT_DEBUGMSG(("center IS WIDGET WINDOW %d \n",(GTK_IS_WINDOW(parent))));
 	xxx_UT_DEBUGMSG(("center child IS WIDGET WINDOW %d \n",(GTK_IS_WINDOW(child))));
 	if (set_transient_for)
 	  gtk_window_set_transient_for(GTK_WINDOW(child),
 				       GTK_WINDOW(parent));
-
-	GdkPixbuf * icon = gtk_window_get_icon(GTK_WINDOW(parent));	
-	if ( nullptr != icon )
-	{
-		gtk_window_set_icon(GTK_WINDOW(child), icon);
-	}
 }
 
 void abiSetupModalDialog(GtkDialog * dialog, XAP_Frame *pFrame, XAP_Dialog * pDlg, gint defaultResponse)
@@ -371,8 +347,7 @@ void abiSetupModalDialog(GtkDialog * dialog, XAP_Frame *pFrame, XAP_Dialog * pDl
 	connectFocus (GTK_WIDGET(popup), pFrame);
 
 	// connect F1 to the help subsystem
-	g_signal_connect (G_OBJECT(popup), "key-press-event",
-					  G_CALLBACK(modal_keypress_cb), pDlg);
+	abi_attach_help_key_controller(GTK_WIDGET(popup), pDlg);
 
 	// set the default response
 	sAddHelpButton (GTK_DIALOG (popup), pDlg);
@@ -381,20 +356,63 @@ void abiSetupModalDialog(GtkDialog * dialog, XAP_Frame *pFrame, XAP_Dialog * pDl
 	gtk_widget_show (GTK_WIDGET (popup));
 }
 
-gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, AtkRole role)
+/*
+ * GTK4 removed abiRunModalDialog(GTK_DIALOG(), false). Emulate the modal run loop: show the
+ * dialog, spin a nested main loop, return on the first non-HELP response
+ * or on window close (reported as GTK_RESPONSE_DELETE_EVENT).
+ */
+typedef struct {
+	GMainLoop *loop;
+	gint response;
+} AbiDialogRun;
+
+static void abi_dlg_response_cb (GtkDialog * /*dlg*/, gint response, gpointer data)
 {
-	atk_object_set_role (gtk_widget_get_accessible (GTK_WIDGET (me)), role);
+	AbiDialogRun *run = static_cast<AbiDialogRun*>(data);
+	run->response = response;
+	g_main_loop_quit(run->loop);
+}
+
+static gboolean abi_dlg_close_request_cb (GtkWindow * /*w*/, gpointer data)
+{
+	AbiDialogRun *run = static_cast<AbiDialogRun*>(data);
+	run->response = GTK_RESPONSE_DELETE_EVENT;
+	g_main_loop_quit(run->loop);
+	/* keep the dialog alive; abiRunModalDialog(GTK_DIALOG(), false) didn't destroy on close */
+	return TRUE;
+}
+
+gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole role)
+{
+	g_object_set (G_OBJECT (me), "accessible-role", role, NULL);
+
+	GtkWidget *w = GTK_WIDGET (me);
+	g_object_add_weak_pointer (G_OBJECT (w), reinterpret_cast<gpointer*>(&w));
+
+	AbiDialogRun run;
+	run.loop = g_main_loop_new (nullptr, FALSE);
+	run.response = GTK_RESPONSE_NONE;
+	g_signal_connect (me, "response", G_CALLBACK(abi_dlg_response_cb), &run);
+	g_signal_connect (me, "close-request", G_CALLBACK(abi_dlg_close_request_cb), &run);
+	gtk_window_present (GTK_WINDOW (me));
 
     // now run the dialog
     gint result = GTK_RESPONSE_NONE;
-    while((result = gtk_dialog_run ( me )) == GTK_RESPONSE_HELP) {
+	do {
+		run.response = GTK_RESPONSE_NONE;
+		g_main_loop_run (run.loop);
+		result = run.response;
+	} while (result == GTK_RESPONSE_HELP && w != nullptr);
 
-    }
+	g_main_loop_unref (run.loop);
 
-    // destroy the dialog
-    if ( destroyDialog ) {
-        abiDestroyWidget ( GTK_WIDGET ( me ) );
+    // destroy the dialog (GTK4's ::response handler already destroys it
+    // for real responses; w is a weak pointer, nullptr if finalized)
+    if ( destroyDialog && w != nullptr ) {
+        abiDestroyWidget ( w );
     }
+	if (w != nullptr)
+		g_object_remove_weak_pointer (G_OBJECT (w), reinterpret_cast<gpointer*>(&w));
 
     return result ;
 }
@@ -406,11 +424,11 @@ gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, AtkRole role)
  * 3) Connects F1 to help system
  * 4) Makes dialog modal
  * 5) Sets the default button to defaultResponse, sets ESC to close
- * 6) Returns value of gtk_dialog_run(me)
+ * 6) Returns value of abiRunModalDialog(GTK_DIALOG(me), false)
  * 7) If \destroyDialog is true, destroys the dialog, else you have to call abiDestroyWidget()
  */
 gint abiRunModalDialog(GtkDialog * me, XAP_Frame *pFrame, XAP_Dialog * pDlg,
-					   gint defaultResponse, bool destroyDialog, AtkRole role)
+					   gint defaultResponse, bool destroyDialog, GtkAccessibleRole role)
 {
   abiSetupModalDialog(me, pFrame, pDlg, defaultResponse);
   gint ret = abiRunModalDialog(me, destroyDialog, role);
@@ -432,7 +450,7 @@ gint abiRunModalDialog(GtkDialog * me, XAP_Frame *pFrame, XAP_Dialog * pDlg,
 6) Sets the default button to defaultResponse, sets ESC to close
  */
 void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDlg,
-							gint defaultResponse, bool abi_modeless, AtkRole /*role*/ )
+							gint defaultResponse, bool abi_modeless, GtkAccessibleRole /*role*/ )
 {
 	if (abi_modeless)
 	{
@@ -447,13 +465,12 @@ void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDl
 	if (pFrame)
 	{
 		XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl());
-		GtkWidget * parentWindow = gtk_widget_get_toplevel (pUnixFrameImpl->getTopLevelWindow());
+		GtkWidget * parentWindow = GTK_WIDGET(gtk_widget_get_root (pUnixFrameImpl->getTopLevelWindow()));
 		centerDialog(parentWindow, GTK_WIDGET(me), true);
 	}
 	
 	// connect F1 to the help subsystem
-	g_signal_connect (G_OBJECT(me), "key-press-event",
-					  G_CALLBACK(nonmodal_keypress_cb), pDlg);
+	abi_attach_help_key_controller(GTK_WIDGET(me), pDlg);
 	
 	// set the default response
 	gtk_dialog_set_default_response ( me, defaultResponse ) ;
@@ -461,8 +478,7 @@ void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDl
 
 	// and mark it as modeless
 	gtk_window_set_modal ( GTK_WINDOW(me), FALSE ) ;
-	// FIXME: shouldn't we pass role here?
-	atk_object_set_role (gtk_widget_get_accessible (GTK_WIDGET (me)), ATK_ROLE_ALERT);
+	g_object_set (G_OBJECT (me), "accessible-role", GTK_ACCESSIBLE_ROLE_ALERT, NULL);
 
     pDlg->maybeClosePopupPreviewBubbles();
         
@@ -476,8 +492,8 @@ void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDl
 GtkWidget * abiDialogNew(const char * role, gboolean resizable)
 {
   GtkWidget * dlg = gtk_dialog_new () ;
-  if ( role )
-    gtk_window_set_role ( GTK_WINDOW(dlg), role ) ;
+  // gtk_window_set_role() removed in GTK4; role only affected WM_CLASS hints
+  UT_UNUSED(role);
   gtk_window_set_resizable ( GTK_WINDOW(dlg), resizable ) ;
   XAP_gtk_widget_set_margin(dlg, 5);
   gtk_box_set_spacing ( GTK_BOX ( gtk_dialog_get_content_area(GTK_DIALOG (dlg))), 2 ) ;
@@ -551,11 +567,20 @@ void abiDestroyWidget(GtkWidget * me)
 {
     if (me) {
         if (GTK_IS_WINDOW(me)) {
-            gtk_widget_destroy(me); // TOPLEVEL
+            gtk_window_destroy(GTK_WINDOW(me)); // TOPLEVEL
         } else if (GTK_IS_WIDGET(me)) {
-            gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(me)), me);
+            gtk_widget_unparent(me);
         }
     }
+}
+
+GtkWidget * abi_radio_button_new_with_label(GtkWidget * group_member, const char * label)
+{
+    GtkWidget * w = gtk_check_button_new_with_label(label);
+    if (group_member) {
+        gtk_check_button_set_group(GTK_CHECK_BUTTON(w), GTK_CHECK_BUTTON(group_member));
+    }
+    return w;
 }
 
 /*!
@@ -692,7 +717,7 @@ void localizeButtonMarkup(GtkWidget * widget, const XAP_StringSet * pSS, XAP_Str
 	gtk_button_set_label (GTK_BUTTON(widget), markupStr.c_str());
 
 	// by default, they don't like markup, so we teach them
-	GtkWidget * button_child = gtk_bin_get_child (GTK_BIN(widget));
+	GtkWidget * button_child = gtk_button_get_child (GTK_BUTTON(widget));
 	if (GTK_IS_LABEL (button_child))
 		gtk_label_set_use_markup (GTK_LABEL(button_child), TRUE);
 
@@ -708,8 +733,11 @@ void localizeMenuItem(GtkWidget * widget, const XAP_StringSet * pSS, XAP_String_
 	std::string s;
 	pSS->getValueUTF8(id, s);
 	UT_XML_cloneConvAmpersands(unixstr, s.c_str());
-	gtk_menu_item_set_label(GTK_MENU_ITEM(widget), unixstr);
-	FREEP(unixstr);	
+	// GTK4 removed GtkMenuItem; set the "label" property on whatever
+	// menu-related widget the builder produced (e.g. GtkMenuButton)
+	if (g_object_class_find_property(G_OBJECT_GET_CLASS(widget), "label"))
+		g_object_set(widget, "label", unixstr, nullptr);
+	FREEP(unixstr);
 }
 
 /*!
@@ -738,11 +766,9 @@ void messageBoxOK(const char * message)
 						   "%s", message ) ;
 
 	gtk_window_set_title(GTK_WINDOW(msg), "AbiWord");
-	gtk_window_set_role(GTK_WINDOW(msg), "message dialog");
 
 	gtk_widget_show ( msg ) ;
-	gtk_dialog_run ( GTK_DIALOG(msg) ) ;
-	gtk_widget_destroy ( msg ) ; // TOPLEVEL
+	abiRunModalDialog(GTK_DIALOG(msg), true);
 }
 
 /****************************************************************/

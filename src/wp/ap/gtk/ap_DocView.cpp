@@ -29,7 +29,6 @@
 //#include "at_DocView.h"
 #include "ut_debugmsg.h"
 
-#include <atk/atk.h>
 #include <gsf/gsf.h>
 
 // our parent class
@@ -50,18 +49,7 @@ ap_DocView_class_init(GtkWidgetClass *widget_class, gpointer)
 
 	// set our parent class
 //	parent_class = (GtkLayoutClass *) g_type_class_peek_parent (widget_class);
-	
-	// Disable focus handlers because they emit superfluous expose
-	// events, causing flicker.
-	widget_class->focus_in_event = nullptr;
-	widget_class->focus_out_event = nullptr;
-#if 0
-	GType factory_type = AT_DocView_factory_get_type();
-	if (factory_type)	// will return nullptr if unable to find gail
-	{
-		atk_registry_set_factory_type(atk_get_default_registry(), ABI_TYPE_DOCVIEW, factory_type);
-	}
-#endif
+	(void)widget_class;
 }
 GSF_CLASS(ApDocView, ap_DocView,
           ap_DocView_class_init, nullptr,

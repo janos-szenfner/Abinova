@@ -188,7 +188,7 @@ void append( GtkComboBoxText* combo, const std::list< std::string >& data )
 
 std::string tostr( GtkComboBox* combo )
 {
-    GtkEntry *entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(combo)));
+    GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(combo));
 	UT_ASSERT(entry);
 	const gchar *s = XAP_gtk_entry_get_text(entry);
 	if(s && *s)

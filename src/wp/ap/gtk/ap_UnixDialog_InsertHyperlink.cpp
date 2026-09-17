@@ -143,10 +143,10 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
   pSS->getValueUTF8(AP_STRING_ID_DLG_InsertHyperlink_Msg,s);
   label1 = gtk_label_new (s.c_str());
   gtk_widget_show (label1);
-  gtk_box_pack_start (GTK_BOX (vbox2), label1, FALSE, FALSE, 3);
+  gtk_box_append(GTK_BOX(vbox2), label1);
 
   m_entry = gtk_entry_new();
-  gtk_box_pack_start (GTK_BOX (vbox2), m_entry, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbox2), m_entry);
   gtk_widget_show(m_entry);
   
   const gchar * hyperlink = getHyperlink();
@@ -164,10 +164,12 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
   }
 
   // the bookmark list
-  m_swindow  = gtk_scrolled_window_new(nullptr, nullptr);
+  m_swindow  = gtk_scrolled_window_new();
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (m_swindow),GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_widget_show(m_swindow);
-  gtk_box_pack_start (GTK_BOX (vbox2), m_swindow, TRUE, TRUE, 0);
+  gtk_box_append(GTK_BOX(vbox2), m_swindow);
+			gtk_widget_set_hexpand(m_swindow, TRUE);
+			gtk_widget_set_vexpand(m_swindow, TRUE);
    
   GtkListStore * store = gtk_list_store_new(1, G_TYPE_STRING);
 
@@ -183,7 +185,7 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
   col = gtk_tree_view_column_new_with_attributes("",
 												 renderer, "text", 0, nullptr);
   gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), col);
-  //gtk_box_pack_start (GTK_BOX (vbox2), m_blist, FALSE, FALSE, 0);
+  //gtk_box_append(GTK_BOX(vbox2), m_blist);
 
   m_pBookmarks.clear();
 
@@ -199,15 +201,17 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
 		  gtk_list_store_set(store, &iter, 0, m_pBookmarks[i].c_str(), -1);
   }
 
-  gtk_container_add(GTK_CONTAINER(m_swindow), m_clist);
+  xap_gtk_container_add (m_swindow, m_clist);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_InsertHyperlink_TitleLabel, s);
   label2 = gtk_label_new(s.c_str());
   gtk_widget_show(label2);
-  gtk_box_pack_start(GTK_BOX(vbox2), label2, TRUE, TRUE, 3);
+  gtk_box_append(GTK_BOX(vbox2), label2);
+			gtk_widget_set_hexpand(label2, TRUE);
+			gtk_widget_set_vexpand(label2, TRUE);
 
   m_titleEntry = gtk_entry_new();
-  gtk_box_pack_start(GTK_BOX(vbox2), m_titleEntry, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbox2), m_titleEntry);
   gtk_widget_show(m_titleEntry);
 
   const gchar * hyperlinkTitle = getHyperlinkTitle();
@@ -231,14 +235,14 @@ GtkWidget*  AP_UnixDialog_InsertHyperlink::_constructWindow(void)
 
   frame1 = gtk_frame_new (nullptr);
   gtk_widget_show (frame1);
-  gtk_box_pack_start(GTK_BOX (gtk_dialog_get_content_area(GTK_DIALOG(m_windowMain))), frame1,true,true,0);
+  gtk_box_append(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(m_windowMain))), frame1);
+			gtk_widget_set_hexpand(frame1, TRUE);
+			gtk_widget_set_vexpand(frame1, TRUE);
   XAP_gtk_widget_set_margin(frame1, 4);
-
-  gtk_frame_set_shadow_type(GTK_FRAME(frame1), GTK_SHADOW_NONE);
 
   vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
   gtk_widget_show (vbox2);
-  gtk_container_add (GTK_CONTAINER (frame1), vbox2);
+  xap_gtk_container_add (frame1, vbox2);
   XAP_gtk_widget_set_margin(vbox2, 5);
 
   _constructWindowContents ( vbox2 );
@@ -252,7 +256,7 @@ GtkWidget*  AP_UnixDialog_InsertHyperlink::_constructWindow(void)
 
   // connect all the signals
   _connectSignals ();
-  gtk_widget_show_all ( m_windowMain ) ;
+  gtk_widget_set_visible(m_windowMain , TRUE) ;
 
   return m_windowMain;
 }

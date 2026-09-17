@@ -129,14 +129,14 @@ GtkWidget * XAP_UnixDialog_History::_constructWindow(void)
 
 	// set the single selection mode for the TreeView
     gtk_tree_selection_set_mode (gtk_tree_view_get_selection (GTK_TREE_VIEW (m_wTreeView)), GTK_SELECTION_SINGLE);	
-	gtk_container_add (GTK_CONTAINER (m_wListWindow), m_wTreeView);
+	xap_gtk_container_add (m_wListWindow, m_wTreeView);
 #if 1
 	g_signal_connect_after(G_OBJECT(m_wTreeView),
 						   "cursor-changed",
 						   G_CALLBACK(s_history_selected),
 						   static_cast<gpointer>(this));
 #endif
-	gtk_widget_show_all(m_wTreeView);	
+	gtk_widget_set_visible(m_wTreeView, TRUE);	
 
 	_populateWindowData(builder);
 

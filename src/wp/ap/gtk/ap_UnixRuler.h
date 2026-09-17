@@ -65,13 +65,10 @@ protected:
     public:
         static void realize(AP_UnixRuler *self);
         static void unrealize(AP_UnixRuler *self);
-        static gint button_press_event(GtkWidget * w, GdkEventButton * e);
-        static gint button_release_event(GtkWidget * w, GdkEventButton * e);
-        static gint configure_event(GtkWidget* w, GdkEventConfigure *e);
-        static gint motion_notify_event(GtkWidget* w, GdkEventMotion* e);
-        static gint key_press_event(GtkWidget* w, GdkEventKey* e);
-        static gint delete_event(GtkWidget * w, GdkEvent * /*event*/, gpointer /*data*/);
-        static void destroy (GtkWidget * /*widget*/, gpointer /*data*/);
+        static void button_pressed(GtkGestureClick *g, gint n_press, gdouble x, gdouble y, gpointer data);
+        static void button_released(GtkGestureClick *g, gint n_press, gdouble x, gdouble y, gpointer data);
+        static void resized(GtkDrawingArea* w, int width, int height, gpointer data);
+        static void motion_notify(GtkEventControllerMotion* c, gdouble x, gdouble y, gpointer data);
     };
 
     GtkWidget* m_wRuler;

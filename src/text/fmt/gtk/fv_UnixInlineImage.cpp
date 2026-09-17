@@ -28,8 +28,7 @@
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
 
-static const GtkTargetEntry targets[] = {
-  { (gchar*)"text/uri-list",0,0}};
+
 
 FV_UnixVisualInlineImage::FV_UnixVisualInlineImage (FV_View * pView)
   : FV_VisualInlineImage (pView), m_bDragOut(false)
@@ -94,13 +93,18 @@ void FV_UnixVisualInlineImage::mouseDrag(UT_sint32 x, UT_sint32 y)
 	     XAP_Frame * pFrame = static_cast<XAP_Frame*>(getView()->getParentData());
 	     XAP_UnixFrameImpl * pFrameImpl =static_cast<XAP_UnixFrameImpl *>( pFrame->getFrameImpl());
 	     GtkWidget * pWindow = pFrameImpl->getTopLevelWindow();
-	     GtkTargetList *target_list = gtk_target_list_new(targets, G_N_ELEMENTS(targets));
-	     GdkDragContext *context = gtk_drag_begin_with_coordinates(
-               pWindow, target_list,
-               (GdkDragAction)(GDK_ACTION_COPY ), 1, nullptr, x, y);
 
-	     gdk_drag_status(context, GDK_ACTION_COPY, 0);
-	     gtk_target_list_unref(target_list);
+	     // GTK4: drag a GFile; the content provider offers text/uri-list
+	     GdkSurface * surface = gtk_native_get_surface(GTK_NATIVE(pWindow));
+	     GdkSeat * seat = gdk_display_get_default_seat(gtk_widget_get_display(pWindow));
+	     GdkDevice * device = seat ? gdk_seat_get_pointer(seat) : nullptr;
+	     GFile * tmpFile = g_file_new_for_path(sTmpF.utf8_str());
+	     GdkContentProvider * content =
+		     gdk_content_provider_new_typed(G_TYPE_FILE, tmpFile);
+	     g_object_unref(tmpFile);
+	     if (surface && device)
+		     gdk_drag_begin(surface, device, content, GDK_ACTION_COPY, x, y);
+	     g_object_unref(content);
 	     *pszTmpName = g_strdup(sTmpF.utf8_str());  
 	     UT_DEBUGMSG(("Created Tmp File %s XApp %s \n",sTmpF.utf8_str(),*pXApp->getTmpFile()));
 

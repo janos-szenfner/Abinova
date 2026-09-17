@@ -63,90 +63,48 @@ static void AP_UnixDialog_Goto__onSwitchPage (GtkNotebook *notebook,
 /*!
 * Event dispatcher for spinbutton "page".
 */
-gboolean 
-AP_UnixDialog_Goto__onFocusPage (GtkWidget 		  * /*widget*/,
-								 GdkEventFocus    *event,
-								 gpointer 		  data) 
+void
+AP_UnixDialog_Goto__onFocusPage (GtkEventControllerFocus * /*controller*/,
+									 gpointer 		  data)
 {
-	gboolean ev_in = event->in;
-	GdkEventType ev_type = gdk_event_get_event_type((GdkEvent*)event);
-	UT_DEBUGMSG (("ROB: _onFocusPage () '%d', '%d'\n", ev_type, ev_in));
-	if (ev_type == GDK_FOCUS_CHANGE && ev_in) {
-		AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
-		dlg->updateCache (AP_JUMPTARGET_PAGE);
-	}
-	/* propagate further */
-	return FALSE;
+	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
+	dlg->updateCache (AP_JUMPTARGET_PAGE);
 }
 
 /*!
 * Event dispatcher for spinbutton "line".
 */
-gboolean 
-AP_UnixDialog_Goto__onFocusLine (GtkWidget 		  * /*widget*/,
-								 GdkEventFocus    *event,
-								 gpointer 		  data) 
+void
+AP_UnixDialog_Goto__onFocusLine (GtkEventControllerFocus * /*controller*/,
+									 gpointer 		  data)
 {
-	gboolean ev_in = event->in;
-	GdkEventType ev_type = gdk_event_get_event_type((GdkEvent*)event);
-	UT_DEBUGMSG (("ROB: _onFocusLine () '%d', '%d'\n", ev_type, ev_in));
-	if (ev_type == GDK_FOCUS_CHANGE && ev_in) {
-		AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
-		dlg->updateCache (AP_JUMPTARGET_LINE);
-	}
-	/* propagate further */
-	return FALSE;
+	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
+	dlg->updateCache (AP_JUMPTARGET_LINE);
 }
 
 /*!
 * Event dispatcher for treeview "bookmarks".
 */
-gboolean 
-AP_UnixDialog_Goto__onFocusBookmarks (GtkWidget 	   * /*widget*/,
-									  GdkEventFocus    *event,
-									  gpointer 		   data) 
+void
+AP_UnixDialog_Goto__onFocusBookmarks (GtkEventControllerFocus * /*controller*/,
+									 gpointer 		  data)
 {
-	gboolean ev_in = event->in;
-	GdkEventType ev_type = gdk_event_get_event_type((GdkEvent*)event);
-	UT_DEBUGMSG (("ROB: _onFocusBookmarks () '%d', '%d'\n", ev_type, ev_in));
-	if (ev_type == GDK_FOCUS_CHANGE && ev_in) {
-		AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
-		dlg->updateCache (AP_JUMPTARGET_BOOKMARK);
-	}
-	/* propagate further */
-	return FALSE;
+	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
+	dlg->updateCache (AP_JUMPTARGET_BOOKMARK);
 }
-gboolean 
-AP_UnixDialog_Goto__onFocusXMLIDs (GtkWidget 	   * /*widget*/,
-									  GdkEventFocus    *event,
-									  gpointer 		   data) 
+void
+AP_UnixDialog_Goto__onFocusXMLIDs (GtkEventControllerFocus * /*controller*/,
+									 gpointer 		  data)
 {
-	gboolean ev_in = event->in;
-	GdkEventType ev_type = gdk_event_get_event_type((GdkEvent*)event);
-	UT_DEBUGMSG (("MIQ: _onFocusXMLIDs () '%d', '%d'\n", ev_type, ev_in));
-	if (ev_type == GDK_FOCUS_CHANGE && ev_in)
-    {
-		AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
-		dlg->updateCache (AP_JUMPTARGET_XMLID);
-	}
-	/* propagate further */
-	return FALSE;
+	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
+	dlg->updateCache (AP_JUMPTARGET_XMLID);
 }
-gboolean 
-AP_UnixDialog_Goto__onFocusAnno (GtkWidget 	   * /*widget*/,
-                                 GdkEventFocus    *event,
-                                 gpointer 		   data) 
+void
+AP_UnixDialog_Goto__onFocusAnno (GtkEventControllerFocus * /*controller*/,
+									 gpointer 		  data)
 {
-	gboolean ev_in = event->in;
-	GdkEventType ev_type = gdk_event_get_event_type((GdkEvent*)event);
-	UT_DEBUGMSG (("MIQ: _onFocusAnno () '%d', '%d'\n", ev_type, ev_in));
-	if (ev_type == GDK_FOCUS_CHANGE && ev_in)
-    {
-		AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
-		dlg->updateCache (AP_JUMPTARGET_ANNOTATION);
-	}
-	/* propagate further */
-	return FALSE;
+	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
+	dlg->updateCache (AP_JUMPTARGET_ANNOTATION);
 }
 
 /*!
@@ -543,8 +501,12 @@ AP_UnixDialog_Goto::setupXMLIDList( GtkWidget* w )
 	GtkTreeViewColumn *column = gtk_tree_view_get_column (GTK_TREE_VIEW (w), 0);
 	gtk_tree_view_column_set_sort_column_id (column, COLUMN_NAME);
 
-	g_signal_connect (GTK_TREE_VIEW (w), "focus-in-event", 
-					  G_CALLBACK (AP_UnixDialog_Goto__onFocusXMLIDs), static_cast <gpointer>(this)); 
+	{
+		GtkEventController *foc = gtk_event_controller_focus_new();
+		g_signal_connect (foc, "enter",
+						  G_CALLBACK (AP_UnixDialog_Goto__onFocusXMLIDs), static_cast <gpointer>(this));
+		gtk_widget_add_controller (w, foc);
+	} 
 	g_signal_connect (GTK_TREE_VIEW (w), "row-activated", 
 					  G_CALLBACK (AP_UnixDialog_Goto__onXMLIDDblClicked), static_cast <gpointer>(this));
 }
@@ -596,8 +558,12 @@ AP_UnixDialog_Goto::setupAnnotationList( GtkWidget* w )
     
 
     
-	g_signal_connect (GTK_TREE_VIEW (w), "focus-in-event", 
-					  G_CALLBACK (AP_UnixDialog_Goto__onFocusAnno), static_cast <gpointer>(this)); 
+	{
+		GtkEventController *foc = gtk_event_controller_focus_new();
+		g_signal_connect (foc, "enter",
+						  G_CALLBACK (AP_UnixDialog_Goto__onFocusAnno), static_cast <gpointer>(this));
+		gtk_widget_add_controller (w, foc);
+	} 
 	g_signal_connect (GTK_TREE_VIEW (w), "row-activated", 
 					  G_CALLBACK (AP_UnixDialog_Goto__onAnnoDblClicked), static_cast <gpointer>(this));
 }
@@ -671,18 +637,30 @@ AP_UnixDialog_Goto::_constructWindow (XAP_Frame * /*pFrame*/)
 	// Signals
 	g_signal_connect (GTK_NOTEBOOK (m_nbNotebook), "switch-page", 
 					  G_CALLBACK (AP_UnixDialog_Goto__onSwitchPage), static_cast <gpointer>(this)); 
-	g_signal_connect (GTK_SPIN_BUTTON (m_sbPage), "focus-in-event", 
-					  G_CALLBACK (AP_UnixDialog_Goto__onFocusPage), static_cast <gpointer>(this)); 
+	{
+		GtkEventController *foc = gtk_event_controller_focus_new();
+		g_signal_connect (foc, "enter",
+						  G_CALLBACK (AP_UnixDialog_Goto__onFocusPage), static_cast <gpointer>(this));
+		gtk_widget_add_controller (m_sbPage, foc);
+	} 
 	m_iPageConnect = g_signal_connect (GTK_SPIN_BUTTON (m_sbPage), "value-changed",
 					  G_CALLBACK (AP_UnixDialog_Goto__onPageChanged), static_cast <gpointer>(this)); 
 
-	g_signal_connect (GTK_SPIN_BUTTON (m_sbLine), "focus-in-event", 
-					  G_CALLBACK (AP_UnixDialog_Goto__onFocusLine), static_cast <gpointer>(this)); 
+	{
+		GtkEventController *foc = gtk_event_controller_focus_new();
+		g_signal_connect (foc, "enter",
+						  G_CALLBACK (AP_UnixDialog_Goto__onFocusLine), static_cast <gpointer>(this));
+		gtk_widget_add_controller (m_sbLine, foc);
+	} 
 	m_iLineConnect = g_signal_connect (GTK_SPIN_BUTTON (m_sbLine), "value-changed",
 					  G_CALLBACK (AP_UnixDialog_Goto__onLineChanged), static_cast <gpointer>(this)); 
 
-	g_signal_connect (GTK_TREE_VIEW (m_lvBookmarks), "focus-in-event", 
-					  G_CALLBACK (AP_UnixDialog_Goto__onFocusBookmarks), static_cast <gpointer>(this)); 
+	{
+		GtkEventController *foc = gtk_event_controller_focus_new();
+		g_signal_connect (foc, "enter",
+						  G_CALLBACK (AP_UnixDialog_Goto__onFocusBookmarks), static_cast <gpointer>(this));
+		gtk_widget_add_controller (m_lvBookmarks, foc);
+	} 
 	g_signal_connect (GTK_TREE_VIEW (m_lvBookmarks), "row-activated", 
 					  G_CALLBACK (AP_UnixDialog_Goto__onBookmarkDblClicked), static_cast <gpointer>(this));
 
@@ -818,7 +796,7 @@ AP_UnixDialog_Goto::runModeless (XAP_Frame * pFrame)
 	UT_ASSERT (m_wDialog);
 	_updateWindow ();
 	abiSetupModelessDialog (GTK_DIALOG (m_wDialog), pFrame, this, GTK_RESPONSE_CLOSE);
-	gtk_widget_show_all (m_wDialog);
+	gtk_widget_set_visible(m_wDialog, TRUE);
 	gtk_window_present (GTK_WINDOW (m_wDialog));
 }
 
@@ -848,7 +826,7 @@ AP_UnixDialog_Goto::destroy ()
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Goto::destroy ()\n"));
 	modeless_cleanup ();
 	if (m_wDialog) {
-		gtk_widget_destroy(m_wDialog); // TOPLEVEL
+		abiDestroyWidget(m_wDialog); // TOPLEVEL
 		m_wDialog = nullptr;
 	}
 }

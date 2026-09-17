@@ -114,47 +114,41 @@ static void s_border_thickness(GtkWidget *widget, gpointer data )
 	dlg->event_BorderThicknessChanged();
 }
 
-static gboolean s_preview_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_FormatFrame * dlg)
+static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+							   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_return_val_if_fail(widget && dlg, FALSE);
-	dlg->event_previewDraw();
-	return FALSE;
+	AP_UnixDialog_FormatFrame *dlg = static_cast<AP_UnixDialog_FormatFrame *>(data);
+	UT_return_if_fail(dlg);
+	dlg->event_previewDraw(cr);
 }
 
-static gboolean s_select_image(GtkWidget *widget, gpointer data)
+static void s_select_image(GtkWidget *widget, gpointer data)
 {
 	AP_UnixDialog_FormatFrame * dlg = reinterpret_cast<AP_UnixDialog_FormatFrame *>(data);
-	UT_return_val_if_fail(widget && dlg, FALSE);
+	UT_return_if_fail(widget && dlg);
 	dlg->askForGraphicPathName();
-	return FALSE;
+	return;
 }
 
-static gboolean s_remove_image(GtkWidget *widget, gpointer data)
+static void s_remove_image(GtkWidget *widget, gpointer data)
 {
 	AP_UnixDialog_FormatFrame * dlg = reinterpret_cast<AP_UnixDialog_FormatFrame *>(data);
-	UT_return_val_if_fail(widget && dlg, FALSE);
+	UT_return_if_fail(widget && dlg);
 	dlg->clearImage();
-	return FALSE;
+	return;
 }
 
 /*!
 * Intercept clicks on the color button and show an own GtkColorSelectionDialog
 * with palette enabled.
 */
-static gboolean 
-AP_UnixDialog_FormatFrame__onBorderColorClicked (GtkWidget 		*button,
-												 GdkEventButton *event,
-												 gpointer 		data)
+static void 
+AP_UnixDialog_FormatFrame__onBorderColorClicked(GtkGestureClick *g, gint /*n_press*/, gdouble /*x*/, gdouble /*y*/, gpointer data)
 {
-	// only handle left clicks
-	guint ev_button = 0;
-	gdk_event_get_button((GdkEvent*)event, &ev_button);
-	if (ev_button != 1) {
-		return FALSE;
-	}
+	GtkWidget *button = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
 
 	AP_UnixDialog_FormatFrame *dlg = static_cast<AP_UnixDialog_FormatFrame *>(data);
-	UT_return_val_if_fail (button && dlg, FALSE);
+	UT_return_if_fail (button && dlg);
 
 	std::unique_ptr<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
@@ -165,27 +159,20 @@ AP_UnixDialog_FormatFrame__onBorderColorClicked (GtkWidget 		*button,
 		dlg->event_previewInvalidate ();
 	}
 
-	return TRUE;
+	return;
 }
 
 /*!
 * Intercept clicks on the color button and show an own GtkColorSelectionDialog
 * with palette enabled.
 */
-static gboolean 
-AP_UnixDialog_FormatFrame__onBackgroundColorClicked (GtkWidget 		*button,
-													 GdkEventButton *event,
-													 gpointer 		data)
+static void 
+AP_UnixDialog_FormatFrame__onBackgroundColorClicked(GtkGestureClick *g, gint /*n_press*/, gdouble /*x*/, gdouble /*y*/, gpointer data)
 {
-	// only handle left clicks
-	guint ev_button = 0;
-	gdk_event_get_button((GdkEvent*)event, &ev_button);
-	if (ev_button != 1) {
-		return FALSE;
-	}
+	GtkWidget *button = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
 
 	AP_UnixDialog_FormatFrame *dlg = static_cast<AP_UnixDialog_FormatFrame *>(data);
-	UT_return_val_if_fail (button && dlg, FALSE);
+	UT_return_if_fail (button && dlg);
 
 	std::unique_ptr<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
@@ -196,7 +183,7 @@ AP_UnixDialog_FormatFrame__onBackgroundColorClicked (GtkWidget 		*button,
 		dlg->event_previewInvalidate ();
 	}
 
-	return TRUE;
+	return;
 }
 
 /*****************************************************************/
@@ -315,8 +302,12 @@ void AP_UnixDialog_FormatFrame::event_previewInvalidate(void)
 		m_pFormatFramePreview->queueDraw();
 }
 
-void AP_UnixDialog_FormatFrame::event_previewDraw(void)
+void AP_UnixDialog_FormatFrame::event_previewDraw(cairo_t *cr)
 {
+	if (m_pFormatFramePreview) {
+		static_cast<GR_CairoGraphics*>(m_pFormatFramePreview->getGraphics())->setCairo(cr);
+	}
+
 	if(m_pFormatFramePreview)
 		m_pFormatFramePreview->drawImmediate();
 }
@@ -380,7 +371,7 @@ void AP_UnixDialog_FormatFrame::event_ApplyToChanged(void)
 void AP_UnixDialog_FormatFrame::destroy(void)
 {
 	finalize();
-	gtk_widget_destroy(m_windowMain); // TOPLEVEL
+	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
 }
 
@@ -599,25 +590,32 @@ void AP_UnixDialog_FormatFrame::_connectSignals(void)
 							G_CALLBACK(s_line_bottom),
 							reinterpret_cast<gpointer>(this));		   
 						   
-	g_signal_connect(G_OBJECT(m_wBorderColorButton),
-							"button-release-event",
-							G_CALLBACK(AP_UnixDialog_FormatFrame__onBorderColorClicked),
-							reinterpret_cast<gpointer>(this));
+	{
+							GtkGestureClick *click = GTK_GESTURE_CLICK(gtk_gesture_click_new());
+							gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_PRIMARY);
+							g_signal_connect(click, "released",
+												G_CALLBACK(AP_UnixDialog_FormatFrame__onBorderColorClicked),
+												reinterpret_cast<gpointer>(this));
+							gtk_widget_add_controller(m_wBorderColorButton, GTK_EVENT_CONTROLLER(click));
+							}
 
-	g_signal_connect(G_OBJECT(m_wBackgroundColorButton),
-							"button-release-event",
-							G_CALLBACK(AP_UnixDialog_FormatFrame__onBackgroundColorClicked),
-							reinterpret_cast<gpointer>(this));	   
+	{
+							GtkGestureClick *click = GTK_GESTURE_CLICK(gtk_gesture_click_new());
+							gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_PRIMARY);
+							g_signal_connect(click, "released",
+												G_CALLBACK(AP_UnixDialog_FormatFrame__onBackgroundColorClicked),
+												reinterpret_cast<gpointer>(this));
+							gtk_widget_add_controller(m_wBackgroundColorButton, GTK_EVENT_CONTROLLER(click));
+							}	   
 
 	m_iBorderThicknessConnect = g_signal_connect(G_OBJECT(m_wBorderThickness),
 							"changed",
 							G_CALLBACK(s_border_thickness),
 							reinterpret_cast<gpointer>(this));
 						   
-	g_signal_connect(G_OBJECT(m_wPreviewArea),
-			 "draw",
-			 G_CALLBACK(s_preview_draw),
-			 reinterpret_cast<gpointer>(this));
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wPreviewArea),
+							s_preview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 }
 
 void AP_UnixDialog_FormatFrame::_populateWindowData(void)

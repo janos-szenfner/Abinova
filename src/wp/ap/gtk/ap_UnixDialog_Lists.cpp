@@ -155,12 +155,12 @@ static void s_closeClicked (GtkWidget * /*widget*/, AP_UnixDialog_Lists * me)
 	me->closeClicked();
 }
 
-static gboolean s_preview_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_Lists * me)
+static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+							   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_DEBUG_ONLY_ARG(widget);
-	UT_ASSERT(widget && me);
-	me->previewDraw();
-	return FALSE;
+	AP_UnixDialog_Lists *dlg = static_cast<AP_UnixDialog_Lists *>(data);
+	UT_return_if_fail(dlg);
+	dlg->previewDraw(cr);
 }
 
 static gboolean s_update (int /*unused*/)
@@ -309,8 +309,12 @@ void AP_UnixDialog_Lists::previewInvalidate(void)
 	}
 }
 
-void AP_UnixDialog_Lists::previewDraw(void)
+void AP_UnixDialog_Lists::previewDraw(cairo_t *cr)
 {
+	if (getListsPreview()) {
+		static_cast<GR_CairoGraphics*>(getListsPreview()->getGraphics())->setCairo(cr);
+	}
+
 	if (m_pPreviewWidget) {
 		setbisCustomized(true);
 	}
@@ -584,7 +588,7 @@ GtkWidget * AP_UnixDialog_Lists::_constructWindow(void)
 
 	contents = _constructWindowContents();
 	gtk_widget_show (contents);
-	gtk_box_pack_start (GTK_BOX (vbox1), contents, FALSE, TRUE, 0);
+	gtk_box_append(GTK_BOX(vbox1), contents);
 
 	const XAP_StringSet* pSS = XAP_App::getApp()->getStringSet();
 	std::string s;
@@ -603,7 +607,7 @@ GtkWidget * AP_UnixDialog_Lists::_constructWindow(void)
 		m_wClose = abiAddButton ( GTK_DIALOG(m_windowMain), s, BUTTON_CANCEL ) ;
 	}
 
-	gtk_widget_grab_default (m_wClose);
+	gtk_window_set_default_widget(GTK_WINDOW(m_windowMain), m_wClose);
 	_connectSignals ();
 
 	return (m_windowMain);
@@ -674,7 +678,7 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 	GtkWidget *text_align_lb;
 	GtkWidget *label_align_lb;
 	GtkWidget *preview_lb;
-	GSList *action_group = nullptr;
+	GtkWidget * action_group = nullptr;
 	GtkWidget *start_list_rb;
 	GtkWidget *apply_list_rb;
 	GtkWidget *resume_list_rb;
@@ -736,8 +740,8 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 // RadioButtons
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_FoldingLevel0,s);
 		
-		GtkWidget * wF = gtk_radio_button_new_with_label(nullptr, s.c_str());
-		GSList *wG = gtk_radio_button_get_group(GTK_RADIO_BUTTON(wF));
+		GtkWidget * wF = abi_radio_button_new_with_label(nullptr, s.c_str());
+		GtkWidget * wG = wF;
 		g_object_set_data(G_OBJECT(wF),"level",(gpointer)"0");
 		ID = g_signal_connect(G_OBJECT(wF),
 						  "toggled",
@@ -750,8 +754,8 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		m_vecFoldID.addItem(ID);
 
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_FoldingLevel1,s);
-		wF = gtk_radio_button_new_with_label(wG, s.c_str());
-		wG = gtk_radio_button_get_group(GTK_RADIO_BUTTON(wF));
+		wF = abi_radio_button_new_with_label(wG, s.c_str());
+		wG = wF;
 		g_object_set_data(G_OBJECT(wF),"level",(gpointer)"1");
 		ID = g_signal_connect(G_OBJECT(wF),
 						  "toggled",
@@ -764,8 +768,8 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		m_vecFoldID.addItem(ID);
 
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_FoldingLevel2,s);
-		wF = gtk_radio_button_new_with_label(wG, s.c_str());
-		wG = gtk_radio_button_get_group(GTK_RADIO_BUTTON(wF));
+		wF = abi_radio_button_new_with_label(wG, s.c_str());
+		wG = wF;
 		g_object_set_data(G_OBJECT(wF),"level",(gpointer)"2");
 		ID = g_signal_connect(G_OBJECT(wF),
 						  "toggled",
@@ -778,8 +782,8 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		m_vecFoldID.addItem(ID);
 
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_FoldingLevel3,s);
-		wF = gtk_radio_button_new_with_label(wG, s.c_str());
-		wG = gtk_radio_button_get_group(GTK_RADIO_BUTTON(wF));
+		wF = abi_radio_button_new_with_label(wG, s.c_str());
+		wG = wF;
 		g_object_set_data(G_OBJECT(wF),"level",(gpointer)"3");
 		ID = g_signal_connect(G_OBJECT(wF),
 						  "toggled",
@@ -792,7 +796,7 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		m_vecFoldID.addItem(ID);
 
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_FoldingLevel4,s);
-		wF = gtk_radio_button_new_with_label(wG, s.c_str());
+		wF = abi_radio_button_new_with_label(wG, s.c_str());
 		g_object_set_data(G_OBJECT(wF),"level",(gpointer)"4");
 		ID = g_signal_connect(G_OBJECT(wF),
 						  "toggled",
@@ -871,8 +875,8 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_SetDefault,s);
 	customized_cb = gtk_dialog_add_button (GTK_DIALOG(m_windowMain), s.c_str(), BUTTON_RESET);
-	GtkWidget *img = gtk_image_new_from_icon_name("document-revert", GTK_ICON_SIZE_BUTTON);
-	gtk_button_set_image(GTK_BUTTON(customized_cb), img);
+	GtkWidget *img = gtk_image_new_from_icon_name("document-revert");
+	gtk_button_set_child(GTK_BUTTON(customized_cb), img);
 	gtk_widget_show (customized_cb);
 
 	/* todo
@@ -996,24 +1000,24 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		gtk_widget_show (hbox1);
 	gtk_grid_attach(GTK_GRID(list_grid), hbox1, 0, 2, 2, 1);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_Apply_Current,s);
-	apply_list_rb = gtk_radio_button_new_with_label (action_group, s.c_str());
-	action_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (apply_list_rb));
+	apply_list_rb = abi_radio_button_new_with_label(action_group, s.c_str());
+	action_group = apply_list_rb;
 	if(!isModal())
 		gtk_widget_show (apply_list_rb);
-	gtk_box_pack_start (GTK_BOX (hbox1), apply_list_rb, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hbox1), apply_list_rb);
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (apply_list_rb), TRUE);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_Start_New,s);
-	start_list_rb = gtk_radio_button_new_with_label (action_group, s.c_str());
-	action_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (start_list_rb));
+	start_list_rb = abi_radio_button_new_with_label(action_group, s.c_str());
+	action_group = start_list_rb;
 	if(!isModal())
 		gtk_widget_show (start_list_rb);
-	gtk_box_pack_start (GTK_BOX (hbox1), start_list_rb, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hbox1), start_list_rb);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_Resume,s);
-	resume_list_rb = gtk_radio_button_new_with_label (action_group, s.c_str());
-	action_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (resume_list_rb));
+	resume_list_rb = abi_radio_button_new_with_label(action_group, s.c_str());
+	action_group = resume_list_rb;
 	if(!isModal())
 		gtk_widget_show (resume_list_rb);
-	gtk_box_pack_start (GTK_BOX (hbox1), resume_list_rb, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hbox1), resume_list_rb);
 
 	// Save useful widgets in member variables
 	if(isModal())
@@ -1025,10 +1029,10 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		m_wContents = wNoteBook;
 	}
 	m_wStartNewList = start_list_rb;
-	m_wStartNew_label = gtk_bin_get_child(GTK_BIN(start_list_rb));
+	m_wStartNew_label = gtk_button_get_child(GTK_BUTTON(start_list_rb));
 	m_wApplyCurrent = apply_list_rb;
 	m_wStartSubList = resume_list_rb;
-	m_wStartSub_label = gtk_bin_get_child(GTK_BIN(resume_list_rb));
+	m_wStartSub_label = gtk_button_get_child(GTK_BUTTON(resume_list_rb));
 	m_wRadioGroup = action_group;
 	m_wPreviewArea = preview_area;
 	m_wDelimEntry = format_en;
@@ -1212,10 +1216,9 @@ void AP_UnixDialog_Lists::_connectSignals(void)
 					    G_CALLBACK (s_typeChanged),
 					    this);
 	// the expose event of the preview
-	g_signal_connect(G_OBJECT(m_wPreviewArea),
-					   "draw",
-					   G_CALLBACK(s_preview_draw),
-					   static_cast<gpointer>(this));
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wPreviewArea),
+							s_preview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 	g_signal_connect(G_OBJECT(m_windowMain),
 					 "destroy",
 					 G_CALLBACK(s_destroy_clicked),

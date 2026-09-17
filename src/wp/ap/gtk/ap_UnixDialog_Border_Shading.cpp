@@ -100,39 +100,33 @@ static void s_line_bottom(GtkWidget *widget, gpointer data )
 	dlg->event_previewInvalidate();
 }
 
-static gboolean s_preview_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_Border_Shading * dlg)
+static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+							   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_return_val_if_fail(widget && dlg, FALSE);
-	dlg->event_previewDraw();
-	return FALSE;
+	AP_UnixDialog_Border_Shading *dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
+	UT_return_if_fail(dlg);
+	dlg->event_previewDraw(cr);
 }
 
-static gboolean s_on_shading_enable_clicked(GtkWidget 		*button,
+static void s_on_shading_enable_clicked(GtkWidget 		*button,
 											gpointer 		data)
 {
 	AP_UnixDialog_Border_Shading *dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
-	UT_return_val_if_fail (button && dlg, FALSE);
+	UT_return_if_fail (button && dlg);
 	dlg->event_shadingPatternChange();
-	return FALSE;
+	return;
 }
 
 /*!
 * Intercept clicks on the color button and show an own GtkColorSelectionDialog
 * with palette enabled.
 */
-static gboolean s_on_border_color_clicked (GtkWidget 		*button,
-								GdkEventButton 	*event,
-								gpointer 		data)
+static void s_on_border_color_clicked(GtkGestureClick *g, gint /*n_press*/, gdouble /*x*/, gdouble /*y*/, gpointer data)
 {
-	// only handle left clicks
-	guint ev_button = 0;
-	gdk_event_get_button((GdkEvent*)event, &ev_button);
-	if (ev_button != 1) {
-		return FALSE;
-	}
+	GtkWidget *button = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
 
 	AP_UnixDialog_Border_Shading *dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
-	UT_return_val_if_fail (button && dlg, FALSE);
+	UT_return_if_fail (button && dlg);
 
 	std::unique_ptr<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
@@ -143,7 +137,7 @@ static gboolean s_on_border_color_clicked (GtkWidget 		*button,
 		dlg->event_previewInvalidate();
 	}
 
-	return TRUE;
+	return;
 }
 
 static void s_on_border_thickness_clicked(GtkWidget *widget, gpointer data )
@@ -164,19 +158,12 @@ static void s_on_border_style_clicked(GtkWidget *widget, gpointer data )
 * Intercept clicks on the color button and show an own GtkColorSelectionDialog
 * with palette enabled.
 */
-static gboolean s_on_shading_color_clicked (GtkWidget 		*button,
-										GdkEventButton *event,
-										gpointer 		data)
+static void s_on_shading_color_clicked(GtkGestureClick *g, gint /*n_press*/, gdouble /*x*/, gdouble /*y*/, gpointer data)
 {
-	// only handle left clicks
-	guint ev_button = 0;
-	gdk_event_get_button((GdkEvent*)event, &ev_button);
-	if (ev_button != 1) {
-		return FALSE;
-	}
+	GtkWidget *button = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(g));
 
 	AP_UnixDialog_Border_Shading *dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
-	UT_return_val_if_fail (button && dlg, FALSE);
+	UT_return_if_fail (button && dlg);
 
 	std::unique_ptr<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
@@ -187,7 +174,7 @@ static gboolean s_on_shading_color_clicked (GtkWidget 		*button,
 		dlg->event_previewInvalidate();
 	}
 
-	return TRUE;
+	return;
 }
 
 
@@ -310,8 +297,12 @@ void AP_UnixDialog_Border_Shading::event_previewInvalidate(void)
 	}
 }
 
-void AP_UnixDialog_Border_Shading::event_previewDraw(void)
+void AP_UnixDialog_Border_Shading::event_previewDraw(cairo_t *cr)
 {
+	if (m_pBorderShadingPreview) {
+		static_cast<GR_CairoGraphics*>(m_pBorderShadingPreview->getGraphics())->setCairo(cr);
+	}
+
 	if(m_pBorderShadingPreview) {
 		m_pBorderShadingPreview->drawImmediate();
 	}
@@ -451,7 +442,7 @@ void AP_UnixDialog_Border_Shading::event_shadingPatternChange(void)
 void AP_UnixDialog_Border_Shading::destroy(void)
 {
 	finalize();
-	gtk_widget_destroy(m_windowMain); // TOPLEVEL
+	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
 }
 
@@ -637,18 +628,25 @@ void AP_UnixDialog_Border_Shading::_connectSignals(void)
 										"clicked",
 										G_CALLBACK(s_line_bottom),
 										reinterpret_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_wBorderColorButton),
-							"button-release-event",
-							G_CALLBACK(s_on_border_color_clicked),
-							reinterpret_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_wShadingColorButton),
-							"button-release-event",
-							G_CALLBACK(s_on_shading_color_clicked),
-							reinterpret_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_wPreviewArea),
-							"draw",
-							G_CALLBACK(s_preview_draw),
-							reinterpret_cast<gpointer>(this));
+	{
+							GtkGestureClick *click = GTK_GESTURE_CLICK(gtk_gesture_click_new());
+							gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_PRIMARY);
+							g_signal_connect(click, "released",
+												G_CALLBACK(s_on_border_color_clicked),
+												reinterpret_cast<gpointer>(this));
+							gtk_widget_add_controller(m_wBorderColorButton, GTK_EVENT_CONTROLLER(click));
+							}
+	{
+							GtkGestureClick *click = GTK_GESTURE_CLICK(gtk_gesture_click_new());
+							gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_PRIMARY);
+							g_signal_connect(click, "released",
+												G_CALLBACK(s_on_shading_color_clicked),
+												reinterpret_cast<gpointer>(this));
+							gtk_widget_add_controller(m_wShadingColorButton, GTK_EVENT_CONTROLLER(click));
+							}
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wPreviewArea),
+							s_preview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 
 	m_iShadingOffsetConnect = g_signal_connect(G_OBJECT(m_wShadingOffset),
 											"changed",

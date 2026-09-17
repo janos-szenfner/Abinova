@@ -196,7 +196,7 @@ void AP_UnixDialog_PageSetup::event_LandscapeChanged(void)
 	g_signal_handler_unblock(G_OBJECT(m_entryPageHeight), m_iEntryPageHeightID);
 
   	/* switch layout XPM image */
-	gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(customPreview)),
+	xap_gtk_container_remove (gtk_widget_get_parent(customPreview),
 			     customPreview);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_radioPageLandscape))) {
 		customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/orient_horizontal_xpm");
@@ -204,8 +204,7 @@ void AP_UnixDialog_PageSetup::event_LandscapeChanged(void)
 		customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/orient_vertical_xpm");
 	}
 	gtk_widget_show(customPreview);
-	gtk_box_pack_start(GTK_BOX (m_PageHbox), customPreview, FALSE, FALSE, 0);
-	gtk_box_reorder_child(GTK_BOX (m_PageHbox), customPreview, 0);
+	gtk_box_prepend(GTK_BOX(m_PageHbox), customPreview);
 }
 
 void AP_UnixDialog_PageSetup::doWidthEntry(void)
@@ -518,8 +517,6 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 	m_pBuilder = newDialogBuilderFromResource("ap_UnixDialog_PageSetup.ui");
 
 	const XAP_StringSet * pSS = m_pApp->getStringSet ();
-	GList *glist;
-	GtkLabel *orientation;
 
 	m_window = _getWidget("ap_UnixDialog_PageSetup");
 	m_wHelp = _getWidget("wHelp");
@@ -555,15 +552,8 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 	Markup (_getWidget("lbOrientation"), pSS, _(AP, DLG_PageSetup_Orient));
 
 	/* radio button labels */
-	glist = gtk_container_get_children (GTK_CONTAINER (m_radioPagePortrait));
-	orientation = GTK_LABEL (g_list_nth_data (glist, 0));
-	gtk_label_set_text (GTK_LABEL (orientation), _(AP, DLG_PageSetup_Portrait));
-	g_list_free(glist);
-
-	glist = gtk_container_get_children (GTK_CONTAINER (m_radioPageLandscape));
-	orientation = GTK_LABEL (g_list_nth_data (glist, 0));
-	gtk_label_set_text (GTK_LABEL (orientation), _(AP, DLG_PageSetup_Landscape));
-	g_list_free(glist);
+	gtk_button_set_label (GTK_BUTTON (m_radioPagePortrait), _(AP, DLG_PageSetup_Portrait));
+	gtk_button_set_label (GTK_BUTTON (m_radioPageLandscape), _(AP, DLG_PageSetup_Landscape));
 
 	Markup (_getWidget("lbScale"), pSS, _(AP, DLG_PageSetup_Scale));
 	gtk_label_set_text (GTK_LABEL (_getWidget("lbAdjust")), _(AP, DLG_PageSetup_Adjust));
@@ -646,8 +636,7 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 		customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/orient_horizontal_xpm");
 	}
 	gtk_widget_show(customPreview);
-	gtk_box_pack_start(GTK_BOX(m_PageHbox), customPreview, FALSE, FALSE, 0);
-	gtk_box_reorder_child(GTK_BOX(m_PageHbox), customPreview, 0);
+	gtk_box_prepend(GTK_BOX(m_PageHbox), customPreview);
 
 	std::string s;
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_Cancel, s);

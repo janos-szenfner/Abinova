@@ -23,23 +23,24 @@
 #include "gr_UnixCairoGraphics.h"
 #include "xap_UnixDialogHelper.h"
 
-XAP_UnixFontPreview::XAP_UnixFontPreview(XAP_Frame * pFrame, UT_sint32 left, UT_uint32 top)
+XAP_UnixFontPreview::XAP_UnixFontPreview(XAP_Frame * pFrame, GtkWidget * attachTo)
 	: XAP_FontPreview()
 {
 	m_pFrame = static_cast<XAP_Frame *>(pFrame);
-	m_left = left;
-	m_top = top;
 
-	m_pPreviewWindow = gtk_window_new(GTK_WINDOW_POPUP);
-	gtk_widget_set_size_request(m_pPreviewWindow, m_width, m_height);
+	// GTK4: no GTK_WINDOW_POPUP or gtk_window_move(); a GtkPopover attached
+	// to the font combo does the positioning for us
+	m_pPreviewWindow = gtk_popover_new();
+	gtk_popover_set_has_arrow(GTK_POPOVER(m_pPreviewWindow), FALSE);
 
 	m_pDrawingArea = gtk_drawing_area_new ();
-	gtk_container_add(GTK_CONTAINER(m_pPreviewWindow), m_pDrawingArea);
-	g_object_set(G_OBJECT(m_pDrawingArea), "expand", TRUE, nullptr);
+	gtk_widget_set_size_request(m_pDrawingArea, m_width, m_height);
+	gtk_popover_set_child(GTK_POPOVER(m_pPreviewWindow), m_pDrawingArea);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_pDrawingArea),
+								   s_draw_cb, this, nullptr);
 
-	gtk_widget_show_all(m_pPreviewWindow);
-	gtk_window_move(GTK_WINDOW(m_pPreviewWindow), m_left, m_top);
-	UT_DEBUGMSG(("gtk_window_move left %d top %d \n",m_left,m_top));
+	gtk_widget_set_parent(m_pPreviewWindow, attachTo);
+	gtk_popover_popup(GTK_POPOVER(m_pPreviewWindow));
 
 	XAP_App *pApp = XAP_App::getApp();
 	GR_UnixCairoAllocInfo ai(GTK_WIDGET(m_pDrawingArea));
@@ -51,5 +52,23 @@ XAP_UnixFontPreview::XAP_UnixFontPreview(XAP_Frame * pFrame, UT_sint32 left, UT_
 XAP_UnixFontPreview::~XAP_UnixFontPreview(void)
 {
 	DELETEP(m_gc);
-	gtk_widget_destroy(m_pPreviewWindow); // TOPLEVEL
+	gtk_popover_popdown(GTK_POPOVER(m_pPreviewWindow));
+	gtk_widget_unparent(m_pPreviewWindow); // TOPLEVEL
+}
+
+void XAP_UnixFontPreview::s_draw_cb(GtkDrawingArea * /*area*/, cairo_t *cr,
+									int width, int height, gpointer data)
+{
+	XAP_UnixFontPreview * self = static_cast<XAP_UnixFontPreview*>(data);
+	self->_draw(cr, width, height);
+}
+
+void XAP_UnixFontPreview::_draw(cairo_t * cr, int width, int height)
+{
+	if (!m_pFontPreview || !m_gc)
+		return;
+	m_gc->setCairo(cr);
+	UT_Rect clip(0, 0, m_gc->tlu(width), m_gc->tlu(height));
+	m_pFontPreview->drawImmediate(&clip);
+	m_gc->setCairo(nullptr);
 }

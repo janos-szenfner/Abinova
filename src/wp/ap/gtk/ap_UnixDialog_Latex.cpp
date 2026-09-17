@@ -127,7 +127,7 @@ void AP_UnixDialog_Latex::destroy(void)
 	modeless_cleanup();
 	if (m_windowMain != nullptr)
 	{
-		gtk_widget_destroy(m_windowMain); // TOPLEVEL
+		abiDestroyWidget(m_windowMain); // TOPLEVEL
 		m_windowMain = nullptr;
 	}
 }
@@ -186,7 +186,7 @@ void AP_UnixDialog_Latex::constructDialog(void)
 	m_wInsert = gtk_dialog_add_button(GTK_DIALOG(m_windowMain),"Insert",1);
 	m_wText = go_math_editor_new();
 	gtk_widget_set_size_request (m_wText, 300, -1);
-	gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(m_windowMain))),
+	xap_gtk_container_add (gtk_dialog_get_content_area(GTK_DIALOG(m_windowMain)),
 	                m_wText);
 #else
 	// load the dialog from the UI file

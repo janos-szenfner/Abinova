@@ -6,15 +6,15 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA.
  */
 
@@ -24,9 +24,104 @@
 #include "xav_View.h"
 
 //////////////////////////////////////////////////////////////////
+// GdkContentProvider subclass that serves clipboard data lazily
+// out of XAP_FakeClipboard, like the old GtkClipboard get_func.
 //////////////////////////////////////////////////////////////////
 
-GtkClipboard * XAP_UnixClipboard::gtkClipboardForTarget(XAP_UnixClipboard::T_AllowGet get) const
+#define ABI_TYPE_CONTENT_PROVIDER (abi_content_provider_get_type())
+G_DECLARE_FINAL_TYPE(AbiContentProvider, abi_content_provider, ABI,
+					 CONTENT_PROVIDER, GdkContentProvider)
+
+struct _AbiContentProvider
+{
+	GdkContentProvider parent;
+	XAP_UnixClipboard *owner;
+	bool primary;
+	GdkContentFormats *formats;
+};
+
+G_DEFINE_TYPE(AbiContentProvider, abi_content_provider, GDK_TYPE_CONTENT_PROVIDER)
+
+static GdkContentFormats *
+abi_content_provider_ref_formats(GdkContentProvider *provider)
+{
+	AbiContentProvider *self = ABI_CONTENT_PROVIDER(provider);
+	return gdk_content_formats_ref(self->formats);
+}
+
+static void
+abi_content_provider_write_mime_type_async(GdkContentProvider *provider,
+										   const char *mime_type,
+										   GOutputStream *stream,
+										   int /*io_priority*/,
+										   GCancellable *cancellable,
+										   GAsyncReadyCallback callback,
+										   gpointer user_data)
+{
+	AbiContentProvider *self = ABI_CONTENT_PROVIDER(provider);
+	GTask *task = g_task_new(provider, cancellable, callback, user_data);
+	g_task_set_source_tag(task, reinterpret_cast<gpointer>(abi_content_provider_write_mime_type_async));
+
+	GError *error = nullptr;
+	if (self->owner->writeData(mime_type, stream, self->primary, &error))
+		g_task_return_boolean(task, TRUE);
+	else
+		g_task_return_error(task, error ? error :
+			g_error_new(G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+						"mime type %s not available", mime_type));
+	g_object_unref(task);
+}
+
+static gboolean
+abi_content_provider_write_mime_type_finish(GdkContentProvider * /*provider*/,
+											GAsyncResult *result,
+											GError **error)
+{
+	return g_task_propagate_boolean(G_TASK(result), error);
+}
+
+static void
+abi_content_provider_finalize(GObject *object)
+{
+	AbiContentProvider *self = ABI_CONTENT_PROVIDER(object);
+	if (self->formats)
+		gdk_content_formats_unref(self->formats);
+	G_OBJECT_CLASS(abi_content_provider_parent_class)->finalize(object);
+}
+
+static void
+abi_content_provider_class_init(AbiContentProviderClass *klass)
+{
+	GdkContentProviderClass *provider_class = GDK_CONTENT_PROVIDER_CLASS(klass);
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+	object_class->finalize = abi_content_provider_finalize;
+	provider_class->ref_formats = abi_content_provider_ref_formats;
+	provider_class->write_mime_type_async = abi_content_provider_write_mime_type_async;
+	provider_class->write_mime_type_finish = abi_content_provider_write_mime_type_finish;
+}
+
+static void
+abi_content_provider_init(AbiContentProvider * /*self*/)
+{
+}
+
+static GdkContentProvider *
+abi_content_provider_new(XAP_UnixClipboard *owner, const char **mime_types,
+						 guint n_mime_types, bool primary)
+{
+	AbiContentProvider *self = static_cast<AbiContentProvider *>(
+		g_object_new(ABI_TYPE_CONTENT_PROVIDER, nullptr));
+	self->owner = owner;
+	self->primary = primary;
+	self->formats = gdk_content_formats_new(mime_types, n_mime_types);
+	return GDK_CONTENT_PROVIDER(self);
+}
+
+//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+
+GdkClipboard * XAP_UnixClipboard::clipboardForTarget(XAP_UnixClipboard::T_AllowGet get) const
 {
 	if (XAP_UnixClipboard::TAG_ClipboardOnly == get)
 		return m_clip;
@@ -38,7 +133,7 @@ GtkClipboard * XAP_UnixClipboard::gtkClipboardForTarget(XAP_UnixClipboard::T_All
 static AV_View * viewFromApp(XAP_App * pApp)
 {
 	XAP_Frame * pFrame = pApp->getLastFocussedFrame();
-	if ( !pFrame ) 
+	if ( !pFrame )
 		return nullptr ;
 	return pFrame->getCurrentView () ;
 }
@@ -47,16 +142,16 @@ static AV_View * viewFromApp(XAP_App * pApp)
 //////////////////////////////////////////////////////////////////
 
 XAP_UnixClipboard::XAP_UnixClipboard(XAP_UnixApp * pUnixApp)
-	: m_pUnixApp(pUnixApp), m_Targets(nullptr), m_nTargets(0)
+	: m_pUnixApp(pUnixApp)
 {
-	m_clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-	m_primary = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
+	GdkDisplay *display = gdk_display_get_default();
+	m_clip = gdk_display_get_clipboard(display);
+	m_primary = gdk_display_get_primary_clipboard(display);
 }
 
 XAP_UnixClipboard::~XAP_UnixClipboard()
 {
 	clearData(true,true);
-	g_free(m_Targets);
 }
 
 //////////////////////////////////////////////////////////////////
@@ -65,101 +160,52 @@ XAP_UnixClipboard::~XAP_UnixClipboard()
 void XAP_UnixClipboard::AddFmt(const char * szFormat)
 {
 	UT_return_if_fail(szFormat && strlen(szFormat));
-	m_vecFormat_AP_Name.push_back(szFormat);
-	m_vecFormat_GdkAtom.push_back(gdk_atom_intern(szFormat,FALSE));
+	m_vecFormat_MimeType.push_back(szFormat);
 }
 
 void XAP_UnixClipboard::deleteFmt(const char * szFormat)
 {
 	UT_return_if_fail(szFormat && strlen(szFormat));
-	auto item = std::find(m_vecFormat_AP_Name.begin(), m_vecFormat_AP_Name.end(), szFormat);
-	if (item != m_vecFormat_AP_Name.end()) {
-		m_vecFormat_AP_Name.erase(item);
-	}
-	auto item2 = std::find(m_vecFormat_GdkAtom.begin(), m_vecFormat_GdkAtom.end(),
-						   gdk_atom_intern(szFormat, FALSE));
-	if (item2 != m_vecFormat_GdkAtom.end()) {
-		m_vecFormat_GdkAtom.erase(item2);
+	auto item = std::find(m_vecFormat_MimeType.begin(), m_vecFormat_MimeType.end(), szFormat);
+	if (item != m_vecFormat_MimeType.end()) {
+		m_vecFormat_MimeType.erase(item);
 	}
 }
 
 void XAP_UnixClipboard::initialize()
 {
-	m_nTargets = m_vecFormat_AP_Name.size();
-	m_Targets  = g_new0(GtkTargetEntry, m_nTargets);
-	
-	for (int k = 0, kLimit = m_nTargets; (k < kLimit); k++)
-    {
-		GtkTargetEntry * target = &(m_Targets[k]);
-		target->target = (gchar*)m_vecFormat_AP_Name[k];
-		target->info = k;
-    }
 }
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
-void XAP_UnixClipboard::common_get_func(GtkClipboard * /*clipboard*/,
-										GtkSelectionData *selection_data,
-										guint /*info*/, T_AllowGet which)
+bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream,
+								  bool bPrimary, GError ** error)
 {
-	XAP_FakeClipboard & which_clip = ( which == TAG_ClipboardOnly ? m_fakeClipboard : m_fakePrimaryClipboard );
-	
+	XAP_FakeClipboard & which_clip = ( bPrimary ? m_fakePrimaryClipboard : m_fakeClipboard );
+
 	// if this is for PRIMARY, we need to copy the current selection
 	// else this is for CLIPBOARD and the data is already copied; do nothing
-	if (which == TAG_PrimaryOnly)
-    {
+	if (bPrimary)
+	{
 		// will only get the view from the last focussed frame, and not some offscreen
 		// (print, format painter) view. this is fine, since we're operating on PRIMARY
 		AV_View * pView = viewFromApp(m_pUnixApp);
-		if (!pView) 
-			return; // race condition - have request for data but no view. fail harmlessly
+		if (!pView)
+			return false; // race condition - have request for data but no view. fail harmlessly
 		pView->cmdCopy(false);
-    }
-	
-	guint ntargets = m_vecFormat_GdkAtom.size();
-	
-	GdkAtom needle = gtk_selection_data_get_target(selection_data);
-	for (guint i = 0 ; i < ntargets ; i++)
-	{
-		if (needle == m_vecFormat_GdkAtom[i])
-		{
-			const gchar * format_name = m_vecFormat_AP_Name[i];
-			
-			if(which_clip.hasFormat(format_name))
-            {
-				guchar * data = nullptr;
-				UT_uint32 data_len = 0;
-
-				guchar **pdata = &data;
-                which_clip.getClipboardData(format_name,reinterpret_cast<void**>(pdata),&data_len);	 
-                gtk_selection_data_set(selection_data,needle,8, data, data_len);
-            }
-			break; // success or failure, we've found the needle in the haystack so exit the loop
-		}  
 	}
-}
 
-void  XAP_UnixClipboard::primary_clear_func (GtkClipboard * /*clipboard*/)
-{
-}
-
-void  XAP_UnixClipboard::clipboard_clear_func (GtkClipboard * /*clipboard*/)
-{
-}
-
-void XAP_UnixClipboard::primary_get_func(GtkClipboard *clipboard,
-										 GtkSelectionData *selection_data,
-										 guint info)
-{
-	common_get_func(clipboard, selection_data, info, TAG_PrimaryOnly);
-}
-
-void XAP_UnixClipboard::clipboard_get_func(GtkClipboard *clipboard,
-										   GtkSelectionData *selection_data,
-										   guint info)
-{
-	common_get_func(clipboard, selection_data, info, TAG_ClipboardOnly);
+	guchar * data = nullptr;
+	UT_uint32 data_len = 0;
+	guchar **pdata = &data;
+	if (which_clip.getClipboardData(mime_type, reinterpret_cast<void**>(pdata), &data_len))
+	{
+		gsize written = 0;
+		return g_output_stream_write_all(stream, data, data_len, &written,
+										 nullptr, error) == TRUE;
+	}
+	return false;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -167,52 +213,50 @@ void XAP_UnixClipboard::clipboard_get_func(GtkClipboard *clipboard,
 
 bool XAP_UnixClipboard::assertSelection()
 {
-  return (gtk_clipboard_set_with_data (gtkClipboardForTarget(TAG_PrimaryOnly),
-										 m_Targets,
-										 m_nTargets,
-										 s_primary_get_func,
-										 s_primary_clear_func,
-										 this) == TRUE); 
+	GdkContentProvider *provider =
+		abi_content_provider_new(this, m_vecFormat_MimeType.data(),
+								 m_vecFormat_MimeType.size(), true);
+	bool bOk = gdk_clipboard_set_content(clipboardForTarget(TAG_PrimaryOnly),
+										 provider) == TRUE;
+	g_object_unref(provider);
+	return bOk;
 }
 
 bool XAP_UnixClipboard::addData(T_AllowGet tFrom, const char* format, const void* pData, UT_sint32 iNumBytes)
 {
 	if(tFrom == TAG_PrimaryOnly)
 		return m_fakePrimaryClipboard.addData(format,pData,iNumBytes);
-	else 
-    {
+	else
+	{
 		if(!m_fakeClipboard.addData(format,pData,iNumBytes))
 			return false;
-		
+
 		return true;
-    }
+	}
 }
 
 void XAP_UnixClipboard::finishedAddingData(void)
 {
-  gtk_clipboard_set_with_data (gtkClipboardForTarget(TAG_ClipboardOnly),
-			       m_Targets,
-			       m_nTargets,
-			       s_clipboard_get_func,
-			       s_clipboard_clear_func,
-			       this);
-
-  gtk_clipboard_set_can_store (gtkClipboardForTarget(TAG_ClipboardOnly), m_Targets, m_nTargets);
+	GdkContentProvider *provider =
+		abi_content_provider_new(this, m_vecFormat_MimeType.data(),
+								 m_vecFormat_MimeType.size(), false);
+	gdk_clipboard_set_content(clipboardForTarget(TAG_ClipboardOnly), provider);
+	g_object_unref(provider);
 }
 
 void XAP_UnixClipboard::clearData(bool bClipboard, bool bPrimary)
 {
 	if (bClipboard)
-    {
-		gtk_clipboard_clear (gtkClipboardForTarget (TAG_ClipboardOnly));
+	{
+		gdk_clipboard_set_content (clipboardForTarget (TAG_ClipboardOnly), nullptr);
 		m_fakeClipboard.clearClipboard();
-    }
-	
+	}
+
 	if (bPrimary)
-    {
-		gtk_clipboard_clear(gtkClipboardForTarget (TAG_PrimaryOnly));
+	{
+		gdk_clipboard_set_content(clipboardForTarget (TAG_PrimaryOnly), nullptr);
 		m_fakePrimaryClipboard.clearClipboard();
-    }
+	}
 }
 
 bool XAP_UnixClipboard::getData(T_AllowGet tFrom, const char** formatList,
@@ -220,53 +264,88 @@ bool XAP_UnixClipboard::getData(T_AllowGet tFrom, const char** formatList,
 								const char **pszFormatFound)
 {
 	// Fetch data from the clipboard (using the allowable source(s)) in one of
-	// the prioritized list of formats.  Return pointer to clipboard's buffer. 
+	// the prioritized list of formats.  Return pointer to clipboard's buffer.
 	*pszFormatFound = nullptr;
 	*ppData = nullptr;
 	*pLen = 0;
 	if (TAG_ClipboardOnly == tFrom)
 		return _getDataFromServer(tFrom,formatList,ppData,pLen,pszFormatFound);
 	else if (TAG_PrimaryOnly == tFrom)
-        return _getDataFromServer(tFrom,formatList,ppData,pLen,pszFormatFound);
+		return _getDataFromServer(tFrom,formatList,ppData,pLen,pszFormatFound);
 	else
 		return false;
 }
 
-bool XAP_UnixClipboard::getTextData(T_AllowGet tFrom, void ** ppData, 
+struct ReadCtx
+{
+	GMainLoop *loop;
+	GInputStream *stream;
+	char *text;
+	const char *mime_type;
+};
+
+static void read_stream_cb(GObject *src, GAsyncResult *res, gpointer data)
+{
+	ReadCtx *ctx = static_cast<ReadCtx*>(data);
+	ctx->stream = gdk_clipboard_read_finish(GDK_CLIPBOARD(src), res,
+											&ctx->mime_type, nullptr);
+	g_main_loop_quit(ctx->loop);
+}
+
+static void read_text_cb(GObject *src, GAsyncResult *res, gpointer data)
+{
+	ReadCtx *ctx = static_cast<ReadCtx*>(data);
+	ctx->text = gdk_clipboard_read_text_finish(GDK_CLIPBOARD(src), res, nullptr);
+	g_main_loop_quit(ctx->loop);
+}
+
+bool XAP_UnixClipboard::getTextData(T_AllowGet tFrom, void ** ppData,
 									UT_uint32 * pLen)
 {
 	// start out pessimistic
 	*ppData = nullptr;
 	*pLen = 0;
-	
-	GtkClipboard * clippy = gtkClipboardForTarget (tFrom);
-	
-	char * txt = gtk_clipboard_wait_for_text (clippy);
-	
+
+	GdkClipboard * clippy = clipboardForTarget (tFrom);
+
+	ReadCtx ctx;
+	ctx.loop = g_main_loop_new(nullptr, FALSE);
+	ctx.stream = nullptr;
+	ctx.text = nullptr;
+	ctx.mime_type = nullptr;
+
+	gdk_clipboard_read_text_async(clippy, nullptr, read_text_cb, &ctx);
+	g_main_loop_run(ctx.loop);
+	g_main_loop_unref(ctx.loop);
+
+	char *txt = ctx.text;
 	if (!txt)
 		return false;
-	
+
 	size_t len = strlen (txt);
 	if (!len)
+	{
+		g_free(txt);
 		return false;
-	
+	}
+
 	XAP_FakeClipboard & which_clip = ( tFrom == TAG_ClipboardOnly ? m_fakeClipboard : m_fakePrimaryClipboard );
-	
+
 	which_clip.addData("text/plain",txt,len);
-	
+
 	g_free (txt);
-	
+
 	// ignored
 	const char * pszFormatFound = nullptr;
-	
+
 	static const char * txtFormatList [] = {
 		"text/plain",
 		nullptr
 	};
-	
+
 	return _getDataFromFakeClipboard(tFrom, txtFormatList, ppData, pLen, &pszFormatFound);
 }
-	
+
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
@@ -275,36 +354,17 @@ bool XAP_UnixClipboard::_getDataFromFakeClipboard(T_AllowGet tFrom, const char**
 												  const char **pszFormatFound)
 {
 	XAP_FakeClipboard & which_clip = ( tFrom == TAG_ClipboardOnly ? m_fakeClipboard : m_fakePrimaryClipboard );
-	
+
 	for (int k=0; (formatList[k]); k++)
 		if (which_clip.getClipboardData(formatList[k],ppData,pLen))
 		{
 			*pszFormatFound = formatList[k];
 			return true;
 		}
-	
+
 	// should never happen since this is our internal buffer
 	return false;
 }
-
-
-#if DEBUG
-static void allTargets(GtkClipboard * /*clipboard*/,
-                                                         GdkAtom *atoms,
-                                                         gint n_atoms,
-                                                         gpointer /*data*/)
-{
-  gint i= 0;
-  UT_DEBUGMSG(("Found %d target atoms \n", n_atoms));
-  for(i=0;i<n_atoms;i++)
-  {
-      GdkAtom Atom = atoms[i];
-      auto name = gdk_atom_name(Atom);
-      UT_DEBUGMSG((" Found Atom %s on clipboard \n", name));
-      g_free(name);
-  }
-}
-#endif
 
 bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** formatList,
 										   void ** ppData, UT_uint32 * pLen,
@@ -312,43 +372,49 @@ bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** format
 {
 	bool rval = false;
 	if(formatList == nullptr)
-	  return false;
+		return false;
 
-	GtkClipboard * clipboard = gtkClipboardForTarget (tFrom);
-#if DEBUG
-	gtk_clipboard_request_targets(clipboard,( GtkClipboardTargetsReceivedFunc) allTargets, this);
-#endif
-	std::vector<GdkAtom> atoms ;
-	for(int atomCounter = 0; formatList[atomCounter]; atomCounter++)
-		atoms.push_back(gdk_atom_intern(formatList[atomCounter],FALSE));
-	
-	int len = atoms.size () ;	
-	
-	//	for(int i = 0; i < len && !rval; i++)
-	for(int i = 0; i < len; i++)
-    {
-		GdkAtom atom = atoms[i];
-		GtkSelectionData * selection = gtk_clipboard_wait_for_contents (clipboard, atom);
+	GdkClipboard * clipboard = clipboardForTarget (tFrom);
+
+	for(int i = 0; formatList[i] && !rval; i++)
+	{
+		const char * mimes[] = { formatList[i], nullptr };
+
+		ReadCtx ctx;
+		ctx.loop = g_main_loop_new(nullptr, FALSE);
+		ctx.stream = nullptr;
+		ctx.text = nullptr;
+		ctx.mime_type = nullptr;
+
 		UT_DEBUGMSG(("Looking for %s on clipbaord \n",formatList[i]));
-		if(selection)
+		gdk_clipboard_read_async(clipboard, mimes, G_PRIORITY_DEFAULT,
+								 nullptr, read_stream_cb, &ctx);
+		g_main_loop_run(ctx.loop);
+		g_main_loop_unref(ctx.loop);
+
+		GInputStream *stream = ctx.stream;
+		if (stream)
 		{
-			if (gtk_selection_data_get_data(selection) && (gtk_selection_data_get_length(selection) > 0))
+			m_databuf.truncate(0);
+			guchar buf[8192];
+			gssize n;
+			while ((n = g_input_stream_read(stream, buf, sizeof(buf),
+											nullptr, nullptr)) > 0)
 			{
-			  if(!rval)
-			    {
-				m_databuf.truncate(0);
-				*pLen = gtk_selection_data_get_length(selection);
-				m_databuf.append(static_cast<const UT_Byte *>(gtk_selection_data_get_data(selection)),
-				                 *pLen);
+				m_databuf.append(buf, n);
+			}
+			g_object_unref(stream);
+
+			if (m_databuf.getLength() > 0)
+			{
+				*pLen = m_databuf.getLength();
 				*ppData = (void *)(m_databuf.getPointer(0));
 				*pszFormatFound = formatList[i];
 				rval = true;
-			    }
-			  UT_DEBUGMSG(("Found format %s on clipbaord \n",formatList[i]));
+				UT_DEBUGMSG(("Found format %s on clipbaord \n",formatList[i]));
 			}
-			gtk_selection_data_free(selection);
 		}
-    }
+	}
 
 	return rval;
 }
@@ -358,36 +424,6 @@ bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** format
 
 bool XAP_UnixClipboard::canPaste(T_AllowGet tFrom) const
 {
-#if 0
-	bool found = false;
-	GtkClipboard * clipboard = gtkClipboardForTarget(tFrom);
-	GtkSelectionData * selection = gtk_clipboard_wait_for_contents (clipboard, gdk_atom_intern("TARGETS", FALSE));
-	
-	if (selection) 
-    {
-		gint abi_targets = m_vecFormat_GdkAtom.size();
-		
-		GdkAtom *targets;
-		gint clipboard_targets;
-		
-		if (gtk_selection_data_get_targets (selection, &targets, &clipboard_targets))
-		{
-			for (gint i = 0; (i < abi_targets) && !found; i++)
-			{
-				GdkAtom needle = m_vecFormat_GdkAtom[i];
-				for (gint j = 0; (j < clipboard_targets) && !found; j++)
-					if (targets[j] == needle)
-						found = true; 
-			}
-			
-			g_free (targets);
-		}
-		gtk_selection_data_free(selection);
-    }
-	
-	return found;
-#else
 	UT_UNUSED(tFrom);
 	return true;
-#endif
 }

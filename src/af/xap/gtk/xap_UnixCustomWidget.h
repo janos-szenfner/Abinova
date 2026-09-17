@@ -32,7 +32,8 @@ protected:
 	class _fe
 	{
 	public:
-		static void draw(XAP_UnixCustomWidget *self, cairo_t *cr);
+		static void draw(GtkDrawingArea *area, cairo_t *cr, int width, int height,
+						 gpointer data);
 	};
 	friend class _fe;
 	cairo_t *m_cr;

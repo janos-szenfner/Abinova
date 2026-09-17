@@ -18,7 +18,7 @@
  */
 
 #include "xap_Frame.h"
-#include "xap_Frame.h"
+#include "xap_UnixFrameImpl.h"
 #include "ut_debugmsg.h"
 #include "ap_UnixPreview_Annotation.h"
 #include "gr_UnixCairoGraphics.h"
@@ -45,17 +45,13 @@ void AP_UnixPreview_Annotation::runModeless(XAP_Frame * pFrame)
 	if(m_pPreviewWindow)
 	{
 		DELETEP(m_gc);
-		gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(m_pDrawingArea)),
-				     m_pDrawingArea);
-		gtk_widget_destroy(m_pPreviewWindow); // TOPLEVEL
+		abiDestroyWidget(m_pPreviewWindow);
 		m_pPreviewWindow = nullptr;
 		m_pDrawingArea = nullptr;
 	}
 	setSizeFromAnnotation();
 	_constructWindow();
-	gtk_window_set_modal ( GTK_WINDOW(m_pPreviewWindow), FALSE ) ;
-	gtk_widget_show(m_pPreviewWindow);
-	
+
 	// make a new Unix GC
 	DELETEP(m_gc);
 	
@@ -63,9 +59,7 @@ void AP_UnixPreview_Annotation::runModeless(XAP_Frame * pFrame)
 	GR_UnixCairoAllocInfo ai(GTK_WIDGET(m_pDrawingArea));
 	m_gc = (GR_CairoGraphics*) pApp->newGraphics(ai);
 
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(m_pPreviewWindow, &allocation);
-	_createAnnotationPreviewFromGC(m_gc, allocation.width, allocation.height);
+	_createAnnotationPreviewFromGC(m_gc, m_width, m_height);
 	m_gc->setZoomPercentage(100);
 	gtk_widget_show(m_pDrawingArea);
 }
@@ -73,7 +67,16 @@ void AP_UnixPreview_Annotation::runModeless(XAP_Frame * pFrame)
 void AP_UnixPreview_Annotation::activate(void)
 {
 	UT_return_if_fail(m_pPreviewWindow);
-	XAP_gtk_window_raise(m_pPreviewWindow);
+	gtk_popover_popup(GTK_POPOVER(m_pPreviewWindow));
+}
+
+static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+						   int /*width*/, int /*height*/, gpointer data)
+{
+	AP_UnixPreview_Annotation *self = static_cast<AP_UnixPreview_Annotation*>(data);
+	UT_return_if_fail(self);
+	static_cast<GR_CairoGraphics*>(self->getGraphics())->setCairo(cr);
+	self->drawImmediate();
 }
 
 XAP_Dialog * AP_UnixPreview_Annotation::static_constructor(XAP_DialogFactory * pFactory, XAP_Dialog_Id id)
@@ -85,16 +88,23 @@ void  AP_UnixPreview_Annotation::_constructWindow(void)
 {
 	XAP_App::getApp()->rememberModelessId(getDialogId(), static_cast<XAP_Dialog_Modeless *>(this));
 	UT_DEBUGMSG(("Contructing Window width %d height %d left %d top %d \n",m_width,m_height,m_left,m_top));
-	m_pPreviewWindow = gtk_window_new(GTK_WINDOW_POPUP);
+	m_pPreviewWindow = gtk_popover_new();
 	gtk_widget_set_size_request(m_pPreviewWindow, m_width, m_height);
-	gint root_x,root_y;
-	gtk_window_get_position (GTK_WINDOW(m_pPreviewWindow),&root_x,&root_y);
 	m_pDrawingArea = gtk_drawing_area_new();
 	gtk_widget_show(GTK_WIDGET(m_pDrawingArea));
-	gtk_container_add(GTK_CONTAINER(m_pPreviewWindow), m_pDrawingArea);
-	root_y -= (m_height/2 + m_Offset);
-	gtk_window_move(GTK_WINDOW(m_pPreviewWindow), root_x, root_y);
-	gtk_widget_show_all(GTK_WIDGET(m_pPreviewWindow));
+	gtk_popover_set_child(GTK_POPOVER(m_pPreviewWindow), m_pDrawingArea);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_pDrawingArea),
+								   s_preview_draw, this, nullptr);
+
+	GtkWidget *parent = getActiveFrame() && getActiveFrame()->getFrameImpl()
+		? static_cast<XAP_UnixFrameImpl*>(getActiveFrame()->getFrameImpl())->getViewWidget()
+		: nullptr;
+	if (parent) {
+		gtk_widget_set_parent(m_pPreviewWindow, parent);
+		GdkRectangle rect = { m_left, m_top - (m_height/2 + m_Offset), 1, 1 };
+		gtk_popover_set_pointing_to(GTK_POPOVER(m_pPreviewWindow), &rect);
+		gtk_popover_popup(GTK_POPOVER(m_pPreviewWindow));
+	}
 }
 
 void  AP_UnixPreview_Annotation::destroy(void)
@@ -105,7 +115,7 @@ void  AP_UnixPreview_Annotation::destroy(void)
 		return;
 	
 	DELETEP(m_gc);
-	gtk_widget_destroy(m_pPreviewWindow); // TOPLEVEL
+	abiDestroyWidget(m_pPreviewWindow); // TOPLEVEL
 	m_pPreviewWindow = nullptr;
 	m_pDrawingArea = nullptr;
 }

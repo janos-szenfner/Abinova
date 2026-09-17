@@ -70,7 +70,7 @@ public:
 
 	static const char *    graphicsDescriptor(){return "Unix Cairo Pango";}
 	static GR_Graphics *   graphicsAllocator(GR_AllocInfo&);
-	GdkWindow *  getWindow () {return m_pWin;}
+	GdkSurface *  getWindow () {return const_cast<GR_UnixCairoGraphics*>(this)->_getWindow();}
 
 	virtual GR_Font * getGUIFont(void) override;
 
@@ -98,24 +98,21 @@ public:
 protected:
 	void _initWidget();
 	virtual void		_resetClip(void) override;
-	static void		widget_size_allocate (GtkWidget        *widget,
-									  GtkAllocation    *allocation,
-									  GR_UnixCairoGraphics *me);
-	static void		widget_destroy (GtkWidget        *widget,
-									  GR_UnixCairoGraphics *me);
+	static void		widget_resize (GtkDrawingArea   *area,
+								   int               width,
+								   int               height,
+								   GR_UnixCairoGraphics *me);
 	GR_UnixCairoGraphics(GtkWidget* win = nullptr);
-	virtual GdkWindow * _getWindow(void)
-	{  return m_pWin;}
+	virtual GdkSurface * _getWindow(void) const;
 
 	virtual void _beginPaint() override;
 	virtual void _endPaint() override;
 
 private:
-	GdkWindow *m_pWin;
-	GdkDrawingContext* m_context;
+	cairo_surface_t* m_dummySurface;
 	bool m_CairoCreated;
 	bool m_Painting;
-	gulong m_Signal, m_DestroySignal;
+	gulong m_Signal;
 	GtkWidget *m_Widget;
 	GtkStyleContext* m_styleBg;
 	GtkStyleContext* m_styleHighlight;

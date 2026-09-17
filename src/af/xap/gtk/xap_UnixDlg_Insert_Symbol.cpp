@@ -187,7 +187,7 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 	const char* iSelectedFont = iDrawSymbol->getSelectedFont();
 	s_Prev_Font = iSelectedFont;
 	UT_DEBUGMSG(("Selected Font at startup %s \n",iSelectedFont));
-	XAP_gtk_entry_set_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_fontcombo))),
+	XAP_gtk_entry_set_text(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))),
 					   iSelectedFont);
 
 	// Show the Previously selected symbol
@@ -217,13 +217,13 @@ void XAP_UnixDialog_Insert_Symbol::event_WindowDelete(void)
     m_InsertS_Font_list.clear();
 	
 	modeless_cleanup();
-	gtk_widget_destroy(m_windowMain); // TOPLEVEL
+	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
 }
 
 void XAP_UnixDialog_Insert_Symbol::New_Font(void )
 {
-	const gchar * buffer = XAP_gtk_entry_get_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_fontcombo))));
+	const gchar * buffer = XAP_gtk_entry_get_text(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))));
 
 	XAP_Draw_Symbol * iDrawSymbol = _getCurrentSymbolMap();
 	UT_return_if_fail(iDrawSymbol);
@@ -295,10 +295,11 @@ static void s_dlg_response ( GtkWidget * widget, gint id,
 	  }
 }
 
-static void s_destroy_clicked(GtkWidget * /* widget */,
+static gboolean s_destroy_clicked(GtkWindow * /* widget */,
 			      XAP_UnixDialog_Insert_Symbol * dlg)
 {
 	dlg->event_WindowDelete();
+	return TRUE;
 }
 
 static void s_new_font(GtkWidget * /*widget*/, XAP_UnixDialog_Insert_Symbol * dlg)
@@ -311,47 +312,58 @@ static void s_new_row(GtkWidget * /*widget*/, XAP_UnixDialog_Insert_Symbol * dlg
 	dlg->New_Row();
 }
 
-static void  s_scroll_event(GtkWidget * /*widget*/, GdkEventScroll * event, XAP_UnixDialog_Insert_Symbol * dlg)
+static gboolean s_scroll_event(GtkEventControllerScroll * /*controller*/,
+							   gdouble /*dx*/, gdouble dy,
+							   XAP_UnixDialog_Insert_Symbol * dlg)
 {
-	GdkScrollDirection ev_direction = (GdkScrollDirection)0;
-	gdk_event_get_scroll_direction((GdkEvent*)event, &ev_direction);
-	dlg->Scroll_Event (static_cast<int>(ev_direction));
+	dlg->Scroll_Event (dy > 0 ? 1 : 0);
+	return TRUE;
 }
 
-static gboolean s_sym_SymbolMap_draw(GtkWidget * /*widget*/, cairo_t * /*cr*/, XAP_UnixDialog_Insert_Symbol * dlg)
+static void s_sym_SymbolMap_draw(GtkDrawingArea * /*area*/, cairo_t * /*cr*/,
+								 int /*width*/, int /*height*/,
+								 gpointer data)
 {
+	XAP_UnixDialog_Insert_Symbol * dlg = static_cast<XAP_UnixDialog_Insert_Symbol *>(data);
 	dlg->SymbolMap_exposed();
-	return FALSE;
 }
 
-static gboolean s_size_request(GtkWidget *, GtkAllocation* req, XAP_UnixDialog_Insert_Symbol * dlg)
+static void s_size_allocate(GtkDrawingArea * /*area*/, int width, int height,
+							gpointer data)
 {
-	dlg->setSymbolMap_size (req->width, req->height);
-	return FALSE;
+	XAP_UnixDialog_Insert_Symbol * dlg = static_cast<XAP_UnixDialog_Insert_Symbol *>(data);
+	dlg->setSymbolMap_size (static_cast<UT_uint32>(width), static_cast<UT_uint32>(height));
 }
 
 
-static gboolean s_Symbolarea_draw(GtkWidget * , cairo_t * , XAP_UnixDialog_Insert_Symbol * dlg)
+static void s_Symbolarea_draw(GtkDrawingArea * /*area*/, cairo_t * /*cr*/,
+							  int /*width*/, int /*height*/,
+							  gpointer data)
 {
+	XAP_UnixDialog_Insert_Symbol * dlg = static_cast<XAP_UnixDialog_Insert_Symbol *>(data);
 	dlg->Symbolarea_exposed();
-	return FALSE;
 }
 
-static gboolean  s_SymbolMap_clicked(GtkWidget *, GdkEvent * e, XAP_UnixDialog_Insert_Symbol * dlg)
+static void  s_SymbolMap_clicked(GtkGestureClick * /*gesture*/, gint n_press,
+								 gdouble x, gdouble y,
+								 XAP_UnixDialog_Insert_Symbol * dlg)
 {
-	dlg->SymbolMap_clicked( e );
-	return FALSE; 
+	dlg->SymbolMap_clicked( n_press, x, y );
 }
 
-static gboolean  s_CurrentSymbol_clicked(GtkWidget *, GdkEvent * e, XAP_UnixDialog_Insert_Symbol * dlg)
+static void  s_CurrentSymbol_clicked(GtkGestureClick * /*gesture*/, gint /*n_press*/,
+									 gdouble /*x*/, gdouble /*y*/,
+									 XAP_UnixDialog_Insert_Symbol * dlg)
 {
-	dlg->CurrentSymbol_clicked( e );
-	return FALSE; 
+	dlg->CurrentSymbol_clicked();
 }
 
-static gboolean s_keypressed(GtkWidget *, GdkEventKey * e,  XAP_UnixDialog_Insert_Symbol * dlg)
+static gboolean s_keypressed(GtkEventControllerKey * /*controller*/,
+							 guint keyval, guint /*keycode*/,
+							 GdkModifierType /*state*/,
+							 XAP_UnixDialog_Insert_Symbol * dlg)
 {
-	return dlg->Key_Pressed( e );
+	return dlg->Key_Pressed( keyval );
 }
 
 /*****************************************************************/
@@ -388,27 +400,8 @@ void XAP_UnixDialog_Insert_Symbol::setSymbolMap_size(UT_uint32 width, UT_uint32 
 	UT_return_if_fail(m_windowMain);
 	UT_return_if_fail(m_SymbolMap);
 
-	
-	static UT_uint32 diff_width = 0; 
-	static UT_uint32 diff_height = 0;
-
-
-	// only in the beginnig we can measure the difference
-	// between window and drawingarea this show stay constant
-	GtkRequisition diff;
-	GtkAllocation alloc;
-	gtk_widget_get_preferred_size (m_windowMain, &diff, nullptr);
-	gtk_widget_get_allocation (m_SymbolMap, &alloc);
-	if (!diff_width || !diff_height)
-	{
-		diff_width = diff.width - alloc.width;
-		diff_height = diff.height - alloc.height;
-	}
-	diff.width = width - diff_width;
-	diff.height = height - diff_height;
-
-    // set new sizes
-    iDrawSymbol->setWindowSize(diff.width, diff.height);
+    // set new sizes; width/height are the symbol map's own allocation
+    iDrawSymbol->setWindowSize(width, height);
 	iDrawSymbol->setFontString ();
 }
 
@@ -417,14 +410,12 @@ void XAP_UnixDialog_Insert_Symbol::setSymbolMap_size(UT_uint32 width, UT_uint32 
 // This function allows the symbol to be selected via the keyboard
 //
 
-gboolean XAP_UnixDialog_Insert_Symbol::Key_Pressed(GdkEventKey * e)
+gboolean XAP_UnixDialog_Insert_Symbol::Key_Pressed(guint ev_keyval)
 {
 	int move = 0;
 	UT_uint32 ix = m_ix;
 	UT_uint32 iy = m_iy;
 	UT_DEBUGMSG(("Current Symbol %x \n",m_CurrentSymbol));
-	guint ev_keyval = 0;
-	gdk_event_get_keyval((GdkEvent*)e, &ev_keyval);
 	switch (ev_keyval)
 	{
 	case GDK_KEY_Up:
@@ -486,9 +477,6 @@ gboolean XAP_UnixDialog_Insert_Symbol::Key_Pressed(GdkEventKey * e)
 		move = 1;
 		break;
 	case GDK_KEY_Return:
-		g_signal_stop_emission (G_OBJECT(m_windowMain), 
-			g_signal_lookup ("key_press_event", 
-			G_OBJECT_TYPE (m_windowMain)), 0);
 		event_Insert();
 		return TRUE ;
 		break;
@@ -507,21 +495,14 @@ gboolean XAP_UnixDialog_Insert_Symbol::Key_Pressed(GdkEventKey * e)
 		  m_iy = iy;
 		}
 		iDrawSymbol->drawarea(m_CurrentSymbol, m_PreviousSymbol);
-
-		g_signal_stop_emission (G_OBJECT(m_windowMain), 
-								g_signal_lookup ("key_press_event", 
-												 G_OBJECT_TYPE (m_windowMain)), 0);
+		return TRUE;
 	}
 
 	return FALSE ;
 }
 
-void XAP_UnixDialog_Insert_Symbol::SymbolMap_clicked( GdkEvent * event)
+void XAP_UnixDialog_Insert_Symbol::SymbolMap_clicked(gint n_press, gdouble x, gdouble y)
 {
-	gdouble x, y;
-	x = y = 0;
-	gdk_event_get_coords(event, &x, &y);
-
 	XAP_Draw_Symbol * iDrawSymbol = _getCurrentSymbolMap();
 	UT_return_if_fail(iDrawSymbol);
 	UT_UCS4Char c = iDrawSymbol->calcSymbol(x, y);
@@ -533,7 +514,7 @@ void XAP_UnixDialog_Insert_Symbol::SymbolMap_clicked( GdkEvent * event)
 		iDrawSymbol->drawarea(m_CurrentSymbol, m_PreviousSymbol);
 
 		// double click should also insert the symbol
-		if (gdk_event_get_event_type(event) == GDK_DOUBLE_BUTTON_PRESS)
+		if (n_press == 2)
 			event_Insert();
 	}
 }
@@ -543,24 +524,13 @@ GtkWidget *XAP_UnixDialog_Insert_Symbol::_previewNew (int w, int h)
 	GtkWidget *pre = gtk_drawing_area_new();
 	gtk_widget_show (pre);
 	gtk_widget_set_size_request (pre, w, h);
-
-	// Enable button press events
-	gtk_widget_add_events(pre, GDK_BUTTON_PRESS_MASK);
-	gtk_widget_add_events(pre, GDK_BUTTON_RELEASE_MASK);
-	gtk_widget_add_events(pre, GDK_KEY_PRESS_MASK);
-	gtk_widget_add_events(pre, GDK_KEY_RELEASE_MASK);
-	gtk_widget_add_events(pre, GDK_EXPOSURE_MASK);
-	gtk_widget_add_events(pre, GDK_ENTER_NOTIFY_MASK);
-	gtk_widget_add_events(pre, GDK_LEAVE_NOTIFY_MASK);
-	gtk_widget_add_events(pre, GDK_SCROLL_MASK);
 	return pre;
 }
 
-void XAP_UnixDialog_Insert_Symbol::CurrentSymbol_clicked(GdkEvent *event)
+void XAP_UnixDialog_Insert_Symbol::CurrentSymbol_clicked(void)
 {
 	// have single-click insert the symbol
-	if (gdk_event_get_event_type((GdkEvent*)event), GDK_BUTTON_PRESS)
-	    event_Insert();
+	event_Insert();
 }
 
 void XAP_UnixDialog_Insert_Symbol::destroy(void)
@@ -570,7 +540,7 @@ void XAP_UnixDialog_Insert_Symbol::destroy(void)
 	modeless_cleanup();
 	
 	// Just nuke this dialog
-	gtk_widget_destroy(m_windowMain); // TOPLEVEL
+	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
 }
 
@@ -584,8 +554,6 @@ GtkWidget * XAP_UnixDialog_Insert_Symbol::_constructWindow(void)
 	ConstructWindowName();
 
 	m_windowMain = abiDialogNew ("insert symbol dialog", TRUE, m_WindowName);
-	gtk_window_set_position(GTK_WINDOW(m_windowMain), GTK_WIN_POS_MOUSE);
-
 	// Now put in a Vbox to hold our 3 widgets (Font Selector, Symbol Table
 	// and OK -Selected Symbol- Cancel
 	tmp = gtk_dialog_get_content_area(GTK_DIALOG(m_windowMain));
@@ -594,37 +562,45 @@ GtkWidget * XAP_UnixDialog_Insert_Symbol::_constructWindow(void)
 	GtkWidget * vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	GtkWidget * hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_widget_show (hbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox1, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(tmp), hbox, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hbox), vbox1);
+	gtk_box_append(GTK_BOX(hbox), vbox2);
+			gtk_widget_set_hexpand(vbox2, TRUE);
+			gtk_widget_set_vexpand(vbox2, TRUE);
+	gtk_box_append(GTK_BOX(tmp), hbox);
 
 	// Finally construct the combo box
 	m_fontcombo = _createComboboxWithFonts ();
 
 	// Now put the font combo box at the top of the dialog 
-	gtk_box_pack_start(GTK_BOX(vbox1), m_fontcombo, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(vbox1), m_fontcombo);
 
 	// Now the Symbol Map. 
 	// TODO: 32 * x (19) = 608, 7 * y (21) = 147  FIXME!
 	//
 	GtkWidget * hbox1 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_widget_show (hbox1);
-	gtk_box_pack_start(GTK_BOX(tmp), hbox1, TRUE, TRUE, 4);
+	gtk_box_append(GTK_BOX(tmp), hbox1);
+			gtk_widget_set_hexpand(hbox1, TRUE);
+			gtk_widget_set_vexpand(hbox1, TRUE);
 
 
 		
 	m_SymbolMap = _previewNew (608, 147);
-	gtk_box_pack_start (GTK_BOX (hbox1), m_SymbolMap, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(hbox1), m_SymbolMap);
+			gtk_widget_set_hexpand(m_SymbolMap, TRUE);
+			gtk_widget_set_vexpand(m_SymbolMap, TRUE);
 
 	m_vadjust = GTK_ADJUSTMENT (gtk_adjustment_new (0, 0, 7, 0, 0, 7));
 	GtkWidget *vscroll = gtk_scrollbar_new (GTK_ORIENTATION_VERTICAL, m_vadjust);
 	gtk_widget_show (vscroll);
-	gtk_box_pack_start (GTK_BOX (hbox1), vscroll, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hbox1), vscroll);
 
 	m_areaCurrentSym = _previewNew (60, 45);
-	gtk_box_pack_start(GTK_BOX(vbox2), m_areaCurrentSym, TRUE, FALSE, 0);
+	gtk_box_append(GTK_BOX(vbox2), m_areaCurrentSym);
+			gtk_widget_set_hexpand(m_areaCurrentSym, TRUE);
+			gtk_widget_set_vexpand(m_areaCurrentSym, TRUE);
 
-	gtk_widget_show_all (hbox);
+	gtk_widget_set_visible(hbox, TRUE);
 
 	std::string s;
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_Close, s);
@@ -693,7 +669,7 @@ GtkWidget *XAP_UnixDialog_Insert_Symbol::_createComboboxWithFonts (void)
 	}
 
 	// Turn off keyboard entry in the font selection box
-	gtk_editable_set_editable(GTK_EDITABLE(gtk_bin_get_child(GTK_BIN(fontcombo))), FALSE);
+	gtk_editable_set_editable(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(fontcombo))), FALSE);
 
 	return fontcombo;
 }
@@ -709,7 +685,7 @@ void XAP_UnixDialog_Insert_Symbol::_connectSignals (void)
 
 	// Look for "changed" signal on the entry part of the combo box.
 	// Code stolen from ev_UnixGnomeToolbar.cpp
-	GtkEntry * blah = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_fontcombo)));
+	GtkEntry * blah = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo)));
 	g_signal_connect(G_OBJECT(blah),
 					 "changed",
 					 G_CALLBACK(s_new_font),
@@ -718,43 +694,50 @@ void XAP_UnixDialog_Insert_Symbol::_connectSignals (void)
 	// the catch-alls
 	// Dont use gtk_signal_connect_after for modeless dialogs
 	g_signal_connect(G_OBJECT(m_windowMain),
-			   "destroy",
+			   "close-request",
 			   G_CALLBACK(s_destroy_clicked),
 			   static_cast<gpointer>(this));
 
 	// The event to choose the Symbol!
-	g_signal_connect(G_OBJECT(m_SymbolMap),
-					 "button_press_event",
+	GtkGesture *clickmap = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(clickmap), 0);
+	g_signal_connect(G_OBJECT(clickmap),
+					 "pressed",
 					 G_CALLBACK(s_SymbolMap_clicked),
 					 static_cast<gpointer>(this));
+	gtk_widget_add_controller(m_SymbolMap, GTK_EVENT_CONTROLLER(clickmap));
 
 	// The event to choose the Symbol!
-	g_signal_connect(G_OBJECT(m_areaCurrentSym),
-					 "button_press_event",
+	GtkGesture *clickcur = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(clickcur), 0);
+	g_signal_connect(G_OBJECT(clickcur),
+					 "pressed",
 					 G_CALLBACK(s_CurrentSymbol_clicked),
 					 static_cast<gpointer>(this));
+	gtk_widget_add_controller(m_areaCurrentSym, GTK_EVENT_CONTROLLER(clickcur));
 
 	// Look for keys pressed
-	g_signal_connect(G_OBJECT(m_windowMain),
-					 "key_press_event",
+	GtkEventController *keyctrl = gtk_event_controller_key_new();
+	g_signal_connect(G_OBJECT(keyctrl),
+					 "key-pressed",
 					 G_CALLBACK(s_keypressed),
 					 static_cast<gpointer>(this));
+	gtk_widget_add_controller(m_windowMain, keyctrl);
 
-	g_signal_connect(G_OBJECT(m_windowMain),
-					 "size-allocate",
-					 G_CALLBACK(s_size_request),
-					 static_cast<gpointer>(this));
-	
-	// the expose event of the m_SymbolMap
+	// track resizes of the symbol map drawing area
 	g_signal_connect(G_OBJECT(m_SymbolMap),
-					 "draw",
-					 G_CALLBACK(s_sym_SymbolMap_draw),
+					 "resize",
+					 G_CALLBACK(s_size_allocate),
 					 static_cast<gpointer>(this));
 
-	g_signal_connect(G_OBJECT(m_areaCurrentSym),
-					 "draw",
-					   G_CALLBACK(s_Symbolarea_draw),
-					   static_cast<gpointer>(this));
+	// the expose event of the m_SymbolMap
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_SymbolMap),
+								   s_sym_SymbolMap_draw,
+								   static_cast<gpointer>(this), nullptr);
+
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_areaCurrentSym),
+								   s_Symbolarea_draw,
+								   static_cast<gpointer>(this), nullptr);
         // VScrollbar events
 	g_signal_connect(G_OBJECT(m_vadjust),
 	                                 "value-changed",
@@ -762,10 +745,12 @@ void XAP_UnixDialog_Insert_Symbol::_connectSignals (void)
 		                         static_cast<gpointer>(this));
         
 	// Mouse wheel events
-	g_signal_connect(G_OBJECT(m_SymbolMap),
-	                                 "scroll_event",
+	GtkEventController *scrollctrl = gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_VERTICAL);
+	g_signal_connect(G_OBJECT(scrollctrl),
+					 "scroll",
 					 G_CALLBACK(s_scroll_event),
-		                         static_cast<gpointer>(this));
+					 static_cast<gpointer>(this));
+	gtk_widget_add_controller(m_SymbolMap, scrollctrl);
 
 }
 

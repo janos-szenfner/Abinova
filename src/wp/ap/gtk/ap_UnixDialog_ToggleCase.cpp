@@ -90,7 +90,7 @@ GtkWidget * AP_UnixDialog_ToggleCase::_constructWindow (void)
   GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
   gtk_widget_show(vbox);
   XAP_gtk_widget_set_margin(vbox, 12);
-  gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(windowMain))), vbox);
+  xap_gtk_container_add (gtk_dialog_get_content_area(GTK_DIALOG(windowMain)), vbox);
   _constructWindowContents(vbox);
 
   pSS->getValueUTF8(XAP_STRING_ID_DLG_Cancel, s);
@@ -103,7 +103,7 @@ GtkWidget * AP_UnixDialog_ToggleCase::_constructWindow (void)
 
 void AP_UnixDialog_ToggleCase::_constructWindowContents (GtkWidget *vbox1)
 {
-  GSList *vbox1_group = nullptr;
+  GtkWidget * vbox1_group = nullptr;
   GtkWidget *sentenceCase;
   GtkWidget *lowerCase;
   GtkWidget *upperCase;
@@ -113,34 +113,34 @@ void AP_UnixDialog_ToggleCase::_constructWindowContents (GtkWidget *vbox1)
   const XAP_StringSet * pSS = m_pApp->getStringSet();
   std::string s;
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_SentenceCase,s);
-  sentenceCase = gtk_radio_button_new_with_label (vbox1_group,s.c_str());
-  vbox1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (sentenceCase));
+  sentenceCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
+  vbox1_group = sentenceCase;
   gtk_widget_show (sentenceCase);
-  gtk_box_pack_start (GTK_BOX (vbox1), sentenceCase, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbox1), sentenceCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_LowerCase,s);
-  lowerCase = gtk_radio_button_new_with_label (vbox1_group,s.c_str());
-  vbox1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (lowerCase));
+  lowerCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
+  vbox1_group = lowerCase;
   gtk_widget_show (lowerCase);
-  gtk_box_pack_start (GTK_BOX (vbox1), lowerCase, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbox1), lowerCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_UpperCase,s);
-  upperCase = gtk_radio_button_new_with_label (vbox1_group,s.c_str());
-  vbox1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (upperCase));
+  upperCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
+  vbox1_group = upperCase;
   gtk_widget_show (upperCase);
-  gtk_box_pack_start (GTK_BOX (vbox1), upperCase, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbox1), upperCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_FirstUpperCase,s);
-  firstUpperCase = gtk_radio_button_new_with_label (vbox1_group,s.c_str());
-  vbox1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (firstUpperCase));
+  firstUpperCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
+  vbox1_group = firstUpperCase;
   gtk_widget_show (firstUpperCase);
-  gtk_box_pack_start (GTK_BOX (vbox1), firstUpperCase, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbox1), firstUpperCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_ToggleCase,s);
-  toggleCase = gtk_radio_button_new_with_label (vbox1_group,s.c_str());
-  vbox1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (toggleCase));
+  toggleCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
+  vbox1_group = toggleCase;
   gtk_widget_show (toggleCase);
-  gtk_box_pack_start (GTK_BOX (vbox1), toggleCase, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbox1), toggleCase);
 
   g_object_set_data (G_OBJECT(sentenceCase), "user_data", GINT_TO_POINTER(CASE_SENTENCE));
   g_object_set_data (G_OBJECT(lowerCase), "user_data", GINT_TO_POINTER(CASE_LOWER));

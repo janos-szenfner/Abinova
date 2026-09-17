@@ -386,7 +386,7 @@ AP_UnixDialog_RDFQuery::runModeless (XAP_Frame * pFrame)
 	UT_ASSERT (m_wDialog);
 	_updateWindow ();
 	abiSetupModelessDialog (GTK_DIALOG (m_wDialog), pFrame, this, GTK_RESPONSE_CLOSE);
-	gtk_widget_show_all (m_wDialog);
+	gtk_widget_set_visible(m_wDialog, TRUE);
 	gtk_window_present (GTK_WINDOW (m_wDialog));
 }
 
@@ -413,7 +413,7 @@ AP_UnixDialog_RDFQuery::destroy ()
 	UT_DEBUGMSG (("MIQ: AP_UnixDialog_RDFQuery::destroy ()\n"));
 	modeless_cleanup ();
 	if (m_wDialog) {
-		gtk_widget_destroy(m_wDialog); // TOPLEVEL
+		abiDestroyWidget(m_wDialog); // TOPLEVEL
 		m_wDialog = nullptr;
 	}
 }

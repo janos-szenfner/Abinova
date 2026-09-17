@@ -126,15 +126,14 @@ void AP_UnixFrameImpl::_showOrHideStatusbar()
 }
 
 
-gboolean AP_UnixFrameImpl::ap_focus_in_event (GtkWidget * drawing_area, GdkEventCrossing * /*event*/, AP_UnixFrameImpl * /*me*/)
+void AP_UnixFrameImpl::ap_focus_in_event (GtkEventControllerMotion * /*c*/, gdouble /*x*/,
+										  gdouble /*y*/, GtkWidget * drawing_area)
 {
   gtk_widget_grab_focus (drawing_area);
-  return TRUE;
 }
 
-gboolean AP_UnixFrameImpl::ap_focus_out_event (GtkWidget * /*drawing_area*/, GdkEventCrossing * /*event*/, AP_UnixFrameImpl * /*me*/)
+void AP_UnixFrameImpl::ap_focus_out_event (GtkEventControllerMotion * /*c*/, GtkWidget * /*drawing_area*/)
 {
-  return TRUE;
 }
 
 GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
@@ -199,61 +198,68 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 
 	// create a drawing area in the for our document window.
 	m_dArea = ap_DocView_new();
-	g_object_set(G_OBJECT(m_dArea), "expand", TRUE, nullptr);
+	gtk_widget_set_hexpand(m_dArea, TRUE);
+	gtk_widget_set_vexpand(m_dArea, TRUE);
 	g_object_set_data(G_OBJECT(m_dArea), "user_data", this);
 	UT_DEBUGMSG(("!!! drawing area m_dArea created! %p for %p \n",m_dArea,this));
 	gtk_widget_set_can_focus(m_dArea, true);	// allow it to be focussed
 
-	gtk_widget_set_events(GTK_WIDGET(m_dArea), (GDK_EXPOSURE_MASK |
-						    GDK_BUTTON_PRESS_MASK |
-						    GDK_POINTER_MOTION_MASK |
-						    GDK_BUTTON_RELEASE_MASK |
-						    GDK_KEY_PRESS_MASK |
-						    GDK_KEY_RELEASE_MASK |
-						    GDK_ENTER_NOTIFY_MASK |
-						    GDK_FOCUS_CHANGE_MASK |
-						    GDK_LEAVE_NOTIFY_MASK |
-						    GDK_SCROLL_MASK |
-						    GDK_SMOOTH_SCROLL_MASK));
-	g_signal_connect(G_OBJECT(m_dArea), "draw",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::draw), nullptr);
+	// GTK4: all input goes through event controllers attached to the
+	// drawing area; the widget pointer is passed as user_data so the
+	// handlers can recover the XAP_UnixFrameImpl via "user_data".
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_dArea),
+								   XAP_UnixFrameImpl::_fe::draw,
+								   m_dArea, nullptr);
 
-	g_signal_connect(G_OBJECT(m_dArea), "key_press_event",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::key_press_event), nullptr);
+	GtkEventController * keyController = gtk_event_controller_key_new();
+	g_signal_connect(keyController, "key-pressed",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::key_press_event), m_dArea);
+	g_signal_connect(keyController, "key-released",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::key_release_event), m_dArea);
+	gtk_widget_add_controller(m_dArea, keyController);
 
-	g_signal_connect(G_OBJECT(m_dArea), "key_release_event",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::key_release_event), nullptr);
+	GtkGesture * clickGesture = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(clickGesture), 0);
+	g_signal_connect(clickGesture, "pressed",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::button_press_event), m_dArea);
+	g_signal_connect(clickGesture, "released",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::button_release_event), m_dArea);
+	gtk_widget_add_controller(m_dArea, GTK_EVENT_CONTROLLER(clickGesture));
 
-	g_signal_connect(G_OBJECT(m_dArea), "button_press_event",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::button_press_event), nullptr);
+	GtkEventController * motionController = gtk_event_controller_motion_new();
+	g_signal_connect(motionController, "motion",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::motion_notify_event), m_dArea);
+	// focus and XIM related (was enter/leave_notify_event)
+	g_signal_connect(motionController, "enter", G_CALLBACK(ap_focus_in_event), m_dArea);
+	g_signal_connect(motionController, "leave", G_CALLBACK(ap_focus_out_event), m_dArea);
+	gtk_widget_add_controller(m_dArea, motionController);
 
-	g_signal_connect(G_OBJECT(m_dArea), "button_release_event",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::button_release_event), nullptr);
+	GtkEventController * scrollController =
+		gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES);
+	g_signal_connect(scrollController, "scroll",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::scroll_notify_event), m_dArea);
+	gtk_widget_add_controller(m_dArea, scrollController);
 
-	g_signal_connect(G_OBJECT(m_dArea), "motion_notify_event",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::motion_notify_event), nullptr);
-
-	g_signal_connect(G_OBJECT(m_dArea), "scroll_event",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::scroll_notify_event), nullptr);
-
-	g_signal_connect(G_OBJECT(m_dArea), "configure_event",
-					   G_CALLBACK(XAP_UnixFrameImpl::_fe::configure_event), nullptr);
-
-	// focus and XIM related
-	g_signal_connect(G_OBJECT(m_dArea), "enter_notify_event", G_CALLBACK(ap_focus_in_event), this);
-	g_signal_connect(G_OBJECT(m_dArea), "leave_notify_event", G_CALLBACK(ap_focus_out_event), this);
+	// was configure_event
+	g_signal_connect(m_dArea, "resize",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::resize_event), m_dArea);
 
 	//
 	// Need this to fix screen flicker for abiwidget on focus in/out
 	//
-	g_signal_connect(G_OBJECT(m_dArea), "focus_in_event", G_CALLBACK(XAP_UnixFrameImpl::_fe::focus_in_event), this);
-	g_signal_connect(G_OBJECT(m_dArea), "focus_out_event", G_CALLBACK(XAP_UnixFrameImpl::_fe::focus_out_event), this);
+	GtkEventController * focusController = gtk_event_controller_focus_new();
+	g_signal_connect(focusController, "enter",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::focus_in_event), m_dArea);
+	g_signal_connect(focusController, "leave",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::focus_out_event), m_dArea);
+	gtk_widget_add_controller(m_dArea, focusController);
 
 
 	// create a table for scroll bars, rulers, and drawing area
 
 	m_grid = gtk_grid_new();
-	g_object_set(G_OBJECT(m_grid), "expand", TRUE, nullptr);
+	gtk_widget_set_hexpand(m_grid, TRUE);
+	gtk_widget_set_vexpand(m_grid, TRUE);
 	g_object_set_data(G_OBJECT(m_grid),"user_data", this);
 
 	// NOTE:  in order to display w/ and w/o rulers, gtk needs two tables to
@@ -275,7 +281,8 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 
 	// arrange the widgets within our inner table.
 	m_innergrid = gtk_grid_new();
-	g_object_set(G_OBJECT(m_innergrid), "expand", TRUE, nullptr);
+	gtk_widget_set_hexpand(m_innergrid, TRUE);
+	gtk_widget_set_vexpand(m_innergrid, TRUE);
 	gtk_grid_attach(GTK_GRID(m_grid), m_innergrid, 0, 0, 1, 1); 
 
 	if ( bShowRulers )
@@ -294,8 +301,7 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	// create a 3d box and put the table in it, so that we
 	// get a sunken in look.
 	m_wSunkenBox = gtk_frame_new(nullptr);
-	gtk_frame_set_shadow_type(GTK_FRAME(m_wSunkenBox), GTK_SHADOW_IN);
-	gtk_container_add(GTK_CONTAINER(m_wSunkenBox), m_grid);
+	gtk_frame_set_child(GTK_FRAME(m_wSunkenBox), m_grid);
 
 	// (scrollbars are shown, only if needed, by _setScrollRange)
 	gtk_widget_show(m_dArea);
@@ -316,69 +322,16 @@ void AP_UnixFrameImpl::_hideMenuScroll(bool bHideMenuScroll)
   }
   else
   {
-    gtk_widget_show_all(m_pUnixMenu->getMenuBar());
-    gtk_widget_show_all(m_vScroll);
+    gtk_widget_set_visible(m_pUnixMenu->getMenuBar(), TRUE);
+    gtk_widget_set_visible(m_vScroll, TRUE);
   }
 }
 void AP_UnixFrameImpl::_setWindowIcon()
 {
 	// attach program icon to window
 	GtkWidget * window = getTopLevelWindow();
-	GdkPixbuf* icon = nullptr;
-
-#if 0 // we don't need to use the theme.
-	GtkIconTheme * theme = gtk_icon_theme_get_default();
-	icon = gtk_icon_theme_load_icon(theme, "abiword", 48, GTK_ICON_LOOKUP_USE_BUILTIN, nullptr);
-	if (icon)
-	{
-		gtk_window_set_icon (GTK_WINDOW (window), icon);
-		g_object_unref (G_OBJECT(icon));
-		return;
-	}
-#endif
-	// Hmm, we can't load the icon from the theme. This happens when we are
-	// are installed in a custom prefix, so let's try to load the icon manually.
-	GError* error = nullptr;
-	static const char* s_icon_sizes[] = {
-		"16x16",
-		"22x22",
-		"32x32",
-		"48x48",
-		"256x256",
-		"512x512",
-		nullptr
-	};
-
-	const char** currentSize = s_icon_sizes;
-	GList* iconList = nullptr;
-	while(*currentSize)
-	{
-		std::string icon_path =
-			UT_std_string_sprintf("/com/abisource/AbiWord/%s/apps/abiword.png",
-								  *currentSize);
-		icon = gdk_pixbuf_new_from_resource(icon_path.c_str(), &error);
-		if (icon)
-		{
-			iconList = g_list_append(iconList, icon);
-		}
-		if (error)
-		{
-			g_warning("Unable to load AbiWord icon %s: %s\n",
-				  icon_path.c_str(),
-				  error ? error->message : "(null)");
-			if (error)
-			{
-				g_error_free(error);
-				error = nullptr;
-			}
-		}
-		currentSize++;
-	}
-	if (iconList)
-	{
-		gtk_window_set_icon_list(GTK_WINDOW(window), iconList);
-		g_list_free_full(iconList, &g_object_unref);
-	}
+	// GTK4 only supports themed icon names on windows
+	gtk_window_set_icon_name(GTK_WINDOW(window), "abiword");
 }
 
 void AP_UnixFrameImpl::_createWindow()

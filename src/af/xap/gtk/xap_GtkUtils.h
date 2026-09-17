@@ -21,7 +21,18 @@
 #include <gtk/gtk.h>
 
 #define XAP_HAS_NATIVE_WINDOW(w) \
-  (gtk_widget_get_window(w) != nullptr)
+  (gtk_widget_get_native(w) != nullptr && \
+   gtk_native_get_surface(gtk_widget_get_native(w)) != nullptr)
+
+/// GTK4: GtkFileChooser only returns GFile; convenience wrappers
+/// returning a newly-allocated path / uri (or nullptr).
+gchar* xap_gtk_file_chooser_get_filename(GtkFileChooser* chooser);
+gchar* xap_gtk_file_chooser_get_uri(GtkFileChooser* chooser);
+
+/// GTK4 dropped the generic GtkContainer API; these dispatch to the
+/// container-type-specific child setter.
+void xap_gtk_container_add(GtkWidget* container, GtkWidget* child);
+void xap_gtk_container_remove(GtkWidget* container, GtkWidget* child);
 
 /// Convenience to raise the widget window.
 void XAP_gtk_window_raise(GtkWidget*);

@@ -106,12 +106,12 @@ class ABI_EXPORT AP_RDFSemanticItemGTKInjected : public ParentClass
         // reparent widget. Make sure to hold a temp reference on the widget.
         g_object_ref(w);
         GtkWidget* container = gtk_widget_get_parent(w);
-        gtk_container_remove(GTK_CONTAINER(container), w);
-        gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area( GTK_DIALOG (d))), w);
+        xap_gtk_container_remove (container, w);
+        xap_gtk_container_add (gtk_dialog_get_content_area( GTK_DIALOG (d)), w);
         g_object_unref(w);
 
         g_signal_connect (G_OBJECT(d), "response",  G_CALLBACK(OnSemItemEdited), c.get() );
-        gtk_widget_show_all (d);
+        gtk_widget_set_visible(d, TRUE);
     }
 
     void showEditorWindow( PD_RDFSemanticItems cl )
@@ -128,7 +128,7 @@ class ABI_EXPORT AP_RDFSemanticItemGTKInjected : public ParentClass
                                                     GTK_RESPONSE_NONE,
                                                     nullptr);
         GtkNotebook* notebook = GTK_NOTEBOOK(gtk_notebook_new());
-        gtk_container_add( GTK_CONTAINER(gtk_dialog_get_content_area( GTK_DIALOG (d))),
+        xap_gtk_container_add (gtk_dialog_get_content_area( GTK_DIALOG (d)),
                            GTK_WIDGET(notebook) );
         for( PD_RDFSemanticItems::iterator ci = cl.begin(); ci != cl.end(); ++ci )
         {
@@ -148,8 +148,8 @@ class ABI_EXPORT AP_RDFSemanticItemGTKInjected : public ParentClass
             gtk_notebook_append_page( notebook, container, gtk_label_new( label.c_str() ));
             GtkWidget *oldContainer = gtk_widget_get_parent(w);
             g_object_ref(w);
-            gtk_container_remove(GTK_CONTAINER(oldContainer), w);
-            gtk_container_add(GTK_CONTAINER(container), w);
+            xap_gtk_container_remove (oldContainer, w);
+            xap_gtk_container_add (container, w);
             g_object_unref(w);
         }
         g_object_set_data_full( G_OBJECT(d),
@@ -157,7 +157,7 @@ class ABI_EXPORT AP_RDFSemanticItemGTKInjected : public ParentClass
                                 new ap_GObjectSemItem_List( cl ),
                                 GDestroyNotify_GObjectSemItem_List );
         g_signal_connect (G_OBJECT(d), "response",  G_CALLBACK(OnSemItemListEdited), 0 );
-        gtk_widget_show_all (d);
+        gtk_widget_set_visible(d, TRUE);
     }
 
     void importFromDataComplete( std::istream& /*iss*/,
@@ -169,7 +169,7 @@ class ABI_EXPORT AP_RDFSemanticItemGTKInjected : public ParentClass
         // then update the Rdf from that editor.
         GtkWidget* objectEditor = (GtkWidget*)this->createEditor();
         this->updateFromEditorData( m );
-        gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(objectEditor)), objectEditor);
+        xap_gtk_container_remove (gtk_widget_get_parent(objectEditor), objectEditor);
 
         if (pDocRange)
         {

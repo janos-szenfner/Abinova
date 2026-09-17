@@ -27,7 +27,8 @@
                 <property name="use-stock">1</property>
               </object>
               <packing>
-                <property name="expand">1</property>
+                <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
                 <property name="fill">0</property>
               </packing>
             </child>
@@ -104,7 +105,8 @@
                             </child>
                           </object>
                           <packing>
-                            <property name="expand">1</property>
+                            <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
                           </packing>
                         </child>
                         <child>
@@ -142,19 +144,22 @@
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">1</property>
+                    <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
               </object>
               <packing>
-                <property name="expand">1</property>
+                <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
                 <property name="position">1</property>
               </packing>
             </child>

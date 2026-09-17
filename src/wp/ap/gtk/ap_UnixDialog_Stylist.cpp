@@ -220,7 +220,7 @@ void AP_UnixDialog_Stylist::setStyleInGUI(void)
 void AP_UnixDialog_Stylist::destroy(void)
 {
 	finalize();
-	gtk_widget_destroy(m_windowMain); // TOPLEVEL
+	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
 	m_wRenderer = nullptr;
 	m_wStyleList = nullptr;
@@ -351,7 +351,7 @@ void  AP_UnixDialog_Stylist::_fillTree(void)
 	if (m_wRenderer)
 	{
 //		g_object_unref (G_OBJECT (m_wRenderer));
-		gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(m_wStyleList)), m_wStyleList);
+		xap_gtk_container_remove (gtk_widget_get_parent(m_wStyleList), m_wStyleList);
 		m_wStyleList = nullptr;
 	}
 
@@ -423,7 +423,7 @@ void  AP_UnixDialog_Stylist::_fillTree(void)
 												 m_wRenderer, "text", 0, nullptr);
 
 	gtk_tree_view_collapse_all (GTK_TREE_VIEW (m_wStyleList));
-	gtk_container_add (GTK_CONTAINER (m_wStyleListContainer), m_wStyleList);
+	xap_gtk_container_add (m_wStyleListContainer, m_wStyleList);
 
 	g_signal_connect_after(G_OBJECT(m_wStyleList),
 						   "cursor-changed",
@@ -434,7 +434,7 @@ void  AP_UnixDialog_Stylist::_fillTree(void)
 						   "row-activated",
 						   G_CALLBACK(s_types_dblclicked),
 						   static_cast<gpointer>(this));
-	gtk_widget_show_all(m_wStyleList);
+	gtk_widget_set_visible(m_wStyleList, TRUE);
 	setStyleTreeChanged(false);
 }
 

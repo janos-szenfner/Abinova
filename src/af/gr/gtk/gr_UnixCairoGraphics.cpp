@@ -75,12 +75,10 @@ GR_UnixCairoGraphicsBase::GR_UnixCairoGraphicsBase(cairo_t *cr, UT_uint32 iDevic
 
 GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 	: GR_UnixCairoGraphicsBase(),
-	  m_pWin(win ? gtk_widget_get_window(win) : nullptr),
-	  m_context(nullptr),
+	  m_dummySurface(nullptr),
 	  m_CairoCreated(false),
 	  m_Painting(false),
 	  m_Signal(0),
- 	  m_DestroySignal(0),
 	  m_Widget(win),
 	  m_styleBg(nullptr),
 	  m_styleHighlight(nullptr)
@@ -91,11 +89,6 @@ GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 	}
 	if (_getWindow())
 	{
-		// Set GraphicsExposes so that XCopyArea() causes an expose on
-		// obscured regions rather than just tiling in the default background.
-		// TODO: is this still needed with cairo, and if yes can it be emulated
-		// without having m_pGC any more?
-		// gdk_gc_set_exposures(m_pGC, 1);
 		setCursor(GR_CURSOR_DEFAULT);	
 	}
 }
@@ -103,8 +96,11 @@ GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 GR_UnixCairoGraphics::~GR_UnixCairoGraphics()
 {
 	if (m_Widget) {
-		g_signal_handler_disconnect (m_Widget, m_Signal);
-		g_signal_handler_disconnect (m_Widget, m_DestroySignal);
+		g_object_remove_weak_pointer (G_OBJECT (m_Widget),
+									  reinterpret_cast<gpointer*>(&m_Widget));
+	}
+	if (m_dummySurface) {
+		cairo_surface_destroy (m_dummySurface);
 	}
 	if (m_styleBg) {
 		g_object_unref(m_styleBg);
@@ -112,6 +108,15 @@ GR_UnixCairoGraphics::~GR_UnixCairoGraphics()
 	if (m_styleHighlight) {
 		g_object_unref(m_styleHighlight);
 	}
+}
+
+GdkSurface * GR_UnixCairoGraphics::_getWindow(void) const
+{
+	if (!m_Widget) {
+		return nullptr;
+	}
+	GtkNative *native = gtk_widget_get_native (m_Widget);
+	return native ? gtk_native_get_surface (native) : nullptr;
 }
 
 
@@ -135,25 +140,22 @@ inline UT_RGBColor _convertGdkRGBA(const GdkRGBA &c)
 	return color;
 }
 
-void GR_UnixCairoGraphics::widget_size_allocate(GtkWidget* /*widget*/, GtkAllocation* /*allocation*/, GR_UnixCairoGraphics* me)
+void GR_UnixCairoGraphics::widget_resize(GtkDrawingArea* /*area*/, int /*width*/, int /*height*/, GR_UnixCairoGraphics* me)
 {
 	UT_return_if_fail(me);
 	me->m_clipRectDirty = TRUE;
 }
 
-void GR_UnixCairoGraphics::widget_destroy(GtkWidget* widget, GR_UnixCairoGraphics* me)
-{
-	UT_return_if_fail(me && me->m_Widget == widget);
-	me->m_Widget = nullptr;
-	me->m_Signal = 0;
-	me->m_DestroySignal = 0;
-}
-
 void GR_UnixCairoGraphics::_initWidget()
 {
 	UT_return_if_fail(m_Widget);
-	m_Signal = g_signal_connect_after(G_OBJECT(m_Widget), "size_allocate", G_CALLBACK(widget_size_allocate), this);
-	m_DestroySignal = g_signal_connect(G_OBJECT(m_Widget), "destroy", G_CALLBACK(widget_destroy), this);
+	if (GTK_IS_DRAWING_AREA(m_Widget)) {
+		m_Signal = g_signal_connect(G_OBJECT(m_Widget), "resize", G_CALLBACK(widget_resize), this);
+	}
+	/* GTK4 removed the ::destroy signal; a weak pointer nulls m_Widget
+	 * when the widget is finalized */
+	g_object_add_weak_pointer (G_OBJECT (m_Widget),
+							   reinterpret_cast<gpointer*>(&m_Widget));
 }
 
 #define COLOR_MIX 0.67   //COLOR_MIX should be between 0 and 1
@@ -181,9 +183,11 @@ void GR_UnixCairoGraphics::init3dColors(GtkWidget* /*w*/)
 	if (m_styleHighlight) {
 		g_object_unref(m_styleHighlight);
 	}
-	g_type_ensure(GTK_TYPE_TREE_VIEW);
 	m_styleHighlight = XAP_GtkStyle_get_style(nullptr, "GtkTreeView.view"); // "textview.view"
-	gtk_style_context_get_color (m_styleHighlight, GTK_STATE_FLAG_NORMAL, &rgba1);
+	gtk_style_context_save (m_styleHighlight);
+	gtk_style_context_set_state (m_styleHighlight, GTK_STATE_FLAG_NORMAL);
+	gtk_style_context_get_color (m_styleHighlight, &rgba1);
+	gtk_style_context_restore (m_styleHighlight);
 	m_3dColors[CLR3D_Highlight] = _convertGdkRGBA(rgba1);
 
 	// guess colours.
@@ -208,7 +212,10 @@ void GR_UnixCairoGraphics::init3dColors(GtkWidget* /*w*/)
 
 	g_type_ensure(GTK_TYPE_LABEL);
 	GtkStyleContext *text_style = XAP_GtkStyle_get_style(nullptr, "GtkLabel.view"); // "label.view"
-	gtk_style_context_get_color (text_style, GTK_STATE_FLAG_NORMAL, &rgba2);
+	gtk_style_context_save (text_style);
+	gtk_style_context_set_state (text_style, GTK_STATE_FLAG_NORMAL);
+	gtk_style_context_get_color (text_style, &rgba2);
+	gtk_style_context_restore (text_style);
 	m_3dColors[CLR3D_Foreground]	= _convertGdkRGBA(rgba2);
 	g_object_unref(text_style);
 
@@ -370,10 +377,7 @@ void GR_UnixCairoGraphics::setCursor(GR_Graphics::Cursor c)
 	const char* cursor_name = _getCursor(c);
 	m_cursor = c;
 	xxx_UT_DEBUGMSG(("cursor set to %d	gdk %s \n", c, cursor_name));
-	GdkCursor * cursor = gdk_cursor_new_from_name(
-		gdk_window_get_display(m_pWin), cursor_name);
-	gdk_window_set_cursor(m_pWin, cursor);
-	g_object_unref(cursor);
+	gtk_widget_set_cursor_from_name(m_Widget, cursor_name);
 }
 
 
@@ -395,31 +399,10 @@ void GR_UnixCairoGraphics::scroll(UT_sint32 dx, UT_sint32 dy)
 
 	disableAllCarets();
 
-	UT_sint32 iddy = labs(ddy);
-	bool bEnableSmooth = XAP_App::getApp()->isSmoothScrollingEnabled();
-	bEnableSmooth = bEnableSmooth && (iddy < 30) && (ddx == 0);
-	if(bEnableSmooth)
-	{
-		if(ddy < 0)
-		{
-			UT_sint32 i = 0;
-			for(i = 0; i< iddy; i++)
-			{
-				gdk_window_scroll(m_pWin,0,-1);
-			}
-		}
-		else
-		{
-			UT_sint32 i = 0;
-			for(i = 0; i< iddy; i++)
-			{
-				gdk_window_scroll(m_pWin,0,1);
-			}
-		}
-	}
-	else
-	{
-		gdk_window_scroll(m_pWin,ddx,ddy);
+	/* GTK4 removed gdk_surface_scroll(); there is no server-side blit to
+	 * optimize scrolling with. Just schedule a full repaint. */
+	if (m_Widget) {
+		gtk_widget_queue_draw (m_Widget);
 	}
 	enableAllCarets();
 }
@@ -448,10 +431,39 @@ GR_Image * GR_UnixCairoGraphics::genImageFromRectangle(const UT_Rect &rec)
 	UT_sint32 idw = _tduR(rec.width);
 	UT_sint32 idh = _tduR(rec.height);
 	UT_return_val_if_fail (idw > 0 && idh > 0 && idx >= 0, nullptr);
-	cairo_surface_flush ( cairo_get_target(m_cr));
-	GdkPixbuf * pix = gdk_pixbuf_get_from_window(getWindow(),
-	                                             idx, idy,
-	                                             idw, idh);
+	UT_return_val_if_fail (m_Widget, nullptr);
+
+	/* GTK4: render the widget into a texture, then read the pixels back
+	 * into a GdkPixbuf covering the requested rectangle. */
+	GdkPaintable *wp = GDK_PAINTABLE (gtk_widget_paintable_new (m_Widget));
+	GtkSnapshot *snapshot = gtk_snapshot_new ();
+	gdk_paintable_snapshot (wp, snapshot,
+							gtk_widget_get_width (m_Widget),
+							gtk_widget_get_height (m_Widget));
+	g_object_unref (wp);
+	GdkPaintable *paintable = gtk_snapshot_free_to_paintable (snapshot, nullptr);
+	if (!paintable) {
+		return nullptr;
+	}
+	GdkTexture *texture = GDK_TEXTURE (gdk_paintable_get_current_image (paintable));
+	g_object_unref (paintable);
+	if (!texture) {
+		return nullptr;
+	}
+
+	int tw = gdk_texture_get_width (texture);
+	int th = gdk_texture_get_height (texture);
+	GdkPixbuf *full = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, tw, th);
+	if (full) {
+		gdk_texture_download (texture,
+							  gdk_pixbuf_get_pixels (full),
+							  gdk_pixbuf_get_rowstride (full));
+	}
+	g_object_unref (texture);
+	UT_return_val_if_fail(full, nullptr);
+
+	GdkPixbuf * pix = gdk_pixbuf_new_subpixbuf (full, idx, idy, idw, idh);
+	g_object_unref (full);
 	UT_return_val_if_fail(pix, nullptr);
 
 	GR_UnixImage * pImg = new GR_UnixImage("ScreenShot");
@@ -467,11 +479,15 @@ void GR_UnixCairoGraphics::_beginPaint()
 
 	if (m_cr == nullptr)
 	{
-		UT_ASSERT(m_pWin);
-		auto region = cairo_region_create();
-		m_context = gdk_window_begin_draw_frame(m_pWin, region);
-		cairo_region_destroy(region);
-		m_cr = gdk_drawing_context_get_cairo_context(m_context);
+		/* GTK4 only hands out a cairo_t inside the draw callback
+		 * (set via setCairo). Paint requested outside of it (e.g. the
+		 * caret) goes to a scratch surface; the widget's redraw path
+		 * picks the change up via queueDraw(). */
+		UT_ASSERT(m_Widget);
+		int w = m_Widget ? MAX(1, gtk_widget_get_width (m_Widget)) : 1;
+		int h = m_Widget ? MAX(1, gtk_widget_get_height (m_Widget)) : 1;
+		m_dummySurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
+		m_cr = cairo_create (m_dummySurface);
 		m_CairoCreated = true;
 	}
 
@@ -484,9 +500,10 @@ void GR_UnixCairoGraphics::_endPaint()
 {
 	if (m_CairoCreated)
 	{
-		gdk_window_end_draw_frame(m_pWin, m_context);
+		cairo_destroy (m_cr);
+		cairo_surface_destroy (m_dummySurface);
+		m_dummySurface = nullptr;
 	}
-	m_context = nullptr;
 	m_cr = nullptr;
 
 	m_Painting = false;
@@ -499,17 +516,8 @@ void GR_UnixCairoGraphics::queueDraw(const UT_Rect* clip)
 {
 	UT_ASSERT(m_Widget);
 
-	if (!clip) {
-		gtk_widget_queue_draw(m_Widget);
-	} else {
-		gtk_widget_queue_draw_area(
-				m_Widget,
-				clip->left,
-				clip->top,
-				clip->width,
-				clip->height
-			);
-	}
+	UT_UNUSED(clip);
+	gtk_widget_queue_draw(m_Widget);
 }
 
 void GR_UnixCairoGraphics::flush(void)
@@ -533,7 +541,7 @@ bool GR_UnixCairoGraphics::queryProperties(GR_Graphics::Properties gp) const
 	{
 		case DGP_SCREEN:
 		case DGP_OPAQUEOVERLAY:
-			return m_pWin != nullptr;
+			return _getWindow() != nullptr;
 		case DGP_PAPER:
 			return false;
 		default:

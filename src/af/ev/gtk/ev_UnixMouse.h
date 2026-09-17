@@ -32,10 +32,10 @@ class EV_UnixMouse : public EV_Mouse
 public:
 	EV_UnixMouse(EV_EditEventMapper * pEEM);
 
-	void mouseClick(AV_View* pView, GdkEventButton* e);
-	void mouseUp(AV_View* pView, GdkEventButton* e);
-	void mouseMotion(AV_View* pView, GdkEventMotion *event);
-	void mouseScroll(AV_View* pView, GdkEventScroll *e);
+	void mouseClick(AV_View* pView, GdkEvent* e, gint n_press);
+	void mouseUp(AV_View* pView, GdkEvent* e);
+	void mouseMotion(AV_View* pView, GdkEvent *event);
+	void mouseScroll(AV_View* pView, GdkEvent *e);
 
 protected:
 };

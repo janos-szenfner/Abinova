@@ -30,18 +30,21 @@ class GR_CairoGraphics;
 class XAP_UnixFontPreview : public XAP_FontPreview
 {
 public:
-	XAP_UnixFontPreview(XAP_Frame * pFrame, UT_sint32 left, UT_uint32 top);
+	// GTK4: the preview is a GtkPopover pointing at the font combo
+	XAP_UnixFontPreview(XAP_Frame * pFrame, GtkWidget * attachTo);
 	virtual ~XAP_UnixFontPreview(void);
 
 	GR_CairoGraphics * 		m_gc;
 protected:
 private:
+	static void s_draw_cb(GtkDrawingArea *area, cairo_t *cr,
+						  int width, int height, gpointer data);
+	void _draw(cairo_t * cr, int width, int height);
+
 	// parent frame
 	XAP_Frame *			m_pFrame;
 	GtkWidget * 			m_pPreviewWindow;
 	GtkWidget * 			m_pDrawingArea;
-	UT_sint32				m_left;
-	UT_sint32				m_top;
 };
 
 #endif /* XAP_UNIXFONTPREVIEW_H */

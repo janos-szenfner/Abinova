@@ -44,7 +44,7 @@ public:
 	// callbacks can fire these events
 	virtual void			event_Close(void);
 	void event_previewInvalidate(void);
-	void event_previewDraw(void);
+	void event_previewDraw(cairo_t *cr);
 	void					event_ApplyToChanged(void);
 	void                    event_BorderThicknessChanged(void);
 	virtual void  setBorderThicknessInGUI(const std::string& sThick) override;

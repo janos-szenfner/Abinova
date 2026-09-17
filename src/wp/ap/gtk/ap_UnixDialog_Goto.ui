@@ -152,7 +152,8 @@
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
                       </packing>
                     </child>
                   </object>
@@ -219,7 +220,8 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">1</property>
+                <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
               </packing>
             </child>
             <child>

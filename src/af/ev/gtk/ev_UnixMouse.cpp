@@ -37,7 +37,7 @@ EV_UnixMouse::EV_UnixMouse(EV_EditEventMapper * pEEM)
 {
 }
 
-void EV_UnixMouse::mouseUp(AV_View* pView, GdkEventButton* e)
+void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState ems = 0;
@@ -47,13 +47,13 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEventButton* e)
 	EV_EditMouseContext emc = 0;
 
 	GdkModifierType ev_state = (GdkModifierType)0;
-	gdk_event_get_state((GdkEvent*)e, &ev_state);
+	ev_state = gdk_event_get_modifier_state(e);
 
 	if (ev_state & GDK_SHIFT_MASK)
 		ems |= EV_EMS_SHIFT;
 	if (ev_state & GDK_CONTROL_MASK)
 		ems |= EV_EMS_CONTROL;
-	if (ev_state & GDK_MOD1_MASK)
+	if (ev_state & GDK_ALT_MASK)
 		ems |= EV_EMS_ALT;
 
 	if (ev_state & GDK_BUTTON1_MASK)
@@ -71,7 +71,7 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEventButton* e)
 	{
 		// TODO decide something better to do here....
 		guint ev_button = 0;
-		gdk_event_get_button((GdkEvent*)e, &ev_button);
+		ev_button = gdk_button_event_get_button(e);
 		UT_DEBUGMSG(("EV_UnixMouse::mouseUp: unknown button %d\n", ev_button));
 		return;
 	}
@@ -94,7 +94,7 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEventButton* e)
 		UT_ASSERT(pEM);
 		gdouble x, y;
 		x = y = 0.0f;
-		gdk_event_get_coords((GdkEvent*)e, &x, &y);
+		gdk_event_get_position(e, &x, &y);
 		invokeMouseMethod(pView, pEM,
 				  static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 				  static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));
@@ -114,7 +114,7 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEventButton* e)
 	}
 }
 
-void EV_UnixMouse::mouseClick(AV_View* pView, GdkEventButton* e)
+void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gint n_press)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState state = 0;
@@ -124,12 +124,11 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEventButton* e)
 	EV_EditMouseContext emc = 0;
 
 	GdkDevice *device;
-	device = gdk_event_get_source_device((GdkEvent *) e);
+	device = gdk_event_get_device((GdkEvent *) e);
 	guint ev_button = 0;
-	gdk_event_get_button((GdkEvent*)e, &ev_button);
+	ev_button = gdk_button_event_get_button(e);
 	GdkModifierType ev_state = (GdkModifierType)0;
-	gdk_event_get_state((GdkEvent*)e, &ev_state);
-	GdkEventType ev_type = gdk_event_get_event_type((GdkEvent*)e);
+	ev_state = gdk_event_get_modifier_state(e);
 	if (ev_button == 1)
 		emb = EV_EMB_BUTTON1;
 	else if (ev_button == 2)
@@ -152,12 +151,13 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEventButton* e)
 		state |= EV_EMS_SHIFT;
 	if (ev_state & GDK_CONTROL_MASK)
 		state |= EV_EMS_CONTROL;
-	if (ev_state & GDK_MOD1_MASK)
+	if (ev_state & GDK_ALT_MASK)
 		state |= EV_EMS_ALT;
 
-	if (ev_type == GDK_BUTTON_PRESS)
+	// GTK4 delivers the click count via GtkGestureClick n_press
+	if (n_press == 1)
 		mop = EV_EMO_SINGLECLICK;
-	else if (ev_type == GDK_DOUBLE_BUTTON_PRESS)
+	else if (n_press == 2)
 		mop = EV_EMO_DOUBLECLICK;
 	else
 	{
@@ -167,7 +167,7 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEventButton* e)
 
 	gdouble x, y;
 	x = y = 0.0f;
-	gdk_event_get_coords((GdkEvent*)e, &x, &y);
+	gdk_event_get_position(e, &x, &y);
 
 	emc = pView->getMouseContext(static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 															 static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));
@@ -205,7 +205,7 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEventButton* e)
 	}
 }
 
-void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEventMotion *e)
+void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState ems = 0;
@@ -215,13 +215,13 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEventMotion *e)
 	EV_EditMouseContext emc = 0;
 
 	GdkModifierType ev_state = (GdkModifierType)0;
-	gdk_event_get_state((GdkEvent*)e, &ev_state);
+	ev_state = gdk_event_get_modifier_state(e);
 
 	if (ev_state & GDK_SHIFT_MASK)
 		ems |= EV_EMS_SHIFT;
 	if (ev_state & GDK_CONTROL_MASK)
 		ems |= EV_EMS_CONTROL;
-	if (ev_state & GDK_MOD1_MASK)
+	if (ev_state & GDK_ALT_MASK)
 		ems |= EV_EMS_ALT;
 
 	if (ev_state & GDK_BUTTON1_MASK)
@@ -235,7 +235,7 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEventMotion *e)
 
 	gdouble x, y;
 	x = y = 0.0f;
-	gdk_event_get_coords((GdkEvent*)e, &x, &y);
+	gdk_event_get_position(e, &x, &y);
 
 	// TODO confirm that we report movements under the
 	// TODO mouse button that we did the capture on.
@@ -287,7 +287,7 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEventMotion *e)
 	}
 }
 
-void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEventScroll *e)
+void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState state = 0;
@@ -301,19 +301,16 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEventScroll *e)
 		return;
 	}
 
-	GdkScrollDirection dir = (GdkScrollDirection)0;
-	// If gdk_event_get_scroll_direction() or it's SCROLL_SMOOTH, we get the deltas
-	// Longer term is to use the gesture. It will be required by Gtk4.
-	if (!gdk_event_get_scroll_direction((GdkEvent*)e, &dir) || (dir == GDK_SCROLL_SMOOTH)) {
-		gdouble delta_x, delta_y;
-		delta_x = delta_y = 0.0;
-		if (gdk_event_get_scroll_deltas((GdkEvent*)e, &delta_x, &delta_y)) {
-			if (abs(delta_y) > abs(delta_x)) {
-				// vertical
-				dir = (delta_y > 0.0 ? GDK_SCROLL_DOWN : GDK_SCROLL_UP);
-			} else {
-				// horizontal not supported yet.
-			}
+	GdkScrollDirection dir = gdk_scroll_event_get_direction(e);
+	// For GDK_SCROLL_SMOOTH we get the deltas
+	if (dir == GDK_SCROLL_SMOOTH) {
+		gdouble delta_x = 0.0, delta_y = 0.0;
+		gdk_scroll_event_get_deltas(e, &delta_x, &delta_y);
+		if (abs(delta_y) > abs(delta_x)) {
+			// vertical
+			dir = (delta_y > 0.0 ? GDK_SCROLL_DOWN : GDK_SCROLL_UP);
+		} else {
+			// horizontal not supported yet.
 		}
 	}
 
@@ -330,35 +327,24 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEventScroll *e)
 		emb = EV_EMB_BUTTON7;
 	} */ else {
 		// TODO decide something better to do here....
-		// We get the original direction from the event.
-		GdkScrollDirection ev_dir = (GdkScrollDirection)0;
-		gdk_event_get_scroll_direction((GdkEvent*)e, &ev_dir);
 		UT_DEBUGMSG(("EV_UnixMouse::mouseScroll: unhandled scroll action: %d\n",
-			      ev_dir));
+			      dir));
 		return;
 	}
 
-	GdkModifierType ev_state = (GdkModifierType)0;
-	gdk_event_get_state((GdkEvent*)e, &ev_state);
+	GdkModifierType ev_state = gdk_event_get_modifier_state(e);
 	if (ev_state & GDK_SHIFT_MASK)
 		state |= EV_EMS_SHIFT;
 	if (ev_state & GDK_CONTROL_MASK)
 		state |= EV_EMS_CONTROL;
-	if (ev_state & GDK_MOD1_MASK)
+	if (ev_state & GDK_ALT_MASK)
 		state |= EV_EMS_ALT;
 
-	// map the scrolling event onto a single mouse click
-	GdkEventType ev_type = gdk_event_get_event_type((GdkEvent*)e);
-	if (ev_type == GDK_SCROLL)
-		mop = EV_EMO_SINGLECLICK;
-	else
-	{
-		// TODO this shouldn't really happen at all
-	}
+	mop = EV_EMO_SINGLECLICK;
 
 	gdouble x, y;
 	x = y = 0.0f;
-	gdk_event_get_coords((GdkEvent*)e, &x, &y);
+	gdk_event_get_position(e, &x, &y);
 
 	emc = pView->getMouseContext(static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 															 static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));

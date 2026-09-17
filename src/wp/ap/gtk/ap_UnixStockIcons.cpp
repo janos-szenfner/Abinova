@@ -212,7 +212,7 @@ abi_stock_init (void)
 	}
 	is_initialized = TRUE;
 
-	gtk_icon_theme_add_resource_path(gtk_icon_theme_get_default(), "/com/abisource/AbiWord");
+	gtk_icon_theme_add_resource_path(gtk_icon_theme_get_for_display(gdk_display_get_default()), "/com/abisource/AbiWord");
 }
 
 /*!

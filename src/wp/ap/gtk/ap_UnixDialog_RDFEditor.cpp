@@ -586,7 +586,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
         UT_DEBUGMSG(("AP_UnixDialog_RDFEditor, no restriction HIDING! w:%p\n", m_restrictxmlidhidew ));
         if( GtkWidget* w = GTK_WIDGET(gtk_builder_get_object(builder, "topvbox")))
         {
-            gtk_container_remove( GTK_CONTAINER(w),  m_restrictxmlidhidew );
+            xap_gtk_container_remove (w,  m_restrictxmlidhidew );
         }
 //        gtk_widget_hide( m_restrictxmlidhidew );
 //        gtk_widget_hide( GTK_WIDGET(m_selectedxmlid) );
@@ -641,7 +641,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
                                  G_CALLBACK(s_OnXMLIDChanged),
                                  (gpointer) this);
             }
-            else gtk_container_remove(GTK_CONTAINER(gtk_builder_get_object(builder, "topvbox")),  m_restrictxmlidhidew);
+            else xap_gtk_container_remove (GTK_WIDGET(gtk_builder_get_object(builder, "topvbox")),  m_restrictxmlidhidew);
         }
     }
     
@@ -697,7 +697,7 @@ AP_UnixDialog_RDFEditor::runModeless (XAP_Frame * pFrame)
 
 	abiSetupModelessDialog (GTK_DIALOG (m_wDialog), pFrame, this, GTK_RESPONSE_CLOSE);
 	showAllRDF();
-	gtk_widget_show_all (m_wDialog);
+	gtk_widget_set_visible(m_wDialog, TRUE);
 	gtk_window_present (GTK_WINDOW (m_wDialog));
 }
 
@@ -724,7 +724,7 @@ AP_UnixDialog_RDFEditor::destroy ()
 	UT_DEBUGMSG (("MIQ: AP_UnixDialog_RDFEditor::destroy ()\n"));
 	modeless_cleanup ();
 	if (m_wDialog) {
-		gtk_widget_destroy(m_wDialog); // TOPLEVEL
+		abiDestroyWidget(m_wDialog); // TOPLEVEL
 		m_wDialog = nullptr;
 	}
 }

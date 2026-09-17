@@ -118,7 +118,7 @@ void OnSemItemEdited ( GtkDialog* d, gint /*response_id*/,
     UT_DEBUGMSG(("OnSemItemEdited()\n"));
     PD_RDFSemanticItemHandle h = getHandle( d );
     h->updateFromEditorData();
-    gtk_widget_destroy(GTK_WIDGET(d)); // TOPLEVEL
+    abiDestroyWidget(GTK_WIDGET(d)); // TOPLEVEL
 }
 
 
@@ -147,7 +147,7 @@ void OnSemItemListEdited ( GtkDialog* d, gint response_id,
             c->updateFromEditorData();
         }
     }
-    gtk_widget_destroy(GTK_WIDGET(d)); // TOPLEVEL
+    abiDestroyWidget(GTK_WIDGET(d)); // TOPLEVEL
 }
 
 
@@ -161,7 +161,7 @@ OnSemanticStylesheetsDialogResponse( GtkWidget* dialog,
                                      GtkTreeView* /*tree*/,
                                      FV_View* /*pView*/)
 {
-    gtk_widget_destroy(dialog); // TOPLEVEL
+    abiDestroyWidget(dialog); // TOPLEVEL
 }
 
 
@@ -314,7 +314,7 @@ OnInsertReferenceBase( GtkWidget* dialog,
         }
     }
     if( found )
-        gtk_widget_destroy(dialog); // TOPLEVEL
+        abiDestroyWidget(dialog); // TOPLEVEL
 
 }
 
@@ -351,14 +351,9 @@ private:
     {
         XAP_Frame *lff = XAP_App::getApp()->getLastFocussedFrame();
         XAP_UnixFrameImpl *pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(lff->getFrameImpl());
-        GtkWidget *top = gtk_widget_get_toplevel(pUnixFrameImpl->getTopLevelWindow());
-        
-        if (gtk_widget_is_toplevel(top))
-        {
-            GdkPixbuf *icon = gtk_window_get_icon(GTK_WINDOW(top));	
-            
-            if (icon) gtk_window_set_icon(GTK_WINDOW(window), icon);
-        }
+        GtkWidget *top = pUnixFrameImpl->getTopLevelWindow();
+        const char *icon = gtk_window_get_icon_name(GTK_WINDOW(top));
+        if (icon) gtk_window_set_icon_name(GTK_WINDOW(window), icon);
     }
 public:
     PD_RDFDialogsGTK()
@@ -438,7 +433,7 @@ public:
         g_signal_connect(GTK_WIDGET(gtk_builder_get_object(builder, "OK")), "button-release-event", G_CALLBACK(OnSemanticStylesheetsOk_cb), combo_box_data);                
     
         g_signal_connect (G_OBJECT(window), "response",  G_CALLBACK(OnSemanticStylesheetsDialogResponse), pView );
-        gtk_widget_show_all (window);
+        gtk_widget_set_visible(window, TRUE);
         
     }
     std::pair<PT_DocPosition, PT_DocPosition> runInsertReferenceDialog(FV_View* pView) override
@@ -509,7 +504,7 @@ public:
         g_signal_connect (GTK_TREE_VIEW (tv), "row-activated", 
                           G_CALLBACK (OnInsertReferenceDblClicked), static_cast <gpointer>(pView));
         g_signal_connect (G_OBJECT(window), "response",  G_CALLBACK(OnInsertReference), pView );
-        gtk_widget_show_all (window);
+        gtk_widget_set_visible(window, TRUE);
 
         std::pair< PT_DocPosition, PT_DocPosition > ret;
         return ret;

@@ -44,13 +44,12 @@
 
 /*****************************************************************/
 
-static gint s_preview_draw(GtkWidget * /*w*/,
-			   cairo_t * /*cr*/,
-			   AP_UnixDialog_PageNumbers * dlg)
+static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+							   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_ASSERT(dlg);
-	dlg->event_PreviewDraw();
-	return FALSE;
+	AP_UnixDialog_PageNumbers *dlg = static_cast<AP_UnixDialog_PageNumbers *>(data);
+	UT_return_if_fail(dlg);
+	dlg->event_PreviewDraw(cr);
 }
 
 static void s_position_changed (GtkWidget * w, AP_UnixDialog_PageNumbers *dlg)
@@ -93,8 +92,12 @@ void AP_UnixDialog_PageNumbers::event_PreviewInvalidate(void)
 	}
 }
 
-void AP_UnixDialog_PageNumbers::event_PreviewDraw(void)
+void AP_UnixDialog_PageNumbers::event_PreviewDraw(cairo_t *cr)
 {
+	if (m_preview) {
+		static_cast<GR_CairoGraphics*>(m_preview->getGraphics())->setCairo(cr);
+	}
+
 	if (m_preview) {
 		m_preview->drawImmediate();
 	}
@@ -226,8 +229,9 @@ GtkWidget * AP_UnixDialog_PageNumbers::_constructWindow (void)
 	g_signal_connect(G_OBJECT(radioRight),  "clicked", G_CALLBACK(s_alignment_changed), static_cast<gpointer>(this));
 
 	// the expose event off the preview
-	g_signal_connect(G_OBJECT(m_previewArea), "draw", G_CALLBACK(s_preview_draw),
-			 static_cast<gpointer>(this));
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_previewArea),
+							s_preview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 
 	g_object_unref(G_OBJECT(builder));
 

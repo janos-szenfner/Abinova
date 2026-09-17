@@ -232,7 +232,7 @@ AP_UnixDialog_Spell::runModal (XAP_Frame * pFrame)
 	            default:
 					m_bCancelled = TRUE;
 		            _purgeSuggestions();
-					gtk_widget_destroy (m_wDialog); // TOPLEVEL
+					abiDestroyWidget(m_wDialog); // TOPLEVEL
 					return;
             }
 
@@ -332,7 +332,7 @@ AP_UnixDialog_Spell::_constructWindow (void)
 				  G_CALLBACK (AP_UnixDialog_Spell__onSuggestionSelected), 
 				  (gpointer)this);
 
-	gtk_widget_show_all (m_wDialog);
+	gtk_widget_set_visible(m_wDialog, TRUE);
 
 	g_object_unref(G_OBJECT(builder));
 

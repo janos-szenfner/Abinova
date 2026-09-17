@@ -144,12 +144,12 @@ void AP_UnixDialog_Background::_constructWindowContents (GtkWidget * parent)
 	GtkWidget * vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
 	gtk_widget_show (vbox);
 	XAP_gtk_widget_set_margin(vbox, 5);
-	gtk_container_add (GTK_CONTAINER(parent), vbox);
+	xap_gtk_container_add (parent, vbox);
 
 	colorsel = gtk_color_chooser_widget_new();
 	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(colorsel), false);
 	gtk_widget_show (colorsel);
-	gtk_container_add (GTK_CONTAINER(vbox), colorsel);
+	xap_gtk_container_add (vbox, colorsel);
 
 	const gchar *  pszC = getColor();
 	UT_RGBColor c(255,255,255);
@@ -184,12 +184,12 @@ void AP_UnixDialog_Background::_constructWindowContents (GtkWidget * parent)
 		g_object_set(G_OBJECT(clearColor),
 				   "xalign", 1.0, "yalign", 0.5, nullptr);
 		GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-		gtk_box_pack_end(GTK_BOX(hbox), clearColor, FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+		gtk_box_append(GTK_BOX(hbox), clearColor);
+		gtk_box_append(GTK_BOX(vbox), hbox);
 		g_signal_connect(G_OBJECT(clearColor), "clicked",
 						G_CALLBACK(s_color_cleared),
 						(gpointer) this);
-		gtk_widget_show_all(vbox);
+		gtk_widget_set_visible(vbox, TRUE);
 	}
 	g_signal_connect (G_OBJECT(colorsel),
 			  "color-activated",

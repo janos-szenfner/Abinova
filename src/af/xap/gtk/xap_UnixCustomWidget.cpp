@@ -24,8 +24,10 @@
 #include "ut_misc.h"
 #include "xap_UnixCustomWidget.h"
 
-void XAP_UnixCustomWidget::_fe::draw(XAP_UnixCustomWidget *self, cairo_t *cr)
+void XAP_UnixCustomWidget::_fe::draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+									 int /*width*/, int /*height*/, gpointer data)
 {
+	XAP_UnixCustomWidget *self = static_cast<XAP_UnixCustomWidget*>(data);
 	self->m_cr = cr;
 	double x1, y1, x2, y2;
 	cairo_clip_extents(cr, &x1, &y1, &x2, &y2);

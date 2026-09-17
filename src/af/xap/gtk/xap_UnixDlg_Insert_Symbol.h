@@ -69,9 +69,9 @@ public:
 	// callbacks can fire these events
 	void			SymbolMap_exposed( void);
 	void			Symbolarea_exposed( void);
-	void			SymbolMap_clicked(GdkEvent * event);
-	void			CurrentSymbol_clicked(GdkEvent *event);
-	gboolean		Key_Pressed(GdkEventKey * e);
+	void			SymbolMap_clicked(gint n_press, gdouble x, gdouble y);
+	void			CurrentSymbol_clicked(void);
+	gboolean		Key_Pressed(guint keyval);
 
 private:
 

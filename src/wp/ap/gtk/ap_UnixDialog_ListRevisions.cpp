@@ -160,7 +160,7 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
 
   vbContent = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
   gtk_widget_show (vbContent);
-  gtk_container_add (GTK_CONTAINER (vbDialog), vbContent);
+  xap_gtk_container_add (vbDialog, vbContent);
   XAP_gtk_widget_set_margin(vbContent, 5);
 
   std::string s("<b>");
@@ -172,11 +172,11 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
                                         "xalign", 0.0, "yalign", 0.5,
                                         nullptr);
   gtk_widget_show (lbExistingRevisions);
-  gtk_box_pack_start (GTK_BOX (vbContent), lbExistingRevisions, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(vbContent), lbExistingRevisions);
 
-  swExistingRevisions = gtk_scrolled_window_new (nullptr, nullptr);
+  swExistingRevisions = gtk_scrolled_window_new();
   gtk_widget_show (swExistingRevisions);
-  gtk_container_add (GTK_CONTAINER (vbContent), swExistingRevisions);
+  xap_gtk_container_add (vbContent, swExistingRevisions);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (swExistingRevisions), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   m_treeModel = gtk_list_store_new(4, G_TYPE_UINT, G_TYPE_STRING,
@@ -184,7 +184,7 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
 
   clExistingRevisions = gtk_tree_view_new_with_model (GTK_TREE_MODEL(m_treeModel));
   gtk_widget_show (clExistingRevisions);
-  gtk_container_add (GTK_CONTAINER (swExistingRevisions), clExistingRevisions);
+  xap_gtk_container_add (swExistingRevisions, clExistingRevisions);
 
   // Note that columns are displayed in a different order to the model,
   // data from col2 is shown in the first column in the view.

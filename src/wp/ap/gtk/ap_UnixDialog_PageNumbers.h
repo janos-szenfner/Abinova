@@ -36,7 +36,7 @@ class AP_UnixDialog_PageNumbers : public AP_Dialog_PageNumbers
   static XAP_Dialog *		static_constructor(XAP_DialogFactory *, XAP_Dialog_Id id);
 
   void event_PreviewInvalidate(void);
-  void event_PreviewDraw(void);
+  void event_PreviewDraw(cairo_t *cr);
   void event_AlignChanged(AP_Dialog_PageNumbers::tAlign);
   void event_HdrFtrChanged(AP_Dialog_PageNumbers::tControl);
 

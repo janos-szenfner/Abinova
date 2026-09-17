@@ -145,7 +145,7 @@ void AP_UnixDialog_MergeCells::event_Close(void)
 void AP_UnixDialog_MergeCells::destroy(void)
 {
 	finalize();
-	gtk_widget_destroy(m_windowMain); // TOPLEVEL
+	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
 }
 void AP_UnixDialog_MergeCells::activate(void)
@@ -176,12 +176,11 @@ GtkWidget * AP_UnixDialog_MergeCells::_constructWindow(void)
 	const XAP_StringSet *pSS = XAP_App::getApp()->getStringSet();
 
 	windowMergeCells = abiDialogNew ( "merge cell dialog", TRUE, static_cast<char *>(m_WindowName));
-	gtk_window_set_position(GTK_WINDOW(windowMergeCells), GTK_WIN_POS_MOUSE);
 	gtk_window_set_resizable(GTK_WINDOW(windowMergeCells), false);
 	vboxMain = gtk_dialog_get_content_area(GTK_DIALOG(windowMergeCells));
 	XAP_gtk_widget_set_margin(vboxMain, 10);
 	_constructWindowContents();
-	gtk_box_pack_start (GTK_BOX (vboxMain), m_wContents, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(vboxMain), m_wContents);
 	abiAddButton(GTK_DIALOG(windowMergeCells),
 			  pSS->getValue(XAP_STRING_ID_DLG_Close),
 			  BUTTON_CLOSE);
@@ -214,13 +213,11 @@ GtkWidget * AP_UnixDialog_MergeCells::_constructWindowContents(void)
 
 	frame1 = gtk_frame_new (nullptr);
 	gtk_widget_show (frame1);
-	gtk_container_add (GTK_CONTAINER (wContents), frame1);
+	xap_gtk_container_add (wContents, frame1);
 	XAP_gtk_widget_set_margin(frame1, 3);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame1), GTK_SHADOW_NONE);
-
 	grid1 = gtk_grid_new();
 	gtk_widget_show(grid1);
-	gtk_container_add(GTK_CONTAINER(frame1),grid1);
+	xap_gtk_container_add (frame1,grid1);
 	g_object_set(G_OBJECT(grid1),
 	             "row-spacing", 6,
 	             "column-spacing", 12,

@@ -77,8 +77,7 @@ fill_store (XAP_UnixDialog_ClipArt *self)
 		pSS->getValueUTF8(XAP_STRING_ID_DLG_CLIPART_Error, s);
 
 		GtkWidget *err = gtk_message_dialog_new (GTK_WINDOW (dlg), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s", s.c_str());
-		gtk_dialog_run (GTK_DIALOG (err));
-		gtk_widget_destroy(err); // TOPLEVEL
+		abiRunModalDialog (GTK_DIALOG (err), true); // TOPLEVEL
 		err = nullptr;
 
 		gtk_dialog_response(GTK_DIALOG(dlg), GTK_RESPONSE_CANCEL);
@@ -153,19 +152,21 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 	connectFocus(GTK_WIDGET(this->dlg), pFrame);
 
 	GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
-	gtk_box_pack_start(GTK_BOX (gtk_dialog_get_content_area(GTK_DIALOG(this->dlg))), vbox, TRUE,TRUE,0);
+	gtk_widget_set_vexpand(vbox, TRUE);
+	gtk_box_append(GTK_BOX (gtk_dialog_get_content_area(GTK_DIALOG(this->dlg))), vbox);
 
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_CLIPART_Loading, s);
 	this->progress = gtk_progress_bar_new ();
 	gtk_progress_bar_set_text (GTK_PROGRESS_BAR (this->progress), s.c_str());
-	gtk_box_pack_start (GTK_BOX (vbox), this->progress, FALSE, FALSE, 0);
+	gtk_box_append (GTK_BOX (vbox), this->progress);
 
-	scroll = gtk_scrolled_window_new (nullptr, nullptr);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scroll), GTK_SHADOW_ETCHED_IN);
+	scroll = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_has_frame (GTK_SCROLLED_WINDOW (scroll), TRUE);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll),
 									GTK_POLICY_AUTOMATIC,
 									GTK_POLICY_AUTOMATIC);
-	gtk_box_pack_start (GTK_BOX (vbox), scroll, TRUE, TRUE, 0);
+	gtk_widget_set_vexpand(scroll, TRUE);
+	gtk_box_append (GTK_BOX (vbox), scroll);
 
 	this->store = create_store ();
 
@@ -175,13 +176,13 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (this->icon_view), 0);
 	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (this->icon_view), 0);
 	gtk_icon_view_set_columns (GTK_ICON_VIEW (this->icon_view), -1);
-	gtk_container_add (GTK_CONTAINER (scroll), this->icon_view);
-	g_signal_connect (this->icon_view, "item_activated", G_CALLBACK (item_activated), (gpointer) this);
+	gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll), this->icon_view);
+	g_signal_connect (this->icon_view, "item-activated", G_CALLBACK (item_activated), (gpointer) this);
 	gtk_icon_view_set_model (GTK_ICON_VIEW (this->icon_view),
 							 GTK_TREE_MODEL (this->store));
 	g_object_unref (G_OBJECT (this->store));
 
-	gtk_widget_show_all (this->dlg);
+	gtk_widget_show (this->dlg);
 
 	/* Dom says we just use that dir for now and hope for someone to build an openclipart client */
 	this->dir_path = getInitialDir ();

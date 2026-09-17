@@ -59,7 +59,7 @@ public:
 		virtual void event_CheckToggled(GtkWidget * widget);
 
 	// Preview
-	virtual void event_PreviewAreaDraw(void);
+	virtual void event_PreviewAreaDraw(cairo_t *cr);
 
  protected:
 

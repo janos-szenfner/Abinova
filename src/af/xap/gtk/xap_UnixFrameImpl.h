@@ -102,7 +102,7 @@ protected:
 
 	void _createTopLevelWindow(void) override;
 	bool _updateTitle() override;
-	void _createIMContext(GdkWindow* w);
+	void _createIMContext(GtkWidget* w);
 	UT_sint32 _setInputMode(const char * szName);
 	virtual void _setCursor(GR_Graphics::Cursor cursor) override;
 
@@ -139,27 +139,34 @@ protected:
         {
 			friend class XAP_Frame;
 		  public:
-			static gint button_press_event(GtkWidget * w, GdkEventButton * e);
-			static gint button_release_event(GtkWidget * w, GdkEventButton * e);
-			static gint configure_event(GtkWidget* w, GdkEventConfigure *e);
-			static gint motion_notify_event(GtkWidget* w, GdkEventMotion* e);
-			static gint scroll_notify_event(GtkWidget* w, GdkEventScroll* e);
-			static gint key_press_event(GtkWidget* w, GdkEventKey* e);
-			static gint key_release_event(GtkWidget* w, GdkEventKey* e);
-			static gint delete_event(GtkWidget * w, GdkEvent * /*event*/, gpointer /*data*/);
-			static gboolean draw(GtkWidget *w, cairo_t *cr, gpointer);
+			/* GTK4 event-controller callbacks. The event is fetched with
+			 * gtk_event_controller_get_current_event() and the document
+			 * widget is passed as user_data. */
+			static void button_press_event(GtkGestureClick *g, gint n_press,
+										   gdouble x, gdouble y, GtkWidget *w);
+			static void button_release_event(GtkGestureClick *g, gint n_press,
+											 gdouble x, gdouble y, GtkWidget *w);
+			static void resize_event(GtkDrawingArea *area, gint width, gint height,
+									 GtkWidget *w);
+			static void motion_notify_event(GtkEventControllerMotion *c,
+											gdouble x, gdouble y, GtkWidget *w);
+			static gboolean scroll_notify_event(GtkEventControllerScroll *c,
+												gdouble dx, gdouble dy, GtkWidget *w);
+			static gboolean key_press_event(GtkEventControllerKey *c, guint keyval,
+											guint keycode, GdkModifierType state,
+											GtkWidget *w);
+			static gboolean key_release_event(GtkEventControllerKey *c, guint keyval,
+											  guint keycode, GdkModifierType state,
+											  GtkWidget *w);
+			static gboolean close_request(GtkWindow *w, gpointer data);
+			static void draw(GtkDrawingArea *area, cairo_t *cr, int width,
+							 int height, gpointer);
 			static gint do_ZoomUpdate( gpointer /* xap_UnixFrame * */ p);
 			static void vScrollChanged(GtkAdjustment * w, gpointer /*data*/);
 			static void hScrollChanged(GtkAdjustment * w, gpointer /*data*/);
 			static void destroy (GtkWidget * /*widget*/, gpointer /*data*/);
-			static gboolean focus_in_event(GtkWidget *w,GdkEvent *event,gpointer user_data);
-			static gboolean focus_out_event(GtkWidget *w,GdkEvent *event,gpointer user_data);
-
-			static void realize(GtkWidget * widget, GdkEvent */* e*/,gpointer /*data*/);
-			static void unrealize(GtkWidget * widget, GdkEvent */* e */,gpointer /* data */);
-			static void sizeAllocate(GtkWidget * widget, GdkEvent */* e */,gpointer /* data */);
-			static gint focusIn(GtkWidget * widget, GdkEvent */* e */,gpointer /* data */);
-			static gint focusOut(GtkWidget * /*widget*/, GdkEvent */* e */,gpointer /* data */);
+			static void focus_in_event(GtkEventControllerFocus *c, GtkWidget *w);
+			static void focus_out_event(GtkEventControllerFocus *c, GtkWidget *w);
 	};
 	friend class _fe;
 

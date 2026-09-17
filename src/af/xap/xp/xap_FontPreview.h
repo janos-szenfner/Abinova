@@ -51,8 +51,8 @@ protected:
 															 UT_uint32 height);
 	UT_sint32						m_width;
 	UT_sint32						m_height;
-private:
 	XAP_Preview_FontPreview *       m_pFontPreview;
+private:
 	UT_UCS4Char *                    m_drawString;
 	PropMap 						m_mapProps;
 };

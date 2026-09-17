@@ -66,17 +66,12 @@ AP_UnixDialog_Tab__onDefaultTabChanged (GtkSpinButton *widget,
 }
 
 //! Event dispatcher for default tab width
-static gboolean
-AP_UnixDialog_Tab__onDefaultTabFocusOut (GtkWidget 	   * /*widget*/,
-										 GdkEventFocus *event,
+static void
+AP_UnixDialog_Tab__onDefaultTabFocusOut (GtkEventControllerFocus * /*controller*/,
 										 gpointer 		data)
-{	
-	if (gdk_event_get_event_type((GdkEvent*)event) == GDK_FOCUS_CHANGE) {
-		AP_UnixDialog_Tab *dlg = static_cast<AP_UnixDialog_Tab*>(data);
-		dlg->onDefaultTabFocusOut ();
-	}
-
-	return FALSE;
+{
+	AP_UnixDialog_Tab *dlg = static_cast<AP_UnixDialog_Tab*>(data);
+	dlg->onDefaultTabFocusOut ();
 }
 
 //! Event dispatcher for tab list. 
@@ -98,19 +93,12 @@ AP_UnixDialog_Tab__onPositionChanged (GtkSpinButton *widget,
 }
 
 //! Event dispatcher for position spinner.
-static gboolean
-AP_UnixDialog_Tab__onPositionFocusOut (GtkWidget 	 * /*widget*/,
-									   GdkEventFocus *event,
-									   gpointer 	  data)
+static void
+AP_UnixDialog_Tab__onPositionFocusOut (GtkEventControllerFocus * /*controller*/,
+										 gpointer 		data)
 {
-	xxx_UT_DEBUGMSG (("onPositionFocusOut() '%d' \n", event->type));
-	
-	if (gdk_event_get_event_type((GdkEvent*)event) == GDK_FOCUS_CHANGE) {
-		AP_UnixDialog_Tab *dlg = static_cast<AP_UnixDialog_Tab*>(data);
-		dlg->onPositionFocusOut ();
-	}
-
-	return FALSE;
+	AP_UnixDialog_Tab *dlg = static_cast<AP_UnixDialog_Tab*>(data);
+	dlg->onPositionFocusOut ();
 }
 
 //! Event dispatcher for alignment popup-menu.
@@ -229,7 +217,7 @@ void AP_UnixDialog_Tab::runModal (XAP_Frame *pFrame)
 
 	// TODO save state of expander
 
-	gtk_widget_destroy(m_wDialog); // TOPLEVEL
+	abiDestroyWidget(m_wDialog); // TOPLEVEL
 	m_wDialog = nullptr;
 }
 
@@ -366,10 +354,12 @@ AP_UnixDialog_Tab::_connectSignals (GtkBuilder *builder)
 					  G_CALLBACK (AP_UnixDialog_Tab__onDefaultTabChanged), 
 					  (gpointer)this);
 	
-	g_signal_connect (m_sbDefaultTab, 
-					  "focus-out-event", 
-					  G_CALLBACK (AP_UnixDialog_Tab__onDefaultTabFocusOut), 
-					  (gpointer)this);
+	{
+		GtkEventController *foc = gtk_event_controller_focus_new();
+		g_signal_connect (foc, "leave",
+						  G_CALLBACK (AP_UnixDialog_Tab__onDefaultTabFocusOut), (gpointer)this);
+		gtk_widget_add_controller (m_sbDefaultTab, foc);
+	}
 	
 
     m_tsSelection = gtk_tree_view_get_selection(GTK_TREE_VIEW (m_lvTabs));
@@ -384,10 +374,12 @@ AP_UnixDialog_Tab::_connectSignals (GtkBuilder *builder)
 					  G_CALLBACK (AP_UnixDialog_Tab__onPositionChanged), 
 					  (gpointer)this);
 
-	g_signal_connect (m_sbPosition, 
-					  "focus-out-event", 
-					  G_CALLBACK (AP_UnixDialog_Tab__onPositionFocusOut), 
-					  (gpointer)this);
+	{
+		GtkEventController *foc = gtk_event_controller_focus_new();
+		g_signal_connect (foc, "leave",
+						  G_CALLBACK (AP_UnixDialog_Tab__onPositionFocusOut), (gpointer)this);
+		gtk_widget_add_controller (m_sbPosition, foc);
+	}
 
 
     m_hSigAlignmentChanged = g_signal_connect (m_cobAlignment, 

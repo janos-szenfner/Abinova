@@ -133,7 +133,7 @@ abi_table_resize(AbiTable* table)
 	gtk_widget_get_preferred_size(GTK_WIDGET(table->window_label), &size, nullptr);
 
 	gtk_label_set_text(table->window_label, text);
-	gtk_window_resize(table->window, width + 1, height + size.height);
+	gtk_widget_set_size_request(GTK_WIDGET(table->area), width + 1, height);
 
 	g_free(text);
 }
@@ -196,13 +196,13 @@ abi_table_get_max_size (const AbiTable* abi_table, guint* rows, guint* cols)
 		*cols = abi_table->total_cols;
 }
 
-static gboolean
-on_drawing_area_event (GtkWidget *area, cairo_t *cr, gpointer user_data)
+static void
+on_drawing_area_event (GtkDrawingArea *area, cairo_t *cr, int /*w*/, int /*h*/, gpointer user_data)
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
 
 	if (!table || !table->style_context) {
-		return TRUE;
+		return;
 	}
 
 	guint i;
@@ -231,8 +231,6 @@ on_drawing_area_event (GtkWidget *area, cairo_t *cr, gpointer user_data)
 		}
 	}
 	gtk_style_context_restore(ctxt);
-
-	return TRUE;
 }
 
 static inline guint
@@ -241,23 +239,15 @@ my_max(guint a, guint b)
 	return a < b ? b : a;
 }
 
-static gboolean
-on_motion_notify_event (GtkWidget *window, GdkEventMotion *ev, gpointer user_data)
+static void
+on_motion_notify_event (GtkEventControllerMotion * /*controller*/, gdouble x, gdouble y, gpointer user_data)
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
 	guint selected_cols;
 	guint selected_rows;
-	gdouble x, y;
-
-	x = y = 0.0f;
-	gdk_event_get_coords((GdkEvent*)ev, &x, &y);
-
-	// In Gtk3, the coordinate of the motion event are relative to the top-level
-	x -= table->pos_x;
-	y -= table->pos_y;
 
 	if (x < 0.0f || y < 0.0f)
-		return TRUE;
+		return;
 
 	pixels_to_cells(static_cast<guint>(x), static_cast<guint>(y), &selected_cols, &selected_rows);
 
@@ -274,10 +264,8 @@ on_motion_notify_event (GtkWidget *window, GdkEventMotion *ev, gpointer user_dat
 		table->total_cols = my_max(table->selected_cols + 1, 3);
 
 		abi_table_resize(table);
-		gtk_widget_queue_draw (window);
+		gtk_widget_queue_draw (GTK_WIDGET(table->area));
 	}
-
-	return TRUE;
 }
 
 static void
@@ -287,9 +275,10 @@ restart_widget (AbiTable *table)
 	table->selected_rows = init_rows;
 	table->total_cols = my_max(init_cols + 1, 5);
 	table->total_rows = my_max(init_rows + 1, 6);
-	g_signal_emit_by_name(table, "released");
-	gtk_widget_hide(GTK_WIDGET(table->window));
+	gtk_popover_popdown(table->window);
 }
+
+
 
 /*
  * Fires signal "selected", and reset and hide the widget
@@ -297,59 +286,39 @@ restart_widget (AbiTable *table)
 static void
 emit_selected (AbiTable *table)
 {
-	gtk_widget_hide(GTK_WIDGET(table->window));
-
-	while (g_main_context_pending(nullptr)) {
-		g_main_context_iteration(nullptr, false);
-	}
-
+	/* emit before popping down: "closed" resets the selection */
 	if (table->selected_rows > 0 && table->selected_cols > 0)
 		g_signal_emit (G_OBJECT (table),
 			       abi_table_signals [SELECTED], 0,
 			       table->selected_rows, table->selected_cols);
 
-	restart_widget(table);
+	gtk_popover_popdown(table->window);
+
+	while (g_main_context_pending(nullptr)) {
+		g_main_context_iteration(nullptr, false);
+	}
 }
 
-static gboolean
-on_button_release_event (GtkWidget *, GdkEventButton *ev, gpointer user_data)
+static void
+on_button_release_event (GtkGestureClick * /*gesture*/, gint /*n_press*/,
+						 gdouble x, gdouble y, gpointer user_data)
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
 
-	gdouble x, y;
-	x = y = 0.0f;
-	gdk_event_get_coords((GdkEvent*)ev, &x, &y);
-
-	/* Quick test to know if we're possibly over the button */
+	/* release above the drawing area (over the label) cancels the pick */
 	if (y < 0.0 && x >= 0.0)
-	{
-		GtkRequisition size;
-
-		gtk_widget_get_preferred_size(GTK_WIDGET(table), &size, nullptr);
-
-		/* And now, precise and slightly slower test.
-		   I wonder if the double test really matters from a speed pov */
-		if (-y < size.height && x < size.width)
-			return TRUE;
-	}
+		return;
 
 	emit_selected(table);
-
-	return TRUE;
 }
 
-static gboolean
-on_leave_event (GtkWidget *area,
-				GdkEventCrossing *event,
+static void
+on_leave_event (GtkEventControllerMotion * /*controller*/,
 				gpointer user_data)
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
 
-	gdouble x, y;
-	x = y = 0.0f;
-	gdk_event_get_coords((GdkEvent*)event, &x, &y);
-
-	if (gtk_widget_get_visible(GTK_WIDGET(table->window)) && (x < 0 || y < 0))
+	if (gtk_widget_get_visible(GTK_WIDGET(table->window)))
 	{
 		table->selected_rows = 0;
 		table->selected_cols = 0;
@@ -357,60 +326,39 @@ on_leave_event (GtkWidget *area,
 		table->total_cols = my_max(table->selected_cols + 1, 3);
 
 		abi_table_resize(table);
-		gtk_widget_queue_draw (area);
+		gtk_widget_queue_draw (GTK_WIDGET(table->area));
 	}
-
-	return TRUE;
-}
-
-static gboolean
-popup_grab_on_window (GdkWindow *window)
-{
-	GdkSeat *seat = gdk_display_get_default_seat(gdk_window_get_display(window));
-	return gdk_seat_grab(seat, window, GDK_SEAT_CAPABILITY_ALL,
-						 FALSE, nullptr, nullptr, nullptr, nullptr) == GDK_GRAB_SUCCESS;
 }
 
 static void
-on_pressed(GtkButton* button, gpointer user_data)
+on_popover_closed(GtkPopover * /*popover*/, gpointer user_data)
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
-	int left, top;
-	GtkAllocation alloc;
 
-	/* Temporarily grab pointer and keyboard on a window we know exists; we
-	 * do this so that the grab (with owner events == TRUE) affects
-	 * events generated when the window is mapped, such as enter
-	 * notify events on subwidgets. If the grab fails, bail out.
-	 */
-	if (!popup_grab_on_window(gtk_widget_get_window(GTK_WIDGET(button))))
-		return;
-
-	auto toplevel = gtk_widget_get_toplevel(GTK_WIDGET(table));
-	gtk_window_set_transient_for(table->window, GTK_WINDOW(toplevel));
-	gdk_window_get_origin (gtk_widget_get_window(GTK_WIDGET(table)), &left, &top);
-	gtk_widget_get_allocation(GTK_WIDGET(table), &alloc);
-	table->pos_x = left + alloc.x;
-	table->pos_y = top + alloc.y + alloc.height;
-	gtk_window_move(table->window, table->pos_x, table->pos_y);
+	table->selected_cols = init_cols;
+	table->selected_rows = init_rows;
+	table->total_cols = my_max(init_cols + 1, 5);
+	table->total_rows = my_max(init_rows + 1, 6);
 	abi_table_resize(table);
+}
 
-	gtk_widget_show(GTK_WIDGET(table->window));
-	gtk_widget_grab_focus(GTK_WIDGET(table->window));
+static void
+on_pressed(GtkButton* /*button*/, gpointer user_data)
+{
+	AbiTable* table = static_cast<AbiTable*>(user_data);
 
-	/* Now transfer our grabs to the popup window; this
-	 * should always succeed.
-	 */
-	popup_grab_on_window (gtk_widget_get_window(GTK_WIDGET(table->area)));
+	/* GtkPopover handles the grab and positioning for us in GTK4 */
+	abi_table_resize(table);
+	gtk_popover_popup(table->window);
+	gtk_widget_grab_focus(GTK_WIDGET(table->area));
 }
 
 gboolean
-on_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+on_key_event(GtkEventControllerKey * /*controller*/, guint keyval,
+			 guint /*keycode*/, GdkModifierType /*state*/, gpointer user_data)
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
 	gboolean grew = FALSE;
-	guint keyval = 0;
-	gdk_event_get_keyval((GdkEvent*)event, &keyval);
 
 	switch (keyval)
 	{
@@ -454,7 +402,7 @@ on_key_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 	table->total_cols = my_max(table->selected_cols + 1, 3);
 
 	abi_table_resize(table);
-	gtk_widget_queue_draw (widget);
+	gtk_widget_queue_draw (GTK_WIDGET(table->area));
 
 	return TRUE;
 }
@@ -517,7 +465,8 @@ abi_table_init (AbiTable* table, gpointer)
 
 	table->button_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
-	table->window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_POPUP));
+	table->window = GTK_POPOVER(gtk_popover_new());
+	gtk_widget_set_parent(GTK_WIDGET(table->window), GTK_WIDGET(table));
 	table->window_vbox = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 0));
 
 	table->area = GTK_DRAWING_AREA(gtk_drawing_area_new());
@@ -527,14 +476,14 @@ abi_table_init (AbiTable* table, gpointer)
 	g_free(text);
 	table->szTable = nullptr;
 	table->szCancel = nullptr;
-	gtk_container_add(GTK_CONTAINER(table->window), GTK_WIDGET(table->window_vbox));
-	gtk_box_pack_end(GTK_BOX(table->window_vbox), GTK_WIDGET(table->window_label), FALSE, FALSE, 0);
-	gtk_box_pack_end(GTK_BOX(table->window_vbox), GTK_WIDGET(table->area), TRUE, TRUE, 0);
+	gtk_popover_set_child(table->window, GTK_WIDGET(table->window_vbox));
+	gtk_box_append(GTK_BOX(table->window_vbox), GTK_WIDGET(table->window_label));
+	gtk_box_append(GTK_BOX(table->window_vbox), GTK_WIDGET(table->area));
+			gtk_widget_set_hexpand(GTK_WIDGET(table->area), TRUE);
+			gtk_widget_set_vexpand(GTK_WIDGET(table->area), TRUE);
 
-	gtk_widget_show_all(GTK_WIDGET(table->window_vbox));
+	gtk_widget_set_visible(GTK_WIDGET(table->window_vbox), TRUE);
 
-	table->pos_x = 0;
-	table->pos_y = 0;
 	table->selected_rows = init_rows;
 	table->selected_cols = init_cols;
 
@@ -546,35 +495,37 @@ abi_table_init (AbiTable* table, gpointer)
 	table->icon = gtk_image_new_from_resource("/com/abisource/AbiWord/24x24/actions/tb_insert_table.png");
 
 	gtk_widget_show(table->icon);
-	gtk_box_pack_end(GTK_BOX(table->button_box), table->icon, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(table->button_box), table->icon);
 	UT_DEBUGMSG(("abi-table icon loaded %p !\n",table->icon));
 
-	gtk_container_add(GTK_CONTAINER(table), GTK_WIDGET(table->button_box));
+	gtk_button_set_child(GTK_BUTTON(table), GTK_WIDGET(table->button_box));
 
-	g_signal_connect(G_OBJECT(table), "pressed",
+	g_signal_connect(G_OBJECT(table), "clicked",
 			 G_CALLBACK(on_pressed), static_cast<gpointer>(table));
-	g_signal_connect(G_OBJECT(table->area), "draw",
-			 G_CALLBACK(on_drawing_area_event), static_cast<gpointer>(table));
-	g_signal_connect(G_OBJECT(table->area), "motion_notify_event",
+	gtk_drawing_area_set_draw_func(table->area,
+								   on_drawing_area_event, table, nullptr);
+
+	GtkEventController *motion = gtk_event_controller_motion_new();
+	g_signal_connect(G_OBJECT(motion), "motion",
 			 G_CALLBACK(on_motion_notify_event), static_cast<gpointer>(table));
-	g_signal_connect(G_OBJECT(table->area), "button_release_event",
-			 G_CALLBACK(on_button_release_event), static_cast<gpointer>(table));
-	g_signal_connect(G_OBJECT(table->area), "button_press_event",
-			 G_CALLBACK(on_button_release_event), static_cast<gpointer>(table));
-	g_signal_connect(G_OBJECT(table->area), "leave_notify_event",
+	g_signal_connect(G_OBJECT(motion), "leave",
 			 G_CALLBACK(on_leave_event), static_cast<gpointer>(table));
-	g_signal_connect(G_OBJECT(table->window), "key_press_event",
+	gtk_widget_add_controller(GTK_WIDGET(table->area), motion);
+
+	GtkGesture *click = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0);
+	g_signal_connect(G_OBJECT(click), "released",
+			 G_CALLBACK(on_button_release_event), static_cast<gpointer>(table));
+	gtk_widget_add_controller(GTK_WIDGET(table->area), GTK_EVENT_CONTROLLER(click));
+
+	GtkEventController *key = gtk_event_controller_key_new();
+	g_signal_connect(G_OBJECT(key), "key-pressed",
 			 G_CALLBACK(on_key_event), static_cast<gpointer>(table));
+	gtk_widget_add_controller(GTK_WIDGET(table->window), key);
 
-	gtk_widget_set_events (GTK_WIDGET(table->area), GDK_EXPOSURE_MASK
-						   | GDK_LEAVE_NOTIFY_MASK
-						   | GDK_BUTTON_PRESS_MASK
-						   | GDK_BUTTON_RELEASE_MASK
-						   | GDK_POINTER_MOTION_MASK
-						   | GDK_KEY_PRESS_MASK
-						   | GDK_KEY_RELEASE_MASK);
-
-	gtk_button_set_relief (GTK_BUTTON (table), GTK_RELIEF_NORMAL);
+	/* clicking outside the popover auto-hides it; reset the grid then */
+	g_signal_connect(G_OBJECT(table->window), "closed",
+			 G_CALLBACK(on_popover_closed), static_cast<gpointer>(table));
 }
 
 

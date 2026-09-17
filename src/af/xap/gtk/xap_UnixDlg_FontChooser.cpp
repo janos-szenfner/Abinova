@@ -213,13 +213,15 @@ static void s_select_row_size(GtkTreeSelection * /* widget */, XAP_UnixDialog_Fo
 	dlg->sizeRowChanged();
 }
 
-static gboolean s_drawing_area_draw(GtkWidget * w,
-								  cairo_t * /* pExposeEvent */)
+static void s_drawing_area_draw(GtkDrawingArea * /* area */,
+								cairo_t * /* cr */,
+								int /* width */,
+								int /* height */,
+								gpointer data)
 {
-	XAP_UnixDialog_FontChooser * dlg = 
-		(XAP_UnixDialog_FontChooser *)g_object_get_data(G_OBJECT(w), "user-data");
+	XAP_UnixDialog_FontChooser * dlg =
+		(XAP_UnixDialog_FontChooser *)data;
 	dlg->event_previewDrawImmediate();
-	return TRUE;
 }
 
 static void s_underline_toggled(GtkWidget * ,  XAP_UnixDialog_FontChooser * dlg)
@@ -497,12 +499,12 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindow(void)
 	std::string s;
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_UFS_FontTitle,s);
 	windowFontSelection = abiDialogNew ( "font dialog", TRUE, s.c_str() ) ;
-	gtk_window_set_position(GTK_WINDOW(windowFontSelection), GTK_WIN_POS_CENTER_ON_PARENT);
-
 	vboxOuter = gtk_dialog_get_content_area(GTK_DIALOG(windowFontSelection));
 
 	vboxMain = constructWindowContents(vboxOuter);
-	gtk_box_pack_start (GTK_BOX (vboxOuter), vboxMain, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(vboxOuter), vboxMain);
+			gtk_widget_set_hexpand(vboxMain, TRUE);
+			gtk_widget_set_vexpand(vboxMain, TRUE);
 
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_Cancel, s);
 	abiAddButton ( GTK_DIALOG(windowFontSelection), s, BUTTON_CANCEL ) ;
@@ -552,7 +554,7 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 
 	notebookMain = gtk_notebook_new ();
 	gtk_widget_show (notebookMain);
-	gtk_box_pack_start (GTK_BOX (vboxMain), notebookMain, 1, 1, 0);
+	gtk_box_append(GTK_BOX(vboxMain), notebookMain);
 	XAP_gtk_widget_set_margin(notebookMain, 8);
 
 	GtkWidget *grid1;
@@ -584,14 +586,14 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	gtk_widget_show(labelFont);
 	gtk_grid_attach(GTK_GRID(grid1), labelFont, 0, 0, 1, 1);
 
-	scrolledwindow1 = gtk_scrolled_window_new(nullptr, nullptr);
+	scrolledwindow1 = gtk_scrolled_window_new();
 	gtk_widget_show (scrolledwindow1);
 	gtk_grid_attach(GTK_GRID(grid1), scrolledwindow1, 0, 1, 1, 3);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow1), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 
 	listFonts = createFontTabTreeView();
 	gtk_widget_show (listFonts);
-	gtk_container_add (GTK_CONTAINER (scrolledwindow1), listFonts);
+	xap_gtk_container_add (scrolledwindow1, listFonts);
 
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_UFS_StyleLabel,s);
 	labelStyle = gtk_label_new (s.c_str());
@@ -599,7 +601,7 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	gtk_widget_show (labelStyle);
 	gtk_grid_attach(GTK_GRID(grid1), labelStyle, 1, 0, 1, 1);
 
-	scrolledwindow2 = gtk_scrolled_window_new (nullptr, nullptr);
+	scrolledwindow2 = gtk_scrolled_window_new();
 	gtk_widget_show (scrolledwindow2);
 	gtk_grid_attach(GTK_GRID(grid1), scrolledwindow2, 1, 1, 1, 1);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow2), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
@@ -607,7 +609,7 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	listStyles = createFontTabTreeView();
 	gtk_widget_set_name (listStyles, "listStyles");
 	gtk_widget_show (listStyles);
-	gtk_container_add (GTK_CONTAINER (scrolledwindow2), listStyles);
+	xap_gtk_container_add (scrolledwindow2, listStyles);
 
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_UFS_SizeLabel,s);
 	labelSize = gtk_label_new (s.c_str());
@@ -615,14 +617,14 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	gtk_widget_show (labelSize);
 	gtk_grid_attach(GTK_GRID(grid1), labelSize, 2, 0, 1, 1);
 
-	scrolledwindow3 = gtk_scrolled_window_new (nullptr, nullptr);
+	scrolledwindow3 = gtk_scrolled_window_new();
 	gtk_widget_show (scrolledwindow3);
 	gtk_grid_attach(GTK_GRID(grid1), scrolledwindow3, 2, 1, 1, 1);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow3), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 
 	listSizes = createFontTabTreeView();
 	gtk_widget_show (listSizes);
-	gtk_container_add (GTK_CONTAINER (scrolledwindow3), listSizes);
+	xap_gtk_container_add (scrolledwindow3, listSizes);
 
 	grEffectRows = gtk_grid_new();
 	g_object_set(G_OBJECT(grEffectRows),
@@ -694,7 +696,9 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	XAP_gtk_widget_set_margin(colorSelector, 6);
 	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(colorSelector), FALSE);
 	gtk_widget_show (colorSelector);
-	gtk_box_pack_start (GTK_BOX (hbox1), colorSelector, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(hbox1), colorSelector);
+			gtk_widget_set_hexpand(colorSelector, TRUE);
+			gtk_widget_set_vexpand(colorSelector, TRUE);
 
 	/*Notebook page for Background Color Selector*/
 
@@ -715,7 +719,9 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	XAP_gtk_widget_set_margin(colorBGSelector, 6);
 	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(colorBGSelector), FALSE);
 	gtk_widget_show (colorBGSelector);
-	gtk_box_pack_start (GTK_BOX (vboxBG), colorBGSelector, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(vboxBG), colorBGSelector);
+			gtk_widget_set_hexpand(colorBGSelector, TRUE);
+			gtk_widget_set_vexpand(colorBGSelector, TRUE);
 
 //
 // Make a toggle button to set hightlight color transparent
@@ -724,26 +730,26 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	GtkWidget * checkbuttonTrans = gtk_check_button_new_with_label (s.c_str());
 	XAP_gtk_widget_set_margin(checkbuttonTrans, 6);
 	gtk_widget_show (checkbuttonTrans);
-	gtk_box_pack_start (GTK_BOX (vboxBG), checkbuttonTrans, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(vboxBG), checkbuttonTrans);
+			gtk_widget_set_hexpand(checkbuttonTrans, TRUE);
+			gtk_widget_set_vexpand(checkbuttonTrans, TRUE);
 
 	/* frame with preview */
 
 	frame4 = gtk_frame_new (nullptr);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame4), GTK_SHADOW_NONE);
 	gtk_widget_show (frame4);
-	gtk_box_pack_start (GTK_BOX (vboxMain), frame4, FALSE, FALSE, PREVIEW_BOX_BORDER_WIDTH_PIXELS);
+	gtk_box_append(GTK_BOX(vboxMain), frame4);
 	// setting the height takes into account the border applied on all
 	// sides, so we need to double the single border width
 	gtk_widget_set_size_request (frame4, -1, PREVIEW_BOX_HEIGHT_PIXELS + (PREVIEW_BOX_BORDER_WIDTH_PIXELS * 2));
 	XAP_gtk_widget_set_margin(frame4, PREVIEW_BOX_BORDER_WIDTH_PIXELS);
 
 	entryArea = gtk_drawing_area_new();
-	gtk_widget_set_events(entryArea, GDK_EXPOSURE_MASK);
-	g_signal_connect(G_OBJECT(entryArea), "draw",
-					   G_CALLBACK(s_drawing_area_draw), nullptr);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(entryArea),
+								   s_drawing_area_draw, this, nullptr);
 	gtk_widget_set_size_request (entryArea, -1, PREVIEW_BOX_HEIGHT_PIXELS);
 	gtk_widget_show (entryArea);
-	gtk_container_add (GTK_CONTAINER (frame4), entryArea);
+	xap_gtk_container_add (frame4, entryArea);
 
 
 	// save out to members for callback and class access

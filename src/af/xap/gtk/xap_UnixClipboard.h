@@ -67,8 +67,9 @@ public:
 
 	bool canPaste(T_AllowGet tFrom) const;
 
-	GtkTargetEntry * getTargets () const { return m_Targets ; }
-	UT_uint32 getNumTargets () const { return m_nTargets; }
+	// called by the GdkContentProvider when a pasting peer requests data
+	bool				writeData(const char * mime_type, GOutputStream * stream,
+								  bool bPrimary, GError ** error);
 
 protected:
 
@@ -77,7 +78,7 @@ protected:
 
  private:
 
-	GtkClipboard * gtkClipboardForTarget(XAP_UnixClipboard::T_AllowGet get) const;
+	GdkClipboard * clipboardForTarget(XAP_UnixClipboard::T_AllowGet get) const;
 
 	bool				_getDataFromServer(T_AllowGet tFrom, const char** formatList,
 							   void ** ppData, UT_uint32 * pLen,
@@ -86,56 +87,7 @@ protected:
 								  void ** ppData, UT_uint32 * pLen,
 								  const char **pszFormatFound);
 
-	static inline void s_primary_get_func(GtkClipboard *clipboard,
-				       GtkSelectionData *selection_data,
-				       guint info,
-				       gpointer ptr)
-	  {
-	    XAP_UnixClipboard * pThis = static_cast<XAP_UnixClipboard*>(ptr);
-	    pThis->primary_get_func(clipboard, selection_data, info);
-	  }
-
-	static inline void s_primary_clear_func (GtkClipboard *clipboard,
-					  gpointer ptr)
-	  {
-	    XAP_UnixClipboard * pThis = static_cast<XAP_UnixClipboard*>(ptr);
-	    pThis->primary_clear_func(clipboard);
-	  }
-
-	void primary_get_func(GtkClipboard *clipboard,
-			      GtkSelectionData *selection_data,
-			      guint info);
-
-	void primary_clear_func (GtkClipboard *clipboard);
-
-	static inline void s_clipboard_get_func(GtkClipboard *clipboard,
-					 GtkSelectionData *selection_data,
-					 guint info,
-					 gpointer ptr)
-	  {
-	    XAP_UnixClipboard * pThis = static_cast<XAP_UnixClipboard*>(ptr);
-	    pThis->clipboard_get_func(clipboard, selection_data, info);
-	  }
-
-	static inline void s_clipboard_clear_func (GtkClipboard *clipboard,
-					  gpointer ptr)
-	  {
-	    XAP_UnixClipboard * pThis = static_cast<XAP_UnixClipboard*>(ptr);
-	    pThis->clipboard_clear_func(clipboard);
-	  }
-
-	void clipboard_get_func(GtkClipboard *clipboard,
-				GtkSelectionData *selection_data,
-				guint info);
-
-	void clipboard_clear_func (GtkClipboard *clipboard);
-
-	void common_get_func(GtkClipboard *clipboard,
-			     GtkSelectionData *selection_data,
-			     guint info, T_AllowGet which);
-
-	std::vector<const char*>  m_vecFormat_AP_Name;
-	std::vector<GdkAtom>  m_vecFormat_GdkAtom;
+	std::vector<const char*>  m_vecFormat_MimeType;
 
 	UT_ByteBuf m_databuf; // for gets only
 
@@ -143,9 +95,7 @@ protected:
 	XAP_FakeClipboard	m_fakeClipboard;		// internal clipboard to short-circut the XServer.
 
 	XAP_FakeClipboard       m_fakePrimaryClipboard;
-	GtkTargetEntry * m_Targets ;
-	UT_uint32 m_nTargets;
 
-	GtkClipboard * m_clip;
-	GtkClipboard * m_primary;
+	GdkClipboard * m_clip;
+	GdkClipboard * m_primary;
 };

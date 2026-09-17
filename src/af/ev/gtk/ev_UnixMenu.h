@@ -22,7 +22,10 @@
 #ifndef EV_UNIXMENU_H
 #define EV_UNIXMENU_H
 
+#include <string>
 #include <vector>
+
+#include <gtk/gtk.h>
 
 #include "ut_types.h"
 #include "xap_Types.h"
@@ -45,37 +48,57 @@ public:
 		    const char * szMenuLabelSetName);
 	virtual ~EV_UnixMenu();
 
-	bool				synthesizeMenu(GtkWidget * wMenuRoot, bool isPopup);
+	bool				synthesizeMenu(GMenu * pMenuRoot, bool isPopup);
 	bool				menuEvent(XAP_Menu_Id id) const;
 	virtual bool		refreshMenu(AV_View * pView) = 0;
 
 	XAP_Frame * 	getFrame() const;
+	GMenu *			getMenuModel() const { return m_pMenuModel; }
+	GActionGroup *	getActionGroup() const { return G_ACTION_GROUP(m_actionGroup); }
 
 protected:
-	bool				_refreshMenu(AV_View * pView, GtkWidget * wMenuRoot);
-	bool				_isItemPresent(XAP_Menu_Id id) const;
+	bool				_refreshMenu(AV_View * pView);
 	virtual bool		_doAddMenuItem(UT_uint32 layout_pos) override;
 
 protected: // FIXME! These variables should be private.
 	XAP_UnixApp *		m_pUnixApp;
 	XAP_Frame *  	m_pFrame;
 
-	// Menu accelerator group, dynamically filled on synth()
-	GtkAccelGroup * 	m_accelGroup;
+	// The root of the menu model. Sections inside it are used to
+	// render separators, like GtkMenu did.
+	GMenu *				m_pMenuModel;
+	bool				m_isPopup;
 
-	// actual GTK menu widgets
-	std::vector<GtkWidget*> m_vecMenuWidgets;
+	// One action group per menu instance, inserted on the menu's
+	// root widget under the "menu" prefix so that items resolve
+	// actions named "menu.item_<id>".
+	GSimpleActionGroup *	m_actionGroup;
+
+	// Set while refreshMenu updates action states, so the
+	// change-state handlers don't fire menu events recursively.
+	bool				m_bUpdatingActions;
+
+	struct _ItemRec
+	{
+		XAP_Menu_Id			id = XAP_Menu_Id(0);
+		GMenu *				submenu = nullptr;  // owning ref, for EV_MLF_BeginSubMenu
+		GSimpleAction *		action = nullptr;   // non-owning
+		std::string			label;              // last synced label
+		bool				present = false;
+		bool				isRadio = false;
+	};
+
+	std::vector<_ItemRec> m_vecItemRecs;
+
 	class _wd
 	{
 	public:
 		_wd(EV_UnixMenu * pUnixMenu, XAP_Menu_Id id);
 		~_wd();
-		static void s_onActivate(GtkWidget * widget, gpointer callback_data);
-		static void s_onMenuItemSelect(GtkWidget * /*widget*/, gpointer data);
-		static void s_onMenuItemDeselect(GtkWidget * /*widget*/, gpointer data);
-		static void s_onInitMenu(GtkMenuItem * /*menuItem*/, gpointer callback_data);
-		static void s_onDestroyMenu(GtkMenuItem * /*menuItem*/, gpointer callback_data);
-		static void s_onDestroyPopupMenu(GtkMenuItem * menuItem, gpointer callback_data);
+		static void s_onActivate(GSimpleAction * action, GVariant * param,
+								 gpointer callback_data);
+		static void s_onChangeState(GSimpleAction * action, GVariant * value,
+									gpointer callback_data);
 
 		EV_UnixMenu* m_pUnixMenu;
 		XAP_Menu_Id	m_id;
@@ -83,13 +106,17 @@ protected: // FIXME! These variables should be private.
 
 	std::vector<_wd*> m_vecCallbacks;
 private:
-	void _convertStringToAccel(const char *s, guint &accel_key, GdkModifierType &ac_mods);
-	GtkWidget * s_createNormalMenuEntry(const XAP_Menu_Id id,
-										bool isCheckable,
-										bool isRadio,
-										bool isPopup,
-										const char *szLabelName,
-										const char *szMnemonicName);
+	void _convertStringToGtkAccel(const char *s, std::string &out);
+	GMenuItem * _createMenuItem(XAP_Menu_Id id,
+								const EV_Menu_Action * pAction,
+								const char *szLabelName,
+								const char *szMnemonicName,
+								bool isPopup,
+								GSimpleAction ** radioGroup);
+	GSimpleAction * _createAction(XAP_Menu_Id id,
+								  const EV_Menu_Action * pAction,
+								  GSimpleAction ** radioGroup);
+	void _buildItems(GMenu * pMenuRoot, bool isPopup);
 };
 
 #endif /* EV_UNIXMENU_H */

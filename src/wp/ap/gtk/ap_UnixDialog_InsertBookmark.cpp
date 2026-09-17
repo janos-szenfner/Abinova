@@ -98,7 +98,7 @@ void AP_UnixDialog_InsertBookmark::event_OK(void)
 {
 	UT_ASSERT(m_windowMain);
 	// get the bookmark name, if any (return cancel if no name given)
-	GtkEntry *entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_comboBookmark)));
+	GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboBookmark)));
 	UT_ASSERT(entry);
 	const gchar *mark = XAP_gtk_entry_get_text(entry);
 	if(mark && *mark)
@@ -120,7 +120,7 @@ void AP_UnixDialog_InsertBookmark::event_Cancel(void)
 
 void AP_UnixDialog_InsertBookmark::event_Delete(void)
 {
-	GtkEntry *entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_comboBookmark)));
+	GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboBookmark)));
 	UT_ASSERT(entry);
 	const gchar *mark = XAP_gtk_entry_get_text(entry);
 	if (mark && *mark)
@@ -147,7 +147,7 @@ void AP_UnixDialog_InsertBookmark::_setList(void)
 		}
 	}
 	
-	GtkEntry *entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_comboBookmark)));
+	GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboBookmark)));
 	if (getBookmark() && strlen(getBookmark()) > 0)
 	{
 	    XAP_gtk_entry_set_text(entry, getBookmark());
@@ -171,11 +171,11 @@ void  AP_UnixDialog_InsertBookmark::_constructWindowContents(GtkWidget * contain
   pSS->getValueUTF8(AP_STRING_ID_DLG_InsertBookmark_Msg,s);
   label1 = gtk_label_new (s.c_str());
   gtk_widget_show (label1);
-  gtk_box_pack_start (GTK_BOX (container), label1, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(container), label1);
 
   m_comboBookmark = gtk_combo_box_text_new_with_entry();
   gtk_widget_show (m_comboBookmark);
-  gtk_box_pack_start (GTK_BOX (container), m_comboBookmark, FALSE, FALSE, 0);
+  gtk_box_append(GTK_BOX(container), m_comboBookmark);
 }
 
 GtkWidget*  AP_UnixDialog_InsertBookmark::_constructWindow(void)
@@ -190,7 +190,7 @@ GtkWidget*  AP_UnixDialog_InsertBookmark::_constructWindow(void)
   
   vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
   gtk_widget_show (vbox);
-  gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area(GTK_DIALOG (m_windowMain))), vbox);
+  xap_gtk_container_add (gtk_dialog_get_content_area(GTK_DIALOG (m_windowMain)), vbox);
   XAP_gtk_widget_set_margin(vbox, 5);
 
   _constructWindowContents ( vbox );

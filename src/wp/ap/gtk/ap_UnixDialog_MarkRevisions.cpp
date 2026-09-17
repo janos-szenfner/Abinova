@@ -113,7 +113,7 @@ GtkWidget * AP_UnixDialog_MarkRevisions::constructWindow ()
 void AP_UnixDialog_MarkRevisions::constructWindowContents ( GtkWidget * container )
 {
    GtkWidget *vbox1;
-   GSList *vbox1_group = nullptr;
+   GtkWidget * vbox1_group = nullptr;
    GtkWidget *radiobutton1 = nullptr;
    GtkWidget *lbl1;
    GtkWidget *radiobutton2;
@@ -122,28 +122,30 @@ void AP_UnixDialog_MarkRevisions::constructWindowContents ( GtkWidget * containe
    
    vbox1 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
    gtk_widget_show (vbox1);
-   gtk_box_pack_start (GTK_BOX (container), vbox1, TRUE, TRUE, 0);
+   gtk_box_append(GTK_BOX(container), vbox1);
+			gtk_widget_set_hexpand(vbox1, TRUE);
+			gtk_widget_set_vexpand(vbox1, TRUE);
    XAP_gtk_widget_set_margin(vbox1, 3);
 
    if(getRadio1Label() != nullptr)
      {
 		 if(isRev())
 		 {
-			 radiobutton1 = gtk_radio_button_new_with_label (vbox1_group, getRadio1Label());
-			 vbox1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton1));
+			 radiobutton1 = abi_radio_button_new_with_label(vbox1_group, getRadio1Label());
+			 vbox1_group = radiobutton1;
 			 gtk_widget_show (radiobutton1);
-			 gtk_box_pack_start (GTK_BOX (vbox1), radiobutton1, FALSE, FALSE, 0);
+			 gtk_box_append(GTK_BOX(vbox1), radiobutton1);
 			 lbl1 = gtk_label_new(getComment1(true));
 			 gtk_widget_show (lbl1);
-			 gtk_box_pack_start (GTK_BOX (vbox1), lbl1, FALSE, FALSE, 0);
+			 gtk_box_append(GTK_BOX(vbox1), lbl1);
 		 }
-		 radiobutton2 = gtk_radio_button_new_with_label (vbox1_group, getRadio2Label());
-		 vbox1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton2));
+		 radiobutton2 = abi_radio_button_new_with_label(vbox1_group, getRadio2Label());
+		 vbox1_group = radiobutton2;
 		 
 		 if (isRev ())
 			 gtk_widget_show (radiobutton2);
 		 
-		 gtk_box_pack_start (GTK_BOX (vbox1), radiobutton2, FALSE, FALSE, 6);
+		 gtk_box_append(GTK_BOX(vbox1), radiobutton2);
 		 
 		 g_signal_connect ( G_OBJECT(radiobutton2), "toggled",
 							G_CALLBACK(focus_toggled_callback), this ) ;
@@ -154,11 +156,11 @@ void AP_UnixDialog_MarkRevisions::constructWindowContents ( GtkWidget * containe
    
    lbl2 = gtk_label_new (getComment2Label());
    gtk_widget_show (lbl2);
-   gtk_box_pack_start (GTK_BOX (vbox1), lbl2, FALSE, FALSE, 0);
+   gtk_box_append(GTK_BOX(vbox1), lbl2);
    
    entry1 = gtk_entry_new();
    gtk_widget_show (entry1);
-   gtk_box_pack_start (GTK_BOX (vbox1), entry1, FALSE, FALSE, 8);
+   gtk_box_append(GTK_BOX(vbox1), entry1);
    
    mEntryLbl = lbl2 ;
    mComment = entry1 ;

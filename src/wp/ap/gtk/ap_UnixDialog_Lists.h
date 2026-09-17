@@ -56,7 +56,7 @@ class AP_UnixDialog_Lists
 	void closeClicked(void);
 	void					styleChanged( gint style);
 	void previewInvalidate(void);
-	void previewDraw(void);
+	void previewDraw(cairo_t *cr);
 	void                    setFoldLevel(UT_sint32 iLevel,bool bSet);
 
 	/* Just Plain Useful Functions */
@@ -116,7 +116,7 @@ class AP_UnixDialog_Lists
 	GtkWidget * m_wStartNewList;
 	GtkWidget * m_wApplyCurrent;
 	GtkWidget * m_wStartSubList;
-	GSList    * m_wRadioGroup;
+	GtkWidget * m_wRadioGroup;
 	GtkWidget * m_wPreviewArea;
 	GtkWidget * m_wDelimEntry;
 	GtkWidget * m_wDecimalEntry;

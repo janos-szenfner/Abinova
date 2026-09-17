@@ -31,10 +31,7 @@
 #include "ie_imp.h"
 #include "ie_imp_RTF.h"
 
-static const GtkTargetEntry targets[] = {
-  { (gchar*)"text/rtf", 0, 0},
-  { (gchar*)"text/uri-list",0,0}
-};
+
 
 FV_UnixVisualDrag::FV_UnixVisualDrag (FV_View * pView)
   :  FV_VisualDragText (pView),m_bDragOut(false)
@@ -143,13 +140,27 @@ void FV_UnixVisualDrag::mouseDrag(UT_sint32 x, UT_sint32 y)
          XAP_Frame * pFrame = static_cast<XAP_Frame*>(m_pView->getParentData());
 	 XAP_UnixFrameImpl * pFrameImpl =static_cast<XAP_UnixFrameImpl *>( pFrame->getFrameImpl());
 	 GtkWidget * pWindow = pFrameImpl->getTopLevelWindow();
-	 GtkTargetList *target_list = gtk_target_list_new(targets, G_N_ELEMENTS(targets));
-	 GdkDragContext *context = gtk_drag_begin_with_coordinates(
-           pWindow, target_list,
-           (GdkDragAction)(GDK_ACTION_COPY ), 1, nullptr, x, y);
 
-	 gdk_drag_status(context, GDK_ACTION_COPY, 0);
-	 gtk_target_list_unref(target_list);
+	 // GTK4: drag a GFile; the content provider offers text/uri-list
+	 GdkSurface * surface = gtk_native_get_surface(GTK_NATIVE(pWindow));
+	 GdkSeat * seat = gdk_display_get_default_seat(gtk_widget_get_display(pWindow));
+	 GdkDevice * device = seat ? gdk_seat_get_pointer(seat) : nullptr;
+	 GFile * tmpFile = g_file_new_for_path(sTmpF.utf8_str());
+	 GdkContentProvider * fileContent =
+		 gdk_content_provider_new_typed(G_TYPE_FILE, tmpFile);
+	 g_object_unref(tmpFile);
+	 // also offer the raw RTF payload for targets that accept it
+	 GdkContentProvider * rtfContent =
+		 gdk_content_provider_new_for_bytes("text/rtf",
+				g_bytes_new(pBuf->getPointer(0), pBuf->getLength()));
+	 GdkContentProvider * contents[2] = { fileContent, rtfContent };
+	 GdkContentProvider * content =
+		 gdk_content_provider_new_union(contents, 2);
+	 g_object_unref(fileContent);
+	 g_object_unref(rtfContent);
+	 if (surface && device)
+		 gdk_drag_begin(surface, device, content, GDK_ACTION_COPY, x, y);
+	 g_object_unref(content);
 	 m_bDragOut = true;
 	 getGraphics()->setClipRect(getCurFrame());
 	 m_pView->updateScreen(false);

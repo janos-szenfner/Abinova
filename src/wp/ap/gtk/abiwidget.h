@@ -92,7 +92,7 @@ G_BEGIN_DECLS
 
   struct AbiWidget
   {
-    GtkBin bin;
+    GtkWidget widget;
     GtkWidget * child;
     /* private instance data */
     AbiPrivData * priv;
@@ -114,7 +114,7 @@ G_BEGIN_DECLS
   typedef gboolean (*AbiSignal) (AbiWidget *, gpointer closure);
 
   struct  AbiWidgetClass {
-    GtkBinClass parent_class;
+    GtkWidgetClass parent_class;
 
     /* invoke any edit method based on its name */
     gboolean (*invoke) (AbiWidget *, const char * mthdName);

@@ -146,15 +146,13 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 		if (pf->getFillMethod() == REPRESENTATIVE_STRING || (pf->getFillMethod() == MAX_POSSIBLE)){ //AP_StatusBarField_TextInfo *pf_TextInfo = dynamic_cast<AP_StatusBarField_TextInfo*>(pf))
 		  AP_StatusBarField_TextInfo *pf_TextInfo = static_cast<AP_StatusBarField_TextInfo*>(pf);
 			pStatusBarElement = gtk_frame_new(nullptr);
-			gtk_frame_set_shadow_type(GTK_FRAME(pStatusBarElement), GTK_SHADOW_IN);
-			
 			GtkWidget *pStatusBarElementLabel = gtk_label_new(pf_TextInfo->getRepresentativeString());
 			gtk_widget_set_margin_top(pStatusBarElementLabel, 3);
 			gtk_widget_set_margin_bottom(pStatusBarElementLabel, 3);
 			gtk_widget_set_margin_start(pStatusBarElementLabel, 3);
 			gtk_widget_set_margin_end(pStatusBarElementLabel, 3);
 			pf->setListener((AP_StatusBarFieldListener *)(new ap_usb_TextListener(pf_TextInfo, pStatusBarElementLabel)));
-			gtk_container_add(GTK_CONTAINER(pStatusBarElement), pStatusBarElementLabel);
+			xap_gtk_container_add (pStatusBarElement, pStatusBarElementLabel);
 
 			// align
 			if (pf_TextInfo->getAlignmentMethod() == LEFT) {
@@ -168,10 +166,12 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 				gtk_widget_get_preferred_size(pStatusBarElementLabel, &requisition, nullptr);
 				gtk_widget_set_size_request(pStatusBarElementLabel, requisition.width, -1);
 
-				gtk_box_pack_start(GTK_BOX(m_wStatusBar), pStatusBarElement, FALSE, FALSE, 0);
+				gtk_box_append(GTK_BOX(m_wStatusBar), pStatusBarElement);
 			}
 			else { // fill
-				gtk_box_pack_start(GTK_BOX(m_wStatusBar), pStatusBarElement, TRUE, TRUE, 0);
+				gtk_box_append(GTK_BOX(m_wStatusBar), pStatusBarElement);
+			gtk_widget_set_hexpand(pStatusBarElement, TRUE);
+			gtk_widget_set_vexpand(pStatusBarElement, TRUE);
 			}
 
 			gtk_label_set_label(GTK_LABEL(pStatusBarElementLabel), ""); 
@@ -183,11 +183,11 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 			pStatusBarElement = gtk_frame_new(nullptr);
 			gtk_widget_get_preferred_size(pStatusBarElement, &requisition, nullptr);
 			gtk_widget_set_size_request(pStatusBarElement, -1, requisition.height);
-			gtk_frame_set_shadow_type(GTK_FRAME(pStatusBarElement), GTK_SHADOW_IN);
-
-			gtk_box_pack_start(GTK_BOX(m_wStatusBar), pStatusBarElement, TRUE, TRUE, 0);
+			gtk_box_append(GTK_BOX(m_wStatusBar), pStatusBarElement);
+			gtk_widget_set_hexpand(pStatusBarElement, TRUE);
+			gtk_widget_set_vexpand(pStatusBarElement, TRUE);
 			GtkWidget *  pProgress= gtk_progress_bar_new();
-			gtk_container_add(GTK_CONTAINER(pStatusBarElement),pProgress);
+			xap_gtk_container_add (pStatusBarElement,pProgress);
 			gtk_progress_bar_set_pulse_step (GTK_PROGRESS_BAR(pProgress),0.01);
 
 			gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR(pProgress),0.0);
@@ -203,7 +203,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 
 		gtk_widget_show(pStatusBarElement);
 	}
-	gtk_widget_show_all(m_wStatusBar);
+	gtk_widget_set_visible(m_wStatusBar, TRUE);
 	hideProgressBar();
 	return m_wStatusBar;
 }

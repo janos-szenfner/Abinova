@@ -123,7 +123,7 @@ bool label_button_with_abi_pixmap( GtkWidget * button, const char * szIconName, 
 		return false;
 	gtk_widget_show(wpixmap);
 	xxx_UT_DEBUGMSG(("SEVIOR: Adding pixmap to button now \n"));
-	gtk_container_add (GTK_CONTAINER (button), wpixmap);
+	xap_gtk_container_add (button, wpixmap);
 	return true;
 }
 
@@ -225,20 +225,14 @@ static void s_line_clicked(GtkWidget * widget, AP_UnixDialog_Columns * dlg)
 	dlg->checkLineBetween();
 }
 
-static gboolean s_preview_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_Columns * dlg)
+static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+							   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_return_val_if_fail(widget && dlg, FALSE);
-	dlg->event_previewDraw();
-	return FALSE;
+	AP_UnixDialog_Columns *dlg = static_cast<AP_UnixDialog_Columns *>(data);
+	UT_return_if_fail(dlg);
+	dlg->event_previewDraw(cr);
 }
 
-static gboolean s_window_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_Columns * dlg)
-{
-	UT_return_val_if_fail(widget && dlg, FALSE);
-// We shouldn't need to do this, the widget machinery should do this.
-//	dlg->event_previewInvalidate();
-	return FALSE;
-}
 
 
 
@@ -259,8 +253,6 @@ void AP_UnixDialog_Columns::runModal(XAP_Frame * pFrame)
 	if (GTK_IS_WINDOW(parentWindow) != TRUE)
 		parentWindow = gtk_widget_get_parent(parentWindow);
 	gtk_window_set_transient_for(GTK_WINDOW(mainWindow), GTK_WINDOW(parentWindow));
-	gtk_window_set_position(GTK_WINDOW(mainWindow), GTK_WIN_POS_CENTER_ON_PARENT);    
-
 	// ***show*** before creating gc's
 	gtk_widget_show ( mainWindow ) ;
 
@@ -486,8 +478,12 @@ void AP_UnixDialog_Columns::event_previewInvalidate(void)
 	       m_pColumnsPreview->queueDraw();
 }
 
-void AP_UnixDialog_Columns::event_previewDraw(void)
+void AP_UnixDialog_Columns::event_previewDraw(cairo_t *cr)
 {
+	if (m_pColumnsPreview) {
+		static_cast<GR_CairoGraphics*>(m_pColumnsPreview->getGraphics())->setCairo(cr);
+	}
+
 	if(m_pColumnsPreview)
 	       m_pColumnsPreview->drawImmediate();
 }
@@ -544,7 +540,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	             "border-width", 5,
 	             nullptr);
 	gtk_widget_show (grid);
-	gtk_box_pack_start(GTK_BOX (windowColumns), grid, FALSE, FALSE, 6);
+	gtk_box_append(GTK_BOX(windowColumns), grid);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Column_Number,s);
 	s = "<b>" + s + "</b>";
@@ -556,7 +552,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	wToggleOne = gtk_toggle_button_new();
 	gtk_widget_show(wToggleOne );
 	label_button_with_abi_pixmap(wToggleOne, "tb_1column_xpm", 24);
-	gtk_widget_set_can_default(wToggleOne, true);
+	gtk_widget_set_receives_default(wToggleOne, true);
 	gtk_widget_set_margin_start(wToggleOne, 18);
 	gtk_grid_attach(GTK_GRID(grid), wToggleOne, 0, 1, 1, 1);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Column_One,s);
@@ -569,7 +565,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	wToggleTwo = gtk_toggle_button_new ();
 	gtk_widget_show(wToggleTwo);
 	label_button_with_abi_pixmap(wToggleTwo, "tb_2column_xpm", 24);
-	gtk_widget_set_can_default(wToggleTwo, true);
+	gtk_widget_set_receives_default(wToggleTwo, true);
 	gtk_widget_set_margin_start(wToggleTwo, 18);
 	gtk_grid_attach(GTK_GRID(grid), wToggleTwo, 0, 2, 1, 1);
 
@@ -583,7 +579,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	wToggleThree = gtk_toggle_button_new ();
 	gtk_widget_show(wToggleThree);
 	label_button_with_abi_pixmap(wToggleThree, "tb_3column_xpm", 24);
-	gtk_widget_set_can_default(wToggleThree, true);
+	gtk_widget_set_receives_default(wToggleThree, true);
 	gtk_widget_set_margin_start(wToggleThree, 18);
 	gtk_grid_attach(GTK_GRID(grid), wToggleThree, 0, 3, 1, 1);
 
@@ -784,15 +780,9 @@ void AP_UnixDialog_Columns::_connectsignals(void)
 					   reinterpret_cast<gpointer>(this));
 
 	// the expose event of the preview
-	g_signal_connect(G_OBJECT(m_wpreviewArea),
-			 "draw",
-			 G_CALLBACK(s_preview_draw),
-			 reinterpret_cast<gpointer>(this));
-
-	g_signal_connect_after(G_OBJECT(m_windowMain),
-			       "draw",
-			       G_CALLBACK(s_window_draw),
-			       reinterpret_cast<gpointer>(this));
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wpreviewArea),
+							s_preview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 }
 
 void AP_UnixDialog_Columns::_populateWindowData(void)

@@ -247,9 +247,7 @@ libtext_la_SOURCES += \
 	fmt/gtk/fv_UnixVisualDrag.cpp \
 	fmt/gtk/fv_UnixVisualDrag.h \
 	fmt/gtk/fv_UnixSelectionHandles.cpp \
-	fmt/gtk/fv_UnixSelectionHandles.h \
-	fmt/gtk/gtktexthandle.cpp \
-	fmt/gtk/gtktexthandleprivate.h
+	fmt/gtk/fv_UnixSelectionHandles.h
 
 EXTRA_DIST = \
 	fmt/xp/t/fl_AutoNum.t.cpp \

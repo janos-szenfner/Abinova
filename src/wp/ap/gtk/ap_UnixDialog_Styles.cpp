@@ -200,30 +200,30 @@ static void s_styletype(GtkWidget * widget, AP_UnixDialog_Styles * me)
 	me->event_styleType();
 }
 
-static gboolean s_paraPreview_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_Styles * me)
+static void s_paraPreview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+								   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && me);
-	me->event_paraPreviewDraw();
-	return FALSE;
+	AP_UnixDialog_Styles *me = static_cast<AP_UnixDialog_Styles *>(data);
+	UT_return_if_fail(me);
+	me->event_paraPreviewDraw(cr);
 }
 
 
-static gboolean s_charPreview_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_Styles * me)
+static void s_charPreview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+								   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && me);
-	me->event_charPreviewDraw();
-	return FALSE;
+	AP_UnixDialog_Styles *me = static_cast<AP_UnixDialog_Styles *>(data);
+	UT_return_if_fail(me);
+	me->event_charPreviewDraw(cr);
 }
 
 
-static gboolean s_modifyPreview_draw(GtkWidget * widget, gpointer /* data */, AP_UnixDialog_Styles * me)
+static void s_modifyPreview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+								   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && me);
-	me->event_ModifyPreviewDraw();
-	return FALSE;
+	AP_UnixDialog_Styles *me = static_cast<AP_UnixDialog_Styles *>(data);
+	UT_return_if_fail(me);
+	me->event_ModifyPreviewDraw(cr);
 }
 
 static void s_modify_format_cb(GtkWidget * widget, 
@@ -321,15 +321,13 @@ void AP_UnixDialog_Styles::runModal(XAP_Frame * pFrame)
 	_populateWindowData();
 
 	// the expose event of the preview
-	g_signal_connect(G_OBJECT(m_wParaPreviewArea),
-			 "draw",
-			 G_CALLBACK(s_paraPreview_draw),
-			 reinterpret_cast<gpointer>(this));
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wParaPreviewArea),
+							s_paraPreview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 
-	g_signal_connect(G_OBJECT(m_wCharPreviewArea),
-			 "draw",
-			 G_CALLBACK(s_charPreview_draw),
-			 reinterpret_cast<gpointer>(this));
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wCharPreviewArea),
+							s_charPreview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 
 	// connect the select_row signal to the clist
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection(GTK_TREE_VIEW(m_tvStyles))), "changed",
@@ -378,9 +376,10 @@ void AP_UnixDialog_Styles::event_WindowDelete(void)
 	m_answer = AP_Dialog_Styles::a_CANCEL;
 }
 
-void AP_UnixDialog_Styles::event_paraPreviewDraw(void)
+void AP_UnixDialog_Styles::event_paraPreviewDraw(cairo_t *cr)
 {
 	if (m_pParaPreview) {
+		static_cast<GR_CairoGraphics*>(m_pParaPreview->getGraphics())->setCairo(cr);
 		m_pParaPreview->drawImmediate();
 	}
 }
@@ -393,9 +392,10 @@ void AP_UnixDialog_Styles::event_charPreviewInvalidate(void)
 	}
 }
 
-void AP_UnixDialog_Styles::event_charPreviewDraw(void)
+void AP_UnixDialog_Styles::event_charPreviewDraw(cairo_t *cr)
 {
 	if (m_pCharPreview) {
+		static_cast<GR_CairoGraphics*>(m_pCharPreview->getGraphics())->setCairo(cr);
 		m_pCharPreview->drawImmediate();
 	}
 }
@@ -526,14 +526,14 @@ GtkWidget * AP_UnixDialog_Styles::_constructWindow(void)
 	GtkWidget *frameParaPrev = GTK_WIDGET(gtk_builder_get_object(builder, "frameParagraph"));
 	m_wParaPreviewArea = gtk_drawing_area_new();
 	gtk_widget_set_size_request(m_wParaPreviewArea, 300, 70);
-	gtk_container_add(GTK_CONTAINER(frameParaPrev), m_wParaPreviewArea);
+	xap_gtk_container_add (frameParaPrev, m_wParaPreviewArea);
 	gtk_widget_show(m_wParaPreviewArea);
 
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbCharacter")), pSS, AP_STRING_ID_DLG_Styles_CharPrev);
 	GtkWidget *frameCharPrev = GTK_WIDGET(gtk_builder_get_object(builder, "frameCharacter"));
 	m_wCharPreviewArea = gtk_drawing_area_new();
 	gtk_widget_set_size_request(m_wCharPreviewArea, 300, 50);
-	gtk_container_add(GTK_CONTAINER(frameCharPrev), m_wCharPreviewArea);
+	xap_gtk_container_add (frameCharPrev, m_wCharPreviewArea);
 	gtk_widget_show(m_wCharPreviewArea);
 
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbDescription")), pSS, AP_STRING_ID_DLG_Styles_Description);
@@ -789,13 +789,17 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 
 	OverallVbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_widget_show(OverallVbox);
-	gtk_box_pack_start(GTK_BOX(dialog_vbox1), OverallVbox, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(dialog_vbox1), OverallVbox);
+			gtk_widget_set_hexpand(OverallVbox, TRUE);
+			gtk_widget_set_vexpand(OverallVbox, TRUE);
 	XAP_gtk_widget_set_margin(OverallVbox, 5);
 
 	comboTable = gtk_grid_new ();
 	gtk_widget_set_hexpand (comboTable, TRUE);
 	gtk_widget_show(comboTable);
-	gtk_box_pack_start(GTK_BOX(OverallVbox), comboTable, TRUE, TRUE, 2);
+	gtk_box_append(GTK_BOX(OverallVbox), comboTable);
+			gtk_widget_set_hexpand(comboTable, TRUE);
+			gtk_widget_set_vexpand(comboTable, TRUE);
 	XAP_gtk_widget_set_margin(comboTable, 2);
 	gtk_grid_set_column_spacing(GTK_GRID(comboTable), 2);
 
@@ -844,7 +848,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	gtk_widget_show (basedOnCombo);
 	gtk_grid_attach (GTK_GRID (comboTable), basedOnCombo, 0, 3, 1, 1);
 		
-	basedOnEntry = gtk_bin_get_child(GTK_BIN(basedOnCombo));
+	basedOnEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(basedOnCombo));
 	gtk_widget_show (basedOnEntry);
 	gtk_widget_set_size_request (basedOnEntry, 158, -1);
 
@@ -852,7 +856,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	gtk_widget_show(followingCombo);
 	gtk_grid_attach(GTK_GRID(comboTable), followingCombo, 1, 3, 1, 1);
 
-	followingEntry = gtk_bin_get_child(GTK_BIN(followingCombo));
+	followingEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(followingCombo));
 	gtk_widget_show (followingEntry);
 	gtk_widget_set_size_request (followingEntry, 158, -1);
 //
@@ -864,7 +868,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 		gtk_widget_show (styleTypeCombo);
 		gtk_grid_attach (GTK_GRID (comboTable), styleTypeCombo, 1, 1, 1, 1);
 
-		styleTypeEntry = gtk_bin_get_child(GTK_BIN(styleTypeCombo));
+		styleTypeEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(styleTypeCombo));
 		gtk_widget_show (styleTypeEntry);
 		gtk_widget_set_size_request (styleTypeEntry, 158, -1);
 	}
@@ -883,20 +887,20 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	gtk_widget_show(lbPrevFrame);
 	previewFrame = gtk_frame_new(nullptr);
 	gtk_frame_set_label_widget(GTK_FRAME(previewFrame), lbPrevFrame);
-	gtk_frame_set_shadow_type(GTK_FRAME(previewFrame), GTK_SHADOW_NONE);
 	gtk_widget_show (previewFrame);
-	gtk_box_pack_start (GTK_BOX (OverallVbox), previewFrame, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(OverallVbox), previewFrame);
+			gtk_widget_set_hexpand(previewFrame, TRUE);
+			gtk_widget_set_vexpand(previewFrame, TRUE);
 	XAP_gtk_widget_set_margin(previewFrame, 3);
 
 	GtkWidget *wDrawFrame = gtk_frame_new(nullptr);
-	gtk_frame_set_shadow_type(GTK_FRAME(wDrawFrame), GTK_SHADOW_NONE);
 	gtk_widget_show(wDrawFrame);
-	gtk_container_add(GTK_CONTAINER(previewFrame), wDrawFrame);
+	xap_gtk_container_add (previewFrame, wDrawFrame);
 	XAP_gtk_widget_set_margin(wDrawFrame, 6);
 
 	modifyDrawingArea = gtk_drawing_area_new();
 	gtk_widget_set_size_request (modifyDrawingArea, -1, 85);
-	gtk_container_add (GTK_CONTAINER (wDrawFrame), modifyDrawingArea);
+	xap_gtk_container_add (wDrawFrame, modifyDrawingArea);
 	gtk_widget_show (modifyDrawingArea);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyDescription,s);
@@ -905,12 +909,9 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	gtk_label_set_markup(GTK_LABEL(lbDescrFrame), s.c_str());
 	gtk_widget_show(lbDescrFrame);
 	GtkWidget *descriptionFrame = gtk_frame_new(nullptr);
-	g_object_set(G_OBJECT(descriptionFrame),
-			   "label-widget", lbDescrFrame,
-			   "shadow-type", GTK_SHADOW_NONE,
-			   "border-width", 5, nullptr);
+	gtk_frame_set_label_widget(GTK_FRAME(descriptionFrame), lbDescrFrame);
 	gtk_widget_show (descriptionFrame);
-	gtk_box_pack_start (GTK_BOX (OverallVbox), descriptionFrame, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(OverallVbox), descriptionFrame);
 
 	DescriptionText = gtk_label_new(nullptr);
 	g_object_set(G_OBJECT(DescriptionText),
@@ -919,56 +920,72 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 					  "max-width-chars", 64,
 					  nullptr);
 	gtk_widget_show (DescriptionText);
-	gtk_container_add (GTK_CONTAINER (descriptionFrame), DescriptionText);
+	xap_gtk_container_add (descriptionFrame, DescriptionText);
 	gtk_widget_set_size_request(DescriptionText, 438, -1);
 //
 // Code to choose properties to be removed from the current style.
 //
 	GtkWidget * deleteRow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_widget_show (deleteRow);
-	gtk_box_pack_start (GTK_BOX (OverallVbox), deleteRow, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(OverallVbox), deleteRow);
+			gtk_widget_set_hexpand(deleteRow, TRUE);
+			gtk_widget_set_vexpand(deleteRow, TRUE);
 	XAP_gtk_widget_set_margin(deleteRow, 2);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_RemoveLab,s);
 	GtkWidget * deleteLabel = gtk_label_new(s.c_str());
 	gtk_widget_show (deleteLabel);
-	gtk_box_pack_start (GTK_BOX (deleteRow), deleteLabel, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(deleteRow), deleteLabel);
+			gtk_widget_set_hexpand(deleteLabel, TRUE);
+			gtk_widget_set_vexpand(deleteLabel, TRUE);
 
 	GtkListStore * store = gtk_list_store_new(1, G_TYPE_STRING);
 	deletePropCombo = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
 	gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(deletePropCombo), 0);
 	gtk_widget_show (deletePropCombo);
-	gtk_box_pack_start (GTK_BOX (deleteRow), deletePropCombo, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(deleteRow), deletePropCombo);
+			gtk_widget_set_hexpand(deletePropCombo, TRUE);
+			gtk_widget_set_vexpand(deletePropCombo, TRUE);
 
-	deletePropEntry = gtk_bin_get_child(GTK_BIN(deletePropCombo));
+	deletePropEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(deletePropCombo));
 	gtk_widget_show (deletePropEntry);
 	gtk_widget_set_size_request (deletePropEntry, 158, -1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_RemoveButton,s);
 	deletePropButton = gtk_button_new_with_label(s.c_str());
 	gtk_widget_show(deletePropButton);
-	gtk_box_pack_start (GTK_BOX (deleteRow), deletePropButton, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(deleteRow), deletePropButton);
+			gtk_widget_set_hexpand(deletePropButton, TRUE);
+			gtk_widget_set_vexpand(deletePropButton, TRUE);
 
 	checkBoxRow = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 3);
-	gtk_box_pack_start (GTK_BOX (OverallVbox), checkBoxRow, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(OverallVbox), checkBoxRow);
+			gtk_widget_set_hexpand(checkBoxRow, TRUE);
+			gtk_widget_set_vexpand(checkBoxRow, TRUE);
 	XAP_gtk_widget_set_margin(checkBoxRow, 2);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyTemplate,s);
 	checkAddTo = gtk_check_button_new_with_label (s.c_str());
 	gtk_widget_show (checkAddTo);
-	gtk_box_pack_start (GTK_BOX (checkBoxRow), checkAddTo, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(checkBoxRow), checkAddTo);
+			gtk_widget_set_hexpand(checkAddTo, TRUE);
+			gtk_widget_set_vexpand(checkAddTo, TRUE);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyAutomatic,s);
 	checkAutoUpdate = gtk_check_button_new_with_label (s.c_str());
 	gtk_widget_show (checkAutoUpdate);
-	gtk_box_pack_start (GTK_BOX (checkBoxRow), checkAutoUpdate, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(checkBoxRow), checkAutoUpdate);
+			gtk_widget_set_hexpand(checkAutoUpdate, TRUE);
+			gtk_widget_set_vexpand(checkAutoUpdate, TRUE);
 
 	GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_pack_start(GTK_BOX(OverallVbox), box, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(OverallVbox), box);
+			gtk_widget_set_hexpand(box, TRUE);
+			gtk_widget_set_vexpand(box, TRUE);
 	gtk_widget_show(box);
 	GtkWidget* formatMenu = gtk_combo_box_text_new();
 	gtk_widget_show(formatMenu);
-	gtk_box_pack_end(GTK_BOX(box), formatMenu, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(box), formatMenu);
 	_constructFormatList(formatMenu);
 
 //
@@ -1007,7 +1024,9 @@ void   AP_UnixDialog_Styles::_constructGnomeModifyButtons()
 	shortCutButton = gtk_button_new_with_label (pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyShortCut).c_str());
 	gtk_widget_show (shortCutButton);
 	gtk_widget_set_sensitive ( shortCutButton, FALSE );
-	gtk_box_pack_start (GTK_BOX (bottomButtons), shortCutButton, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(bottomButtons), shortCutButton);
+			gtk_widget_set_hexpand(shortCutButton, TRUE);
+			gtk_widget_set_vexpand(shortCutButton, TRUE);
 #endif
 
 	m_wModifyOk = buttonOK;
@@ -1050,10 +1069,9 @@ void AP_UnixDialog_Styles::_connectModifySignals(void)
 					   G_CALLBACK(s_modify_format_cb),
 					   reinterpret_cast<gpointer>(this));
 
-	g_signal_connect(G_OBJECT(m_wModifyDrawingArea),
-			 "draw",
-			 G_CALLBACK(s_modifyPreview_draw),
-			 reinterpret_cast<gpointer>(this));
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wModifyDrawingArea),
+							s_modifyPreview_draw,
+							reinterpret_cast<gpointer>(this), nullptr);
 
 	g_signal_connect(G_OBJECT(m_wDeletePropButton),
 					   "clicked",
@@ -1294,7 +1312,7 @@ void  AP_UnixDialog_Styles::modifyRunModal(void)
 		m_gbasedOnStyles.clear();
 		m_gfollowedByStyles.clear();
 		m_gStyleType.clear();
-		gtk_widget_destroy(m_wModifyDialog); // TOPLEVEL
+		abiDestroyWidget(m_wModifyDialog); // TOPLEVEL
 	}
 //
 // Have to delete this now since the destructor is not run till later
@@ -1308,9 +1326,10 @@ void AP_UnixDialog_Styles::event_ModifyPreviewInvalidate(void)
 	invalidatePreview();
 }
 
-void AP_UnixDialog_Styles::event_ModifyPreviewDraw(void)
+void AP_UnixDialog_Styles::event_ModifyPreviewDraw(cairo_t *cr)
 {
 	if (m_pAbiPreview) {
+		static_cast<GR_CairoGraphics*>(m_pAbiPreview->getGraphics())->setCairo(cr);
 		m_pAbiPreview->drawImmediate();
 	}
 }

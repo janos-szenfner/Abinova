@@ -77,10 +77,17 @@ void messageBoxOK(const char * message);
 void centerDialog(GtkWidget * parent, GtkWidget * child, bool set_transient_for = true);
 
 void abiSetupModalDialog(GtkDialog * me, XAP_Frame *pFrame, XAP_Dialog * pDlg, gint dfl_id);
-gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, AtkRole role = ATK_ROLE_DIALOG);
-gint abiRunModalDialog(GtkDialog * me, XAP_Frame *pFrame, XAP_Dialog * pDlg, gint dfl_id, bool destroyDialog, AtkRole role = ATK_ROLE_DIALOG);
-void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDlg, gint dfl_id, bool abi_modeless = true, AtkRole role = ATK_ROLE_DIALOG);
+gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole role = GTK_ACCESSIBLE_ROLE_DIALOG);
+gint abiRunModalDialog(GtkDialog * me, XAP_Frame *pFrame, XAP_Dialog * pDlg, gint dfl_id, bool destroyDialog, GtkAccessibleRole role = GTK_ACCESSIBLE_ROLE_DIALOG);
+void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDlg, gint dfl_id, bool abi_modeless = true, GtkAccessibleRole role = GTK_ACCESSIBLE_ROLE_DIALOG);
 void abiDestroyWidget(GtkWidget * me);
+
+/*!
+ * GTK4 replacement for gtk_radio_button_new_with_label(): creates a
+ * GtkCheckButton and joins it to \group_member's radio group.
+ * \group_member may be nullptr to start a new group.
+ */
+GtkWidget * abi_radio_button_new_with_label(GtkWidget * group_member, const char * label);
 
 GtkWidget* abiAddButton(GtkDialog * me, std::string label, gint response_id);
 

@@ -28,7 +28,7 @@
 #include "ap_Ruler.h"
 
 static void
-ruler_style_context_changed (GtkWidget* /*w*/,
+ruler_style_context_changed (GObject* /*w*/, GParamSpec* /*pspec*/,
                              AP_UnixRuler* ruler)
 {
     ruler->_ruler_style_context_changed();
@@ -39,17 +39,17 @@ AP_UnixRuler::AP_UnixRuler(XAP_Frame* pFrame)
     , m_iBackgroundRedrawID(0)
 {
     // change ruler color on theme change
-    GtkWidget* toplevel = static_cast<XAP_UnixFrameImpl*>(pFrame->getFrameImpl())->getTopLevelWindow();
-    m_iBackgroundRedrawID = g_signal_connect_after(
-        G_OBJECT(toplevel), "style-updated", G_CALLBACK(ruler_style_context_changed),
-        static_cast<gpointer>(this));
+    GtkSettings *settings = gtk_settings_get_default();
+    m_iBackgroundRedrawID = g_signal_connect(
+        G_OBJECT(settings), "notify::gtk-application-prefer-dark-theme",
+        G_CALLBACK(ruler_style_context_changed), static_cast<gpointer>(this));
 }
 
-void AP_UnixRuler::_aboutToDestroy(XAP_Frame* pFrame)
+void AP_UnixRuler::_aboutToDestroy(XAP_Frame* /*pFrame*/)
 {
-    GtkWidget* toplevel = static_cast<XAP_UnixFrameImpl*>(pFrame->getFrameImpl())->getTopLevelWindow();
-    if (toplevel && g_signal_handler_is_connected(G_OBJECT(toplevel), m_iBackgroundRedrawID)) {
-        g_signal_handler_disconnect(G_OBJECT(toplevel), m_iBackgroundRedrawID);
+    GtkSettings *settings = gtk_settings_get_default();
+    if (settings && g_signal_handler_is_connected(G_OBJECT(settings), m_iBackgroundRedrawID)) {
+        g_signal_handler_disconnect(G_OBJECT(settings), m_iBackgroundRedrawID);
     }
 }
 
@@ -72,34 +72,31 @@ GtkWidget* AP_UnixRuler::_createWidget(gint w, gint h)
     gtk_widget_show(m_wRuler);
     gtk_widget_set_size_request(m_wRuler, w, h);
 
-    gtk_widget_set_events(GTK_WIDGET(m_wRuler), (GDK_EXPOSURE_MASK |
-                                                 GDK_BUTTON_PRESS_MASK |
-                                                 GDK_POINTER_MOTION_MASK |
-                                                 GDK_BUTTON_RELEASE_MASK |
-                                                 GDK_KEY_PRESS_MASK |
-                                                 GDK_KEY_RELEASE_MASK));
-
     g_signal_connect_swapped(G_OBJECT(m_wRuler), "realize",
                              G_CALLBACK(_fe::realize), this);
 
     g_signal_connect_swapped(G_OBJECT(m_wRuler), "unrealize",
                              G_CALLBACK(_fe::unrealize), this);
 
-    g_signal_connect_swapped(G_OBJECT(m_wRuler), "draw",
-                             G_CALLBACK(XAP_UnixCustomWidget::_fe::draw),
-                             static_cast<XAP_UnixCustomWidget *>(this));
+    gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_wRuler),
+                                   XAP_UnixCustomWidget::_fe::draw,
+                                   static_cast<XAP_UnixCustomWidget *>(this), nullptr);
 
-    g_signal_connect(G_OBJECT(m_wRuler), "button_press_event",
-                     G_CALLBACK(_fe::button_press_event), nullptr);
+    GtkGesture *click = gtk_gesture_click_new();
+    gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0);
+    g_signal_connect(G_OBJECT(click), "pressed",
+                     G_CALLBACK(_fe::button_pressed), this);
+    g_signal_connect(G_OBJECT(click), "released",
+                     G_CALLBACK(_fe::button_released), this);
+    gtk_widget_add_controller(m_wRuler, GTK_EVENT_CONTROLLER(click));
 
-    g_signal_connect(G_OBJECT(m_wRuler), "button_release_event",
-                     G_CALLBACK(_fe::button_release_event), nullptr);
+    GtkEventController *motion = gtk_event_controller_motion_new();
+    g_signal_connect(G_OBJECT(motion), "motion",
+                     G_CALLBACK(_fe::motion_notify), this);
+    gtk_widget_add_controller(m_wRuler, motion);
 
-    g_signal_connect(G_OBJECT(m_wRuler), "motion_notify_event",
-                     G_CALLBACK(_fe::motion_notify_event), nullptr);
-
-    g_signal_connect(G_OBJECT(m_wRuler), "configure_event",
-                     G_CALLBACK(_fe::configure_event), nullptr);
+    g_signal_connect(G_OBJECT(m_wRuler), "resize",
+                     G_CALLBACK(_fe::resized), nullptr);
 
     return m_wRuler;
 }
@@ -118,7 +115,12 @@ void AP_UnixRuler::_setView(AV_View* pView, GR_UnixCairoGraphics* pG)
 
 void AP_UnixRuler::getWidgetPosition(gint& x, gint& y) const
 {
-    gdk_window_get_position(gtk_widget_get_window(m_wRuler), &x, &y);
+    // GTK4 widgets are windowless; report the allocation origin
+    x = y = 0;
+    GtkAllocation alloc;
+    gtk_widget_get_allocation(m_wRuler, &alloc);
+    x = alloc.x;
+    y = alloc.y;
 }
 
 void AP_UnixRuler::_fe::realize(AP_UnixRuler* self)
@@ -136,181 +138,108 @@ void AP_UnixRuler::_fe::unrealize(AP_UnixRuler* self)
     self->_deleteGraphics();
 }
 
-gint AP_UnixRuler::_fe::button_press_event(GtkWidget* w, GdkEventButton* e)
+static EV_EditMouseButton s_buttonToEmb(guint button)
 {
-    // a static function
-    AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(g_object_get_data(G_OBJECT(w), "user_data"));
+    if (1 == button) return EV_EMB_BUTTON1;
+    if (2 == button) return EV_EMB_BUTTON2;
+    if (3 == button) return EV_EMB_BUTTON3;
+    return static_cast<EV_EditMouseButton>(0);
+}
+
+static EV_EditModifierState s_eventStateToEms(GdkModifierType ev_state)
+{
+    EV_EditModifierState ems = 0;
+    if (ev_state & GDK_SHIFT_MASK)   ems |= EV_EMS_SHIFT;
+    if (ev_state & GDK_CONTROL_MASK) ems |= EV_EMS_CONTROL;
+    if (ev_state & GDK_ALT_MASK)     ems |= EV_EMS_ALT;
+    return ems;
+}
+
+void AP_UnixRuler::_fe::button_pressed(GtkGestureClick* g, gint /*n_press*/,
+                                       gdouble ev_x, gdouble ev_y, gpointer data)
+{
+    AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(data);
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
     UT_ASSERT(ruler);
 
     FV_View* pView = static_cast<FV_View *>(ruler->getFrame()->getCurrentView());
     if (!pView || pView->getPoint() == 0 || !ruler->getGraphics()) {
-        return 1;
+        return;
     }
 
-    // grab the mouse for the duration of the drag.
-    gtk_grab_add(w);
-
-    EV_EditModifierState ems = 0;
-    EV_EditMouseButton emb = 0;
-
-    GdkModifierType ev_state = (GdkModifierType)0;
-    gdk_event_get_state((GdkEvent*)e, &ev_state);
-
-    if (ev_state & GDK_SHIFT_MASK) {
-        ems |= EV_EMS_SHIFT;
-    }
-    if (ev_state & GDK_CONTROL_MASK) {
-        ems |= EV_EMS_CONTROL;
-    }
-    if (ev_state & GDK_MOD1_MASK) {
-        ems |= EV_EMS_ALT;
-    }
-
-    guint ev_button = 0;
-    gdk_event_get_button((GdkEvent*)e, &ev_button);
-
-    if (1 == ev_button) {
-        emb = EV_EMB_BUTTON1;
-    } else if (2 == ev_button) {
-        emb = EV_EMB_BUTTON2;
-    } else if (3 == ev_button) {
-        emb = EV_EMB_BUTTON3;
-    }
-
-    UT_DEBUGMSG(("SEVIOR: ev_button = %x \n",ev_button));
-    gdouble ev_x, ev_y;
-    ev_x = ev_y = 0.0f;
-    gdk_event_get_coords((GdkEvent*)e, &ev_x, &ev_y);
+    GdkModifierType ev_state = gtk_event_controller_get_current_event_state(
+        GTK_EVENT_CONTROLLER(g));
+    EV_EditModifierState ems = s_eventStateToEms(ev_state);
+    EV_EditMouseButton emb = s_buttonToEmb(gtk_gesture_single_get_current_button(
+        GTK_GESTURE_SINGLE(g)));
 
     auto pG = ruler->getGraphics();
     ruler->mousePress(ems, emb,
                        pG->tlu(static_cast<UT_uint32>(ev_x)),
                        pG->tlu(static_cast<UT_uint32>(ev_y)));
-    return 1;
 }
 
-gint AP_UnixRuler::_fe::button_release_event(GtkWidget* w, GdkEventButton* e)
+void AP_UnixRuler::_fe::button_released(GtkGestureClick* g, gint /*n_press*/,
+                                        gdouble ev_x, gdouble ev_y, gpointer data)
 {
-    AP_UnixRuler* pRuler = static_cast<AP_UnixRuler*>(g_object_get_data(G_OBJECT(w), "user_data"));
-    UT_ASSERT(pRuler);
+    AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(data);
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
     UT_ASSERT(ruler);
 
-    EV_EditModifierState ems = 0;
-    EV_EditMouseButton emb = 0;
-
     FV_View* pView = static_cast<FV_View*>(ruler->getFrame()->getCurrentView());
     if (!pView || pView->getPoint() == 0 || !ruler->getGraphics()) {
-        return 1;
+        return;
     }
 
-    GdkModifierType ev_state = (GdkModifierType)0;
-    gdk_event_get_state((GdkEvent*)e, &ev_state);
+    GdkModifierType ev_state = gtk_event_controller_get_current_event_state(
+        GTK_EVENT_CONTROLLER(g));
+    EV_EditModifierState ems = s_eventStateToEms(ev_state);
+    EV_EditMouseButton emb = s_buttonToEmb(gtk_gesture_single_get_current_button(
+        GTK_GESTURE_SINGLE(g)));
 
-    if (ev_state & GDK_SHIFT_MASK) {
-        ems |= EV_EMS_SHIFT;
-    }
-    if (ev_state & GDK_CONTROL_MASK) {
-        ems |= EV_EMS_CONTROL;
-    }
-    if (ev_state & GDK_MOD1_MASK) {
-        ems |= EV_EMS_ALT;
-    }
-
-    guint ev_button = 0;
-    gdk_event_get_button((GdkEvent*)e, &ev_button);
-
-    if (1 == ev_button) {
-        emb = EV_EMB_BUTTON1;
-    } else if (2 == ev_button) {
-        emb = EV_EMB_BUTTON2;
-    } else if (3 == ev_button) {
-        emb = EV_EMB_BUTTON3;
-    }
-
-    gdouble ev_x, ev_y;
-    ev_x = ev_y = 0.0f;
-    gdk_event_get_coords((GdkEvent*)e, &ev_x, &ev_y);
     auto pG = ruler->getGraphics();
     ruler->mouseRelease(ems, emb,
                          pG->tlu(static_cast<UT_uint32>(ev_x)),
                          pG->tlu(static_cast<UT_uint32>(ev_y)));
-
-    // release the mouse after we are done.
-    gtk_grab_remove(w);
-
-    return 1;
 }
 
-gint AP_UnixRuler::_fe::configure_event(GtkWidget* w, GdkEventConfigure * e)
-{
-    AP_UnixRuler* pRuler = static_cast<AP_UnixRuler*>(g_object_get_data(G_OBJECT(w), "user_data"));
-    AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
-    UT_nonnull_or_return(ruler, 0);
-
-    // nb: we'd convert here, but we can't: have no graphics class!
-    ruler->setHeight(e->height);
-    ruler->setWidth(e->width);
-
-    return 1;
-}
-
-gint AP_UnixRuler::_fe::motion_notify_event(GtkWidget* w, GdkEventMotion* e)
+void AP_UnixRuler::_fe::resized(GtkDrawingArea* w, int width, int height, gpointer /*data*/)
 {
     AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(g_object_get_data(G_OBJECT(w), "user_data"));
+    AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
+    UT_nonnull_or_return(ruler,);
+
+    // nb: we'd convert here, but we can't: have no graphics class!
+    ruler->setHeight(height);
+    ruler->setWidth(width);
+}
+
+void AP_UnixRuler::_fe::motion_notify(GtkEventControllerMotion* c,
+                                      gdouble ev_x, gdouble ev_y, gpointer data)
+{
+    AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(data);
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
     UT_ASSERT(ruler);
 
     XAP_App* pApp = XAP_App::getApp();
     XAP_Frame* pFrame = pApp->getLastFocussedFrame();
     if (pFrame == nullptr) {
-        return 1;
+        return;
     }
 
     AV_View * pView = pFrame->getCurrentView();
     if(pView == nullptr || pView->getPoint() == 0 || !ruler->getGraphics()) {
-        return 1;
+        return;
     }
 
-    EV_EditModifierState ems = 0;
+    GdkModifierType ev_state = gtk_event_controller_get_current_event_state(
+        GTK_EVENT_CONTROLLER(c));
+    EV_EditModifierState ems = s_eventStateToEms(ev_state);
 
-    GdkModifierType ev_state = (GdkModifierType)0;
-    gdk_event_get_state((GdkEvent*)e, &ev_state);
-
-    if (ev_state & GDK_SHIFT_MASK) {
-        ems |= EV_EMS_SHIFT;
-    }
-    if (ev_state & GDK_CONTROL_MASK) {
-        ems |= EV_EMS_CONTROL;
-    }
-    if (ev_state & GDK_MOD1_MASK) {
-        ems |= EV_EMS_ALT;
-    }
-
-    // Map the mouse into coordinates relative to our window.
-    gdouble ev_x, ev_y;
-    ev_x = ev_y = 0.0f;
-    gdk_event_get_coords((GdkEvent*)e, &ev_x, &ev_y);
-
+    // x/y are already relative to the ruler widget in GTK4
     UT_uint32 x = ruler->getGraphics()->tlu(static_cast<UT_uint32>(ev_x));
     UT_uint32 y = ruler->getGraphics()->tlu(static_cast<UT_uint32>(ev_y));
     ruler->mouseMotion(ems, x, y);
     pRuler->_finishMotionEvent(x, y);
-
-    return 1;
 }
 
-gint AP_UnixRuler::_fe::key_press_event(GtkWidget* /*w*/, GdkEventKey* /* e */)
-{
-    return 1;
-}
-
-gint AP_UnixRuler::_fe::delete_event(GtkWidget * /* w */, GdkEvent * /*event*/, gpointer /*data*/)
-{
-    return 1;
-}
-
-void AP_UnixRuler::_fe::destroy(GtkWidget * /*widget*/, gpointer /*data*/)
-{
-}

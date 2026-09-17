@@ -86,15 +86,11 @@ AP_UnixDialog_Paragraph::~AP_UnixDialog_Paragraph(void)
 /* These are static callbacks for dialog widgets                 */
 /*****************************************************************/
 
-static gint s_spin_focus_out(GtkWidget * widget,
-							 GdkEventFocus * /* event */,
+static void s_spin_focus_out(GtkEventControllerFocus * controller,
 							 AP_UnixDialog_Paragraph * dlg)
 {
+	GtkWidget * widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
 	dlg->event_SpinFocusOut(widget);
-
-	// do NOT let GTK do its own update (which would erase the text we just
-	// put in the entry area
-	return FALSE;
 }
 
 static void s_spin_changed(GtkWidget * widget,
@@ -117,13 +113,12 @@ static void s_check_toggled(GtkWidget * widget, AP_UnixDialog_Paragraph * dlg)
 	dlg->event_CheckToggled(widget);
 }
 
-static gint s_preview_draw(GtkWidget * /* widget */,
-			   cairo_t * /* cr */,
-			   AP_UnixDialog_Paragraph * dlg)
+static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
+							   int /*width*/, int /*height*/, gpointer data)
 {
-	UT_ASSERT(dlg);
-	dlg->event_PreviewAreaDraw();
-	return TRUE;
+	AP_UnixDialog_Paragraph *dlg = static_cast<AP_UnixDialog_Paragraph *>(data);
+	UT_return_if_fail(dlg);
+	dlg->event_PreviewAreaDraw(cr);
 }
 
 /*****************************************************************/
@@ -294,9 +289,10 @@ void AP_UnixDialog_Paragraph::event_CheckToggled(GtkWidget * widget)
 	_setCheckItemValue(id, cs);
 }
 
-void AP_UnixDialog_Paragraph::event_PreviewAreaDraw(void)
+void AP_UnixDialog_Paragraph::event_PreviewAreaDraw(cairo_t *cr)
 {
 	if (m_paragraphPreview) {
+		static_cast<GR_CairoGraphics*>(m_paragraphPreview->getGraphics())->setCairo(cr);
 		m_paragraphPreview->drawImmediate();
 	}
 }
@@ -319,20 +315,19 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindow(void)
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_ParaTitle,s);
 	std::string unixstr = UT_XML_cloneNoAmpersands(s);
 	windowParagraph = abiDialogNew("paragraph dialog", TRUE, unixstr.c_str());
-	gtk_window_set_position(GTK_WINDOW(windowParagraph), GTK_WIN_POS_CENTER_ON_PARENT);
 	gtk_window_set_resizable(GTK_WINDOW(windowParagraph), false);
 
 	vboxMain = gtk_dialog_get_content_area(GTK_DIALOG(windowParagraph));
 	XAP_gtk_widget_set_margin(vboxMain, 10);
 
 	windowContents = _constructWindowContents(windowParagraph);
-	gtk_box_pack_start (GTK_BOX (vboxMain), windowContents, FALSE, TRUE, 5);
+	gtk_box_append(GTK_BOX(vboxMain), windowContents);
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_Cancel, s);
 	buttonCancel = abiAddButton(GTK_DIALOG(windowParagraph), s, BUTTON_CANCEL);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_ButtonTabs,s);
 	buttonTabs = abiAddButton (GTK_DIALOG(windowParagraph), s, BUTTON_TABS);
-	GtkWidget *img = gtk_image_new_from_icon_name("go-last", GTK_ICON_SIZE_BUTTON);
-	gtk_button_set_image(GTK_BUTTON(buttonTabs), img);
+	GtkWidget *img = gtk_image_new_from_icon_name("go-last");
+	gtk_button_set_child(GTK_BUTTON(buttonTabs), img);
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_OK, s);
 	buttonOK = abiAddButton(GTK_DIALOG(windowParagraph), s, BUTTON_OK);
 
@@ -398,7 +393,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 
 	tabMain = gtk_notebook_new ();
 	gtk_widget_show (tabMain);
-	gtk_box_pack_start (GTK_BOX (vboxContents), tabMain, FALSE, TRUE, 0);
+	gtk_box_append(GTK_BOX(vboxContents), tabMain);
 
 
 	// "Indents and Spacing" page
@@ -434,7 +429,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	XAP_makeGtkComboBoxText(listAlignment, G_TYPE_INT);
 	g_object_set_data(G_OBJECT(listAlignment), WIDGET_ID_TAG, (gpointer) id_MENU_ALIGNMENT);
 	gtk_widget_show (GTK_WIDGET(listAlignment));
-	gtk_box_pack_start (GTK_BOX (hboxAlignment), GTK_WIDGET(listAlignment), FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hboxAlignment), GTK_WIDGET(listAlignment));
 	gtk_grid_attach(GTK_GRID(boxSpacing), hboxAlignment, 1, 0, 1, 1);
 
 	XAP_appendComboBoxTextAndInt(listAlignment, " ", 0); // add an empty menu option to fix bug 594
@@ -468,7 +463,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                            "xpad", 0, "ypad", 3,
                                            nullptr);
 	gtk_widget_show (labelIndentation);
-	gtk_box_pack_start (GTK_BOX (hboxIndentation), labelIndentation, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hboxIndentation), labelIndentation);
 
 	gtk_grid_attach(GTK_GRID(boxSpacing), hboxIndentation, 0, 1, 4, 1);
 
@@ -554,7 +549,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                        "xalign", 0.0, "yalign", 0.5,
                                        "xpad", 0, "ypad", 3,
                                        nullptr);
-	gtk_box_pack_start (GTK_BOX (hboxSpacing), labelSpacing, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hboxSpacing), labelSpacing);
 	gtk_label_set_justify (GTK_LABEL (labelSpacing), GTK_JUSTIFY_LEFT);
 
 	gtk_grid_attach(GTK_GRID(boxSpacing), hboxSpacing, 0, 4, 1, 1);
@@ -665,7 +660,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                           "xpad", 0, "ypad", 3,
                                           nullptr);
 	gtk_widget_show (labelPagination);
-	gtk_box_pack_start (GTK_BOX (hboxPagination), labelPagination, FALSE, FALSE, 0);
+	gtk_box_append(GTK_BOX(hboxPagination), labelPagination);
 
 	gtk_grid_attach(GTK_GRID(boxBreaks), hboxPagination, 0, 0, 2, 1);
 
@@ -737,9 +732,11 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                        "xpad", 0, "ypad", 8,
                                        nullptr);
 	gtk_widget_show (labelPreview);
-	gtk_box_pack_start (GTK_BOX (hboxPreview), labelPreview, FALSE, TRUE, 0);
+	gtk_box_append(GTK_BOX(hboxPreview), labelPreview);
 
-	gtk_box_pack_start (GTK_BOX (vboxContents), hboxPreview, TRUE, TRUE, 0);
+	gtk_box_append(GTK_BOX(vboxContents), hboxPreview);
+			gtk_widget_set_hexpand(hboxPreview, TRUE);
+			gtk_widget_set_vexpand(hboxPreview, TRUE);
 
 
 	hboxPreviewFrame = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
@@ -748,14 +745,14 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	framePreview = gtk_frame_new (nullptr);
 	gtk_widget_show (framePreview);
 
-	gtk_box_pack_start (GTK_BOX (hboxPreviewFrame), framePreview, TRUE, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (vboxContents), hboxPreviewFrame, FALSE, TRUE, 0);
+	gtk_box_append(GTK_BOX(hboxPreviewFrame), framePreview);
+			gtk_widget_set_hexpand(framePreview, TRUE);
+			gtk_widget_set_vexpand(framePreview, TRUE);
+	gtk_box_append(GTK_BOX(vboxContents), hboxPreviewFrame);
 	gtk_widget_set_size_request (framePreview, 400, 150);
-	gtk_frame_set_shadow_type (GTK_FRAME (framePreview), GTK_SHADOW_NONE);
-
 	drawingareaPreview = gtk_drawing_area_new();
 	gtk_widget_show (drawingareaPreview);
-	gtk_container_add (GTK_CONTAINER (framePreview), drawingareaPreview);
+	xap_gtk_container_add (framePreview, drawingareaPreview);
 
 	// Update member variables with the important widgets that
 	// might need to be queried or altered later.
@@ -796,9 +793,11 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 
 #define CONNECT_SPIN_SIGNAL_FOCUS_OUT(w)			\
         do {												\
-	        g_signal_connect(G_OBJECT(w), "focus_out_event",	\
+	        GtkEventController *foc = gtk_event_controller_focus_new(); \
+	        g_signal_connect(foc, "leave",	\
                 G_CALLBACK(s_spin_focus_out),			\
                 (gpointer) this);							\
+	        gtk_widget_add_controller(GTK_WIDGET(w), foc);	\
         } while (0)
 
 
@@ -844,10 +843,9 @@ void AP_UnixDialog_Paragraph::_connectCallbackSignals(void)
 					   G_CALLBACK(s_check_toggled), (gpointer) this);
 
 	// the expose event off the preview
-	g_signal_connect(G_OBJECT(m_drawingareaPreview),
-			 "draw",
-			 G_CALLBACK(s_preview_draw),
-			 (gpointer) this);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_drawingareaPreview),
+							s_preview_draw,
+							(gpointer) this, nullptr);
 }
 
 void AP_UnixDialog_Paragraph::_populateWindowData(void)

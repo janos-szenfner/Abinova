@@ -42,12 +42,14 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	virtual UT_RGBColor getColorSelBackground() const override;
 	virtual UT_RGBColor getColorSelForeground() const override;
 
-	GtkShadowType getShadowType () { return gtk_frame_get_shadow_type (GTK_FRAME (m_wSunkenBox)); }
-	void setShadowType (GtkShadowType shadow) { gtk_frame_set_shadow_type (GTK_FRAME (m_wSunkenBox), shadow); }
+	// GTK4 GtkFrame has no shadow type; kept for the abiwidget property API
+	int getShadowType () const { return 0; }
+	void setShadowType (int /*shadow*/) {}
 
 	GtkWidget * getDrawingArea() const {return m_dArea;}
-	static gboolean ap_focus_in_event (GtkWidget * drawing_area, GdkEventCrossing *event, AP_UnixFrameImpl * me);
-	static gboolean ap_focus_out_event (GtkWidget * drawing_area, GdkEventCrossing *event, AP_UnixFrameImpl * me);
+	static void ap_focus_in_event (GtkEventControllerMotion * c, gdouble x,
+								   gdouble y, GtkWidget * drawing_area);
+	static void ap_focus_out_event (GtkEventControllerMotion * c, GtkWidget * drawing_area);
 	virtual GtkWidget * getViewWidget(void) const override
 	{ return m_dArea; }
 

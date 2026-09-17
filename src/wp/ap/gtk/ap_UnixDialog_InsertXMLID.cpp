@@ -48,12 +48,12 @@
 
 #define BUTTON_INSERT 1
 #include <gdk/gdkkeysyms.h>
-static gboolean __onKeyPressed(G_GNUC_UNUSED GtkWidget* widget,
-                               GdkEventKey* event,
+static gboolean __onKeyPressed(G_GNUC_UNUSED GtkEventControllerKey* controller,
+                               guint ev_keyval,
+                               G_GNUC_UNUSED guint keycode,
+                               G_GNUC_UNUSED GdkModifierType state,
                                G_GNUC_UNUSED gpointer user_data )
 {
-    guint ev_keyval = 0;
-    gdk_event_get_keyval((GdkEvent*)event, &ev_keyval);
 
     guint32 uc = gdk_keyval_to_unicode(ev_keyval);
     xxx_UT_DEBUGMSG(("__onKeyPressed() uc: %u\n", uc));
@@ -201,19 +201,21 @@ AP_UnixDialog_InsertXMLID::_constructWindowContents(GtkWidget * container )
     pSS->getValueUTF8(msgid,s);
     label1 = gtk_label_new (s.c_str());
     gtk_widget_show (label1);
-    gtk_box_pack_start (GTK_BOX (container), label1, FALSE, FALSE, 0);
+    gtk_box_append(GTK_BOX(container), label1);
 
     // m_combo = gtk_combo_box_text_new_with_entry();
     // doesn't yet work as a combo box!
     m_combo = gtk_entry_new();
     gtk_widget_show (m_combo);
-    gtk_box_pack_start (GTK_BOX (container), m_combo, FALSE, FALSE, 0);
+    gtk_box_append(GTK_BOX(container), m_combo);
 
     // GtkEntry *entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_combo)));
 
 	// g_signal_connect (GTK_ENTRY (entry), "key-press-event", 
-	g_signal_connect (GTK_ENTRY (m_combo), "key-press-event", 
+	GtkEventController *keyc = gtk_event_controller_key_new();
+	g_signal_connect (keyc, "key-pressed",
 					  G_CALLBACK (__onKeyPressed), static_cast <gpointer>(this));
+	gtk_widget_add_controller (m_combo, keyc);
 
 
 }
@@ -232,7 +234,7 @@ AP_UnixDialog_InsertXMLID::_constructWindow(void)
   
     vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
     gtk_widget_show (vbox);
-    gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area(GTK_DIALOG (m_window))), vbox);
+    xap_gtk_container_add (gtk_dialog_get_content_area(GTK_DIALOG (m_window)), vbox);
     XAP_gtk_widget_set_margin(vbox, 5);
 
     _constructWindowContents ( vbox );

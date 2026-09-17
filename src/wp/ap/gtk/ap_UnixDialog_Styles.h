@@ -51,9 +51,9 @@ public:
 	// callbacks can fire these events
 
 	void event_paraPreviewInvalidate(void);
-	void event_paraPreviewDraw(void);
+	void event_paraPreviewDraw(cairo_t *cr);
 	void event_charPreviewInvalidate(void);
-	void event_charPreviewDraw(void);
+	void event_charPreviewDraw(cairo_t *cr);
 
 	virtual void			event_Apply(void);
 	virtual void			event_Close(void);
@@ -79,7 +79,7 @@ public:
 	void         event_ModifyTabs();
 	void         event_ModifyLanguage();
 	void event_ModifyPreviewInvalidate();
-	void event_ModifyPreviewDraw();
+	void event_ModifyPreviewDraw(cairo_t *cr);
 	void         event_RemoveProperty(void);
 	void         rebuildDeleteProps(void);
 	void         event_basedOn(void);

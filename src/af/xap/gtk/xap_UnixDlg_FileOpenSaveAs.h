@@ -60,6 +60,7 @@ protected:
 												const char * fileName);
 
 	GtkFileChooser * m_FC;
+	GtkWidget * m_dialog;
 	GtkWidget * m_preview;
 private:
 	bool				m_bSave;

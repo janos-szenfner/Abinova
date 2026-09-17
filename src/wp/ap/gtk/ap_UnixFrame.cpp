@@ -380,8 +380,8 @@ void AP_UnixFrame::toggleTopRuler(bool bRulerOn)
 		{
 			if(pFrameImpl->m_topRuler && GTK_IS_WIDGET(pFrameImpl->m_topRuler))
 			{
-				gtk_container_remove(
-					GTK_CONTAINER(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_topRuler))),
+				xap_gtk_container_remove(
+					(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_topRuler))),
 					GTK_WIDGET(pFrameImpl->m_topRuler));
 				pFrameImpl->m_topRuler = nullptr;
 			}
@@ -412,8 +412,8 @@ void AP_UnixFrame::toggleTopRuler(bool bRulerOn)
 		// delete the actual widgets
 		if(pFrameImpl->m_topRuler && GTK_IS_WIDGET(pFrameImpl->m_topRuler))
 		{
-			gtk_container_remove(
-				GTK_CONTAINER(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_topRuler))),
+			xap_gtk_container_remove(
+				(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_topRuler))),
 				GTK_WIDGET(pFrameImpl->m_topRuler));
 			pFrameImpl->m_topRuler = nullptr;
 		}
@@ -441,8 +441,8 @@ void AP_UnixFrame::toggleLeftRuler(bool bRulerOn)
 		{
 			if (pFrameImpl->m_leftRuler && GTK_IS_WIDGET(pFrameImpl->m_leftRuler))
 			{
-				gtk_container_remove(
-					GTK_CONTAINER(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_leftRuler))),
+				xap_gtk_container_remove(
+					(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_leftRuler))),
 					GTK_WIDGET(pFrameImpl->m_leftRuler));
 				pFrameImpl->m_leftRuler = nullptr;
 			}
@@ -464,8 +464,8 @@ void AP_UnixFrame::toggleLeftRuler(bool bRulerOn)
 	{
 	    if (pFrameImpl->m_leftRuler && GTK_IS_WIDGET(pFrameImpl->m_leftRuler))
 		{
-			gtk_container_remove(
-				GTK_CONTAINER(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_leftRuler))),
+			xap_gtk_container_remove(
+				(gtk_widget_get_parent(GTK_WIDGET(pFrameImpl->m_leftRuler))),
 				GTK_WIDGET(pFrameImpl->m_leftRuler));
 			pFrameImpl->m_leftRuler = nullptr;
 		}
@@ -538,7 +538,7 @@ void AP_UnixFrame::_setViewFocus(AV_View *pView)
 	AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(getFrameImpl());
 	bool bFocus=GPOINTER_TO_INT(g_object_get_data(G_OBJECT(pFrameImpl->getTopLevelWindow()),
 						 "toplevelWindowFocus"));
-	pView->setFocus(bFocus && (gtk_grab_get_current()==nullptr || gtk_grab_get_current()==pFrameImpl->getTopLevelWindow()) ? AV_FOCUS_HERE : !bFocus && gtk_grab_get_current()!=nullptr && isTransientWindow(GTK_WINDOW(gtk_grab_get_current()),GTK_WINDOW(pFrameImpl->getTopLevelWindow())) ?  AV_FOCUS_NEARBY : AV_FOCUS_NONE);
+	pView->setFocus(bFocus ? AV_FOCUS_HERE : AV_FOCUS_NONE);
 }
 
 void AP_UnixFrame::_bindToolbars(AV_View *pView)

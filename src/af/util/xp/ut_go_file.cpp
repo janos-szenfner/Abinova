@@ -1446,7 +1446,8 @@ UT_go_url_show (gchar const *url)
 	return nullptr;
 #else
 	GError *err = nullptr;
-	if (!gtk_show_uri_on_window(nullptr, url, GDK_CURRENT_TIME, &err)) {
+	if (!g_app_info_launch_default_for_uri(url, nullptr, &err)) {
+		g_clear_error(&err);
 		fallback_open_uri(url, &err);
 	}
 	return err;

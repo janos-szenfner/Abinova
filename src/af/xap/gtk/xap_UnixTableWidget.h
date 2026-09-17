@@ -43,7 +43,7 @@ struct AbiTable
 	GtkWidget* button_box;
 	GtkWidget* icon;
 
-	GtkWindow* window;
+	GtkPopover* window;
 	GtkBox* window_vbox;
 	GtkDrawingArea* area;
 	GtkLabel* window_label;
@@ -51,8 +51,6 @@ struct AbiTable
 
 	GtkStyleContext* style_context;
 
-	gint pos_x;
-	gint pos_y;
 	guint selected_rows;
 	guint selected_cols;
 

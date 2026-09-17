@@ -178,7 +178,7 @@ void AP_UnixDialog_Replace::runModeless(XAP_Frame * pFrame)
 static UT_UCS4String
 get_combobox_text(GtkWidget* combo)
 {
-	UT_UCS4String ucs = XAP_gtk_entry_get_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(combo))));
+	UT_UCS4String ucs = XAP_gtk_entry_get_text(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo))));
 
 	return ucs;
 }
@@ -335,7 +335,7 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkbuttonWholeWord), getWholeWord());
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkbuttonReverseFind), getReverseFind());
 	
-	gtk_widget_show_all (m_windowMain);
+	gtk_widget_set_visible(m_windowMain, TRUE);
 
 	
 	if (m_id != (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE){
@@ -366,7 +366,7 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 					 G_CALLBACK(s_reverse_find_toggled),
 					 this);
 	
-	g_signal_connect(G_OBJECT(gtk_bin_get_child(GTK_BIN(m_comboFind))),
+	g_signal_connect(G_OBJECT(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboFind))),
 			 "activate",
 			 G_CALLBACK(s_find_entry_activate),
 			 (gpointer) this);
@@ -374,7 +374,7 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 			 "changed",
 			 G_CALLBACK(s_find_entry_change),
 			 (gpointer) this);
-	g_signal_connect(G_OBJECT(gtk_bin_get_child(GTK_BIN(m_comboReplace))),
+	g_signal_connect(G_OBJECT(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboReplace))),
 			 "activate",
 			 G_CALLBACK(s_replace_entry_activate),
 			 (gpointer) this);
