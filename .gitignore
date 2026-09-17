@@ -1,0 +1,41 @@
+# Autotools
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+config.h
+config.h.in
+config.log
+config.status
+config.guess
+config.sub
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+ltversion.m4
+missing
+mkinstalldirs
+stamp-h1
+.deps/
+.libs/
+
+# Build outputs
+*.o
+*.lo
+*.la
+*.a
+*.so
+*.dylib
+*.exe
+*.gmo
+*.pot
+*.stamp
+
+# Misc
+*~
+*.bak
+*.orig
+*.rej
+core

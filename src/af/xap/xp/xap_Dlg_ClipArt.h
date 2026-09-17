@@ -1,0 +1,55 @@
+/* AbiWord
+ * Copyright (C) 2001 AbiSource, Inc.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301 USA.
+ */
+
+#pragma once
+
+/* #include "xap_Frame.h" */
+#include "xap_Dialog.h"
+/* #include "xav_View.h" */
+
+class XAP_Frame;
+
+class ABI_EXPORT XAP_Dialog_ClipArt : public XAP_Dialog_NonPersistent
+{
+public:
+
+	enum tAnswer: uint8_t { a_OK, a_CANCEL };
+
+	XAP_Dialog_ClipArt(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id);
+	virtual ~XAP_Dialog_ClipArt(void);
+
+	virtual void runModal(XAP_Frame * pFrame) override = 0;
+
+	inline XAP_Dialog_ClipArt::tAnswer getAnswer(void) const {return m_answer;}
+
+	void setInitialDir (const char * szInitialDir);
+	inline const char * getGraphicName () const {return m_szGraphicName;}
+
+protected:
+
+	void setGraphicName (const char * name);
+	inline void setAnswer (XAP_Dialog_ClipArt::tAnswer a) {m_answer = a;}
+	const char * getInitialDir () const {return m_szInitialDir;}
+
+private:
+
+	XAP_Dialog_ClipArt::tAnswer		m_answer;
+	char * m_szGraphicName;
+	char * m_szInitialDir;
+};

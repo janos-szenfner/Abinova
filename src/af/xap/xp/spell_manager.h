@@ -1,0 +1,133 @@
+/* AbiSuite
+ * Copyright (C) 2001 Dom Lachowicz <cinamod@hotmail.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301 USA.
+ */
+
+#pragma once
+
+#include <memory>
+#include <vector>
+
+#include "ut_types.h"
+#include "ut_string_class.h"
+#include "ut_hash.h"
+#include "barbarisms.h"
+
+// forward declaration
+class SpellManager;
+
+struct DictionaryMapping
+{
+	std::string lang;	// the language tag
+	std::string dict;	// the dictionary for the tag
+	std::string enc;	// the encoding of the dictionary
+};
+
+class ABI_EXPORT SpellChecker
+{
+	friend class SpellManager;
+
+public:
+
+	enum SpellCheckResult: uint8_t
+	{
+		LOOKUP_SUCCEEDED = 0, // looking up the word succeeded
+		LOOKUP_FAILED = 1,    // could not find the word
+		LOOKUP_ERROR = 2      // internal error
+	};
+
+	SpellCheckResult	checkWord(const UT_UCS4Char* word, size_t len);
+	std::unique_ptr<std::vector<UT_UCS4Char*>> suggestWord(const UT_UCS4Char* word, size_t len);
+
+	// vector of DictionaryMapping*
+	virtual	const std::vector<DictionaryMapping> & getMapping() const {return m_vecEmpty;};
+	virtual bool doesDictionaryExist (const char * /*szLang*/) {return false;};
+	virtual bool addToCustomDict (const UT_UCS4Char *word, size_t len);
+
+	virtual void correctWord (const UT_UCS4Char *toCorrect, size_t toCorrectLen,
+							  const UT_UCS4Char *correct, size_t correctLen);
+
+	virtual void ignoreWord (const UT_UCS4Char *toCorrect, size_t toCorrectLen) = 0;
+
+	virtual bool isIgnored (const UT_UCS4Char * pWord, size_t len) const = 0;
+
+	const std::string& getLanguage() const
+	{
+		return m_sLanguage;
+	}
+
+	bool requestDictionary (const char * szLang);
+	bool isDictionaryFound(void)
+		{ return m_bFoundDictionary;}
+	void setDictionaryFound(bool b)
+		{ m_bFoundDictionary = b;}
+
+protected:
+
+	SpellChecker();
+
+	virtual ~SpellChecker();
+
+    void setLanguage (const char * lang)
+    {
+		m_sLanguage = lang;
+    }
+
+	static void couldNotLoadDictionary ( const char * szLang );
+
+	std::string       	m_sLanguage;
+    BarbarismChecker	m_BarbarismChecker;
+	std::vector<DictionaryMapping> m_vecEmpty;
+
+    bool				m_bIsBarbarism;
+	bool				m_bIsDictionaryWord;
+	bool                m_bFoundDictionary;
+
+private:
+    SpellChecker(const SpellChecker&) = delete;
+    void operator=(const SpellChecker&) = delete;
+
+	virtual bool				_requestDictionary (const char * szLang) = 0;
+	virtual SpellCheckResult	_checkWord(const UT_UCS4Char* word, size_t len) = 0;
+	virtual std::unique_ptr<std::vector<UT_UCS4Char*>> _suggestWord(const UT_UCS4Char* word, size_t len) = 0;
+};
+
+class ABI_EXPORT SpellManager
+{
+public:
+	static SpellManager & instance (void);
+
+	virtual ~SpellManager ();
+
+
+	virtual SpellChecker * lastDictionary (void) const;
+	virtual SpellChecker * requestDictionary (const char * szLang);
+	UT_uint32 numLoadedDicts () const { return m_nLoadedDicts; }
+
+	SpellChecker *	getInstance() const;
+
+private:
+	SpellManager();
+	SpellManager(const SpellManager & other) = delete;
+	SpellManager & operator=(const SpellManager& other) = delete;
+
+
+	UT_StringPtrMap m_map;
+	std::string m_missingHashs;
+	SpellChecker * m_lastDict;
+	UT_uint32 m_nLoadedDicts;
+};

@@ -1,0 +1,130 @@
+3.1.90 -
+
+oldest revision 9ddd1529ca49e734d4fd6914029c709baab8f948
+
+## General
+
+- Large reliability improvements (crashes, memory leaks)
+
+## UI
+
+- Fixed touch pad scrolling.
+- Removed about GNOME Office
+
+## macOS
+
+The build is still not usable
+
+- Reworked character shaping to be more accurate
+- File dialog improvements
+- Removed some macOS deprecated API.
+  - ATSUI was replaced by CoreText (it didn't survive
+  the 64-bits transition)
+
+## Plugins
+
+- RTF export: fixed some memory leaks.
+- HTML export: fixed some unclosed tags.
+
+## Build requirements
+
+- Requires C++17
+  - Fix build issues with more recent gcc.
+- rsvg 2.51 is now required on Gtk.
+- Gtk 3.24 is required.
+- Enchant 2 is required
+
+## Development
+
+- Some plugins are build in non-recursive Make
+- Some non null pointer checks
+- Code cleanups
+  - nullptr instead of 0
+- Removed boost wherever lib stdc++:
+  - shared_ptr, function, bind
+  - use boost::asio instead of separate boost
+- Replaced many use of the custom container with
+  standard C++ containers.
+- ut_units refactor
+  - removed DIM_STAR (never used)
+  - DIM_PERCENT formatting was wrong
+- Reworked a bit the drawing architecture with the
+  introduction of `XAP_Drawable`
+- Introducted PP_PropertyVector in an attempt to fix
+  all the memory leaks.
+- Removed more const_cast<>.
+- Fix use-after-free
+  - xap_Prefs
+  - opendocument
+  - RTF export
+  - ut_color
+  - RDF
+  - text export
+- Build with -Wsuggest-override
+- Gtk
+  - Use more modern API, fix deprecations.
+
+Testing
+
+- Better test harness.
+- Added tests
+  - ut_units
+  - xap_Prefs
+  - ut_string
+
+3.0.8 - 2026/02/17
+
+- Fix memory leaks with a collab Telepathy error.
+- Fix paste of images from Firefox.
+- Fix memory leaks in styles dialog, Gtk text input.
+- Fix use after free and memory leak with list numbering.
+- Fix memory leak with text drag and drop.
+- Fix memory leak in OpenXML importer/exporter.
+- Remove babelfish and freetranslation plugins.
+- Fix appstream for newer flathub requirements.
+- Properly remember the recent files even if AbiWord crashes.
+- wordperfect: Use the more recent version of libwpd libwpg and
+  libwps. This upgrade the dependencies:
+  - libwpd-0.10
+  - libwps-0.4
+  - libwpg-0.3
+
+3.0.7 - 2025/07/30
+
+- Fix memory leaks in Styles, Font Chooser, Borders, List, Clip Art,
+  Replace, Tabs and Table dialogs.
+- Fix memory leaks in XHTML import.
+- Fix memory leaks in cut and paste.
+- Fix memory leaks in the ODF exporter.
+- Fix memory leaks in the GdkPixbuf importer.
+- Fix crash when editing lists.
+- Fix crash when inserting a JPEG image.
+- Restored icons from page setup dialog (Removed XPM in 3.0.6).
+- Minor spacing adjustement in the status bar.
+
+3.0.6 - 2024/11/03
+
+- Removed XPM icons and moved the PNG to gresources (backported)
+  This is necessary due to a break in the GNOME platform where XPM
+  is not longer supported causing many icons to be missing.
+- Fix build with recent libxml2. Some headers are now explicitly required.
+- Fix build of mathview plugin with recent gcc.
+  https://gitlab.gnome.org/World/AbiWord/-/issues/27
+- Fixes to the AppStream file for validation.
+  https://gitlab.gnome.org/World/AbiWord/-/issues/16
+- Fix to the table widget in the toolbar.
+- Fix build with glib
+  https://gitlab.gnome.org/World/AbiWord/-/issues/15
+- Disable "Install new plugin" on flatpak. Require
+  `CPPFLAGS=-DFLATPAK_BUILD`. Bug #13927
+- Fix a crash loading files under some condition.
+
+3.0.5 - 2021/07/03
+
+- Now require C++11 to build.
+- Fixed crasher with cut & paste. https://bugzilla.abisource.com/show_bug.cgi?id=13947
+- Fix crasher in redrawing: Bug #13882
+- Fix table widget in the toolbar
+- Fix misc build issues
+- Fix crasher 13918
+
