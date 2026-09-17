@@ -103,9 +103,12 @@ abi_cell_renderer_font_snapshot (GtkCellRenderer      *cell,
 				self->is_popped_up = TRUE;
 
 				/* GTK4: translate the cell position into native
-				 * (toplevel) coordinates; there is no GdkWindow origin */
+				 * (toplevel) coordinates; there is no GdkWindow origin.
+				 * get_native() is NULL until the widget is inside a
+				 * realized toplevel. */
 				GtkWidget *native = GTK_WIDGET(gtk_widget_get_native(widget));
-				gtk_widget_translate_coordinates(widget, native, 0, 0, &x, &y);
+				if (native)
+					gtk_widget_translate_coordinates(widget, native, 0, 0, &x, &y);
 				area.x = background_area->x + (int)x + gtk_widget_get_width(widget);
 				area.y = background_area->y + (int)y;
 				area.width = background_area->width;

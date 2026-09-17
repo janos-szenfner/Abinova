@@ -306,6 +306,16 @@ AP_UnixApp::loadStringsFromDisk(const char 			* szStringSet,
 */
 bool AP_UnixApp::initialize(bool has_display)
 {
+    /* GTK4 only permits painting inside the GtkDrawingArea draw
+     * callback. The FV_ViewDoubleBuffering machinery (suspend drawing,
+     * record draw calls, replay a unified draw at the end) relies on
+     * painting to a persistent window outside the draw callback, which
+     * no longer exists - deferred draws land on a scratch surface and
+     * the cairo push/pop group stack leaks, corrupting frames. The
+     * disable flag makes every paint go straight to the draw callback's
+     * cairo_t, which is already atomic per frame. */
+    setDisableDoubleBuffering(true);
+
     const char * szUserPrivateDirectory = getUserPrivateDirectory();
     bool bVerified = UT_createDirectoryIfNecessary(szUserPrivateDirectory);
     if (!bVerified)

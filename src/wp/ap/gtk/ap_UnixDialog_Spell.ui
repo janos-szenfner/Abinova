@@ -1,36 +1,28 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="ap_UnixDialog_Spell">
     <property name="visible">1</property>
-    <property name="border-width">5</property>
     <property name="title" translatable="yes">dialog2</property>
-    <property name="window-position">center-on-parent</property>
-    <property name="type-hint">dialog</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox3">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">12</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="hbuttonbox1">
+          <object class="GtkBox" id="hbuttonbox1">
             <property name="visible">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="btClose">
-                <property name="label">gtk-close</property>
-                <property name="use-action-appearance">0</property>
+                <property name="label">_Close</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkGrid" id="grid1">
@@ -51,29 +43,25 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButtonBox" id="buttonbox1">
+              <object class="GtkBox" id="buttonbox1">
                 <property name="visible">1</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">6</property>
-                <property name="layout-style">start</property>
                 <child>
                   <object class="GtkButton" id="btAdd">
-                    <property name="label">gtk-add</property>
-                    <property name="use-action-appearance">0</property>
+                    <property name="label">_Add</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="valign">start</property>
-                    <property name="use-stock">1</property>
                   </object>
                   <packing>
                     <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                    <property name="vexpand">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkButton" id="btIgnore">
                     <property name="label" translatable="yes">_Ignore</property>
-                    <property name="use-action-appearance">0</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="valign">start</property>
@@ -81,14 +69,13 @@
                   </object>
                   <packing>
                     <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                    <property name="vexpand">1</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkButton" id="btIgnoreAll">
                     <property name="label" translatable="yes">Ignore All</property>
-                    <property name="use-action-appearance">0</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="valign">start</property>
@@ -96,7 +83,7 @@
                   </object>
                   <packing>
                     <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                    <property name="vexpand">1</property>
                     <property name="position">2</property>
                   </packing>
                 </child>
@@ -147,7 +134,6 @@
                 <property name="vexpand">1</property>
                 <property name="hscrollbar-policy">never</property>
                 <property name="vscrollbar-policy">never</property>
-                <property name="shadow-type">in</property>
                 <child>
                   <object class="GtkTextView" id="txWrong">
                     <property name="visible">1</property>
@@ -168,14 +154,13 @@
               <object class="GtkScrolledWindow" id="scrolledwindow6">
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
-                <property name="shadow-type">in</property>
                 <child>
                   <object class="GtkTreeView" id="tvSuggestions">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="headers-visible">0</property>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection1"/>
+                      <object class="GtkTreeSelection" id="treeview-selection1" />
                     </child>
                   </object>
                 </child>

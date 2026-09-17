@@ -1,40 +1,33 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="ap_UnixDialog_FormatTable">
     <property name="visible">1</property>
-    <property name="border-width">5</property>
     <property name="title" translatable="yes">Format Table</property>
     <property name="resizable">0</property>
-    <property name="window-position">mouse</property>
-    <property name="type-hint">dialog</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="vbDialog">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="aaDialog">
+          <object class="GtkBox" id="aaDialog">
             <property name="visible">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="btClose">
-                <property name="label">gtk-close</property>
+                <property name="label">_Close</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
             </child>
             <child>
               <object class="GtkButton" id="btApply">
-                <property name="label">gtk-apply</property>
+                <property name="label">_Apply</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
                 <property name="has-default">1</property>
-                <property name="use-stock">1</property>
               </object>
               <packing>
                 <property name="position">1</property>
@@ -42,13 +35,11 @@
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkGrid" id="grContent">
             <property name="visible">1</property>
-            <property name="border-width">5</property>
             <property name="row-spacing">6</property>
             <property name="column-spacing">12</property>
             <child>
@@ -72,7 +63,7 @@
                 <child>
                   <object class="GtkLabel" id="lbBorderColor">
                     <property name="visible">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="label" translatable="yes">Color:</property>
                     <property name="xalign">0</property>
                   </object>
@@ -94,7 +85,7 @@
                 <child>
                   <object class="GtkLabel" id="lbBorderThickness">
                     <property name="visible">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="label" translatable="yes">Thickness:</property>
                     <property name="xalign">0</property>
                   </object>
@@ -129,7 +120,7 @@
                 <child>
                   <object class="GtkLabel" id="lbBackgroundColor">
                     <property name="visible">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="label" translatable="yes">Color:</property>
                     <property name="xalign">0</property>
                   </object>
@@ -166,9 +157,9 @@
                   <object class="GtkButton" id="btSelectImage">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <child>
-                      <object class="GtkAlignment" id="alignment1">
+                      <object class="GtkBox" id="alignment1">
                         <property name="visible">1</property>
                         <property name="xscale">0</property>
                         <property name="yscale">0</property>
@@ -179,11 +170,9 @@
                             <child>
                               <object class="GtkImage" id="image1">
                                 <property name="visible">1</property>
-                                <property name="stock">gtk-open</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
-                              </packing>
+                                </packing>
                             </child>
                             <child>
                               <object class="GtkLabel" id="lbSelectImage">
@@ -210,9 +199,9 @@
                   <object class="GtkButton" id="btNoImageBackground">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <child>
-                      <object class="GtkAlignment" id="alignment2">
+                      <object class="GtkBox" id="alignment2">
                         <property name="visible">1</property>
                         <property name="xscale">0</property>
                         <property name="yscale">0</property>
@@ -223,11 +212,9 @@
                             <child>
                               <object class="GtkImage" id="image2">
                                 <property name="visible">1</property>
-                                <property name="stock">gtk-clear</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
-                              </packing>
+                                </packing>
                             </child>
                             <child>
                               <object class="GtkLabel" id="lbSetNoImage">
@@ -278,8 +265,6 @@
                 <child>
                   <object class="GtkFrame" id="frPreview">
                     <property name="visible">1</property>
-                    <property name="label-yalign">0</property>
-                    <property name="shadow-type">out</property>
                     <child>
                       <object class="GtkDrawingArea" id="daPreview">
                         <property name="width-request">146</property>
@@ -325,7 +310,7 @@
                     <property name="height-request">25</property>
                     <property name="visible">1</property>
                     <property name="valign">center</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="inconsistent">1</property>
                   </object>
                   <packing>
@@ -356,7 +341,7 @@
             <child>
               <object class="GtkLabel" id="lbApplyTo">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Apply to:</property>
                 <property name="xalign">0</property>
               </object>

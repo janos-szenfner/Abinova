@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">100</property>
     <property name="value">1</property>
@@ -16,36 +15,29 @@
   </object>
   <object class="GtkDialog" id="ap_UnixDialog_Tab">
     <property name="visible">1</property>
-    <property name="border-width">5</property>
     <property name="title" translatable="yes">dialog1</property>
-    <property name="window-position">center-on-parent</property>
-    <property name="type-hint">dialog</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox2">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">18</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area2">
+          <object class="GtkBox" id="dialog-action_area2">
             <property name="visible">1</property>
             <property name="hexpand">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="btClose">
-                <property name="label">gtk-close</property>
+                <property name="label">_Close</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
-              </packing>
+                </packing>
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkGrid" id="grid1">
@@ -147,18 +139,17 @@
                     <child>
                       <object class="GtkGrid" id="grid3">
                         <property name="visible">1</property>
-                        <property name="margin-left">18</property>
+                        <property name="margin-start">18</property>
                         <property name="hexpand">1</property>
                         <property name="vexpand">1</property>
                         <property name="row-spacing">6</property>
                         <property name="column-spacing">12</property>
                         <child>
                           <object class="GtkButton" id="btAdd">
-                            <property name="label">gtk-add</property>
+                            <property name="label">_Add</property>
                             <property name="visible">1</property>
                             <property name="can-focus">1</property>
                             <property name="can-default">1</property>
-                            <property name="use-stock">1</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -167,11 +158,10 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="btDelete">
-                            <property name="label">gtk-delete</property>
+                            <property name="label">_Delete</property>
                             <property name="visible">1</property>
                             <property name="can-focus">1</property>
                             <property name="can-default">1</property>
-                            <property name="use-stock">1</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -184,7 +174,6 @@
                             <property name="can-focus">1</property>
                             <property name="hexpand">1</property>
                             <property name="vexpand">1</property>
-                            <property name="shadow-type">in</property>
                             <child>
                               <object class="GtkTreeView" id="lvTabs">
                                 <property name="visible">1</property>
@@ -193,7 +182,7 @@
                                 <property name="vexpand">1</property>
                                 <property name="headers-visible">0</property>
                                 <child internal-child="selection">
-                                  <object class="GtkTreeSelection" id="treeview-selection1"/>
+                                  <object class="GtkTreeSelection" id="treeview-selection1" />
                                 </child>
                               </object>
                             </child>

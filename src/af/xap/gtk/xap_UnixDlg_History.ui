@@ -1,12 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="xap_UnixDlg_History">
     <property name="visible">1</property>
-    <property name="border-width">8</property>
     <property name="modal">1</property>
-    <property name="window-position">center-on-parent</property>
     <property name="default-width">380</property>
     <property name="default-height">450</property>
     <child internal-child="vbox">
@@ -15,16 +12,14 @@
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area1">
+          <object class="GtkBox" id="dialog-action_area1">
             <property name="visible">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="cancelbutton1">
-                <property name="label">gtk-cancel</property>
+                <property name="label">_Cancel</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
             </child>
             <child>
@@ -39,22 +34,20 @@
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkGrid" id="grContent">
             <property name="visible">1</property>
             <property name="hexpand">1</property>
             <property name="vexpand">1</property>
-            <property name="border-width">5</property>
             <property name="row-spacing">6</property>
             <property name="column-spacing">12</property>
             <child>
               <object class="GtkScrolledWindow" id="wListWindow">
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="hexpand">1</property>
                 <property name="vexpand">1</property>
               </object>
@@ -94,7 +87,7 @@
             <child>
               <object class="GtkLabel" id="lbDocumentName">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
               </object>
@@ -106,7 +99,7 @@
             <child>
               <object class="GtkLabel" id="lbVersion">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
               </object>
@@ -118,7 +111,7 @@
             <child>
               <object class="GtkLabel" id="lbCreated">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
               </object>
@@ -130,7 +123,7 @@
             <child>
               <object class="GtkLabel" id="lbSaved">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
               </object>
@@ -142,7 +135,7 @@
             <child>
               <object class="GtkLabel" id="lbEditTime">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
               </object>
@@ -210,7 +203,7 @@
             <child>
               <object class="GtkLabel" id="lbIdentifier">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
               </object>

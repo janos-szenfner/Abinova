@@ -95,6 +95,17 @@ public:
 
 	// Return the cursor name.
 	static const char* _getCursor(GR_Graphics::Cursor c);
+
+	/* GTK4 draw callbacks hand us a cairo_t targeting a recording
+	 * surface; unlike a GdkWindow it cannot be read back, and caret
+	 * save/restore pixel-scraping plus other direct-surface tricks do
+	 * not survive it. Instead we keep a persistent image surface that
+	 * emulates the old window framebuffer: all painting happens into it
+	 * (both inside and outside the draw callback) and the draw callback
+	 * blits it to GTK's cairo_t in a single paint. */
+	cairo_t *beginFrame();
+	void endFrame(cairo_t *gtkCr);
+
 protected:
 	void _initWidget();
 	virtual void		_resetClip(void) override;
@@ -109,7 +120,12 @@ protected:
 	virtual void _endPaint() override;
 
 private:
+	void ensureBackSurface();
+
 	cairo_surface_t* m_dummySurface;
+	cairo_t* m_frameCr;
+	int m_backW;
+	int m_backH;
 	bool m_CairoCreated;
 	bool m_Painting;
 	gulong m_Signal;

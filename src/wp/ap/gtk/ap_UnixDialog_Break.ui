@@ -1,30 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="ap_UnixDialog_Break">
     <property name="visible">1</property>
-    <property name="border-width">5</property>
     <property name="title" translatable="yes">Insert Break</property>
     <property name="resizable">0</property>
-    <property name="window-position">center-on-parent</property>
-    <property name="type-hint">dialog</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">12</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area1">
+          <object class="GtkBox" id="dialog-action_area1">
             <property name="visible">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="btCancel">
-                <property name="label">gtk-cancel</property>
+                <property name="label">_Cancel</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
             </child>
             <child>
@@ -41,8 +35,7 @@
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkBox" id="hbox1">
@@ -52,8 +45,7 @@
                 <property name="visible">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
-              </packing>
+                </packing>
             </child>
             <child>
               <object class="GtkBox" id="vbox1">
@@ -80,11 +72,10 @@
                           <object class="GtkLabel" id="label7">
                             <property name="visible">1</property>
                             <property name="halign">start</property>
-                            <property name="margin-right">12</property>
+                            <property name="margin-end">12</property>
                           </object>
                           <packing>
-                            <property name="fill">0</property>
-                          </packing>
+                            </packing>
                         </child>
                         <child>
                           <object class="GtkBox" id="vbox4">
@@ -92,38 +83,34 @@
                             <property name="orientation">vertical</property>
                             <property name="spacing">6</property>
                             <child>
-                              <object class="GtkRadioButton" id="rbPageBreak">
+                              <object class="GtkCheckButton" id="rbPageBreak">
                                 <property name="label" translatable="yes">Page break</property>
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                                 <property name="halign">start</property>
                                 <property name="use-underline">1</property>
                                 <property name="active">1</property>
-                                <property name="draw-indicator">1</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
-                              </packing>
+                                </packing>
                             </child>
                             <child>
-                              <object class="GtkRadioButton" id="rbColumnBreak">
+                              <object class="GtkCheckButton" id="rbColumnBreak">
                                 <property name="label" translatable="yes">Column break</property>
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                                 <property name="halign">start</property>
                                 <property name="use-underline">1</property>
-                                <property name="draw-indicator">1</property>
                                 <property name="group">rbPageBreak</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                            <property name="vexpand">1</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
@@ -137,7 +124,7 @@
                   </object>
                   <packing>
                     <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                    <property name="vexpand">1</property>
                   </packing>
                 </child>
                 <child>
@@ -153,8 +140,7 @@
                         <property name="use-markup">1</property>
                       </object>
                       <packing>
-                        <property name="fill">0</property>
-                      </packing>
+                        </packing>
                     </child>
                     <child>
                       <object class="GtkBox" id="hbox3">
@@ -162,11 +148,10 @@
                         <child>
                           <object class="GtkLabel" id="label8">
                             <property name="visible">1</property>
-                            <property name="margin-right">12</property>
+                            <property name="margin-end">12</property>
                           </object>
                           <packing>
-                            <property name="fill">0</property>
-                          </packing>
+                            </packing>
                         </child>
                         <child>
                           <object class="GtkBox" id="vbox5">
@@ -174,68 +159,60 @@
                             <property name="orientation">vertical</property>
                             <property name="spacing">6</property>
                             <child>
-                              <object class="GtkRadioButton" id="rbNextPage">
+                              <object class="GtkCheckButton" id="rbNextPage">
                                 <property name="label" translatable="yes">Next page</property>
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                                 <property name="halign">start</property>
                                 <property name="use-underline">1</property>
-                                <property name="draw-indicator">1</property>
                                 <property name="group">rbPageBreak</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
-                              </packing>
+                                </packing>
                             </child>
                             <child>
-                              <object class="GtkRadioButton" id="rbContinuous">
+                              <object class="GtkCheckButton" id="rbContinuous">
                                 <property name="label" translatable="yes">Continuous</property>
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                                 <property name="halign">start</property>
                                 <property name="use-underline">1</property>
-                                <property name="draw-indicator">1</property>
                                 <property name="group">rbPageBreak</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkRadioButton" id="rbEvenPage">
+                              <object class="GtkCheckButton" id="rbEvenPage">
                                 <property name="label" translatable="yes">Even page</property>
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                                 <property name="halign">start</property>
                                 <property name="use-underline">1</property>
-                                <property name="draw-indicator">1</property>
                                 <property name="group">rbPageBreak</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkRadioButton" id="rbOddPage">
+                              <object class="GtkCheckButton" id="rbOddPage">
                                 <property name="label" translatable="yes">Odd page</property>
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                                 <property name="halign">start</property>
                                 <property name="use-underline">1</property>
-                                <property name="draw-indicator">1</property>
                                 <property name="group">rbPageBreak</property>
                               </object>
                               <packing>
-                                <property name="fill">0</property>
                                 <property name="position">3</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                            <property name="vexpand">1</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
@@ -249,14 +226,14 @@
                   </object>
                   <packing>
                     <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                    <property name="vexpand">1</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                <property name="vexpand">1</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -265,14 +242,13 @@
                 <property name="visible">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
                 <property name="position">2</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+            <property name="vexpand">1</property>
             <property name="position">1</property>
           </packing>
         </child>

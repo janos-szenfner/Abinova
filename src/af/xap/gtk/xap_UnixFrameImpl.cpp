@@ -1108,9 +1108,10 @@ void XAP_UnixFrameImpl::_fe::draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 		rClip.top = pGr->tlu(y);
 		rClip.width = pGr->tlu(width);
 		rClip.height = pGr->tlu(height);
-		pGr->setCairo(cr);
+		GR_UnixCairoGraphics *pUGr = static_cast<GR_UnixCairoGraphics*>(pGr);
+		pUGr->beginFrame();
 		pView->drawImmediate(&rClip);
-		pGr->setCairo(nullptr);
+		pUGr->endFrame(cr);
 	}
 }
 

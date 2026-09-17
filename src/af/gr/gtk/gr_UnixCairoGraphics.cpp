@@ -76,6 +76,9 @@ GR_UnixCairoGraphicsBase::GR_UnixCairoGraphicsBase(cairo_t *cr, UT_uint32 iDevic
 GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 	: GR_UnixCairoGraphicsBase(),
 	  m_dummySurface(nullptr),
+	  m_frameCr(nullptr),
+	  m_backW(0),
+	  m_backH(0),
 	  m_CairoCreated(false),
 	  m_Painting(false),
 	  m_Signal(0),
@@ -472,6 +475,47 @@ GR_Image * GR_UnixCairoGraphics::genImageFromRectangle(const UT_Rect &rec)
 	return pImg;
 }
 
+void GR_UnixCairoGraphics::ensureBackSurface()
+{
+	int w = m_Widget ? MAX(1, gtk_widget_get_width (m_Widget)) : 1;
+	int h = m_Widget ? MAX(1, gtk_widget_get_height (m_Widget)) : 1;
+	if (m_dummySurface && w == m_backW && h == m_backH)
+		return;
+	if (m_dummySurface)
+		cairo_surface_destroy (m_dummySurface);
+	m_dummySurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
+	m_backW = w;
+	m_backH = h;
+}
+
+cairo_t * GR_UnixCairoGraphics::beginFrame()
+{
+	/* Called at the top of the widget's draw callback: subsequent
+	 * painting goes to the persistent backing surface, which is then
+	 * blitted to GTK's cairo_t in endFrame(). */
+	ensureBackSurface();
+	m_frameCr = cairo_create (m_dummySurface);
+	m_cr = m_frameCr;
+	return m_frameCr;
+}
+
+void GR_UnixCairoGraphics::endFrame(cairo_t *gtkCr)
+{
+	if (m_frameCr)
+	{
+		cairo_destroy (m_frameCr);
+		m_frameCr = nullptr;
+	}
+	m_cr = nullptr;
+	if (gtkCr && m_dummySurface)
+	{
+		cairo_save (gtkCr);
+		cairo_set_source_surface (gtkCr, m_dummySurface, 0, 0);
+		cairo_paint (gtkCr);
+		cairo_restore (gtkCr);
+	}
+}
+
 void GR_UnixCairoGraphics::_beginPaint()
 {
 	UT_ASSERT(m_Painting == false);
@@ -479,14 +523,12 @@ void GR_UnixCairoGraphics::_beginPaint()
 
 	if (m_cr == nullptr)
 	{
-		/* GTK4 only hands out a cairo_t inside the draw callback
-		 * (set via setCairo). Paint requested outside of it (e.g. the
-		 * caret) goes to a scratch surface; the widget's redraw path
-		 * picks the change up via queueDraw(). */
+		/* Paint requested outside the draw callback (e.g. the caret):
+		 * target the persistent backing surface so read-backs like
+		 * saveRectangle() see real pixels. The widget's redraw path
+		 * picks the change up via queueDraw()/flush(). */
 		UT_ASSERT(m_Widget);
-		int w = m_Widget ? MAX(1, gtk_widget_get_width (m_Widget)) : 1;
-		int h = m_Widget ? MAX(1, gtk_widget_get_height (m_Widget)) : 1;
-		m_dummySurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
+		ensureBackSurface();
 		m_cr = cairo_create (m_dummySurface);
 		m_CairoCreated = true;
 	}
@@ -501,8 +543,6 @@ void GR_UnixCairoGraphics::_endPaint()
 	if (m_CairoCreated)
 	{
 		cairo_destroy (m_cr);
-		cairo_surface_destroy (m_dummySurface);
-		m_dummySurface = nullptr;
 	}
 	m_cr = nullptr;
 

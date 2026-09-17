@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">100</property>
     <property name="value">1</property>
@@ -14,47 +13,38 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkDialog" id="xap_UnixDlg_Image">
-    <property name="border-width">5</property>
     <property name="title" translatable="yes">Image Properties</property>
-    <property name="window-position">center-on-parent</property>
-    <property name="type-hint">dialog</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area1">
+          <object class="GtkBox" id="dialog-action_area1">
             <property name="visible">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="btCancel">
-                <property name="label">gtk-cancel</property>
+                <property name="label">_Cancel</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
-              </packing>
+                </packing>
             </child>
             <child>
               <object class="GtkButton" id="btOK">
-                <property name="label">gtk-ok</property>
+                <property name="label">_OK</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkNotebook" id="notebook1">
@@ -63,7 +53,6 @@
             <child>
               <object class="GtkGrid" id="grDescTab">
                 <property name="visible">1</property>
-                <property name="border-width">12</property>
                 <property name="row-spacing">6</property>
                 <property name="column-spacing">12</property>
                 <child>
@@ -82,7 +71,7 @@
                 <child>
                   <object class="GtkLabel" id="lbHeight">
                     <property name="visible">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="label" translatable="yes">Height:</property>
                     <property name="xalign">0</property>
                   </object>
@@ -94,7 +83,7 @@
                 <child>
                   <object class="GtkLabel" id="lbWidth">
                     <property name="visible">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="label" translatable="yes">Width:</property>
                     <property name="xalign">0</property>
                   </object>
@@ -108,9 +97,8 @@
                     <property name="label" translatable="yes">Preserve aspect ratio</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -183,7 +171,7 @@
                 <child>
                   <object class="GtkLabel" id="lbTitle">
                     <property name="visible">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="label" translatable="yes">Title:</property>
                     <property name="xalign">0</property>
                   </object>
@@ -207,7 +195,7 @@
                 <child>
                   <object class="GtkLabel" id="lbDescription">
                     <property name="visible">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="label" translatable="yes">Description:</property>
                     <property name="xalign">0</property>
                   </object>
@@ -242,7 +230,6 @@
             <child>
               <object class="GtkGrid" id="grWrapping">
                 <property name="visible">1</property>
-                <property name="border-width">12</property>
                 <property name="row-spacing">6</property>
                 <child>
                   <object class="GtkLabel" id="lbTextWrapping">
@@ -257,14 +244,13 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbInLine">
+                  <object class="GtkCheckButton" id="rbInLine">
                     <property name="label" translatable="yes">Image placed in line</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
                     <property name="active">1</property>
-                    <property name="draw-indicator">1</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -272,13 +258,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbNone">
+                  <object class="GtkCheckButton" id="rbNone">
                     <property name="label" translatable="yes">No Text wrapping</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                     <property name="group">rbInLine</property>
                   </object>
                   <packing>
@@ -287,13 +272,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbWrappedRight">
+                  <object class="GtkCheckButton" id="rbWrappedRight">
                     <property name="label" translatable="yes">Text wrapped to the right of Image</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                     <property name="group">rbInLine</property>
                   </object>
                   <packing>
@@ -302,13 +286,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbWrappedLeft">
+                  <object class="GtkCheckButton" id="rbWrappedLeft">
                     <property name="label" translatable="yes">Text wrapped to Left of Image</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                     <property name="group">rbInLine</property>
                   </object>
                   <packing>
@@ -317,13 +300,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbWrappedBoth">
+                  <object class="GtkCheckButton" id="rbWrappedBoth">
                     <property name="label" translatable="yes">Text wrapped on both sizes of the image</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                     <property name="group">rbInLine</property>
                   </object>
                   <packing>
@@ -345,14 +327,13 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbPlaceParagraph">
+                  <object class="GtkCheckButton" id="rbPlaceParagraph">
                     <property name="label" translatable="yes">Position relative to nearest paragraph</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
                     <property name="active">1</property>
-                    <property name="draw-indicator">1</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -360,13 +341,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbPlaceColumn">
+                  <object class="GtkCheckButton" id="rbPlaceColumn">
                     <property name="label" translatable="yes">Position relative to its column</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                     <property name="group">rbPlaceParagraph</property>
                   </object>
                   <packing>
@@ -375,13 +355,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbPlacePage">
+                  <object class="GtkCheckButton" id="rbPlacePage">
                     <property name="label" translatable="yes">Position relative to its Page</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                     <property name="group">rbPlaceParagraph</property>
                   </object>
                   <packing>
@@ -403,14 +382,13 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbTightWrap">
+                  <object class="GtkCheckButton" id="rbTightWrap">
                     <property name="label" translatable="yes">Tight Wrap</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
                     <property name="active">1</property>
-                    <property name="draw-indicator">1</property>
                     <property name="group">rbSquareWrap</property>
                   </object>
                   <packing>
@@ -419,13 +397,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkRadioButton" id="rbSquareWrap">
+                  <object class="GtkCheckButton" id="rbSquareWrap">
                     <property name="label" translatable="yes">Square Wrap</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="margin-left">18</property>
+                    <property name="margin-start">18</property>
                     <property name="use-underline">1</property>
-                    <property name="draw-indicator">1</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -449,7 +426,6 @@
             </child>
           </object>
           <packing>
-            <property name="padding">6</property>
             <property name="position">1</property>
           </packing>
         </child>

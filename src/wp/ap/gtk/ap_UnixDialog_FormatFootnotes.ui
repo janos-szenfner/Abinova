@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkAdjustment" id="adjustment1">
     <property name="lower">1</property>
     <property name="upper">255</property>
@@ -18,55 +17,46 @@
   </object>
   <object class="GtkDialog" id="ap_UnixDialog_FormatFootnotes">
     <property name="visible">1</property>
-    <property name="border-width">5</property>
     <property name="title" translatable="yes">Format Footnotes and Endnotes</property>
     <property name="resizable">0</property>
     <property name="modal">1</property>
-    <property name="window-position">center-on-parent</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="vbxDialog">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="aaDialog">
+          <object class="GtkBox" id="aaDialog">
             <property name="visible">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="btCancel">
-                <property name="label">gtk-cancel</property>
+                <property name="label">_Cancel</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
-              </packing>
+                </packing>
             </child>
             <child>
               <object class="GtkButton" id="btOK">
-                <property name="label">gtk-ok</property>
+                <property name="label">_OK</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
                 <property name="has-default">1</property>
-                <property name="use-stock">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkGrid" id="grContent">
             <property name="visible">1</property>
-            <property name="border-width">5</property>
             <property name="row-spacing">6</property>
             <property name="column-spacing">12</property>
             <child>
@@ -99,7 +89,7 @@
             <child>
               <object class="GtkLabel" id="lbFootnoteStyle">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Footnote Style:</property>
                 <property name="xalign">0</property>
               </object>
@@ -111,7 +101,7 @@
             <child>
               <object class="GtkLabel" id="lbFootnoteRestart">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Numbering:</property>
                 <property name="xalign">0</property>
               </object>
@@ -123,7 +113,7 @@
             <child>
               <object class="GtkLabel" id="lbFootnoteValue">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Initial Footnote value:</property>
                 <property name="xalign">0</property>
               </object>
@@ -135,7 +125,7 @@
             <child>
               <object class="GtkLabel" id="lbEndnoteStyle">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Endnote Style:</property>
                 <property name="xalign">0</property>
               </object>
@@ -147,7 +137,7 @@
             <child>
               <object class="GtkLabel" id="lbEndnotePlacement">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Placement:</property>
                 <property name="xalign">0</property>
               </object>
@@ -159,7 +149,7 @@
             <child>
               <object class="GtkLabel" id="lbEndnoteValue">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Initial Endnote value:</property>
                 <property name="xalign">0</property>
               </object>
@@ -173,9 +163,8 @@
                 <property name="label" translatable="yes">Restart on each Section</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="use-underline">1</property>
-                <property name="draw-indicator">1</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>

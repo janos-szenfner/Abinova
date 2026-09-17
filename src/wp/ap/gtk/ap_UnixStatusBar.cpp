@@ -171,7 +171,6 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 			else { // fill
 				gtk_box_append(GTK_BOX(m_wStatusBar), pStatusBarElement);
 			gtk_widget_set_hexpand(pStatusBarElement, TRUE);
-			gtk_widget_set_vexpand(pStatusBarElement, TRUE);
 			}
 
 			gtk_label_set_label(GTK_LABEL(pStatusBarElementLabel), ""); 
@@ -185,7 +184,6 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 			gtk_widget_set_size_request(pStatusBarElement, -1, requisition.height);
 			gtk_box_append(GTK_BOX(m_wStatusBar), pStatusBarElement);
 			gtk_widget_set_hexpand(pStatusBarElement, TRUE);
-			gtk_widget_set_vexpand(pStatusBarElement, TRUE);
 			GtkWidget *  pProgress= gtk_progress_bar_new();
 			xap_gtk_container_add (pStatusBarElement,pProgress);
 			gtk_progress_bar_set_pulse_step (GTK_PROGRESS_BAR(pProgress),0.01);

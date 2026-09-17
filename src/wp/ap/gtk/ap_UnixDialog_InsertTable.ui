@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.20" />
   <object class="GtkAdjustment" id="adjustment1">
     <property name="lower">1</property>
     <property name="upper">64</property>
@@ -25,31 +24,26 @@
   </object>
   <object class="GtkDialog" id="ap_UnixDialog_InsertTable">
     <property name="visible">1</property>
-    <property name="border-width">5</property>
     <property name="title" translatable="yes">Insert Table</property>
     <property name="resizable">0</property>
     <property name="modal">1</property>
-    <property name="window-position">center-on-parent</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="vbDialog">
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="aaDialog">
+          <object class="GtkBox" id="aaDialog">
             <property name="visible">1</property>
-            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="btCancel">
-                <property name="label">gtk-cancel</property>
+                <property name="label">_Cancel</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
                 <property name="can-default">1</property>
-                <property name="use-stock">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
-              </packing>
+                </packing>
             </child>
             <child>
               <object class="GtkButton" id="btInsert">
@@ -61,19 +55,16 @@
                 <property name="use-underline">1</property>
               </object>
               <packing>
-                <property name="fill">0</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </object>
           <packing>
-            <property name="pack-type">end</property>
-          </packing>
+            </packing>
         </child>
         <child>
           <object class="GtkGrid" id="grContent">
             <property name="visible">1</property>
-            <property name="border-width">5</property>
             <property name="row-spacing">6</property>
             <property name="column-spacing">12</property>
             <child>
@@ -92,7 +83,7 @@
             <child>
               <object class="GtkLabel" id="lbNumCols">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Number of columns:</property>
                 <property name="xalign">0</property>
               </object>
@@ -104,7 +95,7 @@
             <child>
               <object class="GtkLabel" id="lbNumRows">
                 <property name="visible">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Number of rows:</property>
                 <property name="xalign">0</property>
               </object>
@@ -155,14 +146,13 @@
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="rbAutoColSize">
+              <object class="GtkCheckButton" id="rbAutoColSize">
                 <property name="label" translatable="yes">Automatic column size</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="use-underline">1</property>
                 <property name="active">1</property>
-                <property name="draw-indicator">1</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -182,13 +172,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="rbFixedColSize">
+              <object class="GtkCheckButton" id="rbFixedColSize">
                 <property name="label" translatable="yes">Fixed column size:</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
-                <property name="margin-left">18</property>
+                <property name="margin-start">18</property>
                 <property name="use-underline">1</property>
-                <property name="draw-indicator">1</property>
                 <property name="group">rbAutoColSize</property>
               </object>
               <packing>

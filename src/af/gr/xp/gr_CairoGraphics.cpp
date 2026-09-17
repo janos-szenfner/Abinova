@@ -1422,12 +1422,20 @@ void GR_CairoGraphics::renderChars(GR_RenderInfo & ri)
 }
 
 
-cairo_surface_t * GR_CairoGraphics::_getCairoSurfaceFromContext(cairo_t *cr, 
+cairo_surface_t * GR_CairoGraphics::_getCairoSurfaceFromContext(cairo_t *cr,
                                                                      const cairo_rectangle_t & rect)
 {
-	cairo_surface_t * surface = cairo_surface_create_similar(cairo_get_target(cr), 
-	                                       CAIRO_CONTENT_COLOR_ALPHA, 
-	                                       rect.width, rect.height);
+	/* Under GTK4 the draw callback hands us a cairo_t whose target is a
+	 * recording surface. cairo_surface_create_similar() on a recording
+	 * surface yields another recording surface, so the "saved" rectangle
+	 * would just record a deferred paint of the whole source rather than
+	 * holding pixels -- and restoreRectangle() would then replay that
+	 * recording over the full widget area. Always rasterize into a real
+	 * image surface instead; painting a recording-surface source into an
+	 * image surface resolves it to actual pixels at capture time. */
+	cairo_surface_t * surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+	                                       static_cast<int>(ceil(rect.width)),
+	                                       static_cast<int>(ceil(rect.height)));
 
 	cairo_surface_t * source = cairo_get_target(cr);
 	cairo_surface_flush(source);
@@ -1436,6 +1444,7 @@ cairo_surface_t * GR_CairoGraphics::_getCairoSurfaceFromContext(cairo_t *cr,
 	cairo_set_source_surface(dest, source, rect.x, rect.y);
 	cairo_paint(dest);
 	cairo_destroy(dest);
+	cairo_surface_flush(surface);
 	return surface;
 }
 
@@ -3433,6 +3442,15 @@ void GR_CairoGraphics::polygon(const UT_RGBColor& c, const UT_Point *pts,
 
 void GR_CairoGraphics::saveRectangle(UT_Rect &r, UT_uint32 iIndex)
 {
+	/* The save/restore pixel-scraping API exists only for the caret, and
+	 * only makes sense on a raster target. When drawing into a recording
+	 * surface (which is what GTK4 hands to GtkDrawingArea draw callbacks)
+	 * reading pixels back mid-record corrupts the recorded frame, so we
+	 * skip it entirely: the full repaint that follows covers the region
+	 * anyway. */
+	if (m_cr && cairo_surface_get_type(cairo_get_target(m_cr)) == CAIRO_SURFACE_TYPE_RECORDING)
+		return;
+
 	if(iIndex >= m_vSaveRect.size())
 		m_vSaveRect.resize(iIndex + 1, nullptr);
 	if(iIndex >= m_vSaveRectBuf.size())
@@ -3461,6 +3479,11 @@ void GR_CairoGraphics::saveRectangle(UT_Rect &r, UT_uint32 iIndex)
 
 void GR_CairoGraphics::restoreRectangle(UT_uint32 iIndex)
 {
+	/* See saveRectangle(): nothing to restore when the target is a
+	 * recording surface - the repaint omits the caret on its own. */
+	if (m_cr && cairo_surface_get_type(cairo_get_target(m_cr)) == CAIRO_SURFACE_TYPE_RECORDING)
+		return;
+
 	cairo_save(m_cr);
 	cairo_reset_clip(m_cr);
 	UT_Rect *r = m_vSaveRect[iIndex];
@@ -3512,6 +3535,13 @@ void GR_CairoGraphics::_DeviceContext_SwitchToBuffer()
 void GR_CairoGraphics::_DeviceContext_SwitchToScreen()
 {
 	cairo_pop_group_to_source(m_cr);
+	/* The buffered content must be flushed whole: the cairo clip still
+	 * active here is whatever run-level clip the drawing code set last
+	 * (setClipRect(nullptr) is only applied lazily on the next drawing
+	 * op, which may never come before this paint). If that clip is empty
+	 * or tiny, the entire buffered frame would be painted into nothing.
+	 */
+	cairo_reset_clip(m_cr);
 	cairo_paint(m_cr);
 }
 
