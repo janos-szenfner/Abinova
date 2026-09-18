@@ -9,6 +9,9 @@ An experimental fork of the AbiWord word processor, focused on:
   installed with the application and registered with fontconfig at
   startup, so documents render consistently without relying on
   system-installed fonts.
+- **Built-in Markdown support** — open, edit, save and save-as for
+  `.md` files, implemented in the core import/export library (not a
+  plugin).
 - **Repository cleanup** — obsolete plugins and dead files removed;
   Debian-reported bugs fixed against the actual implementation.
 
@@ -41,6 +44,79 @@ An experimental fork of the AbiWord word processor, focused on:
   equations; shared XSLT data restored.
 - Remaining plugins: `epub`, `grammar`, `mht`, `openxml`, `rsvg`,
   `wmf`, `wordperfect`, `wpg`.
+- **Built-in Markdown** (`src/wp/impexp/xp/ie_imp_Markdown.cpp` /
+  `ie_exp_Markdown.cpp`): full read/write for `.md`, `.markdown`,
+  `.mdown`, `.mkd`, `.mkdn` and the `text/markdown` MIME type.
+  Syntax follows CommonMark plus the Zettlr Markdown Compendium
+  (https://docs.zettlr.com/en/editor/markdown-compendium.html):
+  - ATX (`#`) and setext (`===` / `---`) headings mapped to the
+    `Heading 1`-`Heading 4` paragraph styles.
+  - `**bold**`, `*italic*`, `***both***`, `~~strike~~`, inline
+    `` `code` `` (Courier New) with backslash escapes.
+  - `[text](url)` hyperlinks (real AbiWord link objects),
+    `<scheme://...>` autolinks, `![alt](path)` image embedding.
+  - Bullet (`-`/`*`/`+`), ordered (`1.`) and task (`[ ]`/`[x]`)
+    lists, nested by indentation, as real AbiWord lists.
+  - `>` blockquotes (`Block Text` style), fenced/indented code
+    blocks (`Plain Text` style), `---`/`***` horizontal rules
+    (paragraph bottom border), GFM pipe tables with column
+    alignment, and hard line breaks (two trailing spaces or `\`).
+  - Export writes the same constructs back, so a document round-trips
+    through Markdown without losing its formatting structure.
+- **EPUB plugin modernized to EPUB 3.3**: `version="3.0"` packages
+  with the required `dcterms:modified` metadata, `properties="nav"`
+  on the navigation document and `properties="mathml"` on MathML
+  content (replacing the draft-era `mathml="true"` and `profile`
+  attributes), `xmlns:epub` declared on content documents, BCP 47
+  language tags (`en-US`, not `en_US`), and `urn:uuid:` identifiers.
+  EPUB 3 is now the default export version; EPUB 2 remains available.
+- **WordPerfect plugin refreshed**: vendored `libwps` updated from
+  0.4.11 to 0.4.14 (current upstream); `libwpd-0.10.3` already
+  matches upstream.
+
+### GTK4 runtime fixes (this round)
+
+- **Menubar pointer-motion crash (auto-close)**: an "enter" motion
+  controller called `refreshMenu`, which could run `g_menu_remove_all()`
+  on the live `GMenuModel` while a `GtkPopoverMenu` was open — GTK then
+  crashed inside `gtk_popover_menu_remove_child` and the whole app
+  exited. Menu models are now rebuilt and swapped atomically via
+  `gtk_menu_button_set_menu_model`/`gtk_menu_bar_set_menu_model`
+  instead of mutated in place.
+- **Keyboard input restored**: the document drawing area had
+  `can-focus` but not `focusable`, so `grab_focus()` silently failed
+  and keystrokes never reached the view.
+- **Border & Shading crash**: a stale `<signal>` handler
+  (`on_cbtBorderColorButton_color_set`) in the dialog `.ui` file had
+  no matching callback in the binary; GTK4 Builder treats unresolved
+  handlers as fatal. All `.ui` files were swept for dead handler
+  names and GTK3-removed widget classes.
+- **Dead `clicked` signals on `GtkCheckButton`**: GTK4 check buttons
+  do not emit `clicked`; the Zoom dialog radios (all six), Page
+  Numbers radios (all five), and similar controls in the New,
+  Format Frame, Format Footnotes and Image dialogs were rewired to
+  `toggled` (with active-state guards for radio groups).
+- **Word Count dialog killed the app on close**: the Close response
+  destroyed the widget tree but left the one-second auto-update timer
+  firing on dead widgets; it now routes through `destroy()`.
+- **Go To dialog spin buttons**: `GtkSpinButton`s were cast to
+  `GtkEntry`, silently returning empty text; the helper now takes
+  `GtkEditable`.
+- **Toolbar overstretch**: `GtkComboBoxText` widgets propagate
+  `hexpand` from their internal entry, letting the font-size combo
+  swallow the whole toolbar; `hexpand` is now explicitly disabled and
+  the entry width capped.
+- **Internal help bundled**: the upstream `abiword-docs` manual was
+  imported and converted to HTML (`help/`, 220 pages); Help buttons
+  open the local copy instead of a dead `file://` URL or the website.
+- **Ruler redesign** (`ap_TopRuler.cpp`): full-height bar, bottom-
+  anchored tick hierarchy, gray margin bands, and inch/half-inch
+  numeric labels drawn with the GUI font so they stay a constant
+  size at any zoom.
+- **Status-bar zoom control**: `−` / slider / `+` / percentage at the
+  right end of the bottom bar (LibreOffice style); the percentage
+  opens the Zoom dialog, buttons use the `zoomIn`/`zoomOut` edit
+  methods, and the control tracks external zoom changes.
 
 ### Fonts
 
