@@ -30,6 +30,8 @@
 #include "ut_types.h"
 #include "ut_vector.h"
 
+#include <type_traits>
+
 #include "ut_null.h"
 #include "ut_debugmsg.h"
 #include "ut_string_class.h"
@@ -123,6 +125,11 @@ public:
 	/* purge objects by deleting them */
 	void purgeData(void)
 		{
+			// deleting a void* is UB - maps holding g_malloc'd or other
+			// opaque pointers must be purged with freeData() instead
+			static_assert(std::is_pointer<T>::value &&
+			              !std::is_void<typename std::remove_cv<typename std::remove_pointer<T>::type>::type>::value,
+			              "purgeData() cannot delete void*; use freeData() for g_malloc'd data");
 			UT_Cursor hc1(this);
 			for ( T hval1 = hc1.first(); hc1.is_valid(); hval1 = hc1.next() ) {
 				if (hval1) {

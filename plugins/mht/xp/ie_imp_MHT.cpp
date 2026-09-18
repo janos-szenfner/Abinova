@@ -817,8 +817,8 @@ UT_ByteBufPtr && UT_Multipart::detachBuffer ()
 
 void UT_Multipart::clear ()
 {
-	//UT_HASH_PURGEDATA (char *, m_map,  free);
-	m_map->purgeData();
+	// values are g_strdup'd - must go through g_free, not C++ delete
+	m_map->freeData();
 	m_map->clear ();
 
 	if (m_buf) m_buf->truncate (0);
