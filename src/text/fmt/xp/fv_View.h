@@ -806,6 +806,8 @@ public:
 	fl_TableLayout *    getTableAtPos(PT_DocPosition) const;
 	bool				isInTable(PT_DocPosition pos) const;
 	bool                cmdAutoSizeCols(void);
+	bool                cmdTableColResize(bool bWider);
+	bool                cmdTableRowResize(bool bTaller);
 	bool                cmdTextToTable(UT_uint32 iDelim);
 	bool                cmdAutoSizeRows(void);
 	bool                cmdAdvanceNextPrevCell(bool bGoNext);

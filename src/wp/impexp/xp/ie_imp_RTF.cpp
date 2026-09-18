@@ -1487,6 +1487,7 @@ IE_Imp_RTF::IE_Imp_RTF(PD_Document * pDocument)
 	m_bDoCloseTable(false),
 	m_iNoCellsSinceLastRow(0),
 	m_bFieldRecognized(false),
+	m_bImportingTOC(false),
 	m_iIsInHeaderFooter(0),
 	m_bSectionHasPara(false),
 	m_bStruxInserted(false),
@@ -3627,6 +3628,14 @@ bool IE_Imp_RTF::HandleField()
 	{
 		PopRTFState ();
 	}
+
+	if(m_bImportingTOC)
+	{
+		// the TOC field result is in: close the live TOC section
+		m_bImportingTOC = false;
+		FlushStoredChars();
+		getDoc()->appendStrux(PTX_EndTOC, PP_NOPROPS);
+	}
 	else
 	{
 		UT_DEBUGMSG (("RTF: Field result not present. Found '%s' in stream. Ignoring.\n", keyword));
@@ -4057,24 +4066,23 @@ gchar *IE_Imp_RTF::_parseFldinstBlock (UT_ByteBuf & _buf, gchar *xmlField, bool 
 		}
 		else if (strcmp (instr, "TOC") == 0)
 		{
-			// Table-of-contents field
-			UT_DEBUGMSG (("RTF: TOC fieldinst not fully handled yet\n"));
-
-#if 0
+			// Table-of-contents field: recreate a live TOC section.
+			// The cached field result becomes the section content and
+			// the section is closed when the field result group ends.
+			FlushStoredChars();
+			if(m_newSectionFlagged)
+			{
+				ApplySectionAttributes();
+				m_newSectionFlagged = false;
+			}
 			if(!m_bParaWrittenForSection)
 			{
-				getDoc()->appendStrux(PTX_Block, nullptr);
+				getDoc()->appendStrux(PTX_Block, PP_NOPROPS);
 				m_bParaWrittenForSection = true;
 			}
-
-			getDoc()->appendStrux(PTX_SectionTOC, nullptr);
-			getDoc()->appendStrux(PTX_EndTOC, nullptr);
-
-			// DAL: hack
-			xmlField = g_strdup ("");
-			UT_ASSERT_HARMLESS (xmlField);
-			isXML = (xmlField != nullptr);
-#endif
+			getDoc()->appendStrux(PTX_SectionTOC, PP_NOPROPS);
+			getDoc()->appendStrux(PTX_Block, PP_NOPROPS);
+			m_bImportingTOC = true;
 		}
 		
 		break;

@@ -5886,13 +5886,36 @@ void  fp_TableContainer::_size_allocate_pass2(void)
 	x = m_MyAllocation.x + pTL->getLeftOffset();
 	y = m_MyAllocation.y + pTL->getTopOffset();
 
+	// In an RTL section the first table column should be the rightmost
+	// one (Debian #620768)
+	bool bRTL = (pTL->getDocSectionLayout() &&
+				 pTL->getDocSectionLayout()->getColumnOrder() != 0);
+
+	UT_sint32 totalWidth = x;
 	for (col = 0; col < m_iCols; col++)
 	{
-		fp_TableRowColumn * pCol = getNthCol(col);
-		pCol->position = x;
-		x += pCol->allocation + pCol->spacing;
+		totalWidth += getNthCol(col)->allocation + getNthCol(col)->spacing;
 	}
-	UT_sint32 totalWidth = x;
+
+	if (!bRTL)
+	{
+		for (col = 0; col < m_iCols; col++)
+		{
+			fp_TableRowColumn * pCol = getNthCol(col);
+			pCol->position = x;
+			x += pCol->allocation + pCol->spacing;
+		}
+	}
+	else
+	{
+		UT_sint32 xRight = totalWidth;
+		for (col = 0; col < m_iCols; col++)
+		{
+			fp_TableRowColumn * pCol = getNthCol(col);
+			xRight -= pCol->allocation + pCol->spacing;
+			pCol->position = xRight;
+		}
+	}
 
 	for (row = 0; row < m_iRows; row++)
 	{

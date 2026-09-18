@@ -978,6 +978,7 @@ private:
 	UT_sint32             m_iNoCellsSinceLastRow;
 	RTFStateStore         m_FootnoteRefState;
 	bool                  m_bFieldRecognized;
+	bool                  m_bImportingTOC;
 	UT_sint32             m_iIsInHeaderFooter;
 	bool                  m_bSectionHasPara;
 	bool                  m_bStruxInserted;

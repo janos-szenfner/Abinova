@@ -376,6 +376,10 @@ public:
 	static EV_EditMethod_Fn splitCells;
 	static EV_EditMethod_Fn formatTable;
 	static EV_EditMethod_Fn autoFitTable;
+	static EV_EditMethod_Fn tableColWider;
+	static EV_EditMethod_Fn tableColNarrower;
+	static EV_EditMethod_Fn tableRowTaller;
+	static EV_EditMethod_Fn tableRowShorter;
 
         static EV_EditMethod_Fn repeatThisRow;
         static EV_EditMethod_Fn removeThisRowRepeat;
@@ -1232,6 +1236,10 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(style),				_D_,""),
 
 	// t
+	EV_EditMethod(NF(tableColNarrower),		0,		""),
+	EV_EditMethod(NF(tableColWider),		0,		""),
+	EV_EditMethod(NF(tableRowShorter),		0,		""),
+	EV_EditMethod(NF(tableRowTaller),		0,		""),
 	EV_EditMethod(NF(tableToTextCommas),	0,		""),
 	EV_EditMethod(NF(tableToTextCommasTabs),    0,		""),
 	EV_EditMethod(NF(tableToTextTabs),    0,		""),
@@ -15430,6 +15438,42 @@ Defun1(autoFitTable)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
 	bool bres = pView->cmdAutoFitTable();
+	return bres;
+}
+
+Defun1(tableColWider)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	bool bres = pView->cmdTableColResize(true);
+	return bres;
+}
+
+Defun1(tableColNarrower)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	bool bres = pView->cmdTableColResize(false);
+	return bres;
+}
+
+Defun1(tableRowTaller)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	bool bres = pView->cmdTableRowResize(true);
+	return bres;
+}
+
+Defun1(tableRowShorter)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	bool bres = pView->cmdTableRowResize(false);
 	return bres;
 }
 

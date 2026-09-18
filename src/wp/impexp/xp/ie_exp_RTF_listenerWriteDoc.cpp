@@ -258,14 +258,18 @@ void s_RTF_ListenerWriteDoc::_writeTOC(PT_AttrPropIndex apiTOC)
 	m_pie->_rtf_keyword("*");
 	m_pie->_rtf_keyword("fldinst ");
 	m_pie->_rtf_open_brace();
-	m_pie->_rtf_keyword(" TOC ");
+	m_pie->_rtf_keyword(" TOC \\o \"1-4\" \\h \\z \\u ");
+	m_pie->_rtf_close_brace();
+	m_pie->_rtf_close_brace();
 //
-// For now just close it all up. Later we'll have to worry about exporting
-// bookmarks and the text of each heading in the TOC
+// The TOC entries that follow go inside the field result so that
+// readers which do not evaluate the TOC instruction still display
+// the cached text, and so that our importer can rebuild a live
+// TOC section from it. The {\fldrslt group and the outer {\field
+// group are closed by the PTX_EndTOC handler.
 //
-	m_pie->_rtf_close_brace();
-	m_pie->_rtf_close_brace();
-	m_pie->_rtf_close_brace();
+	m_pie->_rtf_open_brace();
+	m_pie->_rtf_keyword("fldrslt");
 
 
 	// I can't think of any properties we need for now.
@@ -4644,6 +4648,10 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 			_closeSpan();
 			_setTabEaten(false);
 			m_sdh = nullptr;
+			// close the {\fldrslt group and the outer {\field group
+			// opened by _writeTOC
+			m_pie->_rtf_close_brace();
+			m_pie->_rtf_close_brace();
 			return true;
 		}
 	case PTX_SectionEndnote:

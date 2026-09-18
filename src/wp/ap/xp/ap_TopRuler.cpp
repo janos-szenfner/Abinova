@@ -3085,7 +3085,32 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 				//
 						pTInfo = static_cast<AP_TopRulerTableInfo *>(m_infoCache.m_vecFullTable->getNthItem(i-1));
 						UT_nonnull_or_continue(pTInfo);
-						if(i != m_draggingCell)
+						if(i == m_draggingCell + 1)
+						{
+							//
+							// the cell immediately right of the dragged boundary
+							// absorbs the change, keeping the overall table width
+							// constant instead of pushing the right cells off the
+							// page
+							//
+							left = m_draggingCenter + pTInfo->m_iLeftSpacing;
+							if(i < iNumCells)
+							{
+								pTInfo = static_cast<AP_TopRulerTableInfo *>(m_infoCache.m_vecFullTable->getNthItem(i));
+								UT_nonnull_or_continue(pTInfo);
+								right = pTInfo->m_iLeftCellPos + xAbsLeft1 + pTInfo->m_iLeftSpacing;
+							}
+							else
+							{
+								right = pTInfo->m_iRightCellPos + xAbsLeft1 + pTInfo->m_iRightSpacing;
+							}
+							width = right - left;
+							if(width < 5*pTInfo->m_iLeftSpacing)
+							{
+								width = 5*pTInfo->m_iLeftSpacing;
+							}
+						}
+						else if(i != m_draggingCell)
 						{
 							left = pTInfo->m_iLeftCellPos + xAbsLeft1 + pTInfo->m_iLeftSpacing;
 							if(i < iNumCells)

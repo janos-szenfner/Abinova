@@ -36,6 +36,7 @@
 #include "ut_go_file.h"
 #include "ut_growbuf.h"
 #include "ut_misc.h"
+#include "ut_units.h"
 #include "ut_std_string.h"
 #include "ut_string.h"
 #include "ut_bytebuf.h"
@@ -1758,6 +1759,194 @@ bool FV_View::cmdAutoFitTable(void)
 
 
 	// restore updates and clean up dirty lists
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+
+/*!
+ * Grow or shrink the width of the column containing the insertion
+ * point by 0.1 inch. Provides a keyboard-driven equivalent to
+ * dragging a table border with the mouse.
+ */
+bool FV_View::cmdTableColResize(bool bWider)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	PT_DocPosition posCol = getPoint();
+	if(!isInTable(posCol))
+	{
+		return false;
+	}
+
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(posCol,PTX_SectionTable,&tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+
+	UT_sint32 iLeft,iRight,iTop,iBot;
+	getCellParams(posCol, &iLeft, &iRight,&iTop,&iBot);
+
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(m_pDoc->getNthFmtHandle(tableSDH,m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL,false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab,false);
+	UT_sint32 iNumCols = pTab->getNumCols();
+	UT_return_val_if_fail(iNumCols > 0 && iLeft >= 0 && iLeft < iNumCols, false);
+
+	UT_sint32 iDelta = UT_convertToLogicalUnits("0.1in");
+	if(!bWider)
+	{
+		iDelta = -iDelta;
+	}
+	UT_sint32 iMinWidth = UT_convertToLogicalUnits("0.05in");
+
+	// the column that absorbs the change so the overall table width stays
+	// constant: the column immediately right of the cell, or the column to
+	// its left if the cell ends at the table edge
+	UT_sint32 iSlack = iRight;
+	if(iSlack >= iNumCols || (iSlack >= iLeft && iSlack < iRight))
+	{
+		iSlack = iLeft - 1;
+	}
+
+	std::string sColWidth;
+	for(UT_sint32 i = 0; i < iNumCols; i++)
+	{
+		fp_TableRowColumn * pCol = pTab->getNthCol(i);
+		UT_sint32 iWidth = pCol ? pCol->allocation : 0;
+		if(iWidth <= 0)
+		{
+			iWidth = UT_convertToLogicalUnits("1.0in");
+		}
+		if(i >= iLeft && i < iRight)
+		{
+			iWidth += iDelta;
+		}
+		else if(i == iSlack)
+		{
+			iWidth -= iDelta;
+		}
+		if(iWidth < iMinWidth)
+		{
+			iWidth = iMinWidth;
+		}
+		sColWidth += UT_formatDimensionString(DIM_IN,static_cast<double>(iWidth)/UT_LAYOUT_RESOLUTION,nullptr);
+		sColWidth += "/";
+	}
+
+	// Signal PieceTable Change
+	_saveAndNotifyPieceTableChange();
+
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	if (!isSelectionEmpty())
+	{
+		_clearSelection();
+	}
+	m_pDoc->setDontImmediatelyLayout(true);
+	PP_PropertyVector tableProps = {
+		"table-column-props", sColWidth.c_str()
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, tableProps, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+
+	// Signal PieceTable Changes have finished
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+
+/*!
+ * Grow or shrink the height of the row containing the insertion
+ * point by 0.1 inch.
+ */
+bool FV_View::cmdTableRowResize(bool bTaller)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	PT_DocPosition posCol = getPoint();
+	if(!isInTable(posCol))
+	{
+		return false;
+	}
+
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(posCol,PTX_SectionTable,&tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+
+	UT_sint32 iLeft,iRight,iTop,iBot;
+	getCellParams(posCol, &iLeft, &iRight,&iTop,&iBot);
+
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(m_pDoc->getNthFmtHandle(tableSDH,m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL,false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab,false);
+	UT_sint32 iNumRows = pTab->getNumRows();
+	UT_return_val_if_fail(iNumRows > 0 && iTop >= 0 && iTop < iNumRows, false);
+
+	UT_sint32 iDelta = UT_convertToLogicalUnits("0.1in");
+	if(!bTaller)
+	{
+		iDelta = -iDelta;
+	}
+	UT_sint32 iMinHeight = UT_convertToLogicalUnits("0.1in");
+
+	std::string sRowHeight;
+	for(UT_sint32 i = 0; i < iNumRows; i++)
+	{
+		fp_TableRowColumn * pRow = pTab->getNthRow(i);
+		UT_sint32 iHeight = pRow ? pRow->allocation : 0;
+		if(iHeight <= 0)
+		{
+			iHeight = UT_convertToLogicalUnits("0.25in");
+		}
+		if(i >= iTop && i < iBot)
+		{
+			iHeight += iDelta;
+		}
+		if(iHeight < iMinHeight)
+		{
+			iHeight = iMinHeight;
+		}
+		sRowHeight += UT_formatDimensionString(DIM_IN,static_cast<double>(iHeight)/UT_LAYOUT_RESOLUTION,nullptr);
+		sRowHeight += "/";
+	}
+
+	// Signal PieceTable Change
+	_saveAndNotifyPieceTableChange();
+
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	if (!isSelectionEmpty())
+	{
+		_clearSelection();
+	}
+	m_pDoc->setDontImmediatelyLayout(true);
+	PP_PropertyVector tableProps = {
+		"table-row-heights", sRowHeight.c_str()
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, tableProps, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+
+	// Signal PieceTable Changes have finished
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+
 	m_pDoc->enableListUpdates();
 	m_pDoc->updateDirtyLists();
 	_fixInsertionPointCoords();

@@ -410,7 +410,8 @@ UT_sint32 fp_Line::getAvailableWidth(void) const
 UT_sint32 fp_Line::calcLeftBorderThick(void)
 {
   m_iLeftThick = 0;
-  if(getBlock() && !getBlock()->hasBorders())
+  if(getBlock() && (!getBlock()->hasBorders() ||
+		    getBlock()->getLeft().m_t_linestyle <= PP_PropertyMap::linestyle_none))
   {
       m_iLeftThick = 0;
   }
@@ -436,7 +437,8 @@ UT_sint32 fp_Line::calcLeftBorderThick(void)
 UT_sint32 fp_Line::calcRightBorderThick(void)
 {
   m_iRightThick = 0;
-  if(getBlock() && !getBlock()->hasBorders())
+  if(getBlock() && (!getBlock()->hasBorders() ||
+		    getBlock()->getRight().m_t_linestyle <= PP_PropertyMap::linestyle_none))
   {
       m_iRightThick = 0;
   }
@@ -471,7 +473,8 @@ bool fp_Line::hasBordersOrShading(void) const
 UT_sint32 fp_Line::calcTopBorderThick(void)
 {
   m_iTopThick = 0;
-  if(getBlock() && !getBlock()->hasBorders())
+  if(getBlock() && (!getBlock()->hasBorders() ||
+		    getBlock()->getTop().m_t_linestyle <= PP_PropertyMap::linestyle_none))
   {
        m_iTopThick = 0;
   }
@@ -485,7 +488,8 @@ UT_sint32 fp_Line::calcTopBorderThick(void)
 UT_sint32 fp_Line::calcBotBorderThick(void)
 {
   m_iBotThick = 0;
-  if(getBlock() && !getBlock()->hasBorders())
+  if(getBlock() && (!getBlock()->hasBorders() ||
+		    getBlock()->getBottom().m_t_linestyle <= PP_PropertyMap::linestyle_none))
   {
        m_iBotThick = 0;
   }

@@ -4033,14 +4033,10 @@ bool fp_FieldRun::_setValue(const UT_UCS4Char *p_new_value)
 
 		if(iLen > 1 && XAP_App::getApp()->theOSHasBidiSupport() == XAP_App::BIDI_SUPPORT_GUI)
 		{
-			UT_BidiCharType prevType, myType;
-
-			if(getPrevRun())
-				prevType = getPrevRun()->getVisDirection();
-			else
-				prevType = getBlock()->getDominantDirection();
-
-			myType = prevType;
+			// use the block's dominant direction as the base direction so
+			// that e.g. RTL field names in an RTL paragraph are reordered
+			// correctly even when the preceding run is LTR (Debian #620769)
+			UT_BidiCharType myType = getBlock()->getDominantDirection();
 			UT_bidiReorderString(p_new_value, iLen, myType, m_sFieldValue);
 
 			m_sFieldValue[iLen] = 0;
