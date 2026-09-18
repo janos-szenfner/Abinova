@@ -1,0 +1,20 @@
+name: bindings/js CI
+
+# Disable. It's failing, its pointless
+# Do not run this job!
+# on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: install packages
+      run: sudo apt-get install autoconf-archive flex libpcre2-dev
+    - name: autoconf
+      run: ./autogen.sh
+    - name: set files as executable
+      run: chmod +x bindings/js/install_emsdk.sh bindings/js/build_packages.sh bindings/js/link-parser/build.sh
+    - name: install emsdk
+      run: sudo ./bindings/js/install_emsdk.sh
+    - name: build packages
+      run: sudo ./bindings/js/build_packages.sh

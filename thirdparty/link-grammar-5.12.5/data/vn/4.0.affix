@@ -1,0 +1,16 @@
+% Affixes get stripped off the left and right side of words 
+% i.e. spaces are inserted between the affix and the word itself.
+
+% Punctuation appearing on the right-side of words.
+"," : RPUNC+; % Only this punctuation appears in the dict.
+
+% Punctuation appearing on the left-side of words.
+%  : LPUNC+; % None.
+
+% The below is a quoted list, used during tokenization. Do NOT put
+% spaces in between the various quotation marks!!
+""«»《》【】『』`„“": QUOTES+;
+
+% The below is a quoted list, used during tokenization. Do NOT put
+% spaces in between the various symbols!!
+"()¿¡†‡§¶©®℗№#*•⁂❧☞◊※○。゜✿☆＊◕●∇□◇＠◎–━ー---‧": BULLETS+;

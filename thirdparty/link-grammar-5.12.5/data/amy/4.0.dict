@@ -1,0 +1,22 @@
+
+ %***************************************************************************%
+ %                                                                           %
+ %       Copyright (C) 2013, 2014 Linas Vepstas                              %
+ %                                                                           %
+ %  See file "README" for information about commercial use of this system    %
+ %                                                                           %
+ %***************************************************************************%
+
+#define dictionary-version-number 5.11.0;
+#define dictionary-locale C;
+
+LEFT-WALL: ANY+;
+ANY-WORD: {@ANY-} & {@ANY+};
+<UNKNOWN-WORD>: {@ANY-} & {@ANY+};
+ANY-PUNCT: {@ANY-} & {@ANY+};
+
+JUNK: {@ANY-} & {@ANY+};
+
+MOR-PREF: PL+;
+MOR-STEM: {@PL-} & LL+;
+MOR-SUFF: LL- & {@ANY-} & {@ANY+};

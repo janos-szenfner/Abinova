@@ -1,26 +1,26 @@
 
-wpg_pkgs="libwpg-0.3 $gsf_req"
-wpg_deps="no"
+# WPG plugin uses the bundled libwpg/libwpd/librevenge convenience
+# libraries from thirdparty/, so no external dependencies are needed.
+
+wpg_deps="yes"
+WPG_CFLAGS=
+WPG_LIBS=
 
 if test "$enable_wpg" != ""; then
-
-PKG_CHECK_EXISTS([ $wpg_pkgs ], 
-[
-	wpg_deps="yes"
-], [
-	test "$enable_wpg" = "auto" && AC_MSG_WARN([wpg plugin: dependencies not satisfied - $wpg_pkgs])
-])
-
-fi
-
-if test "$enable_wpg" = "yes" || \
-   test "$wpg_deps" = "yes"; then
 
 if test "$enable_wpg_builtin" = "yes"; then
 AC_MSG_ERROR([wpg plugin: static linking not supported])
 fi
 
-PKG_CHECK_MODULES(WPG, [ $wpg_pkgs ])
+WPG_CFLAGS=" \
+	-I\$(top_srcdir)/thirdparty/libwpg-0.3.4/inc \
+	-I\$(top_srcdir)/thirdparty/libwpd-0.10.3/inc \
+	-I\$(top_srcdir)/thirdparty/librevenge-0.0.6/inc"
+WPG_LIBS=" \
+	\$(top_builddir)/thirdparty/libwpg.la \
+	\$(top_builddir)/thirdparty/libwpd.la \
+	\$(top_builddir)/thirdparty/librevenge.la \
+	-lz"
 
 test "$enable_wpg" = "auto" && PLUGINS="$PLUGINS wpg"
 
@@ -31,4 +31,3 @@ fi
 
 AC_SUBST([WPG_CFLAGS])
 AC_SUBST([WPG_LIBS])
-

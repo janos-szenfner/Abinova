@@ -1,0 +1,29 @@
+Vendored third-party libraries
+==============================
+
+These libraries are bundled so that the corresponding AbiWord plugins
+build without requiring users to install external dependencies.
+Each is compiled as a libtool convenience library (noinst, PIC) and
+linked statically into the plugin .so that needs it.
+
+  librevenge-0.0.6   document-format support library (LGPL-2.1+/MPL-2.0)
+                     used by libwpd, libwpg, libwps
+  libwpd-0.10.3      WordPerfect document import (LGPL-2.1+/MPL-2.0)
+                     used by the wordperfect plugin
+  libwps-0.4.11      MS Works document import (LGPL-2.1+/MPL-2.0)
+                     used by the wordperfect plugin (HAVE_LIBWPS)
+  libwpg-0.3.4       WordPerfect Graphics import (LGPL-2.1+/MPL-2.0)
+                     used by the wpg plugin
+
+Only the library source subsets are vendored (inc/ + src/lib/ plus
+licenses); upstream tools, fuzzers, tests and build scripts are not
+included. The convenience-lib Makefile.am in this directory replaces
+the upstream build systems.
+
+link-grammar is vendored separately with its own autotools build
+(see configure.ac AC_CONFIG_SUBDIRS) because it installs dictionary
+data at runtime.
+
+To update a vendored library: drop in the new upstream tree, keep the
+same directory layout (inc/, src/lib/), and refresh the _SOURCES list
+in Makefile.am.

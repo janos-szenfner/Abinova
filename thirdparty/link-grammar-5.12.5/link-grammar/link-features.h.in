@@ -1,0 +1,63 @@
+#ifndef LINK_FEATURES_H
+#define LINK_FEATURES_H
+
+#if (defined(_WIN32) || defined(__CYGWIN__)) && !defined(LINK_GRAMMAR_DLL_EXPORT)
+#define LINK_GRAMMAR_DLL_EXPORT 1
+#endif
+
+#ifdef  __cplusplus
+# define LINK_BEGIN_DECLS  extern "C" {
+# define LINK_END_DECLS    }
+#else
+# define LINK_BEGIN_DECLS
+# define LINK_END_DECLS
+#endif
+
+#ifndef link_public_api
+# if (defined(_WIN32) || defined(__CYGWIN__))
+#  if defined(LINK_GRAMMAR_STATIC)
+#   define link_public_api(x)
+#  else
+#   if !defined LINK_GRAMMAR_DLL_EXPORT
+#    error !defined LINK_GRAMMAR_DLL_EXPORT
+#   endif
+#   if LINK_GRAMMAR_DLL_EXPORT
+#    define link_public_api(x) __declspec(dllexport) x
+#   else
+#    define link_public_api(x) __declspec(dllimport) x
+#   endif
+#  endif
+# else
+#  define link_public_api(x) @DEFAULT_VISIBILITY@ x
+# endif
+#endif
+
+/* Users are discouraged from using functions in the experimental API,
+ * unless they are willing to commit to the possibility that these functions
+ * may change without notice or may simply be removed at any time. */
+#define link_experimental_api(x) link_public_api(x)
+
+#define LINK_MAJOR_VERSION @LINK_MAJOR_VERSION@
+#define LINK_MINOR_VERSION @LINK_MINOR_VERSION@
+#define LINK_MICRO_VERSION @LINK_MICRO_VERSION@
+
+#define LINK_VERSION_STRING "@LINK_MAJOR_VERSION@.@LINK_MINOR_VERSION@.@LINK_MICRO_VERSION@"
+
+/* __VA_ARGS__ must be used because arguments may contain commas. */
+#define lg_xstr(...) lg_str(__VA_ARGS__)
+#define lg_str(...) #__VA_ARGS__
+
+#define LG_HOST_OS lg_str(@HOST_OS@)
+#define LG_CPPFLAGS "CPPFLAGS=" lg_str(@CPPFLAGS@)
+#define LG_CFLAGS "CFLAGS=" lg_str(@CFLAGS@)
+#define LG_DEFS lg_str(@LG_DEFS@)
+
+#define DISCUSSION_GROUP "@DISCUSSION_GROUP@"
+#define OVERVIEW "@OVERVIEW@"
+/* Must appear here to support Windows. */
+#undef PACKAGE_BUGREPORT
+#define PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
+#undef PACKAGE_URL
+#define PACKAGE_URL "@PACKAGE_URL@"
+
+#endif

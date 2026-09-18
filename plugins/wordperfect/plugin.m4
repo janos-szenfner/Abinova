@@ -1,39 +1,28 @@
 
-wordperfect_pkgs="libwpd-0.10 $gsf_req"
-wordperfect_wps_pkgs='libwps-0.4'
-wordperfect_deps="no"
+# WordPerfect plugin uses the bundled libwpd/libwps/librevenge
+# convenience libraries from thirdparty/, so no external
+# dependencies are needed.
 
+wordperfect_deps="yes"
 WORDPERFECT_CFLAGS=
 WORDPERFECT_LIBS=
-WPS_DEFINE=
+WPS_DEFINE=" -DHAVE_LIBWPS"
 
 if test "$enable_wordperfect" != ""; then
-
-PKG_CHECK_EXISTS([ $wordperfect_pkgs ], 
-[
-	wordperfect_deps="yes"
-], [
-	test "$enable_wordperfect" = "auto" && AC_MSG_WARN([wordperfect plugin: dependencies not satisfied - $wordperfect_pkgs])
-])
-
-fi
-
-if test "$enable_wordperfect" = "yes" || \
-   test "$wordperfect_deps" = "yes"; then
 
 if test "$enable_wordperfect_builtin" = "yes"; then
 AC_MSG_ERROR([wordperfect plugin: static linking not supported])
 fi
 
-wp_deps_pkgs="$wordperfect_pkgs"
-
-PKG_CHECK_EXISTS([ $wordperfect_wps_pkgs ],
-[
-	wp_deps_pkgs="$wordperfect_wps_pkgs $wp_deps_pkgs"
-	WPS_DEFINE=" -DHAVE_LIBWPS"
-])
-
-PKG_CHECK_MODULES(WORDPERFECT,[ $wp_deps_pkgs ])
+WORDPERFECT_CFLAGS=" \
+	-I\$(top_srcdir)/thirdparty/libwpd-0.10.3/inc \
+	-I\$(top_srcdir)/thirdparty/libwps-0.4.11/inc \
+	-I\$(top_srcdir)/thirdparty/librevenge-0.0.6/inc"
+WORDPERFECT_LIBS=" \
+	\$(top_builddir)/thirdparty/libwps.la \
+	\$(top_builddir)/thirdparty/libwpd.la \
+	\$(top_builddir)/thirdparty/librevenge.la \
+	-lz"
 
 test "$enable_wordperfect" = "auto" && PLUGINS="$PLUGINS wordperfect"
 
@@ -44,4 +33,3 @@ fi
 
 AC_SUBST([WORDPERFECT_CFLAGS])
 AC_SUBST([WORDPERFECT_LIBS])
-

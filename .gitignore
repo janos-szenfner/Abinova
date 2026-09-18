@@ -72,6 +72,24 @@ src/wp/test/unix/testwrap.sh
 *.orig
 *.rej
 core
+/ylwrap
+
+# Vendored third-party deps ship their generated autotools files so
+# they build without requiring autoconf-archive/matching autotools
+!thirdparty/**/Makefile.in
+!thirdparty/**/configure
+!thirdparty/**/aclocal.m4
+!thirdparty/**/config.h.in
+!thirdparty/**/config.guess
+!thirdparty/**/config.sub
+!thirdparty/**/install-sh
+!thirdparty/**/ltmain.sh
+!thirdparty/**/missing
+!thirdparty/**/depcomp
+!thirdparty/**/ylwrap
+!thirdparty/**/compile
+!thirdparty/**/mkinstalldirs
+!thirdparty/**/*.pc.in
 src/wp/test/AbiWord-test
 src/wp/test/supp.txt
 src/wp/test/test-suite.log

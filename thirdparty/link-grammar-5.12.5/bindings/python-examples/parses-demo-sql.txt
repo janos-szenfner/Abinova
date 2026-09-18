@@ -1,0 +1,31 @@
+% This file contains test sentences to verify that the SQL dict
+% works. It contains more than one sentence to check that memory
+% is freed properly (e.g by using LSAN).
+
+Ithis is a test
+O
+O    +------WV------+--Osm--+
+O    +---Wd---+-Ss*b+  +-Ds-+
+O    |        |     |  |    |
+OLEFT-WALL this.p is.v a test.n
+O
+
+Ithis is another test
+O
+O    +------WV------+-----Osm-----+
+O    +---Wd---+-Ss*b+     +---Ds--+
+O    |        |     |     |       |
+OLEFT-WALL this.p is.v another test.n
+O
+
+-max_null_count=1
+% A hack: The SAT parser cannot parse with nulls yet,
+% so change back to classic parser.
+-use_sat=False
+IThis is a a test
+O
+O    +------WV------+----Osm----+
+O    +---Wd---+-Ss*b+      +-Ds-+
+O    |        |     |      |    |
+OLEFT-WALL this.p is.v [a] a test.n
+O

@@ -1,0 +1,7 @@
+Libwpg project is a collection of library and tools to work with graphics in WPG (WordPerfect Graphics) format. WPG is the format used among others in Corel sofware, such as WordPerfect(tm) and Presentations(tm).
+
+At the moment, libwpg comprises of:
+
+    libwpg, C++ library for parsing WPG
+    wpg2raw, command-line tool to see raw API function calls
+    wpg2svg, command-line converter to SVG (Scalable Vector Graphics)

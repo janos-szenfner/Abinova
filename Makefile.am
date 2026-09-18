@@ -1,9 +1,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-DIST_SUBDIRS = src plugins po user icons tools
+DIST_SUBDIRS = src thirdparty plugins po user icons tools
 
-SUBDIRS = src plugins po user
+SUBDIRS = src thirdparty plugins po user
 
 
 SUBDIRS += icons

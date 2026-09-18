@@ -1,0 +1,828 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                               %
+%       Thai Link Grammar                                       %
+%                                                               %
+%       Copyright (C) 2021  Prachya Boonkwan                    %
+%       National Electronics and Computer Technology Center     %
+%       Thailand                                                %
+%                                                               %
+%       License: Creative Commons, Attribution (CC-BY)          %
+%                                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#define dictionary-version-number 5.10.5;
+#define dictionary-locale th_TH.UTF-8;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   DEPENDENCY LINKS
+%
+%   Utterance
+%   ---------
+%   LW = left wall
+%       LWs = sentence
+%       LWn = utterance of noun phrase
+%       LWp = utterance of preposition phrase
+%   RW = right wall
+%   IJ = interjection
+%   PT = particle
+%
+%   Sentence
+%   --------
+%   S  = subject
+%   O  = object
+%   VZ = serial verb
+%   VC = controlled verb
+%   VE = evidential verb
+%   TP = topicalization
+%
+%   Noun Phrase
+%   -----------
+%   NZ = serial noun
+%   AJ = adjective
+%       AJr = relative clause
+%       AJj = simple adjective
+%       AJv = attributive verb
+%       AJp = preposition phrase
+%   RI = implicit relative clause
+%   AT = attribute
+%   PS = possessive pronoun
+%
+%   Verb Phrase
+%   -----------
+%   AX = auxiliary
+%       AXw = simple auxiliary
+%       AXg = negative auxiliary
+%       AXq = quantifying auxiliary
+%   AV = adverb
+%       AVp = preposition phrase
+%       AVw = simple adverb
+%       AVg = negative adverb
+%       AVn = numeral phrase modifying noun phrase
+%       AVv = numeral phrase modifying verb phrase
+%       AVt = temporal entity modifying verb phrase
+%       AVc = clause-level adverb
+%
+%   Preposition Phrase
+%   ------------------
+%   PO = prepositional object (noun)
+%   PC = prepositional complement (verb)
+%   PZ = serial preposition
+%
+%   Numeral Phrase
+%   --------------
+%   NU = number
+%       NUn = simple number
+%       NUv = number for verb
+%   CL = classifier
+%       CLn = classifier for noun
+%       CLv = classifier for verb
+%   QF = numeral quantifier
+%
+%   Coordinate Structure
+%   --------------------
+%   JN = conjoined noun phrase
+%   JV = conjoined verb phrase
+%
+%   Punctuation
+%   -----------
+%   PU = punctuation
+%       PUs = white space
+%       PUp = paiyal noi 'ฯ'
+%       PUy = mai yamok 'ๆ'
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                       %
+%   COMMON MACROS                       %
+%                                       %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<left-wall-sent> :
+    {@IJ-}
+    & {LWn-}
+    & LWs-;
+
+<left-wall-noun> :
+    {@IJ-}
+    & LWn-;
+
+<left-wall-prep> :
+    {@IJ-}
+    & LWp-;
+
+<left-wall-aux> :
+    {@IJ-}
+    & LWx-;
+
+<right-wall> :
+    {@PT+} 
+    & RW+;
+
+<utterance-noun> :
+    <left-wall-noun>
+    & <right-wall>;
+
+<utterance-prep> :
+    <left-wall-prep>
+    & <right-wall>;
+
+<num-cl> :
+    hNUn-
+    or [hNUn+]
+    or [[hNUv+]];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                       %
+%   GRAMMAR                             %
+%                                       %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%
+% Noun
+%%%%%%%%%%%%%%%%%%%%
+
+<noun-looking-for-mods> :
+    {hAJj-}
+    & {@hAJ+ or hPS+}
+    & {PUp+ or PUy+}
+    & {<num-cl>}
+    & {@hAJ+};
+
+<noun-start> :
+    {[NZ+] or hAT+}
+    & <noun-looking-for-mods>;
+
+<noun-start-temporal> :
+    {TS+ or hAT+}
+    & <noun-looking-for-mods>
+    & {PUsr+ & TS+};
+
+<noun-serial> :
+    NZ-
+    & {NZ+};
+
+<noun-serial-temporal> :
+    TS-
+    & {TS+};
+
+<noun-imprel> :
+    (hRI+ or hAJv+)
+    & {@hAJ+};
+
+<noun-attribute> :
+    dAT-
+    & (@hAJ+ or hPO+);
+
+<noun-element> :
+    dS+
+    or dO-
+    or [<utterance-noun>]
+    or dPO-
+    or JNl+ 
+    or JNr- 
+    or ({PUst+} & TP+);
+
+<noun-simple> :
+    (<noun-start> & <noun-element>)
+    or <noun-serial>
+    or (<noun-imprel> & <noun-element>);
+
+<noun-temporal> :
+    dAVtl+
+    or dAVtr-;
+
+%%%% Common Noun %%%%
+
+/th/words/words.n.common 
+W-NOUN W-LST20-NN.n
+THAI-COLOR.n
+NE-LST20-PER NE-LST20-ORG NE-LST20-BRN NE-LST20-LOC NE-LST20-TRM :
+    <noun-simple>;
+
+%%%% Attributive Noun %%%%
+
+/th/words/words.n.attribute 
+W-NOUN-ATTR W-LST20-NN.na :
+    (<noun-start> & <noun-element>)
+    or <noun-attribute>;
+
+%%%% Nominalizing Prefix %%%%
+
+/th/words/words.n.prefix 
+W-NOUN-PREFIX W-LST20-FX.fx
+NE-LST20-DES :
+    <noun-imprel>
+    & <noun-element>;
+
+%%%% Temporal Entity %%%%
+
+THAI-DATE THAI-TIME NE-LST20-DTM :
+    <noun-start-temporal>
+    & {PUs+}
+    & (<noun-temporal> or <noun-element>);
+
+%%%%%%%%%%%%%%%%%%%%
+%   Pronoun
+%%%%%%%%%%%%%%%%%%%%
+
+/th/words/words.pro.common 
+W-PRO W-LST20-PR.pr :
+    (
+        {hAJr+}
+        & {<num-cl>}
+        & <noun-element>
+    )
+    or dPS-;
+
+%%%%%%%%%%%%%%%%%%%%
+% Classifier
+%%%%%%%%%%%%%%%%%%%%
+
+<cls-n> :
+    dCLn+ or dCLn-;
+
+<cls-v> :
+    dCLv+ or dCLv-;
+
+/th/words/words.cl.noun
+W-CL-NOUN W-LST20-CL.cln
+NE-LST20-MEA.cln :
+    <cls-n>;
+
+/th/words/words.cl.verb
+W-CL-VERB W-LST20-CL.clv
+NE-LST20-MEA.clv :
+    <cls-v>;
+
+%%%%%%%%%%%%%%%%%%%%
+% Verb
+%%%%%%%%%%%%%%%%%%%%
+
+<core-of-verb> :
+    {@hAX-}
+    & (
+        (hS- & ([TP-] or ()))
+        or [()]
+    )
+    & {hAVpl-}
+    & {hAVtl-}
+    & {hAVcl-};
+
+<verb-start> :
+    <core-of-verb>
+    & (<left-wall-sent> or JVr-)
+    & (hO+ or [()])
+    & (
+        ({@hAV+} & <right-wall>)
+        or [VZ+] 
+        or ({@hAV+} & JVl+)
+    );
+
+<passive-marker> :
+    <core-of-verb>
+    & (<left-wall-sent> or JVr-)
+    & (hO+ or [()])
+    & hVC+
+    & (
+        <right-wall>
+        or ({@hAV+} & JVl+)
+    );
+
+<verb-existential> :
+    <core-of-verb>
+    & (<left-wall-sent> or JVr-)
+    & hO+
+    & hVE+
+    & (
+        <right-wall>
+        or ({@hAV+} & JVl+)
+    );
+
+<verb-intrans> :
+    <core-of-verb>
+    & (<left-wall-sent> or JVr-)
+    & (
+        ({@hAV+} & {@hAV-} & <right-wall>)
+        or [VZ+]
+        or ({@hAV+} & JVl+)
+    );
+
+<verb-serial> :
+    VZ-
+    & (hO+ or [()])
+    & {@hAV+}
+    & (<right-wall> or VZ+);
+
+<verb-control> :
+    dVC-
+    & (hO+ or [()])
+    & {@hAV+}
+    & (<right-wall> or VZ+);
+
+<verb-comp> :
+    {@hAX-}
+    & {hS- & ([TP-] or ())}
+    & {hAVpl-}
+    & {dPC- or dRC-}
+    & (hO+ or [()])
+    & {@hAV+}
+    & {[VZ+]};
+
+<verb-comp-existential> :
+    {@hAX-}
+    & dVE-
+    & (hO+ or [()])
+    & {@hAV+}
+    & {[VZ+]};
+
+<verb-imprel> :
+    [dRI-]
+    & (hO+ or [()])
+    & {[hAV+]};
+
+<verb-simple> :
+    (
+        {[[PUsl-]]}
+        & {[[PUsr+]]}
+        & (<verb-start> or <verb-serial> or <verb-comp>)
+    )
+    or <verb-control>
+    or <verb-comp-existential>
+    or [<verb-imprel>];
+
+<verb-simple-intrans> :
+    {[[PUsl-]]}
+    & {[[PUsr+]]}
+    & <verb-intrans>;
+
+%%%% Common Verb %%%%
+
+/th/words/words.v.common 
+W-VERB W-LST20-VV.v :
+    <verb-simple>;
+
+W-VERB-GER W-LST20-VV.vg :
+    <verb-imprel>;
+
+/th/words/words.v.evidential
+W-VERB-EVIDENTIAL :
+    <verb-existential>;
+
+%%%% Passive Marker %%%%
+
+/th/words/words.passmark 
+W-PASSMARK ถูก@AX.x :
+    <passive-marker>;
+
+%%%%%%%%%%%%%%%%%%%%
+% Adjective
+%%%%%%%%%%%%%%%%%%%%
+
+<adj-simple> :
+    {PUy+}
+    & {hCL-}
+    & dAJj-
+    & {hAVw+};
+
+<adj-lhs> :
+    dAJj+;
+
+<adj-attribute> :
+    {PUy+}
+    & {hCL-}
+    & dAJv-
+    & {hAVw+ or hAVp+};
+
+%%%% Simple Adjective %%%%
+
+% Test frame: _____ (non-verb) + kwàa/láew
+%     If not allowed, it is an adjective.
+%     Otherwise, it is an attributive verb.
+
+/th/words/words.adj.common
+/th/words/words.num.ordinal
+THAI-COLOR.j 
+ROMAN-NUMERAL-WORDS.j 
+W-ADJ W-LST20-AJ.j :
+    <adj-simple>;
+
+/th/words/words.adj.lhs 
+/th/words/words.n.title
+/th/words/words.n.designator 
+W-ADJ-LHS W-NOUN-TITLE W-LST20-AJ.jl
+NE-LST20-TTL :
+    <adj-lhs>;
+
+%%%% Attributive Verb %%%%
+
+% Test frame: khwaam + _____
+
+/th/words/words.v.attribute
+THAI-COLOR.va 
+W-VERB-ATTR W-LST20-VV.va :
+    <adj-attribute>
+    or [{PUy+} & <verb-simple-intrans>]
+    or [<verb-comp>];
+
+%%%%%%%%%%%%%%%%%%%%
+% Number
+%%%%%%%%%%%%%%%%%%%%
+
+<number-simple> :
+    ({hQFl-} & dNUnr- & hCLn+ & {hQFr+})
+    or [[{hQFl-} & dNUvr- & hCLv+ & {hQFr+}]]
+    or [{hQFl-} & dAVnr- & hCLn+ & {hQFr+}]
+    or [{hQFl-} & dAVvr- & hCLv+ & {hQFr+}]
+    or dNUnl+
+    or dNUtr-
+    or dONr-;
+
+/th/words/words.num.common
+NUMBERS.nu FRACTION.nu 
+THAI-NUMBERS.nu THAI-FRACTION.nu
+W-NUM W-LST20-NU.nu
+NE-LST20-NUM :
+    {PUsl-} & {PUsr+} & <number-simple>;
+
+/th/words/words.num.movable 
+W-NUM-MOV W-LST20-NU.nuv :
+    (hCLn- & (dNUnr- or [dAVnr-]))
+    or (hCLv- & (dNUvr- or [dAVvr-]));
+
+/th/words/words.qf.lhs 
+W-QF-LEFT W-LST20-AJ.qfl :
+    dQFl+;
+
+/th/words/words.qf.rhs 
+W-QF-RIGHT W-LST20-AJ.qfr :
+    dQFr-;
+
+/th/words/words.ordmark
+W-ORDMARK ที่@PS.om :
+    hONr+
+    & <adj-simple>;
+
+%%%%%%%%%%%%%%%%%%%%
+% Auxiliary
+%%%%%%%%%%%%%%%%%%%%
+
+/th/words/words.aux.common 
+W-AUX W-LST20-AX.x :
+    dAXw+
+    or [
+        <left-wall-aux>
+        & {@hAVx+}
+        & <right-wall>
+    ]
+    or [dAVx-];
+
+%%%%%%%%%%%%%%%%%%%%
+% Adverb
+%%%%%%%%%%%%%%%%%%%%
+
+<adv-simple>:
+    {hAXg-}
+    & {PUy+}
+    & dAVw-
+    & {hAV+};
+
+<adv-attrmod>:
+    {hAXg-}
+    & {PUy+}
+    & dAVw+;
+
+<adv-cohesive>:
+    dAVcl+;
+
+/th/words/words.adv.common 
+W-ADV W-LST20-AV.r :
+    <adv-simple>;
+
+/th/words/words.adv.attrmod
+W-ADV-ATTRMOD W-LST20-AV.ra :
+    <adv-attrmod>;
+
+/th/words/words.adv.cohesive 
+W-ADV-COHESIVE W-LST20-CC.rc :
+    <adv-cohesive>;
+
+/th/words/words.adv.qf
+W-ADV-QF W-LST20-AV.rq :
+    dAXq+;
+
+%%%%%%%%%%%%%%%%%%%%
+% Negator
+%%%%%%%%%%%%%%%%%%%%
+
+<neg-lhs>:
+    dAXg+;
+
+<neg-rhs>:
+    dAVgr-;
+
+/th/words/words.neg.lhs 
+W-NEG-LEFT W-LST20-NG.ngl :
+    <neg-lhs>;
+
+/th/words/words.neg.rhs 
+W-NEG-RIGHT W-LST20-NG.ngr :
+    <neg-rhs>;
+
+%%%%%%%%%%%%%%%%%%%%
+% Preposition
+%%%%%%%%%%%%%%%%%%%%
+
+<ablative> :
+    [dAVpr-]
+    or dAVpl+;
+
+<prep-conjoined> :
+    JPl+
+    or JPr-;
+
+<p-obj> :
+    hPO+ or [[()]];
+
+<prep-noun> :
+    ({hPZn-} & {PUs-} & (dAVpr- or [dAJpr-]) & <p-obj>)
+    or [{hPZn-} & <p-obj> & <utterance-prep>]
+    or [{hPZn-} & <p-obj> & <prep-conjoined> & {JD-}]
+    or ({hPZn-} & <p-obj> & {PUs+} & dAVpl+)
+    or dPZn+;
+
+<prep-verb> :
+    ({hPZv-} & {PUs-} & (dAVpr- or [dAJpr-]) & hPC+)
+    or [{hPZv-} & hPC+ & <utterance-prep>]
+    or ({hPZv-} & hPC+ & {PUs+} & dAVpl+)
+    or dPZv+;
+
+<prep-lw-comp> :
+    @hPO+
+    or @hPC+
+    or @hAVp+
+    or @hAJp+;
+
+<prep-lw> :
+    ({PUs-} & (dAVpr- or [dAJpr-]) & <prep-lw-comp>)
+    or [<prep-lw-comp> & <utterance-prep>]
+    or (<prep-lw-comp> & dAVpl+);
+
+<nprep-noun> :
+    ({hPZn-} & {PUs-} & dAJpr- & <p-obj>)
+    or [{hPZn-} & <p-obj> & <utterance-prep>]
+    or [{hPZn-} & <p-obj> & <prep-conjoined> & {JD-}]
+    or ({hPZn-} & <p-obj> & {PUs+} & dAVpl+)
+    or dPZn+;
+
+<nprep-verb> :
+    ({PUs-} & dAJpr- & hPC+)
+    or [hPC+ & <utterance-prep>]
+    or (hPC+ & {PUs+} & dAVpl+);
+
+<vprep-noun> :
+    ({hPZn-} & {PUs-} & dAVpr- & <p-obj>)
+    or [{hPZn-} & <p-obj> & <utterance-prep>]
+    or [{hPZn-} & <p-obj> & <prep-conjoined> & {JD-}]
+    or ({hPZn-} & <p-obj> & {PUs+} & dAVpl+)
+    or dPZn+;
+
+<vprep-verb> :
+    ({hPZv-} & {PUs-} & dAVpr- & hPC+)
+    or [{hPZv-} & hPC+ & <utterance-prep>]
+    or ({hPZv-} & hPC+ & {PUs+} & dAVpl+)
+    or dPZv+;
+
+/th/words/words.prep.n 
+W-PREP-AN W-LST20-PS.pan :
+    <prep-noun>;
+
+/th/words/words.prep.v
+W-PREP-AV W-LST20-PS.pav :
+    <prep-verb>;
+
+/th/words/words.prep.nv
+W-PREP-AA W-LST20-PS.paa :
+    <prep-noun>
+    or <prep-verb>;
+
+/th/words/words.prep-n.n
+W-PREP-NN W-LST20-PS.pnn :
+    <nprep-noun>;
+
+/th/words/words.prep-n.v
+W-PREP-NV W-LST20-PS.pnv :
+    <nprep-verb>;
+
+% /th/words/words.nprep.nv 
+W-PREP-NA W-LST20-PS.pna :
+    <nprep-noun>
+    or <nprep-verb>;
+
+/th/words/words.prep-v.n
+W-PREP-VN W-LST20-PS.pvn :
+    <vprep-noun>;
+
+/th/words/words.prep-v.v
+/th/words/words.sclmark 
+W-PREP-VV W-SCLMARK W-LST20-PS.pvv W-LST20-CC.pvv :
+    <vprep-verb>;
+
+/th/words/words.prep-v.nv
+W-PREP-VA W-LST20-PS.pva :
+    <vprep-noun>
+    or <vprep-verb>;
+
+/th/words/words.prep.lw
+W-PREP-LW W-LST20-PS.pw :
+    <prep-lw>;
+
+W-PREP W-LST20-PS :
+    <prep-noun>
+    or <prep-verb>
+    or <prep-lw>;
+
+%%%%%%%%%%%%%%%%%%%%
+% Relative Pronoun
+%%%%%%%%%%%%%%%%%%%%
+
+<relcls> :
+    {hCLn-}
+    & dAJr-
+    & hPC+;
+
+<relsent> :
+    (dAVr- or hRC+)
+    & <left-wall-sent>
+    & <right-wall>;
+
+/th/words/words.relpro.common
+W-RELPRO W-LST20-CC.rl :
+    <relcls> or [<relsent>];
+
+%%%%%%%%%%%%%%%%%%%%
+% Conjunction
+%%%%%%%%%%%%%%%%%%%%
+
+/th/words/words.conj.noun
+W-CONJ-NOUN W-LST20-CC.cn :
+    {PUs-}
+    & {PUs+}
+    & JNl-
+    & JNr+
+    & {JD-}
+    & <noun-start>
+    & <noun-element>;
+
+_.cn _@PU.cn :
+    [[
+        JNl-
+        & JNr+
+    ]]
+    & <noun-start>
+    & <noun-element>;
+
+/th/words/words.conj.verb
+W-CONJ-VERB W-LST20-CC.cv :
+    {PUs-}
+    & {PUs+}
+    & JVl-
+    & JVr+;
+
+_.cv _@PU.cv :
+    [[
+        JVl-
+        & JVr+
+    ]];
+
+/th/words/words.conj.prep
+W-CONJ-PREP W-LST20-CC.cp :
+    (AVpr+ & AVpl- & {JD-} & (dAVpr- or dAVpl+))
+    or 
+    [JPr+ & JPl- & {JD-} & (dAJpr- or dAJpl+)];
+
+_.cp _@PU.cp :
+    [[
+        (AVpl- & AVpr+)
+        or (AJpl- & AJpr+)
+    ]]
+    & (dAVpr- or [dAJpr-]);
+
+/th/words/words.conj.discont
+W-CONJ-DISCONT W-LST20-CC.cd :
+    JD+;
+
+%%%%%%%%%%%%%%%%%%%%
+% Particle
+%%%%%%%%%%%%%%%%%%%%
+
+/th/words/words.part.common
+W-PARTICLE W-LST20-PA.pt :
+    PT-;
+
+ครัช.#ครับ ครัล.#ครับ คนับ.#ครับ: [ครับ.pt]bad-spelling;
+คับ.#ครับ จั๊บ.#ครับ: [ครับ.pt]colloquial;
+
+%%%%%%%%%%%%%%%%%%%%
+% Interjection
+%%%%%%%%%%%%%%%%%%%%
+
+<intj>:
+    {PT+}
+    & {PUs-}
+    & {PUs+}
+    & (IJ+ or PT-);
+
+/th/words/words.intj.common
+W-INTJ W-LST20-IJ.ij
+EMOTICON :
+    <intj>;
+
+%%%%%%%%%%%%%%%%%%%%
+% Punctuation
+%%%%%%%%%%%%%%%%%%%%
+
+_.pu 
+W-LST20-PU.pu :
+    PUs+ or PUs-;
+
+ๆ.pu ฯลฯ.pu ๆ@PU.pu ฯลฯ@PU.pu :
+    {PUs-}
+    & PUy-
+    & {PUs+};
+
+ฯ.pu ฯ@PU.pu :
+    {PUs-}
+    & PUp-
+    & {PUs+};
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%
+% Date and Time
+%%%%%%%%%%%%%%%%%%%%
+
+HMS-TIME.n DECADE-DATE.n YEAR-DATE.n THAI-DATE.n THAI-TIME.n :
+    <noun-simple>;
+
+HMS-TIME.r YEAR-DATE.r THAI-DATE.r THAI-TIME.r :
+    <ablative>;
+
+%%%%%%%%%%%%%%%%%%%%
+% Part Number
+%%%%%%%%%%%%%%%%%%%%
+
+PART-NUMBER THAI-PART-NUMBER :
+    <noun-simple>;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%
+% English Word
+%%%%%%%%%%%%%%%%%%%%
+
+ENGLISH-WORD :
+    <noun-simple>
+    or <verb-simple>
+    or <adj-simple>
+    or [<adj-attribute>]
+    or [<adv-simple>]
+    or [<adv-cohesive>]
+    or [<neg-lhs>]
+    or [<prep-lw>]
+    or [<intj>];
+
+CAPITALIZED-WORD:
+    <noun-simple>
+    or [<adv-cohesive>]
+    or <intj>;
+
+HYPHENATED-WORD:
+    <noun-simple>
+    or <adj-simple>;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+LEFT-WALL :
+    LW+;
+
+RIGHT-WALL :
+    RW-;
+
+<sentsep>:
+    RW-
+    & {LW+};
+
+/th/words/words.sentsep :
+    <sentsep>;
+
+_.cs _@PU.cs :
+    [<sentsep>];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<UNKNOWN-WORD> W-LST20-XX :
+    XXXXXXXX+;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

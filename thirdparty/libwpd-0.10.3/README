@@ -1,0 +1,22 @@
+libwpd is a library for import of WordPerfect documents. It is used by,
+for example, AbiWord and LibreOffice.
+
+libwpd requires boost, librevenge and doxygen (optional) to build. Most
+up-to-date code is available from Git repository at sourceforge.net
+(http://sourceforge.net/p/libwpd/code/). See
+http://sourceforge.net/p/libwpd/ for more information.
+
+To build and install, simply do:
+./autogen.sh # only needed if built from git checkout
+./configure
+make
+su -c 'make install'
+
+Alternatively, there are workspaces for various versions of MSVC in build/win32/
+directory. Each of these workspaces contains a projects file to compile a
+release version or a debug version of librevenge.
+
+NOTE: Using the MSVC build system will result in a static library only. No dll
+can be created yet using this build system.
+
+The library is available under MPL 2.0 or LGPL 2.1+.

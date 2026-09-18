@@ -868,6 +868,22 @@ AC_SUBST([PLUGINS])
 AC_SUBST([BUILTIN_PLUGINS])
 AC_SUBST([BUILTIN_PLUGINS_LA])
 
+# bundled third-party libraries in thirdparty/ for plugins that need
+# them, so no external dependency downloads are required
+with_bundled_revenge=no
+with_bundled_linkgrammar=no
+case " $PLUGINS $BUILTIN_PLUGINS " in
+  *" wordperfect "*|*" wpg "*) with_bundled_revenge=yes ;;
+esac
+case " $PLUGINS $BUILTIN_PLUGINS " in
+  *" grammar "*) with_bundled_linkgrammar=yes ;;
+esac
+AM_CONDITIONAL([WITH_BUNDLED_REVENGE], [test "$with_bundled_revenge" = "yes"])
+AM_CONDITIONAL([WITH_BUNDLED_LINKGRAMMAR], [test "$with_bundled_linkgrammar" = "yes"])
+if test "$with_bundled_linkgrammar" = "yes"; then
+  AC_CONFIG_SUBDIRS([thirdparty/link-grammar-5.12.5])
+fi
+
 # put all deps on a single line for the .pc file
 ABIWORD_REQUIRED_PKGS=
 for dep in `echo $deps_pkgs`; do
@@ -984,6 +1000,7 @@ AC_CONFIG_FILES([libabiword.pc
   icons/Makefile
   po/Makefile
   src/Makefile
+  thirdparty/Makefile
   src/af/Makefile
   src/af/ev/Makefile
   src/af/gr/Makefile

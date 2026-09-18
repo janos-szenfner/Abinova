@@ -1,21 +1,14 @@
 
-grammar_pkgs='link-grammar >= 4.2.1'
-grammar_deps="no"
+# Grammar plugin uses the bundled link-grammar built in
+# thirdparty/link-grammar-5.12.5 via AC_CONFIG_SUBDIRS, so no
+# external dependencies are needed (beyond enchant for spell).
+
+grammar_deps="yes"
+GRAMMAR_CFLAGS=
+GRAMMAR_LIBS=
 
 dnl make sure we enable grammar only if spell is enabled. At least in auto mode.
 if test "$enable_grammar" != "" && test  "$abi_cv_spell" = "yes"; then
-
-PKG_CHECK_EXISTS([ $grammar_pkgs ], 
-[
-	grammar_deps="yes"
-], [
-	test "$enable_grammar" = "auto" && AC_MSG_WARN([grammar plugin: dependencies not satisfied - $grammar_pkgs])
-])
-
-fi
-
-if test "$enable_grammar" = "yes" || \
-   test "$grammar_deps" = "yes"; then
 
 if test "$enable_grammar_builtin" = "yes"; then
 AC_MSG_ERROR([grammar plugin: static linking not supported])
@@ -25,11 +18,13 @@ if test "$abi_cv_spell" = "no"; then
 AC_MSG_ERROR([grammar plugin: spell checking needs to be enabled])
 fi
 
-PKG_CHECK_MODULES(GRAMMAR,[ $grammar_pkgs ])
-PKG_CHECK_EXISTS([ link-grammar >= 5.1.0 ], 
-[
-	AC_DEFINE([HAVE_LINK_GRAMMAR_51],[1],["have link-grammar 5.1.0 or later"])
-])
+GRAMMAR_CFLAGS=" \
+	-I\$(top_srcdir)/thirdparty/link-grammar-5.12.5"
+GRAMMAR_LIBS=" \
+	\$(top_builddir)/thirdparty/link-grammar-5.12.5/link-grammar/liblink-grammar.la"
+
+dnl bundled link-grammar 5.12.5 is newer than 5.1.0
+AC_DEFINE([HAVE_LINK_GRAMMAR_51],[1],["have link-grammar 5.1.0 or later"])
 
 test "$enable_grammar" = "auto" && PLUGINS="$PLUGINS grammar"
 
@@ -40,4 +35,3 @@ fi
 
 AC_SUBST([GRAMMAR_CFLAGS])
 AC_SUBST([GRAMMAR_LIBS])
-
