@@ -95,7 +95,6 @@ public:
 			}
 		if(!pFGR->setRaster_PNG(m_pPngBB)) 
 			{
-				DELETEP(pFGR);			
 				return UT_IE_FAKETYPE;
 			}
 		
@@ -206,7 +205,7 @@ private:
 			pBuf += rowstride;
 		}
 
-		DELETEP (pngScanline);		
+		DELETEPV (pngScanline);		
 		png_write_end(m_pPNG, m_pPNGInfo);
 	}
 

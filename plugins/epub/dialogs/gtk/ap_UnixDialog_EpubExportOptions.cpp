@@ -200,20 +200,19 @@ GtkWidget * AP_UnixDialog_EpubExportOptions::_constructWindow ()
 	g_object_set(G_OBJECT(labelActivate),
 						    "justify", GTK_JUSTIFY_LEFT,
 						    "xalign", 0.0, "yalign", 0.0,
-						    "xpad", 10, "ypad", 5,
+						    "margin-start", 10, "margin-end", 10,
+						    "margin-top", 5, "margin-bottom", 5,
 						    NULL);
 	if (labelActivate)
 	{
-		gtk_widget_show (labelActivate);
-		gtk_box_pack_start (GTK_BOX (vboxMain), labelActivate, FALSE, TRUE, 0);
+		gtk_box_append (GTK_BOX (vboxMain), labelActivate);
 	}
 
 	m_wEpub2 = gtk_check_button_new_with_label (Epub2);
 	if (m_wEpub2)
 	{
 		XAP_gtk_widget_set_margin(m_wEpub2, 5);
-		gtk_widget_show(m_wEpub2);
-		gtk_box_pack_start(GTK_BOX(vboxMain), m_wEpub2, TRUE, TRUE, 0);
+		gtk_box_append(GTK_BOX(vboxMain), m_wEpub2);
 	        g_signal_connect(G_OBJECT(m_wEpub2), "toggled",
                          G_CALLBACK(s_Epub2), static_cast<gpointer> (this));
 	}
@@ -222,8 +221,7 @@ GtkWidget * AP_UnixDialog_EpubExportOptions::_constructWindow ()
 	if (m_wSplitDocument)
     {
         XAP_gtk_widget_set_margin(m_wSplitDocument, 5);
-        gtk_widget_show(m_wSplitDocument);
-        gtk_box_pack_start(GTK_BOX(vboxMain), m_wSplitDocument, TRUE, TRUE, 0);
+        gtk_box_append(GTK_BOX(vboxMain), m_wSplitDocument);
         g_signal_connect(G_OBJECT(m_wSplitDocument), "toggled",
                          G_CALLBACK(s_SplitDocument), static_cast<gpointer> (this));
     }
@@ -232,8 +230,7 @@ GtkWidget * AP_UnixDialog_EpubExportOptions::_constructWindow ()
 	if (m_wRenderMathMlToPng) 
     {
         XAP_gtk_widget_set_margin(m_wRenderMathMlToPng, 5);
-        gtk_widget_show(m_wRenderMathMlToPng);
-        gtk_box_pack_start(GTK_BOX(vboxMain), m_wRenderMathMlToPng, TRUE, TRUE, 0);
+        gtk_box_append(GTK_BOX(vboxMain), m_wRenderMathMlToPng);
         g_signal_connect(G_OBJECT(m_wRenderMathMlToPng), "toggled",
                          G_CALLBACK(s_RenderMathMlToPng), static_cast<gpointer> (this));
     }
