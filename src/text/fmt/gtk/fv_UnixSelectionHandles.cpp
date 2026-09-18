@@ -56,7 +56,7 @@ static void handle_dragged_cb (FvTextHandle         *handle,
  */
 void FV_UnixSelectionHandles::_ensureTextHandle()
 {
-	if (m_text_handle) {
+	if (m_text_handle || !m_pView) {
 		return;
 	}
 
@@ -68,6 +68,9 @@ void FV_UnixSelectionHandles::_ensureTextHandle()
 	}
 
 	XAP_UnixFrameImpl * pFrameImpl = static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl());
+	if (!pFrameImpl) {
+		return;
+	}
 	GtkWidget * pWidget = pFrameImpl->getViewWidget();
 	GtkWidget * pOverlay = pWidget ? gtk_widget_get_parent(pWidget) : nullptr;
 

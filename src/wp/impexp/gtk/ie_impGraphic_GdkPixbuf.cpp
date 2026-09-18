@@ -390,8 +390,9 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::pixbufForByteBuf(const UT_ConstByteBufPtr &
 		if (!gdk_pixbuf_loader_write (ldr, static_cast<const guchar *>(pBB->getPointer (0)),
 									  static_cast<gsize>(pBB->getLength ()), &err) )
 		{
-			UT_DEBUGMSG(("DOM: couldn't write to loader: %s\n", err->message));
-			g_error_free(err);
+			UT_DEBUGMSG(("DOM: couldn't write to loader: %s\n",
+						 err ? err->message : "unknown error"));
+			g_clear_error(&err);
 			gdk_pixbuf_loader_close (ldr, nullptr);
 			g_object_unref (G_OBJECT(ldr));
 			mimetype.clear();

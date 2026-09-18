@@ -6170,6 +6170,9 @@ static bool s_doHyperlinkDlg(FV_View * pView)
 
 	if (bOK)
 	{
+		// the dialog getters can return NULL (e.g. fields left empty)
+		const char * szLink  = pDialog->getHyperlink()      ? pDialog->getHyperlink()      : "";
+		const char * szTitle = pDialog->getHyperlinkTitle() ? pDialog->getHyperlinkTitle() : "";
 		if(bEdit)
 		{
 //
@@ -6184,15 +6187,13 @@ static bool s_doHyperlinkDlg(FV_View * pView)
 // Select our range
 //
 			pView->cmdSelect(pos1,pos2);
-			pView->cmdInsertHyperlink(pDialog->getHyperlink(),
-				pDialog->getHyperlinkTitle());
+			pView->cmdInsertHyperlink(szLink, szTitle);
 			pView->cmdUnselectSelection();
 			pView->setPoint(posOrig);
 		}
 		else
 		{
-			pView->cmdInsertHyperlink(pDialog->getHyperlink(),
-				pDialog->getHyperlinkTitle());
+			pView->cmdInsertHyperlink(szLink, szTitle);
 		}
 	}
 	else

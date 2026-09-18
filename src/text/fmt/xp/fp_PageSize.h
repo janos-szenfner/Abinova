@@ -49,6 +49,7 @@ public:
 	};
 
 	UT_UTF8String static getDefaultPageMargin(UT_Dimension dim);
+	static const char * getDefaultPageName(void);
 
 	fp_PageSize(Predefined preDef);
 	fp_PageSize(const char *name);

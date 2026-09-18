@@ -91,41 +91,37 @@ void  IE_Exp_DocRangeListener::assembleAtts(const PP_PropertyVector & inAtts,
                                             const PP_PropertyVector & inProps,
                                             PP_PropertyVector & sAtts)
 {
-  UT_sint32 i= 0;
-  std::string sAllProps;
-  std::string sProp;
-  std::string sVal;
-  bool bHasProps = false;
-  bHasProps = PP_hasAttribute("props", inAtts);
-
-  // XXX what is this for?
-  UT_sint32 attsCount = i;
-  // XXX and this?
-  UT_sint32 propsCount = 0;
-  if(!bHasProps)
+  sAtts = inAtts;
+  if (inProps.empty())
   {
-    i= 0;
-    ASSERT_PV_SIZE(inProps);
-    for (auto iter = inProps.cbegin();
-         iter != inProps.cend(); iter += 2, i += 2) {
-        xxx_UT_DEBUGMSG((" Prip %d prop %s val %s \n",i,inProps[i],inProps[i+1]));
-	sProp = *iter;
-	sVal = *(iter + 1);
-	UT_std_string_setProperty(sAllProps,sProp,sVal);
-    }
-    propsCount = i;
-  }
-
-  if((attsCount == 0) && (propsCount == 0))
-  {
-    sAtts.clear();
     return;
   }
 
-  //UT_DEBUGMSG(("iSpace count %d \n",iSpace));
-  sAtts = inAtts;
-  sAtts.push_back("props");
-  sAtts.push_back(sAllProps);
+  // merge inProps into the "props" attribute value; if inAtts already has
+  // a "props" attribute we must extend its value rather than append a
+  // second one - a duplicate attribute produced invalid XML that could
+  // not be re-imported (LP#1248011)
+  size_t valIdx = sAtts.size();
+  for (size_t i = 0; i + 1 < sAtts.size(); i += 2)
+  {
+    if (sAtts[i] == "props")
+    {
+      valIdx = i + 1;
+      break;
+    }
+  }
+  if (valIdx == sAtts.size())
+  {
+    sAtts.push_back("props");
+    sAtts.emplace_back();
+    valIdx = sAtts.size() - 1;
+  }
+
+  std::string & sAllProps = sAtts[valIdx];
+  for (auto iter = inProps.cbegin(); iter != inProps.cend(); iter += 2)
+  {
+    UT_std_string_setProperty(sAllProps, *iter, *(iter + 1));
+  }
 }
 
 bool  IE_Exp_DocRangeListener::populate(fl_ContainerLayout* /* sfh */,

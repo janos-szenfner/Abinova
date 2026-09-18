@@ -1479,6 +1479,10 @@ gint XAP_UnixFrameImpl::_imRetrieveSurrounding_cb (GtkIMContext *context,
 	FV_View * pView =
 		static_cast<FV_View*>(pImpl->getFrame()->getCurrentView ());
 
+	// the IM context can call us back while the view is being torn down
+	if (!pView)
+		return TRUE;
+
 	PT_DocPosition begin_p, end_p, here;
 
 	begin_p = pView->mapDocPosSimple (FV_DOCPOS_BOB);
@@ -1489,6 +1493,9 @@ gint XAP_UnixFrameImpl::_imRetrieveSurrounding_cb (GtkIMContext *context,
 	// so we tree it as nothing to do, otherwise it's likely to crash.
 	if (here < begin_p) {
 		return TRUE;
+	}
+	if (here > end_p) {
+		here = end_p;
 	}
 
 	UT_UCS4Char * text = nullptr;
@@ -1517,6 +1524,9 @@ gint XAP_UnixFrameImpl::_imDeleteSurrounding_cb (GtkIMContext * /*slave*/,
 	XAP_UnixFrameImpl * pImpl = static_cast<XAP_UnixFrameImpl*>(data);
 	FV_View * pView =
 		static_cast<FV_View*>(pImpl->getFrame()->getCurrentView ());
+
+	if (!pView)
+		return TRUE;
 
 	PT_DocPosition insPt = pView->getInsPoint ();
 	if ((gint) insPt + offset < 0)

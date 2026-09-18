@@ -4585,6 +4585,9 @@ UT_Error FV_View::cmdInsertHyperlink(const char * szName, const char * szTitle)
 {
 	bool bRet;
 
+	if (!szName) szName = "";
+	if (!szTitle) szTitle = "";
+
 	PT_DocPosition posStart = getPoint();
 	PT_DocPosition posEnd = posStart;
 	PT_DocPosition iPointOrig = posStart;

@@ -518,12 +518,25 @@ UT_sint32 GR_Graphics::_tduR(UT_sint32 layoutUnits) const
 
 UT_sint32 GR_Graphics::tlu(UT_sint32 deviceUnits) const
 {
-	return static_cast<UT_sint32>((static_cast<double>(deviceUnits) * static_cast<double>(getResolution()) * 100.) / (static_cast<double>(getDeviceResolution()) * static_cast<double>(getZoomPercentage())));
+	const UT_uint32 zoom = getZoomPercentage();
+	const UT_uint32 devRes = getDeviceResolution();
+	if (zoom == 0 || devRes == 0)
+		{
+			// avoid division by zero (e.g. during init/teardown) producing
+			// inf and then UB on the float-to-int cast
+			return 0;
+		}
+	return static_cast<UT_sint32>((static_cast<double>(deviceUnits) * static_cast<double>(getResolution()) * 100.) / (static_cast<double>(devRes) * static_cast<double>(zoom)));
 }
 
 double GR_Graphics::tduD(double layoutUnits) const
 {
-	return (layoutUnits * static_cast<double>(getDeviceResolution()) * static_cast<double>(getZoomPercentage())) / (100.0 * static_cast<double>(getResolution()));
+	const UT_uint32 res = getResolution();
+	if (res == 0)
+		{
+			return 0;
+		}
+	return (layoutUnits * static_cast<double>(getDeviceResolution()) * static_cast<double>(getZoomPercentage())) / (100.0 * static_cast<double>(res));
 }
 
 double GR_Graphics::_tduXD(double layoutUnits) const
@@ -534,7 +547,13 @@ double GR_Graphics::_tduXD(double layoutUnits) const
 
 double GR_Graphics::tluD(double deviceUnits) const
 {
-	return (deviceUnits * static_cast<double>(getResolution()) / static_cast<double>(getDeviceResolution())) * 100.0 / static_cast<double>(getZoomPercentage());
+	const UT_uint32 zoom = getZoomPercentage();
+	const UT_uint32 devRes = getDeviceResolution();
+	if (zoom == 0 || devRes == 0)
+		{
+			return 0;
+		}
+	return (deviceUnits * static_cast<double>(getResolution()) / static_cast<double>(devRes)) * 100.0 / static_cast<double>(zoom);
 }
 
 UT_sint32	GR_Graphics::ftlu(UT_sint32 fontUnits) const

@@ -1277,7 +1277,7 @@ void AP_LeftRuler::scrollRuler(UT_sint32 yoff, UT_sint32 ylimit)
 	UT_Rect rClip;
 	UT_Rect * prClip;
 	FV_View * pView = static_cast<FV_View *>(m_pView);
-	if(pView->getDocument() == nullptr)
+	if (!pView || pView->getDocument() == nullptr || !m_pG)
 	{
 		return;
 	}
@@ -1293,7 +1293,12 @@ void AP_LeftRuler::scrollRuler(UT_sint32 yoff, UT_sint32 ylimit)
 		return;
 	AP_LeftRulerInfo lfi;
 	(static_cast<FV_View *>(m_pView))->getLeftRulerInfo(&lfi);
-	UT_ASSERT(lfi.m_yTopMargin >= 0);
+	if (lfi.m_yTopMargin < 0)
+	{
+		// was UT_ASSERT(lfi.m_yTopMargin >= 0) - a reachable abort on
+		// documents with negative/zero margins (LP#1712097)
+		lfi.m_yTopMargin = 0;
+	}
 
 
 	if (s_IsOnDifferentPage(&lfi, m_lfi))

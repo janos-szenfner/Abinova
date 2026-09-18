@@ -1,5 +1,21 @@
 // fp_PageSize.cpp
+// _GNU_SOURCE must precede all libc headers so that langinfo.h exposes
+// the glibc-specific _NL_PAPER_WIDTH/_NL_PAPER_HEIGHT items (LP#234756)
+#if defined(__GLIBC__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #include "string.h"
+#include <math.h>
+
+#if defined(__GLIBC__)
+#include <langinfo.h>
+// _NL_PAPER_WIDTH is an enum constant, not a macro: probe __USE_GNU,
+// which features.h sets when _GNU_SOURCE is in effect
+#ifdef __USE_GNU
+#define ABI_HAVE_NL_PAPER_SIZE 1
+#endif
+#endif
 
 #include "fp_PageSize.h"
 #include "ut_units.h"
@@ -140,6 +156,29 @@ pagesizes[fp_PageSize::_last_predefined_pagesize_dont_use_] =
 	// Custom, same size as A4
 	{ 210.0,  297.0, DIM_MM,	"Custom", 28.0, 28.0, 28.0, 28.0, AP_STRING_ID_DLG_PageFormat_Custom }
 };
+
+const char * fp_PageSize::getDefaultPageName(void)
+{
+#ifdef ABI_HAVE_NL_PAPER_SIZE
+	// _NL_PAPER_WIDTH/_NL_PAPER_HEIGHT honor LC_PAPER; nl_langinfo
+	// returns these integer items cast to a pointer (LP#234756)
+	const long w = (long) nl_langinfo(_NL_PAPER_WIDTH);
+	const long h = (long) nl_langinfo(_NL_PAPER_HEIGHT);
+	if (w > 0 && h > 0)
+	{
+		for (int i = 0; i < _last_predefined_pagesize_dont_use_; i++)
+		{
+			double pw = pagesizes[i].w;
+			double ph = pagesizes[i].h;
+			if (pagesizes[i].u == DIM_IN) { pw *= 25.4; ph *= 25.4; }
+			else if (pagesizes[i].u != DIM_MM) continue;
+			if (fabs(pw - w) < 1.5 && fabs(ph - h) < 1.5)
+				return pagesizes[i].name;
+		}
+	}
+#endif
+	return "A4";
+}
 
 UT_UTF8String fp_PageSize::getDefaultPageMargin(UT_Dimension dim)
 {

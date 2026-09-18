@@ -176,7 +176,7 @@ struct _dataItemPair
 // a previous saveAs() (which specifies a type)
 PD_Document::PD_Document()
 	: AD_Document(),
-	  m_docPageSize("A4"),
+	  m_docPageSize(fp_PageSize::getDefaultPageName()),
 	  m_ballowListUpdates(false),
 	  m_pPieceTable(nullptr),
       m_hDocumentRDF( new PD_DocumentRDF( this )),
@@ -1624,6 +1624,7 @@ bool PD_Document::repairDoc(void)
 	pf_Frag * pf = nullptr;
 	pf_Frag_Strux * pfs = nullptr;
 	bool bRepaired = false;
+	m_deletedRepairFrags.clear();
 	//
 	// First check there is *some* content.
 	//
@@ -1775,6 +1776,12 @@ bool PD_Document::repairDoc(void)
 	for(i = 0; i< vecHdrFtrs.getItemCount(); i++)
 	{
 		pfs = vecHdrFtrs.getNthItem(i);
+		if(m_deletedRepairFrags.count(pfs))
+		{
+			vecHdrFtrs.deleteNthItem(i);
+			i--;
+			continue;
+		}
 		if(!_matchSection(pfs,&vecSections))
 		{
 			//
@@ -1792,6 +1799,10 @@ bool PD_Document::repairDoc(void)
 	for(i = 0; i< vecHdrFtrs.getItemCount(); i++)
 	{
 		pfs = vecHdrFtrs.getNthItem(i);
+		if(m_deletedRepairFrags.count(pfs))
+		{
+			continue;
+		}
 		if(!_removeRepeatedHdrFtr(pfs,&vecHdrFtrs,i+1))
 		{
 			bRepaired = true;
@@ -1803,6 +1814,10 @@ bool PD_Document::repairDoc(void)
 	for(i = 0; i < vecSections.getItemCount(); i++)
 	{
 		pfs = vecSections.getNthItem(i);
+		if(m_deletedRepairFrags.count(pfs))
+		{
+			continue;
+		}
 		pf_Frag * pfsNext = pfs->getNext();
 		if (!pfsNext)
 		{
@@ -1821,6 +1836,10 @@ bool PD_Document::repairDoc(void)
 	for(i = 0; i < vecHdrFtrs.getItemCount(); i++)
 	{
 		pfs = vecHdrFtrs.getNthItem(i);
+		if(m_deletedRepairFrags.count(pfs))
+		{
+			continue;
+		}
 		pf_Frag * pfsNext = pfs->getNext();
 		if (!pfsNext)
 		{
@@ -1887,6 +1906,10 @@ bool PD_Document::_removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,UT_GenericVector<pf
 		for(i = iStart; i<vecHdrFtrs->getItemCount(); i++)
 		{
 			pfsS = vecHdrFtrs->getNthItem(i);
+			if(m_deletedRepairFrags.count(pfsS))
+			{
+				continue;
+			}
 			getAttributeFromStrux(pfsS,false,0,"type",&pszThisHdrFtr);
 			getAttributeFromStrux(pfsS,false,0,"id",&pszThisID);
 			if(pszThisHdrFtr && *pszThisHdrFtr && pszThisID && *pszThisID)
@@ -1896,6 +1919,7 @@ bool PD_Document::_removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,UT_GenericVector<pf
 				{
 					_removeHdrFtr(pfsS);
 					vecHdrFtrs->deleteNthItem(i);
+					i--;
 				}
 			}
 
@@ -1920,17 +1944,20 @@ bool PD_Document::_checkAndFixTable(pf_Frag_Strux * pfs)
 		if(!pf)
 		{
 			m_pPieceTable->deleteFragNoUpdate(pfs);
+			m_deletedRepairFrags.insert(pfs);
 			return true;
 		}
 		else if(pf->getType() != pf_Frag::PFT_Strux)
 		{
 			m_pPieceTable->deleteFragNoUpdate(pfs);
+			m_deletedRepairFrags.insert(pfs);
 			return true;
 		}
 		pfsn = static_cast<pf_Frag_Strux *>(pf);
 		if(pfsn->getStruxType() !=  PTX_SectionCell)
 		{
 			m_pPieceTable->deleteFragNoUpdate(pfs);
+			m_deletedRepairFrags.insert(pfs);
 			return true;
 		}
 	}
@@ -1940,17 +1967,20 @@ bool PD_Document::_checkAndFixTable(pf_Frag_Strux * pfs)
 		if(!pf)
 		{
 			m_pPieceTable->deleteFragNoUpdate(pfs);
+			m_deletedRepairFrags.insert(pfs);
 			return true;
 		}
 		else if(pf->getType() != pf_Frag::PFT_Strux)
 		{
 			m_pPieceTable->deleteFragNoUpdate(pfs);
+			m_deletedRepairFrags.insert(pfs);
 			return true;
 		}
 		pfsn = static_cast<pf_Frag_Strux *>(pf);
 		if(pfsn->getStruxType() !=  PTX_EndCell)
 		{
 			m_pPieceTable->deleteFragNoUpdate(pfs);
+			m_deletedRepairFrags.insert(pfs);
 			return true;
 		}
 	}
@@ -2018,6 +2048,7 @@ bool PD_Document::_removeHdrFtr(pf_Frag_Strux * pfs)
 	while(pf )
 	{
 		m_pPieceTable->deleteFragNoUpdate(pf);
+		m_deletedRepairFrags.insert(pf);
 		pf = pfNext;
 		if(pf)
 		{
@@ -2026,6 +2057,11 @@ bool PD_Document::_removeHdrFtr(pf_Frag_Strux * pfs)
 			{
 				pfs = static_cast<pf_Frag_Strux *>(pf);
 				if(pfs->getStruxType() == PTX_SectionHdrFtr)
+					break;
+				// a HdrFtr must not swallow a body section; on malformed
+				// documents missing the closing strux this prevented
+				// deleting the rest of the document (LP#1628717)
+				if(pfs->getStruxType() == PTX_Section)
 					break;
 			}
 		}

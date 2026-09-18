@@ -28,8 +28,8 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include "ut_types.h"
@@ -895,6 +895,7 @@ private:
 	UT_sint32               m_iNewFtrHeight;
 	bool                    m_bMarginChangeOnly;
 	UT_GenericVector<pf_Frag *> m_vecSuspectFrags;
+	std::set<const pf_Frag *> m_deletedRepairFrags;
 
 	bool                    m_bVDND;
     mutable UT_sint32       m_iCRCounter;
