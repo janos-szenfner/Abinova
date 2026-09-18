@@ -49,6 +49,19 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 		contextTag = rqst->context->back();
 	}
 
+	// everything inside an mc:Fallback branch is ignored: mc:Choice is
+	// the preferred branch (markup-compatibility spec), so consuming
+	// the fallback too would duplicate textboxes/drawings.
+	for (const std::string & ancestor : *rqst->context)
+	{
+		if (nameMatches(ancestor, NS_VE_KEY, "Fallback"))
+		{
+			rqst->valid = true;
+			rqst->handled = true;
+			return;
+		}
+	}
+
 	std::map<std::string, int>::iterator it;
 	it = m_keywordMap.find(rqst->pName);
 	if(it == m_keywordMap.end())
@@ -1342,6 +1355,25 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 		{
 			rqst->valid = nameMatches(rqst->pName, NS_W_KEY, "richText") || 
 						  contextMatches(contextTag, NS_W_KEY, "sdtPr");
+			break;
+		}
+		case KEYWORD_AlternateContent:
+		{
+			rqst->valid = nameMatches(rqst->pName, NS_VE_KEY, "AlternateContent");
+			break;
+		}
+		case KEYWORD_Choice:
+		{
+			rqst->valid = nameMatches(rqst->pName, NS_VE_KEY, "Choice") ||
+						  contextMatches(contextTag, NS_VE_KEY, "AlternateContent");
+			break;
+		}
+		case KEYWORD_Fallback:
+		{
+			// consume the fallback subtree silently
+			rqst->valid = nameMatches(rqst->pName, NS_VE_KEY, "Fallback") ||
+						  contextMatches(contextTag, NS_VE_KEY, "AlternateContent");
+			rqst->handled = rqst->valid;
 			break;
 		}
 		case KEYWORD_sdt:
@@ -4691,6 +4723,16 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 
 void OXMLi_ListenerState_Valid::endElement (OXMLi_EndElementRequest * rqst)
 {
+	for (const std::string & ancestor : *rqst->context)
+	{
+		if (nameMatches(ancestor, NS_VE_KEY, "Fallback"))
+		{
+			rqst->valid = true;
+			rqst->handled = true;
+			return;
+		}
+	}
+
 	std::map<std::string, int>::iterator it;
 	it = m_keywordMap.find(rqst->pName);
 	if(it == m_keywordMap.end())
@@ -4703,6 +4745,15 @@ void OXMLi_ListenerState_Valid::endElement (OXMLi_EndElementRequest * rqst)
 
 void OXMLi_ListenerState_Valid::charData (OXMLi_CharDataRequest * rqst)
 {
+	for (const std::string & ancestor : *rqst->context)
+	{
+		if (nameMatches(ancestor, NS_VE_KEY, "Fallback"))
+		{
+			rqst->valid = true;
+			rqst->handled = true;
+			return;
+		}
+	}
 	rqst->valid = (rqst->buffer != nullptr);
 }
 
@@ -4725,6 +4776,9 @@ void OXMLi_ListenerState_Valid::populateKeywordTable()
 	m_keywordMap.insert(std::make_pair("W:altChunk", KEYWORD_altChunk));
 	m_keywordMap.insert(std::make_pair("W:altChunkPr", KEYWORD_altChunkPr));
 	m_keywordMap.insert(std::make_pair("W:altName", KEYWORD_altName));
+	m_keywordMap.insert(std::make_pair("VE:AlternateContent", KEYWORD_AlternateContent));
+	m_keywordMap.insert(std::make_pair("VE:Choice", KEYWORD_Choice));
+	m_keywordMap.insert(std::make_pair("VE:Fallback", KEYWORD_Fallback));
 	m_keywordMap.insert(std::make_pair("W:alwaysMergeEmptyNamespace", KEYWORD_alwaysMergeEmptyNamespace));
 	m_keywordMap.insert(std::make_pair("W:alwaysShowPlaceholderText", KEYWORD_alwaysShowPlaceholderText));
 	m_keywordMap.insert(std::make_pair("W:applyBreakingRules", KEYWORD_applyBreakingRules));

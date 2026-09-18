@@ -73,6 +73,16 @@ An experimental fork of the AbiWord word processor, focused on:
 - **WordPerfect plugin refreshed**: vendored `libwps` updated from
   0.4.11 to 0.4.14 (current upstream); `libwpd-0.10.3` already
   matches upstream.
+- **DOCX importer audited against modern OOXML / LibreOffice
+  behaviour**: `mc:AlternateContent` markup-compatibility blocks are
+  now handled per the spec — the `mc:Choice` branch is consumed and
+  the entire `mc:Fallback` subtree is suppressed. Previously both
+  branches were parsed, duplicating textboxes/drawings produced by
+  Word 2010+ and LibreOffice. `w:sdt`/`w:sdtContent` content
+  controls, tracked-changes containers (`w:ins`, `w:del`,
+  `w:moveFrom`, `w:moveTo`) and `w14`/`w15` extension namespaces
+  were verified to parse correctly. Legacy `.doc` continues through
+  bundled `wv-1.2.9`.
 
 ### GTK4 runtime fixes (this round)
 
