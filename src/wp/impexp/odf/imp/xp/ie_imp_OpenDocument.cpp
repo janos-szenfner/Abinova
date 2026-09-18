@@ -834,6 +834,10 @@ UT_Error IE_Imp_OpenDocument::_handleStream ( GsfInfile* pGsfInfile,
 		
         UT_DEBUGMSG(("Stream %s decrypted\n", pStream));
         pInput = pDecryptedInput;
+
+		// remember the password so a subsequent save stays protected
+		if (getDoc() && !m_sPassword.empty())
+			getDoc()->setSavePassword(m_sPassword);
 	}
 
 	// parse the XML stream

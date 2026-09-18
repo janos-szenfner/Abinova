@@ -197,6 +197,12 @@ dcl(DLG_FOSA_ExtensionDoesNotMatch,		"The given file extension does not match th
 dcl(DLG_Password_Title,					"Enter Password")
 dcl(DLG_Password_Password,				"Password:")
 
+/* Save-as encryption options */
+dcl(DLG_FOSA_Encrypt,						"Encrypt with password")
+dcl(DLG_FOSA_ConfirmPassword,				"Confirm:")
+dcl(DLG_FOSA_PasswordsMismatch,			"The passwords do not match.")
+dcl(DLG_FOSA_PasswordEmpty,				"Please enter a password.")
+
 /* Zoom dialog */
 dcl(DLG_Zoom_ZoomTitle, 				"Zoom")
 dcl(DLG_Zoom_RadioFrameCaption, 		"Zoom to")

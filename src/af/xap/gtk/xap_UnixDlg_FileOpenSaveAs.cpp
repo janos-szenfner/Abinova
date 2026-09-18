@@ -154,6 +154,15 @@ static void s_filetypechanged(GtkWidget * w, gpointer p)
 	}
 }
 
+static void s_encrypt_toggled(GtkWidget * /*w*/, gpointer p)
+{
+	XAP_UnixDialog_FileOpenSaveAs * dlg = static_cast<XAP_UnixDialog_FileOpenSaveAs *>(p);
+	UT_ASSERT(dlg);
+	if (dlg) {
+		dlg->onEncryptToggled();
+	}
+}
+
 static gboolean
 fsel_key_released (GtkEventControllerKey * controller,
 				   guint keyval,
@@ -343,6 +352,9 @@ bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
 
 			finalPathnameCopy = finalPathname;
 
+			if (!_checkEncryptionPassword(pFrame))
+				goto ContinueLoop;
+
 			if (UT_go_file_exists(finalPathnameCopy.c_str())) {
 				// we have an existing file, ask to overwrite
 				if (_askOverwrite_YesNo(pFrame, finalPathname.c_str()))	{
@@ -383,6 +395,30 @@ ReturnTrue:
 	return true;
 }
 
+// Check the encryption widgets; if the password is acceptable, store it.
+// Returns false (after notifying the user) when the dialog must not close.
+bool XAP_UnixDialog_FileOpenSaveAs::_checkEncryptionPassword(XAP_Frame * pFrame)
+{
+	if (!m_wEncryptCheck || !gtk_widget_get_visible(m_wEncryptBox) ||
+		!gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wEncryptCheck)))
+		return true;
+
+	const gchar * password = gtk_editable_get_text(GTK_EDITABLE(m_wPasswordEntry));
+	const gchar * confirm = gtk_editable_get_text(GTK_EDITABLE(m_wConfirmEntry));
+	if (!password || !*password)
+	{
+		_notifyError_OKOnly(pFrame, XAP_STRING_ID_DLG_FOSA_PasswordEmpty);
+		return false;
+	}
+	if (!confirm || strcmp(password, confirm) != 0)
+	{
+		_notifyError_OKOnly(pFrame, XAP_STRING_ID_DLG_FOSA_PasswordsMismatch);
+		return false;
+	}
+	m_encryptionPassword = password;
+	return true;
+}
+
 
 bool XAP_UnixDialog_FileOpenSaveAs::_askOverwrite_YesNo(XAP_Frame * pFrame, const char * fileName)
 {
@@ -417,6 +453,18 @@ void XAP_UnixDialog_FileOpenSaveAs::fileTypeChanged(GtkWidget * w)
 
 	UT_sint32 nFileType = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(w));
 	UT_DEBUGMSG(("File type widget is %p filetype number is %d \n",w,nFileType));
+
+	if (m_wEncryptBox)
+	{
+		bool bShowEncrypt = false;
+		if (nFileType > 0)
+		{
+			IE_ExpSniffer * pSniffer = IE_Exp::snifferForFileType(nFileType);
+			bShowEncrypt = (pSniffer && pSniffer->recognizeSuffix(".odt"));
+		}
+		gtk_widget_set_visible(m_wEncryptBox, bShowEncrypt);
+	}
+
     // I have no idea for 0, but XAP_DIALOG_FILEOPENSAVEAS_FILE_TYPE_AUTO
     // definitely means "skip this"
 	if((nFileType == 0) || (nFileType == XAP_DIALOG_FILEOPENSAVEAS_FILE_TYPE_AUTO))
@@ -471,9 +519,17 @@ void XAP_UnixDialog_FileOpenSaveAs::fileTypeChanged(GtkWidget * w)
 	gtk_file_chooser_set_current_name(m_FC, UT_basename(sFileName.c_str()));
 }
 
-void XAP_UnixDialog_FileOpenSaveAs::onDeleteCancel() 
+void XAP_UnixDialog_FileOpenSaveAs::onDeleteCancel()
 {
 	m_answer = a_CANCEL;
+}
+
+void XAP_UnixDialog_FileOpenSaveAs::onEncryptToggled()
+{
+	bool active = m_wEncryptCheck &&
+		gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wEncryptCheck));
+	gtk_widget_set_sensitive(m_wPasswordEntry, active);
+	gtk_widget_set_sensitive(m_wConfirmEntry, active);
 }
 
 /*****************************************************************/
@@ -730,6 +786,46 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 
 	gtk_box_append(GTK_BOX(main_vbox), pulldown_hbox);
 
+	// ODF encryption options: only relevant for save dialogs, shown when an
+	// ODF exporter is picked in the file-type pulldown.
+	if (m_bSave && (m_id == XAP_DIALOG_ID_FILE_SAVEAS || m_id == XAP_DIALOG_ID_FILE_EXPORT))
+	{
+		std::string encLabel, pwLabel, cfLabel;
+		pSS->getValueUTF8(XAP_STRING_ID_DLG_FOSA_Encrypt, encLabel);
+		pSS->getValueUTF8(XAP_STRING_ID_DLG_Password_Password, pwLabel);
+		pSS->getValueUTF8(XAP_STRING_ID_DLG_FOSA_ConfirmPassword, cfLabel);
+
+		GtkWidget * enc_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		gtk_widget_set_margin_start(enc_hbox, 12);
+		gtk_widget_set_margin_end(enc_hbox, 12);
+		gtk_widget_set_margin_top(enc_hbox, 6);
+		gtk_widget_set_margin_bottom(enc_hbox, 6);
+
+		m_wEncryptCheck = gtk_check_button_new_with_label(encLabel.c_str());
+		m_wPasswordEntry = gtk_entry_new();
+		gtk_entry_set_visibility(GTK_ENTRY(m_wPasswordEntry), FALSE);
+		gtk_widget_set_sensitive(m_wPasswordEntry, FALSE);
+		gtk_widget_set_hexpand(m_wPasswordEntry, TRUE);
+
+		m_wConfirmEntry = gtk_entry_new();
+		gtk_entry_set_visibility(GTK_ENTRY(m_wConfirmEntry), FALSE);
+		gtk_widget_set_sensitive(m_wConfirmEntry, FALSE);
+		gtk_widget_set_hexpand(m_wConfirmEntry, TRUE);
+
+		gtk_box_append(GTK_BOX(enc_hbox), m_wEncryptCheck);
+		gtk_box_append(GTK_BOX(enc_hbox), gtk_label_new(pwLabel.c_str()));
+		gtk_box_append(GTK_BOX(enc_hbox), m_wPasswordEntry);
+		gtk_box_append(GTK_BOX(enc_hbox), gtk_label_new(cfLabel.c_str()));
+		gtk_box_append(GTK_BOX(enc_hbox), m_wConfirmEntry);
+
+		gtk_widget_set_visible(enc_hbox, false);
+		m_wEncryptBox = enc_hbox;
+		gtk_box_append(GTK_BOX(main_vbox), enc_hbox);
+
+		g_signal_connect(G_OBJECT(m_wEncryptCheck), "toggled",
+						 G_CALLBACK(s_encrypt_toggled), this);
+	}
+
 	// connect the signals for OK and CANCEL and the requisite clean-close signals
 	g_signal_connect(G_OBJECT(m_dialog),
 							 "close-request",
@@ -751,8 +847,22 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 				G_CALLBACK(s_file_activated), &m_answer);	
 
 	g_signal_connect(G_OBJECT(filetypes_pulldown), "changed",
-					 G_CALLBACK(s_filetypechanged),	
+					 G_CALLBACK(s_filetypechanged),
 					 reinterpret_cast<gpointer>(this));
+
+	// the initial set_active() above ran before the "changed" handler
+	// was connected; refresh encrypt-option visibility for the default type
+	if (m_wEncryptBox)
+	{
+		UT_sint32 nFileType = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(filetypes_pulldown));
+		bool bShowEncrypt = false;
+		if (nFileType > 0)
+		{
+			IE_ExpSniffer * pSniffer = IE_Exp::snifferForFileType(nFileType);
+			bShowEncrypt = (pSniffer && pSniffer->recognizeSuffix(".odt"));
+		}
+		gtk_widget_set_visible(m_wEncryptBox, bShowEncrypt);
+	}
 
 	// use the persistence info and/or the suggested filename
 	// to properly seed the dialog.

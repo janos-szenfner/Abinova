@@ -37,12 +37,19 @@ public:
 	std::string		m_keyType;
 	UT_uint32		m_iterCount;
 	std::string		m_salt;
+
+	// plaintext checksum (SHA1/1K), written to the manifest on export
+	std::string		m_checksum;
 };
 
 class ODc_Crypto {
 public:
 	static UT_Error decrypt(GsfInput* pStream, const ODc_CryptoInfo& cryptInfo,
 							const std::string& password, GsfInput** pDecryptedInput);
+
+	static UT_Error encrypt(const guint8* plaintext, gsize plaintextSize,
+							const std::string& password, ODc_CryptoInfo& cryptInfoOut,
+							guint8** encrypted, gsize* encryptedSize);
 
 private:
 	static UT_Error performDecrypt(GsfInput* pStream,	unsigned char* salt, UT_uint32 salt_length, UT_uint32 iter_count,

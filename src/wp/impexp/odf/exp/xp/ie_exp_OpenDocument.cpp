@@ -39,10 +39,12 @@
 #include "ODe_ThumbnailsWriter.h"
 #include "ODe_PicturesWriter.h"
 #include "ODe_SettingsWriter.h"
+#include "../../common/xp/ODc_Crypto.h"
 
 // Abiword includes
 #include "ut_assert.h"
 #include "ut_locale.h"
+#include "ut_xml.h"
 #include "pd_Document.h"
 #include "pd_DocumentRDF.h"
 #include "ie_exp_DocRangeListener.h"
@@ -51,6 +53,11 @@
 #ifdef _WIN32
 #include <io.h>
 #endif
+#include <map>
+#include <set>
+#include <vector>
+#include <string>
+
 #include <glib.h>
 #include <glib/gstdio.h>
 
@@ -205,8 +212,26 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
     auxData.m_additionalRDF = rdf->createScratchModel();
     
 	const std::string & prop = getProperty ("uncompressed");
-	
-	if (!prop.empty() && UT_parseBool (prop.c_str (), false))
+	std::string password = getDoc()->getSavePassword();
+	if (password.empty())
+	  {
+	    // headless (e.g. --to= conversions) cannot show the save-dialog
+	    // password field; allow it to be supplied via the environment
+	    const char * envpw = getenv ("ABIWORD_PASSWORD");
+	    if (envpw)
+	      password = envpw;
+	  }
+	GsfOutput* pPlainPackage = nullptr;
+
+	if (!password.empty())
+	  {
+	    // Encryption requested: write a complete plaintext package to
+	    // memory first, then encrypt each stream into the real output
+	    // in a second pass below.
+	    pPlainPackage = gsf_output_memory_new();
+	    m_odt = GSF_OUTFILE (gsf_outfile_zip_new (pPlainPackage, nullptr));
+	  }
+	else if (!prop.empty() && UT_parseBool (prop.c_str (), false))
 	  {
 	    m_odt = GSF_OUTFILE(g_object_ref(G_OBJECT(getFp())));
 	  }
@@ -214,7 +239,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 	  {
 	    GError* error = nullptr;
 	    m_odt = GSF_OUTFILE (gsf_outfile_zip_new (getFp(), &error));
-	    
+
 	    if (error)
 	      {
 		UT_DEBUGMSG(("Error writing odt file: %s\n", error->message));
@@ -261,13 +286,6 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 	}
 
 	if (!ODe_PicturesWriter::writePictures(getDoc(), m_odt))
-	{
-		ODe_gsf_output_close(GSF_OUTPUT(m_odt));
-		return UT_ERROR;
-	}
-
-
-	if (!ODe_ManifestWriter::writeManifest(getDoc(), m_odt))
 	{
 		ODe_gsf_output_close(GSF_OUTPUT(m_odt));
 		return UT_ERROR;
@@ -350,7 +368,16 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 		ODe_gsf_output_close(GSF_OUTPUT(m_odt));
 		return UT_ERROR;
 	}
-    
+
+	// Write the manifest last (apart from content/styles, which are
+	// enumerated statically) so that data items registered during
+	// export — e.g. manifest.rdf — get a manifest:file-entry.
+	if (!ODe_ManifestWriter::writeManifest(getDoc(), m_odt))
+	{
+		ODe_gsf_output_close(GSF_OUTPUT(m_odt));
+		return UT_ERROR;
+	}
+
     // Write content and styles
         
 	if (!docData.writeStylesXML(m_odt))
@@ -365,5 +392,315 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 	}
 
 	ODe_gsf_output_close(GSF_OUTPUT(m_odt));
+
+	if (!password.empty())
+	{
+		UT_Error err = _encryptPackage(pPlainPackage, password, getFp());
+		g_object_unref(G_OBJECT(pPlainPackage));
+		return err;
+	}
 	return UT_OK;
+}
+
+
+/**
+ * Collects (full-path, media-type) pairs from a plaintext
+ * META-INF/manifest.xml so the encrypted package can emit the same
+ * entries annotated with manifest:encryption-data.
+ */
+class ODe_ManifestEntryCollector : public UT_XML::Listener
+{
+public:
+    std::vector<std::pair<std::string, std::string>> entries;
+
+    virtual void startElement(const gchar* name, const gchar** atts) override
+    {
+        if (strcmp(name, "manifest:file-entry") != 0)
+            return;
+        const gchar* path = nullptr;
+        const gchar* mime = nullptr;
+        for (const gchar** a = atts; a && a[0]; a += 2)
+        {
+            if (!strcmp(a[0], "manifest:full-path"))
+                path = a[1];
+            else if (!strcmp(a[0], "manifest:media-type"))
+                mime = a[1];
+        }
+        if (path)
+            entries.emplace_back(path, mime ? mime : "");
+    }
+    virtual void endElement(const gchar* /*name*/) override {}
+    virtual void charData(const gchar* /*buffer*/, int /*length*/) override {}
+};
+
+
+/**
+ * Recursively collect the stream names inside a package directory.
+ * A child is a directory when it is a GsfInfile that reports a
+ * non-negative child count; zip file members report -1.
+ */
+static void collectPackageEntries(GsfInfile* dir, const std::string& prefix,
+                                  std::vector<std::string>& paths)
+{
+    int count = gsf_infile_num_children(dir);
+    for (int i = 0; i < count; i++)
+    {
+        const char* name = gsf_infile_name_by_index(dir, i);
+        if (!name)
+            continue;
+        GsfInput* child = gsf_infile_child_by_index(dir, i);
+        if (!child)
+            continue;
+        if (GSF_IS_INFILE(child) &&
+            gsf_infile_num_children(GSF_INFILE(child)) >= 0)
+            collectPackageEntries(GSF_INFILE(child), prefix + name + "/", paths);
+        else
+            paths.push_back(prefix + name);
+        g_object_unref(G_OBJECT(child));
+    }
+}
+
+/**
+ * Open the stream at a '/'-separated package path (gsf_infile
+ * children are addressed by single path components).
+ */
+static GsfInput* openPackageStream(GsfInfile* root, const std::string& path)
+{
+    GsfInput* cur = GSF_INPUT(root);
+    g_object_ref(cur);
+    std::string::size_type start = 0;
+    while (cur)
+    {
+        std::string::size_type slash = path.find('/', start);
+        std::string comp = path.substr(start, slash == std::string::npos
+                                       ? std::string::npos : slash - start);
+        GsfInput* next = gsf_infile_child_by_name(GSF_INFILE(cur), comp.c_str());
+        g_object_unref(cur);
+        if (!next)
+            return nullptr;
+        if (slash == std::string::npos)
+            return next;
+        cur = next;
+        start = slash + 1;
+    }
+    return nullptr;
+}
+
+
+/**
+ * Write an encrypted copy of the plaintext package in @pPlainPackage
+ * to @pDest. Every stream except "mimetype" and
+ * "META-INF/manifest.xml" is encrypted with Blowfish CFB per the ODF
+ * 1.2 encryption model; the manifest is regenerated with
+ * manifest:encryption-data entries.
+ */
+UT_Error IE_Exp_OpenDocument::_encryptPackage(GsfOutput* pPlainPackage,
+                                              const std::string& password,
+                                              GsfOutput* pDest)
+{
+    gsf_off_t sz = gsf_output_size(pPlainPackage);
+    const guint8* bytes =
+        gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(pPlainPackage));
+    UT_return_val_if_fail(bytes && sz > 0, UT_ERROR);
+
+    GsfInput* inMem = gsf_input_memory_new(bytes, sz, FALSE);
+    GsfInfile* inZip = gsf_infile_zip_new(inMem, nullptr);
+    if (!inZip)
+    {
+        g_object_unref(G_OBJECT(inMem));
+        return UT_ERROR;
+    }
+
+    // pull the plaintext manifest's (path, media-type) entries before
+    // anything else, they are needed when the manifest is regenerated
+    std::vector<std::pair<std::string, std::string>> manifestEntries;
+    {
+        GsfInput* pManifest = openPackageStream(inZip, "META-INF/manifest.xml");
+        if (pManifest)
+        {
+            ODe_ManifestEntryCollector coll;
+            UT_XML reader;
+            reader.setListener(&coll);
+            gsf_off_t msz = gsf_input_size(pManifest);
+            const guint8* mdata = gsf_input_read(pManifest, msz, nullptr);
+            if (mdata)
+                reader.parse(reinterpret_cast<const char*>(mdata), msz);
+            manifestEntries = coll.entries;
+            g_object_unref(G_OBJECT(pManifest));
+        }
+    }
+
+    // walk the plaintext package
+    std::vector<std::string> paths;
+    collectPackageEntries(inZip, "", paths);
+
+    GError* zerr = nullptr;
+    GsfOutfile* outZip = GSF_OUTFILE(gsf_outfile_zip_new(pDest, &zerr));
+    if (!outZip || zerr)
+    {
+        if (zerr)
+            g_error_free(zerr);
+        g_object_unref(G_OBJECT(inZip));
+        g_object_unref(G_OBJECT(inMem));
+        return UT_ERROR;
+    }
+
+    UT_Error result = UT_OK;
+    std::map<std::string, ODc_CryptoInfo> cryptoInfo;
+
+    // mimetype first, uncompressed and unencrypted
+    {
+        GsfInput* src = gsf_infile_child_by_name(inZip, "mimetype");
+        if (!src)
+        {
+            result = UT_ERROR;
+        }
+        else
+        {
+            GsfOutput* dst = gsf_outfile_new_child_full(
+                outZip, "mimetype", FALSE, "compression-level", 0, (void*)0);
+            gsf_off_t s = gsf_input_size(src);
+            const guint8* d = gsf_input_read(src, s, nullptr);
+            if (dst && d)
+                ODe_gsf_output_write(dst, s, d);
+            if (dst)
+                ODe_gsf_output_close(dst);
+            else
+                result = UT_ERROR;
+            g_object_unref(G_OBJECT(src));
+        }
+    }
+
+    // encrypt every remaining stream
+    for (const std::string& path : paths)
+    {
+        if (result != UT_OK)
+            break;
+        if (path == "mimetype" || path == "META-INF/manifest.xml")
+            continue;
+
+        GsfInput* src = openPackageStream(inZip, path);
+        if (!src)
+            continue;
+        gsf_off_t s = gsf_input_size(src);
+        const guint8* d = (s > 0)
+            ? gsf_input_read(src, s, nullptr)
+            : reinterpret_cast<const guint8*>("");
+        if (!d)
+        {
+            g_object_unref(G_OBJECT(src));
+            continue;
+        }
+
+        ODc_CryptoInfo info;
+        guint8* enc = nullptr;
+        gsize encSize = 0;
+        UT_Error cerr = ODc_Crypto::encrypt(d, s, password, info, &enc, &encSize);
+        g_object_unref(G_OBJECT(src));
+        if (cerr != UT_OK)
+        {
+            result = cerr;
+            break;
+        }
+        cryptoInfo[path] = info;
+
+        GsfOutput* dst = gsf_outfile_new_child_full(
+            outZip, path.c_str(), FALSE, "compression-level", 0, (void*)0);
+        if (!dst)
+        {
+            g_free(enc);
+            result = UT_ERROR;
+            break;
+        }
+        ODe_gsf_output_write(dst, encSize, enc);
+        ODe_gsf_output_close(dst);
+        g_free(enc);
+    }
+
+    // META-INF/manifest.xml, annotated with encryption-data
+    if (result == UT_OK)
+    {
+        GsfOutput* man =
+            gsf_outfile_new_child(outZip, "META-INF/manifest.xml", FALSE);
+        if (!man)
+        {
+            result = UT_ERROR;
+        }
+        else
+        {
+            std::string out =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                "<manifest:manifest xmlns:manifest=\"urn:oasis:names:tc:opendocument:xmlns:manifest:1.0\" manifest:version=\"1.4\">\n";
+
+            std::set<std::string> written;
+            for (const auto& e : manifestEntries)
+            {
+                const std::string& path = e.first;
+                const std::string& mime = e.second;
+                if (!written.insert(path).second)
+                    continue;
+
+                auto ci = cryptoInfo.find(path);
+                if (ci == cryptoInfo.end())
+                {
+                    out += " <manifest:file-entry manifest:media-type=\"" +
+                        mime + "\" manifest:full-path=\"" + path + "\"/>\n";
+                }
+                else
+                {
+                    const ODc_CryptoInfo& info = ci->second;
+                    out += " <manifest:file-entry manifest:media-type=\"" +
+                        mime + "\" manifest:full-path=\"" + path +
+                        "\" manifest:size=\"" +
+                        std::to_string(info.m_decryptedSize) + "\">\n"
+                        "  <manifest:encryption-data manifest:checksum-type=\"SHA1/1K\" manifest:checksum=\"" +
+                        info.m_checksum + "\">\n"
+                        "   <manifest:algorithm manifest:algorithm-name=\"" +
+                        info.m_algorithm + "\" manifest:initialisation-vector=\"" +
+                        info.m_initVector + "\"/>\n"
+                        "   <manifest:key-derivation manifest:key-derivation-name=\"" +
+                        info.m_keyType + "\" manifest:key-size=\"16\" manifest:iteration-count=\"" +
+                        std::to_string(info.m_iterCount) + "\" manifest:salt=\"" +
+                        info.m_salt + "\"/>\n"
+                        "   <manifest:start-key-generation manifest:start-key-generation-name=\"http://www.w3.org/2000/09/xmldsig#sha1\" manifest:key-size=\"20\"/>\n"
+                        "  </manifest:encryption-data>\n"
+                        " </manifest:file-entry>\n";
+                }
+            }
+
+            // entries present in the package but missing from the
+            // plaintext manifest (defensive; shouldn't happen)
+            for (const auto& ci : cryptoInfo)
+            {
+                if (written.count(ci.first))
+                    continue;
+                const ODc_CryptoInfo& info = ci.second;
+                out += " <manifest:file-entry manifest:media-type=\"\" manifest:full-path=\"" +
+                    ci.first + "\" manifest:size=\"" +
+                    std::to_string(info.m_decryptedSize) + "\">\n"
+                    "  <manifest:encryption-data manifest:checksum-type=\"SHA1/1K\" manifest:checksum=\"" +
+                    info.m_checksum + "\">\n"
+                    "   <manifest:algorithm manifest:algorithm-name=\"" +
+                    info.m_algorithm + "\" manifest:initialisation-vector=\"" +
+                    info.m_initVector + "\"/>\n"
+                    "   <manifest:key-derivation manifest:key-derivation-name=\"" +
+                    info.m_keyType + "\" manifest:key-size=\"16\" manifest:iteration-count=\"" +
+                    std::to_string(info.m_iterCount) + "\" manifest:salt=\"" +
+                    info.m_salt + "\"/>\n"
+                    "   <manifest:start-key-generation manifest:start-key-generation-name=\"http://www.w3.org/2000/09/xmldsig#sha1\" manifest:key-size=\"20\"/>\n"
+                    "  </manifest:encryption-data>\n"
+                    " </manifest:file-entry>\n";
+            }
+
+            out += "</manifest:manifest>\n";
+            ODe_gsf_output_write(man, out.size(),
+                                 reinterpret_cast<const guint8*>(out.c_str()));
+            ODe_gsf_output_close(man);
+        }
+    }
+
+    ODe_gsf_output_close(GSF_OUTPUT(outZip));
+    g_object_unref(G_OBJECT(inZip));
+    g_object_unref(G_OBJECT(inMem));
+    return result;
 }

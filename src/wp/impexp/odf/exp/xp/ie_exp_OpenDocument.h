@@ -43,6 +43,10 @@ protected:
     virtual UT_Error copyToBuffer(PD_DocumentRange * pDocRange, const UT_ByteBufPtr & bufODT);
 
 private:
+    UT_Error _encryptPackage(GsfOutput* pPlainPackage,
+                             const std::string& password,
+                             GsfOutput* pDest);
+
     // The OpenDocument Text file.
     GsfOutfile* m_odt;
 };

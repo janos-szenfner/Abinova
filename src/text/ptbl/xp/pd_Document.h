@@ -549,6 +549,11 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 
 	virtual UT_uint32		getLastSavedAsType() const override { return m_lastSavedAsType; }
 	UT_uint32				getLastOpenedType() const { return m_lastOpenedType; }
+
+	// Transient encryption password used by exporters that support
+	// document protection (e.g. ODF). Runtime only, never serialized.
+	void					setSavePassword(const std::string& pw) { m_savePassword = pw; }
+	const std::string&		getSavePassword() const { return m_savePassword; }
 	bool					updateFields(void);
 	bool					getField(const pf_Frag_Strux* sdh,
 									 UT_uint32 offset,
@@ -870,6 +875,7 @@ public:
 private:
 	IEFileType				m_lastOpenedType;
 	IEFileType				m_lastSavedAsType;
+	std::string				m_savePassword;
 	bool					m_bDoingPaste;
 	bool					m_bAllowInsertPointChange;
 	bool                    m_bRedrawHappenning;

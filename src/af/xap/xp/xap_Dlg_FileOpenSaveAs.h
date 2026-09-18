@@ -74,6 +74,11 @@ public:
 	// what type of suffix (ala "*.*" or "*") is appropriate.
 	UT_sint32							getFileType(void) const;
 
+	// Encryption options for formats that support document
+	// protection (e.g. OpenDocument). Empty password means "no
+	// encryption requested".
+	virtual const std::string &			getEncryptionPassword(void) const { return m_encryptionPassword; }
+
     typedef std::function<std::string (std::string,UT_sint32)> m_appendDefaultSuffixFunctor_t;
     void setAppendDefaultSuffixFunctor( m_appendDefaultSuffixFunctor_t f );
 
@@ -92,6 +97,7 @@ public:
 
 	bool								m_bSuggestName;
 	XAP_Dialog_FileOpenSaveAs::tAnswer	m_answer;
+	std::string							m_encryptionPassword;
 
     m_appendDefaultSuffixFunctor_t m_appendDefaultSuffixFunctor;
 };

@@ -2169,6 +2169,15 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 			}
 		else
 			*ieft = static_cast<IEFileType>(pDialog->getFileType());
+
+		// If the user asked for password protection in the save dialog,
+		// stash it on the document for exporters that support it.
+		if (bSaveAs && pFrame)
+		{
+			PD_Document * pDoc = static_cast<PD_Document*>(pFrame->getCurrentDoc());
+			if (pDoc)
+				pDoc->setSavePassword(pDialog->getEncryptionPassword());
+		}
 	}
 
 	FREEP(szDescList);

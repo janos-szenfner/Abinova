@@ -45,6 +45,7 @@ public:
 
 	void fileTypeChanged(GtkWidget * w);
 	void onDeleteCancel (void);
+	void onEncryptToggled (void);
 
 protected:
 	GdkPixbuf *            pixbufForByteBuf (UT_ByteBuf * pBB);
@@ -58,6 +59,7 @@ protected:
 												const char * sz1);
 	bool 				_askOverwrite_YesNo(XAP_Frame * pFrame,
 												const char * fileName);
+	bool				_checkEncryptionPassword(XAP_Frame * pFrame);
 
 	GtkFileChooser * m_FC;
 	GtkWidget * m_dialog;
@@ -69,6 +71,10 @@ protected:
 	std::string			m_finalPathnameCandidate;
 private:
 	GtkWidget *         m_wFileTypes_PullDown;
+	GtkWidget *         m_wEncryptBox = nullptr;
+	GtkWidget *         m_wEncryptCheck = nullptr;
+	GtkWidget *         m_wPasswordEntry = nullptr;
+	GtkWidget *         m_wConfirmEntry = nullptr;
 
 };
 
