@@ -79,6 +79,32 @@ XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
 
 	_setAbiSuiteLibDir();
 
+	// Make the bundled font collection (installed under
+	// <AbiSuiteLibDir>/fonts) visible to fontconfig so documents
+	// render identically even without system-installed fonts.
+	{
+		FcConfig * config = FcConfigGetCurrent();
+		std::string fontDir = getAbiSuiteLibDir();
+		fontDir += "/fonts";
+		if (!FcConfigAppFontAddDir(config,
+				reinterpret_cast<const FcChar8*>(fontDir.c_str())))
+		{
+			UT_DEBUGMSG(("Failed to add bundled font directory %s\n",
+						 fontDir.c_str()));
+		}
+
+		// Load substitution rules mapping common document font
+		// names onto the bundled metric-compatible fonts.
+		std::string fontConf = fontDir + "/abiword-fonts.conf";
+		if (!FcConfigParseAndLoad(config,
+				reinterpret_cast<const FcChar8*>(fontConf.c_str()),
+				FcTrue))
+		{
+			UT_DEBUGMSG(("Failed to load bundled font config %s\n",
+						 fontConf.c_str()));
+		}
+	}
+
 	memset(&m_geometry, 0, sizeof(m_geometry));
 
 	// create an instance of UT_UUIDGenerator or appropriate derrived class

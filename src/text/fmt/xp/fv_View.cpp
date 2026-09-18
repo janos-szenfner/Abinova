@@ -595,9 +595,9 @@ FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
 		s += pCountry;
 	}
 		
-	// do a fuzzy match for Times New Roman
+	// do a fuzzy match for Carlito
 	const char * pszFamily =
-		GR_Graphics::findNearestFont ("Times New Roman",
+		GR_Graphics::findNearestFont ("Carlito",
 									  "normal", "normal",
 									  "normal", "normal",
 									  "12pt", s.utf8_str());

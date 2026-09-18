@@ -10,7 +10,7 @@ AC_CANONICAL_HOST
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.9 tar-ustar dist-bzip2 subdir-objects])
+AM_INIT_AUTOMAKE([1.9 tar-ustar dist-bzip2 subdir-objects foreign])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 dnl we use AM_MAINTAINER_MODE and enable it to allow to disable it.
@@ -1010,6 +1010,7 @@ AC_CONFIG_FILES([libabiword.pc
   user/wp/dictionary/Makefile
   user/wp/templates/Makefile
   tools/Makefile
+  fonts/Makefile
   com.abisource.AbiWord.metainfo.xml
 ])
 AC_OUTPUT

@@ -1,2 +1,139 @@
-# Exp-Abi
-Experimental AbiWord
+# AbiWord GTK4 Experiment
+
+An experimental fork of the AbiWord word processor, focused on:
+
+- **Built-in OpenDocument (ODT/ODF) support** — import, export, flat
+  XML (`.fodt`), encryption, and RDF metadata implemented in the core
+  library rather than as a plugin.
+- **Bundled fonts** — a curated, redistributable font collection is
+  installed with the application and registered with fontconfig at
+  startup, so documents render consistently without relying on
+  system-installed fonts.
+- **Repository cleanup** — obsolete plugins and dead files removed;
+  Debian-reported bugs fixed against the actual implementation.
+
+> **Disclaimer:** This is an experimental project. It is provided
+> **as is, without any warranty** of any kind, express or implied.
+> The author(s) accept **no responsibility or liability** for any
+> damage, data loss, or other consequences arising from its use.
+> Use at your own risk.
+
+## Highlights of changes
+
+### Document formats
+
+- **Built-in ODF core** (`src/wp/impexp/odf/`): the old `opendocument`
+  plugin was removed and its implementation migrated into the core
+  import/export library.
+  - Open / save / save-as for `.odt`.
+  - Flat ODF (`.fodt`) import, including `office:binary-data` embedded
+    images decoded via base64.
+  - **Encrypted ODF**: decrypt on open with a GTK password dialog
+    (`ABIWORD_PASSWORD` env var for headless use); encrypt on save via
+    a "Encrypt with password" checkbox + password/confirm fields in
+    the ODF Save As dialog. Crypto is self-contained: PBKDF2-SHA1 +
+    Blowfish CFB64 (vendored from OpenSSL 4.0.2, Apache-2.0) — no
+    libgcrypt dependency.
+  - **RDF metadata**: built-in RDF/XML parser (`ODi_RDFParser`) and
+    serializer (`toRDFXML`) — no libredland dependency. `manifest.rdf`
+    round-trips through open/save.
+- **OpenXML fixes**: listener-state fixes for footer tables and
+  equations; shared XSLT data restored.
+- Remaining plugins: `epub`, `grammar`, `mht`, `openxml`, `rsvg`,
+  `wmf`, `wordperfect`, `wpg`.
+
+### Fonts
+
+- **Carlito is the default document font** (replacing Times New Roman):
+  default property table, `Normal` style construction, the view's
+  default font resolution, and all 63 `normal.awt-*` templates were
+  updated.
+- **99 bundled font files** under `fonts/`, installed to
+  `<AbiSuiteLibDir>/fonts` and registered at startup via
+  `FcConfigAppFontAddDir` (`src/af/xap/gtk/xap_UnixApp.cpp`). The set
+  mirrors the LibreOffice/OpenOffice bundled font collection plus the
+  Intos family:
+
+  | Family | Metric-compatible with |
+  |--------|------------------------|
+  | Carlito | Calibri (default font) |
+  | Caladea | Cambria |
+  | Intos / Intos Display / Narrow / Serif | Aptos |
+  | Liberation Sans / Serif / Mono / Sans Narrow | Arial / Times New Roman / Courier New / Arial Narrow |
+  | DejaVu Sans / Serif / Mono / Condensed | — (wide coverage) |
+  | OpenSymbol | Symbol fallback used by ODF suites |
+  | Gentium, Gentium Book | document serif faces |
+  | Noto Sans, Noto Serif | core text families |
+  | Source Sans 3, Source Serif 4, Source Code Pro | Adobe open families |
+  | Linux Libertine, Linux Biolinum | serif/sans text families |
+
+- **Font substitution rules** (`fonts/abiword-fonts.conf`): loaded via
+  `FcConfigParseAndLoad` at startup; maps common document font names
+  (Calibri→Carlito, Cambria→Caladea, Aptos→Intos, Times New
+  Roman→Liberation Serif, Arial→Liberation Sans, Courier
+  New→Liberation Mono, etc.) so documents keep their layout when the
+  original fonts are absent. See `fonts/README.md` for provenance and
+  licenses.
+
+### Bug fixes (Debian-reported)
+
+- Keyboard table-cell resize (Ctrl+Alt+arrows) implemented.
+- Table border rendering no longer exposes hidden margins.
+- TOC round-trip on RTF export (`fldrslt` export + `PTX_SectionTOC`
+  import).
+- RTL field bidi direction + mirrored table columns.
+- Down-arrow page-boundary navigation audited (boundary clamp already
+  correct).
+
+See `CHANGES.md` for the per-commit modification log.
+
+## Repository layout
+
+| Path | Contents |
+|------|----------|
+| `src/` | Application and library source (GTK port) |
+| `plugins/` | Remaining loadable plugins |
+| `fonts/` | Bundled fonts + licenses + substitution config |
+| `user/` | Templates, dictionaries, clipart |
+| `Old-Doc/` | Historical documentation (pre-experiment) |
+| `tools/` | Development/test helpers |
+
+Historical design documents, the old README, NEWS, ChangeLog, INSTALL
+and build notes were moved to `Old-Doc/` and are kept for reference.
+
+## Building
+
+Standard autotools flow:
+
+```bash
+./autogen.sh          # or: autoreconf --install --force
+./configure
+make -C src           # builds libabiword + the abiword binary
+sudo make install     # installs binary, data files, and fonts/
+```
+
+Running from the build tree without installing: set `ABIWORD_DATADIR`
+to the repository root so the app picks up `<repo>/fonts`.
+
+Headless conversions (also usable for smoke tests):
+
+```bash
+ABIWORD_DATADIR=$PWD src/abiword --to=odt input.abw -o out.odt
+ABIWORD_PASSWORD=secret src/abiword --to=abw encrypted.odt -o out.abw
+```
+
+## Known issues
+
+- The ODF export path has an **inherited intermittent heap
+  corruption** during teardown (reproduces on any `.odt` save, ~15-30%
+  of runs; the written file is complete and valid). Predates the
+  encryption work; root cause not yet found.
+- macOS/Windows GTK4 builds not yet verified.
+
+## License
+
+AbiWord itself remains under its original license — see `COPYING` and
+`COPYRIGHT.TXT`. Third-party bundled fonts carry their own licenses
+(mostly OFL 1.1) in `fonts/<family>/`; provenance is documented in
+`fonts/README.md`. Vendored Blowfish code is Apache-2.0 (see
+`src/wp/impexp/odf/common/xp/blowfish/`).

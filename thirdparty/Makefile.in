@@ -1536,9 +1536,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu thirdparty/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign thirdparty/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu thirdparty/Makefile
+	  $(AUTOMAKE) --foreign thirdparty/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \

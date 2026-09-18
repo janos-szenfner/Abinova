@@ -175,7 +175,7 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 		s += pCountry;
 	}
 	
-	const char* pszFamily = XAP_App::findNearestFont("Times New Roman",
+	const char* pszFamily = XAP_App::findNearestFont("Carlito",
 													 "normal", "",
 													 "normal", "", "12pt",
 													 s.utf8_str());

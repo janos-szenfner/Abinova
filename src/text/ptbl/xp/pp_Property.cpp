@@ -106,7 +106,7 @@ static PP_Property _props[] =
 
 	{ "field-color",           "dcdcdc",          true,  PP_LEVEL_FIELD},
 	{ "field-font",	           "NULL",	          true,  PP_LEVEL_FIELD},
-	{ "font-family",           "Times New Roman", true,  PP_LEVEL_CHAR},
+	{ "font-family",           "Carlito",         true,  PP_LEVEL_CHAR},
 	{ "font-size",	           "12pt",	          true,  PP_LEVEL_CHAR},	// MS word defaults to 10pt, but it just seems too small
 	{ "font-stretch",          "normal",          true,  PP_LEVEL_CHAR},
 	{ "font-style",	           "normal",          true,  PP_LEVEL_CHAR},

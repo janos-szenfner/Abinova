@@ -1,12 +1,12 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-DIST_SUBDIRS = src thirdparty plugins po user icons tools
+DIST_SUBDIRS = src thirdparty plugins po user icons tools fonts
 
 SUBDIRS = thirdparty src plugins po user
 
 
-SUBDIRS += icons
+SUBDIRS += icons fonts
 
 desktopdir = $(datadir)/applications
 desktop_DATA = com.abisource.AbiWord.desktop
@@ -44,15 +44,18 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--with-typelib-dir=\$${libdir}/girepository-1.0
 
 EXTRA_DIST = \
-	AUTHORS \
-	BiDiReadme.txt \
-	BUILD.TXT \
+	AUTHORS.md \
+	Old-Doc/BiDiReadme.txt \
+	Old-Doc/BUILD.TXT \
 	COPYING	\
 	COPYRIGHT.TXT \
-	INSTALL \
-	NEWS \
-	README \
-	ChangeLog \
+	Old-Doc/INSTALL \
+	Old-Doc/NEWS \
+	Old-Doc/README \
+	Old-Doc/README.md \
+	Old-Doc/ChangeLog \
+	Old-Doc/AUTHORS.old \
+	README.md \
 	abiword.desktop \
 	abiword.keys \
 	abiword.png \
