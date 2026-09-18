@@ -807,7 +807,7 @@ if test "$abi_cv_plugins" = "auto"; then
 		eval $(echo "enable_$plugin")="auto"
 	done
 else
-	default_plugins="opendocument openxml"
+	default_plugins="openxml"
 
 	if test "$abi_cv_disable_default_plugins" != "yes"; then
 		PLUGINS="$default_plugins"

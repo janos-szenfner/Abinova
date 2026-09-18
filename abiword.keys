@@ -9,3 +9,11 @@ application/msword:
 application/rtf:
 	open=abiword %f
 	view=abiword %f
+
+application/vnd.oasis.opendocument.text:
+	open=abiword %f
+	view=abiword %f
+
+application/vnd.oasis.opendocument.text-template:
+	open=abiword %f
+	view=abiword %f

@@ -36,6 +36,8 @@
 #include "ie_imp_XHTML.h"
 #include "ie_imp_GraphicAsDocument.h"
 #include "ie_imp_RDF.h"
+#include "odf/imp/xp/ie_imp_OpenDocument_Sniffer.h"
+#include "odf/exp/xp/ie_exp_OpenDocument_Sniffer.h"
 
 /* graphics */
 #include "ie_impGraphic.h"
@@ -72,6 +74,7 @@ void IE_ImpExp_RegisterXP ()
 	IE_Imp::registerImporter(new IE_Imp_Text_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_EncodedText_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_XHTML_Sniffer ());
+	IE_Imp::registerImporter(new IE_Imp_OpenDocument_Sniffer ());
 #ifdef WITH_EVOLUTION_DATA_SERVER
 	IE_Imp::registerImporter(new IE_Imp_RDF_VCard_Sniffer ());
 #endif
@@ -89,6 +92,7 @@ void IE_ImpExp_RegisterXP ()
 	IE_Exp::registerExporter(new IE_Exp_RTF_attic_Sniffer ());
 	IE_Exp::registerExporter(new IE_Exp_Text_Sniffer ());
 	IE_Exp::registerExporter(new IE_Exp_EncodedText_Sniffer ());
+	IE_Exp::registerExporter(new IE_Exp_OpenDocument_Sniffer ());
 
 	/* Register platform specific. */
 	IE_ImpExp_RegisterPlatform ();
