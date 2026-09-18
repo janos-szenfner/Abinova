@@ -3,7 +3,45 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
-## Font collection + default font (this commit)
+## GTK4 dialog migration (`d206c3e`)
+
+- **All 43 `.ui` files converted to GTK4 builder syntax**: GTK3's
+  `internal-child="vbox"`/`"action_area"` structure removed (GTK4's
+  builder orphans the action-area widget entirely — buttons never
+  attached to the dialog). Action buttons now live inside the content
+  box with `action-widget` response wiring preserved.
+- Grid `<packing>` converted to `<layout>` children; removed
+  `can-default`/`has-default`/`border-width`/`inconsistent` and other
+  GTK3-only properties; `GtkEventBox`/`GtkMenuBar`/`GtkImageMenuItem`
+  replaced (RDF editor menu → `GMenu` + `GtkPopoverMenuBar`, localized
+  via the menu model).
+- 12px content margins added to all dialogs (GTK4 dropped the
+  implicit dialog padding).
+- **Checkbutton API split**: GTK4 `GtkCheckButton` is no longer a
+  `GtkToggleButton`/`GtkButton` — fixed `GTK_TOGGLE_BUTTON`/
+  `gtk_toggle_button_*`/`gtk_button_set_label` misuse on checkbuttons
+  in 11+ dialog sources, the shared `localizeButton*` helpers, and
+  callback signatures (`s_auto_save_toggled`,
+  `s_auto_colsize_toggled`).
+- **Ruler fix**: `XAP_UnixCustomWidget::_fe::draw` now wraps
+  `drawImmediate` in `beginFrame`/`endFrame` so the ruler (and all
+  custom-widget preview panes) composite to screen — committed as
+  `f4a7f2b`.
+- **Table popover**: grid cells now use the widget's own style
+  context (detached contexts have no theme colors in GTK4).
+- Resource regeneration: `abi-resources.c/.h` now depend on the
+  referenced `.ui` files.
+
+## Resolved: ODF export "double free or corruption" (environment)
+
+- Root cause found via `LD_PRELOAD=libasan`: a stale `opendocument.so`
+  in `~/.config/abiword/abiword/plugins/` and `libabiword-3.1.so` both
+  exported `ODe_Style_Style::m_NCStyleMappings`. Symbol interposition
+  unified the storage while both DSOs registered a static destructor →
+  `~map()` ran twice on one object. Removing the stale plugin fixed
+  it (37/37 clean runs; previously ~15–30% crash rate).
+
+## Font collection + default font (`5e2e2ed`)
 
 - **Carlito is the default document font**: `pp_Property.cpp` default
   `font-family`, `Normal` style construction in `pt_PT_Styles.cpp`,

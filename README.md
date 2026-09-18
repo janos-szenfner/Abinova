@@ -124,11 +124,22 @@ ABIWORD_PASSWORD=secret src/abiword --to=abw encrypted.odt -o out.abw
 
 ## Known issues
 
-- The ODF export path has an **inherited intermittent heap
-  corruption** during teardown (reproduces on any `.odt` save, ~15-30%
-  of runs; the written file is complete and valid). Predates the
-  encryption work; root cause not yet found.
+- The GTK4 dialog migration is in progress — `.ui` files were
+  mechanically converted from GTK3 markup; some dialogs may still have
+  layout or widget-type quirks.
 - macOS/Windows GTK4 builds not yet verified.
+
+### Resolved: ODF export teardown crash
+
+The intermittent "double free or corruption" after `.odt` export was
+**not** in the exporter. A stale `opendocument.so` plugin binary (from
+before ODF moved into the core library) in
+`~/.config/abiword/abiword/plugins/` exported the same
+`ODe_Style_Style::m_NCStyleMappings` symbol as `libabiword`. The
+dynamic linker unified the symbol but both DSOs registered a static
+destructor, so `~map()` ran twice on one object. If you built from an
+older tree, delete leftover `opendocument.so` files from the plugin
+directory.
 
 ## License
 
