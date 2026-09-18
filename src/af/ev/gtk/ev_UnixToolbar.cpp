@@ -454,6 +454,18 @@ public:									// we create...
 			gtk_tree_model_get (store, &iter, 0, &buffer, -1);
 		} else {
 			buffer = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT(combo));
+			// combos with an entry (font size) may hold a value that is
+			// not in the list; gtk_combo_box_text_get_active_text then
+			// returns nullptr and the typed size is lost (Debian #896745)
+			if (!buffer) {
+				GtkWidget *child = gtk_combo_box_get_child (combo);
+				if (child && GTK_IS_EDITABLE (child)) {
+					const char *entryText = gtk_editable_get_text (GTK_EDITABLE (child));
+					if (entryText && *entryText) {
+						buffer = g_strdup (entryText);
+					}
+				}
+			}
 		}
 
 		if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT) {
@@ -476,6 +488,10 @@ public:									// we create...
 		else
 			text = buffer;
 
+		if (!text) {
+			g_free (buffer);
+			return;
+		}
 		UT_UCS4String ucsText(text);
 		wd->m_pUnixToolbar->toolbarEvent(wd, ucsText.ucs4_str(), ucsText.length());
 		g_free (buffer);
@@ -1220,7 +1236,14 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 #undef BUILTIN_INDEX
 					}
 					else {
-						combo_box_set_active_text(combo, szState, wd->m_handlerId);
+						gboolean ret = combo_box_set_active_text(combo, szState, wd->m_handlerId);
+						if (!ret && wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_ZOOM) {
+							// zoom set via dialog/keys (e.g. 125%) is not in
+							// the static list; append it so the combo
+							// reflects the real zoom (Debian #1010880)
+							gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT(combo), szState);
+							combo_box_set_active_text(combo, szState, wd->m_handlerId);
+						}
 					} 
 					if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT) {
 						if (wd->m_pUnixToolbar->m_pFontPreview) {

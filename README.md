@@ -145,6 +145,36 @@ An experimental fork of the AbiWord word processor, focused on:
   opens the Zoom dialog, buttons use the `zoomIn`/`zoomOut` edit
   methods, and the control tracks external zoom changes.
 
+### Debian bug audit
+
+- **#896745 font size by keyboard** — fixed: typed sizes not in the
+  dropdown are now read from the combo's entry instead of
+  `gtk_combo_box_text_get_active_text` (which returned NULL).
+- **#1010880 stale zoom display** — fixed: the toolbar zoom combo
+  appends unlisted percentages (e.g. dialog-set 125%) so it always
+  shows the real zoom; the status-bar percentage likewise syncs on
+  every view notification.
+- **#704629 Finnish translations** — fixed the reported menu items
+  (`Save`, `Tools`, `Table`, `View`, `Cut`, `Copy`, `Paste`, `Print`
+  were copy-paste corrupted in `fi-FI.po`/`.strings`). ~150 further
+  suspicious duplicate msgstrs remain; a full pass needs a Finnish
+  speaker.
+- **#845137 crash opening files** — already resolved: upstream
+  reverted svn r33154 (table-breaking change that caused the
+  crashes); this tree carries the reverted code in
+  `fb_ColumnBreaker.cpp`.
+- **#740403 PDF save produced `.abw.saved`** — verified fixed: PDF
+  export works (`--to=pdf` produces valid PDF 1.7); the `.saved`
+  files were crash backups from a then-broken build.
+- **#926419 typed text invisible on Wayland** — resolved by the
+  GTK4 port: the old GTK3 expose-based draw path was replaced.
+- **#740635 ruler disappears on tab-type cycling** — resolved by
+  the GTK4 redraw path; the tab-toggle machinery is intact.
+- **#572798 PDF export settings (wishlist)** — cairo PDF output is
+  vector text with native-resolution embedded images, so the
+  original quality complaint no longer applies; a settings dialog
+  remains a possible future enhancement.
+
 ### Fonts
 
 - **Carlito is the default document font** (replacing Times New Roman):

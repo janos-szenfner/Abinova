@@ -322,7 +322,7 @@ msgstr "Vertaa asiakirjoja"
 #. MENU_LABEL_EDIT_COPY
 #: po/tmp/ap_String_Id.h
 msgid "&Copy"
-msgstr "Kopioi tekstikehys"
+msgstr "&Kopioi"
 
 #. MENU_LABEL_FMT_STYLE_DEFINE
 #: po/tmp/ap_String_Id.h
@@ -753,7 +753,7 @@ msgstr "Kappal&e"
 #. MENU_LABEL_EDIT_PASTE
 #: po/tmp/ap_String_Id.h
 msgid "&Paste"
-msgstr "Liitä &muotoilematon"
+msgstr "&Liitä"
 
 #. MENU_LABEL_INSERT_GRAPHIC
 #: po/tmp/ap_String_Id.h
@@ -773,7 +773,7 @@ msgstr "Pys&ty"
 #. MENU_LABEL_FILE_PRINT
 #: po/tmp/ap_String_Id.h
 msgid "&Print"
-msgstr "Tulosta suoraan"
+msgstr "&Tulosta"
 
 #. MENU_LABEL_VIEW_PRINT
 #: po/tmp/ap_String_Id.h
@@ -866,7 +866,7 @@ msgstr "&Viivain"
 #. MENU_LABEL_FILE_SAVE
 #: po/tmp/ap_String_Id.h
 msgid "&Save"
-msgstr "Tallenna asiakirja&mallina"
+msgstr "&Tallenna"
 
 #. MENU_LABEL_FILE_SAVEIMAGE
 #: po/tmp/ap_String_Id.h
@@ -971,7 +971,7 @@ msgstr "T&yökalurivit"
 #. MENU_LABEL_TOOLS
 #: po/tmp/ap_String_Id.h
 msgid "&Tools"
-msgstr "Tarkista &kirjoitettaessa"
+msgstr "&Työkalut"
 
 #. DLG_PageSetup_Top
 #: po/tmp/ap_String_Id.h
@@ -1014,7 +1014,7 @@ msgstr "&Asteikko:"
 #. DLG_MW_ViewButton
 #: po/tmp/ap_String_Id.h po/tmp/xap_String_Id.h
 msgid "&View"
-msgstr "Palauta oletustyökalurivit"
+msgstr "&Näytä"
 
 #. MENU_LABEL_VIEW_WEB
 #: po/tmp/ap_String_Id.h
@@ -2497,7 +2497,7 @@ msgstr ""
 #. MENU_LABEL_EDIT_CUT
 #: po/tmp/ap_String_Id.h
 msgid "Cu&t"
-msgstr "Leikkaa tekstikehys"
+msgstr "Leik&kaa"
 
 #. FIELD_DateTime_DefaultDateNoTime
 #: po/tmp/ap_String_Id.h
@@ -6807,7 +6807,7 @@ msgstr "Symboli"
 #. MENU_LABEL_TABLE
 #: po/tmp/ap_String_Id.h
 msgid "T&able"
-msgstr "&Sovita taulukko"
+msgstr "Tau&lukko"
 
 #. TabStopStatus
 #: po/tmp/ap_String_Id.h
