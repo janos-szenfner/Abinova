@@ -91,6 +91,9 @@ bool ODi_Abi_Data::addImageDataItem(UT_String& rDataId, const gchar** ppAtts) {
 
     _splitDirectoryAndFileName(pHRef, dirName, fileName);
 
+    // flat documents have no package to read embedded files from
+    UT_return_val_if_fail(m_pGsfInfile, false);
+
     pPictures_dir =
         GSF_INFILE(gsf_infile_child_by_name(m_pGsfInfile, dirName.c_str()));
 
@@ -104,17 +107,27 @@ bool ODi_Abi_Data::addImageDataItem(UT_String& rDataId, const gchar** ppAtts) {
         return false;
     }
 
+    return _createImageDataItem(rDataId, img_buf);
+}
+
+/**
+ * Creates the image data item from raw image bytes.
+ * Shared tail of addImageDataItem() and addImageDataItemFromBuffer().
+ */
+bool ODi_Abi_Data::_createImageDataItem(UT_String& rDataId, const UT_ByteBufPtr& img_buf)
+{
+    FG_ConstGraphicPtr pFG;
 
     // Builds pImporter from img_buf
-    error = IE_ImpGraphic::loadGraphic (img_buf, IEGFT_Unknown, pFG);
+    UT_Error error = IE_ImpGraphic::loadGraphic (img_buf, IEGFT_Unknown, pFG);
     if ((error != UT_OK) || !pFG) {
         // pictData is already freed in ~FG_Graphic
-      return false;
+        return false;
     }
 
     // Builds pPictData from pFG
     // TODO: can we get back a vector graphic?
-    pPictData = pFG->getBuffer();
+    UT_ConstByteBufPtr pPictData = pFG->getBuffer();
 
     if (!pPictData) {
         // i don't think that this could ever happen, but...
@@ -131,12 +144,27 @@ bool ODi_Abi_Data::addImageDataItem(UT_String& rDataId, const gchar** ppAtts) {
                                         pPictData,
                                         pFG->getMimeType(),
                                         nullptr)) {
-            
+
         UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
         return false;
-    }    
+    }
 
     return true;
+}
+
+/**
+ * Creates the image data item from image bytes already in memory.
+ * Used for flat (single-XML) documents whose images arrive as
+ * base64 inside <office:binary-data> rather than as package files.
+ */
+bool ODi_Abi_Data::addImageDataItemFromBuffer(UT_String& rDataId, const UT_ByteBufPtr& img_buf)
+{
+    UT_return_val_if_fail(img_buf && img_buf->getLength() > 0, false);
+
+    UT_uint32 imageID = m_pAbiDocument->getUID(UT_UniqueId::Image);
+    UT_String_sprintf(rDataId, "%d", imageID);
+
+    return _createImageDataItem(rDataId, img_buf);
 }
 
 /**
@@ -191,6 +219,9 @@ bool ODi_Abi_Data::addObjectDataItem(UT_String& rDataId, const gchar** ppAtts, i
 
     if (fileName.empty ())
       fileName = "content.xml";
+
+    // flat documents have no package to read embedded files from
+    UT_return_val_if_fail(m_pGsfInfile, false);
 
     pObjects_dir =
         GSF_INFILE(gsf_infile_child_by_name(m_pGsfInfile, dirName.c_str()));

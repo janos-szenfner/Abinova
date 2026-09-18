@@ -101,6 +101,11 @@ private:
 	std::string m_sAltDesc;
 	bool m_bInAltDesc;
 	std::map<std::string, std::string> m_mPendingImgProps;
+
+	// flat-document (<office:binary-data>) image support
+	bool m_bInBinaryData;
+	std::string m_sBinaryData;
+	void _finishBinaryImage();
 };
 
 #endif //_ODI_FRAME_LISTENERSTATE_H_

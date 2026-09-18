@@ -21,6 +21,7 @@ AM_CPPFLAGS = \
 	-I$(srcdir) \
 	-I$(srcdir)/odf/common/xp \
 	-I$(srcdir)/odf/common/xp/crypto \
+	-I$(srcdir)/odf/common/xp/crypto/blowfish \
 	$(WP_CPPFLAGS)
 
 libimpexp_la_SOURCES = \
@@ -113,6 +114,14 @@ libimpexp_la_SOURCES = \
 
 # OpenDocument (ODF) importer/exporter, formerly a plugin
 libimpexp_la_SOURCES += \
+	odf/common/xp/crypto/blowfish/bf_cfb64.c \
+	odf/common/xp/crypto/blowfish/bf_enc.c \
+	odf/common/xp/crypto/blowfish/bf_local.h \
+	odf/common/xp/crypto/blowfish/bf_pi.h \
+	odf/common/xp/crypto/blowfish/bf_skey.c \
+	odf/common/xp/crypto/blowfish/blowfish.h \
+	odf/common/xp/crypto/blowfish/LICENSE.txt \
+	odf/common/xp/crypto/blowfish/README \
 	odf/common/xp/crypto/gc-pbkdf2-sha1.c \
 	odf/common/xp/crypto/gc-pbkdf2-sha1.h \
 	odf/common/xp/crypto/hmac.h \
@@ -216,6 +225,8 @@ libimpexp_la_SOURCES += \
 	odf/imp/xp/ODi_Office_Styles.h \
 	odf/imp/xp/ODi_Postpone_ListenerState.cpp \
 	odf/imp/xp/ODi_Postpone_ListenerState.h \
+	odf/imp/xp/ODi_RDFParser.cpp \
+	odf/imp/xp/ODi_RDFParser.h \
 	odf/imp/xp/ODi_SettingsStream_ListenerState.h \
 	odf/imp/xp/ODi_StartTag.cpp \
 	odf/imp/xp/ODi_StartTag.h \

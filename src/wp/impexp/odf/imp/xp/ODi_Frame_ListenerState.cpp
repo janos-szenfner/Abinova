@@ -36,6 +36,7 @@
 #include "pd_Document.h"
 #include "ut_locale.h"
 #include "ut_units.h"
+#include "ut_base64.h"
 #include "ie_math_convert.h"
 
 /**
@@ -56,7 +57,8 @@ ODi_Frame_ListenerState::ODi_Frame_ListenerState(PD_Document* pDocument,
 		m_bInlineImagePending(false),
 		m_bPositionedImagePending(false),
 		m_bInAltTitle(false),
-		m_bInAltDesc(false)
+		m_bInAltDesc(false),
+		m_bInBinaryData(false)
 {
     if (m_rElementStack.hasElement("office:document-content")) {
         m_bOnContentStream = true;
@@ -96,6 +98,10 @@ void ODi_Frame_ListenerState::startElement (const gchar* pName,
         }
     } else if (!strcmp(pName, "draw:image")) {
         _drawImage(ppAtts, rAction);
+    } else if (!strcmp(pName, "office:binary-data")) {
+        // Flat ODF: embedded image bytes as base64 inside draw:image
+        m_bInBinaryData = true;
+        m_sBinaryData.clear();
 	} else if (!strcmp(pName, "svg:title")) {
 		m_bInAltTitle = true;
 	} else if (!strcmp(pName, "svg:desc")) {
@@ -138,6 +144,16 @@ void ODi_Frame_ListenerState::endElement (const gchar* pName,
         m_pMathBB->append(reinterpret_cast<const UT_Byte *>("</"), 2);
         m_pMathBB->append(reinterpret_cast<const UT_Byte *>(pName + 5), strlen(pName) - 5); //build the mathml
         m_pMathBB->append(reinterpret_cast<const UT_Byte *>(">"), 1);
+        return;
+    }
+
+    if (!strcmp(pName, "office:binary-data")) {
+        m_bInBinaryData = false;
+        return;
+    }
+
+    if (!strcmp(pName, "draw:image")) {
+        _finishBinaryImage();
         return;
     }
 
@@ -244,6 +260,9 @@ void ODi_Frame_ListenerState::charData (const gchar* pBuffer, int length)
     if (m_bInMath && m_pMathBB) {
         m_pMathBB->append(reinterpret_cast<const UT_Byte *>(pBuffer), length);
         return;
+	} else if (m_bInBinaryData) {
+		m_sBinaryData.append(reinterpret_cast<const char*>(pBuffer), length);
+		return;
 	} else if (m_bInAltTitle) {
 		m_sAltTitle += std::string(reinterpret_cast<const char*>(pBuffer), length);
 	} else if (m_bInAltDesc) {
@@ -312,12 +331,16 @@ void ODi_Frame_ListenerState::_drawImage (const gchar** ppAtts,
                  " right-style:none; top-style:none";
         
         
-        if(!m_rAbiData.addImageDataItem(dataId, ppAtts)) {
-            UT_DEBUGMSG(("ODT import: no suitable image importer found\n"));
-            return;
+        if (UT_getAttribute("xlink:href", ppAtts)) {
+            if(!m_rAbiData.addImageDataItem(dataId, ppAtts)) {
+                UT_DEBUGMSG(("ODT import: no suitable image importer found\n"));
+                return;
+            }
+
+	    m_mPendingImgProps["strux-image-dataid"] = dataId.c_str();
         }
-        
-		m_mPendingImgProps["strux-image-dataid"] = dataId.c_str();
+        // else: flat document, bytes arrive via <office:binary-data>
+
         m_mPendingImgProps["props"] = props.c_str();
         
 		// don't write the image out yet as we might get more properties, for
@@ -335,10 +358,14 @@ void ODi_Frame_ListenerState::_drawInlineImage (const gchar** ppAtts)
 
     m_inlinedImage = true;
 
-    if(!m_rAbiData.addImageDataItem(dataId, ppAtts)) {
-        UT_DEBUGMSG(("ODT import: no suitable image importer found\n"));
-        return;
+    if (UT_getAttribute("xlink:href", ppAtts)) {
+        if(!m_rAbiData.addImageDataItem(dataId, ppAtts)) {
+            UT_DEBUGMSG(("ODT import: no suitable image importer found\n"));
+            return;
+        }
+	m_mPendingImgProps["dataid"] = dataId.c_str();
     }
+    // else: flat document, bytes arrive via <office:binary-data>
 
     UT_String propsBuffer;
         
@@ -351,11 +378,46 @@ void ODi_Frame_ListenerState::_drawInlineImage (const gchar** ppAtts)
     UT_String_sprintf(propsBuffer, "width:%s; height:%s", pWidth, pHeight);
         
 	m_mPendingImgProps["props"] = propsBuffer.c_str();
-	m_mPendingImgProps["dataid"] = dataId.c_str();
 
 	// don't write the image out yet as we might get more properties, for
 	// example alt descriptions from the <svg:desc> tag
 	m_bInlineImagePending = true;
+}
+
+/**
+ * Called on </draw:image>. Flat (single-XML) documents embed image bytes
+ * as base64 in <office:binary-data> instead of referencing package files
+ * via xlink:href; decode them and create the data item here.
+ */
+void ODi_Frame_ListenerState::_finishBinaryImage ()
+{
+	if (m_sBinaryData.empty())
+		return;
+
+	if (m_mPendingImgProps.count("dataid") ||
+		m_mPendingImgProps.count("strux-image-dataid"))
+		return;
+
+	if (!m_bInlineImagePending && !m_bPositionedImagePending)
+		return;
+
+	UT_ByteBufPtr encoded(new UT_ByteBuf);
+	encoded->ins(0,
+		reinterpret_cast<const UT_Byte *>(m_sBinaryData.data()),
+		m_sBinaryData.size());
+
+	UT_ByteBufPtr img_buf(new UT_ByteBuf);
+	if (!UT_Base64Decode(img_buf, encoded))
+		return;
+
+	UT_String dataId;
+	if (!m_rAbiData.addImageDataItemFromBuffer(dataId, img_buf))
+		return;
+
+	if (m_bInlineImagePending)
+		m_mPendingImgProps["dataid"] = dataId.c_str();
+	else
+		m_mPendingImgProps["strux-image-dataid"] = dataId.c_str();
 }
 
 /**

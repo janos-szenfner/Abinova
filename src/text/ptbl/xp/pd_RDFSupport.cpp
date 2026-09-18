@@ -29,6 +29,9 @@
 
 #include <sstream>
 #include <set>
+#include <map>
+#include <vector>
+#include <cctype>
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -345,9 +348,164 @@ toRDFXML( const std::list< PD_RDFModelHandle >& ml )
 
     return ss.str();
 #else
-	UT_UNUSED(ml);
+    //
+    // Built-in RDF/XML serializer (no libredland). Emits the simple
+    // rdf:Description-per-subject form, grouping all arcs of a subject
+    // into one element.
+    //
+
+    auto xmlEscapeAttr = [](const std::string& s) -> std::string
+    {
+        std::string out;
+        out.reserve(s.size());
+        for (char c : s)
+        {
+            switch (c)
+            {
+            case '<':  out += "&lt;";   break;
+            case '>':  out += "&gt;";   break;
+            case '&':  out += "&amp;";  break;
+            case '"':  out += "&quot;"; break;
+            default:   out += c;        break;
+            }
+        }
+        return out;
+    };
+    auto xmlEscapeText = [](const std::string& s) -> std::string
+    {
+        std::string out;
+        out.reserve(s.size());
+        for (char c : s)
+        {
+            switch (c)
+            {
+            case '<':  out += "&lt;";  break;
+            case '>':  out += "&gt;";  break;
+            case '&':  out += "&amp;"; break;
+            default:   out += c;       break;
+            }
+        }
+        return out;
+    };
+    // split a predicate URI into (namespace, localName); the local part
+    // must be an NCName for the property to be expressible as an element
+    auto splitPredicate = [](const std::string& uri,
+                             std::string& ns, std::string& local) -> bool
+    {
+        std::string::size_type pos = uri.find_last_of("#/");
+        if (pos == std::string::npos || pos + 1 >= uri.size())
+            return false;
+        ns = uri.substr(0, pos + 1);
+        local = uri.substr(pos + 1);
+        auto ncNameChar = [](char c) {
+            return isalnum((unsigned char)c) || c == '_' || c == '-' || c == '.';
+        };
+        if (!(isalpha((unsigned char)local[0]) || local[0] == '_'))
+            return false;
+        for (char c : local)
+            if (!ncNameChar(c))
+                return false;
+        return true;
+    };
+
+    // collect statements from all models, grouped by subject
+    struct FlatStatement
+    {
+        std::string subject;
+        bool        subjectIsBNode;
+        std::string predicate;
+        PD_Object   object;
+    };
+    std::map<std::pair<std::string, bool>, std::vector<FlatStatement>> bySubject;
+    std::map<std::string, std::string> nsToPrefix;
+    std::vector<std::string> nsList;
+    int nsCount = 0;
+
+    for (PD_RDFModelHandle m : ml)
+    {
+        if (!m)
+            continue;
+        for (PD_RDFModelIterator it = m->begin(); it != m->end(); ++it)
+        {
+            const PD_RDFStatement& st = *it;
+            if (!st.isValid())
+                continue;
+            FlatStatement fs;
+            fs.subject = st.getSubject().toString();
+            fs.subjectIsBNode = fs.subject.compare(0, 2, "_:") == 0;
+            fs.predicate = st.getPredicate().toString();
+            fs.object = st.getObject();
+
+            std::string ns, local;
+            if (!splitPredicate(fs.predicate, ns, local))
+                continue;   // not expressible as an RDF/XML element
+            if (!nsToPrefix.count(ns))
+            {
+                nsToPrefix[ns] = "ns" + std::to_string(nsCount++);
+                nsList.push_back(ns);
+            }
+            bySubject[std::make_pair(fs.subject, fs.subjectIsBNode)]
+                .push_back(fs);
+        }
+    }
+
+    if (bySubject.empty())
+        return "";
+
+    std::stringstream ss;
+    ss << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+    ss << "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"";
+    for (const std::string& ns : nsList)
+        ss << "\n     xmlns:" << nsToPrefix[ns] << "=\"" << xmlEscapeAttr(ns) << "\"";
+    ss << ">\n";
+
+    for (const auto& kv : bySubject)
+    {
+        const std::string& subj = kv.first.first;
+        ss << " <rdf:Description ";
+        if (kv.first.second)
+            ss << "rdf:nodeID=\"" << xmlEscapeAttr(subj.substr(2)) << "\"";
+        else
+            ss << "rdf:about=\"" << xmlEscapeAttr(subj) << "\"";
+        ss << ">\n";
+
+        for (const FlatStatement& fs : kv.second)
+        {
+            std::string ns, local;
+            if (!splitPredicate(fs.predicate, ns, local))
+                continue;
+            const std::string qn = nsToPrefix[ns] + ":" + local;
+            ss << "  <" << qn;
+            const std::string oval = fs.object.toString();
+            switch (fs.object.getObjectType())
+            {
+            case PD_Object::OBJECT_TYPE_URI:
+                ss << " rdf:resource=\"" << xmlEscapeAttr(oval) << "\"/>\n";
+                break;
+            case PD_Object::OBJECT_TYPE_BNODE:
+                ss << " rdf:nodeID=\""
+                   << xmlEscapeAttr(oval.compare(0, 2, "_:") == 0
+                                    ? oval.substr(2) : oval)
+                   << "\"/>\n";
+                break;
+            default:
+                if (fs.object.getXSDType() ==
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral")
+                    ss << " rdf:parseType=\"Literal\">" << oval
+                       << "</" << qn << ">\n";
+                else if (fs.object.hasXSDType())
+                    ss << " rdf:datatype=\"" << xmlEscapeAttr(fs.object.getXSDType())
+                       << "\">" << xmlEscapeText(oval) << "</" << qn << ">\n";
+                else
+                    ss << ">" << xmlEscapeText(oval) << "</" << qn << ">\n";
+                break;
+            }
+        }
+        ss << " </rdf:Description>\n";
+    }
+    ss << "</rdf:RDF>\n";
+    return ss.str();
 #endif
-    return "";
 }
 
 

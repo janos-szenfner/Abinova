@@ -36,6 +36,8 @@
 
 #ifdef HAVE_GCRYPT
 #include "gcrypt.h"
+#else
+#include "blowfish/blowfish.h"
 #endif
 
 #define PASSWORD_HASH_LEN 20
@@ -104,12 +106,22 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
                                      content,
                                      content_size ));
     gcry_cipher_close( h );
-    
-    
+
+
 #else
 
-    // removed old blowfish code
-    
+    // In-tree Blowfish implementation (Eric Young's, formerly in the
+    // opendocument plugin); gives CFB64, which is what ODF encrypted
+    // streams use.
+    int num = 0;
+    unsigned char ivec_copy[8] = {0};
+    memcpy(ivec_copy, ivec, ivec_length > 8 ? 8 : ivec_length);
+
+    BF_KEY bf_key;
+    BF_set_key(&bf_key, PBKDF2_KEYLEN, (const unsigned char*)key);
+    BF_cfb64_encrypt(content, content_decrypted, content_size,
+                     &bf_key, ivec_copy, &num, BF_DECRYPT);
+
 #endif
     
 	// deflate the decrypted content

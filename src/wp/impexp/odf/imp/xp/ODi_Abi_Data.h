@@ -51,10 +51,13 @@ public:
      */
     bool addImageDataItem(UT_String& rDataId, const gchar** ppAtts);
 
+    bool addImageDataItemFromBuffer(UT_String& rDataId, const UT_ByteBufPtr& img_buf);
+
     bool addObjectDataItem(UT_String& rDataId, const gchar** ppAtts, int& pto_Type);
 
 private:
 
+    bool _createImageDataItem(UT_String& rDataId, const UT_ByteBufPtr& img_buf);
     UT_Error _loadStream(GsfInfile* oo, const char* stream, const UT_ByteBufPtr& buf);
     void _splitDirectoryAndFileName(const gchar* pHRef, UT_String& dirName, UT_String& fileName) const;
 

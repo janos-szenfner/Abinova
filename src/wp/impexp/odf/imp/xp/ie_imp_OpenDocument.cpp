@@ -23,6 +23,7 @@
 
 
 #include <memory>
+#include <set>
 
 // Class definition include
 #include "ie_imp_OpenDocument.h"
@@ -131,9 +132,11 @@ bool IE_Imp_OpenDocument::pasteFromBuffer(PD_DocumentRange * pDocRange,
 UT_Error IE_Imp_OpenDocument::_loadFile (GsfInput * oo_src)
 {
     m_pGsfInfile = GSF_INFILE (gsf_infile_zip_new (oo_src, nullptr));
-    
+
     if (m_pGsfInfile == nullptr) {
-        return UT_ERROR;
+        // Not a zipped package: flat (single-XML) OpenDocument files
+        // carry all streams inside one <office:document>.
+        return _handleFlatFile(oo_src);
     }
 
     m_pAbiData = new ODi_Abi_Data(getDoc(), m_pGsfInfile);    
@@ -198,6 +201,63 @@ UT_Error IE_Imp_OpenDocument::_loadFile (GsfInput * oo_src)
     return err;
 }
 
+/**
+ * Import a flat (single-XML) OpenDocument file (.fodt).
+ *
+ * Instead of reading streams out of a zip package, the whole document
+ * is parsed once per logical stream state. The stream states only act
+ * on their own elements, so each pass picks up its share of the
+ * <office:document> children (office:meta, office:styles,
+ * office:automatic-styles, office:master-styles, office:font-face-decls
+ * and office:body).
+ */
+UT_Error IE_Imp_OpenDocument::_handleFlatFile(GsfInput* oo_src)
+{
+    m_pAbiData = new ODi_Abi_Data(getDoc(), nullptr);
+    m_pStreamListener = new ODi_StreamListener(getDoc(), nullptr, &m_styles,
+                                              *m_pAbiData);
+
+    _setDocumentProperties();
+
+    // Buffer the input so every pass can replay it. The failed zip probe
+    // leaves the stream mid-file, so rewind first.
+    gsf_input_seek(oo_src, 0, G_SEEK_SET);
+    gsf_off_t size = gsf_input_size(oo_src);
+    UT_return_val_if_fail(size > 0, UT_ERROR);
+    const guint8 * data = gsf_input_read(oo_src, size, nullptr);
+    UT_return_val_if_fail(data != nullptr, UT_ERROR);
+
+    static const char * const passes[] = {
+        "MetaStream",
+        "StylesStream",
+        "ContentStreamAnnotationMatcher",
+        "ContentStream"
+    };
+
+    bool try_recover = false;
+
+    for (size_t i = 0; i < G_N_ELEMENTS(passes); i++) {
+        UT_Error err = m_pStreamListener->setState(passes[i]);
+        if (err != UT_OK) {
+            continue;
+        }
+
+        GsfInput * mem = gsf_input_memory_new(data, size, FALSE);
+        UT_XML reader;
+        reader.setListener(m_pStreamListener);
+        err = _parseStream(mem, reader);
+        g_object_unref(G_OBJECT(mem));
+
+        if (err == UT_IE_TRY_RECOVER) {
+            try_recover = true;
+        } else if (err != UT_OK) {
+            return err;
+        }
+    }
+
+    return try_recover ? UT_IE_TRY_RECOVER : UT_OK;
+}
+
 
 /**
  * Asks the user for a password.
@@ -230,6 +290,14 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
 		  password = pDlg->getPassword ().utf8_str();
 
       pDialogFactory->releaseDialog(pDlg);
+    }
+  else
+    {
+      // headless (e.g. --to= conversions): allow the password to be
+      // supplied via the environment
+      const char * envpw = getenv ("ABIWORD_PASSWORD");
+      if (envpw)
+        password = envpw;
     }
 
   return password;
@@ -430,18 +498,39 @@ UT_Error IE_Imp_OpenDocument::_handleContentStream ()
 
 
 
+#ifndef WITH_REDLAND
+
+/**
+ * Parse an RDF/XML stream with the built-in parser, appending its
+ * triples to @triples. Used when AbiWord is built without libredland.
+ */
+UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
+                                                 const char * pStream,
+                                                 std::vector<ODi_RDFTriple>& triples )
+{
+    UT_return_val_if_fail(pInput, UT_ERROR);
+
+    ODi_RDFParser rdfParser(pStream ? pStream : "");
+    UT_XML reader;
+    reader.setListener(&rdfParser);
+
+    UT_Error err = _parseStream(pInput, reader);
+    if (err != UT_OK)
+        return err;
+
+    const std::vector<ODi_RDFTriple>& parsed = rdfParser.triples();
+    triples.insert(triples.end(), parsed.begin(), parsed.end());
+    return UT_OK;
+}
+
+#else
+
 UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
                                                  const char * pStream,
                                                  RDFArguments* args )
 {
     UT_return_val_if_fail(pInput, UT_ERROR);
-#ifndef WITH_REDLAND
-    UT_UNUSED(pStream);
-    UT_UNUSED(args);
 
-    return UT_OK;
-#else
-    
     int sz = gsf_input_size (pInput);
     if (sz > 0)
     {
@@ -482,13 +571,75 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
     }
 
     return UT_OK;
-#endif
 }
+#endif
 
                       
 UT_Error IE_Imp_OpenDocument::_handleRDFStreams ()
 {
 #ifndef WITH_REDLAND
+    // Built-in RDF/XML support (no libredland): parse manifest.rdf and
+    // any auxiliary RDF/XML files it references, then add the triples
+    // to the document's RDF model.
+    static const char* const RDF_TYPE_URI =
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+    static const char* const ODF_METADATAFILE_URI =
+        "http://docs.oasis-open.org/opendocument/meta/package/odf#MetaDataFile";
+    static const char* const ODF_PATH_URI =
+        "http://docs.oasis-open.org/opendocument/meta/package/common#path";
+
+    UT_Error error = UT_OK;
+    std::vector<ODi_RDFTriple> triples;
+
+    // check if we can load a manifest.rdf file
+    GsfInput* pRdfManifest = gsf_infile_child_by_name(m_pGsfInfile, "manifest.rdf");
+    if (pRdfManifest)
+    {
+        error = _loadRDFFromFile( pRdfManifest, "manifest.rdf", triples );
+        g_object_unref (G_OBJECT (pRdfManifest));
+        if (error != UT_OK)
+            return error;
+    }
+
+    if (triples.empty())
+        return UT_OK;
+
+    // find auxiliary RDF/XML files: subjects typed odf:MetaDataFile
+    // carry an odfcommon:path literal naming the package member
+    std::set<std::string> auxFiles;
+    std::set<std::string> metaSubjects;
+    for (const ODi_RDFTriple& t : triples)
+        if (t.predicate == RDF_TYPE_URI &&
+            t.object.isURI() && t.object.toString() == ODF_METADATAFILE_URI)
+            metaSubjects.insert(t.subject);
+    for (const ODi_RDFTriple& t : triples)
+        if (metaSubjects.count(t.subject) &&
+            t.predicate == ODF_PATH_URI && t.object.isLiteral())
+            auxFiles.insert(t.object.toString());
+
+    for (const std::string& fn : auxFiles)
+    {
+        if (fn == "manifest.rdf")
+            continue;
+        GsfInput* pAuxRDF = gsf_infile_child_by_name(m_pGsfInfile, fn.c_str());
+        if (pAuxRDF)
+        {
+            error = _loadRDFFromFile( pAuxRDF, fn.c_str(), triples );
+            g_object_unref (G_OBJECT (pAuxRDF));
+            if (error != UT_OK)
+                return error;
+        }
+    }
+
+    // add the triples to the document's RDF model
+    {
+        PD_DocumentRDFHandle rdf = getDoc()->getDocumentRDF();
+        PD_DocumentRDFMutationHandle m = rdf->createMutation();
+        for (const ODi_RDFTriple& t : triples)
+            m->add( PD_URI(t.subject), PD_URI(t.predicate), t.object );
+        m->commit();
+    }
+
     return UT_OK;
 #else
     UT_Error error = UT_OK;
@@ -672,12 +823,6 @@ UT_Error IE_Imp_OpenDocument::_handleStream ( GsfInfile* pGsfInfile,
 	{
         UT_DEBUGMSG(("Running decrypt on stream %s\n", pStream));
 
-        
-#ifndef HAVE_GCRYPT
-        UT_DEBUGMSG(("Can not decrypt files because of how abiword is compiled!\n"));
-        return UT_ERROR;
-#endif
-        
         GsfInput* pDecryptedInput = nullptr;
         UT_Error err = ODc_Crypto::decrypt(pInput, (*pos).second, m_sPassword.c_str(), &pDecryptedInput);
         g_object_unref (G_OBJECT (pInput));

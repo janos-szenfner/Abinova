@@ -1,0 +1,13 @@
+Blowfish cipher, vendored from OpenSSL 4.0.2 (crypto/bf).
+
+Files bf_enc.c, bf_skey.c, bf_cfb64.c, bf_local.h, bf_pi.h are taken
+unmodified from upstream except for include-line adjustments:
+  - #include "internal/deprecated.h"   removed (build-system only)
+  - #include <openssl/blowfish.h>   -> #include "blowfish.h"
+  - #include <openssl/opensslconf.h>  removed from bf_local.h
+
+blowfish.h is the upstream include/openssl/blowfish.h rewritten as a
+standalone header (no opensslconf.h / e_os2.h / macros.h / deprecation
+attributes required).
+
+License: Apache License 2.0 (see LICENSE.txt and file headers).

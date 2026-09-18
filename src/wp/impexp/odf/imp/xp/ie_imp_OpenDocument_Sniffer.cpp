@@ -51,6 +51,7 @@ IE_Imp_OpenDocument_Sniffer::~IE_Imp_OpenDocument_Sniffer ()
 static IE_SuffixConfidence IE_Imp_OpenDocument_Sniffer__SuffixConfidence[] = {
 	{ "odt", 	UT_CONFIDENCE_PERFECT 	},
 	{ "ott", 	UT_CONFIDENCE_PERFECT 	},
+	{ "fodt",	UT_CONFIDENCE_PERFECT 	},
 	{ "", 	UT_CONFIDENCE_ZILCH 	}
 };
 
@@ -64,6 +65,7 @@ static IE_MimeConfidence IE_Imp_OpenDocument_Sniffer__MimeConfidence[] = {
 	{ IE_MIME_MATCH_FULL, 	"application/vnd.oasis.opendocument.text", 	UT_CONFIDENCE_GOOD 	},
 	{ IE_MIME_MATCH_FULL, 	"application/vnd.oasis.opendocument.text-template", UT_CONFIDENCE_GOOD 	},
 	{ IE_MIME_MATCH_FULL, 	"application/vnd.oasis.opendocument.text-web", UT_CONFIDENCE_GOOD 	},
+	{ IE_MIME_MATCH_FULL, 	"application/vnd.oasis.opendocument.text-flat-xml", UT_CONFIDENCE_GOOD 	},
 	{ IE_MIME_MATCH_BOGUS, 	"", 										UT_CONFIDENCE_ZILCH }
 };
 
@@ -109,10 +111,29 @@ UT_Confidence_t IE_Imp_OpenDocument_Sniffer::recognizeContents (GsfInput * input
 			if(pInput) {
 				// we need to identify further to get a better confidence.
 				confidence = UT_CONFIDENCE_SOSO;
+				g_object_unref (G_OBJECT (pInput));
 			}
-			g_object_unref (G_OBJECT (pInput));
 		}
 		g_object_unref (G_OBJECT (zip));
+	}
+	else {
+		// Flat (single-XML) ODF documents start with an XML declaration and an
+		// <office:document> root carrying office:mimetype= for the flat type.
+		// The failed zip probe leaves the stream mid-file, so rewind first.
+		gsf_input_seek (input, 0, G_SEEK_SET);
+		gsf_off_t size = gsf_input_remaining (input);
+		if (size > 0) {
+			gsf_off_t toRead = size > 8192 ? 8192 : size;
+			const guint8 * p = gsf_input_read (input, toRead, nullptr);
+			if (p) {
+				std::string head ((const char *) p, (size_t) toRead);
+				if (head.find ("<office:document") != std::string::npos &&
+					head.find ("opendocument") != std::string::npos) {
+					confidence = UT_CONFIDENCE_GOOD;
+				}
+			}
+			gsf_input_seek (input, 0, G_SEEK_SET);
+		}
 	}
 
 	return confidence;
@@ -140,8 +161,8 @@ bool IE_Imp_OpenDocument_Sniffer::getDlgLabels (const char ** szDesc,
                           const char ** szSuffixList,
                           IEFileType * ft)
 {
-	*szDesc = "OpenDocument (.odt, .ott)";
-	*szSuffixList = "*.odt; *.ott";
+	*szDesc = "OpenDocument (.odt, .ott, .fodt)";
+	*szSuffixList = "*.odt; *.ott; *.fodt";
 	*ft = getFileType();
   
     return true;

@@ -1540,7 +1540,7 @@ void ODe_Text_Listener::_openParagraphDelayed(){
     
     if (styleName.empty()) {
         output += "<text:p>";
-        ODe_writeUTF8String(m_pParagraphContent, "</text:h>\n");
+        ODe_writeUTF8String(m_pParagraphContent, "</text:p>\n");
     } else {
         UT_uint8 outlineLevel = 0;
         

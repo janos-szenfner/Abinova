@@ -27,11 +27,13 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 // Internal includes
 #include "../../common/xp/ODc_Crypto.h"
 #include "ODi_Office_Styles.h"
 #include "ODi_Abi_Data.h"
+#include "ODi_RDFParser.h"
 
 // AbiWord inlcudes
 #include "ie_imp.h"
@@ -72,10 +74,17 @@ private:
     UT_Error _handleRDFStreams ();
     void _setDocumentProperties();
 
+#ifdef WITH_REDLAND
     UT_Error _loadRDFFromFile ( GsfInput* pInput,
                                 const char * pStream,
                                 RDFArguments* args );
+#else
+    UT_Error _loadRDFFromFile ( GsfInput* pInput,
+                                const char * pStream,
+                                std::vector<ODi_RDFTriple>& triples );
+#endif
 
+    UT_Error _handleFlatFile(GsfInput* pInput);
     UT_Error _handleStream(GsfInfile* pGsfInfile,
                    const char* pStream, UT_XML::Listener& rListener);
 
