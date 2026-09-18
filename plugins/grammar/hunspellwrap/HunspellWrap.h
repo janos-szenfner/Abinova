@@ -1,5 +1,5 @@
 /* AbiWord
- * Copyright (C) 2005 Martin Sevior <msevior@physics.unimelb.edu.au>
+ * Copyright (C) 2025 AbiWord contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,27 +17,21 @@
  * 02110-1301 USA.
  */
 
-#ifndef __Abi_GrammarCheck_h__
-#define __Abi_GrammarCheck_h__
-#include "ut_string_class.h"
-#include "ut_types.h"
-#include "ut_vector.h"
+#ifndef __HunspellWrap_h__
+#define __HunspellWrap_h__
 
-class fl_BlockLayout;
-class HunspellWrap;
+class Hunspell;
 class PieceOfText;
 
-class Abi_GrammarCheck
+class HunspellWrap
 {
- public:
-  Abi_GrammarCheck(void);
-  virtual ~Abi_GrammarCheck(void);
-  bool   CheckBlock(fl_BlockLayout * pB);
-  bool   GetEnglishText(fl_BlockLayout * pB);
-  bool   isSentenceBlank(const char * szSent);
+  public:
+  HunspellWrap(void);
+  virtual ~HunspellWrap(void);
+  bool parseSentence(PieceOfText * pT);
+  bool clear(void);
  private:
-  HunspellWrap *  m_GrammarWrap;
-  UT_GenericVector<PieceOfText *> m_vecSentences;
+  Hunspell * m_pHS;
 };
 
-#endif // __Abi_GrammarCheck_h__
+#endif // __HunspellWrap_h__

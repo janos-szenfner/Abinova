@@ -19,8 +19,8 @@ grammar_la_SOURCES = \
 	xp/AbiGrammar.cpp \
 	xp/AbiGrammarUtil.cpp \
 	xp/AbiGrammarUtil.h \
-	linkgrammarwrap/LinkGrammarWrap.cpp \
-	linkgrammarwrap/LinkGrammarWrap.h
+	hunspellwrap/HunspellWrap.cpp \
+	hunspellwrap/HunspellWrap.h
 
 EXTRA_DIST = \
 	plugin.m4

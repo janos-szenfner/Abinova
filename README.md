@@ -83,6 +83,13 @@ An experimental fork of the AbiWord word processor, focused on:
   `w:moveFrom`, `w:moveTo`) and `w14`/`w15` extension namespaces
   were verified to parse correctly. Legacy `.doc` continues through
   bundled `wv-1.2.9`.
+- **Grammar checker switched to Hunspell**: the grammar plugin no
+  longer uses link-grammar. A vendored `hunspell-1.7.0` is built in
+  `thirdparty/` and the plugin's sentence walker now flags each
+  misspelled word with the existing grammar-squiggle path. The
+  `link-grammar-5.12.5` third-party tree (~43 MB) was removed.
+  English dictionaries are found under `/usr/share/hunspell`,
+  `/usr/share/myspell` and the `/usr/local` equivalents.
 
 ### GTK4 runtime fixes (this round)
 

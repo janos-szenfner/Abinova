@@ -1,7 +1,7 @@
 
-# Grammar plugin uses the bundled link-grammar built in
-# thirdparty/link-grammar-5.12.5 via AC_CONFIG_SUBDIRS, so no
-# external dependencies are needed (beyond enchant for spell).
+# Grammar plugin uses the bundled hunspell built in
+# thirdparty/hunspell-1.7.0, so no external dependencies are
+# needed (beyond enchant for spell).
 
 grammar_deps="yes"
 GRAMMAR_CFLAGS=
@@ -19,12 +19,10 @@ AC_MSG_ERROR([grammar plugin: spell checking needs to be enabled])
 fi
 
 GRAMMAR_CFLAGS=" \
-	-I\$(top_srcdir)/thirdparty/link-grammar-5.12.5"
+	-I\$(top_srcdir)/thirdparty/hunspell-1.7.0/src/hunspell \
+	-DHUNSPELL_STATIC"
 GRAMMAR_LIBS=" \
-	\$(top_builddir)/thirdparty/link-grammar-5.12.5/link-grammar/liblink-grammar.la"
-
-dnl bundled link-grammar 5.12.5 is newer than 5.1.0
-AC_DEFINE([HAVE_LINK_GRAMMAR_51],[1],["have link-grammar 5.1.0 or later"])
+	\$(top_builddir)/thirdparty/libhunspell.la"
 
 test "$enable_grammar" = "auto" && PLUGINS="$PLUGINS grammar"
 

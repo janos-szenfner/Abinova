@@ -40,7 +40,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include "ut_files.h"
-#include "../linkgrammarwrap/LinkGrammarWrap.h"
+#include "../hunspellwrap/HunspellWrap.h"
 #include "AbiGrammarUtil.h"
 #include "ut_growbuf.h"
 #include "fl_Squiggles.h"
@@ -66,7 +66,7 @@ bool Abi_GrammarCheck::CheckBlock(fl_BlockLayout * pB)
 {
   if(m_GrammarWrap == nullptr)
   {
-    m_GrammarWrap = new LinkGrammarWrap();
+    m_GrammarWrap = new HunspellWrap();
   }
   if(pB == nullptr)
   {
