@@ -104,7 +104,7 @@ static void s_WrapButton(GtkWidget *widget, gpointer data )
 {
 	AP_UnixDialog_FormatFrame * dlg = static_cast<AP_UnixDialog_FormatFrame *>(data);
 	UT_return_if_fail(widget && dlg);
-	dlg->setWrapping(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+	dlg->setWrapping(gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)));
 }
 
 static void s_border_thickness(GtkWidget *widget, gpointer data )
@@ -353,15 +353,15 @@ void AP_UnixDialog_FormatFrame::event_BorderThicknessChanged(void)
 
 void AP_UnixDialog_FormatFrame::event_ApplyToChanged(void)
 {
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wPosParagraph )))
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wPosParagraph)))
 	{
 	     setPositionMode(FL_FRAME_POSITIONED_TO_BLOCK);  
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wPosColumn )))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wPosColumn)))
 	{
 	     setPositionMode(FL_FRAME_POSITIONED_TO_COLUMN);  
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wPosPage )))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wPosPage)))
 	{
 	     setPositionMode(FL_FRAME_POSITIONED_TO_PAGE);  
 	}
@@ -409,18 +409,18 @@ void AP_UnixDialog_FormatFrame::notifyActiveFrame(XAP_Frame *_pFrame)
 		{
 			setWrapping(false);
 		}
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wWrapButton),getWrapping());
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wWrapButton),getWrapping());
 		if(positionMode() == FL_FRAME_POSITIONED_TO_BLOCK)
 		{
-		     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON( m_wPosParagraph),TRUE);
+		     gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wPosParagraph),TRUE);
 		}
 		else if(positionMode() == FL_FRAME_POSITIONED_TO_COLUMN)
 		{
-		     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wPosColumn),TRUE);
+		     gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wPosColumn),TRUE);
 		} 
 		else if(positionMode() == FL_FRAME_POSITIONED_TO_PAGE)
 		{
-		     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wPosPage),TRUE);
+		     gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wPosPage),TRUE);
 		} 
 	}
 }
@@ -484,7 +484,7 @@ GtkWidget * AP_UnixDialog_FormatFrame::_constructWindow(void)
 //  Button and label for text wrapping
 
 	m_wWrapButton = GTK_WIDGET(gtk_builder_get_object(builder, "btTextWrapState"));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wWrapButton),TRUE);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wWrapButton),TRUE);
 
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbTextWrapState")), pSS, AP_STRING_ID_DLG_FormatFrame_TextWrapping);
 	localizeButtonUnderline(GTK_WIDGET(gtk_builder_get_object(builder, "btTextWrapState")), pSS, AP_STRING_ID_DLG_FormatFrame_SetTextWrapping);

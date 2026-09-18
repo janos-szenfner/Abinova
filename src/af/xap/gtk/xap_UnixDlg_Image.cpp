@@ -97,9 +97,9 @@ void XAP_UnixDialog_Image::s_wrapping_changed(GtkWidget * widget, XAP_UnixDialog
 
 void XAP_UnixDialog_Image::wrappingChanged(void)
 {
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbInLine)))
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbInLine)))
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbPlaceParagraph),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbPlaceParagraph),TRUE);
 		gtk_widget_set_sensitive(m_wrbPlaceParagraph,FALSE);
 		gtk_widget_set_sensitive(m_wrbPlaceColumn,FALSE);
 		gtk_widget_set_sensitive(m_wrbPlacePage,FALSE);
@@ -120,40 +120,40 @@ void XAP_UnixDialog_Image::event_Ok ()
 	setAnswer(XAP_Dialog_Image::a_OK);
 	setTitle (XAP_gtk_entry_get_text (GTK_ENTRY(m_wTitleEntry)));
 	setDescription (XAP_gtk_entry_get_text (GTK_ENTRY(m_wDescriptionEntry)));
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbInLine)))
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbInLine)))
 	{
 		setWrapping(WRAP_INLINE);
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbNone)))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbNone)))
 	{
 		setWrapping(WRAP_NONE);
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbWrappedRight)))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbWrappedRight)))
 	{
 		setWrapping(WRAP_TEXTRIGHT);
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbWrappedLeft)))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbWrappedLeft)))
 	{
 		setWrapping(WRAP_TEXTLEFT);
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbWrappedBoth)))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbWrappedBoth)))
 	{
 		setWrapping(WRAP_TEXTBOTH);
 	}
 
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbPlaceParagraph)))
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbPlaceParagraph)))
 	{
 		setPositionTo(POSITION_TO_PARAGRAPH);
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbPlaceColumn)))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbPlaceColumn)))
 	{
 		setPositionTo(POSITION_TO_COLUMN);
 	}
-	else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbPlacePage)))
+	else if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbPlacePage)))
 	{
 		setPositionTo(POSITION_TO_PAGE);
 	}
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wrbTightWrap)))
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbTightWrap)))
 	{
 	        setTightWrap(true);
 	}
@@ -169,7 +169,7 @@ void XAP_UnixDialog_Image::event_Cancel ()
 
 void XAP_UnixDialog_Image::aspectCheckbox()
 {
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON( m_wAspectCheck)) && (m_dHeightWidth > 0.0001))
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wAspectCheck)) && (m_dHeightWidth > 0.0001))
 		m_bAspect = true;
 	else
 		m_bAspect = false;
@@ -299,31 +299,31 @@ void XAP_UnixDialog_Image::setWrappingGUI()
 {
 	if(isInHdrFtr() || (getWrapping() == WRAP_INLINE))
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbInLine),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbInLine),TRUE);
 		gtk_widget_set_sensitive(m_wrbSquareWrap,FALSE);
 		gtk_widget_set_sensitive(m_wrbTightWrap,FALSE);
 	}
 	else if(getWrapping() == WRAP_TEXTRIGHT)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbWrappedRight),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbWrappedRight),TRUE);
 		gtk_widget_set_sensitive(m_wrbSquareWrap,TRUE);
 		gtk_widget_set_sensitive(m_wrbTightWrap,TRUE);
 	}
 	else if(getWrapping() == WRAP_NONE)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbNone),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbNone),TRUE);
 		gtk_widget_set_sensitive(m_wrbSquareWrap,FALSE);
 		gtk_widget_set_sensitive(m_wrbTightWrap,FALSE);
 	}
 	else if(getWrapping() == WRAP_TEXTLEFT)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbWrappedLeft),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbWrappedLeft),TRUE);
 		gtk_widget_set_sensitive(m_wrbSquareWrap,TRUE);
 		gtk_widget_set_sensitive(m_wrbTightWrap,TRUE);
 	}
 	else if(getWrapping() == WRAP_TEXTBOTH)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbWrappedBoth),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbWrappedBoth),TRUE);
 		gtk_widget_set_sensitive(m_wrbSquareWrap,TRUE);
 		gtk_widget_set_sensitive(m_wrbTightWrap,TRUE);
 	}
@@ -337,11 +337,11 @@ void XAP_UnixDialog_Image::setWrappingGUI()
 	}
 	else if(isTightWrap())
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbTightWrap),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbTightWrap),TRUE);
 	}
 	else if(!isTightWrap())
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbSquareWrap),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbSquareWrap),TRUE);
 	}
 }
 
@@ -352,22 +352,22 @@ void XAP_UnixDialog_Image::setPositionToGUI()
   {
 	if(getPositionTo() == POSITION_TO_PARAGRAPH)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbPlaceParagraph),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbPlaceParagraph),TRUE);
 	}
 	else if(getPositionTo() == POSITION_TO_COLUMN)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbPlaceColumn),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbPlaceColumn),TRUE);
 	}
 	else if(getPositionTo() == POSITION_TO_PAGE)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbPlacePage),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbPlacePage),TRUE);
 	}
   }
   else
   {
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbPlaceParagraph),FALSE);
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbPlaceColumn),FALSE);
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wrbPlacePage),FALSE);
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbPlaceParagraph),FALSE);
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbPlaceColumn),FALSE);
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wrbPlacePage),FALSE);
     gtk_widget_set_sensitive(m_wrbPlaceParagraph,FALSE);
     gtk_widget_set_sensitive(m_wrbPlaceColumn,FALSE);
     gtk_widget_set_sensitive(m_wrbPlacePage,FALSE);
@@ -390,7 +390,7 @@ void XAP_UnixDialog_Image::runModal(XAP_Frame * pFrame)
 	else
 	{
 		m_dHeightWidth = 0.0;
-		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wAspectCheck), FALSE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wAspectCheck), FALSE);
 	}	  
 	
 	setWrappingGUI();
@@ -506,7 +506,7 @@ GtkWidget * XAP_UnixDialog_Image::_constructWindow ()
 	m_wDescriptionEntry = GTK_WIDGET(gtk_builder_get_object(builder, "edDescription"));
 
 	m_bAspect = getPreserveAspect();
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wAspectCheck), m_bAspect);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wAspectCheck), m_bAspect);
 	
 	m_oHeightSpin_adj = (GtkAdjustment*)gtk_adjustment_new( 1,-2000, 2000, 1, 1, 10);
    	gtk_widget_set_size_request(m_wHeightSpin,14,-1);  

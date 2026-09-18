@@ -11,128 +11,76 @@
             <property name="visible">1</property>
             <property name="sensitive">0</property>
             <property name="can-focus">1</property>
-            <property name="invisible-char">●</property>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">0</property>
-          </packing>
-        </child>
+            <layout><property name="column">1</property><property name="row">0</property></layout></object>
+          </child>
         <child>
           <object class="GtkLabel" id="label2">
             <property name="visible">1</property>
             <property name="halign">end</property>
             <property name="label" translatable="yes">Name</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">0</property>
-          </packing>
-        </child>
+          <layout><property name="column">0</property><property name="row">0</property></layout></object>
+          </child>
         <child>
           <object class="GtkLabel" id="label3">
             <property name="visible">1</property>
             <property name="halign">end</property>
             <property name="label" translatable="yes">Description</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">1</property>
-          </packing>
-        </child>
+          <layout><property name="column">0</property><property name="row">1</property></layout></object>
+          </child>
         <child>
           <object class="GtkEntry" id="desc">
             <property name="visible">1</property>
             <property name="can-focus">1</property>
-            <property name="invisible-char">●</property>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">1</property>
-          </packing>
-        </child>
+            <layout><property name="column">1</property><property name="row">1</property></layout></object>
+          </child>
         <child>
           <object class="GtkEntry" id="lat">
             <property name="visible">1</property>
             <property name="can-focus">1</property>
-            <property name="invisible-char">●</property>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">2</property>
-          </packing>
-        </child>
+            <layout><property name="column">1</property><property name="row">2</property></layout></object>
+          </child>
         <child>
           <object class="GtkEntry" id="long">
             <property name="visible">1</property>
             <property name="can-focus">1</property>
             <property name="hexpand">1</property>
-            <property name="invisible-char">●</property>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">3</property>
-          </packing>
-        </child>
+            <layout><property name="column">1</property><property name="row">3</property></layout></object>
+          </child>
         <child>
           <object class="GtkLabel" id="label4">
             <property name="visible">1</property>
             <property name="halign">end</property>
             <property name="label" translatable="yes">Lat</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">2</property>
-          </packing>
-        </child>
+          <layout><property name="column">0</property><property name="row">2</property></layout></object>
+          </child>
         <child>
           <object class="GtkLabel" id="label5">
             <property name="visible">1</property>
             <property name="halign">end</property>
             <property name="label" translatable="yes">Long</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">3</property>
-          </packing>
-        </child>
+          <layout><property name="column">0</property><property name="row">3</property></layout></object>
+          </child>
         <child>
           <object class="GtkLabel" id="label1">
             <property name="visible">1</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">5</property>
-          </packing>
-        </child>
+          <layout><property name="column">0</property><property name="row">5</property></layout></object>
+          </child>
         <child>
           <object class="GtkLabel" id="label6">
             <property name="visible">1</property>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">5</property>
-          </packing>
-        </child>
+          <layout><property name="column">1</property><property name="row">5</property></layout></object>
+          </child>
         <child>
           <object class="GtkLabel" id="label7">
             <property name="visible">1</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">4</property>
-          </packing>
-        </child>
+          <layout><property name="column">0</property><property name="row">4</property></layout></object>
+          </child>
         <child>
           <object class="GtkBox" id="mapbox">
             <property name="visible">1</property>
             <property name="orientation">vertical</property>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">4</property>
-          </packing>
-        </child>
+          <layout><property name="column">1</property><property name="row">4</property></layout></object>
+          </child>
       </object>
     </child>
   </object>

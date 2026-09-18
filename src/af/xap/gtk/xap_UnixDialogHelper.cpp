@@ -668,6 +668,26 @@ void localizeLabelMarkup(GtkWidget * widget, const XAP_StringSet * pSS, XAP_Stri
 	FREEP(unixstr);	
 }
 
+/* GTK4: GtkCheckButton is no longer a GtkButton. Dispatch label
+ * setting so callers can pass either widget kind. */
+static void
+abi_widget_set_label(GtkWidget * widget, const gchar * label)
+{
+	if (GTK_IS_CHECK_BUTTON(widget))
+		gtk_check_button_set_label(GTK_CHECK_BUTTON(widget), label);
+	else
+		gtk_button_set_label(GTK_BUTTON(widget), label);
+}
+
+static void
+abi_widget_set_use_underline(GtkWidget * widget, gboolean use)
+{
+	if (GTK_IS_CHECK_BUTTON(widget))
+		gtk_check_button_set_use_underline(GTK_CHECK_BUTTON(widget), use);
+	else
+		gtk_button_set_use_underline(GTK_BUTTON(widget), use);
+}
+
 /*!
  * Localizes a button given the string id
  */
@@ -677,7 +697,7 @@ void localizeButton(GtkWidget * widget, const XAP_StringSet * pSS, XAP_String_Id
 	std::string s;
 	pSS->getValueUTF8(id,s);
 	UT_XML_cloneNoAmpersands(unixstr, s.c_str());
-	gtk_button_set_label (GTK_BUTTON(widget), unixstr);
+	abi_widget_set_label (widget, unixstr);
 	FREEP(unixstr);	
 }
 
@@ -692,8 +712,8 @@ void localizeButtonUnderline(GtkWidget * widget, const XAP_StringSet * pSS, XAP_
 	gchar * newlbl = g_strdup(s.c_str());
 	UT_ASSERT(newlbl);
 	convertMnemonics(newlbl);
-	gtk_button_set_use_underline (GTK_BUTTON(widget), TRUE);
-	gtk_button_set_label (GTK_BUTTON(widget), newlbl);
+	abi_widget_set_use_underline (widget, TRUE);
+	abi_widget_set_label (widget, newlbl);
 	FREEP(newlbl);	
 }
 
@@ -712,12 +732,17 @@ void localizeButtonMarkup(GtkWidget * widget, const XAP_StringSet * pSS, XAP_Str
 	gchar * newlbl = g_strdup(s.c_str());
 	UT_ASSERT(newlbl);
 	convertMnemonics(newlbl);
-	std::string markupStr = UT_std_string_sprintf(gtk_button_get_label (GTK_BUTTON(widget)), newlbl);
-	gtk_button_set_use_underline (GTK_BUTTON(widget), TRUE);
-	gtk_button_set_label (GTK_BUTTON(widget), markupStr.c_str());
+	const gchar * cur_label = GTK_IS_CHECK_BUTTON(widget)
+		? gtk_check_button_get_label(GTK_CHECK_BUTTON(widget))
+		: gtk_button_get_label(GTK_BUTTON(widget));
+	std::string markupStr = UT_std_string_sprintf(cur_label ? cur_label : "%s", newlbl);
+	abi_widget_set_use_underline (widget, TRUE);
+	abi_widget_set_label (widget, markupStr.c_str());
 
 	// by default, they don't like markup, so we teach them
-	GtkWidget * button_child = gtk_button_get_child (GTK_BUTTON(widget));
+	GtkWidget * button_child = GTK_IS_CHECK_BUTTON(widget)
+		? gtk_widget_get_first_child(widget)
+		: gtk_button_get_child(GTK_BUTTON(widget));
 	if (GTK_IS_LABEL (button_child))
 		gtk_label_set_use_markup (GTK_LABEL(button_child), TRUE);
 

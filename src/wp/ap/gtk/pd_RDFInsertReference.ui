@@ -5,24 +5,14 @@
     <property name="title" translatable="yes">abiword: Insert Reference to Semantic Item</property>
     <property name="default-width">375</property>
     <property name="default-height">260</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+    
+        <child><object class="GtkBox" id="dialog-vbox1">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="dialog-action_area1">
-            <child>
-              <object class="GtkButton" id="ok">
-                <property name="label" translatable="yes">Insert Reference</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="receives-default">1</property>
-              </object>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkScrolledWindow" id="scrolledwindow1">
             <property name="visible">1</property>
@@ -40,13 +30,24 @@
               </object>
             </child>
           </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
+          </child>
+              <child>
+          <object class="GtkBox" id="dialog-action_area1">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <child>
+                        <object class="GtkButton" id="ok">
+                          <property name="label" translatable="yes">Insert Reference</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="receives-default">1</property>
+                        </object>
+                      </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="0">ok</action-widget>
     </action-widgets>
   </object>

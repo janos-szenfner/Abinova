@@ -87,7 +87,7 @@ void XAP_UnixDialog_Language::event_setLang()
 	      m_bChangedLanguage = true;
 		  m_answer = XAP_Dialog_Language::a_OK;
 
-		  bool b = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(m_cbDefaultLanguage));
+		  bool b = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_cbDefaultLanguage));
 		  setMakeDocumentDefault(b);
 	    }
 	  else {
@@ -122,7 +122,7 @@ GtkWidget * XAP_UnixDialog_Language::constructWindow(void)
 	gtk_label_set_text (GTK_LABEL(m_lbDefaultLanguage), s.c_str());
 	getDocDefaultLangCheckboxLabel(s);
 	gtk_button_set_label (GTK_BUTTON(m_cbDefaultLanguage), s.c_str());
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(m_cbDefaultLanguage), isMakeDocumentDefault());
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_cbDefaultLanguage), isMakeDocumentDefault());
 
 	// add a column to our TreeViews
 

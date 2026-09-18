@@ -935,13 +935,13 @@ void AP_UnixDialog_Options::_setNotebookPageNum ( int pn )
     dlg->_enableDisableLogic ( ( AP_Dialog_Options::tControl ) i );
 }
 
-/*static*/ void AP_UnixDialog_Options::s_auto_save_toggled ( GtkToggleButton *togglebutton, gpointer data )
+/*static*/ void AP_UnixDialog_Options::s_auto_save_toggled ( GtkCheckButton *togglebutton, gpointer data )
 {
     AP_UnixDialog_Options * dlg = static_cast<AP_UnixDialog_Options *> ( data );
     gboolean is_toggled;
     UT_ASSERT ( dlg );
 
-    is_toggled = gtk_toggle_button_get_active ( togglebutton );
+    is_toggled = gtk_check_button_get_active ( togglebutton );
     gtk_widget_set_sensitive ( dlg->m_tableAutoSaveFile, is_toggled );
 }
 

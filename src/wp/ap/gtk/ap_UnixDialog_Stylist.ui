@@ -5,40 +5,38 @@
     <property name="visible">1</property>
     <property name="title" translatable="yes">Style List</property>
     <property name="default-width">235</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+    
+        <child><object class="GtkBox" id="dialog-vbox1">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="dialog-action_area1">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="btClose">
-                <property name="label">_Close</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkScrolledWindow" id="TreeViewContainer">
             <property name="height-request">236</property>
             <property name="visible">1</property>
             <property name="can-focus">1</property>
-          </object>
-          <packing>
-            <property name="hexpand">1</property>
-            <property name="vexpand">1</property>
-            <property name="position">1</property>
-          </packing>
+          <property name="hexpand">1</property><property name="vexpand">1</property></object>
+          </child>
+              <child>
+          <object class="GtkBox" id="dialog-action_area1">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btClose">
+                          <property name="label">_Close</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                      </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="-7">btClose</action-widget>
     </action-widgets>
   </object>

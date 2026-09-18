@@ -525,9 +525,28 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
     m_aexportrdfxml = g_simple_action_new("exportrdfxml", nullptr);
     g_action_map_add_action(G_ACTION_MAP(action_group), G_ACTION(m_aexportrdfxml));
 
-    // localization
-    localizeMenuItem(GTK_WIDGET(gtk_builder_get_object(builder, "filemenuitem")), pSS, AP_STRING_ID_DLG_RDF_Editor_Menu_File);
-    localizeMenuItem(GTK_WIDGET(gtk_builder_get_object(builder, "editmenuitem")), pSS, AP_STRING_ID_DLG_RDF_Editor_Menu_Triple);
+    // localization: the menubar is a GMenu model (GTK4 removed
+    // GtkMenuItem), so localize the submenu labels on the model itself
+    {
+        GMenu *menu = G_MENU(gtk_builder_get_object(builder, "rdfmenubar"));
+        if (menu)
+        {
+            auto localizeSubmenu = [&](int pos, XAP_String_Id id) {
+                std::string s;
+                if (!pSS->getValueUTF8(id, s))
+                    return;
+                GMenuItem *it = g_menu_item_new_from_model(G_MENU_MODEL(menu), pos);
+                if (!it)
+                    return;
+                g_menu_item_set_label(it, s.c_str());
+                g_menu_remove(menu, pos);
+                g_menu_insert_item(menu, pos, it);
+                g_object_unref(it);
+            };
+            localizeSubmenu(0, AP_STRING_ID_DLG_RDF_Editor_Menu_File);
+            localizeSubmenu(1, AP_STRING_ID_DLG_RDF_Editor_Menu_Triple);
+        }
+    }
     localizeButton(m_btShowAll, pSS, AP_STRING_ID_DLG_RDF_Editor_ShowAll);
     localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbRestrict")), pSS, AP_STRING_ID_DLG_RDF_Editor_Restrict);
 

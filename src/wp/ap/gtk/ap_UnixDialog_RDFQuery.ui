@@ -24,52 +24,15 @@ where {
     <property name="title" translatable="yes">Execute SPARQL RDF Query</property>
     <property name="default-width">800</property>
     <property name="default-height">600</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox2">
+    
+        <child><object class="GtkBox" id="dialog-vbox2">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="buttonarea">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="btShowAll">
-                <property name="label" translatable="yes">Show All RDF</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="receives-default">1</property>
-              </object>
-              <packing>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="btExecute">
-                <property name="label" translatable="yes">Execute Query</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="receives-default">1</property>
-              </object>
-              <packing>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="btClose">
-                <property name="label">_Close</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-                <property name="receives-default">1</property>
-              </object>
-              <packing>
-                <property name="position">4</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkBox" id="vbox1">
             <property name="visible">1</property>
@@ -111,13 +74,8 @@ where {
                     </child>
                   </object>
                 </child>
-              </object>
-              <packing>
-                <property name="hexpand">1</property>
-                <property name="vexpand">1</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
+              <property name="hexpand">1</property><property name="vexpand">1</property></object>
+              </child>
             <child>
               <object class="GtkBox" id="hbox1">
                 <property name="visible">1</property>
@@ -127,25 +85,45 @@ where {
                     <property name="justify">right</property>
                     <property name="single-line-mode">1</property>
                   </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                  </child>
               </object>
-              <packing>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="hexpand">1</property>
-            <property name="vexpand">1</property>
-            <property name="position">1</property>
-          </packing>
+              </child>
+          <property name="hexpand">1</property><property name="vexpand">1</property></object>
+          </child>
+              <child>
+          <object class="GtkBox" id="buttonarea">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btShowAll">
+                          <property name="label" translatable="yes">Show All RDF</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="receives-default">1</property>
+                        </object>
+                        </child>
+                      <child>
+                        <object class="GtkButton" id="btExecute">
+                          <property name="label" translatable="yes">Execute Query</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="receives-default">1</property>
+                        </object>
+                        </child>
+                      <child>
+                        <object class="GtkButton" id="btClose">
+                          <property name="label">_Close</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="receives-default">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="0">btShowAll</action-widget>
       <action-widget response="0">btExecute</action-widget>
       <action-widget response="-7">btClose</action-widget>

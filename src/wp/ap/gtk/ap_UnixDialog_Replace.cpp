@@ -247,17 +247,17 @@ void AP_UnixDialog_Replace::event_ReplaceAll(void)
 
 void AP_UnixDialog_Replace::event_MatchCaseToggled(void)
 {
-	setMatchCase(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkbuttonMatchCase)));
+	setMatchCase(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkbuttonMatchCase)));
 }
 
 void AP_UnixDialog_Replace::event_WholeWordToggled(void)
 {
-	setWholeWord(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkbuttonWholeWord)));
+	setWholeWord(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkbuttonWholeWord)));
 }
 
 void AP_UnixDialog_Replace::event_ReverseFindToggled(void)
 {
-	setReverseFind(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkbuttonReverseFind)));
+	setReverseFind(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkbuttonReverseFind)));
 }
 
 void AP_UnixDialog_Replace::event_Cancel(void)
@@ -334,9 +334,9 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 	gtk_widget_set_sensitive(m_buttonFindReplace, FALSE);
 	gtk_widget_set_sensitive(m_buttonReplaceAll, FALSE);
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkbuttonMatchCase), getMatchCase());
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkbuttonWholeWord), getWholeWord());
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkbuttonReverseFind), getReverseFind());
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonMatchCase), getMatchCase());
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonWholeWord), getWholeWord());
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonReverseFind), getReverseFind());
 	
 	gtk_widget_set_visible(m_windowMain, TRUE);
 
@@ -437,7 +437,7 @@ void AP_UnixDialog_Replace::_populateWindowData(void)
 	_updateLists();
 
 	// match case button
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkbuttonMatchCase), getMatchCase());
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonMatchCase), getMatchCase());
 
 	// Find entry should have focus, for immediate typing
 	gtk_widget_grab_focus(m_comboFind);	

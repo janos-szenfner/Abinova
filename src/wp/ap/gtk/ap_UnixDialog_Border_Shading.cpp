@@ -279,7 +279,7 @@ void AP_UnixDialog_Border_Shading::setSensitivity(bool /* bSens */)
 	gtk_toggle_button_set_active((GtkToggleButton*)m_wLineTop, getTopToggled() ? TRUE: FALSE);
 	gtk_toggle_button_set_active((GtkToggleButton*)m_wLineBottom, getBottomToggled() ? TRUE: FALSE);
 
-	gboolean bEnable = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wShadingEnable)); 
+	gboolean bEnable = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wShadingEnable)); 
 	gtk_widget_set_sensitive(m_wShadingColorButton, bEnable);
 	gtk_widget_set_sensitive(m_wShadingOffset, bEnable);
 }
@@ -318,7 +318,7 @@ void AP_UnixDialog_Border_Shading::_setShadingEnable(bool enable)
 	gtk_widget_set_sensitive(m_wShadingColorButton, enable);
 
 	XAP_GtkSignalBlocker b1(G_OBJECT(m_wShadingEnable), m_iShadingEnableConnect);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wShadingEnable), static_cast<gboolean>(enable));
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wShadingEnable), static_cast<gboolean>(enable));
 }
 
 void AP_UnixDialog_Border_Shading::setBorderThicknessInGUI(const std::string & sThick)
@@ -434,7 +434,7 @@ void AP_UnixDialog_Border_Shading::event_shadingPatternChange(void)
 	xxx_UT_DEBUGMSG(("========================= Changed the state of the cb \n"));
 
 	// 8/8/2010 Maleesh - TODO: Change this, when there are more shading patterns.
-	gboolean bEnable = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wShadingEnable));
+	gboolean bEnable = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wShadingEnable));
 	setShadingPattern(bEnable ? BORDER_SHADING_SHADING_ENABLE : BORDER_SHADING_SHADING_DISABLE);
 	_setShadingEnable(bEnable);
 }

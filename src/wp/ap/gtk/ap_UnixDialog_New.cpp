@@ -93,11 +93,11 @@ void AP_UnixDialog_New::event_Ok ()
 {
 	setAnswer (AP_Dialog_New::a_OK);
 
-	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_radioExisting)))
+	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_radioExisting)))
 	{
 		setOpenType(AP_Dialog_New::open_Existing);
 	}
-	else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_radioNew)))
+	else if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_radioNew)))
 	{
 		GtkTreeSelection * selection;
 		GtkTreeIter iter;
@@ -204,7 +204,7 @@ void AP_UnixDialog_New::event_ToggleOpenExisting ()
 
 void AP_UnixDialog_New::event_RadioButtonSensitivity ()
 {
-	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_radioNew)))
+	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_radioNew)))
 	{	// ^ from template
 		gtk_widget_set_sensitive (m_choicesList, TRUE);
 		gtk_widget_set_sensitive (m_buttonFilename, FALSE);
@@ -369,12 +369,12 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 
 	if (getOpenType() == open_Existing)
 	{
-		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_radioExisting), true);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioExisting), true);
  		gtk_widget_grab_focus (m_buttonFilename);
 	}
 	else 
 	{
-		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_radioNew), true);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioNew), true);
 		// select first item in box
  		gtk_widget_grab_focus (m_choicesList);
 	}
@@ -415,5 +415,5 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 
 void AP_UnixDialog_New::event_ListClicked()
 {
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(m_radioNew), TRUE);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioNew), TRUE);
 }

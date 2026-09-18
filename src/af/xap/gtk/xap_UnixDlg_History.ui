@@ -6,36 +6,15 @@
     <property name="modal">1</property>
     <property name="default-width">380</property>
     <property name="default-height">450</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+    
+        <child><object class="GtkBox" id="dialog-vbox1">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="dialog-action_area1">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="cancelbutton1">
-                <property name="label">_Cancel</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="okbutton1">
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkGrid" id="grContent">
             <property name="visible">1</property>
@@ -50,13 +29,8 @@
                 <property name="margin-start">18</property>
                 <property name="hexpand">1</property>
                 <property name="vexpand">1</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">8</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">8</property><property name="column-span">2</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbVersionHistory">
                 <property name="visible">1</property>
@@ -64,173 +38,132 @@
                 <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
                 <property name="use-markup">1</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">7</property><property name="column-span">2</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbDocumentDetails">
                 <property name="visible">1</property>
                 <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
                 <property name="use-markup">1</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">0</property><property name="column-span">2</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbDocumentName">
                 <property name="visible">1</property>
                 <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">1</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbVersion">
                 <property name="visible">1</property>
                 <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">2</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbCreated">
                 <property name="visible">1</property>
                 <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">3</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbSaved">
                 <property name="visible">1</property>
                 <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">4</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">4</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbEditTime">
                 <property name="visible">1</property>
                 <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">5</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">5</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbDocNameVal">
                 <property name="visible">1</property>
                 <property name="hexpand">1</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
+              <layout><property name="column">1</property><property name="row">1</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbVersionVal">
                 <property name="visible">1</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
-              </packing>
-            </child>
+              <layout><property name="column">1</property><property name="row">2</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbCreatedVal">
                 <property name="visible">1</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
+              <layout><property name="column">1</property><property name="row">3</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbSavedVal">
                 <property name="visible">1</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">4</property>
-              </packing>
-            </child>
+              <layout><property name="column">1</property><property name="row">4</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbEditTimeVal">
                 <property name="visible">1</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">5</property>
-              </packing>
-            </child>
+              <layout><property name="column">1</property><property name="row">5</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbIdentifier">
                 <property name="visible">1</property>
                 <property name="margin-start">18</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">6</property>
-              </packing>
-            </child>
+              <layout><property name="column">0</property><property name="row">6</property></layout></object>
+              </child>
             <child>
               <object class="GtkLabel" id="lbIdentifierVal">
                 <property name="visible">1</property>
                 <property name="label" translatable="yes">%s</property>
                 <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">6</property>
-              </packing>
-            </child>
+              <layout><property name="column">1</property><property name="row">6</property></layout></object>
+              </child>
           </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
+          </child>
+              <child>
+          <object class="GtkBox" id="dialog-action_area1">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="cancelbutton1">
+                          <property name="label">_Cancel</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                      </child>
+                      <child>
+                        <object class="GtkButton" id="okbutton1">
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="-6">cancelbutton1</action-widget>
       <action-widget response="-5">okbutton1</action-widget>
     </action-widgets>

@@ -8,113 +8,23 @@
     <property name="title" translatable="yes">Execute SPARQL RDF Query</property>
     <property name="default-width">800</property>
     <property name="default-height">600</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox2">
+    
+        <child><object class="GtkBox" id="dialog-vbox2">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="buttonarea">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="btShowAll">
-                <property name="label" translatable="yes">Update</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="receives-default">1</property>
-              </object>
-              <packing>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="btClose">
-                <property name="label">_Close</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-                <property name="receives-default">1</property>
-              </object>
-              <packing>
-                <property name="position">4</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkBox" id="topvbox">
             <property name="visible">1</property>
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkMenuBar" id="menubar">
+              <object class="GtkPopoverMenuBar" id="menubar">
                 <property name="visible">1</property>
-                <child>
-                  <object class="GtkMenuItem" id="filemenuitem">
-                    <property name="visible">1</property>
-                    <property name="label" translatable="yes">_File</property>
-                    <property name="use-underline">1</property>
-                    <child type="submenu">
-                      <object class="GtkMenu" id="filemenu">
-                        <property name="visible">1</property>
-                        <child>
-                          <object class="GtkImageMenuItem" id="miopen">
-                            <property name="label" translatable="yes">Open...</property>
-                            <property name="visible">1</property>
-                            <property name="action-name">rdf.importrdfxml</property>
-                            <property name="use-underline">1</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkImageMenuItem" id="misave">
-                            <property name="label" translatable="yes">Save...</property>
-                            <property name="visible">1</property>
-                            <property name="action-name">rdf.exportrdfxml</property>
-                            <property name="use-underline">1</property>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkMenuItem" id="editmenuitem">
-                    <property name="visible">1</property>
-                    <property name="label" translatable="yes">Triple</property>
-                    <property name="use-underline">1</property>
-                    <child type="submenu">
-                      <object class="GtkMenu" id="editmenu">
-                        <property name="visible">1</property>
-                        <child>
-                          <object class="GtkImageMenuItem" id="minew">
-                            <property name="label" translatable="yes">New</property>
-                            <property name="visible">1</property>
-                            <property name="action-name">rdf.newtriple</property>
-                            <property name="use-underline">1</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkImageMenuItem" id="micopy">
-                            <property name="label" translatable="yes">Copy</property>
-                            <property name="visible">1</property>
-                            <property name="action-name">rdf.copytriple</property>
-                            <property name="use-underline">1</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkImageMenuItem" id="midelete">
-                            <property name="label" translatable="yes">Delete</property>
-                            <property name="visible">1</property>
-                            <property name="action-name">rdf.deletetriple</property>
-                            <property name="use-underline">1</property>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-              </object>
+                <property name="menu-model">rdfmenubar</property></object>
             </child>
             <child>
               <object class="GtkBox" id="hbuttonbox1">
@@ -126,11 +36,8 @@
                     <property name="can-focus">1</property>
                     <property name="receives-default">1</property>
                     <property name="action-name">rdf.newtriple</property>
-                    <property name="image-position">bottom</property>
                   </object>
-                  <packing>
-                    </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkButton" id="btcopy">
                     <property name="label">Copy</property>
@@ -138,12 +45,8 @@
                     <property name="can-focus">1</property>
                     <property name="receives-default">1</property>
                     <property name="action-name">rdf.copytriple</property>
-                    <property name="image-position">bottom</property>
                   </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkButton" id="btdel">
                     <property name="label">_Delete</property>
@@ -151,17 +54,10 @@
                     <property name="can-focus">1</property>
                     <property name="receives-default">1</property>
                     <property name="action-name">rdf.deletetriple</property>
-                    <property name="image-position">bottom</property>
                   </object>
-                  <packing>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
+                  </child>
               </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
+              </child>
             <child>
               <object class="GtkBox" id="restrictxmlidhidew">
                 <property name="visible">1</property>
@@ -178,18 +74,10 @@
                   <object class="GtkComboBox" id="selectedxmlid">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                  </object>
-                  <packing>
-                    <property name="hexpand">1</property>
-                    <property name="vexpand">1</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                  <property name="hexpand">1</property><property name="vexpand">1</property></object>
+                  </child>
               </object>
-              <packing>
-                <property name="position">2</property>
-              </packing>
-            </child>
+              </child>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">1</property>
@@ -207,13 +95,8 @@
                     </child>
                   </object>
                 </child>
-              </object>
-              <packing>
-                <property name="hexpand">1</property>
-                <property name="vexpand">1</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
+              <property name="hexpand">1</property><property name="vexpand">1</property></object>
+              </child>
             <child>
               <object class="GtkBox" id="hbox1">
                 <property name="visible">1</property>
@@ -223,27 +106,66 @@
                     <property name="justify">right</property>
                     <property name="single-line-mode">1</property>
                   </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                  </child>
               </object>
-              <packing>
-                <property name="position">4</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="hexpand">1</property>
-            <property name="vexpand">1</property>
-            <property name="position">1</property>
-          </packing>
+              </child>
+          <property name="hexpand">1</property><property name="vexpand">1</property></object>
+          </child>
+              <child>
+          <object class="GtkBox" id="buttonarea">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btShowAll">
+                          <property name="label" translatable="yes">Update</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="receives-default">1</property>
+                        </object>
+                        </child>
+                      <child>
+                        <object class="GtkButton" id="btClose">
+                          <property name="label">_Close</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="receives-default">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="0">btShowAll</action-widget>
       <action-widget response="-7">btClose</action-widget>
     </action-widgets>
   </object>
-</interface>
+<menu id="rdfmenubar">
+  <submenu>
+    <attribute name="label" translatable="yes">File</attribute>
+    <item>
+      <attribute name="label" translatable="yes">Open...</attribute>
+      <attribute name="action">rdf.importrdfxml</attribute>
+    </item>
+    <item>
+      <attribute name="label" translatable="yes">Save...</attribute>
+      <attribute name="action">rdf.exportrdfxml</attribute>
+    </item>
+  </submenu>
+  <submenu>
+    <attribute name="label" translatable="yes">Triple</attribute>
+    <item>
+      <attribute name="label" translatable="yes">New</attribute>
+      <attribute name="action">rdf.newtriple</attribute>
+    </item>
+    <item>
+      <attribute name="label" translatable="yes">Copy</attribute>
+      <attribute name="action">rdf.copytriple</attribute>
+    </item>
+    <item>
+      <attribute name="label" translatable="yes">Delete</attribute>
+      <attribute name="action">rdf.deletetriple</attribute>
+    </item>
+  </submenu>
+</menu></interface>

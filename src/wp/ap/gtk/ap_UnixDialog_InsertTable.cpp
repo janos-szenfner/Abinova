@@ -46,10 +46,10 @@
 /*****************************************************************/
 
 static void
-s_auto_colsize_toggled (GtkToggleButton *radio,
+s_auto_colsize_toggled (GtkCheckButton *radio,
                         GtkWidget       *spinner)
 {
-	gtk_widget_set_sensitive (spinner, !gtk_toggle_button_get_active (radio));
+	gtk_widget_set_sensitive (spinner, !gtk_check_button_get_active (radio));
 }
 
 XAP_Dialog * AP_UnixDialog_InsertTable::static_constructor(XAP_DialogFactory * pFactory,
@@ -119,7 +119,7 @@ GtkWidget * AP_UnixDialog_InsertTable::_constructWindow(void)
 
 	GtkWidget *rbAutoColSize = GTK_WIDGET(gtk_builder_get_object(builder, "rbAutoColSize"));
     UT_ASSERT(rbAutoColSize);
-	s_auto_colsize_toggled (GTK_TOGGLE_BUTTON (rbAutoColSize), m_pColWidthSpin);
+	s_auto_colsize_toggled (GTK_CHECK_BUTTON(rbAutoColSize), m_pColWidthSpin);
 	g_signal_connect (G_OBJECT (rbAutoColSize), "toggled", G_CALLBACK (s_auto_colsize_toggled), m_pColWidthSpin);
 	
 	// set the dialog title
@@ -171,7 +171,7 @@ void AP_UnixDialog_InsertTable::_storeWindowData(void)
 
 AP_Dialog_InsertTable::columnType AP_UnixDialog_InsertTable::_getActiveRadioItem(void)
 {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_fixedCol))) {
+	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_fixedCol))) {
 		return AP_Dialog_InsertTable::b_FIXEDSIZE;
 	}
 

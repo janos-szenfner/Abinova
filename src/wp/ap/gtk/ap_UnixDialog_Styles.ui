@@ -2,37 +2,15 @@
 <interface>
   <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="ap_UnixDialog_Styles">
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+    
+        <child><object class="GtkBox" id="dialog-vbox1">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="vexpand">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="dialog-action_area1">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="btClose">
-                <property name="label">_Close</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="btApply">
-                <property name="label">_Apply</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkBox" id="hbox1">
             <property name="visible">1</property>
@@ -47,12 +25,8 @@
                     <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
                     <property name="use-markup">1</property>
                     <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">0</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkScrolledWindow" id="scrolledwindow2">
                     <property name="visible">1</property>
@@ -70,12 +44,8 @@
                         </child>
                       </object>
                     </child>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">1</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="lbList">
                     <property name="visible">1</property>
@@ -83,12 +53,8 @@
                     <property name="use-markup">1</property>
                     <property name="selectable">1</property>
                     <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">2</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">2</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkCheckButton" id="rbList1">
                     <property name="label" translatable="yes">radiobutton1</property>
@@ -96,12 +62,8 @@
                     <property name="can-focus">1</property>
                     <property name="use-underline">1</property>
                     <property name="active">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">3</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">3</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkCheckButton" id="rbList2">
                     <property name="label" translatable="yes">radiobutton1</property>
@@ -109,12 +71,8 @@
                     <property name="can-focus">1</property>
                     <property name="use-underline">1</property>
                     <property name="group">rbList1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">4</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">4</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkCheckButton" id="rbList3">
                     <property name="label" translatable="yes">radiobutton1</property>
@@ -122,12 +80,8 @@
                     <property name="can-focus">1</property>
                     <property name="use-underline">1</property>
                     <property name="group">rbList1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">5</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">5</property></layout></object>
+                  </child>
               </object>
             </child>
             <child>
@@ -137,12 +91,8 @@
                 <child>
                   <object class="GtkFrame" id="frameParagraph">
                     <property name="visible">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">1</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="lbCharacter">
                     <property name="visible">1</property>
@@ -150,33 +100,21 @@
                     <property name="use-markup">1</property>
                     <property name="xalign">0</property>
                     <property name="yalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">2</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">2</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkFrame" id="frameCharacter">
                     <property name="visible">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">3</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">3</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="lbParagraph">
                     <property name="visible">1</property>
                     <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
                     <property name="use-markup">1</property>
                     <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">0</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="lbAttributes">
                     <property name="visible">1</property>
@@ -185,24 +123,16 @@
                     <property name="selectable">1</property>
                     <property name="xalign">0</property>
                     <property name="yalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">6</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">6</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="lbDescription">
                     <property name="visible">1</property>
                     <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
                     <property name="use-markup">1</property>
                     <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">5</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">5</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkBox" id="hbuttonbox1">
                     <property name="visible">1</property>
@@ -211,14 +141,12 @@
                         <property name="label">_New</property>
                         <property name="visible">1</property>
                         <property name="can-focus">1</property>
-                        <property name="can-default">1</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkButton" id="btModify">
                         <property name="visible">1</property>
                         <property name="can-focus">1</property>
-                        <property name="can-default">1</property>
                         <child>
                           <object class="GtkBox" id="alignment1">
                             <property name="visible">1</property>
@@ -230,60 +158,57 @@
                                   <object class="GtkImage" id="image1">
                                     <property name="visible">1</property>
                                   </object>
-                                  <packing>
-                                    </packing>
-                                </child>
+                                  </child>
                                 <child>
                                   <object class="GtkLabel" id="label14">
                                     <property name="visible">1</property>
                                     <property name="label" translatable="yes">Modify</property>
                                     <property name="use-underline">1</property>
                                   </object>
-                                  <packing>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
+                                  </child>
                               </object>
                             </child>
                           </object>
                         </child>
                       </object>
-                      <packing>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
+                      </child>
                     <child>
                       <object class="GtkButton" id="btDelete">
                         <property name="label">_Delete</property>
                         <property name="visible">1</property>
                         <property name="can-focus">1</property>
-                        <property name="can-default">1</property>
                       </object>
-                      <packing>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">4</property>
-                  </packing>
-                </child>
+                      </child>
+                  <layout><property name="column">0</property><property name="row">4</property></layout></object>
+                  </child>
               </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="hexpand">1</property>
-            <property name="vexpand">1</property>
-            <property name="position">1</property>
-          </packing>
+              </child>
+          <property name="hexpand">1</property><property name="vexpand">1</property></object>
+          </child>
+              <child>
+          <object class="GtkBox" id="dialog-action_area1">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btClose">
+                          <property name="label">_Close</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                      </child>
+                      <child>
+                        <object class="GtkButton" id="btApply">
+                          <property name="label">_Apply</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="7">btClose</action-widget>
       <action-widget response="-10">btApply</action-widget>
     </action-widgets>

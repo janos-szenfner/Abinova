@@ -200,7 +200,7 @@ void AP_UnixDialog_FormatFootnotes::event_EndInitialValueChange(void)
 
 void AP_UnixDialog_FormatFootnotes::event_EndRestartSection(void)
 {
-	gboolean bRestart = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_wEndnotesRestartOnSection));
+	gboolean bRestart = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wEndnotesRestartOnSection));
 	if(bRestart == TRUE)
 	{
 		setRestartEndnoteOnSection(true);
@@ -322,7 +322,7 @@ void  AP_UnixDialog_FormatFootnotes::refreshVals(void)
 		gtk_combo_box_set_active(GTK_COMBO_BOX(m_wEndnotesPlaceMenu),1);
 	}
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wEndnotesRestartOnSection), static_cast<gboolean>(getRestartEndnoteOnSection()));
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wEndnotesRestartOnSection), static_cast<gboolean>(getRestartEndnoteOnSection()));
 
 	XAP_comboBoxSetActiveFromIntCol(m_wFootnotesStyleMenu, 1, 
 									(int)getFootnoteType());

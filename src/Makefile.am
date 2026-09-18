@@ -43,7 +43,10 @@ libabiword_@ABIWORD_SERIES@_la_LIBADD = \
 	$(top_builddir)/thirdparty/libwv.la
 
 ## Resources compilation
-abi-resources.c: wp/main/gtk/resources.xml
+resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) \
+	--generate-dependencies $(srcdir)/wp/main/gtk/resources.xml 2>/dev/null)
+
+abi-resources.c: wp/main/gtk/resources.xml $(resource_files)
 	$(AM_V_GEN) glib-compile-resources \
                 --sourcedir=$(srcdir) --target=$@ \
                 --generate-source --c-name abi $(srcdir)/wp/main/gtk/resources.xml

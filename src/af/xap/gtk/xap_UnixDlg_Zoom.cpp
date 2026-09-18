@@ -278,31 +278,31 @@ void XAP_UnixDialog_Zoom::_populateWindowData(void)
   switch(getZoomType())
     {
     case XAP_Frame::z_200:
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_radio200), TRUE);
+      gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radio200), TRUE);
       _updatePreviewZoomPercent(200);
       break;
     case XAP_Frame::z_100:
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_radio100), TRUE);
+      gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radio100), TRUE);
       _updatePreviewZoomPercent(100);		
 		break;
     case XAP_Frame::z_75:
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_radio75), TRUE);
+      gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radio75), TRUE);
       _updatePreviewZoomPercent(75);
       break;
     case XAP_Frame::z_PAGEWIDTH:
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_radioPageWidth), TRUE);
+      gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioPageWidth), TRUE);
       break;
     case XAP_Frame::z_WHOLEPAGE:
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_radioWholePage), TRUE);
+      gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioWholePage), TRUE);
       break;
     case XAP_Frame::z_PERCENT:
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_radioPercent), TRUE);
+      gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioPercent), TRUE);
       _enablePercentSpin(true);	// override
       _updatePreviewZoomPercent(getZoomPercent());
       break;
     default:
       // if they haven't set anything yet, default to the 100% radio item
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_radio100), TRUE);		
+      gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radio100), TRUE);		
     }
   
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(m_spinPercent), static_cast<gfloat>(getZoomPercent()));

@@ -12,27 +12,14 @@
     <property name="visible">1</property>
     <property name="title" translatable="yes">dialog1</property>
     <property name="resizable">0</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+    
+        <child><object class="GtkBox" id="dialog-vbox1">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="dialog-action_area1">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="closebutton1">
-                <property name="label">_Close</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-              <packing>
-                </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkBox" id="vbox1">
             <property name="visible">1</property>
@@ -46,9 +33,7 @@
                 <property name="use-markup">1</property>
                 <property name="xalign">0</property>
               </object>
-              <packing>
-                </packing>
-            </child>
+              </child>
             <child>
               <object class="GtkBox" id="hbox1">
                 <property name="visible">1</property>
@@ -57,9 +42,7 @@
                     <property name="visible">1</property>
                     <property name="margin-start">6</property>
                   </object>
-                  <packing>
-                    </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkBox" id="vbox2">
                     <property name="visible">1</property>
@@ -74,9 +57,7 @@
                         <property name="use-underline">1</property>
                         <property name="active">1</property>
                       </object>
-                      <packing>
-                        </packing>
-                    </child>
+                      </child>
                     <child>
                       <object class="GtkCheckButton" id="rbPercent100">
                         <property name="label" translatable="yes">100%</property>
@@ -85,10 +66,7 @@
                         <property name="use-underline">1</property>
                         <property name="group">rbPercent200</property>
                       </object>
-                      <packing>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
+                      </child>
                     <child>
                       <object class="GtkCheckButton" id="rbPercent75">
                         <property name="label" translatable="yes">75%</property>
@@ -97,10 +75,7 @@
                         <property name="use-underline">1</property>
                         <property name="group">rbPercent200</property>
                       </object>
-                      <packing>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
+                      </child>
                     <child>
                       <object class="GtkCheckButton" id="rbPageWidth">
                         <property name="label" translatable="yes">Page width</property>
@@ -109,10 +84,7 @@
                         <property name="use-underline">1</property>
                         <property name="group">rbPercent200</property>
                       </object>
-                      <packing>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
+                      </child>
                     <child>
                       <object class="GtkCheckButton" id="rbWholePage">
                         <property name="label" translatable="yes">Whole page</property>
@@ -122,10 +94,7 @@
                         <property name="active">1</property>
                         <property name="group">rbPercent200</property>
                       </object>
-                      <packing>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
+                      </child>
                     <child>
                       <object class="GtkCheckButton" id="rbPercent">
                         <property name="label" translatable="yes">Percent:</property>
@@ -134,10 +103,7 @@
                         <property name="use-underline">1</property>
                         <property name="group">rbPercent200</property>
                       </object>
-                      <packing>
-                        <property name="position">5</property>
-                      </packing>
-                    </child>
+                      </child>
                     <child>
                       <object class="GtkBox" id="hbox2">
                         <property name="visible">1</property>
@@ -147,9 +113,7 @@
                             <property name="margin-start">3</property>
                             <property name="margin-end">3</property>
                           </object>
-                          <packing>
-                            </packing>
-                        </child>
+                          </child>
                         <child>
                           <object class="GtkSpinButton" id="sbPercent">
                             <property name="visible">1</property>
@@ -158,37 +122,32 @@
                             <property name="climb-rate">1</property>
                             <property name="numeric">1</property>
                           </object>
-                          <packing>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
-                        <property name="position">6</property>
-                      </packing>
-                    </child>
+                          </child>
+                      <property name="hexpand">1</property><property name="vexpand">1</property></object>
+                      </child>
                   </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="hexpand">1</property>
-                <property name="vexpand">1</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
+                  </child>
+              <property name="hexpand">1</property><property name="vexpand">1</property></object>
+              </child>
           </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
+          </child>
+              <child>
+          <object class="GtkBox" id="dialog-action_area1">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="closebutton1">
+                          <property name="label">_Close</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="-5">closebutton1</action-widget>
     </action-widgets>
   </object>

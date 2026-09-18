@@ -3,32 +3,14 @@
   <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="window">
     <property name="resizable">0</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+    
+        <child><object class="GtkBox" id="dialog-vbox1">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="dialog-action_area1">
-            <child>
-              <object class="GtkLabel" id="label7">
-                <property name="visible">1</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="OK">
-                <property name="label" translatable="yes">OK</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="receives-default">1</property>
-              </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkBox" id="box1">
             <property name="visible">1</property>
@@ -51,12 +33,8 @@
                     <property name="margin-end">5</property>
                     <property name="label" translatable="yes">Contacts</property>
                     <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">0</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="lbEvents">
                     <property name="visible">1</property>
@@ -64,12 +42,8 @@
                     <property name="margin-end">5</property>
                     <property name="label" translatable="yes">Events</property>
                     <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">1</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="lbLocations">
                     <property name="visible">1</property>
@@ -77,119 +51,92 @@
                     <property name="margin-end">5</property>
                     <property name="label" translatable="yes">Locations</property>
                     <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">2</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">2</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="label5">
                     <property name="visible">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">3</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">0</property><property name="row">3</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkLabel" id="label6">
                     <property name="visible">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">3</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">1</property><property name="row">3</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkButton" id="setContacts">
                     <property name="label" translatable="yes">Set For All Existing</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="receives-default">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">2</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">2</property><property name="row">0</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkButton" id="setEvents">
                     <property name="label" translatable="yes">Set For All Existing</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="receives-default">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">2</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">2</property><property name="row">1</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkButton" id="setLocations">
                     <property name="label" translatable="yes">Set For All Existing</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="receives-default">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">2</property>
-                    <property name="top-attach">2</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">2</property><property name="row">2</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkButton" id="setAll">
                     <property name="label" translatable="yes">Set For All Existing</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="receives-default">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">2</property>
-                    <property name="top-attach">3</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">2</property><property name="row">3</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkComboBoxText" id="locations">
                     <property name="visible">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">2</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">1</property><property name="row">2</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkComboBoxText" id="events">
                     <property name="visible">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">1</property><property name="row">1</property></layout></object>
+                  </child>
                 <child>
                   <object class="GtkComboBoxText" id="contacts">
                     <property name="visible">1</property>
                     <property name="hexpand">1</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
+                  <layout><property name="column">1</property><property name="row">0</property></layout></object>
+                  </child>
               </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
+              </child>
           </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
+          </child>
+              <child>
+          <object class="GtkBox" id="dialog-action_area1">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <child>
+                        <object class="GtkLabel" id="label7">
+                          <property name="visible">1</property>
+                        </object>
+                      </child>
+                      <child>
+                        <object class="GtkButton" id="OK">
+                          <property name="label" translatable="yes">OK</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="receives-default">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="0">OK</action-widget>
     </action-widgets>
   </object>

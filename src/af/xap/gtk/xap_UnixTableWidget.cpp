@@ -201,7 +201,7 @@ on_drawing_area_event (GtkDrawingArea *area, cairo_t *cr, int /*w*/, int /*h*/, 
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
 
-	if (!table || !table->style_context) {
+	if (!table) {
 		return;
 	}
 
@@ -213,24 +213,21 @@ on_drawing_area_event (GtkDrawingArea *area, cairo_t *cr, int /*w*/, int /*h*/, 
 	guint y;
 
 	GtkStyleContext* ctxt = gtk_widget_get_style_context(GTK_WIDGET(area));
-	gtk_style_context_save(ctxt);
-	gtk_style_context_set_state(ctxt, GTK_STATE_FLAG_FOCUSED);
 	for (i = 0; i < table->total_rows; ++i) {
 		for (j = 0; j < table->total_cols; ++j) {
 			cells_to_pixels(j, i, &x, &y);
 
+			gtk_style_context_save(ctxt);
 			if (i < selected_rows && j < selected_cols) {
-				gtk_style_context_set_state(table->style_context, GTK_STATE_FLAG_SELECTED);
-			} else {
-				gtk_style_context_set_state(table->style_context, GTK_STATE_FLAG_NORMAL);
+				gtk_style_context_set_state(ctxt, GTK_STATE_FLAG_SELECTED);
 			}
-			gtk_render_background(table->style_context, cr, x + 1, y + 1,
+			gtk_render_background(ctxt, cr, x + 1, y + 1,
 								  cell_width - 1, cell_height - 1);
 
 			gtk_render_frame(ctxt, cr, x, y, cell_width, cell_height);
+			gtk_style_context_restore(ctxt);
 		}
 	}
-	gtk_style_context_restore(ctxt);
 }
 
 static inline guint
@@ -457,8 +454,6 @@ abi_table_init (AbiTable* table, gpointer)
 	char* text = g_strdup_printf("%d x %d ", init_rows, init_cols);
 
 	g_type_ensure(GTK_TYPE_TREE_VIEW);
-	table->style_context = XAP_GtkStyle_get_style(nullptr, "GtkTreeView.view"); // "textview.view"
-
 	table->button_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
 	table->window = GTK_POPOVER(gtk_popover_new());

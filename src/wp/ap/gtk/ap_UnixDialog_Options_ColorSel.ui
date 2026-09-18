@@ -5,48 +5,44 @@
     <property name="visible">1</property>
     <property name="title" translatable="yes">ap_UnixDialog_Options_ColorSel</property>
     <property name="resizable">0</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="vbox1">
+    
+        <child><object class="GtkBox" id="vbox1">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="hbbox1">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="btnDefaults">
-                <property name="label">_Revert</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="button1">
-                <property name="label">_Close</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkColorChooserWidget" id="csColorSel">
             <property name="visible">1</property>
           </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
+          </child>
+              <child>
+          <object class="GtkBox" id="hbbox1">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btnDefaults">
+                          <property name="label">_Revert</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                      </child>
+                      <child>
+                        <object class="GtkButton" id="button1">
+                          <property name="label">_Close</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="0">btnDefaults</action-widget>
       <action-widget response="-7">button1</action-widget>
     </action-widgets>

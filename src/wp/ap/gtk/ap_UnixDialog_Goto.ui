@@ -17,27 +17,14 @@
     <property name="title" translatable="yes">dialog1</property>
     <property name="default-width">640</property>
     <property name="default-height">400</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox3">
+    
+        <child><object class="GtkBox" id="dialog-vbox3">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
-        <child internal-child="action_area">
-          <object class="GtkBox" id="dialog-action_area4">
-            <property name="visible">1</property>
-            <child>
-              <object class="GtkButton" id="btClose">
-                <property name="label">_Close</property>
-                <property name="visible">1</property>
-                <property name="can-focus">1</property>
-                <property name="can-default">1</property>
-              </object>
-              <packing>
-                </packing>
-            </child>
-          </object>
-          <packing>
-            </packing>
-        </child>
         <child>
           <object class="GtkBox" id="vbox23">
             <property name="visible">1</property>
@@ -60,12 +47,8 @@
                         <property name="use-markup">1</property>
                         <property name="use-underline">1</property>
                         <property name="xalign">0</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
+                      <layout><property name="column">0</property><property name="row">0</property></layout></object>
+                      </child>
                     <child>
                       <object class="GtkLabel" id="lbLine">
                         <property name="visible">1</property>
@@ -73,40 +56,26 @@
                         <property name="use-markup">1</property>
                         <property name="use-underline">1</property>
                         <property name="xalign">0</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
+                      <layout><property name="column">0</property><property name="row">1</property></layout></object>
+                      </child>
                     <child>
                       <object class="GtkSpinButton" id="sbPage">
                         <property name="visible">1</property>
                         <property name="can-focus">1</property>
-                        <property name="invisible-char">●</property>
                         <property name="adjustment">adjustment1</property>
                         <property name="climb-rate">1</property>
                         <property name="wrap">1</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
+                      <layout><property name="column">1</property><property name="row">0</property></layout></object>
+                      </child>
                     <child>
                       <object class="GtkSpinButton" id="sbLine">
                         <property name="visible">1</property>
                         <property name="can-focus">1</property>
-                        <property name="invisible-char">●</property>
                         <property name="adjustment">adjustment2</property>
                         <property name="climb-rate">1</property>
                         <property name="wrap">1</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
+                      <layout><property name="column">1</property><property name="row">1</property></layout></object>
+                      </child>
                   </object>
                 </child>
                 <child type="tab">
@@ -114,10 +83,7 @@
                     <property name="visible">1</property>
                     <property name="label" translatable="yes">Position</property>
                   </object>
-                  <packing>
-                    <property name="tab-fill">0</property>
-                  </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkBox" id="vbox25">
                     <property name="visible">1</property>
@@ -138,27 +104,16 @@
                             </child>
                           </object>
                         </child>
-                      </object>
-                      <packing>
-                        <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
-                      </packing>
-                    </child>
+                      <property name="hexpand">1</property><property name="vexpand">1</property></object>
+                      </child>
                   </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                  </child>
                 <child type="tab">
                   <object class="GtkLabel" id="lbBookmarks">
                     <property name="visible">1</property>
                     <property name="label" translatable="yes">Bookmark</property>
                   </object>
-                  <packing>
-                    <property name="position">1</property>
-                    <property name="tab-fill">0</property>
-                  </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkTreeView" id="lvXMLIDs">
                     <property name="visible">1</property>
@@ -169,20 +124,13 @@
                       <object class="GtkTreeSelection" id="treeview-selection2" />
                     </child>
                   </object>
-                  <packing>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
+                  </child>
                 <child type="tab">
                   <object class="GtkLabel" id="lbXMLids">
                     <property name="visible">1</property>
                     <property name="label" translatable="yes">RDF Link</property>
                   </object>
-                  <packing>
-                    <property name="position">2</property>
-                    <property name="tab-fill">0</property>
-                  </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkTreeView" id="lvAnno">
                     <property name="visible">1</property>
@@ -191,26 +139,15 @@
                       <object class="GtkTreeSelection" id="treeview-selection4" />
                     </child>
                   </object>
-                  <packing>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
+                  </child>
                 <child type="tab">
                   <object class="GtkLabel" id="lbAnnotations">
                     <property name="visible">1</property>
                     <property name="label" translatable="yes">Annotation</property>
                   </object>
-                  <packing>
-                    <property name="position">3</property>
-                    <property name="tab-fill">0</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="hexpand">1</property>
-                <property name="vexpand">1</property>
-              </packing>
-            </child>
+                  </child>
+              <property name="hexpand">1</property><property name="vexpand">1</property></object>
+              </child>
             <child>
               <object class="GtkBox" id="hbuttonbox4">
                 <property name="visible">1</property>
@@ -219,46 +156,43 @@
                     <property name="label">_Back</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="can-default">1</property>
                   </object>
-                  <packing>
-                    </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkButton" id="btJump">
                     <property name="label">_Go to</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="can-default">1</property>
                   </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                  </child>
                 <child>
                   <object class="GtkButton" id="btNext">
                     <property name="label">_Forward</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="can-default">1</property>
                   </object>
-                  <packing>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
+                  </child>
               </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
+              </child>
           </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
+          </child>
+              <child>
+          <object class="GtkBox" id="dialog-action_area4">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btClose">
+                          <property name="label">_Close</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                    </object>
         </child>
-      </object>
-    </child>
-    <action-widgets>
+</object>
+    </child><action-widgets>
       <action-widget response="-7">btClose</action-widget>
     </action-widgets>
   </object>

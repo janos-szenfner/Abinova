@@ -218,8 +218,8 @@ GtkWidget * AP_UnixDialog_PageNumbers::_constructWindow (void)
 	// Set our defaults to number in the bottom-right corner.
 	m_recentControl = m_control = AP_Dialog_PageNumbers::id_FTR;
 	m_recentAlign = m_align = AP_Dialog_PageNumbers::id_RALIGN;
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radioFooter), true);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radioRight), true);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(radioFooter), true);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(radioRight), true);
 
 	// Connect clicked signals so that our callbacks get called.
 	g_signal_connect(G_OBJECT(radioHeader), "clicked", G_CALLBACK(s_position_changed),  static_cast<gpointer>(this));
