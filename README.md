@@ -90,6 +90,16 @@ An experimental fork of the AbiWord word processor, focused on:
   `link-grammar-5.12.5` third-party tree (~43 MB) was removed.
   English dictionaries are found under `/usr/share/hunspell`,
   `/usr/share/myspell` and the `/usr/local` equivalents.
+- **LibreOffice-style status bar**: the bottom bar now shows, left
+  to right, page `Page: n/m`, live `N words, N characters` (via
+  `FV_View::countWords`), the current paragraph style, insert /
+  overwrite and input-mode indicators, document language and the
+  zoom slider with `-`/`+` buttons and a percentage that opens the
+  Zoom dialog.
+- **LibreOffice-style font selector**: each entry in the toolbar
+  font-name dropdown is rendered in its own typeface (the closed
+  combo shows the active font the same way), in addition to the
+  existing hover font-preview popover.
 
 ### GTK4 runtime fixes (this round)
 

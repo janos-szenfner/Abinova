@@ -385,6 +385,7 @@ abi_font_combo_new (void)
 	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (self), cell, FALSE);
 	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (self), cell,
 					"text", FONT,
+					"family", FONT,
 					nullptr);
 
 	g_signal_connect_swapped (G_OBJECT (cell), "renderer-popup-opened", 

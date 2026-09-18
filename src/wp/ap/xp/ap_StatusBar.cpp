@@ -309,6 +309,100 @@ void ap_sbf_Language::notify(AV_View * pavView, const AV_ChangeMask /*mask*/)
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
+class ABI_EXPORT ap_sbf_WordCount : public AP_StatusBarField_TextInfo
+{
+public:
+    ap_sbf_WordCount(AP_StatusBar * pSB);
+
+    virtual void notify(AV_View * pView, const AV_ChangeMask mask) override;
+
+private:
+    gchar * m_szFormat;
+};
+
+ap_sbf_WordCount::ap_sbf_WordCount(AP_StatusBar * pSB)
+    : AP_StatusBarField_TextInfo(pSB)
+{
+    std::string s;
+    XAP_App::getApp()->getStringSet()->getValueUTF8(AP_STRING_ID_WordCountField,s);
+    m_szFormat = g_strdup(s.c_str());
+    m_fillMethod = REPRESENTATIVE_STRING;
+    m_alignmentMethod = LEFT;
+    m_sRepresentativeString = UT_std_string_sprintf(m_szFormat, 8888888, 88888888);
+    m_sBuf = UT_std_string_sprintf(m_szFormat, 0, 0);
+}
+
+void ap_sbf_WordCount::notify(AV_View * pavView, const AV_ChangeMask mask)
+{
+    if (!(mask & (AV_CHG_DIRTY | AV_CHG_PAGECOUNT | AV_CHG_FOCUS)))
+    {
+        return;
+    }
+    FV_View * pView = static_cast<FV_View *>(pavView);
+    if (!pView)
+    {
+        return;
+    }
+    FV_DocCount cnt = pView->countWords(true);
+    std::string s = UT_std_string_sprintf(m_szFormat,
+                                          static_cast<int>(cnt.word),
+                                          static_cast<int>(cnt.ch_no));
+    if (m_sBuf != s)
+    {
+        m_sBuf = s;
+        if (getListener()) {
+            getListener()->notify();
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+
+class ABI_EXPORT ap_sbf_Style : public AP_StatusBarField_TextInfo
+{
+public:
+    ap_sbf_Style(AP_StatusBar * pSB);
+
+    virtual void notify(AV_View * pView, const AV_ChangeMask mask) override;
+};
+
+ap_sbf_Style::ap_sbf_Style(AP_StatusBar * pSB)
+    : AP_StatusBarField_TextInfo(pSB)
+{
+    m_fillMethod = REPRESENTATIVE_STRING;
+    m_alignmentMethod = LEFT;
+    m_sRepresentativeString = "Bulleted List Level 12";
+}
+
+void ap_sbf_Style::notify(AV_View * pavView, const AV_ChangeMask mask)
+{
+    if (!(mask & AV_CHG_MOTION))
+    {
+        return;
+    }
+    FV_View * pView = static_cast<FV_View *>(pavView);
+    if (!pView)
+    {
+        return;
+    }
+    const gchar * szStyle = nullptr;
+    if (!pView->getStyle(&szStyle) || !szStyle)
+    {
+        return;
+    }
+    if (m_sBuf != szStyle)
+    {
+        m_sBuf = szStyle;
+        if (getListener()) {
+            getListener()->notify();
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+
 // PROGRESSBAR. Implemented for GTK. Needs implementing for Win and OSX
 
 AP_StatusBarField_ProgressBar::AP_StatusBarField_ProgressBar(AP_StatusBar * pSB)
@@ -409,6 +503,9 @@ AP_StatusBar::AP_StatusBar(XAP_Frame * pFrame)
     // so that setStatusMessage() can do its thing.
     DclField(AP_StatusBarField_ProgressBar,pf3);
     m_pStatusProgressField = pf3;
+
+    DclField(ap_sbf_WordCount, pf7);
+    DclField(ap_sbf_Style, pf8);
 
     DclField(ap_sbf_InsertMode, pf4);
     DclField(ap_sbf_InputMode, pf5);
