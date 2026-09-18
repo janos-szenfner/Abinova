@@ -16,7 +16,7 @@ fi
 
 WORDPERFECT_CFLAGS=" \
 	-I\$(top_srcdir)/thirdparty/libwpd-0.10.3/inc \
-	-I\$(top_srcdir)/thirdparty/libwps-0.4.11/inc \
+	-I\$(top_srcdir)/thirdparty/libwps-0.4.14/inc \
 	-I\$(top_srcdir)/thirdparty/librevenge-0.0.6/inc"
 WORDPERFECT_LIBS=" \
 	\$(top_builddir)/thirdparty/libwps.la \
