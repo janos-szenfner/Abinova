@@ -39,7 +39,8 @@ libabiword_@ABIWORD_SERIES@_la_LIBADD = \
 	af/xap/libxap.la \
 	af/gr/libgr.la \
 	af/util/libutil.la \
-	af/ev/libev.la
+	af/ev/libev.la \
+	$(top_builddir)/thirdparty/libwv.la
 
 ## Resources compilation
 abi-resources.c: wp/main/gtk/resources.xml

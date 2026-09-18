@@ -46,6 +46,7 @@
 
 #include "ap_Dialog_Id.h"
 #include "ap_Prefs_SchemeIds.h"
+#include "ie_exp.h"
 
 #include "ap_Strings.h"
 
@@ -334,6 +335,10 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     m_checkbuttonOtherDirectionRtl = WID ( "chkDefaultToRTL" );
     localizeButtonUnderline ( m_checkbuttonOtherDirectionRtl, pSS,
                               AP_STRING_ID_DLG_Options_Label_DirectionRtl );
+
+    // Default file format - the label is translated directly in the .ui
+    m_menuSaveFormat = WID ( "omSaveFormat" );
+    _setupSaveFormatMenu ( m_menuSaveFormat );
 
 #if ENABLE_SPELL
     // Spell Checking
@@ -748,6 +753,76 @@ void AP_UnixDialog_Options::_setAutoSaveFilePeriod ( const UT_String &stPeriod )
 {
     UT_ASSERT ( m_textAutoSaveFilePeriod && GTK_IS_EDITABLE ( m_textAutoSaveFilePeriod ) );
     gtk_spin_button_set_value ( GTK_SPIN_BUTTON ( m_textAutoSaveFilePeriod ), atoi ( stPeriod.c_str() ) );
+}
+
+void AP_UnixDialog_Options::_setupSaveFormatMenu ( GtkWidget *optionmenu )
+{
+	GtkComboBox *combo = GTK_COMBO_BOX(optionmenu);
+	XAP_makeGtkComboBoxText(combo, G_TYPE_STRING);
+
+	// populate with every registered exporter; the row value is the
+	// first suffix of the type's suffix list, which is what the
+	// DefaultSaveFormat pref stores (".abw", ".rtf", ".txt", ...)
+	const char * szDesc = nullptr;
+	const char * szSuffixList = nullptr;
+	IEFileType ieft = IEFT_Unknown;
+	UT_uint32 k = 0;
+	while (IE_Exp::enumerateDlgLabels(k, &szDesc, &szSuffixList, &ieft))
+	{
+		std::string suffix;
+		if (szSuffixList)
+		{
+			const char * p = szSuffixList;
+			if (*p == '*')
+				p++;
+			const char * e = strchr(p, ';');
+			suffix = e ? std::string(p, static_cast<size_t>(e - p)) : std::string(p);
+		}
+		if (!suffix.empty() && szDesc)
+			XAP_appendComboBoxTextAndString(combo, szDesc, suffix.c_str());
+		k++;
+	}
+	gtk_combo_box_set_active(combo, 0);
+}
+
+void AP_UnixDialog_Options::_gatherDefaultSaveFormat ( UT_String &stRetVal )
+{
+	stRetVal.clear();
+	UT_return_if_fail ( m_menuSaveFormat && GTK_IS_COMBO_BOX ( m_menuSaveFormat ) );
+	GtkTreeIter iter;
+	if (gtk_combo_box_get_active_iter(GTK_COMBO_BOX(m_menuSaveFormat), &iter))
+	{
+		GtkTreeModel *store = gtk_combo_box_get_model(GTK_COMBO_BOX(m_menuSaveFormat));
+		gchar * value = nullptr;
+		gtk_tree_model_get(store, &iter, 1, &value, -1);
+		if (value)
+		{
+			stRetVal = value;
+			g_free(value);
+		}
+	}
+}
+
+void AP_UnixDialog_Options::_setDefaultSaveFormat ( const UT_String &stExt )
+{
+	UT_return_if_fail ( m_menuSaveFormat && GTK_IS_COMBO_BOX ( m_menuSaveFormat ) );
+	GtkTreeModel *store = gtk_combo_box_get_model(GTK_COMBO_BOX(m_menuSaveFormat));
+	GtkTreeIter iter;
+	if (gtk_tree_model_get_iter_first(store, &iter))
+	{
+		do {
+			gchar * value = nullptr;
+			gtk_tree_model_get(store, &iter, 1, &value, -1);
+			bool bMatch = (value != nullptr) && (stExt == value);
+			g_free(value);
+			if (bMatch)
+			{
+				gtk_combo_box_set_active_iter(GTK_COMBO_BOX(m_menuSaveFormat), &iter);
+				return;
+			}
+		} while (gtk_tree_model_iter_next(store, &iter));
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(m_menuSaveFormat), 0);
 }
 
 UT_Dimension AP_UnixDialog_Options::_gatherViewRulerUnits ( void )

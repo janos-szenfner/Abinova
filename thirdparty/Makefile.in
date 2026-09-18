@@ -396,6 +396,60 @@ am_libwps_la_OBJECTS = libwps-0.4.11/src/lib/libwps_la-DosWord.lo \
 	libwps-0.4.11/src/lib/libwps_la-libwps_internal.lo \
 	libwps-0.4.11/src/lib/libwps_la-libwps_tools_win.lo
 libwps_la_OBJECTS = $(am_libwps_la_OBJECTS)
+libwv_la_LIBADD =
+am_libwv_la_OBJECTS = wv-1.2.9/libwv_la-anld.lo \
+	wv-1.2.9/libwv_la-anlv.lo wv-1.2.9/libwv_la-asumy.lo \
+	wv-1.2.9/libwv_la-asumyi.lo wv-1.2.9/libwv_la-atrd.lo \
+	wv-1.2.9/libwv_la-basename.lo wv-1.2.9/libwv_la-bintree.lo \
+	wv-1.2.9/libwv_la-bkd.lo wv-1.2.9/libwv_la-bkf.lo \
+	wv-1.2.9/libwv_la-bkl.lo wv-1.2.9/libwv_la-blip.lo \
+	wv-1.2.9/libwv_la-brc.lo wv-1.2.9/libwv_la-bte.lo \
+	wv-1.2.9/libwv_la-bx.lo wv-1.2.9/libwv_la-chp.lo \
+	wv-1.2.9/libwv_la-clx.lo wv-1.2.9/libwv_la-crc32.lo \
+	wv-1.2.9/libwv_la-dcs.lo wv-1.2.9/libwv_la-decode_complex.lo \
+	wv-1.2.9/libwv_la-decode_simple.lo \
+	wv-1.2.9/libwv_la-decompresswmf.lo \
+	wv-1.2.9/libwv_la-decrypt95.lo wv-1.2.9/libwv_la-decrypt97.lo \
+	wv-1.2.9/libwv_la-dogrid.lo wv-1.2.9/libwv_la-dop.lo \
+	wv-1.2.9/libwv_la-doptypography.lo wv-1.2.9/libwv_la-dttm.lo \
+	wv-1.2.9/libwv_la-error.lo wv-1.2.9/libwv_la-escher.lo \
+	wv-1.2.9/libwv_la-fbse.lo wv-1.2.9/libwv_la-fdoa.lo \
+	wv-1.2.9/libwv_la-ffn.lo wv-1.2.9/libwv_la-fib.lo \
+	wv-1.2.9/libwv_la-field.lo wv-1.2.9/libwv_la-filetime.lo \
+	wv-1.2.9/libwv_la-fkp.lo wv-1.2.9/libwv_la-fld.lo \
+	wv-1.2.9/libwv_la-font.lo wv-1.2.9/libwv_la-fopt.lo \
+	wv-1.2.9/libwv_la-frd.lo wv-1.2.9/libwv_la-fspa.lo \
+	wv-1.2.9/libwv_la-ftxbxs.lo wv-1.2.9/libwv_la-generic.lo \
+	wv-1.2.9/libwv_la-isbidi.lo wv-1.2.9/libwv_la-laolareplace.lo \
+	wv-1.2.9/libwv_la-lfo.lo wv-1.2.9/libwv_la-list.lo \
+	wv-1.2.9/libwv_la-lspd.lo wv-1.2.9/libwv_la-lst.lo \
+	wv-1.2.9/libwv_la-lvl.lo wv-1.2.9/libwv_la-md5.lo \
+	wv-1.2.9/libwv_la-mtextra.lo wv-1.2.9/libwv_la-numrm.lo \
+	wv-1.2.9/libwv_la-olst.lo wv-1.2.9/libwv_la-pap.lo \
+	wv-1.2.9/libwv_la-pcd.lo wv-1.2.9/libwv_la-pgd.lo \
+	wv-1.2.9/libwv_la-phe.lo wv-1.2.9/libwv_la-picf.lo \
+	wv-1.2.9/libwv_la-plcf.lo wv-1.2.9/libwv_la-prm.lo \
+	wv-1.2.9/libwv_la-rc4.lo wv-1.2.9/libwv_la-reasons.lo \
+	wv-1.2.9/libwv_la-roman.lo wv-1.2.9/libwv_la-rr.lo \
+	wv-1.2.9/libwv_la-rs.lo wv-1.2.9/libwv_la-sed.lo \
+	wv-1.2.9/libwv_la-sep.lo wv-1.2.9/libwv_la-shd.lo \
+	wv-1.2.9/libwv_la-sprm.lo wv-1.2.9/libwv_la-strcasecmp.lo \
+	wv-1.2.9/libwv_la-sttbf.lo wv-1.2.9/libwv_la-stylesheet.lo \
+	wv-1.2.9/libwv_la-support.lo wv-1.2.9/libwv_la-symbol.lo \
+	wv-1.2.9/libwv_la-table.lo wv-1.2.9/libwv_la-tap.lo \
+	wv-1.2.9/libwv_la-tbd.lo wv-1.2.9/libwv_la-tc.lo \
+	wv-1.2.9/libwv_la-text.lo wv-1.2.9/libwv_la-tlp.lo \
+	wv-1.2.9/libwv_la-twips.lo wv-1.2.9/libwv_la-unicode.lo \
+	wv-1.2.9/libwv_la-utf.lo wv-1.2.9/libwv_la-version.lo \
+	wv-1.2.9/libwv_la-winmmap.lo wv-1.2.9/libwv_la-wkb.lo \
+	wv-1.2.9/libwv_la-wvConfig.lo \
+	wv-1.2.9/libwv_la-wvHtmlEngine.lo \
+	wv-1.2.9/libwv_la-wvTextEngine.lo wv-1.2.9/libwv_la-wvparse.lo \
+	wv-1.2.9/libwv_la-xst.lo
+libwv_la_OBJECTS = $(am_libwv_la_OBJECTS)
+libwv_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libwv_la_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -678,8 +732,118 @@ am__depfiles_remade = librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinar
 	libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-WPSTextSubDocument.Plo \
 	libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-XYWrite.Plo \
 	libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_internal.Plo \
-	libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_tools_win.Plo
+	libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_tools_win.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-anld.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-anlv.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-asumy.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-asumyi.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-atrd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-basename.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-bintree.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-bkd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-bkf.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-bkl.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-blip.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-brc.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-bte.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-bx.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-chp.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-clx.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-crc32.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-dcs.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-decode_complex.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-decode_simple.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-decompresswmf.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-decrypt95.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-decrypt97.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-dogrid.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-dop.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-doptypography.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-dttm.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-error.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-escher.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-fbse.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-fdoa.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-ffn.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-fib.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-field.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-filetime.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-fkp.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-fld.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-font.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-fopt.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-frd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-fspa.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-ftxbxs.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-generic.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-isbidi.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-laolareplace.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-lfo.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-list.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-lspd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-lst.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-lvl.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-md5.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-mtextra.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-numrm.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-olst.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-pap.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-pcd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-pgd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-phe.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-picf.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-plcf.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-prm.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-rc4.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-reasons.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-roman.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-rr.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-rs.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-sed.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-sep.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-shd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-sprm.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-strcasecmp.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-sttbf.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-stylesheet.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-support.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-symbol.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-table.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-tap.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-tbd.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-tc.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-text.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-tlp.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-twips.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-unicode.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-utf.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-version.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-winmmap.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-wkb.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-wvConfig.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo \
+	wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo
 am__mv = mv -f
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_@AM_V@)
+am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
+am__v_CC_0 = @echo "  CC      " $@;
+am__v_CC_1 = 
+CCLD = $(CC)
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_@AM_V@)
+am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
+am__v_CCLD_0 = @echo "  CCLD    " $@;
+am__v_CCLD_1 = 
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -699,9 +863,9 @@ am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = $(librevenge_la_SOURCES) $(libwpd_la_SOURCES) \
-	$(libwpg_la_SOURCES) $(libwps_la_SOURCES)
+	$(libwpg_la_SOURCES) $(libwps_la_SOURCES) $(libwv_la_SOURCES)
 DIST_SOURCES = $(librevenge_la_SOURCES) $(libwpd_la_SOURCES) \
-	$(libwpg_la_SOURCES) $(libwps_la_SOURCES)
+	$(libwpg_la_SOURCES) $(libwps_la_SOURCES) $(libwv_la_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -1047,12 +1211,11 @@ top_srcdir = @top_srcdir@
 @WITH_BUNDLED_LINKGRAMMAR_TRUE@LG_SUBDIR = link-grammar-5.12.5
 SUBDIRS = $(LG_SUBDIR)
 DIST_SUBDIRS = link-grammar-5.12.5
-noinst_LTLIBRARIES = \
-	librevenge.la \
-	libwpd.la \
-	libwpg.la \
-	libwps.la
 
+# vendored, security-patched wv (libwv) for .doc import --
+# no system wv-1.0 required
+noinst_LTLIBRARIES = librevenge.la libwpd.la libwpg.la libwps.la \
+	libwv.la
 AM_CXXFLAGS = -fPIC
 librevenge_la_SOURCES = \
 	librevenge-0.0.6/src/lib/RVNGBinaryData.cpp \
@@ -1334,11 +1497,107 @@ libwps_la_SOURCES = \
 	libwps-0.4.11/src/lib/libwps_tools_win.cpp
 
 libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.11/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwps-0.4.11/src/lib -DLIBWPS_BUILD
-EXTRA_DIST = README
+EXTRA_DIST = README wv-1.2.9/config.h
+libwv_la_SOURCES = \
+	wv-1.2.9/anld.c \
+	wv-1.2.9/anlv.c \
+	wv-1.2.9/asumy.c \
+	wv-1.2.9/asumyi.c \
+	wv-1.2.9/atrd.c \
+	wv-1.2.9/basename.c \
+	wv-1.2.9/bintree.c \
+	wv-1.2.9/bkd.c \
+	wv-1.2.9/bkf.c \
+	wv-1.2.9/bkl.c \
+	wv-1.2.9/blip.c \
+	wv-1.2.9/brc.c \
+	wv-1.2.9/bte.c \
+	wv-1.2.9/bx.c \
+	wv-1.2.9/chp.c \
+	wv-1.2.9/clx.c \
+	wv-1.2.9/crc32.c \
+	wv-1.2.9/dcs.c \
+	wv-1.2.9/decode_complex.c \
+	wv-1.2.9/decode_simple.c \
+	wv-1.2.9/decompresswmf.c \
+	wv-1.2.9/decrypt95.c \
+	wv-1.2.9/decrypt97.c \
+	wv-1.2.9/dogrid.c \
+	wv-1.2.9/dop.c \
+	wv-1.2.9/doptypography.c \
+	wv-1.2.9/dttm.c \
+	wv-1.2.9/error.c \
+	wv-1.2.9/escher.c \
+	wv-1.2.9/fbse.c \
+	wv-1.2.9/fdoa.c \
+	wv-1.2.9/ffn.c \
+	wv-1.2.9/fib.c \
+	wv-1.2.9/field.c \
+	wv-1.2.9/filetime.c \
+	wv-1.2.9/fkp.c \
+	wv-1.2.9/fld.c \
+	wv-1.2.9/font.c \
+	wv-1.2.9/fopt.c \
+	wv-1.2.9/frd.c \
+	wv-1.2.9/fspa.c \
+	wv-1.2.9/ftxbxs.c \
+	wv-1.2.9/generic.c \
+	wv-1.2.9/isbidi.c \
+	wv-1.2.9/laolareplace.c \
+	wv-1.2.9/lfo.c \
+	wv-1.2.9/list.c \
+	wv-1.2.9/lspd.c \
+	wv-1.2.9/lst.c \
+	wv-1.2.9/lvl.c \
+	wv-1.2.9/md5.c \
+	wv-1.2.9/mtextra.c \
+	wv-1.2.9/numrm.c \
+	wv-1.2.9/olst.c \
+	wv-1.2.9/pap.c \
+	wv-1.2.9/pcd.c \
+	wv-1.2.9/pgd.c \
+	wv-1.2.9/phe.c \
+	wv-1.2.9/picf.c \
+	wv-1.2.9/plcf.c \
+	wv-1.2.9/prm.c \
+	wv-1.2.9/rc4.c \
+	wv-1.2.9/reasons.c \
+	wv-1.2.9/roman.c \
+	wv-1.2.9/rr.c \
+	wv-1.2.9/rs.c \
+	wv-1.2.9/sed.c \
+	wv-1.2.9/sep.c \
+	wv-1.2.9/shd.c \
+	wv-1.2.9/sprm.c \
+	wv-1.2.9/strcasecmp.c \
+	wv-1.2.9/sttbf.c \
+	wv-1.2.9/stylesheet.c \
+	wv-1.2.9/support.c \
+	wv-1.2.9/symbol.c \
+	wv-1.2.9/table.c \
+	wv-1.2.9/tap.c \
+	wv-1.2.9/tbd.c \
+	wv-1.2.9/tc.c \
+	wv-1.2.9/text.c \
+	wv-1.2.9/tlp.c \
+	wv-1.2.9/twips.c \
+	wv-1.2.9/unicode.c \
+	wv-1.2.9/utf.c \
+	wv-1.2.9/version.c \
+	wv-1.2.9/winmmap.c \
+	wv-1.2.9/wkb.c \
+	wv-1.2.9/wvConfig.c \
+	wv-1.2.9/wvHtmlEngine.c \
+	wv-1.2.9/wvTextEngine.c \
+	wv-1.2.9/wvparse.c \
+	wv-1.2.9/xst.c
+
+libwv_la_CPPFLAGS = -I$(srcdir)/wv-1.2.9 $(DEPS_CFLAGS)
+libwv_la_CFLAGS = -fPIC -DHAVE_CONFIG_H
 all: all-recursive
 
 .SUFFIXES:
-.SUFFIXES: .cpp .lo .o .obj
+.SUFFIXES: .c .cpp .lo .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -2219,6 +2478,199 @@ libwps-0.4.11/src/lib/libwps_la-libwps_tools_win.lo:  \
 
 libwps.la: $(libwps_la_OBJECTS) $(libwps_la_DEPENDENCIES) $(EXTRA_libwps_la_DEPENDENCIES) 
 	$(AM_V_CXXLD)$(CXXLINK)  $(libwps_la_OBJECTS) $(libwps_la_LIBADD) $(LIBS)
+wv-1.2.9/$(am__dirstamp):
+	@$(MKDIR_P) wv-1.2.9
+	@: > wv-1.2.9/$(am__dirstamp)
+wv-1.2.9/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) wv-1.2.9/$(DEPDIR)
+	@: > wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-anld.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-anlv.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-asumy.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-asumyi.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-atrd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-basename.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-bintree.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-bkd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-bkf.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-bkl.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-blip.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-brc.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-bte.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-bx.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-chp.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-clx.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-crc32.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-dcs.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-decode_complex.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-decode_simple.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-decompresswmf.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-decrypt95.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-decrypt97.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-dogrid.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-dop.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-doptypography.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-dttm.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-error.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-escher.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-fbse.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-fdoa.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-ffn.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-fib.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-field.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-filetime.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-fkp.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-fld.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-font.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-fopt.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-frd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-fspa.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-ftxbxs.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-generic.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-isbidi.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-laolareplace.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-lfo.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-list.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-lspd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-lst.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-lvl.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-md5.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-mtextra.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-numrm.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-olst.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-pap.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-pcd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-pgd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-phe.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-picf.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-plcf.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-prm.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-rc4.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-reasons.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-roman.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-rr.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-rs.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-sed.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-sep.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-shd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-sprm.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-strcasecmp.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-sttbf.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-stylesheet.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-support.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-symbol.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-table.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-tap.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-tbd.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-tc.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-text.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-tlp.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-twips.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-unicode.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-utf.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-version.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-winmmap.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-wkb.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-wvConfig.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-wvHtmlEngine.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-wvTextEngine.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-wvparse.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+wv-1.2.9/libwv_la-xst.lo: wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+
+libwv.la: $(libwv_la_OBJECTS) $(libwv_la_DEPENDENCIES) $(EXTRA_libwv_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libwv_la_LINK)  $(libwv_la_OBJECTS) $(libwv_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -2230,6 +2682,8 @@ mostlyclean-compile:
 	-rm -f libwpg-0.3.4/src/lib/*.lo
 	-rm -f libwps-0.4.11/src/lib/*.$(OBJEXT)
 	-rm -f libwps-0.4.11/src/lib/*.lo
+	-rm -f wv-1.2.9/*.$(OBJEXT)
+	-rm -f wv-1.2.9/*.lo
 
 distclean-compile:
 	-rm -f *.tab.c
@@ -2502,12 +2956,772 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-XYWrite.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_internal.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_tools_win.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-anld.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-anlv.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-asumy.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-asumyi.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-atrd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-basename.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-bintree.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-bkd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-bkf.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-bkl.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-blip.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-brc.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-bte.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-bx.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-chp.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-clx.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-crc32.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-dcs.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-decode_complex.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-decode_simple.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-decompresswmf.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-decrypt95.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-decrypt97.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-dogrid.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-dop.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-doptypography.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-dttm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-error.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-escher.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-fbse.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-fdoa.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-ffn.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-fib.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-field.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-filetime.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-fkp.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-fld.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-font.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-fopt.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-frd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-fspa.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-ftxbxs.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-generic.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-isbidi.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-laolareplace.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-lfo.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-list.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-lspd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-lst.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-lvl.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-md5.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-mtextra.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-numrm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-olst.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-pap.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-pcd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-pgd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-phe.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-picf.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-plcf.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-prm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-rc4.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-reasons.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-roman.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-rr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-rs.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-sed.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-sep.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-shd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-sprm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-strcasecmp.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-sttbf.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-stylesheet.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-support.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-symbol.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-table.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-tap.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-tbd.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-tc.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-text.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-tlp.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-twips.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-unicode.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-utf.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-version.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-winmmap.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-wkb.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-wvConfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
 	@echo '# dummy' >$@-t && $(am__mv) $@-t $@
 
 am--depfiles: $(am__depfiles_remade)
+
+.c.o:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+wv-1.2.9/libwv_la-anld.lo: wv-1.2.9/anld.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-anld.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-anld.Tpo -c -o wv-1.2.9/libwv_la-anld.lo `test -f 'wv-1.2.9/anld.c' || echo '$(srcdir)/'`wv-1.2.9/anld.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-anld.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-anld.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/anld.c' object='wv-1.2.9/libwv_la-anld.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-anld.lo `test -f 'wv-1.2.9/anld.c' || echo '$(srcdir)/'`wv-1.2.9/anld.c
+
+wv-1.2.9/libwv_la-anlv.lo: wv-1.2.9/anlv.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-anlv.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-anlv.Tpo -c -o wv-1.2.9/libwv_la-anlv.lo `test -f 'wv-1.2.9/anlv.c' || echo '$(srcdir)/'`wv-1.2.9/anlv.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-anlv.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-anlv.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/anlv.c' object='wv-1.2.9/libwv_la-anlv.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-anlv.lo `test -f 'wv-1.2.9/anlv.c' || echo '$(srcdir)/'`wv-1.2.9/anlv.c
+
+wv-1.2.9/libwv_la-asumy.lo: wv-1.2.9/asumy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-asumy.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-asumy.Tpo -c -o wv-1.2.9/libwv_la-asumy.lo `test -f 'wv-1.2.9/asumy.c' || echo '$(srcdir)/'`wv-1.2.9/asumy.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-asumy.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-asumy.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/asumy.c' object='wv-1.2.9/libwv_la-asumy.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-asumy.lo `test -f 'wv-1.2.9/asumy.c' || echo '$(srcdir)/'`wv-1.2.9/asumy.c
+
+wv-1.2.9/libwv_la-asumyi.lo: wv-1.2.9/asumyi.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-asumyi.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-asumyi.Tpo -c -o wv-1.2.9/libwv_la-asumyi.lo `test -f 'wv-1.2.9/asumyi.c' || echo '$(srcdir)/'`wv-1.2.9/asumyi.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-asumyi.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-asumyi.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/asumyi.c' object='wv-1.2.9/libwv_la-asumyi.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-asumyi.lo `test -f 'wv-1.2.9/asumyi.c' || echo '$(srcdir)/'`wv-1.2.9/asumyi.c
+
+wv-1.2.9/libwv_la-atrd.lo: wv-1.2.9/atrd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-atrd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-atrd.Tpo -c -o wv-1.2.9/libwv_la-atrd.lo `test -f 'wv-1.2.9/atrd.c' || echo '$(srcdir)/'`wv-1.2.9/atrd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-atrd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-atrd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/atrd.c' object='wv-1.2.9/libwv_la-atrd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-atrd.lo `test -f 'wv-1.2.9/atrd.c' || echo '$(srcdir)/'`wv-1.2.9/atrd.c
+
+wv-1.2.9/libwv_la-basename.lo: wv-1.2.9/basename.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-basename.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-basename.Tpo -c -o wv-1.2.9/libwv_la-basename.lo `test -f 'wv-1.2.9/basename.c' || echo '$(srcdir)/'`wv-1.2.9/basename.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-basename.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-basename.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/basename.c' object='wv-1.2.9/libwv_la-basename.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-basename.lo `test -f 'wv-1.2.9/basename.c' || echo '$(srcdir)/'`wv-1.2.9/basename.c
+
+wv-1.2.9/libwv_la-bintree.lo: wv-1.2.9/bintree.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-bintree.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-bintree.Tpo -c -o wv-1.2.9/libwv_la-bintree.lo `test -f 'wv-1.2.9/bintree.c' || echo '$(srcdir)/'`wv-1.2.9/bintree.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-bintree.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-bintree.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/bintree.c' object='wv-1.2.9/libwv_la-bintree.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-bintree.lo `test -f 'wv-1.2.9/bintree.c' || echo '$(srcdir)/'`wv-1.2.9/bintree.c
+
+wv-1.2.9/libwv_la-bkd.lo: wv-1.2.9/bkd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-bkd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-bkd.Tpo -c -o wv-1.2.9/libwv_la-bkd.lo `test -f 'wv-1.2.9/bkd.c' || echo '$(srcdir)/'`wv-1.2.9/bkd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-bkd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-bkd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/bkd.c' object='wv-1.2.9/libwv_la-bkd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-bkd.lo `test -f 'wv-1.2.9/bkd.c' || echo '$(srcdir)/'`wv-1.2.9/bkd.c
+
+wv-1.2.9/libwv_la-bkf.lo: wv-1.2.9/bkf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-bkf.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-bkf.Tpo -c -o wv-1.2.9/libwv_la-bkf.lo `test -f 'wv-1.2.9/bkf.c' || echo '$(srcdir)/'`wv-1.2.9/bkf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-bkf.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-bkf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/bkf.c' object='wv-1.2.9/libwv_la-bkf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-bkf.lo `test -f 'wv-1.2.9/bkf.c' || echo '$(srcdir)/'`wv-1.2.9/bkf.c
+
+wv-1.2.9/libwv_la-bkl.lo: wv-1.2.9/bkl.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-bkl.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-bkl.Tpo -c -o wv-1.2.9/libwv_la-bkl.lo `test -f 'wv-1.2.9/bkl.c' || echo '$(srcdir)/'`wv-1.2.9/bkl.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-bkl.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-bkl.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/bkl.c' object='wv-1.2.9/libwv_la-bkl.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-bkl.lo `test -f 'wv-1.2.9/bkl.c' || echo '$(srcdir)/'`wv-1.2.9/bkl.c
+
+wv-1.2.9/libwv_la-blip.lo: wv-1.2.9/blip.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-blip.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-blip.Tpo -c -o wv-1.2.9/libwv_la-blip.lo `test -f 'wv-1.2.9/blip.c' || echo '$(srcdir)/'`wv-1.2.9/blip.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-blip.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-blip.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/blip.c' object='wv-1.2.9/libwv_la-blip.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-blip.lo `test -f 'wv-1.2.9/blip.c' || echo '$(srcdir)/'`wv-1.2.9/blip.c
+
+wv-1.2.9/libwv_la-brc.lo: wv-1.2.9/brc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-brc.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-brc.Tpo -c -o wv-1.2.9/libwv_la-brc.lo `test -f 'wv-1.2.9/brc.c' || echo '$(srcdir)/'`wv-1.2.9/brc.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-brc.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-brc.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/brc.c' object='wv-1.2.9/libwv_la-brc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-brc.lo `test -f 'wv-1.2.9/brc.c' || echo '$(srcdir)/'`wv-1.2.9/brc.c
+
+wv-1.2.9/libwv_la-bte.lo: wv-1.2.9/bte.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-bte.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-bte.Tpo -c -o wv-1.2.9/libwv_la-bte.lo `test -f 'wv-1.2.9/bte.c' || echo '$(srcdir)/'`wv-1.2.9/bte.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-bte.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-bte.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/bte.c' object='wv-1.2.9/libwv_la-bte.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-bte.lo `test -f 'wv-1.2.9/bte.c' || echo '$(srcdir)/'`wv-1.2.9/bte.c
+
+wv-1.2.9/libwv_la-bx.lo: wv-1.2.9/bx.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-bx.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-bx.Tpo -c -o wv-1.2.9/libwv_la-bx.lo `test -f 'wv-1.2.9/bx.c' || echo '$(srcdir)/'`wv-1.2.9/bx.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-bx.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-bx.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/bx.c' object='wv-1.2.9/libwv_la-bx.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-bx.lo `test -f 'wv-1.2.9/bx.c' || echo '$(srcdir)/'`wv-1.2.9/bx.c
+
+wv-1.2.9/libwv_la-chp.lo: wv-1.2.9/chp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-chp.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-chp.Tpo -c -o wv-1.2.9/libwv_la-chp.lo `test -f 'wv-1.2.9/chp.c' || echo '$(srcdir)/'`wv-1.2.9/chp.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-chp.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-chp.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/chp.c' object='wv-1.2.9/libwv_la-chp.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-chp.lo `test -f 'wv-1.2.9/chp.c' || echo '$(srcdir)/'`wv-1.2.9/chp.c
+
+wv-1.2.9/libwv_la-clx.lo: wv-1.2.9/clx.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-clx.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-clx.Tpo -c -o wv-1.2.9/libwv_la-clx.lo `test -f 'wv-1.2.9/clx.c' || echo '$(srcdir)/'`wv-1.2.9/clx.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-clx.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-clx.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/clx.c' object='wv-1.2.9/libwv_la-clx.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-clx.lo `test -f 'wv-1.2.9/clx.c' || echo '$(srcdir)/'`wv-1.2.9/clx.c
+
+wv-1.2.9/libwv_la-crc32.lo: wv-1.2.9/crc32.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-crc32.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-crc32.Tpo -c -o wv-1.2.9/libwv_la-crc32.lo `test -f 'wv-1.2.9/crc32.c' || echo '$(srcdir)/'`wv-1.2.9/crc32.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-crc32.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-crc32.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/crc32.c' object='wv-1.2.9/libwv_la-crc32.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-crc32.lo `test -f 'wv-1.2.9/crc32.c' || echo '$(srcdir)/'`wv-1.2.9/crc32.c
+
+wv-1.2.9/libwv_la-dcs.lo: wv-1.2.9/dcs.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-dcs.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-dcs.Tpo -c -o wv-1.2.9/libwv_la-dcs.lo `test -f 'wv-1.2.9/dcs.c' || echo '$(srcdir)/'`wv-1.2.9/dcs.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-dcs.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-dcs.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/dcs.c' object='wv-1.2.9/libwv_la-dcs.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-dcs.lo `test -f 'wv-1.2.9/dcs.c' || echo '$(srcdir)/'`wv-1.2.9/dcs.c
+
+wv-1.2.9/libwv_la-decode_complex.lo: wv-1.2.9/decode_complex.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-decode_complex.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-decode_complex.Tpo -c -o wv-1.2.9/libwv_la-decode_complex.lo `test -f 'wv-1.2.9/decode_complex.c' || echo '$(srcdir)/'`wv-1.2.9/decode_complex.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-decode_complex.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-decode_complex.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/decode_complex.c' object='wv-1.2.9/libwv_la-decode_complex.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-decode_complex.lo `test -f 'wv-1.2.9/decode_complex.c' || echo '$(srcdir)/'`wv-1.2.9/decode_complex.c
+
+wv-1.2.9/libwv_la-decode_simple.lo: wv-1.2.9/decode_simple.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-decode_simple.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-decode_simple.Tpo -c -o wv-1.2.9/libwv_la-decode_simple.lo `test -f 'wv-1.2.9/decode_simple.c' || echo '$(srcdir)/'`wv-1.2.9/decode_simple.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-decode_simple.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-decode_simple.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/decode_simple.c' object='wv-1.2.9/libwv_la-decode_simple.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-decode_simple.lo `test -f 'wv-1.2.9/decode_simple.c' || echo '$(srcdir)/'`wv-1.2.9/decode_simple.c
+
+wv-1.2.9/libwv_la-decompresswmf.lo: wv-1.2.9/decompresswmf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-decompresswmf.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-decompresswmf.Tpo -c -o wv-1.2.9/libwv_la-decompresswmf.lo `test -f 'wv-1.2.9/decompresswmf.c' || echo '$(srcdir)/'`wv-1.2.9/decompresswmf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-decompresswmf.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-decompresswmf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/decompresswmf.c' object='wv-1.2.9/libwv_la-decompresswmf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-decompresswmf.lo `test -f 'wv-1.2.9/decompresswmf.c' || echo '$(srcdir)/'`wv-1.2.9/decompresswmf.c
+
+wv-1.2.9/libwv_la-decrypt95.lo: wv-1.2.9/decrypt95.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-decrypt95.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-decrypt95.Tpo -c -o wv-1.2.9/libwv_la-decrypt95.lo `test -f 'wv-1.2.9/decrypt95.c' || echo '$(srcdir)/'`wv-1.2.9/decrypt95.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-decrypt95.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-decrypt95.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/decrypt95.c' object='wv-1.2.9/libwv_la-decrypt95.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-decrypt95.lo `test -f 'wv-1.2.9/decrypt95.c' || echo '$(srcdir)/'`wv-1.2.9/decrypt95.c
+
+wv-1.2.9/libwv_la-decrypt97.lo: wv-1.2.9/decrypt97.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-decrypt97.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-decrypt97.Tpo -c -o wv-1.2.9/libwv_la-decrypt97.lo `test -f 'wv-1.2.9/decrypt97.c' || echo '$(srcdir)/'`wv-1.2.9/decrypt97.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-decrypt97.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-decrypt97.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/decrypt97.c' object='wv-1.2.9/libwv_la-decrypt97.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-decrypt97.lo `test -f 'wv-1.2.9/decrypt97.c' || echo '$(srcdir)/'`wv-1.2.9/decrypt97.c
+
+wv-1.2.9/libwv_la-dogrid.lo: wv-1.2.9/dogrid.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-dogrid.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-dogrid.Tpo -c -o wv-1.2.9/libwv_la-dogrid.lo `test -f 'wv-1.2.9/dogrid.c' || echo '$(srcdir)/'`wv-1.2.9/dogrid.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-dogrid.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-dogrid.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/dogrid.c' object='wv-1.2.9/libwv_la-dogrid.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-dogrid.lo `test -f 'wv-1.2.9/dogrid.c' || echo '$(srcdir)/'`wv-1.2.9/dogrid.c
+
+wv-1.2.9/libwv_la-dop.lo: wv-1.2.9/dop.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-dop.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-dop.Tpo -c -o wv-1.2.9/libwv_la-dop.lo `test -f 'wv-1.2.9/dop.c' || echo '$(srcdir)/'`wv-1.2.9/dop.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-dop.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-dop.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/dop.c' object='wv-1.2.9/libwv_la-dop.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-dop.lo `test -f 'wv-1.2.9/dop.c' || echo '$(srcdir)/'`wv-1.2.9/dop.c
+
+wv-1.2.9/libwv_la-doptypography.lo: wv-1.2.9/doptypography.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-doptypography.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-doptypography.Tpo -c -o wv-1.2.9/libwv_la-doptypography.lo `test -f 'wv-1.2.9/doptypography.c' || echo '$(srcdir)/'`wv-1.2.9/doptypography.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-doptypography.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-doptypography.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/doptypography.c' object='wv-1.2.9/libwv_la-doptypography.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-doptypography.lo `test -f 'wv-1.2.9/doptypography.c' || echo '$(srcdir)/'`wv-1.2.9/doptypography.c
+
+wv-1.2.9/libwv_la-dttm.lo: wv-1.2.9/dttm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-dttm.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-dttm.Tpo -c -o wv-1.2.9/libwv_la-dttm.lo `test -f 'wv-1.2.9/dttm.c' || echo '$(srcdir)/'`wv-1.2.9/dttm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-dttm.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-dttm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/dttm.c' object='wv-1.2.9/libwv_la-dttm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-dttm.lo `test -f 'wv-1.2.9/dttm.c' || echo '$(srcdir)/'`wv-1.2.9/dttm.c
+
+wv-1.2.9/libwv_la-error.lo: wv-1.2.9/error.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-error.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-error.Tpo -c -o wv-1.2.9/libwv_la-error.lo `test -f 'wv-1.2.9/error.c' || echo '$(srcdir)/'`wv-1.2.9/error.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-error.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-error.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/error.c' object='wv-1.2.9/libwv_la-error.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-error.lo `test -f 'wv-1.2.9/error.c' || echo '$(srcdir)/'`wv-1.2.9/error.c
+
+wv-1.2.9/libwv_la-escher.lo: wv-1.2.9/escher.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-escher.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-escher.Tpo -c -o wv-1.2.9/libwv_la-escher.lo `test -f 'wv-1.2.9/escher.c' || echo '$(srcdir)/'`wv-1.2.9/escher.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-escher.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-escher.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/escher.c' object='wv-1.2.9/libwv_la-escher.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-escher.lo `test -f 'wv-1.2.9/escher.c' || echo '$(srcdir)/'`wv-1.2.9/escher.c
+
+wv-1.2.9/libwv_la-fbse.lo: wv-1.2.9/fbse.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-fbse.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-fbse.Tpo -c -o wv-1.2.9/libwv_la-fbse.lo `test -f 'wv-1.2.9/fbse.c' || echo '$(srcdir)/'`wv-1.2.9/fbse.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-fbse.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-fbse.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/fbse.c' object='wv-1.2.9/libwv_la-fbse.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-fbse.lo `test -f 'wv-1.2.9/fbse.c' || echo '$(srcdir)/'`wv-1.2.9/fbse.c
+
+wv-1.2.9/libwv_la-fdoa.lo: wv-1.2.9/fdoa.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-fdoa.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-fdoa.Tpo -c -o wv-1.2.9/libwv_la-fdoa.lo `test -f 'wv-1.2.9/fdoa.c' || echo '$(srcdir)/'`wv-1.2.9/fdoa.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-fdoa.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-fdoa.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/fdoa.c' object='wv-1.2.9/libwv_la-fdoa.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-fdoa.lo `test -f 'wv-1.2.9/fdoa.c' || echo '$(srcdir)/'`wv-1.2.9/fdoa.c
+
+wv-1.2.9/libwv_la-ffn.lo: wv-1.2.9/ffn.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-ffn.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-ffn.Tpo -c -o wv-1.2.9/libwv_la-ffn.lo `test -f 'wv-1.2.9/ffn.c' || echo '$(srcdir)/'`wv-1.2.9/ffn.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-ffn.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-ffn.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/ffn.c' object='wv-1.2.9/libwv_la-ffn.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-ffn.lo `test -f 'wv-1.2.9/ffn.c' || echo '$(srcdir)/'`wv-1.2.9/ffn.c
+
+wv-1.2.9/libwv_la-fib.lo: wv-1.2.9/fib.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-fib.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-fib.Tpo -c -o wv-1.2.9/libwv_la-fib.lo `test -f 'wv-1.2.9/fib.c' || echo '$(srcdir)/'`wv-1.2.9/fib.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-fib.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-fib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/fib.c' object='wv-1.2.9/libwv_la-fib.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-fib.lo `test -f 'wv-1.2.9/fib.c' || echo '$(srcdir)/'`wv-1.2.9/fib.c
+
+wv-1.2.9/libwv_la-field.lo: wv-1.2.9/field.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-field.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-field.Tpo -c -o wv-1.2.9/libwv_la-field.lo `test -f 'wv-1.2.9/field.c' || echo '$(srcdir)/'`wv-1.2.9/field.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-field.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-field.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/field.c' object='wv-1.2.9/libwv_la-field.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-field.lo `test -f 'wv-1.2.9/field.c' || echo '$(srcdir)/'`wv-1.2.9/field.c
+
+wv-1.2.9/libwv_la-filetime.lo: wv-1.2.9/filetime.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-filetime.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-filetime.Tpo -c -o wv-1.2.9/libwv_la-filetime.lo `test -f 'wv-1.2.9/filetime.c' || echo '$(srcdir)/'`wv-1.2.9/filetime.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-filetime.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-filetime.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/filetime.c' object='wv-1.2.9/libwv_la-filetime.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-filetime.lo `test -f 'wv-1.2.9/filetime.c' || echo '$(srcdir)/'`wv-1.2.9/filetime.c
+
+wv-1.2.9/libwv_la-fkp.lo: wv-1.2.9/fkp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-fkp.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-fkp.Tpo -c -o wv-1.2.9/libwv_la-fkp.lo `test -f 'wv-1.2.9/fkp.c' || echo '$(srcdir)/'`wv-1.2.9/fkp.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-fkp.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-fkp.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/fkp.c' object='wv-1.2.9/libwv_la-fkp.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-fkp.lo `test -f 'wv-1.2.9/fkp.c' || echo '$(srcdir)/'`wv-1.2.9/fkp.c
+
+wv-1.2.9/libwv_la-fld.lo: wv-1.2.9/fld.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-fld.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-fld.Tpo -c -o wv-1.2.9/libwv_la-fld.lo `test -f 'wv-1.2.9/fld.c' || echo '$(srcdir)/'`wv-1.2.9/fld.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-fld.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-fld.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/fld.c' object='wv-1.2.9/libwv_la-fld.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-fld.lo `test -f 'wv-1.2.9/fld.c' || echo '$(srcdir)/'`wv-1.2.9/fld.c
+
+wv-1.2.9/libwv_la-font.lo: wv-1.2.9/font.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-font.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-font.Tpo -c -o wv-1.2.9/libwv_la-font.lo `test -f 'wv-1.2.9/font.c' || echo '$(srcdir)/'`wv-1.2.9/font.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-font.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-font.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/font.c' object='wv-1.2.9/libwv_la-font.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-font.lo `test -f 'wv-1.2.9/font.c' || echo '$(srcdir)/'`wv-1.2.9/font.c
+
+wv-1.2.9/libwv_la-fopt.lo: wv-1.2.9/fopt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-fopt.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-fopt.Tpo -c -o wv-1.2.9/libwv_la-fopt.lo `test -f 'wv-1.2.9/fopt.c' || echo '$(srcdir)/'`wv-1.2.9/fopt.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-fopt.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-fopt.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/fopt.c' object='wv-1.2.9/libwv_la-fopt.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-fopt.lo `test -f 'wv-1.2.9/fopt.c' || echo '$(srcdir)/'`wv-1.2.9/fopt.c
+
+wv-1.2.9/libwv_la-frd.lo: wv-1.2.9/frd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-frd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-frd.Tpo -c -o wv-1.2.9/libwv_la-frd.lo `test -f 'wv-1.2.9/frd.c' || echo '$(srcdir)/'`wv-1.2.9/frd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-frd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-frd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/frd.c' object='wv-1.2.9/libwv_la-frd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-frd.lo `test -f 'wv-1.2.9/frd.c' || echo '$(srcdir)/'`wv-1.2.9/frd.c
+
+wv-1.2.9/libwv_la-fspa.lo: wv-1.2.9/fspa.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-fspa.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-fspa.Tpo -c -o wv-1.2.9/libwv_la-fspa.lo `test -f 'wv-1.2.9/fspa.c' || echo '$(srcdir)/'`wv-1.2.9/fspa.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-fspa.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-fspa.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/fspa.c' object='wv-1.2.9/libwv_la-fspa.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-fspa.lo `test -f 'wv-1.2.9/fspa.c' || echo '$(srcdir)/'`wv-1.2.9/fspa.c
+
+wv-1.2.9/libwv_la-ftxbxs.lo: wv-1.2.9/ftxbxs.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-ftxbxs.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-ftxbxs.Tpo -c -o wv-1.2.9/libwv_la-ftxbxs.lo `test -f 'wv-1.2.9/ftxbxs.c' || echo '$(srcdir)/'`wv-1.2.9/ftxbxs.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-ftxbxs.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-ftxbxs.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/ftxbxs.c' object='wv-1.2.9/libwv_la-ftxbxs.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-ftxbxs.lo `test -f 'wv-1.2.9/ftxbxs.c' || echo '$(srcdir)/'`wv-1.2.9/ftxbxs.c
+
+wv-1.2.9/libwv_la-generic.lo: wv-1.2.9/generic.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-generic.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-generic.Tpo -c -o wv-1.2.9/libwv_la-generic.lo `test -f 'wv-1.2.9/generic.c' || echo '$(srcdir)/'`wv-1.2.9/generic.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-generic.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-generic.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/generic.c' object='wv-1.2.9/libwv_la-generic.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-generic.lo `test -f 'wv-1.2.9/generic.c' || echo '$(srcdir)/'`wv-1.2.9/generic.c
+
+wv-1.2.9/libwv_la-isbidi.lo: wv-1.2.9/isbidi.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-isbidi.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-isbidi.Tpo -c -o wv-1.2.9/libwv_la-isbidi.lo `test -f 'wv-1.2.9/isbidi.c' || echo '$(srcdir)/'`wv-1.2.9/isbidi.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-isbidi.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-isbidi.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/isbidi.c' object='wv-1.2.9/libwv_la-isbidi.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-isbidi.lo `test -f 'wv-1.2.9/isbidi.c' || echo '$(srcdir)/'`wv-1.2.9/isbidi.c
+
+wv-1.2.9/libwv_la-laolareplace.lo: wv-1.2.9/laolareplace.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-laolareplace.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-laolareplace.Tpo -c -o wv-1.2.9/libwv_la-laolareplace.lo `test -f 'wv-1.2.9/laolareplace.c' || echo '$(srcdir)/'`wv-1.2.9/laolareplace.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-laolareplace.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-laolareplace.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/laolareplace.c' object='wv-1.2.9/libwv_la-laolareplace.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-laolareplace.lo `test -f 'wv-1.2.9/laolareplace.c' || echo '$(srcdir)/'`wv-1.2.9/laolareplace.c
+
+wv-1.2.9/libwv_la-lfo.lo: wv-1.2.9/lfo.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-lfo.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-lfo.Tpo -c -o wv-1.2.9/libwv_la-lfo.lo `test -f 'wv-1.2.9/lfo.c' || echo '$(srcdir)/'`wv-1.2.9/lfo.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-lfo.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-lfo.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/lfo.c' object='wv-1.2.9/libwv_la-lfo.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-lfo.lo `test -f 'wv-1.2.9/lfo.c' || echo '$(srcdir)/'`wv-1.2.9/lfo.c
+
+wv-1.2.9/libwv_la-list.lo: wv-1.2.9/list.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-list.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-list.Tpo -c -o wv-1.2.9/libwv_la-list.lo `test -f 'wv-1.2.9/list.c' || echo '$(srcdir)/'`wv-1.2.9/list.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-list.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-list.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/list.c' object='wv-1.2.9/libwv_la-list.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-list.lo `test -f 'wv-1.2.9/list.c' || echo '$(srcdir)/'`wv-1.2.9/list.c
+
+wv-1.2.9/libwv_la-lspd.lo: wv-1.2.9/lspd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-lspd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-lspd.Tpo -c -o wv-1.2.9/libwv_la-lspd.lo `test -f 'wv-1.2.9/lspd.c' || echo '$(srcdir)/'`wv-1.2.9/lspd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-lspd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-lspd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/lspd.c' object='wv-1.2.9/libwv_la-lspd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-lspd.lo `test -f 'wv-1.2.9/lspd.c' || echo '$(srcdir)/'`wv-1.2.9/lspd.c
+
+wv-1.2.9/libwv_la-lst.lo: wv-1.2.9/lst.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-lst.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-lst.Tpo -c -o wv-1.2.9/libwv_la-lst.lo `test -f 'wv-1.2.9/lst.c' || echo '$(srcdir)/'`wv-1.2.9/lst.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-lst.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-lst.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/lst.c' object='wv-1.2.9/libwv_la-lst.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-lst.lo `test -f 'wv-1.2.9/lst.c' || echo '$(srcdir)/'`wv-1.2.9/lst.c
+
+wv-1.2.9/libwv_la-lvl.lo: wv-1.2.9/lvl.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-lvl.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-lvl.Tpo -c -o wv-1.2.9/libwv_la-lvl.lo `test -f 'wv-1.2.9/lvl.c' || echo '$(srcdir)/'`wv-1.2.9/lvl.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-lvl.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-lvl.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/lvl.c' object='wv-1.2.9/libwv_la-lvl.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-lvl.lo `test -f 'wv-1.2.9/lvl.c' || echo '$(srcdir)/'`wv-1.2.9/lvl.c
+
+wv-1.2.9/libwv_la-md5.lo: wv-1.2.9/md5.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-md5.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-md5.Tpo -c -o wv-1.2.9/libwv_la-md5.lo `test -f 'wv-1.2.9/md5.c' || echo '$(srcdir)/'`wv-1.2.9/md5.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-md5.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-md5.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/md5.c' object='wv-1.2.9/libwv_la-md5.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-md5.lo `test -f 'wv-1.2.9/md5.c' || echo '$(srcdir)/'`wv-1.2.9/md5.c
+
+wv-1.2.9/libwv_la-mtextra.lo: wv-1.2.9/mtextra.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-mtextra.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-mtextra.Tpo -c -o wv-1.2.9/libwv_la-mtextra.lo `test -f 'wv-1.2.9/mtextra.c' || echo '$(srcdir)/'`wv-1.2.9/mtextra.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-mtextra.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-mtextra.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/mtextra.c' object='wv-1.2.9/libwv_la-mtextra.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-mtextra.lo `test -f 'wv-1.2.9/mtextra.c' || echo '$(srcdir)/'`wv-1.2.9/mtextra.c
+
+wv-1.2.9/libwv_la-numrm.lo: wv-1.2.9/numrm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-numrm.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-numrm.Tpo -c -o wv-1.2.9/libwv_la-numrm.lo `test -f 'wv-1.2.9/numrm.c' || echo '$(srcdir)/'`wv-1.2.9/numrm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-numrm.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-numrm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/numrm.c' object='wv-1.2.9/libwv_la-numrm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-numrm.lo `test -f 'wv-1.2.9/numrm.c' || echo '$(srcdir)/'`wv-1.2.9/numrm.c
+
+wv-1.2.9/libwv_la-olst.lo: wv-1.2.9/olst.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-olst.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-olst.Tpo -c -o wv-1.2.9/libwv_la-olst.lo `test -f 'wv-1.2.9/olst.c' || echo '$(srcdir)/'`wv-1.2.9/olst.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-olst.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-olst.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/olst.c' object='wv-1.2.9/libwv_la-olst.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-olst.lo `test -f 'wv-1.2.9/olst.c' || echo '$(srcdir)/'`wv-1.2.9/olst.c
+
+wv-1.2.9/libwv_la-pap.lo: wv-1.2.9/pap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-pap.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-pap.Tpo -c -o wv-1.2.9/libwv_la-pap.lo `test -f 'wv-1.2.9/pap.c' || echo '$(srcdir)/'`wv-1.2.9/pap.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-pap.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-pap.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/pap.c' object='wv-1.2.9/libwv_la-pap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-pap.lo `test -f 'wv-1.2.9/pap.c' || echo '$(srcdir)/'`wv-1.2.9/pap.c
+
+wv-1.2.9/libwv_la-pcd.lo: wv-1.2.9/pcd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-pcd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-pcd.Tpo -c -o wv-1.2.9/libwv_la-pcd.lo `test -f 'wv-1.2.9/pcd.c' || echo '$(srcdir)/'`wv-1.2.9/pcd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-pcd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-pcd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/pcd.c' object='wv-1.2.9/libwv_la-pcd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-pcd.lo `test -f 'wv-1.2.9/pcd.c' || echo '$(srcdir)/'`wv-1.2.9/pcd.c
+
+wv-1.2.9/libwv_la-pgd.lo: wv-1.2.9/pgd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-pgd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-pgd.Tpo -c -o wv-1.2.9/libwv_la-pgd.lo `test -f 'wv-1.2.9/pgd.c' || echo '$(srcdir)/'`wv-1.2.9/pgd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-pgd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-pgd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/pgd.c' object='wv-1.2.9/libwv_la-pgd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-pgd.lo `test -f 'wv-1.2.9/pgd.c' || echo '$(srcdir)/'`wv-1.2.9/pgd.c
+
+wv-1.2.9/libwv_la-phe.lo: wv-1.2.9/phe.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-phe.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-phe.Tpo -c -o wv-1.2.9/libwv_la-phe.lo `test -f 'wv-1.2.9/phe.c' || echo '$(srcdir)/'`wv-1.2.9/phe.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-phe.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-phe.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/phe.c' object='wv-1.2.9/libwv_la-phe.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-phe.lo `test -f 'wv-1.2.9/phe.c' || echo '$(srcdir)/'`wv-1.2.9/phe.c
+
+wv-1.2.9/libwv_la-picf.lo: wv-1.2.9/picf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-picf.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-picf.Tpo -c -o wv-1.2.9/libwv_la-picf.lo `test -f 'wv-1.2.9/picf.c' || echo '$(srcdir)/'`wv-1.2.9/picf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-picf.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-picf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/picf.c' object='wv-1.2.9/libwv_la-picf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-picf.lo `test -f 'wv-1.2.9/picf.c' || echo '$(srcdir)/'`wv-1.2.9/picf.c
+
+wv-1.2.9/libwv_la-plcf.lo: wv-1.2.9/plcf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-plcf.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-plcf.Tpo -c -o wv-1.2.9/libwv_la-plcf.lo `test -f 'wv-1.2.9/plcf.c' || echo '$(srcdir)/'`wv-1.2.9/plcf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-plcf.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-plcf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/plcf.c' object='wv-1.2.9/libwv_la-plcf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-plcf.lo `test -f 'wv-1.2.9/plcf.c' || echo '$(srcdir)/'`wv-1.2.9/plcf.c
+
+wv-1.2.9/libwv_la-prm.lo: wv-1.2.9/prm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-prm.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-prm.Tpo -c -o wv-1.2.9/libwv_la-prm.lo `test -f 'wv-1.2.9/prm.c' || echo '$(srcdir)/'`wv-1.2.9/prm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-prm.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-prm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/prm.c' object='wv-1.2.9/libwv_la-prm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-prm.lo `test -f 'wv-1.2.9/prm.c' || echo '$(srcdir)/'`wv-1.2.9/prm.c
+
+wv-1.2.9/libwv_la-rc4.lo: wv-1.2.9/rc4.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-rc4.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-rc4.Tpo -c -o wv-1.2.9/libwv_la-rc4.lo `test -f 'wv-1.2.9/rc4.c' || echo '$(srcdir)/'`wv-1.2.9/rc4.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-rc4.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-rc4.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/rc4.c' object='wv-1.2.9/libwv_la-rc4.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-rc4.lo `test -f 'wv-1.2.9/rc4.c' || echo '$(srcdir)/'`wv-1.2.9/rc4.c
+
+wv-1.2.9/libwv_la-reasons.lo: wv-1.2.9/reasons.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-reasons.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-reasons.Tpo -c -o wv-1.2.9/libwv_la-reasons.lo `test -f 'wv-1.2.9/reasons.c' || echo '$(srcdir)/'`wv-1.2.9/reasons.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-reasons.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-reasons.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/reasons.c' object='wv-1.2.9/libwv_la-reasons.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-reasons.lo `test -f 'wv-1.2.9/reasons.c' || echo '$(srcdir)/'`wv-1.2.9/reasons.c
+
+wv-1.2.9/libwv_la-roman.lo: wv-1.2.9/roman.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-roman.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-roman.Tpo -c -o wv-1.2.9/libwv_la-roman.lo `test -f 'wv-1.2.9/roman.c' || echo '$(srcdir)/'`wv-1.2.9/roman.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-roman.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-roman.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/roman.c' object='wv-1.2.9/libwv_la-roman.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-roman.lo `test -f 'wv-1.2.9/roman.c' || echo '$(srcdir)/'`wv-1.2.9/roman.c
+
+wv-1.2.9/libwv_la-rr.lo: wv-1.2.9/rr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-rr.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-rr.Tpo -c -o wv-1.2.9/libwv_la-rr.lo `test -f 'wv-1.2.9/rr.c' || echo '$(srcdir)/'`wv-1.2.9/rr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-rr.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-rr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/rr.c' object='wv-1.2.9/libwv_la-rr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-rr.lo `test -f 'wv-1.2.9/rr.c' || echo '$(srcdir)/'`wv-1.2.9/rr.c
+
+wv-1.2.9/libwv_la-rs.lo: wv-1.2.9/rs.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-rs.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-rs.Tpo -c -o wv-1.2.9/libwv_la-rs.lo `test -f 'wv-1.2.9/rs.c' || echo '$(srcdir)/'`wv-1.2.9/rs.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-rs.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-rs.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/rs.c' object='wv-1.2.9/libwv_la-rs.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-rs.lo `test -f 'wv-1.2.9/rs.c' || echo '$(srcdir)/'`wv-1.2.9/rs.c
+
+wv-1.2.9/libwv_la-sed.lo: wv-1.2.9/sed.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-sed.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-sed.Tpo -c -o wv-1.2.9/libwv_la-sed.lo `test -f 'wv-1.2.9/sed.c' || echo '$(srcdir)/'`wv-1.2.9/sed.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-sed.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-sed.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/sed.c' object='wv-1.2.9/libwv_la-sed.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-sed.lo `test -f 'wv-1.2.9/sed.c' || echo '$(srcdir)/'`wv-1.2.9/sed.c
+
+wv-1.2.9/libwv_la-sep.lo: wv-1.2.9/sep.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-sep.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-sep.Tpo -c -o wv-1.2.9/libwv_la-sep.lo `test -f 'wv-1.2.9/sep.c' || echo '$(srcdir)/'`wv-1.2.9/sep.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-sep.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-sep.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/sep.c' object='wv-1.2.9/libwv_la-sep.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-sep.lo `test -f 'wv-1.2.9/sep.c' || echo '$(srcdir)/'`wv-1.2.9/sep.c
+
+wv-1.2.9/libwv_la-shd.lo: wv-1.2.9/shd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-shd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-shd.Tpo -c -o wv-1.2.9/libwv_la-shd.lo `test -f 'wv-1.2.9/shd.c' || echo '$(srcdir)/'`wv-1.2.9/shd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-shd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-shd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/shd.c' object='wv-1.2.9/libwv_la-shd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-shd.lo `test -f 'wv-1.2.9/shd.c' || echo '$(srcdir)/'`wv-1.2.9/shd.c
+
+wv-1.2.9/libwv_la-sprm.lo: wv-1.2.9/sprm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-sprm.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-sprm.Tpo -c -o wv-1.2.9/libwv_la-sprm.lo `test -f 'wv-1.2.9/sprm.c' || echo '$(srcdir)/'`wv-1.2.9/sprm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-sprm.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-sprm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/sprm.c' object='wv-1.2.9/libwv_la-sprm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-sprm.lo `test -f 'wv-1.2.9/sprm.c' || echo '$(srcdir)/'`wv-1.2.9/sprm.c
+
+wv-1.2.9/libwv_la-strcasecmp.lo: wv-1.2.9/strcasecmp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-strcasecmp.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-strcasecmp.Tpo -c -o wv-1.2.9/libwv_la-strcasecmp.lo `test -f 'wv-1.2.9/strcasecmp.c' || echo '$(srcdir)/'`wv-1.2.9/strcasecmp.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-strcasecmp.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-strcasecmp.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/strcasecmp.c' object='wv-1.2.9/libwv_la-strcasecmp.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-strcasecmp.lo `test -f 'wv-1.2.9/strcasecmp.c' || echo '$(srcdir)/'`wv-1.2.9/strcasecmp.c
+
+wv-1.2.9/libwv_la-sttbf.lo: wv-1.2.9/sttbf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-sttbf.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-sttbf.Tpo -c -o wv-1.2.9/libwv_la-sttbf.lo `test -f 'wv-1.2.9/sttbf.c' || echo '$(srcdir)/'`wv-1.2.9/sttbf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-sttbf.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-sttbf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/sttbf.c' object='wv-1.2.9/libwv_la-sttbf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-sttbf.lo `test -f 'wv-1.2.9/sttbf.c' || echo '$(srcdir)/'`wv-1.2.9/sttbf.c
+
+wv-1.2.9/libwv_la-stylesheet.lo: wv-1.2.9/stylesheet.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-stylesheet.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-stylesheet.Tpo -c -o wv-1.2.9/libwv_la-stylesheet.lo `test -f 'wv-1.2.9/stylesheet.c' || echo '$(srcdir)/'`wv-1.2.9/stylesheet.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-stylesheet.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-stylesheet.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/stylesheet.c' object='wv-1.2.9/libwv_la-stylesheet.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-stylesheet.lo `test -f 'wv-1.2.9/stylesheet.c' || echo '$(srcdir)/'`wv-1.2.9/stylesheet.c
+
+wv-1.2.9/libwv_la-support.lo: wv-1.2.9/support.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-support.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-support.Tpo -c -o wv-1.2.9/libwv_la-support.lo `test -f 'wv-1.2.9/support.c' || echo '$(srcdir)/'`wv-1.2.9/support.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-support.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-support.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/support.c' object='wv-1.2.9/libwv_la-support.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-support.lo `test -f 'wv-1.2.9/support.c' || echo '$(srcdir)/'`wv-1.2.9/support.c
+
+wv-1.2.9/libwv_la-symbol.lo: wv-1.2.9/symbol.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-symbol.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-symbol.Tpo -c -o wv-1.2.9/libwv_la-symbol.lo `test -f 'wv-1.2.9/symbol.c' || echo '$(srcdir)/'`wv-1.2.9/symbol.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-symbol.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-symbol.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/symbol.c' object='wv-1.2.9/libwv_la-symbol.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-symbol.lo `test -f 'wv-1.2.9/symbol.c' || echo '$(srcdir)/'`wv-1.2.9/symbol.c
+
+wv-1.2.9/libwv_la-table.lo: wv-1.2.9/table.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-table.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-table.Tpo -c -o wv-1.2.9/libwv_la-table.lo `test -f 'wv-1.2.9/table.c' || echo '$(srcdir)/'`wv-1.2.9/table.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-table.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-table.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/table.c' object='wv-1.2.9/libwv_la-table.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-table.lo `test -f 'wv-1.2.9/table.c' || echo '$(srcdir)/'`wv-1.2.9/table.c
+
+wv-1.2.9/libwv_la-tap.lo: wv-1.2.9/tap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-tap.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-tap.Tpo -c -o wv-1.2.9/libwv_la-tap.lo `test -f 'wv-1.2.9/tap.c' || echo '$(srcdir)/'`wv-1.2.9/tap.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-tap.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-tap.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/tap.c' object='wv-1.2.9/libwv_la-tap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-tap.lo `test -f 'wv-1.2.9/tap.c' || echo '$(srcdir)/'`wv-1.2.9/tap.c
+
+wv-1.2.9/libwv_la-tbd.lo: wv-1.2.9/tbd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-tbd.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-tbd.Tpo -c -o wv-1.2.9/libwv_la-tbd.lo `test -f 'wv-1.2.9/tbd.c' || echo '$(srcdir)/'`wv-1.2.9/tbd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-tbd.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-tbd.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/tbd.c' object='wv-1.2.9/libwv_la-tbd.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-tbd.lo `test -f 'wv-1.2.9/tbd.c' || echo '$(srcdir)/'`wv-1.2.9/tbd.c
+
+wv-1.2.9/libwv_la-tc.lo: wv-1.2.9/tc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-tc.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-tc.Tpo -c -o wv-1.2.9/libwv_la-tc.lo `test -f 'wv-1.2.9/tc.c' || echo '$(srcdir)/'`wv-1.2.9/tc.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-tc.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-tc.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/tc.c' object='wv-1.2.9/libwv_la-tc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-tc.lo `test -f 'wv-1.2.9/tc.c' || echo '$(srcdir)/'`wv-1.2.9/tc.c
+
+wv-1.2.9/libwv_la-text.lo: wv-1.2.9/text.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-text.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-text.Tpo -c -o wv-1.2.9/libwv_la-text.lo `test -f 'wv-1.2.9/text.c' || echo '$(srcdir)/'`wv-1.2.9/text.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-text.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-text.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/text.c' object='wv-1.2.9/libwv_la-text.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-text.lo `test -f 'wv-1.2.9/text.c' || echo '$(srcdir)/'`wv-1.2.9/text.c
+
+wv-1.2.9/libwv_la-tlp.lo: wv-1.2.9/tlp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-tlp.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-tlp.Tpo -c -o wv-1.2.9/libwv_la-tlp.lo `test -f 'wv-1.2.9/tlp.c' || echo '$(srcdir)/'`wv-1.2.9/tlp.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-tlp.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-tlp.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/tlp.c' object='wv-1.2.9/libwv_la-tlp.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-tlp.lo `test -f 'wv-1.2.9/tlp.c' || echo '$(srcdir)/'`wv-1.2.9/tlp.c
+
+wv-1.2.9/libwv_la-twips.lo: wv-1.2.9/twips.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-twips.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-twips.Tpo -c -o wv-1.2.9/libwv_la-twips.lo `test -f 'wv-1.2.9/twips.c' || echo '$(srcdir)/'`wv-1.2.9/twips.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-twips.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-twips.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/twips.c' object='wv-1.2.9/libwv_la-twips.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-twips.lo `test -f 'wv-1.2.9/twips.c' || echo '$(srcdir)/'`wv-1.2.9/twips.c
+
+wv-1.2.9/libwv_la-unicode.lo: wv-1.2.9/unicode.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-unicode.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-unicode.Tpo -c -o wv-1.2.9/libwv_la-unicode.lo `test -f 'wv-1.2.9/unicode.c' || echo '$(srcdir)/'`wv-1.2.9/unicode.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-unicode.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-unicode.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/unicode.c' object='wv-1.2.9/libwv_la-unicode.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-unicode.lo `test -f 'wv-1.2.9/unicode.c' || echo '$(srcdir)/'`wv-1.2.9/unicode.c
+
+wv-1.2.9/libwv_la-utf.lo: wv-1.2.9/utf.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-utf.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-utf.Tpo -c -o wv-1.2.9/libwv_la-utf.lo `test -f 'wv-1.2.9/utf.c' || echo '$(srcdir)/'`wv-1.2.9/utf.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-utf.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-utf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/utf.c' object='wv-1.2.9/libwv_la-utf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-utf.lo `test -f 'wv-1.2.9/utf.c' || echo '$(srcdir)/'`wv-1.2.9/utf.c
+
+wv-1.2.9/libwv_la-version.lo: wv-1.2.9/version.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-version.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-version.Tpo -c -o wv-1.2.9/libwv_la-version.lo `test -f 'wv-1.2.9/version.c' || echo '$(srcdir)/'`wv-1.2.9/version.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-version.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-version.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/version.c' object='wv-1.2.9/libwv_la-version.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-version.lo `test -f 'wv-1.2.9/version.c' || echo '$(srcdir)/'`wv-1.2.9/version.c
+
+wv-1.2.9/libwv_la-winmmap.lo: wv-1.2.9/winmmap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-winmmap.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-winmmap.Tpo -c -o wv-1.2.9/libwv_la-winmmap.lo `test -f 'wv-1.2.9/winmmap.c' || echo '$(srcdir)/'`wv-1.2.9/winmmap.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-winmmap.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-winmmap.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/winmmap.c' object='wv-1.2.9/libwv_la-winmmap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-winmmap.lo `test -f 'wv-1.2.9/winmmap.c' || echo '$(srcdir)/'`wv-1.2.9/winmmap.c
+
+wv-1.2.9/libwv_la-wkb.lo: wv-1.2.9/wkb.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-wkb.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-wkb.Tpo -c -o wv-1.2.9/libwv_la-wkb.lo `test -f 'wv-1.2.9/wkb.c' || echo '$(srcdir)/'`wv-1.2.9/wkb.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-wkb.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-wkb.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/wkb.c' object='wv-1.2.9/libwv_la-wkb.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-wkb.lo `test -f 'wv-1.2.9/wkb.c' || echo '$(srcdir)/'`wv-1.2.9/wkb.c
+
+wv-1.2.9/libwv_la-wvConfig.lo: wv-1.2.9/wvConfig.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-wvConfig.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-wvConfig.Tpo -c -o wv-1.2.9/libwv_la-wvConfig.lo `test -f 'wv-1.2.9/wvConfig.c' || echo '$(srcdir)/'`wv-1.2.9/wvConfig.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-wvConfig.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-wvConfig.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/wvConfig.c' object='wv-1.2.9/libwv_la-wvConfig.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-wvConfig.lo `test -f 'wv-1.2.9/wvConfig.c' || echo '$(srcdir)/'`wv-1.2.9/wvConfig.c
+
+wv-1.2.9/libwv_la-wvHtmlEngine.lo: wv-1.2.9/wvHtmlEngine.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-wvHtmlEngine.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Tpo -c -o wv-1.2.9/libwv_la-wvHtmlEngine.lo `test -f 'wv-1.2.9/wvHtmlEngine.c' || echo '$(srcdir)/'`wv-1.2.9/wvHtmlEngine.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/wvHtmlEngine.c' object='wv-1.2.9/libwv_la-wvHtmlEngine.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-wvHtmlEngine.lo `test -f 'wv-1.2.9/wvHtmlEngine.c' || echo '$(srcdir)/'`wv-1.2.9/wvHtmlEngine.c
+
+wv-1.2.9/libwv_la-wvTextEngine.lo: wv-1.2.9/wvTextEngine.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-wvTextEngine.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Tpo -c -o wv-1.2.9/libwv_la-wvTextEngine.lo `test -f 'wv-1.2.9/wvTextEngine.c' || echo '$(srcdir)/'`wv-1.2.9/wvTextEngine.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/wvTextEngine.c' object='wv-1.2.9/libwv_la-wvTextEngine.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-wvTextEngine.lo `test -f 'wv-1.2.9/wvTextEngine.c' || echo '$(srcdir)/'`wv-1.2.9/wvTextEngine.c
+
+wv-1.2.9/libwv_la-wvparse.lo: wv-1.2.9/wvparse.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-wvparse.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Tpo -c -o wv-1.2.9/libwv_la-wvparse.lo `test -f 'wv-1.2.9/wvparse.c' || echo '$(srcdir)/'`wv-1.2.9/wvparse.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/wvparse.c' object='wv-1.2.9/libwv_la-wvparse.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-wvparse.lo `test -f 'wv-1.2.9/wvparse.c' || echo '$(srcdir)/'`wv-1.2.9/wvparse.c
+
+wv-1.2.9/libwv_la-xst.lo: wv-1.2.9/xst.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -MT wv-1.2.9/libwv_la-xst.lo -MD -MP -MF wv-1.2.9/$(DEPDIR)/libwv_la-xst.Tpo -c -o wv-1.2.9/libwv_la-xst.lo `test -f 'wv-1.2.9/xst.c' || echo '$(srcdir)/'`wv-1.2.9/xst.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/libwv_la-xst.Tpo wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/xst.c' object='wv-1.2.9/libwv_la-xst.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-xst.lo `test -f 'wv-1.2.9/xst.c' || echo '$(srcdir)/'`wv-1.2.9/xst.c
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -4418,6 +5632,7 @@ clean-libtool:
 	-rm -rf libwpd-0.10.3/src/lib/.libs libwpd-0.10.3/src/lib/_libs
 	-rm -rf libwpg-0.3.4/src/lib/.libs libwpg-0.3.4/src/lib/_libs
 	-rm -rf libwps-0.4.11/src/lib/.libs libwps-0.4.11/src/lib/_libs
+	-rm -rf wv-1.2.9/.libs wv-1.2.9/_libs
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run 'make' without going through this Makefile.
@@ -4614,6 +5829,8 @@ distclean-generic:
 	-rm -f libwpg-0.3.4/src/lib/$(am__dirstamp)
 	-rm -f libwps-0.4.11/src/lib/$(DEPDIR)/$(am__dirstamp)
 	-rm -f libwps-0.4.11/src/lib/$(am__dirstamp)
+	-rm -f wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+	-rm -f wv-1.2.9/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -4892,6 +6109,98 @@ distclean: distclean-recursive
 	-rm -f libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-XYWrite.Plo
 	-rm -f libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_internal.Plo
 	-rm -f libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_tools_win.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-anld.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-anlv.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-asumy.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-asumyi.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-atrd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-basename.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bintree.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bkd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bkf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bkl.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-blip.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-brc.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bte.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bx.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-chp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-clx.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-crc32.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dcs.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decode_complex.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decode_simple.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decompresswmf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decrypt95.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decrypt97.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dogrid.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dop.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-doptypography.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dttm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-error.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-escher.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fbse.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fdoa.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-ffn.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fib.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-field.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-filetime.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fkp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fld.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-font.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fopt.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-frd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fspa.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-ftxbxs.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-generic.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-isbidi.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-laolareplace.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lfo.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-list.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lspd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lst.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lvl.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-md5.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-mtextra.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-numrm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-olst.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-pap.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-pcd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-pgd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-phe.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-picf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-plcf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-prm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-rc4.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-reasons.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-roman.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-rr.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-rs.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sed.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sep.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-shd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sprm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-strcasecmp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sttbf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-stylesheet.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-support.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-symbol.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-table.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tap.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tbd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tc.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-text.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tlp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-twips.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-unicode.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-utf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-version.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-winmmap.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wkb.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvConfig.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -5205,6 +6514,98 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-XYWrite.Plo
 	-rm -f libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_internal.Plo
 	-rm -f libwps-0.4.11/src/lib/$(DEPDIR)/libwps_la-libwps_tools_win.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-anld.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-anlv.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-asumy.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-asumyi.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-atrd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-basename.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bintree.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bkd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bkf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bkl.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-blip.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-brc.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bte.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-bx.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-chp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-clx.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-crc32.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dcs.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decode_complex.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decode_simple.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decompresswmf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decrypt95.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-decrypt97.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dogrid.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dop.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-doptypography.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-dttm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-error.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-escher.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fbse.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fdoa.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-ffn.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fib.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-field.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-filetime.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fkp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fld.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-font.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fopt.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-frd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-fspa.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-ftxbxs.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-generic.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-isbidi.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-laolareplace.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lfo.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-list.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lspd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lst.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-lvl.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-md5.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-mtextra.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-numrm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-olst.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-pap.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-pcd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-pgd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-phe.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-picf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-plcf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-prm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-rc4.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-reasons.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-roman.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-rr.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-rs.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sed.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sep.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-shd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sprm.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-strcasecmp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-sttbf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-stylesheet.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-support.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-symbol.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-table.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tap.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tbd.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tc.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-text.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-tlp.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-twips.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-unicode.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-utf.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-version.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-winmmap.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wkb.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvConfig.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

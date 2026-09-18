@@ -303,3 +303,107 @@ libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.11/inc -I$(srcdir)/librevenge-0.0.6/
 
 
 EXTRA_DIST = README
+
+
+# vendored, security-patched wv (libwv) for .doc import --
+# no system wv-1.0 required
+noinst_LTLIBRARIES += libwv.la
+
+libwv_la_SOURCES = \
+	wv-1.2.9/anld.c \
+	wv-1.2.9/anlv.c \
+	wv-1.2.9/asumy.c \
+	wv-1.2.9/asumyi.c \
+	wv-1.2.9/atrd.c \
+	wv-1.2.9/basename.c \
+	wv-1.2.9/bintree.c \
+	wv-1.2.9/bkd.c \
+	wv-1.2.9/bkf.c \
+	wv-1.2.9/bkl.c \
+	wv-1.2.9/blip.c \
+	wv-1.2.9/brc.c \
+	wv-1.2.9/bte.c \
+	wv-1.2.9/bx.c \
+	wv-1.2.9/chp.c \
+	wv-1.2.9/clx.c \
+	wv-1.2.9/crc32.c \
+	wv-1.2.9/dcs.c \
+	wv-1.2.9/decode_complex.c \
+	wv-1.2.9/decode_simple.c \
+	wv-1.2.9/decompresswmf.c \
+	wv-1.2.9/decrypt95.c \
+	wv-1.2.9/decrypt97.c \
+	wv-1.2.9/dogrid.c \
+	wv-1.2.9/dop.c \
+	wv-1.2.9/doptypography.c \
+	wv-1.2.9/dttm.c \
+	wv-1.2.9/error.c \
+	wv-1.2.9/escher.c \
+	wv-1.2.9/fbse.c \
+	wv-1.2.9/fdoa.c \
+	wv-1.2.9/ffn.c \
+	wv-1.2.9/fib.c \
+	wv-1.2.9/field.c \
+	wv-1.2.9/filetime.c \
+	wv-1.2.9/fkp.c \
+	wv-1.2.9/fld.c \
+	wv-1.2.9/font.c \
+	wv-1.2.9/fopt.c \
+	wv-1.2.9/frd.c \
+	wv-1.2.9/fspa.c \
+	wv-1.2.9/ftxbxs.c \
+	wv-1.2.9/generic.c \
+	wv-1.2.9/isbidi.c \
+	wv-1.2.9/laolareplace.c \
+	wv-1.2.9/lfo.c \
+	wv-1.2.9/list.c \
+	wv-1.2.9/lspd.c \
+	wv-1.2.9/lst.c \
+	wv-1.2.9/lvl.c \
+	wv-1.2.9/md5.c \
+	wv-1.2.9/mtextra.c \
+	wv-1.2.9/numrm.c \
+	wv-1.2.9/olst.c \
+	wv-1.2.9/pap.c \
+	wv-1.2.9/pcd.c \
+	wv-1.2.9/pgd.c \
+	wv-1.2.9/phe.c \
+	wv-1.2.9/picf.c \
+	wv-1.2.9/plcf.c \
+	wv-1.2.9/prm.c \
+	wv-1.2.9/rc4.c \
+	wv-1.2.9/reasons.c \
+	wv-1.2.9/roman.c \
+	wv-1.2.9/rr.c \
+	wv-1.2.9/rs.c \
+	wv-1.2.9/sed.c \
+	wv-1.2.9/sep.c \
+	wv-1.2.9/shd.c \
+	wv-1.2.9/sprm.c \
+	wv-1.2.9/strcasecmp.c \
+	wv-1.2.9/sttbf.c \
+	wv-1.2.9/stylesheet.c \
+	wv-1.2.9/support.c \
+	wv-1.2.9/symbol.c \
+	wv-1.2.9/table.c \
+	wv-1.2.9/tap.c \
+	wv-1.2.9/tbd.c \
+	wv-1.2.9/tc.c \
+	wv-1.2.9/text.c \
+	wv-1.2.9/tlp.c \
+	wv-1.2.9/twips.c \
+	wv-1.2.9/unicode.c \
+	wv-1.2.9/utf.c \
+	wv-1.2.9/version.c \
+	wv-1.2.9/winmmap.c \
+	wv-1.2.9/wkb.c \
+	wv-1.2.9/wvConfig.c \
+	wv-1.2.9/wvHtmlEngine.c \
+	wv-1.2.9/wvTextEngine.c \
+	wv-1.2.9/wvparse.c \
+	wv-1.2.9/xst.c
+
+libwv_la_CPPFLAGS = -I$(srcdir)/wv-1.2.9 $(DEPS_CFLAGS)
+libwv_la_CFLAGS = -fPIC -DHAVE_CONFIG_H
+
+EXTRA_DIST += wv-1.2.9/config.h

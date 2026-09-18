@@ -170,6 +170,8 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	virtual void _setAutoSaveFilePeriod(const UT_String &stPeriod) = 0;
 	virtual void _gatherAutoSaveFileExt(UT_String &stRetVal) = 0;
 	virtual void _setAutoSaveFileExt(const UT_String &stExt) = 0;
+	virtual void _gatherDefaultSaveFormat(UT_String &stRetVal) = 0;
+	virtual void _setDefaultSaveFormat(const UT_String &stExt) = 0;
 
 	// Jordi: For now this is just implemented in win32, we should make it
 	// an abstract member if we decide to implemented in all platforms

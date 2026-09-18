@@ -70,14 +70,14 @@ AC_ARG_ENABLE([embedded],
 fribidi_req='fribidi >= 0.10.4'
 glib_req='glib-2.0 >= 2.74.0 gthread-2.0 >= 2.74.0 gobject-2.0 >= 2.74.0'
 gsf_req='libgsf-1 >= 1.14.26'
-wv_req='wv-1.0 >= 1.2.0'
+zlib_req='zlib'
 
 xslt_req='libxslt'
 xp_pkgs="
   ${fribidi_req}
   ${glib_req}
   ${gsf_req}
-  ${wv_req}
+  ${zlib_req}
   ${xslt_req}
 "
 
@@ -604,6 +604,9 @@ deps_pkgs="$deps_pkgs $gtk_pkgs x11"
 PKG_CHECK_MODULES(DEPS,[$deps_pkgs])
 
 DEPS_CFLAGS="$DEPS_CFLAGS -DGDK_VERSION_MIN_REQUIRED=$GTK_ENCODED_VERSION -DGDK_VERSION_MAX_ALLOWED=$GTK_ENCODED_VERSION"
+
+dnl wv is vendored under thirdparty/ (patched, no system libwv needed)
+DEPS_CFLAGS="$DEPS_CFLAGS -I\${abs_top_srcdir}/thirdparty/wv-1.2.9"
 
 dnl make that for all.
 AC_DEFINE([WITH_CAIRO], [1], [Using Cairo])

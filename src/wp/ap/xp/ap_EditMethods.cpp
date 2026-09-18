@@ -3581,42 +3581,35 @@ bool helpLocalizeAndOpenURL(const char* pathBeforeLang, const char* pathAfterLan
 
 Defun0(helpContents)
 {
-	return helpLocalizeAndOpenURL("help", "index", "http://www.abisource.com/help/");
+	return helpLocalizeAndOpenURL("help", "index", "https://gitlab.gnome.org/World/AbiWord");
 }
 
 Defun0(helpIntro)
 {
-	return helpLocalizeAndOpenURL("help", "introduction", "http://www.abisource.com/help/");
+	return helpLocalizeAndOpenURL("help", "introduction", "https://gitlab.gnome.org/World/AbiWord");
 }
 
 Defun0(helpCheckVer)
 {
-	UT_String versionURL ("http://www.abisource.com/users/check_version.phtml?version=");
-	versionURL += XAP_App::s_szBuild_Version;
+	UT_String versionURL ("https://gitlab.gnome.org/World/AbiWord/-/tags");
 	return _openURL(versionURL.c_str());
 }
 
 Defun0(helpReportBug)
 {
-	UT_String bugURL ("http://bugzilla.abisource.com/enter_bug.cgi?product=AbiWord");
-
-  bugURL += "&version=";
-  bugURL += XAP_App::s_szBuild_Version;
-  bugURL += "&comment=(";
-  bugURL += XAP_App::s_szBuild_Options;
-  bugURL += ")%0d%0a%0d%0a";
+	UT_String bugURL ("https://gitlab.gnome.org/World/AbiWord/-/issues/new");
 
   return _openURL(bugURL.c_str());
 }
 
 Defun0(helpSearch)
 {
-	return helpLocalizeAndOpenURL("help", "search", "http://www.abisource.com/help/");
+	return helpLocalizeAndOpenURL("help", "search", "https://gitlab.gnome.org/World/AbiWord");
 }
 
 Defun0(helpCredits)
 {
-	return helpLocalizeAndOpenURL("help", "credits", "http://www.abisource.com/help/");
+	return helpLocalizeAndOpenURL("help", "credits", "https://gitlab.gnome.org/World/AbiWord");
 }
 
 Defun1(cycleWindows)

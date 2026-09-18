@@ -226,17 +226,14 @@ UT_Error AP_Frame::_loadDocument(const char * szFilename, IEFileType ieft,
 	    // this fixes bug 1668 - DAL
 
 		UT_DEBUGMSG(("Could not open the document - create new istead error code is %d \n", errorCode));
-	    if ( UT_IE_FILENOTFOUND == errorCode ||  UT_INVALIDFILENAME == errorCode  )
+	    if ( UT_IE_FILENOTFOUND == errorCode )
 		{
+			// only a genuinely missing file gets the "create new"
+			// treatment; anything else (permission denied, invalid
+			// name, unreadable) must surface an error to the user
+			// rather than a silent empty page (Debian #528679)
 			UT_DEBUGMSG(("File NOT found!! Create new doc \n"));
-			if( UT_IE_FILENOTFOUND == errorCode)
-			{
-				errorCode = pNewDoc->saveAs(szFilename, ieft);
-			}
-			else
-			{
-				errorCode = 0;
-			}
+			errorCode = pNewDoc->saveAs(szFilename, ieft);
 			UT_DEBUGMSG(("errocode after save is %d\n",errorCode));
 		}
 	  }

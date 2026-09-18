@@ -689,10 +689,24 @@ UT_Error PD_Document::_importFile(const char * szFilename, int ieft,
 								  bool bIsImportFile, const char* impProps)
 {
 	GsfInput * input;
+	GError * err = nullptr;
 
-	input = UT_go_file_open(szFilename, nullptr);
+	input = UT_go_file_open(szFilename, &err);
 	if (!input)
 	{
+		// distinguish "file does not exist" from "exists but cannot be
+		// opened" (permission denied etc.) so callers can report a real
+		// error instead of silently showing an empty page (Debian #528679)
+		if (err)
+		{
+			UT_Error ret = UT_IE_COULDNOTOPEN;
+			if (g_error_matches(err, G_FILE_ERROR, G_FILE_ERROR_NOENT) ||
+			    g_error_matches(err, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+				ret = UT_IE_FILENOTFOUND;
+			UT_DEBUGMSG(("PD_Document::importFile -- open failed: %s\n", err->message));
+			g_error_free(err);
+			return ret;
+		}
 		UT_DEBUGMSG(("PD_Document::importFile -- invalid filename\n"));
 		return UT_INVALIDFILENAME;
 	}	

@@ -86,6 +86,8 @@ public:
 			virtual void _setAutoSaveFilePeriod    (const UT_String &stPeriod) override;
 			virtual void _gatherAutoSaveFileExt    (      UT_String &stRetVal) override;
 			virtual void _setAutoSaveFileExt       (const UT_String &stExt) override;
+			virtual void _gatherDefaultSaveFormat  (      UT_String &stRetVal) override;
+			virtual void _setDefaultSaveFormat     (const UT_String &stExt) override;
 
 		// RTL Text Layout
 
@@ -135,6 +137,7 @@ public:
 
 	// private construction functions
 	void	    _setupUnitMenu(GtkWidget *optionmenu, const XAP_StringSet *pSS);
+	void	    _setupSaveFormatMenu(GtkWidget *optionmenu);
 	void	    _constructWindowContents(GtkBuilder *builder);
 	GtkWidget * _constructWindow(void);
 
@@ -173,6 +176,8 @@ public:
 			GtkWidget *m_tableAutoSaveFile;
 				GtkWidget *m_textAutoSaveFilePeriod;
 				GtkWidget *m_textAutoSaveFileExt;
+
+		GtkWidget *m_menuSaveFormat;
 
 		// RTL Text Layout
 

@@ -183,6 +183,15 @@ void AP_Dialog_Options::_storeWindowData(void)
 				   (gchar*)UT_dimensionName( _gatherViewRulerUnits()) );
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// save default file format (a suffix like ".abw")
+	{
+		UT_String stFormat;
+		_gatherDefaultSaveFormat(stFormat);
+		pPrefsScheme->setValue((gchar*)AP_PREF_KEY_DefaultSaveFormat,
+					   (gchar*)stFormat.c_str());
+	}
+
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save screen color
 	pPrefsScheme->setValue((gchar*)XAP_PREF_KEY_ColorForTransparent,
 				   _gatherColorForTransparent() );
@@ -456,6 +465,10 @@ void AP_Dialog_Options::_populateWindowData(void)
 	// ------------ View
 	if (pPrefs->getPrefsValue(AP_PREF_KEY_RulerUnits, buffer)) {
 		_setViewRulerUnits(UT_determineDimension(buffer.c_str()));
+	}
+
+	if (pPrefs->getPrefsValue(AP_PREF_KEY_DefaultSaveFormat, buffer)) {
+		_setDefaultSaveFormat(buffer);
 	}
 
 

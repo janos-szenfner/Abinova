@@ -104,21 +104,9 @@ std::string XAP_AppImpl::localizeHelpUrl (const char * pathBeforeLang,
 
 	if (remoteURLbase && !UT_isRegularFile(localized_path.c_str()))
 	{
-		// not found, so build localized path for remote URL (but we can't verify remote URL)
+		// not found locally; there is no hosted per-page manual anymore,
+		// so the remote fallback is simply the project home page
 		url = remoteURLbase;
-		
-		// HACK: Not all help files are localized. 
-		// HACK: Hard code the available translations here instead of 404-ing.
-		if (!(
-			abiSuiteLocString == "en-US" ||
-			abiSuiteLocString == "fr-FR" ||
-			abiSuiteLocString == "pl-PL"
-			))
-			_catPath(url, "en-US");
-		else
-			_catPath(url, abiSuiteLocString);
-		_catPath(url, pathAfterLang);
-		url += ".html";
 	}
 	else
 	{
