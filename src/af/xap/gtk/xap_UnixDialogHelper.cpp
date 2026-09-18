@@ -245,7 +245,8 @@ static void sDoHelp ( XAP_Dialog * pDlg )
 	// open the url
 	if ( pDlg->getHelpUrl().size () > 0 )
     {
-		helpLocalizeAndOpenURL ("help", pDlg->getHelpUrl().c_str(), nullptr );
+		helpLocalizeAndOpenURL ("help", pDlg->getHelpUrl().c_str(),
+								"https://gitlab.gnome.org/World/AbiWord");
     }
 	else
     {

@@ -1,0 +1,55 @@
+*.layout {
+	border-style: none;
+}
+table.menu {
+	border-style: none;
+	margin-left: 5px;
+	width: 170px;
+}
+table.menu td {
+	color: black;
+	font-family: sans-serif;
+	font-size: xx-small;
+}
+table.menu div {
+	color: white;
+	font-family: sans-serif;
+	font-size: 14px;
+	text-decoration: none;
+}
+table.menu a {
+	text-decoration: none;
+}
+tr.menu a:hover div {
+	background-color: #eeeeff;
+}
+tr.menu a div {
+	background-color: #ccccff;
+	color: black;
+}
+tr.submenu a:hover div {
+	background-color: #eeffee;
+}
+tr.submenu a div {
+	background-color: #ccffcc;
+	color: black;
+}
+tr.submenu div {
+	margin-left: 10px;
+}
+td {
+	vertical-align: top;
+}
+*.Code {
+	font-family: fixed;
+	color: blue;
+}
+*.Command {
+	font-family: fixed;
+}
+*.Emphatic {
+	font-style: italic;
+}
+*.GUIdoc {
+	font-weight: bold;
+}

@@ -55,12 +55,12 @@ tostr( GtkTextView* tv )
     return ret;
 }
 std::string
-tostr( GtkEntry* e )
+tostr( GtkEditable* e )
 {
     if(!e)
         return "";
     std::string ret;
-    ret = XAP_gtk_entry_get_text (GTK_ENTRY (e));
+    ret = XAP_gtk_entry_get_text(GTK_EDITABLE(e));
     return ret;
 }
 
@@ -193,7 +193,7 @@ std::string tostr( GtkComboBox* combo )
 {
     GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(combo));
 	UT_ASSERT(entry);
-	const gchar *s = XAP_gtk_entry_get_text(entry);
+	const gchar *s = XAP_gtk_entry_get_text(GTK_EDITABLE(entry));
 	if(s && *s)
 	{
         return s;
@@ -204,27 +204,27 @@ std::string tostr( GtkComboBox* combo )
 void setEntry( GtkWidget* w, const std::string& v )
 {
     if( v.empty() )
-        XAP_gtk_entry_set_text(GTK_ENTRY(w), "" );
+        XAP_gtk_entry_set_text(GTK_EDITABLE(w), "");
     else 
-        XAP_gtk_entry_set_text(GTK_ENTRY(w), v.c_str());
+        XAP_gtk_entry_set_text(GTK_EDITABLE(w), v.c_str());
 }
 
 void setEntry( GtkEntry* w, const std::string& v )
 {
     if( v.empty() )
-        XAP_gtk_entry_set_text(GTK_ENTRY(w), "" );
+        XAP_gtk_entry_set_text(GTK_EDITABLE(w), "");
     else 
-        XAP_gtk_entry_set_text(GTK_ENTRY(w), v.c_str());
+        XAP_gtk_entry_set_text(GTK_EDITABLE(w), v.c_str());
 }
 void setEntry( GtkEntry* w, time_t v )
 {
     UT_DEBUGMSG(("setEntry(time) v:%ld str:%s\n", v, toTimeString(v).c_str()));
-    XAP_gtk_entry_set_text(GTK_ENTRY(w), toTimeString(v).c_str());
+    XAP_gtk_entry_set_text(GTK_EDITABLE(w), toTimeString(v).c_str());
 }
 void setEntry( GtkEntry* w, double v )
 {
     UT_DEBUGMSG(("setEntry(double) v:%f str:%s\n", v, tostr(v).c_str()));
-    XAP_gtk_entry_set_text(GTK_ENTRY(w), tostr(v).c_str());
+    XAP_gtk_entry_set_text(GTK_EDITABLE(w), tostr(v).c_str());
 }
 
 

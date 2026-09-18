@@ -399,12 +399,12 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 					  (gpointer)this);
 
 	g_signal_connect (G_OBJECT(m_radioNew),
-					"clicked",
+					"toggled",
 					G_CALLBACK(s_radiobutton_clicked),
 					(gpointer)this);
 
 	g_signal_connect (G_OBJECT(m_radioExisting),
-					"clicked",
+					"toggled",
 					G_CALLBACK(s_radiobutton_clicked),
 					(gpointer)this);
 

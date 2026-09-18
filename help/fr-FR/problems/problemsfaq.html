@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<!-- 
+Copyright 2000-2002 Various People Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts A copy of the license is included in the section entitled "GNU Free Documentation License"
+//-->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>Foire au questions d'AbiWord</title>
+<link href="../style.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<div class="banner">
+<a href="../index.html" class="bars">Page d'accueil</a> &gt; <a href="index.hyml" class="bars">Problèmes</a> &gt; Foire au questions 
+</div>
+
+<div class="main">
+
+
+            <h1 id="AbiTOC0">
+<span>Foire au questions d'AbiWord</span>
+            </h1>
+            <h2 id="AbiTOC1">
+<span>1. Langues et internationalisation</span>
+            </h2>
+            <h3 id="AbiTOC2">
+<span>1.1 Comment changer la langue dans AbiWord?</span>
+            </h3>
+<p><span>AbiWord peut fonctionner avec des menus et chaînes de caractères traduits en plusieurs langues différentes en configurant le système de manière appropriée :</span></p><p><span>Dans Windows, accédez au </span><span style="font-style:italic">Panneau de configuration</span><span> &gt; </span><span style="font-style:italic">Paramètres régionaux</span><span> et sélectionnez une langue et pays.</span></p><p><span>Dans les systèmes Unix, utilisez des commandes comme celles-ci (en utilisant bash) </span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">dans votre fichier .profile </span><span>:</span></p><p><span>export LANG=sv_SE</span></p><p><span>unset LC_ALL</span></p>            <h3 id="AbiTOC3">
+<span>1.2 J'ai changé de langue, mais je vois toujours du texte en anglais. Pourquoi?</span>
+            </h3>
+<p><span>Les traductions d'AbiWord sont produites par des individus consciencieux provenant du monde entier qui apprécient utiliser AbiWord dans leur langue maternelle, tout comme vous. Au fur et à mesure qu'AbiWord continue à développer de nouvelles caractéristiques, occasionnellement, un petit délai survient entre le moment où un nouveau dialogue ou menu fait son apparition et lorsque la traduction est soumise. Vous pouvez participer à l'effort de traduction en contactant la personne responsable de votre traduction. Regardez alors dans votre répertoire d'AbiWord intitulé </span><span style="font-style:italic">strings</span><span>. Trouvez-y le fichier associé à votre langue et ouvrez le fichier avec un éditeur tel que </span><span style="font-style:italic">vi</span><span> ou </span><span style="font-style:italic">notepad</span><span>. Au haut de cette page, vous trouverez le nom et l'adresse électronique de la personne qui maintient la traduction.</span></p>            <h3 id="AbiTOC4">
+<span>1.3 Comment faire fonctionner la vérification orthographique dans ma langue?</span>
+            </h3>
+<p><span>Votre distribution d'AbiWord contient un fichier nommé </span><span style="font-style:italic">american.hash</span><span>. Il s'agit d'un dictionnaire de mots Anglais. Vous pouvez remplacer ou ajouter le ou les dictionnaires que vous désirez dans le répertoire contenant le dictionnaire </span><span style="font-style:italic">american.hash</span><span>. Ce faisant, la vérification orthographique soulignera alors que les mots mal orthographiés dans la langue choisie, pour plus d'information sur les langues et la vérification orthographique, consultez la page descriptive du menu </span><a href="../interface/menutools.html"><span style="font-style:italic">Outils</span></a><span>. Il existe un paquetage nommé </span><span style="font-style:italic">abispell</span><span> qui contient 22 fichiers hash prêts à l'utilisation. Il est disponible sur le site SourceForge. Autrement, une liste complète des dictionnaires est disponibles à </span><a href="http://fmg-www.cs.ucla.edu/geoff/ispell-dictionaries.html"><span>http://fmg-www.cs.ucla.edu/geoff/ispell-dictionaries.html</span></a><span>. Lorsque les dictionnaires sont téléchargés, suivez les instructions à </span><a href="http://fmg-www.cs.ucla.edu/geoff/ispell-winnt.html"><span>http://fmg-www.cs.ucla.edu/geoff/ispell-winnt.html</span></a><span> pour bâtir les fichiers hash.</span></p>            <h2 id="AbiTOC5">
+<span>2. Questions générales</span>
+            </h2>
+            <h3 id="AbiTOC6">
+<span>2.1 Comment travailler avec les documents Microsoft Word?</span>
+            </h3>
+<p><span>A présent, AbiWord peut ouvrir des documents Microsoft Word de base convenablement. Cependant, si le document contient des tables compliquées, des feuilles de calcul incorporées ou autres, le fonctionnement ne sera peut-être pas celui espéré. Développer de bons filtre MS Word est un processus très difficile, alors soyez patient pendant que nous travaillons à raffiner les mécanismes d'ouverture des documents Word. AbiWord ne peut pas pour le moment enregistrer au format </span><span style="font-style:italic;font-size:12pt;font-family:'Times New Roman';color:#000000">.doc</span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000"> </span><span>de MS Word. Cependant, vous pouvez enregistrer votre fichier au format </span><span style="font-style:italic">.rtf</span><span> qui est lisible par toutes les versions de Microsoft Word.</span></p>            <h3 id="AbiTOC7">
+<span>2.2 Comment utiliser les raccourcis claviers à la VI ou Emacs?</span>
+            </h3>
+<p><span>Note: Ceci n'est pas recommandé pour la majorité des utilisateurs. Editez simplement votre fichier </span><span style="font-style:italic">~/.AbiSuite/AbiWord.profile</span><span> et localisez la section commençant par </span><span style="font-style:italic">&lt;Scheme "_custom_"</span><span>. Ajoutez la ligne </span><span style="font-style:italic">keybindings="emacs"</span><span> ou </span><span style="font-style:italic">keybindings="viEdit"</span><span> tel que désiré.</span></p>            <h2 id="AbiTOC8">
+<span>3. AbiWord pour Linux</span>
+            </h2>
+            <h3 id="AbiTOC9">
+<span>3.1 Comment utiliser les polices de caractères True Type avec AbiWord sous Linux?</span>
+            </h3>
+<p><span>Il est possible d'utiliser les polices de caractères true-type sous Linux. La page </span><a href="problemsfonts.html"><span style="font-style:italic">police de caractères</span></a><span> contient les instructions détaillées sur la procédure à suivre.</span></p>            <h3 id="AbiTOC10">
+<span>3.2 "AbiWord ne peut charger [-*-Times New Roman-...]"</span>
+            </h3>
+<p><span>Si vous obtenez le message </span><span style="font-size:12pt;font-family:'Times New Roman'">« </span><span>AbiWord n'a pas été en mesure d'ajouter ses polices de caractères au chemin d'accès des polices X. S'il vous plait voir Problèmes de chemin d'accès des polices de caractères Unix dans la section FAQ des fichiers d'aide d'Abiword. </span><span style="font-size:12pt;font-family:'Times New Roman'">»</span><span> ou un message similaire ajoutez la ligne </span><span style="font-style:italic">load "type1"</span><span> à votre fichier </span><span style="font-style:italic">/etc/X11/XF86Config</span><span> ou au fichier </span><span style="font-style:italic">XF86Config-4</span><span>. (Ces actions nécessitent les privilèges du compte </span><span style="font-style:italic">root</span><span>.) Vous voudrez aussi essayer la commande suivante si le problème persiste :</span></p><p><span>/usr/sbin/chkfontpath -a /usr/share/AbiSuite/fonts. </span></p><p><span>Encore une fois, vous devez effectuer ces commandes en tant que </span><span style="font-style:italic">root</span><span>. Vérifiez le chemin de répertoire AbiSuite car il peut avoir été modifié par le responsable de l'assemblage de votre distribution.</span></p>            <h3 id="AbiTOC11">
+<span>3.3 Avertissement au sujet de police Unix</span>
+            </h3>
+<p><span>Si votre installation X utilise un serveur de police au lieu de gérer les polices elles-mêmes, vous verrez un avertissement à chaque démarrage d'AbiWord. Pour le désactiver, accédez au dialogue </span><span style="font-style:italic">Outils</span><span> </span><span>&gt; </span><span style="font-style:italic">Options</span><span> et</span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000"> dans l'onglet </span><span style="font-style:italic;font-size:12pt;font-family:'Times New Roman';color:#000000">Thème</span><span> désactivez l'item </span><span style="font-style:italic">Montrer un avertissement au démarrage au sujet des polices de caractères</span><span>.</span></p>            <h2 id="AbiTOC12">
+<span>4. AbiWord pour Windows</span>
+            </h2>
+            <h3 id="AbiTOC13">
+<span>4.1 J'obtiens une erreur au sujet de COMCTL32.DLL à l'installation.</span>
+            </h3>
+<p><span>COMCTL32.DLL est une librairie Windows nécessaire à l'exécution. Certaines versions plus anciennes de Windows n'avaient pas cette librairie. Vous pouvez l'obtenir gratuitement de Microsoft à </span><a href="http://download.microsoft.com/download/platformsdk/Redist/5.80.2614.3600/W9XNT4/EN-US/CC32inst.exe"><span>http://download.microsoft.com/download/platformsdk/Redist/5.80.2614.3600/W9XNT4/EN-US/CC32inst.exe</span></a></p><p></p></div>
+
+<div class="index">
+<a href="../index.html" class="bars">Page d'accueil</a>
+<a href="../tutorial/index.html" class="bars">Tutoriel</a>
+<a href="../howto/index.html" class="bars">Astuces</a>
+<a href="../info/index.html" class="bars">Information</a>
+<a href="../interface/index.html" class="bars">Interface</a>
+<a href="../plugins/index.html" class="bars">Modules</a> 
+<a href="../problems/index.html" class="bars">Problèmes</a>
+<a href="../credits.html" class="bars">Crédits</a>
+<a href="../azindex.html" class="bars">Index</a>
+<a href="../fdl.html" class="bars">GNU FDL</a> 
+</div>
+
+</body>
+</html>
+

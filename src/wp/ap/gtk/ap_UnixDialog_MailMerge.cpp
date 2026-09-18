@@ -143,7 +143,7 @@ static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Ma
 
 void AP_UnixDialog_MailMerge::event_AddClicked ()
 {
-	setMergeField (XAP_gtk_entry_get_text (GTK_ENTRY(m_entry)));
+	setMergeField (XAP_gtk_entry_get_text(GTK_EDITABLE(m_entry)));
 	addClicked();
 }
 
@@ -242,5 +242,5 @@ void AP_UnixDialog_MailMerge::setFieldList()
 void AP_UnixDialog_MailMerge::fieldClicked(UT_uint32 index)
 {
 	const std::string & str = m_vecFields[index];
-	XAP_gtk_entry_set_text (GTK_ENTRY(m_entry), str.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_entry), str.c_str());
 }

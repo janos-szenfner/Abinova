@@ -222,7 +222,7 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
     gsf_xml_out_start_element(ncxXml, "ncx");
     gsf_xml_out_add_cstr(ncxXml, "xmlns", NCX_NAMESPACE);
     gsf_xml_out_add_cstr(ncxXml, "version", "2005-1");
-    gsf_xml_out_add_cstr(ncxXml, "xml:lang", NULL);
+    gsf_xml_out_add_cstr(ncxXml, "xml:lang", getLanguage().c_str());
     // <head>
     gsf_xml_out_start_element(ncxXml, "head");
     // <meta name="dtb:uid" content=... >
@@ -401,12 +401,15 @@ UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
      gsf_xml_out_start_element(navXHTML, "html");
     gsf_xml_out_add_cstr(navXHTML, "xmlns", XHTML_NS);
     gsf_xml_out_add_cstr(navXHTML, "xmlns:epub", OPS201_NAMESPACE);
-    gsf_xml_out_add_cstr(navXHTML, "profile", EPUB3_CONTENT_PROFILE);
+    gsf_xml_out_add_cstr(navXHTML, "xml:lang", getLanguage().c_str());
     
     
     gsf_xml_out_start_element(navXHTML, "head");
     gsf_xml_out_start_element(navXHTML, "title");
     gsf_xml_out_add_cstr(navXHTML, NULL, "Table of Contents");
+    gsf_xml_out_end_element(navXHTML);
+    gsf_xml_out_start_element(navXHTML, "meta");
+    gsf_xml_out_add_cstr(navXHTML, "charset", "utf-8");
     gsf_xml_out_end_element(navXHTML);
     gsf_xml_out_end_element(navXHTML);
     
@@ -587,7 +590,8 @@ UT_Error IE_Exp_EPUB::package()
     
     if (!m_exp_opt.bEpub2)
     {
-       gsf_xml_out_add_cstr(opfXml, "profile", EPUB3_PACKAGE_PROFILE);
+       // EPUB 3.3: the draft-era "profile" attribute on <package> was
+       // removed in the final specification; xml:lang remains allowed.
        gsf_xml_out_add_cstr(opfXml, "xml:lang", getLanguage().c_str());
     }
 
@@ -601,15 +605,47 @@ UT_Error IE_Exp_EPUB::package()
     gsf_xml_out_end_element(opfXml);
     gsf_xml_out_start_element(opfXml, "dc:identifier");
     gsf_xml_out_add_cstr(opfXml, "id", "BookId");
-    gsf_xml_out_add_cstr(opfXml, NULL, getDoc()->getDocUUIDString());
+    {
+        // EPUB 3.3: the identifier should be a full URI. The doc UUID is
+        // expressed with the urn:uuid scheme.
+        std::string sUid = "urn:uuid:";
+        sUid += getDoc()->getDocUUIDString();
+        gsf_xml_out_add_cstr(opfXml, NULL, sUid.c_str());
+    }
     gsf_xml_out_end_element(opfXml);
     gsf_xml_out_start_element(opfXml, "dc:language");
     gsf_xml_out_add_cstr(opfXml, NULL, getLanguage().c_str());
     gsf_xml_out_end_element(opfXml);
     gsf_xml_out_start_element(opfXml, "dc:creator");
+    gsf_xml_out_add_cstr(opfXml, "id", "creator");
     gsf_xml_out_add_cstr(opfXml, "opf:role", "aut");
     gsf_xml_out_add_cstr(opfXml, NULL, getAuthor().c_str());
     gsf_xml_out_end_element(opfXml);
+    if (!m_exp_opt.bEpub2)
+    {
+        // EPUB 3 refinement equivalent of opf:role="aut"
+        gsf_xml_out_start_element(opfXml, "meta");
+        gsf_xml_out_add_cstr(opfXml, "refines", "#creator");
+        gsf_xml_out_add_cstr(opfXml, "property", "role");
+        gsf_xml_out_add_cstr(opfXml, "scheme", "marc:relators");
+        gsf_xml_out_add_cstr(opfXml, NULL, "aut");
+        gsf_xml_out_end_element(opfXml);
+
+        // EPUB 3.x requires the last-modification timestamp.
+        {
+            GDateTime * dt = g_date_time_new_now_utc();
+            if (dt)
+            {
+                gchar * iso = g_date_time_format(dt, "%Y-%m-%dT%H:%M:%SZ");
+                gsf_xml_out_start_element(opfXml, "meta");
+                gsf_xml_out_add_cstr(opfXml, "property", "dcterms:modified");
+                gsf_xml_out_add_cstr(opfXml, NULL, iso);
+                gsf_xml_out_end_element(opfXml);
+                g_free(iso);
+                g_date_time_unref(dt);
+            }
+        }
+    }
     // </metadata> 
     gsf_xml_out_end_element(opfXml);
 
@@ -627,14 +663,17 @@ UT_Error IE_Exp_EPUB::package()
       std::string idStr = escapeForId(*i);
       std::string fullItemPath = m_oebpsDir + G_DIR_SEPARATOR_S + *i;
         gsf_xml_out_start_element(opfXml, "item");
-        if (m_pHmtlExporter->hasMathML((*i)))
-        {
-            gsf_xml_out_add_cstr(opfXml, "mathml", "true");
-        }
         gsf_xml_out_add_cstr(opfXml, "id", idStr.c_str());
         gsf_xml_out_add_cstr(opfXml, "href", (*i).c_str());
         gsf_xml_out_add_cstr(opfXml, "media-type",
                 getMimeType(fullItemPath).c_str());
+        if (!m_exp_opt.bEpub2 && m_pHmtlExporter->hasMathML((*i)))
+        {
+            // EPUB 3: a content document using MathML must declare it in
+            // the item properties (the old mathml="true" attribute was
+            // draft syntax and fails EPUBCheck).
+            gsf_xml_out_add_cstr(opfXml, "properties", "mathml");
+        }
         gsf_xml_out_end_element(opfXml);
     }
 
@@ -650,6 +689,9 @@ UT_Error IE_Exp_EPUB::package()
         gsf_xml_out_add_cstr(opfXml, "id", "toc");
         gsf_xml_out_add_cstr(opfXml, "href", "toc.xhtml");
         gsf_xml_out_add_cstr(opfXml, "media-type", "application/xhtml+xml");
+        // EPUB 3 requires the Navigation Document to be declared with
+        // the "nav" property.
+        gsf_xml_out_add_cstr(opfXml, "properties", "nav");
         gsf_xml_out_end_element(opfXml);  
     }
     // </manifest>
@@ -838,9 +880,12 @@ std::string IE_Exp_EPUB::getLanguage() const
     if (getDoc()->getMetaDataProp(PD_META_KEY_LANGUAGE, property)
             && property.size())
     {
+        // EPUB 3.3 requires a BCP 47 tag (en-US), not a POSIX locale
+        // name (en_US). Normalize underscores to hyphens.
+        std::replace(property.begin(), property.end(), '_', '-');
         return property;
     }
-    return "en_US";
+    return "en-US";
 }
 
 UT_Error IE_Exp_EPUB::doOptions()

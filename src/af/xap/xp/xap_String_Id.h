@@ -219,6 +219,12 @@ dcl(TB_Zoom_PageWidth,					"Page Width")
 dcl(TB_Zoom_WholePage,					"Whole Page")
 dcl(TB_Zoom_Percent, "Other...")
 
+/* Status bar zoom control */
+dcl(SB_Zoom_In,							"Zoom In")
+dcl(SB_Zoom_Out,						"Zoom Out")
+dcl(SB_Zoom_Slider,						"Zoom")
+dcl(SB_Zoom_Level,						"Zoom level")
+
 /* Font tool bar*/
 dcl(TB_Font_Symbol,						"Symbols")
 

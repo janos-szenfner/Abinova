@@ -49,8 +49,6 @@ struct AbiTable
 	GtkLabel* window_label;
 	GSList* handlers;
 
-	GtkStyleContext* style_context;
-
 	guint selected_rows;
 	guint selected_cols;
 

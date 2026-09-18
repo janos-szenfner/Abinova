@@ -133,7 +133,7 @@ AP_UnixDialog_InsertXMLID::event_OK(void)
 	UT_ASSERT(m_window);
 	// get the bookmark name, if any (return cancel if no name given)
     //std::string mark = tostr(GTK_COMBO_BOX(m_combo));
-    std::string mark = tostr(GTK_ENTRY(m_combo));
+    std::string mark = tostr(GTK_EDITABLE(m_combo));
 	if( !mark.empty() )
 	{
 		xxx_UT_DEBUGMSG(("InsertXMLID: OK pressed, first char 0x%x\n", (UT_uint32)mark[0]));
@@ -156,7 +156,7 @@ void
 AP_UnixDialog_InsertXMLID::event_Delete(void)
 {
     //setString(tostr(GTK_COMBO_BOX(m_combo)));
-    setString(tostr(GTK_ENTRY(m_combo)));
+    setString(tostr(GTK_EDITABLE(m_combo)));
 	setAnswer(AP_Dialog_InsertXMLID::a_DELETE);
 }
 

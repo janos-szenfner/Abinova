@@ -83,7 +83,7 @@ void AP_UnixDialog_MetaData::eventCancel ()
 	setAnswer ( AP_Dialog_MetaData::a_CANCEL ) ;
 }
 
-#define GRAB_ENTRY_TEXT(name) txt = XAP_gtk_entry_get_text(GTK_ENTRY(m_entry##name)) ; \
+#define GRAB_ENTRY_TEXT(name) txt = XAP_gtk_entry_get_text(GTK_EDITABLE(m_entry##name)) ; \
 if( txt ) \
 set##name ( txt )
 
@@ -181,7 +181,7 @@ GtkWidget * AP_UnixDialog_MetaData::_constructWindow ()
 	#define SET_ENTRY_TXT(name) \
 	prop = get##name () ; \
 	if ( !prop.empty () ) { \
-		XAP_gtk_entry_set_text (GTK_ENTRY(m_entry##name), prop.c_str() ) ; \
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_entry##name), prop.c_str()) ; \
 	}
 	
 	SET_ENTRY_TXT(Title)

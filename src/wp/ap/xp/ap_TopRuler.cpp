@@ -426,8 +426,10 @@ void AP_TopRuler::_drawBar(const UT_Rect * pClipRect, AP_TopRulerInfo * pInfo,
 	// to compensate for fixed portion, the page-view margin,
 	// and the scroll.
 
-	UT_uint32 yTop = m_pG->tlu(s_iFixedHeight)/4;
-	UT_uint32 yBar = m_pG->tlu(s_iFixedHeight)/2;
+	// The bar fills the full height of the ruler (Word/LO style),
+	// leaving a one pixel separator line at the bottom edge.
+	UT_uint32 yTop = 0;
+	UT_uint32 yBar = m_pG->tlu(s_iFixedHeight - 1);
 	UT_sint32 xFixed = static_cast<UT_sint32>(m_pG->tlu(UT_MAX(m_iLeftRulerWidth,s_iFixedWidth)));
 
 
@@ -472,8 +474,10 @@ void AP_TopRuler::_drawTickMark(const UT_Rect * pClipRect,
 								GR_Graphics::GR_Color3D clr3d, GR_Font * pFont,
 								UT_sint32 k, UT_sint32 xTick)
 {
-	UT_sint32 yTop = m_pG->tlu(s_iFixedHeight)/4;
-	UT_sint32 yBar = m_pG->tlu(s_iFixedHeight)/2;
+	// The ruler bar occupies the full height of the widget; ticks are
+	// anchored to the bottom edge and the numbers sit above them in the
+	// upper two thirds, like the MS Word / LibreOffice ruler.
+	UT_sint32 yBottom = m_pG->tlu(s_iFixedHeight - 1);
 
 	GR_Painter painter(m_pG);
 
@@ -489,11 +493,11 @@ void AP_TopRuler::_drawTickMark(const UT_Rect * pClipRect,
 
 	if (k % tick.tickLabel)
 	{
-		// draw the ticks
-		UT_uint32 h = ((k % tick.tickLong) ? m_pG->tlu(2) : m_pG->tlu(6));
-		UT_sint32 y = yTop + (yBar-h)/2;
+		// draw the ticks rising from the bottom edge of the ruler.
+		// minor ticks are short; the longer "half" ticks are taller.
+		UT_uint32 h = ((k % tick.tickLong) ? m_pG->tlu(4) : m_pG->tlu(8));
 		m_pG->setColor3D(clr3d);
-		painter.drawLine(xTick,y,xTick,y+h);
+		painter.drawLine(xTick,yBottom-h,xTick,yBottom);
 	}
 	else if (pFont)
 	{
@@ -503,7 +507,7 @@ void AP_TopRuler::_drawTickMark(const UT_Rect * pClipRect,
 //
 // The graphics class works in logical units almost exclusively.
 //
-		UT_uint32 iFontHeight = m_pG->getFontAscent();
+		UT_uint32 iFontAscent = m_pG->getFontAscent();
 
 		UT_uint32 n = k / tick.tickLabel * tick.tickScale;
 
@@ -518,23 +522,19 @@ void AP_TopRuler::_drawTickMark(const UT_Rect * pClipRect,
 		UT_UCS4_strcpy_char(span, buf);
 		UT_uint32 len = strlen(buf);
 
-		UT_sint32 w = m_pG->measureString(span, 0, len, nullptr) *
-		    100 / m_pG->getZoomPercentage();
+		// measureString returns logical units, same as xTick.
+		UT_sint32 w = m_pG->measureString(span, 0, len, nullptr);
 
-//                UT_sint32 yDU = s_iFixedHeight/4 + 
-//                        (s_iFixedHeight/2 - s_iFixedHeight*m_pG->getZoomPercentage()/(4*100))/2;
+		// drawChars() positions the text baseline at
+		// tdu(yoff + getFontAscent()) device pixels, so place the
+		// baseline at a fixed device-pixel position (2/3 down the
+		// ruler, just above the tick zone).  tlu() handles the zoom
+		// compensation so the numbers keep a constant on-screen
+		// size and position at every zoom level.
+		UT_sint32 yDU = 2*s_iFixedHeight/3;
+		UT_sint32 yLU = m_pG->tlu(yDU) - iFontAscent;
 
-		// The following code works perfectly on UNIX
-                UT_sint32 yDU = 2*s_iFixedHeight/3;
-		UT_sint32 yLU = m_pG->tlu(yDU);
-		yLU = yLU - iFontHeight;
-		xxx_UT_DEBUGMSG(("s_iFixedHeight %d yDU %d yLU %d \n",s_iFixedHeight,yDU,yLU));
-		//
-		// FIXME HACK for Windows! There is something wrong with
-		// here. Thi sis Tomas's code which works for Windows
-		// but not Unix
-		//
-               painter.drawChars(span, 0, len, xTick - w/2, yLU);	
+		painter.drawChars(span, 0, len, xTick - w/2, yLU);
 	}
 }
 
@@ -1363,6 +1363,11 @@ void AP_TopRuler::_draw(const UT_Rect * pClipRect, AP_TopRulerInfo * pUseInfo)
 	// now draw tick marks on the bar, using the selected system of units.
 
 	ap_RulerTicks tick(m_pG,m_dim);
+
+	// The ruler bar has a fixed on-screen height, so the label font must
+	// keep a constant device-pixel size regardless of the zoom level.
+	// The GUI font is exempt from the zoom rescaling that setFont()
+	// applies to document fonts, which makes it exactly right here.
 	GR_Font * pFont = m_pG->getGUIFont();
 
 	// find the origin for the tick marks.  this is the left-edge of the

@@ -59,6 +59,7 @@
             <child>
               <object class="GtkButton" id="btnFind">
                 <property name="label">_Find</property>
+                          <property name="use-underline">1</property>
                 <property name="width-request">100</property>
                 <property name="visible">1</property>
                 <property name="can-focus">1</property>
@@ -114,6 +115,7 @@
                       <child>
                         <object class="GtkButton" id="closebutton1">
                           <property name="label">_Close</property>
+                          <property name="use-underline">1</property>
                           <property name="visible">1</property>
                           <property name="can-focus">1</property>
                         </object>

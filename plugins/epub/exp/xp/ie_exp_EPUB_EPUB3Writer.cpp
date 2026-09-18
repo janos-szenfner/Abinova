@@ -30,7 +30,10 @@ void IE_Exp_EPUB_EPUB3Writer::openDocument()
 {
     m_pTagWriter->openTag("html", false, false);
     m_pTagWriter->addAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-    m_pTagWriter->addAttribute("profile", EPUB3_CONTENT_PROFILE);
+    // EPUB 3.3: the xmlns:epub namespace must be declared because the
+    // writer emits epub:type attributes (footnotes, annotations).
+    // The draft-era "profile" attribute was removed in the final spec.
+    m_pTagWriter->addAttribute("xmlns:epub", "http://www.idpf.org/2007/ops");
 }
 
 

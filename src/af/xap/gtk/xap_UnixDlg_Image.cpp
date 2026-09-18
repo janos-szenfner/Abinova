@@ -118,8 +118,8 @@ void XAP_UnixDialog_Image::wrappingChanged(void)
 void XAP_UnixDialog_Image::event_Ok ()
 {
 	setAnswer(XAP_Dialog_Image::a_OK);
-	setTitle (XAP_gtk_entry_get_text (GTK_ENTRY(m_wTitleEntry)));
-	setDescription (XAP_gtk_entry_get_text (GTK_ENTRY(m_wDescriptionEntry)));
+	setTitle (XAP_gtk_entry_get_text(GTK_EDITABLE(m_wTitleEntry)));
+	setDescription (XAP_gtk_entry_get_text(GTK_EDITABLE(m_wDescriptionEntry)));
 	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbInLine)))
 	{
 		setWrapping(WRAP_INLINE);
@@ -188,7 +188,7 @@ void XAP_UnixDialog_Image::doHeightSpin(void)
 	m_iHeight = val;
 	incrementHeight(bIncrement);
 	adjustWidthForAspect();
-	XAP_gtk_entry_set_text( GTK_ENTRY(m_wHeightEntry),getHeightString() );
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wHeightEntry),getHeightString());
 }
 
 
@@ -203,25 +203,25 @@ void XAP_UnixDialog_Image::doWidthSpin(void)
 	m_iWidth = val;
 	incrementWidth(bIncrement);
 	adjustHeightForAspect();
-	XAP_gtk_entry_set_text( GTK_ENTRY(m_wWidthEntry),getWidthString() );
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wWidthEntry),getWidthString());
 }
 
 void XAP_UnixDialog_Image::doHeightEntry(void)
 {
-	const char * szHeight = XAP_gtk_entry_get_text(GTK_ENTRY(m_wHeightEntry));
+	const char * szHeight = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wHeightEntry));
 	if(UT_determineDimension(szHeight,DIM_none) != DIM_none)
 	{
 		setHeight(szHeight);
 
 		g_signal_handler_block(G_OBJECT(m_wHeightEntry), m_iHeightID);
 		int pos = gtk_editable_get_position(GTK_EDITABLE(m_wHeightEntry));
-		XAP_gtk_entry_set_text( GTK_ENTRY(m_wHeightEntry),getHeightString() );
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wHeightEntry),getHeightString());
 		gtk_editable_set_position(GTK_EDITABLE(m_wHeightEntry), pos);
 		g_signal_handler_unblock(G_OBJECT(m_wHeightEntry), m_iHeightID);
 	}
 	else
 	  {
-	    XAP_gtk_entry_set_text( GTK_ENTRY(m_wHeightEntry),getHeightString() ); 
+	    XAP_gtk_entry_set_text(GTK_EDITABLE(m_wHeightEntry),getHeightString()); 
 	  }
 	adjustWidthForAspect();
 }
@@ -230,7 +230,7 @@ void XAP_UnixDialog_Image::setHeightEntry(void)
 {
 	g_signal_handler_block(G_OBJECT(m_wHeightEntry), m_iHeightID);
 	int pos = gtk_editable_get_position(GTK_EDITABLE(m_wHeightEntry));
-	XAP_gtk_entry_set_text( GTK_ENTRY(m_wHeightEntry),getHeightString() );
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wHeightEntry),getHeightString());
 	gtk_editable_set_position(GTK_EDITABLE(m_wHeightEntry), pos);
 	g_signal_handler_unblock(G_OBJECT(m_wHeightEntry), m_iHeightID);
 }
@@ -239,27 +239,27 @@ void XAP_UnixDialog_Image::setWidthEntry(void)
 {
 	g_signal_handler_block(G_OBJECT(m_wWidthEntry), m_iWidthID);
 	int pos = gtk_editable_get_position(GTK_EDITABLE(m_wWidthEntry));
-	XAP_gtk_entry_set_text( GTK_ENTRY(m_wWidthEntry),getWidthString() );
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wWidthEntry),getWidthString());
 	gtk_editable_set_position(GTK_EDITABLE(m_wWidthEntry), pos);
 	g_signal_handler_unblock(G_OBJECT(m_wWidthEntry), m_iWidthID);
 }
 
 void XAP_UnixDialog_Image::doWidthEntry(void)
 {
-	const char * szWidth = XAP_gtk_entry_get_text(GTK_ENTRY(m_wWidthEntry));
+	const char * szWidth = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wWidthEntry));
 	if(UT_determineDimension(szWidth,DIM_none) != DIM_none)
 	{
 		setWidth(szWidth);
 		
 		g_signal_handler_block(G_OBJECT(m_wWidthEntry), m_iWidthID);
 		int pos = gtk_editable_get_position(GTK_EDITABLE(m_wWidthEntry));
-		XAP_gtk_entry_set_text( GTK_ENTRY(m_wWidthEntry),getWidthString() );
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wWidthEntry),getWidthString());
 		gtk_editable_set_position(GTK_EDITABLE(m_wWidthEntry), pos);
 		g_signal_handler_unblock(G_OBJECT(m_wWidthEntry), m_iWidthID);
 	}
 	else
 	  {
-	    XAP_gtk_entry_set_text( GTK_ENTRY(m_wWidthEntry),getWidthString() );
+	    XAP_gtk_entry_set_text(GTK_EDITABLE(m_wWidthEntry),getWidthString());
 	  }
 	adjustHeightForAspect();
 }
@@ -440,41 +440,41 @@ void XAP_UnixDialog_Image::_connectSignals (void)
 				   static_cast<gpointer>(this));
 
   g_signal_connect(G_OBJECT(m_wrbInLine),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_wrapping_changed),
 				   static_cast<gpointer>(this));
 
   g_signal_connect(G_OBJECT(m_wrbNone),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_wrapping_changed),
 				   static_cast<gpointer>(this));
 
 
   g_signal_connect(G_OBJECT(m_wrbWrappedRight),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_wrapping_changed),
 				   static_cast<gpointer>(this));
 
 
   g_signal_connect(G_OBJECT(m_wrbWrappedLeft),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_wrapping_changed),
 				   static_cast<gpointer>(this));
 
 
   g_signal_connect(G_OBJECT(m_wrbWrappedBoth),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_wrapping_changed),
 				   static_cast<gpointer>(this));
 
 
   g_signal_connect(G_OBJECT(m_wrbSquareWrap),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_wrapping_changed),
 				   static_cast<gpointer>(this));
 
   g_signal_connect(G_OBJECT(m_wrbTightWrap),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_wrapping_changed),
 				   static_cast<gpointer>(this));
   
@@ -484,7 +484,7 @@ void XAP_UnixDialog_Image::_connectSignals (void)
   								static_cast<gpointer>(this));
 
   g_signal_connect(G_OBJECT(m_wAspectCheck),
-				   "clicked",
+				   "toggled",
 				   G_CALLBACK(s_aspect_clicked),
 				   static_cast<gpointer>(this));
 }
@@ -561,13 +561,13 @@ GtkWidget * XAP_UnixDialog_Image::_constructWindow ()
 	m_wrbTightWrap = GTK_WIDGET(gtk_builder_get_object(builder, "rbTightWrap"));
 
 	pSS->getValueUTF8 (XAP_STRING_ID_DLG_Image_Aspect,s);
-	gtk_button_set_label(GTK_BUTTON(m_wAspectCheck), s.c_str());
+	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_wAspectCheck), s.c_str());
 
 	m_iWidth = gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(m_wWidthSpin));
 	m_iHeight = gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(m_wHeightSpin));
 
-	XAP_gtk_entry_set_text (GTK_ENTRY(m_wTitleEntry), getTitle().utf8_str());
-	XAP_gtk_entry_set_text (GTK_ENTRY(m_wDescriptionEntry), getDescription().utf8_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wTitleEntry), getTitle().utf8_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wDescriptionEntry), getDescription().utf8_str());
 
 	_connectSignals ();
 	

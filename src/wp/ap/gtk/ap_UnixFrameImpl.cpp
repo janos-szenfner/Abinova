@@ -202,6 +202,10 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	g_object_set_data(G_OBJECT(m_dArea), "user_data", this);
 	UT_DEBUGMSG(("!!! drawing area m_dArea created! %p for %p \n",m_dArea,this));
 	gtk_widget_set_can_focus(m_dArea, true);	// allow it to be focussed
+	/* GTK4: keyboard focus requires 'focusable' (separate from
+	 * can-focus); without it grab_focus silently fails and the
+	 * drawing area never receives key events. */
+	gtk_widget_set_focusable(m_dArea, true);
 
 	// GTK4: all input goes through event controllers attached to the
 	// drawing area; the widget pointer is passed as user_data so the

@@ -253,7 +253,7 @@ void AP_UnixDialog_Paragraph::event_SpinFocusOut(GtkWidget * widget)
 		// formatting for spinbuttons that need it.  for example,
 		// line spacing can't be negative.
 		_setSpinItemValue(id, (const gchar *)
-						  XAP_gtk_entry_get_text(GTK_ENTRY(widget)));
+						  XAP_gtk_entry_get_text(GTK_EDITABLE(widget)));
 
 		// to ensure the massaged value is reflected back up
 		// to the screen, we repaint from the member variable
@@ -275,8 +275,8 @@ void AP_UnixDialog_Paragraph::event_CheckToggled(GtkWidget * widget)
 	tControl id = (tControl) GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
 												 WIDGET_ID_TAG));
 
-	gboolean state = gtk_toggle_button_get_active(
-		GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(widget)));
+	gboolean state = gtk_check_button_get_active(
+		GTK_CHECK_BUTTON(widget));
 
 	tCheckState cs;
 
@@ -858,15 +858,15 @@ void AP_UnixDialog_Paragraph::_populateWindowData(void)
 
 	// indent and paragraph margins
 	UT_ASSERT(m_spinbuttonLeft);
-	XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonLeft),
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonLeft),
 					   (const gchar *) _getSpinItemValue(id_SPIN_LEFT_INDENT));
 
 	UT_ASSERT(m_spinbuttonRight);
-	XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonRight),
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonRight),
 					   (const gchar *) _getSpinItemValue(id_SPIN_RIGHT_INDENT));
 
 	UT_ASSERT(m_spinbuttonBy);
-	XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonBy),
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBy),
 					   (const gchar *) _getSpinItemValue(id_SPIN_SPECIAL_INDENT));
 
 	UT_ASSERT(m_listSpecial);
@@ -875,15 +875,15 @@ void AP_UnixDialog_Paragraph::_populateWindowData(void)
 
 	// spacing
 	UT_ASSERT(m_spinbuttonLeft);
-	XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonBefore),
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBefore),
 					   (const gchar *) _getSpinItemValue(id_SPIN_BEFORE_SPACING));
 
 	UT_ASSERT(m_spinbuttonRight);
-	XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonAfter),
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAfter),
 					   (const gchar *) _getSpinItemValue(id_SPIN_AFTER_SPACING));
 
 	UT_ASSERT(m_spinbuttonAt);
-	XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonAt),
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAt),
 					   (const gchar *) _getSpinItemValue(id_SPIN_SPECIAL_SPACING));
 
 	UT_ASSERT(m_listLineSpacing);
@@ -893,19 +893,19 @@ void AP_UnixDialog_Paragraph::_populateWindowData(void)
 	// set the check boxes
 	// TODO : handle tri-state boxes !!!
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(m_checkbuttonWidowOrphan)),
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonWidowOrphan),
 								 (_getCheckItemValue(id_CHECK_WIDOW_ORPHAN) == check_TRUE));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(m_checkbuttonKeepLines)),
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonKeepLines),
 								 (_getCheckItemValue(id_CHECK_KEEP_LINES) == check_TRUE));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(m_checkbuttonPageBreak)),
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonPageBreak),
 								 (_getCheckItemValue(id_CHECK_PAGE_BREAK) == check_TRUE));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(m_checkbuttonSuppress)),
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonSuppress),
 								 (_getCheckItemValue(id_CHECK_SUPPRESS) == check_TRUE));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(m_checkbuttonHyphenate)),
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonHyphenate),
 								 (_getCheckItemValue(id_CHECK_NO_HYPHENATE) == check_TRUE));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(m_checkbuttonKeepNext)),
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonKeepNext),
 								 (_getCheckItemValue(id_CHECK_KEEP_NEXT) == check_TRUE));
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(GTK_CHECK_BUTTON(m_checkbuttonDomDirection)),
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonDomDirection),
 								 (_getCheckItemValue(id_CHECK_DOMDIRECTION) == check_TRUE));
 }
 
@@ -932,14 +932,14 @@ void AP_UnixDialog_Paragraph::_syncControls(tControl changed, bool bAll /* = fal
 		{
 		case indent_NONE:
 			// clear the spin control
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonBy), "");
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBy), "");
 			gtk_widget_set_sensitive(m_spinbuttonBy, FALSE);
 			break;
 
 		default:
 			// set the spin control
 			gtk_widget_set_sensitive(m_spinbuttonBy, TRUE);
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonBy), _getSpinItemValue(id_SPIN_SPECIAL_INDENT));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBy), _getSpinItemValue(id_SPIN_SPECIAL_INDENT));
 			break;
 		}
 	}
@@ -963,14 +963,14 @@ void AP_UnixDialog_Paragraph::_syncControls(tControl changed, bool bAll /* = fal
 		case spacing_ONEANDHALF:
 		case spacing_DOUBLE:
 			// clear the spin control
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonAt), "");
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAt), "");
 			gtk_widget_set_sensitive(m_spinbuttonAt, FALSE);
 			break;
 
 		default:
 			// set the spin control
 			gtk_widget_set_sensitive(m_spinbuttonAt, TRUE);
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonAt), _getSpinItemValue(id_SPIN_SPECIAL_SPACING));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAt), _getSpinItemValue(id_SPIN_SPECIAL_SPACING));
 			break;
 		}
 	}
@@ -983,22 +983,22 @@ void AP_UnixDialog_Paragraph::_syncControls(tControl changed, bool bAll /* = fal
 		switch (changed)
 		{
 		case id_SPIN_LEFT_INDENT:
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonLeft), 	_getSpinItemValue(id_SPIN_LEFT_INDENT));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonLeft), 	_getSpinItemValue(id_SPIN_LEFT_INDENT));
 			break;
 		case id_SPIN_RIGHT_INDENT:
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonRight), 	_getSpinItemValue(id_SPIN_RIGHT_INDENT));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonRight), 	_getSpinItemValue(id_SPIN_RIGHT_INDENT));
 			break;
 		case id_SPIN_SPECIAL_INDENT:
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonBy), 		_getSpinItemValue(id_SPIN_SPECIAL_INDENT));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBy), 		_getSpinItemValue(id_SPIN_SPECIAL_INDENT));
 			break;
 		case id_SPIN_BEFORE_SPACING:
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonBefore), 	_getSpinItemValue(id_SPIN_BEFORE_SPACING));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBefore), 	_getSpinItemValue(id_SPIN_BEFORE_SPACING));
 			break;
 		case id_SPIN_AFTER_SPACING:
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonAfter), 	_getSpinItemValue(id_SPIN_AFTER_SPACING));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAfter), 	_getSpinItemValue(id_SPIN_AFTER_SPACING));
 			break;
 		case id_SPIN_SPECIAL_SPACING:
-			XAP_gtk_entry_set_text(GTK_ENTRY(m_spinbuttonAt), 		_getSpinItemValue(id_SPIN_SPECIAL_SPACING));
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAt), 		_getSpinItemValue(id_SPIN_SPECIAL_SPACING));
 			break;
 		default:
 			break;

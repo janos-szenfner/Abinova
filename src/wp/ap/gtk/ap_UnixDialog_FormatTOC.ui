@@ -345,6 +345,7 @@
                       <child>
                         <object class="GtkButton" id="wClose">
                           <property name="label">_Close</property>
+                          <property name="use-underline">1</property>
                           <property name="visible">1</property>
                           <property name="can-focus">1</property>
                         </object>
@@ -352,6 +353,7 @@
                       <child>
                         <object class="GtkButton" id="wApply">
                           <property name="label">_Apply</property>
+                          <property name="use-underline">1</property>
                           <property name="visible">1</property>
                           <property name="can-focus">1</property>
                         </object>

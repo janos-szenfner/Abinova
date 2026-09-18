@@ -565,7 +565,7 @@ void AP_UnixDialog_FormatFrame::_connectSignals(void)
 
 
 	g_signal_connect(G_OBJECT(m_wWrapButton),
-							"clicked",
+							"toggled",
 							G_CALLBACK(s_WrapButton),
 							reinterpret_cast<gpointer>(this));
 

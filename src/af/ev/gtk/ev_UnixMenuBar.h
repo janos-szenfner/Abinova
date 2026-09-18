@@ -48,6 +48,9 @@ public:
 
 protected:
 	GtkWidget *		m_wMenuBar;
+
+	virtual bool		_hasBoundWidget() const override { return m_wMenuBar != nullptr; }
+	virtual void		_setModelOnBoundWidget(GMenu * model) override;
 };
 
 #endif /* EV_UNIXMENUBAR_H */

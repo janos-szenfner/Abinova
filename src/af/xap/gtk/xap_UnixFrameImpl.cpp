@@ -697,6 +697,10 @@ void XAP_UnixFrameImpl::_fe::button_press_event(GtkGestureClick * g, gint n_pres
 
 	pUnixFrameImpl->resetIMContext ();
 
+	/* GTK4: clicking does not move keyboard focus to the widget — grab
+	 * it explicitly so typed input reaches the document. */
+	gtk_widget_grab_focus(w);
+
 	if (pView)
 		pUnixMouse->mouseClick(pView,
 							   gtk_event_controller_get_current_event(controller),
@@ -1019,6 +1023,7 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
 	GtkEventController * controller = GTK_EVENT_CONTROLLER(c);
 	GdkEvent * e = gtk_event_controller_get_current_event(controller);
+
 
 	// Let IM handle the event first.
 	if (e && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {

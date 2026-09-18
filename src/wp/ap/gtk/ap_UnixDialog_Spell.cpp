@@ -413,7 +413,7 @@ AP_UnixDialog_Spell::_updateWindow (void)
 							-1);
 
 		g_signal_handler_block(G_OBJECT(m_eChange), m_replaceHandlerID);
-		XAP_gtk_entry_set_text(GTK_ENTRY(m_eChange), word);
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_eChange), word);
 		g_signal_handler_unblock(G_OBJECT(m_eChange), m_replaceHandlerID);
 	}
 	else
@@ -436,7 +436,7 @@ AP_UnixDialog_Spell::_updateWindow (void)
 		// put the first suggestion in the entry
 		suggest = (gchar*) _convertToMB((UT_UCS4Char*)m_Suggestions->getNthItem(0));
 		g_signal_handler_block(G_OBJECT(m_eChange), m_replaceHandlerID);
-		XAP_gtk_entry_set_text(GTK_ENTRY(m_eChange), suggest);
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_eChange), suggest);
 		g_signal_handler_unblock(G_OBJECT(m_eChange), m_replaceHandlerID);
 		FREEP(suggest);
 	}
@@ -470,7 +470,7 @@ AP_UnixDialog_Spell::onChangeClicked ()
 {
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Spell::onChangeClicked()\n"));
 	UT_UCS4Char * replace = nullptr;
-	replace = _convertFromMB((char*)XAP_gtk_entry_get_text(GTK_ENTRY(m_eChange)));
+	replace = _convertFromMB((char*)XAP_gtk_entry_get_text(GTK_EDITABLE(m_eChange)));
 	if (!replace || !UT_UCS4_strlen(replace))
 	{
 		UT_DEBUGMSG(("replace is 0 length\n"));
@@ -489,7 +489,7 @@ AP_UnixDialog_Spell::onChangeAllClicked ()
 {
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Spell::onChangeAllClicked()\n"));
 	UT_UCS4Char * replace = nullptr;
-	replace = _convertFromMB((char*)XAP_gtk_entry_get_text(GTK_ENTRY(m_eChange)));
+	replace = _convertFromMB((char*)XAP_gtk_entry_get_text(GTK_EDITABLE(m_eChange)));
 	if (!replace || !UT_UCS4_strlen(replace))
 	{
 		FREEP(replace);
@@ -551,7 +551,7 @@ AP_UnixDialog_Spell::onSuggestionSelected ()
 	UT_ASSERT(newreplacement);
 
 	g_signal_handler_block(G_OBJECT(m_eChange), m_replaceHandlerID);
-	XAP_gtk_entry_set_text(GTK_ENTRY(m_eChange), newreplacement);
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_eChange), newreplacement);
 	g_signal_handler_unblock(G_OBJECT(m_eChange), m_replaceHandlerID);
 	g_free(newreplacement);
 }
@@ -563,7 +563,7 @@ void
 AP_UnixDialog_Spell::onSuggestionChanged ()
 {
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Spell::onSuggestionChanged()\n"));
-	const gchar * modtext = XAP_gtk_entry_get_text(GTK_ENTRY(m_eChange));
+	const gchar * modtext = XAP_gtk_entry_get_text(GTK_EDITABLE(m_eChange));
 	UT_ASSERT(modtext);
 
 	GtkTreeIter iter;

@@ -350,7 +350,8 @@ public:									// we create...
 	{
 		if (keyval == GDK_KEY_Return) {
 			GtkWidget * widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
-			GtkComboBox *combo = GTK_COMBO_BOX (gtk_widget_get_parent (widget));
+			/* GTK4: the entry's parent is an internal GtkBox, not the combo */
+			GtkComboBox *combo = GTK_COMBO_BOX (gtk_widget_get_ancestor (widget, GTK_TYPE_COMBO_BOX));
 			s_combo_apply_changes (combo, wd);
 		}
 
@@ -364,7 +365,7 @@ public:									// we create...
 									  _wd           *wd)
 	{
 		GtkWidget * widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
-		GtkComboBox *combo = GTK_COMBO_BOX (gtk_widget_get_parent (widget));
+		GtkComboBox *combo = GTK_COMBO_BOX (gtk_widget_get_ancestor (widget, GTK_TYPE_COMBO_BOX));
 		s_combo_apply_changes (combo, wd);
 	}
 
@@ -877,6 +878,7 @@ bool EV_UnixToolbar::synthesize(void)
 					GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo)));
 					gtk_widget_set_can_focus (GTK_WIDGET(entry), TRUE);
 					gtk_editable_set_width_chars (GTK_EDITABLE(entry), 4);
+					gtk_editable_set_max_width_chars (GTK_EDITABLE(entry), 6);
 					g_signal_connect (G_OBJECT (entry), "insert-text", G_CALLBACK (_wd::s_insert_text_cb), nullptr);
 					GtkEventController *focusController = gtk_event_controller_focus_new();
 					g_signal_connect (G_OBJECT (focusController), "leave", G_CALLBACK (_wd::s_focus_out_event_cb), (gpointer) wd);
@@ -946,6 +948,10 @@ bool EV_UnixToolbar::synthesize(void)
 				}
 
 				gtk_size_group_add_widget (m_wVSizeGroup, combo);
+				// GTK4: a combo's internal entry/box is hexpand, which
+				// propagates via gtk_widget_compute_expand and makes the
+				// combo eat all free space in the toolbar box.
+				gtk_widget_set_hexpand(combo, FALSE);
 				gtk_widget_set_valign(combo, GTK_ALIGN_CENTER);
 				gtk_widget_show(combo);
 				toolbar_append_item(GTK_BOX(m_wToolbar), combo,
@@ -1185,7 +1191,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 							ret = combo_box_set_active_text(combo, fsz, wd->m_handlerId);
 						}
 						if (!ret) {
-							XAP_gtk_entry_set_text(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo))),
+							XAP_gtk_entry_set_text(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(combo))),
 											   szState);
 						}
 					}

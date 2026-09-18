@@ -163,7 +163,7 @@ static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Fo
 static void s_Text_changed (GtkEventControllerFocus *controller, AP_UnixDialog_FormatTOC *me)
 {
 	GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
-	std::string sVal(XAP_gtk_entry_get_text(GTK_ENTRY(widget)));
+	std::string sVal(XAP_gtk_entry_get_text(GTK_EDITABLE(widget)));
 	std::string sProp;
 	sProp = static_cast<const char *>(g_object_get_data(G_OBJECT(widget), "toc-prop"));
 	UT_String sNum = UT_String_sprintf("%d", me->getDetailsLevel());
@@ -256,7 +256,7 @@ void AP_UnixDialog_FormatTOC::event_StartAtChanged(GtkWidget * wSpin)
 	incrementStartAt(getDetailsLevel(),bInc);
 	std::string sVal = getTOCPropVal("toc-label-start",getDetailsLevel());
 	GtkWidget * pW = _getWidget("wStartEntry");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 }
 
 void AP_UnixDialog_FormatTOC::event_HasHeadingChanged(GtkWidget * wid)
@@ -320,7 +320,7 @@ void AP_UnixDialog_FormatTOC::event_IndentChanged(GtkWidget * wSpin)
 	incrementIndent(getDetailsLevel(),bInc);
 	std::string sVal = getTOCPropVal("toc-indent",getDetailsLevel());
 	GtkWidget * pW = _getWidget("wIndentEntry");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 }
 
 void AP_UnixDialog_FormatTOC::notifyActiveFrame(XAP_Frame * /*pFrame*/)
@@ -451,20 +451,20 @@ void AP_UnixDialog_FormatTOC::setDetailsLevel(UT_sint32 iLevel)
 
 	sVal = getTOCPropVal("toc-label-after",getDetailsLevel());
 	GtkWidget * pW = _getWidget("edTextAfter");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 
 	sVal = getTOCPropVal("toc-label-before",getDetailsLevel());
 	pW = _getWidget("edTextBefore");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 
 	sVal = getTOCPropVal("toc-label-start",getDetailsLevel());
 	pW = _getWidget("wStartEntry");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 
 
 	sVal = getTOCPropVal("toc-indent",getDetailsLevel());
 	pW = _getWidget("wIndentEntry");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	
 
 	sVal = getTOCPropVal("toc-label-inherits",getDetailsLevel());
@@ -611,13 +611,13 @@ void  AP_UnixDialog_FormatTOC::event_Apply(void)
 
 	GtkWidget * pW = _getWidget("edHeadingText");
 	std::string sVal;
-	sVal = XAP_gtk_entry_get_text(GTK_ENTRY(pW));
+	sVal = XAP_gtk_entry_get_text(GTK_EDITABLE(pW));
 	setTOCProperty("toc-heading",sVal.c_str());
 
 // Text before and after
 
 	pW = _getWidget("edTextAfter");
-	sVal = XAP_gtk_entry_get_text(GTK_ENTRY(pW));
+	sVal = XAP_gtk_entry_get_text(GTK_EDITABLE(pW));
 	std::string sProp;
 	sProp = static_cast<const char *> (g_object_get_data(G_OBJECT(pW),"toc-prop"));
 	UT_String sNum =  UT_String_sprintf("%d",getDetailsLevel());
@@ -625,7 +625,7 @@ void  AP_UnixDialog_FormatTOC::event_Apply(void)
 	setTOCProperty(sProp,sVal);
 
 	pW = _getWidget("edTextBefore");
-	sVal = XAP_gtk_entry_get_text(GTK_ENTRY(pW));
+	sVal = XAP_gtk_entry_get_text(GTK_EDITABLE(pW));
 	sProp = static_cast<const char *> (g_object_get_data(G_OBJECT(pW),"toc-prop"));
 	sProp += sNum.c_str();
 	setTOCProperty(sProp,sVal);
@@ -664,7 +664,7 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	
 	sVal = getTOCPropVal("toc-heading");
 	pW = _getWidget("edHeadingText");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-heading");
 
 
@@ -704,12 +704,12 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 
 	sVal = getTOCPropVal("toc-label-after",getDetailsLevel());
 	pW = _getWidget("edTextAfter");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-label-after");
 
 	sVal = getTOCPropVal("toc-label-before",getDetailsLevel());
 	pW = _getWidget("edTextBefore");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-label-before");
 
 	sVal = getTOCPropVal("toc-label-inherits",getDetailsLevel());
@@ -731,7 +731,7 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 
 	sVal = getTOCPropVal("toc-label-start",getDetailsLevel());
 	pW = _getWidget("wStartEntry");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON (_getWidget("wStartSpin")),
                                              (gdouble) m_iStartValue );
 	g_signal_connect(G_OBJECT(_getWidget("wStartSpin")),
@@ -741,7 +741,7 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 
 	sVal = getTOCPropVal("toc-indent",getDetailsLevel());
 	pW = _getWidget("wIndentEntry");
-	XAP_gtk_entry_set_text(GTK_ENTRY(pW),sVal.c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON (_getWidget("wIndentSpin")),
                                              (gdouble) m_iIndentValue );
 	g_signal_connect(G_OBJECT(_getWidget("wIndentSpin")),

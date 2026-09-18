@@ -72,20 +72,20 @@ AP_RDFContactGTK::updateFromEditorData( PD_DocumentRDFMutationHandle m )
     }
 
     UT_DEBUGMSG(("updateFromEditorData() name:%s new-name:%s ls:%s m_phone:%s w_phone:%s\n",
-                 m_name.c_str(), tostr(GTK_ENTRY(w_name)).c_str(),
+                 m_name.c_str(), tostr(GTK_EDITABLE(w_name)).c_str(),
                  linkingSubject().c_str(),
                  m_phone.c_str(),
                  tostr(w_phone).c_str()
                     ));
     std::string predBase = "http://xmlns.com/foaf/0.1/";
     setRDFType(   m, predBase + "Person" );
-    updateTriple( m, m_name,     tostr(GTK_ENTRY(w_name)), predBase + "name");
-    updateTriple( m, m_nick,     tostr(GTK_ENTRY(w_nick)), predBase + "nick");
-    updateTriple( m, m_email,    tostr(GTK_ENTRY(w_email)), predBase + "mbox");
-    updateTriple( m, m_homePage, tostr(GTK_ENTRY(w_homePage)), predBase + "homepage");
-    updateTriple( m, m_imageUrl, tostr(GTK_ENTRY(w_imageUrl)), predBase + "image");
-    updateTriple( m, m_phone,    tostr(GTK_ENTRY(w_phone)), predBase + "phone");
-    updateTriple( m, m_jabberID, tostr(GTK_ENTRY(w_jabberID)), predBase + "jabberid");
+    updateTriple( m, m_name,     tostr(GTK_EDITABLE(w_name)), predBase + "name");
+    updateTriple( m, m_nick,     tostr(GTK_EDITABLE(w_nick)), predBase + "nick");
+    updateTriple( m, m_email,    tostr(GTK_EDITABLE(w_email)), predBase + "mbox");
+    updateTriple( m, m_homePage, tostr(GTK_EDITABLE(w_homePage)), predBase + "homepage");
+    updateTriple( m, m_imageUrl, tostr(GTK_EDITABLE(w_imageUrl)), predBase + "image");
+    updateTriple( m, m_phone,    tostr(GTK_EDITABLE(w_phone)), predBase + "phone");
+    updateTriple( m, m_jabberID, tostr(GTK_EDITABLE(w_jabberID)), predBase + "jabberid");
     
     if (getRDF())
     {

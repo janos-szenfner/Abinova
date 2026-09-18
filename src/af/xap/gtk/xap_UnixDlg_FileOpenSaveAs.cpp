@@ -191,6 +191,45 @@ static void s_file_activated(GtkWidget * w, XAP_Dialog_FileOpenSaveAs::tAnswer *
 		gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 }
 
+/* GTK4: GtkFileChooserWidget dropped the "file-activated" signal (its
+ * embed mechanism is private). Emulate it: double-click or Enter on a
+ * regular file accepts the dialog; folders are left to the chooser's
+ * internal navigation. */
+static gboolean s_fc_selected_is_folder(GtkFileChooser * fc)
+{
+	GFile * f = gtk_file_chooser_get_file(fc);
+	if (!f)
+		return false;
+	gboolean is_dir = (g_file_query_file_type(f, G_FILE_QUERY_INFO_NONE, nullptr)
+					   == G_FILE_TYPE_DIRECTORY);
+	g_object_unref(f);
+	return is_dir;
+}
+
+static void s_fc_pressed(GtkGestureClick * /*gesture*/, gint n_press,
+						 gdouble /*x*/, gdouble /*y*/, gpointer data)
+{
+	if (n_press < 2)
+		return;
+	GtkWidget * fc = GTK_WIDGET(data);
+	if (s_fc_selected_is_folder(GTK_FILE_CHOOSER(fc)))
+		return;
+	s_file_activated(fc, nullptr);
+}
+
+static gboolean s_fc_key_pressed(GtkEventControllerKey * /*controller*/,
+								 guint keyval, guint /*keycode*/,
+								 GdkModifierType /*state*/, gpointer data)
+{
+	if (keyval != GDK_KEY_Return && keyval != GDK_KEY_KP_Enter)
+		return FALSE;
+	GtkWidget * fc = GTK_WIDGET(data);
+	if (s_fc_selected_is_folder(GTK_FILE_CHOOSER(fc)))
+		return FALSE;
+	s_file_activated(fc, nullptr);
+	return TRUE;
+}
+
 static void file_selection_changed  (GtkFileChooser  * /*chooser*/,
                                     gpointer           ptr)
 {
@@ -842,9 +881,18 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 				"response",
 				G_CALLBACK(dialog_response), &m_answer);
 	
-	g_signal_connect (G_OBJECT (m_FC),
-				"file-activated",
-				G_CALLBACK(s_file_activated), &m_answer);	
+	GtkGesture *fc_click = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(fc_click),
+								  GDK_BUTTON_PRIMARY);
+	g_signal_connect(fc_click, "pressed",
+					 G_CALLBACK(s_fc_pressed), m_FC);
+	gtk_widget_add_controller(GTK_WIDGET(m_FC),
+							  GTK_EVENT_CONTROLLER(fc_click));
+
+	GtkEventController *fc_key = gtk_event_controller_key_new();
+	g_signal_connect(fc_key, "key-pressed",
+					 G_CALLBACK(s_fc_key_pressed), m_FC);
+	gtk_widget_add_controller(GTK_WIDGET(m_FC), fc_key);
 
 	g_signal_connect(G_OBJECT(filetypes_pulldown), "changed",
 					 G_CALLBACK(s_filetypechanged),

@@ -910,7 +910,7 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 	decimal_en = gtk_entry_new ();
 	gtk_widget_show (decimal_en);
 	gtk_grid_attach (GTK_GRID (grid2), decimal_en, 1, 2, 1, 1);
-	XAP_gtk_entry_set_text (GTK_ENTRY (format_en), "");
+	XAP_gtk_entry_set_text(GTK_EDITABLE(format_en), "");
 
 	start_sb_adj = (GtkAdjustment*)gtk_adjustment_new (1, 0, G_MAXINT32, 1, 10, 10);
 	start_sb = gtk_spin_button_new (GTK_ADJUSTMENT (start_sb_adj), 1, 0);
@@ -1284,8 +1284,8 @@ void AP_UnixDialog_Lists::loadXPDataIntoLocal(void)
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(m_wStartSpin),static_cast<float>(getiStartValue()));
 
-    XAP_gtk_entry_set_text( GTK_ENTRY(m_wDecimalEntry), getDecimal().c_str());
-	XAP_gtk_entry_set_text( GTK_ENTRY(m_wDelimEntry), getDelim().c_str());
+    XAP_gtk_entry_set_text(GTK_EDITABLE(m_wDecimalEntry), getDecimal().c_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wDelimEntry), getDelim().c_str());
 
 	//
 	// Now set the list type and style
@@ -1380,9 +1380,9 @@ void AP_UnixDialog_Lists::_gatherData(void)
 	{
 		copyCharToFont(m_glFonts[ifont - 1]);
 	}
-	const gchar * pszDec = XAP_gtk_entry_get_text( GTK_ENTRY(m_wDecimalEntry));
+	const gchar * pszDec = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wDecimalEntry));
 	copyCharToDecimal( static_cast<const char *>(pszDec));
 	setiStartValue(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(m_wStartSpin)));
-	const gchar * pszDel = XAP_gtk_entry_get_text( GTK_ENTRY(m_wDelimEntry));
+	const gchar * pszDel = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wDelimEntry));
 	copyCharToDelim(static_cast<const char *>(pszDel));
 }

@@ -37,7 +37,7 @@
 
 void XAP_UnixDialog_Password::event_OK ()
 {
-	const char * txt = XAP_gtk_entry_get_text (GTK_ENTRY(mTextEntry));
+	const char * txt = XAP_gtk_entry_get_text(GTK_EDITABLE(mTextEntry));
 	if (txt && strlen(txt)) {
 		setPassword (txt);
 		setAnswer(XAP_Dialog_Password::a_OK);

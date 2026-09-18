@@ -269,7 +269,7 @@ static void s_transparency_toggled(GtkWidget * ,  XAP_UnixDialog_FontChooser * d
 
 void XAP_UnixDialog_FontChooser::underlineChanged(void)
 {
-	m_bUnderline = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkUnderline));
+	m_bUnderline = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkUnderline));
 	m_bChangedUnderline = !m_bChangedUnderline;
 	setFontDecoration(m_bUnderline,m_bOverline,m_bStrikeout,m_bTopline,m_bBottomline);
 	updatePreview();
@@ -278,7 +278,7 @@ void XAP_UnixDialog_FontChooser::underlineChanged(void)
 
 void XAP_UnixDialog_FontChooser::strikeoutChanged(void)
 {
-	m_bStrikeout = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkStrikeOut));
+	m_bStrikeout = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkStrikeOut));
 	m_bChangedStrikeOut = !m_bChangedStrikeOut;
 	setFontDecoration(m_bUnderline,m_bOverline,m_bStrikeout,m_bTopline,m_bBottomline);
 	updatePreview();
@@ -287,7 +287,7 @@ void XAP_UnixDialog_FontChooser::strikeoutChanged(void)
 
 void XAP_UnixDialog_FontChooser::overlineChanged(void)
 {
-	m_bOverline = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkOverline));
+	m_bOverline = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkOverline));
 	m_bChangedOverline = !m_bChangedOverline;
 	setFontDecoration(m_bUnderline,m_bOverline,m_bStrikeout,m_bTopline,m_bBottomline);
 	updatePreview();
@@ -296,14 +296,14 @@ void XAP_UnixDialog_FontChooser::overlineChanged(void)
  
 void XAP_UnixDialog_FontChooser::subscriptChanged(void) 
 { 
-    m_bSubScript = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkSubScript)); 
+    m_bSubScript = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkSubScript)); 
     m_bChangedSubScript = !m_bChangedSubScript; 
     if (m_bSubScript)
 	{
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkSuperScript)))
+		if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkSuperScript)))
 		{
 			g_signal_handler_block(G_OBJECT(m_checkSuperScript), m_iSuperScriptId);
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkSuperScript), false);
+			gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkSuperScript), false);
 			g_signal_handler_unblock(G_OBJECT(m_checkSuperScript), m_iSuperScriptId);
 			m_bChangedSuperScript = !m_bChangedSuperScript;
 			setSuperScript(false);
@@ -315,14 +315,14 @@ void XAP_UnixDialog_FontChooser::subscriptChanged(void)
  
 void XAP_UnixDialog_FontChooser::superscriptChanged(void) 
 { 
-    m_bSuperScript = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkSuperScript)); 
+    m_bSuperScript = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkSuperScript)); 
     m_bChangedSuperScript = !m_bChangedSuperScript; 
     if (m_bSuperScript)
 	{
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkSubScript)))
+		if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkSubScript)))
 		{
 			g_signal_handler_block(G_OBJECT(m_checkSubScript), m_iSubScriptId);
-    		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkSubScript), false);
+    		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkSubScript), false);
 			g_signal_handler_unblock(G_OBJECT(m_checkSubScript), m_iSubScriptId);
 			m_bChangedSubScript = !m_bChangedSubScript;
 			setSubScript(false);
@@ -335,13 +335,13 @@ void XAP_UnixDialog_FontChooser::superscriptChanged(void)
  
 void XAP_UnixDialog_FontChooser::hiddenChanged(void)
 {
-	m_bHidden = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkHidden));
+	m_bHidden = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkHidden));
 	m_bChangedHidden = !m_bChangedHidden;
 }
 
 void XAP_UnixDialog_FontChooser::transparencyChanged(void)
 {
-	bool bTrans = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(m_checkTransparency));
+	bool bTrans = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkTransparency));
 	if(bTrans)
 	{
 		addOrReplaceVecProp("bgcolor","transparent");
@@ -482,7 +482,7 @@ void XAP_UnixDialog_FontChooser::bgColorChanged(void)
 								&m_currentBGColor);
 	UT_RGBColor * rgbcolor = UT_UnixGdkRGBAToRGBColor(m_currentBGColor);
 	UT_HashColor hash_color;
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkTransparency), FALSE);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkTransparency), FALSE);
 	m_currentBGColorTransparent = false;
 	// test for funkyColor-has-been-changed-to-sane-color case
 	addOrReplaceVecProp("bgcolor", hash_color.setColor(*rgbcolor) + 1);
@@ -1034,11 +1034,11 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 		GdkRGBA *color = UT_UnixRGBColorToGdkRGBA(c);
 		m_currentBGColor = *color;
 		gdk_rgba_free(color);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkTransparency), FALSE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkTransparency), FALSE);
 		gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(m_bgcolorSelector), &m_currentBGColor);
 	}
 	else
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkTransparency), TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkTransparency), TRUE);
 
 	// fix for GTK's questionable gtk_toggle_set_active behaviour (emits when setting TRUE)
 	m_bChangedStrikeOut = m_bStrikeout;
@@ -1049,12 +1049,12 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	m_bChangedSuperScript = m_bSuperScript;
 
 	// set the strikeout, underline, overline, and hidden check buttons
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkStrikeOut), m_bStrikeout);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkUnderline), m_bUnderline);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkOverline), m_bOverline);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkHidden), m_bHidden);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkSubScript), m_bSubScript);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_checkSuperScript), m_bSuperScript);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkStrikeOut), m_bStrikeout);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkUnderline), m_bUnderline);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkOverline), m_bOverline);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkHidden), m_bHidden);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkSubScript), m_bSubScript);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkSuperScript), m_bSuperScript);
 
 	m_doneFirstFont = true;
 

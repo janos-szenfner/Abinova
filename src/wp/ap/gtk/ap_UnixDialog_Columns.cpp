@@ -261,12 +261,12 @@ void AP_UnixDialog_Columns::runModal(XAP_Frame * pFrame)
 
     {
 		XAP_GtkSignalBlocker b(G_OBJECT(m_wSpaceAfterEntry), m_iSpaceAfterID);
-		XAP_gtk_entry_set_text( GTK_ENTRY(m_wSpaceAfterEntry),getSpaceAfterString() );
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wSpaceAfterEntry),getSpaceAfterString());
 	}
 
 	{
 		XAP_GtkSignalBlocker b(G_OBJECT(m_wMaxColumnHeightEntry), m_iMaxColumnHeightID);
-		XAP_gtk_entry_set_text( GTK_ENTRY(m_wMaxColumnHeightEntry),getHeightString() );
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wMaxColumnHeightEntry),getHeightString());
 	}
 
 	// *** this is how we add the gc for Column Preview ***
@@ -295,7 +295,7 @@ void AP_UnixDialog_Columns::runModal(XAP_Frame * pFrame)
 	setLineBetween(getLineBetween());
 	if(getLineBetween()==true)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wlineBetween),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wlineBetween),TRUE);
 	}
 	// Now draw the columns
 
@@ -322,7 +322,7 @@ void AP_UnixDialog_Columns::runModal(XAP_Frame * pFrame)
 
 void AP_UnixDialog_Columns::checkLineBetween(void)
 {
-  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON (m_wlineBetween)))
+  if (gtk_check_button_get_active(GTK_CHECK_BUTTON (m_wlineBetween)))
       setLineBetween(true);
   else
       setLineBetween(false);
@@ -340,7 +340,7 @@ void AP_UnixDialog_Columns::doHeightSpin(void)
 	m_iMaxColumnHeight = val;
 	incrementMaxHeight(bIncrement);
 	//g_signal_handler_block(G_OBJECT(m_wMaxColumnHeightEntry), m_iMaxColumnHeightID);
-	XAP_gtk_entry_set_text( GTK_ENTRY(m_wMaxColumnHeightEntry),getHeightString() );
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wMaxColumnHeightEntry),getHeightString());
 	//g_signal_handler_unblock(G_OBJECT(m_wMaxColumnHeightEntry), m_iMaxColumnHeightID);
 }
 
@@ -357,7 +357,7 @@ void  AP_UnixDialog_Columns::doSpaceAfterSpin(void)
 	m_iSpaceAfter = val;
 	incrementSpaceAfter(bIncrement);
 	//g_signal_handler_block(G_OBJECT(m_wSpaceAfterEntry), m_iSpaceAfterID);
-	XAP_gtk_entry_set_text( GTK_ENTRY(m_wSpaceAfterEntry),getSpaceAfterString() );
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wSpaceAfterEntry),getSpaceAfterString());
 	//g_signal_handler_unblock(G_OBJECT(m_wSpaceAfterEntry),m_iSpaceAfterID);
 }
 
@@ -441,28 +441,28 @@ void AP_UnixDialog_Columns::event_OK(void)
 
 void AP_UnixDialog_Columns::doMaxHeightEntry(void)
 {
-	const char * szHeight = XAP_gtk_entry_get_text(GTK_ENTRY(m_wMaxColumnHeightEntry));
+	const char * szHeight = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wMaxColumnHeightEntry));
 	if(UT_determineDimension(szHeight,DIM_none) != DIM_none)
 	{
 		setMaxHeight(szHeight);
 
 		XAP_GtkSignalBlocker b(G_OBJECT(m_wMaxColumnHeightEntry), m_iMaxColumnHeightID);
 		int pos = gtk_editable_get_position(GTK_EDITABLE(m_wMaxColumnHeightEntry));
-		XAP_gtk_entry_set_text( GTK_ENTRY(m_wMaxColumnHeightEntry),getHeightString() );
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wMaxColumnHeightEntry),getHeightString());
 		gtk_editable_set_position(GTK_EDITABLE(m_wMaxColumnHeightEntry), pos);
 	}
 }
 
 void AP_UnixDialog_Columns::doSpaceAfterEntry(void)
 {
-	const char * szAfter = XAP_gtk_entry_get_text(GTK_ENTRY(m_wSpaceAfterEntry));
+	const char * szAfter = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wSpaceAfterEntry));
 	if(UT_determineDimension(szAfter,DIM_none) != DIM_none)
 	{
 		setSpaceAfter(szAfter);
 
 		XAP_GtkSignalBlocker b(G_OBJECT(m_wSpaceAfterEntry), m_iSpaceAfterID);
 		int pos = gtk_editable_get_position(GTK_EDITABLE(m_wSpaceAfterEntry));
-		XAP_gtk_entry_set_text( GTK_ENTRY(m_wSpaceAfterEntry),getSpaceAfterString() );
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wSpaceAfterEntry),getSpaceAfterString());
 		gtk_editable_set_position(GTK_EDITABLE(m_wSpaceAfterEntry), pos);
 	}
 }
@@ -640,7 +640,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	GtkWidget * checkOrder = gtk_check_button_new_with_label (s.c_str());
 	gtk_widget_show (checkOrder);
 	gtk_grid_attach(GTK_GRID(grid), checkOrder, 0, 6, 5, 1);
-	gtk_toggle_button_set_active ( GTK_TOGGLE_BUTTON(checkOrder), getColumnOrder() );
+	gtk_check_button_set_active ( GTK_CHECK_BUTTON(checkOrder), getColumnOrder() );
 	m_checkOrder = checkOrder;
 
 /////////////////////////////////////////////////////////

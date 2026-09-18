@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<!-- 
+Copyright 2003 Tomas Frydrych Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts A copy of the license is included in the section entitled "GNU Free Documentation License"
+//-->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>How To Create Bi-directional Documents</title>
+<link href="../style.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<div class="banner">
+<a href="../index.html" class="bars">Home</a> &gt; <a href="index.html" class="bars">How To</a> &gt; Creating and Saving a Document 
+</div>
+
+<div class="main">
+
+
+            <h1 id="AbiTOC0">
+<span>Bidirectional Wordprocessing With AbiWord</span>
+            </h1>
+<p>Dec <span>6</span>, 2003</p><p><span>Tomas Frydrych &lt;</span><a href="mailto:tomas@frydrych.uklinux.net"><span>tomas@frydrych.uklinux.net</span></a><span>&gt;</span></p>            <h2 id="AbiTOC1">
+Contents
+            </h2>
+<p><a href="#intro"><span style="font-weight:bold">Introduction</span></a></p><p class="" style="margin-bottom:0pt"><a href="#bidi_control"><span style="font-weight:bold">Controlling Bidirectional Ordering</span></a></p><p class="" style="margin-bottom:0pt;margin-left:0.5000in"><a href="#dom-dir">Dominant Direction of Text</a></p><p class="" style="margin-bottom:0pt;margin-left:0.5000in"><a href="#overrides">Explicit Direction Overrides</a></p><p class="" style="margin-bottom:0pt;margin-left:0.5000in"><a href="#markers">Direction Markers</a></p><p class="" style="margin-bottom:0pt;margin-left:1.98cm"><a href="#markers_examples"><span style="font-size:11pt">Examples</span></a></p><p class="" style="margin-left:1.98cm"><a href="#markers_auto"><span style="font-size:11pt">Automatic Insertion</span></a></p><p><a href="#mirroring"><span style="font-weight:bold">Mirroring Characters</span></a></p><p><a href="#shaping"><span style="font-weight:bold">Glyph Shaping</span></a></p>            <h2 id="AbiTOC2">
+                <a name="intro">
+</a>
+<span>Introduction</span>
+            </h2>
+<p><span>Some languages, such as English, are written from left to right, while other languages, such as Arabic, from right to left. AbiWord can handle both directions of text, as well as their combinations -- AbiWord is a bidirectional word processor. </span></p>            <h2 id="AbiTOC3">
+                <a name="bidi_control">
+</a>
+<span>Controlling Bidirectional Ordering</span>
+            </h2>
+<p><span>The bidirectional ordering of text in AbiWord is done automatically, closely following the Unicode Bidirectional Algorithm (UBA; see the </span><a href="http://www.unicode.org"><span>Unicode Consortium website</span></a><span>). T</span><span style="font-size:12pt;font-family:'Times New Roman'">he Unicode character set assigns each character certain directional properties which are then used by the UBA to order text. Thus, Hebrew or Arabic characters will automatically be treated as right-to-left, and English characters as left-to-right. There are some characters that are directionally ambiguous, and how they are treated by the UBA depends on what characters are found in their vicinity (this includes all white space and punctuation characters).</span></p><p><span>Sometimes it is desirable to have the characters ordered differently than the following the UBA. In AbiWord the user has at his or her disposal three basic mechanisms that allow him or her to fine-tune the results. These are </span><span style="font-style:italic">specifying dominant direction of text</span>, <span style="font-style:italic">overriding implicit directional properties of characters</span>, and <span style="font-style:italic">inserting direction markers</span>.</p>            <h3 id="AbiTOC4">
+                <a name="dom-dir">
+</a>
+Dominant Direction of Text
+            </h3>
+<p>The same sequence of characters with different directional properties will look differently if it is assumed to be a left-to-right text with right-to-left text embedded in it, or if it is understood to be a right-to-left text with left-to-right text embedded. In AbiWord we refer to the basic direction of text as the <span style="font-style:italic">dominant direction</span> (in the the Unicode documentation it is known as the base embedding level)<span style="font-style:italic">. </span>The dominant direction in AbiWord operates on four hierarchical levels<span>:</span> paragraph, section, document, and the program.</p>            <h4 id="AbiTOC5">
+Paragraph-Level Dominant Direction
+            </h4>
+<p>The paragraph-level dominant direction can be set either by the <span style="font-style:italic">Right-to-left</span><span> dominant check box in the Format-&gt;Paragraph dialogue, or from Format-&gt;Direction, or by using the equivalent button on the Extra toolbar. If the dominant direction is not set explicitly by the user, AbiWord will work it out from &nbsp;the rest of the dominant direction hierarchy, i.e., it will check if dominant direction is set explicitly for the section in which the &nbsp;paragraph is located, and if not, it will check the document level settings, finally resorting to program-level defaults.</span></p>            <h4 id="AbiTOC6">
+Section-Level Dominant Direction
+            </h4>
+<p>The section-level dominant direction is controlled by the <span style="font-style:italic">Use RTL order</span> check box of the Format-&gt;Columns dialogue. Apart from providing <span>the</span> default for any of the section paragraphs that do not have their dominant direction set explicitly, the section dominant direction controls how columns in multicolumn sections are ordered, it determines the dominant direction of text of footnotes inserted into the section, and the order of columns in tables. If section-level dominant direction is not set, AbiWord will derive it from the rest of the dominant direction hierarchy as described earlier.</p>            <h4 id="AbiTOC7">
+Document-Level Dominant Direction
+            </h4>
+<p>The document-level dominant direction is derived from the program-level dominant direction at <span>the time </span>when the document is created. So, if your program-level dominant direction is set to RTL, every new document will have its default direction set to RTL. At present there is no way to change document-level dominant direction in an existing document (this is going to change in future versions).</p>            <h4 id="AbiTOC8">
+Program-Level Dominant Direction
+            </h4>
+<p>This is the value to which AbiWord recourses if everything else fails. <span style="font-size:12pt;font-family:'Times New Roman';color:#000000">The program-level dominant direction is set in the preferences (Tools-&gt;Preferences-&gt;Language-&gt;Bidirectional options). The default preference value is set to LTR (if you build AbiWord yourself from the AbiWord sources, you can change the default preference value to RTL).</span></p>            <h3 id="AbiTOC9">
+                <a name="overrides">
+</a>
+Explicit Direction Overrides
+            </h3>
+<p><span>T</span>he <span>visual </span>order <span>of characters </span>that is automatically produced by the UBA<span> </span>might not always be what the user needs<span>.</span> AbiWord allows the user to specify <span>explicitly </span>that certain characters should be treated as left-to-right or right-to-left<span> irrespective of their Unicode properties.</span> This is done by selecting the characters in question and then applying the <span>direction </span>override <span>from the</span> Format-&gt;Direction menu or <span>using </span>the<span> corresponding </span>buttons on the Extra toolbar.</p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">It is important to understand that the direction override is in fact a formatting property applied to the text. The consequence of this is that when you place the insertion point into or just after text with the override set, any new characters input will also have the override set. For example if you set the insertion point just pass text which has override set explicitly to LTR and then type a Hebrew or Arabic character, it too will have the override set and will be treated as if it was LTR. To remove the override, you proceed in a manner analogous to setting it.</span></p>            <h3 id="AbiTOC10">
+                <a name="markers">
+</a>
+Direction Markers
+            </h3>
+<p><span>Setting explicit direction override might sometimes not be the best way of changing the order of characters, particularly if the ordering is to be changed for one of the directionally ambiguous characters. The</span> Unicode character<span> set</span> <span>contains</span> two special characters called direction markers<span>:</span> LRM (left to right direction marker) and RLM (right to left direction marker). <span style="font-size:12pt;font-family:'Times New Roman';color:#000000">The sole purpose of these characters is to allow small adjustments of the bidirectional order by affecting properties of ambiguous characters in their vicinity: when</span> <span>the</span> text is reordered these <span>markers</span> behave as normal left-to-right and right-to-left characters, but when the text is displayed they are not shown<span> (that is, unless you have Show Formatting Marks turned on)</span>.<span> </span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">The LRM and RLM markers can be inserted using the Insert-&gt;Direction Markers menu, or by using keyboard shortcuts Alt+Ctrl+&gt; and Alt+Ctrl+&lt; respectively.</span></p>            <h4 id="AbiTOC11">
+                <a name="markers_examples">
+</a>
+<span>Examples of Using Direction Markers</span>
+            </h4>
+<p><span>The use of the markers is best shown on a couple of examples such as writing formulas and phone numbers.</span></p><p><span>As a first example, we will take</span> <span>the</span> formula <span style="font-style:italic">log(x)</span><span>. If it </span>is <span>embedded</span> into right<span>-</span>to<span>-</span>left text (represented here by capital letters<span> ABCEFG</span>), it will look like this:</p><p class="" style="text-align:right">GFE (log(x CBA</p><p><span>This is because the UBA will disambiguate</span> the closing parenthesis of the formula <span>to RTL (the algorithm does not know, and does not care, which is the opening parenthesis it matches; it takes an approach that will more often than not produce desired result, i.e., it assumes that a closing parenthesis on a direction boundary will have the properties of the characters that follow it). However, in our case the </span>order <span>we </span>want is:</p><p class="" style="text-align:right">GFE log(x) CBA</p><p><span>This </span>can be achieved by following the closing parenthesis with the LRM marker<span>. The inclusion of the marker will make the parenthesis completely surrounded by LTR characters, and so it will behave as an LTR character.</span></p><p>The same result could, of course, be achieved by selecting the closing parenthesis and applying to it an explicit left-to-right override as described in the previous section. <span>The main disadvantage of using an override in case like this has to do with the persistence of the explicit override described in the previous section. In contrast, the marker only affects the characters in its immediate vicinity, and only those that are directionally ambiguous. So if you insert RTL character just after the LRM marker, the new character will still behave as RTL, not LTR.</span></p><p><span>Another situation in which these markers come handy is with phone numbers. For instance, if the phone number 123 456 789 is embedded into a right-to-left text, it will look like this:</span></p><p class="" style="text-align:right"><span> FED 789 456 123 CBA</span></p><p><span>This is because English digits are considered weak LTR characters: they will be ordered from left to right themselves, but any ambiguous characters embedded among them will derive their direction from directionally strong characters that surround the whole number segment. In our case those are the ABC, DEF characters and so the spaces between the three groups of numbers behave as right-to-left characters. If, however, what the user wants is a phone number that looks like this:</span></p><p class="" style="text-align:right"><span>FED 123 456 789 CBA</span></p><p><span>all that is requires is that the LRM character is inserted just before typing in the first digit; this will make the following numbers behave as strong LTR characters, and consequently the spaces too will behave as LTR characters.</span></p>            <h4 id="AbiTOC12">
+                <a name="markers_auto">
+</a>
+<span>Automatic Insertion of LRM and RLM Markers</span>
+            </h4>
+<p>In certain circumstances AbiWord is capable of inserting these direction markers automatically<span>,</span> based on the keyboard layout used (this is currently only supported under Windows). In order <span>to use this feature you need</span> to first of all make sure that the option to change language when changing keyboard layout is turned on (Tools-&gt;Preferences-&gt;Language), and that also the bidirectional option <span style="font-style:italic">auto-insert direction markers</span> is turned on (Tools-&gt;Preferences-&gt;Language). AbiWord will then follow all <span>closing parenthesis (Unicode characters '</span>)<span>'</span>, <span>'</span>]<span>'</span>, and <span>'</span>}<span>')</span> with a direction marker derived from the language applied to that character. For instance, if a <span>'</span>)<span>'</span> character is set as being <span>written </span>in Hebrew, it will be followed by a RLM marker but if it is set as being in English, it will be followed by a LRM marker. Similarly, it will precede all <span>opening parenthesis ('</span>(<span>'</span>, <span>'</span>[<span>'</span>, and <span>'</span>{<span>'</span> characters<span>)</span> with a<span>n appropriate</span> direction marker<span>.</span></p><p><span>This feature could easily be extended to other characters; if you would find it useful, file a request in our </span><a href="http://bugzilla.abiword.com/"><span>Bugzilla</span></a><span>.</span></p>            <h2 id="AbiTOC13">
+                <a name="mirroring">
+</a>
+<span>Mirroring Characters</span>
+            </h2>
+<p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Mirroring characters are characters the glyphs of which need to be mirrored when displayed in RTL context. An example of a mirroring character is the opening parenthesis, which looks ( in LTR context but ) in RTL context. When it comes to these characters the Unicode definition is strictly semantic, i.e., opening parenthesis has always the same numerical code, but when found in RTL context the application is expected to display in its place the mirror glyph of LTR opening parenthesis, which happens to be the glyph associated with LTR closing parenthesis. The effect of this is that if you display RTL text with parentheses that follow the Unicode rules in a plain text editor that is not Unicode-compliant, you will see '(' where you would expect ')' and vice versa.</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">AbiWord, as a Unicode-based application, complies with the Unicode rules for handling mirroring characters. The consequence of the above is that your keyboard has to generate semantically correct values for the mirroring characters. </span><span style="font-weight:bold;font-size:12pt;font-family:'Times New Roman';color:#000000">On some Unix system this is not the case</span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">, and the keyboard for languages such as Hebrew generates the code for closing parenthesis in place of the code for opening parenthesis and vice verse. If you are seeing ')' when you are expecting '(' and vice versa, you need to fix the keyboard definition file (how to do that is beyond scope of this document).</span></p>            <h2 id="AbiTOC14">
+                <a name="shaping">
+</a>
+Glyph Shaping
+            </h2>
+<p>Closely related to AbiWord's bidirectional capabilities is its ability to change visual appearance of certain glyphs depending on their context. This is essential for <span>correct handling of the so-called mirroring characters described above, as well as for </span>languages that use scripted alphabets, such as Arabic, in which each letter has different shapes depending whether it stands alone, or at the beginning, in the middle or at the end of a word. Alongside this type of glyph shaping, AbiWord can also replace a sequence of two glyphs with a special ligature glyph where needed<span>.</span></p><p>At present AbiWord uses a proprietary shaping engine of fairly limited capabilities<span>. We are currently working on getting adequate support for Arabic, and support for other languages that require shaping can be added on request. However, the built-in shaping engine can </span>only <span>handle</span> languages for which the alternative glyph shapes have <span>separate </span>code points assigned<span> to them</span> in the Unicode character set (such as Arabic)<span>; some languages that were added to the Unicode character set relatively recently </span>rely solely on advanced font technologies for shaping<span> and these will not be supported in near future</span> (<span>e.g., </span>Syriac)<span>.</span></p><p><span>When shaping and replacing ligatures, </span>AbiWord always checks for the presence of the <span>replacement </span>glyph in the currently selected font<span>. If</span> the glyph is not available it will <span>use</span> the original character<span>(</span>s<span>), providing they are available. If even the original characters are absent, AbiWord will first try to remap them to sensible values, but if event that fails, it will use the absent glyph character.</span></p><p>An important thing to understand about the glyph shaping is that the changes only take place in the visual plain<span> (on screen or paper print out)</span>, <span>but </span>the characters that are contained in the document do not change in the process.</p><p>Glyph shaping is controlled from the Language tab of the Tools-&gt;Preference dialogue. There are two check boxes there: <span style="font-style:italic">Determine glyph shapes from context</span> and <span style="font-style:italic">Use glyph shaping for Hebrew</span>. The former of these is the master-switch that turns the glyph shaping engine on and off. When the second check box is checked, the shaping engine will shape also the five Hebrew letters that have a final form. <span style="font-weight:bold">Please note that this is not intended to be used for writing modern Hebrew and Yiddish documents</span>, since in modern Hebrew and Yiddish the final forms are considered different characters (and because as I have explained above the shaping does not change the characters in a document, if nothing else, your spell-check will not work<span>, and your files will not look right on other people's computers</span>).</p>
+        </div>
+
+<div class="index">
+<a href="../index.html" class="bars">Top Page</a>
+<a href="../tutorial/index.html" class="bars">Tutorial</a>
+<a href="../howto/index.html" class="bars">How To</a>
+<a href="../info/index.html" class="bars">Information</a>
+<a href="../interface/index.html" class="bars">Interface</a>
+<a href="../plugins/index.html" class="bars">Plug-ins</a> 
+<a href="../problems/index.html" class="bars">Problems</a>
+<a href="../credits.html" class="bars">Credits</a>
+<a href="../azindex.html" class="bars">Index</a>
+<a href="../fdl.html" class="bars">GNU FDL</a> 
+</div>
+
+</body>
+</html>
+

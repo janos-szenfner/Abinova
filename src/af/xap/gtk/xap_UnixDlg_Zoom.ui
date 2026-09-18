@@ -140,6 +140,15 @@
                       <child>
                         <object class="GtkButton" id="closebutton1">
                           <property name="label">_Close</property>
+                          <property name="use-underline">1</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                      <child>
+                        <object class="GtkButton" id="applybutton1">
+                          <property name="label">_Apply</property>
+                          <property name="use-underline">1</property>
                           <property name="visible">1</property>
                           <property name="can-focus">1</property>
                         </object>
@@ -149,6 +158,7 @@
 </object>
     </child><action-widgets>
       <action-widget response="-5">closebutton1</action-widget>
+      <action-widget response="-10">applybutton1</action-widget>
     </action-widgets>
   </object>
 </interface>

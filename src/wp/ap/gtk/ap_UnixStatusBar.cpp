@@ -23,7 +23,12 @@
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
+#include "xap_App.h"
 #include "xap_Frame.h"
+#include "xap_Strings.h"
+#include "xap_Dlg_Zoom.h"
+#include "ap_Frame.h"
+#include "ev_EditMethod.h"
 #include "ap_UnixStatusBar.h"
 #include "xap_UnixDialogHelper.h"
 
@@ -98,11 +103,87 @@ void ap_usb_ProgressListener::notify()
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
+static void s_zoom_value_changed(GtkRange * range, AP_UnixStatusBar * sb);
+
+void AP_UnixStatusBar::applyZoom(UT_sint32 iZoom)
+{
+	UT_return_if_fail(getFrame());
+	iZoom = UT_MAX(iZoom, (UT_sint32)XAP_DLG_ZOOM_MINIMUM_ZOOM);
+	iZoom = UT_MIN(iZoom, (UT_sint32)XAP_DLG_ZOOM_MAXIMUM_ZOOM);
+	AP_Frame * pFrame = static_cast<AP_Frame*>(getFrame());
+	pFrame->setZoomType(XAP_Frame::z_PERCENT);
+	pFrame->quickZoom(iZoom);
+	updateZoomWidgets();
+}
+
+void AP_UnixStatusBar::updateZoomWidgets(void)
+{
+	if (!m_wZoomScale || !m_wZoomLabel || !getFrame())
+		return;
+	UT_uint32 iZoom = getFrame()->getZoomPercentage();
+	m_bZoomSync = true;
+	gtk_range_set_value(GTK_RANGE(m_wZoomScale), iZoom);
+	m_bZoomSync = false;
+	char buf[16];
+	snprintf(buf, sizeof(buf), "%u%%", iZoom);
+	gtk_button_set_label(GTK_BUTTON(m_wZoomLabel), buf);
+}
+
+bool AP_UnixStatusBar::notify(AV_View * pView, const AV_ChangeMask mask)
+{
+	bool bResult = AP_StatusBar::notify(pView, mask);
+	// keep the zoom slider/label in sync when the zoom changes
+	// from elsewhere (dialog, toolbar, keyboard)
+	updateZoomWidgets();
+	return bResult;
+}
+
+void AP_UnixStatusBar::onZoomSliderValue(double dValue)
+{
+	if (m_bZoomSync)
+		return;
+	applyZoom(static_cast<UT_sint32>(dValue + 0.5));
+}
+
+static void s_zoom_value_changed(GtkRange * range, AP_UnixStatusBar * sb)
+{
+	UT_return_if_fail(sb);
+	sb->onZoomSliderValue(gtk_range_get_value(range));
+}
+
+static void s_zoom_out_clicked(GtkButton * /*btn*/, AP_UnixStatusBar * sb)
+{
+	UT_return_if_fail(sb && sb->getStatusBarFrame());
+	sb->applyZoom(static_cast<UT_sint32>(sb->getStatusBarFrame()->getZoomPercentage()) - 10);
+}
+
+static void s_zoom_in_clicked(GtkButton * /*btn*/, AP_UnixStatusBar * sb)
+{
+	UT_return_if_fail(sb && sb->getStatusBarFrame());
+	sb->applyZoom(static_cast<UT_sint32>(sb->getStatusBarFrame()->getZoomPercentage()) + 10);
+}
+
+static void s_zoom_label_clicked(GtkButton * /*btn*/, AP_UnixStatusBar * /*sb*/)
+{
+	// open the Zoom dialog, like clicking the indicator in MS Word
+	EV_EditMethodContainer * pEMC = XAP_App::getApp()->getEditMethodContainer();
+	UT_return_if_fail(pEMC);
+	EV_EditMethod * pEM = pEMC->findEditMethodByName("dlgZoom");
+	UT_return_if_fail(pEM);
+	ev_EditMethod_invoke(pEM, UT_String(""));
+}
+
+//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+
 AP_UnixStatusBar::AP_UnixStatusBar(XAP_Frame * pFrame)
 	: AP_StatusBar(pFrame)
 {
 	m_wStatusBar = nullptr;
 	m_wProgressFrame = nullptr;
+	m_wZoomScale = nullptr;
+	m_wZoomLabel = nullptr;
+	m_bZoomSync = false;
 }
 
 AP_UnixStatusBar::~AP_UnixStatusBar(void)
@@ -201,6 +282,63 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 
 		gtk_widget_show(pStatusBarElement);
 	}
+
+	// LibreOffice/MS-Word-style zoom control pinned to the right end of
+	// the status bar: [−] [─── slider ───] [+] [100%]
+	{
+		const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+		std::string sZoomIn, sZoomOut, sZoom, sZoomLevel;
+		if (pSS)
+		{
+			pSS->getValueUTF8(XAP_STRING_ID_SB_Zoom_In, sZoomIn);
+			pSS->getValueUTF8(XAP_STRING_ID_SB_Zoom_Out, sZoomOut);
+			pSS->getValueUTF8(XAP_STRING_ID_SB_Zoom_Slider, sZoom);
+			pSS->getValueUTF8(XAP_STRING_ID_SB_Zoom_Level, sZoomLevel);
+		}
+
+		GtkWidget * pZoomBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+		gtk_widget_set_margin_start(pZoomBox, 4);
+		gtk_widget_set_margin_end(pZoomBox, 4);
+
+		GtkWidget * pZoomOut = gtk_button_new_from_icon_name("zoom-out-symbolic");
+		gtk_widget_set_tooltip_text(pZoomOut, sZoomOut.c_str());
+		gtk_widget_add_css_class(pZoomOut, "flat");
+		g_signal_connect(pZoomOut, "clicked",
+						 G_CALLBACK(s_zoom_out_clicked), this);
+		gtk_box_append(GTK_BOX(pZoomBox), pZoomOut);
+
+		m_wZoomScale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
+												XAP_DLG_ZOOM_MINIMUM_ZOOM,
+												XAP_DLG_ZOOM_MAXIMUM_ZOOM,
+												5.0);
+		gtk_scale_set_draw_value(GTK_SCALE(m_wZoomScale), FALSE);
+		gtk_widget_set_size_request(m_wZoomScale, 110, -1);
+		gtk_widget_set_tooltip_text(m_wZoomScale, sZoom.c_str());
+		g_signal_connect(m_wZoomScale, "value-changed",
+						 G_CALLBACK(s_zoom_value_changed), this);
+		gtk_box_append(GTK_BOX(pZoomBox), m_wZoomScale);
+
+		GtkWidget * pZoomIn = gtk_button_new_from_icon_name("zoom-in-symbolic");
+		gtk_widget_set_tooltip_text(pZoomIn, sZoomIn.c_str());
+		gtk_widget_add_css_class(pZoomIn, "flat");
+		g_signal_connect(pZoomIn, "clicked",
+						 G_CALLBACK(s_zoom_in_clicked), this);
+		gtk_box_append(GTK_BOX(pZoomBox), pZoomIn);
+
+		// the percentage is a button: clicking it opens the Zoom dialog,
+		// like the indicator in Word/LibreOffice.
+		m_wZoomLabel = gtk_button_new_with_label("100%");
+		gtk_widget_set_tooltip_text(m_wZoomLabel, sZoomLevel.c_str());
+		gtk_widget_add_css_class(m_wZoomLabel, "flat");
+		gtk_widget_set_margin_start(m_wZoomLabel, 6);
+		g_signal_connect(m_wZoomLabel, "clicked",
+						 G_CALLBACK(s_zoom_label_clicked), this);
+		gtk_box_append(GTK_BOX(pZoomBox), m_wZoomLabel);
+
+		gtk_box_append(GTK_BOX(m_wStatusBar), pZoomBox);
+		updateZoomWidgets();
+	}
+
 	gtk_widget_set_visible(m_wStatusBar, TRUE);
 	hideProgressBar();
 	return m_wStatusBar;

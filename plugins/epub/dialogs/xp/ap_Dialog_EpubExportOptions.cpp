@@ -50,7 +50,10 @@ void AP_Dialog_EpubExportOptions::getEpubExportDefaults(
 
     if (exp_opt == NULL) return;
 
-    exp_opt->bEpub2 = true;
+    // EPUB 3 is the current standard (EPUB 3.3, W3C recommendation);
+    // EPUB 2 export remains available for compatibility but is no
+    // longer the default.
+    exp_opt->bEpub2 = false;
     exp_opt->bRenderMathMLToPNG = true;
     exp_opt->bSplitDocument = true;
     if (app == NULL) return;

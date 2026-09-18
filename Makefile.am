@@ -73,7 +73,15 @@ abiword-$(ABIWORD_SERIES).pc: libabiword.pc
 	cp $< $@
 
 
+# bundled user manual (generated from AbiWord/abiword-docs .abw sources)
+install-data-local:
+	cp -r $(srcdir)/help $(DESTDIR)@ABIWORD_DATADIR@/
+
+uninstall-local:
+	rm -rf $(DESTDIR)@ABIWORD_DATADIR@/help
+
 # needed to make sure we don't include .svn directories.
 dist-hook:
 	rm -rf `find $(distdir) -name .svn`
+	cp -r $(srcdir)/help $(distdir)/help
 

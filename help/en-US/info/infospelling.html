@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<!-- 
+Copyright 2001 Dom Lachowicz and David Chart Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts A copy of the license is included in the section entitled "GNU Free Documentation License"
+//-->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>AbiWord Spelling Information</title>
+<link href="../style.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<div class="banner">
+<a href="../index.html" class="bars">Home</a> &gt; <a href="index.html" class="bars">Information</a> &gt; Spelling 
+</div>
+
+<div class="main">
+
+
+            <h1 id="AbiTOC0">
+<span>Spell Checking and AbiWord</span>
+            </h1>
+<p><span>AbiWord supports spell checking in many languages, and allows you to have different parts of a single document in different languages.</span></p>            <h2 id="AbiTOC1">
+<span>Supported Spell Checkers</span>
+            </h2>
+<p><span>AbiWord supports both the </span><a href="http://aspell.net/">GNU Aspell</a> (previously called <span>Pspell</span>)<span> and Ispell spell checkers </span>(and also a spell-check wrapper called <a href="http://www.abisource.com/enchant/">Enchant</a> which in turn uses Aspell or Ispell or perhaps others).<span> </span>W<span>hich one is used is determined at compile-time, so if you're downloading a binary, one of these has been selected for you. </span>GNU A<span>spell </span>and Enchant are<span> </span>easiest t<span>o</span> use on <span>Unix platforms currently, so if you're not running on Unix, you're </span>almost certain<span>ly using Ispell.</span></p>            <h2 id="AbiTOC2">
+<span>Gotchas</span>
+            </h2>
+<p><span>Of course, you can only spell-check words if you have the dictionary for that particular language installed. </span>GNU A<span>spell dictionaries can be found at</span><a href="http://pspell.sourceforge.net/"></a> <a href="http://aspell.net/">http://aspell.net/</a><span>. Currently, AbiWord</span>'s Ispell builds<span> ship</span> with<span> Ispell dictionaries (commonly referred to as `hash files´) that are known to work with the AbiWord product</span>; unfortunately not all Ispell dictionaries will be compatible with AbiWord, but a number of usable dictionaries are available from <a href="http://sourceforge.net/projects/abiword/">AbiWord's SourceForge site</a> listed under "abispell"<span>. Unless your distributor has packaged AbiWord specially, AbiWord expects its Ispell dictionaries to be in the following format: </span></p>            <ol>
+                <li>
+<span></span><span>128 byte long strings </span>
+                </li>
+                <li>
+<span></span><span>52 "flags" </span>
+                </li>
+                <li>
+<span></span><span>capitalization enabled </span>
+                </li>
+                <li>
+<span></span><span>Proper endianness (little endian if you´re on a i386 class machine, or big endian for Alpha, PPC, MIPS)</span><span> </span>
+                </li>
+
+            </ol>
+<p class="" style="margin-left:0in;text-indent:0in"><span>If you are running a Unix variant, you can determine this information by typing `file &lt;foo.hash&gt;´ Typically, the output looks something like this:</span></p><p>/usr/lib/ispell/norsk.hash: little endian ispell 3.1 hash file, 8-bit, capitalization, 52 flags and 128 string characters</p><p>If you are using Ispell, AbiWord expects to find these dictionaries in a specific place. For Unix machines, this is typically /usr/local/share/AbiSuite-2.0/dictionary/. For Windows machines, this is typically C:\Program Files\AbiSuite\dictionary\ </p><p>AbiWord can also use pre-installed Ispell dictionaries. You may achieve this by simply copying them to the AbiWord dictionary directory ('cp' on Unix) or by using symbolic links, should your platform support that feature('ln -s' on Unix). If the dictionary for a particular language is not installed, the words will remain un-proofed, and thus not marked as incorrect. </p>            <h2 id="AbiTOC3">
+How to use these features?
+            </h2>
+<p>AbiWord automatically sets many of its default settings based on your working locale. This includes paper sizes (A4 vs. Letter), displayed units (inch vs. cm), and proofing language. Internally, the proofing language is a 4 letter country code. American English is represented by 'en-US', for example.</p><p>It's great to have a default startup language, but that in itself isn't all that impressive. AbiWord allows the user to change the language of any word inside of the document and have it automatically proofed using that new language dictionary(provided that dictionary is installed on the user's system). This functionality is achieved through the Language Dialog, accessible from Tools-&gt;Language or by right-clicking your mouse anywhere in the document. The dialog presents the user with a list of languages to choose from (or, optionally, no proofing). More information about the language dialog is available in its own help file. </p>            <h2 id="AbiTOC4">
+Support Matrix 
+            </h2>
+<p>What follows is the currently supported matrix for Ispell-based proofing. The Language/Country name, Country-Code, and associated Ispell dictionary are named. Currently AbiWord supports 27 different locales via Ispell: </p><p>Dictionary Locale </p><p>catala.hashca-ES </p><p>czech.hashcs-CZ </p><p>dansk.hashda-DK </p><p>deutsch.hashde-CH </p><p>deutsch.hashde-DE </p><p>deutsch.hashde-AT </p><p>ellhnika.hashel-GR </p><p>british.hashen-AU </p><p>american.hashen-CA </p><p>british.hashen-GB </p><p>british.hashen-IE </p><p>american.hashen-US </p><p>espanol.hashes-ES </p><p>francais.hashfr-BE </p><p>francais.hashfr-CA </p><p>francais.hashfr-CH </p><p>francais.hashfr-FR </p><p>italian.hashit-IT </p><p>lietuviu.hashlt-LT </p><p>dutch96.hashnl-NL </p><p>norsk.hashnb-NO </p><p>nynorsk.hashnn-NO </p><p>polish.hashpl-PL </p><p>portugues.hashpt-PT </p><p>portugues.hashpt-BR </p><p>russian.hashru-RU </p><p>svenska.hashsv-SE</p>
+        </div>
+
+<div class="index">
+<a href="../index.html" class="bars">Top Page</a>
+<a href="../tutorial/index.html" class="bars">Tutorial</a>
+<a href="../howto/index.html" class="bars">How To</a>
+<a href="../info/index.html" class="bars">Information</a>
+<a href="../interface/index.html" class="bars">Interface</a>
+<a href="../plugins/index.html" class="bars">Plug-ins</a> 
+<a href="../problems/index.html" class="bars">Problems</a>
+<a href="../credits.html" class="bars">Credits</a>
+<a href="../azindex.html" class="bars">Index</a>
+<a href="../fdl.html" class="bars">GNU FDL</a> 
+</div>
+
+</body>
+</html>
+

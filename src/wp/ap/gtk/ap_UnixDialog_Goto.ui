@@ -154,6 +154,7 @@
                 <child>
                   <object class="GtkButton" id="btPrev">
                     <property name="label">_Back</property>
+                          <property name="use-underline">1</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   </object>
@@ -161,6 +162,7 @@
                 <child>
                   <object class="GtkButton" id="btJump">
                     <property name="label">_Go to</property>
+                          <property name="use-underline">1</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   </object>
@@ -168,6 +170,7 @@
                 <child>
                   <object class="GtkButton" id="btNext">
                     <property name="label">_Forward</property>
+                          <property name="use-underline">1</property>
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   </object>
@@ -185,6 +188,7 @@
                       <child>
                         <object class="GtkButton" id="btClose">
                           <property name="label">_Close</property>
+                          <property name="use-underline">1</property>
                           <property name="visible">1</property>
                           <property name="can-focus">1</property>
                         </object>

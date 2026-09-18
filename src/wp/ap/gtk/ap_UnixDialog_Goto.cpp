@@ -339,10 +339,10 @@ AP_UnixDialog_Goto::onJumpClicked ()
 	switch (m_JumpTarget) {
 		case AP_JUMPTARGET_PAGE:
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(m_sbLine), 0);
-			text = tostr(GTK_ENTRY (m_sbPage));
+			text = tostr(GTK_EDITABLE (m_sbPage));
 			break;
 		case AP_JUMPTARGET_LINE:
-			text = tostr(GTK_ENTRY (m_sbLine));
+			text = tostr(GTK_EDITABLE (m_sbLine));
 			if (text == "0") return;
 			break;
 		case AP_JUMPTARGET_BOOKMARK:

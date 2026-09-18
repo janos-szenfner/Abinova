@@ -69,18 +69,18 @@ AP_RDFEventGTK::updateFromEditorData( PD_DocumentRDFMutationHandle m )
     }
 
     // UT_DEBUGMSG(("updateFromEditorData() name:%s new-name:%s\n",
-    //              m_name.c_str(), tostr(GTK_ENTRY(w_name)).c_str() ));
+    //              m_name.c_str(), tostr(GTK_EDITABLE(w_name)).c_str() ));
     
     std::string predBase = "http://www.w3.org/2002/12/cal/icaltzd#";
     setRDFType(   m, predBase + "Vevent" );
     updateTriple( m, m_uid,      m_uid, predBase + "uid");
-//    updateTriple( m, m_name,       tostr(GTK_ENTRY(w_name)),    predBase + "name");
-    updateTriple( m, m_summary,    tostr(GTK_ENTRY(w_summary)), predBase + "summary");
-    updateTriple( m, m_location,   tostr(GTK_ENTRY(w_location)),predBase + "location");
-    updateTriple( m, m_desc,       tostr(GTK_ENTRY(w_desc)),    predBase + "description");
-//    updateTriple( m, m_uid,        tostr(GTK_ENTRY(w_uid)),     predBase + "uid");
-    updateTriple( m, m_dtstart,    parseTimeString(tostr(GTK_ENTRY(w_dtstart))), predBase + "dtstart");
-    updateTriple( m, m_dtend,      parseTimeString(tostr(GTK_ENTRY(w_dtend))),   predBase + "dtend");
+//    updateTriple( m, m_name,       tostr(GTK_EDITABLE(w_name)),    predBase + "name");
+    updateTriple( m, m_summary,    tostr(GTK_EDITABLE(w_summary)), predBase + "summary");
+    updateTriple( m, m_location,   tostr(GTK_EDITABLE(w_location)),predBase + "location");
+    updateTriple( m, m_desc,       tostr(GTK_EDITABLE(w_desc)),    predBase + "description");
+//    updateTriple( m, m_uid,        tostr(GTK_EDITABLE(w_uid)),     predBase + "uid");
+    updateTriple( m, m_dtstart,    parseTimeString(tostr(GTK_EDITABLE(w_dtstart))), predBase + "dtstart");
+    updateTriple( m, m_dtend,      parseTimeString(tostr(GTK_EDITABLE(w_dtend))),   predBase + "dtend");
     
     if (getRDF())
     {

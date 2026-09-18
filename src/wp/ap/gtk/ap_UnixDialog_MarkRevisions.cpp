@@ -169,7 +169,7 @@ void AP_UnixDialog_MarkRevisions::constructWindowContents ( GtkWidget * containe
 void AP_UnixDialog_MarkRevisions::event_OK ()
 {
   m_answer = AP_Dialog_MarkRevisions::a_OK ;
-  setComment2 ( XAP_gtk_entry_get_text ( GTK_ENTRY( mComment ) ) ) ;
+  setComment2 ( XAP_gtk_entry_get_text ( GTK_EDITABLE( mComment ) ) ) ;
 }
 
 void AP_UnixDialog_MarkRevisions::event_Cancel ()

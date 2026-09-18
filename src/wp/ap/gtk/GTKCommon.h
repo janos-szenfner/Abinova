@@ -30,7 +30,7 @@
 
 std::string tostr( long v );
 std::string tostr( GtkTextView* tv );
-std::string tostr( GtkEntry* e );
+std::string tostr( GtkEditable* e );
 std::string getSelectedText( GtkTreeView* tv, int colnum = 0 );
 UT_uint32   getSelectedUInt( GtkTreeView* tv, int colnum = 0 );
 void selectNext( GtkTreeView* tv );

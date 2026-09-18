@@ -483,7 +483,7 @@ void AP_UnixDialog_FormatFootnotes::_connectSignals(void)
 					 G_CALLBACK(s_menu_item_endnote_activate),
 					 reinterpret_cast<gpointer>(this));
 	m_EndRestartSectionID = g_signal_connect(G_OBJECT(m_wEndnotesRestartOnSection ),
-										  "clicked",
+										  "toggled",
 										  G_CALLBACK(s_EndRestartSection),
 										  reinterpret_cast<gpointer>(this));
 }

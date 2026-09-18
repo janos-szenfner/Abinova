@@ -155,11 +155,11 @@ AP_RDFLocationGTK::updateFromEditorData( PD_DocumentRDFMutationHandle m )
         }
     }
 
-//    updateTriple( m, m_name, tostr(GTK_ENTRY(w_name)),    dcBase + "name");
-    updateTriple( m, m_desc, tostr(GTK_ENTRY(w_desc)),    dcBase + "title");
+//    updateTriple( m, m_name, tostr(GTK_EDITABLE(w_name)),    dcBase + "name");
+    updateTriple( m, m_desc, tostr(GTK_EDITABLE(w_desc)),    dcBase + "title");
 
-    double newLat  = toType<double>(tostr(GTK_ENTRY(w_dlat)));
-    double newLong = toType<double>(tostr(GTK_ENTRY(w_dlong)));
+    double newLat  = toType<double>(tostr(GTK_EDITABLE(w_dlat)));
+    double newLong = toType<double>(tostr(GTK_EDITABLE(w_dlong)));
     if (m_isGeo84)
     {
         std::string wgs84Base = "http://www.w3.org/2003/01/geo/wgs84_pos#";

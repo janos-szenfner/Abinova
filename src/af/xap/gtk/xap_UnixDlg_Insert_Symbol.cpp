@@ -187,7 +187,7 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 	const char* iSelectedFont = iDrawSymbol->getSelectedFont();
 	s_Prev_Font = iSelectedFont;
 	UT_DEBUGMSG(("Selected Font at startup %s \n",iSelectedFont));
-	XAP_gtk_entry_set_text(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))),
+	XAP_gtk_entry_set_text(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))),
 					   iSelectedFont);
 
 	// Show the Previously selected symbol
@@ -223,7 +223,7 @@ void XAP_UnixDialog_Insert_Symbol::event_WindowDelete(void)
 
 void XAP_UnixDialog_Insert_Symbol::New_Font(void )
 {
-	const gchar * buffer = XAP_gtk_entry_get_text(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))));
+	const gchar * buffer = XAP_gtk_entry_get_text(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))));
 
 	XAP_Draw_Symbol * iDrawSymbol = _getCurrentSymbolMap();
 	UT_return_if_fail(iDrawSymbol);

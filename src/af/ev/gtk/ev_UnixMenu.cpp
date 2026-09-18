@@ -704,6 +704,23 @@ bool EV_UnixMenu::synthesizeMenu(GMenu * pMenuRoot, bool isPopup)
 	return true;
 }
 
+void EV_UnixMenu::_rebuildBoundModel()
+{
+	if (!_hasBoundWidget())
+	{
+		_buildItems(m_pMenuModel, m_isPopup);
+		return;
+	}
+
+	// build a fresh model and swap it atomically; mutating the bound
+	// model under an open GtkPopoverMenu crashes GTK
+	GMenu * fresh = g_menu_new();
+	_buildItems(fresh, m_isPopup);
+	_setModelOnBoundWidget(fresh);
+	g_object_unref(m_pMenuModel);
+	m_pMenuModel = fresh;
+}
+
 bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 {
 	const EV_Menu_ActionSet * pMenuActionSet = m_pUnixApp->getMenuActionSet();
@@ -713,7 +730,7 @@ bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 	if (m_vecItemRecs.size() != nrLabelItemsInLayout)
 	{
 		// layout changed underneath us (plugin item added)
-		_buildItems(m_pMenuModel, m_isPopup);
+		_rebuildBoundModel();
 	}
 
 	m_bUpdatingActions = true;
@@ -763,7 +780,7 @@ bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 			(wantPresent && pAction->hasDynamicLabel() && rec.label != szLabelName))
 		{
 			m_bUpdatingActions = false;
-			_buildItems(m_pMenuModel, m_isPopup);
+			_rebuildBoundModel();
 			m_bUpdatingActions = true;
 			// restart; item recs were rebuilt
 			k = static_cast<size_t>(-1);
@@ -825,7 +842,7 @@ bool EV_UnixMenu::_doAddMenuItem(UT_uint32 layout_pos)
 	if (layout_pos > 0) {
 		m_vecItemRecs.insert(m_vecItemRecs.begin() + layout_pos, _ItemRec());
 		// a new layout item appeared: rebuild the model
-		_buildItems(m_pMenuModel, m_isPopup);
+		_rebuildBoundModel();
 		return true;
 	}
 
@@ -864,6 +881,12 @@ static gboolean _ev_menubar_motion_refresh(GtkEventControllerMotion * /*controll
 	if (menu && menu->getFrame() && menu->getFrame()->getCurrentView())
 		menu->refreshMenu(menu->getFrame()->getCurrentView());
 	return FALSE;
+}
+
+void EV_UnixMenuBar::_setModelOnBoundWidget(GMenu * model)
+{
+	gtk_popover_menu_bar_set_menu_model(GTK_POPOVER_MENU_BAR(m_wMenuBar),
+										G_MENU_MODEL(model));
 }
 
 bool EV_UnixMenuBar::synthesizeMenuBar()
@@ -930,6 +953,12 @@ static void _ev_popup_refresh(GtkWidget * /*widget*/, gpointer data)
 	EV_UnixMenuPopup * menu = static_cast<EV_UnixMenuPopup*>(data);
 	if (menu && menu->getFrame() && menu->getFrame()->getCurrentView())
 		menu->refreshMenu(menu->getFrame()->getCurrentView());
+}
+
+void EV_UnixMenuPopup::_setModelOnBoundWidget(GMenu * model)
+{
+	gtk_popover_menu_set_menu_model(GTK_POPOVER_MENU(m_wMenuPopup),
+									G_MENU_MODEL(model));
 }
 
 bool EV_UnixMenuPopup::synthesizeMenuPopup()

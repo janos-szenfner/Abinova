@@ -1,0 +1,186 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US">
+ <head>
+  <?abi-xhtml-insert meta?>
+  <link rel="stylesheet" href="$/style.css" type="text/css" />
+  <title><?abi-xhtml-insert title?></title>
+  <?abi-xhtml-if active-menu!=fdl?>
+  <?abi-xhtml-comment-replace property="meta::creator" comment="
+    Template:      Copyright 2003 Francis James Franklin
+    Documentation: $$
+
+    Permission is granted to copy, distribute and/or modify this document under the terms of the
+    GNU Free Documentation License, Version 1.1 or any later version published by the
+    Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no
+    Back-Cover Texts.
+
+    A copy of the license is included with this documentation on the page entitled 'GNU FDL'.
+    "?>
+  <?abi-xhtml-fi ?>
+  <style>
+   <?abi-xhtml-comment-replace property="active-menu" comment="
+tr.menu td.$$ div {
+	background-color: #0000ff;
+	text-decoration: underline;
+}
+     "?>
+   <?abi-xhtml-comment-replace property="active-submenu" comment="
+tr.submenu td.$$ div {
+	background-color: #00ff00;
+	text-decoration: underline;
+}
+     "?>
+  </style>
+ </head>
+ <body>
+  <table class="layout" width="100%">
+   <tbody>
+    <tr>
+     <td colspan="2" class="layout">
+      <img width="128px" height="128px" align="right" src="$/AbiSwish.png" alt="AbiWord Logo" />
+      <h1>AbiWord Help Documentation</h1>
+      <h2><?abi-xhtml-insert title?></h2>
+     </td>
+    </tr>
+    <tr>
+     <td width="180px" class="layout">
+      <table class="menu">
+       <tbody>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="top"       href="$/index.html"           label="Top Page"   ?></tr>
+	<?abi-xhtml-if active-menu==top?>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="topindex" href="$/index.html"        label="Contents"     ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="topintro" href="$/introduction.html" label="Introduction" ?></tr>
+	<?abi-xhtml-fi ?>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="tutorial"  href="$/tutorial/index.html"  label="Tutorial"   ?></tr>
+	<?abi-xhtml-if active-menu==tutorial?>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="tutintro"  href="$/tutorial/intro.html"  label="Introduction"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="tutwindow" href="$/tutorial/window.html" label="The AbiWord Window" ?></tr>
+	<?abi-xhtml-fi ?>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="howto"     href="$/howto/index.html"     label="How To"     ?></tr>
+	<?abi-xhtml-if active-menu==howto?>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howindex"     href="$/howto/index.html"               label="Contents"        ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howdocument"  href="$/howto/howtodocument.html"       label="Documents"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howtemplate"  href="$/howto/howtonormaltemplate.html" label="Normal Template" ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howlists"     href="$/howto/howtolists.html"          label="Creating Lists"  ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howtables"    href="$/howto/howtotables.html"         label="Creating Tables" ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howmsword"    href="$/howto/howtoword.html"           label="Word Documents"  ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howweb"       href="$/howto/howtoweb.html"            label="Web Documents"   ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howmailmerge" href="$/howto/howtomailmerge.html"      label="Mail Merge"      ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howprefs"     href="$/howto/howtoprefs.html"          label="Preferences"     ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howdocs"      href="$/howto/howtodocs.html"           label="Documentation"   ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howtrans"     href="$/howto/howtotranslation.html"    label="Translations"    ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="howexphtml"   href="$/howto/howtoexporthtml.html"     label="Export: HTML"    ?></tr>
+	<?abi-xhtml-fi ?>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="info"      href="$/info/index.html"      label="Information"?></tr>
+	<?abi-xhtml-if active-menu==info?>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="infindex"    href="$/info/index.html"            label="Contents"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="infmsdi"     href="$/info/infomsdi.html"         label="Document Interface"  ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="infformats"  href="$/info/infoformats.html"      label="File Formats"        ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="infsections" href="$/info/infosections.html"     label="Sections"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="infspelling" href="$/info/infospelling.html"     label="Spelling"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="infsysreq"   href="$/info/inforequirements.html" label="System Requirements" ?></tr>
+	<?abi-xhtml-fi ?>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="interface" href="$/interface/index.html" label="Interface"  ?></tr>
+	<?abi-xhtml-if active-menu==interface?>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intindex"     href="$/interface/index.html"                     label="Contents"                 ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intwspace"    href="$/interface/workspace.html"                 label="Workspace"                ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmfile"     href="$/interface/menufile.html"                  label="Menu: File"               ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmedit"     href="$/interface/menuedit.html"                  label="Menu: Edit"               ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmview"     href="$/interface/menuview.html"                  label="Menu: View"               ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intminsert"   href="$/interface/menuinsert.html"                label="Menu: Insert"             ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmformat"   href="$/interface/menuformat.html"                label="Menu: Format"             ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmtools"    href="$/interface/menutools.html"                 label="Menu: Tools"              ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmtable"    href="$/interface/menutable.html"                 label="Menu: Table"              ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmwindow"   href="$/interface/menuwindow.html"                label="Menu: Window"             ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmhelp"     href="$/interface/menuhelp.html"                  label="Menu: Help"               ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intmcontext"  href="$/interface/menucontextual.html"            label="Menu: Contextual"         ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="inttstandard" href="$/interface/toolbarstandard.html"           label="Toolbar: Standard"        ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="inttformat"   href="$/interface/toolbarformatting.html"         label="Toolbar: Formatting"      ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="inttextra"    href="$/interface/toolbarextra.html"              label="Toolbar: Extra"           ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intttable"    href="$/interface/toolbartable.html"              label="Toolbar: Table"           ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intrulers"    href="$/interface/rulers.html"                    label="Rulers"                   ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdbgcolor"  href="$/interface/dialogbackgroundcolor.html"     label="Dialog: Background Color" ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdbookmark" href="$/interface/dialogbookmark.html"            label="Dialog: Bookmark"         ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdbreak"    href="$/interface/dialogbreak.html"               label="Dialog: Break"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdchgcase"  href="$/interface/dialogchangecase.html"          label="Dialog: Change Case"      ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdcolumns"  href="$/interface/dialogcolumns.html"             label="Dialog: Columns"          ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intddatetime" href="$/interface/dialogdateandtime.html"         label="Dialog: Date And Time"    ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdfield"    href="$/interface/dialogfield.html"               label="Dialog: Field"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdfind"     href="$/interface/dialogfind.html"                label="Dialog: Find"             ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdfont"     href="$/interface/dialogfont.html"                label="Dialog: Font"             ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdgoto"     href="$/interface/dialoggoto.html"                label="Dialog: Goto"             ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdinstable" href="$/interface/dialoginserttable.html"         label="Dialog: Insert Table"     ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdfmttable" href="$/interface/dialogformattable.html"         label="Dialog: Format Table"     ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdmergecls" href="$/interface/dialogmergecells.html"          label="Dialog: Merge Cells"      ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdfootnote" href="$/interface/dialogformatfootnotes.html"     label="Dialog: Footnotes"        ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdhdrftr"   href="$/interface/dialogformatheaderfooters.html" label="Dialog: Header / Footer"  ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdhreflink" href="$/interface/dialoghyperlink.html"           label="Dialog: Hyperlink"        ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdhtmlex"   href="$/interface/dialoghtmlexport.html"          label="Dialog: HTML Export"      ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdimgprops" href="$/interface/dialogimageproperties.html"     label="Dialog: Image Properties" ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdlang"     href="$/interface/dialoglanguage.html"            label="Dialog: Language"         ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdlists"    href="$/interface/dialoglists.html"               label="Dialog: Lists"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdmailm"    href="$/interface/dialogmailmerge.html"           label="Dialog: Mail Merge"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdmailmt"   href="$/interface/dialogmailmergetool.html"       label="Dialog: Mail Merge Tool"  ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdmarkrev"  href="$/interface/dialogmarkrevisions.html"       label="Dialog: Mark Revisions"   ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdselrev"   href="$/interface/dialogselectrevision.html"      label="Dialog: Select Revision"  ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdmodstyle" href="$/interface/dialogmodifystyle.html"         label="Dialog: Modify Style"     ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdnew"      href="$/interface/dialognew.html"                 label="Dialog: New"              ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdnewstyle" href="$/interface/dialognewstyle.html"            label="Dialog: New Style"        ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdopenlin"  href="$/interface/dialogopenlinux.html"           label="Dialog: Open Linux"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdpagenos"  href="$/interface/dialogpagenumbers.html"         label="Dialog: Page Numbers"     ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdpageset"  href="$/interface/dialogpagesetup.html"           label="Dialog: Page Setup"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdpara"     href="$/interface/dialogparagraph.html"           label="Dialog: Paragraph"        ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdplugins"  href="$/interface/dialogplugins.html"             label="Dialog: Plug-ins"         ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdprefs"    href="$/interface/dialogpreferences.html"         label="Dialog: Preferences"      ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdprint"    href="$/interface/dialogprint.html"               label="Dialog: Print"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdprops"    href="$/interface/dialogproperties.html"          label="Dialog: Properties"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdreplace"  href="$/interface/dialogreplace.html"             label="Dialog: Replace"          ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdsavelin"  href="$/interface/dialogsavelinux.html"           label="Dialog: Save Linux"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdscrcolor" href="$/interface/dialogscreencolor.html"         label="Dialog: Screen Color"     ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdspell"    href="$/interface/dialogspelling.html"            label="Dialog: Spelling"         ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdstyles"   href="$/interface/dialogstyles.html"              label="Dialog: Styles"           ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdsymbol"   href="$/interface/dialogsymbol.html"              label="Dialog: Symbol"           ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdtabs"     href="$/interface/dialogtabs.html"                label="Dialog: Tabs"             ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdviewdoc"  href="$/interface/dialogviewdocument.html"        label="Dialog: View Document"    ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdwordcnt"  href="$/interface/dialogwordcount.html"           label="Dialog: Word Count"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="intdzoom"     href="$/interface/dialogzoom.html"                label="Dialog: Zoom"             ?></tr>
+	<?abi-xhtml-fi ?>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="plugins"   href="$/plugins/index.html"   label="Plug-ins"   ?></tr>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="problems"  href="$/problems/index.html"  label="Problems"   ?></tr>
+	<?abi-xhtml-if active-menu==problems?>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="proindex" href="$/problems/index.html"         label="Contents"       ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="profaq"   href="$/problems/problemsfaq.html"   label="FAQ"            ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="probugs"  href="$/problems/problemsbugs.html"  label="Reporting Bugs" ?></tr>
+	<tr class="submenu"><?abi-xhtml-menuitem property="active-submenu" class="prohelp"  href="$/problems/problemshelp.html"  label="Getting Help"   ?></tr>
+	<?abi-xhtml-fi ?>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="credits"   href="$/credits.html"         label="Credits"     ?></tr>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="azindex"   href="$/azindex.html"         label="Index"       ?></tr>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="search"    href="$/search.html"          label="Search"      ?></tr>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="aboutos"   href="$/aboutos.html"         label="Open Source" ?></tr>
+	<tr class="menu"><?abi-xhtml-menuitem property="active-menu" class="fdl"       href="$/fdl.html"             label="GNU FDL"     ?></tr>
+       </tbody>
+      </table>
+     </td>
+     <td class="layout">
+      <?abi-xhtml-insert body?>
+     </td>
+    </tr>
+    <?abi-xhtml-if active-menu!=fdl?>
+    <tr>
+     <td colspan="2" class="layout">
+      <address>
+       <p>
+	These are the help files for <a href="http://www.abisource.com/">AbiWord</a> and are normally installed
+	with the program. As with AbiWord itself, these help files are written by volunteers. Further help is
+	available online - see the <a href="http://www.abisource.com/twiki/bin/view/Abiword/AbiWordFAQ">FAQ</a>.
+       </p>
+       <p><?abi-xhtml-insert creator?></p>
+      </address>
+     </td>
+    </tr>
+    <?abi-xhtml-fi ?>
+   </tbody>
+  </table>
+ </body>
+</html>

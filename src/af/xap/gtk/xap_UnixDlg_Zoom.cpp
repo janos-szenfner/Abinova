@@ -75,35 +75,47 @@ XAP_UnixDialog_Zoom::~XAP_UnixDialog_Zoom(void)
 void XAP_UnixDialog_Zoom::s_radio_200_clicked(GtkWidget * widget, XAP_UnixDialog_Zoom * dlg)
 {
   UT_return_if_fail(widget && dlg);
+	if (!gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
+		return;
   dlg->event_Radio200Clicked();
 }
 
 void XAP_UnixDialog_Zoom::s_radio_100_clicked(GtkWidget * widget, XAP_UnixDialog_Zoom * dlg)
 {
   UT_return_if_fail(widget && dlg);
+	if (!gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
+		return;
   dlg->event_Radio100Clicked();
 }
 void XAP_UnixDialog_Zoom::s_radio_75_clicked(GtkWidget * widget, XAP_UnixDialog_Zoom * dlg)
 {
   UT_return_if_fail(widget && dlg);
+	if (!gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
+		return;
   dlg->event_Radio75Clicked();
 }
 
 void XAP_UnixDialog_Zoom::s_radio_PageWidth_clicked(GtkWidget * widget, XAP_UnixDialog_Zoom * dlg)
 {
 	UT_return_if_fail(widget && dlg);
+	if (!gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
+		return;
 	dlg->event_RadioPageWidthClicked();
 }
 
 void XAP_UnixDialog_Zoom::s_radio_WholePage_clicked(GtkWidget * widget, XAP_UnixDialog_Zoom * dlg)
 {
   UT_return_if_fail(widget && dlg);
+	if (!gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
+		return;
   dlg->event_RadioWholePageClicked();
 }
 
 void XAP_UnixDialog_Zoom::s_radio_Percent_clicked(GtkWidget * widget, XAP_UnixDialog_Zoom * dlg)
 {
   UT_return_if_fail(widget && dlg);
+	if (!gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
+		return;
   dlg->event_RadioPercentClicked();
 }
 
@@ -134,7 +146,18 @@ void XAP_UnixDialog_Zoom::runModal(XAP_Frame * pFrame)
 	// HACK : trigger a preview
 	_populateWindowData();
 
-	switch ( abiRunModalDialog ( GTK_DIALOG(m_windowMain), pFrame, this, GTK_RESPONSE_CANCEL, false ) )
+	gint response;
+	do {
+		response = abiRunModalDialog ( GTK_DIALOG(m_windowMain), pFrame, this,
+									 GTK_RESPONSE_CANCEL, false );
+		if (response == GTK_RESPONSE_APPLY) {
+			// commit the current selection, keep the dialog open
+			_storeWindowData();
+			m_answer = XAP_Dialog_Zoom::a_OK;
+		}
+	} while (response == GTK_RESPONSE_APPLY);
+
+	switch ( response )
 	{
 		case GTK_RESPONSE_OK:
 			m_answer = XAP_Dialog_Zoom::a_OK;
@@ -250,12 +273,12 @@ GtkWidget * XAP_UnixDialog_Zoom::_constructWindow(void)
 	g_object_set_data (G_OBJECT (m_radioPercent), WIDGET_ID_TAG_KEY, GINT_TO_POINTER(XAP_Frame::z_PERCENT));
 
 	// Connect clicked signals so that our callbacks get called.
-	g_signal_connect(G_OBJECT(m_radio200),       "clicked", G_CALLBACK(s_radio_200_clicked),       static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_radio100),       "clicked", G_CALLBACK(s_radio_100_clicked),       static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_radio75),        "clicked", G_CALLBACK(s_radio_75_clicked),        static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_radioPageWidth), "clicked", G_CALLBACK(s_radio_PageWidth_clicked), static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_radioWholePage), "clicked", G_CALLBACK(s_radio_WholePage_clicked), static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(m_radioPercent),   "clicked", G_CALLBACK(s_radio_Percent_clicked),   static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(m_radio200),       "toggled", G_CALLBACK(s_radio_200_clicked),       static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(m_radio100),       "toggled", G_CALLBACK(s_radio_100_clicked),       static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(m_radio75),        "toggled", G_CALLBACK(s_radio_75_clicked),        static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(m_radioPageWidth), "toggled", G_CALLBACK(s_radio_PageWidth_clicked), static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(m_radioWholePage), "toggled", G_CALLBACK(s_radio_WholePage_clicked), static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(m_radioPercent),   "toggled", G_CALLBACK(s_radio_Percent_clicked),   static_cast<gpointer>(this));
 
 	// the zoom spin button
 	g_signal_connect(G_OBJECT(m_spinAdj), "value_changed", G_CALLBACK(s_spin_Percent_changed), static_cast<gpointer>(this));

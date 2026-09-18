@@ -46,9 +46,17 @@ public:
 	virtual void hide(void) override;
 	virtual void showProgressBar(void) override;
 	virtual void hideProgressBar(void) override;
+	virtual bool notify(AV_View * pView, const AV_ChangeMask mask) override;
+	void				onZoomSliderValue(double dValue);
+	void				applyZoom(UT_sint32 iZoom);
+	XAP_Frame *			getStatusBarFrame(void) const { return getFrame(); }
 protected:
+	void				updateZoomWidgets(void);
 	GtkWidget *			m_wStatusBar;
 	GtkWidget *			m_wProgressFrame;
+	GtkWidget *			m_wZoomScale;
+	GtkWidget *			m_wZoomLabel;
+	bool				m_bZoomSync;
 };
 
 #endif /* AP_UNIXSTATUSBAR_H */

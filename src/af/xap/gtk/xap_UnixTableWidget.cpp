@@ -425,7 +425,12 @@ abi_table_dispose (GObject *instance)
 		self->szCancel = nullptr;
 	}
 
-	g_clear_object(&self->style_context);
+	/* the popover is parented to this widget; detach it so finalize
+	 * doesn't warn about leftover children */
+	if (self->window) {
+		gtk_widget_unparent(GTK_WIDGET(self->window));
+		self->window = nullptr;
+	}
 
 	G_OBJECT_CLASS (abi_table_parent_class)->dispose (instance);
 }

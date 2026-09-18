@@ -46,6 +46,9 @@ public:
 
 protected:
 	GtkWidget *			m_wMenuPopup;
+
+	virtual bool		_hasBoundWidget() const override { return m_wMenuPopup != nullptr; }
+	virtual void		_setModelOnBoundWidget(GMenu * model) override;
 };
 
 #endif /* EV_UNIXMENUPOPUP_H */

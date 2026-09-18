@@ -179,7 +179,7 @@ void AP_UnixDialog_Replace::runModeless(XAP_Frame * pFrame)
 static UT_UCS4String
 get_combobox_text(GtkWidget* combo)
 {
-	UT_UCS4String ucs = XAP_gtk_entry_get_text(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo))));
+	UT_UCS4String ucs = XAP_gtk_entry_get_text(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(combo))));
 
 	return ucs;
 }
@@ -311,13 +311,13 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 
 	UT_UTF8String s;
 	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_MatchCase,unixstr);
-	gtk_button_set_label(GTK_BUTTON(m_checkbuttonMatchCase), unixstr); 
+	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_checkbuttonMatchCase), unixstr); 
 
 	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_WholeWord,unixstr);
-	gtk_button_set_label(GTK_BUTTON(m_checkbuttonWholeWord), unixstr);
+	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_checkbuttonWholeWord), unixstr);
 
 	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_ReverseFind,unixstr);
-	gtk_button_set_label(GTK_BUTTON(m_checkbuttonReverseFind), unixstr);
+	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_checkbuttonReverseFind), unixstr);
 
 	CONVERT_TO_UNIX_STRING(dummy,AP_STRING_ID_DLG_FR_ReplaceWithLabel,unixstr);
 	gtk_label_set_text(GTK_LABEL(labelReplace), unixstr);

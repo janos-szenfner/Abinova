@@ -419,7 +419,7 @@ AP_UnixDialog_Tab::onDefaultTabChanged (double value)
 
 	UT_DEBUGMSG(("onDefaultTabChanged() %s\n", text));
 
-	XAP_gtk_entry_set_text (GTK_ENTRY (m_sbDefaultTab), text);
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbDefaultTab), text);
 
     _storeWindowData ();
 }
@@ -428,7 +428,7 @@ AP_UnixDialog_Tab::onDefaultTabChanged (double value)
 void 
 AP_UnixDialog_Tab::onDefaultTabFocusOut ()
 {
-	const gchar *text = XAP_gtk_entry_get_text (GTK_ENTRY (m_sbDefaultTab));
+	const gchar *text = XAP_gtk_entry_get_text(GTK_EDITABLE(m_sbDefaultTab));
 	UT_LocaleTransactor t(LC_NUMERIC, "C"); // FIXME: remove when we support localized dimensions
 	if (UT_isValidDimensionString (text)) {
 		// set
@@ -446,7 +446,7 @@ AP_UnixDialog_Tab::onDefaultTabFocusOut ()
 
 			g_signal_handler_block (G_OBJECT (m_sbDefaultTab), m_hSigDefaultTabChanged);
 			gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbDefaultTab), pos);
-			XAP_gtk_entry_set_text (GTK_ENTRY (m_sbDefaultTab), text);
+			XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbDefaultTab), text);
 			g_signal_handler_unblock (G_OBJECT (m_sbDefaultTab), m_hSigDefaultTabChanged);
 		}
 	}
@@ -457,7 +457,7 @@ AP_UnixDialog_Tab::onDefaultTabFocusOut ()
 		const gchar *dimtext = UT_formatDimensionString (dim, value);
 
 		g_signal_handler_block (G_OBJECT (m_sbDefaultTab), m_hSigDefaultTabChanged);
-		XAP_gtk_entry_set_text (GTK_ENTRY (m_sbDefaultTab), dimtext);
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbDefaultTab), dimtext);
 		g_signal_handler_unblock (G_OBJECT (m_sbDefaultTab), m_hSigDefaultTabChanged);
 
 	    _storeWindowData ();
@@ -493,7 +493,7 @@ AP_UnixDialog_Tab::onAddTab ()
 
 	g_signal_handler_block (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPosition), pos);
-	XAP_gtk_entry_set_text (GTK_ENTRY (m_sbPosition), text.c_str ());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbPosition), text.c_str ());
 	g_signal_handler_unblock (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 	
 	g_signal_handler_block (G_OBJECT (m_cobAlignment), m_hSigAlignmentChanged);
@@ -537,7 +537,7 @@ AP_UnixDialog_Tab::onPositionChanged (double value)
 	const gchar *text = UT_formatDimensionString (dim, value);
 	g_signal_handler_block(G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 	g_signal_handler_block(G_OBJECT (m_tsSelection), m_hTabSelected);
-	XAP_gtk_entry_set_text (GTK_ENTRY (m_sbPosition), text);
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbPosition), text);
 
 	_event_TabChange ();
 	_event_Update ();
@@ -549,7 +549,7 @@ AP_UnixDialog_Tab::onPositionChanged (double value)
 void 
 AP_UnixDialog_Tab::onPositionFocusOut ()
 {
-	const gchar *text = XAP_gtk_entry_get_text (GTK_ENTRY (m_sbPosition));
+	const gchar *text = XAP_gtk_entry_get_text(GTK_EDITABLE(m_sbPosition));
 	UT_LocaleTransactor t(LC_NUMERIC, "C"); // FIXME: remove when we support localized dimensions
 	if (UT_isValidDimensionString (text)) {
 		// set
@@ -565,7 +565,7 @@ AP_UnixDialog_Tab::onPositionFocusOut ()
 
 		g_signal_handler_block (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPosition), pos);
-		XAP_gtk_entry_set_text (GTK_ENTRY (m_sbPosition), dimtext);
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbPosition), dimtext);
 		g_signal_handler_unblock (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 
 		_event_Update ();
@@ -577,7 +577,7 @@ AP_UnixDialog_Tab::onPositionFocusOut ()
 		const gchar *dimtext = UT_formatDimensionString (dim, value);
 
 		g_signal_handler_block (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
-		XAP_gtk_entry_set_text (GTK_ENTRY (m_sbPosition), dimtext);
+		XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbPosition), dimtext);
 		g_signal_handler_unblock (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 	}
 }
@@ -715,7 +715,7 @@ AP_UnixDialog_Tab::_setDefaultTabStop (const gchar *defaultTabStop)
 
 	g_signal_handler_block (G_OBJECT (m_sbDefaultTab), m_hSigDefaultTabChanged);
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbDefaultTab), pos);
-	XAP_gtk_entry_set_text (GTK_ENTRY (m_sbDefaultTab), text.utf8_str());
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbDefaultTab), text.utf8_str());
 	g_signal_handler_unblock (G_OBJECT (m_sbDefaultTab), m_hSigDefaultTabChanged);
 }
 
@@ -767,7 +767,7 @@ AP_UnixDialog_Tab::_setSelectTab (UT_sint32 v)
 const char * 
 AP_UnixDialog_Tab::_gatherTabEdit ()
 {
-	return XAP_gtk_entry_get_text (GTK_ENTRY (m_sbPosition));
+	return XAP_gtk_entry_get_text(GTK_EDITABLE(m_sbPosition));
 }
 
 //! Set selected tab stop position.
@@ -782,7 +782,7 @@ AP_UnixDialog_Tab::_setTabEdit (const char *pszStr)
 
 	g_signal_handler_block (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPosition), pos);
-	XAP_gtk_entry_set_text (GTK_ENTRY (m_sbPosition), pszStr);
+	XAP_gtk_entry_set_text(GTK_EDITABLE(m_sbPosition), pszStr);
 	g_signal_handler_unblock (G_OBJECT (m_sbPosition), m_hSigPositionChanged);
 }
 

@@ -221,12 +221,13 @@ GtkWidget * AP_UnixDialog_PageNumbers::_constructWindow (void)
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(radioFooter), true);
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(radioRight), true);
 
-	// Connect clicked signals so that our callbacks get called.
-	g_signal_connect(G_OBJECT(radioHeader), "clicked", G_CALLBACK(s_position_changed),  static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(radioFooter), "clicked", G_CALLBACK(s_position_changed),  static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(radioLeft),   "clicked", G_CALLBACK(s_alignment_changed), static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(radioCenter), "clicked", G_CALLBACK(s_alignment_changed), static_cast<gpointer>(this));
-	g_signal_connect(G_OBJECT(radioRight),  "clicked", G_CALLBACK(s_alignment_changed), static_cast<gpointer>(this));
+	// Connect toggled signals so that our callbacks get called
+	// (GTK4: GtkCheckButton has no "clicked" signal).
+	g_signal_connect(G_OBJECT(radioHeader), "toggled", G_CALLBACK(s_position_changed),  static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(radioFooter), "toggled", G_CALLBACK(s_position_changed),  static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(radioLeft),   "toggled", G_CALLBACK(s_alignment_changed), static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(radioCenter), "toggled", G_CALLBACK(s_alignment_changed), static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(radioRight),  "toggled", G_CALLBACK(s_alignment_changed), static_cast<gpointer>(this));
 
 	// the expose event off the preview
 	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_previewArea),

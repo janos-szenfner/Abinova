@@ -70,12 +70,15 @@ void  AP_UnixDialog_WordCount::activate(void)
 	XAP_gtk_window_raise(m_windowMain);
 }
 
-void AP_UnixDialog_WordCount::s_response(GtkWidget * wid, gint id,
-										 AP_UnixDialog_WordCount * /*me*/ )
+void AP_UnixDialog_WordCount::s_response(GtkWidget * /*wid*/, gint id,
+										 AP_UnixDialog_WordCount * me )
 {
 	if (id == GTK_RESPONSE_CLOSE)
 	{
-		abiDestroyWidget(wid);
+		// must go through destroy() so the auto-update timer is stopped
+		// and the modeless registration is dropped; destroying the widget
+		// directly leaves the 1s timer firing on dead widgets
+		me->event_OK();
 	}
 }
 

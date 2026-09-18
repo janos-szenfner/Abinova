@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<!-- 
+Copyright 2002 David Chart Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts A copy of the license is included in the section entitled "GNU Free Documentation License"
+//-->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>Jak zmieni� domy�lne style i dokumenty</title>
+<link href="../style.css" rel="stylesheet" type="text/css" />
+
+</head>
+<body>
+
+<div class="banner">
+<a href="../index.html" class="bars">Home</a> &gt; <a href="index.html" class="bars">Jak to zrobi�?</a> &gt; Szablon Normal 
+</div>
+
+<div class="main">
+
+
+            <h1 id="AbiTOC0">
+<span>Jak zmienić domyślne ustawienia stylów</span>
+            </h1>
+<p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Kiedy AbiWord otwiera nowy dokument, to automatycznie ustawiane są różne parametry, w tym także liczne parametry stylów. AbiWord ma wbudowane wartości tych parametrów, ale oczywiście użytkownik może je zmieniać, jeśli tylko inny wygląd dokumentu będzie dla niego odpowiedniejszy. Użytkownik dokonuje tego przez edycję pliku o nazwie normal.awt -- który jest szablonem podstawowym (ang. normal template).</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Szablon podstawowy może być dwojaki: użytkownika albo systemowy. Szablon podstawowy użytkownika jest umieszczony w jego katalogu domowym i używany jest do tworzonych przez niego dokumentów. Szablon podstawowy systemowy umieszczony jest w katalogu instalacyjnym AbiWorda i jest używany do wszystkich dokumentów tworzonych przez AbiWorda w danym systemie. AbiWord będzie sprawdzać czy istnieje szablon podstawowy użytkownika. Jeśli nie, to będzie pobierać parametry z szablonu systemowego, jeśli ten jest zainstalowany. Jeśli szablon systemowy również nie jest zainstalowany, to AbiWord używa wbudowanych wartości.</span></p>            <h2 id="AbiTOC1">
+<span>Gdzie jest umieszczony szablon podstawowy</span>
+            </h2>
+<p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Szablon podstawowy musi znajdować się we właściwym katalogu, aby AbiWord mógł go użyć. W systemie GNU/Linux szablon użytkownika powinien być umieszczony w podkatalogu .AbiSuite/templates katalogu domowego. (.AbiSuite jest katalogiem ukrytym i normalnie nie jest widoczny. Jakkolwiek, będąc w katalogu domowym, można kopiować do tego ukrytego podkatalogu wpisując nazwę szablonu w oknach dialogowych: Zapisz, Otwórz.) W systemach jednego użytkownika Windows szablon ten umieszczony jest w katalogu instalacyjnym AbiWorda.</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Jeśli szablon lub katalog nie istnieje, ty możesz go utworzyć. Katalog utwórz w sposób typowy dla twojego systemu operacyjnego</span><span>.</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Aby utworzyć szablon podstawowy, otwórz pusty dokument AbiWorda. Następnie wybierz </span><span style="font-weight:bold;font-size:12pt;font-family:'Times New Roman';color:#000000">Zapisz jako...</span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000"> i w polu </span><span style="font-weight:bold;font-size:12pt;font-family:'Times New Roman';color:#000000">Zapisz jako typ...</span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000"> &nbsp;ustaw Abiword Template (.awt). Nazwij ten dokument normal.awt i zapisz go w odpowiednim miejscu</span><span>.</span></p>            <h2 id="AbiTOC2">
+<span>Jak zmienić szablon podstawowy</span>
+            </h2>
+<p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Otwórz normal.awt.</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Dokonaj zmian wedle własnego życzenia. Możesz dodawać lub zmieniać style w oknie dialogowym </span><span style="font-weight:bold;font-size:12pt;font-family:'Times New Roman';color:#000000">Style...</span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000"> Możesz też dokonać dowolnych zmian w dokumencie podstawowym. Wszystkie te zmiany znajdą swe odbicie we wszystkich nowych dokumentach, które będziesz tworzyć. Na przykład jeśli dodasz numerację strony w stopce dokumentu normal.awt, to wszystkie nowe dokumenty będą miały włączoną numerację stron w stopce.</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Zapisz zmiany. Upewnij się, że zapisałeś szablon pod nazwą normal.awt oraz we właściwym miejscu.</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Zmiany w szablonie zapisane na dysku natychmiast będą uwzglednione przy tworzeniu nowych dokumenty.</span></p>            <h2 id="AbiTOC3">
+<span>Inne szablony</span>
+            </h2>
+<p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Możesz tworzyć także inne szablony w ten sam sposób jak szablon podstawowy. Szablony są dostępne po wybraniu Nowy z menu Plik. Kliknięcie ikony</span><span> </span><a href="../interface/dialognew.html"><span>Tworzy nowy dokument</span></a><span> </span><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">z paska narzędziowego utworzy nowy dokument oparty na szablonie podstawowym.</span></p>
+        </div>
+
+<div class="index">
+<a href="../index.html" class="bars">Top Page</a>
+<a href="../tutorial/index.html" class="bars">Tutorial</a>
+<a href="../howto/index.html" class="bars">How To</a>
+<a href="../info/index.html" class="bars">Information</a>
+<a href="../interface/index.html" class="bars">Interface</a>
+<a href="../plugins/index.html" class="bars">Plug-ins</a> 
+<a href="../problems/index.html" class="bars">Problems</a>
+<a href="../credits.html" class="bars">Credits</a>
+<a href="../azindex.html" class="bars">Index</a>
+<a href="../fdl.html" class="bars">GNU FDL</a> 
+</div>
+
+</body>
+</html>
+

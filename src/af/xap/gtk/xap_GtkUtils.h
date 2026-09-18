@@ -40,18 +40,18 @@ void XAP_gtk_window_raise(GtkWidget*);
 /// Convenience to set the same margin on all side.
 void XAP_gtk_widget_set_margin(GtkWidget* w, gint margin);
 
-/// Convenience to get the entry text.
+/// Convenience to get the entry text. Takes GtkEditable so it works
+/// for GtkSpinButton too (no longer a GtkEntry in GTK4).
 inline
-const gchar* XAP_gtk_entry_get_text(GtkEntry* entry)
+const gchar* XAP_gtk_entry_get_text(GtkEditable* editable)
 {
-    return gtk_entry_buffer_get_text(gtk_entry_get_buffer(entry));
+    return gtk_editable_get_text(editable);
 }
 
 /// Convenience to set the entry text.
 inline
-void XAP_gtk_entry_set_text(GtkEntry* entry, const gchar* text)
+void XAP_gtk_entry_set_text(GtkEditable* editable, const gchar* text)
 {
-  auto buffer = gtk_entry_get_buffer(entry);
-  gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(buffer), text, g_utf8_strlen(text, -1));
+  gtk_editable_set_text(editable, text);
 }
 
