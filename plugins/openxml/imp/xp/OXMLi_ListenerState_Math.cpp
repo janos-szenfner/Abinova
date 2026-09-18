@@ -97,6 +97,7 @@ void OXMLi_ListenerState_Math::endElement (OXMLi_EndElementRequest * rqst)
         {
             rqst->handled = false;
             rqst->valid = false;
+            return;
         }
 
         if(m_pMathBB)
@@ -109,15 +110,26 @@ void OXMLi_ListenerState_Math::endElement (OXMLi_EndElementRequest * rqst)
         
             if (!convertOMMLtoMathML(pomml,pmathml))
             {
-                // if conversion from OMML to MathML fails
-                return;                             
+                // if conversion from OMML to MathML fails, drop the
+                // buffered math but still unwind our state cleanly
+                m_bInMath = false;
+                DELETEP(m_pMathBB);
+                if (!rqst->stck->empty())
+                    rqst->stck->pop();
+                rqst->handled = true;
+                return;
             }
                   
             OXML_SharedElement mathElem = rqst->stck->top();
             OXML_Element* elem = mathElem.get();
 
             if(!elem || (elem->getTag() != MATH_TAG))
+            {
+                m_bInMath = false;
+                DELETEP(m_pMathBB);
+                rqst->handled = true;
                 return;
+            }
 
             OXML_Element_Math* MathElement = static_cast<OXML_Element_Math*>(elem);
             MathElement->setMathML(pmathml);

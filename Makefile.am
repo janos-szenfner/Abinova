@@ -14,6 +14,19 @@ desktop_DATA = com.abisource.AbiWord.desktop
 mimedir = @ABIWORD_DATADIR@/mime-info
 mime_DATA = abiword.keys
 
+# MathML -> LaTeX stylesheets used by the core math import path
+# (needed by the openxml and opendocument plugins)
+xsltmldir = @ABIWORD_DATADIR@/xsltml
+xsltml_DATA = \
+	xsltml/README \
+	xsltml/cmarkup.xsl \
+	xsltml/entities.xsl \
+	xsltml/glayout.xsl \
+	xsltml/mmltex.xsl \
+	xsltml/scripts.xsl \
+	xsltml/tables.xsl \
+	xsltml/tokens.xsl
+
 metainfodir = $(datarootdir)/metainfo
 metainfo_DATA = com.abisource.AbiWord.metainfo.xml
 
@@ -43,7 +56,8 @@ EXTRA_DIST = \
 	abiword.desktop \
 	abiword.keys \
 	abiword.png \
-	libabiword.pc.in
+	libabiword.pc.in \
+	$(xsltml_DATA)
 
 DISTCLEANFILES = \
 	abiword-$(ABIWORD_SERIES).pc \

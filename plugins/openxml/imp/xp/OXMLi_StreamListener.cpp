@@ -118,6 +118,15 @@ void OXMLi_StreamListener::setupStates(OXML_PartType type, const char * partId)
 		this->pushState(state);
 		state = new OXMLi_ListenerState_Field();
 		this->pushState(state);
+		state = new OXMLi_ListenerState_Math();
+		this->pushState(state);
+		state = new OXMLi_ListenerState_Table();
+		this->pushState(state);
+		// image must precede textbox, both are children of <shape>
+		state = new OXMLi_ListenerState_Image();
+		this->pushState(state);
+		state = new OXMLi_ListenerState_Textbox();
+		this->pushState(state);
 		break;
 	case FOOTNOTES_PART: 
 		state = new OXMLi_ListenerState_Footnote();
