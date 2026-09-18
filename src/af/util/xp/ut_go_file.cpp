@@ -27,10 +27,6 @@
 #include "config.h"
 #endif
 
-#if 0
-#include <goffice/goffice-config.h>
-#include <glib/gi18n-lib.h>
-#endif
 #include "ut_go_file.h"
 #include <glib/gstdio.h>
 #include <libxml/encoding.h>

@@ -33,9 +33,6 @@
 
 #include <glib/gstdio.h>
 #include <gsf/gsf.h>
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-#include <goffice/goffice.h>
-#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -209,10 +206,6 @@ bool XAP_UnixApp::initialize(const char * szKeyBindingsKey, const char * szKeyBi
 	
 	XAP_App::initialize(szKeyBindingsKey, szKeyBindingsDefaultValue);
 
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-	libgoffice_init();
-#endif
-
 	// do any thing we need here...
 
 	return true;
@@ -220,9 +213,6 @@ bool XAP_UnixApp::initialize(const char * szKeyBindingsKey, const char * szKeyBi
 
 void XAP_UnixApp::shutdown()
 {
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-	libgoffice_shutdown();
-#endif
 }
 
 void XAP_UnixApp::reallyExit()

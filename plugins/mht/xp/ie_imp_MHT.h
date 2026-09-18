@@ -26,10 +26,6 @@
 
 #include <stdio.h>
 
-extern "C" {
-#include <eps/eps.h>
-}
-
 #include "ut_string.h"
 
 #include "ie_imp_XHTML.h"
@@ -65,7 +61,7 @@ public:
 
 	bool				append (const char * buffer, UT_uint32 length);
 
-	const UT_ConstByteBufPtr & getBuffer() const { return m_buf; }
+	UT_ConstByteBufPtr getBuffer() const { return m_buf; }
 	UT_ByteBufPtr && detachBuffer();
 
 	void				clear ();
@@ -101,6 +97,8 @@ private:
 	char				m_b64buffer[80];
 };
 
+class UT_MHTStream;
+
 class IE_Imp_MHT_Sniffer : public IE_ImpSniffer
 {
 	friend class IE_Imp;
@@ -127,36 +125,18 @@ public:
 
 	~IE_Imp_MHT ();
 
-	UT_Error		importFile (const char * szFilename);
+	virtual UT_Error	_loadFile (GsfInput * input) override;
 
 private:
-	FG_ConstGraphicPtr	importImage(const gchar * szSrc);
+	FG_ConstGraphicPtr	importImage(const gchar * szSrc) override;
 
-	UT_Error		importXHTML (const char * szFilename);
-	UT_Error		importHTML4 (const char * szFilename);
+	UT_Error		importXHTML ();
+	UT_Error		importHTML4 ();
 
-	UT_Multipart *	importMultipart ();
+	UT_Multipart *	importMultipart (UT_MHTStream & stream);
 
 	UT_Multipart *	m_document;
 	UT_Vector *		m_parts;
-
-	eps_t *	m_eps;
-};
-
-class MultiReader : public UT_XML::Reader
-{
-public:
-	MultiReader (const UT_Byte * buffer, UT_uint32 length);
-	virtual ~MultiReader ();
-
-	virtual bool      openFile (const char * szFilename);
-	virtual UT_uint32 readBytes (char * buffer, UT_uint32 length);
-	virtual void      closeFile (void);
-
-private:
-	const UT_Byte * const	m_buffer;
-	const UT_Byte *			m_bufptr;
-	const UT_uint32			m_length;
 };
 
 #endif /* IE_IMP_MHT_H */

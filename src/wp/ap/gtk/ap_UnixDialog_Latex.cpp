@@ -33,9 +33,6 @@
 #include "ap_Dialog_Id.h"
 #include "ap_UnixDialog_Latex.h"
 #include "xap_Dlg_MessageBox.h"
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-#include <goffice/goffice.h>
-#endif
 
 static void s_close_clicked(GtkWidget * /*widget*/,AP_UnixDialog_Latex * dlg)
 {
@@ -137,13 +134,8 @@ void AP_UnixDialog_Latex::setLatexInGUI(void)
 {
 	UT_UTF8String sLatex;
 	getLatex(sLatex);
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-	go_math_editor_set_itex(GO_MATH_EDITOR(m_wText), sLatex.utf8_str());
-	go_math_editor_set_inline(GO_MATH_EDITOR(m_wText), m_compact);
-#else
 	GtkTextBuffer * buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (m_wText));
 	gtk_text_buffer_set_text (buffer, sLatex.utf8_str(), -1);
-#endif
 }
 
 bool AP_UnixDialog_Latex::getLatexFromGUI(void)
@@ -154,16 +146,11 @@ bool AP_UnixDialog_Latex::getLatexFromGUI(void)
 	// Get the chars from the widget
 	//
 	gchar * sz = nullptr;
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-	m_compact = go_math_editor_get_inline(GO_MATH_EDITOR(m_wText));
-	sz = go_math_editor_get_itex(GO_MATH_EDITOR(m_wText));
-#else
 	GtkTextBuffer * buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (m_wText));
 	GtkTextIter startIter,endIter;
 	gtk_text_buffer_get_start_iter  (buffer,&startIter);
 	gtk_text_buffer_get_end_iter    (buffer,&endIter);
 	sz = gtk_text_buffer_get_text   (buffer,&startIter,&endIter,TRUE);
-#endif
 
 	sLatex = sz;
 	g_free(sz);
@@ -180,16 +167,6 @@ void AP_UnixDialog_Latex::constructDialog(void)
 {	
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-	m_windowMain = gtk_dialog_new();
-	gtk_button_new_with_label("Close");
-	m_wClose = gtk_dialog_add_button(GTK_DIALOG(m_windowMain),"Close",0);
-	m_wInsert = gtk_dialog_add_button(GTK_DIALOG(m_windowMain),"Insert",1);
-	m_wText = go_math_editor_new();
-	gtk_widget_set_size_request (m_wText, 300, -1);
-	xap_gtk_container_add (gtk_dialog_get_content_area(GTK_DIALOG(m_windowMain)),
-	                m_wText);
-#else
 	// load the dialog from the UI file
 	GtkBuilder* builder = newDialogBuilderFromResource("ap_UnixDialog_Latex.ui");
 
@@ -199,19 +176,14 @@ void AP_UnixDialog_Latex::constructDialog(void)
 	m_wClose = GTK_WIDGET(gtk_builder_get_object(builder, "wClose"));
 	m_wInsert =  GTK_WIDGET(gtk_builder_get_object(builder, "wInsert"));
 	m_wText = GTK_WIDGET(gtk_builder_get_object(builder, "wTextView"));
-#endif
 
 	// localize the strings in our dialog, and set tags for some widgets
 
 	localizeButtonUnderline(m_wInsert, pSS, AP_STRING_ID_DLG_InsertButton);
 
-#ifdef HAVE_GO_MATH_EDITOR_NEW
-	localizeButtonUnderline(m_wClose, pSS, AP_STRING_ID_DLG_CloseButton);
-#else
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbLatexEquation")), pSS, AP_STRING_ID_DLG_Latex_LatexEquation);
 
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbExample")), pSS, AP_STRING_ID_DLG_Latex_Example);
-#endif
 
 	ConstructWindowName();
 	gtk_window_set_title (GTK_WINDOW(m_windowMain), m_sWindowName.utf8_str());
@@ -228,8 +200,6 @@ void AP_UnixDialog_Latex::constructDialog(void)
 					   G_CALLBACK(s_insert_clicked),
 					   reinterpret_cast<gpointer>(this));
 
-#ifndef HAVE_GO_MATH_EDITOR_NEW
 	g_object_unref(G_OBJECT(builder));
-#endif
 }
 

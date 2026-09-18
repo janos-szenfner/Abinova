@@ -24,11 +24,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <fcntl.h>
 
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
+#include <string>
+#include <utility>
+#include <vector>
 
 // AbiWord includes
 
@@ -56,7 +55,7 @@
 /*****************************************************************/
 
 IE_Imp_MHT_Sniffer::IE_Imp_MHT_Sniffer () :
-	IE_ImpSniffer("AbiMHT::Multipart HTML")
+	IE_ImpSniffer("AbiMHT::MHTML")
 {
 	// 
 }
@@ -64,6 +63,8 @@ IE_Imp_MHT_Sniffer::IE_Imp_MHT_Sniffer () :
 // supported suffixes
 static IE_SuffixConfidence IE_Imp_MHT_Sniffer__SuffixConfidence[] = {
 	{ "mht", 	UT_CONFIDENCE_GOOD 		},
+	{ "mhtm", 	UT_CONFIDENCE_GOOD 		},
+	{ "mhtml", 	UT_CONFIDENCE_GOOD 		},
 	{ "", 	UT_CONFIDENCE_ZILCH 	}
 };
 
@@ -75,6 +76,8 @@ const IE_SuffixConfidence * IE_Imp_MHT_Sniffer::getSuffixConfidence ()
 // supported mimetypes
 static IE_MimeConfidence IE_Imp_MHT_Sniffer__MimeConfidence[] = {
 	{ IE_MIME_MATCH_FULL, 	IE_MIMETYPE_RELATED, 	UT_CONFIDENCE_GOOD 	},
+	{ IE_MIME_MATCH_FULL, 	"application/x-mimearchive", 	UT_CONFIDENCE_GOOD 	},
+	{ IE_MIME_MATCH_FULL, 	"message/rfc822", 	UT_CONFIDENCE_SOSO 	},
 	{ IE_MIME_MATCH_BOGUS, 	"", 					UT_CONFIDENCE_ZILCH }
 };
 
@@ -107,6 +110,263 @@ static const char * s_strnstr (const char * haystack, UT_uint32 iNumbytes, const
 	return match;
 }
 
+/* UT_MHTStream - self-contained MIME multipart parser for MHTML files
+ * (RFC 2045/2046 multipart/related), replacing the obsolete libeps dependency.
+ */
+
+class UT_MHTStream
+{
+public:
+	UT_MHTStream () :
+		m_pos(0),
+		m_partHeaderIdx(0),
+		m_multipart(false),
+		m_pendingBoundary(false),
+		m_pendingClosing(false)
+	{
+		//
+	}
+
+	bool open (GsfInput * input);
+	void close ();
+
+	const std::vector<std::pair<std::string,std::string> > & headers () const { return m_headers; }
+	bool isMultipart () const { return m_multipart; }
+
+	bool nextPart ();
+	bool nextHeader (std::string & name, std::string & value);
+	bool nextLine (std::string & line);
+
+private:
+	bool readLine (std::string & out);
+	bool isBoundaryLine (const std::string & line, bool & closing) const;
+	void parseHeaders (std::vector<std::pair<std::string,std::string> > & out);
+	static std::string getMIMEParam (const std::string & header, const char * param);
+
+	std::string m_data;
+	size_t m_pos;
+
+	std::vector<std::pair<std::string,std::string> > m_headers;
+	std::vector<std::pair<std::string,std::string> > m_partHeaders;
+	size_t m_partHeaderIdx;
+
+	std::string m_boundary;
+	bool m_multipart;
+
+	bool m_pendingBoundary;
+	bool m_pendingClosing;
+};
+
+bool UT_MHTStream::open (GsfInput * input)
+{
+	gsf_off_t size = gsf_input_size (input);
+	if (size <= 0) return false;
+
+	m_data.resize (static_cast<size_t>(size));
+	if (!gsf_input_read (input, static_cast<size_t>(size),
+					   reinterpret_cast<guint8 *>(&m_data[0])))
+		{
+			m_data.clear ();
+			return false;
+		}
+
+	m_pos = 0;
+	parseHeaders (m_headers);
+
+	for (auto & h : m_headers)
+		{
+			if (g_ascii_strcasecmp (h.first.c_str(), "content-type") != 0) continue;
+
+			const std::string & ct = h.second;
+			if (s_strnstr (ct.c_str(), static_cast<UT_uint32>(ct.size()), "multipart/"))
+				{
+					std::string b = getMIMEParam (ct, "boundary");
+					if (!b.empty())
+						{
+							m_boundary = "--" + b;
+							m_multipart = true;
+						}
+				}
+			break;
+		}
+	return true;
+}
+
+void UT_MHTStream::close ()
+{
+	m_data.clear ();
+	m_headers.clear ();
+	m_partHeaders.clear ();
+	m_boundary.clear ();
+	m_pos = 0;
+	m_partHeaderIdx = 0;
+	m_multipart = false;
+	m_pendingBoundary = false;
+	m_pendingClosing = false;
+}
+
+bool UT_MHTStream::readLine (std::string & out)
+{
+	out.clear ();
+	if (m_pos >= m_data.size()) return false;
+
+	size_t start = m_pos;
+	size_t nl = m_data.find ('\n', m_pos);
+	if (nl == std::string::npos)
+		{
+			m_pos = m_data.size();
+			out.assign (m_data, start, m_data.size() - start);
+		}
+	else
+		{
+			out.assign (m_data, start, nl - start);
+			m_pos = nl + 1;
+		}
+	if (!out.empty() && out.back() == '\r') out.pop_back();
+	return true;
+}
+
+bool UT_MHTStream::isBoundaryLine (const std::string & line, bool & closing) const
+{
+	closing = false;
+	if (m_boundary.empty()) return false;
+	if (line.size() < m_boundary.size()) return false;
+	if (line.compare (0, m_boundary.size(), m_boundary) != 0) return false;
+
+	const char * rest = line.c_str() + m_boundary.size();
+	if (rest[0] == '-' && rest[1] == '-')
+		{
+			closing = true;
+			rest += 2;
+		}
+	while (*rest == ' ' || *rest == '\t') rest++;
+	return *rest == '\0';
+}
+
+void UT_MHTStream::parseHeaders (std::vector<std::pair<std::string,std::string> > & out)
+{
+	out.clear ();
+	std::string line;
+
+	while (readLine (line))
+		{
+			if (line.empty()) break;
+
+			if ((line[0] == ' ' || line[0] == '\t') && !out.empty())
+				{
+					// folded continuation line
+					size_t i = 0;
+					while (i < line.size() && (line[i] == ' ' || line[i] == '\t')) i++;
+					out.back().second += " ";
+					out.back().second += line.substr (i);
+					continue;
+				}
+
+			size_t colon = line.find (':');
+			if (colon == std::string::npos) break;
+
+			std::string name = line.substr (0, colon);
+			std::string value = line.substr (colon + 1);
+
+			while (!name.empty() && (name.back() == ' ' || name.back() == '\t')) name.pop_back();
+			size_t v = 0;
+			while (v < value.size() && (value[v] == ' ' || value[v] == '\t')) v++;
+			value.erase (0, v);
+
+			out.emplace_back (name, value);
+		}
+}
+
+std::string UT_MHTStream::getMIMEParam (const std::string & header, const char * param)
+{
+	size_t plen = strlen (param);
+	size_t i = 0;
+
+	while (i + plen < header.size())
+		{
+			i = header.find (';', i);
+			if (i == std::string::npos) break;
+			i++;
+
+			while (i < header.size() && (header[i] == ' ' || header[i] == '\t')) i++;
+			if (i + plen >= header.size()) break;
+			if (g_ascii_strncasecmp (header.c_str() + i, param, plen) != 0) continue;
+			if (header[i + plen] != '=') continue;
+
+			i += plen + 1;
+			while (i < header.size() && (header[i] == ' ' || header[i] == '\t')) i++;
+
+			if (i < header.size() && header[i] == '"')
+				{
+					size_t end = header.find ('"', i + 1);
+					if (end == std::string::npos) end = header.size();
+					return header.substr (i + 1, end - i - 1);
+				}
+			size_t end = i;
+			while (end < header.size() && header[end] != ';' && header[end] != ' ' && header[end] != '\t') end++;
+			return header.substr (i, end - i);
+		}
+	return std::string ();
+}
+
+bool UT_MHTStream::nextPart ()
+{
+	if (!m_multipart) return false;
+
+	if (m_pendingBoundary)
+		{
+			m_pendingBoundary = false;
+			if (m_pendingClosing) return false;
+		}
+	else
+		{
+			// scan for next boundary line (skips preamble / skipped part bodies)
+			std::string line;
+			bool closing;
+			bool found = false;
+
+			while (readLine (line))
+				{
+					if (isBoundaryLine (line, closing))
+						{
+							if (closing) return false;
+							found = true;
+							break;
+						}
+				}
+			if (!found) return false;
+		}
+	m_partHeaders.clear ();
+	m_partHeaderIdx = 0;
+	parseHeaders (m_partHeaders);
+	return true;
+}
+
+bool UT_MHTStream::nextHeader (std::string & name, std::string & value)
+{
+	if (m_partHeaderIdx >= m_partHeaders.size()) return false;
+	const auto & h = m_partHeaders[m_partHeaderIdx++];
+	name = h.first;
+	value = h.second;
+	return true;
+}
+
+bool UT_MHTStream::nextLine (std::string & out)
+{
+	std::string line;
+	if (!readLine (line)) return false;
+
+	bool closing;
+	if (isBoundaryLine (line, closing))
+		{
+			m_pendingBoundary = true;
+			m_pendingClosing = closing;
+			return false;
+		}
+	out = line;
+	return true;
+}
+
 UT_Confidence_t IE_Imp_MHT_Sniffer::recognizeContents (const char * szBuf, UT_uint32 iNumbytes)
 {
 	if (s_strnstr (szBuf, iNumbytes, IE_MIMETYPE_RELATED))
@@ -128,8 +388,8 @@ UT_Error IE_Imp_MHT_Sniffer::constructImporter (PD_Document * pDocument, IE_Imp 
 bool IE_Imp_MHT_Sniffer::getDlgLabels (const char ** pszDesc, const char ** pszSuffixList,
 										IEFileType * ft)
 {
-	*pszDesc = "Multipart HTML (.mht)";
-	*pszSuffixList = "*.mht";
+	*pszDesc = "MHTML (.mht, .mhtm, .mhtml)";
+	*pszSuffixList = "*.mht;*.mhtm;*.mhtml";
 	*ft = getFileType ();
 	return true;
 }
@@ -140,8 +400,7 @@ bool IE_Imp_MHT_Sniffer::getDlgLabels (const char ** pszDesc, const char ** pszS
 IE_Imp_MHT::IE_Imp_MHT (PD_Document * pDocument) :
 	IE_Imp_XHTML(pDocument),
 	m_document(0),
-	m_parts(new UT_Vector),
-	m_eps(0)
+	m_parts(new UT_Vector)
 {
 	// 
 }
@@ -152,51 +411,38 @@ IE_Imp_MHT::~IE_Imp_MHT ()
 	DELETEP(m_parts);
 }
 
-UT_Error IE_Imp_MHT::importFile (const char * szFilename)
+UT_Error IE_Imp_MHT::_loadFile (GsfInput * input)
 {
-	int fd_in = open (szFilename, O_RDONLY);
-	if (fd_in < 0) return UT_ERROR;
-
-	m_eps = eps_begin (INTERFACE_STREAM, &fd_in);
-	if (m_eps == 0)
-		{
-			close (fd_in);
-			return UT_ERROR;
-		}
+	UT_MHTStream stream;
+	if (!stream.open (input)) return UT_ERROR;
 
 	bool bValid = false;
 
-	for (header_t * h = eps_next_header (m_eps); h; h = eps_next_header (m_eps))
+	for (const auto & h : stream.headers ())
 		{
-			const char * name = reinterpret_cast<char *>(h->name);
-			const char * data = reinterpret_cast<char *>(h->data);
+			const char * name = h.first.c_str();
+			const char * data = h.second.c_str();
 
-			if (name && data)
-				if (g_ascii_strcasecmp (name, "content-type") == 0)
-					{
-						UT_uint32 length = static_cast<UT_uint32>(strlen (data));
-						if (s_strnstr (data, length, IE_MIMETYPE_RELATED))
-							if (s_strnstr (data, length, IE_MIMETYPE_HTML) ||
-								s_strnstr (data, length, IE_MIMETYPE_XHTML))
-								{
-									bValid = true;
-								}
-					}
-			eps_header_free (m_eps);
+			if (g_ascii_strcasecmp (name, "content-type") == 0)
+				{
+					UT_uint32 length = static_cast<UT_uint32>(h.second.size());
+					if (s_strnstr (data, length, IE_MIMETYPE_RELATED))
+						if (s_strnstr (data, length, IE_MIMETYPE_HTML) ||
+							s_strnstr (data, length, IE_MIMETYPE_XHTML))
+							{
+								bValid = true;
+							}
+				}
 		}
+	if (!stream.isMultipart ()) bValid = false;
 
 	UT_Error import_status = UT_OK;
 
 	if (bValid)
 		{
-			while (eps_next_line (m_eps))
+			while (stream.nextPart ())
 				{
-					// nothing interesting here
-				}
-			int parts = 0;
-			while ((!(m_eps->u->b->eof)) && (m_eps->content_type & CON_MULTI))
-				{
-					UT_Multipart * part = importMultipart ();
+					UT_Multipart * part = importMultipart (stream);
 					if (part == 0) break;
 
 					if (part->isXHTML () || part->isHTML4 ())
@@ -219,8 +465,7 @@ UT_Error IE_Imp_MHT::importFile (const char * szFilename)
 						}
 				}
 		}
-	eps_end (m_eps);
-	close (fd_in);
+	stream.close ();
 
 	if (m_document == 0)
 		{
@@ -231,11 +476,11 @@ UT_Error IE_Imp_MHT::importFile (const char * szFilename)
 		{
 			if (m_document->isXHTML ())
 				{
-					import_status = importXHTML (szFilename);
+					import_status = importXHTML ();
 				}
 			else if (m_document->isHTML4 ())
 				{
-					import_status = importHTML4 (szFilename);
+					import_status = importHTML4 ();
 				}
 			else import_status = UT_ERROR;
 		}
@@ -314,75 +559,65 @@ FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 	return pfg;
 }
 
-UT_Error IE_Imp_MHT::importXHTML (const char * szFilename)
+UT_Error IE_Imp_MHT::importXHTML ()
 {
+	// the document part is already decoded in memory; IE_Imp_XML parses
+	// buffers directly, so no UT_XML::Reader is needed here
 	const UT_Byte * buffer = m_document->getBuffer()->getPointer (0);
 	UT_uint32 length = m_document->getBuffer()->getLength ();
 
-	MultiReader wrapper(buffer,length);
-
-	setReader (&wrapper);
-
-	return IE_Imp_XHTML::importFile (szFilename);
+	return IE_Imp_XHTML::importFile (reinterpret_cast<const char *>(buffer), length);
 }
 
-UT_Error IE_Imp_MHT::importHTML4 (const char * szFilename)
+UT_Error IE_Imp_MHT::importHTML4 ()
 {
 	UT_Error e = UT_ERROR;
 
-#ifdef XHTML_HTML_TIDY_SUPPORTED
 	const UT_Byte * buffer = m_document->getBuffer()->getPointer (0);
 	UT_uint32 length = m_document->getBuffer()->getLength ();
 
-	TidyReader wrapper(buffer,length);
-	setReader (&wrapper);
+#ifdef XHTML_HTML_TIDY_SUPPORTED
+	// run libtidy over the buffer, then import the resulting XHTML
+	TidyReader reader(buffer,length);
+	if (reader.openFile (""))
+		{
+			std::string tidied;
+			char chunk[4096];
+			UT_uint32 n;
+			while ((n = reader.readBytes (chunk, sizeof (chunk))) > 0)
+				tidied.append (chunk, n);
+			reader.closeFile ();
 
-	e = IE_Imp_XHTML::importFile (szFilename);
-
-	setReader (0);
+			if (!tidied.empty())
+				e = IE_Imp_XHTML::importFile (tidied.c_str(), static_cast<UT_uint32>(tidied.size()));
+		}
 #endif
 #ifdef XHTML_HTML_XML2_SUPPORTED
-	const UT_Byte * buffer = m_document->getBuffer()->getPointer (0);
-	UT_uint32 length = m_document->getBuffer()->getLength ();
-
-	UT_XML_BufReader wrapper(reinterpret_cast<const char *>(buffer),length);
-	setReader (&wrapper);
-
 	UT_HTML parser;
 	setParser (&parser);
 
-	e = IE_Imp_XHTML::importFile (szFilename);
+	e = IE_Imp_XHTML::importFile (reinterpret_cast<const char *>(buffer), length);
 
 	setParser (0);
-	setReader (0);
 #endif
 	return e;
 }
 
-UT_Multipart * IE_Imp_MHT::importMultipart ()
+UT_Multipart * IE_Imp_MHT::importMultipart (UT_MHTStream & stream)
 {
-	if (!mime_init_stream (m_eps)) return 0;
-
 	UT_Multipart * part = new UT_Multipart;
 	if (part == 0) return 0;
 
-	for (header_t * h = mime_next_header (m_eps); h; h = mime_next_header (m_eps))
-		{
-			const char * name = reinterpret_cast<char *>(h->name);
-			const char * data = reinterpret_cast<char *>(h->data);
+	std::string name, value, line;
 
-			if (name && data) part->insert (name, data);
+	while (stream.nextHeader (name, value))
+		part->insert (name.c_str(), value.c_str());
 
-			header_kill (h);
-		}
 	bool bLoad = (part->isImage () || part->isXHTML () || part->isHTML4 ());
 
-	for (unsigned char * l = mime_next_line (m_eps); l; l = mime_next_line (m_eps))
+	while (stream.nextLine (line))
 		{
-			char * line = reinterpret_cast<char *>(l);
-			UT_uint32 length = static_cast<UT_uint32>(strlen (line));
-
-			if (bLoad && length) part->append (line, length);
+			if (bLoad && !line.empty()) part->append (line.c_str(), static_cast<UT_uint32>(line.size()));
 		}
 	return part;
 }
@@ -587,40 +822,4 @@ void UT_Multipart::clear ()
 	m_map->clear ();
 
 	if (m_buf) m_buf->truncate (0);
-}
-
-MultiReader::MultiReader (const UT_Byte * buffer, UT_uint32 length) :
-	m_buffer(buffer),
-	m_bufptr(buffer),
-	m_length(length)
-{
-	// 
-}
-
-MultiReader::~MultiReader ()
-{
-	// 
-}
-
-bool MultiReader::openFile (const char * /* szFilename */)
-{
-	m_bufptr = m_buffer;
-	return (m_buffer && m_length);
-}
-
-UT_uint32 MultiReader::readBytes (char * buffer, UT_uint32 length)
-{
-	UT_uint32 length_remaining = m_length - (m_bufptr - m_buffer);
-	UT_uint32 length_copy = (length > length_remaining) ? length_remaining : length;
-
-	if (buffer) memcpy (buffer, m_bufptr, length_copy);
-
-	m_bufptr += length_copy;
-
-	return length_copy;
-}
-
-void MultiReader::closeFile ()
-{
-	m_bufptr = m_buffer + m_length;
 }

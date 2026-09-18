@@ -20,6 +20,10 @@
  * 02110-1301 USA.
  */
 
+#include <string>
+
+#include <gsf/gsf.h>
+
 #include "tidyReader.h"
 #include "tidyImporter.h"
 #include "ie_impexp_HTML.h"
@@ -89,10 +93,24 @@ IE_Imp_HTML::~IE_Imp_HTML ()
 
 UT_Error IE_Imp_HTML::_loadFile (GsfInput * input)
 {
-	TidyReader wrapper;
-	setReader (&wrapper);
+	// IE_Imp_XML::importFile(data,length) parses the buffer directly and
+	// does not use a UT_XML::Reader, so run libtidy over the input first
+	// and feed the tidied XHTML to the importer.
+	size_t num_bytes = gsf_input_size (input);
+	const guint8 * bytes = gsf_input_read (input, num_bytes, nullptr);
+	if (!bytes) return UT_ERROR;
 
-	UT_Error e = IE_Imp_XHTML::_loadFile (input);
+	TidyReader reader (bytes, static_cast<UT_uint32>(num_bytes));
+	if (!reader.openFile (gsf_input_name (input))) return UT_IE_IMPORTERROR;
 
-	return e;
+	std::string tidied;
+	char chunk[4096];
+	UT_uint32 n;
+	while ((n = reader.readBytes (chunk, sizeof (chunk))) > 0)
+		tidied.append (chunk, n);
+	reader.closeFile ();
+
+	if (tidied.empty ()) return UT_IE_IMPORTERROR;
+
+	return IE_Imp_XHTML::importFile (tidied.c_str(), static_cast<UT_uint32>(tidied.size()));
 }

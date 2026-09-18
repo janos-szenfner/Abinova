@@ -64,8 +64,8 @@ int abi_plugin_register (XAP_ModuleInfo * mi)
 #endif
 
 #ifdef XHTML_MULTIPART_SUPPORTED
-	mi->name = "Multipart HTML Importer";
-	mi->desc = "Import Multipart HTML Documents";
+	mi->name = "MHTML Importer";
+	mi->desc = "Import MHTML (Multipart HTML) Documents";
 #else
 	mi->name = "HTML Importer";
 	mi->desc = "Import HTML Documents";

@@ -72,8 +72,6 @@ glib_req='glib-2.0 >= 2.74.0 gthread-2.0 >= 2.74.0 gobject-2.0 >= 2.74.0'
 gsf_req='libgsf-1 >= 1.14.26'
 wv_req='wv-1.0 >= 1.2.0'
 
-goffice_req='libgoffice-0.10 >= 0.10.12'
-
 xslt_req='libxslt'
 xp_pkgs="
   ${fribidi_req}
@@ -788,19 +786,6 @@ AM_CONDITIONAL(HAVE_GCRYPT, test "$abi_cv_gcrypt" = "yes")
 
 if test "$abi_cv_gio" = "yes"; then
 	AC_DEFINE([WITH_GIO], [1], [Define if using GIO])
-fi
-
-dnl goffice provides the LaTeX equation editor widget; it is GTK3-bound
-dnl so it is optional and off unless the pkg is present and requested.
-AC_ARG_WITH([goffice],
-	[AS_HELP_STRING([--with-goffice], [use libgoffice for the LaTeX editor (GTK3 only)])],
-	,[with_goffice="no"])
-if test "x$with_goffice" != "xno"; then
-	PKG_CHECK_MODULES(GOFFICE, [ $goffice_req ],
-		[AC_DEFINE([HAVE_GO_MATH_EDITOR_NEW], [1], [Use goffice math editor])],
-		[if test "x$with_goffice" = "xyes"; then
-			AC_MSG_ERROR([--with-goffice requested but $goffice_req not found])
-		fi])
 fi
 
 ALL_PLUGINS_="\
