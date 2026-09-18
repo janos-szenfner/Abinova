@@ -22,6 +22,7 @@
 
 #include "ut_assert.h"
 #include "ut_misc.h"
+#include "gr_UnixCairoGraphics.h"
 #include "xap_UnixCustomWidget.h"
 
 void XAP_UnixCustomWidget::_fe::draw(GtkDrawingArea * /*area*/, cairo_t *cr,
@@ -33,5 +34,13 @@ void XAP_UnixCustomWidget::_fe::draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 	cairo_clip_extents(cr, &x1, &y1, &x2, &y2);
 
 	UT_Rect r(x1, y1, x2 - x1, y2 - y1);
+	/* Painting goes to the graphics' backing surface; endFrame()
+	 * composites it onto GTK's cairo, same as the document view. */
+	GR_UnixCairoGraphics *pG =
+		static_cast<GR_UnixCairoGraphics*>(self->getGraphics());
+	if (!pG)
+		return;
+	pG->beginFrame();
 	self->drawImmediate(&r);
+	pG->endFrame(cr);
 }
