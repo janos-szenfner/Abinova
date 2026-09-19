@@ -72,6 +72,7 @@
 
 #define ABIWORD_LISTS_NUMBERS			"abiword-lists-numbers"
 #define ABIWORD_LISTS_BULLETS			"abiword-lists-bullets"
+#define ABIWORD_LISTS_DASHED			"abiword-lists-dashed"
 
 #define ABIWORD_UNINDENT				"abiword-unindent"
 #define ABIWORD_INDENT					"abiword-indent"

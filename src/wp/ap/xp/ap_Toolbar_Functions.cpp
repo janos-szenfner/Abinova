@@ -432,6 +432,28 @@ Defun_EV_GetToolbarItemState_Fn(ap_ToolbarGetState_Numbers)
         return s;
 }
 
+Defun_EV_GetToolbarItemState_Fn(ap_ToolbarGetState_DashedList)
+{
+	ABIWORD_VIEW;
+	CHECK_INC_LOAD;
+	UT_UNUSED(id);
+	UT_UNUSED(pszState);
+
+	EV_Toolbar_ItemState s = EV_TIS_ZERO;
+	if(pView->isHdrFtrEdit()  || pView->isInHdrFtr(pView->getPoint()))
+	{
+		return EV_TIS_Gray;
+	}
+
+	fl_BlockLayout * pBlock = pView->getCurrentBlock();
+	UT_return_val_if_fail (pBlock, EV_TIS_Gray);
+	if(pBlock->isListItem() == false)
+		return s;
+	if(pBlock->getListType() == DASHED_LIST)
+		s = EV_TIS_Toggled;
+	return s;
+}
+
 Defun_EV_GetToolbarItemState_Fn(ap_ToolbarGetState_Indents)
 {
 	ABIWORD_VIEW;

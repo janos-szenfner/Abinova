@@ -95,6 +95,7 @@
 #	include "tb_todo.xpm"
 #	include "tb_lists_bullets.xpm"
 #	include "tb_lists_numbers.xpm"
+#	include "tb_lists_dashed.xpm"
 #	include "tb_text_indent.xpm"
 #	include "tb_text_unindent.xpm"
 #	include "tb_spellcheck.xpm"
@@ -287,6 +288,7 @@
 	DefineToolbarIcon(tb_LineRight_xpm)
 	DefineToolbarIcon(tb_LineTop_xpm)
 	DefineToolbarIcon(tb_lists_bullets_xpm)
+	DefineToolbarIcon(tb_lists_dashed_xpm)
 	DefineToolbarIcon(tb_lists_numbers_xpm)
 	DefineToolbarIcon(tb_merge_cells_xpm)
 	DefineToolbarIcon(tb_MergeAbove_xpm)

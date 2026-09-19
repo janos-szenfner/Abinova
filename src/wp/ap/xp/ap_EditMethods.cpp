@@ -569,6 +569,7 @@ public:
 
 	static EV_EditMethod_Fn doBullets;
 	static EV_EditMethod_Fn doNumbers;
+	static EV_EditMethod_Fn doDashedList;
 
 	static EV_EditMethod_Fn colorForeTB;
 	static EV_EditMethod_Fn colorBackTB;
@@ -920,6 +921,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(doBullets),			0,	""),
 	EV_EditMethod(NF(doEscape),				0,	""),
 	EV_EditMethod(NF(doNumbers),			0,	""),
+	EV_EditMethod(NF(doDashedList),		0,	""),
 	EV_EditMethod(NF(doubleSpace),			0,	""),
 	EV_EditMethod(NF(dragFrame), 			0,	""),
 	EV_EditMethod(NF(dragHline), 			0,	""),
@@ -12676,6 +12678,15 @@ Defun1(doNumbers)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView,false);
 	pView->processSelectedBlocks(NUMBERED_LIST);
+	return true;
+}
+
+Defun1(doDashedList)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	pView->processSelectedBlocks(DASHED_LIST);
 	return true;
 }
 

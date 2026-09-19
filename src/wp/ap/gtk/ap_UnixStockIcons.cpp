@@ -52,6 +52,8 @@ static struct AbiStockEntry {
 	AP_STRING_ID_TOOLBAR_LABEL_LISTS_NUMBERS,		"tb_lists_numbers" },
   { ABIWORD_LISTS_BULLETS,
 	AP_STRING_ID_TOOLBAR_LABEL_LISTS_BULLETS,		"tb_lists_bullets" },
+  { ABIWORD_LISTS_DASHED,
+	AP_STRING_ID_TOOLBAR_LABEL_LISTS_DASHED,		"tb_lists_dashed" },
 
   { ABIWORD_COLOR_BACK,
 	AP_STRING_ID_TOOLBAR_LABEL_COLOR_BACK,			"tb_text_bgcolor" },

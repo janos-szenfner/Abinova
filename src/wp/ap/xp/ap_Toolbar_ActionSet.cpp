@@ -151,6 +151,7 @@ EV_Toolbar_ActionSet * AP_CreateToolbarActionSet(void)
 	// AV_CHG_ALL, below, doesn't seem right.  TODO
 	_s(AP_TOOLBAR_ID_LISTS_BULLETS,		EV_TBIT_ToggleButton,	"doBullets",	AV_CHG_ALL,		ap_ToolbarGetState_Bullets	);
 	_s(AP_TOOLBAR_ID_LISTS_NUMBERS,		EV_TBIT_ToggleButton,	"doNumbers",	AV_CHG_ALL,		ap_ToolbarGetState_Numbers	);
+	_s(AP_TOOLBAR_ID_LISTS_DASHED,		EV_TBIT_ToggleButton,	"doDashedList",	AV_CHG_ALL,		ap_ToolbarGetState_DashedList	);
 
 	_s(AP_TOOLBAR_ID_FMT_HYPERLINK, EV_TBIT_PushButton, "insertHyperlink", AV_CHG_ALL,  ap_ToolbarGetState_HyperlinkOK);
 	_s(AP_TOOLBAR_ID_FMT_BOOKMARK, EV_TBIT_PushButton, "insertBookmark", AV_CHG_ALL, ap_ToolbarGetState_BookmarkOK);

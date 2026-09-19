@@ -48,6 +48,7 @@ BeginLayout(FormatOps, AP_STRING_ID_TB_Format, AP_PREF_KEY_FormatBarVisible)
 
 	ToolbarItem(AP_TOOLBAR_ID_LISTS_NUMBERS)
 	ToolbarItem(AP_TOOLBAR_ID_LISTS_BULLETS)
+	ToolbarItem(AP_TOOLBAR_ID_LISTS_DASHED)
 
 	Spacer()
 	ToolbarItem(AP_TOOLBAR_ID_COLOR_BACK)

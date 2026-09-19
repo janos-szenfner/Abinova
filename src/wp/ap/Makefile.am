@@ -530,6 +530,7 @@ EXTRA_DIST = \
 	xp/ToolbarIcons/tb_line_single_space.xpm \
 	xp/ToolbarIcons/tb_LineTop.xpm \
 	xp/ToolbarIcons/tb_lists_bullets.xpm \
+	xp/ToolbarIcons/tb_lists_dashed.xpm \
 	xp/ToolbarIcons/tb_lists_numbers.xpm \
 	xp/ToolbarIcons/tb_lists.xpm \
 	xp/ToolbarIcons/tb_MergeAbove.xpm \
