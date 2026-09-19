@@ -62,32 +62,26 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 	static const gchar *documenters[] = {"David Chart <linux@dchart.demon.co.uk>",
 										 nullptr};
 
-	static const gchar *copyright = "(c) 1998-2012 Dom Lachowicz and other contributors, GNU GPL v2.0";
+	static const gchar *copyright = "(c) 1998-2012 Dom Lachowicz and other contributors";
+
+	static const gchar *comments = "Experimental GTK4 fork of AbiWord";
 
 	static const gchar *website = "http://www.abisource.com";
 
-	static GdkPixbuf * logo = nullptr;
 	static GtkWidget * dlg = nullptr;
-
-	// TODO Rob: use the more fancy "sidebar.png" logo, just like win32
-	if (!logo) {
-		std::string str (ICONDIR);
-		str += "/hicolor/48x48/apps/com.abisource.AbiWord.png";
-		logo = gdk_pixbuf_new_from_file (str.c_str(), nullptr); // ignore errors
-	}
 
 	dlg = gtk_about_dialog_new();
 	//JEAN: do we really need the "activate-link" signal?
 	g_signal_connect(dlg, "activate-link", G_CALLBACK(onAboutDialogActivate), nullptr);
+	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dlg), "AbiWord");
 	gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(dlg), authors);
 	gtk_about_dialog_set_documenters(GTK_ABOUT_DIALOG(dlg), documenters);
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dlg), copyright);
-	if (logo)
-	{
-		GdkTexture *texture = gdk_texture_new_for_pixbuf(logo);
-		gtk_about_dialog_set_logo(GTK_ABOUT_DIALOG(dlg), GDK_PAINTABLE(texture));
-		g_object_unref(texture);
-	}
+	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(dlg), comments);
+	gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(dlg), GTK_LICENSE_GPL_2_0);
+	// resolve the logo through the icon theme: the app icon is compiled
+	// into the GResource, so this works without installed files too
+	gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(dlg), "abiword");
 	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dlg), XAP_App::s_szBuild_Version);
 	gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dlg), website);
 	gtk_about_dialog_set_website_label(GTK_ABOUT_DIALOG(dlg), website);
