@@ -51,6 +51,7 @@ protected:
 
 	virtual bool		_hasBoundWidget() const override { return m_wMenuBar != nullptr; }
 	virtual void		_setModelOnBoundWidget(GMenu * model) override;
+	virtual GtkWidget *	_boundWidget() const override { return m_wMenuBar; }
 };
 
 #endif /* EV_UNIXMENUBAR_H */

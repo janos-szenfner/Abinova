@@ -335,12 +335,19 @@ EV_UnixMenu::EV_UnixMenu(XAP_UnixApp * pUnixApp,
 	  m_pMenuModel(g_menu_new()),
 	  m_isPopup(false),
 	  m_actionGroup(g_simple_action_group_new()),
-	  m_bUpdatingActions(false)
+	  m_bUpdatingActions(false),
+	  m_rebuildSourceId(0),
+	  m_rebuildPending(false)
 {
 }
 
 EV_UnixMenu::~EV_UnixMenu()
 {
+	if (m_rebuildSourceId)
+	{
+		g_source_remove(m_rebuildSourceId);
+		m_rebuildSourceId = 0;
+	}
 	m_vecItemRecs.clear();
 	UT_std_vector_purgeall(m_vecCallbacks);
 	g_object_unref(m_actionGroup);
@@ -704,6 +711,50 @@ bool EV_UnixMenu::synthesizeMenu(GMenu * pMenuRoot, bool isPopup)
 	return true;
 }
 
+static bool _ev_has_visible_popover(GtkWidget * widget)
+{
+	if (!widget)
+		return false;
+	if (GTK_IS_POPOVER(widget) && gtk_widget_get_visible(widget))
+		return true;
+	for (GtkWidget * c = gtk_widget_get_first_child(widget); c;
+		 c = gtk_widget_get_next_sibling(c))
+	{
+		if (_ev_has_visible_popover(c))
+			return true;
+	}
+	return false;
+}
+
+gboolean EV_UnixMenu::_s_rebuildTick(gpointer data)
+{
+	EV_UnixMenu * menu = static_cast<EV_UnixMenu*>(data);
+	UT_return_val_if_fail(menu, G_SOURCE_REMOVE);
+
+	GtkWidget * bound = menu->_boundWidget();
+	if (bound && _ev_has_visible_popover(bound))
+	{
+		// a GtkPopoverMenu is still open (or tearing down); replacing
+		// the model now would remove the item widget under the pointer
+		return G_SOURCE_CONTINUE;
+	}
+
+	menu->m_rebuildSourceId = 0;
+	menu->m_rebuildPending = false;
+	if (!bound)
+		return G_SOURCE_REMOVE;
+
+	GMenu * fresh = g_menu_new();
+	menu->_buildItems(fresh, menu->m_isPopup);
+	menu->_setModelOnBoundWidget(fresh);
+	g_object_unref(menu->m_pMenuModel);
+	menu->m_pMenuModel = fresh;
+
+	if (menu->getFrame() && menu->getFrame()->getCurrentView())
+		menu->_refreshMenu(menu->getFrame()->getCurrentView());
+	return G_SOURCE_REMOVE;
+}
+
 void EV_UnixMenu::_rebuildBoundModel()
 {
 	if (!_hasBoundWidget())
@@ -712,17 +763,22 @@ void EV_UnixMenu::_rebuildBoundModel()
 		return;
 	}
 
-	// build a fresh model and swap it atomically; mutating the bound
-	// model under an open GtkPopoverMenu crashes GTK
-	GMenu * fresh = g_menu_new();
-	_buildItems(fresh, m_isPopup);
-	_setModelOnBoundWidget(fresh);
-	g_object_unref(m_pMenuModel);
-	m_pMenuModel = fresh;
+	// the widget is live: defer the model swap until no popover menu
+	// is open (see _s_rebuildTick)
+	m_rebuildPending = true;
+	if (m_rebuildSourceId == 0)
+		m_rebuildSourceId = g_timeout_add(30, _s_rebuildTick, this);
 }
 
 bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 {
+	if (m_rebuildPending)
+	{
+		// a deferred model swap is pending; m_vecItemRecs is stale
+		// and will be re-synced by _s_rebuildTick after the rebuild
+		return true;
+	}
+
 	const EV_Menu_ActionSet * pMenuActionSet = m_pUnixApp->getMenuActionSet();
 	UT_ASSERT(pMenuActionSet);
 	size_t nrLabelItemsInLayout = m_pMenuLayout->getLayoutItemCount();
@@ -731,6 +787,8 @@ bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 	{
 		// layout changed underneath us (plugin item added)
 		_rebuildBoundModel();
+		if (m_rebuildPending)
+			return true;
 	}
 
 	m_bUpdatingActions = true;
@@ -782,6 +840,11 @@ bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 			m_bUpdatingActions = false;
 			_rebuildBoundModel();
 			m_bUpdatingActions = true;
+			if (m_rebuildPending)
+			{
+				m_bUpdatingActions = false;
+				return true;
+			}
 			// restart; item recs were rebuilt
 			k = static_cast<size_t>(-1);
 			radioGroup = nullptr;

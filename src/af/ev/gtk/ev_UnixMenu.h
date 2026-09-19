@@ -63,11 +63,21 @@ protected:
 	// Rebuild the menu model. When a widget is already bound to
 	// m_pMenuModel (menubar/popup), the model must not be mutated in
 	// place: removing items from a live model while a GtkPopoverMenu is
-	// open crashes inside GTK. A fresh model is built and swapped in
-	// via _setModelOnBoundWidget() instead.
+	// open crashes inside GTK. Swapping the model is also deferred to a
+	// timeout: replacing the model removes the menu item widgets, and
+	// GTK synthesizes crossing events on the widget under the pointer
+	// while it is being torn down (crash inside gtkpopovermenu
+	// internals). The swap therefore waits until no popover is open.
 	void				_rebuildBoundModel();
 	virtual bool		_hasBoundWidget() const { return false; }
 	virtual void		_setModelOnBoundWidget(GMenu * /*model*/) {}
+	virtual GtkWidget *	_boundWidget() const { return nullptr; }
+	static gboolean		_s_rebuildTick(gpointer data);
+
+	// nonzero while a deferred model swap is pending; the refresh
+	// loop must not touch m_vecItemRecs until the rebuild ran.
+	guint				m_rebuildSourceId;
+	bool				m_rebuildPending;
 
 protected: // FIXME! These variables should be private.
 	XAP_UnixApp *		m_pUnixApp;

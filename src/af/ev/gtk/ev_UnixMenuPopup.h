@@ -49,6 +49,7 @@ protected:
 
 	virtual bool		_hasBoundWidget() const override { return m_wMenuPopup != nullptr; }
 	virtual void		_setModelOnBoundWidget(GMenu * model) override;
+	virtual GtkWidget *	_boundWidget() const override { return m_wMenuPopup; }
 };
 
 #endif /* EV_UNIXMENUPOPUP_H */
