@@ -37,6 +37,7 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 {
  public:
 	AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame);
+	virtual ~AP_UnixFrameImpl();
 	virtual XAP_FrameImpl * createInstance(XAP_Frame *pFrame) override;
 
 	virtual UT_RGBColor getColorSelBackground() const override;
@@ -53,12 +54,21 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	virtual GtkWidget * getViewWidget(void) const override
 	{ return m_dArea; }
 
+	/* sync ribbon button states and contextual tabs with the view;
+	 * called from the view listener on every change notify */
+	void refreshRibbon();
+
  protected:
 	friend class AP_UnixFrame;
 	void _showOrHideStatusbar(void);
 	void _showOrHideToolbars(void);
 
 	virtual void _hideMenuScroll(bool bHideMenuScroll) override;
+
+	virtual void _createRibbonUI() override;
+	virtual void _rebuildMenus() override;
+	virtual void setRibbonMode(bool bRibbon) override;
+	void _applyUIMode();
 
 
 	virtual void _refillToolbarsInFrameData() override;
@@ -84,5 +94,9 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	GtkWidget * m_wSunkenBox;
 	gulong      m_iHScrollSignal;
 	gulong      m_iVScrollSignal;
+
+	class AP_UnixRibbon * m_pRibbon;
+	GtkWidget * m_wRibbon;
+	bool        m_bRibbonMode;
 };
 #endif

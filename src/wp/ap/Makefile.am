@@ -356,6 +356,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixPrefs.h \
 	gtk/ap_UnixPreview_Annotation.cpp \
 	gtk/ap_UnixPreview_Annotation.h \
+	gtk/ap_UnixRibbon.cpp \
+	gtk/ap_UnixRibbon.h \
 	gtk/ap_UnixRuler.h \
 	gtk/ap_UnixRuler.cpp \
 	gtk/ap_UnixStatusBar.h \

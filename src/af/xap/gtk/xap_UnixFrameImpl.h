@@ -100,6 +100,10 @@ protected:
 	virtual GtkWidget * _createDocumentWindow() = 0;
 	virtual GtkWidget * _createStatusBarWindow() = 0;
 
+	// hook called right after the menubar is synthesized; the app
+	// layer overrides it to build the ribbon UI.
+	virtual void _createRibbonUI();
+
 	void _createTopLevelWindow(void) override;
 	bool _updateTitle() override;
 	void _createIMContext(GtkWidget* w);

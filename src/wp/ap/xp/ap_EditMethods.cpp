@@ -58,6 +58,7 @@
 #include "gr_DrawArgs.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
+#include "xap_FrameImpl.h"
 #include "xap_EditMethods.h"
 #include "xap_Menu_Layouts.h"
 #include "xap_Prefs.h"
@@ -677,6 +678,8 @@ public:
 	static EV_EditMethod_Fn viewNormalLayout;
 	static EV_EditMethod_Fn viewPrintLayout;
 	static EV_EditMethod_Fn viewWebLayout;
+	static EV_EditMethod_Fn viewClassicUI;
+	static EV_EditMethod_Fn viewRibbonUI;
 
 #ifdef ENABLE_SPELL
 	static EV_EditMethod_Fn toggleAutoSpell;
@@ -1319,6 +1322,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viCmd_yb), 	0,	""),
 	EV_EditMethod(NF(viCmd_yw), 	0,	""),
 	EV_EditMethod(NF(viCmd_yy), 	0,	""),
+	EV_EditMethod(NF(viewClassicUI), 0, ""),
 #if !XAP_SIMPLE_TOOLBAR
 	EV_EditMethod(NF(viewExtra),			0,		""),
 	EV_EditMethod(NF(viewFormat),			0,		""),
@@ -1329,6 +1333,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viewNormalLayout), 0, ""),
 	EV_EditMethod(NF(viewPara), 		0,		""),
 	EV_EditMethod(NF(viewPrintLayout), 0, ""),
+	EV_EditMethod(NF(viewRibbonUI), 0, ""),
 	EV_EditMethod(NF(viewRuler),			0,		""),
 	EV_EditMethod(NF(viewStatus),			0,		""),
 #if !XAP_SIMPLE_TOOLBAR
@@ -10145,6 +10150,40 @@ Defun1(viewRuler)
 UT_return_val_if_fail(pScheme, false);	pScheme->setValueBool(static_cast<const gchar *>(AP_PREF_KEY_RulerVisible), pFrameData->m_bShowRuler);
 
 	return true;
+}
+
+static bool _setRibbonUI(AV_View * pAV_View, bool bRibbon)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	// persist the choice for this frame and future frames
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_val_if_fail(pApp, false);
+	XAP_Prefs * pPrefs = pApp->getPrefs();
+	UT_return_val_if_fail(pPrefs, false);
+	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+	UT_return_val_if_fail(pScheme, false);
+	pScheme->setValueBool(static_cast<const gchar *>(AP_PREF_KEY_RibbonUI), bRibbon);
+
+	// apply to this frame
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->setRibbonMode(bRibbon);
+
+	return true;
+}
+
+Defun1(viewClassicUI)
+{
+	return _setRibbonUI(pAV_View, false);
+}
+
+Defun1(viewRibbonUI)
+{
+	return _setRibbonUI(pAV_View, true);
 }
 
 Defun1(viewFullScreen)

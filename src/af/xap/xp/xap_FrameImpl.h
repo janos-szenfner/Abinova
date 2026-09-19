@@ -58,6 +58,11 @@ public:
 	virtual void                notifyViewChanged(AV_View * pView); // default dows nothing
 
 	virtual void _createTopLevelWindow() = 0;
+
+	// switch between the classic menubar and the ribbon UI.
+	// Platforms without a ribbon keep the default no-op.
+	virtual void setRibbonMode(bool /*bRibbon*/) {}
+
 protected:
 	XAP_FrameImpl(XAP_Frame *pFrame);
 	virtual ~XAP_FrameImpl(void);

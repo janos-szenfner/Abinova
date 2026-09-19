@@ -386,6 +386,16 @@ bool EV_UnixMenu::menuEvent(XAP_Menu_Id id) const
 	return true;
 }
 
+GAction * EV_UnixMenu::lookupAction(XAP_Menu_Id id) const
+{
+	for (const _ItemRec & rec : m_vecItemRecs)
+	{
+		if (rec.id == id && rec.present)
+			return G_ACTION(rec.action);
+	}
+	return nullptr;
+}
+
 /*!
  * Create (or return the existing) GSimpleAction for a layout item.
  *
@@ -542,15 +552,29 @@ void EV_UnixMenu::_buildItems(GMenu * pMenuRoot, bool isPopup)
 
 		XAP_Menu_Id id = pLayoutItem->getMenuId();
 		const EV_Menu_Action * pAction = pMenuActionSet->getAction(id);
-		UT_ASSERT(pAction);
 		const EV_Menu_Label * pLabel = m_pMenuLabelSet->getLabel(id);
-		UT_ASSERT(pLabel);
+		if (!pAction || !pLabel) {
+			// missing action or label; keep rec indexes aligned
+			// with the layout so _refreshMenu() stays in sync
+			UT_DEBUGMSG(("EV_UnixMenu: no action/label for item %u\n",
+						 (unsigned)id));
+			m_vecItemRecs.push_back(_ItemRec());
+			continue;
+		}
 
 		switch (pLayoutItem->getMenuLayoutFlags())
 		{
 		case EV_MLF_Normal:
 		{
 			const char ** data = getLabelName(m_pUnixApp, pAction, pLabel);
+			if (!data) {
+				// getLabelName() fails when the bound edit method is
+				// not registered; skip instead of dereferencing null
+				UT_DEBUGMSG(("EV_UnixMenu: no label name for item %u\n",
+							 (unsigned)id));
+				m_vecItemRecs.push_back(_ItemRec());
+				continue;
+			}
 			const char * szLabelName = data[0];
 			const char * szMnemonicName = data[1];
 

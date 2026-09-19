@@ -33,7 +33,12 @@
 #include "xap_UnixDialogHelper.h"
 #include "ap_UnixStatusBar.h"
 #include "ut_debugmsg.h"
+#include "ut_assert.h"
 #include "ev_UnixMenuBar.h"
+#include "ap_UnixRibbon.h"
+#include "ap_Prefs.h"
+#include "xap_App.h"
+#include "xap_Prefs.h"
 
 
 AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
@@ -50,9 +55,17 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_innergrid(nullptr),
 	m_wSunkenBox(nullptr),
 	m_iHScrollSignal(0),
-	m_iVScrollSignal(0)
+	m_iVScrollSignal(0),
+	m_pRibbon(nullptr),
+	m_wRibbon(nullptr),
+	m_bRibbonMode(false)
 {
 	UT_DEBUGMSG(("Created AP_UnixFrameImpl %p \n",this));
+}
+
+AP_UnixFrameImpl::~AP_UnixFrameImpl()
+{
+	DELETEP(m_pRibbon);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -323,18 +336,76 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	return m_wSunkenBox;
 }
 
+void AP_UnixFrameImpl::_createRibbonUI()
+{
+	// (re)create the ribbon next to the menubar; which of the two is
+	// visible is governed by the RibbonUI preference.
+	if (m_pRibbon)
+	{
+		if (m_wRibbon)
+			gtk_widget_unparent(m_wRibbon);
+		DELETEP(m_pRibbon);
+		m_wRibbon = nullptr;
+	}
+
+	bool bRibbon = false;
+	XAP_App::getApp()->getPrefsValueBool(AP_PREF_KEY_RibbonUI, bRibbon);
+	m_bRibbonMode = bRibbon;
+
+	m_pRibbon = new AP_UnixRibbon(getFrame(), m_pUnixMenu);
+	m_wRibbon = m_pRibbon->createWidget();
+	gtk_widget_insert_after(m_wRibbon, m_wVBox, m_pUnixMenu->getMenuBar());
+
+	_applyUIMode();
+}
+
+void AP_UnixFrameImpl::_rebuildMenus()
+{
+	XAP_UnixFrameImpl::_rebuildMenus();
+	// the menu rebuild replaces the action group the ribbon buttons
+	// are bound to, so the ribbon must be rebuilt as well.
+	if (m_pRibbon)
+		_createRibbonUI();
+}
+
+void AP_UnixFrameImpl::refreshRibbon()
+{
+	if (m_pRibbon && m_bRibbonMode)
+		m_pRibbon->refresh();
+}
+
+void AP_UnixFrameImpl::setRibbonMode(bool bRibbon)
+{
+	m_bRibbonMode = bRibbon;
+	_applyUIMode();
+}
+
+void AP_UnixFrameImpl::_applyUIMode()
+{
+	if (!m_pUnixMenu || !m_wRibbon)
+		return;
+
+	gtk_widget_set_visible(m_pUnixMenu->getMenuBar(), !m_bRibbonMode);
+	gtk_widget_set_visible(m_wRibbon, m_bRibbonMode);
+	if (m_bRibbonMode)
+		m_pRibbon->refresh();
+}
+
 void AP_UnixFrameImpl::_hideMenuScroll(bool bHideMenuScroll)
 {
   if(bHideMenuScroll)
   {
     UT_DEBUGMSG(("Hiding Menu \n"));
     gtk_widget_hide(m_pUnixMenu->getMenuBar());
+    if (m_wRibbon)
+      gtk_widget_hide(m_wRibbon);
     UT_DEBUGMSG(("Hiding scrollbar \n"));
     gtk_widget_hide(m_vScroll);
   }
   else
   {
-    gtk_widget_set_visible(m_pUnixMenu->getMenuBar(), TRUE);
+    // restore whichever UI chrome the current mode shows
+    _applyUIMode();
     gtk_widget_set_visible(m_vScroll, TRUE);
   }
 }

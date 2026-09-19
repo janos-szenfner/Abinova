@@ -56,6 +56,10 @@ public:
 	GMenu *			getMenuModel() const { return m_pMenuModel; }
 	GActionGroup *	getActionGroup() const { return G_ACTION_GROUP(m_actionGroup); }
 
+	// The action bound to a layout item (the shared radio action for
+	// radio items, nullptr when the item is not in the layout).
+	GAction *		lookupAction(XAP_Menu_Id id) const;
+
 protected:
 	bool				_refreshMenu(AV_View * pView);
 	virtual bool		_doAddMenuItem(UT_uint32 layout_pos) override;

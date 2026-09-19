@@ -2063,3 +2063,14 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_MailMerge)
 		return EV_MIS_Gray;
 	return EV_MIS_ZERO;
 }
+
+Defun_EV_GetMenuItemState_Fn(ap_GetState_UI)
+{
+	bool bRibbon = false;
+	XAP_App * pApp = XAP_App::getApp();
+	if (pApp)
+		pApp->getPrefsValueBool(AP_PREF_KEY_RibbonUI, bRibbon);
+
+	bool bActive = (id == (XAP_Menu_Id)AP_MENU_ID_HELP_UI_RIBBON) ? bRibbon : !bRibbon;
+	return bActive ? EV_MIS_Toggled : EV_MIS_ZERO;
+}

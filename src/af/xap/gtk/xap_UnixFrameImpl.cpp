@@ -1210,6 +1210,11 @@ void XAP_UnixFrameImpl::_nullUpdate() const
 	}
 }
 
+void XAP_UnixFrameImpl::_createRibbonUI()
+{
+	// default: no ribbon. AP_UnixFrameImpl overrides this.
+}
+
 void XAP_UnixFrameImpl::_initialize()
 {
 	UT_DEBUGMSG (("XAP_UnixFrameImpl::_initialize()\n"));
@@ -1340,6 +1345,10 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 		UT_DebugOnly<bool> bResult;
 		bResult = m_pUnixMenu->synthesizeMenuBar();
 		UT_ASSERT(bResult);
+
+		// let the app layer build the ribbon UI (packed right after
+		// the menubar; only one of the two is visible at a time)
+		_createRibbonUI();
 	}
 
 	// create a toolbar instance for each toolbar listed in our base class.

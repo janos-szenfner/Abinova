@@ -410,6 +410,9 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_HELP_ABOUT,		0,1,0,0,	"dlgAbout",			nullptr,					ap_GetLabel_About);
 	_s(AP_MENU_ID_HELP_CREDITS, 0,0,0,0, "helpCredits", nullptr, nullptr);
 	_s(AP_MENU_ID_HELP_REPORT_BUG, 0,0,0,0, "helpReportBug", nullptr, nullptr);
+	_s(AP_MENU_ID_HELP_UI,			1,0,0,0,	nullptr,				nullptr,					nullptr);
+	_s(AP_MENU_ID_HELP_UI_CLASSIC,	0,0,0,1,	"viewClassicUI",		ap_GetState_UI,				nullptr);
+	_s(AP_MENU_ID_HELP_UI_RIBBON,	0,0,0,1,	"viewRibbonUI",			ap_GetState_UI,				nullptr);
 
 #ifdef ENABLE_SPELL
 	_s(AP_MENU_ID_SPELL_SUGGEST_1,	0,0,0,0,	"spellSuggest_1",	ap_GetState_Suggest,	ap_GetLabel_Suggest);

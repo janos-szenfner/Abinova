@@ -368,6 +368,9 @@ menuitem(HELP_CHECKVER)
 menuitem(HELP_SEARCH)
 menuitem(HELP_ABOUT)
 menuitem(HELP_REPORT_BUG)
+menuitem(HELP_UI)
+menuitem(HELP_UI_CLASSIC)
+menuitem(HELP_UI_RIBBON)
 
 menuitem(SPELL_SUGGEST_1)		// _suggest_1 thru _suggest_9 must be contiguous
 menuitem(SPELL_SUGGEST_2)

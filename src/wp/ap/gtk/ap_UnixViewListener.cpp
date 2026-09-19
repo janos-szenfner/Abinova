@@ -29,6 +29,7 @@
 #include "xav_View.h"
 #include "ap_UnixViewListener.h"
 #include "ap_UnixApp.h"
+#include "ap_UnixFrameImpl.h"
 
 ap_UnixViewListener::ap_UnixViewListener(XAP_Frame * pFrame)
 	: ap_ViewListener(pFrame)
@@ -44,6 +45,13 @@ bool ap_UnixViewListener::notify(AV_View * pView, const AV_ChangeMask mask)
 		AP_UnixApp * pUnixApp = static_cast<AP_UnixApp *>(pView->getApp());
 		pUnixApp->setSelectionStatus(pView);
 	}
+
+	// keep the always-visible ribbon controls (enablement, check
+	// state, contextual tabs) in sync, like the toolbar listener does
+	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(
+		m_pFrame->getFrameImpl());
+	if (pImpl)
+		pImpl->refreshRibbon();
 
 	return ap_ViewListener::notify(pView,mask);
 }

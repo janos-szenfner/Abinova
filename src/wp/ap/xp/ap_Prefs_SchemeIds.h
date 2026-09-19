@@ -115,6 +115,9 @@
 #define AP_PREF_KEY_ParaVisible                     "ParaVisible"               /* are the paragraphs/spaces/tats/etc. visible? {0,1} */
 #define AP_PREF_DEFAULT_ParaVisible                 "0"
 
+#define AP_PREF_KEY_RibbonUI                        "RibbonUI"                  /* use the tabbed ribbon interface instead of the classic menubar {0,1} */
+#define AP_PREF_DEFAULT_RibbonUI                    "0"
+
 
 #define AP_PREF_KEY_StringSet						"StringSet"					/* name of dialog/msgbox strings */
 #define AP_PREF_DEFAULT_StringSet					"en-US"
@@ -239,6 +242,7 @@ dcl(ExtraBarVisible)
 dcl(TableBarVisible)
 dcl(StatusBarVisible)
 dcl(ParaVisible)
+dcl(RibbonUI)
 dcl(StringSet)
 dcl(KeyBindings)
 dcl(KeyBindingsCycle)

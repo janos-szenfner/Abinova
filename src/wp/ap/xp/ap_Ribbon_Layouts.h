@@ -58,6 +58,37 @@ struct AP_RibbonTab
 	bool						bContextual;/* show only when context applies */
 };
 
+/* --------------------------------------------------------------- File --- */
+
+static const uint16_t s_ribbon_file_document[] =
+{
+	AP_MENU_ID_FILE_NEW,
+	AP_MENU_ID_FILE_NEW_USING_TEMPLATE,
+	AP_MENU_ID_FILE_OPEN,
+	AP_MENU_ID_FILE_SAVE,
+	AP_MENU_ID_FILE_SAVEAS,
+	AP_MENU_ID_FILE_REVERT,
+	AP_MENU_ID_FILE_PROPERTIES,
+	AP_MENU_ID_FILE_CLOSE,
+	AP_MENU_ID__BOGUS1__ /* list terminator */
+};
+
+static const uint16_t s_ribbon_file_print[] =
+{
+	AP_MENU_ID_FILE_PAGESETUP,
+	AP_MENU_ID_FILE_PRINT_PREVIEW,
+	AP_MENU_ID_FILE_PRINT,
+	AP_MENU_ID_FILE_EXPORT,
+	AP_MENU_ID__BOGUS1__ /* list terminator */
+};
+
+static const AP_RibbonGroup s_ribbon_file_groups[] =
+{
+	{ "document",	s_ribbon_file_document },
+	{ "print",		s_ribbon_file_print },
+	{ nullptr,		nullptr }
+};
+
 /* --------------------------------------------------------------- Home --- */
 
 static const uint16_t s_ribbon_home_clipboard[] =
@@ -349,16 +380,25 @@ static const uint16_t s_ribbon_help_items[] =
 	AP_MENU_ID__BOGUS1__ /* list terminator */
 };
 
+static const uint16_t s_ribbon_help_interface[] =
+{
+	AP_MENU_ID_HELP_UI_CLASSIC,
+	AP_MENU_ID_HELP_UI_RIBBON,
+	AP_MENU_ID__BOGUS1__ /* list terminator */
+};
+
 static const AP_RibbonGroup s_ribbon_help_groups[] =
 {
-	{ "help",	s_ribbon_help_items },
-	{ nullptr,	nullptr }
+	{ "help",		s_ribbon_help_items },
+	{ "interface",	s_ribbon_help_interface },
+	{ nullptr,		nullptr }
 };
 
 /* ------------------------------------------------- tab table (order) --- */
 
 static const AP_RibbonTab s_ribbon_tabs[] =
 {
+	{ "file",		s_ribbon_file_groups,		false },
 	{ "home",		s_ribbon_home_groups,		false },
 	{ "insert",		s_ribbon_insert_groups,		false },
 	{ "layout",		s_ribbon_layout_groups,		false },

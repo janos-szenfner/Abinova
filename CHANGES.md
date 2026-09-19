@@ -3,6 +3,27 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Ribbon UI (LibreOffice-style) + interface switcher
+
+- `src/wp/ap/gtk/ap_UnixRibbon.{h,cpp}` added: a GtkNotebook-based
+  ribbon built from `ap_Ribbon_Layouts.h`. Tabs follow LibreOffice
+  Writer (File / Home / Insert / Layout / Review / View / Help plus a
+  contextual Table tab); groups render as compact three-row grids.
+  Every button binds to the *same* `"menu.<action>"` GAction the
+  classic menubar uses, so enable/check state, edit methods and
+  dynamic labels (e.g. "About abiword") stay identical.
+- Help > Interface submenu added (Classic Menus / Ribbon radio items,
+  `viewClassicUI`/`viewRibbonUI` edit methods, `ap_GetState_UI` state
+  function). The same pair also lives in the ribbon's Help tab, so the
+  mode can be changed from either UI.
+- `RibbonUI` preference persists the choice; switching is live and
+  keeps the document open. The ribbon refreshes on every view notify
+  (same pattern as the toolbar listener), which also drives the
+  contextual Table tab (shown only while the caret is in a table).
+- `XAP_FrameImpl::setRibbonMode()` is a no-op default so platforms
+  without a ribbon are unaffected; `EV_UnixMenu::lookupAction()`
+  exposes the per-item GAction for external widgets.
+
 ## Ribbon UI preparation
 
 - `src/wp/ap/xp/ap_Ribbon_Layouts.h` added: a data table that maps the
