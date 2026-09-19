@@ -3,6 +3,16 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Ribbon UI preparation
+
+- `src/wp/ap/xp/ap_Ribbon_Layouts.h` added: a data table that maps the
+  existing `AP_MENU_ID_*` actions into LibreOffice-Writer-style ribbon
+  tabs and groups (Home / Insert / Layout / Review / View / Help plus a
+  contextual Table tab). It consumes the same EV_Menu_ActionSet and
+  EV_Menu_LabelSet as the menubar, so a future ribbon widget
+  (e.g. a GtkNotebook of button groups) binds identical actions,
+  labels and state functions. The classic menubar stays the default.
+
 ## GTK4 dialog migration (`d206c3e`)
 
 - **All 43 `.ui` files converted to GTK4 builder syntax**: GTK3's
