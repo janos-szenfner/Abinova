@@ -189,6 +189,32 @@ An experimental fork of the AbiWord word processor, focused on:
 - **Duplicate `accessible-role` critical**: GTK4's accessible role is
   immutable once set; `abiRunModalDialog` only applies its role now
   when the widget has none.
+- **`genImageFromRectangle` paintable/texture crash**: screenshots of
+  the drawing area (visual text/frame drags, inline-image caching,
+  ODF thumbnail generation) cast a `GtkRenderNodePaintable` to
+  `GdkTexture` — the checked cast warned but returned non-NULL, so
+  `gdk_texture_download` ran on a non-texture and could crash. The
+  path now snapshots to a `GskRenderNode` and rasterizes through the
+  native `GskRenderer` with a `GDK_IS_TEXTURE` guard.
+- **Zoom reset + page centering**: the status-bar zoom cluster gained
+  a `zoom-original` button that jumps straight to 100%, and
+  `getPageViewLeftMargin()` now centers the page horizontally whenever
+  the zoomed page is narrower than the window (LibreOffice behaviour)
+  instead of pinning it to a fixed left margin — this also feeds the
+  layout width, so no phantom scrollbar appears.
+- **Ruler redrawn to LibreOffice proportions**: the top ruler was
+  rebuilt slimmer (22px vs 32px) with a narrower tab-type strip;
+  indent markers are now flat LO-style triangles (up-pointing left/
+  right indents at the bottom band, down-pointing first-line indent at
+  the top band, small square combined-drag handle under the left
+  indent), scaled from the marker rects instead of hardcoded pixels;
+  margin markers are clamped inside the bar.
+- **LibreOffice-style font box**: `AbiFontCombo` is now an editable
+  `GtkEntry` + dropdown arrow — type a font name and press Enter (or
+  leave the field) to apply it, including fonts not installed on the
+  system. The arrow opens the lazy `GtkDropDown` list: instant popup,
+  every visible row in its own typeface, type-to-search, incremental
+  sort. The collapsed entry shows plain GUI-font text like LO.
 
 ### Debian bug audit
 

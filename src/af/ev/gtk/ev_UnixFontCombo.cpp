@@ -11,7 +11,7 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU Library General Public License
+ *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
@@ -32,11 +32,10 @@ static guint font_combo_signals[LAST_SIGNAL] = { 0 };
 static GtkBoxClass *abi_font_combo_parent_class = nullptr;
 
 /*
- * Every font name is rendered in its own typeface. Rows are bound
- * lazily by the GtkListItemFactory, so only the handful of visible
- * entries ever load a font. The previous GtkComboBox cell renderer
- * measured every one of the ~2000 model rows on popup and froze
- * the UI for seconds.
+ * Rows in the dropdown list are bound lazily by the GtkListItemFactory,
+ * so only the handful of visible entries ever load a font. Rendering
+ * every one of the ~2000 installed fonts during popup measure is what
+ * used to freeze the UI for seconds.
  */
 static void
 font_item_setup (GtkSignalListItemFactory * /*factory*/,
@@ -68,12 +67,58 @@ font_item_bind (GtkSignalListItemFactory * /*factory*/,
 	pango_attr_list_unref (attrs);
 }
 
+/* The collapsed arrow button shows no text — the font name lives in the
+ * GtkEntry in front of it, like the LibreOffice/MS-Word font box. */
+static void
+button_item_setup (GtkSignalListItemFactory * /*factory*/,
+				   GtkListItem			   *item,
+				   gpointer				  /*data*/)
+{
+	gtk_list_item_set_child (item, gtk_label_new (""));
+}
+
+static void
+button_item_bind (GtkSignalListItemFactory * /*factory*/,
+				  GtkListItem			  * /*item*/,
+				  gpointer				  /*data*/)
+{
+}
+
 static void
 font_combo_selected_cb (GtkDropDown * /*dropdown*/,
 						GParamSpec	 * /*pspec*/,
 						AbiFontCombo *self)
 {
+	if (self->updating) {
+		return;
+	}
+	GtkStringObject *str =
+		GTK_STRING_OBJECT (gtk_drop_down_get_selected_item (GTK_DROP_DOWN (self->dropdown)));
+	if (str) {
+		gtk_editable_set_text (GTK_EDITABLE (self->entry),
+							   gtk_string_object_get_string (str));
+	}
 	g_signal_emit (self, font_combo_signals[CHANGED], 0);
+}
+
+/* commit the typed name on <enter> — a font that isn't installed is
+ * still applied (documents can reference missing fonts) */
+static void
+font_combo_entry_activate_cb (GtkEntry	  * /*entry*/,
+							  AbiFontCombo *self)
+{
+	g_signal_emit (self, font_combo_signals[CHANGED], 0);
+}
+
+/* LibreOffice also commits the typed font when the field loses focus */
+static void
+font_combo_entry_leave_cb (GtkEventControllerFocus * /*ctrl*/,
+						   AbiFontCombo			 *self)
+{
+	const gchar *text = gtk_editable_get_text (GTK_EDITABLE (self->entry));
+	if (text && *text && !self->updating) {
+		g_signal_emit (self, font_combo_signals[CHANGED], 0);
+	}
 }
 
 static void
@@ -82,6 +127,7 @@ abi_font_combo_init (AbiFontCombo *self, gpointer)
 	self->strings = nullptr;
 	self->sort = nullptr;
 	self->is_disposed = FALSE;
+	self->updating = FALSE;
 }
 
 static void
@@ -146,6 +192,20 @@ abi_font_combo_new (void)
 	AbiFontCombo *self = (AbiFontCombo *) g_object_new (ABI_TYPE_FONT_COMBO,
 													   "orientation", GTK_ORIENTATION_HORIZONTAL,
 													   nullptr);
+	gtk_widget_add_css_class (GTK_WIDGET (self), "linked");
+
+	/* LibreOffice-style font box: an editable entry for typing font
+	 * names, with a dropdown arrow on the right. */
+	self->entry = gtk_entry_new ();
+	gtk_widget_set_hexpand (self->entry, TRUE);
+	gtk_editable_set_width_chars (GTK_EDITABLE (self->entry), 15);
+	gtk_box_append (GTK_BOX (self), self->entry);
+	g_signal_connect (self->entry, "activate",
+					  G_CALLBACK (font_combo_entry_activate_cb), self);
+	GtkEventController *focus_ctrl = gtk_event_controller_focus_new ();
+	g_signal_connect (focus_ctrl, "leave",
+					  G_CALLBACK (font_combo_entry_leave_cb), self);
+	gtk_widget_add_controller (self->entry, focus_ctrl);
 
 	self->strings = gtk_string_list_new (nullptr);
 
@@ -158,9 +218,13 @@ abi_font_combo_new (void)
 	/* sort lazily; the model holds several thousand fonts */
 	gtk_sort_list_model_set_incremental (self->sort, TRUE);
 
-	GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
-	g_signal_connect (factory, "setup", G_CALLBACK (font_item_setup), nullptr);
-	g_signal_connect (factory, "bind", G_CALLBACK (font_item_bind), nullptr);
+	GtkListItemFactory *list_factory = gtk_signal_list_item_factory_new ();
+	g_signal_connect (list_factory, "setup", G_CALLBACK (font_item_setup), nullptr);
+	g_signal_connect (list_factory, "bind", G_CALLBACK (font_item_bind), nullptr);
+
+	GtkListItemFactory *button_factory = gtk_signal_list_item_factory_new ();
+	g_signal_connect (button_factory, "setup", G_CALLBACK (button_item_setup), nullptr);
+	g_signal_connect (button_factory, "bind", G_CALLBACK (button_item_bind), nullptr);
 
 	GtkExpression *search_expr =
 		gtk_property_expression_new (GTK_TYPE_STRING_OBJECT, nullptr, "string");
@@ -168,14 +232,15 @@ abi_font_combo_new (void)
 	self->dropdown = gtk_drop_down_new (G_LIST_MODEL (g_object_ref (self->sort)),
 										nullptr);
 	g_object_set (self->dropdown,
-				  "factory", factory,
+				  "factory", button_factory,
+				  "list-factory", list_factory,
 				  "enable-search", TRUE,
 				  "expression", search_expr,
 				  nullptr);
-	gtk_widget_set_hexpand (self->dropdown, TRUE);
 	gtk_box_append (GTK_BOX (self), self->dropdown);
 
-	g_object_unref (factory);
+	g_object_unref (list_factory);
+	g_object_unref (button_factory);
 	gtk_expression_unref (search_expr);
 
 	g_signal_connect (self->dropdown, "notify::selected",
@@ -206,37 +271,42 @@ abi_font_combo_insert_font (AbiFontCombo 	*self,
 			    const gchar		*font,
 			    gboolean 		 select)
 {
-	gtk_string_list_append (self->strings, font);
+	if (abi_font_combo_find (self, font) == GTK_INVALID_LIST_POSITION) {
+		gtk_string_list_append (self->strings, font);
+	}
 
 	if (select) {
-		guint pos = abi_font_combo_find (self, font);
-		gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown), pos);
+		abi_font_combo_select_text (self, font);
 	}
 }
 
 gboolean
 abi_font_combo_select_text (AbiFontCombo *self, const gchar *text)
 {
-	guint pos = abi_font_combo_find (self, text);
-	if (pos == GTK_INVALID_LIST_POSITION)
-		return FALSE;
+	self->updating = TRUE;
+	gtk_editable_set_text (GTK_EDITABLE (self->entry), text ? text : "");
+	guint pos = text ? abi_font_combo_find (self, text)
+					 : GTK_INVALID_LIST_POSITION;
 	gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown), pos);
-	return TRUE;
+	self->updating = FALSE;
+	return pos != GTK_INVALID_LIST_POSITION;
 }
 
 void
 abi_font_combo_unselect (AbiFontCombo *self)
 {
+	self->updating = TRUE;
+	gtk_editable_set_text (GTK_EDITABLE (self->entry), "");
 	gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown),
 								GTK_INVALID_LIST_POSITION);
+	self->updating = FALSE;
 }
 
 gchar *
 abi_font_combo_get_active_text (AbiFontCombo *self)
 {
-	GtkStringObject *str =
-		GTK_STRING_OBJECT (gtk_drop_down_get_selected_item (GTK_DROP_DOWN (self->dropdown)));
-	return str ? g_strdup (gtk_string_object_get_string (str)) : nullptr;
+	const gchar *text = gtk_editable_get_text (GTK_EDITABLE (self->entry));
+	return (text && *text) ? g_strdup (text) : nullptr;
 }
 
 /*!

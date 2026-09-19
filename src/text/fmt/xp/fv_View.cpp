@@ -8147,6 +8147,21 @@ UT_sint32 FV_View::getPageViewLeftMargin(void) const
 	{
 		return 0;
 	}
+	else
+	{
+		/* When the zoomed page is narrower than the window, center it
+		 * horizontally like LibreOffice/MS Word instead of hugging the
+		 * left edge. This margin also feeds the document layout width
+		 * (fl_DocLayout adds 2x margin), so centering keeps the scroll
+		 * range at exactly the window width — no phantom scrollbar. */
+		UT_sint32 iWinW = getWindowWidth();
+		double pageW = getPageSize().Width(DIM_IN) *
+					   static_cast<double>(UT_LAYOUT_RESOLUTION);
+		if (iWinW > static_cast<UT_sint32>(pageW))
+		{
+			return (iWinW - static_cast<UT_sint32>(pageW)) / 2;
+		}
+	}
 
 #ifdef EMBEDDED_TARGET
 		return (int) (0.2 * fl_PAGEVIEW_MARGIN_X);

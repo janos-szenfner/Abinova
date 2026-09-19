@@ -441,20 +441,31 @@ GR_Image * GR_UnixCairoGraphics::genImageFromRectangle(const UT_Rect &rec)
 	UT_return_val_if_fail (idw > 0 && idh > 0 && idx >= 0, nullptr);
 	UT_return_val_if_fail (m_Widget, nullptr);
 
-	/* GTK4: render the widget into a texture, then read the pixels back
-	 * into a GdkPixbuf covering the requested rectangle. */
-	GdkPaintable *wp = GDK_PAINTABLE (gtk_widget_paintable_new (m_Widget));
+	/* GTK4: snapshot the widget into a render node, rasterize it into a
+	 * texture with the native renderer, then read the pixels back into
+	 * a GdkPixbuf covering the requested rectangle.
+	 * (gtk_snapshot_free_to_paintable can return a GtkRenderNodePaintable,
+	 * which is not a GdkTexture — casting it anyway crashed downloads.) */
+	int widget_w = gtk_widget_get_width (m_Widget);
+	int widget_h = gtk_widget_get_height (m_Widget);
+	UT_return_val_if_fail (widget_w > 0 && widget_h > 0, nullptr);
+
+	GdkPaintable *wp = gtk_widget_paintable_new (m_Widget);
 	GtkSnapshot *snapshot = gtk_snapshot_new ();
-	gdk_paintable_snapshot (wp, snapshot,
-							gtk_widget_get_width (m_Widget),
-							gtk_widget_get_height (m_Widget));
+	gdk_paintable_snapshot (wp, snapshot, widget_w, widget_h);
 	g_object_unref (wp);
-	GdkPaintable *paintable = gtk_snapshot_free_to_paintable (snapshot, nullptr);
-	if (!paintable) {
+	GskRenderNode *node = gtk_snapshot_free_to_node (snapshot);
+	if (!node) {
 		return nullptr;
 	}
-	GdkTexture *texture = GDK_TEXTURE (gdk_paintable_get_current_image (paintable));
-	g_object_unref (paintable);
+	GskRenderer *renderer =
+		gtk_native_get_renderer (gtk_widget_get_native (m_Widget));
+	if (!renderer) {
+		gsk_render_node_unref (node);
+		return nullptr;
+	}
+	GdkTexture *texture = gsk_renderer_render_texture (renderer, node, nullptr);
+	gsk_render_node_unref (node);
 	if (!texture) {
 		return nullptr;
 	}

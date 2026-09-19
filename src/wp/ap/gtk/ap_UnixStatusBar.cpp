@@ -173,6 +173,12 @@ static void s_zoom_label_clicked(GtkButton * /*btn*/, AP_UnixStatusBar * /*sb*/)
 	ev_EditMethod_invoke(pEM, UT_String(""));
 }
 
+static void s_zoom_reset_clicked(GtkButton * /*btn*/, AP_UnixStatusBar * sb)
+{
+	UT_return_if_fail(sb && sb->getStatusBarFrame());
+	sb->applyZoom(100);
+}
+
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
@@ -324,6 +330,13 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 		g_signal_connect(pZoomIn, "clicked",
 						 G_CALLBACK(s_zoom_in_clicked), this);
 		gtk_box_append(GTK_BOX(pZoomBox), pZoomIn);
+
+		GtkWidget * pZoomReset = gtk_button_new_from_icon_name("zoom-original-symbolic");
+		gtk_widget_set_tooltip_text(pZoomReset, "100%");
+		gtk_widget_add_css_class(pZoomReset, "flat");
+		g_signal_connect(pZoomReset, "clicked",
+						 G_CALLBACK(s_zoom_reset_clicked), this);
+		gtk_box_append(GTK_BOX(pZoomBox), pZoomReset);
 
 		// the percentage is a button: clicking it opens the Zoom dialog,
 		// like the indicator in Word/LibreOffice.
