@@ -98,42 +98,42 @@ void XAP_UnixDialog_HTMLOptions::runModal (XAP_Frame * pFrame)
 
 void XAP_UnixDialog_HTMLOptions::toggle_Is4 ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wIs4)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wIs4)) == TRUE);
 	set_HTML4 (on);
 	refreshStates ();
 }
 
 void XAP_UnixDialog_HTMLOptions::toggle_AbiWebDoc ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wAbiWebDoc)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wAbiWebDoc)) == TRUE);
 	set_PHTML (on);
 	refreshStates ();
 }
 
 void XAP_UnixDialog_HTMLOptions::toggle_DeclareXML ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wDeclareXML)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wDeclareXML)) == TRUE);
 	set_Declare_XML (on);
 	refreshStates ();
 }
 
 void XAP_UnixDialog_HTMLOptions::toggle_AllowAWML ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wAllowAWML)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wAllowAWML)) == TRUE);
 	set_Allow_AWML (on);
 	refreshStates ();
 }
 
 void XAP_UnixDialog_HTMLOptions::toggle_EmbedCSS ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wEmbedCSS)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wEmbedCSS)) == TRUE);
 	set_Embed_CSS (on);
 	refreshStates ();
 }
 
 void XAP_UnixDialog_HTMLOptions::toggle_EmbedImages ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wEmbedImages)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wEmbedImages)) == TRUE);
 	set_Embed_Images (on);
 	refreshStates ();
 }
@@ -141,14 +141,14 @@ void XAP_UnixDialog_HTMLOptions::toggle_EmbedImages ()
 
 void XAP_UnixDialog_HTMLOptions::toggle_MathMLRenderPNG ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wMathMLRenderPNG)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wMathMLRenderPNG)) == TRUE);
 	set_MathML_Render_PNG (on);
 	refreshStates ();
 }
 
 void XAP_UnixDialog_HTMLOptions::toggle_SplitDocument ()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wSplitDocument)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wSplitDocument)) == TRUE);
 	set_Split_Document (on);
 	refreshStates ();
 }
@@ -157,43 +157,43 @@ void XAP_UnixDialog_HTMLOptions::refreshStates ()
 	gboolean on;
 
 	on = get_HTML4 () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wIs4), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wIs4), on);
 
 	on = get_PHTML () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wAbiWebDoc), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wAbiWebDoc), on);
 
 	on = get_Declare_XML () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wDeclareXML), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wDeclareXML), on);
 
 	on = can_set_Declare_XML () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wDeclareXML, on);
 
 	on = get_Allow_AWML () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wAllowAWML), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wAllowAWML), on);
 
 	on = can_set_Allow_AWML () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wAllowAWML, on);
 
 	on = get_Embed_CSS () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wEmbedCSS), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wEmbedCSS), on);
 
 	on = can_set_Embed_CSS () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wEmbedCSS, on);
 
 	on = get_Embed_Images () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wEmbedImages), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wEmbedImages), on);
 
 	on = can_set_Embed_Images () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wEmbedImages, on);
                 
         on = get_MathML_Render_PNG () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wMathMLRenderPNG), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wMathMLRenderPNG), on);
 
 	on = can_set_MathML_Render_PNG () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wMathMLRenderPNG, on);
         
         on = get_Split_Document () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wSplitDocument), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wSplitDocument), on);
 
 	on = can_set_Split_Document () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wSplitDocument, on);

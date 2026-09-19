@@ -69,6 +69,7 @@ create_store ()
 static gboolean
 fill_store (XAP_UnixDialog_ClipArt *self)
 {
+	self->clearFillIdleId();
 	gboolean ret = self->fillStore();
 	if (!ret) {
 		GtkWidget *dlg = self->getDialog ();
@@ -110,6 +111,7 @@ XAP_Dialog * XAP_UnixDialog_ClipArt::static_constructor(XAP_DialogFactory * pFac
  */
 XAP_UnixDialog_ClipArt::XAP_UnixDialog_ClipArt(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
   : XAP_Dialog_ClipArt(pDlgFactory, id)
+  , fill_idle_id(0)
 {}
 
 /**
@@ -117,6 +119,9 @@ XAP_UnixDialog_ClipArt::XAP_UnixDialog_ClipArt(XAP_DialogFactory * pDlgFactory, 
  */
 XAP_UnixDialog_ClipArt::~XAP_UnixDialog_ClipArt()
 {
+	if (this->fill_idle_id) {
+		g_source_remove (this->fill_idle_id);
+	}
 	this->dir_path = nullptr;
 	this->progress = nullptr;
 	this->icon_view = nullptr;
@@ -186,7 +191,7 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 
 	/* Dom says we just use that dir for now and hope for someone to build an openclipart client */
 	this->dir_path = getInitialDir ();
-	g_idle_add ((GSourceFunc) fill_store, this);
+	fill_idle_id = g_idle_add ((GSourceFunc) fill_store, this);
 
 	switch (abiRunModalDialog(GTK_DIALOG(this->dlg), pFrame, this, GTK_RESPONSE_CANCEL, false)) {
 	case GTK_RESPONSE_OK:

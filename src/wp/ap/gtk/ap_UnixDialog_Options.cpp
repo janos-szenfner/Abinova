@@ -646,12 +646,12 @@ void AP_UnixDialog_Options::_controlEnable ( tControl id, bool value )
 #define DEFINE_GET_SET_BOOL(button) \
     bool     AP_UnixDialog_Options::_gather##button(void) {    \
         UT_ASSERT(m_checkbutton##button && GTK_IS_BUTTON(m_checkbutton##button)); \
-        return gtk_toggle_button_get_active(        \
-                GTK_TOGGLE_BUTTON(m_checkbutton##button) ); }   \
+        return gtk_check_button_get_active(        \
+                GTK_CHECK_BUTTON(m_checkbutton##button) ); }   \
     void        AP_UnixDialog_Options::_set##button(bool b) { \
         UT_ASSERT(m_checkbutton##button && GTK_IS_BUTTON(m_checkbutton##button)); \
-        gtk_toggle_button_set_active (          \
-                                                GTK_TOGGLE_BUTTON(m_checkbutton##button), b ); }
+        gtk_check_button_set_active (          \
+                                                GTK_CHECK_BUTTON(m_checkbutton##button), b ); }
 
 #define DEFINE_GET_SET_BOOL_D(button) \
     bool     AP_UnixDialog_Options::_gather##button(void) {    \

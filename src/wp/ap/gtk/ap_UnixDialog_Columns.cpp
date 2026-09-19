@@ -311,8 +311,8 @@ void AP_UnixDialog_Columns::runModal(XAP_Frame * pFrame)
 			event_Cancel () ; break ;
 	}
 	
-	setColumnOrder (gtk_toggle_button_get_active(
-												 GTK_TOGGLE_BUTTON(m_checkOrder)));
+	setColumnOrder (gtk_check_button_get_active(
+												 GTK_CHECK_BUTTON(m_checkOrder)));
 
 	_storeWindowData();
 	DELETEP (m_pPreviewWidget);

@@ -631,6 +631,7 @@ XAP_UnixFrameImpl::~XAP_UnixFrameImpl()
 	// unref the input method context
 	if (m_imContext) {
 		g_object_unref (G_OBJECT (m_imContext));
+		m_imContext = nullptr;
 	}
 }
 
@@ -638,14 +639,20 @@ XAP_UnixFrameImpl::~XAP_UnixFrameImpl()
 void XAP_UnixFrameImpl::focusIMIn ()
 {
 	need_im_reset = true;
-	gtk_im_context_focus_in(getIMContext());
-	gtk_im_context_reset (getIMContext());
+	/* focus controllers on the drawing area can outlive _createIMContext /
+	 * the impl teardown; GTK_IS_IM_CONTEXT asserts on null/dangling. */
+	if (m_imContext) {
+		gtk_im_context_focus_in(getIMContext());
+		gtk_im_context_reset (getIMContext());
+	}
 }
 
 void XAP_UnixFrameImpl::focusIMOut ()
 {
 	need_im_reset = true;
-	gtk_im_context_focus_out(getIMContext());
+	if (m_imContext) {
+		gtk_im_context_focus_out(getIMContext());
+	}
 }
 
 void XAP_UnixFrameImpl::resetIMContext()
@@ -653,7 +660,9 @@ void XAP_UnixFrameImpl::resetIMContext()
   if (need_im_reset)
     {
       need_im_reset = false;
-      gtk_im_context_reset (getIMContext());
+      if (m_imContext) {
+        gtk_im_context_reset (getIMContext());
+      }
     }
 }
 
@@ -1007,7 +1016,7 @@ gboolean XAP_UnixFrameImpl::_fe::key_release_event(GtkEventControllerKey * c,
 	GdkEvent * e = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(c));
 
 	// Let IM handle the event first.
-	if (e && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {
+	if (e && pUnixFrameImpl->getIMContext() && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {
 		UT_DEBUGMSG(("IMCONTEXT keyevent swallow: %u\n", keyval));
 		pUnixFrameImpl->queueIMReset ();
 	    return FALSE;
@@ -1026,7 +1035,7 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 
 
 	// Let IM handle the event first.
-	if (e && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {
+	if (e && pUnixFrameImpl->getIMContext() && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {
 		pUnixFrameImpl->queueIMReset ();
 
 		if ((state & GDK_ALT_MASK) ||

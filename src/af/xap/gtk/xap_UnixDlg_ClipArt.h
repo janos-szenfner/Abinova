@@ -41,6 +41,7 @@ public:
 
 	GtkWidget * getDialog		() const { return dlg; }
 	gboolean 	fillStore		();
+	void 		clearFillIdleId	() { fill_idle_id = 0; }
 	void 		onItemActivated	();
 
 protected:
@@ -50,6 +51,7 @@ protected:
 	GtkWidget		*icon_view;
 	GtkListStore 	*store;
 	int				 count;
+	guint			 fill_idle_id;
 };
 
 #endif /* XAP_UNIXDIALOG_CLIPART_H */

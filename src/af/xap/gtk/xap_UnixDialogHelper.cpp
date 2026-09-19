@@ -385,7 +385,26 @@ static gboolean abi_dlg_close_request_cb (GtkWindow * /*w*/, gpointer data)
 
 gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole role)
 {
-	g_object_set (G_OBJECT (me), "accessible-role", role, NULL);
+	/* GTK4's accessible role is immutable once set; setting it again
+	 * logs a critical. Only apply ours when nothing set a role yet. */
+	if (gtk_accessible_get_accessible_role (GTK_ACCESSIBLE (me)) == GTK_ACCESSIBLE_ROLE_NONE) {
+		g_object_set (G_OBJECT (me), "accessible-role", role, NULL);
+	}
+
+	/* Callers of this overload skip abiSetupModalDialog, so no transient
+	 * parent was set; GTK4 warns when a GtkDialog maps without one. */
+	if (!gtk_window_get_transient_for (GTK_WINDOW (me))) {
+		XAP_Frame *pFrame = XAP_App::getApp()->getLastFocussedFrame();
+		if (pFrame) {
+			XAP_FrameImpl *pImpl = pFrame->getFrameImpl();
+			if (pImpl) {
+				GtkWidget *parent = static_cast<XAP_UnixFrameImpl*>(pImpl)->getTopLevelWindow();
+				if (GTK_IS_WINDOW (parent)) {
+					gtk_window_set_transient_for (GTK_WINDOW (me), GTK_WINDOW (parent));
+				}
+			}
+		}
+	}
 
 	GtkWidget *w = GTK_WIDGET (me);
 	g_object_add_weak_pointer (G_OBJECT (w), reinterpret_cast<gpointer*>(&w));

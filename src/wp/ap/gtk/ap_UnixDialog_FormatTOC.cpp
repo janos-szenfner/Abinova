@@ -141,7 +141,7 @@ static void s_check_changedDetails(GtkWidget * wid, AP_UnixDialog_FormatTOC * me
 {
 	std::string sProp = static_cast<char *> (g_object_get_data(G_OBJECT(wid),"toc-prop"));
 	std::string sVal = "1";
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wid)) == FALSE)
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(wid)) == FALSE)
 	{
 		sVal = "0";
 	}
@@ -263,7 +263,7 @@ void AP_UnixDialog_FormatTOC::event_HasHeadingChanged(GtkWidget * wid)
 {
 	std::string sProp = static_cast<char *> (g_object_get_data(G_OBJECT(wid),"toc-prop"));
 	std::string sVal = "1";
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wid)) == FALSE)
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(wid)) == FALSE)
 	{
 		sVal = "0";
 		_setHasHeadingSensitivity(FALSE);
@@ -296,7 +296,7 @@ void AP_UnixDialog_FormatTOC::event_HasLabelChanged(GtkWidget * wid)
 	UT_String sNum =  UT_String_sprintf("%d",getMainLevel());
 	sProp += sNum.c_str();
 	std::string sVal = "1";
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(wid)) == FALSE)
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(wid)) == FALSE)
 	{
 		sVal = "0";
 	}
@@ -430,11 +430,11 @@ void AP_UnixDialog_FormatTOC::setMainLevel(UT_sint32 iLevel)
 	pW = _getWidget("wHasLabel");
 	if(g_ascii_strcasecmp(sVal.c_str(),"1") == 0)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),TRUE);
 	}
 	else
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),FALSE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 	}
 
 	sVal = getTOCPropVal("toc-source-style",getMainLevel());
@@ -471,11 +471,11 @@ void AP_UnixDialog_FormatTOC::setDetailsLevel(UT_sint32 iLevel)
 	pW = _getWidget("cbInherit");
 	if(g_ascii_strcasecmp(sVal.c_str(),"1") == 0)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),TRUE);
 	}
 	else
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),FALSE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 	}
 
 
@@ -648,12 +648,12 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	pW = _getWidget("cbHasHeading");
 	if(g_ascii_strcasecmp(sVal.c_str(),"1") == 0)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),TRUE);
 		_setHasHeadingSensitivity(TRUE);
 	}
 	else
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),FALSE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 		_setHasHeadingSensitivity(FALSE);
 	}
 	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-has-heading");
@@ -690,11 +690,11 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	pW = _getWidget("wHasLabel");
 	if(g_ascii_strcasecmp(sVal.c_str(),"1") == 0)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),TRUE);
 	}
 	else
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),FALSE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 	}
 	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-has-label");
 	g_signal_connect(G_OBJECT(pW),
@@ -716,11 +716,11 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	pW = _getWidget("cbInherit");
 	if(g_ascii_strcasecmp(sVal.c_str(),"1") == 0)
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),TRUE);
 	}
 	else
 	{
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(pW),FALSE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 	}
 	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-label-inherits");
 	g_signal_connect(G_OBJECT(pW),

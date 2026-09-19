@@ -82,7 +82,7 @@ static void s_customChanged (GtkWidget * /*widget*/, AP_UnixDialog_Lists * me)
 
 static void s_FoldCheck_changed(GtkWidget * widget, AP_UnixDialog_Lists * me)
 {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
 	{
 		UT_DEBUGMSG(("Doing s_FoldCheck_changed \n"));
 		UT_UTF8String sLevel = static_cast<char *> 
@@ -368,7 +368,7 @@ void AP_UnixDialog_Lists::setFoldLevel(UT_sint32 iLevel, bool bSet)
 		wF = m_vecFoldCheck.getNthItem(0);
 		ID = m_vecFoldID.getNthItem(0);
 		XAP_GtkSignalBlocker b2(G_OBJECT(wF),ID);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(wF),TRUE);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(wF),TRUE);
 		setCurrentFold(0);
 	}
 	else
@@ -377,7 +377,7 @@ void AP_UnixDialog_Lists::setFoldLevel(UT_sint32 iLevel, bool bSet)
 		ID = m_vecFoldID.getNthItem(iLevel);
 		{
 			XAP_GtkSignalBlocker b1(G_OBJECT(wF),ID);
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(wF),TRUE);
+			gtk_check_button_set_active(GTK_CHECK_BUTTON(wF),TRUE);
 		}
 		setCurrentFold(iLevel);
 	}
@@ -510,19 +510,19 @@ void  AP_UnixDialog_Lists::setXPFromLocal(void)
 //
 // Now read the toggle button state and set the member variables from them
 //
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON (m_wStartNewList)))
+	if (gtk_check_button_get_active(GTK_CHECK_BUTTON (m_wStartNewList)))
 	{
 		setbStartNewList(true);
 		setbApplyToCurrent(false);
 		setbResumeList(false);
 	}
-	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON (m_wApplyCurrent)))
+	else if (gtk_check_button_get_active(GTK_CHECK_BUTTON (m_wApplyCurrent)))
 	{
 		setbStartNewList(false);
 		setbApplyToCurrent(true);
 		setbResumeList(false);
 	}
-	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON (m_wStartSubList)))
+	else if (gtk_check_button_get_active(GTK_CHECK_BUTTON (m_wStartSubList)))
 	{
 		setbStartNewList(false);
 		setbApplyToCurrent(false);
@@ -1006,7 +1006,7 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 	if(!isModal())
 		gtk_widget_show (apply_list_rb);
 	gtk_box_append(GTK_BOX(hbox1), apply_list_rb);
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (apply_list_rb), TRUE);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (apply_list_rb), TRUE);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_Start_New,s);
 	start_list_rb = abi_radio_button_new_with_label(action_group, s.c_str());
 	action_group = start_list_rb;

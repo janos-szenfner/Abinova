@@ -164,6 +164,31 @@ An experimental fork of the AbiWord word processor, focused on:
 - **Set Language dialog**: now has explicit Cancel/Apply buttons;
   the selection is committed only on Apply (previously any close —
   including the window X — silently applied whatever was selected).
+- **`GtkCheckButton` cast as `GtkToggleButton`**: in GTK4 the two are
+  siblings, so every `GTK_TOGGLE_BUTTON()` cast on a check button
+  warned and `gtk_toggle_button_get_active()` always returned FALSE —
+  breaking checkbox/radio state reads across the Lists, Options,
+  Format TOC, Mark Revisions, Break, HTML Options and EPUB export
+  dialogs (Columns' column-order toggle was fixed surgically; its
+  real toggle buttons were left alone). All verified sites now use
+  `gtk_check_button_get_active()`/`set_active()`.
+- **Input-method context lifetime**: `gtk_im_context_focus_out` and
+  friends asserted on a NULL context (visible in the runtime log);
+  all `m_imContext` uses are now guarded, the destructor clears the
+  pointer after unref, and the deprecated
+  `gtk_im_context_set_surrounding()` was replaced by
+  `gtk_im_context_set_surrounding_with_selection()`.
+- **Clip Art dialog use-after-free**: `g_idle_add(fill_store, this)`
+  could fire after the dialog object was destroyed; the idle source
+  is now tracked and cancelled in the destructor.
+- **Dialogs mapped without a transient parent**: the two-argument
+  `abiRunModalDialog()` overload skipped `abiSetupModalDialog`, so
+  dialogs run through it (Styles, About, Clip Art errors, …) mapped
+  parentless; it now falls back to the last-focused frame's top-level
+  window.
+- **Duplicate `accessible-role` critical**: GTK4's accessible role is
+  immutable once set; `abiRunModalDialog` only applies its role now
+  when the widget has none.
 
 ### Debian bug audit
 

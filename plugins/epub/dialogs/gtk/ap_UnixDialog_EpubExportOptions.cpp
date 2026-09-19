@@ -91,21 +91,21 @@ void AP_UnixDialog_EpubExportOptions::runModal (XAP_Frame * pFrame)
 
 void AP_UnixDialog_EpubExportOptions::toggle_Epub2()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wEpub2)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wEpub2)) == TRUE);
 	set_Epub2 (on);
 	refreshStates ();
 }
 
 void AP_UnixDialog_EpubExportOptions::toggle_SplitDocument()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wSplitDocument)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wSplitDocument)) == TRUE);
 	set_SplitDocument (on);
 	refreshStates ();
 }
 
 void AP_UnixDialog_EpubExportOptions::toggle_RenderMathMlToPng()
 {
-	bool on = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (m_wRenderMathMlToPng)) == TRUE);
+	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wRenderMathMlToPng)) == TRUE);
 	set_RenderMathMlToPng (on);
 	refreshStates ();
 }
@@ -115,19 +115,19 @@ void AP_UnixDialog_EpubExportOptions::refreshStates()
 	gboolean on;
 
 	on = get_Epub2 () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wEpub2), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wEpub2), on);
 
 	on = can_set_Epub2 () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wEpub2, on);
 
 	on = get_SplitDocument () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wSplitDocument), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wSplitDocument), on);
 
 	on = can_set_SplitDocument () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wSplitDocument, on);
 
 	on = get_RenderMathMlToPng () ? TRUE : FALSE;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (m_wRenderMathMlToPng), on);
+	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wRenderMathMlToPng), on);
 
 	on = can_set_RenderMathMlToPng () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wRenderMathMlToPng, on);

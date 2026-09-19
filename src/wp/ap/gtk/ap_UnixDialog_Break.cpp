@@ -156,7 +156,7 @@ void AP_UnixDialog_Break::_populateWindowData(void) const
 	GtkWidget * widget = _findRadioByID(m_break);
 	UT_ASSERT(widget);
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), TRUE);
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(widget), TRUE);
 }
 
 void AP_UnixDialog_Break::_storeWindowData(void)
@@ -180,7 +180,7 @@ GtkWidget * AP_UnixDialog_Break::_findRadioByID(AP_Dialog_Break::breakType b) co
 AP_Dialog_Break::breakType AP_UnixDialog_Break::_getActiveRadioItem(void) const
 {
 	for (auto item : m_radioGroup) {
-		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item.second))) {
+		if (gtk_check_button_get_active(GTK_CHECK_BUTTON(item.second))) {
 			return item.first;
 		}
 	}
