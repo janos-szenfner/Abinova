@@ -498,7 +498,9 @@ void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDl
 
 	// and mark it as modeless
 	gtk_window_set_modal ( GTK_WINDOW(me), FALSE ) ;
-	g_object_set (G_OBJECT (me), "accessible-role", GTK_ACCESSIBLE_ROLE_ALERT, NULL);
+	if (gtk_accessible_get_accessible_role (GTK_ACCESSIBLE (me)) == GTK_ACCESSIBLE_ROLE_NONE) {
+		g_object_set (G_OBJECT (me), "accessible-role", GTK_ACCESSIBLE_ROLE_ALERT, NULL);
+	}
 
     pDlg->maybeClosePopupPreviewBubbles();
         

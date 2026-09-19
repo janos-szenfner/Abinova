@@ -43,6 +43,7 @@
 #include "xap_App.h"
 #include "xap_UnixApp.h"
 #include "xap_Frame.h"
+#include "xap_UnixFrameImpl.h"
 
 #include "ap_Dialog_Id.h"
 #include "ap_Strings.h"
@@ -137,6 +138,16 @@ void AP_UnixDialog_Paragraph::runModal(XAP_Frame * pFrame)
 	// Attach signals (after data settings, so we don't trigger
 	// updates yet)
 	_connectCallbackSignals();
+
+	// transient before the early show: GTK4 maps a GtkWindow the
+	// moment it becomes visible, and warns about windows mapped
+	// without a transient parent
+	{
+		XAP_UnixFrameImpl * pImpl = static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl());
+		GtkWidget * parentWindow = pImpl ? pImpl->getTopLevelWindow() : nullptr;
+		if (GTK_IS_WINDOW(parentWindow))
+			gtk_window_set_transient_for(GTK_WINDOW(mainWindow), GTK_WINDOW(parentWindow));
+	}
 
 	// Show the top level dialog,
 	gtk_widget_show(mainWindow);
@@ -294,6 +305,7 @@ void AP_UnixDialog_Paragraph::event_PreviewAreaDraw(cairo_t *cr)
 	if (m_paragraphPreview) {
 		static_cast<GR_CairoGraphics*>(m_paragraphPreview->getGraphics())->setCairo(cr);
 		m_paragraphPreview->drawImmediate();
+	static_cast<GR_CairoGraphics*>(m_paragraphPreview->getGraphics())->setCairo(nullptr);
 	}
 }
 
@@ -460,7 +472,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	g_object_set(G_OBJECT(labelIndentation),
                                            "xalign", 0.0, "yalign", 0.5,
                                            "justify", GTK_JUSTIFY_LEFT,
-                                           "xpad", 0, "ypad", 3,
+                                           "margin-start", 0, "margin-end", 0, "margin-top", 3, "margin-bottom", 3,
                                            nullptr);
 	gtk_widget_show (labelIndentation);
 	gtk_box_append(GTK_BOX(hboxIndentation), labelIndentation);
@@ -547,7 +559,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	labelSpacing = gtk_label_new(unixstr.c_str());
 	g_object_set(G_OBJECT(labelSpacing),
                                        "xalign", 0.0, "yalign", 0.5,
-                                       "xpad", 0, "ypad", 3,
+                                       "margin-start", 0, "margin-end", 0, "margin-top", 3, "margin-bottom", 3,
                                        nullptr);
 	gtk_box_append(GTK_BOX(hboxSpacing), labelSpacing);
 	gtk_label_set_justify (GTK_LABEL (labelSpacing), GTK_JUSTIFY_LEFT);
@@ -657,7 +669,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	labelPagination = gtk_label_new(unixstr.c_str());
 	g_object_set(G_OBJECT(labelPagination),
-                                          "xpad", 0, "ypad", 3,
+                                          "margin-start", 0, "margin-end", 0, "margin-top", 3, "margin-bottom", 3,
                                           nullptr);
 	gtk_widget_show (labelPagination);
 	gtk_box_append(GTK_BOX(hboxPagination), labelPagination);
@@ -729,7 +741,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	g_object_set(G_OBJECT(labelPreview),
                                        "justify", GTK_JUSTIFY_LEFT,
                                        "xalign", 0.0, "yalign", 0.5,
-                                       "xpad", 0, "ypad", 8,
+                                       "margin-start", 0, "margin-end", 0, "margin-top", 8, "margin-bottom", 8,
                                        nullptr);
 	gtk_widget_show (labelPreview);
 	gtk_box_append(GTK_BOX(hboxPreview), labelPreview);

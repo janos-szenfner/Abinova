@@ -2,7 +2,6 @@
 <interface>
   <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="xap_UnixDlg_ListDocuments">
-    <property name="visible">1</property>
     <property name="title" translatable="yes">Open Documents</property>
     <property name="modal">1</property>
     <property name="default-width">350</property>

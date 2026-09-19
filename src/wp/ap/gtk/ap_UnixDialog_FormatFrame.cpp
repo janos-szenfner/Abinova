@@ -310,6 +310,7 @@ void AP_UnixDialog_FormatFrame::event_previewDraw(cairo_t *cr)
 
 	if(m_pFormatFramePreview)
 		m_pFormatFramePreview->drawImmediate();
+	static_cast<GR_CairoGraphics*>(m_pFormatFramePreview->getGraphics())->setCairo(nullptr);
 }
 
 void AP_UnixDialog_FormatFrame::setBorderThicknessInGUI(const std::string & sThick)

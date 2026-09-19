@@ -344,7 +344,6 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonWholeWord), getWholeWord());
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonReverseFind), getReverseFind());
 	
-	gtk_widget_set_visible(m_windowMain, TRUE);
 
 	
 	if (m_id != (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE){

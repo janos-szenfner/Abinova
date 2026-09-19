@@ -98,6 +98,15 @@ GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 
 GR_UnixCairoGraphics::~GR_UnixCairoGraphics()
 {
+	/* m_cr may still point at a cairo_t borrowed from a GtkDrawingArea
+	 * draw callback (setCairo) which GTK already finalized; the base
+	 * destructor would destroy it a second time and trip cairo's
+	 * refcount assert.  Only contexts created on our own backing
+	 * surface are ours to free. */
+	if (m_CairoCreated && m_cr) {
+		cairo_destroy (m_cr);
+	}
+	m_cr = nullptr;
 	if (m_Widget) {
 		if (m_Signal) {
 			g_signal_handler_disconnect (G_OBJECT (m_Widget), m_Signal);

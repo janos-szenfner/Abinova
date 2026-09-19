@@ -305,6 +305,7 @@ void AP_UnixDialog_Border_Shading::event_previewDraw(cairo_t *cr)
 
 	if(m_pBorderShadingPreview) {
 		m_pBorderShadingPreview->drawImmediate();
+	static_cast<GR_CairoGraphics*>(m_pBorderShadingPreview->getGraphics())->setCairo(nullptr);
 	}
 }
 

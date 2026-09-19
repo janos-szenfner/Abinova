@@ -228,6 +228,42 @@ below are on `main` but the release has not been cut yet.
   in `beginFrame`/`endFrame` so the backing surface blits to screen.
 - **`abi_widget` dispose** — now chains to parent so child widgets
   unparent.
+- **GTK3 remnant properties removed from dialogs** — `border-width`
+  on `GtkGrid` (Lists ×2, Columns, Font Chooser) and `xpad`/`ypad` on
+  `GtkLabel` (Paragraph, Styles, HTML Options) replaced with GTK4
+  margin properties.
+- **`clicked` on `GtkCheckButton`** — Columns "line between" now
+  connects `toggled`; `GTK_BUTTON()` casts on radio check-buttons in
+  Lists replaced with `gtk_check_button_*` API.
+- **Dialog windows no longer map before parenting** — toplevel
+  `visible` removed from 25 `.ui` files (builder mapped the window
+  during construction); early `gtk_widget_show`/`set_visible` calls
+  removed or moved after `gtk_window_set_transient_for` (Find/Replace,
+  Word Count, Spell, Insert Hyperlink, Lists, Font Chooser, Columns,
+  Paragraph, Go To, Insert Symbol). The "GtkDialog mapped without a
+  transient parent" warnings are gone.
+- **`accessible-role` guarded** — `abiSetupModelessDialog` only sets
+  the role when none was assigned yet, matching `abiRunModalDialog`.
+- **Menu model swap made safe** — a deferred rebuild now replaces the
+  bound `GtkPopoverMenuBar`/`GtkPopoverMenu` widget instead of
+  mutating its live model while a popover is realized; GTK4's stale
+  internal `opened_submenu` pointer no longer emits
+  `gtk_widget_get_mapped`/`unset_state_flags` criticals on activation.
+- **Preview Cairo double-free** — preview draw callbacks reset the
+  graphics object's Cairo to `nullptr` after drawing and the
+  destructor no longer destroys a borrowed GTK draw-callback context
+  (fixes the `cairo_destroy` assertion when closing dialogs such as
+  Bullets & Numbering).
+- **Go To teardown criticals** — spin-button pointers cleared before
+  window destruction and `updatePosition` guards them; the notebook's
+  `switch-page` during teardown no longer signals dead widgets.
+- **Keyboard accelerators restored window-wide** — a toplevel
+  `GtkEventControllerKey` feeds unhandled keys to the EV keyboard
+  layer when focus is on a non-canvas widget, so Ctrl+F/Ctrl+G/etc.
+  work regardless of focus (canvas focus still wins, no double
+  handling).
+- **Fontconfig noise silenced for dev runs** — the bundled font
+  directory/config are only registered when they exist on disk.
 - **Ruler font color** — detached donor style contexts return white in
   GTK4; `init3dColors` queries the real widget and the ruler forces
   black on its fixed light background.

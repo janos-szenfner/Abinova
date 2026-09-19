@@ -162,6 +162,9 @@ protected:
 			static gboolean key_release_event(GtkEventControllerKey *c, guint keyval,
 											  guint keycode, GdkModifierType state,
 											  GtkWidget *w);
+			static gboolean key_press_window_event(GtkEventControllerKey *c, guint keyval,
+												   guint keycode, GdkModifierType state,
+												   GtkWidget *w);
 			static gboolean close_request(GtkWindow *w, gpointer data);
 			static void draw(GtkDrawingArea *area, cairo_t *cr, int width,
 							 int height, gpointer);

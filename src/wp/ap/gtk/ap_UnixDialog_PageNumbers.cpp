@@ -100,6 +100,7 @@ void AP_UnixDialog_PageNumbers::event_PreviewDraw(cairo_t *cr)
 
 	if (m_preview) {
 		m_preview->drawImmediate();
+	static_cast<GR_CairoGraphics*>(m_preview->getGraphics())->setCairo(nullptr);
 	}
 }
 

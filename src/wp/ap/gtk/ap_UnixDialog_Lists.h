@@ -138,8 +138,6 @@ class AP_UnixDialog_Lists
 	XAP_GtkObjectHolder<GtkListStore> m_wListType_menu;
 	GtkAdjustment * m_oStartSpin_adj;
 	GtkWidget * m_wStartSpin;
-	GtkWidget * m_wStartSub_label;
-	GtkWidget * m_wStartNew_label;
 	gint m_iDelimEntryID;
 	gint m_iDecimalEntryID;
 	gint m_iStyleBoxID;

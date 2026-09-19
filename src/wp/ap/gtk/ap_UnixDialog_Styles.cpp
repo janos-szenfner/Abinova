@@ -385,6 +385,7 @@ void AP_UnixDialog_Styles::event_paraPreviewDraw(cairo_t *cr)
 	if (m_pParaPreview) {
 		static_cast<GR_CairoGraphics*>(m_pParaPreview->getGraphics())->setCairo(cr);
 		m_pParaPreview->drawImmediate();
+		static_cast<GR_CairoGraphics*>(m_pParaPreview->getGraphics())->setCairo(nullptr);
 	}
 }
 
@@ -401,6 +402,7 @@ void AP_UnixDialog_Styles::event_charPreviewDraw(cairo_t *cr)
 	if (m_pCharPreview) {
 		static_cast<GR_CairoGraphics*>(m_pCharPreview->getGraphics())->setCairo(cr);
 		m_pCharPreview->drawImmediate();
+		static_cast<GR_CairoGraphics*>(m_pCharPreview->getGraphics())->setCairo(nullptr);
 	}
 }
 
@@ -814,7 +816,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	g_object_set(G_OBJECT(nameLabel),
                                     "xalign", 0.0, "yalign", 0.5,
                                     "justify", GTK_JUSTIFY_LEFT,
-                                    "xpad", 2, "ypad", 2, "hexpand", TRUE, nullptr);
+                                    "margin-start", 2, "margin-end", 2, "margin-top", 2, "margin-bottom", 2, "hexpand", TRUE, nullptr);
 	gtk_widget_show (nameLabel);
 	gtk_grid_attach(GTK_GRID (comboTable), nameLabel, 0, 0, 1, 1);
 
@@ -823,7 +825,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	g_object_set(G_OBJECT(styleTypeLabel),
                                         "xalign", 0.0, "yalign", 0.5,
                                         "justify", GTK_JUSTIFY_LEFT,
-                                        "xpad", 2, "ypad", 2, "hexpand", TRUE, nullptr);
+                                        "margin-start", 2, "margin-end", 2, "margin-top", 2, "margin-bottom", 2, "hexpand", TRUE, nullptr);
 	gtk_widget_show (styleTypeLabel);
 	gtk_grid_attach (GTK_GRID (comboTable), styleTypeLabel, 1, 0, 1, 1);
 
@@ -832,7 +834,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	g_object_set(G_OBJECT(basedOnLabel),
                                        "xalign", 0.0, "yalign", 0.5,
                                        "justify", GTK_JUSTIFY_LEFT,
-                                       "xpad", 2, "ypad", 2, nullptr);
+                                       "margin-start", 2, "margin-end", 2, "margin-top", 2, "margin-bottom", 2, nullptr);
 	gtk_widget_show (basedOnLabel);
 	gtk_grid_attach (GTK_GRID (comboTable), basedOnLabel, 0, 2, 1, 1);
 
@@ -840,7 +842,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	followingLabel = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(followingLabel),
                                          "xalign", 0.0, "yalign", 0.5,
-                                         "xpad", 2, "ypad", 2, nullptr);
+                                         "margin-start", 2, "margin-end", 2, "margin-top", 2, "margin-bottom", 2, nullptr);
 	gtk_widget_show (followingLabel);
 	gtk_grid_attach (GTK_GRID (comboTable), followingLabel, 1, 2, 1, 1);
 
@@ -920,7 +922,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 
 	DescriptionText = gtk_label_new(nullptr);
 	g_object_set(G_OBJECT(DescriptionText),
-					  "xpad", 0, "ypad", 6,
+					  "margin-start", 0, "margin-end", 0, "margin-top", 6, "margin-bottom", 6,
 					  "wrap", TRUE,
 					  "max-width-chars", 64,
 					  nullptr);
@@ -1336,6 +1338,7 @@ void AP_UnixDialog_Styles::event_ModifyPreviewDraw(cairo_t *cr)
 	if (m_pAbiPreview) {
 		static_cast<GR_CairoGraphics*>(m_pAbiPreview->getGraphics())->setCairo(cr);
 		m_pAbiPreview->drawImmediate();
+		static_cast<GR_CairoGraphics*>(m_pAbiPreview->getGraphics())->setCairo(nullptr);
 	}
 }
 

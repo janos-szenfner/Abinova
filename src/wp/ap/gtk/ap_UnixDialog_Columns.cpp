@@ -486,6 +486,7 @@ void AP_UnixDialog_Columns::event_previewDraw(cairo_t *cr)
 
 	if(m_pColumnsPreview)
 	       m_pColumnsPreview->drawImmediate();
+	static_cast<GR_CairoGraphics*>(m_pColumnsPreview->getGraphics())->setCairo(nullptr);
 }
 
 /*****************************************************************/
@@ -537,7 +538,10 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	g_object_set(G_OBJECT(grid),
 	             "row-spacing", 6,
 	             "column-spacing", 12,
-	             "border-width", 5,
+	             "margin-top", 5,
+	             "margin-bottom", 5,
+	             "margin-start", 5,
+	             "margin-end", 5,
 	             nullptr);
 	gtk_widget_show (grid);
 	gtk_box_append(GTK_BOX(windowColumns), grid);
@@ -775,7 +779,7 @@ void AP_UnixDialog_Columns::_connectsignals(void)
 					   reinterpret_cast<gpointer>(this));
 
 	g_signal_connect(G_OBJECT(m_wlineBetween),
-					   "clicked",
+					   "toggled",
 					   G_CALLBACK(s_line_clicked),
 					   reinterpret_cast<gpointer>(this));
 

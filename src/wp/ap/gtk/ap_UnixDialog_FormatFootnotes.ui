@@ -16,7 +16,6 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkDialog" id="ap_UnixDialog_FormatFootnotes">
-    <property name="visible">1</property>
     <property name="title" translatable="yes">Format Footnotes and Endnotes</property>
     <property name="resizable">0</property>
     <property name="modal">1</property>

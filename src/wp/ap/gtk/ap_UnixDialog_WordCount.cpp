@@ -255,7 +255,6 @@ void AP_UnixDialog_WordCount::constructDialog(void)
 					   G_CALLBACK(s_destroy_clicked),
 					   reinterpret_cast<gpointer>(this));
 
-	gtk_widget_set_visible(m_windowMain, TRUE);
 	g_object_unref(G_OBJECT(builder));
 }
 

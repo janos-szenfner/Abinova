@@ -14,7 +14,6 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkDialog" id="ap_UnixDialog_Tab">
-    <property name="visible">1</property>
     <property name="title" translatable="yes">dialog1</property>
     
         <child><object class="GtkBox" id="dialog-vbox2">

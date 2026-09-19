@@ -257,7 +257,6 @@ GtkWidget*  AP_UnixDialog_InsertHyperlink::_constructWindow(void)
 
   // connect all the signals
   _connectSignals ();
-  gtk_widget_set_visible(m_windowMain , TRUE) ;
 
   return m_windowMain;
 }

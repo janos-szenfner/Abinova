@@ -45,6 +45,7 @@ public:
 
 
 protected:
+	GtkWidget *		_createPopupWidget(GMenu * model);
 	GtkWidget *			m_wMenuPopup;
 
 	virtual bool		_hasBoundWidget() const override { return m_wMenuPopup != nullptr; }

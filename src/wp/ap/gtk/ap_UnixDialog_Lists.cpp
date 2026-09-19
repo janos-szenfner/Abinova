@@ -33,6 +33,7 @@
 
 #include "xap_Dialog_Id.h"
 #include "xap_UnixApp.h"
+#include "xap_UnixFrameImpl.h"
 #include "xap_Frame.h"
 
 #include "ap_Strings.h"
@@ -200,6 +201,16 @@ void AP_UnixDialog_Lists::runModal( XAP_Frame * pFrame)
 
 	// *** this is how we add the gc for Lists Preview ***
 
+	// transient before the early show: GTK4 maps a GtkWindow the
+	// moment it becomes visible, and warns about windows mapped
+	// without a transient parent
+	{
+		XAP_UnixFrameImpl * pImpl = static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl());
+		GtkWidget * parentWindow = pImpl ? pImpl->getTopLevelWindow() : nullptr;
+		if (GTK_IS_WINDOW(parentWindow))
+			gtk_window_set_transient_for(GTK_WINDOW(m_windowMain), GTK_WINDOW(parentWindow));
+	}
+
 	// Now Display the dialog, so m_wPreviewArea->window exists
 	gtk_widget_show(m_windowMain);	
 	UT_ASSERT(m_wPreviewArea && XAP_HAS_NATIVE_WINDOW(m_wPreviewArea));
@@ -319,6 +330,7 @@ void AP_UnixDialog_Lists::previewDraw(cairo_t *cr)
 		setbisCustomized(true);
 	}
 	getListsPreview()->drawImmediate();
+	static_cast<GR_CairoGraphics*>(getListsPreview()->getGraphics())->setCairo(nullptr);
 }
 
 void AP_UnixDialog_Lists::destroy(void)
@@ -692,7 +704,10 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 	g_object_set(G_OBJECT(list_grid),
 		         "row-spacing", 6,
 	             "column-spacing", 12,
-	             "border-width", 12,
+	             "margin-top", 12,
+	             "margin-bottom", 12,
+	             "margin-start", 12,
+	             "margin-end", 12,
 	             nullptr);
 	gtk_widget_show(list_grid);
 	if(!isModal())
@@ -718,7 +733,10 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		g_object_set(G_OBJECT(wFoldingGrid),
 			         "row-spacing", 6,
 		             "column-spacing", 12,
-		             "border-width", 12,
+		             "margin-top", 12,
+	             "margin-bottom", 12,
+	             "margin-start", 12,
+	             "margin-end", 12,
 		             nullptr);
 		gtk_widget_show(lbPageFolding);
 		gtk_widget_show(wFoldingGrid);
@@ -1030,10 +1048,8 @@ GtkWidget *AP_UnixDialog_Lists::_constructWindowContents (void)
 		m_wContents = wNoteBook;
 	}
 	m_wStartNewList = start_list_rb;
-	m_wStartNew_label = gtk_button_get_child(GTK_BUTTON(start_list_rb));
 	m_wApplyCurrent = apply_list_rb;
 	m_wStartSubList = resume_list_rb;
-	m_wStartSub_label = gtk_button_get_child(GTK_BUTTON(resume_list_rb));
 	m_wRadioGroup = action_group;
 	m_wPreviewArea = preview_area;
 	m_wDelimEntry = format_en;
@@ -1163,9 +1179,9 @@ void AP_UnixDialog_Lists::_setRadioButtonLabels(void)
 	PopulateDialogData();
 	// Button 0 is Start New List, button 2 is resume list
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_Start_New,s);
-	gtk_label_set_text( GTK_LABEL(m_wStartNew_label), s.c_str());
+	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_wStartNewList), s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_Resume,s);
-	gtk_label_set_text( GTK_LABEL(m_wStartSub_label), s.c_str());
+	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_wStartSubList), s.c_str());
 }
 
 static gboolean s_destroy_clicked (GtkWidget * /* widget */,

@@ -8,7 +8,6 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkDialog" id="ap_UnixDialog_HdrFtr">
-    <property name="visible">1</property>
     <property name="title" translatable="yes">Format Header/Footers</property>
     <property name="resizable">0</property>
     

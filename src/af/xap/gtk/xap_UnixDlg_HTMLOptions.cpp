@@ -297,7 +297,7 @@ GtkWidget * XAP_UnixDialog_HTMLOptions::_constructWindow ()
 	GtkWidget * labelActivate = gtk_label_new(label);
 	g_object_set(G_OBJECT(labelActivate),
 											   "xalign", 0.0,  "yalign", 0.0,
-											   "xpad", 10, "ypad", 5,
+											   "margin-start", 10, "margin-end", 10, "margin-top", 5, "margin-bottom", 5,
 											   "justify", GTK_JUSTIFY_LEFT,
 											   nullptr);
 	if (labelActivate)

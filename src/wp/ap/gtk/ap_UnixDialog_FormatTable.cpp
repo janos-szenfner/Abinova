@@ -293,6 +293,7 @@ void AP_UnixDialog_FormatTable::event_previewDraw(cairo_t *cr)
 
 	if (m_pFormatTablePreview) {
 		m_pFormatTablePreview->drawImmediate();
+	static_cast<GR_CairoGraphics*>(m_pFormatTablePreview->getGraphics())->setCairo(nullptr);
 	}
 }
 

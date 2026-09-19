@@ -471,6 +471,10 @@ AP_UnixDialog_Goto::updateDocCount ()
 
 void AP_UnixDialog_Goto::updatePosition (void)
 {
+	// the notebook can emit "switch-page" while the dialog is being
+	// destroyed; the spin buttons may already be finalized by then.
+	if (!m_sbPage || !m_sbLine)
+		return;
 	// pages, page increment of 10 is pretty arbitrary (set in the GtkBuilder UI file)
 	UT_uint32 currentPage = getView()->getCurrentPageNumForStatusBar ();
 	XAP_GtkSignalBlocker b1(G_OBJECT(m_sbPage), m_iPageConnect);
@@ -825,6 +829,10 @@ AP_UnixDialog_Goto::destroy ()
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Goto::destroy ()\n"));
 	modeless_cleanup ();
 	if (m_wDialog) {
+		// widgets are finalized with the window; clear them first so
+		// callbacks emitted during teardown don't touch dead objects
+		m_sbPage = nullptr;
+		m_sbLine = nullptr;
 		abiDestroyWidget(m_wDialog); // TOPLEVEL
 		m_wDialog = nullptr;
 	}

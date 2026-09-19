@@ -9,7 +9,6 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkDialog" id="xap_UnixDlg_Zoom">
-    <property name="visible">1</property>
     <property name="title" translatable="yes">dialog1</property>
     <property name="resizable">0</property>
     

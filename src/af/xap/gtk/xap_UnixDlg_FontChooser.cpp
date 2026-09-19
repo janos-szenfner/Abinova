@@ -567,7 +567,10 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	g_object_set(G_OBJECT(grid1),
 	             "row-spacing", 6,
 	             "column-spacing", 12,
-	             "border-width", 12,
+	             "margin-top", 12,
+	             "margin-bottom", 12,
+	             "margin-start", 12,
+	             "margin-end", 12,
 	             nullptr);
 	gtk_widget_show(grid1);
 
@@ -1057,6 +1060,16 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkSuperScript), m_bSuperScript);
 
 	m_doneFirstFont = true;
+
+	// transient before the early show: GTK4 maps a GtkWindow the
+	// moment it becomes visible, and warns about windows mapped
+	// without a transient parent
+	{
+		XAP_UnixFrameImpl * pImpl = static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl());
+		GtkWidget * parentWindow = pImpl ? pImpl->getTopLevelWindow() : nullptr;
+		if (GTK_IS_WINDOW(parentWindow))
+			gtk_window_set_transient_for(GTK_WINDOW(cf), GTK_WINDOW(parentWindow));
+	}
 
 	// attach a new graphics context
 	gtk_widget_show ( cf ) ;

@@ -47,6 +47,7 @@ public:
     GtkWidget *         getMenuBar(void) const {return m_wMenuBar;}
 
 protected:
+	GtkWidget *		_createMenuBarWidget(GMenu * model);
 	GtkWidget *		m_wMenuBar;
 
 	virtual bool		_hasBoundWidget() const override { return m_wMenuBar != nullptr; }

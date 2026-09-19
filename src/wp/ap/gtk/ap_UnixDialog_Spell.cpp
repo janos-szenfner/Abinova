@@ -332,8 +332,6 @@ AP_UnixDialog_Spell::_constructWindow (void)
 				  G_CALLBACK (AP_UnixDialog_Spell__onSuggestionSelected), 
 				  (gpointer)this);
 
-	gtk_widget_set_visible(m_wDialog, TRUE);
-
 	g_object_unref(G_OBJECT(builder));
 
 	return m_wDialog;

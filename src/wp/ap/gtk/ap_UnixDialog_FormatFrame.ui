@@ -2,7 +2,6 @@
 <interface>
   <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="ap_UnixDialog_FormatFrame">
-    <property name="visible">1</property>
     <property name="title" translatable="yes">Format Frame</property>
     <property name="resizable">0</property>
     

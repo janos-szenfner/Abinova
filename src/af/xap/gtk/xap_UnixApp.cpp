@@ -86,22 +86,29 @@ XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
 		FcConfig * config = FcConfigGetCurrent();
 		std::string fontDir = getAbiSuiteLibDir();
 		fontDir += "/fonts";
-		if (!FcConfigAppFontAddDir(config,
-				reinterpret_cast<const FcChar8*>(fontDir.c_str())))
+		// the fonts dir only exists after install; skip quietly when
+		// running from the build tree instead of making fontconfig
+		// log an error for a file we know is absent
+		if (g_access(fontDir.c_str(), F_OK) == 0)
 		{
-			UT_DEBUGMSG(("Failed to add bundled font directory %s\n",
-						 fontDir.c_str()));
-		}
+			if (!FcConfigAppFontAddDir(config,
+					reinterpret_cast<const FcChar8*>(fontDir.c_str())))
+			{
+				UT_DEBUGMSG(("Failed to add bundled font directory %s\n",
+							 fontDir.c_str()));
+			}
 
-		// Load substitution rules mapping common document font
-		// names onto the bundled metric-compatible fonts.
-		std::string fontConf = fontDir + "/abiword-fonts.conf";
-		if (!FcConfigParseAndLoad(config,
-				reinterpret_cast<const FcChar8*>(fontConf.c_str()),
-				FcTrue))
-		{
-			UT_DEBUGMSG(("Failed to load bundled font config %s\n",
-						 fontConf.c_str()));
+			// Load substitution rules mapping common document font
+			// names onto the bundled metric-compatible fonts.
+			std::string fontConf = fontDir + "/abiword-fonts.conf";
+			if (g_access(fontConf.c_str(), F_OK) == 0 &&
+				!FcConfigParseAndLoad(config,
+					reinterpret_cast<const FcChar8*>(fontConf.c_str()),
+					FcTrue))
+			{
+				UT_DEBUGMSG(("Failed to load bundled font config %s\n",
+							 fontConf.c_str()));
+			}
 		}
 	}
 

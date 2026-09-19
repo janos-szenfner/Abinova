@@ -77,6 +77,7 @@ static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 	UT_return_if_fail(self);
 	static_cast<GR_CairoGraphics*>(self->getGraphics())->setCairo(cr);
 	self->drawImmediate();
+	static_cast<GR_CairoGraphics*>(self->getGraphics())->setCairo(nullptr);
 }
 
 XAP_Dialog * AP_UnixPreview_Annotation::static_constructor(XAP_DialogFactory * pFactory, XAP_Dialog_Id id)

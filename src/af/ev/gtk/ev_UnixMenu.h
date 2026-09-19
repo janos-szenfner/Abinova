@@ -82,6 +82,7 @@ protected:
 	// loop must not touch m_vecItemRecs until the rebuild ran.
 	guint				m_rebuildSourceId;
 	bool				m_rebuildPending;
+	int				m_rebuildTicks;
 
 protected: // FIXME! These variables should be private.
 	XAP_UnixApp *		m_pUnixApp;

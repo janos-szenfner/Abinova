@@ -337,7 +337,8 @@ EV_UnixMenu::EV_UnixMenu(XAP_UnixApp * pUnixApp,
 	  m_actionGroup(g_simple_action_group_new()),
 	  m_bUpdatingActions(false),
 	  m_rebuildSourceId(0),
-	  m_rebuildPending(false)
+	  m_rebuildPending(false),
+	  m_rebuildTicks(0)
 {
 }
 
@@ -735,16 +736,20 @@ bool EV_UnixMenu::synthesizeMenu(GMenu * pMenuRoot, bool isPopup)
 	return true;
 }
 
-static bool _ev_has_visible_popover(GtkWidget * widget)
+static bool _ev_has_realized_popover(GtkWidget * widget)
 {
 	if (!widget)
 		return false;
-	if (GTK_IS_POPOVER(widget) && gtk_widget_get_visible(widget))
+	// realized, not just visible: a dismissed GtkPopoverMenu stays
+	// realized through its teardown, and swapping the model while it
+	// unmaps makes GTK touch disposed item widgets
+	// (gtk_widget_get_mapped(NULL) criticals)
+	if (GTK_IS_POPOVER(widget) && gtk_widget_get_realized(widget))
 		return true;
 	for (GtkWidget * c = gtk_widget_get_first_child(widget); c;
 		 c = gtk_widget_get_next_sibling(c))
 	{
-		if (_ev_has_visible_popover(c))
+		if (_ev_has_realized_popover(c))
 			return true;
 	}
 	return false;
@@ -756,12 +761,17 @@ gboolean EV_UnixMenu::_s_rebuildTick(gpointer data)
 	UT_return_val_if_fail(menu, G_SOURCE_REMOVE);
 
 	GtkWidget * bound = menu->_boundWidget();
-	if (bound && _ev_has_visible_popover(bound))
+	bool hasPop = bound && _ev_has_realized_popover(bound);
+	if (hasPop && menu->m_rebuildTicks < 30)
 	{
 		// a GtkPopoverMenu is still open (or tearing down); replacing
-		// the model now would remove the item widget under the pointer
+		// the model now would remove the item widget under the pointer.
+		// bounded so a popover that stays realized after close can't
+		// starve the rebuild (~1s at the 30ms tick)
+		menu->m_rebuildTicks++;
 		return G_SOURCE_CONTINUE;
 	}
+	menu->m_rebuildTicks = 0;
 
 	menu->m_rebuildSourceId = 0;
 	menu->m_rebuildPending = false;
@@ -970,10 +980,38 @@ static gboolean _ev_menubar_motion_refresh(GtkEventControllerMotion * /*controll
 	return FALSE;
 }
 
+GtkWidget * EV_UnixMenuBar::_createMenuBarWidget(GMenu * model)
+{
+	GtkWidget * bar = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(model));
+	gtk_widget_insert_action_group(bar, "menu", G_ACTION_GROUP(m_actionGroup));
+
+	// GMenuModels are live: action states are bound to the displayed
+	// items.  We still need a trigger to sync states before a menu
+	// opens - pointer entering the bar is a good enough proxy.
+	GtkEventController * motion = gtk_event_controller_motion_new();
+	g_signal_connect(motion, "enter", G_CALLBACK(_ev_menubar_motion_refresh), this);
+	gtk_widget_add_controller(bar, motion);
+
+	return bar;
+}
+
 void EV_UnixMenuBar::_setModelOnBoundWidget(GMenu * model)
 {
-	gtk_popover_menu_bar_set_menu_model(GTK_POPOVER_MENU_BAR(m_wMenuBar),
-										G_MENU_MODEL(model));
+	// Do not mutate the live bar's model: GTK4 keeps internal submenu
+	// pointers that can go stale and emit criticals on teardown.
+	// Replacing the whole bound widget leaves GTK with consistent state.
+	GtkWidget * vbox = gtk_widget_get_parent(m_wMenuBar);
+	if (!vbox) {
+		gtk_popover_menu_bar_set_menu_model(GTK_POPOVER_MENU_BAR(m_wMenuBar),
+											G_MENU_MODEL(model));
+		return;
+	}
+
+	GtkWidget * oldBar = m_wMenuBar;
+	GtkWidget * newBar = _createMenuBarWidget(model);
+	gtk_widget_insert_after(newBar, GTK_WIDGET(vbox), oldBar);
+	m_wMenuBar = newBar;
+	gtk_widget_unparent(oldBar);
 }
 
 bool EV_UnixMenuBar::synthesizeMenuBar()
@@ -982,15 +1020,7 @@ bool EV_UnixMenuBar::synthesizeMenuBar()
 
 	synthesizeMenu(m_pMenuModel, false);
 
-	m_wMenuBar = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(m_pMenuModel));
-	gtk_widget_insert_action_group(m_wMenuBar, "menu", G_ACTION_GROUP(m_actionGroup));
-
-	// GMenuModels are live: action states are bound to the displayed
-	// items.  We still need a trigger to sync states before a menu
-	// opens - pointer entering the bar is a good enough proxy.
-	GtkEventController * motion = gtk_event_controller_motion_new();
-	g_signal_connect(motion, "enter", G_CALLBACK(_ev_menubar_motion_refresh), this);
-	gtk_widget_add_controller(m_wMenuBar, motion);
+	m_wMenuBar = _createMenuBarWidget(m_pMenuModel);
 
 	gtk_box_append(GTK_BOX(wVBox), m_wMenuBar);
 
@@ -1042,18 +1072,30 @@ static void _ev_popup_refresh(GtkWidget * /*widget*/, gpointer data)
 		menu->refreshMenu(menu->getFrame()->getCurrentView());
 }
 
+GtkWidget * EV_UnixMenuPopup::_createPopupWidget(GMenu * model)
+{
+	GtkWidget * popup = gtk_popover_menu_new_from_model(G_MENU_MODEL(model));
+	gtk_widget_insert_action_group(popup, "menu", G_ACTION_GROUP(m_actionGroup));
+	gtk_widget_set_parent(popup, static_cast<XAP_UnixFrameImpl *>(
+		m_pFrame->getFrameImpl())->getTopLevelWindow());
+	return popup;
+}
+
 void EV_UnixMenuPopup::_setModelOnBoundWidget(GMenu * model)
 {
-	gtk_popover_menu_set_menu_model(GTK_POPOVER_MENU(m_wMenuPopup),
-									G_MENU_MODEL(model));
+	// See EV_UnixMenuBar::_setModelOnBoundWidget: replace the bound
+	// widget rather than mutating its live model.
+	GtkWidget * oldPopup = m_wMenuPopup;
+	GtkWidget * newPopup = _createPopupWidget(model);
+	m_wMenuPopup = newPopup;
+	gtk_widget_unparent(oldPopup);
 }
 
 bool EV_UnixMenuPopup::synthesizeMenuPopup()
 {
 	synthesizeMenu(m_pMenuModel, true);
 
-	m_wMenuPopup = gtk_popover_menu_new_from_model(G_MENU_MODEL(m_pMenuModel));
-	gtk_widget_insert_action_group(m_wMenuPopup, "menu", G_ACTION_GROUP(m_actionGroup));
+	m_wMenuPopup = _createPopupWidget(m_pMenuModel);
 
 	// refresh the model just before the popup is displayed so that
 	// enable/check states are current
