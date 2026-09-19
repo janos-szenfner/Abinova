@@ -134,9 +134,21 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 	// let the widget materialize
 	GtkAllocation alloc;
 	gtk_widget_get_allocation(m_SymbolMap, &alloc);
+	int allocW = alloc.width, allocH = alloc.height;
+	if (allocW <= 0 || allocH <= 0)
+	{
+		// Not allocated yet (GTK4 realizes lazily); use the requested size.
+		int nat = 0;
+		gtk_widget_measure(m_SymbolMap, GTK_ORIENTATION_HORIZONTAL, -1,
+						   nullptr, &nat, nullptr, nullptr);
+		allocW = nat;
+		gtk_widget_measure(m_SymbolMap, GTK_ORIENTATION_VERTICAL, -1,
+						   nullptr, &nat, nullptr, nullptr);
+		allocH = nat;
+	}
 	_createSymbolFromGC(m_unixGraphics,
-						static_cast<UT_uint32>(alloc.width),
-						static_cast<UT_uint32>(alloc.height));
+						static_cast<UT_uint32>(allocW),
+						static_cast<UT_uint32>(allocH));
 	
 	// *** Re use the code to draw into the selected symbol area.
 	UT_ASSERT(m_areaCurrentSym && XAP_HAS_NATIVE_WINDOW(m_areaCurrentSym));
@@ -150,9 +162,21 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 	}
 	// let the widget materialize
 	gtk_widget_get_allocation(m_areaCurrentSym, &alloc);
+	allocW = alloc.width;
+	allocH = alloc.height;
+	if (allocW <= 0 || allocH <= 0)
+	{
+		int nat = 0;
+		gtk_widget_measure(m_areaCurrentSym, GTK_ORIENTATION_HORIZONTAL, -1,
+						   nullptr, &nat, nullptr, nullptr);
+		allocW = nat;
+		gtk_widget_measure(m_areaCurrentSym, GTK_ORIENTATION_VERTICAL, -1,
+						   nullptr, &nat, nullptr, nullptr);
+		allocH = nat;
+	}
 	_createSymbolareaFromGC(m_unixarea,
-							static_cast<UT_uint32>(alloc.width),
-							static_cast<UT_uint32>(alloc.height));
+							static_cast<UT_uint32>(allocW),
+							static_cast<UT_uint32>(allocH));
 
 	XAP_Draw_Symbol * iDrawSymbol = _getCurrentSymbolMap();
 	UT_return_if_fail(iDrawSymbol);
