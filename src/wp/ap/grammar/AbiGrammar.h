@@ -1,5 +1,6 @@
-/* AbiWord
- * Copyright (C) 2005 Martin Sevior <msevior@physics.unimelb.edu.au>
+/*
+ * AbiGrammar - AbiWord on-the-fly grammar checking
+ * Copyright (C) 2005 by Martin Sevior
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,25 +18,12 @@
  * 02110-1301 USA.
  */
 
-#ifndef __LinkGrammarWrap_h__
-#define __LinkGrammarWrap_h__
+#ifndef AP_GRAMMAR_H
+#define AP_GRAMMAR_H
 
-extern "C" {
-#include <link-grammar/link-includes.h>
-}
+#include "ut_types.h"
 
-class PieceOfText;
+void AP_RegisterGrammarListener ();
+void AP_UnregisterGrammarListener ();
 
-class LinkGrammarWrap
-{
-  public:
-  LinkGrammarWrap(void);
-  virtual ~LinkGrammarWrap(void);
-  bool parseSentence(PieceOfText * pT);
-  bool clear(void);
- private:
-  Dictionary      m_Dict;
-  Parse_Options   m_Opts;
-};
-
-#endif // __LinkGrammarWrap_h__
+#endif // AP_GRAMMAR_H

@@ -693,6 +693,7 @@ AC_SUBST(ABIWORD_DATADIR,    "${datadir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
 AC_SUBST(ABIWORD_UIDIR,   "${ABIWORD_DATADIR}/ui")
 AC_SUBST(ABIWORD_LIBDIR,     "${libdir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
 AC_SUBST(ABIWORD_PLUGINSDIR, "${ABIWORD_LIBDIR}/plugins")
+AC_SUBST(ABIWORD_OMMLXSLTDIR, "${ABIWORD_DATADIR}/omml_xslt")
 
 if test "$enable_shared" = ""; then
 	enable_shared="no"
@@ -795,7 +796,7 @@ if test "$abi_cv_plugins" = "auto"; then
 		eval $(echo "enable_$plugin")="auto"
 	done
 else
-	default_plugins="openxml"
+	default_plugins=""
 
 	if test "$abi_cv_disable_default_plugins" != "yes"; then
 		PLUGINS="$default_plugins"

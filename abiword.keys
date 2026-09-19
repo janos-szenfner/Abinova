@@ -17,3 +17,15 @@ application/vnd.oasis.opendocument.text:
 application/vnd.oasis.opendocument.text-template:
 	open=abiword %f
 	view=abiword %f
+
+application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+	open=abiword %f
+	view=abiword %f
+
+application/vnd.openxmlformats-officedocument.wordprocessingml.template:
+	open=abiword %f
+	view=abiword %f
+
+application/epub+zip:
+	open=abiword %f
+	view=abiword %f

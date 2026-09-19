@@ -217,6 +217,21 @@ libap_la_SOURCES = \
 if ENABLE_SPELL
 libap_la_SOURCES += \
 	xp/ap_Dialog_Spell.cpp
+
+# grammar checking, bundled hunspell backend (formerly the grammar plugin)
+AM_CPPFLAGS += \
+	-I$(top_srcdir)/thirdparty/hunspell-1.7.0/src/hunspell \
+	-DHUNSPELL_STATIC
+
+libap_la_SOURCES += \
+	grammar/AbiGrammar.cpp \
+	grammar/AbiGrammar.h \
+	grammar/AbiGrammarCheck.cpp \
+	grammar/AbiGrammarCheck.h \
+	grammar/AbiGrammarUtil.cpp \
+	grammar/AbiGrammarUtil.h \
+	grammar/HunspellWrap.cpp \
+	grammar/HunspellWrap.h
 endif
 
 if ENABLE_STATUSBAR

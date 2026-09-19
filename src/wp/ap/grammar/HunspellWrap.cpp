@@ -27,7 +27,7 @@
 #include "ut_debugmsg.h"
 #include "ut_vector.h"
 #include "ut_string.h"
-#include "../xp/AbiGrammarUtil.h"
+#include "AbiGrammarUtil.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

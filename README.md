@@ -5,6 +5,20 @@ An experimental fork of the AbiWord word processor, focused on:
 - **Built-in OpenDocument (ODT/ODF) support** — import, export, flat
   XML (`.fodt`), encryption, and RDF metadata implemented in the core
   library rather than as a plugin.
+- **Built-in Office Open XML (DOCX) support** — the former `openxml`
+  plugin now lives in `src/wp/impexp/openxml/` and is compiled into
+  the core library: open, save, save-as and edit of `.docx`, including
+  document properties (`docProps/core.xml` + `docProps/app.xml`)
+  round-trip.
+- **Built-in EPUB support** — the former `epub` plugin now lives in
+  `src/wp/impexp/epub/` and is compiled into the core library:
+  EPUB 3.3 import and export, plus the export-options dialog.
+- **Built-in grammar checking** — the former `grammar` plugin now
+  lives in `src/wp/ap/grammar/` (vendored hunspell 1.7.0 backend);
+  sentence-level checking runs through the existing grammar-squiggle
+  pipeline, gated by the `AutoGrammarCheck` preference.
+- **MS Word (.doc) support** — bundled `wv-1.2.9` in `thirdparty/`,
+  patched for the buffer overflows reported against libwv-1.2.
 - **Bundled fonts** — a curated, redistributable font collection is
   installed with the application and registered with fontconfig at
   startup, so documents render consistently without relying on
@@ -42,8 +56,8 @@ An experimental fork of the AbiWord word processor, focused on:
     round-trips through open/save.
 - **OpenXML fixes**: listener-state fixes for footer tables and
   equations; shared XSLT data restored.
-- Remaining plugins: `epub`, `grammar`, `mht`, `openxml`, `rsvg`,
-  `wmf`, `wordperfect`, `wpg`.
+- Remaining plugins: `mht`, `rsvg`, `wmf`, `wordperfect`, `wpg`
+  (`openxml`, `epub` and `grammar` moved into the core library).
 - **Built-in Markdown** (`src/wp/impexp/xp/ie_imp_Markdown.cpp` /
   `ie_exp_Markdown.cpp`): full read/write for `.md`, `.markdown`,
   `.mdown`, `.mkd`, `.mkdn` and the `text/markdown` MIME type.
@@ -63,7 +77,7 @@ An experimental fork of the AbiWord word processor, focused on:
     alignment, and hard line breaks (two trailing spaces or `\`).
   - Export writes the same constructs back, so a document round-trips
     through Markdown without losing its formatting structure.
-- **EPUB plugin modernized to EPUB 3.3**: `version="3.0"` packages
+- **EPUB support modernized to EPUB 3.3** (now built-in): `version="3.0"` packages
   with the required `dcterms:modified` metadata, `properties="nav"`
   on the navigation document and `properties="mathml"` on MathML
   content (replacing the draft-era `mathml="true"` and `profile`
@@ -83,9 +97,9 @@ An experimental fork of the AbiWord word processor, focused on:
   `w:moveFrom`, `w:moveTo`) and `w14`/`w15` extension namespaces
   were verified to parse correctly. Legacy `.doc` continues through
   bundled `wv-1.2.9`.
-- **Grammar checker switched to Hunspell**: the grammar plugin no
+- **Grammar checker switched to Hunspell** (now built-in): the checker no
   longer uses link-grammar. A vendored `hunspell-1.7.0` is built in
-  `thirdparty/` and the plugin's sentence walker now flags each
+  `thirdparty/` and the sentence walker now flags each
   misspelled word with the existing grammar-squiggle path. The
   `link-grammar-5.12.5` third-party tree (~43 MB) was removed.
   English dictionaries are found under `/usr/share/hunspell`,
@@ -246,6 +260,53 @@ An experimental fork of the AbiWord word processor, focused on:
   original quality complaint no longer applies; a settings dialog
   remains a possible future enhancement.
 
+### Ubuntu Launchpad bug fixes
+
+The 67 open abiword reports on Launchpad were audited; the following
+were fixed in this tree:
+
+- **LP#921756 / LP#1712097** — `GR_Graphics::tlu()/tluD()/tduD()`
+  SIGABRT: guarded against zoom=0 and resolution=0 division producing
+  inf→UB on float→int cast.
+- **LP#1620709** — `std::string::assign` crash in the hyperlink
+  dialog path: NULL-guarded `getHyperlink()`/`getHyperlinkTitle()`.
+- **LP#1564143** — `pixbufForByteBuf` crash: no longer dereferences an
+  unset `GError` when `gdk_pixbuf_loader_write()` fails.
+- **LP#1577612** — `_imRetrieveSurrounding_cb`/`_imDeleteSurrounding_cb`
+  crash: NULL view guard + clamped surrounding-text position.
+- **LP#1204037** — `FV_UnixSelectionHandles` ctor SIGABRT: null
+  view/frame impl guard in `_ensureTextHandle`.
+- **LP#1628717** — `pf_Fragments`/`repairDoc` crash: fragments deleted
+  during repair are tracked and skipped in subsequent passes;
+  `_removeHdrFtr()` stops at body sections so a missing closing strux
+  can't swallow the document.
+- **LP#1248011** — ABW exporter emitted a duplicate `props` attribute
+  producing invalid XML it could not reopen: merged into the existing
+  attribute instead.
+- **LP#234756** — `LC_PAPER`/`LC_MEASUREMENT` locale settings are now
+  honored for the default page size via
+  `nl_langinfo(_NL_PAPER_WIDTH/_NL_PAPER_HEIGHT)`.
+- **LP#1386253** — `AP_TopRuler::mousePress` SIGABRT: audit-fixed
+  signed-overflow UB in the ruler code (same code path).
+- **LP#995887 / LP#1031137 / LP#941566 / LP#1094243** — black/too-bright
+  rulers and dialogs: resolved by the GTK4 port (Cairo/CSS drawing
+  replaced the old `GtkStyle` color lookups); ruler foreground is now
+  explicitly black on the fixed light background.
+- **LP#1629135** — `gdk_window_ref_cairo_surface`/`_beginPaint` crash:
+  resolved by the GTK4 render model.
+- **LP#1603245** — `g_type_check_instance_cast` in `motion_notify_event`:
+  resolved (event controllers replaced motion-notify signals).
+- **LP#1279020** — crash on theme change: styling is now CSS-based.
+- **LP#1485796** — cogl/clutter `XRRGetScreenResources` crash: GTK4 no
+  longer uses cogl/clutter.
+- **LP#926419** — typed text invisible on Wayland: resolved by the
+  GTK4 draw path.
+- **LP#1141885** — `.docx` not associated with abiword: the format is
+  now built-in; `abiword.keys` registers the DOCX/ODT/EPUB mimetypes.
+
+Feature-removal closures (component deleted): LP#1711244, LP#673045,
+LP#673052, LP#674721, LP#295596, LP#388971 (collab/goffice plugins).
+
 ### Fonts
 
 - **Carlito is the default document font** (replacing Times New Roman):
@@ -296,7 +357,7 @@ See `CHANGES.md` for the per-commit modification log.
 | Path | Contents |
 |------|----------|
 | `src/` | Application and library source (GTK port) |
-| `plugins/` | Remaining loadable plugins |
+| `plugins/` | Remaining loadable plugins (mht, rsvg, wmf, wordperfect, wpg) |
 | `fonts/` | Bundled fonts + licenses + substitution config |
 | `user/` | Templates, dictionaries, clipart |
 | `Old-Doc/` | Historical documentation (pre-experiment) |

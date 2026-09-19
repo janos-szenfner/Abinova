@@ -18,19 +18,12 @@
  * 02110-1301 USA.
  */
 
-#ifdef ABI_PLUGIN_BUILTIN
-#define abi_plugin_register abipgn_abigrammar_register
-#define abi_plugin_unregister abipgn_abigrammar_unregister
-#define abi_plugin_supports_version abipgn_abigrammar_supports_version
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
-#include "xap_Module.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "fv_View.h"
@@ -115,58 +108,37 @@ private:
 };
 
 
-static AV_ListenerId listenerID = 0; 
+static AV_ListenerId listenerID = 0;
 static AbiGrammar * pAbiGrammar = nullptr;
 
-ABI_PLUGIN_DECLARE(AbiGrammar)
-
-// -----------------------------------------------------------------------
-//
-//      Abiword Plugin Interface 
-//
-// -----------------------------------------------------------------------
-
-  
-ABI_FAR_CALL
-int abi_plugin_register (XAP_ModuleInfo * mi)
+/*!
+ * Register the grammar-check block listener with the application.
+ * Grammar checking itself is gated by the "AutoGrammarCheck" preference;
+ * this listener only runs when a block is queued with bgcrGrammar.
+ * Called once from AP_UnixApp::appInitialize().
+ */
+void AP_RegisterGrammarListener ()
 {
-    mi->name = "AbiGrammar";
-    mi->desc = "The plugin allows AbiWord to be Grammar checked";
-    mi->version = ABI_VERSION_STRING;
-    mi->author = "Martin Sevior <msevior@physics.unimelb.edu.au>";
-    mi->usage = "No Usage";
-    
-    // Add to AbiWord's plugin listeners
-    XAP_App * pApp = XAP_App::getApp();
-
-
-    pAbiGrammar = new AbiGrammar();
-    pApp->addListener(pAbiGrammar, &listenerID);
-    pAbiGrammar->setID(listenerID);
-    UT_DEBUGMSG(("Class AbiGrammar %p created! Listener Id %d \n",pAbiGrammar,listenerID));
-    
-    return 1;
+	if (!pAbiGrammar)
+	{
+		XAP_App * pApp = XAP_App::getApp();
+		pAbiGrammar = new AbiGrammar();
+		pApp->addListener(pAbiGrammar, &listenerID);
+		pAbiGrammar->setID(listenerID);
+		UT_DEBUGMSG(("Class AbiGrammar %p created! Listener Id %d \n",pAbiGrammar,listenerID));
+	}
 }
 
-
-ABI_FAR_CALL
-int abi_plugin_unregister (XAP_ModuleInfo * mi)
+/*!
+ * Remove the grammar-check listener (called at shutdown).
+ */
+void AP_UnregisterGrammarListener ()
 {
-    mi->name = nullptr;
-    mi->desc = nullptr;
-    mi->version = nullptr;
-    mi->author = nullptr;
-    mi->usage = nullptr;
-
-    XAP_App * pApp = XAP_App::getApp();
-    pApp->removeListener(listenerID);
-
-    return 1;
-}
-
-
-ABI_FAR_CALL
-int abi_plugin_supports_version (UT_uint32 /*major*/, UT_uint32 /*minor*/, UT_uint32 /*release*/)
-{
-    return 1; 
+	if (pAbiGrammar)
+	{
+		XAP_App * pApp = XAP_App::getApp();
+		pApp->removeListener(listenerID);
+		delete pAbiGrammar;
+		pAbiGrammar = nullptr;
+	}
 }

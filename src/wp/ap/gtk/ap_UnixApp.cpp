@@ -99,6 +99,7 @@
 #include "ie_types.h"
 
 #include "ie_impexp_Register.h"
+#include "grammar/AbiGrammar.h"
 #include "xap_EditMethods.h"
 #include "ev_EditMethod.h"
 #include "xap_ModuleManager.h"
@@ -174,6 +175,7 @@ AP_UnixApp::~AP_UnixApp(void)
     DELETEP(m_pStringSet);
     DELETEP(m_pClipboard);
 
+    AP_UnregisterGrammarListener ();
     IE_ImpExp_UnRegisterXP ();
 }
 
@@ -397,6 +399,11 @@ bool AP_UnixApp::initialize(bool has_display)
 	// Initialize the importers/exporters
 	//////////////////////////////////////////////////////////////////
 	IE_ImpExp_RegisterXP ();
+
+	// grammar checking (bundled hunspell) — the listener only fires
+	// for blocks queued with bgcrGrammar, i.e. when the
+	// "AutoGrammarCheck" preference is on
+	AP_RegisterGrammarListener ();
 	
     // Now we have the strings loaded we can populate the field names correctly
     int i;

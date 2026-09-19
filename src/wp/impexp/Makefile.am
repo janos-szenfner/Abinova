@@ -22,6 +22,14 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/odf/common/xp \
 	-I$(srcdir)/odf/common/xp/crypto \
 	-I$(srcdir)/odf/common/xp/crypto/blowfish \
+	-I$(srcdir)/openxml/common/xp \
+	-I$(srcdir)/openxml/imp/xp \
+	-I$(srcdir)/openxml/exp/xp \
+	-I$(srcdir)/epub/common/xp \
+	-I$(srcdir)/epub/imp/xp \
+	-I$(srcdir)/epub/exp/xp \
+	-I$(srcdir)/epub/dialogs/xp \
+	-I$(srcdir)/epub/dialogs/gtk \
 	$(WP_CPPFLAGS)
 
 libimpexp_la_SOURCES = \
@@ -256,6 +264,139 @@ libimpexp_la_SOURCES += \
 	odf/imp/xp/ODi_TextContent_ListenerState.h \
 	odf/imp/xp/ODi_XMLRecorder.cpp \
 	odf/imp/xp/ODi_XMLRecorder.h
+
+# Office Open XML (OOXML/.docx) importer/exporter, formerly a plugin
+libimpexp_la_SOURCES += \
+openxml/common/xp/OXML_Document.cpp \
+	openxml/common/xp/OXML_Document.h \
+	openxml/common/xp/OXML_Element.cpp \
+	openxml/common/xp/OXML_Element.h \
+	openxml/common/xp/OXML_Element_Bookmark.cpp \
+	openxml/common/xp/OXML_Element_Bookmark.h \
+	openxml/common/xp/OXML_Element_Cell.cpp \
+	openxml/common/xp/OXML_Element_Cell.h \
+	openxml/common/xp/OXML_Element_Field.cpp \
+	openxml/common/xp/OXML_Element_Field.h \
+	openxml/common/xp/OXML_Element_Hyperlink.cpp \
+	openxml/common/xp/OXML_Element_Hyperlink.h \
+	openxml/common/xp/OXML_Element_Image.cpp \
+	openxml/common/xp/OXML_Element_Image.h \
+	openxml/common/xp/OXML_Element_List.cpp \
+	openxml/common/xp/OXML_Element_List.h \
+	openxml/common/xp/OXML_Element_Math.cpp \
+	openxml/common/xp/OXML_Element_Math.h \
+	openxml/common/xp/OXML_Element_Paragraph.cpp \
+	openxml/common/xp/OXML_Element_Paragraph.h \
+	openxml/common/xp/OXML_Element_Row.cpp \
+	openxml/common/xp/OXML_Element_Row.h \
+	openxml/common/xp/OXML_Element_Run.cpp \
+	openxml/common/xp/OXML_Element_Run.h \
+	openxml/common/xp/OXML_Element_Table.cpp \
+	openxml/common/xp/OXML_Element_Table.h \
+	openxml/common/xp/OXML_Element_Text.cpp \
+	openxml/common/xp/OXML_Element_Text.h \
+	openxml/common/xp/OXML_Element_TextBox.cpp \
+	openxml/common/xp/OXML_Element_TextBox.h \
+	openxml/common/xp/OXML_FontManager.cpp \
+	openxml/common/xp/OXML_FontManager.h \
+	openxml/common/xp/OXML_Image.cpp \
+	openxml/common/xp/OXML_Image.h \
+	openxml/common/xp/OXML_LangToScriptConverter.h \
+	openxml/common/xp/OXML_List.cpp \
+	openxml/common/xp/OXML_List.h \
+	openxml/common/xp/OXML_ObjectWithAttrProp.cpp \
+	openxml/common/xp/OXML_ObjectWithAttrProp.h \
+	openxml/common/xp/OXML_Section.cpp \
+	openxml/common/xp/OXML_Section.h \
+	openxml/common/xp/OXML_Style.cpp \
+	openxml/common/xp/OXML_Style.h \
+	openxml/common/xp/OXML_Theme.cpp \
+	openxml/common/xp/OXML_Theme.h \
+	openxml/common/xp/OXML_Types.h \
+	openxml/exp/xp/ie_exp_OpenXML.cpp \
+	openxml/exp/xp/ie_exp_OpenXML.h \
+	openxml/exp/xp/ie_exp_OpenXML_Listener.cpp \
+	openxml/exp/xp/ie_exp_OpenXML_Listener.h \
+	openxml/exp/xp/ie_exp_OpenXML_Sniffer.cpp \
+	openxml/exp/xp/ie_exp_OpenXML_Sniffer.h \
+	openxml/imp/xp/OXMLi_ListenerState.cpp \
+	openxml/imp/xp/OXMLi_ListenerState.h \
+	openxml/imp/xp/OXMLi_ListenerState_Common.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Common.h \
+	openxml/imp/xp/OXMLi_ListenerState_DocSettings.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_DocSettings.h \
+	openxml/imp/xp/OXMLi_ListenerState_Endnote.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Endnote.h \
+	openxml/imp/xp/OXMLi_ListenerState_Field.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Field.h \
+	openxml/imp/xp/OXMLi_ListenerState_Footnote.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Footnote.h \
+	openxml/imp/xp/OXMLi_ListenerState_HdrFtr.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_HdrFtr.h \
+	openxml/imp/xp/OXMLi_ListenerState_Image.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Image.h \
+	openxml/imp/xp/OXMLi_ListenerState_MainDocument.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_MainDocument.h \
+	openxml/imp/xp/OXMLi_ListenerState_Math.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Math.h \
+	openxml/imp/xp/OXMLi_ListenerState_Numbering.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Numbering.h \
+	openxml/imp/xp/OXMLi_ListenerState_Styles.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Styles.h \
+	openxml/imp/xp/OXMLi_ListenerState_Table.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Table.h \
+	openxml/imp/xp/OXMLi_ListenerState_Textbox.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Textbox.h \
+	openxml/imp/xp/OXMLi_ListenerState_Theme.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Theme.h \
+	openxml/imp/xp/OXMLi_ListenerState_Valid.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Valid.h \
+	openxml/imp/xp/OXMLi_Namespace_Common.cpp \
+	openxml/imp/xp/OXMLi_Namespace_Common.h \
+	openxml/imp/xp/OXMLi_PackageManager.cpp \
+	openxml/imp/xp/OXMLi_PackageManager.h \
+	openxml/imp/xp/OXMLi_StreamListener.cpp \
+	openxml/imp/xp/OXMLi_StreamListener.h \
+	openxml/imp/xp/OXMLi_Types.h \
+	openxml/imp/xp/ie_imp_OpenXML.cpp \
+	openxml/imp/xp/ie_imp_OpenXML.h \
+	openxml/imp/xp/ie_imp_OpenXML_Sniffer.cpp \
+	openxml/imp/xp/ie_imp_OpenXML_Sniffer.h
+
+# This is checked into the repository.
+openxml/common/xp/OXML_LangToScriptConverter.h: $(srcdir)/openxml/common/xp/OXML_LangToScriptConverter.gperf
+	gperf $< >$@
+
+OMMLXSLT = \
+	openxml/omml_xslt/mml2omml.xsl \
+	openxml/omml_xslt/omml2mml.xsl
+
+ommlxslt_DATA = $(OMMLXSLT)
+ommlxsltdir = $(ABIWORD_OMMLXSLTDIR)
+
+EXTRA_DIST = \
+	$(OMMLXSLT) \
+	openxml/common/xp/converter.pl \
+	openxml/common/xp/OXML_LangToScriptConverter.gperf
+
+# EPUB importer/exporter, formerly a plugin
+libimpexp_la_SOURCES += \
+	epub/common/xp/ie_impexp_EPUB.h \
+	epub/dialogs/gtk/ap_UnixDialog_EpubExportOptions.cpp \
+	epub/dialogs/gtk/ap_UnixDialog_EpubExportOptions.h \
+	epub/dialogs/xp/ap_Dialog_EpubExportOptions.cpp \
+	epub/dialogs/xp/ap_Dialog_EpubExportOptions.h \
+	epub/exp/xp/ie_exp_EPUB.cpp \
+	epub/exp/xp/ie_exp_EPUB.h \
+	epub/exp/xp/ie_exp_EPUB_EPUB3Writer.cpp \
+	epub/exp/xp/ie_exp_EPUB_EPUB3Writer.h \
+	epub/exp/xp/ie_exp_EPUB_Sniffer.cpp \
+	epub/exp/xp/ie_exp_EPUB_Sniffer.h \
+	epub/imp/xp/ie_imp_EPUB.cpp \
+	epub/imp/xp/ie_imp_EPUB.h \
+	epub/imp/xp/ie_imp_EPUB_Sniffer.cpp \
+	epub/imp/xp/ie_imp_EPUB_Sniffer.h
+
 
 libimpexp_la_SOURCES += \
 	gtk/ie_exp_PDF.cpp \

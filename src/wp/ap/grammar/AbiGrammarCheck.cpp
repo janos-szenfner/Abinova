@@ -40,7 +40,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include "ut_files.h"
-#include "../hunspellwrap/HunspellWrap.h"
+#include "HunspellWrap.h"
 #include "AbiGrammarUtil.h"
 #include "ut_growbuf.h"
 #include "fl_Squiggles.h"
