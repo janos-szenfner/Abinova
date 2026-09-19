@@ -98,6 +98,9 @@
     <file alias="24x24/actions/tb_LineRight.png">wp/ap/xp/ToolbarIcons/tb_LineRight.png</file>
     <file alias="24x24/actions/tb_line_single_space.png">wp/ap/xp/ToolbarIcons/tb_line_single_space.png</file>
     <file alias="24x24/actions/tb_LineTop.png">wp/ap/xp/ToolbarIcons/tb_LineTop.png</file>
+    <file alias="16x16/actions/tb_lists_bullets.png">wp/ap/xp/ToolbarIcons/tb_lists_bullets_16.png</file>
+    <file alias="16x16/actions/tb_lists_dashed.png">wp/ap/xp/ToolbarIcons/tb_lists_dashed_16.png</file>
+    <file alias="16x16/actions/tb_lists_numbers.png">wp/ap/xp/ToolbarIcons/tb_lists_numbers_16.png</file>
     <file alias="24x24/actions/tb_lists_bullets.png">wp/ap/xp/ToolbarIcons/tb_lists_bullets.png</file>
     <file alias="24x24/actions/tb_lists_dashed.png">wp/ap/xp/ToolbarIcons/tb_lists_dashed.png</file>
     <file alias="24x24/actions/tb_lists_numbers.png">wp/ap/xp/ToolbarIcons/tb_lists_numbers.png</file>
