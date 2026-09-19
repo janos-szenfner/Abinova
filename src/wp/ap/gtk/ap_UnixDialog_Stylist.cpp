@@ -311,11 +311,15 @@ GtkWidget * AP_UnixDialog_Stylist::_constructWindow(void)
 
 	if(m_bIsModal)
 	{
-		/*button =*/ gtk_dialog_add_button(GTK_DIALOG(m_windowMain), "gtk-ok", GTK_RESPONSE_OK);
+		std::string label;
+		pSS->getValueUTF8(XAP_STRING_ID_DLG_OK, label);
+		/*button =*/ abiAddButton(GTK_DIALOG(m_windowMain), label, GTK_RESPONSE_OK);
 	}
 	else
 	{
-		/*button =*/ gtk_dialog_add_button(GTK_DIALOG(m_windowMain), "gtk-apply", GTK_RESPONSE_APPLY);
+		std::string label;
+		pSS->getValueUTF8(AP_STRING_ID_DLG_ApplyButton, label);
+		/*button =*/ abiAddButton(GTK_DIALOG(m_windowMain), label, GTK_RESPONSE_APPLY);
 	}
 
 	// set the dialog title
