@@ -417,7 +417,7 @@ GSimpleAction * EV_UnixMenu::_createAction(XAP_Menu_Id id,
 		m_vecCallbacks.push_back(wd);
 		g_signal_connect(G_OBJECT(action), "change-state",
 						 G_CALLBACK(_wd::s_onChangeState), wd);
-		g_simple_action_group_insert(m_actionGroup, G_ACTION(action));
+		g_action_map_add_action(G_ACTION_MAP(m_actionGroup), G_ACTION(action));
 		g_object_unref(action);
 		*radioGroup = action;
 		return action;
@@ -452,7 +452,7 @@ GSimpleAction * EV_UnixMenu::_createAction(XAP_Menu_Id id,
 		g_signal_connect(G_OBJECT(action), "activate",
 						 G_CALLBACK(_wd::s_onActivate), wd);
 	}
-	g_simple_action_group_insert(m_actionGroup, G_ACTION(action));
+	g_action_map_add_action(G_ACTION_MAP(m_actionGroup), G_ACTION(action));
 	g_object_unref(action);
 	return action;
 }
@@ -636,7 +636,7 @@ void EV_UnixMenu::_buildItems(GMenu * pMenuRoot, bool isPopup)
 				if (!subAction)
 				{
 					GSimpleAction * sa = g_simple_action_new(name, nullptr);
-					g_simple_action_group_insert(m_actionGroup, G_ACTION(sa));
+					g_action_map_add_action(G_ACTION_MAP(m_actionGroup), G_ACTION(sa));
 					g_object_unref(sa);
 					subAction = G_ACTION(sa);
 				}
