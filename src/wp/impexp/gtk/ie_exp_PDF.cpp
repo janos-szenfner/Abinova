@@ -97,7 +97,11 @@ public:
 	// Fixes bug 11343 - export to pdf uses wrong document size
 	UT_uint32 dpi = 72;
 	if (BACKEND_PDF == mFormat)
+	{
 		surface = cairo_pdf_surface_create_for_stream(ie_exp_cairo_write_func, getFp(), width * dpi, height * dpi);
+		// PDF 1.7 == ISO 32000-1, the latest version cairo can write
+		cairo_pdf_surface_restrict_to_version(surface, CAIRO_PDF_VERSION_1_7);
+	}
 	else if (BACKEND_PS == mFormat)
 		surface = cairo_ps_surface_create_for_stream(ie_exp_cairo_write_func, getFp(), width * dpi, height * dpi);
 	else if (BACKEND_SVG == mFormat)
@@ -112,6 +116,13 @@ public:
 
 	cr = cairo_create(surface);
 	cairo_surface_destroy(surface), surface = nullptr;
+
+	if (BACKEND_PDF == mFormat && getFileName())
+	{
+		cairo_pdf_surface_set_metadata(cairo_get_target(cr),
+									   CAIRO_PDF_METADATA_TITLE,
+									   getFileName());
+	}
 
 	print_graphics = new GR_CairoPrintGraphics(cr, dpi);
     pDocLayout = new FL_DocLayout(getDoc(), print_graphics);
@@ -171,10 +182,10 @@ public:
 					 pDocLayout->getWidth(), pDocLayout->getHeight() / pDocLayout->countPages(), 
 					 pages);
 	
-    DELETEP(print_graphics);
-
-    DELETEP(pDocLayout);
+	// delete in reverse order of construction: the view references the
+	// layout, and the print graphics owns (destroys) the cairo context
     DELETEP(printView);
+    DELETEP(pDocLayout);
     DELETEP(print_graphics);
     return UT_OK;
   }
