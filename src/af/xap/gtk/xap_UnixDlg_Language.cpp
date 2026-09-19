@@ -50,7 +50,7 @@ void XAP_UnixDialog_Language::s_lang_dblclicked(GtkTreeView * /*treeview*/,
 												GtkTreeViewColumn * /*arg2*/,
 												XAP_UnixDialog_Language * me)
 {
-	gtk_dialog_response (GTK_DIALOG(me->m_windowMain), GTK_RESPONSE_CLOSE);
+	gtk_dialog_response (GTK_DIALOG(me->m_windowMain), GTK_RESPONSE_OK);
 }
 
 XAP_UnixDialog_Language::~XAP_UnixDialog_Language(void)
@@ -207,8 +207,11 @@ void XAP_UnixDialog_Language::runModal(XAP_Frame * pFrame)
 						   G_CALLBACK(s_lang_dblclicked),
 						   static_cast<gpointer>(this));
 
-  abiRunModalDialog ( GTK_DIALOG(cf), pFrame, this, GTK_RESPONSE_CLOSE, false );
-  event_setLang();
+  gint response = abiRunModalDialog ( GTK_DIALOG(cf), pFrame, this, GTK_RESPONSE_OK, false );
+  if (response == GTK_RESPONSE_OK)
+	  event_setLang();
+  else
+	  m_answer = XAP_Dialog_Language::a_CANCEL;
   
   abiDestroyWidget(cf);
 }

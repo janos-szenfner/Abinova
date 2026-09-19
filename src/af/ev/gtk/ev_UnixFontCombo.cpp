@@ -9,7 +9,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU Library General Public License
  *  along with this program; if not, write to the Free Software
@@ -23,323 +23,94 @@
 #include "ut_assert.h"
 #include "ev_UnixFontCombo.h"
 
-#define PREVIEW_TEXT "AaBb"
-
-/* builtin GtkCellRendererText subclass */
-
-#define ABI_TYPE_CELL_RENDERER_FONT                  (abi_cell_renderer_font_get_type ())
-#define ABI_CELL_RENDERER_FONT(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), ABI_TYPE_CELL_RENDERER_FONT, AbiCellRendererFont))
-#define ABI_CELL_RENDERER_FONT_CLASS(klass)          (G_TYPE_CHECK_CLASS_CAST ((klass), ABI_TYPE_CELL_RENDERER_FONT, AbiCellRendererFontClass))
-#define ABI_IS_CELL_RENDERER_FONT(obj)               (G_TYPE_CHECK_INSTANCE_TYPE ((obj), ABI_TYPE_CELL_RENDERER_FONT))
-#define ABI_IS_CELL_RENDERER_FONT_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), ABI_TYPE_CELL_RENDERER_FONT))
-#define ABI_CELL_RENDERER_FONT_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), ABI_TYPE_CELL_RENDERER_FONT, AbiCellRendererFontClass))
-
-struct AbiCellRendererFont {
-	GtkCellRendererText 	 parent;
-	GtkWidget		*parent_widget;
-	gboolean		 is_popped_up;
-};
-
-struct AbiCellRendererFontClass {
-	GtkCellRendererTextClass parent;
-
-	void (* popup_position) (GtkCellRenderer *cell, 
-				 cairo_rectangle_int_t	 *position);
-	void (* prelight_popup) (GtkCellRenderer *cell, 
-				 const gchar 	 *text);
-	void (* render_closed)  (GtkCellRenderer *cell);
-};
-
-GType abi_cell_renderer_font_get_type (void);
-
-/* TreeModel columns */
-enum: uint8_t {
-	FONT, 
-	NUM_COLS
-};
-
-/* Signal IDs */
-enum: uint8_t {
-	RENDERER_POPUP_OPENED,
-	RENDERER_PRELIGHT,
-	RENDERER_POPUP_CLOSED,
-	RENDERER_LAST_SIGNAL
-};
-
-static guint cell_renderer_font_signals[RENDERER_LAST_SIGNAL] = { 0 };
-
-static GtkCellRendererTextClass *abi_cell_renderer_font_parent_class = nullptr;
-
-void
-abi_cell_renderer_font_snapshot (GtkCellRenderer      *cell,
-			       GtkSnapshot          *snapshot,
-			       GtkWidget            *widget,
-			       const GdkRectangle         *background_area,
-			       const GdkRectangle         *cell_area,
-			       GtkCellRendererState  flags)
-{
-	AbiCellRendererFont	*self;
-	GtkTreeModel		*model;
-	GtkTreeIter		 iter;
-	gchar 			*text;
-
-	self = ABI_CELL_RENDERER_FONT (cell);
-	text = nullptr;
-
-	GTK_CELL_RENDERER_CLASS (abi_cell_renderer_font_parent_class)->snapshot (
-					cell, snapshot, widget, background_area,
-					cell_area,flags);
-
-	if (GTK_CELL_RENDERER_PRELIT & flags) {
-
-		/* only fire prelight event if popup is open */
-		if (!gtk_widget_is_ancestor (widget, self->parent_widget)) {
-
-			if (!self->is_popped_up) {
-				double x = 0, y = 0;
-				cairo_rectangle_int_t area;
-
-				/* open_popup (self->parent_widget); */
-				self->is_popped_up = TRUE;
-
-				/* GTK4: translate the cell position into native
-				 * (toplevel) coordinates; there is no GdkWindow origin.
-				 * get_native() is NULL until the widget is inside a
-				 * realized toplevel. */
-				GtkWidget *native = GTK_WIDGET(gtk_widget_get_native(widget));
-				if (native)
-					gtk_widget_translate_coordinates(widget, native, 0, 0, &x, &y);
-				area.x = background_area->x + (int)x + gtk_widget_get_width(widget);
-				area.y = background_area->y + (int)y;
-				area.width = background_area->width;
-				area.height = background_area->height;
-				g_signal_emit (G_OBJECT (cell),
-					       cell_renderer_font_signals[RENDERER_POPUP_OPENED],
-					       0, &area);
-			}
-
-			g_object_get (G_OBJECT (cell), 
-					      "text", &text, 
-					      nullptr);
-
-			UT_return_if_fail (text);
-			if (0 == strcmp (text, PREVIEW_TEXT)) {
-				g_free (text);
-				text = nullptr;
-				gtk_combo_box_get_active_iter (GTK_COMBO_BOX (self->parent_widget), &iter);
-				model = gtk_combo_box_get_model (GTK_COMBO_BOX (self->parent_widget));
-				UT_return_if_fail (model);
-				gtk_tree_model_get (model, &iter, 
-						    FONT, &text, 
-						    -1);
-			}
-			g_signal_emit (G_OBJECT (cell), 
-				       cell_renderer_font_signals[RENDERER_PRELIGHT],
-				       0, text);
-		}
-	}
-	else if (gtk_widget_is_ancestor (widget, self->parent_widget)) {
-		g_signal_emit (G_OBJECT (cell), 
-			       cell_renderer_font_signals[RENDERER_POPUP_CLOSED],
-			       0);
-		self->is_popped_up = FALSE;
-	}
-
-	if (text) {
-		g_free (text);
-	}
-}
-
-static void
-abi_cell_renderer_font_instance_init (AbiCellRendererFont *self, gpointer)
-{
-	self->is_popped_up = FALSE;
-}
-
-static void
-abi_cell_renderer_font_class_init (AbiCellRendererFontClass *klass, gpointer)
-{
-	GtkCellRendererClass *cell_renderer_class = GTK_CELL_RENDERER_CLASS (klass);
-
-	abi_cell_renderer_font_parent_class = (GtkCellRendererTextClass*) g_type_class_ref (GTK_TYPE_CELL_RENDERER_TEXT);
-
-	cell_renderer_class->snapshot = abi_cell_renderer_font_snapshot;
-
-	cell_renderer_font_signals[RENDERER_POPUP_OPENED] =
-		g_signal_new ("renderer-popup-opened",
-			G_OBJECT_CLASS_TYPE (klass),
-			G_SIGNAL_RUN_LAST,
-			G_STRUCT_OFFSET (AbiCellRendererFontClass, popup_position),
-			nullptr, nullptr,
-			g_cclosure_marshal_VOID__POINTER,
-			G_TYPE_NONE, 1,
-			G_TYPE_POINTER);
-
-	cell_renderer_font_signals[RENDERER_PRELIGHT] =
-		g_signal_new ("renderer-prelight",
-			G_OBJECT_CLASS_TYPE (klass),
-			G_SIGNAL_RUN_LAST,
-			G_STRUCT_OFFSET (AbiCellRendererFontClass, prelight_popup),
-			nullptr, nullptr,
-			g_cclosure_marshal_VOID__POINTER,
-			G_TYPE_NONE, 1,
-			G_TYPE_POINTER);
-
-	cell_renderer_font_signals[RENDERER_POPUP_CLOSED] =
-		g_signal_new ("renderer-popup-closed",
-			G_OBJECT_CLASS_TYPE (klass),
-			G_SIGNAL_RUN_LAST,
-			G_STRUCT_OFFSET (AbiCellRendererFontClass, render_closed),
-			nullptr, nullptr,
-			g_cclosure_marshal_VOID__VOID,
-			G_TYPE_NONE, 0);
-}
-
-GType
-abi_cell_renderer_font_get_type (void)
-{
-        static GType type = 0;
-        if (!type) {
-                static const GTypeInfo info = {
-                        sizeof (AbiCellRendererFontClass),
-                        nullptr,           /* base_init */
-                        nullptr,           /* base_finalize */
-                        (GClassInitFunc) abi_cell_renderer_font_class_init,
-                        nullptr,           /* class_finalize */
-                        nullptr,           /* class_data */
-                        sizeof (AbiCellRendererFont),
-                        0,              /* n_preallocs */
-                        (GInstanceInitFunc) abi_cell_renderer_font_instance_init,
-						nullptr
-                };
-                type = g_type_register_static (GTK_TYPE_CELL_RENDERER_TEXT, 
-					       "AbiCellRendererFont", &info, 
-					       (GTypeFlags)0);
-        }
-        return type;
-}
-
-GtkCellRenderer *
-abi_cell_renderer_font_new (GtkWidget *parent)
-{
-	GtkCellRenderer *self;
-	self = (GtkCellRenderer *) g_object_new (ABI_TYPE_CELL_RENDERER_FONT, 
-						 nullptr);
-	ABI_CELL_RENDERER_FONT (self)->parent_widget = parent;
-	return self;
-}
-
-
-
-/* GtkComboBox subclass */
-
-/* Signal IDs */
-enum: uint8_t {
-	POPUP_OPENED,
-	PRELIGHT,
-	POPUP_CLOSED,
+enum {
+	CHANGED,
 	LAST_SIGNAL
 };
 
 static guint font_combo_signals[LAST_SIGNAL] = { 0 };
+static GtkBoxClass *abi_font_combo_parent_class = nullptr;
 
-static GtkComboBoxClass *abi_font_combo_parent_class = nullptr;
-
+/*
+ * Every font name is rendered in its own typeface. Rows are bound
+ * lazily by the GtkListItemFactory, so only the handful of visible
+ * entries ever load a font. The previous GtkComboBox cell renderer
+ * measured every one of the ~2000 model rows on popup and froze
+ * the UI for seconds.
+ */
 static void
-renderer_popup_opened_cb (AbiFontCombo		*self, 
-			  cairo_rectangle_int_t	*position, 
-			  GtkCellRenderer 	* /*renderer*/)
+font_item_setup (GtkSignalListItemFactory * /*factory*/,
+				 GtkListItem			 *item,
+				 gpointer				  /*data*/)
 {
-	g_signal_emit (G_OBJECT (self), font_combo_signals[POPUP_OPENED],
-		       0, position);
+	GtkWidget *label = gtk_label_new (nullptr);
+	gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+	gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
+	gtk_label_set_max_width_chars (GTK_LABEL (label), 30);
+	gtk_label_set_single_line_mode (GTK_LABEL (label), TRUE);
+	gtk_list_item_set_child (item, label);
 }
 
 static void
-renderer_prelight_cb (AbiFontCombo		*self, 
-		   const gchar		*text, 
-		   GtkCellRenderer 	* /*renderer*/)
+font_item_bind (GtkSignalListItemFactory * /*factory*/,
+				GtkListItem			 *item,
+				gpointer				  /*data*/)
 {
-	g_signal_emit (G_OBJECT (self), font_combo_signals[PRELIGHT],
-		       0, text);
+	GtkStringObject *str = GTK_STRING_OBJECT (gtk_list_item_get_item (item));
+	GtkLabel *label = GTK_LABEL (gtk_list_item_get_child (item));
+	const gchar *name = gtk_string_object_get_string (str);
+
+	gtk_label_set_text (label, name);
+
+	PangoAttrList *attrs = pango_attr_list_new ();
+	pango_attr_list_insert (attrs, pango_attr_family_new (name));
+	gtk_label_set_attributes (label, attrs);
+	pango_attr_list_unref (attrs);
 }
 
 static void
-renderer_popup_closed_cb (AbiFontCombo		*self, 
-		  GtkCellRenderer 	* /*renderer*/)
+font_combo_selected_cb (GtkDropDown * /*dropdown*/,
+						GParamSpec	 * /*pspec*/,
+						AbiFontCombo *self)
 {
-	g_signal_emit (G_OBJECT (self), font_combo_signals[POPUP_CLOSED],
-		       0);
+	g_signal_emit (self, font_combo_signals[CHANGED], 0);
 }
 
 static void
 abi_font_combo_init (AbiFontCombo *self, gpointer)
 {
+	self->strings = nullptr;
+	self->sort = nullptr;
 	self->is_disposed = FALSE;
 }
 
 static void
 abi_font_combo_dispose (GObject *instance)
 {
-	AbiFontCombo *self;
-
-	self = ABI_FONT_COMBO (instance);
+	AbiFontCombo *self = ABI_FONT_COMBO (instance);
 
 	if (self->is_disposed) {
 		return;
 	}
 
+	g_clear_object (&self->strings);
+	g_clear_object (&self->sort);
+
 	self->is_disposed = TRUE;
-
-	g_object_unref (G_OBJECT (self->sort));
-	self->sort = nullptr;
-
-	g_object_unref (G_OBJECT (self->model));
-	self->model = nullptr;
-
 	G_OBJECT_CLASS (abi_font_combo_parent_class)->dispose (instance);
-}
-
-static void
-abi_font_combo_finalize (GObject *instance)
-{
-	G_OBJECT_CLASS (abi_font_combo_parent_class)->finalize (instance);
 }
 
 static void
 abi_font_combo_class_init (AbiFontComboClass *klass, gpointer)
 {
-	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
+	abi_font_combo_parent_class = GTK_BOX_CLASS (g_type_class_peek_parent (klass));
+	G_OBJECT_CLASS (klass)->dispose = abi_font_combo_dispose;
 
-	abi_font_combo_parent_class = (GtkComboBoxClass*) g_type_class_ref (GTK_TYPE_COMBO_BOX);
-
-	g_object_class->dispose = abi_font_combo_dispose;
-	g_object_class->finalize = abi_font_combo_finalize;
-
-	font_combo_signals[POPUP_OPENED] =
-		g_signal_new ("popup-opened",
+	font_combo_signals[CHANGED] =
+		g_signal_new ("changed",
 			G_OBJECT_CLASS_TYPE (klass),
 			G_SIGNAL_RUN_LAST,
-			G_STRUCT_OFFSET (AbiFontComboClass, popup_opened),
-			nullptr, nullptr,
-			g_cclosure_marshal_VOID__POINTER,
-			G_TYPE_NONE, 1,
-			G_TYPE_POINTER);
-
-	font_combo_signals[PRELIGHT] =
-		g_signal_new ("prelight",
-			G_OBJECT_CLASS_TYPE (klass),
-			G_SIGNAL_RUN_LAST,
-			G_STRUCT_OFFSET (AbiFontComboClass, prelight),
-			nullptr, nullptr,
-			g_cclosure_marshal_VOID__POINTER,
-			G_TYPE_NONE, 1,
-			G_TYPE_POINTER);
-
-	font_combo_signals[POPUP_CLOSED] =
-		g_signal_new ("popup-closed",
-			G_OBJECT_CLASS_TYPE (klass),
-			G_SIGNAL_RUN_LAST,
-			G_STRUCT_OFFSET (AbiFontComboClass, popup_closed),
+			G_STRUCT_OFFSET (AbiFontComboClass, changed),
 			nullptr, nullptr,
 			g_cclosure_marshal_VOID__VOID,
 			G_TYPE_NONE, 0);
@@ -362,8 +133,8 @@ abi_font_combo_get_type (void)
                         (GInstanceInitFunc) abi_font_combo_init,
 						nullptr
                 };
-                type = g_type_register_static (GTK_TYPE_COMBO_BOX, 
-					       "AbiFontCombo", &info, 
+                type = g_type_register_static (GTK_TYPE_BOX,
+					       "AbiFontCombo", &info,
 					       (GTypeFlags)0);
         }
         return type;
@@ -372,50 +143,100 @@ abi_font_combo_get_type (void)
 GtkWidget *
 abi_font_combo_new (void)
 {
-	AbiFontCombo 	 *self;
-	GtkCellRenderer  *cell;
+	AbiFontCombo *self = (AbiFontCombo *) g_object_new (ABI_TYPE_FONT_COMBO,
+													   "orientation", GTK_ORIENTATION_HORIZONTAL,
+													   nullptr);
 
-	self = (AbiFontCombo *) g_object_new (ABI_TYPE_FONT_COMBO, nullptr);
-	self->model = (GtkTreeModel *) gtk_list_store_new (NUM_COLS, G_TYPE_STRING);
-	self->sort = gtk_tree_model_sort_new_with_model (self->model);
-	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (self->sort), FONT, GTK_SORT_ASCENDING);
-	gtk_combo_box_set_model (GTK_COMBO_BOX (self), self->sort);
+	self->strings = gtk_string_list_new (nullptr);
 
-	cell = abi_cell_renderer_font_new (GTK_WIDGET (self));
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (self), cell, FALSE);
-	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (self), cell,
-					"text", FONT,
-					"family", FONT,
-					nullptr);
+	GtkExpression *expr =
+		gtk_property_expression_new (GTK_TYPE_STRING_OBJECT, nullptr, "string");
+	GtkStringSorter *sorter = gtk_string_sorter_new (expr);
+	gtk_string_sorter_set_ignore_case (sorter, TRUE);
+	self->sort = gtk_sort_list_model_new (G_LIST_MODEL (g_object_ref (self->strings)),
+										  GTK_SORTER (sorter));
+	/* sort lazily; the model holds several thousand fonts */
+	gtk_sort_list_model_set_incremental (self->sort, TRUE);
 
-	g_signal_connect_swapped (G_OBJECT (cell), "renderer-popup-opened", 
-				  G_CALLBACK (renderer_popup_opened_cb), (gpointer) self);
-	g_signal_connect_swapped (G_OBJECT (cell), "renderer-prelight", 
-				  G_CALLBACK (renderer_prelight_cb), (gpointer) self);
-	g_signal_connect_swapped (G_OBJECT (cell), "renderer-popup-closed", 
-				  G_CALLBACK (renderer_popup_closed_cb), (gpointer) self);
+	GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
+	g_signal_connect (factory, "setup", G_CALLBACK (font_item_setup), nullptr);
+	g_signal_connect (factory, "bind", G_CALLBACK (font_item_bind), nullptr);
+
+	GtkExpression *search_expr =
+		gtk_property_expression_new (GTK_TYPE_STRING_OBJECT, nullptr, "string");
+
+	self->dropdown = gtk_drop_down_new (G_LIST_MODEL (g_object_ref (self->sort)),
+										nullptr);
+	g_object_set (self->dropdown,
+				  "factory", factory,
+				  "enable-search", TRUE,
+				  "expression", search_expr,
+				  nullptr);
+	gtk_widget_set_hexpand (self->dropdown, TRUE);
+	gtk_box_append (GTK_BOX (self), self->dropdown);
+
+	g_object_unref (factory);
+	gtk_expression_unref (search_expr);
+
+	g_signal_connect (self->dropdown, "notify::selected",
+					  G_CALLBACK (font_combo_selected_cb), self);
 
 	return GTK_WIDGET (self);
 }
 
+static guint
+abi_font_combo_find (AbiFontCombo *self, const gchar *text)
+{
+	GListModel *model = G_LIST_MODEL (self->sort);
+	guint n = g_list_model_get_n_items (model);
+
+	for (guint i = 0; i < n; i++) {
+		GtkStringObject *str = GTK_STRING_OBJECT (g_list_model_get_item (model, i));
+		const gchar *name = gtk_string_object_get_string (str);
+		gboolean found = name && (0 == strcmp (name, text));
+		g_object_unref (str);
+		if (found)
+			return i;
+	}
+	return GTK_INVALID_LIST_POSITION;
+}
+
 void
-abi_font_combo_insert_font (AbiFontCombo 	*self, 
-			    const gchar		*font, 
+abi_font_combo_insert_font (AbiFontCombo 	*self,
+			    const gchar		*font,
 			    gboolean 		 select)
 {
-	GtkTreeIter	 iter;
-
-	gtk_list_store_append (GTK_LIST_STORE (self->model), &iter);
-	gtk_list_store_set (GTK_LIST_STORE (self->model), &iter, 
-			    FONT, font, 
-			    -1);
+	gtk_string_list_append (self->strings, font);
 
 	if (select) {
-		GtkTreeIter sorted_iter;
-		gtk_tree_model_sort_convert_child_iter_to_iter (
-			GTK_TREE_MODEL_SORT (self->sort), &sorted_iter, &iter);
-		gtk_combo_box_set_active_iter (GTK_COMBO_BOX (self), &sorted_iter);
+		guint pos = abi_font_combo_find (self, font);
+		gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown), pos);
 	}
+}
+
+gboolean
+abi_font_combo_select_text (AbiFontCombo *self, const gchar *text)
+{
+	guint pos = abi_font_combo_find (self, text);
+	if (pos == GTK_INVALID_LIST_POSITION)
+		return FALSE;
+	gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown), pos);
+	return TRUE;
+}
+
+void
+abi_font_combo_unselect (AbiFontCombo *self)
+{
+	gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown),
+								GTK_INVALID_LIST_POSITION);
+}
+
+gchar *
+abi_font_combo_get_active_text (AbiFontCombo *self)
+{
+	GtkStringObject *str =
+		GTK_STRING_OBJECT (gtk_drop_down_get_selected_item (GTK_DROP_DOWN (self->dropdown)));
+	return str ? g_strdup (gtk_string_object_get_string (str)) : nullptr;
 }
 
 /*!
@@ -424,30 +245,11 @@ abi_font_combo_insert_font (AbiFontCombo 	*self,
  * \param fonts NUL-terminated array of fonts.
  */
 void
-abi_font_combo_set_fonts (AbiFontCombo 	 *self, 
+abi_font_combo_set_fonts (AbiFontCombo 	 *self,
 			  const gchar 	**fonts)
 {
-	GtkTreeIter	  iter;
-	const gchar	**font_iter;
-
 	g_return_if_fail (fonts);
 
-	gtk_combo_box_set_model (GTK_COMBO_BOX (self), nullptr);
-	g_object_unref (G_OBJECT (self->sort)); self->sort = nullptr;
-	gtk_list_store_clear (GTK_LIST_STORE (self->model));
-
-    g_object_unref (G_OBJECT (self->model));
-	self->model = (GtkTreeModel *) gtk_list_store_new (NUM_COLS, G_TYPE_STRING);
-	font_iter = fonts;
-	while (font_iter && *font_iter) {
-		gtk_list_store_append (GTK_LIST_STORE (self->model), &iter);
-		gtk_list_store_set (GTK_LIST_STORE (self->model), &iter, 
-				    FONT, *font_iter, 
-				    -1);
-		font_iter++;
-	}
-
-	self->sort = gtk_tree_model_sort_new_with_model (self->model);
-	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (self->sort), FONT, GTK_SORT_ASCENDING);
-	gtk_combo_box_set_model (GTK_COMBO_BOX (self), self->sort);
+	guint n = g_list_model_get_n_items (G_LIST_MODEL (self->strings));
+	gtk_string_list_splice (self->strings, 0, n, fonts);
 }

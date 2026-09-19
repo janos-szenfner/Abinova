@@ -29,7 +29,6 @@
 #include "xav_Listener.h"
 #include "ap_Toolbar_Id.h"
 #include "ap_UnixToolbar_StyleCombo.h"
-#include "xap_FontPreview.h"
 
 class XAP_UnixApp;
 class XAP_Frame;
@@ -59,9 +58,6 @@ public:
 	virtual void show(void) override;
 	virtual void hide(void) override;
 
-	XAP_FontPreview *				m_pFontPreview;
-	gint							m_pFontPreviewPositionX;
-protected:
 	virtual bool 					getDetachable(void) { return true; }
 	virtual void 					setDetachable(gboolean /*detachable*/) { /* only the GNOME version does that ATM */ }
 

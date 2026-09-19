@@ -98,8 +98,12 @@ An experimental fork of the AbiWord word processor, focused on:
   Zoom dialog.
 - **LibreOffice-style font selector**: each entry in the toolbar
   font-name dropdown is rendered in its own typeface (the closed
-  combo shows the active font the same way), in addition to the
-  existing hover font-preview popover.
+  combo shows the active font the same way). The widget was ported
+  from `GtkComboBox` to `GtkDropDown` + `GtkSortListModel` with a
+  lazy `GtkListItemFactory`, so only visible rows load a font —
+  the old cell-renderer path measured every one of ~2000 fonts on
+  popup open and froze the UI for seconds. Type-to-search is
+  enabled on the dropdown.
 
 ### GTK4 runtime fixes (this round)
 
@@ -144,6 +148,22 @@ An experimental fork of the AbiWord word processor, focused on:
   right end of the bottom bar (LibreOffice style); the percentage
   opens the Zoom dialog, buttons use the `zoomIn`/`zoomOut` edit
   methods, and the control tracks external zoom changes.
+- **Font-selector freeze**: opening the toolbar font dropdown froze
+  the UI — the `GtkComboBox` cell renderer with a per-row `family`
+  attribute measured every one of the ~2000 installed fonts on
+  popup open (≈2.7 s blocked in `gtk_combo_box_popup` alone, more
+  with the per-frame preview popover). The widget was rewritten on
+  `GtkDropDown` + `GtkSortListModel` (`incremental`) with a lazy
+  `GtkListItemFactory`, so only visible rows ever load a font;
+  the prelight→popover preview machinery was removed entirely
+  (each row is already rendered in its own typeface).
+- **Styles dialog dead radios**: the three "style type" radio
+  `GtkCheckButton`s were still connected to `clicked` — the filter
+  never worked in GTK4. Rewired to `toggled` with an active-state
+  guard.
+- **Set Language dialog**: now has explicit Cancel/Apply buttons;
+  the selection is committed only on Apply (previously any close —
+  including the window X — silently applied whatever was selected).
 
 ### Debian bug audit
 

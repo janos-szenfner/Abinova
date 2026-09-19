@@ -112,18 +112,28 @@
                     <property name="margin-top">6</property>
                       <property name="visible">1</property>
                       <child>
-                        <object class="GtkButton" id="btClose">
-                          <property name="label">_Close</property>
+                        <object class="GtkButton" id="btCancel">
+                          <property name="label">_Cancel</property>
                           <property name="use-underline">1</property>
                           <property name="visible">1</property>
                           <property name="can-focus">1</property>
+                        <property name="hexpand">1</property><property name="vexpand">1</property></object>
+                        </child>
+                      <child>
+                        <object class="GtkButton" id="btApply">
+                          <property name="label">_Apply</property>
+                          <property name="use-underline">1</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <style><class name="suggested-action"/></style>
                         <property name="hexpand">1</property><property name="vexpand">1</property></object>
                         </child>
                     </object>
         </child>
 </object>
     </child><action-widgets>
-      <action-widget response="-7">btClose</action-widget>
+      <action-widget response="-6">btCancel</action-widget>
+      <action-widget response="-5">btApply</action-widget>
     </action-widgets>
   </object>
 </interface>

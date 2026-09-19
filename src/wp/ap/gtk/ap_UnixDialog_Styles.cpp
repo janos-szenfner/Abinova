@@ -118,7 +118,11 @@ static void
 s_typeslist_changed (GtkWidget *w, gpointer d)
 {
 	AP_UnixDialog_Styles * dlg = static_cast <AP_UnixDialog_Styles *>(d);
-	dlg->event_ListClicked (gtk_button_get_label (GTK_BUTTON(w)));
+	// GTK4: check buttons emit "toggled" for both the deactivated and
+	// the activated radio; only act on the newly selected one.
+	if (!gtk_check_button_get_active (GTK_CHECK_BUTTON(w)))
+		return;
+	dlg->event_ListClicked (gtk_check_button_get_label (GTK_CHECK_BUTTON(w)));
 }
 
 static void
@@ -558,18 +562,18 @@ GtkWidget * AP_UnixDialog_Styles::_constructWindow(void)
 void AP_UnixDialog_Styles::_connectSignals(void) const
 {
 	// connect signal for this list
-	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList1)), 
-			  "clicked",
+	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList1)),
+			  "toggled",
 			  G_CALLBACK(s_typeslist_changed),
 			  (void*)reinterpret_cast<gconstpointer>(this));
-	
-	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList2)), 
-			  "clicked",
+
+	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList2)),
+			  "toggled",
 			  G_CALLBACK(s_typeslist_changed),
 			  (void*)reinterpret_cast<gconstpointer>(this));
-	
-	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList3)), 
-			  "clicked",
+
+	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList3)),
+			  "toggled",
 			  G_CALLBACK(s_typeslist_changed),
 			  (void*)reinterpret_cast<gconstpointer>(this));
 	

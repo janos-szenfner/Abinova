@@ -58,8 +58,6 @@
 #include "fv_View.h"
 #include "xap_EncodingManager.h"
 #include "xap_UnixDialogHelper.h"
-#include "xap_UnixFontPreview.h"
-#include "xap_FontPreview.h"
 #include "ut_string_class.h"
 #include "pt_PieceTable.h"
 #include "ap_Toolbar_Id.h"
@@ -74,9 +72,7 @@
 #define TOOLBAR_HSPACING 6
 #define TOOLBAR_VSPACING 3
 
-#define PROP_HANDLER_ID "handler-id"
 
-class _wd;
 
 /*!
  * Append a widget to the toolbar,
@@ -213,8 +209,8 @@ toolbar_append_separator (GtkBox *toolbar)
  * Set active text in a simple combobox.
  */
 static gboolean
-combo_box_set_active_text (GtkComboBox *combo, 
-						   const gchar *text, 
+combo_box_set_active_text (GtkComboBox *combo,
+						   const gchar *text,
 						   gulong		handler_id)
 {
 	GtkTreeModel 	*model;
@@ -222,15 +218,24 @@ combo_box_set_active_text (GtkComboBox *combo,
 	gboolean 		 iter_valid;
 	gboolean		 next;
 	gchar			*value;
-	gulong			 prelight_handler_id;
+
+	if (ABI_IS_FONT_COMBO (combo)) {
+		// the font combo is a GtkDropDown; non existent entries are added
+		g_signal_handler_block (G_OBJECT (combo), handler_id);
+		if (!abi_font_combo_select_text (ABI_FONT_COMBO (combo), text)) {
+			abi_font_combo_insert_font (ABI_FONT_COMBO (combo), text, TRUE);
+		}
+		g_signal_handler_unblock (G_OBJECT (combo), handler_id);
+		return TRUE;
+	}
 
 	model = gtk_combo_box_get_model (combo);
 	next = gtk_tree_model_get_iter_first (model, &iter);
 	value = nullptr;
 	iter_valid = FALSE;
 	while (next) {
-		gtk_tree_model_get (model, &iter, 
-							0, &value, 
+		gtk_tree_model_get (model, &iter,
+							0, &value,
 							-1);
 		if (value && 0 == strcmp (text, value)) {
 			g_free (value); value = nullptr;
@@ -244,29 +249,8 @@ combo_box_set_active_text (GtkComboBox *combo,
 
 	if (iter_valid) {
 		g_signal_handler_block (G_OBJECT (combo), handler_id);
-		prelight_handler_id = 0;
-		if (ABI_IS_FONT_COMBO (combo)) {
-			prelight_handler_id = GPOINTER_TO_UINT(g_object_get_data (G_OBJECT (combo), PROP_HANDLER_ID));
-			g_signal_handler_block (G_OBJECT (combo), prelight_handler_id);
-		}
-
 		gtk_combo_box_set_active_iter (combo, &iter);
-
 		g_signal_handler_unblock (G_OBJECT (combo), handler_id);
-		if (prelight_handler_id) {
-			g_signal_handler_unblock (G_OBJECT (combo), prelight_handler_id);
-		}
-	}
-	else if (ABI_IS_FONT_COMBO (combo)) {
-		// special case font combo, non existant entries are added
-		g_signal_handler_block (G_OBJECT (combo), handler_id);
-		prelight_handler_id = GPOINTER_TO_UINT(g_object_get_data (G_OBJECT (combo), PROP_HANDLER_ID));
-		g_signal_handler_block (G_OBJECT (combo), prelight_handler_id);
-
-		abi_font_combo_insert_font (ABI_FONT_COMBO (combo), text, TRUE);
-
-		g_signal_handler_unblock (G_OBJECT (combo), handler_id);
-		g_signal_handler_unblock (G_OBJECT (combo), prelight_handler_id);
 	}
 
 	return next;
@@ -369,46 +353,6 @@ public:									// we create...
 		s_combo_apply_changes (combo, wd);
 	}
 
-	static void s_font_prelight(GtkComboBox * combo, const gchar *text, _wd * wd)
-	{
-		if (wd &&
-			wd->m_pUnixToolbar &&
-			!wd->m_pUnixToolbar->m_pFontPreview) {
-
-			XAP_Frame * pFrame = static_cast<XAP_Frame *>(wd->m_pUnixToolbar->getFrame());
-			// GTK4: the preview is a popover attached to the combo
-			wd->m_pUnixToolbar->m_pFontPreview = new XAP_UnixFontPreview(pFrame, GTK_WIDGET(combo));
-			UT_DEBUGMSG(("ev_UnixToolbar - building new FontPreview %p \n",wd->m_pUnixToolbar));
-		}
-
-		wd->m_pUnixToolbar->m_pFontPreview->setFontFamily(text);
-		wd->m_pUnixToolbar->m_pFontPreview->setText(text);
-		wd->m_pUnixToolbar->m_pFontPreview->draw();
-	};
-
-	static void s_font_popup_opened(GtkComboBox * /*combo*/, 
-									GdkRectangle *position, _wd * wd)
-	{
-		if (wd && 
-			wd->m_pUnixToolbar) {
-				UT_DEBUGMSG(("ev_UnixToolbar - position \n"));
-				// TODO check if within screen
-				wd->m_pUnixToolbar->m_pFontPreviewPositionX = position->x /*+ position->width*/;
-		}
-	};
-
-	static void s_font_popup_closed(GtkComboBox * /*combo*/, _wd * wd)
-	{
-		if (wd && 
-			wd->m_pUnixToolbar &&
-			wd->m_pUnixToolbar->m_pFontPreview) {
-				UT_DEBUGMSG(("ev_UnixToolbar - deleting FontPreview %p \n",wd->m_pUnixToolbar));
-			    delete wd->m_pUnixToolbar->m_pFontPreview;
-				wd->m_pUnixToolbar->m_pFontPreview = nullptr;
-				wd->m_pUnixToolbar->m_pFontPreviewPositionX = -1;
-		}
-	};
-
 	static void s_combo_changed(GtkComboBox * combo, _wd * wd)
 	{
 		UT_return_if_fail(wd);
@@ -441,8 +385,11 @@ public:									// we create...
 		const char *text;
 		// TODO Rob: move this into ev_UnixFontCombo
 		gchar *buffer = nullptr;
-		GtkTreeModel *model = gtk_combo_box_get_model (combo);
-		if (GTK_IS_TREE_MODEL_SORT (model)) {
+		GtkTreeModel *model =
+			GTK_IS_COMBO_BOX (combo) ? gtk_combo_box_get_model (combo) : nullptr;
+		if (ABI_IS_FONT_COMBO (combo)) {
+			buffer = abi_font_combo_get_active_text (ABI_FONT_COMBO (combo));
+		} else if (model && GTK_IS_TREE_MODEL_SORT (model)) {
 
 			GtkTreeIter sort_iter;
 			gtk_combo_box_get_active_iter (combo, &sort_iter);
@@ -452,7 +399,7 @@ public:									// we create...
 
 			GtkTreeModel *store = gtk_tree_model_sort_get_model (GTK_TREE_MODEL_SORT (model));
 			gtk_tree_model_get (store, &iter, 0, &buffer, -1);
-		} else {
+		} else if (GTK_IS_COMBO_BOX_TEXT (combo)) {
 			buffer = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT(combo));
 			// combos with an entry (font size) may hold a value that is
 			// not in the list; gtk_combo_box_text_get_active_text then
@@ -474,12 +421,6 @@ public:									// we create...
 			if (font) {
 				g_free (buffer);
 				buffer = g_strdup (font);
-			}
-			if (wd->m_pUnixToolbar->m_pFontPreview) {
-				UT_DEBUGMSG(("ev_UnixToolbar - deleting FontPreview %p \n",wd->m_pUnixToolbar));
-			    delete wd->m_pUnixToolbar->m_pFontPreview;
-				wd->m_pUnixToolbar->m_pFontPreview = nullptr;
-				wd->m_pUnixToolbar->m_pFontPreviewPositionX = -1;
 			}
 		}
 
@@ -618,8 +559,6 @@ EV_UnixToolbar::EV_UnixToolbar(XAP_UnixApp 	*pUnixApp,
   : EV_Toolbar(pUnixApp->getEditMethodContainer(),
 			   szToolbarLayoutName,
 			   szToolbarLabelSetName), 
-	m_pFontPreview(nullptr),
-	m_pFontPreviewPositionX(-1),
 	m_pUnixApp(pUnixApp),
 	m_pFrame(pFrame),
 	m_pViewListener(nullptr),
@@ -904,20 +843,8 @@ bool EV_UnixToolbar::synthesize(void)
 					gtk_widget_add_controller (GTK_WIDGET (entry), keyController);
 				}
 				else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT) {
-					gulong handler_id;
 					combo = abi_font_combo_new ();
 					gtk_widget_set_name (combo, "AbiFontCombo");
-					handler_id = g_signal_connect (G_OBJECT(combo), "prelight", 
-												    G_CALLBACK(_wd::s_font_prelight), 
-												    wd);
-					g_signal_connect (G_OBJECT(combo), "popup-opened", 
-									  G_CALLBACK(_wd::s_font_popup_opened), 
-									  wd);
-					g_signal_connect (G_OBJECT(combo), "popup-closed", 
-									  G_CALLBACK(_wd::s_font_popup_closed), 
-									  wd);
-					g_object_set_data (G_OBJECT (combo), PROP_HANDLER_ID,
-									   GUINT_TO_POINTER(handler_id));
 				}
 				else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_ZOOM) {
 					combo = gtk_combo_box_text_new();
@@ -1189,7 +1116,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					UT_nonnull_or_return(wd, false);
 					UT_nonnull_or_return(wd->m_widget, false);
 
-					GtkComboBox * combo = GTK_COMBO_BOX(wd->m_widget);
+					GtkComboBox * combo = (GtkComboBox*)wd->m_widget; /* font combo is a GtkBox wrapper, not GtkComboBox */
 					UT_ASSERT(combo);
 					// Disable/enable toolbar combo
 					gtk_widget_set_sensitive(GTK_WIDGET(combo), !bGrayed);
@@ -1198,7 +1125,10 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					bool wasBlocked = wd->m_blockSignal;
 					wd->m_blockSignal = true;
 					if (!szState) {
-						gtk_combo_box_set_active (combo, -1);
+						if (ABI_IS_FONT_COMBO (combo))
+							abi_font_combo_unselect (ABI_FONT_COMBO (combo));
+						else
+							gtk_combo_box_set_active (combo, -1);
 					}
 					else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE) {
 						const char * fsz = XAP_EncodingManager::fontsizes_mapping.lookupBySource(szState);
@@ -1243,14 +1173,6 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 							// reflects the real zoom (Debian #1010880)
 							gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT(combo), szState);
 							combo_box_set_active_text(combo, szState, wd->m_handlerId);
-						}
-					} 
-					if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT) {
-						if (wd->m_pUnixToolbar->m_pFontPreview) {
-							UT_DEBUGMSG(("ev_UnixToolbar - deleting FontPreview %p \n",wd->m_pUnixToolbar));
-						    delete wd->m_pUnixToolbar->m_pFontPreview;
-							wd->m_pUnixToolbar->m_pFontPreview = nullptr;
-							wd->m_pUnixToolbar->m_pFontPreviewPositionX = 0;
 						}
 					}
 					wd->m_blockSignal = wasBlocked;					
@@ -1354,7 +1276,7 @@ bool EV_UnixToolbar::repopulateStyles(void)
 	EV_Toolbar_Control * pControl = pFactory->getControl(this, id);
 	AP_UnixToolbar_StyleCombo * pStyleC = static_cast<AP_UnixToolbar_StyleCombo *>(pControl);
 	pStyleC->repopulate();
-	GtkComboBox * combo = GTK_COMBO_BOX(wd->m_widget);
+	GtkComboBox * combo = (GtkComboBox*)wd->m_widget; /* font combo is a GtkBox wrapper, not GtkComboBox */
 	GtkTreeModel *model = gtk_combo_box_get_model(combo);
 //
 // Now the combo box has to be refilled from this
