@@ -160,8 +160,10 @@ bool AP_UnixToolbar_StyleCombo::repopulate(void)
 		if(!pStyle) {
 			continue;
 		}
-		if (!pStyle->isDisplayed() && 
-		    !(dynamic_cast<const PD_BuiltinStyle *>(pStyle) && pStyle->isList() && pStyle->isUsed())) {
+		// List styles (Bullet/Numbered/Dashed List, ...) are not paragraph
+		// styles — LibreOffice keeps them out of the style box too; lists
+		// are applied with the toolbar list buttons instead.
+		if (pStyle->isList() || !pStyle->isDisplayed()) {
 			continue;
 		}
 
