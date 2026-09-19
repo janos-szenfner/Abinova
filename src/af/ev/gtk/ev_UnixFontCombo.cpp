@@ -45,7 +45,10 @@ font_item_setup (GtkSignalListItemFactory * /*factory*/,
 	GtkWidget *label = gtk_label_new (nullptr);
 	gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
 	gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
-	gtk_label_set_max_width_chars (GTK_LABEL (label), 30);
+	/* The popup sizes to content; give every row a minimum width so the
+	 * font list is wide enough to read, like the LibreOffice font box. */
+	gtk_label_set_width_chars (GTK_LABEL (label), 45);
+	gtk_label_set_max_width_chars (GTK_LABEL (label), 60);
 	gtk_label_set_single_line_mode (GTK_LABEL (label), TRUE);
 	gtk_list_item_set_child (item, label);
 }
@@ -229,14 +232,14 @@ abi_font_combo_new (void)
 	GtkExpression *search_expr =
 		gtk_property_expression_new (GTK_TYPE_STRING_OBJECT, nullptr, "string");
 
+	/* the expression must be set before the factories: setting an
+	 * expression afterwards makes GtkDropDown reinstall its default
+	 * factory, and the button would show the selected item's text */
 	self->dropdown = gtk_drop_down_new (G_LIST_MODEL (g_object_ref (self->sort)),
-										nullptr);
-	g_object_set (self->dropdown,
-				  "factory", button_factory,
-				  "list-factory", list_factory,
-				  "enable-search", TRUE,
-				  "expression", search_expr,
-				  nullptr);
+										search_expr);
+	gtk_drop_down_set_factory (GTK_DROP_DOWN (self->dropdown), button_factory);
+	gtk_drop_down_set_list_factory (GTK_DROP_DOWN (self->dropdown), list_factory);
+	gtk_drop_down_set_enable_search (GTK_DROP_DOWN (self->dropdown), TRUE);
 	gtk_box_append (GTK_BOX (self), self->dropdown);
 
 	g_object_unref (list_factory);
