@@ -106,6 +106,11 @@ void AP_UnixDialog_MetaData::eventOK ()
 	GRAB_ENTRY_TEXT(Relation);
 	GRAB_ENTRY_TEXT(Coverage);
 	GRAB_ENTRY_TEXT(Rights);
+	GRAB_ENTRY_TEXT(LastSavedBy);
+	GRAB_ENTRY_TEXT(Manager);
+	GRAB_ENTRY_TEXT(Company);
+	GRAB_ENTRY_TEXT(Template);
+	GRAB_ENTRY_TEXT(Status);
 	
 	GtkTextIter start, end;
 	
@@ -148,6 +153,22 @@ GtkWidget * AP_UnixDialog_MetaData::_constructWindow ()
 	m_entryRelation = GTK_WIDGET(gtk_builder_get_object(builder, "enRelation"));
 	m_entryCoverage = GTK_WIDGET(gtk_builder_get_object(builder, "enCoverage"));
 	m_entryRights = GTK_WIDGET(gtk_builder_get_object(builder, "enRights"));
+	m_entryLastSavedBy = GTK_WIDGET(gtk_builder_get_object(builder, "enLastSavedBy"));
+	m_entryManager = GTK_WIDGET(gtk_builder_get_object(builder, "enManager"));
+	m_entryCompany = GTK_WIDGET(gtk_builder_get_object(builder, "enCompany"));
+	m_entryTemplate = GTK_WIDGET(gtk_builder_get_object(builder, "enTemplate"));
+	m_entryStatus = GTK_WIDGET(gtk_builder_get_object(builder, "enStatus"));
+	m_valCreated = GTK_WIDGET(gtk_builder_get_object(builder, "valCreated"));
+	m_valModified = GTK_WIDGET(gtk_builder_get_object(builder, "valModified"));
+	m_valPrinted = GTK_WIDGET(gtk_builder_get_object(builder, "valPrinted"));
+	m_valSavedBy = GTK_WIDGET(gtk_builder_get_object(builder, "valSavedBy"));
+	m_valRevision = GTK_WIDGET(gtk_builder_get_object(builder, "valRevision"));
+	m_valEditingTime = GTK_WIDGET(gtk_builder_get_object(builder, "valEditingTime"));
+	m_valPages = GTK_WIDGET(gtk_builder_get_object(builder, "valPages"));
+	m_valParas = GTK_WIDGET(gtk_builder_get_object(builder, "valParas"));
+	m_valLines = GTK_WIDGET(gtk_builder_get_object(builder, "valLines"));
+	m_valWords = GTK_WIDGET(gtk_builder_get_object(builder, "valWords"));
+	m_valChars = GTK_WIDGET(gtk_builder_get_object(builder, "valChars"));
 	
 	// set the dialog title
 	std::string s;
@@ -170,9 +191,28 @@ GtkWidget * AP_UnixDialog_MetaData::_constructWindow ()
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbRelation")), pSS, AP_STRING_ID_DLG_MetaData_Relation_LBL);
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbCoverage")), pSS, AP_STRING_ID_DLG_MetaData_Coverage_LBL);
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbRights")), pSS, AP_STRING_ID_DLG_MetaData_Rights_LBL);
-	
+
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbLastSavedBy")), pSS, AP_STRING_ID_DLG_MetaData_LastSavedBy_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbManager")), pSS, AP_STRING_ID_DLG_MetaData_Manager_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbCompany")), pSS, AP_STRING_ID_DLG_MetaData_Company_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbTemplate")), pSS, AP_STRING_ID_DLG_MetaData_Template_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbStatus")), pSS, AP_STRING_ID_DLG_MetaData_Status_LBL);
+
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbCreated")), pSS, AP_STRING_ID_DLG_MetaData_Created_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbModified")), pSS, AP_STRING_ID_DLG_MetaData_Modified_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbPrinted")), pSS, AP_STRING_ID_DLG_MetaData_Printed_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbSavedBy")), pSS, AP_STRING_ID_DLG_MetaData_LastSavedBy_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbRevision")), pSS, AP_STRING_ID_DLG_MetaData_Revision_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbEditingTime")), pSS, AP_STRING_ID_DLG_MetaData_EditingTime_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbPages")), pSS, AP_STRING_ID_DLG_MetaData_Pages_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbParas")), pSS, AP_STRING_ID_DLG_MetaData_Paragraphs_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbLines")), pSS, AP_STRING_ID_DLG_MetaData_Lines_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbWords")), pSS, AP_STRING_ID_DLG_MetaData_Words_LBL);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbChars")), pSS, AP_STRING_ID_DLG_MetaData_Characters_LBL);
+
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbGeneral_Tab")), pSS, AP_STRING_ID_DLG_MetaData_TAB_General);
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbSummary_Tab")), pSS, AP_STRING_ID_DLG_MetaData_TAB_Summary);
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbStatistics_Tab")), pSS, AP_STRING_ID_DLG_MetaData_TAB_Statistics);
 	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbPermissions_Tab")), pSS, AP_STRING_ID_DLG_MetaData_TAB_Permission);
 	
 	// now set the text in all the fields
@@ -196,8 +236,38 @@ GtkWidget * AP_UnixDialog_MetaData::_constructWindow ()
 	SET_ENTRY_TXT(Relation)
 	SET_ENTRY_TXT(Coverage)
 	SET_ENTRY_TXT(Rights)
-	
+	SET_ENTRY_TXT(LastSavedBy)
+	SET_ENTRY_TXT(Manager)
+	SET_ENTRY_TXT(Company)
+	SET_ENTRY_TXT(Template)
+	SET_ENTRY_TXT(Status)
+
 	#undef SET_ENTRY_TXT
+
+	#define SET_STAT_TXT(field, member) \
+	prop = get##field () ; \
+	if ( !prop.empty () ) { \
+		gtk_label_set_text(GTK_LABEL(member), prop.c_str()) ; \
+	}
+
+	SET_STAT_TXT(StatCreated, m_valCreated)
+	SET_STAT_TXT(StatModified, m_valModified)
+	SET_STAT_TXT(StatPrinted, m_valPrinted)
+	SET_STAT_TXT(StatRevision, m_valRevision)
+	SET_STAT_TXT(StatEditingTime, m_valEditingTime)
+	SET_STAT_TXT(StatPages, m_valPages)
+	SET_STAT_TXT(StatParas, m_valParas)
+	SET_STAT_TXT(StatLines, m_valLines)
+	SET_STAT_TXT(StatWords, m_valWords)
+	SET_STAT_TXT(StatChars, m_valChars)
+
+	// the statistics tab shows the "last saved by" value too
+	prop = getLastSavedBy () ;
+	if ( !prop.empty () ) {
+		gtk_label_set_text(GTK_LABEL(m_valSavedBy), prop.c_str()) ;
+	}
+
+	#undef SET_STAT_TXT
 	
 	prop = getDescription ();
 	if ( !prop.empty() )

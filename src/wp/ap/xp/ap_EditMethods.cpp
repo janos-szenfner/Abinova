@@ -3461,7 +3461,10 @@ Defun1(dlgMetaData)
     pDialog->setPublisher ( prop ) ;
   if ( pDocument->getMetaDataProp ( PD_META_KEY_CONTRIBUTOR, prop ) )
     pDialog->setCoAuthor ( prop ) ;
-  if ( pDocument->getMetaDataProp ( PD_META_KEY_TYPE, prop ) )
+  // Category is its own property (Word's cp:category); documents saved
+  // by older AbiWord versions kept it under dc.type, so fall back
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_CATEGORY, prop ) ||
+       pDocument->getMetaDataProp ( PD_META_KEY_TYPE, prop ) )
     pDialog->setCategory ( prop ) ;
   if ( pDocument->getMetaDataProp ( PD_META_KEY_KEYWORDS, prop ) )
     pDialog->setKeywords ( prop ) ;
@@ -3477,6 +3480,37 @@ Defun1(dlgMetaData)
     pDialog->setRights ( prop ) ;
   if ( pDocument->getMetaDataProp ( PD_META_KEY_DESCRIPTION, prop ) )
     pDialog->setDescription ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_LASTMODIFIEDBY, prop ) )
+    pDialog->setLastSavedBy ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_MANAGER, prop ) )
+    pDialog->setManager ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_COMPANY, prop ) )
+    pDialog->setCompany ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_TEMPLATE, prop ) )
+    pDialog->setTemplate ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_CONTENTSTATUS, prop ) )
+    pDialog->setStatus ( prop ) ;
+
+  // statistics: stored document dates plus live counts, Word-style
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_DATE, prop ) )
+    pDialog->setStatCreated ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_DATE_LAST_CHANGED, prop ) )
+    pDialog->setStatModified ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_LASTPRINTED, prop ) )
+    pDialog->setStatPrinted ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_REVISION, prop ) )
+    pDialog->setStatRevision ( prop ) ;
+  if ( pDocument->getMetaDataProp ( PD_META_KEY_EDITING_DURATION, prop ) )
+    pDialog->setStatEditingTime ( prop + " min" ) ;
+
+  {
+    FV_DocCount cnt = pView->countWords(true);
+    pDialog->setStatPages ( std::to_string(cnt.page) ) ;
+    pDialog->setStatParas ( std::to_string(cnt.para) ) ;
+    pDialog->setStatLines ( std::to_string(cnt.line) ) ;
+    pDialog->setStatWords ( std::to_string(cnt.word) ) ;
+    pDialog->setStatChars ( std::to_string(cnt.ch_sp) ) ;
+  }
 
   // run the dialog
 
@@ -3491,7 +3525,7 @@ Defun1(dlgMetaData)
       pDocument->setMetaDataProp ( PD_META_KEY_CREATOR, pDialog->getAuthor() ) ;
       pDocument->setMetaDataProp ( PD_META_KEY_PUBLISHER, pDialog->getPublisher() ) ;
       pDocument->setMetaDataProp ( PD_META_KEY_CONTRIBUTOR, pDialog->getCoAuthor() ) ;
-      pDocument->setMetaDataProp ( PD_META_KEY_TYPE, pDialog->getCategory() ) ;
+      pDocument->setMetaDataProp ( PD_META_KEY_CATEGORY, pDialog->getCategory() ) ;
       pDocument->setMetaDataProp ( PD_META_KEY_KEYWORDS, pDialog->getKeywords() ) ;
       pDocument->setMetaDataProp ( PD_META_KEY_LANGUAGE, pDialog->getLanguages() ) ;
       pDocument->setMetaDataProp ( PD_META_KEY_SOURCE, pDialog->getSource() ) ;
@@ -3499,6 +3533,11 @@ Defun1(dlgMetaData)
       pDocument->setMetaDataProp ( PD_META_KEY_COVERAGE, pDialog->getCoverage() ) ;
       pDocument->setMetaDataProp ( PD_META_KEY_RIGHTS, pDialog->getRights() ) ;
       pDocument->setMetaDataProp ( PD_META_KEY_DESCRIPTION, pDialog->getDescription() ) ;
+      pDocument->setMetaDataProp ( PD_META_KEY_LASTMODIFIEDBY, pDialog->getLastSavedBy() ) ;
+      pDocument->setMetaDataProp ( PD_META_KEY_MANAGER, pDialog->getManager() ) ;
+      pDocument->setMetaDataProp ( PD_META_KEY_COMPANY, pDialog->getCompany() ) ;
+      pDocument->setMetaDataProp ( PD_META_KEY_TEMPLATE, pDialog->getTemplate() ) ;
+      pDocument->setMetaDataProp ( PD_META_KEY_CONTENTSTATUS, pDialog->getStatus() ) ;
 
 	  for(UT_sint32 i = 0;i < pApp->getFrameCount();++i)
 	  {

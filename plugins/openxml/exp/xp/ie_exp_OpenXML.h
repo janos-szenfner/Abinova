@@ -202,6 +202,7 @@ protected:
     virtual UT_Error _writeDocument(void) override;
 
 private:
+	UT_Error _writeDocProps();
 	PD_Document* m_pDoc;
 	GsfOutfile* root; //.docx file zip root
 	GsfOutfile* relsDir; // _rels

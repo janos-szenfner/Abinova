@@ -164,6 +164,33 @@ enum: uint8_t
 // the creator (product) of this document. AbiWord, KWord, etc...
 #define PD_META_KEY_GENERATOR         "abiword.generator"
 
+// the category of the document (OOXML cp:category, MS Word "Category")
+#define PD_META_KEY_CATEGORY          "abiword.category"
+
+// the user who last modified the document (OOXML cp:lastModifiedBy)
+#define PD_META_KEY_LASTMODIFIEDBY    "abiword.last_modified_by"
+
+// the revision/save counter of the document (OOXML cp:revision)
+#define PD_META_KEY_REVISION          "abiword.revision"
+
+// the last time this document was printed (OOXML cp:lastPrinted)
+#define PD_META_KEY_LASTPRINTED       "abiword.last_printed"
+
+// the company associated with the document (OOXML app.xml Company)
+#define PD_META_KEY_COMPANY           "abiword.company"
+
+// the manager associated with the document (OOXML app.xml Manager)
+#define PD_META_KEY_MANAGER           "abiword.manager"
+
+// the template the document was created from (OOXML app.xml Template)
+#define PD_META_KEY_TEMPLATE          "abiword.template"
+
+// total editing time, in minutes (MS Word "Total editing time")
+#define PD_META_KEY_EDITING_DURATION  "abiword.editing_duration"
+
+// the content status of the document (OOXML cp:contentStatus)
+#define PD_META_KEY_CONTENTSTATUS     "abiword.content_status"
+
 class ABI_EXPORT  ImagePage
 {
 public:

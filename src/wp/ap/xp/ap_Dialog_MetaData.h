@@ -65,6 +65,23 @@ public:
 	DCL_PROP(Relation)
 	DCL_PROP(Coverage)
 	DCL_PROP(Rights)
+	DCL_PROP(LastSavedBy)
+	DCL_PROP(Manager)
+	DCL_PROP(Company)
+	DCL_PROP(Template)
+	DCL_PROP(Status)
+
+	/* read-only document statistics, MS-Word style */
+	DCL_PROP(StatCreated)
+	DCL_PROP(StatModified)
+	DCL_PROP(StatPrinted)
+	DCL_PROP(StatRevision)
+	DCL_PROP(StatEditingTime)
+	DCL_PROP(StatPages)
+	DCL_PROP(StatWords)
+	DCL_PROP(StatChars)
+	DCL_PROP(StatParas)
+	DCL_PROP(StatLines)
 
  protected:
 

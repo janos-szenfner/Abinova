@@ -26,6 +26,32 @@
 
 // Abiword includes
 #include "ut_std_string.h"
+#include "pd_Document.h"
+
+namespace {
+
+/*
+ * True when the value looks like an ISO-8601/W3CDTF date-time
+ * ("2024-03-15T10:30:00Z" or "2024-03-15").  Word requires typed
+ * xsd:dateTime values for dcterms dates, so anything else is skipped
+ * rather than written out malformed.
+ */
+bool _looksLikeISODate(const std::string & val)
+{
+	if (val.size() < 10)
+		return false;
+	return g_ascii_isdigit(val[0]) && g_ascii_isdigit(val[1]) &&
+		g_ascii_isdigit(val[2]) && g_ascii_isdigit(val[3]) &&
+		val[4] == '-' && g_ascii_isdigit(val[5]) && g_ascii_isdigit(val[6]) &&
+		val[7] == '-' && g_ascii_isdigit(val[8]) && g_ascii_isdigit(val[9]);
+}
+
+std::string _escape(const std::string & val)
+{
+	return UT_escapeXML(val);
+}
+
+} // anonymous namespace
 
 /**
  * Constructor
@@ -135,7 +161,11 @@ UT_Error IE_Exp_OpenXML::startDocument()
 	error = startWordMedia();
 	if(error != UT_OK)
 		return error;
-	
+
+	error = _writeDocProps();
+	if(error != UT_OK)
+		return error;
+
 	error = startMainPart();
 	if(error != UT_OK)
 		return error;
@@ -2198,6 +2228,106 @@ UT_Error IE_Exp_OpenXML::finishStyles()
 }
 
 /**
+ * Writes docProps/core.xml and docProps/app.xml from the document's
+ * meta-data map so Word's document properties survive export.
+ * Only properties that are actually set are written.
+ */
+UT_Error IE_Exp_OpenXML::_writeDocProps()
+{
+	GsfOutfile * propsDir =
+		GSF_OUTFILE(gsf_outfile_new_child(root, "docProps", TRUE));
+	if (!propsDir)
+		return UT_SAVE_EXPORTERROR;
+
+	std::string val;
+
+	// append "<prefix:name>escaped value</prefix:name>" when the meta
+	// key is present and non-empty
+	auto prop = [&](const char * szKey, const char * szElement,
+					std::string & xml)
+	{
+		if (m_pDoc->getMetaDataProp(szKey, val) && !val.empty())
+			xml += "<" + std::string(szElement) + ">" + _escape(val) +
+				"</" + szElement + ">\n";
+	};
+
+	// ---------- core.xml ----------
+	std::string core(
+		"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+		"<cp:coreProperties"
+		" xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\""
+		" xmlns:dc=\"http://purl.org/dc/elements/1.1/\""
+		" xmlns:dcterms=\"http://purl.org/dc/terms/\""
+		" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n");
+
+	prop(PD_META_KEY_TITLE, "dc:title", core);
+	prop(PD_META_KEY_SUBJECT, "dc:subject", core);
+	prop(PD_META_KEY_CREATOR, "dc:creator", core);
+	prop(PD_META_KEY_KEYWORDS, "cp:keywords", core);
+	prop(PD_META_KEY_DESCRIPTION, "dc:description", core);
+	prop(PD_META_KEY_LASTMODIFIEDBY, "cp:lastModifiedBy", core);
+	prop(PD_META_KEY_REVISION, "cp:revision", core);
+	prop(PD_META_KEY_CATEGORY, "cp:category", core);
+	prop(PD_META_KEY_CONTENTSTATUS, "cp:contentStatus", core);
+	prop(PD_META_KEY_LANGUAGE, "dc:language", core);
+
+	// dcterms dates must be typed W3CDTF values for Word to accept them
+	if (m_pDoc->getMetaDataProp(PD_META_KEY_DATE, val) && _looksLikeISODate(val))
+		core += "<dcterms:created xsi:type=\"dcterms:W3CDTF\">" +
+			_escape(val) + "</dcterms:created>\n";
+	if (m_pDoc->getMetaDataProp(PD_META_KEY_DATE_LAST_CHANGED, val) &&
+		_looksLikeISODate(val))
+		core += "<dcterms:modified xsi:type=\"dcterms:W3CDTF\">" +
+			_escape(val) + "</dcterms:modified>\n";
+	if (m_pDoc->getMetaDataProp(PD_META_KEY_LASTPRINTED, val) &&
+		_looksLikeISODate(val))
+		core += "<cp:lastPrinted>" + _escape(val) + "</cp:lastPrinted>\n";
+
+	core += "</cp:coreProperties>";
+
+	GsfOutput * coreFile = gsf_outfile_new_child(propsDir, "core.xml", FALSE);
+	if (!coreFile)
+		return UT_SAVE_EXPORTERROR;
+	if (!gsf_output_write(coreFile, core.size(),
+						 reinterpret_cast<const guint8 *>(core.c_str())) ||
+		!gsf_output_close(coreFile))
+		return UT_SAVE_EXPORTERROR;
+
+	// ---------- app.xml ----------
+	std::string app(
+		"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+		"<Properties"
+		" xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\""
+		" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">\n");
+
+	if (m_pDoc->getMetaDataProp(PD_META_KEY_TEMPLATE, val) && !val.empty())
+		app += "<Template>" + _escape(val) + "</Template>\n";
+	else
+		app += "<Template>Normal.dotm</Template>\n";
+
+	if (m_pDoc->getMetaDataProp(PD_META_KEY_EDITING_DURATION, val) &&
+		!val.empty() && val.find_first_not_of("0123456789") == std::string::npos)
+		app += "<TotalTime>" + val + "</TotalTime>\n";
+
+	prop(PD_META_KEY_MANAGER, "Manager", app);
+	prop(PD_META_KEY_COMPANY, "Company", app);
+
+	app += "<Application>" + _escape(std::string("AbiWord/") + PACKAGE_VERSION) +
+		"</Application>\n";
+	app += "</Properties>";
+
+	GsfOutput * appFile = gsf_outfile_new_child(propsDir, "app.xml", FALSE);
+	if (!appFile)
+		return UT_SAVE_EXPORTERROR;
+	if (!gsf_output_write(appFile, app.size(),
+						 reinterpret_cast<const guint8 *>(app.c_str())) ||
+		!gsf_output_close(appFile))
+		return UT_SAVE_EXPORTERROR;
+
+	return UT_OK;
+}
+
+/**
  * Starts the [Content_Types].xml file which describes the contents of the package
  */
 UT_Error IE_Exp_OpenXML::startContentTypes()
@@ -2241,6 +2371,10 @@ UT_Error IE_Exp_OpenXML::startContentTypes()
 	str += "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml\"/>";
 	str += "<Override PartName=\"/word/endnotes.xml\" ";
 	str += "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml\"/>";
+	str += "<Override PartName=\"/docProps/core.xml\" ";
+	str += "ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>";
+	str += "<Override PartName=\"/docProps/app.xml\" ";
+	str += "ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/>";
 
 	return writeTargetStream(TARGET_CONTENT, str.c_str());
 }
@@ -2310,7 +2444,13 @@ UT_Error IE_Exp_OpenXML::startRelations()
 	str += "<Relationship Id=\"rId1\" ";
 	str += "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" ";
 	str += "Target=\"word/document.xml\"/>";
-	
+	str += "<Relationship Id=\"rId2\" ";
+	str += "Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" ";
+	str += "Target=\"docProps/core.xml\"/>";
+	str += "<Relationship Id=\"rId3\" ";
+	str += "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" ";
+	str += "Target=\"docProps/app.xml\"/>";
+
 	return writeTargetStream(TARGET_RELATION, str.c_str());
 
 }

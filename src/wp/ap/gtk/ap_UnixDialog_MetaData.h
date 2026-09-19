@@ -61,6 +61,22 @@ class AP_UnixDialog_MetaData: public AP_Dialog_MetaData
 	GtkWidget * m_entryRelation;
 	GtkWidget * m_entryCoverage;
 	GtkWidget * m_entryRights;
+	GtkWidget * m_entryLastSavedBy;
+	GtkWidget * m_entryManager;
+	GtkWidget * m_entryCompany;
+	GtkWidget * m_entryTemplate;
+	GtkWidget * m_entryStatus;
+	GtkWidget * m_valCreated;
+	GtkWidget * m_valModified;
+	GtkWidget * m_valPrinted;
+	GtkWidget * m_valSavedBy;
+	GtkWidget * m_valRevision;
+	GtkWidget * m_valEditingTime;
+	GtkWidget * m_valPages;
+	GtkWidget * m_valParas;
+	GtkWidget * m_valLines;
+	GtkWidget * m_valWords;
+	GtkWidget * m_valChars;
 };
 
 #endif /* AP_UNIXDIALOG_METADATA_H */

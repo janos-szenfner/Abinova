@@ -88,6 +88,19 @@
                     <property name="can-focus">1</property>
                   <layout><property name="column">1</property><property name="row">4</property></layout></object>
                   </child>
+                <child>
+                  <object class="GtkLabel" id="lbLastSavedBy">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Last saved by:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">5</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkEntry" id="enLastSavedBy">
+                    <property name="visible">1</property>
+                    <property name="can-focus">1</property>
+                  <layout><property name="column">1</property><property name="row">5</property></layout></object>
+                  </child>
               </object>
             </child>
             <child type="tab">
@@ -128,17 +141,69 @@
                   <layout><property name="column">1</property><property name="row">1</property></layout></object>
                   </child>
                 <child>
+                  <object class="GtkLabel" id="lbManager">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Manager:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">2</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkEntry" id="enManager">
+                    <property name="visible">1</property>
+                    <property name="can-focus">1</property>
+                  <layout><property name="column">1</property><property name="row">2</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbCompany">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Company:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">3</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkEntry" id="enCompany">
+                    <property name="visible">1</property>
+                    <property name="can-focus">1</property>
+                  <layout><property name="column">1</property><property name="row">3</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbTemplate">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Template:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">4</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkEntry" id="enTemplate">
+                    <property name="visible">1</property>
+                    <property name="can-focus">1</property>
+                  <layout><property name="column">1</property><property name="row">4</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbStatus">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Status:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">5</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkEntry" id="enStatus">
+                    <property name="visible">1</property>
+                    <property name="can-focus">1</property>
+                  <layout><property name="column">1</property><property name="row">5</property></layout></object>
+                  </child>
+                <child>
                   <object class="GtkLabel" id="lbLanguages">
                     <property name="visible">1</property>
                     <property name="label" translatable="yes">Language(s):</property>
                     <property name="xalign">0</property>
-                  <layout><property name="column">0</property><property name="row">2</property></layout></object>
+                  <layout><property name="column">0</property><property name="row">6</property></layout></object>
                   </child>
                 <child>
                   <object class="GtkEntry" id="enLanguages">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                  <layout><property name="column">1</property><property name="row">2</property></layout></object>
+                  <layout><property name="column">1</property><property name="row">6</property></layout></object>
                   </child>
                 <child>
                   <object class="GtkScrolledWindow" id="swDescription">
@@ -153,7 +218,7 @@
                         <property name="wrap-mode">word</property>
                       </object>
                     </child>
-                  <layout><property name="column">1</property><property name="row">3</property></layout></object>
+                  <layout><property name="column">1</property><property name="row">7</property></layout></object>
                   </child>
                 <child>
                   <object class="GtkLabel" id="lbDescription">
@@ -161,7 +226,7 @@
                     <property name="label" translatable="yes">Description:</property>
                     <property name="xalign">0</property>
                     <property name="yalign">0</property>
-                  <layout><property name="column">0</property><property name="row">3</property></layout></object>
+                  <layout><property name="column">0</property><property name="row">7</property></layout></object>
                   </child>
               </object>
               </child>
@@ -169,6 +234,178 @@
               <object class="GtkLabel" id="lbSummary_Tab">
                 <property name="visible">1</property>
                 <property name="label" translatable="yes">Summary</property>
+              </object>
+              </child>
+            <child>
+              <object class="GtkGrid" id="grStatistics">
+                <property name="visible">1</property>
+                <property name="row-spacing">6</property>
+                <property name="column-spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="lbCreated">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Created:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">0</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valCreated">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">0</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbModified">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Modified:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">1</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valModified">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">1</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbPrinted">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Last printed:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">2</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valPrinted">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">2</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbSavedBy">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Last saved by:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">3</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valSavedBy">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">3</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbRevision">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Revision:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">4</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valRevision">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">4</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbEditingTime">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Total editing time:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">5</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valEditingTime">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">5</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="visible">1</property>
+                  <layout><property name="column">0</property><property name="row">6</property><property name="column-span">2</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbPages">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Pages:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">7</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valPages">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">7</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbParas">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Paragraphs:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">8</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valParas">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">8</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbLines">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Lines:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">9</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valLines">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">9</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbWords">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Words:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">10</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valWords">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">10</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="lbChars">
+                    <property name="visible">1</property>
+                    <property name="label" translatable="yes">Characters:</property>
+                    <property name="xalign">0</property>
+                  <layout><property name="column">0</property><property name="row">11</property></layout></object>
+                  </child>
+                <child>
+                  <object class="GtkLabel" id="valChars">
+                    <property name="visible">1</property>
+                    <property name="xalign">0</property>
+                    <property name="selectable">1</property>
+                  <layout><property name="column">1</property><property name="row">11</property></layout></object>
+                  </child>
+              </object>
+              </child>
+            <child type="tab">
+              <object class="GtkLabel" id="lbStatistics_Tab">
+                <property name="visible">1</property>
+                <property name="label" translatable="yes">Statistics</property>
               </object>
               </child>
             <child>

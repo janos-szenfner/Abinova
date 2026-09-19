@@ -678,6 +678,10 @@ void GR_UnixCairoGraphics::fillRect(GR_Color3D c, UT_sint32 x, UT_sint32 y,
 			UT_ASSERT(0);
 			return;
 		}
+		if (context == nullptr) {
+			cairo_restore (m_cr);
+			return;
+		}
 		gtk_render_background (context, m_cr, tdu(x), tdu(y), tdu(w), tdu(h));
 		gtk_render_frame (context, m_cr, tdu(x), tdu(y), tdu(w), tdu(h));
 		cairo_restore (m_cr);
