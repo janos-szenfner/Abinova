@@ -82,6 +82,9 @@ public:
 	virtual GR_Image *  genImageFromRectangle(const UT_Rect & r) override;
 
 	void				init3dColors(GtkWidget* w);
+	/* override a theme-derived 3D color with an explicit value (used by
+	 * the rulers, whose background is a fixed light gray/white) */
+	void				override3DColor(GR_Color3D name, const UT_RGBColor & color);
 	virtual bool		queryProperties(GR_Graphics::Properties gp) const override;
 
 	/** In the UnixCairoGraphics, color3D are mostly invalid. */

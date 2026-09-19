@@ -166,7 +166,7 @@ void GR_UnixCairoGraphics::_initWidget()
 
 #define COLOR_MIX 0.67   //COLOR_MIX should be between 0 and 1
 #define SQUARE(A) (A)*(A)
-void GR_UnixCairoGraphics::init3dColors(GtkWidget* /*w*/)
+void GR_UnixCairoGraphics::init3dColors(GtkWidget* w)
 {
 	if (m_styleBg) {
 		g_object_unref(m_styleBg);
@@ -216,19 +216,46 @@ void GR_UnixCairoGraphics::init3dColors(GtkWidget* /*w*/)
 	m_3dColors[CLR3D_BevelDown]  = _convertGdkRGBA(rgba_);
 
 
-	g_type_ensure(GTK_TYPE_LABEL);
-	GtkStyleContext *text_style = XAP_GtkStyle_get_style(nullptr, "GtkLabel.view"); // "label.view"
-	gtk_style_context_save (text_style);
-	gtk_style_context_set_state (text_style, GTK_STATE_FLAG_NORMAL);
-	gtk_style_context_get_color (text_style, &rgba2);
-	gtk_style_context_restore (text_style);
-	m_3dColors[CLR3D_Foreground]	= _convertGdkRGBA(rgba2);
-	g_object_unref(text_style);
+	/* Foreground text color: query the real widget when we have one.
+	 * Detached donor widgets are not part of a toplevel hierarchy, so
+	 * in GTK4 their style context resolves to white and ruler/label
+	 * foregrounds paint invisibly on the light 3D background. */
+	if (w)
+	{
+#if GTK_CHECK_VERSION(4, 10, 0)
+		gtk_widget_get_color(w, &rgba2);
+		m_3dColors[CLR3D_Foreground] = _convertGdkRGBA(rgba2);
+#else
+		GtkStyleContext *widget_style = gtk_widget_get_style_context(w);
+		gtk_style_context_save (widget_style);
+		gtk_style_context_set_state (widget_style, GTK_STATE_FLAG_NORMAL);
+		gtk_style_context_get_color (widget_style, &rgba2);
+		gtk_style_context_restore (widget_style);
+		m_3dColors[CLR3D_Foreground] = _convertGdkRGBA(rgba2);
+#endif
+	}
+	else
+	{
+		g_type_ensure(GTK_TYPE_LABEL);
+		GtkStyleContext *text_style = XAP_GtkStyle_get_style(nullptr, "GtkLabel.view"); // "label.view"
+		gtk_style_context_save (text_style);
+		gtk_style_context_set_state (text_style, GTK_STATE_FLAG_NORMAL);
+		gtk_style_context_get_color (text_style, &rgba2);
+		gtk_style_context_restore (text_style);
+		m_3dColors[CLR3D_Foreground]	= _convertGdkRGBA(rgba2);
+		g_object_unref(text_style);
+	}
 
 	m_bHave3DColors = true;
 }
 #undef COLOR_MIX
 #undef SQUARE
+
+void GR_UnixCairoGraphics::override3DColor(GR_Color3D name, const UT_RGBColor & color)
+{
+	UT_ASSERT(name < COUNT_3D_COLORS);
+	m_3dColors[name] = color;
+}
 
 GR_Font * GR_UnixCairoGraphics::getGUIFont(void)
 {

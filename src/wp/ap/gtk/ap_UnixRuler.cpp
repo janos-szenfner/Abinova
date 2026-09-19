@@ -114,10 +114,11 @@ void AP_UnixRuler::_setView(AV_View* pView, GR_UnixCairoGraphics* pG)
 
     pG->setZoomPercentage(pView->getGraphics()->getZoomPercentage());
 
-    GtkWidget* w = gtk_entry_new();
-    g_object_ref_sink(w);
-    pG->init3dColors(w);
-    g_object_unref(w);
+    pG->init3dColors(m_wRuler);
+    /* the ruler background is always a fixed light gray/white, so its
+     * text and tick marks must be unconditionally black to stay
+     * readable under any theme (incl. dark themes with light text) */
+    pG->override3DColor(GR_Graphics::CLR3D_Foreground, UT_RGBColor(0, 0, 0));
 }
 
 void AP_UnixRuler::_fe::realize(AP_UnixRuler* self)
