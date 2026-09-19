@@ -98,6 +98,13 @@ GtkWidget* AP_UnixRuler::_createWidget(gint w, gint h)
     g_signal_connect(G_OBJECT(m_wRuler), "resize",
                      G_CALLBACK(_fe::resized), nullptr);
 
+    /* Draws that happen before the widget is mapped only update the
+     * backing surface (gtk_widget_queue_draw is a no-op while unmapped),
+     * leaving the first, pre-layout paint on screen.  Queue a repaint
+     * once the widget maps so the bands are drawn with real metrics. */
+    g_signal_connect_swapped(G_OBJECT(m_wRuler), "map",
+                             G_CALLBACK(gtk_widget_queue_draw), m_wRuler);
+
     return m_wRuler;
 }
 
@@ -202,6 +209,9 @@ void AP_UnixRuler::_fe::resized(GtkDrawingArea* w, int width, int height, gpoint
     // nb: we'd convert here, but we can't: have no graphics class!
     ruler->setHeight(height);
     ruler->setWidth(width);
+    // The new size invalidates the previous paint; queue a redraw so the
+    // bands, ticks and markers are recomputed for the real allocation.
+    ruler->queueDraw();
 }
 
 void AP_UnixRuler::_fe::motion_notify(GtkEventControllerMotion* c,

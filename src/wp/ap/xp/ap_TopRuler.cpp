@@ -295,7 +295,7 @@ bool AP_TopRuler::notify(AV_View * _pView, const AV_ChangeMask mask)
 	// or the margins) or on the block (like the paragraph
 	// indents),or the page then we redraw the ruler.
 
-	if (mask & (AV_CHG_COLUMN | AV_CHG_FMTSECTION | AV_CHG_FMTBLOCK | AV_CHG_HDRFTR | AV_CHG_CELL))
+	if (mask & (AV_CHG_COLUMN | AV_CHG_FMTSECTION | AV_CHG_FMTBLOCK | AV_CHG_HDRFTR | AV_CHG_CELL | AV_CHG_WINDOWSIZE))
 	{
 	        xxx_UT_DEBUGMSG(("TopRuler redraw from notify \n"));
 	        UT_Rect pClipRect;
@@ -1288,6 +1288,23 @@ void AP_TopRuler::_draw(const UT_Rect * pClipRect, AP_TopRulerInfo * pUseInfo)
 			return;
 		}
 		pView->getTopRulerInfo(pInfo);
+	}
+
+	// Keep the cached scroll offset in sync with the view.  A stale
+	// m_xScrollOffset (e.g. captured before the page was centered) shifts
+	// every ruler band relative to the paper on screen.
+	m_xScrollOffset = pView->getXScrollOffset();
+
+	// paint the whole ruler with the "off-page" gray first — LibreOffice
+	// style.  The white column bars are painted over it below; without a
+	// background the default (white) widget background made the ruler look
+	// like disconnected gray fragments.
+	{
+		UT_Rect rBack(0, 0, getWidth(), m_pG->tlu(s_iFixedHeight));
+		if (!pClipRect || rBack.intersectsRect(pClipRect)) {
+			GR_Painter painter(m_pG);
+			painter.fillRect(GR_Graphics::CLR3D_BevelDown, rBack);
+		}
 	}
 
 	// draw the tab toggle inside the fixed area in the left-hand corner
