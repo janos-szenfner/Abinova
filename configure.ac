@@ -188,13 +188,6 @@ AC_ARG_ENABLE([builtin-plugins],
 	fi
 ])
 
-AC_ARG_ENABLE([menubutton], 
-	[AS_HELP_STRING([--enable-menubutton], [(Gtk+ only) menu-button instead of menu-bar])], 
-[
-	abi_cv_menubutton="$enableval"
-],[
-	abi_cv_menubutton="no"
-])
 
 AC_ARG_ENABLE([print], 
 	[AS_HELP_STRING([--disable-print], [(Gtk+ only) do not include printing support])], 
@@ -728,11 +721,6 @@ if test "$abi_cv_disable_exports" = "yes"; then
 	AC_DEFINE([DISABLE_EXPORTS], [1], [Define to prevent symbols from being exported dynamically])
 fi
 
-if test "$abi_cv_menubutton" = "yes"; then
-	AC_DEFINE([ENABLE_MENUBUTTON], [1], [Define if building menu button support])
-fi
-AM_CONDITIONAL([ENABLE_MENUBUTTON], test "$abi_cv_menubutton" = "yes")
-
 if test "$abi_cv_print" = "yes"; then
 	AC_DEFINE([ENABLE_PRINT], [1], [Define if building printing support])
 fi
@@ -1022,7 +1010,6 @@ Configuration:
   debug                 ${abi_cv_debug}
 
 Optional features:
-  menubutton            ${abi_cv_menubutton}
   printing              ${abi_cv_print}
   spell checking        ${abi_cv_spell}
   status bar            ${abi_cv_statusbar}

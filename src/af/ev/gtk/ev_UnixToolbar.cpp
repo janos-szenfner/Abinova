@@ -65,9 +65,6 @@
 #include "ev_UnixFontCombo.h"
 #include "xap_GtkUtils.h"
 
-#ifdef ENABLE_MENUBUTTON
-#include "ev_UnixMenuBar.h"
-#endif
 
 #define TOOLBAR_HSPACING 6
 #define TOOLBAR_VSPACING 3
@@ -139,58 +136,6 @@ toolbar_append_toggle (GtkBox 	*toolbar,
 	return toolbar_append_item (toolbar, item, tooltip, show);
 }
 
-#ifdef ENABLE_MENUBUTTON
-static void
-menubutton_show_cb (GtkWidget *widget, gpointer data)
-{
-	g_signal_stop_emission_by_name (G_OBJECT (widget), "show");
-	gtk_widget_set_visible(widget, FALSE);
-}
-
-/*!
- * Append a GtkMenuButton to the toolbar.
- */
-static GtkWidget *
-toolbar_append_menubutton (GtkBox 	*toolbar,
-						   GtkWidget    *menu,
-						   const gchar	*icon_name, 
-						   const gchar	*label, 
-						   const gchar  *tooltip,
-						   const gchar  *private_text, 
-						   GCallback	 handler, 
-						   gpointer		 data, 
-						   gulong		*handler_id)
-{
-	GtkWidget *item = gtk_menu_button_new (nullptr, nullptr);
-	gtk_menu_button_set_menu (GTK_MENU_BUTTON (item), menu);
-
-	/* We want to hide the button part of the menu button -- to prevent
-	 * it from showing again when gtk_widget_show () is called on the
-	 * menubutton, we register a callback to the "show" signal, and hide
-	 * it if something tries to show it.
-	 */
-	GtkWidget * button_box = gtk_bin_get_child (GTK_BIN (item));
-	if (button_box)
-	{
-		GList * children =
-			gtk_container_get_children (GTK_CONTAINER (button_box));
-
-		if (children && children->data)
-		{
-			GtkWidget * button = GTK_WIDGET (children->data);
-			gtk_widget_set_visible(button, FALSE);
-
-			g_signal_connect(G_OBJECT (button), "show",
-							 G_CALLBACK (menubutton_show_cb), nullptr);
-
-			g_list_free (children);
-		}
-	}
-	
-	return (GtkWidget *) toolbar_append_item (toolbar, GTK_WIDGET (item), 
-											  tooltip, TRUE);
-}
-#endif
 
 /*!
  * Append a GtkSeparator to the toolbar.
@@ -945,33 +890,7 @@ bool EV_UnixToolbar::synthesize(void)
 			case EV_TBIT_Spacer:
 				break;
 
-#ifdef ENABLE_MENUBUTTON
 			case EV_TBIT_MenuButton:
-			{
-				GtkWidget * wMenu = nullptr;
-				EV_UnixMenuBar * pBar =
-					dynamic_cast<EV_UnixMenuBar*>(m_pFrame->getMainMenu());
-
-				UT_ASSERT_HARMLESS(pBar);
-				if (pBar)
-				{
-					wMenu = pBar->getMenuBar();
-				}
-				
-				wd->m_widget =
-					toolbar_append_menubutton (GTK_TOOLBAR (m_wToolbar),
-											   wMenu,
-											   pLabel->getIconName(),
-											   pLabel->getToolbarLabel(),
-											   szToolTip,
-											   nullptr,
-											   nullptr,
-											   nullptr,
-											   nullptr);
-
-			}
-			break;
-#endif
 			case EV_TBIT_BOGUS:
 			default:
 				break;
