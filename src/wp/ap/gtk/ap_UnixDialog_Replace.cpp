@@ -325,6 +325,12 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 	CONVERT_TO_UNIX_STRING(dummy,AP_STRING_ID_DLG_FR_FindLabel,unixstr);
 	gtk_label_set_text(GTK_LABEL(labelFind), unixstr);
 
+	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_FindNextButton,unixstr);
+	gtk_button_set_label(GTK_BUTTON(m_buttonFind), unixstr);
+
+	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_ReplaceButton,unixstr);
+	gtk_button_set_label(GTK_BUTTON(m_buttonFindReplace), unixstr);
+
 	CONVERT_TO_UNIX_STRING(dummy,AP_STRING_ID_DLG_FR_ReplaceAllButton,unixstr);
 	gtk_button_set_label(GTK_BUTTON(m_buttonReplaceAll), unixstr);
 	FREEP(unixstr);
