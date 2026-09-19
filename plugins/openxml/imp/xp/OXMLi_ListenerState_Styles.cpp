@@ -26,6 +26,46 @@
 #include "OXML_Types.h"
 #include "OXMLi_ListenerState_Styles.h"
 
+/*!
+ * Map the lowercase w:name values Word/LibreOffice write for builtin
+ * styles ("heading 1", "list bullet", ...) onto AbiWord's builtin style
+ * names so imported paragraphs get the real builtin style instead of a
+ * duplicate custom one. LibreOffice does the same kind of aliasing.
+ */
+static const gchar * _builtinStyleName(const gchar *name)
+{
+	static const struct { const gchar *docx; const gchar *builtin; } map[] = {
+		{ "heading 1",          "Heading 1" },
+		{ "heading 2",          "Heading 2" },
+		{ "heading 3",          "Heading 3" },
+		{ "heading 4",          "Heading 4" },
+		{ "heading 5",          "Heading 5" },
+		{ "heading 6",          "Heading 6" },
+		{ "heading 7",          "Heading 7" },
+		{ "heading 8",          "Heading 8" },
+		{ "heading 9",          "Heading 9" },
+		{ "normal",             "Normal" },
+		{ "body text",          "Block Text" },
+		{ "plain text",         "Plain Text" },
+		{ "list bullet",        "Bullet List" },
+		{ "list number",        "Numbered List" },
+		{ "no list",            "None" },
+		{ "toc heading",        "Contents Header" },
+		{ "contents heading",   "Contents Header" },
+		{ "footnote text",      "Footnote Text" },
+		{ "endnote text",       "Endnote Text" },
+		{ "footnote reference", "Footnote Reference" },
+		{ "endnote reference",  "Endnote Reference" },
+		{ nullptr, nullptr }
+	};
+	for (int i = 0; map[i].docx; i++) {
+		if (!g_ascii_strcasecmp(name, map[i].docx)) {
+			return map[i].builtin;
+		}
+	}
+	return name;
+}
+
 OXMLi_ListenerState_Styles::OXMLi_ListenerState_Styles()
 	: OXMLi_ListenerState(),
 	m_pCurrentStyle(nullptr),
@@ -106,7 +146,7 @@ void OXMLi_ListenerState_Styles::startElement (OXMLi_StartElementRequest * rqst)
 		if (!strcmp(val, "Normal")) val = "_Normal"; //Cannot interfere with document defaults
 
 		if (nameMatches(rqst->pName, NS_W_KEY, "name")) {
-			m_pCurrentStyle->setName(val);
+			m_pCurrentStyle->setName(_builtinStyleName(val));
 		} else if (nameMatches(rqst->pName, NS_W_KEY, "basedOn")) {
 			//For now, we use the ID as reference, until all styles have been parsed
 			m_pCurrentStyle->setAttribute(PT_BASEDON_ATTRIBUTE_NAME, val);
