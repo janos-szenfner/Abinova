@@ -1200,8 +1200,14 @@ void XAP_UnixFrameImpl::_fe::destroy(GtkWidget * /*widget*/, gpointer /*data*/)
 
 void XAP_UnixFrameImpl::_nullUpdate() const
 {
-//   	for (UT_uint32 i = 0; (i < 5) && gtk_events_pending(); i++)
-//		gtk_main_iteration ();
+	/* Called from long-running synchronous work (document load, layout,
+	 * print) to keep the UI alive and update the progress bar.  GTK4
+	 * removed gtk_events_pending()/gtk_main_iteration(); drive the
+	 * default main context directly, bounded to a few events per call. */
+	for (UT_uint32 i = 0; (i < 5) && g_main_context_pending(nullptr); i++)
+	{
+		g_main_context_iteration(nullptr, FALSE);
+	}
 }
 
 void XAP_UnixFrameImpl::_initialize()
