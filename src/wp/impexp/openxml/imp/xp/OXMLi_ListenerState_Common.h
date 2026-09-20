@@ -42,7 +42,6 @@ public:
 
 private:
 	bool m_pendingSectBreak;
-	OXML_SectionBreakType m_pendingSectBreakType;
 	bool m_eqField;
 	bool m_pageNumberField;
 	bool m_fldChar;

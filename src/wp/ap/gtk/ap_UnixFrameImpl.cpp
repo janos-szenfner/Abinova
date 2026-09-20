@@ -111,6 +111,11 @@ void AP_UnixFrameImpl::_showOrHideToolbars()
 		static_cast<AP_FrameData*> (pFrame->getFrameData())->m_pToolbar[i] = pUnixToolbar;
 		static_cast<AP_UnixFrame *>(pFrame)->toggleBar(i, bShowBar[i]);
 	}
+
+	// the just-created bars default to their prefs; ribbon mode
+	// hides them regardless
+	if (m_bRibbonMode)
+		_applyUIMode();
 }
 
 /*!
@@ -387,6 +392,24 @@ void AP_UnixFrameImpl::_applyUIMode()
 
 	gtk_widget_set_visible(m_pUnixMenu->getMenuBar(), !m_bRibbonMode);
 	gtk_widget_set_visible(m_wRibbon, m_bRibbonMode);
+
+	// the ribbon replaces the icon bars as well as the menubar; in
+	// classic mode restore each bar to its own visibility pref.
+	// m_vecToolbars may still be empty during window construction.
+	AP_FrameData * pFrameData =
+		static_cast<AP_FrameData *>(getFrame()->getFrameData());
+	UT_uint32 nrBars = m_vecToolbars.getItemCount();
+	for (UT_uint32 i = 0; i < nrBars && i < 4; ++i)
+	{
+		EV_Toolbar * pToolbar =
+			static_cast<EV_Toolbar *>(m_vecToolbars.getNthItem(i));
+		if (!pToolbar)
+			continue;
+		if (m_bRibbonMode)
+			pToolbar->hide();
+		else if (pFrameData && pFrameData->m_bShowBar[i])
+			pToolbar->show();
+	}
 	if (m_bRibbonMode)
 		m_pRibbon->refresh();
 }

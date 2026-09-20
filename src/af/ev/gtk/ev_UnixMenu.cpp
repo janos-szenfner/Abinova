@@ -1011,6 +1011,9 @@ void EV_UnixMenuBar::_setModelOnBoundWidget(GMenu * model)
 	GtkWidget * newBar = _createMenuBarWidget(model);
 	gtk_widget_insert_after(newBar, GTK_WIDGET(vbox), oldBar);
 	m_wMenuBar = newBar;
+	// preserve visibility (e.g. hidden in ribbon mode); new widgets
+	// default to visible in GTK4
+	gtk_widget_set_visible(newBar, gtk_widget_get_visible(oldBar));
 	gtk_widget_unparent(oldBar);
 }
 

@@ -55,9 +55,12 @@ static void s_merge_right(GtkWidget *widget, gpointer data )
 	dlg->onMerge();
 }
 
-static void s_response(GtkWidget * wid, gint /*id*/, AP_UnixDialog_MergeCells * /*me*/ )
+static void s_response(GtkWidget * wid, gint /*id*/, AP_UnixDialog_MergeCells * me )
 {
-    abiDestroyWidget( wid ) ;// will emit signals for us
+    if (me->isRunning())
+	me->event_Close(); // modeless: full destroy() cleanup
+    else
+	abiDestroyWidget( wid ) ;// will emit signals for us
 }
 
 static void s_merge_above(GtkWidget *widget, gpointer data )

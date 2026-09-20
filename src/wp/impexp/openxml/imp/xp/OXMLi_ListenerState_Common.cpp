@@ -49,7 +49,6 @@
 OXMLi_ListenerState_Common::OXMLi_ListenerState_Common() : 
 	OXMLi_ListenerState(), 
 	m_pendingSectBreak(false),
-	m_pendingSectBreakType(NEXTPAGE_BREAK),
 	m_eqField(false),
 	m_pageNumberField(false),
 	m_fldChar(false)
@@ -543,12 +542,15 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 					if ( 0 != strcmp(previousVal, "-none-"))
 						val = previousVal;
 				}
+				/* w:lang carries three independent attributes: w:val is
+				 * the Latin language, w:eastAsia the East-Asian one and
+				 * w:bidi the complex-script one.  Only the Latin language
+				 * maps onto our single "lang" property; the others are
+				 * fallbacks for runs that leave w:val unset. */
+				if (val == nullptr)
+					val = eastAsia ? eastAsia : bidi;
 				if ( val != nullptr)
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("lang", val) ));
-				if ( eastAsia != nullptr)
-					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("lang", eastAsia) ));
-				if ( bidi != nullptr)
-					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("lang", bidi) ));
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "noProof")) {
 				//noProof has priority over lang, so no need to check for previous values
@@ -593,15 +595,20 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 				UT_return_if_fail( this->_error_if_fail(val != nullptr) );
 
-				UT_ASSERT(m_pendingSectBreak == true);
+				// Per OOXML, w:type describes how the section that this
+				// sectPr terminates starts relative to the *previous*
+				// section, so it applies to the section on top of the
+				// stack, not the section that follows.
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				UT_return_if_fail( this->_error_if_fail(sect.get() != nullptr) );
 				if (!strcmp(val, "continuous")) {
-					m_pendingSectBreakType = CONTINUOUS_BREAK;
+					sect->setBreakType(CONTINUOUS_BREAK);
 				} else if (!strcmp(val, "evenPage")) {
-					m_pendingSectBreakType = EVENPAGE_BREAK;
+					sect->setBreakType(EVENPAGE_BREAK);
 				} else if (!strcmp(val, "oddPage")) {
-					m_pendingSectBreakType = ODDPAGE_BREAK;
+					sect->setBreakType(ODDPAGE_BREAK);
 				} else { //nextPage and nextColumn
-					m_pendingSectBreakType = NEXTPAGE_BREAK;
+					sect->setBreakType(NEXTPAGE_BREAK);
 				}
 				rqst->handled = true;
 
@@ -793,8 +800,6 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 			OXML_Document * doc = OXML_Document::getInstance();
 			UT_return_if_fail(_error_if_fail(doc != nullptr));
 			OXML_SharedSection sect(new OXML_Section());
-			sect->setBreakType(m_pendingSectBreakType);
-			m_pendingSectBreakType = NEXTPAGE_BREAK;
 			rqst->sect_stck->push(sect);
 			m_pendingSectBreak = false;
 		}

@@ -75,6 +75,10 @@ void AP_UnixDialog_Replace::s_response_triggered(GtkWidget * widget, gint resp, 
 	  dlg->event_Replace();
 	else if ( resp == BUTTON_REPLACE_ALL)
 	  dlg->event_ReplaceAll();
+	else if (dlg->isRunning())
+	  // modeless: run destroy() so the dialog is unregistered; GTK4's
+	  // gtk_window_destroy emits no signal to chain off
+	  dlg->destroy();
 	else
 	  abiDestroyWidget ( widget ) ; // will trigger other events
 }

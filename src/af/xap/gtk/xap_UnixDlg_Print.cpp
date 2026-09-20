@@ -484,10 +484,8 @@ void XAP_UnixDialog_Print::PrintDirectly(XAP_Frame * pFrame, const char * szFile
 		{
 			gtk_print_settings_set_printer(pSettings, szPrinter);
 		}
-		else
-		{
-			gtk_print_settings_set_printer(pSettings, GTK_PRINT_SETTINGS_PRINTER);
-		}
+		/* no explicit printer: leave the default; GTK_PRINT_SETTINGS_PRINTER
+		 * is the settings key name, not a printer name */
 		gtk_print_operation_set_print_settings(m_pPO,pSettings);
 		gtk_print_operation_run (m_pPO,GTK_PRINT_OPERATION_ACTION_PRINT,
 								 nullptr,nullptr);

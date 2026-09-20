@@ -244,7 +244,9 @@ abi_font_combo_new (void)
 
 	g_object_unref (list_factory);
 	g_object_unref (button_factory);
-	gtk_expression_unref (search_expr);
+	/* gtk_drop_down_new takes over search_expr (transfer full);
+	 * unref'ing it here would leave the dropdown with a dangling
+	 * expression */
 
 	g_signal_connect (self->dropdown, "notify::selected",
 					  G_CALLBACK (font_combo_selected_cb), self);

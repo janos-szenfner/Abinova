@@ -91,5 +91,9 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 	if (parent) {
 		gtk_window_set_transient_for(GTK_WINDOW(dlg), GTK_WINDOW(parent));
 	}
-	abiRunModalDialog(GTK_DIALOG(dlg), true); // TOPLEVEL
+	/* GtkAboutDialog is a GtkWindow, not a GtkDialog, in GTK4: no
+	 * response signal, no action area.  Present it directly; its own
+	 * Close button dismisses it. */
+	gtk_window_set_modal(GTK_WINDOW(dlg), TRUE);
+	gtk_window_present(GTK_WINDOW(dlg));
 }

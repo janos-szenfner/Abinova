@@ -137,6 +137,8 @@ static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Ma
 	  dlg->event_AddClicked();
 	else if ( resp == CUSTOM_RESPONSE_OPEN_FILE )
 	  dlg->eventOpen ();
+	else if (dlg->isRunning())
+	  dlg->event_Close(); // modeless: full destroy() cleanup
 	else
 	  abiDestroyWidget ( widget ) ; // will trigger other events
 }

@@ -714,7 +714,10 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	gtk_widget_set_vexpand(chooser_hbox, TRUE);
 	gtk_box_append(GTK_BOX(chooser_hbox), chooser);
 
-	abiSetupModalDialog(GTK_DIALOG(m_dialog), pFrame, this, GTK_RESPONSE_ACCEPT);
+	/* NB: abiSetupModalDialog() is deliberately deferred until after the
+	 * folder/file seeding below — it shows the window, and seeding the
+	 * file chooser while mapped cancels the in-flight folder
+	 * enumeration, producing an "Operation was cancelled" banner. */
 	GtkWidget * filetypes_pulldown = nullptr;
 
 	std::string s;
@@ -761,14 +764,12 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 
 	gtk_box_append(GTK_BOX(pulldown_hbox), filetypes_label);
 			gtk_widget_set_hexpand(filetypes_label, TRUE);
-			gtk_widget_set_vexpand(filetypes_label, TRUE);
 
 	// pulldown menu
 	filetypes_pulldown = gtk_combo_box_new();
 	gtk_widget_show(filetypes_pulldown);
 	gtk_box_append(GTK_BOX(pulldown_hbox), filetypes_pulldown);
 			gtk_widget_set_hexpand(filetypes_pulldown, TRUE);
-			gtk_widget_set_vexpand(filetypes_pulldown, TRUE);
     gtk_label_set_mnemonic_widget(GTK_LABEL(filetypes_label), filetypes_pulldown);
 	//
 	// add the filters to the dropdown list
@@ -1006,8 +1007,10 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 		}
 	}
 
-	// center the dialog
-	centerDialog(parent, GTK_WIDGET(m_dialog));
+	// center and show the dialog (sets transient parent, default
+	// response, help button); deferred from above — see comment there
+	abiSetupModalDialog(GTK_DIALOG(m_dialog), pFrame, this,
+						GTK_RESPONSE_ACCEPT);
 
 	bool bResult = _run_main_loop(pFrame, filetypes_pulldown);
 

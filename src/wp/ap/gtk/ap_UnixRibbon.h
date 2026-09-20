@@ -57,6 +57,7 @@ public:
 private:
 	GtkWidget *		_makeButton(XAP_Menu_Id id);
 	void			_refreshContextualTabs();
+	void			_buildIconMap();
 
 	static void		_s_switch_page(GtkNotebook * book, GtkWidget * page,
 								   guint page_num, gpointer data);
@@ -67,6 +68,7 @@ private:
 	EV_UnixMenuBar *	m_pMenu;
 	GtkWidget *			m_wNotebook;
 	UT_GenericVector<GtkWidget*>	m_vecContextualPages;
+	GHashTable *		m_pIconMap; /* edit-method name -> icon name */
 };
 
 #endif /* AP_UNIXRIBBON_H */

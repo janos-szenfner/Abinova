@@ -26,11 +26,18 @@
 
 #include "ut_vector.h"
 #include "ut_debugmsg.h"
+#include "ut_string.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "ev_UnixMenuBar.h"
 #include "ev_Menu_Labels.h"
 #include "ev_Menu_Actions.h"
+#include "ev_Toolbar_Actions.h"
+#include "ev_Toolbar_Labels.h"
+#include "xap_Toolbar_LabelSet.h"
+#include "ap_Toolbar_Id.h"
+#include "ap_Prefs_SchemeIds.h"
+#include "ap_UnixStockIcons.h"
 #include "ap_Ribbon_Layouts.h"
 #include "fv_View.h"
 
@@ -110,12 +117,63 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	: m_pFrame(pFrame)
 	, m_pMenu(pMenu)
 	, m_wNotebook(nullptr)
+	, m_pIconMap(nullptr)
 {
 }
 
 AP_UnixRibbon::~AP_UnixRibbon()
 {
 	// m_wNotebook is owned by the widget tree; nothing to unref here.
+	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
+}
+
+/*
+ * Toolbar icons are keyed by toolbar id, while the ribbon is built
+ * from menu ids.  Both action sets name the same edit methods, so we
+ * bridge them: for every toolbar id, map its edit-method name to the
+ * icon the classic toolbar would show.  Ribbon buttons then look up
+ * their icon by the menu action's method name.
+ */
+void AP_UnixRibbon::_buildIconMap()
+{
+	if (m_pIconMap)
+		return;
+	m_pIconMap = g_hash_table_new_full(g_str_hash, g_str_equal,
+									   g_free, g_free);
+
+	const EV_Toolbar_ActionSet * pTBActions =
+		XAP_App::getApp()->getToolbarActionSet();
+	if (!pTBActions)
+		return;
+
+	/* the label-set language follows the StringSet pref, the same way
+	 * xap_Frame::initialize picks m_szToolbarLabelSetName */
+	std::string lang;
+	if (!XAP_App::getApp()->getPrefsValue(AP_PREF_KEY_StringSet, lang) ||
+		lang.empty())
+		lang = AP_PREF_DEFAULT_StringSet;
+	EV_Toolbar_LabelSet * pTBLabels = AP_CreateToolbarLabelSet(lang.c_str());
+	if (!pTBLabels)
+		return;
+
+	for (UT_uint32 tid = 1; tid < (UT_uint32)AP_TOOLBAR_ID__BOGUS2__; ++tid)
+	{
+		EV_Toolbar_Action * pTBAction =
+			pTBActions->getAction((XAP_Toolbar_Id)tid);
+		EV_Toolbar_Label * pTBLabel =
+			pTBLabels->getLabel((XAP_Toolbar_Id)tid);
+		if (!pTBAction || !pTBLabel)
+			continue;
+		const char * szMethod = pTBAction->getMethodName();
+		const char * szIcon = pTBLabel->getIconName();
+		if (!szMethod || !*szMethod || !szIcon ||
+			g_ascii_strcasecmp(szIcon, "NoIcon") == 0)
+			continue;
+		if (!g_hash_table_contains(m_pIconMap, szMethod))
+			g_hash_table_insert(m_pIconMap, g_strdup(szMethod),
+								abi_stock_from_toolbar_id(szIcon));
+	}
+	delete pTBLabels;
 }
 
 GtkWidget * AP_UnixRibbon::createWidget()
@@ -145,6 +203,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	 * ribbon buttons resolve "menu.<name>" identically */
 	gtk_widget_insert_action_group(m_wNotebook, "menu",
 								   m_pMenu->getActionGroup());
+
+	_buildIconMap();
 
 	for (const AP_RibbonTab * tab = s_ribbon_tabs; tab->szTabKey; ++tab)
 	{
@@ -244,7 +304,26 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id)
 	GtkWidget * wLabel = gtk_label_new(label);
 	gtk_label_set_ellipsize(GTK_LABEL(wLabel), PANGO_ELLIPSIZE_END);
 	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 18);
-	gtk_button_set_child(GTK_BUTTON(btn), wLabel);
+
+	/* reuse the classic toolbar's icon for this edit method, if any */
+	const char * szMethod = pAction->getMethodName();
+	const char * szIcon = (szMethod && m_pIconMap)
+		? static_cast<const char *>(g_hash_table_lookup(m_pIconMap,
+														szMethod))
+		: nullptr;
+	if (szIcon && *szIcon)
+	{
+		GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+		GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
+		gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
+		gtk_box_append(GTK_BOX(box), image);
+		gtk_box_append(GTK_BOX(box), wLabel);
+		gtk_button_set_child(GTK_BUTTON(btn), box);
+	}
+	else
+	{
+		gtk_button_set_child(GTK_BUTTON(btn), wLabel);
+	}
 
 	gtk_actionable_set_action_name(GTK_ACTIONABLE(btn), detailed);
 	if (pAction->isRadio())

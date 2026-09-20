@@ -156,8 +156,12 @@ static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Fo
 	
 	if ( resp == GTK_RESPONSE_APPLY )
 	  dlg->event_Apply();
-	else if ( resp == GTK_RESPONSE_CLOSE )
-	  abiDestroyWidget(widget);
+	else if ( resp == GTK_RESPONSE_CLOSE ) {
+	  if (dlg->isRunning())
+	    dlg->event_Close(); // modeless: full destroy() cleanup
+	  else
+	    abiDestroyWidget(widget);
+	}
 }
 
 static void s_Text_changed (GtkEventControllerFocus *controller, AP_UnixDialog_FormatTOC *me)

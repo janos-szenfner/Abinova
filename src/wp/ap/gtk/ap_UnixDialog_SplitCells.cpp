@@ -64,9 +64,12 @@ static void s_split_right(GtkWidget *widget, gpointer data )
 	dlg->onSplit();
 }
 
-static void s_response(GtkWidget * wid, gint /*id*/, AP_UnixDialog_SplitCells * /*me*/ )
+static void s_response(GtkWidget * wid, gint /*id*/, AP_UnixDialog_SplitCells * me )
 {
-    abiDestroyWidget( wid ) ;// will emit signals for us
+    if (me->isRunning())
+	me->event_Close(); // modeless: full destroy() cleanup
+    else
+	abiDestroyWidget( wid ) ;// will emit signals for us
 }
 
 static void s_split_above(GtkWidget *widget, gpointer data )

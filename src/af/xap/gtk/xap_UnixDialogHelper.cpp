@@ -163,6 +163,59 @@ static void abi_attach_focus_controller(GtkWidget *widget,
 
 /*****************************************************************/
 
+/*
+ * GTK4 builder fixup: a plain <child> on a GtkDialog is applied via
+ * gtk_window_set_child(), which REPLACES the dialog's internal vbox
+ * (the one holding both the content area and the action area) and
+ * leaves the content area detached.  Buttons added later through
+ * gtk_dialog_add_button() then land in an orphaned action area and
+ * never render.  Reattach the .ui-provided widget inside the content
+ * area, put the content area back above the action area, and restore
+ * the internal vbox as the window child.
+ */
+static void abiFixupBuilderDialog(GtkDialog * dlg)
+{
+	GtkWidget * child = gtk_window_get_child(GTK_WINDOW(dlg));
+	if (!child)
+		return;
+
+	GtkWidget * content = gtk_dialog_get_content_area(dlg);
+	if (!content || gtk_widget_get_parent(content))
+		return;	/* internal layout intact, nothing to do */
+
+	/* reach the action area through a temporary probe button; there
+	 * is no public action-area getter */
+	GtkWidget * probe = gtk_dialog_add_button(dlg, "", G_MININT);
+	GtkWidget * action_area = probe ? gtk_widget_get_parent(probe) : nullptr;
+	if (!action_area)
+		return;
+	gtk_box_remove(GTK_BOX(action_area), probe);
+
+	/* rebuild the layout the dialog had before the .ui <child>
+	 * replaced it: vbox -> [content_area -> ui child, action_area] */
+	GtkWidget * new_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+	g_object_ref(child);
+	gtk_window_set_child(GTK_WINDOW(dlg), nullptr);
+	gtk_box_append(GTK_BOX(content), child);
+	g_object_unref(child);
+
+	gtk_box_append(GTK_BOX(new_vbox), content);
+	gtk_widget_unparent(action_area);
+	gtk_box_append(GTK_BOX(new_vbox), action_area);
+	gtk_window_set_child(GTK_WINDOW(dlg), new_vbox);
+}
+
+static void abiFixupBuilderDialogs(GtkBuilder * builder)
+{
+	GSList * objects = gtk_builder_get_objects(builder);
+	for (GSList * l = objects; l; l = l->next)
+	{
+		if (GTK_IS_DIALOG(l->data))
+			abiFixupBuilderDialog(GTK_DIALOG(l->data));
+	}
+}
+
 GtkBuilder * newDialogBuilder(const char * name)
 {
     UT_ASSERT(name);
@@ -170,6 +223,7 @@ GtkBuilder * newDialogBuilder(const char * name)
 
 	// load the dialog from the UI file
 	GtkBuilder* builder = gtk_builder_new_from_file(ui_path.c_str());
+	abiFixupBuilderDialogs(builder);
 	return builder;
 }
 
@@ -180,6 +234,7 @@ GtkBuilder* newDialogBuilderFromResource(const char* name)
 
 	// load the dialog from the UI file
 	GtkBuilder* builder = gtk_builder_new_from_resource(ui_path.c_str());
+	abiFixupBuilderDialogs(builder);
 	return builder;
 }
 
@@ -747,6 +802,22 @@ void localizeButtonUnderline(GtkWidget * widget, const XAP_StringSet * pSS, XAP_
  * Note that in addition to doing markup, ampersands will be converted
  * to underscores/mnemonic since this makes sense for buttons
  */
+/* GTK4's GtkCheckButton keeps its label inside a private container
+ * (indicator + label), so the first child is not the GtkLabel. */
+static GtkWidget * _find_label_child(GtkWidget * widget)
+{
+	for (GtkWidget * c = gtk_widget_get_first_child(widget); c;
+		 c = gtk_widget_get_next_sibling(c))
+	{
+		if (GTK_IS_LABEL(c))
+			return c;
+		GtkWidget * r = _find_label_child(c);
+		if (r)
+			return r;
+	}
+	return nullptr;
+}
+
 void localizeButtonMarkup(GtkWidget * widget, const XAP_StringSet * pSS, XAP_String_Id id)
 {
 	std::string s;
@@ -763,7 +834,7 @@ void localizeButtonMarkup(GtkWidget * widget, const XAP_StringSet * pSS, XAP_Str
 
 	// by default, they don't like markup, so we teach them
 	GtkWidget * button_child = GTK_IS_CHECK_BUTTON(widget)
-		? gtk_widget_get_first_child(widget)
+		? _find_label_child(widget)
 		: gtk_button_get_child(GTK_BUTTON(widget));
 	if (GTK_IS_LABEL (button_child))
 		gtk_label_set_use_markup (GTK_LABEL(button_child), TRUE);

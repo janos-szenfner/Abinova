@@ -191,6 +191,24 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 
 	/* Dom says we just use that dir for now and hope for someone to build an openclipart client */
 	this->dir_path = getInitialDir ();
+
+	if (!g_file_test (this->dir_path, G_FILE_TEST_IS_DIR)) {
+		// Running uninstalled: try the clipart dir from the source
+		// tree, relative to the executable (src/abiword ->
+		// ../user/wp/clipart).
+		gchar * exe = g_file_read_link ("/proc/self/exe", nullptr);
+		if (exe) {
+			gchar * exe_dir = g_path_get_dirname (exe);
+			gchar * clip = g_build_filename (exe_dir, "..", "user", "wp", "clipart", nullptr);
+			if (g_file_test (clip, G_FILE_TEST_IS_DIR)) {
+				setInitialDir (clip);
+				this->dir_path = getInitialDir ();
+			}
+			g_free (clip);
+			g_free (exe_dir);
+			g_free (exe);
+		}
+	}
 	fill_idle_id = g_idle_add ((GSourceFunc) fill_store, this);
 
 	switch (abiRunModalDialog(GTK_DIALOG(this->dlg), pFrame, this, GTK_RESPONSE_CANCEL, false)) {

@@ -322,6 +322,52 @@ below are on `main` but the release has not been cut yet.
   DOCX import/export and EPUB import/export conversion paths.
 - **Performance** — 7.8 MB / 40 000-paragraph document ↔ DOCX
   round-trips in ~5 s.
+- **Insert → Bookmark / modeless-dialog crash** — response and close
+  handlers in 8 dialogs (Lists, Replace, Stylist, Mail Merge,
+  Merge/Split Cells, Format TOC, Insert Symbol) called
+  `abiDestroyWidget` directly, bypassing `destroy()`/`modeless_cleanup()`;
+  the dialog stayed registered with a dangling `m_windowMain` and the
+  next focus notification cast freed memory. Close paths now run full
+  `destroy()` cleanup for registered (modeless) dialogs.
+- **`.ui` dialogs had no action buttons** — a plain `<child>` on a
+  `GtkDialog` in GTK4 replaces the internal vbox holding the content
+  AND action areas, so `gtk_dialog_add_button()` appended to an
+  orphaned widget. A central fixup in `newDialogBuilder`/
+  `newDialogBuilderFromResource` reparents the `.ui` child into the
+  content area and rebuilds the vbox → buttons render again on every
+  `.ui`-built dialog (Page Setup, Lists, Format TOC, …).
+- **Ribbon mode** — buttons now carry the classic toolbar icons
+  (method-name → icon map); the classic menubar and toolbars are
+  hidden while the ribbon is active; the menubar's deferred model
+  swap preserves widget visibility so it no longer reappears.
+- **`GtkAboutDialog` invalid cast** — it is a `GtkWindow`, not a
+  `GtkDialog`, in GTK4; presented directly instead of through
+  `abiRunModalDialog`.
+- **Preferences markup** — `localizeButtonMarkup` now locates the
+  label recursively; `<b>Auto Save</b>` no longer renders literally.
+- **Print "selected printer (null) could not be found"** — the code
+  passed `GTK_PRINT_SETTINGS_PRINTER` (the literal string `"printer"`)
+  as a printer name; GTK now picks the default printer when none is
+  chosen.
+- **Font combo `GtkExpression` use-after-free** —
+  `gtk_drop_down_new`/`gtk_string_sorter_new` take ownership
+  (`transfer-ownership="full"`); the explicit `gtk_expression_unref`
+  left a dangling pointer (assertions + wrong filtering).
+- **Open File dialog layout** — a stray `vexpand` inflated the
+  file-type row into an ~85 px empty band; folder seeding moved after
+  the modal setup so `set_current_folder` no longer cancels an
+  in-flight enumeration ("Operation was cancelled" banner).
+- **DOCX `w:lang` precedence** — `w:bidi` (complex-script) no longer
+  overrides `w:val`; English docs declared with `bidi="ar-SA"` no
+  longer import as Arabic.
+- **DOCX `w:type` section-break off-by-one** — OOXML `w:type`
+  describes how the section the `sectPr` *ends* relates to the
+  previous section, but the importer applied it to the *next*
+  section. `continuous` sections now flow on the same page — the
+  2-page CV that opened as 4 pages now opens correctly.
+- **Clip Art** — falls back to the source-tree `user/wp/clipart` when
+  the installed `<libdir>/clipart` doesn't exist, so it works from
+  the build tree.
 
 ### GTK4 port (core migration)
 

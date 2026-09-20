@@ -1071,6 +1071,24 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 	return FALSE;
 }
 
+/* Toplevel key handler. GTK3 bound accelerators at the window level, so
+ * shortcuts worked regardless of which widget owned the focus. The canvas
+ * controller only sees keys when the drawing area has focus; this
+ * controller catches keys that bubble up unhandled from other widgets
+ * (e.g. a toolbar button) and feeds them to the same EV keyboard layer.
+ * When the canvas itself has focus it has already been offered the key,
+ * so we must not run it twice. */
+gboolean XAP_UnixFrameImpl::_fe::key_press_window_event(GtkEventControllerKey * c,
+													  guint keyval, guint keycode,
+													  GdkModifierType state,
+													  GtkWidget * w)
+{
+	GtkWidget * focus = gtk_window_get_focus(GTK_WINDOW(w));
+	if (GTK_IS_DRAWING_AREA(focus))
+		return FALSE;
+	return key_press_event(c, keyval, keycode, state, w);
+}
+
 gboolean XAP_UnixFrameImpl::_fe::close_request(GtkWindow * w, gpointer /*data*/)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
@@ -1330,6 +1348,14 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 	g_signal_connect(G_OBJECT(m_wTopLevelWindow), "close-request",
 					   G_CALLBACK(_fe::close_request), nullptr);
 
+	// GTK3 attached the accel group to the toplevel window. The canvas
+	// has its own key controller; this one catches shortcuts that bubble
+	// up unhandled from other widgets inside the window.
+	GtkEventController * toplevelKeys = gtk_event_controller_key_new();
+	g_signal_connect(toplevelKeys, "key-pressed",
+					 G_CALLBACK(_fe::key_press_window_event), m_wTopLevelWindow);
+	gtk_widget_add_controller(m_wTopLevelWindow, toplevelKeys);
+
 	// create a VBox inside it.
 
 	m_wVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
@@ -1537,9 +1563,11 @@ gint XAP_UnixFrameImpl::_imRetrieveSurrounding_cb (GtkIMContext *context,
 	UT_UTF8String utf (text);
 	DELETEPV(text);
 
-	gtk_im_context_set_surrounding (context,
+	/* No selection: cursor == anchor. */
+	gtk_im_context_set_surrounding_with_selection (context,
 									utf.utf8_str(),
 									utf.byteLength (),
+									g_utf8_offset_to_pointer(utf.utf8_str(), here - begin_p) - utf.utf8_str(),
 									g_utf8_offset_to_pointer(utf.utf8_str(), here - begin_p) - utf.utf8_str());
 
 	return TRUE;

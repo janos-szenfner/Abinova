@@ -314,7 +314,10 @@ static void s_dlg_response ( GtkWidget * widget, gint id,
 		  break;
 		  
 	  case XAP_UnixDialog_Insert_Symbol::BUTTON_CLOSE:
-		  abiDestroyWidget(widget); // emit the destroy signal
+		  if (dlg->isRunning())
+			  dlg->event_WindowDelete(); // modeless: full cleanup
+		  else
+			  abiDestroyWidget(widget); // emit the destroy signal
 		  break;
 	  }
 }

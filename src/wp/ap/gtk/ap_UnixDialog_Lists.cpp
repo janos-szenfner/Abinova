@@ -178,8 +178,15 @@ static gboolean s_update (int /*unused*/)
 
 void AP_UnixDialog_Lists::closeClicked(void)
 {
-	setAnswer(AP_Dialog_Lists::a_QUIT);	
-	abiDestroyWidget(m_windowMain); // emit the correct signals
+	setAnswer(AP_Dialog_Lists::a_QUIT);
+	// a registered modeless dialog must run destroy() so the app
+	// unregisters it; GTK4's gtk_window_destroy emits no signal, so
+	// destroying the widget alone leaves a dangling dialog in the
+	// modeless table and the next focus notification crashes
+	if (isRunning())
+		destroy();
+	else
+		abiDestroyWidget(m_windowMain); // emit the correct signals
 }
 
 void AP_UnixDialog_Lists::runModal( XAP_Frame * pFrame)
@@ -348,8 +355,13 @@ void AP_UnixDialog_Lists::destroy(void)
 
 		m_glFonts.clear();
 		modeless_cleanup();
-		abiDestroyWidget(m_windowMain);
-		m_windowMain = nullptr;
+		{
+			// clear before teardown: focus notifications re-entered
+			// during gtk_window_destroy must see a null window
+			GtkWidget * w = m_windowMain;
+			m_windowMain = nullptr;
+			abiDestroyWidget(w);
+		}
 		DELETEP(m_pAutoUpdateLists);
 		DELETEP (m_pPreviewWidget);
 	}
@@ -407,7 +419,8 @@ bool AP_UnixDialog_Lists::isPageLists(void) const
 
 void AP_UnixDialog_Lists::activate (void)
 {
-	UT_ASSERT (m_windowMain);
+	if (!m_windowMain)
+		return;
 	ConstructWindowName();
 	gtk_window_set_title (GTK_WINDOW (m_windowMain), getWindowName());
 	m_bDontUpdate = false;
@@ -417,7 +430,8 @@ void AP_UnixDialog_Lists::activate (void)
 
 void AP_UnixDialog_Lists::notifyActiveFrame(XAP_Frame * /*pFrame*/)
 {
-	UT_ASSERT(m_windowMain);
+	if (!m_windowMain)
+		return;
 	ConstructWindowName();
 	gtk_window_set_title (GTK_WINDOW (m_windowMain), getWindowName());
 	m_bDontUpdate = false;
