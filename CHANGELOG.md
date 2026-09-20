@@ -98,12 +98,27 @@ below are on `main` but the release has not been cut yet.
 
 ### User interface
 
-- **LibreOffice-style ribbon UI** — `GtkNotebook` ribbon built from
-  `ap_Ribbon_Layouts.h` with File / Home / Insert / Layout / Review /
-  View / Help tabs plus a contextual Table tab (shown only while the
-  caret is in a table); compact three-row group grids; every button
-  binds to the same `menu.<action>` GAction as the menubar, so state,
-  edit methods and dynamic labels are identical.
+- **LibreOffice NotebookBar-style ribbon UI** — `GtkNotebook` ribbon
+  built from `ap_Ribbon_Layouts.h`, modelled on LibreOffice Writer's
+  `sw/uiconfig/swriter/ui/notebookbar.ui`: File / Home / Insert /
+  References / Layout / Review / View / Help tabs plus a contextual
+  Table tab (shown only while the caret is in a table); compact
+  three-row group grids.
+- **Rich ribbon controls** — items may reference either menu ids or
+  toolbar ids (`AP_RibbonItem`); the Home tab carries the font-family
+  and font-size combos (live `AbiFontCombo`, numeric-entry size
+  combo), style combo, text/highlight color picker buttons, format
+  painter, list preset buttons, indent/unindent, line-spacing and
+  paragraph-spacing buttons; the Layout tab has 1/2/3-column preset
+  buttons; the View tab has the zoom combo. Toolbar items dispatch
+  through the same edit methods as the classic toolbar and their
+  toggle/gray/string state refreshes from the same
+  `EV_Toolbar_Action` state functions, so ribbon, menubar and
+  toolbars stay in sync.
+- **New ribbon groups** — Home: Editing (Find/Replace/Select All/Go
+  To); Insert split into Pages/Tables/Illustrations/Links/Text/
+  Symbols/Fields; new References tab (Table of Contents, Footnotes);
+  Layout: Page Setup/Page Columns/Page Background.
 - **Interface switcher** — Help → Interface submenu (Classic Menus /
   Ribbon radio items) in both UIs; `RibbonUI` preference persists the
   choice; switching is live.

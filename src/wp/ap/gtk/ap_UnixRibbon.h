@@ -26,17 +26,26 @@
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "xap_Types.h"
+#include "ap_Toolbar_Id.h"
 
 class XAP_Frame;
 class AV_View;
 class EV_UnixMenuBar;
+class EV_Toolbar_LabelSet;
 
 /*****************************************************************/
-/* LibreOffice-style ribbon: a GtkNotebook whose pages are
- * horizontal strips of labelled groups (GtkFrame + GtkFlowBox of
- * buttons).  Each button binds the same "menu.*" GActions the
- * classic menubar uses, so enablement and toggle/radio state stay
- * in sync through the normal EV_UnixMenu refresh path.
+/* Ribbon modelled on the LibreOffice Writer NotebookBar
+ * (sw/uiconfig/swriter/ui/notebookbar.ui): a GtkNotebook whose
+ * pages are horizontal strips of labelled groups containing
+ * buttons, combo boxes and color pickers.
+ *
+ * Menu-backed items bind the same "menu.*" GActions the classic
+ * menubar uses; toolbar-backed items (font/size/style/zoom combos,
+ * text/highlight colors, format painter, list/indent/spacing
+ * buttons, column presets) dispatch through the same edit methods
+ * the classic toolbars invoke.  Enablement and toggle/combo state
+ * stay in sync through refresh(), driven by the normal
+ * EV_UnixMenu refresh path.
  *
  * The tab/group layout lives in ap_Ribbon_Layouts.h.
  */
@@ -56,7 +65,12 @@ public:
 
 private:
 	GtkWidget *		_makeButton(XAP_Menu_Id id);
+	GtkWidget *		_makeToolbarWidget(XAP_Toolbar_Id id);
+	void			_invokeToolbarItem(XAP_Toolbar_Id id,
+									   const UT_UCS4Char * pData = nullptr,
+									   UT_uint32 dataLength = 0);
 	void			_refreshContextualTabs();
+	void			_refreshToolbarItems();
 	void			_buildIconMap();
 
 	static void		_s_switch_page(GtkNotebook * book, GtkWidget * page,
@@ -64,9 +78,40 @@ private:
 	static void		_s_motion_enter(GtkEventControllerMotion * ctrl,
 									gdouble x, gdouble y, gpointer data);
 
+	/* per-toolbar-item callback context; owned by m_vecTbCtx */
+	struct _TbCtx;
+
+	static GtkWidget *	_tb_make_combo(_TbCtx * ctx);
+	static GtkWidget *	_tb_color_button_new(const gchar * icon_name,
+											 const gchar * automatic_label,
+											 _TbCtx * ctx);
+	static gchar *		_tb_combo_get_text(GtkComboBox * combo);
+	static void			_tb_combo_apply(GtkComboBox * combo, _TbCtx * ctx);
+	static void			_tb_combo_set_text(GtkComboBox * combo,
+										   const char * text, _TbCtx * ctx);
+
+	static void			_s_tb_clicked(GtkWidget * w, gpointer data);
+	static void			_s_tb_combo_changed(GtkComboBox * combo, gpointer data);
+	static gboolean		_s_tb_size_key(GtkEventControllerKey * ctrl,
+									   guint keyval, guint keycode,
+									   GdkModifierType state, gpointer data);
+	static void			_s_tb_size_focus_out(GtkEventControllerFocus * ctrl,
+											 gpointer data);
+	static void			_s_tb_size_insert_text(GtkEditable * editable,
+											   gchar * new_text,
+											   gint new_text_length,
+											   gint * position,
+											   gpointer data);
+	static void			_s_tb_color_activated(GtkColorChooser * cc,
+											  GdkRGBA * color, gpointer data);
+	static void			_s_tb_color_automatic(GtkWidget * w, gpointer data);
+
+	UT_GenericVector<_TbCtx*>	m_vecTbCtx;
+
 	XAP_Frame *			m_pFrame;
 	EV_UnixMenuBar *	m_pMenu;
 	GtkWidget *			m_wNotebook;
+	EV_Toolbar_LabelSet *	m_pTBLabels;
 	UT_GenericVector<GtkWidget*>	m_vecContextualPages;
 	GHashTable *		m_pIconMap; /* edit-method name -> icon name */
 };

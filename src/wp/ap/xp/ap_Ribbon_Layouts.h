@@ -1,5 +1,4 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
-
 /* AbiWord
  * Copyright (C) 2026 AbiSource, Inc.
  *
@@ -22,33 +21,55 @@
 #pragma once
 
 #include "ap_Menu_Id.h"
+#include "ap_Toolbar_Id.h"
 
 /*
  * Ribbon UI layout description.
  *
- * This table is preparation for a LibreOffice-style ribbon interface.
- * It reuses the existing AP_MENU_ID_* actions, so a ribbon widget
- * (e.g. a GtkNotebook of button groups) can bind the same EV_Menu_ActionSet,
- * EV_Menu_LabelSet and state functions the menubar already uses.  No new
- * actions are defined here; only grouping and ordering.
+ * Modeled on the LibreOffice Writer NotebookBar
+ * (sw/uiconfig/swriter/ui/notebookbar.ui): a GtkNotebook whose tabs
+ * hold grouped buttons/combos that drive the same edit methods the
+ * menubar and classic toolbars use.
+ *
+ * Items may reference either a menu id (AP_MENU_ID_*) or a toolbar id
+ * (AP_TOOLBAR_ID_*).  Menu items resolve through the "menu.*" GAction
+ * group; toolbar items resolve through the toolbar action set, which
+ * additionally supplies control types (combo box, color picker) and
+ * per-cursor state (toggled flags, current font/size/style/zoom).
  *
  * Tabs follow the LibreOffice Writer convention:
- *   Home     - clipboard, font, paragraph, lists, styles
- *   Insert   - breaks, tables, fields, images, links
- *   Layout   - view modes, page setup, zoom
- *   Review   - spelling, language, revisions, annotations
- *   View     - rulers, toolbars, status bar, fullscreen
- *   Table    - contextual tab, shown only while the caret is in a table
- *   Help     - about, credits, help contents
- *
- * The classic menubar remains the default; the ribbon table is consumed
- * by the platform UI layer when a "ribbon" UI mode is requested.
+ *   File       - document, print/export
+ *   Home       - clipboard, font, paragraph, lists, styles, editing
+ *   Insert     - pages, tables, illustrations, links, text, symbols,
+ *                fields
+ *   References - table of contents, footnotes, endnotes
+ *   Layout     - page setup, columns, background
+ *   Review     - spelling, language, revisions, annotations
+ *   View       - view modes, show, zoom, window
+ *   Table      - contextual tab, shown only while the caret is in a table
+ *   Help       - help, interface switcher
  */
+
+enum AP_RibbonItemKind : uint8_t
+{
+	AP_RIBBON_ITEM_MENU		= 0,
+	AP_RIBBON_ITEM_TOOLBAR	= 1
+};
+
+struct AP_RibbonItem
+{
+	uint8_t		kind;	/* AP_RibbonItemKind */
+	uint16_t	id;		/* AP_MENU_ID_* or AP_TOOLBAR_ID_* */
+};
+
+#define AP_RIBBON_MENU(x)	{ AP_RIBBON_ITEM_MENU,		(uint16_t)(x) }
+#define AP_RIBBON_TB(x)		{ AP_RIBBON_ITEM_TOOLBAR,	(uint16_t)(x) }
+#define AP_RIBBON_END		{ AP_RIBBON_ITEM_MENU,		(uint16_t)AP_MENU_ID__BOGUS1__ }
 
 struct AP_RibbonGroup
 {
 	const char *			szGroupKey;	/* untranslated group key -> label set */
-	const uint16_t *		items;		/* AP_MENU_ID__BOGUS1__-terminated list */
+	const AP_RibbonItem *	items;		/* AP_RIBBON_END-terminated list */
 };
 
 struct AP_RibbonTab
@@ -60,26 +81,26 @@ struct AP_RibbonTab
 
 /* --------------------------------------------------------------- File --- */
 
-static const uint16_t s_ribbon_file_document[] =
+static const AP_RibbonItem s_ribbon_file_document[] =
 {
-	AP_MENU_ID_FILE_NEW,
-	AP_MENU_ID_FILE_NEW_USING_TEMPLATE,
-	AP_MENU_ID_FILE_OPEN,
-	AP_MENU_ID_FILE_SAVE,
-	AP_MENU_ID_FILE_SAVEAS,
-	AP_MENU_ID_FILE_REVERT,
-	AP_MENU_ID_FILE_PROPERTIES,
-	AP_MENU_ID_FILE_CLOSE,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_NEW),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_NEW_USING_TEMPLATE),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_OPEN),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_SAVE),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_SAVEAS),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_REVERT),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_PROPERTIES),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_CLOSE),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_file_print[] =
+static const AP_RibbonItem s_ribbon_file_print[] =
 {
-	AP_MENU_ID_FILE_PAGESETUP,
-	AP_MENU_ID_FILE_PRINT_PREVIEW,
-	AP_MENU_ID_FILE_PRINT,
-	AP_MENU_ID_FILE_EXPORT,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_PAGESETUP),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_PRINT_PREVIEW),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_PRINT),
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_EXPORT),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_file_groups[] =
@@ -91,52 +112,75 @@ static const AP_RibbonGroup s_ribbon_file_groups[] =
 
 /* --------------------------------------------------------------- Home --- */
 
-static const uint16_t s_ribbon_home_clipboard[] =
+static const AP_RibbonItem s_ribbon_home_clipboard[] =
 {
-	AP_MENU_ID_EDIT_CUT,
-	AP_MENU_ID_EDIT_COPY,
-	AP_MENU_ID_EDIT_PASTE,
-	AP_MENU_ID_EDIT_PASTE_SPECIAL,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_PASTE),
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_CUT),
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_COPY),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_FMTPAINTER),
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_PASTE_SPECIAL),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_home_font[] =
+static const AP_RibbonItem s_ribbon_home_font[] =
 {
-	AP_MENU_ID_FMT_BOLD,
-	AP_MENU_ID_FMT_ITALIC,
-	AP_MENU_ID_FMT_UNDERLINE,
-	AP_MENU_ID_FMT_OVERLINE,
-	AP_MENU_ID_FMT_STRIKE,
-	AP_MENU_ID_FMT_SUPERSCRIPT,
-	AP_MENU_ID_FMT_SUBSCRIPT,
-	AP_MENU_ID_FMT_FONT,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_FONT),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_SIZE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_BOLD),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_ITALIC),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_UNDERLINE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_STRIKE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_OVERLINE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_SUPERSCRIPT),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_SUBSCRIPT),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_COLOR_FORE),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_COLOR_BACK),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_FONT),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_home_paragraph[] =
+static const AP_RibbonItem s_ribbon_home_paragraph[] =
 {
-	AP_MENU_ID_ALIGN_LEFT,
-	AP_MENU_ID_ALIGN_CENTER,
-	AP_MENU_ID_ALIGN_RIGHT,
-	AP_MENU_ID_ALIGN_JUSTIFY,
-	AP_MENU_ID_FMT_PARAGRAPH,
-	AP_MENU_ID_FMT_COLUMNS,
-	AP_MENU_ID_FMT_BORDERS,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_ALIGN_LEFT),
+	AP_RIBBON_MENU(AP_MENU_ID_ALIGN_CENTER),
+	AP_RIBBON_MENU(AP_MENU_ID_ALIGN_RIGHT),
+	AP_RIBBON_MENU(AP_MENU_ID_ALIGN_JUSTIFY),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_INDENT),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_UNINDENT),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_SINGLE_SPACE),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_MIDDLE_SPACE),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_DOUBLE_SPACE),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_PARA_0BEFORE),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_PARA_12BEFORE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_PARAGRAPH),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_home_lists[] =
+static const AP_RibbonItem s_ribbon_home_lists[] =
 {
-	AP_MENU_ID_FMT_BULLETS,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_TB(AP_TOOLBAR_ID_LISTS_BULLETS),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_LISTS_NUMBERS),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_LISTS_DASHED),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_BULLETS),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_home_styles[] =
+static const AP_RibbonItem s_ribbon_home_styles[] =
 {
-	AP_MENU_ID_FMT_STYLIST,
-	AP_MENU_ID_FMT_STYLE_DEFINE,
-	AP_MENU_ID_FMT_TOGGLECASE,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_STYLE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_STYLIST),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_STYLE_DEFINE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_TOGGLECASE),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_home_editing[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_FIND),
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_REPLACE),
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_SELECTALL),
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_GOTO),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_home_groups[] =
@@ -146,137 +190,172 @@ static const AP_RibbonGroup s_ribbon_home_groups[] =
 	{ "paragraph",	s_ribbon_home_paragraph },
 	{ "lists",		s_ribbon_home_lists },
 	{ "styles",		s_ribbon_home_styles },
+	{ "editing",	s_ribbon_home_editing },
 	{ nullptr,		nullptr }
 };
 
 /* ------------------------------------------------------------- Insert --- */
 
-static const uint16_t s_ribbon_insert_pages[] =
+static const AP_RibbonItem s_ribbon_insert_pages[] =
 {
-	AP_MENU_ID_INSERT_BREAK,
-	AP_MENU_ID_INSERT_HEADER,
-	AP_MENU_ID_INSERT_FOOTER,
-	AP_MENU_ID_INSERT_PAGENO,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_BREAK),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_PAGENO),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_HEADER),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FOOTER),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_insert_objects[] =
+static const AP_RibbonItem s_ribbon_insert_tables[] =
 {
-	AP_MENU_ID_TABLE_INSERT_TABLE,
-	AP_MENU_ID_INSERT_TEXTBOX,
-	AP_MENU_ID_INSERT_GRAPHIC,
-	AP_MENU_ID_INSERT_CLIPART,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_TABLE),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_insert_fields[] =
+static const AP_RibbonItem s_ribbon_insert_illustrations[] =
 {
-	AP_MENU_ID_INSERT_DATETIME,
-	AP_MENU_ID_INSERT_FIELD,
-	AP_MENU_ID_INSERT_SYMBOL,
-	AP_MENU_ID_INSERT_FOOTNOTE,
-	AP_MENU_ID_INSERT_ENDNOTE,
-	AP_MENU_ID_INSERT_TABLEOFCONTENTS,
-	AP_MENU_ID_INSERT_BOOKMARK,
-	AP_MENU_ID_INSERT_XMLID,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_GRAPHIC),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_CLIPART),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_insert_links[] =
+static const AP_RibbonItem s_ribbon_insert_links[] =
 {
-	AP_MENU_ID_INSERT_HYPERLINK,
-	AP_MENU_ID_INSERT_FILE,
-	AP_MENU_ID_INSERT_MAILMERGE,
-	AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM,
-	AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_HYPERLINK),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_BOOKMARK),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_XMLID),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_MAILMERGE),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FILE),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_insert_text[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_TEXTBOX),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_insert_symbols[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_SYMBOL),
+	AP_RIBBON_MENU(AP_MENU_ID_EDIT_LATEXEQUATION),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_insert_fields[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_DATETIME),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FIELD),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_insert_groups[] =
 {
-	{ "pages",		s_ribbon_insert_pages },
-	{ "objects",	s_ribbon_insert_objects },
-	{ "fields",		s_ribbon_insert_fields },
-	{ "links",		s_ribbon_insert_links },
-	{ nullptr,		nullptr }
+	{ "pages",			s_ribbon_insert_pages },
+	{ "tables",			s_ribbon_insert_tables },
+	{ "illustrations",	s_ribbon_insert_illustrations },
+	{ "links",			s_ribbon_insert_links },
+	{ "text",			s_ribbon_insert_text },
+	{ "symbols",		s_ribbon_insert_symbols },
+	{ "fields",			s_ribbon_insert_fields },
+	{ nullptr,			nullptr }
+};
+
+/* --------------------------------------------------------- References --- */
+
+static const AP_RibbonItem s_ribbon_references_toc[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_TABLEOFCONTENTS),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_TABLEOFCONTENTS),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_references_notes[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FOOTNOTE),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_ENDNOTE),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_FOOTNOTES),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_references_groups[] =
+{
+	{ "toc",	s_ribbon_references_toc },
+	{ "notes",	s_ribbon_references_notes },
+	{ nullptr,	nullptr }
 };
 
 /* ------------------------------------------------------------- Layout --- */
 
-static const uint16_t s_ribbon_layout_views[] =
+static const AP_RibbonItem s_ribbon_layout_page[] =
 {
-	AP_MENU_ID_VIEW_NORMAL,
-	AP_MENU_ID_VIEW_WEB,
-	AP_MENU_ID_VIEW_PRINT,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_FILE_PAGESETUP),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_HDRFTR),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_TABS),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_COLUMNS),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_layout_page[] =
+static const AP_RibbonItem s_ribbon_layout_columns[] =
 {
-	AP_MENU_ID_FILE_PAGESETUP,
-	AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR,
-	AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE,
-	AP_MENU_ID_FMT_HDRFTR,
-	AP_MENU_ID_FMT_TABS,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_TB(AP_TOOLBAR_ID_1COLUMN),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_2COLUMN),
+	AP_RIBBON_TB(AP_TOOLBAR_ID_3COLUMN),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_layout_zoom[] =
+static const AP_RibbonItem s_ribbon_layout_background[] =
 {
-	AP_MENU_ID_VIEW_ZOOM,
-	AP_MENU_ID_VIEW_ZOOM_WIDTH,
-	AP_MENU_ID_VIEW_ZOOM_WHOLE,
-	AP_MENU_ID_VIEW_ZOOM_200,
-	AP_MENU_ID_VIEW_ZOOM_100,
-	AP_MENU_ID_VIEW_ZOOM_75,
-	AP_MENU_ID_VIEW_ZOOM_50,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_layout_groups[] =
 {
-	{ "views",		s_ribbon_layout_views },
 	{ "page",		s_ribbon_layout_page },
-	{ "zoom",		s_ribbon_layout_zoom },
+	{ "columns",	s_ribbon_layout_columns },
+	{ "background",	s_ribbon_layout_background },
 	{ nullptr,		nullptr }
 };
 
 /* ------------------------------------------------------------- Review --- */
 
-static const uint16_t s_ribbon_review_proofing[] =
+static const AP_RibbonItem s_ribbon_review_proofing[] =
 {
-	AP_MENU_ID_TOOLS_SPELL,
-	AP_MENU_ID_FMT_LANGUAGE,
-	AP_MENU_ID_TOOLS_WORDCOUNT,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_SPELL),
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_LANGUAGE),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_WORDCOUNT),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_review_revisions[] =
+static const AP_RibbonItem s_ribbon_review_revisions[] =
 {
-	AP_MENU_ID_TOOLS_REVISIONS_MARK,
-	AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION,
-	AP_MENU_ID_TOOLS_REVISIONS_SHOW,
-	AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTER,
-	AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTERPREV,
-	AP_MENU_ID_TOOLS_REVISIONS_SHOW_BEFORE,
-	AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL,
-	AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT,
-	AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV,
-	AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
-	AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
-	AP_MENU_ID_TOOLS_REVISIONS_PURGE,
-	AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS,
-	AP_MENU_ID_TOOLS_REVISIONS_AUTO,
-	AP_MENU_ID_TOOLS_HISTORY_SHOW,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_MARK),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_SHOW),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTER),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTERPREV),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_SHOW_BEFORE),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_PURGE),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_REVISIONS_AUTO),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_HISTORY_SHOW),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_review_annotations[] =
+static const AP_RibbonItem s_ribbon_review_annotations[] =
 {
-	AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT,
-	AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT_FROMSEL,
-	AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT_FROMSEL),
+	AP_RIBBON_MENU(AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_review_groups[] =
@@ -289,73 +368,96 @@ static const AP_RibbonGroup s_ribbon_review_groups[] =
 
 /* --------------------------------------------------------------- View --- */
 
-static const uint16_t s_ribbon_view_show[] =
+static const AP_RibbonItem s_ribbon_view_views[] =
 {
-	AP_MENU_ID_VIEW_RULER,
-	AP_MENU_ID_VIEW_STATUSBAR,
-	AP_MENU_ID_VIEW_TB_1,
-	AP_MENU_ID_VIEW_TB_2,
-	AP_MENU_ID_VIEW_TB_3,
-	AP_MENU_ID_VIEW_TB_4,
-	AP_MENU_ID_VIEW_SHOWPARA,
-	AP_MENU_ID_VIEW_LOCKSTYLES,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_NORMAL),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_WEB),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_PRINT),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_view_window[] =
+static const AP_RibbonItem s_ribbon_view_show[] =
 {
-	AP_MENU_ID_VIEW_FULLSCREEN,
-	AP_MENU_ID_WEB_WEBPREVIEW,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_RULER),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_STATUSBAR),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_1),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_2),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_3),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_4),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_SHOWPARA),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_LOCKSTYLES),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_view_zoom[] =
+{
+	AP_RIBBON_TB(AP_TOOLBAR_ID_ZOOM),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_WIDTH),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_WHOLE),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_200),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_100),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_75),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_50),
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_view_window[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_VIEW_FULLSCREEN),
+	AP_RIBBON_MENU(AP_MENU_ID_WEB_WEBPREVIEW),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_view_groups[] =
 {
+	{ "views",	s_ribbon_view_views },
 	{ "show",	s_ribbon_view_show },
+	{ "zoom",	s_ribbon_view_zoom },
 	{ "window",	s_ribbon_view_window },
 	{ nullptr,	nullptr }
 };
 
 /* -------------------------------------------- Table (contextual tab) --- */
 
-static const uint16_t s_ribbon_table_insert[] =
+static const AP_RibbonItem s_ribbon_table_insert[] =
 {
-	AP_MENU_ID_TABLE_INSERT_TABLE,
-	AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE,
-	AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER,
-	AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE,
-	AP_MENU_ID_TABLE_INSERT_ROWS_AFTER,
-	AP_MENU_ID_TABLE_INSERT_SUMCOLS,
-	AP_MENU_ID_TABLE_INSERT_SUMROWS,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_TABLE),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_SUMCOLS),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_SUMROWS),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_table_delete[] =
+static const AP_RibbonItem s_ribbon_table_delete[] =
 {
-	AP_MENU_ID_TABLE_DELETE_TABLE,
-	AP_MENU_ID_TABLE_DELETE_COLUMNS,
-	AP_MENU_ID_TABLE_DELETE_ROWS,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_DELETE_TABLE),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_DELETE_COLUMNS),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_DELETE_ROWS),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_table_select[] =
+static const AP_RibbonItem s_ribbon_table_select[] =
 {
-	AP_MENU_ID_TABLE_SELECT_TABLE,
-	AP_MENU_ID_TABLE_SELECT_COLUMN,
-	AP_MENU_ID_TABLE_SELECT_ROW,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SELECT_TABLE),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SELECT_COLUMN),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SELECT_ROW),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_table_format[] =
+static const AP_RibbonItem s_ribbon_table_format[] =
 {
-	AP_MENU_ID_FMT_TABLE,
-	AP_MENU_ID_TABLE_MERGE_CELLS,
-	AP_MENU_ID_TABLE_SPLIT_CELLS,
-	AP_MENU_ID_TABLE_SPLIT_TABLE,
-	AP_MENU_ID_TABLE_AUTOFIT,
-	AP_MENU_ID_TABLE_TEXTTOTABLE_ALL,
-	AP_MENU_ID_TABLE_TABLETOTEXT,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_FMT_TABLE),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_MERGE_CELLS),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SPLIT_CELLS),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SPLIT_TABLE),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_AUTOFIT),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_TEXTTOTABLE_ALL),
+	AP_RIBBON_MENU(AP_MENU_ID_TABLE_TABLETOTEXT),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_table_groups[] =
@@ -369,22 +471,22 @@ static const AP_RibbonGroup s_ribbon_table_groups[] =
 
 /* --------------------------------------------------------------- Help --- */
 
-static const uint16_t s_ribbon_help_items[] =
+static const AP_RibbonItem s_ribbon_help_items[] =
 {
-	AP_MENU_ID_HELP_CONTENTS,
-	AP_MENU_ID_HELP_SEARCH,
-	AP_MENU_ID_HELP_CHECKVER,
-	AP_MENU_ID_HELP_REPORT_BUG,
-	AP_MENU_ID_HELP_CREDITS,
-	AP_MENU_ID_HELP_ABOUT,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_CONTENTS),
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_SEARCH),
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_CHECKVER),
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_REPORT_BUG),
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_CREDITS),
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_ABOUT),
+	AP_RIBBON_END
 };
 
-static const uint16_t s_ribbon_help_interface[] =
+static const AP_RibbonItem s_ribbon_help_interface[] =
 {
-	AP_MENU_ID_HELP_UI_CLASSIC,
-	AP_MENU_ID_HELP_UI_RIBBON,
-	AP_MENU_ID__BOGUS1__ /* list terminator */
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_UI_CLASSIC),
+	AP_RIBBON_MENU(AP_MENU_ID_HELP_UI_RIBBON),
+	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_help_groups[] =
@@ -401,6 +503,7 @@ static const AP_RibbonTab s_ribbon_tabs[] =
 	{ "file",		s_ribbon_file_groups,		false },
 	{ "home",		s_ribbon_home_groups,		false },
 	{ "insert",		s_ribbon_insert_groups,		false },
+	{ "references",	s_ribbon_references_groups,	false },
 	{ "layout",		s_ribbon_layout_groups,		false },
 	{ "review",		s_ribbon_review_groups,		false },
 	{ "view",		s_ribbon_view_groups,		false },
