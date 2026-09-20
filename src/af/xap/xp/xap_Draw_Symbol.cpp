@@ -94,6 +94,25 @@ void XAP_Draw_Symbol::setFontToGC(GR_Graphics *p_gc, UT_uint32 MaxWidthAllowable
 	UT_sint32 UpperPointSize = -1;
 	UT_sint32 LowerPointSize = 1;
 
+	// Resolve the family and compute its coverage once.  Glyph coverage
+	// is a property of the font face, not of the point size, so rescanning
+	// the (potentially very large) charset on every sizing step below is
+	// pure waste - it made the dialog take seconds to open with fonts
+	// that cover many blocks.
+	{
+		char temp[16];
+		snprintf(temp, 16, "%ipt", PointSize);
+		font = p_gc->findFont(m_stFont.c_str(),
+							  "normal", "",
+							  "normal", "",
+							  temp,
+							  nullptr);
+		if (font->getFamily())
+			m_stFont = font->getFamily();
+		p_gc->setFont(font);
+		p_gc->getCoverage(m_vCharSet);
+	}
+
 	// We try to find the Pointsize which is a bit smaller than
 	// MaxHeightAllowable and MaxWidthAllowable (W+HAllowable)
 	// we archieve that in two steps:
@@ -116,10 +135,8 @@ void XAP_Draw_Symbol::setFontToGC(GR_Graphics *p_gc, UT_uint32 MaxWidthAllowable
 		 */
 		if (font->getFamily())
 			m_stFont = font->getFamily();
-		
-		p_gc->setFont(font);
 
-		p_gc->getCoverage(m_vCharSet);
+		p_gc->setFont(font);
 
 		if (PointSize == LastPointSize)
 			break;

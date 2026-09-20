@@ -95,6 +95,14 @@ below are on `main` but the release has not been cut yet.
   600-case byte-mutation ASan fuzz run.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
+- **Column balancing for short multi-column sections** — the last
+  column row of a section now redistributes its content evenly across
+  the configured columns instead of letting the first column fill to
+  the full page height.  This matches Word/LibreOffice "continuous"
+  section behaviour, so e.g. a two-column header block renders its
+  left/right content side by side.  Balancing is skipped when a
+  forced column or page break is present, and multi-page sections
+  only rebalance their final row.
 
 ### User interface
 
@@ -136,6 +144,10 @@ below are on `main` but the release has not been cut yet.
 - **Ruler redesign** — full-height bar, gray margin bands, white text
   band, bottom-anchored long/short tick hierarchy, zoom-exempt GUI-font
   numeric labels, flat triangle indent markers, black foreground text.
+- **Column-gap ruler marker restyled** — the multi-column gap handle
+  was a large dark hexagon drawn over the tick labels; it is now a
+  small flat triangle on the bottom edge of the bar, matching the
+  indent markers and keeping the numbers readable.
 - **Dedicated dash-list toolbar button** — `doDashedList` edit method,
   toggle state, labels/tooltip, `tb_lists_dashed` icon.
 - **Distinct list icons** — redrawn bullet/numbered/dash icons
@@ -468,6 +480,11 @@ below are on `main` but the release has not been cut yet.
 
 - **Font selector** — lazy `GtkListItemFactory` + incremental sort:
   popup is instant (was ~2.7 s+ blocked measuring ~2000 fonts).
+- **Insert Symbol dialog opens ~10× faster** — the point-size search
+  in `XAP_Draw_Symbol::setFontToGC` rescanned the font's whole glyph
+  coverage (up to ~1M codepoints for big fonts) on every binary-search
+  step and once more for the preview pane.  Coverage is
+  size-independent, so it is now collected once per font.
 - **Large-file load** — event pump during layout keeps the UI live on
   multi-MB documents.
 - **`s_getDragInfo`** — static init flag; the MIME table no longer

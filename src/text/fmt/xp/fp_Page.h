@@ -174,10 +174,10 @@ public:
 #endif
 
 	void                updateColumnX();
+	void				_reformatColumns(void);
 protected:
     void                _drawCropMarks(dg_DrawArgs*);
 	void				_reformat(void);
-	void				_reformatColumns(void);
 	void				_reformatFootnotes(void);
 	void				_reformatAnnotations(void);
 

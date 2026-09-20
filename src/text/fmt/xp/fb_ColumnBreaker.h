@@ -43,6 +43,7 @@ private:
 	fp_Page *               _getLastValidPage(void);
 	UT_sint32               _breakSection(fp_Page * pStartPage);
 	bool                    _checkVBreakableContainer(fp_Container * pContainer, UT_sint32 iAvail);
+	void                    _balanceLastColumnRow(void);
 
 	fp_Container * _getNext(fp_Container * pCon);
 	bool           _displayAnnotations(void);

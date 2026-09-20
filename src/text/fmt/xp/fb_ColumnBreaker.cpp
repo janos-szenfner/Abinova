@@ -201,8 +201,111 @@ UT_sint32 fb_ColumnBreaker::breakSection()
       }
       icnt++;
   }
+  _balanceLastColumnRow();
   pDL->deleteEmptyColumnsAndPages();
   return iVal;
+}
+
+
+/*!
+  Balance the columns of this section's last column row.
+
+  Word balances the final column row of every multi-column section so
+  that the row's columns end at roughly the same height - that is what
+  makes a "continuous" section with w:num="2" show its header content
+  side by side instead of letting the first column fill to the bottom
+  of the page.  AbiWord historically only wrapped to the next column
+  when the previous one reached page height, so a short multi-column
+  section rendered as a single column.
+
+  Content is moved with bumpContainers(), which preserves document
+  order (the tail of a column becomes the head of the next column).
+  Rows containing forced page/column breaks are left alone.
+*/
+void fb_ColumnBreaker::_balanceLastColumnRow(void)
+{
+	fp_Column * pLastColumn =
+		static_cast<fp_Column *>(m_pDocSec->getLastContainer());
+	if (!pLastColumn ||
+		pLastColumn->getContainerType() != FP_CONTAINER_COLUMN)
+		return;
+	fp_Page * pPage = pLastColumn->getPage();
+	if (!pPage)
+		return;
+	fp_Column * pLeader = pLastColumn->getLeader();
+	if (!pLeader || pLeader == pLastColumn)
+		return;		// single-column row
+
+	// collect the row: the leader plus its followers on this page
+	UT_GenericVector<fp_Column*> vecRow;
+	for (fp_Column * pCol = pLeader; pCol; pCol = pCol->getFollower())
+	{
+		if ((pCol->getPage() != pPage) ||
+			(pCol->getDocSectionLayout() != m_pDocSec))
+			return;	// inconsistent row - leave the layout as is
+		vecRow.addItem(pCol);
+	}
+	UT_sint32 iCols = vecRow.getItemCount();
+	if (iCols < 2)
+		return;
+
+	// bail out on explicit breaks - content across a forced break
+	// must not be redistributed
+	UT_sint32 iTotal = 0;
+	for (UT_sint32 i = 0; i < iCols; ++i)
+	{
+		fp_Column * pCol = vecRow.getNthItem(i);
+		if (pCol->containsPageBreak())
+			return;
+		for (UT_sint32 k = 0; k < pCol->countCons(); ++k)
+		{
+			fp_Container * pCon =
+				static_cast<fp_Container*>(pCol->getNthCon(k));
+			if (pCon->getContainerType() == FP_CONTAINER_LINE)
+			{
+				fp_Line * pL = static_cast<fp_Line*>(pCon);
+				if (pL->containsForcedColumnBreak() ||
+					pL->containsForcedPageBreak())
+					return;
+			}
+			iTotal += pCon->getHeight();
+		}
+	}
+	if (iTotal <= 0)
+		return;
+
+	// target height per column, based on the actual content height
+	UT_sint32 iTarget = (iTotal + iCols - 1) / iCols;
+
+	// push the overflow of each column into the head of the next;
+	// the last column absorbs whatever remains
+	bool bBumped = false;
+	for (UT_sint32 i = 0; i < iCols - 1; ++i)
+	{
+		fp_Column * pCol = vecRow.getNthItem(i);
+		UT_sint32 iAcc = 0;
+		fp_ContainerObject * pKeep = nullptr;
+		for (UT_sint32 k = 0; k < pCol->countCons(); ++k)
+		{
+			fp_ContainerObject * pCon = pCol->getNthCon(k);
+			UT_sint32 iH = static_cast<fp_Container*>(pCon)->getHeight();
+			if (pKeep && (iAcc + iH > iTarget))
+				break;
+			iAcc += iH;
+			pKeep = pCon;
+		}
+		if (!pKeep || pKeep == pCol->getNthCon(pCol->countCons()-1))
+			continue;
+		pCol->bumpContainers(pKeep);
+		bBumped = true;
+	}
+	if (!bBumped)
+		return;
+
+	for (UT_sint32 i = 0; i < iCols; ++i)
+		vecRow.getNthItem(i)->layout();
+	// reposition the column rows below on this page
+	pPage->_reformatColumns();
 }
 
 fp_Page * fb_ColumnBreaker::_getLastValidPage(void)

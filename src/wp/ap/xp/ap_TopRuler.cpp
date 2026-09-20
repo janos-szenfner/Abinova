@@ -4566,26 +4566,27 @@ void AP_TopRuler::_drawColumnGapMarker(UT_Rect & rect)
 	GR_Graphics::GR_Color3D clr3dBorder, clr3dBevel;
 	_computeEffects(true,clr3dBorder,clr3dBevel);
 
-	UT_sint32 l = rect.left;
-	UT_sint32 t = rect.top;
-	UT_sint32 w = rect.width;
+	UT_sint32 cx = rect.left + rect.width/2;
 
 	GR_Painter painter(m_pG);
 
+	/* LibreOffice-style gap handle: a small upward-pointing triangle
+	 * sitting on the bottom edge of the bar, centred in the gap.  The
+	 * tick labels run in the upper half of the bar, so the handle stays
+	 * clear of them. */
+	UT_sint32 b = m_pG->tlu(s_iFixedHeight) - m_pG->tlu(2);
+	UT_sint32 hs = m_pG->tlu(4);
 	UT_Point points[] = {
-		{ l, t },
-		{ l + w, t },
-		{ l + w, t + m_pG->tlu(11) },
-		{ l + w - m_pG->tlu(5),   t + m_pG->tlu(6) },
-		{ l + m_pG->tlu(5),   t + m_pG->tlu(6) },
-		{ l, t + m_pG->tlu(11) },
-		{ l, t }
+		{ cx - hs, b },
+		{ cx + hs, b },
+		{ cx,      b - m_pG->tlu(6) },
+		{ cx - hs, b }
 	};
 	UT_RGBColor colour;
 	if (m_pG->getColor3D(GR_Graphics::CLR3D_BevelDown, colour)) {
-		painter.polygon(colour, points, 7);
+		painter.polygon(colour, points, 4);
 		m_pG->setColor3D(clr3dBorder);
-		painter.polyLine(points, 7);
+		painter.polyLine(points, 4);
 	} else {
 		// this shouldn't happen
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
