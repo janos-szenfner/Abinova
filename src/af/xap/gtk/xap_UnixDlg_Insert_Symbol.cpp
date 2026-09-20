@@ -268,8 +268,8 @@ void XAP_UnixDialog_Insert_Symbol::New_Font(void )
 	}
 
 	_setScrolledWindow ();
-	iDrawSymbol->queueDraw();
 	iDrawSymbol->drawarea(m_CurrentSymbol, m_PreviousSymbol);
+	_queueDraws();
 }
 
 void XAP_UnixDialog_Insert_Symbol::New_Row(void)
@@ -281,6 +281,7 @@ void XAP_UnixDialog_Insert_Symbol::New_Row(void)
 	UT_uint32 row = UT_uint32 (gtk_adjustment_get_value(m_vadjust));
 
 	iDrawSymbol->setRow (row);
+	_queueDraws();
 }
 
 void XAP_UnixDialog_Insert_Symbol::Scroll_Event (int direction)
@@ -347,12 +348,12 @@ static gboolean s_scroll_event(GtkEventControllerScroll * /*controller*/,
 	return TRUE;
 }
 
-static void s_sym_SymbolMap_draw(GtkDrawingArea * /*area*/, cairo_t * /*cr*/,
+static void s_sym_SymbolMap_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 								 int /*width*/, int /*height*/,
 								 gpointer data)
 {
 	XAP_UnixDialog_Insert_Symbol * dlg = static_cast<XAP_UnixDialog_Insert_Symbol *>(data);
-	dlg->SymbolMap_exposed();
+	dlg->SymbolMap_exposed(cr);
 }
 
 static void s_size_allocate(GtkDrawingArea * /*area*/, int width, int height,
@@ -363,12 +364,12 @@ static void s_size_allocate(GtkDrawingArea * /*area*/, int width, int height,
 }
 
 
-static void s_Symbolarea_draw(GtkDrawingArea * /*area*/, cairo_t * /*cr*/,
+static void s_Symbolarea_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 							  int /*width*/, int /*height*/,
 							  gpointer data)
 {
 	XAP_UnixDialog_Insert_Symbol * dlg = static_cast<XAP_UnixDialog_Insert_Symbol *>(data);
-	dlg->Symbolarea_exposed();
+	dlg->Symbolarea_exposed(cr);
 }
 
 static void  s_SymbolMap_clicked(GtkGestureClick * /*gesture*/, gint n_press,
@@ -395,23 +396,43 @@ static gboolean s_keypressed(GtkEventControllerKey * /*controller*/,
 
 /*****************************************************************/
 
-void XAP_UnixDialog_Insert_Symbol::SymbolMap_exposed(void )
+void XAP_UnixDialog_Insert_Symbol::SymbolMap_exposed(cairo_t *cr)
 {
 	XAP_Draw_Symbol * iDrawSymbol = _getCurrentSymbolMap();
 	UT_return_if_fail(iDrawSymbol);
-	iDrawSymbol->queueDraw();
+	UT_return_if_fail(m_unixGraphics);
 	UT_DEBUGMSG(("main symbol area exposed \n"));
+	/* Paint into the backing surface, then blit to GTK's cairo_t. */
+	GR_UnixCairoGraphics * uGraphics = static_cast<GR_UnixCairoGraphics *>(m_unixGraphics);
+	uGraphics->beginFrame();
+	iDrawSymbol->drawImmediate();
 	/*
 	    Need this to see the blue square after an expose event
 	*/
 	iDrawSymbol->drawarea(m_CurrentSymbol, m_PreviousSymbol);
+	uGraphics->endFrame(cr);
 }
 
-void XAP_UnixDialog_Insert_Symbol::Symbolarea_exposed(void )
+void XAP_UnixDialog_Insert_Symbol::Symbolarea_exposed(cairo_t *cr)
 {
 	XAP_Draw_Symbol * iDrawSymbol = _getCurrentSymbolMap();
 	UT_return_if_fail(iDrawSymbol);
+	UT_return_if_fail(m_unixarea);
+	GR_UnixCairoGraphics * uArea = static_cast<GR_UnixCairoGraphics *>(m_unixarea);
+	uArea->beginFrame();
 	iDrawSymbol->drawarea(m_CurrentSymbol, m_PreviousSymbol);
+	uArea->endFrame(cr);
+}
+
+void XAP_UnixDialog_Insert_Symbol::_queueDraws(void)
+{
+	/* Painting outside the draw callback lands on the graphics'
+	 * backing surfaces; invalidate both areas so the next frame
+	 * composites them to screen. */
+	if (m_SymbolMap)
+		gtk_widget_queue_draw(m_SymbolMap);
+	if (m_areaCurrentSym)
+		gtk_widget_queue_draw(m_areaCurrentSym);
 }
 
 void XAP_UnixDialog_Insert_Symbol::setSymbolMap_size(UT_uint32 width, UT_uint32 height)
@@ -522,6 +543,7 @@ gboolean XAP_UnixDialog_Insert_Symbol::Key_Pressed(guint ev_keyval)
 		  m_iy = iy;
 		}
 		iDrawSymbol->drawarea(m_CurrentSymbol, m_PreviousSymbol);
+		_queueDraws();
 		return TRUE;
 	}
 
@@ -539,6 +561,7 @@ void XAP_UnixDialog_Insert_Symbol::SymbolMap_clicked(gint n_press, gdouble x, gd
 	 	m_CurrentSymbol = c;
 		iDrawSymbol->calculatePosition(m_CurrentSymbol, m_ix, m_iy);
 		iDrawSymbol->drawarea(m_CurrentSymbol, m_PreviousSymbol);
+		_queueDraws();
 
 		// double click should also insert the symbol
 		if (n_press == 2)

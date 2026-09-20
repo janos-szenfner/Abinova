@@ -368,6 +368,13 @@ below are on `main` but the release has not been cut yet.
 - **Clip Art** — falls back to the source-tree `user/wp/clipart` when
   the installed `<libdir>/clipart` doesn't exist, so it works from
   the build tree.
+- **Insert Symbol showed an empty grid** — the drawing-area draw
+  callbacks never ran `drawImmediate` inside a `beginFrame`/`endFrame`
+  pair, so painting landed on the backing surface but was never
+  composited to screen; symbol clicks also painted without
+  invalidating either drawing area. Both callbacks now wrap the paint
+  in a frame and a `_queueDraws()` helper invalidates both areas after
+  click/key/font/scroll updates.
 
 ### GTK4 port (core migration)
 

@@ -67,8 +67,8 @@ public:
 	};
 
 	// callbacks can fire these events
-	void			SymbolMap_exposed( void);
-	void			Symbolarea_exposed( void);
+	void			SymbolMap_exposed( cairo_t *cr);
+	void			Symbolarea_exposed( cairo_t *cr);
 	void			SymbolMap_clicked(gint n_press, gdouble x, gdouble y);
 	void			CurrentSymbol_clicked(void);
 	gboolean		Key_Pressed(guint keyval);
@@ -80,6 +80,7 @@ private:
 	GtkWidget * _createComboboxWithFonts (void);
 	void        _connectSignals (void);
 	void        _setScrolledWindow (void);
+	void        _queueDraws (void);
 
 	// pointers to widgets we need to query/set
 	GtkWidget * m_SymbolMap;
