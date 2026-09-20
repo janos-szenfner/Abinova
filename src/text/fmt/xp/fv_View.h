@@ -1044,7 +1044,6 @@ private:
 	FL_DocLayout*		m_pLayout;
 	PD_Document*		m_pDoc;
 	GR_Graphics*		m_pG;
-	void*				m_pParentData;
 
 	// autoscroll stuff
 	UT_Timer *			m_pAutoScrollTimer;

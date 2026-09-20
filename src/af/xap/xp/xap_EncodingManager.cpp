@@ -149,7 +149,13 @@ XAP_EncodingManager::~XAP_EncodingManager()
 	UT_iconv_close(iconv_handle_Win2U);
 }
 
-XAP_EncodingManager::XAP_EncodingManager() { }
+XAP_EncodingManager::XAP_EncodingManager()
+	: TexPrologue(nullptr),
+	  WinLanguageCode(0),
+	  WinCharsetCode(0),
+	  is_cjk_(false),
+	  m_bIsUnicodeLocale(false)
+{ }
 
 void XAP_EncodingManager::Delete_instance()
 {

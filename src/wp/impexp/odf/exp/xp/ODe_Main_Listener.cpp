@@ -239,8 +239,9 @@ void ODe_Main_Listener::_openHeaderFooterSection(
     ok = pAP->getAttribute("type", pValue);
     if (!ok || pValue == nullptr) {
         UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+        return;
     }
-    
+
     ok = false;
     if (!strcmp("header", pValue)) {
         

@@ -40,6 +40,9 @@ typedef ISpellChecker SpellCheckerClass;
  * Abstract constructor
  */
 /* protected */ SpellChecker::SpellChecker ()
+	: m_bIsBarbarism(false),
+	  m_bIsDictionaryWord(false),
+	  m_bFoundDictionary(false)
 {
 	// not used, abstract base class
 }

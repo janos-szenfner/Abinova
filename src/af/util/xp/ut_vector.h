@@ -359,6 +359,9 @@ template <class T>
 const T UT_GenericVector<T>::getLastItem() const
 {
 	UT_ASSERT_HARMLESS(m_iCount > 0);
+	if (m_iCount <= 0 || !m_pEntries) {
+		return T();
+	}
 
 	return m_pEntries[m_iCount-1];
 }

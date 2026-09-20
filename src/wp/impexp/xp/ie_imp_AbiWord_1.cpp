@@ -1571,7 +1571,7 @@ bool IE_Imp_AbiWord_1::_handleResource (const gchar ** atts, bool isResource)
 
 							if (strcmp (*attr, "image/png") == 0)
 								mt = mt_png;
-							else if (strcmp (*attr, "image/svg+xml") == 0 || strcmp (*attr, "image/svg"))
+							else if (strcmp (*attr, "image/svg+xml") == 0 || strcmp (*attr, "image/svg") == 0)
 								mt = mt_svg;
 							else if (strcmp (*attr, "application/mathml+xml") == 0)
 								mt = mt_mathml;

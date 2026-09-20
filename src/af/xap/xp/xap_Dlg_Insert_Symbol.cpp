@@ -42,6 +42,9 @@ XAP_Dialog_Insert_Symbol::XAP_Dialog_Insert_Symbol(XAP_DialogFactory * pDlgFacto
 	m_answer = a_CANCEL;
 	m_DrawSymbol = nullptr;
 	m_pListener = nullptr;
+	m_FontName[0] = 0;
+	m_Insert_Symbol_font = nullptr;
+	m_WindowName[0] = 0;
 	//	m_pDialog = (XAP_Dialog_Insert_Symbol *) this;
 }
 XAP_Dialog_Insert_Symbol::~XAP_Dialog_Insert_Symbol(void)

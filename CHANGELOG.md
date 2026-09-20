@@ -43,6 +43,16 @@ below are on `main` but the release has not been cut yet.
   bullet/ordered/task lists, blockquotes, fenced+indented code,
   horizontal rules, GFM pipe tables with alignment, hard breaks;
   documents round-trip through Markdown.
+- **Built-in LaTeX import/export** — `.tex`/`.latex`/`.ltx`: the old
+  `latex` plugin exporter moved to `src/wp/impexp/xp/ie_exp_LaTeX.cpp`
+  (registered centrally, no module load), and a new importer
+  (`ie_imp_LaTeX.cpp`) covers the common document subset —
+  preamble, `\maketitle`, sectioning, `\text*`/`{\bf ...}`
+  formatting, itemize/enumerate/description lists (with nesting),
+  quote/verse, verbatim/lstlisting, center/flushleft/flushright,
+  tabular/array/longtable tables, `\includegraphics`, `\footnote`
+  (real footnote objects), inline and display math (styled text),
+  comments, escapes, accents, ligatures, `\hrule` and page breaks.
 - **Self-contained MHTML importer** — the `mht` plugin was rewritten
   around an internal `UT_MHTStream` MIME parser (folded headers,
   multipart boundary, quoted-printable/base64 parts, `cid:` images);
@@ -216,6 +226,45 @@ below are on `main` but the release has not been cut yet.
 - **Insert Table / table picker** — popover unparented at dispose.
 - **Clip Art use-after-free** — `fill_store` idle cancelled on
   destruction.
+- **Key-binding table out-of-bounds** — `EV_EVK_ToNumber` yields up
+  to 0xffff but `m_pebChar->m_peb[256][4]` was indexed by it guarded
+  only by a `UT_ASSERT` (compiled out in release); any keysym ≥ 256
+  was an out-of-bounds read/write. `setBinding`/`removeBinding` now
+  apply the same 65280-offset quick fix as `getBinding` and bail on
+  out-of-range values.
+- **Menu-layout table out-of-bounds** — `EV_Menu_Layout::
+  setLayoutItem`/`getLayoutItem` indexed `m_layoutTable` guarded only
+  by `UT_ASSERT`; now return `false`/`nullptr` out of range.
+- **Table column/row access out-of-bounds** —
+  `fp_TableContainer::getNthCol`/`getNthRow` indexed member vectors
+  guarded only by `UT_ASSERT`; now return `nullptr` out of range.
+- **`GR_Graphics::endDoubleBuffering`/`resumeDrawing` UB** — called
+  `std::stack::top()` on a possibly empty stack; now bail early.
+- **Tab-position buffer overflow** — `fl_BlockLayout` copied a tab
+  position string into `char[32]` guarded only by `UT_ASSERT`; now
+  clamped.
+- **Signed-shift UB** — `1 << bitdex` for bitdex up to 31 shifted a
+  signed int into the sign bit; now `1U << bitdex`.
+- **`getLastItem` on empty vector** — `UT_GenericVector::getLastItem`
+  indexed `m_pEntries[-1]` when empty (assert-only guard); now
+  returns `T()` like `getFirstItem`.
+- **`.abw` mime-type misclassification** — `strcmp(*attr,"image/svg")`
+  without `== 0` made the SVG branch true for every other mime type,
+  so `application/mathml+xml` and the generic embed fallback were
+  unreachable.
+- **Null `pAP` dereference in ODF export** —
+  `ODe_AbiDocListener::_openAnnotation`/`_endAnnotation` and
+  `ODe_Main_Listener` dereferenced a `nullptr` `pAP`/`pValue` after
+  a failed `getAttrProp`/`getAttribute` when assertions compiled out.
+- **Null `pAP` dereference in HTML export** —
+  `ie_exp_HTML_Listener` TOC heading-style lookup.
+- **Uninitialized members** — `s_LaTeX_Listener` (~20 members),
+  `XAP_Dialog_Insert_Symbol`, `SpellChecker`, `XAP_Prefs`,
+  `XAP_EncodingManager`, `XAP_UnixDialog_PluginManager` now
+  initialize all members in their constructors.
+- **`FV_View::m_pParentData` shadowed `AV_View::m_pParentData`** —
+  two storage slots initialized to the same value; the duplicate is
+  removed and the inherited member used.
 - **`genImageFromRectangle` texture cast crash** — `GskRenderer`
   rasterization path with `GDK_IS_TEXTURE` guard (drags, image cache,
   ODF thumbnails).

@@ -91,6 +91,8 @@ XAP_Menu_Id EV_Menu_Layout::addLayoutItem(UT_uint32 indexLayoutItem, EV_Menu_Lay
 bool EV_Menu_Layout::setLayoutItem(UT_uint32 indexLayoutItem, XAP_Menu_Id id, EV_Menu_LayoutFlags flags)
 {
     UT_ASSERT(indexLayoutItem < m_layoutTable.size());
+    if (indexLayoutItem >= m_layoutTable.size())
+        return false;
     m_iMaxId = private_max((XAP_Menu_Id)m_iMaxId, id);
     EV_Menu_LayoutItem* pOld = nullptr;
     pOld = m_layoutTable[indexLayoutItem];
@@ -116,6 +118,8 @@ UT_uint32 EV_Menu_Layout::getLayoutIndex(XAP_Menu_Id id) const
 EV_Menu_LayoutItem* EV_Menu_Layout::getLayoutItem(UT_uint32 indexLayoutItem) const
 {
     UT_ASSERT(indexLayoutItem < m_layoutTable.size());
+    if (indexLayoutItem >= m_layoutTable.size())
+        return nullptr;
     return m_layoutTable[indexLayoutItem];
 }
 

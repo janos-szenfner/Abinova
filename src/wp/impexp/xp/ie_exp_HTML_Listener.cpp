@@ -2497,7 +2497,7 @@ void IE_Exp_HTML_Listener::_insertTOC(PT_AttrPropIndex api)
 
     // determine the style of the TOC heading
     UT_UTF8String headingStyle;
-    ok = pAP->getProperty("toc-heading-style", pValue);
+    ok = pAP && pAP->getProperty("toc-heading-style", pValue);
     if (ok && pValue)
     {
         headingStyle = pValue;

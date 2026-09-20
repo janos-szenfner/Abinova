@@ -3272,7 +3272,7 @@ FL_DocLayout::_backgroundCheck(UT_Worker * pWorker)
 				 bitdex++)
 			{
 				UT_uint32 mask;
-				mask = (1 << bitdex);
+				mask = (1U << bitdex);
 				if (pB->hasBackgroundCheckReason(mask))
 				{
 					if(!pDocLayout->m_bFinishedInitialCheck 

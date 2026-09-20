@@ -881,7 +881,7 @@ void ODe_AbiDocListener::_openAnnotation(PT_AttrPropIndex api, const std::string
     std::string name = defaultName;
     {
         const gchar* pValue = nullptr;
-        if(pAP->getAttribute("name",pValue) && pValue)
+        if(pAP && pAP->getAttribute("name",pValue) && pValue)
         {
             name = pValue;
         }
@@ -927,11 +927,11 @@ void ODe_AbiDocListener::_endAnnotation( PT_AttrPropIndex api )
         pAP = nullptr;
     }
     const gchar* pValue = nullptr;
-    if(pAP->getAttribute("name",pValue) && pValue)
+    if(pAP && pAP->getAttribute("name",pValue) && pValue)
     {
         name = pValue;
     }
-    
+
     UT_DEBUGMSG(("_endAnnotation() api:%d name:%s\n", api, name.c_str() ));
     m_pCurrentImpl->endAnnotation( name );
 }

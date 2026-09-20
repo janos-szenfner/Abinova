@@ -26,6 +26,9 @@ An experimental fork of the AbiWord word processor, focused on:
 - **Built-in Markdown support** — open, edit, save and save-as for
   `.md` files, implemented in the core import/export library (not a
   plugin).
+- **Built-in LaTeX support** — open, edit, save and save-as for
+  `.tex` files, implemented in the core import/export library (not a
+  plugin).
 - **Repository cleanup** — obsolete plugins and dead files removed;
   Debian-reported bugs fixed against the actual implementation.
 
@@ -77,6 +80,42 @@ An experimental fork of the AbiWord word processor, focused on:
     alignment, and hard line breaks (two trailing spaces or `\`).
   - Export writes the same constructs back, so a document round-trips
     through Markdown without losing its formatting structure.
+- **Built-in LaTeX** (`src/wp/impexp/xp/ie_imp_LaTeX.cpp` /
+  `ie_exp_LaTeX.cpp`): full read/write for `.tex`, `.latex` and
+  `.ltx` files — the old `latex` plugin was removed and its exporter
+  migrated into the core import/export library, and a new importer
+  was added. Syntax follows the LaTeX project
+  (https://www.latex-project.org/):
+  - `\documentclass` / `\usepackage` preamble parsing,
+    `\title` / `\author` / `\date` with `\maketitle` mapped to the
+    `Title` style.
+  - `\part`, `\chapter`, `\section` … `\subparagraph` (starred forms
+    included) mapped to `Heading 1`-`Heading 4`.
+  - `\textbf`, `\textit`, `\emph`, `\texttt`, `\underline`,
+    `\textsuperscript` / `\textsubscript` and the `{ \bf ... }`-style
+    declarations mapped to real character formatting.
+  - `itemize` / `enumerate` / `description` environments as real
+    AbiWord lists, including nesting.
+  - `quote` / `quotation` / `verse` (`Block Text` style),
+    `verbatim` / `lstlisting` (`Plain Text` + Courier New),
+    `center` / `flushleft` / `flushright` alignment environments,
+    `tabular` / `array` / `longtable` tables, `\includegraphics`
+    image embedding, `\footnote` (real footnote objects),
+    `\hrule` (paragraph bottom border) and `\newpage` /
+    `\clearpage` / `\pagebreak` page breaks.
+  - Comments (`%`), escaped specials (`\%` `\&` `\_` `\#` `\{`
+    `\}` `\$`), `~` non-breaking spaces, quote and dash ligatures
+    (` `` `, `''`, `---`, `--`), accent commands (`\'`, `\"`, `\^`,
+    `\~`, ``\` ``, `\c`, …) and Latin-1 ligature commands
+    (`\ae`, `\oe`, `\ss`, …).
+  - Inline `$...$`, `$$...$$` and `\( ... \)` math plus
+    `equation` / `align` / `displaymath` environments are imported
+    as styled text; existing MathML equations are exported back to
+    LaTeX through the built-in MathML→LaTeX converter
+    (`ie_math_convert`, xsltml stylesheets).
+  - Export writes `\documentclass` + preamble, sectioning commands,
+    lists, tables and formatting commands, so a document round-trips
+    through LaTeX without losing its formatting structure.
 - **EPUB support modernized to EPUB 3.3** (now built-in): `version="3.0"` packages
   with the required `dcterms:modified` metadata, `properties="nav"`
   on the navigation document and `properties="mathml"` on MathML

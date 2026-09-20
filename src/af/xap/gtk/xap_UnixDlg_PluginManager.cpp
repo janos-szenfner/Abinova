@@ -70,6 +70,13 @@ XAP_UnixDialog_PluginManager::XAP_UnixDialog_PluginManager(XAP_DialogFactory * p
 							   XAP_Dialog_Id id)
   : XAP_Dialog_PluginManager(pDlgFactory,id)
 {
+	m_windowMain = nullptr;
+	m_pFrame = nullptr;
+	m_list = nullptr;
+	m_name = nullptr;
+	m_author = nullptr;
+	m_version = nullptr;
+	m_desc = nullptr;
 }
 
 XAP_UnixDialog_PluginManager::~XAP_UnixDialog_PluginManager(void)

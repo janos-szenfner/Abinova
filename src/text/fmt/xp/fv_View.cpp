@@ -237,7 +237,6 @@ FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
 		m_pLayout(pLayout),
 		m_pDoc(pLayout->getDocument()),
 		m_pG(m_pLayout->getGraphics()),
-		m_pParentData(pParentData),
 		m_pAutoScrollTimer(nullptr),
 		m_xLastMouse(0),
 		m_yLastMouse(0),

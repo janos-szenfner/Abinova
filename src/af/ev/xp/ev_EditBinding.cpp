@@ -473,7 +473,16 @@ bool EV_EditBindingMap::setBinding(EV_EditBits eb, EV_EditBinding * peb)
 				}
 			}
 			UT_uint32 n_evk = EV_EVK_ToNumber(eb);
-			UT_ASSERT(n_evk < 256);		// TODO see note [1] above.
+			if (n_evk >= 256)		// TODO see note [1] above.
+			{
+				if ((n_evk - 65280) < 256)
+					n_evk -= 65280;  // same quick fix as getBinding()
+				else
+				{
+					delete peb;
+					return false;
+				}
+			}
 			UT_uint32 n_ems = EV_EMS_ToNumberNoShift(eb);
 			if (m_pebChar->m_peb[n_evk][n_ems]) 
 			{
@@ -524,7 +533,13 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 			if (!m_pebChar)
 				return false;
 			UT_uint32 n_evk = EV_EVK_ToNumber(eb);
-			UT_ASSERT(n_evk < 256);		// TODO see note [1] above.
+			if (n_evk >= 256)		// TODO see note [1] above.
+			{
+				if ((n_evk - 65280) < 256)
+					n_evk -= 65280;  // same quick fix as getBinding()
+				else
+					return false;
+			}
 			UT_uint32 n_ems = EV_EMS_ToNumberNoShift(eb);
 			m_pebChar->m_peb[n_evk][n_ems] = nullptr;
 			return true;

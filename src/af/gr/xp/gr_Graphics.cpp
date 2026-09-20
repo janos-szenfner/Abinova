@@ -342,7 +342,8 @@ void GR_Graphics::endDoubleBuffering(bool token)
 	if(token == false) return;
 
 	UT_ASSERT(m_DCSwitchManagementStack.size() > 0);
-	
+	if (m_DCSwitchManagementStack.empty()) return;
+
 	UT_sint32 topMostSwitch = m_DCSwitchManagementStack.top();
 	UT_ASSERT(topMostSwitch == (UT_sint32)SWITCHED_TO_BUFFER);
 
@@ -366,7 +367,8 @@ void GR_Graphics::resumeDrawing(bool token)
 	if(token == false) return;
 
 	UT_ASSERT(m_DCSwitchManagementStack.size() > 0);
-	
+	if (m_DCSwitchManagementStack.empty()) return;
+
 	UT_sint32 topMostSwitch = m_DCSwitchManagementStack.top();
 	UT_ASSERT(topMostSwitch == (UT_sint32)DRAWING_SUSPENDED);
 

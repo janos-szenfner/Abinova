@@ -75,6 +75,7 @@ typedef UT_sint32 IEGraphicFileType;
 #define IE_IMPEXPNAME_GOCHART   	"AbiWord::GNOME Office Chart"
 #define IE_IMPEXPNAME_GOCOMPONENT   "AbiWord::GNOME Office Component"
 #define IE_IMPEXPNAME_MARKDOWN		"AbiWord::Markdown"
+#define IE_IMPEXPNAME_LATEX			"AbiWord::LaTeX"
 
 /*!
  * How to match mimetypes that plugins support.

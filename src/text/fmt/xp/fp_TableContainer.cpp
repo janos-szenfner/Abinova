@@ -5970,12 +5970,16 @@ void  fp_TableContainer::_size_allocate_pass2(void)
 fp_TableRowColumn * fp_TableContainer::getNthCol(UT_uint32 i) const
 {
 	UT_ASSERT(i < m_vecColumns.size());
+	if (i >= m_vecColumns.size())
+		return nullptr;
 	return m_vecColumns[i];
 }
 
 fp_TableRowColumn * fp_TableContainer::getNthRow(UT_uint32 i) const
 {
 	UT_ASSERT(i < m_vecRows.size());
+	if (i >= m_vecRows.size())
+		return nullptr;
 	return m_vecRows[i];
 }
 

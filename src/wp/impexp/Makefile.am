@@ -63,6 +63,8 @@ libimpexp_la_SOURCES = \
 	xp/ie_exp_RTF_listenerWriteDoc.h \
 	xp/ie_exp_Markdown.cpp \
 	xp/ie_exp_Markdown.h \
+	xp/ie_exp_LaTeX.cpp \
+	xp/ie_exp_LaTeX.h \
 	xp/ie_exp_Text.cpp \
 	xp/ie_exp_Text.h \
 	xp/ie_exp_XML.cpp \
@@ -102,6 +104,8 @@ libimpexp_la_SOURCES = \
 	xp/ie_imp_RTFParse.h \
 	xp/ie_imp_Markdown.cpp \
 	xp/ie_imp_Markdown.h \
+	xp/ie_imp_LaTeX.cpp \
+	xp/ie_imp_LaTeX.h \
 	xp/ie_imp_Text.cpp \
 	xp/ie_imp_Text.h \
 	xp/ie_imp_RDF.cpp \

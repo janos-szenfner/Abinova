@@ -375,7 +375,9 @@ XAP_Prefs::XAP_Prefs()
 	, m_maxRecent(atoi(XAP_PREF_DEFAULT_MaxRecent))
 	, m_bInChangeBlock(false)
 	, m_geom({0, 0, 0, 0, 0})
+	, m_bLoadSystemDefaultFile(false)
 	, m_bIgnoreThisOne(false)
+	, m_parserState()
 {
 	// NOTE: since constructors cannot report g_try_malloc
 	// NOTE: failures (and since it is virtual back

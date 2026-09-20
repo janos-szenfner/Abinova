@@ -409,6 +409,8 @@ void buildTabStops(const char* pszTabStops, UT_GenericVector<fl_TabStop*> &vecTa
 			UT_uint32 iPosLen = p1 - pStart;
 
 			UT_ASSERT(iPosLen < sizeof pszPosition);
+			if (iPosLen >= sizeof(pszPosition))
+				iPosLen = sizeof(pszPosition) - 1;
 
 			memcpy(pszPosition, pStart, iPosLen);
 			pszPosition[iPosLen] = 0;
@@ -9520,6 +9522,8 @@ bool	fl_BlockLayout::findNextTabStop( UT_sint32 iStartX, UT_sint32 iMaxX, UT_sin
 	}
 
 	UT_ASSERT(m_iDefaultTabInterval > 0);
+	if (m_iDefaultTabInterval <= 0)
+		return false;
 
 	// mathematical approach
 	const UT_sint32 iPos = (iStartX / m_iDefaultTabInterval + 1) *
@@ -9643,6 +9647,8 @@ bool	fl_BlockLayout::findPrevTabStop( UT_sint32 iStartX, UT_sint32 iMaxX, UT_sin
 	}
 
 	UT_ASSERT(m_iDefaultTabInterval > 0);
+	if (m_iDefaultTabInterval <= 0)
+		return false;
 
 	// mathematical approach
 	// the -1 is to ensure we do not get iStartX
