@@ -64,14 +64,19 @@ public:
 	void			refresh();
 
 private:
-	GtkWidget *		_makeButton(XAP_Menu_Id id);
-	GtkWidget *		_makeToolbarWidget(XAP_Toolbar_Id id);
+	GtkWidget *		_makeButton(XAP_Menu_Id id, uint8_t flags);
+	GtkWidget *		_makeToolbarWidget(XAP_Toolbar_Id id, uint8_t flags);
+	GtkWidget *		_makeStyleGallery();
 	void			_invokeToolbarItem(XAP_Toolbar_Id id,
 									   const UT_UCS4Char * pData = nullptr,
 									   UT_uint32 dataLength = 0);
 	void			_refreshContextualTabs();
 	void			_refreshToolbarItems();
+	void			_populateStyleTiles();
+	void			_refreshStyleTiles(const char * szCurrentStyle);
 	void			_buildIconMap();
+
+	static void		_s_style_tile_clicked(GtkWidget * w, gpointer data);
 
 	static void		_s_switch_page(GtkNotebook * book, GtkWidget * page,
 								   guint page_num, gpointer data);
@@ -107,6 +112,16 @@ private:
 	static void			_s_tb_color_automatic(GtkWidget * w, gpointer data);
 
 	UT_GenericVector<_TbCtx*>	m_vecTbCtx;
+
+	/* style-gallery tiles: widget -> unlocalised style name it applies */
+	struct _StyleTile
+	{
+		GtkWidget *	widget;
+		char *		styleName;
+	};
+	UT_GenericVector<_StyleTile*>	m_vecStyleTiles;
+	GtkWidget *			m_wStyleBox;
+	GtkWidget *			m_wStyleScroll;
 
 	XAP_Frame *			m_pFrame;
 	EV_UnixMenuBar *	m_pMenu;

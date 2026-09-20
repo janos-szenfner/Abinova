@@ -46,6 +46,8 @@
 #include "ap_Ribbon_Layouts.h"
 #include "gr_CairoGraphics.h"
 #include "pt_PieceTable.h"
+#include "pd_Document.h"
+#include "pd_Style.h"
 #include "fv_View.h"
 
 /*
@@ -148,6 +150,8 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	, m_pMenu(pMenu)
 	, m_wNotebook(nullptr)
 	, m_pTBLabels(nullptr)
+	, m_wStyleBox(nullptr)
+	, m_wStyleScroll(nullptr)
 	, m_pIconMap(nullptr)
 {
 }
@@ -158,6 +162,12 @@ AP_UnixRibbon::~AP_UnixRibbon()
 	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
 	DELETEP(m_pTBLabels);
 	UT_VECTOR_PURGEALL(_TbCtx *, m_vecTbCtx);
+	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
+	{
+		_StyleTile * t = m_vecStyleTiles.getNthItem(i);
+		g_free(t->styleName);
+		delete t;
+	}
 }
 
 /*
@@ -219,15 +229,23 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	gtk_widget_set_valign(m_wNotebook, GTK_ALIGN_START);
 
 	/* keep the band compact: small flat-ish buttons, tight frames */
-	GtkCssProvider * css = gtk_css_provider_new();
-	gtk_css_provider_load_from_string(css,
+	static const char ribbon_css[] =
 		".abiword-ribbon button { min-height: 0; padding: 3px 10px; }"
 		".abiword-ribbon flowboxchild { padding: 0; }"
 		".abiword-ribbon flowbox { padding: 2px; }"
 		".abiword-ribbon frame { margin: 2px 4px; }"
 		".abiword-ribbon frame > label { font-size: 0.85em; padding: 0 4px; }"
 		".abiword-ribbon combobox, .abiword-ribbon dropdown { margin: 1px 2px; }"
-		".abiword-ribbon notebook > header { margin-bottom: 0; }");
+		".abiword-ribbon notebook > header { margin-bottom: 0; }"
+		/* Word-style style gallery tiles */
+		".abiword-ribbon scrolledwindow { min-height: 0; }"
+		".abiword-ribbon .abiword-style-active {"
+		"  border: 2px solid @theme_selected_bg_color;"
+		"  border-radius: 4px;"
+		"  padding: 1px 8px;"
+		"}";
+	GtkCssProvider * css = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(css, ribbon_css, -1);
 	gtk_style_context_add_provider_for_display(
 		gtk_widget_get_display(m_wNotebook),
 		GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -261,20 +279,28 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				 !(item->kind == AP_RIBBON_ITEM_MENU &&
 				   item->id == (uint16_t)AP_MENU_ID__BOGUS1__); ++item)
 			{
-				GtkWidget * w = (item->kind == AP_RIBBON_ITEM_TOOLBAR)
-					? _makeToolbarWidget((XAP_Toolbar_Id)item->id)
-					: _makeButton((XAP_Menu_Id)item->id);
+				GtkWidget * w = nullptr;
+				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
+					w = _makeStyleGallery();
+				else if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
+					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
+										   item->flags);
+				else
+					w = _makeButton((XAP_Menu_Id)item->id, item->flags);
 				if (!w)
 					continue;
 				bEmpty = false;
 
-				/* combos get a full-height column to themselves; plain
-				 * buttons pack 3 rows per column, LibreOffice-style */
-				bool bTall = (item->kind == AP_RIBBON_ITEM_TOOLBAR) &&
-					(item->id == AP_TOOLBAR_ID_FMT_FONT ||
-					 item->id == AP_TOOLBAR_ID_FMT_SIZE ||
-					 item->id == AP_TOOLBAR_ID_FMT_STYLE ||
-					 item->id == AP_TOOLBAR_ID_ZOOM);
+				/* combos, large buttons and the style gallery get a
+				 * full-height column to themselves; plain buttons pack
+				 * 3 rows per column, LibreOffice-style */
+				bool bTall = (item->flags & AP_RIBBON_FLAG_LARGE) ||
+					(item->kind == AP_RIBBON_ITEM_STYLEGAL) ||
+					((item->kind == AP_RIBBON_ITEM_TOOLBAR) &&
+					 (item->id == AP_TOOLBAR_ID_FMT_FONT ||
+					  item->id == AP_TOOLBAR_ID_FMT_SIZE ||
+					  item->id == AP_TOOLBAR_ID_FMT_STYLE ||
+					  item->id == AP_TOOLBAR_ID_ZOOM));
 				if (bTall)
 				{
 					if (nRow != 0) { ++nCol; nRow = 0; }
@@ -320,7 +346,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	return m_wNotebook;
 }
 
-GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id)
+GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 {
 	const EV_Menu_ActionSet * pActionSet =
 		XAP_App::getApp()->getMenuActionSet();
@@ -353,28 +379,67 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id)
 	else
 		btn = gtk_button_new();
 
-	GtkWidget * wLabel = gtk_label_new(label);
-	gtk_label_set_ellipsize(GTK_LABEL(wLabel), PANGO_ELLIPSIZE_END);
-	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 18);
-
 	/* reuse the classic toolbar's icon for this edit method, if any */
 	const char * szMethod = pAction->getMethodName();
 	const char * szIcon = (szMethod && m_pIconMap)
 		? static_cast<const char *>(g_hash_table_lookup(m_pIconMap,
 														szMethod))
 		: nullptr;
-	if (szIcon && *szIcon)
+
+	if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_ICONONLY))
 	{
-		GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+		/* Word-style compact glyph button: icon only, the name lives
+		 * in the tooltip */
 		GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
 		gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
+		gtk_button_set_child(GTK_BUTTON(btn), image);
+	}
+	else if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_LARGE))
+	{
+		/* Word-style large button: icon on top, caption underneath */
+		GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+		GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
+		gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
+		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
+		GtkWidget * wLabel = gtk_label_new(label);
+		gtk_label_set_ellipsize(GTK_LABEL(wLabel), PANGO_ELLIPSIZE_END);
+		gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 14);
 		gtk_box_append(GTK_BOX(box), image);
 		gtk_box_append(GTK_BOX(box), wLabel);
 		gtk_button_set_child(GTK_BUTTON(btn), box);
 	}
 	else
 	{
-		gtk_button_set_child(GTK_BUTTON(btn), wLabel);
+		GtkWidget * wLabel = gtk_label_new(label);
+		/* LARGE items without a stock icon still fill the group
+		 * height - let the caption wrap instead of ellipsizing */
+		if (flags & AP_RIBBON_FLAG_LARGE)
+		{
+			gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
+			gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
+			gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
+			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 14);
+		}
+		else
+		{
+			gtk_label_set_ellipsize(GTK_LABEL(wLabel), PANGO_ELLIPSIZE_END);
+			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 18);
+		}
+
+		if (szIcon && *szIcon)
+		{
+			GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+			GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
+			gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
+			gtk_box_append(GTK_BOX(box), image);
+			gtk_box_append(GTK_BOX(box), wLabel);
+			gtk_button_set_child(GTK_BUTTON(btn), box);
+		}
+		else
+		{
+			gtk_widget_set_valign(wLabel, GTK_ALIGN_CENTER);
+			gtk_button_set_child(GTK_BUTTON(btn), wLabel);
+		}
 	}
 
 	gtk_actionable_set_action_name(GTK_ACTIONABLE(btn), detailed);
@@ -772,7 +837,8 @@ GtkWidget * AP_UnixRibbon::_tb_make_combo(_TbCtx * ctx)
 	return combo;
 }
 
-GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id)
+GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
+											  uint8_t flags)
 {
 	const EV_Toolbar_ActionSet * pTBActions =
 		XAP_App::getApp()->getToolbarActionSet();
@@ -800,24 +866,41 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id)
 	switch (pAction->getItemType())
 	{
 	case EV_TBIT_PushButton:
-		w = gtk_button_new();
-		if (szThemeIcon)
-			gtk_button_set_icon_name(GTK_BUTTON(w), szThemeIcon);
-		ctx->handlerId = g_signal_connect(w, "clicked",
-										  G_CALLBACK(_s_tb_clicked), ctx);
-		break;
-
 	case EV_TBIT_ToggleButton:
 	case EV_TBIT_GroupButton:
-		w = gtk_toggle_button_new();
-		if (szThemeIcon)
+	{
+		bool bToggle = (pAction->getItemType() != EV_TBIT_PushButton);
+		w = bToggle ? gtk_toggle_button_new() : gtk_button_new();
+		const char * szTip = pLabel->getToolTip();
+		if (szThemeIcon && (flags & AP_RIBBON_FLAG_LARGE) &&
+			szTip && *szTip)
 		{
+			/* Word-style large button: big icon, caption beneath it */
+			GtkWidget * vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 			GtkWidget * image = gtk_image_new_from_icon_name(szThemeIcon);
-			gtk_button_set_child(GTK_BUTTON(w), image);
+			gtk_image_set_icon_size(GTK_IMAGE(image), GTK_ICON_SIZE_LARGE);
+			GtkWidget * caption = gtk_label_new(szTip);
+			gtk_label_set_ellipsize(GTK_LABEL(caption), PANGO_ELLIPSIZE_END);
+			gtk_label_set_max_width_chars(GTK_LABEL(caption), 14);
+			gtk_box_append(GTK_BOX(vbox), image);
+			gtk_box_append(GTK_BOX(vbox), caption);
+			gtk_button_set_child(GTK_BUTTON(w), vbox);
+		}
+		else if (szThemeIcon)
+		{
+			if (bToggle)
+			{
+				GtkWidget * image =
+					gtk_image_new_from_icon_name(szThemeIcon);
+				gtk_button_set_child(GTK_BUTTON(w), image);
+			}
+			else
+				gtk_button_set_icon_name(GTK_BUTTON(w), szThemeIcon);
 		}
 		ctx->handlerId = g_signal_connect(w, "clicked",
 										  G_CALLBACK(_s_tb_clicked), ctx);
 		break;
+	}
 
 	case EV_TBIT_ComboBox:
 		w = _tb_make_combo(ctx);
@@ -865,6 +948,191 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id)
 	ctx->widget = w;
 	m_vecTbCtx.addItem(ctx);
 	return w;
+}
+
+/*
+ * Word-style Styles gallery: a horizontal strip of preview tiles, one
+ * per paragraph style in the document.  Each tile's caption is the
+ * (localized) style name rendered in an approximation of the style
+ * itself - family, weight, slant, underline and color come from the
+ * resolved style properties.  Clicking a tile applies the style
+ * through the same edit method the style combo uses.
+ */
+GtkWidget * AP_UnixRibbon::_makeStyleGallery()
+{
+	/* a menu rebuild recreates this widget; drop the stale tile
+	 * records, whose widgets belong to the previous instance */
+	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
+	{
+		_StyleTile * t = m_vecStyleTiles.getNthItem(i);
+		g_free(t->styleName);
+		delete t;
+	}
+	m_vecStyleTiles.clear();
+
+	GtkWidget * scroll = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
+								   GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+	/* show tiles at natural width, scroll when the doc has more
+	 * styles than fit beside the other Home groups */
+	gtk_scrolled_window_set_propagate_natural_width(
+		GTK_SCROLLED_WINDOW(scroll), TRUE);
+	gtk_scrolled_window_set_min_content_width(
+		GTK_SCROLLED_WINDOW(scroll), 240);
+	gtk_scrolled_window_set_max_content_width(
+		GTK_SCROLLED_WINDOW(scroll), 560);
+	m_wStyleBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_widget_set_valign(m_wStyleBox, GTK_ALIGN_CENTER);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll),
+								  m_wStyleBox);
+	m_wStyleScroll = scroll;
+	gtk_widget_set_visible(scroll, FALSE);
+	_populateStyleTiles();
+	return scroll;
+}
+
+/* (re)build the preview tiles - called lazily because the ribbon is
+ * constructed before the frame's view/document exist */
+void AP_UnixRibbon::_populateStyleTiles()
+{
+	if (m_vecStyleTiles.getItemCount() > 0 || !m_wStyleBox)
+		return;
+
+	FV_View * pView = m_pFrame
+		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
+	PD_Document * pdoc = pView ? pView->getDocument() : nullptr;
+	if (!pdoc)
+		return;
+
+	GtkWidget * box = m_wStyleBox;
+	UT_sint32 nTiles = 0;
+	{
+		const UT_sint32 MAX_TILES = 10;
+		for (UT_uint32 k = 0; nTiles < MAX_TILES; ++k)
+		{
+			const char * szName = nullptr;
+			const PD_Style * pStyle = nullptr;
+			if (!pdoc->enumStyles(k, &szName, &pStyle))
+				break;
+			if (!pStyle || !szName || !*szName || !pStyle->isDisplayed() ||
+				pStyle->isCharStyle())
+				continue;
+
+			std::string markup;
+			{
+				const gchar * szVal = nullptr;
+				gchar * esc = g_markup_escape_text(szName, -1);
+				std::string open, close;
+				if (pStyle->getPropertyExpand("font-family", szVal) && szVal)
+				{
+					gchar * ef = g_markup_escape_text(szVal, -1);
+					open += "<span font_family='";
+					open += ef;
+					open += "'>";
+					close = "</span>" + close;
+					g_free(ef);
+				}
+				if (pStyle->getPropertyExpand("font-weight", szVal) &&
+					szVal && strcmp(szVal, "bold") == 0)
+				{ open += "<b>"; close = "</b>" + close; }
+				if (pStyle->getPropertyExpand("font-style", szVal) &&
+					szVal && strcmp(szVal, "italic") == 0)
+				{ open += "<i>"; close = "</i>" + close; }
+				if (pStyle->getPropertyExpand("text-decoration", szVal) &&
+					szVal && strstr(szVal, "underline"))
+				{ open += "<u>"; close = "</u>" + close; }
+				if (pStyle->getPropertyExpand("font-size", szVal) && szVal)
+				{
+					/* render at roughly the style size, clamped so the
+					 * tile stays inside the ribbon band */
+					double pt = g_ascii_strtod(szVal, nullptr);
+					if (pt > 0)
+					{
+						pt = CLAMP(pt, 8.0, 18.0);
+						char buf[64];
+						g_snprintf(buf, sizeof(buf), "<span size='%d'>",
+								   static_cast<int>(pt * PANGO_SCALE));
+						open += buf;
+						close = "</span>" + close;
+					}
+				}
+				if (pStyle->getPropertyExpand("color", szVal) && szVal &&
+					strlen(szVal) == 6)
+				{
+					open += "<span foreground='#";
+					open += szVal;
+					open += "'>";
+					close = "</span>" + close;
+				}
+				markup = open + esc + close;
+				g_free(esc);
+			}
+
+			GtkWidget * tile = gtk_button_new();
+			GtkWidget * label = gtk_label_new(nullptr);
+			std::string sLoc;
+			pt_PieceTable::s_getLocalisedStyleName(szName, sLoc);
+			/* swap the raw name for the localized one inside the markup */
+			gchar * escName = g_markup_escape_text(szName, -1);
+			gchar * escLoc = g_markup_escape_text(sLoc.c_str(), -1);
+			size_t pos = markup.find(escName);
+			if (pos != std::string::npos)
+				markup.replace(pos, strlen(escName), escLoc);
+			gtk_label_set_markup(GTK_LABEL(label), markup.c_str());
+			g_free(escName);
+			g_free(escLoc);
+			gtk_button_set_child(GTK_BUTTON(tile), label);
+			gtk_widget_set_tooltip_text(tile, sLoc.c_str());
+
+			_StyleTile * t = new _StyleTile;
+			t->widget = tile;
+			t->styleName = g_strdup(szName);
+			m_vecStyleTiles.addItem(t);
+
+			g_signal_connect(tile, "clicked",
+							 G_CALLBACK(_s_style_tile_clicked), this);
+			gtk_box_append(GTK_BOX(box), tile);
+			++nTiles;
+		}
+	}
+
+	/* reveal the strip once it actually holds tiles */
+	if (nTiles > 0 && m_wStyleScroll)
+		gtk_widget_set_visible(m_wStyleScroll, TRUE);
+}
+
+void AP_UnixRibbon::_s_style_tile_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+
+	for (UT_sint32 i = 0; i < self->m_vecStyleTiles.getItemCount(); ++i)
+	{
+		_StyleTile * t = self->m_vecStyleTiles.getNthItem(i);
+		if (t->widget == w)
+		{
+			UT_UCS4String ucsName(t->styleName);
+			self->_invokeToolbarItem(
+				(XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE,
+				ucsName.ucs4_str(), ucsName.length());
+			return;
+		}
+	}
+}
+
+/* mark the gallery tile that matches the caret's current style */
+void AP_UnixRibbon::_refreshStyleTiles(const char * szCurrentStyle)
+{
+	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
+	{
+		_StyleTile * t = m_vecStyleTiles.getNthItem(i);
+		bool bCur = szCurrentStyle && t->styleName &&
+			strcmp(t->styleName, szCurrentStyle) == 0;
+		if (bCur)
+			gtk_widget_add_css_class(t->widget, "abiword-style-active");
+		else
+			gtk_widget_remove_css_class(t->widget, "abiword-style-active");
+	}
 }
 
 /*
@@ -960,6 +1228,8 @@ void AP_UnixRibbon::_refreshToolbarItems()
 					abi_font_combo_unselect(ABI_FONT_COMBO(ctx->widget));
 				else
 					gtk_combo_box_set_active(GTK_COMBO_BOX(ctx->widget), -1);
+				if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+					_refreshStyleTiles(nullptr);
 			}
 			else if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE)
 			{
@@ -974,6 +1244,7 @@ void AP_UnixRibbon::_refreshToolbarItems()
 				pt_PieceTable::s_getLocalisedStyleName(szState, sLoc);
 				_tb_combo_set_text(GTK_COMBO_BOX(ctx->widget),
 								   sLoc.c_str(), ctx);
+				_refreshStyleTiles(szState);
 			}
 			else if (ABI_IS_FONT_COMBO(ctx->widget))
 			{
@@ -1002,6 +1273,7 @@ void AP_UnixRibbon::refresh()
 	if (view)
 		m_pMenu->refreshMenu(view);
 	_refreshContextualTabs();
+	_populateStyleTiles();   /* lazy: view/doc may not exist at build time */
 	_refreshToolbarItems();
 }
 

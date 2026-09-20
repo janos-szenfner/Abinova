@@ -1132,8 +1132,12 @@ void s_AbiWord_1_Listener::_handleLists(void)
 	fl_AutoNumConstPtr pAutoNum;
 	for (UT_uint32 k = 0; m_pDocument->enumLists(k, pAutoNum); k++)
 	{
-		if (pAutoNum->isEmpty() == true)
-			continue;
+		// Note: do not skip "empty" lists here.  fl_AutoNum::isEmpty()
+		// only means no block has registered with the list yet - which
+		// requires a layout run.  Headless exports (--to=abw) never
+		// layout, so every imported list would be dropped, losing all
+		// bullet/numbering definitions.  Unused definitions are valid
+		// data and cost nothing to write.
 
 		std::vector<std::string> vAttrs;
 		pAutoNum->getAttributes (vAttrs, true);

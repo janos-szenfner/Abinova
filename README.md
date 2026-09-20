@@ -162,16 +162,21 @@ An experimental fork of the AbiWord word processor, focused on:
   (`sw/uiconfig/swriter/ui/notebookbar.ui`). A `GtkNotebook`
   presents File / Home / Insert / References / Layout / Review /
   View / Help tabs plus a contextual Table tab that appears only
-  while the caret is inside a table. Groups hold compact
-  three-row button grids plus rich controls: the Home tab carries
-  the live font-family and font-size combos, the style combo,
-  text/highlight color pickers, format painter, list presets,
-  indent and line-spacing buttons; the Layout tab has column
-  presets; the View tab has the zoom combo. Ribbon items dispatch
-  through the same `menu.*` GActions and toolbar edit methods as
-  the classic UI, so enablement, toggle and combo state stay in
-  sync. Switch between interfaces via Help → Interface (ribbon is
-  the default; the choice persists in the `RibbonUI` preference).
+  while the caret is inside a table. Groups mix compact
+  three-row button grids with Word-style large icon-over-caption
+  buttons (Paste, Find, Replace, Select All) and glyph-only tiles
+  (bold/italic/underline, alignment). Rich controls: the Home tab
+  carries the live font-family and font-size combos, the style
+  combo, text/highlight color pickers, format painter, list
+  presets, indent and line-spacing buttons, plus a live Styles
+  gallery — a horizontally-scrolling strip of tiles that renders
+  each paragraph style's name in the style's own formatting and
+  applies it on click; the Layout tab has column presets; the
+  View tab has the zoom combo. Ribbon items dispatch through the
+  same `menu.*` GActions and toolbar edit methods as the classic
+  UI, so enablement, toggle and combo state stay in sync. Switch
+  between interfaces via Help → Interface (ribbon is the default;
+  the choice persists in the `RibbonUI` preference).
 
 ### GTK4 runtime fixes (this round)
 

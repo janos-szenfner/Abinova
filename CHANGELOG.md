@@ -127,6 +127,23 @@ below are on `main` but the release has not been cut yet.
   To); Insert split into Pages/Tables/Illustrations/Links/Text/
   Symbols/Fields; new References tab (Table of Contents, Footnotes);
   Layout: Page Setup/Page Columns/Page Background.
+- **Word-style Home ribbon** — layout items now carry flags
+  (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`): Paste, Find,
+  Replace and Select All render as large icon-over-caption buttons,
+  bold/italic/underline/overline/super/subscript and the alignment
+  buttons are compact glyph-only tiles, and the Editing group's
+  buttons fill the group height with centred wrapped captions.
+- **Live Styles gallery** — the Home Styles group embeds a
+  horizontally-scrolling strip of preview tiles, one per displayed
+  paragraph style in the document; each tile's caption is the
+  localized style name rendered in the style's own resolved font
+  family, weight, slant, underline, size (clamped) and color via
+  `PD_Style::getPropertyExpand`. Clicking a tile applies the style
+  through the same `AP_TOOLBAR_ID_FMT_STYLE` edit method as the style
+  combo, and the tile matching the caret's current style is
+  highlighted with an accent border (`abiword-style-active`). Tiles
+  are populated lazily because the ribbon is constructed before the
+  frame's view/document exist.
 - **Interface switcher** — Help → Interface submenu (Classic Menus /
   Ribbon radio items) in both UIs; `RibbonUI` preference persists the
   choice; switching is live.
