@@ -101,7 +101,8 @@ private:
 	static GtkWidget *	_tb_make_combo(_TbCtx * ctx);
 	static GtkWidget *	_tb_color_button_new(const gchar * icon_name,
 											 const gchar * automatic_label,
-											 _TbCtx * ctx);
+											 _TbCtx * ctx,
+											 const gchar * szMarkup = nullptr);
 	static gchar *		_tb_combo_get_text(GtkComboBox * combo);
 	static void			_tb_combo_apply(GtkComboBox * combo, _TbCtx * ctx);
 	static void			_tb_combo_set_text(GtkComboBox * combo,

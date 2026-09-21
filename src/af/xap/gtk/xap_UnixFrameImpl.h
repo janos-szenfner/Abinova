@@ -188,6 +188,7 @@ protected:
 	guint                       m_iAbiRepaintID;
 	guint                       m_iScrollIdleID;
 	bool                        m_bScrollWait;
+	UT_sint32                   m_iPendingScrollAmount;
 
 
 	EV_UnixMenuPopup *			m_pUnixPopup; /* only valid while a context popup is up */

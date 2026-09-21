@@ -48,9 +48,15 @@ below are on `main` but the release has not been cut yet.
   `abiword.keywords`); reference links/images resolve from `[id]: url`
   definitions; `[^id]` footnotes become real AbiWord footnote objects;
   inline `$…$` and fenced `$$…$$`/`math` blocks import as styled math
-  text; Mermaid fenced blocks keep their source verbatim; raw HTML
-  blocks reduce to readable text; `<!-- -->` comments are dropped;
-  `:emoji:` shortcodes convert to Unicode.
+  text; `<!-- -->` comments are dropped; `:emoji:` shortcodes convert
+  to Unicode.
+- **Mermaid diagrams render inline** — fenced `mermaid` blocks are
+  drawn to a PNG with a built-in Cairo renderer
+  (`src/wp/impexp/xp/ut_mermaid.cpp`) and embedded as images: flowcharts,
+  sequence diagrams, Gantt charts, class diagrams and pie charts are
+  supported (subgraph/cluster labels, dashed/dotted edges, message
+  arrows, inheritance, legend percentages). Unsupported diagram types
+  keep their source as code text.
 - **Markdown formatting test document** — `test/wp/markdown-formatting.md`
   exercises every supported construct (frontmatter, reference links,
   footnotes, tables, task lists, math, comments, emoji) and was used
@@ -194,6 +200,23 @@ below are on `main` but the release has not been cut yet.
   choice; switching is live.
 - **Home tab is the default ribbon tab** — the ribbon notebook
   explicitly selects the `home` page after building the tabs.
+- **LibreOffice-style two-row Font group** — the Home ribbon Font
+  group packs row-major via a new `AP_RIBBON_ITEM_ROWEND` layout item:
+  row 1 holds the font family + size combos and Grow/Shrink/Clear
+  Formatting, row 2 the glyph strip B/I/U/S/x²/x₂/highlight/font
+  colour + Font dialog launcher. `AP_RIBBON_FLAG_GLYPH` buttons draw
+  Pango-markup glyphs (bold **B**, italic *I*, underlined U, x², A⁺)
+  instead of theme icons; font colour is a bold "A" with a red
+  underline, highlight an "ab" on a yellow swatch. Ribbon buttons fall
+  back to their text label when the theme lacks the icon.
+- **New formatting menu items** — Format → Text gains Grow Font /
+  Shrink Font / Clear Formatting (`AP_MENU_ID_FMT_GROWFONT`,
+  `FMT_SHRINKFONT`, `FMT_CLEARFMT` → `fontSizeIncrease`,
+  `fontSizeDecrease`, new `clearFormatting` edit method wrapping
+  `FV_View::resetCharFormat`). Insert gains Edit Equation
+  (`editLatexAtPos`) and Help gains Credits (`helpCredits`) so the
+  ribbon buttons that reference them resolve to real `GAction`s; the
+  permanently-disabled Split Table entry was removed from the ribbon.
 - **Word-style split Paste button** — the ribbon Paste control is a
   split button: the icon pastes immediately with formatting, the
   arrow opens a dropdown with "Paste Options:", "Keep Text Only"
@@ -313,6 +336,21 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Click/drag selection offset** — clicks and drag-selections landed
+  ~7 text rows below the pointer: `gdk_event_get_position()` returns
+  *surface*-relative coordinates under GTK4, offset from the drawing
+  area by the header bar + ribbon + rulers (~157 px). `EV_UnixMouse`
+  now takes the gesture callbacks' widget-relative `x,y` for press,
+  release and motion; the scroll controller's position is translated
+  with `gtk_widget_compute_point`. `warpInsPtToXY` also refreshes the
+  caret coords immediately after `_setPoint`.
+- **Vertical scroll jumps at page changes** — the wheel step shrank
+  from a fixed 60 px to 36 px per notch; `GDK_SCROLL_SMOOTH` deltas
+  (touchpads) now scroll proportionally with fractional-notch
+  accumulation instead of collapsing each event to a full step; and
+  `vScrollChanged` coalesces pending scroll targets instead of
+  dropping them, so rapid fine-grained scrolling no longer loses
+  distance or snaps late.
 - **Same-application clipboard deadlock** — `gdk_clipboard_read_async`
   deadlocked when AbiWord itself owned the clipboard (the async read
   calls back into our own `AbiContentProvider` on the main thread and

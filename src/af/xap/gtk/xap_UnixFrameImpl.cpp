@@ -602,6 +602,7 @@ XAP_UnixFrameImpl::XAP_UnixFrameImpl(XAP_Frame *pFrame) :
 	m_iAbiRepaintID(0),
 	m_iScrollIdleID(0),
 	m_bScrollWait(false),
+	m_iPendingScrollAmount(0),
 	m_pUnixPopup(nullptr),
 	m_dialogFactory(XAP_App::getApp(), pFrame),
 	m_iPreeditLen (0),
@@ -695,7 +696,7 @@ void XAP_UnixFrameImpl::_fe::focus_out_event(GtkEventControllerFocus * /*c*/, Gt
 }
 
 void XAP_UnixFrameImpl::_fe::button_press_event(GtkGestureClick * g, gint n_press,
-											  gdouble /*x*/, gdouble /*y*/, GtkWidget * w)
+											  gdouble x, gdouble y, GtkWidget * w)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
@@ -711,13 +712,19 @@ void XAP_UnixFrameImpl::_fe::button_press_event(GtkGestureClick * g, gint n_pres
 	gtk_widget_grab_focus(w);
 
 	if (pView)
+	{
+		/* Use the gesture-provided coordinates (already in drawing-area
+		 * space). gdk_event_get_position() returns surface-relative
+		 * coords under GTK4, which would offset the hit-test by the
+		 * height of everything above the drawing area. */
 		pUnixMouse->mouseClick(pView,
 							   gtk_event_controller_get_current_event(controller),
-							   n_press);
+							   x, y, n_press);
+	}
 }
 
 void XAP_UnixFrameImpl::_fe::button_release_event(GtkGestureClick * g, gint /*n_press*/,
-												gdouble /*x*/, gdouble /*y*/, GtkWidget * w)
+												gdouble x, gdouble y, GtkWidget * w)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
@@ -729,7 +736,8 @@ void XAP_UnixFrameImpl::_fe::button_release_event(GtkGestureClick * g, gint /*n_
 
 	if (pView)
 		pUnixMouse->mouseUp(pView,
-							gtk_event_controller_get_current_event(controller));
+							gtk_event_controller_get_current_event(controller),
+							x, y);
 }
 
 /*!
@@ -967,7 +975,7 @@ void XAP_UnixFrameImpl::_fe::resize_event(GtkDrawingArea * /*area*/, gint width,
 }
 
 void XAP_UnixFrameImpl::_fe::motion_notify_event(GtkEventControllerMotion * c,
-												 gdouble /*x*/, gdouble /*y*/,
+												 gdouble x, gdouble y,
 												 GtkWidget * w)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
@@ -982,7 +990,7 @@ void XAP_UnixFrameImpl::_fe::motion_notify_event(GtkEventControllerMotion * c,
 	EV_UnixMouse * pUnixMouse = static_cast<EV_UnixMouse *>(pFrame->getMouse());
 
 	if (pView)
-		pUnixMouse->mouseMotion(pView, e);
+		pUnixMouse->mouseMotion(pView, e, x, y);
 }
 
 gboolean XAP_UnixFrameImpl::_fe::scroll_notify_event(GtkEventControllerScroll * c,
@@ -1002,7 +1010,26 @@ gboolean XAP_UnixFrameImpl::_fe::scroll_notify_event(GtkEventControllerScroll * 
 	EV_UnixMouse * pUnixMouse = static_cast<EV_UnixMouse *>(pFrame->getMouse());
 
 	if (pView)
-		pUnixMouse->mouseScroll(pView, e);
+	{
+		/* The scroll signal carries no widget-space pointer position,
+		 * and gdk_event_get_position() reports surface coordinates —
+		 * translate them into drawing-area coordinates. */
+		gdouble sx = 0.0, sy = 0.0;
+		gdk_event_get_position(e, &sx, &sy);
+		double px = sx, py = sy;
+		GtkNative * native = gtk_widget_get_native(w);
+		if (native)
+		{
+			graphene_point_t pi = GRAPHENE_POINT_INIT((float)sx, (float)sy);
+			graphene_point_t po;
+			if (gtk_widget_compute_point(GTK_WIDGET(native), w, &pi, &po))
+			{
+				px = po.x;
+				py = po.y;
+			}
+		}
+		pUnixMouse->mouseScroll(pView, e, px, py);
+	}
 
 	return TRUE;
 }
@@ -1175,7 +1202,7 @@ gboolean XAP_UnixFrameImpl::_fe::_actualScroll(gpointer data)
 	pVS->m_pImpl->m_bScrollWait = false;
 	XAP_Frame * pFrame = pVS->m_pImpl->getFrame();
 	if (pView && pFrame && pFrame->getCurrentView() == pView)
-		pView->sendVerticalScrollEvent(pVS->m_amount);
+		pView->sendVerticalScrollEvent(pVS->m_pImpl->m_iPendingScrollAmount);
 	return FALSE;
 }
 
@@ -1187,14 +1214,18 @@ static void _scrollDataFree(gpointer data)
 void XAP_UnixFrameImpl::_fe::vScrollChanged(GtkAdjustment * w, gpointer /*data*/)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
+	UT_sint32 iAmount = static_cast<UT_sint32>(gtk_adjustment_get_value(w));
 	if(pUnixFrameImpl->m_bScrollWait)
 	{
-		xxx_UT_DEBUGMSG(("VScroll dropped!!! \n"));
+		/* a scroll is already pending; coalesce by updating the
+		 * target so rapid fine-grained scroll changes are not lost */
+		pUnixFrameImpl->m_iPendingScrollAmount = iAmount;
 		return;
 	}
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
 	AV_View * pView = pFrame->getCurrentView();
-	_ViewScroll * pVS = new  _ViewScroll(pUnixFrameImpl,pView,static_cast<UT_sint32>(gtk_adjustment_get_value(w)));
+	_ViewScroll * pVS = new  _ViewScroll(pUnixFrameImpl,pView,iAmount);
+	pUnixFrameImpl->m_iPendingScrollAmount = iAmount;
 	pUnixFrameImpl->m_bScrollWait = true;
 	pUnixFrameImpl->m_iScrollIdleID =
 		g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, _actualScroll, pVS, _scrollDataFree);

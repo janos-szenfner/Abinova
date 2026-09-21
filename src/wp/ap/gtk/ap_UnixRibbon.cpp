@@ -288,13 +288,43 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
 			gtk_widget_set_valign(grid, GTK_ALIGN_START);
 			gtk_widget_set_vexpand(grid, TRUE);
-
+			/* row-major groups (Font) use a vertical box of horizontal
+			 * rows instead - shared grid columns would stretch narrow
+			 * glyph buttons to the font combo's width */
+			GtkWidget * rowBox = nullptr;
+			GtkWidget * curRow = nullptr;
 			bool bEmpty = true;
+			/* a group containing ROWEND markers packs row-major
+			 * (left to right, wrapping at each ROWEND) instead of
+			 * the default 3-row column packing */
+			bool bRowMajor = false;
+			for (const AP_RibbonItem * it = group->items;
+				 !(it->kind == AP_RIBBON_ITEM_MENU &&
+				   it->id == (uint16_t)AP_MENU_ID__BOGUS1__); ++it)
+			{
+				if (it->kind == AP_RIBBON_ITEM_ROWEND)
+				{
+					bRowMajor = true;
+					break;
+				}
+			}
+			if (bRowMajor)
+			{
+				rowBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+				gtk_widget_set_valign(rowBox, GTK_ALIGN_CENTER);
+				gtk_widget_set_vexpand(rowBox, TRUE);
+			}
+
 			int nCol = 0, nRow = 0;
 			for (const AP_RibbonItem * item = group->items;
 				 !(item->kind == AP_RIBBON_ITEM_MENU &&
 				   item->id == (uint16_t)AP_MENU_ID__BOGUS1__); ++item)
 			{
+				if (item->kind == AP_RIBBON_ITEM_ROWEND)
+				{
+					curRow = nullptr;
+					continue;
+				}
 				GtkWidget * w = nullptr;
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
@@ -318,6 +348,18 @@ GtkWidget * AP_UnixRibbon::createWidget()
 						: _makeListPopover();
 					w = _wrapSplit(w, popover,
 								   (item->flags & AP_RIBBON_FLAG_LARGE) != 0);
+				}
+
+				if (bRowMajor)
+				{
+					if (!curRow)
+					{
+						curRow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+						gtk_widget_set_valign(curRow, GTK_ALIGN_CENTER);
+						gtk_box_append(GTK_BOX(rowBox), curRow);
+					}
+					gtk_box_append(GTK_BOX(curRow), w);
+					continue;
 				}
 
 				/* combos, large buttons and the style gallery get a
@@ -349,7 +391,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			}
 			else
 			{
-				gtk_box_append(GTK_BOX(frame), grid);
+				gtk_box_append(GTK_BOX(frame), rowBox ? rowBox : grid);
 				GtkWidget * gtitle = gtk_label_new(
 					_ribbon_label(group->szGroupKey,
 								  s_ribbon_group_labels));
@@ -428,6 +470,54 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		: nullptr;
 	if (!szIcon || !*szIcon)
 		szIcon = abi_stock_from_menu_id(id);
+
+	/* GLYPH buttons draw the LibreOffice-style text glyph
+	 * (bold B, italic I, underlined U, x², A⁺) instead of an icon */
+	if (flags & AP_RIBBON_FLAG_GLYPH)
+	{
+		const char * markup = nullptr;
+		switch (id)
+		{
+		case AP_MENU_ID_FMT_BOLD:       markup = "<b>B</b>"; break;
+		case AP_MENU_ID_FMT_ITALIC:     markup = "<i>I</i>"; break;
+		case AP_MENU_ID_FMT_UNDERLINE:  markup = "<u>U</u>"; break;
+		case AP_MENU_ID_FMT_STRIKE:     markup = "<s>S</s>"; break;
+		case AP_MENU_ID_FMT_OVERLINE:   markup = "<span overline='single'>O</span>"; break;
+		case AP_MENU_ID_FMT_SUPERSCRIPT:markup = "x<sup>2</sup>"; break;
+		case AP_MENU_ID_FMT_SUBSCRIPT:  markup = "x<sub>2</sub>"; break;
+		case AP_MENU_ID_FMT_GROWFONT:   markup = "A<sup>+</sup>"; break;
+		case AP_MENU_ID_FMT_SHRINKFONT: markup = "A<sup>&#x2212;</sup>"; break;
+		default: break;
+		}
+		if (markup)
+		{
+			GtkWidget * gl = gtk_label_new(nullptr);
+			gtk_label_set_markup(GTK_LABEL(gl), markup);
+			gtk_widget_set_valign(gl, GTK_ALIGN_CENTER);
+			gtk_button_set_child(GTK_BUTTON(btn), gl);
+			gtk_actionable_set_action_name(GTK_ACTIONABLE(btn), detailed);
+			if (pAction->isRadio())
+			{
+				char target[32];
+				g_snprintf(target, sizeof(target), "%u",
+						   static_cast<unsigned>(id));
+				gtk_actionable_set_action_target_value(
+					GTK_ACTIONABLE(btn),
+					g_variant_new_string(target));
+			}
+			const char * szStatus2 = pLabel->getMenuStatusMessage();
+			if (szStatus2 && *szStatus2 && strcmp(szStatus2, " ") != 0)
+				gtk_widget_set_tooltip_text(btn, szStatus2);
+			return btn;
+		}
+		/* unknown glyph id - fall through to the icon/label path */
+	}
+
+	if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_ICONONLY) &&
+		!gtk_icon_theme_has_icon(
+			gtk_icon_theme_get_for_display(gdk_display_get_default()),
+			szIcon))
+		szIcon = nullptr;	/* theme lacks the icon - use the text label */
 
 	if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_ICONONLY))
 	{
@@ -754,13 +844,24 @@ void AP_UnixRibbon::_s_tb_color_automatic(GtkWidget * widget, gpointer data)
 	}
 }
 
-/* menu button + popover color chooser, mirroring abi_color_button_new */
+/* menu button + popover color chooser, mirroring abi_color_button_new.
+ * szMarkup, when given, is a Pango markup glyph used as the button
+ * child instead of an icon - the LibreOffice-style "A with colour
+ * bar" / "ab on highlight" look. */
 GtkWidget * AP_UnixRibbon::_tb_color_button_new(const gchar * icon_name,
 										const gchar * automatic_label,
-										_TbCtx * ctx)
+										_TbCtx * ctx,
+										const gchar * szMarkup)
 {
 	GtkWidget * button = gtk_menu_button_new();
-	gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(button), icon_name);
+	if (szMarkup && *szMarkup)
+	{
+		GtkWidget * gl = gtk_label_new(nullptr);
+		gtk_label_set_markup(GTK_LABEL(gl), szMarkup);
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(button), gl);
+	}
+	else
+		gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(button), icon_name);
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(button), GTK_ARROW_DOWN);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(button), FALSE);
 
@@ -1429,9 +1530,17 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 				pAction->getItemType() == EV_TBIT_ColorFore
 					? XAP_STRING_ID_TB_ClearForeground
 					: XAP_STRING_ID_TB_ClearBackground, sClear);
+		/* LO-style glyph: font colour is a bold "A" with a colour
+		 * bar, highlight is "ab" on a yellow swatch */
+		const char * szGlyph =
+			(pAction->getItemType() == EV_TBIT_ColorFore)
+			? "<span font_weight='bold' underline='single' "
+			  "underline_color='#d01c11'>A</span>"
+			: "<span font_weight='bold' "
+			  "bgcolor='#fff59d'>ab</span>";
 		w = _tb_color_button_new(
 			szThemeIcon ? szThemeIcon : "preferences-color-symbolic",
-			sClear.c_str(), ctx);
+			sClear.c_str(), ctx, szGlyph);
 		break;
 	}
 

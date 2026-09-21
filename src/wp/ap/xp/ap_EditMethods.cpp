@@ -549,6 +549,7 @@ public:
 	static EV_EditMethod_Fn fontSize;
 	static EV_EditMethod_Fn fontSizeIncrease;
 	static EV_EditMethod_Fn fontSizeDecrease;
+	static EV_EditMethod_Fn clearFormatting;
 	static EV_EditMethod_Fn toggleBold;
 	static EV_EditMethod_Fn toggleDisplayAnnotations;
 	static EV_EditMethod_Fn toggleHidden;
@@ -830,6 +831,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(cairoPrint), 0, ""),
 	EV_EditMethod(NF(cairoPrintDirectly), 0, ""),
 	EV_EditMethod(NF(cairoPrintPreview), 0, ""),
+	EV_EditMethod(NF(clearFormatting),		0,	""),
 	EV_EditMethod(NF(clearSetCols), 0, ""),
 	EV_EditMethod(NF(clearSetRows), 0, ""),
 	EV_EditMethod(NF(closeWindow),			0,	""),
@@ -1623,7 +1625,7 @@ Defun1(scrollWheelMouseDown)
 	CHECK_FRAME;
 	UT_return_val_if_fail (pAV_View, false);
 	xxx_UT_DEBUGMSG(("Wheel Mouse Down \n"));
-	pAV_View->cmdScroll(AV_SCROLLCMD_LINEDOWN, pAV_View->getGraphics()->tlu(60));
+	pAV_View->cmdScroll(AV_SCROLLCMD_LINEDOWN, pAV_View->getGraphics()->tlu(36));
 
 	return true;
 }
@@ -1633,7 +1635,7 @@ Defun1(scrollWheelMouseUp)
 	CHECK_FRAME;
 	UT_return_val_if_fail (pAV_View, false);
 	xxx_UT_DEBUGMSG(("Wheel Mouse Up \n"));
-	pAV_View->cmdScroll(AV_SCROLLCMD_LINEUP, pAV_View->getGraphics()->tlu (60));
+	pAV_View->cmdScroll(AV_SCROLLCMD_LINEUP, pAV_View->getGraphics()->tlu (36));
 
 	return true;
 }
@@ -8339,6 +8341,16 @@ Defun1(fontSizeIncrease)
 	ABIWORD_VIEW;
 	
 	return _fontSizeChange(pView, true);
+}
+
+/*! Clear direct character formatting from the selection, keeping
+ *  language ("Clear formatting" / LibreOffice Ctrl+M equivalent). */
+Defun1(clearFormatting)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	return pView->resetCharFormat(false);
 }
 
 Defun1(fontSizeDecrease)

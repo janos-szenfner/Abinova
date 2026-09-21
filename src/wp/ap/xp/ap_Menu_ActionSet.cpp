@@ -217,6 +217,9 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FMT_BOTTOMLINE,		0,0,1,0,	"toggleBottomline",		ap_GetState_CharFmt,	nullptr);
 	_s(AP_MENU_ID_FMT_SUPERSCRIPT,		0,0,1,0,	"toggleSuper",	ap_GetState_CharFmt,	nullptr);
 	_s(AP_MENU_ID_FMT_SUBSCRIPT,		0,0,1,0,	"toggleSub",	ap_GetState_CharFmt,	nullptr);
+	_s(AP_MENU_ID_FMT_GROWFONT,			0,0,0,0,	"fontSizeIncrease",	ap_GetState_CharFmt,	nullptr);
+	_s(AP_MENU_ID_FMT_SHRINKFONT,		0,0,0,0,	"fontSizeDecrease",	ap_GetState_CharFmt,	nullptr);
+	_s(AP_MENU_ID_FMT_CLEARFMT,		0,0,0,0,	"clearFormatting",	ap_GetState_SomethingSelected,	nullptr);
 	_s(AP_MENU_ID_FMT_TOGGLECASE,           0,1,0,0,  "dlgToggleCase", ap_GetState_SomethingSelected, nullptr);
 	_s(AP_MENU_ID_FMT_FRAME,           0,1,0,0,  "dlgFormatFrame", ap_GetState_InFrame, nullptr);
 

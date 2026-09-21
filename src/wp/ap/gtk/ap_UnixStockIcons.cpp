@@ -198,6 +198,8 @@ static struct AbiStockMapping {
 
   { ABIWORD_SCRIPT_PLAY,			AP_MENU_ID_TOOLS_SCRIPTS,		"system-run" },
   { ABIWORD_FMT_STRIKE,				AP_MENU_ID_FMT_STRIKE,			"format-text-strikethrough" },
+  { ABIWORD_FMT_CLEARFMT,			AP_MENU_ID_FMT_CLEARFMT,		"edit-clear-all-symbolic" },
+  { ABIWORD_FMT_FONT,				AP_MENU_ID_FMT_FONT,			"preferences-desktop-font" },
   { ABIWORD_EDIT_SELECTALL,			AP_MENU_ID_EDIT_SELECTALL,		"edit-select-all" },
   { ABIWORD_VIEW_FULL_SCREEN,       (_Ap_Menu_Id)0,                 "view-fullscreen" },
   { nullptr, 					(_Ap_Menu_Id)0,					nullptr }

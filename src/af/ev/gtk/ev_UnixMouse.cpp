@@ -37,7 +37,7 @@ EV_UnixMouse::EV_UnixMouse(EV_EditEventMapper * pEEM)
 {
 }
 
-void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e)
+void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev_y)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState ems = 0;
@@ -91,16 +91,16 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e)
 	switch (result)
 	{
 	case EV_EEMR_COMPLETE:
+	{
 		UT_ASSERT(pEM);
-		gdouble x, y;
-		x = y = 0.0f;
-		gdk_event_get_position(e, &x, &y);
+		gdouble x = ev_x, y = ev_y;
 		invokeMouseMethod(pView, pEM,
 				  static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 				  static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));
 		signal(emc|mop|emb|ems, static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 		       static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));
 		return;
+	}
 	case EV_EEMR_INCOMPLETE:
 		// I'm not sure this makes any sense, but we allow it.
 		return;
@@ -114,7 +114,7 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e)
 	}
 }
 
-void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gint n_press)
+void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev_y, gint n_press)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState state = 0;
@@ -165,9 +165,7 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gint n_press)
 		return;
 	}
 
-	gdouble x, y;
-	x = y = 0.0f;
-	gdk_event_get_position(e, &x, &y);
+	gdouble x = ev_x, y = ev_y;
 
 	emc = pView->getMouseContext(static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 															 static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));
@@ -205,7 +203,7 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gint n_press)
 	}
 }
 
-void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e)
+void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e, gdouble ev_x, gdouble ev_y)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState ems = 0;
@@ -233,9 +231,7 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e)
 	else
 		emb = EV_EMB_BUTTON0;
 
-	gdouble x, y;
-	x = y = 0.0f;
-	gdk_event_get_position(e, &x, &y);
+	gdouble x = ev_x, y = ev_y;
 
 	// TODO confirm that we report movements under the
 	// TODO mouse button that we did the capture on.
@@ -287,7 +283,7 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e)
 	}
 }
 
-void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e)
+void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e, gdouble ev_x, gdouble ev_y)
 {
 	EV_EditMethod * pEM;
 	EV_EditModifierState state = 0;
@@ -301,16 +297,53 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e)
 		return;
 	}
 
+	GdkModifierType ev_state = gdk_event_get_modifier_state(e);
+	if (ev_state & GDK_SHIFT_MASK)
+		state |= EV_EMS_SHIFT;
+	if (ev_state & GDK_CONTROL_MASK)
+		state |= EV_EMS_CONTROL;
+	if (ev_state & GDK_ALT_MASK)
+		state |= EV_EMS_ALT;
+
 	GdkScrollDirection dir = gdk_scroll_event_get_direction(e);
 	// For GDK_SCROLL_SMOOTH we get the deltas
+	if (dir == GDK_SCROLL_SMOOTH && state == 0) {
+		gdouble delta_x = 0.0, delta_y = 0.0;
+		gdk_scroll_event_get_deltas(e, &delta_x, &delta_y);
+		/* Smooth deltas are in wheel-notch units. Accumulate the
+		 * fractional remainders and scroll proportionally instead of
+		 * collapsing every event into a full fixed step, so touchpad
+		 * scrolling stays fine-grained and page boundaries do not
+		 * cause visible jumps. */
+		m_dSmoothScrollX += delta_x;
+		m_dSmoothScrollY += delta_y;
+		GR_Graphics * pG = pView->getGraphics();
+		// one notch scrolls the same 36px as the discrete wheel path
+		UT_sint32 luY = pG->tlu(m_dSmoothScrollY * 36.0);
+		UT_sint32 luX = pG->tlu(m_dSmoothScrollX * 36.0);
+		if (luY != 0)
+		{
+			pView->cmdScroll(luY > 0 ? AV_SCROLLCMD_LINEDOWN : AV_SCROLLCMD_LINEUP,
+							 luY > 0 ? luY : -luY);
+			m_dSmoothScrollY = 0.0;
+		}
+		if (luX != 0)
+		{
+			pView->cmdScroll(luX > 0 ? AV_SCROLLCMD_LINERIGHT : AV_SCROLLCMD_LINELEFT,
+							 luX > 0 ? luX : -luX);
+			m_dSmoothScrollX = 0.0;
+		}
+		return;
+	}
 	if (dir == GDK_SCROLL_SMOOTH) {
+		// a modifier is held: fall back to a single discrete step so
+		// modifier-mapped scroll actions (e.g. Shift+wheel) still work
 		gdouble delta_x = 0.0, delta_y = 0.0;
 		gdk_scroll_event_get_deltas(e, &delta_x, &delta_y);
 		if (abs(delta_y) > abs(delta_x)) {
-			// vertical
 			dir = (delta_y > 0.0 ? GDK_SCROLL_DOWN : GDK_SCROLL_UP);
 		} else {
-			// horizontal not supported yet.
+			return;
 		}
 	}
 
@@ -332,19 +365,9 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e)
 		return;
 	}
 
-	GdkModifierType ev_state = gdk_event_get_modifier_state(e);
-	if (ev_state & GDK_SHIFT_MASK)
-		state |= EV_EMS_SHIFT;
-	if (ev_state & GDK_CONTROL_MASK)
-		state |= EV_EMS_CONTROL;
-	if (ev_state & GDK_ALT_MASK)
-		state |= EV_EMS_ALT;
-
 	mop = EV_EMO_SINGLECLICK;
 
-	gdouble x, y;
-	x = y = 0.0f;
-	gdk_event_get_position(e, &x, &y);
+	gdouble x = ev_x, y = ev_y;
 
 	emc = pView->getMouseContext(static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 															 static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));

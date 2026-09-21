@@ -54,7 +54,10 @@ enum AP_RibbonItemKind : uint8_t
 {
 	AP_RIBBON_ITEM_MENU		= 0,
 	AP_RIBBON_ITEM_TOOLBAR	= 1,
-	AP_RIBBON_ITEM_STYLEGAL	= 2	/* Word-style live style preview strip */
+	AP_RIBBON_ITEM_STYLEGAL	= 2,	/* Word-style live style preview strip */
+	AP_RIBBON_ITEM_ROWEND	= 3		/* row break - switches the group to
+								 * row-major packing (LibreOffice-style
+								 * two-row groups) */
 };
 
 enum AP_RibbonItemFlags : uint8_t
@@ -62,8 +65,13 @@ enum AP_RibbonItemFlags : uint8_t
 	AP_RIBBON_FLAG_NONE		= 0,
 	AP_RIBBON_FLAG_LARGE	= 1 << 0,	/* icon above label, spans the group height */
 	AP_RIBBON_FLAG_ICONONLY	= 1 << 1,	/* compact glyph-only button */
-	AP_RIBBON_FLAG_SPLIT	= 1 << 2	/* trailing drop-arrow opens a popover */
+	AP_RIBBON_FLAG_SPLIT	= 1 << 2,	/* trailing drop-arrow opens a popover */
+	AP_RIBBON_FLAG_GLYPH	= 1 << 3	/* text glyph (B, I, U, x2) instead of
+									 * a theme icon */
 };
+
+#define AP_RIBBON_ROWEND	{ AP_RIBBON_ITEM_ROWEND,  AP_RIBBON_FLAG_NONE,     0 }
+#define AP_RIBBON_MENU_G(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH), (uint16_t)(x) }
 
 #define AP_RIBBON_SPLIT_MENU(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_LARGE | AP_RIBBON_FLAG_SPLIT),    (uint16_t)(x) }
 #define AP_RIBBON_SPLIT_TB_I(x)	{ AP_RIBBON_ITEM_TOOLBAR, (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_SPLIT), (uint16_t)(x) }
@@ -138,20 +146,27 @@ static const AP_RibbonItem s_ribbon_home_clipboard[] =
 	AP_RIBBON_END
 };
 
+/* LibreOffice Writer NotebookBar font group: row 1 holds the font
+ * name combo, size combo, grow/shrink and clear-formatting; row 2 is
+ * the inline-format strip (B I U S x2 x2 highlight font-color) plus
+ * the Font dialog launcher. */
 static const AP_RibbonItem s_ribbon_home_font[] =
 {
 	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_FONT),
 	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_SIZE),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_BOLD),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_ITALIC),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_UNDERLINE),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_STRIKE),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_OVERLINE),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_SUPERSCRIPT),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_SUBSCRIPT),
-	AP_RIBBON_TB(AP_TOOLBAR_ID_COLOR_FORE),
-	AP_RIBBON_TB(AP_TOOLBAR_ID_COLOR_BACK),
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_FONT),
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_GROWFONT),
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_SHRINKFONT),
+	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_CLEARFMT),
+	AP_RIBBON_ROWEND,
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_BOLD),
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_ITALIC),
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_UNDERLINE),
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_STRIKE),
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_SUPERSCRIPT),
+	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_SUBSCRIPT),
+	AP_RIBBON_TB_I(AP_TOOLBAR_ID_COLOR_BACK),
+	AP_RIBBON_TB_I(AP_TOOLBAR_ID_COLOR_FORE),
+	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_FONT),
 	AP_RIBBON_END
 };
 
@@ -468,7 +483,6 @@ static const AP_RibbonItem s_ribbon_table_format[] =
 	AP_RIBBON_MENU(AP_MENU_ID_FMT_TABLE),
 	AP_RIBBON_MENU(AP_MENU_ID_TABLE_MERGE_CELLS),
 	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SPLIT_CELLS),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SPLIT_TABLE),
 	AP_RIBBON_MENU(AP_MENU_ID_TABLE_AUTOFIT),
 	AP_RIBBON_MENU(AP_MENU_ID_TABLE_TEXTTOTABLE_ALL),
 	AP_RIBBON_MENU(AP_MENU_ID_TABLE_TABLETOTEXT),

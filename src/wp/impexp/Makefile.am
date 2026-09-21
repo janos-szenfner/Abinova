@@ -104,6 +104,8 @@ libimpexp_la_SOURCES = \
 	xp/ie_imp_RTFParse.h \
 	xp/ie_imp_Markdown.cpp \
 	xp/ie_imp_Markdown.h \
+	xp/ut_mermaid.cpp \
+	xp/ut_mermaid.h \
 	xp/ie_imp_LaTeX.cpp \
 	xp/ie_imp_LaTeX.h \
 	xp/ie_imp_Text.cpp \

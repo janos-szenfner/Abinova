@@ -93,6 +93,8 @@
 #define ABIWORD_FMT_BOOKMARK			"abiword-fmt-bookmark"
 #define ABIWORD_FMT_OVERLINE			"abiword-fmt-overline"
 #define ABIWORD_FMT_STRIKE				"abiword-fmt-strike"
+#define ABIWORD_FMT_CLEARFMT			"abiword-fmt-clearfmt"
+#define ABIWORD_FMT_FONT				"abiword-fmt-font"
 #define ABIWORD_FMT_SUPERSCRIPT			"abiword-fmt-superscript"
 #define ABIWORD_FMT_SUBSCRIPT			"abiword-fmt-subscript"
 

@@ -3,6 +3,43 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Ribbon Font group redesign, selection-offset fix, finer scrolling, Mermaid rendering
+
+- Ribbon Font group rebuilt as a LibreOffice-style two-row group: a
+  new `AP_RIBBON_ITEM_ROWEND` layout kind switches a group to
+  row-major packing (per-row `GtkBox`es, so narrow glyph buttons no
+  longer share grid columns with the wide font combo). Row 1: font
+  family + size combos, Grow/Shrink Font, Clear Formatting. Row 2:
+  B/I/U/S/x²/x₂ text glyphs, highlight + font-colour glyph buttons,
+  Font dialog launcher.
+- New `AP_RIBBON_FLAG_GLYPH` draws Pango-markup glyphs on buttons
+  (bold B, italic I, underlined U, struck S, x²/x₂, A⁺/A⁻); colour
+  buttons got descriptive glyphs (bold "A" with red underline = font
+  colour, "ab" on yellow = highlight); icon-only buttons fall back to
+  their text label when the icon theme lacks the named icon.
+- New menu items and wiring: Format → Text → Grow Font / Shrink Font
+  / Clear Formatting (`clearFormatting` edit method →
+  `FV_View::resetCharFormat`); Insert → Edit Equation; Help → Credits.
+  Every ribbon button now resolves to a real `GAction` (the
+  always-disabled Split Table entry was dropped from the ribbon).
+  Note: the edit-method table is bsearch'd — new entries must be
+  inserted in alphabetical order.
+- Fixed the selection-offset bug: clicks and drag-selections landed
+  ~7 rows below the pointer because `gdk_event_get_position()` yields
+  surface-relative coordinates under GTK4 (~157 px off: header bar +
+  ribbon + rulers). `EV_UnixMouse::{mouseClick,mouseUp,mouseMotion,
+  mouseScroll}` now take the gesture callbacks' widget-relative x/y;
+  the scroll controller translates its position via
+  `gtk_widget_compute_point`.
+- Finer vertical scrolling: discrete wheel steps reduced from 60 px
+  to 36 px per notch; `GDK_SCROLL_SMOOTH` touchpad deltas scroll
+  proportionally with fractional-notch accumulators instead of
+  collapsing to a direction; `vScrollChanged` coalesces the pending
+  scroll target instead of dropping intermediate positions.
+- Mermaid fenced blocks in Markdown now render as embedded PNGs via a
+  new built-in Cairo renderer (`ut_mermaid.cpp`): flowchart, sequence,
+  Gantt, class and pie diagrams supported.
+
 ## Paste split button, DOCX layout fidelity, Markdown coverage
 
 - Paste is now a split button on the ribbon Home tab: the main icon

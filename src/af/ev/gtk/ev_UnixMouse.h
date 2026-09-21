@@ -32,10 +32,18 @@ class EV_UnixMouse : public EV_Mouse
 public:
 	EV_UnixMouse(EV_EditEventMapper * pEEM);
 
-	void mouseClick(AV_View* pView, GdkEvent* e, gint n_press);
-	void mouseUp(AV_View* pView, GdkEvent* e);
-	void mouseMotion(AV_View* pView, GdkEvent *event);
-	void mouseScroll(AV_View* pView, GdkEvent *e);
+	/* x/y are in the coordinate space of the widget the event
+	 * controller is attached to. Do NOT use gdk_event_get_position()
+	 * here: under GTK4 it reports surface-relative coordinates, which
+	 * differ from widget coordinates by the height of the header bar,
+	 * menubar/ribbon and rulers above the drawing area. */
+	void mouseClick(AV_View* pView, GdkEvent* e, gdouble x, gdouble y, gint n_press);
+	void mouseUp(AV_View* pView, GdkEvent* e, gdouble x, gdouble y);
+	void mouseMotion(AV_View* pView, GdkEvent *event, gdouble x, gdouble y);
+	void mouseScroll(AV_View* pView, GdkEvent *e, gdouble x, gdouble y);
 
 protected:
+	// accumulators for GDK_SCROLL_SMOOTH deltas (in wheel-notch units)
+	double m_dSmoothScrollX = 0.0;
+	double m_dSmoothScrollY = 0.0;
 };

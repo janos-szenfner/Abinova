@@ -8076,6 +8076,7 @@ void FV_View::warpInsPtToXY(UT_sint32 xPos, UT_sint32 yPos, bool bClick = false)
 	m_FrameEdit.setMode(FV_FrameEdit_NOT_ACTIVE);
 	m_InlineImage.setMode(FV_InlineDrag_NOT_ACTIVE);
 	_setPoint(pos, bEOL);
+	_fixInsertionPointCoords();
 	_ensureInsertionPointOnScreen();
 	setCursorToContext();
 	_updateSelectionHandles();

@@ -67,6 +67,7 @@ private:
 	bool _emitListItem(int level, bool bOrdered, int startValue,
 					   const std::string & text);
 	bool _emitCodeBlock(const std::vector<std::string> & lines);
+	bool _emitMermaid(const std::vector<std::string> & lines);
 	bool _emitBlockQuote(int depth, const std::string & text);
 	bool _emitHR(void);
 	bool _emitTable(const std::vector<std::vector<std::string> > & rows,

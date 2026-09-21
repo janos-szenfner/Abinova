@@ -39,8 +39,10 @@
 #include "fg_Graphic.h"
 #include "pd_Document.h"
 #include "pt_Types.h"
+#include "ut_bytebuf.h"
 #include "ut_debugmsg.h"
 #include "ut_go_file.h"
+#include "ut_mermaid.h"
 #include "ut_string.h"
 #include "ut_std_string.h"
 #include "ut_string_class.h"
@@ -672,6 +674,17 @@ void IE_Imp_Markdown::_parseDocument(const std::string & utf8)
 		char fence = 0;
 		if (s_isFence(line, fence))
 		{
+			/* info string after the fence run selects the language */
+			size_t fi = line.find(fence);
+			while (fi < line.size() && line[fi] == fence) fi++;
+			std::string lang = s_trim(line.substr(fi));
+			if (!lang.empty())
+			{
+				size_t sp = lang.find_first_of(" \t");
+				if (sp != std::string::npos)
+					lang = lang.substr(0, sp);
+			}
+
 			std::vector<std::string> code;
 			i++;
 			while (i < n)
@@ -685,7 +698,10 @@ void IE_Imp_Markdown::_parseDocument(const std::string & utf8)
 				code.push_back(lines[i]);
 				i++;
 			}
-			_emitCodeBlock(code);
+			if (lang == "mermaid")
+				_emitMermaid(code);
+			else
+				_emitCodeBlock(code);
 			continue;
 		}
 
@@ -1076,6 +1092,38 @@ bool IE_Imp_Markdown::_emitCodeBlock(const std::vector<std::string> & lines)
 			appendSpan(l);
 		}
 	}
+	return true;
+}
+
+/*! ```mermaid fenced block: render the diagram to PNG with the
+ *  built-in renderer and embed it as an image.  Falls back to a
+ *  plain code block when the source is not a recognised diagram. */
+bool IE_Imp_Markdown::_emitMermaid(const std::vector<std::string> & lines)
+{
+	std::string src;
+	for (const std::string & l : lines)
+	{
+		src += l;
+		src += '\n';
+	}
+
+	UT_ByteBufPtr pbb(new UT_ByteBuf);
+	if (!UT_Mermaid::renderToPNG(src, *pbb))
+		return _emitCodeBlock(lines);
+
+	std::string dataid =
+		UT_std_string_sprintf("md-mermaid%u", m_nextImage++);
+	const PP_PropertyVector atts = {
+		PT_PROPS_ATTRIBUTE_NAME, "",
+		"dataid", dataid,
+		"title", "Mermaid diagram",
+		"alt", "Mermaid diagram"
+	};
+	if (!appendObject(PTO_Image, atts))
+		return false;
+	if (!getDoc()->createDataItem(dataid.c_str(), false, pbb,
+								  "image/png", nullptr))
+		return false;
 	return true;
 }
 

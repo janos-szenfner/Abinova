@@ -7,6 +7,7 @@
 
 #include "string.h"
 #include <math.h>
+#include <stdint.h>
 
 #if defined(__GLIBC__)
 #include <langinfo.h>
@@ -161,9 +162,10 @@ const char * fp_PageSize::getDefaultPageName(void)
 {
 #ifdef ABI_HAVE_NL_PAPER_SIZE
 	// _NL_PAPER_WIDTH/_NL_PAPER_HEIGHT honor LC_PAPER; nl_langinfo
-	// returns these integer items cast to a pointer (LP#234756)
-	const long w = (long) nl_langinfo(_NL_PAPER_WIDTH);
-	const long h = (long) nl_langinfo(_NL_PAPER_HEIGHT);
+	// returns these integer items cast to a pointer (LP#234756).
+	// Read them as int: the upper pointer bits are undefined.
+	const int w = (int)(intptr_t) nl_langinfo(_NL_PAPER_WIDTH);
+	const int h = (int)(intptr_t) nl_langinfo(_NL_PAPER_HEIGHT);
 	if (w > 0 && h > 0)
 	{
 		for (int i = 0; i < _last_predefined_pagesize_dont_use_; i++)
