@@ -338,6 +338,47 @@ below are on `main` but the release has not been cut yet.
   The old in-group style combo and Stylist/Create items were
   removed; the hidden `FMT_STYLE` toolbar item still feeds its state
   to the tile highlight and the pane's current-style readout.
+- **Word-compatible built-in style set** — the built-in styles
+  (`pt_PT_Styles.cpp`) now match Microsoft Word's gallery: Normal
+  (12 pt, 1.15 line spacing), No Spacing, Heading 1–9 (16/14/13/12/
+  11/11/10/10/10 pt bold with Word's spacing-before/after, Heading 4
+  also italic), Title (26 pt bold centred), Subtitle (14 pt italic
+  centred), Quote and Intense Quote (italic / bold italic, 0.5"
+  indent, 1.5 pt gray left border), Book Title, List Paragraph, and
+  the character styles Emphasis, Strong, Subtle Emphasis, Intense
+  Emphasis, Subtle Reference and Intense Reference. Character styles
+  are now shown in the gallery and the Styles pane too (applying
+  them sets the run-level style on the selection via the existing
+  `changeSpanFmt` path), and the gallery tiles order like Word's.
+  Old AbiWord-only styles (Block Text, Plain Text, Chapter/Section/
+  Numbered Heading) remain defined for document compatibility but
+  are hidden from the Recommended list; the .doc importer's
+  `s_translateStyleId` now maps Heading 5–9, Title, Subtitle, Strong
+  and Emphasis to real built-ins.
+- **Internal help window** — Help Contents / Search for Help /
+  Credits no longer launch an external browser; they open an in-app
+  "AbiWord Help" window (`xap_UnixHelpWindow`, behind a new
+  `XAP_AppImpl::openHelpWindow` virtual so other toolkits keep the
+  old URL behaviour): a toolbar with Back/Home, a language selector
+  (English / Français / Polski switching between the bundled
+  `help/en-US`, `help/fr-FR` and `help/pl-PL` trees) and a live
+  search field that scans every page of the current language and
+  lists results as linked titles with context snippets. Pages are
+  rendered from the bundled HTML into a `GtkTextView` (headings,
+  bold/italic/mono/underline, list bullets, clickable links —
+  external `http(s)`/`mailto:` links still open in the browser) with
+  a page history for Back.
+- **Visible ribbon group separators** — the separators between
+  ribbon groups are now drawn as a real 1 px line
+  (`separator.ribbon-group-sep` with an explicit border colour);
+  the theme default was invisible, leaving e.g. the Help tab's Help
+  and Interface groups visually merged.
+- **Polish help converted to real UTF-8** — the 25 `help/pl-PL`
+  pages declared `charset=UTF-8` but stored text in mixed
+  UTF-8/Windows-1250, producing mojibake ("znalazÅ‚eÅ›"); each file
+  was re-encoded keeping valid UTF-8 sequences and decoding the
+  stray legacy bytes as CP1250, so Polish diacritics now render
+  correctly.
 
 ### Ubuntu Launchpad bug fixes
 

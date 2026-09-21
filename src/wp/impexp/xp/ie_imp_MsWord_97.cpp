@@ -108,11 +108,11 @@ static const gchar * s_translateStyleId(UT_uint32 id)
 		case 2:  return "Heading 2";
 		case 3:  return "Heading 3";
 		case 4:  return "Heading 4";
-		case 5:  return nullptr /*"Heading 5"*/;
-		case 6:  return nullptr /*"Heading 6"*/;
-		case 7:  return nullptr /*"Heading 7"*/;
-		case 8:  return nullptr /*"Heading 8"*/;
-		case 9:  return nullptr /*"Heading 9"*/;
+		case 5:  return "Heading 5";
+		case 6:  return "Heading 6";
+		case 7:  return "Heading 7";
+		case 8:  return "Heading 8";
+		case 9:  return "Heading 9";
 		case 10: return nullptr /*"Index 1"*/;  /* Really a dup of 92? */
 		case 11: return nullptr /*"Index 2"*/;
 		case 12: return nullptr /*"Index 3"*/;
@@ -165,7 +165,7 @@ static const gchar * s_translateStyleId(UT_uint32 id)
 		case 59: return nullptr /*"List Number 3"*/;
 		case 60: return nullptr /*"List Number 4"*/;
 		case 61: return nullptr /*"List Number 5"*/;
-		case 62: return nullptr /*"Title"*/;
+		case 62: return "Title";
 		case 63: return nullptr /*"Closing"*/;	
 		case 64: return nullptr /*"Signature"*/;
 		case 65: return nullptr /*"Default Paragraph Font"*/;
@@ -177,7 +177,7 @@ static const gchar * s_translateStyleId(UT_uint32 id)
 		case 71: return nullptr /*"List Continue 4"*/;
 		case 72: return nullptr /*"List Continue 5"*/;
 		case 73: return nullptr /*"Message Header"*/;
-		case 74: return nullptr /*"Subtitle"*/;
+		case 74: return "Subtitle";
 		case 75: return nullptr /*"Salutation"*/;
 		case 76: return nullptr /*"Date"*/;
 		case 77: return nullptr /*"Body Text First Indent"*/;
@@ -190,8 +190,8 @@ static const gchar * s_translateStyleId(UT_uint32 id)
 		case 84: return "Block Text";
 		case 85: return nullptr /*"Hyperlink"*/;
 		case 86: return nullptr /*"FollowedHyperlink"*/;
-		case 87: return nullptr /*"Strong"*/;
-		case 88: return nullptr /*"Emphasis"*/;
+		case 87: return "Strong";
+		case 88: return "Emphasis";
 		case 89: return nullptr /*"Document Map"*/;
 		case 90: return "Plain Text"; /* Really a dup of 109? */
 		case 91: return nullptr /*"Email Signature"*/;

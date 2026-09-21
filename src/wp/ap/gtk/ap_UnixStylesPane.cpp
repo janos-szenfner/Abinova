@@ -111,6 +111,14 @@ std::string AP_UnixStylesPane::styleMarkup(const PD_Style * pStyle,
 	return markup;
 }
 
+bool AP_UnixStylesPane::isListPseudoStyle(const char * szInternalName)
+{
+	if (!szInternalName)
+		return false;
+	const size_t len = strlen(szInternalName);
+	return len > 5 && !strcmp(szInternalName + len - 5, " List");
+}
+
 void AP_UnixStylesPane::_invokeMethod(const char * szMethod)
 {
 	const EV_EditMethodContainer * pEMC =
@@ -173,8 +181,8 @@ void AP_UnixStylesPane::_s_filter_changed(GtkDropDown * dd,
 	self->_populate(gtk_drop_down_get_selected(dd) == 1);
 }
 
-/* (re)build the "Apply a style" list - displayed paragraph styles for
- * Recommended, every paragraph style for All Styles */
+/* (re)build the "Apply a style" list - displayed styles for
+ * Recommended, every style for All Styles */
 void AP_UnixStylesPane::_populate(bool bAll)
 {
 	if (!m_wList)
@@ -215,7 +223,8 @@ void AP_UnixStylesPane::_populate(bool bAll)
 		const PD_Style * pStyle = nullptr;
 		if (!pdoc->enumStyles(k, &szName, &pStyle))
 			break;
-		if (!pStyle || !szName || !*szName || pStyle->isCharStyle())
+		if (!pStyle || !szName || !*szName ||
+			isListPseudoStyle(szName))
 			continue;
 		if (!bAll && !pStyle->isDisplayed())
 			continue;

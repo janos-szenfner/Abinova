@@ -50,6 +50,10 @@ public:
 								   double minPt = 8.0,
 								   double maxPt = 18.0);
 
+	/* true for the built-in "* List" pseudo-styles (Bullet List,
+	 * Numbered List, ...) which are list presets, not real styles */
+	static bool		isListPseudoStyle(const char * szInternalName);
+
 private:
 	void			_populate(bool bAll);
 	void			_applyStyle(const char * szInternalName);

@@ -23,6 +23,8 @@
 
 #include <string>
 
+class XAP_Frame;
+
 class ABI_EXPORT XAP_AppImpl
 {
 public:
@@ -39,4 +41,12 @@ protected:
 										   const char * remoteURLbase);
 	virtual bool openURL(const char * url) = 0;
 	virtual bool openHelpURL(const char * url);
+	/* check the project site for a newer version; default just opens
+	 * the download page, toolkit impls may show an in-app dialog */
+	virtual void checkForUpdates(XAP_Frame * pFrame);
+	/* show the built-in help browser; page is a path relative to the
+	 * language dir ("index.html"), bFocusSearch focuses the search
+	 * field; default opens the localized help URL externally */
+	virtual void openHelpWindow(XAP_Frame * pFrame, const char * page,
+								bool bFocusSearch);
 };

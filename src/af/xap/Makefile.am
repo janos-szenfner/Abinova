@@ -163,6 +163,8 @@ libxap_la_SOURCES += \
 	gtk/xap_UnixCustomWidget.cpp \
 	gtk/xap_UnixCustomWidget.h \
 	gtk/xap_UnixDialogFactory.h \
+	gtk/xap_UnixHelpWindow.cpp \
+	gtk/xap_UnixHelpWindow.h \
 	gtk/xap_UnixDialogHelper.cpp \
 	gtk/xap_UnixDialogHelper.h \
 	gtk/xap_UnixDialog.cpp \

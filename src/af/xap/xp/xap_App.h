@@ -234,6 +234,10 @@ public:
 
 	bool						openURL(const char * url) { return m_pImpl->openURL(url); }
 	bool						openHelpURL(const char * url) { return m_pImpl->openHelpURL(url); }
+	void						checkForUpdates(XAP_Frame * pFrame) { m_pImpl->checkForUpdates(pFrame); }
+	void						openHelpWindow(XAP_Frame * pFrame, const char * page,
+											   bool bFocusSearch)
+							{ m_pImpl->openHelpWindow(pFrame, page, bFocusSearch); }
 	std::string					localizeHelpUrl(const char * pathBeforeLang,
 									const char * pathAfterLang, const char * remoteURLbase)
 							{ return m_pImpl->localizeHelpUrl(pathBeforeLang, pathAfterLang, remoteURLbase); }

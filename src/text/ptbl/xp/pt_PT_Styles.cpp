@@ -184,8 +184,12 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 					  "font-style:normal; font-stretch:normal; font-variant:normal; "
 					  "margin-top:0pt; margin-bottom:0pt; "
 					  "margin-left:0pt; margin-right:0pt; text-decoration:none; "
-					  "text-indent:0in; text-position:normal; line-height:1.0; "
+					  "text-indent:0in; text-position:normal; line-height:1.15; "
 					  "color:000000; bgcolor:transparent; widows:2", pszFamily);
+
+	/* body text font - nearest to Calibri (Carlito), used by the
+	 * Word-compatible built-in styles below */
+	const char* pszBodyFamily = pszFamily;
 
 	pszFamily = XAP_App::findNearestFont("Arial", "normal", "",
 										 "normal", "", "12pt", s.utf8_str());
@@ -201,16 +205,66 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 
 	_s("Normal", true,	"P", "",       "Current Settings", stTmp.c_str());
 	
-	szFmt = "font-family:%s; font-size:%dpt; font-weight:bold; margin-top:22pt; margin-bottom:3pt; keep-with-next:1";
-	UT_String_sprintf(stTmp, szFmt, pszFamily, 17);
+	/* Word-compatible body styles */
+	_s("No Spacing", true, "P", "Normal", "Current Settings",
+	   "margin-top:0pt; margin-bottom:0pt; line-height:1.0");
+	_s("Title", true, "P", "Normal", "Normal",
+	   "font-size:26pt; font-weight:bold; text-align:center; margin-bottom:24pt");
+	_s("Subtitle", true, "P", "Normal", "Normal",
+	   "font-size:14pt; font-style:italic; text-align:center; margin-bottom:18pt");
+	_s("List Paragraph", true, "P", "Normal", "Normal",
+	   "margin-left:0.5in");
+
+	/* Word-compatible headings: bold, keep-with-next, spacing
+	 * before/after per level */
+	szFmt = "font-family:%s; font-size:%dpt; font-weight:bold; font-style:%s; "
+		"margin-top:%dpt; margin-bottom:%dpt; keep-with-next:1";
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 16, "normal", 12, 6);
 	_s("Heading 1", true,	"P", "Normal", "Normal", stTmp.c_str());
-	UT_String_sprintf(stTmp, szFmt, pszFamily, 14);
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 14, "normal", 10, 4);
 	_s("Heading 2", true,	"P", "Normal", "Normal", stTmp.c_str());
-	UT_String_sprintf(stTmp, szFmt, pszFamily, 12);
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 13, "normal", 8, 4);
 	_s("Heading 3", true,	"P", "Normal", "Normal", stTmp.c_str());
-	_s("Heading 4", true,	"P", "Normal", "Normal", stTmp.c_str());
-	_s("Plain Text", true,"P", "Normal", "Current Settings", "font-family:Courier New");
-	_s("Block Text", true,"P", "Normal", "Current Settings", "margin-left:1in; margin-right:1in; margin-bottom:6pt");
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 12, "italic", 6, 3);
+	_s("Heading 4", false,	"P", "Normal", "Normal", stTmp.c_str());
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 11, "normal", 6, 3);
+	_s("Heading 5", false,	"P", "Normal", "Normal", stTmp.c_str());
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 11, "normal", 6, 3);
+	_s("Heading 6", false,	"P", "Normal", "Normal", stTmp.c_str());
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 10, "normal", 6, 3);
+	_s("Heading 7", false,	"P", "Normal", "Normal", stTmp.c_str());
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 10, "normal", 6, 3);
+	_s("Heading 8", false,	"P", "Normal", "Normal", stTmp.c_str());
+	UT_String_sprintf(stTmp, szFmt, pszBodyFamily, 10, "normal", 6, 3);
+	_s("Heading 9", false,	"P", "Normal", "Normal", stTmp.c_str());
+
+	/* quotes: italic, indented, gray 1.5pt left rule like Word */
+	_s("Quote", true, "P", "Normal", "Normal",
+	   "font-style:italic; margin-left:0.5in; "
+	   "left-style:solid; left-color:808080; left-thickness:1.5pt; "
+	   "margin-top:6pt; margin-bottom:6pt");
+	_s("Intense Quote", true, "P", "Normal", "Normal",
+	   "font-weight:bold; font-style:italic; margin-left:0.5in; "
+	   "left-style:solid; left-color:808080; left-thickness:1.5pt; "
+	   "margin-top:6pt; margin-bottom:6pt");
+	_s("Book Title", true, "P", "Normal", "Normal",
+	   "font-size:12pt; font-style:italic; text-align:center");
+
+	/* Word-compatible character styles - applied to the selection */
+	_s("Emphasis", true, "C", "None", "Current Settings",
+	   "font-style:italic");
+	_s("Strong", true, "C", "None", "Current Settings",
+	   "font-weight:bold");
+	_s("Subtle Emphasis", true, "C", "None", "Current Settings",
+	   "font-style:italic; color:595959");
+	_s("Intense Emphasis", true, "C", "None", "Current Settings",
+	   "font-weight:bold; font-style:italic; color:2E74B5");
+	_s("Subtle Reference", true, "C", "None", "Current Settings",
+	   "text-decoration:underline; color:595959");
+	_s("Intense Reference", true, "C", "None", "Current Settings",
+	   "font-weight:bold; text-decoration:underline; color:2E74B5");
+	_s("Plain Text", false,"P", "Normal", "Current Settings", "font-family:Courier New");
+	_s("Block Text", false,"P", "Normal", "Current Settings", "margin-left:1in; margin-right:1in; margin-bottom:6pt");
 
 	UT_String_sprintf(stTmp, list_fmt, "Numbered List", "1",LIST_DEFAULT_INDENT, LIST_DEFAULT_INDENT_LABEL, "transparent", "%L.", "NULL", ".");
 	_s("Numbered List",true,"P", "", "Current Settings", stTmp.c_str());
@@ -269,9 +323,9 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 					  "list-decimal:", pszFamily);
 
 
-    _s("Numbered Heading 1",true,"P","Heading 1","Normal", stTmp.c_str());
-    _s("Numbered Heading 2",true,"P","Heading 2","Normal", stTmp.c_str());
-    _s("Numbered Heading 3",true,"P","Heading 3","Normal", stTmp.c_str());
+    _s("Numbered Heading 1",false,"P","Heading 1","Normal", stTmp.c_str());
+    _s("Numbered Heading 2",false,"P","Heading 2","Normal", stTmp.c_str());
+    _s("Numbered Heading 3",false,"P","Heading 3","Normal", stTmp.c_str());
 
 	// pszFamily is the nearest font to Arial found in the system
 
@@ -298,10 +352,10 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 		"field-font:%s; list-decimal:";
 	UT_String_sprintf(stTmp, szFmt, pSS->getValue(XAP_STRING_ID_STYLE_DELIM_CHAPTER), pszFamily);
 
-    _s("Chapter Heading",true,"P","Numbered Heading 1","Normal", stTmp.c_str());
+    _s("Chapter Heading",false,"P","Numbered Heading 1","Normal", stTmp.c_str());
 
 	UT_String_sprintf(stTmp, szFmt, pSS->getValue(XAP_STRING_ID_STYLE_DELIM_SECTION), pszFamily);
-    _s("Section Heading",true,"P","Numbered Heading 1","Normal", stTmp.c_str());
+    _s("Section Heading",false,"P","Numbered Heading 1","Normal", stTmp.c_str());
 
 	_s("Endnote Reference",false,"C", "None", "Current Settings", "text-position:superscript; font-size:10pt");
 	_s("Endnote Text",false,"P", "Normal", "Current Settings", "text-position:normal");

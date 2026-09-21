@@ -3714,20 +3714,41 @@ bool helpLocalizeAndOpenURL(const char* pathBeforeLang, const char* pathAfterLan
 	return _helpOpenURL(url.c_str());
 }
 
-Defun0(helpContents)
+static bool _openHelpWindow(AV_View * pAV_View, const char * page,
+							bool bFocusSearch)
 {
-	return helpLocalizeAndOpenURL("help", "index", "https://gitlab.gnome.org/World/AbiWord");
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_val_if_fail (pApp, false);
+
+	pApp->openHelpWindow(pFrame, page, bFocusSearch);
+	return true;
 }
 
-Defun0(helpIntro)
+Defun1(helpContents)
 {
-	return helpLocalizeAndOpenURL("help", "introduction", "https://gitlab.gnome.org/World/AbiWord");
+	return _openHelpWindow(pAV_View, "index.html", false);
 }
 
-Defun0(helpCheckVer)
+Defun1(helpIntro)
 {
-	UT_String versionURL ("https://github.com/janos-szenfner/Exp-Abi/tags");
-	return _openURL(versionURL.c_str());
+	return _openHelpWindow(pAV_View, "introduction.html", false);
+}
+
+Defun1(helpCheckVer)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_val_if_fail (pApp, false);
+
+	pApp->checkForUpdates(pFrame);
+	return true;
 }
 
 Defun0(helpReportBug)
@@ -3737,14 +3758,14 @@ Defun0(helpReportBug)
   return _openURL(bugURL.c_str());
 }
 
-Defun0(helpSearch)
+Defun1(helpSearch)
 {
-	return helpLocalizeAndOpenURL("help", "search", "https://gitlab.gnome.org/World/AbiWord");
+	return _openHelpWindow(pAV_View, nullptr, true);
 }
 
-Defun0(helpCredits)
+Defun1(helpCredits)
 {
-	return helpLocalizeAndOpenURL("help", "credits", "https://gitlab.gnome.org/World/AbiWord");
+	return _openHelpWindow(pAV_View, "credits.html", false);
 }
 
 Defun1(cycleWindows)

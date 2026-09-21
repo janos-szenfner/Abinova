@@ -3,6 +3,34 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Word-compatible styles, internal help window, visible group separators
+
+- Built-in styles reworked to match Word: Normal gets 1.15 line
+  spacing; new No Spacing, Title (26 pt bold centred), Subtitle
+  (14 pt italic centred), List Paragraph, Quote / Intense Quote
+  (italic / bold italic, 0.5" indent, 1.5 pt gray left border),
+  Book Title; Heading 1-9 respecified to Word's sizes and spacing
+  (16/14/13/12i/11/11/10/10/10, keep-with-next); new character
+  styles Emphasis, Strong, Subtle/Intense Emphasis, Subtle/Intense
+  Reference. Block Text, Plain Text, Chapter/Section/Numbered
+  Heading kept but hidden from Recommended. .doc importer maps
+  Heading 5-9, Title, Subtitle, Strong, Emphasis again.
+- Gallery shows character styles too and orders tiles like Word
+  (Normal, No Spacing, Heading 1-3, Title, Subtitle, emphasis
+  styles, quotes, Book Title, List Paragraph); the Styles pane
+  lists char styles as well.
+- New internal help browser (`xap_UnixHelpWindow`, wired through
+  `XAP_AppImpl::openHelpWindow`): Back/Home buttons, English /
+  Français / Polski language dropdown over the bundled
+  help/<lang> trees, live search across all pages of the current
+  language with linked results and snippets, HTML rendered into a
+  GtkTextView with clickable links; Help Contents / Search for Help
+  / Credits edit methods open it instead of a browser.
+- Repaired the 25 Polish help pages to true UTF-8 (they were a mix
+  of UTF-8 and Windows-1250 → mojibake).
+- Ribbon group separators are drawn with an explicit 1 px border
+  colour so the line is actually visible (Help ↔ Interface etc.).
+
 ## Borders dropdown and docked Styles pane
 
 - Borders button becomes a single menu-button dropping the

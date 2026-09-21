@@ -22,6 +22,8 @@
 
 #include "xap_AppImpl.h"
 
+struct _GtkWidget;
+
 class XAP_UnixAppImpl
 	: public XAP_AppImpl
 {
@@ -31,6 +33,14 @@ protected:
 						 const char * remoteURLbase) override;
 	virtual bool openURL(const char * url) override;
 	virtual bool openHelpURL(const char * url) override;
+	virtual void checkForUpdates(XAP_Frame * pFrame) override;
+	virtual void openHelpWindow(XAP_Frame * pFrame, const char * page,
+								bool bFocusSearch) override;
+
+private:
+	/* the internal help browser, tracked weakly so a second help
+	 * request raises it instead of opening a new window */
+	struct _GtkWidget *	m_wHelpWin = nullptr;
 };
 
 #endif

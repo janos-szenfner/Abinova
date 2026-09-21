@@ -288,20 +288,19 @@ bool isTransientWindow(GtkWindow *window,GtkWindow *parent)
 /****************************************************************/
 /****************************************************************/
 
-// in ap_editmethods.cpp
-extern bool helpLocalizeAndOpenURL(const char* pathBeforeLang, const char* pathAfterLang, const char *remoteURLbase);
-
 static void sDoHelp ( XAP_Dialog * pDlg )
 {
 	// should always be valid, but just in case...
 	if (!pDlg)
 		return;
 
-	// open the url
+	// open the url in the internal help window
 	if ( pDlg->getHelpUrl().size () > 0 )
     {
-		helpLocalizeAndOpenURL ("help", pDlg->getHelpUrl().c_str(),
-								"https://gitlab.gnome.org/World/AbiWord");
+		std::string page = pDlg->getHelpUrl();
+		page += ".html";
+		XAP_App::getApp()->openHelpWindow(XAP_App::getApp()->getLastFocussedFrame(),
+										 page.c_str(), false);
     }
 	else
     {

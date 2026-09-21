@@ -39,6 +39,22 @@ bool XAP_AppImpl::openHelpURL(const char * url)
 	return openURL(url);
 }
 
+void XAP_AppImpl::checkForUpdates(XAP_Frame * /*pFrame*/)
+{
+	openURL("https://github.com/janos-szenfner/Exp-Abi/releases");
+}
+
+void XAP_AppImpl::openHelpWindow(XAP_Frame * /*pFrame*/, const char * page,
+								 bool /*bFocusSearch*/)
+{
+	std::string base = page && *page ? page : "index";
+	/* localizeHelpUrl wants the path without the ".html" suffix */
+	size_t dot = base.rfind(".html");
+	if (dot != std::string::npos && dot + 5 == base.size())
+		base.resize(dot);
+	openHelpURL(localizeHelpUrl("help", base.c_str(), nullptr).c_str());
+}
+
 
 inline static void _catPath(std::string& st, const std::string& st2)
 {

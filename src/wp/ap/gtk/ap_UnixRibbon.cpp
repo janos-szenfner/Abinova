@@ -24,6 +24,10 @@
 #include <climits>
 #endif
 
+#include <algorithm>
+#include <string>
+#include <vector>
+
 #include "ap_UnixRibbon.h"
 
 #include "ut_vector.h"
@@ -243,7 +247,12 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		/* Word-style group: subtle box, title centered at the bottom */
 		".abiword-ribbon .ribbon-group {"
 		"  margin: 2px 3px; padding: 2px 4px 0 4px;"
-		"  border-right: 1px solid @borders;"
+		"}"
+		".abiword-ribbon separator { margin: 6px 0; }"
+		/* visible group separator - a real 1px line, not theme-drawn */
+		".abiword-ribbon separator.ribbon-group-sep {"
+		"  min-width: 0; min-height: 0; margin: 8px 2px;"
+		"  border-left: 1px solid alpha(@theme_fg_color, 0.22);"
 		"}"
 		".abiword-ribbon .ribbon-group-title {"
 		"  font-size: 0.78em; margin-top: 1px; padding: 0 4px 2px 4px;"
@@ -441,7 +450,19 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				gtk_widget_set_halign(gtitle, GTK_ALIGN_CENTER);
 				gtk_box_append(GTK_BOX(frame), gtitle);
 			}
-			gtk_box_append(GTK_BOX(page), frame);
+			if (!bEmpty)
+			{
+				gtk_box_append(GTK_BOX(page), frame);
+				/* LibreOffice-style vertical separator between groups;
+				 * the last group gets none */
+				if (group[1].szGroupKey)
+				{
+					GtkWidget * sep = gtk_separator_new(
+						GTK_ORIENTATION_VERTICAL);
+					gtk_widget_add_css_class(sep, "ribbon-group-sep");
+					gtk_box_append(GTK_BOX(page), sep);
+				}
+			}
 		}
 
 		GtkWidget * tabLabel = gtk_label_new(_ribbon_label(tab->szTabKey,
@@ -2494,16 +2515,55 @@ void AP_UnixRibbon::_populateStyleTiles()
 	GtkWidget * box = m_wStyleBox;
 	UT_sint32 nTiles = 0;
 	{
-		const UT_sint32 MAX_TILES = 24;
-		for (UT_uint32 k = 0; nTiles < MAX_TILES; ++k)
+		/* Word-style gallery order - listed styles first, in this
+		 * sequence, then any other displayed style alphabetically */
+		static const char * s_galleryOrder[] = {
+			"Normal", "No Spacing",
+			"Heading 1", "Heading 2", "Heading 3",
+			"Title", "Subtitle",
+			"Subtle Emphasis", "Emphasis",
+			"Intense Emphasis", "Strong",
+			"Quote", "Intense Quote",
+			"Subtle Reference", "Intense Reference",
+			"Book Title", "List Paragraph",
+		};
+
+		std::vector<std::pair<std::string, const PD_Style*>> styles;
+		for (UT_uint32 k = 0;; ++k)
 		{
 			const char * szName = nullptr;
 			const PD_Style * pStyle = nullptr;
 			if (!pdoc->enumStyles(k, &szName, &pStyle))
 				break;
 			if (!pStyle || !szName || !*szName || !pStyle->isDisplayed() ||
-				pStyle->isCharStyle())
+				AP_UnixStylesPane::isListPseudoStyle(szName))
 				continue;
+			styles.push_back({szName, pStyle});
+		}
+
+		std::sort(styles.begin(), styles.end(),
+				  [](const auto& a, const auto& b)
+		{
+			auto orderOf = [](const std::string& s) -> int
+			{
+				for (size_t i = 0; i < G_N_ELEMENTS(s_galleryOrder); ++i)
+					if (s == s_galleryOrder[i])
+						return (int)i;
+				return 1000;
+			};
+			int oa = orderOf(a.first), ob = orderOf(b.first);
+			if (oa != ob)
+				return oa < ob;
+			return a.first < b.first;
+		});
+
+		const UT_sint32 MAX_TILES = 24;
+		for (const auto& pr : styles)
+		{
+			if (nTiles >= MAX_TILES)
+				break;
+			const char * szName = pr.first.c_str();
+			const PD_Style * pStyle = pr.second;
 
 			std::string sLoc;
 			pt_PieceTable::s_getLocalisedStyleName(szName, sLoc);

@@ -292,6 +292,29 @@ longer exist:
   stay in sync. Switch between interfaces via Help → Interface
   (ribbon is the default; the choice persists in the `RibbonUI`
   preference).
+- **Word-compatible built-in styles**: the style set in
+  `pt_PT_Styles.cpp` now matches Word — `Normal` at 1.15 line
+  spacing, `No Spacing`, `Title` (26 pt bold centred), `Subtitle`,
+  `Heading 1`-`9` respecified to Word's sizes and spacing (16 / 14 /
+  13 / 12-italic / 11 / 11 / 10 / 10 / 10 pt, keep-with-next),
+  `Quote` / `Intense Quote` (0.5″ indent, 1.5 pt gray left rule),
+  `Book Title`, `List Paragraph`, and character styles `Emphasis`,
+  `Strong`, `Subtle`/`Intense Emphasis`, `Subtle`/`Intense
+  Reference`. Legacy AbiWord-only styles (`Block Text`,
+  `Plain Text`, `Chapter`/`Section`/`Numbered Heading`) stay defined
+  but are hidden from the Recommended list, and the `* List`
+  pseudo-styles are filtered out of the gallery and pane entirely.
+  The .doc importer maps `Heading 5`-`9`, `Title`, `Subtitle`,
+  `Strong` and `Emphasis` again. The ribbon gallery renders tiles in
+  Word order (`Normal`, `No Spacing`, `Heading 1`-`3`, `Title`,
+  `Subtitle`, emphasis styles, quotes, …) with `<`/`>` overflow
+  arrows, and a **Styles Pane** button docks a live side pane
+  (current style readout, New Style…, Recommended/All filter, styled
+  rows, Clear Formatting). Ribbon groups are separated by a visible
+  1 px line, the Help tab uses large icon buttons, and **Check for
+  Updates** queries the GitHub releases/tags API in a background
+  thread and reports the result in a symmetric in-app dialog with a
+  download link when a newer version exists.
 - **Same-application clipboard deadlock fixed**: pasting data that
   AbiWord itself had copied wedged the UI forever — the async
   `gdk_clipboard_read_async` path called back into our own
@@ -335,8 +358,15 @@ longer exist:
   swallow the whole toolbar; `hexpand` is now explicitly disabled and
   the entry width capped.
 - **Internal help bundled**: the upstream `abiword-docs` manual was
-  imported and converted to HTML (`help/`, 220 pages); Help buttons
-  open the local copy instead of a dead `file://` URL or the website.
+  imported and converted to HTML (`help/`, 220 pages). Help buttons
+  open a built-in help browser (`xap_UnixHelpWindow`) — a popup
+  window with Back/Home navigation, clickable cross-page links, a
+  language selector (English / Français / Polski over the bundled
+  `help/<lang>` trees), and live search across every page of the
+  selected language with titled results and match snippets. Dialog
+  F1 help targets route there too. The 25 Polish pages were repaired
+  to true UTF-8 (they were mixed UTF-8/Windows-1250 and rendered as
+  mojibake).
 - **Ruler redesign** (`ap_TopRuler.cpp`): full-height bar, bottom-
   anchored tick hierarchy, gray margin bands, and inch/half-inch
   numeric labels drawn with the GUI font so they stay a constant
