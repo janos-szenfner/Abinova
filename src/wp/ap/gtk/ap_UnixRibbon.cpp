@@ -293,6 +293,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			 * glyph buttons to the font combo's width */
 			GtkWidget * rowBox = nullptr;
 			GtkWidget * curRow = nullptr;
+			GtkWidget * evenBox = nullptr;
 			bool bEmpty = true;
 			/* a group containing ROWEND markers packs row-major
 			 * (left to right, wrapping at each ROWEND) instead of
@@ -323,13 +324,15 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				if (item->kind == AP_RIBBON_ITEM_ROWEND)
 				{
 					curRow = nullptr;
+					evenBox = nullptr;
 					continue;
 				}
 				GtkWidget * w = nullptr;
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
 				else if (item->flags & AP_RIBBON_FLAG_MENUPOP)
-					w = _makeMenuPopButton((XAP_Menu_Id)item->id);
+					w = _makeMenuPopButton((XAP_Menu_Id)item->id,
+										   item->flags);
 				else if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
 					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
 										   item->flags);
@@ -363,8 +366,25 @@ GtkWidget * AP_UnixRibbon::createWidget()
 						curRow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 						gtk_widget_set_valign(curRow, GTK_ALIGN_CENTER);
 						gtk_box_append(GTK_BOX(rowBox), curRow);
+						evenBox = nullptr;
 					}
-					gtk_box_append(GTK_BOX(curRow), w);
+					/* EVEN items share a homogeneous box so they all
+					 * get the same width (grow/shrink font, Change Case) */
+					if (item->flags & AP_RIBBON_FLAG_EVEN)
+					{
+						if (!evenBox)
+						{
+							evenBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+							gtk_box_set_homogeneous(GTK_BOX(evenBox), TRUE);
+							gtk_box_append(GTK_BOX(curRow), evenBox);
+						}
+						gtk_box_append(GTK_BOX(evenBox), w);
+					}
+					else
+					{
+						evenBox = nullptr;
+						gtk_box_append(GTK_BOX(curRow), w);
+					}
 					continue;
 				}
 
@@ -432,6 +452,23 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	gtk_widget_add_controller(m_wNotebook, motion);
 
 	return m_wNotebook;
+}
+
+/* shared CSS removing the theme's wide default button padding so
+ * SLIM glyph buttons pack tighter */
+static GtkCssProvider * _slimButtonCss()
+{
+	static GtkCssProvider * p = nullptr;
+	if (!p)
+	{
+		p = gtk_css_provider_new();
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+		gtk_css_provider_load_from_string(p,
+			"button { padding-left: 4px; padding-right: 4px;"
+			" min-width: 0px; }");
+G_GNUC_END_IGNORE_DEPRECATIONS
+	}
+	return p;
 }
 
 GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
@@ -505,22 +542,10 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			/* SLIM glyph buttons lose the theme's wide default
 			 * padding so they pack tighter (grow/shrink font) */
 			if (flags & AP_RIBBON_FLAG_SLIM)
-			{
-				static GtkCssProvider * s_glyphCss = nullptr;
-				if (!s_glyphCss)
-				{
-					s_glyphCss = gtk_css_provider_new();
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-					gtk_css_provider_load_from_string(s_glyphCss,
-						"button { padding-left: 2px; padding-right: 2px;"
-						" min-width: 0; }");
-G_GNUC_END_IGNORE_DEPRECATIONS
-				}
 				gtk_style_context_add_provider(
 					gtk_widget_get_style_context(btn),
-					GTK_STYLE_PROVIDER(s_glyphCss),
+					GTK_STYLE_PROVIDER(_slimButtonCss()),
 					GTK_STYLE_PROVIDER_PRIORITY_USER);
-			}
 			gtk_actionable_set_action_name(GTK_ACTIONABLE(btn), detailed);
 			if (pAction->isRadio())
 			{
@@ -1504,7 +1529,8 @@ GtkWidget * AP_UnixRibbon::_makeChangeCasePopover()
 
 /* single-button dropdown (LibreOffice "Aa"): the button itself opens
  * the popover - no separate arrow widget, no action on the button */
-GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id)
+GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
+											 uint8_t flags)
 {
 	GtkWidget * popover = (id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE)
 		? _makeChangeCasePopover() : nullptr;
@@ -1517,7 +1543,22 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id)
 						 id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE
 						 ? "Aa" : "?");
 	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), gl);
-	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
+	if (flags & AP_RIBBON_FLAG_SLIM)
+	{
+		gtk_style_context_add_provider(
+			gtk_widget_get_style_context(mb),
+			GTK_STYLE_PROVIDER(_slimButtonCss()),
+			GTK_STYLE_PROVIDER_PRIORITY_USER);
+		/* the menubutton's inner toggle button does not inherit
+		 * context providers - slim it directly too */
+		GtkWidget * inner = gtk_widget_get_first_child(mb);
+		if (inner)
+			gtk_style_context_add_provider(
+				gtk_widget_get_style_context(inner),
+				GTK_STYLE_PROVIDER(_slimButtonCss()),
+				GTK_STYLE_PROVIDER_PRIORITY_USER);
+	}
+	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_NONE);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
 

@@ -209,6 +209,9 @@ below are on `main` but the release has not been cut yet.
   instead of theme icons; font colour is a bold "A" with a red
   underline, highlight an "ab" on a yellow swatch. Ribbon buttons fall
   back to their text label when the theme lacks the icon.
+  `AP_RIBBON_FLAG_EVEN` packs adjacent items into a homogeneous box so
+  the Grow/Shrink/Change-Case buttons all get the same moderate width
+  (`AP_RIBBON_FLAG_SLIM` trims their padding).
 - **New formatting menu items** — Format → Text gains Grow Font /
   Shrink Font / Clear Formatting (`AP_MENU_ID_FMT_GROWFONT`,
   `FMT_SHRINKFONT`, `FMT_CLEARFMT` → `fontSizeIncrease`,

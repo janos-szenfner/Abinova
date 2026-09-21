@@ -18,8 +18,9 @@ Older upstream history is not listed here.
   lowercase / UPPERCASE / Capitalize Every Word / tOGGLE cASE — five
   new edit methods calling `FV_View::toggleCase` directly (no
   separate arrow widget); Clear Formatting moved next to the font
-  colour button; glyph buttons slimmed via a shared CSS provider so
-  A⁺/A⁻ pack tighter.
+  colour button; Grow/Shrink/Aa share a homogeneous box
+  (`AP_RIBBON_FLAG_EVEN`) so all three get the same width, and
+  `AP_RIBBON_FLAG_SLIM` trims their padding to a moderate size.
 - Ribbon colour pickers (Font Color, Highlight) replaced: a
   LibreOffice-style swatch grid with Automatic button + "Custom
   Color…" `GtkColorChooserDialog` (Select/Cancel). One swatch click
