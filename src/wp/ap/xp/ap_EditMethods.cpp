@@ -580,6 +580,7 @@ public:
 	static EV_EditMethod_Fn doNumbers;
 	static EV_EditMethod_Fn doDashedList;
 	static EV_EditMethod_Fn doListType;
+	static EV_EditMethod_Fn paraBorder;
 
 	static EV_EditMethod_Fn colorForeTB;
 	static EV_EditMethod_Fn colorBackTB;
@@ -1122,6 +1123,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 #endif
 	EV_EditMethod(NF(paraBefore0),			0,		""),
 	EV_EditMethod(NF(paraBefore12), 		0,		""),
+	EV_EditMethod(NF(paraBorder),			0,		""),
 	EV_EditMethod(NF(paraSortAscend),		0,		""),
 	EV_EditMethod(NF(paraSortDescend),		0,		""),
 		// intended for ^V and Menu[Edit/Paste]
@@ -12924,6 +12926,21 @@ Defun(doListType)
 		lType,
 		sDecimal.empty() ? nullptr : sDecimal.c_str(),
 		sDelim.empty()   ? nullptr : sDelim.c_str());
+}
+
+/*!
+ * Paragraph border preset for the ribbon Borders menu.
+ * pCallData->m_pData: bottom/top/left/right/none/all/outside/
+ * inside/insideh/hline.
+ */
+Defun(paraBorder)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->cmdParaBorder(u8arg.utf8_str());
 }
 
 Defun(colorForeTB)

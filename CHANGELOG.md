@@ -313,6 +313,31 @@ below are on `main` but the release has not been cut yet.
   properties stay in place.
 - **Slimmer split-button arrows** — the drop-arrow wedge on ribbon
   split-buttons is now ~12px with zero padding.
+- **Word-style Borders dropdown** — the Paragraph group's borders
+  button is now a single menu-button that drops the classic border
+  menu: Bottom/Top/Left/Right Border, No Border, All/Outside/Inside
+  Borders, Inside Horizontal Border (Inside Vertical, diagonal
+  borders and View Gridlines are shown but disabled — no paragraph
+  equivalent), Horizontal Line (breaks the paragraph and draws a
+  bottom-edge rule), Draw Table (Insert Table dialog) and "Borders
+  and Shading…" which opens the existing dialog. Each row shows a
+  cairo-drawn edge-diagram icon; presets apply 0.5pt solid black
+  borders through a new `paraBorder` edit method +
+  `FV_View::cmdParaBorder` (per-block `changeStruxFmt`, single undo
+  glob, "inside" = bottom edge on every selected block but the
+  last).
+- **LibreOffice-style Styles group + docked Styles pane** — gallery
+  tiles now render two lines (styled "AaBbCcDdEe" sample over the
+  localized style name), `<`/`>` scroll arrows appear at the strip
+  edges when tiles overflow, and a new "Styles Pane" button opens a
+  docked pane (`GtkPaned` end child on the document area): current
+  style readout, "New Style…" (Styles dialog), "Apply a style" list
+  with a "Clear Formatting" row and every displayed paragraph style
+  rendered in its own formatting, a "List: Recommended/All Styles"
+  filter and the guides checkboxes (disabled — no guides backend).
+  The old in-group style combo and Stylist/Create items were
+  removed; the hidden `FMT_STYLE` toolbar item still feeds its state
+  to the tile highlight and the pane's current-style readout.
 
 ### Ubuntu Launchpad bug fixes
 

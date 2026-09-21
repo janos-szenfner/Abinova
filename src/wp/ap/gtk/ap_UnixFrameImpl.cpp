@@ -36,6 +36,7 @@
 #include "ut_assert.h"
 #include "ev_UnixMenuBar.h"
 #include "ap_UnixRibbon.h"
+#include "ap_UnixStylesPane.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
@@ -60,7 +61,10 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_dScrollAnimTarget(0.0),
 	m_pRibbon(nullptr),
 	m_wRibbon(nullptr),
-	m_bRibbonMode(false)
+	m_bRibbonMode(false),
+	m_wDocPaned(nullptr),
+	m_wStylesPaneW(nullptr),
+	m_pStylesPane(nullptr)
 {
 	UT_DEBUGMSG(("Created AP_UnixFrameImpl %p \n",this));
 }
@@ -71,6 +75,7 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 		gtk_widget_remove_tick_callback(m_dArea, m_iScrollAnimID);
 	m_iScrollAnimID = 0;
 	DELETEP(m_pRibbon);
+	DELETEP(m_pStylesPane);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -343,7 +348,62 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	gtk_widget_show(m_innergrid);
 	gtk_widget_show(m_grid);
 
-	return m_wSunkenBox;
+	/* wrap the document area in a GtkPaned so the Styles pane can be
+	 * docked on the right (LibreOffice-style deck); hidden until the
+	 * ribbon's Styles Pane button toggles it */
+	m_wDocPaned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
+	gtk_paned_set_start_child(GTK_PANED(m_wDocPaned), m_wSunkenBox);
+	gtk_paned_set_resize_start_child(GTK_PANED(m_wDocPaned), TRUE);
+	gtk_paned_set_shrink_start_child(GTK_PANED(m_wDocPaned), FALSE);
+
+	m_pStylesPane = new AP_UnixStylesPane(pFrame);
+	m_wStylesPaneW = m_pStylesPane->createWidget();
+	gtk_widget_set_visible(m_wStylesPaneW, FALSE);
+	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wStylesPaneW);
+	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
+	gtk_paned_set_shrink_end_child(GTK_PANED(m_wDocPaned), FALSE);
+
+	return m_wDocPaned;
+}
+
+void AP_UnixFrameImpl::setStylesPaneVisible(bool bVisible)
+{
+	if (!m_wDocPaned || !m_wStylesPaneW)
+		return;
+	gtk_widget_set_visible(m_wStylesPaneW, bVisible);
+	if (bVisible)
+	{
+		/* doc styles exist by the time the user can click the button;
+		 * createWidget ran before the view was attached */
+		m_pStylesPane->rebuildList();
+		/* the paned position must be set after the end child maps,
+		 * otherwise it clamps to 0 and the pane stays collapsed */
+		g_idle_add([](gpointer data) -> gboolean {
+			AP_UnixFrameImpl * self =
+				static_cast<AP_UnixFrameImpl *>(data);
+			if (self->m_wDocPaned &&
+				gtk_widget_get_visible(self->m_wStylesPaneW))
+			{
+				GtkAllocation alloc;
+				gtk_widget_get_allocation(self->m_wDocPaned, &alloc);
+				if (alloc.width > 400)
+					gtk_paned_set_position(GTK_PANED(self->m_wDocPaned),
+										   alloc.width - 300);
+			}
+			return G_SOURCE_REMOVE;
+		}, this);
+	}
+}
+
+bool AP_UnixFrameImpl::isStylesPaneVisible() const
+{
+	return m_wStylesPaneW && gtk_widget_get_visible(m_wStylesPaneW);
+}
+
+void AP_UnixFrameImpl::refreshStylesPane(const char * szCurrentStyle)
+{
+	if (m_pStylesPane && isStylesPaneVisible())
+		m_pStylesPane->refresh(szCurrentStyle);
 }
 
 void AP_UnixFrameImpl::_createRibbonUI()

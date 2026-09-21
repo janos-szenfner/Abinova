@@ -816,6 +816,7 @@ public:
 	bool                cmdTableRowResize(bool bTaller);
 	bool                cmdTextToTable(UT_uint32 iDelim);
 	bool                cmdSortParagraphs(bool bAscending);
+	bool                cmdParaBorder(const char * szWhich);
 	bool                cmdAutoSizeRows(void);
 	bool                cmdAdvanceNextPrevCell(bool bGoNext);
 	fp_CellContainer *  getCellAtPos(PT_DocPosition pos) const;

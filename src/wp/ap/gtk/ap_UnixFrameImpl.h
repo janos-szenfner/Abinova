@@ -58,6 +58,11 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	 * called from the view listener on every change notify */
 	void refreshRibbon();
 
+	/* docked Styles pane (LibreOffice-style) */
+	void			setStylesPaneVisible(bool bVisible);
+	bool			isStylesPaneVisible() const;
+	void			refreshStylesPane(const char * szCurrentStyle);
+
  protected:
 	friend class AP_UnixFrame;
 	void _showOrHideStatusbar(void);
@@ -103,5 +108,11 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	class AP_UnixRibbon * m_pRibbon;
 	GtkWidget * m_wRibbon;
 	bool        m_bRibbonMode;
+
+	/* document area wrapped in a GtkPaned whose end child is the
+	 * docked Styles pane */
+	GtkWidget * m_wDocPaned;
+	GtkWidget * m_wStylesPaneW;
+	class AP_UnixStylesPane * m_pStylesPane;
 };
 #endif

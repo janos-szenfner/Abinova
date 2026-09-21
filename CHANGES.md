@@ -3,6 +3,31 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Borders dropdown and docked Styles pane
+
+- Borders button becomes a single menu-button dropping the
+  Word-style border menu: edge presets (Bottom/Top/Left/Right, No
+  Border, All/Outside/Inside, Inside Horizontal), Horizontal Line,
+  Draw Table, Borders and Shading…; rows carry cairo-drawn
+  edge-diagram icons; unsupported entries (Inside Vertical,
+  diagonals, View Gridlines) render disabled.
+- New `paraBorder` edit method + `FV_View::cmdParaBorder`: applies
+  0.5pt solid black edges per selected block via `changeStruxFmt`
+  inside one undo glob; "none" removes all four edges; "inside"
+  borders the bottom of every block but the last; "hline" breaks
+  the paragraph and draws a bottom-edge rule.
+- Styles gallery redesigned to the LibreOffice strip: two-line
+  tiles (styled "AaBbCcDdEe" sample + localized name), edge scroll
+  arrows on overflow, "Styles Pane" button.
+- New docked Styles pane (`ap_UnixStylesPane`, GtkPaned end child
+  on the document area): title + close, current-style readout,
+  New Style…/Select All, apply-a-style list rendered in each
+  style's own formatting incl. a Clear Formatting row,
+  Recommended/All Styles filter, guides checkboxes (disabled).
+- Styles group slimmed to gallery + pane button; the FMT_STYLE
+  combo stays in the layout hidden so its toolbar state still
+  drives the tile highlight and the pane's current-style readout.
+
 ## Paragraph group redesign, list libraries, paragraph sort
 
 - Paragraph group rebuilt LibreOffice-style: bullet/numbering/

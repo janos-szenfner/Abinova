@@ -6709,3 +6709,113 @@ bool FV_View::cmdSortParagraphs(bool bAscending)
 	_generalUpdate();
 	return true;
 }
+
+/*!
+ * Quick paragraph-border presets for the ribbon Borders menu.
+ * szWhich: bottom/top/left/right/none/all/outside/inside/insideh/hline.
+ * Edges get a 0.5pt solid black border; "none" clears all four.
+ */
+bool FV_View::cmdParaBorder(const char * szWhich)
+{
+	UT_return_val_if_fail(szWhich && *szWhich, false);
+	std::string which(szWhich);
+
+	if (which == "hline")
+	{
+		/* horizontal rule: an empty current block just gets a bottom
+		 * border, otherwise break the paragraph first */
+		fl_BlockLayout * pBL = getCurrentBlock();
+		UT_return_val_if_fail(pBL, false);
+		if (pBL->getLength() > 1)
+		{
+			moveInsPtTo(FV_DOCPOS_EOB);
+			insertParagraphBreak();
+			pBL = getCurrentBlock();
+			UT_return_val_if_fail(pBL, false);
+		}
+		PT_DocPosition pos = pBL->getPosition();
+		const PP_PropertyVector props = {
+			"bot-style", "solid",
+			"bot-color", "000000",
+			"bot-thickness", "0.5pt",
+		};
+		m_pDoc->changeStruxFmt(PTC_AddFmt, pos, pos,
+							   PP_NOPROPS, props, PTX_Block);
+		_generalUpdate();
+		return true;
+	}
+
+	UT_GenericVector<fl_BlockLayout *> vBlock;
+	getBlocksInSelection(&vBlock);
+	UT_sint32 nBlocks = vBlock.getItemCount();
+	UT_return_val_if_fail(nBlocks > 0, false);
+
+	bool on[4] = {false, false, false, false};	/* top bot left right */
+	UT_sint32 iLastBlock = nBlocks;
+
+	if (which == "top")			on[0] = true;
+	else if (which == "bottom")	on[1] = true;
+	else if (which == "left")	on[2] = true;
+	else if (which == "right")	on[3] = true;
+	else if (which == "all" || which == "outside")
+		on[0] = on[1] = on[2] = on[3] = true;
+	else if (which == "inside" || which == "insideh")
+	{
+		/* lines between stacked paragraphs: bottom edge on every
+		 * block but the last */
+		on[1] = true;
+		if (nBlocks > 1)
+			iLastBlock = nBlocks - 1;
+	}
+	else if (which != "none")
+		return false;
+
+	m_pDoc->beginUserAtomicGlob();
+	static const char * edges[4] = {"top", "bot", "left", "right"};
+	for (UT_sint32 i = 0; i < iLastBlock; ++i)
+	{
+		fl_BlockLayout * pBL = vBlock.getNthItem(i);
+		UT_nonnull_or_continue(pBL);
+		PT_DocPosition pos = pBL->getPosition();
+		PP_PropertyVector props;
+		for (int e = 0; e < 4; ++e)
+		{
+			if (!on[e])
+				continue;
+			std::string st = std::string(edges[e]) + "-style";
+			std::string cl = std::string(edges[e]) + "-color";
+			std::string th = std::string(edges[e]) + "-thickness";
+			props.push_back(st.c_str());
+			props.push_back("solid");
+			props.push_back(cl.c_str());
+			props.push_back("000000");
+			props.push_back(th.c_str());
+			props.push_back("0.5pt");
+		}
+		if (!props.empty())
+			m_pDoc->changeStruxFmt(PTC_AddFmt, pos, pos,
+								   PP_NOPROPS, props, PTX_Block);
+	}
+	if (which == "none")
+	{
+		for (UT_sint32 i = 0; i < nBlocks; ++i)
+		{
+			fl_BlockLayout * pBL = vBlock.getNthItem(i);
+			UT_nonnull_or_continue(pBL);
+			PT_DocPosition pos = pBL->getPosition();
+			const PP_PropertyVector props = {
+				"top-style", "", "bot-style", "",
+				"left-style", "", "right-style", "",
+				"top-color", "", "bot-color", "",
+				"left-color", "", "right-color", "",
+				"top-thickness", "", "bot-thickness", "",
+				"left-thickness", "", "right-thickness", "",
+			};
+			m_pDoc->changeStruxFmt(PTC_RemoveFmt, pos, pos,
+								   PP_NOPROPS, props, PTX_Block);
+		}
+	}
+	m_pDoc->endUserAtomicGlob();
+	_generalUpdate();
+	return true;
+}

@@ -46,6 +46,8 @@
 #include "ap_Toolbar_Id.h"
 #include "ap_Prefs_SchemeIds.h"
 #include "ap_UnixStockIcons.h"
+#include "ap_UnixStylesPane.h"
+#include "ap_UnixFrameImpl.h"
 #include "ap_Ribbon_Layouts.h"
 #include "gr_CairoGraphics.h"
 #include "pt_PieceTable.h"
@@ -155,6 +157,8 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	, m_pTBLabels(nullptr)
 	, m_wStyleBox(nullptr)
 	, m_wStyleScroll(nullptr)
+	, m_wStylePrev(nullptr)
+	, m_wStyleNext(nullptr)
 	, m_pIconMap(nullptr)
 {
 }
@@ -346,6 +350,11 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					w = _makeButton((XAP_Menu_Id)item->id, item->flags);
 				if (!w)
 					continue;
+				/* FMT_STYLE stays registered for toolbar-state updates
+				 * (gallery highlight + Styles pane) but is not shown */
+				if (item->kind == AP_RIBBON_ITEM_TOOLBAR &&
+					item->id == (uint16_t)AP_TOOLBAR_ID_FMT_STYLE)
+					gtk_widget_set_visible(w, FALSE);
 				bEmpty = false;
 
 				/* SPLIT items gain a small drop-arrow menu button
@@ -1776,20 +1785,35 @@ GtkWidget * AP_UnixRibbon::_makeChangeCasePopover()
 GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 											 uint8_t flags)
 {
-	GtkWidget * popover = (id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE)
-		? _makeChangeCasePopover() : nullptr;
+	GtkWidget * popover = nullptr;
+	if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE)
+		popover = _makeChangeCasePopover();
+	else if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS)
+		popover = _makeBordersPopover();
 	if (!popover)
 		return nullptr;
 
 	GtkWidget * mb = gtk_menu_button_new();
-	GtkWidget * gl = gtk_label_new(nullptr);
-	gtk_label_set_markup(GTK_LABEL(gl),
-						 id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE
-						 ? "Aa" : "?");
-	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), gl);
+	if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS)
+	{
+		const gchar * szIcon = abi_stock_from_menu_id(id);
+		if (szIcon && *szIcon)
+			gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(mb), szIcon);
+		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
+									  GTK_ARROW_DOWN);
+	}
+	else
+	{
+		GtkWidget * gl = gtk_label_new(nullptr);
+		gtk_label_set_markup(GTK_LABEL(gl),
+							 id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE
+							 ? "Aa" : "?");
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), gl);
+		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
+									  GTK_ARROW_NONE);
+	}
 	if (flags & AP_RIBBON_FLAG_SLIM)
 		_slim_widget_tree(mb);
-	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_NONE);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
 
@@ -1867,6 +1891,158 @@ GtkWidget * AP_UnixRibbon::_makeSortParaPopover()
 	w = _popoverEmButton("Sort Descending (Z-A)", nullptr,
 					   "paraSortDescend");
 	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* miniature border-diagram icon for the Borders menu rows.
+ * data bitmask: 1 top, 2 bottom, 4 left, 8 right edges (solid lines
+ * over a dashed frame); 16 inside-horizontal, 32 inside-vertical,
+ * 64 diagonal-down, 128 diagonal-up midlines. */
+static void _s_border_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+								int width, int height, gpointer data)
+{
+	int edges = GPOINTER_TO_INT(data);
+	double x0 = 2.5, y0 = 2.5, x1 = width - 2.5, y1 = height - 2.5;
+
+	cairo_set_source_rgba(cr, 0, 0, 0, 0.30);
+	cairo_set_line_width(cr, 1.0);
+	const double dashes[2] = {2.0, 2.0};
+	cairo_set_dash(cr, dashes, 2, 0);
+	cairo_rectangle(cr, x0, y0, x1 - x0, y1 - y0);
+	cairo_stroke(cr);
+
+	cairo_set_dash(cr, nullptr, 0, 0);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_set_line_width(cr, 2.0);
+	if (edges & 1)	/* top */
+	{
+		cairo_move_to(cr, x0 - 1, y0);
+		cairo_line_to(cr, x1 + 1, y0);
+	}
+	if (edges & 2)	/* bottom */
+	{
+		cairo_move_to(cr, x0 - 1, y1);
+		cairo_line_to(cr, x1 + 1, y1);
+	}
+	if (edges & 4)	/* left */
+	{
+		cairo_move_to(cr, x0, y0 - 1);
+		cairo_line_to(cr, x0, y1 + 1);
+	}
+	if (edges & 8)	/* right */
+	{
+		cairo_move_to(cr, x1, y0 - 1);
+		cairo_line_to(cr, x1, y1 + 1);
+	}
+	cairo_set_line_width(cr, 1.5);
+	if (edges & 16)	/* inside horizontal */
+	{
+		cairo_move_to(cr, x0, (y0 + y1) / 2);
+		cairo_line_to(cr, x1, (y0 + y1) / 2);
+	}
+	if (edges & 32)	/* inside vertical */
+	{
+		cairo_move_to(cr, (x0 + x1) / 2, y0);
+		cairo_line_to(cr, (x0 + x1) / 2, y1);
+	}
+	if (edges & 64)	/* diagonal down */
+	{
+		cairo_move_to(cr, x0, y0);
+		cairo_line_to(cr, x1, y1);
+	}
+	if (edges & 128)	/* diagonal up */
+	{
+		cairo_move_to(cr, x0, y1);
+		cairo_line_to(cr, x1, y0);
+	}
+	cairo_stroke(cr);
+}
+
+static GtkWidget * _border_icon(int edges)
+{
+	GtkWidget * da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 16);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 16);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+								   _s_border_icon_draw,
+								   GINT_TO_POINTER(edges), nullptr);
+	return da;
+}
+
+/* one row of the Borders dropdown: drawn edge-diagram + label,
+ * wired to an edit method (with optional data argument) */
+GtkWidget * AP_UnixRibbon::_borderRow(int edges, const char * szLabel,
+									  const char * szMethod,
+									  const char * szData,
+									  bool bSensitive)
+{
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_box_append(GTK_BOX(box), _border_icon(edges));
+	GtkWidget * wLabel = gtk_label_new(szLabel);
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), box);
+	gtk_widget_add_css_class(btn, "flat");
+	if (!bSensitive)
+	{
+		gtk_widget_set_sensitive(btn, FALSE);
+		return btn;
+	}
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+						   g_strdup(szMethod), g_free);
+	if (szData)
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(szData), g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_em_clicked), this);
+	return btn;
+}
+
+/* Word-style Borders dropdown: quick edge presets plus the
+ * Borders and Shading dialog entry */
+GtkWidget * AP_UnixRibbon::_makeBordersPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	auto add = [&](GtkWidget * w) {
+		if (w) gtk_box_append(GTK_BOX(box), w);
+	};
+	auto sep = [&]() {
+		add(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	};
+
+	add(_borderRow(2, "Bottom Border",  "paraBorder", "bottom"));
+	add(_borderRow(1, "Top Border",     "paraBorder", "top"));
+	add(_borderRow(4, "Left Border",    "paraBorder", "left"));
+	add(_borderRow(8, "Right Border",   "paraBorder", "right"));
+	sep();
+	add(_borderRow(0,   "No Border",       "paraBorder", "none"));
+	add(_borderRow(15,  "All Borders",     "paraBorder", "all"));
+	add(_borderRow(15,  "Outside Borders", "paraBorder", "outside"));
+	add(_borderRow(16,  "Inside Borders",  "paraBorder", "inside"));
+	sep();
+	add(_borderRow(16, "Inside Horizontal Border", "paraBorder",
+				   "insideh"));
+	add(_borderRow(32, "Inside Vertical Border", nullptr, nullptr,
+				   false));
+	sep();
+	add(_borderRow(64,  "Diagonal Down Border", nullptr, nullptr, false));
+	add(_borderRow(128, "Diagonal Up Border",   nullptr, nullptr, false));
+	sep();
+	add(_borderRow(2, "Horizontal Line", "paraBorder", "hline"));
+	add(_borderRow(0, "Draw Table", "insertTable", nullptr));
+	add(_borderRow(0, "View Gridlines", nullptr, nullptr, false));
+	sep();
+	add(_borderRow(15, "Borders and Shading\xE2\x80\xA6",
+				   "dlgBorders", nullptr));
 
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -2179,6 +2355,9 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 	}
 	m_vecStyleTiles.clear();
 
+	/* LibreOffice-style strip: [<] tiles [>] [Styles Pane] */
+	GtkWidget * outer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
 	GtkWidget * scroll = gtk_scrolled_window_new();
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
 								   GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
@@ -2189,15 +2368,114 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 	gtk_scrolled_window_set_min_content_width(
 		GTK_SCROLLED_WINDOW(scroll), 240);
 	gtk_scrolled_window_set_max_content_width(
-		GTK_SCROLLED_WINDOW(scroll), 560);
+		GTK_SCROLLED_WINDOW(scroll), 640);
 	m_wStyleBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
-	gtk_widget_set_valign(m_wStyleBox, GTK_ALIGN_CENTER);
+	gtk_widget_set_valign(m_wStyleBox, GTK_ALIGN_FILL);
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll),
 								  m_wStyleBox);
 	m_wStyleScroll = scroll;
+
+	m_wStylePrev = gtk_button_new_from_icon_name(
+		"go-previous-symbolic");
+	gtk_widget_add_css_class(m_wStylePrev, "flat");
+	gtk_widget_set_size_request(m_wStylePrev, 16, -1);
+	gtk_widget_set_valign(m_wStylePrev, GTK_ALIGN_FILL);
+	g_signal_connect(m_wStylePrev, "clicked",
+					 G_CALLBACK(_s_style_scroll_clicked), this);
+	g_object_set_data(G_OBJECT(m_wStylePrev), "abi-dir",
+					  GINT_TO_POINTER(-1));
+
+	m_wStyleNext = gtk_button_new_from_icon_name(
+		"go-next-symbolic");
+	gtk_widget_add_css_class(m_wStyleNext, "flat");
+	gtk_widget_set_size_request(m_wStyleNext, 16, -1);
+	gtk_widget_set_valign(m_wStyleNext, GTK_ALIGN_FILL);
+	g_signal_connect(m_wStyleNext, "clicked",
+					 G_CALLBACK(_s_style_scroll_clicked), this);
+	g_object_set_data(G_OBJECT(m_wStyleNext), "abi-dir",
+					  GINT_TO_POINTER(1));
+
+	GtkAdjustment * hadj = gtk_scrolled_window_get_hadjustment(
+		GTK_SCROLLED_WINDOW(scroll));
+	g_signal_connect_swapped(hadj, "changed",
+							 G_CALLBACK(_updateStyleScrollButtons),
+							 this);
+	g_signal_connect_swapped(hadj, "value-changed",
+							 G_CALLBACK(_updateStyleScrollButtons),
+							 this);
+
+	/* Styles Pane button: pencil icon over two-line label */
+	GtkWidget * paneBtn = gtk_button_new();
+	GtkWidget * pbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_valign(pbox, GTK_ALIGN_CENTER);
+	GtkWidget * picon = gtk_image_new_from_icon_name(
+		"accessories-text-editor-symbolic");
+	gtk_image_set_pixel_size(GTK_IMAGE(picon), 20);
+	gtk_box_append(GTK_BOX(pbox), picon);
+	GtkWidget * plbl = gtk_label_new("Styles\nPane");
+	gtk_label_set_justify(GTK_LABEL(plbl), GTK_JUSTIFY_CENTER);
+	gtk_box_append(GTK_BOX(pbox), plbl);
+	gtk_button_set_child(GTK_BUTTON(paneBtn), pbox);
+	gtk_widget_set_tooltip_text(paneBtn,
+								"Show the Styles deck");
+	g_signal_connect(paneBtn, "clicked",
+					 G_CALLBACK(_s_styles_pane_clicked), this);
+
+	gtk_box_append(GTK_BOX(outer), m_wStylePrev);
+	gtk_box_append(GTK_BOX(outer), scroll);
+	gtk_box_append(GTK_BOX(outer), m_wStyleNext);
+	gtk_box_append(GTK_BOX(outer), gtk_separator_new(
+		GTK_ORIENTATION_VERTICAL));
+	gtk_box_append(GTK_BOX(outer), paneBtn);
+
 	gtk_widget_set_visible(scroll, FALSE);
+	gtk_widget_set_visible(m_wStylePrev, FALSE);
+	gtk_widget_set_visible(m_wStyleNext, FALSE);
 	_populateStyleTiles();
-	return scroll;
+	_updateStyleScrollButtons(this);
+	return outer;
+}
+
+void AP_UnixRibbon::_s_style_scroll_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self && self->m_wStyleScroll);
+	GtkAdjustment * hadj = gtk_scrolled_window_get_hadjustment(
+		GTK_SCROLLED_WINDOW(self->m_wStyleScroll));
+	int dir = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(w), "abi-dir"));
+	double step = gtk_adjustment_get_page_size(hadj);
+	if (step <= 0)
+		step = 240;
+	gtk_adjustment_set_value(hadj,
+		gtk_adjustment_get_value(hadj) + dir * step);
+}
+
+void AP_UnixRibbon::_updateStyleScrollButtons(AP_UnixRibbon * self)
+{
+	if (!self || !self->m_wStyleScroll)
+		return;
+	GtkAdjustment * hadj = gtk_scrolled_window_get_hadjustment(
+		GTK_SCROLLED_WINDOW(self->m_wStyleScroll));
+	double value = gtk_adjustment_get_value(hadj);
+	double lower = gtk_adjustment_get_lower(hadj);
+	double upper = gtk_adjustment_get_upper(hadj);
+	double page = gtk_adjustment_get_page_size(hadj);
+	bool bTiles = self->m_vecStyleTiles.getItemCount() > 0;
+	gtk_widget_set_visible(self->m_wStylePrev,
+						   bTiles && value > lower + 0.5);
+	gtk_widget_set_visible(self->m_wStyleNext,
+						   bTiles && value < upper - page - 0.5);
+}
+
+void AP_UnixRibbon::_s_styles_pane_clicked(GtkWidget * /*w*/,
+										   gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self && self->m_pFrame);
+	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(
+		self->m_pFrame->getFrameImpl());
+	if (pImpl)
+		pImpl->setStylesPaneVisible(!pImpl->isStylesPaneVisible());
 }
 
 /* (re)build the preview tiles - called lazily because the ribbon is
@@ -2216,7 +2494,7 @@ void AP_UnixRibbon::_populateStyleTiles()
 	GtkWidget * box = m_wStyleBox;
 	UT_sint32 nTiles = 0;
 	{
-		const UT_sint32 MAX_TILES = 10;
+		const UT_sint32 MAX_TILES = 24;
 		for (UT_uint32 k = 0; nTiles < MAX_TILES; ++k)
 		{
 			const char * szName = nullptr;
@@ -2227,72 +2505,41 @@ void AP_UnixRibbon::_populateStyleTiles()
 				pStyle->isCharStyle())
 				continue;
 
-			std::string markup;
-			{
-				const gchar * szVal = nullptr;
-				gchar * esc = g_markup_escape_text(szName, -1);
-				std::string open, close;
-				if (pStyle->getPropertyExpand("font-family", szVal) && szVal)
-				{
-					gchar * ef = g_markup_escape_text(szVal, -1);
-					open += "<span font_family='";
-					open += ef;
-					open += "'>";
-					close = "</span>" + close;
-					g_free(ef);
-				}
-				if (pStyle->getPropertyExpand("font-weight", szVal) &&
-					szVal && strcmp(szVal, "bold") == 0)
-				{ open += "<b>"; close = "</b>" + close; }
-				if (pStyle->getPropertyExpand("font-style", szVal) &&
-					szVal && strcmp(szVal, "italic") == 0)
-				{ open += "<i>"; close = "</i>" + close; }
-				if (pStyle->getPropertyExpand("text-decoration", szVal) &&
-					szVal && strstr(szVal, "underline"))
-				{ open += "<u>"; close = "</u>" + close; }
-				if (pStyle->getPropertyExpand("font-size", szVal) && szVal)
-				{
-					/* render at roughly the style size, clamped so the
-					 * tile stays inside the ribbon band */
-					double pt = g_ascii_strtod(szVal, nullptr);
-					if (pt > 0)
-					{
-						pt = CLAMP(pt, 8.0, 18.0);
-						char buf[64];
-						g_snprintf(buf, sizeof(buf), "<span size='%d'>",
-								   static_cast<int>(pt * PANGO_SCALE));
-						open += buf;
-						close = "</span>" + close;
-					}
-				}
-				if (pStyle->getPropertyExpand("color", szVal) && szVal &&
-					strlen(szVal) == 6)
-				{
-					open += "<span foreground='#";
-					open += szVal;
-					open += "'>";
-					close = "</span>" + close;
-				}
-				markup = open + esc + close;
-				g_free(esc);
-			}
-
-			GtkWidget * tile = gtk_button_new();
-			GtkWidget * label = gtk_label_new(nullptr);
 			std::string sLoc;
 			pt_PieceTable::s_getLocalisedStyleName(szName, sLoc);
-			/* swap the raw name for the localized one inside the markup */
-			gchar * escName = g_markup_escape_text(szName, -1);
-			gchar * escLoc = g_markup_escape_text(sLoc.c_str(), -1);
-			size_t pos = markup.find(escName);
-			if (pos != std::string::npos)
-				markup.replace(pos, strlen(escName), escLoc);
-			gtk_label_set_markup(GTK_LABEL(label), markup.c_str());
-			g_free(escName);
+			const char * szDisp = sLoc.empty() ? szName : sLoc.c_str();
+
+			/* two-line tile: styled sample text over the plain style
+			 * name, like the LibreOffice/Word gallery */
+			GtkWidget * tile = gtk_button_new();
+			GtkWidget * vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+			GtkWidget * sample = gtk_label_new(nullptr);
+			gtk_label_set_markup(GTK_LABEL(sample),
+				AP_UnixStylesPane::styleMarkup(
+					pStyle, "AaBbCcDdEe", 8.0, 15.0).c_str());
+			gtk_label_set_ellipsize(GTK_LABEL(sample),
+									PANGO_ELLIPSIZE_END);
+			gtk_label_set_max_width_chars(GTK_LABEL(sample), 12);
+			gtk_box_append(GTK_BOX(vbox), sample);
+
+			GtkWidget * name = gtk_label_new(nullptr);
+			gchar * escLoc = g_markup_escape_text(szDisp, -1);
+			std::string nameMarkup = "<span size='small'>";
+			nameMarkup += escLoc;
+			nameMarkup += "</span>";
+			gtk_label_set_markup(GTK_LABEL(name), nameMarkup.c_str());
 			g_free(escLoc);
-			gtk_button_set_child(GTK_BUTTON(tile), label);
+			gtk_label_set_ellipsize(GTK_LABEL(name),
+									PANGO_ELLIPSIZE_END);
+			gtk_label_set_max_width_chars(GTK_LABEL(name), 14);
+			gtk_box_append(GTK_BOX(vbox), name);
+
+			gtk_button_set_child(GTK_BUTTON(tile), vbox);
 			gtk_widget_add_css_class(tile, "abiword-style-tile");
-			gtk_widget_set_tooltip_text(tile, sLoc.c_str());
+			gtk_widget_set_tooltip_text(tile, szDisp);
+			gtk_widget_set_valign(tile, GTK_ALIGN_FILL);
+			gtk_widget_set_size_request(tile, 104, -1);
 
 			_StyleTile * t = new _StyleTile;
 			t->widget = tile;
@@ -2309,6 +2556,7 @@ void AP_UnixRibbon::_populateStyleTiles()
 	/* reveal the strip once it actually holds tiles */
 	if (nTiles > 0 && m_wStyleScroll)
 		gtk_widget_set_visible(m_wStyleScroll, TRUE);
+	_updateStyleScrollButtons(this);
 }
 
 void AP_UnixRibbon::_s_style_tile_clicked(GtkWidget * w, gpointer data)
@@ -2342,6 +2590,15 @@ void AP_UnixRibbon::_refreshStyleTiles(const char * szCurrentStyle)
 			gtk_widget_add_css_class(t->widget, "abiword-style-active");
 		else
 			gtk_widget_remove_css_class(t->widget, "abiword-style-active");
+	}
+
+	/* keep the docked Styles pane's current-style readout in sync */
+	if (m_pFrame)
+	{
+		AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(
+			m_pFrame->getFrameImpl());
+		if (pImpl)
+			pImpl->refreshStylesPane(szCurrentStyle);
 	}
 }
 
@@ -2423,7 +2680,10 @@ void AP_UnixRibbon::_refreshToolbarItems()
 
 		bool bGrayed = EV_TIS_ShouldBeGray(tis);
 		gtk_widget_set_sensitive(ctx->widget, !bGrayed);
-		gtk_widget_set_visible(ctx->widget, !EV_TIS_ShouldBeHidden(tis));
+		/* FMT_STYLE stays hidden permanently (state-only ctx) */
+		if (ctx->id != (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+			gtk_widget_set_visible(ctx->widget,
+								   !EV_TIS_ShouldBeHidden(tis));
 
 		bool wasBlocked = ctx->blockSignal;
 		ctx->blockSignal = true;

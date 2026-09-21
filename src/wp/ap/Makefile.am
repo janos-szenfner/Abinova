@@ -378,6 +378,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixStatusBar.h \
 	gtk/ap_UnixStockIcons.cpp \
 	gtk/ap_UnixStockIcons.h \
+	gtk/ap_UnixStylesPane.cpp \
+	gtk/ap_UnixStylesPane.h \
 	gtk/ap_Unix_TB_CFactory.cpp \
 	gtk/ap_UnixToolbar_Control_All.h \
 	gtk/ap_UnixToolbar_FontCombo.cpp \

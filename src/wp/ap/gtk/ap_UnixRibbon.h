@@ -71,6 +71,11 @@ private:
 							   bool bVertical);
 	GtkWidget *		_makePastePopover();
 	GtkWidget *		_makeListPopover(XAP_Toolbar_Id id);
+	GtkWidget *		_makeBordersPopover();
+	GtkWidget *		_borderRow(int edges, const char * szLabel,
+							   const char * szMethod,
+							   const char * szData,
+							   bool bSensitive = true);
 	GtkWidget *		_makeBulletLibraryPopover();
 	GtkWidget *		_makeNumberingLibraryPopover();
 	GtkWidget *		_makeMultilevelLibraryPopover();
@@ -103,6 +108,9 @@ private:
 	void			_buildIconMap();
 
 	static void		_s_style_tile_clicked(GtkWidget * w, gpointer data);
+	static void		_s_style_scroll_clicked(GtkWidget * w, gpointer data);
+	static void		_s_styles_pane_clicked(GtkWidget * w, gpointer data);
+	static void		_updateStyleScrollButtons(AP_UnixRibbon * self);
 
 	static void		_s_switch_page(GtkNotebook * book, GtkWidget * page,
 								   guint page_num, gpointer data);
@@ -162,6 +170,8 @@ private:
 	UT_GenericVector<_StyleTile*>	m_vecStyleTiles;
 	GtkWidget *			m_wStyleBox;
 	GtkWidget *			m_wStyleScroll;
+	GtkWidget *			m_wStylePrev;
+	GtkWidget *			m_wStyleNext;
 
 	XAP_Frame *			m_pFrame;
 	EV_UnixMenuBar *	m_pMenu;

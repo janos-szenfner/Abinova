@@ -87,6 +87,7 @@ enum AP_RibbonItemFlags : uint8_t
 #define AP_RIBBON_SPLIT_TB_I(x)	{ AP_RIBBON_ITEM_TOOLBAR, (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_SPLIT), (uint16_t)(x) }
 #define AP_RIBBON_SPLIT_MENU_G(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_SPLIT), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_G(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
+#define AP_RIBBON_MENUPOP_I(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_GSE(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_MENUPOP | AP_RIBBON_FLAG_SLIM | AP_RIBBON_FLAG_EVEN), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_TB(x)	{ AP_RIBBON_ITEM_TOOLBAR,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 
@@ -204,7 +205,7 @@ static const AP_RibbonItem s_ribbon_home_paragraph[] =
 	AP_RIBBON_TB_I(AP_TOOLBAR_ID_ALIGN_JUSTIFY),
 	AP_RIBBON_MENUPOP_TB(AP_TOOLBAR_ID_SINGLE_SPACE),
 	AP_RIBBON_MENUPOP_TB(AP_TOOLBAR_ID_PARA_0BEFORE),
-	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_BORDERS),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_FMT_BORDERS),
 	AP_RIBBON_MENU(AP_MENU_ID_FMT_PARAGRAPH),
 	AP_RIBBON_ROWEND,
 	AP_RIBBON_END
@@ -213,9 +214,10 @@ static const AP_RibbonItem s_ribbon_home_paragraph[] =
 static const AP_RibbonItem s_ribbon_home_styles[] =
 {
 	AP_RIBBON_GALLERY,
+	/* kept in the layout so its toolbar-state updates still drive the
+	 * gallery highlight + Styles pane refresh; the widget itself is
+	 * hidden (LibreOffice-style group: tiles + Styles Pane only) */
 	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_STYLE),
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_STYLIST),
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_STYLE_DEFINE),
 	AP_RIBBON_END
 };
 
