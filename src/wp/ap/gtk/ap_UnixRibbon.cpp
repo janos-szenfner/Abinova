@@ -466,7 +466,9 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 		gtk_css_provider_load_from_string(p,
 			"button { padding-left: 4px; padding-right: 4px;"
 			" min-width: 0px; }"
-			"entry { padding-left: 2px; padding-right: 2px; }");
+			"entry { padding-left: 2px; padding-right: 2px; }"
+			"combobox button { padding-left: 0px;"
+			" padding-right: 0px; }");
 G_GNUC_END_IGNORE_DEPRECATIONS
 	}
 	return p;
@@ -1624,6 +1626,7 @@ GtkWidget * AP_UnixRibbon::_tb_make_combo(_TbCtx * ctx)
 		gtk_widget_set_can_focus(GTK_WIDGET(entry), TRUE);
 		gtk_editable_set_width_chars(GTK_EDITABLE(entry), 2);
 		gtk_editable_set_max_width_chars(GTK_EDITABLE(entry), 5);
+		gtk_editable_set_alignment(GTK_EDITABLE(entry), 0.5f);
 		/* slim the combo's entry and internal dropdown button to
 		 * match the glyph buttons beside it */
 		_slim_widget_tree(combo);
@@ -2031,18 +2034,23 @@ void AP_UnixRibbon::_tb_combo_set_text(GtkComboBox * combo, const char * text,
 		next = gtk_tree_model_iter_next(model, &iter);
 	}
 
+	/* combos with an entry show the real value straight in the
+	 * entry - appending it would leak odd document sizes (e.g. a
+	 * stray 3pt run) into the dropdown list permanently */
+	GtkWidget * child = gtk_combo_box_get_child(combo);
+	if (child && GTK_IS_EDITABLE(child))
+	{
+		gtk_editable_set_text(GTK_EDITABLE(child), text);
+		return;
+	}
+
 	/* not in the list - append it so the combo shows the real value
-	 * (custom zoom levels, document styles not in the seed list) */
+	 * (document styles not in the seed list) */
 	if (GTK_IS_COMBO_BOX_TEXT(combo))
 	{
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), text);
 		_tb_combo_set_text(combo, text, ctx);	/* re-run to select it */
-		return;
 	}
-
-	GtkWidget * child = gtk_combo_box_get_child(combo);
-	if (child && GTK_IS_EDITABLE(child))
-		gtk_editable_set_text(GTK_EDITABLE(child), text);
 }
 
 void AP_UnixRibbon::_refreshToolbarItems()
