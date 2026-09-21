@@ -144,6 +144,7 @@ EV_Toolbar_ActionSet * AP_CreateToolbarActionSet(void)
 	_s(AP_TOOLBAR_ID_3COLUMN,		EV_TBIT_GroupButton,	"sectColumns3",	AV_CHG_ALL,	ap_ToolbarGetState_SectionFmt);
 
 	_s(AP_TOOLBAR_ID_VIEW_SHOWPARA,	EV_TBIT_ToggleButton,	"viewPara",		AV_CHG_ALL,	ap_ToolbarGetState_View);
+	_s(AP_TOOLBAR_ID_SORT_PARA,		EV_TBIT_PushButton,		"paraSortAscend", AV_CHG_MOTION | AV_CHG_ALL,	nullptr);
 
 	// AV_CHG_WINDOWSIZE, below, doesn't seem right.  TODO
 	_s(AP_TOOLBAR_ID_ZOOM,				EV_TBIT_ComboBox,		"zoom",		AV_CHG_WINDOWSIZE,	ap_ToolbarGetState_Zoom);

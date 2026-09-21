@@ -331,8 +331,14 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
 				else if (item->flags & AP_RIBBON_FLAG_MENUPOP)
-					w = _makeMenuPopButton((XAP_Menu_Id)item->id,
-										   item->flags);
+				{
+					if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
+						w = _makeMenuPopTbButton((XAP_Toolbar_Id)item->id,
+												 item->flags);
+					else
+						w = _makeMenuPopButton((XAP_Menu_Id)item->id,
+											   item->flags);
+				}
 				else if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
 					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
 										   item->flags);
@@ -354,7 +360,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 							 item->id == (uint16_t)AP_MENU_ID_FMT_TOGGLECASE)
 						popover = _makeChangeCasePopover();
 					else
-						popover = _makeListPopover();
+						popover = _makeListPopover(
+							(XAP_Toolbar_Id)item->id);
 					w = _wrapSplit(w, popover,
 								   (item->flags & AP_RIBBON_FLAG_LARGE) != 0);
 				}
@@ -1191,7 +1198,8 @@ GtkWidget * AP_UnixRibbon::_popoverTbButton(XAP_Toolbar_Id id,
  * edit method by name (for actions that have no menu action id) */
 GtkWidget * AP_UnixRibbon::_popoverEmButton(const char * szLabel,
 											const char * szIcon,
-											const char * szMethod)
+											const char * szMethod,
+											const char * szData)
 {
 	GtkWidget * btn = gtk_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
@@ -1205,6 +1213,9 @@ GtkWidget * AP_UnixRibbon::_popoverEmButton(const char * szLabel,
 
 	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
 						   g_strdup(szMethod), g_free);
+	if (szData)
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(szData), g_free);
 	g_signal_connect(btn, "clicked",
 					 G_CALLBACK(_s_popover_em_clicked), this);
 	gtk_widget_add_css_class(btn, "flat");
@@ -1216,9 +1227,11 @@ void AP_UnixRibbon::_s_popover_em_clicked(GtkWidget * w, gpointer data)
 	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
 	const char * szMethod = static_cast<const char *>(
 		g_object_get_data(G_OBJECT(w), "abi-em-method"));
+	const char * szData = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-em-data"));
 	UT_return_if_fail(self && szMethod);
 	_tb_popdown_popover(w);
-	self->_invokeEditMethod(szMethod);
+	self->_invokeEditMethod(szMethod, szData);
 }
 
 void AP_UnixRibbon::_s_paste_special_clicked(GtkWidget * w, gpointer data)
@@ -1229,7 +1242,8 @@ void AP_UnixRibbon::_s_paste_special_clicked(GtkWidget * w, gpointer data)
 	self->_showPasteSpecialDialog();
 }
 
-void AP_UnixRibbon::_invokeEditMethod(const char * szMethod)
+void AP_UnixRibbon::_invokeEditMethod(const char * szMethod,
+										const char * szData)
 {
 	const EV_EditMethodContainer * pEMC =
 		XAP_App::getApp()->getEditMethodContainer();
@@ -1239,7 +1253,8 @@ void AP_UnixRibbon::_invokeEditMethod(const char * szMethod)
 	UT_return_if_fail(pEM);
 
 	AV_View * pView = m_pFrame ? m_pFrame->getCurrentView() : nullptr;
-	EV_EditMethodCallData emcd;
+	EV_EditMethodCallData emcd(szData ? szData : "",
+							   szData ? strlen(szData) : 0);
 	pEM->Fn(pView, &emcd);
 }
 
@@ -1486,8 +1501,33 @@ GtkWidget * AP_UnixRibbon::_makePastePopover()
 	return popover;
 }
 
-/* List options: pick the type, change the level, or open the dialog */
-GtkWidget * AP_UnixRibbon::_makeListPopover()
+/* one library tile: a preview button wired to doListType with the
+ * given "TYPE[:DECIMAL[:DELIM]]" argument */
+GtkWidget * AP_UnixRibbon::_listTile(const char * szMarkup,
+									 const char * szData,
+									 int iWidth,
+									 int iHeight)
+{
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * lbl = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(lbl), szMarkup);
+	gtk_label_set_justify(GTK_LABEL(lbl), GTK_JUSTIFY_LEFT);
+	gtk_button_set_child(GTK_BUTTON(btn), lbl);
+	if (iWidth > 0 && iHeight > 0)
+		gtk_widget_set_size_request(btn, iWidth, iHeight);
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+						   g_strdup("doListType"), g_free);
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+						   g_strdup(szData), g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_em_clicked), this);
+	return btn;
+}
+
+/* Bullet Library (LibreOffice style): a grid of bullet-glyph
+ * preview tiles + a "Define New Bulletpoint" entry that opens the
+ * full Bullets & Numbering dialog */
+GtkWidget * AP_UnixRibbon::_makeBulletLibraryPopover()
 {
 	GtkWidget * popover = gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -1496,26 +1536,213 @@ GtkWidget * AP_UnixRibbon::_makeListPopover()
 	gtk_widget_set_margin_start(box, 4);
 	gtk_widget_set_margin_end(box, 4);
 
-	GtkWidget * w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_BULLETS,
-									 "Bulleted List");
-	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_NUMBERS, "Numbered List");
-	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_DASHED, "Dashed List");
-	if (w) gtk_box_append(GTK_BOX(box), w);
+	GtkWidget * title = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(title), "<b>Bullet Library</b>");
+	gtk_widget_set_halign(title, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), title);
 
-	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
-	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_INDENT, "Increase Level");
-	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_UNINDENT, "Decrease Level");
-	if (w) gtk_box_append(GTK_BOX(box), w);
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid), TRUE);
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
 
-	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_FMT_BULLETS);
+	struct { const char * glyph; const char * data; } tiles[] = {
+		{ "<span size='large'>None</span>",	"NONE" },
+		{ "<span size='x-large'>\xE2\x80\xA2</span>",	"BULLETED" },
+		{ "<span size='x-large'>\xE2\x9D\x92</span>",	"BOX" },
+		{ "<span size='x-large'>\xE2\x96\xAA</span>",	"SQUARE" },
+		{ "<span size='x-large'>\xE2\x96\xB2</span>",	"TRIANGLE" },
+		{ "<span size='x-large'>\xE2\x97\x86</span>",	"DIAMOND" },
+		{ "<span size='x-large'>\xE2\x9C\xB3</span>",	"STAR" },
+		{ "<span size='x-large'>\xE2\x87\x92</span>",	"IMPLIES" },
+		{ "<span size='x-large'>\xE2\x9C\x93</span>",	"TICK" },
+		{ "<span size='x-large'>\xE2\x98\x9E</span>",	"HAND" },
+		{ "<span size='x-large'>\xE2\x99\xA5</span>",	"HEART" },
+		{ "<span size='x-large'>\xE2\x9E\xA3</span>",	"ARROWHEAD" },
+		{ "<span size='x-large'>-</span>",	"DASHED" },
+	};
+	const int nTiles = sizeof(tiles) / sizeof(tiles[0]);
+	for (int i = 0; i < nTiles; ++i)
+	{
+		GtkWidget * t = _listTile(tiles[i].glyph, tiles[i].data, 64, 48);
+		gtk_grid_attach(GTK_GRID(grid), t, i % 4, i / 4, 1, 1);
+	}
+	gtk_box_append(GTK_BOX(box), grid);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * w = _popoverEmButton("Define New Bulletpoint\xE2\x80\xA6",
+								   nullptr, "dlgBullets");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
+}
+
+/* Numbering Library (LibreOffice style): preview tiles for each
+ * numbering style + "Define New Number Format" entry */
+GtkWidget * AP_UnixRibbon::_makeNumberingLibraryPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * title = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(title), "<b>Numbering Library</b>");
+	gtk_widget_set_halign(title, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), title);
+
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid), TRUE);
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
+
+	struct { const char * prev; const char * data; } tiles[] = {
+		{ "<span size='large'>None</span>",
+		  "NONE" },
+		{ "1.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n2.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n3.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "NUMBERED" },
+		{ "1)  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n2)  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n3)  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "NUMBERED::%L)" },
+		{ "I.   \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nII.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nIII. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "UPPERROMAN" },
+		{ "A.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nB.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nC.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "UPPERCASE" },
+		{ "a)  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nb)  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nc)  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "LOWERCASE::%L)" },
+		{ "a.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nb.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nc.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "LOWERCASE" },
+		{ "i.   \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\nii.  \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\niii. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "LOWERROMAN" },
+	};
+	const int nTiles = sizeof(tiles) / sizeof(tiles[0]);
+	for (int i = 0; i < nTiles; ++i)
+	{
+		GtkWidget * t = _listTile(tiles[i].prev, tiles[i].data, 132, 68);
+		gtk_grid_attach(GTK_GRID(grid), t, i % 3, i / 3, 1, 1);
+	}
+	gtk_box_append(GTK_BOX(box), grid);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * w = _popoverEmButton("Define New Number Format\xE2\x80\xA6",
+								   nullptr, "dlgBullets");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* List Library (LibreOffice style): current multi-level list plus a
+ * grid of multi-level presets, with "Define New" entries opening
+ * the full Bullets & Numbering dialog */
+GtkWidget * AP_UnixRibbon::_makeMultilevelLibraryPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * title = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(title), "<b>Current List</b>");
+	gtk_widget_set_halign(title, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), title);
+
+	GtkWidget * cur = gtk_frame_new(nullptr);
+	GtkWidget * curLbl = gtk_label_new(
+		"1. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n"
+		"    a. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n"
+		"        i. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80");
+	gtk_label_set_justify(GTK_LABEL(curLbl), GTK_JUSTIFY_LEFT);
+	gtk_widget_set_margin_start(curLbl, 12);
+	gtk_widget_set_margin_top(curLbl, 8);
+	gtk_widget_set_margin_bottom(curLbl, 8);
+	gtk_widget_set_halign(curLbl, GTK_ALIGN_START);
+	gtk_frame_set_child(GTK_FRAME(cur), curLbl);
+	gtk_box_append(GTK_BOX(box), cur);
+
+	title = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(title), "<b>List Library</b>");
+	gtk_widget_set_halign(title, GTK_ALIGN_START);
+	gtk_widget_set_margin_top(title, 6);
+	gtk_box_append(GTK_BOX(box), title);
+
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid), TRUE);
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
+
+	struct { const char * prev; const char * data; } tiles[] = {
+		{ "<span size='large'>None</span>",
+		  "NONE" },
+		{ "1) \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\na) \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\ni) \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "NUMBERED::%L)" },
+		{ "1. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n1.1. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n1.1.1. \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "NUMBERED:%*%d:%L." },
+		{ "\xE2\x9D\x96 \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n\xE2\x9E\xA2 \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n\xE2\x96\xAA \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "BULLETED" },
+		{ "<b>Article I.</b> <span size='x-small'>Heading 1</span>\n"
+		  "<b>Section 1.01</b> <span size='x-small'>Heading</span>\n"
+		  "<b>(a)</b> <span size='x-small'>Heading 3</span>",
+		  "UPPERROMAN" },
+		{ "<b>1</b> <span size='x-small'>Heading 1</span> \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n"
+		  "<b>1.1</b> <span size='x-small'>Heading 2</span> \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n"
+		  "<b>1.1.1</b> <span size='x-small'>Heading 3</span>",
+		  "NUMBERED:%*%d:%L" },
+		{ "I. <span size='x-small'>Heading 1</span> \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n"
+		  "A. <span size='x-small'>Heading 2</span> \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n"
+		  "1. <span size='x-small'>Heading 3</span>",
+		  "UPPERROMAN" },
+		{ "<b>Chapter 1</b> <span size='x-small'>Heading</span>\n"
+		  "<span size='x-small'>Heading 2</span> \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\n"
+		  "<span size='x-small'>Heading 3</span> \xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80\xE2\x94\x80",
+		  "NUMBERED" },
+	};
+	const int nTiles = sizeof(tiles) / sizeof(tiles[0]);
+	for (int i = 0; i < nTiles; ++i)
+	{
+		GtkWidget * t = _listTile(tiles[i].prev, tiles[i].data, 160, 68);
+		gtk_grid_attach(GTK_GRID(grid), t, i % 3, i / 3, 1, 1);
+	}
+	gtk_box_append(GTK_BOX(box), grid);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * w = _popoverEmButton("Define New Multi-level List\xE2\x80\xA6",
+								   nullptr, "dlgBullets");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("Define New List Style\xE2\x80\xA6",
+						 nullptr, "dlgBullets");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* list dropdown for the three list split-buttons: the Bullet,
+ * Numbering and List libraries */
+GtkWidget * AP_UnixRibbon::_makeListPopover(XAP_Toolbar_Id id)
+{
+	switch (id)
+	{
+	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_BULLETS:
+		return _makeBulletLibraryPopover();
+	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_NUMBERS:
+		return _makeNumberingLibraryPopover();
+	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_DASHED:
+		return _makeMultilevelLibraryPopover();
+	default:
+		break;
+	}
+	return _makeBulletLibraryPopover();
 }
 
 /* Change Case: the LibreOffice "Aa" dropdown - five direct case
@@ -1577,6 +1804,119 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	return mb;
 }
 
+/* line-spacing dropdown: single/1.5/double spacing */
+GtkWidget * AP_UnixRibbon::_makeLineSpacingPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * w = _popoverTbButton(
+		(XAP_Toolbar_Id)AP_TOOLBAR_ID_SINGLE_SPACE, "Single");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverTbButton(
+		(XAP_Toolbar_Id)AP_TOOLBAR_ID_MIDDLE_SPACE, "1.5 Lines");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverTbButton(
+		(XAP_Toolbar_Id)AP_TOOLBAR_ID_DOUBLE_SPACE, "Double");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* paragraph-spacing dropdown: space before paragraph */
+GtkWidget * AP_UnixRibbon::_makeParaSpacingPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * w = _popoverTbButton(
+		(XAP_Toolbar_Id)AP_TOOLBAR_ID_PARA_0BEFORE,
+		"No Spacing Above Paragraph");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverTbButton(
+		(XAP_Toolbar_Id)AP_TOOLBAR_ID_PARA_12BEFORE,
+		"12pt Spacing Above Paragraph");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* paragraph sort dropdown: ascending/descending */
+GtkWidget * AP_UnixRibbon::_makeSortParaPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * w = _popoverEmButton("Sort Ascending (A-Z)", nullptr,
+								   "paraSortAscend");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("Sort Descending (Z-A)", nullptr,
+					   "paraSortDescend");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* icon-only toolbar menu-button: one click opens the matching
+ * dropdown popover (line spacing, paragraph spacing, sort) */
+GtkWidget * AP_UnixRibbon::_makeMenuPopTbButton(XAP_Toolbar_Id id,
+												uint8_t flags)
+{
+	GtkWidget * popover = nullptr;
+	switch (id)
+	{
+	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_SINGLE_SPACE:
+		popover = _makeLineSpacingPopover();
+		break;
+	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_PARA_0BEFORE:
+		popover = _makeParaSpacingPopover();
+		break;
+	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_SORT_PARA:
+		popover = _makeSortParaPopover();
+		break;
+	default:
+		break;
+	}
+	if (!popover)
+		return nullptr;
+
+	EV_Toolbar_Label * pLabel =
+		m_pTBLabels ? m_pTBLabels->getLabel(id) : nullptr;
+
+	GtkWidget * mb = gtk_menu_button_new();
+	const char * szIcon = pLabel ? pLabel->getIconName() : nullptr;
+	if (szIcon && g_ascii_strcasecmp(szIcon, "NoIcon") != 0)
+	{
+		gchar * szTheme = abi_stock_from_toolbar_id(szIcon);
+		gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(mb), szTheme);
+		g_free(szTheme);
+	}
+	if (flags & AP_RIBBON_FLAG_SLIM)
+		_slim_widget_tree(mb);
+	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_NONE);
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
+
+	const char * szTip = pLabel ? pLabel->getToolTip() : nullptr;
+	if (szTip && *szTip)
+		gtk_widget_set_tooltip_text(mb, szTip);
+	return mb;
+}
+
 /* attach a small drop-arrow menu button beside (or below) a button */
 GtkWidget * AP_UnixRibbon::_wrapSplit(GtkWidget * w, GtkWidget * popover,
 									  bool bVertical)
@@ -1586,6 +1926,10 @@ GtkWidget * AP_UnixRibbon::_wrapSplit(GtkWidget * w, GtkWidget * popover,
 								  GTK_ARROW_DOWN);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(arrow), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(arrow), popover);
+	/* slim the drop-arrow: zero padding on the button and its
+	 * internal children so it is just a narrow wedge */
+	_slim_widget_tree(arrow);
+	gtk_widget_set_size_request(arrow, 12, -1);
 
 	GtkWidget * box = gtk_box_new(
 		bVertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, 0);

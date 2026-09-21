@@ -3444,7 +3444,8 @@ bool FV_View::isNumberedHeadingHere(fl_BlockLayout * pBlock) const
 	return bHasNumberedHeading;
 }
 
-void FV_View::processSelectedBlocks(FL_ListType listType)
+void FV_View::processSelectedBlocks(FL_ListType listType,
+											bool bRetypeExisting)
 {
 	//
 	// Update Lists in the selected region
@@ -3507,6 +3508,37 @@ void FV_View::processSelectedBlocks(FL_ListType listType)
 		UT_DEBUGMSG(("SEVIOR: Processing block %d \n",i));
 		fl_BlockLayout * pBlock =  vListBlocks.getNthItem(i);
 		PT_DocPosition posBlock = pBlock->getPosition();
+
+		if (bRetypeExisting)
+		{
+			/* keep the list, just switch it to the new type
+			 * (bullet library / numbering library re-style):
+			 * swap the AutoNum type and record the new style on
+			 * the block - mirrors changeListStyle() */
+			fl_AutoNumPtr pAuto = pBlock->getAutoNum();
+			if (pAuto)
+			{
+				pAuto->setListType(listType);
+				PP_PropertyVector pRetypeProps = {
+					"list-style",
+					pBlock->getListStyleString(listType),
+				};
+				/* a bulleted list has start-value 0 - numbered
+				 * styles must restart at 1 instead */
+				if (IS_NUMBERED_LIST_TYPE(listType) &&
+					pAuto->getStartValue() == 0)
+				{
+					pAuto->setStartValue(1);
+					pRetypeProps.push_back("start-value");
+					pRetypeProps.push_back("1");
+				}
+				UT_DebugOnly<bool> bChg = m_pDoc->changeStruxFmt(
+					PTC_AddFmt, posBlock, posBlock,
+					PP_NOPROPS, pRetypeProps, PTX_Block);
+				UT_ASSERT(bChg);
+			}
+			continue;
+		}
 
 		const PP_PropertyVector pListAttrs = {
 			"listid", "",
@@ -3623,6 +3655,150 @@ void FV_View::processSelectedBlocks(FL_ListType listType)
 	}
 	notifyListeners(AV_CHG_MOTION | AV_CHG_HDRFTR);
 	UT_DEBUGMSG(("Point %d anchor %d \n",getPoint(),m_Selection.getSelectionAnchor()));
+}
+
+/*!
+ * Apply a list type (bullet/numbering library pick) to the selected
+ * blocks.  Unlike processSelectedBlocks' plain toggle, existing list
+ * items keep their list and are re-styled to the new type; the
+ * optional decimal/delimiter strings override the type's defaults
+ * (e.g. "%*%d" + "%L)" for "1) 2) 3)" or multilevel "1.1.1").
+ */
+bool FV_View::cmdApplyListType(FL_ListType listType,
+							   const char * szDecimal,
+							   const char * szDelim)
+{
+	UT_return_val_if_fail(listType != NOT_A_LIST, false);
+
+	UT_GenericVector<fl_BlockLayout *> vBlock;
+	getBlocksInSelection(&vBlock);
+	UT_return_val_if_fail(vBlock.getItemCount() > 0, false);
+
+	/* retype existing list items, start lists on the rest */
+	processSelectedBlocks(listType, true);
+
+	/* optional decimal/delimiter overrides on every affected
+	 * block and its AutoNum (the AutoNum generates the labels) */
+	if (szDecimal || szDelim)
+	{
+		m_pDoc->beginUserAtomicGlob();
+		m_pDoc->disableListUpdates();
+		for (UT_sint32 i = 0; i < vBlock.getItemCount(); ++i)
+		{
+			fl_BlockLayout * pBlock = vBlock.getNthItem(i);
+			UT_nonnull_or_continue(pBlock);
+			if (!pBlock->isListItem())
+				continue;
+			fl_AutoNumPtr pAuto = pBlock->getAutoNum();
+			if (pAuto)
+			{
+				if (szDelim)
+					pAuto->setDelim(szDelim);
+				if (szDecimal)
+					pAuto->setDecimal(szDecimal);
+			}
+			PT_DocPosition posBlock = pBlock->getPosition();
+			PP_PropertyVector attrs, vals;
+			if (szDelim)
+				attrs.push_back("list-delim"), vals.push_back(szDelim);
+			if (szDecimal)
+				attrs.push_back("list-decimal"), vals.push_back(szDecimal);
+			UT_DebugOnly<bool> bRet = m_pDoc->changeStruxFmt(
+				PTC_AddFmt, posBlock, posBlock, attrs, vals, PTX_Block);
+			UT_ASSERT(bRet);
+		}
+		m_pDoc->enableListUpdates();
+		m_pDoc->updateDirtyLists();
+		m_pDoc->endUserAtomicGlob();
+	}
+
+	_generalUpdate();
+	return true;
+}
+
+/*!
+ * Strip list formatting from every selected block that is a list
+ * item ("None" in the bullet/numbering libraries).  Plain blocks
+ * are left alone - unlike processSelectedBlocks they are NOT
+ * turned into a list.
+ */
+bool FV_View::cmdRemoveListFormat()
+{
+	_saveAndNotifyPieceTableChange();
+
+	UT_GenericVector<fl_BlockLayout *> vBlock;
+	getBlocksInSelection(&vBlock);
+	UT_return_val_if_fail(vBlock.getItemCount() > 0, false);
+
+	if (!isSelectionEmpty())
+		_clearSelection();
+
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+
+	const PP_PropertyVector pListAttrs = {
+		"listid", "",
+		"parentid", "",
+		"level", "",
+	};
+	const PP_PropertyVector pListProps = {
+		"start-value", "",
+		"list-style", "",
+		"margin-left", "",
+		"margin-right", "",
+		"text-indent", "",
+		"field-color", "",
+		"list-delim", "",
+		"field-font", "",
+		"list-decimal", "",
+		"list-tag", "",
+	};
+
+	bool bAny = false;
+	/* removing a block's list membership renumbers the survivors;
+	 * the last block of a document can be left listed on the first
+	 * pass - loop a few times until everything is unlisted */
+	for (int pass = 0; pass < 4; ++pass)
+	{
+		bool bRemovedThisPass = false;
+		for (UT_sint32 i = vBlock.getItemCount() - 1; i >= 0; --i)
+		{
+			fl_BlockLayout * pBlock = vBlock.getNthItem(i);
+			UT_nonnull_or_continue(pBlock);
+			if (!pBlock->isListItem())
+				continue;
+			bAny = bRemovedThisPass = true;
+			PT_DocPosition posBlock = pBlock->getPosition();
+			UT_DebugOnly<bool> bRet = m_pDoc->changeStruxFmt(
+				PTC_RemoveFmt, posBlock, posBlock,
+				pListAttrs, pListProps, PTX_Block);
+			UT_ASSERT(bRet);
+			fp_Run * pRun = pBlock->getFirstRun();
+			if (pRun)
+			{
+				while (pRun->getNextRun())
+					pRun = pRun->getNextRun();
+				PT_DocPosition lastPos = posBlock +
+					pRun->getBlockOffset();
+				bRet = m_pDoc->changeSpanFmt(PTC_RemoveFmt, posBlock,
+											 lastPos, pListAttrs,
+											 pListProps);
+				UT_ASSERT(bRet);
+			}
+		}
+		if (!bRemovedThisPass)
+			break;
+	}
+
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_restorePieceTableState();
+	_generalUpdate();
+	_fixInsertionPointCoords();
+	if (isSelectionEmpty())
+		_ensureInsertionPointOnScreen();
+	return bAny;
 }
 
 /*!

@@ -457,6 +457,8 @@ public:
 	static EV_EditMethod_Fn redo;
 	static EV_EditMethod_Fn cut;
 	static EV_EditMethod_Fn copy;
+	static EV_EditMethod_Fn paraSortAscend;
+	static EV_EditMethod_Fn paraSortDescend;
 	static EV_EditMethod_Fn paste;
 	static EV_EditMethod_Fn pasteSelection;
 	static EV_EditMethod_Fn pasteSpecial;
@@ -577,6 +579,7 @@ public:
 	static EV_EditMethod_Fn doBullets;
 	static EV_EditMethod_Fn doNumbers;
 	static EV_EditMethod_Fn doDashedList;
+	static EV_EditMethod_Fn doListType;
 
 	static EV_EditMethod_Fn colorForeTB;
 	static EV_EditMethod_Fn colorBackTB;
@@ -937,6 +940,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(doEscape),				0,	""),
 	EV_EditMethod(NF(doNumbers),			0,	""),
 	EV_EditMethod(NF(doDashedList),		0,	""),
+	EV_EditMethod(NF(doListType),			0,	""),
 	EV_EditMethod(NF(doubleSpace),			0,	""),
 	EV_EditMethod(NF(dragFrame), 			0,	""),
 	EV_EditMethod(NF(dragHline), 			0,	""),
@@ -1118,6 +1122,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 #endif
 	EV_EditMethod(NF(paraBefore0),			0,		""),
 	EV_EditMethod(NF(paraBefore12), 		0,		""),
+	EV_EditMethod(NF(paraSortAscend),		0,		""),
+	EV_EditMethod(NF(paraSortDescend),		0,		""),
 		// intended for ^V and Menu[Edit/Paste]
 	EV_EditMethod(NF(paste),				0,	""),
 			// intended for X11 middle mouse
@@ -12465,6 +12471,24 @@ Defun1(sortRowsDescend)
 	return true;
 }
 
+Defun1(paraSortAscend)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	pView->cmdSortParagraphs(true);
+	return true;
+}
+
+Defun1(paraSortDescend)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	pView->cmdSortParagraphs(false);
+	return true;
+}
+
 Defun1(textToTable)
 {
 	CHECK_FRAME;
@@ -12840,6 +12864,66 @@ Defun1(doDashedList)
 	UT_return_val_if_fail(pView,false);
 	pView->processSelectedBlocks(DASHED_LIST);
 	return true;
+}
+
+/*!
+ * Bullet/numbering library pick.
+ * pCallData->m_pData: "TYPE[:DECIMAL[:DELIM]]" where TYPE is one of
+ * NONE, BULLETED, DASHED, SQUARE, TRIANGLE, DIAMOND, STAR, IMPLIES,
+ * TICK, BOX, HAND, HEART, ARROWHEAD, NUMBERED, LOWERCASE, UPPERCASE,
+ * LOWERROMAN, UPPERROMAN, HEBREW, ARABICNUM.  DECIMAL overrides the
+ * numbering format (e.g. "%*%d" for 1.1.1) and DELIM the suffix
+ * (e.g. "%L)" for "1)").
+ */
+Defun(doListType)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
+	std::string arg(u8arg.utf8_str());
+	std::string sType = arg.substr(0, arg.find(':'));
+	std::string sDecimal, sDelim;
+	size_t p1 = arg.find(':');
+	if (p1 != std::string::npos)
+	{
+		size_t p2 = arg.find(':', p1 + 1);
+		sDecimal = arg.substr(p1 + 1,
+							  p2 == std::string::npos ? p2 : p2 - p1 - 1);
+		if (p2 != std::string::npos)
+			sDelim = arg.substr(p2 + 1);
+	}
+
+	FL_ListType lType = NOT_A_LIST;
+	if      (sType == "BULLETED")    lType = BULLETED_LIST;
+	else if (sType == "DASHED")      lType = DASHED_LIST;
+	else if (sType == "SQUARE")      lType = SQUARE_LIST;
+	else if (sType == "TRIANGLE")    lType = TRIANGLE_LIST;
+	else if (sType == "DIAMOND")     lType = DIAMOND_LIST;
+	else if (sType == "STAR")        lType = STAR_LIST;
+	else if (sType == "IMPLIES")     lType = IMPLIES_LIST;
+	else if (sType == "TICK")        lType = TICK_LIST;
+	else if (sType == "BOX")         lType = BOX_LIST;
+	else if (sType == "HAND")        lType = HAND_LIST;
+	else if (sType == "HEART")       lType = HEART_LIST;
+	else if (sType == "ARROWHEAD")   lType = ARROWHEAD_LIST;
+	else if (sType == "NUMBERED")    lType = NUMBERED_LIST;
+	else if (sType == "LOWERCASE")   lType = LOWERCASE_LIST;
+	else if (sType == "UPPERCASE")   lType = UPPERCASE_LIST;
+	else if (sType == "LOWERROMAN")  lType = LOWERROMAN_LIST;
+	else if (sType == "UPPERROMAN")  lType = UPPERROMAN_LIST;
+	else if (sType == "HEBREW")      lType = HEBREW_LIST;
+	else if (sType == "ARABICNUM")   lType = ARABICNUMBERED_LIST;
+	else if (sType == "NONE")
+		return pView->cmdRemoveListFormat();
+	else
+		return false;
+
+	return pView->cmdApplyListType(
+		lType,
+		sDecimal.empty() ? nullptr : sDecimal.c_str(),
+		sDelim.empty()   ? nullptr : sDelim.c_str());
 }
 
 Defun(colorForeTB)

@@ -291,6 +291,28 @@ below are on `main` but the release has not been cut yet.
   only on Apply.
 - **Default file format preference** — Preferences → Documents can
   pick the save format from registered exporters (Debian #424037).
+- **Paragraph group redesigned (LibreOffice-style)** — the Home
+  Paragraph group now mirrors Writer: row 1 = bullet/numbering/
+  multilevel split-buttons, indent-less/more, paragraph sort,
+  show formatting marks; row 2 = alignment, line-spacing and
+  paragraph-spacing dropdowns, borders, paragraph dialog launcher;
+  the separate Lists group was merged in.
+- **Bullet/Numbering/List libraries** — each list split-button drops
+  a LibreOffice-style library popover: Bullet Library (13 glyph
+  tiles incl. None), Numbering Library (1. / 1) / I. / A. / a) / a. /
+  i. tiles), List Library (Current List + multi-level presets).
+  Tiles invoke a new `doListType` edit method which retypes an
+  existing list in place via `fl_AutoNum::setListType` (bullet
+  styles switch without unlisting) and supports decimal/delimiter
+  overrides (`%*%d`, `%L)`); "Define New ..." entries open the
+  Bullets and Numbering dialog.
+- **Paragraph sorting** — new sort control drops Ascending (A-Z) /
+  Descending (Z-A); `FV_View::cmdSortParagraphs` orders the selected
+  paragraphs (or current paragraph block) by case-folded UTF-8
+  collation inside a single undo glob, moving only text so paragraph
+  properties stay in place.
+- **Slimmer split-button arrows** — the drop-arrow wedge on ribbon
+  split-buttons is now ~12px with zero padding.
 
 ### Ubuntu Launchpad bug fixes
 

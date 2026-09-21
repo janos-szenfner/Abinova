@@ -195,6 +195,8 @@ static struct AbiStockMapping {
 
   { ABIWORD_UNINDENT,				(_Ap_Menu_Id)0,					"format-indent-less" },
   { ABIWORD_INDENT,					(_Ap_Menu_Id)0,					"format-indent-more" },
+  { "abiword-sort-para",			(_Ap_Menu_Id)0,					"view-sort-ascending" },
+  { "abiword-fmt-borders",			AP_MENU_ID_FMT_BORDERS,			"tb_fmt_borders" },
 
   { ABIWORD_SCRIPT_PLAY,			AP_MENU_ID_TOOLS_SCRIPTS,		"system-run" },
   { ABIWORD_FMT_STRIKE,				AP_MENU_ID_FMT_STRIKE,			"format-text-strikethrough" },

@@ -200,6 +200,7 @@ toolbariconmap(UNINDENT,tb_text_unindent_xpm)
 toolbariconmap(VIEW_FULL_SCREEN,tb_view_full_screen_xpm)
 #endif
 toolbariconmap(VIEW_SHOWPARA,tb_view_showpara_xpm)
+toolbariconmap(SORT_PARA,tb_sort_paragraph_xpm)
 toolbariconmap(ZOOM,NoIcon)
 
 

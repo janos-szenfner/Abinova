@@ -30,6 +30,7 @@
 #include <string.h>
 #include <locale.h>
 #include <vector>
+#include <algorithm>
 
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -40,6 +41,7 @@
 #include "ut_std_string.h"
 #include "ut_string.h"
 #include "ut_bytebuf.h"
+#include "ut_string_class.h"
 #include "ut_timer.h"
 #include "ut_Language.h"
 #include "ut_uuid.h"
@@ -6621,3 +6623,89 @@ void FV_View::_updateDatesBeforeSave(bool bOverwriteCreated)
     m_pDoc->setMetaDataProp(PD_META_KEY_DATE_LAST_CHANGED, timeStr);
 }
 
+
+/*!
+ * Sort the paragraphs touched by the selection alphabetically.
+ *
+ * Paragraph properties (lists, indentation, alignment) stay in place -
+ * only the text content moves between paragraphs.  A paragraph's
+ * replacement text takes the character formatting of its original
+ * first character.
+ */
+bool FV_View::cmdSortParagraphs(bool bAscending)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	UT_return_val_if_fail(!isSelectionEmpty(), false);
+	UT_return_val_if_fail(getSelectionMode() == FV_SelectionMode_Single,
+						  false);
+
+	UT_GenericVector<fl_BlockLayout *> vecBlocks;
+	getBlocksInSelection(&vecBlocks);
+	UT_sint32 nBlocks = vecBlocks.getItemCount();
+	UT_return_val_if_fail(nBlocks >= 2, false);
+
+	/* collect each block's text in document order */
+	std::vector<UT_UCS4String> origText;
+	origText.reserve(nBlocks);
+	for (UT_sint32 i = 0; i < nBlocks; ++i)
+	{
+		fl_BlockLayout * pBL = vecBlocks.getNthItem(i);
+		if (!pBL || pBL->getContainerType() != FL_CONTAINER_BLOCK)
+			return false;
+		PT_DocPosition pos = pBL->getPosition(true);
+		UT_sint32 len = pBL->getLength();
+		UT_UCS4Char * pText = len > 0
+			? getTextBetweenPos(pos, pos + len) : nullptr;
+		if (pText)
+			origText.emplace_back(pText);
+		else
+			origText.emplace_back();
+		FREEP(pText);
+	}
+
+	/* sorted copy - stable so equal lines keep their original order */
+	std::vector<UT_UCS4String> sorted(origText);
+	std::stable_sort(sorted.begin(), sorted.end(),
+		[bAscending](const UT_UCS4String & a, const UT_UCS4String & b)
+		{
+			gint cmp = UT_go_utf8_collate_casefold(
+				const_cast<UT_UCS4String &>(a).utf8_str(),
+				const_cast<UT_UCS4String &>(b).utf8_str());
+			return bAscending ? cmp < 0 : cmp > 0;
+		});
+
+	m_pDoc->beginUserAtomicGlob();
+	for (UT_sint32 i = 0; i < nBlocks; ++i)
+	{
+		if (!UT_UCS4_strcmp(sorted[i].ucs4_str(),
+							origText[i].ucs4_str()))
+			continue;
+		fl_BlockLayout * pBL = vecBlocks.getNthItem(i);
+		/* getPosition(true) is the block strux frag position and
+		 * getLength() counts it too - the text lives at pos+1 and
+		 * is len-1 characters long.  Never touch the strux frag or
+		 * the paragraph structure collapses. */
+		PT_DocPosition posText = pBL->getPosition(true) + 1;
+		UT_sint32 lenText = pBL->getLength() - 1;
+		const UT_UCS4String & newText = sorted[i];
+		if (newText.length())
+		{
+			/* insert before the old text so it inherits the first
+			 * character's formatting, then remove the old text */
+			m_pDoc->insertSpan(posText, newText.ucs4_str(),
+							   newText.length());
+		}
+		if (lenText > 0)
+		{
+			UT_uint32 iCount = 0;
+			m_pDoc->deleteSpan(posText + newText.length(),
+							   posText + newText.length() + lenText,
+							   nullptr, iCount);
+		}
+	}
+	m_pDoc->endUserAtomicGlob();
+
+	_generalUpdate();
+	return true;
+}

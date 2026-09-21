@@ -416,7 +416,12 @@ public:
 #endif
 	bool	isTabListBehindPoint(UT_sint32 & iNumToDelete) const;
 	bool	isTabListAheadPoint(void) const;
-	void	processSelectedBlocks(FL_ListType listType);
+	void	processSelectedBlocks(FL_ListType listType,
+								bool bRetypeExisting = false);
+	bool	cmdApplyListType(FL_ListType listType,
+							 const char * szDecimal,
+							 const char * szDelim);
+	bool	cmdRemoveListFormat();
 	void	getBlocksInSelection(UT_GenericVector<fl_BlockLayout*> * vBlock, bool bAllBlocks = true) const;
 	UT_sint32 getNumColumnsInSelection(void) const;
 	UT_sint32 getNumRowsInSelection(void) const;
@@ -810,6 +815,7 @@ public:
 	bool                cmdTableColResize(bool bWider);
 	bool                cmdTableRowResize(bool bTaller);
 	bool                cmdTextToTable(UT_uint32 iDelim);
+	bool                cmdSortParagraphs(bool bAscending);
 	bool                cmdAutoSizeRows(void);
 	bool                cmdAdvanceNextPrevCell(bool bGoNext);
 	fp_CellContainer *  getCellAtPos(PT_DocPosition pos) const;

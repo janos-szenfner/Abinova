@@ -70,19 +70,31 @@ private:
 	GtkWidget *		_wrapSplit(GtkWidget * w, GtkWidget * popover,
 							   bool bVertical);
 	GtkWidget *		_makePastePopover();
-	GtkWidget *		_makeListPopover();
+	GtkWidget *		_makeListPopover(XAP_Toolbar_Id id);
+	GtkWidget *		_makeBulletLibraryPopover();
+	GtkWidget *		_makeNumberingLibraryPopover();
+	GtkWidget *		_makeMultilevelLibraryPopover();
+	GtkWidget *		_listTile(const char * szMarkup,
+							  const char * szData,
+							  int iWidth, int iHeight);
 	GtkWidget *		_makeChangeCasePopover();
 	GtkWidget *		_makeMenuPopButton(XAP_Menu_Id id, uint8_t flags);
+	GtkWidget *		_makeMenuPopTbButton(XAP_Toolbar_Id id, uint8_t flags);
+	GtkWidget *		_makeLineSpacingPopover();
+	GtkWidget *		_makeParaSpacingPopover();
+	GtkWidget *		_makeSortParaPopover();
 	GtkWidget *		_popoverMenuButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverTbButton(XAP_Toolbar_Id id,
 									 const char * szLabel);
 	GtkWidget *		_popoverEmButton(const char * szLabel,
 									 const char * szIcon,
-									 const char * szMethod);
+									 const char * szMethod,
+									 const char * szData = nullptr);
 	void			_invokeToolbarItem(XAP_Toolbar_Id id,
 									   const UT_UCS4Char * pData = nullptr,
 									   UT_uint32 dataLength = 0);
-	void			_invokeEditMethod(const char * szMethod);
+	void			_invokeEditMethod(const char * szMethod,
+									  const char * szData = nullptr);
 	void			_showPasteSpecialDialog();
 	void			_refreshContextualTabs();
 	void			_refreshToolbarItems();

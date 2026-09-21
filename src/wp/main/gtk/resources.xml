@@ -172,6 +172,7 @@
     <file alias="24x24/actions/tb_undo.png">wp/ap/xp/ToolbarIcons/tb_undo.png</file>
     <file alias="24x24/actions/tb_view_full_screen.png">wp/ap/xp/ToolbarIcons/tb_view_full_screen.png</file>
     <file alias="24x24/actions/tb_view_showpara.png">wp/ap/xp/ToolbarIcons/tb_view_showpara.png</file>
+    <file alias="24x24/actions/tb_fmt_borders.png">wp/ap/xp/ToolbarIcons/tb_fmt_borders.png</file>
     <file alias="24x24/actions/tb_WrapButton.png">wp/ap/xp/ToolbarIcons/tb_WrapButton.png</file>
 
     <file alias="margin_xpm">wp/ap/xp/margin.png</file>

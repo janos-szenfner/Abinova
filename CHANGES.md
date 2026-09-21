@@ -3,6 +3,26 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Paragraph group redesign, list libraries, paragraph sort
+
+- Paragraph group rebuilt LibreOffice-style: bullet/numbering/
+  multilevel split-buttons, indents, sort and pilcrow on row 1;
+  alignment, spacing dropdowns, borders and the paragraph dialog on
+  row 2; Lists group merged in.
+- New library popovers behind each list arrow: Bullet Library (13
+  glyph tiles), Numbering Library (8 format tiles), List Library
+  (current + multilevel presets); "Define New ..." entries open the
+  Bullets and Numbering dialog.
+- New `doListType` edit method + `FV_View::cmdApplyListType` /
+  `cmdRemoveListFormat`: retypes an existing list through
+  `fl_AutoNum::setListType` (no unlist), supports decimal/delim
+  overrides (`%*%d`, `%L)`), numbered styles restart at 1 after a
+  bulleted list, and "None" strips lists in a single pass.
+- New paragraph sort (ascending/descending) —
+  `FV_View::cmdSortParagraphs` + sort dropdown: case-folded UTF-8
+  collation, one undo glob, paragraph properties preserved.
+- Split-button drop arrows slimmed to ~12px.
+
 ## Font box with inline search, Change Case dropdown, colour pickers, eased scrolling
 
 - `AbiFontCombo` rebuilt: the editable entry is now the search field —
