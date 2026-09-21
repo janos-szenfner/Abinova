@@ -254,6 +254,11 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"  min-width: 0; min-height: 0; margin: 8px 2px;"
 		"  border-left: 1px solid alpha(@theme_fg_color, 0.22);"
 		"}"
+		/* File ▸ Close - red like Word's destructive controls; the
+		 * symbolic icon picks up the colour too */
+		".abiword-ribbon button.ribbon-close {"
+		"  color: @error_color;"
+		"}"
 		".abiword-ribbon .ribbon-group-title {"
 		"  font-size: 0.78em; margin-top: 1px; padding: 0 4px 2px 4px;"
 		"  color: alpha(@theme_fg_color, 0.75);"
@@ -558,6 +563,10 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	else
 		btn = gtk_button_new();
 
+	/* Close gets the Word-style red treatment */
+	if (id == AP_MENU_ID_FILE_CLOSE)
+		gtk_widget_add_css_class(btn, "ribbon-close");
+
 	/* reuse the classic toolbar's icon for this edit method, if any;
 	 * fall back to the menu action's own stock-icon mapping */
 	const char * szMethod = pAction->getMethodName();
@@ -640,7 +649,12 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
 		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
 		GtkWidget * wLabel = gtk_label_new(label);
-		gtk_label_set_ellipsize(GTK_LABEL(wLabel), PANGO_ELLIPSIZE_END);
+		/* Word wraps long captions onto a second line rather than
+		 * ellipsizing ("Document Properties", "New using Template") */
+		gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
+		gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
+		gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
+		gtk_label_set_lines(GTK_LABEL(wLabel), 2);
 		gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 14);
 		gtk_box_append(GTK_BOX(box), image);
 		gtk_box_append(GTK_BOX(box), wLabel);
