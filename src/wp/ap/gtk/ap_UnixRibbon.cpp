@@ -502,23 +502,25 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_markup(GTK_LABEL(gl), markup);
 			gtk_widget_set_valign(gl, GTK_ALIGN_CENTER);
 			gtk_button_set_child(GTK_BUTTON(btn), gl);
-			/* slim the glyph buttons down to their caption - the
-			 * theme's default button padding makes single letters
-			 * twice as wide as they need to be */
-			static GtkCssProvider * s_glyphCss = nullptr;
-			if (!s_glyphCss)
+			/* SLIM glyph buttons lose the theme's wide default
+			 * padding so they pack tighter (grow/shrink font) */
+			if (flags & AP_RIBBON_FLAG_SLIM)
 			{
-				s_glyphCss = gtk_css_provider_new();
+				static GtkCssProvider * s_glyphCss = nullptr;
+				if (!s_glyphCss)
+				{
+					s_glyphCss = gtk_css_provider_new();
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-				gtk_css_provider_load_from_string(s_glyphCss,
-					"button { padding-left: 2px; padding-right: 2px;"
-					" min-width: 0; }");
+					gtk_css_provider_load_from_string(s_glyphCss,
+						"button { padding-left: 2px; padding-right: 2px;"
+						" min-width: 0; }");
 G_GNUC_END_IGNORE_DEPRECATIONS
+				}
+				gtk_style_context_add_provider(
+					gtk_widget_get_style_context(btn),
+					GTK_STYLE_PROVIDER(s_glyphCss),
+					GTK_STYLE_PROVIDER_PRIORITY_USER);
 			}
-			gtk_style_context_add_provider(
-				gtk_widget_get_style_context(btn),
-				GTK_STYLE_PROVIDER(s_glyphCss),
-				GTK_STYLE_PROVIDER_PRIORITY_USER);
 			gtk_actionable_set_action_name(GTK_ACTIONABLE(btn), detailed);
 			if (pAction->isRadio())
 			{

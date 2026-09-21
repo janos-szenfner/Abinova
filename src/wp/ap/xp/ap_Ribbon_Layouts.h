@@ -68,14 +68,16 @@ enum AP_RibbonItemFlags : uint8_t
 	AP_RIBBON_FLAG_SPLIT	= 1 << 2,	/* trailing drop-arrow opens a popover */
 	AP_RIBBON_FLAG_GLYPH	= 1 << 3,	/* text glyph (B, I, U, x2) instead of
 									 * a theme icon */
-	AP_RIBBON_FLAG_MENUPOP	= 1 << 4	/* single menu-button: clicking it
+	AP_RIBBON_FLAG_MENUPOP	= 1 << 4,	/* single menu-button: clicking it
 									 * opens the dropdown popover (no
 									 * separate arrow, no action on the
 									 * button itself) */
+	AP_RIBBON_FLAG_SLIM		= 1 << 5	/* reduced button padding */
 };
 
 #define AP_RIBBON_ROWEND	{ AP_RIBBON_ITEM_ROWEND,  AP_RIBBON_FLAG_NONE,     0 }
 #define AP_RIBBON_MENU_G(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH), (uint16_t)(x) }
+#define AP_RIBBON_MENU_GS(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_SLIM), (uint16_t)(x) }
 
 #define AP_RIBBON_SPLIT_MENU(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_LARGE | AP_RIBBON_FLAG_SPLIT),    (uint16_t)(x) }
 #define AP_RIBBON_SPLIT_TB_I(x)	{ AP_RIBBON_ITEM_TOOLBAR, (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_SPLIT), (uint16_t)(x) }
@@ -160,8 +162,8 @@ static const AP_RibbonItem s_ribbon_home_font[] =
 {
 	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_FONT),
 	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_SIZE),
-	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_GROWFONT),
-	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_SHRINKFONT),
+	AP_RIBBON_MENU_GS(AP_MENU_ID_FMT_GROWFONT),
+	AP_RIBBON_MENU_GS(AP_MENU_ID_FMT_SHRINKFONT),
 	AP_RIBBON_MENUPOP_G(AP_MENU_ID_FMT_TOGGLECASE),
 	AP_RIBBON_ROWEND,
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_BOLD),
