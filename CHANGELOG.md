@@ -51,6 +51,10 @@ below are on `main` but the release has not been cut yet.
   text; Mermaid fenced blocks keep their source verbatim; raw HTML
   blocks reduce to readable text; `<!-- -->` comments are dropped;
   `:emoji:` shortcodes convert to Unicode.
+- **Markdown formatting test document** — `test/wp/markdown-formatting.md`
+  exercises every supported construct (frontmatter, reference links,
+  footnotes, tables, task lists, math, comments, emoji) and was used
+  to verify the importer coverage above.
 - **Built-in LaTeX import/export** — `.tex`/`.latex`/`.ltx`: the old
   `latex` plugin exporter moved to `src/wp/impexp/xp/ie_exp_LaTeX.cpp`
   (registered centrally, no module load), and a new importer
