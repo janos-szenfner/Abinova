@@ -236,11 +236,31 @@ below are on `main` but the release has not been cut yet.
   `N words, N characters`, current paragraph style, insert/overwrite
   and input-mode indicators, document language, and a zoom cluster
   (`−` / slider / `+` / `NNN%` / 100% reset).
-- **LibreOffice-style font box** — editable `GtkEntry` + dropdown
-  arrow; type a name and Enter to apply; lazy `GtkDropDown` +
-  `GtkSortListModel` list where every visible row renders in its own
-  typeface with type-to-search (only visible rows load fonts — the old
-  cell renderer measured ~2000 fonts on popup open and froze the UI).
+- **LibreOffice-style font box** — editable `GtkEntry` for the
+  current font doubles as the search field: typing opens a popover
+  directly below the field (flush with its left edge) whose
+  `GtkListView`/`GtkFilterListModel` list filters live on the typed
+  text, and clicking a row applies the font immediately. The arrow
+  button drops the full list, preselecting and scrolling to the
+  current font; keystrokes captured by the popup's seat grab are
+  forwarded back to the entry so typing never dead-ends. Rows are
+  bound lazily and render in their own typeface (only visible rows
+  load fonts — the old cell renderer measured ~2000 fonts on popup
+  open and froze the UI).
+- **Change Case "Aa" dropdown** — new split button in the Font group:
+  the main button opens the existing Change Case dialog, the arrow
+  drops a popover with five direct conversions (Sentence case,
+  lowercase, UPPERCASE, Capitalize Every Word, tOGGLE cASE) wired to
+  new `caseSentence`/`caseLower`/`caseUpper`/`caseTitle`/`caseToggle`
+  edit methods over `FV_View::toggleCase`.
+- **Ribbon colour pickers rebuilt** — Font Color and Highlight now
+  open a LibreOffice-style swatch grid (Automatic button, 40-colour
+  standard palette, "Custom Color…" button). One click on a swatch
+  applies the colour and closes; Custom Color opens a real
+  `GtkColorChooserDialog` with Select/Cancel so the built-in picker
+  is always reachable again — the embedded `GtkColorChooserWidget`
+  it replaces had no reliable way back and only applied on
+  double-click. Font colour defaults to black.
 - **Page centering** — pages center horizontally when narrower than
   the window (LibreOffice behaviour); no phantom scrollbar.
 - **Ruler redesign** — full-height bar, gray margin bands, white text
@@ -350,7 +370,15 @@ below are on `main` but the release has not been cut yet.
   accumulation instead of collapsing each event to a full step; and
   `vScrollChanged` coalesces pending scroll targets instead of
   dropping them, so rapid fine-grained scrolling no longer loses
-  distance or snaps late.
+  distance or snaps late. Wheel and smooth-scroll moves now also
+  **glide**: a `GdkFrameClock` tick eases the view offset toward the
+  target (~18 %/frame ease-out) and retargets a running animation on
+  each new notch, with an instant fallback when the canvas is not
+  realized — no more visible jumps at page transitions.
+- **Project URLs and About** — "Check for Updates" and "Report a
+  Bug" point at `github.com/janos-szenfner/Exp-Abi` instead of the
+  old GNOME GitLab project; the About dialog lists Janos Szenfner
+  and links the fork's repository.
 - **Same-application clipboard deadlock** — `gdk_clipboard_read_async`
   deadlocked when AbiWord itself owned the clipboard (the async read
   calls back into our own `AbiContentProvider` on the main thread and

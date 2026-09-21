@@ -3,6 +3,33 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Font box with inline search, Change Case dropdown, colour pickers, eased scrolling
+
+- `AbiFontCombo` rebuilt: the editable entry is now the search field —
+  typing opens a custom `GtkPopover` anchored under the left edge of
+  the field whose `GtkListView` + `GtkFilterListModel` list filters
+  live on the typed text; the arrow button drops the full sorted list
+  preselected at the current font; rows render in their own typeface
+  via lazy factory binding. Keys captured by the popup's seat grab are
+  forwarded to the entry (text, Backspace/Delete, Enter, Escape) so
+  typing never dead-ends. The old `GtkDropDown` is gone.
+- New Change Case "Aa" split button in the Font group (arrow opens a
+  popover with Sentence case / lowercase / UPPERCASE / Capitalize
+  Every Word / tOGGLE cASE — five new edit methods calling
+  `FV_View::toggleCase` directly); Clear Formatting moved next to the
+  font colour button.
+- Ribbon colour pickers (Font Color, Highlight) replaced: a
+  LibreOffice-style swatch grid with Automatic button + "Custom
+  Color…" `GtkColorChooserDialog` (Select/Cancel). One swatch click
+  applies immediately and closes; the previous embedded
+  `GtkColorChooserWidget` had no way back and only applied on
+  double-click. Font colour defaults to black.
+- Vertical scrolling now eases: a `GdkFrameClock` tick glides the view
+  offset toward the target (ease-out, retargets on each new notch),
+  falling back to instant scroll when the canvas is unrealized.
+- "Check for Updates" / "Report a Bug" now open the fork's GitHub
+  repo; the About dialog lists Janos Szenfner and links the repo URL.
+
 ## Ribbon Font group redesign, selection-offset fix, finer scrolling, Mermaid rendering
 
 - Ribbon Font group rebuilt as a LibreOffice-style two-row group: a

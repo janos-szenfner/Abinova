@@ -32,18 +32,24 @@ G_BEGIN_DECLS
 #define ABI_IS_FONT_COMBO_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), ABI_TYPE_FONT_COMBO))
 #define ABI_FONT_COMBO_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), ABI_TYPE_FONT_COMBO, AbiFontComboClass))
 
-/* GtkDropDown is a final GTK4 type and cannot be subclassed, so
- * AbiFontCombo is a GtkBox wrapper: an editable GtkEntry for typing
- * font names (LibreOffice style) followed by a GtkDropDown arrow whose
- * lazy list shows every font in its own typeface. */
+/* AbiFontCombo is a GtkBox wrapper: an editable GtkEntry for typing
+ * font names (LibreOffice style - typing filters live) followed by an
+ * arrow button opening a popover under the field whose lazy list
+ * shows every font in its own typeface. */
 struct AbiFontCombo {
 	GtkBox			 parent;
 	GtkWidget		*entry;
-	GtkWidget		*dropdown;
+	GtkWidget		*arrow;
+	GtkWidget		*popover;
+	GtkWidget		*listview;
+	GtkSingleSelection *sel;
+	GtkFilterListModel *filtered;
+	GtkStringFilter	*filter;
 	GtkStringList	*strings;
 	GtkSortListModel *sort;
 	gboolean		 is_disposed;
 	gboolean		 updating;
+	gboolean		 arrow_open;
 };
 
 struct AbiFontComboClass {

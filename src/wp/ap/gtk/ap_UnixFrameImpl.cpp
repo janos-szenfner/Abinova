@@ -56,6 +56,8 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_wSunkenBox(nullptr),
 	m_iHScrollSignal(0),
 	m_iVScrollSignal(0),
+	m_iScrollAnimID(0),
+	m_dScrollAnimTarget(0.0),
 	m_pRibbon(nullptr),
 	m_wRibbon(nullptr),
 	m_bRibbonMode(false)
@@ -65,6 +67,9 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 
 AP_UnixFrameImpl::~AP_UnixFrameImpl()
 {
+	if (m_iScrollAnimID && m_dArea)
+		gtk_widget_remove_tick_callback(m_dArea, m_iScrollAnimID);
+	m_iScrollAnimID = 0;
 	DELETEP(m_pRibbon);
 }
 

@@ -71,6 +71,7 @@ private:
 							   bool bVertical);
 	GtkWidget *		_makePastePopover();
 	GtkWidget *		_makeListPopover();
+	GtkWidget *		_makeChangeCasePopover();
 	GtkWidget *		_popoverMenuButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverTbButton(XAP_Toolbar_Id id,
 									 const char * szLabel);
@@ -123,6 +124,13 @@ private:
 	static void			_s_tb_color_activated(GtkColorChooser * cc,
 											  GdkRGBA * color, gpointer data);
 	static void			_s_tb_color_automatic(GtkWidget * w, gpointer data);
+	static void			_s_tb_color_swatch_clicked(GtkWidget * w,
+												   gpointer data);
+	static void			_s_tb_color_custom_clicked(GtkWidget * w,
+												   gpointer data);
+	static void			_s_tb_color_custom_response(GtkDialog * dlg,
+													gint resp, gpointer data);
+	static GtkWidget *	_tb_color_swatch(const gchar * hex, _TbCtx * ctx);
 	static void			_s_popover_tb_clicked(GtkWidget * w, gpointer data);
 	static void			_s_popover_menu_clicked(GtkWidget * w, gpointer data);
 	static void			_s_popover_em_clicked(GtkWidget * w, gpointer data);

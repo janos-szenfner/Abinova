@@ -251,6 +251,52 @@ bool AP_UnixFrame::initialize(XAP_FrameMode frameMode)
 
 /*****************************************************************/
 
+/*! Eased vertical scrolling: a frame-clock tick glides
+ *  m_yScrollOffset toward m_dScrollAnimTarget with an ease-out
+ *  curve, so wheel notches and smooth-scroll deltas move the view
+ *  in small animated steps instead of one instant jump.  New scroll
+ *  requests only retarget the running animation. */
+gboolean AP_UnixFrame::_scrollAnimTick(GtkWidget * /*w*/, GdkFrameClock * /*clock*/,
+									   gpointer data)
+{
+	AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(data);
+	AV_View * pView = pFrameImpl->getFrame()->getCurrentView();
+	if (!pView || !pFrameImpl->m_pVadj)
+	{
+		pFrameImpl->m_iScrollAnimID = 0;
+		return G_SOURCE_REMOVE;
+	}
+
+	const gdouble target = pFrameImpl->m_dScrollAnimTarget;
+	const gdouble cur = pView->getYScrollOffset();
+	const gdouble diff = target - cur;
+
+	gdouble next;
+	bool bDone = false;
+	if (pView->getGraphics()->tduD(diff) < 1.0 &&
+		pView->getGraphics()->tduD(diff) > -1.0)
+	{
+		next = target;	/* sub-pixel remainder: snap */
+		bDone = true;
+	}
+	else
+		next = cur + diff * 0.18;	/* ease-out */
+
+	g_signal_handler_block((gpointer)pFrameImpl->m_pVadj,
+						   pFrameImpl->m_iVScrollSignal);
+	gtk_adjustment_set_value(GTK_ADJUSTMENT(pFrameImpl->m_pVadj), next);
+	g_signal_handler_unblock((gpointer)pFrameImpl->m_pVadj,
+							 pFrameImpl->m_iVScrollSignal);
+	pView->setYScrollOffset(static_cast<UT_sint32>(next));
+
+	if (bDone)
+	{
+		pFrameImpl->m_iScrollAnimID = 0;
+		return G_SOURCE_REMOVE;
+	}
+	return G_SOURCE_CONTINUE;
+}
+
 // WL_REFACTOR: Put this in the helper
 void AP_UnixFrame::_scrollFuncY(void * pData, UT_sint32 yoff, UT_sint32 /*yrange*/)
 {
@@ -285,16 +331,30 @@ void AP_UnixFrame::_scrollFuncY(void * pData, UT_sint32 yoff, UT_sint32 /*yrange
 			   (static_cast<UT_sint32>(pView->getYScrollOffset()-yoffNew)))));
 	gfloat yoffDisc = static_cast<UT_sint32>(pView->getYScrollOffset()) - dy;
 
+	if (pG->tdu(static_cast<UT_sint32>(yoffDisc) -
+				pView->getYScrollOffset()) == 0)
+		return;
+
+	/* glide to the new offset over a few frames instead of jumping -
+	 * retargets a running animation when the user keeps scrolling.
+	 * An unrealized drawing area gets no frame ticks, so scroll
+	 * instantly in that case. */
+	pFrameImpl->m_dScrollAnimTarget = yoffDisc;
+	if (pFrameImpl->m_dArea && gtk_widget_get_realized(pFrameImpl->m_dArea))
+	{
+		if (pFrameImpl->m_iScrollAnimID == 0)
+			pFrameImpl->m_iScrollAnimID = gtk_widget_add_tick_callback(
+				pFrameImpl->m_dArea, _scrollAnimTick, pFrameImpl, nullptr);
+		return;
+	}
+
 	// We need to block the signal this will send. The setYScrollOffset method
 	// will do the scroll for us. Otherwise we'll scroll back here later!!
-	
+
 	g_signal_handler_block((gpointer)pFrameImpl->m_pVadj, pFrameImpl->m_iVScrollSignal);
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(pFrameImpl->m_pVadj),yoffNew);
 	g_signal_handler_unblock((gpointer)pFrameImpl->m_pVadj, pFrameImpl->m_iVScrollSignal);
 
-
-	if (pG->tdu(static_cast<UT_sint32>(yoffDisc) - 
-				pView->getYScrollOffset()) != 0)
 	pView->setYScrollOffset(static_cast<UT_sint32>(yoffDisc));
 }
 

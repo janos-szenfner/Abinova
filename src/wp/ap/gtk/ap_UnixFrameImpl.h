@@ -95,6 +95,11 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	gulong      m_iHScrollSignal;
 	gulong      m_iVScrollSignal;
 
+	/* eased vertical scroll: tick callback glides the view toward
+	 * m_dScrollAnimTarget instead of jumping per wheel notch */
+	guint       m_iScrollAnimID;
+	gdouble     m_dScrollAnimTarget;
+
 	class AP_UnixRibbon * m_pRibbon;
 	GtkWidget * m_wRibbon;
 	bool        m_bRibbonMode;

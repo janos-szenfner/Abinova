@@ -70,38 +70,51 @@ font_item_bind (GtkSignalListItemFactory * /*factory*/,
 	pango_attr_list_unref (attrs);
 }
 
-/* The collapsed arrow button shows no text — the font name lives in the
- * GtkEntry in front of it, like the LibreOffice/MS-Word font box. */
+/* typing in the entry is the search: the popup opens and the font
+ * list filters live on the typed text */
 static void
-button_item_setup (GtkSignalListItemFactory * /*factory*/,
-				   GtkListItem			   *item,
-				   gpointer				  /*data*/)
+font_combo_entry_changed_cb (GtkEntry * entry, AbiFontCombo *self)
 {
-	gtk_list_item_set_child (item, gtk_label_new (""));
-}
-
-static void
-button_item_bind (GtkSignalListItemFactory * /*factory*/,
-				  GtkListItem			  * /*item*/,
-				  gpointer				  /*data*/)
-{
-}
-
-static void
-font_combo_selected_cb (GtkDropDown * /*dropdown*/,
-						GParamSpec	 * /*pspec*/,
-						AbiFontCombo *self)
-{
-	if (self->updating) {
+	if (self->updating)
 		return;
-	}
-	GtkStringObject *str =
-		GTK_STRING_OBJECT (gtk_drop_down_get_selected_item (GTK_DROP_DOWN (self->dropdown)));
-	if (str) {
-		gtk_editable_set_text (GTK_EDITABLE (self->entry),
-							   gtk_string_object_get_string (str));
-	}
+	self->updating = TRUE;
+	gtk_string_filter_set_search (self->filter,
+								  gtk_editable_get_text (GTK_EDITABLE (entry)));
+	self->updating = FALSE;
+	if (!gtk_widget_get_visible (self->popover))
+		gtk_popover_popup (GTK_POPOVER (self->popover));
+}
+
+/* clicking a row applies that font immediately (LibreOffice-style
+ * single-click apply) and closes the popup */
+static void
+font_combo_selection_cb (GtkSingleSelection *sel,
+						 GParamSpec		  * /*pspec*/,
+						 AbiFontCombo	  *self)
+{
+	if (self->updating)
+		return;
+	gpointer item = gtk_single_selection_get_selected_item (sel);
+	if (!item)
+		return;
+	GtkStringObject *str = GTK_STRING_OBJECT (item);
+	gchar * name = g_strdup (gtk_string_object_get_string (str));
+
+	self->updating = TRUE;
+	gtk_editable_set_text (GTK_EDITABLE (self->entry), name);
+	gtk_single_selection_set_selected (sel, GTK_INVALID_LIST_POSITION);
+	self->updating = FALSE;
+
+	gtk_popover_popdown (GTK_POPOVER (self->popover));
 	g_signal_emit (self, font_combo_signals[CHANGED], 0);
+
+	/* the toolbar refresh can report an empty font state while focus
+	 * is still settling after the popup - keep showing the font the
+	 * user just picked */
+	self->updating = TRUE;
+	gtk_editable_set_text (GTK_EDITABLE (self->entry), name);
+	self->updating = FALSE;
+	g_free (name);
 }
 
 /* commit the typed name on <enter> — a font that isn't installed is
@@ -110,18 +123,165 @@ static void
 font_combo_entry_activate_cb (GtkEntry	  * /*entry*/,
 							  AbiFontCombo *self)
 {
+	if (gtk_widget_get_visible (self->popover))
+		gtk_popover_popdown (GTK_POPOVER (self->popover));
+	gchar * text = g_strdup (gtk_editable_get_text (
+		GTK_EDITABLE (self->entry)));
 	g_signal_emit (self, font_combo_signals[CHANGED], 0);
+	/* a null font-state refresh during focus settle must not wipe
+	 * the name the user just committed */
+	self->updating = TRUE;
+	gtk_editable_set_text (GTK_EDITABLE (self->entry),
+						   text ? text : "");
+	self->updating = FALSE;
+	g_free (text);
 }
 
-/* LibreOffice also commits the typed font when the field loses focus */
+/* LibreOffice also commits the typed font when the field loses focus.
+ * The popover opening steals focus, though - while it is up, selection
+ * clicks or <enter> do the committing instead. */
 static void
 font_combo_entry_leave_cb (GtkEventControllerFocus * /*ctrl*/,
 						   AbiFontCombo			 *self)
 {
+	if (self->updating || gtk_widget_get_visible (self->popover))
+		return;
 	const gchar *text = gtk_editable_get_text (GTK_EDITABLE (self->entry));
-	if (text && *text && !self->updating) {
+	if (text && *text) {
 		g_signal_emit (self, font_combo_signals[CHANGED], 0);
 	}
+}
+
+static gboolean
+font_combo_entry_key_cb (GtkEventControllerKey * /*ctrl*/,
+						 guint keyval, guint /*keycode*/,
+						 GdkModifierType /*state*/, AbiFontCombo *self)
+{
+	if (keyval == GDK_KEY_Down &&
+		!gtk_widget_get_visible (self->popover))
+	{
+		gtk_popover_popup (GTK_POPOVER (self->popover));
+		return TRUE;
+	}
+	if (keyval == GDK_KEY_Escape &&
+		gtk_widget_get_visible (self->popover))
+	{
+		gtk_popover_popdown (GTK_POPOVER (self->popover));
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/* the popup's seat grab routes keystrokes to the list - forward
+ * editing keys back to the entry so typing keeps filtering */
+static gboolean
+font_combo_popover_key_cb (GtkEventControllerKey * /*ctrl*/,
+						   guint keyval, guint /*keycode*/,
+						   GdkModifierType state, AbiFontCombo *self)
+{
+	GtkEditable *entry = GTK_EDITABLE (self->entry);
+
+	if (keyval == GDK_KEY_Escape)
+	{
+		gtk_popover_popdown (GTK_POPOVER (self->popover));
+		gtk_widget_grab_focus (self->entry);
+		return TRUE;
+	}
+	if (keyval == GDK_KEY_Return || keyval == GDK_KEY_KP_Enter)
+	{
+		gtk_popover_popdown (GTK_POPOVER (self->popover));
+		gtk_widget_grab_focus (self->entry);
+		g_signal_emit (self, font_combo_signals[CHANGED], 0);
+		return TRUE;
+	}
+	if (state & (GDK_CONTROL_MASK | GDK_ALT_MASK))
+		return FALSE;
+	if (keyval == GDK_KEY_BackSpace)
+	{
+		int start = 0, end = 0;
+		if (gtk_editable_get_selection_bounds (entry, &start, &end) &&
+			start != end)
+			gtk_editable_delete_text (entry, start, end);
+		else
+		{
+			int pos = gtk_editable_get_position (entry);
+			if (pos > 0)
+				gtk_editable_delete_text (entry, pos - 1, pos);
+		}
+		return TRUE;
+	}
+	if (keyval == GDK_KEY_Delete)
+	{
+		int start = 0, end = 0;
+		if (gtk_editable_get_selection_bounds (entry, &start, &end) &&
+			start != end)
+			gtk_editable_delete_text (entry, start, end);
+		else
+		{
+			int pos = gtk_editable_get_position (entry);
+			gtk_editable_delete_text (entry, pos, pos + 1);
+		}
+		return TRUE;
+	}
+	if (keyval == GDK_KEY_Left || keyval == GDK_KEY_Right ||
+		keyval == GDK_KEY_Home || keyval == GDK_KEY_End)
+		return FALSE;	/* let the list scroll; entry cursor keys are
+						 * less useful while the popup is up */
+	gunichar ch = gdk_keyval_to_unicode (keyval);
+	if (ch && g_unichar_isprint (ch))
+	{
+		char utf8[8];
+		int len = g_unichar_to_utf8 (ch, utf8);
+		utf8[len] = '\0';
+		int pos = gtk_editable_get_position (entry);
+		gtk_editable_insert_text (entry, utf8, len, &pos);
+		gtk_editable_set_position (entry, pos);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/* arrow button: open the popup below the field with the full list,
+ * preselecting and scrolling to the current font */
+static void
+font_combo_arrow_cb (GtkButton * /*btn*/, AbiFontCombo *self)
+{
+	if (gtk_widget_get_visible (self->popover))
+	{
+		gtk_popover_popdown (GTK_POPOVER (self->popover));
+		return;
+	}
+	self->updating = TRUE;
+	gtk_string_filter_set_search (self->filter, nullptr);
+	self->arrow_open = TRUE;
+	gtk_popover_popup (GTK_POPOVER (self->popover));
+	self->updating = FALSE;
+}
+
+static guint
+abi_font_combo_find (AbiFontCombo *self, const gchar *text);
+
+/* after the arrow-opened popup is shown, select the current font and
+ * scroll it into view */
+static void
+font_combo_popover_show_cb (GtkWidget * /*popover*/, AbiFontCombo *self)
+{
+	if (!self->arrow_open)
+		return;
+	self->arrow_open = FALSE;
+
+	const gchar *text = gtk_editable_get_text (GTK_EDITABLE (self->entry));
+	guint pos = (text && *text) ? abi_font_combo_find (self, text)
+								: GTK_INVALID_LIST_POSITION;
+	if (pos == GTK_INVALID_LIST_POSITION)
+		return;
+	self->updating = TRUE;
+	gtk_single_selection_set_selected (self->sel, pos);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+	gtk_list_view_scroll_to (GTK_LIST_VIEW (self->listview), pos,
+							 GTK_LIST_SCROLL_NONE, nullptr);
+G_GNUC_END_IGNORE_DEPRECATIONS
+	self->updating = FALSE;
 }
 
 static void
@@ -129,8 +289,12 @@ abi_font_combo_init (AbiFontCombo *self, gpointer)
 {
 	self->strings = nullptr;
 	self->sort = nullptr;
+	self->filtered = nullptr;
+	self->filter = nullptr;
+	self->sel = nullptr;
 	self->is_disposed = FALSE;
 	self->updating = FALSE;
+	self->arrow_open = FALSE;
 }
 
 static void
@@ -142,8 +306,14 @@ abi_font_combo_dispose (GObject *instance)
 		return;
 	}
 
+	if (self->popover)
+		gtk_widget_unparent (self->popover);
+
 	g_clear_object (&self->strings);
 	g_clear_object (&self->sort);
+	g_clear_object (&self->filtered);
+	g_clear_object (&self->filter);
+	g_clear_object (&self->sel);
 
 	self->is_disposed = TRUE;
 	G_OBJECT_CLASS (abi_font_combo_parent_class)->dispose (instance);
@@ -198,17 +368,29 @@ abi_font_combo_new (void)
 	gtk_widget_add_css_class (GTK_WIDGET (self), "linked");
 
 	/* LibreOffice-style font box: an editable entry for typing font
-	 * names, with a dropdown arrow on the right. */
+	 * names, with a dropdown arrow on the right. Typing in the entry
+	 * is the search — the list filters live on the text. */
 	self->entry = gtk_entry_new ();
 	gtk_widget_set_hexpand (self->entry, TRUE);
 	gtk_editable_set_width_chars (GTK_EDITABLE (self->entry), 15);
 	gtk_box_append (GTK_BOX (self), self->entry);
 	g_signal_connect (self->entry, "activate",
 					  G_CALLBACK (font_combo_entry_activate_cb), self);
+	g_signal_connect (self->entry, "changed",
+					  G_CALLBACK (font_combo_entry_changed_cb), self);
 	GtkEventController *focus_ctrl = gtk_event_controller_focus_new ();
 	g_signal_connect (focus_ctrl, "leave",
 					  G_CALLBACK (font_combo_entry_leave_cb), self);
 	gtk_widget_add_controller (self->entry, focus_ctrl);
+	GtkEventController *key_ctrl = gtk_event_controller_key_new ();
+	g_signal_connect (key_ctrl, "key-pressed",
+					  G_CALLBACK (font_combo_entry_key_cb), self);
+	gtk_widget_add_controller (self->entry, key_ctrl);
+
+	self->arrow = gtk_button_new_from_icon_name ("pan-down-symbolic");
+	gtk_box_append (GTK_BOX (self), self->arrow);
+	g_signal_connect (self->arrow, "clicked",
+					  G_CALLBACK (font_combo_arrow_cb), self);
 
 	self->strings = gtk_string_list_new (nullptr);
 
@@ -221,35 +403,56 @@ abi_font_combo_new (void)
 	/* sort lazily; the model holds several thousand fonts */
 	gtk_sort_list_model_set_incremental (self->sort, TRUE);
 
+	/* typed text filters the list live */
+	GtkExpression *filter_expr =
+		gtk_property_expression_new (GTK_TYPE_STRING_OBJECT, nullptr, "string");
+	self->filter = gtk_string_filter_new (filter_expr);
+	gtk_string_filter_set_match_mode (self->filter,
+									  GTK_STRING_FILTER_MATCH_MODE_SUBSTRING);
+	gtk_string_filter_set_ignore_case (self->filter, TRUE);
+	self->filtered = gtk_filter_list_model_new (
+		G_LIST_MODEL (g_object_ref (self->sort)), GTK_FILTER (self->filter));
+	gtk_filter_list_model_set_incremental (self->filtered, TRUE);
+
+	self->sel = gtk_single_selection_new (
+		G_LIST_MODEL (g_object_ref (self->filtered)));
+	gtk_single_selection_set_autoselect (self->sel, FALSE);
+	g_signal_connect (self->sel, "notify::selected-item",
+					  G_CALLBACK (font_combo_selection_cb), self);
+
 	GtkListItemFactory *list_factory = gtk_signal_list_item_factory_new ();
 	g_signal_connect (list_factory, "setup", G_CALLBACK (font_item_setup), nullptr);
 	g_signal_connect (list_factory, "bind", G_CALLBACK (font_item_bind), nullptr);
 
-	GtkListItemFactory *button_factory = gtk_signal_list_item_factory_new ();
-	g_signal_connect (button_factory, "setup", G_CALLBACK (button_item_setup), nullptr);
-	g_signal_connect (button_factory, "bind", G_CALLBACK (button_item_bind), nullptr);
+	self->listview = gtk_list_view_new (GTK_SELECTION_MODEL (self->sel),
+									  list_factory);
 
-	GtkExpression *search_expr =
-		gtk_property_expression_new (GTK_TYPE_STRING_OBJECT, nullptr, "string");
+	GtkWidget * scroll = gtk_scrolled_window_new ();
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll),
+									GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scroll), 400);
+	gtk_scrolled_window_set_propagate_natural_height (
+		GTK_SCROLLED_WINDOW (scroll), TRUE);
+	gtk_scrolled_window_set_propagate_natural_width (
+		GTK_SCROLLED_WINDOW (scroll), TRUE);
+	gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll), self->listview);
 
-	/* the expression must be set before the factories: setting an
-	 * expression afterwards makes GtkDropDown reinstall its default
-	 * factory, and the button would show the selected item's text */
-	self->dropdown = gtk_drop_down_new (G_LIST_MODEL (g_object_ref (self->sort)),
-										search_expr);
-	gtk_drop_down_set_factory (GTK_DROP_DOWN (self->dropdown), button_factory);
-	gtk_drop_down_set_list_factory (GTK_DROP_DOWN (self->dropdown), list_factory);
-	gtk_drop_down_set_enable_search (GTK_DROP_DOWN (self->dropdown), TRUE);
-	gtk_box_append (GTK_BOX (self), self->dropdown);
-
-	g_object_unref (list_factory);
-	g_object_unref (button_factory);
-	/* gtk_drop_down_new takes over search_expr (transfer full);
-	 * unref'ing it here would leave the dropdown with a dangling
-	 * expression */
-
-	g_signal_connect (self->dropdown, "notify::selected",
-					  G_CALLBACK (font_combo_selected_cb), self);
+	/* popover parents to the combo box so the list drops below the
+	 * field, flush with its left edge */
+	self->popover = gtk_popover_new ();
+	gtk_widget_set_parent (self->popover, GTK_WIDGET (self));
+	gtk_popover_set_position (GTK_POPOVER (self->popover), GTK_POS_BOTTOM);
+	gtk_popover_set_has_arrow (GTK_POPOVER (self->popover), FALSE);
+	gtk_popover_set_child (GTK_POPOVER (self->popover), scroll);
+	g_signal_connect (self->popover, "show",
+					  G_CALLBACK (font_combo_popover_show_cb), self);
+	/* capture keys before the list's typeahead so typing keeps going
+	 * to the entry */
+	GtkEventController *pop_key = gtk_event_controller_key_new ();
+	gtk_event_controller_set_propagation_phase (pop_key, GTK_PHASE_CAPTURE);
+	g_signal_connect (pop_key, "key-pressed",
+					  G_CALLBACK (font_combo_popover_key_cb), self);
+	gtk_widget_add_controller (self->popover, pop_key);
 
 	return GTK_WIDGET (self);
 }
@@ -290,9 +493,10 @@ abi_font_combo_select_text (AbiFontCombo *self, const gchar *text)
 {
 	self->updating = TRUE;
 	gtk_editable_set_text (GTK_EDITABLE (self->entry), text ? text : "");
+	gtk_string_filter_set_search (self->filter, nullptr);
 	guint pos = text ? abi_font_combo_find (self, text)
 					 : GTK_INVALID_LIST_POSITION;
-	gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown), pos);
+	gtk_single_selection_set_selected (self->sel, pos);
 	self->updating = FALSE;
 	return pos != GTK_INVALID_LIST_POSITION;
 }
@@ -300,10 +504,13 @@ abi_font_combo_select_text (AbiFontCombo *self, const gchar *text)
 void
 abi_font_combo_unselect (AbiFontCombo *self)
 {
+	/* LibreOffice keeps showing the last font name even when the
+	 * view has no font context - blanking the field mid-edit just
+	 * loses what the user typed */
 	self->updating = TRUE;
-	gtk_editable_set_text (GTK_EDITABLE (self->entry), "");
-	gtk_drop_down_set_selected (GTK_DROP_DOWN (self->dropdown),
-								GTK_INVALID_LIST_POSITION);
+	gtk_string_filter_set_search (self->filter, nullptr);
+	gtk_single_selection_set_selected (self->sel,
+									   GTK_INVALID_LIST_POSITION);
 	self->updating = FALSE;
 }
 

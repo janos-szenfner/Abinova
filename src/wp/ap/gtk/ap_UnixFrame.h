@@ -70,6 +70,8 @@ protected:
 	// scrolling function
 	static void _scrollFuncX(void * pData, UT_sint32 xoff, UT_sint32 xlimit);
 	static void _scrollFuncY(void * pData, UT_sint32 yoff, UT_sint32 ylimit);
+	static gboolean _scrollAnimTick(GtkWidget * w, GdkFrameClock * clock,
+									gpointer data);
 
 };
 

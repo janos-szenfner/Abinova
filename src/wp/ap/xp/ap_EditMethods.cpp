@@ -549,6 +549,11 @@ public:
 	static EV_EditMethod_Fn fontSize;
 	static EV_EditMethod_Fn fontSizeIncrease;
 	static EV_EditMethod_Fn fontSizeDecrease;
+	static EV_EditMethod_Fn caseLower;
+	static EV_EditMethod_Fn caseSentence;
+	static EV_EditMethod_Fn caseTitle;
+	static EV_EditMethod_Fn caseToggle;
+	static EV_EditMethod_Fn caseUpper;
 	static EV_EditMethod_Fn clearFormatting;
 	static EV_EditMethod_Fn toggleBold;
 	static EV_EditMethod_Fn toggleDisplayAnnotations;
@@ -831,6 +836,11 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(cairoPrint), 0, ""),
 	EV_EditMethod(NF(cairoPrintDirectly), 0, ""),
 	EV_EditMethod(NF(cairoPrintPreview), 0, ""),
+	EV_EditMethod(NF(caseLower),			0,	""),
+	EV_EditMethod(NF(caseSentence),			0,	""),
+	EV_EditMethod(NF(caseTitle),			0,	""),
+	EV_EditMethod(NF(caseToggle),			0,	""),
+	EV_EditMethod(NF(caseUpper),			0,	""),
 	EV_EditMethod(NF(clearFormatting),		0,	""),
 	EV_EditMethod(NF(clearSetCols), 0, ""),
 	EV_EditMethod(NF(clearSetRows), 0, ""),
@@ -3411,6 +3421,58 @@ Defun1(rotateCase)
 	return true;
 }
 
+/* direct Change Case entries for the ribbon "Aa" dropdown,
+ * LibreOffice-style */
+Defun1(caseSentence)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	pView->toggleCase(CASE_SENTENCE);
+
+	return true;
+}
+
+Defun1(caseLower)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	pView->toggleCase(CASE_LOWER);
+
+	return true;
+}
+
+Defun1(caseUpper)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	pView->toggleCase(CASE_UPPER);
+
+	return true;
+}
+
+Defun1(caseTitle)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	pView->toggleCase(CASE_TITLE);
+
+	return true;
+}
+
+Defun1(caseToggle)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	pView->toggleCase(CASE_TOGGLE);
+
+	return true;
+}
+
 Defun1(dlgAbout)
 {
 	CHECK_FRAME;
@@ -3656,13 +3718,13 @@ Defun0(helpIntro)
 
 Defun0(helpCheckVer)
 {
-	UT_String versionURL ("https://gitlab.gnome.org/World/AbiWord/-/tags");
+	UT_String versionURL ("https://github.com/janos-szenfner/Exp-Abi/tags");
 	return _openURL(versionURL.c_str());
 }
 
 Defun0(helpReportBug)
 {
-	UT_String bugURL ("https://gitlab.gnome.org/World/AbiWord/-/issues/new");
+	UT_String bugURL ("https://github.com/janos-szenfner/Exp-Abi/issues/new");
 
   return _openURL(bugURL.c_str());
 }

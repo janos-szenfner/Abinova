@@ -341,11 +341,15 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				 * opening a popover with the related choices */
 				if (item->flags & AP_RIBBON_FLAG_SPLIT)
 				{
-					GtkWidget * popover =
-						(item->kind == AP_RIBBON_ITEM_MENU &&
-						 item->id == (uint16_t)AP_MENU_ID_EDIT_PASTE)
-						? _makePastePopover()
-						: _makeListPopover();
+					GtkWidget * popover;
+					if (item->kind == AP_RIBBON_ITEM_MENU &&
+						item->id == (uint16_t)AP_MENU_ID_EDIT_PASTE)
+						popover = _makePastePopover();
+					else if (item->kind == AP_RIBBON_ITEM_MENU &&
+							 item->id == (uint16_t)AP_MENU_ID_FMT_TOGGLECASE)
+						popover = _makeChangeCasePopover();
+					else
+						popover = _makeListPopover();
 					w = _wrapSplit(w, popover,
 								   (item->flags & AP_RIBBON_FLAG_LARGE) != 0);
 				}
@@ -487,6 +491,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		case AP_MENU_ID_FMT_SUBSCRIPT:  markup = "x<sub>2</sub>"; break;
 		case AP_MENU_ID_FMT_GROWFONT:   markup = "A<sup>+</sup>"; break;
 		case AP_MENU_ID_FMT_SHRINKFONT: markup = "A<sup>&#x2212;</sup>"; break;
+		case AP_MENU_ID_FMT_TOGGLECASE: markup = "Aa"; break;
 		default: break;
 		}
 		if (markup)
@@ -824,6 +829,107 @@ void AP_UnixRibbon::_s_tb_color_activated(GtkColorChooser * cc, GdkRGBA * color,
 								  str.ucs4_str().ucs4_str(), str.size());
 }
 
+/* one click on a palette swatch applies the colour and closes the
+ * popover, like LibreOffice's colour picker */
+void AP_UnixRibbon::_s_tb_color_swatch_clicked(GtkWidget * w, gpointer data)
+{
+	_TbCtx * ctx = static_cast<_TbCtx *>(data);
+	const gchar * hex = static_cast<const gchar *>(
+		g_object_get_data(G_OBJECT(w), "abi-color-hex"));
+	UT_return_if_fail(ctx && ctx->self && hex);
+
+	UT_UTF8String str = hex;
+	_tb_popdown_popover(w);
+	ctx->self->_invokeToolbarItem(ctx->id,
+								  str.ucs4_str().ucs4_str(), str.size());
+}
+
+/* "Custom Color…" opens a real dialog with Select/Cancel so the user
+ * can always get back; the chosen colour applies on Select */
+void AP_UnixRibbon::_s_tb_color_custom_response(GtkDialog * dlg,
+												gint response,
+												gpointer data)
+{
+	_TbCtx * ctx = static_cast<_TbCtx *>(data);
+	if (response == GTK_RESPONSE_OK && ctx && ctx->self)
+	{
+		GdkRGBA color;
+		gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(dlg), &color);
+		UT_UTF8String str = UT_UTF8String_sprintf("%02x%02x%02x",
+			static_cast<int>(color.red   * 255),
+			static_cast<int>(color.green * 255),
+			static_cast<int>(color.blue  * 255));
+		ctx->self->_invokeToolbarItem(ctx->id,
+									  str.ucs4_str().ucs4_str(), str.size());
+	}
+	gtk_window_destroy(GTK_WINDOW(dlg));
+}
+
+void AP_UnixRibbon::_s_tb_color_custom_clicked(GtkWidget * w, gpointer data)
+{
+	_TbCtx * ctx = static_cast<_TbCtx *>(data);
+	UT_return_if_fail(ctx && ctx->self);
+	_tb_popdown_popover(w);
+
+	GtkWidget * toplevel =
+		GTK_WIDGET(gtk_widget_get_root(w));
+	GtkWidget * dlg = gtk_color_chooser_dialog_new(
+		"Custom Color",
+		toplevel ? GTK_WINDOW(toplevel) : nullptr);
+
+	/* default to black for font colour, yellow for highlight */
+	GdkRGBA initial = { 0.0, 0.0, 0.0, 1.0 };
+	if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_COLOR_BACK)
+	{
+		initial.red = 1.0;
+		initial.green = 1.0;
+	}
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(dlg), &initial);
+	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(dlg), FALSE);
+	g_signal_connect(dlg, "response",
+					 G_CALLBACK(_s_tb_color_custom_response), ctx);
+	gtk_window_present(GTK_WINDOW(dlg));
+}
+
+GtkWidget * AP_UnixRibbon::_tb_color_swatch(const gchar * hex, _TbCtx * ctx)
+{
+	GtkWidget * sw = gtk_button_new();
+	gtk_widget_set_size_request(sw, 20, 20);
+	gtk_widget_set_tooltip_text(sw, hex);
+
+	char css[160];
+	g_snprintf(css, sizeof(css),
+			   "button { background-image: none; background-color: #%s;"
+			   " min-width: 20px; min-height: 20px; padding: 0; }",
+			   hex);
+	GtkCssProvider * cssProv = gtk_css_provider_new();
+	gtk_css_provider_load_from_string(cssProv, css);
+	gtk_style_context_add_provider(gtk_widget_get_style_context(sw),
+								   GTK_STYLE_PROVIDER(cssProv),
+								   GTK_STYLE_PROVIDER_PRIORITY_USER);
+	g_object_unref(cssProv);
+
+	g_object_set_data_full(G_OBJECT(sw), "abi-color-hex",
+						   g_strdup(hex), g_free);
+	g_signal_connect(sw, "clicked",
+					 G_CALLBACK(_s_tb_color_swatch_clicked), ctx);
+	return sw;
+}
+
+/* compact standard palette, LibreOffice-style: neutrals, vivid,
+ * light and dark rows */
+static const char * const _s_color_palette[] =
+{
+	"000000", "444444", "666666", "999999", "bbbbbb",
+	"cccccc", "dddddd", "eeeeee", "f7f7f7", "ffffff",
+	"ff0000", "ff9900", "ffff00", "00ff00", "00ffff",
+	"0000ff", "9900ff", "ff00ff", "e69138", "a67c52",
+	"ffcccc", "ffe5cc", "ffffcc", "ccffcc", "ccffff",
+	"ccccff", "e5ccff", "ffccff", "f4cccc", "d9d2e9",
+	"990000", "b45f06", "bf9000", "38761d", "0c8577",
+	"000099", "674ea7", "a64d79", "783f04", "1155cc"
+};
+
 void AP_UnixRibbon::_s_tb_color_automatic(GtkWidget * widget, gpointer data)
 {
 	_TbCtx * ctx =
@@ -880,11 +986,24 @@ GtkWidget * AP_UnixRibbon::_tb_color_button_new(const gchar * icon_name,
 		gtk_box_append(GTK_BOX(box), automatic);
 	}
 
-	GtkWidget * chooser = gtk_color_chooser_widget_new();
-	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(chooser), FALSE);
-	g_signal_connect(G_OBJECT(chooser), "color-activated",
-					 G_CALLBACK(_s_tb_color_activated), ctx);
-	gtk_box_append(GTK_BOX(box), chooser);
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 2);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
+	for (guint i = 0; i < G_N_ELEMENTS(_s_color_palette); ++i)
+	{
+		GtkWidget * sw = _tb_color_swatch(_s_color_palette[i], ctx);
+		gtk_grid_attach(GTK_GRID(grid), sw, i % 10, i / 10, 1, 1);
+	}
+	gtk_box_append(GTK_BOX(box), grid);
+
+	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+	GtkWidget * custom = gtk_button_new_with_label(
+		(pSS && pSS->getValue(XAP_STRING_ID_TB_CustomColor))
+			? pSS->getValue(XAP_STRING_ID_TB_CustomColor)
+			: "Custom Color...");
+	g_signal_connect(G_OBJECT(custom), "clicked",
+					 G_CALLBACK(_s_tb_color_custom_clicked), ctx);
+	gtk_box_append(GTK_BOX(box), custom);
 
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(button), popover);
@@ -1328,6 +1447,32 @@ GtkWidget * AP_UnixRibbon::_makeListPopover()
 
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_FMT_BULLETS);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* Change Case: the LibreOffice "Aa" dropdown - five direct case
+ * conversions wired straight to the edit methods */
+GtkWidget * AP_UnixRibbon::_makeChangeCasePopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * w = _popoverEmButton("Sentence case", nullptr, "caseSentence");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("lowercase", nullptr, "caseLower");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("UPPERCASE", nullptr, "caseUpper");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("Capitalize Every Word", nullptr, "caseTitle");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("tOGGLE cASE", nullptr, "caseToggle");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
