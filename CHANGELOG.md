@@ -379,6 +379,12 @@ below are on `main` but the release has not been cut yet.
   was re-encoded keeping valid UTF-8 sequences and decoding the
   stray legacy bytes as CP1250, so Polish diacritics now render
   correctly.
+- **File tab redesigned like the Help tab** — all items are large
+  icon-over-label buttons (New, New using Template, Open, Save,
+  Save As, Revert, Properties, Close | Page Setup, Print Preview,
+  Print) with new icon mappings for the template and page-setup
+  entries; the redundant "Save a Copy" item was removed from the
+  ribbon (Save / Save As cover it).
 
 ### Ubuntu Launchpad bug fixes
 

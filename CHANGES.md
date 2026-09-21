@@ -3,6 +3,16 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## File ribbon tab: large icon buttons, "Save a Copy" removed
+
+- File tab groups (Document, Print) now use the Help-tab style —
+  large icon-over-label buttons instead of the compact text list.
+- Added icon mappings for "New using Template"
+  (x-office-document-template) and "Page Setup"
+  (document-page-setup).
+- "Save a Copy" (AP_MENU_ID_FILE_EXPORT) dropped from the ribbon —
+  duplicate of Save / Save As.
+
 ## Word-compatible styles, internal help window, visible group separators
 
 - Built-in styles reworked to match Word: Normal gets 1.15 line

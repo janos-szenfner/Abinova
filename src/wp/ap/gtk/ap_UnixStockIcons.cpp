@@ -158,6 +158,7 @@ static struct AbiStockMapping {
 	const gchar 		*gtk_stock_id;
 } const stock_mapping[] = {
   { ABIWORD_FILE_NEW,				AP_MENU_ID_FILE_NEW,			"document-new" },
+  { "abiword-file-new-template",	AP_MENU_ID_FILE_NEW_USING_TEMPLATE,	"x-office-document-template" },
   { ABIWORD_FILE_OPEN,				AP_MENU_ID_FILE_OPEN,			"document-open" },
   { ABIWORD_FILE_SAVE,				AP_MENU_ID_FILE_SAVE,			"document-save" },
   { ABIWORD_FILE_SAVEAS,			AP_MENU_ID_FILE_SAVEAS,			"document-save-as" },
@@ -167,6 +168,7 @@ static struct AbiStockMapping {
   { ABIWORD_FILE_REVERT,			AP_MENU_ID_FILE_REVERT,			"document-revert" },
   { ABIWORD_FILE_PROPERTIES,		AP_MENU_ID_FILE_PROPERTIES,		"document-properties" },
   { ABIWORD_FILE_EXIT,				AP_MENU_ID_FILE_EXIT,			"application-exit" },
+  { "abiword-file-pagesetup",		AP_MENU_ID_FILE_PAGESETUP,		"document-page-setup" },
   { ABIWORD_SPELLCHECK,				AP_MENU_ID_TOOLS_SPELL,			"tools-check-spelling" },
 
   { ABIWORD_EDIT_CUT,				AP_MENU_ID_EDIT_CUT,			"edit-cut" },
