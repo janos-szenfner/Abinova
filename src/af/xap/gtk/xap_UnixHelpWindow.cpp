@@ -41,14 +41,20 @@ static std::string bodyOnly(const std::string& html)
 	for (const char * tag : {"head", "script", "style"})
 	{
 		std::string open = "<"; open += tag;
-		size_t b = s.find(open);
-		if (b == std::string::npos)
-			continue;
 		std::string close = "</"; close += tag; close += ">";
-		size_t e = s.find(close, b);
-		if (e == std::string::npos)
-			continue;
-		s.erase(b, e + close.size() - b);
+		for (;;)
+		{
+			size_t b = s.find(open);
+			if (b == std::string::npos)
+				break;
+			size_t e = s.find(close, b);
+			if (e == std::string::npos)
+			{
+				s.erase(b);
+				break;
+			}
+			s.erase(b, e + close.size() - b);
+		}
 	}
 	for (;;)
 	{
@@ -174,11 +180,14 @@ XAP_UnixHelpWindow::XAP_UnixHelpWindow(XAP_Frame * pFrame)
 	, m_wLang(nullptr)
 	, m_wText(nullptr)
 	, m_lang("en-US")
+	, m_iSearchTimer(0)
 {
 }
 
 XAP_UnixHelpWindow::~XAP_UnixHelpWindow()
 {
+	if (m_iSearchTimer)
+		g_source_remove(m_iSearchTimer);
 	if (m_wWindow)
 		gtk_window_destroy(GTK_WINDOW(m_wWindow));
 }
@@ -291,15 +300,12 @@ std::string XAP_UnixHelpWindow::_pageTitle(const std::string& html,
 	return fallback;
 }
 
-void XAP_UnixHelpWindow::_renderHtml(const std::string& html)
+/* drop the anonymous per-link tags from the previous page/search so
+ * the tag table does not grow without bound */
+void XAP_UnixHelpWindow::_clearLinkTags()
 {
 	GtkTextBuffer * buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(m_wText));
-	gtk_text_buffer_set_text(buf, "", -1);
-
-	/* reuse the named style tags across page loads */
 	GtkTextTagTable * tt = gtk_text_buffer_get_tag_table(buf);
-	/* drop the anonymous per-link tags from the previous page so the
-	 * tag table does not grow without bound */
 	std::vector<GtkTextTag*> dead;
 	gtk_text_tag_table_foreach(tt,
 		+[](GtkTextTag * t, gpointer d)
@@ -309,6 +315,16 @@ void XAP_UnixHelpWindow::_renderHtml(const std::string& html)
 		}, &dead);
 	for (GtkTextTag * t : dead)
 		gtk_text_tag_table_remove(tt, t);
+}
+
+void XAP_UnixHelpWindow::_renderHtml(const std::string& html)
+{
+	GtkTextBuffer * buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(m_wText));
+	gtk_text_buffer_set_text(buf, "", -1);
+
+	/* reuse the named style tags across page loads */
+	GtkTextTagTable * tt = gtk_text_buffer_get_tag_table(buf);
+	_clearLinkTags();
 	auto getTag = [&](const char * name, auto... props) -> GtkTextTag *
 	{
 		GtkTextTag * t = gtk_text_tag_table_lookup(tt, name);
@@ -482,11 +498,16 @@ void XAP_UnixHelpWindow::_runSearch(const char * query)
 {
 	GtkTextBuffer * buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(m_wText));
 	gtk_text_buffer_set_text(buf, "", -1);
+	/* drop the previous result page's link tags */
+	_clearLinkTags();
 	GtkTextIter iter;
 	gtk_text_buffer_get_start_iter(buf, &iter);
 
-	GtkTextTag * tagH1 = gtk_text_buffer_create_tag(buf, nullptr,
-		"scale", 1.4, "weight", PANGO_WEIGHT_BOLD, nullptr);
+	GtkTextTagTable * tt = gtk_text_buffer_get_tag_table(buf);
+	GtkTextTag * tagH1 = gtk_text_tag_table_lookup(tt, "search-h1");
+	if (!tagH1)
+		tagH1 = gtk_text_buffer_create_tag(buf, "search-h1",
+			"scale", 1.4, "weight", PANGO_WEIGHT_BOLD, nullptr);
 	gtk_text_buffer_insert_with_tags(buf, &iter, "Search results", -1,
 									 tagH1, nullptr);
 	gtk_text_buffer_insert(buf, &iter, "\n\n", -1);
@@ -623,7 +644,23 @@ void XAP_UnixHelpWindow::_s_search(GtkSearchEntry * e, gpointer data)
 	XAP_UnixHelpWindow * self = static_cast<XAP_UnixHelpWindow *>(data);
 	const char * q = gtk_editable_get_text(GTK_EDITABLE(e));
 	if (q && *q)
-		self->_runSearch(q);
+	{
+		/* search-changed fires per keystroke and a full scan takes
+		 * noticeable time - debounce to ~200 ms of idle */
+		if (self->m_iSearchTimer)
+			g_source_remove(self->m_iSearchTimer);
+		self->m_iSearchTimer = g_timeout_add(200,
+			+[](gpointer d) -> gboolean
+			{
+				XAP_UnixHelpWindow * s =
+					static_cast<XAP_UnixHelpWindow *>(d);
+				s->m_iSearchTimer = 0;
+				const char * t = gtk_editable_get_text(
+					GTK_EDITABLE(s->m_wSearch));
+				s->_runSearch(t ? t : "");
+				return G_SOURCE_REMOVE;
+			}, self);
+	}
 	else
 		self->_loadPage(self->m_page);
 }
@@ -750,8 +787,8 @@ void XAP_UnixHelpWindow::show(const char * page, bool bFocusSearch)
 
 		m_wSearch = gtk_search_entry_new();
 		gtk_widget_set_hexpand(m_wSearch, TRUE);
-		gtk_search_entry_set_placeholder_text(
-			GTK_SEARCH_ENTRY(m_wSearch), "Search help…");
+		g_object_set(m_wSearch, "placeholder-text", "Search help…",
+					 nullptr);
 		g_signal_connect(m_wSearch, "activate",
 						 G_CALLBACK(_s_search), this);
 		g_signal_connect(m_wSearch, "search-changed",

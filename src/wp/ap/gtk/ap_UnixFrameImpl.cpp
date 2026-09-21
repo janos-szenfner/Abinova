@@ -366,6 +366,31 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	return m_wDocPaned;
 }
 
+/* helpers for the deferred paned-position set: the widget is tracked
+ * through a heap cell that a weak ref clears on destruction, so a
+ * frame closed before the idle fires can't use a dead widget */
+static void s_panedCellCleared(gpointer d, GObject * /*dead*/)
+{
+	*static_cast<GtkWidget **>(d) = nullptr;
+}
+
+static gboolean s_panedPositionIdle(gpointer data)
+{
+	GtkWidget ** pp = static_cast<GtkWidget **>(data);
+	GtkWidget * w = *pp;
+	if (w)
+		g_object_weak_unref(G_OBJECT(w), s_panedCellCleared, pp);
+	delete pp;
+	if (!w)
+		return G_SOURCE_REMOVE;
+	GtkWidget * end = gtk_paned_get_end_child(GTK_PANED(w));
+	GtkAllocation alloc;
+	gtk_widget_get_allocation(w, &alloc);
+	if (end && gtk_widget_get_visible(end) && alloc.width > 400)
+		gtk_paned_set_position(GTK_PANED(w), alloc.width - 300);
+	return G_SOURCE_REMOVE;
+}
+
 void AP_UnixFrameImpl::setStylesPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wStylesPaneW)
@@ -377,21 +402,13 @@ void AP_UnixFrameImpl::setStylesPaneVisible(bool bVisible)
 		 * createWidget ran before the view was attached */
 		m_pStylesPane->rebuildList();
 		/* the paned position must be set after the end child maps,
-		 * otherwise it clamps to 0 and the pane stays collapsed */
-		g_idle_add([](gpointer data) -> gboolean {
-			AP_UnixFrameImpl * self =
-				static_cast<AP_UnixFrameImpl *>(data);
-			if (self->m_wDocPaned &&
-				gtk_widget_get_visible(self->m_wStylesPaneW))
-			{
-				GtkAllocation alloc;
-				gtk_widget_get_allocation(self->m_wDocPaned, &alloc);
-				if (alloc.width > 400)
-					gtk_paned_set_position(GTK_PANED(self->m_wDocPaned),
-										   alloc.width - 300);
-			}
-			return G_SOURCE_REMOVE;
-		}, this);
+		 * otherwise it clamps to 0 and the pane stays collapsed.
+		 * The widget is tracked through a heap cell + weak ref so a
+		 * frame closed before the idle fires can't UAF. */
+		GtkWidget ** pp = new GtkWidget *(m_wDocPaned);
+		g_object_weak_ref(G_OBJECT(m_wDocPaned),
+						  s_panedCellCleared, pp);
+		g_idle_add(s_panedPositionIdle, pp);
 	}
 }
 

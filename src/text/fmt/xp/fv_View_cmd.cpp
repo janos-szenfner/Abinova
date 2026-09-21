@@ -6771,7 +6771,13 @@ bool FV_View::cmdParaBorder(const char * szWhich)
 		return false;
 
 	m_pDoc->beginUserAtomicGlob();
-	static const char * edges[4] = {"top", "bot", "left", "right"};
+	/* edge property names must outlive props - static storage */
+	static const char * edgeProps[4][3] = {
+		{"top-style", "top-color", "top-thickness"},
+		{"bot-style", "bot-color", "bot-thickness"},
+		{"left-style", "left-color", "left-thickness"},
+		{"right-style", "right-color", "right-thickness"},
+	};
 	for (UT_sint32 i = 0; i < iLastBlock; ++i)
 	{
 		fl_BlockLayout * pBL = vBlock.getNthItem(i);
@@ -6782,14 +6788,11 @@ bool FV_View::cmdParaBorder(const char * szWhich)
 		{
 			if (!on[e])
 				continue;
-			std::string st = std::string(edges[e]) + "-style";
-			std::string cl = std::string(edges[e]) + "-color";
-			std::string th = std::string(edges[e]) + "-thickness";
-			props.push_back(st.c_str());
+			props.push_back(edgeProps[e][0]);
 			props.push_back("solid");
-			props.push_back(cl.c_str());
+			props.push_back(edgeProps[e][1]);
 			props.push_back("000000");
-			props.push_back(th.c_str());
+			props.push_back(edgeProps[e][2]);
 			props.push_back("0.5pt");
 		}
 		if (!props.empty())

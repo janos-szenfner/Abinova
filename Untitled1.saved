@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml.dtd">
+<abiword xmlns:ct="http://www.abisource.com/changetracking.dtd" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:math="http://www.w3.org/1998/Math/MathML" version="4.0.0" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:awml="http://www.abisource.com/awml.dtd" fileformat="1.1" xml:space="preserve" xmlns="http://www.abisource.com/awml.dtd" xid-max="2" template="false" props="document-footnote-restart-section:0; document-footnote-initial:1; document-endnote-restart-section:0; document-endnote-place-endsection:0; dom-dir:ltr; document-endnote-place-enddoc:1; lang:en-US; document-endnote-initial:1; document-endnote-type:numeric; document-footnote-type:numeric; document-footnote-restart-page:0">
+<!-- ======================================================================== -->
+<!-- This file is an AbiWord document.                                        -->
+<!-- AbiWord is a free, Open Source word processor.                           -->
+<!-- More information about AbiWord is available at http://www.abisource.com/ -->
+<!-- You should not edit this file by hand.                                   -->
+<!-- ======================================================================== -->
+
+  <metadata>
+    <m key="abiword.generator">AbiWord</m>
+    <m key="dc.creator">szefi</m>
+    <m key="dc.format">application/x-abiword</m>
+  </metadata>
+  <rdf/>
+  <pagesize pagetype="A4" orientation="portrait" width="210.00000000000003" height="297" units="mm" page-scale="1"/>
+  <section xid="1">
+    <p xid="2">kjhkjhjkh</p>
+</section>
+</abiword>

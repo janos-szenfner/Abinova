@@ -36,6 +36,8 @@ class AP_UnixStylesPane
 public:
 	AP_UnixStylesPane(XAP_Frame * pFrame);
 	~AP_UnixStylesPane();
+	AP_UnixStylesPane(const AP_UnixStylesPane&) = delete;
+	AP_UnixStylesPane& operator=(const AP_UnixStylesPane&) = delete;
 
 	GtkWidget *		createWidget();
 	/* szCurrentStyle = internal style name at the caret; nullptr keeps

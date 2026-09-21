@@ -36,6 +36,8 @@ class XAP_UnixHelpWindow
 public:
 	XAP_UnixHelpWindow(XAP_Frame * pFrame);
 	~XAP_UnixHelpWindow();
+	XAP_UnixHelpWindow(const XAP_UnixHelpWindow&) = delete;
+	XAP_UnixHelpWindow& operator=(const XAP_UnixHelpWindow&) = delete;
 
 	/* shows the window; page is a path relative to the language dir
 	 * ("index.html"); bFocusSearch moves focus to the search field */
@@ -51,6 +53,7 @@ private:
 	void			_navigate(const std::string& rel, bool bRecord);
 	void			_loadPage(const std::string& rel);
 	void			_renderHtml(const std::string& html);
+	void			_clearLinkTags();
 	void			_runSearch(const char * query);
 	void			_updateNavButtons();
 	std::string		_stripTags(const std::string& html) const;
@@ -77,6 +80,7 @@ private:
 	std::string		m_lang;			/* en-US / fr-FR / pl-PL */
 	std::string		m_page;			/* current page rel path */
 	std::vector<std::string> m_history;
+	guint			m_iSearchTimer;	/* debounce for live search */
 };
 
 #endif /* XAP_UNIXHELPWINDOW_H */

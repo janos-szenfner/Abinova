@@ -647,7 +647,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
 		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
 		/* Close: red icon only, button face and label stay normal */
-		if (id == AP_MENU_ID_FILE_CLOSE)
+		if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FILE_CLOSE))
 			gtk_widget_add_css_class(image, "ribbon-close");
 		GtkWidget * wLabel = gtk_label_new(label);
 		/* Word wraps long captions onto a second line rather than
