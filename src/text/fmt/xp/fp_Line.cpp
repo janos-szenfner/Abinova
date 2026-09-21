@@ -619,6 +619,10 @@ bool fp_Line::canDrawTopBorder(void) const
   const fp_Line * pFirst = getFirstInContainer();
   if(pFirst == nullptr)
     return false;
+  // Paragraphs that only carry a section break (w:pPr/w:sectPr)
+  // never paint their paragraph borders in Word.
+  if(getBlock() && getBlock()->isEmptySectionBreakPara())
+    return false;
   //
   // This line could be wrapped at the same Y as the first line
   //
@@ -645,6 +649,8 @@ bool fp_Line::canDrawBotBorder(void) const
 {
   const fp_Line * pLast = getLastInContainer();
   if(pLast == nullptr)
+    return false;
+  if(getBlock() && getBlock()->isEmptySectionBreakPara())
     return false;
   //
   // This line could be wrapped at the same Y as the last line
@@ -3376,6 +3382,24 @@ void fp_Line::setY(UT_sint32 iY)
 	m_iY = iY;
 }
 
+/*!
+ * OOXML w:contextualSpacing semantics: when either of two adjacent
+ * paragraphs carries "contextual-spacing" and both share the same
+ * style, no margin is rendered between them.
+ */
+static bool _bContextualSpacingCollapse(fl_BlockLayout * pA,
+										fl_BlockLayout * pB)
+{
+	const char * szA = pA->getProperty("contextual-spacing");
+	const char * szB = pB->getProperty("contextual-spacing");
+	if ((!szA || strcmp(szA, "1")) && (!szB || strcmp(szB, "1")))
+		return false;
+	UT_UTF8String sStyleA, sStyleB;
+	pA->getStyle(sStyleA);
+	pB->getStyle(sStyleB);
+	return sStyleA == sStyleB;
+}
+
 UT_sint32 fp_Line::getMarginBefore(void) const
 {
 	if (isFirstLineInBlock() && getBlock()->getPrev())
@@ -3388,6 +3412,9 @@ UT_sint32 fp_Line::getMarginBefore(void) const
 			if(pPrevC->getContainerType() == FL_CONTAINER_BLOCK)
 			{
 				bLoop = false;
+				if(_bContextualSpacingCollapse(
+					   static_cast<fl_BlockLayout *>(pPrevC), getBlock()))
+					return 0;
 				iBottomMargin = static_cast<fl_BlockLayout *>(pPrevC)->getBottomMargin();
 			}
 			else if(pPrevC->getContainerType() == FL_CONTAINER_TABLE)
@@ -3434,6 +3461,9 @@ UT_sint32 fp_Line::getMarginAfter(void) const
 		{
 			if(pNext->getContainerType() == FL_CONTAINER_BLOCK)
 			{
+				if(_bContextualSpacingCollapse(
+					   getBlock(), static_cast<fl_BlockLayout *>(pNext)))
+					return m_iAdditionalMarginAfter;
 				iNextTopMargin = static_cast<fl_BlockLayout *>(pNext)->getTopMargin();
 				bLoop = false;
 			}

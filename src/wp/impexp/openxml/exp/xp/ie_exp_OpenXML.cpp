@@ -996,6 +996,14 @@ UT_Error IE_Exp_OpenXML::setTextAlignment(int target, const gchar* alignment)
 }
 
 /**
+ * Writes a <w:pBdr> paragraph-border element (built by the caller).
+ */
+UT_Error IE_Exp_OpenXML::setParagraphBorders(int target, const gchar* pBdr)
+{
+	return writeTargetStream(target, pBdr);
+}
+
+/**
  * Sets the paragraph style
  */
 UT_Error IE_Exp_OpenXML::setParagraphStyle(int target, const gchar* style)

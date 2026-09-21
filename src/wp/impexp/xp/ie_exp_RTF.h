@@ -28,6 +28,9 @@
 #include "fl_AutoLists.h"
 #include "fl_AutoNum.h"
 
+#include <memory>
+#include <vector>
+
 class PD_Document;
 class PD_Style;
 class PP_AttrProp;
@@ -213,7 +216,10 @@ protected:
 	/* Hash containing styles to be exported. The key is the
 	   AbiWord style name. The value is a NumberedStyle object
 	   (see the cpp file). */
-	std::vector<ie_exp_RTF_MsWord97ListMulti> m_vecMultiLevel;
+	/* MsWord97ListMulti owns raw UT_Vector* levels and registers `this`
+	 * inside them, so it must not be copied/moved — hold it by
+	 * unique_ptr to keep a stable address. */
+	std::vector<std::unique_ptr<ie_exp_RTF_MsWord97ListMulti>> m_vecMultiLevel;
 	std::vector<ie_exp_RTF_MsWord97ListSimple> m_vecSimpleList;
 	std::vector<ie_exp_RTF_ListOveride> m_vecOverides;
 

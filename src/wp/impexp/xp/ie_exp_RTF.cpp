@@ -1645,7 +1645,7 @@ void IE_Exp_RTF::_write_parafmt(const PP_AttrProp * pSpanAP, const PP_AttrProp *
 		leftDelim[i] = '\0';
 		i += 2;
 		rTmp = i;
-		while (p[i] || p[i] != '\0')
+		while (p[i])
 		{
 			rightDelim[i - rTmp] = p[i];
 			i++;
@@ -2523,18 +2523,20 @@ void IE_Exp_RTF::_write_listtable(void)
 	ie_exp_RTF_MsWord97ListMulti* pList97 = nullptr;
 	for (UT_sint32 i = 0; i < iCount; i++) {
 		pAuto = getDoc()->getNthList(i);
+		if (!pAuto) continue;
 		if (!pAuto->getParent())
 		{
 			bFoundChild = false;
 			for (UT_sint32 j = 0; (j < iCount) && !bFoundChild; j++) {
 				pInner = getDoc()->getNthList(j);
+				if (!pInner) continue;
 				if(pInner->getParentID() == pAuto->getID())
 //
 // Found a child of pList97, it must be a multi-level list.
 //
 				{
 					xxx_UT_DEBUGMSG(("SEVIOR: Adding %x to multi-level \n",pAuto));
-					m_vecMultiLevel.push_back(ie_exp_RTF_MsWord97ListMulti(pAuto));
+					m_vecMultiLevel.emplace_back(new ie_exp_RTF_MsWord97ListMulti(pAuto));
 					bFoundChild = true;
 					break;
 				}
@@ -2552,7 +2554,7 @@ void IE_Exp_RTF::_write_listtable(void)
 
 	for (decltype(m_vecMultiLevel)::size_type k = 0; k < m_vecMultiLevel.size(); k++)
 	{
-		pList97 = &m_vecMultiLevel[k];
+		pList97 = m_vecMultiLevel[k].get();
 //
 // For each level in the list RTF97 structure find the first matching
 // List.
@@ -2579,8 +2581,12 @@ void IE_Exp_RTF::_write_listtable(void)
 				for (UT_sint32 i = 0; i < iCount; i++)
 				{
 					pAuto = getDoc()->getNthList(i);
+					if (!pAuto) continue;
 					pInner = pAuto->getParent();
-					fl_AutoNumConstPtr pAutoLevel = pList97->getListAtLevel(depth-1,0)->getAuto();
+					fl_AutoNumConstPtr pAutoLevel;
+					ie_exp_RTF_MsWord97List * pPrevLvl = pList97->getListAtLevel(depth-1,0);
+					if (pPrevLvl)
+						pAutoLevel = pPrevLvl->getAuto();
 //
 // OK got it! pAuto is the one we want.
 //
@@ -2656,7 +2662,7 @@ void IE_Exp_RTF::_write_listtable(void)
  */
 const ie_exp_RTF_MsWord97ListMulti& IE_Exp_RTF::getNthMultiLevel(UT_uint32 i) const
 {
-	return m_vecMultiLevel[i];
+	return *m_vecMultiLevel[i];
 }
 
 /*!
@@ -3486,7 +3492,6 @@ void ie_exp_RTF_MsWord97ListMulti::addLevel(UT_uint32 iLevel, ie_exp_RTF_MsWord9
 		UT_Vector * pVecList97 = new UT_Vector;
 		pVecList97->addItem((void *) pList97);
 		m_vLevels[iLevel] = pVecList97;
-		pVecList97->addItem((void *) pList97);
 	}
 	else
 	{

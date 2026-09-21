@@ -20,6 +20,8 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+
+#include <climits>
 #endif
 
 #include "ap_UnixRibbon.h"
@@ -30,6 +32,7 @@
 #include "ut_string_class.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
+#include "xap_UnixFrameImpl.h"
 #include "xap_Strings.h"
 #include "xap_EncodingManager.h"
 #include "ev_UnixMenuBar.h"
@@ -233,12 +236,22 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		".abiword-ribbon button { min-height: 0; padding: 3px 10px; }"
 		".abiword-ribbon flowboxchild { padding: 0; }"
 		".abiword-ribbon flowbox { padding: 2px; }"
-		".abiword-ribbon frame { margin: 2px 4px; }"
-		".abiword-ribbon frame > label { font-size: 0.85em; padding: 0 4px; }"
+		/* Word-style group: subtle box, title centered at the bottom */
+		".abiword-ribbon .ribbon-group {"
+		"  margin: 2px 3px; padding: 2px 4px 0 4px;"
+		"  border-right: 1px solid @borders;"
+		"}"
+		".abiword-ribbon .ribbon-group-title {"
+		"  font-size: 0.78em; margin-top: 1px; padding: 0 4px 2px 4px;"
+		"  color: alpha(@theme_fg_color, 0.75);"
+		"}"
 		".abiword-ribbon combobox, .abiword-ribbon dropdown { margin: 1px 2px; }"
 		".abiword-ribbon notebook > header { margin-bottom: 0; }"
 		/* Word-style style gallery tiles */
 		".abiword-ribbon scrolledwindow { min-height: 0; }"
+		".abiword-ribbon .abiword-style-tile {"
+		"  min-height: 26px; padding: 4px 12px; margin: 1px;"
+		"}"
 		".abiword-ribbon .abiword-style-active {"
 		"  border: 2px solid @theme_selected_bg_color;"
 		"  border-radius: 4px;"
@@ -265,13 +278,16 @@ GtkWidget * AP_UnixRibbon::createWidget()
 
 		for (const AP_RibbonGroup * group = tab->groups; group->szGroupKey; ++group)
 		{
-			GtkWidget * frame = gtk_frame_new(_ribbon_label(group->szGroupKey,
-															s_ribbon_group_labels));
+			/* Word/NotebookBar group: borderless box with the group
+			 * title centered at the bottom */
+			GtkWidget * frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+			gtk_widget_add_css_class(frame, "ribbon-group");
 			/* LibreOffice-style columns of 3 rows: group height stays
 			 * constant, extra items wrap into more columns */
 			GtkWidget * grid = gtk_grid_new();
 			gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
 			gtk_widget_set_valign(grid, GTK_ALIGN_START);
+			gtk_widget_set_vexpand(grid, TRUE);
 
 			bool bEmpty = true;
 			int nCol = 0, nRow = 0;
@@ -290,6 +306,19 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				if (!w)
 					continue;
 				bEmpty = false;
+
+				/* SPLIT items gain a small drop-arrow menu button
+				 * opening a popover with the related choices */
+				if (item->flags & AP_RIBBON_FLAG_SPLIT)
+				{
+					GtkWidget * popover =
+						(item->kind == AP_RIBBON_ITEM_MENU &&
+						 item->id == (uint16_t)AP_MENU_ID_EDIT_PASTE)
+						? _makePastePopover()
+						: _makeListPopover();
+					w = _wrapSplit(w, popover,
+								   (item->flags & AP_RIBBON_FLAG_LARGE) != 0);
+				}
 
 				/* combos, large buttons and the style gallery get a
 				 * full-height column to themselves; plain buttons pack
@@ -320,7 +349,13 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			}
 			else
 			{
-				gtk_frame_set_child(GTK_FRAME(frame), grid);
+				gtk_box_append(GTK_BOX(frame), grid);
+				GtkWidget * gtitle = gtk_label_new(
+					_ribbon_label(group->szGroupKey,
+								  s_ribbon_group_labels));
+				gtk_widget_add_css_class(gtitle, "ribbon-group-title");
+				gtk_widget_set_halign(gtitle, GTK_ALIGN_CENTER);
+				gtk_box_append(GTK_BOX(frame), gtitle);
 			}
 			gtk_box_append(GTK_BOX(page), frame);
 		}
@@ -328,6 +363,11 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		GtkWidget * tabLabel = gtk_label_new(_ribbon_label(tab->szTabKey,
 														 s_ribbon_tab_labels));
 		gtk_notebook_append_page(GTK_NOTEBOOK(m_wNotebook), page, tabLabel);
+
+		if (!strcmp(tab->szTabKey, "home"))
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(m_wNotebook),
+										  gtk_notebook_get_n_pages(
+											  GTK_NOTEBOOK(m_wNotebook)) - 1);
 
 		if (tab->bContextual)
 		{
@@ -379,12 +419,15 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	else
 		btn = gtk_button_new();
 
-	/* reuse the classic toolbar's icon for this edit method, if any */
+	/* reuse the classic toolbar's icon for this edit method, if any;
+	 * fall back to the menu action's own stock-icon mapping */
 	const char * szMethod = pAction->getMethodName();
 	const char * szIcon = (szMethod && m_pIconMap)
 		? static_cast<const char *>(g_hash_table_lookup(m_pIconMap,
 														szMethod))
 		: nullptr;
+	if (!szIcon || !*szIcon)
+		szIcon = abi_stock_from_menu_id(id);
 
 	if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_ICONONLY))
 	{
@@ -747,6 +790,472 @@ GtkWidget * AP_UnixRibbon::_tb_color_button_new(const gchar * icon_name,
 	return button;
 }
 
+/* ------------------------------------------------------------------ */
+/* split-button popovers (Word-style drop arrows on Paste / list types) */
+
+struct _PopTbCtx
+{
+	AP_UnixRibbon *	self;
+	XAP_Toolbar_Id	id;
+};
+
+void AP_UnixRibbon::_s_popover_tb_clicked(GtkWidget * w, gpointer data)
+{
+	_PopTbCtx * ctx = static_cast<_PopTbCtx *>(data);
+	UT_return_if_fail(ctx && ctx->self);
+	_tb_popdown_popover(w);
+	ctx->self->_invokeToolbarItem(ctx->id);
+}
+
+void AP_UnixRibbon::_s_popover_menu_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	std::string * pAction = static_cast<std::string *>(
+		g_object_get_data(G_OBJECT(w), "abi-menu-action"));
+	UT_return_if_fail(self && pAction);
+	_tb_popdown_popover(w);
+	GActionGroup * group =
+		self->m_pMenu ? self->m_pMenu->getActionGroup() : nullptr;
+	if (group)
+		g_action_group_activate_action(group, pAction->c_str(), nullptr);
+}
+
+/* flat labelled button inside a split popover, wired to a menu action */
+GtkWidget * AP_UnixRibbon::_popoverMenuButton(XAP_Menu_Id id)
+{
+	const EV_Menu_ActionSet * pActionSet =
+		XAP_App::getApp()->getMenuActionSet();
+	const EV_Menu_Action * pAction =
+		pActionSet ? pActionSet->getAction(id) : nullptr;
+	const EV_Menu_Label * pLabel =
+		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
+	GAction * action = m_pMenu ? m_pMenu->lookupAction(id) : nullptr;
+	if (!pAction || !pLabel || !action)
+		return nullptr;
+
+	const char * szLabel = pAction->hasDynamicLabel()
+		? pAction->getDynamicLabel(pLabel) : pLabel->getMenuLabel();
+	if (!szLabel || !*szLabel)
+		return nullptr;
+
+	char label[256];
+	_ribbon_strip_mnemonic(szLabel, label, sizeof(label));
+
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	const char * szIcon = abi_stock_from_menu_id(id);
+	if (szIcon)
+		gtk_box_append(GTK_BOX(box), gtk_image_new_from_icon_name(szIcon));
+	GtkWidget * wLabel = gtk_label_new(label);
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), box);
+
+	g_object_set_data_full(G_OBJECT(btn), "abi-menu-action",
+						   new std::string(g_action_get_name(action)),
+						   [](gpointer p){ delete static_cast<std::string*>(p); });
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_menu_clicked), this);
+	gtk_widget_add_css_class(btn, "flat");
+	return btn;
+}
+
+/* flat labelled button inside a split popover, wired to a toolbar action */
+GtkWidget * AP_UnixRibbon::_popoverTbButton(XAP_Toolbar_Id id,
+											const char * szLabel)
+{
+	const EV_Toolbar_ActionSet * pTBActions =
+		XAP_App::getApp()->getToolbarActionSet();
+	EV_Toolbar_Action * pAction =
+		pTBActions ? pTBActions->getAction(id) : nullptr;
+	EV_Toolbar_Label * pLabel =
+		m_pTBLabels ? m_pTBLabels->getLabel(id) : nullptr;
+	if (!pAction || !pLabel)
+		return nullptr;
+
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	const char * szIcon = pLabel->getIconName();
+	if (szIcon && g_ascii_strcasecmp(szIcon, "NoIcon") != 0)
+	{
+		gchar * szTheme = abi_stock_from_toolbar_id(szIcon);
+		gtk_box_append(GTK_BOX(box),
+					   gtk_image_new_from_icon_name(szTheme));
+		g_free(szTheme);
+	}
+	GtkWidget * wLabel = gtk_label_new(szLabel);
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), box);
+
+	const char * szTip = pLabel->getToolTip();
+	if (szTip && *szTip)
+		gtk_widget_set_tooltip_text(btn, szTip);
+
+	_PopTbCtx * ctx = g_new0(_PopTbCtx, 1);
+	ctx->self = this;
+	ctx->id = id;
+	g_object_set_data_full(G_OBJECT(btn), "abi-tb-ctx", ctx, g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_tb_clicked), ctx);
+	gtk_widget_add_css_class(btn, "flat");
+	return btn;
+}
+
+/* flat labelled button inside a split popover, wired directly to an
+ * edit method by name (for actions that have no menu action id) */
+GtkWidget * AP_UnixRibbon::_popoverEmButton(const char * szLabel,
+											const char * szIcon,
+											const char * szMethod)
+{
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	if (szIcon && *szIcon)
+		gtk_box_append(GTK_BOX(box),
+					   gtk_image_new_from_icon_name(szIcon));
+	GtkWidget * wLabel = gtk_label_new(szLabel);
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), box);
+
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+						   g_strdup(szMethod), g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_em_clicked), this);
+	gtk_widget_add_css_class(btn, "flat");
+	return btn;
+}
+
+void AP_UnixRibbon::_s_popover_em_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	const char * szMethod = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-em-method"));
+	UT_return_if_fail(self && szMethod);
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod(szMethod);
+}
+
+void AP_UnixRibbon::_s_paste_special_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	self->_showPasteSpecialDialog();
+}
+
+void AP_UnixRibbon::_invokeEditMethod(const char * szMethod)
+{
+	const EV_EditMethodContainer * pEMC =
+		XAP_App::getApp()->getEditMethodContainer();
+	UT_return_if_fail(pEMC);
+
+	EV_EditMethod * pEM = pEMC->findEditMethodByName(szMethod);
+	UT_return_if_fail(pEM);
+
+	AV_View * pView = m_pFrame ? m_pFrame->getCurrentView() : nullptr;
+	EV_EditMethodCallData emcd;
+	pEM->Fn(pView, &emcd);
+}
+
+/* Paste Special: pick the clipboard format to import */
+static const char * _paste_format_label(const char * szMime)
+{
+	if (!szMime)
+		return "";
+	if (!strcmp(szMime, "text/plain") || !strcmp(szMime, "UTF8_STRING") ||
+		!strcmp(szMime, "TEXT") || !strcmp(szMime, "STRING") ||
+		!strcmp(szMime, "COMPOUND_TEXT"))
+		return "Unformatted Text";
+	if (!strcmp(szMime, "text/rtf") || !strcmp(szMime, "application/rtf"))
+		return "Rich Text Format (RTF)";
+	if (!strcmp(szMime, "text/html") ||
+		!strcmp(szMime, "application/xhtml+xml"))
+		return "HTML";
+	if (!strcmp(szMime, "application/vnd.oasis.opendocument.text"))
+		return "ODF Text";
+	if (!strcmp(szMime, "text/uri-list"))
+		return "Files";
+	if (!strncmp(szMime, "image/", 6))
+	{
+		static char buf[128];
+		const char * ext = szMime + 6;
+		g_snprintf(buf, sizeof(buf), "Picture (%s)", ext);
+		for (char * p = buf; *p; ++p)
+			*p = g_ascii_toupper(*p);
+		return buf;
+	}
+	return szMime;
+}
+
+void AP_UnixRibbon::_showPasteSpecialDialog()
+{
+	AV_View * pView = m_pFrame ? m_pFrame->getCurrentView() : nullptr;
+	FV_View * pFV = pView ? static_cast<FV_View *>(pView) : nullptr;
+	UT_return_if_fail(pFV);
+
+	GtkWidget * toplevel = m_pFrame && m_pFrame->getFrameImpl()
+		? static_cast<XAP_UnixFrameImpl *>(
+			  m_pFrame->getFrameImpl())->getTopLevelWindow()
+		: nullptr;
+
+	GdkClipboard * clip = gdk_display_get_clipboard(
+		toplevel ? gtk_widget_get_display(toplevel)
+				 : gdk_display_get_default());
+	GdkContentFormats * fmts =
+		clip ? gdk_clipboard_get_formats(clip) : nullptr;
+	gsize nMimes = 0;
+	const char * const * mimes =
+		fmts ? gdk_content_formats_get_mime_types(fmts, &nMimes) : nullptr;
+	UT_return_if_fail(mimes && nMimes);
+
+	GtkWidget * dlg = gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg), "Paste Special");
+	gtk_window_set_modal(GTK_WINDOW(dlg), true);
+	if (toplevel)
+		gtk_window_set_transient_for(GTK_WINDOW(dlg),
+									 GTK_WINDOW(toplevel));
+	gtk_dialog_add_button(GTK_DIALOG(dlg), "_Cancel", GTK_RESPONSE_CANCEL);
+	GtkWidget * ok = gtk_dialog_add_button(GTK_DIALOG(dlg), "OK",
+										   GTK_RESPONSE_OK);
+	gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_OK);
+
+	GtkWidget * content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+	GtkWidget * label = gtk_label_new("Source:");
+	gtk_widget_set_halign(label, GTK_ALIGN_START);
+	gtk_widget_set_margin_top(label, 8);
+	gtk_widget_set_margin_start(label, 8);
+	gtk_box_append(GTK_BOX(content), label);
+
+	GtkWidget * scroll = gtk_scrolled_window_new();
+	gtk_widget_set_size_request(scroll, 360, 220);
+	gtk_scrolled_window_set_min_content_height(
+		GTK_SCROLLED_WINDOW(scroll), 180);
+	GtkWidget * list = gtk_list_box_new();
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list),
+									GTK_SELECTION_SINGLE);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), list);
+	gtk_widget_set_margin_start(scroll, 8);
+	gtk_widget_set_margin_end(scroll, 8);
+	gtk_widget_set_margin_bottom(scroll, 8);
+	gtk_box_append(GTK_BOX(content), scroll);
+
+	/* image formats collapse into a single "Picture" entry that pastes
+	 * the best available flavour */
+	static const char * s_image_pref[] = {
+		"image/png", "image/svg+xml", "image/svg",
+		"image/jpeg", "image/gif", "image/bmp",
+		"image/tiff", "image/x-xpixmap", "image/x-xbitmap",
+		"image/x-portable-anymap", "image/x-portable-pixmap",
+		"image/x-portable-graymap", "image/x-cmu-raster",
+		"image/vnd.wap.wbmp", "image/x-wmf", nullptr
+	};
+	const char * szBestImage = nullptr;
+	for (gsize i = 0; i < nMimes; ++i)
+	{
+		if (strncmp(mimes[i], "image/", 6))
+			continue;
+		int best = INT_MAX, cur = INT_MAX;
+		if (szBestImage)
+			for (int k = 0; s_image_pref[k]; ++k)
+				if (!strcmp(s_image_pref[k], szBestImage)) { best = k; break; }
+		for (int k = 0; s_image_pref[k]; ++k)
+			if (!strcmp(s_image_pref[k], mimes[i])) { cur = k; break; }
+		if (!szBestImage || cur < best)
+			szBestImage = mimes[i];
+	}
+
+	GtkListBoxRow * first = nullptr;
+	GHashTable * seen = g_hash_table_new(g_str_hash, g_str_equal);
+	for (gsize i = 0; i < nMimes; ++i)
+	{
+		const char * szMime = mimes[i];
+		const char * szFriendly;
+		if (!strncmp(szMime, "image/", 6))
+		{
+			szMime = szBestImage;
+			szFriendly = "Picture";
+		}
+		else
+			szFriendly = _paste_format_label(szMime);
+
+		/* collapse clipboard aliases that paste identically
+		 * (text/plain vs UTF8_STRING, text/rtf vs application/rtf,
+		 * the image flavours) into a single row */
+		const char * szKey = *szFriendly ? szFriendly : szMime;
+		if (g_hash_table_contains(seen, szKey))
+			continue;
+		g_hash_table_add(seen, const_cast<char *>(szKey));
+
+		GtkWidget * row = gtk_list_box_row_new();
+		GtkWidget * rLabel = gtk_label_new(
+			*szFriendly ? szFriendly : szMime);
+		gtk_widget_set_halign(rLabel, GTK_ALIGN_START);
+		gtk_widget_set_margin_top(rLabel, 4);
+		gtk_widget_set_margin_bottom(rLabel, 4);
+		gtk_widget_set_margin_start(rLabel, 8);
+		gtk_widget_set_margin_end(rLabel, 8);
+		gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), rLabel);
+		g_object_set_data_full(G_OBJECT(row), "abi-mime",
+							   g_strdup(szMime), g_free);
+		gtk_list_box_append(GTK_LIST_BOX(list), row);
+		if (!first)
+			first = GTK_LIST_BOX_ROW(row);
+	}
+	g_hash_table_destroy(seen);
+	if (first)
+		gtk_list_box_select_row(GTK_LIST_BOX(list), first);
+	gtk_widget_set_sensitive(ok, first != nullptr);
+
+	g_object_set_data(G_OBJECT(dlg), "abi-list", list);
+	g_object_set_data(G_OBJECT(dlg), "abi-view", pFV);
+	g_signal_connect(dlg, "response",
+					 G_CALLBACK(_s_paste_special_response), nullptr);
+	gtk_window_present(GTK_WINDOW(dlg));
+}
+
+struct _PasteAsCtx
+{
+	FV_View * view;
+	char    * mime;
+};
+
+static gboolean _paste_as_idle(gpointer data)
+{
+	_PasteAsCtx * ctx = static_cast<_PasteAsCtx *>(data);
+	if (ctx->view && ctx->mime)
+		ctx->view->cmdPasteAs(ctx->mime);
+	g_free(ctx->mime);
+	g_free(ctx);
+	return G_SOURCE_REMOVE;
+}
+
+void AP_UnixRibbon::_s_paste_special_response(GtkDialog * dlg, gint resp,
+											  gpointer /*data*/)
+{
+	_PasteAsCtx * ctx = nullptr;
+	if (resp == GTK_RESPONSE_OK)
+	{
+		GtkWidget * list = GTK_WIDGET(
+			g_object_get_data(G_OBJECT(dlg), "abi-list"));
+		GtkListBoxRow * row =
+			gtk_list_box_get_selected_row(GTK_LIST_BOX(list));
+		const char * mime = row
+			? static_cast<const char *>(
+				  g_object_get_data(G_OBJECT(row), "abi-mime"))
+			: nullptr;
+		FV_View * pView = static_cast<FV_View *>(
+			g_object_get_data(G_OBJECT(dlg), "abi-view"));
+		if (pView && mime)
+		{
+			ctx = g_new0(_PasteAsCtx, 1);
+			ctx->view = pView;
+			ctx->mime = g_strdup(mime);
+		}
+	}
+	gtk_window_destroy(GTK_WINDOW(dlg));
+	/* run the paste once the dialog is gone - the clipboard read pumps
+	 * a nested main loop which must not run inside the response
+	 * handler of a still-modal dialog */
+	if (ctx)
+		g_idle_add(_paste_as_idle, ctx);
+}
+
+/* Paste options: Paste / Paste Special… */
+GtkWidget * AP_UnixRibbon::_makePastePopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * header = gtk_label_new("Paste Options:");
+	gtk_widget_set_halign(header, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(header, 8);
+	gtk_widget_set_margin_end(header, 8);
+	gtk_widget_set_margin_bottom(header, 2);
+	gtk_widget_add_css_class(header, "heading");
+	gtk_box_append(GTK_BOX(box), header);
+
+	GtkWidget * w = _popoverEmButton("Keep Text Only",
+								   "edit-copy",
+								   "pasteSpecial");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_box_append(GTK_BOX(row),
+				   gtk_image_new_from_icon_name("edit-paste"));
+	GtkWidget * wLabel = gtk_label_new("Paste Special…");
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(row), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), row);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_paste_special_clicked), this);
+	gtk_widget_add_css_class(btn, "flat");
+	gtk_box_append(GTK_BOX(box), btn);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* List options: pick the type, change the level, or open the dialog */
+GtkWidget * AP_UnixRibbon::_makeListPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_BULLETS,
+									 "Bulleted List");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_NUMBERS, "Numbered List");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_DASHED, "Dashed List");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_INDENT, "Increase Level");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverTbButton((XAP_Toolbar_Id)AP_TOOLBAR_ID_UNINDENT, "Decrease Level");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_FMT_BULLETS);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* attach a small drop-arrow menu button beside (or below) a button */
+GtkWidget * AP_UnixRibbon::_wrapSplit(GtkWidget * w, GtkWidget * popover,
+									  bool bVertical)
+{
+	GtkWidget * arrow = gtk_menu_button_new();
+	gtk_menu_button_set_direction(GTK_MENU_BUTTON(arrow),
+								  GTK_ARROW_DOWN);
+	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(arrow), FALSE);
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(arrow), popover);
+
+	GtkWidget * box = gtk_box_new(
+		bVertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_add_css_class(box, "linked");
+	if (bVertical)
+	{
+		gtk_widget_set_vexpand(w, TRUE);
+		gtk_widget_set_halign(arrow, GTK_ALIGN_FILL);
+	}
+	gtk_box_append(GTK_BOX(box), w);
+	gtk_box_append(GTK_BOX(box), arrow);
+	return box;
+}
+
 GtkWidget * AP_UnixRibbon::_tb_make_combo(_TbCtx * ctx)
 {
 	GtkWidget * combo = nullptr;
@@ -1082,6 +1591,7 @@ void AP_UnixRibbon::_populateStyleTiles()
 			g_free(escName);
 			g_free(escLoc);
 			gtk_button_set_child(GTK_BUTTON(tile), label);
+			gtk_widget_add_css_class(tile, "abiword-style-tile");
 			gtk_widget_set_tooltip_text(tile, sLoc.c_str());
 
 			_StyleTile * t = new _StyleTile;

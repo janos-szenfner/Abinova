@@ -198,6 +198,7 @@ static struct AbiStockMapping {
 
   { ABIWORD_SCRIPT_PLAY,			AP_MENU_ID_TOOLS_SCRIPTS,		"system-run" },
   { ABIWORD_FMT_STRIKE,				AP_MENU_ID_FMT_STRIKE,			"format-text-strikethrough" },
+  { ABIWORD_EDIT_SELECTALL,			AP_MENU_ID_EDIT_SELECTALL,		"edit-select-all" },
   { ABIWORD_VIEW_FULL_SCREEN,       (_Ap_Menu_Id)0,                 "view-fullscreen" },
   { nullptr, 					(_Ap_Menu_Id)0,					nullptr }
 };
@@ -300,5 +301,24 @@ abi_stock_get_gtk_stock_id (const gchar * abi_stock_id)
 		i++;
 	}
 
+	return nullptr;
+}
+
+/*!
+ * Map a menu item id to a theme icon name, using the stock_mapping
+ * table's menu_id column.  This lets ribbon buttons for actions that
+ * have no toolbar counterpart (find, replace, select all, ...) still
+ * show the standard theme icon.  Returned string is static.
+ */
+const gchar *
+abi_stock_from_menu_id (XAP_Menu_Id menu_id)
+{
+	gint i = 0;
+	while (stock_mapping[i].abi_stock_id) {
+		if (stock_mapping[i].menu_id == (_Ap_Menu_Id)menu_id) {
+			return stock_mapping[i].gtk_stock_id;
+		}
+		i++;
+	}
 	return nullptr;
 }

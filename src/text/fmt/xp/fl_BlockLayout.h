@@ -403,6 +403,7 @@ public:
 	const PP_PropertyMap::Line & getTop ()    const { return m_lineTop; }
 
 	bool                   hasBorders(void) const;
+	bool                   isEmptySectionBreakPara(void) const;
 	bool                   canMergeBordersWithPrev(void) const;
 	bool                   canMergeBordersWithNext(void) const;
 	void                   setLineHeightBlockWithBorders(int whichLine = 0);

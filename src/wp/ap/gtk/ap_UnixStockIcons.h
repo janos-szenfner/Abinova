@@ -50,6 +50,7 @@
 #define ABIWORD_EDIT_FIND				"abiword-edit-find"			// GTK_STOCK_FIND
 #define ABIWORD_EDIT_REPLACE 			"abiword-edit-replace"		// GTK_STOCK_FIND_AND_REPLACE
 #define ABIWORD_EDIT_GOTO				"abiword-edit-goto"			// GTK_STOCK_JUMP_TO
+#define ABIWORD_EDIT_SELECTALL			"abiword-edit-selectall"	// GTK_STOCK_SELECT_ALL
 #define ABIWORD_TOOLS_OPTIONS			"abiword-tools-options"		// GTK_STOCK_PREFERENCES
 
 #define ABIWORD_1COLUMN					"abiword-1column"
@@ -132,3 +133,4 @@
 void		  abi_stock_init 				(void);
 gchar * 	  abi_stock_from_toolbar_id 	(const gchar *toolbar_id);
 const gchar* abi_stock_get_gtk_stock_id(const gchar * abi_stock_id);
+const gchar* abi_stock_from_menu_id		(XAP_Menu_Id menu_id);

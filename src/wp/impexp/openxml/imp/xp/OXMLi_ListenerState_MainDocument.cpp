@@ -109,8 +109,15 @@ void OXMLi_ListenerState_MainDocument::startElement (OXMLi_StartElementRequest *
 		std::string bottom("");
 		bottom += _TwipsToInches(b);
 		bottom += "in";
-		
+
+		/* pgMar lives inside a w:sectPr, so it describes the section that
+		 * the sectPr terminates — the current top of the section stack.
+		 * Apply it there; the document-global value only remains as a
+		 * fallback for sections that never specify their own margins. */
 		doc->setPageMargins(top, left, right, bottom);
+		if (!rqst->sect_stck->empty()) {
+			rqst->sect_stck->top()->setPageMargins(top, left, right, bottom);
+		}
 		rqst->handled = true;
 	}
 }

@@ -5391,7 +5391,8 @@ bool FV_View::_charMotion(bool bForward,UT_uint32 countChars, bool bSkipCannotCo
 }
 
 
-void FV_View::_doPaste(bool bUseClipboard, bool bHonorFormatting)
+void FV_View::_doPaste(bool bUseClipboard, bool bHonorFormatting,
+					   const char * szMimeType)
 {
 	// internal portion of paste operation.
 
@@ -5404,7 +5405,10 @@ void FV_View::_doPaste(bool bUseClipboard, bool bHonorFormatting)
 
 	_clearIfAtFmtMark(getPoint());
 	PD_DocumentRange dr(m_pDoc,getPoint(),getPoint());
-	m_pApp->pasteFromClipboard(&dr,bUseClipboard,bHonorFormatting);
+	if (szMimeType && *szMimeType)
+		m_pApp->pasteFromClipboardWithFormat(&dr, szMimeType);
+	else
+		m_pApp->pasteFromClipboard(&dr,bUseClipboard,bHonorFormatting);
 	insertParaBreakIfNeededAtPos(getPoint());
 	fl_SectionLayout * pSL = getCurrentBlock()->getSectionLayout();
 	m_pDoc->setDontImmediatelyLayout(false);

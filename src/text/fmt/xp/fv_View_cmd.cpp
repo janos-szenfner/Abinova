@@ -4532,6 +4532,50 @@ void FV_View::cmdPaste(bool bHonorFormatting)
 	
 }
 
+/*!
+ * Paste Special: like cmdPaste() but pastes the clipboard data in the
+ * explicitly chosen format instead of the best available.
+ */
+void FV_View::cmdPasteAs(const char * szMimeType)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if((m_Selection.getPrevSelectionMode() == FV_SelectionMode_TableColumn)
+	   || (m_Selection.getPrevSelectionMode() == 	FV_SelectionMode_TableRow))
+	{
+		if(isInTable())
+		{
+			fl_TableLayout * pTab = getTableAtPos(getPoint());
+			if(pTab && pTab == m_Selection.getTableLayout())
+			{
+				m_Selection.pasteRowOrCol();
+				return;
+			}
+		}
+	}
+
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->notifyPieceTableChangeStart();
+	m_pDoc->disableListUpdates();
+	m_pDoc->setDoingPaste();
+	setCursorWait();
+	m_pDoc->setDontImmediatelyLayout(true);
+	_doPaste(true, true, szMimeType);
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	clearCursorWait();
+	m_pDoc->notifyPieceTableChangeEnd();
+	m_iPieceTableState = 0;
+	m_pDoc->clearDoingPaste();
+	m_pDoc->endUserAtomicGlob();
+	m_iPieceTableState = 0;
+	_charMotion(true, 0);
+	_makePointLegal();
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_ALL);
+}
+
 void FV_View::cmdPasteSelectionAt(UT_sint32 xPos, UT_sint32 yPos)
 {
 	// this is intended for the X11 middle mouse paste trick.

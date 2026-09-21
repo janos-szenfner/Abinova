@@ -3,6 +3,62 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Paste split button, DOCX layout fidelity, Markdown coverage
+
+- Paste is now a split button on the ribbon Home tab: the main icon
+  pastes immediately, the arrow opens a "Paste Options:" popover with
+  "Keep Text Only" and "Paste Special…". Paste Special opens a dialog
+  listing the real clipboard formats; clipboard aliases
+  (`text/plain`/`UTF8_STRING`, `text/rtf`/`application/rtf`,
+  `text/html`/`application/xhtml+xml`) are deduplicated and every
+  `image/*` flavour collapses into a single "Picture" entry that
+  pastes the best available format.
+- Fixed a deadlock that froze every paste path: when AbiWord owns the
+  clipboard itself, `gdk_clipboard_read_async` wedges on a GLib mutex
+  inside the local content provider. `XAP_UnixClipboard::getData` and
+  `getTextData` now check `gdk_clipboard_is_local()` and read the
+  synchronous fake clipboard instead.
+- New format-targeted paste path: `FV_View::cmdPasteAs(mime)` →
+  `XAP_App::pasteFromClipboardWithFormat` → `AP_UnixApp`, reusing the
+  normal importer dispatch for the chosen clipboard format.
+- DOCX pagination/fidelity fixes (canonical CV now renders on 2
+  pages, matching the original):
+  - `OXML_FontManager::getValidFont` falls back to the range's
+    default theme script when the `w:themeFontLang`-mapped script has
+    no `<a:font>` entry (`en-US`→`Latn` has none; the Latin typeface
+    lives under `latin`), instead of hardcoding Times New Roman.
+  - `w:rFonts` resolution now only uses the Latin-range attributes
+    (`w:ascii`/`w:asciiTheme`, `w:hAnsi`/`w:hAnsiTheme`); `w:eastAsia`
+    and `w:cs` no longer leak onto Latin text and font-family is left
+    to inherit when no Latin font is set.
+  - `w:pgMar` is applied to the section its `w:sectPr` terminates
+    (per-section margins) instead of overwriting one document-global
+    value; `OXML_Document::addToPT` keeps per-section margins.
+  - New `contextual-spacing` block property implements OOXML
+    `w:contextualSpacing`: no margin between adjacent paragraphs that
+    share a style carrying the flag (`fp_Line` margin collapse).
+  - Unstyled `w:p` paragraphs default to the document's real Normal
+    style (`_Normal`) instead of the docDefaults-derived `Normal`.
+  - Paragraph-mark `w:pPr/w:rPr/w:sz` sets empty-paragraph line
+    height; paragraph-mark shading is ignored; `w:pBdr` paragraph
+    borders import/export (`w:between`/`w:bar` ignored); section-break
+    paragraphs don't paint paragraph borders.
+- Markdown importer extended: YAML frontmatter → document metadata,
+  `[id]: url` reference definitions and reference links/images,
+  `[^id]` footnotes as real footnote objects, `<!-- -->` comments
+  dropped, `---` rules as bottom-bordered paragraphs, inline `$…$`/
+  fenced `$$…$$`/`math` as styled text, Mermaid blocks verbatim, raw
+  HTML reduced to text, `:emoji:` shortcodes to Unicode. Fixed
+  backslash handling inside code spans (`` `\` `` now renders
+  literally, per CommonMark escapes don't apply in code).
+- RTF exporter fixes: `ie_exp_RTF_MsWord97ListMulti` is stored by
+  `unique_ptr` (vector reallocation no longer shallow-copies its owned
+  `UT_Vector` levels into dangling pointers), `addLevel` no longer
+  inserts the same level pointer twice (double-free on teardown),
+  null `getNthList`/`getListAtLevel` results are guarded, and a
+  `-Wlogical-op` dead condition was fixed. docx→rtf conversion of the
+  canonical CV now exits 0 instead of aborting in teardown.
+
 ## Ribbon UI (LibreOffice-style) + interface switcher
 
 - `src/wp/ap/gtk/ap_UnixRibbon.{h,cpp}` added: a GtkNotebook-based

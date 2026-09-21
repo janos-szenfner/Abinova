@@ -702,7 +702,6 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
     UT_uint32 iLen = 0;
 
     bool bFoundOne = false;
-	bool bSuccess = false;
     
     if ( bHonorFormatting )
       bFoundOne = m_pClipboard->getSupportedData(tFrom,reinterpret_cast<const void **>(&pData),&iLen,&szFormatFound);
@@ -720,9 +719,60 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
 
     if (!bFoundOne)
     {
-		UT_DEBUGMSG(("PasteFromClipboard: did not find anything to paste.\n"));
+	UT_DEBUGMSG(("PasteFromClipboard: did not find anything to paste.\n"));
 		return;
     }
+
+    pasteDataToDocRange(pDocRange, pData, iLen, szFormatFound, tFrom);
+}
+
+/*!
+ * Paste the clipboard contents using the caller-chosen format
+ * (Paste Special…).  Fetches the data for \a szMimeType and runs it
+ * through the same importer dispatch as pasteFromClipboard().
+ */
+void AP_UnixApp::pasteFromClipboardWithFormat(PD_DocumentRange * pDocRange,
+											const char * szMimeType)
+{
+	UT_return_if_fail(szMimeType && *szMimeType);
+
+	const char * szFormatFound = nullptr;
+	const unsigned char * pData = nullptr;
+	UT_uint32 iLen = 0;
+	const char * formatList[] = { szMimeType, nullptr };
+
+	/* getData() reads the same-process fake clipboard synchronously and
+	 * only goes to the server for foreign clipboard owners */
+	if (!m_pClipboard->getData(XAP_UnixClipboard::TAG_ClipboardOnly,
+							   formatList,
+							   reinterpret_cast<void **>(
+								   const_cast<unsigned char **>(&pData)),
+							   &iLen, &szFormatFound))
+	{
+		UT_DEBUGMSG(("PasteWithFormat: no data for %s\n", szMimeType));
+		return;
+	}
+	if (!szFormatFound)
+		szFormatFound = szMimeType;
+
+	pasteDataToDocRange(pDocRange, pData, iLen, szFormatFound,
+						XAP_UnixClipboard::TAG_ClipboardOnly);
+}
+
+/*!
+ * Importer dispatch shared by pasteFromClipboard and
+ * pasteFromClipboardWithFormat: converts a clipboard buffer in the
+ * given format into document content.  Falls back to plain text when
+ * the chosen importer cannot handle the data.
+ */
+bool AP_UnixApp::pasteDataToDocRange(PD_DocumentRange * pDocRange,
+									 const unsigned char * pData,
+									 UT_uint32 iLen,
+									 const char * szFormatFound,
+									 XAP_UnixClipboard::T_AllowGet tFrom)
+{
+	bool bSuccess = false;
+
     if (AP_UnixClipboard::isDynamicTag (szFormatFound))
 	{
 		UT_DEBUGMSG(("Dynamic Format Found = %s \n",szFormatFound));
@@ -779,9 +829,9 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
 			  {
 					  goto retry_text;
 			  }
-			  /*bool b = */ pImp->pasteFromBuffer(pDocRange,pData,iLen);
+			  bSuccess = pImp->pasteFromBuffer(pDocRange,pData,iLen);
 			  DELETEP(pImp);
-			  return;
+			  return bSuccess;
 		  }
 
 		  FG_ConstGraphicPtr pFG;
@@ -823,6 +873,7 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
 		bSuccess = pImpText->pasteFromBuffer(pDocRange,pData,iLen);
 		DELETEP(pImpText);
 	}
+	return bSuccess;
 }
 
 bool AP_UnixApp::canPasteFromClipboard(void) const

@@ -107,6 +107,12 @@ UT_Error OXML_Element_Paragraph::serializeProperties(IE_Exp_OpenXML* exporter)
 			return err;
 	}
 
+	/* paragraph borders - <w:pBdr> comes after pStyle/numPr and
+	 * before shd/spacing/ind/jc in the OOXML schema order */
+	err = serializeParagraphBorders(exporter, TARGET);
+	if (err != UT_OK)
+		return err;
+
 	if(getProperty("widows", szValue) == UT_OK)
 	{
 		err = exporter->setWidows(TARGET, szValue);

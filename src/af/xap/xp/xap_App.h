@@ -175,6 +175,10 @@ public:
 	virtual bool findAbiSuiteAppFile(std::string& path, const char* filename, const char* subdir = nullptr) const; // doesn't check user-dir
 	virtual void					copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard = true) = 0;
 	virtual void					pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard, bool bHonorFormatting = true) = 0;
+	/* Paste Special support: paste the clipboard choosing an explicit
+	 * format.  Default implementation ignores the requested format. */
+	virtual void					pasteFromClipboardWithFormat(PD_DocumentRange * /*pDocRange*/,
+																 const char * /*szMimeType*/) {}
 	virtual bool canPasteFromClipboard() const = 0;
 	virtual void					cacheCurrentSelection(AV_View *) = 0;
 	virtual void				addClipboardFmt (const char * /*szFormat*/) {}

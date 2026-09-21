@@ -1016,13 +1016,25 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		const gchar * pszColor= nullptr;
 
 		pszBorderColor = getProperty ("bot-color");
-		pBlockAP->getProperty ("bot-style",pszBorderStyle);
 		pszBorderWidth = getProperty ("bot-thickness");
 		pszBorderSpacing= getProperty ("bot-space");
-		if(pBlockAP && pBlockAP->getProperty ("bot-style",pszBorderStyle) && pszBorderStyle)
+		pszBorderStyle = nullptr;
+		if (!(pBlockAP && pBlockAP->getProperty ("bot-style",pszBorderStyle) && pszBorderStyle))
+		{
+			// not set directly - the docx importer puts style-level
+			// paragraph borders (w:pBdr) on the style, so check the
+			// style chain (getProperty() can't be used since it falls
+			// back to the "1" initial value).
+			const gchar * pszStyle = nullptr;
+			PD_Style * pStyle = nullptr;
+			if (pBlockAP && pBlockAP->getAttribute (PT_STYLE_ATTRIBUTE_NAME,pszStyle) &&
+				pszStyle && m_pDoc->getStyle (pszStyle,&pStyle) && pStyle)
+				pStyle->getPropertyExpand ("bot-style",pszBorderStyle);
+		}
+		if(pszBorderStyle)
 		{
 			s_border_properties (pszBorderColor, pszBorderStyle, pszBorderWidth, pszColor, pszBorderSpacing,m_lineBottom);
-			m_bHasBorders |= (m_lineBottom.m_t_linestyle > 1);  
+			m_bHasBorders |= (m_lineBottom.m_t_linestyle > 1);
 		}
 		pszBorderColor = nullptr;
 		pszBorderStyle = nullptr;
@@ -1032,11 +1044,19 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		pszBorderColor = getProperty ("left-color");
 		pszBorderWidth = getProperty ("left-thickness");
 		pszBorderSpacing = getProperty ("left-space");
-
-		if(pBlockAP && pBlockAP->getProperty ("left-style",pszBorderStyle) && pszBorderStyle)
+		pszBorderStyle = nullptr;
+		if (!(pBlockAP && pBlockAP->getProperty ("left-style",pszBorderStyle) && pszBorderStyle))
+		{
+			const gchar * pszStyle = nullptr;
+			PD_Style * pStyle = nullptr;
+			if (pBlockAP && pBlockAP->getAttribute (PT_STYLE_ATTRIBUTE_NAME,pszStyle) &&
+				pszStyle && m_pDoc->getStyle (pszStyle,&pStyle) && pStyle)
+				pStyle->getPropertyExpand ("left-style",pszBorderStyle);
+		}
+		if(pszBorderStyle)
 		{
  			s_border_properties (pszBorderColor, pszBorderStyle, pszBorderWidth, pszColor, pszBorderSpacing,m_lineLeft);
-			m_bHasBorders |= (m_lineLeft.m_t_linestyle > 1);  
+			m_bHasBorders |= (m_lineLeft.m_t_linestyle > 1);
 		}
 		pszBorderColor = nullptr;
 		pszBorderStyle = nullptr;
@@ -1044,14 +1064,21 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		pszBorderSpacing = nullptr;
 
 		pszBorderColor = getProperty ("right-color");
-		pszBorderStyle = getProperty ("right-style");
 		pszBorderWidth = getProperty ("right-thickness");
 		pszBorderSpacing = getProperty ("right-space");
-
-		if(pBlockAP && pBlockAP->getProperty ("right-style",pszBorderStyle) && pszBorderStyle)
+		pszBorderStyle = nullptr;
+		if (!(pBlockAP && pBlockAP->getProperty ("right-style",pszBorderStyle) && pszBorderStyle))
+		{
+			const gchar * pszStyle = nullptr;
+			PD_Style * pStyle = nullptr;
+			if (pBlockAP && pBlockAP->getAttribute (PT_STYLE_ATTRIBUTE_NAME,pszStyle) &&
+				pszStyle && m_pDoc->getStyle (pszStyle,&pStyle) && pStyle)
+				pStyle->getPropertyExpand ("right-style",pszBorderStyle);
+		}
+		if(pszBorderStyle)
 		{
 			s_border_properties (pszBorderColor, pszBorderStyle, pszBorderWidth, pszColor, pszBorderSpacing,m_lineRight);
-			m_bHasBorders |= (m_lineRight.m_t_linestyle > 1);  
+			m_bHasBorders |= (m_lineRight.m_t_linestyle > 1);
 		}
 		pszBorderColor = nullptr;
 		pszBorderStyle = nullptr;
@@ -1061,12 +1088,20 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		pszBorderColor = getProperty ("top-color");
 		pszBorderWidth = getProperty ("top-thickness");
 		pszBorderSpacing = getProperty ("top-space");
-	
-		if(pBlockAP && pBlockAP->getProperty ("top-style",pszBorderStyle) && pszBorderStyle)
+		pszBorderStyle = nullptr;
+		if (!(pBlockAP && pBlockAP->getProperty ("top-style",pszBorderStyle) && pszBorderStyle))
+		{
+			const gchar * pszStyle = nullptr;
+			PD_Style * pStyle = nullptr;
+			if (pBlockAP && pBlockAP->getAttribute (PT_STYLE_ATTRIBUTE_NAME,pszStyle) &&
+				pszStyle && m_pDoc->getStyle (pszStyle,&pStyle) && pStyle)
+				pStyle->getPropertyExpand ("top-style",pszBorderStyle);
+		}
+		if(pszBorderStyle)
 		{
 			s_border_properties (pszBorderColor, pszBorderStyle, pszBorderWidth, pszColor, pszBorderSpacing,m_lineTop);
-			m_bHasBorders |= (m_lineTop.m_t_linestyle > 1); 
-		} 
+			m_bHasBorders |= (m_lineTop.m_t_linestyle > 1);
+		}
 	}	
 	//
 	// No numbering in headers/footers
@@ -1241,6 +1276,30 @@ const UT_RGBColor fl_BlockLayout::getShadingingForeColor(void) const
 const UT_RGBColor fl_BlockLayout::getShadingingBackColor(void) const
 {
 	return m_ShadingBackColor;
+}
+
+/*!
+ * True when this block carries a section-break mark (the DOCX importer
+ * flags paragraphs whose w:pPr contains w:sectPr with the
+ * "section-break" property) and contains no text. Word does not paint
+ * paragraph borders on such break-only paragraphs.
+ */
+bool fl_BlockLayout::isEmptySectionBreakPara(void) const
+{
+	// "section-break" is an ad-hoc (unregistered) property, so it must
+	// be read straight off the block's attribute table - PP_evalProperty
+	// would not resolve it.
+	const PP_AttrProp * pBlockAP = nullptr;
+	getAP(pBlockAP);
+	const gchar * psz = nullptr;
+	if (!pBlockAP || !pBlockAP->getProperty("section-break", psz) ||
+		!psz || !*psz || !strcmp(psz, "0") ||
+		!strcmp(psz, "no") || !strcmp(psz, "false"))
+	{
+		return false;
+	}
+	UT_GrowBuf gb;
+	return getBlockBuf(&gb) && (gb.getLength() == 0);
 }
 
 bool fl_BlockLayout::canMergeBordersWithPrev(void) const

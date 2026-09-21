@@ -60,6 +60,44 @@ OXMLi_ListenerState_Common::~OXMLi_ListenerState_Common()
 {
 }
 
+/* Resolves an OOXML <w:themeColor> name (accent1, dark1, ...) to a
+ * hex color string using the document's theme; falls back to black. */
+static std::string _resolveThemeColor(const gchar * name)
+{
+	OXML_Document * doc = OXML_Document::getInstance();
+	OXML_SharedTheme theme = doc ? doc->getTheme() : OXML_SharedTheme();
+	std::string color = "#000000"; //default color in case of illegal themeColor value.
+	if (!theme.get() || !name)
+		return color;
+
+	if (!strcmp(name,"accent1")) {
+		color = theme->getColor(ACCENT1);
+	} else if (!strcmp(name,"accent2")) {
+		color = theme->getColor(ACCENT2);
+	} else if (!strcmp(name,"accent3")) {
+		color = theme->getColor(ACCENT3);
+	} else if (!strcmp(name,"accent4")) {
+		color = theme->getColor(ACCENT4);
+	} else if (!strcmp(name,"accent5")) {
+		color = theme->getColor(ACCENT5);
+	} else if (!strcmp(name,"accent6")) {
+		color = theme->getColor(ACCENT6);
+	} else if (!strcmp(name,"dark1")) {
+		color = theme->getColor(DARK1);
+	} else if (!strcmp(name,"dark2")) {
+		color = theme->getColor(DARK2);
+	} else if (!strcmp(name,"light1")) {
+		color = theme->getColor(LIGHT1);
+	} else if (!strcmp(name,"light2")) {
+		color = theme->getColor(LIGHT2);
+	} else if (!strcmp(name,"hlink")) {
+		color = theme->getColor(HYPERLINK);
+	} else if (!strcmp(name,"folHlink")) {
+		color = theme->getColor(FOLLOWED_HYPERLINK);
+	}
+	return color;
+}
+
 void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 {
 	UT_return_if_fail( this->_error_if_fail(rqst != nullptr) );
@@ -89,6 +127,21 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 	} else if(nameMatches(rqst->pName, NS_W_KEY, "p")) {
 		//New paragraph...
 		OXML_SharedElement elem(new OXML_Element_Paragraph(""));
+
+		/* OOXML: a paragraph without w:pStyle uses the document's
+		 * Normal style. The importer stores the file's real Normal
+		 * under "_Normal" (docDefaults occupies "Normal"), so point
+		 * unstyled paragraphs at it; an explicit pStyle overrides. */
+		OXML_Document * doc = OXML_Document::getInstance();
+		OXML_SharedStyle pNormal =
+			doc ? doc->getStyleById("_Normal") : OXML_SharedStyle();
+		if (pNormal.get() != nullptr &&
+			pNormal->getName().compare(""))
+		{
+			elem->setAttribute(PT_STYLE_ATTRIBUTE_NAME,
+							   pNormal->getName().c_str());
+		}
+
 		rqst->stck->push(elem);
 
 		rqst->handled = true;
@@ -113,8 +166,15 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "sectPr")) {
 		//Verify the context...
 		std::string contextTag = rqst->context->back();
-		if (contextMatches(contextTag, NS_W_KEY, "pPr") || 
+		if (contextMatches(contextTag, NS_W_KEY, "pPr") ||
 			contextMatches(contextTag, NS_W_KEY, "body")) {
+			if (contextMatches(contextTag, NS_W_KEY, "pPr") && !rqst->stck->empty()) {
+				// This paragraph's mark is the section break. Word does
+				// not paint paragraph borders on such break paragraphs;
+				// flag it so layout can suppress them (kept in .abw as
+				// the "section-break" paragraph property).
+				rqst->stck->top()->setProperty("section-break", "1");
+			}
 			OXML_SharedElement dummy(new OXML_Element_Paragraph(""));
 			rqst->stck->push(dummy);
 
@@ -128,9 +188,19 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 	} else if(nameMatches(rqst->pName, NS_W_KEY, "shd")) {
 		std::string contextTag = rqst->context->back();
 
-		if(!contextMatches(contextTag, NS_W_KEY, "pPr") && 
+		if(!contextMatches(contextTag, NS_W_KEY, "pPr") &&
 			!contextMatches(contextTag, NS_W_KEY, "rPr"))
 			return;
+
+		// w:pPr/w:rPr/w:shd is paragraph-mark shading, not a run or
+		// paragraph shading - ignore it.
+		if (contextMatches(contextTag, NS_W_KEY, "rPr") &&
+			rqst->context->size() >= 3 &&
+			contextMatches(rqst->context->at(rqst->context->size() - 2), NS_W_KEY, "pPr"))
+		{
+			rqst->handled = true;
+			return;
+		}
 
 		const gchar* fill = attrMatches(NS_W_KEY, "fill", rqst->ppAtts);
 
@@ -248,6 +318,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "jc") ||
 				nameMatches(rqst->pName, NS_W_KEY, "ind") ||
 				nameMatches(rqst->pName, NS_W_KEY, "spacing") ||
+				nameMatches(rqst->pName, NS_W_KEY, "contextualSpacing") ||
 				nameMatches(rqst->pName, NS_W_KEY, "pStyle")) {
 	//Verify the context...
 	std::string contextTag = rqst->context->at(rqst->context->size() - 2);
@@ -277,6 +348,18 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				//We justify for the values of "both", "distribute", "thaiDistribute", and the kashida variants
 				UT_return_if_fail( _error_if_fail( UT_OK == para->setProperty("text-align", "justify") ));
 			}
+
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "contextualSpacing")) {
+			/* OOXML w:contextualSpacing - collapse spacing between
+			 * adjacent paragraphs sharing the same style. Optional
+			 * w:val on/off switch, on when absent */
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			bool bOn = !val || !*val ||
+				(!strcmp(val, "true") && !strcmp(val, "1") &&
+				 !strcmp(val, "on"));
+			UT_return_if_fail( _error_if_fail( UT_OK ==
+				para->setProperty("contextual-spacing",
+								  bOn ? "1" : "0") ));
 
 		} else if (nameMatches(rqst->pName, NS_W_KEY, "ind")) {
 			const gchar * left = attrMatches(NS_W_KEY, "left", rqst->ppAtts);
@@ -344,9 +427,94 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			if (ref.get() != nullptr && ref->getName().compare("")) {
 				UT_return_if_fail( _error_if_fail( UT_OK == para->setAttribute(PT_STYLE_ATTRIBUTE_NAME, ref->getName().c_str()) ));
 			}
-			
+
 		}
 
+		rqst->handled = true;
+	}
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "pBdr")) {
+		/* Paragraph border container - the <w:top>/<w:left>/
+		 * <w:bottom>/<w:right> edges are handled below; nothing
+		 * needs to be pushed for the container itself. */
+		rqst->handled = true;
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "between") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "bar")) {
+		/* <w:between> and <w:bar> inside <w:pBdr> have no AbiWord
+		 * equivalent - accept and ignore them. */
+		if (!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "pBdr"))
+			rqst->handled = true;
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "top") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "left") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "bottom") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "right")) {
+		/* A <w:pBdr> edge: same attribute set as a table-cell
+		 * border (val/sz/space/color[/themeColor]) but it lands
+		 * on a paragraph or style element.  The <tcBorders>/
+		 * <tblBorders> variants are left for the table state. */
+		if (rqst->context->empty() ||
+			!contextMatches(rqst->context->back(), NS_W_KEY, "pBdr"))
+			return;
+
+		OXML_SharedElement para = rqst->stck->top();
+		UT_return_if_fail( _error_if_fail( para.get() != nullptr ) );
+
+		std::string edge(rqst->pName);
+		edge = edge.substr(strlen(NS_W_KEY) + 1);
+		if (!edge.compare("bottom"))
+			edge = "bot"; /* AbiWord spells it "bot-" */
+
+		const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+		const gchar * sz = attrMatches(NS_W_KEY, "sz", rqst->ppAtts);
+		const gchar * space = attrMatches(NS_W_KEY, "space", rqst->ppAtts);
+		const gchar * color = attrMatches(NS_W_KEY, "color", rqst->ppAtts);
+		const gchar * theme = attrMatches(NS_W_KEY, "themeColor", rqst->ppAtts);
+
+		/* AbiWord edge styles: 0 none, 1 solid, 2 dotted, 3 dashed.
+		 * OOXML's single/thick/double/wave/... all degrade to solid. */
+		std::string style = "1";
+		if (val && *val)
+		{
+			if (!strcmp(val, "none") || !strcmp(val, "nil"))
+				style = "0";
+			else if (!strcmp(val, "dotted"))
+				style = "2";
+			else if (!strncmp(val, "dash", 4))
+				style = "3";
+		}
+		UT_return_if_fail( _error_if_fail( UT_OK ==
+			para->setProperty((edge + "-style").c_str(), style.c_str()) ));
+
+		if (sz && *sz)
+		{
+			std::string thick(_EighthPointsToPoints(sz));
+			thick += "pt";
+			UT_return_if_fail( _error_if_fail( UT_OK ==
+				para->setProperty((edge + "-thickness").c_str(), thick.c_str()) ));
+		}
+		if (space && *space)
+		{
+			std::string sp(space);
+			sp += "pt";
+			UT_return_if_fail( _error_if_fail( UT_OK ==
+				para->setProperty((edge + "-space").c_str(), sp.c_str()) ));
+		}
+		if (color && *color && strcmp(color, "auto"))
+		{
+			UT_return_if_fail( _error_if_fail( UT_OK ==
+				para->setProperty((edge + "-color").c_str(), color) ));
+		}
+		else if (theme && *theme)
+		{
+			std::string tcolor(_resolveThemeColor(theme));
+			if (!tcolor.empty())
+			{
+				UT_return_if_fail( _error_if_fail( UT_OK ==
+					para->setProperty((edge + "-color").c_str(), tcolor.c_str()) ));
+			}
+		}
 		rqst->handled = true;
 	}
 
@@ -355,7 +523,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 /**************************
  ****  RUN FORMATTING  ****
  **************************/
-	} else if (	nameMatches(rqst->pName, NS_W_KEY, "b") || 
+	else if (	nameMatches(rqst->pName, NS_W_KEY, "b") || 
 				nameMatches(rqst->pName, NS_W_KEY, "i") || 
 				nameMatches(rqst->pName, NS_W_KEY, "u") ||
 				nameMatches(rqst->pName, NS_W_KEY, "color") ||
@@ -370,9 +538,19 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "sz") ) {
 		//Verify the context...
 		std::string contextTag = rqst->context->at(rqst->context->size() - 2);
+		// w:pPr/w:rPr is the paragraph MARK's formatting, not text
+		// formatting. The only property meaningful to us is its font
+		// size, which controls the height of an empty paragraph line.
+		// (Also skipped inside styles: there pPr/rPr belongs to the
+		// style definition and must not override its font-size.)
+		bool bParaMark = contextMatches(contextTag, NS_W_KEY, "pPr") &&
+						 nameMatches(rqst->pName, NS_W_KEY, "sz") &&
+						 rqst->context->size() >= 3 &&
+						 contextMatches(rqst->context->at(rqst->context->size() - 3), NS_W_KEY, "p");
 		if (contextMatches(contextTag, NS_W_KEY, "r") ||
-			contextMatches(contextTag, NS_W_KEY, "rPrDefault") || 
-			contextMatches(contextTag, NS_W_KEY, "style")) {
+			contextMatches(contextTag, NS_W_KEY, "rPrDefault") ||
+			contextMatches(contextTag, NS_W_KEY, "style") ||
+			bParaMark) {
 			OXML_SharedElement run = rqst->stck->top();
 
 			if (nameMatches(rqst->pName, NS_W_KEY, "b")) {
@@ -429,37 +607,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				} else {
 					val = attrMatches(NS_W_KEY, "themeColor", rqst->ppAtts);
 					UT_return_if_fail( this->_error_if_fail(val != nullptr) );
-					std::string color = "#000000"; //default color in case of illegal themeColor value.
-					OXML_Document * doc = OXML_Document::getInstance();
-					UT_return_if_fail( this->_error_if_fail(doc != nullptr) );
-					OXML_SharedTheme theme = doc->getTheme();
-					if (!strcmp(val,"accent1")) {
-						color = theme->getColor(ACCENT1);
-					} else if (!strcmp(val,"accent2")) {
-						color = theme->getColor(ACCENT2);
-					} else if (!strcmp(val,"accent3")) {
-						color = theme->getColor(ACCENT3);
-					} else if (!strcmp(val,"accent4")) {
-						color = theme->getColor(ACCENT4);
-					} else if (!strcmp(val,"accent5")) {
-						color = theme->getColor(ACCENT5);
-					} else if (!strcmp(val,"accent6")) {
-						color = theme->getColor(ACCENT6);
-					} else if (!strcmp(val,"dark1")) {
-						color = theme->getColor(DARK1);
-					} else if (!strcmp(val,"dark2")) {
-						color = theme->getColor(DARK2);
-					} else if (!strcmp(val,"light1")) {
-						color = theme->getColor(LIGHT1);
-					} else if (!strcmp(val,"light2")) {
-						color = theme->getColor(LIGHT2);
-					} else if (!strcmp(val,"hlink")) {
-						color = theme->getColor(HYPERLINK);
-					} else if (!strcmp(val,"folHlink")) {
-						color = theme->getColor(FOLLOWED_HYPERLINK);
-					} else if (!strcmp(val,"none")) {
-						color = "#000000";
-					}
+					std::string color = _resolveThemeColor(val);
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("color", color.c_str())));
 				}
 
@@ -504,34 +652,28 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				OXML_FontLevel level = UNKNOWN_LEVEL;
 				OXML_CharRange range = UNKNOWN_RANGE;
 
+				/* AbiWord has a single "font-family" property, so resolve the
+				 * font for the *Latin* range only: w:ascii/asciiTheme first,
+				 * then w:hAnsi/hAnsiTheme.  w:eastAsia and w:cs apply to
+				 * East-Asian and complex-script characters only; when no Latin
+				 * attribute is present we must leave font-family unset so the
+				 * property inherits (as Word does), instead of leaking e.g. an
+				 * eastAsia="Verdana" mapping onto Latin text. */
 				const gchar * ascii = nullptr;
-				const gchar * eastAsia = nullptr;
-				const gchar * bidi = nullptr;
 				const gchar * hAnsi = nullptr;
 				if (nullptr != (ascii = attrMatches(NS_W_KEY, "asciiTheme", rqst->ppAtts))) {
 					this->getFontLevelRange(ascii, level, range);
 					fontName = fmgr->getValidFont(level, range); //Retrieve valid font name from Theme
 				} else if (nullptr != (ascii = attrMatches(NS_W_KEY, "ascii", rqst->ppAtts))) {
 					fontName = fmgr->getValidFont(ascii); //Make sure the name is valid
-				} else if (nullptr != (eastAsia = attrMatches(NS_W_KEY, "eastAsiaTheme", rqst->ppAtts))) {
-					this->getFontLevelRange(eastAsia, level, range);
-					fontName = fmgr->getValidFont(level, range); //Retrieve valid font name from Theme
-				} else if (nullptr != (eastAsia = attrMatches(NS_W_KEY, "eastAsia", rqst->ppAtts))) {
-					fontName = fmgr->getValidFont(eastAsia); //Make sure the name is valid
-				} else if (nullptr != (bidi = attrMatches(NS_W_KEY, "csTheme", rqst->ppAtts))) {
-					this->getFontLevelRange(bidi, level, range);
-					fontName = fmgr->getValidFont(level, range); //Retrieve valid font name from Theme
-				} else if (nullptr != (bidi = attrMatches(NS_W_KEY, "cs", rqst->ppAtts))) {
-					fontName = fmgr->getValidFont(bidi); //Make sure the name is valid
 				} else if (nullptr != (hAnsi = attrMatches(NS_W_KEY, "hAnsiTheme", rqst->ppAtts))) {
 					this->getFontLevelRange(hAnsi, level, range);
 					fontName = fmgr->getValidFont(level, range); //Retrieve valid font name from Theme
 				} else if (nullptr != (hAnsi = attrMatches(NS_W_KEY, "hAnsi", rqst->ppAtts))) {
 					fontName = fmgr->getValidFont(hAnsi); //Make sure the name is valid
-				} else {
-					fontName = fmgr->getDefaultFont();
 				}
-				UT_return_if_fail( _error_if_fail( UT_OK == run->setProperty("font-family", fontName.c_str()) ));
+				if (!fontName.empty())
+					UT_return_if_fail( _error_if_fail( UT_OK == run->setProperty("font-family", fontName.c_str()) ));
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "lang")) {
 				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);

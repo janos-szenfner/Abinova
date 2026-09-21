@@ -32,6 +32,62 @@ An experimental fork of the AbiWord word processor, focused on:
 - **Repository cleanup** — obsolete plugins and dead files removed;
   Debian-reported bugs fixed against the actual implementation.
 
+## Plugin cleanup
+
+Two kinds of plugin removal were done: **integrated** plugins moved
+into the core library (`src/wp/impexp/`, `src/wp/ap/`), and **removed**
+plugins whose code was deleted outright.
+
+### Integrated into the core library
+
+These formats/features no longer ship as loadable plugins — they are
+compiled into `libabiword` and are always available:
+
+| Former plugin | Now | Notes |
+|---------------|-----|-------|
+| `opendocument` | `src/wp/impexp/odf/` | ODT/flat-ODT import+export, encryption, RDF |
+| `openxml` | `src/wp/impexp/openxml/` | DOCX import+export, doc properties |
+| `epub` | `src/wp/impexp/epub/` | EPUB 3.3/2 import+export + options dialog |
+| `grammar` | `src/wp/ap/grammar/` | sentence checking via vendored Hunspell |
+| `latex` | `src/wp/impexp/xp/ie_*_LaTeX.cpp` | `.tex` import+export |
+| — (new) | `src/wp/impexp/xp/ie_*_Markdown.cpp` | `.md` import+export, was never a plugin |
+
+Legacy `.doc` import is likewise built in via bundled `wv-1.2.9`
+(`thirdparty/`), and Hunspell grammar checking is compiled in — none
+of these appear in the plugin list any more.
+
+### Removed plugins
+
+Deleted because they were dead code, unmaintained, duplicated
+built-in functionality, or depended on services/toolkits that no
+longer exist:
+
+- **Collaboration: `collab`, `ots`** — the real-time collaboration
+  framework depended on abandoned telepathy/loudmouth-era backends
+  (XMPP share, TCP tunnel, Sugar, service recordings) that no longer
+  build or have servers to talk to. Removing it also closed the
+  Launchpad crash reports filed against the collab accounts/dialogs
+  (LP#1711244, LP#673045, LP#673052, LP#674721, LP#295596).
+- **Web services: `google`, `wikipedia`, `urldict`, `gdict`** —
+  talked to discontinued Google/Wikipedia/dict.org endpoints over
+  GTK2-era networking.
+- **Obsolete formats/importers**: `aiksaurus` (thesaurus plugin —
+  thesaurus is core), `applix`, `bmp`, `clarisworks`, `docbook`,
+  `eml`, `garble`, `gda` (GNOME-DB), `gimp`, `goffice` (Gnumeric
+  component embedding — also closed LP#388971), `hancom`, `hrtext`,
+  `iscii`, `kword`, `loadbindings`, `mathview` (GtkMathView widget —
+  MathML is handled in-core), `mif`, `mswrite`, `openwriter`,
+  `opml`, `paint`, `passepartout`, `pdb`, `pdf` (experimental PDF
+  import — PDF remains an export target), `presentation`, `psion`,
+  `s5`, `sdw`, `t602`, `testharness`, `wml`, `xslfo`.
+- **Developer/misc**: `command` (remote-control pipe) and the
+  GTK2-only `--enable-menubutton` code path.
+
+### Remaining plugins
+
+`mht` (self-contained MHTML importer), `rsvg`, `wmf`, `wordperfect`
+(libwpd/libwps vendored), `wpg`.
+
 > **Disclaimer:** This is an experimental project. It is provided
 > **as is, without any warranty** of any kind, express or implied.
 > The author(s) accept **no responsibility or liability** for any
@@ -78,6 +134,21 @@ An experimental fork of the AbiWord word processor, focused on:
     blocks (`Plain Text` style), `---`/`***` horizontal rules
     (paragraph bottom border), GFM pipe tables with column
     alignment, and hard line breaks (two trailing spaces or `\`).
+  - YAML frontmatter (`---` at file start) is parsed into document
+    metadata (`dc.title`, `dc.creator`, `dc.date`, `dc.subject`,
+    `abiword.keywords`) instead of being shown as text.
+  - Reference links/images (`[text][id]` + `[id]: url` definitions)
+    resolve; definition lines are consumed rather than displayed.
+  - Footnotes (`[^id]` refs + `[^id]: text` definitions) become real
+    AbiWord footnote objects.
+  - Inline `$...$` and fenced `$$...$$`/`math` blocks are imported
+    as styled math text (no MathML renderer — equations keep their
+    TeX source, italicised).
+  - Mermaid fenced blocks keep their source under a `Plain Text`
+    style (no diagram renderer — the code is preserved verbatim).
+  - Raw HTML blocks are reduced to their readable text content;
+    `<!-- -->` comments are dropped.
+  - Emoji shortcodes (`:smile:`, `:heart:`, …) convert to Unicode.
   - Export writes the same constructs back, so a document round-trips
     through Markdown without losing its formatting structure.
 - **Built-in LaTeX** (`src/wp/impexp/xp/ie_imp_LaTeX.cpp` /
@@ -136,6 +207,41 @@ An experimental fork of the AbiWord word processor, focused on:
   `w:moveFrom`, `w:moveTo`) and `w14`/`w15` extension namespaces
   were verified to parse correctly. Legacy `.doc` continues through
   bundled `wv-1.2.9`.
+- **DOCX layout fidelity — multi-page pagination fixes**: a real-world
+  CV that rendered on ~3 pages instead of Word's 2 exposed a chain of
+  importer bugs, all now fixed:
+  - `w:docDefaults` no longer hijacks the `Normal` style: the
+    document's real `Normal` style is imported as `_Normal` and
+    unstyled paragraphs resolve to it, so stray
+    `w:after`/`w:line`/`w:sz` docDefaults stop inflating every
+    paragraph.
+  - Theme fonts resolve correctly: `w:themeFontLang` maps font
+    ranges to *languages* (e.g. `en-US` → `Latn`) but theme
+    `<a:font>` entries are keyed by ISO-15924 script and the Latin
+    typeface lives under `latin` — lookups now fall back to the
+    range's default script, so `asciiTheme="minorHAnsi"` yields
+    Calibri instead of silently degrading to Times New Roman.
+  - `w:rFonts` resolution now only considers the Latin-range
+    attributes (`ascii`/`asciiTheme`, `hAnsi`/`hAnsiTheme`); a style
+    that sets only `w:eastAsia`/`w:cs` (e.g. Verdana for CJK) no
+    longer leaks that face onto Latin text — it inherits instead.
+  - `w:contextualSpacing` is honoured: consecutive same-style
+    paragraphs (e.g. list items) collapse their inter-paragraph
+    margins instead of summing them.
+  - `w:pgMar` is applied to the section whose `sectPr` carries it
+    instead of globally overwriting every section with the last
+    sectPr's margins.
+  - Paragraph-mark run properties (`w:pPr/w:rPr`) no longer leak
+    `w:highlight`/`w:shd` onto the whole paragraph (only `w:sz`,
+    which controls empty-paragraph height, is taken), and the
+    paragraph that carries a `w:sectPr` break no longer paints
+    borders — matching Word's border merging. The `.abw` format
+    gained a `section-break` paragraph property for this (see
+    below).
+  - `.abw` extension: paragraphs may carry `section-break:1` to mark
+    the paragraph whose mark terminates a Word section; layout uses
+    it to suppress borders on the empty break mark. Older AbiWord
+    versions ignore the unknown property safely.
 - **Grammar checker switched to Hunspell** (now built-in): the checker no
   longer uses link-grammar. A vendored `hunspell-1.7.0` is built in
   `thirdparty/` and the sentence walker now flags each
@@ -161,8 +267,9 @@ An experimental fork of the AbiWord word processor, focused on:
   interface modelled on LibreOffice Writer's NotebookBar
   (`sw/uiconfig/swriter/ui/notebookbar.ui`). A `GtkNotebook`
   presents File / Home / Insert / References / Layout / Review /
-  View / Help tabs plus a contextual Table tab that appears only
-  while the caret is inside a table. Groups mix compact
+  View / Help tabs — **Home is the default tab** — plus a contextual
+  Table tab that appears only while the caret is inside a table.
+  Groups mix compact
   three-row button grids with Word-style large icon-over-caption
   buttons (Paste, Find, Replace, Select All) and glyph-only tiles
   (bold/italic/underline, alignment). Rich controls: the Home tab
@@ -172,11 +279,28 @@ An experimental fork of the AbiWord word processor, focused on:
   gallery — a horizontally-scrolling strip of tiles that renders
   each paragraph style's name in the style's own formatting and
   applies it on click; the Layout tab has column presets; the
-  View tab has the zoom combo. Ribbon items dispatch through the
-  same `menu.*` GActions and toolbar edit methods as the classic
-  UI, so enablement, toggle and combo state stay in sync. Switch
-  between interfaces via Help → Interface (ribbon is the default;
-  the choice persists in the `RibbonUI` preference).
+  View tab has the zoom combo. The Clipboard group is a Word-style
+  **split Paste button**: clicking the icon pastes immediately with
+  formatting, while the arrow opens "Paste Options:" with **Keep
+  Text Only** and **Paste Special…**. Paste Special lists the real
+  clipboard formats — all `image/*` types are grouped as one
+  "Picture" entry (best format auto-selected: PNG > SVG > JPEG…)
+  and alias duplicates (text/plain vs UTF8_STRING, text/rtf vs
+  application/rtf, text/html vs xhtml) are collapsed. Ribbon items
+  dispatch through the same `menu.*` GActions and toolbar edit
+  methods as the classic UI, so enablement, toggle and combo state
+  stay in sync. Switch between interfaces via Help → Interface
+  (ribbon is the default; the choice persists in the `RibbonUI`
+  preference).
+- **Same-application clipboard deadlock fixed**: pasting data that
+  AbiWord itself had copied wedged the UI forever — the async
+  `gdk_clipboard_read_async` path called back into our own
+  `AbiContentProvider` on the main thread and deadlocked on a GLib
+  mutex. `XAP_UnixClipboard::getData`/`getTextData` now detect a
+  locally-owned clipboard (`gdk_clipboard_is_local`) and read the
+  internal clipboard synchronously; the async round-trip is only
+  used for foreign clipboard owners. Fixes all paste paths (Paste,
+  Keep Text Only, Paste Special) and makes same-app paste faster.
 
 ### GTK4 runtime fixes (this round)
 
@@ -464,6 +588,68 @@ dynamic linker unified the symbol but both DSOs registered a static
 destructor, so `~map()` ran twice on one object. If you built from an
 older tree, delete leftover `opendocument.so` files from the plugin
 directory.
+
+## Libraries and references
+
+The project builds on, vendors, or took design cues from the
+following projects:
+
+**Design references**
+
+- [LibreOffice](https://www.libreoffice.org/) — the ribbon UI is
+  modelled on Writer's NotebookBar
+  (`sw/uiconfig/swriter/ui/notebookbar.ui`), and the status bar,
+  font selector, ruler and Paste split-button follow its behaviour.
+- [CommonMark](https://commonmark.org/) and the
+  [Zettlr Markdown Compendium](https://docs.zettlr.com/en/editor/markdown-compendium.html)
+  — Markdown import/export syntax.
+- [LaTeX project](https://www.latex-project.org/) — `.tex`
+  import/export syntax.
+- [EPUB 3.3 specification](https://www.w3.org/TR/epub-33/) — ebook
+  import/export.
+
+**Build dependencies** (system, via pkg-config)
+
+- [GTK 4](https://gtk.org/) + gtk4-unix-print — UI toolkit
+- [GLib](https://docs.gtk.org/glib/) / GIO — core platform library
+- [Pango](https://pango.gnome.org/) — text shaping
+- [cairo](https://cairographics.org/) (pdf/ps/fc/pangocairo) —
+  rendering and PDF/PS export
+- [libgsf](https://gitlab.gnome.org/GNOME/libgsf) — OLE2/ZIP
+  container I/O (`.doc`, `.docx`, `.epub`)
+- [fontconfig](https://www.freedesktop.org/wiki/Software/fontconfig/)
+  — bundled-font registration and substitution
+- [FriBidi](https://github.com/fribidi/fribidi) — bidirectional text
+- [libxslt](https://gitlab.gnome.org/GNOME/libxslt) — XSLT
+  (MathML↔LaTeX stylesheets)
+- [zlib](https://zlib.net/), [libpng](https://libpng.org/),
+  [libjpeg](https://ijg.org/) — image/archive support
+- [enchant-2](https://rrthomas.github.io/enchant/) — spell-checker
+  abstraction
+- [librsvg](https://gitlab.gnome.org/GNOME/librsvg) — SVG rendering
+  (rsvg plugin)
+- [Boost](https://www.boost.org/) headers
+- X11 — X11/XWayland platform glue
+
+**Vendored in `thirdparty/` / `fonts/`**
+
+- [Hunspell 1.7.0](https://hunspell.github.io/) — spell/grammar
+  checking (`thirdparty/hunspell-*`)
+- [wv 1.2.9](https://github.com/AbiWord/wv) — MS Word `.doc` import,
+  patched for the reported buffer overflows
+- [libwpd](https://libwpd.sourceforge.io/) +
+  [libwps](https://libwps.sourceforge.io/) — WordPerfect/MS Works
+  import (wordperfect plugin)
+- Blowfish CFB64 — vendored from
+  [OpenSSL](https://www.openssl.org/) (Apache-2.0) for encrypted ODF
+- [xsltml](http://xsltml.sourceforge.net/) — MathML→LaTeX XSLT
+  stylesheets
+- Bundled fonts (`fonts/`): [Carlito](https://github.com/googlefonts/carlito)
+  (Calibri-compatible), [Caladea](https://github.com/googlefonts/caladea)
+  (Cambria-compatible), Intos (Aptos-compatible), Liberation
+  (Arial/Times New Roman/Courier New), DejaVu, OpenSymbol, Gentium,
+  Noto, Source Sans/Serif/Code, Linux Libertine/Biolinum — see
+  `fonts/README.md` for provenance and licenses.
 
 ## License
 

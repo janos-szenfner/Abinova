@@ -165,6 +165,11 @@ UT_Error OXML_Style::serialize(IE_Exp_OpenXML* exporter)
 			return err;
 	}
 
+	/* paragraph borders on the style (<w:pBdr>) */
+	err = serializeParagraphBorders(exporter, TARGET_STYLES);
+	if (err != UT_OK)
+		return err;
+
 	err = exporter->finishParagraphProperties(TARGET_STYLES);
 	if(err != UT_OK)
 		return err;

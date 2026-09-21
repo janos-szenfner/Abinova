@@ -92,7 +92,29 @@ std::string OXML_FontManager::getValidFont(OXML_FontLevel level, OXML_CharRange 
 	else
 		font_name = theme->getMinorFont(script);
 
-	// 2a) If no mapping exists, return the return default document font
+	/* 2a) If the mapped script has no font in the theme, retry with the
+	 * range's default script.  w:themeFontLang maps ranges to *languages*
+	 * (e.g. "en-US" -> "Latn"), but theme <a:font> entries are keyed by
+	 * ISO-15924 script codes and the Latin typeface lives under "latin",
+	 * so the mapped script often has no direct entry. */
+	if (!font_name.compare("")) {
+		std::string defScript;
+		switch (range) {
+		case (ASCII_RANGE): //fallthrough to HANSI_RANGE
+		case (HANSI_RANGE): defScript = "latin"; break;
+		case (COMPLEX_RANGE): defScript = "cs"; break;
+		case (EASTASIAN_RANGE): defScript = "ea"; break;
+		default: UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+		}
+		if (defScript != script) {
+			if (level == MAJOR_FONT)
+				font_name = theme->getMajorFont(defScript);
+			else
+				font_name = theme->getMinorFont(defScript);
+		}
+	}
+
+	// 2b) If still no mapping exists, return the default document font
 	if (!font_name.compare("")) return m_defaultFont;
 
 	// 3) Return getValidFont(font name)

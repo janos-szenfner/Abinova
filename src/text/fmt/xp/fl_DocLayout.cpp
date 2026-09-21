@@ -2218,7 +2218,14 @@ UT_sint32 FL_DocLayout::getWidth() const
 	{
 		// add page view dimensions
 		if(getView())
+		{
+			// Pages tile horizontally in rows when zoomed out, so the
+			// effective width is the widest row, not a single page.
+			UT_sint32 iRowWidth = getView()->getMaxPageRowWidth();
+			if (iRowWidth > iWidth)
+				iWidth = iRowWidth;
 			iWidth += getView()->getPageViewLeftMargin() * 2;
+		}
 		else
 			iWidth += fl_PAGEVIEW_MARGIN_X * 2;
 	}

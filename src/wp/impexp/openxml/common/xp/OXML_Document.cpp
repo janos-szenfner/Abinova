@@ -555,10 +555,14 @@ UT_Error OXML_Document::addToPT(PD_Document * pDocument)
 	//Adding sections to PT
 	OXML_SectionVector::iterator it2;
 	for (it2 = m_sections.begin(); it2 != m_sections.end(); it2++) {
-		//set page margins here
-		ret = (*it2)->setPageMargins(m_pageMarginTop, m_pageMarginLeft, m_pageMarginRight, m_pageMarginBottom);
-		if (ret != UT_OK)
-			return ret;
+		//set page margins here, but only for sections that did not carry
+		//their own w:pgMar (which already set page-margin-* properties)
+		const gchar* existingTop = nullptr;
+		if ((*it2)->getProperty("page-margin-top", existingTop) != UT_OK || !existingTop) {
+			ret = (*it2)->setPageMargins(m_pageMarginTop, m_pageMarginLeft, m_pageMarginRight, m_pageMarginBottom);
+			if (ret != UT_OK)
+				return ret;
+		}
 		ret = (*it2)->addToPT(pDocument);
 		if (ret != UT_OK)
 			return ret;

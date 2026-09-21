@@ -27,6 +27,8 @@
 #include "pp_AttrProp.h"
 #include "OXML_Types.h"
 
+class IE_Exp_OpenXML;
+
 class OXML_ObjectWithAttrProp {
 public:
 	OXML_ObjectWithAttrProp();
@@ -55,6 +57,10 @@ public:
 
 	bool getNthProperty(int i, const gchar* & szName, const gchar* & szValue);
 	size_t getPropertyCount();
+
+	//! Writes a <w:pBdr> element for any paragraph-border props
+	//! (top/left/bot/right -style/-thickness/-space/-color).
+	UT_Error serializeParagraphBorders(IE_Exp_OpenXML* exporter, int target) const;
 
 private:
 	PP_AttrProp* m_pAttributes;

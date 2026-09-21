@@ -98,6 +98,7 @@ static PP_Property _props[] =
 	{ "column-gap",	           "0.25in",          false, PP_LEVEL_SECT},
 	{ "column-line",           "off",	          false, PP_LEVEL_SECT},
 	{ "columns",               "1",               false, PP_LEVEL_SECT},
+	{ "contextual-spacing",    "0",               false, PP_LEVEL_BLOCK}, // OOXML w:contextualSpacing - no gap between same-style paras
 
 	{ "default-tab-interval",  "0.5in",           false, PP_LEVEL_BLOCK},
 	{ "dir-override",          nullptr,              true,  PP_LEVEL_CHAR},

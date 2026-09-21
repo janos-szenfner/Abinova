@@ -67,9 +67,21 @@ private:
 	GtkWidget *		_makeButton(XAP_Menu_Id id, uint8_t flags);
 	GtkWidget *		_makeToolbarWidget(XAP_Toolbar_Id id, uint8_t flags);
 	GtkWidget *		_makeStyleGallery();
+	GtkWidget *		_wrapSplit(GtkWidget * w, GtkWidget * popover,
+							   bool bVertical);
+	GtkWidget *		_makePastePopover();
+	GtkWidget *		_makeListPopover();
+	GtkWidget *		_popoverMenuButton(XAP_Menu_Id id);
+	GtkWidget *		_popoverTbButton(XAP_Toolbar_Id id,
+									 const char * szLabel);
+	GtkWidget *		_popoverEmButton(const char * szLabel,
+									 const char * szIcon,
+									 const char * szMethod);
 	void			_invokeToolbarItem(XAP_Toolbar_Id id,
 									   const UT_UCS4Char * pData = nullptr,
 									   UT_uint32 dataLength = 0);
+	void			_invokeEditMethod(const char * szMethod);
+	void			_showPasteSpecialDialog();
 	void			_refreshContextualTabs();
 	void			_refreshToolbarItems();
 	void			_populateStyleTiles();
@@ -110,6 +122,12 @@ private:
 	static void			_s_tb_color_activated(GtkColorChooser * cc,
 											  GdkRGBA * color, gpointer data);
 	static void			_s_tb_color_automatic(GtkWidget * w, gpointer data);
+	static void			_s_popover_tb_clicked(GtkWidget * w, gpointer data);
+	static void			_s_popover_menu_clicked(GtkWidget * w, gpointer data);
+	static void			_s_popover_em_clicked(GtkWidget * w, gpointer data);
+	static void			_s_paste_special_clicked(GtkWidget * w, gpointer data);
+	static void			_s_paste_special_response(GtkDialog * dlg,
+												  gint resp, gpointer data);
 
 	UT_GenericVector<_TbCtx*>	m_vecTbCtx;
 

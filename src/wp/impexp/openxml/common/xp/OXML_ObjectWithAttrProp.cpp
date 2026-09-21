@@ -23,7 +23,16 @@
 // Class definition include
 #include "OXML_ObjectWithAttrProp.h"
 
-OXML_ObjectWithAttrProp::OXML_ObjectWithAttrProp() : 
+// AbiWord includes
+#include "ut_units.h"
+#include "ut_string.h"
+#include "ie_exp_OpenXML.h"
+
+// External includes
+#include <cstring>
+#include <string>
+
+OXML_ObjectWithAttrProp::OXML_ObjectWithAttrProp() :
 	m_pAttributes(new PP_AttrProp())
 {
 }
@@ -201,4 +210,79 @@ size_t OXML_ObjectWithAttrProp::getPropertyCount()
 bool OXML_ObjectWithAttrProp::getNthProperty(int i, const gchar* & szName, const gchar* & szValue)
 {
 	return m_pAttributes->getNthProperty(i, szName, szValue);
+}
+
+/* Writes a <w:pBdr> block for any paragraph-border properties present on
+ * this object (used by both body paragraphs and paragraph styles).
+ * AbiWord edge props: <edge>-style (0 none/1 solid/2 dotted/3 dashed),
+ * <edge>-thickness (pt), <edge>-space (pt), <edge>-color (rrggbb). */
+UT_Error OXML_ObjectWithAttrProp::serializeParagraphBorders(IE_Exp_OpenXML* exporter, int target) const
+{
+	static const char * s_edges[][2] = {
+		{ "top", "top" }, { "left", "left" },
+		{ "bot", "bottom" }, { "right", "right" }
+	};
+	std::string pBdr;
+	const gchar * szValue = nullptr;
+
+	for (size_t e = 0; e < G_N_ELEMENTS(s_edges); e++)
+	{
+		std::string prop = std::string(s_edges[e][0]) + "-style";
+		if (getProperty(prop.c_str(), szValue) != UT_OK || !szValue)
+			continue;
+		const char * val = "single";
+		if (!strcmp(szValue, "0") || !strcmp(szValue, "none"))
+			val = "nil";
+		else if (!strcmp(szValue, "2") || !strcmp(szValue, "dotted"))
+			val = "dotted";
+		else if (!strcmp(szValue, "3") || !strcmp(szValue, "dashed"))
+			val = "dashed";
+
+		pBdr += "<w:";
+		pBdr += s_edges[e][1];
+		pBdr += " w:val=\"";
+		pBdr += val;
+		pBdr += "\"";
+
+		prop = std::string(s_edges[e][0]) + "-thickness";
+		const gchar * szThick = nullptr;
+		if (getProperty(prop.c_str(), szThick) == UT_OK && szThick)
+		{
+			double pt = UT_convertToPoints(szThick);
+			if (pt > 0)
+			{
+				char buf[24];
+				g_snprintf(buf, sizeof(buf), " w:sz=\"%d\"",
+						   static_cast<int>(pt * 8 + 0.5));
+				pBdr += buf;
+			}
+		}
+		prop = std::string(s_edges[e][0]) + "-space";
+		const gchar * szSpace = nullptr;
+		if (getProperty(prop.c_str(), szSpace) == UT_OK && szSpace)
+		{
+			double pt = UT_convertToPoints(szSpace);
+			if (pt >= 0)
+			{
+				char buf[24];
+				g_snprintf(buf, sizeof(buf), " w:space=\"%d\"",
+						   static_cast<int>(pt + 0.5));
+				pBdr += buf;
+			}
+		}
+		prop = std::string(s_edges[e][0]) + "-color";
+		const gchar * szColor = nullptr;
+		if (getProperty(prop.c_str(), szColor) == UT_OK && szColor && *szColor)
+		{
+			pBdr += " w:color=\"";
+			pBdr += (szColor[0] == '#') ? szColor + 1 : szColor;
+			pBdr += "\"";
+		}
+		pBdr += "/>";
+	}
+	if (pBdr.empty())
+		return UT_OK;
+
+	pBdr = "<w:pBdr>" + pBdr + "</w:pBdr>";
+	return exporter->setParagraphBorders(target, pBdr.c_str());
 }

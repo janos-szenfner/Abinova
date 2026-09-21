@@ -70,6 +70,13 @@ public:
 
 	virtual void					copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard = true) override;
 	virtual void					pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard, bool bHonorFormatting = true) override;
+	void							pasteFromClipboardWithFormat(PD_DocumentRange * pDocRange,
+																 const char * szMimeType) override;
+	bool							pasteDataToDocRange(PD_DocumentRange * pDocRange,
+														const unsigned char * pData,
+														UT_uint32 iLen,
+														const char * szFormatFound,
+														XAP_UnixClipboard::T_AllowGet tFrom);
 	virtual bool canPasteFromClipboard(void) const override;
 	virtual void					addClipboardFmt (const char * szFormat) override {m_pClipboard->addFormat(szFormat);}
 	virtual void					deleteClipboardFmt (const char * szFormat) override {m_pClipboard->deleteFormat(szFormat);}

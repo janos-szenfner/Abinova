@@ -43,6 +43,14 @@ below are on `main` but the release has not been cut yet.
   bullet/ordered/task lists, blockquotes, fenced+indented code,
   horizontal rules, GFM pipe tables with alignment, hard breaks;
   documents round-trip through Markdown.
+- **Markdown importer extended** — YAML frontmatter parses into
+  document metadata (`dc.title`/`dc.creator`/`dc.date`/`dc.subject`/
+  `abiword.keywords`); reference links/images resolve from `[id]: url`
+  definitions; `[^id]` footnotes become real AbiWord footnote objects;
+  inline `$…$` and fenced `$$…$$`/`math` blocks import as styled math
+  text; Mermaid fenced blocks keep their source verbatim; raw HTML
+  blocks reduce to readable text; `<!-- -->` comments are dropped;
+  `:emoji:` shortcodes convert to Unicode.
 - **Built-in LaTeX import/export** — `.tex`/`.latex`/`.ltx`: the old
   `latex` plugin exporter moved to `src/wp/impexp/xp/ie_exp_LaTeX.cpp`
   (registered centrally, no module load), and a new importer
@@ -103,6 +111,34 @@ below are on `main` but the release has not been cut yet.
   left/right content side by side.  Balancing is skipped when a
   forced column or page break is present, and multi-page sections
   only rebalance their final row.
+- **DOCX pagination fidelity** — fixed a chain of importer bugs that
+  made a real-world CV occupy ~3 pages instead of Word's 2:
+  - `w:docDefaults` no longer hijacks `Normal`: the document's real
+    `Normal` imports as `_Normal` and unstyled paragraphs resolve to
+    it, so stray docDefault spacing (`w:after`/`w:line`/`w:sz`) stops
+    inflating every paragraph.
+  - Theme fonts resolve correctly: `w:themeFontLang` maps ranges to
+    languages (`en-US` → `Latn`), but theme `<a:font>` entries are
+    keyed by ISO-15924 script and the Latin face lives under
+    `latin` — `OXML_FontManager` now falls back to the range's
+    default script, so `asciiTheme="minorHAnsi"` yields Calibri
+    instead of silently degrading to Times New Roman.
+  - `w:rFonts` Latin resolution only considers `ascii`/`asciiTheme`/
+    `hAnsi`/`hAnsiTheme`; a style setting only `w:eastAsia`/`w:cs`
+    (e.g. Verdana for CJK) no longer leaks that face onto Latin text.
+  - `w:contextualSpacing` is honoured via a new
+    `contextual-spacing` block property — consecutive same-style
+    paragraphs (e.g. list items) collapse their inter-paragraph
+    margins.
+  - `w:pgMar` applies to the section whose `w:sectPr` carries it,
+    instead of globally overwriting every section with the last
+    sectPr's margins.
+  - Paragraph-mark run properties (`w:pPr/w:rPr`) only contribute
+    `w:sz` (empty-paragraph height) — `w:highlight`/`w:shd` no longer
+    paint the whole paragraph.
+  - Paragraphs carrying a `w:sectPr` break mark get a
+    `section-break` paragraph property in `.abw`; layout suppresses
+    their borders, matching Word's paragraph-border merging.
 
 ### User interface
 
@@ -128,11 +164,16 @@ below are on `main` but the release has not been cut yet.
   Symbols/Fields; new References tab (Table of Contents, Footnotes);
   Layout: Page Setup/Page Columns/Page Background.
 - **Word-style Home ribbon** — layout items now carry flags
-  (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`): Paste, Find,
-  Replace and Select All render as large icon-over-caption buttons,
-  bold/italic/underline/overline/super/subscript and the alignment
-  buttons are compact glyph-only tiles, and the Editing group's
-  buttons fill the group height with centred wrapped captions.
+  (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`,
+  `AP_RIBBON_FLAG_SPLIT`): Paste, Find, Replace and Select All render
+  as large icon-over-caption buttons, bold/italic/underline/overline/
+  super/subscript and the alignment buttons are compact glyph-only
+  tiles, the Editing group's buttons fill the group height with
+  centred wrapped captions, and group titles sit centred at the
+  bottom of each group. Paste and the list buttons render as split
+  buttons (icon click = action, arrow = dropdown); ribbon buttons
+  fall back to the menu item's stock icon when no toolbar icon is
+  registered (`abi_stock_from_menu_id`).
 - **Live Styles gallery** — the Home Styles group embeds a
   horizontally-scrolling strip of preview tiles, one per displayed
   paragraph style in the document; each tile's caption is the
@@ -147,6 +188,23 @@ below are on `main` but the release has not been cut yet.
 - **Interface switcher** — Help → Interface submenu (Classic Menus /
   Ribbon radio items) in both UIs; `RibbonUI` preference persists the
   choice; switching is live.
+- **Home tab is the default ribbon tab** — the ribbon notebook
+  explicitly selects the `home` page after building the tabs.
+- **Word-style split Paste button** — the ribbon Paste control is a
+  split button: the icon pastes immediately with formatting, the
+  arrow opens a dropdown with "Paste Options:", "Keep Text Only"
+  and "Paste Special…".
+- **Paste Special dialog** — lists the clipboard's real formats and
+  pastes the chosen one through the normal importer dispatch
+  (`FV_View::cmdPasteAs` → `XAP_App::pasteFromClipboardWithFormat` →
+  `AP_UnixApp::pasteDataToDocRange`). All `image/*` types group into
+  a single "Picture" entry (best available format chosen:
+  PNG > SVG > JPEG > …) and alias duplicates collapse into one row —
+  `text/plain`/`UTF8_STRING`/`TEXT`/`STRING` → "Unformatted Text",
+  `text/rtf`/`application/rtf` → RTF, `text/html`/`application/xhtml+xml`
+  → HTML. The paste runs from an idle callback after the dialog
+  closes, avoiding re-entrant clipboard access during modal response
+  handling.
 - **LibreOffice-style status bar** — `Page: n/m`, live
   `N words, N characters`, current paragraph style, insert/overwrite
   and input-mode indicators, document language, and a zoom cluster
@@ -251,6 +309,14 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Same-application clipboard deadlock** — `gdk_clipboard_read_async`
+  deadlocked when AbiWord itself owned the clipboard (the async read
+  calls back into our own `AbiContentProvider` on the main thread and
+  wedges on a GLib mutex). `XAP_UnixClipboard::getData`/`getTextData`
+  now detect a locally-owned clipboard (`gdk_clipboard_is_local`) and
+  read the internal fake clipboard synchronously; the async path is
+  only used for foreign owners. Fixed every paste path (Paste, Keep
+  Text Only, Paste Special) and made same-app paste faster.
 - **Insert → Symbol SIGFPE** — division by a 0×0 drawing-area
   allocation guarded; natural size used before realization.
 - **Menubar/toolbar activation crash** — `GMenu` rebuild deferred to

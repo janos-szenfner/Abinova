@@ -268,12 +268,20 @@ bool XAP_UnixClipboard::getData(T_AllowGet tFrom, const char** formatList,
 	*pszFormatFound = nullptr;
 	*ppData = nullptr;
 	*pLen = 0;
-	if (TAG_ClipboardOnly == tFrom)
+	if (TAG_ClipboardOnly == tFrom || TAG_PrimaryOnly == tFrom)
+	{
+		/* when we own the selection ourselves the fake clipboard already
+		 * holds every format synchronously - read it directly and skip
+		 * the async server round-trip, which can deadlock on a local
+		 * content provider */
+		GdkClipboard * clippy = clipboardForTarget(tFrom);
+		if (clippy && gdk_clipboard_is_local(clippy) &&
+			_getDataFromFakeClipboard(tFrom, formatList, ppData, pLen,
+									  pszFormatFound))
+			return true;
 		return _getDataFromServer(tFrom,formatList,ppData,pLen,pszFormatFound);
-	else if (TAG_PrimaryOnly == tFrom)
-		return _getDataFromServer(tFrom,formatList,ppData,pLen,pszFormatFound);
-	else
-		return false;
+	}
+	return false;
 }
 
 struct ReadCtx
@@ -307,6 +315,19 @@ bool XAP_UnixClipboard::getTextData(T_AllowGet tFrom, void ** ppData,
 	*pLen = 0;
 
 	GdkClipboard * clippy = clipboardForTarget (tFrom);
+
+	/* self-owned clipboard: read the fake clipboard directly, the async
+	 * text read can deadlock against our own content provider */
+	if (clippy && gdk_clipboard_is_local(clippy))
+	{
+		const char * pszLocal = nullptr;
+		static const char * localTxtList [] = {
+			"text/plain",
+			nullptr
+		};
+		return _getDataFromFakeClipboard(tFrom, localTxtList, ppData,
+										 pLen, &pszLocal);
+	}
 
 	ReadCtx ctx;
 	ctx.loop = g_main_loop_new(nullptr, FALSE);

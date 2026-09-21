@@ -8148,17 +8148,17 @@ UT_sint32 FV_View::getPageViewLeftMargin(void) const
 	}
 	else
 	{
-		/* When the zoomed page is narrower than the window, center it
+		/* When the zoomed page row is narrower than the window, center it
 		 * horizontally like LibreOffice/MS Word instead of hugging the
-		 * left edge. This margin also feeds the document layout width
-		 * (fl_DocLayout adds 2x margin), so centering keeps the scroll
-		 * range at exactly the window width — no phantom scrollbar. */
+		 * left edge. The row width accounts for pages tiling side-by-side
+		 * when zoomed out. This margin also feeds the document layout
+		 * width (fl_DocLayout adds 2x margin), so centering keeps the
+		 * scroll range at exactly the window width — no phantom scrollbar. */
 		UT_sint32 iWinW = getWindowWidth();
-		double pageW = getPageSize().Width(DIM_IN) *
-					   static_cast<double>(UT_LAYOUT_RESOLUTION);
-		if (iWinW > static_cast<UT_sint32>(pageW))
+		UT_sint32 iRowW = getMaxPageRowWidth();
+		if ((iRowW > 0) && (iWinW > iRowW))
 		{
-			return (iWinW - static_cast<UT_sint32>(pageW)) / 2;
+			return (iWinW - iRowW) / 2;
 		}
 	}
 
@@ -14242,6 +14242,49 @@ UT_uint32 FV_View::getWidthPagesInRow(fp_Page *page) const
 	}
 	
 	return (getWidthPrevPagesInRow(iLastPageInRow) + pPage->getWidth());
+}
+
+/*!
+ * Width of the widest row of pages when pages tile horizontally
+ * (zoomed-out multi-page view). Falls back to the widest single
+ * page when there is only one page per row.
+ */
+UT_sint32 FV_View::getMaxPageRowWidth(void) const
+{
+	UT_sint32 iMax = 0;
+	UT_uint32 iNumHoriz = getNumHorizPages();
+	if (!m_pLayout)
+	{
+		return 0;
+	}
+	if (iNumHoriz <= 1)
+	{
+		int count = m_pLayout->countPages();
+		for (int i = 0; i < count; i++)
+		{
+			fp_Page * pPage = m_pLayout->getNthPage(i);
+			if (pPage && (pPage->getWidth() > iMax))
+			{
+				iMax = pPage->getWidth();
+			}
+		}
+		return iMax;
+	}
+	int count = m_pLayout->countPages();
+	for (int i = 0; i < count; i += iNumHoriz)
+	{
+		fp_Page * pPage = m_pLayout->getNthPage(i);
+		if (!pPage)
+		{
+			break;
+		}
+		UT_sint32 iRowWidth = static_cast<UT_sint32>(getWidthPagesInRow(pPage));
+		if (iRowWidth > iMax)
+		{
+			iMax = iRowWidth;
+		}
+	}
+	return iMax;
 }
 
 UT_uint32 FV_View::getHorizPageSpacing() const

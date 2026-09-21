@@ -336,6 +336,7 @@ public:
 	virtual void	cmdCopy(bool bToClipboard = true) override;
 	virtual void	cmdCut(void) override;
 	virtual void	cmdPaste(bool bHonorFormatting = true) override;
+	void			cmdPasteAs(const char * szMimeType);
 	virtual void	cmdPasteSelectionAt(UT_sint32 xPos, UT_sint32 yPos) override;
 
 	void            pasteFromLocalTo(PT_DocPosition pos);
@@ -906,6 +907,7 @@ public:
 	UT_uint32			getMaxHeight(UT_uint32 iRow) const;
 	UT_uint32			getWidthPrevPagesInRow(UT_uint32 iPageNumber) const;
 	UT_uint32			getWidthPagesInRow(fp_Page *page) const;
+	UT_sint32			getMaxPageRowWidth(void) const;
 	UT_uint32			getHorizPageSpacing(void) const;
 	bool				rtlPages(void) const;
 
@@ -983,7 +985,8 @@ protected:
 	void				_setPoint(fv_CaretProps * pCP, PT_DocPosition pt, UT_sint32 iLen) const;
 	UT_uint32			_getDataCount(UT_uint32 pt1, UT_uint32 pt2) const;
 	bool				_charMotion(bool bForward,UT_uint32 countChars, bool bSkipCannotContainPoint = true);
-	void				_doPaste(bool bUseClipboard, bool bHonorFormatting = true);
+	void				_doPaste(bool bUseClipboard, bool bHonorFormatting = true,
+								 const char * szMimeType = nullptr);
 	void				_clearIfAtFmtMark(PT_DocPosition dpos);
 
 #ifdef ENABLE_SPELL
