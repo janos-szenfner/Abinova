@@ -465,10 +465,25 @@ static GtkCssProvider * _slimButtonCss()
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 		gtk_css_provider_load_from_string(p,
 			"button { padding-left: 4px; padding-right: 4px;"
-			" min-width: 0px; }");
+			" min-width: 0px; }"
+			"entry { padding-left: 2px; padding-right: 2px; }");
 G_GNUC_END_IGNORE_DEPRECATIONS
 	}
 	return p;
+}
+
+/* context providers do not reach a widget's internal children (the
+ * arrow button inside a GtkComboBox, the toggle inside a
+ * GtkMenuButton) - walk the tree and slim buttons/entries directly */
+static void _slim_widget_tree(GtkWidget * w)
+{
+	gtk_style_context_add_provider(
+		gtk_widget_get_style_context(w),
+		GTK_STYLE_PROVIDER(_slimButtonCss()),
+		GTK_STYLE_PROVIDER_PRIORITY_USER);
+	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+		_slim_widget_tree(c);
 }
 
 GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
@@ -1544,20 +1559,7 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 						 ? "Aa" : "?");
 	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), gl);
 	if (flags & AP_RIBBON_FLAG_SLIM)
-	{
-		gtk_style_context_add_provider(
-			gtk_widget_get_style_context(mb),
-			GTK_STYLE_PROVIDER(_slimButtonCss()),
-			GTK_STYLE_PROVIDER_PRIORITY_USER);
-		/* the menubutton's inner toggle button does not inherit
-		 * context providers - slim it directly too */
-		GtkWidget * inner = gtk_widget_get_first_child(mb);
-		if (inner)
-			gtk_style_context_add_provider(
-				gtk_widget_get_style_context(inner),
-				GTK_STYLE_PROVIDER(_slimButtonCss()),
-				GTK_STYLE_PROVIDER_PRIORITY_USER);
-	}
+		_slim_widget_tree(mb);
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_NONE);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
@@ -1620,14 +1622,11 @@ GtkWidget * AP_UnixRibbon::_tb_make_combo(_TbCtx * ctx)
 		GtkEntry * entry =
 			GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo)));
 		gtk_widget_set_can_focus(GTK_WIDGET(entry), TRUE);
-		gtk_editable_set_width_chars(GTK_EDITABLE(entry), 3);
+		gtk_editable_set_width_chars(GTK_EDITABLE(entry), 2);
 		gtk_editable_set_max_width_chars(GTK_EDITABLE(entry), 5);
-		/* slim the combo's dropdown button to match the glyph
-		 * buttons beside it */
-		gtk_style_context_add_provider(
-			gtk_widget_get_style_context(combo),
-			GTK_STYLE_PROVIDER(_slimButtonCss()),
-			GTK_STYLE_PROVIDER_PRIORITY_USER);
+		/* slim the combo's entry and internal dropdown button to
+		 * match the glyph buttons beside it */
+		_slim_widget_tree(combo);
 		g_signal_connect(G_OBJECT(entry), "insert-text",
 						 G_CALLBACK(_s_tb_size_insert_text), nullptr);
 		GtkEventController * focus = gtk_event_controller_focus_new();
