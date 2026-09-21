@@ -1620,8 +1620,14 @@ GtkWidget * AP_UnixRibbon::_tb_make_combo(_TbCtx * ctx)
 		GtkEntry * entry =
 			GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo)));
 		gtk_widget_set_can_focus(GTK_WIDGET(entry), TRUE);
-		gtk_editable_set_width_chars(GTK_EDITABLE(entry), 4);
-		gtk_editable_set_max_width_chars(GTK_EDITABLE(entry), 6);
+		gtk_editable_set_width_chars(GTK_EDITABLE(entry), 3);
+		gtk_editable_set_max_width_chars(GTK_EDITABLE(entry), 5);
+		/* slim the combo's dropdown button to match the glyph
+		 * buttons beside it */
+		gtk_style_context_add_provider(
+			gtk_widget_get_style_context(combo),
+			GTK_STYLE_PROVIDER(_slimButtonCss()),
+			GTK_STYLE_PROVIDER_PRIORITY_USER);
 		g_signal_connect(G_OBJECT(entry), "insert-text",
 						 G_CALLBACK(_s_tb_size_insert_text), nullptr);
 		GtkEventController * focus = gtk_event_controller_focus_new();
