@@ -254,9 +254,9 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"  min-width: 0; min-height: 0; margin: 8px 2px;"
 		"  border-left: 1px solid alpha(@theme_fg_color, 0.22);"
 		"}"
-		/* File ▸ Close - red like Word's destructive controls; the
-		 * symbolic icon picks up the colour too */
-		".abiword-ribbon button.ribbon-close {"
+		/* File ▸ Close - red glyph like Word's destructive controls;
+		 * only the symbolic icon picks up the colour */
+		".abiword-ribbon image.ribbon-close {"
 		"  color: @error_color;"
 		"}"
 		".abiword-ribbon .ribbon-group-title {"
@@ -563,9 +563,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	else
 		btn = gtk_button_new();
 
-	/* Close gets the Word-style red treatment */
-	if (id == AP_MENU_ID_FILE_CLOSE)
-		gtk_widget_add_css_class(btn, "ribbon-close");
+
 
 	/* reuse the classic toolbar's icon for this edit method, if any;
 	 * fall back to the menu action's own stock-icon mapping */
@@ -648,6 +646,9 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
 		gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
 		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
+		/* Close: red icon only, button face and label stay normal */
+		if (id == AP_MENU_ID_FILE_CLOSE)
+			gtk_widget_add_css_class(image, "ribbon-close");
 		GtkWidget * wLabel = gtk_label_new(label);
 		/* Word wraps long captions onto a second line rather than
 		 * ellipsizing ("Document Properties", "New using Template") */
