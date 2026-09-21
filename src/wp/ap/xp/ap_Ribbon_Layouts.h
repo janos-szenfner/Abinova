@@ -66,8 +66,12 @@ enum AP_RibbonItemFlags : uint8_t
 	AP_RIBBON_FLAG_LARGE	= 1 << 0,	/* icon above label, spans the group height */
 	AP_RIBBON_FLAG_ICONONLY	= 1 << 1,	/* compact glyph-only button */
 	AP_RIBBON_FLAG_SPLIT	= 1 << 2,	/* trailing drop-arrow opens a popover */
-	AP_RIBBON_FLAG_GLYPH	= 1 << 3	/* text glyph (B, I, U, x2) instead of
+	AP_RIBBON_FLAG_GLYPH	= 1 << 3,	/* text glyph (B, I, U, x2) instead of
 									 * a theme icon */
+	AP_RIBBON_FLAG_MENUPOP	= 1 << 4	/* single menu-button: clicking it
+									 * opens the dropdown popover (no
+									 * separate arrow, no action on the
+									 * button itself) */
 };
 
 #define AP_RIBBON_ROWEND	{ AP_RIBBON_ITEM_ROWEND,  AP_RIBBON_FLAG_NONE,     0 }
@@ -76,6 +80,7 @@ enum AP_RibbonItemFlags : uint8_t
 #define AP_RIBBON_SPLIT_MENU(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_LARGE | AP_RIBBON_FLAG_SPLIT),    (uint16_t)(x) }
 #define AP_RIBBON_SPLIT_TB_I(x)	{ AP_RIBBON_ITEM_TOOLBAR, (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_SPLIT), (uint16_t)(x) }
 #define AP_RIBBON_SPLIT_MENU_G(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_SPLIT), (uint16_t)(x) }
+#define AP_RIBBON_MENUPOP_G(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 
 struct AP_RibbonItem
 {
@@ -157,6 +162,7 @@ static const AP_RibbonItem s_ribbon_home_font[] =
 	AP_RIBBON_TB(AP_TOOLBAR_ID_FMT_SIZE),
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_GROWFONT),
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_SHRINKFONT),
+	AP_RIBBON_MENUPOP_G(AP_MENU_ID_FMT_TOGGLECASE),
 	AP_RIBBON_ROWEND,
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_BOLD),
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_ITALIC),
@@ -164,7 +170,6 @@ static const AP_RibbonItem s_ribbon_home_font[] =
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_STRIKE),
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_SUPERSCRIPT),
 	AP_RIBBON_MENU_G(AP_MENU_ID_FMT_SUBSCRIPT),
-	AP_RIBBON_SPLIT_MENU_G(AP_MENU_ID_FMT_TOGGLECASE),
 	AP_RIBBON_TB_I(AP_TOOLBAR_ID_COLOR_BACK),
 	AP_RIBBON_TB_I(AP_TOOLBAR_ID_COLOR_FORE),
 	AP_RIBBON_MENU_I(AP_MENU_ID_FMT_CLEARFMT),

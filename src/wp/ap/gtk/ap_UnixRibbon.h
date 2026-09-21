@@ -72,6 +72,7 @@ private:
 	GtkWidget *		_makePastePopover();
 	GtkWidget *		_makeListPopover();
 	GtkWidget *		_makeChangeCasePopover();
+	GtkWidget *		_makeMenuPopButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverMenuButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverTbButton(XAP_Toolbar_Id id,
 									 const char * szLabel);

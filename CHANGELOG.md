@@ -247,12 +247,12 @@ below are on `main` but the release has not been cut yet.
   bound lazily and render in their own typeface (only visible rows
   load fonts — the old cell renderer measured ~2000 fonts on popup
   open and froze the UI).
-- **Change Case "Aa" dropdown** — new split button in the Font group:
-  the main button opens the existing Change Case dialog, the arrow
-  drops a popover with five direct conversions (Sentence case,
-  lowercase, UPPERCASE, Capitalize Every Word, tOGGLE cASE) wired to
-  new `caseSentence`/`caseLower`/`caseUpper`/`caseTitle`/`caseToggle`
-  edit methods over `FV_View::toggleCase`.
+- **Change Case "Aa" dropdown** — single menu button on the Font
+  group's top row (next to Grow/Shrink Font): clicking it drops a
+  popover with five direct conversions (Sentence case, lowercase,
+  UPPERCASE, Capitalize Every Word, tOGGLE cASE) wired to new
+  `caseSentence`/`caseLower`/`caseUpper`/`caseTitle`/`caseToggle`
+  edit methods over `FV_View::toggleCase`; no separate arrow widget.
 - **Ribbon colour pickers rebuilt** — Font Color and Highlight now
   open a LibreOffice-style swatch grid (Automatic button, 40-colour
   standard palette, "Custom Color…" button). One click on a swatch

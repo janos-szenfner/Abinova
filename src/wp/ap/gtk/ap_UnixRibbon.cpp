@@ -328,6 +328,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				GtkWidget * w = nullptr;
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
+				else if (item->flags & AP_RIBBON_FLAG_MENUPOP)
+					w = _makeMenuPopButton((XAP_Menu_Id)item->id);
 				else if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
 					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
 										   item->flags);
@@ -500,6 +502,23 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_markup(GTK_LABEL(gl), markup);
 			gtk_widget_set_valign(gl, GTK_ALIGN_CENTER);
 			gtk_button_set_child(GTK_BUTTON(btn), gl);
+			/* slim the glyph buttons down to their caption - the
+			 * theme's default button padding makes single letters
+			 * twice as wide as they need to be */
+			static GtkCssProvider * s_glyphCss = nullptr;
+			if (!s_glyphCss)
+			{
+				s_glyphCss = gtk_css_provider_new();
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+				gtk_css_provider_load_from_string(s_glyphCss,
+					"button { padding-left: 2px; padding-right: 2px;"
+					" min-width: 0; }");
+G_GNUC_END_IGNORE_DEPRECATIONS
+			}
+			gtk_style_context_add_provider(
+				gtk_widget_get_style_context(btn),
+				GTK_STYLE_PROVIDER(s_glyphCss),
+				GTK_STYLE_PROVIDER_PRIORITY_USER);
 			gtk_actionable_set_action_name(GTK_ACTIONABLE(btn), detailed);
 			if (pAction->isRadio())
 			{
@@ -903,7 +922,9 @@ GtkWidget * AP_UnixRibbon::_tb_color_swatch(const gchar * hex, _TbCtx * ctx)
 			   " min-width: 20px; min-height: 20px; padding: 0; }",
 			   hex);
 	GtkCssProvider * cssProv = gtk_css_provider_new();
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	gtk_css_provider_load_from_string(cssProv, css);
+G_GNUC_END_IGNORE_DEPRECATIONS
 	gtk_style_context_add_provider(gtk_widget_get_style_context(sw),
 								   GTK_STYLE_PROVIDER(cssProv),
 								   GTK_STYLE_PROVIDER_PRIORITY_USER);
@@ -1477,6 +1498,36 @@ GtkWidget * AP_UnixRibbon::_makeChangeCasePopover()
 
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
+}
+
+/* single-button dropdown (LibreOffice "Aa"): the button itself opens
+ * the popover - no separate arrow widget, no action on the button */
+GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id)
+{
+	GtkWidget * popover = (id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE)
+		? _makeChangeCasePopover() : nullptr;
+	if (!popover)
+		return nullptr;
+
+	GtkWidget * mb = gtk_menu_button_new();
+	GtkWidget * gl = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(gl),
+						 id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE
+						 ? "Aa" : "?");
+	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), gl);
+	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
+	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
+
+	const EV_Menu_Label * pLabel =
+		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
+	if (pLabel)
+	{
+		const char * szStatus = pLabel->getMenuStatusMessage();
+		if (szStatus && *szStatus && strcmp(szStatus, " ") != 0)
+			gtk_widget_set_tooltip_text(mb, szStatus);
+	}
+	return mb;
 }
 
 /* attach a small drop-arrow menu button beside (or below) a button */

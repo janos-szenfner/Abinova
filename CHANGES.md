@@ -13,11 +13,13 @@ Older upstream history is not listed here.
   via lazy factory binding. Keys captured by the popup's seat grab are
   forwarded to the entry (text, Backspace/Delete, Enter, Escape) so
   typing never dead-ends. The old `GtkDropDown` is gone.
-- New Change Case "Aa" split button in the Font group (arrow opens a
-  popover with Sentence case / lowercase / UPPERCASE / Capitalize
-  Every Word / tOGGLE cASE — five new edit methods calling
-  `FV_View::toggleCase` directly); Clear Formatting moved next to the
-  font colour button.
+- New Change Case "Aa" button on the Font group's top row: a single
+  `GtkMenuButton` whose click drops a popover with Sentence case /
+  lowercase / UPPERCASE / Capitalize Every Word / tOGGLE cASE — five
+  new edit methods calling `FV_View::toggleCase` directly (no
+  separate arrow widget); Clear Formatting moved next to the font
+  colour button; glyph buttons slimmed via a shared CSS provider so
+  A⁺/A⁻ pack tighter.
 - Ribbon colour pickers (Font Color, Highlight) replaced: a
   LibreOffice-style swatch grid with Automatic button + "Custom
   Color…" `GtkColorChooserDialog` (Select/Cancel). One swatch click
