@@ -3246,6 +3246,36 @@ void AP_UnixRibbon::_s_spin_changed(GtkSpinButton * spin, gpointer /*data*/)
 	c->idleId = g_timeout_add(350, _s_spin_apply, spin);
 }
 
+/* spacing glyph for the Before/After spin rows: three text lines
+ * with a small arrow on the padded edge (up = Before, down = After) */
+static void _s_spacing_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+								 int w, int h, gpointer data)
+{
+	bool bUp = GPOINTER_TO_INT(data) != 0;
+	double top = bUp ? 5.0 : 1.0;
+	cairo_set_source_rgb(cr, 0.35, 0.35, 0.35);
+	cairo_set_line_width(cr, 1.2);
+	for (int i = 0; i < 3; ++i)
+	{
+		double y = top + 1.0 + i * 3.6;
+		cairo_move_to(cr, 1.5, y);
+		cairo_line_to(cr, w - 1.5, y);
+	}
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.2);
+	double stem0 = bUp ? 4.6 : h - 4.6;
+	double tip  = bUp ? 0.8 : h - 0.8;
+	cairo_move_to(cr, w * 0.5, stem0);
+	cairo_line_to(cr, w * 0.5, tip);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.5, tip);
+	cairo_line_to(cr, w * 0.5 - 2.2, tip + (bUp ? 3.0 : -3.0));
+	cairo_line_to(cr, w * 0.5 + 2.2, tip + (bUp ? 3.0 : -3.0));
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
 GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 {
 	const char * prop;
@@ -3273,14 +3303,30 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 
 	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_widget_set_valign(row, GTK_ALIGN_CENTER);
-	GtkWidget * icon = gtk_image_new_from_icon_name(
-		spinId == AP_RIBBON_SPIN_INDENT_LEFT ||
-		spinId == AP_RIBBON_SPIN_BEFORE
-			? "format-indent-more-symbolic"
-			: "format-indent-less-symbolic");
+	GtkWidget * icon;
+	if (spinId == AP_RIBBON_SPIN_BEFORE || spinId == AP_RIBBON_SPIN_AFTER)
+	{
+		icon = gtk_drawing_area_new();
+		gtk_widget_set_size_request(icon, 16, 16);
+		gtk_drawing_area_set_draw_func(
+			GTK_DRAWING_AREA(icon), _s_spacing_icon_draw,
+			GINT_TO_POINTER(spinId == AP_RIBBON_SPIN_BEFORE), nullptr);
+	}
+	else
+	{
+		icon = gtk_image_new_from_icon_name(
+			spinId == AP_RIBBON_SPIN_INDENT_LEFT
+				? "format-indent-more-symbolic"
+				: "format-indent-less-symbolic");
+	}
 	gtk_widget_set_valign(icon, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(row), icon);
-	gtk_box_append(GTK_BOX(row), gtk_label_new(label));
+	/* fixed label width so the spin entries line up in a column
+	 * ("Before:" is the widest label) */
+	GtkWidget * lbl = gtk_label_new(label);
+	gtk_label_set_width_chars(GTK_LABEL(lbl), 7);
+	gtk_label_set_xalign(GTK_LABEL(lbl), 0.0f);
+	gtk_box_append(GTK_BOX(row), lbl);
 
 	double max = (unit == DIM_PT) ? 1584.0 : 30.0; /* 22in in pt / 30cm|in */
 	GtkWidget * spin = gtk_spin_button_new_with_range(-100.0, max,

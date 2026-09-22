@@ -473,6 +473,12 @@ below are on `main` but the release has not been cut yet.
 - **Slimmer spin-button +/- controls** — the Layout tab's
   indent/spacing `GtkSpinButton`s get a `ribbon-spin` class with
   zero-minimum, low-padding buttons.
+- **Indent/Spacing fields aligned** — the spin labels ("Left:" vs
+  "Right:", "Before:" vs "After:") had different widths, so the
+  entry columns sat ragged; labels now share a fixed width so the
+  spin boxes line up. Before/After also got proper drawn spacing
+  glyphs (text lines + an arrow on the padded edge) instead of
+  reusing the indent icons.
 - **Selection Pane (Word-style object list)** — a docked right-side
   pane lists every frame object in the document front-to-back
   (text boxes, positioned images, table/embed wrappers) with a

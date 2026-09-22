@@ -596,6 +596,16 @@ See `CHANGELOG.md` for the categorized changelog of all changes.
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+### Layout tab: indent/spacing field alignment
+
+- The four Paragraph spin rows used natural-width labels
+  ("Left:"/"Right:"/"Before:"/"After:"), so the spin entries sat
+  ragged; labels now share a fixed width and the spin columns line
+  up within each group.
+- Before/After gained drawn spacing glyphs (three text lines + a
+  blue arrow on the padded edge) instead of reusing the indent
+  icons.
+
 ### Object grouping and rotation (Word-style Group/Rotate)
 
 - New persistent frame properties: `frame-rotation` (degrees,
