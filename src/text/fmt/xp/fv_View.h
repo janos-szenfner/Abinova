@@ -68,6 +68,7 @@ class fl_HdrFtrSectionLayout;
 class fl_DocListener;
 class fl_BlockLayout;
 class fl_EndnoteLayout;
+class fl_TOCLayout;
 
 class fp_PageSize;
 class fp_Page;
@@ -151,6 +152,30 @@ struct FV_DocCount
        // sometimes people want to have a word count without footnotes/endnotes included
 	UT_uint32 words_no_notes;
 };
+
+// One entry of a generated references section (index, table of
+// authorities, bibliography). Page numbers are inserted as live
+// page_ref fields onto the listed bookmarks.
+struct FV_RefEntry
+{
+	UT_UTF8String               sText;
+	std::vector<std::string>    bookmarks;
+	UT_sint32                   iLevel = 1;
+	bool                        bCategory = false;
+};
+
+// One stored bibliography source (document metadata bib.<n>.*).
+struct FV_BibSource
+{
+	UT_uint32   n = 0;
+	std::string author;
+	std::string year;
+	std::string title;
+	std::string publisher;
+	std::string type;
+};
+
+struct FV_BookmarkSpan;
 
 class ABI_EXPORT fv_PropCache
 {
@@ -325,6 +350,32 @@ public:
 						   UT_UTF8String & sMath, bool compact);
 
 	UT_Error		cmdInsertTOC(void);
+	UT_Error		cmdInsertTOCStyled(const char * szPreset);
+	fl_TOCLayout *	findTOCAtPoint(void) const;
+	UT_Error		cmdInsertTOCManual(void);
+	bool			cmdUpdateTOC(void);
+	bool			cmdRemoveTOC(void);
+	bool			hasTOC(void) const;
+	UT_sint32		getTocLevel(void) const;
+	void			setTocLevel(UT_sint32 iLevel);
+	bool			nextNote(bool bFootnote, bool bForward);
+	void			cmdShowNotes(void);
+
+	UT_Error		cmdInsertCaption(const char * szLabel, bool bAbove);
+	UT_Error		cmdInsertTableOfFigures(const char * szLabel);
+	UT_Error		cmdInsertCrossReference(const char * szBookmark, bool bPageNumber);
+	void			getXRefBookmarks(std::vector<std::string> & names) const;
+	UT_Error		cmdMarkIndexEntry(const char * szEntry);
+	UT_Error		cmdMarkCitation(const char * szCategory, const char * szCitation);
+	UT_Error		cmdInsertIndex(void);
+	UT_Error		cmdInsertTOA(void);
+	UT_Error		cmdInsertCitation(const char * szFields);
+	UT_Error		cmdInsertBibliography(const char * szStyle);
+	void			getBibSources(std::vector<FV_BibSource> & sources) const;
+	void			cmdDeleteBibSource(UT_uint32 n);
+	bool			cmdRemoveRefSection(const char * szMarker);
+	bool			hasRefSection(const char * szMarker) const;
+
 	UT_Error		cmdHyperlinkStatusBar(UT_sint32 xPos, UT_sint32 yPos);
 
 	UT_Error		cmdInsertGraphic(const FG_ConstGraphicPtr&);
@@ -1082,6 +1133,21 @@ protected:
 
 
 private:
+
+	void				_applyTOCStyleProps(const char * szStyle, const char * szProps);
+	UT_Error			_insertTOCWithProps(const char * szProps);
+
+	bool				_findBookmarkSpan(const char * szName, FV_BookmarkSpan & span) const;
+	bool				_getBookmarkText(const char * szName, UT_UTF8String & sText) const;
+	void				_getBookmarksWithPrefix(const char * szPrefix, std::vector<std::string> & names) const;
+	UT_uint32			_nextBookmarkSuffix(const char * szPrefix) const;
+	void				_ensureRefStyle(const char * szName, const char * szProps) const;
+	void				_insertPageRefField(const char * szBookmark);
+	PT_DocPosition		_deleteGeneratedSection(const char * szMarker);
+	void				_writeGeneratedSection(const char * szMarker, const char * szHeading, const char * szHeadingStyle, const std::vector<FV_RefEntry> & entries);
+	void				_regenerateSection(const char * szMarker, const char * szHeading, const char * szHeadingStyle, const std::vector<FV_RefEntry> & entries);
+	UT_Error			_markTextAsBookmark(const char * szText, const char * szBookmark);
+	void				_collectMarkedEntries(const char * szPrefix, std::vector<FV_RefEntry> & entries) const;
 
 	UT_uint32			m_iNumHorizPages; /////////////////////////////////////////////////
 	UT_uint32			m_getNumHorizPagesCachedWindowWidth;

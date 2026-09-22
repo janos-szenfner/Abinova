@@ -302,6 +302,25 @@ longer exist:
   Rotate offers Right/Left 90°, horizontal/vertical flips and a
   custom angle (`frame-rotation`/`frame-flip-*` — all persisted in
   `.abw` and honoured by PDF export).
+  The **References tab** is Word-style and fully functional:
+  a Table of Contents gallery (Automatic, Classic, Contemporary,
+  Formal, Modern, Simple and Manual presets — Carlito-based
+  `Contents N`/`Contents Header` styles persisted in `.abw`),
+  an Add Text dropdown with `toc-level:0`–`4` paragraph control,
+  Update/Remove Table; Insert Footnote/Endnote, note navigation
+  and Show Notes; Insert Caption with per-label numbering
+  (`Figure Caption` style, custom labels, above/below position),
+  Insert Table of Figures (a TOC sourced from caption styles) and
+  Cross-reference (bookmark text as a `#bookmark` hyperlink, or a
+  live `page_ref` page number); Mark Entry plus Insert/Update Index
+  (sorted entries, `main:sub` sub-entries, live page fields);
+  Insert Citation, Manage Sources and Insert Bibliography
+  (APA/MLA/Chicago/IEEE from document metadata); and Mark Citation
+  plus Insert/Update Table of Authorities grouped by category.
+  Marked entries are real bookmarks (`_idx_N`, `_toa_<cat>_N`,
+  `_bib_N`), generated sections are wrapped in marker bookmarks
+  (`_genidx`/`_gentoa`/`_genbib`) so Update and Remove can locate
+  them, and all of it round-trips through the `.abw` exporter.
   Custom Margins… / More Paper Sizes… / Format → Document open a
   Word-style **Document dialog** (Margins + Layout tabs, Page
   Setup…, Default… → NORMAL template, Apply to whole document /

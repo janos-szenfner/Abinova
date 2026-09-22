@@ -58,7 +58,10 @@ enum AP_RibbonItemKind : uint8_t
 	AP_RIBBON_ITEM_ROWEND	= 3,	/* row break - switches the group to
 								 * row-major packing (LibreOffice-style
 								 * two-row groups) */
-	AP_RIBBON_ITEM_SPIN		= 4		/* labelled spin field (indent/spacing) */
+	AP_RIBBON_ITEM_SPIN		= 4,	/* labelled spin field (indent/spacing) */
+	AP_RIBBON_ITEM_DEAD		= 5		/* insensitive placeholder button for
+								 * Word groups with no engine support
+								 * (citations, captions, index, TOA) */
 };
 
 /* ids for AP_RIBBON_ITEM_SPIN rows - not menu/toolbar ids */
@@ -68,6 +71,23 @@ enum AP_RibbonSpinId : uint8_t
 	AP_RIBBON_SPIN_INDENT_RIGHT,
 	AP_RIBBON_SPIN_BEFORE,
 	AP_RIBBON_SPIN_AFTER
+};
+
+/* ids for AP_RIBBON_ITEM_DEAD rows - not menu/toolbar ids */
+enum AP_RibbonDeadId : uint8_t
+{
+	AP_RIBBON_DEAD_CITATION = 0,
+	AP_RIBBON_DEAD_SOURCES,
+	AP_RIBBON_DEAD_BIBLIOGRAPHY,
+	AP_RIBBON_DEAD_CAPTION,
+	AP_RIBBON_DEAD_FIGURES,
+	AP_RIBBON_DEAD_XREF,
+	AP_RIBBON_DEAD_INDEX,
+	AP_RIBBON_DEAD_MARKENTRY,
+	AP_RIBBON_DEAD_UPDATEINDEX,
+	AP_RIBBON_DEAD_TOA,
+	AP_RIBBON_DEAD_MARKCITATION,
+	AP_RIBBON_DEAD_UPDATETOA
 };
 
 enum AP_RibbonItemFlags : uint8_t
@@ -102,6 +122,7 @@ enum AP_RibbonItemFlags : uint8_t
 #define AP_RIBBON_MENUPOP_TB(x)	{ AP_RIBBON_ITEM_TOOLBAR,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_L(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_LARGE | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 #define AP_RIBBON_SPIN(x)		{ AP_RIBBON_ITEM_SPIN,  AP_RIBBON_FLAG_NONE, (uint16_t)(x) }
+#define AP_RIBBON_DEAD(x)		{ AP_RIBBON_ITEM_DEAD,  AP_RIBBON_FLAG_NONE, (uint16_t)(x) }
 
 struct AP_RibbonItem
 {
@@ -325,8 +346,9 @@ static const AP_RibbonGroup s_ribbon_insert_groups[] =
 
 static const AP_RibbonItem s_ribbon_references_toc[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_TABLEOFCONTENTS),
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_TABLEOFCONTENTS),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_REF_TOCPOP),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_ADDTEXT),
+	AP_RIBBON_MENU(AP_MENU_ID_REF_UPDATETOC),
 	AP_RIBBON_END
 };
 
@@ -334,7 +356,41 @@ static const AP_RibbonItem s_ribbon_references_notes[] =
 {
 	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FOOTNOTE),
 	AP_RIBBON_MENU(AP_MENU_ID_INSERT_ENDNOTE),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_NEXTFN),
+	AP_RIBBON_MENU(AP_MENU_ID_REF_SHOWNOTES),
 	AP_RIBBON_MENU(AP_MENU_ID_FMT_FOOTNOTES),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_references_citations[] =
+{
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_CITATION),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_SOURCES),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_BIBLIOGRAPHY),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_references_captions[] =
+{
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_CAPTION),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_TOF),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_XREF),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_references_index[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_REF_INSERTINDEX),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_MARKENTRY),
+	AP_RIBBON_MENU(AP_MENU_ID_REF_UPDATEINDEX),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_references_toa[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_REF_INSERTTOA),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_REF_MARKCIT),
+	AP_RIBBON_MENU(AP_MENU_ID_REF_UPDATETOA),
 	AP_RIBBON_END
 };
 
@@ -342,6 +398,10 @@ static const AP_RibbonGroup s_ribbon_references_groups[] =
 {
 	{ "toc",	s_ribbon_references_toc },
 	{ "notes",	s_ribbon_references_notes },
+	{ "citations",	s_ribbon_references_citations },
+	{ "captions",	s_ribbon_references_captions },
+	{ "index",	s_ribbon_references_index },
+	{ "authorities",	s_ribbon_references_toa },
 	{ nullptr,	nullptr }
 };
 

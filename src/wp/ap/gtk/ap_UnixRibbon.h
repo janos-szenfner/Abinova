@@ -108,6 +108,31 @@ private:
 	GtkWidget *		_makeZOrderPopover(bool bForward);
 	GtkWidget *		_makeRotatePopover();
 	GtkWidget *		_makeGroupPopover();
+	/* References tab */
+	GtkWidget *		_makeTOCGalleryPopover();
+	GtkWidget *		_makeAddTextPopover();
+	GtkWidget *		_makeNextNotePopover();
+	GtkWidget *		_makeCaptionPopover();
+	GtkWidget *		_makeTOFPopover();
+	GtkWidget *		_makeXRefPopover();
+	GtkWidget *		_makeMarkEntryPopover();
+	GtkWidget *		_makeMarkCitPopover();
+	GtkWidget *		_makeCitationPopover();
+	GtkWidget *		_makeBibliographyPopover();
+	GtkWidget *		_makeSourcesPopover();
+	GtkWidget *		_makeDeadButton(uint16_t id);
+	static void		_s_toc_gallery_map(GtkWidget * popover,
+									   gpointer data);
+	static void		_s_caption_apply(GtkWidget * w, gpointer data);
+	static void		_s_tof_apply(GtkWidget * w, gpointer data);
+	static void		_s_xref_map(GtkWidget * popover, gpointer data);
+	static void		_s_xref_apply(GtkWidget * w, gpointer data);
+	static void		_s_markentry_map(GtkWidget * popover, gpointer data);
+	static void		_s_markentry_apply(GtkWidget * w, gpointer data);
+	static void		_s_markcit_apply(GtkWidget * w, gpointer data);
+	static void		_s_citation_apply(GtkWidget * w, gpointer data);
+	static void		_s_biblio_map(GtkWidget * popover, gpointer data);
+	static void		_s_sources_map(GtkWidget * popover, gpointer data);
 	static void		_s_rotate_to_clicked(GtkWidget * w, gpointer data);
 	static void		_s_arrange_popover_map(GtkWidget * popover,
 										   gpointer data);
@@ -123,6 +148,7 @@ private:
 									   UT_uint32 dataLength = 0);
 	void			_invokeEditMethod(const char * szMethod,
 									  const char * szData = nullptr);
+	std::string		_refSelectionText() const;
 	void			_showPasteSpecialDialog();
 	void			_refreshContextualTabs();
 	void			_refreshToolbarItems();

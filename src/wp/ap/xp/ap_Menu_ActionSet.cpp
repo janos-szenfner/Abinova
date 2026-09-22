@@ -237,6 +237,27 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_LAYOUT_ALIGNOBJECTS,	0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_GROUPOBJECTS,	0,0,0,0,	"frameGroup",		ap_GetState_Groupable,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_ROTATE,		0,0,0,0,	"frameRotateRight", ap_GetState_ObjSelected,	nullptr);
+	_s(AP_MENU_ID_REF_TOCPOP,		0,0,0,0,	"insTOC",		ap_GetState_TOCOK,		nullptr);
+	_s(AP_MENU_ID_REF_ADDTEXT,		0,0,0,0,	"tocAddText",		ap_GetState_TOCOK,		nullptr);
+	_s(AP_MENU_ID_REF_NEXTFN,		0,0,0,0,	"footnoteNext",		nullptr,					nullptr);
+	_s(AP_MENU_ID_REF_SHOWNOTES,	0,0,0,0,	"showNotes",		nullptr,					nullptr);
+	_s(AP_MENU_ID_REF_UPDATETOC,	0,0,0,0,	"tocUpdate",		ap_GetState_HasTOC,		nullptr);
+	_s(AP_MENU_ID_REF_CITATION,	0,0,0,0,	"refInsertCitation", nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_BIBLIOGRAPHY, 0,0,0,0,	"refInsertBibliography", nullptr,			nullptr);
+	_s(AP_MENU_ID_REF_SOURCES,	0,0,0,0,	nullptr,			nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_CAPTION,	0,0,0,0,	"refCaption",		ap_GetState_TOCOK,		nullptr);
+	_s(AP_MENU_ID_REF_TOF,		0,0,0,0,	"refInsertTOF",		nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_XREF,		0,0,0,0,	"refXRef",			nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_INSERTINDEX, 0,0,0,0,	"refInsertIndex",	nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_MARKENTRY, 0,0,0,0,	"refMarkEntry",		nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_UPDATEINDEX, 0,0,0,0,	"refInsertIndex",	ap_GetState_HasIndex,	nullptr);
+	_s(AP_MENU_ID_REF_REMOVEINDEX, 0,0,0,0,	"refRemoveIndex",	ap_GetState_HasIndex,	nullptr);
+	_s(AP_MENU_ID_REF_INSERTTOA, 0,0,0,0,	"refInsertTOA",		nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_MARKCIT,	0,0,0,0,	"refMarkCitation",	nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_UPDATETOA, 0,0,0,0,	"refInsertTOA",		ap_GetState_HasTOA,		nullptr);
+	_s(AP_MENU_ID_REF_REMOVETOA, 0,0,0,0,	"refRemoveTOA",		ap_GetState_HasTOA,		nullptr);
+	_s(AP_MENU_ID_REF_DELSOURCE, 0,0,0,0,	"refDeleteSource",	nullptr,				nullptr);
+	_s(AP_MENU_ID_REF_REMOVEBIB, 0,0,0,0,	"refRemoveBibliography", ap_GetState_HasBib,	nullptr);
 
 	_s(AP_MENU_ID_FMT_DIRECTION,  1,0,0,0, nullptr, nullptr, nullptr);
 	_s(AP_MENU_ID_FMT_DIRECTION_DD_RTL,0,0,1,0, "toggleDomDirection", ap_GetState_BlockFmt, nullptr);

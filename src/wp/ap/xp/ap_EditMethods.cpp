@@ -501,6 +501,20 @@ public:
 	static EV_EditMethod_Fn revisionNew;
 	static EV_EditMethod_Fn revisionSelect;
 
+	static EV_EditMethod_Fn refCaption;
+	static EV_EditMethod_Fn refDeleteSource;
+	static EV_EditMethod_Fn refInsertBibliography;
+	static EV_EditMethod_Fn refInsertCitation;
+	static EV_EditMethod_Fn refInsertIndex;
+	static EV_EditMethod_Fn refInsertTOA;
+	static EV_EditMethod_Fn refInsertTOF;
+	static EV_EditMethod_Fn refMarkCitation;
+	static EV_EditMethod_Fn refMarkEntry;
+	static EV_EditMethod_Fn refRemoveBibliography;
+	static EV_EditMethod_Fn refRemoveIndex;
+	static EV_EditMethod_Fn refRemoveTOA;
+	static EV_EditMethod_Fn refXRef;
+
 	static EV_EditMethod_Fn viewStd;
 	static EV_EditMethod_Fn viewFormat;
 	static EV_EditMethod_Fn viewExtra;
@@ -760,6 +774,15 @@ public:
 	static EV_EditMethod_Fn textToTableCommas;
 	static EV_EditMethod_Fn textToTableSpaces;
 	static EV_EditMethod_Fn textToTableTabs;
+	static EV_EditMethod_Fn tocAddText;
+	static EV_EditMethod_Fn tocInsert;
+	static EV_EditMethod_Fn tocRemove;
+	static EV_EditMethod_Fn tocUpdate;
+	static EV_EditMethod_Fn footnoteNext;
+	static EV_EditMethod_Fn footnotePrev;
+	static EV_EditMethod_Fn endnoteNext;
+	static EV_EditMethod_Fn endnotePrev;
+	static EV_EditMethod_Fn showNotes;
 	static EV_EditMethod_Fn toggleMarkRevisions;
 	static EV_EditMethod_Fn toggleAutoRevision;
 	static EV_EditMethod_Fn revisionAccept;
@@ -997,6 +1020,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(endDrag),				0,	""),
 	EV_EditMethod(NF(endDragHline),			0,	""),
 	EV_EditMethod(NF(endDragVline),			0,	""),
+	EV_EditMethod(NF(endnoteNext),			0,	""),
+	EV_EditMethod(NF(endnotePrev),			0,	""),
 	EV_EditMethod(NF(executeScript),		EV_EMT_REQUIRE_SCRIPT_NAME, ""),
 	EV_EditMethod(NF(extSelBOB),			0,	""),
 	EV_EditMethod(NF(extSelBOD),			0,	""),
@@ -1045,6 +1070,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(formatPainter),		0,	""),
 	EV_EditMethod(NF(formatTOC),			0,		""),
 	EV_EditMethod(NF(formatTable),			0,		""),
+	EV_EditMethod(NF(footnoteNext),			0,		""),
+	EV_EditMethod(NF(footnotePrev),			0,		""),
 	EV_EditMethod(NF(frameBehindText),		0,		""),
 	EV_EditMethod(NF(frameBringForward),	0,		""),
 	EV_EditMethod(NF(frameBringToFront),	0,		""),
@@ -1232,6 +1259,19 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(rdfTest), 				0,	""),
 #endif
 	EV_EditMethod(NF(redo), 				0,	""),
+	EV_EditMethod(NF(refCaption),			0,	""),
+	EV_EditMethod(NF(refDeleteSource),		0,	""),
+	EV_EditMethod(NF(refInsertBibliography), 0,	""),
+	EV_EditMethod(NF(refInsertCitation),	0,	""),
+	EV_EditMethod(NF(refInsertIndex),		0,	""),
+	EV_EditMethod(NF(refInsertTOA),			0,	""),
+	EV_EditMethod(NF(refInsertTOF),			0,	""),
+	EV_EditMethod(NF(refMarkCitation),		0,	""),
+	EV_EditMethod(NF(refMarkEntry),			0,	""),
+	EV_EditMethod(NF(refRemoveBibliography), 0,	""),
+	EV_EditMethod(NF(refRemoveIndex),		0,	""),
+	EV_EditMethod(NF(refRemoveTOA),			0,	""),
+	EV_EditMethod(NF(refXRef),				0,	""),
 	EV_EditMethod(NF(releaseFrame), 		0,	""),
 	EV_EditMethod(NF(releaseInlineImage), 		0,	""),
 	EV_EditMethod(NF(removeFooter), 		0,	""),
@@ -1290,6 +1330,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(setStyleHeading1), 	0,		""),
 	EV_EditMethod(NF(setStyleHeading2), 	0,		""),
 	EV_EditMethod(NF(setStyleHeading3), 	0,		""),
+	EV_EditMethod(NF(showNotes),			0,		""),
 	EV_EditMethod(NF(singleSpace),			0,		""),
 	EV_EditMethod(NF(sortColsAscend),       0,  ""),
 	EV_EditMethod(NF(sortColsDescend),      0,  ""),
@@ -1324,6 +1365,10 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(textToTableCommas),		0,		""),
 	EV_EditMethod(NF(textToTableSpaces),			0,		""),
 	EV_EditMethod(NF(textToTableTabs),		0,		""),
+	EV_EditMethod(NF(tocAddText),			0,		""),
+	EV_EditMethod(NF(tocInsert),			0,		""),
+	EV_EditMethod(NF(tocRemove),			0,		""),
+	EV_EditMethod(NF(tocUpdate),			0,		""),
 	EV_EditMethod(NF(toggleAutoRevision),  0,  ""),
 #ifdef ENABLE_SPELL
 	EV_EditMethod(NF(toggleAutoSpell),      0,  ""),
@@ -6831,6 +6876,275 @@ UT_return_val_if_fail(pDialog, false);
 	{
 		pDialog->runModeless(pFrame);
 	}
+	return true;
+}
+
+/*
+ * References ribbon: insert a TOC using one of the gallery presets
+ * ("classic", "contemporary", "formal", "modern", "simple") or the
+ * literal "manual" placeholder table.
+ */
+Defun(tocInsert)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	UT_UTF8String sPreset(s.utf8_str());
+	if(0 == strcmp(sPreset.utf8_str(), "manual"))
+	{
+		return (UT_OK == pView->cmdInsertTOCManual());
+	}
+	return (UT_OK == pView->cmdInsertTOCStyled(sPreset.utf8_str()));
+}
+
+Defun1(tocUpdate)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdUpdateTOC();
+}
+
+Defun1(tocRemove)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdRemoveTOC();
+}
+
+/*
+ * References ribbon "Add Text": mark the paragraph(s) under the
+ * selection for a given TOC level. callData is "0" (do not show) or
+ * "1"-"4" for the TOC level.
+ */
+Defun(tocAddText)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	UT_sint32 iLevel = atoi(s.utf8_str());
+	pView->setTocLevel(iLevel);
+	return true;
+}
+
+Defun1(footnoteNext)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->nextNote(true, true);
+}
+
+Defun1(footnotePrev)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->nextNote(true, false);
+}
+
+Defun1(endnoteNext)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->nextNote(false, true);
+}
+
+Defun1(endnotePrev)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->nextNote(false, false);
+}
+
+Defun1(showNotes)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->cmdShowNotes();
+	return true;
+}
+
+/*
+ * References ribbon "Insert Caption". callData is
+ * "<label>|<position>", e.g. "Figure|below"; position may also be
+ * "above".
+ */
+Defun(refCaption)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const std::string sData(s.utf8_str());
+	const size_t iBar = sData.find('|');
+	const std::string sLabel = sData.substr(0, iBar);
+	const bool bAbove = (iBar != std::string::npos &&
+						 sData.substr(iBar + 1) == "above");
+	return (UT_OK == pView->cmdInsertCaption(sLabel.c_str(), bAbove));
+}
+
+/*
+ * References ribbon "Insert Table of Figures". callData is the
+ * caption label ("Figure", "Table", "Equation" or a custom label).
+ */
+Defun(refInsertTOF)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return (UT_OK == pView->cmdInsertTableOfFigures(s.utf8_str()));
+}
+
+/*
+ * References ribbon "Cross-reference". callData is
+ * "<bookmark>|page" or "<bookmark>|text".
+ */
+Defun(refXRef)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const std::string sData(s.utf8_str());
+	const size_t iBar = sData.find('|');
+	const std::string sBookmark = sData.substr(0, iBar);
+	const bool bPage = (iBar != std::string::npos &&
+						sData.substr(iBar + 1) == "page");
+	return (UT_OK == pView->cmdInsertCrossReference(sBookmark.c_str(), bPage));
+}
+
+/*
+ * References ribbon "Mark Entry". callData is the entry text used
+ * when nothing is selected; empty means "mark the selection".
+ */
+Defun(refMarkEntry)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	const char * szEntry = "";
+	if(pCallData && pCallData->m_pData)
+	{
+		static UT_UTF8String sEntry;
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		sEntry = s.utf8_str();
+		szEntry = sEntry.utf8_str();
+	}
+	return (UT_OK == pView->cmdMarkIndexEntry(szEntry));
+}
+
+/*
+ * References ribbon "Mark Citation". callData is
+ * "<category>|<citation>"; the citation text is used when nothing is
+ * selected.
+ */
+Defun(refMarkCitation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const std::string sData(s.utf8_str());
+	const size_t iBar = sData.find('|');
+	const std::string sCat = sData.substr(0, iBar);
+	const std::string sCit = (iBar != std::string::npos)
+		? sData.substr(iBar + 1) : "";
+	return (UT_OK == pView->cmdMarkCitation(sCat.c_str(), sCit.c_str()));
+}
+
+Defun1(refInsertIndex)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return (UT_OK == pView->cmdInsertIndex());
+}
+
+Defun1(refRemoveIndex)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdRemoveRefSection("_genidx");
+}
+
+Defun1(refInsertTOA)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return (UT_OK == pView->cmdInsertTOA());
+}
+
+Defun1(refRemoveTOA)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdRemoveRefSection("_gentoa");
+}
+
+/*
+ * References ribbon "Insert Citation". callData is the pipe-separated
+ * source record "author|year|title|publisher|type".
+ */
+Defun(refInsertCitation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return (UT_OK == pView->cmdInsertCitation(s.utf8_str()));
+}
+
+/*
+ * References ribbon "Bibliography". callData is the citation style:
+ * "apa", "mla", "chicago" or "ieee".
+ */
+Defun(refInsertBibliography)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return (UT_OK == pView->cmdInsertBibliography(s.utf8_str()));
+}
+
+Defun1(refRemoveBibliography)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdRemoveRefSection("_genbib");
+}
+
+/*
+ * Manage Sources popover delete action; callData is the source number.
+ */
+Defun(refDeleteSource)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	pView->cmdDeleteBibSource(atoi(s.utf8_str()));
 	return true;
 }
 

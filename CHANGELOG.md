@@ -173,6 +173,25 @@ below are on `main` but the release has not been cut yet.
   To); Insert split into Pages/Tables/Illustrations/Links/Text/
   Symbols/Fields; new References tab (Table of Contents, Footnotes);
   Layout: Page Setup/Page Columns/Page Background.
+- **Word-style References tab** — the References ribbon is fully
+  functional: Table of Contents gallery with Word presets (Automatic/
+  Classic/Contemporary/Formal/Modern/Simple plus Manual Table), Add
+  Text levels 0–4, Update/Remove Table; Insert Footnote/Endnote,
+  Next/Previous note navigation and Show Notes; Insert Caption with
+  per-label numbering (Figure/Table/Equation + custom labels,
+  above/below); Insert Table of Figures (a TOC driven by the caption
+  style); Cross-reference (bookmark-text hyperlink or live page
+  number); Mark Entry + Insert/Update Index (sorted entries, `:`
+  sub-entries, live `page_ref` fields); Insert Citation, Manage
+  Sources and Insert Bibliography (APA/MLA/Chicago/IEEE); Mark
+  Citation + Insert/Update Table of Authorities grouped by category.
+  Marked entries/citations are real document bookmarks, generated
+  sections are wrapped in marker bookmarks for update/remove, and
+  everything persists in `.abw`.
+- **Explicit `toc-level` paragraph property** — `toc-level:0`
+  excludes a paragraph from generated tables and `toc-level:1`–`4`
+  include any paragraph at that level without a heading style; the
+  TOC offer/fill logic honours it independently of style matching.
 - **Word-style Home ribbon** — layout items now carry flags
   (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`,
   `AP_RIBBON_FLAG_SPLIT`): Paste, Find, Replace and Select All render

@@ -1924,6 +1924,54 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_ObjSelected)
 
 /* Group is only offered when at least two objects are ticked in the
  * Selection pane - AbiWord's canvas has no multi-object selection */
+Defun_EV_GetMenuItemState_Fn(ap_GetState_HasTOC)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if(pView->hasTOC())
+	{
+		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
+Defun_EV_GetMenuItemState_Fn(ap_GetState_HasIndex)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if(pView->hasRefSection("_genidx"))
+	{
+		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
+Defun_EV_GetMenuItemState_Fn(ap_GetState_HasTOA)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if(pView->hasRefSection("_gentoa"))
+	{
+		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
+Defun_EV_GetMenuItemState_Fn(ap_GetState_HasBib)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if(pView->hasRefSection("_genbib"))
+	{
+		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
 Defun_EV_GetMenuItemState_Fn(ap_GetState_Groupable)
 {
 	UT_UNUSED(id);

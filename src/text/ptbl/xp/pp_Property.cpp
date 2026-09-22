@@ -255,6 +255,7 @@ static PP_Property _props[] =
 	{ "toc-label-type2",       "numeric",         false, PP_LEVEL_BLOCK},
 	{ "toc-label-type3",       "numeric",         false, PP_LEVEL_BLOCK},
 	{ "toc-label-type4",       "numeric",         false, PP_LEVEL_BLOCK},
+	{ "toc-level",             "",                false, PP_LEVEL_BLOCK},
 	{ "toc-page-type1",        "numeric",         false, PP_LEVEL_BLOCK},
 	{ "toc-page-type2",        "numeric",         false, PP_LEVEL_BLOCK},
 	{ "toc-page-type3",        "numeric",         false, PP_LEVEL_BLOCK},

@@ -106,6 +106,10 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "fields",      "Fields" },
 	{ "toc",         "Table of Contents" },
 	{ "notes",       "Footnotes" },
+	{ "citations",   "Citations & Bibliography" },
+	{ "captions",    "Captions" },
+	{ "index",       "Index" },
+	{ "authorities", "Table of Authorities" },
 	{ "views",       "Views" },
 	{ "page",        "Page Setup" },
 	{ "columns",     "Page Columns" },
@@ -166,6 +170,7 @@ struct AP_UnixRibbon::_TbCtx
 
 /* forward decl: drawn page-glyph icons for the Layout popovers */
 static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h);
+static bool _has_drawn_icon(XAP_Menu_Id id);
 
 AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	: m_pFrame(pFrame)
@@ -375,6 +380,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					w = _makeStyleGallery();
 				else if (item->kind == AP_RIBBON_ITEM_SPIN)
 					w = _makeSpinField(item->id);
+				else if (item->kind == AP_RIBBON_ITEM_DEAD)
+					w = _makeDeadButton(item->id);
 				else if (item->flags & AP_RIBBON_FLAG_MENUPOP)
 				{
 					if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
@@ -606,6 +613,9 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		: nullptr;
 	if (!szIcon || !*szIcon)
 		szIcon = abi_stock_from_menu_id(id);
+	/* ids with a drawn ribbon glyph (References tab) still get an
+	 * icon when the theme provides none */
+	bool bDrawnIcon = (!szIcon || !*szIcon) && _has_drawn_icon(id);
 
 	/* GLYPH buttons draw the LibreOffice-style text glyph
 	 * (bold B, italic I, underlined U, x², A⁺) instead of an icon */
@@ -661,27 +671,32 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		!gtk_icon_theme_has_icon(
 			gtk_icon_theme_get_for_display(gdk_display_get_default()),
 			szIcon))
+	{
 		szIcon = nullptr;	/* theme lacks the icon - use the text label */
+		bDrawnIcon = _has_drawn_icon(id);
+	}
 
-	if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_ICONONLY))
+	if (((szIcon && *szIcon) || bDrawnIcon) &&
+		(flags & AP_RIBBON_FLAG_ICONONLY))
 	{
 		/* Word-style compact glyph button: icon only, the name lives
 		 * in the tooltip */
-		GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
+		GtkWidget * image = bDrawnIcon
+			? _layout_icon(id, 18, 18)
+			: gtk_image_new_from_icon_name(szIcon);
 		gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 		gtk_button_set_child(GTK_BUTTON(btn), image);
 	}
-	else if ((szIcon && *szIcon && (flags & AP_RIBBON_FLAG_LARGE)) ||
-			 ((flags & AP_RIBBON_FLAG_LARGE) &&
-			  (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR) ||
-			   id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE))))
+	else if (((szIcon && *szIcon) || bDrawnIcon) &&
+			 (flags & AP_RIBBON_FLAG_LARGE))
 	{
 		/* Word-style large button: icon on top, caption underneath;
-		 * the background buttons use drawn page-glyphs, the rest a
-		 * stock/theme icon */
+		 * the background and references buttons use drawn
+		 * page-glyphs, the rest a stock/theme icon */
 		GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 		GtkWidget * image;
-		if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR) ||
+		if (bDrawnIcon ||
+			id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR) ||
 			id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE))
 		{
 			image = _layout_icon(id, 24, 24);
@@ -725,10 +740,12 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 18);
 		}
 
-		if (szIcon && *szIcon)
+		if ((szIcon && *szIcon) || bDrawnIcon)
 		{
 			GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
-			GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
+			GtkWidget * image = bDrawnIcon
+				? _layout_icon(id, 16, 16)
+				: gtk_image_new_from_icon_name(szIcon);
 			gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 			gtk_box_append(GTK_BOX(box), image);
 			gtk_box_append(GTK_BOX(box), wLabel);
@@ -1953,6 +1970,39 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ROTATE:
 		popover = _makeRotatePopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_TOCPOP:
+		popover = _makeTOCGalleryPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_ADDTEXT:
+		popover = _makeAddTextPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_NEXTFN:
+		popover = _makeNextNotePopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_CITATION:
+		popover = _makeCitationPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_BIBLIOGRAPHY:
+		popover = _makeBibliographyPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_SOURCES:
+		popover = _makeSourcesPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_CAPTION:
+		popover = _makeCaptionPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_TOF:
+		popover = _makeTOFPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_XREF:
+		popover = _makeXRefPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKENTRY:
+		popover = _makeMarkEntryPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKCIT:
+		popover = _makeMarkCitPopover();
+		break;
 	default:
 		break;
 	}
@@ -2324,6 +2374,86 @@ static void _overlay_rotate(cairo_t * cr, double w, double h)
 	cairo_fill(cr);
 }
 
+/* leader-dot column for the Table of Contents button */
+static void _overlay_toc(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.45, 0.45, 0.45);
+	double x0 = w * 0.78 - 8.0;
+	for (int i = 0; i < 3; i++)
+	{
+		double y = h * 0.30 + i * h * 0.22;
+		for (int d = 0; d < 3; d++)
+		{
+			cairo_arc(cr, x0 + d * 3.0, y, 0.7, 0, 2 * G_PI);
+			cairo_fill(cr);
+		}
+	}
+}
+
+/* down-caret badge for Add Text */
+static void _overlay_addtext(cairo_t * cr, double w, double h)
+{
+	double x = w - 9.0, y = h - 9.0;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_move_to(cr, x, y);
+	cairo_line_to(cr, x + 7.0, y);
+	cairo_line_to(cr, x + 3.5, y + 4.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+/* separator + note lines for footnote buttons */
+static void _overlay_footnote(cairo_t * cr, double w, double h)
+{
+	double pw = w * 0.78;
+	double px = (w - pw) / 2.0;
+	cairo_set_source_rgb(cr, 0.55, 0.55, 0.55);
+	cairo_set_line_width(cr, 0.8);
+	cairo_move_to(cr, px + 3.0, h - 8.0);
+	cairo_line_to(cr, px + pw * 0.55, h - 8.0);
+	cairo_stroke(cr);
+	cairo_set_line_width(cr, 0.9);
+	cairo_move_to(cr, px + 3.0, h - 5.0);
+	cairo_line_to(cr, px + pw * 0.45, h - 5.0);
+	cairo_stroke(cr);
+	/* superscript ref mark */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_rectangle(cr, px + pw * 0.60, h * 0.24, 2.6, 2.6);
+	cairo_fill(cr);
+}
+
+/* down-arrow badge for Show Notes */
+static void _overlay_shownotes(cairo_t * cr, double w, double h)
+{
+	double x = w - 10.0, y = h - 11.0;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.2);
+	cairo_move_to(cr, x + 3.0, y);
+	cairo_line_to(cr, x + 3.0, y + 5.5);
+	cairo_stroke(cr);
+	cairo_move_to(cr, x, y + 3.5);
+	cairo_line_to(cr, x + 3.0, y + 7.5);
+	cairo_line_to(cr, x + 6.0, y + 3.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+/* ids that have a drawn ribbon glyph even though they are plain
+ * menu buttons (References tab items have no stock icon) */
+static bool _has_drawn_icon(XAP_Menu_Id id)
+{
+	switch (id)
+	{
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTNOTE:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ENDNOTE:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOC:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_SHOWNOTES:
+		return true;
+	default:
+		return false;
+	}
+}
+
 /* dispatch a drawn glyph for the Layout menu ids */
 static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 {
@@ -2384,10 +2514,71 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 	case (XAP_Menu_Id)AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE:
 		extra = _overlay_page_image;
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_TOCPOP:
+		extra = _overlay_toc;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_ADDTEXT:
+		extra = _overlay_addtext;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_NEXTFN:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTNOTE:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ENDNOTE:
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_FOOTNOTES:
+		extra = _overlay_footnote;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_SHOWNOTES:
+		extra = _overlay_shownotes;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOC:
+		extra = _overlay_rotate;
+		break;
 	default:
 		break;
 	}
 	return _glyph_widget(spec, w, h, extra);
+}
+
+/* labels for AP_RIBBON_ITEM_DEAD placeholders - these Word groups have
+ * no engine support yet, so the buttons render insensitive */
+static const _ribbon_kv s_ribbon_dead_labels[] =
+{
+	{ "citation",    "Insert Citation" },
+	{ "sources",     "Manage Sources" },
+	{ "bibliography","Bibliography" },
+	{ "caption",     "Insert Caption" },
+	{ "figures",     "Insert Table of Figures" },
+	{ "xref",        "Cross-reference" },
+	{ "index",       "Insert Index" },
+	{ "markentry",   "Mark Entry" },
+	{ "updateindex", "Update Index" },
+	{ "toa",         "Insert Table of Authorities" },
+	{ "markcitation","Mark Citation" },
+	{ "updatetoa",   "Update Table" },
+	{ nullptr,        nullptr }
+};
+
+static const char * s_ribbon_dead_keys[] =
+{
+	"citation", "sources", "bibliography", "caption", "figures",
+	"xref", "index", "markentry", "updateindex", "toa",
+	"markcitation", "updatetoa"
+};
+
+GtkWidget * AP_UnixRibbon::_makeDeadButton(uint16_t id)
+{
+	const char * szLabel = "Unsupported";
+	if (id < G_N_ELEMENTS(s_ribbon_dead_keys))
+		szLabel = _ribbon_label(s_ribbon_dead_keys[id],
+								s_ribbon_dead_labels);
+
+	GtkWidget * btn = gtk_button_new_with_label(szLabel);
+	GtkWidget * wLabel = gtk_button_get_child(GTK_BUTTON(btn));
+	gtk_label_set_ellipsize(GTK_LABEL(wLabel), PANGO_ELLIPSIZE_END);
+	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 18);
+	gtk_widget_set_sensitive(btn, FALSE);
+	gtk_widget_set_tooltip_text(btn,
+							  "Not supported by this build");
+	return btn;
 }
 
 /* Word-style large dropdown button: icon over caption + down arrow */
@@ -3194,6 +3385,772 @@ GtkWidget * AP_UnixRibbon::_makeGroupPopover()
 	gtk_label_set_max_width_chars(GTK_LABEL(hint), 30);
 	gtk_widget_set_halign(hint, GTK_ALIGN_START);
 	gtk_box_append(GTK_BOX(box), hint);
+	return popover;
+}
+
+/* -------- References tab popovers -------- */
+
+/* mini TOC preview glyph for the gallery: three entry lines with dot
+ * leaders, drawn in the preset's look */
+static void _toc_preset_draw(GtkDrawingArea *, cairo_t * cr,
+							 int w, int h, gpointer data)
+{
+	const char * szPreset = static_cast<const char *>(data);
+	bool bDots = strcmp(szPreset, "simple") != 0;
+
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, 0.5, 0.5, w - 1, h - 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	cairo_set_source_rgb(cr, 0.35, 0.35, 0.35);
+	for (int i = 0; i < 3; i++)
+	{
+		double y = h * 0.22 + i * h * 0.26;
+		double x0 = w * 0.10;
+		double len = w * 0.42;
+		double th = 1.4;
+		if (!strcmp(szPreset, "classic"))
+		{
+			if (i == 0)
+				th = 2.6;		/* bold first level */
+			x0 += i * w * 0.09;
+		}
+		else if (!strcmp(szPreset, "contemporary"))
+		{
+			th = (i == 0) ? 2.4 : 2.0;	/* small-caps feel */
+			x0 += i * w * 0.09;
+		}
+		else if (!strcmp(szPreset, "formal"))
+		{
+			th = 2.4;					/* all-caps look */
+			x0 += i * w * 0.09;
+		}
+		else if (!strcmp(szPreset, "modern"))
+		{
+			if (i == 0)
+				th = 2.6;
+			if (i == 2)
+			{
+				x0 += w * 0.14;
+				len *= 0.8;				/* italic third level */
+			}
+			else
+				x0 += i * w * 0.09;
+		}
+		else /* simple */
+		{
+			th = 1.2;
+		}
+		cairo_set_line_width(cr, th);
+		cairo_move_to(cr, x0, y);
+		cairo_line_to(cr, x0 + len, y);
+		cairo_stroke(cr);
+		if (bDots)
+		{
+			cairo_set_source_rgb(cr, 0.55, 0.55, 0.55);
+			for (int d = 0; d < 4; d++)
+			{
+				cairo_arc(cr, w * 0.68 + d * 3.2, y, 0.7, 0, 2 * G_PI);
+				cairo_fill(cr);
+			}
+			cairo_set_source_rgb(cr, 0.35, 0.35, 0.35);
+		}
+	}
+}
+
+static GtkWidget * _toc_preset_icon(const char * szPreset)
+{
+	GtkWidget * da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 30);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 26);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+								   _toc_preset_draw,
+								   const_cast<char *>(szPreset), nullptr);
+	return da;
+}
+
+/* refresh the TOC gallery rows that depend on the cursor position
+ * ("Remove Table of Contents" is only live inside a TOC) */
+void AP_UnixRibbon::_s_toc_gallery_map(GtkWidget * popover,
+									   gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * btn = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "abi-toc-remove"));
+	if (!btn)
+		return;
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	gtk_widget_set_sensitive(btn, pView && pView->hasTOC());
+}
+
+/* Word's Table of Contents dropdown: built-in style gallery,
+ * Manual Table, Custom Table of Contents…, Remove Table of Contents */
+GtkWidget * AP_UnixRibbon::_makeTOCGalleryPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Built-In"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Classic",
+							  "An elegant table of contents",
+							  _toc_preset_icon("classic"),
+							  "tocInsert", "classic"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Contemporary",
+							  "A table of contents with small capitals",
+							  _toc_preset_icon("contemporary"),
+							  "tocInsert", "contemporary"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Formal",
+							  "A formal all-capitals table of contents",
+							  _toc_preset_icon("formal"),
+							  "tocInsert", "formal"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Modern",
+							  "A modern table of contents",
+							  _toc_preset_icon("modern"),
+							  "tocInsert", "modern"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Simple",
+							  "A simple table of contents",
+							  _toc_preset_icon("simple"),
+							  "tocInsert", "simple"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Manual Table",
+							  "Type a placeholder table of contents",
+							  nullptr, "tocInsert", "manual"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Custom Table of Contents…",
+							  "Set levels, styles, leaders and page numbers",
+							  nullptr, "formatTOC", nullptr));
+	GtkWidget * remove = _presetRow("Remove Table of Contents",
+								  "Delete the table of contents",
+								  nullptr, "tocRemove", nullptr);
+	gtk_box_append(GTK_BOX(box), remove);
+	g_object_set_data(G_OBJECT(popover), "abi-toc-remove", remove);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_toc_gallery_map), this);
+	return popover;
+}
+
+/* Word's Add Text dropdown: mark the paragraph's TOC level */
+GtkWidget * AP_UnixRibbon::_makeAddTextPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Do Not Show in Table of Contents",
+							  nullptr, nullptr, "tocAddText", "0"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Level 1", nullptr, nullptr,
+							  "tocAddText", "1"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Level 2", nullptr, nullptr,
+							  "tocAddText", "2"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Level 3", nullptr, nullptr,
+							  "tocAddText", "3"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Level 4", nullptr, nullptr,
+							  "tocAddText", "4"));
+	return popover;
+}
+
+/* Word's Next Footnote dropdown */
+GtkWidget * AP_UnixRibbon::_makeNextNotePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Next Footnote", nullptr, nullptr,
+							  "footnoteNext", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Previous Footnote", nullptr, nullptr,
+							  "footnotePrev", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Next Endnote", nullptr, nullptr,
+							  "endnoteNext", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Previous Endnote", nullptr, nullptr,
+							  "endnotePrev", nullptr));
+	return popover;
+}
+
+/* ---------------- References popovers with input fields ----------------
+ *
+ * Word's References features use dialogs; the ribbon keeps the same
+ * fields in popovers so the workflow stays inside the tab.
+ */
+
+/* a labelled GtkEntry row; the entry widget is stored on the row as
+ * "entry" for the apply handler */
+static GtkWidget * _ref_entry_row(const char * szLabel, const char * szText)
+{
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget * l = gtk_label_new(szLabel);
+	gtk_label_set_xalign(GTK_LABEL(l), 0.0f);
+	gtk_widget_set_size_request(l, 76, -1);
+	GtkWidget * e = gtk_entry_new();
+	if (szText && *szText)
+		gtk_editable_set_text(GTK_EDITABLE(e), szText);
+	gtk_widget_set_hexpand(e, TRUE);
+	gtk_box_append(GTK_BOX(row), l);
+	gtk_box_append(GTK_BOX(row), e);
+	g_object_set_data(G_OBJECT(row), "entry", e);
+	return row;
+}
+
+/* a labelled GtkDropDown row; the dropdown widget is stored on the row
+ * as "dd" */
+static GtkWidget * _ref_dropdown_row(const char * szLabel,
+									 const char * const * items,
+									 UT_uint32 nItems)
+{
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget * l = gtk_label_new(szLabel);
+	gtk_label_set_xalign(GTK_LABEL(l), 0.0f);
+	gtk_widget_set_size_request(l, 76, -1);
+	GtkStringList * list = gtk_string_list_new(nullptr);
+	for (UT_uint32 i = 0; i < nItems; i++)
+		gtk_string_list_append(list, items[i]);
+	GtkWidget * dd = gtk_drop_down_new(G_LIST_MODEL(list), nullptr);
+	gtk_widget_set_hexpand(dd, TRUE);
+	gtk_box_append(GTK_BOX(row), l);
+	gtk_box_append(GTK_BOX(row), dd);
+	g_object_set_data(G_OBJECT(row), "dd", dd);
+	return row;
+}
+
+static const char * _dropdown_text(GtkWidget * dd)
+{
+	GObject * item = G_OBJECT(gtk_drop_down_get_selected_item(
+		GTK_DROP_DOWN(dd)));
+	if (!item)
+		return "";
+	return gtk_string_object_get_string(GTK_STRING_OBJECT(item));
+}
+
+/* current selection text, for prefilling the Mark Entry popover */
+std::string AP_UnixRibbon::_refSelectionText() const
+{
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	if (!pView || pView->isSelectionEmpty())
+		return "";
+	PT_DocPosition a = pView->getPoint();
+	PT_DocPosition b = pView->getSelectionAnchor();
+	if (a > b)
+		std::swap(a, b);
+	UT_UCS4Char * pText = pView->getTextBetweenPos(a, b);
+	if (!pText)
+		return "";
+	const std::string s = UT_UCS4String(pText).utf8_str();
+	FREEP(pText);
+	return s;
+}
+
+void AP_UnixRibbon::_s_caption_apply(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * ddLabel = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-label"));
+	GtkWidget * ddPos = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-pos"));
+	GtkWidget * eCustom = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "entry-custom"));
+
+	const char * szCustom = gtk_editable_get_text(GTK_EDITABLE(eCustom));
+	std::string sLabel = (szCustom && *szCustom) ? szCustom
+		: _dropdown_text(ddLabel);
+	const std::string sData =
+		sLabel + (gtk_drop_down_get_selected(GTK_DROP_DOWN(ddPos)) == 0
+				  ? "|below" : "|above");
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("refCaption", sData.c_str());
+}
+
+/* Word's Insert Caption: label, optional custom label, position */
+GtkWidget * AP_UnixRibbon::_makeCaptionPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const char * s_Labels[] = { "Figure", "Table", "Equation" };
+	GtkWidget * ddLabel = _ref_dropdown_row("Label:", s_Labels, 3);
+	gtk_box_append(GTK_BOX(box), ddLabel);
+	GtkWidget * eCustom = _ref_entry_row("Custom:", nullptr);
+	gtk_box_append(GTK_BOX(box), eCustom);
+	static const char * s_Pos[] =
+		{ "Below selected item", "Above selected item" };
+	GtkWidget * ddPos = _ref_dropdown_row("Position:", s_Pos, 2);
+	gtk_box_append(GTK_BOX(box), ddPos);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	GtkWidget * btn = gtk_button_new_with_label("Insert Caption");
+	gtk_widget_add_css_class(btn, "flat");
+	g_object_set_data(G_OBJECT(btn), "dd-label",
+					  g_object_get_data(G_OBJECT(ddLabel), "dd"));
+	g_object_set_data(G_OBJECT(btn), "dd-pos",
+					  g_object_get_data(G_OBJECT(ddPos), "dd"));
+	g_object_set_data(G_OBJECT(btn), "entry-custom",
+					  g_object_get_data(G_OBJECT(eCustom), "entry"));
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_caption_apply), this);
+	gtk_box_append(GTK_BOX(box), btn);
+	return popover;
+}
+
+void AP_UnixRibbon::_s_tof_apply(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * ddLabel = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-label"));
+	GtkWidget * eCustom = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "entry-custom"));
+	const char * szCustom = gtk_editable_get_text(GTK_EDITABLE(eCustom));
+	const std::string sLabel = (szCustom && *szCustom) ? szCustom
+		: _dropdown_text(ddLabel);
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("refInsertTOF", sLabel.c_str());
+}
+
+/* Word's Insert Table of Figures: pick the caption label to list */
+GtkWidget * AP_UnixRibbon::_makeTOFPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const char * s_Labels[] = { "Figure", "Table", "Equation" };
+	GtkWidget * ddLabel = _ref_dropdown_row("Caption label:", s_Labels, 3);
+	gtk_box_append(GTK_BOX(box), ddLabel);
+	GtkWidget * eCustom = _ref_entry_row("Custom:", nullptr);
+	gtk_box_append(GTK_BOX(box), eCustom);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	GtkWidget * btn = gtk_button_new_with_label("Insert Table of Figures");
+	gtk_widget_add_css_class(btn, "flat");
+	g_object_set_data(G_OBJECT(btn), "dd-label",
+					  g_object_get_data(G_OBJECT(ddLabel), "dd"));
+	g_object_set_data(G_OBJECT(btn), "entry-custom",
+					  g_object_get_data(G_OBJECT(eCustom), "entry"));
+	g_signal_connect(btn, "clicked", G_CALLBACK(_s_tof_apply), this);
+	gtk_box_append(GTK_BOX(box), btn);
+	return popover;
+}
+
+void AP_UnixRibbon::_s_xref_map(GtkWidget * popover, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * listbox = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "xref-list"));
+	UT_return_if_fail(listbox);
+
+	for (GtkWidget * child = gtk_widget_get_first_child(listbox);
+		 child;)
+	{
+		GtkWidget * next = gtk_widget_get_next_sibling(child);
+		gtk_list_box_remove(GTK_LIST_BOX(listbox), child);
+		child = next;
+	}
+
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	std::vector<std::string> names;
+	if (pView)
+		pView->getXRefBookmarks(names);
+	for (const std::string & s : names)
+	{
+		GtkWidget * row = gtk_list_box_row_new();
+		GtkWidget * l = gtk_label_new(s.c_str());
+		gtk_label_set_xalign(GTK_LABEL(l), 0.0f);
+		gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), l);
+		g_object_set_data_full(G_OBJECT(row), "bookmark",
+							   g_strdup(s.c_str()), g_free);
+		gtk_list_box_append(GTK_LIST_BOX(listbox), row);
+	}
+	if (names.empty())
+	{
+		GtkWidget * row = gtk_list_box_row_new();
+		GtkWidget * l = gtk_label_new("(no bookmarks in document)");
+		gtk_widget_set_sensitive(row, FALSE);
+		gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), l);
+		gtk_list_box_append(GTK_LIST_BOX(listbox), row);
+	}
+}
+
+void AP_UnixRibbon::_s_xref_apply(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * listbox = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "xref-list"));
+	GtkWidget * ddType = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-type"));
+	GtkListBoxRow * row = gtk_list_box_get_selected_row(
+		GTK_LIST_BOX(listbox));
+	UT_return_if_fail(row);
+	const char * szBookmark = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(row), "bookmark"));
+	UT_return_if_fail(szBookmark);
+	const std::string sData =
+		std::string(szBookmark) +
+		(gtk_drop_down_get_selected(GTK_DROP_DOWN(ddType)) == 0
+		 ? "|text" : "|page");
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("refXRef", sData.c_str());
+}
+
+/* Word's Cross-reference: pick a bookmark, insert its text as a link
+ * or its page number as a field */
+GtkWidget * AP_UnixRibbon::_makeXRefPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Reference target"));
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_widget_set_size_request(sw, 240, 140);
+	GtkWidget * listbox = gtk_list_box_new();
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(listbox),
+									GTK_SELECTION_SINGLE);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), listbox);
+	gtk_box_append(GTK_BOX(box), sw);
+
+	static const char * s_Types[] =
+		{ "Bookmark text (link)", "Page number" };
+	GtkWidget * ddType = _ref_dropdown_row("Insert:", s_Types, 2);
+	gtk_box_append(GTK_BOX(box), ddType);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	GtkWidget * btn = gtk_button_new_with_label("Insert Reference");
+	gtk_widget_add_css_class(btn, "flat");
+	g_object_set_data(G_OBJECT(btn), "xref-list", listbox);
+	g_object_set_data(G_OBJECT(btn), "dd-type",
+					  g_object_get_data(G_OBJECT(ddType), "dd"));
+	g_signal_connect(btn, "clicked", G_CALLBACK(_s_xref_apply), this);
+	gtk_box_append(GTK_BOX(box), btn);
+
+	g_object_set_data(G_OBJECT(popover), "xref-list", listbox);
+	g_signal_connect(popover, "map", G_CALLBACK(_s_xref_map), this);
+	return popover;
+}
+
+void AP_UnixRibbon::_s_markentry_map(GtkWidget * popover, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * e = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "markentry-entry"));
+	UT_return_if_fail(e);
+	const std::string s = self->_refSelectionText();
+	gtk_editable_set_text(GTK_EDITABLE(e), s.c_str());
+	gtk_widget_set_sensitive(e, s.empty());
+}
+
+void AP_UnixRibbon::_s_markentry_apply(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * e = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "markentry-entry"));
+	const char * szText = gtk_editable_get_text(GTK_EDITABLE(e));
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("refMarkEntry", szText);
+}
+
+/* Word's Mark Entry: the selected text (or a typed entry) is flagged
+ * for the index */
+GtkWidget * AP_UnixRibbon::_makeMarkEntryPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("Main entry"));
+	GtkWidget * eRow = _ref_entry_row("Entry:", nullptr);
+	GtkWidget * e = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(eRow), "entry"));
+	gtk_box_append(GTK_BOX(box), eRow);
+	GtkWidget * hint = gtk_label_new(
+		"Select text first, or type the entry. Use \"Main:Sub\" for "
+		"a subentry.");
+	gtk_label_set_wrap(GTK_LABEL(hint), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(hint), 34);
+	gtk_label_set_xalign(GTK_LABEL(hint), 0.0f);
+	gtk_box_append(GTK_BOX(box), hint);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	GtkWidget * btn = gtk_button_new_with_label("Mark");
+	gtk_widget_add_css_class(btn, "flat");
+	g_object_set_data(G_OBJECT(btn), "markentry-entry", e);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_markentry_apply), this);
+	gtk_box_append(GTK_BOX(box), btn);
+
+	g_object_set_data(G_OBJECT(popover), "markentry-entry", e);
+	g_signal_connect(popover, "map", G_CALLBACK(_s_markentry_map), this);
+	return popover;
+}
+
+void AP_UnixRibbon::_s_markcit_apply(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * ddCat = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-cat"));
+	GtkWidget * e = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "markcit-entry"));
+	const char * szCat = _dropdown_text(ddCat);
+	const char * szCit = gtk_editable_get_text(GTK_EDITABLE(e));
+	const std::string sData =
+		std::string(szCat) + "|" + (szCit ? szCit : "");
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("refMarkCitation", sData.c_str());
+}
+
+/* Word's Mark Citation: category plus the citation text */
+GtkWidget * AP_UnixRibbon::_makeMarkCitPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const char * s_Cats[] =
+		{ "cases", "statutes", "regulations", "other" };
+	GtkWidget * ddCat = _ref_dropdown_row("Category:", s_Cats, 4);
+	gtk_box_append(GTK_BOX(box), ddCat);
+	GtkWidget * eRow = _ref_entry_row("Citation:", nullptr);
+	gtk_box_append(GTK_BOX(box), eRow);
+	GtkWidget * hint = gtk_label_new(
+		"Select the citation text first, or type it here.");
+	gtk_label_set_wrap(GTK_LABEL(hint), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(hint), 34);
+	gtk_label_set_xalign(GTK_LABEL(hint), 0.0f);
+	gtk_box_append(GTK_BOX(box), hint);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	GtkWidget * btn = gtk_button_new_with_label("Mark");
+	gtk_widget_add_css_class(btn, "flat");
+	g_object_set_data(G_OBJECT(btn), "dd-cat",
+					  g_object_get_data(G_OBJECT(ddCat), "dd"));
+	g_object_set_data(G_OBJECT(btn), "markcit-entry",
+					  g_object_get_data(G_OBJECT(eRow), "entry"));
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_markcit_apply), this);
+	gtk_box_append(GTK_BOX(box), btn);
+	return popover;
+}
+
+void AP_UnixRibbon::_s_citation_apply(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	std::string sData;
+	static const char * s_Keys[] =
+		{ "entry-author", "entry-year", "entry-title",
+		  "entry-publisher" };
+	for (UT_uint32 i = 0; i < G_N_ELEMENTS(s_Keys); i++)
+	{
+		GtkWidget * e = static_cast<GtkWidget *>(
+			g_object_get_data(G_OBJECT(w), s_Keys[i]));
+		const char * sz = gtk_editable_get_text(GTK_EDITABLE(e));
+		if (i)
+			sData += '|';
+		if (sz)
+			sData += sz;
+	}
+	GtkWidget * ddType = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-type"));
+	sData += '|';
+	sData += _dropdown_text(ddType);
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("refInsertCitation", sData.c_str());
+}
+
+/* Word's Insert Citation / Add New Source fields */
+GtkWidget * AP_UnixRibbon::_makeCitationPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("New source"));
+	GtkWidget * btn = gtk_button_new_with_label("Insert Citation");
+	gtk_widget_add_css_class(btn, "flat");
+
+	static const char * s_Fields[] =
+		{ "Author:", "Year:", "Title:", "Publisher:" };
+	static const char * s_Keys[] =
+		{ "entry-author", "entry-year", "entry-title",
+		  "entry-publisher" };
+	for (UT_uint32 i = 0; i < G_N_ELEMENTS(s_Fields); i++)
+	{
+		GtkWidget * row = _ref_entry_row(s_Fields[i], nullptr);
+		g_object_set_data(G_OBJECT(btn), s_Keys[i],
+						  g_object_get_data(G_OBJECT(row), "entry"));
+		gtk_box_append(GTK_BOX(box), row);
+	}
+	static const char * s_Types[] =
+		{ "book", "journal", "article", "website" };
+	GtkWidget * ddType = _ref_dropdown_row("Type:", s_Types, 4);
+	g_object_set_data(G_OBJECT(btn), "dd-type",
+					  g_object_get_data(G_OBJECT(ddType), "dd"));
+	gtk_box_append(GTK_BOX(box), ddType);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_citation_apply), this);
+	gtk_box_append(GTK_BOX(box), btn);
+	return popover;
+}
+
+/* Word's Bibliography gallery: pick the citation style */
+GtkWidget * AP_UnixRibbon::_makeBibliographyPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Built-In"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("APA",
+							  "Author (Year). Title. Publisher.",
+							  nullptr, "refInsertBibliography", "apa"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("MLA",
+							  "Author. Title. Publisher, Year.",
+							  nullptr, "refInsertBibliography", "mla"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Chicago",
+							  "Author. Year. Title. Publisher.",
+							  nullptr, "refInsertBibliography", "chicago"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("IEEE",
+							  "Author, \"Title,\" Publisher, Year.",
+							  nullptr, "refInsertBibliography", "ieee"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * remove = _presetRow("Remove Bibliography",
+									"Delete the bibliography",
+									nullptr, "refRemoveBibliography", nullptr);
+	gtk_box_append(GTK_BOX(box), remove);
+	g_object_set_data(G_OBJECT(popover), "abi-bib-remove", remove);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_biblio_map), this);
+	return popover;
+}
+
+void AP_UnixRibbon::_s_biblio_map(GtkWidget * popover, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * btn = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "abi-bib-remove"));
+	if (!btn)
+		return;
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	gtk_widget_set_sensitive(btn,
+							 pView && pView->hasRefSection("_genbib"));
+}
+
+/* Word's Manage Sources: the stored source list with per-source
+ * delete, rebuilt each time the popover opens */
+void AP_UnixRibbon::_s_sources_map(GtkWidget * popover, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * listbox = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "sources-list"));
+	UT_return_if_fail(listbox);
+
+	for (GtkWidget * child = gtk_widget_get_first_child(listbox);
+		 child;)
+	{
+		GtkWidget * next = gtk_widget_get_next_sibling(child);
+		gtk_list_box_remove(GTK_LIST_BOX(listbox), child);
+		child = next;
+	}
+
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	std::vector<FV_BibSource> sources;
+	if (pView)
+		pView->getBibSources(sources);
+	for (const FV_BibSource & s : sources)
+	{
+		GtkWidget * row = gtk_list_box_row_new();
+		GtkWidget * hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		const std::string sLabel = UT_UTF8String_sprintf(
+			"%s (%s). %s", s.author.c_str(), s.year.c_str(),
+			s.title.c_str()).utf8_str();
+		GtkWidget * l = gtk_label_new(sLabel.c_str());
+		gtk_label_set_xalign(GTK_LABEL(l), 0.0f);
+		gtk_label_set_ellipsize(GTK_LABEL(l), PANGO_ELLIPSIZE_END);
+		gtk_label_set_max_width_chars(GTK_LABEL(l), 30);
+		gtk_widget_set_hexpand(l, TRUE);
+		gtk_box_append(GTK_BOX(hbox), l);
+		GtkWidget * del = gtk_button_new_with_label("Delete");
+		gtk_widget_add_css_class(del, "flat");
+		g_object_set_data_full(G_OBJECT(del), "abi-em-method",
+							   g_strdup("refDeleteSource"), g_free);
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%u", s.n);
+		g_object_set_data_full(G_OBJECT(del), "abi-em-data",
+							   g_strdup(buf), g_free);
+		g_signal_connect(del, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), self);
+		gtk_box_append(GTK_BOX(hbox), del);
+		gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), hbox);
+		gtk_list_box_append(GTK_LIST_BOX(listbox), row);
+	}
+	if (sources.empty())
+	{
+		GtkWidget * row = gtk_list_box_row_new();
+		GtkWidget * l = gtk_label_new("(no sources yet)");
+		gtk_widget_set_sensitive(row, FALSE);
+		gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), l);
+		gtk_list_box_append(GTK_LIST_BOX(listbox), row);
+	}
+}
+
+GtkWidget * AP_UnixRibbon::_makeSourcesPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Sources"));
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_widget_set_size_request(sw, 280, 160);
+	GtkWidget * listbox = gtk_list_box_new();
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(listbox),
+									GTK_SELECTION_NONE);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), listbox);
+	gtk_box_append(GTK_BOX(box), sw);
+
+	g_object_set_data(G_OBJECT(popover), "sources-list", listbox);
+	g_signal_connect(popover, "map", G_CALLBACK(_s_sources_map), this);
 	return popover;
 }
 

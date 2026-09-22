@@ -5339,6 +5339,1251 @@ UT_Error FV_View::cmdInsertTOC(void)
 
 }
 
+//
+// Word-style TOC presets used by the References ribbon gallery. Each preset
+// sets the props of the "Contents 1-4" and "Contents Header" styles plus the
+// strux props of the newly inserted TOC. The full char-format property set
+// is written for every style so switching presets leaves no residue.
+// Word's Calibri maps to the bundled metric-compatible Carlito.
+//
+struct FV_TOCStylePreset
+{
+	const char * szId;
+	const char * szStruxProps;
+	const char * szContentsProps[4];
+	const char * szHeaderProps;
+};
+
+static const FV_TOCStylePreset s_TOCPresets[] =
+{
+	{ "classic",
+	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
+	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
+	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+
+	{ "contemporary",
+	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
+	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
+	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+
+	{ "formal",
+	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
+	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
+	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+
+	{ "modern",
+	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
+	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
+	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:italic; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+
+	{ "simple",
+	  "toc-indent1:0in; toc-indent2:0in; toc-indent3:0in; toc-indent4:0in; "
+	  "toc-tab-leader1:none; toc-tab-leader2:none; toc-tab-leader3:none; toc-tab-leader4:none",
+	  { "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+};
+
+static const FV_TOCStylePreset * _findTOCPreset(const char * szId)
+{
+	for(UT_uint32 i = 0; i < G_N_ELEMENTS(s_TOCPresets); i++)
+	{
+		if(0 == strcmp(s_TOCPresets[i].szId, szId))
+		{
+			return &s_TOCPresets[i];
+		}
+	}
+	return nullptr;
+}
+
+void FV_View::_applyTOCStyleProps(const char * szStyle, const char * szProps)
+{
+	PP_PropertyVector atts = {
+		"props", szProps
+	};
+	m_pDoc->addStyleAttributes(szStyle, atts);
+	m_pDoc->updateDocForStyleChange(szStyle, true);
+}
+
+/*!
+ * Insert a TOC at the point using a Word-style gallery preset
+ * ("classic", "contemporary", "formal", "modern", "simple").
+ * Restyles the Contents 1-4 / Contents Header styles to the preset's
+ * look, inserts the TOC strux and writes the preset's strux props
+ * (indents, tab leaders) onto it.
+ */
+/*!
+ * Insert a TOC at the point, write the given strux props onto it and
+ * clean up the empty paragraph cmdInsertTOC splits off in front of
+ * it. Shared by the styled TOC gallery presets and the table of
+ * figures.
+ */
+UT_Error FV_View::_insertTOCWithProps(const char * szProps)
+{
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	UT_Error e = cmdInsertTOC();
+
+	// Find the TOC we just inserted at piece-table level (layout
+	// positions do not map 1:1 to PT positions). The point is inside
+	// or just after the new TOC, so the nearest preceding
+	// PTX_SectionTOC is ours.
+	const pf_Frag_Strux * sdhTOC = nullptr;
+	PT_DocPosition posTOC = 0;
+	if(m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTOC, &sdhTOC) &&
+	   sdhTOC)
+	{
+		// changeStruxFmt looks the strux up by a position contained
+		// in it; a strux frag at position i contains position i+1.
+		posTOC = m_pDoc->getStruxPosition(sdhTOC);
+		setTOCProps(posTOC + 1, szProps);
+	}
+
+	// cmdInsertTOC splits the current block even when the point is at
+	// its start, which leaves an empty paragraph before the TOC that
+	// would itself be picked up as a TOC entry.
+	if(posTOC > 1)
+	{
+		// Position posTOC is contained by the block frag immediately
+		// before the TOC strux; if that block's own position is
+		// posTOC-1 it holds no text. The block strux itself cannot
+		// be deleted (empty blocks are zero-length frags), but its
+		// heading style would make it show up as a bogus TOC entry,
+		// so demote it to Normal.
+		const pf_Frag_Strux * sdhPrev = nullptr;
+		if(m_pDoc->getStruxOfTypeFromPosition(posTOC, PTX_Block, &sdhPrev) &&
+		   sdhPrev &&
+		   m_pDoc->getStruxPosition(sdhPrev) == posTOC - 1)
+		{
+			const PP_PropertyVector atts = { "style", "Normal" };
+			m_pDoc->changeStruxFmt(PTC_AddStyle, posTOC, posTOC,
+								   atts, PP_NOPROPS, PTX_Block);
+		}
+	}
+	_makePointLegal();
+	_makePointLegal();
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return e;
+}
+
+/*!
+ * Insert a TOC at the point using a Word-style gallery preset
+ * ("classic", "contemporary", "formal", "modern", "simple").
+ * Restyles the Contents 1-4 / Contents Header styles to the preset's
+ * look, inserts the TOC strux and writes the preset's strux props
+ * (indents, tab leaders) onto it.
+ */
+UT_Error FV_View::cmdInsertTOCStyled(const char * szPreset)
+{
+	const FV_TOCStylePreset * pPreset = _findTOCPreset(szPreset);
+	UT_return_val_if_fail(pPreset, UT_ERROR);
+
+	// Insert first: the Contents 1-4 / Contents Header styles are
+	// created by the TOC insertion itself, so preset style props can
+	// only be applied afterwards.
+	UT_Error e = _insertTOCWithProps(pPreset->szStruxProps);
+
+	for(UT_uint32 i = 0; i < 4; i++)
+	{
+		UT_UTF8String sStyle = UT_UTF8String_sprintf("Contents %d", i + 1);
+		_applyTOCStyleProps(sStyle.utf8_str(), pPreset->szContentsProps[i]);
+	}
+	_applyTOCStyleProps("Contents Header", pPreset->szHeaderProps);
+
+	return e;
+}
+
+/*!
+ * Insert a literal, non-updating placeholder TOC: a "Table of Contents"
+ * heading plus one Contents N paragraph per level for the user to type
+ * over, mirroring Word's "Manual Table" gallery entry.
+ */
+UT_Error FV_View::cmdInsertTOCManual(void)
+{
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	insertParagraphBreak();
+	setStyle("Contents Header", true);
+	cmdCharInsert("Table of Contents", false);
+	for(UT_uint32 i = 0; i < 4; i++)
+	{
+		insertParagraphBreak();
+		UT_UTF8String sStyle = UT_UTF8String_sprintf("Contents %d", i + 1);
+		setStyle(sStyle.utf8_str(), true);
+		UT_UTF8String sText = UT_UTF8String_sprintf("Type chapter title (level %d)", i + 1);
+		cmdCharInsert(std::string(sText.utf8_str()), false);
+	}
+	insertParagraphBreak();
+	setStyle("Normal", true);
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return UT_OK;
+}
+
+/*!
+ * Returns the TOC layout containing the point, or nullptr.
+ */
+fl_TOCLayout * FV_View::findTOCAtPoint(void) const
+{
+	UT_return_val_if_fail(m_pLayout, nullptr);
+	UT_sint32 iNum = m_pLayout->getNumTOCs();
+	for(UT_sint32 i = 0; i < iNum; i++)
+	{
+		fl_TOCLayout * pTOC = m_pLayout->getNthTOC(i);
+		if(!pTOC)
+		{
+			continue;
+		}
+		PT_DocPosition posStart = pTOC->getDocPosition();
+		PT_DocPosition posEnd = posStart + pTOC->getLength();
+		if(getPoint() > posStart && getPoint() <= posEnd)
+		{
+			return pTOC;
+		}
+	}
+	return nullptr;
+}
+
+bool FV_View::hasTOC(void) const
+{
+	return findTOCAtPoint() != nullptr;
+}
+
+/*!
+ * Regenerate the TOC at the point from the current document contents,
+ * mirroring Word's "Update Table".
+ */
+bool FV_View::cmdUpdateTOC(void)
+{
+	fl_TOCLayout * pTOC = findTOCAtPoint();
+	UT_return_val_if_fail(pTOC, false);
+	return pTOC->fillTOC();
+}
+
+/*!
+ * Remove the TOC at the point entirely, mirroring Word's
+ * "Remove Table of Contents".
+ */
+bool FV_View::cmdRemoveTOC(void)
+{
+	fl_TOCLayout * pTOC = findTOCAtPoint();
+	UT_return_val_if_fail(pTOC, false);
+
+	const pf_Frag_Strux * sdh = pTOC->getStruxDocHandle();
+	PT_DocPosition posStart = m_pDoc->getStruxPosition(sdh);
+	PT_DocPosition posEnd = posStart + pTOC->getLength();
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	PP_AttrProp * pAP = nullptr;
+	UT_uint32 iRealDeleteCount = 0;
+	bool bRet = m_pDoc->deleteSpan(posStart, posEnd, pAP, iRealDeleteCount, true);
+
+	setPoint(posStart);
+	insertParaBreakIfNeededAtPos(getPoint());
+	_makePointLegal();
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return bRet;
+}
+
+/*!
+ * The explicit toc-level property of the current block (-1 when unset,
+ * 0 for "do not show in table of contents", 1-4 for TOC levels).
+ */
+UT_sint32 FV_View::getTocLevel(void) const
+{
+	fl_BlockLayout * pBL = getCurrentBlock();
+	UT_return_val_if_fail(pBL, -1);
+	const char * szLevel = pBL->getProperty("toc-level");
+	if(szLevel && *szLevel)
+	{
+		return atoi(szLevel);
+	}
+	return -1;
+}
+
+/*!
+ * Set the explicit toc-level property on the block(s) spanned by the
+ * selection (or the current block), backing the ribbon's "Add Text"
+ * dropdown. iLevel 0 hides the paragraph from the TOC.
+ */
+void FV_View::setTocLevel(UT_sint32 iLevel)
+{
+	char szBuf[8];
+	snprintf(szBuf, sizeof(szBuf), "%d", iLevel);
+	PP_PropertyVector props = {
+		"toc-level", szBuf
+	};
+	setBlockFormat(props);
+}
+
+/*!
+ * Jump the insertion point to the next or previous footnote/endnote
+ * reference, mirroring Word's Next Footnote/Previous Footnote.
+ */
+bool FV_View::nextNote(bool bFootnote, bool bForward)
+{
+	PTStruxType pts = bFootnote ? PTX_SectionFootnote : PTX_SectionEndnote;
+	const pf_Frag_Strux * sdh = nullptr;
+	const pf_Frag_Strux * seed = nullptr;
+	if(m_pDoc->getStruxOfTypeFromPosition(getPoint(), pts, &sdh) && sdh)
+	{
+		seed = sdh;
+	}
+	else if(m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_Block, &sdh) && sdh)
+	{
+		seed = sdh;
+	}
+	UT_return_val_if_fail(seed, false);
+
+	const pf_Frag_Strux * target = nullptr;
+	if(bForward)
+	{
+		m_pDoc->getNextStruxOfType(seed, pts, &target);
+	}
+	else
+	{
+		m_pDoc->getPrevStruxOfType(seed, pts, &target);
+	}
+	UT_return_val_if_fail(target, false);
+
+	setPoint(m_pDoc->getStruxPosition(target) + 1);
+	ensureInsertionPointOnScreen();
+	return true;
+}
+
+/*!
+ * Jump the insertion point into the nearest footnote or endnote text,
+ * mirroring Word's "Show Notes". Prefers the note containing the point,
+ * then the next one in the document.
+ */
+void FV_View::cmdShowNotes(void)
+{
+	static const PTStruxType aTypes[] = { PTX_SectionFootnote, PTX_SectionEndnote };
+	for(UT_uint32 t = 0; t < G_N_ELEMENTS(aTypes); t++)
+	{
+		const pf_Frag_Strux * sdh = nullptr;
+		if(m_pDoc->getStruxOfTypeFromPosition(getPoint(), aTypes[t], &sdh) && sdh)
+		{
+			setPoint(m_pDoc->getStruxPosition(sdh) + 1);
+			ensureInsertionPointOnScreen();
+			return;
+		}
+	}
+	for(UT_uint32 t = 0; t < G_N_ELEMENTS(aTypes); t++)
+	{
+		const pf_Frag_Strux * sdh = nullptr;
+		const pf_Frag_Strux * target = nullptr;
+		if(m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_Block, &sdh) && sdh
+		   && m_pDoc->getNextStruxOfType(sdh, aTypes[t], &target) && target)
+		{
+			setPoint(m_pDoc->getStruxPosition(target) + 1);
+			ensureInsertionPointOnScreen();
+			return;
+		}
+	}
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * References tab support: captions, tables of figures, cross-
+ * references, indexes, tables of authorities, citations and
+ * bibliographies.
+ *
+ * Marked entries are stored as document bookmarks with reserved
+ * prefixes so they survive round-trips through the .abw format:
+ *
+ *   _idx_<n>        index entries; the bookmarked text is the entry
+ *   _toa_<cat>_<n>  table-of-authorities citations; the bookmarked
+ *                   text is the citation, <cat> the category
+ *   _bib_<n>        bibliography citations; the bookmarked text is the
+ *                   inline citation and the source record lives in the
+ *                   document metadata keys bib.<n>.<field>
+ *   _genidx/_gentoa/_genbib
+ *                   bookmarks wrapping a generated index, table of
+ *                   authorities or bibliography section so that it can
+ *                   be found, updated and removed again
+ *
+ * Generated sections write their page numbers as live page_ref fields
+ * pointing back at the entry bookmarks, so they keep tracking the
+ * document the same way Word fields do.
+ */
+
+#define FV_BM_IDX_PREFIX "_idx_"
+#define FV_BM_TOA_PREFIX "_toa_"
+#define FV_BM_BIB_PREFIX "_bib_"
+
+struct FV_BookmarkSpan
+{
+	PT_DocPosition posStart;  // position of the start marker object
+	PT_DocPosition posEnd;    // position of the end marker object
+	PT_DocPosition posFirst;  // first position of the bookmarked text
+	PT_DocPosition posLast;   // one past the last bookmarked position
+};
+
+/*!
+ * Find the layout runs of both markers of the named bookmark and return
+ * the marker positions plus the span between them.
+ */
+bool FV_View::_findBookmarkSpan(const char * szName, FV_BookmarkSpan & span) const
+{
+	fp_BookmarkRun * pStart = nullptr;
+	fp_BookmarkRun * pEnd = nullptr;
+	fl_SectionLayout * pSection = m_pLayout ? m_pLayout->getFirstSection() : nullptr;
+	while(pSection && !pEnd)
+	{
+		fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pSection->getFirstLayout());
+		while(pBlock && !pEnd)
+		{
+			for(fp_Run * pRun = pBlock->getFirstRun(); pRun; pRun = pRun->getNextRun())
+			{
+				if(pRun->getType() != FPRUN_BOOKMARK)
+				{
+					continue;
+				}
+				fp_BookmarkRun * pB = static_cast<fp_BookmarkRun *>(pRun);
+				if(0 != strcmp(pB->getName(), szName))
+				{
+					continue;
+				}
+				if(pB->isStartOfBookmark())
+				{
+					pStart = pB;
+				}
+				else
+				{
+					pEnd = pB;
+				}
+			}
+			pBlock = static_cast<fl_BlockLayout *>(pBlock->getNext());
+		}
+		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
+	}
+	if(!pStart || !pEnd)
+	{
+		return false;
+	}
+	span.posStart = pStart->getBlock()->getPosition(false) + pStart->getBlockOffset();
+	span.posEnd = pEnd->getBlock()->getPosition(false) + pEnd->getBlockOffset();
+	span.posFirst = pStart->getBookmarkedDocPosition(true);
+	span.posLast = pEnd->getBookmarkedDocPosition(false);
+	return true;
+}
+
+/*!
+ * The text wrapped by the named bookmark, e.g. the marked index entry
+ * or citation text. Returns false when the bookmark does not exist.
+ */
+bool FV_View::_getBookmarkText(const char * szName, UT_UTF8String & sText) const
+{
+	FV_BookmarkSpan span;
+	if(!_findBookmarkSpan(szName, span) || span.posLast <= span.posFirst)
+	{
+		return false;
+	}
+	UT_UCS4Char * pText = getTextBetweenPos(span.posFirst, span.posLast);
+	if(!pText)
+	{
+		return false;
+	}
+	sText = UT_UCS4String(pText).utf8_str();
+	FREEP(pText);
+	return true;
+}
+
+/*!
+ * All bookmark names carrying the given prefix, in document order.
+ */
+void FV_View::_getBookmarksWithPrefix(const char * szPrefix,
+									  std::vector<std::string> & names) const
+{
+	const UT_sint32 iCount = m_pDoc->getBookmarkCount();
+	const size_t iPrefix = strlen(szPrefix);
+	for(UT_sint32 i = 0; i < iCount; i++)
+	{
+		const std::string & sName = m_pDoc->getNthBookmark(i);
+		if(0 == sName.compare(0, iPrefix, szPrefix))
+		{
+			names.push_back(sName);
+		}
+	}
+}
+
+/*!
+ * Lowest positive suffix not used by any bookmark with the prefix.
+ */
+UT_uint32 FV_View::_nextBookmarkSuffix(const char * szPrefix) const
+{
+	std::vector<std::string> names;
+	_getBookmarksWithPrefix(szPrefix, names);
+	UT_uint32 iMax = 0;
+	for(const std::string & s : names)
+	{
+		const UT_uint32 n = strtoul(s.c_str() + strlen(szPrefix), nullptr, 10);
+		if(n > iMax)
+		{
+			iMax = n;
+		}
+	}
+	return iMax + 1;
+}
+
+/*!
+ * Create a paragraph style if it does not exist yet.
+ */
+void FV_View::_ensureRefStyle(const char * szName, const char * szProps) const
+{
+	PD_Style * pStyle = nullptr;
+	if(m_pDoc->getStyle(szName, &pStyle) && pStyle)
+	{
+		return;
+	}
+	const PP_PropertyVector atts = {
+		PT_NAME_ATTRIBUTE_NAME, szName,
+		PT_TYPE_ATTRIBUTE_NAME, "P",
+		"basedon", "Normal",
+		"followedby", "Normal",
+		"props", szProps
+	};
+	m_pDoc->appendStyle(atts);
+	m_pDoc->updateDocForStyleChange(szName, true);
+}
+
+/*!
+ * Insert a page_ref field at the point, mirroring Word's
+ * { PAGEREF bookmark \h }.
+ */
+void FV_View::_insertPageRefField(const char * szBookmark)
+{
+	const PP_PropertyVector atts = {
+		"type", "page_ref",
+		"param", szBookmark
+	};
+	const PT_DocPosition pos = getPoint();
+	if(m_pDoc->insertObject(pos, PTO_Field, atts, PP_NOPROPS))
+	{
+		setPoint(pos + 1);
+	}
+}
+
+/*!
+ * Delete the generated section wrapped by the named marker bookmark,
+ * markers included. Returns the position where the section used to
+ * start so it can be regenerated in place, or 0 when absent.
+ */
+PT_DocPosition FV_View::_deleteGeneratedSection(const char * szMarker)
+{
+	FV_BookmarkSpan span;
+	if(!_findBookmarkSpan(szMarker, span))
+	{
+		return 0;
+	}
+	PP_AttrProp * pAP = nullptr;
+	UT_uint32 iRealDeleteCount = 0;
+	if(!m_pDoc->deleteSpan(span.posStart, span.posEnd + 1, pAP,
+						   iRealDeleteCount, true))
+	{
+		return 0;
+	}
+	return span.posStart;
+}
+
+/*!
+ * Write a generated section (index, table of authorities,
+ * bibliography) at the point wrapped in a marker bookmark so that it
+ * can be updated or removed later. Each entry becomes a paragraph in
+ * the given style holding "text<tab>page"; page numbers are live
+ * page_ref fields onto the entry bookmarks.
+ */
+void FV_View::_writeGeneratedSection(const char * szMarker,
+									 const char * szHeading,
+									 const char * szHeadingStyle,
+									 const std::vector<FV_RefEntry> & entries)
+{
+	_ensureRefStyle(szHeadingStyle,
+		"font-family:Carlito; font-size:16pt; font-weight:bold; "
+		"margin-bottom:24pt; text-align:left");
+	_ensureRefStyle("Ref Section 1",
+		"font-family:Carlito; font-size:11pt; margin-bottom:0pt");
+	_ensureRefStyle("Ref Section 2",
+		"font-family:Carlito; font-size:11pt; margin-bottom:0pt; "
+		"margin-left:0.25in");
+	_ensureRefStyle("Ref Category",
+		"font-family:Carlito; font-size:11pt; font-weight:bold; "
+		"margin-top:12pt");
+
+	// A live selection would be deleted by the paragraph breaks
+	// below, so collapse it first.
+	if(!isSelectionEmpty())
+	{
+		m_Selection.clearSelection();
+	}
+	// Write the section content first and record the position where
+	// the first paragraph starts, then wrap it in the marker
+	// bookmarks. Inserting the markers before the paragraph breaks
+	// leaves them inside the wrong block.
+	insertParagraphBreak();
+	const PT_DocPosition posMark = getPoint();
+	setStyle(szHeadingStyle);
+	cmdCharInsert(std::string(szHeading), false);
+
+	for(const FV_RefEntry & e : entries)
+	{
+		insertParagraphBreak();
+		setStyle(e.iLevel > 1 ? "Ref Section 2"
+				 : (e.bCategory ? "Ref Category" : "Ref Section 1"));
+		if(e.sText.size())
+		{
+			cmdCharInsert(std::string(e.sText.utf8_str()), false);
+		}
+		for(UT_uint32 i = 0; i < e.bookmarks.size(); i++)
+		{
+			cmdCharInsert(i ? ", " : "\t", false);
+			_insertPageRefField(e.bookmarks[i].c_str());
+		}
+	}
+
+	// Close with a Normal paragraph so typing continues normally
+	// after the section.
+	insertParagraphBreak();
+	setStyle("Normal");
+
+	PP_PropertyVector atts = {
+		"name", szMarker,
+		"type", "end"
+	};
+	const PT_DocPosition posEnd = getPoint();
+	m_pDoc->insertObject(posEnd, PTO_Bookmark, atts, PP_NOPROPS);
+	atts[3] = "start";
+	m_pDoc->insertObject(posMark, PTO_Bookmark, atts, PP_NOPROPS);
+	// Leave the insertion point after the section so later inserts
+	// do not split its paragraphs or the marker objects.
+	setPoint(posEnd + 1);
+}
+
+/*!
+ * Regenerate the section wrapped by the named marker at its current
+ * position (or at the point when it does not exist yet).
+ */
+void FV_View::_regenerateSection(const char * szMarker,
+								 const char * szHeading,
+								 const char * szHeadingStyle,
+								 const std::vector<FV_RefEntry> & entries)
+{
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	PT_DocPosition pos = _deleteGeneratedSection(szMarker);
+	if(pos == 0)
+	{
+		pos = getPoint();
+	}
+	setPoint(pos);
+	_writeGeneratedSection(szMarker, szHeading, szHeadingStyle, entries);
+	insertParaBreakIfNeededAtPos(getPoint());
+	_makePointLegal();
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+}
+
+/*!
+ * Remove the section wrapped by the named marker, mirroring Word's
+ * "Remove Table of Contents" for the generated references sections.
+ */
+bool FV_View::cmdRemoveRefSection(const char * szMarker)
+{
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	PT_DocPosition pos = _deleteGeneratedSection(szMarker);
+	if(pos > 0)
+	{
+		setPoint(pos);
+		insertParaBreakIfNeededAtPos(getPoint());
+		_makePointLegal();
+	}
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return pos > 0;
+}
+
+bool FV_View::hasRefSection(const char * szMarker) const
+{
+	FV_BookmarkSpan span;
+	return _findBookmarkSpan(szMarker, span);
+}
+
+/*!
+ * Insert a numbered caption ("Figure 3", "Table 1", ...) in a
+ * per-label "<Label> Caption" style above or below the current block,
+ * mirroring Word's Insert Caption dialog.
+ */
+UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove)
+{
+	UT_return_val_if_fail(szLabel && *szLabel, UT_ERROR);
+	fl_BlockLayout * pBL = getCurrentBlock();
+	UT_return_val_if_fail(pBL, UT_ERROR);
+
+	const UT_UTF8String sStyle =
+		UT_UTF8String_sprintf("%s Caption", szLabel);
+	_ensureRefStyle(sStyle.utf8_str(),
+		"font-family:Carlito; font-size:11pt; margin-top:6pt; "
+		"margin-bottom:6pt; text-align:centered");
+
+	// Next number for this label: highest existing "<Label> N" + 1.
+	UT_uint32 iMax = 0;
+	fl_SectionLayout * pSection = m_pLayout->getFirstSection();
+	while(pSection)
+	{
+		fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pSection->getFirstLayout());
+		while(pBlock)
+		{
+			UT_UTF8String sBlockStyle;
+			pBlock->getStyle(sBlockStyle);
+			if(0 == strcmp(sBlockStyle.utf8_str(), sStyle.utf8_str()))
+			{
+				UT_UCS4Char * pText = getTextBetweenPos(
+					pBlock->getPosition(false) + 1,
+					pBlock->getPosition(false) + pBlock->getLength() - 1);
+				if(pText)
+				{
+					const UT_UTF8String s(UT_UCS4String(pText).utf8_str());
+					FREEP(pText);
+					const char * p = s.utf8_str() + strlen(szLabel);
+					while(*p == ' ')
+					{
+						p++;
+					}
+					const UT_uint32 n = strtoul(p, nullptr, 10);
+					if(n > iMax)
+					{
+						iMax = n;
+					}
+				}
+			}
+			pBlock = static_cast<fl_BlockLayout *>(pBlock->getNext());
+		}
+		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
+	}
+
+	const UT_UTF8String sText =
+		UT_UTF8String_sprintf("%s %u", szLabel, iMax + 1);
+	const PT_DocPosition posBlock = pBL->getPosition(false);
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	if(bAbove)
+	{
+		// Split at the block start: an empty paragraph is left above
+		// holding the caption, the old text stays below.
+		setPoint(posBlock + 1);
+		insertParagraphBreak();
+		setPoint(posBlock + 1);
+		setStyle(sStyle.utf8_str());
+		cmdCharInsert(std::string(sText.utf8_str()), false);
+	}
+	else
+	{
+		// Split at the block end: a new paragraph after the block
+		// holds the caption.
+		setPoint(posBlock + pBL->getLength() - 1);
+		insertParagraphBreak();
+		setStyle(sStyle.utf8_str());
+		cmdCharInsert(std::string(sText.utf8_str()), false);
+	}
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return UT_OK;
+}
+
+/*!
+ * Insert a table of figures listing every caption paragraph of the
+ * given label, implemented as a TOC whose single source style is
+ * "<Label> Caption".
+ */
+UT_Error FV_View::cmdInsertTableOfFigures(const char * szLabel)
+{
+	UT_return_val_if_fail(szLabel && *szLabel, UT_ERROR);
+	const UT_UTF8String sStyle =
+		UT_UTF8String_sprintf("%s Caption", szLabel);
+	const UT_UTF8String sProps = UT_UTF8String_sprintf(
+		"toc-source-style1:%s; toc-source-style2:none; "
+		"toc-source-style3:none; toc-source-style4:none; "
+		"toc-dest-style1:Contents 1; toc-dest-style2:Contents 2; "
+		"toc-dest-style3:Contents 3; toc-dest-style4:Contents 4; "
+		"toc-has-label1:0; toc-has-label2:0; toc-has-label3:0; "
+		"toc-has-label4:0; "
+		"toc-heading:Table of Figures; "
+		"toc-heading-style:Contents Header; toc-has-heading:1; "
+		"toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; "
+		"toc-indent4:0.75in; "
+		"toc-tab-leader1:dot; toc-tab-leader2:dot; "
+		"toc-tab-leader3:dot; toc-tab-leader4:dot",
+		sStyle.utf8_str());
+	return _insertTOCWithProps(sProps.utf8_str());
+}
+
+/*!
+ * Insert a cross-reference to a bookmark: either its page number as a
+ * live page_ref field, or the bookmarked text as a clickable
+ * #bookmark hyperlink, mirroring Word's Cross-reference dialog.
+ */
+UT_Error FV_View::cmdInsertCrossReference(const char * szBookmark,
+										  bool bPageNumber)
+{
+	UT_return_val_if_fail(szBookmark && *szBookmark, UT_ERROR);
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	bool bRet = false;
+	if(bPageNumber)
+	{
+		_insertPageRefField(szBookmark);
+		bRet = true;
+	}
+	else
+	{
+		UT_UTF8String sText;
+		if(!_getBookmarkText(szBookmark, sText) || !sText.size())
+		{
+			sText = szBookmark;
+		}
+		const UT_UCS4String sUCS4(sText.utf8_str());
+		const PT_DocPosition pos = getPoint();
+		if(m_pDoc->insertSpan(pos, sUCS4.ucs4_str(), sUCS4.length()))
+		{
+			setPoint(pos);
+			m_Selection.setMode(FV_SelectionMode_Single);
+			m_Selection.setSelectionAnchor(pos + sUCS4.length());
+			bRet = (UT_OK == cmdInsertHyperlink(szBookmark));
+			m_Selection.clearSelection();
+		}
+	}
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return bRet ? UT_OK : UT_ERROR;
+}
+
+/*!
+ * All bookmark names usable as cross-reference targets, i.e. every
+ * bookmark not used internally by the references machinery.
+ */
+void FV_View::getXRefBookmarks(std::vector<std::string> & names) const
+{
+	const UT_sint32 iCount = m_pDoc->getBookmarkCount();
+	for(UT_sint32 i = 0; i < iCount; i++)
+	{
+		const std::string & s = m_pDoc->getNthBookmark(i);
+		if(s.empty() || s[0] == '_')
+		{
+			continue;
+		}
+		names.push_back(s);
+	}
+}
+
+/*!
+ * Mark the selection (or the given literal text when nothing is
+ * selected) as an index entry, mirroring Word's Mark Entry.
+ */
+UT_Error FV_View::cmdMarkIndexEntry(const char * szEntry)
+{
+	char name[BOOKMARK_NAME_SIZE + 1];
+	snprintf(name, sizeof(name), FV_BM_IDX_PREFIX "%u",
+			 _nextBookmarkSuffix(FV_BM_IDX_PREFIX));
+	return _markTextAsBookmark(szEntry, name);
+}
+
+/*!
+ * Mark the selection (or the given literal text) as a table of
+ * authorities citation in the given category, mirroring Word's
+ * Mark Citation.
+ */
+UT_Error FV_View::cmdMarkCitation(const char * szCategory,
+								  const char * szCitation)
+{
+	UT_return_val_if_fail(szCategory && *szCategory, UT_ERROR);
+	UT_UTF8String sPrefix =
+		UT_UTF8String_sprintf(FV_BM_TOA_PREFIX "%s_", szCategory);
+	UT_UTF8String sName =
+		UT_UTF8String_sprintf("%s%u", sPrefix.utf8_str(),
+							  _nextBookmarkSuffix(sPrefix.utf8_str()));
+	return _markTextAsBookmark(szCitation, sName.utf8_str());
+}
+
+/*!
+ * Bookmark the selection under the given name, or insert the literal
+ * text first and bookmark it when the selection is empty.
+ */
+UT_Error FV_View::_markTextAsBookmark(const char * szText,
+									  const char * szBookmark)
+{
+	if(isSelectionEmpty())
+	{
+		UT_return_val_if_fail(szText && *szText, UT_ERROR);
+		const UT_UCS4String sUCS4(szText);
+		const PT_DocPosition pos = getPoint();
+		if(!m_pDoc->insertSpan(pos, sUCS4.ucs4_str(), sUCS4.length()))
+		{
+			return UT_ERROR;
+		}
+		setPoint(pos);
+		m_Selection.setMode(FV_SelectionMode_Single);
+		m_Selection.setSelectionAnchor(pos + sUCS4.length());
+	}
+	UT_Error err = cmdInsertBookmark(szBookmark);
+	// Drop the selection so a subsequent generated-section insert
+	// cannot delete the marked text, and move the point after the
+	// bookmark so paragraph breaks do not split its markers.
+	m_Selection.clearSelection();
+	FV_BookmarkSpan span;
+	if(_findBookmarkSpan(szBookmark, span))
+	{
+		setPoint(span.posEnd + 1);
+	}
+	return err;
+}
+
+/*!
+ * Collect all marked entries carrying the given bookmark prefix into
+ * sorted, grouped reference entries ready for section generation.
+ * Entry text may contain a ':' separating main entry and subentry.
+ */
+void FV_View::_collectMarkedEntries(const char * szPrefix,
+									std::vector<FV_RefEntry> & entries) const
+{
+	std::vector<std::string> names;
+	_getBookmarksWithPrefix(szPrefix, names);
+
+	// Group identical entry text so repeated marks merge their page
+	// numbers like Word does.
+	std::vector<UT_UTF8String> keys;
+	std::vector<std::vector<std::string>> grouped;
+	for(const std::string & s : names)
+	{
+		UT_UTF8String sText;
+		if(!_getBookmarkText(s.c_str(), sText) || !sText.size())
+		{
+			continue;
+		}
+		bool bFound = false;
+		for(UT_uint32 i = 0; i < keys.size(); i++)
+		{
+			if(0 == strcmp(keys[i].utf8_str(), sText.utf8_str()))
+			{
+				grouped[i].push_back(s);
+				bFound = true;
+				break;
+			}
+		}
+		if(!bFound)
+		{
+			keys.push_back(sText);
+			grouped.push_back({s});
+		}
+	}
+
+	// Sort by entry text, case-insensitive.
+	std::vector<UT_uint32> order(keys.size());
+	for(UT_uint32 i = 0; i < keys.size(); i++)
+	{
+		order[i] = i;
+	}
+	std::sort(order.begin(), order.end(),
+			  [&](UT_uint32 a, UT_uint32 b)
+			  {
+				  gchar * ca = g_utf8_casefold(keys[a].utf8_str(), -1);
+				  gchar * cb = g_utf8_casefold(keys[b].utf8_str(), -1);
+				  const int r = g_utf8_collate(ca, cb);
+				  g_free(ca);
+				  g_free(cb);
+				  return r < 0;
+			  });
+
+	for(UT_uint32 i : order)
+	{
+		const std::string sKey(keys[i].utf8_str());
+		const size_t iColon = sKey.find(':');
+		if(iColon != std::string::npos && iColon + 1 < sKey.size())
+		{
+			// "Main:Sub" becomes a level-1 header plus a level-2 entry.
+			FV_RefEntry eMain;
+			eMain.sText = sKey.substr(0, iColon).c_str();
+			eMain.iLevel = 1;
+			eMain.bCategory = true;
+			entries.push_back(eMain);
+			FV_RefEntry eSub;
+			eSub.sText = sKey.substr(iColon + 1).c_str();
+			eSub.iLevel = 2;
+			eSub.bookmarks = grouped[i];
+			entries.push_back(eSub);
+		}
+		else
+		{
+			FV_RefEntry e;
+			e.sText = keys[i];
+			e.iLevel = 1;
+			e.bookmarks = grouped[i];
+			entries.push_back(e);
+		}
+	}
+}
+
+/*!
+ * Insert (or regenerate) the alphabetical index of all _idx_ marked
+ * entries, mirroring Word's Insert Index / Update Index.
+ */
+UT_Error FV_View::cmdInsertIndex(void)
+{
+	std::vector<FV_RefEntry> entries;
+	_collectMarkedEntries(FV_BM_IDX_PREFIX, entries);
+	_regenerateSection("_genidx", "Index", "Index Heading", entries);
+	return UT_OK;
+}
+
+/*!
+ * Insert (or regenerate) the table of authorities of all _toa_ marked
+ * citations, grouped by category like Word's Insert Table of
+ * Authorities.
+ */
+UT_Error FV_View::cmdInsertTOA(void)
+{
+	static const char * s_Cats[] =
+		{ "cases", "statutes", "regulations", "other" };
+	static const char * s_CatNames[] =
+		{ "Cases", "Statutes", "Regulations", "Other Authorities" };
+
+	std::vector<FV_RefEntry> entries;
+	for(UT_uint32 c = 0; c < G_N_ELEMENTS(s_Cats); c++)
+	{
+		const UT_UTF8String sPrefix =
+			UT_UTF8String_sprintf(FV_BM_TOA_PREFIX "%s_", s_Cats[c]);
+		std::vector<FV_RefEntry> catEntries;
+		_collectMarkedEntries(sPrefix.utf8_str(), catEntries);
+		if(catEntries.empty())
+		{
+			continue;
+		}
+		FV_RefEntry eCat;
+		eCat.sText = s_CatNames[c];
+		eCat.iLevel = 1;
+		eCat.bCategory = true;
+		entries.push_back(eCat);
+		entries.insert(entries.end(), catEntries.begin(), catEntries.end());
+	}
+	_regenerateSection("_gentoa", "Table of Authorities",
+					   "TOA Heading", entries);
+	return UT_OK;
+}
+
+/*!
+ * Insert an inline citation "(Author, Year)" bookmarked as _bib_<n>
+ * and store the full source record in the document metadata as
+ * bib.<n>.author/.year/.title/.publisher/.type, mirroring Word's
+ * Insert Citation. szFields is pipe-separated:
+ * "author|year|title|publisher|type".
+ */
+UT_Error FV_View::cmdInsertCitation(const char * szFields)
+{
+	UT_return_val_if_fail(szFields && *szFields, UT_ERROR);
+	char fields[5][256] = {{0}};
+	{
+		const char * p = szFields;
+		for(UT_uint32 i = 0; i < 5 && p; i++)
+		{
+			const char * q = strchr(p, '|');
+			const size_t len = q ? static_cast<size_t>(q - p) : strlen(p);
+			strncpy(fields[i], p, len > 255 ? 255 : len);
+			p = q ? q + 1 : nullptr;
+		}
+	}
+	UT_return_val_if_fail(*fields[0] || *fields[2], UT_ERROR);
+
+	const UT_uint32 n = _nextBookmarkSuffix(FV_BM_BIB_PREFIX);
+	const std::string sKey = UT_UTF8String_sprintf("bib.%u", n).utf8_str();
+	static const char * s_Names[5] =
+		{ "author", "year", "title", "publisher", "type" };
+	for(UT_uint32 i = 0; i < 5; i++)
+	{
+		if(*fields[i])
+		{
+			m_pDoc->setMetaDataProp(sKey + "." + s_Names[i], fields[i]);
+		}
+	}
+
+	const UT_UTF8String sInline = *fields[0]
+		? UT_UTF8String_sprintf("(%s, %s)", fields[0], fields[1])
+		: UT_UTF8String_sprintf("(%s)", fields[2]);
+	const UT_UTF8String sBookmark =
+		UT_UTF8String_sprintf(FV_BM_BIB_PREFIX "%u", n);
+	return _markTextAsBookmark(sInline.utf8_str(), sBookmark.utf8_str());
+}
+
+/*!
+ * All stored bibliography source records for the Manage Sources
+ * popover and the bibliography generator.
+ */
+void FV_View::getBibSources(std::vector<FV_BibSource> & sources) const
+{
+	const std::map<std::string,std::string> & meta = m_pDoc->getMetaData();
+	for(const auto & kv : meta)
+	{
+		const std::string & key = kv.first;
+		if(key.compare(0, 4, "bib.") != 0)
+		{
+			continue;
+		}
+		const size_t dot = key.find('.', 4);
+		if(dot == std::string::npos)
+		{
+			continue;
+		}
+		const UT_uint32 n = strtoul(key.c_str() + 4, nullptr, 10);
+		const std::string sField = key.substr(dot + 1);
+		FV_BibSource * pSrc = nullptr;
+		for(FV_BibSource & s : sources)
+		{
+			if(s.n == n)
+			{
+				pSrc = &s;
+				break;
+			}
+		}
+		if(!pSrc)
+		{
+			FV_BibSource s;
+			s.n = n;
+			sources.push_back(s);
+			pSrc = &sources.back();
+		}
+		if(sField == "author") pSrc->author = kv.second;
+		else if(sField == "year") pSrc->year = kv.second;
+		else if(sField == "title") pSrc->title = kv.second;
+		else if(sField == "publisher") pSrc->publisher = kv.second;
+		else if(sField == "type") pSrc->type = kv.second;
+	}
+}
+
+/*!
+ * Delete a stored bibliography source and its inline _bib_<n>
+ * bookmark, backing the Manage Sources list's delete action.
+ */
+void FV_View::cmdDeleteBibSource(UT_uint32 n)
+{
+	const std::string sKey = UT_UTF8String_sprintf("bib.%u", n).utf8_str();
+	static const char * s_Names[5] =
+		{ "author", "year", "title", "publisher", "type" };
+	for(UT_uint32 i = 0; i < 5; i++)
+	{
+		m_pDoc->setMetaDataProp(sKey + "." + s_Names[i], "");
+	}
+	const UT_UTF8String sBookmark =
+		UT_UTF8String_sprintf(FV_BM_BIB_PREFIX "%u", n);
+	_deleteBookmark(sBookmark.utf8_str(), true);
+	_generalUpdate();
+}
+
+/*!
+ * Insert (or regenerate) the bibliography of all stored sources in
+ * the requested style, mirroring Word's Bibliography gallery.
+ * szStyle is "apa", "mla", "chicago" or "ieee".
+ */
+UT_Error FV_View::cmdInsertBibliography(const char * szStyle)
+{
+	UT_return_val_if_fail(szStyle && *szStyle, UT_ERROR);
+	std::vector<FV_BibSource> sources;
+	getBibSources(sources);
+	UT_return_val_if_fail(!sources.empty(), UT_ERROR);
+
+	std::sort(sources.begin(), sources.end(),
+			  [](const FV_BibSource & a, const FV_BibSource & b)
+			  {
+				  if(a.author != b.author) return a.author < b.author;
+				  return a.year < b.year;
+			  });
+
+	std::vector<FV_RefEntry> entries;
+	for(const FV_BibSource & s : sources)
+	{
+		FV_RefEntry e;
+		e.iLevel = 1;
+		if(0 == strcmp(szStyle, "mla"))
+		{
+			// Author. Title. Publisher, Year.
+			e.sText = UT_UTF8String_sprintf("%s. %s. %s, %s.",
+				s.author.c_str(), s.title.c_str(),
+				s.publisher.c_str(), s.year.c_str());
+		}
+		else if(0 == strcmp(szStyle, "chicago"))
+		{
+			// Author. Year. Title. Publisher.
+			e.sText = UT_UTF8String_sprintf("%s. %s. %s. %s.",
+				s.author.c_str(), s.year.c_str(),
+				s.title.c_str(), s.publisher.c_str());
+		}
+		else if(0 == strcmp(szStyle, "ieee"))
+		{
+			// Author, "Title," Publisher, Year.
+			e.sText = UT_UTF8String_sprintf("%s, \"%s,\" %s, %s.",
+				s.author.c_str(), s.title.c_str(),
+				s.publisher.c_str(), s.year.c_str());
+		}
+		else
+		{
+			// APA: Author (Year). Title. Publisher.
+			e.sText = UT_UTF8String_sprintf("%s (%s). %s. %s.",
+				s.author.c_str(), s.year.c_str(),
+				s.title.c_str(), s.publisher.c_str());
+		}
+		entries.push_back(e);
+	}
+	_regenerateSection("_genbib", "Bibliography",
+					   "Bibliography Heading", entries);
+	return UT_OK;
+}
+
 
 /*****************************************************************/
 UT_Error FV_View::cmdInsertField(const char* szName, const PP_PropertyVector & extra_attrs, const PP_PropertyVector & extra_props)

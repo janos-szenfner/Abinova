@@ -1995,6 +1995,11 @@ bool FL_DocLayout::addOrRemoveBlockFromTOC(fl_BlockLayout * pBlock)
 	}
 	UT_UTF8String sStyle;
 	pBlock->getStyle(sStyle);
+	// an explicit toc-level (Add Text in the References ribbon) also
+	// makes a block eligible; "0" (do not show) does not.
+	const char * szTocLevel = pBlock->getProperty("toc-level");
+	const bool bExplicitLevel =
+		(szTocLevel && *szTocLevel && atoi(szTocLevel) > 0);
 	UT_sint32 i = 0;
 	UT_sint32 inTOC = count;
 	UT_sint32 _addTOC = 0;
@@ -2004,7 +2009,7 @@ bool FL_DocLayout::addOrRemoveBlockFromTOC(fl_BlockLayout * pBlock)
 		fl_TOCLayout * pTOC = getNthTOC(i);
 		if(pTOC->isBlockInTOC(pBlock))
 		{
-			if(!pTOC->isStyleInTOC(sStyle))
+			if(!pTOC->isStyleInTOC(sStyle) && !bExplicitLevel)
 			{
 				pTOC->removeBlock(pBlock);
 				inTOC--;
@@ -2020,7 +2025,7 @@ bool FL_DocLayout::addOrRemoveBlockFromTOC(fl_BlockLayout * pBlock)
 		}
 		else
 		{
-			if(pTOC->isStyleInTOC(sStyle))
+			if(pTOC->isStyleInTOC(sStyle) || bExplicitLevel)
 			{
 				pTOC->addBlock(pBlock);
 				_addTOC++;

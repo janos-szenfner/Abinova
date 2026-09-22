@@ -594,6 +594,36 @@ bool fl_TOCLayout::addBlock(fl_BlockLayout * pBlock, bool bVerifyRange)
 	}
 	
 	
+	// An explicit toc-level property on the block overrides the style
+	// matching below; this backs the "Add Text" levels in the References
+	// ribbon. A value of "0" means "do not show in table of contents".
+	const char * szTocLevel = pBlock->getProperty("toc-level");
+	if(szTocLevel && *szTocLevel)
+	{
+		UT_uint32 iLevel = atoi(szTocLevel);
+		switch(iLevel)
+		{
+		case 1:
+			m_iCurrentLevel = 1;
+			_addBlockInVec(pBlock,m_sDestStyle1);
+			return true;
+		case 2:
+			m_iCurrentLevel = 2;
+			_addBlockInVec(pBlock,m_sDestStyle2);
+			return true;
+		case 3:
+			m_iCurrentLevel = 3;
+			_addBlockInVec(pBlock,m_sDestStyle3);
+			return true;
+		case 4:
+			m_iCurrentLevel = 4;
+			_addBlockInVec(pBlock,m_sDestStyle4);
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	if(_isStyleInTOC(sStyle,m_sSourceStyle1))
 	{
 		m_iCurrentLevel = 1;
@@ -2512,10 +2542,18 @@ bool fl_TOCLayout::fillTOC(void)
     while(pBlock)
     {
 	pBlock->getStyle(sStyle);
+	const char * szTocLevel = pBlock->getProperty("toc-level");
 	if(isStyleInTOC(sStyle))
 	{
 	    filled = true;
 	    addBlock(pBlock, false);
+	}
+	else if(szTocLevel && *szTocLevel)
+	{
+	    if(addBlock(pBlock, false))
+	    {
+		filled = true;
+	    }
 	}
 	if(pBlockLast && pBlockLast == pBlock)
 	{	    
