@@ -58,10 +58,16 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	 * called from the view listener on every change notify */
 	void refreshRibbon();
 
-	/* docked Styles pane (LibreOffice-style) */
+	/* docked side panes (LibreOffice-style deck): the paned end child
+	 * is a GtkStack holding the Styles pane and the Selection pane;
+	 * one is visible at a time */
 	void			setStylesPaneVisible(bool bVisible);
 	bool			isStylesPaneVisible() const;
 	void			refreshStylesPane(const char * szCurrentStyle);
+	void			setSelPaneVisible(bool bVisible);
+	bool			isSelPaneVisible() const;
+	void			refreshSelPane();
+	virtual void	toggleSelPane() override;
 
  protected:
 	friend class AP_UnixFrame;
@@ -110,9 +116,12 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	bool        m_bRibbonMode;
 
 	/* document area wrapped in a GtkPaned whose end child is the
-	 * docked Styles pane */
+	 * side deck (GtkStack of docked panes) */
 	GtkWidget * m_wDocPaned;
+	GtkWidget * m_wSideDeck;
 	GtkWidget * m_wStylesPaneW;
 	class AP_UnixStylesPane * m_pStylesPane;
+	GtkWidget * m_wSelPaneW;
+	class AP_UnixSelPane * m_pSelPane;
 };
 #endif

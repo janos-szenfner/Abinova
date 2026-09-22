@@ -109,6 +109,30 @@ void FV_FrameEdit::setMode(FV_FrameEditMode iEditMode)
 	}
 }
 
+/*!
+ * Programmatic frame selection - used by the Selection pane to
+ * select an object without a mouse click.  Enters
+ * EXISTING_SELECTED mode on the given frame and draws its handles.
+ */
+void FV_FrameEdit::selectFrame(fl_FrameLayout * pFL)
+{
+	if (!pFL)
+	{
+		return;
+	}
+	setMode(FV_FrameEdit_NOT_ACTIVE);
+	m_pFrameLayout = pFL;
+	m_pFrameContainer =
+		static_cast<fp_FrameContainer *>(pFL->getFirstContainer());
+	m_iFrameEditMode = FV_FrameEdit_EXISTING_SELECTED;
+	if(getGraphics())
+	{
+		getGraphics()->allCarets()->disable();
+		m_pView->m_countDisable++;
+	}
+	drawFrame(true);
+}
+
 
 static bool bScrollRunning = false;
 static UT_Worker * s_pScroll = nullptr;

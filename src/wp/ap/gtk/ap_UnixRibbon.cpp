@@ -388,8 +388,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
 										   item->flags);
 				else if (item->kind == AP_RIBBON_ITEM_MENU &&
-						 (item->id == (uint16_t)AP_MENU_ID_LAYOUT_SELPANE ||
-						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_GROUPOBJECTS ||
+						 (item->id == (uint16_t)AP_MENU_ID_LAYOUT_GROUPOBJECTS ||
 						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_ROTATE))
 					w = _disabledArrangeButton((XAP_Menu_Id)item->id);
 				else
@@ -579,7 +578,12 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	if (!szLabel || !*szLabel)
 		return nullptr;
 
+	/* ribbon-only items (Selection Pane, ...) are not part of the
+	 * classic menubar layout, so their action does not exist yet -
+	 * create it on demand */
 	GAction * action = m_pMenu->lookupAction(id);
+	if (!action)
+		action = m_pMenu->ensureAction(id);
 	if (!action)
 		return nullptr;
 

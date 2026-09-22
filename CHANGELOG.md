@@ -468,6 +468,28 @@ below are on `main` but the release has not been cut yet.
 - **Slimmer spin-button +/- controls** — the Layout tab's
   indent/spacing `GtkSpinButton`s get a `ribbon-spin` class with
   zero-minimum, low-padding buttons.
+- **Selection Pane (Word-style object list)** — a docked right-side
+  pane lists every frame object in the document front-to-back
+  (text boxes, positioned images, table/embed wrappers) with a
+  per-type icon and name. Rows select the object in the document
+  (`FV_View::selectFrameObject` puts the frame into edit mode and
+  moves the caret inside), an eye button toggles visibility, the
+  bottom up/down buttons reorder the Z-layer, and a double-click on
+  the name renames it. Two new persistent frame properties carry the
+  state in `.abw`: `frame-hidden` (hidden frames are skipped by
+  `fp_Page` drawing and hit-testing but keep their layout slot) and
+  `frame-name` (falling back to `Text Box N`/`Picture N` defaults).
+  All writes go through `FV_View::setFrameProp` so they are undoable.
+  The pane shares the deck with the Styles pane (a `GtkStack` in the
+  `GtkPaned` end child), toggles from the Arrange group's ribbon
+  button (`sidebar-show-symbolic`) or `Alt+F10`, and refreshes when
+  the document's frame set changes (`ap_UnixViewListener` →
+  `refreshSelPane`, gated on an identity check so caret motion does
+  not rebuild the list). Note: on GNOME, `Alt+F10` is the WM's
+  toggle-maximized shortcut and never reaches the app — use the
+  ribbon button there. `EV_UnixMenu::ensureAction` creates
+  `GSimpleAction`s for ribbon-only menu ids so the button works
+  without a classic-menubar entry.
 
 ### Ubuntu Launchpad bug fixes
 

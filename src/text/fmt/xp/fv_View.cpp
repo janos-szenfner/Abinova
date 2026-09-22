@@ -1513,7 +1513,14 @@ void FV_View::setFrameFormat(const PP_PropertyVector & attribs, const PP_Propert
  */
 bool FV_View::restackFrame(int iDir)
 {
-	fl_FrameLayout * pFL = getFrameLayout();
+	return restackFrame(getFrameLayout(), iDir);
+}
+
+/*! Overload acting on an explicit frame - used by the Selection
+ * pane, which operates on objects that are not the current
+ * selection. */
+bool FV_View::restackFrame(fl_FrameLayout * pFL, int iDir)
+{
 	if(!pFL)
 	{
 		return false;
@@ -1564,8 +1571,7 @@ bool FV_View::restackFrame(int iDir)
 	}
 	char buf[32];
 	snprintf(buf, sizeof(buf), "%.6g", rank);
-	PP_PropertyVector props = { "frame-stack-order", buf };
-	setFrameFormat(props);
+	setFrameProp(pFL, "frame-stack-order", buf);
 	return true;
 }
 
@@ -1586,6 +1592,80 @@ bool FV_View::frameSetTextLayer(bool bAboveText)
 		"wrap-mode", bAboveText ? "above-text" : "below-text"
 	};
 	setFrameFormat(props);
+	return true;
+}
+
+/*!
+ * Writes a single frame property to an explicit frame's section
+ * strux - the Selection pane's undoable write path for objects that
+ * are not the current selection (rename, hide, restack). */
+bool FV_View::setFrameProp(fl_FrameLayout * pFL,
+						   const char * szName, const char * szVal)
+{
+	if(!pFL || !szName || !*szName)
+	{
+		return false;
+	}
+	_saveAndNotifyPieceTableChange();
+	PT_DocPosition pos = pFL->getPosition(true) + 1;
+	PP_PropertyVector props = { szName, szVal ? szVal : "" };
+	UT_DebugOnly<bool> bRet =
+		m_pDoc->changeStruxFmt(PTC_AddFmt, pos, pos, PP_NOPROPS,
+							   props, PTX_SectionFrame);
+	UT_ASSERT(bRet);
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*!
+ * Enumerates every frame layout in the document (text boxes and
+ * image/table/embed wrappers) in document order - the Selection
+ * pane's object list.  Frames hosted by blocks are found by walking
+ * the block chain; each block's m_vecFrames holds the frames
+ * anchored to it. */
+void FV_View::getFrameLayouts(UT_GenericVector<fl_FrameLayout *> & vec) const
+{
+	fl_DocSectionLayout * pSec = getLayout()
+		? getLayout()->getFirstSection() : nullptr;
+	fl_BlockLayout * pBL = pSec ? pSec->getFirstBlock() : nullptr;
+	while (pBL)
+	{
+		for (UT_sint32 i = 0; i < pBL->getNumFrames(); ++i)
+		{
+			fl_FrameLayout * pFL = pBL->getNthFrameLayout(i);
+			if (pFL && vec.findItem(pFL) < 0)
+				vec.addItem(pFL);
+		}
+		pBL = pBL->getNextBlockInDocument();
+	}
+}
+
+/*!
+ * Programmatically select a frame (Selection pane row click) - puts
+ * the frame into EXISTING_SELECTED edit mode with handles drawn and
+ * the caret moved inside it, matching a click on the frame itself. */
+bool FV_View::selectFrameObject(fl_FrameLayout * pFL)
+{
+	if(!pFL)
+	{
+		return false;
+	}
+	fp_FrameContainer * pFC =
+		static_cast<fp_FrameContainer *>(pFL->getFirstContainer());
+	if(!pFC)
+	{
+		return false;
+	}
+	m_FrameEdit.selectFrame(pFL);
+	PT_DocPosition posFrame =
+		m_pDoc->getStruxPosition(pFL->getStruxDocHandle());
+	if (posFrame > 0)
+	{
+		setPoint(posFrame + 1);
+	}
+	notifyListeners(AV_CHG_MOTION);
 	return true;
 }
 

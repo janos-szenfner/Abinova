@@ -581,7 +581,15 @@ public:
 	/* Z-order on the selected/caret frame: +1 forward, -1 back,
 	 * +2 to front, -2 to back */
 	bool            restackFrame(int iDir);
+	/* same, on an explicit frame (Selection pane) */
+	bool            restackFrame(fl_FrameLayout * pFL, int iDir);
 	bool            frameSetTextLayer(bool bAboveText);
+	/* Selection pane support: object enumeration, programmatic
+	 * frame selection and targeted undoable property writes */
+	void            getFrameLayouts(UT_GenericVector<fl_FrameLayout *> & vec) const;
+	bool            selectFrameObject(fl_FrameLayout * pFL);
+	bool            setFrameProp(fl_FrameLayout * pFL,
+								 const char * szName, const char * szVal);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_sint32 mouseX, UT_sint32 mouseY);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG);
 

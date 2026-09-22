@@ -308,6 +308,7 @@ public:
 	static EV_EditMethod_Fn selectColumn;
 	static EV_EditMethod_Fn selectColumnClick;
 	static EV_EditMethod_Fn selectMath;
+	static EV_EditMethod_Fn selPane;
 	static EV_EditMethod_Fn selectTOC;
 
 	static EV_EditMethod_Fn delLeft;
@@ -1255,6 +1256,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(sectColumns2), 		0,		""),
 	EV_EditMethod(NF(sectColumns3), 		0,		""),
 	EV_EditMethod(NF(sectProps),			0,	""),
+	EV_EditMethod(NF(selPane),				0,	""),
 	EV_EditMethod(NF(selectAll),			0,	""),
 	EV_EditMethod(NF(selectBlock),			0,	""),
 	EV_EditMethod(NF(selectCell),			0,	""),
@@ -16813,6 +16815,19 @@ Defun1(frameBehindText)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
 	return pView->frameSetTextLayer(false);
+}
+
+Defun1(selPane)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleSelPane();
+	return true;
 }
 
 Defun(cutVisualText)

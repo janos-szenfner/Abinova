@@ -21,6 +21,7 @@
 #endif
 
 #include <gtk/gtk.h>
+#include <cstring>
 
 #include "ut_std_string.h"
 #include "ap_UnixFrameImpl.h"
@@ -37,6 +38,7 @@
 #include "ev_UnixMenuBar.h"
 #include "ap_UnixRibbon.h"
 #include "ap_UnixStylesPane.h"
+#include "ap_UnixSelPane.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
@@ -63,8 +65,11 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_wRibbon(nullptr),
 	m_bRibbonMode(false),
 	m_wDocPaned(nullptr),
+	m_wSideDeck(nullptr),
 	m_wStylesPaneW(nullptr),
-	m_pStylesPane(nullptr)
+	m_pStylesPane(nullptr),
+	m_wSelPaneW(nullptr),
+	m_pSelPane(nullptr)
 {
 	UT_DEBUGMSG(("Created AP_UnixFrameImpl %p \n",this));
 }
@@ -76,6 +81,7 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	m_iScrollAnimID = 0;
 	DELETEP(m_pRibbon);
 	DELETEP(m_pStylesPane);
+	DELETEP(m_pSelPane);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -348,18 +354,25 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	gtk_widget_show(m_innergrid);
 	gtk_widget_show(m_grid);
 
-	/* wrap the document area in a GtkPaned so the Styles pane can be
-	 * docked on the right (LibreOffice-style deck); hidden until the
-	 * ribbon's Styles Pane button toggles it */
+	/* wrap the document area in a GtkPaned so the side deck can be
+	 * docked on the right (LibreOffice-style); hidden until a pane
+	 * is toggled on */
 	m_wDocPaned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
 	gtk_paned_set_start_child(GTK_PANED(m_wDocPaned), m_wSunkenBox);
 	gtk_paned_set_resize_start_child(GTK_PANED(m_wDocPaned), TRUE);
 	gtk_paned_set_shrink_start_child(GTK_PANED(m_wDocPaned), FALSE);
 
+	m_wSideDeck = gtk_stack_new();
 	m_pStylesPane = new AP_UnixStylesPane(pFrame);
 	m_wStylesPaneW = m_pStylesPane->createWidget();
-	gtk_widget_set_visible(m_wStylesPaneW, FALSE);
-	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wStylesPaneW);
+	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wStylesPaneW,
+						"styles");
+	m_pSelPane = new AP_UnixSelPane(pFrame);
+	m_wSelPaneW = m_pSelPane->createWidget();
+	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wSelPaneW,
+						"objects");
+	gtk_widget_set_visible(m_wSideDeck, FALSE);
+	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wSideDeck);
 	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
 	gtk_paned_set_shrink_end_child(GTK_PANED(m_wDocPaned), FALSE);
 
@@ -391,30 +404,73 @@ static gboolean s_panedPositionIdle(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
+/* shows the deck on szPage ("styles" or "objects"), or hides it
+ * when bVisible is false */
+static void s_deckShow(GtkWidget * deck, const char * szPage,
+					   bool bVisible, GtkWidget * paned)
+{
+	gtk_widget_set_visible(deck, bVisible);
+	if (!bVisible)
+		return;
+	gtk_stack_set_visible_child_name(GTK_STACK(deck), szPage);
+	/* the paned position must be set after the end child maps,
+	 * otherwise it clamps to 0 and the pane stays collapsed.
+	 * The widget is tracked through a heap cell + weak ref so a
+	 * frame closed before the idle fires can't UAF. */
+	GtkWidget ** pp = new GtkWidget *(paned);
+	g_object_weak_ref(G_OBJECT(paned), s_panedCellCleared, pp);
+	g_idle_add(s_panedPositionIdle, pp);
+}
+
 void AP_UnixFrameImpl::setStylesPaneVisible(bool bVisible)
 {
-	if (!m_wDocPaned || !m_wStylesPaneW)
+	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	gtk_widget_set_visible(m_wStylesPaneW, bVisible);
+	s_deckShow(m_wSideDeck, "styles", bVisible, m_wDocPaned);
 	if (bVisible)
 	{
 		/* doc styles exist by the time the user can click the button;
 		 * createWidget ran before the view was attached */
 		m_pStylesPane->rebuildList();
-		/* the paned position must be set after the end child maps,
-		 * otherwise it clamps to 0 and the pane stays collapsed.
-		 * The widget is tracked through a heap cell + weak ref so a
-		 * frame closed before the idle fires can't UAF. */
-		GtkWidget ** pp = new GtkWidget *(m_wDocPaned);
-		g_object_weak_ref(G_OBJECT(m_wDocPaned),
-						  s_panedCellCleared, pp);
-		g_idle_add(s_panedPositionIdle, pp);
 	}
 }
 
 bool AP_UnixFrameImpl::isStylesPaneVisible() const
 {
-	return m_wStylesPaneW && gtk_widget_get_visible(m_wStylesPaneW);
+	const char * cur = m_wSideDeck
+		? gtk_stack_get_visible_child_name(GTK_STACK(m_wSideDeck))
+		: nullptr;
+	return cur && gtk_widget_get_visible(m_wSideDeck) &&
+		!strcmp(cur, "styles");
+}
+
+void AP_UnixFrameImpl::setSelPaneVisible(bool bVisible)
+{
+	if (!m_wDocPaned || !m_wSideDeck)
+		return;
+	s_deckShow(m_wSideDeck, "objects", bVisible, m_wDocPaned);
+	if (bVisible)
+		m_pSelPane->rebuildList();
+}
+
+bool AP_UnixFrameImpl::isSelPaneVisible() const
+{
+	const char * cur = m_wSideDeck
+		? gtk_stack_get_visible_child_name(GTK_STACK(m_wSideDeck))
+		: nullptr;
+	return cur && gtk_widget_get_visible(m_wSideDeck) &&
+		!strcmp(cur, "objects");
+}
+
+void AP_UnixFrameImpl::refreshSelPane()
+{
+	if (isSelPaneVisible() && m_pSelPane)
+		m_pSelPane->refresh();
+}
+
+void AP_UnixFrameImpl::toggleSelPane()
+{
+	setSelPaneVisible(!isSelPaneVisible());
 }
 
 void AP_UnixFrameImpl::refreshStylesPane(const char * szCurrentStyle)

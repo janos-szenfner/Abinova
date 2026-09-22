@@ -397,6 +397,30 @@ GAction * EV_UnixMenu::lookupAction(XAP_Menu_Id id) const
 	return nullptr;
 }
 
+GAction * EV_UnixMenu::ensureAction(XAP_Menu_Id id)
+{
+	if (GAction * existing = lookupAction(id))
+		return existing;
+
+	const EV_Menu_ActionSet * pActionSet =
+		XAP_App::getApp()->getMenuActionSet();
+	UT_return_val_if_fail(pActionSet, nullptr);
+	const EV_Menu_Action * pAction = pActionSet->getAction(id);
+	UT_return_val_if_fail(pAction, nullptr);
+
+	GSimpleAction * radioGroup = nullptr;
+	GSimpleAction * action = _createAction(id, pAction, &radioGroup);
+	UT_return_val_if_fail(action, nullptr);
+
+	_ItemRec rec;
+	rec.id = id;
+	rec.action = action;
+	rec.present = true;
+	rec.isRadio = pAction->isRadio();
+	m_vecItemRecs.push_back(rec);
+	return G_ACTION(action);
+}
+
 /*!
  * Create (or return the existing) GSimpleAction for a layout item.
  *

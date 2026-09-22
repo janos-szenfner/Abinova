@@ -379,6 +379,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixRibbon.h \
 	gtk/ap_UnixRuler.h \
 	gtk/ap_UnixRuler.cpp \
+	gtk/ap_UnixSelPane.cpp \
+	gtk/ap_UnixSelPane.h \
 	gtk/ap_UnixStatusBar.h \
 	gtk/ap_UnixStockIcons.cpp \
 	gtk/ap_UnixStockIcons.h \

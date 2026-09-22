@@ -1213,6 +1213,8 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	for (i=0; i<count; i++)
 	{
 		fp_FrameContainer* pFC = m_vecBelowFrames.getNthItem(i);
+		if(pFC->isHidden())
+			continue;
 		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
 		if(m_rDamageRect.intersectsRect(&r))
 		{
@@ -1232,7 +1234,7 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	{
 		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
 		UT_nonnull_or_continue(pFC);
-		if(!pFC->isTightWrapped())
+		if(!pFC->isTightWrapped() || pFC->isHidden())
 			continue;
 		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
 		if(m_rDamageRect.intersectsRect(&r))
@@ -1346,7 +1348,7 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	{
 		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
 		UT_nonnull_or_continue(pFC);
-		if(pFC->isTightWrapped())
+		if(pFC->isTightWrapped() || pFC->isHidden())
 			continue;
 		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
 		if(m_rDamageRect.intersectsRect(&r))
@@ -1418,6 +1420,8 @@ void   fp_Page::redrawDamagedFrames(dg_DrawArgs* pDA)
 	for (i=0; i<count; i++)
 	{
 		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
+		if(pFC->isHidden())
+			continue;
 		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
 		if(m_rDamageRect.intersectsRect(&r))
 		{
@@ -2490,6 +2494,8 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 		for (i = (countAboveFrameContainers()-1); i>=0; i--)
 		{
 			pFrameC = getNthAboveFrameContainer(i);
+			if(pFrameC->isHidden())
+				continue;
 			bool isImage = false;
 			fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFrameC->getSectionLayout());
 			if(pFL->getFrameType() >= FL_FRAME_WRAPPER_IMAGE)
@@ -2547,6 +2553,8 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 		for (i = countBelowFrameContainers()-1; i>=0; i--)
 		{
 			pFrameC = getNthBelowFrameContainer(i);
+			if(pFrameC->isHidden())
+				continue;
 			bool isImage = false;
 			fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFrameC->getSectionLayout());
 			if(pFL->getFrameType() >= FL_FRAME_WRAPPER_IMAGE)

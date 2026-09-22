@@ -60,6 +60,11 @@ public:
 	// radio items, nullptr when the item is not in the layout).
 	GAction *		lookupAction(XAP_Menu_Id id) const;
 
+	// Creates the GSimpleAction for a menu id that is not part of
+	// any menu layout (ribbon-only items) so it can still be bound
+	// to a button.  Returns the new or existing action.
+	GAction *		ensureAction(XAP_Menu_Id id);
+
 protected:
 	bool				_refreshMenu(AV_View * pView);
 	virtual bool		_doAddMenuItem(UT_uint32 layout_pos) override;

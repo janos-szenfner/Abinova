@@ -385,7 +385,7 @@ ap_bs_NVK NVKTable[] =
 //	{EV_NVK_F9,			{ "",					"",					"",				"",
 //						  "",					"",					"",				""					}},
 	{EV_NVK_F10,		{ "",					"contextMenu",		"",				"",
-						  "",					"",					"",				""					}},
+						  "selPane",			"",					"",				""					}},
 	{EV_NVK_F11,		{ "viewFullScreen",					"",					"",				"",
 						  "",					"",					"",				""					}},
 	{EV_NVK_F12,		{ "cycleInputMode",		"",					FN_TEST_FTR,				"",

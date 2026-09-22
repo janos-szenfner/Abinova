@@ -214,6 +214,7 @@ static struct AbiStockMapping {
   { ABIWORD_VIEW_FULL_SCREEN,       (_Ap_Menu_Id)0,                 "view-fullscreen" },
   { "abiword-page-color",			AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR,	"preferences-color-symbolic" },
   { "abiword-page-image",			AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE,	"preferences-desktop-wallpaper-symbolic" },
+  { "abiword-selection-pane",		AP_MENU_ID_LAYOUT_SELPANE,				"sidebar-show-symbolic" },
   { nullptr, 					(_Ap_Menu_Id)0,					nullptr }
 };
 

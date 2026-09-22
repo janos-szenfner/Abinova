@@ -123,6 +123,8 @@ public:
 	/* stacking rank inside the page's above/below frame layer,
 	 * persisted as the "frame-stack-order" document property */
 	double              getStackOrder(void);
+	/* "frame-hidden" property - set by the Selection pane eye toggle */
+	bool                isHidden(void);
 private:
 	void                   _drawLine (const PP_PropertyMap::Line & style,
 									  UT_sint32 left, UT_sint32 top,

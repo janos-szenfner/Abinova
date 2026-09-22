@@ -132,6 +132,24 @@ double fp_FrameContainer::getStackOrder(void)
 		return g_ascii_strtod(sz, nullptr);
 	return 0.0;
 }
+
+/*!
+ * Returns true when the frame's "frame-hidden" property is set - used
+ * by the Selection pane's eye toggle.  Hidden frames keep their
+ * layout slot (text still wraps around them) but are neither drawn
+ * nor clickable, like hidden objects in Word.
+ */
+bool fp_FrameContainer::isHidden(void)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	return pAP && pAP->getProperty("frame-hidden", sz) &&
+		   sz && sz[0] && strcmp(sz, "0") != 0 &&
+		   strcmp(sz, "false") != 0;
+}
 /*!
  * Returns true if the supplied screen rectangle overlaps with frame
  * container. This method takes account of transparening and tight wrapping.

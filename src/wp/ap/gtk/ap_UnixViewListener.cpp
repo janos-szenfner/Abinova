@@ -51,7 +51,10 @@ bool ap_UnixViewListener::notify(AV_View * pView, const AV_ChangeMask mask)
 	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(
 		m_pFrame->getFrameImpl());
 	if (pImpl)
+	{
 		pImpl->refreshRibbon();
+		pImpl->refreshSelPane();
+	}
 
 	return ap_ViewListener::notify(pView,mask);
 }

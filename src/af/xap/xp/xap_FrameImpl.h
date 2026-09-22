@@ -62,6 +62,9 @@ public:
 	// switch between the classic menubar and the ribbon UI.
 	// Platforms without a ribbon keep the default no-op.
 	virtual void setRibbonMode(bool /*bRibbon*/) {}
+	/* Selection pane toggle (Alt+F10) - platform impls with a
+	 * docked object pane override this */
+	virtual void toggleSelPane() {}
 
 protected:
 	XAP_FrameImpl(XAP_Frame *pFrame);
