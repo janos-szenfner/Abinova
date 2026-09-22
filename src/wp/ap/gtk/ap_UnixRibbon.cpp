@@ -282,6 +282,12 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		".abiword-ribbon notebook > header { margin-bottom: 0; }"
 		/* Word-style style gallery tiles */
 		".abiword-ribbon scrolledwindow { min-height: 0; }"
+		/* style-gallery nav arrows: zero horizontal padding so an
+		 * under-allocated button can never push its icon into a
+		 * negative allocation when the ribbon is squeezed */
+		".abiword-ribbon button.ribbon-nav {"
+		"  min-width: 0; min-height: 0; padding: 3px 0;"
+		"}"
 		".abiword-ribbon .abiword-style-tile {"
 		"  min-height: 26px; padding: 4px 12px; margin: 1px;"
 		"}"
@@ -3540,6 +3546,7 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 	m_wStylePrev = gtk_button_new_from_icon_name(
 		"go-previous-symbolic");
 	gtk_widget_add_css_class(m_wStylePrev, "flat");
+	gtk_widget_add_css_class(m_wStylePrev, "ribbon-nav");
 	gtk_widget_set_size_request(m_wStylePrev, 16, -1);
 	gtk_widget_set_valign(m_wStylePrev, GTK_ALIGN_FILL);
 	g_signal_connect(m_wStylePrev, "clicked",
@@ -3550,6 +3557,7 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 	m_wStyleNext = gtk_button_new_from_icon_name(
 		"go-next-symbolic");
 	gtk_widget_add_css_class(m_wStyleNext, "flat");
+	gtk_widget_add_css_class(m_wStyleNext, "ribbon-nav");
 	gtk_widget_set_size_request(m_wStyleNext, 16, -1);
 	gtk_widget_set_valign(m_wStyleNext, GTK_ALIGN_FILL);
 	g_signal_connect(m_wStyleNext, "clicked",
@@ -3945,6 +3953,11 @@ void AP_UnixRibbon::_refreshToolbarItems()
 
 void AP_UnixRibbon::refresh()
 {
+	/* GtkNotebook emits "switch-page" while it is being disposed
+	 * during window teardown; the frame is already half gone there,
+	 * so getCurrentView() would dereference a dead view list */
+	if (m_wNotebook && gtk_widget_in_destruction(m_wNotebook))
+		return;
 	AV_View * view = m_pFrame ? m_pFrame->getCurrentView() : nullptr;
 	if (view)
 		m_pMenu->refreshMenu(view);
