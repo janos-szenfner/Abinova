@@ -278,8 +278,25 @@ longer exist:
   presets, indent and line-spacing buttons, plus a live Styles
   gallery — a horizontally-scrolling strip of tiles that renders
   each paragraph style's name in the style's own formatting and
-  applies it on click; the Layout tab has column presets; the
-  View tab has the zoom combo. The Clipboard group is a Word-style
+  applies it on click; the View tab has the zoom combo.
+  The **Layout tab** is Word-style: a Page Setup group of large
+  dropdown buttons — **Margins** (Normal / Narrow / Moderate /
+  Wide / Mirrored gallery with page-glyph illustrations, the
+  current preset checkmarked, plus Custom Margins…),
+  **Orientation** (Portrait / Landscape), **Size** (the full
+  `fp_PageSize` list including Executive and 8.5×13, scrollable,
+  plus More Paper Sizes…), **Columns** (One / Two / Three,
+  Left / Right disabled, More Columns…), **Breaks** (page /
+  column breaks and next-page / continuous / even / odd section
+  breaks), **Line Numbers** and **Hyphenation** (option dialogs
+  that store the document properties pending layout-engine
+  support); a Paragraph group with Left/Right indent and
+  Before/After spacing spin fields synced to the caret; and an
+  Arrange group whose unsupported actions stay visibly disabled.
+  Custom Margins… / More Paper Sizes… / Format → Document open a
+  Word-style **Document dialog** (Margins + Layout tabs, Page
+  Setup…, Default… → NORMAL template, Apply to whole document /
+  section / point-forward). The Clipboard group is a Word-style
   **split Paste button**: clicking the icon pastes immediately with
   formatting, while the arrow opens "Paste Options:" with **Keep
   Text Only** and **Paste Special…**. Paste Special lists the real

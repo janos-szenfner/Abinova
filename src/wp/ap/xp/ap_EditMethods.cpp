@@ -115,6 +115,7 @@
 #include "ap_Dialog_FormatTOC.h"
 #include "ap_Dialog_MailMerge.h"
 #include "ap_Dialog_Latex.h"
+#include "ap_Dialog_Document.h"
 #include "fv_FrameEdit.h"
 #include "fl_FootnoteLayout.h"
 #include "gr_EmbedManager.h"
@@ -440,6 +441,18 @@ public:
 	static EV_EditMethod_Fn importStyles;
 	static EV_EditMethod_Fn formatPainter;
 	static EV_EditMethod_Fn pageSetup;
+	static EV_EditMethod_Fn docSettings;
+	static EV_EditMethod_Fn pageMargins;
+	static EV_EditMethod_Fn pageOrientation;
+	static EV_EditMethod_Fn pageSize;
+	static EV_EditMethod_Fn pageColumns;
+	static EV_EditMethod_Fn insColumnBreak;
+	static EV_EditMethod_Fn insSectionBreak;
+	static EV_EditMethod_Fn paraProp;
+	static EV_EditMethod_Fn sectProps;
+	static EV_EditMethod_Fn docProps;
+	static EV_EditMethod_Fn arrangePosition;
+	static EV_EditMethod_Fn wrapObject;
 	static EV_EditMethod_Fn print;
 	static EV_EditMethod_Fn printTB;
 	static EV_EditMethod_Fn printPreview;
@@ -825,6 +838,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(alignJustify), 		0,		""),
 	EV_EditMethod(NF(alignLeft),			0,		""),
 	EV_EditMethod(NF(alignRight),			0,		""),
+	EV_EditMethod(NF(arrangePosition),		0,	""),
 	EV_EditMethod(NF(autoFitTable),         0,      ""),
 
 	// b
@@ -938,10 +952,12 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dlgWordCount), 		0,	""),
 	EV_EditMethod(NF(dlgZoom),				0,	""),
 	EV_EditMethod(NF(doBullets),			0,	""),
-	EV_EditMethod(NF(doEscape),				0,	""),
-	EV_EditMethod(NF(doNumbers),			0,	""),
 	EV_EditMethod(NF(doDashedList),		0,	""),
+	EV_EditMethod(NF(doEscape),				0,	""),
 	EV_EditMethod(NF(doListType),			0,	""),
+	EV_EditMethod(NF(doNumbers),			0,	""),
+	EV_EditMethod(NF(docProps),				0,	""),
+	EV_EditMethod(NF(docSettings),			0,	""),
 	EV_EditMethod(NF(doubleSpace),			0,	""),
 	EV_EditMethod(NF(dragFrame), 			0,	""),
 	EV_EditMethod(NF(dragHline), 			0,	""),
@@ -1036,6 +1052,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insAnnotation),		0,		""),
 	EV_EditMethod(NF(insAnnotationFromSel),	0,		""),
 	EV_EditMethod(NF(insBreak),				0,		""),
+	EV_EditMethod(NF(insColumnBreak),		0,	""),
 	EV_EditMethod(NF(insDateTime),			0,		""),
 	EV_EditMethod(NF(insEndnote),			0,		""),
 	EV_EditMethod(NF(insField),				0,		""),
@@ -1043,6 +1060,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insFootnote),			0,		""),
 	EV_EditMethod(NF(insMailMerge), 		0,		""),
 	EV_EditMethod(NF(insPageNo),			0,		""),
+	EV_EditMethod(NF(insSectionBreak),		0,	""),
 	EV_EditMethod(NF(insSymbol),			0,		""),
 	EV_EditMethod(NF(insTOC),			0,		""),
 	EV_EditMethod(NF(insTextBox),			0,		""),
@@ -1119,11 +1137,16 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	// p
 #ifdef ENABLE_PRINT
+	EV_EditMethod(NF(pageColumns),			0,	""),
+	EV_EditMethod(NF(pageMargins),			0,	""),
+	EV_EditMethod(NF(pageOrientation),		0,	""),
 	EV_EditMethod(NF(pageSetup),			0,	""),
+	EV_EditMethod(NF(pageSize),				0,	""),
 #endif
 	EV_EditMethod(NF(paraBefore0),			0,		""),
 	EV_EditMethod(NF(paraBefore12), 		0,		""),
 	EV_EditMethod(NF(paraBorder),			0,		""),
+	EV_EditMethod(NF(paraProp),				0,	""),
 	EV_EditMethod(NF(paraSortAscend),		0,		""),
 	EV_EditMethod(NF(paraSortDescend),		0,		""),
 		// intended for ^V and Menu[Edit/Paste]
@@ -1219,6 +1242,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(sectColumns1), 		0,		""),
 	EV_EditMethod(NF(sectColumns2), 		0,		""),
 	EV_EditMethod(NF(sectColumns3), 		0,		""),
+	EV_EditMethod(NF(sectProps),			0,	""),
 	EV_EditMethod(NF(selectAll),			0,	""),
 	EV_EditMethod(NF(selectBlock),			0,	""),
 	EV_EditMethod(NF(selectCell),			0,	""),
@@ -1391,6 +1415,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(warpInsPtPrevScreen),	0,	""),
 	EV_EditMethod(NF(warpInsPtRight),		0,	""),
 	EV_EditMethod(NF(warpInsPtToXY),		0,	""),
+	EV_EditMethod(NF(wrapObject),			0,	""),
 
 	// x
 
@@ -9705,6 +9730,554 @@ static bool s_doPageSetupDlg (FV_View * pView)
 	return true;
 }
 #endif
+
+/* -------------------------------------------------------------------
+ * Layout ribbon commands - direct page-setup operations and the
+ * Word-style Document dialog
+ * ------------------------------------------------------------------- */
+
+/*!
+ * Apply margin values (inches) to every section in the document.
+ */
+static bool s_applyMarginsAll(FV_View * pView,
+							  double dTop, double dBottom,
+							  double dLeft, double dRight)
+{
+	UT_UTF8String sTop = UT_formatDimensionString(DIM_IN, dTop);
+	UT_UTF8String sBot = UT_formatDimensionString(DIM_IN, dBottom);
+	UT_UTF8String sLeft = UT_formatDimensionString(DIM_IN, dLeft);
+	UT_UTF8String sRight = UT_formatDimensionString(DIM_IN, dRight);
+	const PP_PropertyVector props = {
+		"page-margin-top",    sTop.utf8_str(),
+		"page-margin-bottom", sBot.utf8_str(),
+		"page-margin-left",   sLeft.utf8_str(),
+		"page-margin-right",  sRight.utf8_str()
+	};
+	return pView->setDocWideSectionFormat(props);
+}
+
+/*!
+ * Margin presets, Word-style: pCallData carries
+ * normal|narrow|moderate|wide|mirrored (values in inches).
+ */
+Defun(pageMargins)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	double t = 1.0, b = 1.0, l = 1.0, r = 1.0;
+	if (arg == "narrow")            { t = b = l = r = 0.5; }
+	else if (arg == "moderate")     { l = r = 0.75; }
+	else if (arg == "wide")         { l = r = 2.0; }
+	else if (arg == "mirrored")     { l = 1.25; r = 1.0; }
+	else if (arg != "normal")       return false;
+
+	return s_applyMarginsAll(pView, t, b, l, r);
+}
+
+/*!
+ * Push a new paper size / orientation to the document, preserving the
+ * scale and (for custom sizes) the dimensions.
+ */
+static bool s_applyPageSize(FV_View * pView, const char * szPredefined,
+							bool bLandscape)
+{
+	PD_Document * pDoc = pView->getLayout()->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+
+	const fp_PageSize * cur = pDoc->getPageSize();
+	fp_PageSize::Predefined curDef =
+		fp_PageSize::NameToPredefined(cur->getPredefinedName());
+	fp_PageSize pSize(szPredefined);
+	fp_PageSize::Predefined newDef = pSize.NameToPredefined(
+		pSize.getPredefinedName());
+
+	UT_Dimension ut = DIM_IN;
+	double wid = -1, ht = -1;
+	if (newDef == fp_PageSize::psCustom)
+	{
+		/* keep the current custom dims, normalised to portrait */
+		ut = cur->getDims();
+		wid = cur->Width(ut);
+		ht = cur->Height(ut);
+		if (!cur->isPortrait())
+		{
+			double tmp = wid;
+			wid = ht;
+			ht = tmp;
+		}
+		pSize.Set(wid, ht, ut);
+	}
+	pSize.setScale(cur->getScale());
+	if (bLandscape)
+		pSize.setLandscape();
+
+	if (curDef == newDef && (cur->isPortrait() != bLandscape) &&
+		newDef != fp_PageSize::psCustom)
+		return true; /* already this size + orientation */
+
+	UT_UTF8String sType = pSize.getPredefinedName();
+	UT_UTF8String sUnits = UT_dimensionName(ut);
+	UT_UTF8String sWidth = UT_formatDimensionString(ut,
+		newDef == fp_PageSize::psCustom ? wid : pSize.Width(ut));
+	UT_UTF8String sHeight = UT_formatDimensionString(ut,
+		newDef == fp_PageSize::psCustom ? ht : pSize.Height(ut));
+	UT_UTF8String sScale = UT_formatDimensionString(DIM_none,
+													pSize.getScale());
+	const PP_PropertyVector attr = {
+		"pagetype", sType.utf8_str(),
+		"orientation", bLandscape ? "landscape" : "portrait",
+		"width", sWidth.utf8_str(),
+		"height", sHeight.utf8_str(),
+		"units", sUnits.utf8_str(),
+		"page-scale", sScale.utf8_str()
+	};
+	return pDoc->setPageSizeFromFile(attr);
+}
+
+/*!
+ * pCallData: "portrait" | "landscape"
+ */
+Defun(pageOrientation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	bool bLandscape = (arg == "landscape");
+	PD_Document * pDoc = pView->getLayout()->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+	if (bLandscape == !pDoc->getPageSize()->isPortrait())
+		return true; /* already that orientation */
+	return s_applyPageSize(pView, pDoc->getPageSize()->getPredefinedName(),
+						   bLandscape);
+}
+
+/*!
+ * pCallData: a predefined fp_PageSize name ("A4", "Letter", ...),
+ * optionally followed by "|landscape" for the long-edge variant.
+ */
+Defun(pageSize)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	bool bLandscape = false;
+	std::string name = arg.utf8_str();
+	size_t bar = name.find('|');
+	if (bar != std::string::npos)
+	{
+		bLandscape = (name.substr(bar + 1) == "landscape");
+		name.erase(bar);
+	}
+	else
+	{
+		PD_Document * pDoc = pView->getLayout()->getDocument();
+		UT_return_val_if_fail(pDoc, false);
+		bLandscape = !pDoc->getPageSize()->isPortrait();
+	}
+	if (!fp_PageSize::IsPredefinedName(name.c_str()))
+		return false;
+	return s_applyPageSize(pView, name.c_str(), bLandscape);
+}
+
+/*!
+ * pCallData: column count "1".."N" - applies to the current section.
+ */
+Defun(pageColumns)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	int n = atoi(arg.utf8_str());
+	if (n < 1 || n > 13)
+		return false;
+	UT_UTF8String sCols = UT_UTF8String_sprintf("%d", n);
+	const PP_PropertyVector props = {
+		"columns", sCols.utf8_str()
+	};
+	return pView->setSectionFormat(props);
+}
+
+Defun1(insColumnBreak)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = UCS_VTAB;
+	return pView->cmdCharInsert(&c, 1);
+}
+
+/*!
+ * pCallData: "next"|"continuous"|"even"|"odd"
+ */
+Defun(insSectionBreak)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	BreakSectionType type = BreakSectionNextPage;
+	if (arg == "continuous")      type = BreakSectionContinuous;
+	else if (arg == "even")       type = BreakSectionEvenPage;
+	else if (arg == "odd")        type = BreakSectionOddPage;
+	else if (arg != "next")       return false;
+	pView->insertSectionBreak(type);
+	return true;
+}
+
+/*!
+ * Apply one block property to the paragraphs under the caret /
+ * selection.  pCallData: "prop:value" - used by the Layout ribbon's
+ * Indent and Spacing spin fields.
+ */
+Defun(paraProp)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * colon = strchr(arg.utf8_str(), ':');
+	if (!colon || colon == arg.utf8_str())
+		return false;
+	std::string prop(arg.utf8_str(), colon - arg.utf8_str());
+	std::string val(colon + 1);
+	if (val.empty())
+		return false;
+	const PP_PropertyVector props = {
+		prop.c_str(), val.c_str()
+	};
+	pView->setBlockFormat(props);
+	return true;
+}
+
+/*!
+ * Position / Wrap Text / Align entry point for the Arrange group:
+ * opens the positioned-object dialog for the selected image or frame.
+ */
+Defun(arrangePosition)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (pView->isImageSelected())
+	{
+		dlgFmtPosImage(pAV_View, pCallData);
+		return true;
+	}
+	dlgFormatFrame(pAV_View, pCallData);
+	return true;
+}
+
+/*!
+ * pCallData: wrap-mode value for the selected frame/image
+ * (wrapped-both|wrapped-topbot|above-text|below-text)
+ */
+Defun(wrapObject)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * mode = arg.utf8_str();
+	if (strcmp(mode, "wrapped-both") && strcmp(mode, "wrapped-topbot") &&
+		strcmp(mode, "above-text") && strcmp(mode, "below-text"))
+		return false;
+	const PP_PropertyVector props = {
+		"wrap-mode", mode
+	};
+	pView->setFrameFormat(props);
+	return true;
+}
+
+/*!
+ * Apply "name:value;name:value" section properties to the current
+ * section - used by the Layout ribbon's line-numbering choices.
+ */
+Defun(sectProps)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	PP_PropertyVector props;
+	std::string rest = arg.utf8_str();
+	size_t pos = 0;
+	while (pos <= rest.size())
+	{
+		size_t semi = rest.find(';', pos);
+		std::string kv = rest.substr(pos, semi == std::string::npos
+									 ? std::string::npos : semi - pos);
+		size_t colon = kv.find(':');
+		if (colon > 0)
+		{
+			props.push_back(kv.substr(0, colon));
+			props.push_back(kv.substr(colon + 1));
+		}
+		if (semi == std::string::npos)
+			break;
+		pos = semi + 1;
+	}
+	if (props.empty())
+		return false;
+	return pView->setSectionFormat(props);
+}
+
+/*!
+ * Apply "name:value;name:value" attributes to the document strux -
+ * used by the Layout ribbon's hyphenation settings.
+ */
+Defun(docProps)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	PD_Document * pDoc = pView->getLayout()->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	PP_PropertyVector props;
+	std::string rest = arg.utf8_str();
+	size_t pos = 0;
+	while (pos <= rest.size())
+	{
+		size_t semi = rest.find(';', pos);
+		std::string kv = rest.substr(pos, semi == std::string::npos
+									 ? std::string::npos : semi - pos);
+		size_t colon = kv.find(':');
+		if (colon > 0)
+		{
+			props.push_back(kv.substr(0, colon));
+			props.push_back(kv.substr(colon + 1));
+		}
+		if (semi == std::string::npos)
+			break;
+		pos = semi + 1;
+	}
+	if (props.empty())
+		return false;
+	pDoc->setAttrProp(props);
+	return true;
+}
+
+/*!
+ * The Word-style Document dialog (Margins / Layout pages).
+ */
+Defun1(docSettings)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_val_if_fail(pApp, false);
+
+	pFrame->raise();
+	XAP_DialogFactory * pDialogFactory =
+		static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+	AP_Dialog_Document * pDialog =
+		static_cast<AP_Dialog_Document *>(pDialogFactory->requestDialog(
+			(XAP_Dialog_Id)AP_DIALOG_ID_DOCUMENT));
+	UT_return_val_if_fail(pDialog, false);
+
+	PD_Document * pDoc = pView->getLayout()->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+
+	/* units follow the ruler preference (in|cm|mm) */
+	UT_Dimension units = DIM_IN;
+	std::string rulerUnits;
+	if (pApp->getPrefsValue(AP_PREF_KEY_RulerUnits, rulerUnits))
+	{
+		UT_Dimension u = UT_determineDimension(rulerUnits.c_str());
+		if (u == DIM_CM || u == DIM_MM || u == DIM_IN)
+			units = u;
+	}
+	pDialog->setMarginUnits(units);
+	pDialog->setPageUnits(units);
+
+	/* current page size / orientation / scale */
+	fp_PageSize pSize(pDoc->getPageSize()->getPredefinedName());
+	fp_PageSize::Predefined def =
+		pSize.NameToPredefined(pSize.getPredefinedName());
+	if (def == fp_PageSize::psCustom)
+	{
+		UT_Dimension u0 = pDoc->getPageSize()->getDims();
+		double w = pDoc->getPageSize()->Width(u0);
+		double h = pDoc->getPageSize()->Height(u0);
+		if (!pDoc->getPageSize()->isPortrait())
+			std::swap(w, h);
+		pSize.Set(w, h, u0);
+	}
+	pDialog->setPageSize(pSize);
+	pDialog->setPageScale(static_cast<int>(100.0 * pDoc->getPageSize()->getScale()));
+
+	/* current section margins */
+	PP_PropertyVector props_in;
+	pView->getSectionFormat(props_in);
+	double top = 1.0, bot = 1.0, lft = 1.0, rgt = 1.0;
+	double hdr = 0.0, ftr = 0.0, gut = 0.0;
+	const std::string & sTop = PP_getAttribute("page-margin-top", props_in);
+	const std::string & sBot = PP_getAttribute("page-margin-bottom", props_in);
+	const std::string & sL = PP_getAttribute("page-margin-left", props_in);
+	const std::string & sR = PP_getAttribute("page-margin-right", props_in);
+	const std::string & sH = PP_getAttribute("page-margin-header", props_in);
+	const std::string & sF = PP_getAttribute("page-margin-footer", props_in);
+	const std::string & sG = PP_getAttribute("page-margin-gutter", props_in);
+	if (!sTop.empty()) top = UT_convertToInches(sTop.c_str());
+	if (!sBot.empty()) bot = UT_convertToInches(sBot.c_str());
+	if (!sL.empty())   lft = UT_convertToInches(sL.c_str());
+	if (!sR.empty())   rgt = UT_convertToInches(sR.c_str());
+	if (!sH.empty())   hdr = UT_convertToInches(sH.c_str());
+	if (!sF.empty())   ftr = UT_convertToInches(sF.c_str());
+	if (!sG.empty())   gut = UT_convertToInches(sG.c_str());
+	double conv = (units == DIM_CM) ? 2.54 : (units == DIM_MM) ? 25.4 : 1.0;
+	pDialog->setMarginTop(static_cast<float>(top * conv));
+	pDialog->setMarginBottom(static_cast<float>(bot * conv));
+	pDialog->setMarginLeft(static_cast<float>(lft * conv));
+	pDialog->setMarginRight(static_cast<float>(rgt * conv));
+	pDialog->setMarginHeader(static_cast<float>(hdr * conv));
+	pDialog->setMarginFooter(static_cast<float>(ftr * conv));
+	pDialog->setMarginGutter(static_cast<float>(gut * conv));
+
+	/* headers/footers present in the current section */
+	const std::string & sHE = PP_getAttribute("header-even", props_in);
+	const std::string & sHF = PP_getAttribute("header-first", props_in);
+	pDialog->setDifferentOddEven(!sHE.empty());
+	pDialog->setDifferentFirstPage(!sHF.empty());
+
+	pDialog->runModal(pFrame);
+
+	if (pDialog->getAnswer() != AP_Dialog_Document::a_OK)
+	{
+		delete pDialog;
+		return true;
+	}
+
+	/* paper size / orientation / scale changed via Page Setup... */
+	if (pDialog->getPageSetupChanged())
+	{
+		const fp_PageSize & fpSz = pDialog->getPageSize();
+		UT_Dimension fu = fpSz.getDims();
+		double fw = fpSz.Width(fu);
+		double fh = fpSz.Height(fu);
+		if (!fpSz.isPortrait())
+			std::swap(fw, fh);
+		UT_UTF8String sT = fpSz.getPredefinedName();
+		UT_UTF8String sU = UT_dimensionName(fu);
+		UT_UTF8String sW = UT_formatDimensionString(fu, fw);
+		UT_UTF8String sH2 = UT_formatDimensionString(fu, fh);
+		UT_UTF8String sS = UT_formatDimensionString(DIM_none,
+											pDialog->getPageScale() / 100.0);
+		const PP_PropertyVector attr = {
+			"pagetype", sT.utf8_str(),
+			"orientation", fpSz.isPortrait() ? "portrait" : "landscape",
+			"width", sW.utf8_str(),
+			"height", sH2.utf8_str(),
+			"units", sU.utf8_str(),
+			"page-scale", sS.utf8_str()
+		};
+		pDoc->setPageSizeFromFile(attr);
+	}
+
+	/* margins + header/footer edge offsets */
+	UT_Dimension mu = pDialog->getMarginUnits();
+	UT_UTF8String sTop2 = UT_formatDimensionString(mu, pDialog->getMarginTop());
+	UT_UTF8String sBot2 = UT_formatDimensionString(mu, pDialog->getMarginBottom());
+	UT_UTF8String sL2 = UT_formatDimensionString(mu, pDialog->getMarginLeft());
+	UT_UTF8String sR2 = UT_formatDimensionString(mu, pDialog->getMarginRight());
+	UT_UTF8String sH2 = UT_formatDimensionString(mu, pDialog->getMarginHeader());
+	UT_UTF8String sF2 = UT_formatDimensionString(mu, pDialog->getMarginFooter());
+	UT_UTF8String sG2 = UT_formatDimensionString(mu, pDialog->getMarginGutter());
+	PP_PropertyVector props = {
+		"page-margin-top",    sTop2.utf8_str(),
+		"page-margin-bottom", sBot2.utf8_str(),
+		"page-margin-left",   sL2.utf8_str(),
+		"page-margin-right",  sR2.utf8_str(),
+		"page-margin-header", sH2.utf8_str(),
+		"page-margin-footer", sF2.utf8_str()
+	};
+	if (pDialog->getMarginGutter() > 0.0f)
+	{
+		props.push_back("page-margin-gutter");
+		props.push_back(sG2.utf8_str());
+		props.push_back("page-gutter-position");
+		props.push_back(pDialog->getGutterPosition() ==
+						AP_Dialog_Document::GUTTER_TOP ? "top" : "left");
+	}
+	if (pDialog->getMultiplePages() != AP_Dialog_Document::MULTI_NORMAL)
+	{
+		static const char * multi[] = { "normal", "mirror-margins",
+										"two-per-sheet", "book-fold" };
+		props.push_back("section-multiple-pages");
+		props.push_back(multi[pDialog->getMultiplePages()]);
+	}
+	{
+		static const char * start[] = { "continuous", "new-page",
+										"even-page", "odd-page" };
+		props.push_back("section-start");
+		props.push_back(start[pDialog->getSectionStart()]);
+	}
+	{
+		static const char * va[] = { "top", "center", "justified", "bottom" };
+		props.push_back("section-vertical-align");
+		props.push_back(va[pDialog->getVerticalAlign()]);
+	}
+
+	if (pDialog->getApplyTo() == AP_Dialog_Document::APPLY_POINT_FORWARD)
+	{
+		pView->insertSectionBreak(BreakSectionContinuous);
+		pView->setSectionFormat(props);
+	}
+	else if (pDialog->getApplyTo() == AP_Dialog_Document::APPLY_THIS_SECTION)
+		pView->setSectionFormat(props);
+	else
+		pView->setDocWideSectionFormat(props);
+
+	/* header/footer type changes */
+	if (pDialog->getDifferentOddEven() != !sHE.empty())
+	{
+		if (pDialog->getDifferentOddEven())
+		{
+			pView->createThisHdrFtr(FL_HDRFTR_HEADER_EVEN);
+			pView->createThisHdrFtr(FL_HDRFTR_FOOTER_EVEN);
+		}
+		else
+		{
+			pView->removeThisHdrFtr(FL_HDRFTR_HEADER_EVEN);
+			pView->removeThisHdrFtr(FL_HDRFTR_FOOTER_EVEN);
+		}
+	}
+	if (pDialog->getDifferentFirstPage() != !sHF.empty())
+	{
+		if (pDialog->getDifferentFirstPage())
+		{
+			pView->createThisHdrFtr(FL_HDRFTR_HEADER_FIRST);
+			pView->createThisHdrFtr(FL_HDRFTR_FOOTER_FIRST);
+		}
+		else
+		{
+			pView->removeThisHdrFtr(FL_HDRFTR_HEADER_FIRST);
+			pView->removeThisHdrFtr(FL_HDRFTR_FOOTER_FIRST);
+		}
+	}
+
+	delete pDialog;
+	return true;
+}
 
 class ABI_EXPORT FV_View_Insert_symbol_listener : public XAP_Insert_symbol_listener
 	{

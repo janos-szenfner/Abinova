@@ -84,10 +84,28 @@ private:
 							  int iWidth, int iHeight);
 	GtkWidget *		_makeChangeCasePopover();
 	GtkWidget *		_makeMenuPopButton(XAP_Menu_Id id, uint8_t flags);
+	GtkWidget *		_makeLargeMenuButton(XAP_Menu_Id id,
+										 GtkWidget * popover);
 	GtkWidget *		_makeMenuPopTbButton(XAP_Toolbar_Id id, uint8_t flags);
 	GtkWidget *		_makeLineSpacingPopover();
 	GtkWidget *		_makeParaSpacingPopover();
 	GtkWidget *		_makeSortParaPopover();
+	/* Layout tab */
+	GtkWidget *		_makeMarginsPopover();
+	GtkWidget *		_makeOrientationPopover();
+	GtkWidget *		_makeSizePopover();
+	GtkWidget *		_makeColumnsPopover();
+	GtkWidget *		_makeBreaksPopover();
+	GtkWidget *		_makeLineNumbersPopover();
+	GtkWidget *		_makeHyphenationPopover();
+	GtkWidget *		_makeWrapPopover();
+	GtkWidget *		_makePositionPopover();
+	GtkWidget *		_makeAlignObjPopover();
+	GtkWidget *		_makeSpinField(int spinId);
+	GtkWidget *		_presetRow(const char * szName, const char * szDetail,
+							   GtkWidget * icon, const char * szMethod,
+							   const char * szData, bool bSensitive = true);
+	GtkWidget *		_disabledArrangeButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverMenuButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverTbButton(XAP_Toolbar_Id id,
 									 const char * szLabel);
@@ -155,6 +173,11 @@ private:
 	static void			_s_popover_tb_clicked(GtkWidget * w, gpointer data);
 	static void			_s_popover_menu_clicked(GtkWidget * w, gpointer data);
 	static void			_s_popover_em_clicked(GtkWidget * w, gpointer data);
+	static void			_s_spin_changed(GtkSpinButton * spin, gpointer data);
+	static gboolean		_s_spin_apply(gpointer data);
+	static void			_s_linedlg_clicked(GtkWidget * w, gpointer data);
+	static void			_s_hyphdlg_clicked(GtkWidget * w, gpointer data);
+	void				_refreshSpinFields();
 	static void			_s_paste_special_clicked(GtkWidget * w, gpointer data);
 	static void			_s_paste_special_response(GtkDialog * dlg,
 												  gint resp, gpointer data);
@@ -179,6 +202,16 @@ private:
 	EV_Toolbar_LabelSet *	m_pTBLabels;
 	UT_GenericVector<GtkWidget*>	m_vecContextualPages;
 	GHashTable *		m_pIconMap; /* edit-method name -> icon name */
+
+	/* Layout indent/spacing spin fields: prop name -> widget, synced
+	 * by _refreshSpinFields() */
+	struct _SpinField
+	{
+		GtkWidget *	spin;
+		const char * prop;	/* static block property name */
+	};
+	UT_GenericVector<_SpinField*>	m_vecSpins;
+	bool				m_bSpinUpdating;
 };
 
 #endif /* AP_UNIXRIBBON_H */

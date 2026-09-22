@@ -400,6 +400,8 @@ public:
 	virtual UT_sint32 getPageViewSep(void) const;
 
 	bool	setSectionFormat(const PP_PropertyVector & properties);
+	/* apply to every section in the document ("Apply to: Whole document") */
+	bool	setDocWideSectionFormat(const PP_PropertyVector & properties);
 	bool	getSectionFormat(PP_PropertyVector & properties) const;
 
 	bool	setBlockIndents(bool doLists, double indentChange, double page_size);

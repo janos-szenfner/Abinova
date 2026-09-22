@@ -25,6 +25,7 @@
 #endif
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -57,6 +58,12 @@
 #include "pt_PieceTable.h"
 #include "pd_Document.h"
 #include "pd_Style.h"
+#include "pp_Property.h"
+#include "pp_AttrProp.h"
+#include "fp_PageSize.h"
+#include "ut_units.h"
+#include "fl_DocLayout.h"
+#include "ap_UnixDialog_Document.h"
 #include "fv_View.h"
 
 /*
@@ -102,6 +109,9 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "views",       "Views" },
 	{ "page",        "Page Setup" },
 	{ "columns",     "Page Columns" },
+	{ "indent",      "Indent" },
+	{ "spacing",     "Spacing" },
+	{ "arrange",     "Arrange" },
 	{ "background",  "Page Background" },
 	{ "zoom",        "Zoom" },
 	{ "proofing",    "Proofing" },
@@ -154,6 +164,9 @@ struct AP_UnixRibbon::_TbCtx
 	gulong			handlerId;
 };
 
+/* forward decl: drawn page-glyph icons for the Layout popovers */
+static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h);
+
 AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	: m_pFrame(pFrame)
 	, m_pMenu(pMenu)
@@ -164,6 +177,7 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	, m_wStylePrev(nullptr)
 	, m_wStyleNext(nullptr)
 	, m_pIconMap(nullptr)
+	, m_bSpinUpdating(false)
 {
 }
 
@@ -172,6 +186,7 @@ AP_UnixRibbon::~AP_UnixRibbon()
 	// m_wNotebook is owned by the widget tree; nothing to unref here.
 	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
 	DELETEP(m_pTBLabels);
+	UT_VECTOR_PURGEALL(_SpinField *, m_vecSpins);
 	UT_VECTOR_PURGEALL(_TbCtx *, m_vecTbCtx);
 	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
 	{
@@ -348,6 +363,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				GtkWidget * w = nullptr;
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
+				else if (item->kind == AP_RIBBON_ITEM_SPIN)
+					w = _makeSpinField(item->id);
 				else if (item->flags & AP_RIBBON_FLAG_MENUPOP)
 				{
 					if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
@@ -360,6 +377,13 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				else if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
 					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
 										   item->flags);
+				else if (item->kind == AP_RIBBON_ITEM_MENU &&
+						 (item->id == (uint16_t)AP_MENU_ID_LAYOUT_BRINGFORWARD ||
+						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_SENDBACKWARD ||
+						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_SELPANE ||
+						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_GROUPOBJECTS ||
+						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_ROTATE))
+					w = _disabledArrangeButton((XAP_Menu_Id)item->id);
 				else
 					w = _makeButton((XAP_Menu_Id)item->id, item->flags);
 				if (!w)
@@ -1279,6 +1303,39 @@ void AP_UnixRibbon::_s_popover_em_clicked(GtkWidget * w, gpointer data)
 	self->_invokeEditMethod(szMethod, szData);
 }
 
+/* Layout tab: Line Numbering Options… / Hyphenation Options… */
+void AP_UnixRibbon::_s_linedlg_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	GtkWindow * win = nullptr;
+	if (self->m_pFrame && self->m_pFrame->getFrameImpl())
+	{
+		XAP_UnixFrameImpl * impl =
+			static_cast<XAP_UnixFrameImpl *>(self->m_pFrame->getFrameImpl());
+		win = GTK_WINDOW(impl->getTopLevelWindow());
+	}
+	ap_showLineNumbersDialog(win, static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr));
+}
+
+void AP_UnixRibbon::_s_hyphdlg_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	GtkWindow * win = nullptr;
+	if (self->m_pFrame && self->m_pFrame->getFrameImpl())
+	{
+		XAP_UnixFrameImpl * impl =
+			static_cast<XAP_UnixFrameImpl *>(self->m_pFrame->getFrameImpl());
+		win = GTK_WINDOW(impl->getTopLevelWindow());
+	}
+	ap_showHyphenationDialog(win, static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr));
+}
+
 void AP_UnixRibbon::_s_paste_special_clicked(GtkWidget * w, gpointer data)
 {
 	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
@@ -1817,17 +1874,59 @@ GtkWidget * AP_UnixRibbon::_makeChangeCasePopover()
 }
 
 /* single-button dropdown (LibreOffice "Aa"): the button itself opens
- * the popover - no separate arrow widget, no action on the button */
+ * the popover - no separate arrow widget, no action on the button.
+ * With AP_RIBBON_FLAG_LARGE the button is a Word-style icon-over-
+ * caption button with a down arrow (Layout page-setup group). */
 GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 											 uint8_t flags)
 {
 	GtkWidget * popover = nullptr;
-	if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE)
+	switch (id)
+	{
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE:
 		popover = _makeChangeCasePopover();
-	else if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS)
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS:
 		popover = _makeBordersPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_MARGINS:
+		popover = _makeMarginsPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ORIENTATION:
+		popover = _makeOrientationPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SIZE:
+		popover = _makeSizePopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_COLUMNS:
+		popover = _makeColumnsPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BREAKS:
+		popover = _makeBreaksPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_LINENUMBERS:
+		popover = _makeLineNumbersPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_HYPHENATION:
+		popover = _makeHyphenationPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_POSITION:
+		popover = _makePositionPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_WRAP:
+		popover = _makeWrapPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ALIGNOBJECTS:
+		popover = _makeAlignObjPopover();
+		break;
+	default:
+		break;
+	}
 	if (!popover)
 		return nullptr;
+
+	if (flags & AP_RIBBON_FLAG_LARGE)
+		return _makeLargeMenuButton(id, popover);
 
 	GtkWidget * mb = gtk_menu_button_new();
 	if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS)
@@ -1838,15 +1937,21 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_DOWN);
 	}
-	else
+	else if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE)
 	{
 		GtkWidget * gl = gtk_label_new(nullptr);
-		gtk_label_set_markup(GTK_LABEL(gl),
-							 id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE
-							 ? "Aa" : "?");
+		gtk_label_set_markup(GTK_LABEL(gl), "Aa");
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), gl);
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_NONE);
+	}
+	else
+	{
+		/* drawn page glyph for the Layout popovers */
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb),
+								  _layout_icon(id, 18, 18));
+		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
+									  GTK_ARROW_DOWN);
 	}
 	if (flags & AP_RIBBON_FLAG_SLIM)
 		_slim_widget_tree(mb);
@@ -1862,6 +1967,1027 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 			gtk_widget_set_tooltip_text(mb, szStatus);
 	}
 	return mb;
+}
+
+/* ================= Layout tab: page-setup popovers =================
+ *
+ * Word-style dropdowns for Margins, Orientation, Size, Columns,
+ * Breaks, Line Numbers and Hyphenation.  The row icons are tiny
+ * cairo-drawn page glyphs so the look matches the reference UI on
+ * every icon theme.
+ */
+
+struct _PageSpec
+{
+	double mt, mb, ml, mr;	/* margins as fractions of the page */
+	int		cols;			/* text columns */
+	bool	landscape;		/* page drawn wider than tall */
+	bool	linenum;		/* tiny line-number digits */
+	int		fold;			/* folded corner / break marker */
+};
+
+/* paint a mini page: outline, margin frame, text lines */
+static void _draw_page_glyph(cairo_t * cr, double w, double h,
+							 const _PageSpec & s)
+{
+	double pw = s.landscape ? w : w * 0.78;
+	double ph = s.landscape ? h * 0.62 : h;
+	double px = (w - pw) / 2.0;
+	double py = (h - ph) / 2.0;
+
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, px + 0.5, py + 0.5, pw - 1, ph - 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	double mx0 = px + s.ml * pw, mx1 = px + pw - s.mr * pw;
+	double my0 = py + s.mt * ph, my1 = py + ph - s.mb * ph;
+
+	/* margin frame */
+	cairo_set_source_rgba(cr, 0.35, 0.55, 0.9, 0.85);
+	cairo_set_line_width(cr, 0.9);
+	cairo_rectangle(cr, mx0, my0, mx1 - mx0, my1 - my0);
+	cairo_stroke(cr);
+
+	/* text lines, split into column stripes */
+	int cols = s.cols < 1 ? 1 : s.cols;
+	double gap = 2.5;
+	double cw = (mx1 - mx0 - gap * (cols - 1)) / cols;
+	cairo_set_source_rgb(cr, 0.55, 0.58, 0.65);
+	cairo_set_line_width(cr, 0.9);
+	for (int c = 0; c < cols; ++c)
+	{
+		double lx = mx0 + c * (cw + gap);
+		for (double ly = my0 + 2.0; ly < my1 - 1.0; ly += 3.2)
+		{
+			cairo_move_to(cr, lx, ly);
+			cairo_line_to(cr, lx + cw, ly);
+		}
+	}
+	cairo_stroke(cr);
+
+	if (s.linenum)
+	{
+		cairo_set_source_rgb(cr, 0.25, 0.45, 0.85);
+		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+							   CAIRO_FONT_WEIGHT_BOLD);
+		cairo_set_font_size(cr, MAX(5.0, ph * 0.16));
+		cairo_move_to(cr, px + 1.0, my0 + 4.5);
+		cairo_show_text(cr, "1");
+		cairo_move_to(cr, px + 1.0, my0 + ph * 0.28 + 4.5);
+		cairo_show_text(cr, "2");
+	}
+
+	if (s.fold)
+	{
+		/* folded top-right corner */
+		double f = pw * 0.18;
+		cairo_set_source_rgb(cr, 0.85, 0.85, 0.85);
+		cairo_move_to(cr, px + pw - f, py);
+		cairo_line_to(cr, px + pw, py + f);
+		cairo_line_to(cr, px + pw - f, py + f);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+	}
+}
+
+struct _GlyphCtx
+{
+	_PageSpec spec;
+	void (*extra)(cairo_t *, double, double); /* optional overlay */
+};
+
+static void _s_glyph_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+						  int w, int h, gpointer data)
+{
+	_GlyphCtx * c = static_cast<_GlyphCtx *>(data);
+	UT_return_if_fail(c);
+	_draw_page_glyph(cr, w, h, c->spec);
+	if (c->extra)
+		c->extra(cr, w, h);
+}
+
+/* a drawn page-glyph widget for popover rows and ribbon buttons */
+static GtkWidget * _glyph_widget(const _PageSpec & spec, int w, int h,
+								 void (*extra)(cairo_t *, double, double) = nullptr)
+{
+	_GlyphCtx * c = new _GlyphCtx;
+	c->spec = spec;
+	c->extra = extra;
+	GtkWidget * area = gtk_drawing_area_new();
+	gtk_widget_set_size_request(area, w, h);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(area), _s_glyph_draw,
+								   c, [](gpointer d) {
+		delete static_cast<_GlyphCtx *>(d);
+	});
+	return area;
+}
+
+/* -------- button-face glyphs for the Page Setup group -------- */
+
+static void _overlay_margin_corners(cairo_t * cr, double w, double h)
+{
+	/* blue L-brackets at the margin corners */
+	double pw = w * 0.78, ph = h;
+	double px = (w - pw) / 2.0, py = 0.0;
+	double mx = px + 0.18 * pw, my = py + 0.18 * ph;
+	double mx2 = px + pw - 0.18 * pw, my2 = py + ph - 0.18 * ph;
+	double l = 3.5;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.2);
+	cairo_move_to(cr, mx + l, my); cairo_line_to(cr, mx, my); cairo_line_to(cr, mx, my + l);
+	cairo_move_to(cr, mx2 - l, my); cairo_line_to(cr, mx2, my); cairo_line_to(cr, mx2, my + l);
+	cairo_move_to(cr, mx + l, my2); cairo_line_to(cr, mx, my2); cairo_line_to(cr, mx, my2 - l);
+	cairo_move_to(cr, mx2 - l, my2); cairo_line_to(cr, mx2, my2); cairo_line_to(cr, mx2, my2 - l);
+	cairo_stroke(cr);
+}
+
+static void _overlay_orient_arrow(cairo_t * cr, double w, double h)
+{
+	/* circular arrow at the bottom-right */
+	double cx = w - 7, cy = h - 7, r = 5;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.3);
+	cairo_arc(cr, cx, cy, r, -0.4, 4.4);
+	cairo_stroke(cr);
+	cairo_move_to(cr, cx + r + 1.5, cy - 2.5);
+	cairo_line_to(cr, cx + r + 1.5, cy + 1.5);
+	cairo_line_to(cr, cx + r - 1.5, cy - 0.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _overlay_size_arrows(cairo_t * cr, double w, double h)
+{
+	/* vertical double-arrow left of the page */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.1);
+	double x = 2.0, y0 = 3.0, y1 = h - 3.0;
+	cairo_move_to(cr, x, y0 + 2); cairo_line_to(cr, x, y1 - 2);
+	cairo_move_to(cr, x - 2, y0 + 3); cairo_line_to(cr, x, y0);
+	cairo_line_to(cr, x + 2, y0 + 3);
+	cairo_move_to(cr, x - 2, y1 - 3); cairo_line_to(cr, x, y1);
+	cairo_line_to(cr, x + 2, y1 - 3);
+	cairo_stroke(cr);
+}
+
+static void _overlay_break_dash(cairo_t * cr, double w, double h)
+{
+	/* dashed mid-line + small arrow - a page/section break */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.0);
+	const double dash[] = { 2.5, 2.0 };
+	cairo_set_dash(cr, dash, 2, 0);
+	double y = h / 2.0;
+	cairo_move_to(cr, 3, y);
+	cairo_line_to(cr, w - 6, y);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, nullptr, 0, 0);
+	cairo_move_to(cr, w - 8, y - 3);
+	cairo_line_to(cr, w - 4, y);
+	cairo_line_to(cr, w - 8, y + 3);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _overlay_hyphen(cairo_t * cr, double w, double h)
+{
+	/* "a-" over "bc" letterforms */
+	cairo_set_source_rgb(cr, 0.35, 0.35, 0.4);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.42);
+	cairo_move_to(cr, 2, h * 0.42);
+	cairo_show_text(cr, "a-");
+	cairo_move_to(cr, 2, h * 0.9);
+	cairo_show_text(cr, "bc");
+}
+
+/* dispatch a drawn glyph for the Layout menu ids */
+static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
+{
+	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0 };
+	void (*extra)(cairo_t *, double, double) = nullptr;
+
+	switch (id)
+	{
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_MARGINS:
+		extra = _overlay_margin_corners;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ORIENTATION:
+		extra = _overlay_orient_arrow;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SIZE:
+		extra = _overlay_size_arrows;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_COLUMNS:
+		spec.cols = 2;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BREAKS:
+		spec.fold = 1;
+		extra = _overlay_break_dash;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_LINENUMBERS:
+		spec.linenum = true;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_HYPHENATION:
+		extra = _overlay_hyphen;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_POSITION:
+		spec.fold = 1;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_WRAP:
+		spec.cols = 2;
+		extra = _overlay_break_dash;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ALIGNOBJECTS:
+		spec.mr = 0.45;
+		break;
+	default:
+		break;
+	}
+	return _glyph_widget(spec, w, h, extra);
+}
+
+/* Word-style large dropdown button: icon over caption + down arrow */
+GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
+											  GtkWidget * popover)
+{
+	const EV_Menu_Label * pLabel =
+		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
+	const char * szLabel = pLabel ? pLabel->getMenuLabel() : nullptr;
+
+	char label[64];
+	_ribbon_strip_mnemonic(szLabel ? szLabel : "", label, sizeof(label));
+
+	GtkWidget * mb = gtk_menu_button_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	GtkWidget * icon = _layout_icon(id, 24, 24);
+	gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(box), icon);
+	GtkWidget * wLabel = gtk_label_new(label);
+	gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
+	gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
+	gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
+	gtk_label_set_lines(GTK_LABEL(wLabel), 2);
+	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 12);
+	gtk_box_append(GTK_BOX(box), wLabel);
+	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
+	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
+	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
+
+	const char * szStatus = pLabel ? pLabel->getMenuStatusMessage() : nullptr;
+	if (szStatus && *szStatus && strcmp(szStatus, " ") != 0)
+		gtk_widget_set_tooltip_text(mb, szStatus);
+	return mb;
+}
+
+/* a popover row: [icon] name\n detail  - clicked runs an edit method */
+GtkWidget * AP_UnixRibbon::_presetRow(const char * szName,
+									  const char * szDetail,
+									  GtkWidget * icon,
+									  const char * szMethod,
+									  const char * szData,
+									  bool bSensitive)
+{
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+
+	if (icon)
+	{
+		gtk_widget_set_valign(icon, GTK_ALIGN_CENTER);
+		gtk_box_append(GTK_BOX(row), icon);
+	}
+
+	GtkWidget * texts = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+	gtk_widget_set_valign(texts, GTK_ALIGN_CENTER);
+	gtk_widget_set_hexpand(texts, TRUE);
+	GtkWidget * wName = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(wName), szName);
+	gtk_label_set_wrap(GTK_LABEL(wName), TRUE);
+	gtk_widget_set_halign(wName, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(texts), wName);
+	if (szDetail && *szDetail)
+	{
+		GtkWidget * wDet = gtk_label_new(nullptr);
+		char * mk = g_markup_printf_escaped(
+			"<span size='small' alpha='65%%'>%s</span>", szDetail);
+		gtk_label_set_markup(GTK_LABEL(wDet), mk);
+		g_free(mk);
+		gtk_label_set_wrap(GTK_LABEL(wDet), TRUE);
+		gtk_label_set_max_width_chars(GTK_LABEL(wDet), 34);
+		gtk_widget_set_halign(wDet, GTK_ALIGN_START);
+		gtk_box_append(GTK_BOX(texts), wDet);
+	}
+	gtk_box_append(GTK_BOX(row), texts);
+	gtk_button_set_child(GTK_BUTTON(btn), row);
+
+	gtk_widget_add_css_class(btn, "flat");
+	gtk_widget_set_sensitive(btn, bSensitive);
+	if (!bSensitive)
+		gtk_widget_set_tooltip_text(btn,
+									"Not supported by the layout engine yet");
+
+	if (szMethod && *szMethod)
+	{
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup(szMethod), g_free);
+		if (szData)
+			g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+								   g_strdup(szData), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+	}
+	return btn;
+}
+
+static GtkWidget * _popover_section_label(const char * szText)
+{
+	GtkWidget * l = gtk_label_new(nullptr);
+	char * mk = g_markup_printf_escaped(
+		"<span weight='bold' alpha='75%%'>%s</span>", szText);
+	gtk_label_set_markup(GTK_LABEL(l), mk);
+	g_free(mk);
+	gtk_widget_set_halign(l, GTK_ALIGN_START);
+	gtk_widget_set_margin_top(l, 4);
+	gtk_widget_set_margin_bottom(l, 2);
+	return l;
+}
+
+static GtkWidget * _popover_new_box(GtkWidget ** box)
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * b = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(b, 4);
+	gtk_widget_set_margin_bottom(b, 4);
+	gtk_widget_set_margin_start(b, 4);
+	gtk_widget_set_margin_end(b, 4);
+	gtk_popover_set_child(GTK_POPOVER(popover), b);
+	*box = b;
+	return popover;
+}
+
+/* ruler units (in|cm|mm) and a "x cm"-style formatted margin */
+static UT_Dimension _ruler_units()
+{
+	UT_Dimension u = DIM_IN;
+	std::string ru;
+	if (XAP_App::getApp()->getPrefsValue(AP_PREF_KEY_RulerUnits, ru))
+	{
+		UT_Dimension d = UT_determineDimension(ru.c_str());
+		if (d == DIM_CM || d == DIM_MM || d == DIM_IN)
+			u = d;
+	}
+	return u;
+}
+
+static std::string _fmt_dim(double inches, UT_Dimension u)
+{
+	double v = UT_convertInchesToDimension(inches, u);
+	char buf[128];
+	snprintf(buf, sizeof(buf), "%.2f %s", v, UT_dimensionName(u));
+	return buf;
+}
+
+/* Margins dropdown: Word-style preset gallery + Custom Margins… */
+GtkWidget * AP_UnixRibbon::_makeMarginsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	UT_Dimension u = _ruler_units();
+
+	/* current margins, inches */
+	double ct = 1.0, cb = 1.0, cl = 1.0, cr = 1.0;
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	if (pView)
+	{
+		PP_PropertyVector props;
+		if (pView->getSectionFormat(props))
+		{
+			const std::string & s = PP_getAttribute("page-margin-top", props);
+			if (!s.empty()) ct = UT_convertToInches(s.c_str());
+			const std::string & s2 = PP_getAttribute("page-margin-bottom", props);
+			if (!s2.empty()) cb = UT_convertToInches(s2.c_str());
+			const std::string & s3 = PP_getAttribute("page-margin-left", props);
+			if (!s3.empty()) cl = UT_convertToInches(s3.c_str());
+			const std::string & s4 = PP_getAttribute("page-margin-right", props);
+			if (!s4.empty()) cr = UT_convertToInches(s4.c_str());
+		}
+	}
+
+	struct _mp { const char * name; const char * data;
+				 double t, b, l, r; };
+	static const _mp presets[] = {
+		{ "Normal",   "normal",   1.0, 1.0, 1.0,  1.0  },
+		{ "Narrow",   "narrow",   0.5, 0.5, 0.5,  0.5  },
+		{ "Moderate", "moderate", 1.0, 1.0, 0.75, 0.75 },
+		{ "Wide",     "wide",     1.0, 1.0, 2.0,  2.0  },
+		{ "Mirrored", "mirrored", 1.0, 1.0, 1.25, 1.0  },
+	};
+
+	auto detail = [&](double t, double b, double l, double r) {
+		return g_strdup_printf("Top: %s   Bottom: %s\nLeft: %s   Right: %s",
+							   _fmt_dim(t, u).c_str(), _fmt_dim(b, u).c_str(),
+							   _fmt_dim(l, u).c_str(), _fmt_dim(r, u).c_str());
+	};
+	auto close = [](double a, double b) { return fabs(a - b) < 0.01; };
+
+	/* "Last Custom Setting" heads the list when the current margins
+	 * match none of the presets (Word behaviour) */
+	bool matched = false;
+	for (const _mp & p : presets)
+		matched = matched || (close(ct, p.t) && close(cb, p.b) &&
+							  close(cl, p.l) && close(cr, p.r));
+	if (!matched && pView)
+	{
+		_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0 };
+		gchar * det = detail(ct, cb, cl, cr);
+		GtkWidget * row = _presetRow(
+			"<b>Last Custom Setting</b>  \xE2\x98\x85", det,
+			_glyph_widget(spec, 26, 34), nullptr, nullptr);
+		gtk_widget_set_sensitive(row, FALSE);
+		g_free(det);
+		gtk_box_append(GTK_BOX(box), row);
+	}
+
+	for (const _mp & p : presets)
+	{
+		_PageSpec spec = { p.t * 0.13, p.b * 0.13,
+						   p.l * 0.18, p.r * 0.18, 1, false, false, 0 };
+		gchar * det = detail(p.t, p.b, p.l, p.r);
+		std::string nm = p.name;
+		bool cur = close(ct, p.t) && close(cb, p.b) &&
+				   close(cl, p.l) && close(cr, p.r);
+		if (cur)
+			nm = std::string("\xE2\x9C\x93 <b>") + p.name + "</b>";
+		GtkWidget * row = _presetRow(nm.c_str(), det,
+									 _glyph_widget(spec, 26, 34),
+									 "pageMargins", p.data);
+		g_free(det);
+		gtk_box_append(GTK_BOX(box), row);
+	}
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>Custom Margins\xE2\x80\xA6</b>", nullptr,
+							  nullptr, "docSettings", nullptr));
+	return popover;
+}
+
+/* Orientation dropdown: Portrait / Landscape */
+GtkWidget * AP_UnixRibbon::_makeOrientationPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	bool bPortrait = true;
+	if (pView && pView->getLayout() && pView->getLayout()->getDocument())
+		bPortrait = pView->getLayout()->getDocument()->getPageSize()->isPortrait();
+
+	_PageSpec ps = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0 };
+	_PageSpec ls = ps;
+	ls.landscape = true;
+
+	GtkWidget * r1 = _presetRow(bPortrait ? "\xE2\x9C\x93 <b>Portrait</b>"
+										  : "Portrait",
+								nullptr, _glyph_widget(ps, 26, 34),
+								"pageOrientation", "portrait");
+	GtkWidget * r2 = _presetRow(!bPortrait ? "\xE2\x9C\x93 <b>Landscape</b>"
+										   : "Landscape",
+								nullptr, _glyph_widget(ls, 26, 34),
+								"pageOrientation", "landscape");
+	gtk_box_append(GTK_BOX(box), r1);
+	gtk_box_append(GTK_BOX(box), r2);
+	return popover;
+}
+
+/* Size dropdown: paper-size gallery, current first, + More Sizes… */
+GtkWidget * AP_UnixRibbon::_makeSizePopover()
+{
+	GtkWidget * outer;
+	GtkWidget * popover = _popover_new_box(&outer);
+
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	const fp_PageSize * cur = (pView && pView->getLayout())
+		? pView->getLayout()->getDocument()->getPageSize() : nullptr;
+	std::string curName = cur ? cur->getPredefinedName() : "";
+	bool curLandscape = cur ? !cur->isPortrait() : false;
+	UT_Dimension u = _ruler_units();
+
+	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+
+	/* scrolled list - the full predefined set is long */
+	GtkWidget * scroll = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
+								   GTK_POLICY_NEVER,
+								   GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(scroll), TRUE);
+	gtk_scrolled_window_set_propagate_natural_width(
+		GTK_SCROLLED_WINDOW(scroll), TRUE);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(scroll), 340);
+	gtk_widget_set_vexpand(scroll, TRUE);
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), box);
+	gtk_box_append(GTK_BOX(outer), scroll);
+
+	auto sizeRow = [&](fp_PageSize::Predefined pd, bool landscape) {
+		const char * szName = fp_PageSize::PredefinedToName(pd);
+		std::string disp = szName;
+		int sid = fp_PageSize::PredefinedToLocalName(pd);
+		std::string loc;
+		if (sid && pSS->getValueUTF8((XAP_String_Id)sid, loc) && !loc.empty())
+			disp = loc;
+		if (landscape)
+			disp += " (Long Edge)";
+		fp_PageSize sz(pd);
+		std::string det = _fmt_dim(
+			sz.Width(DIM_IN), u) + " \xC3\x97 " + _fmt_dim(sz.Height(DIM_IN), u);
+		std::string data = szName;
+		if (landscape)
+			data += "|landscape";
+		bool isCur = (curName == szName) && (curLandscape == landscape);
+		std::string nm = isCur
+			? std::string("\xE2\x9C\x93 <b>") + disp + "</b>" : disp;
+		_PageSpec spec = { 0.10, 0.10, 0.13, 0.13, 1, landscape,
+						   false, 0 };
+		GtkWidget * row = _presetRow(nm.c_str(), det.c_str(),
+									 _glyph_widget(spec, 22, 28),
+									 "pageSize", data.c_str());
+		gtk_box_append(GTK_BOX(box), row);
+	};
+
+	/* Word's order: the current size first, then the common set */
+	static const fp_PageSize::Predefined common[] = {
+		fp_PageSize::psA4, fp_PageSize::psLetter, fp_PageSize::psLegal,
+		fp_PageSize::psExecutive, fp_PageSize::psA5, fp_PageSize::psB5,
+		fp_PageSize::ps8_5x13, fp_PageSize::psFolio,
+		fp_PageSize::psEnvelope_DL, fp_PageSize::psEnvelope_no10
+	};
+
+	/* current first */
+	fp_PageSize::Predefined curPd = cur
+		? fp_PageSize::NameToPredefined(curName.c_str())
+		: fp_PageSize::psCustom;
+	if (curPd != fp_PageSize::psCustom)
+		sizeRow(curPd, curLandscape);
+
+	bool seen[fp_PageSize::_last_predefined_pagesize_dont_use_] = {};
+	if (curPd != fp_PageSize::psCustom)
+		seen[curPd] = true;
+	for (fp_PageSize::Predefined pd : common)
+	{
+		if (pd == curPd || seen[pd])
+			continue;
+		seen[pd] = true;
+		sizeRow(pd, false);
+	}
+	/* long-edge variants of the common sizes, like the reference UI */
+	sizeRow(fp_PageSize::psA5, true);
+	sizeRow(fp_PageSize::psA4, true);
+	sizeRow(fp_PageSize::psLetter, true);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	/* the rest */
+	for (int i = fp_PageSize::_first_predefined_pagesize_;
+		 i < fp_PageSize::_last_predefined_pagesize_dont_use_; ++i)
+	{
+		if (i == fp_PageSize::psCustom || seen[i])
+			continue;
+		seen[i] = true;
+		sizeRow(static_cast<fp_PageSize::Predefined>(i), false);
+	}
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(outer),
+				   _presetRow("<b>More Paper Sizes\xE2\x80\xA6</b>",
+							  nullptr, nullptr, "docSettings", nullptr));
+	return popover;
+}
+
+/* Columns dropdown: One/Two/Three + More Columns… */
+GtkWidget * AP_UnixRibbon::_makeColumnsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	int cur = 1;
+	if (pView)
+	{
+		PP_PropertyVector props;
+		if (pView->getSectionFormat(props))
+		{
+			const std::string & s = PP_getAttribute("columns", props);
+			if (!s.empty())
+				cur = atoi(s.c_str());
+		}
+	}
+
+	static const char * names[] = { "One", "Two", "Three" };
+	for (int i = 0; i < 3; ++i)
+	{
+		_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, i + 1, false,
+						   false, 0 };
+		std::string nm = names[i];
+		if (cur == i + 1)
+			nm = std::string("\xE2\x9C\x93 <b>") + nm + "</b>";
+		char data[8];
+		g_snprintf(data, sizeof(data), "%d", i + 1);
+		GtkWidget * row = _presetRow(nm.c_str(), nullptr,
+									 _glyph_widget(spec, 24, 32),
+									 "pageColumns", data);
+		gtk_box_append(GTK_BOX(box), row);
+	}
+
+	/* uneven columns are not supported by the layout engine */
+	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 2, false, false, 0 };
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Left", nullptr,
+							  _glyph_widget(spec, 24, 32), nullptr, nullptr,
+							  false));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Right", nullptr,
+							  _glyph_widget(spec, 24, 32), nullptr, nullptr,
+							  false));
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>More Columns\xE2\x80\xA6</b>", nullptr,
+							  nullptr, "dlgColumns", nullptr));
+	return popover;
+}
+
+/* Breaks dropdown: page/column breaks + section breaks, each with a
+ * description like the reference UI */
+GtkWidget * AP_UnixRibbon::_makeBreaksPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 1 };
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Page Breaks"));
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("<b>Page</b>",
+				   "Mark the point at which one page ends and the "
+				   "next page begins.",
+				   _glyph_widget(spec, 26, 34), "insertPageBreak", nullptr));
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("<b>Column</b>",
+				   "Indicate that the text following the column break "
+				   "will begin in the next column.",
+				   _glyph_widget(spec, 26, 34), "insColumnBreak", nullptr));
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("<b>Text Wrapping</b>",
+				   "Separate text around objects on web pages, "
+				   "such as caption text.",
+				   _glyph_widget(spec, 26, 34), nullptr, nullptr, false));
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Section Breaks"));
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("<b>Next Page</b>",
+				   "Insert a section break and start the new section "
+				   "on the next page.",
+				   _glyph_widget(spec, 26, 34), "insSectionBreak", "next"));
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("<b>Continuous</b>",
+				   "Insert a section break and start the new section "
+				   "on the same page.",
+				   _glyph_widget(spec, 26, 34), "insSectionBreak",
+				   "continuous"));
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("<b>Even Page</b>",
+				   "Insert a section break and start the new section "
+				   "on the next even-numbered page.",
+				   _glyph_widget(spec, 26, 34), "insSectionBreak", "even"));
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("<b>Odd Page</b>",
+				   "Insert a section break and start the new section "
+				   "on the next odd-numbered page.",
+				   _glyph_widget(spec, 26, 34), "insSectionBreak", "odd"));
+	return popover;
+}
+
+/* Line Numbers dropdown - settings are stored on the section and
+ * round-trip in the document; the layout engine does not render
+ * numbers yet */
+GtkWidget * AP_UnixRibbon::_makeLineNumbersPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	std::string cur = "none";
+	if (pView)
+	{
+		PP_PropertyVector props;
+		if (pView->getSectionFormat(props))
+		{
+			const std::string & s = PP_getAttribute("line-numbering", props);
+			if (!s.empty())
+				cur = s;
+		}
+	}
+
+	static const struct { const char * name; const char * data; } modes[] = {
+		{ "None",                          "line-numbering:none" },
+		{ "Continuous",                    "line-numbering:continuous" },
+		{ "Restart Each Page",             "line-numbering:page" },
+		{ "Restart Each Section",          "line-numbering:section" },
+	};
+	for (const auto & m : modes)
+	{
+		std::string nm = (cur == m.data + 15)
+			? std::string("\xE2\x9C\x93 ") + m.name : m.name;
+		GtkWidget * row = _presetRow(nm.c_str(), nullptr, nullptr,
+									 "sectProps", m.data);
+		gtk_widget_set_tooltip_text(row,
+			"Line numbering is stored but not rendered yet");
+		gtk_box_append(GTK_BOX(box), row);
+	}
+	/* paragraph-level suppression */
+	gtk_box_append(GTK_BOX(box),
+		_presetRow("Suppress for Current Paragraph", nullptr, nullptr,
+				   "paraProp", "suppress-line-numbers:1"));
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * opt = _presetRow("<b>Line Numbering Options\xE2\x80\xA6</b>",
+								 nullptr, nullptr, nullptr, nullptr);
+	g_signal_connect(opt, "clicked",
+					 G_CALLBACK(_s_linedlg_clicked), this);
+	gtk_box_append(GTK_BOX(box), opt);
+	return popover;
+}
+
+/* Hyphenation dropdown - stored as a document attribute */
+GtkWidget * AP_UnixRibbon::_makeHyphenationPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * data; } modes[] = {
+		{ "None",      "hyphenation:none" },
+		{ "Automatic", "hyphenation:auto" },
+		{ "Manual",    "hyphenation:manual" },
+	};
+	for (const auto & m : modes)
+	{
+		GtkWidget * row = _presetRow(m.name, nullptr, nullptr,
+									 "docProps", m.data);
+		gtk_widget_set_tooltip_text(row,
+			"Hyphenation is stored but not rendered yet");
+		gtk_box_append(GTK_BOX(box), row);
+	}
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * opt = _presetRow("<b>Hyphenation Options\xE2\x80\xA6</b>",
+								 nullptr, nullptr, nullptr, nullptr);
+	g_signal_connect(opt, "clicked",
+					 G_CALLBACK(_s_hyphdlg_clicked), this);
+	gtk_box_append(GTK_BOX(box), opt);
+	return popover;
+}
+
+/* Wrap Text popover: frame wrap modes the engine supports */
+GtkWidget * AP_UnixRibbon::_makeWrapPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * data; } modes[] = {
+		{ "Square",            "wrapped-both" },
+		{ "Top and Bottom",    "wrapped-topbot" },
+		{ "Behind Text",       "below-text" },
+		{ "In Front of Text",  "above-text" },
+	};
+	for (const auto & m : modes)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(m.name, nullptr, nullptr,
+								  "wrapObject", m.data));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("In Line with Text", nullptr, nullptr,
+							  nullptr, nullptr, false));
+	return popover;
+}
+
+/* Position popover: frame position-to choices + the full dialog */
+GtkWidget * AP_UnixRibbon::_makePositionPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * data; } modes[] = {
+		{ "Position in Top Left with Square Text Wrapping",
+		  "frame-page-xpos:0in;frame-page-ypos:0in;wrap-mode:wrapped-both;position-to:page-above-text" },
+		{ "Position in Top Center with Square Text Wrapping",
+		  "frame-page-xpos:50%;frame-page-ypos:0in;wrap-mode:wrapped-both;position-to:page-above-text;frame-horiz-align:center" },
+		{ "Position in Top Right with Square Text Wrapping",
+		  "frame-page-xpos:100%;frame-page-ypos:0in;wrap-mode:wrapped-both;position-to:page-above-text;frame-horiz-align:right" },
+	};
+	for (const auto & m : modes)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(m.name, nullptr, nullptr,
+								  "sectProps", m.data));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>More Layout Options\xE2\x80\xA6</b>",
+							  nullptr, nullptr, "arrangePosition", nullptr));
+	return popover;
+}
+
+/* Align popover: horizontal alignment of the selected frame/image */
+GtkWidget * AP_UnixRibbon::_makeAlignObjPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * data; } modes[] = {
+		{ "Align Left",   "frame-horiz-align:left" },
+		{ "Align Center", "frame-horiz-align:center" },
+		{ "Align Right",  "frame-horiz-align:right" },
+	};
+	for (const auto & m : modes)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(m.name, nullptr, nullptr,
+								  "sectProps", m.data));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>More Layout Options\xE2\x80\xA6</b>",
+							  nullptr, nullptr, "arrangePosition", nullptr));
+	return popover;
+}
+
+/* a greyed Arrange-group button for features the engine lacks */
+GtkWidget * AP_UnixRibbon::_disabledArrangeButton(XAP_Menu_Id id)
+{
+	const EV_Menu_Label * pLabel =
+		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
+	const char * szLabel = pLabel ? pLabel->getMenuLabel() : "";
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * icon = _layout_icon(id, 16, 16);
+	gtk_button_set_child(GTK_BUTTON(btn), icon);
+	gtk_widget_set_sensitive(btn, FALSE);
+	char tip[128];
+	char plain[64];
+	_ribbon_strip_mnemonic(szLabel, plain, sizeof(plain));
+	g_snprintf(tip, sizeof(tip), "%s (not supported yet)", plain);
+	gtk_widget_set_tooltip_text(btn, tip);
+	return btn;
+}
+
+/* -------- Indent / Spacing spin fields -------- */
+
+struct _SpinCtx
+{
+	AP_UnixRibbon * self;
+	const char *  prop;	/* block property name (static storage) */
+	UT_Dimension  unit;	/* display unit */
+	guint		  idleId;
+};
+
+static void _spin_ctx_free(gpointer p)
+{
+	_SpinCtx * c = static_cast<_SpinCtx *>(p);
+	if (c->idleId)
+		g_source_remove(c->idleId);
+	delete c;
+}
+
+gboolean AP_UnixRibbon::_s_spin_apply(gpointer data)
+{
+	GtkWidget * spin = GTK_WIDGET(data);
+	_SpinCtx * c = static_cast<_SpinCtx *>(
+		g_object_get_data(G_OBJECT(spin), "spin-ctx"));
+	UT_return_val_if_fail(c, G_SOURCE_REMOVE);
+	c->idleId = 0;
+	if (c->self->m_bSpinUpdating)
+		return G_SOURCE_REMOVE;
+
+	double v = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spin));
+	char buf[128];
+	snprintf(buf, sizeof(buf), "%s:%.2f%s", c->prop, v,
+			 UT_dimensionName(c->unit));
+	c->self->_invokeEditMethod("paraProp", buf);
+	return G_SOURCE_REMOVE;
+}
+
+void AP_UnixRibbon::_s_spin_changed(GtkSpinButton * spin, gpointer /*data*/)
+{
+	_SpinCtx * c = static_cast<_SpinCtx *>(
+		g_object_get_data(G_OBJECT(spin), "spin-ctx"));
+	UT_return_if_fail(c);
+	if (c->self->m_bSpinUpdating)
+		return;
+	/* debounce so typing "12.5" doesn't reformat per keystroke */
+	if (c->idleId)
+		g_source_remove(c->idleId);
+	c->idleId = g_timeout_add(350, _s_spin_apply, spin);
+}
+
+GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
+{
+	const char * prop;
+	const char * label;
+	UT_Dimension unit;
+	switch (spinId)
+	{
+	case AP_RIBBON_SPIN_INDENT_LEFT:
+		prop = "margin-left";  label = "Left:";   unit = _ruler_units();
+		break;
+	case AP_RIBBON_SPIN_INDENT_RIGHT:
+		prop = "margin-right"; label = "Right:";  unit = _ruler_units();
+		break;
+	case AP_RIBBON_SPIN_BEFORE:
+		prop = "margin-top";    label = "Before:"; unit = DIM_PT;
+		break;
+	case AP_RIBBON_SPIN_AFTER:
+		prop = "margin-bottom"; label = "After:";  unit = DIM_PT;
+		break;
+	default:
+		return nullptr;
+	}
+
+	_SpinCtx * c = new _SpinCtx{ this, prop, unit, 0 };
+
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	gtk_widget_set_valign(row, GTK_ALIGN_CENTER);
+	GtkWidget * icon = gtk_image_new_from_icon_name(
+		spinId == AP_RIBBON_SPIN_INDENT_LEFT ||
+		spinId == AP_RIBBON_SPIN_BEFORE
+			? "format-indent-more-symbolic"
+			: "format-indent-less-symbolic");
+	gtk_widget_set_valign(icon, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(row), icon);
+	gtk_box_append(GTK_BOX(row), gtk_label_new(label));
+
+	double max = (unit == DIM_PT) ? 1584.0 : 30.0; /* 22in in pt / 30cm|in */
+	GtkWidget * spin = gtk_spin_button_new_with_range(-100.0, max,
+													  unit == DIM_PT ? 1.0 : 0.05);
+	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin),
+							   unit == DIM_PT ? 0 : 2);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin), FALSE); /* locale ',' ok */
+	gtk_editable_set_width_chars(GTK_EDITABLE(spin), 5);
+	g_object_set_data_full(G_OBJECT(spin), "spin-ctx", c, _spin_ctx_free);
+	g_signal_connect(spin, "value-changed",
+					 G_CALLBACK(_s_spin_changed), this);
+	gtk_box_append(GTK_BOX(row), spin);
+	gtk_box_append(GTK_BOX(row),
+				   gtk_label_new(unit == DIM_PT ? "pt" : UT_dimensionName(unit)));
+
+	_SpinField * f = new _SpinField{ spin, prop };
+	m_vecSpins.addItem(f);
+	return row;
+}
+
+/* sync the indent/spacing spins with the block under the caret */
+void AP_UnixRibbon::_refreshSpinFields()
+{
+	if (m_vecSpins.getItemCount() == 0)
+		return;
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+
+	PP_PropertyVector props;
+	bool ok = pView && pView->getBlockFormat(props);
+
+	m_bSpinUpdating = true;
+	for (UT_sint32 i = 0; i < m_vecSpins.getItemCount(); ++i)
+	{
+		_SpinField * f = m_vecSpins.getNthItem(i);
+		_SpinCtx * c = static_cast<_SpinCtx *>(
+			g_object_get_data(G_OBJECT(f->spin), "spin-ctx"));
+		double v = 0.0;
+		if (ok)
+		{
+			const std::string & s = PP_getAttribute(f->prop, props);
+			if (!s.empty())
+				v = UT_convertToDimension(s.c_str(), c->unit);
+		}
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(f->spin), v);
+		gtk_widget_set_sensitive(f->spin, ok);
+	}
+	m_bSpinUpdating = false;
 }
 
 /* line-spacing dropdown: single/1.5/double spacing */
@@ -2825,6 +3951,7 @@ void AP_UnixRibbon::refresh()
 	_refreshContextualTabs();
 	_populateStyleTiles();   /* lazy: view/doc may not exist at build time */
 	_refreshToolbarItems();
+	_refreshSpinFields();
 }
 
 void AP_UnixRibbon::_refreshContextualTabs()

@@ -55,9 +55,19 @@ enum AP_RibbonItemKind : uint8_t
 	AP_RIBBON_ITEM_MENU		= 0,
 	AP_RIBBON_ITEM_TOOLBAR	= 1,
 	AP_RIBBON_ITEM_STYLEGAL	= 2,	/* Word-style live style preview strip */
-	AP_RIBBON_ITEM_ROWEND	= 3		/* row break - switches the group to
+	AP_RIBBON_ITEM_ROWEND	= 3,	/* row break - switches the group to
 								 * row-major packing (LibreOffice-style
 								 * two-row groups) */
+	AP_RIBBON_ITEM_SPIN		= 4		/* labelled spin field (indent/spacing) */
+};
+
+/* ids for AP_RIBBON_ITEM_SPIN rows - not menu/toolbar ids */
+enum AP_RibbonSpinId : uint8_t
+{
+	AP_RIBBON_SPIN_INDENT_LEFT = 0,
+	AP_RIBBON_SPIN_INDENT_RIGHT,
+	AP_RIBBON_SPIN_BEFORE,
+	AP_RIBBON_SPIN_AFTER
 };
 
 enum AP_RibbonItemFlags : uint8_t
@@ -90,6 +100,8 @@ enum AP_RibbonItemFlags : uint8_t
 #define AP_RIBBON_MENUPOP_I(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_GSE(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_MENUPOP | AP_RIBBON_FLAG_SLIM | AP_RIBBON_FLAG_EVEN), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_TB(x)	{ AP_RIBBON_ITEM_TOOLBAR,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
+#define AP_RIBBON_MENUPOP_L(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_LARGE | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
+#define AP_RIBBON_SPIN(x)		{ AP_RIBBON_ITEM_SPIN,  AP_RIBBON_FLAG_NONE, (uint16_t)(x) }
 
 struct AP_RibbonItem
 {
@@ -337,18 +349,41 @@ static const AP_RibbonGroup s_ribbon_references_groups[] =
 
 static const AP_RibbonItem s_ribbon_layout_page[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_FILE_PAGESETUP),
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_HDRFTR),
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_TABS),
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_COLUMNS),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_LAYOUT_MARGINS),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_LAYOUT_ORIENTATION),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_LAYOUT_SIZE),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_FMT_COLUMNS),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_LAYOUT_BREAKS),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_LAYOUT_LINENUMBERS),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_LAYOUT_HYPHENATION),
 	AP_RIBBON_END
 };
 
-static const AP_RibbonItem s_ribbon_layout_columns[] =
+static const AP_RibbonItem s_ribbon_layout_indent[] =
 {
-	AP_RIBBON_TB(AP_TOOLBAR_ID_1COLUMN),
-	AP_RIBBON_TB(AP_TOOLBAR_ID_2COLUMN),
-	AP_RIBBON_TB(AP_TOOLBAR_ID_3COLUMN),
+	AP_RIBBON_SPIN(AP_RIBBON_SPIN_INDENT_LEFT),
+	AP_RIBBON_SPIN(AP_RIBBON_SPIN_INDENT_RIGHT),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_layout_spacing[] =
+{
+	AP_RIBBON_SPIN(AP_RIBBON_SPIN_BEFORE),
+	AP_RIBBON_SPIN(AP_RIBBON_SPIN_AFTER),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_layout_arrange[] =
+{
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_LAYOUT_POSITION),
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_LAYOUT_WRAP),
+	AP_RIBBON_MENU_I(AP_MENU_ID_LAYOUT_BRINGFORWARD),
+	AP_RIBBON_MENU_I(AP_MENU_ID_LAYOUT_SENDBACKWARD),
+	AP_RIBBON_MENU_I(AP_MENU_ID_LAYOUT_SELPANE),
+	AP_RIBBON_ROWEND,
+	AP_RIBBON_MENUPOP_I(AP_MENU_ID_LAYOUT_ALIGNOBJECTS),
+	AP_RIBBON_MENU_I(AP_MENU_ID_LAYOUT_GROUPOBJECTS),
+	AP_RIBBON_MENU_I(AP_MENU_ID_LAYOUT_ROTATE),
 	AP_RIBBON_END
 };
 
@@ -362,7 +397,9 @@ static const AP_RibbonItem s_ribbon_layout_background[] =
 static const AP_RibbonGroup s_ribbon_layout_groups[] =
 {
 	{ "page",		s_ribbon_layout_page },
-	{ "columns",	s_ribbon_layout_columns },
+	{ "indent",		s_ribbon_layout_indent },
+	{ "spacing",	s_ribbon_layout_spacing },
+	{ "arrange",	s_ribbon_layout_arrange },
 	{ "background",	s_ribbon_layout_background },
 	{ nullptr,		nullptr }
 };

@@ -31,6 +31,7 @@ enum AP_Dialog_Id: uint16_t
 	AP_DIALOG_ID__FIRST__			= XAP_DIALOG_ID__LAST__+1,	/* must be first */
 	AP_DIALOG_ID_FILE_NEW, /* new/template dialog */
 	AP_DIALOG_ID_FILE_PAGESETUP,
+	AP_DIALOG_ID_DOCUMENT, /* Word-style Document dialog: margins + layout */
 	AP_DIALOG_ID_REPLACE,				/* find/replace dialog */
 	AP_DIALOG_ID_FIND,					/* find (w/o replace) dialog  */
 	AP_DIALOG_ID_GOTO,					/* warp to page/section/line, etc. */

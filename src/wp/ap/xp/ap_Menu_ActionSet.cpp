@@ -192,7 +192,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FMT_PARAGRAPH,	0,1,0,0,	"dlgParagraph",		ap_GetState_StylesLocked,	nullptr);
 	_s(AP_MENU_ID_FMT_BULLETS,		0,1,0,0,	"dlgBullets",	ap_GetState_Lists,	nullptr);
 	_s(AP_MENU_ID_FMT_TABLE,		0,1,0,0, "formatTable", ap_GetState_PointOrAnchorInTable, nullptr);
-	_s(AP_MENU_ID_FMT_DOCUMENT, 0,1,0,0, "pageSetup", nullptr, nullptr);
+	_s(AP_MENU_ID_FMT_DOCUMENT, 0,1,0,0, "docSettings", nullptr, nullptr);
 	_s(AP_MENU_ID_FMT_BORDERS,		0,1,0,0,	"dlgBorders",		nullptr,					nullptr);
 	_s(AP_MENU_ID_FMT_COLUMNS,		0,1,0,0,	"dlgColumns",		ap_GetState_ColumnsActive,					nullptr);
 	_s(AP_MENU_ID_FMT_BACKGROUND, 1,0,0,0, nullptr, nullptr, nullptr);
@@ -222,6 +222,21 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FMT_CLEARFMT,		0,0,0,0,	"clearFormatting",	ap_GetState_SomethingSelected,	nullptr);
 	_s(AP_MENU_ID_FMT_TOGGLECASE,           0,1,0,0,  "dlgToggleCase", ap_GetState_SomethingSelected, nullptr);
 	_s(AP_MENU_ID_FMT_FRAME,           0,1,0,0,  "dlgFormatFrame", ap_GetState_InFrame, nullptr);
+
+	_s(AP_MENU_ID_LAYOUT_MARGINS,		0,1,0,0,	"docSettings",		nullptr,					nullptr);
+	_s(AP_MENU_ID_LAYOUT_ORIENTATION,	0,1,0,0,	"docSettings",		nullptr,					nullptr);
+	_s(AP_MENU_ID_LAYOUT_SIZE,			0,1,0,0,	"docSettings",		nullptr,					nullptr);
+	_s(AP_MENU_ID_LAYOUT_BREAKS,		0,1,0,0,	"insBreak",			ap_GetState_BreakOK,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_LINENUMBERS,	0,1,0,0,	"docSettings",		nullptr,					nullptr);
+	_s(AP_MENU_ID_LAYOUT_HYPHENATION,	0,1,0,0,	"docSettings",		nullptr,					nullptr);
+	_s(AP_MENU_ID_LAYOUT_POSITION,		0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_WRAP,			0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_BRINGFORWARD,	0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_SENDBACKWARD,	0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_SELPANE,		0,0,0,0,	nullptr,			nullptr,					nullptr);
+	_s(AP_MENU_ID_LAYOUT_ALIGNOBJECTS,	0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_GROUPOBJECTS,	0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_ROTATE,		0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
 
 	_s(AP_MENU_ID_FMT_DIRECTION,  1,0,0,0, nullptr, nullptr, nullptr);
 	_s(AP_MENU_ID_FMT_DIRECTION_DD_RTL,0,0,1,0, "toggleDomDirection", ap_GetState_BlockFmt, nullptr);

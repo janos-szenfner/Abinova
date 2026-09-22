@@ -384,7 +384,55 @@ below are on `main` but the release has not been cut yet.
   Save As, Revert, Properties, Close | Page Setup, Print Preview,
   Print) with new icon mappings for the template and page-setup
   entries; the redundant "Save a Copy" item was removed from the
-  ribbon (Save / Save As cover it).
+  ribbon (Save / Save As cover it). "Properties" is now captioned
+  "Document Properties" with an information icon, and the Close
+  button's X icon is tinted red.
+- **Word-style Layout ribbon tab** — Page Setup group of large
+  icon dropdown buttons: Margins (Normal/Narrow/Moderate/Wide/
+  Mirrored preset gallery with page-glyph illustrations, current
+  preset checkmarked, Custom Margins…), Orientation (Portrait/
+  Landscape), Size (all `fp_PageSize` presets incl. newly added
+  Executive and 8.5×13, scrollable extras, More Paper Sizes…),
+  Columns (One/Two/Three with column glyphs, Left/Right disabled,
+  More Columns… → Columns dialog), Breaks (Page/Column/Text
+  Wrapping + Next Page/Continuous/Even/Odd section breaks),
+  Line Numbers and Hyphenation (options dialogs that store the
+  document properties even though the layout engine does not
+  render them yet). Paragraph group gains Left/Right indent and
+  Before/After spacing spin fields synced from the cursor's
+  paragraph. Arrange group renders Position/Wrap/Bring/Send/
+  Selection Pane/Align/Group/Rotate, with unsupported entries
+  visibly disabled rather than mis-wired.
+- **Word-style Document dialog** — new `AP_DIALOG_ID_DOCUMENT`
+  (`ap_Dialog_Document` + `ap_UnixDialog_Document`) with Margins
+  (top/bottom/left/right, gutter + gutter position, multiple
+  pages, live preview, Apply to: whole document/this section/
+  this point forward) and Layout (section start, different
+  odd/even and first-page headers/footers, header/footer from
+  edge, vertical alignment, Line Numbers…/Borders… launchers)
+  tabs, plus Page Setup… (opens the regular page-setup dialog)
+  and Default… (writes the current page setup to the NORMAL
+  template after confirmation). Invoked via `docSettings` from
+  Format → Document and the Layout ribbon.
+- **New layout edit methods** — `pageMargins`, `pageOrientation`,
+  `pageSize`, `pageColumns`, `insColumnBreak`, `insSectionBreak`,
+  `paraProp`, `sectProps`, `docProps`, `docSettings`,
+  `arrangePosition`, `wrapObject`; plus
+  `FV_View::setDocWideSectionFormat()` to apply section
+  properties to every section in the document.
+- **Edit-method table ordering fixed** — `s_arrayEditMethods`
+  requires strcmp ordering for its binary-search lookup; the new
+  methods were inserted unsorted (and the pre-existing
+  `doNumbers`/`doDashedList` pair was swapped), which silently
+  dropped them from dispatch — the layout popover actions did
+  nothing until the array was re-sorted.
+- **Dialog teardown crash fixed** — `AP_UnixDialog_Document`
+  hand-built `GtkStringList` models for its `GtkDropDown`s and
+  unref'd them immediately, leaving the dropdowns pointing at
+  freed models (`g_list_model_get_n_items` SIGSEGV on destroy);
+  the dropdowns now use `gtk_drop_down_new_from_strings`, and
+  widget values are read in the `response` handler before the
+  helper destroys the window.
 
 ### Ubuntu Launchpad bug fixes
 

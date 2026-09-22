@@ -155,7 +155,9 @@ pagesizes[fp_PageSize::_last_predefined_pagesize_dont_use_] =
 	  1.0, 1.0, 1.0, 1.0, AP_STRING_ID_DLG_PageFormat_Envelope6x9 },
 
 	// Custom, same size as A4
-	{ 210.0,  297.0, DIM_MM,	"Custom", 28.0, 28.0, 28.0, 28.0, AP_STRING_ID_DLG_PageFormat_Custom }
+	{ 210.0,  297.0, DIM_MM,	"Custom", 28.0, 28.0, 28.0, 28.0, AP_STRING_ID_DLG_PageFormat_Custom },
+	{   7.25,  10.5, DIM_IN,	"Executive", 1.0, 1.0, 1.0, 1.0, AP_STRING_ID_DLG_PageFormat_Executive },
+	{   8.5,   13.0, DIM_IN,	"8.5x13", 1.0, 1.0, 1.0, 1.0, AP_STRING_ID_DLG_PageFormat_8_5x13 }
 };
 
 const char * fp_PageSize::getDefaultPageName(void)

@@ -76,6 +76,7 @@
 #	include "ap_UnixDialog_Field.h"
 #	include "ap_UnixDialog_Lists.h"
 #	include "ap_UnixDialog_Columns.h"
+#	include "ap_UnixDialog_Document.h"
 #	include "ap_UnixDialog_Tab.h"
 #   include "ap_UnixDialog_ToggleCase.h"
 #   include "ap_UnixDialog_Background.h"
@@ -170,6 +171,7 @@
 	DeclareDialog(AP_DIALOG_ID_FIELD,			AP_UnixDialog_Field, 				FALSE)
 	DeclareDialog(AP_DIALOG_ID_LISTS,			AP_UnixDialog_Lists, 				FALSE)
 	DeclareDialog(AP_DIALOG_ID_COLUMNS,			AP_UnixDialog_Columns, 				FALSE)
+	DeclareDialog(AP_DIALOG_ID_DOCUMENT,		AP_UnixDialog_Document, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_TAB,				AP_UnixDialog_Tab, 					FALSE)
 	DeclareDialog(AP_DIALOG_ID_FILE_PAGESETUP,  AP_UnixDialog_PageSetup, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_TOGGLECASE,      AP_UnixDialog_ToggleCase, 			FALSE)

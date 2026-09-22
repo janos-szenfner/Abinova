@@ -44,6 +44,8 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_Break.h \
 	xp/ap_Dialog_Columns.cpp \
 	xp/ap_Dialog_Columns.h \
+	xp/ap_Dialog_Document.cpp \
+	xp/ap_Dialog_Document.h \
 	xp/ap_Dialog_Field.cpp \
 	xp/ap_Dialog_Field.h \
 	xp/ap_Dialog_FormatFootnotes.cpp \
@@ -293,6 +295,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_Break.h \
 	gtk/ap_UnixDialog_Columns.cpp \
 	gtk/ap_UnixDialog_Columns.h \
+	gtk/ap_UnixDialog_Document.cpp \
+	gtk/ap_UnixDialog_Document.h \
 	gtk/ap_UnixDialogFactory.cpp \
 	gtk/ap_UnixDialog_Field.cpp \
 	gtk/ap_UnixDialog_Field.h \

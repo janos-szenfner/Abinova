@@ -43,6 +43,7 @@ public:
 		ps1_3A4, ps1_4A4, ps1_8A4, ps1_4A3, ps1_3A5,
 		psEnvelope_DL, psEnvelope_C6_C5, psEnvelope_no10, psEnvelope_6x9,
 		psCustom,
+		psExecutive, ps8_5x13,
 
 		// append new pagesizes here
 		_last_predefined_pagesize_dont_use_

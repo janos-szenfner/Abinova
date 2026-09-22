@@ -9222,6 +9222,43 @@ bool FV_View::setSectionFormat(const PP_PropertyVector & properties)
 	return bRet;
 }
 
+/*!
+ * Like setSectionFormat() but applies the properties to every
+ * section in the document - the "Apply to: Whole document" case of
+ * the Word-style Document dialog and the ribbon's page-setup
+ * presets.
+ */
+bool FV_View::setDocWideSectionFormat(const PP_PropertyVector & properties)
+{
+	setCursorWait();
+
+	_saveAndNotifyPieceTableChange();
+	if(isHdrFtrEdit())
+	{
+		clearHdrFtrEdit();
+		warpInsPtToXY(0,0,false);
+	}
+
+	PT_DocPosition posStart = 0;
+	PT_DocPosition posEnd = 0;
+	m_pDoc->getBounds(false, posStart);
+	m_pDoc->getBounds(true, posEnd);
+	if (posStart < 2)
+		posStart = 2;
+
+	bool bRet = m_pDoc->changeStruxFmt(PTC_AddFmt, posStart, posEnd,
+									   PP_NOPROPS, properties,
+									   PTX_Section);
+
+	_generalUpdate();
+	_restorePieceTableState();
+	_generalUpdate();
+	_ensureInsertionPointOnScreen();
+	clearCursorWait();
+	notifyListeners(AV_CHG_MOTION);
+	return bRet;
+}
+
 /*****************************************************************/
 /*****************************************************************/
 
