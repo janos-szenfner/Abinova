@@ -400,10 +400,14 @@ below are on `main` but the release has not been cut yet.
   document properties even though the layout engine does not
   render them yet). Paragraph group gains Left/Right indent and
   Before/After spacing spin fields synced from the cursor's
-  paragraph. Arrange group renders Position/Wrap/Bring/Send/
-  Selection Pane/Align/Group/Rotate — Group and Rotate are
-  functional popovers (see below); Align remains visibly disabled
-  rather than mis-wired.
+  paragraph. Arrange group is fully functional: Position presets
+  (top-left/center/right with square wrapping, More Layout
+  Options… → the frame dialog), Wrap modes (Square / Top and
+  Bottom / Behind Text / In Front of Text via `wrapObject`),
+  Align (left/center/right via `frame-horiz-align`), Bring
+  Forward / Send Backward Z-ordering, the Selection Pane toggle,
+  and Group / Rotate popovers (below). Only Wrap's "In Line with
+  Text" row stays disabled — the engine has no inline-frame mode.
 - **Word-style Document dialog** — new `AP_DIALOG_ID_DOCUMENT`
   (`ap_Dialog_Document` + `ap_UnixDialog_Document`) with Margins
   (top/bottom/left/right, gutter + gutter position, multiple
@@ -606,6 +610,27 @@ below are on `main` but the release has not been cut yet.
   valgrind, surfaced as `munmap_chunk` on exit). `~FV_View` now
   calls `m_pLayout->setView(nullptr)` first, which also clears the
   stale `fp_Page::m_pView` pointers used by `expandDamageRect`.
+- **Ribbon startup/teardown fixes** — the style-gallery nav buttons
+  could be allocated below their CSS padding when the ribbon was
+  squeezed at startup ("attempt to allocate GtkImage with width
+  -19"); a `ribbon-nav` class with zero horizontal padding keeps
+  the icon's allocation non-negative. `GtkNotebook` also emits
+  `switch-page` while being disposed during window teardown —
+  `AP_UnixRibbon::refresh()` then ran `getCurrentView()` on a
+  frame whose view list was already gone; it is now guarded by
+  `gtk_widget_in_destruction()`.
+- **Ribbon/help audit fixes** — `cmdParaBorder` pushed `.c_str()`
+  pointers of loop-scope `std::string`s into the property vector
+  (dangling reads in `changeStruxFmt`, worked only via SSO luck);
+  the deferred `gtk_paned_set_position` idle callback held a raw
+  `this` (UAF if the frame closed before the idle ran — now a heap
+  cell + weak ref on the paned widget); the help window's
+  `_runSearch` leaked an anonymous tag per keystroke and rescanned
+  ~220 files live (named-tag reuse + ~200 ms debounce); `bodyOnly()`
+  now strips every head/script/style block instead of the first;
+  copy operations deleted on `XAP_UnixHelpWindow` and
+  `AP_UnixStylesPane` (both own resources and connect `this` to
+  signals — a copy would double-free).
 - **Click/drag selection offset** — clicks and drag-selections landed
   ~7 text rows below the pointer: `gdk_event_get_position()` returns
   *surface*-relative coordinates under GTK4, offset from the drawing
@@ -943,9 +968,10 @@ below are on `main` but the release has not been cut yet.
 - **Build hardening** — `autoreconf` fixed for modern autoconf;
   vendored `AX_*` macros; GTK-only configure; `omml_xslt` install dir
   moved to `ABIWORD_DATADIR`; build-tree libtool in the test wrapper.
-- **Historical documentation preserved** in `Old-Doc/`; new
-  `README.md`, `CHANGES.md` and this `CHANGELOG.md` carry the
-  experimental no-warranty notice.
+- **Historical documentation preserved** in `Old-Doc/`; `README.md`
+  (feature overview + per-commit modification log) and this
+  `CHANGELOG.md` (categorized changelog) carry the experimental
+  no-warranty notice.
 
 ### Resolved root causes worth noting
 
