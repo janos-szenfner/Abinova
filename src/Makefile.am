@@ -41,7 +41,14 @@ libabiword_@ABIWORD_SERIES@_la_LIBADD = \
 	af/util/libutil.la \
 	af/ev/libev.la \
 	$(top_builddir)/thirdparty/libwv.la \
-	$(top_builddir)/thirdparty/libhunspell.la
+	$(top_builddir)/thirdparty/libwps.la \
+	$(top_builddir)/thirdparty/libwpg.la \
+	$(top_builddir)/thirdparty/libwpd.la \
+	$(top_builddir)/thirdparty/librevenge.la \
+	$(top_builddir)/thirdparty/libhunspell.la \
+	$(WMF_LIBS) \
+	$(TIDY_LIBS) \
+	-lz
 
 ## Resources compilation
 resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) \

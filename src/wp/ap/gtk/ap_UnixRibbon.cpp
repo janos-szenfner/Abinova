@@ -717,7 +717,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
 		gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 		gtk_label_set_lines(GTK_LABEL(wLabel), 2);
-		gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 14);
+		gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 12);
 		gtk_box_append(GTK_BOX(box), image);
 		gtk_box_append(GTK_BOX(box), wLabel);
 		gtk_button_set_child(GTK_BUTTON(btn), box);
@@ -2029,11 +2029,37 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_NONE);
 	}
-	else
+	else if (flags & AP_RIBBON_FLAG_ICONONLY)
 	{
 		/* drawn page glyph for the Layout popovers */
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb),
 								  _layout_icon(id, 18, 18));
+		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
+									  GTK_ARROW_DOWN);
+	}
+	else
+	{
+		/* small labelled dropdown (Word's Add Text / Bibliography):
+		 * drawn glyph + caption, arrow supplied by the menu button */
+		const EV_Menu_Label * pFaceLabel =
+			m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
+		char face[64];
+		_ribbon_strip_mnemonic(
+			(pFaceLabel && pFaceLabel->getMenuLabel())
+				? pFaceLabel->getMenuLabel() : "",
+			face, sizeof(face));
+		GtkWidget * hb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+		gtk_box_append(GTK_BOX(hb), _layout_icon(id, 16, 16));
+		GtkWidget * wl = gtk_label_new(face);
+		/* Word wraps the small dropdown captions onto two lines
+		 * ("Manage Sources", "Next Footnote") instead of ellipsizing */
+		gtk_label_set_wrap(GTK_LABEL(wl), TRUE);
+		gtk_label_set_wrap_mode(GTK_LABEL(wl), PANGO_WRAP_WORD);
+		gtk_label_set_lines(GTK_LABEL(wl), 2);
+		gtk_label_set_justify(GTK_LABEL(wl), GTK_JUSTIFY_LEFT);
+		gtk_label_set_max_width_chars(GTK_LABEL(wl), 11);
+		gtk_box_append(GTK_BOX(hb), wl);
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), hb);
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_DOWN);
 	}
@@ -2438,6 +2464,145 @@ static void _overlay_shownotes(cairo_t * cr, double w, double h)
 	cairo_fill(cr);
 }
 
+/* centered text badge used by several References glyphs */
+static void _badge_text(cairo_t * cr, const char * s,
+						double cx, double cy, double size)
+{
+	cairo_select_font_face(cr, "sans",
+						   CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, size);
+	cairo_text_extents_t ext;
+	cairo_text_extents(cr, s, &ext);
+	cairo_move_to(cr, cx - ext.width / 2.0, cy + ext.height / 2.0);
+	cairo_show_text(cr, s);
+}
+
+/* "ab" mark for Insert Citation */
+static void _overlay_citation(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	_badge_text(cr, "ab", w - 7.0, h - 7.0, 8.5);
+}
+
+/* stacked source books for Manage Sources */
+static void _overlay_sources(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_rectangle(cr, w - 12.0, h - 10.5, 8.5, 2.8);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.65, 0.35);
+	cairo_rectangle(cr, w - 10.5, h - 6.8, 8.5, 2.8);
+	cairo_fill(cr);
+}
+
+/* bullet list for Bibliography */
+static void _overlay_biblio(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	double x = w - 12.0, y = h - 10.5;
+	for (int i = 0; i < 3; i++)
+	{
+		cairo_arc(cr, x + 0.9, y + i * 3.4 + 0.7, 0.85, 0, 2 * G_PI);
+		cairo_fill(cr);
+		cairo_set_line_width(cr, 0.9);
+		cairo_move_to(cr, x + 3.0, y + i * 3.4 + 0.7);
+		cairo_line_to(cr, x + 10.0, y + i * 3.4 + 0.7);
+		cairo_stroke(cr);
+	}
+}
+
+/* framed figure over a caption line for Insert Caption */
+static void _overlay_caption(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 0.9);
+	cairo_rectangle(cr, w - 11.5, h - 11.0, 7.0, 4.5);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w - 11.5, h - 5.2);
+	cairo_line_to(cr, w - 4.5, h - 5.2);
+	cairo_stroke(cr);
+}
+
+/* labelled list rows for Insert Table of Figures */
+static void _overlay_tof(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	double x = w - 12.0, y = h - 11.0;
+	for (int i = 0; i < 3; i++)
+	{
+		cairo_rectangle(cr, x, y + i * 3.4, 2.2, 2.2);
+		cairo_fill(cr);
+		cairo_set_line_width(cr, 0.9);
+		cairo_move_to(cr, x + 3.4, y + i * 3.4 + 1.1);
+		cairo_line_to(cr, x + 10.0, y + i * 3.4 + 1.1);
+		cairo_stroke(cr);
+	}
+}
+
+/* interlinked rings for Cross-reference */
+static void _overlay_xref(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.1);
+	cairo_arc(cr, w - 8.6, h - 8.4, 2.5, 0, 2 * G_PI);
+	cairo_stroke(cr);
+	cairo_arc(cr, w - 4.8, h - 6.6, 2.5, 0, 2 * G_PI);
+	cairo_stroke(cr);
+}
+
+/* price-tag mark for Mark Entry */
+static void _overlay_markentry(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_move_to(cr, w - 12.0, h - 10.5);
+	cairo_line_to(cr, w - 5.5, h - 10.5);
+	cairo_line_to(cr, w - 3.2, h - 8.0);
+	cairo_line_to(cr, w - 5.5, h - 5.5);
+	cairo_line_to(cr, w - 12.0, h - 5.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+/* nested index lines for Insert Index */
+static void _overlay_index(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 0.9);
+	double x = w - 12.0, y = h - 10.5;
+	for (int i = 0; i < 3; i++)
+	{
+		double xi = x + (i == 1 ? 2.4 : 0.0);
+		cairo_move_to(cr, xi, y + i * 3.4);
+		cairo_line_to(cr, x + 10.0, y + i * 3.4);
+		cairo_stroke(cr);
+	}
+}
+
+/* section sign for Mark Citation */
+static void _overlay_markcit(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	_badge_text(cr, "\xC2\xA7", w - 7.0, h - 7.5, 9.5);	/* § */
+}
+
+/* two-column entries for Insert Table of Authorities */
+static void _overlay_toa(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 0.9);
+	double x = w - 13.0, y = h - 10.5;
+	for (int i = 0; i < 3; i++)
+	{
+		cairo_move_to(cr, x, y + i * 3.4);
+		cairo_line_to(cr, x + 6.0, y + i * 3.4);
+		cairo_stroke(cr);
+		cairo_move_to(cr, x + 7.6, y + i * 3.4);
+		cairo_line_to(cr, x + 11.0, y + i * 3.4);
+		cairo_stroke(cr);
+	}
+}
+
 /* ids that have a drawn ribbon glyph even though they are plain
  * menu buttons (References tab items have no stock icon) */
 static bool _has_drawn_icon(XAP_Menu_Id id)
@@ -2448,6 +2613,10 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ENDNOTE:
 	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOC:
 	case (XAP_Menu_Id)AP_MENU_ID_REF_SHOWNOTES:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATEINDEX:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOA:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTINDEX:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTTOA:
 		return true;
 	default:
 		return false;
@@ -2530,7 +2699,39 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		extra = _overlay_shownotes;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOC:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATEINDEX:
+	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOA:
 		extra = _overlay_rotate;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_CITATION:
+		extra = _overlay_citation;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_SOURCES:
+		extra = _overlay_sources;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_BIBLIOGRAPHY:
+		extra = _overlay_biblio;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_CAPTION:
+		extra = _overlay_caption;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_TOF:
+		extra = _overlay_tof;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_XREF:
+		extra = _overlay_xref;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKENTRY:
+		extra = _overlay_markentry;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTINDEX:
+		extra = _overlay_index;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKCIT:
+		extra = _overlay_markcit;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTTOA:
+		extra = _overlay_toa;
 		break;
 	default:
 		break;
@@ -3392,84 +3593,88 @@ GtkWidget * AP_UnixRibbon::_makeGroupPopover()
 
 /* mini TOC preview glyph for the gallery: three entry lines with dot
  * leaders, drawn in the preset's look */
-static void _toc_preset_draw(GtkDrawingArea *, cairo_t * cr,
-							 int w, int h, gpointer data)
+/* draw a Word-style TOC preview card: a white card with a "Table of
+ * Contents" heading and four sample entries rendered with the
+ * preset's level styles (weight, slant, case), tab leaders and page
+ * numbers. szPreset is a s_TOCPresets id or "manual". */
+static void _toc_card_draw(GtkDrawingArea *, cairo_t * cr,
+						   int w, int h, gpointer data)
 {
 	const char * szPreset = static_cast<const char *>(data);
-	bool bDots = strcmp(szPreset, "simple") != 0;
+	bool bManual   = !strcmp(szPreset, "manual");
+	bool bCaps     = !strcmp(szPreset, "contemporary") ||
+					 !strcmp(szPreset, "formal");
+	bool bLine     = !strcmp(szPreset, "contemporary");
+	bool bDots     = !bLine && strcmp(szPreset, "simple");
+	bool bDecorate = !strcmp(szPreset, "classic") ||
+					 !strcmp(szPreset, "modern");
 
 	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
 	cairo_rectangle(cr, 0.5, 0.5, w - 1, h - 1);
 	cairo_fill_preserve(cr);
-	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+	cairo_set_source_rgb(cr, 0.78, 0.78, 0.78);
 	cairo_set_line_width(cr, 1.0);
 	cairo_stroke(cr);
 
-	cairo_set_source_rgb(cr, 0.35, 0.35, 0.35);
-	for (int i = 0; i < 3; i++)
+	cairo_set_source_rgb(cr, 0.27, 0.45, 0.77);
+	cairo_select_font_face(cr, "sans",
+						   CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, 11);
+	cairo_move_to(cr, 10, 18);
+	cairo_show_text(cr, "Table of Contents");
+
+	double y = 40;
+	for (int lvl = 1; lvl <= 4; lvl++)
 	{
-		double y = h * 0.22 + i * h * 0.26;
-		double x0 = w * 0.10;
-		double len = w * 0.42;
-		double th = 1.4;
-		if (!strcmp(szPreset, "classic"))
+		double x = 10 + (lvl - 1) * 13;
+		cairo_font_slant_t slant =
+			(bDecorate && lvl == 3) ? CAIRO_FONT_SLANT_ITALIC
+									: CAIRO_FONT_SLANT_NORMAL;
+		cairo_font_weight_t weight =
+			(lvl == 1) ? CAIRO_FONT_WEIGHT_BOLD
+					   : CAIRO_FONT_WEIGHT_NORMAL;
+		cairo_set_source_rgb(cr, 0.30, 0.30, 0.30);
+		cairo_select_font_face(cr, "sans", slant, weight);
+		cairo_set_font_size(cr, 8);
+		char buf[64];
+		snprintf(buf, sizeof(buf), "Type chapter %s (level %d)",
+				 bManual ? "title" : "level", lvl);
+		if (bCaps)
 		{
-			if (i == 0)
-				th = 2.6;		/* bold first level */
-			x0 += i * w * 0.09;
+			for (char * p = buf; *p; p++)
+				*p = g_ascii_toupper(*p);
 		}
-		else if (!strcmp(szPreset, "contemporary"))
+		cairo_move_to(cr, x, y);
+		cairo_show_text(cr, buf);
+
+		cairo_text_extents_t ext;
+		cairo_text_extents(cr, buf, &ext);
+		double lx0 = x + ext.width + 5;
+		double lx1 = w - 22;
+		cairo_set_source_rgb(cr, 0.45, 0.45, 0.45);
+		if (bLine)
 		{
-			th = (i == 0) ? 2.4 : 2.0;	/* small-caps feel */
-			x0 += i * w * 0.09;
+			cairo_set_line_width(cr, 0.7);
+			cairo_move_to(cr, lx0, y - 2.2);
+			cairo_line_to(cr, lx1, y - 2.2);
+			cairo_stroke(cr);
 		}
-		else if (!strcmp(szPreset, "formal"))
+		else if (bDots)
 		{
-			th = 2.4;					/* all-caps look */
-			x0 += i * w * 0.09;
-		}
-		else if (!strcmp(szPreset, "modern"))
-		{
-			if (i == 0)
-				th = 2.6;
-			if (i == 2)
+			for (double dx = lx0; dx < lx1; dx += 3.4)
 			{
-				x0 += w * 0.14;
-				len *= 0.8;				/* italic third level */
-			}
-			else
-				x0 += i * w * 0.09;
-		}
-		else /* simple */
-		{
-			th = 1.2;
-		}
-		cairo_set_line_width(cr, th);
-		cairo_move_to(cr, x0, y);
-		cairo_line_to(cr, x0 + len, y);
-		cairo_stroke(cr);
-		if (bDots)
-		{
-			cairo_set_source_rgb(cr, 0.55, 0.55, 0.55);
-			for (int d = 0; d < 4; d++)
-			{
-				cairo_arc(cr, w * 0.68 + d * 3.2, y, 0.7, 0, 2 * G_PI);
+				cairo_arc(cr, dx, y - 2.4, 0.65, 0, 2 * G_PI);
 				cairo_fill(cr);
 			}
-			cairo_set_source_rgb(cr, 0.35, 0.35, 0.35);
 		}
+		cairo_set_source_rgb(cr, 0.30, 0.30, 0.30);
+		cairo_move_to(cr, lx1 + 4, y);
+		char num[8];
+		snprintf(num, sizeof(num), "%d", lvl);
+		cairo_show_text(cr, num);
+		y += 18;
 	}
-}
-
-static GtkWidget * _toc_preset_icon(const char * szPreset)
-{
-	GtkWidget * da = gtk_drawing_area_new();
-	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 30);
-	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 26);
-	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
-								   _toc_preset_draw,
-								   const_cast<char *>(szPreset), nullptr);
-	return da;
 }
 
 /* refresh the TOC gallery rows that depend on the cursor position
@@ -3488,45 +3693,73 @@ void AP_UnixRibbon::_s_toc_gallery_map(GtkWidget * popover,
 	gtk_widget_set_sensitive(btn, pView && pView->hasTOC());
 }
 
-/* Word's Table of Contents dropdown: built-in style gallery,
- * Manual Table, Custom Table of Contents…, Remove Table of Contents */
+/* Word's Table of Contents dropdown: a scrolling column of preview
+ * cards — the manual table first, then the built-in presets —
+ * followed by Custom Table of Contents… and Remove Table of Contents */
 GtkWidget * AP_UnixRibbon::_makeTOCGalleryPopover()
 {
-	GtkWidget * box;
-	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
 
-	gtk_box_append(GTK_BOX(box), _popover_section_label("Built-In"));
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(sw), 430);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), box);
+	gtk_popover_set_child(GTK_POPOVER(popover), sw);
+
+	auto cardBtn = [this](const char * szName,
+						  const char * szPreset) -> GtkWidget *
+	{
+		GtkWidget * v = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+		GtkWidget * l = gtk_label_new(nullptr);
+		char * mk = g_markup_printf_escaped(
+			"<span alpha='70%%'>%s</span>", szName);
+		gtk_label_set_markup(GTK_LABEL(l), mk);
+		g_free(mk);
+		gtk_box_append(GTK_BOX(v), l);
+
+		GtkWidget * da = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 220);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 104);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+									   _toc_card_draw,
+									   g_strdup(szPreset), g_free);
+		gtk_widget_set_margin_start(da, 6);
+		gtk_widget_set_margin_end(da, 6);
+		gtk_box_append(GTK_BOX(v), da);
+
+		GtkWidget * btn = gtk_button_new();
+		gtk_button_set_child(GTK_BUTTON(btn), v);
+		gtk_button_set_has_frame(GTK_BUTTON(btn), FALSE);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup("tocInsert"), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(szPreset), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		return btn;
+	};
+
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Classic",
-							  "An elegant table of contents",
-							  _toc_preset_icon("classic"),
-							  "tocInsert", "classic"));
+				   cardBtn("Manual Table of Contents", "manual"));
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Contemporary",
-							  "A table of contents with small capitals",
-							  _toc_preset_icon("contemporary"),
-							  "tocInsert", "contemporary"));
+				   cardBtn("Classic", "classic"));
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Formal",
-							  "A formal all-capitals table of contents",
-							  _toc_preset_icon("formal"),
-							  "tocInsert", "formal"));
+				   cardBtn("Contemporary", "contemporary"));
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Modern",
-							  "A modern table of contents",
-							  _toc_preset_icon("modern"),
-							  "tocInsert", "modern"));
+				   cardBtn("Formal", "formal"));
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Simple",
-							  "A simple table of contents",
-							  _toc_preset_icon("simple"),
-							  "tocInsert", "simple"));
+				   cardBtn("Modern", "modern"));
 	gtk_box_append(GTK_BOX(box),
-				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
-	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Manual Table",
-							  "Type a placeholder table of contents",
-							  nullptr, "tocInsert", "manual"));
+				   cardBtn("Simple", "simple"));
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),

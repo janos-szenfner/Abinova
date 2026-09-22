@@ -96,7 +96,7 @@ static const char * s_strnstr (const char * haystack, UT_uint32 iNumbytes, const
 	const char * ptr = haystack;
 	const char * match = nullptr;
 
-	while (i < (iNumbytes - needle_length))
+	while (i <= (iNumbytes - needle_length))
 		{
 			if (*ptr == *needle)
 				if (strncmp (ptr, needle, needle_length) == 0)
@@ -414,7 +414,6 @@ IE_Imp_MHT::~IE_Imp_MHT ()
 UT_Error IE_Imp_MHT::_loadFile (GsfInput * input)
 {
 	UT_MHTStream stream;
-	if (!stream.open (input)) return UT_ERROR;
 
 	bool bValid = false;
 

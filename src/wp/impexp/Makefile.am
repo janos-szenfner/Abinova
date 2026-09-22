@@ -30,6 +30,18 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/epub/exp/xp \
 	-I$(srcdir)/epub/dialogs/xp \
 	-I$(srcdir)/epub/dialogs/gtk \
+	-I$(srcdir)/wordperfect \
+	-I$(srcdir)/wpg \
+	-I$(srcdir)/mht \
+	-I$(srcdir)/wmf \
+	-DHAVE_LIBWPS \
+	-DXHTML_MULTIPART_SUPPORTED \
+	-I$(top_srcdir)/thirdparty/libwpd-0.10.3/inc \
+	-I$(top_srcdir)/thirdparty/libwps-0.4.14/inc \
+	-I$(top_srcdir)/thirdparty/libwpg-0.3.4/inc \
+	-I$(top_srcdir)/thirdparty/librevenge-0.0.6/inc \
+	$(IMPEXP_OPT_CFLAGS) \
+	$(WMF_CFLAGS) \
 	$(WP_CPPFLAGS)
 
 libimpexp_la_SOURCES = \
@@ -402,6 +414,40 @@ libimpexp_la_SOURCES += \
 	epub/imp/xp/ie_imp_EPUB.h \
 	epub/imp/xp/ie_imp_EPUB_Sniffer.cpp \
 	epub/imp/xp/ie_imp_EPUB_Sniffer.h
+
+# WordPerfect importer (with Microsoft Works support via libwps),
+# formerly a plugin; uses the bundled libwpd/libwps/librevenge
+libimpexp_la_SOURCES += \
+	wordperfect/ie_imp_WordPerfect.cpp \
+	wordperfect/ie_imp_WordPerfect.h \
+	wordperfect/ie_impexp_WordPerfect.h
+
+# WordPerfect Graphics importer, formerly a plugin; uses the bundled
+# libwpg/libwpd/librevenge
+libimpexp_la_SOURCES += \
+	wpg/ie_impGraphic_WPG.cpp \
+	wpg/ie_impGraphic_WPG.h
+
+# MHTML importer, formerly a plugin; the optional libtidy path is
+# added below when tidy/tidy.h is present
+libimpexp_la_SOURCES += \
+	mht/ie_imp_MHT.cpp \
+	mht/ie_imp_MHT.h
+
+if WITH_LIBTIDY
+libimpexp_la_SOURCES += \
+	mht/tidyImporter.cpp \
+	mht/tidyImporter.h \
+	mht/tidyReader.cpp \
+	mht/tidyReader.h
+endif
+
+# WMF image importer, formerly a plugin; only when libwmf is present
+if WITH_LIBWMF
+libimpexp_la_SOURCES += \
+	wmf/ie_impGraphic_WMF.cpp \
+	wmf/ie_impGraphic_WMF.h
+endif
 
 
 libimpexp_la_SOURCES += \

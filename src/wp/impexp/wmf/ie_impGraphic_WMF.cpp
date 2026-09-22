@@ -19,12 +19,6 @@
  * 02110-1301 USA.
  */
 
-#ifdef ABI_PLUGIN_BUILTIN
-#define abi_plugin_register abipgn_wmf_register
-#define abi_plugin_unregister abipgn_wmf_unregister
-#define abi_plugin_supports_version abipgn_wmf_supports_version
-#endif
-
 #include "ut_types.h"
 #include "ut_bytebuf.h"
 #include "ut_string.h"
@@ -524,60 +518,3 @@ static int AbiWord_WMF_function (void * context,char * buffer,int length)
 
 	return i;
 }
-
-/*******************************************************************/
-/*******************************************************************/
-
-#include "xap_Module.h"
-
-ABI_PLUGIN_DECLARE("WMF")
-
-// we use a reference-counted sniffer
-static IE_ImpGraphicWMF_Sniffer * m_impSniffer = nullptr;
-
-ABI_FAR_CALL
-int abi_plugin_register (XAP_ModuleInfo * mi)
-{
-
-	if (!m_impSniffer)
-	{
-	  m_impSniffer = new IE_ImpGraphicWMF_Sniffer();
-	}
-
-	mi->name = "WMF Import Plugin";
-	mi->desc = "Import Windows Metafiles";
-	mi->version = ABI_VERSION_STRING;
-	mi->author = "Abi the Ant";
-	mi->usage = "No Usage";
-
-	IE_ImpGraphic::registerImporter (m_impSniffer);
-	return 1;
-}
-
-ABI_FAR_CALL
-int abi_plugin_unregister (XAP_ModuleInfo * mi)
-{
-	mi->name = nullptr;
-	mi->desc = nullptr;
-	mi->version = nullptr;
-	mi->author = nullptr;
-	mi->usage = nullptr;
-
-	UT_ASSERT (m_impSniffer);
-
-	IE_ImpGraphic::unregisterImporter (m_impSniffer);
-	delete m_impSniffer;
-	m_impSniffer = nullptr;
-
-	return 1;
-}
-
-ABI_FAR_CALL
-int abi_plugin_supports_version (UT_uint32 /*major*/, UT_uint32 /*minor*/, 
-				 UT_uint32 /*release*/)
-{
-  return 1;
-}
-
-/*******************************************************************/
-/*******************************************************************/

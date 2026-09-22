@@ -49,6 +49,10 @@ compiled into `libabiword` and are always available:
 | `openxml` | `src/wp/impexp/openxml/` | DOCX import+export, doc properties |
 | `epub` | `src/wp/impexp/epub/` | EPUB 3.3/2 import+export + options dialog |
 | `grammar` | `src/wp/ap/grammar/` | sentence checking via vendored Hunspell |
+| `wordperfect` | `src/wp/impexp/wordperfect/` | `.wpd`/`.wp` + MS Works via vendored libwpd/libwps |
+| `wpg` | `src/wp/impexp/wpg/` | `.wpg` images via vendored libwpg |
+| `mht` | `src/wp/impexp/mht/` | `.mht`/`.mhtm`/`.mhtml`; optional libtidy |
+| `wmf` | `src/wp/impexp/wmf/` | `.wmf`/`.apm` via system libwmf (`HAVE_LIBWMF`) |
 | `latex` | `src/wp/impexp/xp/ie_*_LaTeX.cpp` | `.tex` import+export |
 | — (new) | `src/wp/impexp/xp/ie_*_Markdown.cpp` | `.md` import+export, was never a plugin |
 
@@ -80,13 +84,16 @@ longer exist:
   `opml`, `paint`, `passepartout`, `pdb`, `pdf` (experimental PDF
   import — PDF remains an export target), `presentation`, `psion`,
   `s5`, `sdw`, `t602`, `testharness`, `wml`, `xslfo`.
+- **Redundant graphics plugin**: `rsvg` — the core SVG importer and
+  the GdkPixbuf loader already handle `.svg` natively.
 - **Developer/misc**: `command` (remote-control pipe) and the
   GTK2-only `--enable-menubutton` code path.
 
 ### Remaining plugins
 
-`mht` (self-contained MHTML importer), `rsvg`, `wmf`, `wordperfect`
-(libwpd/libwps vendored), `wpg`.
+None — every importer/exporter is compiled into `libabiword` and
+registered centrally in `src/wp/impexp/xp/ie_impexp_Register.cpp`.
+The dynamic plugin list is empty.
 
 > **Disclaimer:** This is an experimental project. It is provided
 > **as is, without any warranty** of any kind, express or implied.

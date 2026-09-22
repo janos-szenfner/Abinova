@@ -5367,11 +5367,11 @@ static const FV_TOCStylePreset s_TOCPresets[] =
 
 	{ "contemporary",
 	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
-	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
-	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:small-caps; text-decoration:none; color:000000" },
+	  "toc-tab-leader1:underline; toc-tab-leader2:underline; toc-tab-leader3:underline; toc-tab-leader4:underline",
+	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000" },
 	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
 
 	{ "formal",
@@ -5534,7 +5534,9 @@ UT_Error FV_View::cmdInsertTOCManual(void)
 		insertParagraphBreak();
 		UT_UTF8String sStyle = UT_UTF8String_sprintf("Contents %d", i + 1);
 		setStyle(sStyle.utf8_str(), true);
-		UT_UTF8String sText = UT_UTF8String_sprintf("Type chapter title (level %d)", i + 1);
+		PP_PropertyVector props = { "tabstops", "6.5in/R1" };
+		setBlockFormat(props);
+		UT_UTF8String sText = UT_UTF8String_sprintf("Type chapter title (level %d)\t%d", i + 1, i + 1);
 		cmdCharInsert(std::string(sText.utf8_str()), false);
 	}
 	insertParagraphBreak();

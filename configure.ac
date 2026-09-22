@@ -847,11 +847,54 @@ AC_SUBST([BUILTIN_PLUGINS_LA])
 
 # bundled third-party libraries in thirdparty/ for plugins that need
 # them, so no external dependency downloads are required
-with_bundled_revenge=no
-case " $PLUGINS $BUILTIN_PLUGINS " in
-  *" wordperfect "*|*" wpg "*) with_bundled_revenge=yes ;;
-esac
+# bundled third-party libs are always built now that the WordPerfect,
+# WPG, MHT and WMF importers are part of the core build
+with_bundled_revenge=yes
 AM_CONDITIONAL([WITH_BUNDLED_REVENGE], [test "$with_bundled_revenge" = "yes"])
+
+# optional libtidy cleans up HTML before import (core MHT importer)
+AC_CHECK_HEADERS([tidy/tidy.h], [libtidy_found="yes"], [libtidy_found="no"])
+TIDY_LIBS=
+IMPEXP_OPT_CFLAGS=
+if test "$libtidy_found" = "yes"; then
+	TIDY_LIBS="-ltidy"
+	IMPEXP_OPT_CFLAGS="$IMPEXP_OPT_CFLAGS -DXHTML_HTML_TIDY_SUPPORTED"
+else
+	# gsf already pulls in libxml2, so the libxml2 HTML parser is
+	# always available as the non-tidy fallback
+	IMPEXP_OPT_CFLAGS="$IMPEXP_OPT_CFLAGS -DXHTML_HTML_XML2_SUPPORTED"
+fi
+AC_SUBST([TIDY_LIBS])
+AC_SUBST([IMPEXP_OPT_CFLAGS])
+AM_CONDITIONAL([WITH_LIBTIDY], [test "$libtidy_found" = "yes"])
+
+# optional libwmf for WMF image import
+AC_PATH_PROG(libwmfconfig, libwmf-config)
+wmf_deps="no"
+WMF_CFLAGS=
+WMF_LIBS=
+if test "$libwmfconfig" != ""; then
+	IFS_old="$IFS"
+	IFS='.'
+	set -- `$libwmfconfig --version`
+	libwmf_major_found="${1}"
+	libwmf_minor_found="${2}"
+	libwmf_micro_found="${3}"
+	IFS="$IFS_old"
+	if test "$libwmf_major_found" -gt 0 || \
+	   test "$libwmf_minor_found" -gt 2 || \
+	   ( test "$libwmf_minor_found" -eq 2 && test "$libwmf_micro_found" -ge 8 ); then
+		wmf_deps="yes"
+	fi
+fi
+if test "$wmf_deps" = "yes"; then
+	WMF_CFLAGS=`$libwmfconfig --cflags`
+	WMF_LIBS=`$libwmfconfig --libs`
+	IMPEXP_OPT_CFLAGS="$IMPEXP_OPT_CFLAGS -DHAVE_LIBWMF"
+fi
+AC_SUBST([WMF_CFLAGS])
+AC_SUBST([WMF_LIBS])
+AM_CONDITIONAL([WITH_LIBWMF], [test "$wmf_deps" = "yes"])
 
 # put all deps on a single line for the .pc file
 ABIWORD_REQUIRED_PKGS=

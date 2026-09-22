@@ -46,6 +46,15 @@
 #include "openxml/exp/xp/ie_exp_OpenXML_Sniffer.h"
 #include "epub/imp/xp/ie_imp_EPUB_Sniffer.h"
 #include "epub/exp/xp/ie_exp_EPUB_Sniffer.h"
+#include "wordperfect/ie_imp_WordPerfect.h"
+#include "wpg/ie_impGraphic_WPG.h"
+#include "mht/ie_imp_MHT.h"
+#ifdef XHTML_HTML_TIDY_SUPPORTED
+#include "mht/tidyImporter.h"
+#endif
+#ifdef HAVE_LIBWMF
+#include "wmf/ie_impGraphic_WMF.h"
+#endif
 
 /* graphics */
 #include "ie_impGraphic.h"
@@ -73,6 +82,10 @@ void IE_ImpExp_RegisterXP ()
 
   IE_ImpGraphic::registerImporter(new IE_ImpGraphicPNG_Sniffer ());
   IE_ImpGraphic::registerImporter(new IE_ImpGraphicSVG_Sniffer ());
+  IE_ImpGraphic::registerImporter(new IE_Imp_WordPerfectGraphics_Sniffer ());
+#ifdef HAVE_LIBWMF
+  IE_ImpGraphic::registerImporter(new IE_ImpGraphicWMF_Sniffer ());
+#endif
 
   /* now text-file types */
 
@@ -87,6 +100,12 @@ void IE_ImpExp_RegisterXP ()
 	IE_Imp::registerImporter(new IE_Imp_EPUB_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_Markdown_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_LaTeX_Sniffer ());
+	IE_Imp::registerImporter(new IE_Imp_MHT_Sniffer ());
+#ifdef XHTML_HTML_TIDY_SUPPORTED
+	IE_Imp::registerImporter(new IE_Imp_Tidy_Sniffer ());
+#endif
+	IE_Imp::registerImporter(new IE_Imp_WordPerfect_Sniffer ());
+	IE_Imp::registerImporter(new IE_Imp_MSWorks_Sniffer ());
 #ifdef WITH_EVOLUTION_DATA_SERVER
 	IE_Imp::registerImporter(new IE_Imp_RDF_VCard_Sniffer ());
 #endif

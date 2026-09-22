@@ -19,19 +19,10 @@
  * 02110-1301 USA.
  */
 
-#ifdef ABI_PLUGIN_BUILTIN
-#define abi_plugin_register abipgn_wpg_register
-#define abi_plugin_unregister abipgn_wpg_unregister
-#define abi_plugin_supports_version abipgn_wpg_supports_version
-#endif
-
 #include "ie_impGraphic_WPG.h"
 #include <librevenge-stream/librevenge-stream.h>
-#include "xap_Module.h"
 
 using libwpg::WPGraphics;
-
-ABI_PLUGIN_DECLARE("WPG")
 
 class AbiWordPerfectGraphicsInputStream : public librevenge::RVNGInputStream
 {
@@ -239,53 +230,6 @@ long AbiWordPerfectGraphicsInputStream::tell()
 bool AbiWordPerfectGraphicsInputStream::isEnd()
 {
 	return gsf_input_eof(m_input);
-}
-
-static IE_Imp_WordPerfectGraphics_Sniffer * m_ImpSniffer = nullptr;
-
-ABI_FAR_CALL
-int abi_plugin_register (XAP_ModuleInfo * mi)
-{
-	if (!m_ImpSniffer)
-	{
-		m_ImpSniffer = new IE_Imp_WordPerfectGraphics_Sniffer ();
-	}
-
-	UT_ASSERT (m_ImpSniffer);
-
-	mi->name    = "WordPerfect(tm) Graphics Importer";
-	mi->desc    = "Import WordPerfect(tm) Graphics";
-	mi->version = ABI_VERSION_STRING;
-	mi->author  = "Marc Maurer";
-	mi->usage   = "No Usage";
-
-	IE_ImpGraphic::registerImporter (m_ImpSniffer);
-	return 1;
-}
-
-ABI_FAR_CALL
-int abi_plugin_unregister (XAP_ModuleInfo * mi)
-{
-	mi->name = nullptr;
-	mi->desc = nullptr;
-	mi->version = nullptr;
-	mi->author = nullptr;
-	mi->usage = nullptr;
-
-	UT_ASSERT (m_ImpSniffer);
-
-	IE_ImpGraphic::unregisterImporter (m_ImpSniffer);
-	delete m_ImpSniffer;
-	m_ImpSniffer = nullptr;
-	
-	return 1;
-}
-
-ABI_FAR_CALL
-int abi_plugin_supports_version (UT_uint32 /*major*/, UT_uint32 /*minor*/, 
-								 UT_uint32 /*release*/)
-{
-  return 1;
 }
 
 // supported suffixes 

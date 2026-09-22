@@ -76,6 +76,28 @@ below are on `main` but the release has not been cut yet.
   multipart boundary, quoted-printable/base64 parts, `cid:` images);
   `.mht`/`.mhtm`/`.mhtml` plus `application/x-mimearchive` and
   `message/rfc822` registered.
+- **WordPerfect moved into the core** — the `wordperfect` plugin
+  sources moved to `src/wp/impexp/wordperfect/`; `.wpd`/`.wp` and
+  MS Works (`.wps`) import via the vendored `libwpd`/`libwps`/
+  `librevenge` convenience libraries, no plugin `.so`.
+- **WPG graphics moved into the core** — the `wpg` plugin sources
+  moved to `src/wp/impexp/wpg/`; `.wpg` images import through the
+  vendored `libwpg` renderer as core functionality.
+- **MHT moved into the core** — the `mht` plugin sources moved to
+  `src/wp/impexp/mht/`; optional libtidy HTML cleanup behind
+  `-DXHTML_HTML_TIDY_SUPPORTED`, with the libxml2 HTML parser as the
+  always-available fallback (`-DXHTML_HTML_XML2_SUPPORTED`); the
+  importer's `s_strnstr` off-by-one on the final match position was
+  fixed along the way.
+- **WMF moved into the core** — the `wmf` plugin source moved to
+  `src/wp/impexp/wmf/` behind a `HAVE_LIBWMF` configure check
+  (`libwmf-config` ≥ 0.2.8); `.wmf`/`.apm` images import via
+  system libwmf when present.
+- **`rsvg` plugin removed** — redundant: the core SVG importer and
+  the GdkPixbuf loader already cover `.svg` natively.
+- **No loadable plugins remain** — every importer/exporter is
+  registered centrally in `ie_impexp_Register.cpp`; the plugin
+  configure list is empty.
 - **abiword.keys** registers ODF, DOCX and EPUB mimetypes.
 
 ### MS Word compatibility
@@ -173,6 +195,17 @@ below are on `main` but the release has not been cut yet.
   To); Insert split into Pages/Tables/Illustrations/Links/Text/
   Symbols/Fields; new References tab (Table of Contents, Footnotes);
   Layout: Page Setup/Page Columns/Page Background.
+- **References tab redesigned to match Word** — primary commands now
+  render as large icon-over-caption buttons (Table of Contents,
+  Footnote, Endnote, Insert Citation, Insert Caption, Insert Table of
+  Figures, Cross-reference, Mark Entry, Insert Index, Mark Citation),
+  secondary commands as small labelled dropdowns (Add Text, Update
+  Table, Next Footnote/Show Notes, Manage Sources/Bibliography); all
+  icons are drawn Cairo glyphs so no icon theme is required. The TOC
+  gallery shows Word-style preview cards (heading + four indented
+  levels with leaders and page numbers, per-preset styling) and the
+  Manual Table inserts `Type chapter title (level N)` placeholders
+  with right-aligned dot-leader page-number tabs.
 - **Word-style References tab** — the References ribbon is fully
   functional: Table of Contents gallery with Word presets (Automatic/
   Classic/Contemporary/Formal/Modern/Simple plus Manual Table), Add
@@ -963,11 +996,11 @@ below are on `main` but the release has not been cut yet.
 
 ### Build system and repository cleanup
 
-- **Plugins removed from the build** — `openxml`, `epub`, `grammar`
-  deleted from `plugins/` (sources live in `src/` now); regenerated
-  `m4/plugin-list.m4` / `plugin-configure.m4` / `plugin-builtin.m4` /
-  `plugin-makefiles.m4`; no default plugins remain. Remaining loadable
-  plugins: `mht`, `rsvg`, `wmf`, `wordperfect`, `wpg`.
+- **Plugins removed from the build** — `openxml`, `epub`, `grammar`,
+  `mht`, `wmf`, `wordperfect`, `wpg` moved into `src/wp/impexp/` and
+  `rsvg` deleted outright; regenerated `m4/plugin-list.m4` /
+  `plugin-configure.m4` / `plugin-builtin.m4` / `plugin-makefiles.m4`;
+  the loadable plugin list is now empty.
 - **33 obsolete plugins removed** — applix, bmp, clarisworks, command,
   docbook, eml, garble, gimp, google, hancom, hrtext, iscii, kword,
   latex, loadbindings, mif, mswrite, openwriter, opml, paint,
@@ -1011,6 +1044,9 @@ below are on `main` but the release has not been cut yet.
 
 - GTK4 dialog migration is mechanically complete but some dialogs may
   still have layout quirks.
+- Headless `--to=` conversion writes output correctly but segfaults
+  during process teardown (pre-existing, unrelated to the importer
+  registry — register/unregister cycles exit cleanly).
 - macOS/Windows GTK4 builds not yet verified.
 - ~150 suspicious duplicate msgstrs in `fi-FI.po` need a Finnish
   speaker.
