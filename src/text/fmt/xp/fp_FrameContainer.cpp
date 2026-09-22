@@ -115,6 +115,23 @@ bool fp_FrameContainer::isAbove(void)
 {
   return  m_bIsAbove;
 }
+
+/*!
+ * Returns the frame's stacking rank within its page layer (the
+ * above-text or below-text vector on fp_Page).  Read from the
+ * "frame-stack-order" frame property; defaults to 0.
+ */
+double fp_FrameContainer::getStackOrder(void)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	if (pAP && pAP->getProperty("frame-stack-order", sz) && sz && *sz)
+		return g_ascii_strtod(sz, nullptr);
+	return 0.0;
+}
 /*!
  * Returns true if the supplied screen rectangle overlaps with frame
  * container. This method takes account of transparening and tight wrapping.

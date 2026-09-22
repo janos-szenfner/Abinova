@@ -145,6 +145,7 @@ public:
 	fp_FrameContainer*  getNthAboveFrameContainer(UT_sint32 n) const;
 	fp_FrameContainer*  getNthBelowFrameContainer(UT_sint32 n) const;
 	bool				insertFrameContainer(fp_FrameContainer * pFC);
+	UT_sint32			restackFrameContainer(fp_FrameContainer * pFC, int iDir);
 	void				removeFrameContainer(fp_FrameContainer * pFC);
 	UT_sint32           findFrameContainer(fp_FrameContainer * pFC) const;
 	void                clearScreenFrames(void);

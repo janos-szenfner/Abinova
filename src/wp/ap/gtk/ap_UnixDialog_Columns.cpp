@@ -123,7 +123,9 @@ bool label_button_with_abi_pixmap( GtkWidget * button, const char * szIconName, 
 		return false;
 	gtk_widget_show(wpixmap);
 	xxx_UT_DEBUGMSG(("SEVIOR: Adding pixmap to button now \n"));
-	xap_gtk_container_add (button, wpixmap);
+	/* GTK4: real child relationship so the image unparents cleanly
+	 * at dialog teardown (set_parent alone leaves finalize noise) */
+	gtk_button_set_child(GTK_BUTTON(button), wpixmap);
 	return true;
 }
 
@@ -226,11 +228,11 @@ static void s_line_clicked(GtkWidget * widget, AP_UnixDialog_Columns * dlg)
 }
 
 static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
-							   int /*width*/, int /*height*/, gpointer data)
+							   int width, int height, gpointer data)
 {
 	AP_UnixDialog_Columns *dlg = static_cast<AP_UnixDialog_Columns *>(data);
 	UT_return_if_fail(dlg);
-	dlg->event_previewDraw(cr);
+	dlg->event_previewDraw(cr, width, height);
 }
 
 
@@ -268,29 +270,6 @@ void AP_UnixDialog_Columns::runModal(XAP_Frame * pFrame)
 		XAP_GtkSignalBlocker b(G_OBJECT(m_wMaxColumnHeightEntry), m_iMaxColumnHeightID);
 		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wMaxColumnHeightEntry),getHeightString());
 	}
-
-	// *** this is how we add the gc for Column Preview ***
-	// attach a new graphics context to the drawing area
-	UT_return_if_fail(m_wpreviewArea && XAP_HAS_NATIVE_WINDOW(m_wpreviewArea));
-
-	// make a new Unix GC
-	DELETEP (m_pPreviewWidget);
-	GR_UnixCairoAllocInfo ai(m_wpreviewArea);
-	m_pPreviewWidget =
-	    (GR_UnixCairoGraphics*) XAP_App::getApp()->newGraphics(ai);
-
-	// Todo: we need a good widget to query with a probable
-	// Todo: non-white (i.e. gray, or a similar bgcolor as our parent widget)
-	// Todo: background. This should be fine
-	m_pPreviewWidget->init3dColors(m_wpreviewArea);
-
-	// let the widget materialize
-
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(m_wpreviewArea, &alloc);
-	_createPreviewFromGC(m_pPreviewWidget,
-						 (UT_uint32) alloc.width,
-						 (UT_uint32) alloc.height);
 
 	setLineBetween(getLineBetween());
 	if(getLineBetween()==true)
@@ -381,7 +360,7 @@ void AP_UnixDialog_Columns::readSpin(void)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wtoggleThree),FALSE);
 	}
 	setColumns( val );
-	m_pColumnsPreview->queueDraw();
+	gtk_widget_queue_draw(m_wpreviewArea);
 }
 
 void AP_UnixDialog_Columns::event_Toggle( UT_uint32 icolumns)
@@ -428,7 +407,7 @@ void AP_UnixDialog_Columns::event_Toggle( UT_uint32 icolumns)
 	g_signal_handler_unblock(G_OBJECT(m_wtoggleThree),
 							   m_threeHandlerID);
 	setColumns( icolumns );
-	m_pColumnsPreview->queueDraw();
+	gtk_widget_queue_draw(m_wpreviewArea);
 }
 
 
@@ -478,14 +457,25 @@ void AP_UnixDialog_Columns::event_previewInvalidate(void)
 	       m_pColumnsPreview->queueDraw();
 }
 
-void AP_UnixDialog_Columns::event_previewDraw(cairo_t *cr)
+void AP_UnixDialog_Columns::event_previewDraw(cairo_t *cr, int width, int height)
 {
-	if (m_pColumnsPreview) {
-		static_cast<GR_CairoGraphics*>(m_pColumnsPreview->getGraphics())->setCairo(cr);
+	/* GTK4: at runModal() time the drawing area has neither a surface
+	 * nor a usable allocation, so the graphics and preview are created
+	 * lazily on the first draw, when both are real */
+	if (!m_pColumnsPreview)
+	{
+		DELETEP (m_pPreviewWidget);
+		GR_UnixCairoAllocInfo ai(m_wpreviewArea);
+		m_pPreviewWidget =
+			(GR_UnixCairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+		m_pPreviewWidget->init3dColors(m_wpreviewArea);
+		_createPreviewFromGC(m_pPreviewWidget, width, height);
 	}
+	m_pColumnsPreview->setWindowSize(width, height);
+	m_pColumnsPreview->set(getColumns(), getLineBetween());
 
-	if(m_pColumnsPreview)
-	       m_pColumnsPreview->drawImmediate();
+	static_cast<GR_CairoGraphics*>(m_pColumnsPreview->getGraphics())->setCairo(cr);
+	m_pColumnsPreview->drawImmediate();
 	static_cast<GR_CairoGraphics*>(m_pColumnsPreview->getGraphics())->setCairo(nullptr);
 }
 

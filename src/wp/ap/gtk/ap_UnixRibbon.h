@@ -105,6 +105,7 @@ private:
 	GtkWidget *		_presetRow(const char * szName, const char * szDetail,
 							   GtkWidget * icon, const char * szMethod,
 							   const char * szData, bool bSensitive = true);
+	GtkWidget *		_makeZOrderPopover(bool bForward);
 	GtkWidget *		_disabledArrangeButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverMenuButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverTbButton(XAP_Toolbar_Id id,

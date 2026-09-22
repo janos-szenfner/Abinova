@@ -231,8 +231,8 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_LAYOUT_HYPHENATION,	0,1,0,0,	"docSettings",		nullptr,					nullptr);
 	_s(AP_MENU_ID_LAYOUT_POSITION,		0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_WRAP,			0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
-	_s(AP_MENU_ID_LAYOUT_BRINGFORWARD,	0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
-	_s(AP_MENU_ID_LAYOUT_SENDBACKWARD,	0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_BRINGFORWARD,	0,1,0,0,	"frameBringForward", ap_GetState_ObjSelected,	nullptr);
+	_s(AP_MENU_ID_LAYOUT_SENDBACKWARD,	0,1,0,0,	"frameSendBackward", ap_GetState_ObjSelected,	nullptr);
 	_s(AP_MENU_ID_LAYOUT_SELPANE,		0,0,0,0,	nullptr,			nullptr,					nullptr);
 	_s(AP_MENU_ID_LAYOUT_ALIGNOBJECTS,	0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_GROUPOBJECTS,	0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);

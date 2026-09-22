@@ -65,7 +65,7 @@ public:
 	// invalidate preview
 	void event_previewInvalidate(void);
 	// draw the preview
-	void event_previewDraw(cairo_t *cr);
+	void event_previewDraw(cairo_t *cr, int width, int height);
 	virtual void			event_OK(void);
 	virtual void			event_Cancel(void);
 

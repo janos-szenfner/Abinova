@@ -409,6 +409,12 @@ public:
 	static EV_EditMethod_Fn releaseFrame;
 	static EV_EditMethod_Fn contextFrame;
 	static EV_EditMethod_Fn deleteFrame;
+	static EV_EditMethod_Fn frameBehindText;
+	static EV_EditMethod_Fn frameBringForward;
+	static EV_EditMethod_Fn frameBringToFront;
+	static EV_EditMethod_Fn frameInFrontOfText;
+	static EV_EditMethod_Fn frameSendBackward;
+	static EV_EditMethod_Fn frameSendToBack;
 	static EV_EditMethod_Fn cutFrame;
 	static EV_EditMethod_Fn copyFrame;
 	static EV_EditMethod_Fn selectFrame;
@@ -1031,6 +1037,12 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(formatPainter),		0,	""),
 	EV_EditMethod(NF(formatTOC),			0,		""),
 	EV_EditMethod(NF(formatTable),			0,		""),
+	EV_EditMethod(NF(frameBehindText),		0,		""),
+	EV_EditMethod(NF(frameBringForward),	0,		""),
+	EV_EditMethod(NF(frameBringToFront),	0,		""),
+	EV_EditMethod(NF(frameInFrontOfText),	0,		""),
+	EV_EditMethod(NF(frameSendBackward),	0,		""),
+	EV_EditMethod(NF(frameSendToBack),		0,		""),
 
 	// g
 	EV_EditMethod(NF(go),					0,	""),
@@ -16753,6 +16765,54 @@ UT_return_val_if_fail(pDialog, false);
 		pDialog->runModeless(pFrame);
 	}
 	return true;
+}
+
+Defun1(frameBringForward)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->restackFrame(1);
+}
+
+Defun1(frameBringToFront)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->restackFrame(2);
+}
+
+Defun1(frameSendBackward)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->restackFrame(-1);
+}
+
+Defun1(frameSendToBack)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->restackFrame(-2);
+}
+
+Defun1(frameInFrontOfText)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->frameSetTextLayer(true);
+}
+
+Defun1(frameBehindText)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->frameSetTextLayer(false);
 }
 
 Defun(cutVisualText)

@@ -578,6 +578,10 @@ public:
 											const PP_PropertyVector & attribs);
 
 	bool            convertPositionedToInLine(fl_FrameLayout * pFrame);
+	/* Z-order on the selected/caret frame: +1 forward, -1 back,
+	 * +2 to front, -2 to back */
+	bool            restackFrame(int iDir);
+	bool            frameSetTextLayer(bool bAboveText);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_sint32 mouseX, UT_sint32 mouseY);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG);
 

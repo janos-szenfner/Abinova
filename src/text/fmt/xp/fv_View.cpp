@@ -1504,6 +1504,91 @@ void FV_View::setFrameFormat(const PP_PropertyVector & attribs, const PP_Propert
 	notifyListeners(AV_CHG_MOTION);
 }
 
+/*!
+ * Changes the stacking order of the frame that is selected or under
+ * the caret - Word's "Bring Forward" (+1), "Bring to Front" (+2),
+ * "Send Backward" (-1) and "Send to Back" (-2).  The new position is
+ * persisted as the frame-stack-order property so the order survives
+ * save/reload, and setFrameFormat makes it undoable.
+ */
+bool FV_View::restackFrame(int iDir)
+{
+	fl_FrameLayout * pFL = getFrameLayout();
+	if(!pFL)
+	{
+		return false;
+	}
+	fp_FrameContainer * pFC =
+		static_cast<fp_FrameContainer*>(pFL->getFirstContainer());
+	if(!pFC || !pFC->getPage())
+	{
+		return false;
+	}
+	fp_Page * pPage = pFC->getPage();
+	UT_sint32 j = pPage->restackFrameContainer(pFC, iDir);
+	if (j < 0)
+	{
+		return false;
+	}
+	/* rank the moved frame between its new neighbours; equal or
+	 * missing ranks get nudged past the layer edge */
+	bool bAbove = pFC->isAbove();
+	UT_sint32 n = bAbove ? pPage->countAboveFrameContainers()
+						 : pPage->countBelowFrameContainers();
+	double rank;
+	if (j == 0)
+	{
+		fp_FrameContainer * pNext = bAbove
+			? pPage->getNthAboveFrameContainer(1)
+			: pPage->getNthBelowFrameContainer(1);
+		rank = (pNext ? pNext->getStackOrder() : 0.0) - 1.0;
+	}
+	else if (j == n - 1)
+	{
+		fp_FrameContainer * pPrev = bAbove
+			? pPage->getNthAboveFrameContainer(j - 1)
+			: pPage->getNthBelowFrameContainer(j - 1);
+		rank = (pPrev ? pPrev->getStackOrder() : 0.0) + 1.0;
+	}
+	else
+	{
+		fp_FrameContainer * pPrev = bAbove
+			? pPage->getNthAboveFrameContainer(j - 1)
+			: pPage->getNthBelowFrameContainer(j - 1);
+		fp_FrameContainer * pNext = bAbove
+			? pPage->getNthAboveFrameContainer(j + 1)
+			: pPage->getNthBelowFrameContainer(j + 1);
+		double lo = pPrev ? pPrev->getStackOrder() : 0.0;
+		double hi = pNext ? pNext->getStackOrder() : lo + 2.0;
+		rank = lo + (hi - lo) / 2.0;
+	}
+	char buf[32];
+	snprintf(buf, sizeof(buf), "%.6g", rank);
+	PP_PropertyVector props = { "frame-stack-order", buf };
+	setFrameFormat(props);
+	return true;
+}
+
+/*!
+ * Moves the frame between the above-text and below-text layers -
+ * Word's "Bring in Front of Text" / "Send Behind Text".
+ */
+bool FV_View::frameSetTextLayer(bool bAboveText)
+{
+	fl_FrameLayout * pFL = getFrameLayout();
+	if(!pFL)
+	{
+		return false;
+	}
+	/* changing wrap-mode collapses and rebuilds the frame
+	 * container, which lands it in the right page layer */
+	PP_PropertyVector props = {
+		"wrap-mode", bAboveText ? "above-text" : "below-text"
+	};
+	setFrameFormat(props);
+	return true;
+}
+
 void FV_View::dragFrame(UT_sint32 x, UT_sint32 y)
 {
 	m_FrameEdit.mouseDrag(x,y);

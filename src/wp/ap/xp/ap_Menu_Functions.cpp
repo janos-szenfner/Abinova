@@ -1902,6 +1902,25 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_InFrame)
 }
 
 
+/* an arrangeable object is on the caret: frame edit active,
+ * image selected, or the caret sits inside a frame */
+Defun_EV_GetMenuItemState_Fn(ap_GetState_ObjSelected)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if(pView->isImageSelected() || pView->isFrameSelected())
+	{
+		return EV_MIS_ZERO;
+	}
+	if(pView->getFrameLayout())
+	{
+		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
+
 Defun_EV_GetMenuItemState_Fn(ap_GetState_BreakOK)
 {
 	UT_UNUSED(id);

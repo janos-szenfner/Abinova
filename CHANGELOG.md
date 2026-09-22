@@ -433,6 +433,41 @@ below are on `main` but the release has not been cut yet.
   the dropdowns now use `gtk_drop_down_new_from_strings`, and
   widget values are read in the `response` handler before the
   helper destroys the window.
+- **Object Z-ordering (Bring Forward / Send Backward)** — the
+  Arrange group's Bring Forward and Send Backward are now real
+  popover menus matching Word: Bring Forward, Bring to Front,
+  Bring in Front of Text / Send Backward, Send to Back, Send
+  Behind Text. Frame stacking is driven by the new persistent
+  `frame-stack-order` frame property (`pp_Property`,
+  `fp_FrameContainer::getStackOrder`); `fp_Page` keeps each
+  above/below-text layer sorted by rank and
+  `restackFrameContainer` moves a frame one step or to the edge,
+  while `FV_View::restackFrame` writes the new rank through
+  `setFrameFormat` so reordering is undoable and survives
+  save/reload in `.abw`. `frameSetTextLayer` switches
+  `wrap-mode` between `above-text`/`below-text` for the
+  text-layer commands. Sensitivity uses the new
+  `ap_GetState_ObjSelected` (frame edit active, image selected
+  or caret inside a frame).
+- **Page Color / Page Image restyled as large ribbon buttons** —
+  they now match Margins: a 24px drawn page glyph (paint-drop
+  badge / picture badge) stacked over the caption, instead of a
+  small icon beside the label.
+- **Distinct Z-order icons** — Bring Forward and Send Backward
+  use dedicated bare glyphs (a staircase of squares with a blue
+  front square plus a bold up/down arrow) instead of page
+  glyphs, so they are no longer confusable with the page-setup
+  icons.
+- **Columns dialog preview fixed for GTK4** — the preview
+  graphics/preview are now created lazily inside the draw
+  callback (`event_previewDraw(cr, width, height)`), because the
+  drawing area has no usable allocation in `runModal()`; column
+  count and "line between" update the preview live. Toggle
+  buttons use `gtk_button_set_child` so the images unparent
+  cleanly at teardown.
+- **Slimmer spin-button +/- controls** — the Layout tab's
+  indent/spacing `GtkSpinButton`s get a `ribbon-spin` class with
+  zero-minimum, low-padding buttons.
 
 ### Ubuntu Launchpad bug fixes
 

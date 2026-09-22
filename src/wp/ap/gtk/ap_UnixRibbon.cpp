@@ -278,6 +278,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"  font-size: 0.78em; margin-top: 1px; padding: 0 4px 2px 4px;"
 		"  color: alpha(@theme_fg_color, 0.75);"
 		"}"
+		/* compact +/- on the Layout tab's indent/spacing spins */
+		".abiword-ribbon spinbutton.ribbon-spin button {"
+		"  min-width: 0; min-height: 0; padding: 0 3px; margin: 0;"
+		"}"
 		".abiword-ribbon combobox, .abiword-ribbon dropdown { margin: 1px 2px; }"
 		".abiword-ribbon notebook > header { margin-bottom: 0; }"
 		/* Word-style style gallery tiles */
@@ -384,9 +388,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
 										   item->flags);
 				else if (item->kind == AP_RIBBON_ITEM_MENU &&
-						 (item->id == (uint16_t)AP_MENU_ID_LAYOUT_BRINGFORWARD ||
-						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_SENDBACKWARD ||
-						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_SELPANE ||
+						 (item->id == (uint16_t)AP_MENU_ID_LAYOUT_SELPANE ||
 						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_GROUPOBJECTS ||
 						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_ROTATE))
 					w = _disabledArrangeButton((XAP_Menu_Id)item->id);
@@ -669,12 +671,26 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 		gtk_button_set_child(GTK_BUTTON(btn), image);
 	}
-	else if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_LARGE))
+	else if ((szIcon && *szIcon && (flags & AP_RIBBON_FLAG_LARGE)) ||
+			 ((flags & AP_RIBBON_FLAG_LARGE) &&
+			  (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR) ||
+			   id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE))))
 	{
-		/* Word-style large button: icon on top, caption underneath */
+		/* Word-style large button: icon on top, caption underneath;
+		 * the background buttons use drawn page-glyphs, the rest a
+		 * stock/theme icon */
 		GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-		GtkWidget * image = gtk_image_new_from_icon_name(szIcon);
-		gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
+		GtkWidget * image;
+		if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR) ||
+			id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE))
+		{
+			image = _layout_icon(id, 24, 24);
+		}
+		else
+		{
+			image = gtk_image_new_from_icon_name(szIcon);
+			gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
+		}
 		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
 		/* Close: red icon only, button face and label stay normal */
 		if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FILE_CLOSE))
@@ -1925,6 +1941,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ALIGNOBJECTS:
 		popover = _makeAlignObjPopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BRINGFORWARD:
+		popover = _makeZOrderPopover(true);
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SENDBACKWARD:
+		popover = _makeZOrderPopover(false);
+		break;
 	default:
 		break;
 	}
@@ -1990,6 +2012,7 @@ struct _PageSpec
 	bool	landscape;		/* page drawn wider than tall */
 	bool	linenum;		/* tiny line-number digits */
 	int		fold;			/* folded corner / break marker */
+	bool	bare;			/* skip the page, draw only the overlay */
 };
 
 /* paint a mini page: outline, margin frame, text lines */
@@ -2070,7 +2093,8 @@ static void _s_glyph_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 {
 	_GlyphCtx * c = static_cast<_GlyphCtx *>(data);
 	UT_return_if_fail(c);
-	_draw_page_glyph(cr, w, h, c->spec);
+	if (!c->spec.bare)
+		_draw_page_glyph(cr, w, h, c->spec);
 	if (c->extra)
 		c->extra(cr, w, h);
 }
@@ -2171,10 +2195,101 @@ static void _overlay_hyphen(cairo_t * cr, double w, double h)
 	cairo_show_text(cr, "bc");
 }
 
+/* Z-order icons: stack of squares rising to the right, blue top
+ * square, and a bold arrow - up for Bring Forward, down for Send
+ * Backward.  Drawn bare (no page) so they read differently from
+ * the page-setup glyphs. */
+static void _overlay_zorder_stack(cairo_t * cr, double w, double h,
+								  bool bUp)
+{
+	double s = w * 0.30;				/* square size */
+	double step = s * 0.38;				/* stair offset */
+	double x0 = w * 0.06, y0 = h - s - 1.5;
+	cairo_set_line_width(cr, 1.0);
+	for (int i = 0; i < 3; ++i)
+	{
+		double x = x0 + i * step;
+		double y = y0 - i * step;
+		if (i == 2)
+			cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);	/* front = blue */
+		else
+			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_rectangle(cr, x, y, s, s);
+		cairo_fill_preserve(cr);
+		cairo_set_source_rgb(cr, 0.45, 0.47, 0.55);
+		cairo_stroke(cr);
+	}
+	/* bold vertical arrow on the right */
+	double ax = w * 0.82;
+	double top = h * 0.12, bot = h * 0.88;
+	cairo_set_source_rgb(cr, 0.15, 0.35, 0.8);
+	cairo_set_line_width(cr, 1.7);
+	cairo_move_to(cr, ax, bUp ? bot : top);
+	cairo_line_to(cr, ax, bUp ? top + 3.0 : bot - 3.0);
+	cairo_stroke(cr);
+	double hy = bUp ? top : bot;
+	double dir = bUp ? 1.0 : -1.0;
+	cairo_move_to(cr, ax - 3.2, hy + dir * 4.5);
+	cairo_line_to(cr, ax, hy);
+	cairo_line_to(cr, ax + 3.2, hy + dir * 4.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _overlay_bring_forward(cairo_t * cr, double w, double h)
+{
+	_overlay_zorder_stack(cr, w, h, true);
+}
+
+static void _overlay_send_backward(cairo_t * cr, double w, double h)
+{
+	_overlay_zorder_stack(cr, w, h, false);
+}
+
+/* paint-drop badge for Page Color */
+static void _overlay_color_drop(cairo_t * cr, double w, double h)
+{
+	double cx = w - 6.0, cy = h - 7.0, r = 4.0;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_arc(cr, cx, cy + 1.0, r, 0, 2 * M_PI);
+	cairo_move_to(cr, cx - r * 0.8, cy - 0.5);
+	cairo_line_to(cr, cx, cy - r - 2.0);
+	cairo_line_to(cr, cx + r * 0.8, cy - 0.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+/* picture badge for Page Image: frame + mountains + sun */
+static void _overlay_page_image(cairo_t * cr, double w, double h)
+{
+	double pw = w * 0.42, ph = h * 0.30;
+	double x = w - pw - 1.0, y = h - ph - 1.0;
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, x, y, pw, ph);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 0.9);
+	cairo_stroke(cr);
+	/* sun */
+	cairo_arc(cr, x + pw * 0.72, y + ph * 0.3, ph * 0.13, 0, 2 * M_PI);
+	cairo_fill(cr);
+	/* mountains */
+	cairo_move_to(cr, x + 1.0, y + ph - 1.0);
+	cairo_line_to(cr, x + pw * 0.38, y + ph * 0.35);
+	cairo_line_to(cr, x + pw * 0.62, y + ph - 1.0);
+	cairo_close_path(cr);
+	cairo_move_to(cr, x + pw * 0.45, y + ph - 1.0);
+	cairo_line_to(cr, x + pw * 0.72, y + ph * 0.5);
+	cairo_line_to(cr, x + pw - 1.0, y + ph - 1.0);
+	cairo_close_path(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.58, 0.65);
+	cairo_fill(cr);
+}
+
 /* dispatch a drawn glyph for the Layout menu ids */
 static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 {
-	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0 };
+	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0, false };
 	void (*extra)(cairo_t *, double, double) = nullptr;
 
 	switch (id)
@@ -2210,6 +2325,20 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ALIGNOBJECTS:
 		spec.mr = 0.45;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BRINGFORWARD:
+		spec.bare = true;
+		extra = _overlay_bring_forward;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SENDBACKWARD:
+		spec.bare = true;
+		extra = _overlay_send_backward;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR:
+		extra = _overlay_color_drop;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE:
+		extra = _overlay_page_image;
 		break;
 	default:
 		break;
@@ -2410,7 +2539,7 @@ GtkWidget * AP_UnixRibbon::_makeMarginsPopover()
 							  close(cl, p.l) && close(cr, p.r));
 	if (!matched && pView)
 	{
-		_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0 };
+		_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0, false };
 		gchar * det = detail(ct, cb, cl, cr);
 		GtkWidget * row = _presetRow(
 			"<b>Last Custom Setting</b>  \xE2\x98\x85", det,
@@ -2423,7 +2552,7 @@ GtkWidget * AP_UnixRibbon::_makeMarginsPopover()
 	for (const _mp & p : presets)
 	{
 		_PageSpec spec = { p.t * 0.13, p.b * 0.13,
-						   p.l * 0.18, p.r * 0.18, 1, false, false, 0 };
+						   p.l * 0.18, p.r * 0.18, 1, false, false, 0, false };
 		gchar * det = detail(p.t, p.b, p.l, p.r);
 		std::string nm = p.name;
 		bool cur = close(ct, p.t) && close(cb, p.b) &&
@@ -2457,7 +2586,7 @@ GtkWidget * AP_UnixRibbon::_makeOrientationPopover()
 	if (pView && pView->getLayout() && pView->getLayout()->getDocument())
 		bPortrait = pView->getLayout()->getDocument()->getPageSize()->isPortrait();
 
-	_PageSpec ps = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0 };
+	_PageSpec ps = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0, false };
 	_PageSpec ls = ps;
 	ls.landscape = true;
 
@@ -2525,7 +2654,7 @@ GtkWidget * AP_UnixRibbon::_makeSizePopover()
 		std::string nm = isCur
 			? std::string("\xE2\x9C\x93 <b>") + disp + "</b>" : disp;
 		_PageSpec spec = { 0.10, 0.10, 0.13, 0.13, 1, landscape,
-						   false, 0 };
+						   false, 0, false };
 		GtkWidget * row = _presetRow(nm.c_str(), det.c_str(),
 									 _glyph_widget(spec, 22, 28),
 									 "pageSize", data.c_str());
@@ -2606,7 +2735,7 @@ GtkWidget * AP_UnixRibbon::_makeColumnsPopover()
 	for (int i = 0; i < 3; ++i)
 	{
 		_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, i + 1, false,
-						   false, 0 };
+						   false, 0, false };
 		std::string nm = names[i];
 		if (cur == i + 1)
 			nm = std::string("\xE2\x9C\x93 <b>") + nm + "</b>";
@@ -2619,7 +2748,7 @@ GtkWidget * AP_UnixRibbon::_makeColumnsPopover()
 	}
 
 	/* uneven columns are not supported by the layout engine */
-	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 2, false, false, 0 };
+	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 2, false, false, 0, false };
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Left", nullptr,
 							  _glyph_widget(spec, 24, 32), nullptr, nullptr,
@@ -2644,7 +2773,7 @@ GtkWidget * AP_UnixRibbon::_makeBreaksPopover()
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
 
-	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 1 };
+	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 1, false };
 
 	gtk_box_append(GTK_BOX(box), _popover_section_label("Page Breaks"));
 	gtk_box_append(GTK_BOX(box),
@@ -2844,6 +2973,44 @@ GtkWidget * AP_UnixRibbon::_makeAlignObjPopover()
 	return popover;
 }
 
+/* Z-order popover: Word's Bring Forward / Send Backward menus.
+ * bForward selects which of the two menus is built. */
+GtkWidget * AP_UnixRibbon::_makeZOrderPopover(bool bForward)
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	if (bForward)
+	{
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Bring Forward", nullptr, nullptr,
+								  "frameBringForward", nullptr));
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Bring to Front", nullptr, nullptr,
+								  "frameBringToFront", nullptr));
+		gtk_box_append(GTK_BOX(box),
+					   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Bring in Front of Text", nullptr, nullptr,
+								  "frameInFrontOfText", nullptr));
+	}
+	else
+	{
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Send Backward", nullptr, nullptr,
+								  "frameSendBackward", nullptr));
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Send to Back", nullptr, nullptr,
+								  "frameSendToBack", nullptr));
+		gtk_box_append(GTK_BOX(box),
+					   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Send Behind Text", nullptr, nullptr,
+								  "frameBehindText", nullptr));
+	}
+	return popover;
+}
+
 /* a greyed Arrange-group button for features the engine lacks */
 GtkWidget * AP_UnixRibbon::_disabledArrangeButton(XAP_Menu_Id id)
 {
@@ -2950,6 +3117,7 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 	double max = (unit == DIM_PT) ? 1584.0 : 30.0; /* 22in in pt / 30cm|in */
 	GtkWidget * spin = gtk_spin_button_new_with_range(-100.0, max,
 													  unit == DIM_PT ? 1.0 : 0.05);
+	gtk_widget_add_css_class(spin, "ribbon-spin");
 	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin),
 							   unit == DIM_PT ? 0 : 2);
 	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(spin), FALSE); /* locale ',' ok */

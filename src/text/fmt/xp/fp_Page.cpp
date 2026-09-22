@@ -3024,20 +3024,53 @@ fp_FrameContainer* fp_Page::getNthBelowFrameContainer(UT_sint32 n) const
 
 bool fp_Page::insertFrameContainer(fp_FrameContainer * pFC)
 {
-        if(pFC->isAbove())
+	/* keep each layer sorted by the frame's stack-order property;
+	 * equal ranks keep insertion (document) order, so a frame
+	 * added without a rank lands on top like before */
+	UT_GenericVector<fp_FrameContainer *> & vec =
+		pFC->isAbove() ? m_vecAboveFrames : m_vecBelowFrames;
+	double order = pFC->getStackOrder();
+	UT_sint32 i = vec.getItemCount();
+	while (i > 0 && vec.getNthItem(i-1)->getStackOrder() > order)
 	{
-	       m_vecAboveFrames.addItem(pFC);
+		--i;
 	}
-	else
-	{
-	       m_vecBelowFrames.addItem(pFC);
-	}
+	vec.insertItemAt(pFC, i);
 	if(pFC)
 	{
 		pFC->setPage(this);
 	}
 	_reformat();
 	return true;
+}
+
+/*!
+ * Moves a frame within its above/below-text layer, changing the
+ * order the frames are drawn in.  iDir is +1 for one step forward
+ * (towards the viewer), -1 for one step back, +2 for the very front
+ * and -2 for the very back.  Returns the frame's new index in the
+ * layer, or -1 if the move was a no-op (edge or unknown frame).
+ */
+UT_sint32 fp_Page::restackFrameContainer(fp_FrameContainer * pFC, int iDir)
+{
+	UT_GenericVector<fp_FrameContainer *> & vec =
+		pFC->isAbove() ? m_vecAboveFrames : m_vecBelowFrames;
+	UT_sint32 i = vec.findItem(pFC);
+	UT_sint32 n = vec.getItemCount();
+	if (i < 0 || n < 2)
+	{
+		return -1;
+	}
+	UT_sint32 j = (iDir > 1) ? n - 1 : (iDir < -1) ? 0 : i + iDir;
+	if (j == i || j < 0 || j >= n)
+	{
+		return -1;
+	}
+	vec.deleteNthItem(i);
+	vec.insertItemAt(pFC, j);
+	markDirtyOverlappingRuns(pFC);
+	_reformat();
+	return j;
 }
 
 void fp_Page::removeFrameContainer(fp_FrameContainer * _pFC)
