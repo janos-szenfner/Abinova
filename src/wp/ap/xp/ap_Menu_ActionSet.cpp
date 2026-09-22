@@ -235,8 +235,8 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_LAYOUT_SENDBACKWARD,	0,1,0,0,	"frameSendBackward", ap_GetState_ObjSelected,	nullptr);
 	_s(AP_MENU_ID_LAYOUT_SELPANE,		0,1,0,0,	"selPane",			nullptr,					nullptr);
 	_s(AP_MENU_ID_LAYOUT_ALIGNOBJECTS,	0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
-	_s(AP_MENU_ID_LAYOUT_GROUPOBJECTS,	0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
-	_s(AP_MENU_ID_LAYOUT_ROTATE,		0,0,0,0,	nullptr,			ap_GetState_InImage,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_GROUPOBJECTS,	0,0,0,0,	"frameGroup",		ap_GetState_Groupable,		nullptr);
+	_s(AP_MENU_ID_LAYOUT_ROTATE,		0,0,0,0,	"frameRotateRight", ap_GetState_ObjSelected,	nullptr);
 
 	_s(AP_MENU_ID_FMT_DIRECTION,  1,0,0,0, nullptr, nullptr, nullptr);
 	_s(AP_MENU_ID_FMT_DIRECTION_DD_RTL,0,0,1,0, "toggleDomDirection", ap_GetState_BlockFmt, nullptr);

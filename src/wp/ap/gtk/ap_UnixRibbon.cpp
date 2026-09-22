@@ -387,10 +387,6 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				else if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
 					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
 										   item->flags);
-				else if (item->kind == AP_RIBBON_ITEM_MENU &&
-						 (item->id == (uint16_t)AP_MENU_ID_LAYOUT_GROUPOBJECTS ||
-						  item->id == (uint16_t)AP_MENU_ID_LAYOUT_ROTATE))
-					w = _disabledArrangeButton((XAP_Menu_Id)item->id);
 				else
 					w = _makeButton((XAP_Menu_Id)item->id, item->flags);
 				if (!w)
@@ -1951,6 +1947,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SENDBACKWARD:
 		popover = _makeZOrderPopover(false);
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_GROUPOBJECTS:
+		popover = _makeGroupPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ROTATE:
+		popover = _makeRotatePopover();
+		break;
 	default:
 		break;
 	}
@@ -2290,6 +2292,38 @@ static void _overlay_page_image(cairo_t * cr, double w, double h)
 	cairo_fill(cr);
 }
 
+/* overlapping-shapes badge for Group Objects */
+static void _overlay_group(cairo_t * cr, double w, double h)
+{
+	double x = w - 12.0, y = h - 11.0;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_rectangle(cr, x, y + 3.5, 7.0, 7.0);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, x + 4.5, y, 7.0, 7.0);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 0.9);
+	cairo_stroke(cr);
+}
+
+/* circular-arrow badge for Rotate */
+static void _overlay_rotate(cairo_t * cr, double w, double h)
+{
+	double cx = w - 7.0, cy = h - 7.0, r = 4.6;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.3);
+	cairo_arc(cr, cx, cy, r, -0.4, 4.0);
+	cairo_stroke(cr);
+	/* arrowhead at the arc end, pointing along the sweep */
+	double ax = cx + r * cos(4.0), ay = cy + r * sin(4.0);
+	cairo_move_to(cr, ax + 2.6, ay - 2.2);
+	cairo_line_to(cr, ax - 2.6, ay + 0.4);
+	cairo_line_to(cr, ax + 0.4, ay + 3.0);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
 /* dispatch a drawn glyph for the Layout menu ids */
 static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 {
@@ -2337,6 +2371,12 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SENDBACKWARD:
 		spec.bare = true;
 		extra = _overlay_send_backward;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_GROUPOBJECTS:
+		extra = _overlay_group;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ROTATE:
+		extra = _overlay_rotate;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR:
 		extra = _overlay_color_drop;
@@ -3015,22 +3055,146 @@ GtkWidget * AP_UnixRibbon::_makeZOrderPopover(bool bForward)
 	return popover;
 }
 
-/* a greyed Arrange-group button for features the engine lacks */
-GtkWidget * AP_UnixRibbon::_disabledArrangeButton(XAP_Menu_Id id)
+/* Arrange popovers are built once at startup; row sensitivity is
+ * re-evaluated every time the popover opens (Word greys Group until
+ * two objects are ticked in the Selection pane, Rotate until an
+ * object is selected) */
+void AP_UnixRibbon::_s_arrange_popover_map(GtkWidget * popover,
+										   gpointer data)
 {
-	const EV_Menu_Label * pLabel =
-		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
-	const char * szLabel = pLabel ? pLabel->getMenuLabel() : "";
-	GtkWidget * btn = gtk_button_new();
-	GtkWidget * icon = _layout_icon(id, 16, 16);
-	gtk_button_set_child(GTK_BUTTON(btn), icon);
-	gtk_widget_set_sensitive(btn, FALSE);
-	char tip[128];
-	char plain[64];
-	_ribbon_strip_mnemonic(szLabel, plain, sizeof(plain));
-	g_snprintf(tip, sizeof(tip), "%s (not supported yet)", plain);
-	gtk_widget_set_tooltip_text(btn, tip);
-	return btn;
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	bool bObj = pView && pView->getFrameLayout();
+	UT_sint32 nTicked = pView ? pView->groupSelCount() : 0;
+	bool bUngroup = nTicked > 0;
+	if (!bUngroup && bObj)
+	{
+		const PP_AttrProp * pAP = nullptr;
+		pView->getFrameLayout()->getAP(pAP);
+		const gchar * sz = nullptr;
+		bUngroup = pAP && pAP->getProperty("frame-group", sz)
+			&& sz && *sz;
+	}
+
+	GtkWidget * box = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "abi-box"));
+	UT_return_if_fail(box);
+	for (GtkWidget * c = gtk_widget_get_first_child(box); c;
+		 c = gtk_widget_get_next_sibling(c))
+	{
+		if (g_object_get_data(G_OBJECT(c), "abi-spin-row"))
+		{
+			for (GtkWidget * k = gtk_widget_get_first_child(c); k;
+				 k = gtk_widget_get_next_sibling(k))
+				if (GTK_IS_SPIN_BUTTON(k) || GTK_IS_BUTTON(k))
+					gtk_widget_set_sensitive(k, bObj);
+			continue;
+		}
+		const char * szMethod = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(c), "abi-em-method"));
+		if (!szMethod)
+			continue;
+		bool bOn;
+		if (!strcmp(szMethod, "frameGroup"))
+			bOn = nTicked >= 2;
+		else if (!strcmp(szMethod, "frameUngroup"))
+			bOn = bUngroup;
+		else
+			bOn = bObj;
+		gtk_widget_set_sensitive(c, bOn);
+	}
+}
+
+/* "Set" in the Rotate popover's exact-angle row */
+void AP_UnixRibbon::_s_rotate_to_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	GtkWidget * spin = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "abi-spin"));
+	UT_return_if_fail(self && spin);
+	double deg = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spin));
+	char buf[32];
+	snprintf(buf, sizeof(buf), "%.6g", deg);
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("frameRotateTo", buf);
+}
+
+/* Word's Rotate menu: fixed 90° turns, flips and an exact angle */
+GtkWidget * AP_UnixRibbon::_makeRotatePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	g_object_set_data(G_OBJECT(popover), "abi-box", box);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_arrange_popover_map), this);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Rotate Right 90\xC2\xB0", nullptr, nullptr,
+							  "frameRotateRight", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Rotate Left 90\xC2\xB0", nullptr, nullptr,
+							  "frameRotateLeft", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Flip Vertical", nullptr, nullptr,
+							  "frameFlipVert", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Flip Horizontal", nullptr, nullptr,
+							  "frameFlipHoriz", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	/* exact-angle row: spin + Set -> frameRotateTo */
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	g_object_set_data(G_OBJECT(row), "abi-spin-row",
+					  GINT_TO_POINTER(1));
+	GtkWidget * lbl = gtk_label_new("Angle:");
+	gtk_widget_set_valign(lbl, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(row), lbl);
+	GtkWidget * spin = gtk_spin_button_new_with_range(0.0, 359.9, 5.0);
+	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(spin), 1);
+	gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(spin), TRUE);
+	gtk_widget_set_hexpand(spin, TRUE);
+	gtk_box_append(GTK_BOX(row), spin);
+	GtkWidget * set = gtk_button_new_with_label("Set");
+	g_object_set_data(G_OBJECT(set), "abi-spin", spin);
+	g_signal_connect(set, "clicked",
+					 G_CALLBACK(_s_rotate_to_clicked), this);
+	gtk_box_append(GTK_BOX(row), set);
+	gtk_box_append(GTK_BOX(box), row);
+	return popover;
+}
+
+/* Word's Group menu: grouping runs on the Selection pane's ticked
+ * objects since the canvas only selects one frame at a time */
+GtkWidget * AP_UnixRibbon::_makeGroupPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	g_object_set_data(G_OBJECT(popover), "abi-box", box);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_arrange_popover_map), this);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Group", "Combine the ticked objects",
+							  nullptr, "frameGroup", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Ungroup", "Split the group into objects",
+							  nullptr, "frameUngroup", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * hint = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(hint),
+		"<span size='small' alpha='65%'>Tick objects in the Selection "
+		"Pane to choose what gets grouped</span>");
+	gtk_label_set_wrap(GTK_LABEL(hint), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(hint), 30);
+	gtk_widget_set_halign(hint, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), hint);
+	return popover;
 }
 
 /* -------- Indent / Spacing spin fields -------- */

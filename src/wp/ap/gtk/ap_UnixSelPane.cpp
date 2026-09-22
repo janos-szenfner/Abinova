@@ -41,6 +41,8 @@ AP_UnixSelPane::AP_UnixSelPane(XAP_Frame * pFrame)
 	, m_wList(nullptr)
 	, m_wUp(nullptr)
 	, m_wDown(nullptr)
+	, m_wGroup(nullptr)
+	, m_wUngroup(nullptr)
 	, m_pSelected(nullptr)
 	, m_wRenamePopover(nullptr)
 	, m_wRenameEntry(nullptr)
@@ -213,6 +215,17 @@ void AP_UnixSelPane::rebuildList()
 		gtk_widget_set_margin_top(hbox, 3);
 		gtk_widget_set_margin_bottom(hbox, 3);
 
+		/* group tick box - AbiWord's canvas only selects one frame,
+		 * so multi-select for the Group command lives here */
+		GtkWidget * chk = gtk_check_button_new();
+		gtk_widget_set_tooltip_text(chk, "Include in the Group command");
+		g_object_set_data(G_OBJECT(chk), "pfl", pFL);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(chk),
+									pView->isInGroupSel(pFL));
+		g_signal_connect(chk, "toggled",
+						 G_CALLBACK(_s_check_toggled), this);
+		gtk_box_append(GTK_BOX(hbox), chk);
+
 		GtkWidget * icon =
 			gtk_image_new_from_icon_name(s_type_icon(t));
 		gtk_box_append(GTK_BOX(hbox), icon);
@@ -222,6 +235,22 @@ void AP_UnixSelPane::rebuildList()
 		gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
 		gtk_widget_set_hexpand(lbl, TRUE);
 		gtk_box_append(GTK_BOX(hbox), lbl);
+
+		/* grouped objects show their shared id, like Word's pane
+		 * indents group members */
+		const gchar * szGrp = nullptr;
+		s_prop(pFL, "frame-group", &szGrp);
+		if (szGrp && *szGrp)
+		{
+			char gbuf[32];
+			g_snprintf(gbuf, sizeof(gbuf), "[%s]", szGrp);
+			GtkWidget * gtag = gtk_label_new(nullptr);
+			char * mk = g_markup_printf_escaped(
+				"<span size='small' alpha='60%%'>%s</span>", gbuf);
+			gtk_label_set_markup(GTK_LABEL(gtag), mk);
+			g_free(mk);
+			gtk_box_append(GTK_BOX(hbox), gtag);
+		}
 
 		GtkWidget * eye = gtk_button_new_from_icon_name(
 			s_hidden(pFL) ? "view-conceal-symbolic"
@@ -255,6 +284,7 @@ void AP_UnixSelPane::rebuildList()
 
 	gtk_widget_set_sensitive(m_wUp, m_pSelected != nullptr);
 	gtk_widget_set_sensitive(m_wDown, m_pSelected != nullptr);
+	_updateGroupButtons();
 }
 
 /* view-listener hook - only rebuilds when the document's frame
@@ -336,6 +366,81 @@ void AP_UnixSelPane::_s_move_clicked(GtkButton * btn, gpointer data)
 	AP_UnixSelPane * self = static_cast<AP_UnixSelPane *>(data);
 	int dir = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(btn), "dir"));
 	self->_move(dir);
+}
+
+void AP_UnixSelPane::_s_check_toggled(GtkCheckButton * chk,
+									gpointer data)
+{
+	AP_UnixSelPane * self = static_cast<AP_UnixSelPane *>(data);
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(
+		g_object_get_data(G_OBJECT(chk), "pfl"));
+	FV_View * pView = self->m_pFrame
+		? static_cast<FV_View *>(self->m_pFrame->getCurrentView())
+		: nullptr;
+	if (!pView || !self->_isLive(pFL))
+		return;
+	pView->toggleGroupSel(pFL,
+						  gtk_check_button_get_active(chk));
+	self->_updateGroupButtons();
+}
+
+void AP_UnixSelPane::_s_group_clicked(GtkButton * btn, gpointer data)
+{
+	AP_UnixSelPane * self = static_cast<AP_UnixSelPane *>(data);
+	if (btn == GTK_BUTTON(self->m_wUngroup))
+		self->_ungroup();
+	else
+		self->_group();
+}
+
+/* Group: combine every ticked object into one shared group id -
+ * moves and restacks as a unit afterwards */
+void AP_UnixSelPane::_group()
+{
+	FV_View * pView = m_pFrame
+		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
+	if (!pView)
+		return;
+	UT_GenericVector<fl_FrameLayout *> sel;
+	pView->getGroupSel(sel);
+	if (pView->groupFrames(sel))
+		pView->clearGroupSel();
+	rebuildList();
+}
+
+/* Ungroup: clears the group id off every ticked object plus the
+ * currently selected frame */
+void AP_UnixSelPane::_ungroup()
+{
+	FV_View * pView = m_pFrame
+		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
+	if (!pView)
+		return;
+	UT_GenericVector<fl_FrameLayout *> sel;
+	pView->getGroupSel(sel);
+	fl_FrameLayout * pCur = pView->getFrameLayout();
+	if (pCur && sel.findItem(pCur) < 0)
+		sel.addItem(pCur);
+	pView->ungroupFrames(sel);
+	rebuildList();
+}
+
+void AP_UnixSelPane::_updateGroupButtons()
+{
+	FV_View * pView = m_pFrame
+		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
+	UT_sint32 nTicked = pView ? pView->groupSelCount() : 0;
+	if (m_wGroup)
+		gtk_widget_set_sensitive(m_wGroup, nTicked >= 2);
+	bool bCanUngroup = nTicked > 0;
+	if (!bCanUngroup && pView && pView->getFrameLayout())
+	{
+		const gchar * sz = nullptr;
+		s_prop(pView->getFrameLayout(), "frame-group", &sz);
+		bCanUngroup = sz && *sz;
+	}
+	if (m_wUngroup)
+		gtk_widget_set_sensitive(m_wUngroup, bCanUngroup);
 }
 
 void AP_UnixSelPane::_s_close_clicked(GtkButton * /*btn*/, gpointer data)
@@ -512,5 +617,38 @@ GtkWidget * AP_UnixSelPane::createWidget()
 	gtk_box_append(GTK_BOX(bar), hint);
 
 	gtk_box_append(GTK_BOX(box), bar);
+
+	/* second bar: grouping - the tick boxes mark the objects the
+	 * Group command combines */
+	GtkWidget * gbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	gtk_widget_set_margin_start(gbar, 8);
+	gtk_widget_set_margin_end(gbar, 8);
+	gtk_widget_set_margin_bottom(gbar, 4);
+
+	m_wGroup = gtk_button_new_with_label("Group");
+	gtk_widget_set_tooltip_text(m_wGroup,
+		"Combine the ticked objects into one unit");
+	g_object_set_data(G_OBJECT(m_wGroup), "grp", GINT_TO_POINTER(1));
+	g_signal_connect(m_wGroup, "clicked",
+					 G_CALLBACK(_s_group_clicked), this);
+	gtk_widget_set_sensitive(m_wGroup, FALSE);
+	gtk_box_append(GTK_BOX(gbar), m_wGroup);
+
+	m_wUngroup = gtk_button_new_with_label("Ungroup");
+	gtk_widget_set_tooltip_text(m_wUngroup,
+		"Split the ticked or selected group into objects");
+	g_signal_connect(m_wUngroup, "clicked",
+					 G_CALLBACK(_s_group_clicked), this);
+	gtk_widget_set_sensitive(m_wUngroup, FALSE);
+	gtk_box_append(GTK_BOX(gbar), m_wUngroup);
+
+	GtkWidget * ghint = gtk_label_new("Tick to multi-select");
+	gtk_widget_add_css_class(ghint, "dim-label");
+	gtk_label_set_ellipsize(GTK_LABEL(ghint), PANGO_ELLIPSIZE_END);
+	gtk_widget_set_hexpand(ghint, TRUE);
+	gtk_label_set_xalign(GTK_LABEL(ghint), 1.0);
+	gtk_box_append(GTK_BOX(gbar), ghint);
+
+	gtk_box_append(GTK_BOX(box), gbar);
 	return box;
 }

@@ -413,9 +413,16 @@ public:
 	static EV_EditMethod_Fn frameBehindText;
 	static EV_EditMethod_Fn frameBringForward;
 	static EV_EditMethod_Fn frameBringToFront;
+	static EV_EditMethod_Fn frameFlipHoriz;
+	static EV_EditMethod_Fn frameFlipVert;
+	static EV_EditMethod_Fn frameGroup;
 	static EV_EditMethod_Fn frameInFrontOfText;
+	static EV_EditMethod_Fn frameRotateLeft;
+	static EV_EditMethod_Fn frameRotateRight;
+	static EV_EditMethod_Fn frameRotateTo;
 	static EV_EditMethod_Fn frameSendBackward;
 	static EV_EditMethod_Fn frameSendToBack;
+	static EV_EditMethod_Fn frameUngroup;
 	static EV_EditMethod_Fn cutFrame;
 	static EV_EditMethod_Fn copyFrame;
 	static EV_EditMethod_Fn selectFrame;
@@ -1041,9 +1048,16 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(frameBehindText),		0,		""),
 	EV_EditMethod(NF(frameBringForward),	0,		""),
 	EV_EditMethod(NF(frameBringToFront),	0,		""),
+	EV_EditMethod(NF(frameFlipHoriz),		0,		""),
+	EV_EditMethod(NF(frameFlipVert),		0,		""),
+	EV_EditMethod(NF(frameGroup),			0,		""),
 	EV_EditMethod(NF(frameInFrontOfText),	0,		""),
+	EV_EditMethod(NF(frameRotateLeft),		0,		""),
+	EV_EditMethod(NF(frameRotateRight),		0,		""),
+	EV_EditMethod(NF(frameRotateTo),		0,		""),
 	EV_EditMethod(NF(frameSendBackward),	0,		""),
 	EV_EditMethod(NF(frameSendToBack),		0,		""),
+	EV_EditMethod(NF(frameUngroup),			0,		""),
 
 	// g
 	EV_EditMethod(NF(go),					0,	""),
@@ -16815,6 +16829,90 @@ Defun1(frameBehindText)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
 	return pView->frameSetTextLayer(false);
+}
+
+Defun1(frameRotateRight)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->rotateFrame(pView->getFrameLayout(), 90.0);
+}
+
+Defun1(frameRotateLeft)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->rotateFrame(pView->getFrameLayout(), -90.0);
+}
+
+Defun1(frameFlipHoriz)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->flipFrame(pView->getFrameLayout(), true);
+}
+
+Defun1(frameFlipVert)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->flipFrame(pView->getFrameLayout(), false);
+}
+
+/* absolute rotation angle, call data is the degrees string */
+Defun(frameRotateTo)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	double deg = 0.0;
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		deg = g_ascii_strtod(s.utf8_str(), nullptr);
+	}
+	return pView->setFrameRotation(pView->getFrameLayout(), deg);
+}
+
+Defun1(frameGroup)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_GenericVector<fl_FrameLayout *> sel;
+	pView->getGroupSel(sel);
+	if (sel.getItemCount() < 2)
+	{
+		XAP_Frame * pFrame =
+			static_cast<XAP_Frame *>(pAV_View->getParentData());
+		if (pFrame)
+		{
+			pFrame->setStatusMessage(
+				"Tick two or more objects in the Selection Pane first");
+		}
+		return false;
+	}
+	bool bOK = pView->groupFrames(sel);
+	if (bOK)
+		pView->clearGroupSel();
+	return bOK;
+}
+
+Defun1(frameUngroup)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_GenericVector<fl_FrameLayout *> sel;
+	pView->getGroupSel(sel);
+	fl_FrameLayout * pCur = pView->getFrameLayout();
+	if (pCur && sel.findItem(pCur) < 0)
+		sel.addItem(pCur);
+	return pView->ungroupFrames(sel);
 }
 
 Defun1(selPane)

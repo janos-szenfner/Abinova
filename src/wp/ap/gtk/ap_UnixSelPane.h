@@ -55,6 +55,9 @@ private:
 	void			_toggleHidden(GtkWidget * eyeBtn);
 	void			_move(int iDir);
 	void			_rename(GtkListBoxRow * row);
+	void			_group();
+	void			_ungroup();
+	void			_updateGroupButtons();
 
 	static void		_s_row_selected(GtkListBox * box,
 									GtkListBoxRow * row, gpointer data);
@@ -67,11 +70,16 @@ private:
 								  GdkModifierType mods, gpointer data);
 	static void		_s_row_gesture(GtkGestureClick * g, int n_press,
 								   double x, double y, gpointer data);
+	static void		_s_check_toggled(GtkCheckButton * chk,
+									 gpointer data);
+	static void		_s_group_clicked(GtkButton * btn, gpointer data);
 
 	XAP_Frame *		m_pFrame;
 	GtkWidget *		m_wList;
 	GtkWidget *		m_wUp;
 	GtkWidget *		m_wDown;
+	GtkWidget *		m_wGroup;
+	GtkWidget *		m_wUngroup;
 	fl_FrameLayout *	m_pSelected;
 	GtkWidget *		m_wRenamePopover;
 	GtkWidget *		m_wRenameEntry;

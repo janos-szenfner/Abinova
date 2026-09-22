@@ -58,6 +58,7 @@
 #include "ie_mailmerge.h"
 #include "fp_TableContainer.h"
 #include "fl_BlockLayout.h"
+#include "fl_FrameLayout.h"
 
 
 #define ABIWORD_VIEW  	FV_View * pView = static_cast<FV_View *>(pAV_View)
@@ -1916,6 +1917,31 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_ObjSelected)
 	if(pView->getFrameLayout())
 	{
 		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
+
+/* Group is only offered when at least two objects are ticked in the
+ * Selection pane - AbiWord's canvas has no multi-object selection */
+Defun_EV_GetMenuItemState_Fn(ap_GetState_Groupable)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if (pView->groupSelCount() >= 2)
+	{
+		return EV_MIS_ZERO;
+	}
+	/* ungrouping works on the single selected frame too */
+	fl_FrameLayout * pFL = pView->getFrameLayout();
+	if (pFL)
+	{
+		const PP_AttrProp * pAP = nullptr;
+		pFL->getAP(pAP);
+		const gchar * sz = nullptr;
+		if (pAP && pAP->getProperty("frame-group", sz) && sz && *sz)
+			return EV_MIS_ZERO;
 	}
 	return EV_MIS_Gray;
 }

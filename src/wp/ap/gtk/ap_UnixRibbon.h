@@ -106,7 +106,11 @@ private:
 							   GtkWidget * icon, const char * szMethod,
 							   const char * szData, bool bSensitive = true);
 	GtkWidget *		_makeZOrderPopover(bool bForward);
-	GtkWidget *		_disabledArrangeButton(XAP_Menu_Id id);
+	GtkWidget *		_makeRotatePopover();
+	GtkWidget *		_makeGroupPopover();
+	static void		_s_rotate_to_clicked(GtkWidget * w, gpointer data);
+	static void		_s_arrange_popover_map(GtkWidget * popover,
+										   gpointer data);
 	GtkWidget *		_popoverMenuButton(XAP_Menu_Id id);
 	GtkWidget *		_popoverTbButton(XAP_Toolbar_Id id,
 									 const char * szLabel);

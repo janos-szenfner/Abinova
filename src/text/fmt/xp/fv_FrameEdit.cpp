@@ -25,6 +25,7 @@
 #include "gr_DrawArgs.h"
 #include "gr_Graphics.h"
 #include "ut_units.h"
+#include "ut_string.h"
 #include "ut_debugmsg.h"
 #include "fl_BlockLayout.h"
 #include "fp_Line.h"
@@ -1188,6 +1189,16 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 	{
 		const PP_AttrProp* pSectionAP = nullptr;
 		m_pFrameLayout->getAP(pSectionAP);
+		/* group drag: remember the pre-drag page position so the
+		 * other group members can be shifted by the same delta */
+		const gchar * szOldPX = nullptr, * szOldPY = nullptr;
+		if (pSectionAP)
+		{
+			pSectionAP->getProperty("frame-page-xpos", szOldPX);
+			pSectionAP->getProperty("frame-page-ypos", szOldPY);
+		}
+		UT_String sOldPX = szOldPX ? szOldPX : "";
+		UT_String sOldPY = szOldPY ? szOldPY : "";
 
 //
 // If there was no drag, the user just clicked and released the left mouse
@@ -1272,6 +1283,18 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 		else
 		{
 			pFL = getLayout()->relocateFrame(pFL, pCloseBL, PP_NOPROPS, props);
+		}
+
+		/* grouped frames move as one unit: shift every other member
+		 * by the same delta, inside this drag's undo glob */
+		if (pFL && m_iFrameEditMode == FV_FrameEdit_DRAG_EXISTING
+			&& !sOldPX.empty() && !sOldPY.empty())
+		{
+			double dX = UT_convertToInches(FrameStrings.sPageXpos.c_str())
+					  - UT_convertToInches(sOldPX.c_str());
+			double dY = UT_convertToInches(FrameStrings.sPageYpos.c_str())
+					  - UT_convertToInches(sOldPY.c_str());
+			m_pView->shiftFrameGroup(pFL, dX, dY);
 		}
 
         // Finish up with the usual stuff

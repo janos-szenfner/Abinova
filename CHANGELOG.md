@@ -401,8 +401,9 @@ below are on `main` but the release has not been cut yet.
   render them yet). Paragraph group gains Left/Right indent and
   Before/After spacing spin fields synced from the cursor's
   paragraph. Arrange group renders Position/Wrap/Bring/Send/
-  Selection Pane/Align/Group/Rotate, with unsupported entries
-  visibly disabled rather than mis-wired.
+  Selection Pane/Align/Group/Rotate — Group and Rotate are
+  functional popovers (see below); Align remains visibly disabled
+  rather than mis-wired.
 - **Word-style Document dialog** — new `AP_DIALOG_ID_DOCUMENT`
   (`ap_Dialog_Document` + `ap_UnixDialog_Document`) with Margins
   (top/bottom/left/right, gutter + gutter position, multiple
@@ -490,6 +491,38 @@ below are on `main` but the release has not been cut yet.
   ribbon button there. `EV_UnixMenu::ensureAction` creates
   `GSimpleAction`s for ribbon-only menu ids so the button works
   without a classic-menubar entry.
+- **Object grouping (Word-style Group/Ungroup)** — two or more
+  objects ticked in the Selection Pane (or selected in frame edit)
+  can be combined into one logical unit via the new persistent
+  `frame-group` property (`FV_View::groupFrames` assigns the next
+  free `gN` id and compacts the members into one contiguous Z-order
+  block). Grouped objects move together — a whole-frame drag shifts
+  every member by the same delta inside the same undo glob
+  (`FV_FrameEdit::mouseRelease` → `FV_View::shiftFrameGroup`) —
+  restack together (`fp_Page::restackFrameContainer` moves the whole
+  group block while preserving member order), and rotate/flip
+  together around the group's bounding-box centre
+  (`FV_View::_groupTransform` orbits/mirrors each member's centre
+  and updates its own rotation/flip props). Ungroup removes the id
+  via `PTC_RemoveFmt` (an empty-value `PTC_AddFmt` write is a no-op,
+  which initially left the property in place). The Selection Pane
+  shows a `[gN]` badge per member and offers Group/Ungroup buttons —
+  Group is insensitive until two objects are ticked
+  (`ap_GetState_Groupable`).
+- **Object rotation and flipping** — `frame-rotation`,
+  `frame-flip-horiz` and `frame-flip-vert` are new persistent frame
+  properties applied in `fp_FrameContainer::draw` as a cairo
+  transform around the frame centre (rotation normalised to
+  [0,360), flips as negative scales). The Layout ribbon's Rotate
+  button opens a Word-style popover: Rotate Right 90° / Rotate Left
+  90° / Flip Vertical / Flip Horizontal plus a custom-angle field
+  (`frameRotateTo`). Selection handles follow the transform in
+  `drawHandles`, hit-testing un-rotates the point back into frame
+  space (`fp_FrameContainer::unrotatePoint` used by
+  `fp_Page::mapXYToPosition`), and damage tracking uses the rotated
+  ink bounding box (`getInkBounds`/`s_rotatedBounds`) so rotated
+  content is not clipped or left undrawn. Rotation and flips survive
+  `.abw` save/reload and also render in the PDF export path.
 
 ### Ubuntu Launchpad bug fixes
 
@@ -558,6 +591,21 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Canvas blanking fixed when selecting a transformed object** —
+  `GR_CairoGraphics::getCairo()` implicitly calls `beginPaint()` when
+  no paint is running; calling it from `draw()`/`drawHandles()`
+  during the frame-edit redraw path (which runs outside a paint
+  cycle) left the paint/group stack unbalanced and blanked the whole
+  canvas on the next paint. Both call sites now only take the cairo
+  context when `getPaintCount() > 0`.
+- **Frame-layout teardown use-after-free fixed** —
+  `~fl_FrameLayout` queries `getDocLayout()->getView()
+  ->getFrameEdit()`, but `IE_Exp_Cairo::_writeDocument` (and similar
+  teardowns) delete the `FV_View` before the layout — reading
+  `FV_FrameEdit::m_pFrameLayout` off the freed view (caught by
+  valgrind, surfaced as `munmap_chunk` on exit). `~FV_View` now
+  calls `m_pLayout->setView(nullptr)` first, which also clears the
+  stale `fp_Page::m_pView` pointers used by `expandDamageRect`.
 - **Click/drag selection offset** — clicks and drag-selections landed
   ~7 text rows below the pointer: `gdk_event_get_position()` returns
   *surface*-relative coordinates under GTK4, offset from the drawing

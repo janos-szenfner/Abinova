@@ -38,6 +38,8 @@
 #include "ev_Mouse.h"
 #include "ut_misc.h"
 #include "ut_string.h"
+#include "ut_units.h"
+#include <math.h>
 #include "ut_std_string.h"
 #include "ut_bytebuf.h"
 #include "ut_timer.h"
@@ -667,6 +669,13 @@ FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
 
 FV_View::~FV_View()
 {
+	// detach from the layout first - fl_FrameLayout's destructor
+	// dereferences getView() during teardown, so the layout must not
+	// hold a pointer to this dying view
+	if(m_pLayout)
+	{
+		m_pLayout->setView(nullptr);
+	}
 	// remove prefs listener
 	m_pApp->getPrefs()->removeListener( _prefsListener, this );
 
@@ -1532,46 +1541,15 @@ bool FV_View::restackFrame(fl_FrameLayout * pFL, int iDir)
 		return false;
 	}
 	fp_Page * pPage = pFC->getPage();
+	bool bAbove = pFC->isAbove();
 	UT_sint32 j = pPage->restackFrameContainer(pFC, iDir);
 	if (j < 0)
 	{
 		return false;
 	}
-	/* rank the moved frame between its new neighbours; equal or
-	 * missing ranks get nudged past the layer edge */
-	bool bAbove = pFC->isAbove();
-	UT_sint32 n = bAbove ? pPage->countAboveFrameContainers()
-						 : pPage->countBelowFrameContainers();
-	double rank;
-	if (j == 0)
-	{
-		fp_FrameContainer * pNext = bAbove
-			? pPage->getNthAboveFrameContainer(1)
-			: pPage->getNthBelowFrameContainer(1);
-		rank = (pNext ? pNext->getStackOrder() : 0.0) - 1.0;
-	}
-	else if (j == n - 1)
-	{
-		fp_FrameContainer * pPrev = bAbove
-			? pPage->getNthAboveFrameContainer(j - 1)
-			: pPage->getNthBelowFrameContainer(j - 1);
-		rank = (pPrev ? pPrev->getStackOrder() : 0.0) + 1.0;
-	}
-	else
-	{
-		fp_FrameContainer * pPrev = bAbove
-			? pPage->getNthAboveFrameContainer(j - 1)
-			: pPage->getNthBelowFrameContainer(j - 1);
-		fp_FrameContainer * pNext = bAbove
-			? pPage->getNthAboveFrameContainer(j + 1)
-			: pPage->getNthBelowFrameContainer(j + 1);
-		double lo = pPrev ? pPrev->getStackOrder() : 0.0;
-		double hi = pNext ? pNext->getStackOrder() : lo + 2.0;
-		rank = lo + (hi - lo) / 2.0;
-	}
-	char buf[32];
-	snprintf(buf, sizeof(buf), "%.6g", rank);
-	setFrameProp(pFL, "frame-stack-order", buf);
+	/* persist the whole layer order - when the frame is grouped the
+	 * block move changes several members' positions at once */
+	_renumberFrameLayer(pPage, bAbove);
 	return true;
 }
 
@@ -1607,16 +1585,485 @@ bool FV_View::setFrameProp(fl_FrameLayout * pFL,
 		return false;
 	}
 	_saveAndNotifyPieceTableChange();
+	bool bOK = _writeFrameProp(pFL, szName, szVal);
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return bOK;
+}
+
+/*! Bulk variant of setFrameProp - one undoable write. */
+bool FV_View::setFrameProps(fl_FrameLayout * pFL,
+							const PP_PropertyVector & props)
+{
+	if(!pFL || props.empty())
+	{
+		return false;
+	}
+	_saveAndNotifyPieceTableChange();
+	bool bOK = _writeFrameProps(pFL, props);
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return bOK;
+}
+
+bool FV_View::_writeFrameProp(fl_FrameLayout * pFL,
+							  const char * szName, const char * szVal)
+{
+	if(!pFL || !szName || !*szName)
+	{
+		return false;
+	}
 	PT_DocPosition pos = pFL->getPosition(true) + 1;
 	PP_PropertyVector props = { szName, szVal ? szVal : "" };
+	/* an empty value means "remove the property" - PTC_AddFmt with an
+	 * empty value is a no-op (used by ungroup) */
+	UT_DebugOnly<bool> bRet =
+		m_pDoc->changeStruxFmt(szVal && *szVal ? PTC_AddFmt
+											   : PTC_RemoveFmt,
+							   pos, pos, PP_NOPROPS,
+							   props, PTX_SectionFrame);
+	UT_ASSERT(bRet);
+	return true;
+}
+
+bool FV_View::_writeFrameProps(fl_FrameLayout * pFL,
+							   const PP_PropertyVector & props)
+{
+	if(!pFL || props.empty())
+	{
+		return false;
+	}
+	PT_DocPosition pos = pFL->getPosition(true) + 1;
 	UT_DebugOnly<bool> bRet =
 		m_pDoc->changeStruxFmt(PTC_AddFmt, pos, pos, PP_NOPROPS,
 							   props, PTX_SectionFrame);
 	UT_ASSERT(bRet);
+	return true;
+}
+
+/* rewrites every frame's frame-stack-order in one page layer so the
+ * persisted ranks match the current stacking order */
+void FV_View::_renumberFrameLayer(fp_Page * pPage, bool bAbove)
+{
+	if (!pPage)
+	{
+		return;
+	}
+	UT_sint32 n = bAbove ? pPage->countAboveFrameContainers()
+						 : pPage->countBelowFrameContainers();
+	UT_GenericVector<fl_FrameLayout *> vecFL;
+	for (UT_sint32 i = 0; i < n; i++)
+	{
+		fp_FrameContainer * pFC = bAbove
+			? pPage->getNthAboveFrameContainer(i)
+			: pPage->getNthBelowFrameContainer(i);
+		if (pFC && pFC->getSectionLayout())
+			vecFL.addItem(static_cast<fl_FrameLayout *>(
+							  pFC->getSectionLayout()));
+	}
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for (UT_sint32 i = 0; i < vecFL.getItemCount(); i++)
+	{
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%d", i);
+		_writeFrameProp(vecFL.getNthItem(i), "frame-stack-order", buf);
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+}
+
+/* reads a frame property off its section attrprops - the returned
+ * pointer is only valid until the next document change */
+static const char * s_framePropStr(fl_FrameLayout * pFL,
+								   const char * szName)
+{
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	if (pAP && pAP->getProperty(szName, sz) && sz && *sz)
+		return sz;
+	return nullptr;
+}
+
+/*!
+ * Adds dDegrees (clockwise) to the frame's rotation - Word's Rotate
+ * Right/Left 90 commands.  The result is normalised to [0,360).
+ * When the frame is grouped, every member rotates by the same angle
+ * and orbits the group's bounding-box centre.
+ */
+bool FV_View::rotateFrame(fl_FrameLayout * pFL, double dDegrees)
+{
+	if (!pFL)
+		return false;
+	UT_GenericVector<fl_FrameLayout *> members;
+	getGroupMembers(pFL, members);
+	if (members.getItemCount() == 0)
+	{
+		const char * sz = s_framePropStr(pFL, "frame-rotation");
+		double cur = sz ? g_ascii_strtod(sz, nullptr) : 0.0;
+		double deg = fmod(cur + dDegrees, 360.0);
+		if (deg < 0.0)
+			deg += 360.0;
+		return setFrameRotation(pFL, deg);
+	}
+	members.addItem(pFL);
+	_groupTransform(members, dDegrees, false, false);
+	return true;
+}
+
+/*! Sets an absolute rotation angle in degrees. */
+bool FV_View::setFrameRotation(fl_FrameLayout * pFL, double degrees)
+{
+	if (!pFL)
+		return false;
+	double deg = fmod(degrees, 360.0);
+	if (deg < 0.0)
+		deg += 360.0;
+	if (deg < 0.0005 || deg > 359.9995)
+		deg = 0.0;
+	char buf[32];
+	snprintf(buf, sizeof(buf), "%.6g", deg);
+	return setFrameProp(pFL, "frame-rotation", buf);
+}
+
+/*!
+ * Toggles the frame's horizontal or vertical flip.  On a group the
+ * members mirror across the group's bounding-box centre line and
+ * each member's own flip flag toggles.
+ */
+bool FV_View::flipFrame(fl_FrameLayout * pFL, bool bHorizontal)
+{
+	if (!pFL)
+		return false;
+	UT_GenericVector<fl_FrameLayout *> members;
+	getGroupMembers(pFL, members);
+	if (members.getItemCount() == 0)
+	{
+		const char * szName = bHorizontal ? "frame-flip-horiz"
+										  : "frame-flip-vert";
+		const char * sz = s_framePropStr(pFL, szName);
+		bool bOn = sz && strcmp(sz, "0") != 0 && strcmp(sz, "false") != 0;
+		return setFrameProp(pFL, szName, bOn ? "0" : "1");
+	}
+	members.addItem(pFL);
+	_groupTransform(members, 0.0, bHorizontal, !bHorizontal);
+	return true;
+}
+
+/* frame centre in page space (inches) from its position/size props */
+static bool s_framePageBox(fl_FrameLayout * pFL,
+						   double & x, double & y,
+						   double & w, double & h)
+{
+	const char * szX = s_framePropStr(pFL, "frame-page-xpos");
+	const char * szY = s_framePropStr(pFL, "frame-page-ypos");
+	const char * szW = s_framePropStr(pFL, "frame-width");
+	const char * szH = s_framePropStr(pFL, "frame-height");
+	if (!szX || !szY || !szW || !szH)
+		return false;
+	x = UT_convertToInches(szX);
+	y = UT_convertToInches(szY);
+	w = UT_convertToInches(szW);
+	h = UT_convertToInches(szH);
+	return true;
+}
+
+/*!
+ * Shared engine for group rotate/flip: for each member the position
+ * props are shifted so the member centre orbits/mirrors around the
+ * group bounding-box centre, then the member's own rotation/flip prop
+ * is updated.  One undoable glob for the whole group.
+ */
+void FV_View::_groupTransform(UT_GenericVector<fl_FrameLayout *> & members,
+							  double dDegrees, bool bFlipH, bool bFlipV)
+{
+	double bx0 = 1e30, by0 = 1e30, bx1 = -1e30, by1 = -1e30;
+	for (UT_sint32 i = 0; i < members.getItemCount(); i++)
+	{
+		double x, y, w, h;
+		if (s_framePageBox(members.getNthItem(i), x, y, w, h))
+		{
+			bx0 = UT_MIN(bx0, x); by0 = UT_MIN(by0, y);
+			bx1 = UT_MAX(bx1, x + w); by1 = UT_MAX(by1, y + h);
+		}
+	}
+	if (bx0 > bx1 || by0 > by1)
+		return;
+	double bcx = (bx0 + bx1) / 2.0, bcy = (by0 + by1) / 2.0;
+	double rad = dDegrees * M_PI / 180.0;
+	double c = cos(rad), s = sin(rad);
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for (UT_sint32 i = 0; i < members.getItemCount(); i++)
+	{
+		fl_FrameLayout * pM = members.getNthItem(i);
+		double x, y, w, h;
+		if (!s_framePageBox(pM, x, y, w, h))
+			continue;
+		double cx = x + w / 2.0, cy = y + h / 2.0;
+		double nx = cx, ny = cy;
+		if (dDegrees != 0.0)
+		{
+			nx = bcx + (cx - bcx) * c - (cy - bcy) * s;
+			ny = bcy + (cx - bcx) * s + (cy - bcy) * c;
+		}
+		if (bFlipH)
+			nx = 2.0 * bcx - nx;
+		if (bFlipV)
+			ny = 2.0 * bcy - ny;
+		_shiftFrame(pM, nx - cx, ny - cy);
+		if (dDegrees != 0.0)
+		{
+			const char * sz = s_framePropStr(pM, "frame-rotation");
+			double cur = sz ? g_ascii_strtod(sz, nullptr) : 0.0;
+			double deg = fmod(cur + dDegrees, 360.0);
+			if (deg < 0.0)
+				deg += 360.0;
+			char buf[32];
+			snprintf(buf, sizeof(buf), "%.6g", deg);
+			_writeFrameProp(pM, "frame-rotation", buf);
+		}
+		if (bFlipH || bFlipV)
+		{
+			const char * szName = bFlipH ? "frame-flip-horiz"
+										 : "frame-flip-vert";
+			const char * sz = s_framePropStr(pM, szName);
+			bool bOn = sz && strcmp(sz, "0") != 0
+					   && strcmp(sz, "false") != 0;
+			_writeFrameProp(pM, szName, bOn ? "0" : "1");
+		}
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+}
+
+/*!
+ * Every frame sharing pFL's frame-group id, excluding pFL itself.
+ */
+void FV_View::getGroupMembers(fl_FrameLayout * pFL,
+							  UT_GenericVector<fl_FrameLayout *> & vec) const
+{
+	const char * sz = s_framePropStr(pFL, "frame-group");
+	UT_String gid = sz ? sz : "";
+	if (gid.empty())
+		return;
+	UT_GenericVector<fl_FrameLayout *> all;
+	getFrameLayouts(all);
+	for (UT_sint32 i = 0; i < all.getItemCount(); i++)
+	{
+		fl_FrameLayout * pM = all.getNthItem(i);
+		if (pM == pFL)
+			continue;
+		const char * szM = s_framePropStr(pM, "frame-group");
+		if (szM && gid == szM)
+			vec.addItem(pM);
+	}
+}
+
+/*!
+ * Groups the frames in vecSel into a new shared group id - Word's
+ * Group command.  Requires at least two distinct frames.  After the
+ * id is written the members are compacted into one contiguous Z-order
+ * block so the group occupies a single logical stacking slot.
+ */
+bool FV_View::groupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel)
+{
+	UT_GenericVector<fl_FrameLayout *> sel;
+	for (UT_sint32 i = 0; i < vecSel.getItemCount(); i++)
+	{
+		fl_FrameLayout * pFL = vecSel.getItemCount() > i
+			? vecSel.getNthItem(i) : nullptr;
+		if (pFL && sel.findItem(pFL) < 0)
+			sel.addItem(pFL);
+	}
+	if (sel.getItemCount() < 2)
+		return false;
+
+	/* next free group id: g1, g2, ... */
+	UT_GenericVector<fl_FrameLayout *> all;
+	getFrameLayouts(all);
+	int maxId = 0;
+	for (UT_sint32 i = 0; i < all.getItemCount(); i++)
+	{
+		const char * sz = s_framePropStr(all.getNthItem(i), "frame-group");
+		if (sz)
+		{
+			int id = 0;
+			if (sscanf(sz, "g%d", &id) == 1 && id > maxId)
+				maxId = id;
+		}
+	}
+	char gid[32];
+	snprintf(gid, sizeof(gid), "g%d", maxId + 1);
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for (UT_sint32 i = 0; i < sel.getItemCount(); i++)
+		_writeFrameProp(sel.getNthItem(i), "frame-group", gid);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+
+	/* compact the members into one Z-order block per page layer */
+	UT_GenericVector<fp_Page *> pages;
+	for (UT_sint32 i = 0; i < sel.getItemCount(); i++)
+	{
+		fl_FrameLayout * pFL = sel.getNthItem(i);
+		fp_FrameContainer * pFC = pFL ? static_cast<fp_FrameContainer *>(
+			pFL->getFirstContainer()) : nullptr;
+		if (!pFC || !pFC->getPage())
+			continue;
+		fp_Page * pPage = pFC->getPage();
+		bool bAbove = pFC->isAbove();
+		pPage->restackFrameContainer(pFC, 0);
+		_renumberFrameLayer(pPage, bAbove);
+	}
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*! Removes the group id from every frame in vecSel - Word's Ungroup. */
+bool FV_View::ungroupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel)
+{
+	bool bAny = false;
+	for (UT_sint32 i = 0; i < vecSel.getItemCount(); i++)
+	{
+		if (s_framePropStr(vecSel.getNthItem(i), "frame-group"))
+		{
+			bAny = true;
+			break;
+		}
+	}
+	if (!bAny)
+		return false;
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for (UT_sint32 i = 0; i < vecSel.getItemCount(); i++)
+		_writeFrameProp(vecSel.getNthItem(i), "frame-group", "");
+	m_pDoc->endUserAtomicGlob();
 	_restorePieceTableState();
 	_generalUpdate();
 	notifyListeners(AV_CHG_MOTION);
 	return true;
+}
+
+/*!
+ * Shifts every group-mate of pMoved by the same delta (inches) - the
+ * second half of a group drag: the dragged frame's new position was
+ * already written by FV_FrameEdit::mouseRelease, here the other
+ * members follow inside the same undo glob.
+ */
+bool FV_View::shiftFrameGroup(fl_FrameLayout * pMoved,
+							  double dXin, double dYin)
+{
+	if (!pMoved || (dXin == 0.0 && dYin == 0.0))
+		return false;
+	UT_GenericVector<fl_FrameLayout *> members;
+	getGroupMembers(pMoved, members);
+	if (members.getItemCount() == 0)
+		return false;
+	for (UT_sint32 i = 0; i < members.getItemCount(); i++)
+		_shiftFrame(members.getNthItem(i), dXin, dYin);
+	return true;
+}
+
+/* shifts one frame's position props by a delta in inches - raw
+ * write, caller wraps it in an undo glob */
+bool FV_View::_shiftFrame(fl_FrameLayout * pFL,
+						  double dXin, double dYin)
+{
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	if (!pAP)
+		return false;
+	static const char * xProps[] = {
+		"xpos", "frame-col-xpos", "frame-page-xpos"
+	};
+	static const char * yProps[] = {
+		"ypos", "frame-col-ypos", "frame-page-ypos"
+	};
+	PP_PropertyVector props;
+	for (int k = 0; k < 3; k++)
+	{
+		const gchar * sz = nullptr;
+		if (pAP->getProperty(xProps[k], sz) && sz && *sz)
+		{
+			double v = UT_convertToInches(sz) + dXin;
+			props.push_back(xProps[k]);
+			props.push_back(UT_convertInchesToDimensionString(
+								DIM_IN, v));
+		}
+		sz = nullptr;
+		if (pAP->getProperty(yProps[k], sz) && sz && *sz)
+		{
+			double v = UT_convertToInches(sz) + dYin;
+			props.push_back(yProps[k]);
+			props.push_back(UT_convertInchesToDimensionString(
+								DIM_IN, v));
+		}
+	}
+	if (props.empty())
+		return false;
+	return _writeFrameProps(pFL, props);
+}
+
+/* -------- multi-frame selection (Group command + Selection pane) -- */
+
+void FV_View::toggleGroupSel(fl_FrameLayout * pFL, bool bOn)
+{
+	if (!pFL)
+		return;
+	if (bOn)
+	{
+		if (m_vecGroupSel.findItem(pFL) < 0)
+			m_vecGroupSel.addItem(pFL);
+	}
+	else
+	{
+		UT_sint32 i = m_vecGroupSel.findItem(pFL);
+		if (i >= 0)
+			m_vecGroupSel.deleteNthItem(i);
+	}
+}
+
+bool FV_View::isInGroupSel(fl_FrameLayout * pFL) const
+{
+	return pFL && m_vecGroupSel.findItem(pFL) >= 0;
+}
+
+UT_sint32 FV_View::groupSelCount(void)
+{
+	/* prune entries whose frame no longer exists */
+	UT_GenericVector<fl_FrameLayout *> all;
+	getFrameLayouts(all);
+	for (UT_sint32 i = m_vecGroupSel.getItemCount() - 1; i >= 0; i--)
+	{
+		if (all.findItem(m_vecGroupSel.getNthItem(i)) < 0)
+			m_vecGroupSel.deleteNthItem(i);
+	}
+	return m_vecGroupSel.getItemCount();
+}
+
+void FV_View::getGroupSel(UT_GenericVector<fl_FrameLayout *> & vec)
+{
+	groupSelCount();
+	for (UT_sint32 i = 0; i < m_vecGroupSel.getItemCount(); i++)
+		vec.addItem(m_vecGroupSel.getNthItem(i));
+}
+
+void FV_View::clearGroupSel(void)
+{
+	m_vecGroupSel.clear();
 }
 
 /*!

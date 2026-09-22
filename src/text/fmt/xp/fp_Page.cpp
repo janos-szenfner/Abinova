@@ -1215,7 +1215,8 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 		fp_FrameContainer* pFC = m_vecBelowFrames.getNthItem(i);
 		if(pFC->isHidden())
 			continue;
-		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
+		UT_Rect r;
+		pFC->getInkBounds(r);
 		if(m_rDamageRect.intersectsRect(&r))
 		{
 			pFC->setOverWrote();
@@ -1236,7 +1237,8 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 		UT_nonnull_or_continue(pFC);
 		if(!pFC->isTightWrapped() || pFC->isHidden())
 			continue;
-		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
+		UT_Rect r;
+		pFC->getInkBounds(r);
 		if(m_rDamageRect.intersectsRect(&r))
 		{
 			pFC->setOverWrote();
@@ -1350,7 +1352,8 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 		UT_nonnull_or_continue(pFC);
 		if(pFC->isTightWrapped() || pFC->isHidden())
 			continue;
-		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
+		UT_Rect r;
+		pFC->getInkBounds(r);
 		if(m_rDamageRect.intersectsRect(&r))
 		{
 			pFC->setOverWrote();
@@ -1422,7 +1425,8 @@ void   fp_Page::redrawDamagedFrames(dg_DrawArgs* pDA)
 		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
 		if(pFC->isHidden())
 			continue;
-		UT_Rect r(pFC->getX(),pFC->getY(),pFC->getWidth(),pFC->getHeight());
+		UT_Rect r;
+		pFC->getInkBounds(r);
 		if(m_rDamageRect.intersectsRect(&r))
 		{
 			pFC->setOverWrote();
@@ -2504,10 +2508,13 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 			}
 			if ((pFrameC->getFirstContainer()) || isImage )
 			{
-				if ((x >= (pFrameC->getFullX()- iextra))
-					&& (x < (pFrameC->getFullX() + pFrameC->getFullWidth()+iextra))
-					&& (y >= (pFrameC->getFullY() - iextra))
-					&& (y < (pFrameC->getFullY() + pFrameC->getFullHeight() + iextra))
+				/* rotated frames: test the point in unrotated space */
+				UT_sint32 hx = x, hy = y;
+				pFrameC->unrotatePoint(hx, hy);
+				if ((hx >= (pFrameC->getFullX()- iextra))
+					&& (hx < (pFrameC->getFullX() + pFrameC->getFullWidth()+iextra))
+					&& (hy >= (pFrameC->getFullY() - iextra))
+					&& (hy < (pFrameC->getFullY() + pFrameC->getFullHeight() + iextra))
 					)
 				{
 					if(isImage)
@@ -2515,11 +2522,11 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 						pos = pFL->getPosition(true);
 						return;
 					}
-					pFrameC->mapXYToPosition(x - pFrameC->getX(), y - pFrameC->getY(), pos, bBOL, bEOL,isTOC);
+					pFrameC->mapXYToPosition(hx - pFrameC->getX(), hy - pFrameC->getY(), pos, bBOL, bEOL,isTOC);
 					return;
 				}
-				
-				iDist = pFrameC->distanceFromPoint(x, y);
+
+				iDist = pFrameC->distanceFromPoint(hx, hy);
 //
 // The tlu(3) makes the distance of the mouse to the sensitive edge of the
 // text box 3 pixels. ie Move the mouse within 3 pixels of the textbox and it
@@ -2538,9 +2545,9 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 					iMinDist = iDist;
 					pMinDist = static_cast<fp_VerticalContainer *>(pFrameC);
 				}
-				
-				if ( (y >= pFrameC->getY())
-					 && (y < (pFrameC->getY() + pFrameC->getHeight()))) 
+
+				if ( (hy >= pFrameC->getY())
+					 && (hy < (pFrameC->getY() + pFrameC->getHeight())))
 				{
 					if (iDist < iMinXDist)
 					{
@@ -2563,10 +2570,12 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 			}
 			if ((pFrameC->getFirstContainer()) || isImage )
 			{
-				if ((x >= (pFrameC->getFullX()- iextra))
-					&& (x < (pFrameC->getFullX() + pFrameC->getFullWidth()+iextra))
-					&& (y >= (pFrameC->getFullY() - iextra))
-					&& (y < (pFrameC->getFullY() + pFrameC->getFullHeight() + iextra))
+				UT_sint32 hx = x, hy = y;
+				pFrameC->unrotatePoint(hx, hy);
+				if ((hx >= (pFrameC->getFullX()- iextra))
+					&& (hx < (pFrameC->getFullX() + pFrameC->getFullWidth()+iextra))
+					&& (hy >= (pFrameC->getFullY() - iextra))
+					&& (hy < (pFrameC->getFullY() + pFrameC->getFullHeight() + iextra))
 					)
 				{
 					if(isImage)
@@ -2574,11 +2583,11 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 						pos = pFL->getPosition(true);
 						return;
 					}
-					pFrameC->mapXYToPosition(x - pFrameC->getX(), y - pFrameC->getY(), pos, bBOL, bEOL,isTOC);
+					pFrameC->mapXYToPosition(hx - pFrameC->getX(), hy - pFrameC->getY(), pos, bBOL, bEOL,isTOC);
 					return;
 				}
-				
-				iDist = pFrameC->distanceFromPoint(x, y);
+
+				iDist = pFrameC->distanceFromPoint(hx, hy);
 //
 // The tlu(3) makes the distance of the mouse to the sensitive edge of the
 // text box 3 pixels. ie Move the mouse within 3 pixels of the textbox and it
@@ -2597,9 +2606,9 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 					iMinDist = iDist;
 					pMinDist = static_cast<fp_VerticalContainer *>(pFrameC);
 				}
-				
-				if ( (y >= pFrameC->getY())
-					 && (y < (pFrameC->getY() + pFrameC->getHeight()))) 
+
+				if ( (hy >= pFrameC->getY())
+					 && (hy < (pFrameC->getY() + pFrameC->getHeight())))
 				{
 					if (iDist < iMinXDist)
 					{
@@ -3069,16 +3078,96 @@ UT_sint32 fp_Page::restackFrameContainer(fp_FrameContainer * pFC, int iDir)
 	{
 		return -1;
 	}
-	UT_sint32 j = (iDir > 1) ? n - 1 : (iDir < -1) ? 0 : i + iDir;
-	if (j == i || j < 0 || j >= n)
+	/* grouped frames move in the Z-order as one block - collect this
+	 * frame's group-mates within the same page layer */
+	const char * szGroup = pFC->getGroupId();
+	UT_GenericVector<fp_FrameContainer *> members;
+	if (szGroup && *szGroup)
 	{
-		return -1;
+		for (UT_sint32 k = 0; k < n; k++)
+		{
+			fp_FrameContainer * pM = vec.getNthItem(k);
+			const char * szM = pM ? pM->getGroupId() : nullptr;
+			if (szM && strcmp(szM, szGroup) == 0)
+				members.addItem(pM);
+		}
 	}
-	vec.deleteNthItem(i);
-	vec.insertItemAt(pFC, j);
+	if (members.getItemCount() < 2)
+	{
+		UT_sint32 j = (iDir > 1) ? n - 1 : (iDir < -1) ? 0 : i + iDir;
+		if (j == i || j < 0 || j >= n)
+		{
+			return -1;
+		}
+		vec.deleteNthItem(i);
+		vec.insertItemAt(pFC, j);
+		markDirtyOverlappingRuns(pFC);
+		_reformat();
+		return j;
+	}
+
+	/* make the members a contiguous block anchored at the current
+	 * top member, preserving their relative order */
+	UT_sint32 k = members.getItemCount();
+	UT_sint32 iTop = -1;
+	for (UT_sint32 m = 0; m < k; m++)
+	{
+		UT_sint32 idx = vec.findItem(members.getNthItem(m));
+		if (idx > iTop)
+			iTop = idx;
+	}
+	for (UT_sint32 m = 0; m < k; m++)
+	{
+		vec.deleteNthItem(vec.findItem(members.getNthItem(m)));
+	}
+	UT_sint32 blockStart = iTop + 1 - k;
+	for (UT_sint32 m = 0; m < k; m++)
+	{
+		vec.insertItemAt(members.getNthItem(m), blockStart + m);
+	}
+	UT_sint32 blockEnd = blockStart + k - 1;
+	if (iDir > 1)
+	{
+		/* bring to front - whole block on top */
+		for (UT_sint32 m = 0; m < k; m++)
+			vec.deleteNthItem(blockStart);
+		for (UT_sint32 m = 0; m < k; m++)
+			vec.addItem(members.getNthItem(m));
+	}
+	else if (iDir < -1)
+	{
+		/* send to back - whole block at the bottom */
+		for (UT_sint32 m = 0; m < k; m++)
+			vec.deleteNthItem(blockStart);
+		for (UT_sint32 m = 0; m < k; m++)
+			vec.insertItemAt(members.getNthItem(m), m);
+	}
+	else if (iDir > 0)
+	{
+		/* one step forward - the neighbour above the block drops
+		 * below it */
+		if (blockEnd < static_cast<UT_sint32>(vec.getItemCount()) - 1)
+		{
+			fp_FrameContainer * pUp = vec.getNthItem(blockEnd + 1);
+			vec.deleteNthItem(blockEnd + 1);
+			vec.insertItemAt(pUp, blockStart);
+		}
+	}
+	else if (iDir < 0)
+	{
+		/* one step back - the neighbour below the block rises
+		 * above it */
+		if (blockStart > 0)
+		{
+			fp_FrameContainer * pDown = vec.getNthItem(blockStart - 1);
+			vec.deleteNthItem(blockStart - 1);
+			vec.insertItemAt(pDown, blockEnd);
+		}
+	}
+	/* iDir == 0 just compacts the group (group creation) */
 	markDirtyOverlappingRuns(pFC);
 	_reformat();
-	return j;
+	return vec.findItem(pFC);
 }
 
 void fp_Page::removeFrameContainer(fp_FrameContainer * _pFC)

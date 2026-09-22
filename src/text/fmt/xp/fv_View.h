@@ -590,6 +590,31 @@ public:
 	bool            selectFrameObject(fl_FrameLayout * pFL);
 	bool            setFrameProp(fl_FrameLayout * pFL,
 								 const char * szName, const char * szVal);
+	bool            setFrameProps(fl_FrameLayout * pFL,
+								  const PP_PropertyVector & props);
+	/* Group/Rotate: rotation and flips are persisted frame props
+	 * applied as a cairo transform at draw time; grouping links
+	 * frames via a shared "frame-group" id so they move and restack
+	 * as one unit */
+	bool            rotateFrame(fl_FrameLayout * pFL, double dDegrees);
+	bool            setFrameRotation(fl_FrameLayout * pFL, double degrees);
+	bool            flipFrame(fl_FrameLayout * pFL, bool bHorizontal);
+	void            getGroupMembers(fl_FrameLayout * pFL,
+									UT_GenericVector<fl_FrameLayout *> & vec) const;
+	bool            groupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel);
+	bool            ungroupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel);
+	/* shifts every group-mate of pMoved by the same delta (inches) -
+	 * group drag; caller must be inside an undo glob */
+	bool            shiftFrameGroup(fl_FrameLayout * pMoved,
+									double dXin, double dYin);
+	/* multi-frame selection used by the Selection pane checkboxes
+	 * and the Group command - AbiWord's canvas only tracks one
+	 * selected frame, so the extra picks live here */
+	void            toggleGroupSel(fl_FrameLayout * pFL, bool bOn);
+	bool            isInGroupSel(fl_FrameLayout * pFL) const;
+	UT_sint32       groupSelCount(void);
+	void            getGroupSel(UT_GenericVector<fl_FrameLayout *> & vec);
+	void            clearGroupSel(void);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_sint32 mouseX, UT_sint32 mouseY);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG);
 
@@ -1041,6 +1066,19 @@ protected:
 									  const PP_PropertyVector & propsBlock);
 	bool                _changeCellAttach(PT_DocPosition posCell, UT_sint32 left, UT_sint32 right,
 									  UT_sint32 top, UT_sint32 bot);
+	/* raw frame-strux property writes - no glob/notify, callers wrap
+	 * them in beginUserAtomicGlob for multi-frame operations */
+	bool                _writeFrameProp(fl_FrameLayout * pFL,
+										const char * szName,
+										const char * szVal);
+	bool                _writeFrameProps(fl_FrameLayout * pFL,
+										 const PP_PropertyVector & props);
+	void                _renumberFrameLayer(fp_Page * pPage, bool bAbove);
+	bool                _shiftFrame(fl_FrameLayout * pFL,
+									double dXin, double dYin);
+	void                _groupTransform(UT_GenericVector<fl_FrameLayout *> & members,
+										double dDegrees,
+										bool bFlipH, bool bFlipV);
 
 
 private:
@@ -1183,6 +1221,7 @@ private:
 	bool                m_bInsertAtTablePending;
 	PT_DocPosition      m_iPosAtTable;
 	UT_GenericVector<fv_CaretProps *> m_vecCarets;
+	UT_GenericVector<fl_FrameLayout *> m_vecGroupSel;
 	std::string       m_sDocUUID;
 	bool				m_bAnnotationPreviewActive;
 	UT_uint32			m_iAnnPviewID;

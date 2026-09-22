@@ -40,6 +40,7 @@
 #include "fp_TableContainer.h"
 #include "fv_View.h"
 #include "gr_Painter.h"
+#include "gr_CairoGraphics.h"
 #include "fl_BlockLayout.h"
 
 /*!
@@ -149,6 +150,136 @@ bool fp_FrameContainer::isHidden(void)
 	return pAP && pAP->getProperty("frame-hidden", sz) &&
 		   sz && sz[0] && strcmp(sz, "0") != 0 &&
 		   strcmp(sz, "false") != 0;
+}
+
+/*!
+ * Clockwise rotation angle in degrees, from the "frame-rotation"
+ * property.  Rotation is applied as a cairo transform around the
+ * frame centre at draw time - layout and wrapping keep using the
+ * unrotated rectangle.
+ */
+double fp_FrameContainer::getRotation(void)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	if (pAP && pAP->getProperty("frame-rotation", sz) && sz && *sz)
+		return g_ascii_strtod(sz, nullptr);
+	return 0.0;
+}
+
+static bool s_frameBoolProp(fp_FrameContainer * pFC, const char * szName)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	return pAP && pAP->getProperty(szName, sz) &&
+		   sz && sz[0] && strcmp(sz, "0") != 0 &&
+		   strcmp(sz, "false") != 0;
+}
+
+bool fp_FrameContainer::isFlippedHoriz(void)
+{
+	return s_frameBoolProp(this, "frame-flip-horiz");
+}
+
+bool fp_FrameContainer::isFlippedVert(void)
+{
+	return s_frameBoolProp(this, "frame-flip-vert");
+}
+
+bool fp_FrameContainer::isTransformed(void)
+{
+	return getRotation() != 0.0 || isFlippedHoriz() || isFlippedVert();
+}
+
+/*!
+ * The "frame-group" id shared by the members of a group, or nullptr
+ * when the frame is not grouped.  The pointer is only valid while the
+ * frame's attributes are unchanged - callers should copy it.
+ */
+const char * fp_FrameContainer::getGroupId(void) const
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(
+		const_cast<fp_FrameContainer *>(this)->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	if (pAP && pAP->getProperty("frame-group", sz) && sz && *sz)
+		return sz;
+	return nullptr;
+}
+
+/*!
+ * Rotates the four corners of a rect around its centre and returns
+ * the axis-aligned bounding box of the result.
+ */
+static void s_rotatedBounds(double rx, double ry, double rw, double rh,
+							double deg, UT_Rect & out)
+{
+	if (deg == 0.0)
+	{
+		out.left = static_cast<UT_sint32>(rx);
+		out.top = static_cast<UT_sint32>(ry);
+		out.width = static_cast<UT_sint32>(rw);
+		out.height = static_cast<UT_sint32>(rh);
+		return;
+	}
+	double rad = deg * M_PI / 180.0;
+	double c = cos(rad), s = sin(rad);
+	double cx = rx + rw / 2.0, cy = ry + rh / 2.0;
+	double xMin = 1e30, yMin = 1e30, xMax = -1e30, yMax = -1e30;
+	static const double corner[4][2] = {
+		{0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}
+	};
+	for (int i = 0; i < 4; i++)
+	{
+		double dx = rx + corner[i][0] * rw - cx;
+		double dy = ry + corner[i][1] * rh - cy;
+		double px = cx + dx * c - dy * s;
+		double py = cy + dx * s + dy * c;
+		xMin = UT_MIN(xMin, px); xMax = UT_MAX(xMax, px);
+		yMin = UT_MIN(yMin, py); yMax = UT_MAX(yMax, py);
+	}
+	out.left = static_cast<UT_sint32>(floor(xMin));
+	out.top = static_cast<UT_sint32>(floor(yMin));
+	out.width = static_cast<UT_sint32>(ceil(xMax)) - out.left;
+	out.height = static_cast<UT_sint32>(ceil(yMax)) - out.top;
+}
+
+/*!
+ * Bounding box of the possibly-rotated frame in page coordinates -
+ * used for damage intersection so rotated frames are still painted.
+ */
+void fp_FrameContainer::getInkBounds(UT_Rect & r) const
+{
+	fp_FrameContainer * self = const_cast<fp_FrameContainer *>(this);
+	s_rotatedBounds(self->getFullX(), self->getFullY(),
+					self->getFullWidth(), self->getFullHeight(),
+					self->getRotation(), r);
+}
+
+/*!
+ * Maps a page-space point back through the frame's rotation so
+ * hit-testing can use the unrotated rectangle.
+ */
+void fp_FrameContainer::unrotatePoint(UT_sint32 & x, UT_sint32 & y) const
+{
+	double deg = const_cast<fp_FrameContainer *>(this)->getRotation();
+	if (deg == 0.0)
+		return;
+	double cx = getFullX() + getFullWidth() / 2.0;
+	double cy = getFullY() + getFullHeight() / 2.0;
+	double rad = -deg * M_PI / 180.0;
+	double c = cos(rad), s = sin(rad);
+	double dx = x - cx, dy = y - cy;
+	x = static_cast<UT_sint32>(cx + dx * c - dy * s);
+	y = static_cast<UT_sint32>(cy + dx * s + dy * c);
 }
 /*!
  * Returns true if the supplied screen rectangle overlaps with frame
@@ -621,8 +752,38 @@ void  fp_FrameContainer::drawHandles(dg_DrawArgs * pDA)
 	UT_sint32 iYlow = pDA->yoff - m_iYpad;
 
 	UT_Rect box(iXlow + pDA->pG->tlu(2), iYlow + pDA->pG->tlu(2), getFullWidth() - pDA->pG->tlu(4), iFullHeight - pDA->pG->tlu(4));
-	getPage()->expandDamageRect(box.left,box.top,box.width,box.height);
+	UT_Rect inkBox;
+	s_rotatedBounds(iXlow, iYlow, getFullWidth(), getFullHeight(),
+					getRotation(), inkBox);
+	getPage()->expandDamageRect(inkBox.left, inkBox.top,
+								inkBox.width, inkBox.height);
+	/* draw the handles under the same transform as the frame so the
+	 * selection outline follows the rotated object */
+	cairo_t * cr = nullptr;
+	double rot = getRotation();
+	bool bFlipH = isFlippedHoriz(), bFlipV = isFlippedVert();
+	if (rot != 0.0 || bFlipH || bFlipV)
+	{
+		GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+		/* getCairo() calls beginPaint() when no paint is running -
+		 * doing that outside a real draw unbalances the paint/group
+		 * stack and blanks the canvas, so only transform mid-paint */
+		if (pCG && pCG->getPaintCount() > 0)
+			cr = pCG->getCairo();
+	}
+	if (cr)
+	{
+		double dcx = pG->tdu(iXlow + getFullWidth() / 2);
+		double dcy = pG->tdu(iYlow + getFullHeight() / 2);
+		cairo_save(cr);
+		cairo_translate(cr, dcx, dcy);
+		cairo_rotate(cr, rot * M_PI / 180.0);
+		cairo_scale(cr, bFlipH ? -1.0 : 1.0, bFlipV ? -1.0 : 1.0);
+		cairo_translate(cr, -dcx, -dcy);
+	}
 	getView()->drawSelectionBox(box, true);
+	if (cr)
+		cairo_restore(cr);
 }
 
 /*!
@@ -678,7 +839,39 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 
 	UT_sint32 x = pDA->xoff - m_iXpad;
 	UT_sint32 y = pDA->yoff - m_iYpad;
-	getPage()->expandDamageRect(x,y,getFullWidth(),getFullHeight());
+	UT_Rect inkBounds;
+	s_rotatedBounds(x, y, getFullWidth(), getFullHeight(),
+					getRotation(), inkBounds);
+	getPage()->expandDamageRect(inkBounds.left, inkBounds.top,
+								inkBounds.width, inkBounds.height);
+	/* "frame-rotation" / "frame-flip-*": rotate the cairo context
+	 * around the frame centre so everything painted below (fill,
+	 * content, borders) lands transformed.  The clip set while
+	 * transformed becomes the rotated frame outline, and the final
+	 * cairo_restore pops it again so the caller's clip state is
+	 * unchanged. */
+	cairo_t * cr = nullptr;
+	double rot = getRotation();
+	bool bFlipH = isFlippedHoriz(), bFlipV = isFlippedVert();
+	if (rot != 0.0 || bFlipH || bFlipV)
+	{
+		GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+		/* guard against getCairo()'s implicit beginPaint() when this
+		 * draw runs outside a paint cycle (frame-edit redraw) - an
+		 * unbalanced beginPaint corrupts the canvas group stack */
+		if (pCG && pCG->getPaintCount() > 0)
+			cr = pCG->getCairo();
+	}
+	if (cr)
+	{
+		double dcx = pG->tdu(x + getFullWidth() / 2);
+		double dcy = pG->tdu(y + getFullHeight() / 2);
+		cairo_save(cr);
+		cairo_translate(cr, dcx, dcy);
+		cairo_rotate(cr, rot * M_PI / 180.0);
+		cairo_scale(cr, bFlipH ? -1.0 : 1.0, bFlipV ? -1.0 : 1.0);
+		cairo_translate(cr, -dcx, -dcy);
+	}
 	if(!pDA->bDirtyRunsOnly || m_bNeverDrawn)
 	{
 		if(m_bNeverDrawn)
@@ -770,6 +963,10 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		pDA->pG->setClipRect(pPrevRect.get());
 	}
 	drawBoundaries(pDA);
+	if (cr)
+	{
+		cairo_restore(cr);
+	}
 }
 
 void fp_FrameContainer::setBackground (const PP_PropertyMap::Background & style)

@@ -125,6 +125,20 @@ public:
 	double              getStackOrder(void);
 	/* "frame-hidden" property - set by the Selection pane eye toggle */
 	bool                isHidden(void);
+	/* "frame-rotation" property - clockwise degrees, drawn via a
+	 * cairo transform around the frame centre */
+	double              getRotation(void);
+	/* "frame-flip-horiz" / "frame-flip-vert" properties */
+	bool                isFlippedHoriz(void);
+	bool                isFlippedVert(void);
+	bool                isTransformed(void);
+	/* "frame-group" property - shared id linking grouped frames */
+	const char *        getGroupId(void) const;
+	/* bounding box of the (possibly rotated) frame in page coords */
+	void                getInkBounds(UT_Rect & r) const;
+	/* maps a page-space point into the frame's unrotated space so
+	 * hit-testing works on rotated frames */
+	void                unrotatePoint(UT_sint32 & x, UT_sint32 & y) const;
 private:
 	void                   _drawLine (const PP_PropertyMap::Line & style,
 									  UT_sint32 left, UT_sint32 top,

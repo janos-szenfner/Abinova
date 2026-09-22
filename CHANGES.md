@@ -3,6 +3,51 @@
 Per-commit log of the modifications made in this fork, newest first.
 Older upstream history is not listed here.
 
+## Object grouping and rotation (Word-style Group/Rotate)
+
+- New persistent frame properties: `frame-rotation` (degrees,
+  normalised to [0,360)), `frame-flip-horiz`, `frame-flip-vert` and
+  `frame-group` (shared `gN` id per group).
+- `fp_FrameContainer::draw`/`drawHandles` apply the transform with a
+  cairo save/rotate/scale/restore around the frame centre;
+  `getInkBounds`/`unrotatePoint` give rotated damage bounds and
+  inverse hit-testing (`fp_Page::mapXYToPosition`); damage checks in
+  `fp_Page` use the ink bounds so rotated frames repaint fully.
+- `FV_View` gained `rotateFrame`/`setFrameRotation`/`flipFrame`,
+  `groupFrames`/`ungroupFrames`, `shiftFrameGroup` (group drag delta)
+  and `_groupTransform` (members orbit/mirror around the group
+  bounding-box centre); multi-object ticks live in `m_vecGroupSel`
+  (`getGroupSel`/`groupSelCount`/`clearGroupSel`/`isGroupSel`).
+- `FV_FrameEdit::mouseRelease` shifts all group members by the drag
+  delta inside the same undo glob (drags only, not resizes).
+- `fp_Page::restackFrameContainer` is group-aware: the whole group
+  block moves as one Z-order unit keeping member order.
+- New edit methods: `frameRotateR90/L90/180`, `frameRotateTo`
+  (custom angle via call data), `frameFlipHoriz/Vert`, `frameGroup`,
+  `frameUngroup`; `ap_GetState_Groupable` gates Group on ≥2 ticked
+  objects.
+- Layout ribbon: Arrange group's Group and Rotate buttons are now
+  real popover menus (Group/Ungroup; Rotate Right 90°/Left 90°/
+  Flip Vertical/Flip Horizontal/custom angle + Set) with drawn
+  glyphs; the disabled placeholder path was removed for them.
+- Selection Pane: per-row tick checkboxes drive the multi-object
+  selection, `[gN]` badges mark group members, and Group/Ungroup
+  buttons sit in the bottom bar with live sensitivity.
+- Fix: ungroup writes `PTC_RemoveFmt` — `PTC_AddFmt` with an empty
+  value silently keeps the property.
+- Fix: `getCairo()` outside a paint implicitly calls `beginPaint()`
+  and unbalanced the canvas group stack (blank canvas when selecting
+  a rotated frame); the transform is only applied when
+  `getPaintCount() > 0`.
+- Fix: `~FV_View` clears `m_pLayout->setView(nullptr)` —
+  `~fl_FrameLayout` read `FV_FrameEdit::m_pFrameLayout` off the
+  already-deleted view during teardown (valgrind UAF /
+  `munmap_chunk` on `--to=` exit).
+- Verified: build clean; on-screen group/ungroup badges and Z-order;
+  `frame-group`/`frame-rotation`/`frame-flip-horiz`/`frame-hidden`
+  all round-trip through `.abw` save/reload; 45° custom angle and
+  flips render correctly in `--to=pdf` output.
+
 ## File ribbon tab: large icon buttons, "Save a Copy" removed
 
 - File tab groups (Document, Print) now use the Help-tab style —
