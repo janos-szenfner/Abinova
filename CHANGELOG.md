@@ -243,11 +243,30 @@ below are on `main` but the release has not been cut yet.
   instead of ellipsizing; button captions render slightly smaller so
   the wide tab fits without squeezing labels; Footnote/Endnote use a
   slimmer variant to leave room for Update Table.
-- **Citations & Bibliography icons fixed** — Manage Sources draws a
-  stack of books (offset covers with pale page edges) instead of two
-  plain bars, and Bibliography's page glyph now renders its text
-  lines as a blue bulleted list (`_PageSpec::bullets`) instead of a
-  corner overlay that scribbled over the page's own lines.
+- **Citations & Bibliography icons redesigned** — Insert Citation
+  shows a page with a large quotation mark, Manage Sources is a
+  standalone bookshelf of three coloured spines, and Bibliography is
+  a standalone bulleted list; the two latter drop the cramped
+  page-glyph + corner-badge composition that read as a muddy blob at
+  16 px.
+- **Footnote/endnote parity with Word** — `Ctrl+Alt+F` inserts a
+  footnote and `Ctrl+Alt+D` inserts an endnote (`ap_LB_Default`
+  binding table); endnotes now draw the same separator line above
+  the first endnote container that footnotes have
+  (`fp_EndnoteContainer::draw`, first-fragment only); null-page
+  guards added to the endnote draw path and to footnote container
+  page lookup.
+- **Convert footnotes ↔ endnotes** — the Next Footnote dropdown on
+  the References ribbon offers "Convert All Footnotes to Endnotes",
+  "Convert All Endnotes to Footnotes" and "Swap All Footnotes and
+  Endnotes" (`footnoteToEndnote` / `endnoteToFootnote` / `noteSwap`
+  edit methods). Conversion preserves note formatting by round-
+  tripping each note's content through the RTF buffer, deletes the
+  original note section, re-inserts the opposite note type at the
+  body reference position, and wraps the whole operation in an
+  atomic undo group. Also fixed a latent edit-method table
+  misordering (`footnote*` entries were sorted after `format*`),
+  which broke `bsearch` lookup for several existing commands.
 - **Explicit `toc-level` paragraph property** — `toc-level:0`
   excludes a paragraph from generated tables and `toc-level:1`–`4`
   include any paragraph at that level without a heading style; the

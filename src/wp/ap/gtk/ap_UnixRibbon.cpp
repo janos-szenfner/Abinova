@@ -2126,7 +2126,6 @@ struct _PageSpec
 	bool	linenum;		/* tiny line-number digits */
 	int		fold;			/* folded corner / break marker */
 	bool	bare;			/* skip the page, draw only the overlay */
-	bool	bullets;		/* text lines get a bullet dot (Bibliography) */
 };
 
 /* paint a mini page: outline, margin frame, text lines */
@@ -2158,7 +2157,6 @@ static void _draw_page_glyph(cairo_t * cr, double w, double h,
 	int cols = s.cols < 1 ? 1 : s.cols;
 	double gap = 2.5;
 	double cw = (mx1 - mx0 - gap * (cols - 1)) / cols;
-	double indent = s.bullets ? 2.4 : 0.0;
 	cairo_set_source_rgb(cr, 0.55, 0.58, 0.65);
 	cairo_set_line_width(cr, 0.9);
 	for (int c = 0; c < cols; ++c)
@@ -2166,26 +2164,11 @@ static void _draw_page_glyph(cairo_t * cr, double w, double h,
 		double lx = mx0 + c * (cw + gap);
 		for (double ly = my0 + 2.0; ly < my1 - 1.0; ly += 3.2)
 		{
-			cairo_move_to(cr, lx + indent, ly);
+			cairo_move_to(cr, lx, ly);
 			cairo_line_to(cr, lx + cw, ly);
 		}
 	}
 	cairo_stroke(cr);
-
-	if (s.bullets)
-	{
-		/* blue bullet dot at the start of each text line */
-		cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
-		for (int c = 0; c < cols; ++c)
-		{
-			double lx = mx0 + c * (cw + gap);
-			for (double ly = my0 + 2.0; ly < my1 - 1.0; ly += 3.2)
-			{
-				cairo_arc(cr, lx + 0.8, ly, 0.75, 0, 2 * G_PI);
-				cairo_fill(cr);
-			}
-		}
-	}
 
 	if (s.linenum)
 	{
@@ -2526,30 +2509,61 @@ static void _badge_text(cairo_t * cr, const char * s,
 	cairo_show_text(cr, s);
 }
 
-/* "ab" mark for Insert Citation */
+/* open-quote mark + cite line for Insert Citation */
 static void _overlay_citation(cairo_t * cr, double w, double h)
 {
 	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
-	_badge_text(cr, "ab", w - 7.0, h - 7.0, 8.5);
+	_badge_text(cr, "\xE2\x80\x9C", w * 0.5, h * 0.42, h * 0.7);
+	cairo_set_line_width(cr, 1.1);
+	cairo_move_to(cr, w * 0.30, h * 0.78);
+	cairo_line_to(cr, w * 0.66, h * 0.78);
+	cairo_stroke(cr);
 }
 
-/* stacked source books for Manage Sources */
+/* bookshelf for Manage Sources */
 static void _overlay_sources(cairo_t * cr, double w, double h)
 {
-	/* each book: coloured cover with a pale "pages" edge on the right,
-	 * the top book offset left like a real stack */
-	cairo_set_source_rgb(cr, 0.55, 0.65, 0.35);
-	cairo_rectangle(cr, w - 11.0, h - 6.6, 9.0, 3.0);
-	cairo_fill(cr);
-	cairo_set_source_rgb(cr, 0.93, 0.94, 0.86);
-	cairo_rectangle(cr, w - 4.2, h - 6.6, 1.8, 3.0);
-	cairo_fill(cr);
-	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
-	cairo_rectangle(cr, w - 12.6, h - 10.2, 9.0, 3.0);
-	cairo_fill(cr);
-	cairo_set_source_rgb(cr, 0.85, 0.9, 0.97);
-	cairo_rectangle(cr, w - 5.8, h - 10.2, 1.8, 3.0);
-	cairo_fill(cr);
+	static const double hues[3][3] = {
+		{ 0.2, 0.45, 0.9 }, { 0.55, 0.65, 0.35 }, { 0.8, 0.45, 0.3 }
+	};
+	static const double hts[3] = { 0.62, 0.50, 0.58 };
+	double bw = w / 5.0, gap = 1.3;
+	double x0 = (w - 3.0 * bw - 2.0 * gap) / 2.0;
+	double base = h * 0.82;
+	for (int i = 0; i < 3; ++i)
+	{
+		double bh = h * hts[i];
+		double x = x0 + i * (bw + gap);
+		cairo_set_source_rgb(cr, hues[i][0], hues[i][1], hues[i][2]);
+		cairo_rectangle(cr, x, base - bh, bw, bh);
+		cairo_fill(cr);
+		cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.75);
+		cairo_rectangle(cr, x + 0.8, base - bh + 1.6, bw - 1.6, 1.3);
+		cairo_fill(cr);
+	}
+	cairo_set_source_rgb(cr, 0.45, 0.45, 0.45);
+	cairo_set_line_width(cr, 1.2);
+	cairo_move_to(cr, x0 - 1.5, base + 0.8);
+	cairo_line_to(cr, x0 + 3.0 * bw + 2.0 * gap + 1.5, base + 0.8);
+	cairo_stroke(cr);
+}
+
+/* bulleted list for Bibliography */
+static void _overlay_bibliography(cairo_t * cr, double w, double h)
+{
+	double x0 = w * 0.14, x1 = w * 0.88;
+	double y0 = h * 0.18, dy = h * 0.22;
+	for (int i = 0; i < 3; ++i)
+	{
+		double y = y0 + i * dy;
+		cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+		cairo_arc(cr, x0 + 1.7, y + dy * 0.42, 1.8, 0, 2 * G_PI);
+		cairo_fill(cr);
+		cairo_set_source_rgb(cr, 0.5, 0.55, 0.65);
+		double ln = (x1 - x0 - 6.0) * (i == 2 ? 0.72 : 1.0);
+		cairo_rectangle(cr, x0 + 5.5, y + dy * 0.16, ln, dy * 0.5);
+		cairo_fill(cr);
+	}
 }
 
 /* framed figure over a caption line for Insert Caption */
@@ -2748,10 +2762,12 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		extra = _overlay_citation;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_SOURCES:
+		spec.bare = true;
 		extra = _overlay_sources;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_BIBLIOGRAPHY:
-		spec.bullets = true;
+		spec.bare = true;
+		extra = _overlay_bibliography;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_CAPTION:
 		extra = _overlay_caption;
@@ -3913,6 +3929,17 @@ GtkWidget * AP_UnixRibbon::_makeNextNotePopover()
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Previous Endnote", nullptr, nullptr,
 							  "endnotePrev", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Convert All Footnotes to Endnotes", nullptr,
+							  nullptr, "footnoteToEndnote", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Convert All Endnotes to Footnotes", nullptr,
+							  nullptr, "endnoteToFootnote", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Swap Footnotes and Endnotes", nullptr,
+							  nullptr, "noteSwap", nullptr));
 	return popover;
 }
 

@@ -467,7 +467,7 @@ void fl_FootnoteLayout::_insertFootnoteContainer(fp_Container * pNewFC)
 	}
 	else
 	{
-		pPage = pUpCon->getPage();
+		pPage = pUpCon ? pUpCon->getPage() : nullptr;
 	}
 	pNewFC->setContainer(nullptr);
 

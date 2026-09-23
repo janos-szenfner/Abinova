@@ -170,7 +170,7 @@ void fp_FootnoteContainer::draw(dg_DrawArgs* pDA)
 	UT_sint32 pos = getPage()->findFootnoteContainer(this);
 	fl_DocSectionLayout * pDSL2 = getDocSectionLayout();
 	UT_sint32 iMaxFootHeight = pDSL2->getActualColumnHeight();
-	iMaxFootHeight -= pDA->pG->tlu(20)*3; 
+	iMaxFootHeight -= pDA->pG->tlu(20)*3;
 	xxx_UT_DEBUGMSG(("fp_Footnote:draw: pos %d \n",pos));
 	if(pos == 0)
 	{
@@ -770,12 +770,37 @@ void fp_EndnoteContainer::draw(dg_DrawArgs* pDA)
 {
 	xxx_UT_DEBUGMSG(("Endnote: Drawing unbroken Endnote %x x %d, y %d width %d height %d \n",this,getX(),getY(),getWidth(),getHeight()));
 	xxx_UT_DEBUGMSG(("pDA yoff %d \n",pDA->yoff));
-	const UT_Rect * pClipRect = pDA->pG->getClipRect();
-	if(pClipRect)
+	if(getPage() == nullptr)
 	{
-		UT_DEBUGMSG(("clip y %d height %d \n",pClipRect->top, pClipRect->height));
+		return;
 	}
 	m_bCleared = false;
+//
+// Draw a separator line above the first endnote, matching the footnote
+// separator, only for the first fragment (not a continuation).
+//
+	fl_DocSectionLayout * pDSL = getDocSectionLayout();
+	if(pDSL && (pDSL->getFirstEndnoteContainer() == static_cast<fp_Container *>(this)) && (getLocalPrev() == nullptr))
+	{
+		UT_RGBColor black(0,0,0);
+		UT_sint32 iLeftMargin = pDSL->getLeftMargin();
+		UT_sint32 iRightMargin = pDSL->getRightMargin();
+		UT_sint32 xoffStart = pDA->xoff;
+		UT_sint32 width = (getPage()->getWidth() - iLeftMargin - iRightMargin)/3;
+		UT_sint32 xoffEnd = pDA->xoff + width;
+		UT_sint32 yline = pDA->yoff;
+		pDA->pG->setColor(black);
+		pDA->pG->setLineProperties(pDA->pG->tlu(1),
+								   GR_Graphics::JOIN_MITER,
+								   GR_Graphics::CAP_PROJECTING,
+								   GR_Graphics::LINE_SOLID);
+		UT_sint32 iLineThick = pDSL->getFootnoteLineThickness();
+		iLineThick = UT_MAX(1,iLineThick);
+		pDA->pG->setLineWidth(iLineThick);
+		yline = yline - iLineThick - 3;
+		GR_Painter painter (pDA->pG);
+		painter.drawLine(xoffStart, yline, xoffEnd, yline);
+	}
 //
 // Only draw the lines in the clipping region.
 //

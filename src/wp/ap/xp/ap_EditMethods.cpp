@@ -783,6 +783,9 @@ public:
 	static EV_EditMethod_Fn endnoteNext;
 	static EV_EditMethod_Fn endnotePrev;
 	static EV_EditMethod_Fn showNotes;
+	static EV_EditMethod_Fn footnoteToEndnote;
+	static EV_EditMethod_Fn endnoteToFootnote;
+	static EV_EditMethod_Fn noteSwap;
 	static EV_EditMethod_Fn toggleMarkRevisions;
 	static EV_EditMethod_Fn toggleAutoRevision;
 	static EV_EditMethod_Fn revisionAccept;
@@ -1022,6 +1025,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(endDragVline),			0,	""),
 	EV_EditMethod(NF(endnoteNext),			0,	""),
 	EV_EditMethod(NF(endnotePrev),			0,	""),
+	EV_EditMethod(NF(endnoteToFootnote),	0,	""),
 	EV_EditMethod(NF(executeScript),		EV_EMT_REQUIRE_SCRIPT_NAME, ""),
 	EV_EditMethod(NF(extSelBOB),			0,	""),
 	EV_EditMethod(NF(extSelBOD),			0,	""),
@@ -1066,12 +1070,13 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(fontSize), 			_D_,	""),
 	EV_EditMethod(NF(fontSizeDecrease),		0,	""),
 	EV_EditMethod(NF(fontSizeIncrease),		0,	""),
+	EV_EditMethod(NF(footnoteNext),			0,		""),
+	EV_EditMethod(NF(footnotePrev),			0,		""),
+	EV_EditMethod(NF(footnoteToEndnote),	0,		""),
 	EV_EditMethod(NF(formatFootnotes),        0,  ""),
 	EV_EditMethod(NF(formatPainter),		0,	""),
 	EV_EditMethod(NF(formatTOC),			0,		""),
 	EV_EditMethod(NF(formatTable),			0,		""),
-	EV_EditMethod(NF(footnoteNext),			0,		""),
-	EV_EditMethod(NF(footnotePrev),			0,		""),
 	EV_EditMethod(NF(frameBehindText),		0,		""),
 	EV_EditMethod(NF(frameBringForward),	0,		""),
 	EV_EditMethod(NF(frameBringToFront),	0,		""),
@@ -1176,6 +1181,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// n
 	EV_EditMethod(NF(newWindow),			0,	""),
 	EV_EditMethod(NF(noop), 				0,	""),
+	EV_EditMethod(NF(noteSwap),				0,	""),
 
 	// o
 	EV_EditMethod(NF(openRecent_1), 		_A_,		""),
@@ -6976,6 +6982,30 @@ Defun1(showNotes)
 	UT_return_val_if_fail(pView, false);
 	pView->cmdShowNotes();
 	return true;
+}
+
+Defun1(footnoteToEndnote)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->convertNotes(true);
+}
+
+Defun1(endnoteToFootnote)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->convertNotes(false);
+}
+
+Defun1(noteSwap)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->swapNotes();
 }
 
 /*

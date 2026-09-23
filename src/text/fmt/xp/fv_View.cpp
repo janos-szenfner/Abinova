@@ -14104,6 +14104,174 @@ bool FV_View::insertFootnoteSection(bool bFootnote,const gchar * enpid)
 	return e;
 }
 
+namespace
+{
+struct FV_NoteConvRec
+{
+	PT_DocPosition	delStart;	/* position of the ref field in the body */
+	PT_DocPosition	delEnd;		/* one past the note's end strux */
+	UT_ByteBuf *	rtf;		/* note content, RTF-formatted */
+	bool			makeFootnote;	/* what the note becomes */
+};
+}
+
+/*!
+ * Convert all footnotes to endnotes (bFootnotes true) or all endnotes
+ * to footnotes (bFootnotes false).  Note content is preserved via an
+ * RTF round-trip so character formatting survives.
+ */
+bool FV_View::convertNotes(bool bFootnotes)
+{
+	return _convertNotes(bFootnotes, !bFootnotes);
+}
+
+/*!
+ * Swap every footnote into an endnote and every endnote into a footnote.
+ */
+bool FV_View::swapNotes(void)
+{
+	return _convertNotes(true, true);
+}
+
+/*!
+ * Worker for convertNotes/swapNotes: every footnote becomes an endnote
+ * when bDoFootnotes, every endnote becomes a footnote when bDoEndnotes.
+ * All edits run inside one atomic undo glob.
+ */
+bool FV_View::_convertNotes(bool bDoFootnotes, bool bDoEndnotes)
+{
+	UT_return_val_if_fail(m_pLayout && m_pDoc, false);
+
+	UT_GenericVector<FV_NoteConvRec *> notes;
+
+	/* Collect the position range and RTF content of every note to be
+	 * converted before touching the piece table, since edits shift
+	 * positions. */
+	for (UT_uint32 kind = 0; kind < 2; kind++)
+	{
+		bool bFootnote = (kind == 0);
+		if ((bFootnote && !bDoFootnotes) || (!bFootnote && !bDoEndnotes))
+		{
+			continue;
+		}
+		UT_uint32 count = bFootnote ? m_pLayout->countFootnotes()
+									: m_pLayout->countEndnotes();
+		for (UT_uint32 i = 0; i < count; i++)
+		{
+			fl_EmbedLayout * pEL = bFootnote
+				? static_cast<fl_EmbedLayout *>(m_pLayout->getNthFootnote(i))
+				: static_cast<fl_EmbedLayout *>(m_pLayout->getNthEndnote(i));
+			if (pEL == nullptr)
+			{
+				continue;
+			}
+			PT_DocPosition secPos = pEL->getDocPosition();
+			UT_uint32 secLen = pEL->getLength();
+			if (secPos < 2 || secLen < 4)
+			{
+				continue;
+			}
+			PT_DocPosition secEnd = secPos + secLen;
+
+			FV_NoteConvRec * pRec = new FV_NoteConvRec;
+			pRec->delStart = secPos - 1;	/* the ref field object */
+			pRec->delEnd = secEnd;
+			pRec->rtf = nullptr;
+			pRec->makeFootnote = !bFootnote;
+
+			/* the note's text starts after the block strux, the anchor
+			 * field object and the following tab */
+			UT_UCS4Char * pTxt = getTextBetweenPos(secPos + 1, secEnd - 1);
+			UT_uint32 skip = 0;
+			if (pTxt)
+			{
+				if (pTxt[0] == UCS_ABI_OBJECT)
+				{
+					skip++;
+				}
+				while (pTxt[skip] == UCS_TAB || pTxt[skip] == ' ')
+				{
+					skip++;
+				}
+				delete [] pTxt;
+			}
+			PT_DocPosition textStart = secPos + 2 + skip;
+			PT_DocPosition textEnd = secEnd - 1;
+			if (textEnd > textStart)
+			{
+				UT_ByteBuf * pBuf = new UT_ByteBuf;
+				PD_DocumentRange dr(m_pDoc, textStart, textEnd);
+				IE_Exp_RTF expRtf(m_pDoc);
+				if (expRtf.copyToBuffer(&dr, pBuf) == UT_OK && pBuf->getLength() > 0)
+				{
+					pRec->rtf = pBuf;
+				}
+				else
+				{
+					delete pBuf;
+				}
+			}
+			notes.addItem(pRec);
+		}
+	}
+
+	if (notes.getItemCount() == 0)
+	{
+		return false;
+	}
+
+	/* sort by position descending — footnote and endnote records were
+	 * collected in separate passes, so the vector is not ordered when
+	 * both kinds are converted (swap); editing last-to-first keeps
+	 * every remaining recorded position valid */
+	for (UT_sint32 i = 1; i < notes.getItemCount(); i++)
+	{
+		FV_NoteConvRec * pCur = notes.getNthItem(i);
+		UT_sint32 j = i - 1;
+		while (j >= 0 && notes.getNthItem(j)->delStart < pCur->delStart)
+		{
+			notes.setNthItem(j + 1, notes.getNthItem(j), nullptr);
+			j--;
+		}
+		notes.setNthItem(j + 1, pCur, nullptr);
+	}
+
+	/* convert last-to-first so earlier positions stay valid */
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for (UT_sint32 i = notes.getItemCount() - 1; i >= 0; i--)
+	{
+		FV_NoteConvRec * pRec = notes.getNthItem(i);
+		if (pRec == nullptr)
+		{
+			continue;
+		}
+
+		/* remove the ref field and the whole note section */
+		UT_uint32 iRealDeleteCount = 0;
+		m_pDoc->deleteSpan(pRec->delStart, pRec->delEnd, nullptr,
+						   iRealDeleteCount, true);
+
+		/* insert the other note type where the ref was */
+		setPoint(pRec->delStart);
+		if (insertFootnote(pRec->makeFootnote) && pRec->rtf)
+		{
+			/* the point lands inside the new note, after the
+			 * anchor field and tab */
+			PD_DocumentRange dr(m_pDoc, getPoint(), getPoint());
+			IE_Imp_RTF impRtf(m_pDoc);
+			impRtf.pasteFromBuffer(&dr, pRec->rtf->getPointer(0),
+								   pRec->rtf->getLength());
+		}
+		delete pRec->rtf;
+		delete pRec;
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	return true;
+}
+
 bool FV_View::insertPageNum(const PP_PropertyVector & props, HdrFtrType hfType)
 {
 

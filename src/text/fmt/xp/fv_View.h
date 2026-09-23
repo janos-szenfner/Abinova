@@ -723,6 +723,8 @@ public:
 //
 	bool	            insertFootnote(bool bFootnote);
 	bool	            insertFootnoteSection(bool bFootnote,const gchar * enpid);
+	bool                convertNotes(bool bFootnotes);
+	bool                swapNotes(void);
 	bool                isInFootnote(PT_DocPosition pos) const;
 	bool                isInFootnote(void) const;
 	bool                isInEndnote(PT_DocPosition pos) const;
@@ -1012,6 +1014,7 @@ protected:
 	void				_updateDatesBeforeSave(bool bOverwriteCreated);
 	void				_saveAndNotifyPieceTableChange(void);
 	void				_restorePieceTableState(void);
+	bool				_convertNotes(bool bDoFootnotes, bool bDoEndnotes);
 
 	void				_draw(UT_sint32, UT_sint32, UT_sint32, UT_sint32, bool bDirtyRunsOnly, bool bClip=false);
 
