@@ -171,6 +171,7 @@ protected:
 	void				_closeField(void);
 	void				_closeHyperlink(void);
 	void				_closeAnnotation(void);
+	void				_closeAllAnnotations(void);
     void                _closeRDFAnchor(void);
 	void				_closeTag(void);
 	void				_openSpan(PT_AttrPropIndex apiSpan);
@@ -210,7 +211,7 @@ protected:
     fd_Field *          m_pCurrentField;
 	bool                m_bOpenChar;
 	std::vector<std::string> m_vecSnapNames;
-	bool				m_bInAnnotation;
+	UT_sint32			m_iInAnnotation;
 
 
 private:
@@ -305,12 +306,19 @@ void s_AbiWord_1_Listener::_closeHyperlink(void)
 
 void s_AbiWord_1_Listener::_closeAnnotation(void)
 {
-	if (!m_bInAnnotation)
+	if (!m_iInAnnotation)
 		return;
 	UT_DEBUGMSG(("Doing close annotation object method \n"));
     _closeSpan();
 	m_pie->endElement();
-    m_bInAnnotation = false;
+    m_iInAnnotation--;
+	return;
+}
+
+void s_AbiWord_1_Listener::_closeAllAnnotations(void)
+{
+	while (m_iInAnnotation > 0)
+		_closeAnnotation();
 	return;
 }
 
@@ -503,7 +511,7 @@ s_AbiWord_1_Listener::s_AbiWord_1_Listener(PD_Document * pDocument,
 	m_iInTable = 0;
 	m_iInCell = 0;
 	m_iBlockLevel = 0;
-	m_bInAnnotation = false;
+	m_iInAnnotation = 0;
 
 	/***********************************************************************************
 
@@ -553,7 +561,7 @@ s_AbiWord_1_Listener::~s_AbiWord_1_Listener()
 	_closeSpan();
 	_closeField();
 	_closeHyperlink();
-	_closeAnnotation();
+	_closeAllAnnotations();
 	_closeBlock();
 	_closeSection();
 	_handleDataItems();
@@ -713,7 +721,6 @@ bool s_AbiWord_1_Listener::populate(fl_ContainerLayout* /*sfh*/,
    				{
    					_closeSpan();
    					_closeField();
-					_closeAnnotation();
 					const PP_AttrProp * pAP = nullptr;
 					m_pDocument->getAttrProp(api,&pAP);
 					const gchar * pName;
@@ -728,11 +735,20 @@ bool s_AbiWord_1_Listener::populate(fl_ContainerLayout* /*sfh*/,
 
 					if(bFound)
 					{
-						//this is the start of the Annotation
+						// this is the start of the Annotation. Anchors may
+						// nest (a comment can anchor text already covered by
+						// another comment), so we do not close an open <ann>
+						// here; each anonymous end object pops the innermost
+						// open anchor instead.
    						_openTag("ann", true, api,pcr->getXID(),true);
 						UT_DEBUGMSG(("Doing open annotation object \n"));
-   						m_bInAnnotation = true;
+   						m_iInAnnotation++;
    					}
+					else
+					{
+						// anonymous end object: close innermost open anchor
+						_closeAnnotation();
+					}
 					
    					return true;
    				}
@@ -801,7 +817,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();	
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			_closeSection();
 			_openTag("section",true,pcr->getIndexAP(),pcr->getXID());
@@ -813,7 +829,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			_openTag("table",true,pcr->getIndexAP(),pcr->getXID());
 			m_iInTable++;
@@ -824,7 +840,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			_openTag("cell",true,pcr->getIndexAP(),pcr->getXID());
 			m_iInCell++;
@@ -835,7 +851,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			m_bInBlock = false;
 			_openTag("foot",true,pcr->getIndexAP(),pcr->getXID());
 			return true;
@@ -857,7 +873,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			m_bInBlock = false;
 			_openTag("endnote",true,pcr->getIndexAP(),pcr->getXID());
 			return true;
@@ -867,7 +883,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			m_bInBlock = false;
 			_openTag("toc",true,pcr->getIndexAP(),pcr->getXID());
@@ -878,7 +894,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			_openTag("margin",true,pcr->getIndexAP(),pcr->getXID());
 			return true;
@@ -888,7 +904,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			_openTag("frame",true,pcr->getIndexAP(),pcr->getXID());
 			return true;
@@ -898,7 +914,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			_closeTable();
 			return true;
@@ -908,7 +924,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			_closeCell();
 			return true;
@@ -918,7 +934,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			m_pie->endElement();
 			m_bInBlock = true;
@@ -941,7 +957,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			m_pie->endElement();
 			m_bInBlock = true;
@@ -952,7 +968,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			m_pie->endElement();
 			return true;
@@ -962,7 +978,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			return true;
 		}
@@ -971,7 +987,7 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 			_closeSpan();
             _closeField();
             _closeHyperlink();
-			_closeAnnotation();
+			_closeAllAnnotations();
 			_closeBlock();
 			m_pie->endElement();
 			return true;

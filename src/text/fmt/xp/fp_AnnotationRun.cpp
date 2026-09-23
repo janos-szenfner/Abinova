@@ -118,6 +118,24 @@ void fp_AnnotationRun::_draw(dg_DrawArgs* pDA)
 	else
         {
 	    Fill(getGraphics(),pDA->xoff, iFillTop, getWidth(), iFillHeight);
+	    // tint the anchored text with a pale version of the comment
+	    // colour, like Word's comment-range highlight, so it is always
+	    // clear which text the comment refers to
+	    UT_RGBColor clrAnn(_getView()->getColorAnnotation(this));
+	    UT_RGBColor clrBG(_getColorHL());
+	    if (clrBG.isTransparent())
+	    {
+	        clrBG = _getColorPG();
+	    }
+	    int iR = clrBG.m_red + (clrAnn.m_red - clrBG.m_red) * 1 / 3;
+	    int iG = clrBG.m_grn + (clrAnn.m_grn - clrBG.m_grn) * 1 / 3;
+	    int iB = clrBG.m_blu + (clrAnn.m_blu - clrBG.m_blu) * 1 / 3;
+	    UT_RGBColor clrTint(
+	        static_cast<UT_Byte>(iR < 0 ? 0 : (iR > 255 ? 255 : iR)),
+	        static_cast<UT_Byte>(iG < 0 ? 0 : (iG > 255 ? 255 : iG)),
+	        static_cast<UT_Byte>(iB < 0 ? 0 : (iB > 255 ? 255 : iB)));
+	    painter.fillRect(clrTint, pDA->xoff, iFillTop,
+	                     getWidth(), iFillHeight);
 	    pG->setColor(_getColorFG());
 	}
 	pG->setFont(_getFont());

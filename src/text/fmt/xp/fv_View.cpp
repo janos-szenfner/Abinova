@@ -14005,6 +14005,60 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 	// Hack for bug 2940
 	if (posStart <= 1) posStart=2;
 
+	// A comment anchored at a bare caret has zero width and leaves no
+	// visible trace of what it refers to. Like Word, anchor it to the
+	// word under (or just before) the caret so the commented text is
+	// highlighted in the comment's own colour. Embedded objects
+	// (annotation markers, images, ...) are skipped so a caret pressed
+	// against an existing anchor still finds the word; struxes stop
+	// the scan so it cannot cross a block boundary.
+	if (posStart == posEnd)
+	{
+		auto fragClass = [&](PT_DocPosition pos,
+							 UT_UCS4Char & out) -> int
+		{
+			out = 0;
+			pf_Frag * pf = m_pDoc->getFragFromPosition(pos);
+			if (!pf)
+				return 0;
+			if (pf->getType() == pf_Frag::PFT_Object)
+				return 1;
+			if (pf->getType() != pf_Frag::PFT_Text)
+				return 0;
+			out = getChar(pos);
+			return 2;
+		};
+		PT_DocPosition posWStart = posStart;
+		UT_UCS4Char ch = 0;
+		while (posWStart > 2)
+		{
+			int iKind = fragClass(posWStart - 1, ch);
+			if (iKind == 1 || (iKind == 2 && UT_UCS4_isalnum(ch)))
+			{
+				--posWStart;
+				continue;
+			}
+			break;
+		}
+		PT_DocPosition posWEnd = posStart;
+		PT_DocPosition posLimit = posStart + 200;
+		while (posWEnd < posLimit)
+		{
+			int iKind = fragClass(posWEnd, ch);
+			if (iKind == 1 || (iKind == 2 && UT_UCS4_isalnum(ch)))
+			{
+				++posWEnd;
+				continue;
+			}
+			break;
+		}
+		if (posWEnd > posWStart)
+		{
+			posStart = posWStart;
+			posEnd = posWEnd;
+		}
+	}
+
 	//
 	// Look to see if the selection spans multiple blocks. If so, pick the
 	// Block containing the largest amount of selected text.

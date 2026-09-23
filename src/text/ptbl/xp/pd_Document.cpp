@@ -157,7 +157,10 @@ const UT_UTF8String * TextboxPage::getProps(void) const
 
 
 // our currently used DTD
-#define ABIWORD_FILEFORMAT_VERSION "1.1"
+// 1.2: <ann> anchor elements may nest (a comment can anchor text that
+//      is already covered by another comment); older versions read the
+//      same object order and remain compatible.
+#define ABIWORD_FILEFORMAT_VERSION "1.2"
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////

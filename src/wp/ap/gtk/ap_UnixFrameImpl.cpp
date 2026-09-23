@@ -512,6 +512,21 @@ void AP_UnixFrameImpl::setCommentsPaneVisible(bool bVisible)
 		 * insertion auto-shows the pane and the caret sits inside the
 		 * comment, so typing has to reach the document canvas */
 		focusDocument();
+		/* showing the reviewing pane must also make the anchored text
+		 * visible in the document; the layout listener reformats when
+		 * the preference changes */
+		XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+		if (pPrefs)
+		{
+			XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+			bool bDisplay = false;
+			if (pScheme
+				&& (!pScheme->getValueBool(AP_PREF_KEY_DisplayAnnotations, bDisplay)
+					|| !bDisplay))
+			{
+				pScheme->setValue(AP_PREF_KEY_DisplayAnnotations, "1");
+			}
+		}
 	}
 }
 

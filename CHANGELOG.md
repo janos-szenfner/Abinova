@@ -353,6 +353,23 @@ below are on `main` but the release has not been cut yet.
   and deleting a comment always preserves its anchored text. The pane
   auto-opens when a comment is inserted and refreshes on document
   changes (debounced so typing inside a comment is uninterrupted).
+- **Comment anchors are visibly highlighted** — the text a comment is
+  attached to is tinted with a pale shade of that comment's colour
+  (like Word's comment-range highlight), drawn under the selection
+  layer so selection still wins, and a bare-caret comment anchors to
+  the word under the caret instead of an invisible zero-width point.
+  Opening the Reviewing Pane also enables the annotation display
+  preference automatically so anchors are always visible when
+  comments are being browsed.
+- **Multiple comments on the same text** — overlapping and same-range
+  comment anchors are now representable in the `.abw` format: the
+  AbiWord-1 exporter tracks open `<ann>` elements as a nesting depth
+  instead of a single flag, so anchors nest properly instead of one
+  silently truncating the other into an empty anchor. Anonymous end
+  objects pop the innermost open anchor, and section-boundary closes
+  flush all open anchors. The importer already accepted nested
+  `<ann>` elements, so old documents load unchanged and nested files
+  still parse on older versions (they read the same object order).
 - **Annotation robustness fixes** — `insertAnnotation` now reads the
   view-level selection anchor (the raw stored anchor could point
   elsewhere and fail with "blocks differ" when inserting at a bare
