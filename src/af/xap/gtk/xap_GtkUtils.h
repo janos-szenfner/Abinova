@@ -40,6 +40,12 @@ void XAP_gtk_window_raise(GtkWidget*);
 /// Convenience to set the same margin on all side.
 void XAP_gtk_widget_set_margin(GtkWidget* w, gint margin);
 
+/// Creates a GtkPopover with sane defaults for this port: dismiss on
+/// outside presses and when the toplevel window loses activation.
+/// GTK's own autohide grab does not dismiss reliably under rootless
+/// XWayland, so the dismissal is handled manually.
+GtkWidget* xap_gtk_popover_new(void);
+
 /// Convenience to get the entry text. Takes GtkEditable so it works
 /// for GtkSpinButton too (no longer a GtkEntry in GTK4).
 inline

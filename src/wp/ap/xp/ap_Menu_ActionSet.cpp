@@ -194,7 +194,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_INSERT_SCREENSHOT,0,1,0,0,	"insScreenshot",	nullptr,								nullptr);
 	_s(AP_MENU_ID_INSERT_MEDIA,		0,1,0,0,	nullptr,			nullptr,								nullptr);
 	_s(AP_MENU_ID_INSERT_WORDART,	0,1,0,0,	nullptr,			nullptr,								nullptr);
-	_s(AP_MENU_ID_INSERT_DROPCAP,	0,1,0,0,	"notImplemented",	nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_DROPCAP,	0,1,0,0,	"dropCap",		nullptr,								nullptr);
 	_s(AP_MENU_ID_INSERT_SIGNATURE,	0,1,0,0,	"insertSignatureLine",	nullptr,							nullptr);
 	_s(AP_MENU_ID_INSERT_OBJECT,	0,1,0,0,	nullptr,			nullptr,								nullptr);
 

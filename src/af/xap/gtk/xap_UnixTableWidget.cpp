@@ -461,7 +461,7 @@ abi_table_init (AbiTable* table, gpointer)
 	g_type_ensure(GTK_TYPE_TREE_VIEW);
 	table->button_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
-	table->window = GTK_POPOVER(gtk_popover_new());
+	table->window = GTK_POPOVER(xap_gtk_popover_new());
 	gtk_widget_set_parent(GTK_WIDGET(table->window), GTK_WIDGET(table));
 	table->window_vbox = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 0));
 

@@ -444,6 +444,7 @@ public:
 	static EV_EditMethod_Fn beginVDrag;
 	static EV_EditMethod_Fn clearSetCols;
 	static EV_EditMethod_Fn dragVline;
+	static EV_EditMethod_Fn dropCap;
 	static EV_EditMethod_Fn endDragVline;
 
 	static EV_EditMethod_Fn beginHDrag;
@@ -470,6 +471,8 @@ public:
 	static EV_EditMethod_Fn pageSetup;
 	static EV_EditMethod_Fn docSettings;
 	static EV_EditMethod_Fn pageMargins;
+	static EV_EditMethod_Fn pageNumber;
+	static EV_EditMethod_Fn pageNumberRemove;
 	static EV_EditMethod_Fn pageOrientation;
 	static EV_EditMethod_Fn pageSize;
 	static EV_EditMethod_Fn pageColumns;
@@ -1032,6 +1035,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dragToXYword), 		0,	""),
 	EV_EditMethod(NF(dragVisualText),       0, ""),
 	EV_EditMethod(NF(dragVline), 			0,	""),
+	EV_EditMethod(NF(dropCap), 				0,	""),
 #ifdef DEBUG
 	EV_EditMethod(NF(dumpRDFForPoint),		0,	""),
 	EV_EditMethod(NF(dumpRDFObjects),		0,	""),
@@ -1239,6 +1243,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 #ifdef ENABLE_PRINT
 	EV_EditMethod(NF(pageColumns),			0,	""),
 	EV_EditMethod(NF(pageMargins),			0,	""),
+	EV_EditMethod(NF(pageNumber),			0,	""),
+	EV_EditMethod(NF(pageNumberRemove),		0,	""),
 	EV_EditMethod(NF(pageOrientation),		0,	""),
 	EV_EditMethod(NF(pageSetup),			0,	""),
 	EV_EditMethod(NF(pageSize),				0,	""),
@@ -7343,6 +7349,72 @@ Defun(insertFooterPreset)
 	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
 	return (UT_OK == pView->cmdInsertHeaderPreset(s.utf8_str(),
 												FL_HDRFTR_FOOTER));
+}
+
+/* Page Number popover: "header:left|center|right" or
+ * "footer:left|center|right" places the number without a dialog */
+Defun(pageNumber)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData &&
+						  pCallData->m_dataLength, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string spec = s.utf8_str();
+	std::string::size_type colon = spec.find(':');
+	if (colon == std::string::npos)
+		return false;
+	const bool bFooter = spec.compare(0, colon, "footer") == 0;
+	if (!bFooter && spec.compare(0, colon, "header") != 0)
+		return false;
+	std::string align = spec.substr(colon + 1);
+	if (align != "left" && align != "center" && align != "right")
+		return false;
+	PP_PropertyVector atts = {
+		"text-align", align
+	};
+	return pView->processPageNumber(
+		bFooter ? FL_HDRFTR_FOOTER : FL_HDRFTR_HEADER, atts);
+}
+
+Defun1(pageNumberRemove)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->removePageNumbers();
+}
+
+/* Drop Cap popover: "none" removes it, "dropped[:N]" and
+ * "margin[:N]" apply it with N lines to drop (default 3) */
+Defun(dropCap)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::string spec = "dropped";
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		spec = s.utf8_str();
+	}
+	if (spec == "none")
+		return pView->removeDropCap();
+	bool bMargin = false;
+	if (spec.compare(0, 6, "margin") == 0)
+		bMargin = true;
+	else if (spec.compare(0, 7, "dropped") != 0)
+		return false;
+	UT_sint32 iLines = 3;
+	std::string::size_type colon = spec.find(':');
+	if (colon != std::string::npos)
+	{
+		iLines = atoi(spec.c_str() + colon + 1);
+		if (iLines < 1 || iLines > 10)
+			return false;
+	}
+	return pView->insertDropCap(iLines, "", 0.0, bMargin);
 }
 
 /* Word's Signature Line: a sign-here rule with Name/Title

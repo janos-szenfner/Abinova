@@ -18,6 +18,7 @@
  */
 
 #include "xap_Frame.h"
+#include "xap_GtkUtils.h"
 #include "xap_UnixFrameImpl.h"
 #include "ut_debugmsg.h"
 #include "ap_UnixPreview_Annotation.h"
@@ -89,7 +90,7 @@ void  AP_UnixPreview_Annotation::_constructWindow(void)
 {
 	XAP_App::getApp()->rememberModelessId(getDialogId(), static_cast<XAP_Dialog_Modeless *>(this));
 	UT_DEBUGMSG(("Contructing Window width %d height %d left %d top %d \n",m_width,m_height,m_left,m_top));
-	m_pPreviewWindow = gtk_popover_new();
+	m_pPreviewWindow = xap_gtk_popover_new();
 	gtk_widget_set_size_request(m_pPreviewWindow, m_width, m_height);
 	m_pDrawingArea = gtk_drawing_area_new();
 	gtk_widget_show(GTK_WIDGET(m_pDrawingArea));

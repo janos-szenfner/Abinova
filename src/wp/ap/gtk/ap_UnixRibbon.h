@@ -119,6 +119,8 @@ private:
 	GtkWidget *		_makeTextBoxPopover();
 	GtkWidget *		_makeObjectPopover();
 	GtkWidget *		_makeHdrFtrPopover(bool bFooter);
+	GtkWidget *		_makePageNumberPopover();
+	GtkWidget *		_makeDropCapPopover();
 	/* Review tab */
 	GtkWidget *		_makeCommentDeletePopover();
 	GtkWidget *		_makeCommentShowPopover();

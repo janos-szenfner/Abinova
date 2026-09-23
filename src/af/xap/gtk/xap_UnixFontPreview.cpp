@@ -22,6 +22,7 @@
 #include "xap_UnixFontPreview.h"
 #include "gr_UnixCairoGraphics.h"
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkUtils.h"
 
 XAP_UnixFontPreview::XAP_UnixFontPreview(XAP_Frame * pFrame, GtkWidget * attachTo)
 	: XAP_FontPreview()
@@ -30,7 +31,7 @@ XAP_UnixFontPreview::XAP_UnixFontPreview(XAP_Frame * pFrame, GtkWidget * attachT
 
 	// GTK4: no GTK_WINDOW_POPUP or gtk_window_move(); a GtkPopover attached
 	// to the font combo does the positioning for us
-	m_pPreviewWindow = gtk_popover_new();
+	m_pPreviewWindow = xap_gtk_popover_new();
 	gtk_popover_set_has_arrow(GTK_POPOVER(m_pPreviewWindow), FALSE);
 
 	m_pDrawingArea = gtk_drawing_area_new ();

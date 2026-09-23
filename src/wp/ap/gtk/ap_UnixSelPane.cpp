@@ -27,6 +27,7 @@
 #include "ap_UnixSelPane.h"
 #include "ap_UnixFrameImpl.h"
 #include "xap_Frame.h"
+#include "xap_GtkUtils.h"
 #include "fv_View.h"
 #include "fl_FrameLayout.h"
 #include "fp_FrameContainer.h"
@@ -515,7 +516,7 @@ void AP_UnixSelPane::_rename(GtkListBoxRow * row)
 {
 	if (m_wRenamePopover)
 		gtk_widget_unparent(m_wRenamePopover);
-	m_wRenamePopover = gtk_popover_new();
+	m_wRenamePopover = xap_gtk_popover_new();
 	gtk_widget_set_parent(m_wRenamePopover, GTK_WIDGET(row));
 	m_wRenameRow = row;
 

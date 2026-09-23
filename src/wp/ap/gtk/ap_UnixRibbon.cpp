@@ -40,6 +40,7 @@
 #include "xap_UnixFrameImpl.h"
 #include "xap_Strings.h"
 #include "xap_EncodingManager.h"
+#include "xap_GtkUtils.h"
 #include "ev_UnixMenuBar.h"
 #include "ev_UnixFontCombo.h"
 #include "ev_Menu_Labels.h"
@@ -1194,7 +1195,7 @@ GtkWidget * AP_UnixRibbon::_tb_color_button_new(const gchar * icon_name,
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(button), GTK_ARROW_DOWN);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(button), FALSE);
 
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
 	gtk_widget_set_margin_top(box, 6);
 	gtk_widget_set_margin_bottom(box, 6);
@@ -1648,7 +1649,7 @@ void AP_UnixRibbon::_s_paste_special_response(GtkDialog * dlg, gint resp,
 /* Paste options: Paste / Paste Special… */
 GtkWidget * AP_UnixRibbon::_makePastePopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -1713,7 +1714,7 @@ GtkWidget * AP_UnixRibbon::_listTile(const char * szMarkup,
  * full Bullets & Numbering dialog */
 GtkWidget * AP_UnixRibbon::_makeBulletLibraryPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -1768,7 +1769,7 @@ GtkWidget * AP_UnixRibbon::_makeBulletLibraryPopover()
  * numbering style + "Define New Number Format" entry */
 GtkWidget * AP_UnixRibbon::_makeNumberingLibraryPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -1827,7 +1828,7 @@ GtkWidget * AP_UnixRibbon::_makeNumberingLibraryPopover()
  * the full Bullets & Numbering dialog */
 GtkWidget * AP_UnixRibbon::_makeMultilevelLibraryPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -1933,7 +1934,7 @@ GtkWidget * AP_UnixRibbon::_makeListPopover(XAP_Toolbar_Id id)
  * conversions wired straight to the edit methods */
 GtkWidget * AP_UnixRibbon::_makeChangeCasePopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -2042,6 +2043,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
 		popover = _makeHdrFtrPopover(true);
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
+		popover = _makePageNumberPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DROPCAP:
+		popover = _makeDropCapPopover();
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_TOCPOP:
 		popover = _makeTOCGalleryPopover();
@@ -3561,7 +3568,6 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 
 	char label[64];
 	_ribbon_strip_mnemonic(szLabel ? szLabel : "", label, sizeof(label));
-
 	GtkWidget * mb = gtk_menu_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	GtkWidget * icon = _layout_icon(id, 24, 24);
@@ -3669,7 +3675,7 @@ static GtkWidget * _popover_section_label(const char * szText)
 
 static GtkWidget * _popover_new_box(GtkWidget ** box)
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * b = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(b, 4);
 	gtk_widget_set_margin_bottom(b, 4);
@@ -4500,7 +4506,7 @@ void AP_UnixRibbon::_s_toc_gallery_map(GtkWidget * popover,
  * followed by Custom Table of Contents… and Remove Table of Contents */
 GtkWidget * AP_UnixRibbon::_makeTOCGalleryPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -4777,7 +4783,7 @@ void AP_UnixRibbon::_s_cover_gallery_map(GtkWidget * popover,
  * the code-generated designs, then "Remove Current Cover" */
 GtkWidget * AP_UnixRibbon::_makeCoverPagePopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -5132,7 +5138,7 @@ void AP_UnixRibbon::_addGalleryDir(GtkWidget * parent,
 
 GtkWidget * AP_UnixRibbon::_makeShapesPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -5172,7 +5178,7 @@ GtkWidget * AP_UnixRibbon::_makeShapesPopover()
 /* 3D Models: the bundled Fluent UI 3D emoji set (artwork/3d) */
 GtkWidget * AP_UnixRibbon::_make3DModelsPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -5229,7 +5235,7 @@ GtkWidget * AP_UnixRibbon::_makeMediaPopover()
  * inserts sample text with that character styling */
 GtkWidget * AP_UnixRibbon::_makeWordArtPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * grid = gtk_grid_new();
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
 	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
@@ -5781,7 +5787,7 @@ static void _hdrftr_card_draw(GtkDrawingArea *, cairo_t * cr,
 
 GtkWidget * AP_UnixRibbon::_makeHdrFtrPopover(bool bFooter)
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -5900,6 +5906,77 @@ GtkWidget * AP_UnixRibbon::_makeHdrFtrPopover(bool bFooter)
 							  nullptr, nullptr,
 							  bFooter ? "removeFooter" : "removeHeader",
 							  nullptr));
+	return popover;
+}
+
+/* Word's Page Number dropdown: position + alignment option rows,
+ * a format/options dialog shortcut and a remove row */
+GtkWidget * AP_UnixRibbon::_makePageNumberPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Top of Page"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Left", nullptr, nullptr,
+							  "pageNumber", "header:left"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Center", nullptr, nullptr,
+							  "pageNumber", "header:center"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Right", nullptr, nullptr,
+							  "pageNumber", "header:right"));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Bottom of Page"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Left", nullptr, nullptr,
+							  "pageNumber", "footer:left"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Center", nullptr, nullptr,
+							  "pageNumber", "footer:center"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Right", nullptr, nullptr,
+							  "pageNumber", "footer:right"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Page Number Options\xe2\x80\xa6", nullptr,
+							  nullptr, "insPageNo", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Remove Page Numbers", nullptr, nullptr,
+							  "pageNumberRemove", nullptr));
+	return popover;
+}
+
+/* Word's Drop Cap dropdown: None / Dropped / In margin plus a
+ * lines-to-drop option group */
+GtkWidget * AP_UnixRibbon::_makeDropCapPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("None", nullptr, nullptr,
+							  "dropCap", "none"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Dropped", nullptr, nullptr,
+							  "dropCap", "dropped:3"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("In margin", nullptr, nullptr,
+							  "dropCap", "margin:3"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("Lines to drop"));
+	static const char * const s_lines[] =
+		{ "2", "3", "4", "5" };
+	for (unsigned i = 0; i < G_N_ELEMENTS(s_lines); i++)
+	{
+		std::string label = std::string(s_lines[i]) + " lines";
+		std::string data = std::string("dropped:") + s_lines[i];
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(label.c_str(), nullptr, nullptr,
+								  "dropCap", data.c_str()));
+	}
 	return popover;
 }
 
@@ -6709,7 +6786,7 @@ void AP_UnixRibbon::_refreshSpinFields()
 /* line-spacing dropdown: single/1.5/double spacing */
 GtkWidget * AP_UnixRibbon::_makeLineSpacingPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -6733,7 +6810,7 @@ GtkWidget * AP_UnixRibbon::_makeLineSpacingPopover()
 /* paragraph-spacing dropdown: space before paragraph */
 GtkWidget * AP_UnixRibbon::_makeParaSpacingPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -6756,7 +6833,7 @@ GtkWidget * AP_UnixRibbon::_makeParaSpacingPopover()
 /* paragraph sort dropdown: ascending/descending */
 GtkWidget * AP_UnixRibbon::_makeSortParaPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -6883,7 +6960,7 @@ GtkWidget * AP_UnixRibbon::_borderRow(int edges, const char * szLabel,
  * Borders and Shading dialog entry */
 GtkWidget * AP_UnixRibbon::_makeBordersPopover()
 {
-	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * popover = xap_gtk_popover_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
