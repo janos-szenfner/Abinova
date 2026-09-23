@@ -146,6 +146,11 @@ GtkWidget * AP_UnixDialog_Insert_DateTime::_constructWindow(void)
 	std::string s;
 	pSS->getValueUTF8(AP_STRING_ID_DLG_DateTime_DateTimeTitle,s);
 	abiDialogSetTitle(window, "%s", s.c_str());
+
+	// the format list needs room to breathe (Word's dialog is a
+	// similar size); the .ui width/height requests do not size the
+	// window under GTK4, so set the default size explicitly
+	gtk_window_set_default_size(GTK_WINDOW(window), 440, 380);
 	
 	// localize the strings in our dialog
 	
