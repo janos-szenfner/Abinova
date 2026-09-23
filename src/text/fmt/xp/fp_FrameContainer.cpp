@@ -926,13 +926,19 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 	}
 	else if(pPrevRect)
 	{
+		// Clip the frame's contents to its own rectangle on BOTH axes -
+		// the old code only clamped top/bottom, so text that ran past
+		// the left or right border painted outside the box.
 		newRect.top = UT_MAX(pPrevRect->top, pRect.top);
 		UT_sint32 iBotPrev = pPrevRect->height + pPrevRect->top;
 		UT_sint32 iBot = pRect.height + pRect.top;
 		newRect.height = UT_MIN(iBotPrev,iBot) - newRect.top;
-		newRect.width = pPrevRect->width;
-		newRect.left = pPrevRect->left;
-		if((newRect.height > 0) && pDA->pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		newRect.left = UT_MAX(pPrevRect->left, pRect.left);
+		UT_sint32 iRightPrev = pPrevRect->left + pPrevRect->width;
+		UT_sint32 iRight = pRect.left + pRect.width;
+		newRect.width = UT_MIN(iRightPrev,iRight) - newRect.left;
+		if((newRect.height > 0) && (newRect.width > 0) &&
+		   pDA->pG->queryProperties(GR_Graphics::DGP_SCREEN))
 		{
 			pDA->pG->setClipRect(&newRect);
 			bSetOrigClip = true;
