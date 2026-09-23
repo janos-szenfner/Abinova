@@ -249,6 +249,11 @@ below are on `main` but the release has not been cut yet.
   a standalone bulleted list; the two latter drop the cramped
   page-glyph + corner-badge composition that read as a muddy blob at
   16 px.
+- **Citations group relaid out to fit** — the group no longer
+  overflows into Captions: Insert Citation and Bibliography stack
+  as small icon+label rows in the left column while Manage Sources
+  becomes the group's tall button (24 px bookshelf glyph over a
+  two-line "Manage / Sources" caption, vertically centred).
 - **Footnote/endnote parity with Word** — `Ctrl+Alt+F` inserts a
   footnote and `Ctrl+Alt+D` inserts an endnote (`ap_LB_Default`
   binding table); endnotes now draw the same separator line above
@@ -258,7 +263,7 @@ below are on `main` but the release has not been cut yet.
   page lookup.
 - **Convert footnotes ↔ endnotes** — the Next Footnote dropdown on
   the References ribbon offers "Convert All Footnotes to Endnotes",
-  "Convert All Endnotes to Footnotes" and "Swap All Footnotes and
+  "Convert All Endnotes to Footnotes" and "Swap Footnotes and
   Endnotes" (`footnoteToEndnote` / `endnoteToFootnote` / `noteSwap`
   edit methods). Conversion preserves note formatting by round-
   tripping each note's content through the RTF buffer, deletes the

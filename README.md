@@ -314,8 +314,15 @@ The dynamic plugin list is empty.
   Formal, Modern, Simple and Manual presets — Carlito-based
   `Contents N`/`Contents Header` styles persisted in `.abw`),
   an Add Text dropdown with `toc-level:0`–`4` paragraph control,
-  Update/Remove Table; Insert Footnote/Endnote, note navigation
-  and Show Notes; Insert Caption with per-label numbering
+  Update/Remove Table; Insert Footnote/Endnote (Word's
+  **Ctrl+Alt+F** / **Ctrl+Alt+D** shortcuts), note navigation and
+  Show Notes, plus footnote↔endnote **conversion** — the Next
+  Footnote dropdown offers Convert All Footnotes to Endnotes,
+  Convert All Endnotes to Footnotes and Swap Footnotes and Endnotes,
+  preserving note formatting through an RTF round-trip in a single
+  undoable operation. Endnotes draw the same separator line above
+  the first endnote that footnotes have; Insert Caption with
+  per-label numbering
   (`Figure Caption` style, custom labels, above/below position),
   Insert Table of Figures (a TOC sourced from caption styles) and
   Cross-reference (bookmark text as a `#bookmark` hyperlink, or a
