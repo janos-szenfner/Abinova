@@ -184,6 +184,9 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_INSERT_DIRECTIONMARKER,  1,0,0,0, nullptr, nullptr, nullptr);
 	_s(AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM,0,0,0,0, "insertLRM", nullptr, nullptr);
 	_s(AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM,0,0,0,0, "insertRLM", nullptr, nullptr);
+	_s(AP_MENU_ID_INSERT_COVERPAGE,	0,1,0,0,	"coverPageInsert",	nullptr,					nullptr);
+	_s(AP_MENU_ID_INSERT_BLANKPAGE,	0,1,0,0,	"insertBlankPage",	ap_GetState_BreakOK,					nullptr);
+	_s(AP_MENU_ID_INSERT_RTF,		0,1,0,0,	"insRTF",			nullptr,								nullptr);
 
 	_s(AP_MENU_ID_FORMAT,			1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_FMT,			1,0,0,0,	nullptr,				nullptr,					nullptr);

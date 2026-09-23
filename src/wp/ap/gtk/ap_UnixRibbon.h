@@ -109,6 +109,8 @@ private:
 	GtkWidget *		_makeZOrderPopover(bool bForward);
 	GtkWidget *		_makeRotatePopover();
 	GtkWidget *		_makeGroupPopover();
+	/* Insert tab */
+	GtkWidget *		_makeCoverPagePopover();
 	/* References tab */
 	GtkWidget *		_makeTOCGalleryPopover();
 	GtkWidget *		_makeAddTextPopover();
@@ -122,6 +124,8 @@ private:
 	GtkWidget *		_makeBibliographyPopover();
 	GtkWidget *		_makeSourcesPopover();
 	GtkWidget *		_makeDeadButton(uint16_t id);
+	static void		_s_cover_gallery_map(GtkWidget * popover,
+										 gpointer data);
 	static void		_s_toc_gallery_map(GtkWidget * popover,
 									   gpointer data);
 	static void		_s_caption_apply(GtkWidget * w, gpointer data);

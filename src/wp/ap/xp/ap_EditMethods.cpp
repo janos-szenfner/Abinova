@@ -230,6 +230,8 @@ public:
 	static EV_EditMethod_Fn cairoPrintDirectly;
 	static EV_EditMethod_Fn cairoPrintPreview;
 
+	static EV_EditMethod_Fn coverPageInsert;
+	static EV_EditMethod_Fn coverPageRemove;
 	static EV_EditMethod_Fn cursorDefault;
 	static EV_EditMethod_Fn cursorIBeam;
 	static EV_EditMethod_Fn cursorRightArrow;
@@ -333,6 +335,7 @@ public:
 	static EV_EditMethod_Fn doEscape;
 
 
+	static EV_EditMethod_Fn insertBlankPage;
 	static EV_EditMethod_Fn insertBookmark;
 	static EV_EditMethod_Fn insertXMLID;
 	static EV_EditMethod_Fn insertHyperlink;
@@ -545,6 +548,7 @@ public:
 
 	static EV_EditMethod_Fn insBreak;
 	static EV_EditMethod_Fn insPageNo;
+	static EV_EditMethod_Fn insRTF;
 	static EV_EditMethod_Fn insDateTime;
 	static EV_EditMethod_Fn insField;
 	static EV_EditMethod_Fn insTextBox;
@@ -923,6 +927,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(copyFrame), 				0,	""),
 	EV_EditMethod(NF(copyInlineImage), 				0,	""),
 	EV_EditMethod(NF(copyVisualText),		0,	""),
+	EV_EditMethod(NF(coverPageInsert),		0,	""),
+	EV_EditMethod(NF(coverPageRemove),		0,	""),
 	EV_EditMethod(NF(cursorDefault),		0,	""),
 	EV_EditMethod(NF(cursorHline),      	0,	""),
 	EV_EditMethod(NF(cursorIBeam),			0,	""),
@@ -1119,12 +1125,14 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insFootnote),			0,		""),
 	EV_EditMethod(NF(insMailMerge), 		0,		""),
 	EV_EditMethod(NF(insPageNo),			0,		""),
+	EV_EditMethod(NF(insRTF),				0,		""),
 	EV_EditMethod(NF(insSectionBreak),		0,	""),
 	EV_EditMethod(NF(insSymbol),			0,		""),
 	EV_EditMethod(NF(insTOC),			0,		""),
 	EV_EditMethod(NF(insTextBox),			0,		""),
 	EV_EditMethod(NF(insertAbovedotData),	_D_,	""),
 	EV_EditMethod(NF(insertAcuteData),		_D_,	""),
+	EV_EditMethod(NF(insertBlankPage),		0,	""),
 	EV_EditMethod(NF(insertBookmark),		0,	""),
 	EV_EditMethod(NF(insertBreveData),		_D_,	""),
 	EV_EditMethod(NF(insertCaronData),		_D_,	""),
@@ -7009,6 +7017,54 @@ Defun1(noteSwap)
 }
 
 /*
+ * Insert tab "Cover Page" gallery. callData is the preset id
+ * ("austin", "banded", "facet", "filigree", "integral", "whisp");
+ * no data inserts the default preset.
+ */
+Defun(coverPageInsert)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	const char * szPreset = "austin";
+	if(pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		return (UT_OK == pView->cmdInsertCoverPage(s.utf8_str()));
+	}
+	return (UT_OK == pView->cmdInsertCoverPage(szPreset));
+}
+
+Defun1(coverPageRemove)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdRemoveCoverPage();
+}
+
+/* Word's Insert > Blank Page: break to a fresh page and leave a
+ * completely blank page between, cursor on it */
+Defun1(insertBlankPage)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if(pView->isInTable() || pView->isInFrame(pView->getPoint()) ||
+	   pView->isHdrFtrEdit())
+	{
+		return true;
+	}
+	UT_UCS4Char c = UCS_FF;
+	pView->getDocument()->beginUserAtomicGlob();
+	pView->cmdCharInsert(&c, 1);
+	pView->cmdCharInsert(&c, 1);
+	pView->cmdCharMotion(false, 1);
+	pView->getDocument()->endUserAtomicGlob();
+	return true;
+}
+
+/*
  * References ribbon "Insert Caption". callData is
  * "<label>|<position>", e.g. "Figure|below"; position may also be
  * "above".
@@ -11640,6 +11696,48 @@ UT_return_val_if_fail(pDialog, false);
 	return bOK;
 }
 
+/* shared body of insFile/insRTF: load the chosen file into a
+ * throwaway document and copy its whole contents into the current
+ * view at the point, honoring formatting */
+static bool s_insertFileIntoView(FV_View * pView, XAP_Frame * pFrame,
+								 const char * pathName)
+{
+	UT_DEBUGMSG(("DOM: insertFile %s\n", pathName));
+
+	PD_Document * newDoc = new PD_Document();
+	UT_Error err = newDoc->readFromFile(pathName, IEFT_Unknown);
+
+	if (!UT_IS_IE_SUCCESS(err))
+	{
+		UNREFP(newDoc);
+		s_CouldNotLoadFileMessage(pFrame, pathName, err);
+		return false;
+	}
+	if ( err == UT_IE_TRY_RECOVER )
+	{
+		s_CouldNotLoadFileMessage(pFrame, pathName, err);
+	}
+
+	// we'll share the same graphics context, which won't matter because
+	// we only use it to get font metrics and stuff and not actually draw
+	GR_Graphics *pGraphics = pView->getGraphics();
+
+	// create a new layout and view object for the doc
+	FL_DocLayout *pDocLayout = new FL_DocLayout(newDoc,pGraphics);
+	FV_View copyView(XAP_App::getApp(), nullptr, pDocLayout);
+
+	pDocLayout->setView (&copyView);
+	pDocLayout->fillLayouts();
+
+	copyView.cmdSelect(0, 0, FV_DOCPOS_BOD, FV_DOCPOS_EOD); // select all the contents of the new doc
+	copyView.cmdCopy(); // copy the contents of the new document
+	pView->cmdPaste ( true ); // paste the contents into the existing document honoring the formatting
+
+	DELETEP(pDocLayout);
+	UNREFP(newDoc);
+	return true;
+}
+
 Defun1(insFile)
 {
 	CHECK_FRAME;
@@ -11648,50 +11746,39 @@ Defun1(insFile)
 	UT_return_val_if_fail(pAV_View, false);
 	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pAV_View->getParentData());
 	UT_return_val_if_fail(pFrame, false);
-	XAP_App * pApp = XAP_App::getApp();
-	
+
 	IEFileType fType = IEFT_Unknown;
 	char *pathName = nullptr;
-	
-	// we'll share the same graphics context, which won't matter because
-	// we only use it to get font metrics and stuff and not actually draw
-	GR_Graphics *pGraphics = pView->getGraphics();
-	
+
 	if (s_AskForPathname (pFrame, false, XAP_DIALOG_ID_INSERT_FILE,
 			      nullptr, &pathName, &fType))
 	{
-	    UT_DEBUGMSG(("DOM: insertFile %s\n", pathName));
-	    
-	    PD_Document * newDoc = new PD_Document();
-	    UT_Error err = newDoc->readFromFile(pathName, IEFT_Unknown);
-	    
-		if (!UT_IS_IE_SUCCESS(err))
-		{
-			UNREFP(newDoc);
-			s_CouldNotLoadFileMessage(pFrame, pathName, err);
-			return false;
-		}
-        if ( err == UT_IE_TRY_RECOVER ) 
-        {
-            s_CouldNotLoadFileMessage(pFrame, pathName, err);
-        }
-
-	    // create a new layout and view object for the doc
-	    FL_DocLayout *pDocLayout = new FL_DocLayout(newDoc,pGraphics);
-	    FV_View copyView(pApp, nullptr, pDocLayout);
-
-	    pDocLayout->setView (&copyView);
-	    pDocLayout->fillLayouts();
-	    
-	    copyView.cmdSelect(0, 0, FV_DOCPOS_BOD, FV_DOCPOS_EOD); // select all the contents of the new doc
-	    copyView.cmdCopy(); // copy the contents of the new document
-	    pView->cmdPaste ( true ); // paste the contents into the existing document honoring the formatting
-	    
-	    DELETEP(pDocLayout);
-	    UNREFP(newDoc);
-	    return true;
+		return s_insertFileIntoView(pView, pFrame, pathName);
 	}
-	
+
+	return false;
+}
+
+/* Insert tab "RTF" group: the same temporary-document copy/paste
+ * import as insFile, but the file chooser starts on the RTF filter */
+Defun1(insRTF)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	IEFileType fType = IE_Imp::fileTypeForSuffix(".rtf");
+	char *pathName = nullptr;
+
+	if (s_AskForPathname (pFrame, false, XAP_DIALOG_ID_INSERT_FILE,
+			      nullptr, &pathName, &fType))
+	{
+		return s_insertFileIntoView(pView, pFrame, pathName);
+	}
+
 	return false;
 }
 

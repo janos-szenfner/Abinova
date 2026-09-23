@@ -281,23 +281,22 @@ static const AP_RibbonGroup s_ribbon_home_groups[] =
 
 static const AP_RibbonItem s_ribbon_insert_pages[] =
 {
+	AP_RIBBON_MENUPOP_S(AP_MENU_ID_INSERT_COVERPAGE),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_BLANKPAGE),
 	AP_RIBBON_MENU(AP_MENU_ID_INSERT_BREAK),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_PAGENO),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_HEADER),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FOOTER),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonItem s_ribbon_insert_tables[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_TABLE),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_TABLE_INSERT_TABLE),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonItem s_ribbon_insert_illustrations[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_GRAPHIC),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_CLIPART),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_INSERT_GRAPHIC),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_INSERT_CLIPART),
 	AP_RIBBON_END
 };
 
@@ -305,15 +304,29 @@ static const AP_RibbonItem s_ribbon_insert_links[] =
 {
 	AP_RIBBON_MENU(AP_MENU_ID_INSERT_HYPERLINK),
 	AP_RIBBON_MENU(AP_MENU_ID_INSERT_BOOKMARK),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_XMLID),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_MAILMERGE),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FILE),
+	AP_RIBBON_MENUPOP_S(AP_MENU_ID_REF_XREF),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_insert_comments[] =
+{
+	AP_RIBBON_MENU_LS(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_insert_headerfooter[] =
+{
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_HEADER),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FOOTER),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_PAGENO),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonItem s_ribbon_insert_text[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_TEXTBOX),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_INSERT_TEXTBOX),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_DATETIME),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FIELD),
 	AP_RIBBON_MENU(AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM),
 	AP_RIBBON_MENU(AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM),
 	AP_RIBBON_END
@@ -321,15 +334,18 @@ static const AP_RibbonItem s_ribbon_insert_text[] =
 
 static const AP_RibbonItem s_ribbon_insert_symbols[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_SYMBOL),
-	AP_RIBBON_MENU(AP_MENU_ID_EDIT_LATEXEQUATION),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_EDIT_LATEXEQUATION),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_INSERT_SYMBOL),
 	AP_RIBBON_END
 };
 
-static const AP_RibbonItem s_ribbon_insert_fields[] =
+/* insert-file group (RTF and the other importers) - kept apart from
+ * the Word group names since it has no Word counterpart */
+static const AP_RibbonItem s_ribbon_insert_rtf[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_DATETIME),
-	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FIELD),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_INSERT_RTF),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_FILE),
+	AP_RIBBON_MENU(AP_MENU_ID_INSERT_XMLID),
 	AP_RIBBON_END
 };
 
@@ -339,9 +355,11 @@ static const AP_RibbonGroup s_ribbon_insert_groups[] =
 	{ "tables",			s_ribbon_insert_tables },
 	{ "illustrations",	s_ribbon_insert_illustrations },
 	{ "links",			s_ribbon_insert_links },
+	{ "comments",		s_ribbon_insert_comments },
+	{ "headerfooter",	s_ribbon_insert_headerfooter },
 	{ "text",			s_ribbon_insert_text },
 	{ "symbols",		s_ribbon_insert_symbols },
-	{ "fields",			s_ribbon_insert_fields },
+	{ "rtf",			s_ribbon_insert_rtf },
 	{ nullptr,			nullptr }
 };
 

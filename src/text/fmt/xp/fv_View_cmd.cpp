@@ -5704,6 +5704,557 @@ void FV_View::setTocLevel(UT_sint32 iLevel)
 }
 
 /*!
+ * Insert tab "Cover Page" presets. Each preset is a list of
+ * paragraphs with direct block/char formatting — shaded spacer bands,
+ * title, subtitle, author/date lines and rule lines — generated
+ * entirely in code, so no third-party artwork or licensing is
+ * involved. A trailing page break pushes the document body to page 2
+ * and the whole cover is wrapped in a "_cover-page" marker bookmark
+ * so "Remove Current Cover" can delete it again (the same marker
+ * mechanism the generated index/bibliography sections use).
+ */
+struct FV_CoverLine
+{
+	const char * szBlockProps;  // nullptr => keep reset defaults
+	const char * szCharProps;   // nullptr => default text format
+	const char * szText;        // nullptr => empty spacer/band para
+};
+
+struct FV_CoverPreset
+{
+	const char * szId;
+	const char * szName;
+	const FV_CoverLine * pLines;
+};
+
+// Paragraph-formatting reset applied to every cover line so
+// formatting never leaks in from the paragraph the break inherited
+// (or out into the document body).
+#define ABI_COVER_RESET \
+	"text-align:left; margin-top:0in; margin-bottom:0in; " \
+	"margin-left:0in; margin-right:0in; line-height:1.0; " \
+	"shading-pattern:0; " \
+	"top-style:none; bot-style:none; left-style:none; right-style:none; " \
+	"top-thickness:0pt; bot-thickness:0pt; " \
+	"left-thickness:0pt; right-thickness:0pt"
+
+static const FV_CoverLine s_coverAustin[] = {
+	{ ABI_COVER_RESET "; line-height:0.6in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:0.7in; shading-pattern:1; "
+	  "shading-background-color:1F3864; shading-foreground-color:1F3864",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:1.3in",
+	  "font-family:Carlito; font-size:40pt; font-weight:bold; color:1F3864",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.3in",
+	  "font-family:Carlito; font-size:16pt; font-style:italic; color:595959",
+	  "@subtitle" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:1.1in; "
+	  "line-height:0.06in; bot-style:solid; bot-color:2E74B5; "
+	  "bot-thickness:2.25pt", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.4in",
+	  "font-family:Carlito; font-size:14pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.12in",
+	  "font-family:Carlito; font-size:11pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverLine s_coverBanded[] = {
+	{ ABI_COVER_RESET "; line-height:1.1in; shading-pattern:1; "
+	  "shading-background-color:2E74B5; shading-foreground-color:2E74B5",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:1.5in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.5in",
+	  "font-family:Carlito; font-size:44pt; font-weight:bold; color:262626",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.5in; margin-top:0.25in",
+	  "font-family:Carlito; font-size:16pt; color:595959", "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:1.6in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.5in",
+	  "font-family:Carlito; font-size:14pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.5in; margin-top:0.12in",
+	  "font-family:Carlito; font-size:11pt; color:595959", "@date" },
+	{ ABI_COVER_RESET "; line-height:0.55in; shading-pattern:1; "
+	  "shading-background-color:2E74B5; shading-foreground-color:2E74B5",
+	  nullptr, nullptr },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverLine s_coverFacet[] = {
+	{ ABI_COVER_RESET "; line-height:0.5in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:0.09in; shading-pattern:1; "
+	  "shading-background-color:C00000; shading-foreground-color:C00000",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:1.9in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.4in; "
+	  "left-style:solid; left-color:C00000; left-thickness:12pt; "
+	  "left-space:12pt",
+	  "font-family:Carlito; font-size:38pt; font-weight:bold; color:262626",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.4in; "
+	  "margin-top:0.25in; left-style:solid; left-color:C00000; "
+	  "left-thickness:12pt; left-space:12pt",
+	  "font-family:Carlito; font-size:15pt; color:595959", "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:2.2in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.4in",
+	  "font-family:Carlito; font-size:13pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.4in; margin-top:0.12in",
+	  "font-family:Carlito; font-size:11pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverLine s_coverFiligree[] = {
+	{ ABI_COVER_RESET "; line-height:1.6in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; line-height:0.06in; "
+	  "bot-style:solid; bot-color:8064A2; bot-thickness:1pt",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.5in",
+	  "font-family:Carlito; font-size:40pt; color:403050", "@title" },
+	{ ABI_COVER_RESET "; text-align:center; line-height:0.06in; "
+	  "margin-top:0.5in; top-style:solid; top-color:8064A2; "
+	  "top-thickness:1pt", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.35in",
+	  "font-family:Carlito; font-size:15pt; font-style:italic; color:595959",
+	  "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:1.9in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center",
+	  "font-family:Carlito; font-size:13pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.12in",
+	  "font-family:Carlito; font-size:11pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverLine s_coverIntegral[] = {
+	{ ABI_COVER_RESET "; line-height:1.2in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; line-height:1.3in; "
+	  "shading-pattern:1; shading-background-color:0F6B6B; "
+	  "shading-foreground-color:0F6B6B",
+	  "font-family:Carlito; font-size:40pt; font-weight:bold; color:FFFFFF",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:center; line-height:0.55in; "
+	  "shading-pattern:1; shading-background-color:0F6B6B; "
+	  "shading-foreground-color:0F6B6B",
+	  "font-family:Carlito; font-size:15pt; font-style:italic; color:FFFFFF",
+	  "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:1.8in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center",
+	  "font-family:Carlito; font-size:14pt; font-weight:bold; color:0F6B6B",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.12in",
+	  "font-family:Carlito; font-size:11pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverLine s_coverWhisp[] = {
+	{ ABI_COVER_RESET "; line-height:0.5in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left; line-height:0.04in; "
+	  "bot-style:solid; bot-color:BF9000; bot-thickness:3pt",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:2.1in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left",
+	  "font-family:Carlito; font-size:42pt; color:404040", "@title" },
+	{ ABI_COVER_RESET "; text-align:left; margin-top:0.2in",
+	  "font-family:Carlito; font-size:14pt; color:808080", "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:2.3in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left",
+	  "font-family:Carlito; font-size:13pt; font-weight:bold; color:404040",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:left; margin-top:0.12in",
+	  "font-family:Carlito; font-size:10pt; color:808080", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Word's "Crop" cover: L-shaped corner brackets top-left and
+ * bottom-right; each bracket is an indented empty para so the
+ * top+left (or bottom+right) borders only span the corner */
+static const FV_CoverLine s_coverCrop[] = {
+	{ ABI_COVER_RESET "; line-height:0.55in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:0.4in; margin-right:5.2in; "
+	  "top-style:solid; top-color:4472C4; top-thickness:3pt; "
+	  "left-style:solid; left-color:4472C4; left-thickness:3pt",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.7in; margin-top:1.6in",
+	  "font-family:Carlito; font-size:40pt; font-weight:bold; color:264478",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:left; margin-left:0.7in; margin-top:0.3in",
+	  "font-family:Carlito; font-size:15pt; color:595959", "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:1.9in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:right; margin-right:0.7in",
+	  "font-family:Carlito; font-size:13pt; font-weight:bold; color:264478",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:right; margin-right:0.7in; margin-top:0.12in",
+	  "font-family:Carlito; font-size:10pt; color:595959", "@date" },
+	{ ABI_COVER_RESET "; line-height:0.4in; margin-left:5.2in; "
+	  "bot-style:solid; bot-color:4472C4; bot-thickness:3pt; "
+	  "right-style:solid; right-color:4472C4; right-thickness:3pt",
+	  nullptr, nullptr },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Word's "Sideline": every paragraph carries the same thick left
+ * border so it reads as one continuous color stripe down the page */
+#define ABI_COVER_SIDELINE \
+	"left-style:solid; left-color:4472C4; left-thickness:0.3in; left-space:0.25in"
+static const FV_CoverLine s_coverSideline[] = {
+	{ ABI_COVER_RESET "; " ABI_COVER_SIDELINE "; line-height:1.7in",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; " ABI_COVER_SIDELINE "; text-align:left",
+	  "font-family:Carlito; font-size:40pt; font-weight:bold; color:264478",
+	  "@title" },
+	{ ABI_COVER_RESET "; " ABI_COVER_SIDELINE "; text-align:left; "
+	  "margin-top:0.3in",
+	  "font-family:Carlito; font-size:15pt; color:595959", "@subtitle" },
+	{ ABI_COVER_RESET "; " ABI_COVER_SIDELINE "; line-height:2.6in",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; " ABI_COVER_SIDELINE "; text-align:left",
+	  "font-family:Carlito; font-size:13pt; font-weight:bold; color:264478",
+	  "@author" },
+	{ ABI_COVER_RESET "; " ABI_COVER_SIDELINE "; text-align:left; "
+	  "margin-top:0.12in",
+	  "font-family:Carlito; font-size:10pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Word's "Retrospect": a thin border box framing the title */
+static const FV_CoverLine s_coverRetrospect[] = {
+	{ ABI_COVER_RESET "; line-height:1.9in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; line-height:0.55in; "
+	  "margin-left:0.9in; margin-right:0.9in; "
+	  "top-style:solid; top-color:2E74B5; top-thickness:2.25pt; "
+	  "bot-style:solid; bot-color:2E74B5; bot-thickness:2.25pt; "
+	  "left-style:solid; left-color:2E74B5; left-thickness:2.25pt; "
+	  "right-style:solid; right-color:2E74B5; right-thickness:2.25pt",
+	  "font-family:Carlito; font-size:36pt; font-weight:bold; color:1F4E79",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.35in",
+	  "font-family:Carlito; font-size:15pt; font-style:italic; color:595959",
+	  "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:2.2in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center",
+	  "font-family:Carlito; font-size:13pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.12in",
+	  "font-family:Carlito; font-size:10pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Word's "Yearly"-style cover: oversized year over a color band */
+static const FV_CoverLine s_coverYearly[] = {
+	{ ABI_COVER_RESET "; line-height:0.9in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center",
+	  "font-family:Carlito; font-size:80pt; font-weight:bold; color:D9E2F3",
+	  "@year" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.15in",
+	  "font-family:Carlito; font-size:34pt; font-weight:bold; color:1F4E79",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.3in",
+	  "font-family:Carlito; font-size:14pt; color:595959", "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:1.9in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center",
+	  "font-family:Carlito; font-size:12pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; line-height:0.7in; shading-pattern:1; "
+	  "shading-background-color:2E74B5; shading-foreground-color:2E74B5",
+	  nullptr, nullptr },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* staggered offset color bands - a "Motion"-style cover */
+static const FV_CoverLine s_coverMotion[] = {
+	{ ABI_COVER_RESET "; line-height:0.8in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:0.45in; margin-left:3.4in; "
+	  "shading-pattern:1; shading-background-color:2E74B5; "
+	  "shading-foreground-color:2E74B5", nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:0.45in; margin-right:3.4in; "
+	  "shading-pattern:1; shading-background-color:B4C7E7; "
+	  "shading-foreground-color:B4C7E7", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left; margin-top:1.1in",
+	  "font-family:Carlito; font-size:38pt; font-weight:bold; color:262626",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:left; margin-top:0.25in",
+	  "font-family:Carlito; font-size:14pt; color:595959", "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:1.8in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:left",
+	  "font-family:Carlito; font-size:13pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:left; margin-top:0.12in",
+	  "font-family:Carlito; font-size:10pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* bordered "picture" placeholder over the title, ViewMaster-style */
+static const FV_CoverLine s_coverFrame[] = {
+	{ ABI_COVER_RESET "; line-height:0.6in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; line-height:2.4in; margin-left:0.6in; "
+	  "margin-right:0.6in; shading-pattern:1; "
+	  "shading-background-color:D9E2F3; shading-foreground-color:D9E2F3; "
+	  "top-style:solid; top-color:2E74B5; top-thickness:2.25pt; "
+	  "bot-style:solid; bot-color:2E74B5; bot-thickness:2.25pt; "
+	  "left-style:solid; left-color:2E74B5; left-thickness:2.25pt; "
+	  "right-style:solid; right-color:2E74B5; right-thickness:2.25pt",
+	  nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.45in",
+	  "font-family:Carlito; font-size:34pt; font-weight:bold; color:1F4E79",
+	  "@title" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.25in",
+	  "font-family:Carlito; font-size:14pt; color:595959", "@subtitle" },
+	{ ABI_COVER_RESET "; line-height:1.2in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center",
+	  "font-family:Carlito; font-size:12pt; font-weight:bold; color:262626",
+	  "@author" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:0.12in",
+	  "font-family:Carlito; font-size:10pt; color:595959", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverPreset s_coverPresets[] = {
+	{ "austin",     "Austin",     s_coverAustin },
+	{ "banded",     "Banded",     s_coverBanded },
+	{ "crop",       "Crop",       s_coverCrop },
+	{ "facet",      "Facet",      s_coverFacet },
+	{ "filigree",   "Filigree",   s_coverFiligree },
+	{ "frame",      "Frame",      s_coverFrame },
+	{ "integral",   "Integral",   s_coverIntegral },
+	{ "motion",     "Motion",     s_coverMotion },
+	{ "retrospect", "Retrospect", s_coverRetrospect },
+	{ "sideline",   "Sideline",   s_coverSideline },
+	{ "whisp",      "Whisp",      s_coverWhisp },
+	{ "yearly",     "Yearly",     s_coverYearly },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverPreset * _coverPresetById(const char * szId)
+{
+	for(const FV_CoverPreset * p = s_coverPresets; p->szId; p++)
+	{
+		if(szId && 0 == strcmp(szId, p->szId))
+		{
+			return p;
+		}
+	}
+	return s_coverPresets;
+}
+
+static void _coverParseProps(PP_PropertyVector & props, const char * s)
+{
+	if(!s)
+	{
+		return;
+	}
+	std::string str(s);
+	size_t pos = 0;
+	while(pos <= str.size())
+	{
+		size_t semi = str.find(';', pos);
+		std::string pair = str.substr(pos, semi == std::string::npos
+									  ? std::string::npos : semi - pos);
+		size_t colon = pair.find(':');
+		if(colon != std::string::npos)
+		{
+			std::string name = pair.substr(0, colon);
+			std::string val = pair.substr(colon + 1);
+			size_t b = name.find_first_not_of(" \t");
+			size_t e = name.find_last_not_of(" \t");
+			name = (b == std::string::npos) ? "" : name.substr(b, e - b + 1);
+			b = val.find_first_not_of(" \t");
+			e = val.find_last_not_of(" \t");
+			val = (b == std::string::npos) ? "" : val.substr(b, e - b + 1);
+			if(!name.empty())
+			{
+				props.push_back(name);
+				props.push_back(val);
+			}
+		}
+		if(semi == std::string::npos)
+		{
+			break;
+		}
+		pos = semi + 1;
+	}
+}
+
+/*!
+ * Insert a generated cover page at the top of the document, like
+ * Word's Insert > Cover Page gallery. An existing generated cover is
+ * replaced. Title/author come from the document metadata when set.
+ */
+UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
+{
+	const FV_CoverPreset * pPreset = _coverPresetById(szPreset);
+	UT_return_val_if_fail(pPreset, UT_ERROR);
+
+	std::string sTitle, sAuthor;
+	if(!m_pDoc->getMetaDataProp(PD_META_KEY_TITLE, sTitle) ||
+	   sTitle.empty())
+	{
+		sTitle = "Document Title";
+	}
+	if(!m_pDoc->getMetaDataProp(PD_META_KEY_CREATOR, sAuthor) ||
+	   sAuthor.empty())
+	{
+		sAuthor = "Author";
+	}
+	char szDate[64];
+	{
+		time_t tNow = time(nullptr);
+		struct tm * pTM = localtime(&tNow);
+		if(pTM)
+		{
+			strftime(szDate, sizeof(szDate), "%B %Y", pTM);
+		}
+		else
+		{
+			szDate[0] = 0;
+		}
+	}
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	// Replace an existing generated cover page.
+	PT_DocPosition posOld = _deleteGeneratedSection("_cover-page");
+
+	if(!isSelectionEmpty())
+	{
+		m_Selection.clearSelection();
+	}
+
+	if(posOld)
+	{
+		// The old cover's first paragraph shell survives the deletion;
+		// reuse it instead of stacking another empty paragraph.
+		setPoint(posOld);
+	}
+	else
+	{
+		// The cover always goes above the first body paragraph.
+		setPoint(2);
+		insertParagraphBreak();
+		setPoint(2);
+	}
+	const PT_DocPosition posMark = getPoint();
+
+	for(const FV_CoverLine * pL = pPreset->pLines;
+		pL->szBlockProps || pL->szText; pL++)
+	{
+		setStyle("Normal", true);
+		if(pL->szBlockProps)
+		{
+			PP_PropertyVector props;
+			_coverParseProps(props, pL->szBlockProps);
+			setBlockFormat(props);
+		}
+		if(pL->szText)
+		{
+			std::string sText;
+			if(0 == strcmp(pL->szText, "@title"))
+			{
+				sText = sTitle;
+			}
+			else if(0 == strcmp(pL->szText, "@author"))
+			{
+				sText = sAuthor;
+			}
+			else if(0 == strcmp(pL->szText, "@date"))
+			{
+				sText = szDate;
+			}
+			else if(0 == strcmp(pL->szText, "@year"))
+			{
+				size_t len = strlen(szDate);
+				sText = len >= 4 ? szDate + len - 4 : szDate;
+			}
+			else if(0 == strcmp(pL->szText, "@subtitle"))
+			{
+				sText = "Document Subtitle";
+			}
+			else
+			{
+				sText = pL->szText;
+			}
+			if(pL->szCharProps)
+			{
+				PP_PropertyVector cprops;
+				_coverParseProps(cprops, pL->szCharProps);
+				setCharFormat(cprops);
+			}
+			cmdCharInsert(sText, false);
+		}
+		insertParagraphBreak();
+	}
+
+	// Trailing page break so the body starts on page 2; it sits
+	// inside the marker so removing the cover restores page 1.
+	setStyle("Normal", true);
+	{
+		PP_PropertyVector props;
+		_coverParseProps(props, ABI_COVER_RESET);
+		setBlockFormat(props);
+	}
+	UT_UCS4Char ff = UCS_FF;
+	cmdCharInsert(&ff, 1);
+
+	const PT_DocPosition posEnd = getPoint();
+	PP_PropertyVector atts = {
+		"name", "_cover-page",
+		"type", "end"
+	};
+	m_pDoc->insertObject(posEnd, PTO_Bookmark, atts, PP_NOPROPS);
+	atts[3] = "start";
+	m_pDoc->insertObject(posMark, PTO_Bookmark, atts, PP_NOPROPS);
+
+	// Leave the point on the cover so the user sees the result.
+	setPoint(posMark);
+	_makePointLegal();
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return UT_OK;
+}
+
+/*!
+ * Insert tab "Cover Page" gallery: delete the generated cover page
+ * (marker bookmark "_cover-page") including its trailing page break.
+ */
+bool FV_View::cmdRemoveCoverPage(void)
+{
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	PT_DocPosition pos = _deleteGeneratedSection("_cover-page");
+	if(pos)
+	{
+		setPoint(pos);
+		// normalize the paragraph shell the deletion leaves behind
+		// (it kept the first cover line's formatting)
+		setStyle("Normal", true);
+		PP_PropertyVector props;
+		_coverParseProps(props, ABI_COVER_RESET);
+		setBlockFormat(props);
+		insertParaBreakIfNeededAtPos(getPoint());
+		_makePointLegal();
+	}
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return pos != 0;
+}
+
+/*! True while the document holds a generated cover page (the
+ * "_cover-page" marker bookmark). */
+bool FV_View::hasCoverPage(void) const
+{
+	return !m_pDoc->isBookmarkUnique("_cover-page");
+}
+
+/*!
  * Jump the insertion point to the next or previous footnote/endnote
  * reference, mirroring Word's Next Footnote/Previous Footnote.
  */

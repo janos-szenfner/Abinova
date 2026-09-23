@@ -272,6 +272,31 @@ below are on `main` but the release has not been cut yet.
   atomic undo group. Also fixed a latent edit-method table
   misordering (`footnote*` entries were sorted after `format*`),
   which broke `bsearch` lookup for several existing commands.
+- **Insert tab redesigned to match Word** — reorganised into Pages
+  (Cover Page, Blank Page, Break), Tables, Illustrations (Picture,
+  Clip Art), Links (Hyperlink, Bookmark, Cross-reference), Comments
+  (New annotation), Header & Footer (Header, Footer, Page Numbers),
+  Text (Text Box, Date and Time, Field, LRM/RLM — now with drawn
+  direction-arrow icons), Symbols (Edit Equation, Symbol) and a
+  dedicated RTF section. **Cover Page** opens a scrolling 3-column
+  gallery of A4-portrait preview cards for twelve designs generated
+  entirely in code — Austin, Banded, Crop, Facet, Filigree, Frame,
+  Integral, Motion, Retrospect, Sideline, Whisp, Yearly — so no
+  third-party artwork or licensing is involved. Covers pull the
+  title/author from document metadata with placeholder fallbacks,
+  add the current month/year (or `@year` token), and are wrapped in
+  a `_cover-page` marker bookmark; **Remove Current Cover** deletes
+  the page break and restores the body, and inserting a new cover
+  replaces the old one in place. **Blank Page** inserts an empty
+  page at the caret (new `insertBlankPage` edit method). The RTF
+  section's **RTF Document…** button (`insRTF`) opens the file
+  chooser with the Rich Text Format filter preselected — the GTK4
+  file dialogs now honour an explicit default type on open instead
+  of always forcing "Automatically Detected" — and pastes the
+  document at the caret with formatting preserved; the generic
+  Insert File…, RDF Link and the previously-shown Mail Merge Field
+  ribbon button were moved/removed accordingly (the underlying
+  mail-merge feature is unchanged).
 - **Explicit `toc-level` paragraph property** — `toc-level:0`
   excludes a paragraph from generated tables and `toc-level:1`–`4`
   include any paragraph at that level without a heading style; the

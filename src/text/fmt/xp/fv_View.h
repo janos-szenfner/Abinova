@@ -356,6 +356,9 @@ public:
 	bool			cmdUpdateTOC(void);
 	bool			cmdRemoveTOC(void);
 	bool			hasTOC(void) const;
+	UT_Error		cmdInsertCoverPage(const char * szPreset);
+	bool			cmdRemoveCoverPage(void);
+	bool			hasCoverPage(void) const;
 	UT_sint32		getTocLevel(void) const;
 	void			setTocLevel(UT_sint32 iLevel);
 	bool			nextNote(bool bFootnote, bool bForward);

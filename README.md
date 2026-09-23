@@ -309,6 +309,27 @@ The dynamic plugin list is empty.
   Rotate offers Right/Left 90°, horizontal/vertical flips and a
   custom angle (`frame-rotation`/`frame-flip-*` — all persisted in
   `.abw` and honoured by PDF export).
+  The **Insert tab** is Word-style: a Pages group with **Cover
+  Page** — a scrolling 3-column gallery of twelve A4-portrait
+  preview cards (Austin, Banded, Crop, Facet, Filigree, Frame,
+  Integral, Motion, Retrospect, Sideline, Whisp, Yearly), all
+  **generated entirely in code** so no third-party artwork or
+  licensing is involved. Cover pages pull the title/author from
+  the document metadata (`dc.title`/`dc.creator`, falling back to
+  placeholders), add the current month/year, and are wrapped in a
+  `_cover-page` marker bookmark so **Remove Current Cover**
+  deletes the page break as well and restores the body to page 1;
+  inserting a new cover replaces the old one in place. **Blank
+  Page** inserts an empty page at the caret like Word. The Tables,
+  Illustrations (Picture, Clip Art), Links (Hyperlink, Bookmark,
+  Cross-reference), Comments (New annotation), Header & Footer
+  (Header, Footer, Page Numbers), Text (Text Box, Date and Time,
+  Field, LRM/RLM direction markers — now with drawn direction-arrow
+  icons) and Symbols (Edit Equation, Symbol) groups round out the
+  tab, plus a dedicated **RTF** section whose **RTF Document…**
+  button opens the file chooser pre-filtered to Rich Text Format
+  and pastes the document at the caret with formatting preserved;
+  a generic **Insert File…** and **RDF Link** sit alongside it.
   The **References tab** is Word-style and fully functional:
   a Table of Contents gallery (Automatic, Classic, Contemporary,
   Formal, Modern, Simple and Manual presets — Carlito-based

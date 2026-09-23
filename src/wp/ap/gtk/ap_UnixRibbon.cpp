@@ -101,9 +101,12 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "tables",      "Tables" },
 	{ "illustrations","Illustrations" },
 	{ "links",       "Links" },
+	{ "comments",    "Comments" },
+	{ "headerfooter","Header & Footer" },
 	{ "text",        "Text" },
 	{ "symbols",     "Symbols" },
 	{ "fields",      "Fields" },
+	{ "rtf",         "RTF" },
 	{ "toc",         "Table of Contents" },
 	{ "notes",       "Footnotes" },
 	{ "citations",   "Citations & Bibliography" },
@@ -2001,6 +2004,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ROTATE:
 		popover = _makeRotatePopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_COVERPAGE:
+		popover = _makeCoverPagePopover();
+		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_TOCPOP:
 		popover = _makeTOCGalleryPopover();
 		break;
@@ -2245,6 +2251,32 @@ static void _overlay_margin_corners(cairo_t * cr, double w, double h)
 	cairo_move_to(cr, mx + l, my2); cairo_line_to(cr, mx, my2); cairo_line_to(cr, mx, my2 - l);
 	cairo_move_to(cr, mx2 - l, my2); cairo_line_to(cr, mx2, my2); cairo_line_to(cr, mx2, my2 - l);
 	cairo_stroke(cr);
+}
+
+static void _overlay_dir_arrow(cairo_t * cr, double w, double h,
+							   bool bRTL)
+{
+	/* bottom edge arrow showing the mark's writing direction */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.4);
+	double y = h - 4.5, x0 = 4.0, x1 = w - 5.0;
+	double ax = bRTL ? x0 : x1;
+	cairo_move_to(cr, bRTL ? x1 : x0, y);
+	cairo_line_to(cr, ax, y);
+	cairo_move_to(cr, ax + (bRTL ? 3.2 : -3.2), y - 2.4);
+	cairo_line_to(cr, ax, y);
+	cairo_line_to(cr, ax + (bRTL ? 3.2 : -3.2), y + 2.4);
+	cairo_stroke(cr);
+}
+
+static void _overlay_lrm(cairo_t * cr, double w, double h)
+{
+	_overlay_dir_arrow(cr, w, h, false);
+}
+
+static void _overlay_rlm(cairo_t * cr, double w, double h)
+{
+	_overlay_dir_arrow(cr, w, h, true);
 }
 
 static void _overlay_orient_arrow(cairo_t * cr, double w, double h)
@@ -2672,6 +2704,8 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOA:
 	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTINDEX:
 	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTTOA:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM:
 		return true;
 	default:
 		return false;
@@ -2789,6 +2823,12 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTTOA:
 		extra = _overlay_toa;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM:
+		extra = _overlay_lrm;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM:
+		extra = _overlay_rlm;
 		break;
 	default:
 		break;
@@ -3882,6 +3922,275 @@ GtkWidget * AP_UnixRibbon::_makeTOCGalleryPopover()
 	g_object_set_data(G_OBJECT(popover), "abi-toc-remove", remove);
 	g_signal_connect(popover, "map",
 					 G_CALLBACK(_s_toc_gallery_map), this);
+	return popover;
+}
+
+/* Insert tab Cover Page gallery: mini previews of the generated
+ * presets, sketching the same bands/rules the real presets use */
+static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
+							 int w, int h, gpointer data)
+{
+	const char * szPreset = static_cast<const char *>(data);
+	/* draw in a fixed 132x187 A4 space, scaled to the widget */
+	cairo_scale(cr, w / 132.0, h / 187.0);
+	double pw = 131, ph = 186;
+
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, 0.5, 0.5, pw, ph);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.78, 0.78, 0.78);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	auto band = [&](double y, double hh, double r, double g, double b)
+	{
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_rectangle(cr, 12, y, pw - 24, hh);
+		cairo_fill(cr);
+	};
+	auto tbar = [&](double x, double y, double ww, double hh,
+					double r, double g, double b)
+	{
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_rectangle(cr, x, y, ww, hh);
+		cairo_fill(cr);
+	};
+	double cx = pw / 2;
+
+	if (!strcmp(szPreset, "austin"))
+	{
+		band(18, 26, 0.12, 0.22, 0.39);               /* navy band */
+		tbar(cx - 32, 88, 64, 10, 0.12, 0.22, 0.39);  /* title */
+		tbar(cx - 22, 104, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
+		tbar(cx - 36, 126, 72, 1.6, 0.18, 0.45, 0.71);/* rule */
+		tbar(cx - 17, 138, 34, 5, 0.35, 0.35, 0.35);  /* author */
+		tbar(cx - 13, 148, 26, 4, 0.65, 0.65, 0.65);  /* date */
+	}
+	else if (!strcmp(szPreset, "banded"))
+	{
+		band(10, 30, 0.18, 0.45, 0.71);               /* top band */
+		tbar(24, 74, 70, 10, 0.15, 0.15, 0.15);       /* title */
+		tbar(24, 90, 50, 5, 0.60, 0.60, 0.60);        /* subtitle */
+		tbar(24, 138, 34, 5, 0.35, 0.35, 0.35);       /* author */
+		tbar(24, 148, 26, 4, 0.65, 0.65, 0.65);       /* date */
+		band(ph - 22, 14, 0.18, 0.45, 0.71);          /* bottom band */
+	}
+	else if (!strcmp(szPreset, "facet"))
+	{
+		band(14, 5, 0.75, 0.0, 0.0);                  /* thin top bar */
+		tbar(22, 72, 6, 30, 0.75, 0.0, 0.0);          /* red sidebar */
+		tbar(34, 74, 66, 10, 0.15, 0.15, 0.15);       /* title */
+		tbar(34, 90, 48, 5, 0.60, 0.60, 0.60);        /* subtitle */
+		tbar(26, 140, 34, 5, 0.35, 0.35, 0.35);       /* author */
+		tbar(26, 150, 26, 4, 0.65, 0.65, 0.65);       /* date */
+	}
+	else if (!strcmp(szPreset, "filigree"))
+	{
+		tbar(cx - 42, 56, 84, 1.2, 0.50, 0.39, 0.64); /* top rule */
+		tbar(cx - 32, 76, 64, 10, 0.25, 0.19, 0.31);  /* title */
+		tbar(cx - 42, 98, 84, 1.2, 0.50, 0.39, 0.64); /* bottom rule */
+		tbar(cx - 22, 110, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
+		tbar(cx - 17, 148, 34, 5, 0.35, 0.35, 0.35);  /* author */
+		tbar(cx - 13, 158, 26, 4, 0.65, 0.65, 0.65);  /* date */
+	}
+	else if (!strcmp(szPreset, "integral"))
+	{
+		band(52, 62, 0.06, 0.42, 0.42);               /* teal block */
+		tbar(cx - 32, 70, 64, 10, 1.0, 1.0, 1.0);     /* title */
+		tbar(cx - 22, 88, 44, 5, 0.85, 0.95, 0.95);   /* subtitle */
+		tbar(cx - 17, 146, 34, 5, 0.06, 0.42, 0.42);  /* author */
+		tbar(cx - 13, 156, 26, 4, 0.65, 0.65, 0.65);  /* date */
+	}
+	else if (!strcmp(szPreset, "crop"))
+	{
+		/* L brackets: top-left and bottom-right */
+		cairo_set_source_rgb(cr, 0.27, 0.45, 0.77);
+		cairo_set_line_width(cr, 2.0);
+		cairo_move_to(cr, 16, 34); cairo_line_to(cr, 16, 16);
+		cairo_line_to(cr, 44, 16); cairo_stroke(cr);
+		cairo_move_to(cr, pw - 16, ph - 34);
+		cairo_line_to(cr, pw - 16, ph - 16);
+		cairo_line_to(cr, pw - 44, ph - 16); cairo_stroke(cr);
+		tbar(34, 84, 68, 10, 0.15, 0.27, 0.47);       /* title */
+		tbar(34, 100, 46, 5, 0.60, 0.60, 0.60);       /* subtitle */
+		tbar(pw - 66, 138, 32, 5, 0.15, 0.27, 0.47);  /* author */
+		tbar(pw - 58, 148, 24, 4, 0.65, 0.65, 0.65);  /* date */
+	}
+	else if (!strcmp(szPreset, "sideline"))
+	{
+		tbar(10, 8, 12, ph - 16, 0.27, 0.45, 0.77);   /* left stripe */
+		tbar(32, 66, 66, 10, 0.15, 0.27, 0.47);       /* title */
+		tbar(32, 82, 46, 5, 0.60, 0.60, 0.60);        /* subtitle */
+		tbar(32, 140, 32, 5, 0.15, 0.27, 0.47);       /* author */
+		tbar(32, 150, 24, 4, 0.65, 0.65, 0.65);       /* date */
+	}
+	else if (!strcmp(szPreset, "retrospect"))
+	{
+		cairo_set_source_rgb(cr, 0.18, 0.45, 0.71);
+		cairo_set_line_width(cr, 1.6);
+		cairo_rectangle(cr, 26, 68, pw - 52, 34);     /* title box */
+		cairo_stroke(cr);
+		tbar(cx - 30, 80, 60, 9, 0.12, 0.31, 0.47);   /* title */
+		tbar(cx - 22, 110, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
+		tbar(cx - 17, 150, 34, 5, 0.35, 0.35, 0.35);  /* author */
+		tbar(cx - 13, 160, 26, 4, 0.65, 0.65, 0.65);  /* date */
+	}
+	else if (!strcmp(szPreset, "yearly"))
+	{
+		tbar(cx - 40, 30, 80, 22, 0.85, 0.89, 0.95);  /* pale year */
+		tbar(cx - 32, 66, 64, 9, 0.12, 0.31, 0.47);   /* title */
+		tbar(cx - 22, 80, 44, 5, 0.60, 0.60, 0.60);   /* subtitle */
+		tbar(cx - 17, 138, 34, 5, 0.35, 0.35, 0.35);  /* author */
+		band(ph - 20, 12, 0.18, 0.45, 0.71);          /* bottom band */
+	}
+	else if (!strcmp(szPreset, "motion"))
+	{
+		cairo_set_source_rgb(cr, 0.18, 0.45, 0.71);
+		cairo_rectangle(cr, pw / 2, 24, pw / 2 - 14, 10);
+		cairo_fill(cr);                               /* right band */
+		cairo_set_source_rgb(cr, 0.71, 0.78, 0.91);
+		cairo_rectangle(cr, 14, 38, pw / 2 - 14, 10);
+		cairo_fill(cr);                               /* left band */
+		tbar(20, 84, 70, 9, 0.15, 0.15, 0.15);        /* title */
+		tbar(20, 98, 50, 5, 0.60, 0.60, 0.60);        /* subtitle */
+		tbar(20, 148, 32, 5, 0.35, 0.35, 0.35);       /* author */
+		tbar(20, 158, 24, 4, 0.65, 0.65, 0.65);       /* date */
+	}
+	else if (!strcmp(szPreset, "frame"))
+	{
+		cairo_set_source_rgb(cr, 0.85, 0.89, 0.95);
+		cairo_rectangle(cr, 22, 22, pw - 44, 56);     /* picture fill */
+		cairo_fill(cr);
+		cairo_set_source_rgb(cr, 0.18, 0.45, 0.71);
+		cairo_set_line_width(cr, 1.4);
+		cairo_rectangle(cr, 22, 22, pw - 44, 56);
+		cairo_stroke(cr);
+		tbar(cx - 32, 92, 64, 9, 0.12, 0.31, 0.47);   /* title */
+		tbar(cx - 22, 106, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
+		tbar(cx - 17, 150, 34, 5, 0.35, 0.35, 0.35);  /* author */
+		tbar(cx - 13, 160, 26, 4, 0.65, 0.65, 0.65);  /* date */
+	}
+	else /* whisp */
+	{
+		tbar(16, 16, 64, 2.4, 0.75, 0.56, 0.0);       /* amber rule */
+		tbar(20, 80, 74, 10, 0.25, 0.25, 0.25);       /* title */
+		tbar(20, 96, 52, 5, 0.55, 0.55, 0.55);        /* subtitle */
+		tbar(20, 152, 34, 5, 0.35, 0.35, 0.35);       /* author */
+		tbar(20, 162, 26, 4, 0.65, 0.65, 0.65);       /* date */
+	}
+}
+
+/* "Remove Current Cover" is only live while a generated cover exists */
+void AP_UnixRibbon::_s_cover_gallery_map(GtkWidget * popover,
+										 gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * btn = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "abi-cover-remove"));
+	if (!btn)
+		return;
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	gtk_widget_set_sensitive(btn, pView && pView->hasCoverPage());
+}
+
+/* Word's Cover Page dropdown: a scrolling column of preview cards for
+ * the code-generated designs, then "Remove Current Cover" */
+GtkWidget * AP_UnixRibbon::_makeCoverPagePopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	/* Word's gallery: a scrolling 3-column grid of A4 portrait
+	 * thumbnails with the design name under each card */
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 8);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid), FALSE);
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
+
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(sw), 480);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), grid);
+	gtk_box_append(GTK_BOX(box), sw);
+
+	auto cardBtn = [this](const char * szName,
+						  const char * szPreset) -> GtkWidget *
+	{
+		GtkWidget * v = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+
+		/* A4 portrait thumbnail, like Word's cover gallery */
+		GtkWidget * da = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 95);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 134);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+									   _cover_card_draw,
+									   g_strdup(szPreset), g_free);
+		gtk_widget_set_halign(da, GTK_ALIGN_CENTER);
+		gtk_box_append(GTK_BOX(v), da);
+
+		GtkWidget * l = gtk_label_new(nullptr);
+		char * mk = g_markup_printf_escaped(
+			"<span alpha='70%%'>%s</span>", szName);
+		gtk_label_set_markup(GTK_LABEL(l), mk);
+		g_free(mk);
+		gtk_box_append(GTK_BOX(v), l);
+
+		GtkWidget * btn = gtk_button_new();
+		gtk_button_set_child(GTK_BUTTON(btn), v);
+		gtk_button_set_has_frame(GTK_BUTTON(btn), FALSE);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup("coverPageInsert"), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(szPreset), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		return btn;
+	};
+
+	static const struct { const char * szName; const char * szId; }
+	s_coverTypes[] =
+	{
+		{ "Austin",		"austin" },
+		{ "Banded",		"banded" },
+		{ "Crop",		"crop" },
+		{ "Facet",		"facet" },
+		{ "Filigree",	"filigree" },
+		{ "Frame",		"frame" },
+		{ "Integral",	"integral" },
+		{ "Motion",		"motion" },
+		{ "Retrospect",	"retrospect" },
+		{ "Sideline",	"sideline" },
+		{ "Whisp",		"whisp" },
+		{ "Yearly",		"yearly" },
+	};
+
+	for (unsigned i = 0; i < G_N_ELEMENTS(s_coverTypes); i++)
+		gtk_grid_attach(GTK_GRID(grid),
+						cardBtn(s_coverTypes[i].szName,
+								s_coverTypes[i].szId),
+						i % 3, i / 3, 1, 1);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * remove = _presetRow("Remove Current Cover",
+								  "Delete the generated cover page",
+								  nullptr, "coverPageRemove", nullptr);
+	gtk_box_append(GTK_BOX(box), remove);
+	g_object_set_data(G_OBJECT(popover), "abi-cover-remove", remove);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_cover_gallery_map), this);
 	return popover;
 }
 

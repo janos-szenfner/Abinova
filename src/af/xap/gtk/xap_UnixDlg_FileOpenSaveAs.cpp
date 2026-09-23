@@ -819,8 +819,14 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	{
 		gtk_combo_box_set_active(combo, activeItemIndex + 1);
 	}
+	else if (activeItemIndex >= 0)
+	{
+		/* an explicit file type was requested (e.g. Insert > RTF
+		 * Document…) — preselect it instead of auto-detect */
+		gtk_combo_box_set_active(combo, activeItemIndex + 1);
+	}
 	else
-	{ 
+	{
 		gtk_combo_box_set_active(combo, 0);
 	}
 
