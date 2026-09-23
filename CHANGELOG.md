@@ -243,6 +243,11 @@ below are on `main` but the release has not been cut yet.
   instead of ellipsizing; button captions render slightly smaller so
   the wide tab fits without squeezing labels; Footnote/Endnote use a
   slimmer variant to leave room for Update Table.
+- **Citations & Bibliography icons fixed** — Manage Sources draws a
+  stack of books (offset covers with pale page edges) instead of two
+  plain bars, and Bibliography's page glyph now renders its text
+  lines as a blue bulleted list (`_PageSpec::bullets`) instead of a
+  corner overlay that scribbled over the page's own lines.
 - **Explicit `toc-level` paragraph property** — `toc-level:0`
   excludes a paragraph from generated tables and `toc-level:1`–`4`
   include any paragraph at that level without a heading style; the

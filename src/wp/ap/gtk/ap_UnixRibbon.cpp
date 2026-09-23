@@ -2126,6 +2126,7 @@ struct _PageSpec
 	bool	linenum;		/* tiny line-number digits */
 	int		fold;			/* folded corner / break marker */
 	bool	bare;			/* skip the page, draw only the overlay */
+	bool	bullets;		/* text lines get a bullet dot (Bibliography) */
 };
 
 /* paint a mini page: outline, margin frame, text lines */
@@ -2157,6 +2158,7 @@ static void _draw_page_glyph(cairo_t * cr, double w, double h,
 	int cols = s.cols < 1 ? 1 : s.cols;
 	double gap = 2.5;
 	double cw = (mx1 - mx0 - gap * (cols - 1)) / cols;
+	double indent = s.bullets ? 2.4 : 0.0;
 	cairo_set_source_rgb(cr, 0.55, 0.58, 0.65);
 	cairo_set_line_width(cr, 0.9);
 	for (int c = 0; c < cols; ++c)
@@ -2164,11 +2166,26 @@ static void _draw_page_glyph(cairo_t * cr, double w, double h,
 		double lx = mx0 + c * (cw + gap);
 		for (double ly = my0 + 2.0; ly < my1 - 1.0; ly += 3.2)
 		{
-			cairo_move_to(cr, lx, ly);
+			cairo_move_to(cr, lx + indent, ly);
 			cairo_line_to(cr, lx + cw, ly);
 		}
 	}
 	cairo_stroke(cr);
+
+	if (s.bullets)
+	{
+		/* blue bullet dot at the start of each text line */
+		cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+		for (int c = 0; c < cols; ++c)
+		{
+			double lx = mx0 + c * (cw + gap);
+			for (double ly = my0 + 2.0; ly < my1 - 1.0; ly += 3.2)
+			{
+				cairo_arc(cr, lx + 0.8, ly, 0.75, 0, 2 * G_PI);
+				cairo_fill(cr);
+			}
+		}
+	}
 
 	if (s.linenum)
 	{
@@ -2519,28 +2536,20 @@ static void _overlay_citation(cairo_t * cr, double w, double h)
 /* stacked source books for Manage Sources */
 static void _overlay_sources(cairo_t * cr, double w, double h)
 {
-	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
-	cairo_rectangle(cr, w - 12.0, h - 10.5, 8.5, 2.8);
-	cairo_fill(cr);
+	/* each book: coloured cover with a pale "pages" edge on the right,
+	 * the top book offset left like a real stack */
 	cairo_set_source_rgb(cr, 0.55, 0.65, 0.35);
-	cairo_rectangle(cr, w - 10.5, h - 6.8, 8.5, 2.8);
+	cairo_rectangle(cr, w - 11.0, h - 6.6, 9.0, 3.0);
 	cairo_fill(cr);
-}
-
-/* bullet list for Bibliography */
-static void _overlay_biblio(cairo_t * cr, double w, double h)
-{
+	cairo_set_source_rgb(cr, 0.93, 0.94, 0.86);
+	cairo_rectangle(cr, w - 4.2, h - 6.6, 1.8, 3.0);
+	cairo_fill(cr);
 	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
-	double x = w - 12.0, y = h - 10.5;
-	for (int i = 0; i < 3; i++)
-	{
-		cairo_arc(cr, x + 0.9, y + i * 3.4 + 0.7, 0.85, 0, 2 * G_PI);
-		cairo_fill(cr);
-		cairo_set_line_width(cr, 0.9);
-		cairo_move_to(cr, x + 3.0, y + i * 3.4 + 0.7);
-		cairo_line_to(cr, x + 10.0, y + i * 3.4 + 0.7);
-		cairo_stroke(cr);
-	}
+	cairo_rectangle(cr, w - 12.6, h - 10.2, 9.0, 3.0);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.85, 0.9, 0.97);
+	cairo_rectangle(cr, w - 5.8, h - 10.2, 1.8, 3.0);
+	cairo_fill(cr);
 }
 
 /* framed figure over a caption line for Insert Caption */
@@ -2742,7 +2751,7 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		extra = _overlay_sources;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_BIBLIOGRAPHY:
-		extra = _overlay_biblio;
+		spec.bullets = true;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_CAPTION:
 		extra = _overlay_caption;
