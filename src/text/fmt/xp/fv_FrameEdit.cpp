@@ -1118,6 +1118,12 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 			"frame-min-height", m_sMinHeight.c_str(),
 			"frame-expand-height", m_sExpandHeight.c_str(),
 		};
+		if (m_bVerticalTextBox)
+		{
+			props.push_back("frame-rotation");
+			props.push_back("90");
+			m_bVerticalTextBox = false;
+		}
 //
 // This should place the the frame strux immediately after the block containing
 // position posXY.

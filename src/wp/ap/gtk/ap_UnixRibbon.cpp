@@ -65,6 +65,8 @@
 #include "fl_DocLayout.h"
 #include "ap_UnixDialog_Document.h"
 #include "fv_View.h"
+#include "ie_impGraphic.h"
+#include "fg_Graphic.h"
 
 /*
  * Tab and group titles.  The layout table stores untranslated keys;
@@ -106,7 +108,7 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "text",        "Text" },
 	{ "symbols",     "Symbols" },
 	{ "fields",      "Fields" },
-	{ "rtf",         "RTF" },
+	{ "media",       "Media" },
 	{ "toc",         "Table of Contents" },
 	{ "notes",       "Footnotes" },
 	{ "citations",   "Citations & Bibliography" },
@@ -728,7 +730,15 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		/* Close: red icon only, button face and label stay normal */
 		if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FILE_CLOSE))
 			gtk_widget_add_css_class(image, "ribbon-close");
-		GtkWidget * wLabel = gtk_label_new(label);
+		/* Word breaks large-button captions onto two lines
+		 * ("Cover\nPage", "Blank\nPage") */
+		char caption[256];
+		strncpy(caption, label, sizeof(caption) - 1);
+		caption[sizeof(caption) - 1] = 0;
+		char * sp = strchr(caption, ' ');
+		if (sp)
+			*sp = '\n';
+		GtkWidget * wLabel = gtk_label_new(caption);
 		/* Word wraps long captions onto a second line rather than
 		 * ellipsizing ("Document Properties", "New using Template") */
 		gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
@@ -756,17 +766,16 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
 			gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
 			gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
-			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 14);
+			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 16);
 		}
 		else if ((szIcon && *szIcon) || bDrawnIcon)
 		{
-			/* small icon+label buttons wrap onto a second line like
-			 * Word's compact ribbon entries instead of ellipsizing */
-			gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
-			gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD_CHAR);
-			gtk_label_set_lines(GTK_LABEL(wLabel), 2);
-			gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_LEFT);
-			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 12);
+			/* small icon+label buttons are single-line like Word's
+			 * compact ribbon rows; ellipsize rather than wrap so a
+			 * squeezed group never collapses into one-char columns */
+			gtk_label_set_ellipsize(GTK_LABEL(wLabel),
+									PANGO_ELLIPSIZE_END);
+			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 16);
 		}
 		else
 		{
@@ -2007,6 +2016,33 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_COVERPAGE:
 		popover = _makeCoverPagePopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
+		popover = _makePicturesPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SHAPES:
+		popover = _makeShapesPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_3DMODELS:
+		popover = _make3DModelsPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_MEDIA:
+		popover = _makeMediaPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_WORDART:
+		popover = _makeWordArtPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX:
+		popover = _makeTextBoxPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_OBJECT:
+		popover = _makeObjectPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
+		popover = _makeHdrFtrPopover(false);
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
+		popover = _makeHdrFtrPopover(true);
+		break;
 	case (XAP_Menu_Id)AP_MENU_ID_REF_TOCPOP:
 		popover = _makeTOCGalleryPopover();
 		break;
@@ -2088,13 +2124,11 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		GtkWidget * hb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 		gtk_box_append(GTK_BOX(hb), _layout_icon(id, 16, 16));
 		GtkWidget * wl = gtk_label_new(face);
-		/* Word wraps the small dropdown captions onto two lines
-		 * ("Manage Sources", "Next Footnote") instead of ellipsizing */
-		gtk_label_set_wrap(GTK_LABEL(wl), TRUE);
-		gtk_label_set_wrap_mode(GTK_LABEL(wl), PANGO_WRAP_WORD_CHAR);
-		gtk_label_set_lines(GTK_LABEL(wl), 2);
-		gtk_label_set_justify(GTK_LABEL(wl), GTK_JUSTIFY_LEFT);
-		gtk_label_set_max_width_chars(GTK_LABEL(wl), 12);
+		/* small dropdown captions stay single-line like Word's
+		 * compact rows; ellipsize instead of wrapping so squeezed
+		 * groups never collapse into one-char columns */
+		gtk_label_set_ellipsize(GTK_LABEL(wl), PANGO_ELLIPSIZE_END);
+		gtk_label_set_max_width_chars(GTK_LABEL(wl), 16);
 		gtk_box_append(GTK_BOX(hb), wl);
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), hb);
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
@@ -2267,6 +2301,436 @@ static void _overlay_dir_arrow(cairo_t * cr, double w, double h,
 	cairo_line_to(cr, ax, y);
 	cairo_line_to(cr, ax + (bRTL ? 3.2 : -3.2), y + 2.4);
 	cairo_stroke(cr);
+}
+
+/* ---- Insert tab glyph overlays ------------------------------- */
+
+static void _overlay_coverband(cairo_t * cr, double w, double h)
+{
+	/* accent band across the lower third of the page */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_rectangle(cr, 0, h * 0.62, w, h * 0.38);
+	cairo_fill(cr);
+}
+
+static void _overlay_pagebreak_arrow(cairo_t * cr, double w, double h)
+{
+	/* horizontal arrow pointing right off the page's mid-line */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.4);
+	double y = h * 0.5;
+	cairo_move_to(cr, 2.5, y);
+	cairo_line_to(cr, w - 4.5, y);
+	cairo_move_to(cr, w - 7.5, y - 2.8);
+	cairo_line_to(cr, w - 4.5, y);
+	cairo_line_to(cr, w - 7.5, y + 2.8);
+	cairo_stroke(cr);
+}
+
+static void _overlay_blankpage(cairo_t * cr, double w, double h)
+{
+	/* plus badge at the page's lower right = a fresh empty page */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.6);
+	double cx = w * 0.72, cy = h * 0.68, r = h * 0.14;
+	cairo_move_to(cr, cx - r, cy);
+	cairo_line_to(cr, cx + r, cy);
+	cairo_move_to(cr, cx, cy - r);
+	cairo_line_to(cr, cx, cy + r);
+	cairo_stroke(cr);
+}
+
+static void _glyph_table(cairo_t * cr, double w, double h)
+{
+	/* 3x3 table grid */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	double m = 2.5, cw = (w - 2 * m) / 3.0, ch = (h - 2 * m) / 3.0;
+	cairo_rectangle(cr, m, m, w - 2 * m, h - 2 * m);
+	for (int i = 1; i < 3; i++)
+	{
+		cairo_move_to(cr, m + i * cw, m);
+		cairo_line_to(cr, m + i * cw, h - m);
+		cairo_move_to(cr, m, m + i * ch);
+		cairo_line_to(cr, w - m, m + i * ch);
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_picture(cairo_t * cr, double w, double h)
+{
+	/* framed landscape: sun + two mountains */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	cairo_rectangle(cr, 1.5, 3.0, w - 3.0, h - 6.0);
+	cairo_stroke(cr);
+	cairo_arc(cr, w * 0.30, h * 0.36, 1.8, 0, 2 * M_PI);
+	cairo_set_source_rgb(cr, 0.9, 0.65, 0.15);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.25, 0.55, 0.35);
+	cairo_move_to(cr, 3, h - 4.5);
+	cairo_line_to(cr, w * 0.42, h * 0.55);
+	cairo_line_to(cr, w * 0.62, h - 4.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.75);
+	cairo_move_to(cr, w * 0.42, h - 4.5);
+	cairo_line_to(cr, w * 0.68, h * 0.50);
+	cairo_line_to(cr, w - 3, h - 4.5);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_shapes(cairo_t * cr, double w, double h)
+{
+	/* overlapping square + circle + triangle */
+	cairo_set_line_width(cr, 1.1);
+	cairo_set_source_rgba(cr, 0.2, 0.45, 0.9, 0.85);
+	cairo_rectangle(cr, 2.0, h * 0.30, w * 0.42, w * 0.42);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.15, 0.32, 0.65);
+	cairo_stroke(cr);
+	cairo_set_source_rgba(cr, 0.9, 0.45, 0.2, 0.85);
+	cairo_arc(cr, w * 0.62, h * 0.60, w * 0.22, 0, 2 * M_PI);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.65, 0.3, 0.1);
+	cairo_stroke(cr);
+	cairo_set_source_rgba(cr, 0.25, 0.6, 0.4, 0.85);
+	cairo_move_to(cr, w * 0.60, 2.0);
+	cairo_line_to(cr, w * 0.82, h * 0.34);
+	cairo_line_to(cr, w * 0.38, h * 0.34);
+	cairo_close_path(cr);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.15, 0.4, 0.25);
+	cairo_stroke(cr);
+}
+
+static void _glyph_smiley(cairo_t * cr, double w, double h)
+{
+	/* icon smiley: circle face, two eyes, smile */
+	double cx = w / 2.0, cy = h / 2.0, r = w * 0.40;
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.2);
+	cairo_arc(cr, cx, cy, r, 0, 2 * M_PI);
+	cairo_stroke(cr);
+	cairo_arc(cr, cx - r * 0.35, cy - r * 0.25, 0.9, 0, 2 * M_PI);
+	cairo_arc(cr, cx + r * 0.35, cy - r * 0.25, 0.9, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_arc(cr, cx, cy + r * 0.1, r * 0.5, 0.35, M_PI - 0.35);
+	cairo_stroke(cr);
+}
+
+static void _glyph_cube(cairo_t * cr, double w, double h)
+{
+	/* isometric cube */
+	double cx = w / 2.0, top = h * 0.16, mid = h * 0.44,
+		bot = h * 0.86, half = w * 0.34;
+	cairo_set_source_rgba(cr, 0.25, 0.5, 0.9, 0.9);
+	cairo_move_to(cr, cx, top);
+	cairo_line_to(cr, cx + half, mid - 2);
+	cairo_line_to(cr, cx, mid + 4);
+	cairo_line_to(cr, cx - half, mid - 2);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, 0.2, 0.4, 0.8, 0.9);
+	cairo_move_to(cr, cx - half, mid - 2);
+	cairo_line_to(cr, cx, mid + 4);
+	cairo_line_to(cr, cx, bot);
+	cairo_line_to(cr, cx - half, bot - 4);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, 0.55, 0.7, 0.95, 0.9);
+	cairo_move_to(cr, cx + half, mid - 2);
+	cairo_line_to(cr, cx, mid + 4);
+	cairo_line_to(cr, cx, bot);
+	cairo_line_to(cr, cx + half, bot - 4);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_camera(cairo_t * cr, double w, double h)
+{
+	/* camera body + lens */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	cairo_rectangle(cr, 1.5, h * 0.32, w - 3.0, h * 0.55);
+	cairo_stroke(cr);
+	cairo_rectangle(cr, w * 0.38, h * 0.22, w * 0.24, h * 0.12);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_arc(cr, w * 0.5, h * 0.60, w * 0.16, 0, 2 * M_PI);
+	cairo_stroke(cr);
+	cairo_arc(cr, w * 0.5, h * 0.60, w * 0.08, 0, 2 * M_PI);
+	cairo_fill(cr);
+}
+
+static void _glyph_media(cairo_t * cr, double w, double h)
+{
+	/* film strip with play triangle */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	cairo_rectangle(cr, 1.5, 3.5, w - 3.0, h - 7.0);
+	cairo_stroke(cr);
+	for (int i = 0; i < 3; i++)
+	{
+		cairo_rectangle(cr, 3.0, 5.5 + i * 4.5, 2.2, 2.8);
+		cairo_rectangle(cr, w - 5.2, 5.5 + i * 4.5, 2.2, 2.8);
+	}
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_move_to(cr, w * 0.40, h * 0.38);
+	cairo_line_to(cr, w * 0.40, h * 0.66);
+	cairo_line_to(cr, w * 0.66, h * 0.52);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_link(cairo_t * cr, double w, double h)
+{
+	/* two interlocked chain links */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.6);
+	cairo_arc(cr, w * 0.38, h * 0.42, w * 0.18, 0, 2 * M_PI);
+	cairo_stroke(cr);
+	cairo_arc(cr, w * 0.62, h * 0.62, w * 0.18, 0, 2 * M_PI);
+	cairo_stroke(cr);
+	cairo_set_line_width(cr, 1.3);
+	cairo_move_to(cr, w * 0.47, h * 0.52);
+	cairo_line_to(cr, w * 0.53, h * 0.52);
+	cairo_stroke(cr);
+}
+
+static void _glyph_bookmark(cairo_t * cr, double w, double h)
+{
+	/* ribbon bookmark shape */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	double x0 = w * 0.30, x1 = w * 0.70, y0 = 2.0, y1 = h - 2.0;
+	cairo_move_to(cr, x0, y0);
+	cairo_line_to(cr, x1, y0);
+	cairo_line_to(cr, x1, y1);
+	cairo_line_to(cr, w * 0.5, y1 - h * 0.22);
+	cairo_line_to(cr, x0, y1);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_comment(cairo_t * cr, double w, double h)
+{
+	/* speech bubble with two lines */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	double r = 3.0;
+	cairo_new_sub_path(cr);
+	cairo_arc(cr, 2 + r, 2 + r, r, M_PI, 1.5 * M_PI);
+	cairo_arc(cr, w - 2 - r, 2 + r, r, 1.5 * M_PI, 0);
+	cairo_arc(cr, w - 2 - r, h * 0.62 - r, r, 0, 0.5 * M_PI);
+	cairo_arc(cr, 6 + r, h * 0.62 - r, r, 0.5 * M_PI, M_PI);
+	cairo_close_path(cr);
+	cairo_line_to(cr, 4.5, h - 2.0);
+	cairo_line_to(cr, 4.5, h * 0.62);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_move_to(cr, 5, h * 0.24);
+	cairo_line_to(cr, w - 5, h * 0.24);
+	cairo_move_to(cr, 5, h * 0.42);
+	cairo_line_to(cr, w - 8, h * 0.42);
+	cairo_stroke(cr);
+}
+
+static void _overlay_band_top(cairo_t * cr, double w, double /*h*/)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_rectangle(cr, 0, 0, w, 4.5);
+	cairo_fill(cr);
+}
+
+static void _overlay_band_bot(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_rectangle(cr, 0, h - 4.5, w, 4.5);
+	cairo_fill(cr);
+}
+
+static void _overlay_pageno(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.5);
+	cairo_move_to(cr, w * 0.30, h * 0.70);
+	cairo_show_text(cr, "#");
+}
+
+static void _glyph_textbox(cairo_t * cr, double w, double h)
+{
+	/* dashed box with an A and a text line */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	const double dash[] = { 2.0, 1.6 };
+	cairo_set_dash(cr, dash, 2, 0);
+	cairo_rectangle(cr, 1.5, 3.5, w - 3.0, h - 7.0);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, nullptr, 0, 0);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.42);
+	cairo_move_to(cr, 4.0, h * 0.62);
+	cairo_show_text(cr, "A");
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, w * 0.55, h * 0.42);
+	cairo_line_to(cr, w - 4, h * 0.42);
+	cairo_move_to(cr, w * 0.55, h * 0.62);
+	cairo_line_to(cr, w - 4, h * 0.62);
+	cairo_stroke(cr);
+}
+
+static void _glyph_wordart(cairo_t * cr, double w, double h)
+{
+	/* stylized A with accent */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_ITALIC,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.66);
+	cairo_move_to(cr, w * 0.24, h * 0.72);
+	cairo_show_text(cr, "A");
+	cairo_set_line_width(cr, 1.4);
+	cairo_move_to(cr, 3.0, h - 2.5);
+	cairo_line_to(cr, w - 3.0, h - 2.5);
+	cairo_stroke(cr);
+}
+
+static void _glyph_dropcap(cairo_t * cr, double w, double h)
+{
+	/* big D with wrapped text lines beside it */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_select_font_face(cr, "Serif", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.72);
+	cairo_move_to(cr, 1.5, h * 0.76);
+	cairo_show_text(cr, "D");
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	for (int i = 0; i < 4; i++)
+	{
+		cairo_move_to(cr, w * 0.48, 4.0 + i * 4.2);
+		cairo_line_to(cr, w - 2.0, 4.0 + i * 4.2);
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_signature(cairo_t * cr, double w, double h)
+{
+	/* squiggle signature over a rule */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.3);
+	cairo_move_to(cr, 2.0, h * 0.55);
+	cairo_curve_to(cr, w * 0.25, h * 0.15, w * 0.35, h * 0.75,
+				   w * 0.5, h * 0.45);
+	cairo_curve_to(cr, w * 0.6, h * 0.25, w * 0.7, h * 0.55,
+				   w - 3.0, h * 0.35);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, 2.0, h - 3.0);
+	cairo_line_to(cr, w - 2.0, h - 3.0);
+	cairo_stroke(cr);
+}
+
+static void _glyph_datetime(cairo_t * cr, double w, double h)
+{
+	/* calendar page + clock */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	cairo_rectangle(cr, 1.5, 3.5, w * 0.62, h - 6.0);
+	cairo_stroke(cr);
+	cairo_move_to(cr, 1.5, 7.5);
+	cairo_line_to(cr, 1.5 + w * 0.62, 7.5);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	double cx = w * 0.70, cy = h * 0.62, r = w * 0.22;
+	cairo_arc(cr, cx, cy, r, 0, 2 * M_PI);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_set_line_width(cr, 1.2);
+	cairo_move_to(cr, cx, cy);
+	cairo_line_to(cr, cx, cy - r * 0.55);
+	cairo_move_to(cr, cx, cy);
+	cairo_line_to(cr, cx + r * 0.45, cy);
+	cairo_stroke(cr);
+}
+
+static void _glyph_field(cairo_t * cr, double w, double h)
+{
+	/* grey field box with chevrons */
+	cairo_set_source_rgba(cr, 0.6, 0.65, 0.75, 0.35);
+	cairo_rectangle(cr, 1.5, 4.0, w - 3.0, h - 8.0);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	cairo_rectangle(cr, 1.5, 4.0, w - 3.0, h - 8.0);
+	cairo_stroke(cr);
+	cairo_set_line_width(cr, 1.4);
+	cairo_move_to(cr, w * 0.32, h * 0.60);
+	cairo_line_to(cr, w * 0.50, h * 0.40);
+	cairo_line_to(cr, w * 0.68, h * 0.60);
+	cairo_stroke(cr);
+}
+
+static void _glyph_object(cairo_t * cr, double w, double h)
+{
+	/* small window/object box with title bar */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.1);
+	cairo_rectangle(cr, 1.5, 4.0, w - 3.0, h - 7.0);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_rectangle(cr, 1.5, 4.0, w - 3.0, 4.5);
+	cairo_fill(cr);
+	cairo_rectangle(cr, w * 0.30, h * 0.55, w * 0.40, h * 0.22);
+	cairo_stroke(cr);
+}
+
+static void _glyph_vtextbox(cairo_t * cr, double w, double h)
+{
+	/* tall dashed box with a sideways A - vertical text box */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	const double dash[] = { 2.0, 1.6 };
+	cairo_set_dash(cr, dash, 2, 0);
+	cairo_rectangle(cr, w * 0.28, 1.5, w * 0.44, h - 3.0);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, nullptr, 0, 0);
+	cairo_save(cr);
+	cairo_translate(cr, w * 0.50, h * 0.30);
+	cairo_rotate(cr, G_PI / 2.0);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.34);
+	cairo_move_to(cr, 0, 0);
+	cairo_show_text(cr, "A");
+	cairo_restore(cr);
+}
+
+static void _glyph_equation(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_select_font_face(cr, "Serif", CAIRO_FONT_SLANT_ITALIC,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.66);
+	cairo_move_to(cr, w * 0.24, h * 0.72);
+	cairo_show_text(cr, "\xcf\x80");	/* π */
+}
+
+static void _glyph_omega(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_select_font_face(cr, "Serif", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.66);
+	cairo_move_to(cr, w * 0.20, h * 0.74);
+	cairo_show_text(cr, "\xce\xa9");	/* Ω */
 }
 
 static void _overlay_lrm(cairo_t * cr, double w, double h)
@@ -2706,6 +3170,31 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTTOA:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_COVERPAGE:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BLANKPAGE:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGEBREAK:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SHAPES:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ICONS:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_3DMODELS:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SCREENSHOT:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_MEDIA:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HYPERLINK:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BOOKMARK:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_WORDART:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DROPCAP:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SIGNATURE:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DATETIME:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FIELD:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_OBJECT:
+	case (XAP_Menu_Id)AP_MENU_ID_EDIT_LATEXEQUATION:
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SYMBOL:
 		return true;
 	default:
 		return false;
@@ -2830,6 +3319,100 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM:
 		extra = _overlay_rlm;
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_COVERPAGE:
+		extra = _overlay_coverband;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BLANKPAGE:
+		extra = _overlay_blankpage;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGEBREAK:
+		extra = _overlay_pagebreak_arrow;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
+		spec.bare = true;
+		extra = _glyph_table;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
+		spec.bare = true;
+		extra = _glyph_picture;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SHAPES:
+		spec.bare = true;
+		extra = _glyph_shapes;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ICONS:
+		spec.bare = true;
+		extra = _glyph_smiley;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_3DMODELS:
+		spec.bare = true;
+		extra = _glyph_cube;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SCREENSHOT:
+		spec.bare = true;
+		extra = _glyph_camera;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_MEDIA:
+		spec.bare = true;
+		extra = _glyph_media;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HYPERLINK:
+		spec.bare = true;
+		extra = _glyph_link;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BOOKMARK:
+		spec.bare = true;
+		extra = _glyph_bookmark;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT:
+		spec.bare = true;
+		extra = _glyph_comment;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
+		extra = _overlay_band_top;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
+		extra = _overlay_band_bot;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
+		extra = _overlay_pageno;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX:
+		spec.bare = true;
+		extra = _glyph_textbox;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_WORDART:
+		spec.bare = true;
+		extra = _glyph_wordart;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DROPCAP:
+		spec.bare = true;
+		extra = _glyph_dropcap;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SIGNATURE:
+		spec.bare = true;
+		extra = _glyph_signature;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DATETIME:
+		spec.bare = true;
+		extra = _glyph_datetime;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FIELD:
+		spec.bare = true;
+		extra = _glyph_field;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_OBJECT:
+		spec.bare = true;
+		extra = _glyph_object;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_EDIT_LATEXEQUATION:
+		spec.bare = true;
+		extra = _glyph_equation;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SYMBOL:
+		spec.bare = true;
+		extra = _glyph_omega;
+		break;
 	default:
 		break;
 	}
@@ -2896,7 +3479,14 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 	GtkWidget * icon = _layout_icon(id, 24, 24);
 	gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(box), icon);
-	GtkWidget * wLabel = gtk_label_new(label);
+	/* Word breaks large-button captions onto two lines */
+	char caption[64];
+	strncpy(caption, label, sizeof(caption) - 1);
+	caption[sizeof(caption) - 1] = 0;
+	char * sp = strchr(caption, ' ');
+	if (sp)
+		*sp = '\n';
+	GtkWidget * wLabel = gtk_label_new(caption);
 	gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
 	gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
 	gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
@@ -4191,6 +4781,1003 @@ GtkWidget * AP_UnixRibbon::_makeCoverPagePopover()
 	g_object_set_data(G_OBJECT(popover), "abi-cover-remove", remove);
 	g_signal_connect(popover, "map",
 					 G_CALLBACK(_s_cover_gallery_map), this);
+	return popover;
+}
+
+/* Online Pictures dialog: download the image URL to a temp file
+ * and insert it like a device picture */
+void AP_UnixRibbon::_s_online_pic_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	self->_showOnlinePictureDialog();
+}
+
+GtkWidget * AP_UnixRibbon::_makePicturesPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("This Device…",
+							  "Insert a picture from your computer",
+							  _layout_icon((XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES, 16, 16),
+							  "fileInsertGraphic", nullptr));
+	GtkWidget * online = _presetRow("Online Pictures…",
+								  "Insert a picture from a web address",
+								  nullptr, nullptr, nullptr);
+	g_signal_connect(online, "clicked",
+					 G_CALLBACK(_s_online_pic_clicked), this);
+	gtk_box_append(GTK_BOX(box), online);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* Online Pictures: a small URL dialog that downloads via GIO
+ * (gvfs http backend) into a temp file and inserts it */
+struct _OnlinePicCtx
+{
+	AP_UnixRibbon * self;
+	GtkWidget * entry;
+	GtkWidget * win;
+};
+
+void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
+										 gpointer data)
+{
+	_OnlinePicCtx * ctx = static_cast<_OnlinePicCtx *>(data);
+	const char * url = gtk_editable_get_text(GTK_EDITABLE(ctx->entry));
+	XAP_Frame * pFrame = ctx->self->m_pFrame;
+	FV_View * pView = pFrame
+		? static_cast<FV_View *>(pFrame->getCurrentView()) : nullptr;
+
+	GFile * gf = url ? g_file_new_for_uri(url) : nullptr;
+	gchar * contents = nullptr;
+	gsize len = 0;
+	GError * err = nullptr;
+	bool bOK = gf && pView &&
+		g_file_load_contents(gf, nullptr, &contents, &len, nullptr,
+							 &err);
+	if (gf)
+		g_object_unref(gf);
+
+	if (bOK)
+	{
+		gchar * tmp = g_build_filename(g_get_tmp_dir(),
+									   "abiword-online-pic", nullptr);
+		bOK = g_file_set_contents(tmp, contents, len, nullptr);
+		if (bOK)
+		{
+			FG_ConstGraphicPtr pFG;
+			if (IE_ImpGraphic::loadGraphic(tmp, IEGFT_Unknown, pFG)
+				== UT_OK && pFG)
+				pView->cmdInsertGraphic(pFG);
+			else
+				bOK = false;
+		}
+		remove(tmp);
+		g_free(tmp);
+	}
+	g_free(contents);
+
+	if (!bOK && pFrame)
+	{
+		std::string msg = "The picture could not be downloaded";
+		if (err && err->message)
+			msg += std::string(": ") + err->message;
+		pFrame->showMessageBox(msg, XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+	}
+	if (err)
+		g_error_free(err);
+	gtk_window_destroy(GTK_WINDOW(ctx->win));
+	delete ctx;
+}
+
+void AP_UnixRibbon::_showOnlinePictureDialog()
+{
+	GtkWidget * win = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(win), "Online Pictures");
+	gtk_window_set_modal(GTK_WINDOW(win), TRUE);
+	gtk_window_set_resizable(GTK_WINDOW(win), FALSE);
+	if (m_pFrame && m_pFrame->getFrameImpl())
+		gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(
+			static_cast<XAP_UnixFrameImpl *>(
+				m_pFrame->getFrameImpl())->getTopLevelWindow()));
+
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+	gtk_widget_set_margin_top(box, 12);
+	gtk_widget_set_margin_bottom(box, 12);
+	gtk_widget_set_margin_start(box, 12);
+	gtk_widget_set_margin_end(box, 12);
+	gtk_window_set_child(GTK_WINDOW(win), box);
+
+	GtkWidget * lbl = gtk_label_new(
+		"Enter the address of the picture:");
+	gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
+	gtk_box_append(GTK_BOX(box), lbl);
+
+	GtkWidget * entry = gtk_entry_new();
+	gtk_entry_set_placeholder_text(GTK_ENTRY(entry),
+								   "https://example.com/image.png");
+	gtk_widget_set_size_request(entry, 320, -1);
+	gtk_box_append(GTK_BOX(box), entry);
+
+	_OnlinePicCtx * ctx = new _OnlinePicCtx { this, entry, win };
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_widget_set_halign(row, GTK_ALIGN_END);
+	GtkWidget * cancel = gtk_button_new_with_label("Cancel");
+	g_signal_connect_swapped(cancel, "clicked",
+							 G_CALLBACK(gtk_window_destroy), win);
+	gtk_box_append(GTK_BOX(row), cancel);
+	GtkWidget * ok = gtk_button_new_with_label("Insert");
+	gtk_widget_add_css_class(ok, "suggested-action");
+	g_signal_connect(ok, "clicked",
+					 G_CALLBACK(_s_online_pic_insert), ctx);
+	gtk_box_append(GTK_BOX(row), ok);
+	gtk_box_append(GTK_BOX(box), row);
+	g_signal_connect(entry, "activate",
+					 G_CALLBACK(_s_online_pic_insert), ctx);
+
+	gtk_window_present(GTK_WINDOW(win));
+	gtk_widget_grab_focus(entry);
+}
+
+/* Word's Shapes dropdown: the bundled LibreOffice preset-shape
+ * gallery (artwork/shapes), grouped by shape category */
+static void _s_shape_name_tooltip(std::string & tip)
+{
+	/* "basicshapes.round-quadrat" -> "Round Quadrat" */
+	static const char * prefixes[] = {
+		"basicshapes.", "arrowshapes.", "symbolshapes.",
+		"starshapes.", "calloutshapes.", "flowchartshapes.flowchart-",
+		"flowchartshapes.", nullptr
+	};
+	for (int i = 0; prefixes[i]; i++)
+	{
+		std::string::size_type p = tip.find(prefixes[i]);
+		if (p != std::string::npos)
+		{
+			tip.erase(0, p + strlen(prefixes[i]));
+			break;
+		}
+	}
+	for (auto & c : tip)
+		if (c == '-' || c == '.')
+			c = ' ';
+	bool bCap = true;
+	for (auto & c : tip)
+	{
+		if (bCap && g_ascii_isalpha(c))
+		{
+			c = g_ascii_toupper(c);
+			bCap = false;
+		}
+		else if (c == ' ')
+			bCap = true;
+	}
+}
+
+void AP_UnixRibbon::_addGalleryDir(GtkWidget * parent,
+								   const char * szMethod,
+								   const char * szPrefix,
+								   const char * szDataPrefix,
+								   const char * szTitle, int iconSize,
+								   bool bRowLabel)
+{
+	std::string dirPath = XAP_App::getApp()->getAbiSuiteLibDir();
+	dirPath += "/";
+	dirPath += szPrefix;
+
+	GDir * dir = g_dir_open(dirPath.c_str(), 0, nullptr);
+	if (!dir)
+		return;
+	std::vector<std::string> files;
+	for (const gchar * n = g_dir_read_name(dir); n;
+		 n = g_dir_read_name(dir))
+		files.push_back(n);
+	g_dir_close(dir);
+	std::sort(files.begin(), files.end());
+	if (files.empty())
+		return;
+
+	if (szTitle)
+		gtk_box_append(GTK_BOX(parent),
+					   _popover_section_label(szTitle));
+
+	GtkWidget * flow = gtk_flow_box_new();
+	gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(flow),
+									GTK_SELECTION_NONE);
+	gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(flow),
+										   bRowLabel ? 4 : 8);
+	gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(flow),
+										   bRowLabel ? 4 : 8);
+	gtk_widget_set_margin_start(flow, 6);
+	gtk_widget_set_margin_end(flow, 6);
+	gtk_box_append(GTK_BOX(parent), flow);
+
+	for (const auto & file : files)
+	{
+		bool bSvg = g_str_has_suffix(file.c_str(), ".svg");
+		bool bPng = g_str_has_suffix(file.c_str(), ".png");
+		if (!bSvg && !bPng)
+			continue;
+		std::string stem = file.substr(0, file.size() - 4);
+
+		GtkWidget * btn = gtk_button_new();
+		GtkWidget * v = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+		GtkWidget * pic = gtk_picture_new_for_filename(
+			(dirPath + "/" + file).c_str());
+		gtk_widget_set_size_request(pic, iconSize, iconSize);
+		gtk_widget_set_halign(pic, GTK_ALIGN_CENTER);
+		gtk_box_append(GTK_BOX(v), pic);
+		if (bRowLabel)
+		{
+			std::string tip = stem;
+			_s_shape_name_tooltip(tip);
+			GtkWidget * l = gtk_label_new(nullptr);
+			char * mk = g_markup_printf_escaped(
+				"<span size='x-small' alpha='70%%'>%s</span>",
+				tip.c_str());
+			gtk_label_set_markup(GTK_LABEL(l), mk);
+			g_free(mk);
+			gtk_label_set_max_width_chars(GTK_LABEL(l), 12);
+			gtk_label_set_ellipsize(GTK_LABEL(l),
+									PANGO_ELLIPSIZE_END);
+			gtk_box_append(GTK_BOX(v), l);
+			gtk_widget_set_tooltip_text(btn, tip.c_str());
+		}
+		gtk_button_set_child(GTK_BUTTON(btn), v);
+		gtk_widget_add_css_class(btn, "flat");
+		std::string data = szDataPrefix ? szDataPrefix : "";
+		data += stem;
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup(szMethod), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(data.c_str()), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		gtk_flow_box_append(GTK_FLOW_BOX(flow), btn);
+	}
+}
+
+GtkWidget * AP_UnixRibbon::_makeShapesPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(sw), 460);
+	gtk_scrolled_window_set_min_content_width(
+		GTK_SCROLLED_WINDOW(sw), 400);
+	GtkWidget * inner = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), inner);
+	gtk_box_append(GTK_BOX(box), sw);
+
+	static const struct { const char * title; const char * dir;
+						  const char * data; } s_cats[] =
+	{
+		{ "Basic Shapes",	"artwork/shapes/basic",		"basic/" },
+		{ "Block Arrows",	"artwork/shapes/arrows",	"arrows/" },
+		{ "Symbol Shapes",	"artwork/shapes/symbols",	"symbols/" },
+		{ "Stars and Banners","artwork/shapes/stars",	"stars/" },
+		{ "Callouts",		"artwork/shapes/callouts",	"callouts/" },
+		{ "Flowchart",		"artwork/shapes/flowchart",	"flowchart/" },
+	};
+	for (unsigned i = 0; i < G_N_ELEMENTS(s_cats); i++)
+		_addGalleryDir(inner, "insertShape",
+					   s_cats[i].dir, s_cats[i].data, s_cats[i].title,
+					   26, false);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* 3D Models: the bundled Fluent UI 3D emoji set (artwork/3d) */
+GtkWidget * AP_UnixRibbon::_make3DModelsPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(sw), 440);
+	gtk_scrolled_window_set_min_content_width(
+		GTK_SCROLLED_WINDOW(sw), 400);
+	GtkWidget * inner = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), inner);
+	gtk_box_append(GTK_BOX(box), sw);
+
+	_addGalleryDir(inner, "insert3DModel", "artwork/3d", "",
+				   "3D Illustrations", 56, true);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* Word's Media dropdown: media objects cannot be embedded, so the
+ * "from File" rows insert a file:// link that opens in the system
+ * player; the browser rows report unsupported */
+GtkWidget * AP_UnixRibbon::_makeMediaPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Video Browser…", nullptr, nullptr,
+							  "notImplemented", "Video Browser"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Video from File…",
+							  "Insert a link to a video file",
+							  nullptr, "insMediaFile", "video"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Audio Browser…", nullptr, nullptr,
+							  "notImplemented", "Audio Browser"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Audio from File…",
+							  "Insert a link to an audio file",
+							  nullptr, "insMediaFile", "audio"));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* Word's WordArt gallery: a grid of styled "A" tiles; clicking one
+ * inserts sample text with that character styling */
+GtkWidget * AP_UnixRibbon::_makeWordArtPopover()
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_row_homogeneous(GTK_GRID(grid), TRUE);
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
+	gtk_widget_set_margin_top(grid, 6);
+	gtk_widget_set_margin_bottom(grid, 6);
+	gtk_widget_set_margin_start(grid, 6);
+	gtk_widget_set_margin_end(grid, 6);
+
+	static const struct { const char * color; const char * style;
+						  bool bold; } s_presets[] =
+	{
+		{ "000000", "fill", true },  { "4472C4", "fill", true },
+		{ "ED7D31", "outline", false },{ "7BB4E8", "outline", false },
+		{ "FFC000", "fill", true },
+		{ "808080", "fill", true },  { "70AD47", "fill", true },
+		{ "FFC000", "outline", false },{ "4472C4", "outline", true },
+		{ "595959", "outline", false },
+		{ "000000", "outline", true },{ "2E74B5", "fill", true },
+		{ "ED7D31", "fill", false }, { "7030A0", "fill", true },
+		{ "C00000", "fill", true },
+	};
+	for (unsigned i = 0; i < G_N_ELEMENTS(s_presets); i++)
+	{
+		GtkWidget * btn = gtk_button_new();
+		char * mk = g_markup_printf_escaped(
+			"<span font='26' weight='%s' style='%s' "
+			"color='#%s'>A</span>",
+			s_presets[i].bold ? "bold" : "normal",
+			!strcmp(s_presets[i].style, "outline")
+				? "italic" : "normal",
+			s_presets[i].color);
+		GtkWidget * l = gtk_label_new(nullptr);
+		gtk_label_set_markup(GTK_LABEL(l), mk);
+		g_free(mk);
+		gtk_widget_set_size_request(l, 58, 48);
+		gtk_button_set_child(GTK_BUTTON(btn), l);
+		gtk_widget_add_css_class(btn, "flat");
+
+		std::string data = std::string(s_presets[i].style) + "-" +
+			s_presets[i].color;
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup("insertWordArt"), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(data.c_str()), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		gtk_grid_attach(GTK_GRID(grid), btn, i % 5, i / 5, 1, 1);
+	}
+	gtk_popover_set_child(GTK_POPOVER(popover), grid);
+	return popover;
+}
+
+/* Word's Text Box dropdown */
+GtkWidget * AP_UnixRibbon::_makeTextBoxPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Draw Text Box",
+							  "Draw a horizontal text box",
+							  _layout_icon((XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX, 16, 16),
+							  "insTextBox", nullptr));
+	{
+		_PageSpec spec = { 0, 0, 0, 0, 1, false, false, 0, true };
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Draw Vertical Text Box",
+								  "Draw a text box rotated 90 degrees",
+								  _glyph_widget(spec, 16, 16, _glyph_vtextbox),
+								  "insVerticalTextBox", nullptr));
+	}
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* Word's Object dropdown */
+GtkWidget * AP_UnixRibbon::_makeObjectPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Object…", nullptr, nullptr,
+							  "notImplemented", "Embedded Object"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Text from File…",
+							  "Insert the contents of a document file",
+							  nullptr, "insFile", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("RDF Link",
+							  "Insert an RDF semantic link",
+							  nullptr, "insertXMLID", nullptr));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* ---- Header/Footer built-in gallery ------------------------------
+ * Word's Header and Footer dropdowns: a scrolling list of preview
+ * cards (name over a mini header sketch) for the generated presets
+ * in fv_View_cmd.cpp, followed by Edit and Remove rows. */
+
+struct _HdrCardData { const char * id; bool footer; };
+
+static void _hdrftr_card_draw(GtkDrawingArea *, cairo_t * cr,
+							  int w, int h, gpointer data)
+{
+	const _HdrCardData * cd = static_cast<const _HdrCardData *>(data);
+	const char * id = cd->id;
+	const bool bFooter = cd->footer;
+
+	/* white card + thin frame = the header band on a page */
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, 0.5, 0.5, w - 1, h - 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.72, 0.72, 0.72);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	auto text = [cr](const char * s, double x, double y,
+					 double r, double g, double b, bool bold,
+					 bool center, double areaW)
+	{
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL,
+							   bold ? CAIRO_FONT_WEIGHT_BOLD
+									: CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 8.5);
+		if (center)
+		{
+			cairo_text_extents_t ext;
+			cairo_text_extents(cr, s, &ext);
+			cairo_move_to(cr, x + (areaW - ext.width) / 2, y);
+		}
+		else
+			cairo_move_to(cr, x, y);
+		cairo_show_text(cr, s);
+	};
+	auto itext = [cr](const char * s, double x, double y,
+					  double r, double g, double b)
+	{
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_ITALIC,
+							   CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 8.5);
+		cairo_move_to(cr, x, y);
+		cairo_show_text(cr, s);
+	};
+	auto band = [cr](double x, double y, double bw, double bh,
+					 double r, double g, double b)
+	{
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_rectangle(cr, x, y, bw, bh);
+		cairo_fill(cr);
+	};
+	auto hline = [cr](double x1, double y, double x2,
+					  double r, double g, double b, double lw)
+	{
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_set_line_width(cr, lw);
+		cairo_move_to(cr, x1, y);
+		cairo_line_to(cr, x2, y);
+		cairo_stroke(cr);
+	};
+	const double m = 10.0;	/* card inner margin */
+
+	if (bFooter)
+	{
+		/* ---- footer previews (Word's Insert > Footer set) ---- */
+		if (!strcmp(id, "blank"))
+			text("[Type here]", m, h * 0.5 + 3, 0.5, 0.5, 0.55,
+				 false, false, 0);
+		else if (!strcmp(id, "blank3"))
+		{
+			text("[Type here]", m, h * 0.5 + 3, 0.5, 0.5, 0.55,
+				 false, false, 0);
+			text("[Type here]", 0, h * 0.5 + 3, 0.5, 0.5, 0.55,
+				 false, true, w);
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 8.5);
+			cairo_text_extents(cr, "[Type here]", &ext);
+			text("[Type here]", w - m - ext.width, h * 0.5 + 3,
+				 0.5, 0.5, 0.55, false, false, 0);
+		}
+		else if (!strcmp(id, "austin"))
+		{
+			hline(m, h * 0.2, w - m, 0.3, 0.3, 0.3, 0.8);
+			hline(m, h * 0.85, w - m, 0.3, 0.3, 0.3, 0.8);
+			text("pg. 1", m + 6, h * 0.82, 0.27, 0.45, 0.77,
+				 false, false, 0);
+		}
+		else if (!strcmp(id, "badge"))
+		{
+			cairo_set_source_rgb(cr, 0.27, 0.45, 0.77);
+			cairo_arc(cr, w / 2.0, h * 0.5, h * 0.3, 0, 6.2832);
+			cairo_fill(cr);
+			text("1", 0, h * 0.5 + 4, 1, 1, 1, true, true, w);
+		}
+		else if (!strcmp(id, "banded"))
+			text("1", 0, h * 0.5 + 3, 0.27, 0.45, 0.77,
+				 false, true, w);
+		else if (!strcmp(id, "crop"))
+			text("[Document Title]", 0, h * 0.5 + 3, 0.5, 0.5, 0.5,
+				 false, true, w);
+		else if (!strcmp(id, "faceteven"))
+			text("[Author name] | [SCHOOL]", m, h * 0.5 + 3,
+				 0.5, 0.5, 0.5, false, false, 0);
+		else if (!strcmp(id, "facetodd"))
+		{
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 8.5);
+			cairo_text_extents(cr, "[DOCUMENT TITLE] | [Document subtitle]",
+							   &ext);
+			text("[DOCUMENT TITLE] | [Document subtitle]",
+				 w - m - ext.width, h * 0.5 + 3, 0.27, 0.45, 0.77,
+				 false, false, 0);
+		}
+		else if (!strcmp(id, "feathered"))
+		{
+			cairo_set_source_rgb(cr, 0.27, 0.45, 0.77);
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_BOLD);
+			cairo_set_font_size(cr, 26);
+			cairo_move_to(cr, m, h * 0.75);
+			cairo_show_text(cr, "1");
+		}
+		else if (!strcmp(id, "filigree"))
+		{
+			hline(m + w * 0.15, h * 0.30, w - m - w * 0.15,
+				  0.27, 0.45, 0.77, 0.8);
+			text("\xe2\x9d\xa7", 0, h * 0.62, 0.27, 0.45, 0.77,
+				 false, true, w);
+		}
+		else if (!strcmp(id, "headlines"))
+		{
+			itext("[Document Title]", m, h * 0.40,
+				  0.3, 0.3, 0.3);
+			hline(m, h * 0.68, w - m, 0.3, 0.3, 0.3, 1.0);
+		}
+		else if (!strcmp(id, "integral"))
+		{
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 8.5);
+			cairo_text_extents(cr, "[AUTHOR NAME]", &ext);
+			text("[AUTHOR NAME]", w - m - 30 - ext.width - 6,
+				 h * 0.5 + 3, 0.2, 0.2, 0.2, false, false, 0);
+			band(w - m - 30, h * 0.30, 30, h * 0.5,
+				 0.93, 0.49, 0.19);
+			text("1", w - m - 19, h * 0.62, 1, 1, 1, true, false, 0);
+		}
+		else if (!strcmp(id, "iondark"))
+		{
+			band(m, h * 0.30, w - 2 * m, h * 0.42,
+				 0.27, 0.45, 0.77);
+			text("[DOCUMENT TITLE]", m + 8, h * 0.55, 1, 1, 1,
+				 false, false, 0);
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 8.5);
+			cairo_text_extents(cr, "[AUTHOR NAME]", &ext);
+			text("[AUTHOR NAME]", w - m - 8 - ext.width, h * 0.55,
+				 1, 1, 1, false, false, 0);
+		}
+		else if (!strcmp(id, "ionlight"))
+		{
+			text("[DOCUMENT TITLE]", m, h * 0.55, 0.27, 0.45, 0.77,
+				 false, false, 0);
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 8.5);
+			cairo_text_extents(cr, "[AUTHOR NAME]", &ext);
+			text("[AUTHOR NAME]", w - m - ext.width, h * 0.55,
+				 0.27, 0.45, 0.77, false, false, 0);
+		}
+		else if (!strcmp(id, "retrospect"))
+		{
+			hline(m, h * 0.24, w - m, 0.27, 0.45, 0.77, 1.4);
+			text("[AUTHOR]", m, h * 0.52, 0.5, 0.5, 0.5,
+				 false, false, 0);
+			text("1", w - m - 8, h * 0.52, 0.5, 0.5, 0.5,
+				 false, false, 0);
+		}
+		else if (!strcmp(id, "semaphore"))
+			text("Page 1 of 1", 0, h * 0.5 + 3, 0.27, 0.45, 0.77,
+				 false, true, w);
+		else if (!strcmp(id, "slice"))
+		{
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 8.5);
+			cairo_text_extents(cr, "[Author]", &ext);
+			text("[Author]", w - m - ext.width, h * 0.5 + 3,
+				 0.5, 0.5, 0.5, false, false, 0);
+		}
+		else if (!strcmp(id, "viewmasterh"))
+		{
+			hline(m + w * 0.1, h * 0.34, w - m, 0.2, 0.2, 0.2, 1.0);
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 8.5);
+			cairo_text_extents(cr, "[Date]", &ext);
+			text("[Date]", w - m - 26 - ext.width - 4, h * 0.62,
+				 0.5, 0.5, 0.5, false, false, 0);
+			band(w - m - 26, h * 0.42, 26, h * 0.36, 0.1, 0.1, 0.1);
+			text("1", w - m - 16, h * 0.66, 1, 1, 1, true, false, 0);
+		}
+		else if (!strcmp(id, "viewmasterv"))
+		{
+			cairo_text_extents_t ext;
+			cairo_select_font_face(cr, "sans",
+								   CAIRO_FONT_SLANT_NORMAL,
+								   CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 7.5);
+			cairo_text_extents(cr, "[Date]", &ext);
+			text("[Date]", w - m - ext.width, h * 0.34,
+				 0.5, 0.5, 0.5, false, false, 0);
+			band(w - m - 26, h * 0.46, 26, h * 0.34, 0.1, 0.1, 0.1);
+			text("1", w - m - 16, h * 0.68, 1, 1, 1, true, false, 0);
+		}
+		else /* whisp */
+			text("Page 1", 0, h * 0.5 + 3, 0.5, 0.5, 0.5,
+				 false, true, w);
+		return;
+	}
+
+	if (!strcmp(id, "blank"))
+		text("[Type here]", m, h * 0.5 + 3, 0.5, 0.5, 0.55,
+			 false, false, 0);
+	else if (!strcmp(id, "blank3"))
+	{
+		text("[Type here]", m, h * 0.5 + 3, 0.5, 0.5, 0.55,
+			 false, false, 0);
+		text("[Type here]", 0, h * 0.5 + 3, 0.5, 0.5, 0.55,
+			 false, true, w);
+		cairo_text_extents_t ext;
+		cairo_text_extents(cr, "[Type here]", &ext);
+		text("[Type here]", w - m - ext.width, h * 0.5 + 3,
+			 0.5, 0.5, 0.55, false, false, 0);
+	}
+	else if (!strcmp(id, "austin"))
+	{
+		cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
+		cairo_rectangle(cr, m + 8, h * 0.22, w - 2 * m - 16,
+						h * 0.56);
+		cairo_set_line_width(cr, 0.9);
+		cairo_stroke(cr);
+		text("[Document title]", m + 16, h * 0.5 + 3,
+			 0.27, 0.45, 0.77, false, false, 0);
+	}
+	else if (!strcmp(id, "badge"))
+	{
+		band(m, h * 0.20, w - 2 * m, h * 0.60,
+			 0.27, 0.33, 0.42);
+		text("[DOCUMENT TITLE]", 0, h * 0.5 + 3, 1, 1, 1,
+			 true, true, w);
+	}
+	else if (!strcmp(id, "banded"))
+	{
+		band(m + w * 0.12, h * 0.22, (w - 2 * m) * 0.76, h * 0.56,
+			 0.27, 0.45, 0.77);
+		text("[DOCUMENT TITLE]", 0, h * 0.5 + 3, 1, 1, 1,
+			 false, true, w);
+	}
+	else if (!strcmp(id, "crop"))
+	{
+		band(m, h * 0.18, w * 0.16, 7, 0.27, 0.33, 0.42);
+		band(m, h * 0.18, 7, h * 0.5, 0.27, 0.33, 0.42);
+		text("1", w - m - 6, h * 0.5, 0.5, 0.5, 0.55,
+			 false, false, 0);
+	}
+	else if (!strcmp(id, "faceteven") || !strcmp(id, "facetodd"))
+	{
+		bool odd = !strcmp(id, "facetodd");
+		band(odd ? w - m - 42 : m, h * 0.18, 42, h * 0.6,
+			 0.27, 0.45, 0.77);
+		text("1", odd ? w - m - 24 : m + 18, h * 0.52, 1, 1, 1,
+			 true, false, 0);
+	}
+	else if (!strcmp(id, "feathered"))
+		text("[Document Title]", m, h * 0.5 + 3, 0.27, 0.45, 0.77,
+			 false, false, 0);
+	else if (!strcmp(id, "feathered2"))
+	{
+		text("[Document Title]", m, h * 0.44, 0.27, 0.45, 0.77,
+			 false, false, 0);
+		cairo_set_source_rgb(cr, 0.65, 0.65, 0.65);
+		cairo_set_line_width(cr, 0.8);
+		cairo_move_to(cr, m, h * 0.72);
+		cairo_line_to(cr, w - m, h * 0.72);
+		cairo_stroke(cr);
+	}
+	else if (!strcmp(id, "filigree"))
+	{
+		cairo_text_extents_t ext;
+		cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL,
+							   CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 8.5);
+		cairo_text_extents(cr, "[Document title] | [Author name]",
+						   &ext);
+		text("[Document title] | [Author name]",
+			 w - m - ext.width, h * 0.5 + 3, 0.27, 0.45, 0.77,
+			 false, false, 0);
+	}
+	else if (!strcmp(id, "headlines"))
+	{
+		band(w - m - 46, h * 0.16, 46, h * 0.64,
+			 0.15, 0.15, 0.15);
+		text("1", w - m - 26, h * 0.52, 1, 1, 1, true, false, 0);
+	}
+	else if (!strcmp(id, "integral"))
+	{
+		band(m + w * 0.10, h * 0.22, (w - 2 * m) * 0.80, h * 0.56,
+			 0.93, 0.49, 0.19);
+		cairo_text_extents_t ext;
+		cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL,
+							   CAIRO_FONT_WEIGHT_BOLD);
+		cairo_set_font_size(cr, 8.5);
+		cairo_text_extents(cr, "[DOCUMENT TITLE]", &ext);
+		text("[DOCUMENT TITLE]", w - m - w * 0.10 - ext.width - 8,
+			 h * 0.5 + 3, 1, 1, 1, true, false, 0);
+	}
+	else if (!strcmp(id, "iondark"))
+	{
+		band(w - m - 34, h * 0.14, 34, h * 0.66,
+			 0.27, 0.45, 0.77);
+		text("1", w - m - 20, h * 0.52, 1, 1, 1, true, false, 0);
+	}
+	else if (!strcmp(id, "ionlight"))
+		text("1", w - m - 8, h * 0.5 + 3, 0.27, 0.45, 0.77,
+			 true, false, 0);
+	else if (!strcmp(id, "retrospect"))
+	{
+		text("[Document title]", 0, h * 0.44, 0.5, 0.5, 0.5,
+			 false, true, w);
+		cairo_set_source_rgb(cr, 0.65, 0.65, 0.65);
+		cairo_set_line_width(cr, 0.8);
+		cairo_move_to(cr, m, h * 0.74);
+		cairo_line_to(cr, w - m, h * 0.74);
+		cairo_stroke(cr);
+	}
+	else if (!strcmp(id, "semaphore"))
+	{
+		text("[Author name]", 0, h * 0.34, 0.27, 0.45, 0.77,
+			 false, true, w);
+		text("[DOCUMENT TITLE]", 0, h * 0.68, 0.27, 0.45, 0.77,
+			 true, true, w);
+	}
+	else if (!strcmp(id, "slice1"))
+	{
+		cairo_text_extents_t ext;
+		cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL,
+							   CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 8.5);
+		cairo_text_extents(cr, "Page 1", &ext);
+		text("Page 1", w - m - ext.width, h * 0.5 + 3,
+			 0.5, 0.5, 0.5, false, false, 0);
+	}
+	else if (!strcmp(id, "slice2"))
+	{
+		cairo_set_source_rgb(cr, 0.52, 0.59, 0.69);
+		cairo_set_line_width(cr, 0.8);
+		cairo_move_to(cr, w - m - 40, h * 0.36);
+		cairo_line_to(cr, w - m, h * 0.36);
+		cairo_stroke(cr);
+		text("1", w - m - 24, h * 0.62, 0.27, 0.45, 0.77,
+			 false, false, 0);
+	}
+	else if (!strcmp(id, "viewmaster"))
+	{
+		cairo_text_extents_t ext;
+		cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL,
+							   CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 8.5);
+		cairo_text_extents(cr, "[Document title]", &ext);
+		text("[Document title]", w - m - ext.width, h * 0.5 + 3,
+			 0.5, 0.5, 0.5, false, false, 0);
+	}
+	else /* whisp */
+	{
+		cairo_text_extents_t ext;
+		cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL,
+							   CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 7.5);
+		cairo_text_extents(cr, "[Author name]", &ext);
+		text("[Author name]", w - m - ext.width, h * 0.30,
+			 0.5, 0.5, 0.5, false, false, 0);
+		cairo_text_extents(cr, "[Date]", &ext);
+		text("[Date]", w - m - ext.width, h * 0.50,
+			 0.5, 0.5, 0.5, false, false, 0);
+		text("[Document title]", 0, h * 0.82, 0.5, 0.5, 0.5,
+			 false, true, w);
+	}
+}
+
+GtkWidget * AP_UnixRibbon::_makeHdrFtrPopover(bool bFooter)
+{
+	GtkWidget * popover = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(sw), 430);
+	GtkWidget * inner = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), inner);
+	gtk_box_append(GTK_BOX(box), sw);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+
+	gtk_box_append(GTK_BOX(inner), _popover_section_label("Built-in"));
+
+	static const struct { const char * id; const char * name; }
+	s_hdr_list[] =
+	{
+		{ "blank",		"Blank" },
+		{ "blank3",		"Blank (Three Columns)" },
+		{ "austin",		"Austin" },
+		{ "badge",		"Badge" },
+		{ "banded",		"Banded" },
+		{ "crop",		"Crop" },
+		{ "faceteven",	"Facet (Even Page)" },
+		{ "facetodd",	"Facet (Odd Page)" },
+		{ "feathered",	"Feathered" },
+		{ "feathered2",	"Feathered 2" },
+		{ "filigree",	"Filigree" },
+		{ "headlines",	"Headlines" },
+		{ "integral",	"Integral" },
+		{ "iondark",	"Ion (Dark)" },
+		{ "ionlight",	"Ion (Light)" },
+		{ "retrospect",	"Retrospect" },
+		{ "semaphore",	"Semaphore" },
+		{ "slice1",		"Slice 1" },
+		{ "slice2",		"Slice 2" },
+		{ "viewmaster",	"ViewMaster" },
+		{ "whisp",		"Whisp" },
+	},
+	s_ftr_list[] =
+	{
+		{ "blank",		"Blank" },
+		{ "blank3",		"Blank (Three Columns)" },
+		{ "austin",		"Austin" },
+		{ "badge",		"Badge" },
+		{ "banded",		"Banded" },
+		{ "crop",		"Crop" },
+		{ "faceteven",	"Facet (Even Page)" },
+		{ "facetodd",	"Facet (Odd Page)" },
+		{ "feathered",	"Feathered" },
+		{ "filigree",	"Filigree" },
+		{ "headlines",	"Headlines" },
+		{ "integral",	"Integral" },
+		{ "iondark",	"Ion (Dark)" },
+		{ "ionlight",	"Ion (Light)" },
+		{ "retrospect",	"Retrospect" },
+		{ "semaphore",	"Semaphore" },
+		{ "slice",		"Slice" },
+		{ "viewmasterh","ViewMaster (Horizontal)" },
+		{ "viewmasterv","ViewMaster (Vertical)" },
+		{ "whisp",		"Whisp" },
+	};
+	const auto * pList = bFooter ? s_ftr_list : s_hdr_list;
+	const unsigned nList = bFooter ? G_N_ELEMENTS(s_ftr_list)
+		: G_N_ELEMENTS(s_hdr_list);
+	const char * szMethod = bFooter ? "insertFooterPreset"
+		: "insertHeaderPreset";
+	for (unsigned i = 0; i < nList; i++)
+	{
+		GtkWidget * v = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+		GtkWidget * l = gtk_label_new(pList[i].name);
+		gtk_label_set_xalign(GTK_LABEL(l), 0.5);
+		gtk_box_append(GTK_BOX(v), l);
+		GtkWidget * da = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 236);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 44);
+		_HdrCardData * cd = g_new0(_HdrCardData, 1);
+		cd->id = pList[i].id;
+		cd->footer = bFooter;
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+									   _hdrftr_card_draw, cd, g_free);
+		gtk_widget_set_margin_start(da, 8);
+		gtk_widget_set_margin_end(da, 8);
+		gtk_box_append(GTK_BOX(v), da);
+		GtkWidget * btn = gtk_button_new();
+		gtk_button_set_child(GTK_BUTTON(btn), v);
+		gtk_widget_add_css_class(btn, "flat");
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup(szMethod), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(pList[i].id), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		gtk_box_append(GTK_BOX(inner), btn);
+	}
+
+	gtk_box_append(GTK_BOX(inner),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(inner),
+				   _presetRow(bFooter ? "Edit Footer" : "Edit Header",
+							  nullptr,
+							  _layout_icon(bFooter
+								   ? (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER
+								   : (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER,
+								   16, 16),
+							  bFooter ? "editFooter" : "editHeader",
+							  nullptr));
+	gtk_box_append(GTK_BOX(inner),
+				   _presetRow(bFooter ? "Remove Footer" : "Remove Header",
+							  nullptr, nullptr,
+							  bFooter ? "removeFooter" : "removeHeader",
+							  nullptr));
 	return popover;
 }
 

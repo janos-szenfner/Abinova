@@ -6254,6 +6254,526 @@ bool FV_View::hasCoverPage(void) const
 	return !m_pDoc->isBookmarkUnique("_cover-page");
 }
 
+/* ---------------- Header/Footer built-in gallery --------------------
+ *
+ * Word's Insert > Header and Insert > Footer galleries offer built-in
+ * designs.  Each preset below is a list of header/footer paragraphs
+ * with direct block/char formatting - shaded bands, border rules,
+ * placeholder text like "[Document title]" (the user overwrites it)
+ * and real page-number fields.  Inside szText, '\t' inserts a tab
+ * and a '\x01' marker inserts a page_number field.  Generated in
+ * code like the cover-page presets; no third-party artwork.
+ */
+struct FV_HdrLine
+{
+	const char * szBlockProps;
+	const char * szCharProps;
+	const char * szText;
+};
+
+static const FV_HdrLine s_hdr_blank[] =
+{
+	{ nullptr, "color:595959", "[Type here]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_blank3[] =
+{
+	{ "tabstops:3.0in/C0,6.0in/R0", "color:595959",
+	  "[Type here]\t[Type here]\t[Type here]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_austin[] =
+{
+	{ "top-style:solid; top-color:000000; top-thickness:0.5pt; "
+	  "bot-style:solid; bot-color:000000; bot-thickness:0.5pt; "
+	  "left-style:solid; left-color:000000; left-thickness:0.5pt; "
+	  "right-style:solid; right-color:000000; right-thickness:0.5pt; "
+	  "margin-left:0.3in; margin-right:0.3in; margin-top:0.12in",
+	  "color:4472C4; font-variant:small-caps", "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_badge[] =
+{
+	{ "shading-background-color:44546A; text-align:center; "
+	  "margin-top:0.08in",
+	  "color:FFFFFF; font-weight:bold; font-variant:small-caps",
+	  "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_banded[] =
+{
+	{ "shading-background-color:4472C4; text-align:center; "
+	  "margin-left:0.7in; margin-right:0.7in; margin-top:0.12in",
+	  "color:FFFFFF; font-variant:small-caps", "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_crop[] =
+{
+	{ "left-style:solid; left-color:44546A; left-thickness:14pt; "
+	  "top-style:solid; top-color:44546A; top-thickness:14pt; "
+	  "margin-right:5.2in; line-height:0.24in",
+	  nullptr, nullptr },
+	{ "text-align:right", "color:595959", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_faceteven[] =
+{
+	{ "shading-background-color:4472C4; margin-right:5.4in; "
+	  "text-align:center; margin-top:0.10in",
+	  "color:FFFFFF; font-weight:bold", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_facetodd[] =
+{
+	{ "shading-background-color:4472C4; margin-left:5.4in; "
+	  "text-align:center; margin-top:0.10in",
+	  "color:FFFFFF; font-weight:bold", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_feathered[] =
+{
+	{ nullptr, "color:4472C4; font-variant:small-caps",
+	  "[Document Title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_feathered2[] =
+{
+	{ "bot-style:solid; bot-color:A6A6A6; bot-thickness:0.5pt",
+	  "color:4472C4; font-variant:small-caps", "[Document Title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_filigree[] =
+{
+	{ "text-align:right", "color:4472C4; font-variant:small-caps",
+	  "[Document title]  |  [Author name]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_headlines[] =
+{
+	{ "margin-left:5.6in; shading-background-color:262626; "
+	  "text-align:center; margin-top:0.10in",
+	  "color:FFFFFF; font-weight:bold", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_integral[] =
+{
+	{ "shading-background-color:ED7D31; text-align:right; "
+	  "margin-top:0.12in",
+	  "color:FFFFFF; font-weight:bold; font-variant:small-caps",
+	  "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_iondark[] =
+{
+	{ "margin-left:5.6in; shading-background-color:4472C4; "
+	  "text-align:center; margin-top:0.10in",
+	  "color:FFFFFF; font-weight:bold", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_ionlight[] =
+{
+	{ "text-align:right", "color:4472C4; font-weight:bold", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_retrospect[] =
+{
+	{ "text-align:center; bot-style:solid; bot-color:A6A6A6; "
+	  "bot-thickness:0.5pt",
+	  "color:808080; font-variant:small-caps", "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_semaphore[] =
+{
+	{ "text-align:center", "color:4472C4; font-variant:small-caps",
+	  "[Author name]" },
+	{ "text-align:center",
+	  "color:4472C4; font-variant:small-caps; font-weight:bold",
+	  "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_slice1[] =
+{
+	{ "text-align:right", "color:808080", "Page \x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_slice2[] =
+{
+	{ "margin-left:5.6in; top-style:solid; top-color:8496B0; "
+	  "top-thickness:0.5pt; text-align:center",
+	  "color:4472C4", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_viewmaster[] =
+{
+	{ "text-align:right", "color:808080", "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_hdr_whisp[] =
+{
+	{ "text-align:right", "color:808080; font-size:9pt",
+	  "[Author name]" },
+	{ "text-align:right", "color:808080; font-size:9pt", "[Date]" },
+	{ "text-align:center; margin-top:0.15in", "color:808080",
+	  "[Document title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+struct FV_HdrPreset
+{
+	const char * szId;
+	const char * szName;
+	const FV_HdrLine * pLines;
+};
+
+/* ---- Footer built-ins (Word's Insert > Footer gallery) ---------- */
+
+static const FV_HdrLine s_ftr_blank[] =
+{
+	{ nullptr, "color:595959", "[Type here]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_blank3[] =
+{
+	{ "tabstops:3.0in/C0,6.0in/R0", "color:595959",
+	  "[Type here]\t[Type here]\t[Type here]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Austin footer: thin corner brackets + "pg. 1" bottom-left */
+static const FV_HdrLine s_ftr_austin[] =
+{
+	{ "top-style:solid; top-color:000000; top-thickness:0.5pt; "
+	  "bot-style:solid; bot-color:000000; bot-thickness:0.5pt; "
+	  "left-style:solid; left-color:000000; left-thickness:0.5pt; "
+	  "right-style:solid; right-color:000000; right-thickness:0.5pt; "
+	  "margin-left:0.3in; margin-right:0.3in",
+	  "color:4472C4; font-size:9pt", "pg. \x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Badge: centered page number in a small blue block */
+static const FV_HdrLine s_ftr_badge[] =
+{
+	{ "shading-background-color:4472C4; margin-left:2.7in; "
+	  "margin-right:2.7in; text-align:center",
+	  "color:FFFFFF; font-weight:bold; font-size:14pt", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Banded footer: plain centered page number */
+static const FV_HdrLine s_ftr_banded[] =
+{
+	{ "text-align:center", "color:4472C4", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_crop[] =
+{
+	{ nullptr, "color:808080; font-variant:small-caps",
+	  "[Document Title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_faceteven[] =
+{
+	{ nullptr, "color:808080; font-size:9pt",
+	  "[Author name]  |  [SCHOOL]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_facetodd[] =
+{
+	{ "text-align:right", "color:4472C4; font-size:9pt",
+	  "[DOCUMENT TITLE]  |  [Document subtitle]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Feathered footer: oversized page number at the left edge */
+static const FV_HdrLine s_ftr_feathered[] =
+{
+	{ nullptr, "color:4472C4; font-size:28pt", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Filigree footer: thin rule with a centered ornament */
+static const FV_HdrLine s_ftr_filigree[] =
+{
+	{ "margin-left:1.5in; margin-right:1.5in; top-style:solid; "
+	  "top-color:4472C4; top-thickness:0.5pt; text-align:center",
+	  "color:4472C4; font-size:14pt", "\xe2\x9d\xa7" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_headlines[] =
+{
+	{ "bot-style:solid; bot-color:000000; bot-thickness:0.75pt",
+	  "font-style:italic", "[Document Title]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Integral footer: right "[AUTHOR NAME]" then a page number that
+ * sits in a narrow orange-shaded paragraph next to it */
+static const FV_HdrLine s_ftr_integral[] =
+{
+	{ "tabstops:5.4in/R0; text-align:left",
+	  "color:000000; font-variant:small-caps; font-size:9pt",
+	  "[AUTHOR NAME]\t\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Ion (Dark): full-width blue band, title left / author right */
+static const FV_HdrLine s_ftr_iondark[] =
+{
+	{ "shading-background-color:4472C4; tabstops:6.0in/R0",
+	  "color:FFFFFF; font-size:9pt; font-variant:small-caps",
+	  "[Document title]\t[Author name]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_ionlight[] =
+{
+	{ "tabstops:6.0in/R0",
+	  "color:4472C4; font-size:9pt; font-variant:small-caps",
+	  "[Document title]\t[Author name]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_retrospect[] =
+{
+	{ "top-style:solid; top-color:4472C4; top-thickness:1.5pt; "
+	  "tabstops:6.0in/R0",
+	  "color:808080; font-size:9pt",
+	  "[AUTHOR]\t\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* Semaphore: centered "Page 1 of 1" */
+static const FV_HdrLine s_ftr_semaphore[] =
+{
+	{ "text-align:center", "color:4472C4",
+	  "Page \x01 of \x02" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_slice[] =
+{
+	{ "text-align:right", "color:808080; font-size:9pt",
+	  "[Author]" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* ViewMaster (Horizontal): top rule + right "[Date]" + dark "1" */
+static const FV_HdrLine s_ftr_viewmasterh[] =
+{
+	{ "top-style:solid; top-color:000000; top-thickness:0.5pt; "
+	  "tabstops:6.0in/R0; text-align:left",
+	  "color:808080; font-size:9pt", "\t[Date]   \x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+/* ViewMaster (Vertical): right-aligned date over a dark "1" */
+static const FV_HdrLine s_ftr_viewmasterv[] =
+{
+	{ "text-align:right", "color:808080; font-size:8pt", "[Date]" },
+	{ "text-align:right", "color:000000; font-weight:bold; "
+	  "font-size:16pt", "\x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrLine s_ftr_whisp[] =
+{
+	{ "text-align:center", "color:808080; font-size:9pt",
+	  "Page \x01" },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_HdrPreset s_ftrPresets[] =
+{
+	{ "blank",		"Blank",					s_ftr_blank },
+	{ "blank3",		"Blank (Three Columns)",	s_ftr_blank3 },
+	{ "austin",		"Austin",					s_ftr_austin },
+	{ "badge",		"Badge",					s_ftr_badge },
+	{ "banded",		"Banded",					s_ftr_banded },
+	{ "crop",		"Crop",						s_ftr_crop },
+	{ "faceteven",	"Facet (Even Page)",		s_ftr_faceteven },
+	{ "facetodd",	"Facet (Odd Page)",			s_ftr_facetodd },
+	{ "feathered",	"Feathered",				s_ftr_feathered },
+	{ "filigree",	"Filigree",					s_ftr_filigree },
+	{ "headlines",	"Headlines",				s_ftr_headlines },
+	{ "integral",	"Integral",					s_ftr_integral },
+	{ "iondark",	"Ion (Dark)",				s_ftr_iondark },
+	{ "ionlight",	"Ion (Light)",				s_ftr_ionlight },
+	{ "retrospect",	"Retrospect",				s_ftr_retrospect },
+	{ "semaphore",	"Semaphore",				s_ftr_semaphore },
+	{ "slice",		"Slice",					s_ftr_slice },
+	{ "viewmasterh","ViewMaster (Horizontal)",	s_ftr_viewmasterh },
+	{ "viewmasterv","ViewMaster (Vertical)",	s_ftr_viewmasterv },
+	{ "whisp",		"Whisp",					s_ftr_whisp },
+};
+
+static const FV_HdrPreset s_hdrPresets[] =
+{
+	{ "blank",		"Blank",					s_hdr_blank },
+	{ "blank3",		"Blank (Three Columns)",	s_hdr_blank3 },
+	{ "austin",		"Austin",					s_hdr_austin },
+	{ "badge",		"Badge",					s_hdr_badge },
+	{ "banded",		"Banded",					s_hdr_banded },
+	{ "crop",		"Crop",						s_hdr_crop },
+	{ "faceteven",	"Facet (Even Page)",		s_hdr_faceteven },
+	{ "facetodd",	"Facet (Odd Page)",			s_hdr_facetodd },
+	{ "feathered",	"Feathered",				s_hdr_feathered },
+	{ "feathered2",	"Feathered 2",				s_hdr_feathered2 },
+	{ "filigree",	"Filigree",					s_hdr_filigree },
+	{ "headlines",	"Headlines",				s_hdr_headlines },
+	{ "integral",	"Integral",					s_hdr_integral },
+	{ "iondark",	"Ion (Dark)",				s_hdr_iondark },
+	{ "ionlight",	"Ion (Light)",				s_hdr_ionlight },
+	{ "retrospect",	"Retrospect",				s_hdr_retrospect },
+	{ "semaphore",	"Semaphore",				s_hdr_semaphore },
+	{ "slice1",		"Slice 1",					s_hdr_slice1 },
+	{ "slice2",		"Slice 2",					s_hdr_slice2 },
+	{ "viewmaster",	"ViewMaster",				s_hdr_viewmaster },
+	{ "whisp",		"Whisp",					s_hdr_whisp },
+};
+
+static const FV_HdrPreset *
+_hdrPresetById(const char * szId, bool bFooter)
+{
+	const FV_HdrPreset * p = bFooter ? s_ftrPresets : s_hdrPresets;
+	const unsigned n = bFooter ? G_N_ELEMENTS(s_ftrPresets)
+		: G_N_ELEMENTS(s_hdrPresets);
+	for (unsigned i = 0; i < n; i++)
+		if (!strcmp(p[i].szId, szId))
+			return &p[i];
+	return nullptr;
+}
+
+/*!
+ * Insert tab Header/Footer built-in gallery: remove any existing
+ * header/footer, create a fresh one and fill it with the preset's
+ * styled paragraphs (bands, borders, placeholder text and real
+ * page-number fields).  The point is left back in the body.
+ */
+UT_Error FV_View::cmdInsertHeaderPreset(const char * szPreset,
+										HdrFtrType hfType)
+{
+	const bool bHeader = (hfType < FL_HDRFTR_FOOTER);
+	const auto * pPreset = _hdrPresetById(szPreset, !bHeader);
+	UT_return_val_if_fail(pPreset, UT_ERROR);
+	fp_Page * pPage = getCurrentPage();
+	UT_return_val_if_fail(pPage, UT_ERROR);
+
+	if(!isSelectionEmpty())
+		_clearSelection();
+
+	/* remove the old header/footer (all variants) when present */
+	if(pPage->getHdrFtrP(bHeader ? FL_HDRFTR_HEADER : FL_HDRFTR_FOOTER))
+		cmdRemoveHdrFtr(bHeader);
+
+	/* create + enter the new shadow (point lands inside it) */
+	_cmdEditHdrFtr(hfType);
+	UT_return_val_if_fail(isHdrFtrEdit(), UT_ERROR);
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	const PP_PropertyVector f_atts = { "type", "page_number" };
+	const PP_PropertyVector fc_atts = { "type", "page_count" };
+
+	for(const FV_HdrLine * pL = pPreset->pLines;
+		pL->szBlockProps || pL->szText; pL++)
+	{
+		setStyle("Normal", true);
+		if(pL->szBlockProps)
+		{
+			PP_PropertyVector props;
+			_coverParseProps(props, pL->szBlockProps);
+			setBlockFormat(props);
+		}
+		if(pL->szCharProps)
+		{
+			PP_PropertyVector cprops;
+			_coverParseProps(cprops, pL->szCharProps);
+			setCharFormat(cprops);
+		}
+		if(pL->szText)
+		{
+			/* '\t' = tab, '\x01' = page-number, '\x02' = page-count */
+			std::string run;
+			for (const char * p = pL->szText; ; p++)
+			{
+				if (*p == '\t' || *p == '\x01' || *p == '\x02' || !*p)
+				{
+					if (!run.empty())
+					{
+						cmdCharInsert(run, false);
+						run.clear();
+					}
+					if (*p == '\t')
+					{
+						UT_UCS4Char t = '\t';
+						cmdCharInsert(&t, 1);
+					}
+					else if (*p == '\x01' || *p == '\x02')
+					{
+						m_pDoc->insertObject(getPoint(), PTO_Field,
+											 *p == '\x01' ? f_atts
+														 : fc_atts,
+											 PP_NOPROPS);
+					}
+					if (!*p)
+						break;
+				}
+				else
+					run += *p;
+			}
+		}
+		insertParagraphBreak();
+	}
+
+	/* the trailing paragraph keeps the last preset line's block
+	 * formatting - reset it so bands/borders don't spill over */
+	{
+		PP_PropertyVector props;
+		_coverParseProps(props,
+						 ABI_COVER_RESET "; shading-background-color:transparent");
+		setBlockFormat(props);
+		setCharFormat(PP_NOPROPS);
+	}
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+
+	/* back to the body, at the top of the current page */
+	clearHdrFtrEdit();
+	_setPoint(pPage->getFirstLastPos(true));
+	_generalUpdate();
+	_fixInsertionPointCoords();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_HDRFTR | AV_CHG_FMTSECTION);
+	return UT_OK;
+}
+
 /*!
  * Jump the insertion point to the next or previous footnote/endnote
  * reference, mirroring Word's Next Footnote/Previous Footnote.

@@ -111,6 +111,23 @@ private:
 	GtkWidget *		_makeGroupPopover();
 	/* Insert tab */
 	GtkWidget *		_makeCoverPagePopover();
+	GtkWidget *		_makePicturesPopover();
+	GtkWidget *		_makeShapesPopover();
+	GtkWidget *		_make3DModelsPopover();
+	GtkWidget *		_makeMediaPopover();
+	GtkWidget *		_makeWordArtPopover();
+	GtkWidget *		_makeTextBoxPopover();
+	GtkWidget *		_makeObjectPopover();
+	GtkWidget *		_makeHdrFtrPopover(bool bFooter);
+	void			_showOnlinePictureDialog();
+	void			_addGalleryDir(GtkWidget * parent,
+								   const char * szMethod,
+								   const char * szPrefix,
+								   const char * szDataPrefix,
+								   const char * szTitle, int iconSize,
+								   bool bRowLabel);
+	static void		_s_online_pic_clicked(GtkWidget * w, gpointer data);
+	static void		_s_online_pic_insert(GtkWidget * w, gpointer data);
 	/* References tab */
 	GtkWidget *		_makeTOCGalleryPopover();
 	GtkWidget *		_makeAddTextPopover();

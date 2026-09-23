@@ -335,9 +335,17 @@ public:
 	static EV_EditMethod_Fn doEscape;
 
 
+	static EV_EditMethod_Fn iconsPane;
+	static EV_EditMethod_Fn insert3DModel;
 	static EV_EditMethod_Fn insertBlankPage;
+	static EV_EditMethod_Fn insertIcon;
+	static EV_EditMethod_Fn insertShape;
+	static EV_EditMethod_Fn insertSignatureLine;
+	static EV_EditMethod_Fn insertWordArt;
 	static EV_EditMethod_Fn insertBookmark;
 	static EV_EditMethod_Fn insertXMLID;
+	static EV_EditMethod_Fn insertFooterPreset;
+	static EV_EditMethod_Fn insertHeaderPreset;
 	static EV_EditMethod_Fn insertHyperlink;
 	static EV_EditMethod_Fn insertColsAfter;
 	static EV_EditMethod_Fn insertColsBefore;
@@ -548,7 +556,9 @@ public:
 
 	static EV_EditMethod_Fn insBreak;
 	static EV_EditMethod_Fn insPageNo;
-	static EV_EditMethod_Fn insRTF;
+	static EV_EditMethod_Fn insMediaFile;
+	static EV_EditMethod_Fn insScreenshot;
+	static EV_EditMethod_Fn insVerticalTextBox;
 	static EV_EditMethod_Fn insDateTime;
 	static EV_EditMethod_Fn insField;
 	static EV_EditMethod_Fn insTextBox;
@@ -683,6 +693,7 @@ public:
 	static EV_EditMethod_Fn helpReportBug;
 
 	static EV_EditMethod_Fn newWindow;
+	static EV_EditMethod_Fn notImplemented;
 	static EV_EditMethod_Fn cycleWindows;
 	static EV_EditMethod_Fn cycleWindowsBck;
 	static EV_EditMethod_Fn closeWindow;
@@ -1113,6 +1124,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(hyperlinkJumpPos),     0,      ""),
 	EV_EditMethod(NF(hyperlinkStatusBar),	0,		""),
 	// i
+	EV_EditMethod(NF(iconsPane),			0,	""),
 	EV_EditMethod(NF(importStyles),			0,		""),
 	EV_EditMethod(NF(insAnnotation),		0,		""),
 	EV_EditMethod(NF(insAnnotationFromSel),	0,		""),
@@ -1124,12 +1136,15 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insFile),				0,		""),
 	EV_EditMethod(NF(insFootnote),			0,		""),
 	EV_EditMethod(NF(insMailMerge), 		0,		""),
+	EV_EditMethod(NF(insMediaFile),		0,		""),
 	EV_EditMethod(NF(insPageNo),			0,		""),
-	EV_EditMethod(NF(insRTF),				0,		""),
+	EV_EditMethod(NF(insScreenshot),		0,		""),
 	EV_EditMethod(NF(insSectionBreak),		0,	""),
 	EV_EditMethod(NF(insSymbol),			0,		""),
 	EV_EditMethod(NF(insTOC),			0,		""),
 	EV_EditMethod(NF(insTextBox),			0,		""),
+	EV_EditMethod(NF(insVerticalTextBox),	0,		""),
+	EV_EditMethod(NF(insert3DModel),		0,	""),
 	EV_EditMethod(NF(insertAbovedotData),	_D_,	""),
 	EV_EditMethod(NF(insertAcuteData),		_D_,	""),
 	EV_EditMethod(NF(insertBlankPage),		0,	""),
@@ -1146,8 +1161,11 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertData),			_D_,	""),
 	EV_EditMethod(NF(insertDiaeresisData),	_D_,	""),
 	EV_EditMethod(NF(insertDoubleacuteData),_D_,	""),
+	EV_EditMethod(NF(insertFooterPreset),	0,	""),
 	EV_EditMethod(NF(insertGraveData),		_D_,	""),
+	EV_EditMethod(NF(insertHeaderPreset),	0,	""),
 	EV_EditMethod(NF(insertHyperlink),		0,	""),
+	EV_EditMethod(NF(insertIcon),			0,	""),
 	EV_EditMethod(NF(insertLRM),		0,	""),
 	EV_EditMethod(NF(insertLineBreak),		0,	""),
 	EV_EditMethod(NF(insertMacronData), 	_D_,	""),
@@ -1161,6 +1179,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertRowsAfter),	0,	""),
 	EV_EditMethod(NF(insertRowsBefore),	0,	""),
 	EV_EditMethod(NF(insertSectionBreak),	0,	""),
+	EV_EditMethod(NF(insertShape),			0,	""),
+	EV_EditMethod(NF(insertSignatureLine),	0,	""),
 	EV_EditMethod(NF(insertSoftBreak),		0,	""),
 	EV_EditMethod(NF(insertSpace),			0,	""),
 	EV_EditMethod(NF(insertSumCols),			0,	""),
@@ -1170,6 +1190,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertTabShift),			0,	""),
 	EV_EditMethod(NF(insertTable),          0,  ""),
 	EV_EditMethod(NF(insertTildeData),		_D_,	""),
+	EV_EditMethod(NF(insertWordArt),		0,	""),
 	EV_EditMethod(NF(insertXMLID),    		0,	""),
 	EV_EditMethod(NF(insertZWJoiner),		0,	""),
 
@@ -1189,6 +1210,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// n
 	EV_EditMethod(NF(newWindow),			0,	""),
 	EV_EditMethod(NF(noop), 				0,	""),
+	EV_EditMethod(NF(notImplemented),		0,	""),
 	EV_EditMethod(NF(noteSwap),				0,	""),
 
 	// o
@@ -6380,8 +6402,35 @@ static bool s_doHyperlinkDlg(FV_View * pView)
 		fp_HyperlinkRun * pHRun = static_cast<fp_HyperlinkRun *>(pView->getHyperLinkRun(pView->getPoint()));
 		if(pHRun == nullptr)
 		{
+			/* no selection and not on a link: Word still opens the
+			 * dialog - the typed text becomes the new link */
+			pDialog->runModal(pFrame);
+			AP_Dialog_InsertHyperlink::tAnswer ans =
+				pDialog->getAnswer();
+			bool bOK = (ans == AP_Dialog_InsertHyperlink::a_OK);
+			if (bOK)
+			{
+				const char * szLink  = pDialog->getHyperlink()
+					? pDialog->getHyperlink() : "";
+				const char * szTitle = pDialog->getHyperlinkTitle()
+					? pDialog->getHyperlinkTitle() : "";
+				const char * szText  = pDialog->getDisplayText()
+					? pDialog->getDisplayText() : "";
+				if (!*szText)
+					szText = szLink;
+				if (*szText && *szLink)
+				{
+					UT_UCS4String s(szText);
+					pView->cmdCharInsert(s.ucs4_str(), s.length());
+					PT_DocPosition end = pView->getPoint();
+					pView->cmdSelect(end - s.length(), end);
+					pView->cmdInsertHyperlink(szLink, szTitle);
+					pView->cmdUnselectSelection();
+					pView->setPoint(end);
+				}
+			}
 			pDialogFactory->releaseDialog(pDialog);
-			return false;
+			return bOK;
 		}
 		bEdit = true;
 		buf = pHRun->getTarget();
@@ -6475,20 +6524,8 @@ Defun1(insertHyperlink)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	if(pView->isSelectionEmpty())
-	{
-		if(!pView->getHyperLinkRun(pView->getPoint()))
-		{
-		//No selection
-			XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
-			UT_return_val_if_fail (pFrame, false);
-
-
-			pFrame->showMessageBox(AP_STRING_ID_MSG_HyperlinkNoSelection, 
-								   XAP_Dialog_MessageBox::b_O, XAP_Dialog_MessageBox::a_OK);
-			return false;
-		}
-	}
+	/* Word's Link button always opens the dialog; with no
+	 * selection the "Text to display" field creates a new link */
 	s_doHyperlinkDlg(pView);
 	return true;
 }
@@ -7061,6 +7098,306 @@ Defun1(insertBlankPage)
 	pView->cmdCharInsert(&c, 1);
 	pView->cmdCharMotion(false, 1);
 	pView->getDocument()->endUserAtomicGlob();
+	return true;
+}
+
+/*
+ * Bundled artwork galleries for the Insert tab.  Three data sets
+ * ship in <AbiSuiteLibDir>/artwork:
+ *   shapes/<category>/*.svg - the LibreOffice preset-shape set
+ *                           (Yaru icon theme, MPL-2.0/LGPL-3+)
+ *   icons/*.svg             - Lucide icons (ISC)
+ *   3d/*.png                - Fluent UI 3D emoji (MIT)
+ * szFile is the path relative to the artwork dir.  The artwork is
+ * loaded, lightly recoloured toward the app's accent palette and
+ * inserted at the point as an SVG (shapes/icons) or PNG (3d)
+ * graphic.
+ */
+static void s_artworkMissing(XAP_Frame * pFrame)
+{
+	pFrame->showMessageBox(
+		"The bundled artwork gallery could not be found. It is "
+		"installed under the AbiWord data directory as \"artwork\".",
+		XAP_Dialog_MessageBox::b_O, XAP_Dialog_MessageBox::a_OK);
+}
+
+static void s_replace_all(std::string & s, const char * from,
+						  const char * to)
+{
+	std::string::size_type pos = 0, flen = strlen(from);
+	while ((pos = s.find(from, pos)) != std::string::npos)
+	{
+		s.replace(pos, flen, to);
+		pos += strlen(to);
+	}
+}
+
+static bool s_insertArtworkFile(FV_View * pView, XAP_Frame * pFrame,
+								const char * szFile)
+{
+	UT_return_val_if_fail(pView && pFrame && szFile, false);
+
+	std::string sub("artwork");
+	std::string name(szFile);
+	std::string::size_type slash = name.rfind('/');
+	if (slash != std::string::npos)
+	{
+		sub += '/' + name.substr(0, slash);
+		name = name.substr(slash + 1);
+	}
+
+	std::string path;
+	if (!XAP_App::getApp()->findAbiSuiteLibFile(path, name.c_str(),
+												sub.c_str()))
+	{
+		s_artworkMissing(pFrame);
+		return false;
+	}
+
+	gchar * contents = nullptr;
+	gsize len = 0;
+	if (!g_file_get_contents(path.c_str(), &contents, &len, nullptr))
+	{
+		s_CouldNotLoadFileMessage(pFrame, path.c_str(),
+								  UT_IE_COULDNOTOPEN);
+		return false;
+	}
+
+	const bool bPng = g_str_has_suffix(path.c_str(), ".png");
+	UT_ByteBufPtr pBB(new UT_ByteBuf);
+	if (bPng)
+	{
+		pBB->append(reinterpret_cast<const UT_Byte *>(contents),
+					static_cast<UT_uint32>(len));
+	}
+	else
+	{
+		std::string svg(contents, len);
+		if (strncmp(szFile, "icons/", 6) == 0)
+		{
+			/* Lucide strokes follow the current text colour; pin a
+			 * neutral dark so the icon stays visible in any style */
+			s_replace_all(svg, "stroke=\"currentColor\"",
+						  "stroke=\"#232629\"");
+		}
+		else
+		{
+			/* Yaru shapes are dark-outlined silhouettes over a white
+			 * face; recolor the face accent-blue and keep the
+			 * outline a darker shade, Word-style */
+			s_replace_all(svg, "fill:#fff", "fill:#4472C4");
+			s_replace_all(svg, "stroke:#000", "stroke:#2F5597");
+			s_replace_all(svg, "fill:#000", "fill:#2F5597");
+			s_replace_all(svg, "fill=\"#232629\"", "fill=\"#2F5597\"");
+		}
+		pBB->append(reinterpret_cast<const UT_Byte *>(svg.data()),
+					static_cast<UT_uint32>(svg.size()));
+	}
+	g_free(contents);
+
+	FG_ConstGraphicPtr pFG;
+	UT_Error errorCode = IE_ImpGraphic::loadGraphic(
+		pBB, bPng ? IEGFT_PNG : IEGFT_SVG, pFG);
+	if (errorCode != UT_OK || !pFG)
+	{
+		s_CouldNotLoadFileMessage(pFrame, path.c_str(), errorCode);
+		return false;
+	}
+	errorCode = pView->cmdInsertGraphic(pFG);
+	if (errorCode != UT_OK)
+	{
+		s_CouldNotLoadFileMessage(pFrame, path.c_str(), errorCode);
+		return false;
+	}
+	return true;
+}
+
+/* callData: "<category>/<icon name>" under artwork/shapes */
+Defun(insertShape)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (!pCallData || !pCallData->m_pData || !pCallData->m_dataLength)
+		return false;
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string f("shapes/");
+	f += s.utf8_str();
+	f += ".svg";
+	return s_insertArtworkFile(pView, pFrame, f.c_str());
+}
+
+/* callData: the Lucide icon name under artwork/icons */
+Defun(insertIcon)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (!pCallData || !pCallData->m_pData || !pCallData->m_dataLength)
+		return false;
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string f("icons/");
+	f += s.utf8_str();
+	f += ".svg";
+	return s_insertArtworkFile(pView, pFrame, f.c_str());
+}
+
+/* callData: the asset name under artwork/3d */
+Defun(insert3DModel)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (!pCallData || !pCallData->m_pData || !pCallData->m_dataLength)
+		return false;
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string f("3d/");
+	f += s.utf8_str();
+	f += ".png";
+	return s_insertArtworkFile(pView, pFrame, f.c_str());
+}
+
+/* Word's WordArt gallery: callData is a preset key
+ * ("fill-<hex>" or "outline-<hex>") applied to a styled sample
+ * text run; the user edits the text afterwards */
+Defun(insertWordArt)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	const char * szColor = "4472C4";
+	bool bOutline = false;
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		std::string d(s.utf8_str());
+		if (d.compare(0, 8, "outline-") == 0)
+		{
+			bOutline = true;
+			szColor = d.c_str() + 8;
+		}
+		else if (d.compare(0, 5, "fill-") == 0)
+			szColor = d.c_str() + 5;
+	}
+	if (pView->isInTable() || pView->isInFrame(pView->getPoint()) ||
+		pView->isHdrFtrEdit())
+		return true;
+	PP_PropertyVector atts = {
+		"font-family", "Georgia",
+		"font-size", "36pt",
+		"font-weight", "bold",
+		"font-style", bOutline ? "italic" : "normal",
+		"color", szColor
+	};
+	pView->getDocument()->beginUserAtomicGlob();
+	pView->setCharFormat(atts);
+	UT_UCS4String s("Your text here");
+	pView->cmdCharInsert(s.ucs4_str(), s.length());
+	pView->getDocument()->endUserAtomicGlob();
+	return true;
+}
+
+/* Insert tab Header/Footer galleries: callData is the built-in
+ * preset id ("austin", "iondark", ...) applied to the header or
+ * footer shadow */
+Defun(insertHeaderPreset)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData &&
+						  pCallData->m_dataLength, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return (UT_OK == pView->cmdInsertHeaderPreset(s.utf8_str(),
+												FL_HDRFTR_HEADER));
+}
+
+Defun(insertFooterPreset)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData &&
+						  pCallData->m_dataLength, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return (UT_OK == pView->cmdInsertHeaderPreset(s.utf8_str(),
+												FL_HDRFTR_FOOTER));
+}
+
+/* Word's Signature Line: a sign-here rule with Name/Title
+ * placeholders under it */
+Defun1(insertSignatureLine)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (pView->isInTable() || pView->isInFrame(pView->getPoint()) ||
+		pView->isHdrFtrEdit())
+		return true;
+
+	pView->getDocument()->beginUserAtomicGlob();
+	static const PP_PropertyVector s_block[] = {
+		{ "margin-top", "0.75in", "margin-left", "1.5in",
+		  "margin-right", "1.5in", "bot-style", "solid",
+		  "bot-color", "000000", "bot-thickness", "0.5pt",
+		  "text-align", "center" },
+		{ "margin-left", "1.5in", "margin-right", "1.5in",
+		  "text-align", "center" },
+		{ "margin-left", "1.5in", "margin-right", "1.5in",
+		  "text-align", "center", "margin-bottom", "0.3in" }
+	};
+	static const char * s_text[] = { " ", "Name", "Title" };
+	for (int i = 0; i < 3; i++)
+	{
+		pView->setBlockFormat(s_block[i]);
+		UT_UCS4String s(s_text[i]);
+		pView->cmdCharInsert(s.ucs4_str(), s.length());
+		if (i < 2)
+			pView->insertParagraphBreak();
+	}
+	pView->getDocument()->endUserAtomicGlob();
+	return true;
+}
+
+/* Insert tab "Icons": toggles the docked icon gallery */
+Defun1(iconsPane)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleIconsPane();
+	return true;
+}
+
+/* ribbon placeholder for features the engine cannot provide yet */
+Defun(notImplemented)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	const char * szWhat = "This feature";
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		s_TellNotImplemented(pFrame, s.utf8_str(), __LINE__);
+		return true;
+	}
+	s_TellNotImplemented(pFrame, szWhat, __LINE__);
 	return true;
 }
 
@@ -11696,7 +12033,7 @@ UT_return_val_if_fail(pDialog, false);
 	return bOK;
 }
 
-/* shared body of insFile/insRTF: load the chosen file into a
+/* shared body of insFile: load the chosen file into a
  * throwaway document and copy its whole contents into the current
  * view at the point, honoring formatting */
 static bool s_insertFileIntoView(FV_View * pView, XAP_Frame * pFrame,
@@ -11759,9 +12096,9 @@ Defun1(insFile)
 	return false;
 }
 
-/* Insert tab "RTF" group: the same temporary-document copy/paste
- * import as insFile, but the file chooser starts on the RTF filter */
-Defun1(insRTF)
+/* Insert tab "Screenshot": captures an area of the screen with
+ * gnome-screenshot and inserts the PNG at the point */
+Defun1(insScreenshot)
 {
 	CHECK_FRAME;
 	ABIWORD_VIEW;
@@ -11770,16 +12107,42 @@ Defun1(insRTF)
 	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pAV_View->getParentData());
 	UT_return_val_if_fail(pFrame, false);
 
-	IEFileType fType = IE_Imp::fileTypeForSuffix(".rtf");
-	char *pathName = nullptr;
-
-	if (s_AskForPathname (pFrame, false, XAP_DIALOG_ID_INSERT_FILE,
-			      nullptr, &pathName, &fType))
+	gchar * shot = g_find_program_in_path("gnome-screenshot");
+	if (!shot)
 	{
-		return s_insertFileIntoView(pView, pFrame, pathName);
+		pFrame->showMessageBox(
+			"Screenshot capture needs the gnome-screenshot tool, "
+			"which was not found on this system.",
+			XAP_Dialog_MessageBox::b_O, XAP_Dialog_MessageBox::a_OK);
+		return false;
 	}
 
-	return false;
+	gchar * tmp = g_build_filename(g_get_tmp_dir(),
+								   "abiword-screenshot.png", nullptr);
+	gchar * cmd = g_strdup_printf("%s -a -f \"%s\"", shot, tmp);
+	gint status = 0;
+	gboolean ok = g_spawn_command_line_sync(cmd, nullptr, nullptr,
+											&status, nullptr);
+	g_free(cmd);
+	g_free(shot);
+
+	bool bOK = ok && status == 0 &&
+		g_file_test(tmp, G_FILE_TEST_IS_REGULAR);
+	if (bOK)
+	{
+		FG_ConstGraphicPtr pFG;
+		UT_Error errorCode = IE_ImpGraphic::loadGraphic(tmp, IEGFT_PNG, pFG);
+		if (errorCode == UT_OK && pFG)
+			errorCode = pView->cmdInsertGraphic(pFG);
+		if (errorCode != UT_OK)
+		{
+			s_CouldNotLoadFileMessage(pFrame, tmp, errorCode);
+			bOK = false;
+		}
+	}
+	remove(tmp);
+	g_free(tmp);
+	return bOK;
 }
 
 Defun1(insSymbol)
@@ -11800,6 +12163,57 @@ Defun1(insTextBox)
 	UT_return_val_if_fail(pView,false);
 	static_cast<FV_View *>(pView)->getFrameEdit()->setMode(FV_FrameEdit_WAIT_FOR_FIRST_CLICK_INSERT);
 	static_cast<FV_View *>(pView)->getGraphics()->setCursor(GR_Graphics::GR_CURSOR_CROSSHAIR);
+	return true;
+}
+
+/* Word's "Draw Vertical Text Box": same drag-to-draw insert but the
+ * frame is created rotated 90 degrees */
+Defun1(insVerticalTextBox)
+{
+	CHECK_FRAME;
+
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	FV_View * pFV = static_cast<FV_View *>(pView);
+	pFV->getFrameEdit()->setVerticalTextBox(true);
+	pFV->getFrameEdit()->setMode(FV_FrameEdit_WAIT_FOR_FIRST_CLICK_INSERT);
+	pFV->getGraphics()->setCursor(GR_Graphics::GR_CURSOR_CROSSHAIR);
+	return true;
+}
+
+/* Media popover "Video/Audio from File": AbiWord cannot embed a
+ * playable media object, so the file is linked like Word's
+ * "Insert > Link to File" - clicking the link opens it in the
+ * system's media player */
+Defun1(insMediaFile)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	IEFileType fType = IEFT_Unknown;
+	char *pathName = nullptr;
+	if (!s_AskForPathname(pFrame, false, XAP_DIALOG_ID_INSERT_FILE,
+						  nullptr, &pathName, &fType) || !pathName)
+		return false;
+
+	UT_String url("file://");
+	url += pathName;
+	const char * base = strrchr(pathName, '/');
+	base = base ? base + 1 : pathName;
+	/* insert the filename as linked text */
+	UT_UCS4String s(base);
+	pView->cmdCharInsert(s.ucs4_str(), s.length());
+	PT_DocPosition end = pView->getPoint();
+	PT_DocPosition start = end - s.length();
+	pView->cmdSelect(start, end);
+	pView->cmdInsertHyperlink(url.c_str(), base);
+	pView->cmdUnselectSelection();
+	pView->setPoint(end);
+	FREEP(pathName);
 	return true;
 }
 

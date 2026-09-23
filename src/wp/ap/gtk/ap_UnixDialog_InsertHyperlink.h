@@ -42,6 +42,7 @@ public:
 	void event_Cancel(void);
 	void setRow(gint row) {m_iRow = row;}
 
+	GtkWidget * m_displayEntry;
 	GtkWidget * m_entry;
 	std::vector<std::string> m_pBookmarks;
 

@@ -39,6 +39,7 @@
 #include "ap_UnixRibbon.h"
 #include "ap_UnixStylesPane.h"
 #include "ap_UnixSelPane.h"
+#include "ap_UnixIconsPane.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
@@ -69,7 +70,9 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_wStylesPaneW(nullptr),
 	m_pStylesPane(nullptr),
 	m_wSelPaneW(nullptr),
-	m_pSelPane(nullptr)
+	m_pSelPane(nullptr),
+	m_wIconsPaneW(nullptr),
+	m_pIconsPane(nullptr)
 {
 	UT_DEBUGMSG(("Created AP_UnixFrameImpl %p \n",this));
 }
@@ -82,6 +85,7 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	DELETEP(m_pRibbon);
 	DELETEP(m_pStylesPane);
 	DELETEP(m_pSelPane);
+	DELETEP(m_pIconsPane);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -371,6 +375,10 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	m_wSelPaneW = m_pSelPane->createWidget();
 	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wSelPaneW,
 						"objects");
+	m_pIconsPane = new AP_UnixIconsPane(pFrame);
+	m_wIconsPaneW = m_pIconsPane->createWidget();
+	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wIconsPaneW,
+						"icons");
 	gtk_widget_set_visible(m_wSideDeck, FALSE);
 	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wSideDeck);
 	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
@@ -460,6 +468,27 @@ bool AP_UnixFrameImpl::isSelPaneVisible() const
 		: nullptr;
 	return cur && gtk_widget_get_visible(m_wSideDeck) &&
 		!strcmp(cur, "objects");
+}
+
+void AP_UnixFrameImpl::setIconsPaneVisible(bool bVisible)
+{
+	if (!m_wDocPaned || !m_wSideDeck)
+		return;
+	s_deckShow(m_wSideDeck, "icons", bVisible, m_wDocPaned);
+}
+
+bool AP_UnixFrameImpl::isIconsPaneVisible() const
+{
+	const char * cur = m_wSideDeck
+		? gtk_stack_get_visible_child_name(GTK_STACK(m_wSideDeck))
+		: nullptr;
+	return cur && gtk_widget_get_visible(m_wSideDeck) &&
+		!strcmp(cur, "icons");
+}
+
+void AP_UnixFrameImpl::toggleIconsPane()
+{
+	setIconsPaneVisible(!isIconsPaneVisible());
 }
 
 void AP_UnixFrameImpl::refreshSelPane()

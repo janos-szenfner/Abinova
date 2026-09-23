@@ -60,6 +60,7 @@ EXTRA_DIST = \
 	abiword.keys \
 	abiword.png \
 	libabiword.pc.in \
+	artwork \
 	$(xsltml_DATA)
 
 DISTCLEANFILES = \
@@ -76,12 +77,15 @@ abiword-$(ABIWORD_SERIES).pc: libabiword.pc
 # bundled user manual (generated from AbiWord/abiword-docs .abw sources)
 install-data-local:
 	cp -r $(srcdir)/help $(DESTDIR)@ABIWORD_DATADIR@/
+	cp -r $(srcdir)/artwork $(DESTDIR)@ABIWORD_DATADIR@/
 
 uninstall-local:
 	rm -rf $(DESTDIR)@ABIWORD_DATADIR@/help
+	rm -rf $(DESTDIR)@ABIWORD_DATADIR@/artwork
 
 # needed to make sure we don't include .svn directories.
 dist-hook:
 	rm -rf `find $(distdir) -name .svn`
 	cp -r $(srcdir)/help $(distdir)/help
+	cp -r $(srcdir)/artwork $(distdir)/artwork
 

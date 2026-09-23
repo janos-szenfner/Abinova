@@ -186,7 +186,17 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM,0,0,0,0, "insertRLM", nullptr, nullptr);
 	_s(AP_MENU_ID_INSERT_COVERPAGE,	0,1,0,0,	"coverPageInsert",	nullptr,					nullptr);
 	_s(AP_MENU_ID_INSERT_BLANKPAGE,	0,1,0,0,	"insertBlankPage",	ap_GetState_BreakOK,					nullptr);
-	_s(AP_MENU_ID_INSERT_RTF,		0,1,0,0,	"insRTF",			nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_PAGEBREAK,	0,1,0,0,	"insertPageBreak",	ap_GetState_BreakOK,					nullptr);
+	_s(AP_MENU_ID_INSERT_PICTURES,	0,1,0,0,	nullptr,			nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_SHAPES,	0,1,0,0,	nullptr,			nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_ICONS,		0,1,0,0,	"iconsPane",		nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_3DMODELS,	0,1,0,0,	nullptr,			nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_SCREENSHOT,0,1,0,0,	"insScreenshot",	nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_MEDIA,		0,1,0,0,	nullptr,			nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_WORDART,	0,1,0,0,	nullptr,			nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_DROPCAP,	0,1,0,0,	"notImplemented",	nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_SIGNATURE,	0,1,0,0,	"insertSignatureLine",	nullptr,							nullptr);
+	_s(AP_MENU_ID_INSERT_OBJECT,	0,1,0,0,	nullptr,			nullptr,								nullptr);
 
 	_s(AP_MENU_ID_FORMAT,			1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_FMT,			1,0,0,0,	nullptr,				nullptr,					nullptr);

@@ -84,6 +84,9 @@ public:
 	/* programmatic frame selection (Selection pane) - selects pFL
 	 * with handles drawn, as if the user had clicked the frame */
 	void                  selectFrame(fl_FrameLayout * pFL);
+	/* Word's "Draw Vertical Text Box": the next interactive insert
+	 * creates the frame rotated 90 degrees */
+	void                  setVerticalTextBox(bool b) { m_bVerticalTextBox = b; }
 
 protected:
 	virtual void          _mouseDrag(UT_sint32 x, UT_sint32 y) override;
@@ -109,4 +112,5 @@ private:
 	UT_String             m_sRelWidth;
 	UT_String             m_sMinHeight;
 	UT_String             m_sExpandHeight;
+	bool                  m_bVerticalTextBox = false;
 };

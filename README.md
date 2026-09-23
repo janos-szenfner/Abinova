@@ -309,27 +309,43 @@ The dynamic plugin list is empty.
   Rotate offers Right/Left 90°, horizontal/vertical flips and a
   custom angle (`frame-rotation`/`frame-flip-*` — all persisted in
   `.abw` and honoured by PDF export).
-  The **Insert tab** is Word-style: a Pages group with **Cover
-  Page** — a scrolling 3-column gallery of twelve A4-portrait
-  preview cards (Austin, Banded, Crop, Facet, Filigree, Frame,
-  Integral, Motion, Retrospect, Sideline, Whisp, Yearly), all
-  **generated entirely in code** so no third-party artwork or
-  licensing is involved. Cover pages pull the title/author from
-  the document metadata (`dc.title`/`dc.creator`, falling back to
-  placeholders), add the current month/year, and are wrapped in a
-  `_cover-page` marker bookmark so **Remove Current Cover**
-  deletes the page break as well and restores the body to page 1;
-  inserting a new cover replaces the old one in place. **Blank
-  Page** inserts an empty page at the caret like Word. The Tables,
-  Illustrations (Picture, Clip Art), Links (Hyperlink, Bookmark,
-  Cross-reference), Comments (New annotation), Header & Footer
-  (Header, Footer, Page Numbers), Text (Text Box, Date and Time,
-  Field, LRM/RLM direction markers — now with drawn direction-arrow
-  icons) and Symbols (Edit Equation, Symbol) groups round out the
-  tab, plus a dedicated **RTF** section whose **RTF Document…**
-  button opens the file chooser pre-filtered to Rich Text Format
-  and pastes the document at the caret with formatting preserved;
-  a generic **Insert File…** and **RDF Link** sit alongside it.
+  The **Insert tab** is Word-style: Pages (Cover Page, Blank Page,
+  Page Break), Tables, Illustrations (Pictures, Shapes, Icons, 3D
+  Models, Screenshot), Media, Links, Comments, Header & Footer,
+  Text and Symbols — laid out as large icon-over-caption buttons
+  with two-line labels exactly like Word's ribbon. **Cover Page**
+  opens a scrolling 3-column gallery of twelve A4-portrait preview
+  cards (Austin, Banded, Crop, Facet, Filigree, Frame, Integral,
+  Motion, Retrospect, Sideline, Whisp, Yearly), all **generated
+  entirely in code** so no third-party artwork or licensing is
+  involved. Cover pages pull the title/author from the document
+  metadata (`dc.title`/`dc.creator`, falling back to placeholders),
+  add the current month/year, and are wrapped in a `_cover-page`
+  marker bookmark so **Remove Current Cover** deletes the page
+  break as well and restores the body to page 1; inserting a new
+  cover replaces the old one in place. **Header** and **Footer**
+  open Word-style built-in galleries — 21 header designs and 20
+  footer designs (Blank, Austin, Badge, Banded, Crop, Facet
+  Even/Odd, Feathered, Filigree, Headlines, Integral, Ion
+  Dark/Light, Retrospect, Semaphore, Slice, ViewMaster, Whisp…)
+  drawn as preview cards and generated in code with shaded bands,
+  border rules, tab-stop columns and real page-number/page-count
+  fields; Edit Header/Footer and Remove Header/Footer rows sit at
+  the bottom of each gallery. The Illustrations dropdowns cover
+  Pictures (device or online URL), **Shapes** (a gallery of
+  ~85 LibreOffice-style SVG shapes recolored to the document
+  accent), **Icons** (a searchable docked side panel of Lucide
+  icons by category — Lucide is ISC-licensed, see
+  `artwork/lucide-LICENSE.txt`), **3D Models** (FluentUI 3D emoji
+  PNGs, MIT-licensed — `artwork/fluentui-emoji-LICENSE.txt`) and
+  **Screenshot** (area capture via `gnome-screenshot`). Media
+  inserts video/audio as `file://` links; the Text group adds
+  **WordArt** (styled placeholder text), Draw Text Box / Draw
+  Vertical Text Box (a real `frame-rotation:90` frame), Signature
+  Line, Drop Cap and an Object popover. **Insert File…** handles
+  RTF among other formats, and the Insert Hyperlink dialog always
+  opens — with no selection its new "Text to display" field
+  creates the link text, matching Word.
   The **References tab** is Word-style and fully functional:
   a Table of Contents gallery (Automatic, Classic, Contemporary,
   Formal, Modern, Simple and Manual presets — Carlito-based

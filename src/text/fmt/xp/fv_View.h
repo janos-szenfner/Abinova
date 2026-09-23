@@ -359,6 +359,8 @@ public:
 	UT_Error		cmdInsertCoverPage(const char * szPreset);
 	bool			cmdRemoveCoverPage(void);
 	bool			hasCoverPage(void) const;
+	UT_Error		cmdInsertHeaderPreset(const char * szPreset,
+										  HdrFtrType hfType);
 	UT_sint32		getTocLevel(void) const;
 	void			setTocLevel(UT_sint32 iLevel);
 	bool			nextNote(bool bFootnote, bool bForward);

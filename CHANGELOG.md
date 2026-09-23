@@ -272,31 +272,65 @@ below are on `main` but the release has not been cut yet.
   atomic undo group. Also fixed a latent edit-method table
   misordering (`footnote*` entries were sorted after `format*`),
   which broke `bsearch` lookup for several existing commands.
-- **Insert tab redesigned to match Word** — reorganised into Pages
-  (Cover Page, Blank Page, Break), Tables, Illustrations (Picture,
-  Clip Art), Links (Hyperlink, Bookmark, Cross-reference), Comments
-  (New annotation), Header & Footer (Header, Footer, Page Numbers),
-  Text (Text Box, Date and Time, Field, LRM/RLM — now with drawn
-  direction-arrow icons), Symbols (Edit Equation, Symbol) and a
-  dedicated RTF section. **Cover Page** opens a scrolling 3-column
-  gallery of A4-portrait preview cards for twelve designs generated
-  entirely in code — Austin, Banded, Crop, Facet, Filigree, Frame,
-  Integral, Motion, Retrospect, Sideline, Whisp, Yearly — so no
-  third-party artwork or licensing is involved. Covers pull the
-  title/author from document metadata with placeholder fallbacks,
-  add the current month/year (or `@year` token), and are wrapped in
-  a `_cover-page` marker bookmark; **Remove Current Cover** deletes
-  the page break and restores the body, and inserting a new cover
-  replaces the old one in place. **Blank Page** inserts an empty
-  page at the caret (new `insertBlankPage` edit method). The RTF
-  section's **RTF Document…** button (`insRTF`) opens the file
-  chooser with the Rich Text Format filter preselected — the GTK4
-  file dialogs now honour an explicit default type on open instead
-  of always forcing "Automatically Detected" — and pastes the
-  document at the caret with formatting preserved; the generic
-  Insert File…, RDF Link and the previously-shown Mail Merge Field
-  ribbon button were moved/removed accordingly (the underlying
-  mail-merge feature is unchanged).
+- **Insert tab redesigned to match Word** — Pages (Cover Page, Blank
+  Page, Page Break), Tables (Table), Illustrations (Pictures, Shapes,
+  Icons, 3D Models, Screenshot), Media, Links (Hyperlink, Bookmark,
+  Cross-reference), Comments (New comment), Header & Footer (Header,
+  Footer, Page Numbers), Text (Text Box, WordArt, Drop Cap, Signature
+  Line, Date and Time, Field, Object, LRM/RLM) and Symbols (Edit
+  Equation, Symbol), all laid out as Word-style large
+  icon-over-caption buttons with two-line labels. **Cover Page**
+  opens a scrolling 3-column gallery of A4-portrait preview cards for
+  twelve designs generated entirely in code — Austin, Banded, Crop,
+  Facet, Filigree, Frame, Integral, Motion, Retrospect, Sideline,
+  Whisp, Yearly — so no third-party artwork or licensing is involved.
+  Covers pull the title/author from document metadata with
+  placeholder fallbacks and are wrapped in a `_cover-page` marker
+  bookmark; **Remove Current Cover** deletes the page break and
+  restores the body. **Blank Page** inserts an empty page at the
+  caret (new `insertBlankPage` edit method).
+- **Header and Footer built-in galleries** — the Header and Footer
+  ribbon buttons open Word-style dropdown galleries of preview cards:
+  21 header designs (Blank, Blank (Three Columns), Austin, Badge,
+  Banded, Crop, Facet Even/Odd, Feathered, Feathered 2, Filigree,
+  Headlines, Integral, Ion Dark/Light, Retrospect, Semaphore,
+  Slice 1/2, ViewMaster, Whisp) and 20 footer designs (the matching
+  set including Slice, ViewMaster Horizontal/Vertical and Semaphore's
+  "Page 1 of 1"). Presets are generated in code like the cover pages —
+  shaded bands, border rules, tab-stop columns, small-caps
+  placeholders and real `page_number`/`page_count` fields — applied
+  by `FV_View::cmdInsertHeaderPreset`, which removes any existing
+  header/footer, fills the new shadow and returns the caret to the
+  body. Each gallery ends with Edit Header/Footer and Remove
+  Header/Footer rows.
+- **Insert illustrations dropdowns** — Pictures opens a popover with
+  "This Device…" (normal image insert) and "Online Pictures…"
+  (URL download + insert); Shapes opens a gallery of ~85
+  LibreOffice-style SVG shapes (Basic, Arrows, Symbols, Stars,
+  Callouts, Flowchart) recolored to the document accent at insert;
+  Icons opens a searchable docked side panel of Lucide icons grouped
+  by category; 3D Models opens a gallery of FluentUI 3D emoji PNGs;
+  Screenshot captures a screen area via `gnome-screenshot` and
+  inserts it; Media links video/audio files as `file://` hyperlinks.
+- **Text group additions** — WordArt inserts styled placeholder text
+  (Georgia, bold/italic, accent colors) via a preset popover; Draw
+  Text Box / Draw Vertical Text Box (vertical uses the frame
+  engine's `frame-rotation:90` property); Signature Line inserts a
+  sign-here rule with Name/Title placeholders; Object opens a
+  popover (file insert / RDF link).
+- **Hyperlink dialog always available** — Insert > Link no longer
+  greys out without a selection; the dialog gained Word's "Text to
+  display" field (prefilled from the selection) and with no
+  selection the typed text is inserted and linked.
+- **Insert tab artwork attribution** — Lucide icons (ISC licence),
+  FluentUI 3D emoji (MIT) and LibreOffice/Yaru shape SVGs
+  (MPL-2.0/GPL-3) ship under `artwork/`; all other previews, cover
+  pages and header/footer presets are generated in code.
+- **RTF insert through Insert File** — the dedicated RTF button was
+  removed; the file chooser handles `.rtf` (and the GTK4 open dialog
+  now honours an explicit default file type instead of always
+  forcing "Automatically Detected"). The Mail Merge Field ribbon
+  button was removed from the ribbon (the feature is unchanged).
 - **Explicit `toc-level` paragraph property** — `toc-level:0`
   excludes a paragraph from generated tables and `toc-level:1`–`4`
   include any paragraph at that level without a heading style; the

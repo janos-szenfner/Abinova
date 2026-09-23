@@ -544,13 +544,11 @@ static EV_Menu_ItemState HyperLinkOK(FV_View * pView)
 {
 	EV_Menu_ItemState s = EV_MIS_ZERO ;
 
+	/* like Word's Link button, Insert Hyperlink is always
+	 * available - with no selection the dialog creates a new
+	 * link from typed text */
 	if ( pView->isSelectionEmpty())
 	  {
-		  if(pView->getHyperLinkRun(pView->getPoint()) == nullptr)
-		  {
-			  s = EV_MIS_Gray ;
-			  return s;
-		  }
 		  return s;
 	  }
 

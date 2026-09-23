@@ -51,6 +51,7 @@ XAP_Dialog * AP_UnixDialog_InsertHyperlink::static_constructor(XAP_DialogFactory
 AP_UnixDialog_InsertHyperlink::AP_UnixDialog_InsertHyperlink(XAP_DialogFactory * pDlgFactory,
 										 XAP_Dialog_Id id)
 	: AP_Dialog_InsertHyperlink(pDlgFactory,id),
+	m_displayEntry(nullptr),
 	m_entry(nullptr),
 	m_windowMain(nullptr),
 	// m_comboEntry(0),
@@ -115,11 +116,13 @@ void AP_UnixDialog_InsertHyperlink::event_OK(void)
 	// get the bookmark name, if any (return cancel if no name given)
 	const gchar * res = XAP_gtk_entry_get_text(GTK_EDITABLE(m_entry));
 	const gchar * title = XAP_gtk_entry_get_text(GTK_EDITABLE(m_titleEntry));
+	const gchar * disp = XAP_gtk_entry_get_text(GTK_EDITABLE(m_displayEntry));
 	if(res && *res)
 	{
 		setAnswer(AP_Dialog_InsertHyperlink::a_OK);
 		setHyperlink(res);
 		setHyperlinkTitle(title);
+		setDisplayText(disp ? disp : "");
 	}
 	else
 	{
@@ -140,8 +143,31 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
   GtkWidget *label2;
 
   std::string s;
+  /* Word's Insert Hyperlink dialog: "Text to display" first */
+  pSS->getValueUTF8(AP_STRING_ID_DLG_InsertHyperlink_DisplayLabel, s);
+  GtkWidget * label0 = gtk_label_new(s.c_str());
+  gtk_label_set_xalign(GTK_LABEL(label0), 0.0);
+  gtk_box_append(GTK_BOX(vbox2), label0);
+  gtk_widget_show(label0);
+
+  m_displayEntry = gtk_entry_new();
+  gtk_box_append(GTK_BOX(vbox2), m_displayEntry);
+  gtk_widget_show(m_displayEntry);
+  const gchar * dispText = getDisplayText();
+  if (dispText && *dispText)
+  {
+      XAP_gtk_entry_set_text(GTK_EDITABLE(m_displayEntry), dispText);
+  }
+
+  pSS->getValueUTF8(AP_STRING_ID_DLG_InsertHyperlink_AddressLabel, s);
+  GtkWidget * labelA = gtk_label_new(s.c_str());
+  gtk_label_set_xalign(GTK_LABEL(labelA), 0.0);
+  gtk_box_append(GTK_BOX(vbox2), labelA);
+  gtk_widget_show(labelA);
+
   pSS->getValueUTF8(AP_STRING_ID_DLG_InsertHyperlink_Msg,s);
   label1 = gtk_label_new (s.c_str());
+  gtk_label_set_xalign(GTK_LABEL(label1), 0.0);
   gtk_widget_show (label1);
   gtk_box_append(GTK_BOX(vbox2), label1);
 

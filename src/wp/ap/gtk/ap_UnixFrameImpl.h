@@ -68,6 +68,9 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	bool			isSelPaneVisible() const;
 	void			refreshSelPane();
 	virtual void	toggleSelPane() override;
+	void			setIconsPaneVisible(bool bVisible);
+	bool			isIconsPaneVisible() const;
+	virtual void	toggleIconsPane() override;
 
  protected:
 	friend class AP_UnixFrame;
@@ -123,5 +126,7 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	class AP_UnixStylesPane * m_pStylesPane;
 	GtkWidget * m_wSelPaneW;
 	class AP_UnixSelPane * m_pSelPane;
+	GtkWidget * m_wIconsPaneW;
+	class AP_UnixIconsPane * m_pIconsPane;
 };
 #endif

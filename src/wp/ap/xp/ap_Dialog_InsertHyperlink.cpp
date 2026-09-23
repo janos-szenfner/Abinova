@@ -27,7 +27,8 @@ AP_Dialog_InsertHyperlink::AP_Dialog_InsertHyperlink(XAP_DialogFactory * pDlgFac
 	: XAP_Dialog_NonPersistent(pDlgFactory,id, "interface/dialoghyperlink"),
 	m_answer(a_CANCEL),
 	m_pHyperlink(nullptr),
-	m_pHyperlinkTitle(nullptr)
+	m_pHyperlinkTitle(nullptr),
+	m_pDisplayText(nullptr)
 {
 }
 
@@ -35,6 +36,7 @@ AP_Dialog_InsertHyperlink::~AP_Dialog_InsertHyperlink(void)
 {
 	DELETEPV(m_pHyperlink);
 	DELETEPV(m_pHyperlinkTitle);
+	DELETEPV(m_pDisplayText);
 }
 
 void AP_Dialog_InsertHyperlink::setAnswer(AP_Dialog_InsertHyperlink::tAnswer a)
@@ -85,6 +87,19 @@ void AP_Dialog_InsertHyperlink::setHyperlinkTitle(const gchar * title)
 	strncpy(m_pHyperlinkTitle, title, len + 1);
 }
 
+const gchar * AP_Dialog_InsertHyperlink::getDisplayText() const
+{
+    return m_pDisplayText;
+}
+
+void AP_Dialog_InsertHyperlink::setDisplayText(const gchar * text)
+{
+	DELETEPV(m_pDisplayText);
+	UT_uint32 len = strlen(text);
+	m_pDisplayText = new gchar [len+1];
+	strncpy(m_pDisplayText, text, len + 1);
+}
+
 void AP_Dialog_InsertHyperlink::setDoc(FV_View * pView)
 {
 	m_pView = pView;
@@ -102,6 +117,14 @@ void AP_Dialog_InsertHyperlink::setDoc(FV_View * pView)
 
 			m_pHyperlink = new gchar [UT_UCS4_strlen_as_char(pSelection)+1];
 			UT_UCS4_strcpy_to_char(m_pHyperlink, pSelection);
+
+			// Word's dialog pre-fills "Text to display" with the
+			// selected text
+			if (!m_pDisplayText)
+			{
+				m_pDisplayText = new gchar [UT_UCS4_strlen_as_char(pSelection)+1];
+				UT_UCS4_strcpy_to_char(m_pDisplayText, pSelection);
+			}
 
 			FREEP(pSelection);
 		

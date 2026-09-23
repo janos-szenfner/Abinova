@@ -65,6 +65,8 @@ public:
 	/* Selection pane toggle (Alt+F10) - platform impls with a
 	 * docked object pane override this */
 	virtual void toggleSelPane() {}
+	/* Stock-icons gallery pane (Insert > Icons) */
+	virtual void toggleIconsPane() {}
 
 protected:
 	XAP_FrameImpl(XAP_Frame *pFrame);
