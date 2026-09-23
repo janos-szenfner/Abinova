@@ -2076,6 +2076,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKCIT:
 		popover = _makeMarkCitPopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE:
+		popover = _makeCommentDeletePopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
+		popover = _makeCommentShowPopover();
+		break;
 	default:
 		break;
 	}
@@ -2536,6 +2542,59 @@ static void _glyph_comment(cairo_t * cr, double w, double h)
 	cairo_line_to(cr, w - 8, h * 0.42);
 	cairo_stroke(cr);
 }
+
+static void _glyph_comment_badge(cairo_t * cr, double w, double h,
+								 double r, double g, double b, char sym)
+{
+	_glyph_comment(cr, w, h);
+	/* badge circle top-left, like Word's comment action icons */
+	double br = w * 0.22;
+	double cx = br + 1.5, cy = br + 1.5;
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_arc(cr, cx, cy, br + 1.2, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, r, g, b);
+	cairo_arc(cr, cx, cy, br, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_set_line_width(cr, 1.6);
+	double s = br * 0.55;
+	switch (sym)
+	{
+	case '+':
+		cairo_move_to(cr, cx - s, cy); cairo_line_to(cr, cx + s, cy);
+		cairo_move_to(cr, cx, cy - s); cairo_line_to(cr, cx, cy + s);
+		break;
+	case 'x':
+		cairo_move_to(cr, cx - s, cy - s); cairo_line_to(cr, cx + s, cy + s);
+		cairo_move_to(cr, cx + s, cy - s); cairo_line_to(cr, cx - s, cy + s);
+		break;
+	case 'v':
+		cairo_move_to(cr, cx - s, cy); cairo_line_to(cr, cx - s * 0.2, cy + s * 0.8);
+		cairo_line_to(cr, cx + s, cy - s * 0.7);
+		break;
+	case '<':
+		cairo_move_to(cr, cx + s * 0.6, cy - s); cairo_line_to(cr, cx - s * 0.6, cy);
+		cairo_line_to(cr, cx + s * 0.6, cy + s);
+		break;
+	default: /* '>' */
+		cairo_move_to(cr, cx - s * 0.6, cy - s); cairo_line_to(cr, cx + s * 0.6, cy);
+		cairo_line_to(cr, cx - s * 0.6, cy + s);
+		break;
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_comment_new(cairo_t * cr, double w, double h)
+	{ _glyph_comment_badge(cr, w, h, 0.15, 0.65, 0.30, '+'); }
+static void _glyph_comment_del(cairo_t * cr, double w, double h)
+	{ _glyph_comment_badge(cr, w, h, 0.80, 0.20, 0.20, 'x'); }
+static void _glyph_comment_resolve(cairo_t * cr, double w, double h)
+	{ _glyph_comment_badge(cr, w, h, 0.15, 0.65, 0.30, 'v'); }
+static void _glyph_comment_prev(cairo_t * cr, double w, double h)
+	{ _glyph_comment_badge(cr, w, h, 0.20, 0.45, 0.90, '<'); }
+static void _glyph_comment_next(cairo_t * cr, double w, double h)
+	{ _glyph_comment_badge(cr, w, h, 0.20, 0.45, 0.90, '>'); }
 
 static void _overlay_band_top(cairo_t * cr, double w, double /*h*/)
 {
@@ -3183,6 +3242,13 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HYPERLINK:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BOOKMARK:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_PREV:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
@@ -3365,6 +3431,28 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		extra = _glyph_bookmark;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT:
+		spec.bare = true;
+		extra = _glyph_comment_new;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE:
+		spec.bare = true;
+		extra = _glyph_comment_del;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE:
+		spec.bare = true;
+		extra = _glyph_comment_resolve;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_PREV:
+		spec.bare = true;
+		extra = _glyph_comment_prev;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT:
+		spec.bare = true;
+		extra = _glyph_comment_next;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY:
 		spec.bare = true;
 		extra = _glyph_comment;
 		break;
@@ -5193,6 +5281,40 @@ GtkWidget * AP_UnixRibbon::_makeWordArtPopover()
 		gtk_grid_attach(GTK_GRID(grid), btn, i % 5, i / 5, 1, 1);
 	}
 	gtk_popover_set_child(GTK_POPOVER(popover), grid);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeCommentDeletePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Delete Comment",
+							  "Delete the comment at the insertion point",
+							  nullptr, "delAnnotation", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Delete All Comments",
+							  "Delete every comment in the document",
+							  nullptr, "delAllAnnotations", nullptr));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeCommentShowPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Show Comments",
+							  "Show or hide comments in the document",
+							  nullptr, "toggleDisplayAnnotations", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Reviewing Pane",
+							  "Toggle the reviewing pane listing every comment",
+							  nullptr, "commentsPane", nullptr));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }
 

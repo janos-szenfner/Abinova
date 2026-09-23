@@ -335,6 +335,34 @@ below are on `main` but the release has not been cut yet.
   excludes a paragraph from generated tables and `toc-level:1`–`4`
   include any paragraph at that level without a heading style; the
   TOC offer/fill logic honours it independently of style matching.
+- **Word-style comments** — the old modal annotation dialog is gone.
+  `Ctrl+Alt+M` (or Review → New comment, the Insert → Comments button,
+  or the right-click New Comment item) anchors a comment to the
+  selection or caret and drops the caret inside the comment body so
+  typing starts immediately. A **Reviewing Pane** docks beside the
+  document (Review → Show comments → Reviewing Pane) listing every
+  comment as a card with author, date, an author-colour stripe and
+  the comment text; clicking a card selects the anchored text, and
+  each card offers Reply, Resolve/Unresolve and Delete plus a New
+  Comment button below the list. Replies append extra paragraphs to
+  the comment shadow and render on separate lines. Resolved comments
+  persist through `annotation-resolved:1` and display dimmed with a
+  "(Resolved)" badge. Review → Delete drops a menu (Delete Comment /
+  Delete All Comments), Resolve toggles the comment at the caret,
+  Previous/Next step through comments (`Ctrl+Alt+N` / `Ctrl+Alt+P`),
+  and deleting a comment always preserves its anchored text. The pane
+  auto-opens when a comment is inserted and refreshes on document
+  changes (debounced so typing inside a comment is uninterrupted).
+- **Annotation robustness fixes** — `insertAnnotation` now reads the
+  view-level selection anchor (the raw stored anchor could point
+  elsewhere and fail with "blocks differ" when inserting at a bare
+  caret); comments may no longer be inserted inside another comment's
+  shadow (that produced nested `<annotate>` XML that could not be
+  reloaded — span-level nesting over existing anchors stays legal);
+  `changeStruxFmt` calls on embedded annotation struxes now pass
+  `pos+1` like the rest of the code, fixing resolve/title/author
+  updates that silently no-oped; comment anchors are no longer
+  mistaken for real hyperlinks by the anti-nesting check.
 - **Word-style Home ribbon** — layout items now carry flags
   (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`,
   `AP_RIBBON_FLAG_SPLIT`): Paste, Find, Replace and Select All render

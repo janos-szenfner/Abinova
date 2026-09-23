@@ -31,6 +31,7 @@
 #include <glib.h>
 #include "ut_locale.h"
 #include "pf_Frag.h"
+#include "pf_Frag_Object.h"
 #include "pf_Frag_Strux.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -13310,8 +13311,17 @@ bool FV_View::getAnnotationText(UT_uint32 iAnnotation, std::string & sText) cons
 	
 	block = m_pLayout->findBlockAtPosition(posStart+1);
 	fp_Run * pRun = nullptr;
+	bool bFirst = true;
 	while(block && (static_cast<fl_AnnotationLayout *>(block->myContainingLayout()) == pAL))
 	{
+			if(!bFirst)
+			{
+				// replies live in extra shadow blocks - keep paragraphs
+				// readable when the comment is shown as plain text
+				UT_GrowBufElement ucNL = '\n';
+				buffer.append(&ucNL, 1);
+			}
+			bFirst = false;
 			UT_GrowBuf tmp;
 			block->getBlockBuf(&tmp);
 			pRun = block->getFirstRun();
@@ -13496,7 +13506,7 @@ bool FV_View::setAnnotationTitle(UT_uint32 iAnnotation, const std::string & sTit
 	if(!pAL)
 		return false;
 	pf_Frag_Strux* sdhAnn = pAL->getStruxDocHandle();
-	PT_DocPosition posAnn = m_pDoc->getStruxPosition(sdhAnn);
+	PT_DocPosition posAnn = m_pDoc->getStruxPosition(sdhAnn) + 1;
 	const PP_PropertyVector propsAnn = {
 		"annotation-title", sTitle
 	};
@@ -13525,7 +13535,7 @@ bool FV_View::setAnnotationAuthor(UT_uint32 iAnnotation, const std::string  & sA
 	if(!pAL)
 		return false;
 	pf_Frag_Strux* sdhAnn = pAL->getStruxDocHandle();
-	PT_DocPosition posAnn = m_pDoc->getStruxPosition(sdhAnn);
+	PT_DocPosition posAnn = m_pDoc->getStruxPosition(sdhAnn) + 1;
 	const PP_PropertyVector propsAnn = {
 		"annotation-author", sAuthor
 	};
@@ -13556,8 +13566,25 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 	fl_SectionLayout * pSL =  pBlock->getSectionLayout();
 
 	if ( (pSL->getContainerType() != FL_CONTAINER_DOCSECTION) && (pSL->getContainerType() != FL_CONTAINER_CELL) )
+	{
 		return false;
-	if(getHyperLinkRun(getPoint()) != nullptr)
+	}
+	// Never create a comment inside an existing comment's shadow: the
+	// resulting nested <ann> markup cannot be re-imported. Word does
+	// replies instead. (The chain tops out at the doc section, which
+	// myContainingLayout() self-references.)
+	fl_ContainerLayout * pCL = pBlock->myContainingLayout();
+	while(pCL && (pCL->getContainerType() != FL_CONTAINER_DOCSECTION))
+	{
+		if(pCL->getContainerType() == FL_CONTAINER_ANNOTATION)
+		{
+			return false;
+		}
+		pCL = pCL->myContainingLayout();
+	}
+	fp_Run * pHRAtPoint = getHyperLinkRun(getPoint());
+	if(pHRAtPoint && (!pHRAtPoint->getHyperlink()
+		|| (pHRAtPoint->getHyperlink()->getHyperlinkType() != HYPERLINK_ANNOTATION)))
 	{
 		return false;
 	}
@@ -13581,13 +13608,18 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 	PT_DocPosition posStart = getPoint();
 	PT_DocPosition posEnd = posStart;
 
-	if (m_Selection.getSelectionAnchor() < posStart)
+	// FV_View::getSelectionAnchor() collapses to the point when
+	// nothing is selected; the raw m_Selection anchor is stale then
+	// and would make every insertion-point comment span the old
+	// selection (and fail the single-block check).
+	PT_DocPosition posAnchor = getSelectionAnchor();
+	if (posAnchor < posStart)
 	{
-		posStart = m_Selection.getSelectionAnchor();
+		posStart = posAnchor;
 	}
 	else
 	{
-		posEnd = m_Selection.getSelectionAnchor();
+		posEnd = posAnchor;
 	}
 
 	// Hack for bug 2940
@@ -13649,9 +13681,15 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 	{
 		return false;
 	}
-	// Silently fail (TODO: pop up message) if we try to nest annotations or hyperlinks.
-	if (_getHyperlinkInRange(posStart, posEnd) != nullptr)
+	// Silently fail (TODO: pop up message) if we try to nest hyperlinks.
+	// Comment anchors are annotation runs, not real hyperlinks, and are
+	// allowed to contain or abut a new comment (they nest as <ann>
+	// elements in the document file).
+	fp_HyperlinkRun * pHLRange = _getHyperlinkInRange(posStart, posEnd);
+	if (pHLRange && (pHLRange->getHyperlinkType() != HYPERLINK_ANNOTATION))
+	{
 		return false;
+	}
 //
 // Under sum1 induced conditions posEnd could give the same block pointer
 // despite being past the end of the block. This extra fail-safe code
@@ -13745,6 +13783,328 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 	selectAnnotation(pAL);
 
 	return true;
+}
+
+/*!
+ * Word-style "New comment": anchor an empty annotation at the current
+ * selection (or caret position) and move the insertion point into the
+ * comment's text block so the comment can be typed immediately.
+ * No dialog is shown.
+ */
+bool FV_View::cmdInsertComment(void)
+{
+	UT_sint32 iAnnotation = m_pDoc->getUID(UT_UniqueId::Annotation);
+	const std::string sAuthor = m_pDoc->getUserName();
+	if(!insertAnnotation(iAnnotation, "", sAuthor, "", false))
+	{
+		return false;
+	}
+	fl_AnnotationLayout * pAL = getAnnotationLayout(iAnnotation);
+	UT_return_val_if_fail(pAL, false);
+	pf_Frag_Strux * sdh = pAL->getStruxDocHandle();
+	UT_return_val_if_fail(sdh, false);
+	PT_DocPosition posAnn = m_pDoc->getStruxPosition(sdh);
+	// The comment text starts right after the block strux inside the
+	// annotation section.
+	_setPoint(posAnn + 2);
+	_generalUpdate();
+	_updateInsertionPoint();
+	return true;
+}
+
+/*!
+ * Jump to the next (bForward = true) or previous annotation/comment in
+ * document order. The anchored text of the comment found is selected and
+ * scrolled into view. Wraps around at the ends of the document.
+ */
+bool FV_View::nextComment(bool bForward)
+{
+	const pf_Frag_Strux * sdhDoc = nullptr;
+	if(!m_pDoc->getStruxOfTypeFromPosition(2, PTX_Section, &sdhDoc) || !sdhDoc)
+	{
+		return false;
+	}
+	PT_DocPosition posPoint = getPoint();
+	const pf_Frag_Strux * sdh = nullptr;
+	const pf_Frag_Strux * sdhFirst = nullptr;
+	const pf_Frag_Strux * sdhLast = nullptr;
+	const pf_Frag_Strux * sdhBest = nullptr;
+	PT_DocPosition posBest = 0;
+	while(m_pDoc->getNextStruxOfType(sdhDoc, PTX_SectionAnnotation, &sdh) && sdh)
+	{
+		PT_DocPosition pos = m_pDoc->getStruxPosition(sdh);
+		if(!sdhFirst)
+		{
+			sdhFirst = sdh;
+		}
+		sdhLast = sdh;
+		if(bForward)
+		{
+			if((pos > posPoint) && (!sdhBest || (pos < posBest)))
+			{
+				sdhBest = sdh;
+				posBest = pos;
+			}
+		}
+		else
+		{
+			if((pos < posPoint) && (!sdhBest || (pos > posBest)))
+			{
+				sdhBest = sdh;
+				posBest = pos;
+			}
+		}
+		sdhDoc = sdh;
+	}
+	if(!sdhBest)
+	{
+		// Wrap around.
+		sdhBest = bForward ? sdhFirst : sdhLast;
+	}
+	if(!sdhBest)
+	{
+		return false;
+	}
+	// Read the annotation-id attribute to find the matching layout.
+	const gchar * pszID = nullptr;
+	if(!m_pDoc->getAttributeFromStrux(sdhBest, isShowRevisions(), getRevisionLevel(), "annotation-id", &pszID)
+		|| !pszID)
+	{
+		return false;
+	}
+	fl_AnnotationLayout * pAL = getAnnotationLayout(atoi(pszID));
+	UT_return_val_if_fail(pAL, false);
+	return selectAnnotation(pAL);
+}
+
+/*!
+ * Delete the comment/annotation at the current insertion point or
+ * selection. The anchored text itself is kept; only the comment anchor
+ * and the comment shadow (section, block(s) and end strux) are removed.
+ */
+bool FV_View::delAnnotation(void)
+{
+	fl_AnnotationLayout * pAL = getClosestAnnotation(getPoint());
+	UT_return_val_if_fail(pAL, false);
+	return delAnnotationLayout(pAL);
+}
+
+/*!
+ * Remove the annotation described by pAL. Called by delAnnotation and
+ * delAllAnnotations.
+ */
+bool FV_View::delAnnotationLayout(fl_AnnotationLayout * pAL)
+{
+	UT_return_val_if_fail(pAL, false);
+	pf_Frag_Strux * sdhAnn = pAL->getStruxDocHandle();
+	const pf_Frag_Strux * sdhEnd = nullptr;
+	m_pDoc->getNextStruxOfType(sdhAnn, PTX_EndAnnotation, &sdhEnd);
+	UT_return_val_if_fail(sdhEnd, false);
+	PT_DocPosition posAnnStart = m_pDoc->getStruxPosition(sdhAnn);
+	PT_DocPosition posAnnEnd = m_pDoc->getStruxPosition(sdhEnd);
+	//
+	// Layout of an annotation in the piece table:
+	//   [PTO_Annotation start][SectionAnnotation][Block][comment text]
+	//   [EndAnnotation][anchored text][PTO_Annotation end]
+	//
+	// Find the end marker object: the first PTO_Annotation object frag
+	// after the EndAnnotation strux.
+	//
+	pf_Frag * pf = m_pDoc->getFragFromPosition(posAnnEnd);
+	UT_return_val_if_fail(pf, false);
+	pf_Frag_Object * pObjEnd = nullptr;
+	for(pf = pf->getNext(); pf && !pObjEnd; pf = pf->getNext())
+	{
+		if(pf->getType() == pf_Frag::PFT_Object)
+		{
+			pf_Frag_Object * pO = static_cast<pf_Frag_Object *>(pf);
+			if(pO->getObjectType() == PTO_Annotation)
+			{
+				pObjEnd = pO;
+			}
+		}
+	}
+	UT_return_val_if_fail(pObjEnd, false);
+	PT_DocPosition posMarkStart = posAnnStart - 1;
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	UT_uint32 iRealDeleteCount = 0;
+	//
+	// 1. Delete the comment shadow: section strux through end strux,
+	//    including the comment text. The anchored text follows the end
+	//    strux and is preserved.
+	//
+	bool bRet = m_pDoc->deleteSpan(posAnnStart, posAnnEnd + 1, nullptr,
+								   iRealDeleteCount, true);
+	//
+	// 2. Delete the start marker object. The piece table removes the
+	//    matching end marker automatically (comrade logic), wherever it
+	//    has shifted to.
+	//
+	if(bRet)
+	{
+		bRet = m_pDoc->deleteSpan(posMarkStart, posMarkStart + 1, nullptr,
+								  iRealDeleteCount, true);
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->enableListUpdates();
+	if(bRet)
+	{
+		_setPoint(posMarkStart);
+		_fixInsertionPointCoords();
+		notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	}
+	return bRet;
+}
+
+/*!
+ * Delete every comment/annotation in the document. Anchored text is
+ * preserved. Layouts are re-fetched each round because they are rebuilt
+ * on piece-table change.
+ */
+bool FV_View::delAllAnnotations(void)
+{
+	bool bAny = false;
+	for(;;)
+	{
+		const pf_Frag_Strux * sdhDoc = nullptr;
+		if(!m_pDoc->getStruxOfTypeFromPosition(2, PTX_Section, &sdhDoc) || !sdhDoc)
+		{
+			break;
+		}
+		const pf_Frag_Strux * sdh = nullptr;
+		if(!m_pDoc->getNextStruxOfType(sdhDoc, PTX_SectionAnnotation, &sdh) || !sdh)
+		{
+			break;
+		}
+		const gchar * pszID = nullptr;
+		if(!m_pDoc->getAttributeFromStrux(sdh, isShowRevisions(), getRevisionLevel(),
+										 "annotation-id", &pszID) || !pszID)
+		{
+			break;
+		}
+		fl_AnnotationLayout * pAL = getAnnotationLayout(atoi(pszID));
+		if(!pAL || !delAnnotationLayout(pAL))
+		{
+			break;
+		}
+		bAny = true;
+	}
+	return bAny;
+}
+
+/*!
+ * Toggle the resolved state of the comment at/near the insertion point,
+ * like Word's Resolve button. Resolved comments keep their content but
+ * are marked with the annotation-resolved property.
+ */
+bool FV_View::resolveAnnotation(void)
+{
+	return resolveAnnotation(getClosestAnnotation(getPoint()));
+}
+
+/*!
+ * Toggle the resolved state of the comment described by pAL.
+ */
+bool FV_View::resolveAnnotation(fl_AnnotationLayout * pAL)
+{
+	UT_return_val_if_fail(pAL, false);
+	pf_Frag_Strux * sdhAnn = pAL->getStruxDocHandle();
+	UT_return_val_if_fail(sdhAnn, false);
+	const gchar * pszRes = nullptr;
+	m_pDoc->getPropertyFromStrux(sdhAnn, isShowRevisions(), getRevisionLevel(),
+								 "annotation-resolved", &pszRes);
+	//
+	// changeStruxFmt resolves the strux that immediately precedes the
+	// given position, so pass the position just inside the annotation
+	// (the strux itself occupies exactly one position).
+	//
+	PT_DocPosition posAnn = m_pDoc->getStruxPosition(sdhAnn) + 1;
+	PP_PropertyVector props = {
+		"annotation-resolved",
+		(pszRes && pszRes[0] == '1') ? "0" : "1"
+	};
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posAnn, posAnn, PP_NOPROPS, props,
+						   PTX_SectionAnnotation);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	return true;
+}
+
+/*!
+ * Return the iAnnotation'th comment layout in document order, or
+ * nullptr when out of range. Used by the comments reviewing pane.
+ */
+/*!
+ * Word-style reply: append a fresh paragraph at the end of the
+ * comment's shadow and move the insertion point into it so the user
+ * can type the reply immediately. The reply is stored as an extra
+ * block inside the same <annotate> element.
+ */
+bool FV_View::replyAnnotation(fl_AnnotationLayout * pAL)
+{
+	UT_return_val_if_fail(pAL, false);
+	pf_Frag_Strux * sdhAnn = pAL->getStruxDocHandle();
+	UT_return_val_if_fail(sdhAnn, false);
+	const pf_Frag_Strux * sdhEnd = nullptr;
+	m_pDoc->getNextStruxOfType(sdhAnn, PTX_EndAnnotation, &sdhEnd);
+	UT_return_val_if_fail(sdhEnd, false);
+	PT_DocPosition posAnnEnd = m_pDoc->getStruxPosition(sdhEnd);
+
+	PP_PropertyVector block_atts = {
+		PT_STYLE_ATTRIBUTE_NAME, "Normal"
+	};
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	bool bRet = m_pDoc->insertStrux(posAnnEnd, PTX_Block,
+								  block_atts, PP_NOPROPS);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->enableListUpdates();
+	if(bRet)
+	{
+		_setPoint(posAnnEnd + 1);
+		_fixInsertionPointCoords();
+		_updateInsertionPoint();
+		ensureInsertionPointOnScreen();
+	}
+	return bRet;
+}
+
+fl_AnnotationLayout * FV_View::getNthAnnotation(UT_sint32 i) const
+{
+	return m_pLayout->getNthAnnotation(i);
+}
+
+/*!
+ * Report whether the comment with the given annotation id is marked
+ * resolved.
+ */
+bool FV_View::isAnnotationResolved(UT_uint32 iAnnotation) const
+{
+	fl_AnnotationLayout * pAL = getAnnotationLayout(iAnnotation);
+	if(!pAL)
+	{
+		return false;
+	}
+	pf_Frag_Strux * sdhAnn = pAL->getStruxDocHandle();
+	if(!sdhAnn)
+	{
+		return false;
+	}
+	const gchar * pszRes = nullptr;
+	m_pDoc->getPropertyFromStrux(sdhAnn, isShowRevisions(), getRevisionLevel(),
+								 "annotation-resolved", &pszRes);
+	return pszRes && (pszRes[0] == '1');
 }
 
 // RIVERA

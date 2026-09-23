@@ -40,6 +40,7 @@
 #include "ap_UnixStylesPane.h"
 #include "ap_UnixSelPane.h"
 #include "ap_UnixIconsPane.h"
+#include "ap_UnixCommentsPane.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
@@ -72,7 +73,9 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_wSelPaneW(nullptr),
 	m_pSelPane(nullptr),
 	m_wIconsPaneW(nullptr),
-	m_pIconsPane(nullptr)
+	m_pIconsPane(nullptr),
+	m_wCommentsPaneW(nullptr),
+	m_pCommentsPane(nullptr)
 {
 	UT_DEBUGMSG(("Created AP_UnixFrameImpl %p \n",this));
 }
@@ -86,6 +89,7 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	DELETEP(m_pStylesPane);
 	DELETEP(m_pSelPane);
 	DELETEP(m_pIconsPane);
+	DELETEP(m_pCommentsPane);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -379,6 +383,10 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	m_wIconsPaneW = m_pIconsPane->createWidget();
 	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wIconsPaneW,
 						"icons");
+	m_pCommentsPane = new AP_UnixCommentsPane(pFrame);
+	m_wCommentsPaneW = m_pCommentsPane->createWidget();
+	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wCommentsPaneW,
+						"comments");
 	gtk_widget_set_visible(m_wSideDeck, FALSE);
 	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wSideDeck);
 	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
@@ -489,6 +497,35 @@ bool AP_UnixFrameImpl::isIconsPaneVisible() const
 void AP_UnixFrameImpl::toggleIconsPane()
 {
 	setIconsPaneVisible(!isIconsPaneVisible());
+}
+
+void AP_UnixFrameImpl::setCommentsPaneVisible(bool bVisible)
+{
+	if (!m_wDocPaned || !m_wSideDeck)
+		return;
+	s_deckShow(m_wSideDeck, "comments", bVisible, m_wDocPaned);
+	if (bVisible && m_pCommentsPane)
+		m_pCommentsPane->refresh();
+}
+
+bool AP_UnixFrameImpl::isCommentsPaneVisible() const
+{
+	const char * cur = m_wSideDeck
+		? gtk_stack_get_visible_child_name(GTK_STACK(m_wSideDeck))
+		: nullptr;
+	return cur && gtk_widget_get_visible(m_wSideDeck) &&
+		!strcmp(cur, "comments");
+}
+
+void AP_UnixFrameImpl::toggleCommentsPane()
+{
+	setCommentsPaneVisible(!isCommentsPaneVisible());
+}
+
+void AP_UnixFrameImpl::refreshCommentsPane()
+{
+	if (isCommentsPaneVisible() && m_pCommentsPane)
+		m_pCommentsPane->refresh();
 }
 
 void AP_UnixFrameImpl::refreshSelPane()

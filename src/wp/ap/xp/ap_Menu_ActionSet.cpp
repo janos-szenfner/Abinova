@@ -319,6 +319,13 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS,				1,0,0,0,	nullptr,						nullptr,								nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT,			0,1,0,0,	"insAnnotation",			ap_GetState_InAnnotation,			nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT_FROMSEL,	0,1,0,0,	"insAnnotationFromSel",		ap_GetState_InAnnotation,			nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT,			0,1,0,0,	"nextComment",				nullptr,							nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_PREV,			0,1,0,0,	"prevComment",				nullptr,							nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE,			0,1,0,0,	"delAnnotation",			nullptr,							nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE_ALL,		0,1,0,0,	"delAllAnnotations",		nullptr,							nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE,		0,1,0,0,	"resolveAnnotation",		nullptr,							nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE,	0,1,0,0,	"delAnnotation",			nullptr,							nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW,		0,1,0,0,	"toggleDisplayAnnotations",	ap_GetState_ToggleAnnotations,		nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY,	0,0,1,0,	"toggleDisplayAnnotations",	ap_GetState_ToggleAnnotations,		nullptr);
 
 	_s(AP_MENU_ID_GOTO_ANNOTATION,					0,0,0,0,	"hyperlinkJumpPos",			ap_GetState_AnnotationJumpOK,			nullptr);

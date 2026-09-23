@@ -67,6 +67,9 @@ public:
 	virtual void toggleSelPane() {}
 	/* Stock-icons gallery pane (Insert > Icons) */
 	virtual void toggleIconsPane() {}
+	/* Comments reviewing pane (Review > Show comments) */
+	virtual void toggleCommentsPane() {}
+	virtual void setCommentsPaneVisible(bool /*bVisible*/) {}
 
 protected:
 	XAP_FrameImpl(XAP_Frame *pFrame);

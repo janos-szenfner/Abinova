@@ -119,6 +119,9 @@ private:
 	GtkWidget *		_makeTextBoxPopover();
 	GtkWidget *		_makeObjectPopover();
 	GtkWidget *		_makeHdrFtrPopover(bool bFooter);
+	/* Review tab */
+	GtkWidget *		_makeCommentDeletePopover();
+	GtkWidget *		_makeCommentShowPopover();
 	void			_showOnlinePictureDialog();
 	void			_addGalleryDir(GtkWidget * parent,
 								   const char * szMethod,

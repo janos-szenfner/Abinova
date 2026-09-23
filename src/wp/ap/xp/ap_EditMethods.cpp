@@ -325,6 +325,8 @@ public:
 	static EV_EditMethod_Fn delEOB;
 	static EV_EditMethod_Fn delBOD;
 	static EV_EditMethod_Fn delEOD;
+	static EV_EditMethod_Fn delAnnotation;
+	static EV_EditMethod_Fn delAllAnnotations;
 	static EV_EditMethod_Fn deleteBookmark;
 	static EV_EditMethod_Fn deleteXMLID;
 	static EV_EditMethod_Fn deleteColumns;
@@ -478,6 +480,7 @@ public:
 	static EV_EditMethod_Fn docProps;
 	static EV_EditMethod_Fn arrangePosition;
 	static EV_EditMethod_Fn wrapObject;
+	static EV_EditMethod_Fn prevComment;
 	static EV_EditMethod_Fn print;
 	static EV_EditMethod_Fn printTB;
 	static EV_EditMethod_Fn printPreview;
@@ -511,6 +514,7 @@ public:
 
 	static EV_EditMethod_Fn revisionNew;
 	static EV_EditMethod_Fn revisionSelect;
+	static EV_EditMethod_Fn resolveAnnotation;
 
 	static EV_EditMethod_Fn refCaption;
 	static EV_EditMethod_Fn refDeleteSource;
@@ -693,6 +697,7 @@ public:
 	static EV_EditMethod_Fn helpReportBug;
 
 	static EV_EditMethod_Fn newWindow;
+	static EV_EditMethod_Fn nextComment;
 	static EV_EditMethod_Fn notImplemented;
 	static EV_EditMethod_Fn cycleWindows;
 	static EV_EditMethod_Fn cycleWindowsBck;
@@ -818,6 +823,7 @@ public:
 	
     static EV_EditMethod_Fn insAnnotation;
     static EV_EditMethod_Fn insAnnotationFromSel;
+    static EV_EditMethod_Fn commentsPane;
     static EV_EditMethod_Fn editAnnotation;
 	
 	static EV_EditMethod_Fn sortColsAscend;
@@ -921,6 +927,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(closeWindowX), 0, ""),
 	EV_EditMethod(NF(colorBackTB), _D_, ""),
 	EV_EditMethod(NF(colorForeTB), _D_, ""),
+	EV_EditMethod(NF(commentsPane),			0,		""),
 	EV_EditMethod(NF(contextEmbedLayout), 		0,	""),
 	EV_EditMethod(NF(contextFrame), 		0,	""),
 	EV_EditMethod(NF(contextHyperlink), 		0,	""),
@@ -959,6 +966,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	// d
 	EV_EditMethod(NF(defaultToolbarLayout),			0,	""),
+	EV_EditMethod(NF(delAllAnnotations),	0,	""),
+	EV_EditMethod(NF(delAnnotation),		0,	""),
 	EV_EditMethod(NF(delBOB),				0,	""),
 	EV_EditMethod(NF(delBOD),				0,	""),
 	EV_EditMethod(NF(delBOL),				0,	""),
@@ -1209,6 +1218,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	// n
 	EV_EditMethod(NF(newWindow),			0,	""),
+	EV_EditMethod(NF(nextComment),			0,	""),
 	EV_EditMethod(NF(noop), 				0,	""),
 	EV_EditMethod(NF(notImplemented),		0,	""),
 	EV_EditMethod(NF(noteSwap),				0,	""),
@@ -1245,6 +1255,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(pasteSelection),		0,	""),
 	EV_EditMethod(NF(pasteSpecial), 		0,	""),
 	EV_EditMethod(NF(pasteVisualText), 		0,	""),
+	EV_EditMethod(NF(prevComment),			0,	""),
 	EV_EditMethod(NF(print),				0,	""),
 #ifdef ENABLE_PRINT
 	EV_EditMethod(NF(printDirectly),		0,	""),
@@ -1316,6 +1327,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(repeatThisRow),		0,	""),
 	EV_EditMethod(NF(replace),				0,	""),
 	EV_EditMethod(NF(replaceChar),			_D_,""),
+	EV_EditMethod(NF(resolveAnnotation),	0,	""),
 	EV_EditMethod(NF(revisionAccept),		0,  ""),
 	EV_EditMethod(NF(revisionCompareDocuments),	0,  ""),
 	EV_EditMethod(NF(revisionFindNext),		0,  ""),
@@ -12226,81 +12238,26 @@ Defun1(insFootnote)
 }
 
 
-static 
-void insertAnnotation(FV_View * pView, bool bDescr)
-{
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> (pView->getParentData());
-	UT_return_if_fail(pFrame);
-	
-	pFrame->raise();
-	
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
-	
-	AP_Dialog_Annotation * pDialog
-		= static_cast<AP_Dialog_Annotation *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_ANNOTATION));
-	UT_return_if_fail(pDialog);
-	
-	pDialog->setAuthor(pView->getDocument()->getUserName());
-	
-	if (bDescr)
-	{
-		UT_UCS4Char* text = nullptr;
-		pView->getSelectionText(text);
-		UT_UCS4String sUCS4(static_cast<const UT_UCS4Char *>(text));
-		pDialog->setDescription(sUCS4.utf8_str());
-	}
-	
-	// run the dialog	
-	
-	UT_DEBUGMSG(("insertAnnotation: Drawing annotation dialog...\n"));
-	pDialog->runModal(pFrame);
-	
-	bool bOK = (pDialog->getAnswer() == AP_Dialog_Annotation::a_OK);  
-	bool bApply = (pDialog->getAnswer() == AP_Dialog_Annotation::a_APPLY);	
-	
-	if (bOK || bApply)
-	{
-		const std::string &sTitle = pDialog->getTitle();
-		const std::string &sAuthor = pDialog->getAuthor();
-		const std::string &sText = pDialog->getDescription();
-		
-		UT_sint32 iAnnotation = pView->getDocument()->getUID(UT_UniqueId::Annotation);
-		
-		fl_AnnotationLayout * pAL = nullptr;
-
-		pView->insertAnnotation(iAnnotation,  
-								sText,  
-								sAuthor,  
-								sTitle,  
-								bApply);  
-
-		if (bApply)  
-		{  
-			pView->setAnnotationText(iAnnotation, pDialog->getDescription());  
-			pAL = pView->insertAnnotationDescription(iAnnotation, pDialog);
-			UT_return_if_fail(pAL);        
-		}
-		
-		pAL = pView->getAnnotationLayout(iAnnotation);
-		if (pAL) 
-			pView->selectAnnotation(pAL);
-	}      
-	
-	// release the dialog
-	pDialogFactory->releaseDialog(pDialog);
-	
-	// TODO: set the document as dirty when something changed
-}
-
+//
+// Word-style "New comment": insert an empty comment anchored at the
+// selection (or caret) and move the caret inside it so the user can
+// type immediately. No dialog.
+//
 Defun1(insAnnotation)
 {
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	
-	UT_DEBUGMSG(("insAnnotation: inserting\n"));
-	insertAnnotation(pView, false);
+
+	UT_DEBUGMSG(("insAnnotation: inserting comment\n"));
+	if (!pView->cmdInsertComment())
+		return false;
+
+	// like Word: the reviewing pane opens as soon as a comment exists
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	if (pFrame && pFrame->getFrameImpl())
+		pFrame->getFrameImpl()->setCommentsPaneVisible(true);
 	return true;
 }
 
@@ -12310,10 +12267,76 @@ Defun1(insAnnotationFromSel)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	
-	UT_DEBUGMSG(("insAnnotationFromSel: inserting\n"));
-	insertAnnotation(pView, true);
+
+	UT_DEBUGMSG(("insAnnotationFromSel: inserting comment\n"));
+	if (!pView->cmdInsertComment())
+		return false;
+
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	if (pFrame && pFrame->getFrameImpl())
+		pFrame->getFrameImpl()->setCommentsPaneVisible(true);
 	return true;
+}
+
+
+// Reviewing pane (Word: Review > Reviewing Pane)
+Defun1(commentsPane)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleCommentsPane();
+	return true;
+}
+
+
+Defun1(nextComment)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->nextComment(true);
+}
+
+
+Defun1(prevComment)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->nextComment(false);
+}
+
+
+Defun1(delAnnotation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->delAnnotation();
+}
+
+
+Defun1(delAllAnnotations)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->delAllAnnotations();
+}
+
+
+Defun1(resolveAnnotation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->resolveAnnotation();
 }
 
 Defun1(toggleDisplayAnnotations)
@@ -12336,6 +12359,13 @@ Defun1(toggleDisplayAnnotations)
 	gchar szBuffer[2] = {0,0};
 	szBuffer[0] = ((b)==true ? '1' : '0');
 	pScheme->setValue(AP_PREF_KEY_DisplayAnnotations, szBuffer);
+
+	// the reviewing pane is how comments are surfaced in this build:
+	// "Show comments" shows/hides it in the side deck
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	if (pFrame && pFrame->getFrameImpl())
+		pFrame->getFrameImpl()->setCommentsPaneVisible(b);
 	return true ;
 }
 

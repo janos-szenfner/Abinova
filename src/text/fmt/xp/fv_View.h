@@ -774,6 +774,19 @@ public:
 	fl_AnnotationLayout * getAnnotationLayout(UT_uint32 iAnnotation) const;
 	bool                selectAnnotation(fl_AnnotationLayout * pAL);
 	UT_uint32           countAnnotations(void) const;
+	//
+	// Word-style comment commands
+	//
+	bool                cmdInsertComment(void);
+	bool                nextComment(bool bForward);
+	bool                delAnnotation(void);
+	bool                delAllAnnotations(void);
+	bool                resolveAnnotation(void);
+	bool                resolveAnnotation(fl_AnnotationLayout * pAL);
+	bool                replyAnnotation(fl_AnnotationLayout * pAL);
+	bool                delAnnotationLayout(fl_AnnotationLayout * pAL);
+	fl_AnnotationLayout * getNthAnnotation(UT_sint32 i) const;
+	bool                isAnnotationResolved(UT_uint32 iAnnotation) const;
 
     FV_View_BubbleBlocker getBubbleBlocker();
     bool                  bubblesAreBlocked() const;

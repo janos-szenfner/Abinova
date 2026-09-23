@@ -372,6 +372,23 @@ The dynamic plugin list is empty.
   `_bib_N`), generated sections are wrapped in marker bookmarks
   (`_genidx`/`_gentoa`/`_genbib`) so Update and Remove can locate
   them, and all of it round-trips through the `.abw` exporter.
+  The **Review tab** carries a Word-style Comments group: **New
+  comment** (**Ctrl+Alt+M**) anchors a comment to the selection or
+  caret and drops the caret inside the comment body for immediate
+  typing — no dialog. The docked **Reviewing Pane** (Review → Show
+  comments → Reviewing Pane, opened automatically on insert) lists
+  every comment as a card with author, date, an author-colour stripe
+  and the text; clicking a card selects the anchored text, and each
+  card offers **Reply** (appends a paragraph to the comment),
+  **Resolve**/**Unresolve** (persisted via `annotation-resolved:1`,
+  rendered dimmed with a "(Resolved)" badge) and **Delete** (the
+  anchored text is always preserved). The ribbon also has a Delete
+  dropdown (Delete Comment / Delete All Comments), Resolve,
+  **Previous**/**Next** navigation (**Ctrl+Alt+P** / **Ctrl+Alt+N**)
+  and a Show comments toggle; right-click offers New Comment too.
+  Comments inside another comment's body are rejected (that nesting
+  produced unloadable XML), while commenting over existing anchors is
+  allowed.
   Custom Margins… / More Paper Sizes… / Format → Document open a
   Word-style **Document dialog** (Margins + Layout tabs, Page
   Setup…, Default… → NORMAL template, Apply to whole document /
