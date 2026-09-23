@@ -75,6 +75,9 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	bool			isCommentsPaneVisible() const;
 	virtual void	toggleCommentsPane() override;
 	void			refreshCommentsPane();
+	/* moves keyboard focus back to the document canvas, e.g. after
+	 * a side-pane button was clicked so typing reaches the view */
+	void			focusDocument();
 
  protected:
 	friend class AP_UnixFrame;

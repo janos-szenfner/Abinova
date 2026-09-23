@@ -506,6 +506,19 @@ void AP_UnixFrameImpl::setCommentsPaneVisible(bool bVisible)
 	s_deckShow(m_wSideDeck, "comments", bVisible, m_wDocPaned);
 	if (bVisible && m_pCommentsPane)
 		m_pCommentsPane->refresh();
+	if (bVisible)
+	{
+		/* the pane's widgets must not keep keyboard focus: comment
+		 * insertion auto-shows the pane and the caret sits inside the
+		 * comment, so typing has to reach the document canvas */
+		focusDocument();
+	}
+}
+
+void AP_UnixFrameImpl::focusDocument()
+{
+	if (m_dArea && gtk_widget_get_realized(m_dArea))
+		gtk_widget_grab_focus(m_dArea);
 }
 
 bool AP_UnixFrameImpl::isCommentsPaneVisible() const

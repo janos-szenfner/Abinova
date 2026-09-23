@@ -322,6 +322,17 @@ GtkWidget * AP_UnixCommentsPane::_makeCard(UT_uint32 pid, UT_sint32 iIndex)
 	return row;
 }
 
+/* pane buttons take keyboard focus on click; hand it back to the
+ * document canvas so the next keystroke reaches the view */
+static void s_focusDoc(XAP_Frame * pFrame)
+{
+	AP_UnixFrameImpl * pImpl = pFrame
+		? static_cast<AP_UnixFrameImpl *>(pFrame->getFrameImpl())
+		: nullptr;
+	if (pImpl)
+		pImpl->focusDocument();
+}
+
 void AP_UnixCommentsPane::_s_row_selected(GtkListBox * /*box*/,
 										  GtkListBoxRow * row,
 										  gpointer data)
@@ -360,6 +371,9 @@ void AP_UnixCommentsPane::_s_reply_clicked(GtkButton * /*btn*/,
 	if (pAL)
 		pView->replyAnnotation(pAL);
 	self->refresh();
+	/* the caret sits in the new reply paragraph - typing must go to
+	 * the canvas, not stay on the Reply button */
+	s_focusDoc(self->m_pFrame);
 }
 
 void AP_UnixCommentsPane::_s_resolve_clicked(GtkButton * /*btn*/,
@@ -408,7 +422,12 @@ void AP_UnixCommentsPane::_s_new_clicked(GtkButton * /*btn*/,
 		? static_cast<FV_View *>(self->m_pFrame->getCurrentView())
 		: nullptr;
 	if (pView)
+	{
 		pView->cmdInsertComment();
+		/* caret is inside the new comment; return focus to the
+		 * canvas so typing lands there */
+		s_focusDoc(self->m_pFrame);
+	}
 }
 
 void AP_UnixCommentsPane::_s_close_clicked(GtkButton * /*btn*/,

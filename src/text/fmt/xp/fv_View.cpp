@@ -6680,6 +6680,331 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 	return bRet;
 }
 
+/*!
+ * Remove every page_number field from the document's header and
+ * footer sections.  Returns true if at least one was removed.
+ */
+bool FV_View::removePageNumbers(void)
+{
+	UT_uint32 iRealDeleteCount = 0;
+	bool bAny = false;
+	for(;;)
+	{
+		// scan header/footer blocks of every doc section for a
+		// page_number field run
+		fl_BlockLayout * pBL = nullptr;
+		fp_FieldRun * pFound = nullptr;
+		for(fl_DocSectionLayout * pDSL = getLayout()->getFirstSection();
+			pDSL && !pFound; pDSL = pDSL->getNextDocSection())
+		{
+			for(int hf = 0; hf < 2 && !pFound; hf++)
+			{
+				fl_HdrFtrSectionLayout * pHFSL = hf ? pDSL->getFooter()
+												  : pDSL->getHeader();
+				if(!pHFSL)
+					continue;
+				fl_BlockLayout * pB = pHFSL->getNextBlockInDocument();
+				while(pB && !pFound)
+				{
+					fp_Run * pRun = pB->getFirstRun();
+					while(pRun)
+					{
+						if(pRun->getType() == FPRUN_FIELD &&
+						   static_cast<fp_FieldRun *>(pRun)->getFieldType()
+							   == FPFIELD_page_number)
+						{
+							pBL = pB;
+							pFound = static_cast<fp_FieldRun *>(pRun);
+							break;
+						}
+						pRun = pRun->getNextRun();
+					}
+					pB = static_cast<fl_BlockLayout *>(pB->getNext());
+				}
+			}
+		}
+		if(!pFound || !pBL)
+			break;
+		PT_DocPosition pos = pBL->getPosition()
+			+ pFound->getBlockOffset() + 1;
+		_saveAndNotifyPieceTableChange();
+		m_pDoc->disableListUpdates();
+		bool bRet = m_pDoc->deleteSpan(pos, pos + 1, nullptr,
+									   iRealDeleteCount, true);
+		_restorePieceTableState();
+		_generalUpdate();
+		m_pDoc->enableListUpdates();
+		if(!bRet)
+			break;
+		bAny = true;
+	}
+	return bAny;
+}
+
+/*!
+ * Drop caps are built on the positioned-frame engine: the first
+ * character of the current paragraph moves into a small borderless
+ * frame anchored at the paragraph's top-left with wrapped-to-right
+ * text flow, sized to span iLines body lines.
+ *
+ * bInMargin places the frame in the left margin instead (the
+ * paragraph text is not indented).  dDist is the gap between the
+ * letter and the wrapped text in centimetres.
+ */
+bool FV_View::insertDropCap(UT_sint32 iLines, const std::string & sFont,
+							double dDistCm, bool bInMargin)
+{
+	fl_BlockLayout * pBL = _findBlockAtPosition(getPoint());
+	if(!pBL)
+	{
+		return false;
+	}
+	fl_ContainerLayout * pCL = pBL->myContainingLayout();
+	if(!pCL || (pCL->getContainerType() != FL_CONTAINER_DOCSECTION))
+	{
+		return false;
+	}
+	// replace an existing drop cap on this paragraph
+	if(hasDropCap())
+	{
+		removeDropCap();
+		pBL = _findBlockAtPosition(getPoint());
+		if(!pBL)
+		{
+			return false;
+		}
+	}
+	UT_GrowBuf gb;
+	pBL->getBlockBuf(&gb);
+	if(gb.getLength() < 1)
+	{
+		return false;
+	}
+	UT_UCS4Char ch = *gb.getPointer(0);
+	if((ch == ' ') || (ch == '\t'))
+	{
+		return false;
+	}
+
+	// height: iLines times the paragraph's first line height
+	fp_Line * pLine = static_cast<fp_Line *>(pBL->getFirstContainer());
+	UT_sint32 iLineH = pLine ? pLine->getHeight()
+		: getGraphics()->tlu(15);
+	UT_sint32 iFrameH = iLineH * iLines;
+	// cap glyph size ~85% of the covered height, width ~0.75em plus
+	// the wrap gap - close to Word's sizing for most glyphs
+	double dFontPt = static_cast<double>(iFrameH) * 72.0
+		/ UT_LAYOUT_RESOLUTION * 0.85;
+	UT_sint32 iFrameW = static_cast<UT_sint32>(
+		iFrameH * 0.75) + getGraphics()->tlu(4);
+	UT_sint32 iGap = UT_convertToLogicalUnits(
+		UT_formatDimensionedValue(dDistCm,"cm",nullptr));
+	if(iGap < 0)
+	{
+		iGap = 0;
+	}
+
+	PT_DocPosition posBlock = pBL->getPosition(true);
+	UT_UCS4String sCh(reinterpret_cast<const UT_UCS4Char *>(&ch), 1);
+	std::string sCharUtf8 = sCh.utf8_str();
+	std::string sW = UT_formatDimensionedValue(
+		static_cast<double>(iFrameW)/UT_LAYOUT_RESOLUTION,"in",nullptr);
+	std::string sH = UT_formatDimensionedValue(
+		static_cast<double>(iFrameH)/UT_LAYOUT_RESOLUTION,"in",nullptr);
+	// "in margin" shifts the frame left of the column so the text
+	// stays at the normal indent
+	std::string sX = bInMargin
+		? UT_formatDimensionedValue(
+			-static_cast<double>(iFrameW + iGap)/UT_LAYOUT_RESOLUTION,
+			"in",nullptr)
+		: std::string("0in");
+	std::string sLines = UT_std_string_sprintf("%d", iLines);
+	std::string sDist = UT_formatDimensionedValue(dDistCm,"cm",nullptr);
+	std::string sBound = UT_formatDimensionedValue(
+		static_cast<double>(iGap)/UT_LAYOUT_RESOLUTION,"in",nullptr);
+
+	PP_PropertyVector frameProps = {
+		"frame-type", "textbox",
+		"wrap-mode", "wrapped-to-right",
+		"position-to", "block-above-text",
+		"xpos", sX.c_str(),
+		"ypos", "0in",
+		"frame-width", sW.c_str(),
+		"frame-height", sH.c_str(),
+		"left-style", "0",
+		"right-style", "0",
+		"top-style", "0",
+		"bot-style", "0",
+		"bg-style", "0",
+		"tight-wrap", "0",
+		"bounding-space", sBound.c_str(),
+		"frame-expand-height", "0",
+		"frame-drop-cap", "1",
+		"drop-cap-lines", sLines.c_str(),
+		"drop-cap-char", sCharUtf8.c_str(),
+		"drop-cap-dist", sDist.c_str(),
+		"drop-cap-margin", bInMargin ? "1" : "0",
+	};
+	std::string sFontSize = UT_std_string_sprintf("%.1fpt", dFontPt);
+	PP_PropertyVector charProps = {
+		"font-size", sFontSize.c_str(),
+	};
+	if(!sFont.empty())
+	{
+		charProps.push_back("font-family");
+		charProps.push_back(sFont.c_str());
+	}
+	PP_PropertyVector block_atts = {
+		PT_STYLE_ATTRIBUTE_NAME, "Normal",
+		"margin-left", "0pt",
+	};
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+
+	UT_uint32 iRealDeleteCount = 0;
+	bool bRet = m_pDoc->deleteSpan(posBlock + 1, posBlock + 2, nullptr,
+								   iRealDeleteCount, true);
+	if(bRet)
+	{
+		pf_Frag_Strux * pfFrame = nullptr;
+		bRet = m_pDoc->insertStrux(posBlock, PTX_SectionFrame,
+								  PP_NOPROPS, frameProps, &pfFrame);
+		if(bRet)
+		{
+			PT_DocPosition posFrame = pfFrame->getPos();
+			bRet = m_pDoc->insertStrux(posFrame + 1, PTX_Block,
+									   block_atts, PP_NOPROPS);
+			if(bRet)
+			{
+				const UT_UCS4Char * pCh = sCh.ucs4_str();
+				bRet = m_pDoc->insertSpan(posFrame + 2, pCh, 1);
+				if(bRet)
+				{
+					bRet = m_pDoc->changeSpanFmt(PTC_AddFmt,
+												 posFrame + 2,
+												 posFrame + 3,
+												 PP_NOPROPS, charProps);
+				}
+				if(bRet)
+				{
+					bRet = m_pDoc->insertStrux(posFrame + 3,
+											   PTX_EndFrame);
+				}
+			}
+		}
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->enableListUpdates();
+	if(bRet)
+	{
+		_setPoint(posBlock + 4);
+		_fixInsertionPointCoords();
+		notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	}
+	return bRet;
+}
+
+/*!
+ * If the paragraph at the insertion point has a drop cap (a frame
+ * carrying "frame-drop-cap"), remove the frame and restore the
+ * letter at the start of the paragraph text.
+ */
+bool FV_View::removeDropCap(void)
+{
+	fl_BlockLayout * pBL = _findBlockAtPosition(getPoint());
+	if(!pBL)
+	{
+		return false;
+	}
+	PT_DocPosition posBlock = pBL->getPosition(true);
+	// the anchored block immediately follows the frame's EndFrame
+	if(!m_pDoc->isEndFrameAtPos(posBlock - 1))
+	{
+		return false;
+	}
+	const pf_Frag_Strux * sdhFrame = nullptr;
+	if(!m_pDoc->getStruxOfTypeFromPosition(posBlock - 1,
+										 PTX_SectionFrame, &sdhFrame)
+	   || !sdhFrame)
+	{
+		return false;
+	}
+	const gchar * pszMark = nullptr;
+	if(!m_pDoc->getAttributeFromStrux(sdhFrame, isShowRevisions(),
+									 getRevisionLevel(),
+									 "frame-drop-cap", &pszMark)
+	   || !pszMark || !*pszMark)
+	{
+		return false;
+	}
+	std::string sChar;
+	const gchar * pszChar = nullptr;
+	if(m_pDoc->getAttributeFromStrux(sdhFrame, isShowRevisions(),
+									getRevisionLevel(),
+									"drop-cap-char", &pszChar)
+	   && pszChar)
+	{
+		sChar = pszChar;
+	}
+	PT_DocPosition posFrame = m_pDoc->getStruxPosition(sdhFrame);
+	PT_DocPosition posEnd = posBlock - 1;
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	UT_uint32 iRealDeleteCount = 0;
+	bool bRet = m_pDoc->deleteSpan(posFrame, posEnd + 1, nullptr,
+								   iRealDeleteCount, true);
+	if(bRet && !sChar.empty())
+	{
+		UT_UCS4String uCh(sChar.c_str());
+		bRet = m_pDoc->insertSpan(posFrame + 1, uCh.ucs4_str(),
+								  uCh.length());
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->enableListUpdates();
+	if(bRet)
+	{
+		_setPoint(posFrame + 1);
+		_fixInsertionPointCoords();
+		notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	}
+	return bRet;
+}
+
+/*! True when the current paragraph is preceded by a drop-cap frame. */
+bool FV_View::hasDropCap(void)
+{
+	fl_BlockLayout * pBL = _findBlockAtPosition(getPoint());
+	if(!pBL)
+	{
+		return false;
+	}
+	PT_DocPosition posBlock = pBL->getPosition(true);
+	if(!m_pDoc->isEndFrameAtPos(posBlock - 1))
+	{
+		return false;
+	}
+	const pf_Frag_Strux * sdhFrame = nullptr;
+	if(!m_pDoc->getStruxOfTypeFromPosition(posBlock - 1,
+										 PTX_SectionFrame, &sdhFrame)
+	   || !sdhFrame)
+	{
+		return false;
+	}
+	const gchar * pszMark = nullptr;
+	return m_pDoc->getAttributeFromStrux(sdhFrame, isShowRevisions(),
+										 getRevisionLevel(),
+										 "frame-drop-cap", &pszMark)
+		&& pszMark && *pszMark;
+}
+
 
 void FV_View::changeListStyle(const fl_AutoNumPtr & pAuto,
 								FL_ListType lType,
@@ -13564,23 +13889,78 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 		return false;
 	}
 	fl_SectionLayout * pSL =  pBlock->getSectionLayout();
-
-	if ( (pSL->getContainerType() != FL_CONTAINER_DOCSECTION) && (pSL->getContainerType() != FL_CONTAINER_CELL) )
+	// A comment cannot be anchored inside an existing comment's
+	// shadow: the resulting nested <ann> markup cannot be re-imported.
+	// When the caret sits inside a comment (e.g. right after inserting
+	// one, or after clicking a pane card), move the insertion point
+	// into the body just past that comment's anchor and anchor the new
+	// comment there instead of failing. Shadow blocks report their
+	// annotation layout via getSectionLayout(); deeper containment is
+	// caught by the chain walk (which tops out at the doc section,
+	// self-referenced by myContainingLayout()).
+	fl_AnnotationLayout * pInsideAnn = nullptr;
+	if(pSL->getContainerType() == FL_CONTAINER_ANNOTATION)
+	{
+		pInsideAnn = static_cast<fl_AnnotationLayout *>(pSL);
+	}
+	else if ( (pSL->getContainerType() != FL_CONTAINER_DOCSECTION) && (pSL->getContainerType() != FL_CONTAINER_CELL) )
 	{
 		return false;
 	}
-	// Never create a comment inside an existing comment's shadow: the
-	// resulting nested <ann> markup cannot be re-imported. Word does
-	// replies instead. (The chain tops out at the doc section, which
-	// myContainingLayout() self-references.)
-	fl_ContainerLayout * pCL = pBlock->myContainingLayout();
-	while(pCL && (pCL->getContainerType() != FL_CONTAINER_DOCSECTION))
+	if(!pInsideAnn)
 	{
-		if(pCL->getContainerType() == FL_CONTAINER_ANNOTATION)
+		fl_ContainerLayout * pCL = pBlock->myContainingLayout();
+		while(pCL && (pCL->getContainerType() != FL_CONTAINER_DOCSECTION))
+		{
+			if(pCL->getContainerType() == FL_CONTAINER_ANNOTATION)
+			{
+				pInsideAnn = static_cast<fl_AnnotationLayout *>(pCL);
+				break;
+			}
+			pCL = pCL->myContainingLayout();
+		}
+	}
+	if(pInsideAnn)
+	{
+		// [SectionAnnotation][comment blocks][EndAnnotation]
+		// [anchored text][PTO_Annotation end marker]
+		pf_Frag_Strux * sdhAnn = pInsideAnn->getStruxDocHandle();
+		const pf_Frag_Strux * sdhEnd = nullptr;
+		if(!sdhAnn
+		   || !m_pDoc->getNextStruxOfType(sdhAnn, PTX_EndAnnotation,
+										  &sdhEnd)
+		   || !sdhEnd)
 		{
 			return false;
 		}
-		pCL = pCL->myContainingLayout();
+		pf_Frag * pf = m_pDoc->getFragFromPosition(
+			m_pDoc->getStruxPosition(sdhEnd));
+		pf_Frag_Object * pObjEnd = nullptr;
+		for(pf = pf ? pf->getNext() : nullptr; pf && !pObjEnd;
+			pf = pf->getNext())
+		{
+			if(pf->getType() == pf_Frag::PFT_Object
+			   && (static_cast<pf_Frag_Object *>(pf)->getObjectType()
+				   == PTO_Annotation))
+			{
+				pObjEnd = static_cast<pf_Frag_Object *>(pf);
+			}
+		}
+		if(!pObjEnd)
+		{
+			return false;
+		}
+		_setPoint(pObjEnd->getPos() + 1);
+		pBlock = _findBlockAtPosition(getPoint());
+		if(!pBlock)
+		{
+			return false;
+		}
+		pSL = pBlock->getSectionLayout();
+		if(pSL->getContainerType() != FL_CONTAINER_DOCSECTION)
+		{
+			return false;
+		}
 	}
 	fp_Run * pHRAtPoint = getHyperLinkRun(getPoint());
 	if(pHRAtPoint && (!pHRAtPoint->getHyperlink()

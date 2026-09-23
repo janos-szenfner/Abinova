@@ -468,6 +468,13 @@ public:
 	bool    isImageAtStrux(PT_DocPosition ipos1, PTStruxType iStrux);
 
 	bool	processPageNumber(HdrFtrType hfType, const PP_PropertyVector & atts);
+	bool	removePageNumbers(void);
+	/* Word-style drop cap: first char of the paragraph in a
+	 * borderless wrapped-to-right frame spanning iLines lines */
+	bool	insertDropCap(UT_sint32 iLines, const std::string & sFont,
+						  double dDistCm, bool bInMargin);
+	bool	removeDropCap(void);
+	bool	hasDropCap(void);
 
 #ifdef ENABLE_SPELL
 	bool	isTextMisspelled()const ;
