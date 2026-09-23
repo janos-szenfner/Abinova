@@ -221,6 +221,28 @@ below are on `main` but the release has not been cut yet.
   Marked entries/citations are real document bookmarks, generated
   sections are wrapped in marker bookmarks for update/remove, and
   everything persists in `.abw`.
+- **TOC gallery now offers the five built-in types under both
+  sections** — Automatic (field-built, updates from headings) and
+  Manual (static placeholder table) each list Classic, Contemporary,
+  Modern, Formal and Simple preview cards; manual cards reuse the
+  preset's look (`manual-<preset>` dispatch) and the inserted
+  placeholder table inherits the preset's Contents/Header styles and
+  tab-leader.
+- **TOC engine fixes** — `fl_TOCLayout::fillTOC()` now formats the
+  container after adding entries so a runtime-inserted TOC renders
+  immediately instead of leaving a zero-height broken fragment that
+  drew blank; `FL_DocLayout::fillLayouts()` refills every complete
+  TOC (`isEndTOCIn()`) after load rather than relying on
+  `isTOCEmpty()`, which could not detect TOCs partially filled by
+  incremental `addBlock` calls during populate — mid-document TOCs
+  previously showed only headings that followed the TOC.
+- **References ribbon sizing** — all-large groups (Footnotes: five
+  buttons, Index and Table of Authorities: three each) use
+  homogeneous grid columns so every button is the same size; small
+  icon+label buttons and dropdown captions wrap onto two lines
+  instead of ellipsizing; button captions render slightly smaller so
+  the wide tab fits without squeezing labels; Footnote/Endnote use a
+  slimmer variant to leave room for Update Table.
 - **Explicit `toc-level` paragraph property** — `toc-level:0`
   excludes a paragraph from generated tables and `toc-level:1`–`4`
   include any paragraph at that level without a heading style; the

@@ -283,6 +283,13 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"  font-size: 0.78em; margin-top: 1px; padding: 0 4px 2px 4px;"
 		"  color: alpha(@theme_fg_color, 0.75);"
 		"}"
+		/* Word keeps ribbon captions a notch below the document font;
+		 * smaller button labels keep wide tabs (References) inside
+		 * the window instead of being squeezed to their minimum */
+		".abiword-ribbon .ribbon-group button label,"
+		".abiword-ribbon .ribbon-group menubutton label {"
+		"  font-size: 0.88em;"
+		"}"
 		/* compact +/- on the Layout tab's indent/spacing spins */
 		".abiword-ribbon spinbutton.ribbon-spin button {"
 		"  min-width: 0; min-height: 0; padding: 0 3px; margin: 0;"
@@ -347,6 +354,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			 * (left to right, wrapping at each ROWEND) instead of
 			 * the default 3-row column packing */
 			bool bRowMajor = false;
+			/* groups whose items are all LARGE (Word's Footnotes /
+			 * Index / Table of Authorities rows) get homogeneous grid
+			 * columns so every button comes out the same size */
+			bool bAllLarge = true;
 			for (const AP_RibbonItem * it = group->items;
 				 !(it->kind == AP_RIBBON_ITEM_MENU &&
 				   it->id == (uint16_t)AP_MENU_ID__BOGUS1__); ++it)
@@ -356,7 +367,11 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					bRowMajor = true;
 					break;
 				}
+				if (!(it->flags & AP_RIBBON_FLAG_LARGE))
+					bAllLarge = false;
 			}
+			if (!bRowMajor && bAllLarge)
+				gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
 			if (bRowMajor)
 			{
 				rowBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -717,10 +732,16 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
 		gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 		gtk_label_set_lines(GTK_LABEL(wLabel), 2);
-		gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 12);
+		gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
+			(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
 		gtk_box_append(GTK_BOX(box), image);
 		gtk_box_append(GTK_BOX(box), wLabel);
 		gtk_button_set_child(GTK_BUTTON(btn), box);
+		if (flags & AP_RIBBON_FLAG_SLIM)
+			gtk_style_context_add_provider(
+				gtk_widget_get_style_context(btn),
+				GTK_STYLE_PROVIDER(_slimButtonCss()),
+				GTK_STYLE_PROVIDER_PRIORITY_USER);
 	}
 	else
 	{
@@ -733,6 +754,16 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
 			gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 14);
+		}
+		else if ((szIcon && *szIcon) || bDrawnIcon)
+		{
+			/* small icon+label buttons wrap onto a second line like
+			 * Word's compact ribbon entries instead of ellipsizing */
+			gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
+			gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD_CHAR);
+			gtk_label_set_lines(GTK_LABEL(wLabel), 2);
+			gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_LEFT);
+			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 12);
 		}
 		else
 		{
@@ -2010,7 +2041,7 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		return nullptr;
 
 	if (flags & AP_RIBBON_FLAG_LARGE)
-		return _makeLargeMenuButton(id, popover);
+		return _makeLargeMenuButton(id, popover, flags);
 
 	GtkWidget * mb = gtk_menu_button_new();
 	if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS)
@@ -2054,10 +2085,10 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		/* Word wraps the small dropdown captions onto two lines
 		 * ("Manage Sources", "Next Footnote") instead of ellipsizing */
 		gtk_label_set_wrap(GTK_LABEL(wl), TRUE);
-		gtk_label_set_wrap_mode(GTK_LABEL(wl), PANGO_WRAP_WORD);
+		gtk_label_set_wrap_mode(GTK_LABEL(wl), PANGO_WRAP_WORD_CHAR);
 		gtk_label_set_lines(GTK_LABEL(wl), 2);
 		gtk_label_set_justify(GTK_LABEL(wl), GTK_JUSTIFY_LEFT);
-		gtk_label_set_max_width_chars(GTK_LABEL(wl), 11);
+		gtk_label_set_max_width_chars(GTK_LABEL(wl), 12);
 		gtk_box_append(GTK_BOX(hb), wl);
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), hb);
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
@@ -2611,6 +2642,7 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	{
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTNOTE:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ENDNOTE:
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_FOOTNOTES:
 	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOC:
 	case (XAP_Menu_Id)AP_MENU_ID_REF_SHOWNOTES:
 	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATEINDEX:
@@ -2784,7 +2816,8 @@ GtkWidget * AP_UnixRibbon::_makeDeadButton(uint16_t id)
 
 /* Word-style large dropdown button: icon over caption + down arrow */
 GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
-											  GtkWidget * popover)
+											  GtkWidget * popover,
+											  uint8_t flags)
 {
 	const EV_Menu_Label * pLabel =
 		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
@@ -2803,12 +2836,15 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 	gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
 	gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 	gtk_label_set_lines(GTK_LABEL(wLabel), 2);
-	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 12);
+	gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
+		(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
 	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
+	if (flags & AP_RIBBON_FLAG_SLIM)
+		_slim_widget_tree(mb);
 
 	const char * szStatus = pLabel ? pLabel->getMenuStatusMessage() : nullptr;
 	if (szStatus && *szStatus && strcmp(szStatus, " ") != 0)
@@ -3601,13 +3637,24 @@ static void _toc_card_draw(GtkDrawingArea *, cairo_t * cr,
 						   int w, int h, gpointer data)
 {
 	const char * szPreset = static_cast<const char *>(data);
-	bool bManual   = !strcmp(szPreset, "manual");
-	bool bCaps     = !strcmp(szPreset, "contemporary") ||
-					 !strcmp(szPreset, "formal");
+	/* manual cards carry "manual-<preset>" so they get the preset's
+	 * look with the placeholder text Word shows for Manual Table */
+	bool bManual   = !strncmp(szPreset, "manual-", 7);
+	if (bManual)
+		szPreset += 7;
+	bool bCaps     = !strcmp(szPreset, "contemporary");
 	bool bLine     = !strcmp(szPreset, "contemporary");
-	bool bDots     = !bLine && strcmp(szPreset, "simple");
-	bool bDecorate = !strcmp(szPreset, "classic") ||
+	/* spec: modern has no leaders, every other type uses dots */
+	bool bDots     = !bLine && strcmp(szPreset, "modern");
+	/* spec: level-1 entries bold for classic/formal/modern/
+	 * contemporary; formal also bolds level 2 */
+	bool bBold1    = !strcmp(szPreset, "classic") ||
+					 !strcmp(szPreset, "contemporary") ||
+					 !strcmp(szPreset, "formal") ||
 					 !strcmp(szPreset, "modern");
+	bool bBold2    = !strcmp(szPreset, "formal");
+	bool bCenter   = !strcmp(szPreset, "classic") ||
+					 !strcmp(szPreset, "formal");
 
 	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
 	cairo_rectangle(cr, 0.5, 0.5, w - 1, h - 1);
@@ -3616,26 +3663,38 @@ static void _toc_card_draw(GtkDrawingArea *, cairo_t * cr,
 	cairo_set_line_width(cr, 1.0);
 	cairo_stroke(cr);
 
+	/* Word's Automatic Table 1 titles the TOC "Contents"; every other
+	 * automatic type and all manual tables use "Table of Contents" */
+	const char * szHeading =
+		(!bManual && !strcmp(szPreset, "classic"))
+			? "Contents" : "Table of Contents";
+
 	cairo_set_source_rgb(cr, 0.27, 0.45, 0.77);
 	cairo_select_font_face(cr, "sans",
 						   CAIRO_FONT_SLANT_NORMAL,
 						   CAIRO_FONT_WEIGHT_BOLD);
 	cairo_set_font_size(cr, 11);
-	cairo_move_to(cr, 10, 18);
-	cairo_show_text(cr, "Table of Contents");
+	if (bCenter)
+	{
+		cairo_text_extents_t hext;
+		cairo_text_extents(cr, szHeading, &hext);
+		cairo_move_to(cr, (w - hext.width) / 2, 18);
+	}
+	else
+		cairo_move_to(cr, 10, 18);
+	cairo_show_text(cr, szHeading);
 
 	double y = 40;
 	for (int lvl = 1; lvl <= 4; lvl++)
 	{
 		double x = 10 + (lvl - 1) * 13;
-		cairo_font_slant_t slant =
-			(bDecorate && lvl == 3) ? CAIRO_FONT_SLANT_ITALIC
-									: CAIRO_FONT_SLANT_NORMAL;
 		cairo_font_weight_t weight =
-			(lvl == 1) ? CAIRO_FONT_WEIGHT_BOLD
-					   : CAIRO_FONT_WEIGHT_NORMAL;
+			((lvl == 1 && bBold1) || (lvl == 2 && bBold2))
+				? CAIRO_FONT_WEIGHT_BOLD
+				: CAIRO_FONT_WEIGHT_NORMAL;
 		cairo_set_source_rgb(cr, 0.30, 0.30, 0.30);
-		cairo_select_font_face(cr, "sans", slant, weight);
+		cairo_select_font_face(cr, "sans",
+							   CAIRO_FONT_SLANT_NORMAL, weight);
 		cairo_set_font_size(cr, 8);
 		char buf[64];
 		snprintf(buf, sizeof(buf), "Type chapter %s (level %d)",
@@ -3748,18 +3807,43 @@ GtkWidget * AP_UnixRibbon::_makeTOCGalleryPopover()
 		return btn;
 	};
 
-	gtk_box_append(GTK_BOX(box),
-				   cardBtn("Manual Table of Contents", "manual"));
-	gtk_box_append(GTK_BOX(box),
-				   cardBtn("Classic", "classic"));
-	gtk_box_append(GTK_BOX(box),
-				   cardBtn("Contemporary", "contemporary"));
-	gtk_box_append(GTK_BOX(box),
-				   cardBtn("Formal", "formal"));
-	gtk_box_append(GTK_BOX(box),
-				   cardBtn("Modern", "modern"));
-	gtk_box_append(GTK_BOX(box),
-				   cardBtn("Simple", "simple"));
+	auto sectionLabel = [](const char * szText) -> GtkWidget *
+	{
+		GtkWidget * l = gtk_label_new(nullptr);
+		char * mk = g_markup_printf_escaped(
+			"<span size='small' weight='bold' alpha='60%%'>%s</span>",
+			szText);
+		gtk_label_set_markup(GTK_LABEL(l), mk);
+		g_free(mk);
+		gtk_widget_set_halign(l, GTK_ALIGN_START);
+		gtk_widget_set_margin_start(l, 6);
+		return l;
+	};
+
+	/* Word's gallery: automatic (field-built) tables under "Automatic",
+	 * the hand-edited placeholder tables under "Manual" — both offer
+	 * the five built-in types */
+	static const struct { const char * szName; const char * szId; }
+	s_tocTypes[] =
+	{
+		{ "Classic",		"classic" },
+		{ "Contemporary",	"contemporary" },
+		{ "Modern",			"modern" },
+		{ "Formal",			"formal" },
+		{ "Simple",			"simple" },
+	};
+
+	gtk_box_append(GTK_BOX(box), sectionLabel("Automatic"));
+	for (const auto & t : s_tocTypes)
+		gtk_box_append(GTK_BOX(box), cardBtn(t.szName, t.szId));
+
+	gtk_box_append(GTK_BOX(box), sectionLabel("Manual"));
+	for (const auto & t : s_tocTypes)
+	{
+		char szManual[32];
+		g_snprintf(szManual, sizeof(szManual), "manual-%s", t.szId);
+		gtk_box_append(GTK_BOX(box), cardBtn(t.szName, szManual));
+	}
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),

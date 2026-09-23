@@ -352,7 +352,7 @@ public:
 	UT_Error		cmdInsertTOC(void);
 	UT_Error		cmdInsertTOCStyled(const char * szPreset);
 	fl_TOCLayout *	findTOCAtPoint(void) const;
-	UT_Error		cmdInsertTOCManual(void);
+	UT_Error		cmdInsertTOCManual(const char * szPreset = nullptr);
 	bool			cmdUpdateTOC(void);
 	bool			cmdRemoveTOC(void);
 	bool			hasTOC(void) const;

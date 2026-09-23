@@ -1542,7 +1542,7 @@ void fl_TOCLayout::format(void)
 		getNewContainer();
 	}
 	fl_ContainerLayout*	pBL = getFirstLayout();
-	
+
 	while (pBL)
 	{
 		pBL->format();
@@ -2576,6 +2576,17 @@ bool fl_TOCLayout::fillTOC(void)
 	pNewBlock->_doInsertTOCHeadingRun(0);
     }
 
+    // Filling adds member blocks whose lines live inside the TOC
+    // container. If the container exists but this fill ran outside a
+    // normal format pass (e.g. from _createTOCContainer during a
+    // column rebreak), the lines keep their unplaced positions and the
+    // column breaker sees a zero-height container, producing an empty
+    // broken fragment that renders nothing. Format now so the
+    // container has real content and height before it is (re)broken.
+    if(getFirstContainer() != nullptr)
+    {
+	format();
+    }
 
     return filled;
 }

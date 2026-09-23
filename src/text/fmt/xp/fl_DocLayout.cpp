@@ -697,10 +697,18 @@ void FL_DocLayout::fillLayouts(void)
 			UT_ASSERT_HARMLESS( UT_SHOULD_NOT_HAPPEN );
 			continue;
 		}
-		if (pTOC->isTOCEmpty())
+		// A TOC may be partially filled by incremental addBlock calls
+		// while the layout was being populated (only blocks created
+		// after the TOC strux get added that way). isTOCEmpty() cannot
+		// detect that state, so refill every complete TOC -- fillTOC()
+		// purges and rebuilds, so this is idempotent.
+		if (pTOC->isEndTOCIn())
 		{
 			pTOC->fillTOC();
-			m_pView->updateLayout();
+			if(m_pView)
+			{
+				m_pView->updateLayout();
+			}
 		}
 
 		// because the incremental load is sequential, the TOCs are in the order they have in the

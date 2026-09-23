@@ -6881,8 +6881,9 @@ UT_return_val_if_fail(pDialog, false);
 
 /*
  * References ribbon: insert a TOC using one of the gallery presets
- * ("classic", "contemporary", "formal", "modern", "simple") or the
- * literal "manual" placeholder table.
+ * ("classic", "contemporary", "formal", "modern", "simple") or a
+ * static manual placeholder table ("manual" or "manual-<preset>" to
+ * style it like that preset).
  */
 Defun(tocInsert)
 {
@@ -6895,6 +6896,10 @@ Defun(tocInsert)
 	if(0 == strcmp(sPreset.utf8_str(), "manual"))
 	{
 		return (UT_OK == pView->cmdInsertTOCManual());
+	}
+	if(0 == strncmp(sPreset.utf8_str(), "manual-", 7))
+	{
+		return (UT_OK == pView->cmdInsertTOCManual(sPreset.utf8_str() + 7));
 	}
 	return (UT_OK == pView->cmdInsertTOCStyled(sPreset.utf8_str()));
 }

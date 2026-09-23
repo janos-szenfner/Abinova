@@ -221,7 +221,7 @@ void fp_TOCContainer::draw(dg_DrawArgs* pDA)
 // Only draw the lines in the clipping region.
 //
 	dg_DrawArgs da = *pDA;
-	
+
 	UT_uint32 count = pMaster->countCons();
 	UT_sint32 iYStart = getYBreak();
 	UT_sint32 iYBottom = getYBottom();

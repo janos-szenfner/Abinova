@@ -85,7 +85,8 @@ private:
 	GtkWidget *		_makeChangeCasePopover();
 	GtkWidget *		_makeMenuPopButton(XAP_Menu_Id id, uint8_t flags);
 	GtkWidget *		_makeLargeMenuButton(XAP_Menu_Id id,
-										 GtkWidget * popover);
+										 GtkWidget * popover,
+										 uint8_t flags);
 	GtkWidget *		_makeMenuPopTbButton(XAP_Toolbar_Id id, uint8_t flags);
 	GtkWidget *		_makeLineSpacingPopover();
 	GtkWidget *		_makeParaSpacingPopover();

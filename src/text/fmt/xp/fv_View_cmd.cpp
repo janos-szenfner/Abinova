@@ -5358,16 +5358,18 @@ static const FV_TOCStylePreset s_TOCPresets[] =
 {
 	{ "classic",
 	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
-	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
+	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot; "
+	  "toc-heading:Contents",
 	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
 	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
 	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
 	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
-	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:center; margin-bottom:24pt; color:000000" },
 
 	{ "contemporary",
 	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
-	  "toc-tab-leader1:underline; toc-tab-leader2:underline; toc-tab-leader3:underline; toc-tab-leader4:underline",
+	  "toc-tab-leader1:underline; toc-tab-leader2:underline; toc-tab-leader3:underline; toc-tab-leader4:underline; "
+	  "toc-heading:Table of Contents",
 	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
 	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
 	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
@@ -5376,30 +5378,33 @@ static const FV_TOCStylePreset s_TOCPresets[] =
 
 	{ "formal",
 	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
-	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
-	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:uppercase; font-variant:normal; text-decoration:none; color:000000" },
-	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot; "
+	  "toc-heading:Table of Contents",
+	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:12pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:18pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:center; margin-bottom:24pt; color:000000" },
 
 	{ "modern",
 	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
-	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot",
-	  { "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:12pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:italic; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
-	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+	  "toc-tab-leader1:none; toc-tab-leader2:none; toc-tab-leader3:none; toc-tab-leader4:none; "
+	  "toc-heading:Table of Contents",
+	  { "font-family:Carlito; font-size:12pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:12pt; color:000000" },
 
 	{ "simple",
-	  "toc-indent1:0in; toc-indent2:0in; toc-indent3:0in; toc-indent4:0in; "
-	  "toc-tab-leader1:none; toc-tab-leader2:none; toc-tab-leader3:none; toc-tab-leader4:none",
+	  "toc-indent1:0in; toc-indent2:0.25in; toc-indent3:0.5in; toc-indent4:0.75in; "
+	  "toc-tab-leader1:dot; toc-tab-leader2:dot; toc-tab-leader3:dot; toc-tab-leader4:dot; "
+	  "toc-heading:Table of Contents",
 	  { "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
-	    "font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
-	  "font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:24pt; color:000000" },
+	    "font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000",
+	    "font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; color:000000" },
+	  "font-family:Carlito; font-size:14pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:left; margin-bottom:12pt; color:000000" },
 };
 
 static const FV_TOCStylePreset * _findTOCPreset(const char * szId)
@@ -5519,12 +5524,59 @@ UT_Error FV_View::cmdInsertTOCStyled(const char * szPreset)
 /*!
  * Insert a literal, non-updating placeholder TOC: a "Table of Contents"
  * heading plus one Contents N paragraph per level for the user to type
- * over, mirroring Word's "Manual Table" gallery entry.
+ * over, mirroring Word's "Manual Table" gallery entries. szPreset
+ * (nullptr or one of "classic"/"contemporary"/"formal"/"modern"/
+ * "simple") picks which built-in look the Contents styles get.
  */
-UT_Error FV_View::cmdInsertTOCManual(void)
+UT_Error FV_View::cmdInsertTOCManual(const char * szPreset)
 {
 	m_pDoc->beginUserAtomicGlob();
 	_saveAndNotifyPieceTableChange();
+
+	const FV_TOCStylePreset * pPreset =
+		szPreset ? _findTOCPreset(szPreset) : nullptr;
+
+	// A manual TOC uses the same built-in style names as an automatic
+	// one (Contents Header / Contents 1-4 == Word's TOC Heading /
+	// TOC 1-4). With no preset, apply Word's Manual Table formatting:
+	// 16pt bold centred heading, 11/10/10/10pt normal entries indented
+	// 0/0.25/0.5/0.75in.
+	static const char * s_manualContents[4] =
+	{
+		"font-family:Carlito; font-size:11pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; margin-left:0in; text-indent:0in; color:000000",
+		"font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; margin-left:0.25in; text-indent:0in; color:000000",
+		"font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; margin-left:0.5in; text-indent:0in; color:000000",
+		"font-family:Carlito; font-size:10pt; font-weight:normal; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; margin-left:0.75in; text-indent:0in; color:000000"
+	};
+	static const char * s_manualHeader =
+		"font-family:Carlito; font-size:16pt; font-weight:bold; font-style:normal; text-transform:none; font-variant:normal; text-decoration:none; text-align:center; margin-bottom:24pt; color:000000";
+
+	for(UT_uint32 i = 0; i < 4; i++)
+	{
+		UT_UTF8String sStyle = UT_UTF8String_sprintf("Contents %d", i + 1);
+		_applyTOCStyleProps(sStyle.utf8_str(),
+							pPreset ? pPreset->szContentsProps[i]
+									: s_manualContents[i]);
+	}
+	_applyTOCStyleProps("Contents Header",
+						pPreset ? pPreset->szHeaderProps : s_manualHeader);
+
+	// tabstop leader follows the preset's toc-tab-leader prop
+	// (FL_LEADER_* index appended to the right-aligned tab position)
+	char szLeader = '1'; // dot
+	if(pPreset)
+	{
+		const char * p = strstr(pPreset->szStruxProps,
+								"toc-tab-leader1:");
+		if(p)
+		{
+			p += strlen("toc-tab-leader1:");
+			if(0 == strncmp(p, "none", 4))			szLeader = '0';
+			else if(0 == strncmp(p, "hyphen", 6))	szLeader = '2';
+			else if(0 == strncmp(p, "underline", 9)) szLeader = '3';
+		}
+	}
+	UT_UTF8String sTabs = UT_UTF8String_sprintf("6.0in/R%c", szLeader);
 
 	insertParagraphBreak();
 	setStyle("Contents Header", true);
@@ -5534,7 +5586,7 @@ UT_Error FV_View::cmdInsertTOCManual(void)
 		insertParagraphBreak();
 		UT_UTF8String sStyle = UT_UTF8String_sprintf("Contents %d", i + 1);
 		setStyle(sStyle.utf8_str(), true);
-		PP_PropertyVector props = { "tabstops", "6.5in/R1" };
+		PP_PropertyVector props = { "tabstops", sTabs.utf8_str() };
 		setBlockFormat(props);
 		UT_UTF8String sText = UT_UTF8String_sprintf("Type chapter title (level %d)\t%d", i + 1, i + 1);
 		cmdCharInsert(std::string(sText.utf8_str()), false);
