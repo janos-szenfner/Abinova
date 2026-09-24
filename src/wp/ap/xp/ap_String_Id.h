@@ -56,6 +56,8 @@ dcl(MSG_PrintingDoc, "Printing Document...")
 dcl(MSG_NoBreakInsideTable, "Can not insert a Break inside a table")
 dcl(MSG_NoBreakInsideFrame, "Can not insert a Break inside a text box")
 dcl(MSG_AutoRevisionOffWarning, "Are you sure you do not want to maintain full history record? If you proceed, you will not be able to restore earlier versions of this document.")
+dcl(MSG_CompareIdentical, "The documents are identical. No differences were found.")
+dcl(MSG_CompareTooLarge, "The documents are too large or too different to compare.")
 
 // Abi has just crashed
 dcl(MSG_Exception, "A fatal error has just occurred. AbiWord is going to shutdown.\nThe current document has been saved to disc with a \".saved\" extension.")

@@ -34,6 +34,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <algorithm>
+
 #include "xap_Features.h"
 #include "ap_Features.h"
 #include "ap_EditMethods.h"
@@ -149,7 +151,6 @@
 #include "xap_Dlg_Image.h"
 #include "xap_Dlg_ListDocuments.h"
 #include "xap_Dlg_History.h"
-#include "xap_Dlg_DocComparison.h"
 
 #include "ie_imp.h"
 #include "ie_impGraphic.h"
@@ -17503,6 +17504,166 @@ static PD_Document * s_doListDocuments(XAP_Frame * pFrame, bool bExcludeCurrent,
 	return pD;
 }
 
+/* ------------------------------------------------------------------
+   Document compare (legal blackline): the current document is the
+   original, a second open document is the revised version.  A
+   word-level diff is computed and emitted into a NEW document where
+   every difference is marked as a revision, so the standard
+   Accept/Reject tools work on the result.  Both sources are left
+   untouched; the result must be saved explicitly.
+   ------------------------------------------------------------------ */
+
+struct CmpTok
+{
+	bool           para;
+	UT_UCS4String  text;
+};
+
+static void s_flushParaTokens(const UT_UCS4String & para,
+							  std::vector<CmpTok> & toks)
+{
+	size_t i = 0;
+	const size_t n = para.size();
+	while(i < n)
+	{
+		while(i < n && UT_UCS4_isspace(para[i]))
+			++i;
+		size_t j = i;
+		while(j < n && !UT_UCS4_isspace(para[j]))
+			++j;
+		if(j > i)
+		{
+			CmpTok tk = {false, para.substr(i, j - i)};
+			toks.push_back(tk);
+		}
+		i = j;
+	}
+	CmpTok pb = {true, UT_UCS4String()};
+	toks.push_back(pb);
+}
+
+static void s_docTokens(PD_Document * pDoc, std::vector<CmpTok> & toks)
+{
+	UT_UCS4String para;
+	PD_DocIterator t(*pDoc);
+	while(t.getStatus() == UTIter_OK)
+	{
+		pf_Frag * pf = t.getFrag();
+		if(pf && pf->getType() == pf_Frag::PFT_Strux &&
+		   static_cast<pf_Frag_Strux *>(pf)->getStruxType() == PTX_Block)
+		{
+			s_flushParaTokens(para, toks);
+			para.clear();
+		}
+		else if(pf && pf->getType() == pf_Frag::PFT_Text)
+		{
+			UT_UCS4Char c = t.getChar();
+			if(c)
+				para += c;
+		}
+		++t;
+	}
+	s_flushParaTokens(para, toks);
+}
+
+enum CmpOp { CMP_KEEP = 0, CMP_DEL = 1, CMP_INS = 2 };
+
+static bool s_tokEq(const CmpTok & a, const CmpTok & b)
+{
+	return a.para == b.para && (a.para || a.text == b.text);
+}
+
+// limits keep the Myers trace arrays bounded on pathological inputs
+#define CMP_MAX_TOKENS  6000
+#define CMP_MAX_EDITS   1500
+
+/*  Myers O(ND) diff.  On success ops holds a merged edit script:
+    KEEP consumes one token of a and one of b, DEL one of a, INS one
+    of b.  Returns false when the documents are too large or too
+    different. */
+static bool s_wordDiff(const std::vector<CmpTok> & a,
+					   const std::vector<CmpTok> & b,
+					   std::vector<CmpOp> & ops)
+{
+	const int N = (int)a.size();
+	const int M = (int)b.size();
+	const int max = N + M;
+	if(max == 0)
+		return true;
+	if(max > CMP_MAX_TOKENS)
+		return false;
+
+	const int off = max;
+	const int width = 2 * max + 1;
+	std::vector<int> v(width, 0);
+	std::vector<std::vector<int>> trace;
+	int dFinal = -1;
+
+	for(int d = 0; d <= max; ++d)
+	{
+		for(int k = -d; k <= d; k += 2)
+		{
+			int x;
+			if(k == -d || (k != d && v[off + k - 1] < v[off + k + 1]))
+				x = v[off + k + 1];
+			else
+				x = v[off + k - 1] + 1;
+			int y = x - k;
+			while(x < N && y < M && s_tokEq(a[x], b[y]))
+			{
+				++x;
+				++y;
+			}
+			v[off + k] = x;
+			if(x >= N && y >= M)
+			{
+				dFinal = d;
+				break;
+			}
+		}
+		trace.push_back(v);
+		if(dFinal >= 0)
+			break;
+		if(d + 1 > CMP_MAX_EDITS)
+			return false;
+	}
+
+	int x = N, y = M;
+	for(int d = dFinal; d > 0; --d)
+	{
+		const std::vector<int> & vv = trace[d - 1];
+		const int k = x - y;
+		const int pk = (k == -d || (k != d && vv[off + k - 1] < vv[off + k + 1]))
+				? k + 1 : k - 1;
+		const int px = vv[off + pk];
+		const int py = px - pk;
+		while(x > px && y > py)
+		{
+			ops.push_back(CMP_KEEP);
+			--x;
+			--y;
+		}
+		if(x == px)
+		{
+			ops.push_back(CMP_INS);
+			--y;
+		}
+		else
+		{
+			ops.push_back(CMP_DEL);
+			--x;
+		}
+	}
+	while(x > 0 && y > 0)
+	{
+		ops.push_back(CMP_KEEP);
+		--x;
+		--y;
+	}
+	std::reverse(ops.begin(), ops.end());
+	return true;
+}
+
 Defun1(revisionCompareDocuments)
 {
 	CHECK_FRAME;
@@ -17515,23 +17676,130 @@ Defun1(revisionCompareDocuments)
 	UT_return_val_if_fail(pFrame,false);
 
 	PD_Document * pDoc2 = s_doListDocuments(pFrame, true, XAP_DIALOG_ID_COMPAREDOCUMENTS);
+	if(!pDoc2)
+		return true;
 
-	if(pDoc2)
+	pFrame->raise();
+
+	std::vector<CmpTok> toks1, toks2;
+	s_docTokens(pDoc, toks1);
+	s_docTokens(pDoc2, toks2);
+
+	std::vector<CmpOp> ops;
+	if(!s_wordDiff(toks1, toks2, ops))
 	{
-		pFrame->raise();
-
-		XAP_DialogFactory * pDialogFactory
-			= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
-
-		XAP_Dialog_DocComparison * pDialog
-			= static_cast<XAP_Dialog_DocComparison *>(pDialogFactory->requestDialog(XAP_DIALOG_ID_DOCCOMPARISON));
-	
-		UT_return_val_if_fail(pDialog, false);
-
-		pDialog->calculate(pDoc, pDoc2);
-		pDialog->runModal(pFrame);
-		pDialogFactory->releaseDialog(pDialog);
+		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareTooLarge,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+		return true;
 	}
+
+	bool bAnyChange = false;
+	for(CmpOp op : ops)
+	{
+		if(op != CMP_KEEP)
+		{
+			bAnyChange = true;
+			break;
+		}
+	}
+	if(!bAnyChange)
+	{
+		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareIdentical,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+		return true;
+	}
+
+	// build the merged result in a fresh document
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_val_if_fail(pApp,false);
+
+	XAP_Frame * pNewFrame = pApp->newFrame();
+	UT_return_val_if_fail(pNewFrame,false);
+	pNewFrame->loadDocument((const char *)nullptr, IEFT_Unknown);
+	pNewFrame->show();
+
+	FV_View * pNewView = static_cast<FV_View *>(pNewFrame->getCurrentView());
+	UT_return_val_if_fail(pNewView,false);
+	PD_Document * pNewDoc = pNewView->getDocument();
+	UT_return_val_if_fail(pNewDoc,false);
+
+	pNewDoc->beginUserAtomicGlob();
+
+	size_t i = 0, j = 0;
+	bool bEmitted = false;
+	UT_UCS4String run;
+	CmpOp runOp = CMP_KEEP;
+
+	auto flush = [&](CmpOp op)
+	{
+		if(run.empty())
+			return;
+		if(op == CMP_DEL)
+		{
+			// deletion marks are made by inserting the text plainly
+			// and then deleting it while tracking is on
+			pNewDoc->setMarkRevisions(false);
+			PT_DocPosition p1 = 0;
+			pNewDoc->getBounds(true, p1);
+			--p1;
+			pNewView->moveInsPtTo(FV_DOCPOS_EOD);
+			pNewView->cmdCharInsert(run.ucs4_str(), run.length());
+			PT_DocPosition p2 = 0;
+			pNewDoc->getBounds(true, p2);
+			--p2;
+			pNewDoc->setMarkRevisions(true);
+			UT_uint32 cnt = 0;
+			pNewDoc->deleteSpan(p1, p2, nullptr, cnt);
+		}
+		else
+		{
+			pNewDoc->setMarkRevisions(op == CMP_INS);
+			pNewView->moveInsPtTo(FV_DOCPOS_EOD);
+			pNewView->cmdCharInsert(run.ucs4_str(), run.length());
+		}
+		run.clear();
+		bEmitted = true;
+	};
+
+	for(CmpOp op : ops)
+	{
+		CmpTok tk;
+		if(op == CMP_INS)
+			tk = toks2[j++];
+		else
+		{
+			tk = toks1[i++];
+			if(op == CMP_KEEP)
+				++j;
+		}
+
+		if(tk.para)
+		{
+			flush(runOp);
+			runOp = CMP_KEEP;
+			if(bEmitted)
+			{
+				pNewDoc->setMarkRevisions(false);
+				pNewView->moveInsPtTo(FV_DOCPOS_EOD);
+				pNewView->insertParagraphBreak();
+			}
+			continue;
+		}
+		if(op != runOp)
+		{
+			flush(runOp);
+			runOp = op;
+		}
+		run += tk.text;
+		run += ' ';
+	}
+	flush(runOp);
+
+	pNewDoc->setMarkRevisions(false);
+	pNewDoc->endUserAtomicGlob();
+
 	return true;
 }
 
@@ -17732,12 +18000,12 @@ Defun1(revisionCombineDocuments)
 
 	pView->moveInsPtTo(FV_DOCPOS_EOD);
 
-	for(const UT_UCS4String & para : paras)
+	for(const UT_UCS4String & s : paras)
 	{
-		if(para.empty())
+		if(s.empty())
 			continue;
 		pView->insertParagraphBreak();
-		pView->cmdCharInsert(para.ucs4_str(), para.length());
+		pView->cmdCharInsert(s.ucs4_str(), s.length());
 	}
 
 	if(!bMarkWasOn)

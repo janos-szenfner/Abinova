@@ -422,13 +422,25 @@ below are on `main` but the release has not been cut yet.
   and All Changes and Stop Tracking. The buttons now enable whenever
   the document has revisions rather than only when the caret sits on
   one. The Compare group is a dropdown offering "Compare Documents…"
-  (the existing differences report) and "Combine Documents…"
-  (`revisionCombineDocuments`) which appends another open document's
-  paragraphs to the current one as tracked insertions — skipping
-  spans that are revision-deleted in the source — so the merge can
-  be reviewed and accepted/rejected like any other change; both
-  source documents are left unmodified. Untitled documents now show
-  a real entry in the pick-list instead of a blank row.
+  and "Combine Documents…" (`revisionCombineDocuments`) which appends
+  another open document's paragraphs to the current one as tracked
+  insertions — skipping spans that are revision-deleted in the
+  source — so the merge can be reviewed and accepted/rejected like
+  any other change; both source documents are left unmodified.
+  Untitled documents now show a real entry in the pick-list instead
+  of a blank row.
+- **Compare produces a legal blackline** — "Compare Documents…" now
+  diffs the current document against a second open document at word
+  level (a Myers O(ND) diff over paragraph/word tokens) and opens a
+  NEW document containing the merged text where every difference is
+  a real revision: words only in the original appear as deletion
+  marks, words only in the revised version as insertion marks. The
+  result is reviewed with the standard Accept/Reject tools — e.g.
+  Accept All yields exactly the revised document — and the two
+  source documents are never modified. Identical documents and
+  inputs that are too large or too different for a bounded diff
+  show a message instead. This replaces the old statistics-only
+  comparison report.
 - **Set Language dialog applies again** — the apply path in
   `s_doLangDlg` was dead code (a stale `k > 0` gate), so OK never
   changed anything; the selected language now applies to the
