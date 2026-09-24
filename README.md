@@ -101,6 +101,25 @@ The dynamic plugin list is empty.
 > damage, data loss, or other consequences arising from its use.
 > Use at your own risk.
 
+## Table of contents
+
+- [Plugin cleanup](#plugin-cleanup)
+- [Highlights of changes](#highlights-of-changes)
+  - [Document formats](#document-formats)
+  - [Ribbon UI (LibreOffice NotebookBar-style)](#ribbon-ui-libreoffice-notebookbar-style)
+  - [GTK4 runtime fixes](#gtk4-runtime-fixes-this-round)
+  - [Debian bug audit](#debian-bug-audit)
+  - [Ubuntu Launchpad bug fixes](#ubuntu-launchpad-bug-fixes)
+  - [Fonts](#fonts)
+  - [Bug fixes (Debian-reported)](#bug-fixes-debian-reported)
+- [The .abw document format](#the-abw-document-format)
+- [Per-commit modification log](#per-commit-modification-log)
+- [Repository layout](#repository-layout)
+- [Building](#building)
+- [Known issues](#known-issues)
+- [Libraries and references](#libraries-and-references)
+- [License](#license)
+
 ## Highlights of changes
 
 ### Document formats
@@ -122,8 +141,8 @@ The dynamic plugin list is empty.
     round-trips through open/save.
 - **OpenXML fixes**: listener-state fixes for footer tables and
   equations; shared XSLT data restored.
-- Remaining plugins: `mht`, `rsvg`, `wmf`, `wordperfect`, `wpg`
-  (`openxml`, `epub` and `grammar` moved into the core library).
+- No loadable plugins remain — every importer/exporter is
+  compiled into `libabiword` (see *Plugin cleanup* above).
 - **Built-in Markdown** (`src/wp/impexp/xp/ie_imp_Markdown.cpp` /
   `ie_exp_Markdown.cpp`): full read/write for `.md`, `.markdown`,
   `.mdown`, `.mkd`, `.mkdn` and the `text/markdown` MIME type.
@@ -151,8 +170,9 @@ The dynamic plugin list is empty.
   - Inline `$...$` and fenced `$$...$$`/`math` blocks are imported
     as styled math text (no MathML renderer — equations keep their
     TeX source, italicised).
-  - Mermaid fenced blocks keep their source under a `Plain Text`
-    style (no diagram renderer — the code is preserved verbatim).
+  - Mermaid fenced blocks are rendered to a PNG diagram by the
+    built-in renderer (`ut_mermaid`) and embedded as an image;
+    documents without rendering support keep the source text.
   - Raw HTML blocks are reduced to their readable text content;
     `<!-- -->` comments are dropped.
   - Emoji shortcodes (`:smile:`, `:heart:`, …) convert to Unicode.
@@ -270,141 +290,12 @@ The dynamic plugin list is empty.
   the old cell-renderer path measured every one of ~2000 fonts on
   popup open and froze the UI for seconds. Type-to-search is
   enabled on the dropdown.
-- **LibreOffice NotebookBar-style ribbon UI**: an alternative
-  interface modelled on LibreOffice Writer's NotebookBar
-  (`sw/uiconfig/swriter/ui/notebookbar.ui`). A `GtkNotebook`
-  presents File / Home / Insert / References / Layout / Review /
-  View / Help tabs — **Home is the default tab** — plus a contextual
-  Table tab that appears only while the caret is inside a table.
-  Groups mix compact
-  three-row button grids with Word-style large icon-over-caption
-  buttons (Paste, Find, Replace, Select All) and glyph-only tiles
-  (bold/italic/underline, alignment). Rich controls: the Home tab
-  carries the live font-family and font-size combos, the style
-  combo, text/highlight color pickers, format painter, list
-  presets, indent and line-spacing buttons, plus a live Styles
-  gallery — a horizontally-scrolling strip of tiles that renders
-  each paragraph style's name in the style's own formatting and
-  applies it on click; the View tab has the zoom combo.
-  The **Layout tab** is Word-style: a Page Setup group of large
-  dropdown buttons — **Margins** (Normal / Narrow / Moderate /
-  Wide / Mirrored gallery with page-glyph illustrations, the
-  current preset checkmarked, plus Custom Margins…),
-  **Orientation** (Portrait / Landscape), **Size** (the full
-  `fp_PageSize` list including Executive and 8.5×13, scrollable,
-  plus More Paper Sizes…), **Columns** (One / Two / Three,
-  Left / Right disabled, More Columns…), **Breaks** (page /
-  column breaks and next-page / continuous / even / odd section
-  breaks), **Line Numbers** and **Hyphenation** (option dialogs
-  that store the document properties pending layout-engine
-  support); a Paragraph group with Left/Right indent and
-  Before/After spacing spin fields synced to the caret; and a
-  working Arrange group — Position presets, Wrap modes and Align
-  dropdowns, Bring Forward / Send Backward Z-ordering (persistent
-  `frame-stack-order`), a docked **Selection Pane** (front-to-back
-  object list with hide/reorder/rename via `frame-hidden` and
-  `frame-name`), and Word-style **Group** and **Rotate** popovers:
-  objects ticked in the Selection Pane combine into a persistent
-  `frame-group` that drags, restacks and rotates as one unit, and
-  Rotate offers Right/Left 90°, horizontal/vertical flips and a
-  custom angle (`frame-rotation`/`frame-flip-*` — all persisted in
-  `.abw` and honoured by PDF export).
-  The **Insert tab** is Word-style: Pages (Cover Page, Blank Page,
-  Page Break), Tables, Illustrations (Pictures, Shapes, Icons, 3D
-  Models, Screenshot), Media, Links, Comments, Header & Footer,
-  Text and Symbols — laid out as large icon-over-caption buttons
-  with two-line labels exactly like Word's ribbon. **Cover Page**
-  opens a scrolling 3-column gallery of twelve A4-portrait preview
-  cards (Austin, Banded, Crop, Facet, Filigree, Frame, Integral,
-  Motion, Retrospect, Sideline, Whisp, Yearly), all **generated
-  entirely in code** so no third-party artwork or licensing is
-  involved. Cover pages pull the title/author from the document
-  metadata (`dc.title`/`dc.creator`, falling back to placeholders),
-  add the current month/year, and are wrapped in a `_cover-page`
-  marker bookmark so **Remove Current Cover** deletes the page
-  break as well and restores the body to page 1; inserting a new
-  cover replaces the old one in place. **Header** and **Footer**
-  open Word-style built-in galleries — 21 header designs and 20
-  footer designs (Blank, Austin, Badge, Banded, Crop, Facet
-  Even/Odd, Feathered, Filigree, Headlines, Integral, Ion
-  Dark/Light, Retrospect, Semaphore, Slice, ViewMaster, Whisp…)
-  drawn as preview cards and generated in code with shaded bands,
-  border rules, tab-stop columns and real page-number/page-count
-  fields; Edit Header/Footer and Remove Header/Footer rows sit at
-  the bottom of each gallery. The Illustrations dropdowns cover
-  Pictures (device or online URL), **Shapes** (a gallery of
-  ~85 LibreOffice-style SVG shapes recolored to the document
-  accent), **Icons** (a searchable docked side panel of Lucide
-  icons by category — Lucide is ISC-licensed, see
-  `artwork/lucide-LICENSE.txt`), **3D Models** (FluentUI 3D emoji
-  PNGs, MIT-licensed — `artwork/fluentui-emoji-LICENSE.txt`) and
-  **Screenshot** (area capture via `gnome-screenshot`). Media
-  inserts video/audio as `file://` links; the Text group adds
-  **WordArt** (styled placeholder text), Draw Text Box / Draw
-  Vertical Text Box (a real `frame-rotation:90` frame), Signature
-  Line, Drop Cap and an Object popover. **Insert File…** handles
-  RTF among other formats, and the Insert Hyperlink dialog always
-  opens — with no selection its new "Text to display" field
-  creates the link text, matching Word.
-  The **References tab** is Word-style and fully functional:
-  a Table of Contents gallery (Automatic, Classic, Contemporary,
-  Formal, Modern, Simple and Manual presets — Carlito-based
-  `Contents N`/`Contents Header` styles persisted in `.abw`),
-  an Add Text dropdown with `toc-level:0`–`4` paragraph control,
-  Update/Remove Table; Insert Footnote/Endnote (Word's
-  **Ctrl+Alt+F** / **Ctrl+Alt+D** shortcuts), note navigation and
-  Show Notes, plus footnote↔endnote **conversion** — the Next
-  Footnote dropdown offers Convert All Footnotes to Endnotes,
-  Convert All Endnotes to Footnotes and Swap Footnotes and Endnotes,
-  preserving note formatting through an RTF round-trip in a single
-  undoable operation. Endnotes draw the same separator line above
-  the first endnote that footnotes have; Insert Caption with
-  per-label numbering
-  (`Figure Caption` style, custom labels, above/below position),
-  Insert Table of Figures (a TOC sourced from caption styles) and
-  Cross-reference (bookmark text as a `#bookmark` hyperlink, or a
-  live `page_ref` page number); Mark Entry plus Insert/Update Index
-  (sorted entries, `main:sub` sub-entries, live page fields);
-  Insert Citation, Manage Sources and Insert Bibliography
-  (APA/MLA/Chicago/IEEE from document metadata); and Mark Citation
-  plus Insert/Update Table of Authorities grouped by category.
-  Marked entries are real bookmarks (`_idx_N`, `_toa_<cat>_N`,
-  `_bib_N`), generated sections are wrapped in marker bookmarks
-  (`_genidx`/`_gentoa`/`_genbib`) so Update and Remove can locate
-  them, and all of it round-trips through the `.abw` exporter.
-  The **Review tab** carries a Word-style Comments group: **New
-  comment** (**Ctrl+Alt+M**) anchors a comment to the selection or
-  caret and drops the caret inside the comment body for immediate
-  typing — no dialog. The docked **Reviewing Pane** (Review → Show
-  comments → Reviewing Pane, opened automatically on insert) lists
-  every comment as a card with author, date, an author-colour stripe
-  and the text; clicking a card selects the anchored text, and each
-  card offers **Reply** (appends a paragraph to the comment),
-  **Resolve**/**Unresolve** (persisted via `annotation-resolved:1`,
-  rendered dimmed with a "(Resolved)" badge) and **Delete** (the
-  anchored text is always preserved). The ribbon also has a Delete
-  dropdown (Delete Comment / Delete All Comments), Resolve,
-  **Previous**/**Next** navigation (**Ctrl+Alt+P** / **Ctrl+Alt+N**)
-  and a Show comments toggle; right-click offers New Comment too.
-  Comments inside another comment's body are rejected (that nesting
-  produced unloadable XML), while commenting over existing anchors is
-  allowed.
-  Custom Margins… / More Paper Sizes… / Format → Document open a
-  Word-style **Document dialog** (Margins + Layout tabs, Page
-  Setup…, Default… → NORMAL template, Apply to whole document /
-  section / point-forward). The Clipboard group is a Word-style
-  **split Paste button**: clicking the icon pastes immediately with
-  formatting, while the arrow opens "Paste Options:" with **Keep
-  Text Only** and **Paste Special…**. Paste Special lists the real
-  clipboard formats — all `image/*` types are grouped as one
-  "Picture" entry (best format auto-selected: PNG > SVG > JPEG…)
-  and alias duplicates (text/plain vs UTF8_STRING, text/rtf vs
-  application/rtf, text/html vs xhtml) are collapsed. Ribbon items
-  dispatch through the same `menu.*` GActions and toolbar edit
-  methods as the classic UI, so enablement, toggle and combo state
-  stay in sync. Switch between interfaces via Help → Interface
-  (ribbon is the default; the choice persists in the `RibbonUI`
-  preference).
+- **LibreOffice NotebookBar-style ribbon UI**: a complete
+  alternative interface — File / Home / Insert / References /
+  Layout / Review / View / Help tabs plus contextual **Table**
+  and **Equation** tabs, Word-style galleries and split buttons.
+  See the [Ribbon UI](#ribbon-ui-libreoffice-notebookbar-style)
+  section below for the tab-by-tab details.
 - **Word-compatible built-in styles**: the style set in
   `pt_PT_Styles.cpp` now matches Word — `Normal` at 1.15 line
   spacing, `No Spacing`, `Title` (26 pt bold centred), `Subtitle`,
@@ -437,6 +328,210 @@ The dynamic plugin list is empty.
   internal clipboard synchronously; the async round-trip is only
   used for foreign clipboard owners. Fixes all paste paths (Paste,
   Keep Text Only, Paste Special) and makes same-app paste faster.
+
+### Ribbon UI (LibreOffice NotebookBar-style)
+
+An alternative interface modelled on LibreOffice Writer's
+NotebookBar (`sw/uiconfig/swriter/ui/notebookbar.ui`). A
+`GtkNotebook` presents **File / Home / Insert / References /
+Layout / Review / View / Help** tabs — **Home is the default** —
+plus contextual **Table** and **Equation** tabs that appear only
+while the caret is inside a table or on an equation. Switch
+between interfaces via Help → Interface (ribbon is the default;
+the choice persists in the `RibbonUI` preference).
+
+Ribbon mechanics: groups mix compact three-row button grids with
+Word-style large icon-over-caption buttons (Paste, Find, Replace,
+Select All), split buttons and glyph-only tiles
+(bold/italic/underline, alignment). Most dropdowns open drawn
+gallery popovers. Items dispatch through the same `menu.*`
+GActions and toolbar edit methods as the classic UI, so
+enablement, toggle and combo state stay in sync. Ribbon groups
+are separated by a visible 1 px rule.
+
+#### File tab
+
+- New / Open / Save / Print / Export as large icon buttons,
+  plus a Word-style **Document Properties** dialog.
+
+#### Home tab
+
+- **Font**: the live font-family and font-size combos, style
+  combo, text/highlight color pickers, Change Case, clear
+  formatting, format painter.
+- **Paragraph**: bullet/numbering presets, indent and
+  line-spacing controls, alignment tiles, paragraph sort.
+- **Styles**: a horizontally-scrolling live gallery — each tile
+  renders the style's name in the style's own formatting and
+  applies it on click, with `<`/`>` overflow arrows; a **Styles
+  Pane** button docks a live side pane (current style readout,
+  New Style…, Recommended/All filter, styled rows, Clear
+  Formatting).
+- **Clipboard**: a Word-style **split Paste button** — the icon
+  pastes with formatting, the arrow opens "Paste Options:"
+  (**Keep Text Only**, **Paste Special…**). Paste Special lists
+  the real clipboard formats: all `image/*` types are grouped as
+  one "Picture" entry (best format auto-selected: PNG > SVG >
+  JPEG…) and alias duplicates (text/plain vs UTF8_STRING,
+  text/rtf vs application/rtf, text/html vs xhtml) are collapsed.
+- **Editing**: Find / Replace / Select All large buttons.
+
+#### Insert tab
+
+Laid out as large icon-over-caption buttons with two-line
+labels, like Word's ribbon.
+
+- **Pages**: **Cover Page** opens a scrolling 3-column gallery
+  of twelve code-drawn A4-portrait preview cards (Austin,
+  Banded, Crop, Facet, Filigree, Frame, Integral, Motion,
+  Retrospect, Sideline, Whisp, Yearly) — no third-party artwork.
+  Cover pages pull title/author from document metadata
+  (`dc.title`/`dc.creator`, placeholders as fallback), add the
+  current month/year, and are wrapped in a `_cover-page` marker
+  bookmark so **Remove Current Cover** also removes the page
+  break and restores the body to page 1; inserting a new cover
+  replaces the old one in place. Plus Blank Page and Page Break.
+- **Tables**: insert-table grid.
+- **Illustrations**: Pictures (device or online URL), **Shapes**
+  (gallery of ~85 LibreOffice-style SVG shapes recolored to the
+  document accent), **Icons** (searchable docked side panel of
+  Lucide icons by category — ISC-licensed,
+  `artwork/lucide-LICENSE.txt`), **3D Models** (FluentUI 3D emoji
+  PNGs, MIT-licensed — `artwork/fluentui-emoji-LICENSE.txt`),
+  **Screenshot** (area capture via `gnome-screenshot`).
+- **Media**: video/audio inserted as `file://` links.
+- **Links**: the hyperlink dialog always opens; with no
+  selection its "Text to display" field creates the link text,
+  matching Word.
+- **Comments**: insert comment (see the Review tab).
+- **Header & Footer**: Word-style built-in galleries — 21 header
+  designs and 20 footer designs (Blank, Austin, Badge, Banded,
+  Crop, Facet Even/Odd, Feathered, Filigree, Headlines, Integral,
+  Ion Dark/Light, Retrospect, Semaphore, Slice, ViewMaster,
+  Whisp…) drawn as preview cards and generated in code with
+  shaded bands, border rules, tab-stop columns and real
+  page-number/page-count fields; Edit Header/Footer and Remove
+  Header/Footer rows sit at the bottom of each gallery.
+- **Text**: **WordArt** (a 15-preset gallery whose tiles are
+  rendered with the real effects — gradient fills, outlines,
+  drop shadows, reflections; presets apply `text-outline` /
+  `text-gradient` / `text-shadow` / `text-reflection` character
+  properties and reset the effects they do not specify), Draw
+  Text Box / Draw Vertical Text Box (a real `frame-rotation:90`
+  frame), Signature Line, Drop Cap and an Object popover.
+- **Symbols**: **Equation** opens a gallery of ten preset
+  formulas typeset live by the built-in math engine plus
+  **Insert New Equation…** (LaTeX dialog); also the Symbol
+  dialog.
+- **Insert File…** handles RTF among other formats.
+
+#### References tab
+
+- **Table of Contents**: gallery of Automatic, Classic,
+  Contemporary, Formal, Modern, Simple and Manual presets
+  (Carlito-based `Contents N`/`Contents Header` styles persisted
+  in `.abw`), an Add Text dropdown with `toc-level:0`–`4`
+  paragraph control, Update/Remove Table.
+- **Footnotes**: Insert Footnote/Endnote (Word's
+  **Ctrl+Alt+F** / **Ctrl+Alt+D** shortcuts), note navigation,
+  Show Notes, and footnote↔endnote **conversion** — the Next
+  Footnote dropdown offers Convert All Footnotes to Endnotes,
+  Convert All Endnotes to Footnotes and Swap Footnotes and
+  Endnotes, preserving note formatting through an RTF round-trip
+  in a single undoable operation. Endnotes draw the same
+  separator line above the first endnote that footnotes have.
+- **Captions**: Insert Caption with per-label numbering
+  (`Figure Caption` style, custom labels, above/below position),
+  Insert Table of Figures (a TOC sourced from caption styles),
+  Cross-reference (bookmark text as a `#bookmark` hyperlink, or
+  a live `page_ref` page number).
+- **Index**: Mark Entry plus Insert/Update Index (sorted
+  entries, `main:sub` sub-entries, live page fields).
+- **Citations**: Insert Citation, Manage Sources and Insert
+  Bibliography (APA/MLA/Chicago/IEEE from document metadata);
+  Mark Citation plus Insert/Update Table of Authorities grouped
+  by category.
+- Marked entries are real bookmarks (`_idx_N`, `_toa_<cat>_N`,
+  `_bib_N`); generated sections are wrapped in marker bookmarks
+  (`_genidx`/`_gentoa`/`_genbib`) so Update and Remove can locate
+  them; all of it round-trips through the `.abw` exporter.
+
+#### Layout tab
+
+- **Page Setup** — large dropdown buttons: **Margins**
+  (Normal / Narrow / Moderate / Wide / Mirrored gallery with
+  page-glyph illustrations, the current preset checkmarked, plus
+  Custom Margins…), **Orientation** (Portrait / Landscape),
+  **Size** (the full `fp_PageSize` list including Executive and
+  8.5×13, scrollable, plus More Paper Sizes…), **Columns**
+  (One / Two / Three, Left / Right disabled, More Columns…),
+  **Breaks** (page / column breaks and next-page / continuous /
+  even / odd section breaks), **Line Numbers** and
+  **Hyphenation** (option dialogs that store the document
+  properties pending layout-engine support).
+- **Paragraph**: Left/Right indent and Before/After spacing spin
+  fields synced to the caret.
+- **Arrange** (working): Position presets, Wrap modes and Align
+  dropdowns, Bring Forward / Send Backward Z-ordering
+  (persistent `frame-stack-order`), a docked **Selection Pane**
+  (front-to-back object list with hide/reorder/rename via
+  `frame-hidden` and `frame-name`), and Word-style **Group** and
+  **Rotate** popovers: objects ticked in the Selection Pane
+  combine into a persistent `frame-group` that drags, restacks
+  and rotates as one unit; Rotate offers Right/Left 90°,
+  horizontal/vertical flips and a custom angle
+  (`frame-rotation`/`frame-flip-*` — all persisted in `.abw` and
+  honoured by PDF export).
+- Custom Margins… / More Paper Sizes… / Format → Document open a
+  Word-style **Document dialog** (Margins + Layout tabs, Page
+  Setup…, Default… → NORMAL template, Apply to whole document /
+  section / point-forward).
+
+#### Review tab
+
+- **Comments group**: **New comment** (**Ctrl+Alt+M**) anchors a
+  comment to the selection or the word under the caret and drops
+  the caret inside the comment body for immediate typing — no
+  dialog. Anchored text is tinted in the author's colour (under
+  the selection layer) and several comments may anchor the same
+  text (nested anchors).
+- The docked **Reviewing Pane** (opened automatically on
+  insert) lists every comment as a card with author, date, an
+  author-colour stripe and the text; clicking a card selects the
+  anchored text. Each card offers **Reply** (appends a
+  paragraph), **Resolve**/**Unresolve** (persisted via
+  `annotation-resolved:1`, rendered dimmed with a "(Resolved)"
+  badge) and **Delete** (anchored text is always preserved).
+- The ribbon also has a Delete dropdown (Delete Comment /
+  Delete All Comments), Resolve, **Previous**/**Next**
+  navigation (**Ctrl+Alt+P** / **Ctrl+Alt+N**) and a Show
+  comments toggle; right-click offers New Comment too.
+- Comments inside another comment's body are rejected (that
+  nesting produced unloadable XML), while commenting over
+  existing anchors is allowed.
+
+#### View tab
+
+- Zoom combo, plus the view/layout toggles.
+
+#### Help tab
+
+- Large icon buttons including **Check for Updates** — queries
+  the GitHub releases/tags API in a background thread and
+  reports in a symmetric in-app dialog with a download link when
+  a newer version exists.
+- **Interface** switches between the ribbon and the classic
+  menubar/toolbar UI.
+
+#### Contextual tabs
+
+- **Table** — visible while the caret is inside a table.
+- **Equation** — visible while the caret is on an equation:
+  symbol palettes (Greek letters, operators, relations, arrows —
+  each appends a LaTeX snippet to the selected math object),
+  structure palettes (fraction, scripts, radical, integral, sum,
+  matrix) and an Inline/Block **display toggle**
+  (`display:inline|block` on the math object).
 
 ### GTK4 runtime fixes (this round)
 
@@ -677,6 +772,146 @@ LP#673052, LP#674721, LP#295596, LP#388971 (collab/goffice plugins).
   correct).
 
 See `CHANGELOG.md` for the categorized changelog of all changes.
+
+## The .abw document format
+
+`.abw` is AbiWord's native format: a single UTF-8 XML document
+("AWML") with a `PUBLIC` doctype pointing at `awml.dtd`. It is
+forward- and backward-compatible by design — the importer ignores
+unknown elements, attributes and properties, so a file written by
+this fork still opens in older AbiWord versions (new features
+simply degrade), and files written by older versions open here
+unchanged.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml.dtd">
+<abiword fileformat="1.2" version="3.0" template="false"
+         xid-max="N" props="document-level props" ...>
+  <metadata>  <m key="dc.title">…</m> … </metadata>
+  <rdf>…</rdf>
+  <history version="…"> <version id="…"/> </history>
+  <styles>    <s name="Normal" type="P" props="…"/> … </styles>
+  <lists>     <l id="…" …/> … </lists>
+  <pagesize pagetype="A4" orientation="portrait" …/>
+  <section xid="…">
+    <p xid="…" style="…" props="…">
+      text <c props="…">styled text</c>
+      <image dataid="image1" props="width:…in; height:…in"/>
+      <field type="…" props="…"/>
+      <a xlink:href="…">link text</a>
+      <ann><annotate annotation-id="…" props="…"/>anchored</ann>
+      <math dataid="…" latexid="…" props="display:inline;…">
+        <image dataid="snapshot-svg-…" props="…"/>
+      </math>
+    </p>
+    <table><cell>…</cell></table>
+  </section>
+  <data>
+    <d name="image1" mime-type="image/png" base64="yes">…</d>
+    <d name="MathLatexAAA" mime-type="application/mathml+xml" base64="no"><![CDATA[<math …>…</math>]]></d>
+  </data>
+</abiword>
+```
+
+### Document preamble
+
+- `<abiword>` — root element. `fileformat` is informational
+  (`1.2` in this fork; see *Extensions*), `props` carries
+  document-level properties (footnote/endnote numbering and
+  restart behaviour, `dom-dir`, `lang`, …), `xid-max` is the
+  object-id high-water mark.
+- `<metadata>` — Dublin Core + `abiword.*` keys as `<m key="…">`.
+- `<history>` — editing-session bookkeeping (`version`, `uid`,
+  `started`, `auto`).
+- `<styles>` — named styles: `<s name type="P|C" basedon
+  followedby props>`.
+- `<lists>` — list definitions referenced by `listid`.
+- `<pagesize>` — page type, orientation, physical size, `units`.
+- `<data>` — named binary/text payloads (`<d name mime-type
+  base64="yes|no">`): embedded images, MathML/LaTeX equation
+  sources, SVG snapshots, RDF blobs. Content objects reference
+  them by `dataid`.
+
+### Content model
+
+`<section>` is the flow root (document body, headers/footers,
+footnotes, endnotes and annotations are all sections). Inside:
+
+| Element | Meaning |
+|---------|---------|
+| `<p>` | paragraph; `style`, `props`, `xid` |
+| `<c>` | character run with `props` |
+| `<a xlink:href>` | hyperlink |
+| `<image dataid>` | embedded image → `<data>` item |
+| `<field>` | computed content (`time`, `page_number`, `page_ref`, `mail_merge`, `list_label`, `test`, `if`, …) |
+| `<math>` | equation: `dataid` → MathML item, `latexid` → LaTeX source, `display:inline|block`, plus an `<image>` snapshot for renderers without math support |
+| `<frame>` | positioned container (text boxes) |
+| `<table>` / `<cell>` | table strux / cell strux |
+| `<toc>` | table-of-contents region |
+| `<foot>` / `<endnote>` | footnote / endnote sections |
+| `<ann>` + `<annotate>` | comment anchor + comment content (see *Extensions* for nesting) |
+| `<bookmark>` / `<mkr>` | named anchor / marker |
+| `<embed>` | generic embedded object |
+| `<textmeta>` / `<r>` / `<t>` | metadata markers, revisions, template fields |
+
+### The `props` syntax
+
+Everywhere, `props` is a semicolon-separated `name:value` list
+(`props="font-weight:bold; text-align:center"`). An **empty
+value** (`text-gradient:`) removes the property when styles merge.
+Paragraph properties and character properties share the same
+namespace on `<p>`/`<c>`.
+
+### Format extensions in this fork
+
+All extensions are ordinary elements/properties — old AbiWord
+versions ignore them safely, and this build reads every older
+`.abw` variant:
+
+- **`fileformat="1.2"` — nested comment anchors.** The exporter
+  now tracks open `<ann>` elements by depth instead of a single
+  flag, so overlapping comments serialize as nested anchors
+  (`<ann><annotate/><ann><annotate/>text</ann></ann>`). The
+  importer already accepted nesting; `fileformat` only marks
+  files that use it.
+- **WordArt text effects** (character props): `text-outline`
+  (`1` or `RRGGBB[,width]`), `text-gradient`
+  (`RRGGBB-RRGGBB[,v|h]`), `text-shadow` (`RRGGBB[,dx[,dy]]`),
+  `text-reflection` (`1`). Rendered by the Cairo text pipeline.
+- **Equation display** (`display:inline|block` on `<math>`
+  props) and `latexid` LaTeX-source companion data items.
+- **Frame extensions**: `frame-rotation` (degrees),
+  `frame-flip-horiz`/`frame-flip-vert`, `frame-group` (shared
+  `gN` id), `frame-stack-order`, `frame-hidden`, `frame-name`,
+  `frame-wrap` — Selection Pane / Arrange-tab state.
+- **`section-break` paragraph prop** — marks the paragraph mark
+  that terminates a Word section (used to suppress border
+  painting on the break mark).
+- **`toc-level`** paragraph prop — TOC outline level set from
+  the References ribbon.
+- **`annotation-resolved`** — resolved/unresolved state for
+  comments.
+
+### Comparison with ODF coverage
+
+`.abw` covers the ODF feature set AbiWord can actually express:
+styles, lists, tables, frames, fields, hyperlinks, images,
+footnotes/endnotes, annotations, TOC/index regions, sections,
+page geometry and document metadata.
+
+Divergences to be aware of:
+
+- `.abw`-only features: nested annotation anchors (ODF
+  `office:annotation` spans cannot overlap), the `frame-*`
+  arrangement properties (group/z-order/hidden/name beyond what
+  `draw:frame` attributes carry), WordArt `text-*` effects
+  (no `style:text-properties` equivalent) and equation
+  LaTeX-source items (ODF keeps only the MathML). These are
+  dropped or flattened on `.odt` export.
+- ODF-only features — change-tracking metadata, master-page
+  layouts, presentation notes — are normalized on import rather
+  than preserved verbatim in `.abw`.
 
 ## Per-commit modification log
 
@@ -1208,7 +1443,7 @@ Older upstream history is not listed here.
 | Path | Contents |
 |------|----------|
 | `src/` | Application and library source (GTK port) |
-| `plugins/` | Remaining loadable plugins (mht, rsvg, wmf, wordperfect, wpg) |
+| `plugins/` | Empty — all former plugins were integrated into `libabiword` or deleted |
 | `fonts/` | Bundled fonts + licenses + substitution config |
 | `user/` | Templates, dictionaries, clipart |
 | `Old-Doc/` | Historical documentation (pre-experiment) |
