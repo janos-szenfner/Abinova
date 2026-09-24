@@ -147,6 +147,11 @@ private:
 	const char *	_markupModeName() const;
 	void			_refreshCheckRows(GtkWidget * popover);
 	static void		_s_popover_check_show(GtkPopover * w, gpointer data);
+	/* View tab */
+	GtkWidget *		_makeZoomPopover();
+	GtkWidget *		_makeWindowPopover();
+	void			_populateWindowList(GtkWidget * box);
+	static void		_s_popover_windows_show(GtkPopover * w, gpointer data);
 	void			_showOnlinePictureDialog();
 	void			_addGalleryDir(GtkWidget * parent,
 								   const char * szMethod,

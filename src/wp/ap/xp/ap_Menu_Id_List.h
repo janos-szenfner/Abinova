@@ -382,6 +382,7 @@ menuitem(WINDOW_7)
 menuitem(WINDOW_8)
 menuitem(WINDOW_9)
 menuitem(WINDOW_MORE)
+menuitem(WINDOW_MENUPOP_SWITCH)
 
 menuitem(WEB_WEBPREVIEW)
 menuitem(WEB_SAVEASWEB)

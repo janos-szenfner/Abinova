@@ -548,9 +548,15 @@ static const AP_RibbonGroup s_ribbon_review_groups[] =
 
 static const AP_RibbonItem s_ribbon_view_views[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_NORMAL),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_WEB),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_PRINT),
+	AP_RIBBON_MENU_L(AP_MENU_ID_VIEW_PRINT),
+	AP_RIBBON_MENU_L(AP_MENU_ID_VIEW_WEB),
+	AP_RIBBON_MENU_L(AP_MENU_ID_VIEW_NORMAL),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_view_immersive[] =
+{
+	AP_RIBBON_MENU_L(AP_MENU_ID_VIEW_FULLSCREEN),
 	AP_RIBBON_END
 };
 
@@ -558,41 +564,34 @@ static const AP_RibbonItem s_ribbon_view_show[] =
 {
 	AP_RIBBON_MENU(AP_MENU_ID_VIEW_RULER),
 	AP_RIBBON_MENU(AP_MENU_ID_VIEW_STATUSBAR),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_1),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_2),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_3),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_TB_4),
 	AP_RIBBON_MENU(AP_MENU_ID_VIEW_SHOWPARA),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_LOCKSTYLES),
+	AP_RIBBON_MENU(AP_MENU_ID_LAYOUT_SELPANE),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonItem s_ribbon_view_zoom[] =
 {
-	AP_RIBBON_TB(AP_TOOLBAR_ID_ZOOM),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_WIDTH),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_WHOLE),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_200),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_100),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_75),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM_50),
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_ZOOM),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_VIEW_ZOOM),
+	AP_RIBBON_MENU_L(AP_MENU_ID_VIEW_ZOOM_100),
+	AP_RIBBON_MENU_L(AP_MENU_ID_VIEW_ZOOM_WHOLE),
+	AP_RIBBON_MENU_L(AP_MENU_ID_VIEW_ZOOM_WIDTH),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonItem s_ribbon_view_window[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_VIEW_FULLSCREEN),
-	AP_RIBBON_MENU(AP_MENU_ID_WEB_WEBPREVIEW),
+	AP_RIBBON_MENU_L(AP_MENU_ID_WINDOW_NEW),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_WINDOW_MENUPOP_SWITCH),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_view_groups[] =
 {
-	{ "views",	s_ribbon_view_views },
-	{ "show",	s_ribbon_view_show },
-	{ "zoom",	s_ribbon_view_zoom },
-	{ "window",	s_ribbon_view_window },
+	{ "views",		s_ribbon_view_views },
+	{ "immersive",	s_ribbon_view_immersive },
+	{ "show",		s_ribbon_view_show },
+	{ "zoom",		s_ribbon_view_zoom },
+	{ "window",		s_ribbon_view_window },
 	{ nullptr,	nullptr }
 };
 

@@ -214,6 +214,8 @@ static struct AbiStockMapping {
   { ABIWORD_FMT_FONT,				AP_MENU_ID_FMT_FONT,			"preferences-desktop-font" },
   { ABIWORD_EDIT_SELECTALL,			AP_MENU_ID_EDIT_SELECTALL,		"edit-select-all" },
   { ABIWORD_VIEW_FULL_SCREEN,       (_Ap_Menu_Id)0,                 "view-fullscreen" },
+  { "abiword-view-fullscreen",		AP_MENU_ID_VIEW_FULLSCREEN,		"view-fullscreen" },
+  { "abiword-window-new",			AP_MENU_ID_WINDOW_NEW,			"window-new" },
   { "abiword-page-color",			AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR,	"preferences-color-symbolic" },
   { "abiword-page-image",			AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE,	"preferences-desktop-wallpaper-symbolic" },
   { "abiword-selection-pane",		AP_MENU_ID_LAYOUT_SELPANE,				"sidebar-show-symbolic" },

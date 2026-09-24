@@ -469,6 +469,20 @@ below are on `main` but the release has not been cut yet.
   `g_strdup`'d its printf format but never freed it (24 bytes per
   frame, definitely lost under valgrind); a destructor now frees it,
   matching `ap_sbf_PageInfo`.
+- **Word-style View ribbon tab** — the View tab is rebuilt as
+  Document Views / Immersive / Show / Zoom / Window groups. Print
+  Layout, Web Layout and Draft (Normal) are large radio buttons with
+  drawn page glyphs; Focus (full screen) sits alone in the Immersive
+  group; the Show group holds Ruler / Status Bar / Formatting Marks /
+  Selection Pane checkboxes. The Zoom button opens a popover of
+  presets (200 %/100 %/75 %/50 %, Page Width, One Page — active
+  preset ticked, plus a Zoom… dialog row); Zoom to 100 %, One Page
+  and Page Width are large buttons. The Window group offers New
+  Window (`newWindow` frame clone) and a Switch Windows dropdown
+  listing every open frame (current ticked, "Switch Windows…"
+  picker past nine entries). Ribbon-only caption overrides rename
+  classic labels for the ribbon (Draft, Focus, One Page, Ruler,
+  Status Bar, Formatting Marks); the classic menubar is unchanged.
 - **Word-style Home ribbon** — layout items now carry flags
   (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`,
   `AP_RIBBON_FLAG_SPLIT`): Paste, Find, Replace and Select All render

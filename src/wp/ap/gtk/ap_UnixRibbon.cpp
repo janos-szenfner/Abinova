@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -118,7 +119,8 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "captions",    "Captions" },
 	{ "index",       "Index" },
 	{ "authorities", "Table of Authorities" },
-	{ "views",       "Views" },
+	{ "views",       "Document Views" },
+	{ "immersive",   "Immersive" },
 	{ "page",        "Page Setup" },
 	{ "columns",     "Page Columns" },
 	{ "indent",      "Indent" },
@@ -166,6 +168,32 @@ static void _ribbon_strip_mnemonic(const char * szIn, char * szOut, size_t outSi
 		szOut[o++] = *p;
 	}
 	szOut[o] = '\0';
+}
+
+/* ribbon-only caption overrides: Word-style names where the classic
+ * menubar label would read wrong on a ribbon button ("Show Ruler" on
+ * a checkbox, "Normal Layout" where Word says "Draft") */
+static const struct {
+	XAP_Menu_Id		id;
+	const char *	szLabel;
+} _ribbon_label_overrides[] =
+{
+	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_NORMAL,		"Draft" },
+	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_FULLSCREEN,	"Focus" },
+	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE,	"One Page" },
+	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_RULER,			"Ruler" },
+	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_STATUSBAR,		"Status Bar" },
+	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_SHOWPARA,		"Formatting Marks" },
+	{ (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SELPANE,		"Selection Pane" },
+	{ (XAP_Menu_Id)0,							nullptr }
+};
+
+static const char * _ribbon_menu_label(XAP_Menu_Id id)
+{
+	for (int i = 0; _ribbon_label_overrides[i].szLabel; ++i)
+		if (_ribbon_label_overrides[i].id == id)
+			return _ribbon_label_overrides[i].szLabel;
+	return nullptr;
 }
 
 /*
@@ -617,6 +645,9 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	const char * szLabel = pAction->hasDynamicLabel()
 		? pAction->getDynamicLabel(pLabel)
 		: pLabel->getMenuLabel();
+	const char * szOver = _ribbon_menu_label(id);
+	if (szOver)
+		szLabel = szOver;
 	if (!szLabel || !*szLabel)
 		return nullptr;
 
@@ -2129,6 +2160,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE:
 		popover = _makeComparePopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM:
+		popover = _makeZoomPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
+		popover = _makeWindowPopover();
+		break;
 	default:
 		break;
 	}
@@ -3000,6 +3037,109 @@ static void _glyph_revprev(cairo_t * cr, double w, double h)
 static void _glyph_revnext(cairo_t * cr, double w, double h)
 	{ _glyph_revfind(cr, w, h, true); }
 
+/* ---- View tab glyphs ----------------------------------------- */
+
+static void _glyph_zoom(cairo_t * cr, double w, double h)
+{
+	/* magnifier: lens + handle */
+	double cx = w * 0.42, cy = h * 0.42, r = w * 0.26;
+	cairo_set_source_rgb(cr, 0.45, 0.5, 0.6);
+	cairo_set_line_width(cr, 1.5);
+	cairo_arc(cr, cx, cy, r, 0, 2 * M_PI);
+	cairo_stroke(cr);
+	cairo_set_line_width(cr, 2.0);
+	cairo_move_to(cr, cx + r * 0.72, cy + r * 0.72);
+	cairo_line_to(cr, w * 0.86, h * 0.86);
+	cairo_stroke(cr);
+}
+
+static void _overlay_globe(cairo_t * cr, double w, double h)
+{
+	/* small globe badge on the page's lower right - Web Layout */
+	double cx = w * 0.70, cy = h * 0.68, r = w * 0.22;
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_arc(cr, cx, cy, r, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 1.0);
+	cairo_arc(cr, cx, cy, r, 0, 2 * M_PI);
+	cairo_stroke(cr);
+	cairo_move_to(cr, cx - r, cy);
+	cairo_line_to(cr, cx + r, cy);
+	cairo_stroke(cr);
+	cairo_save(cr);
+	cairo_translate(cr, cx, cy);
+	cairo_scale(cr, 0.45, 1.0);
+	cairo_arc(cr, 0, 0, r, 0, 2 * M_PI);
+	cairo_restore(cr);
+	cairo_stroke(cr);
+}
+
+static void _overlay_zoom100(cairo_t * cr, double w, double h)
+{
+	/* "100" centred on the page - Zoom to 100% */
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.30);
+	cairo_text_extents_t te;
+	cairo_text_extents(cr, "100", &te);
+	cairo_move_to(cr, (w - te.width) / 2.0 - te.x_bearing, h * 0.62);
+	cairo_show_text(cr, "100");
+}
+
+static void _overlay_pagewidth(cairo_t * cr, double w, double h)
+{
+	/* horizontal double-headed arrow under the page - Page Width */
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 1.4);
+	double y = h - 3.5, x0 = 2.5, x1 = w - 3.5;
+	cairo_move_to(cr, x0, y);
+	cairo_line_to(cr, x1, y);
+	cairo_move_to(cr, x0 + 3.0, y - 2.4);
+	cairo_line_to(cr, x0, y);
+	cairo_line_to(cr, x0 + 3.0, y + 2.4);
+	cairo_move_to(cr, x1 - 3.0, y - 2.4);
+	cairo_line_to(cr, x1, y);
+	cairo_line_to(cr, x1 - 3.0, y + 2.4);
+	cairo_stroke(cr);
+}
+
+static void _glyph_windows(cairo_t * cr, double w, double h)
+{
+	/* two overlapping windows + a blue switch arrow - Switch Windows */
+	cairo_set_line_width(cr, 1.0);
+	/* back window */
+	cairo_rectangle(cr, w * 0.36, h * 0.10, w * 0.56, h * 0.46);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.36, h * 0.22);
+	cairo_line_to(cr, w * 0.92, h * 0.22);
+	cairo_stroke(cr);
+	/* front window */
+	cairo_rectangle(cr, w * 0.08, h * 0.34, w * 0.56, h * 0.46);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.08, h * 0.46);
+	cairo_line_to(cr, w * 0.64, h * 0.46);
+	cairo_stroke(cr);
+	/* switch arrow sweeping from back to front */
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 1.7);
+	cairo_move_to(cr, w * 0.66, h * 0.86);
+	cairo_curve_to(cr, w * 0.90, h * 0.86, w * 0.96, h * 0.68,
+				   w * 0.92, h * 0.50);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.86, h * 0.60);
+	cairo_line_to(cr, w * 0.92, h * 0.50);
+	cairo_line_to(cr, w * 0.99, h * 0.58);
+	cairo_stroke(cr);
+}
+
 static void _overlay_band_top(cairo_t * cr, double w, double /*h*/)
 {
 	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
@@ -3687,6 +3827,14 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_OBJECT:
 	case (XAP_Menu_Id)AP_MENU_ID_EDIT_LATEXEQUATION:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SYMBOL:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_PRINT:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_WEB:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NORMAL:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_100:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WIDTH:
+	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
 		return true;
 	default:
 		return false;
@@ -4003,6 +4151,32 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		spec.bare = true;
 		extra = _glyph_omega;
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_PRINT:
+		extra = _overlay_margin_corners;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_WEB:
+		extra = _overlay_globe;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NORMAL:
+		/* plain page = Draft */
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM:
+		spec.bare = true;
+		extra = _glyph_zoom;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_100:
+		extra = _overlay_zoom100;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE:
+		/* plain page = One Page */
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WIDTH:
+		extra = _overlay_pagewidth;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
+		spec.bare = true;
+		extra = _glyph_windows;
+		break;
 	default:
 		break;
 	}
@@ -4060,6 +4234,9 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 	const EV_Menu_Label * pLabel =
 		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
 	const char * szLabel = pLabel ? pLabel->getMenuLabel() : nullptr;
+	const char * szOver = _ribbon_menu_label(id);
+	if (szOver)
+		szLabel = szOver;
 
 	char label[64];
 	_ribbon_strip_mnemonic(szLabel ? szLabel : "", label, sizeof(label));
@@ -6147,6 +6324,31 @@ bool AP_UnixRibbon::_evalCheckKind(const char * szKind) const
 			pPrefs->getPrefsValueBool(AP_PREF_KEY_AutoGrammarCheck, b);
 		return b;
 	}
+	if (!strncmp(szKind, "zoom:", 5))
+	{
+		/* "zoom:200|100|75|50|width|whole" - ticks the active
+		 * preset in the Zoom popover */
+		if (!m_pFrame)
+			return false;
+		const char * key = szKind + 5;
+		XAP_Frame::tZoomType zt = m_pFrame->getZoomType();
+		if (!strcmp(key, "200"))   return zt == XAP_Frame::z_200;
+		if (!strcmp(key, "100"))   return zt == XAP_Frame::z_100;
+		if (!strcmp(key, "75"))    return zt == XAP_Frame::z_75;
+		if (!strcmp(key, "width")) return zt == XAP_Frame::z_PAGEWIDTH;
+		if (!strcmp(key, "whole")) return zt == XAP_Frame::z_WHOLEPAGE;
+		if (!strcmp(key, "50"))
+			return zt == XAP_Frame::z_PERCENT &&
+				m_pFrame->getZoomPercentage() == 50;
+		return false;
+	}
+	if (!strncmp(szKind, "win:", 4))
+	{
+		/* "win:N" - ticks the current window in Switch Windows */
+		XAP_App * pApp = XAP_App::getApp();
+		return pApp && m_pFrame &&
+			pApp->getFrame(atoi(szKind + 4)) == m_pFrame;
+	}
 
 	FV_View * pView = static_cast<FV_View *>(
 		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
@@ -6472,6 +6674,120 @@ GtkWidget * AP_UnixRibbon::_makeComparePopover()
 								  16, 16),
 							  "revisionCombineDocuments", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* --------------------------------------------------------------- View --- */
+
+/* Zoom: Word's Zoom dialog as a popover - the active preset is ticked
+ * (check kind "zoom:*"), the last row opens the classic dialog for a
+ * custom percentage */
+GtkWidget * AP_UnixRibbon::_makeZoomPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	_PageSpec mag = { 0, 0, 0, 0, 1, false, false, 0, true };
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("200%", "Zoom the document to 200%",
+							 "zoom200", nullptr, "zoom:200",
+							 _glyph_widget(mag, 16, 16, _glyph_zoom)));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("100%", "Zoom the document to 100%",
+							 "zoom100", nullptr, "zoom:100",
+							 _glyph_widget(mag, 16, 16, _glyph_zoom)));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("75%", "Zoom the document to 75%",
+							 "zoom75", nullptr, "zoom:75",
+							 _glyph_widget(mag, 16, 16, _glyph_zoom)));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("50%", "Zoom the document to 50%",
+							 "zoom50", nullptr, "zoom:50",
+							 _glyph_widget(mag, 16, 16, _glyph_zoom)));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(
+								   GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("Page Width", "Fit the page width in the window",
+							 "zoomWidth", nullptr, "zoom:width",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WIDTH,
+								 16, 16)));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("One Page", "Fit one whole page in the window",
+							 "zoomWhole", nullptr, "zoom:whole",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE,
+								 16, 16)));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(
+								   GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Zoom\xE2\x80\xA6",
+							  "Open the Zoom dialog for a custom percentage",
+							  _glyph_widget(mag, 16, 16, _glyph_zoom),
+							  "dlgZoom", nullptr));
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_check_show), this);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* Switch Windows: one row per open frame, rebuilt on every show so the
+ * list tracks windows opened and closed since the last popup */
+void AP_UnixRibbon::_populateWindowList(GtkWidget * box)
+{
+	GtkWidget * child;
+	while ((child = gtk_widget_get_first_child(box)) != nullptr)
+		gtk_box_remove(GTK_BOX(box), child);
+
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_if_fail(pApp);
+
+	_PageSpec winSpec = { 0, 0, 0, 0, 1, false, false, 0, true };
+	UT_sint32 n = pApp->getFrameCount();
+	for (UT_sint32 i = 0; i < n && i < 9; ++i)
+	{
+		XAP_Frame * f = pApp->getFrame(i);
+		if (!f)
+			continue;
+		char name[160], method[32], kind[16];
+		g_snprintf(name, sizeof(name), "%d. %s", i + 1,
+				   f->getTitle().c_str());
+		g_snprintf(method, sizeof(method), "activateWindow_%d", i + 1);
+		g_snprintf(kind, sizeof(kind), "win:%d", i);
+		gtk_box_append(GTK_BOX(box),
+					   _checkRow(name, nullptr, method, nullptr, kind,
+								 _glyph_widget(winSpec, 16, 16,
+											   _glyph_windows)));
+	}
+	if (n > 9)
+	{
+		gtk_box_append(GTK_BOX(box), gtk_separator_new(
+									   GTK_ORIENTATION_HORIZONTAL));
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow("Switch Windows\xE2\x80\xA6",
+								  "Pick from all open documents",
+								  _glyph_widget(winSpec, 16, 16,
+												_glyph_windows),
+								  "dlgMoreWindows", nullptr));
+	}
+}
+
+void AP_UnixRibbon::_s_popover_windows_show(GtkPopover * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * box = gtk_popover_get_child(w);
+	if (box)
+		self->_populateWindowList(box);
+}
+
+GtkWidget * AP_UnixRibbon::_makeWindowPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	_populateWindowList(box);
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_windows_show), this);
 	return popover;
 }
 

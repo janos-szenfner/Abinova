@@ -549,7 +549,18 @@ labels, like Word's ribbon.
 
 #### View tab
 
-- Zoom combo, plus the view/layout toggles.
+- **Document Views**: large Print Layout / Web Layout / Draft
+  buttons; the active mode stays pressed (radio state).
+- **Immersive**: Focus (full-screen).
+- **Show**: checkboxes for Ruler, Status Bar, Formatting Marks and
+  the Selection Pane.
+- **Zoom**: the Zoom button opens a popover with the presets
+  (200 %/100 %/75 %/50 %, Page Width, One Page — the active preset
+  is ticked) plus a Zoom… row for the classic dialog; Zoom to
+  100 %, One Page and Page Width are large buttons.
+- **Window**: New Window clones the frame onto the same document;
+  Switch Windows is a dropdown listing every open window (current
+  one ticked, "Switch Windows…" picker appears past nine).
 
 #### Help tab
 
