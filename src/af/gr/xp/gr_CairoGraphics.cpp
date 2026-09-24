@@ -1299,7 +1299,7 @@ void GR_CairoGraphics::renderChars(GR_RenderInfo & ri)
 		xxx_UT_DEBUGMSG(("Doing Cairo Render now.\n")); 
 		cairo_save(m_cr);
 		cairo_translate(m_cr, xoff, yoff);
-		pango_cairo_show_glyph_string(m_cr, pf, RI.m_pScaledGlyphs);
+		_showGlyphString(pf, RI.m_pScaledGlyphs);
 		cairo_restore(m_cr);
 	}
 	else
@@ -1416,7 +1416,7 @@ void GR_CairoGraphics::renderChars(GR_RenderInfo & ri)
 		// finally we can render the substring
 		cairo_save(m_cr);
 		cairo_translate(m_cr, xoff, yoff);
-		pango_cairo_show_glyph_string(m_cr, pf, &gs);
+		_showGlyphString(pf, &gs);
 		cairo_restore(m_cr);
 	}
 }
@@ -2220,6 +2220,126 @@ void GR_CairoGraphics::positionToXY(const GR_RenderInfo & ri,
 	x2 = x;
 }
 
+/* Draw a shaped glyph string at the current baseline origin,
+ * honouring WordArt-style GR_TextEffects (outline, gradient fill,
+ * drop shadow, reflection) when setTextEffects() is active. */
+void GR_CairoGraphics::_showGlyphString(PangoFont * pf,
+										PangoGlyphString * gs)
+{
+	const GR_TextEffects * fx = getTextEffects();
+	if (!fx || !fx->hasAny() || !gs || gs->num_glyphs <= 0)
+	{
+		pango_cairo_show_glyph_string(m_cr, pf, gs);
+		return;
+	}
+
+	PangoRectangle ink;
+	pango_glyph_string_extents(gs, pf, &ink, nullptr);
+	double ix = ink.x / (double)PANGO_SCALE;
+	double iy = ink.y / (double)PANGO_SCALE;
+	double iw = ink.width / (double)PANGO_SCALE;
+	double ih = ink.height / (double)PANGO_SCALE;
+	if (iw <= 0) iw = 1;
+	if (ih <= 0) ih = 1;
+	const double pts = m_iDeviceResolution / 72.0;
+
+	if (fx->m_bShadow)
+	{
+		cairo_save(m_cr);
+		cairo_translate(m_cr, fx->m_shadowDXpt * pts,
+						fx->m_shadowDYpt * pts);
+		pango_cairo_glyph_string_path(m_cr, pf, gs);
+		_setSource(m_cr, fx->m_colShadow);
+		cairo_fill(m_cr);
+		cairo_restore(m_cr);
+	}
+
+	if (fx->m_bOutline)
+	{
+		cairo_save(m_cr);
+		pango_cairo_glyph_string_path(m_cr, pf, gs);
+		cairo_set_line_width(m_cr, fx->m_outlineWidthPt * pts);
+		cairo_set_line_join(m_cr, CAIRO_LINE_JOIN_ROUND);
+		_setSource(m_cr, fx->m_colOutline);
+		cairo_stroke(m_cr);
+		cairo_restore(m_cr);
+	}
+
+	if (fx->m_bGradient)
+	{
+		cairo_save(m_cr);
+		pango_cairo_glyph_string_path(m_cr, pf, gs);
+		cairo_pattern_t * pat = fx->m_bGradVertical
+			? cairo_pattern_create_linear(0, iy, 0, iy + ih)
+			: cairo_pattern_create_linear(ix, 0, ix + iw, 0);
+		cairo_pattern_add_color_stop_rgb(pat, 0,
+			fx->m_colGradFrom.m_red / 255.0,
+			fx->m_colGradFrom.m_grn / 255.0,
+			fx->m_colGradFrom.m_blu / 255.0);
+		cairo_pattern_add_color_stop_rgb(pat, 1,
+			fx->m_colGradTo.m_red / 255.0,
+			fx->m_colGradTo.m_grn / 255.0,
+			fx->m_colGradTo.m_blu / 255.0);
+		cairo_set_source(m_cr, pat);
+		cairo_fill(m_cr);
+		cairo_pattern_destroy(pat);
+		cairo_restore(m_cr);
+	}
+	else
+	{
+		pango_cairo_show_glyph_string(m_cr, pf, gs);
+	}
+
+	if (fx->m_bReflection)
+	{
+		const double gap = 2.0;
+		const double bottom = iy + ih;
+		const double depth = ih * 0.75;
+
+		/* draw a vertically-flipped copy into a group, then mask it
+		 * with an alpha gradient fading out below the text */
+		cairo_save(m_cr);
+		cairo_translate(m_cr, 0, 2 * bottom + gap);
+		cairo_push_group(m_cr);
+		cairo_scale(m_cr, 1.0, -1.0);
+		pango_cairo_glyph_string_path(m_cr, pf, gs);
+		if (fx->m_bGradient)
+		{
+			cairo_pattern_t * pat = fx->m_bGradVertical
+				? cairo_pattern_create_linear(0, iy, 0, iy + ih)
+				: cairo_pattern_create_linear(ix, 0, ix + iw, 0);
+			cairo_pattern_add_color_stop_rgb(pat, 0,
+				fx->m_colGradFrom.m_red / 255.0,
+				fx->m_colGradFrom.m_grn / 255.0,
+				fx->m_colGradFrom.m_blu / 255.0);
+			cairo_pattern_add_color_stop_rgb(pat, 1,
+				fx->m_colGradTo.m_red / 255.0,
+				fx->m_colGradTo.m_grn / 255.0,
+				fx->m_colGradTo.m_blu / 255.0);
+			cairo_set_source(m_cr, pat);
+			cairo_fill(m_cr);
+			cairo_pattern_destroy(pat);
+		}
+		else
+		{
+			cairo_fill(m_cr);
+		}
+		cairo_pattern_t * txt = cairo_pop_group(m_cr);
+		cairo_restore(m_cr);
+
+		cairo_save(m_cr);
+		cairo_set_source(m_cr, txt);
+		cairo_pattern_t * mask = cairo_pattern_create_linear(
+			0, bottom + gap, 0, bottom + gap + depth);
+		cairo_pattern_add_color_stop_rgba(mask, 0, 0, 0, 0, 0.55);
+		cairo_pattern_add_color_stop_rgba(mask, 1, 0, 0, 0, 0.0);
+		cairo_mask(m_cr, mask);
+		cairo_pattern_destroy(mask);
+		cairo_pattern_destroy(txt);
+		cairo_restore(m_cr);
+	}
+}
+
 void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 									int iCharOffset, int iLength,
 									UT_sint32 xoff, UT_sint32 yoff,
@@ -2334,7 +2454,7 @@ void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 
 		cairo_save(m_cr);
 		cairo_translate(m_cr, xoffD, yoffD);
-		pango_cairo_show_glyph_string(m_cr, pf, pGstring);
+		_showGlyphString(pf, pGstring);
 		cairo_restore(m_cr);
 
 		// now advance xoff

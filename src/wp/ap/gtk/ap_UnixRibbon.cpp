@@ -5247,6 +5247,261 @@ GtkWidget * AP_UnixRibbon::_makeMediaPopover()
 
 /* Word's WordArt gallery: a grid of styled "A" tiles; clicking one
  * inserts sample text with that character styling */
+/* WordArt preview: parse a "key=value;…" preset spec into draw
+ * state, then render a sample glyph with real cairo effects —
+ * the same visual pipeline as GR_TextEffects in drawChars. */
+struct WPArtSpec
+{
+	GR_TextEffects fx;
+	UT_RGBColor    fill;
+	std::string    font;
+	double         sizePt;
+	bool           bold;
+	bool           italic;
+	WPArtSpec() : fill(68, 114, 196), font("Georgia"),
+				  sizePt(30), bold(true), italic(false) {}
+};
+
+static void s_wp_color(const std::string & s, size_t pos,
+					   UT_RGBColor & col)
+{
+	std::string hex;
+	while (pos < s.size() && isxdigit((unsigned char)s[pos]) &&
+		   hex.size() < 6)
+		hex += s[pos++];
+	if (hex.size() == 6)
+		col.setColor(hex.c_str());
+}
+
+static void s_wp_parse(const std::string & d, WPArtSpec & a)
+{
+	size_t p = 0;
+	while (p < d.size())
+	{
+		size_t e = d.find(';', p);
+		std::string kv = d.substr(p, e == std::string::npos ? e : e - p);
+		size_t eq = kv.find('=');
+		if (eq != std::string::npos)
+		{
+			std::string k = kv.substr(0, eq);
+			std::string v = kv.substr(eq + 1);
+			size_t c = v[0] == '#' ? 1 : 0;
+			if (k == "font")
+				a.font = v;
+			else if (k == "size")
+				a.sizePt = g_ascii_strtod(v.c_str(), nullptr);
+			else if (k == "italic" && v == "1")
+				a.italic = true;
+			else if (k == "weight")
+				a.bold = (v != "normal");
+			else if (k == "color")
+				s_wp_color(v, c, a.fill);
+			else if (k == "outline")
+			{
+				a.fx.m_bOutline = true;
+				s_wp_color(v, c, a.fx.m_colOutline);
+				size_t colon = v.find(':');
+				if (colon != std::string::npos)
+				{
+					double w = g_ascii_strtod(v.c_str() + colon + 1,
+											  nullptr);
+					if (w > 0.05 && w < 20)
+						a.fx.m_outlineWidthPt = w;
+				}
+			}
+			else if (k == "gradient")
+			{
+				size_t s2 = c + 7;
+				if (s2 < v.size() && v[s2] == '#')
+					++s2;
+				a.fx.m_bGradient = true;
+				s_wp_color(v, c, a.fx.m_colGradFrom);
+				s_wp_color(v, s2, a.fx.m_colGradTo);
+				size_t colon = v.find(':', s2);
+				if (colon != std::string::npos && v[colon + 1] == 'h')
+					a.fx.m_bGradVertical = false;
+			}
+			else if (k == "shadow")
+			{
+				a.fx.m_bShadow = true;
+				s_wp_color(v, c, a.fx.m_colShadow);
+				size_t colon = v.find(':');
+				if (colon != std::string::npos)
+				{
+					a.fx.m_shadowDXpt = g_ascii_strtod(
+						v.c_str() + colon + 1, nullptr);
+					const char * comma = strchr(v.c_str() + colon + 1,
+												',');
+					a.fx.m_shadowDYpt = comma
+						? g_ascii_strtod(comma + 1, nullptr)
+						: a.fx.m_shadowDXpt;
+				}
+			}
+			else if (k == "reflect")
+				a.fx.m_bReflection = (v == "1" || v == "true");
+		}
+		if (e == std::string::npos)
+			break;
+		p = e + 1;
+	}
+}
+
+static void s_wp_set_rgb(cairo_t * cr, const UT_RGBColor & c)
+{
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+}
+
+static GtkWidget * s_wp_preview(const std::string & spec, int w, int h)
+{
+	WPArtSpec a;
+	s_wp_parse(spec, a);
+	const GR_TextEffects & fx = a.fx;
+
+	cairo_surface_t * sf = cairo_image_surface_create(
+		CAIRO_FORMAT_ARGB32, w, h);
+	cairo_t * cr = cairo_create(sf);
+	cairo_set_source_rgba(cr, 0, 0, 0, 0);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_paint(cr);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+	PangoLayout * lo = pango_cairo_create_layout(cr);
+	PangoFontDescription * d = pango_font_description_new();
+	pango_font_description_set_family(d, a.font.c_str());
+	pango_font_description_set_size(d,
+		(gint)(a.sizePt * PANGO_SCALE * 0.85));
+	pango_font_description_set_weight(d,
+		a.bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL);
+	pango_font_description_set_style(d,
+		a.italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
+	pango_layout_set_font_description(lo, d);
+	pango_font_description_free(d);
+	pango_layout_set_text(lo, "A", -1);
+
+	int tw = 0, th = 0;
+	pango_layout_get_pixel_size(lo, &tw, &th);
+	double refl = fx.m_bReflection ? th * 0.45 : 0;
+	double ox = (w - tw) / 2.0, oy = (h - th - refl) / 2.0;
+	const double pts = 96.0 / 72.0;
+
+	/* shadow */
+	if (fx.m_bShadow)
+	{
+		cairo_save(cr);
+		cairo_translate(cr, ox + fx.m_shadowDXpt * pts,
+						oy + fx.m_shadowDYpt * pts);
+		pango_cairo_layout_path(cr, lo);
+		s_wp_set_rgb(cr, fx.m_colShadow);
+		cairo_fill(cr);
+		cairo_restore(cr);
+	}
+	/* outline under fill */
+	if (fx.m_bOutline)
+	{
+		cairo_save(cr);
+		cairo_translate(cr, ox, oy);
+		pango_cairo_layout_path(cr, lo);
+		cairo_set_line_width(cr, fx.m_outlineWidthPt * pts);
+		cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+		s_wp_set_rgb(cr, fx.m_colOutline);
+		cairo_stroke(cr);
+		cairo_restore(cr);
+	}
+	/* fill */
+	cairo_save(cr);
+	cairo_translate(cr, ox, oy);
+	if (fx.m_bGradient)
+	{
+		pango_cairo_layout_path(cr, lo);
+		cairo_pattern_t * pat = fx.m_bGradVertical
+			? cairo_pattern_create_linear(0, 0, 0, th)
+			: cairo_pattern_create_linear(0, 0, tw, 0);
+		cairo_pattern_add_color_stop_rgb(pat, 0,
+			a.fx.m_colGradFrom.m_red / 255.0,
+			a.fx.m_colGradFrom.m_grn / 255.0,
+			a.fx.m_colGradFrom.m_blu / 255.0);
+		cairo_pattern_add_color_stop_rgb(pat, 1,
+			a.fx.m_colGradTo.m_red / 255.0,
+			a.fx.m_colGradTo.m_grn / 255.0,
+			a.fx.m_colGradTo.m_blu / 255.0);
+		cairo_set_source(cr, pat);
+		cairo_fill(cr);
+		cairo_pattern_destroy(pat);
+	}
+	else
+	{
+		s_wp_set_rgb(cr, a.fill);
+		pango_cairo_show_layout(cr, lo);
+	}
+	cairo_restore(cr);
+	/* reflection — flipped copy, alpha-faded */
+	if (fx.m_bReflection)
+	{
+		cairo_save(cr);
+		cairo_translate(cr, ox, oy + th + 1);
+		cairo_push_group(cr);
+		cairo_scale(cr, 1.0, -1.0);
+		pango_cairo_layout_path(cr, lo);
+		if (fx.m_bGradient)
+		{
+			cairo_pattern_t * pat = fx.m_bGradVertical
+				? cairo_pattern_create_linear(0, 0, 0, -th)
+				: cairo_pattern_create_linear(0, 0, tw, 0);
+			cairo_pattern_add_color_stop_rgb(pat, 0,
+				a.fx.m_colGradFrom.m_red / 255.0,
+				a.fx.m_colGradFrom.m_grn / 255.0,
+				a.fx.m_colGradFrom.m_blu / 255.0);
+			cairo_pattern_add_color_stop_rgb(pat, 1,
+				a.fx.m_colGradTo.m_red / 255.0,
+				a.fx.m_colGradTo.m_grn / 255.0,
+				a.fx.m_colGradTo.m_blu / 255.0);
+			cairo_set_source(cr, pat);
+			cairo_fill(cr);
+			cairo_pattern_destroy(pat);
+		}
+		else
+		{
+			s_wp_set_rgb(cr, a.fill);
+			cairo_fill(cr);
+		}
+		cairo_pattern_t * txt = cairo_pop_group(cr);
+		cairo_restore(cr);
+		cairo_save(cr);
+		cairo_set_source(cr, txt);
+		cairo_pattern_t * mask = cairo_pattern_create_linear(
+			0, oy + th + 1, 0, oy + th + 1 + refl);
+		cairo_pattern_add_color_stop_rgba(mask, 0, 0, 0, 0, 0.5);
+		cairo_pattern_add_color_stop_rgba(mask, 1, 0, 0, 0, 0.0);
+		cairo_mask(cr, mask);
+		cairo_pattern_destroy(mask);
+		cairo_pattern_destroy(txt);
+		cairo_restore(cr);
+	}
+	g_object_unref(lo);
+	cairo_destroy(cr);
+
+	cairo_surface_flush(sf);
+	GBytes * bytes = g_bytes_new_with_free_func(
+		cairo_image_surface_get_data(sf),
+		cairo_image_surface_get_height(sf) *
+			cairo_image_surface_get_stride(sf),
+		(GDestroyNotify)cairo_surface_destroy, sf);
+	GdkTexture * tex = gdk_memory_texture_new(
+		w, h,
+#ifdef G_LITTLE_ENDIAN
+		GDK_MEMORY_B8G8R8A8_PREMULTIPLIED,
+#else
+		GDK_MEMORY_A8R8G8B8_PREMULTIPLIED,
+#endif
+		bytes, cairo_image_surface_get_stride(sf));
+	g_bytes_unref(bytes);
+	GtkWidget * pic = gtk_picture_new_for_paintable(GDK_PAINTABLE(tex));
+	g_object_unref(tex);
+	gtk_picture_set_content_fit(GTK_PICTURE(pic), GTK_CONTENT_FIT_CONTAIN);
+	return pic;
+}
+
 GtkWidget * AP_UnixRibbon::_makeWordArtPopover()
 {
 	GtkWidget * popover = xap_gtk_popover_new();
@@ -5260,42 +5515,37 @@ GtkWidget * AP_UnixRibbon::_makeWordArtPopover()
 	gtk_widget_set_margin_start(grid, 6);
 	gtk_widget_set_margin_end(grid, 6);
 
-	static const struct { const char * color; const char * style;
-						  bool bold; } s_presets[] =
+	/* preset spec strings consumed by insertWordArt (and by the
+	 * preview painter above) — modelled on Word's WordArt gallery */
+	static const char * s_presets[] =
 	{
-		{ "000000", "fill", true },  { "4472C4", "fill", true },
-		{ "ED7D31", "outline", false },{ "7BB4E8", "outline", false },
-		{ "FFC000", "fill", true },
-		{ "808080", "fill", true },  { "70AD47", "fill", true },
-		{ "FFC000", "outline", false },{ "4472C4", "outline", true },
-		{ "595959", "outline", false },
-		{ "000000", "outline", true },{ "2E74B5", "fill", true },
-		{ "ED7D31", "fill", false }, { "7030A0", "fill", true },
-		{ "C00000", "fill", true },
+		"color=000000",
+		"color=4472C4",
+		"color=FFFFFF;outline=ED7D31:1.0",
+		"color=FFC000;shadow=595959:1.5,1.5",
+		"color=4472C4;gradient=5B9BD5-2E74B5",
+		"color=ED7D31;gradient=FFD966-C55A11;outline=843C0C:0.75",
+		"color=70AD47;reflect=1",
+		"color=FFFFFF;outline=2E74B5:1.25",
+		"color=7030A0;gradient=A64DFF-3B1D5E",
+		"color=C00000;shadow=595959:2,2",
+		"color=595959;gradient=D9D9D9-404040",
+		"color=FFFFFF;outline=BF9000:1.0;shadow=808080:1.5,1.5",
+		"color=4472C4;reflect=1",
+		"color=2E9396;gradient=40C4C8-1D6B6E;reflect=1",
+		"color=FFFFFF;outline=000000:1.5",
 	};
 	for (unsigned i = 0; i < G_N_ELEMENTS(s_presets); i++)
 	{
 		GtkWidget * btn = gtk_button_new();
-		char * mk = g_markup_printf_escaped(
-			"<span font='26' weight='%s' style='%s' "
-			"color='#%s'>A</span>",
-			s_presets[i].bold ? "bold" : "normal",
-			!strcmp(s_presets[i].style, "outline")
-				? "italic" : "normal",
-			s_presets[i].color);
-		GtkWidget * l = gtk_label_new(nullptr);
-		gtk_label_set_markup(GTK_LABEL(l), mk);
-		g_free(mk);
-		gtk_widget_set_size_request(l, 58, 48);
-		gtk_button_set_child(GTK_BUTTON(btn), l);
+		GtkWidget * pic = s_wp_preview(s_presets[i], 64, 52);
+		gtk_button_set_child(GTK_BUTTON(btn), pic);
 		gtk_widget_add_css_class(btn, "flat");
 
-		std::string data = std::string(s_presets[i].style) + "-" +
-			s_presets[i].color;
 		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
 							   g_strdup("insertWordArt"), g_free);
 		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
-							   g_strdup(data.c_str()), g_free);
+							   g_strdup(s_presets[i]), g_free);
 		g_signal_connect(btn, "clicked",
 						 G_CALLBACK(_s_popover_em_clicked), this);
 		gtk_grid_attach(GTK_GRID(grid), btn, i % 5, i / 5, 1, 1);

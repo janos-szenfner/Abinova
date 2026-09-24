@@ -348,6 +348,10 @@ public:
 	GR_CairoGraphics();
 	inline bool _scriptBreak(GR_PangoRenderInfo &ri);
 
+	/* draw a shaped glyph string, honouring GR_TextEffects when set;
+	 * the cairo CTM must already be translated to the text origin */
+	void _showGlyphString(PangoFont * pf, PangoGlyphString * gs);
+
 	void _scaleCharacterMetrics(GR_PangoRenderInfo & RI);
 	void _scaleJustification(GR_PangoRenderInfo & RI);
 

@@ -26,6 +26,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
+#include <string>
+#include <glib.h>
 
 #include "fp_TextRun.h"
 #include "fl_DocLayout.h"
@@ -61,6 +64,97 @@
 //inicialise the static members of the class
 bool fp_TextRun::s_bBidiOS = false;
 UT_uint32  fp_TextRun::s_iClassInstanceCount = 0;
+
+/*! Parse the WordArt-style text-effect span properties into a
+ *  GR_TextEffects.  Supported properties:
+ *    text-outline    "RRGGBB" or "RRGGBB:W"    (W = stroke width, pt)
+ *    text-gradient   "RRGGBB-RRGGBB" or "...:h" (vertical default)
+ *    text-shadow     "RRGGBB" or "RRGGBB:dx,dy" (offsets in pt)
+ *    text-reflection "1" / "true" / "yes"
+ */
+static bool s_fxColor(const std::string & s, size_t pos,
+					  UT_RGBColor & col)
+{
+	std::string hex;
+	while (pos < s.size() && isxdigit((unsigned char)s[pos]) &&
+		   hex.size() < 6)
+		hex += s[pos++];
+	if (hex.size() != 6)
+		return false;
+	col.setColor(hex.c_str());
+	return true;
+}
+
+static bool s_getTextEffects(const PP_AttrProp * pSpanAP,
+							 GR_TextEffects & fx)
+{
+	if (!pSpanAP)
+		return false;
+	const gchar * sz = nullptr;
+
+	if (pSpanAP->getProperty("text-outline", sz) && sz && *sz)
+	{
+		std::string v = sz;
+		size_t p = v.find(':');
+		UT_RGBColor col;
+		if (s_fxColor(v, v[0] == '#' ? 1 : 0, col))
+		{
+			fx.m_bOutline = true;
+			fx.m_colOutline = col;
+			if (p != std::string::npos)
+			{
+				double w = g_ascii_strtod(v.c_str() + p + 1, nullptr);
+				if (w > 0.05 && w < 20)
+					fx.m_outlineWidthPt = w;
+			}
+		}
+	}
+	if (pSpanAP->getProperty("text-gradient", sz) && sz && *sz)
+	{
+		/* "RRGGBB-RRGGBB[:h]" — '#' prefixes optional */
+		std::string v = sz;
+		size_t start1 = v[0] == '#' ? 1 : 0;
+		size_t start2 = start1 + 7;		/* skip color1 + '-' */
+		if (start2 < v.size() && v[start2] == '#')
+			++start2;
+		UT_RGBColor c1, c2;
+		if (s_fxColor(v, start1, c1) && s_fxColor(v, start2, c2))
+		{
+			fx.m_bGradient = true;
+			fx.m_colGradFrom = c1;
+			fx.m_colGradTo = c2;
+			size_t colon = v.find(':', start2);
+			if (colon != std::string::npos && v[colon + 1] == 'h')
+				fx.m_bGradVertical = false;
+		}
+	}
+	if (pSpanAP->getProperty("text-shadow", sz) && sz && *sz)
+	{
+		std::string v = sz;
+		UT_RGBColor col;
+		if (s_fxColor(v, v[0] == '#' ? 1 : 0, col))
+		{
+			fx.m_bShadow = true;
+			fx.m_colShadow = col;
+			size_t p = v.find(':');
+			if (p != std::string::npos)
+			{
+				double dx = g_ascii_strtod(v.c_str() + p + 1, nullptr);
+				const char * comma = strchr(v.c_str() + p + 1, ',');
+				double dy = comma ? g_ascii_strtod(comma + 1, nullptr)
+								  : dx;
+				fx.m_shadowDXpt = dx;
+				fx.m_shadowDYpt = dy;
+			}
+		}
+	}
+	if (pSpanAP->getProperty("text-reflection", sz) && sz && *sz)
+	{
+		fx.m_bReflection = (*sz == '1' || *sz == 't' || *sz == 'T' ||
+							*sz == 'y' || *sz == 'Y');
+	}
+	return fx.hasAny();
+}
 
 fp_TextRun::fp_TextRun(fl_BlockLayout* pBL,
 					   UT_uint32 iOffsetFirst,
@@ -1897,7 +1991,12 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 	m_pRenderInfo->m_iOffset = 0;
 	m_pRenderInfo->m_iLength = getLength();
 	m_pRenderInfo->m_pFont = _getFont();
-	
+
+	GR_TextEffects fx;
+	const bool bFx = s_getTextEffects(getSpanAP(), fx);
+	if (bFx)
+		pG->setTextEffects(&fx);
+
 	pG->prepareToRenderChars(*m_pRenderInfo);
 	pG->setFont(_getFont());
 
@@ -1959,6 +2058,9 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 		if(iVisDir == UT_BIDI_LTR)
 			iX += iSegmentWidth[iSegment];
 	}
+
+	if (bFx)
+		pG->setTextEffects(nullptr);
 
 	xxx_UT_DEBUGMSG(("_draw text yoff %d yTopOfRun %d \n",pDA->yoff,yTopOfRun));
 	drawDecors(pDA->xoff, yTopOfRun,pG);

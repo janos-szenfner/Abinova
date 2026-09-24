@@ -7482,30 +7482,89 @@ Defun(insertWordArt)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	const char * szColor = "4472C4";
-	bool bOutline = false;
+	if (pView->isInTable() || pView->isInFrame(pView->getPoint()) ||
+		pView->isHdrFtrEdit())
+		return true;
+
+	/* callData is a "key=value;key=value" style spec:
+	 *   font=<family>  size=<pt>  weight=bold  italic=1
+	 *   color=RRGGBB                    flat fill colour
+	 *   outline=RRGGBB[:widthpt]        glyph outline
+	 *   gradient=RRGGBB-RRGGBB[:h]      fill gradient (v default)
+	 *   shadow=RRGGBB[:dx,dy]           drop shadow (pt)
+	 *   reflect=1                       baseline reflection
+	 * Legacy "fill-RRGGBB" / "outline-RRGGBB" specs still work. */
+	PP_PropertyVector atts = {
+		"font-family", "Georgia",
+		"font-size", "36pt",
+		"font-weight", "bold",
+		"font-style", "normal",
+		"color", "4472C4"
+	};
 	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
 	{
 		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
 		std::string d(s.utf8_str());
 		if (d.compare(0, 8, "outline-") == 0)
 		{
-			bOutline = true;
-			szColor = d.c_str() + 8;
+			atts[7] = "italic";
+			atts[9] = d.c_str() + 8;
 		}
 		else if (d.compare(0, 5, "fill-") == 0)
-			szColor = d.c_str() + 5;
+		{
+			atts[9] = d.c_str() + 5;
+		}
+		else
+		{
+			std::string sOutline, sGradient, sShadow;
+			bool bReflect = false;
+			size_t p = 0;
+			while (p < d.size())
+			{
+				size_t e = d.find(';', p);
+				std::string kv = d.substr(
+					p, e == std::string::npos ? e : e - p);
+				size_t eq = kv.find('=');
+				if (eq != std::string::npos)
+				{
+					std::string k = kv.substr(0, eq);
+					std::string v = kv.substr(eq + 1);
+					if (k == "font")
+						atts[1] = v;
+					else if (k == "size")
+						atts[3] = v;
+					else if (k == "weight")
+						atts[5] = v;
+					else if (k == "italic" && v == "1")
+						atts[7] = "italic";
+					else if (k == "color")
+						atts[9] = v;
+					else if (k == "outline")
+						sOutline = v;
+					else if (k == "gradient")
+						sGradient = v;
+					else if (k == "shadow")
+						sShadow = v;
+					else if (k == "reflect" && v == "1")
+						bReflect = true;
+				}
+				if (e == std::string::npos)
+					break;
+				p = e + 1;
+			}
+			/* apply the preset exactly: effects the spec does not
+			 * mention are cleared so a re-styled WordArt does not
+			 * keep stale effects from the surrounding format */
+			atts.push_back("text-outline");
+			atts.push_back(sOutline);
+			atts.push_back("text-gradient");
+			atts.push_back(sGradient);
+			atts.push_back("text-shadow");
+			atts.push_back(sShadow);
+			atts.push_back("text-reflection");
+			atts.push_back(bReflect ? "1" : "");
+		}
 	}
-	if (pView->isInTable() || pView->isInFrame(pView->getPoint()) ||
-		pView->isHdrFtrEdit())
-		return true;
-	PP_PropertyVector atts = {
-		"font-family", "Georgia",
-		"font-size", "36pt",
-		"font-weight", "bold",
-		"font-style", bOutline ? "italic" : "normal",
-		"color", szColor
-	};
 	pView->getDocument()->beginUserAtomicGlob();
 	pView->setCharFormat(atts);
 	UT_UCS4String s("Your text here");

@@ -788,6 +788,28 @@ below are on `main` but the release has not been cut yet.
   `toggleEquationDisplay` were registered out of order and silently
   failed to dispatch (button clicks invoked the method name but the
   lookup returned NULL). All four are now in sorted position.
+- **Real WordArt text effects** — new character-level properties
+  `text-outline`, `text-gradient`, `text-shadow` and
+  `text-reflection` are rendered by the Cairo text pipeline: a
+  `GR_TextEffects` state on `GR_Graphics` (scoped per run from
+  `fp_TextRun::_draw`) makes `GR_CairoGraphics` paint glyph
+  *outlines* instead of plain `pango_cairo_show_glyph_string` —
+  stroked outline under the fill, two-stop linear gradient fills,
+  offset drop shadows and a vertically-mirrored reflection masked
+  with an alpha fade. Effects apply on screen and in the
+  print/PDF path, ride in `.abw` character props (unknown-prop
+  tolerant on reload), and text stays fully editable —
+  reformatting or re-styling just changes the props.
+- **Word-style WordArt gallery** — the Insert → WordArt dropdown is
+  now a 15-tile preset gallery (flat fills, outlines, gradient
+  fills, shadows, reflections and combos) whose tiles are rendered
+  live with the same effect pipeline (Pango glyph paths + Cairo
+  fills). `insertWordArt` takes a `key=value;…` spec
+  (`font/size/weight/italic/color/outline/gradient/shadow/reflect`)
+  and applies the preset exactly — effect properties the spec does
+  not mention are explicitly cleared so a re-styled WordArt does not
+  inherit stale effects; legacy `fill-RRGGBB`/`outline-RRGGBB` specs
+  still work.
 
 ### Ubuntu Launchpad bug fixes
 

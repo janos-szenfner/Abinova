@@ -31,6 +31,7 @@
 
 #include "ut_types.h"
 #include "ut_units.h"
+#include "ut_color.h"
 #include "ut_bytebuf.h"
 #include "ut_growbuf.h"
 #include "ut_misc.h"
@@ -54,6 +55,44 @@ class UT_String;
 class GR_RenderInfo;
 class GR_Itemization;
 class GR_ShapingInfo;
+
+/*!
+ * Optional text effects applied by renderChars()/drawChars() while
+ * drawing glyph strings — WordArt-style outline, gradient fill,
+ * drop shadow and reflection.  The state is scoped: a run sets it
+ * before drawing its text and clears it right after.
+ */
+struct ABI_EXPORT GR_TextEffects
+{
+	GR_TextEffects()
+		: m_bOutline(false),
+		  m_outlineWidthPt(1.0),
+		  m_bGradient(false),
+		  m_bGradVertical(true),
+		  m_bShadow(false),
+		  m_shadowDXpt(1.5),
+		  m_shadowDYpt(1.5),
+		  m_bReflection(false)
+	{}
+
+	bool hasAny() const
+	{
+		return m_bOutline || m_bGradient || m_bShadow || m_bReflection;
+	}
+
+	bool        m_bOutline;
+	UT_RGBColor m_colOutline;
+	double      m_outlineWidthPt;
+	bool        m_bGradient;
+	UT_RGBColor m_colGradFrom;
+	UT_RGBColor m_colGradTo;
+	bool        m_bGradVertical;
+	bool        m_bShadow;
+	UT_RGBColor m_colShadow;
+	double      m_shadowDXpt;
+	double      m_shadowDYpt;
+	bool        m_bReflection;
+};
 
 
 /*!
@@ -689,6 +728,24 @@ class ABI_EXPORT GR_Graphics
 	virtual void prepareToRenderChars(GR_RenderInfo & ri) VIRTUAL_SFX;
 	virtual void renderChars(GR_RenderInfo & ri) VIRTUAL_SFX;
 
+	/*! Optional WordArt-style text effects consulted by
+	 *  renderChars()/drawChars() implementations.  Pass nullptr to
+	 *  clear.  Callers scope the state around the draw of the run
+	 *  the effects belong to. */
+	void setTextEffects(const GR_TextEffects * pEffects)
+	{
+		if (pEffects) {
+			m_textEffects = *pEffects;
+			m_bTextEffects = true;
+		} else {
+			m_bTextEffects = false;
+		}
+	}
+	const GR_TextEffects * getTextEffects() const
+	{
+		return m_bTextEffects ? &m_textEffects : nullptr;
+	}
+
 	virtual void appendRenderedCharsToBuff(GR_RenderInfo & ri, UT_GrowBuf & buf) const VIRTUAL_SFX;
 	virtual void measureRenderedCharWidths(GR_RenderInfo & ri) VIRTUAL_SFX;
 
@@ -886,6 +943,9 @@ class ABI_EXPORT GR_Graphics
 	// Device context switch management
 	bool m_bDoubleBufferingActive;
 	bool m_bDrawingSuspended;
+
+	GR_TextEffects     m_textEffects;
+	bool               m_bTextEffects = false;
 
 	enum DeviceContextSwitchType: uint8_t {
 		SWITCHED_TO_BUFFER = 0,
