@@ -406,7 +406,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				else if (item->kind == AP_RIBBON_ITEM_EQSYMBOLS)
 					w = _makeEquationPalette(false);
 				else if (item->kind == AP_RIBBON_ITEM_EQSTRUCT)
-					w = _makeEquationPalette(true);
+					w = _makeEquationStructures();
 				else if (item->kind == AP_RIBBON_ITEM_SPIN)
 					w = _makeSpinField(item->id);
 				else if (item->kind == AP_RIBBON_ITEM_DEAD)
@@ -486,6 +486,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				 * 3 rows per column, LibreOffice-style */
 				bool bTall = (item->flags & AP_RIBBON_FLAG_LARGE) ||
 					(item->kind == AP_RIBBON_ITEM_STYLEGAL) ||
+					(item->kind == AP_RIBBON_ITEM_EQSTRUCT) ||
 					((item->kind == AP_RIBBON_ITEM_TOOLBAR) &&
 					 (item->id == AP_TOOLBAR_ID_FMT_FONT ||
 					  item->id == AP_TOOLBAR_ID_FMT_SIZE ||
@@ -5718,9 +5719,8 @@ GtkWidget * AP_UnixRibbon::_makeEquationPopover()
 	return popover;
 }
 
-/* symbol palette (bStructures=false) and structure palette
- * (bStructures=true) for the contextual Equation ribbon tab */
-GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool bStructures)
+/* symbol palette for the contextual Equation ribbon tab */
+GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool /*bStructures*/)
 {
 	GtkWidget * grid = gtk_grid_new();
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 1);
@@ -5764,39 +5764,12 @@ GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool bStructures)
 		{ "\xe2\x84\xa4", "\\mathbb{Z}", "Integers" },
 		{ "\xe2\x84\x95", "\\mathbb{N}", "Naturals" },
 	};
-	static const struct { const char * glyph; const char * latex;
-						  const char * tip; } s_str[] =
+	const unsigned nCols = 10;
+	for (unsigned i = 0; i < G_N_ELEMENTS(s_sym); ++i)
 	{
-		{ "a/b", "\\frac{a}{b}", "Fraction" },
-		{ "x\xc2\xb2", "x^{a}", "Superscript" },
-		{ "x\xe2\x82\x82", "x_{a}", "Subscript" },
-		{ "x\xe1\xb5\x87\xe2\x82\x90", "x_{a}^{b}", "Sub and superscript" },
-		{ "\xe2\x88\x9a", "\\sqrt{x}", "Square root" },
-		{ "\xe2\x88\x9b", "\\sqrt[n]{x}", "Nth root" },
-		{ "\xe2\x88\xab", "\\int_{a}^{b}", "Integral" },
-		{ "\xe2\x88\xae", "\\oint", "Contour integral" },
-		{ "\xe2\x88\x91", "\\sum_{i=1}^{n}", "Sum" },
-		{ "\xe2\x88\x8f", "\\prod_{i=1}^{n}", "Product" },
-		{ "lim", "\\lim_{x \\to 0}", "Limit" },
-		{ "(\xe2\x96\xa6)", "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}",
-		  "2x2 matrix" },
-		{ "(\xe2\x81\xbf\xe2\x82\x96)", "\\binom{n}{k}", "Binomial" },
-		{ "v\xe2\x83\x97", "\\vec{v}", "Vector accent" },
-		{ "x\xcc\x82", "\\hat{x}", "Hat accent" },
-		{ "A\xcc\x85" "B\xcc\x85", "\\overline{AB}", "Overline" },
-		{ "(x)", "\\left( x \\right)", "Parentheses" },
-		{ "|x|", "\\left| x \\right|", "Absolute value" },
-		{ "{x", "\\left\\{ x \\right\\}", "Braces" },
-	};
-
-	const unsigned nCols = bStructures ? 9 : 10;
-	unsigned count = bStructures ? G_N_ELEMENTS(s_str)
-								 : G_N_ELEMENTS(s_sym);
-	for (unsigned i = 0; i < count; ++i)
-	{
-		const char * glyph = bStructures ? s_str[i].glyph : s_sym[i].glyph;
-		const char * latex = bStructures ? s_str[i].latex : s_sym[i].latex;
-		const char * tip   = bStructures ? s_str[i].tip   : s_sym[i].tip;
+		const char * glyph = s_sym[i].glyph;
+		const char * latex = s_sym[i].latex;
+		const char * tip   = s_sym[i].tip;
 		GtkWidget * btn = gtk_button_new();
 		GtkWidget * l = gtk_label_new(glyph);
 		gtk_widget_set_size_request(l, 24, 22);
@@ -5812,6 +5785,223 @@ GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool bStructures)
 		gtk_grid_attach(GTK_GRID(grid), btn, i % nCols, i / nCols, 1, 1);
 	}
 	return grid;
+}
+
+/* ---- Equation tab: Structures group ------------------------------
+ * Word's Equation → Structures: large icon-over-caption dropdown
+ * buttons (Fraction, Script, Radical, Integral, Large Operator,
+ * Bracket, Function, Accent, Limit and Log, Operator, Matrix), each
+ * opening a gallery of typeset templates.  A template click appends
+ * its LaTeX snippet to the current equation through
+ * equationInsertSymbol. */
+
+struct _EqStructItem { const char * latex; const char * tip; };
+
+static const _EqStructItem s_eq_frac[] = {
+	{ "\\frac{a}{b}", "Stacked Fraction" },
+	{ "\\dfrac{a}{b}", "Large Fraction" },
+	{ "\\frac{dy}{dx}", "dy/dx" },
+	{ "\\frac{\\Delta y}{\\Delta x}", "\xce\x94y/\xce\x94x" },
+	{ "\\frac{\\partial y}{\\partial x}", "Partial derivative" },
+	{ "\\frac{\\pi}{2}", "\xcf\x80/2" },
+};
+
+static const _EqStructItem s_eq_script[] = {
+	{ "x^{a}", "Superscript" },
+	{ "x_{a}", "Subscript" },
+	{ "x_{a}^{b}", "Sub and superscript" },
+	{ "{}_{a}^{b}x", "Prescript" },
+	{ "e^{x}", "e to the x" },
+	{ "x^{2}", "x squared" },
+	{ "e^{-i\\pi}", "e^{-i\xcf\x80}" },
+};
+
+static const _EqStructItem s_eq_rad[] = {
+	{ "\\sqrt{x}", "Square root" },
+	{ "\\sqrt[n]{x}", "Nth root" },
+	{ "\\sqrt[3]{x}", "Cube root" },
+	{ "\\sqrt{a+b}", "Square root (a+b)" },
+	{ "\\sqrt{\\frac{a}{b}}", "Square root (a/b)" },
+	{ "\\sqrt{x^{2}+y^{2}}", "Square root (x\xb2+y\xb2)" },
+};
+
+static const _EqStructItem s_eq_int[] = {
+	{ "\\int", "Integral" },
+	{ "\\int_{a}^{b}", "Integral with limits" },
+	{ "\\iint", "Double integral" },
+	{ "\\iiint", "Triple integral" },
+	{ "\\oint", "Contour integral" },
+	{ "\\int_{a}^{b} f(x) \\, dx", "Integral of f(x)" },
+};
+
+static const _EqStructItem s_eq_bigop[] = {
+	{ "\\sum", "Sum" },
+	{ "\\sum_{i=1}^{n}", "Sum with limits" },
+	{ "\\prod", "Product" },
+	{ "\\prod_{i=1}^{n}", "Product with limits" },
+	{ "\\coprod", "Coproduct" },
+	{ "\\bigcup", "Union" },
+	{ "\\bigcap", "Intersection" },
+	{ "\\bigoplus", "Direct sum" },
+	{ "\\bigotimes", "Tensor product" },
+	{ "\\bigodot", "Circle dot" },
+	{ "\\bigvee", "Logical or" },
+	{ "\\bigwedge", "Logical and" },
+};
+
+static const _EqStructItem s_eq_bracket[] = {
+	{ "\\left( x \\right)", "Parentheses" },
+	{ "\\left[ x \\right]", "Square brackets" },
+	{ "\\left\\{ x \\right\\}", "Braces" },
+	{ "\\left| x \\right|", "Absolute value" },
+	{ "\\left\\| x \\right\\|", "Norm" },
+	{ "\\left\\lfloor x \\right\\rfloor", "Floor" },
+	{ "\\left\\lceil x \\right\\rceil", "Ceiling" },
+	{ "\\left\\langle x \\right\\rangle", "Angle brackets" },
+	{ "\\begin{cases} a & p \\\\ b & q \\end{cases}", "Cases" },
+};
+
+static const _EqStructItem s_eq_func[] = {
+	{ "\\sin x", "Sine" }, { "\\cos x", "Cosine" },
+	{ "\\tan x", "Tangent" }, { "\\sec x", "Secant" },
+	{ "\\csc x", "Cosecant" }, { "\\cot x", "Cotangent" },
+	{ "\\sin^{-1} x", "Inverse sine" }, { "\\arctan x", "Arctangent" },
+	{ "\\sinh x", "Sinh" }, { "\\cosh x", "Cosh" },
+	{ "\\ln x", "Natural log" }, { "\\log_{2} x", "Log base 2" },
+};
+
+static const _EqStructItem s_eq_accent[] = {
+	{ "\\hat{x}", "Hat" }, { "\\check{x}", "Check" },
+	{ "\\tilde{x}", "Tilde" }, { "\\acute{x}", "Acute" },
+	{ "\\grave{x}", "Grave" }, { "\\dot{x}", "Dot" },
+	{ "\\ddot{x}", "Double dot" }, { "\\breve{x}", "Breve" },
+	{ "\\bar{x}", "Bar" }, { "\\vec{x}", "Vector" },
+	{ "\\overline{AB}", "Overline" }, { "\\underline{x}", "Underline" },
+};
+
+static const _EqStructItem s_eq_limlog[] = {
+	{ "\\lim_{x \\to 0}", "Limit" },
+	{ "\\lim_{x \\to \\infty}", "Limit to infinity" },
+	{ "\\liminf", "Limit inferior" }, { "\\limsup", "Limit superior" },
+	{ "\\min", "Minimum" }, { "\\max", "Maximum" },
+	{ "\\log x", "Log" }, { "\\ln x", "Natural log" },
+	{ "\\log_{b} x", "Log base b" },
+};
+
+static const _EqStructItem s_eq_oper[] = {
+	{ "\\det", "Determinant" }, { "\\gcd", "Greatest common divisor" },
+	{ "\\ker", "Kernel" }, { "\\arg", "Argument" },
+	{ "\\hom", "Homomorphism" }, { "\\dim", "Dimension" },
+	{ "\\deg", "Degree" }, { "\\Pr", "Probability" },
+	{ "\\inf", "Infimum" }, { "\\sup", "Supremum" },
+};
+
+static const _EqStructItem s_eq_matrix[] = {
+	{ "\\begin{matrix} a & b \\\\ c & d \\end{matrix}", "Empty matrix" },
+	{ "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}", "Parentheses matrix" },
+	{ "\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}", "Square-bracket matrix" },
+	{ "\\begin{Bmatrix} a & b \\\\ c & d \\end{Bmatrix}", "Brace matrix" },
+	{ "\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}", "Determinant" },
+	{ "\\begin{Vmatrix} a & b \\\\ c & d \\end{Vmatrix}", "Double-bar matrix" },
+	{ "\\begin{pmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{pmatrix}",
+	  "Identity 3\xd7""3" },
+	{ "\\begin{cases} a & p \\\\ b & q \\end{cases}", "Cases" },
+};
+
+/* one large dropdown: typeset icon over caption + gallery popover */
+GtkWidget * AP_UnixRibbon::_eqStructDrop(const char * szIconLatex,
+										 const char * szCaption,
+										 const void * itemsV, unsigned n)
+{
+	const _EqStructItem * items =
+		static_cast<const _EqStructItem *>(itemsV);
+
+	GtkWidget * popover = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(box, 6);
+	gtk_widget_set_margin_bottom(box, 6);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
+
+	GtkWidget * cap = gtk_label_new(nullptr);
+	std::string m = std::string("<b>") + szCaption + "</b>";
+	gtk_label_set_markup(GTK_LABEL(cap), m.c_str());
+	gtk_widget_set_halign(cap, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), cap);
+
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+	gtk_box_append(GTK_BOX(box), grid);
+	for (unsigned i = 0; i < n; ++i)
+	{
+		GtkWidget * btn = gtk_button_new();
+		gtk_button_set_child(GTK_BUTTON(btn),
+							 _equationPreview(items[i].latex, 52, 34));
+		gtk_widget_add_css_class(btn, "flat");
+		gtk_widget_set_tooltip_text(btn, items[i].tip);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup("equationInsertSymbol"), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(items[i].latex), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		gtk_grid_attach(GTK_GRID(grid), btn, i % 4, i / 4, 1, 1);
+	}
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+
+	GtkWidget * mb = gtk_menu_button_new();
+	GtkWidget * vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+	GtkWidget * icon = _equationPreview(szIconLatex, 22, 16);
+	gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(vbox), icon);
+	GtkWidget * wl = gtk_label_new(szCaption);
+	gtk_label_set_justify(GTK_LABEL(wl), GTK_JUSTIFY_CENTER);
+	gtk_label_set_lines(GTK_LABEL(wl), 2);
+	gtk_label_set_max_width_chars(GTK_LABEL(wl), 8);
+	gtk_box_append(GTK_BOX(vbox), wl);
+	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), vbox);
+	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
+	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
+	_slim_widget_tree(mb);
+	return mb;
+}
+
+GtkWidget * AP_UnixRibbon::_makeEquationStructures()
+{
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	static const struct { const char * icon; const char * caption;
+						  const _EqStructItem * items; unsigned n; } s_cat[] =
+	{
+		{ "\\frac{a}{b}", "Fraction",
+		  s_eq_frac, G_N_ELEMENTS(s_eq_frac) },
+		{ "e^{x}", "Script",
+		  s_eq_script, G_N_ELEMENTS(s_eq_script) },
+		{ "\\sqrt{x}", "Radical",
+		  s_eq_rad, G_N_ELEMENTS(s_eq_rad) },
+		{ "\\int_{a}^{b}", "Integral",
+		  s_eq_int, G_N_ELEMENTS(s_eq_int) },
+		{ "\\sum_{i=0}^{n}", "Large\nOperator",
+		  s_eq_bigop, G_N_ELEMENTS(s_eq_bigop) },
+		{ "\\left( x \\right)", "Bracket",
+		  s_eq_bracket, G_N_ELEMENTS(s_eq_bracket) },
+		{ "\\sin \\theta", "Function",
+		  s_eq_func, G_N_ELEMENTS(s_eq_func) },
+		{ "\\hat{x}", "Accent",
+		  s_eq_accent, G_N_ELEMENTS(s_eq_accent) },
+		{ "\\lim_{x \\to a}", "Limit and\nLog",
+		  s_eq_limlog, G_N_ELEMENTS(s_eq_limlog) },
+		{ "\\det", "Operator",
+		  s_eq_oper, G_N_ELEMENTS(s_eq_oper) },
+		{ "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}", "Matrix",
+		  s_eq_matrix, G_N_ELEMENTS(s_eq_matrix) },
+	};
+	for (unsigned i = 0; i < G_N_ELEMENTS(s_cat); ++i)
+		gtk_box_append(GTK_BOX(box),
+					   _eqStructDrop(s_cat[i].icon, s_cat[i].caption,
+									 s_cat[i].items, s_cat[i].n));
+	return box;
 }
 
 /* Word's Text Box dropdown */

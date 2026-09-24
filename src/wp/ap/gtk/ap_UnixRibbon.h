@@ -118,6 +118,10 @@ private:
 	GtkWidget *		_makeWordArtPopover();
 	GtkWidget *		_makeEquationPopover();
 	GtkWidget *		_makeEquationPalette(bool bStructures);
+	GtkWidget *		_makeEquationStructures();
+	GtkWidget *		_eqStructDrop(const char * szIconLatex,
+								  const char * szCaption,
+								  const void * items, unsigned n);
 	GtkWidget *		_equationPreview(const char * szLatex, int w, int h);
 	GtkWidget *		_makeTextBoxPopover();
 	GtkWidget *		_makeObjectPopover();
