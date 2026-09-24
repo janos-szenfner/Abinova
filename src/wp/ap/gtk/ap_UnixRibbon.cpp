@@ -5764,15 +5764,20 @@ GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool /*bStructures*/)
 		{ "\xe2\x84\xa4", "\\mathbb{Z}", "Integers" },
 		{ "\xe2\x84\x95", "\\mathbb{N}", "Naturals" },
 	};
-	const unsigned nCols = 10;
+	/* Word's symbols strip: two rows of larger glyphs that scroll
+	 * horizontally when they overflow the ribbon width */
 	for (unsigned i = 0; i < G_N_ELEMENTS(s_sym); ++i)
 	{
 		const char * glyph = s_sym[i].glyph;
 		const char * latex = s_sym[i].latex;
 		const char * tip   = s_sym[i].tip;
 		GtkWidget * btn = gtk_button_new();
-		GtkWidget * l = gtk_label_new(glyph);
-		gtk_widget_set_size_request(l, 24, 22);
+		GtkWidget * l = gtk_label_new(nullptr);
+		char * markup = g_markup_printf_escaped(
+			"<span size='larger'>%s</span>", glyph);
+		gtk_label_set_markup(GTK_LABEL(l), markup);
+		g_free(markup);
+		gtk_widget_set_size_request(l, 30, 30);
 		gtk_button_set_child(GTK_BUTTON(btn), l);
 		gtk_widget_add_css_class(btn, "flat");
 		gtk_widget_set_tooltip_text(btn, tip);
@@ -5782,9 +5787,27 @@ GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool /*bStructures*/)
 							   g_strdup(latex), g_free);
 		g_signal_connect(btn, "clicked",
 						 G_CALLBACK(_s_popover_em_clicked), this);
-		gtk_grid_attach(GTK_GRID(grid), btn, i % nCols, i / nCols, 1, 1);
+		gtk_grid_attach(GTK_GRID(grid), btn, i / 2, i % 2, 1, 1);
 	}
-	return grid;
+
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
+	gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
+	/* real scrollbar trough instead of GTK's auto-hiding overlay */
+	gtk_scrolled_window_set_overlay_scrolling(
+		GTK_SCROLLED_WINDOW(sw), FALSE);
+	gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), 68);
+	/* cap the natural width so the Structures group stays on-screen;
+	 * the strip scrolls horizontally for the rest */
+	gtk_scrolled_window_set_propagate_natural_width(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+	gtk_scrolled_window_set_max_content_width(
+		GTK_SCROLLED_WINDOW(sw), 470);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), grid);
+	gtk_widget_set_hexpand(sw, TRUE);
+	gtk_widget_set_vexpand(sw, TRUE);
+	return sw;
 }
 
 /* ---- Equation tab: Structures group ------------------------------

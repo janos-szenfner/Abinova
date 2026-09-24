@@ -888,6 +888,22 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_Selection)
 	return s;
 }
 
+/* enabled while the caret sits in an equation (Equation ribbon tab) */
+Defun_EV_GetMenuItemState_Fn(ap_GetState_InMath)
+{
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+
+	switch(id)
+	{
+	case AP_MENU_ID_EDIT_LATEXEQUATION:
+		return pView->isInMath() ? EV_MIS_ZERO : EV_MIS_Gray;
+	default:
+		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+		return EV_MIS_ZERO;
+	}
+}
+
 Defun_EV_GetMenuItemState_Fn(ap_GetState_Clipboard)
 {
 	ABIWORD_VIEW;

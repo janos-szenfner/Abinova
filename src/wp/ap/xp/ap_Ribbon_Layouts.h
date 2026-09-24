@@ -646,6 +646,7 @@ static const AP_RibbonGroup s_ribbon_table_groups[] =
 static const AP_RibbonItem s_ribbon_equation_eq[] =
 {
 	AP_RIBBON_MENUPOP_LS(AP_MENU_ID_INSERT_EQUATION),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_EDIT_LATEXEQUATION),
 	AP_RIBBON_MENU_LS(AP_MENU_ID_EQUATION_DISPLAY),
 	AP_RIBBON_END
 };

@@ -5733,14 +5733,22 @@ Defun(selectTOC)
 }
 
 
+static PT_DocPosition s_mathObjectAt(FV_View * pView, PT_DocPosition pos,
+                                     fp_MathRun ** ppRun);
+
 Defun(editLatexAtPos)
 {
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_DEBUGMSG(("Edit Math at Pos\n"));
 	UT_return_val_if_fail (pView, false);
-        PT_DocPosition pos = pView->getDocPositionFromLastXY();
-        return dlgEditLatexEquation(pAV_View, pCallData, true,pos);
+	/* prefer the math object under the last click (context menu);
+	 * ribbon/menu invocations fall back to the equation at the caret */
+	PT_DocPosition pos = s_mathObjectAt(pView,
+		pView->getDocPositionFromLastXY(), nullptr);
+	if (!pos)
+		pos = s_mathObjectAt(pView, pView->getPoint(), nullptr);
+	return dlgEditLatexEquation(pAV_View, pCallData, true, pos);
 }
 
 
