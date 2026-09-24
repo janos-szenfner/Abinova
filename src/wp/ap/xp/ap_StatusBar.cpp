@@ -313,6 +313,7 @@ class ABI_EXPORT ap_sbf_WordCount : public AP_StatusBarField_TextInfo
 {
 public:
     ap_sbf_WordCount(AP_StatusBar * pSB);
+    virtual ~ap_sbf_WordCount() override;
 
     virtual void notify(AV_View * pView, const AV_ChangeMask mask) override;
 
@@ -330,6 +331,11 @@ ap_sbf_WordCount::ap_sbf_WordCount(AP_StatusBar * pSB)
     m_alignmentMethod = LEFT;
     m_sRepresentativeString = UT_std_string_sprintf(m_szFormat, 8888888, 88888888);
     m_sBuf = UT_std_string_sprintf(m_szFormat, 0, 0);
+}
+
+ap_sbf_WordCount::~ap_sbf_WordCount()
+{
+    g_free(m_szFormat);
 }
 
 void ap_sbf_WordCount::notify(AV_View * pavView, const AV_ChangeMask mask)
