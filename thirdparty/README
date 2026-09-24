@@ -10,7 +10,7 @@ linked statically into the plugin .so that needs it.
                      used by libwpd, libwpg, libwps
   libwpd-0.10.3      WordPerfect document import (LGPL-2.1+/MPL-2.0)
                      used by the wordperfect plugin
-  libwps-0.4.11      MS Works document import (LGPL-2.1+/MPL-2.0)
+  libwps-0.4.14      MS Works document import (LGPL-2.1+/MPL-2.0)
                      used by the wordperfect plugin (HAVE_LIBWPS)
   libwpg-0.3.4       WordPerfect Graphics import (LGPL-2.1+/MPL-2.0)
                      used by the wpg plugin
