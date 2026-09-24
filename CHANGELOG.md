@@ -37,6 +37,20 @@ below are on `main` but the release has not been cut yet.
   libgcrypt dependency.
 - **Built-in RDF metadata** — SAX-based `ODi_RDFParser` importer and
   `toRDFXML` serializer; `manifest.rdf` round-trips, no libredland.
+- **Equation LaTeX source round-trips through ODF** — the ODF
+  exporter now writes each equation's LaTeX source and
+  `display:inline|block` mode as foreign-namespaced
+  `abiword:latex-source`/`abiword:display` attributes on
+  `<draw:object>` (self-declared `xmlns:abiword`); the importer
+  restores them verbatim, so the original source survives
+  `.abw`→`.odt`→`.abw` instead of being re-derived from MathML.
+- **Reserved `.abw` schema sections** — `<changes>`
+  (change-tracking metadata), `<masterpages>` (page-layout
+  templates) and `<notes>` (presentation notes) are now part of the
+  file format as placeholders for planned features: the importer
+  stores each child element verbatim (name, attributes, text) and
+  the exporter re-emits it, so the data survives a load/save round
+  trip even before the features exist.
 - **Built-in Markdown import/export** — `.md`/`.markdown`/`.mdown`/
   `.mkd`/`.mkdn`, CommonMark + Zettlr compendium: ATX/setext headings,
   emphasis/strong/strike/code, links, autolinks, images, nested

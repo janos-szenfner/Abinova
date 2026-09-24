@@ -94,6 +94,12 @@ private:
     UT_ByteBufPtr m_pMathBB;
     bool m_bInMath;
 
+    // abiword: namespaced attributes carried on <draw:object> by our
+    // own ODF export - the equation's LaTeX source and display mode,
+    // which ODF's MathML payload alone does not represent
+    std::string m_sPendingLatexSource;
+    std::string m_sPendingDisplay;
+
 	bool m_bInlineImagePending;
 	bool m_bPositionedImagePending;
 	std::string m_sAltTitle;

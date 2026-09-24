@@ -256,6 +256,24 @@ typedef std::shared_ptr<PD_XMLIDCreator> PD_XMLIDCreatorHandle;
  PD_Document is the representation for a document.
 */
 
+/*! Reserved .abw schema sections (file-format placeholders).
+ *
+ *  Top-level sections whose payloads are reserved for features that
+ *  are planned but not yet implemented: <changes> (change-tracking
+ *  metadata), <masterpages> (master-page layouts) and <notes>
+ *  (presentation notes).  The importer stores each child element
+ *  verbatim - element name, attributes and text content - and the
+ *  exporter re-emits them, so the data survives a load/save round
+ *  trip even though no feature consumes it yet.  Older AbiWord
+ *  releases ignore these sections; nothing else references them. */
+struct ABI_EXPORT PD_ReservedItem
+{
+	std::string		section;	// "changes", "masterpages", "notes"
+	std::string		name;		// element name, e.g. "change"
+	PP_PropertyVector	atts;		// attribute name/value pairs
+	std::string		text;		// text content, may be empty
+};
+
 class ABI_EXPORT PD_Document : public AD_Document
 {
 public:
@@ -726,6 +744,16 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 		return m_metaDataMap ;
 	}
 
+	/* reserved schema sections - see PD_ReservedItem */
+	void appendReservedItem (const PD_ReservedItem & item)
+	{
+		m_vecReservedItems.push_back(item);
+	}
+	const std::vector<PD_ReservedItem> & getReservedItems () const
+	{
+		return m_vecReservedItems;
+	}
+
 	// document-level property handling functions
 	const PP_AttrProp *     getAttrProp() const;
 	PT_AttrPropIndex        getAttrPropIndex() const {return m_indexAP;}
@@ -910,6 +938,7 @@ private:
 	std::vector<std::string> m_vBookmarkNames;
 	bool                    m_bLockedStyles;
 	std::map<std::string, std::string> m_metaDataMap;
+	std::vector<PD_ReservedItem> m_vecReservedItems;
 	PT_AttrPropIndex        m_indexAP;
 	bool                    m_bDontImmediatelyLayout;
 

@@ -256,7 +256,15 @@ IE_Imp_AbiWord_1::IE_Imp_AbiWord_1(PD_Document * pDocument)
 #define TT_ANNOTATE        40 //<annotate> Annotation content
 #define TT_RDFBLOCK        41 //<rdf> complete block
 #define TT_RDFTRIPLE       42 //<t> but only within an <rdf> block
-#define TT_TEXTMETA        43 //<textmeta> 
+#define TT_TEXTMETA        43 //<textmeta>
+/* reserved schema sections - placeholders for planned features,
+ * imported verbatim so the data survives a load/save round trip */
+#define TT_CHANGESEC       44 //<changes> change-tracking metadata
+#define TT_CHANGE          45 //<change>
+#define TT_MASTERSEC       46 //<masterpages> master-page layouts
+#define TT_MASTERPAGE      47 //<masterpage>
+#define TT_NOTESEC         48 //<notes> presentation notes
+#define TT_NOTE            49 //<note>
 
 
 /*
@@ -290,6 +298,8 @@ static struct xmlToIdMapping s_Tokens[] =
 	{	"c",			TT_INLINE		},
 	{	"cbr",			TT_COLBREAK		},
 	{	"cell",		    TT_CELL		    },
+	{	"change",		TT_CHANGE		},
+	{	"changes",		TT_CHANGESEC	},
 	{	"d",			TT_DATAITEM		},
 	{	"data",			TT_DATASECTION	},
 	{   "embed",      TT_EMBED      },
@@ -307,8 +317,12 @@ static struct xmlToIdMapping s_Tokens[] =
 	{	"lists",		TT_LISTSECTION	},
 	{       "m",        TT_META         },
 	{	"margin",		TT_MARGINNOTE	},
+	{	"masterpage",	TT_MASTERPAGE	},
+	{	"masterpages",	TT_MASTERSEC	},
 	{	"math",		    TT_MATH     	},
 	{       "metadata", TT_METADATA     },
+	{	"note",			TT_NOTE			},
+	{	"notes",		TT_NOTESEC		},
 	{	"p",			TT_BLOCK		},
 	{   "pagesize",     TT_PAGESIZE     },
 	{	"pbr",			TT_PAGEBREAK	},
@@ -680,6 +694,44 @@ void IE_Imp_AbiWord_1::startElement(const gchar *name,
 		m_parseState = _PS_DataSec;
 		// We don't need to notify the piece table of the data section,
 		// it will get the hint when we begin sending data items.
+		return;
+
+	case TT_CHANGESEC:
+		X_VerifyParseState(_PS_Doc);
+		m_parseState = _PS_ChangeSec;
+		return;
+
+	case TT_MASTERSEC:
+		X_VerifyParseState(_PS_Doc);
+		m_parseState = _PS_MasterSec;
+		return;
+
+	case TT_NOTESEC:
+		X_VerifyParseState(_PS_Doc);
+		m_parseState = _PS_NoteSec;
+		return;
+
+	case TT_CHANGE:
+		X_VerifyParseState(_PS_ChangeSec);
+		m_reservedSecState = _PS_ChangeSec;
+		m_sReservedSection = "changes";
+		goto reservedItem;
+	case TT_MASTERPAGE:
+		X_VerifyParseState(_PS_MasterSec);
+		m_reservedSecState = _PS_MasterSec;
+		m_sReservedSection = "masterpages";
+		goto reservedItem;
+	case TT_NOTE:
+		X_VerifyParseState(_PS_NoteSec);
+		m_reservedSecState = _PS_NoteSec;
+		m_sReservedSection = "notes";
+		goto reservedItem;
+
+	reservedItem:
+		m_sReservedItemName = name;
+		m_vecReservedAtts = atts;
+		m_sReservedText.clear();
+		m_parseState = _PS_ReservedItem;
 		return;
 
 	case TT_DATAITEM:
@@ -1188,6 +1240,36 @@ void IE_Imp_AbiWord_1::endElement(const gchar *name)
 		m_parseState = _PS_Doc;
 		return;
 
+	case TT_CHANGESEC:
+		X_VerifyParseState(_PS_ChangeSec);
+		m_parseState = _PS_Doc;
+		return;
+
+	case TT_MASTERSEC:
+		X_VerifyParseState(_PS_MasterSec);
+		m_parseState = _PS_Doc;
+		return;
+
+	case TT_NOTESEC:
+		X_VerifyParseState(_PS_NoteSec);
+		m_parseState = _PS_Doc;
+		return;
+
+	case TT_CHANGE:
+	case TT_MASTERPAGE:
+	case TT_NOTE:
+		X_VerifyParseState(_PS_ReservedItem);
+		{
+			PD_ReservedItem item;
+			item.section = m_sReservedSection;
+			item.name    = m_sReservedItemName;
+			item.atts    = m_vecReservedAtts;
+			item.text    = m_sReservedText;
+			getDoc()->appendReservedItem(item);
+		}
+		m_parseState = m_reservedSecState;
+		return;
+
 	case TT_DATAITEM:
 		X_VerifyParseState(_PS_DataItem);
 		m_parseState = _PS_DataSec;
@@ -1343,6 +1425,18 @@ void IE_Imp_AbiWord_1::endElement(const gchar *name)
 		UT_DEBUGMSG(("Unknown end tag [%s]\n",name));
 		return;
 	}
+}
+
+void IE_Imp_AbiWord_1::charData(const gchar * buffer, int length)
+{
+	/* text inside a reserved-section item (<change>, <masterpage>,
+	 * <note>) belongs to the verbatim record, not the document */
+	if (m_parseState == _PS_ReservedItem && buffer && length > 0)
+	{
+		m_sReservedText.append(buffer, length);
+		return;
+	}
+	IE_Imp_XML::charData(buffer, length);
 }
 
 /*****************************************************************/

@@ -1380,12 +1380,49 @@ void ODe_AbiDocListener::_insertMath(PT_AttrPropIndex api) {
         dimension.clear();
         UT_UTF8String_sprintf(dimension,"%fin",dInch);
         output += dimension;
-        output += "\"><draw:object>";
     } else {
         UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
         _closeSpan();
         return;
     }
+
+    /* .abw keeps the equation's LaTeX source in a "latexid" data item
+     * plus an inline/block "display" property; carry both across as
+     * foreign-namespaced attributes so an AbiWord round-trip does not
+     * lose them (ODF consumers may safely ignore foreign attributes) */
+    const gchar* szLatexId = nullptr;
+    UT_UTF8String sLatexEsc;
+    if (pAP->getAttribute("latexid", szLatexId) && szLatexId && *szLatexId)
+    {
+        UT_ConstByteBufPtr pLatexBuf;
+        if (m_pDocument->getDataItemDataByName(szLatexId, pLatexBuf,
+                                               nullptr, nullptr))
+        {
+            sLatexEsc.appendBuf(pLatexBuf, myWC);
+            sLatexEsc.escapeXML();
+        }
+    }
+    const gchar* szDisplay = nullptr;
+    pAP->getProperty("display", szDisplay);
+
+    output += "\"><draw:object";
+    if (!sLatexEsc.empty() || (szDisplay && *szDisplay))
+    {
+        output += " xmlns:abiword=\"http://www.abisource.com/namespace/abiword/1.0\"";
+        if (!sLatexEsc.empty())
+        {
+            output += " abiword:latex-source=\"";
+            output += sLatexEsc.utf8_str();
+            output += "\"";
+        }
+        if (szDisplay && *szDisplay)
+        {
+            output += " abiword:display=\"";
+            output += szDisplay;
+            output += "\"";
+        }
+    }
+    output += ">";
 
     for (UT_uint32 i = 0; i < buf.length(); i++) {
         if (buf[i] == '<') {

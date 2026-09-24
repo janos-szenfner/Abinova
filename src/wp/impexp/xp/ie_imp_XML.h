@@ -138,6 +138,13 @@ protected:
 				   _PS_Version,
 				   _PS_RDFTriple,
 				   _PS_RDFData,
+				   /* reserved .abw schema sections - placeholder
+				    * containers whose child elements are stored
+				    * verbatim in PD_ReservedItem records */
+				   _PS_ChangeSec,
+				   _PS_MasterSec,
+				   _PS_NoteSec,
+				   _PS_ReservedItem,
     };
 
  protected:

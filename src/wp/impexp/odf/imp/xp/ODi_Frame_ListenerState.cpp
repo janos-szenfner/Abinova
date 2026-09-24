@@ -115,6 +115,16 @@ void ODi_Frame_ListenerState::startElement (const gchar* pName,
             _drawTextBox(ppAtts, rAction);
         }
     } else if (!strcmp(pName, "draw:object")) {
+      /* our own ODF export stores the equation's LaTeX source and
+       * display mode as abiword:* attributes on <draw:object>; stash
+       * them so the math:math endElement can restore them verbatim
+       * instead of relying solely on the MathML->LaTeX conversion */
+      const gchar* pLatexSrc =
+          UT_getAttribute("abiword:latex-source", ppAtts);
+      m_sPendingLatexSource = pLatexSrc ? pLatexSrc : "";
+      const gchar* pDisplay =
+          UT_getAttribute("abiword:display", ppAtts);
+      m_sPendingDisplay = pDisplay ? pDisplay : "";
       _drawObject(ppAtts, rAction);
 
     } else if (!strcmp(pName, "math:math")) {
@@ -231,19 +241,33 @@ void ODi_Frame_ListenerState::endElement (const gchar* pName,
 
 	    m_pAbiDocument->createDataItem(sID.c_str(), false, m_pMathBB, "", nullptr);
 
-	    if(convertMathMLtoLaTeX(PMathml, PLatex) && convertLaTeXtoEqn(PLatex,Pitex))
+	    if (!m_sPendingLatexSource.empty())
+	    {
+		// ODF round-trip: abiword:latex-source preserved the
+		// equation's own LaTeX - use it verbatim
+		latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(m_sPendingLatexSource.c_str()), static_cast<UT_uint32>(m_sPendingLatexSource.size()));
+		m_pAbiDocument->createDataItem(lID.c_str(), false, latexBuf, "", nullptr);
+	    }
+	    else if(convertMathMLtoLaTeX(PMathml, PLatex) && convertLaTeXtoEqn(PLatex,Pitex))
  	    {
 		// Conversion of MathML to LaTeX and the Equation Form suceeds
 		latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(Pitex.utf8_str()), static_cast<UT_uint32>(Pitex.size()));
 		m_pAbiDocument->createDataItem(lID.c_str(), false, latexBuf, "", nullptr);
     	    }
 
-            const PP_PropertyVector atts = {
+            PP_PropertyVector atts = {
 				PT_IMAGE_DATAID, sID,
 				"latexid", lID
 			};
+	    if (!m_sPendingDisplay.empty())
+	    {
+		atts.push_back("props");
+		atts.push_back(std::string("display:") + m_sPendingDisplay);
+	    }
             m_pAbiDocument->appendObject(PTO_Math, atts);
 
+	    m_sPendingLatexSource.clear();
+	    m_sPendingDisplay.clear();
             m_pMathBB.reset();
         }
 

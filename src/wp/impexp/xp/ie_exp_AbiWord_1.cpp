@@ -195,6 +195,7 @@ protected:
 	void                _handleRevisions(void);
 	void                _handleHistory(void);
 	void                _handleAuthors(void);
+	void                _handleReservedSections(void);
 
 	PD_Document *		m_pDocument;
 	IE_Exp_AbiWord_1 *	m_pie;
@@ -554,6 +555,7 @@ s_AbiWord_1_Listener::s_AbiWord_1_Listener(PD_Document * pDocument,
 	_handlePageSize();
 	if(m_pDocument->isExportAuthorAtts())
 		_handleAuthors();
+	_handleReservedSections();
 }
 
 s_AbiWord_1_Listener::~s_AbiWord_1_Listener()
@@ -1523,5 +1525,45 @@ void s_AbiWord_1_Listener::_handleAuthors(void)
 		m_pie->endElement();
 	}
 	m_pie->endElement();
+}
+
+/*! Re-emit the reserved schema sections (<changes>, <masterpages>,
+ * <notes>) that were loaded verbatim by the importer.  These are
+ * placeholders for planned features (change-tracking metadata,
+ * master-page layouts, presentation notes); writing them back keeps
+ * the data alive across a load/save round trip so the file format is
+ * already able to carry them once the features land. */
+void s_AbiWord_1_Listener::_handleReservedSections(void)
+{
+	if (m_pie->isCopying())
+		return;
+
+	const std::vector<PD_ReservedItem> & items =
+		m_pDocument->getReservedItems();
+	if (items.empty())
+		return;
+
+	std::string sOpenSection;
+	for (const PD_ReservedItem & item : items)
+	{
+		if (item.section != sOpenSection)
+		{
+			if (!sOpenSection.empty())
+				m_pie->endElement();
+			m_pie->startElement(item.section.c_str());
+			sOpenSection = item.section;
+		}
+
+		m_pie->startElement(item.name.c_str());
+		/* atts is a flat name/value list, already XML-decoded;
+		 * addString re-escapes on the way out */
+		for (size_t k = 0; k + 1 < item.atts.size(); k += 2)
+			m_pie->addString(item.atts[k].c_str(), item.atts[k + 1]);
+		if (!item.text.empty())
+			m_pie->addString(nullptr, item.text);
+		m_pie->endElement();
+	}
+	if (!sOpenSection.empty())
+		m_pie->endElement();
 }
 

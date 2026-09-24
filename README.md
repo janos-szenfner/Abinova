@@ -892,6 +892,16 @@ versions ignore them safely, and this build reads every older
   the References ribbon.
 - **`annotation-resolved`** — resolved/unresolved state for
   comments.
+- **Reserved top-level sections** — `<changes>` (change-tracking
+  metadata: `<change id author type target timestamp props>`),
+  `<masterpages>` (page-layout templates: `<masterpage name props
+  header footer>`) and `<notes>` (presentation notes: `<note id
+  target author props>`). No feature consumes them yet; they are
+  schema placeholders so the format is ready when change tracking,
+  master pages and notes land. The importer stores each child
+  element verbatim (name, attributes, text) and the exporter
+  re-emits it, so the data survives a load/save round trip
+  untouched.
 
 ### Comparison with ODF coverage
 
@@ -905,13 +915,22 @@ Divergences to be aware of:
 - `.abw`-only features: nested annotation anchors (ODF
   `office:annotation` spans cannot overlap), the `frame-*`
   arrangement properties (group/z-order/hidden/name beyond what
-  `draw:frame` attributes carry), WordArt `text-*` effects
-  (no `style:text-properties` equivalent) and equation
-  LaTeX-source items (ODF keeps only the MathML). These are
-  dropped or flattened on `.odt` export.
+  `draw:frame` attributes carry) and WordArt `text-*` effects
+  (no `style:text-properties` equivalent). These are dropped or
+  flattened on `.odt` export.
+- Equation LaTeX source **does** round-trip through ODF: the
+  exporter writes it (plus the `display:inline|block` mode) as
+  foreign-namespaced `abiword:latex-source`/`abiword:display`
+  attributes on `<draw:object>`, declared on the element itself
+  (`xmlns:abiword="http://www.abisource.com/namespace/abiword/1.0"`).
+  Conforming ODF consumers ignore foreign attributes; this build
+  reads them back on import and restores the original source and
+  mode instead of relying on MathML→LaTeX conversion alone.
 - ODF-only features — change-tracking metadata, master-page
-  layouts, presentation notes — are normalized on import rather
-  than preserved verbatim in `.abw`.
+  layouts, presentation notes — now have reserved `.abw` schema
+  sections (`<changes>`, `<masterpages>`, `<notes>`) that are
+  preserved verbatim on a load/save round trip even though no
+  feature consumes them yet.
 
 ## Per-commit modification log
 

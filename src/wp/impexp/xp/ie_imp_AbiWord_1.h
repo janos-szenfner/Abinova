@@ -68,6 +68,7 @@ public:
 
     virtual void startElement(const gchar *name, const gchar **atts) override;
     virtual void endElement(const gchar *name) override;
+    virtual void charData(const gchar * buffer, int length) override;
 
     virtual bool supportsLoadStylesOnly() override {return true;}
 
@@ -93,4 +94,12 @@ protected:
 	bool                m_bInMath;
 	bool                m_bInEmbed;
 	UT_uint32           m_iImageId;
+
+	/* reserved-section placeholders (<changes>, <masterpages>,
+	 * <notes>): the child element currently being recorded */
+	std::string			m_sReservedSection;
+	std::string			m_sReservedItemName;
+	PP_PropertyVector	m_vecReservedAtts;
+	std::string			m_sReservedText;
+	ParseState			m_reservedSecState;
 };
