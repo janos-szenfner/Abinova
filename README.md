@@ -101,6 +101,10 @@ The dynamic plugin list is empty.
 > damage, data loss, or other consequences arising from its use.
 > Use at your own risk.
 
+> **Version:** the next release of this fork will be versioned
+> **4.0.0**. It has not been released yet — everything described
+> below is on `main`. See `CHANGELOG.md` for the full change list.
+
 ## Table of contents
 
 - [Plugin cleanup](#plugin-cleanup)
@@ -489,6 +493,16 @@ labels, like Word's ribbon.
 
 #### Review tab
 
+- **Proofing group**: **Spelling and Grammar** opens the spell
+  check and offers a **Check Grammar** toggle (grammar-as-you-type
+  via the integrated Hunspell grammar checker); **Word Count**
+  shows the document statistics dialog.
+- **Language group**: **Set Language** applies the selected
+  language to the selection/caret, can make it the document
+  default (`lang` document property), supports **Detect language
+  automatically** (samples the text and picks the best installed
+  dictionary) and **Do not check spelling or grammar**
+  (`-none-`).
 - **Comments group**: **New comment** (**Ctrl+Alt+M**) anchors a
   comment to the selection or the word under the caret and drops
   the caret inside the comment body for immediate typing — no
@@ -505,10 +519,33 @@ labels, like Word's ribbon.
 - The ribbon also has a Delete dropdown (Delete Comment /
   Delete All Comments), Resolve, **Previous**/**Next**
   navigation (**Ctrl+Alt+P** / **Ctrl+Alt+N**) and a Show
-  comments toggle; right-click offers New Comment too.
+  comments dropdown (Contextual / List in the reviewing pane);
+  right-click offers New Comment too.
 - Comments inside another comment's body are rejected (that
   nesting produced unloadable XML), while commenting over
   existing anchors is allowed.
+- **Tracking group**: **Track Changes** toggles revision marking;
+  **Display for Review** switches between **Simple Markup**
+  (final text + a red change bar in the left margin on lines
+  with revisions), **All Markup** (insertions/deletions shown
+  inline), **No Markup** and **Original**; the button caption
+  tracks the active mode. **Reviewing Pane** docks the
+  revision/comment list.
+- **Changes group**: **Accept** and **Reject** are large
+  Word-style dropdown buttons offering Accept/Reject and Move to
+  Next, This Change, All Changes Shown (only the revisions
+  currently displayed), All Changes, and All Changes and Stop
+  Tracking. They enable whenever the document contains
+  revisions.
+- **Compare group**: a dropdown with **Compare Documents…** —
+  diffs the current document against a second open document at
+  word level and opens a NEW document (a legal blackline) where
+  every difference is marked as a revision, so it can be
+  reviewed with the normal Accept/Reject tools; the sources are
+  never modified — and **Combine Documents…**, which appends
+  another open document's paragraphs to the current one as
+  tracked insertions for review (deleted-revision spans in the
+  source are skipped).
 
 #### View tab
 
