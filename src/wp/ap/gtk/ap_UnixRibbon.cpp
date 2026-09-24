@@ -2730,6 +2730,73 @@ static void _glyph_track(cairo_t * cr, double w, double h)
 	cairo_stroke(cr);
 }
 
+static void _glyph_revauto(cairo_t * cr, double w, double h)
+{
+	/* text lines with a circular arrow - save a revision each save */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	for (int i = 0; i < 3; ++i)
+	{
+		cairo_move_to(cr, w * 0.10, h * (0.16 + i * 0.20));
+		cairo_line_to(cr, w * 0.62, h * (0.16 + i * 0.20));
+	}
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 1.6);
+	double cx = w * 0.72, cy = h * 0.62, r = w * 0.20;
+	cairo_arc(cr, cx, cy, r, 0.6, 4.9);
+	cairo_stroke(cr);
+	/* arrow head */
+	double ax = cx + r * cos(4.9), ay = cy + r * sin(4.9);
+	cairo_move_to(cr, ax, ay);
+	cairo_line_to(cr, ax - w * 0.10, ay - h * 0.02);
+	cairo_move_to(cr, ax, ay);
+	cairo_line_to(cr, ax + w * 0.02, ay - h * 0.10);
+	cairo_stroke(cr);
+}
+
+static void _glyph_revnew(cairo_t * cr, double w, double h)
+{
+	/* revision lines plus a green plus - start a new revision level */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	for (int i = 0; i < 3; ++i)
+	{
+		cairo_move_to(cr, w * 0.10, h * (0.16 + i * 0.20));
+		cairo_line_to(cr, w * 0.62, h * (0.16 + i * 0.20));
+	}
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.15, 0.65, 0.30);
+	cairo_set_line_width(cr, 2.0);
+	double cx = w * 0.72, cy = h * 0.60, s = w * 0.16;
+	cairo_move_to(cr, cx - s, cy);
+	cairo_line_to(cr, cx + s, cy);
+	cairo_move_to(cr, cx, cy - s);
+	cairo_line_to(cr, cx, cy + s);
+	cairo_stroke(cr);
+}
+
+static void _glyph_revpurge(cairo_t * cr, double w, double h)
+{
+	/* revision lines crossed by a red X - purge the history */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	for (int i = 0; i < 3; ++i)
+	{
+		cairo_move_to(cr, w * 0.10, h * (0.16 + i * 0.20));
+		cairo_line_to(cr, w * 0.62, h * (0.16 + i * 0.20));
+	}
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.80, 0.20, 0.20);
+	cairo_set_line_width(cr, 2.0);
+	double cx = w * 0.72, cy = h * 0.60, s = w * 0.15;
+	cairo_move_to(cr, cx - s, cy - s);
+	cairo_line_to(cr, cx + s, cy + s);
+	cairo_move_to(cr, cx + s, cy - s);
+	cairo_line_to(cr, cx - s, cy + s);
+	cairo_stroke(cr);
+}
+
 static void _glyph_markup(cairo_t * cr, double w, double h)
 {
 	/* page lines plus the left-margin change bar of Simple Markup */
@@ -3573,8 +3640,17 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_WORDCOUNT:
 	case (XAP_Menu_Id)AP_MENU_ID_FMT_LANGUAGE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MARK:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PURGE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT:
@@ -3793,6 +3869,7 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		extra = _glyph_comment;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL:
 		spec.bare = true;
 		extra = _glyph_spell;
 		break;
@@ -3805,8 +3882,34 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		extra = _glyph_language;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MARK:
 		spec.bare = true;
 		extra = _glyph_track;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO:
+		spec.bare = true;
+		extra = _glyph_revauto;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION:
+		spec.bare = true;
+		extra = _glyph_revnew;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PURGE:
+		spec.bare = true;
+		extra = _glyph_revpurge;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL:
+		spec.bare = true;
+		extra = _glyph_markup;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION:
+		spec.bare = true;
+		extra = _glyph_accept;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION:
+		spec.bare = true;
+		extra = _glyph_reject;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
 		spec.bare = true;
@@ -3908,7 +4011,6 @@ static const _ribbon_kv s_ribbon_dead_labels[] =
 	{ "toa",         "Insert Table of Authorities" },
 	{ "markcitation","Mark Citation" },
 	{ "updatetoa",   "Update Table" },
-	{ "hideink",     "Hide Ink" },
 	{ nullptr,        nullptr }
 };
 
@@ -3916,7 +4018,7 @@ static const char * s_ribbon_dead_keys[] =
 {
 	"citation", "sources", "bibliography", "caption", "figures",
 	"xref", "index", "markentry", "updateindex", "toa",
-	"markcitation", "updatetoa", "hideink"
+	"markcitation", "updatetoa"
 };
 
 GtkWidget * AP_UnixRibbon::_makeDeadButton(uint16_t id)
@@ -3980,7 +4082,9 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 	return mb;
 }
 
-/* a popover row: [icon] name\n detail  - clicked runs an edit method */
+/* a popover row: [slot] name\n detail  - clicked runs an edit method.
+ * The leading slot is a fixed-width column so rows line up whether
+ * they carry an icon, a check mark, or nothing. */
 GtkWidget * AP_UnixRibbon::_presetRow(const char * szName,
 									  const char * szDetail,
 									  GtkWidget * icon,
@@ -3991,11 +4095,16 @@ GtkWidget * AP_UnixRibbon::_presetRow(const char * szName,
 	GtkWidget * btn = gtk_button_new();
 	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
 
+	GtkWidget * slot = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_set_size_request(slot, 20, -1);
 	if (icon)
 	{
 		gtk_widget_set_valign(icon, GTK_ALIGN_CENTER);
-		gtk_box_append(GTK_BOX(row), icon);
+		gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
+		gtk_widget_set_hexpand(icon, TRUE);
+		gtk_box_append(GTK_BOX(slot), icon);
 	}
+	gtk_box_append(GTK_BOX(row), slot);
 
 	GtkWidget * texts = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
 	gtk_widget_set_valign(texts, GTK_ALIGN_CENTER);
@@ -5927,11 +6036,17 @@ GtkWidget * AP_UnixRibbon::_makeCommentDeletePopover()
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Delete Comment",
 							  "Delete the comment at the insertion point",
-							  nullptr, "delAnnotation", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE,
+								  16, 16),
+							  "delAnnotation", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Delete All Comments",
 							  "Delete every comment in the document",
-							  nullptr, "delAllAnnotations", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE,
+								  16, 16),
+							  "delAllAnnotations", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }
@@ -5939,22 +6054,31 @@ GtkWidget * AP_UnixRibbon::_makeCommentDeletePopover()
 /* a popover row with a check-mark slot, like Word's toggling
  * menu entries; szKind names the state _evalCheckKind() reads and
  * _refreshCheckRows() re-reads whenever the popover is shown */
+/* a popover row whose leading slot swaps between the row icon and a
+ * check mark - Word-style: the icon shows unchecked, the tick
+ * replaces it when the option is on */
 GtkWidget * AP_UnixRibbon::_checkRow(const char * szLabel,
 									 const char * szDetail,
 									 const char * szMethod,
 									 const char * szData,
-									 const char * szKind)
+									 const char * szKind,
+									 GtkWidget * icon)
 {
-	GtkWidget * check = gtk_label_new(nullptr);
-	gtk_label_set_width_chars(GTK_LABEL(check), 2);
-	gtk_widget_set_valign(check, GTK_ALIGN_CENTER);
-	GtkWidget * btn = _presetRow(szLabel, szDetail, check,
+	GtkWidget * stack = gtk_stack_new();
+	gtk_stack_set_transition_type(GTK_STACK(stack),
+								  GTK_STACK_TRANSITION_TYPE_NONE);
+	gtk_stack_add_named(GTK_STACK(stack),
+						icon ? icon : gtk_label_new(""), "icon");
+	GtkWidget * check = gtk_label_new("\xE2\x9C\x93");
+	gtk_widget_set_halign(check, GTK_ALIGN_CENTER);
+	gtk_stack_add_named(GTK_STACK(stack), check, "check");
+	gtk_stack_set_visible_child_name(GTK_STACK(stack),
+						_evalCheckKind(szKind) ? "check" : "icon");
+	GtkWidget * btn = _presetRow(szLabel, szDetail, stack,
 							   szMethod, szData);
 	g_object_set_data_full(G_OBJECT(btn), "abi-check-kind",
 						   g_strdup(szKind), g_free);
-	g_object_set_data(G_OBJECT(btn), "abi-check-img", check);
-	gtk_label_set_text(GTK_LABEL(check),
-					   _evalCheckKind(szKind) ? "\xE2\x9C\x93" : "");
+	g_object_set_data(G_OBJECT(btn), "abi-check-img", stack);
 	return btn;
 }
 
@@ -6038,10 +6162,9 @@ void AP_UnixRibbon::_refreshCheckRows(GtkWidget * popover)
 			g_object_get_data(G_OBJECT(w), "abi-check-kind"));
 		GtkWidget * img = static_cast<GtkWidget *>(
 			g_object_get_data(G_OBJECT(w), "abi-check-img"));
-		if (kind && img)
-			gtk_label_set_text(GTK_LABEL(img),
-							   _evalCheckKind(kind)
-								   ? "\xE2\x9C\x93" : "");
+		if (kind && img && GTK_IS_STACK(img))
+			gtk_stack_set_visible_child_name(GTK_STACK(img),
+				_evalCheckKind(kind) ? "check" : "icon");
 	}
 }
 
@@ -6061,12 +6184,18 @@ GtkWidget * AP_UnixRibbon::_makeCommentShowPopover()
 				   _checkRow("Contextual",
 							 "Show comments in the document",
 							 "toggleDisplayAnnotations", nullptr,
-							 "ann-contextual"));
+							 "ann-contextual",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY,
+								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("List",
 							 "Show comments in the reviewing pane",
 							 "commentsPane", nullptr,
-							 "ann-pane"));
+							 "ann-pane",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PANE,
+								 16, 16)));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -6081,12 +6210,18 @@ GtkWidget * AP_UnixRibbon::_makeSpellingPopover()
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Spelling\xE2\x80\xA6",
 							  "Check the spelling of the document",
-							  nullptr, "dlgSpell", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL,
+								  16, 16),
+							  "dlgSpell", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("Check Grammar",
 							 "Check grammar as you type",
 							 "toggleAutoGrammar", nullptr,
-							 "grammar"));
+							 "grammar",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL,
+								 16, 16)));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -6102,22 +6237,34 @@ GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
 				   _checkRow("Track Changes",
 							 "Track every edit you make",
 							 "toggleMarkRevisions", nullptr,
-							 "track"));
+							 "track",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MARK,
+								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("Auto Revision",
 							 "Start a new revision on every save",
 							 "toggleAutoRevision", nullptr,
-							 "revauto"));
+							 "revauto",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO,
+								 16, 16)));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
 								   GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Start New Revision",
 							  "Begin a new revision level",
-							  nullptr, "startNewRevision", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION,
+								  16, 16),
+							  "startNewRevision", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Purge All Revisions",
 							  "Delete the revision history",
-							  nullptr, "purgeAllRevisions", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PURGE,
+								  16, 16),
+							  "purgeAllRevisions", nullptr));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -6135,32 +6282,50 @@ GtkWidget * AP_UnixRibbon::_makeMarkupPopover()
 				   _checkRow("Simple Markup",
 							 "A red bar in the margin marks changed lines",
 							 "revisionDisplayMode", "simple",
-							 "mode:simple"));
+							 "mode:simple",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("All Markup",
 							 "Show insertions and deletions inline",
 							 "revisionDisplayMode", "all",
-							 "mode:all"));
+							 "mode:all",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("No Markup",
 							 "Show the document with all changes applied",
 							 "revisionDisplayMode", "none",
-							 "mode:none"));
+							 "mode:none",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("Original",
 							 "Show the document before any changes",
 							 "revisionDisplayMode", "original",
-							 "mode:original"));
+							 "mode:original",
+							 _layout_icon(
+								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 16, 16)));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
 								   GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Show Revisions",
 							  "Toggle the inline revision display",
-							  nullptr, "toggleShowRevisions", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW,
+								  16, 16),
+							  "toggleShowRevisions", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Compare Revisions\xE2\x80\xA6",
 							  "Pick the revision level shown",
-							  nullptr, "revisionSetViewLevel", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL,
+								  16, 16),
+							  "revisionSetViewLevel", nullptr));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -6176,26 +6341,41 @@ GtkWidget * AP_UnixRibbon::_makeAcceptPopover()
 				   _presetRow("Accept and Move to Next",
 							  "Accept the revision at the caret and move "
 							  "to the next",
-							  nullptr, "revisionAcceptNext", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  16, 16),
+							  "revisionAcceptNext", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Accept This Change",
 							  "Accept the revision at the caret",
-							  nullptr, "revisionAccept", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  16, 16),
+							  "revisionAccept", nullptr));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
 								   GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Accept All Changes Shown",
 							  "Accept every revision currently shown",
-							  nullptr, "revisionAcceptAllShown", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  16, 16),
+							  "revisionAcceptAllShown", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Accept All Changes",
 							  "Accept every revision in the document",
-							  nullptr, "revisionAcceptAll", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  16, 16),
+							  "revisionAcceptAll", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Accept All Changes and Stop Tracking",
 							  "Accept every revision and stop "
 							  "tracking changes",
-							  nullptr, "revisionAcceptAllStopTracking",
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  16, 16),
+							  "revisionAcceptAllStopTracking",
 							  nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -6210,26 +6390,41 @@ GtkWidget * AP_UnixRibbon::_makeRejectPopover()
 				   _presetRow("Reject and Move to Next",
 							  "Reject the revision at the caret and move "
 							  "to the next",
-							  nullptr, "revisionRejectNext", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  16, 16),
+							  "revisionRejectNext", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Reject This Change",
 							  "Reject the revision at the caret",
-							  nullptr, "revisionReject", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  16, 16),
+							  "revisionReject", nullptr));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
 								   GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Reject All Changes Shown",
 							  "Reject every revision currently shown",
-							  nullptr, "revisionRejectAllShown", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  16, 16),
+							  "revisionRejectAllShown", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Reject All Changes",
 							  "Reject every revision in the document",
-							  nullptr, "revisionRejectAll", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  16, 16),
+							  "revisionRejectAll", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Reject All Changes and Stop Tracking",
 							  "Reject every revision and stop "
 							  "tracking changes",
-							  nullptr, "revisionRejectAllStopTracking",
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  16, 16),
+							  "revisionRejectAllStopTracking",
 							  nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -6243,12 +6438,18 @@ GtkWidget * AP_UnixRibbon::_makeComparePopover()
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Compare Documents\xE2\x80\xA6",
 							  "Compare two versions of a document",
-							  nullptr, "revisionCompareDocuments", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS,
+								  16, 16),
+							  "revisionCompareDocuments", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Combine Documents\xE2\x80\xA6",
 							  "Combine revisions from another open "
 							  "document into this one",
-							  nullptr, "revisionCombineDocuments", nullptr));
+							  _layout_icon(
+								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS,
+								  16, 16),
+							  "revisionCombineDocuments", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }

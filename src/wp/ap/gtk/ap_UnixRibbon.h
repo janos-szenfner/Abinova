@@ -141,7 +141,8 @@ private:
 							  const char * szDetail,
 							  const char * szMethod,
 							  const char * szData,
-							  const char * szKind);
+							  const char * szKind,
+							  GtkWidget * icon = nullptr);
 	bool			_evalCheckKind(const char * szKind) const;
 	const char *	_markupModeName() const;
 	void			_refreshCheckRows(GtkWidget * popover);
