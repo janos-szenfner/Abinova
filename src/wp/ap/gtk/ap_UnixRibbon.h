@@ -116,6 +116,9 @@ private:
 	GtkWidget *		_make3DModelsPopover();
 	GtkWidget *		_makeMediaPopover();
 	GtkWidget *		_makeWordArtPopover();
+	GtkWidget *		_makeEquationPopover();
+	GtkWidget *		_makeEquationPalette(bool bStructures);
+	GtkWidget *		_equationPreview(const char * szLatex, int w, int h);
 	GtkWidget *		_makeTextBoxPopover();
 	GtkWidget *		_makeObjectPopover();
 	GtkWidget *		_makeHdrFtrPopover(bool bFooter);

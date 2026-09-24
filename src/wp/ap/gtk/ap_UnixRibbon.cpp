@@ -56,6 +56,7 @@
 #include "ap_UnixFrameImpl.h"
 #include "ap_Ribbon_Layouts.h"
 #include "gr_CairoGraphics.h"
+#include "gr_MathTypesetter.h"
 #include "pt_PieceTable.h"
 #include "pd_Document.h"
 #include "pd_Style.h"
@@ -86,6 +87,7 @@ static const _ribbon_kv s_ribbon_tab_labels[] =
 	{ "review",     "Review" },
 	{ "view",       "View" },
 	{ "table",      "Table" },
+	{ "equation",   "Equation" },
 	{ "help",       "Help" },
 	{ nullptr,       nullptr }
 };
@@ -133,6 +135,8 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "delete",      "Delete" },
 	{ "select",      "Select" },
 	{ "format",      "Format" },
+	{ "equation",    "Equation" },
+	{ "structures",  "Structures" },
 	{ "help",        "Help" },
 	{ "interface",   "Interface" },
 	{ nullptr,        nullptr }
@@ -399,6 +403,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				GtkWidget * w = nullptr;
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
+				else if (item->kind == AP_RIBBON_ITEM_EQSYMBOLS)
+					w = _makeEquationPalette(false);
+				else if (item->kind == AP_RIBBON_ITEM_EQSTRUCT)
+					w = _makeEquationPalette(true);
 				else if (item->kind == AP_RIBBON_ITEM_SPIN)
 					w = _makeSpinField(item->id);
 				else if (item->kind == AP_RIBBON_ITEM_DEAD)
@@ -537,6 +545,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		if (tab->bContextual)
 		{
 			m_vecContextualPages.addItem(page);
+			g_object_set_data(G_OBJECT(page), "abi-ctx-key",
+							  (gpointer)tab->szTabKey);
 			gtk_widget_set_visible(page, FALSE);
 		}
 	}
@@ -2031,6 +2041,10 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_WORDART:
 		popover = _makeWordArtPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_INSERT_EQUATION:
+	case (XAP_Menu_Id)AP_MENU_ID_EDIT_LATEXEQUATION:
+		popover = _makeEquationPopover();
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX:
 		popover = _makeTextBoxPopover();
@@ -5324,6 +5338,230 @@ GtkWidget * AP_UnixRibbon::_makeCommentShowPopover()
 	return popover;
 }
 
+/* render a LaTeX fragment to a GtkPicture preview tile */
+GtkWidget * AP_UnixRibbon::_equationPreview(const char * szLatex,
+											int w, int h)
+{
+	GR_MathTypesetter ts;
+	ts.parseLaTeX(szLatex);
+	cairo_surface_t * ms = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+													  1, 1);
+	cairo_t * mc = cairo_create(ms);
+	ts.layout(mc, "DejaVu Serif", 11, true);
+	cairo_destroy(mc);
+	cairo_surface_destroy(ms);
+
+	double ew = ts.width(), eh = ts.ascent() + ts.descent();
+	double scale = 1.0;
+	if (ew > w - 8) scale = (w - 8) / ew;
+	if (eh * scale > h - 4) scale = (h - 4) / eh;
+
+	cairo_surface_t * sf = cairo_image_surface_create(
+		CAIRO_FORMAT_ARGB32, w, h);
+	cairo_t * cr = cairo_create(sf);
+	cairo_set_source_rgba(cr, 0, 0, 0, 0);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_paint(cr);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+	cairo_set_source_rgb(cr, 0.13, 0.13, 0.13);
+	cairo_translate(cr, (w - ew * scale) / 2, (h - eh * scale) / 2);
+	cairo_scale(cr, scale, scale);
+	ts.render(cr);
+	cairo_destroy(cr);
+
+	cairo_surface_flush(sf);
+	GBytes * bytes = g_bytes_new_with_free_func(
+		cairo_image_surface_get_data(sf),
+		cairo_image_surface_get_height(sf) *
+			cairo_image_surface_get_stride(sf),
+		(GDestroyNotify)cairo_surface_destroy, sf);
+	GdkTexture * tex = gdk_memory_texture_new(
+		w, h,
+#ifdef G_LITTLE_ENDIAN
+		GDK_MEMORY_B8G8R8A8_PREMULTIPLIED,
+#else
+		GDK_MEMORY_A8R8G8B8_PREMULTIPLIED,
+#endif
+		bytes, cairo_image_surface_get_stride(sf));
+	g_bytes_unref(bytes);
+	GtkWidget * pic = gtk_picture_new_for_paintable(GDK_PAINTABLE(tex));
+	g_object_unref(tex);
+	gtk_picture_set_content_fit(GTK_PICTURE(pic), GTK_CONTENT_FIT_CONTAIN);
+	return pic;
+}
+
+/* Word's Equation gallery: built-in presets rendered as live previews,
+ * plus an "Insert New Equation" row that opens the LaTeX dialog */
+GtkWidget * AP_UnixRibbon::_makeEquationPopover()
+{
+	GtkWidget * popover = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(box, 6);
+	gtk_widget_set_margin_bottom(box, 6);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
+
+	GtkWidget * cap = gtk_label_new(nullptr);
+	gtk_label_set_markup(GTK_LABEL(cap), "<b>Built-In</b>");
+	gtk_widget_set_halign(cap, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), cap);
+
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+	gtk_box_append(GTK_BOX(box), grid);
+
+	static const struct { const char * name; const char * latex; } s_eq[] =
+	{
+		{ "Area of Circle",
+		  "A = \\pi r^2" },
+		{ "Binomial Theorem",
+		  "(x+a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^k a^{n-k}" },
+		{ "Expansion of a Sum",
+		  "(1+x)^n = 1 + \\frac{nx}{1!} + \\frac{n(n-1)x^2}{2!} + \\cdots" },
+		{ "Fourier Series",
+		  "f(x) = a_0 + \\sum_{n=1}^{\\infty} \\left( a_n \\cos \\frac{n\\pi x}{L} + b_n \\sin \\frac{n\\pi x}{L} \\right)" },
+		{ "Pythagorean Theorem",
+		  "a^2 + b^2 = c^2" },
+		{ "Quadratic Formula",
+		  "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}" },
+		{ "Taylor Expansion",
+		  "e^x = \\sum_{n=0}^{\\infty} \\frac{x^n}{n!}" },
+		{ "Trig Identity",
+		  "\\sin \\alpha \\pm \\sin \\beta = 2 \\sin \\frac{\\alpha \\pm \\beta}{2} \\cos \\frac{\\alpha \\mp \\beta}{2}" },
+		{ "Gaussian Integral",
+		  "\\int_0^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}" },
+		{ "Euler's Identity",
+		  "e^{i\\pi} + 1 = 0" },
+	};
+	for (unsigned i = 0; i < G_N_ELEMENTS(s_eq); ++i)
+	{
+		GtkWidget * btn = gtk_button_new();
+		GtkWidget * tile = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+		gtk_box_append(GTK_BOX(tile), _equationPreview(s_eq[i].latex,
+													   150, 46));
+		GtkWidget * l = gtk_label_new(s_eq[i].name);
+		gtk_widget_add_css_class(l, "caption");
+		gtk_box_append(GTK_BOX(tile), l);
+		gtk_button_set_child(GTK_BUTTON(btn), tile);
+		gtk_widget_add_css_class(btn, "flat");
+		gtk_widget_set_tooltip_text(btn, s_eq[i].name);
+
+		std::string data = std::string("display:") + s_eq[i].latex;
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup("insertEquation"), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(data.c_str()), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		gtk_grid_attach(GTK_GRID(grid), btn, i % 2, i / 2, 1, 1);
+	}
+
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>Insert New Equation</b>",
+							  "Type a LaTeX equation",
+							  nullptr, "insertLatexEquation", nullptr));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* symbol palette (bStructures=false) and structure palette
+ * (bStructures=true) for the contextual Equation ribbon tab */
+GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool bStructures)
+{
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 1);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 1);
+
+	static const struct { const char * glyph; const char * latex;
+						  const char * tip; } s_sym[] =
+	{
+		{ "\xc2\xb1", "\\pm", "Plus-minus" }, { "\xc3\x97", "\\times", "Times" },
+		{ "\xc3\xb7", "\\div", "Divide" }, { "=", "=", "Equals" },
+		{ "\xe2\x89\xa0", "\\neq", "Not equal" },
+		{ "\xe2\x89\xa4", "\\leq", "Less or equal" },
+		{ "\xe2\x89\xa5", "\\geq", "Greater or equal" },
+		{ "\xe2\x89\x88", "\\approx", "Approximately" },
+		{ "\xe2\x88\x9e", "\\infty", "Infinity" },
+		{ "\xe2\x88\x9d", "\\propto", "Proportional" },
+		{ "\xce\xb1", "\\alpha", "Alpha" }, { "\xce\xb2", "\\beta", "Beta" },
+		{ "\xce\xb3", "\\gamma", "Gamma" }, { "\xce\xb4", "\\delta", "Delta" },
+		{ "\xce\xb8", "\\theta", "Theta" }, { "\xce\xbb", "\\lambda", "Lambda" },
+		{ "\xce\xbc", "\\mu", "Mu" }, { "\xcf\x80", "\\pi", "Pi" },
+		{ "\xcf\x83", "\\sigma", "Sigma" }, { "\xcf\x86", "\\phi", "Phi" },
+		{ "\xcf\x89", "\\omega", "Omega" },
+		{ "\xce\x94", "\\Delta", "Delta" },
+		{ "\xce\xa3", "\\Sigma", "Sigma" },
+		{ "\xce\xa9", "\\Omega", "Omega" },
+		{ "\xe2\x88\x82", "\\partial", "Partial" },
+		{ "\xe2\x88\x87", "\\nabla", "Nabla" },
+		{ "\xe2\x88\x88", "\\in", "Element of" },
+		{ "\xe2\x88\x89", "\\notin", "Not element of" },
+		{ "\xe2\x8a\x82", "\\subset", "Subset" },
+		{ "\xe2\x88\xaa", "\\cup", "Union" },
+		{ "\xe2\x88\xa9", "\\cap", "Intersection" },
+		{ "\xe2\x88\x80", "\\forall", "For all" },
+		{ "\xe2\x88\x83", "\\exists", "Exists" },
+		{ "\xe2\x86\x92", "\\rightarrow", "Right arrow" },
+		{ "\xe2\x86\x90", "\\leftarrow", "Left arrow" },
+		{ "\xe2\x87\x92", "\\Rightarrow", "Double arrow" },
+		{ "\xe2\x86\x94", "\\leftrightarrow", "Both ways" },
+		{ "\xe2\x88\x85", "\\emptyset", "Empty set" },
+		{ "\xe2\x84\x9d", "\\mathbb{R}", "Reals" },
+		{ "\xe2\x84\xa4", "\\mathbb{Z}", "Integers" },
+		{ "\xe2\x84\x95", "\\mathbb{N}", "Naturals" },
+	};
+	static const struct { const char * glyph; const char * latex;
+						  const char * tip; } s_str[] =
+	{
+		{ "a/b", "\\frac{a}{b}", "Fraction" },
+		{ "x\xc2\xb2", "x^{a}", "Superscript" },
+		{ "x\xe2\x82\x82", "x_{a}", "Subscript" },
+		{ "x\xe1\xb5\x87\xe2\x82\x90", "x_{a}^{b}", "Sub and superscript" },
+		{ "\xe2\x88\x9a", "\\sqrt{x}", "Square root" },
+		{ "\xe2\x88\x9b", "\\sqrt[n]{x}", "Nth root" },
+		{ "\xe2\x88\xab", "\\int_{a}^{b}", "Integral" },
+		{ "\xe2\x88\xae", "\\oint", "Contour integral" },
+		{ "\xe2\x88\x91", "\\sum_{i=1}^{n}", "Sum" },
+		{ "\xe2\x88\x8f", "\\prod_{i=1}^{n}", "Product" },
+		{ "lim", "\\lim_{x \\to 0}", "Limit" },
+		{ "(\xe2\x96\xa6)", "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}",
+		  "2x2 matrix" },
+		{ "(\xe2\x81\xbf\xe2\x82\x96)", "\\binom{n}{k}", "Binomial" },
+		{ "v\xe2\x83\x97", "\\vec{v}", "Vector accent" },
+		{ "x\xcc\x82", "\\hat{x}", "Hat accent" },
+		{ "A\xcc\x85" "B\xcc\x85", "\\overline{AB}", "Overline" },
+		{ "(x)", "\\left( x \\right)", "Parentheses" },
+		{ "|x|", "\\left| x \\right|", "Absolute value" },
+		{ "{x", "\\left\\{ x \\right\\}", "Braces" },
+	};
+
+	const unsigned nCols = bStructures ? 9 : 10;
+	unsigned count = bStructures ? G_N_ELEMENTS(s_str)
+								 : G_N_ELEMENTS(s_sym);
+	for (unsigned i = 0; i < count; ++i)
+	{
+		const char * glyph = bStructures ? s_str[i].glyph : s_sym[i].glyph;
+		const char * latex = bStructures ? s_str[i].latex : s_sym[i].latex;
+		const char * tip   = bStructures ? s_str[i].tip   : s_sym[i].tip;
+		GtkWidget * btn = gtk_button_new();
+		GtkWidget * l = gtk_label_new(glyph);
+		gtk_widget_set_size_request(l, 24, 22);
+		gtk_button_set_child(GTK_BUTTON(btn), l);
+		gtk_widget_add_css_class(btn, "flat");
+		gtk_widget_set_tooltip_text(btn, tip);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup("equationInsertSymbol"), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(latex), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		gtk_grid_attach(GTK_GRID(grid), btn, i % nCols, i / nCols, 1, 1);
+	}
+	return grid;
+}
+
 /* Word's Text Box dropdown */
 GtkWidget * AP_UnixRibbon::_makeTextBoxPopover()
 {
@@ -7759,10 +7997,19 @@ void AP_UnixRibbon::_refreshContextualTabs()
 	FV_View * view = static_cast<FV_View *>(
 		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
 	bool bInTable = view && view->isInTable();
+	bool bInMath = view && view->isInMath();
 
 	UT_sint32 count = m_vecContextualPages.getItemCount();
 	for (UT_sint32 i = 0; i < count; ++i)
-		gtk_widget_set_visible(m_vecContextualPages.getNthItem(i), bInTable);
+	{
+		GtkWidget * page = m_vecContextualPages.getNthItem(i);
+		const char * key = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(page), "abi-ctx-key"));
+		bool vis = bInTable;
+		if (key && !strcmp(key, "equation"))
+			vis = bInMath;
+		gtk_widget_set_visible(page, vis);
+	}
 }
 
 void AP_UnixRibbon::_s_switch_page(GtkNotebook * /*book*/,

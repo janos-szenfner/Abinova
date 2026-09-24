@@ -59,9 +59,11 @@ enum AP_RibbonItemKind : uint8_t
 								 * row-major packing (LibreOffice-style
 								 * two-row groups) */
 	AP_RIBBON_ITEM_SPIN		= 4,	/* labelled spin field (indent/spacing) */
-	AP_RIBBON_ITEM_DEAD		= 5		/* insensitive placeholder button for
+	AP_RIBBON_ITEM_DEAD		= 5,	/* insensitive placeholder button for
 								 * Word groups with no engine support
 								 * (citations, captions, index, TOA) */
+	AP_RIBBON_ITEM_EQSYMBOLS = 6,	/* equation-tab math symbol palette */
+	AP_RIBBON_ITEM_EQSTRUCT	= 7		/* equation-tab structure palette */
 };
 
 /* ids for AP_RIBBON_ITEM_SPIN rows - not menu/toolbar ids */
@@ -347,7 +349,7 @@ static const AP_RibbonItem s_ribbon_insert_text[] =
 
 static const AP_RibbonItem s_ribbon_insert_symbols[] =
 {
-	AP_RIBBON_MENU_LS(AP_MENU_ID_EDIT_LATEXEQUATION),
+	AP_RIBBON_MENUPOP_LS(AP_MENU_ID_INSERT_EQUATION),
 	AP_RIBBON_MENU_LS(AP_MENU_ID_INSERT_SYMBOL),
 	AP_RIBBON_END
 };
@@ -639,6 +641,35 @@ static const AP_RibbonGroup s_ribbon_table_groups[] =
 	{ nullptr,		nullptr }
 };
 
+/* -------------------------------------------- Equation (contextual) --- */
+
+static const AP_RibbonItem s_ribbon_equation_eq[] =
+{
+	AP_RIBBON_MENUPOP_LS(AP_MENU_ID_INSERT_EQUATION),
+	AP_RIBBON_MENU_LS(AP_MENU_ID_EQUATION_DISPLAY),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_equation_symbols[] =
+{
+	{ AP_RIBBON_ITEM_EQSYMBOLS, AP_RIBBON_FLAG_NONE, 0 },
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_equation_struct[] =
+{
+	{ AP_RIBBON_ITEM_EQSTRUCT, AP_RIBBON_FLAG_NONE, 0 },
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_equation_groups[] =
+{
+	{ "equation",		s_ribbon_equation_eq },
+	{ "symbols",		s_ribbon_equation_symbols },
+	{ "structures",		s_ribbon_equation_struct },
+	{ nullptr,			nullptr }
+};
+
 /* --------------------------------------------------------------- Help --- */
 
 static const AP_RibbonItem s_ribbon_help_items[] =
@@ -678,6 +709,7 @@ static const AP_RibbonTab s_ribbon_tabs[] =
 	{ "review",		s_ribbon_review_groups,		false },
 	{ "view",		s_ribbon_view_groups,		false },
 	{ "table",		s_ribbon_table_groups,		true  },
+	{ "equation",	s_ribbon_equation_groups,	true  },
 	{ "help",		s_ribbon_help_groups,		false },
 	{ nullptr,		nullptr,					false }
 };

@@ -13603,6 +13603,42 @@ fl_AnnotationLayout * FV_View::getAnnotationLayout(UT_uint32 iAnnotation) const
 }
 
 
+/*!
+ * Returns true if the document position is immediately after a
+ * PTO_Math object, i.e. the caret sits on/next to an equation.
+ */
+bool FV_View::isInMath(PT_DocPosition pos) const
+{
+	if (pos > 2) {
+		pf_Frag * pf = m_pDoc->getFragFromPosition(pos - 1);
+		if (pf && pf->getType() == pf_Frag::PFT_Object &&
+		    static_cast<pf_Frag_Object *>(pf)->getObjectType() == PTO_Math)
+			return true;
+	}
+	/* also check the selection: a selected equation counts */
+	PT_DocPosition lo = getPoint(), hi = getSelectionAnchor();
+	if (lo > hi) { PT_DocPosition t = lo; lo = hi; hi = t; }
+	if (hi > lo && pos >= lo && pos < hi) {
+		for (PT_DocPosition p = lo; p < hi; ++p) {
+			pf_Frag * pf = m_pDoc->getFragFromPosition(p);
+			if (pf && pf->getType() == pf_Frag::PFT_Object &&
+			    static_cast<pf_Frag_Object *>(pf)->getObjectType() == PTO_Math)
+				return true;
+		}
+	}
+	return false;
+}
+
+bool FV_View::isInMath(void) const
+{
+	if (isInMath(getPoint()))
+		return true;
+	if (getSelectionAnchor() != getPoint())
+		return isInMath(getSelectionAnchor());
+	return false;
+}
+
+
 UT_uint32 FV_View::countAnnotations(void) const
 {
 	return m_pLayout->countAnnotations();

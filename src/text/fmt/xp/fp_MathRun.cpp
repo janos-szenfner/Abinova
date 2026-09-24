@@ -184,14 +184,21 @@ void fp_MathRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	{
 	    return;
 	}
-	UT_sint32 maxW = p->getWidth() - UT_convertToLogicalUnits("0.1in"); 
+	UT_sint32 maxW = p->getWidth() - UT_convertToLogicalUnits("0.1in");
 	UT_sint32 maxH = p->getHeight() - UT_convertToLogicalUnits("0.1in");
 	maxW -= pDSL->getLeftMargin() + pDSL->getRightMargin();
 	maxH -= pDSL->getTopMargin() + pDSL->getBottomMargin();
-	markAsDirty();
-	if(getLine())
+	/* Only mark dirty when the metrics actually changed: this runs
+	 * inside layout passes, so unconditional dirtying reschedules
+	 * layout forever (a 100%-CPU re-layout loop). */
+	if (iWidth != getWidth() || iAscent != getAscent() ||
+	    iDescent != getDescent())
 	{
-		getLine()->setNeedsRedraw();
+		markAsDirty();
+		if(getLine())
+		{
+			getLine()->setNeedsRedraw();
+		}
 	}
 	if(iAscent < 0)
 	{

@@ -62,6 +62,7 @@
 #include "gr_CharWidthsCache.h"
 #include "xav_Listener.h"
 #include "gr_EmbedManager.h"
+#include "gr_GtkMathManager.h"
 #include "ut_Script.h"
 
 
@@ -303,6 +304,10 @@ GR_EmbedManager * XAP_App:: getEmbeddableManager(GR_Graphics * pG, const char * 
 bool XAP_App::initialize(const char * szKeyBindingsKey, const char * szKeyBindingsDefaultValue)
 {
 	gsf_init();
+
+	// Register the built-in MathML/LaTeX equation renderer so that
+	// PTO_Math objects work without the removed mathview plugin.
+	registerEmbeddable(new GR_GtkMathManager(nullptr));
 
 	// create application-wide resources that
 	// are shared by everything.

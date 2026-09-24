@@ -278,6 +278,8 @@ public:
 	static EV_EditMethod_Fn editLatexAtPos;
 	static EV_EditMethod_Fn editLatexEquation;
 	static EV_EditMethod_Fn editEmbed;
+	static EV_EditMethod_Fn equationInsertSymbol;
+	static EV_EditMethod_Fn toggleEquationDisplay;
 
 	static EV_EditMethod_Fn extSelToXY;
 	static EV_EditMethod_Fn extSelLeft;
@@ -379,6 +381,8 @@ public:
 	static EV_EditMethod_Fn insertAcuteData;
 	static EV_EditMethod_Fn insertCircumflexData;
 	static EV_EditMethod_Fn insertTildeData;
+	static EV_EditMethod_Fn insertEquation;
+	static EV_EditMethod_Fn insertLatexEquation;
 	static EV_EditMethod_Fn insertMacronData;
 	static EV_EditMethod_Fn insertBreveData;
 	static EV_EditMethod_Fn insertAbovedotData;
@@ -1056,6 +1060,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(endnoteNext),			0,	""),
 	EV_EditMethod(NF(endnotePrev),			0,	""),
 	EV_EditMethod(NF(endnoteToFootnote),	0,	""),
+	EV_EditMethod(NF(equationInsertSymbol),	0,	""),
 	EV_EditMethod(NF(executeScript),		EV_EMT_REQUIRE_SCRIPT_NAME, ""),
 	EV_EditMethod(NF(extSelBOB),			0,	""),
 	EV_EditMethod(NF(extSelBOD),			0,	""),
@@ -1174,12 +1179,14 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertData),			_D_,	""),
 	EV_EditMethod(NF(insertDiaeresisData),	_D_,	""),
 	EV_EditMethod(NF(insertDoubleacuteData),_D_,	""),
+	EV_EditMethod(NF(insertEquation),		0,	""),
 	EV_EditMethod(NF(insertFooterPreset),	0,	""),
 	EV_EditMethod(NF(insertGraveData),		_D_,	""),
 	EV_EditMethod(NF(insertHeaderPreset),	0,	""),
 	EV_EditMethod(NF(insertHyperlink),		0,	""),
 	EV_EditMethod(NF(insertIcon),			0,	""),
 	EV_EditMethod(NF(insertLRM),		0,	""),
+	EV_EditMethod(NF(insertLatexEquation),	0,	""),
 	EV_EditMethod(NF(insertLineBreak),		0,	""),
 	EV_EditMethod(NF(insertMacronData), 	_D_,	""),
 	EV_EditMethod(NF(insertNBSpace),		0,	""),
@@ -1435,6 +1442,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleDomDirection),	0,	""),
 	EV_EditMethod(NF(toggleDomDirectionDoc),	0,	""),
 	EV_EditMethod(NF(toggleDomDirectionSect),	0,	""),
+	EV_EditMethod(NF(toggleEquationDisplay),	0,	""),
 	EV_EditMethod(NF(toggleHidden),			0,	""),
 	EV_EditMethod(NF(toggleIndent),         0,  ""),
 	EV_EditMethod(NF(toggleInsertMode), 	0,  ""),
@@ -5812,6 +5820,188 @@ Defun(selectMath)
 	pView->cmdSelect(posL,posH);
 	dlgEditLatexEquation(pAV_View, pCallData, false,0);
 	return true;
+}
+
+/*! find the fp_MathRun whose object sits at (or immediately before)
+ * pos; falls back to the last math run in the paragraph.
+ * Returns the object's document position or 0. */
+static PT_DocPosition s_mathObjectAt(FV_View * pView, PT_DocPosition pos,
+                                     fp_MathRun ** ppRun)
+{
+	UT_return_val_if_fail(pView, 0);
+	if (pos < 3)
+		return 0;
+	fl_BlockLayout * pBlock = pView->getBlockAtPosition(pos);
+	if (!pBlock)
+		return 0;
+	PT_DocPosition blockPos = pBlock->getPosition();
+	fp_MathRun * pMathRun = nullptr;
+	PT_DocPosition objPos = 0;
+	for (fp_Run * pRun = pBlock->getFirstRun(); pRun;
+	     pRun = pRun->getNextRun())
+	{
+		if (pRun->getType() != FPRUN_MATH)
+			continue;
+		fp_MathRun * mr = static_cast<fp_MathRun *>(pRun);
+		PT_DocPosition rp = blockPos + pRun->getBlockOffset();
+		if (rp == pos - 1 || rp == pos) {
+			pMathRun = mr;
+			objPos = rp;
+			break;
+		}
+		pMathRun = mr;
+		objPos = rp;
+	}
+	if (!pMathRun)
+		return 0;
+	if (ppRun) *ppRun = pMathRun;
+	return objPos;
+}
+
+/*! convert LaTeX source to MathML through the built-in manager */
+static bool s_latexToMathML(FV_View * pView, const UT_UTF8String & sLatex,
+                            bool compact, UT_UTF8String & sMathML)
+{
+	GR_EmbedManager * pEmbed = pView->getLayout()->getEmbedManager("mathml");
+	UT_return_val_if_fail(pEmbed && !pEmbed->isDefault(), false);
+	UT_ByteBufPtr From(new UT_ByteBuf);
+	UT_ByteBufPtr To(new UT_ByteBuf);
+	From->ins(0, reinterpret_cast<const UT_Byte *>(sLatex.utf8_str()),
+	          static_cast<UT_uint32>(sLatex.size()));
+	if (!pEmbed->convert(compact ? 1 : 0, From, To))
+		return false;
+	UT_UCS4_mbtowc myWC;
+	sMathML.appendBuf(To, myWC);
+	return sMathML.size() > 0;
+}
+
+/*! read the LaTeX source of the math object owned by pMathRun */
+static bool s_mathLatexOf(FV_View * pView, fp_MathRun * pMathRun,
+                          UT_UTF8String & sLatex, bool & bInline)
+{
+	const PP_AttrProp * pSpanAP = pMathRun->getSpanAP();
+	const gchar * pszLatexID = nullptr, *pszDisplayMode = nullptr;
+	pSpanAP->getAttribute("latexid", pszLatexID);
+	pSpanAP->getProperty("display", pszDisplayMode);
+	bInline = pszDisplayMode && !strcmp(pszDisplayMode, "inline");
+	if (!pszLatexID || !*pszLatexID)
+		return false;
+	UT_ConstByteBufPtr pByteBuf;
+	if (!pView->getDocument()->getDataItemDataByName(pszLatexID, pByteBuf,
+	                                               nullptr, nullptr))
+		return false;
+	UT_UCS4_mbtowc myWC;
+	sLatex.appendBuf(pByteBuf, myWC);
+	return sLatex.size() > 0;
+}
+
+/*! insertEquation — ribbon gallery presets.
+ *  callData: "display:<latex>" or "inline:<latex>" (inline is default) */
+Defun(insertEquation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string d(s.utf8_str());
+	bool compact = true;
+	if (d.compare(0, 8, "display:") == 0) {
+		compact = false;
+		d = d.substr(8);
+	} else if (d.compare(0, 7, "inline:") == 0) {
+		d = d.substr(7);
+	}
+	UT_UTF8String sLatex(d.c_str()), sMathML;
+	if (!s_latexToMathML(pView, sLatex, compact, sMathML))
+		return false;
+	return pView->cmdInsertLatexMath(sLatex, sMathML, compact);
+}
+
+/*! equationInsertSymbol — contextual-tab symbol/structure buttons.
+ *  If the caret is on an equation, the snippet is appended to its
+ *  LaTeX source and the object is re-created; otherwise a new inline
+ *  equation holding the snippet is inserted. */
+Defun(equationInsertSymbol)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	UT_UTF8String sSnippet(s.utf8_str());
+
+	fp_MathRun * pMathRun = nullptr;
+	PT_DocPosition posObj = s_mathObjectAt(pView, pView->getPoint(),
+	                                       &pMathRun);
+	if (pMathRun)
+	{
+		UT_UTF8String sLatex;
+		bool bInline = false;
+		if (s_mathLatexOf(pView, pMathRun, sLatex, bInline))
+		{
+			UT_UTF8String sNew = sLatex;
+			sNew += " ";
+			sNew += sSnippet;
+			UT_UTF8String sMathML;
+			if (s_latexToMathML(pView, sNew, bInline, sMathML))
+			{
+				pView->cmdSelect(posObj, posObj + 1);
+				return pView->cmdInsertLatexMath(sNew, sMathML, bInline);
+			}
+		}
+	}
+	UT_UTF8String sMathML;
+	if (!s_latexToMathML(pView, sSnippet, true, sMathML))
+		return false;
+	return pView->cmdInsertLatexMath(sSnippet, sMathML, true);
+}
+
+/*! insertLatexEquation — open the LaTeX dialog for a new equation.
+ *  Unlike editLatexAtPos this does not require an existing math run. */
+Defun1(insertLatexEquation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	FL_DocLayout * pLayout = pView->getLayout();
+	GR_EmbedManager * pMath = pLayout->getEmbedManager("mathml");
+	UT_return_val_if_fail(pMath && !pMath->isDefault(), false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	pFrame->raise();
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
+	AP_Dialog_Latex * pDialog
+		= static_cast<AP_Dialog_Latex *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_LATEX));
+	UT_return_val_if_fail(pDialog, false);
+	if (pDialog->isRunning())
+		pDialog->activate();
+	else
+		pDialog->runModeless(pFrame);
+	return true;
+}
+
+/*! toggleEquationDisplay — switch the equation at the caret between
+ *  inline and block display. */
+Defun1(toggleEquationDisplay)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	fp_MathRun * pMathRun = nullptr;
+	PT_DocPosition posObj = s_mathObjectAt(pView, pView->getPoint(),
+	                                       &pMathRun);
+	UT_return_val_if_fail(pMathRun, false);
+	UT_UTF8String sLatex;
+	bool bInline = false;
+	if (!s_mathLatexOf(pView, pMathRun, sLatex, bInline))
+		return false;
+	UT_UTF8String sMathML;
+	if (!s_latexToMathML(pView, sLatex, !bInline, sMathML))
+		return false;
+	pView->cmdSelect(posObj, posObj + 1);
+	return pView->cmdInsertLatexMath(sLatex, sMathML, !bInline);
 }
 
 

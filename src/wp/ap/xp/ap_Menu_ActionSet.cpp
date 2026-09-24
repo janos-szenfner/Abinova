@@ -108,6 +108,8 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_EDIT_REDO,		0,0,0,0,	"redo",				ap_GetState_Changes,	nullptr);
 	_s(AP_MENU_ID_EDIT_CUT,			0,0,0,0,	"cut",				ap_GetState_Selection,	nullptr);
 	_s(AP_MENU_ID_EDIT_LATEXEQUATION,			0,1,0,0,	"editLatexAtPos",				ap_GetState_Selection,	nullptr);
+	_s(AP_MENU_ID_INSERT_EQUATION,			0,1,0,0,	"insertLatexEquation",			nullptr,				nullptr);
+	_s(AP_MENU_ID_EQUATION_DISPLAY,			0,1,0,0,	"toggleEquationDisplay",		nullptr,				nullptr);
 	_s(AP_MENU_ID_EDIT_COPY,		0,0,0,0,	"copy",				ap_GetState_Selection,	nullptr);
 	_s(AP_MENU_ID_EDIT_PASTE,		0,0,0,0,	"paste",			ap_GetState_Clipboard,	nullptr);
 	_s(AP_MENU_ID_EDIT_PASTE_SPECIAL,0,0,0,0, "pasteSpecial",     ap_GetState_Clipboard,  nullptr);

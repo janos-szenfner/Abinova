@@ -740,6 +740,54 @@ below are on `main` but the release has not been cut yet.
   ink bounding box (`getInkBounds`/`s_rotatedBounds`) so rotated
   content is not clipped or left undrawn. Rotation and flips survive
   `.abw` save/reload and also render in the PDF export path.
+- **Built-in equation engine (mathview replacement)** — `PTO_Math`
+  objects render natively again without the removed `mathview`/
+  `lasem` plugin: a new `GR_GtkMathManager` embed manager
+  (`src/af/gr/gtk/`) is registered by `XAP_App::initialize()` and
+  drives a self-contained LaTeX-subset + MathML typesetter
+  (`src/af/gr/xp/gr_MathTypesetter.*`, box-model layout drawn
+  straight to Cairo — no external math library). Fractions, roots,
+  scripts, sums/products/integrals with limits, big operators,
+  matrices, delimiters, accents, `\text{}` and styled groups are
+  supported in both inline and display style. The existing LaTeX
+  dialog (`editLatexAtPos`), `fp_MathRun` layout and `.abw`
+  serialization (LaTeX + MathML data items, SVG snapshots for
+  persisted resources) all work through the manager.
+- **Insert → Equation gallery** — Word-style Built-In gallery in
+  the Symbols group: ten preset equations (Quadratic Formula,
+  Pythagorean Theorem, Euler's Identity, Binomial Theorem, Fourier
+  Series, Taylor Expansion, Gaussian Integral, Trig Identity,
+  Expansion of a Sum, Area of Circle) shown as live typeset preview
+  tiles plus an "Insert New Equation" row that opens the LaTeX
+  dialog. Presets insert a `display:` or `inline:` equation via the
+  new `insertEquation` edit method.
+- **Contextual Equation ribbon tab** — appears whenever the caret
+  or selection touches a math object (`FV_View::isInMath` checks the
+  frag before the point and scans the selected range; contextual
+  pages now carry a per-tab context key so table and equation tabs
+  are tracked independently). The tab holds an Equation group
+  (gallery + Display/inline toggle via `toggleEquationDisplay`), a
+  41-glyph symbol palette and a 19-item structure palette
+  (fractions, roots, integrals, sums, matrices, delimiters,
+  accents). Palette buttons append their LaTeX snippet to the
+  equation at the caret — re-rendering it in place through the new
+  `equationInsertSymbol` edit method — or insert a new inline
+  equation when no math object is under the caret.
+- **Math render-loop fixed** — `fp_MathRun::_lookupProperties` used
+  to `markAsDirty()` + `setNeedsRedraw()` on every layout pass,
+  which rescheduled layout forever (~90% CPU on a document with
+  equations); it now only dirties the run when width/ascent/descent
+  actually change. The manager also renders inside the active paint
+  context instead of nesting `beginPaint`/`endPaint` (which
+  invalidated the draw surface mid-paint), and `makeSnapShot` skips
+  rewriting an unchanged SVG data item so saves do not ping-pong.
+- **Edit-method table ordering fixed** — the static
+  `ap_EditMethods` table is searched with `bsearch`, so entries must
+  stay alphabetically sorted; `insertEquation`,
+  `insertLatexEquation`, `equationInsertSymbol` and
+  `toggleEquationDisplay` were registered out of order and silently
+  failed to dispatch (button clicks invoked the method name but the
+  lookup returned NULL). All four are now in sorted position.
 
 ### Ubuntu Launchpad bug fixes
 

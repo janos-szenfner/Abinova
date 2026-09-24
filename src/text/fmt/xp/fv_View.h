@@ -743,6 +743,8 @@ public:
 	bool                isInEndnote(void) const;
 	bool                isInAnnotation(PT_DocPosition pos) const;
 	bool                isInAnnotation(void) const;
+	bool                isInMath(PT_DocPosition pos) const;
+	bool                isInMath(void) const;
 	fl_FootnoteLayout * getClosestFootnote(PT_DocPosition pos) const;
 	fl_EndnoteLayout *  getClosestEndnote(PT_DocPosition pos) const;
 	fl_AnnotationLayout *  getClosestAnnotation(PT_DocPosition pos) const;

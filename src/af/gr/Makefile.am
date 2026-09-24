@@ -33,12 +33,16 @@ libgr_la_SOURCES += \
 	xp/gr_CairoGraphics.h \
 	xp/gr_CairoGraphics.cpp \
 	xp/gr_CairoNullGraphics.h \
-	xp/gr_CairoNullGraphics.cpp
+	xp/gr_CairoNullGraphics.cpp \
+	xp/gr_MathTypesetter.h \
+	xp/gr_MathTypesetter.cpp
 endif
 
 libgr_la_SOURCES += \
 	gtk/gr_CairoPrintGraphics.cpp \
 	gtk/gr_CairoPrintGraphics.h \
+	gtk/gr_GtkMathManager.h \
+	gtk/gr_GtkMathManager.cpp \
 	gtk/gr_UnixCairoGraphics.h \
 	gtk/gr_UnixCairoGraphics.cpp \
 	gtk/gr_UnixImage.cpp \
