@@ -455,6 +455,20 @@ below are on `main` but the release has not been cut yet.
   use-after-free in `detectLanguage` (winning code pointed into the
   freed dictionary list) and inverted `getEditableBounds` flags in
   the sample-text feeder are fixed.
+- **Review ribbon uniform sizing and popover alignment** — every
+  Review control is now a large icon-over-caption button (Spelling
+  and Grammar, Track Changes, Display for Review, Accept, Reject,
+  Compare etc. match Set Language), and the dead "Hide Ink" button
+  and empty Ink group are removed. Popover rows share a fixed-width
+  leading icon slot so icon and check-mark rows align in one column;
+  the check indicator is a drawn 16px glyph that swaps in place of
+  the row icon, and every row in the Spelling/Track Changes/Display/
+  Accept/Reject/Compare/Comments menus now has a drawn icon
+  (including new auto-revision, new-revision and purge glyphs).
+- **Status-bar word-count leak fixed** — `ap_sbf_WordCount`
+  `g_strdup`'d its printf format but never freed it (24 bytes per
+  frame, definitely lost under valgrind); a destructor now frees it,
+  matching `ap_sbf_PageInfo`.
 - **Word-style Home ribbon** — layout items now carry flags
   (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`,
   `AP_RIBBON_FLAG_SPLIT`): Paste, Find, Replace and Select All render
