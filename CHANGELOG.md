@@ -1255,6 +1255,17 @@ below are on `main` but the release has not been cut yet.
   (feature overview + per-commit modification log) and this
   `CHANGELOG.md` (categorized changelog) carry the experimental
   no-warranty notice.
+- **README restructured** — table of contents added; the
+  NotebookBar ribbon description reorganized into a tab-by-tab
+  section (File/Home/Insert/References/Layout/Review/View/Help +
+  contextual Table/Equation tabs); stale claims fixed (remaining
+  plugins, Mermaid rendering, `plugins/` layout row).
+- **`.abw` format documented** — new README section covers the
+  AWML document structure, content model, `props` syntax, all
+  format extensions in this fork (`fileformat="1.2"` nested
+  anchors, `text-*` effects, `frame-*` arrangement state, math
+  `display`/`latexid`, `section-break`, `toc-level`,
+  `annotation-resolved`) and an honest ODF-coverage comparison.
 
 ### Resolved root causes worth noting
 
