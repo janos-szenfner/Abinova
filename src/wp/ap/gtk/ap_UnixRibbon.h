@@ -260,6 +260,8 @@ private:
 	XAP_Frame *			m_pFrame;
 	EV_UnixMenuBar *	m_pMenu;
 	GtkWidget *			m_wNotebook;
+	bool				m_bRefreshing = false;
+	bool				m_bRefreshAgain = false;
 	EV_Toolbar_LabelSet *	m_pTBLabels;
 	UT_GenericVector<GtkWidget*>	m_vecContextualPages;
 	GHashTable *		m_pIconMap; /* edit-method name -> icon name */

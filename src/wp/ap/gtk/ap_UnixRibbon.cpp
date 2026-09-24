@@ -536,6 +536,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		GtkWidget * tabLabel = gtk_label_new(_ribbon_label(tab->szTabKey,
 														 s_ribbon_tab_labels));
 		gtk_notebook_append_page(GTK_NOTEBOOK(m_wNotebook), page, tabLabel);
+		g_object_set_data(G_OBJECT(page), "abi-tab-key",
+						  (gpointer)tab->szTabKey);
 
 		if (!strcmp(tab->szTabKey, "home"))
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(m_wNotebook),
@@ -8233,13 +8235,28 @@ void AP_UnixRibbon::refresh()
 	 * so getCurrentView() would dereference a dead view list */
 	if (m_wNotebook && gtk_widget_in_destruction(m_wNotebook))
 		return;
-	AV_View * view = m_pFrame ? m_pFrame->getCurrentView() : nullptr;
-	if (view)
-		m_pMenu->refreshMenu(view);
-	_refreshContextualTabs();
-	_populateStyleTiles();   /* lazy: view/doc may not exist at build time */
-	_refreshToolbarItems();
-	_refreshSpinFields();
+	/* _refreshContextualTabs() can emit "switch-page" (hiding the
+	 * current contextual tab, or steering it back to Insert), which
+	 * re-enters refresh(); refreshMenu is not re-entrant, so defer
+	 * nested calls until the outer one finishes */
+	if (m_bRefreshing)
+	{
+		m_bRefreshAgain = true;
+		return;
+	}
+	m_bRefreshing = true;
+	do
+	{
+		m_bRefreshAgain = false;
+		AV_View * view = m_pFrame ? m_pFrame->getCurrentView() : nullptr;
+		if (view)
+			m_pMenu->refreshMenu(view);
+		_refreshContextualTabs();
+		_populateStyleTiles();   /* lazy: view/doc may not exist at build time */
+		_refreshToolbarItems();
+		_refreshSpinFields();
+	} while (m_bRefreshAgain);
+	m_bRefreshing = false;
 }
 
 void AP_UnixRibbon::_refreshContextualTabs()
@@ -8258,7 +8275,34 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		bool vis = bInTable;
 		if (key && !strcmp(key, "equation"))
 			vis = bInMath;
+
+		/* when the current tab is about to hide, GTK would flip to
+		 * an adjacent page (usually the last one — Help); land back
+		 * on the Insert tab instead, where the object came from */
+		GtkWidget * cur = gtk_notebook_get_nth_page(
+			GTK_NOTEBOOK(m_wNotebook),
+			gtk_notebook_get_current_page(GTK_NOTEBOOK(m_wNotebook)));
+		const bool wasCurrent = (cur == page);
+
 		gtk_widget_set_visible(page, vis);
+
+		if (!vis && wasCurrent)
+		{
+			int n = gtk_notebook_get_n_pages(GTK_NOTEBOOK(m_wNotebook));
+			for (int j = 0; j < n; ++j)
+			{
+				GtkWidget * p = gtk_notebook_get_nth_page(
+					GTK_NOTEBOOK(m_wNotebook), j);
+				const char * tk = static_cast<const char *>(
+					g_object_get_data(G_OBJECT(p), "abi-tab-key"));
+				if (tk && !strcmp(tk, "insert"))
+				{
+					gtk_notebook_set_current_page(
+						GTK_NOTEBOOK(m_wNotebook), j);
+					break;
+				}
+			}
+		}
 	}
 }
 
