@@ -385,6 +385,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixIconsPane.h \
 	gtk/ap_UnixSelPane.cpp \
 	gtk/ap_UnixSelPane.h \
+	gtk/ap_UnixNavPane.cpp \
+	gtk/ap_UnixNavPane.h \
 	gtk/ap_UnixStatusBar.h \
 	gtk/ap_UnixStockIcons.cpp \
 	gtk/ap_UnixStockIcons.h \

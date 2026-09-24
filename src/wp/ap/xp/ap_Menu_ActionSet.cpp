@@ -158,6 +158,9 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_VIEW_ZOOM_50, 0,0,0,1, "zoom50", ap_GetState_Zoom, nullptr);
 	_s(AP_MENU_ID_VIEW_ZOOM_WHOLE, 0,0,0,1, "zoomWhole", ap_GetState_Zoom, nullptr);
 	_s(AP_MENU_ID_VIEW_ZOOM_WIDTH, 0,0,0,1, "zoomWidth", ap_GetState_Zoom, nullptr);
+	_s(AP_MENU_ID_VIEW_GRIDLINES,	0,0,1,0,	"viewGridlines",	ap_GetState_View,		nullptr);
+	_s(AP_MENU_ID_VIEW_NAVPANE,	0,0,1,0,	"viewNavPane",		ap_GetState_View,		nullptr);
+	_s(AP_MENU_ID_VIEW_SPLIT,	0,0,1,0,	"viewSplit",		ap_GetState_View,		nullptr);
 
 	_s(AP_MENU_ID_INSERT,			1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_INSERT_BREAK,		0,1,0,0,	"insBreak",			ap_GetState_BreakOK,					nullptr);
@@ -468,6 +471,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_WINDOW_9,			0,0,0,0,	"activateWindow_9",	ap_GetState_Window,		ap_GetLabel_Window);
 	_s(AP_MENU_ID_WINDOW_MORE,		0,1,0,0,	"dlgMoreWindows",	nullptr,					ap_GetLabel_WindowMore);
 	_s(AP_MENU_ID_WINDOW_MENUPOP_SWITCH, 1,0,0,0, nullptr,			nullptr,					nullptr);
+	_s(AP_MENU_ID_WINDOW_ARRANGE,	0,0,0,0,	"arrangeAll",		nullptr,					nullptr);
 
 	_s(AP_MENU_ID_WEB_SAVEASWEB, 0,1,0,0, "fileSaveAsWeb", nullptr, nullptr);
 	_s(AP_MENU_ID_WEB_WEBPREVIEW, 0,0,0,0, "filePreviewWeb", nullptr, nullptr);

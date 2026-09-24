@@ -70,7 +70,9 @@ void AP_UnixFrame::setXScrollRange(void)
 {
 	AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(getFrameImpl());
 	UT_return_if_fail(pFrameImpl);
-	GR_Graphics * pGr = pFrameImpl->getFrame ()->getCurrentView ()->getGraphics ();
+	AV_View * pPaneView = pFrameImpl->paneView(0);
+	UT_return_if_fail(pPaneView);
+	GR_Graphics * pGr = pPaneView->getGraphics ();
 
 	int width = 0;
 	if(m_pData) //this isn't guaranteed in AbiCommand
@@ -82,7 +84,7 @@ void AP_UnixFrame::setXScrollRange(void)
 	if(pFrameImpl->m_dArea) //this isn't guaranteed in AbiCommand
 		windowWidth = static_cast<int>(pGr->tluD (allocation.width));
 
-	int newvalue = ((m_pView) ? m_pView->getXScrollOffset() : 0);
+	int newvalue = ((pPaneView) ? pPaneView->getXScrollOffset() : 0);
 	int newmax = width - windowWidth; /* upper - page_size */
 	if (newmax <= 0)
 		newvalue = 0;
@@ -99,10 +101,10 @@ void AP_UnixFrame::setXScrollRange(void)
 	}
 
 
-	if (m_pView && (bDifferentPosition || bDifferentLimits))
+	if (pPaneView && (bDifferentPosition || bDifferentLimits))
 	{
 		pFrameImpl->_setScrollRange(apufi_scrollX, newvalue, static_cast<gfloat>(width), static_cast<gfloat>(windowWidth));
-		m_pView->sendHorizontalScrollEvent(newvalue, 
+		pPaneView->sendHorizontalScrollEvent(newvalue,
 										   static_cast<UT_sint32>
 												(gtk_adjustment_get_upper(pFrameImpl->m_pHadj)-
 												 gtk_adjustment_get_page_size(pFrameImpl->m_pHadj)));
@@ -113,7 +115,9 @@ void AP_UnixFrame::setYScrollRange(void)
 {
 	AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(getFrameImpl());
 	UT_return_if_fail(pFrameImpl);
-	GR_Graphics * pGr = pFrameImpl->getFrame ()->getCurrentView ()->getGraphics ();
+	AV_View * pPaneView = pFrameImpl->paneView(0);
+	UT_return_if_fail(pPaneView);
+	GR_Graphics * pGr = pPaneView->getGraphics ();
 
 	int height = 0;
 	if(m_pData) //this isn't guaranteed in AbiCommand
@@ -125,7 +129,7 @@ void AP_UnixFrame::setYScrollRange(void)
 	if(pFrameImpl->m_dArea) //this isn't guaranteed in AbiCommand
 		windowHeight = static_cast<int>(pGr->tluD (allocation.height));
 
-	int newvalue = ((m_pView) ? m_pView->getYScrollOffset() : 0);
+	int newvalue = ((pPaneView) ? pPaneView->getYScrollOffset() : 0);
 	int newmax = height - windowHeight;	/* upper - page_size */
 	if (newmax <= 0)
 		newvalue = 0;
@@ -153,10 +157,10 @@ void AP_UnixFrame::setYScrollRange(void)
 	}
 	bool bDifferentLimits = ((height-windowHeight) != diff);
 	
-	if (m_pView && (bDifferentPosition || bDifferentLimits))
+	if (pPaneView && (bDifferentPosition || bDifferentLimits))
 	{
 		pFrameImpl->_setScrollRange(apufi_scrollY, newvalue, static_cast<gfloat>(height), static_cast<gfloat>(windowHeight));
-		m_pView->sendVerticalScrollEvent(newvalue, 
+		pPaneView->sendVerticalScrollEvent(newvalue,
 										 static_cast<UT_sint32>
 											   (gtk_adjustment_get_upper(pFrameImpl->m_pVadj) -
 												gtk_adjustment_get_page_size(pFrameImpl->m_pVadj)));
@@ -301,10 +305,13 @@ gboolean AP_UnixFrame::_scrollAnimTick(GtkWidget * /*w*/, GdkFrameClock * /*cloc
 void AP_UnixFrame::_scrollFuncY(void * pData, UT_sint32 yoff, UT_sint32 /*yrange*/)
 {
 	// this is a static callback function and doesn't have a 'this' pointer.
-	
+
 	AP_UnixFrame * pUnixFrame = static_cast<AP_UnixFrame *>(pData);
-	AV_View * pView = pUnixFrame->getCurrentView();
 	AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(pUnixFrame->getFrameImpl());
+	/* the primary scrollbars belong to the primary pane; while the
+	 * view is split and the secondary pane holds the active view,
+	 * this callback still drives the primary pane's view */
+	AV_View * pView = pFrameImpl->paneView(0);
 
 	// we've been notified (via sendVerticalScrollEvent()) of a scroll (probably
 	// a keyboard motion).  push the new values into the scrollbar widgets
@@ -362,10 +369,10 @@ void AP_UnixFrame::_scrollFuncY(void * pData, UT_sint32 yoff, UT_sint32 /*yrange
 void AP_UnixFrame::_scrollFuncX(void * pData, UT_sint32 xoff, UT_sint32 /*xrange*/)
 {
 	// this is a static callback function and doesn't have a 'this' pointer.
-	
+
 	AP_UnixFrame * pUnixFrame = static_cast<AP_UnixFrame *>(pData);
-	AV_View * pView = pUnixFrame->getCurrentView();
 	AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(pUnixFrame->getFrameImpl());
+	AV_View * pView = pFrameImpl->paneView(0);
 
 	// we've been notified (via sendScrollEvent()) of a scroll (probably
 	// a keyboard motion).  push the new values into the scrollbar widgets

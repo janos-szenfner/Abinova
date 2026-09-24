@@ -562,6 +562,10 @@ public:
 	static EV_EditMethod_Fn zoom;
 	static EV_EditMethod_Fn dlgZoom;
 	static EV_EditMethod_Fn viewFullScreen;
+	static EV_EditMethod_Fn viewGridlines;
+	static EV_EditMethod_Fn viewNavPane;
+	static EV_EditMethod_Fn viewSplit;
+	static EV_EditMethod_Fn arrangeAll;
 
 	static EV_EditMethod_Fn zoom100;
 	static EV_EditMethod_Fn zoom200;
@@ -924,6 +928,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(alignJustify), 		0,		""),
 	EV_EditMethod(NF(alignLeft),			0,		""),
 	EV_EditMethod(NF(alignRight),			0,		""),
+	EV_EditMethod(NF(arrangeAll), 0, ""),
 	EV_EditMethod(NF(arrangePosition),		0,	""),
 	EV_EditMethod(NF(autoFitTable),         0,      ""),
 
@@ -1536,13 +1541,16 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viewFormat),			0,		""),
 #endif
 	EV_EditMethod(NF(viewFullScreen), 0, ""),
+	EV_EditMethod(NF(viewGridlines), 0, ""),
 	EV_EditMethod(NF(viewHeadFoot), 		0,		""),
 	EV_EditMethod(NF(viewLockStyles),   0,		""),
+	EV_EditMethod(NF(viewNavPane), 0, ""),
 	EV_EditMethod(NF(viewNormalLayout), 0, ""),
 	EV_EditMethod(NF(viewPara), 		0,		""),
 	EV_EditMethod(NF(viewPrintLayout), 0, ""),
 	EV_EditMethod(NF(viewRibbonUI), 0, ""),
 	EV_EditMethod(NF(viewRuler),			0,		""),
+	EV_EditMethod(NF(viewSplit), 0, ""),
 	EV_EditMethod(NF(viewStatus),			0,		""),
 #if !XAP_SIMPLE_TOOLBAR
 	EV_EditMethod(NF(viewStd),			0,		""),
@@ -12115,6 +12123,59 @@ Defun1(viewFullScreen)
 
 	// Recalculate the layout after entering/leaving fullscreen
 	pFrame->queue_resize();
+	return true;
+}
+
+Defun1(viewGridlines)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleGridlines();
+	return true;
+}
+
+Defun1(viewNavPane)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleNavPane();
+	return true;
+}
+
+Defun1(viewSplit)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleSplitView();
+	return true;
+}
+
+Defun1(arrangeAll)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	if (!pImpl->arrangeAllWindows())
+	{
+		pFrame->showMessageBox(AP_STRING_ID_MSG_ArrangeUnsupported,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+	}
 	return true;
 }
 

@@ -1359,7 +1359,31 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_View)
 	  else
 	    s = EV_MIS_ZERO;
 	  break;
-	
+
+	case AP_MENU_ID_VIEW_GRIDLINES:
+		if (pFrame->getFrameImpl() &&
+			pFrame->getFrameImpl()->isGridlinesVisible())
+			s = EV_MIS_Toggled;
+		else
+			s = EV_MIS_ZERO;
+		break;
+
+	case AP_MENU_ID_VIEW_NAVPANE:
+		if (pFrame->getFrameImpl() &&
+			pFrame->getFrameImpl()->isNavPaneVisible())
+			s = EV_MIS_Toggled;
+		else
+			s = EV_MIS_ZERO;
+		break;
+
+	case AP_MENU_ID_VIEW_SPLIT:
+		if (pFrame->getFrameImpl() &&
+			pFrame->getFrameImpl()->isSplitView())
+			s = EV_MIS_Toggled;
+		else
+			s = EV_MIS_ZERO;
+		break;
+
 	default:
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		break;

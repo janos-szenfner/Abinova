@@ -21,7 +21,11 @@
 #endif
 
 #include <gtk/gtk.h>
+#include <gdk/x11/gdkx.h>
+#include <X11/Xlib.h>
 #include <cstring>
+#include <cmath>
+#include <vector>
 
 #include "ut_std_string.h"
 #include "ap_UnixFrameImpl.h"
@@ -41,9 +45,15 @@
 #include "ap_UnixSelPane.h"
 #include "ap_UnixIconsPane.h"
 #include "ap_UnixCommentsPane.h"
+#include "ap_UnixNavPane.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
+#include "xav_Listener.h"
+#include "fv_View.h"
+#include "fl_DocLayout.h"
+#include "pd_Document.h"
+#include "gr_UnixCairoGraphics.h"
 
 
 AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
@@ -75,7 +85,23 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_wIconsPaneW(nullptr),
 	m_pIconsPane(nullptr),
 	m_wCommentsPaneW(nullptr),
-	m_pCommentsPane(nullptr)
+	m_pCommentsPane(nullptr),
+	m_wNavPaneW(nullptr),
+	m_pNavPane(nullptr),
+	m_bGridlines(false),
+	m_wSplitPaned(nullptr),
+	m_wSplitGrid(nullptr),
+	m_dArea2(nullptr),
+	m_pVadj2(nullptr),
+	m_vScroll2(nullptr),
+	m_iVScrollSignal2(0),
+	m_pG2(nullptr),
+	m_pDocLayout2(nullptr),
+	m_pView2(nullptr),
+	m_pScrollObj2(nullptr),
+	m_pScrollListener2(nullptr),
+	m_lidScroll2(0),
+	m_pPane1View(nullptr)
 {
 	UT_DEBUGMSG(("Created AP_UnixFrameImpl %p \n",this));
 }
@@ -85,11 +111,24 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	if (m_iScrollAnimID && m_dArea)
 		gtk_widget_remove_tick_callback(m_dArea, m_iScrollAnimID);
 	m_iScrollAnimID = 0;
+	/* tear down the split pane without touching the frame, which is
+	 * already mid-destruction; the widgets die with the window */
+	if (m_pView2)
+	{
+		m_pView2->removeListener(m_lidScroll2);
+		m_pView2->removeScrollListener(m_pScrollObj2);
+	}
+	DELETEP(m_pScrollObj2);
+	DELETEP(m_pScrollListener2);
+	DELETEP(m_pView2);
+	DELETEP(m_pDocLayout2);
+	DELETEP(m_pG2);
 	DELETEP(m_pRibbon);
 	DELETEP(m_pStylesPane);
 	DELETEP(m_pSelPane);
 	DELETEP(m_pIconsPane);
 	DELETEP(m_pCommentsPane);
+	DELETEP(m_pNavPane);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -387,6 +426,10 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	m_wCommentsPaneW = m_pCommentsPane->createWidget();
 	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wCommentsPaneW,
 						"comments");
+	m_pNavPane = new AP_UnixNavPane(pFrame);
+	m_wNavPaneW = m_pNavPane->createWidget();
+	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wNavPaneW,
+						"navigation");
 	gtk_widget_set_visible(m_wSideDeck, FALSE);
 	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wSideDeck);
 	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
@@ -571,6 +614,673 @@ void AP_UnixFrameImpl::refreshStylesPane(const char * szCurrentStyle)
 {
 	if (m_pStylesPane && isStylesPaneVisible())
 		m_pStylesPane->refresh(szCurrentStyle);
+}
+
+/* ===== Navigation pane (headings list in the side deck) ===== */
+
+void AP_UnixFrameImpl::setNavPaneVisible(bool bVisible)
+{
+	if (!m_wDocPaned || !m_wSideDeck)
+		return;
+	s_deckShow(m_wSideDeck, "navigation", bVisible, m_wDocPaned);
+	if (bVisible && m_pNavPane)
+		m_pNavPane->rebuildList();
+}
+
+bool AP_UnixFrameImpl::isNavPaneVisible() const
+{
+	const char * cur = m_wSideDeck
+		? gtk_stack_get_visible_child_name(GTK_STACK(m_wSideDeck))
+		: nullptr;
+	return cur && gtk_widget_get_visible(m_wSideDeck) &&
+		!strcmp(cur, "navigation");
+}
+
+void AP_UnixFrameImpl::toggleNavPane()
+{
+	fprintf(stderr, "NAVDBG toggleNavPane: vis=%d deck=%p paned=%p\n",
+			(int)isNavPaneVisible(), (void*)m_wSideDeck, (void*)m_wDocPaned);
+	setNavPaneVisible(!isNavPaneVisible());
+}
+
+void AP_UnixFrameImpl::refreshNavPane()
+{
+	if (isNavPaneVisible() && m_pNavPane)
+		m_pNavPane->refresh();
+}
+
+/* ===== Gridlines ===== */
+
+void AP_UnixFrameImpl::toggleGridlines()
+{
+	m_bGridlines = !m_bGridlines;
+	if (m_dArea)
+		gtk_widget_queue_draw(m_dArea);
+	if (m_dArea2)
+		gtk_widget_queue_draw(m_dArea2);
+}
+
+/* light grid anchored to the scroll offsets so it scrolls with the
+ * document; spacing tracks the zoom so it stays ~1 cm on screen */
+void AP_UnixFrameImpl::_postDocDraw(GtkWidget * w, cairo_t * cr,
+									AV_View * pView)
+{
+	if (!m_bGridlines || !pView || !w)
+		return;
+	GR_Graphics * pG = pView->getGraphics();
+	if (!pG)
+		return;
+	GtkAllocation alloc;
+	gtk_widget_get_allocation(w, &alloc);
+	double xoff = pG->tduD(pView->getXScrollOffset());
+	double yoff = pG->tduD(pView->getYScrollOffset());
+	double step = 37.8 * pG->getZoomPercentage() / 100.0;
+	if (step < 8.0)
+		step = 8.0;
+
+	cairo_save(cr);
+	cairo_set_source_rgba(cr, 0.45, 0.5, 0.6, 0.22);
+	cairo_set_line_width(cr, 1.0);
+	double sx = std::fmod(-xoff, step);
+	if (sx > 0)
+		sx -= step;
+	for (double x = sx; x <= alloc.width; x += step)
+	{
+		cairo_move_to(cr, x + 0.5, 0);
+		cairo_line_to(cr, x + 0.5, alloc.height);
+	}
+	double sy = std::fmod(-yoff, step);
+	if (sy > 0)
+		sy -= step;
+	for (double y = sy; y <= alloc.height; y += step)
+	{
+		cairo_move_to(cr, 0, y + 0.5);
+		cairo_line_to(cr, alloc.width, y + 0.5);
+	}
+	cairo_stroke(cr);
+	cairo_restore(cr);
+}
+
+/* ===== Split view ===== */
+
+/* secondary-pane scrollbar calibration; mirrors AP_UnixFrame::
+ * setYScrollRange but for the split pane's own layout and
+ * adjustment */
+class ap_Pane2ViewListener : public AV_Listener
+{
+public:
+	ap_Pane2ViewListener(AP_UnixFrameImpl * pImpl, AV_View * pView)
+		: m_pImpl(pImpl), m_pView(pView) {}
+	bool notify(AV_View * /*pView*/, const AV_ChangeMask mask) override
+	{
+		if (mask & (AV_CHG_PAGECOUNT | AV_CHG_WINDOWSIZE))
+			m_pImpl->setScrollRange2();
+		return true;
+	}
+	AV_ListenerType getType() const override
+		{ return AV_LISTENER_SCROLLBAR; }
+private:
+	AP_UnixFrameImpl * m_pImpl;
+	AV_View * m_pView;
+};
+
+void AP_UnixFrameImpl::_drawPane2(GtkDrawingArea * /*area*/, cairo_t * cr,
+								  int /*width*/, int /*height*/, gpointer w)
+{
+	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(
+		g_object_get_data(G_OBJECT(w), "user_data"));
+	FV_View * pView = pImpl ? pImpl->m_pView2 : nullptr;
+	double x, y, width, height;
+	cairo_clip_extents(cr, &x, &y, &width, &height);
+	width -= x;
+	height -= y;
+	if (pView)
+	{
+		GR_CairoGraphics * pGr =
+			static_cast<GR_CairoGraphics *>(pView->getGraphics());
+		if (pGr->getPaintCount() > 0)
+			return;
+		UT_Rect rClip;
+		rClip.left = pGr->tlu(x);
+		rClip.top = pGr->tlu(y);
+		rClip.width = pGr->tlu(width);
+		rClip.height = pGr->tlu(height);
+		GR_UnixCairoGraphics * pUGr =
+			static_cast<GR_UnixCairoGraphics *>(pGr);
+		pUGr->beginFrame();
+		pView->drawImmediate(&rClip);
+		pUGr->endFrame(cr);
+		pImpl->_postDocDraw(GTK_WIDGET(w), cr, pView);
+	}
+}
+
+void AP_UnixFrameImpl::_resizePane2(GtkDrawingArea * /*area*/, gint width,
+									gint height, GtkWidget * w)
+{
+	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(
+		g_object_get_data(G_OBJECT(w), "user_data"));
+	if (pImpl && pImpl->m_pView2)
+		pImpl->m_pView2->setWindowSize(width, height);
+}
+
+/* the split paned gets a deferred halving once it has an
+ * allocation; retries while the widget is still unallocated */
+struct _PanePosCell { GtkWidget * w; int tries; };
+
+static void s_panePosCellCleared(gpointer d, GObject * /*dead*/)
+{
+	static_cast<_PanePosCell *>(d)->w = nullptr;
+}
+
+static gboolean s_splitPositionIdle(gpointer data)
+{
+	_PanePosCell * c = static_cast<_PanePosCell *>(data);
+	GtkWidget * w = c->w;
+	bool bDone = false;
+	if (w)
+	{
+		GtkAllocation alloc;
+		gtk_widget_get_allocation(w, &alloc);
+		if (alloc.height > 200)
+		{
+			gtk_paned_set_position(GTK_PANED(w), alloc.height / 2);
+			bDone = true;
+		}
+		else if (++c->tries > 120)
+			bDone = true;
+	}
+	else
+		bDone = true;
+	if (bDone)
+	{
+		if (w)
+			g_object_weak_unref(G_OBJECT(w), s_panePosCellCleared, c);
+		delete c;
+		return G_SOURCE_REMOVE;
+	}
+	return G_SOURCE_CONTINUE;
+}
+
+void AP_UnixFrameImpl::_vScrollChanged2(GtkAdjustment * adj,
+										gpointer /*data*/)
+{
+	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(
+		g_object_get_data(G_OBJECT(adj), "user_data"));
+	if (pImpl && pImpl->m_pView2)
+		pImpl->m_pView2->sendVerticalScrollEvent(
+			static_cast<UT_sint32>(gtk_adjustment_get_value(adj)));
+}
+
+/* view-driven scroll feedback for pane 2 - same arithmetic as
+ * AP_UnixFrame::_scrollFuncY but writes the pane-2 adjustment */
+void AP_UnixFrameImpl::_scrollFuncY2(void * pData, UT_sint32 yoff,
+									 UT_sint32 /*yrange*/)
+{
+	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(pData);
+	FV_View * pView = pImpl->m_pView2;
+	if (!pView || !pImpl->m_pVadj2)
+		return;
+
+	gfloat yoffNew = yoff;
+	gfloat yoffMax = gtk_adjustment_get_upper(pImpl->m_pVadj2) -
+		gtk_adjustment_get_page_size(pImpl->m_pVadj2);
+	if (yoffMax <= 0)
+		yoffNew = 0;
+	else if (yoffNew > yoffMax)
+		yoffNew = yoffMax;
+
+	GR_Graphics * pG = pView->getGraphics();
+	UT_sint32 dy = static_cast<UT_sint32>(
+		pG->tluD(static_cast<UT_sint32>(pG->tduD(
+			static_cast<UT_sint32>(pView->getYScrollOffset() - yoffNew)))));
+	gfloat yoffDisc = static_cast<UT_sint32>(pView->getYScrollOffset()) - dy;
+
+	if (pG->tdu(static_cast<UT_sint32>(yoffDisc) -
+				pView->getYScrollOffset()) == 0)
+		return;
+
+	g_signal_handler_block(pImpl->m_pVadj2, pImpl->m_iVScrollSignal2);
+	gtk_adjustment_set_value(GTK_ADJUSTMENT(pImpl->m_pVadj2), yoffNew);
+	g_signal_handler_unblock(pImpl->m_pVadj2, pImpl->m_iVScrollSignal2);
+
+	pView->setYScrollOffset(static_cast<UT_sint32>(yoffDisc));
+}
+
+/* pane 2 has no horizontal scrollbar; scroll the view directly */
+void AP_UnixFrameImpl::_scrollFuncX2(void * pData, UT_sint32 xoff,
+									 UT_sint32 /*xrange*/)
+{
+	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(pData);
+	if (pImpl->m_pView2)
+		pImpl->m_pView2->setXScrollOffset(xoff);
+}
+
+/* recalibrate the split pane's scrollbar when the document or the
+ * pane size changes */
+void AP_UnixFrameImpl::setScrollRange2()
+{
+	if (!m_pView2 || !m_pDocLayout2 || !m_pVadj2 || !m_dArea2)
+		return;
+	GR_Graphics * pGr = m_pView2->getGraphics();
+	int height = m_pDocLayout2->getHeight();
+	GtkAllocation alloc;
+	gtk_widget_get_allocation(m_dArea2, &alloc);
+	int windowHeight = static_cast<int>(pGr->tluD(alloc.height));
+
+	int newvalue = m_pView2->getYScrollOffset();
+	int newmax = height - windowHeight;
+	if (newmax <= 0)
+		newvalue = 0;
+	else if (newvalue > newmax)
+		newvalue = newmax;
+
+	bool bDifferentPosition =
+		(newvalue != static_cast<int>(
+			gtk_adjustment_get_value(m_pVadj2) + 0.5));
+	bool bDifferentLimits =
+		((height - windowHeight) != static_cast<int>(
+			gtk_adjustment_get_upper(m_pVadj2) -
+			gtk_adjustment_get_page_size(m_pVadj2) + 0.5));
+
+	if (bDifferentPosition || bDifferentLimits)
+	{
+		gtk_adjustment_configure(m_pVadj2, newvalue, 0.0,
+								 static_cast<gfloat>(height),
+								 pGr->tluD(20.0),
+								 static_cast<gfloat>(windowHeight),
+								 static_cast<gfloat>(windowHeight));
+		m_pView2->sendVerticalScrollEvent(newvalue,
+			static_cast<UT_sint32>(
+				gtk_adjustment_get_upper(m_pVadj2) -
+				gtk_adjustment_get_page_size(m_pVadj2)));
+	}
+}
+
+/* which view a pane's widgets drive: the primary pane always maps
+ * to m_pPane1View while split (even when the secondary pane holds
+ * the "current" view); not split means single-pane current view */
+AV_View * AP_UnixFrameImpl::paneView(int iPane)
+{
+	if (iPane == 1)
+		return m_pView2;
+	if (m_pPane1View)
+		return m_pPane1View;
+	return getFrame() ? getFrame()->getCurrentView() : nullptr;
+}
+
+void AP_UnixFrameImpl::_preDocInput(GtkWidget * w)
+{
+	if (w == m_dArea2 && m_pView2)
+		_setActivePane(m_pView2);
+	else if (w == m_dArea && m_pPane1View)
+		_setActivePane(m_pPane1View);
+}
+
+AV_View * AP_UnixFrameImpl::_viewForScrollAdj(GtkAdjustment * adj)
+{
+	if (adj && m_pVadj2 && adj == m_pVadj2 && m_pView2)
+		return m_pView2;
+	return paneView(0);
+}
+
+bool AP_UnixFrameImpl::_isPaneView(AV_View * pView)
+{
+	if (getFrame() && getFrame()->getCurrentView() == pView)
+		return true;
+	return pView && (pView == m_pView2 || pView == m_pPane1View);
+}
+
+/* the primary view is recreated on document reload; keep the
+ * pane-1 binding pointing at it so the primary scrollbars keep
+ * working while the split is open.  If the frame switched to a
+ * different document the split pane's layout is stale - drop it
+ * before the old document can be deleted out from under it. */
+void AP_UnixFrameImpl::notifyViewChanged(AV_View * pView)
+{
+	if (m_pView2 && pView && pView != m_pView2 &&
+		static_cast<FV_View *>(pView)->getDocument() !=
+			m_pView2->getDocument())
+	{
+		/* rebind pane 1 first so the teardown reactivates the
+		 * new view rather than the about-to-be-deleted old one */
+		m_pPane1View = pView;
+		setSplitView(false);
+		return;
+	}
+	if (m_pPane1View && pView && pView != m_pView2)
+		m_pPane1View = pView;
+}
+
+/* move the frame's current view (and the ruler/statusbar bindings)
+ * to the pane the user is interacting with */
+void AP_UnixFrameImpl::_setActivePane(AV_View * pView)
+{
+	XAP_Frame * pFrame = getFrame();
+	if (!pFrame || !pView || pFrame->getCurrentView() == pView)
+		return;
+	AV_View * pOld = pFrame->getCurrentView();
+	if (pOld)
+		pOld->focusChange(AV_FOCUS_NONE);
+	pFrame->setView(pView);
+
+	AP_FrameData * pFrameData =
+		static_cast<AP_FrameData *>(pFrame->getFrameData());
+	if (pFrameData)
+	{
+		UT_sint32 iZoom = pFrame->getZoomPercentage();
+		if (pFrameData->m_bShowRuler)
+		{
+			if (pFrameData->m_pTopRuler)
+				pFrameData->m_pTopRuler->setView(pView, iZoom);
+			if (pFrameData->m_pLeftRuler)
+				pFrameData->m_pLeftRuler->setView(pView, iZoom);
+		}
+		if (pFrameData->m_pStatusBar)
+			pFrameData->m_pStatusBar->setView(pView);
+	}
+	pView->focusChange(AV_FOCUS_HERE);
+	refreshRibbon();
+}
+
+void AP_UnixFrameImpl::toggleSplitView()
+{
+	setSplitView(!isSplitView());
+}
+
+void AP_UnixFrameImpl::setSplitView(bool bSplit)
+{
+	if (bSplit == isSplitView())
+		return;
+	if (!m_wDocPaned || !m_wSunkenBox)
+		return;
+
+	XAP_Frame * pFrame = getFrame();
+
+	if (!bSplit)
+	{
+		if (m_pPane1View)
+			_setActivePane(m_pPane1View);
+		if (m_pView2)
+		{
+			m_pView2->removeListener(m_lidScroll2);
+			m_pView2->removeScrollListener(m_pScrollObj2);
+		}
+		DELETEP(m_pScrollObj2);
+		DELETEP(m_pScrollListener2);
+		DELETEP(m_pView2);
+		DELETEP(m_pDocLayout2);
+		DELETEP(m_pG2);
+		m_pPane1View = nullptr;
+		if (m_wSplitPaned)
+		{
+			/* unparenting drops the last reference on the sunken
+			 * box - hold a ref while it is between parents.  The
+			 * split paned itself is destroyed when it is unparented
+			 * from m_wDocPaned (its floating ref was sunk), so it
+			 * must not be unreffed again. */
+			g_object_ref(m_wSunkenBox);
+			gtk_paned_set_start_child(GTK_PANED(m_wSplitPaned), nullptr);
+			gtk_paned_set_end_child(GTK_PANED(m_wSplitPaned), nullptr);
+			gtk_paned_set_start_child(GTK_PANED(m_wDocPaned),
+									m_wSunkenBox);
+			g_object_unref(m_wSunkenBox);
+			m_wSplitPaned = nullptr;
+		}
+		m_wSplitGrid = nullptr;
+		m_dArea2 = nullptr;
+		m_vScroll2 = nullptr;
+		m_pVadj2 = nullptr;
+		m_iVScrollSignal2 = 0;
+		m_lidScroll2 = 0;
+		return;
+	}
+
+	FV_View * pView1 = pFrame
+		? static_cast<FV_View *>(pFrame->getCurrentView()) : nullptr;
+	PD_Document * pDoc = pView1
+		? static_cast<PD_Document *>(pView1->getDocument()) : nullptr;
+	if (!pView1 || !pDoc)
+		return;
+
+	m_pPane1View = pView1;
+
+	m_pVadj2 = GTK_ADJUSTMENT(
+		gtk_adjustment_new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+	g_object_set_data(G_OBJECT(m_pVadj2), "user_data", this);
+	m_vScroll2 = gtk_scrollbar_new(GTK_ORIENTATION_VERTICAL, m_pVadj2);
+	g_object_set_data(G_OBJECT(m_vScroll2), "user_data", this);
+	gtk_widget_set_vexpand(m_vScroll2, TRUE);
+	gtk_widget_set_can_focus(m_vScroll2, false);
+	m_iVScrollSignal2 = g_signal_connect(
+		G_OBJECT(m_pVadj2), "value_changed",
+		G_CALLBACK(_vScrollChanged2), nullptr);
+
+	m_dArea2 = ap_DocView_new();
+	g_object_set_data(G_OBJECT(m_dArea2), "user_data", this);
+	gtk_widget_set_can_focus(m_dArea2, true);
+	gtk_widget_set_focusable(m_dArea2, true);
+	gtk_widget_set_hexpand(m_dArea2, TRUE);
+	gtk_widget_set_vexpand(m_dArea2, TRUE);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_dArea2),
+								   _drawPane2, m_dArea2, nullptr);
+
+	GtkEventController * key2 = gtk_event_controller_key_new();
+	g_signal_connect(key2, "key-pressed",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::key_press_event),
+					 m_dArea2);
+	g_signal_connect(key2, "key-released",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::key_release_event),
+					 m_dArea2);
+	gtk_widget_add_controller(m_dArea2, key2);
+
+	GtkGesture * click2 = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click2), 0);
+	g_signal_connect(click2, "pressed",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::button_press_event),
+					 m_dArea2);
+	g_signal_connect(click2, "released",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::button_release_event),
+					 m_dArea2);
+	gtk_widget_add_controller(m_dArea2, GTK_EVENT_CONTROLLER(click2));
+
+	GtkEventController * motion2 = gtk_event_controller_motion_new();
+	g_signal_connect(motion2, "motion",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::motion_notify_event),
+					 m_dArea2);
+	// IM focus tracking, same as the primary drawing area
+	g_signal_connect(motion2, "enter",
+					 G_CALLBACK(ap_focus_in_event), m_dArea2);
+	g_signal_connect(motion2, "leave",
+					 G_CALLBACK(ap_focus_out_event), m_dArea2);
+	gtk_widget_add_controller(m_dArea2, motion2);
+
+	GtkEventController * scroll2 = gtk_event_controller_scroll_new(
+		GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES);
+	g_signal_connect(scroll2, "scroll",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::scroll_notify_event),
+					 m_dArea2);
+	gtk_widget_add_controller(m_dArea2, scroll2);
+
+	GtkEventController * focus2 = gtk_event_controller_focus_new();
+	g_signal_connect(focus2, "enter",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::focus_in_event),
+					 m_dArea2);
+	g_signal_connect(focus2, "leave",
+					 G_CALLBACK(XAP_UnixFrameImpl::_fe::focus_out_event),
+					 m_dArea2);
+	gtk_widget_add_controller(m_dArea2, focus2);
+
+	g_signal_connect(m_dArea2, "resize",
+					 G_CALLBACK(_resizePane2), m_dArea2);
+
+	m_wSplitGrid = gtk_grid_new();
+	gtk_widget_set_hexpand(m_wSplitGrid, TRUE);
+	gtk_widget_set_vexpand(m_wSplitGrid, TRUE);
+	gtk_grid_attach(GTK_GRID(m_wSplitGrid), m_dArea2, 0, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(m_wSplitGrid), m_vScroll2, 1, 0, 1, 1);
+
+	/* same graphics + layout + view stack _showDocument builds for
+	 * a cloned window, minus the title-bar/selection listeners */
+	{
+		GR_UnixCairoAllocInfo ai(m_dArea2);
+		m_pG2 = XAP_App::getApp()->newGraphics(ai);
+	}
+	if (m_pG2)
+	{
+		GR_UnixCairoGraphics * pUGr =
+			static_cast<GR_UnixCairoGraphics *>(m_pG2);
+		GtkWidget * w = gtk_entry_new();
+		g_object_ref_sink(w);
+		pUGr->init3dColors(w);
+		g_object_unref(w);
+		m_pG2->setZoomPercentage(pFrame->getZoomPercentage());
+		m_pDocLayout2 = new FL_DocLayout(pDoc, m_pG2);
+	}
+	if (m_pDocLayout2)
+		m_pView2 = new FV_View(XAP_App::getApp(), pFrame,
+							   m_pDocLayout2);
+
+	if (!m_pView2)
+	{
+		/* allocation failed - drop the partial stack and bail */
+		DELETEP(m_pDocLayout2);
+		DELETEP(m_pG2);
+		m_pPane1View = nullptr;
+		if (m_wSplitGrid)
+			gtk_widget_unparent(m_wSplitGrid);
+		m_wSplitGrid = nullptr;
+		m_dArea2 = nullptr;
+		m_vScroll2 = nullptr;
+		m_pVadj2 = nullptr;
+		m_iVScrollSignal2 = 0;
+		return;
+	}
+
+	AP_FrameData * pFrameData =
+		static_cast<AP_FrameData *>(pFrame->getFrameData());
+	if (pFrameData)
+	{
+		m_pView2->setShowPara(pFrameData->m_bShowPara);
+		m_pView2->setInsertMode(pFrameData->m_bInsertMode);
+	}
+
+	m_pScrollObj2 = new AV_ScrollObj(this, _scrollFuncX2,
+									 _scrollFuncY2);
+	m_pScrollListener2 = new ap_Pane2ViewListener(this, m_pView2);
+	m_pView2->addScrollListener(m_pScrollObj2);
+	m_pView2->addListener(m_pScrollListener2, &m_lidScroll2);
+
+	m_wSplitPaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
+	/* replacing the paned's start child unparents m_wSunkenBox and
+	 * drops its last reference - keep it alive across the move */
+	g_object_ref(m_wSunkenBox);
+	gtk_paned_set_start_child(GTK_PANED(m_wDocPaned), m_wSplitPaned);
+	gtk_paned_set_start_child(GTK_PANED(m_wSplitPaned), m_wSunkenBox);
+	g_object_unref(m_wSunkenBox);
+	gtk_paned_set_end_child(GTK_PANED(m_wSplitPaned), m_wSplitGrid);
+	gtk_paned_set_resize_start_child(GTK_PANED(m_wSplitPaned), TRUE);
+	gtk_paned_set_shrink_start_child(GTK_PANED(m_wSplitPaned), FALSE);
+	gtk_paned_set_resize_end_child(GTK_PANED(m_wSplitPaned), FALSE);
+	gtk_paned_set_shrink_end_child(GTK_PANED(m_wSplitPaned), FALSE);
+
+	_PanePosCell * cell = new _PanePosCell{ m_wSplitPaned, 0 };
+	g_object_weak_ref(G_OBJECT(m_wSplitPaned), s_panePosCellCleared,
+					  cell);
+	g_idle_add(s_splitPositionIdle, cell);
+
+	m_pDocLayout2->fillLayouts();
+	m_pView2->setYScrollOffset(pView1->getYScrollOffset());
+}
+
+/* ===== Arrange All (X11 window tiling) ===== */
+
+bool AP_UnixFrameImpl::arrangeAllWindows()
+{
+	GdkDisplay * display = gdk_display_get_default();
+	if (!display || !GDK_IS_X11_DISPLAY(display))
+		return false;
+
+	XAP_App * pApp = XAP_App::getApp();
+	if (!pApp)
+		return false;
+
+	std::vector<Window> wins;
+	GdkSurface * firstSurface = nullptr;
+	for (UT_sint32 i = 0; i < pApp->getFrameCount(); ++i)
+	{
+		XAP_Frame * f = pApp->getFrame(i);
+		if (!f || !f->getFrameImpl())
+			continue;
+		GtkWidget * tl = static_cast<XAP_UnixFrameImpl *>(
+			f->getFrameImpl())->getTopLevelWindow();
+		if (!tl)
+			continue;
+		GdkSurface * s = gtk_native_get_surface(GTK_NATIVE(tl));
+		if (s && GDK_IS_X11_SURFACE(s))
+		{
+			wins.push_back(gdk_x11_surface_get_xid(s));
+			if (!firstSurface)
+				firstSurface = s;
+		}
+	}
+	if (wins.size() < 2)
+		return true;   // nothing to arrange
+
+	Display * xdpy = gdk_x11_display_get_xdisplay(
+		GDK_X11_DISPLAY(display));
+
+	/* workarea of the monitor under the first window */
+	GdkRectangle geo = { 0, 0, 1280, 800 };
+	GdkMonitor * mon = firstSurface
+		? gdk_display_get_monitor_at_surface(display, firstSurface)
+		: nullptr;
+	if (mon)
+		gdk_x11_monitor_get_workarea(mon, &geo);
+
+	int n = static_cast<int>(wins.size());
+	int cols = static_cast<int>(std::ceil(std::sqrt(n)));
+	int rows = (n + cols - 1) / cols;
+	int cw = geo.width / cols;
+	int ch = geo.height / rows;
+
+	Atom netState = gdk_x11_get_xatom_by_name_for_display(
+		display, "_NET_WM_STATE");
+	Atom maxH = gdk_x11_get_xatom_by_name_for_display(
+		display, "_NET_WM_STATE_MAXIMIZED_HORZ");
+	Atom maxV = gdk_x11_get_xatom_by_name_for_display(
+		display, "_NET_WM_STATE_MAXIMIZED_VERT");
+	Atom fullscreen = gdk_x11_get_xatom_by_name_for_display(
+		display, "_NET_WM_STATE_FULLSCREEN");
+
+	for (int i = 0; i < n; ++i)
+	{
+		int col = i % cols, row = i / cols;
+		/* drop maximized/fullscreen state or the WM overrides our
+		 * placement */
+		if (netState != None)
+		{
+			XClientMessageEvent ev = {};
+			ev.type = ClientMessage;
+			ev.window = wins[i];
+			ev.message_type = netState;
+			ev.format = 32;
+			ev.data.l[0] = 0; /* _NET_WM_STATE_REMOVE */
+			ev.data.l[1] = maxH;
+			ev.data.l[2] = maxV;
+			XSendEvent(xdpy, DefaultRootWindow(xdpy), False,
+					   SubstructureRedirectMask | SubstructureNotifyMask,
+					   reinterpret_cast<XEvent *>(&ev));
+			ev.data.l[1] = fullscreen;
+			ev.data.l[2] = 0;
+			XSendEvent(xdpy, DefaultRootWindow(xdpy), False,
+					   SubstructureRedirectMask | SubstructureNotifyMask,
+					   reinterpret_cast<XEvent *>(&ev));
+		}
+		XMoveResizeWindow(xdpy, wins[i],
+						  geo.x + col * cw, geo.y + row * ch, cw, ch);
+	}
+	XFlush(xdpy);
+	return true;
 }
 
 void AP_UnixFrameImpl::_createRibbonUI()

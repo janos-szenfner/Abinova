@@ -672,6 +672,7 @@ void XAP_UnixFrameImpl::_fe::focus_in_event(GtkEventControllerFocus * /*c*/, Gtk
 	XAP_UnixFrameImpl * pFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
 	UT_return_if_fail(pFrameImpl);
 
+	pFrameImpl->_preDocInput(w);
 	XAP_Frame* pFrame = pFrameImpl->getFrame();
 	g_object_set_data(G_OBJECT(w), "toplevelWindowFocus",
 						GINT_TO_POINTER(TRUE));
@@ -699,6 +700,7 @@ void XAP_UnixFrameImpl::_fe::button_press_event(GtkGestureClick * g, gint n_pres
 											  gdouble x, gdouble y, GtkWidget * w)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
+	pUnixFrameImpl->_preDocInput(w);
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
 	GtkEventController * controller = GTK_EVENT_CONTROLLER(g);
 	pUnixFrameImpl->setTimeOfLastEvent(gtk_event_controller_get_current_event_time(controller));
@@ -727,6 +729,7 @@ void XAP_UnixFrameImpl::_fe::button_release_event(GtkGestureClick * g, gint /*n_
 												gdouble x, gdouble y, GtkWidget * w)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
+	pUnixFrameImpl->_preDocInput(w);
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
 	GtkEventController * controller = GTK_EVENT_CONTROLLER(g);
 	pUnixFrameImpl->setTimeOfLastEvent(gtk_event_controller_get_current_event_time(controller));
@@ -1006,6 +1009,7 @@ gboolean XAP_UnixFrameImpl::_fe::scroll_notify_event(GtkEventControllerScroll * 
 
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
 	pUnixFrameImpl->setTimeOfLastEvent(gtk_event_controller_get_current_event_time(controller));
+	pUnixFrameImpl->_preDocInput(w);
 	AV_View * pView = pFrame->getCurrentView();
 	EV_UnixMouse * pUnixMouse = static_cast<EV_UnixMouse *>(pFrame->getMouse());
 
@@ -1077,6 +1081,7 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
 	pUnixFrameImpl->setTimeOfLastEvent(gtk_event_controller_get_current_event_time(controller));
+	pUnixFrameImpl->_preDocInput(w);
 	AV_View * pView = pFrame->getCurrentView();
 	ev_UnixKeyboard * pUnixKeyboard = static_cast<ev_UnixKeyboard *>(pFrame->getKeyboard());
 
@@ -1178,6 +1183,7 @@ void XAP_UnixFrameImpl::_fe::draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 		pUGr->beginFrame();
 		pView->drawImmediate(&rClip);
 		pUGr->endFrame(cr);
+		pUnixFrameImpl->_postDocDraw(GTK_WIDGET(w), cr, pView);
 	}
 }
 
@@ -1201,7 +1207,7 @@ gboolean XAP_UnixFrameImpl::_fe::_actualScroll(gpointer data)
 	pVS->m_pImpl->m_iScrollIdleID = 0;
 	pVS->m_pImpl->m_bScrollWait = false;
 	XAP_Frame * pFrame = pVS->m_pImpl->getFrame();
-	if (pView && pFrame && pFrame->getCurrentView() == pView)
+	if (pView && pFrame && pVS->m_pImpl->_isPaneView(pView))
 		pView->sendVerticalScrollEvent(pVS->m_pImpl->m_iPendingScrollAmount);
 	return FALSE;
 }
@@ -1223,7 +1229,7 @@ void XAP_UnixFrameImpl::_fe::vScrollChanged(GtkAdjustment * w, gpointer /*data*/
 		return;
 	}
 	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
-	AV_View * pView = pFrame->getCurrentView();
+	AV_View * pView = pUnixFrameImpl->_viewForScrollAdj(w);
 	_ViewScroll * pVS = new  _ViewScroll(pUnixFrameImpl,pView,iAmount);
 	pUnixFrameImpl->m_iPendingScrollAmount = iAmount;
 	pUnixFrameImpl->m_bScrollWait = true;
@@ -1234,8 +1240,7 @@ void XAP_UnixFrameImpl::_fe::vScrollChanged(GtkAdjustment * w, gpointer /*data*/
 void XAP_UnixFrameImpl::_fe::hScrollChanged(GtkAdjustment * w, gpointer /*data*/)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
-	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
-	AV_View * pView = pFrame->getCurrentView();
+	AV_View * pView = pUnixFrameImpl->_viewForScrollAdj(w);
 
 	if (pView)
 		pView->sendHorizontalScrollEvent(static_cast<UT_sint32>(gtk_adjustment_get_value(w)));
@@ -1246,6 +1251,16 @@ void XAP_UnixFrameImpl::_fe::destroy(GtkWidget * /*widget*/, gpointer /*data*/)
 }
 
 /*****************************************************************/
+
+AV_View * XAP_UnixFrameImpl::_viewForScrollAdj(GtkAdjustment * /*adj*/)
+{
+	return getFrame()->getCurrentView();
+}
+
+bool XAP_UnixFrameImpl::_isPaneView(AV_View * pView)
+{
+	return pView == getFrame()->getCurrentView();
+}
 
 void XAP_UnixFrameImpl::_nullUpdate() const
 {

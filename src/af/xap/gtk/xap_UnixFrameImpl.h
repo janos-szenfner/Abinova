@@ -104,6 +104,16 @@ protected:
 	// layer overrides it to build the ribbon UI.
 	virtual void _createRibbonUI();
 
+	/* split-view hooks.  The default frame has a single document
+	 * pane; AP_UnixFrameImpl overrides these to route input and
+	 * scrolling to the pane the widget belongs to, and to paint
+	 * overlays (gridlines) after the view has drawn. */
+	virtual void _preDocInput(GtkWidget * /*w*/) {}
+	virtual AV_View * _viewForScrollAdj(GtkAdjustment * adj);
+	virtual bool _isPaneView(AV_View * pView);
+	virtual void _postDocDraw(GtkWidget * /*w*/, cairo_t * /*cr*/,
+							  AV_View * /*pView*/) {}
+
 	void _createTopLevelWindow(void) override;
 	bool _updateTitle() override;
 	void _createIMContext(GtkWidget* w);

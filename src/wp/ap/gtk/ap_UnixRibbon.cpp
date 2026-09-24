@@ -3140,6 +3140,133 @@ static void _glyph_windows(cairo_t * cr, double w, double h)
 	cairo_stroke(cr);
 }
 
+static void _glyph_ruler(cairo_t * cr, double w, double h)
+{
+	/* horizontal ruler with tick marks along its lower edge */
+	cairo_set_line_width(cr, 1.0);
+	cairo_rectangle(cr, w * 0.08, h * 0.30, w * 0.84, h * 0.34);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	for (int i = 1; i < 8; ++i)
+	{
+		double x = w * 0.08 + i * w * 0.105;
+		double t = (i % 2) ? h * 0.12 : h * 0.18;
+		cairo_move_to(cr, x, h * 0.63);
+		cairo_line_to(cr, x, h * 0.63 - t);
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_statusbar(cairo_t * cr, double w, double h)
+{
+	/* window with a filled status strip along the bottom */
+	cairo_set_line_width(cr, 1.0);
+	cairo_rectangle(cr, w * 0.12, h * 0.16, w * 0.76, h * 0.68);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.35, 0.55, 0.9);
+	cairo_rectangle(cr, w * 0.135, h * 0.66, w * 0.73, h * 0.17);
+	cairo_fill(cr);
+}
+
+static void _glyph_gridlines(cairo_t * cr, double w, double h)
+{
+	/* light crossed grid inside a page outline */
+	cairo_set_line_width(cr, 1.0);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_rectangle(cr, w * 0.14, h * 0.10, w * 0.72, h * 0.80);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.35, 0.55, 0.9);
+	for (int i = 1; i < 4; ++i)
+	{
+		double x = w * 0.14 + i * w * 0.18;
+		cairo_move_to(cr, x, h * 0.10);
+		cairo_line_to(cr, x, h * 0.90);
+		double y = h * 0.10 + i * h * 0.20;
+		cairo_move_to(cr, w * 0.14, y);
+		cairo_line_to(cr, w * 0.86, y);
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_navpane(cairo_t * cr, double w, double h)
+{
+	/* page with a docked list column on the left */
+	cairo_set_line_width(cr, 1.0);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_rectangle(cr, w * 0.10, h * 0.12, w * 0.80, h * 0.76);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.35, 0.55, 0.9);
+	cairo_rectangle(cr, w * 0.10, h * 0.12, w * 0.30, h * 0.76);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	for (int i = 0; i < 4; ++i)
+	{
+		double y = h * 0.20 + i * h * 0.17;
+		cairo_move_to(cr, w * 0.14, y);
+		cairo_line_to(cr, w * 0.36, y);
+	}
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	for (int i = 0; i < 3; ++i)
+	{
+		double y = h * 0.26 + i * h * 0.20;
+		cairo_move_to(cr, w * 0.48, y);
+		cairo_line_to(cr, w * 0.82, y);
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_split(cairo_t * cr, double w, double h)
+{
+	/* window divided horizontally into two panes */
+	cairo_set_line_width(cr, 1.0);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_rectangle(cr, w * 0.12, h * 0.10, w * 0.76, h * 0.36);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	cairo_rectangle(cr, w * 0.12, h * 0.54, w * 0.76, h * 0.36);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.35, 0.55, 0.9);
+	cairo_set_line_width(cr, 1.4);
+	cairo_move_to(cr, w * 0.06, h * 0.50);
+	cairo_line_to(cr, w * 0.94, h * 0.50);
+	cairo_stroke(cr);
+}
+
+static void _glyph_arrange(cairo_t * cr, double w, double h)
+{
+	/* four small tiled windows */
+	cairo_set_line_width(cr, 1.0);
+	for (int r = 0; r < 2; ++r)
+		for (int c = 0; c < 2; ++c)
+		{
+			double x = w * (0.10 + c * 0.42);
+			double y = h * (0.12 + r * 0.42);
+			cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+			cairo_rectangle(cr, x, y, w * 0.38, h * 0.38);
+			cairo_set_source_rgb(cr, 1, 1, 1);
+			cairo_fill_preserve(cr);
+			cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+			cairo_stroke(cr);
+			cairo_set_source_rgb(cr, 0.35, 0.55, 0.9);
+			cairo_rectangle(cr, x + 1, y + 1, w * 0.38 - 2, h * 0.09);
+			cairo_fill(cr);
+		}
+}
+
 static void _overlay_band_top(cairo_t * cr, double w, double /*h*/)
 {
 	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
@@ -3835,6 +3962,12 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE:
 	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WIDTH:
 	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_RULER:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_STATUSBAR:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_GRIDLINES:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NAVPANE:
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_SPLIT:
+	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_ARRANGE:
 		return true;
 	default:
 		return false;
@@ -4176,6 +4309,30 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
 		spec.bare = true;
 		extra = _glyph_windows;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_RULER:
+		spec.bare = true;
+		extra = _glyph_ruler;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_STATUSBAR:
+		spec.bare = true;
+		extra = _glyph_statusbar;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_GRIDLINES:
+		spec.bare = true;
+		extra = _glyph_gridlines;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NAVPANE:
+		spec.bare = true;
+		extra = _glyph_navpane;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_VIEW_SPLIT:
+		spec.bare = true;
+		extra = _glyph_split;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_ARRANGE:
+		spec.bare = true;
+		extra = _glyph_arrange;
 		break;
 	default:
 		break;

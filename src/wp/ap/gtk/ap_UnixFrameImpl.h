@@ -30,6 +30,9 @@
 
 class XAP_UnixApp;
 class AP_UnixFrame;
+class FL_DocLayout;
+class FV_View;
+class AV_Listener;
 
 enum apufi_ScrollType: uint8_t { apufi_scrollX, apufi_scrollY }; // can we use namespaces yet? this is quite ugly
 
@@ -78,6 +81,8 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	/* moves keyboard focus back to the document canvas, e.g. after
 	 * a side-pane button was clicked so typing reaches the view */
 	void			focusDocument();
+	/* called from the view listener on document changes */
+	void			refreshNavPane();
 
  protected:
 	friend class AP_UnixFrame;
@@ -90,6 +95,49 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	virtual void _rebuildMenus() override;
 	virtual void setRibbonMode(bool bRibbon) override;
 	void _applyUIMode();
+
+	/* heading-navigation pane in the side deck (View > Navigation) */
+	virtual void toggleNavPane() override;
+	virtual bool isNavPaneVisible() const override;
+	void setNavPaneVisible(bool bVisible);
+
+	/* gridlines overlay on the document canvas (View > Gridlines) */
+	virtual void toggleGridlines() override;
+	virtual bool isGridlinesVisible() const override
+		{ return m_bGridlines; }
+
+	/* in-window split view of the same document (View > Split).
+	 * The secondary pane gets its own GR_Graphics + FL_DocLayout +
+	 * FV_View over the shared PD_Document — the same stack a cloned
+	 * window builds, hosted in a vertical GtkPaned.  The frame's
+	 * current view follows the pane the user last interacted with. */
+	virtual void toggleSplitView() override;
+	virtual bool isSplitView() const override
+		{ return m_pView2 != nullptr; }
+	void setSplitView(bool bSplit);
+	AV_View * paneView(int iPane);
+	void setScrollRange2();
+
+	/* tile all document windows on the workarea (View > Arrange
+	 * All); X11 only, returns false on other backends */
+	virtual bool arrangeAllWindows() override;
+
+	/* split-view hooks for the shared _fe handlers */
+	virtual void _preDocInput(GtkWidget * w) override;
+	virtual AV_View * _viewForScrollAdj(GtkAdjustment * adj) override;
+	virtual bool _isPaneView(AV_View * pView) override;
+	virtual void _postDocDraw(GtkWidget * w, cairo_t * cr,
+							  AV_View * pView) override;
+	virtual void notifyViewChanged(AV_View * pView) override;
+	void _setActivePane(AV_View * pView);
+	static void _scrollFuncX2(void * pData, UT_sint32 xoff, UT_sint32 xrange);
+	static void _scrollFuncY2(void * pData, UT_sint32 yoff, UT_sint32 yrange);
+	static void _vScrollChanged2(GtkAdjustment * adj, gpointer data);
+	static void _drawPane2(GtkDrawingArea * area, cairo_t * cr,
+						   int width, int height, gpointer w);
+	static void _resizePane2(GtkDrawingArea * area, gint width,
+							 gint height, GtkWidget * w);
+	friend class ap_Pane2ViewListener;
 
 
 	virtual void _refillToolbarsInFrameData() override;
@@ -137,5 +185,28 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	class AP_UnixIconsPane * m_pIconsPane;
 	GtkWidget * m_wCommentsPaneW;
 	class AP_UnixCommentsPane * m_pCommentsPane;
+	GtkWidget * m_wNavPaneW;
+	class AP_UnixNavPane * m_pNavPane;
+
+	/* gridlines overlay toggle for the document canvas */
+	bool        m_bGridlines;
+
+	/* secondary pane of the split view; all nullptr/0 when the
+	 * split is off.  m_pPane1View remembers which view belongs to
+	 * the primary pane while the frame's current view tracks the
+	 * focused pane. */
+	GtkWidget * m_wSplitPaned;
+	GtkWidget * m_wSplitGrid;
+	GtkWidget * m_dArea2;
+	GtkAdjustment * m_pVadj2;
+	GtkWidget * m_vScroll2;
+	gulong      m_iVScrollSignal2;
+	GR_Graphics * m_pG2;
+	FL_DocLayout * m_pDocLayout2;
+	FV_View * m_pView2;
+	AV_ScrollObj * m_pScrollObj2;
+	AV_Listener * m_pScrollListener2;
+	AV_ListenerId m_lidScroll2;
+	AV_View * m_pPane1View;
 };
 #endif

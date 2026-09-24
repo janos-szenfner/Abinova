@@ -71,6 +71,18 @@ public:
 	virtual void toggleCommentsPane() {}
 	virtual void setCommentsPaneVisible(bool /*bVisible*/) {}
 	virtual bool isCommentsPaneVisible() const { return false; }
+	/* heading-navigation pane (View > Navigation Pane) */
+	virtual void toggleNavPane() {}
+	virtual bool isNavPaneVisible() const { return false; }
+	/* in-window split view of the same document (View > Split) */
+	virtual void toggleSplitView() {}
+	virtual bool isSplitView() const { return false; }
+	/* tile all document windows (View > Arrange All); returns
+	 * false when the platform cannot position windows */
+	virtual bool arrangeAllWindows() { return false; }
+	/* page gridlines overlay (View > Gridlines) */
+	virtual void toggleGridlines() {}
+	virtual bool isGridlinesVisible() const { return false; }
 
 protected:
 	XAP_FrameImpl(XAP_Frame *pFrame);
