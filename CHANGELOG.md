@@ -394,6 +394,34 @@ below are on `main` but the release has not been cut yet.
   `pos+1` like the rest of the code, fixing resolve/title/author
   updates that silently no-oped; comment anchors are no longer
   mistaken for real hyperlinks by the anti-nesting check.
+- **Word-style Review ribbon tab** — the Review tab is rebuilt as
+  Proofing / Language / Comments / Tracking / Changes groups. The
+  Spelling & Grammar button opens a popover with spell and grammar
+  toggles; Set Language opens a reworked dialog with "(no proofing)",
+  a "Do not check spelling or grammar" checkbox (applies the `-none-`
+  proofing code and desensitises the list) and a "Detect language
+  automatically" checkbox that scores the text around the caret
+  against every installed dictionary and selects the best match.
+  Show Comments splits into Contextual (in-document annotations via
+  the `DisplayAnnotations` preference) and List (the docked Reviewing
+  Pane). The Tracking group holds a Track Changes checkable popover
+  (Track Changes, Auto Revision, Start New Revision, Purge) and a
+  Display-for-Review dropdown offering Word's four modes — Simple
+  Markup draws a red change bar in the left margin on lines with
+  revisions (`FV_View::setShowRevBars` + `fp_Line::draw`), All Markup
+  shows inline markup, No Markup and Original hide it — and the
+  button caption tracks the active mode. Accept/Reject dropdowns
+  offer This Change plus All Changes (`revisionAcceptAll` /
+  `revisionRejectAll`). All icons are drawn Cairo glyphs.
+- **Review-tab engine fixes** — `rejectAllHigherRevisions(0)` now
+  backs Reject All (the earlier `cmdFindRevision` loop silently did
+  nothing in Simple/No Markup because hidden revision runs are
+  skipped); `EnchantChecker::doesDictionaryExist` probes
+  `enchant_broker_dict_exists` so language detection works under the
+  enchant backend (`getMapping()` was always empty there); a
+  use-after-free in `detectLanguage` (winning code pointed into the
+  freed dictionary list) and inverted `getEditableBounds` flags in
+  the sample-text feeder are fixed.
 - **Word-style Home ribbon** — layout items now carry flags
   (`AP_RIBBON_FLAG_LARGE`, `AP_RIBBON_FLAG_ICONONLY`,
   `AP_RIBBON_FLAG_SPLIT`): Paste, Find, Replace and Select All render
