@@ -172,9 +172,10 @@ void XAP_UnixDialog_ListDocuments::_populateWindowData(void)
 								G_TYPE_INT);
 	
 	for (UT_sint32 i = 0; i < _getDocumentCount(); i++)
-    {		
+    {
 		const char *s = _getNthDocumentName(i);
-		UT_return_if_fail(s);
+		if (!s || !*s)
+			s = "Untitled"; // unsaved documents have no filename
 		// Add a new row to the model
 		gtk_list_store_append (model, &iter);
 		

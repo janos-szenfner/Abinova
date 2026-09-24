@@ -7401,6 +7401,173 @@ bool PD_Document::rejectAllHigherRevisions(UT_uint32 iLevel)
 }
 
 /*!
+    Accepts all revisions whose id is <= iLevel, i.e. the revisions
+    currently shown in a view whose revision level is iLevel ("Accept
+    All Changes Shown").  Mirrors acceptAllRevisions().
+*/
+bool PD_Document::acceptAllRevisionsUpTo(UT_uint32 iLevel)
+{
+	PD_DocIterator t(*this);
+	UT_return_val_if_fail(t.getStatus() == UTIter_OK, false);
+
+	notifyPieceTableChangeStart();
+
+	beginUserAtomicGlob();
+	while(t.getStatus() == UTIter_OK)
+	{
+		pf_Frag* pf = t.getFrag();
+
+		if(!pf)
+		{
+			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+			endUserAtomicGlob();
+			notifyPieceTableChangeEnd();
+			return false;
+		}
+
+		PT_AttrPropIndex API = pf->getIndexAP();
+
+		const PP_AttrProp * pAP = nullptr;
+		m_pPieceTable->getAttrProp(API,&pAP);
+		if(!pAP)
+		{
+			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+			endUserAtomicGlob();
+			notifyPieceTableChangeEnd();
+			return false;
+		}
+
+		const gchar * pszRevision = nullptr;
+		pAP->getAttribute("revision", pszRevision);
+
+		if(pszRevision == nullptr || iLevel == 0)
+		{
+			// no revisions on this fragment, or none shown
+			t += pf->getLength();
+			continue;
+		}
+
+		PP_RevisionAttr RevAttr(pszRevision);
+		RevAttr.pruneForCumulativeResult(this);
+		const PP_Revision * pRev = nullptr;
+		if(RevAttr.getRevisionsCount())
+			pRev = RevAttr.getGreatestLesserOrEqualRevision(iLevel, nullptr);
+
+		if(!pRev)
+		{
+			// no shown revisions on this fragment
+			t += pf->getLength();
+			continue;
+		}
+
+		UT_uint32 iStart = t.getPosition();
+		UT_uint32 iEnd   = iStart + pf->getLength();
+		bool bDeleted = false;
+
+		_acceptRejectRevision(false /*accept*/, iStart, iEnd, pRev, RevAttr, pf, bDeleted);
+
+		// advance -- the call to _acceptRejectRevision could have
+		// resulted in deletion and/or merging of fragments; we have
+		// to reset the iterator
+		if(bDeleted)
+			t.reset(iStart, nullptr);
+		else
+			t.reset(iEnd, nullptr);
+	}
+
+	// _acceptRejectRevison() function unfortunately leaves some unwanted fmt marks in the
+	// document; we will purge all fmt marks
+	purgeFmtMarks();
+
+	endUserAtomicGlob();
+	notifyPieceTableChangeEnd();
+	signalListeners(PD_SIGNAL_UPDATE_LAYOUT);
+	return true;
+}
+
+/*!
+    Rejects all revisions whose id is <= iLevel, i.e. the revisions
+    currently shown in a view whose revision level is iLevel ("Reject
+    All Changes Shown").  Mirrors rejectAllHigherRevisions().
+*/
+bool PD_Document::rejectAllRevisionsUpTo(UT_uint32 iLevel)
+{
+	PD_DocIterator t(*this);
+	UT_return_val_if_fail(t.getStatus() == UTIter_OK, false);
+
+	notifyPieceTableChangeStart();
+
+	beginUserAtomicGlob();
+	while(t.getStatus() == UTIter_OK)
+	{
+		pf_Frag * pf = t.getFrag();
+
+		if(!pf)
+		{
+			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+			endUserAtomicGlob();
+			notifyPieceTableChangeEnd();
+			return false;
+		}
+
+		PT_AttrPropIndex API = pf->getIndexAP();
+
+		const PP_AttrProp * pAP = nullptr;
+		m_pPieceTable->getAttrProp(API,&pAP);
+		if(!pAP)
+		{
+			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+			endUserAtomicGlob();
+			notifyPieceTableChangeEnd();
+			return false;
+		}
+
+		const gchar * pszRevision = nullptr;
+		pAP->getAttribute("revision", pszRevision);
+
+		if(pszRevision == nullptr || iLevel == 0)
+		{
+			// no revisions on this fragment, or none shown
+			t += pf->getLength();
+			continue;
+		}
+
+		PP_RevisionAttr RevAttr(pszRevision);
+		const PP_Revision * pRev =
+			RevAttr.getGreatestLesserOrEqualRevision(iLevel, nullptr);
+		if(!pRev)
+		{
+			// no shown revisions on this fragment
+			t += pf->getLength();
+			continue;
+		}
+
+		UT_uint32 iStart = t.getPosition();
+		UT_uint32 iEnd   = iStart + pf->getLength();
+		bool bDeleted = false;
+
+		_acceptRejectRevision(true /*reject*/, iStart, iEnd, pRev, RevAttr, pf, bDeleted);
+
+		// advance -- the call to _acceptRejectRevision could have
+		// resulted in deletion and/or merging of fragments; we have
+		// to reset the iterator
+		if(bDeleted)
+			t.reset(iStart, nullptr);
+		else
+			t.reset(iEnd, nullptr);
+	}
+
+	// _acceptRejectRevison() function unfortunately leaves some unwanted fmt marks in the
+	// document; we will purge all fmt marks
+	purgeFmtMarks();
+
+	endUserAtomicGlob();
+	notifyPieceTableChangeEnd();
+	signalListeners(PD_SIGNAL_UPDATE_LAYOUT);
+	return true;
+}
+
+/*!
    accepts or reject top visible revision between document positions
    iStart and iEnd.
    

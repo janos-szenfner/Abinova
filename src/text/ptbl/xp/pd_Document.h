@@ -706,6 +706,12 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 	virtual bool            rejectAllHigherRevisions(UT_uint32 iLevel) override;
 	virtual bool            acceptAllRevisions() override;
 
+	// like the two above, but restricted to revisions with id <=
+	// iLevel (the revisions currently shown in a view whose
+	// revision level is iLevel)
+	bool                    acceptAllRevisionsUpTo(UT_uint32 iLevel);
+	bool                    rejectAllRevisionsUpTo(UT_uint32 iLevel);
+
 	const PP_AttrProp *     explodeRevisions(std::unique_ptr<PP_RevisionAttr>& pRevisions, const PP_AttrProp * pAP,
 											 bool bShow, UT_uint32 iId, bool &bHiddenRevision) const;
 

@@ -276,6 +276,7 @@ BeginLayout(Main,0)
 	    BeginSubMenu(AP_MENU_ID_TOOLS_HISTORY)
 	        MenuItem(AP_MENU_ID_TOOLS_HISTORY_SHOW)
 	        MenuItem(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS)
+	        MenuItem(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS)
 		    MenuItem(AP_MENU_ID_TOOLS_REVISIONS_AUTO)
 #if !XAP_SIMPLE_MENU
 		    // disable, until we'll have purgeAllHistory for it

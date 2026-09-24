@@ -2126,6 +2126,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
 		popover = _makeRejectPopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE:
+		popover = _makeComparePopover();
+		break;
 	default:
 		break;
 	}
@@ -2850,6 +2853,43 @@ static void _glyph_compare(cairo_t * cr, double w, double h)
 	cairo_stroke(cr);
 }
 
+static void _glyph_combine(cairo_t * cr, double w, double h)
+{
+	/* two pages with a right-pointing merge arrow - Combine Documents */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	/* left page */
+	cairo_rectangle(cr, w * 0.08, h * 0.20, w * 0.30, h * 0.58);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	/* right page */
+	cairo_rectangle(cr, w * 0.62, h * 0.20, w * 0.30, h * 0.58);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	for (int i = 0; i < 2; ++i)
+	{
+		cairo_move_to(cr, w * 0.12, h * (0.34 + i * 0.18));
+		cairo_line_to(cr, w * 0.34, h * (0.34 + i * 0.18));
+		cairo_move_to(cr, w * 0.66, h * (0.34 + i * 0.18));
+		cairo_line_to(cr, w * 0.88, h * (0.34 + i * 0.18));
+	}
+	cairo_stroke(cr);
+	/* merge arrow between the pages */
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 1.8);
+	cairo_move_to(cr, w * 0.40, h * 0.49);
+	cairo_line_to(cr, w * 0.58, h * 0.49);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.50, h * 0.40);
+	cairo_line_to(cr, w * 0.60, h * 0.49);
+	cairo_line_to(cr, w * 0.50, h * 0.58);
+	cairo_stroke(cr);
+}
+
 static void _glyph_revfind(cairo_t * cr, double w, double h,
 						   bool bNext)
 {
@@ -3541,6 +3581,8 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PANE:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
@@ -3783,8 +3825,13 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		extra = _glyph_pane;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE:
 		spec.bare = true;
 		extra = _glyph_compare;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS:
+		spec.bare = true;
+		extra = _glyph_combine;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV:
 		spec.bare = true;
@@ -6126,14 +6173,30 @@ GtkWidget * AP_UnixRibbon::_makeAcceptPopover()
 	GtkWidget * popover = _popover_new_box(&box);
 
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Accept This Change",
+				   _presetRow("Accept and Move to Next",
 							  "Accept the revision at the caret and move "
 							  "to the next",
+							  nullptr, "revisionAcceptNext", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Accept This Change",
+							  "Accept the revision at the caret",
 							  nullptr, "revisionAccept", nullptr));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(
+								   GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Accept All Changes Shown",
+							  "Accept every revision currently shown",
+							  nullptr, "revisionAcceptAllShown", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Accept All Changes",
 							  "Accept every revision in the document",
 							  nullptr, "revisionAcceptAll", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Accept All Changes and Stop Tracking",
+							  "Accept every revision and stop "
+							  "tracking changes",
+							  nullptr, "revisionAcceptAllStopTracking",
+							  nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }
@@ -6144,14 +6207,48 @@ GtkWidget * AP_UnixRibbon::_makeRejectPopover()
 	GtkWidget * popover = _popover_new_box(&box);
 
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Reject This Change",
+				   _presetRow("Reject and Move to Next",
 							  "Reject the revision at the caret and move "
 							  "to the next",
+							  nullptr, "revisionRejectNext", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Reject This Change",
+							  "Reject the revision at the caret",
 							  nullptr, "revisionReject", nullptr));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(
+								   GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Reject All Changes Shown",
+							  "Reject every revision currently shown",
+							  nullptr, "revisionRejectAllShown", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Reject All Changes",
 							  "Reject every revision in the document",
 							  nullptr, "revisionRejectAll", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Reject All Changes and Stop Tracking",
+							  "Reject every revision and stop "
+							  "tracking changes",
+							  nullptr, "revisionRejectAllStopTracking",
+							  nullptr));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeComparePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Compare Documents\xE2\x80\xA6",
+							  "Compare two versions of a document",
+							  nullptr, "revisionCompareDocuments", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Combine Documents\xE2\x80\xA6",
+							  "Combine revisions from another open "
+							  "document into this one",
+							  nullptr, "revisionCombineDocuments", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }

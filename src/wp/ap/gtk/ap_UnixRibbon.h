@@ -136,6 +136,7 @@ private:
 	GtkWidget *		_makeMarkupPopover();
 	GtkWidget *		_makeAcceptPopover();
 	GtkWidget *		_makeRejectPopover();
+	GtkWidget *		_makeComparePopover();
 	GtkWidget *		_checkRow(const char * szLabel,
 							  const char * szDetail,
 							  const char * szMethod,

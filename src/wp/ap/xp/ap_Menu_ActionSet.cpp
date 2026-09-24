@@ -319,8 +319,10 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV, 0,0,0,0, "revisionFindPrev", ap_GetState_HasRevisions,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK, 0,0,0,0, "toggleMarkRevisions", ap_GetState_MarkRevisionsCheck, nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY, 0,1,0,0, "revisionSetViewLevel", ap_GetState_HasRevisions, nullptr);
-	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT, 0,0,0,0, "revisionAccept", ap_GetState_RevisionPresent, nullptr);
-	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT, 0,0,0,0, "revisionReject", ap_GetState_RevisionPresent, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT, 0,0,0,0, "revisionAccept", ap_GetState_HasRevisions, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT, 0,0,0,0, "revisionReject", ap_GetState_HasRevisions, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE, 1,0,0,0, nullptr, nullptr, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS, 0,1,0,0, "revisionCombineDocuments", nullptr, nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_PANE, 0,0,1,0, "commentsPane", ap_GetState_ReviewingPane, nullptr);
 
 	// RIVERA

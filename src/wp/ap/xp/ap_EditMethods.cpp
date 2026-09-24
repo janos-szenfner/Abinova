@@ -56,7 +56,10 @@
 #include "fg_Graphic.h"
 #include "pd_Document.h"
 #include "pd_Iterator.h"
+#include "pf_Frag.h"
+#include "pf_Frag_Strux.h"
 #include "pf_Frag_Object.h"
+#include "pp_Revision.h"
 #include "gr_Graphics.h"
 #include "gr_DrawArgs.h"
 #include "xap_App.h"
@@ -821,12 +824,19 @@ public:
 	static EV_EditMethod_Fn toggleAutoRevision;
 	static EV_EditMethod_Fn revisionAccept;
 	static EV_EditMethod_Fn revisionAcceptAll;
+	static EV_EditMethod_Fn revisionAcceptAllShown;
+	static EV_EditMethod_Fn revisionAcceptAllStopTracking;
+	static EV_EditMethod_Fn revisionAcceptNext;
 	static EV_EditMethod_Fn revisionReject;
 	static EV_EditMethod_Fn revisionRejectAll;
+	static EV_EditMethod_Fn revisionRejectAllShown;
+	static EV_EditMethod_Fn revisionRejectAllStopTracking;
+	static EV_EditMethod_Fn revisionRejectNext;
 	static EV_EditMethod_Fn revisionDisplayMode;
 	static EV_EditMethod_Fn revisionFindNext;
 	static EV_EditMethod_Fn revisionFindPrev;
 	static EV_EditMethod_Fn revisionSetViewLevel;
+	static EV_EditMethod_Fn revisionCombineDocuments;
 	static EV_EditMethod_Fn toggleShowRevisions;
 	static EV_EditMethod_Fn toggleShowRevisionsBefore;
 	static EV_EditMethod_Fn toggleShowRevisionsAfter;
@@ -1350,6 +1360,10 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(resolveAnnotation),	0,	""),
 	EV_EditMethod(NF(revisionAccept),		0,  ""),
 	EV_EditMethod(NF(revisionAcceptAll),	0,  ""),
+	EV_EditMethod(NF(revisionAcceptAllShown),	0,  ""),
+	EV_EditMethod(NF(revisionAcceptAllStopTracking),	0,  ""),
+	EV_EditMethod(NF(revisionAcceptNext),	0,  ""),
+	EV_EditMethod(NF(revisionCombineDocuments),	0,  ""),
 	EV_EditMethod(NF(revisionCompareDocuments),	0,  ""),
 	EV_EditMethod(NF(revisionDisplayMode),	_D_,""),
 	EV_EditMethod(NF(revisionFindNext),		0,  ""),
@@ -1357,6 +1371,9 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(revisionNew),   		0,	""),
 	EV_EditMethod(NF(revisionReject),		0,  ""),
 	EV_EditMethod(NF(revisionRejectAll),	0,  ""),
+	EV_EditMethod(NF(revisionRejectAllShown),	0,  ""),
+	EV_EditMethod(NF(revisionRejectAllStopTracking),	0,  ""),
+	EV_EditMethod(NF(revisionRejectNext),	0,  ""),
 	EV_EditMethod(NF(revisionSelect),       0,	""),
 	EV_EditMethod(NF(revisionSetViewLevel),	0,  ""),
 	EV_EditMethod(NF(rotateCase),			0,	""),
@@ -17550,6 +17567,183 @@ Defun1(revisionRejectAll)
 
 	// revision ids start at 1, so "higher than 0" means all of them
 	return pDoc->rejectAllHigherRevisions(0);
+}
+
+/*!
+    Accept the revision at the caret and move to the next one,
+    Word's "Accept and Move to Next".
+*/
+Defun1(revisionAcceptNext)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	pView->cmdAcceptRejectRevision(false, 0, 0);
+	pView->cmdFindRevision(true, 0, 0);
+	return true;
+}
+
+/*!
+    Reject the revision at the caret and move to the next one.
+*/
+Defun1(revisionRejectNext)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	pView->cmdAcceptRejectRevision(true, 0, 0);
+	pView->cmdFindRevision(true, 0, 0);
+	return true;
+}
+
+/*!
+    Accept every revision currently shown in the view
+    ("Accept All Changes Shown").
+*/
+Defun1(revisionAcceptAllShown)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	return pDoc->acceptAllRevisionsUpTo(pView->getRevisionLevel());
+}
+
+/*!
+    Reject every revision currently shown in the view
+    ("Reject All Changes Shown").
+*/
+Defun1(revisionRejectAllShown)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	return pDoc->rejectAllRevisionsUpTo(pView->getRevisionLevel());
+}
+
+/*!
+    Accept all revisions and stop tracking changes.
+*/
+Defun1(revisionAcceptAllStopTracking)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	bool b = pDoc->acceptAllRevisions();
+	pDoc->setMarkRevisions(false);
+	return b;
+}
+
+/*!
+    Reject all revisions and stop tracking changes.
+*/
+Defun1(revisionRejectAllStopTracking)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	bool b = pDoc->rejectAllHigherRevisions(0);
+	pDoc->setMarkRevisions(false);
+	return b;
+}
+
+/*!
+    Combine the contents of another open document into this one:
+    the other document's paragraphs are appended at the end as
+    tracked insertions, skipping spans that are marked as deleted
+    revisions in that document.  Both source documents are left
+    unmodified apart from the appended block, which can be rejected
+    like any other revision.
+*/
+Defun1(revisionCombineDocuments)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame,false);
+
+	PD_Document * pDoc2 = s_doListDocuments(pFrame, true, XAP_DIALOG_ID_MERGEDOCUMENTS);
+	if(!pDoc2)
+		return true;
+
+	pFrame->raise();
+
+	// collect the other document's text paragraph by paragraph,
+	// skipping revision-deleted spans
+	std::vector<UT_UCS4String> paras;
+	UT_UCS4String para;
+
+	PD_DocIterator t(*pDoc2);
+	while(t.getStatus() == UTIter_OK)
+	{
+		pf_Frag * pf = t.getFrag();
+		if(pf && pf->getType() == pf_Frag::PFT_Strux &&
+		   static_cast<pf_Frag_Strux *>(pf)->getStruxType() == PTX_Block)
+		{
+			paras.push_back(para);
+			para.clear();
+		}
+		else if(pf && pf->getType() == pf_Frag::PFT_Text)
+		{
+			const PP_AttrProp * pAP = nullptr;
+			pDoc2->getPieceTable()->getAttrProp(pf->getIndexAP(), &pAP);
+			const gchar * pszRevision = nullptr;
+			if(pAP)
+				pAP->getAttribute("revision", pszRevision);
+
+			bool bDeleted = false;
+			if(pszRevision)
+			{
+				PP_RevisionAttr RevAttr(pszRevision);
+				bDeleted = (RevAttr.getType() == PP_REVISION_DELETION);
+			}
+
+			if(!bDeleted)
+			{
+				UT_UCS4Char c = t.getChar();
+				if(c)
+					para += c;
+			}
+		}
+		++t;
+	}
+	paras.push_back(para);
+
+	// append the paragraphs at the end of this document as tracked
+	// insertions
+	bool bMarkWasOn = pDoc->isMarkRevisions();
+	if(!bMarkWasOn)
+		pDoc->setMarkRevisions(true);
+
+	pView->moveInsPtTo(FV_DOCPOS_EOD);
+
+	for(const UT_UCS4String & para : paras)
+	{
+		if(para.empty())
+			continue;
+		pView->insertParagraphBreak();
+		pView->cmdCharInsert(para.ucs4_str(), para.length());
+	}
+
+	if(!bMarkWasOn)
+		pDoc->setMarkRevisions(false);
+
+	return true;
 }
 
 /*!

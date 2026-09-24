@@ -410,9 +410,30 @@ below are on `main` but the release has not been cut yet.
   Markup draws a red change bar in the left margin on lines with
   revisions (`FV_View::setShowRevBars` + `fp_Line::draw`), All Markup
   shows inline markup, No Markup and Original hide it — and the
-  button caption tracks the active mode. Accept/Reject dropdowns
-  offer This Change plus All Changes (`revisionAcceptAll` /
-  `revisionRejectAll`). All icons are drawn Cairo glyphs.
+  button caption tracks the active mode. All icons are drawn Cairo
+  glyphs.
+- **Word-style Accept/Reject and Compare controls** — Accept and
+  Reject are large ribbon buttons (same size as Reviewing Pane) with
+  Word's full dropdown menus: Accept/Reject and Move to Next
+  (`revisionAcceptNext`/`revisionRejectNext`), This Change, All
+  Changes Shown (`PD_Document::acceptAllRevisionsUpTo` /
+  `rejectAllRevisionsUpTo` — only revisions at or below the view's
+  revision level, i.e. the ones currently displayed), All Changes,
+  and All Changes and Stop Tracking. The buttons now enable whenever
+  the document has revisions rather than only when the caret sits on
+  one. The Compare group is a dropdown offering "Compare Documents…"
+  (the existing differences report) and "Combine Documents…"
+  (`revisionCombineDocuments`) which appends another open document's
+  paragraphs to the current one as tracked insertions — skipping
+  spans that are revision-deleted in the source — so the merge can
+  be reviewed and accepted/rejected like any other change; both
+  source documents are left unmodified. Untitled documents now show
+  a real entry in the pick-list instead of a blank row.
+- **Set Language dialog applies again** — the apply path in
+  `s_doLangDlg` was dead code (a stale `k > 0` gate), so OK never
+  changed anything; the selected language now applies to the
+  selection/caret and the "Make default for document" checkbox
+  writes the document-level `lang` property.
 - **Review-tab engine fixes** — `rejectAllHigherRevisions(0)` now
   backs Reject All (the earlier `cmdFindRevision` loop silently did
   nothing in Simple/No Markup because hidden revision runs are
