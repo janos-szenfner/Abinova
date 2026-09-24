@@ -2730,6 +2730,20 @@ static void _glyph_track(cairo_t * cr, double w, double h)
 	cairo_stroke(cr);
 }
 
+static void _glyph_check(cairo_t * cr, double w, double h)
+{
+	/* plain tick used in the check-row slot - same footprint as a
+	 * row icon so checked and unchecked rows keep the same width */
+	cairo_set_source_rgb(cr, 0.25, 0.30, 0.36);
+	cairo_set_line_width(cr, 2.0);
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+	cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+	cairo_move_to(cr, w * 0.18, h * 0.55);
+	cairo_line_to(cr, w * 0.42, h * 0.78);
+	cairo_line_to(cr, w * 0.82, h * 0.28);
+	cairo_stroke(cr);
+}
+
 static void _glyph_revauto(cairo_t * cr, double w, double h)
 {
 	/* text lines with a circular arrow - save a revision each save */
@@ -4099,9 +4113,11 @@ GtkWidget * AP_UnixRibbon::_presetRow(const char * szName,
 	gtk_widget_set_size_request(slot, 20, -1);
 	if (icon)
 	{
+		/* keep the slot width fixed: if the child expands, GTK
+		 * splits the row's spare width between the slot and the
+		 * text column and rows with shorter captions drift right */
 		gtk_widget_set_valign(icon, GTK_ALIGN_CENTER);
 		gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
-		gtk_widget_set_hexpand(icon, TRUE);
 		gtk_box_append(GTK_BOX(slot), icon);
 	}
 	gtk_box_append(GTK_BOX(row), slot);
@@ -6067,11 +6083,16 @@ GtkWidget * AP_UnixRibbon::_checkRow(const char * szLabel,
 	GtkWidget * stack = gtk_stack_new();
 	gtk_stack_set_transition_type(GTK_STACK(stack),
 								  GTK_STACK_TRANSITION_TYPE_NONE);
+	if (!icon)
+	{
+		_PageSpec blank = { 0, 0, 0, 0, 1, false, false, 0, true };
+		icon = _glyph_widget(blank, 16, 16);
+	}
+	gtk_stack_add_named(GTK_STACK(stack), icon, "icon");
+	_PageSpec chkSpec = { 0, 0, 0, 0, 1, false, false, 0, true };
 	gtk_stack_add_named(GTK_STACK(stack),
-						icon ? icon : gtk_label_new(""), "icon");
-	GtkWidget * check = gtk_label_new("\xE2\x9C\x93");
-	gtk_widget_set_halign(check, GTK_ALIGN_CENTER);
-	gtk_stack_add_named(GTK_STACK(stack), check, "check");
+						_glyph_widget(chkSpec, 16, 16, _glyph_check),
+						"check");
 	gtk_stack_set_visible_child_name(GTK_STACK(stack),
 						_evalCheckKind(szKind) ? "check" : "icon");
 	GtkWidget * btn = _presetRow(szLabel, szDetail, stack,
