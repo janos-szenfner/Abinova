@@ -41,8 +41,67 @@ XAP_Dialog * XAP_UnixDialog_Language::static_constructor(XAP_DialogFactory * pFa
 
 XAP_UnixDialog_Language::XAP_UnixDialog_Language(XAP_DialogFactory * pDlgFactory,
 						 XAP_Dialog_Id id)
-  : XAP_Dialog_Language(pDlgFactory,id), m_pLanguageList ( nullptr )
+  : XAP_Dialog_Language(pDlgFactory,id), m_pLanguageList ( nullptr ),
+	m_lbDefaultLanguage(nullptr), m_cbDefaultLanguage(nullptr),
+	m_cbNoProof(nullptr), m_cbAutoDetect(nullptr), m_windowMain(nullptr)
 {
+}
+
+/* "Do not check spelling or grammar": the list is desensitised and
+ * the applied language becomes -none- */
+void XAP_UnixDialog_Language::s_noProof_toggled(GtkToggleButton * t,
+												XAP_UnixDialog_Language * me)
+{
+	bool b = gtk_check_button_get_active(GTK_CHECK_BUTTON(t));
+	me->setNoProofing(b);
+	gtk_widget_set_sensitive(me->m_pLanguageList, !b);
+	gtk_widget_set_sensitive(me->m_cbAutoDetect, !b);
+	if (b)
+		gtk_tree_selection_unselect_all(
+			gtk_tree_view_get_selection(GTK_TREE_VIEW(me->m_pLanguageList)));
+}
+
+/* "Detect language automatically": score the sample text against the
+ * installed dictionaries and select the best match; stays unchecked
+ * when detection is inconclusive */
+void XAP_UnixDialog_Language::s_autoDetect_toggled(GtkToggleButton * t,
+												   XAP_UnixDialog_Language * me)
+{
+	if (!gtk_check_button_get_active(GTK_CHECK_BUTTON(t)))
+		return;
+
+	const gchar * szName = me->detectLanguage();
+	if (!szName)
+	{
+		gtk_widget_set_tooltip_text(
+			GTK_WIDGET(t),
+			"Could not detect the language of the current text");
+		g_signal_handlers_block_by_func(
+			t, reinterpret_cast<gpointer>(s_autoDetect_toggled), me);
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(t), FALSE);
+		g_signal_handlers_unblock_by_func(
+			t, reinterpret_cast<gpointer>(s_autoDetect_toggled), me);
+		return;
+	}
+
+	// select the detected language's row
+	for (UT_uint32 i = 0; i < me->m_iLangCount; ++i)
+	{
+		if (!g_ascii_strcasecmp(szName, me->m_ppLanguages[i]))
+		{
+			GtkTreePath * path = gtk_tree_path_new();
+			gtk_tree_path_append_index(path, i);
+			gtk_tree_view_set_cursor(GTK_TREE_VIEW(me->m_pLanguageList),
+									 path,
+									 gtk_tree_view_get_column(
+										 GTK_TREE_VIEW(me->m_pLanguageList), 0),
+									 FALSE);
+			gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(me->m_pLanguageList),
+										 path, nullptr, TRUE, 0.5, 0.0);
+			gtk_tree_path_free(path);
+			break;
+		}
+	}
 }
 
 void XAP_UnixDialog_Language::s_lang_dblclicked(GtkTreeView * /*treeview*/,
@@ -64,6 +123,17 @@ void XAP_UnixDialog_Language::event_setLang()
 	GtkTreeModel * model;
 
 	gint row = 0;
+
+	// "Do not check spelling or grammar" applies -none-, which is
+	// always the first (unsorted) row of the language list
+	if (getNoProofing())
+	{
+		_setLanguage(m_ppLanguages[0]);
+		m_bChangedLanguage = true;
+		m_answer = XAP_Dialog_Language::a_OK;
+		setMakeDocumentDefault(false);
+		return;
+	}
 
 	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_pLanguageList) );
 
@@ -113,6 +183,8 @@ GtkWidget * XAP_UnixDialog_Language::constructWindow(void)
 	m_pLanguageList = GTK_WIDGET(gtk_builder_get_object(builder, "tvAvailableLanguages"));
 	m_lbDefaultLanguage = GTK_WIDGET(gtk_builder_get_object(builder, "lbDefaultLanguage"));
 	m_cbDefaultLanguage = GTK_WIDGET(gtk_builder_get_object(builder, "cbDefaultLanguage"));
+	m_cbNoProof = GTK_WIDGET(gtk_builder_get_object(builder, "cbNoProof"));
+	m_cbAutoDetect = GTK_WIDGET(gtk_builder_get_object(builder, "cbAutoDetect"));
 
 	std::string s;
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_ULANG_LangTitle,s);
@@ -123,6 +195,17 @@ GtkWidget * XAP_UnixDialog_Language::constructWindow(void)
 	getDocDefaultLangCheckboxLabel(s);
 	gtk_check_button_set_label (GTK_CHECK_BUTTON(m_cbDefaultLanguage), s.c_str());
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_cbDefaultLanguage), isMakeDocumentDefault());
+
+	if (getNoProofing())
+	{
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_cbNoProof), TRUE);
+		gtk_widget_set_sensitive(m_pLanguageList, FALSE);
+		gtk_widget_set_sensitive(m_cbAutoDetect, FALSE);
+	}
+	g_signal_connect(m_cbNoProof, "toggled",
+					 G_CALLBACK(s_noProof_toggled), this);
+	g_signal_connect(m_cbAutoDetect, "toggled",
+					 G_CALLBACK(s_autoDetect_toggled), this);
 
 	// add a column to our TreeViews
 

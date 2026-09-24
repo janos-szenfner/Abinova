@@ -40,6 +40,7 @@
 #include "fl_TableLayout.h"
 #include "gr_DrawArgs.h"
 #include "gr_Graphics.h"
+#include "gr_Painter.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
 #include "ut_string.h"
@@ -2319,6 +2320,30 @@ void fp_Line::draw(dg_DrawArgs* pDA)
 		   xxx_UT_DEBUGMSG(("Run not in clip, pRect top %d height %d run top %d height %d \n",pRect->top,pRect->height,runRect.top,runRect.height));
 	      }
 	      da.yoff -= pRun->getY();
+	}
+
+	/* Word-style "simple markup": when inline revision marks are
+	 * hidden, lines that contain a revision get a bar in the left
+	 * margin instead */
+	FV_View * pView = getBlock() ? getBlock()->getView() : nullptr;
+	if (pView && pView->isShowRevBars() &&
+		pDA->pG->queryProperties(GR_Graphics::DGP_SCREEN))
+	{
+		for (i = 0; i < count; ++i)
+		{
+			fp_Run * pRevRun =
+				static_cast<fp_Run*>(m_vecRuns.getNthItem(i));
+			if (pRevRun->containsRevisions())
+			{
+				GR_Painter painter(pDA->pG);
+				UT_RGBColor c(0xf0, 0x40, 0x40);
+				painter.fillRect(c,
+								 pDA->xoff - pDA->pG->tlu(8),
+								 pDA->yoff - getAscent(),
+								 pDA->pG->tlu(2), getHeight());
+				break;
+			}
+		}
 	}
 	if(bQuickPrint)
         {

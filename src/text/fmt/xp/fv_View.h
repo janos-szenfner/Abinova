@@ -910,6 +910,10 @@ public:
 	bool                isShowRevisions() const {return m_bShowRevisions;}
 	void                toggleShowRevisions();
 	void                setShowRevisions(bool bShow);
+	// 'simple markup' display - margin bars on changed lines instead
+	// of inline revision marks; view-specific, drawing only
+	bool                isShowRevBars() const {return m_bShowRevBars;}
+	void                setShowRevBars(bool bShow);
 
 	void                cmdSetRevisionLevel(UT_uint32 i);
 	UT_uint32           getRevisionLevel()const;
@@ -1307,6 +1311,7 @@ private:
 	FV_UnixVisualDrag   m_VisualDragText;
 	FV_Selection        m_Selection;
 	bool                m_bShowRevisions;
+	bool                m_bShowRevBars;
 
 	FV_BIDI_Order       m_eBidiOrder;
 	UT_uint32           m_iFreePass;

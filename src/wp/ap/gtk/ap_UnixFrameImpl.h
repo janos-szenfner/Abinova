@@ -72,7 +72,7 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	bool			isIconsPaneVisible() const;
 	virtual void	toggleIconsPane() override;
 	virtual void	setCommentsPaneVisible(bool bVisible) override;
-	bool			isCommentsPaneVisible() const;
+	bool			isCommentsPaneVisible() const override;
 	virtual void	toggleCommentsPane() override;
 	void			refreshCommentsPane();
 	/* moves keyboard focus back to the document canvas, e.g. after

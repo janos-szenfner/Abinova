@@ -41,6 +41,7 @@
 #include "xap_App.h"
 #include "xap_Clipboard.h"
 #include "xap_Frame.h"
+#include "xap_FrameImpl.h"
 #include "xap_Prefs.h"
 #include "xav_View.h"
 #include "xap_Toolbar_Layouts.h"
@@ -1835,6 +1836,20 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_ToggleAnnotations)
 	bool b = false;
 	pScheme->getValueBool(AP_PREF_KEY_DisplayAnnotations, b);
 	return (b ? EV_MIS_Toggled : EV_MIS_ZERO);
+}
+
+
+Defun_EV_GetMenuItemState_Fn(ap_GetState_ReviewingPane)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	if (!pFrame || !pFrame->getFrameImpl())
+		return EV_MIS_ZERO;
+	return pFrame->getFrameImpl()->isCommentsPaneVisible()
+		? EV_MIS_Toggled : EV_MIS_ZERO;
 }
 
 Defun_EV_GetMenuItemState_Fn(ap_GetState_ToggleRDFAnchorHighlight)

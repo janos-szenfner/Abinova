@@ -292,6 +292,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 #ifdef ENABLE_SPELL
 	_s(AP_MENU_ID_TOOLS_SPELLING,	        1,0,0,0,	nullptr,				nullptr,				       nullptr);
 	_s(AP_MENU_ID_TOOLS_SPELL,	        0,1,0,0,	"dlgSpell",		ap_GetState_Spelling,					nullptr);
+	_s(AP_MENU_ID_TOOLS_SPELLING_MENUPOP, 0,1,0,0,	"dlgSpell",		ap_GetState_Spelling,					nullptr);
 	_s(AP_MENU_ID_TOOLS_SPELLPREFS, 0,1,0,0, "dlgSpellPrefs", nullptr, nullptr);
 	_s(AP_MENU_ID_TOOLS_AUTOSPELL,          0,0,1,0,  "toggleAutoSpell",      ap_GetState_Prefs, nullptr);
 #endif
@@ -316,6 +317,11 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TOOLS_REVISIONS_AUTO, 0,0,1,0, "toggleAutoRevision",ap_GetState_AutoRevision,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT, 0,0,0,0, "revisionFindNext", ap_GetState_HasRevisions,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV, 0,0,0,0, "revisionFindPrev", ap_GetState_HasRevisions,nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK, 0,0,0,0, "toggleMarkRevisions", ap_GetState_MarkRevisionsCheck, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY, 0,1,0,0, "revisionSetViewLevel", ap_GetState_HasRevisions, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT, 0,0,0,0, "revisionAccept", ap_GetState_RevisionPresent, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT, 0,0,0,0, "revisionReject", ap_GetState_RevisionPresent, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_PANE, 0,0,1,0, "commentsPane", ap_GetState_ReviewingPane, nullptr);
 
 	// RIVERA
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS,				1,0,0,0,	nullptr,						nullptr,								nullptr);

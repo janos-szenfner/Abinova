@@ -180,6 +180,24 @@ void EnchantChecker::correctWord (const UT_UCS4Char *toCorrect, size_t toCorrect
 }
 
 bool
+EnchantChecker::doesDictionaryExist (const char * szLang)
+{
+	UT_return_val_if_fail (szLang, false);
+	UT_return_val_if_fail (s_enchant_broker, false);
+
+	// Convert the language tag from en-US to en_US form
+	char * lang = g_strdup (szLang);
+	char * hyphen = strchr (lang, '-');
+	if (hyphen)
+		*hyphen = '_';
+
+	bool exists = enchant_broker_dict_exists (s_enchant_broker, lang);
+	FREEP(lang);
+
+	return exists;
+}
+
+bool
 EnchantChecker::_requestDictionary (const char * szLang)
 {
 	UT_return_val_if_fail (szLang, false);

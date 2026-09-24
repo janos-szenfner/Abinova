@@ -305,6 +305,7 @@ FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
 		m_VisualDragText(this),
 		m_Selection(this),
 		m_bShowRevisions(true),
+		m_bShowRevBars(false),
 		m_eBidiOrder(FV_Order_Visual),
 		m_iFreePass(0),
 		m_bDontNotifyListeners(false),
@@ -609,6 +610,7 @@ FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
 
 	// should we display revisions?
 	m_bShowRevisions = m_pDoc->isShowRevisions();
+	m_bShowRevBars = false;
 	m_iViewRevision =  m_pDoc->getShowRevisionId();
 	
 
@@ -15284,6 +15286,20 @@ void FV_View::setShowRevisions(bool bShow)
 void FV_View::toggleShowRevisions()
 {
 	setShowRevisions(!m_bShowRevisions);
+}
+
+/*!
+    'simple markup' mode: changed lines are flagged by a bar in the
+    left margin instead of inline revision marks.  Only affects
+    drawing, so a repaint suffices - no rebuild needed.
+*/
+void FV_View::setShowRevBars(bool bShow)
+{
+	if (m_bShowRevBars != bShow)
+	{
+		m_bShowRevBars = bShow;
+		queueDraw(nullptr);
+	}
 }
 
 /*!

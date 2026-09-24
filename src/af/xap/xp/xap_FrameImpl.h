@@ -70,6 +70,7 @@ public:
 	/* Comments reviewing pane (Review > Show comments) */
 	virtual void toggleCommentsPane() {}
 	virtual void setCommentsPaneVisible(bool /*bVisible*/) {}
+	virtual bool isCommentsPaneVisible() const { return false; }
 
 protected:
 	XAP_FrameImpl(XAP_Frame *pFrame);

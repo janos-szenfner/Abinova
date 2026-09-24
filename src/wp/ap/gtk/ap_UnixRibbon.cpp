@@ -127,6 +127,10 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "background",  "Page Background" },
 	{ "zoom",        "Zoom" },
 	{ "proofing",    "Proofing" },
+	{ "language",    "Language" },
+	{ "tracking",    "Tracking" },
+	{ "compare",     "Compare" },
+	{ "ink",         "Ink" },
 	{ "revisions",   "Revisions" },
 	{ "annotations", "Annotations" },
 	{ "show",        "Show" },
@@ -192,6 +196,7 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	, m_wStylePrev(nullptr)
 	, m_wStyleNext(nullptr)
 	, m_pIconMap(nullptr)
+	, m_pMarkupLabel(nullptr)
 	, m_bSpinUpdating(false)
 {
 }
@@ -2106,6 +2111,21 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
 		popover = _makeCommentShowPopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
+		popover = _makeSpellingPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
+		popover = _makeTrackChangesPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
+		popover = _makeMarkupPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT:
+		popover = _makeAcceptPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
+		popover = _makeRejectPopover();
+		break;
 	default:
 		break;
 	}
@@ -2113,7 +2133,26 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		return nullptr;
 
 	if (flags & AP_RIBBON_FLAG_LARGE)
-		return _makeLargeMenuButton(id, popover, flags);
+	{
+		GtkWidget * mb = _makeLargeMenuButton(id, popover, flags);
+		/* the Display-for-Review button shows the active markup mode
+		 * as its caption, like Word's "All Markup" dropdown */
+		if (id == (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY)
+		{
+			GtkWidget * box = gtk_menu_button_get_child(
+				GTK_MENU_BUTTON(mb));
+			if (box)
+			{
+				GtkWidget * icon = gtk_widget_get_first_child(box);
+				m_pMarkupLabel = icon
+					? gtk_widget_get_next_sibling(icon) : nullptr;
+				if (m_pMarkupLabel)
+					gtk_label_set_text(GTK_LABEL(m_pMarkupLabel),
+									   _markupModeName());
+			}
+		}
+		return mb;
+	}
 
 	GtkWidget * mb = gtk_menu_button_new();
 	if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS)
@@ -2619,6 +2658,226 @@ static void _glyph_comment_prev(cairo_t * cr, double w, double h)
 	{ _glyph_comment_badge(cr, w, h, 0.20, 0.45, 0.90, '<'); }
 static void _glyph_comment_next(cairo_t * cr, double w, double h)
 	{ _glyph_comment_badge(cr, w, h, 0.20, 0.45, 0.90, '>'); }
+
+/* ---- Review tab glyphs ---------------------------------------- */
+
+static void _glyph_spell(cairo_t * cr, double w, double h)
+{
+	/* "ABC" with a check mark - Word's Spelling & Grammar icon */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.42);
+	cairo_move_to(cr, 1.5, h * 0.52);
+	cairo_show_text(cr, "ABC");
+	/* green check at the lower right */
+	cairo_set_source_rgb(cr, 0.15, 0.65, 0.30);
+	cairo_set_line_width(cr, 2.2);
+	double s = w * 0.16;
+	double cx = w * 0.62, cy = h * 0.78;
+	cairo_move_to(cr, cx - s, cy);
+	cairo_line_to(cr, cx - s * 0.2, cy + s * 0.8);
+	cairo_line_to(cr, cx + s * 1.3, cy - s * 0.8);
+	cairo_stroke(cr);
+}
+
+static void _glyph_wordcount(cairo_t * cr, double w, double h)
+{
+	/* text lines with "123" over them - word count */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, w * 0.10, h * 0.16);
+	cairo_line_to(cr, w * 0.90, h * 0.16);
+	cairo_move_to(cr, w * 0.10, h * 0.34);
+	cairo_line_to(cr, w * 0.90, h * 0.34);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+						   CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, h * 0.38);
+	cairo_move_to(cr, w * 0.10, h * 0.80);
+	cairo_show_text(cr, "123");
+}
+
+static void _glyph_track(cairo_t * cr, double w, double h)
+{
+	/* text lines with a struck-through deletion and an inserted
+	 * underlined line - tracked-changes markup */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, w * 0.14, h * 0.18);
+	cairo_line_to(cr, w * 0.86, h * 0.18);
+	cairo_move_to(cr, w * 0.14, h * 0.82);
+	cairo_line_to(cr, w * 0.86, h * 0.82);
+	cairo_stroke(cr);
+	/* struck line */
+	cairo_set_source_rgb(cr, 0.80, 0.20, 0.20);
+	cairo_move_to(cr, w * 0.14, h * 0.40);
+	cairo_line_to(cr, w * 0.72, h * 0.40);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.14, h * 0.40 + 1.6);
+	cairo_line_to(cr, w * 0.72, h * 0.40 + 1.6);
+	cairo_stroke(cr);
+	/* inserted underlined line */
+	cairo_move_to(cr, w * 0.14, h * 0.61);
+	cairo_line_to(cr, w * 0.62, h * 0.61);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.14, h * 0.61 + 2.2);
+	cairo_line_to(cr, w * 0.62, h * 0.61 + 2.2);
+	cairo_stroke(cr);
+}
+
+static void _glyph_markup(cairo_t * cr, double w, double h)
+{
+	/* page lines plus the left-margin change bar of Simple Markup */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	for (int i = 0; i < 4; ++i)
+	{
+		cairo_move_to(cr, w * 0.26, h * (0.18 + i * 0.19));
+		cairo_line_to(cr, w * 0.88, h * (0.18 + i * 0.19));
+	}
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 2.0);
+	cairo_move_to(cr, w * 0.16, h * 0.12);
+	cairo_line_to(cr, w * 0.16, h * 0.72);
+	cairo_stroke(cr);
+}
+
+static void _glyph_accept(cairo_t * cr, double w, double h)
+{
+	/* green check mark */
+	cairo_set_source_rgb(cr, 0.15, 0.65, 0.30);
+	cairo_set_line_width(cr, w * 0.12);
+	cairo_move_to(cr, w * 0.16, h * 0.55);
+	cairo_line_to(cr, w * 0.40, h * 0.80);
+	cairo_line_to(cr, w * 0.86, h * 0.20);
+	cairo_stroke(cr);
+}
+
+static void _glyph_reject(cairo_t * cr, double w, double h)
+{
+	/* red cross */
+	cairo_set_source_rgb(cr, 0.80, 0.20, 0.20);
+	cairo_set_line_width(cr, w * 0.12);
+	cairo_move_to(cr, w * 0.24, h * 0.24);
+	cairo_line_to(cr, w * 0.76, h * 0.76);
+	cairo_move_to(cr, w * 0.76, h * 0.24);
+	cairo_line_to(cr, w * 0.24, h * 0.76);
+	cairo_stroke(cr);
+}
+
+static void _glyph_pane(cairo_t * cr, double w, double h)
+{
+	/* document column beside a comments list - the reviewing pane */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, w * 0.08, h * 0.25);
+	cairo_line_to(cr, w * 0.50, h * 0.25);
+	cairo_move_to(cr, w * 0.08, h * 0.45);
+	cairo_line_to(cr, w * 0.50, h * 0.45);
+	cairo_move_to(cr, w * 0.08, h * 0.65);
+	cairo_line_to(cr, w * 0.40, h * 0.65);
+	cairo_stroke(cr);
+	/* the side pane */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_rectangle(cr, w * 0.58, h * 0.12, w * 0.34, h * 0.76);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.62, h * 0.30);
+	cairo_line_to(cr, w * 0.88, h * 0.30);
+	cairo_move_to(cr, w * 0.62, h * 0.50);
+	cairo_line_to(cr, w * 0.88, h * 0.50);
+	cairo_move_to(cr, w * 0.62, h * 0.70);
+	cairo_line_to(cr, w * 0.82, h * 0.70);
+	cairo_stroke(cr);
+}
+
+static void _glyph_language(cairo_t * cr, double w, double h)
+{
+	/* globe with meridians */
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 1.2);
+	double r = w * 0.36;
+	cairo_arc(cr, w * 0.5, h * 0.5, r, 0, 2 * M_PI);
+	cairo_stroke(cr);
+	/* equator */
+	cairo_move_to(cr, w * 0.5 - r, h * 0.5);
+	cairo_line_to(cr, w * 0.5 + r, h * 0.5);
+	cairo_stroke(cr);
+	/* vertical meridian ellipse */
+	cairo_save(cr);
+	cairo_translate(cr, w * 0.5, h * 0.5);
+	cairo_scale(cr, 0.45, 1.0);
+	cairo_arc(cr, 0, 0, r, 0, 2 * M_PI);
+	cairo_restore(cr);
+	cairo_stroke(cr);
+	/* latitude curves, sagging toward the equator */
+	cairo_move_to(cr, w * 0.5 - r * 0.82, h * 0.5 - r * 0.30);
+	cairo_curve_to(cr, w * 0.5 - r * 0.40, h * 0.5 - r * 0.06,
+				   w * 0.5 + r * 0.40, h * 0.5 - r * 0.06,
+				   w * 0.5 + r * 0.82, h * 0.5 - r * 0.30);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.5 - r * 0.82, h * 0.5 + r * 0.30);
+	cairo_curve_to(cr, w * 0.5 - r * 0.40, h * 0.5 + r * 0.06,
+				   w * 0.5 + r * 0.40, h * 0.5 + r * 0.06,
+				   w * 0.5 + r * 0.82, h * 0.5 + r * 0.30);
+	cairo_stroke(cr);
+}
+
+static void _glyph_compare(cairo_t * cr, double w, double h)
+{
+	/* two overlapping pages with text lines - Compare Documents */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	/* back page */
+	cairo_rectangle(cr, w * 0.34, h * 0.10, w * 0.48, h * 0.62);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	/* front page */
+	cairo_rectangle(cr, w * 0.14, h * 0.30, w * 0.48, h * 0.62);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+	for (int i = 0; i < 3; ++i)
+	{
+		cairo_move_to(cr, w * 0.20, h * (0.42 + i * 0.15));
+		cairo_line_to(cr, w * 0.56, h * (0.42 + i * 0.15));
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_revfind(cairo_t * cr, double w, double h,
+						   bool bNext)
+{
+	/* text lines with a small prev/next arrow over them */
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, w * 0.12, h * 0.30);
+	cairo_line_to(cr, w * 0.88, h * 0.30);
+	cairo_move_to(cr, w * 0.12, h * 0.55);
+	cairo_line_to(cr, w * 0.88, h * 0.55);
+	cairo_move_to(cr, w * 0.12, h * 0.80);
+	cairo_line_to(cr, w * 0.70, h * 0.80);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.20, 0.45, 0.90);
+	cairo_set_line_width(cr, 1.8);
+	double s = w * 0.16;
+	double cy = h * 0.425;
+	double cx = bNext ? w * 0.66 : w * 0.34;
+	cairo_move_to(cr, cx + (bNext ? -s : s), cy - s);
+	cairo_line_to(cr, cx, cy);
+	cairo_line_to(cr, cx + (bNext ? -s : s), cy + s);
+	cairo_stroke(cr);
+}
+
+static void _glyph_revprev(cairo_t * cr, double w, double h)
+	{ _glyph_revfind(cr, w, h, false); }
+static void _glyph_revnext(cairo_t * cr, double w, double h)
+	{ _glyph_revfind(cr, w, h, true); }
 
 static void _overlay_band_top(cairo_t * cr, double w, double /*h*/)
 {
@@ -3273,6 +3532,17 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_WORDCOUNT:
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_LANGUAGE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PANE:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV:
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
@@ -3480,6 +3750,50 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		spec.bare = true;
 		extra = _glyph_comment;
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
+		spec.bare = true;
+		extra = _glyph_spell;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_WORDCOUNT:
+		spec.bare = true;
+		extra = _glyph_wordcount;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_FMT_LANGUAGE:
+		spec.bare = true;
+		extra = _glyph_language;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
+		spec.bare = true;
+		extra = _glyph_track;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
+		spec.bare = true;
+		extra = _glyph_markup;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT:
+		spec.bare = true;
+		extra = _glyph_accept;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
+		spec.bare = true;
+		extra = _glyph_reject;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PANE:
+		spec.bare = true;
+		extra = _glyph_pane;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS:
+		spec.bare = true;
+		extra = _glyph_compare;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV:
+		spec.bare = true;
+		extra = _glyph_revprev;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT:
+		spec.bare = true;
+		extra = _glyph_revnext;
+		break;
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
 		extra = _overlay_band_top;
 		break;
@@ -3547,6 +3861,7 @@ static const _ribbon_kv s_ribbon_dead_labels[] =
 	{ "toa",         "Insert Table of Authorities" },
 	{ "markcitation","Mark Citation" },
 	{ "updatetoa",   "Update Table" },
+	{ "hideink",     "Hide Ink" },
 	{ nullptr,        nullptr }
 };
 
@@ -3554,7 +3869,7 @@ static const char * s_ribbon_dead_keys[] =
 {
 	"citation", "sources", "bibliography", "caption", "figures",
 	"xref", "index", "markentry", "updateindex", "toa",
-	"markcitation", "updatetoa"
+	"markcitation", "updatetoa", "hideink"
 };
 
 GtkWidget * AP_UnixRibbon::_makeDeadButton(uint16_t id)
@@ -5574,19 +5889,269 @@ GtkWidget * AP_UnixRibbon::_makeCommentDeletePopover()
 	return popover;
 }
 
+/* a popover row with a check-mark slot, like Word's toggling
+ * menu entries; szKind names the state _evalCheckKind() reads and
+ * _refreshCheckRows() re-reads whenever the popover is shown */
+GtkWidget * AP_UnixRibbon::_checkRow(const char * szLabel,
+									 const char * szDetail,
+									 const char * szMethod,
+									 const char * szData,
+									 const char * szKind)
+{
+	GtkWidget * check = gtk_label_new(nullptr);
+	gtk_label_set_width_chars(GTK_LABEL(check), 2);
+	gtk_widget_set_valign(check, GTK_ALIGN_CENTER);
+	GtkWidget * btn = _presetRow(szLabel, szDetail, check,
+							   szMethod, szData);
+	g_object_set_data_full(G_OBJECT(btn), "abi-check-kind",
+						   g_strdup(szKind), g_free);
+	g_object_set_data(G_OBJECT(btn), "abi-check-img", check);
+	gtk_label_set_text(GTK_LABEL(check),
+					   _evalCheckKind(szKind) ? "\xE2\x9C\x93" : "");
+	return btn;
+}
+
+/* name of the active Display-for-Review mode */
+const char * AP_UnixRibbon::_markupModeName() const
+{
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	if (!pView)
+		return "All Markup";
+	if (pView->isShowRevBars())
+		return "Simple Markup";
+	if (pView->isShowRevisions())
+		return "All Markup";
+	if (pView->getRevisionLevel() == 0)
+		return "Original";
+	return "No Markup";
+}
+
+/* evaluate a check-row kind against the live view/frame state */
+bool AP_UnixRibbon::_evalCheckKind(const char * szKind) const
+{
+	if (!szKind)
+		return false;
+
+	if (!strcmp(szKind, "ann-contextual"))
+	{
+		bool b = true;
+		XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+		if (pPrefs)
+			pPrefs->getPrefsValueBool(AP_PREF_KEY_DisplayAnnotations, b);
+		return b;
+	}
+	if (!strcmp(szKind, "ann-pane"))
+	{
+		return (m_pFrame && m_pFrame->getFrameImpl())
+			? m_pFrame->getFrameImpl()->isCommentsPaneVisible()
+			: false;
+	}
+	if (!strcmp(szKind, "grammar"))
+	{
+		bool b = false;
+		XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+		if (pPrefs)
+			pPrefs->getPrefsValueBool(AP_PREF_KEY_AutoGrammarCheck, b);
+		return b;
+	}
+
+	FV_View * pView = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	if (!pView)
+		return false;
+
+	if (!strcmp(szKind, "track"))
+		return pView->isMarkRevisions();
+	if (!strcmp(szKind, "revauto"))
+		return pView->getDocument()
+			&& pView->getDocument()->isAutoRevisioning();
+	if (!strncmp(szKind, "mode:", 5))
+	{
+		const char * key = "none";
+		if (pView->isShowRevisions())
+			key = "all";
+		else if (pView->isShowRevBars())
+			key = "simple";
+		else if (pView->getRevisionLevel() == 0)
+			key = "original";
+		return !strcmp(szKind + 5, key);
+	}
+	return false;
+}
+
+/* walk a popover's rows and re-paint every check-mark slot */
+void AP_UnixRibbon::_refreshCheckRows(GtkWidget * popover)
+{
+	GtkWidget * box = gtk_popover_get_child(GTK_POPOVER(popover));
+	for (GtkWidget * w = box ? gtk_widget_get_first_child(box) : nullptr;
+		 w; w = gtk_widget_get_next_sibling(w))
+	{
+		const char * kind = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(w), "abi-check-kind"));
+		GtkWidget * img = static_cast<GtkWidget *>(
+			g_object_get_data(G_OBJECT(w), "abi-check-img"));
+		if (kind && img)
+			gtk_label_set_text(GTK_LABEL(img),
+							   _evalCheckKind(kind)
+								   ? "\xE2\x9C\x93" : "");
+	}
+}
+
+void AP_UnixRibbon::_s_popover_check_show(GtkPopover * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (self)
+		self->_refreshCheckRows(GTK_WIDGET(w));
+}
+
 GtkWidget * AP_UnixRibbon::_makeCommentShowPopover()
 {
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
 
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Show Comments",
-							  "Show or hide comments in the document",
-							  nullptr, "toggleDisplayAnnotations", nullptr));
+				   _checkRow("Contextual",
+							 "Show comments in the document",
+							 "toggleDisplayAnnotations", nullptr,
+							 "ann-contextual"));
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Reviewing Pane",
-							  "Toggle the reviewing pane listing every comment",
-							  nullptr, "commentsPane", nullptr));
+				   _checkRow("List",
+							 "Show comments in the reviewing pane",
+							 "commentsPane", nullptr,
+							 "ann-pane"));
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_check_show), this);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeSpellingPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Spelling\xE2\x80\xA6",
+							  "Check the spelling of the document",
+							  nullptr, "dlgSpell", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("Check Grammar",
+							 "Check grammar as you type",
+							 "toggleAutoGrammar", nullptr,
+							 "grammar"));
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_check_show), this);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("Track Changes",
+							 "Track every edit you make",
+							 "toggleMarkRevisions", nullptr,
+							 "track"));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("Auto Revision",
+							 "Start a new revision on every save",
+							 "toggleAutoRevision", nullptr,
+							 "revauto"));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(
+								   GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Start New Revision",
+							  "Begin a new revision level",
+							  nullptr, "startNewRevision", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Purge All Revisions",
+							  "Delete the revision history",
+							  nullptr, "purgeAllRevisions", nullptr));
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_check_show), this);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeMarkupPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("Display for Review"));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("Simple Markup",
+							 "A red bar in the margin marks changed lines",
+							 "revisionDisplayMode", "simple",
+							 "mode:simple"));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("All Markup",
+							 "Show insertions and deletions inline",
+							 "revisionDisplayMode", "all",
+							 "mode:all"));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("No Markup",
+							 "Show the document with all changes applied",
+							 "revisionDisplayMode", "none",
+							 "mode:none"));
+	gtk_box_append(GTK_BOX(box),
+				   _checkRow("Original",
+							 "Show the document before any changes",
+							 "revisionDisplayMode", "original",
+							 "mode:original"));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(
+								   GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Show Revisions",
+							  "Toggle the inline revision display",
+							  nullptr, "toggleShowRevisions", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Compare Revisions\xE2\x80\xA6",
+							  "Pick the revision level shown",
+							  nullptr, "revisionSetViewLevel", nullptr));
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_check_show), this);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeAcceptPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Accept This Change",
+							  "Accept the revision at the caret and move "
+							  "to the next",
+							  nullptr, "revisionAccept", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Accept All Changes",
+							  "Accept every revision in the document",
+							  nullptr, "revisionAcceptAll", nullptr));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeRejectPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Reject This Change",
+							  "Reject the revision at the caret and move "
+							  "to the next",
+							  nullptr, "revisionReject", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Reject All Changes",
+							  "Reject every revision in the document",
+							  nullptr, "revisionRejectAll", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }
@@ -8468,6 +9033,11 @@ void AP_UnixRibbon::refresh()
 		_populateStyleTiles();   /* lazy: view/doc may not exist at build time */
 		_refreshToolbarItems();
 		_refreshSpinFields();
+		/* keep the Display-for-Review caption in sync with the
+		 * active markup mode */
+		if (m_pMarkupLabel)
+			gtk_label_set_text(GTK_LABEL(m_pMarkupLabel),
+							   _markupModeName());
 	} while (m_bRefreshAgain);
 	m_bRefreshing = false;
 }

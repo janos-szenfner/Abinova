@@ -29,6 +29,7 @@
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
 #include "ut_Language.h"
+#include "ut_string_class.h"
 #include "xap_Dlg_Language.h"
 #include "xap_Strings.h"   
 #include "xap_App.h"
@@ -50,7 +51,8 @@ static int s_compareQ(const void * a, const void * b)
 
 XAP_Dialog_Language::XAP_Dialog_Language(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
 	: XAP_Dialog_NonPersistent(pDlgFactory,id, "interface/dialoglanguage"),
-	  m_bDocDefault(false)
+	  m_bDocDefault(false),
+	  m_bNoProof(false)
 {
 	UT_uint32 nDontSort = 0, nSort = 0;
 	UT_uint32 i;	
@@ -127,6 +129,7 @@ void XAP_Dialog_Language::setLanguageProperty(const gchar * pLangProp)
 		pLangProp ? pLangProp :"-none-");
 	m_pLanguage	    = m_pLangTable->getNthLangName(indx);
 	m_pLangProperty = m_pLangTable->getNthLangCode(indx);
+	m_bNoProof = (pLangProp && !strcmp(pLangProp, "-none-"));
 }
 
 // in this case we do not need to worry about the lifespan of pLang
@@ -159,22 +162,106 @@ bool XAP_Dialog_Language::getChangedLangProperty(const gchar ** pszLangProp) con
 UT_Vector* XAP_Dialog_Language::getAvailableDictionaries()
 {
 #ifdef ENABLE_SPELL
-	SpellChecker * checker = SpellManager::instance().getInstance();
-	const std::vector<DictionaryMapping>& vec = checker->getMapping();
+	// The enchant backend has no static mapping table, so probe every
+	// code in the language table.  The first hit comes from
+	// requestDictionary() (which caches hits/misses); once we hold a
+	// checker, doesDictionaryExist() probes the rest without loading
+	// each dictionary.
 	UT_Vector* vecRslt = new UT_Vector();
+	SpellChecker * probe = nullptr;
 
-	const UT_uint32 nItems = vec.size();
-
-	for (UT_uint32 iItem = nItems; iItem; --iItem)
+	for (UT_uint32 iItem = 0; iItem < m_iLangCount; ++iItem)
 	{
-		const DictionaryMapping& mapping = vec[iItem - 1];
+		const gchar * code = m_ppLanguagesCode[iItem];
+		if (!code || !*code || !strcmp(code, "-none-"))
+			continue;
 
-		if (checker->doesDictionaryExist(mapping.lang.c_str())) {
-			vecRslt->addItem( g_strdup(mapping.lang.c_str()));
-		}
+		if (!probe)
+			probe = SpellManager::instance().requestDictionary(code);
+
+		if (probe ? probe->doesDictionaryExist(code) : false)
+			vecRslt->addItem(g_strdup(code));
 	}
 
 	return vecRslt;
+#else
+	return nullptr;
+#endif
+}
+
+/*!
+    Guess the language of the sample text (set via setSampleText) by
+    scoring its words against every installed spell-check dictionary.
+    Returns a display name from the language table - stable storage -
+    or nullptr when detection fails.
+*/
+const gchar * XAP_Dialog_Language::detectLanguage()
+{
+#ifdef ENABLE_SPELL
+	if (m_sSample.empty())
+		return nullptr;
+
+	UT_UCS4String ucs(m_sSample);
+	const UT_UCS4Char * pText = ucs.ucs4_str();
+	if (!pText || !*pText)
+		return nullptr;
+
+	UT_Vector * dicts = getAvailableDictionaries();
+	if (!dicts)
+		return nullptr;
+
+	double bestScore = 0.0;
+	std::string bestCode;
+
+	for (UT_sint32 d = 0; d < dicts->size(); ++d)
+	{
+		const char * code =
+			static_cast<const char *>(dicts->getNthItem(d));
+		if (!code || !*code || !strcmp(code, "-none-"))
+			continue;
+		SpellChecker * checker =
+			SpellManager::instance().requestDictionary(code);
+		if (!checker)
+			continue;
+
+		UT_uint32 words = 0, hits = 0;
+		const UT_UCS4Char * w = pText;
+		while (*w && words < 200)
+		{
+			while (*w && !g_unichar_isalpha(static_cast<gunichar>(*w)))
+				++w;
+			const UT_UCS4Char * start = w;
+			while (*w && g_unichar_isalpha(static_cast<gunichar>(*w)))
+				++w;
+			size_t len = w - start;
+			if (len && len < 64)
+			{
+				++words;
+				if (checker->checkWord(start, len) ==
+					SpellChecker::LOOKUP_SUCCEEDED)
+					++hits;
+			}
+		}
+		if (words >= 4)
+		{
+			double score = static_cast<double>(hits) / words;
+			if (score > bestScore)
+			{
+				bestScore = score;
+				bestCode = code;
+			}
+		}
+	}
+
+	for (UT_sint32 d = 0; d < dicts->size(); ++d)
+		g_free(const_cast<void *>(dicts->getNthItem(d)));
+	delete dicts;
+
+	if (bestCode.empty() || bestScore < 0.30)
+		return nullptr;
+
+	UT_uint32 indx = m_pLangTable->getIndxFromCode(bestCode.c_str());
+	return m_pLangTable->getNthLangName(indx);
 #else
 	return nullptr;
 #endif

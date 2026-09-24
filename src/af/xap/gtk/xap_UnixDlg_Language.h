@@ -54,7 +54,14 @@ private:
 	GtkWidget * 			m_pLanguageList;
 	GtkWidget * 			m_lbDefaultLanguage;
 	GtkWidget * 			m_cbDefaultLanguage;
+	GtkWidget * 			m_cbNoProof;
+	GtkWidget * 			m_cbAutoDetect;
 	GtkWidget *             m_windowMain;
+
+	static void s_noProof_toggled(GtkToggleButton * t,
+								  XAP_UnixDialog_Language * me);
+	static void s_autoDetect_toggled(GtkToggleButton * t,
+									 XAP_UnixDialog_Language * me);
 };
 
 #endif /* XAP_UNIXDIALOG_LANGUAGE_H */

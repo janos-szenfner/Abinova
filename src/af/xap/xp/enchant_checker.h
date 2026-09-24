@@ -41,6 +41,8 @@ public:
 	virtual void ignoreWord (const UT_UCS4Char *toCorrect, size_t toCorrectLen) override;
 	virtual bool isIgnored (const UT_UCS4Char * pWord, size_t len) const override;
 
+	virtual bool doesDictionaryExist (const char * szLang) override;
+
 protected:
 
 	EnchantChecker();

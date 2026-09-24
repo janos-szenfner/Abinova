@@ -27,6 +27,7 @@
 // this ansi header is not available on Windows.
 // needed for close()
 #include <unistd.h>
+#include <signal.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +55,8 @@
 #include "fp_Line.h"
 #include "fg_Graphic.h"
 #include "pd_Document.h"
+#include "pd_Iterator.h"
+#include "pf_Frag_Object.h"
 #include "gr_Graphics.h"
 #include "gr_DrawArgs.h"
 #include "xap_App.h"
@@ -625,6 +628,7 @@ public:
 	static EV_EditMethod_Fn clearFormatting;
 	static EV_EditMethod_Fn toggleBold;
 	static EV_EditMethod_Fn toggleDisplayAnnotations;
+	static EV_EditMethod_Fn toggleAutoGrammar;
 	static EV_EditMethod_Fn toggleHidden;
 	static EV_EditMethod_Fn toggleItalic;
 	static EV_EditMethod_Fn toggleUline;
@@ -816,7 +820,10 @@ public:
 	static EV_EditMethod_Fn toggleMarkRevisions;
 	static EV_EditMethod_Fn toggleAutoRevision;
 	static EV_EditMethod_Fn revisionAccept;
+	static EV_EditMethod_Fn revisionAcceptAll;
 	static EV_EditMethod_Fn revisionReject;
+	static EV_EditMethod_Fn revisionRejectAll;
+	static EV_EditMethod_Fn revisionDisplayMode;
 	static EV_EditMethod_Fn revisionFindNext;
 	static EV_EditMethod_Fn revisionFindPrev;
 	static EV_EditMethod_Fn revisionSetViewLevel;
@@ -1342,11 +1349,14 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(replaceChar),			_D_,""),
 	EV_EditMethod(NF(resolveAnnotation),	0,	""),
 	EV_EditMethod(NF(revisionAccept),		0,  ""),
+	EV_EditMethod(NF(revisionAcceptAll),	0,  ""),
 	EV_EditMethod(NF(revisionCompareDocuments),	0,  ""),
+	EV_EditMethod(NF(revisionDisplayMode),	_D_,""),
 	EV_EditMethod(NF(revisionFindNext),		0,  ""),
 	EV_EditMethod(NF(revisionFindPrev),		0,  ""),
 	EV_EditMethod(NF(revisionNew),   		0,	""),
 	EV_EditMethod(NF(revisionReject),		0,  ""),
+	EV_EditMethod(NF(revisionRejectAll),	0,  ""),
 	EV_EditMethod(NF(revisionSelect),       0,	""),
 	EV_EditMethod(NF(revisionSetViewLevel),	0,  ""),
 	EV_EditMethod(NF(rotateCase),			0,	""),
@@ -1430,6 +1440,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(tocInsert),			0,		""),
 	EV_EditMethod(NF(tocRemove),			0,		""),
 	EV_EditMethod(NF(tocUpdate),			0,		""),
+	EV_EditMethod(NF(toggleAutoGrammar),	0,	""),
 	EV_EditMethod(NF(toggleAutoRevision),  0,  ""),
 #ifdef ENABLE_SPELL
 	EV_EditMethod(NF(toggleAutoSpell),      0,  ""),
@@ -8944,7 +8955,34 @@ static bool s_doLangDlg(FV_View * pView)
 	{
 		UT_ASSERT_HARMLESS( UT_SHOULD_NOT_HAPPEN );
 	}
-	
+
+	// sample text for the "Detect language automatically" checkbox:
+	// the selection, or the text around the caret
+	{
+		UT_UCS4Char * pSample = nullptr;
+		if (!pView->isSelectionEmpty())
+		{
+			pView->getSelectionText(pSample);
+		}
+		else
+		{
+			PT_DocPosition posBOD, posEOD;
+			pView->getEditableBounds(false, posBOD);
+			pView->getEditableBounds(true, posEOD);
+			PT_DocPosition pos = pView->getPoint();
+			PT_DocPosition lo = (pos > posBOD + 500) ? pos - 500 : posBOD;
+			PT_DocPosition hi = UT_MIN(pos + 1500, posEOD);
+			if (hi > lo)
+				pSample = pView->getTextBetweenPos(lo, hi);
+		}
+		if (pSample)
+		{
+			UT_UCS4String sSample(pSample);
+			pDialog->setSampleText(sSample.utf8_str());
+			delete [] pSample;
+		}
+	}
+
 	// run the dialog
 
 	pDialog->runModal(pFrame);
@@ -12689,12 +12727,34 @@ Defun1(toggleDisplayAnnotations)
 	szBuffer[0] = ((b)==true ? '1' : '0');
 	pScheme->setValue(AP_PREF_KEY_DisplayAnnotations, szBuffer);
 
-	// the reviewing pane is how comments are surfaced in this build:
-	// "Show comments" shows/hides it in the side deck
-	XAP_Frame * pFrame =
-		static_cast<XAP_Frame *>(pAV_View->getParentData());
-	if (pFrame && pFrame->getFrameImpl())
-		pFrame->getFrameImpl()->setCommentsPaneVisible(b);
+	// only the in-document (contextual) display is toggled here; the
+	// reviewing pane has its own control (commentsPane), matching the
+	// Show Comments split in Word's Review tab.  The layout polls the
+	// pref and reformats on its own.
+	return true ;
+}
+
+/*!
+    Toggle the "AutoGrammarCheck" preference; the layout polls the
+    pref and starts/stops the background grammar check (and clears
+    the squiggles) on its own.
+*/
+Defun1(toggleAutoGrammar)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+
+	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+	UT_return_val_if_fail(pPrefs, false);
+	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+	UT_return_val_if_fail(pScheme, false);
+	bool b = false;
+	pScheme->getValueBool(AP_PREF_KEY_AutoGrammarCheck, b);
+	b = !b;
+	gchar szBuffer[2] = {0,0};
+	szBuffer[0] = ((b)==true ? '1' : '0');
+	pScheme->setValue(AP_PREF_KEY_AutoGrammarCheck, szBuffer);
 	return true ;
 }
 
@@ -17457,6 +17517,86 @@ Defun1(revisionCompareDocuments)
 	}
 	return true;
 }
+
+/*!
+    Accept every revision mark in the document, keeping the
+    revision table (unlike purgeAllRevisions, which also drops
+    the recorded history and prompts for confirmation).
+*/
+Defun1(revisionAcceptAll)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	return pDoc->acceptAllRevisions();
+}
+
+/*!
+    Reject every revision mark in the document.  Uses the
+    document-level iterator (like acceptAllRevisions) rather than
+    cmdFindRevision, which skips hidden runs and would silently do
+    nothing in Simple/No Markup modes.
+*/
+Defun1(revisionRejectAll)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	// revision ids start at 1, so "higher than 0" means all of them
+	return pDoc->rejectAllHigherRevisions(0);
+}
+
+/*!
+    Set the revision display mode, Word's "Display for Review":
+      simple   - final text, a bar in the left margin marks changed lines
+      all      - final text with insertions/deletions marked inline
+      none     - final text, no revision display at all
+      original - the document as it was before any revisions
+*/
+Defun(revisionDisplayMode)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData,false);
+
+	std::string sMode(
+		reinterpret_cast<const char *>(pCallData->m_pData),
+		pCallData->m_dataLength);
+
+	if (sMode == "all")
+	{
+		pView->setShowRevBars(false);
+		pView->setShowRevisions(true);
+		pView->cmdSetRevisionLevel(PD_MAX_REVISION);
+	}
+	else if (sMode == "none")
+	{
+		pView->setShowRevBars(false);
+		pView->setShowRevisions(false);
+		pView->cmdSetRevisionLevel(PD_MAX_REVISION);
+	}
+	else if (sMode == "original")
+	{
+		pView->setShowRevBars(false);
+		pView->setShowRevisions(false);
+		pView->cmdSetRevisionLevel(0);
+	}
+	else /* "simple" */
+	{
+		pView->setShowRevisions(false);
+		pView->cmdSetRevisionLevel(PD_MAX_REVISION);
+		pView->setShowRevBars(true);
+	}
+	return true;
+}
+
 
 static UT_sint32 sTopRulerHeight =0;
 static UT_sint32 sLeftRulerPos =0;

@@ -131,6 +131,20 @@ private:
 	/* Review tab */
 	GtkWidget *		_makeCommentDeletePopover();
 	GtkWidget *		_makeCommentShowPopover();
+	GtkWidget *		_makeSpellingPopover();
+	GtkWidget *		_makeTrackChangesPopover();
+	GtkWidget *		_makeMarkupPopover();
+	GtkWidget *		_makeAcceptPopover();
+	GtkWidget *		_makeRejectPopover();
+	GtkWidget *		_checkRow(const char * szLabel,
+							  const char * szDetail,
+							  const char * szMethod,
+							  const char * szData,
+							  const char * szKind);
+	bool			_evalCheckKind(const char * szKind) const;
+	const char *	_markupModeName() const;
+	void			_refreshCheckRows(GtkWidget * popover);
+	static void		_s_popover_check_show(GtkPopover * w, gpointer data);
 	void			_showOnlinePictureDialog();
 	void			_addGalleryDir(GtkWidget * parent,
 								   const char * szMethod,
@@ -269,6 +283,9 @@ private:
 	EV_Toolbar_LabelSet *	m_pTBLabels;
 	UT_GenericVector<GtkWidget*>	m_vecContextualPages;
 	GHashTable *		m_pIconMap; /* edit-method name -> icon name */
+	GtkWidget *			m_pMarkupLabel; /* caption of the Display-for-
+										 * Review dropdown, shows the
+										 * active markup mode */
 
 	/* Layout indent/spacing spin fields: prop name -> widget, synced
 	 * by _refreshSpinFields() */

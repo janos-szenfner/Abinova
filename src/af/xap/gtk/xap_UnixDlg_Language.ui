@@ -2,8 +2,8 @@
 <interface>
   <requires lib="gtk+" version="3.20" />
   <object class="GtkDialog" id="xap_UnixDlg_Language">
-    <property name="width-request">300</property>
-    <property name="height-request">330</property>
+    <property name="width-request">380</property>
+    <property name="height-request">520</property>
     <property name="title" translatable="yes">dialog1</property>
     
         <child><object class="GtkBox" id="dialog-vbox1">
@@ -57,6 +57,8 @@
                             <property name="can-focus">1</property>
                             <property name="hexpand">1</property>
                             <property name="vexpand">1</property>
+                            <property name="min-content-height">240</property>
+                            <property name="min-content-width">300</property>
                             <child>
                               <object class="GtkTreeView" id="tvAvailableLanguages">
                                 <property name="visible">1</property>
@@ -74,6 +76,31 @@
                             <property name="visible">1</property>
                             <property name="orientation">vertical</property>
                             <property name="spacing">6</property>
+                            <child>
+                              <object class="GtkLabel" id="lbDictNote">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">The speller and other proofing tools automatically use dictionaries of the selected language, if available.</property>
+                                <property name="wrap">1</property>
+                                <property name="max-width-chars">42</property>
+                                <property name="xalign">0</property>
+                              </object>
+                              </child>
+                            <child>
+                              <object class="GtkCheckButton" id="cbNoProof">
+                                <property name="label" translatable="yes">Do not check spelling or grammar</property>
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="use-underline">1</property>
+                              </object>
+                              </child>
+                            <child>
+                              <object class="GtkCheckButton" id="cbAutoDetect">
+                                <property name="label" translatable="yes">Detect language automatically</property>
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="use-underline">1</property>
+                              </object>
+                              </child>
                             <child>
                               <object class="GtkLabel" id="lbDefaultLanguage">
                                 <property name="visible">1</property>

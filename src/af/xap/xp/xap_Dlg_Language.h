@@ -78,6 +78,15 @@ public:
 	inline bool getSpellCheck(void) const {return m_bSpellCheck;}
 	UT_Vector* 						getAvailableDictionaries();
 
+	/* "Do not check spelling or grammar" maps to the -none- language */
+	void                            setNoProofing(bool b) {m_bNoProof = b;}
+	bool                            getNoProofing() const {return m_bNoProof;}
+
+	/* text the "Detect language automatically" checkbox scores
+	 * against the installed dictionaries */
+	void                            setSampleText(const std::string & s) {m_sSample = s;}
+	const gchar *                   detectLanguage();
+
 protected:
 	void							_setLanguage(const gchar * pLang);
 
@@ -94,5 +103,7 @@ protected:
 	UT_uint32					    m_iLangCount;
 	bool                            m_bSpellCheck;
 	bool                            m_bDocDefault;
+	bool                            m_bNoProof;
 	std::string                   m_docLang;
+	std::string                   m_sSample;
 };

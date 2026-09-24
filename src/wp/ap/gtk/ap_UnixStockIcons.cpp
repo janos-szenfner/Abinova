@@ -170,6 +170,8 @@ static struct AbiStockMapping {
   { ABIWORD_FILE_EXIT,				AP_MENU_ID_FILE_EXIT,			"application-exit" },
   { "abiword-file-pagesetup",		AP_MENU_ID_FILE_PAGESETUP,		"document-page-setup" },
   { ABIWORD_SPELLCHECK,				AP_MENU_ID_TOOLS_SPELL,			"tools-check-spelling" },
+  { "abiword-tools-spelling-menupop",	AP_MENU_ID_TOOLS_SPELLING_MENUPOP,	"tools-check-spelling" },
+  { "abiword-fmt-language",			AP_MENU_ID_FMT_LANGUAGE,		"preferences-desktop-locale" },
 
   { ABIWORD_EDIT_CUT,				AP_MENU_ID_EDIT_CUT,			"edit-cut" },
   { ABIWORD_EDIT_COPY,				AP_MENU_ID_EDIT_COPY,			"edit-copy" },
