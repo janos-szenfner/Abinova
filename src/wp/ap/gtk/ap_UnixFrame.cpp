@@ -553,7 +553,15 @@ void AP_UnixFrame::toggleBar(UT_uint32 iBarNb, bool bBarOn)
 	UT_ASSERT(pFrameData);
 	
 	if (bBarOn)
-		pFrameData->m_pToolbar[iBarNb]->show();
+	{
+		// the ribbon replaces the classic icon bars; restore paths
+		// such as leaving full screen must not resurface them while
+		// ribbon mode is active
+		AP_UnixFrameImpl * pImpl =
+			static_cast<AP_UnixFrameImpl *>(getFrameImpl());
+		if (!pImpl || !pImpl->m_bRibbonMode)
+			pFrameData->m_pToolbar[iBarNb]->show();
+	}
 	else	// turning toolbar off
 		pFrameData->m_pToolbar[iBarNb]->hide();
 }
