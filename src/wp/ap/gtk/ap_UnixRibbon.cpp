@@ -10994,6 +10994,14 @@ static void _s_tbl_tile_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 				std::string col = _tbl_prop_val(cp.cellProps, kc.c_str());
 				if (!_tbl_cairo_color(cr, col))
 					cairo_set_source_rgb(cr, 0, 0, 0);
+				double dash2[2] = { 2.0, 2.0 };
+				if (sty == "dashed")
+					cairo_set_dash(cr, dash2, 2, 0);
+				else if (sty == "dotted")
+				{
+					dash2[0] = 1.0;
+					cairo_set_dash(cr, dash2, 2, 0);
+				}
 
 				switch (s)
 				{
@@ -11007,6 +11015,8 @@ static void _s_tbl_tile_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 						cairo_line_to(cr, x + cw, y + rh); break;
 				}
 				cairo_stroke(cr);
+				if (sty == "dashed" || sty == "dotted")
+					cairo_set_dash(cr, nullptr, 0, 0);
 			}
 		}
 }
