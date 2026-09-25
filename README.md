@@ -381,6 +381,12 @@ are separated by a visible 1 px rule.
   and **RDF Settings** (the RDF editor), relocated from the
   classic Tools/RDF menus.
 
+Classic-menu features that had no ribbon home were pruned by
+design: Web Preview, Mail Merge, the Tabs dialog, the Format
+Frame/Image menu entries, the Direction submenu, the Stylist menu
+entry, document History, Revisions → New/Purge, Scripts,
+Text → Table conversion and the Recent Files list were removed.
+
 #### Home tab
 
 - **Font**: the live font-family and font-size combos, style
@@ -1619,13 +1625,6 @@ ABIWORD_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
 
 ## Known issues
 
-- The remaining classic-menu features that had no ribbon home were
-  pruned: Web Preview, Mail Merge, the Tabs dialog, the Format
-  Frame/Image menu entries, the Direction submenu, the Stylist menu
-  entry, document History, Revisions → New/Purge, Scripts,
-  Text → Table conversion and the Recent Files list were removed.
-  **Preferences** and **RDF Settings** instead moved to the File
-  ribbon tab's Settings group.
 - The GTK4 dialog migration is in progress — `.ui` files were
   mechanically converted from GTK3 markup; some dialogs may still have
   layout or widget-type quirks.
