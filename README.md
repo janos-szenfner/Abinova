@@ -964,13 +964,13 @@ degrade gracefully for any AWNL/AWML-aware consumer.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN" "https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd">
-<abinova xmlns="https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd"
+<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN" "https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd">
+<abinova xmlns="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd"
          xmlns:awml,dc,math,fo,svg,xlink,ct="…"
          version="4.0.0" fileformat="1.2" template="false"
          xid-max="N" props="document-level props" xml:space="preserve">
 <!-- This file is an Abinova document.                                   -->
-<!-- More information: https://github.com/janos-szenfner/Exp-Abi         -->
+<!-- More information: https://github.com/janos-szenfner/Abinova         -->
 <!-- You should not edit this file by hand.                              -->
   <metadata>  <m key="abiword.generator">Abinova</m> <m key="dc.title">…</m> </metadata>
   <rdf>…</rdf>

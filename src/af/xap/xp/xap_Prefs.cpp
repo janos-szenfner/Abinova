@@ -1029,7 +1029,7 @@ bool XAP_Prefs::savePrefsFile(void)
 	fprintf(fp,"<!-- =====================================================================  -->\n");
 	fprintf(fp,"<!-- This file contains AbiSuite Preferences.  AbiSuite is a suite of Open  -->\n");
 	fprintf(fp,"<!-- Source desktop applications developed by AbiSource, Inc.  Information  -->\n");
-	fprintf(fp,"<!-- about this application can be found at https://github.com/janos-szenfner/Exp-Abi -->\n");
+	fprintf(fp,"<!-- about this application can be found at https://github.com/janos-szenfner/Abinova -->\n");
 	fprintf(fp,"<!-- You should not edit this file by hand.                                 -->\n");
 	fprintf(fp,"<!-- =====================================================================  -->\n");
 	fprintf(fp,"\n");

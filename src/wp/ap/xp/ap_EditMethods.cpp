@@ -3847,7 +3847,7 @@ Defun1(helpCheckVer)
 
 Defun0(helpReportBug)
 {
-	UT_String bugURL ("https://github.com/janos-szenfner/Exp-Abi/issues/new");
+	UT_String bugURL ("https://github.com/janos-szenfner/Abinova/issues/new");
 
   return _openURL(bugURL.c_str());
 }

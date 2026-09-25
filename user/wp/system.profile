@@ -1,7 +1,7 @@
 <!-- Abinova/system.profile
 **** This file contains the system default values for Abinova Preferences.
 **** Abinova is a GPL, Open Source desktop word processor; see
-**** https://github.com/janos-szenfner/Exp-Abi
+**** https://github.com/janos-szenfner/Abinova
 ****
 **** This file consists of one tag "SystemDefaults" and a series of attributes
 **** (name/value pairs).  These attributes will be loaded *after* the internal

@@ -227,7 +227,7 @@ static void abi_update_check_thread(GTask * task, gpointer /*source*/,
 	std::string body;
 	bool answered = abi_https_get(
 		"api.github.com",
-		"/repos/janos-szenfner/Exp-Abi/releases/latest", body);
+		"/repos/janos-szenfner/Abinova/releases/latest", body);
 	if (answered)
 	{
 		info->version = abi_json_string(body, "tag_name");
@@ -239,7 +239,7 @@ static void abi_update_check_thread(GTask * task, gpointer /*source*/,
 	{
 		body.clear();
 		if (abi_https_get("api.github.com",
-						  "/repos/janos-szenfner/Exp-Abi/tags", body))
+						  "/repos/janos-szenfner/Abinova/tags", body))
 		{
 			answered = true;
 			info->version = abi_json_string(body, "name");
@@ -262,7 +262,7 @@ static void abi_update_check_thread(GTask * task, gpointer /*source*/,
 		if (info->url.empty())
 		{
 			info->url =
-				"https://github.com/janos-szenfner/Exp-Abi/releases/tag/" +
+				"https://github.com/janos-szenfner/Abinova/releases/tag/" +
 				info->version;
 		}
 	}
@@ -340,7 +340,7 @@ void XAP_UnixAppImpl::checkForUpdates(XAP_Frame * pFrame)
 	gtk_box_append(GTK_BOX(box), label);
 
 	GtkWidget * link = gtk_link_button_new_with_label(
-		"https://github.com/janos-szenfner/Exp-Abi/releases",
+		"https://github.com/janos-szenfner/Abinova/releases",
 		"Download the latest version");
 	gtk_widget_set_halign(link, GTK_ALIGN_CENTER);
 	gtk_widget_set_visible(link, FALSE);

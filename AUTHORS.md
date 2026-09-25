@@ -2,7 +2,7 @@ CREDITS
 =======
 
 Abinova is developed and maintained at
-<https://github.com/janos-szenfner/Exp-Abi> — see the git history
+<https://github.com/janos-szenfner/Abinova> — see the git history
 and the GitHub contributors page for individual authors.
 
 AbiWord heritage

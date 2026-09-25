@@ -533,7 +533,7 @@ s_Abinova_1_Listener::s_Abinova_1_Listener(PD_Document * pDocument,
         here are now found in PD_Document::setAttrProp()
 
 	************************************************************************************/
-	m_pie->setDocType ("<!DOCTYPE abinova PUBLIC \"-//ABINOVA//DTD AWNL 1.0 Strict//EN\" \"https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd\">\n");
+	m_pie->setDocType ("<!DOCTYPE abinova PUBLIC \"-//ABINOVA//DTD AWNL 1.0 Strict//EN\" \"https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd\">\n");
 
 	// we want to update the XID counter and the template status;
 	// the xmlns overrides make sure even a document loaded from an
@@ -557,7 +557,7 @@ s_Abinova_1_Listener::s_Abinova_1_Listener(PD_Document * pDocument,
 	m_pie->addComment("========================================================================");
 	m_pie->addComment("This file is an Abinova document.                                       ");
 	m_pie->addComment("Abinova is a free, Open Source word processor.                          ");
-	m_pie->addComment("More information about Abinova is available at https://github.com/janos-szenfner/Exp-Abi");
+	m_pie->addComment("More information about Abinova is available at https://github.com/janos-szenfner/Abinova");
 	m_pie->addComment("You should not edit this file by hand.                                  ");
 	m_pie->addComment("========================================================================");
 	m_pie->addString(nullptr, "\n");

@@ -1228,7 +1228,7 @@ below are on `main` but the release has not been cut yet.
   each new notch, with an instant fallback when the canvas is not
   realized — no more visible jumps at page transitions.
 - **Project URLs and About** — "Check for Updates" and "Report a
-  Bug" point at `github.com/janos-szenfner/Exp-Abi` instead of the
+  Bug" point at `github.com/janos-szenfner/Abinova` instead of the
   old GNOME GitLab project; the About dialog lists Janos Szenfner
   and links the fork's repository.
 - **Same-application clipboard deadlock** — `gdk_clipboard_read_async`
@@ -1682,7 +1682,7 @@ below are on `main` but the release has not been cut yet.
   Internal `abiword-*` stock-icon identifiers and RDF/format
   identifiers are unchanged.
 - **`.abwn` document header updated** — the informational comment
-  now points at `https://github.com/janos-szenfner/Exp-Abi` and
+  now points at `https://github.com/janos-szenfner/Abinova` and
   names Abinova as the generator (the AWML doctype, namespaces and
   `abiword.*`/`dc.format` metadata keys are format identifiers and
   remain for compatibility).

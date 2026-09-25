@@ -21,8 +21,8 @@
   <developer id="io.github.janos_szenfner">
     <name>Abinova contributors</name>
   </developer>
-  <url type="homepage">https://github.com/janos-szenfner/Exp-Abi</url>
-  <url type="vcs-browser">https://github.com/janos-szenfner/Exp-Abi</url>
-  <url type="bugtracker">https://github.com/janos-szenfner/Exp-Abi/issues</url>
+  <url type="homepage">https://github.com/janos-szenfner/Abinova</url>
+  <url type="vcs-browser">https://github.com/janos-szenfner/Abinova</url>
+  <url type="bugtracker">https://github.com/janos-szenfner/Abinova/issues</url>
   <content_rating type="oars-1.0" />
 </component>

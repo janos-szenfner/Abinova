@@ -38,10 +38,10 @@ const char s_Delimiter[] =
 
 const char * s_Header[2] = {
 "Created by Abinova, a free, Open Source wordprocessor. ",
-"For more information visit https://github.com/janos-szenfner/Exp-Abi. "
+"For more information visit https://github.com/janos-szenfner/Abinova. "
 };
 
-const char s_HeaderCompact[] = "Created by Abinova, https://github.com/janos-szenfner/Exp-Abi";
+const char s_HeaderCompact[] = "Created by Abinova, https://github.com/janos-szenfner/Abinova";
 
 bool m_bSecondPass = false;
 bool m_bInAFENote = false;

@@ -32,7 +32,7 @@
 #define XAP_ABOUT_GPL "%s is available for use under the the terms\nof the GNU General Public License"
 #define XAP_ABOUT_VERSION "Version: %s"
 #define XAP_ABOUT_BUILD "Build options: %s"
-#define XAP_ABOUT_URL "For more information: https://github.com/janos-szenfner/Exp-Abi"
+#define XAP_ABOUT_URL "For more information: https://github.com/janos-szenfner/Abinova"
 #define XAP_ABOUT_GPL_LONG "Abinova and AbiSource are trademarks of AbiSource, Inc.\r\n\r\n%s is free software; you can redistribute it and/or \
 modify it under the terms of the GNU General Public License \
 as published by the Free Software Foundation; either version 2 \

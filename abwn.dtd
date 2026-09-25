@@ -8,7 +8,7 @@
   so files remain structurally compatible with AWML readers that
   accept the <abinova> root element.
 
-  Repository: https://github.com/janos-szenfner/Exp-Abi
+  Repository: https://github.com/janos-szenfner/Abinova
 -->
 
 <!ELEMENT abinova (metadata?, rdf?, history?, changes?, masterpages?,
@@ -21,7 +21,7 @@
 	xid-max      CDATA   #IMPLIED
 	props        CDATA   #IMPLIED
 	xml:space    CDATA   #IMPLIED
-	xmlns        CDATA   #FIXED "https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd"
+	xmlns        CDATA   #FIXED "https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd"
 >
 
 <!-- metadata: Dublin Core + abiword.* keys as <m key="...">value</m> -->

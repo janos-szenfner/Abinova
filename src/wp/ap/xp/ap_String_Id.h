@@ -36,7 +36,7 @@ dcl(MSG_SaveFailedName, 		"Error while attempting to save %s: invalid name")
 dcl(MSG_OpenFailed, "Could not open file %s.")
 dcl(MSG_OpenRecovered,          "Some errors were encountered during the import.")
 dcl(MSG_RecoveredDocuments,     "Abinova recovered %d unsaved document(s) from a previous session. They are opened for review - save them to keep your changes.")
-dcl(MSG_DlgNotImp,				"%s not implemented yet.\n\nIf you are a programmer, feel free to add code in %s, line %d\nand report issues at:\n\n\thttps://github.com/janos-szenfner/Exp-Abi\n\nOtherwise, please be patient.")
+dcl(MSG_DlgNotImp,				"%s not implemented yet.\n\nIf you are a programmer, feel free to add code in %s, line %d\nand report issues at:\n\n\thttps://github.com/janos-szenfner/Abinova\n\nOtherwise, please be patient.")
 dcl(MSG_RevertBuffer,			"Revert to saved copy of %s?")
 dcl(MSG_QueryExit,				"Close all windows and exit?")
 dcl(MSG_ConfirmSave,			"Save changes to document %s before closing?")
@@ -932,7 +932,7 @@ dcl(MSG_CHECK_PRINT_MODE, "Headers and Footers can only be created and edited wh
 
 /* Windows ap_App */
 dcl(WINDOWS_NEED_UNICOWS,	"Abinova needs the file %s.dll\nPlease download and install it from http://www.microsoft.com/en-us/download/details.aspx?id=4237")
-dcl(WINDOWS_COMCTL_WARNING,	"Abinova is designed for a newer version of the system file COMCTL32.DLL\nthan the one currently on your system. (COMCTL32.DLL version 4.72 or newer)\nA solution to this problem is explained in the FAQ on the AbiSource web site\n\n\thttps://github.com/janos-szenfner/Exp-Abi\n\nYou can use the program, but the toolbar may be missing.")
+dcl(WINDOWS_COMCTL_WARNING,	"Abinova is designed for a newer version of the system file COMCTL32.DLL\nthan the one currently on your system. (COMCTL32.DLL version 4.72 or newer)\nA solution to this problem is explained in the FAQ on the AbiSource web site\n\n\thttps://github.com/janos-szenfner/Abinova\n\nYou can use the program, but the toolbar may be missing.")
 
 dcl(MENU_LABEL__BOGUS1__," ")
 dcl(MENU_LABEL__BOGUS2__," ")

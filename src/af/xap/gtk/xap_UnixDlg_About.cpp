@@ -58,7 +58,7 @@ static void onAboutDialogActivate (GtkAboutDialog 	* /*about*/,
 void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 {
 	static const gchar *authors[] = {"Janos Szenfner",
-									 "https://github.com/janos-szenfner/Exp-Abi",
+									 "https://github.com/janos-szenfner/Abinova",
 									 nullptr};
 
 	static const gchar *documenters[] = {"David Chart <linux@dchart.demon.co.uk>",
@@ -68,7 +68,7 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 
 	static const gchar *comments = "Experimental GTK4 fork of AbiWord";
 
-	static const gchar *website = "https://github.com/janos-szenfner/Exp-Abi";
+	static const gchar *website = "https://github.com/janos-szenfner/Abinova";
 
 	static GtkWidget * dlg = nullptr;
 

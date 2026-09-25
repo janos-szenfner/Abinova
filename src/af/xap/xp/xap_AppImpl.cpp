@@ -42,7 +42,7 @@ bool XAP_AppImpl::openHelpURL(const char * url)
 
 void XAP_AppImpl::checkForUpdates(XAP_Frame * /*pFrame*/)
 {
-	openURL("https://github.com/janos-szenfner/Exp-Abi/releases");
+	openURL("https://github.com/janos-szenfner/Abinova/releases");
 }
 
 void XAP_AppImpl::openHelpWindow(XAP_Frame * /*pFrame*/, const char * page,

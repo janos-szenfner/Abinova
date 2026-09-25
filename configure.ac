@@ -5,7 +5,7 @@ m4_define([abi_version_micro], [0])
 m4_define([abi_series], [abi_version_major.abi_version_minor])
 m4_define([abi_version], [abi_version_major.abi_version_minor.abi_version_micro])
 
-AC_INIT([abinova],[abi_version],[https://github.com/janos-szenfner/Exp-Abi])
+AC_INIT([abinova],[abi_version],[https://github.com/janos-szenfner/Abinova])
 AC_CANONICAL_HOST
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
