@@ -219,12 +219,13 @@ below are on `main` but the release has not been cut yet.
 - **Contextual Table Layout ribbon tab** — appears only while the
   caret is inside a table and returns focus to Home when it
   leaves. Groups: Table (Select/View Gridlines/Properties/Draw
-  Table/Eraser/Delete), Rows & Columns (Insert Above/Below/Left/
-  Right, Merge Cells, Split Cells, Split Table as a three-row
-  compact grid), Cell Size (AutoFit, Height/Width spin fields
+  Table/Eraser/Delete), Rows & Columns (Insert Above, Insert
+  Below, Insert Left, Insert Right, Merge Cells, Split Cells and
+  Split Table as Writer-style large buttons), Cell Size (Auto-fit,
+  Height/Width spin fields
   synced to the caret cell, Distribute Rows/Columns), Alignment
   (nine-way cell alignment grid, Text Direction, Cell Margins)
-  and Data (Sort Table, Repeat Header Rows, Convert to Text).
+  and Data (Sort, Repeat Header Rows, Convert to Text).
   The Word Formula control is intentionally omitted.
 - **Merge Cells / Split Cells are anchored popovers** — the old
   floating modeless dialogs opened at the top-left corner under

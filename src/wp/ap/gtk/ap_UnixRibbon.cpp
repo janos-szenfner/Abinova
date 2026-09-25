@@ -198,7 +198,8 @@ static const struct {
 	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER,	"Insert Right" },
 	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT,	"Repeat Header Rows" },
 	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT,	"Convert to Text" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT,		"AutoFit" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT,		"Auto-fit" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT,			"Sort" },
 	{ (XAP_Menu_Id)0,							nullptr }
 };
 

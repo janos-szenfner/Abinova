@@ -598,16 +598,16 @@ labels, like Word's ribbon.
     Gridlines toggle, Properties (Format Table dialog), Draw
     Table, Eraser, and a Delete dropdown (Cells/Rows/Columns/
     Table).
-  - **Rows & Columns** — three-row compact grid: Insert
-    Above/Below, Insert Left/Right, Merge Cells and Split Cells
-    as anchored popovers (directional options instead of the old
-    floating dialogs), and Split Table.
-  - **Cell Size** — AutoFit dropdown (contents/window/fixed),
+  - **Rows & Columns** — Writer-style large buttons: Insert
+    Above, Insert Below, Insert Left, Insert Right, Merge Cells
+    and Split Cells as anchored popovers (directional options
+    instead of the old floating dialogs), and Split Table.
+  - **Cell Size** — Auto-fit dropdown (contents/window/fixed),
     Height and Width spin fields synced to the caret cell, and
     Distribute Rows/Columns.
   - **Alignment** — the nine-way cell-alignment tile grid plus
     Text Direction and Cell Margins popovers.
-  - **Data** — Sort Table (ascending/descending, keep-header),
+  - **Data** — Sort (ascending/descending, keep-header),
     Repeat Header Rows and Convert to Text (separator choice).
   The Word "Formula" control is intentionally omitted.
 - **Equation** — visible while the caret is on an equation:
