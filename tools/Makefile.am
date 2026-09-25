@@ -5,4 +5,5 @@ EXTRA_DIST = \
 	rtfgen/generate-rtf.py \
 	rtfgen/rtf-keywords.txt \
 	rtfgen/README \
-	clang-fmt.py
+	clang-fmt.py \
+	release.sh

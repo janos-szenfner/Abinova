@@ -1489,10 +1489,11 @@ below are on `main` but the release has not been cut yet.
   (15 missing keywords added — `abiembed`, `abilatexdata`, `rdf*`,
   `svgblip`, `brdrnone`, `deltamoveid`, `fillColor`, `ftech` and
   more — plus ordering fixes). Dead scripts removed:
-  `generate_changelog.php` (immediately `die()`d — SVN-era),
-  `generate_changelog.py` (unused release-tag tooling) and
-  `release.sh` (hard-coded `ABI-3-1-0-STABLE`/`3.1.0` release
-  script). `clang-fmt.py` retained.
+  `generate_changelog.php` (immediately `die()`d — SVN-era) and
+  `generate_changelog.py` (unused release-tag tooling).
+  `release.sh` was rewritten for Abinova — version read from
+  `configure.ac`, `abinova-*` tarballs, current branch, optional
+  `SKIP_DISTCHECK`/`NO_GPG`. `clang-fmt.py` retained.
 - **`.abwn` document header updated** — the informational comment
   now points at `https://github.com/janos-szenfner/Exp-Abi` and
   names Abinova as the generator (the AWML doctype, namespaces and
