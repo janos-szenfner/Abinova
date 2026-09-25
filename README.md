@@ -1,4 +1,4 @@
-# Abinova GTK4 Experiment
+# Abinova — A new way, built on AbiWord's fundamentals
 
 **Abinova** is an experimental fork of the **AbiWord** word
 processor (upstream base 3.1.90) taking its own direction: a
