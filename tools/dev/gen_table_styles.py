@@ -82,7 +82,13 @@ def border_props(tcPr):
     return out
 
 
-def tc_props(tcPr):
+def accent_of(sid):
+    """'...-AccentN' -> N (1-6) else None."""
+    m = re.search(r"-Accent([1-6])$", sid)
+    return m.group(1) if m else None
+
+
+def tc_props(tcPr, sid=None):
     out = []
     if "<w:tcBorders>" in tcPr:
         out += border_props(tcPr)
@@ -98,6 +104,16 @@ def tc_props(tcPr):
                 tok += ":t%d" % round(int(t, 16) / 2.55)
             if sh:
                 tok += ":s%d" % round(int(sh, 16) / 2.55)
+            acc = accent_of(sid or "")
+            if theme == "text1" and not t:
+                # bare/shaded text1 is pure black, which the gallery
+                # must not use: accent variants take their dark
+                # shade instead, neutral styles take dark gray
+                # (a t85 tint resolves to #262626)
+                if acc:
+                    tok = "theme:accent%s:s50" % acc
+                else:
+                    tok = "theme:text1:t85"
             out.append("background-color:" + tok)
         else:
             fill = attr(s, "fill")
@@ -168,7 +184,7 @@ def main(path):
             cell = []
             tc = re.search(r"<w:tcPr>(.*?)</w:tcPr>", pbody, re.S)
             if tc:
-                cell = tc_props(tc.group(1))
+                cell = tc_props(tc.group(1), sid)
             char = []
             rp = re.search(r"<w:rPr>(.*?)</w:rPr>", pbody, re.S)
             if rp:
