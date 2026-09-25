@@ -128,6 +128,39 @@ private:
 	GtkWidget *		_makeHdrFtrPopover(bool bFooter);
 	GtkWidget *		_makePageNumberPopover();
 	GtkWidget *		_makeDropCapPopover();
+	/* Table Design tab */
+	GtkWidget *		_makeTableStyleOptions();
+	GtkWidget *		_makeTableStyleGallery();
+	GtkWidget *		_makeTableStyleGalleryPopover();
+	GtkWidget *		_tblStyleTile(const char * szStyleId, int iW, int iH,
+								  bool bInPopover);
+	GtkWidget *		_makeTblPopButton(int popId);
+	GtkWidget *		_makeTblBordersPopover();
+	GtkWidget *		_tblBorderRow(int edges, const char * szLabel,
+								  const char * szData);
+	GtkWidget *		_makeTblPenStylePopover();
+	GtkWidget *		_makeTblPenThickPopover();
+	GtkWidget *		_tblPenRow(const char * szStyle, const char * szThickness,
+							   const char * szLabel);
+	static void		_s_tbl_painter_toggled(GtkToggleButton * tb,
+										   gpointer data);
+	GtkWidget *		_makeTblColorPopover(const char * szMethod,
+										 const char * szAutomaticLabel);
+	void			_refreshTableStyleOptions();
+	void			_tblPreviewTile(GtkWidget * tile, bool bBegin);
+	static void		_s_tbl_tile_clicked(GtkWidget * w, gpointer data);
+	static void		_s_tbl_tile_motion_enter(GtkEventControllerMotion * ctrl,
+											 gdouble x, gdouble y,
+											 gpointer data);
+	static void		_s_tbl_tile_motion_leave(GtkEventControllerMotion * ctrl,
+											 gpointer data);
+	static void		_s_tbl_opt_toggled(GtkCheckButton * cb, gpointer data);
+	static void		_s_tblcolor_swatch_clicked(GtkWidget * w, gpointer data);
+	static void		_s_tblcolor_auto_clicked(GtkWidget * w, gpointer data);
+	static void		_s_tblcolor_custom_clicked(GtkWidget * w, gpointer data);
+	static void		_s_tblcolor_custom_response(GtkDialog * dlg, gint resp,
+												gpointer data);
+
 	/* Review tab */
 	GtkWidget *		_makeCommentDeletePopover();
 	GtkWidget *		_makeCommentShowPopover();
@@ -300,6 +333,13 @@ private:
 	bool				m_bRefreshAgain = false;
 	EV_Toolbar_LabelSet *	m_pTBLabels;
 	UT_GenericVector<GtkWidget*>	m_vecContextualPages;
+
+	/* Table Design tab widgets */
+	GtkWidget *			m_wTblOptChecks[6] = { nullptr, nullptr, nullptr,
+											   nullptr, nullptr, nullptr };
+	bool				m_bTblOptSync = false;	/* suppress toggled-
+												 * handlers while the
+												 * checks are re-synced */
 	GHashTable *		m_pIconMap; /* edit-method name -> icon name */
 	GtkWidget *			m_pMarkupLabel; /* caption of the Display-for-
 										 * Review dropdown, shows the

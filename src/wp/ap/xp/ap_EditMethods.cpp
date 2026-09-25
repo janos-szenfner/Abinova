@@ -440,6 +440,13 @@ public:
         static EV_EditMethod_Fn tableToTextTabs;
         static EV_EditMethod_Fn tableToTextCommasTabs;
 
+	static EV_EditMethod_Fn tableStyle;
+	static EV_EditMethod_Fn tableStyleClear;
+	static EV_EditMethod_Fn tableStyleOpt;
+	static EV_EditMethod_Fn tableBorder;
+	static EV_EditMethod_Fn tableShading;
+	static EV_EditMethod_Fn tablePen;
+
 	static EV_EditMethod_Fn replaceChar;
 
 	static EV_EditMethod_Fn cutVisualText;
@@ -1445,12 +1452,18 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(style),				_D_,""),
 
 	// t
+	EV_EditMethod(NF(tableBorder),			0,		""),
 	EV_EditMethod(NF(tableCellHeight),		_D_,	""),
 	EV_EditMethod(NF(tableCellWidth),		_D_,	""),
 	EV_EditMethod(NF(tableColNarrower),		0,		""),
 	EV_EditMethod(NF(tableColWider),		0,		""),
+	EV_EditMethod(NF(tablePen),				0,		""),
 	EV_EditMethod(NF(tableRowShorter),		0,		""),
 	EV_EditMethod(NF(tableRowTaller),		0,		""),
+	EV_EditMethod(NF(tableShading),			0,		""),
+	EV_EditMethod(NF(tableStyle),			0,		""),
+	EV_EditMethod(NF(tableStyleClear),		0,		""),
+	EV_EditMethod(NF(tableStyleOpt),		0,		""),
 	EV_EditMethod(NF(tableToTextCommas),	0,		""),
 	EV_EditMethod(NF(tableToTextCommasTabs),    0,		""),
 	EV_EditMethod(NF(tableToTextParas),    0,		""),
@@ -13995,6 +14008,99 @@ Defun(paraBorder)
 						  false);
 	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
 	return pView->cmdParaBorder(u8arg.utf8_str());
+}
+
+/* ---- Table Design tab (fl_TableStyles recipes) ----
+ * data strings are small and unlocalised:
+ *   tableStyle     "<style-id>"
+ *   tableStyleOpt  "<option-index>:<0|1>"
+ *   tableBorder    "<preset-name>"
+ *   tableShading   "<hex-colour>"
+ *   tablePen       "<style>|<thickness>|<colour>" (empty field keeps old)
+ */
+Defun(tableStyle)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->cmdTableSetStyle(u8arg.utf8_str());
+}
+
+Defun1(tableStyleClear)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdTableClearStyle();
+}
+
+Defun(tableStyleOpt)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * s = u8arg.utf8_str();
+	const char * colon = s ? strchr(s, ':') : nullptr;
+	UT_return_val_if_fail(s && colon, false);
+	return pView->cmdTableSetStyleOption(atoi(s), colon[1] == '1');
+}
+
+Defun(tableBorder)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * s = u8arg.utf8_str();
+	struct { const char * name; UT_sint32 preset; } presets[] = {
+		{ "none",    0 }, { "all",     1 }, { "outside", 2 },
+		{ "inside",  3 }, { "insideh", 4 }, { "insidev", 5 },
+		{ "top",     6 }, { "bot",     7 }, { "left",    8 },
+		{ "right",   9 }
+	};
+	for (const auto & p : presets)
+		if (s && !strcmp(s, p.name))
+			return pView->cmdTableBorderPreset(p.preset);
+	return false;
+}
+
+Defun(tableShading)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->cmdTableCellShading(u8arg.utf8_str());
+}
+
+Defun(tablePen)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UTF8String u8arg(pCallData->m_pData, pCallData->m_dataLength);
+	UT_UTF8String arg(u8arg);
+	/* "<style>|<thickness>|<colour>" - any field may be empty */
+	const char * s = arg.utf8_str();
+	std::string f[3];
+	int i = 0;
+	for (const char * p = s; p && i < 3; ++i)
+	{
+		const char * bar = strchr(p, '|');
+		f[i] = bar ? std::string(p, bar - p) : std::string(p);
+		p = bar ? bar + 1 : nullptr;
+	}
+	pView->setTablePen(f[0].empty() ? nullptr : f[0].c_str(),
+					   f[1].empty() ? nullptr : f[1].c_str(),
+					   f[2].empty() ? nullptr : f[2].c_str());
+	return true;
 }
 
 Defun(colorForeTB)

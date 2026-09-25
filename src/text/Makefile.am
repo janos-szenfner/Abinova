@@ -119,6 +119,10 @@ libtext_la_SOURCES = \
 	fmt/xp/fv_View_cmd.cpp \
 	fmt/xp/fv_View.cpp \
 	fmt/xp/fv_View.h \
+	fmt/xp/fv_View_tableStyle.cpp \
+	fmt/xp/fl_TableStyles.cpp \
+	fmt/xp/fl_TableStyles.h \
+	fmt/xp/fl_TableStylesBuiltin.cpp \
 	fmt/xp/fv_View_protected.cpp \
 	fmt/xp/fv_View_TestRoutines.cpp \
 	fmt/xp/fv_VisualDragText.cpp \
@@ -254,6 +258,7 @@ libtext_la_SOURCES += \
 
 EXTRA_DIST = \
 	fmt/xp/t/fl_AutoNum.t.cpp \
+	fmt/xp/t/fl_TableStyles.t.cpp \
 	ptbl/xp/t/pf_Fragments.t.cpp \
 	ptbl/xp/t/pp_PropertyMap.t.cpp \
 	ptbl/xp/t/pt_PieceTable.t.cpp

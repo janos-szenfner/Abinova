@@ -63,7 +63,24 @@ enum AP_RibbonItemKind : uint8_t
 								 * Word groups with no engine support
 								 * (citations, captions, index, TOA) */
 	AP_RIBBON_ITEM_EQSYMBOLS = 6,	/* equation-tab math symbol palette */
-	AP_RIBBON_ITEM_EQSTRUCT	= 7		/* equation-tab structure palette */
+	AP_RIBBON_ITEM_EQSTRUCT	= 7,	/* equation-tab structure palette */
+	AP_RIBBON_ITEM_TBLSTYLEOPTS = 8,	/* Table Design style-options
+									 * checkbox grid */
+	AP_RIBBON_ITEM_TBLGAL	= 9,	/* Table Design styles gallery +
+									 * More popover */
+	AP_RIBBON_ITEM_TBLPOP	= 10	/* Table Design dropdowns
+									 * (AP_RibbonTblPopId) */
+};
+
+/* ids for AP_RIBBON_ITEM_TBLPOP rows - not menu/toolbar ids */
+enum AP_RibbonTblPopId : uint8_t
+{
+	AP_RIBBON_TBLPOP_SHADING = 0,
+	AP_RIBBON_TBLPOP_BORDERS,
+	AP_RIBBON_TBLPOP_PENSTYLE,
+	AP_RIBBON_TBLPOP_PENCOLOR,
+	AP_RIBBON_TBLPOP_PENTHICK,
+	AP_RIBBON_TBLPOP_PAINTER
 };
 
 /* ids for AP_RIBBON_ITEM_SPIN rows - not menu/toolbar ids */
@@ -686,6 +703,45 @@ static const AP_RibbonGroup s_ribbon_table_groups[] =
 	{ nullptr,		nullptr }
 };
 
+/* ------------------------------------ Table Design (contextual tab) --- */
+
+/* Table Style Options: six toggles driving the conditional parts of
+ * the selected table style */
+static const AP_RibbonItem s_ribbon_tabledesign_opts[] =
+{
+	{ AP_RIBBON_ITEM_TBLSTYLEOPTS, AP_RIBBON_FLAG_NONE, 0 },
+	AP_RIBBON_END
+};
+
+/* Table Styles: scrollable gallery strip + More popover */
+static const AP_RibbonItem s_ribbon_tabledesign_styles[] =
+{
+	{ AP_RIBBON_ITEM_TBLGAL, AP_RIBBON_FLAG_NONE, 0 },
+	AP_RIBBON_END
+};
+
+/* Borders group (Word layout): large Shading button, a three-row
+ * column (Border Styles / pen-thickness combo / Pen Color), then the
+ * Borders preset dropdown and the Border Painter toggle */
+static const AP_RibbonItem s_ribbon_tabledesign_borders[] =
+{
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_LARGE, AP_RIBBON_TBLPOP_SHADING },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PENSTYLE },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PENTHICK },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PENCOLOR },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_BORDERS },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PAINTER },
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_tabledesign_groups[] =
+{
+	{ "tblstyleopts",	s_ribbon_tabledesign_opts },
+	{ "tblstyles",		s_ribbon_tabledesign_styles },
+	{ "borders",		s_ribbon_tabledesign_borders },
+	{ nullptr,			nullptr }
+};
+
 /* -------------------------------------------- Equation (contextual) --- */
 
 static const AP_RibbonItem s_ribbon_equation_eq[] =
@@ -745,6 +801,7 @@ static const AP_RibbonTab s_ribbon_tabs[] =
 	{ "layout",		s_ribbon_layout_groups,		false },
 	{ "review",		s_ribbon_review_groups,		false },
 	{ "view",		s_ribbon_view_groups,		false },
+	{ "tabledesign",s_ribbon_tabledesign_groups, true  },
 	{ "table",		s_ribbon_table_groups,		true  },
 	{ "equation",	s_ribbon_equation_groups,	true  },
 	{ "help",		s_ribbon_help_groups,		false },

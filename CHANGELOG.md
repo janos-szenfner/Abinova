@@ -286,6 +286,27 @@ below are on `main` but the release has not been cut yet.
   method and `FV_View::cmdMergeCellsDir`) and six directional
   split options (`splitCellsDir` → `AP_CellSplitType`). Every
   Table Layout popover is verified anchored beneath its button.
+- **Contextual Table Design ribbon tab** — a Word-style "Table
+  Design" page appears next to Table Layout while the caret is in
+  a table. Groups: Table Style Options (Header Row, Total Row,
+  Banded Rows, First Column, Last Column, Banded Columns toggles
+  persisted per-table and reflected live), a Table Styles
+  thumbnail gallery strip with an always-visible scrollbar and a
+  ▼ popover that shows the same tiles grouped into Plain Tables /
+  Grid Tables / List Tables sections plus Modify Table Style…,
+  Clear and New Table Style… action rows, and a Borders group
+  (Shading colour picker, Border Styles popover, a ½ pt-style
+  thickness combo, Pen Colour, a Borders preset menu and a Border
+  Painter toggle). Tiles live-preview the style on hover and
+  commit on click; the engine underneath is a pure recipe table
+  (`fl_TableStyles.{h,cpp}` + a generator producing
+  `fl_TableStylesBuiltin.cpp` from the real Word `styles.xml`
+  built-in definitions, so the 99 styles carry authentic OOXML
+  ids) with theme-colour (`theme:accentN[:tNN]`) resolution,
+  inside-horizontal/inside-vertical border translation, and the
+  six table-look flags. Applying a style balances
+  `_changeCellParams`/`_restoreCellParams`, writes cell struxes
+  at `pos + 1`, and skips cells belonging to nested tables.
 - **Dialog centering restored on X11** — `XAP_UnixDialogHelper::
   centerDialog` now also positions non-modal dialogs over the
   centre of their transient parent via `gdk_x11_surface_move_to_`

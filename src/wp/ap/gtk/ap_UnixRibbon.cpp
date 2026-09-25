@@ -65,9 +65,11 @@
 #include "pp_AttrProp.h"
 #include "fp_PageSize.h"
 #include "ut_units.h"
+#include "ut_color.h"
 #include "fl_DocLayout.h"
 #include "ap_UnixDialog_Document.h"
 #include "fv_View.h"
+#include "fl_TableStyles.h"
 #include "ie_impGraphic.h"
 #include "fg_Graphic.h"
 
@@ -87,6 +89,7 @@ static const _ribbon_kv s_ribbon_tab_labels[] =
 	{ "layout",     "Layout" },
 	{ "review",     "Review" },
 	{ "view",       "View" },
+	{ "tabledesign","Table Design" },
 	{ "table",      "Table Layout" },
 	{ "equation",   "Equation" },
 	{ "help",       "Help" },
@@ -147,6 +150,9 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "align",       "Alignment" },
 	{ "data",        "Data" },
 	{ "cellsize",    "Cell Size" },
+	{ "tblstyleopts","Table Style Options" },
+	{ "tblstyles",   "Table Styles" },
+	{ "borders",     "Borders" },
 	{ "equation",    "Equation" },
 	{ "structures",  "Structures" },
 	{ "help",        "Help" },
@@ -474,6 +480,12 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				GtkWidget * w = nullptr;
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
+				else if (item->kind == AP_RIBBON_ITEM_TBLSTYLEOPTS)
+					w = _makeTableStyleOptions();
+				else if (item->kind == AP_RIBBON_ITEM_TBLGAL)
+					w = _makeTableStyleGallery();
+				else if (item->kind == AP_RIBBON_ITEM_TBLPOP)
+					w = _makeTblPopButton(item->id);
 				else if (item->kind == AP_RIBBON_ITEM_EQSYMBOLS)
 					w = _makeEquationPalette(false);
 				else if (item->kind == AP_RIBBON_ITEM_EQSTRUCT)
@@ -558,6 +570,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				bool bTall = (item->flags & AP_RIBBON_FLAG_LARGE) ||
 					(item->kind == AP_RIBBON_ITEM_STYLEGAL) ||
 					(item->kind == AP_RIBBON_ITEM_EQSTRUCT) ||
+					(item->kind == AP_RIBBON_ITEM_TBLSTYLEOPTS) ||
+					(item->kind == AP_RIBBON_ITEM_TBLGAL) ||
 					((item->kind == AP_RIBBON_ITEM_TOOLBAR) &&
 					 (item->id == AP_TOOLBAR_ID_FMT_FONT ||
 					  item->id == AP_TOOLBAR_ID_FMT_SIZE ||
@@ -10769,6 +10783,7 @@ void AP_UnixRibbon::refresh()
 		_populateStyleTiles();   /* lazy: view/doc may not exist at build time */
 		_refreshToolbarItems();
 		_refreshSpinFields();
+		_refreshTableStyleOptions();
 		/* keep the Display-for-Review caption in sync with the
 		 * active markup mode */
 		if (m_pMarkupLabel)
@@ -10871,4 +10886,1000 @@ void AP_UnixRibbon::_s_motion_enter(GtkEventControllerMotion * /*ctrl*/,
 	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
 	if (self)
 		self->refresh();
+}
+
+/* ================================================================
+ * Table Design tab (fl_TableStyles recipes)
+ * ================================================================ */
+
+/* fetch "key" out of an fl_TableStyles "k:v;k:v;" property string */
+static std::string _tbl_prop_val(const std::string & props, const char * key)
+{
+	size_t pos = 0;
+	while (pos < props.size())
+	{
+		size_t end = props.find(';', pos);
+		std::string kv = props.substr(pos,
+			end == std::string::npos ? std::string::npos : end - pos);
+		pos = (end == std::string::npos) ? props.size() : end + 1;
+		size_t first = kv.find_first_not_of(" \t");
+		if (first == std::string::npos)
+			continue;
+		kv.erase(0, first);
+		size_t colon = kv.find(':');
+		if (colon != std::string::npos &&
+			kv.compare(0, colon, key) == 0)
+			return kv.substr(colon + 1);
+	}
+	return "";
+}
+
+/* "#rrggbb"/"rrggbb" → cairo source; false for empty/auto/transparent */
+static bool _tbl_cairo_color(cairo_t * cr, const std::string & hex)
+{
+	if (hex.empty() || hex == "auto" || hex == "transparent")
+		return false;
+	UT_RGBColor c;
+	UT_parseColor(hex.c_str(), c);
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+	return true;
+}
+
+struct _TblTileData
+{
+	AP_UnixRibbon *	self;
+	std::string		styleId;
+};
+
+static void _s_tbl_tile_free(gpointer d)
+{
+	delete static_cast<_TblTileData *>(d);
+}
+
+/* miniature 3x3 table rendered straight from the style recipe */
+static void _s_tbl_tile_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+							 int width, int height, gpointer data)
+{
+	const _TblTileData * td = static_cast<const _TblTileData *>(data);
+	const FV_TableStyle * st =
+		td ? FV_tableStyleById(td->styleId.c_str()) : nullptr;
+	if (!st)
+		return;
+
+	static const char * const sides[4] =
+		{ "top", "bot", "left", "right" };
+	const int R = 3, C = 3;
+	const double m = 2.0;
+	const double cw = (width - 2 * m) / C;
+	const double rh = (height - 2 * m) / R;
+	FV_TableStyleLook look;	/* defaults: header row + banded rows */
+
+	cairo_set_line_width(cr, 1.0);
+	for (int r = 0; r < R; ++r)
+		for (int c = 0; c < C; ++c)
+		{
+			FV_TableStyleCell cp = FV_tableStyleCellProps(
+				*st, look, r, c, R, C);
+			double x = m + c * cw;
+			double y = m + r * rh;
+
+			std::string bg = _tbl_prop_val(cp.cellProps,
+										   "background-color");
+			if (!_tbl_cairo_color(cr, bg))
+				cairo_set_source_rgb(cr, 1, 1, 1);
+			cairo_rectangle(cr, x, y, cw, rh);
+			cairo_fill(cr);
+
+			/* fake text baseline hint */
+			cairo_set_source_rgba(cr, 0, 0, 0, 0.35);
+			cairo_rectangle(cr, x + 2, y + rh / 2 - 0.5, cw - 4, 1.0);
+			cairo_fill(cr);
+
+			/* cell borders, per side */
+			for (int s = 0; s < 4; ++s)
+			{
+				std::string ks = std::string(sides[s]) + "-style";
+				std::string sty = _tbl_prop_val(cp.cellProps, ks.c_str());
+				if (sty.empty() || sty == "none")
+					continue;
+				std::string kc = std::string(sides[s]) + "-color";
+				std::string col = _tbl_prop_val(cp.cellProps, kc.c_str());
+				if (!_tbl_cairo_color(cr, col))
+					cairo_set_source_rgb(cr, 0, 0, 0);
+
+				switch (s)
+				{
+				case 0: cairo_move_to(cr, x, y);
+						cairo_line_to(cr, x + cw, y); break;
+				case 1: cairo_move_to(cr, x, y + rh);
+						cairo_line_to(cr, x + cw, y + rh); break;
+				case 2: cairo_move_to(cr, x, y);
+						cairo_line_to(cr, x, y + rh); break;
+				default: cairo_move_to(cr, x + cw, y);
+						cairo_line_to(cr, x + cw, y + rh); break;
+				}
+				cairo_stroke(cr);
+			}
+		}
+}
+
+/* hover → live preview (cancelled by leave or by commit) */
+void AP_UnixRibbon::_tblPreviewTile(GtkWidget * tile, bool bBegin)
+{
+	if (!tile)
+		return;
+	const _TblTileData * td = static_cast<const _TblTileData *>(
+		g_object_get_data(G_OBJECT(tile), "abi-tblstyle"));
+	if (!td)
+		return;
+	FV_View * view = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	if (!view)
+		return;
+	if (bBegin)
+		view->cmdTableStylePreviewBegin(td->styleId.c_str());
+	else
+		view->cmdTableStylePreviewEnd();
+}
+
+void AP_UnixRibbon::_s_tbl_tile_motion_enter(
+	GtkEventControllerMotion * ctrl, gdouble /*x*/, gdouble /*y*/,
+	gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (self)
+		self->_tblPreviewTile(gtk_event_controller_get_widget(
+								  GTK_EVENT_CONTROLLER(ctrl)), true);
+}
+
+void AP_UnixRibbon::_s_tbl_tile_motion_leave(
+	GtkEventControllerMotion * ctrl, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (self)
+		self->_tblPreviewTile(gtk_event_controller_get_widget(
+								  GTK_EVENT_CONTROLLER(ctrl)), false);
+}
+
+void AP_UnixRibbon::_s_tbl_tile_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	const _TblTileData * td = static_cast<const _TblTileData *>(
+		g_object_get_data(G_OBJECT(w), "abi-tblstyle"));
+	UT_return_if_fail(self && td);
+	FV_View * view = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	/* cancel a pending hover preview BEFORE committing, else its
+	 * restore would wipe the committed style */
+	if (view)
+		view->cmdTableStylePreviewEnd();
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("tableStyle", td->styleId.c_str());
+}
+
+GtkWidget * AP_UnixRibbon::_tblStyleTile(const char * szStyleId,
+										 int iW, int iH,
+										 bool /*bInPopover*/)
+{
+	const FV_TableStyle * st = FV_tableStyleById(szStyleId);
+	UT_return_val_if_fail(st, nullptr);
+
+	GtkWidget * btn = gtk_button_new();
+	_TblTileData * td = new _TblTileData{ this, szStyleId };
+	g_object_set_data_full(G_OBJECT(btn), "abi-tblstyle", td,
+						   _s_tbl_tile_free);
+
+	GtkWidget * da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), iW);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), iH);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+								   _s_tbl_tile_draw, td, nullptr);
+	gtk_button_set_child(GTK_BUTTON(btn), da);
+	gtk_widget_set_tooltip_text(btn, st->name.c_str());
+	gtk_widget_add_css_class(btn, "flat");
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_tbl_tile_clicked), this);
+
+	GtkEventController * mot = gtk_event_controller_motion_new();
+	g_signal_connect(mot, "enter",
+					 G_CALLBACK(_s_tbl_tile_motion_enter), this);
+	g_signal_connect(mot, "leave",
+					 G_CALLBACK(_s_tbl_tile_motion_leave), this);
+	gtk_widget_add_controller(btn, mot);
+	return btn;
+}
+
+/* preset row: edge icon + label → "tableBorder" edit method; a null
+ * szData marks the "Clear Table Style" action */
+GtkWidget * AP_UnixRibbon::_tblBorderRow(int edges, const char * szLabel,
+										 const char * szData)
+{
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_box_append(GTK_BOX(box), _border_icon(edges));
+	GtkWidget * wLabel = gtk_label_new(szLabel);
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), box);
+	gtk_widget_add_css_class(btn, "flat");
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+						   g_strdup(szData ? "tableBorder"
+										   : "tableStyleClear"),
+						   g_free);
+	if (szData)
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup(szData), g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_em_clicked), this);
+	return btn;
+}
+
+
+/* tiny 16x16 action icons for the gallery bottom rows:
+ * kind 0 = modify (grid + pencil), 1 = clear (grid + eraser),
+ * 2 = new (grid + plus) */
+static void _s_tbl_action_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+									int width, int height, gpointer data)
+{
+	int kind = GPOINTER_TO_INT(data);
+	double w = width, h = height;
+	/* mini 2x2 table */
+	cairo_set_source_rgb(cr, 0.35, 0.35, 0.4);
+	cairo_set_line_width(cr, 1.0);
+	double cw = w * 0.62 / 2.0, rh = h * 0.62 / 2.0;
+	for (int i = 0; i <= 2; ++i)
+	{
+		cairo_move_to(cr, i * cw, 0);
+		cairo_line_to(cr, i * cw, 2 * rh);
+		cairo_move_to(cr, 0, i * rh);
+		cairo_line_to(cr, 2 * cw, i * rh);
+	}
+	cairo_stroke(cr);
+	if (kind == 0)
+	{
+		/* pencil */
+		cairo_set_source_rgb(cr, 0.85, 0.55, 0.1);
+		cairo_set_line_width(cr, 2.0);
+		cairo_move_to(cr, w * 0.62, h * 0.75);
+		cairo_line_to(cr, w * 0.95, h * 0.42);
+		cairo_stroke(cr);
+	}
+	else if (kind == 1)
+	{
+		/* eraser */
+		cairo_set_source_rgb(cr, 0.85, 0.3, 0.4);
+		cairo_rectangle(cr, w * 0.58, h * 0.55, w * 0.36, h * 0.3);
+		cairo_fill(cr);
+	}
+	else
+	{
+		/* plus */
+		cairo_set_source_rgb(cr, 0.2, 0.65, 0.25);
+		cairo_set_line_width(cr, 2.0);
+		cairo_move_to(cr, w * 0.78, h * 0.45);
+		cairo_line_to(cr, w * 0.78, h * 0.93);
+		cairo_move_to(cr, w * 0.56, h * 0.69);
+		cairo_line_to(cr, w * 1.0, h * 0.69);
+		cairo_stroke(cr);
+	}
+}
+
+/* full gallery: family sections of tiled styles, scrolling
+ * vertically, plus the Modify / Clear / New action rows at the
+ * bottom (the Writer/Word gallery layout) */
+GtkWidget * AP_UnixRibbon::_makeTableStyleGalleryPopover()
+{
+	GtkWidget * pop = xap_gtk_popover_new();
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(sw), 430);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+
+	GtkWidget * vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(vbox, 6);
+	gtk_widget_set_margin_bottom(vbox, 6);
+	gtk_widget_set_margin_start(vbox, 6);
+	gtk_widget_set_margin_end(vbox, 6);
+
+	for (int fam = FV_TSF_Plain; fam <= FV_TSF_List; ++fam)
+	{
+		bool bAny = false;
+		for (const FV_TableStyle & st : FV_tableStyles())
+			if (st.family == fam)
+			{
+				bAny = true;
+				break;
+			}
+		if (!bAny)
+			continue;
+
+		GtkWidget * hdr = gtk_label_new(FV_tableStyleFamilyName(
+			static_cast<FV_TableStyleFamily>(fam)));
+		gtk_widget_set_halign(hdr, GTK_ALIGN_START);
+		gtk_widget_add_css_class(hdr, "ribbon-group-title");
+		gtk_box_append(GTK_BOX(vbox), hdr);
+
+		GtkWidget * grid = gtk_grid_new();
+		gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
+		gtk_grid_set_column_spacing(GTK_GRID(grid), 3);
+		int n = 0;
+		for (const FV_TableStyle & st : FV_tableStyles())
+		{
+			if (st.family != fam)
+				continue;
+			GtkWidget * tile = _tblStyleTile(st.id.c_str(), 64, 48, true);
+			if (tile)
+				gtk_grid_attach(GTK_GRID(grid), tile,
+								n % 7, n / 7, 1, 1);
+			++n;
+		}
+		gtk_box_append(GTK_BOX(vbox), grid);
+	}
+
+	auto textRow = [&](const char * szLabel, int iconKind,
+					   const char * szMethod, const char * szData,
+					   bool bSensitive) {
+		GtkWidget * btn = gtk_button_new();
+		GtkWidget * hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+		gtk_widget_set_margin_start(hbox, 4);
+		if (iconKind >= 0)
+		{
+			GtkWidget * ic = gtk_drawing_area_new();
+			gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(ic), 16);
+			gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(ic), 16);
+			gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(ic),
+										   _s_tbl_action_icon_draw,
+										   GINT_TO_POINTER(iconKind),
+										   nullptr);
+			gtk_widget_set_valign(ic, GTK_ALIGN_CENTER);
+			gtk_box_append(GTK_BOX(hbox), ic);
+		}
+		GtkWidget * wLabel = gtk_label_new(szLabel);
+		gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+		gtk_widget_set_hexpand(wLabel, TRUE);
+		gtk_box_append(GTK_BOX(hbox), wLabel);
+		gtk_button_set_child(GTK_BUTTON(btn), hbox);
+		gtk_widget_add_css_class(btn, "flat");
+		if (!bSensitive)
+		{
+			gtk_widget_set_sensitive(btn, FALSE);
+			return btn;
+		}
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup(szMethod), g_free);
+		if (szData)
+			g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+								   g_strdup(szData), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		return btn;
+	};
+
+	gtk_box_append(GTK_BOX(vbox),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(vbox),
+				   textRow("Modify Table Style…", 0,
+						   "formatTable", nullptr, true));
+	gtk_box_append(GTK_BOX(vbox),
+				   textRow("Clear", 1, "tableStyleClear", nullptr, true));
+	gtk_box_append(GTK_BOX(vbox),
+				   textRow("New Table Style…", 2,
+						   nullptr, nullptr, false));
+
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), vbox);
+	gtk_popover_set_child(GTK_POPOVER(pop), sw);
+	return pop;
+}
+
+/* horizontal strip: scrolled tiles + "More" drop button */
+GtkWidget * AP_UnixRibbon::_makeTableStyleGallery()
+{
+	GtkWidget * outer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
+	/* keep the scrollbar visible like Word's gallery strip instead of
+	 * overlaying it on the tiles */
+	gtk_scrolled_window_set_overlay_scrolling(
+		GTK_SCROLLED_WINDOW(sw), FALSE);
+	gtk_widget_set_size_request(sw, 300, -1);
+	/* the strip box holds ~100 tiles (~1.4k px); without min+max caps
+	 * the scrolled window propagates that as its own size request and
+	 * the ribbon balloons past the screen */
+	gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(sw), 300);
+	gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(sw), 480);
+	gtk_scrolled_window_set_propagate_natural_width(
+		GTK_SCROLLED_WINDOW(sw), FALSE);
+
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_widget_set_margin_start(box, 2);
+	gtk_widget_set_margin_end(box, 2);
+	for (const FV_TableStyle & st : FV_tableStyles())
+	{
+		GtkWidget * tile = _tblStyleTile(st.id.c_str(), 62, 46, false);
+		if (tile)
+			gtk_box_append(GTK_BOX(box), tile);
+	}
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), box);
+	gtk_box_append(GTK_BOX(outer), sw);
+
+	GtkWidget * more = gtk_menu_button_new();
+	gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(more),
+								  "pan-down-symbolic");
+	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(more), FALSE);
+	gtk_widget_set_tooltip_text(more, "More Table Styles");
+	gtk_widget_set_valign(more, GTK_ALIGN_END);
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(more),
+								_makeTableStyleGalleryPopover());
+	gtk_box_append(GTK_BOX(outer), more);
+	return outer;
+}
+
+/* ---- Table Style Options: six look-flag checkboxes ---- */
+
+void AP_UnixRibbon::_s_tbl_opt_toggled(GtkCheckButton * cb, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	if (self->m_bTblOptSync)
+		return;
+	int idx = GPOINTER_TO_INT(
+		g_object_get_data(G_OBJECT(cb), "abi-opt-idx"));
+	char buf[8];
+	g_snprintf(buf, sizeof(buf), "%d:%d", idx,
+			   gtk_check_button_get_active(cb) ? 1 : 0);
+	self->_invokeEditMethod("tableStyleOpt", buf);
+}
+
+GtkWidget * AP_UnixRibbon::_makeTableStyleOptions()
+{
+	static const char * const labels[6] = {
+		"Header Row", "Total Row", "Banded Rows",
+		"First Column", "Last Column", "Banded Columns"
+	};
+	static const char * const tips[6] = {
+		"Format the first row with the style's header formatting",
+		"Format the last row with the style's total formatting",
+		"Alternate light/dark row shading",
+		"Emphasise the first column",
+		"Emphasise the last column",
+		"Alternate light/dark column shading"
+	};
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 2);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
+	gtk_widget_set_valign(grid, GTK_ALIGN_CENTER);
+	for (int i = 0; i < 6; ++i)
+	{
+		GtkWidget * cb = gtk_check_button_new_with_label(labels[i]);
+		gtk_widget_set_tooltip_text(cb, tips[i]);
+		g_object_set_data(G_OBJECT(cb), "abi-opt-idx",
+						  GINT_TO_POINTER(i));
+		g_signal_connect(cb, "toggled",
+						 G_CALLBACK(_s_tbl_opt_toggled), this);
+		m_wTblOptChecks[i] = cb;
+		/* two columns of three, Writer-style */
+		gtk_grid_attach(GTK_GRID(grid), cb, i / 3, i % 3, 1, 1);
+	}
+	return grid;
+}
+
+void AP_UnixRibbon::_refreshTableStyleOptions()
+{
+	FV_View * view = static_cast<FV_View *>(
+		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
+	bool bInTbl = view &&
+		(view->isInTable() ||
+		 view->getTableAtPos(view->getPoint()) ||
+		 (!view->isSelectionEmpty() &&
+		  view->getTableAtPos(view->getSelectionAnchor())));
+
+	FV_TableStyleLook look;	/* defaults when no tbl-look stored */
+	if (bInTbl)
+	{
+		std::string stored = view->getTableStyleLook();
+		look = FV_TableStyleLook::fromString(
+			stored.empty() ? nullptr : stored.c_str());
+	}
+	const bool vals[6] = { look.firstRow, look.lastRow, look.bandRow,
+						   look.firstCol, look.lastCol, look.bandCol };
+	m_bTblOptSync = true;
+	for (int i = 0; i < 6; ++i)
+	{
+		if (!m_wTblOptChecks[i])
+			continue;
+		gtk_check_button_set_active(
+			GTK_CHECK_BUTTON(m_wTblOptChecks[i]), bInTbl && vals[i]);
+		gtk_widget_set_sensitive(m_wTblOptChecks[i], bInTbl);
+	}
+	m_bTblOptSync = false;
+}
+
+/* ---- Borders group ---- */
+
+GtkWidget * AP_UnixRibbon::_makeTblBordersPopover()
+{
+	GtkWidget * pop = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+	auto add = [&](GtkWidget * w) {
+		if (w) gtk_box_append(GTK_BOX(box), w);
+	};
+	auto sep = [&]() {
+		add(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	};
+
+	add(_tblBorderRow(2,  "Bottom Border",   "bot"));
+	add(_tblBorderRow(1,  "Top Border",      "top"));
+	add(_tblBorderRow(4,  "Left Border",     "left"));
+	add(_tblBorderRow(8,  "Right Border",    "right"));
+	sep();
+	add(_tblBorderRow(0,  "No Border",       "none"));
+	add(_tblBorderRow(15, "All Borders",     "all"));
+	add(_tblBorderRow(15, "Outside Borders", "outside"));
+	add(_tblBorderRow(48, "Inside Borders",  "inside"));
+	sep();
+	add(_tblBorderRow(16, "Inside Horizontal Borders", "insideh"));
+	add(_tblBorderRow(32, "Inside Vertical Borders",   "insidev"));
+	sep();
+	add(_borderRow(0, "Borders and Shading\xE2\x80\xA6",
+				   "dlgBorders", nullptr));
+
+	gtk_popover_set_child(GTK_POPOVER(pop), box);
+	return pop;
+}
+
+/* pen-style row: drawn sample line + label → "tablePen" */
+static void _s_penline_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+							int width, int height, gpointer data)
+{
+	const char * style = static_cast<const char *>(data);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_set_line_width(cr, 1.6);
+	double y = height / 2.0;
+	if (style && !strcmp(style, "dash"))
+	{
+		const double d[] = { 4.0, 2.0 };
+		cairo_set_dash(cr, d, 2, 0);
+	}
+	else if (style && !strcmp(style, "dot"))
+	{
+		const double d[] = { 1.5, 2.5 };
+		cairo_set_dash(cr, d, 2, 0);
+	}
+	else if (style && !strcmp(style, "double"))
+	{
+		cairo_move_to(cr, 2, y - 1.5);
+		cairo_line_to(cr, width - 2, y - 1.5);
+		cairo_move_to(cr, 2, y + 1.5);
+		cairo_line_to(cr, width - 2, y + 1.5);
+		cairo_set_line_width(cr, 1.0);
+		cairo_stroke(cr);
+		return;
+	}
+	cairo_move_to(cr, 2, y);
+	cairo_line_to(cr, width - 2, y);
+	cairo_stroke(cr);
+}
+
+GtkWidget * AP_UnixRibbon::_tblPenRow(const char * szStyle,
+									  const char * szThickness,
+									  const char * szLabel)
+{
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	GtkWidget * da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 40);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 14);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+								   _s_penline_draw,
+								   g_strdup(szStyle), g_free);
+	gtk_box_append(GTK_BOX(box), da);
+	GtkWidget * wLabel = gtk_label_new(szLabel);
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), box);
+	gtk_widget_add_css_class(btn, "flat");
+	char data[64];
+	g_snprintf(data, sizeof(data), "%s|%s|",
+			   szStyle ? szStyle : "", szThickness ? szThickness : "");
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+						   g_strdup("tablePen"), g_free);
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+						   g_strdup(data), g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_em_clicked), this);
+	return btn;
+}
+
+/* thickness-only popover for the "½ pt" combo (Border Styles group) */
+GtkWidget * AP_UnixRibbon::_makeTblPenThickPopover()
+{
+	GtkWidget * pop = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "0.5pt",  "½ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "0.75pt", "¾ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "1pt",    "1 pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "1.5pt",  "1½ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "2.25pt", "2¼ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "3pt",    "3 pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "4.5pt",  "4½ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "6pt",    "6 pt"));
+
+	gtk_popover_set_child(GTK_POPOVER(pop), box);
+	return pop;
+}
+
+/* pen icon with a colour bar underneath (Pen Color button) */
+static void _s_pencolor_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+								  int width, int height, gpointer /*data*/)
+{
+	/* nib: small diagonal stroke */
+	cairo_set_source_rgb(cr, 0.25, 0.25, 0.25);
+	cairo_set_line_width(cr, 2.0);
+	cairo_move_to(cr, width * 0.25, height * 0.15);
+	cairo_line_to(cr, width * 0.75, height * 0.55);
+	cairo_stroke(cr);
+	cairo_arc(cr, width * 0.72, height * 0.58, 2.2, 0, 2 * G_PI);
+	cairo_fill(cr);
+	/* colour bar (pen colour state; default black like the doc's) */
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_rectangle(cr, width * 0.12, height * 0.72,
+					width * 0.76, height * 0.22);
+	cairo_fill(cr);
+}
+
+/* paintbrush icon (Border Painter toggle) */
+static void _s_painter_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+								 int width, int height, gpointer /*data*/)
+{
+	double w = width, h = height;
+	/* handle */
+	cairo_set_source_rgb(cr, 0.35, 0.25, 0.12);
+	cairo_set_line_width(cr, 2.2);
+	cairo_move_to(cr, w * 0.72, h * 0.10);
+	cairo_line_to(cr, w * 0.46, h * 0.42);
+	cairo_stroke(cr);
+	/* ferrule */
+	cairo_set_source_rgb(cr, 0.6, 0.6, 0.65);
+	cairo_set_line_width(cr, 3.0);
+	cairo_move_to(cr, w * 0.50, h * 0.36);
+	cairo_line_to(cr, w * 0.38, h * 0.52);
+	cairo_stroke(cr);
+	/* bristles with paint */
+	cairo_set_source_rgb(cr, 0.2, 0.35, 0.8);
+	cairo_move_to(cr, w * 0.38, h * 0.50);
+	cairo_curve_to(cr, w * 0.30, h * 0.62, w * 0.16, h * 0.62,
+				   w * 0.14, h * 0.86);
+	cairo_curve_to(cr, w * 0.12, h * 0.92, w * 0.30, h * 0.90,
+				   w * 0.42, h * 0.66);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	/* paint stroke it leaves */
+	cairo_set_line_width(cr, 1.4);
+	cairo_move_to(cr, w * 0.48, h * 0.88);
+	cairo_line_to(cr, w * 0.94, h * 0.88);
+	cairo_stroke(cr);
+}
+
+void AP_UnixRibbon::_s_tbl_painter_toggled(GtkToggleButton * tb,
+										   gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	bool bOn = gtk_toggle_button_get_active(tb);
+	FV_View * view = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	if (view)
+		view->setBorderPainterMode(bOn);
+}
+
+GtkWidget * AP_UnixRibbon::_makeTblPenStylePopover()
+{
+	GtkWidget * pop = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_margin_top(box, 4);
+	gtk_widget_set_margin_bottom(box, 4);
+	gtk_widget_set_margin_start(box, 4);
+	gtk_widget_set_margin_end(box, 4);
+	auto add = [&](GtkWidget * w) {
+		if (w) gtk_box_append(GTK_BOX(box), w);
+	};
+	auto sep = [&]() {
+		add(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	};
+
+	add(_tblPenRow("single", "0.5pt", "0.5 pt"));
+	add(_tblPenRow("single", "0.75pt", "0.75 pt"));
+	add(_tblPenRow("single", "1pt", "1 pt"));
+	add(_tblPenRow("single", "1.5pt", "1.5 pt"));
+	add(_tblPenRow("single", "2.25pt", "2.25 pt"));
+	sep();
+	add(_tblPenRow("dash", "1pt", "Dash"));
+	add(_tblPenRow("dot", "1pt", "Dot"));
+	add(_tblPenRow("double", "1.5pt", "Double"));
+
+	gtk_popover_set_child(GTK_POPOVER(pop), box);
+	return pop;
+}
+
+/* ---- colour popover (Shading / Pen Colour) ---- */
+
+struct _TblColorCtx
+{
+	AP_UnixRibbon *	self;
+	std::string		method;		/* "tableShading" or "tablePen" */
+	std::string		prefix;		/* data prefix, "" or "||" */
+};
+
+static void _s_tblcolor_ctx_free(gpointer d)
+{
+	delete static_cast<_TblColorCtx *>(d);
+}
+
+void AP_UnixRibbon::_s_tblcolor_swatch_clicked(GtkWidget * w,
+											   gpointer data)
+{
+	_TblColorCtx * ctx = static_cast<_TblColorCtx *>(data);
+	UT_return_if_fail(ctx && ctx->self);
+	_tb_popdown_popover(w);
+	const char * hex = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-color-hex"));
+	std::string sData = ctx->prefix + (hex ? hex : "");
+	ctx->self->_invokeEditMethod(ctx->method.c_str(), sData.c_str());
+}
+
+void AP_UnixRibbon::_s_tblcolor_auto_clicked(GtkWidget * w, gpointer data)
+{
+	_TblColorCtx * ctx = static_cast<_TblColorCtx *>(data);
+	UT_return_if_fail(ctx && ctx->self);
+	_tb_popdown_popover(w);
+	const char * val = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-auto-value"));
+	std::string sData = ctx->prefix + (val ? val : "");
+	ctx->self->_invokeEditMethod(ctx->method.c_str(), sData.c_str());
+}
+
+void AP_UnixRibbon::_s_tblcolor_custom_response(GtkDialog * dlg,
+												gint response,
+												gpointer data)
+{
+	_TblColorCtx * ctx = static_cast<_TblColorCtx *>(data);
+	if (response == GTK_RESPONSE_OK && ctx && ctx->self)
+	{
+		GdkRGBA color;
+		gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(dlg), &color);
+		char hex[8];
+		g_snprintf(hex, sizeof(hex), "%02x%02x%02x",
+				   static_cast<int>(color.red   * 255),
+				   static_cast<int>(color.green * 255),
+				   static_cast<int>(color.blue  * 255));
+		std::string sData = ctx->prefix + hex;
+		ctx->self->_invokeEditMethod(ctx->method.c_str(),
+									 sData.c_str());
+	}
+	gtk_window_destroy(GTK_WINDOW(dlg));
+}
+
+void AP_UnixRibbon::_s_tblcolor_custom_clicked(GtkWidget * w, gpointer data)
+{
+	_TblColorCtx * ctx = static_cast<_TblColorCtx *>(data);
+	UT_return_if_fail(ctx && ctx->self);
+	_tb_popdown_popover(w);
+	GtkWidget * toplevel = GTK_WIDGET(gtk_widget_get_root(w));
+	GtkWidget * dlg = gtk_color_chooser_dialog_new(
+		"Custom Color",
+		toplevel ? GTK_WINDOW(toplevel) : nullptr);
+	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(dlg), FALSE);
+	g_signal_connect(dlg, "response",
+					 G_CALLBACK(_s_tblcolor_custom_response), ctx);
+	gtk_window_present(GTK_WINDOW(dlg));
+}
+
+GtkWidget * AP_UnixRibbon::_makeTblColorPopover(const char * szMethod,
+											  const char * szAutomaticLabel)
+{
+	_TblColorCtx * ctx = new _TblColorCtx;
+	ctx->self = this;
+	ctx->method = szMethod;
+	/* pen colour takes "||<hex>" (style+thickness untouched);
+	 * shading takes the bare hex */
+	ctx->prefix = !strcmp(szMethod, "tablePen") ? "||" : "";
+
+	GtkWidget * pop = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_widget_set_margin_top(box, 6);
+	gtk_widget_set_margin_bottom(box, 6);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
+	g_object_set_data_full(G_OBJECT(pop), "abi-color-ctx", ctx,
+						   _s_tblcolor_ctx_free);
+
+	if (szAutomaticLabel && *szAutomaticLabel)
+	{
+		GtkWidget * aut = gtk_button_new_with_label(szAutomaticLabel);
+		g_object_set_data_full(G_OBJECT(aut), "abi-auto-value",
+							   g_strdup(!strcmp(szMethod, "tablePen")
+										? "auto" : "transparent"),
+							   g_free);
+		g_signal_connect(aut, "clicked",
+						 G_CALLBACK(_s_tblcolor_auto_clicked), ctx);
+		gtk_box_append(GTK_BOX(box), aut);
+	}
+
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 2);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
+	for (guint i = 0; i < G_N_ELEMENTS(_s_color_palette); ++i)
+	{
+		GtkWidget * sw = gtk_button_new();
+		gtk_widget_set_size_request(sw, 20, 20);
+		gtk_widget_set_tooltip_text(sw, _s_color_palette[i]);
+		char css[160];
+		g_snprintf(css, sizeof(css),
+				   "button { background-image: none;"
+				   " background-color: #%s; min-width: 20px;"
+				   " min-height: 20px; padding: 0; }",
+				   _s_color_palette[i]);
+		GtkCssProvider * cssProv = gtk_css_provider_new();
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+		gtk_css_provider_load_from_string(cssProv, css);
+G_GNUC_END_IGNORE_DEPRECATIONS
+		gtk_style_context_add_provider(gtk_widget_get_style_context(sw),
+									   GTK_STYLE_PROVIDER(cssProv),
+									   GTK_STYLE_PROVIDER_PRIORITY_USER);
+		g_object_unref(cssProv);
+		g_object_set_data_full(G_OBJECT(sw), "abi-color-hex",
+							   g_strdup(_s_color_palette[i]), g_free);
+		g_signal_connect(sw, "clicked",
+						 G_CALLBACK(_s_tblcolor_swatch_clicked), ctx);
+		gtk_grid_attach(GTK_GRID(grid), sw, i % 10, i / 10, 1, 1);
+	}
+	gtk_box_append(GTK_BOX(box), grid);
+
+	GtkWidget * custom = gtk_button_new_with_label("More Colors\xE2\x80\xA6");
+	g_signal_connect(custom, "clicked",
+					 G_CALLBACK(_s_tblcolor_custom_clicked), ctx);
+	gtk_box_append(GTK_BOX(box), custom);
+
+	gtk_popover_set_child(GTK_POPOVER(pop), box);
+	return pop;
+}
+
+/* shading-bucket icon for the large Shading button */
+static void _s_shading_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+								 int width, int height, gpointer data)
+{
+	const char * hex = static_cast<const char *>(data);
+	UT_RGBColor c;
+	UT_parseColor(hex && *hex ? hex : "999999", c);
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+	cairo_rectangle(cr, 2, 2, width - 4, height - 6);
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+	cairo_set_line_width(cr, 1.0);
+	cairo_rectangle(cr, 2.5, 2.5, width - 5, height - 7);
+	cairo_stroke(cr);
+	/* little drop under the bucket */
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+	cairo_rectangle(cr, width / 2.0 - 2, height - 3.5, 4, 2);
+	cairo_fill(cr);
+}
+
+GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
+{
+	GtkWidget * wIcon = nullptr;
+	const char * szLabel = "";
+	const char * szTip = "";
+	GtkWidget * pop = nullptr;
+
+	switch (popId)
+	{
+	case AP_RIBBON_TBLPOP_SHADING:
+	{
+		szLabel = "Shading";
+		szTip = "Shade the selected cells or table";
+		GtkWidget * da = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 24);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 24);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+									   _s_shading_icon_draw,
+									   g_strdup("8888bb"), g_free);
+		wIcon = da;
+		pop = _makeTblColorPopover("tableShading", "No Fill");
+		break;
+	}
+	case AP_RIBBON_TBLPOP_BORDERS:
+		szLabel = "Borders";
+		szTip = "Apply a border preset to the table";
+		wIcon = _border_icon(63);	/* all four edges + inside lines */
+		pop = _makeTblBordersPopover();
+		break;
+	case AP_RIBBON_TBLPOP_PENSTYLE:
+		szLabel = "Border Styles";
+		szTip = "Choose the border-pen style";
+		wIcon = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(wIcon), 24);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(wIcon), 14);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wIcon),
+									   _s_penline_draw,
+									   g_strdup("single"), g_free);
+		pop = _makeTblPenStylePopover();
+		break;
+	case AP_RIBBON_TBLPOP_PENTHICK:
+		szLabel = "½ pt";
+		szTip = "Choose the border-pen thickness";
+		pop = _makeTblPenThickPopover();
+		break;
+	case AP_RIBBON_TBLPOP_PENCOLOR:
+		szLabel = "Pen Color";
+		szTip = "Choose the border-pen colour";
+		wIcon = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(wIcon), 24);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(wIcon), 14);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wIcon),
+									   _s_pencolor_icon_draw,
+									   nullptr, nullptr);
+		pop = _makeTblColorPopover("tablePen", "Automatic");
+		break;
+	case AP_RIBBON_TBLPOP_PAINTER:
+		szTip = "Border Painter - click a table border to paint it "
+				"with the current pen";
+		wIcon = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(wIcon), 20);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(wIcon), 20);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wIcon),
+									   _s_painter_icon_draw,
+									   nullptr, nullptr);
+		break;
+	default:
+		return nullptr;
+	}
+
+	GtkWidget * btn;
+	if (popId == AP_RIBBON_TBLPOP_PAINTER)
+	{
+		/* toggle button, not a menu - activates the border-painter
+		 * pen mode on the view */
+		btn = gtk_toggle_button_new();
+	}
+	else
+	{
+		btn = gtk_menu_button_new();
+		gtk_menu_button_set_direction(GTK_MENU_BUTTON(btn), GTK_ARROW_DOWN);
+	}
+	if (szTip && *szTip)
+		gtk_widget_set_tooltip_text(btn, szTip);
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	if (wIcon)
+		gtk_box_append(GTK_BOX(box), wIcon);
+	if (szLabel && *szLabel)
+		gtk_box_append(GTK_BOX(box), gtk_label_new(szLabel));
+	if (GTK_IS_MENU_BUTTON(btn))
+	{
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(btn), box);
+		if (pop)
+			gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), pop);
+	}
+	else
+	{
+		gtk_button_set_child(GTK_BUTTON(btn), box);
+		g_signal_connect(btn, "toggled",
+						 G_CALLBACK(_s_tbl_painter_toggled), this);
+	}
+	return btn;
 }

@@ -47,6 +47,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fl_AutoNum.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fl_TableStyles.t.cpp"
+#undef TFSUITE
 #include "src/wp/impexp/xp/t/ut_abwncrypt.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_abinova.t.cpp"

@@ -990,6 +990,23 @@ public:
 	bool	            setTableFormat(PT_DocPosition pos,const PP_PropertyVector & properties);
 	bool                getCellFormat(PT_DocPosition pos, std::string & sCellProps) const;
 
+	/* Table Design tab (fl_TableStyles recipes) */
+	bool				cmdTableSetStyle(const char * szStyleId);
+	bool				cmdTableClearStyle(void);
+	bool				cmdTableSetStyleOption(UT_sint32 iOption, bool bOn);
+	bool				cmdTableBorderPreset(UT_sint32 iPreset);
+	bool				cmdTableCellShading(const char * szColor);
+	void				setTablePen(const char * szStyle, const char * szThickness,
+									const char * szColor);
+	std::string			getTableStyleId(void) const;
+	std::string			getTableStyleLook(void) const;
+	bool				cmdTableStylePreviewBegin(const char * szStyleId);
+	void				cmdTableStylePreviewEnd(void);
+	void				setBorderPainterMode(bool bOn) { m_bBorderPainter = bOn; }
+	bool				isBorderPainterMode(void) const { return m_bBorderPainter; }
+	bool				getTablePen(std::string & sStyle, std::string & sThickness,
+									std::string & sColor) const;
+
 	UT_Error            cmdInsertTable(UT_sint32 numRows, UT_sint32 numCols,
 									   const PP_PropertyVector & pPropsArray);
 	void				_generalUpdate(void);
@@ -1361,6 +1378,7 @@ private:
 	UT_GenericVector<fv_CaretProps *> m_vecCarets;
 	UT_GenericVector<fl_FrameLayout *> m_vecGroupSel;
 	std::string       m_sDocUUID;
+	bool				m_bBorderPainter = false;
 	bool				m_bAnnotationPreviewActive;
 	UT_uint32			m_iAnnPviewID;
 	bool                m_bAllowSmartQuoteReplacement;  // Enable/disable replacing of quote with smart quote
