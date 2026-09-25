@@ -9,7 +9,7 @@ SUBDIRS = thirdparty src user
 SUBDIRS += icons fonts
 
 desktopdir = $(datadir)/applications
-desktop_DATA = com.abisource.AbiWord.desktop
+desktop_DATA = io.github.janos_szenfner.Abinova.desktop
 
 mimedir = @ABIWORD_DATADIR@/mime-info
 mime_DATA = abinova.keys
@@ -27,7 +27,7 @@ xsltml_DATA = \
 	xsltml/tokens.xsl
 
 metainfodir = $(datarootdir)/metainfo
-metainfo_DATA = com.abisource.AbiWord.metainfo.xml
+metainfo_DATA = io.github.janos_szenfner.Abinova.metainfo.xml
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = abinova-$(ABIWORD_SERIES).pc
@@ -47,7 +47,7 @@ EXTRA_DIST = \
 	COPYING	\
 	COPYRIGHT.TXT \
 	README.md \
-	com.abisource.AbiWord.desktop \
+	io.github.janos_szenfner.Abinova.desktop \
 	abinova.keys \
 	libabiword.pc.in \
 	artwork \

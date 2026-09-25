@@ -37,7 +37,7 @@
 #include "ie_imp.h"
 
 AP_App::AP_App (const char * szAppName)
-  : XAP_App_BaseClass(szAppName, "com.abisource.AbiWord")
+  : XAP_App_BaseClass(szAppName, "io.github.janos_szenfner.Abinova")
 {
 }
 

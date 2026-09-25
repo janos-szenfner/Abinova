@@ -489,7 +489,7 @@ abi_table_init (AbiTable* table, gpointer)
 
 	abi_table_resize(table);
 
-	table->icon = gtk_image_new_from_resource("/com/abisource/Abinova/24x24/actions/tb_insert_table.png");
+	table->icon = gtk_image_new_from_resource("/io/github/janos_szenfner/Abinova/24x24/actions/tb_insert_table.png");
 
 	gtk_widget_show(table->icon);
 	gtk_box_append(GTK_BOX(table->button_box), table->icon);

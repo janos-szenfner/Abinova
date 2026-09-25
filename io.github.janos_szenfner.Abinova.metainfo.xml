@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2019-2026 Hubert Figuière, Abinova contributors -->
 <component type="desktop-application">
-  <id>com.abisource.AbiWord</id>
+  <id>io.github.janos_szenfner.Abinova</id>
   <name>Abinova</name>
   <summary>A word processor</summary>
   <metadata_license>CC0-1.0</metadata_license>
@@ -17,7 +17,7 @@
       built-in support for DOCX, ODF, EPUB, Markdown, LaTeX and more.
     </p>
   </description>
-  <launchable type="desktop-id">com.abisource.AbiWord.desktop</launchable>
+  <launchable type="desktop-id">io.github.janos_szenfner.Abinova.desktop</launchable>
   <developer id="io.github.janos_szenfner">
     <name>Abinova contributors</name>
   </developer>

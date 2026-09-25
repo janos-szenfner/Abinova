@@ -1,6 +1,6 @@
 [Desktop Entry]
 Exec=abinova %U
-Icon=com.abisource.AbiWord
+Icon=abinova
 Terminal=false
 Type=Application
 Categories=Office;WordProcessor;GNOME;GTK;

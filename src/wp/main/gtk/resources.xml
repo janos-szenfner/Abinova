@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/com/abisource/Abinova">
-    <file alias="16x16/apps/abiword.png">../icons/hicolor_apps_16x16_com.abisource.AbiWord.png</file>
-    <file alias="22x22/apps/abiword.png">../icons/hicolor_apps_22x22_com.abisource.AbiWord.png</file>
-    <file alias="32x32/apps/abiword.png">../icons/hicolor_apps_32x32_com.abisource.AbiWord.png</file>
-    <file alias="48x48/apps/abiword.png">../icons/hicolor_apps_48x48_com.abisource.AbiWord.png</file>
-    <file alias="256x256/apps/abiword.png">../icons/hicolor_apps_256x256_com.abisource.AbiWord.png</file>
-    <file alias="512x512/apps/abiword.png">../icons/hicolor_apps_512x512_com.abisource.AbiWord.png</file>
-    <file alias="scalable/apps/abiword.svg">../icons/hicolor_apps_scalable_com.abisource.AbiWord.svg</file>
+  <gresource prefix="/io/github/janos_szenfner/Abinova">
+    <file alias="16x16/apps/abinova.png">../icons/hicolor_apps_16x16_abinova.png</file>
+    <file alias="22x22/apps/abinova.png">../icons/hicolor_apps_22x22_abinova.png</file>
+    <file alias="32x32/apps/abinova.png">../icons/hicolor_apps_32x32_abinova.png</file>
+    <file alias="48x48/apps/abinova.png">../icons/hicolor_apps_48x48_abinova.png</file>
+    <file alias="256x256/apps/abinova.png">../icons/hicolor_apps_256x256_abinova.png</file>
+    <file alias="512x512/apps/abinova.png">../icons/hicolor_apps_512x512_abinova.png</file>
+    <file alias="scalable/apps/abinova.svg">../icons/hicolor_apps_scalable_abinova.svg</file>
 
     <file alias="16x16/actions/menu_about.png">wp/ap/xp/ToolbarIcons/menu_about.png</file>
     <file alias="16x16/actions/menu_add_column.png">wp/ap/xp/ToolbarIcons/menu_add_column.png</file>

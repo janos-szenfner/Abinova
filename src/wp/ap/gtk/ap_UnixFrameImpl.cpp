@@ -1381,7 +1381,7 @@ void AP_UnixFrameImpl::_setWindowIcon()
 	// attach program icon to window
 	GtkWidget * window = getTopLevelWindow();
 	// GTK4 only supports themed icon names on windows
-	gtk_window_set_icon_name(GTK_WINDOW(window), "abiword");
+	gtk_window_set_icon_name(GTK_WINDOW(window), "abinova");
 }
 
 void AP_UnixFrameImpl::_createWindow()

@@ -1518,6 +1518,16 @@ below are on `main` but the release has not been cut yet.
   `<developer id=…>` tag, gettext tag and upstream 3.x release
   history dropped — `appstreamcli validate` passes. `abinova.keys`
   gained the `application/x-abinova` association.
+- **Application ID renamed to `io.github.janos_szenfner.Abinova`**
+  — the GApplication id (single-instance/D-Bus name), the
+  gresource prefix `/com/abisource/Abinova` →
+  `/io/github/janos_szenfner/Abinova`, the desktop file →
+  `io.github.janos_szenfner.Abinova.desktop` (`Icon=abinova`), the
+  metainfo file + `<id>`/`<launchable>`, and the icon-theme name
+  (`abiword` → `abinova`, icon files renamed accordingly).
+  `AC_INIT`'s bug-report URL now points at the GitHub repository.
+  Internal `abiword-*` stock-icon identifiers and RDF/format
+  identifiers are unchanged.
 - **`.abwn` document header updated** — the informational comment
   now points at `https://github.com/janos-szenfner/Exp-Abi` and
   names Abinova as the generator (the AWML doctype, namespaces and

@@ -5,7 +5,7 @@ m4_define([abi_version_micro], [0])
 m4_define([abi_series], [abi_version_major.abi_version_minor])
 m4_define([abi_version], [abi_version_major.abi_version_minor.abi_version_micro])
 
-AC_INIT([abinova],[abi_version],[http://www.abisource.com/])
+AC_INIT([abinova],[abi_version],[https://github.com/janos-szenfner/Exp-Abi])
 AC_CANONICAL_HOST
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
@@ -918,7 +918,7 @@ AC_CONFIG_FILES([libabiword.pc
   user/wp/templates/Makefile
   tools/Makefile
   fonts/Makefile
-  com.abisource.AbiWord.metainfo.xml
+  io.github.janos_szenfner.Abinova.metainfo.xml
 ])
 AC_OUTPUT
 

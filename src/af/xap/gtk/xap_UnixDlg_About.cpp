@@ -83,7 +83,7 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 	gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(dlg), GTK_LICENSE_GPL_2_0);
 	// resolve the logo through the icon theme: the app icon is compiled
 	// into the GResource, so this works without installed files too
-	gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(dlg), "abiword");
+	gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(dlg), "abinova");
 	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dlg), XAP_App::s_szBuild_Version);
 	gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dlg), website);
 	gtk_about_dialog_set_website_label(GTK_ABOUT_DIALOG(dlg), website);
