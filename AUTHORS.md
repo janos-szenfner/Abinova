@@ -1,12 +1,14 @@
 CREDITS
 =======
 
-See the file [AUTHORS.old](AUTHORS.old) for an historical list of authors. Their
-contributions over the years have been invaluable.
+Abinova is developed and maintained at
+<https://github.com/janos-szenfner/Exp-Abi> — see the git history
+and the GitHub contributors page for individual authors.
 
-Current maintainer
-------------------
+AbiWord heritage
+----------------
 
-Abinova current maintainer is:
-
-Hubert Figuière <hub@figuiere.net>
+Abinova is a fork of AbiWord. Historical AbiWord author credits
+lived in `AUTHORS.old`; the upstream project was maintained by
+Hubert Figuière and a large cast of contributors over many years.
+Their work remains the foundation of this code base.

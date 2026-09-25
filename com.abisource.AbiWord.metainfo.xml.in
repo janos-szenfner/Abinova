@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2019-2026 Hubert Figuière -->
+<!-- Copyright 2019-2026 Hubert Figuière, Abinova contributors -->
 <component type="desktop-application">
   <id>com.abisource.AbiWord</id>
-  <translation type="gettext">abiword</translation>
   <name>Abinova</name>
   <summary>A word processor</summary>
   <metadata_license>CC0-1.0</metadata_license>
@@ -10,98 +9,20 @@
   <description>
     <p>
       Abinova is a free word processing program. It is suitable for a
-      wide variety of word processing tasks but remain focused on word
-      processing.
+      wide variety of word processing tasks but remains focused on
+      word processing.
     </p>
     <p>
-      Abinova is meant to remain relatively lightweight and support
-      many file formats.
+      Abinova is a GTK4 fork of AbiWord with a ribbon interface and
+      built-in support for DOCX, ODF, EPUB, Markdown, LaTeX and more.
     </p>
-    <!-- FIXME: Probably needs another paragraph -->
   </description>
   <launchable type="desktop-id">com.abisource.AbiWord.desktop</launchable>
-  <developer_name>Abinova contributors</developer_name>
-  <url type="homepage">https://www.abisource.com/</url>
-  <url type="vcs-browser">https://gitlab.gnome.org/World/Abinova/</url>
-  <screenshots>
-    <screenshot type="default">
-      <image>https://gitlab.gnome.org/World/Abinova/-/raw/9cb12d0442a399c4ae1a5f334225d7d2eb0f9280/docs/Abinova-screenshot-302.png</image>
-      <caption>Main Window</caption>
-    </screenshot>
-  </screenshots>
-  <releases>
-    <release version="@VERSION@" date="2026-07-01" />
-    <release version="3.0.8" date="2026-02-17">
-      <description>
-        <ul>
-          <li>Fix memory leaks with a collab Telepathy error.</li>
-          <li>Fix paste of images from Firefox.</li>
-          <li>Fix memory leaks in styles dialog, Gtk text input.</li>
-          <li>Fix use after free and memory leak with list
-          numbering.</li>
-          <li>Fix memory leak with text drag and drop.</li>
-          <li>Fix memory leak in OpenXML importer/exporter.</li>
-          <li>Remove babelfish and freetranslation plugins.</li>
-          <li>Fix appstream for newer flathub requirements.</li>
-          <li>Properly remember the recent files even if Abinova
-          crashes.</li>
-          <li>wordperfect: Use the more recent version of libwpd
-          libwpg and libwps.</li>
-        </ul>
-      </description>
-    </release>
-    <release version="3.0.7" type="stable" date="2025-07-30">
-      <description>
-        <ul>
-          <li>Fix memory leaks in Styles, Font Chooser, Borders, List,
-          Clip Art, Replace, Tabs and Table dialogs.</li>
-          <li>Fix memory leaks in XHTML import.</li>
-          <li>Fix memory leaks in cut and paste.</li>
-          <li>Fix memory leaks in the ODF exporter.</li>
-          <li>Fix memory leaks in the GdkPixbuf importer.</li>
-          <li>Fix crash when editing lists.</li>
-          <li>Fix crash when inserting a JPEG image.</li>
-          <li>Restored icons from page setup dialog (Removed XPM in
-          3.0.6).</li>
-          <li>Minor spacing adjustement in the status bar.</li>
-        </ul>
-      </description>
-    </release>
-    <release version="3.0.6" type="stable" date="2021-11-03" />
-    <release version="3.0.5" type="stable" date="2021-07-03" />
-    <release version="3.0.4" type="stable" date="2019-11-27">
-      <url>https://www.abisource.com/changelogs/3.0.4.phtml</url>
-      <description>
-        <p>This bug fixe release addresses the following:</p>
-        <ul>
-          <li>Bug 12697 - fix a build failure in ut_jpeg.cpp</li>
-          <li>Bug 13917 - Fix a improper call to strncmp()</li>
-          <li>Updated Russian translation</li>
-        </ul>
-      </description>
-    </release>
-    <release version="3.0.3" type="stable" date="2019-11-24">
-      <url>https://www.abisource.com/changelogs/3.0.3.phtml</url>
-      <description>
-        <p>This bug fixe release addresses the following:</p>
-        <ul>
-          <li>Bug 13827 - Fix overflow read in PNG</li>
-          <li>Bug 13826 - Fix out of bounds access</li>
-          <li>Bug 13834 - Do not delete[] strings allocated with g_malloc()</li>
-          <li>Bug 13815 - Fix the black drawing regression with Gtk3.22</li>
-          <li>Bug 13791 - Fix flicker and caret problems</li>
-          <li>Bug 13791 - Reduce flickering</li>
-          <li>Fix Gtk criticals in dialog stylist</li>
-          <li>Fix stylist styles population</li>
-          <li>Fix a bad static_cast</li>
-          <li>Fix a runtime error (integer overflow)</li>
-          <li>Update sq-AL.po</li>
-          <li>Bug 13904 - Fix touch pad scrolling</li>
-        </ul>
-      </description>
-    </release>
-    <release version="3.0.2" type="stable" date="2016-10-21" />
-  </releases>
+  <developer id="io.github.janos_szenfner">
+    <name>Abinova contributors</name>
+  </developer>
+  <url type="homepage">https://github.com/janos-szenfner/Exp-Abi</url>
+  <url type="vcs-browser">https://github.com/janos-szenfner/Exp-Abi</url>
+  <url type="bugtracker">https://github.com/janos-szenfner/Exp-Abi/issues</url>
   <content_rating type="oars-1.0" />
-  <update_contact>hub@figuiere.net</update_contact>
 </component>

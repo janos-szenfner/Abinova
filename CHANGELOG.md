@@ -1505,6 +1505,19 @@ below are on `main` but the release has not been cut yet.
   `DefaultPageSize`/`DocumentLocale` attributes formerly carried
   by the eu/ro profiles had no corresponding preference keys and
   were dead weight.
+- **Root directory audit** — removed `Doxyfile` (stale upstream
+  Doxygen config, no docs pipeline), `dumpstrings.pl` (served the
+  removed `--dumpstrings` flag), root `abiword.png` (unreferenced —
+  the bundled icons under `icons/` are used instead) and the stray
+  tracked test artifact `Untitled1.saved`. `AUTHORS.md` rewritten
+  (it pointed at the deleted `AUTHORS.old` and listed the upstream
+  maintainer). Desktop entry rebuilt: MimeType list now matches the
+  actually-registered importers (added `x-abinova`, DOCX, EPUB,
+  Markdown, LaTeX, MHT, WordPerfect, MS Works; removed dead-plugin
+  formats). AppStream metainfo fixed: GitHub URLs, modern
+  `<developer id=…>` tag, gettext tag and upstream 3.x release
+  history dropped — `appstreamcli validate` passes. `abinova.keys`
+  gained the `application/x-abinova` association.
 - **`.abwn` document header updated** — the informational comment
   now points at `https://github.com/janos-szenfner/Exp-Abi` and
   names Abinova as the generator (the AWML doctype, namespaces and

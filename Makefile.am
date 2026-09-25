@@ -49,7 +49,6 @@ EXTRA_DIST = \
 	README.md \
 	com.abisource.AbiWord.desktop \
 	abinova.keys \
-	abiword.png \
 	libabiword.pc.in \
 	artwork \
 	$(xsltml_DATA)

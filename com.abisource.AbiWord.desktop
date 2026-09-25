@@ -3,11 +3,9 @@ Exec=abinova %U
 Icon=com.abisource.AbiWord
 Terminal=false
 Type=Application
-Categories=Office;WordProcessor;GNOME;GTK;X-Red-Hat-Base;
+Categories=Office;WordProcessor;GNOME;GTK;
 StartupNotify=true
-X-Desktop-File-Install-Version=0.9
-MimeType=application/x-abiword;text/x-abiword;text/x-xml-abiword;text/plain;application/msword;application/rtf;application/vnd.plain;application/xhtml+xml;text/html;application/x-crossmark;application/docbook+xml;application/x-t602;application/vnd.oasis.opendocument.text;application/vnd.oasis.opendocument.text-template;application/vnd.oasis.opendocument.text-web;application/vnd.sun.xml.writer;application/vnd.stardivision.writer;text/vnd.wap.wml;application/wordperfect6;application/wordperfect5.1;application/vnd.wordperfect;application/x-abicollab;application/x-applix-word;application/x-mswrite;application/x-kword;application/x-mif;
+MimeType=application/x-abinova;application/x-abiword;text/x-abiword;application/msword;application/vnd.ms-word;application/vnd.ms-word.document;application/vnd.ms-word.template;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.wordprocessingml.template;application/vnd.oasis.opendocument.text;application/vnd.oasis.opendocument.text-template;application/vnd.oasis.opendocument.text-flat-xml;application/vnd.oasis.opendocument.text-web;application/vnd.wordperfect;application/vnd.ms-works;application/epub+zip;application/rtf;application/richtext;text/rtf;text/richtext;application/xhtml+xml;text/html;text/plain;text/doc;text/markdown;text/x-markdown;application/x-latex;application/x-tex;text/x-latex;text/x-tex;application/x-mimearchive;message/rfc822;
 Name=Abinova
 GenericName=Word Processor
 Comment=Compose, edit, and view documents
-

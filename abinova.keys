@@ -1,3 +1,7 @@
+application/x-abinova:
+	open=abinova %f
+	view=abinova %f
+
 application/x-abiword:
 	open=abinova %f
 	view=abinova %f
