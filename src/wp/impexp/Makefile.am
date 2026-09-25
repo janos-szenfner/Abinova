@@ -393,7 +393,7 @@ OMMLXSLT = \
 	openxml/omml_xslt/omml2mml.xsl
 
 ommlxslt_DATA = $(OMMLXSLT)
-ommlxsltdir = $(ABIWORD_OMMLXSLTDIR)
+ommlxsltdir = $(ABINOVA_OMMLXSLTDIR)
 
 EXTRA_DIST = \
 	$(OMMLXSLT) \

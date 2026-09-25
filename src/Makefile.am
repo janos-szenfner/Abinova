@@ -18,20 +18,20 @@ if HAVE_INTROSPECTION
 SUBDIRS += gi-overrides
 endif
 
-lib_LTLIBRARIES = libabinova-@ABIWORD_SERIES@.la
+lib_LTLIBRARIES = libabinova-@ABINOVA_SERIES@.la
 
-libabinova_@ABIWORD_SERIES@_la_CPPFLAGS = \
+libabinova_@ABINOVA_SERIES@_la_CPPFLAGS = \
 	$(WP_CPPFLAGS) \
-	-DABIWORD_DATADIR="\"$(ABIWORD_DATADIR)\""
+	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\""
 
-libabinova_@ABIWORD_SERIES@_la_LDFLAGS = \
+libabinova_@ABINOVA_SERIES@_la_LDFLAGS = \
 	$(DEPS_LIBS) \
 	$(CHAMPLAIN_LIBS) \
 	-no-undefined \
 	-avoid-version \
 	-export-dynamic
 
-libabinova_@ABIWORD_SERIES@_la_LIBADD = \
+libabinova_@ABINOVA_SERIES@_la_LIBADD = \
 	text/libtext.la \
 	wp/ap/libap.la \
 	wp/impexp/libimpexp.la \
@@ -71,29 +71,29 @@ libabinova_cpp += abi-resources.c abi-resources.h
 ## End of resources
 
 # headers are GTK only.
-libabinova_@ABIWORD_SERIES@_includedir = @ABIWORD_HEADERSDIR@
-libabinova_@ABIWORD_SERIES@_include_HEADERS = \
+libabinova_@ABINOVA_SERIES@_includedir = @ABINOVA_HEADERSDIR@
+libabinova_@ABINOVA_SERIES@_include_HEADERS = \
 	wp/ap/gtk/abiwidget.h \
 	wp/main/gtk/libabinova.h \
 	af/xap/gtk/xap_UnixTableWidget.h
 
-libabinova_@ABIWORD_SERIES@_la_DEPENDENCIES = \
-	$(libabinova_@ABIWORD_SERIES@_la_LIBADD)
+libabinova_@ABINOVA_SERIES@_la_DEPENDENCIES = \
+	$(libabinova_@ABINOVA_SERIES@_la_LIBADD)
 
-libabinova_@ABIWORD_SERIES@_la_SOURCES = \
+libabinova_@ABINOVA_SERIES@_la_SOURCES = \
 	wp/main/xp/abi_ver.cpp \
 	$(libabinova_cpp)
 
 bin_PROGRAMS = abinova
 
 abinova_CPPFLAGS = \
-	$(libabinova_@ABIWORD_SERIES@_la_CPPFLAGS)
+	$(libabinova_@ABINOVA_SERIES@_la_CPPFLAGS)
 
 abinova_LDADD = \
-	libabinova-@ABIWORD_SERIES@.la
+	libabinova-@ABINOVA_SERIES@.la
 
 abinova_DEPENDENCIES = \
-	libabinova-@ABIWORD_SERIES@.la
+	libabinova-@ABINOVA_SERIES@.la
 
 abinova_SOURCES = \
 	$(main_cpp)
@@ -101,12 +101,12 @@ abinova_SOURCES = \
 
 if HAVE_INTROSPECTION
 
-INTROSPECTION_GIRS += Abi-@ABIWORD_SERIES@.gir
+INTROSPECTION_GIRS += Abi-@ABINOVA_SERIES@.gir
 
-Abi-@ABIWORD_SERIES@.gir: $(INTROSPECTION_SCANNER) libabinova-@ABIWORD_SERIES@.la Makefile
+Abi-@ABINOVA_SERIES@.gir: $(INTROSPECTION_SCANNER) libabinova-@ABINOVA_SERIES@.la Makefile
 Abi_@ABI_SUB_SERIES@_gir_INCLUDES = GObject-2.0 Gtk-3.0 Gsf-1
-Abi_@ABI_SUB_SERIES@_gir_CFLAGS = $(libabinova_@ABIWORD_SERIES@_la_CPPFLAGS)
-Abi_@ABI_SUB_SERIES@_gir_LIBS = libabinova-@ABIWORD_SERIES@.la
+Abi_@ABI_SUB_SERIES@_gir_CFLAGS = $(libabinova_@ABINOVA_SERIES@_la_CPPFLAGS)
+Abi_@ABI_SUB_SERIES@_gir_LIBS = libabinova-@ABINOVA_SERIES@.la
 Abi_@ABI_SUB_SERIES@_gir_FILES = \
 	af/xap/gtk/xap_UnixTableWidget.h \
 	af/xap/gtk/xap_UnixTableWidget.cpp \

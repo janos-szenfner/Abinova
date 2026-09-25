@@ -436,7 +436,7 @@ if test "$abi_cv_icondir" = "" -o \
 	test "$abi_cv_prefix" = "NONE" && abi_cv_prefix="$ac_default_prefix"  
 	abi_cv_icondir="${abi_cv_prefix}/share/icons"
 fi
-AC_SUBST(ABIWORD_ICONDIR, "$abi_cv_icondir")
+AC_SUBST(ABINOVA_ICONDIR, "$abi_cv_icondir")
 
 dnl ***********************************************************************
 dnl GCC/Clang sanitizer support
@@ -645,14 +645,14 @@ AC_SUBST([WP_CPPFLAGS])
 # Settings
 #
 
-ABIWORD_SERIES="abi_series"
-AC_DEFINE_UNQUOTED([ABIWORD_SERIES], [ "$ABIWORD_SERIES" ], [major.minor])
-AC_SUBST(ABIWORD_SERIES)
-AC_SUBST(ABIWORD_HEADERSDIR, "${includedir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
-AC_SUBST(ABIWORD_DATADIR,    "${datadir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
-AC_SUBST(ABIWORD_UIDIR,   "${ABIWORD_DATADIR}/ui")
-AC_SUBST(ABIWORD_LIBDIR,     "${libdir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
-AC_SUBST(ABIWORD_OMMLXSLTDIR, "${ABIWORD_DATADIR}/omml_xslt")
+ABINOVA_SERIES="abi_series"
+AC_DEFINE_UNQUOTED([ABINOVA_SERIES], [ "$ABINOVA_SERIES" ], [major.minor])
+AC_SUBST(ABINOVA_SERIES)
+AC_SUBST(ABINOVA_HEADERSDIR, "${includedir}/${PACKAGE_NAME}-${ABINOVA_SERIES}")
+AC_SUBST(ABINOVA_DATADIR,    "${datadir}/${PACKAGE_NAME}-${ABINOVA_SERIES}")
+AC_SUBST(ABINOVA_UIDIR,   "${ABINOVA_DATADIR}/ui")
+AC_SUBST(ABINOVA_LIBDIR,     "${libdir}/${PACKAGE_NAME}-${ABINOVA_SERIES}")
+AC_SUBST(ABINOVA_OMMLXSLTDIR, "${ABINOVA_DATADIR}/omml_xslt")
 
 if test "$enable_shared" = ""; then
 	enable_shared="no"
@@ -782,11 +782,11 @@ AC_SUBST([WMF_LIBS])
 AM_CONDITIONAL([WITH_LIBWMF], [test "$wmf_deps" = "yes"])
 
 # put all deps on a single line for the .pc file
-ABIWORD_REQUIRED_PKGS=
+ABINOVA_REQUIRED_PKGS=
 for dep in `echo $deps_pkgs`; do
-	ABIWORD_REQUIRED_PKGS="$ABIWORD_REQUIRED_PKGS $dep"
+	ABINOVA_REQUIRED_PKGS="$ABINOVA_REQUIRED_PKGS $dep"
 done
-AC_SUBST(ABIWORD_REQUIRED_PKGS)
+AC_SUBST(ABINOVA_REQUIRED_PKGS)
 
 dnl Check for valgrind for the UniTest
 AC_CHECK_PROG(VALGRIND, valgrind, valgrind)

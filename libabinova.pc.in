@@ -3,12 +3,12 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 datarootdir=@datarootdir@
-pkgdatadir=@ABIWORD_DATADIR@
+pkgdatadir=@ABINOVA_DATADIR@
 libabinova=true
 
-Name: abinova-@ABIWORD_SERIES@
+Name: abinova-@ABINOVA_SERIES@
 Description: Abinova word processing library
 Version: @VERSION@
-Requires: @ABIWORD_REQUIRED_PKGS@
-Libs: -L${libdir} -labinova-@ABIWORD_SERIES@
-Cflags: -I${includedir}/abinova-@ABIWORD_SERIES@
+Requires: @ABINOVA_REQUIRED_PKGS@
+Libs: -L${libdir} -labinova-@ABINOVA_SERIES@
+Cflags: -I${includedir}/abinova-@ABINOVA_SERIES@

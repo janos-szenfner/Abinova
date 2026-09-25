@@ -304,7 +304,9 @@ UT_Error IE_Exp::writeFile(GsfOutput * fp)
 
 	m_fp = fp;
 
-	m_szFileName = gsf_output_name(fp);
+	// unnamed sinks (e.g. GsfOutputMemory) must not propagate a
+	// null name into exporters that read m_szFileName
+	m_szFileName = gsf_output_name(fp) ? gsf_output_name(fp) : "";
 	return _writeDocument();
 }
 

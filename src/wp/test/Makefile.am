@@ -23,16 +23,16 @@ TESTS = unix/testwrap.sh
 check_SCRIPTS = testwrap.sh-stamp unix/testwrap.sh
 check_PROGRAMS = Abinova-test
 
-AbiWord_test_CPPFLAGS = $(WP_CPPFLAGS) \
-	-DABIWORD_DATADIR="\"$(ABIWORD_DATADIR)\"" \
+Abinova_test_CPPFLAGS = $(WP_CPPFLAGS) \
+	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\"" \
 	-I$(top_srcdir)/src/af/tf/xp/
 
-AbiWord_test_LDFLAGS =  -L$(top_builddir)/src -labinova-@ABIWORD_SERIES@ \
-	-L$(top_builddir)/src/af/tf -labinova-@ABIWORD_SERIES@-test
+Abinova_test_LDFLAGS =  -L$(top_builddir)/src -labinova-@ABINOVA_SERIES@ \
+	-L$(top_builddir)/src/af/tf -labinova-@ABINOVA_SERIES@-test
 
-AbiWord_test_LDADD =  $(DEPS_LIBS)
+Abinova_test_LDADD =  $(DEPS_LIBS)
 
-AbiWord_test_SOURCES = unix/test_main.cpp \
+Abinova_test_SOURCES = unix/test_main.cpp \
 	unix/all_test_unix.h
 
 testwrap.sh-stamp: unix/testwrap.sh

@@ -4,8 +4,8 @@ G_DEBUG=gc-friendly
 export G_DEBUG
 G_SLICE=always-malloc
 export G_SLICE
-ABI_TEST_SRC_DIR=@abs_top_srcdir@
-export ABI_TEST_SRC_DIR
+ABINOVA_TEST_SRC_DIR=@abs_top_srcdir@
+export ABINOVA_TEST_SRC_DIR
 
 # Suppressions, mostly fontconfig
 cat <<EOF > supp.txt

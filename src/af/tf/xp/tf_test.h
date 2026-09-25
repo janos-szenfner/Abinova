@@ -66,7 +66,7 @@ public:
     static bool start_check_eq(const char *file, int line, int a, int b);
     /** send a pulse to reset the alarm */
     static void pulse();
-    /** get the test src dir. If env ABI_TEST_SRC_DIR is unset,
+    /** get the test src dir. If env ABINOVA_TEST_SRC_DIR is unset,
      * it will return "."
      */
     static const char* get_test_src_dir();

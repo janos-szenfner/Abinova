@@ -265,7 +265,7 @@ endif
 AM_CPPFLAGS += 						\
 	$(WP_CPPFLAGS) 						\
 	-DABIWORD_PLUGINSDIR="\"$(ABIWORD_PLUGINSDIR)"\"	\
-	-DICONDIR="\"$(ABIWORD_ICONDIR)\"" \
+	-DICONDIR="\"$(ABINOVA_ICONDIR)\"" \
         $(CHAMPLAIN_CFLAGS)
 
 libap_la_SOURCES += \

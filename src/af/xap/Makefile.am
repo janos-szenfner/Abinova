@@ -5,7 +5,7 @@ AM_CPPFLAGS = \
 	$(IMPEXP_CPPFLAGS) \
 	$(AF_CPPFLAGS) \
 	-I$(top_srcdir)/src/wp/ap/xp \
-	-DICONDIR="\"$(ABIWORD_ICONDIR)\""
+	-DICONDIR="\"$(ABINOVA_ICONDIR)\""
 
 libxap_la_SOURCES = \
 	xp/xad_Document.cpp \

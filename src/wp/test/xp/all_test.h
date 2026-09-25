@@ -33,6 +33,10 @@
 #undef TFSUITE
 #include "src/af/util/xp/t/ut_string_class.t.cpp"
 #undef TFSUITE
+#include "src/af/util/xp/t/ut_units.t.cpp"
+#undef TFSUITE
+#include "src/af/util/xp/t/ut_uuid.t.cpp"
+#undef TFSUITE
 #include "src/af/xap/xp/t/xap_Prefs.t.cpp"
 #undef TFSUITE
 #include "src/text/ptbl/xp/t/pf_Fragments.t.cpp"
@@ -40,4 +44,10 @@
 #include "src/text/ptbl/xp/t/pt_PieceTable.t.cpp"
 #undef TFSUITE
 #include "src/text/ptbl/xp/t/pp_PropertyMap.t.cpp"
+#undef TFSUITE
+#include "src/text/fmt/xp/t/fl_AutoNum.t.cpp"
+#undef TFSUITE
+#include "src/wp/impexp/xp/t/ut_abwncrypt.t.cpp"
+#undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_abinova.t.cpp"
 #undef TFSUITE

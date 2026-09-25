@@ -351,8 +351,8 @@ void XAP_UnixApp::_setAbiSuiteLibDir()
 
 	char * buf = nullptr;
 	
-	// see if ABIWORD_DATADIR was set in the environment
-	const char * sz = getenv("ABIWORD_DATADIR");
+	// see if ABINOVA_DATADIR was set in the environment
+	const char * sz = getenv("ABINOVA_DATADIR");
 	if (sz && *sz)
 	{
 		int len = strlen(sz);

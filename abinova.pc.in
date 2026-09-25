@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 datarootdir=@datarootdir@
-pkgdatadir=@ABIWORD_DATADIR@
+pkgdatadir=@ABINOVA_DATADIR@
 libabinova=false
 
-Name: abinova-@ABIWORD_SERIES@
+Name: abinova-@ABINOVA_SERIES@
 Description: Abinova word processor
 Version: @VERSION@
-Requires: @ABIWORD_REQUIRED_PKGS@
+Requires: @ABINOVA_REQUIRED_PKGS@
