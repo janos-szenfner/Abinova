@@ -57,7 +57,7 @@
 #include "ap_FrameData.h"
 
 AP_Dialog_Options::AP_Dialog_Options(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
-	: XAP_TabbedDialog_NonPersistent(pDlgFactory,id, "interface/dialogpreferences"),
+	: XAP_TabbedDialog_NonPersistent(pDlgFactory,id, nullptr),
 	  m_answer(a_OK),
 	  m_pFrame(nullptr),	// needs to be set from runModal for some of the event_'s to work
 	  m_bInitialPop(false)
@@ -118,12 +118,8 @@ void AP_Dialog_Options::_storeWindowData(void)
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save the values to the Prefs classes
-	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_AutoSpellCheck, _gatherSpellCheckAsType() );
-	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_AutoGrammarCheck, _gatherGrammarCheck() );
 	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_SmartQuotesEnable, _gatherSmartQuotes() );
 	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_CustomSmartQuotes, _gatherCustomSmartQuotes() );
-	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_SpellCheckCaps, _gatherSpellUppercase() );
-	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_SpellCheckNumbers, _gatherSpellNumbers() );
 	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_CursorBlink, _gatherViewCursorBlink() );
 	
 // Not implemented for UNIX or Win32. No need for it.
@@ -235,16 +231,6 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 	switch (id)
 	{
 
-		case id_CHECK_SPELL_CHECK_AS_TYPE:
-			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_AutoSpellCheck,
-					_gatherSpellCheckAsType());
-			break;
-
-		case id_CHECK_GRAMMAR_CHECK:
-			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_AutoGrammarCheck,
-					_gatherGrammarCheck());
-			break;
-
 		case id_CHECK_SMART_QUOTES_ENABLE:
 			Save_Pref_Bool (pPrefsScheme, XAP_PREF_KEY_SmartQuotesEnable,
 					_gatherSmartQuotes());
@@ -263,16 +249,6 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
         case id_LIST_VIEW_INNER_QUOTE_STYLE:
 			pPrefsScheme->setValueInt ((gchar*)XAP_PREF_KEY_InnerQuoteStyle,
 						_gatherInnerQuoteStyle());
-			break;
-
-		case id_CHECK_SPELL_UPPERCASE:
-			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_SpellCheckCaps,
-					_gatherSpellUppercase());
-			break;
-
-		case id_CHECK_SPELL_NUMBERS:
-			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_SpellCheckNumbers,
-					_gatherSpellNumbers());
 			break;
 
 		case id_CHECK_OTHER_DEFAULT_DIRECTION_RTL:
@@ -355,15 +331,11 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 		case id_BUTTON_OK:
 		case id_BUTTON_CANCEL:
 		case id_BUTTON_APPLY:
-		case id_BUTTON_SPELL_AUTOREPLACE:
 		case id_CHECK_COLOR_FOR_TRANSPARENT_IS_WHITE:
 		case id_TEXT_AUTO_SAVE_FILE_PERIOD_SPIN:  // needed by Cocoa FE
 
 		// Not implemented
 		case id_CHECK_PREFS_AUTO_SAVE:
-		case id_CHECK_SPELL_HIDE_ERRORS:
-		case id_CHECK_SPELL_MAIN_ONLY:
-		case id_CHECK_SPELL_SUGGEST:
 		case id_CHECK_VIEW_ALL:
 		case id_CHECK_VIEW_HIDDEN_TEXT:
 		case id_COMBO_PREFS_SCHEME:
@@ -414,23 +386,6 @@ void AP_Dialog_Options::_populateWindowData(void)
 
 	pPrefs = m_pApp->getPrefs();
 	UT_return_if_fail ( pPrefs );
-
-	// ------------ Spell
-	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_AutoSpellCheck, b)) {
-		_setSpellCheckAsType(b);
-	}
-
-	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellCheckCaps, b)) {
-		_setSpellUppercase(b);
-	}
-
-	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellCheckNumbers, b)) {
-		_setSpellNumbers(b);
-	}
-
-	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_AutoGrammarCheck, b)) {
-		_setGrammarCheck(b);
-	}
 
 	// ------------ Smart Quotes
 	if (pPrefs->getPrefsValueBool(XAP_PREF_KEY_SmartQuotesEnable, b)) {
@@ -534,15 +489,6 @@ void AP_Dialog_Options::_enableDisableLogic( tControl id )
 {
 	switch (id)
 	{
-
-/*	- Since HIDE_ERRORS is not implemented, no need to toggle it on/off
-	case id_CHECK_SPELL_CHECK_AS_TYPE:
-		// if we 'check as we type', then enable the 'hide' option
-		_controlEnable( id_CHECK_SPELL_HIDE_ERRORS,
-						_gatherSpellCheckAsType() );
-		break;
-*/
-
 	case id_CHECK_DIR_MARKER_AFTER_CLOSING_PARENTHESIS:
 		_controlEnable( id_CHECK_DIR_MARKER_AFTER_CLOSING_PARENTHESIS, _gatherLanguageWithKeyboard());
 		break;
@@ -578,11 +524,6 @@ void AP_Dialog_Options::_getUnitMenuContent(const XAP_StringSet *pSS, UnitMenuCo
 // The initialize the controls (i.e., disable controls not coded yet)
 void AP_Dialog_Options::_initEnableControls()
 {
-	// spelling
-	_controlEnable( id_CHECK_SPELL_SUGGEST, 		false );
-	_controlEnable( id_CHECK_SPELL_HIDE_ERRORS, 	false );
-	_controlEnable( id_CHECK_SPELL_MAIN_ONLY,		false );
-
 	// prefs
 	_controlEnable( id_COMBO_PREFS_SCHEME,			false );
 

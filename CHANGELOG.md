@@ -1009,6 +1009,11 @@ below are on `main` but the release has not been cut yet.
   `abiword-*` action-icon lookup keys (`ABIWORD_STOCK_PREFIX` and
   the `stock_mapping` table) are now `abinova-*`; ribbon CSS classes
   and the online-picture temporary name renamed to match.
+- **Preferences dialog slimmed down** — the empty "Application
+  Startup" section and the whole "Spell Checking" tab (spell/grammar
+  options are controlled elsewhere) were removed, along with the
+  dialog's Help button; unused spell-option control ids, widget
+  plumbing and strings were dropped.
 - **Library renamed to `libabinova`** — the shared library builds as
   `libabinova-4.0.so` (was `libabiword-4.0.so`); the public API files
   moved to `wp/main/gtk/libabinova.{h,cpp}` with `libabinova_init`/

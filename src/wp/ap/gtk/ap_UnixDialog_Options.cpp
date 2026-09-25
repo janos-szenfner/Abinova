@@ -53,10 +53,6 @@
 
 #include "ap_UnixDialog_Options.h"
 
-#if !defined(ENABLE_SPELL) && !defined(_DISABLE_GRAMMAR)
-#define _DISABLE_GRAMMAR
-#endif
-
 /*****************************************************************/
 
 #define WID(widget)   GTK_WIDGET(gtk_builder_get_object(builder, widget))
@@ -292,13 +288,7 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
 
     m_checkbuttonEnableOverwrite = WID ( "btnOverwrite" );
     localizeButtonUnderline ( m_checkbuttonEnableOverwrite, pSS,
-                              AP_STRING_ID_DLG_Options_Label_EnableOverwrite );    
-
-    // Application Startup
-    tmp = WID ( "lblApplicationStartup" );
-    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_AppStartup );
-
-
+                              AP_STRING_ID_DLG_Options_Label_EnableOverwrite );
 
     // Documents
 
@@ -338,80 +328,6 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     m_menuSaveFormat = WID ( "omSaveFormat" );
     _setupSaveFormatMenu ( m_menuSaveFormat );
 
-#if ENABLE_SPELL
-    // Spell Checking
-
-    tmp = WID ( "lblSpellChecking" );
-    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_SpellCheckingTitle );
-
-    // General
-
-    tmp = WID ( "lblSpellCheckingGeneral" );
-    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_General );
-
-    m_checkbuttonSpellCheckAsType = WID ( "chkSpellCheckAsType" );
-    localizeButtonUnderline ( m_checkbuttonSpellCheckAsType, pSS,
-                              AP_STRING_ID_DLG_Options_Label_SpellCheckAsType );
-
-    // to enable/disable other controls (hide errors)
-    g_signal_connect ( G_OBJECT ( m_checkbuttonSpellCheckAsType ),
-                       "toggled",
-                       G_CALLBACK ( s_checkbutton_toggle ),
-                       static_cast<gpointer> ( this ) );
-
-    m_checkbuttonSpellHideErrors = WID ( "chkHighlightMisspelledWords" );
-    localizeButtonUnderline ( m_checkbuttonSpellHideErrors, pSS,
-                              AP_STRING_ID_DLG_Options_Label_SpellHighlightMisspelledWords );
-
-    // Ignore Words
-
-    tmp = WID ( "lblIgnoreWords" );
-    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellIgnoreWords );
-
-    m_checkbuttonSpellUppercase = WID ( "chkIgnoreUppercase" );
-    localizeButtonUnderline ( m_checkbuttonSpellUppercase, pSS,
-                              AP_STRING_ID_DLG_Options_Label_SpellUppercase );
-
-    m_checkbuttonSpellNumbers = WID ( "chkIgnoreNumbers" );
-    localizeButtonUnderline ( m_checkbuttonSpellNumbers, pSS,
-                              AP_STRING_ID_DLG_Options_Label_SpellNumbers );
-
-    // Dictionaries
-    tmp = WID ( "lblDictionaries" );
-    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellDictionaries );
-
-    m_checkbuttonSpellSuggest = WID ( "chkAlwaysSuggest" );
-    localizeButtonUnderline ( m_checkbuttonSpellSuggest, pSS,
-                              AP_STRING_ID_DLG_Options_Label_SpellSuggest );
-
-    m_checkbuttonSpellMainOnly = WID ( "chkOnlySuggestFromMain" );
-    localizeButtonUnderline ( m_checkbuttonSpellMainOnly, pSS,
-                              AP_STRING_ID_DLG_Options_Label_SpellMainOnly );
-
-#ifdef _DISABLE_GRAMMAR
-    // remove anything related to grammar.
-    tmp = WID ( "tableGrammar" );
-    xap_gtk_container_remove(gtk_widget_get_parent(tmp), tmp);
-    m_checkbuttonGrammarCheck = nullptr;
-#else
-    tmp = WID ( "lblGrammar" );
-    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_Grammar );
-
-    m_checkbuttonGrammarCheck = WID ( "chkGrammarCheck" );
-    localizeButtonUnderline ( m_checkbuttonGrammarCheck, pSS,
-                              AP_STRING_ID_DLG_Options_Label_GrammarCheck );
-#endif /// _DISABLE_GRAMMAR
-
-#else
-    m_checkbuttonSpellCheckAsType = nullptr;
-    m_checkbuttonSpellHideErrors = nullptr;
-    m_checkbuttonSpellUppercase = nullptr;
-    m_checkbuttonSpellNumbers = nullptr;
-    m_checkbuttonSpellSuggest = nullptr;
-    m_checkbuttonSpellMainOnly = nullptr;
-    m_checkbuttonGrammarCheck = nullptr;
-    gtk_notebook_remove_page((GtkNotebook*)m_notebook, 2);
-#endif
     // Smart Quotes
 
     tmp = WID ( "lblSmartQuotes" );
@@ -537,29 +453,6 @@ GtkWidget *AP_UnixDialog_Options::_lookupWidget ( tControl id )
     switch ( id )
     {
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            // spell
-        case id_CHECK_SPELL_CHECK_AS_TYPE:
-            return m_checkbuttonSpellCheckAsType;
-
-        case id_CHECK_SPELL_HIDE_ERRORS:
-            return m_checkbuttonSpellHideErrors;
-
-        case id_CHECK_SPELL_SUGGEST:
-            return m_checkbuttonSpellSuggest;
-
-        case id_CHECK_SPELL_MAIN_ONLY:
-            return m_checkbuttonSpellMainOnly;
-
-        case id_CHECK_SPELL_UPPERCASE:
-            return m_checkbuttonSpellUppercase;
-
-        case id_CHECK_SPELL_NUMBERS:
-            return m_checkbuttonSpellNumbers;
-
-        case id_CHECK_GRAMMAR_CHECK:
-            return m_checkbuttonGrammarCheck;
-
-            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // Smart quotes
 
         case id_CHECK_SMART_QUOTES_ENABLE:
@@ -649,12 +542,6 @@ void AP_UnixDialog_Options::_controlEnable ( tControl id, bool value )
         gtk_check_button_set_active (          \
                                                 GTK_CHECK_BUTTON(m_checkbutton##button), b ); }
 
-#define DEFINE_GET_SET_BOOL_D(button) \
-    bool     AP_UnixDialog_Options::_gather##button(void) {    \
-                return false; }   \
-    void        AP_UnixDialog_Options::_set##button(bool) { \
-               }
-
 #define DEFINE_GET_SET_TEXT(widget) \
     char *  AP_UnixDialog_Options::_gather##widget() {    \
         UT_ASSERT(m_text##widget && GTK_IS_EDITABLE(m_text##widget)); \
@@ -667,33 +554,6 @@ void AP_UnixDialog_Options::_controlEnable ( tControl id, bool value )
         gtk_editable_insert_text(GTK_EDITABLE(m_text##widget), t, strlen(t), &pos); \
     }
 
-#ifdef ENABLE_SPELL
-DEFINE_GET_SET_BOOL ( SpellCheckAsType )
-DEFINE_GET_SET_BOOL ( SpellHideErrors )
-DEFINE_GET_SET_BOOL ( SpellSuggest )
-DEFINE_GET_SET_BOOL ( SpellMainOnly )
-DEFINE_GET_SET_BOOL ( SpellUppercase )
-DEFINE_GET_SET_BOOL ( SpellNumbers )
-#else
-DEFINE_GET_SET_BOOL_D ( SpellCheckAsType )
-DEFINE_GET_SET_BOOL_D ( SpellHideErrors )
-DEFINE_GET_SET_BOOL_D ( SpellSuggest )
-DEFINE_GET_SET_BOOL_D ( SpellMainOnly )
-DEFINE_GET_SET_BOOL_D ( SpellUppercase )
-DEFINE_GET_SET_BOOL_D ( SpellNumbers )
-#endif
-#ifndef _DISABLE_GRAMMAR
-DEFINE_GET_SET_BOOL ( GrammarCheck )
-#else
-// TODO FIX this hack I do this to avoid the assert.
-bool     AP_UnixDialog_Options::_gatherGrammarCheck(void) 
-{
-    return false;
-}
-void        AP_UnixDialog_Options::_setGrammarCheck(bool) 
-{
-}
-#endif
 DEFINE_GET_SET_BOOL ( SmartQuotes )
 DEFINE_GET_SET_BOOL ( CustomSmartQuotes )
 

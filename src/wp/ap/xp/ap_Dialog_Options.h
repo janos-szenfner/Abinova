@@ -55,13 +55,7 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	enum tAnswer: uint8_t { a_OK, a_CANCEL, a_SAVE, a_APPLY };
 
 	// control ids
-	enum tControl: uint8_t { id_CHECK_SPELL_CHECK_AS_TYPE = 0, id_CHECK_SPELL_HIDE_ERRORS,
-				   id_CHECK_SPELL_SUGGEST, id_CHECK_SPELL_MAIN_ONLY,
-				   id_CHECK_SPELL_UPPERCASE, id_CHECK_SPELL_NUMBERS,
-				   id_BUTTON_SPELL_AUTOREPLACE,
-				   id_CHECK_GRAMMAR_CHECK,
-
-				   id_CHECK_SMART_QUOTES_ENABLE,
+	enum tControl: uint8_t { id_CHECK_SMART_QUOTES_ENABLE = 0,
 				   id_CHECK_CUSTOM_SMART_QUOTES,
 				   id_LIST_VIEW_OUTER_QUOTE_STYLE,
 				   id_LIST_VIEW_INNER_QUOTE_STYLE,
@@ -138,13 +132,6 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 
 #define SET_GATHER(a,u) virtual u _gather##a(void) = 0; \
 						virtual void	_set##a(const u) = 0
-	SET_GATHER			(SpellCheckAsType,	bool);
-	SET_GATHER			(SpellHideErrors,	bool);
-	SET_GATHER			(SpellSuggest,		bool);
-	SET_GATHER			(SpellMainOnly, 	bool);
-	SET_GATHER			(SpellUppercase,	bool);
-	SET_GATHER			(SpellNumbers,		bool);
-	SET_GATHER			(GrammarCheck,		bool);
 	SET_GATHER			(CustomSmartQuotes,		bool);
 	SET_GATHER			(SmartQuotes,		bool);
 	SET_GATHER			(PrefsAutoSave, 	bool);

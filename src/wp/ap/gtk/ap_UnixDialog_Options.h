@@ -74,9 +74,6 @@ public:
 	virtual bool _gatherViewCursorBlink(void) override { return true; }
 	virtual void _setViewCursorBlink(const bool) override {}
 
-		// Application Startup
-
-
 	// Documents
 
 		// AutoSave
@@ -92,27 +89,6 @@ public:
 		// RTL Text Layout
 
 		SET_GATHER (OtherDirectionRtl,	      bool);
-
-	// Spell Checking
-
-		// General
-
-	 	SET_GATHER (SpellCheckAsType, bool);
- 		SET_GATHER (SpellHideErrors,  bool);
-
-		// Ignore Words
-
-	 	SET_GATHER (SpellUppercase,   bool);
-	 	SET_GATHER (SpellNumbers,     bool);
-
-		// Dictionaries
-
- 		SET_GATHER (SpellSuggest,     bool);
-	 	SET_GATHER (SpellMainOnly,    bool);
-
-		// Grammar Check
-
-	 	SET_GATHER (GrammarCheck,    bool);
 
 	// Smart Quotes
 
@@ -164,9 +140,6 @@ public:
 
 			GtkWidget *m_buttonColSel_Defaults;
 
-		// Application Startup
-
-
 	// Documents
 
 		// General
@@ -181,27 +154,6 @@ public:
 		// RTL Text Layout
 
 		GtkWidget * m_checkbuttonOtherDirectionRtl;
-
-	// Spell Checking
-
-		// General
-
-		GtkWidget *m_checkbuttonSpellCheckAsType;
-		GtkWidget *m_checkbuttonSpellHideErrors;
-
-		// Ignore Words
-
-		GtkWidget *m_checkbuttonSpellUppercase;
-		GtkWidget *m_checkbuttonSpellNumbers;
-
-		// Dictionaries
-
-		GtkWidget *m_checkbuttonSpellSuggest;
-		GtkWidget *m_checkbuttonSpellMainOnly;
-
-		// Grammar Checking
-
-		GtkWidget *m_checkbuttonGrammarCheck;
 
 		// Smart Quotes
 

@@ -358,7 +358,6 @@ dcl(DLG_Para_PreviewFollowParagraph,"Following Paragraph Following Paragraph Fol
 /* Options dialog */
 dcl(DLG_Options_OptionsTitle,			"Preferences")
 
-dcl(DLG_Options_TabLabel_Spelling,		"Spelling")
 dcl(DLG_Options_TabLabel_Other, 		"Other")
 dcl(DLG_Options_TabLabel_Preferences,	"Preference Schemes")
 dcl(DLG_Options_TabLabel_View,			"View")
@@ -369,33 +368,10 @@ dcl(DLG_Options_Btn_Save,				"Sa&ve")
 dcl(DLG_Options_Btn_Apply,				"Apply")
 dcl(DLG_Options_Btn_Default,			"De&faults")
 
-dcl(DLG_Options_SpellCheckingTitle,		"Spell Checking")
-
-dcl(DLG_Options_Label_SpellCheckAsType, "Check s&pelling as you type")
-dcl(DLG_Options_Label_SpellHideErrors,	"Hide &spelling errors in the document")
-dcl(DLG_Options_Label_SpellHighlightMisspelledWords, "&Highlight misspelled words") // Opposite of HideErrors
-
-     // Grammar Check
-dcl(DLG_Options_Label_Grammar, "Automatic Grammar Checking")
-dcl(DLG_Options_Label_GrammarCheck, "Check &grammar as you type")
-
 dcl(DLG_Options_Label_SmartQuotes, "Enable smart (curly) quotes")
 dcl(DLG_Options_Label_CustomSmartQuotes, "Use custom smart quote style")
 dcl(DLG_Options_Label_OuterQuoteStyle, "Outer (double) quote style:")
 dcl(DLG_Options_Label_InnerQuoteStyle, "Inner (single) quote style:")
-										      // should be merged one day
-dcl(DLG_Options_Label_SpellSuggest, 	"A&lways suggest corrections")
-dcl(DLG_Options_Label_SpellMainOnly,	"Suggest from &main dictionary only")
-dcl(DLG_Options_Label_SpellUppercase,	"Words in &UPPERCASE")
-dcl(DLG_Options_Label_SpellNumbers, 	"Words with num&bers")
-dcl(DLG_Options_Label_SpellCustomDict,	"Custom Dictionary:")
-dcl(DLG_Options_Label_SpellIgnoredWord, "Ignored words:")
-dcl(DLG_Options_Label_SpellIgnoreWords, "Ignore Words")
-dcl(DLG_Options_Btn_CustomDict, 		"&Dictionary...")
-dcl(DLG_Options_Btn_IgnoreReset,		"&Reset")
-dcl(DLG_Options_Btn_IgnoreEdit, 		"&Edit")
-dcl(DLG_Options_Label_SpellAutoReplace, "Auto replace misspelled words")
-dcl(DLG_Options_Label_SpellDictionaries,	"Dictionaries")
 
 dcl(DLG_Options_Label_DefaultPageSize, "Default page size")
 
@@ -404,7 +380,6 @@ dcl(DLG_Options_Label_BiDiOptions, "Text Directionality")
 dcl(DLG_Options_Label_HebrewContextGlyphs, "Use glyph shaping for Hebrew")
 
 dcl(DLG_Options_Label_UI,			"User Interface")
-dcl(DLG_Options_Label_AppStartup,		"Application Startup")
 dcl(DLG_Options_Label_Documents,		"Documents")
 
 dcl(DLG_Options_Label_LangSettings, 			"Language settings")
