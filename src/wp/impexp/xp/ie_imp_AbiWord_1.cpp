@@ -136,6 +136,10 @@ UT_Confidence_t IE_Imp_AbiWord_1_Sniffer::recognizeContents (const char * szBuf,
 		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
 		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
 
+		magic = "<abinova" ;
+		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
+		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
+
 		magic = "<awml " ;
 		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
 		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
@@ -294,6 +298,7 @@ IE_Imp_AbiWord_1::IE_Imp_AbiWord_1(PD_Document * pDocument)
 static struct xmlToIdMapping s_Tokens[] =
 {
 	{	"a",			TT_HYPERLINK	},
+	{	"abinova",		TT_DOCUMENT		},
 	{	"abiword",		TT_DOCUMENT		},
 	{	"ann",		    TT_ANN  		},
 	{	"annotate",		TT_ANNOTATE		},

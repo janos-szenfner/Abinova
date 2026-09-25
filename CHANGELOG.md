@@ -210,6 +210,19 @@ below are on `main` but the release has not been cut yet.
   modified from upstream carry both AbiSource and Abinova;
   untouched files and vendored third-party code (wv, hunspell,
   wpd/wps/wpg sources) keep their original headers unchanged.
+- **`.abwn` is now a distinct serialization** — saved files
+  declare `<abinova>` as the root element with the doctype
+  `<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN">`
+  and namespaces on this repository (`abwn.dtd` ships at the repo
+  root); documents loaded from old `.abw` get their namespace
+  attributes rewritten on export. The importer accepts both the
+  `<abinova>` and `<abiword>` roots so every legacy file still
+  opens. **The `.abw` serialization is write-only-off** — the
+  exporter no longer registers `.abw`/`.zabw`/`.abw.gz` suffixes,
+  the Save As filter offers only `.abwn` variants, `--to=abw`
+  fails, and saving an opened `.abw` falls back to Save As →
+  `.abwn`. Document metadata now declares
+  `application/x-abinova` (which the exporter also accepts).
 - **Save As dialog bottom row** — the file-name field now sits in a
   shared grid directly above the "Save file as type" selector so
   both fields share one column (the name entry is exactly as wide as

@@ -849,28 +849,32 @@ See `CHANGELOG.md` for the categorized changelog of all changes.
 
 ## The .abwn document format
 
-`.abwn` is Abinova's native file extension (the format itself is
-still "AWML"). New documents save as `.abwn` by default —
-`DefaultSaveFormat` is `.abwn`, the Save As dialog lists it first,
-and `--to=abwn`/`--to` conversions use it. Legacy `.abw` files
-(as well as `.awt` templates and the `.zabw`/`.abw.gz`/`.bzabw`/
-`.abw.bz2` compressed variants, plus their `.abwn` counterparts)
-open exactly as before — the importer recognizes all of them and
-the content sniffer matches the `<abiword>` root element anyway,
-so even a renamed file is detected by content.
+`.abwn` is Abinova's native file extension; its serialization is
+the AWNL vocabulary (derived from AWML, but declared as its own
+format - root element `<abinova>`, doctype
+`-//ABINOVA//DTD AWNL 1.0 Strict//EN`, namespaces on this
+repository - see `abwn.dtd`). New documents save as `.abwn` by
+default - `DefaultSaveFormat` is `.abwn`, the Save As dialog
+offers only the `.abwn` family, and `--to=abwn`/`--to`
+conversions use it. **The old `.abw` serialization is read-only:**
+`.abw` files (as well as `.awt` templates and the
+`.zabw`/`.abw.gz`/`.bzabw`/`.abw.bz2` compressed variants, plus
+their `.abwn` counterparts) open exactly as before - the importer
+recognizes all of them and the content sniffer accepts both the
+`<abiword>` and `<abinova>` roots - but nothing can be saved in
+the old format; re-saving an `.abw` produces an `.abwn`.
 
 The file itself is a single UTF-8 XML document with a `PUBLIC`
 doctype pointing at `awml.dtd`. It is
 forward- and backward-compatible by design — the importer ignores
-unknown elements, attributes and properties, so a file written by
-this fork still opens in older AbiWord versions and any other AWML
-consumer (new features simply degrade), and files written by any
-older `.abw` version open here unchanged.
+unknown elements, attributes and properties, so files written by
+any older `.abw` version open here unchanged, and future features
+degrade gracefully for any AWNL/AWML-aware consumer.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml.dtd">
-<abiword xmlns="http://www.abisource.com/awml.dtd"
+<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN" "https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd">
+<abinova xmlns="https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd"
          xmlns:awml,dc,math,fo,svg,xlink,ct="…"
          version="4.0.0" fileformat="1.2" template="false"
          xid-max="N" props="document-level props" xml:space="preserve">
@@ -900,12 +904,12 @@ older `.abw` version open here unchanged.
     <d name="image1" mime-type="image/png" base64="yes">…</d>
     <d name="MathLatexAAA" mime-type="application/mathml+xml" base64="no"><![CDATA[<math …>…</math>]]></d>
   </data>
-</abiword>
+</abinova>
 ```
 
 ### Document preamble
 
-- `<abiword>` — root element. `fileformat` is informational
+- `<abinova>` — root element. `fileformat` is informational
   (`1.2` in this fork; see *Extensions*), `props` carries
   document-level properties (footnote/endnote numbering and
   restart behaviour, `dom-dir`, `lang`, …), `xid-max` is the
@@ -954,8 +958,8 @@ namespace on `<p>`/`<c>`.
 
 ### Format extensions in this fork
 
-All extensions are ordinary elements/properties — old AbiWord
-versions ignore them safely, and this build reads every older
+All extensions are ordinary elements/properties — old `.abw`-era
+readers ignore them safely, and this build reads every older
 `.abw` variant:
 
 - **`fileformat="1.2"` — nested comment anchors.** The exporter

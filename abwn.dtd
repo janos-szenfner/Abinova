@@ -1,0 +1,85 @@
+<!--
+  AWNL 1.0 - Abinova Word-processing Markup Language (skeletal DTD)
+
+  This DTD describes the serialization written by Abinova 4.x to
+  .abwn files.  It is derived from AWML 1.0 (AbiWord Markup
+  Language); the XML vocabulary is unchanged - only the root
+  element, the doctype identifiers and the namespace URIs differ,
+  so files remain structurally compatible with AWML readers that
+  accept the <abinova> root element.
+
+  Repository: https://github.com/janos-szenfner/Exp-Abi
+-->
+
+<!ELEMENT abinova (metadata?, rdf?, history?, changes?, masterpages?,
+                   notes?, styles?, lists?, pagesize?, authors?,
+                   section+, data?)>
+<!ATTLIST abinova
+	version      CDATA   #IMPLIED
+	fileformat   CDATA   #IMPLIED
+	template     CDATA   #IMPLIED
+	xid-max      CDATA   #IMPLIED
+	props        CDATA   #IMPLIED
+	xml:space    CDATA   #IMPLIED
+	xmlns        CDATA   #FIXED "https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd"
+>
+
+<!-- metadata: Dublin Core + abiword.* keys as <m key="...">value</m> -->
+<!ELEMENT metadata (m*)>
+<!ELEMENT m (#PCDATA)>
+<!ATTLIST m key CDATA #REQUIRED>
+
+<!ELEMENT rdf ANY>
+<!ELEMENT history ANY>
+<!ELEMENT changes ANY>
+<!ELEMENT masterpages ANY>
+<!ELEMENT notes ANY>
+
+<!-- named styles: <s name type="P|C" basedon followedby props> -->
+<!ELEMENT styles (s*)>
+<!ELEMENT s EMPTY>
+<!ATTLIST s
+	name       CDATA  #REQUIRED
+	type       CDATA  #IMPLIED
+	basedon    CDATA  #IMPLIED
+	followedby CDATA  #IMPLIED
+	props      CDATA  #IMPLIED
+>
+
+<!ELEMENT lists (l*)>
+<!ELEMENT l EMPTY>
+<!ATTLIST l id CDATA #REQUIRED>
+
+<!ELEMENT pagesize EMPTY>
+<!ATTLIST pagesize
+	pagetype    CDATA  #IMPLIED
+	orientation CDATA  #IMPLIED
+	width       CDATA  #IMPLIED
+	height      CDATA  #IMPLIED
+	units       CDATA  #IMPLIED
+	margin-scale CDATA #IMPLIED
+>
+
+<!ELEMENT authors (author*)>
+<!ELEMENT author EMPTY>
+<!ATTLIST author id CDATA #IMPLIED>
+
+<!-- flow root: body, headers/footers, footnotes, annotations -->
+<!ELEMENT section ANY>
+<!ATTLIST section
+	xid    CDATA  #IMPLIED
+	type   CDATA  #IMPLIED
+	header CDATA  #IMPLIED
+	footer CDATA  #IMPLIED
+	props  CDATA  #IMPLIED
+>
+
+<!-- named binary/text payloads: images, MathML/LaTeX sources,
+     SVG snapshots, RDF blobs -->
+<!ELEMENT data (d*)>
+<!ELEMENT d (#PCDATA)>
+<!ATTLIST d
+	name      CDATA  #REQUIRED
+	mime-type CDATA  #IMPLIED
+	base64    CDATA  #IMPLIED
+>

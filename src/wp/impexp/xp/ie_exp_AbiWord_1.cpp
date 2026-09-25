@@ -76,17 +76,21 @@ IE_Exp_AbiWord_1_Sniffer::IE_Exp_AbiWord_1_Sniffer ()
 
 UT_Confidence_t IE_Exp_AbiWord_1_Sniffer::supportsMIME (const char * szMIME)
 {
-	if (strcmp (szMIME, IE_MIMETYPE_AbiWord) == 0)
+	if (strcmp (szMIME, IE_MIMETYPE_ABINOVA) == 0 ||
+		strcmp (szMIME, IE_MIMETYPE_AbiWord) == 0)
 		{
 			return UT_CONFIDENCE_GOOD;
 		}
 	return UT_CONFIDENCE_ZILCH;
 }
 
+/* Only the .abwn family is writable: legacy .abw files can be
+ * opened and converted, but saving them writes the Abinova format
+ * under a .abwn name - nothing ever produces the old AbiWord
+ * serialization any more. */
 bool IE_Exp_AbiWord_1_Sniffer::recognizeSuffix(const char * szSuffix)
 {
-	return (!g_ascii_strcasecmp(szSuffix,".abwn") || !g_ascii_strcasecmp(szSuffix,".zabwn") || !g_ascii_strcasecmp(szSuffix, ".abwn.gz")
-		|| !g_ascii_strcasecmp(szSuffix,".abw") || !g_ascii_strcasecmp(szSuffix,".zabw") || !g_ascii_strcasecmp(szSuffix, ".abw.gz"));
+	return (!g_ascii_strcasecmp(szSuffix,".abwn") || !g_ascii_strcasecmp(szSuffix,".zabwn") || !g_ascii_strcasecmp(szSuffix, ".abwn.gz"));
 }
 
 UT_Error IE_Exp_AbiWord_1_Sniffer::constructExporter(PD_Document * pDocument,
@@ -100,8 +104,8 @@ bool IE_Exp_AbiWord_1_Sniffer::getDlgLabels(const char ** pszDesc,
 											const char ** pszSuffixList,
 											IEFileType * ft)
 {
-	*pszDesc = "Abinova (.abwn, .abw, .zabw, .abw.gz)";
-	*pszSuffixList = "*.abwn; *.abw; *.zabw; *.zabwn; *.abw.gz; *.abwn.gz";
+	*pszDesc = "Abinova (.abwn, .zabwn, .abwn.gz)";
+	*pszSuffixList = "*.abwn; *.zabwn; *.abwn.gz";
 	*ft = getFileType();
 	return true;
 }
@@ -522,16 +526,22 @@ s_AbiWord_1_Listener::s_AbiWord_1_Listener(PD_Document * pDocument,
         here are now found in PD_Document::setAttrProp()
 
 	************************************************************************************/
-	m_pie->setDocType ("<!DOCTYPE abiword PUBLIC \"-//ABISOURCE//DTD AWML 1.0 Strict//EN\" \"http://www.abisource.com/awml.dtd\">\n");
+	m_pie->setDocType ("<!DOCTYPE abinova PUBLIC \"-//ABINOVA//DTD AWNL 1.0 Strict//EN\" \"https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd\">\n");
 
-	// we want to update the XID counter and the template status
+	// we want to update the XID counter and the template status;
+	// the xmlns overrides make sure even a document loaded from an
+	// old .abw serializes the Abinova namespaces, not the stale
+	// abisource.com URIs it was loaded with
 	const PP_PropertyVector attr = {
 		"template", m_bIsTemplate ? "true" : "false",
-		"xid-max", UT_std_string_sprintf("%d", pDocument->getTopXID())
+		"xid-max", UT_std_string_sprintf("%d", pDocument->getTopXID()),
+		"xmlns", ABINOVA_XMLNS,
+		"xmlns:awml", ABINOVA_XMLNS,
+		"xmlns:ct", ABINOVA_XMLNS_CT
 	};
 	pDocument->setAttributes(attr);
 
-	_openTag("abiword", true, pDocument->getAttrPropIndex(),false,0);
+	_openTag("abinova", true, pDocument->getAttrPropIndex(),false,0);
 
 	// NOTE we output the following preamble in XML comments.
 	// NOTE this information is for human viewing only.
@@ -1203,7 +1213,7 @@ void s_AbiWord_1_Listener::_handleMetaData(void)
   // set all of the important meta-data props
 
   m_pDocument->setMetaDataProp ( PD_META_KEY_GENERATOR, "Abinova" ) ;
-  m_pDocument->setMetaDataProp ( PD_META_KEY_FORMAT,    IE_MIMETYPE_AbiWord ) ;
+  m_pDocument->setMetaDataProp ( PD_META_KEY_FORMAT,    IE_MIMETYPE_ABINOVA ) ;
 
 #if 0
   // get the saved time, remove trailing newline

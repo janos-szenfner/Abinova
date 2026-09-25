@@ -43,6 +43,7 @@
 #include "xad_Document.h"
 #include "xap_Strings.h"
 #include "pt_PieceTable.h"
+#include "ie_impexp_AbiWord_1.h"
 #include "pl_Listener.h"
 #include "ie_imp.h"
 #include "ie_exp.h"
@@ -6313,15 +6314,15 @@ bool PD_Document::setAttrProp(const PP_PropertyVector & ppAttr)
 
 		// now set standard attributes
 		PP_PropertyVector attr = {
-			"xmlns", "http://www.abisource.com/awml.dtd",
+			"xmlns", ABINOVA_XMLNS,
 			"xml:space", "preserve",
-			"xmlns:awml", "http://www.abisource.com/awml.dtd",
+			"xmlns:awml", ABINOVA_XMLNS,
 			"xmlns:xlink", "http://www.w3.org/1999/xlink",
 			"xmlns:svg", "http://www.w3.org/2000/svg",
 			"xmlns:fo",	"http://www.w3.org/1999/XSL/Format",
 			"xmlns:math", "http://www.w3.org/1998/Math/MathML",
 			"xmlns:dc",	"http://purl.org/dc/elements/1.1/",
-			"xmlns:ct", "http://www.abisource.com/changetracking.dtd",
+			"xmlns:ct", ABINOVA_XMLNS_CT,
 			"fileformat", ABIWORD_FILEFORMAT_VERSION
 		};
 
