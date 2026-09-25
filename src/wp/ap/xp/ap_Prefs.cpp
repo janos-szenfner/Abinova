@@ -18,6 +18,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "ap_Features.h"
 #include "ap_Prefs.h"
@@ -150,19 +151,46 @@ bool AP_Prefs::loadBuiltinPrefs(void)
 
 void AP_Prefs::overlaySystemPrefs(void)
 {
-	// read system prefs file and overlay builtin values.
-	const char** items = localeinfo_combinations("system.profile","","-",0);
+	// Locale-dependent defaults used to live in a forest of
+	// per-locale system.profile-<locale> files; they are derived
+	// here instead. The single system.profile that remains is for
+	// system administrator overrides and is applied afterwards so
+	// that it wins over the derived values.
+	XAP_PrefsScheme * pScheme = getScheme(getBuiltinSchemeName());
+	if (pScheme)
+	{
+		const XAP_EncodingManager * pEM = XAP_EncodingManager::get_instance();
+		const char * lang = pEM->getLanguageISOName();
+		const char * terr = pEM->getLanguageISOTerritory();
+		const char * enc  = pEM->getNativeEncodingName();
+
+		// Ruler units: en-US historically shipped inches, every
+		// other shipped profile used centimetres.
+		pScheme->setValue(AP_PREF_KEY_RulerUnits,
+			(lang && terr && !strcmp(lang, "en") && !strcmp(terr, "US"))
+				? "in" : "cm");
+
+		// Default text direction for RTL languages.
+		static const char * rtlLangs[] =
+			{ "ar", "dv", "fa", "he", "ps", "syr", "ur", "yi", nullptr };
+		for (const char ** l = rtlLangs; lang && *l; ++l)
+		{
+			if (!strcmp(lang, *l))
+			{
+				pScheme->setValue(AP_PREF_KEY_DefaultDirectionRtl, "1");
+				break;
+			}
+		}
+
+		// The KOI8 Cyrillic encodings lack the smart-quote glyphs.
+		if (enc && !strncmp(enc, "KOI8", 4))
+			pScheme->setValue(XAP_PREF_KEY_SmartQuotesEnable, "0");
+	}
+
+	// read the single system defaults file and overlay builtin values.
 	std::string path;
-	while(*items) {
-	    const char * item = *items++;
-#ifdef _MSC_VER
-		const char* subdir = "profiles";
-#else
-		const char* subdir = nullptr;
-#endif
-	    if (XAP_App::getApp()->findAbiSuiteAppFile(path, item, subdir))
-			loadSystemDefaultPrefsFile(path.c_str());
-	};
+	if (XAP_App::getApp()->findAbiSuiteAppFile(path, "system.profile", nullptr))
+		loadSystemDefaultPrefsFile(path.c_str());
 }
 
 

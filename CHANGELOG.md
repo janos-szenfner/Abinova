@@ -1494,6 +1494,17 @@ below are on `main` but the release has not been cut yet.
   `release.sh` was rewritten for Abinova — version read from
   `configure.ac`, `abinova-*` tarballs, current branch, optional
   `SKIP_DISTCHECK`/`NO_GPG`. `clang-fmt.py` retained.
+- **`user/wp/` data reduced** — `readme.txt`/`readme.abw` (stale
+  upstream release notes, unreferenced by any code) removed, and
+  the 72 per-locale `system.profile-*` files collapsed into a
+  single `system.profile`: the locale-dependent defaults are now
+  derived in `AP_Prefs::overlaySystemPrefs()` (ruler inches for
+  en-US, cm elsewhere; RTL default for ar/dv/fa/he/ps/syr/ur/yi;
+  smart quotes off under KOI8 encodings), while `system.profile`
+  remains the administrator-override hook applied last. The
+  `DefaultPageSize`/`DocumentLocale` attributes formerly carried
+  by the eu/ro profiles had no corresponding preference keys and
+  were dead weight.
 - **`.abwn` document header updated** — the informational comment
   now points at `https://github.com/janos-szenfner/Exp-Abi` and
   names Abinova as the generator (the AWML doctype, namespaces and
