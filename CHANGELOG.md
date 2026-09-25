@@ -210,6 +210,12 @@ below are on `main` but the release has not been cut yet.
   modified from upstream carry both AbiSource and Abinova;
   untouched files and vendored third-party code (wv, hunspell,
   wpd/wps/wpg sources) keep their original headers unchanged.
+- **Save As dialog bottom row** — the file-name field now sits in a
+  shared grid directly above the "Save file as type" selector so
+  both fields share one column (the name entry is exactly as wide as
+  the type combo), the "Name:" and type labels are right-aligned,
+  and the stray "_" mnemonic marker no longer renders in the
+  type label (`gtk_label_new_with_mnemonic`).
 - **Contextual Table Layout ribbon tab** — appears only while the
   caret is inside a table and returns focus to Home when it
   leaves. Groups: Table (Select/View Gridlines/Properties/Draw

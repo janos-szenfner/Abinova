@@ -716,11 +716,13 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	gtk_box_append(GTK_BOX(chooser_hbox), chooser);
 
 	/* In save mode GtkFileChooserWidget draws its "Name:" row at the
-	 * top of the chooser.  Reparent that row below the chooser so it
-	 * sits directly above our file-type row, matching the usual
-	 * save-dialog layout (LibreOffice-style: filename next to the
-	 * type selector at the bottom).  The row is the first box inside
+	 * top of the chooser.  Move the row's label + entry below the
+	 * chooser into a shared grid with the file-type row, so the Name
+	 * entry column lines up with the type selector column
+	 * (LibreOffice-style save dialog: labels right-aligned, fields of
+	 * equal width at the bottom).  The row is the first box inside
 	 * the chooser's outer box (Name label + GtkFileChooserEntry). */
+	GtkWidget * bottom_grid = nullptr;
 	if (m_bSave)
 	{
 		GtkWidget * outer = gtk_widget_get_first_child(chooser);
@@ -729,10 +731,34 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 			GtkWidget * name_row = gtk_widget_get_first_child(outer);
 			if (name_row && GTK_IS_BOX(name_row))
 			{
-				g_object_ref(name_row);
-				gtk_widget_unparent(name_row);
-				gtk_box_append(GTK_BOX(main_vbox), name_row);
-				g_object_unref(name_row);
+				/* GTK4 nests the "Name:" label + GtkFileChooserEntry
+				 * inside a GtkGrid within that row. */
+				GtkWidget * inner = gtk_widget_get_first_child(name_row);
+				while (inner && !GTK_IS_GRID(inner))
+					inner = gtk_widget_get_next_sibling(inner);
+				GtkWidget * name_label = inner
+					? gtk_widget_get_first_child(inner) : nullptr;
+				GtkWidget * name_entry = name_label
+					? gtk_widget_get_next_sibling(name_label) : nullptr;
+				if (name_label && name_entry)
+				{
+					bottom_grid = gtk_grid_new();
+					gtk_grid_set_column_spacing(GTK_GRID(bottom_grid), 15);
+
+					g_object_ref(name_label);
+					gtk_widget_unparent(name_label);
+					gtk_grid_attach(GTK_GRID(bottom_grid), name_label, 0, 0, 1, 1);
+					gtk_widget_set_halign(name_label, GTK_ALIGN_END);
+					g_object_unref(name_label);
+
+					g_object_ref(name_entry);
+					gtk_widget_unparent(name_entry);
+					gtk_grid_attach(GTK_GRID(bottom_grid), name_entry, 1, 0, 1, 1);
+					gtk_widget_set_hexpand(name_entry, TRUE);
+					g_object_unref(name_entry);
+
+					gtk_widget_unparent(name_row);
+				}
 			}
 		}
 	}
@@ -776,22 +802,31 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	}
 
 	// hbox for our pulldown menu (GTK does its pulldown this way */
-	GtkWidget * pulldown_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
+	GtkWidget * pulldown_hbox = bottom_grid
+		? bottom_grid : gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
 	gtk_widget_show(pulldown_hbox);
 
-	// pulldown label
-	GtkWidget * filetypes_label = gtk_label_new(convertMnemonics(szFileTypeLabel).c_str());
+	// pulldown label (with_mnemonic: convertMnemonics() produced "_"
+	// accelerators, which a plain label would render literally)
+	GtkWidget * filetypes_label =
+		gtk_label_new_with_mnemonic(convertMnemonics(szFileTypeLabel).c_str());
 	g_object_set(G_OBJECT(filetypes_label),
 						 "xalign", 1.0,	 "yalign", 0.5,
 						 "justify", GTK_JUSTIFY_RIGHT, nullptr);
 
-	gtk_box_append(GTK_BOX(pulldown_hbox), filetypes_label);
+	if (bottom_grid)
+		gtk_grid_attach(GTK_GRID(bottom_grid), filetypes_label, 0, 1, 1, 1);
+	else
+		gtk_box_append(GTK_BOX(pulldown_hbox), filetypes_label);
 			gtk_widget_set_hexpand(filetypes_label, TRUE);
 
 	// pulldown menu
 	filetypes_pulldown = gtk_combo_box_new();
 	gtk_widget_show(filetypes_pulldown);
-	gtk_box_append(GTK_BOX(pulldown_hbox), filetypes_pulldown);
+	if (bottom_grid)
+		gtk_grid_attach(GTK_GRID(bottom_grid), filetypes_pulldown, 1, 1, 1, 1);
+	else
+		gtk_box_append(GTK_BOX(pulldown_hbox), filetypes_pulldown);
 			gtk_widget_set_hexpand(filetypes_pulldown, TRUE);
     gtk_label_set_mnemonic_widget(GTK_LABEL(filetypes_label), filetypes_pulldown);
 	//
