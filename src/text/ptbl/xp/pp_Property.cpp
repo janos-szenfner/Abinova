@@ -144,6 +144,7 @@ static PP_Property _props[] =
 	{ "header-even",           "",                false, PP_LEVEL_SECT},
 	{ "header-first",          "",                false, PP_LEVEL_SECT},
 	{ "header-last",           "",                false, PP_LEVEL_SECT},
+	{ "header-row",            "",                false, PP_LEVEL_TABLE},
 	{ "height",                "0in",             false, PP_LEVEL_CHAR},
 	{ "homogeneous",           "1",               false, PP_LEVEL_CHAR},
 

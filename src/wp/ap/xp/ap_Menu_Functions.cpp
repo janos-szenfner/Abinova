@@ -1698,6 +1698,51 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_PointOrAnchorInTable)
     return EV_MIS_Gray;
 }
 
+/*!
+ * Checked state for the Table Layout mode toggles. Everything except
+ * View Gridlines requires the caret in a table.
+ */
+Defun_EV_GetMenuItemState_Fn(ap_GetState_TableModes)
+{
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+
+	EV_Menu_ItemState s = EV_MIS_ZERO;
+	switch(id)
+	{
+	case AP_MENU_ID_TABLE_VIEW_GRIDLINES:
+		if (pView->getShowTableGridlines())
+			s = EV_MIS_Toggled;
+		break;
+
+	case AP_MENU_ID_TABLE_DRAW:
+		if (!pView->isInTable() && !pView->getDrawTableMode())
+			return EV_MIS_Gray;
+		if (pView->getDrawTableMode())
+			s = EV_MIS_Toggled;
+		break;
+
+	case AP_MENU_ID_TABLE_ERASE:
+		if (!pView->isInTable())
+			return EV_MIS_Gray;
+		if (pView->getEraserMode())
+			s = EV_MIS_Toggled;
+		break;
+
+	case AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT:
+		if (!pView->isInTable())
+			return EV_MIS_Gray;
+		if (pView->isRepeatHeaderOn())
+			s = EV_MIS_Toggled;
+		break;
+
+	default:
+		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+		return EV_MIS_Gray;
+	}
+	return s;
+}
+
 
 Defun_EV_GetMenuItemState_Fn(ap_GetState_InTableIsRepeat)
 {

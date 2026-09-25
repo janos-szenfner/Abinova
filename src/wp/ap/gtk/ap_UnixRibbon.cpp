@@ -87,7 +87,7 @@ static const _ribbon_kv s_ribbon_tab_labels[] =
 	{ "layout",     "Layout" },
 	{ "review",     "Review" },
 	{ "view",       "View" },
-	{ "table",      "Table" },
+	{ "table",      "Table Layout" },
 	{ "equation",   "Equation" },
 	{ "help",       "Help" },
 	{ nullptr,       nullptr }
@@ -141,6 +141,11 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "delete",      "Delete" },
 	{ "select",      "Select" },
 	{ "format",      "Format" },
+	{ "table",       "Table" },
+	{ "rowscols",    "Rows & Columns" },
+	{ "align",       "Alignment" },
+	{ "data",        "Data" },
+	{ "cellsize",    "Cell Size" },
 	{ "equation",    "Equation" },
 	{ "structures",  "Structures" },
 	{ "help",        "Help" },
@@ -185,6 +190,14 @@ static const struct {
 	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_STATUSBAR,		"Status Bar" },
 	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_SHOWPARA,		"Formatting Marks" },
 	{ (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SELPANE,		"Selection Pane" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_FORMAT,		"Properties" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE,	"Insert Above" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_AFTER,	"Insert Below" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE,"Insert Left" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER,	"Insert Right" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT,	"Repeat Header Rows" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT,	"Convert to Text" },
+	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT,		"AutoFit" },
 	{ (XAP_Menu_Id)0,							nullptr }
 };
 
@@ -818,6 +831,15 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 16);
 		}
+		else if (flags & AP_RIBBON_FLAG_WRAP)
+		{
+			/* Word's compact rows wrap the caption beside the icon
+			 * ("Insert\nAbove") instead of ellipsizing it away */
+			gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
+			gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
+			gtk_label_set_lines(GTK_LABEL(wLabel), 2);
+			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 9);
+		}
 		else if ((szIcon && *szIcon) || bDrawnIcon)
 		{
 			/* small icon+label buttons are single-line like Word's
@@ -859,6 +881,11 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_actionable_set_action_target_value(GTK_ACTIONABLE(btn),
 											   g_variant_new_string(target));
 	}
+	if ((flags & AP_RIBBON_FLAG_SLIM) && !(flags & AP_RIBBON_FLAG_LARGE))
+		gtk_style_context_add_provider(
+			gtk_widget_get_style_context(btn),
+			GTK_STYLE_PROVIDER(_slimButtonCss()),
+			GTK_STYLE_PROVIDER_PRIORITY_USER);
 
 	const char * szStatus = pLabel->getMenuStatusMessage();
 	if (szStatus && *szStatus && strcmp(szStatus, " ") != 0)
@@ -1323,6 +1350,8 @@ GtkWidget * AP_UnixRibbon::_popoverMenuButton(XAP_Menu_Id id)
 	const EV_Menu_Label * pLabel =
 		m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
 	GAction * action = m_pMenu ? m_pMenu->lookupAction(id) : nullptr;
+	if (!action && m_pMenu)
+		action = m_pMenu->ensureAction(id);
 	if (!pAction || !pLabel || !action)
 		return nullptr;
 
@@ -2166,6 +2195,27 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
 		popover = _makeWindowPopover();
 		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT:
+		popover = _makeTableSelectPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE:
+		popover = _makeTableDeletePopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT:
+		popover = _makeTableAutoFitPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT:
+		popover = _makeTableSortPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT:
+		popover = _makeTableToTextPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TEXT_DIRECTION:
+		popover = _makeTableTextDirPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_CELL_MARGINS:
+		popover = _makeCellMarginsPopover();
+		break;
 	default:
 		break;
 	}
@@ -2225,19 +2275,31 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		 * drawn glyph + caption, arrow supplied by the menu button */
 		const EV_Menu_Label * pFaceLabel =
 			m_pMenu ? m_pMenu->getLabelSet()->getLabel(id) : nullptr;
+		const char * szOverride = _ribbon_menu_label(id);
 		char face[64];
 		_ribbon_strip_mnemonic(
-			(pFaceLabel && pFaceLabel->getMenuLabel())
-				? pFaceLabel->getMenuLabel() : "",
+			szOverride ? szOverride
+					   : ((pFaceLabel && pFaceLabel->getMenuLabel())
+						  ? pFaceLabel->getMenuLabel() : ""),
 			face, sizeof(face));
 		GtkWidget * hb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 		gtk_box_append(GTK_BOX(hb), _layout_icon(id, 16, 16));
 		GtkWidget * wl = gtk_label_new(face);
-		/* small dropdown captions stay single-line like Word's
-		 * compact rows; ellipsize instead of wrapping so squeezed
-		 * groups never collapse into one-char columns */
-		gtk_label_set_ellipsize(GTK_LABEL(wl), PANGO_ELLIPSIZE_END);
-		gtk_label_set_max_width_chars(GTK_LABEL(wl), 16);
+		if (flags & AP_RIBBON_FLAG_WRAP)
+		{
+			gtk_label_set_wrap(GTK_LABEL(wl), TRUE);
+			gtk_label_set_wrap_mode(GTK_LABEL(wl), PANGO_WRAP_WORD);
+			gtk_label_set_lines(GTK_LABEL(wl), 2);
+			gtk_label_set_max_width_chars(GTK_LABEL(wl), 9);
+		}
+		else
+		{
+			/* small dropdown captions stay single-line like Word's
+			 * compact rows; ellipsize instead of wrapping so squeezed
+			 * groups never collapse into one-char columns */
+			gtk_label_set_ellipsize(GTK_LABEL(wl), PANGO_ELLIPSIZE_END);
+			gtk_label_set_max_width_chars(GTK_LABEL(wl), 16);
+		}
 		gtk_box_append(GTK_BOX(hb), wl);
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), hb);
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
@@ -3246,6 +3308,441 @@ static void _glyph_split(cairo_t * cr, double w, double h)
 	cairo_stroke(cr);
 }
 
+/* ------- Table Layout tab glyphs ------- */
+
+/* small table grid; returns the cell size through cw/ch */
+static void _tbl_grid(cairo_t * cr, double w, double h,
+					  int rows, int cols, double * cw, double * ch)
+{
+	cairo_set_line_width(cr, 1.0);
+	double m = 2.0;
+	double cwid = (w - 2 * m) / cols;
+	double chei = (h - 2 * m) / rows;
+	cairo_rectangle(cr, m, m, w - 2 * m, h - 2 * m);
+	for (int i = 1; i < cols; ++i)
+	{
+		cairo_move_to(cr, m + i * cwid, m);
+		cairo_line_to(cr, m + i * cwid, h - m);
+	}
+	for (int i = 1; i < rows; ++i)
+	{
+		cairo_move_to(cr, m, m + i * chei);
+		cairo_line_to(cr, w - m, m + i * chei);
+	}
+	cairo_stroke(cr);
+	if (cw) *cw = cwid;
+	if (ch) *ch = chei;
+}
+
+static void _glyph_tbl_select(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w, h * 0.82, 2, 2, nullptr, nullptr);
+	/* mouse pointer at the lower right */
+	cairo_set_source_rgb(cr, 0.25, 0.25, 0.3);
+	cairo_move_to(cr, w * 0.62, h * 0.52);
+	cairo_line_to(cr, w * 0.62, h * 0.92);
+	cairo_line_to(cr, w * 0.74, h * 0.80);
+	cairo_line_to(cr, w * 0.82, h * 0.94);
+	cairo_line_to(cr, w * 0.86, h * 0.90);
+	cairo_line_to(cr, w * 0.78, h * 0.76);
+	cairo_line_to(cr, w * 0.92, h * 0.76);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_tbl_delete(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w, h, 2, 2, nullptr, nullptr);
+	cairo_set_source_rgb(cr, 0.8, 0.2, 0.2);
+	cairo_set_line_width(cr, 1.6);
+	double cx = w * 0.5, cy = h * 0.5, r = w * 0.14;
+	cairo_move_to(cr, cx - r, cy - r);
+	cairo_line_to(cr, cx + r, cy + r);
+	cairo_move_to(cr, cx + r, cy - r);
+	cairo_line_to(cr, cx - r, cy + r);
+	cairo_stroke(cr);
+}
+
+static void _glyph_tbl_props(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w * 0.8, h, 2, 2, nullptr, nullptr);
+	/* slider knob column on the right */
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.1);
+	cairo_move_to(cr, w * 0.9, h * 0.12);
+	cairo_line_to(cr, w * 0.9, h * 0.88);
+	cairo_stroke(cr);
+	cairo_arc(cr, w * 0.9, h * 0.36, 2.2, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_arc(cr, w * 0.9, h * 0.70, 2.2, 0, 2 * M_PI);
+	cairo_fill(cr);
+}
+
+static void _glyph_pencil(cairo_t * cr, double w, double h)
+{
+	/* diagonal pencil */
+	cairo_set_line_width(cr, 1.0);
+	cairo_set_source_rgb(cr, 0.85, 0.6, 0.2);
+	cairo_move_to(cr, w * 0.18, h * 0.74);
+	cairo_line_to(cr, w * 0.66, h * 0.26);
+	cairo_line_to(cr, w * 0.76, h * 0.36);
+	cairo_line_to(cr, w * 0.28, h * 0.84);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.3, 0.3, 0.35);
+	cairo_move_to(cr, w * 0.66, h * 0.26);
+	cairo_line_to(cr, w * 0.78, h * 0.20);
+	cairo_line_to(cr, w * 0.84, h * 0.26);
+	cairo_line_to(cr, w * 0.76, h * 0.36);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_move_to(cr, w * 0.18, h * 0.74);
+	cairo_line_to(cr, w * 0.14, h * 0.90);
+	cairo_line_to(cr, w * 0.28, h * 0.84);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_eraser(cairo_t * cr, double w, double h)
+{
+	/* tilted eraser block */
+	cairo_set_line_width(cr, 1.0);
+	cairo_set_source_rgb(cr, 0.85, 0.45, 0.55);
+	cairo_move_to(cr, w * 0.30, h * 0.30);
+	cairo_line_to(cr, w * 0.72, h * 0.16);
+	cairo_line_to(cr, w * 0.86, h * 0.46);
+	cairo_line_to(cr, w * 0.44, h * 0.60);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_move_to(cr, w * 0.44, h * 0.60);
+	cairo_line_to(cr, w * 0.86, h * 0.46);
+	cairo_line_to(cr, w * 0.68, h * 0.80);
+	cairo_line_to(cr, w * 0.26, h * 0.94);
+	cairo_close_path(cr);
+	cairo_set_source_rgb(cr, 0.9, 0.9, 0.95);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_stroke(cr);
+}
+
+/* dir: 0 above, 1 below, 2 left, 3 right - grid + green arrow */
+static void _glyph_tbl_insert(cairo_t * cr, double w, double h, int dir)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w * 0.78, h * 0.78, 2, 2, nullptr, nullptr);
+	cairo_set_source_rgb(cr, 0.15, 0.6, 0.3);
+	cairo_set_line_width(cr, 1.4);
+	double cx = w * 0.68, cy = h * 0.68;
+	double ax = (dir == 2) ? -1.0 : (dir == 3) ? 1.0 : 0.0;
+	double ay = (dir == 0) ? -1.0 : (dir == 1) ? 1.0 : 0.0;
+	cairo_move_to(cr, cx - ax * w * 0.16, cy - ay * h * 0.16);
+	cairo_line_to(cr, cx + ax * w * 0.16, cy + ay * h * 0.16);
+	cairo_stroke(cr);
+	double tx = cx + ax * w * 0.16, ty = cy + ay * h * 0.16;
+	double px = -ay, py = ax;
+	cairo_move_to(cr, tx + ax * 2.0, ty + ay * 2.0);
+	cairo_line_to(cr, tx + px * 2.6, ty + py * 2.6);
+	cairo_line_to(cr, tx - px * 2.6, ty - py * 2.6);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_tbl_insabove(cairo_t * cr, double w, double h)
+{ _glyph_tbl_insert(cr, w, h, 0); }
+static void _glyph_tbl_insbelow(cairo_t * cr, double w, double h)
+{ _glyph_tbl_insert(cr, w, h, 1); }
+static void _glyph_tbl_insleft(cairo_t * cr, double w, double h)
+{ _glyph_tbl_insert(cr, w, h, 2); }
+static void _glyph_tbl_insright(cairo_t * cr, double w, double h)
+{ _glyph_tbl_insert(cr, w, h, 3); }
+
+static void _glyph_tbl_merge(cairo_t * cr, double w, double h)
+{
+	/* 2x2 grid with the top row merged into one cell */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	double m = 2.0;
+	cairo_rectangle(cr, m, m, w - 2 * m, h - 2 * m);
+	cairo_move_to(cr, m, h * 0.5);
+	cairo_line_to(cr, w - m, h * 0.5);
+	cairo_move_to(cr, w * 0.5, h * 0.5);
+	cairo_line_to(cr, w * 0.5, h - m);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.35, 0.55, 0.9);
+	cairo_rectangle(cr, m + 1, m + 1, w - 2 * m - 2, h * 0.5 - m - 1);
+	cairo_fill(cr);
+}
+
+static void _glyph_tbl_splitcells(cairo_t * cr, double w, double h)
+{
+	/* single cell split into four */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	double m = 2.5;
+	cairo_rectangle(cr, m, m, w - 2 * m, h - 2 * m);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	static const double dash2[] = { 2.0, 1.6 };
+	cairo_set_dash(cr, dash2, 2, 0);
+	cairo_move_to(cr, w * 0.5, m);
+	cairo_line_to(cr, w * 0.5, h - m);
+	cairo_move_to(cr, m, h * 0.5);
+	cairo_line_to(cr, w - m, h * 0.5);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, nullptr, 0, 0);
+}
+
+static void _glyph_tbl_splittable(cairo_t * cr, double w, double h)
+{
+	/* two grids separated by a gap */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	double m = 2.0;
+	cairo_rectangle(cr, m, m, w - 2 * m, h * 0.36);
+	cairo_move_to(cr, w * 0.5, m);
+	cairo_line_to(cr, w * 0.5, h * 0.36 + m);
+	cairo_stroke(cr);
+	cairo_rectangle(cr, m, h * 0.62, w - 2 * m, h * 0.36 - m);
+	cairo_move_to(cr, w * 0.5, h * 0.62);
+	cairo_line_to(cr, w * 0.5, h - m);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.8, 0.2, 0.2);
+	cairo_move_to(cr, m, h * 0.49);
+	cairo_line_to(cr, w - m, h * 0.49);
+	cairo_stroke(cr);
+}
+
+static void _glyph_tbl_autofit(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w * 0.9, h * 0.82, 2, 2, nullptr, nullptr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.3);
+	double y = h * 0.86;
+	cairo_move_to(cr, w * 0.10, y);
+	cairo_line_to(cr, w * 0.90, y);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.10, y);
+	cairo_line_to(cr, w * 0.20, y - 2.6);
+	cairo_line_to(cr, w * 0.20, y + 2.6);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_move_to(cr, w * 0.90, y);
+	cairo_line_to(cr, w * 0.80, y - 2.6);
+	cairo_line_to(cr, w * 0.80, y + 2.6);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_tbl_distrib_rows(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w * 0.82, h, 3, 1, nullptr, nullptr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.3);
+	double x = w * 0.9;
+	cairo_move_to(cr, x, h * 0.14);
+	cairo_line_to(cr, x, h * 0.86);
+	cairo_stroke(cr);
+	cairo_move_to(cr, x, h * 0.14);
+	cairo_line_to(cr, x - 2.4, h * 0.14 + 3.0);
+	cairo_line_to(cr, x + 2.4, h * 0.14 + 3.0);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_move_to(cr, x, h * 0.86);
+	cairo_line_to(cr, x - 2.4, h * 0.86 - 3.0);
+	cairo_line_to(cr, x + 2.4, h * 0.86 - 3.0);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_tbl_distrib_cols(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w, h * 0.82, 1, 3, nullptr, nullptr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.3);
+	double y = h * 0.9;
+	cairo_move_to(cr, w * 0.14, y);
+	cairo_line_to(cr, w * 0.86, y);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.14, y);
+	cairo_line_to(cr, w * 0.14 + 3.0, y - 2.4);
+	cairo_line_to(cr, w * 0.14 + 3.0, y + 2.4);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_move_to(cr, w * 0.86, y);
+	cairo_line_to(cr, w * 0.86 - 3.0, y - 2.4);
+	cairo_line_to(cr, w * 0.86 - 3.0, y + 2.4);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+/* cell-alignment glyph: cell box with a text tick at (hc, vc) */
+static void _glyph_cellalign_impl(cairo_t * cr, double w, double h,
+								  int hc, int vc)
+{
+	cairo_set_source_rgb(cr, 0.45, 0.55, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	double m = 2.0;
+	cairo_rectangle(cr, m, m, w - 2 * m, h - 2 * m);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.25, 0.3, 0.4);
+	cairo_set_line_width(cr, 1.4);
+	double x0 = m + 2.5 + hc * (w - 2 * m - 8.0) / 2.0;
+	double y = m + 3.0 + vc * (h - 2 * m - 6.0) / 2.0;
+	cairo_move_to(cr, x0, y);
+	cairo_line_to(cr, x0 + 5.5, y);
+	cairo_stroke(cr);
+}
+
+static void _glyph_ca_tl(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 0, 0); }
+static void _glyph_ca_tc(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 1, 0); }
+static void _glyph_ca_tr(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 2, 0); }
+static void _glyph_ca_cl(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 0, 1); }
+static void _glyph_ca_cc(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 1, 1); }
+static void _glyph_ca_cr(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 2, 1); }
+static void _glyph_ca_bl(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 0, 2); }
+static void _glyph_ca_bc(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 1, 2); }
+static void _glyph_ca_br(cairo_t * cr, double w, double h)
+{ _glyph_cellalign_impl(cr, w, h, 2, 2); }
+
+static void _glyph_textdir(cairo_t * cr, double w, double h)
+{
+	/* horizontal lines + a rotated text bar */
+	cairo_set_source_rgb(cr, 0.45, 0.55, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	cairo_rectangle(cr, 2.0, 2.0, w - 4.0, h - 4.0);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_set_line_width(cr, 1.1);
+	for (int i = 0; i < 3; ++i)
+	{
+		double y = 5.0 + i * 3.4;
+		cairo_move_to(cr, 4.0, y);
+		cairo_line_to(cr, w * 0.55, y);
+	}
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	for (int i = 0; i < 3; ++i)
+	{
+		double x = w * 0.68 + i * 3.4;
+		cairo_move_to(cr, x, 4.0);
+		cairo_line_to(cr, x, h - 4.0);
+	}
+	cairo_stroke(cr);
+}
+
+static void _glyph_cellmargins(cairo_t * cr, double w, double h)
+{
+	/* cell with inset margin ticks */
+	cairo_set_source_rgb(cr, 0.45, 0.55, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	cairo_rectangle(cr, 2.0, 2.0, w - 4.0, h - 4.0);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	static const double dash3[] = { 1.8, 1.4 };
+	cairo_set_dash(cr, dash3, 2, 0);
+	cairo_rectangle(cr, 5.0, 5.0, w - 10.0, h - 10.0);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, nullptr, 0, 0);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	cairo_move_to(cr, 6.5, h * 0.5 - 1.5);
+	cairo_line_to(cr, w - 6.5, h * 0.5 - 1.5);
+	cairo_move_to(cr, 6.5, h * 0.5 + 1.5);
+	cairo_line_to(cr, w - 6.5, h * 0.5 + 1.5);
+	cairo_stroke(cr);
+}
+
+static void _glyph_tbl_sort(cairo_t * cr, double w, double h)
+{
+	/* A over Z with a downward arrow */
+	cairo_set_source_rgb(cr, 0.25, 0.3, 0.4);
+	cairo_set_line_width(cr, 1.3);
+	double ax = w * 0.16, ay = h * 0.16;
+	cairo_move_to(cr, ax, ay + h * 0.22);
+	cairo_line_to(cr, ax + w * 0.10, ay);
+	cairo_line_to(cr, ax + w * 0.20, ay + h * 0.22);
+	cairo_move_to(cr, ax + w * 0.05, ay + h * 0.15);
+	cairo_line_to(cr, ax + w * 0.15, ay + h * 0.15);
+	cairo_stroke(cr);
+	double zx = w * 0.16, zy = h * 0.60;
+	cairo_move_to(cr, zx, zy);
+	cairo_line_to(cr, zx + w * 0.20, zy);
+	cairo_line_to(cr, zx, zy + h * 0.22);
+	cairo_line_to(cr, zx + w * 0.20, zy + h * 0.22);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	double x = w * 0.68;
+	cairo_move_to(cr, x, h * 0.14);
+	cairo_line_to(cr, x, h * 0.78);
+	cairo_stroke(cr);
+	cairo_move_to(cr, x, h * 0.88);
+	cairo_line_to(cr, x - 2.8, h * 0.70);
+	cairo_line_to(cr, x + 2.8, h * 0.70);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_tbl_repeatrows(cairo_t * cr, double w, double h)
+{
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	double cw, ch;
+	_tbl_grid(cr, w * 0.86, h, 3, 2, &cw, &ch);
+	/* highlighted top row + repeat arrow */
+	cairo_set_source_rgba(cr, 0.2, 0.45, 0.9, 0.35);
+	cairo_rectangle(cr, 3.0, 3.0, w * 0.86 - 4.0, ch - 1.0);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.2);
+	cairo_arc(cr, w * 0.88, h * 0.5, w * 0.09,
+			  -0.6 * M_PI, 0.9 * M_PI);
+	cairo_stroke(cr);
+	double ex = w * 0.88 + w * 0.09 * cos(0.9 * M_PI);
+	double ey = h * 0.5 + w * 0.09 * sin(0.9 * M_PI);
+	cairo_move_to(cr, ex, ey);
+	cairo_line_to(cr, ex - 2.6, ey - 1.0);
+	cairo_line_to(cr, ex + 0.4, ey - 2.8);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
+static void _glyph_tbl_totext(cairo_t * cr, double w, double h)
+{
+	/* grid on the left, text lines on the right */
+	cairo_set_source_rgb(cr, 0.35, 0.5, 0.75);
+	_tbl_grid(cr, w * 0.55, h * 0.8, 2, 2, nullptr, nullptr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.1);
+	cairo_move_to(cr, w * 0.52, h * 0.40);
+	cairo_line_to(cr, w * 0.68, h * 0.40);
+	cairo_stroke(cr);
+	cairo_move_to(cr, w * 0.68, h * 0.40);
+	cairo_line_to(cr, w * 0.62, h * 0.40 - 2.2);
+	cairo_line_to(cr, w * 0.62, h * 0.40 + 2.2);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
+	for (int i = 0; i < 3; ++i)
+	{
+		double y = h * 0.28 + i * h * 0.22;
+		cairo_move_to(cr, w * 0.74, y);
+		cairo_line_to(cr, w * 0.94, y);
+	}
+	cairo_stroke(cr);
+}
+
 static void _glyph_arrange(cairo_t * cr, double w, double h)
 {
 	/* four small tiled windows */
@@ -3904,6 +4401,36 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BLANKPAGE:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGEBREAK:
 	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_FORMAT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_VIEW_GRIDLINES:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DRAW:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ERASE:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_AFTER:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_MERGE_CELLS:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_CELLS:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_TABLE:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_ROWS:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_COLS:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPLEFT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPCENTER:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPRIGHT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERLEFT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTER:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTLEFT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTCENTER:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTRIGHT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TEXT_DIRECTION:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_CELL_MARGINS:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT:
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SHAPES:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ICONS:
@@ -4104,6 +4631,126 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
 		spec.bare = true;
 		extra = _glyph_table;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT:
+		spec.bare = true;
+		extra = _glyph_tbl_select;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE:
+		spec.bare = true;
+		extra = _glyph_tbl_delete;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_FORMAT:
+		spec.bare = true;
+		extra = _glyph_tbl_props;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_VIEW_GRIDLINES:
+		spec.bare = true;
+		extra = _glyph_gridlines;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DRAW:
+		spec.bare = true;
+		extra = _glyph_pencil;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ERASE:
+		spec.bare = true;
+		extra = _glyph_eraser;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE:
+		spec.bare = true;
+		extra = _glyph_tbl_insabove;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_AFTER:
+		spec.bare = true;
+		extra = _glyph_tbl_insbelow;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE:
+		spec.bare = true;
+		extra = _glyph_tbl_insleft;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER:
+		spec.bare = true;
+		extra = _glyph_tbl_insright;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_MERGE_CELLS:
+		spec.bare = true;
+		extra = _glyph_tbl_merge;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_CELLS:
+		spec.bare = true;
+		extra = _glyph_tbl_splitcells;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_TABLE:
+		spec.bare = true;
+		extra = _glyph_tbl_splittable;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT:
+		spec.bare = true;
+		extra = _glyph_tbl_autofit;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_ROWS:
+		spec.bare = true;
+		extra = _glyph_tbl_distrib_rows;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_COLS:
+		spec.bare = true;
+		extra = _glyph_tbl_distrib_cols;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPLEFT:
+		spec.bare = true;
+		extra = _glyph_ca_tl;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPCENTER:
+		spec.bare = true;
+		extra = _glyph_ca_tc;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPRIGHT:
+		spec.bare = true;
+		extra = _glyph_ca_tr;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERLEFT:
+		spec.bare = true;
+		extra = _glyph_ca_cl;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTER:
+		spec.bare = true;
+		extra = _glyph_ca_cc;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT:
+		spec.bare = true;
+		extra = _glyph_ca_cr;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTLEFT:
+		spec.bare = true;
+		extra = _glyph_ca_bl;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTCENTER:
+		spec.bare = true;
+		extra = _glyph_ca_bc;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTRIGHT:
+		spec.bare = true;
+		extra = _glyph_ca_br;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TEXT_DIRECTION:
+		spec.bare = true;
+		extra = _glyph_textdir;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_CELL_MARGINS:
+		spec.bare = true;
+		extra = _glyph_cellmargins;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT:
+		spec.bare = true;
+		extra = _glyph_tbl_sort;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT:
+		spec.bare = true;
+		extra = _glyph_tbl_repeatrows;
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT:
+		spec.bare = true;
+		extra = _glyph_tbl_totext;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
 		spec.bare = true;
@@ -6948,6 +7595,126 @@ GtkWidget * AP_UnixRibbon::_makeWindowPopover()
 	return popover;
 }
 
+/* ================= Table Layout tab: contextual popovers =========== */
+
+GtkWidget * AP_UnixRibbon::_makeTableSelectPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_CELL);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_COLUMN);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_ROW);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_TABLE);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeTableDeletePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_COLUMNS);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_ROWS);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_CELLS);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_TABLE);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeTableAutoFitPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT_CONTENTS);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT_WINDOW);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT_FIXED);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeTableSortPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Sort Rows"));
+	w = _presetRow("Ascending", "Sort rows A to Z by the current column",
+				   nullptr, "sortTable", "asc");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Descending", "Sort rows Z to A by the current column",
+				   nullptr, "sortTable", "desc");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Options"));
+	w = _presetRow("Keep Header Row", "Sort, leaving the first row in place",
+				   nullptr, "sortTable", "asc:h");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeTableToTextPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Separate text with"));
+	w = _presetRow("Paragraph marks", "Each cell becomes its own paragraph",
+				   nullptr, "tableToTextParas", nullptr);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Tabs", "One line per row, cells separated by tabs",
+				   nullptr, "tableToTextTabs", nullptr);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Commas", "One line per row, cells separated by commas",
+				   nullptr, "tableToTextCommas", nullptr);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeTableTextDirPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	w = _presetRow("Left to Right", "Normal horizontal text direction",
+				   nullptr, "cellTextDirection", "ltr");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Right to Left", "Right-to-left horizontal text direction",
+				   nullptr, "cellTextDirection", "rtl");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makeCellMarginsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	w = _presetRow("Custom Margins\xE2\x80\xA6",
+				   "Set cell padding in the Format Table dialog",
+				   nullptr, "formatTable", nullptr);
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
 /* render a LaTeX fragment to a GtkPicture preview tile */
 GtkWidget * AP_UnixRibbon::_equationPreview(const char * szLatex,
 											int w, int h)
@@ -8667,9 +9434,16 @@ GtkWidget * AP_UnixRibbon::_makeSourcesPopover()
 struct _SpinCtx
 {
 	AP_UnixRibbon * self;
-	const char *  prop;	/* block property name (static storage) */
+	const char *  prop;	/* block property name (static storage);
+						 * nullptr = cell-size spin, see method */
+	const char *  method; /* edit method to invoke; paraProp uses
+						   * "prop:value", cell spins get "value" */
 	UT_Dimension  unit;	/* display unit */
 	guint		  idleId;
+	double		  pendingValue; /* value at last user change */
+	bool		  hasPending;
+	double		  lastApplied; /* last value pushed to the document */
+	PT_DocPosition targetPos; /* caret position when the spin got focus */
 };
 
 static void _spin_ctx_free(gpointer p)
@@ -8678,6 +9452,31 @@ static void _spin_ctx_free(gpointer p)
 	if (c->idleId)
 		g_source_remove(c->idleId);
 	delete c;
+}
+
+/* read what the user sees: the entry text (committed or not), with
+ * the spin's numeric value as fallback */
+static double _spin_displayed_value(GtkWidget * spin, double dFallback)
+{
+	const char * txt = gtk_editable_get_text(GTK_EDITABLE(spin));
+	if (txt && *txt)
+	{
+		std::string s(txt);
+		for (auto & ch : s)
+		{
+			if (ch == ',')
+			{
+				ch = '.';
+			}
+		}
+		char * end = nullptr;
+		double v = g_ascii_strtod(s.c_str(), &end);
+		if (end && end != s.c_str())
+		{
+			return v;
+		}
+	}
+	return dFallback;
 }
 
 gboolean AP_UnixRibbon::_s_spin_apply(gpointer data)
@@ -8690,11 +9489,58 @@ gboolean AP_UnixRibbon::_s_spin_apply(gpointer data)
 	if (c->self->m_bSpinUpdating)
 		return G_SOURCE_REMOVE;
 
-	double v = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spin));
+	/* GTK does not reliably emit value-changed for text typed into the
+	 * entry, so parse the displayed text ourselves */
+	double v = _spin_displayed_value(
+		spin, c->hasPending ? c->pendingValue
+							: gtk_spin_button_get_value(
+								  GTK_SPIN_BUTTON(spin)));
+	c->hasPending = false;
+	/* identical applies are no-ops; deduping them also breaks any
+	 * apply->refresh->changed feedback loop */
+	if (fabs(v - c->lastApplied) < 0.005)
+	{
+		return G_SOURCE_REMOVE;
+	}
+	c->lastApplied = v;
+	/* dimension strings always use '.' decimals regardless of locale */
+	char num[32];
+	g_ascii_formatd(num, sizeof(num), "%.2f", v);
 	char buf[128];
-	snprintf(buf, sizeof(buf), "%s:%.2f%s", c->prop, v,
-			 UT_dimensionName(c->unit));
-	c->self->_invokeEditMethod("paraProp", buf);
+	if (c->prop)
+		snprintf(buf, sizeof(buf), "%s:%s%s", c->prop, num,
+				 UT_dimensionName(c->unit));
+	else
+		snprintf(buf, sizeof(buf), "%s%s", num,
+				 UT_dimensionName(c->unit));
+
+	/* the apply notifies listeners which refresh the spin fields;
+	 * guard so those writes cannot re-enter the apply path */
+	bool bWasUpdating = c->self->m_bSpinUpdating;
+	c->self->m_bSpinUpdating = true;
+
+	/* Cell-size spins target the table the caret was in when the field
+	 * was focused - the commit click may already have moved the caret
+	 * out of the table, so go through the position-taking commands
+	 * directly instead of the caret-based edit methods */
+	if (!c->prop)
+	{
+		FV_View * pFV = static_cast<FV_View *>(
+			c->self->m_pFrame ? c->self->m_pFrame->getCurrentView()
+							  : nullptr);
+		if (pFV)
+		{
+			if (!strcmp(c->method, "tableCellHeight"))
+				pFV->cmdTableRowHeight(buf, c->targetPos);
+			else if (!strcmp(c->method, "tableCellWidth"))
+				pFV->cmdTableColWidth(buf, c->targetPos);
+		}
+	}
+	else
+	{
+		c->self->_invokeEditMethod(c->method, buf);
+	}
+	c->self->m_bSpinUpdating = bWasUpdating;
 	return G_SOURCE_REMOVE;
 }
 
@@ -8705,7 +9551,23 @@ void AP_UnixRibbon::_s_spin_changed(GtkSpinButton * spin, gpointer /*data*/)
 	UT_return_if_fail(c);
 	if (c->self->m_bSpinUpdating)
 		return;
-	/* debounce so typing "12.5" doesn't reformat per keystroke */
+	/* only remember the value - never apply from here. GTK emits
+	 * value-changed from refresh writes and internal commit paths as
+	 * well, and applying those feeds a write->readback loop. The real
+	 * apply happens on text-changed (typing), focus-out or activate */
+	c->pendingValue = gtk_spin_button_get_value(spin);
+	c->hasPending = true;
+}
+
+/* typed text (before GTK commits it to a value): debounce, then apply */
+void AP_UnixRibbon::_s_spin_text_changed(GtkEditable * ed, gpointer /*data*/)
+{
+	GtkWidget * spin = GTK_WIDGET(ed);
+	_SpinCtx * c = static_cast<_SpinCtx *>(
+		g_object_get_data(G_OBJECT(spin), "spin-ctx"));
+	UT_return_if_fail(c);
+	if (c->self->m_bSpinUpdating)
+		return;
 	if (c->idleId)
 		g_source_remove(c->idleId);
 	c->idleId = g_timeout_add(350, _s_spin_apply, spin);
@@ -8741,10 +9603,62 @@ static void _s_spacing_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 	cairo_fill(cr);
 }
 
+/* Cell Size spin glyphs: a small table with a double-headed arrow
+ * across the column (width) or down the row (height) */
+static void _s_cellsize_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+								  int w, int h, gpointer data)
+{
+	bool bHoriz = GPOINTER_TO_INT(data) != 0;
+	cairo_set_source_rgb(cr, 0.45, 0.55, 0.75);
+	cairo_set_line_width(cr, 1.0);
+	double m = 2.0;
+	cairo_rectangle(cr, m, m + 2, w - 2 * m, h - 2 * m - 4);
+	cairo_move_to(cr, m, m + 2 + (h - 2 * m - 4) / 2.0);
+	cairo_line_to(cr, w - m, m + 2 + (h - 2 * m - 4) / 2.0);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.1);
+	if (bHoriz)
+	{
+		double y = h - 3.0;
+		cairo_move_to(cr, m + 1, y);
+		cairo_line_to(cr, w - m - 1, y);
+		cairo_stroke(cr);
+		cairo_move_to(cr, m + 1, y);
+		cairo_line_to(cr, m + 4, y - 2);
+		cairo_line_to(cr, m + 4, y + 2);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+		cairo_move_to(cr, w - m - 1, y);
+		cairo_line_to(cr, w - m - 4, y - 2);
+		cairo_line_to(cr, w - m - 4, y + 2);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+	}
+	else
+	{
+		double x = w - 3.0;
+		cairo_move_to(cr, x, m + 3);
+		cairo_line_to(cr, x, h - m - 1);
+		cairo_stroke(cr);
+		cairo_move_to(cr, x, m + 3);
+		cairo_line_to(cr, x - 2, m + 6);
+		cairo_line_to(cr, x + 2, m + 6);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+		cairo_move_to(cr, x, h - m - 1);
+		cairo_line_to(cr, x - 2, h - m - 4);
+		cairo_line_to(cr, x + 2, h - m - 4);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+	}
+}
+
 GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 {
 	const char * prop;
 	const char * label;
+	const char * method = "paraProp";
 	UT_Dimension unit;
 	switch (spinId)
 	{
@@ -8760,16 +9674,33 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 	case AP_RIBBON_SPIN_AFTER:
 		prop = "margin-bottom"; label = "After:";  unit = DIM_PT;
 		break;
+	case AP_RIBBON_SPIN_CELL_HEIGHT:
+		prop = nullptr; label = "Height:"; unit = _ruler_units();
+		method = "tableCellHeight";
+		break;
+	case AP_RIBBON_SPIN_CELL_WIDTH:
+		prop = nullptr; label = "Width:";  unit = _ruler_units();
+		method = "tableCellWidth";
+		break;
 	default:
 		return nullptr;
 	}
 
-	_SpinCtx * c = new _SpinCtx{ this, prop, unit, 0 };
+	_SpinCtx * c = new _SpinCtx{ this, prop, method, unit, 0, 0.0, false, -1.0, 0 };
 
 	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_widget_set_valign(row, GTK_ALIGN_CENTER);
 	GtkWidget * icon;
-	if (spinId == AP_RIBBON_SPIN_BEFORE || spinId == AP_RIBBON_SPIN_AFTER)
+	if (spinId == AP_RIBBON_SPIN_CELL_HEIGHT ||
+		spinId == AP_RIBBON_SPIN_CELL_WIDTH)
+	{
+		icon = gtk_drawing_area_new();
+		gtk_widget_set_size_request(icon, 16, 16);
+		gtk_drawing_area_set_draw_func(
+			GTK_DRAWING_AREA(icon), _s_cellsize_icon_draw,
+			GINT_TO_POINTER(spinId == AP_RIBBON_SPIN_CELL_WIDTH), nullptr);
+	}
+	else if (spinId == AP_RIBBON_SPIN_BEFORE || spinId == AP_RIBBON_SPIN_AFTER)
 	{
 		icon = gtk_drawing_area_new();
 		gtk_widget_set_size_request(icon, 16, 16);
@@ -8804,11 +9735,52 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 	g_object_set_data_full(G_OBJECT(spin), "spin-ctx", c, _spin_ctx_free);
 	g_signal_connect(spin, "value-changed",
 					 G_CALLBACK(_s_spin_changed), this);
+	g_signal_connect(spin, "changed",
+					 G_CALLBACK(_s_spin_text_changed), this);
+	/* Return inside the entry must commit the typed text so that
+	 * value-changed fires even without a focus change */
+	g_signal_connect(spin, "activate",
+					 G_CALLBACK(+[](GtkSpinButton * s, gpointer) {
+						 gtk_spin_button_update(s);
+						 _s_spin_apply(s);
+					 }), nullptr);
+	GtkEventController * spinKeys = gtk_event_controller_key_new();
+	g_signal_connect(spinKeys, "key-pressed",
+					 G_CALLBACK(+[](GtkEventControllerKey *,
+									guint keyval, guint, GdkModifierType,
+									gpointer s) -> gboolean {
+						 if (keyval == GDK_KEY_Return ||
+							 keyval == GDK_KEY_KP_Enter)
+						 {
+							 gtk_spin_button_update(GTK_SPIN_BUTTON(s));
+						 }
+						 return FALSE;
+					 }), spin);
+	gtk_widget_add_controller(spin, spinKeys);
+	/* remember the caret position at focus time; the apply may run
+	 * after the user clicked outside the table to commit the value */
+	GtkEventController * focusKeys = gtk_event_controller_focus_new();
+	g_signal_connect(focusKeys, "enter",
+					 G_CALLBACK(+[](GtkEventControllerFocus *, gpointer p) {
+						 _SpinCtx * cc = static_cast<_SpinCtx *>(p);
+						 FV_View * v = static_cast<FV_View *>(
+							 cc->self->m_pFrame
+								 ? cc->self->m_pFrame->getCurrentView()
+								 : nullptr);
+						 cc->targetPos =
+							 (v && v->isInTable()) ? v->getPoint() : 0;
+					 }), c);
+	g_signal_connect(focusKeys, "leave",
+					 G_CALLBACK(+[](GtkEventControllerFocus *,
+									gpointer p) {
+						 _s_spin_apply(static_cast<gpointer>(p));
+					 }), spin);
+	gtk_widget_add_controller(spin, focusKeys);
 	gtk_box_append(GTK_BOX(row), spin);
 	gtk_box_append(GTK_BOX(row),
 				   gtk_label_new(unit == DIM_PT ? "pt" : UT_dimensionName(unit)));
 
-	_SpinField * f = new _SpinField{ spin, prop };
+	_SpinField * f = new _SpinField{ spin, prop, spinId };
 	m_vecSpins.addItem(f);
 	return row;
 }
@@ -8824,6 +9796,11 @@ void AP_UnixRibbon::_refreshSpinFields()
 	PP_PropertyVector props;
 	bool ok = pView && pView->getBlockFormat(props);
 
+	/* caret cell's row height / column width for the Cell Size spins */
+	double dCellH = 0.0, dCellW = 0.0;
+	bool bCell = pView && pView->getTableCellDims(
+		DIM_IN, dCellH, dCellW);
+
 	m_bSpinUpdating = true;
 	for (UT_sint32 i = 0; i < m_vecSpins.getItemCount(); ++i)
 	{
@@ -8831,14 +9808,23 @@ void AP_UnixRibbon::_refreshSpinFields()
 		_SpinCtx * c = static_cast<_SpinCtx *>(
 			g_object_get_data(G_OBJECT(f->spin), "spin-ctx"));
 		double v = 0.0;
-		if (ok)
+		bool bSens = ok;
+		if (!f->prop)
+		{
+			/* Cell Size spins: show the caret cell's dimensions,
+			 * insensitive outside a table */
+			v = (f->spinId == AP_RIBBON_SPIN_CELL_WIDTH) ? dCellW : dCellH;
+			v = UT_convertInchesToDimension(v, c->unit);
+			bSens = bCell;
+		}
+		else if (ok)
 		{
 			const std::string & s = PP_getAttribute(f->prop, props);
 			if (!s.empty())
 				v = UT_convertToDimension(s.c_str(), c->unit);
 		}
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(f->spin), v);
-		gtk_widget_set_sensitive(f->spin, ok);
+		gtk_widget_set_sensitive(f->spin, bSens);
 	}
 	m_bSpinUpdating = false;
 }
@@ -9838,7 +10824,14 @@ void AP_UnixRibbon::_refreshContextualTabs()
 {
 	FV_View * view = static_cast<FV_View *>(
 		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
-	bool bInTable = view && view->isInTable();
+	/* isInTable() needs both selection ends inside; during a whole-cell
+	 * selection the anchor sits on the table strux itself, where the
+	 * piece-table check fails but the layout lookup still resolves */
+	bool bInTable = view &&
+		(view->isInTable() ||
+		 view->getTableAtPos(view->getPoint()) ||
+		 (!view->isSelectionEmpty() &&
+		  view->getTableAtPos(view->getSelectionAnchor())));
 	bool bInMath = view && view->isInMath();
 
 	UT_sint32 count = m_vecContextualPages.getItemCount();
@@ -9857,12 +10850,34 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		GtkWidget * cur = gtk_notebook_get_nth_page(
 			GTK_NOTEBOOK(m_wNotebook),
 			gtk_notebook_get_current_page(GTK_NOTEBOOK(m_wNotebook)));
+		const char * curKey = cur ? static_cast<const char *>(
+			g_object_get_data(G_OBJECT(cur), "abi-ctx-key")) : nullptr;
 		const bool wasCurrent = (cur == page);
+		const bool curIsCtx = (curKey != nullptr);
+		const bool wasVisible = gtk_widget_get_visible(page);
 
 		gtk_widget_set_visible(page, vis);
 
-		if (!vis && wasCurrent)
+		if (vis && !wasVisible && !curIsCtx)
 		{
+			/* entering the context: pull the freshly-appeared tab
+			 * to the front (Word's contextual-tab behaviour) unless
+			 * another contextual tab is already current */
+			int n = gtk_notebook_get_n_pages(GTK_NOTEBOOK(m_wNotebook));
+			for (int j = 0; j < n; ++j)
+			{
+				if (gtk_notebook_get_nth_page(GTK_NOTEBOOK(m_wNotebook),
+											  j) == page)
+				{
+					gtk_notebook_set_current_page(
+						GTK_NOTEBOOK(m_wNotebook), j);
+					break;
+				}
+			}
+		}
+		else if (!vis && wasCurrent)
+		{
+			/* leaving the context: land back on Home */
 			int n = gtk_notebook_get_n_pages(GTK_NOTEBOOK(m_wNotebook));
 			for (int j = 0; j < n; ++j)
 			{
@@ -9870,7 +10885,7 @@ void AP_UnixRibbon::_refreshContextualTabs()
 					GTK_NOTEBOOK(m_wNotebook), j);
 				const char * tk = static_cast<const char *>(
 					g_object_get_data(G_OBJECT(p), "abi-tab-key"));
-				if (tk && !strcmp(tk, "insert"))
+				if (tk && !strcmp(tk, "home"))
 				{
 					gtk_notebook_set_current_page(
 						GTK_NOTEBOOK(m_wNotebook), j);

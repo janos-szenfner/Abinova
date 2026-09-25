@@ -42,6 +42,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <execinfo.h>
 #include <X11/Xlib.h>
 #include <glib.h>
 
@@ -1504,6 +1505,10 @@ void AP_UnixApp::catchSignals(int /*sig_num*/)
     // Reset the signal handler
     // (not that it matters - this is mostly for race conditions)
     signal(SIGSEGV, &XAP_App::signalWrapper);
+
+	void * frames[80];
+	int nfr = backtrace(frames, 80);
+	backtrace_symbols_fd(frames, nfr, STDERR_FILENO);
 
     s_signal_count = s_signal_count + 1;
     if(s_signal_count > 1)

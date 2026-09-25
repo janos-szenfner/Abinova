@@ -72,7 +72,9 @@ enum AP_RibbonSpinId : uint8_t
 	AP_RIBBON_SPIN_INDENT_LEFT = 0,
 	AP_RIBBON_SPIN_INDENT_RIGHT,
 	AP_RIBBON_SPIN_BEFORE,
-	AP_RIBBON_SPIN_AFTER
+	AP_RIBBON_SPIN_AFTER,
+	AP_RIBBON_SPIN_CELL_HEIGHT,
+	AP_RIBBON_SPIN_CELL_WIDTH
 };
 
 /* ids for AP_RIBBON_ITEM_DEAD rows - not menu/toolbar ids */
@@ -105,9 +107,12 @@ enum AP_RibbonItemFlags : uint8_t
 									 * separate arrow, no action on the
 									 * button itself) */
 	AP_RIBBON_FLAG_SLIM		= 1 << 5,	/* reduced button padding */
-	AP_RIBBON_FLAG_EVEN		= 1 << 6	/* shares a homogeneous box with
+	AP_RIBBON_FLAG_EVEN		= 1 << 6,	/* shares a homogeneous box with
 									 * adjacent EVEN items so they all
 									 * get the same width */
+	AP_RIBBON_FLAG_WRAP		= 1 << 7	/* caption wraps to two lines so
+									 * compact buttons stay narrow
+									 * ("Insert\nAbove") */
 };
 
 #define AP_RIBBON_ROWEND	{ AP_RIBBON_ITEM_ROWEND,  AP_RIBBON_FLAG_NONE,     0 }
@@ -121,6 +126,7 @@ enum AP_RibbonItemFlags : uint8_t
 #define AP_RIBBON_MENUPOP_G(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_I(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_S(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
+#define AP_RIBBON_MENUPOP_W(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_MENUPOP | AP_RIBBON_FLAG_WRAP | AP_RIBBON_FLAG_SLIM), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_GSE(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_MENUPOP | AP_RIBBON_FLAG_SLIM | AP_RIBBON_FLAG_EVEN), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_TB(x)	{ AP_RIBBON_ITEM_TOOLBAR,  (uint8_t)(AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
 #define AP_RIBBON_MENUPOP_L(x)	{ AP_RIBBON_ITEM_MENU,  (uint8_t)(AP_RIBBON_FLAG_LARGE | AP_RIBBON_FLAG_MENUPOP), (uint16_t)(x) }
@@ -139,6 +145,7 @@ struct AP_RibbonItem
 #define AP_RIBBON_MENU_L(x)	{ AP_RIBBON_ITEM_MENU,    AP_RIBBON_FLAG_LARGE,    (uint16_t)(x) }
 #define AP_RIBBON_MENU_LS(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_LARGE | AP_RIBBON_FLAG_SLIM), (uint16_t)(x) }
 #define AP_RIBBON_MENU_I(x)	{ AP_RIBBON_ITEM_MENU,    AP_RIBBON_FLAG_ICONONLY, (uint16_t)(x) }
+#define AP_RIBBON_MENU_W(x)	{ AP_RIBBON_ITEM_MENU,    (uint8_t)(AP_RIBBON_FLAG_WRAP | AP_RIBBON_FLAG_SLIM), (uint16_t)(x) }
 #define AP_RIBBON_TB(x)		{ AP_RIBBON_ITEM_TOOLBAR, AP_RIBBON_FLAG_NONE,     (uint16_t)(x) }
 #define AP_RIBBON_TB_I(x)	{ AP_RIBBON_ITEM_TOOLBAR, AP_RIBBON_FLAG_ICONONLY, (uint16_t)(x) }
 #define AP_RIBBON_GALLERY	{ AP_RIBBON_ITEM_STYLEGAL,AP_RIBBON_FLAG_NONE,     0 }
@@ -599,53 +606,77 @@ static const AP_RibbonGroup s_ribbon_view_groups[] =
 	{ nullptr,	nullptr }
 };
 
-/* -------------------------------------------- Table (contextual tab) --- */
+/* ------------------------------------ Table Layout (contextual tab) --- */
 
-static const AP_RibbonItem s_ribbon_table_insert[] =
+static const AP_RibbonItem s_ribbon_table_table[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_TABLE),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_SUMCOLS),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_INSERT_SUMROWS),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_TABLE_SELECT),
+	AP_RIBBON_MENU_L(AP_MENU_ID_TABLE_VIEW_GRIDLINES),
+	AP_RIBBON_MENU_L(AP_MENU_ID_TABLE_FORMAT),
+	AP_RIBBON_MENU_L(AP_MENU_ID_TABLE_DRAW),
+	AP_RIBBON_MENU_L(AP_MENU_ID_TABLE_ERASE),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_TABLE_DELETE),
 	AP_RIBBON_END
 };
 
-static const AP_RibbonItem s_ribbon_table_delete[] =
+/* row-major:  Insert Above | Insert Left  | Merge Cells
+ *             Insert Below | Insert Right | Split Cells
+ *                              -          | Split Table */
+static const AP_RibbonItem s_ribbon_table_rowscols[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_DELETE_TABLE),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_DELETE_COLUMNS),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_DELETE_ROWS),
+	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE),
+	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE),
+	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_MERGE_CELLS),
+	AP_RIBBON_ROWEND,
+	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER),
+	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER),
+	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_SPLIT_CELLS),
+	AP_RIBBON_ROWEND,
+	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_SPLIT_TABLE),
 	AP_RIBBON_END
 };
 
-static const AP_RibbonItem s_ribbon_table_select[] =
+static const AP_RibbonItem s_ribbon_table_align[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SELECT_TABLE),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SELECT_COLUMN),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SELECT_ROW),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_TOPLEFT),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_CENTERLEFT),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_BOTLEFT),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_TOPCENTER),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_CENTER),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_BOTCENTER),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_TOPRIGHT),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT),
+	AP_RIBBON_MENU_GSE(AP_MENU_ID_TABLE_ALIGN_BOTRIGHT),
+	AP_RIBBON_MENUPOP_W(AP_MENU_ID_TABLE_TEXT_DIRECTION),
+	AP_RIBBON_MENUPOP_W(AP_MENU_ID_TABLE_CELL_MARGINS),
 	AP_RIBBON_END
 };
 
-static const AP_RibbonItem s_ribbon_table_format[] =
+static const AP_RibbonItem s_ribbon_table_data[] =
 {
-	AP_RIBBON_MENU(AP_MENU_ID_FMT_TABLE),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_MERGE_CELLS),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_SPLIT_CELLS),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_AUTOFIT),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_TEXTTOTABLE_ALL),
-	AP_RIBBON_MENU(AP_MENU_ID_TABLE_TABLETOTEXT),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_TABLE_SORT),
+	AP_RIBBON_MENU_L(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT),
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_TABLE_TABLETOTEXT),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_table_cellsize[] =
+{
+	AP_RIBBON_MENUPOP_L(AP_MENU_ID_TABLE_AUTOFIT),
+	AP_RIBBON_SPIN(AP_RIBBON_SPIN_CELL_HEIGHT),
+	AP_RIBBON_SPIN(AP_RIBBON_SPIN_CELL_WIDTH),
+	AP_RIBBON_MENU_L(AP_MENU_ID_TABLE_DISTRIBUTE_ROWS),
+	AP_RIBBON_MENU_L(AP_MENU_ID_TABLE_DISTRIBUTE_COLS),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_table_groups[] =
 {
-	{ "insert",		s_ribbon_table_insert },
-	{ "delete",		s_ribbon_table_delete },
-	{ "select",		s_ribbon_table_select },
-	{ "format",		s_ribbon_table_format },
+	{ "table",		s_ribbon_table_table },
+	{ "rowscols",	s_ribbon_table_rowscols },
+	{ "cellsize",	s_ribbon_table_cellsize },
+	{ "align",		s_ribbon_table_align },
+	{ "data",		s_ribbon_table_data },
 	{ nullptr,		nullptr }
 };
 

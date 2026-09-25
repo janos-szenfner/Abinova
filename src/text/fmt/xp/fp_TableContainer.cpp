@@ -1652,7 +1652,8 @@ void fp_CellContainer::_drawBoundaries(dg_DrawArgs* pDA, fp_TableContainer * pBr
 			return;
 		}
 	}
-    if(getPage()->getDocLayout()->getView()->getShowPara() && getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN)){
+    FV_View * pViewGL = getPage()->getDocLayout()->getView();
+    if(pViewGL && (pViewGL->getShowPara() || pViewGL->getShowTableGridlines()) && getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN)){
         UT_sint32 xoffBegin = pDA->xoff + getX();
         UT_sint32 yoffBegin = pDA->yoff + getY();
         UT_sint32 xoffEnd = pDA->xoff + getX() + getWidth() - getGraphics()->tlu(1);
@@ -4930,7 +4931,8 @@ void  fp_TableContainer::_drawBoundaries(dg_DrawArgs* pDA)
 	{
 		iWidth = getWidth();
 	}
-    if(getPage()->getDocLayout()->getView()->getShowPara() && getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN)){
+    FV_View * pViewGL = getPage()->getDocLayout()->getView();
+    if(pViewGL && (pViewGL->getShowPara() || pViewGL->getShowTableGridlines()) && getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN)){
   	    fl_TableLayout * pTL = static_cast<fl_TableLayout *>(getSectionLayout());
         UT_sint32 xoffBegin = pDA->xoff - 1;
         UT_sint32 yoffBegin = pDA->yoff - 1;
@@ -5305,7 +5307,8 @@ void fp_TableContainer::_drawBrokenBoundaries(dg_DrawArgs* pDA)
 		return;
 	}
 
-    if(getPage()->getDocLayout()->getView()->getShowPara() && getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN)){
+    FV_View * pViewGL = getPage()->getDocLayout()->getView();
+    if(pViewGL && (pViewGL->getShowPara() || pViewGL->getShowTableGridlines()) && getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN)){
         UT_sint32 xoffBegin = pDA->xoff + getX();
         UT_sint32 yoffBegin = pDA->yoff;
         UT_sint32 xoffEnd = pDA->xoff + getX() + getWidth() - getGraphics()->tlu(1);

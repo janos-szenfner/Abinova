@@ -407,6 +407,35 @@ public:
 	static EV_EditMethod_Fn tableColNarrower;
 	static EV_EditMethod_Fn tableRowTaller;
 	static EV_EditMethod_Fn tableRowShorter;
+	static EV_EditMethod_Fn splitTable;
+	static EV_EditMethod_Fn cellAlignTopLeft;
+	static EV_EditMethod_Fn cellAlignTopCenter;
+	static EV_EditMethod_Fn cellAlignTopRight;
+	static EV_EditMethod_Fn cellTextDirection;
+	static EV_EditMethod_Fn cellAlignCenterLeft;
+	static EV_EditMethod_Fn cellAlignCenter;
+	static EV_EditMethod_Fn cellAlignCenterRight;
+	static EV_EditMethod_Fn cellAlignBottomLeft;
+	static EV_EditMethod_Fn cellAlignBottomCenter;
+	static EV_EditMethod_Fn cellAlignBottomRight;
+	static EV_EditMethod_Fn autoFitTableWindow;
+	static EV_EditMethod_Fn autoFitTableFixed;
+	static EV_EditMethod_Fn distributeTableCols;
+	static EV_EditMethod_Fn distributeTableRows;
+	static EV_EditMethod_Fn tableCellWidth;
+	static EV_EditMethod_Fn tableCellHeight;
+	static EV_EditMethod_Fn sortTable;
+	static EV_EditMethod_Fn repeatHeaderRows;
+	static EV_EditMethod_Fn tableToTextParas;
+	static EV_EditMethod_Fn toggleTableGridlines;
+	static EV_EditMethod_Fn toggleDrawTable;
+	static EV_EditMethod_Fn toggleTableEraser;
+	static EV_EditMethod_Fn beginTableDraw;
+	static EV_EditMethod_Fn dragTableDraw;
+	static EV_EditMethod_Fn endTableDraw;
+	static EV_EditMethod_Fn eraseTableBorder;
+	static EV_EditMethod_Fn cursorTableDraw;
+	static EV_EditMethod_Fn cursorTableEraser;
 
         static EV_EditMethod_Fn repeatThisRow;
         static EV_EditMethod_Fn removeThisRowRepeat;
@@ -931,9 +960,12 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(arrangeAll), 0, ""),
 	EV_EditMethod(NF(arrangePosition),		0,	""),
 	EV_EditMethod(NF(autoFitTable),         0,      ""),
+	EV_EditMethod(NF(autoFitTableFixed),    0,      ""),
+	EV_EditMethod(NF(autoFitTableWindow),   0,      ""),
 
 	// b
 	EV_EditMethod(NF(beginHDrag), 0, ""),
+	EV_EditMethod(NF(beginTableDraw), 0, ""),
 	EV_EditMethod(NF(beginVDrag), 0, ""),
 	EV_EditMethod(NF(btn0Frame), 0, ""),
 	EV_EditMethod(NF(btn0InlineImage), 0, ""),
@@ -950,6 +982,16 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(caseTitle),			0,	""),
 	EV_EditMethod(NF(caseToggle),			0,	""),
 	EV_EditMethod(NF(caseUpper),			0,	""),
+	EV_EditMethod(NF(cellAlignBottomCenter),0,	""),
+	EV_EditMethod(NF(cellAlignBottomLeft),	0,	""),
+	EV_EditMethod(NF(cellAlignBottomRight),	0,	""),
+	EV_EditMethod(NF(cellAlignCenter),		0,	""),
+	EV_EditMethod(NF(cellAlignCenterLeft),	0,	""),
+	EV_EditMethod(NF(cellAlignCenterRight),	0,	""),
+	EV_EditMethod(NF(cellAlignTopCenter),	0,	""),
+	EV_EditMethod(NF(cellAlignTopLeft),		0,	""),
+	EV_EditMethod(NF(cellAlignTopRight),	0,	""),
+	EV_EditMethod(NF(cellTextDirection),	_D_,""),
 	EV_EditMethod(NF(clearFormatting),		0,	""),
 	EV_EditMethod(NF(clearSetCols), 0, ""),
 	EV_EditMethod(NF(clearSetRows), 0, ""),
@@ -985,6 +1027,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(cursorLeftArrow),		0,	""),
 	EV_EditMethod(NF(cursorRightArrow), 	0,	""),
 	EV_EditMethod(NF(cursorTOC), 	0,	""),
+	EV_EditMethod(NF(cursorTableDraw), 	0,	""),
+	EV_EditMethod(NF(cursorTableEraser), 	0,	""),
 	EV_EditMethod(NF(cursorTopCell), 	0,	""),
 	EV_EditMethod(NF(cursorVline), 	        0,	""),
 	EV_EditMethod(NF(cut),					0,	""),
@@ -1018,6 +1062,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(deleteRows),   		0,	""),
 	EV_EditMethod(NF(deleteTable),   		0,	""),
 	EV_EditMethod(NF(deleteXMLID),  		0,	""),
+	EV_EditMethod(NF(distributeTableCols),	0,	""),
+	EV_EditMethod(NF(distributeTableRows),	0,	""),
 	EV_EditMethod(NF(dlgAbout), 			_A_, ""),
 	EV_EditMethod(NF(dlgBackground),		0,	""),
 	EV_EditMethod(NF(dlgBorders),			0,	""),
@@ -1058,6 +1104,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dragFrame), 			0,	""),
 	EV_EditMethod(NF(dragHline), 			0,	""),
 	EV_EditMethod(NF(dragInlineImage),		0,	""),
+	EV_EditMethod(NF(dragTableDraw), 		0,	""),
 	EV_EditMethod(NF(dragToXY), 			0,	""),
 	EV_EditMethod(NF(dragToXYword), 		0,	""),
 	EV_EditMethod(NF(dragVisualText),       0, ""),
@@ -1080,10 +1127,12 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(endDrag),				0,	""),
 	EV_EditMethod(NF(endDragHline),			0,	""),
 	EV_EditMethod(NF(endDragVline),			0,	""),
+	EV_EditMethod(NF(endTableDraw),			0,	""),
 	EV_EditMethod(NF(endnoteNext),			0,	""),
 	EV_EditMethod(NF(endnotePrev),			0,	""),
 	EV_EditMethod(NF(endnoteToFootnote),	0,	""),
 	EV_EditMethod(NF(equationInsertSymbol),	0,	""),
+	EV_EditMethod(NF(eraseTableBorder),		0,	""),
 	EV_EditMethod(NF(executeScript),		EV_EMT_REQUIRE_SCRIPT_NAME, ""),
 	EV_EditMethod(NF(extSelBOB),			0,	""),
 	EV_EditMethod(NF(extSelBOD),			0,	""),
@@ -1360,6 +1409,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(removeFooter), 		0,	""),
 	EV_EditMethod(NF(removeHeader), 		0,	""),
 	EV_EditMethod(NF(removeThisRowRepeat), 		0,	""),
+	EV_EditMethod(NF(repeatHeaderRows),		0,	""),
 	EV_EditMethod(NF(repeatThisRow),		0,	""),
 	EV_EditMethod(NF(replace),				0,	""),
 	EV_EditMethod(NF(replaceChar),			_D_,""),
@@ -1430,6 +1480,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(sortColsDescend),      0,  ""),
 	EV_EditMethod(NF(sortRowsAscend),       0,  ""),
 	EV_EditMethod(NF(sortRowsDescend),      0,  ""),
+	EV_EditMethod(NF(sortTable),            0,  ""),
 #ifdef ENABLE_SPELL
 	EV_EditMethod(NF(spellAdd), 			0,	""),
 	EV_EditMethod(NF(spellIgnoreAll),		0,	""),
@@ -1444,16 +1495,20 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(spellSuggest_9),		0,	""),
 #endif
 	EV_EditMethod(NF(splitCells),           0,  ""),
+	EV_EditMethod(NF(splitTable),           0,  ""),
 	EV_EditMethod(NF(startNewRevision),     0,  ""),
 	EV_EditMethod(NF(style),				_D_,""),
 
 	// t
+	EV_EditMethod(NF(tableCellHeight),		_D_,	""),
+	EV_EditMethod(NF(tableCellWidth),		_D_,	""),
 	EV_EditMethod(NF(tableColNarrower),		0,		""),
 	EV_EditMethod(NF(tableColWider),		0,		""),
 	EV_EditMethod(NF(tableRowShorter),		0,		""),
 	EV_EditMethod(NF(tableRowTaller),		0,		""),
 	EV_EditMethod(NF(tableToTextCommas),	0,		""),
 	EV_EditMethod(NF(tableToTextCommasTabs),    0,		""),
+	EV_EditMethod(NF(tableToTextParas),    0,		""),
 	EV_EditMethod(NF(tableToTextTabs),    0,		""),
 	EV_EditMethod(NF(textToTable),			0,		""),
 	EV_EditMethod(NF(textToTableCommas),		0,		""),
@@ -1476,6 +1531,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleDomDirection),	0,	""),
 	EV_EditMethod(NF(toggleDomDirectionDoc),	0,	""),
 	EV_EditMethod(NF(toggleDomDirectionSect),	0,	""),
+	EV_EditMethod(NF(toggleDrawTable),	0,	""),
 	EV_EditMethod(NF(toggleEquationDisplay),	0,	""),
 	EV_EditMethod(NF(toggleHidden),			0,	""),
 	EV_EditMethod(NF(toggleIndent),         0,  ""),
@@ -1492,6 +1548,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleStrike), 		0,	""),
 	EV_EditMethod(NF(toggleSub),			0,	""),
 	EV_EditMethod(NF(toggleSuper),			0,	""),
+	EV_EditMethod(NF(toggleTableEraser),	0,	""),
+	EV_EditMethod(NF(toggleTableGridlines),	0,	""),
 	EV_EditMethod(NF(toggleTopline),		0,	""),
 	EV_EditMethod(NF(toggleUline),			0,	""),
 	EV_EditMethod(NF(toggleUnIndent),       0,  ""),
@@ -14429,18 +14487,18 @@ Defun1(sortColsDescend)
 
 Defun1(sortRowsAscend)
 {
-	UT_UNUSED(pAV_View);
 	CHECK_FRAME;
-	//ABIWORD_VIEW;
-	return true;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdSortTableRows(true, -1, false);
 }
 
 Defun1(sortRowsDescend)
 {
-	UT_UNUSED(pAV_View);
 	CHECK_FRAME;
-	//ABIWORD_VIEW;
-	return true;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdSortTableRows(false, -1, false);
 }
 
 Defun1(paraSortAscend)
@@ -18208,6 +18266,275 @@ Defun1(autoFitTable)
 	return bres;
 }
 
+Defun1(autoFitTableWindow)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdAutoFitWindow();
+}
+
+Defun1(autoFitTableFixed)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdFixColumnWidths();
+}
+
+Defun1(distributeTableCols)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdDistributeCols();
+}
+
+Defun1(distributeTableRows)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdDistributeRows();
+}
+
+Defun1(splitTable)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdSplitTable();
+}
+
+static bool s_cellAlign(FV_View * pView, UT_sint32 iVert,
+						const char * szAlign)
+{
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdTableCellAlign(iVert, szAlign);
+}
+
+Defun1(cellAlignTopLeft)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 0, "left");
+}
+
+Defun1(cellAlignTopCenter)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 0, "center");
+}
+
+Defun1(cellAlignTopRight)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 0, "right");
+}
+
+Defun1(cellAlignCenterLeft)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 50, "left");
+}
+
+Defun1(cellAlignCenter)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 50, "center");
+}
+
+Defun1(cellAlignCenterRight)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 50, "right");
+}
+
+Defun1(cellAlignBottomLeft)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 100, "left");
+}
+
+Defun1(cellAlignBottomCenter)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 100, "center");
+}
+
+Defun1(cellAlignBottomRight)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return s_cellAlign(pView, 100, "right");
+}
+
+/*!
+ * Text Direction popover entries; pCallData is "ltr" or "rtl".
+ */
+Defun(cellTextDirection)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->cmdCellTextDirection(arg.utf8_str());
+}
+
+/*!
+ * Exact cell sizes from the Cell Size spin fields; pCallData carries a
+ * dimension string like "2.5cm".
+ */
+Defun(tableCellWidth)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->cmdTableColWidth(arg.utf8_str());
+}
+
+Defun(tableCellHeight)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->cmdTableRowHeight(arg.utf8_str());
+}
+
+/*!
+ * Table sort from the Sort popover; pCallData is
+ * "asc"/"desc", optionally with ":h" to keep a header row in place.
+ */
+Defun(sortTable)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * sz = arg.utf8_str();
+	bool bAsc = strncmp(sz, "desc", 4) != 0;
+	bool bHeader = strstr(sz, ":h") != nullptr;
+	return pView->cmdSortTableRows(bAsc, -1, bHeader);
+}
+
+Defun1(repeatHeaderRows)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdToggleRepeatHeader();
+}
+
+Defun1(tableToTextParas)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->cmdTableToText(pView->getPoint(), 3);
+	return true;
+}
+
+Defun1(toggleTableGridlines)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->setShowTableGridlines(!pView->getShowTableGridlines());
+	return true;
+}
+
+Defun1(toggleDrawTable)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->setDrawTableMode(!pView->getDrawTableMode());
+	return true;
+}
+
+Defun1(toggleTableEraser)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->setEraserMode(!pView->getEraserMode());
+	return true;
+}
+
+/* Draw Table pointer mode: drag out a rectangle, get a table on release */
+Defun(beginTableDraw)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->beginTableDraw(pCallData->m_xPos, pCallData->m_yPos);
+	pView->getGraphics()->setCursor(GR_Graphics::GR_CURSOR_CROSSHAIR);
+	return true;
+}
+
+Defun(dragTableDraw)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->dragTableDraw(pCallData->m_xPos, pCallData->m_yPos);
+	return true;
+}
+
+Defun(endTableDraw)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->endTableDraw(pCallData->m_xPos, pCallData->m_yPos);
+	return true;
+}
+
+/* Eraser mode: click near a cell border merges the cells across it */
+Defun(eraseTableBorder)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->cmdEraseTableBorder(pCallData->m_xPos, pCallData->m_yPos);
+	return true;
+}
+
+Defun1(cursorTableDraw)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	GR_Graphics * pG = pView->getGraphics();
+	if (pG)
+	{
+		pG->setCursor(GR_Graphics::GR_CURSOR_CROSSHAIR);
+	}
+	return true;
+}
+
+Defun1(cursorTableEraser)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	GR_Graphics * pG = pView->getGraphics();
+	if (pG)
+	{
+		pG->setCursor(GR_Graphics::GR_CURSOR_GRAB);
+	}
+	return true;
+}
+
 Defun1(tableColWider)
 {
 	CHECK_FRAME;
@@ -18974,17 +19301,27 @@ Defun(btn0VisualText)
 	return true;
 }
 
-Defun0(repeatThisRow)
+Defun1(repeatThisRow)
 {
 	CHECK_FRAME;
-//	ABIWORD_VIEW;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (!pView->isRepeatHeaderOn())
+	{
+		return pView->cmdToggleRepeatHeader();
+	}
 	return true;
 }
 
-Defun0(removeThisRowRepeat)
+Defun1(removeThisRowRepeat)
 {
 	CHECK_FRAME;
-//	ABIWORD_VIEW;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (pView->isRepeatHeaderOn())
+	{
+		return pView->cmdToggleRepeatHeader();
+	}
 	return true;
 }
 
@@ -19022,6 +19359,12 @@ Defun1(doEscape)
 	ABIWORD_VIEW;
 	UT_DEBUGMSG(("Escape Pressed. \n"));
 	UT_return_val_if_fail(pView, false);
+	if (pView->getDrawTableMode() || pView->getEraserMode())
+	{
+		pView->setDrawTableMode(false);
+		pView->setEraserMode(false);
+		return true;
+	}
 	FV_VisualDragText * pVis = pView->getVisualText();
 	if(pVis->isActive())
 	{

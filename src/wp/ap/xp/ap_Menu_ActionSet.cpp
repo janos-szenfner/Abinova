@@ -394,14 +394,33 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TABLE_SELECT_CELL,0,0,0,0, "selectCell", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_MERGE_CELLS,0,1,0,0, "mergeCells", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_SPLIT_CELLS,0,1,0,0, "splitCells", ap_GetState_InTableMerged, nullptr);
-	_s(AP_MENU_ID_TABLE_SPLIT_TABLE,0,0,0,0, nullptr, ap_GetState_AlwaysDisabled, nullptr);
+	_s(AP_MENU_ID_TABLE_SPLIT_TABLE,0,0,0,0, "splitTable", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_FORMAT,0,1,0,0, "formatTable", ap_GetState_PointOrAnchorInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_AUTOFIT,0,0,0,0, "autoFitTable", ap_GetState_PointInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_TABLETOTEXT,0,0,0,0, nullptr, ap_GetState_PointInTable, nullptr);
-	_s(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT,0,0,0,0, nullptr, ap_GetState_PointInTable, nullptr);
+	_s(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT,0,0,1,0, "repeatHeaderRows", ap_GetState_TableModes, nullptr);
 	_s(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT_THIS,0,0,0,0, "repeatThisRow", ap_GetState_PointInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT_REMOVE,0,0,0,0, "removeThisRowRepeat", ap_GetState_InTableIsRepeat, nullptr);
 	_s(AP_MENU_ID_TABLE_SORT,0,0,0,0, nullptr, ap_GetState_PointOrAnchorInTable, nullptr);
+	_s(AP_MENU_ID_TABLE_VIEW_GRIDLINES,0,0,1,0, "toggleTableGridlines", ap_GetState_TableModes, nullptr);
+	_s(AP_MENU_ID_TABLE_DRAW,0,0,1,0, "toggleDrawTable", ap_GetState_TableModes, nullptr);
+	_s(AP_MENU_ID_TABLE_ERASE,0,0,1,0, "toggleTableEraser", ap_GetState_TableModes, nullptr);
+	_s(AP_MENU_ID_TABLE_DISTRIBUTE_ROWS,0,0,0,0, "distributeTableRows", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_DISTRIBUTE_COLS,0,0,0,0, "distributeTableCols", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_TEXT_DIRECTION,0,0,0,0, nullptr, ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_CELL_MARGINS,0,0,0,0, nullptr, ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_TOPLEFT,0,0,0,0, "cellAlignTopLeft", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_TOPCENTER,0,0,0,0, "cellAlignTopCenter", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_TOPRIGHT,0,0,0,0, "cellAlignTopRight", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_CENTERLEFT,0,0,0,0, "cellAlignCenterLeft", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_CENTER,0,0,0,0, "cellAlignCenter", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT,0,0,0,0, "cellAlignCenterRight", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_BOTLEFT,0,0,0,0, "cellAlignBottomLeft", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_BOTCENTER,0,0,0,0, "cellAlignBottomCenter", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_ALIGN_BOTRIGHT,0,0,0,0, "cellAlignBottomRight", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_AUTOFIT_CONTENTS,0,0,0,0, "autoFitTable", ap_GetState_PointInTable, nullptr);
+	_s(AP_MENU_ID_TABLE_AUTOFIT_WINDOW,0,0,0,0, "autoFitTableWindow", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_AUTOFIT_FIXED,0,0,0,0, "autoFitTableFixed", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_TEXTTOTABLE,0,0,0,0, nullptr, ap_GetState_TextToTableOK, nullptr);
 
 

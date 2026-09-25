@@ -1118,6 +1118,11 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_window_event(GtkEventControllerKey * 
 	GtkWidget * focus = gtk_window_get_focus(GTK_WINDOW(w));
 	if (GTK_IS_DRAWING_AREA(focus))
 		return FALSE;
+	/* Entries (spin fields, the search bar, etc.) own their keys. Feeding
+	 * them to the document would type into the text while an entry is
+	 * focused. */
+	if (focus && GTK_IS_EDITABLE(focus))
+		return FALSE;
 	return key_press_event(c, keyval, keycode, state, w);
 }
 

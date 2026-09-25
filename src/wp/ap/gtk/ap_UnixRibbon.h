@@ -152,6 +152,14 @@ private:
 	GtkWidget *		_makeWindowPopover();
 	void			_populateWindowList(GtkWidget * box);
 	static void		_s_popover_windows_show(GtkPopover * w, gpointer data);
+	/* Table Layout tab */
+	GtkWidget *		_makeTableSelectPopover();
+	GtkWidget *		_makeTableDeletePopover();
+	GtkWidget *		_makeTableAutoFitPopover();
+	GtkWidget *		_makeTableSortPopover();
+	GtkWidget *		_makeTableToTextPopover();
+	GtkWidget *		_makeTableTextDirPopover();
+	GtkWidget *		_makeCellMarginsPopover();
 	void			_showOnlinePictureDialog();
 	void			_addGalleryDir(GtkWidget * parent,
 								   const char * szMethod,
@@ -260,6 +268,7 @@ private:
 	static void			_s_popover_menu_clicked(GtkWidget * w, gpointer data);
 	static void			_s_popover_em_clicked(GtkWidget * w, gpointer data);
 	static void			_s_spin_changed(GtkSpinButton * spin, gpointer data);
+	static void			_s_spin_text_changed(GtkEditable * ed, gpointer data);
 	static gboolean		_s_spin_apply(gpointer data);
 	static void			_s_linedlg_clicked(GtkWidget * w, gpointer data);
 	static void			_s_hyphdlg_clicked(GtkWidget * w, gpointer data);
@@ -294,12 +303,14 @@ private:
 										 * Review dropdown, shows the
 										 * active markup mode */
 
-	/* Layout indent/spacing spin fields: prop name -> widget, synced
+	/* Layout indent/spacing + Table cell-size spin fields, synced
 	 * by _refreshSpinFields() */
 	struct _SpinField
 	{
 		GtkWidget *	spin;
-		const char * prop;	/* static block property name */
+		const char * prop;	/* static block property name, nullptr for
+							 * the table cell-size spins */
+		int			spinId;	/* AP_RIBBON_SPIN_* */
 	};
 	UT_GenericVector<_SpinField*>	m_vecSpins;
 	bool				m_bSpinUpdating;

@@ -293,6 +293,11 @@ FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
 		m_colorColumnLine(0, 0, 0),
 		m_countDisable(0),
 		m_bDragTableLine(false),
+		m_bShowTableGridlines(false),
+		m_bDrawTableMode(false),
+		m_bEraserMode(false),
+		m_bTableDrawDragging(false),
+		m_rectTableDraw(0, 0, 0, 0),
 		m_prevMouseContext(EV_EMC_UNKNOWN),
 		m_pTopRuler(nullptr),
 		m_pLeftRuler(nullptr),
@@ -11105,6 +11110,16 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 	{
 		return EV_EMC_UNKNOWN;
 	}
+	if(m_bDrawTableMode)
+	{
+		m_prevMouseContext = EV_EMC_TABLEDRAW;
+		return EV_EMC_TABLEDRAW;
+	}
+	if(m_bEraserMode)
+	{
+		m_prevMouseContext = EV_EMC_TABLEERASE;
+		return EV_EMC_TABLEERASE;
+	}
 	if(m_bDragTableLine)
 	{
 		return m_prevMouseContext;
@@ -12263,7 +12278,7 @@ FV_DocCount FV_View::countWords(bool bActuallyCountWords) const
 	}
 	// Selection may start inside first block
 	fp_Line* pLine = static_cast<fp_Line *>(pBL->getFirstContainer());
-	if(!pLine->getContainer())
+	if(!pLine || !pLine->getContainer())
 	{
 		return (wCount);
 	}
@@ -12308,7 +12323,10 @@ FV_DocCount FV_View::countWords(bool bActuallyCountWords) const
 
 	fp_Page* pPage = pLine->getPage();
 	fp_Page* pOldPage = pPage;
-	wCount.page++;
+	if (pPage)
+	{
+		wCount.page++;
+	}
 
 	bool bFirstBlock = true;
 	while (pBL)
@@ -12337,7 +12355,8 @@ FV_DocCount FV_View::countWords(bool bActuallyCountWords) const
 
 			// If this line is on a new page, increment page count
 			pPage = pLine->getPage();
-			if ((pOldPage != pPage) && (pOldPage->getPageNumber() < pPage->getPageNumber()))
+			if (pPage && (pPage != pOldPage) &&
+				(!pOldPage || pOldPage->getPageNumber() < pPage->getPageNumber()))
 			{
 				wCount.page++;
 				pOldPage = pPage;
@@ -12455,6 +12474,135 @@ void FV_View::setShowPara(bool bShowPara)
 		{
 			queueDraw();
 		}
+	}
+}
+
+/*!
+ * Screen-only cell boundary overlay (Word's "View Gridlines"): when on,
+ * fp_CellContainer::_drawBoundaries paints a hairline around every cell
+ * regardless of its real borders.  Never printed.
+ */
+void FV_View::setShowTableGridlines(bool bSet)
+{
+	if (bSet != m_bShowTableGridlines)
+	{
+		m_bShowTableGridlines = bSet;
+		if (getPoint() > 0)
+		{
+			queueDraw();
+		}
+	}
+}
+
+void FV_View::setDrawTableMode(bool bSet)
+{
+	if (bSet == m_bDrawTableMode)
+	{
+		return;
+	}
+	m_bDrawTableMode = bSet;
+	m_bTableDrawDragging = false;
+	if (bSet)
+	{
+		m_bEraserMode = false;
+	}
+}
+
+void FV_View::setEraserMode(bool bSet)
+{
+	if (bSet == m_bEraserMode)
+	{
+		return;
+	}
+	m_bEraserMode = bSet;
+	if (bSet)
+	{
+		m_bDrawTableMode = false;
+		m_bTableDrawDragging = false;
+	}
+}
+
+/*!
+ * The pending draw-table rubber-band rect, in window (pixel)
+ * coordinates, or false when no drag is in progress.
+ */
+bool FV_View::getTableDrawRect(UT_Rect * pRect) const
+{
+	if (!m_bTableDrawDragging)
+	{
+		return false;
+	}
+	if (pRect)
+	{
+		*pRect = m_rectTableDraw;
+	}
+	return true;
+}
+
+void FV_View::beginTableDraw(UT_sint32 xPos, UT_sint32 yPos)
+{
+	m_bTableDrawDragging = true;
+	m_rectTableDraw.left = xPos;
+	m_rectTableDraw.top = yPos;
+	m_rectTableDraw.width = 0;
+	m_rectTableDraw.height = 0;
+	queueDraw();
+}
+
+void FV_View::dragTableDraw(UT_sint32 xPos, UT_sint32 yPos)
+{
+	if (!m_bTableDrawDragging)
+	{
+		return;
+	}
+	UT_sint32 x0 = m_rectTableDraw.left;
+	UT_sint32 y0 = m_rectTableDraw.top;
+	m_rectTableDraw.left = UT_MIN(x0, xPos);
+	m_rectTableDraw.top = UT_MIN(y0, yPos);
+	m_rectTableDraw.width = abs(xPos - x0);
+	m_rectTableDraw.height = abs(yPos - y0);
+	queueDraw();
+}
+
+/*!
+ * Finishes a draw-table drag: warps the insertion point to the drag
+ * origin and inserts a table sized from the rubber-band rectangle.
+ * Roughly one column per inch, one row per half inch, clamped to
+ * something sane; a plain click yields a 1x1 table.
+ */
+void FV_View::endTableDraw(UT_sint32 xPos, UT_sint32 yPos)
+{
+	const bool wasDragging = m_bTableDrawDragging;
+	m_bTableDrawDragging = false;
+
+	if (!m_bDrawTableMode)
+	{
+		return;
+	}
+	if (wasDragging)
+	{
+		dragTableDraw(xPos, yPos);
+	}
+	UT_sint32 x0 = m_rectTableDraw.left;
+	UT_sint32 y0 = m_rectTableDraw.top;
+	UT_sint32 w = m_rectTableDraw.width;
+	UT_sint32 h = m_rectTableDraw.height;
+	m_rectTableDraw.width = 0;
+	m_rectTableDraw.height = 0;
+	queueDraw();
+
+	/* device pixels per inch -> roughly one column per inch,
+	 * one row per half inch, clamped to something sane */
+	const double dpi = getGraphics()->getDeviceResolution();
+	UT_sint32 iCols = UT_MAX(1, UT_MIN(16,
+		static_cast<UT_sint32>(w / dpi + 0.5)));
+	UT_sint32 iRows = UT_MAX(1, UT_MIN(32,
+		static_cast<UT_sint32>(h / (dpi / 2.0) + 0.5)));
+
+	warpInsPtToXY(x0, y0, true);
+	if (!isInTable())
+	{
+		cmdInsertTable(iRows, iCols, PP_NOPROPS);
 	}
 }
 
@@ -15378,8 +15526,14 @@ bool FV_View::isInTable() const
 	}
 	else
 	{
-  		PT_DocPosition posA = getSelectionAnchor();
-		return (isInTable(posA) && isInTable(pos));
+		PT_DocPosition posA = getSelectionAnchor();
+		/* during a whole-cell selection either end can sit exactly on
+		 * a strux boundary, where the piece-table test fails even
+		 * though the selection lies entirely inside the table; the
+		 * layout lookup resolves those positions correctly */
+		bool bA = isInTable(posA) || getTableAtPos(posA) != nullptr;
+		bool bP = isInTable(pos)  || getTableAtPos(pos)  != nullptr;
+		return (bA && bP);
 	}
 }
 

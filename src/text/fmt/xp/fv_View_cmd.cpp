@@ -903,6 +903,8 @@ bool FV_View::cmdTableToText(PT_DocPosition posSource,UT_sint32 iSepType)
 			case 1:
 				buf.append(&iTab,1);
 				break;
+			case 3:
+				break; /* paragraph marks: handled below */
 			default:
 				buf.append(&iTab,1);
 				buf.append(&iComma,1);
@@ -912,8 +914,12 @@ bool FV_View::cmdTableToText(PT_DocPosition posSource,UT_sint32 iSepType)
 		{
 			cmdCharInsert(reinterpret_cast<UT_UCS4Char *>(buf.getPointer(0)),buf.getLength());
 		}
+		if (iSepType == 3 && (i < numRows - 1 || j < numCols - 1))
+		{
+			insertParagraphBreak();
+		}
 	  }
-	  if (i < numRows - 1)
+	  if (iSepType != 3 && i < numRows - 1)
 	  {
 		  insertParagraphBreak();
 	  }
@@ -1955,6 +1961,1387 @@ bool FV_View::cmdTableRowResize(bool bTaller)
 	_ensureInsertionPointOnScreen();
 	notifyListeners(AV_CHG_MOTION);
 	return true;
+}
+
+
+/*!
+ * Split the table containing the insertion point into two tables at the
+ * row containing the point.  All rows from that row down form the second
+ * table, which keeps the original table's properties; an empty paragraph
+ * is left between the two halves.  Splitting at the first row instead
+ * pushes the whole table down by one empty paragraph.
+ */
+bool FV_View::cmdSplitTable(void)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTableStrux = m_pDoc->getStruxPosition(tableSDH);
+	PT_DocPosition posTable = posTableStrux + 1;
+
+	UT_sint32 numRows = 0;
+	UT_sint32 numCols = 0;
+	bRes = m_pDoc->getRowsColsFromTableStrux(tableSDH, isShowRevisions(), getRevisionLevel(),
+										   &numRows, &numCols);
+	UT_return_val_if_fail(bRes && numRows > 1, false);
+
+	UT_sint32 iLeft, iRight, iTop, iBot;
+	getCellParams(getPoint(), &iLeft, &iRight, &iTop, &iBot);
+	if (iTop < 0 || iTop >= numRows)
+	{
+		return false;
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	if (!isSelectionEmpty())
+	{
+		_clearSelection();
+	}
+
+	if (iTop == 0)
+	{
+		// first row: leave an empty paragraph above the table
+		m_pDoc->insertStrux(posTableStrux, PTX_Block);
+		_restorePieceTableState();
+		_generalUpdate();
+		m_pDoc->endUserAtomicGlob();
+		m_pDoc->enableListUpdates();
+		m_pDoc->updateDirtyLists();
+		_fixInsertionPointCoords();
+		_ensureInsertionPointOnScreen();
+		notifyListeners(AV_CHG_MOTION);
+		return true;
+	}
+
+	/* The table layout only picks up fl_CellLayouts for cell struxes
+	 * that arrive through insert change-records, so a cell cannot be
+	 * renumbered into a brand-new table strux: the new table would end
+	 * up with an empty layout.  Instead, snapshot the lower rows,
+	 * delete them (proper delete CRs tear down the layouts) and build
+	 * a fresh second table from the snapshot. */
+
+	struct SavedBlock
+	{
+		PP_PropertyVector atts;
+		PP_PropertyVector props;
+		UT_UCS4String    text;
+	};
+	struct SavedCell
+	{
+		PP_PropertyVector props;
+		std::vector<SavedBlock> blocks;
+	};
+
+	std::vector<SavedCell> saved;
+	UT_GenericVector<const pf_Frag_Strux*> seen;
+	UT_GenericVector<const pf_Frag_Strux*> spanners;
+	for (UT_sint32 r = iTop; r < numRows; ++r)
+	{
+		for (UT_sint32 c = 0; c < numCols; ++c)
+		{
+			const pf_Frag_Strux* cell = m_pDoc->getCellStruxFromRowCol(
+				tableSDH, isShowRevisions(), getRevisionLevel(), r, c);
+			if (!cell || cell->getStruxType() != PTX_SectionCell ||
+				seen.findItem(cell) >= 0)
+			{
+				continue;
+			}
+			seen.addItem(cell);
+
+			// a cell spanning the split boundary stays in the first
+			// table; its bottom edge is clamped to the split row later
+			UT_sint32 cL, cR, cT, cB;
+			getCellParams(m_pDoc->getStruxPosition(cell) + 1,
+						  &cL, &cR, &cT, &cB);
+			if (cT < iTop)
+			{
+				spanners.addItem(cell);
+				continue;
+			}
+
+			SavedCell sc;
+			const PP_AttrProp * pAP = nullptr;
+			if (m_pDoc->getAttrProp(cell->getIndexAP(), &pAP) && pAP)
+			{
+				sc.props = pAP->getProperties();
+			}
+			// renumber the row attaches into the new table's 0-based space
+			for (size_t k = 0; k + 1 < sc.props.size(); k += 2)
+			{
+				if (sc.props[k] == "top-attach" || sc.props[k] == "bot-attach")
+				{
+					sc.props[k + 1] =
+						UT_std_string_sprintf("%d", atoi(sc.props[k + 1].c_str()) - iTop);
+				}
+			}
+
+			// every block inside the cell keeps its own format + text
+			const pf_Frag_Strux* endCell =
+				m_pDoc->getEndCellStruxFromCellStrux(cell);
+			for (pf_Frag* pf = const_cast<pf_Frag_Strux*>(cell)->getNext();
+				 pf && pf != endCell; pf = pf->getNext())
+			{
+				if (pf->getType() != pf_Frag::PFT_Strux ||
+					static_cast<pf_Frag_Strux*>(pf)->getStruxType() != PTX_Block)
+				{
+					continue;
+				}
+				pf_Frag_Strux* blk = static_cast<pf_Frag_Strux*>(pf);
+				SavedBlock sb;
+				const PP_AttrProp * pBAP = nullptr;
+				if (m_pDoc->getAttrProp(blk->getIndexAP(), &pBAP) && pBAP)
+				{
+					sb.atts  = pBAP->getAttributes();
+					sb.props = pBAP->getProperties();
+				}
+				PT_DocPosition posB = m_pDoc->getStruxPosition(blk) + 1;
+				// the block's text runs up to the next strux frag
+				pf_Frag* pNext = pf->getNext();
+				while (pNext && pNext->getType() != pf_Frag::PFT_Strux)
+				{
+					pNext = pNext->getNext();
+				}
+				if (pNext)
+				{
+					UT_UCS4Char * pText = getTextBetweenPos(posB, pNext->getPos());
+					if (pText)
+					{
+						sb.text = pText;
+						delete [] pText;
+					}
+				}
+				sc.blocks.push_back(sb);
+			}
+			saved.push_back(sc);
+		}
+	}
+
+	// copy the table's own attr/prop so the second half keeps borders etc.
+	const PP_AttrProp * pTableAP = nullptr;
+	PP_PropertyVector tableAtts;
+	PP_PropertyVector tableProps;
+	if (m_pDoc->getAttrProp(tableSDH->getIndexAP(), &pTableAP) && pTableAP)
+	{
+		tableAtts = pTableAP->getAttributes();
+		tableProps = pTableAP->getProperties();
+	}
+	for (int i = static_cast<int>(tableProps.size()) - 2; i >= 0; i -= 2)
+	{
+		if (tableProps[i] == "table-row-heights" ||
+			tableProps[i] == "table-column-props" ||
+			tableProps[i] == "table-wait-index")
+		{
+			tableProps.erase(tableProps.begin() + i, tableProps.begin() + i + 2);
+		}
+	}
+
+	// clamp the bottom edge of cells spanning the split so they stay
+	// entirely inside the first table
+	m_pDoc->setDontImmediatelyLayout(true);
+	const bool bBumped = spanners.getItemCount() > 0;
+	if (bBumped)
+	{
+		_changeCellParams(posTable, tableSDH);
+		const PP_PropertyVector clampProps = {
+			"bot-attach", UT_std_string_sprintf("%d", iTop)
+		};
+		for (UT_sint32 k = 0; k < spanners.getItemCount(); ++k)
+		{
+			PT_DocPosition posCell =
+				m_pDoc->getStruxPosition(spanners.getNthItem(k)) + 1;
+			m_pDoc->changeStruxFmt(PTC_AddFmt, posCell, posCell,
+								   PP_NOPROPS, clampProps, PTX_SectionCell);
+		}
+	}
+
+	// delete the lower rows from the first table; clamped spanners
+	// are skipped via the top-attach check
+	for (UT_sint32 r = numRows - 1; r >= iTop; --r)
+	{
+		for (UT_sint32 c = 0; c < numCols; ++c)
+		{
+			const pf_Frag_Strux* cell = m_pDoc->getCellStruxFromRowCol(
+				tableSDH, isShowRevisions(), getRevisionLevel(), r, c);
+			if (!cell)
+			{
+				continue;
+			}
+			UT_sint32 cL, cR, cT, cB;
+			getCellParams(m_pDoc->getStruxPosition(cell) + 1,
+						  &cL, &cR, &cT, &cB);
+			if (cT < iTop)
+			{
+				continue;
+			}
+			_deleteCellAt(posTable, r, c);
+		}
+	}
+	m_pDoc->setDontImmediatelyLayout(false);
+
+	// insert the gap paragraph + the new table right after it.  Every
+	// insert is anchored on the position of the strux just created --
+	// struxes occupy one document position each -- so the sequence is
+	// independent of where the view's insertion point happens to be.
+	const pf_Frag_Strux* endTable =
+		m_pDoc->getEndTableStruxFromTableStrux(tableSDH);
+	PT_DocPosition posAfter = endTable
+		? m_pDoc->getStruxPosition(endTable) + 1
+		: posTable + 1;
+
+	pf_Frag_Strux * pfsNew = nullptr;
+	m_pDoc->insertStrux(posAfter, PTX_Block, PP_NOPROPS, PP_NOPROPS, &pfsNew);
+	PT_DocPosition pos = pfsNew
+		? m_pDoc->getStruxPosition(pfsNew) + 1 : posAfter + 1;
+	UT_return_val_if_fail(pfsNew, false);
+
+	m_pDoc->insertStrux(pos, PTX_SectionTable, tableAtts, tableProps, &pfsNew);
+	UT_return_val_if_fail(pfsNew, false);
+	pos = m_pDoc->getStruxPosition(pfsNew) + 1;
+	for (const SavedCell & sc : saved)
+	{
+		m_pDoc->insertStrux(pos, PTX_SectionCell, PP_NOPROPS, sc.props,
+							&pfsNew);
+		UT_return_val_if_fail(pfsNew, false);
+		pos = m_pDoc->getStruxPosition(pfsNew) + 1;
+		if (sc.blocks.empty())
+		{
+			const PP_PropertyVector atts = { "style", "Normal" };
+			m_pDoc->insertStrux(pos, PTX_Block, atts, PP_NOPROPS, &pfsNew);
+			UT_return_val_if_fail(pfsNew, false);
+			pos = m_pDoc->getStruxPosition(pfsNew) + 1;
+		}
+		else
+		{
+			for (const SavedBlock & sb : sc.blocks)
+			{
+				m_pDoc->insertStrux(pos, PTX_Block, sb.atts, sb.props,
+									&pfsNew);
+				UT_return_val_if_fail(pfsNew, false);
+				pos = m_pDoc->getStruxPosition(pfsNew) + 1;
+				if (sb.text.length() > 0)
+				{
+					m_pDoc->insertSpan(pos, sb.text.ucs4_str(),
+									   sb.text.length());
+					pos += sb.text.length();
+				}
+			}
+		}
+		m_pDoc->insertStrux(pos, PTX_EndCell, PP_NOPROPS, PP_NOPROPS,
+							&pfsNew);
+		UT_return_val_if_fail(pfsNew, false);
+		pos = m_pDoc->getStruxPosition(pfsNew) + 1;
+	}
+	m_pDoc->insertStrux(pos, PTX_EndTable, PP_NOPROPS, PP_NOPROPS, &pfsNew);
+	UT_return_val_if_fail(pfsNew, false);
+
+	/* balance the spanner-clamp bump and rebuild; _restoreCellParams
+	 * performs the whole tail (glob end, general update, dirty lists) */
+	if (bBumped)
+	{
+		_restoreCellParams(posTable, tableSDH);
+	}
+	else
+	{
+		_restorePieceTableState();
+		_generalUpdate();
+		m_pDoc->endUserAtomicGlob();
+		m_pDoc->enableListUpdates();
+		m_pDoc->updateDirtyLists();
+	}
+
+	// caret goes into the gap paragraph between the tables
+	setPoint(m_pDoc->getStruxPosition(endTable) + 2);
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*!
+ * Apply cell alignment to the cell(s) under the selection (or the current
+ * cell): iVert is the cell "vert-align" percentage (0 top, 50 middle,
+ * 100 bottom) and szAlign is the paragraph "text-align" value applied to
+ * every block inside the affected cells.
+ */
+bool FV_View::cmdTableCellAlign(UT_sint32 iVert, const char * szAlign)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	if (iVert != 0 && iVert != 50 && iVert != 100)
+	{
+		return false;
+	}
+
+	// collect the unique cells covered by the selection (or the caret cell)
+	UT_GenericVector<const pf_Frag_Strux*> vCells;
+	PT_DocPosition posStart = getPoint();
+	PT_DocPosition posEnd = posStart;
+	if (!isSelectionEmpty())
+	{
+		PT_DocPosition posAnchor = m_Selection.getSelectionAnchor();
+		if (posAnchor < posStart)
+		{
+			posStart = posAnchor;
+		}
+		else
+		{
+			posEnd = posAnchor;
+		}
+	}
+	if (posStart == posEnd)
+	{
+		const pf_Frag_Strux* cellSDH = nullptr;
+		if (m_pDoc->getStruxOfTypeFromPosition(posStart, PTX_SectionCell, &cellSDH) && cellSDH)
+		{
+			vCells.addItem(cellSDH);
+		}
+	}
+	else
+	{
+		UT_GenericVector<fl_BlockLayout*> vBlock;
+		getBlocksInSelection(&vBlock);
+		for (UT_sint32 i = 0; i < vBlock.getItemCount(); ++i)
+		{
+			const pf_Frag_Strux* cellSDH = nullptr;
+			PT_DocPosition pos = vBlock.getNthItem(i)->getPosition(true);
+			if (m_pDoc->getStruxOfTypeFromPosition(pos, PTX_SectionCell, &cellSDH) &&
+				cellSDH && vCells.findItem(cellSDH) < 0)
+			{
+				vCells.addItem(cellSDH);
+			}
+		}
+	}
+	UT_return_val_if_fail(vCells.getItemCount() > 0, false);
+
+	/* vertical alignment goes through the proven Format-Table path:
+	 * it bumps the table's change index so the cached row/column
+	 * geometry is rebuilt before the cell strux changes — a bare
+	 * changeStruxFmt on the cell crashes the subsequent relayout */
+	const PP_PropertyVector cellProps = {
+		"vert-align", UT_std_string_sprintf("%d", iVert)
+	};
+	setCellFormat(cellProps, FORMAT_TABLE_SELECTION, nullptr, "");
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+
+	const PP_PropertyVector blockProps = {
+		"text-align", szAlign
+	};
+
+	for (UT_sint32 i = 0; i < vCells.getItemCount(); ++i)
+	{
+		const pf_Frag_Strux* cellSDH = vCells.getNthItem(i);
+
+		// every block inside the cell gets the horizontal alignment
+		const pf_Frag_Strux* endSDH = m_pDoc->getEndCellStruxFromCellStrux(cellSDH);
+		for (pf_Frag* pf = const_cast<pf_Frag_Strux*>(cellSDH)->getNext();
+			 pf && pf != endSDH; pf = pf->getNext())
+		{
+			if (pf->getType() == pf_Frag::PFT_Strux &&
+				static_cast<pf_Frag_Strux*>(pf)->getStruxType() == PTX_Block)
+			{
+				PT_DocPosition posB = m_pDoc->getStruxPosition(
+					static_cast<pf_Frag_Strux*>(pf)) + fl_BLOCK_STRUX_OFFSET;
+				m_pDoc->changeStruxFmt(PTC_AddFmt, posB, posB,
+									   PP_NOPROPS, blockProps, PTX_Block);
+			}
+		}
+	}
+
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*!
+ * Set the dominant text direction ("ltr"/"rtl") on every block in the
+ * cells covered by the selection, or the cell containing the caret.
+ */
+bool FV_View::cmdCellTextDirection(const char * szDir)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	UT_return_val_if_fail(szDir, false);
+	if (strcmp(szDir, "ltr") != 0 && strcmp(szDir, "rtl") != 0)
+	{
+		return false;
+	}
+	if (!isInTable())
+	{
+		return false;
+	}
+
+	UT_GenericVector<const pf_Frag_Strux*> vCells;
+	PT_DocPosition posStart = getPoint();
+	PT_DocPosition posEnd = posStart;
+	if (!isSelectionEmpty())
+	{
+		PT_DocPosition posAnchor = m_Selection.getSelectionAnchor();
+		if (posAnchor < posStart)
+		{
+			posStart = posAnchor;
+		}
+		else
+		{
+			posEnd = posAnchor;
+		}
+	}
+	if (posStart == posEnd)
+	{
+		const pf_Frag_Strux* cellSDH = nullptr;
+		if (m_pDoc->getStruxOfTypeFromPosition(posStart, PTX_SectionCell, &cellSDH) && cellSDH)
+		{
+			vCells.addItem(cellSDH);
+		}
+	}
+	else
+	{
+		UT_GenericVector<fl_BlockLayout*> vBlock;
+		getBlocksInSelection(&vBlock);
+		for (UT_sint32 i = 0; i < vBlock.getItemCount(); ++i)
+		{
+			const pf_Frag_Strux* cellSDH = nullptr;
+			PT_DocPosition pos = vBlock.getNthItem(i)->getPosition(true);
+			if (m_pDoc->getStruxOfTypeFromPosition(pos, PTX_SectionCell, &cellSDH) &&
+				cellSDH && vCells.findItem(cellSDH) < 0)
+			{
+				vCells.addItem(cellSDH);
+			}
+		}
+	}
+	UT_return_val_if_fail(vCells.getItemCount() > 0, false);
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+
+	const PP_PropertyVector blockProps = {
+		"dom-dir", szDir
+	};
+	const UT_BidiCharType iNewDir =
+		!strcmp(szDir, "rtl") ? UT_BIDI_RTL : UT_BIDI_LTR;
+	for (UT_sint32 i = 0; i < vCells.getItemCount(); ++i)
+	{
+		const pf_Frag_Strux* cellSDH = vCells.getNthItem(i);
+		const pf_Frag_Strux* endSDH = m_pDoc->getEndCellStruxFromCellStrux(cellSDH);
+		for (pf_Frag* pf = const_cast<pf_Frag_Strux*>(cellSDH)->getNext();
+			 pf && pf != endSDH; pf = pf->getNext())
+		{
+			if (pf->getType() == pf_Frag::PFT_Strux &&
+				static_cast<pf_Frag_Strux*>(pf)->getStruxType() == PTX_Block)
+			{
+				PT_DocPosition posB = m_pDoc->getStruxPosition(
+					static_cast<pf_Frag_Strux*>(pf)) + fl_BLOCK_STRUX_OFFSET;
+				/* force the EndOfParagraph run to the opposite
+				 * direction, as setBlockFormat() does for dom-dir */
+				fl_BlockLayout * pBL = _findBlockAtPosition(posB);
+				if (pBL && pBL->getLastContainer())
+				{
+					fp_Run * pLast = static_cast<fp_Line *>(
+						pBL->getLastContainer())->getLastRun();
+					if (pLast)
+					{
+						pLast->setDirection(iNewDir == UT_BIDI_RTL
+											? UT_BIDI_LTR
+											: UT_BIDI_RTL);
+					}
+				}
+				m_pDoc->changeStruxFmt(PTC_AddFmt, posB, posB,
+									   PP_NOPROPS, blockProps, PTX_Block);
+			}
+		}
+	}
+
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/* common tail for the table-geometry writers below */
+static void s_finishTableGeomChange(FV_View * pView)
+{
+	pView->_generalUpdate();
+	pView->notifyListeners(AV_CHG_MOTION);
+}
+
+/*!
+ * Stretch the table proportionally so it fills the width of its
+ * containing column ("AutoFit Window").
+ */
+bool FV_View::cmdAutoFitWindow(void)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+	UT_sint32 iNumCols = pTab->getNumCols();
+	UT_return_val_if_fail(iNumCols > 0, false);
+
+	// usable width = the enclosing column's allocation
+	fp_Container * pCon = static_cast<fp_Container *>(pTab);
+	while (pCon && !pCon->isColumnType())
+	{
+		pCon = pCon->getContainer();
+	}
+	UT_sint32 iUsable = pCon ? pCon->getWidth() : UT_convertToLogicalUnits("6.0in");
+	if (iUsable <= 0)
+	{
+		return false;
+	}
+
+	UT_sint32 iTotal = 0;
+	for (UT_sint32 i = 0; i < iNumCols; ++i)
+	{
+		fp_TableRowColumn * pCol = pTab->getNthCol(i);
+		iTotal += pCol ? pCol->allocation : UT_convertToLogicalUnits("1.0in");
+	}
+	if (iTotal <= 0)
+	{
+		return false;
+	}
+
+	std::string sColWidth;
+	UT_sint32 iUsed = 0;
+	for (UT_sint32 i = 0; i < iNumCols; ++i)
+	{
+		fp_TableRowColumn * pCol = pTab->getNthCol(i);
+		UT_sint32 iWidth = pCol ? pCol->allocation : UT_convertToLogicalUnits("1.0in");
+		// proportional scale; last column absorbs rounding slack
+		iWidth = (i == iNumCols - 1) ? (iUsable - iUsed)
+			: static_cast<UT_sint32>(iWidth * (double)iUsable / iTotal);
+		iUsed += iWidth;
+		if (iWidth < UT_convertToLogicalUnits("0.05in"))
+		{
+			iWidth = UT_convertToLogicalUnits("0.05in");
+		}
+		sColWidth += UT_formatDimensionString(DIM_IN,
+			static_cast<double>(iWidth) / UT_LAYOUT_RESOLUTION, nullptr);
+		sColWidth += "/";
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	if (!isSelectionEmpty())
+	{
+		_clearSelection();
+	}
+	m_pDoc->setDontImmediatelyLayout(true);
+	const PP_PropertyVector props = {
+		"table-column-props", sColWidth.c_str(),
+		"homogeneous", "0"
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, props, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	s_finishTableGeomChange(this);
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	return true;
+}
+
+/*!
+ * Freeze the columns at their current on-screen widths ("Fixed Column
+ * Width"): writes the live allocations into table-column-props.
+ */
+bool FV_View::cmdFixColumnWidths(void)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+	UT_sint32 iNumCols = pTab->getNumCols();
+	UT_return_val_if_fail(iNumCols > 0, false);
+
+	std::string sColWidth;
+	for (UT_sint32 i = 0; i < iNumCols; ++i)
+	{
+		fp_TableRowColumn * pCol = pTab->getNthCol(i);
+		UT_sint32 iWidth = pCol ? pCol->allocation : UT_convertToLogicalUnits("1.0in");
+		if (iWidth < UT_convertToLogicalUnits("0.05in"))
+		{
+			iWidth = UT_convertToLogicalUnits("0.05in");
+		}
+		sColWidth += UT_formatDimensionString(DIM_IN,
+			static_cast<double>(iWidth) / UT_LAYOUT_RESOLUTION, nullptr);
+		sColWidth += "/";
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+	const PP_PropertyVector props = {
+		"table-column-props", sColWidth.c_str(),
+		"homogeneous", "0"
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, props, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	s_finishTableGeomChange(this);
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	return true;
+}
+
+/*!
+ * Make every column the same width, preserving the total table width.
+ */
+bool FV_View::cmdDistributeCols(void)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+	UT_sint32 iNumCols = pTab->getNumCols();
+	UT_return_val_if_fail(iNumCols > 0, false);
+
+	UT_sint32 iTotal = 0;
+	for (UT_sint32 i = 0; i < iNumCols; ++i)
+	{
+		fp_TableRowColumn * pCol = pTab->getNthCol(i);
+		iTotal += pCol ? pCol->allocation : UT_convertToLogicalUnits("1.0in");
+	}
+	if (iTotal <= 0)
+	{
+		return false;
+	}
+	UT_sint32 iEach = iTotal / iNumCols;
+	if (iEach < UT_convertToLogicalUnits("0.05in"))
+	{
+		iEach = UT_convertToLogicalUnits("0.05in");
+	}
+
+	std::string sColWidth;
+	for (UT_sint32 i = 0; i < iNumCols; ++i)
+	{
+		UT_sint32 iWidth = (i == iNumCols - 1) ? iTotal - iEach * (iNumCols - 1) : iEach;
+		sColWidth += UT_formatDimensionString(DIM_IN,
+			static_cast<double>(iWidth) / UT_LAYOUT_RESOLUTION, nullptr);
+		sColWidth += "/";
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+	const PP_PropertyVector props = {
+		"table-column-props", sColWidth.c_str(),
+		"homogeneous", "0"
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, props, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	s_finishTableGeomChange(this);
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	return true;
+}
+
+/*!
+ * Make every row the same height, preserving the total table height.
+ */
+bool FV_View::cmdDistributeRows(void)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+	UT_sint32 iNumRows = pTab->getNumRows();
+	UT_return_val_if_fail(iNumRows > 0, false);
+
+	UT_sint32 iTotal = 0;
+	for (UT_sint32 i = 0; i < iNumRows; ++i)
+	{
+		fp_TableRowColumn * pRow = pTab->getNthRow(i);
+		iTotal += pRow ? pRow->allocation : UT_convertToLogicalUnits("0.25in");
+	}
+	if (iTotal <= 0)
+	{
+		return false;
+	}
+	UT_sint32 iEach = iTotal / iNumRows;
+	if (iEach < UT_convertToLogicalUnits("0.1in"))
+	{
+		iEach = UT_convertToLogicalUnits("0.1in");
+	}
+
+	std::string sRowHeight;
+	for (UT_sint32 i = 0; i < iNumRows; ++i)
+	{
+		sRowHeight += UT_formatDimensionString(DIM_IN,
+			static_cast<double>(iEach) / UT_LAYOUT_RESOLUTION, nullptr);
+		sRowHeight += "/";
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+	const PP_PropertyVector props = {
+		"table-row-heights", sRowHeight.c_str()
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, props, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	s_finishTableGeomChange(this);
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	return true;
+}
+
+/*!
+ * Set an exact width (e.g. "5cm") on the columns spanned by the
+ * selection, or the column containing the caret.
+ */
+bool FV_View::cmdTableColWidth(const char * szDim, PT_DocPosition posCell)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	UT_return_val_if_fail(szDim && *szDim, false);
+	double dNew = UT_convertToInches(szDim);
+	if (dNew <= 0.0)
+	{
+		return false;
+	}
+	UT_sint32 iNewWidth = static_cast<UT_sint32>(
+		dNew * UT_LAYOUT_RESOLUTION + 0.5);
+	const PT_DocPosition posRef = posCell ? posCell : getPoint();
+	if (!isInTable(posRef))
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(posRef, PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+	UT_sint32 iNumCols = pTab->getNumCols();
+	UT_return_val_if_fail(iNumCols > 0, false);
+
+	// columns covered by the selection, else the caret cell's column
+	UT_sint32 c0, cR0, t0, b0, c1, cR1, t1, b1;
+	getCellParams(posRef, &c0, &cR0, &t0, &b0);
+	c1 = cR0 - 1;
+	if (!isSelectionEmpty())
+	{
+		PT_DocPosition posAnchor = m_Selection.getSelectionAnchor();
+		if (isInTable(posAnchor))
+		{
+			getCellParams(posAnchor, &c1, &cR1, &t1, &b1);
+			if (c0 > c1) { UT_sint32 t = c0; c0 = c1; c1 = t; }
+			if (c1 < cR1 - 1) { c1 = cR1 - 1; }
+		}
+	}
+	if (c0 < 0) { c0 = 0; }
+	if (c1 >= iNumCols) { c1 = iNumCols - 1; }
+
+	std::string sColWidth;
+	for (UT_sint32 i = 0; i < iNumCols; ++i)
+	{
+		fp_TableRowColumn * pCol = pTab->getNthCol(i);
+		UT_sint32 iWidth = pCol ? pCol->allocation : UT_convertToLogicalUnits("1.0in");
+		if (i >= c0 && i <= c1)
+		{
+			iWidth = iNewWidth;
+		}
+		if (iWidth < UT_convertToLogicalUnits("0.05in"))
+		{
+			iWidth = UT_convertToLogicalUnits("0.05in");
+		}
+		sColWidth += UT_formatDimensionString(DIM_IN,
+			static_cast<double>(iWidth) / UT_LAYOUT_RESOLUTION, nullptr);
+		sColWidth += "/";
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+	const PP_PropertyVector props = {
+		"table-column-props", sColWidth.c_str(),
+		"homogeneous", "0"
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, props, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	s_finishTableGeomChange(this);
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	return true;
+}
+
+/*!
+ * Report the current row height and column width of the caret cell,
+ * converted to the requested display unit. Used by the Table Layout
+ * Cell Size spin fields. Returns false when the caret is not in a
+ * table or the layout has not produced a table container yet.
+ */
+bool FV_View::getTableCellDims(UT_Dimension unit,
+							   double & dHeight, double & dWidth)
+{
+	dHeight = 0.0;
+	dWidth = 0.0;
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	if (!m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH))
+	{
+		return false;
+	}
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+
+	UT_sint32 iLeft, iRight, iTop, iBot;
+	getCellParams(getPoint(), &iLeft, &iRight, &iTop, &iBot);
+	fp_TableRowColumn * pRow = pTab->getNthRow(iTop);
+	fp_TableRowColumn * pCol = pTab->getNthCol(iLeft);
+	if (pRow)
+	{
+		dHeight = UT_convertInchesToDimension(
+			static_cast<double>(pRow->allocation) / UT_LAYOUT_RESOLUTION,
+			unit);
+	}
+	if (pCol)
+	{
+		dWidth = UT_convertInchesToDimension(
+			static_cast<double>(pCol->allocation) / UT_LAYOUT_RESOLUTION,
+			unit);
+	}
+	return pRow || pCol;
+}
+
+/*!
+ * Set an exact height (e.g. "2cm") on the rows spanned by the
+ * selection, or the row containing the caret.
+ */
+bool FV_View::cmdTableRowHeight(const char * szDim, PT_DocPosition posCell)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	UT_return_val_if_fail(szDim && *szDim, false);
+	double dNew = UT_convertToInches(szDim);
+	if (dNew <= 0.0)
+	{
+		return false;
+	}
+	UT_sint32 iNewHeight = static_cast<UT_sint32>(
+		dNew * UT_LAYOUT_RESOLUTION + 0.5);
+	const PT_DocPosition posRef = posCell ? posCell : getPoint();
+	if (!isInTable(posRef))
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(posRef, PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+	UT_sint32 iNumRows = pTab->getNumRows();
+	UT_return_val_if_fail(iNumRows > 0, false);
+
+	UT_sint32 c0, cR0, t0, b0, c1, cR1, t1, b1;
+	getCellParams(posRef, &c0, &cR0, &t0, &b0);
+	UT_sint32 r0 = t0, r1 = b0 - 1;
+	if (!isSelectionEmpty())
+	{
+		PT_DocPosition posAnchor = m_Selection.getSelectionAnchor();
+		if (isInTable(posAnchor))
+		{
+			getCellParams(posAnchor, &c1, &cR1, &t1, &b1);
+			if (t1 < r0) { r0 = t1; }
+			if (b1 - 1 > r1) { r1 = b1 - 1; }
+		}
+	}
+	if (r0 < 0) { r0 = 0; }
+	if (r1 >= iNumRows) { r1 = iNumRows - 1; }
+
+	std::string sRowHeight;
+	for (UT_sint32 i = 0; i < iNumRows; ++i)
+	{
+		fp_TableRowColumn * pRow = pTab->getNthRow(i);
+		UT_sint32 iHeight = pRow ? pRow->allocation : UT_convertToLogicalUnits("0.25in");
+		if (i >= r0 && i <= r1)
+		{
+			iHeight = iNewHeight;
+		}
+		if (iHeight < UT_convertToLogicalUnits("0.1in"))
+		{
+			iHeight = UT_convertToLogicalUnits("0.1in");
+		}
+		sRowHeight += UT_formatDimensionString(DIM_IN,
+			static_cast<double>(iHeight) / UT_LAYOUT_RESOLUTION, nullptr);
+		sRowHeight += "/";
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+	const PP_PropertyVector props = {
+		"table-row-heights", sRowHeight.c_str()
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, props, PTX_SectionTable);
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	s_finishTableGeomChange(this);
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	return true;
+}
+
+/*!
+ * Sort the rows of the table by the text in column iSortCol (the caret
+ * column when negative).  Rows move as a whole: each target row's cells
+ * are refilled with the source row's text, keeping cell/paragraph
+ * formatting.  With bSkipHeader the first row stays put.
+ */
+bool FV_View::cmdSortTableRows(bool bAsc, UT_sint32 iSortCol, bool bSkipHeader)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(
+		m_pDoc->getNthFmtHandle(tableSDH, m_pLayout->getLID()));
+	UT_return_val_if_fail(pTL, false);
+	fp_TableContainer * pTab = static_cast<fp_TableContainer*>(pTL->getFirstContainer());
+	UT_return_val_if_fail(pTab, false);
+	UT_sint32 iNumRows = pTab->getNumRows();
+	UT_sint32 iNumCols = pTab->getNumCols();
+	UT_return_val_if_fail(iNumRows > 1 && iNumCols > 0, false);
+
+	if (iSortCol < 0)
+	{
+		UT_sint32 cL, cR, cT, cB;
+		getCellParams(getPoint(), &cL, &cR, &cT, &cB);
+		iSortCol = cL;
+	}
+	if (iSortCol < 0 || iSortCol >= iNumCols)
+	{
+		return false;
+	}
+	const UT_sint32 iFirst = bSkipHeader ? 1 : 0;
+	if (iNumRows - iFirst < 2)
+	{
+		return false;
+	}
+
+	// snapshot every cell's text (merged cells share a strux; the same
+	// text is fine at each covered slot)
+	std::vector<std::vector<UT_UTF8String>> texts(
+		iNumRows, std::vector<UT_UTF8String>(iNumCols));
+	for (UT_sint32 r = 0; r < iNumRows; ++r)
+	{
+		for (UT_sint32 c = 0; c < iNumCols; ++c)
+		{
+			fp_CellContainer * pCC = pTab->getCellAtRowColumn(r, c);
+			if (!pCC)
+			{
+				continue;
+			}
+			fl_CellLayout * pCellL =
+				static_cast<fl_CellLayout *>(pCC->getSectionLayout());
+			if (!pCellL)
+			{
+				continue;
+			}
+			UT_GrowBuf buf;
+			buf.truncate(0);
+			pCellL->appendTextToBuf(buf);
+			if (buf.getLength() > 0)
+			{
+				texts[r][c].appendUCS4(reinterpret_cast<const UT_UCS4Char *>(
+										   buf.getPointer(0)), buf.getLength());
+			}
+		}
+	}
+
+	// sort the row order: numeric compare when both keys parse fully
+	std::vector<UT_sint32> order(iNumRows);
+	for (UT_sint32 i = 0; i < iNumRows; ++i)
+	{
+		order[i] = i;
+	}
+	std::stable_sort(order.begin() + iFirst, order.end(),
+		[&texts, iSortCol, bAsc](UT_sint32 a, UT_sint32 b)
+		{
+			const char * sa = texts[a][iSortCol].utf8_str();
+			const char * sb = texts[b][iSortCol].utf8_str();
+			char * ea = nullptr;
+			char * eb = nullptr;
+			double da = strtod(sa, &ea);
+			double db = strtod(sb, &eb);
+			int cmp;
+			if (ea != sa && eb != sb && *ea == 0 && *eb == 0)
+			{
+				cmp = (da < db) ? -1 : (da > db ? 1 : 0);
+			}
+			else
+			{
+				cmp = g_utf8_collate(sa, sb);
+			}
+			return bAsc ? (cmp < 0) : (cmp > 0);
+		});
+
+	bool bSame = true;
+	for (UT_sint32 i = iFirst; i < iNumRows; ++i)
+	{
+		if (order[i] != i)
+		{
+			bSame = false;
+			break;
+		}
+	}
+	if (bSame)
+	{
+		return true;
+	}
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	if (!isSelectionEmpty())
+	{
+		_clearSelection();
+	}
+	m_pDoc->setDontImmediatelyLayout(true);
+
+	// rewrite each target row's cells with the source row's text;
+	// strux positions are looked up fresh for every cell because the
+	// document shifts as we edit
+	for (UT_sint32 r = iFirst; r < iNumRows; ++r)
+	{
+		for (UT_sint32 c = 0; c < iNumCols; ++c)
+		{
+			const pf_Frag_Strux* cellSDH = m_pDoc->getCellStruxFromRowCol(
+				tableSDH, isShowRevisions(), getRevisionLevel(), r, c);
+			if (!cellSDH)
+			{
+				continue;
+			}
+			const UT_UTF8String & sNew = texts[order[r]][c];
+			UT_UCS4String sUCS = sNew.ucs4_str();
+
+			PT_DocPosition posCell = m_pDoc->getStruxPosition(cellSDH);
+			const pf_Frag_Strux* endSDH =
+				m_pDoc->getEndCellStruxFromCellStrux(cellSDH);
+			if (!endSDH)
+			{
+				continue;
+			}
+			PT_DocPosition posEnd = m_pDoc->getStruxPosition(endSDH);
+			if (posEnd > posCell + 2)
+			{
+				PP_AttrProp attrBefore;
+				UT_uint32 iDel = 0;
+				m_pDoc->deleteSpan(posCell + 2, posEnd,
+								   &attrBefore, iDel);
+			}
+			if (sUCS.length() > 0)
+			{
+				m_pDoc->insertSpan(posCell + 2, sUCS.ucs4_str(),
+								   sUCS.length());
+			}
+		}
+	}
+
+	m_pDoc->setDontImmediatelyLayout(false);
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*!
+ * Toggle the "header-row" property on the cells of the row containing
+ * the caret.  Rows marked this way are treated as heading rows (to be
+ * repeated at the top of each page the table breaks onto); the property
+ * also round-trips through the document format.
+ */
+bool FV_View::cmdToggleRepeatHeader(void)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+
+	bool bOn = !isRepeatHeaderOn();
+	UT_sint32 iLeft, iRight, iTop, iBot;
+	getCellParams(getPoint(), &iLeft, &iRight, &iTop, &iBot);
+	UT_sint32 numRows = 0, numCols = 0;
+	m_pDoc->getRowsColsFromTableStrux(tableSDH, isShowRevisions(), getRevisionLevel(),
+									&numRows, &numCols);
+	UT_return_val_if_fail(numRows > 0 && numCols > 0, false);
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->setDontImmediatelyLayout(true);
+
+	/* bump the table's change index before touching cell struxes —
+	 * without it the incremental relayout crashes (see setCellFormat) */
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	_changeCellParams(posTable, tableSDH);
+
+	UT_GenericVector<const pf_Frag_Strux*> done;
+	for (UT_sint32 i = 0; i < numCols; ++i)
+	{
+		const pf_Frag_Strux* cell = m_pDoc->getCellStruxFromRowCol(
+			tableSDH, isShowRevisions(), getRevisionLevel(), iTop, i);
+		if (!cell || done.findItem(cell) >= 0)
+		{
+			continue;
+		}
+		done.addItem(cell);
+		PT_DocPosition posCell = m_pDoc->getStruxPosition(cell) + 1;
+		if (bOn)
+		{
+			const PP_PropertyVector props = { "header-row", "1" };
+			m_pDoc->changeStruxFmt(PTC_AddFmt, posCell, posCell,
+								   PP_NOPROPS, props, PTX_SectionCell);
+		}
+		else
+		{
+			const PP_PropertyVector props = { "header-row", "" };
+			m_pDoc->changeStruxFmt(PTC_RemoveFmt, posCell, posCell,
+								   PP_NOPROPS, props, PTX_SectionCell);
+		}
+	}
+
+	/* balance the _changeCellParams bump; also performs the full
+	 * update tail (rebuild, glob end, list updates) */
+	_restoreCellParams(posTable, tableSDH);
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/* is the caret's row marked as a repeating header row? */
+bool FV_View::isRepeatHeaderOn(void) const
+{
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* cellSDH = nullptr;
+	if (!m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionCell, &cellSDH) ||
+		!cellSDH)
+	{
+		return false;
+	}
+	const char * szVal = nullptr;
+	m_pDoc->getPropertyFromStrux(cellSDH, isShowRevisions(), getRevisionLevel(),
+								 "header-row", &szVal);
+	return szVal && szVal[0] && strcmp(szVal, "0") != 0;
+}
+
+/*!
+ * Eraser: clicking near a cell border merges the cell with the neighbour
+ * across that border (vertical edge merges left/right, horizontal edge
+ * merges above/below).  Returns false when the click lands deep inside a
+ * cell or outside a table.
+ */
+bool FV_View::cmdEraseTableBorder(UT_sint32 xPos, UT_sint32 yPos)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	PT_DocPosition pos = getDocPositionFromXY(xPos, yPos);
+	if (!isInTable(pos))
+	{
+		return false;
+	}
+	fp_CellContainer * pCell = getCellAtPos(pos);
+	UT_return_val_if_fail(pCell, false);
+
+	// cell bounds on screen: accumulate container offsets up to the
+	// column, then add the page's screen origin
+	fp_TableContainer * pTab =
+		static_cast<fp_TableContainer *>(pCell->getTopmostTable());
+	fp_TableContainer * pBroke = pTab ? pTab->getFirstBrokenTable() : nullptr;
+	UT_return_val_if_fail(pBroke && pBroke->getPage(), false);
+
+	UT_sint32 xoff = 0, yoff = 0;
+	fp_Page * pPage = pBroke->getPage();
+	getPageScreenOffsets(pPage, xoff, yoff);
+	fp_Container * pCon = static_cast<fp_Container *>(pCell);
+	while (pCon && !pCon->isColumnType())
+	{
+		xoff += pCon->getX();
+		yoff += pCon->getY();
+		pCon = pCon->getContainer();
+	}
+	if (pCon)
+	{
+		xoff += pCon->getX();
+		yoff += pCon->getY();
+	}
+	yoff -= pBroke->getYBreak();
+
+	UT_Rect r;
+	r.left = xoff;
+	r.top = yoff;
+	r.width = getGraphics()->tdu(pCell->getWidth());
+	r.height = getGraphics()->tdu(pCell->getHeight());
+	r.left = getGraphics()->tdu(r.left);
+	r.top = getGraphics()->tdu(r.top);
+
+	UT_sint32 dL = labs(xPos - r.left);
+	UT_sint32 dR = labs(xPos - (r.left + r.width));
+	UT_sint32 dT = labs(yPos - r.top);
+	UT_sint32 dB = labs(yPos - (r.top + r.height));
+	UT_sint32 dMin = UT_MIN(UT_MIN(dL, dR), UT_MIN(dT, dB));
+	const UT_sint32 iSlop = 12; /* pixels */
+	if (dMin > iSlop)
+	{
+		return false;
+	}
+
+	UT_sint32 iLeft, iRight, iTop, iBot;
+	getCellParams(pos, &iLeft, &iRight, &iTop, &iBot);
+	const pf_Frag_Strux* tableSDH;
+	bool bRes = m_pDoc->getStruxOfTypeFromPosition(pos, PTX_SectionTable, &tableSDH);
+	UT_return_val_if_fail(bRes, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	UT_sint32 numRows = 0, numCols = 0;
+	m_pDoc->getRowsColsFromTableStrux(tableSDH, isShowRevisions(), getRevisionLevel(),
+									&numRows, &numCols);
+
+	PT_DocPosition posOther = 0;
+	if (dMin == dL && iLeft > 0)
+	{
+		posOther = findCellPosAt(posTable, iTop, iLeft - 1);
+	}
+	else if (dMin == dR && iRight < numCols)
+	{
+		posOther = findCellPosAt(posTable, iTop, iRight);
+	}
+	else if (dMin == dT && iTop > 0)
+	{
+		posOther = findCellPosAt(posTable, iTop - 1, iLeft);
+	}
+	else if (dMin == dB && iBot < numRows)
+	{
+		posOther = findCellPosAt(posTable, iBot, iLeft);
+	}
+	if (posOther == 0)
+	{
+		return false; // outer edge: nothing to merge across
+	}
+	return cmdMergeCells(pos, posOther);
 }
 
 

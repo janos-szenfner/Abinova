@@ -660,16 +660,38 @@ void AP_UnixFrameImpl::toggleGridlines()
 		gtk_widget_queue_draw(m_dArea2);
 }
 
+/* Draw Table rubber-band: dashed rect while a draw-table drag is
+ * in progress (FV_View keeps the rect in window pixels) */
+static void _postDocDrawTableRect(cairo_t * cr, AV_View * pView)
+{
+	FV_View * pFV = static_cast<FV_View *>(pView);
+	if (!pFV)
+		return;
+	UT_Rect r;
+	if (!pFV->getTableDrawRect(&r) || r.width <= 0 || r.height <= 0)
+		return;
+	cairo_save(cr);
+	cairo_set_source_rgba(cr, 0.2, 0.45, 0.9, 0.85);
+	cairo_set_line_width(cr, 1.2);
+	static const double dashes[] = { 4.0, 3.0 };
+	cairo_set_dash(cr, dashes, 2, 0);
+	cairo_rectangle(cr, r.left + 0.5, r.top + 0.5, r.width, r.height);
+	cairo_stroke(cr);
+	cairo_restore(cr);
+}
+
 /* light grid anchored to the scroll offsets so it scrolls with the
  * document; spacing tracks the zoom so it stays ~1 cm on screen */
 void AP_UnixFrameImpl::_postDocDraw(GtkWidget * w, cairo_t * cr,
 									AV_View * pView)
 {
-	if (!m_bGridlines || !pView || !w)
+	if (!pView || !w)
 		return;
 	GR_Graphics * pG = pView->getGraphics();
 	if (!pG)
 		return;
+	if (m_bGridlines)
+	{
 	GtkAllocation alloc;
 	gtk_widget_get_allocation(w, &alloc);
 	double xoff = pG->tduD(pView->getXScrollOffset());
@@ -699,6 +721,9 @@ void AP_UnixFrameImpl::_postDocDraw(GtkWidget * w, cairo_t * cr,
 	}
 	cairo_stroke(cr);
 	cairo_restore(cr);
+	}
+
+	_postDocDrawTableRect(cr, pView);
 }
 
 /* ===== Split view ===== */

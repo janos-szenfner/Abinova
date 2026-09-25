@@ -959,6 +959,24 @@ public:
 	bool                cmdAutoFitTable(void);
 	bool                cmdMergeCells(PT_DocPosition posSource, PT_DocPosition posDestination);
 	bool                cmdTableToText(PT_DocPosition posSource,UT_sint32 iSepType);
+	bool                cmdSplitTable(void);
+	bool                cmdTableCellAlign(UT_sint32 iVert, const char * szAlign);
+	bool                cmdCellTextDirection(const char * szDir);
+	bool                cmdAutoFitWindow(void);
+	bool                cmdFixColumnWidths(void);
+	bool                cmdDistributeCols(void);
+	bool                cmdDistributeRows(void);
+	bool                cmdTableColWidth(const char * szDim,
+										PT_DocPosition posCell = 0);
+	bool                cmdTableRowHeight(const char * szDim,
+										PT_DocPosition posCell = 0);
+	bool                getTableCellDims(UT_Dimension unit,
+										 double & dHeight,
+										 double & dWidth);
+	bool                cmdSortTableRows(bool bAsc, UT_sint32 iSortCol, bool bSkipHeader);
+	bool                cmdToggleRepeatHeader(void);
+	bool                isRepeatHeaderOn(void) const;
+	bool                cmdEraseTableBorder(UT_sint32 xPos, UT_sint32 yPos);
 
 	bool                _MergeCells( PT_DocPosition posDestination,PT_DocPosition posSource, bool bBefore);
 	bool                getCellParams(PT_DocPosition posCol, UT_sint32 *iLeft,
@@ -1012,6 +1030,19 @@ public:
                         { m_bDragTableLine = bSet;}
 	bool                getDragTableLine(void) const
 		                { return m_bDragTableLine;}
+	bool                getShowTableGridlines(void) const
+		                { return m_bShowTableGridlines;}
+	void                setShowTableGridlines(bool bSet);
+	bool                getDrawTableMode(void) const
+		                { return m_bDrawTableMode;}
+	void                setDrawTableMode(bool bSet);
+	bool                getEraserMode(void) const
+		                { return m_bEraserMode;}
+	void                setEraserMode(bool bSet);
+	void                beginTableDraw(UT_sint32 xPos, UT_sint32 yPos);
+	void                dragTableDraw(UT_sint32 xPos, UT_sint32 yPos);
+	void                endTableDraw(UT_sint32 xPos, UT_sint32 yPos);
+	bool                getTableDrawRect(UT_Rect * pRect) const;
 	void                setTopRuler(AP_TopRuler * pRuler)
                         { m_pTopRuler = pRuler;}
 	AP_TopRuler *       getTopRuler(void) const
@@ -1294,6 +1325,11 @@ private:
 
 	UT_uint32 m_countDisable; // cursor disable count
 	bool                m_bDragTableLine;
+	bool                m_bShowTableGridlines;
+	bool                m_bDrawTableMode;
+	bool                m_bEraserMode;
+	bool                m_bTableDrawDragging;
+	UT_Rect             m_rectTableDraw;
 	EV_EditMouseContext m_prevMouseContext;
 	AP_TopRuler *       m_pTopRuler;
 	AP_LeftRuler *      m_pLeftRuler;

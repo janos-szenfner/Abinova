@@ -74,6 +74,8 @@
 #define _CPO		EV_EMC_POSOBJECT
 #define _CMA		EV_EMC_MATH
 #define _CEM		EV_EMC_EMBED
+#define _CTD		EV_EMC_TABLEDRAW
+#define _CTE		EV_EMC_TABLEERASE
 
 #define _B0		| EV_EMB_BUTTON0
 #define _B1		| EV_EMB_BUTTON1
@@ -112,6 +114,8 @@ ap_bs_Mouse MouseTable[] =
 	{_CTC _B0,	{ "",	"",			"cursorTopCell",	"",			"",			"",				}},
 	{_CTO _B0,	{ "",	"",			"cursorTOC",	"",			"",			"",				}},
 	{_CMA _B0,	{ "",	"",			"cursorDefault",		"",			"",			""		        }},
+	{_CTD _B0,	{ "",	"",			"cursorTableDraw",		"",			"",			""		        }},
+	{_CTE _B0,	{ "",	"",			"cursorTableEraser",	"",			"",			""		        }},
 
 
 //	Button-1, VisualTextDrag context
@@ -180,6 +184,10 @@ ap_bs_Mouse MouseTable[] =
 	{_CTH _B1,	{ "beginHDrag",		 "clearSetRows", "dragHline",	"",		"endDragHline",	""				}},
 	{_CTC _B1,	{ "selectColumnClick","clearSetCols", "dragHline",	"",		"endDragVline",	""				}},
 	{_CTC _B2,	{ "selectColumnClick","clearSetCols", "dragHline",	"",		"endDragVline",	""				}},
+
+//	Button-1, TableDraw/TableEraser modes (Table Layout ribbon)
+	{_CTD _B1,	{ "beginTableDraw", "",				"dragTableDraw","",		"endTableDraw",	""				}},
+	{_CTE _B1,	{ "eraseTableBorder","",			"",				"",		"",				""				}},
 
 
 //	Button-1, ImageSize-context
