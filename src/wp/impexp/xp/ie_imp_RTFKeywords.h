@@ -5,6 +5,7 @@ _rtf_keyword rtfKeywords[] = {
 	{"*", false, false, NO_CONTEXT, RTF_KW_STAR },
 	{"-", false, false, NO_CONTEXT, RTF_KW_HYPHEN },
 	{":", false, false, NO_CONTEXT, RTF_KW_COLON },
+	{"ApplyBrkRules", false, false, NO_CONTEXT, RTF_KW_ApplyBrkRules }, /* 2002 */
 	{"\\", false, false, NO_CONTEXT, RTF_KW_BACKSLASH },
 	{"_", false, false, NO_CONTEXT, RTF_KW_UNDERSCORE },
 	{"ab", false, false, NO_CONTEXT, RTF_KW_ab },
@@ -16,14 +17,14 @@ _rtf_keyword rtfKeywords[] = {
 	{"abiendtable", false, false, NO_CONTEXT, RTF_KW_abiendtable },
 	{"abifieldD", false, false, NO_CONTEXT, RTF_KW_abifieldD },
 	{"abiframeprops", false, false, NO_CONTEXT, RTF_KW_abiframeprops },
-	{"abilatexdata",false,false,NO_CONTEXT,RTF_KW_abilatexdata },
+	{"abilatexdata", false, false, NO_CONTEXT, RTF_KW_abilatexdata },
 	{"abilist", false, false, NO_CONTEXT, RTF_KW_abilist },
 	{"abiltr", false, false, NO_CONTEXT, RTF_KW_abiltr },
-	{"abimathml",false,false,NO_CONTEXT,RTF_KW_abimathml },
-	{"abimathmldata",false,false,NO_CONTEXT,RTF_KW_abimathmldata },
+	{"abimathml", false, false, NO_CONTEXT, RTF_KW_abimathml },
+	{"abimathmldata", false, false, NO_CONTEXT, RTF_KW_abimathmldata },
 	{"abinodiroverride", false, false, NO_CONTEXT, RTF_KW_abinodiroverride },
-	{"abirtl", false, false, NO_CONTEXT, RTF_KW_abirtl },
 	{"abirevision", false, false, NO_CONTEXT, RTF_KW_abirevision },
+	{"abirtl", false, false, NO_CONTEXT, RTF_KW_abirtl },
 	{"abitableprops", false, false, NO_CONTEXT, RTF_KW_abitableprops },
 	{"abitopline", false, false, NO_CONTEXT, RTF_KW_abitopline },
 	{"absh", false, false, NO_CONTEXT, RTF_KW_absh },
@@ -85,7 +86,6 @@ _rtf_keyword rtfKeywords[] = {
 	{"ansi", false, false, NO_CONTEXT, RTF_KW_ansi },
 	{"ansicpg", true, false, NO_CONTEXT, RTF_KW_ansicpg }, /* 97 */
 	{"aoutl", false, false, NO_CONTEXT, RTF_KW_aoutl },
-	{"ApplyBrkRules", false, false, NO_CONTEXT, RTF_KW_ApplyBrkRules }, /* 2002 */
 	{"ascaps", false, false, NO_CONTEXT, RTF_KW_ascaps },
 	{"ashad", false, false, NO_CONTEXT, RTF_KW_ashad },
 	{"asianbrkrule", false, false, NO_CONTEXT, RTF_KW_asianbrkrule }, /* 2002 */
@@ -223,6 +223,8 @@ _rtf_keyword rtfKeywords[] = {
 	{"chpgn", false, false, NO_CONTEXT, RTF_KW_chpgn },
 	{"chshdng", true, false, NO_CONTEXT, RTF_KW_chshdng }, /* 97 */
 	{"chtime", false, false, NO_CONTEXT, RTF_KW_chtime },
+	{"clFitText", false, false, NO_CONTEXT, RTF_KW_clFitText }, /* 2000 */
+	{"clNoWrap", false, false, NO_CONTEXT, RTF_KW_clNoWrap }, /* 2000 */
 	{"clbgbdiag", false, false, NO_CONTEXT, RTF_KW_clbgbdiag },
 	{"clbgcross", false, false, NO_CONTEXT, RTF_KW_clbgcross },
 	{"clbgdcross", false, false, NO_CONTEXT, RTF_KW_clbgdcross },
@@ -245,11 +247,9 @@ _rtf_keyword rtfKeywords[] = {
 	{"clcfpatraw", true, false, NO_CONTEXT, RTF_KW_clcfpatraw }, /* 2002 */
 	{"cldgll", false, false, NO_CONTEXT, RTF_KW_cldgll }, /* 7.0 */
 	{"cldglu", false, false, NO_CONTEXT, RTF_KW_cldglu }, /* 7.0 */
-	{"clFitText", false, false, NO_CONTEXT, RTF_KW_clFitText }, /* 2000 */
 	{"clftsWidth", true, false, NO_CONTEXT, RTF_KW_clftsWidth }, /* 2000 */
 	{"clmgf", false, false, NO_CONTEXT, RTF_KW_clmgf },
 	{"clmrg", false, false, NO_CONTEXT, RTF_KW_clmrg },
-	{"clNoWrap", false, false, NO_CONTEXT, RTF_KW_clNoWrap }, /* 2000 */
 	{"clpadb", true, false, NO_CONTEXT, RTF_KW_clpadb }, /* 2000 */
 	{"clpadfb", true, false, NO_CONTEXT, RTF_KW_clpadfb }, /* 2000 */
 	{"clpadfl", true, false, NO_CONTEXT, RTF_KW_clpadfl }, /* 2000 */
@@ -600,8 +600,8 @@ _rtf_keyword rtfKeywords[] = {
 	{"insrsid", true, false, NO_CONTEXT, RTF_KW_insrsid }, /* 2002 */
 	{"intbl", false, false, NO_CONTEXT, RTF_KW_intbl },
 	{"ipgp", true, false, NO_CONTEXT, RTF_KW_ipgp }, /* 2002 */
-	{"irowband", true, false, NO_CONTEXT, RTF_KW_irowband }, /* 2002 */
 	{"irow", true, false, NO_CONTEXT, RTF_KW_irow }, /* 2002 */
+	{"irowband", true, false, NO_CONTEXT, RTF_KW_irowband }, /* 2002 */
 	{"itap", true, false, NO_CONTEXT, RTF_KW_itap }, /* 2000 */
 	{"ixe", false, false, NO_CONTEXT, RTF_KW_ixe },
 	{"jcompress", false, false, NO_CONTEXT, RTF_KW_jcompress }, /* 7.0 */
@@ -642,6 +642,7 @@ _rtf_keyword rtfKeywords[] = {
 	{"leveltemplateid", true, false, NO_CONTEXT, RTF_KW_leveltemplateid }, /* 2000 */
 	{"leveltext", false, false, NO_CONTEXT, RTF_KW_leveltext }, /* 97 */
 	{"li", false, false, NO_CONTEXT, RTF_KW_li },
+	{"lin", true, false, NO_CONTEXT, RTF_KW_lin }, /* 2000 */
 	{"line", false, false, NO_CONTEXT, RTF_KW_line },
 	{"linebetcol", false, false, NO_CONTEXT, RTF_KW_linebetcol },
 	{"linecont", false, false, NO_CONTEXT, RTF_KW_linecont },
@@ -654,7 +655,6 @@ _rtf_keyword rtfKeywords[] = {
 	{"linkself", false, false, NO_CONTEXT, RTF_KW_linkself },
 	{"linkstyles", false, false, NO_CONTEXT, RTF_KW_linkstyles },
 	{"linkval", false, false, NO_CONTEXT, RTF_KW_linkval }, /* 7.0 */
-	{"lin", true, false, NO_CONTEXT, RTF_KW_lin }, /* 2000 */
 	{"lisa", true, false, NO_CONTEXT, RTF_KW_lisa }, /* 2000 */
 	{"lisb", true, false, NO_CONTEXT, RTF_KW_lisb }, /* 2000 */
 	{"listhybrid", false, false, NO_CONTEXT, RTF_KW_listhybrid }, /* 2000 */
@@ -994,8 +994,8 @@ _rtf_keyword rtfKeywords[] = {
 	{"rawclbgvert", false, false, NO_CONTEXT, RTF_KW_rawclbgvert }, /* 2002 */
 	{"rdblquote", false, false, NO_CONTEXT, RTF_KW_rdblquote },
 	{"rdf", false, false, NO_CONTEXT, RTF_KW_rdf },
-	{"rdfanchorstart", false, false, NO_CONTEXT, RTF_KW_rdfanchorstart },
 	{"rdfanchorend", false, false, NO_CONTEXT, RTF_KW_rdfanchorend },
+	{"rdfanchorstart", false, false, NO_CONTEXT, RTF_KW_rdfanchorstart },
 	{"red", false, false, NO_CONTEXT, RTF_KW_red },
 	{"rempersonalinfo", false, false, NO_CONTEXT, RTF_KW_rempersonalinfo }, /* 2002 */
 	{"result", false, false, NO_CONTEXT, RTF_KW_result },
@@ -1136,8 +1136,8 @@ _rtf_keyword rtfKeywords[] = {
 	{"shprslt", false, false, NO_CONTEXT, RTF_KW_shprslt }, /* 97 */
 	{"shptop", true, false, NO_CONTEXT, RTF_KW_shptop }, /* 97 */
 	{"shptxt", false, false, NO_CONTEXT, RTF_KW_shptxt }, /* 97 */
-	{"shpwrk", true, false, NO_CONTEXT, RTF_KW_shpwrk }, /* 97 */
 	{"shpwr", true, false, NO_CONTEXT, RTF_KW_shpwr }, /* 97 */
+	{"shpwrk", true, false, NO_CONTEXT, RTF_KW_shpwrk }, /* 97 */
 	{"shpz", true, false, NO_CONTEXT, RTF_KW_shpz }, /* 97 */
 	{"sl", false, false, NO_CONTEXT, RTF_KW_sl },
 	{"slmult", false, false, NO_CONTEXT, RTF_KW_slmult },
@@ -1175,7 +1175,7 @@ _rtf_keyword rtfKeywords[] = {
 	{"subject", false, false, NO_CONTEXT, RTF_KW_subject },
 	{"super", false, false, NO_CONTEXT, RTF_KW_super },
 	{"sv", false, false, NO_CONTEXT, RTF_KW_sv },
-	{"svgblip", false, false, NO_CONTEXT, RTF_KW_svgblip }, /* abiword! */
+	{"svgblip", false, false, NO_CONTEXT, RTF_KW_svgblip },
 	{"swpbdr", false, false, NO_CONTEXT, RTF_KW_swpbdr },
 	{"tab", false, false, NO_CONTEXT, RTF_KW_tab },
 	{"tabsnoovrlp", false, false, NO_CONTEXT, RTF_KW_tabsnoovrlp }, /* 2000 */
@@ -1217,10 +1217,10 @@ _rtf_keyword rtfKeywords[] = {
 	{"tphpg", false, false, NO_CONTEXT, RTF_KW_tphpg }, /* 2000 */
 	{"tposnegx", true, false, NO_CONTEXT, RTF_KW_tposnegx }, /* 2000 */
 	{"tposnegy", true, false, NO_CONTEXT, RTF_KW_tposnegy }, /* 2000 */
+	{"tposx", true, false, NO_CONTEXT, RTF_KW_tposx }, /* 2000 */
 	{"tposxc", false, false, NO_CONTEXT, RTF_KW_tposxc }, /* 2000 */
 	{"tposxi", false, false, NO_CONTEXT, RTF_KW_tposxi }, /* 2000 */
 	{"tposxl", false, false, NO_CONTEXT, RTF_KW_tposxl }, /* 2000 */
-	{"tposx", true, false, NO_CONTEXT, RTF_KW_tposx }, /* 2000 */
 	{"tposxo", false, false, NO_CONTEXT, RTF_KW_tposxo }, /* 2000 */
 	{"tposxr", false, false, NO_CONTEXT, RTF_KW_tposxr }, /* 2000 */
 	{"tposy", false, false, NO_CONTEXT, RTF_KW_tposy }, /* 2000 */
@@ -1260,9 +1260,9 @@ _rtf_keyword rtfKeywords[] = {
 	{"trcbpat", true, false, NO_CONTEXT, RTF_KW_trcbpat }, /* 2002 */
 	{"trcfpat", true, false, NO_CONTEXT, RTF_KW_trcfpat }, /* 2002 */
 	{"trdate", true, false, NO_CONTEXT, RTF_KW_trdate },
+	{"trftsWidth", true, false, NO_CONTEXT, RTF_KW_trftsWidth }, /* 2000 */
 	{"trftsWidthA", true, false, NO_CONTEXT, RTF_KW_trftsWidthA }, /* 2000 */
 	{"trftsWidthB", true, false, NO_CONTEXT, RTF_KW_trftsWidthB }, /* 2000 */
-	{"trftsWidth", true, false, NO_CONTEXT, RTF_KW_trftsWidth }, /* 2000 */
 	{"trgaph", false, false, NO_CONTEXT, RTF_KW_trgaph },
 	{"trhdr", false, false, NO_CONTEXT, RTF_KW_trhdr },
 	{"trkeep", false, false, NO_CONTEXT, RTF_KW_trkeep },
@@ -1291,9 +1291,9 @@ _rtf_keyword rtfKeywords[] = {
 	{"trspdr", true, false, NO_CONTEXT, RTF_KW_trspdr }, /* 2000 */
 	{"trspdt", true, false, NO_CONTEXT, RTF_KW_trspdt }, /* 2000 */
 	{"truncatefontheight", false, false, NO_CONTEXT, RTF_KW_truncatefontheight },
+	{"trwWidth", true, false, NO_CONTEXT, RTF_KW_trwWidth }, /* 2000 */
 	{"trwWidthA", true, false, NO_CONTEXT, RTF_KW_trwWidthA }, /* 2000 */
 	{"trwWidthB", true, false, NO_CONTEXT, RTF_KW_trwWidthB }, /* 2000 */
-	{"trwWidth", true, false, NO_CONTEXT, RTF_KW_trwWidth }, /* 2000 */
 	{"ts", false, false, NO_CONTEXT, RTF_KW_ts }, /* 2002 */
 	{"tsbgbdiag", false, false, NO_CONTEXT, RTF_KW_tsbgbdiag }, /* 2002 */
 	{"tsbgcross", false, false, NO_CONTEXT, RTF_KW_tsbgcross }, /* 2002 */
@@ -1351,6 +1351,7 @@ _rtf_keyword rtfKeywords[] = {
 	{"twoonone", false, false, NO_CONTEXT, RTF_KW_twoonone }, /* 7.0 */
 	{"tx", false, false, NO_CONTEXT, RTF_KW_tx },
 	{"txe", false, false, NO_CONTEXT, RTF_KW_txe },
+	{"u", true, false, NO_CONTEXT, RTF_KW_u }, /* 97 */
 	{"uc", true, false, NO_CONTEXT, RTF_KW_uc }, /* 97 */
 	{"ud", false, false, NO_CONTEXT, RTF_KW_ud }, /* 97 */
 	{"ul", false, false, NO_CONTEXT, RTF_KW_ul },
@@ -1373,7 +1374,6 @@ _rtf_keyword rtfKeywords[] = {
 	{"ululdbwave", false, false, NO_CONTEXT, RTF_KW_ululdbwave }, /* 2000 */
 	{"ulw", false, false, NO_CONTEXT, RTF_KW_ulw },
 	{"ulwave", false, false, NO_CONTEXT, RTF_KW_ulwave }, /* 7.0 */
-	{"u", true, false, NO_CONTEXT, RTF_KW_u }, /* 97 */
 	{"up", false, false, NO_CONTEXT, RTF_KW_up },
 	{"upr", false, false, NO_CONTEXT, RTF_KW_upr }, /* 97 */
 	{"urtf", true, false, NO_CONTEXT, RTF_KW_urtf },

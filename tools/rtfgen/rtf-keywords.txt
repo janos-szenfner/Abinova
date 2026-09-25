@@ -1,11 +1,21 @@
+\ApplyBrkRules 2002:Document Formatting Properties:Flag
 \ab:Associated Character Properties:Toggle
 \abibotline:Abinova proprietary:
 \abicellprops:Abinova proprietary:
+\abiembed:AbiWord extensions:Value
+\abiembeddata:AbiWord extensions:Value
 \abiendcell:Abinova proprietary:
 \abiendtable:Abinova proprietary:
 \abifieldD:Abinova proprietary:
+\abiframeprops:AbiWord extensions:Value
+\abilatexdata:AbiWord extensions:Value
 \abilist:Abinova proprietary:
+\abiltr:AbiWord extensions:Value
+\abimathml:AbiWord extensions:Value
+\abimathmldata:AbiWord extensions:Value
 \abinodiroverride:Abinova proprietary:
+\abirevision:AbiWord extensions:Value
+\abirtl:AbiWord extensions:Value
 \abitableprops:Abinova proprietary:
 \abitopline:Abinova proprietary:
 \absh:Positioned Objects and Frames:Value
@@ -67,7 +77,6 @@
 \ansi:Character Set:Flag
 \ansicpgN 97:Unicode RTF:Value
 \aoutl:Associated Character Properties:Toggle
-\ApplyBrkRules 2002:Document Formatting Properties:Flag
 \ascaps:Associated Character Properties:Toggle
 \ashad:Associated Character Properties:Toggle
 \asianbrkrule 2002:Document Formatting Properties:Flag
@@ -142,6 +151,7 @@
 \brdrinset 2000:Paragraph Text:Flag
 \brdrl:Paragraph Borders:Flag
 \brdrnil 2002:Paragraph Borders:Flag
+\brdrnone 2002:Paragraph Borders:Flag
 \brdroutset 2000:Paragraph Text:Flag
 \brdrr:Paragraph Borders:Flag
 \brdrs:Paragraph Borders:Flag
@@ -205,6 +215,8 @@
 \chpgn:Special Characters:Symbol
 \chshdngN 97:Character Text:Value
 \chtime:Special Characters:Symbol
+\clFitText2000:Table Definitions:Flag
+\clNoWrap2000:Table Definitions:Flag
 \clbgbdiag:Table Definitions:Flag
 \clbgcross:Table Definitions:Flag
 \clbgdcross:Table Definitions:Flag
@@ -227,11 +239,9 @@
 \clcfpatrawN 2002:Table Definitions:Value
 \cldgll 7.0:Table Definitions:Flag
 \cldglu 7.0:Table Definitions:Flag
-\clFitText2000:Table Definitions:Flag
 \clftsWidthN2000:Table Definitions:Value
 \clmgf:Table Definitions:Flag
 \clmrg:Table Definitions:Flag
-\clNoWrap2000:Table Definitions:Flag
 \clpadbN2000:Table Definitions:Value
 \clpadfbN2000:Table Definitions:Value
 \clpadflN2000:Table Definitions:Value
@@ -288,6 +298,7 @@
 \deftab:Document Formatting Properties:Value
 \deleted:Font (Character) Formatting Properties:Toggle
 \delrsidN 2002:Track Changes (Revision Marks):Value
+\deltamoveid:AbiWord extensions:Value
 \dfrauthN 97:Paragraph Text:Value
 \dfrdateN 97:Paragraph Text:Value
 \dfrmtxtx:Positioned Objects and Frames:Value
@@ -461,6 +472,7 @@
 \field:Fields:Destination
 \file :File Table:Destination
 \filetbl :File Table:Destination
+\fillColor:Word 2000 RTF for Drawing Objects (Shapes):Value
 \fittextN 2000:Font (Character) Formatting Properties:Value
 \fldalt :Document Formatting Properties:Flag
 \flddirty:Fields:Flag
@@ -504,6 +516,7 @@
 \fs:Font (Character) Formatting Properties:Value
 \fscript:Font Table:Flag
 \fswiss:Font Table:Flag
+\ftech:Field:Flag
 \ftnalt :Document Formatting Properties:Flag
 \ftnbj:Document Formatting Properties:Flag
 \ftncn:Document Formatting Properties:Destination
@@ -581,8 +594,8 @@
 \insrsidN 2002:Track Changes (Revision Marks):Value
 \intbl:Paragraph Formatting Properties:Flag
 \ipgpN2002:Paragraph Group Propreties:Value
-\irowbandN2002:Table Definitions:Value
 \irowN2002:Table Definitions:Value
+\irowbandN2002:Table Definitions:Value
 \itapN 2000:Paragraph Formatting Properties:Value
 \ixe:Index Entries:Flag
 \jcompress 7.0:Document Formatting Properties:Flag
@@ -632,10 +645,10 @@
 \linestart:Document Formatting Properties:Value
 \linestarts:Section Formatting Properties:Value
 \linex:Section Formatting Properties:Value
+\linN 2000:Paragraph Formatting Properties:Value
 \linkself:Objects:Flag
 \linkstyles :Document Formatting Properties:Flag
 \linkval 7.0:Information Group:Value
-\linN 2000:Paragraph Formatting Properties:Value
 \lisaN 2000:Paragraph Formatting Properties:Value
 \lisbN 2000:Paragraph Formatting Properties:Value
 \listhybrid 2000:List Table:Flag
@@ -975,6 +988,9 @@
 \rawclbghoriz 2002:Table Definitions:Flag
 \rawclbgvert 2002:Table Definitions:Flag
 \rdblquote:Special Characters:Symbol
+\rdf:AbiWord extensions:Destination
+\rdfanchorend:AbiWord extensions:Destination
+\rdfanchorstart:AbiWord extensions:Destination
 \red:Color Table:Value
 \rempersonalinfo 2002:Document Formatting Properties:Flag
 \result:Objects:Destination
@@ -1115,8 +1131,8 @@
 \shprslt 97:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Value
 \shptopN 97:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Value
 \shptxt 97:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Value
-\shpwrkN 97:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Value
 \shpwrN 97:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Value
+\shpwrkN 97:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Value
 \shpzN 97:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Value
 \sl:Paragraph Formatting Properties:Value
 \slmult :Paragraph Formatting Properties:Value
@@ -1154,6 +1170,7 @@
 \subject:Information Group:Destination
 \super :Font (Character) Formatting Properties:Flag
 \sv:Word 97 through Word 2002 RTF for Drawing Objects (Shapes):Destination
+\svgblip:AbiWord extensions:Destination
 \swpbdr :Document Formatting Properties:Flag
 \tab:Special Characters:Symbol
 \tabsnoovrlp2000:Table Definitions:Flag
@@ -1195,10 +1212,10 @@
 \tphpg2000:Table Definitions:Flag
 \tposnegxN2000:Table Definitions:Value
 \tposnegyN2000:Table Definitions:Value
+\tposxN2000:Table Definitions:Value
 \tposxc2000:Table Definitions:Flag
 \tposxi2000:Table Definitions:Flag
 \tposxl2000:Table Definitions:Flag
-\tposxN2000:Table Definitions:Value
 \tposxo2000:Table Definitions:Flag
 \tposxr2000:Table Definitions:Flag
 \tposy2000:Table Definitions:Flag
@@ -1238,9 +1255,9 @@
 \trcbpatN2002:Table Definitions:Value
 \trcfpatN2002:Table Definitions:Value
 \trdateN:Table Definitions:Value
+\trftsWidthN2000:Table Definitions:Value
 \trftsWidthAN2000:Table Definitions:Value
 \trftsWidthBN2000:Table Definitions:Value
-\trftsWidthN2000:Table Definitions:Value
 \trgaph:Table Definitions:Value
 \trhdr :Table Definitions:Flag
 \trkeep :Table Definitions:Flag
@@ -1269,9 +1286,9 @@
 \trspdrN2000:Table Definitions:Value
 \trspdtN2000:Table Definitions:Value
 \truncatefontheight:Document Formatting Properties:Flag
+\trwWidthN2000:Table Definitions:Value
 \trwWidthAN2000:Table Definitions:Value
 \trwWidthBN2000:Table Definitions:Value
-\trwWidthN2000:Table Definitions:Value
 \ts 2002:Style Sheet:Value
 \tsbgbdiag 2002:Table Styles:Flag
 \tsbgcross 2002:Table Styles:Flag
@@ -1330,6 +1347,7 @@
 \twoonone 7.0:Document Formatting Properties:Flag
 \tx:Tabs:Value
 \txe:Index Entries:Destination
+\uN 97:Unicode RTF:Value
 \ucN 97:Unicode RTF:Value
 \ud 97:Unicode RTF:Destination
 \ul:Font (Character) Formatting Properties:Toggle
@@ -1353,7 +1371,6 @@
 \ululdbwave 2000:Font (Character) Formatting Properties:Toggle
 \ulw:Font (Character) Formatting Properties:Flag
 \ulwave 7.0:Font (Character) Formatting Properties:Toggle
-\uN 97:Unicode RTF:Value
 \up:Font (Character) Formatting Properties:Value
 \upr 97:Unicode RTF:Destination
 \urtfN:Control Words Introduced by Other Microsoft Products:Destination

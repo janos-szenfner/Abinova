@@ -97,3 +97,4 @@ src/wp/test/test-suite.log
 src/wp/test/testwrap.sh-stamp
 src/wp/test/unix/testwrap.sh.log
 src/wp/test/unix/testwrap.sh.trs
+__pycache__/

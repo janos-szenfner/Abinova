@@ -1478,6 +1478,21 @@ below are on `main` but the release has not been cut yet.
   references the Plugin Manager dialog, the classic menubar or
   upstream `abisource.com` links (BugZilla/mailing list/CVS
   instructions replaced by the project repository).
+- **`tools/` cleanup — Perl replaced by Python, dead scripts
+  removed** — `cdump.pl` (the build-time image→C-array generator
+  used for `ap_wp_sidebar.cpp`) and `generate-rtf.pl` (RTF keyword
+  table generator) were replaced by `cdump.py` and
+  `generate-rtf.py`; the Python versions produce byte-identical
+  output and the RTF generator now emits the `bsearch`ed keyword
+  table in strict `strcmp` order instead of trusting input-file
+  order. `rtf-keywords.txt` was resynced with the shipped headers
+  (15 missing keywords added — `abiembed`, `abilatexdata`, `rdf*`,
+  `svgblip`, `brdrnone`, `deltamoveid`, `fillColor`, `ftech` and
+  more — plus ordering fixes). Dead scripts removed:
+  `generate_changelog.php` (immediately `die()`d — SVN-era),
+  `generate_changelog.py` (unused release-tag tooling) and
+  `release.sh` (hard-coded `ABI-3-1-0-STABLE`/`3.1.0` release
+  script). `clang-fmt.py` retained.
 - **`.abwn` document header updated** — the informational comment
   now points at `https://github.com/janos-szenfner/Exp-Abi` and
   names Abinova as the generator (the AWML doctype, namespaces and

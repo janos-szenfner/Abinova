@@ -16,7 +16,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301 USA.
 
-CDUMPAPP = $(top_srcdir)/tools/cdump/xp/cdump.pl
+CDUMPAPP = $(top_srcdir)/tools/cdump/xp/cdump.py
 
 noinst_LTLIBRARIES = libap.la
 
