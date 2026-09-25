@@ -27,8 +27,8 @@ AbiWord_test_CPPFLAGS = $(WP_CPPFLAGS) \
 	-DABIWORD_DATADIR="\"$(ABIWORD_DATADIR)\"" \
 	-I$(top_srcdir)/src/af/tf/xp/
 
-AbiWord_test_LDFLAGS =  -L$(top_builddir)/src -labiword-@ABIWORD_SERIES@ \
-	-L$(top_builddir)/src/af/tf -labiword-@ABIWORD_SERIES@-test
+AbiWord_test_LDFLAGS =  -L$(top_builddir)/src -labinova-@ABIWORD_SERIES@ \
+	-L$(top_builddir)/src/af/tf -labinova-@ABIWORD_SERIES@-test
 
 AbiWord_test_LDADD =  $(DEPS_LIBS)
 

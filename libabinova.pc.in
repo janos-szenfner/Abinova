@@ -4,11 +4,11 @@ libdir=@libdir@
 includedir=@includedir@
 datarootdir=@datarootdir@
 pkgdatadir=@ABIWORD_DATADIR@
-libabiword=true
+libabinova=true
 
-Name: abiword-@ABIWORD_SERIES@
+Name: abinova-@ABIWORD_SERIES@
 Description: Abinova word processing library
 Version: @VERSION@
 Requires: @ABIWORD_REQUIRED_PKGS@
-Libs: -L${libdir} -labiword-@ABIWORD_SERIES@
-Cflags: -I${includedir}/abiword-@ABIWORD_SERIES@
+Libs: -L${libdir} -labinova-@ABIWORD_SERIES@
+Cflags: -I${includedir}/abinova-@ABIWORD_SERIES@

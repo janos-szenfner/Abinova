@@ -24,54 +24,54 @@
 
 #include "ap_Args.h"
 #include "ap_UnixApp.h"
-#include "libabiword.h"
+#include "libabinova.h"
 
-static AP_UnixApp *_abiword_app = nullptr;
+static AP_UnixApp *_abinova_app = nullptr;
 
 /**
- * libabiword_init:
+ * libabinova_init:
  * @argc: argument count
  * @argv: (array length=argc): Commandline arguments
  *
- * Initializes libabiword
+ * Initializes libabinova
  */
-void libabiword_init (int argc, char **argv)
+void libabinova_init (int argc, char **argv)
 {
-	if (!_abiword_app) {
-		_abiword_app = new AP_UnixApp(PACKAGE);
+	if (!_abinova_app) {
+		_abinova_app = new AP_UnixApp(PACKAGE);
 		XAP_Args XArgs(argc, argv);
-		AP_Args Args = AP_Args(&XArgs, PACKAGE, _abiword_app);
+		AP_Args Args = AP_Args(&XArgs, PACKAGE, _abinova_app);
 		/* TODO do we need to add the gtk's GOptionGroup here? */
 		Args.parseOptions();
-		_abiword_app->initialize(TRUE);
+		_abinova_app->initialize(TRUE);
 		/* TODO set up segfault handlers */
 	}
 }
 
 /**
- * libabiword_init_noargs:
+ * libabinova_init_noargs:
  *
- * Initializes libabiword
+ * Initializes libabinova
  */
-void libabiword_init_noargs ()
+void libabinova_init_noargs ()
 {
-	if (!_abiword_app) {
-		static char *argv[] = {"libabiword", nullptr};
-		_abiword_app = new AP_UnixApp(PACKAGE);
+	if (!_abinova_app) {
+		static char *argv[] = {"libabinova", nullptr};
+		_abinova_app = new AP_UnixApp(PACKAGE);
 		XAP_Args XArgs(1, argv);
-		AP_Args Args = AP_Args(&XArgs, PACKAGE, _abiword_app);
+		AP_Args Args = AP_Args(&XArgs, PACKAGE, _abinova_app);
 		Args.parseOptions();
-		_abiword_app->initialize(TRUE);
+		_abinova_app->initialize(TRUE);
 		/* TODO set up segfault handlers */
 	}
 }
 
-void libabiword_shutdown ()
+void libabinova_shutdown ()
 {
-	if (_abiword_app ) 
+	if (_abinova_app ) 
 	{
-		_abiword_app->shutdown();
-		delete _abiword_app;
-		_abiword_app = nullptr;
+		_abinova_app->shutdown();
+		delete _abinova_app;
+		_abinova_app = nullptr;
 	}
 }

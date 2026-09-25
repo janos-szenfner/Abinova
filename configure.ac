@@ -892,7 +892,7 @@ AC_SUBST(TYPELIBDIR)
 
 AM_CONDITIONAL(HAVE_INTROSPECTION, test "x$found_introspection" = "xyes")
 
-AC_CONFIG_FILES([libabiword.pc
+AC_CONFIG_FILES([libabinova.pc
   Makefile
   icons/Makefile
   src/Makefile

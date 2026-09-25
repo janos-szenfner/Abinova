@@ -7,5 +7,5 @@ from ..importer import modules
 
 Abi = modules['Abi']._introspection_module
 
-# Initialize libabiword
+# Initialize libabinova
 Abi.init(sys.argv)

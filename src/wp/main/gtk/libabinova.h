@@ -18,8 +18,8 @@
  * 02110-1301 USA.
  */
 
-#ifndef LIBABIWORD_H
-#define LIBABIWORD_H
+#ifndef LIBABINOVA_H
+#define LIBABINOVA_H
 
 #include <glib.h>
 #include <abiwidget.h>
@@ -27,11 +27,11 @@
 
 G_BEGIN_DECLS
 
-void libabiword_init (int argc, char **argv);
+void libabinova_init (int argc, char **argv);
 /* used by the python binding, e.g. */
-void libabiword_init_noargs ();
-void libabiword_shutdown ();
+void libabinova_init_noargs ();
+void libabinova_shutdown ();
 
 G_END_DECLS
 
-#endif /* LIBABIWORD_H */
+#endif /* LIBABINOVA_H */

@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 datarootdir=@datarootdir@
 pkgdatadir=@ABIWORD_DATADIR@
-libabiword=false
+libabinova=false
 
 Name: abinova-@ABIWORD_SERIES@
 Description: Abinova word processor

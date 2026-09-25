@@ -56,7 +56,7 @@ plugins whose code was deleted outright.
 ### Integrated into the core library
 
 These formats/features no longer ship as loadable plugins — they are
-compiled into `libabiword` and are always available:
+compiled into `libabinova` and are always available:
 
 | Former plugin | Now | Notes |
 |---------------|-----|-------|
@@ -106,7 +106,7 @@ longer exist:
 
 ### Remaining plugins
 
-None — every importer/exporter is compiled into `libabiword` and
+None — every importer/exporter is compiled into `libabinova` and
 registered centrally in `src/wp/impexp/xp/ie_impexp_Register.cpp`.
 The dynamic plugin machinery itself (module loader, module
 manager, plugin-manager dialog, plugin preferences, `plugins/`
@@ -165,7 +165,7 @@ all.
 - **OpenXML fixes**: listener-state fixes for footer tables and
   equations; shared XSLT data restored.
 - No loadable plugins remain — every importer/exporter is
-  compiled into `libabiword` (see *Plugin cleanup* above).
+  compiled into `libabinova` (see *Plugin cleanup* above).
 - **Built-in Markdown** (`src/wp/impexp/xp/ie_imp_Markdown.cpp` /
   `ie_exp_Markdown.cpp`): full read/write for `.md`, `.markdown`,
   `.mdown`, `.mkd`, `.mkdn` and the `text/markdown` MIME type.
@@ -1463,7 +1463,7 @@ Older upstream history is not listed here.
 ### Resolved: ODF export "double free or corruption" (environment)
 
 - Root cause found via `LD_PRELOAD=libasan`: a stale `opendocument.so`
-  in `~/.config/abiword/abiword/plugins/` and `libabiword-3.1.so` both
+  in `~/.config/abiword/abiword/plugins/` and `libabinova-4.0.so` both
   exported `ODe_Style_Style::m_NCStyleMappings`. Symbol interposition
   unified the storage while both DSOs registered a static destructor →
   `~map()` ran twice on one object. Removing the stale plugin fixed
@@ -1574,7 +1574,7 @@ Standard autotools flow:
 ```bash
 ./autogen.sh          # or: autoreconf --install --force
 ./configure
-make -C src           # builds libabiword + the abinova binary
+make -C src           # builds libabinova + the abinova binary
 sudo make install     # installs binary, data files, and fonts/
 ```
 
@@ -1608,7 +1608,7 @@ The intermittent "double free or corruption" after `.odt` export was
 **not** in the exporter. A stale `opendocument.so` plugin binary (from
 before ODF moved into the core library) in
 `~/.config/abiword/abiword/plugins/` exported the same
-`ODe_Style_Style::m_NCStyleMappings` symbol as `libabiword`. The
+`ODe_Style_Style::m_NCStyleMappings` symbol as `libabinova`. The
 dynamic linker unified the symbol but both DSOs registered a static
 destructor, so `~map()` ran twice on one object. If you built from an
 older tree, delete leftover `opendocument.so` files from the plugin

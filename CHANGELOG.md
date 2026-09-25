@@ -1009,6 +1009,13 @@ below are on `main` but the release has not been cut yet.
   `abiword-*` action-icon lookup keys (`ABIWORD_STOCK_PREFIX` and
   the `stock_mapping` table) are now `abinova-*`; ribbon CSS classes
   and the online-picture temporary name renamed to match.
+- **Library renamed to `libabinova`** — the shared library builds as
+  `libabinova-4.0.so` (was `libabiword-4.0.so`); the public API files
+  moved to `wp/main/gtk/libabinova.{h,cpp}` with `libabinova_init`/
+  `libabinova_init_noargs`/`libabinova_shutdown` entry points, the
+  test library is `libabinova-4.0-test`, and pkg-config now ships
+  `libabinova.pc`/`abinova-4.0.pc` (generated `.pc` artifacts dropped
+  from the tree — they were stale and are gitignored).
 - **Application id renamed to `io.github.janos_szenfner.Abinova`** —
   GApplication id, gresource prefix
   (`/io/github/janos_szenfner/Abinova`), desktop/metainfo filenames
@@ -1518,7 +1525,7 @@ below are on `main` but the release has not been cut yet.
   `AutoLoadPlugins` preference and Options checkbox, `plugins/` and
   `src/plugins/` trees, `m4/plugin-list.m4` and the generated
   `plugin-*.m4` machinery, plus every configure/Makefile plugin
-  hook. All former functionality is compiled into `libabiword`.
+  hook. All former functionality is compiled into `libabinova`.
 - **UI localization removed — English only** — `po/` (all `.po`
   catalogs and generated `.strings` files), `AP_DiskStringSet`,
   `XAP_DiskStringSet`, `loadStringsFromDisk`,
@@ -1621,7 +1628,7 @@ below are on `main` but the release has not been cut yet.
 
 - **"double free or corruption" after ODF export** — was a stale
   `opendocument.so` in the user plugin dir colliding on
-  `ODe_Style_Style::m_NCStyleMappings` with `libabiword`, not an
+  `ODe_Style_Style::m_NCStyleMappings` with `libabinova`, not an
   exporter bug. The same stale-`.so` hazard applied to
   `openxml.so`/`epub.so`/`grammar.so` — plugin binaries now load only
   for the remaining plugin set.

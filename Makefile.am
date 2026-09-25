@@ -49,14 +49,14 @@ EXTRA_DIST = \
 	README.md \
 	io.github.janos_szenfner.Abinova.desktop \
 	abinova.keys \
-	libabiword.pc.in \
+	libabinova.pc.in \
 	artwork \
 	$(xsltml_DATA)
 
 DISTCLEANFILES = \
 	abinova-$(ABIWORD_SERIES).pc
 
-abinova-$(ABIWORD_SERIES).pc: libabiword.pc
+abinova-$(ABIWORD_SERIES).pc: libabinova.pc
 	cp $< $@
 
 
