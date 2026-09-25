@@ -1,6 +1,6 @@
 /* -*- c-basic-offset: 4; tab-width: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord Graphic importer employing GdkPixbuf
+/* Abinova Graphic importer employing GdkPixbuf
  * Copyright (C) 2001 Martin Sevior
  * Copyright (C) 2002 Dom Lachowicz
  * Copyright (C) 2005 Marc Maurer
@@ -8,6 +8,7 @@
  *
  * Portions from GdkPixBuf Library 
  * Copyright (C) 1999 The Free Software Foundation
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

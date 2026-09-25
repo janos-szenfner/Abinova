@@ -1,6 +1,7 @@
 /* AbiSource Program Utilities
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -28,7 +29,7 @@
 // Internal classes
 class ODi_Style_Style;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 /**
@@ -70,8 +71,8 @@ public:
     const std::string* getAbiListParentID() const {return &m_abiListParentID;}
 
     /**
-     * The AbiWord properties of the list depends on some properties already
-     * defined by the AbiWord paragraph style.
+     * The Abinova properties of the list depends on some properties already
+     * defined by the Abinova paragraph style.
      *
      * @param rProps Will have the properties string appended.
      * @param pStyle Pointer to the paragraph style used on this list paragraph.
@@ -89,23 +90,23 @@ protected:
     std::string m_level;
     UT_uint32 m_levelNumber;
 
-    // The AbiWord list (<l> tag) ID.
+    // The Abinova list (<l> tag) ID.
     std::string m_abiListID;
 
-    // The AbiWord list (<l> tag) parent id.
+    // The Abinova list (<l> tag) parent id.
     std::string m_abiListParentID;
 
-    // The AbiWord list (<l> tag) type.
+    // The Abinova list (<l> tag) type.
     std::string m_abiListType;
 
-    // The AbiWord list (<l> tag) start value.
+    // The Abinova list (<l> tag) start value.
     std::string m_abiListStartValue;
 
-    // The AbiWord list (<l> tag) list delim.
+    // The Abinova list (<l> tag) list delim.
     // It's a printf like string with the list maker format.
     std::string m_abiListListDelim;
 
-    // The AbiWord list (<l> tag) list decimal.
+    // The Abinova list (<l> tag) list decimal.
     // It's the level delimiter, usually a ".", "," or "-"
     // Looks like the property name and its real name (the one used on the GUI)
     // don't match.
@@ -125,7 +126,7 @@ protected:
 
     // text:min-label-distance attribute of <style:list-level-properties>
     // The minumum distance between the list label and the list text.
-    // Can't be translated to AbiWord easily.
+    // Can't be translated to Abinova easily.
     std::string m_minLabelDistance;
 
     // fo:text-indent attribute of <style:list-level-properties>
@@ -135,7 +136,7 @@ protected:
 	std::string m_marginLeft;
 
     // text:style-name attribute of <text:list-level-style-*>
-    // Maps, indirectly, to the AbiWord "field-font" property.
+    // Maps, indirectly, to the Abinova "field-font" property.
     std::string m_textStyleName;
     const ODi_Style_Style* m_pTextStyle;
 };
@@ -185,7 +186,7 @@ private:
 
     /**
      * Maps the value of the OpenDocument attribute style:num-format to the
-     * correspondent AbiWord "type" attribute of the list (<l>) element tag.
+     * correspondent Abinova "type" attribute of the list (<l>) element tag.
      *
      * @param pStyleNumFormat The value of the style:num-format attribute.
      */

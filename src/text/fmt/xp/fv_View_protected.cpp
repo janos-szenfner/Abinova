@@ -1,8 +1,9 @@
 /* -*- c-basic-offset: 4; tab-width: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (c) 2001,2002 Tomas Frydrych
  * Copyright (c) 2022-2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -4556,7 +4557,7 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 	// the same dimensions and are ordered in rows and columns as in print view
 	// (normal view is just print view with one column).  Abandon hope, all ye
 	// who would attempt to change those assumptions: they are very deeply
-	// embedded throughout AbiWord.
+	// embedded throughout Abinova.
 	
 	UT_sint32 iPageWidth = 0, iPageHeight = 0;
 	UT_sint32 iFirstVisiblePageNumber = -1;
@@ -5851,7 +5852,7 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 				pvFreshSuggestions->addItem(sug);
 			}
 
-			// add suggestions from user's AbiWord file
+			// add suggestions from user's Abinova file
 			 m_pApp->suggestWord(pvFreshSuggestions,stMisspelledWord.ucs4_str(), iLength);
 		}
 

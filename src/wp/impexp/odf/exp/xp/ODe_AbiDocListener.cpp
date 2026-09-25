@@ -4,6 +4,7 @@
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -1388,7 +1389,7 @@ void ODe_AbiDocListener::_insertMath(PT_AttrPropIndex api) {
 
     /* .abw keeps the equation's LaTeX source in a "latexid" data item
      * plus an inline/block "display" property; carry both across as
-     * foreign-namespaced attributes so an AbiWord round-trip does not
+     * foreign-namespaced attributes so an Abinova round-trip does not
      * lose them (ODF consumers may safely ignore foreign attributes) */
     const gchar* szLatexId = nullptr;
     UT_UTF8String sLatexEsc;

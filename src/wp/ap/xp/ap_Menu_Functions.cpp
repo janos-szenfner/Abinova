@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -153,7 +154,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_About)
 	const char * szFormat = pLabel->getMenuLabel();
 	static char buf[128];
 
-	const char * szAppName = pApp->getApplicationName();
+	const char * szAppName = pApp->getApplicationDisplayName();
 
 	snprintf(buf, 128, szFormat, szAppName);
 	return buf;
@@ -172,7 +173,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Contents)
 	const char * szFormat = pLabel->getMenuLabel();
 	static char buf[128];
 
-	const char * szAppName = pApp->getApplicationName();
+	const char * szAppName = pApp->getApplicationDisplayName();
 
 	snprintf(buf, 128, szFormat, szAppName);
 	return buf;
@@ -191,7 +192,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Intro)
 	const char * szFormat = pLabel->getMenuLabel();
 	static char buf[128];
 
-	const char * szAppName = pApp->getApplicationName();
+	const char * szAppName = pApp->getApplicationDisplayName();
 
 	snprintf(buf, 128, szFormat, szAppName);
 	return buf;
@@ -211,7 +212,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Search)
 	const char * szFormat = pLabel->getMenuLabel();
 	static char buf[128];
 
-	const char * szAppName = pApp->getApplicationName();
+	const char * szAppName = pApp->getApplicationDisplayName();
 
 	snprintf(buf, 128, szFormat, szAppName);
 	return buf;
@@ -230,7 +231,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Checkver)
 	const char * szFormat = pLabel->getMenuLabel();
 	static char buf[128];
 
-	const char * szAppName = pApp->getApplicationName();
+	const char * szAppName = pApp->getApplicationDisplayName();
 
 	snprintf(buf, 128, szFormat, szAppName);
 	return buf;
@@ -2021,7 +2022,7 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_ObjSelected)
 
 
 /* Group is only offered when at least two objects are ticked in the
- * Selection pane - AbiWord's canvas has no multi-object selection */
+ * Selection pane - Abinova's canvas has no multi-object selection */
 Defun_EV_GetMenuItemState_Fn(ap_GetState_HasTOC)
 {
 	UT_UNUSED(id);

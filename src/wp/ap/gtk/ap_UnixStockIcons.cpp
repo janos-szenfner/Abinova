@@ -2,6 +2,7 @@
 
 /* 
  * Copyright (C) 2006 Robert Staudinger <robert.staudinger@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -188,7 +189,6 @@ static struct AbiStockMapping {
   { "abiword-help-search",			AP_MENU_ID_HELP_SEARCH,			"system-search" },
   { "abiword-help-checkver",		AP_MENU_ID_HELP_CHECKVER,		"software-update-available" },
   { "abiword-help-reportbug",		AP_MENU_ID_HELP_REPORT_BUG,		"dialog-warning" },
-  { "abiword-help-credits",			AP_MENU_ID_HELP_CREDITS,		"system-users" },
   { "abiword-help-ui-classic",		AP_MENU_ID_HELP_UI_CLASSIC,		"view-list" },
   { "abiword-help-ui-ribbon",		AP_MENU_ID_HELP_UI_RIBBON,		"view-grid" },
 
@@ -223,7 +223,7 @@ static struct AbiStockMapping {
 };
 
 /*!
- * Register AbiWord's gtk stock icons.
+ * Register Abinova's gtk stock icons.
  */
 void
 abi_stock_init (void)
@@ -234,7 +234,7 @@ abi_stock_init (void)
 	}
 	is_initialized = TRUE;
 
-	gtk_icon_theme_add_resource_path(gtk_icon_theme_get_for_display(gdk_display_get_default()), "/com/abisource/AbiWord");
+	gtk_icon_theme_add_resource_path(gtk_icon_theme_get_for_display(gdk_display_get_default()), "/com/abisource/Abinova");
 }
 
 /*!
@@ -296,7 +296,7 @@ abi_stock_from_toolbar_id (const gchar *toolbar_id)
 }
 
 /*!
- * Map AbiWord stock id to gtk counterpart.
+ * Map Abinova stock id to gtk counterpart.
  * Returned string is static.
  */
 const gchar *

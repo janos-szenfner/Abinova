@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -22,7 +23,7 @@
 #ifndef _ODi_STARTTAG_H_
 #define _ODi_STARTTAG_H_
 
-// AbiWord includes
+// Abinova includes
 #include "ut_stringbuf.h"
 #include "ut_vector.h"
 

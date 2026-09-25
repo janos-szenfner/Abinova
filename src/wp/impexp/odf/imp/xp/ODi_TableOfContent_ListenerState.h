@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -28,7 +29,7 @@
 // Internal classes
 class ODi_Office_Styles;
 
-// AbiWord classes
+// Abinova classes
 class pf_Frag_Strux;
 class PD_Document;
 
@@ -63,7 +64,7 @@ private:
 
     pf_Frag_Strux* m_pTOCStrux;
 
-    // The properties for the corresponding AbiWord <toc> strux.
+    // The properties for the corresponding Abinova <toc> strux.
     UT_UTF8String props;
 
     // Buffer that stores character data defined between start and end element

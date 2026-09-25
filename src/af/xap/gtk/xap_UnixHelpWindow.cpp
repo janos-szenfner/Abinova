@@ -1,6 +1,6 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 /* AbiSource Application Framework
- * Copyright (C) 2024 AbiWord contributors
+ * Copyright (C) 2024 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -744,7 +744,7 @@ void XAP_UnixHelpWindow::show(const char * page, bool bFocusSearch)
 		}
 
 		m_wWindow = gtk_window_new();
-		gtk_window_set_title(GTK_WINDOW(m_wWindow), "AbiWord Help");
+		gtk_window_set_title(GTK_WINDOW(m_wWindow), "Abinova Help");
 		gtk_window_set_default_size(GTK_WINDOW(m_wWindow), 720, 560);
 		if (parent)
 			gtk_window_set_transient_for(GTK_WINDOW(m_wWindow), parent);

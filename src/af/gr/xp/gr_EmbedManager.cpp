@@ -29,7 +29,7 @@
  * see the document abi/src/doc/EmbedablePlugins.abw for a more detailed 
  * Descrition of the this class. Almost all the methods in this class are
  * overridden by a specific embedable plugin. However this code is pure XP
- * AbiWord that can be happily used through the rest of the AbiWord program
+ * Abinova that can be happily used through the rest of the Abinova program
  * without needing any external libraries.
  * The idea is to have a generic XP class with a well defined API with 
  * default implementations. Plugins are subclasses of this class which 
@@ -240,7 +240,7 @@ UT_sint32 GR_EmbedManager::makeEmbedView(AD_Document * pDoc, UT_uint32  api, con
  * 
  * Where dataitem-val# is some unique string to identify the object.
  * 
- * The idea is that if a document loaded by an instance of AbiWord without 
+ * The idea is that if a document loaded by an instance of Abinova without 
  * the plugin, the default implementation can render the snapshot of the 
  * object. 
  * 
@@ -326,7 +326,7 @@ void GR_EmbedManager::initializeEmbedView(UT_sint32 /*uid*/)
  *
  * Some generic bonobo XML data for a generic bonobo plugin.
  * Whatever you like...
- * The data is acquired from the main AbiWord PieceTable via the dataID 
+ * The data is acquired from the main Abinova PieceTable via the dataID 
  * Attribute.
  */
 void GR_EmbedManager::loadEmbedData(UT_sint32 )
@@ -335,7 +335,7 @@ void GR_EmbedManager::loadEmbedData(UT_sint32 )
 }
 
 /*!
- * Get the width of the embedded element in AbiWord logical units.
+ * Get the width of the embedded element in Abinova logical units.
  */
 UT_sint32 GR_EmbedManager::getWidth(UT_sint32 uid)
 {
@@ -354,7 +354,7 @@ UT_sint32 GR_EmbedManager::getWidth(UT_sint32 uid)
 
 /*!
  * Get the ascent (height from the baseline to top of the element) in 
- * AbiWord Logical units.
+ * Abinova Logical units.
  */
 UT_sint32 GR_EmbedManager::getAscent(UT_sint32 uid)
 {
@@ -377,7 +377,7 @@ UT_sint32 GR_EmbedManager::getAscent(UT_sint32 uid)
 /*!
  * Get the descent (distance from the baseline to the bottom of the element) 
  * in 
- * AbiWord Logical units.
+ * Abinova Logical units.
  */
 UT_sint32 GR_EmbedManager::getDescent(UT_sint32 /*uid*/)
 {
@@ -396,7 +396,7 @@ void GR_EmbedManager::setColor(UT_sint32 , const UT_RGBColor & )
 /*!
  * Draw the object given by uid into rectangle UT_Rect & rec in the 
  * graphics class. 
- * All units are in AbiWord logical units. 
+ * All units are in Abinova logical units. 
  * (0,0) is the top left corner of the graphics class
  */
 void GR_EmbedManager::render(UT_sint32 uid ,UT_Rect & rec )

@@ -2,7 +2,7 @@ fontsdir = @ABIWORD_DATADIR@/fonts
 
 nobase_dist_fonts_DATA = \
 README.md \
-abiword-fonts.conf \
+abinova-fonts.conf \
 caladea/Caladea-BoldItalic.ttf \
 caladea/Caladea-Bold.ttf \
 caladea/Caladea-Italic.ttf \

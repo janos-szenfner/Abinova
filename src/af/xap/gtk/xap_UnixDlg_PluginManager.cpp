@@ -2,6 +2,7 @@
  * Copyright (C) 2003 Marc Maurer
  * Copyright (C) 2001-2003 AbiSource, Inc.
  * Copyright (C) 2021 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -22,7 +23,7 @@
 #ifndef ODE_AUXILIARYDATA_H_
 #define ODE_AUXILIARYDATA_H_
 
-// AbiWord includes
+// Abinova includes
 #include "ut_vector.h"
 #include "ut_string_class.h"
 
@@ -39,7 +40,7 @@
  * a standard paragraph is <text:p [...]>, but a heading paragraph is a
  * <text:h text:outline-level="x" [...]>
  *
- * So, when translating an AbiWord paragraph, we must know wheter it will map
+ * So, when translating an Abinova paragraph, we must know wheter it will map
  * into an OpenDocument <text:p> or into a <text:h>.
  */
 class ODe_HeadingStyles {
@@ -74,7 +75,7 @@ public:
     // Content of the TOC
     // Note: we only support 1 TOC body per document right now. It's wasted
     // effort try to manually build up multiple different TOC bodies,
-    // until we can get to the actual TOC data that AbiWord generates.
+    // until we can get to the actual TOC data that Abinova generates.
     GsfOutput* m_pTOCContents;
 
     // The destination TOC style names for all levels

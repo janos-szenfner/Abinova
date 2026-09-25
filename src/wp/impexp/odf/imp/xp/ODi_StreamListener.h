@@ -3,6 +3,7 @@
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
  * <daniel.carvalho@indt.org.br>
  * Copyright (C) 2021 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -47,7 +48,7 @@ class ODi_Office_Styles;
 class ODi_Postpone_ListenerState;
 class ODi_Abi_Data;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 /**

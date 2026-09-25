@@ -2,6 +2,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -28,7 +29,7 @@
 #include "ODi_Office_Styles.h"
 #include "ODi_ListenerStateAction.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_misc.h"
 #include "pd_Document.h"
 
@@ -86,7 +87,7 @@ void ODi_TableOfContent_ListenerState::startElement (const gchar* pName,
         pOutlineLevel = UT_getAttribute("text:outline-level", ppAtts);
         UT_ASSERT_HARMLESS(pOutlineLevel);
 
-        // AbiWord supports only 4 levels.
+        // Abinova supports only 4 levels.
         if (pOutlineLevel && (atoi(pOutlineLevel) < 5)) {
 
             pStyleName = UT_getAttribute("text:style-name", ppAtts);

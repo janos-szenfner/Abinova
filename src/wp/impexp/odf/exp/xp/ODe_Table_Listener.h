@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -27,7 +28,7 @@
 #include "ODe_Common.h"
 #include "ODe_Style_Style.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string_class.h"
 #include "ut_vector.h"
 
@@ -66,7 +67,7 @@ public:
     // A temporary holder for its text content.
     GsfOutput* m_pTextContent;
 
-    // From AbiWord <cell> element
+    // From Abinova <cell> element
     UT_sint32 m_leftAttach, m_rightAttach, m_topAttach, m_bottomAttach;
 
     // xml:id

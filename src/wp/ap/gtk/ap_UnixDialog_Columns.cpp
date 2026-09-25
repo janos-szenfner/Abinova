@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (c) 2009-2024 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -98,7 +99,7 @@ std::string findIconDataByName(const char * szName, int32_t size)
 		xxx_UT_DEBUGMSG(("SEVIOR: examining %s \n",s_itTable[k].m_name));
 		if (g_ascii_strcasecmp(szName,s_itTable[k].m_name) == 0)
 		{
-			std::string name = UT_std_string_sprintf("/com/abisource/AbiWord/%dx%d/actions/%s", size, size, szName);
+			std::string name = UT_std_string_sprintf("/com/abisource/Abinova/%dx%d/actions/%s", size, size, szName);
 			auto ext = name.find("_xpm");
 			if (ext != std::string::npos) {
 				name.replace(ext, 4, ".png");

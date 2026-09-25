@@ -23,7 +23,7 @@
 #include "ut_types.h"
 
 //
-// I really want AbiWord to start using exceptions as soon as is possible
+// I really want Abinova to start using exceptions as soon as is possible
 // but there might be platforms/compilers that are brain-dead and don't
 // support exceptions as such yet, which really sucks. So this file
 // provides a wrapper around standard C++ exception handling and offers

@@ -1,6 +1,6 @@
 # Bundled fonts
 
-AbiWord ships a set of freely redistributable fonts so that documents
+Abinova ships a set of freely redistributable fonts so that documents
 render consistently on systems without the usual desktop font
 collection installed. The fonts are installed under
 `<AbiSuiteLibDir>/fonts` and registered with fontconfig at startup

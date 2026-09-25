@@ -1,7 +1,8 @@
 /* -*- c-basic-offset: 4; tab-width: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2009-2022 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -4276,7 +4277,7 @@ void s_RTF_ListenerWriteDoc::_open_table(PT_AttrPropIndex api,bool bIsCell)
 	m_iBot = -1;
 	m_iFirstTop = 0;
 //
-// Export the AbiWord table Properties as RTF extension
+// Export the Abinova table Properties as RTF extension
 //
 	_export_AbiWord_Table_props(api);
 #if 1 //#TF

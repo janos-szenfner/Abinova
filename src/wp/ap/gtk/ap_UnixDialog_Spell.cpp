@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998,1999 AbiSource, Inc.
  * Copyright (C) 2005 Robert Staudinger <robsta@stereolyzer.net>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

@@ -3,6 +3,7 @@
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
  * <daniel.carvalho@indt.org.br>
  * Copyright (C) 2009 Hubert Figuiere
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,7 +30,7 @@
 #include "ODi_ListLevelStyle.h"
 #include "ODi_ListenerStateAction.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pd_Document.h"
 
 
@@ -182,7 +183,7 @@ void ODi_Style_List::defineAbiList(PD_Document* pDocument)
     
     
     // Each style level of a <text:list-style> corresponds to a different
-    // <l> on AbiWord. Those <l> of the style levels are related through the
+    // <l> on Abinova. Those <l> of the style levels are related through the
     // parentid attributes, i.e. leven 4 has as parentid the id of the <l> from
     // level 3, level 3 has as parentid the id of the <l> from level 2 and so on.
     

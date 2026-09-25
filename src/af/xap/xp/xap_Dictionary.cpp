@@ -147,7 +147,7 @@ bool XAP_Dictionary::load(void)
 //
 // Hardwire in some words that should be in the English Language :-)
 //
-	addWord("AbiWord");
+	addWord("Abinova");
 	addWord("AbiSource");
 	return true;
 }

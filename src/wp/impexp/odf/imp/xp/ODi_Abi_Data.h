@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -29,12 +30,12 @@
 
 #include "ut_types.h"
 #include "ut_bytebuf.h"
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 class UT_String;
 
 /**
- * Represents the <data> section of the resulting AbiWord document from an
+ * Represents the <data> section of the resulting Abinova document from an
  * OpenDocument file import.
  */
 class ODi_Abi_Data {
@@ -44,7 +45,7 @@ public:
     ODi_Abi_Data(PD_Document* pDocument, GsfInfile* pGsfInfile);
 
     /**
-     * Adds an data item (<d> tag) in the AbiWord document for the specified image.
+     * Adds an data item (<d> tag) in the Abinova document for the specified image.
      *
      * @param rDataId Receives the id that has been given to the added data item.
      * @param ppAtts The attributes of a <draw:image> element.

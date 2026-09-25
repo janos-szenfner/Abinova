@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2011 Ben Martin
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,7 +33,7 @@
 class ODi_FontFaceDecls;
 class ODi_Office_Styles;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 class ODi_Abi_Data;
 /**

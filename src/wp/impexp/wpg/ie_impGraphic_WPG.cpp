@@ -1,7 +1,8 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2006 Marc Maurer <uwog@uwog.net>
  * Copyright (C) 2006 Fridrich Strba <fridrich.strba@bluewin.ch>
  * Copyright (C) 2006 Dominic Lachowicz <domlachowicz@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

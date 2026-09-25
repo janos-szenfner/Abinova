@@ -3,6 +3,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2007 Philippe Milot <PhilMilot@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,7 +38,7 @@
 #include "OXML_Section.h"
 #include "OXML_FontManager.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_units.h"
 #include "ut_misc.h"
 #include "ut_debugmsg.h"
@@ -440,7 +441,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "between") ||
 			   nameMatches(rqst->pName, NS_W_KEY, "bar")) {
-		/* <w:between> and <w:bar> inside <w:pBdr> have no AbiWord
+		/* <w:between> and <w:bar> inside <w:pBdr> have no Abinova
 		 * equivalent - accept and ignore them. */
 		if (!rqst->context->empty() &&
 			contextMatches(rqst->context->back(), NS_W_KEY, "pBdr"))
@@ -464,7 +465,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		std::string edge(rqst->pName);
 		edge = edge.substr(strlen(NS_W_KEY) + 1);
 		if (!edge.compare("bottom"))
-			edge = "bot"; /* AbiWord spells it "bot-" */
+			edge = "bot"; /* Abinova spells it "bot-" */
 
 		const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 		const gchar * sz = attrMatches(NS_W_KEY, "sz", rqst->ppAtts);
@@ -472,7 +473,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		const gchar * color = attrMatches(NS_W_KEY, "color", rqst->ppAtts);
 		const gchar * theme = attrMatches(NS_W_KEY, "themeColor", rqst->ppAtts);
 
-		/* AbiWord edge styles: 0 none, 1 solid, 2 dotted, 3 dashed.
+		/* Abinova edge styles: 0 none, 1 solid, 2 dotted, 3 dashed.
 		 * OOXML's single/thick/double/wave/... all degrade to solid. */
 		std::string style = "1";
 		if (val && *val)
@@ -652,7 +653,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				OXML_FontLevel level = UNKNOWN_LEVEL;
 				OXML_CharRange range = UNKNOWN_RANGE;
 
-				/* AbiWord has a single "font-family" property, so resolve the
+				/* Abinova has a single "font-family" property, so resolve the
 				 * font for the *Latin* range only: w:ascii/asciiTheme first,
 				 * then w:hAnsi/hAnsiTheme.  w:eastAsia and w:cs apply to
 				 * East-Asian and complex-script characters only; when no Latin

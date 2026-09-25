@@ -1,4 +1,4 @@
-Drawing in AbiWord
+Drawing in Abinova
 ==================
 
 Author: Hubert Figuière

@@ -1,5 +1,6 @@
 /* AbiSource Program Utilities
  * Copyright (C) 2001 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,7 +52,7 @@
 // Another approach is to do these tests in an external program which
 // outputs the C++ code for the following table.
 //
-// TODO Note that certain operations in AbiWord currently try to open or
+// TODO Note that certain operations in Abinova currently try to open or
 // TODO compare certain encodings via hard-coded names.  This should be
 // TODO discouraged and replaced with names derived as in these tables.
 //

@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -33,7 +34,7 @@
 class ODi_FontFaceDecls;
 class ODi_Office_Styles;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 class ODi_Abi_Data;
 /**

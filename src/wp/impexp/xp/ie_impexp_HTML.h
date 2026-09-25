@@ -41,7 +41,7 @@
 #define TT_TITLE	4	// <title>	(child of <head>)
 #define TT_STYLE	5	// <style>	(child of <head>)
 #define TT_DIV		6	// <div>	[B] Used with style sheets to produce layers, boxes, etc.
-				//		AbiWord uses these in its XHTML output to denote sections
+				//		Abinova uses these in its XHTML output to denote sections
 				//		but this seems an uncommon use.
 #define TT_SPAN		7	// <span>	Like <div>, this is used in conjuction with style sheets
 #define TT_LAYER	8	// <layer>	Layer

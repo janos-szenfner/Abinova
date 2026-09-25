@@ -4,6 +4,7 @@
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (C) 2006 Robert Staudinger <robert.staudinger@gmail.com>
  * Copyright (c) 2023 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

@@ -1,10 +1,11 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 2001 AbiSource, Inc.
  * Copyright (C) 2002-2004 Marc Maurer (uwog@uwog.net)
  * Copyright (C) 2002-2005 William Lachance (william.lachance@sympatico.ca)
  * Copyright (C) 2006 Fridrich Strba (fridrich.strba@bluewin.ch)
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -466,7 +467,7 @@ void IE_Imp_WordPerfect::openPageSpan(const librevenge::RVNGPropertyList &propLi
 
 	if (marginLeft != m_leftPageMargin || marginRight != m_rightPageMargin /* || */
 		/* marginTop != m_marginBottom || marginBottom != m_marginBottom */ )
-		m_bSectionChanged = true; // margin properties are section properties in AbiWord
+		m_bSectionChanged = true; // margin properties are section properties in Abinova
 
 	m_leftPageMargin = marginLeft;
 	m_rightPageMargin = marginRight;
@@ -555,7 +556,7 @@ void IE_Imp_WordPerfect::openParagraph(const librevenge::RVNGPropertyList &propL
 	propBuffer += "text-align:";
 	if (propList["fo:text-align"])
 	{
-		// AbiWord follows xsl:fo, except here, for some reason..
+		// Abinova follows xsl:fo, except here, for some reason..
 		if (propList["fo:text-align"]->getStr() == "end")
 			propBuffer += "right";
 		else
@@ -606,7 +607,7 @@ void IE_Imp_WordPerfect::openParagraph(const librevenge::RVNGPropertyList &propL
 					propBuffer += "2";
 				else if (i()["style:leader-text"]->getStr() == "_")
 					propBuffer += "3";
-				else // default to dot leader if the given leader is dot or is not supported by AbiWord
+				else // default to dot leader if the given leader is dot or is not supported by Abinova
 					propBuffer += "1";
 			else
 				propBuffer += "0";
@@ -1189,7 +1190,7 @@ UT_Error IE_Imp_WordPerfect::_appendSection(int numColumns, const float marginLe
 	UT_LocaleTransactor lt(LC_NUMERIC, "C");
 	myProps += UT_String_sprintf("columns:%d; page-margin-left:%.4fin; page-margin-right:%.4fin", numColumns, marginLeft, marginRight);
 
-	if(m_bInSection && m_bRequireBlock) // AbiWord will hang on an empty <section>
+	if(m_bInSection && m_bRequireBlock) // Abinova will hang on an empty <section>
 	{
 		X_CheckDocumentError(appendStrux(PTX_Block,PP_NOPROPS));
 	}
@@ -1207,9 +1208,9 @@ UT_Error IE_Imp_WordPerfect::_appendSection(int numColumns, const float marginLe
 	return UT_OK;
 }
 
-// NB: AbiWord-2.0 doesn't properly support nested lists with different nested styles: only "1" style
+// NB: Abinova-2.0 doesn't properly support nested lists with different nested styles: only "1" style
 // really looks proper. We hack around this be only using the style given at level "1"
-// NB: AbiWord-2.0 doesn't properly support setting list delimeters at levels greater than 1,
+// NB: Abinova-2.0 doesn't properly support setting list delimeters at levels greater than 1,
 // we hack around this by using only "plain" (e.g.: nullptr) list delimeters on levels greater than 1.
 UT_Error IE_Imp_WordPerfect::_updateDocumentOrderedListDefinition(ABI_ListDefinition *pListDefinition, int iLevel, 
 																  const char /*listType*/, const UT_UTF8String &sTextBeforeNumber, 

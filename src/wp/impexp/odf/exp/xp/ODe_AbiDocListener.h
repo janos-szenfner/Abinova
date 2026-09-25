@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -35,7 +36,7 @@
 class ODe_AbiDocListenerImpl;
 class ODe_DocumentData;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 class fd_Field;
 class PX_ChangeRecord_Object;

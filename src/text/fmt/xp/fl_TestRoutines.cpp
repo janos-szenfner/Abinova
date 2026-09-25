@@ -44,7 +44,7 @@
 FL_DocLayout* FL_DocLayout::m_pDocLayout = nullptr;
 
 /*!
-  Dump AbiWord backend's internal structures
+  Dump Abinova backend's internal structures
   This function is for use in GDB (and other debuggers allowing
   interaction with the program being debugged).
   Type this to print out the structures from the GDB command line:
@@ -57,7 +57,7 @@ void __dump(void)
 }
 
 /*!
-  Dump AbiWord backend's internal fmt structures
+  Dump Abinova backend's internal fmt structures
   \see __dump
 */
 void __dump_fmt(void)
@@ -66,7 +66,7 @@ void __dump_fmt(void)
 }
 
 /*!
-  Dump AbiWord backend's internal pt structures
+  Dump Abinova backend's internal pt structures
   \see __dump
 
   \note This dumps the last created document. This will differ from
@@ -79,7 +79,7 @@ void __dump_pt(void)
 }
 
 /*!
-  Dump AbiWord backend's internal change history structures
+  Dump Abinova backend's internal change history structures
   \see __dump
 */
 void __dump_ch(void)
@@ -88,7 +88,7 @@ void __dump_ch(void)
 }
 
 /*!
-  Dump AbiWord backend's squiggle structures
+  Dump Abinova backend's squiggle structures
   \see __dump
 */
 void __dump_sq(void)

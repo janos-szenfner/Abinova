@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2002 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -118,7 +119,6 @@ toolbariconmap(Menu_AbiWord_Bottomline,menu_text_bottomline_xpm)
 toolbariconmap(Menu_AbiWord_Clear,menu_delete_xpm)
 toolbariconmap(Menu_AbiWord_Close, menu_close_xpm)
 toolbariconmap(Menu_AbiWord_Copy,menu_copy_xpm)
-toolbariconmap(Menu_AbiWord_Credits,menu_credits_xpm)
 toolbariconmap(Menu_AbiWord_Cut,menu_cut_xpm)
 toolbariconmap(Menu_AbiWord_Delete_Column, menu_delete_column_xpm)
 toolbariconmap(Menu_AbiWord_Delete_Row, menu_delete_row_xpm)

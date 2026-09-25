@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -45,10 +46,10 @@ dcl(MSG_IE_NoMemory,			"Out of memory attempting to open %s")
 dcl(MSG_IE_UnknownType, 		"File %s is of unknown type")
 dcl(MSG_IE_FakeType,			"File %s is not of the type it claims to be")
 dcl(MSG_IE_UnsupportedType, 	"File %s is not of a currently supported file type")
-dcl(MSG_IE_BogusDocument,		"AbiWord cannot open %s. It appears to be an invalid document.")
+dcl(MSG_IE_BogusDocument,		"Abinova cannot open %s. It appears to be an invalid document.")
 dcl(MSG_IE_CouldNotOpen,		"Could not open file %s for writing")
 dcl(MSG_IE_CouldNotWrite,		"Could not write to file %s")
-dcl(MSG_SpellSelectionDone,		"AbiWord finished checking the selection.")
+dcl(MSG_SpellSelectionDone,		"Abinova finished checking the selection.")
 dcl(MSG_SpellDone,				"The spelling check is complete.")
 dcl(MSG_PrintStatus,			"Printing page %d of %d")
 dcl(MSG_RevertFile, "Revert file to last saved state?")
@@ -61,7 +62,7 @@ dcl(MSG_CompareTooLarge, "The documents are too large or too different to compar
 dcl(MSG_ArrangeUnsupported, "Arrange All is only available on X11. On Wayland the compositor does not allow applications to position windows.")
 
 // Abi has just crashed
-dcl(MSG_Exception, "A fatal error has just occurred. AbiWord is going to shutdown.\nThe current document has been saved to disc with a \".saved\" extension.")
+dcl(MSG_Exception, "A fatal error has just occurred. Abinova is going to shutdown.\nThe current document has been saved to disc with a \".saved\" extension.")
 
 // Status Bar Messages
 dcl(PageInfoField,				"Page: %d/%d")
@@ -117,8 +118,8 @@ dcl(DLG_FR_ReverseFind,                 "Re&verse find")
 dcl(DLG_FR_FindNextButton,		"&Find Next")
 dcl(DLG_FR_ReplaceButton,		"&Replace")
 dcl(DLG_FR_ReplaceAllButton,	"Replace &All")
-dcl(DLG_FR_FinishedFind, "AbiWord has finished searching the document.")
-dcl(DLG_FR_FinishedReplace, "AbiWord has finished its search of the document and has made %d replacements.")
+dcl(DLG_FR_FinishedFind, "Abinova has finished searching the document.")
+dcl(DLG_FR_FinishedReplace, "Abinova has finished its search of the document and has made %d replacements.")
 
 /* Break dialog */
 dcl(DLG_Break_BreakTitle,		"Insert Break")
@@ -441,7 +442,7 @@ dcl(DLG_Options_Label_CheckEnableSmoothScrolling, "Enable Smooth Scrolling")
 
 dcl(DLG_Options_Label_CheckWhiteForTransparent, "Allow screen colors other than white")
 dcl(DLG_Options_Label_ChooseForTransparent, "Choose Screen Color")
-dcl(DLG_Options_Label_ColorChooserLabel,	"Choose screen color for AbiWord")
+dcl(DLG_Options_Label_ColorChooserLabel,	"Choose screen color for Abinova")
 dcl(DLG_Options_Label_EnableOverwrite,      "&Enable overwrite mode toggle")
 dcl(DLG_Options_Label_InvalidRangeForAutoSave,	"You should choose a range from 1 to 120 for the auto save frequency")
 dcl(DLG_Options_Prompt_YouMustRestart,	"The new user interface language will take effect the next time that you start the application")
@@ -840,14 +841,14 @@ dcl(DLG_PageFormat_8_5x13,			"8.5x13")
 dcl(MSG_AutoMerge, "Automerge")
 dcl(MSG_DirectionModeChg,	"You have changed the direction mode.")
 dcl(MSG_DefaultDirectionChg,"You have changed the default direction.")
-dcl(MSG_AfterRestartNew, "This change will only take effect when you restart AbiWord or create a new document.")
+dcl(MSG_AfterRestartNew, "This change will only take effect when you restart Abinova or create a new document.")
 dcl(MSG_BookmarkNotFound, "Bookmark \"%s\" was not found in this document.")
 dcl(MSG_BookmarkAlreadyExists, "This bookmark already exists. Would you like to replace the existing bookmark with this new one?")
 dcl(MSG_XMLIDAlreadyExists, "This RDF link already exists. Would you like to replace the existing RDF link with this new one?")
 dcl(MSG_HyperlinkNoSelection, "You must select a portion of the document before inserting a hyperlink.")
 dcl(MSG_HyperlinkNoBookmark, "Warning: the bookmark you provided [%s] does not exist.")
 dcl(MSG_HyperlinkCrossesBoundaries, "The text to which the hyperlink is to be attached must be within a single paragraph.")
-dcl(MSG_HiddenRevisions, "This document contains revisions which are currently hidden from view. Please see AbiWord documentation for information on working with revisions.")
+dcl(MSG_HiddenRevisions, "This document contains revisions which are currently hidden from view. Please see Abinova documentation for information on working with revisions.")
 
 dcl(DLG_ToggleCase_Title, "Change Case")
 dcl(DLG_ToggleCase_SentenceCase, "Sentence case")
@@ -956,8 +957,8 @@ dcl(MSG_CHECK_PRINT_MODE, "Headers and Footers can only be created and edited wh
 
 
 /* Windows ap_App */
-dcl(WINDOWS_NEED_UNICOWS,	"AbiWord needs the file %s.dll\nPlease download and install it from http://www.microsoft.com/en-us/download/details.aspx?id=4237")
-dcl(WINDOWS_COMCTL_WARNING,	"AbiWord is designed for a newer version of the system file COMCTL32.DLL\nthan the one currently on your system. (COMCTL32.DLL version 4.72 or newer)\nA solution to this problem is explained in the FAQ on the AbiSource web site\n\n\thttp://www.abisource.com\n\nYou can use the program, but the toolbar may be missing.")
+dcl(WINDOWS_NEED_UNICOWS,	"Abinova needs the file %s.dll\nPlease download and install it from http://www.microsoft.com/en-us/download/details.aspx?id=4237")
+dcl(WINDOWS_COMCTL_WARNING,	"Abinova is designed for a newer version of the system file COMCTL32.DLL\nthan the one currently on your system. (COMCTL32.DLL version 4.72 or newer)\nA solution to this problem is explained in the FAQ on the AbiSource web site\n\n\thttp://www.abisource.com\n\nYou can use the program, but the toolbar may be missing.")
 
 dcl(MENU_LABEL__BOGUS1__," ")
 dcl(MENU_LABEL__BOGUS2__," ")
@@ -1322,7 +1323,6 @@ dcl(MENU_LABEL_VIEW_GRIDLINES,"&Gridlines")
 dcl(MENU_LABEL_VIEW_NAVPANE,"&Navigation Pane")
 dcl(MENU_LABEL_VIEW_SPLIT,"S&plit")
 dcl(MENU_LABEL_HELP,"&Help")
-dcl(MENU_LABEL_HELP_CREDITS,"C&redits")
 dcl(MENU_LABEL_HELP_CONTENTS,"Help &Contents")
 dcl(MENU_LABEL_HELP_INTRO,"Help &Introduction")
 dcl(MENU_LABEL_HELP_CHECKVER,"Check for &Updates")
@@ -1704,13 +1704,12 @@ dcl(MENU_STATUSLINE_VIEW_GRIDLINES,"Show gridlines in the document area")
 dcl(MENU_STATUSLINE_VIEW_NAVPANE,"Show the navigation pane")
 dcl(MENU_STATUSLINE_VIEW_SPLIT,"Split the document window into two panes")
 dcl(MENU_STATUSLINE_HELP," ")
-dcl(MENU_STATUSLINE_HELP_CREDITS,"Display Credits")
 dcl(MENU_STATUSLINE_HELP_CONTENTS,"Display Help Contents")
 dcl(MENU_STATUSLINE_HELP_INTRO,"Display Help Introduction")
-dcl(MENU_STATUSLINE_HELP_CHECKVER,"Check online for newer versions of AbiWord")
+dcl(MENU_STATUSLINE_HELP_CHECKVER,"Check online for newer versions of Abinova")
 dcl(MENU_STATUSLINE_HELP_SEARCH,"Search for help about...")
 dcl(MENU_STATUSLINE_HELP_ABOUT,"Display program information, version number, and copyright" )
-dcl(MENU_STATUSLINE_HELP_REPORT_BUG, "Report a bug and help AbiWord become a better product")
+dcl(MENU_STATUSLINE_HELP_REPORT_BUG, "Report a bug and help Abinova become a better product")
 dcl(MENU_STATUSLINE_HELP_UI,"Switch between the classic menubar and the ribbon interface")
 dcl(MENU_STATUSLINE_HELP_UI_CLASSIC,"Use the classic menubar interface")
 dcl(MENU_STATUSLINE_HELP_UI_RIBBON,"Use the tabbed ribbon interface")
@@ -2081,4 +2080,4 @@ dcl(TOOLBAR_TOOLTIP_SEMITEM_PREV, "Select previous reference to Semantic Item")
 dcl(TOOLBAR_TOOLTIP_SEMITEM_EDIT,"Edit this Semantic Item")
 dcl(TOOLBAR_TOOLTIP_SEMITEM_STYLESHEET_APPLY,"Apply stylesheet to this Semantic Item")
 
-dcl(COMMAND_LINE_PRINTING_DEPRECATED, "The '--print' option has been removed as of AbiWord 2.8. You can achieve the desired behavior using AbiWord's command-line conversion tools and then piping the output to a print spooler. Eg: 'abiword --to=ps --to-name=fd://1 myfile.txt | lpr'")
+dcl(COMMAND_LINE_PRINTING_DEPRECATED, "The '--print' option has been removed as of Abinova 2.8. You can achieve the desired behavior using Abinova's command-line conversion tools and then piping the output to a print spooler. Eg: 'abinova --to=ps --to-name=fd://1 myfile.txt | lpr'")

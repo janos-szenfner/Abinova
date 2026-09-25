@@ -69,7 +69,7 @@ ABI_EXPORT bool  UT_isSmartQuotedCharacter(UT_UCS4Char c);
 //  TODO:  UTF-16 is a multi-word encoding.
 //
 //  NOTE: We shouldn't actually need 16-bit strings anymore since
-//  NOTE:  AbiWord is now fully converted to using 32-bit Unicode
+//  NOTE:  Abinova is now fully converted to using 32-bit Unicode
 //  NOTE:  internally. The only possible needs for this is for
 //  NOTE:  Windows GUI, filesystem and API functions where applicable;
 //  NOTE:  and perhaps some file formats or external libraries

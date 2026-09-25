@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2003 Tomas Frydrych <tomas@frydrych.uklinux.net> 
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -126,7 +127,7 @@ bool ImportStream::getRawChar(UT_UCS4Char &ucs)
 	// Private Use Area
 	// No, Private User Area is not evil!  Commenting it out for now.
 	/* UT_ASSERT_HARMLESS(!((wc >= 0xDB80 && wc <= 0xDBFF)||(wc >= 0xE000 && wc <= 0xF8FF))); */
-	// AbiWord control characters
+	// Abinova control characters
 	UT_ASSERT_HARMLESS(wc < UCS_ABICONTROL_START || wc > UCS_ABICONTROL_END);
 	// Illegal characters
 	UT_ASSERT_HARMLESS(wc != 0xFFFE && wc != 0xFFFF);

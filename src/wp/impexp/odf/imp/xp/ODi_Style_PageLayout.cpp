@@ -4,6 +4,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -30,7 +31,7 @@
 #include "ODi_ElementStack.h"
 #include "ODi_Abi_Data.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_math.h"
 #include "fp_PageSize.h"
 #include "pd_Document.h"
@@ -301,11 +302,11 @@ std::string ODi_Style_PageLayout::_buildSectionPropsString(bool hasHeader, bool 
 
 		// The problem with this calculation however is that in ODF the
 		// header height is often implicit, and depends on the layout.
-		// AbiWord on the other hand always needs an explicit header height. 
+		// Abinova on the other hand always needs an explicit header height. 
 		// As a quick workaround we just specify the header height to be 
-		// 0.5in (AbiWord's default).
+		// 0.5in (Abinova's default).
 		// This is far from perfect, as this might be too small or to large.
-		// But until AbiWord supports implicit header heights, this is the best 
+		// But until Abinova supports implicit header heights, this is the best 
 		// we can do.
 		//
 		// See http://bugzilla.abisource.com/show_bug.cgi?id=12371 for more details.
@@ -335,11 +336,11 @@ std::string ODi_Style_PageLayout::_buildSectionPropsString(bool hasHeader, bool 
 
 		// The problem with this calculation however is that in ODF the
 		// footer height is often implicit, and depends on the layout.
-		// AbiWord on the other hand always needs an explicit footer height. 
+		// Abinova on the other hand always needs an explicit footer height. 
 		// As a quick workaround we just specify the footer height to be 
-		// 0.5in (AbiWord's default).
+		// 0.5in (Abinova's default).
 		// This is far from perfect, as this might be too small or to large.
-		// But until AbiWord supports implicit footer heights, this is the best 
+		// But until Abinova supports implicit footer heights, this is the best 
 		// we can do.
 		//
 		// See http://bugzilla.abisource.com/show_bug.cgi?id=12371 for more details.

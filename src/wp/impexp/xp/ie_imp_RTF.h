@@ -2,6 +2,7 @@
 /* Copyright (C) 1999 AbiSource, Inc.
  * Copyright (C) 2003 Tomas Frydrych <tomas@frydrych.uklinux.net>
  * Copyright (C) 2004, 2009 Hubert Figuiere <hub@figuiere.net>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -469,7 +470,7 @@ struct ABI_EXPORT RTFProps_SectionProps
   Stores a RTF header and footer.
   headers and footer are NOT section properties. But they are defined
   before any section data begins.
-  \todo add right and left headers and footer. Not yet supported by AbiWord
+  \todo add right and left headers and footer. Not yet supported by Abinova
  */
 struct ABI_EXPORT RTFHdrFtr
 {
@@ -782,7 +783,7 @@ private:
                     eTabLeader tabLeader,  const std::unique_ptr<RTFProps_ParaProps>& pParas);
 
 
-// Paste AbiWord tables
+// Paste Abinova tables
  public:
 	bool HandleAbiTable(void);
 	bool HandleAbiCell(void);

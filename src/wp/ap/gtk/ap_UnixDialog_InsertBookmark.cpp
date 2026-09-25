@@ -1,6 +1,7 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2001 AbiSource, Inc.
  * Copyright (C) 2009 Hubert Figuiere
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

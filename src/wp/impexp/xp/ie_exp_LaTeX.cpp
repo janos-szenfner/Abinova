@@ -1,9 +1,10 @@
 /* -*- Mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2004 Marc Maurer (uwog@uwog.net)
  * Copyright (C) 2008 Xun Sun (xun.sun.cn@gmail.com)
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -1397,9 +1398,9 @@ s_LaTeX_Listener::s_LaTeX_Listener(PD_Document * pDocument, IE_Exp_LaTeX * pie,
 	m_index(0)
 {
 	m_pie->write("%% ================================================================================\n");
-	m_pie->write("%% This LaTeX file was created by AbiWord.                                         \n");
-	m_pie->write("%% AbiWord is a free, Open Source word processor.                                  \n");
-	m_pie->write("%% More information about AbiWord is available at http://www.abisource.com/        \n");
+	m_pie->write("%% This LaTeX file was created by Abinova.                                         \n");
+	m_pie->write("%% Abinova is a free, Open Source word processor.                                  \n");
+	m_pie->write("%% More information about Abinova is available at http://www.abisource.com/        \n");
 	m_pie->write("%% ================================================================================\n");
 	m_pie->write("\n");
 
@@ -2034,7 +2035,7 @@ static int wvConvertUnicodeToLaTeX(U16 char16,const char*& out)
 			return(1);
 
 	/* Added some new Unicode characters. It's probably difficult
-           to write these characters in AbiWord, though ... :(
+           to write these characters in Abinova, though ... :(
            -- 2000-08-11 huftis@bigfoot.com */
 
 		case 0x0100:

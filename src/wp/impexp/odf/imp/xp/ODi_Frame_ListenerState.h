@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -32,7 +33,7 @@ class ODi_Office_Styles;
 class ODi_Style_List;
 class ODi_Abi_Data;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 
@@ -87,7 +88,7 @@ private:
     bool m_bOnContentStream;
 
     // "true" if this frame has degenerated into an inlined <image>
-    // on the AbiWord document.
+    // on the Abinova document.
     bool m_inlinedImage;
     UT_sint32 m_iFrameDepth;
 

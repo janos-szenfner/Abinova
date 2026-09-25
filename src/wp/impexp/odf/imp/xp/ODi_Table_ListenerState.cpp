@@ -4,6 +4,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -31,7 +32,7 @@
 #include "ODi_Style_Style.h"
 #include "ODi_ListenerStateAction.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pd_Document.h"
 #include "ut_std_string.h"
 
@@ -298,7 +299,7 @@ void ODi_Table_ListenerState::_parseRowStart (const gchar** ppAtts,
             }
         }
 
-        // AbiWord supports unspecified row heights mixed among specified ones.
+        // Abinova supports unspecified row heights mixed among specified ones.
         // e.g.: "table-row-heights:2.37cm//3.62cm/"
         for (UT_sint32 i = 0; i < nRowsRepeated; i++) {
             m_rowHeights += rowHeight + "/";

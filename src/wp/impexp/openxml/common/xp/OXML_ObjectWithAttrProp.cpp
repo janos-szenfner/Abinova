@@ -3,6 +3,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2007 Philippe Milot <PhilMilot@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +24,7 @@
 // Class definition include
 #include "OXML_ObjectWithAttrProp.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_units.h"
 #include "ut_string.h"
 #include "ie_exp_OpenXML.h"
@@ -214,7 +215,7 @@ bool OXML_ObjectWithAttrProp::getNthProperty(int i, const gchar* & szName, const
 
 /* Writes a <w:pBdr> block for any paragraph-border properties present on
  * this object (used by both body paragraphs and paragraph styles).
- * AbiWord edge props: <edge>-style (0 none/1 solid/2 dotted/3 dashed),
+ * Abinova edge props: <edge>-style (0 none/1 solid/2 dotted/3 dashed),
  * <edge>-thickness (pt), <edge>-space (pt), <edge>-color (rrggbb). */
 UT_Error OXML_ObjectWithAttrProp::serializeParagraphBorders(IE_Exp_OpenXML* exporter, int target) const
 {

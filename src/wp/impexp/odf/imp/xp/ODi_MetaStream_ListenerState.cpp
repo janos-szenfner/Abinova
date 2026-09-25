@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -29,7 +30,7 @@
 #include "ODi_ListenerStateAction.h"
 #include "ODi_StartTag.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pd_Document.h"
 
 /**
@@ -103,7 +104,7 @@ void ODi_MetaStream_ListenerState::endElement (const gchar* pName,
 
         } else if (!strcmp (pName, "meta:creation-date")) {
             
-            // ATTENTION: I'm assuming that dc.date is used by AbiWord as
+            // ATTENTION: I'm assuming that dc.date is used by Abinova as
             // the document creation date & time.
             m_pDocument->setMetaDataProp (PD_META_KEY_DATE, m_charData);
 
@@ -121,17 +122,17 @@ void ODi_MetaStream_ListenerState::endElement (const gchar* pName,
 
         } else if (!strcmp (pName, "meta:template")) {
             
-            // AbiWord can't handle this kind of meta-data.
+            // Abinova can't handle this kind of meta-data.
             // So, I'm ignoring it.
 
         } else if (!strcmp (pName, "meta:auto-reload")) {
             
-            // AbiWord can't handle this kind of meta-data.
+            // Abinova can't handle this kind of meta-data.
             // So, I'm ignoring it.
 
         } else if (!strcmp (pName, "meta:hyperlink-behaviour")) {
             
-            // AbiWord can't handle this kind of meta-data.
+            // Abinova can't handle this kind of meta-data.
             // So, I'm ignoring it.
 
         } else if (!strcmp (pName, "dc:language")) {
@@ -150,7 +151,7 @@ void ODi_MetaStream_ListenerState::endElement (const gchar* pName,
 
         } else if (!strcmp (pName, "meta:document-statistic")) {
             
-            // AbiWord can't handle this kind of meta-data.
+            // Abinova can't handle this kind of meta-data.
             // So, I'm ignoring it.
 
         } else if (!strcmp (pName, "meta:user-defined")) {
@@ -177,7 +178,7 @@ void ODi_MetaStream_ListenerState::endElement (const gchar* pName,
 
     /*
      * 
-     * The following AbiWord meta-data have no counterpart on the OpenDocument
+     * The following Abinova meta-data have no counterpart on the OpenDocument
      * standard:
      * 
      * - PD_META_KEY_CONTRIBUTOR

@@ -72,7 +72,7 @@ bool XAP_Module::setSymbols (XAP_Plugin_Registration fnRegister,
 
 /*!
  * After loading a module, call this function to register
- * the plugin with AbiWord
+ * the plugin with Abinova
  *
  * \return true on success, false on failure
  */
@@ -165,7 +165,7 @@ bool XAP_Module::unregisterThySelf ()
 }
 
 /*!
- * Query if this plugin supports the requested AbiWord version
+ * Query if this plugin supports the requested Abinova version
  *
  * \param major   - "1"
  * \param minor   - "9"

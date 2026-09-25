@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (c) 2001,2002 Tomas Frydrych
  * Copyright (C) 2016-2022 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -671,7 +672,7 @@ public:
 	bool            shiftFrameGroup(fl_FrameLayout * pMoved,
 									double dXin, double dYin);
 	/* multi-frame selection used by the Selection pane checkboxes
-	 * and the Group command - AbiWord's canvas only tracks one
+	 * and the Group command - Abinova's canvas only tracks one
 	 * selected frame, so the extra picks live here */
 	void            toggleGroupSel(fl_FrameLayout * pFL, bool bOn);
 	bool            isInGroupSel(fl_FrameLayout * pFL) const;
@@ -958,6 +959,7 @@ public:
 	bool                cmdSelectColumn(PT_DocPosition posOfColumn);
 	bool                cmdAutoFitTable(void);
 	bool                cmdMergeCells(PT_DocPosition posSource, PT_DocPosition posDestination);
+	bool                cmdMergeCellsDir(UT_sint32 iDir);
 	bool                cmdTableToText(PT_DocPosition posSource,UT_sint32 iSepType);
 	bool                cmdSplitTable(void);
 	bool                cmdTableCellAlign(UT_sint32 iVert, const char * szAlign);

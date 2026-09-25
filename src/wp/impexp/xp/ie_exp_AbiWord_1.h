@@ -26,7 +26,7 @@
 class PD_Document;
 class s_AbiWord_1_Listener;
 
-// The exporter/writer for AbiWord file format version 1.
+// The exporter/writer for Abinova file format version 1.
 
 class ABI_EXPORT IE_Exp_AbiWord_1_Sniffer : public IE_ExpSniffer
 {

@@ -2,6 +2,7 @@
 /* AbiSource Application Framework
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (c) 2020 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -692,7 +693,7 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 		m_parserState.m_bFoundAbiPreferences = true;
 
 		// we expect something of the form:
-		// <AbiPreferences app="AbiWord" ver="1.0">...</AbiPreferences>
+		// <AbiPreferences app="Abinova" ver="1.0">...</AbiPreferences>
 
 		const gchar ** a = atts;
 		while (a && *a)
@@ -702,7 +703,7 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 			if (strcmp(static_cast<const char*>(a[0]), "app") == 0)
 			{
 				// TODO the following test will fail if you are running
-				// TODO both an AbiWord (release) build and an AbiWord
+				// TODO both an Abinova (release) build and an Abinova
 				// TODO Personal (development/personal) build.  That is,
 				// TODO you'll lose your MRU list if you alternate between
 				// TODO the two types of executables.

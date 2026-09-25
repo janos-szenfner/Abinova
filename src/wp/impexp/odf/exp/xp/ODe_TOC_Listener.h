@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -30,7 +31,7 @@
 // Internal classes
 class ODe_AuxiliaryData;
 
-// AbiWord classes
+// Abinova classes
 class PP_AttrProp;
 
 /**
@@ -39,7 +40,7 @@ class PP_AttrProp;
  * an empty TOC until the user regenerates it, which is not that pretty.
  *
  * Unfortunately, we can't generate an 100% accurate preview. We can't for example
- * output page numbers, as they only exist in AbiWord's layout classes and not in its 
+ * output page numbers, as they only exist in Abinova's layout classes and not in its 
  * PieceTable. Exporting the header outline is the best we can do as long as we don't
  * store all generated TOC data in the PieceTable.
  */

@@ -1,6 +1,7 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode:t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 2026 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -2215,6 +2216,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TABLE_CELL_MARGINS:
 		popover = _makeCellMarginsPopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_MERGE_CELLS:
+		popover = _makeTableMergePopover();
+		break;
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_CELLS:
+		popover = _makeTableSplitPopover();
 		break;
 	default:
 		break;
@@ -7715,6 +7722,72 @@ GtkWidget * AP_UnixRibbon::_makeCellMarginsPopover()
 	return popover;
 }
 
+/* directional merge - the same choices the modeless Merge Cells
+ * dialog offers, but anchored under the ribbon button */
+GtkWidget * AP_UnixRibbon::_makeTableMergePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Merge With"));
+	w = _presetRow("Cell on the Left",
+				   "Merge the current cell with its left neighbour",
+				   nullptr, "mergeCellsDir", "left");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Cell on the Right",
+				   "Merge the current cell with its right neighbour",
+				   nullptr, "mergeCellsDir", "right");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Cell Above",
+				   "Merge the current cell with the one above",
+				   nullptr, "mergeCellsDir", "above");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Cell Below",
+				   "Merge the current cell with the one below",
+				   nullptr, "mergeCellsDir", "below");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* directional split - mirrors the modeless Split Cells dialog */
+GtkWidget * AP_UnixRibbon::_makeTableSplitPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	GtkWidget * w;
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Split Vertically"));
+	w = _presetRow("Split on Left Side",
+				   "Keep the content on the left side of the split",
+				   nullptr, "splitCellsDir", "hleft");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Split in Middle",
+				   "Split the cell down the middle",
+				   nullptr, "splitCellsDir", "hmid");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Split on Right Side",
+				   "Keep the content on the right side of the split",
+				   nullptr, "splitCellsDir", "hright");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Split Horizontally"));
+	w = _presetRow("Split on Top Side",
+				   "Keep the content on the top side of the split",
+				   nullptr, "splitCellsDir", "vabove");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Split in Middle",
+				   "Split the cell through the middle",
+				   nullptr, "splitCellsDir", "vmid");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Split on Bottom Side",
+				   "Keep the content on the bottom side of the split",
+				   nullptr, "splitCellsDir", "vbelow");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
 /* render a LaTeX fragment to a GtkPicture preview tile */
 GtkWidget * AP_UnixRibbon::_equationPreview(const char * szLatex,
 											int w, int h)
@@ -9440,10 +9513,6 @@ struct _SpinCtx
 						   * "prop:value", cell spins get "value" */
 	UT_Dimension  unit;	/* display unit */
 	guint		  idleId;
-	double		  pendingValue; /* value at last user change */
-	bool		  hasPending;
-	double		  lastApplied; /* last value pushed to the document */
-	PT_DocPosition targetPos; /* caret position when the spin got focus */
 };
 
 static void _spin_ctx_free(gpointer p)
@@ -9452,31 +9521,6 @@ static void _spin_ctx_free(gpointer p)
 	if (c->idleId)
 		g_source_remove(c->idleId);
 	delete c;
-}
-
-/* read what the user sees: the entry text (committed or not), with
- * the spin's numeric value as fallback */
-static double _spin_displayed_value(GtkWidget * spin, double dFallback)
-{
-	const char * txt = gtk_editable_get_text(GTK_EDITABLE(spin));
-	if (txt && *txt)
-	{
-		std::string s(txt);
-		for (auto & ch : s)
-		{
-			if (ch == ',')
-			{
-				ch = '.';
-			}
-		}
-		char * end = nullptr;
-		double v = g_ascii_strtod(s.c_str(), &end);
-		if (end && end != s.c_str())
-		{
-			return v;
-		}
-	}
-	return dFallback;
 }
 
 gboolean AP_UnixRibbon::_s_spin_apply(gpointer data)
@@ -9489,58 +9533,15 @@ gboolean AP_UnixRibbon::_s_spin_apply(gpointer data)
 	if (c->self->m_bSpinUpdating)
 		return G_SOURCE_REMOVE;
 
-	/* GTK does not reliably emit value-changed for text typed into the
-	 * entry, so parse the displayed text ourselves */
-	double v = _spin_displayed_value(
-		spin, c->hasPending ? c->pendingValue
-							: gtk_spin_button_get_value(
-								  GTK_SPIN_BUTTON(spin)));
-	c->hasPending = false;
-	/* identical applies are no-ops; deduping them also breaks any
-	 * apply->refresh->changed feedback loop */
-	if (fabs(v - c->lastApplied) < 0.005)
-	{
-		return G_SOURCE_REMOVE;
-	}
-	c->lastApplied = v;
-	/* dimension strings always use '.' decimals regardless of locale */
-	char num[32];
-	g_ascii_formatd(num, sizeof(num), "%.2f", v);
+	double v = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spin));
 	char buf[128];
 	if (c->prop)
-		snprintf(buf, sizeof(buf), "%s:%s%s", c->prop, num,
+		snprintf(buf, sizeof(buf), "%s:%.2f%s", c->prop, v,
 				 UT_dimensionName(c->unit));
 	else
-		snprintf(buf, sizeof(buf), "%s%s", num,
+		snprintf(buf, sizeof(buf), "%.2f%s", v,
 				 UT_dimensionName(c->unit));
-
-	/* the apply notifies listeners which refresh the spin fields;
-	 * guard so those writes cannot re-enter the apply path */
-	bool bWasUpdating = c->self->m_bSpinUpdating;
-	c->self->m_bSpinUpdating = true;
-
-	/* Cell-size spins target the table the caret was in when the field
-	 * was focused - the commit click may already have moved the caret
-	 * out of the table, so go through the position-taking commands
-	 * directly instead of the caret-based edit methods */
-	if (!c->prop)
-	{
-		FV_View * pFV = static_cast<FV_View *>(
-			c->self->m_pFrame ? c->self->m_pFrame->getCurrentView()
-							  : nullptr);
-		if (pFV)
-		{
-			if (!strcmp(c->method, "tableCellHeight"))
-				pFV->cmdTableRowHeight(buf, c->targetPos);
-			else if (!strcmp(c->method, "tableCellWidth"))
-				pFV->cmdTableColWidth(buf, c->targetPos);
-		}
-	}
-	else
-	{
-		c->self->_invokeEditMethod(c->method, buf);
-	}
-	c->self->m_bSpinUpdating = bWasUpdating;
+	c->self->_invokeEditMethod(c->method, buf);
 	return G_SOURCE_REMOVE;
 }
 
@@ -9551,23 +9552,7 @@ void AP_UnixRibbon::_s_spin_changed(GtkSpinButton * spin, gpointer /*data*/)
 	UT_return_if_fail(c);
 	if (c->self->m_bSpinUpdating)
 		return;
-	/* only remember the value - never apply from here. GTK emits
-	 * value-changed from refresh writes and internal commit paths as
-	 * well, and applying those feeds a write->readback loop. The real
-	 * apply happens on text-changed (typing), focus-out or activate */
-	c->pendingValue = gtk_spin_button_get_value(spin);
-	c->hasPending = true;
-}
-
-/* typed text (before GTK commits it to a value): debounce, then apply */
-void AP_UnixRibbon::_s_spin_text_changed(GtkEditable * ed, gpointer /*data*/)
-{
-	GtkWidget * spin = GTK_WIDGET(ed);
-	_SpinCtx * c = static_cast<_SpinCtx *>(
-		g_object_get_data(G_OBJECT(spin), "spin-ctx"));
-	UT_return_if_fail(c);
-	if (c->self->m_bSpinUpdating)
-		return;
+	/* debounce so typing "12.5" doesn't reformat per keystroke */
 	if (c->idleId)
 		g_source_remove(c->idleId);
 	c->idleId = g_timeout_add(350, _s_spin_apply, spin);
@@ -9686,7 +9671,7 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 		return nullptr;
 	}
 
-	_SpinCtx * c = new _SpinCtx{ this, prop, method, unit, 0, 0.0, false, -1.0, 0 };
+	_SpinCtx * c = new _SpinCtx{ this, prop, method, unit, 0 };
 
 	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_widget_set_valign(row, GTK_ALIGN_CENTER);
@@ -9735,47 +9720,6 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 	g_object_set_data_full(G_OBJECT(spin), "spin-ctx", c, _spin_ctx_free);
 	g_signal_connect(spin, "value-changed",
 					 G_CALLBACK(_s_spin_changed), this);
-	g_signal_connect(spin, "changed",
-					 G_CALLBACK(_s_spin_text_changed), this);
-	/* Return inside the entry must commit the typed text so that
-	 * value-changed fires even without a focus change */
-	g_signal_connect(spin, "activate",
-					 G_CALLBACK(+[](GtkSpinButton * s, gpointer) {
-						 gtk_spin_button_update(s);
-						 _s_spin_apply(s);
-					 }), nullptr);
-	GtkEventController * spinKeys = gtk_event_controller_key_new();
-	g_signal_connect(spinKeys, "key-pressed",
-					 G_CALLBACK(+[](GtkEventControllerKey *,
-									guint keyval, guint, GdkModifierType,
-									gpointer s) -> gboolean {
-						 if (keyval == GDK_KEY_Return ||
-							 keyval == GDK_KEY_KP_Enter)
-						 {
-							 gtk_spin_button_update(GTK_SPIN_BUTTON(s));
-						 }
-						 return FALSE;
-					 }), spin);
-	gtk_widget_add_controller(spin, spinKeys);
-	/* remember the caret position at focus time; the apply may run
-	 * after the user clicked outside the table to commit the value */
-	GtkEventController * focusKeys = gtk_event_controller_focus_new();
-	g_signal_connect(focusKeys, "enter",
-					 G_CALLBACK(+[](GtkEventControllerFocus *, gpointer p) {
-						 _SpinCtx * cc = static_cast<_SpinCtx *>(p);
-						 FV_View * v = static_cast<FV_View *>(
-							 cc->self->m_pFrame
-								 ? cc->self->m_pFrame->getCurrentView()
-								 : nullptr);
-						 cc->targetPos =
-							 (v && v->isInTable()) ? v->getPoint() : 0;
-					 }), c);
-	g_signal_connect(focusKeys, "leave",
-					 G_CALLBACK(+[](GtkEventControllerFocus *,
-									gpointer p) {
-						 _s_spin_apply(static_cast<gpointer>(p));
-					 }), spin);
-	gtk_widget_add_controller(spin, focusKeys);
 	gtk_box_append(GTK_BOX(row), spin);
 	gtk_box_append(GTK_BOX(row),
 				   gtk_label_new(unit == DIM_PT ? "pt" : UT_dimensionName(unit)));

@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -454,7 +455,6 @@ menuitem(RDF_ADV_DUMP_FOR_POINT)
 menuitem(RDF_ADV_PLAY)
 
 menuitem(HELP)
-menuitem(HELP_CREDITS)
 menuitem(HELP_CONTENTS)
 menuitem(HELP_INTRO)
 menuitem(HELP_CHECKVER)

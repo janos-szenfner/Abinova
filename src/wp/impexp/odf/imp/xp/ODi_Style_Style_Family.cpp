@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * Copryight (C) 2009 Hubert Figuiere
  * 
@@ -27,7 +28,7 @@
 #include "ODi_ElementStack.h"
 #include "ODi_Abi_Data.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_misc.h"
 #include "ut_std_map.h"
 
@@ -306,7 +307,7 @@ void ODi_Style_Style_Family::_findSuitableReplacement(
         if (m_pDefaultStyle) {
             // Pretty simple. We use the default style.
             if (*(pRemovedStyle->getFamily()) == "paragraph") {
-                // AbiWord uses "Normal" as the name of its default style.
+                // Abinova uses "Normal" as the name of its default style.
                 rReplacementName = "Normal";
             } else {
                 rReplacementName = m_pDefaultStyle->getName();
@@ -365,7 +366,7 @@ void ODi_Style_Style_Family::_findSuitableReplacement(
             if (m_pDefaultStyle) {
                 // Pretty simple. We use the default style.
                 if (*(pRemovedStyle->getFamily()) == "paragraph") {
-                    // AbiWord uses "Normal" as the name of its default style.
+                    // Abinova uses "Normal" as the name of its default style.
                     rReplacementName = "Normal";
                 } 
                 else {

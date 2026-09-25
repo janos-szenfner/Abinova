@@ -1,7 +1,8 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2002 Patrick Lam <plam@mit.edu>
  * Copyright (C) 2003 Martin Sevior <msevior@physics.unimelb.edu.au>
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

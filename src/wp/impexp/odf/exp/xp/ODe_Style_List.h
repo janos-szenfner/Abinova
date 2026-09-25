@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -23,14 +24,14 @@
 
 #include <memory>
 
-// AbiWord includes
+// Abinova includes
 #include "ut_hash.h"
 #include "ut_string_class.h"
 
 // Internal classes
 class ODe_ListLevelStyle;
 
-// AbiWord classes
+// Abinova classes
 class PP_AttrProp;
 
 /**

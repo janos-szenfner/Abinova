@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -37,12 +38,12 @@ class ODe_AutomaticStyles;
 class ODe_AuxiliaryData;
 class ODe_ListenerAction;
 
-// AbiWord classes
+// Abinova classes
 class PP_AttrProp;
 
 
 /**
- * Listener that deals with AbiWord's <frame> elements.
+ * Listener that deals with Abinova's <frame> elements.
  */
 class ODe_Frame_Listener : public ODe_AbiDocListenerImpl {
 public:

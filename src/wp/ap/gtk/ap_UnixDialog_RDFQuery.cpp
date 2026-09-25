@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 2011 AbiSource, Inc.
  * Copyright (C) Ben Martin
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

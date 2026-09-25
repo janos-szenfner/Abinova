@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  * Copryight (C) 2025 Hubert Figuière
  * 
  * This program is free software; you can redistribute it and/or

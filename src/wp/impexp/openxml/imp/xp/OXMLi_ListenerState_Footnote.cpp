@@ -3,6 +3,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2009 Firat Kiyak <firatkiyak@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +28,7 @@
 #include "OXML_Document.h"
 #include "OXML_Types.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_assert.h"
 #include "ut_misc.h"
 

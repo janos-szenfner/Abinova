@@ -7,7 +7,7 @@ pkgdatadir=@ABIWORD_DATADIR@
 libabiword=true
 
 Name: abiword-@ABIWORD_SERIES@
-Description: AbiWord word processing library
+Description: Abinova word processing library
 Version: @VERSION@
 Requires: @ABIWORD_REQUIRED_PKGS@
 Libs: -L${libdir} -labiword-@ABIWORD_SERIES@

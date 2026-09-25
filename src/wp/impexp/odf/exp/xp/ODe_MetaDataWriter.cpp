@@ -4,6 +4,7 @@
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -52,7 +53,7 @@ bool ODe_MetaDataWriter::writeMetaData(PD_Document* pDoc, GsfOutfile* oo) {
             " xmlns:ooo=\"http://openoffice.org/2004/office\""
             " office:version=\"1.4\">\n"
         "<office:meta>\n"
-        "<meta:generator>AbiWord/") + PACKAGE_VERSION + " (" + PLATFORM + ", " + TOOLKIT + ")</meta:generator>\n";
+        "<meta:generator>Abinova/") + PACKAGE_VERSION + " (" + PLATFORM + ", " + TOOLKIT + ")</meta:generator>\n";
 
     static const char * const postamble [] = {
         "</office:meta>\n",
@@ -115,7 +116,7 @@ bool ODe_MetaDataWriter::writeMetaData(PD_Document* pDoc, GsfOutfile* oo) {
     
     WRITE_METADATA_ELEMENT("meta:printed-by", "meta:printed-by");
     
-    // ATTENTION: I'm assuming that dc.date is used by AbiWord as
+    // ATTENTION: I'm assuming that dc.date is used by Abinova as
     // the document creation date & time.
     WRITE_METADATA_ELEMENT(PD_META_KEY_DATE, "meta:creation-date");
     

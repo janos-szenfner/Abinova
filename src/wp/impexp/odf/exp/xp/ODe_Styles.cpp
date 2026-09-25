@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -26,7 +27,7 @@
 #include "ODe_Common.h"
 #include "ODe_Style_Style.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pd_Document.h"
 #include "pd_Style.h"
 #include "pp_AttrProp.h"
@@ -128,7 +129,7 @@ void ODe_Styles::addGraphicsStyle(ODe_Style_Style* pStyle)
 
 /**
  * Add an OpenDocument style (paragraph or text family
- * given an AbiWord style.
+ * given an Abinova style.
  */
 void ODe_Styles::addStyle(const UT_UTF8String& sStyle)
 {
@@ -148,7 +149,7 @@ void ODe_Styles::addStyle(const UT_UTF8String& sStyle)
 
 /**
  * Adds an OpenDocumnet style (paragraph or text family)
- * given its attributes and properties from AbiWord.
+ * given its attributes and properties from Abinova.
  */
 bool ODe_Styles::_addStyle(const PP_AttrProp* pAP) {
     const gchar* pName;

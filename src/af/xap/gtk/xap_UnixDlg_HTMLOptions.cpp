@@ -3,6 +3,7 @@
 /* AbiSource Application Framework
  * Copyright (C) 2002 AbiSource, Inc.
  * Copyright (c) 2023-2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

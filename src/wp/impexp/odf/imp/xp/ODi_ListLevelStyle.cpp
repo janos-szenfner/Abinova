@@ -1,6 +1,7 @@
 /* AbiSource Program Utilities
  * 
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -27,7 +28,7 @@
 #include "ODi_Style_Style.h"
 #include "ODi_ListLevelStyleFormats.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pd_Document.h"
 #include "fp_types.h"
 #include "ut_string_class.h"
@@ -174,7 +175,7 @@ void ODi_ListLevelStyle::setAbiListID(UT_uint32 abiListID) {
 
 
 /**
- * Defines a <l> tag on the AbiWord document corresponding to this
+ * Defines a <l> tag on the Abinova document corresponding to this
  * list level style.
  */
 void ODi_ListLevelStyle::defineAbiList(PD_Document* pDocument) {
@@ -200,8 +201,8 @@ void ODi_ListLevelStyle::buildAbiPropsString() {
 
 
 /**
- * The AbiWord properties of the list depends on some properties already
- * defined by the AbiWord paragraph style.
+ * The Abinova properties of the list depends on some properties already
+ * defined by the Abinova paragraph style.
  * 
  * @param rProps Will have the properties string appended.
  * @param pStyle Pointer to the paragraph style used on this list paragraph.
@@ -267,11 +268,11 @@ void ODi_ListLevelStyle::getAbiProperties(std::string& rProps,
     // margin that is greater than 0, the actual position of the list label box
     // is the left margin width plus the start indent value."
     //
-    // AbiWord's margin-left = OpenDocument paragraph property fo:margin-left +
+    // Abinova's margin-left = OpenDocument paragraph property fo:margin-left +
     //                         OpenDocument text:space-before +
     //                         OpenDocument text:min-label-witdh
     //
-    // OpenDocument fo:margin-left + fo:text-indent + text:space-before = AbiWord's margin-left + text-indent.
+    // OpenDocument fo:margin-left + fo:text-indent + text:space-before = Abinova's margin-left + text-indent.
     //
 
     double spaceBefore_cm;
@@ -549,7 +550,7 @@ void ODi_Numbered_ListLevelStyle::startElement (const gchar* pName,
         if(pVal) {
             m_abiListStartValue = pVal;
         } else {
-            // AbiWord's default value is 0, but on OpenDocument it's 1.
+            // Abinova's default value is 0, but on OpenDocument it's 1.
             m_abiListStartValue = "1";
         }
     }
@@ -608,7 +609,7 @@ void ODi_Numbered_ListLevelStyle::buildAbiPropsString() {
 
 /**
  * Maps the value of the OpenDocument attribute style:num-format to the
- * correspondent AbiWord "type" attribute of the list (<l>) element tag.
+ * correspondent Abinova "type" attribute of the list (<l>) element tag.
  * 
  * @param pStyleNumFormat The value of the style:num-format attribute.
  */

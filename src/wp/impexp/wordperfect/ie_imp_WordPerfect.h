@@ -1,9 +1,10 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 2001 AbiSource, Inc.
  * Copyright (C) 2002-2004 Marc Maurer (uwog@uwog.net)
  * Copyright (C) 2001-2003 William Lachance (william.lachance@sympatico.ca)
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -67,7 +68,7 @@ public:
     int getOutlineHash() const { return m_iOutlineHash; }
 
 private:
-    //int m_iWPOutlineHash; // we don't use this information in AbiWord, only for id purposes during filtering
+    //int m_iWPOutlineHash; // we don't use this information in Abinova, only for id purposes during filtering
     UT_uint32 m_iListIDs[WP6_NUM_LIST_LEVELS];
     int m_iListNumbers[WP6_NUM_LIST_LEVELS];
     FL_ListType m_listTypes[WP6_NUM_LIST_LEVELS];

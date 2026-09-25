@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (C) 2001 Tomas Frydrych
  * Copyright (C) 2004-2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -400,7 +401,9 @@ public:
 	static EV_EditMethod_Fn insertOgonekData;
 
 	static EV_EditMethod_Fn mergeCells;
+	static EV_EditMethod_Fn mergeCellsDir;
 	static EV_EditMethod_Fn splitCells;
+	static EV_EditMethod_Fn splitCellsDir;
 	static EV_EditMethod_Fn formatTable;
 	static EV_EditMethod_Fn autoFitTable;
 	static EV_EditMethod_Fn tableColWider;
@@ -741,7 +744,6 @@ public:
 	static EV_EditMethod_Fn helpIntro;
 	static EV_EditMethod_Fn helpSearch;
 	static EV_EditMethod_Fn helpCheckVer;
-	static EV_EditMethod_Fn helpCredits;
 	static EV_EditMethod_Fn helpReportBug;
 
 	static EV_EditMethod_Fn newWindow;
@@ -1204,7 +1206,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// h
 	EV_EditMethod(NF(helpCheckVer), 		_A_,		""),
 	EV_EditMethod(NF(helpContents), 		_A_,		""),
-	EV_EditMethod(NF(helpCredits), _A_, ""),
 	EV_EditMethod(NF(helpIntro),			_A_,		""),
 	EV_EditMethod(NF(helpReportBug), _A_, ""),
 	EV_EditMethod(NF(helpSearch),			_A_,		""),
@@ -1297,6 +1298,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// m
 	EV_EditMethod(NF(mailMerge), 0, ""),
 	EV_EditMethod(NF(mergeCells),			0,		""),
+	EV_EditMethod(NF(mergeCellsDir),		0,		""),
 	EV_EditMethod(NF(middleSpace),			0,		""),
 
 	// n
@@ -1495,6 +1497,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(spellSuggest_9),		0,	""),
 #endif
 	EV_EditMethod(NF(splitCells),           0,  ""),
+	EV_EditMethod(NF(splitCellsDir),        0,  ""),
 	EV_EditMethod(NF(splitTable),           0,  ""),
 	EV_EditMethod(NF(startNewRevision),     0,  ""),
 	EV_EditMethod(NF(style),				_D_,""),
@@ -1753,7 +1756,7 @@ static bool s_EditMethods_check_frame(void)
 }
 
 /*!
- * Call this if you want to prevent GUI operations on AbiWord.
+ * Call this if you want to prevent GUI operations on Abinova.
  */
 static bool lockGUI(void)
 {
@@ -1763,7 +1766,7 @@ static bool lockGUI(void)
 
 
 /*!
- * Call this to allow GUI operations on AbiWord.
+ * Call this to allow GUI operations on Abinova.
  */
 static bool unlockGUI(void)
 {
@@ -2365,7 +2368,7 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 
 	pDialog->setFileTypeList(szDescList, szSuffixList, static_cast<const UT_sint32 *>(nTypeList));
 
-	// AbiWord uses IEFT_AbiWord_1 as the default
+	// Abinova uses IEFT_AbiWord_1 as the default
 
 	// try to remember the previous file type
 	static IEFileType dflFileType = IEFT_Bogus;
@@ -2414,7 +2417,7 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 	else
 	  {
 		// try to load ABW by default
-		dflFileType = IE_Imp::fileTypeForSuffix (".abw");
+		dflFileType = IE_Imp::fileTypeForSuffix (".abwn");
 	  }
 
 	pDialog->setDefaultFileType(dflFileType);
@@ -2673,7 +2676,7 @@ UT_Error fileOpen(XAP_Frame * pFrame, const char * pNewFile, IEFileType ieft)
 		return errorCode;
 	}
 
-	// For widgetized AbiWord, if there is a prexisting document in the 
+	// For widgetized Abinova, if there is a prexisting document in the 
 	// Frame, we save it then open a the new document in the same frame
 
 	if(pFrame)
@@ -3789,7 +3792,7 @@ Defun1(dlgMetaData)
   if ( pDocument->getMetaDataProp ( PD_META_KEY_CONTRIBUTOR, prop ) )
     pDialog->setCoAuthor ( prop ) ;
   // Category is its own property (Word's cp:category); documents saved
-  // by older AbiWord versions kept it under dc.type, so fall back
+  // by older Abinova versions kept it under dc.type, so fall back
   if ( pDocument->getMetaDataProp ( PD_META_KEY_CATEGORY, prop ) ||
        pDocument->getMetaDataProp ( PD_META_KEY_TYPE, prop ) )
     pDialog->setCategory ( prop ) ;
@@ -4016,11 +4019,6 @@ Defun0(helpReportBug)
 Defun1(helpSearch)
 {
 	return _openHelpWindow(pAV_View, nullptr, true);
-}
-
-Defun1(helpCredits)
-{
-	return _openHelpWindow(pAV_View, "credits.html", false);
 }
 
 Defun1(cycleWindows)
@@ -4261,7 +4259,7 @@ Defun(querySaveAndExit)
 	NOTE: This file should really be split in two:
 
 		1.	XAP methods (above)
-		2.	AbiWord-specific methods (below)
+		2.	Abinova-specific methods (below)
 
 	Until we do the necessary architectural work, we just segregate
 	the methods within the same file.
@@ -7428,7 +7426,7 @@ static void s_artworkMissing(XAP_Frame * pFrame)
 {
 	pFrame->showMessageBox(
 		"The bundled artwork gallery could not be found. It is "
-		"installed under the AbiWord data directory as \"artwork\".",
+		"installed under the Abinova data directory as \"artwork\".",
 		XAP_Dialog_MessageBox::b_O, XAP_Dialog_MessageBox::a_OK);
 }
 
@@ -12697,7 +12695,7 @@ Defun1(insVerticalTextBox)
 	return true;
 }
 
-/* Media popover "Video/Audio from File": AbiWord cannot embed a
+/* Media popover "Video/Audio from File": Abinova cannot embed a
  * playable media object, so the file is linked like Word's
  * "Insert > Link to File" - clicking the link opens it in the
  * system's media player */
@@ -18424,6 +18422,44 @@ Defun(sortTable)
 	bool bAsc = strncmp(sz, "desc", 4) != 0;
 	bool bHeader = strstr(sz, ":h") != nullptr;
 	return pView->cmdSortTableRows(bAsc, -1, bHeader);
+}
+
+/* directional merge for the Table Layout Merge Cells popover:
+ * data is "left" | "right" | "above" | "below" */
+Defun(mergeCellsDir)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * sz = arg.utf8_str();
+	UT_sint32 iDir = -1;
+	if (!strcmp(sz, "left"))       iDir = 0;
+	else if (!strcmp(sz, "right")) iDir = 1;
+	else if (!strcmp(sz, "above")) iDir = 2;
+	else if (!strcmp(sz, "below")) iDir = 3;
+	UT_return_val_if_fail(iDir >= 0, false);
+	return pView->cmdMergeCellsDir(iDir);
+}
+
+/* directional split for the Table Layout Split Cells popover:
+ * data is "hleft" | "hmid" | "hright" | "vabove" | "vmid" | "vbelow" */
+Defun(splitCellsDir)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * sz = arg.utf8_str();
+	AP_CellSplitType eType;
+	if (!strcmp(sz, "hleft"))      eType = hori_left;
+	else if (!strcmp(sz, "hmid"))  eType = hori_mid;
+	else if (!strcmp(sz, "hright"))eType = hori_right;
+	else if (!strcmp(sz, "vabove"))eType = vert_above;
+	else if (!strcmp(sz, "vmid"))  eType = vert_mid;
+	else if (!strcmp(sz, "vbelow"))eType = vert_below;
+	else return false;
+	return pView->cmdSplitCells(eType);
 }
 
 Defun1(repeatHeaderRows)

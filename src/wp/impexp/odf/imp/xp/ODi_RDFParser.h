@@ -1,4 +1,5 @@
 /* Copyright (C) 2026 Cognition, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +28,7 @@
 #include "pd_DocumentRDF.h"
 
 /**
- * Minimal built-in RDF/XML -> triple parser used when AbiWord is built
+ * Minimal built-in RDF/XML -> triple parser used when Abinova is built
  * without libredland (WITH_REDLAND). It understands the subset of the
  * RDF/XML grammar that shows up in ODF packages: rdf:Description and
  * typed node elements, rdf:about/rdf:ID/rdf:nodeID subjects,

@@ -6,6 +6,7 @@
  *     Whose contributions are under GPLv2+
  * Copyright (C) 2004 Morten Welinder (terra@gnome.org)
  * Copyright (C) 2003, Red Hat, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

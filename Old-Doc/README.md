@@ -1,2 +1,2 @@
 # Exp-Abi
-Experimental AbiWord
+Experimental Abinova

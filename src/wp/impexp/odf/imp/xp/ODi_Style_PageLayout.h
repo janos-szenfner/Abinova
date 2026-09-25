@@ -2,6 +2,7 @@
  *
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -26,13 +27,13 @@
 // Internal includes
 #include "ODi_ListenerState.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string_class.h"
 
 // Internal classes
 class ODi_Abi_Data;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 
@@ -56,7 +57,7 @@ public:
 
     void definePageSizeTag(PD_Document* pDocument) const;
 
-    // Returns the value to be used on every <section> tag of the AbiWord
+    // Returns the value to be used on every <section> tag of the Abinova
     // document.
     const std::string getSectionProps(bool hasHeader, bool hasFooter) const;
 

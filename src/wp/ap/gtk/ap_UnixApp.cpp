@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode:t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (C) 2009, 2019-2026 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -152,7 +153,7 @@ extern XAP_Dialog_MessageBox::tAnswer s_CouldNotLoadFileMessage(XAP_Frame * pFra
 /*!
   Construct an AP_UnixApp.
   /param szAppName A string representing the name of the app.
-	Currently always AbiWord (I think).
+	Currently always Abinova (I think).
 */
 AP_UnixApp::AP_UnixApp(const char * szAppName)
     : AP_App(szAppName),

@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2021-2023 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -2257,7 +2258,7 @@ void IE_Exp_RTF::_output_revision(const s_RTF_AttrPropAdapter & apa, bool bPara,
  */
 void IE_Exp_RTF::_write_style_fmt(const PD_Style * pStyle)
 {
-    // brdrdef: not implemented because AbiWord does not have borders
+    // brdrdef: not implemented because Abinova does not have borders
     // at time of this writing.
 
     // parfmt
@@ -3320,7 +3321,7 @@ _rtf_font_info::_rtf_font_info()
 
 bool _rtf_font_info::init(const s_RTF_AttrPropAdapter & apa, bool bDoFieldFont)
 {
-	// Not a typo. The AbiWord "font-family" property is what RTF
+	// Not a typo. The Abinova "font-family" property is what RTF
 	// calls font name. It has values like "Courier New".
 	const char * szName = nullptr;
 	if(!bDoFieldFont)
@@ -3367,7 +3368,7 @@ _rtf_font_info::~_rtf_font_info(void)
 
 bool _rtf_font_info::init(const char * szFontName)
 {
-    // Not a typo. The AbiWord "font-family" property is what RTF
+    // Not a typo. The Abinova "font-family" property is what RTF
     // calls font name. It has values like "Courier New".
     if (szFontName == nullptr)
 	{

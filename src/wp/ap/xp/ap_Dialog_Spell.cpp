@@ -263,7 +263,7 @@ bool AP_Dialog_Spell::nextMisspelledWord(void)
 							m_Suggestions->addItem(sug);
 						}
 					}
-				   // add suggestions from user's AbiWord file
+				   // add suggestions from user's Abinova file
 				   pApp->suggestWord(m_Suggestions, m_pWord, m_iWordLength);
 
 				   // update sentence boundaries (so we can display

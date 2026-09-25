@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -22,7 +23,7 @@
 // Class definition include
 #include "ODi_Abi_Data.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pd_Document.h"
 #include "pt_Types.h"
 #include "ie_impGraphic.h"
@@ -41,7 +42,7 @@ ODi_Abi_Data::ODi_Abi_Data(PD_Document* pDocument, GsfInfile* pGsfInfile) :
 
 
 /**
- * Adds an data item (<d> tag) in the AbiWord document for the specified image.
+ * Adds an data item (<d> tag) in the Abinova document for the specified image.
  * 
  * Code mainly from Dom Lachowicz and/or Robert Staudinger.
  * 
@@ -168,7 +169,7 @@ bool ODi_Abi_Data::addImageDataItemFromBuffer(UT_String& rDataId, const UT_ByteB
 }
 
 /**
- * Adds an data item (<d> tag) in the AbiWord document for the specified image.
+ * Adds an data item (<d> tag) in the Abinova document for the specified image.
  * 
  * Code mainly from Dom Lachowicz and/or Robert Staudinger.
  * 

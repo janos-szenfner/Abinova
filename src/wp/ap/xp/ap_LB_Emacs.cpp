@@ -20,7 +20,7 @@
 
 // ********************************************************************************
 // ********************************************************************************
-// *** THIS FILE DEFINES Emacs KEYBOARD AND MOUSE BINDINGS FOR AbiWord 1.       ***
+// *** THIS FILE DEFINES Emacs KEYBOARD AND MOUSE BINDINGS FOR Abinova 1.       ***
 // *** To define bindings for other emulations, clone this file and change the  ***
 // *** various settings.  See ap_LoadBindings.cpp for more information.         ***
 // ********************************************************************************

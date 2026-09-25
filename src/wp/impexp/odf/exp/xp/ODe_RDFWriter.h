@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (c) 2010 GPL. V2+ copyright to AbiSource B.V.
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: This file was originally written by Ben Martin in 2010.
  *
  * This program is free software; you can redistribute it and/or

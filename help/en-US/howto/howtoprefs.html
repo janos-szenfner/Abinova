@@ -7,7 +7,7 @@
 Copyright 2002 David Chart Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts A copy of the license is included in the section entitled "GNU Free Documentation License"
 //-->
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<title>How To Tweak the Preferences in AbiWord</title>
+<title>How To Tweak the Preferences in Abinova</title>
 <link href="../style.css" rel="stylesheet" type="text/css" />
 
 </head>
@@ -23,7 +23,7 @@ Copyright 2002 David Chart Permission is granted to copy, distribute and/or modi
             <h1 id="AbiTOC0">
 How To Tweak the Preferences
             </h1>
-<p>There are some properties of AbiWord that can be set in the preferences, but which do not yet have an entry in the Preferences dialog. To set these, you have to edit the preferences file by hand. On Linux and similar systems, this file is in the .AbiSuite folder in your home directory. This is a hidden directory; you will need to set your file manager to show such directories, or type the name by hand.</p><p>The file is called AbiWord.Profile, and you should open it in a text editor, not in AbiWord. When you do, you will notice that the comment information at the beginning of the file tells you not to edit the file by hand. If AbiWord came with any warranty, doing so would void the warranty. As it doesn't, you should simply make sure you save a copy of your preferences file before changing anything. Then, if everything goes wrong, you can replace the broken copy with the saved copy.</p><p>Most of the relevant options are in the Scheme sections. The first Scheme is the built-in scheme. It has name="_builtin_" as its first value. Do not bother editing this scheme, as it is reset whenever the application starts up. It provides default values, so that you only need to alter things when you want something different.</p><p>Your preferences are in the second scheme, with name="_custom_" as its first value. You should add lines to this scheme to set the additional preferences.</p><p>Useful values include:</p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">DefaultSaveFormat=".abw" (Replace .abw with the suffix for any other file type to save as that file type by default.)</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Various color preferences, allowing you to change the color that AbiWord uses for highlighting selections, and similar. These have a general format of ColorOption="xxxxxx", where xxxxxx is a hexadecimal RGB color code. The options available are:</span></p>            <ul>
+<p>There are some properties of Abinova that can be set in the preferences, but which do not yet have an entry in the Preferences dialog. To set these, you have to edit the preferences file by hand. On Linux and similar systems, this file is in the .AbiSuite folder in your home directory. This is a hidden directory; you will need to set your file manager to show such directories, or type the name by hand.</p><p>The file is called Abinova.Profile, and you should open it in a text editor, not in Abinova. When you do, you will notice that the comment information at the beginning of the file tells you not to edit the file by hand. If Abinova came with any warranty, doing so would void the warranty. As it doesn't, you should simply make sure you save a copy of your preferences file before changing anything. Then, if everything goes wrong, you can replace the broken copy with the saved copy.</p><p>Most of the relevant options are in the Scheme sections. The first Scheme is the built-in scheme. It has name="_builtin_" as its first value. Do not bother editing this scheme, as it is reset whenever the application starts up. It provides default values, so that you only need to alter things when you want something different.</p><p>Your preferences are in the second scheme, with name="_custom_" as its first value. You should add lines to this scheme to set the additional preferences.</p><p>Useful values include:</p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">DefaultSaveFormat=".abw" (Replace .abw with the suffix for any other file type to save as that file type by default.)</span></p><p><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Various color preferences, allowing you to change the color that Abinova uses for highlighting selections, and similar. These have a general format of ColorOption="xxxxxx", where xxxxxx is a hexadecimal RGB color code. The options available are:</span></p>            <ul>
                 <li>
 <span style="font-size:12pt;font-family:'Times New Roman';color:#000000">ColorSelBackground: the color used to highlight selections.</span>
                 </li>
@@ -44,7 +44,7 @@ How To Tweak the Preferences
                 </li>
 
             </ul>
-<p class="" style="margin-left:0pt;text-indent:0.50cm"><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">ToolbarAppearance="icon" (Replace icon with both to get text labels on toolbar buttons. This makes the buttons significantly larger, and they may not fit on your screen.)</span></p><p class="" style="margin-left:0pt;text-indent:0.50cm"><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Geometry: The height and width values set the height and width of new AbiWord windows. These values are measured in pixels. Note that this section is after the _custom_ scheme.</span></p>
+<p class="" style="margin-left:0pt;text-indent:0.50cm"><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">ToolbarAppearance="icon" (Replace icon with both to get text labels on toolbar buttons. This makes the buttons significantly larger, and they may not fit on your screen.)</span></p><p class="" style="margin-left:0pt;text-indent:0.50cm"><span style="font-size:12pt;font-family:'Times New Roman';color:#000000">Geometry: The height and width values set the height and width of new Abinova windows. These values are measured in pixels. Note that this section is after the _custom_ scheme.</span></p>
         </div>
 
 <div class="index">
@@ -53,9 +53,7 @@ How To Tweak the Preferences
 <a href="../howto/index.html" class="bars">How To</a>
 <a href="../info/index.html" class="bars">Information</a>
 <a href="../interface/index.html" class="bars">Interface</a>
-<a href="../plugins/index.html" class="bars">Plug-ins</a> 
 <a href="../problems/index.html" class="bars">Problems</a>
-<a href="../credits.html" class="bars">Credits</a>
 <a href="../azindex.html" class="bars">Index</a>
 <a href="../fdl.html" class="bars">GNU FDL</a> 
 </div>

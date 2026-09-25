@@ -3,6 +3,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2007 Philippe Milot <PhilMilot@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,7 +31,7 @@
 #include "OXMLi_ListenerState.h"
 #include "OXML_Section.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"

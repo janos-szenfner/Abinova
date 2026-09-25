@@ -32,10 +32,10 @@
 #if defined(_WIN32) /* && !defined(__MINGW32__) */
   #define ABI_PLUGIN_EXPORT __declspec(dllexport)
   #ifdef ABI_DLL
-     /* we are building an AbiWord plugin and want to use something declared in a library */
+     /* we are building an Abinova plugin and want to use something declared in a library */
      #define ABI_EXPORT __declspec(dllimport)
   #else
-     /* we are building AbiWord and wish for its parts to be used by plugins */
+     /* we are building Abinova and wish for its parts to be used by plugins */
      #define ABI_EXPORT __declspec(dllexport)
   #endif
 #elif defined (DISABLE_EXPORTS)

@@ -2,6 +2,7 @@
 
 /* AbiSource Program Utilities
  * Copyright (C) 2001
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This file is the work of:
  *    Dom Lachowicz <dominicl@seas.upenn.edu>
@@ -53,7 +54,7 @@
  * 2) invalid iconv handles (== iconv_t -1 (usually))
  * 3) iconv resetting (vlad's i18n issues)
  * 4) ICONV_CONST passed to iconv()
- * 5) UCS2 internally to AbiWord
+ * 5) UCS2 internally to Abinova
  * 6) byte-order problems
  * 7) good C/C++ linkage
  * 

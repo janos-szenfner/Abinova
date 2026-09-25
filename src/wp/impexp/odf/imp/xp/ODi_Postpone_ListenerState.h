@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -30,7 +31,7 @@
  * It stores the XML data and, when wanted, does its parsing.
  *
  * This class was created due to a issue with headers/footers parsing. They are
- * defined on the styles stream but their corresponding AbiWord sections can only
+ * defined on the styles stream but their corresponding Abinova sections can only
  * be added after the definition of all styles, page size and (I think) the
  * sections of the text content.
  */

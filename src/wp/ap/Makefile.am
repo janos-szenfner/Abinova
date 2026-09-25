@@ -1,4 +1,5 @@
 ## Copyright (C) 2023 Hubert Figuière
+# Copyright (C) 2025-2026 Abinova contributors
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -477,7 +478,6 @@ EXTRA_DIST = \
 	xp/ToolbarIcons/menu_book.xpm \
 	xp/ToolbarIcons/menu_close.xpm \
 	xp/ToolbarIcons/menu_copy.xpm \
-	xp/ToolbarIcons/menu_credits.xpm \
 	xp/ToolbarIcons/menu_cut.xpm \
 	xp/ToolbarIcons/menu_delete_column.xpm \
 	xp/ToolbarIcons/menu_delete_row.xpm \

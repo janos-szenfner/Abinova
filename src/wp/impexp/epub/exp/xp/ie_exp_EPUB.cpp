@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2011 Volodymyr Rudyj <vladimir.rudoy@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -235,7 +236,7 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
     gsf_xml_out_start_element(ncxXml, "meta");
     gsf_xml_out_add_cstr(ncxXml, "name", "epub-creator");
     gsf_xml_out_add_cstr(ncxXml, "content",
-            "AbiWord (http://www.abisource.com/)");
+            "Abinova (http://www.abisource.com/)");
     // </meta>
     gsf_xml_out_end_element(ncxXml);
     // <meta name="dtb:depth" content=... >
@@ -858,7 +859,7 @@ std::string IE_Exp_EPUB::getAuthor() const
     {
         return property;
     }
-    return "Converted by AbiWord(http://www.abisource.com/)";
+    return "Converted by Abinova(http://www.abisource.com/)";
 }
 
 std::string IE_Exp_EPUB::getTitle() const

@@ -1,6 +1,7 @@
 ## AbiSource Applications
 ## Copyright (C) 2001 Sam Tobin-Hochstadt
 ## Copyright (C) 2023 Hubert Figuière
+# Copyright (C) 2025-2026 Abinova contributors
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -20,7 +21,7 @@
 TESTS = unix/testwrap.sh
 
 check_SCRIPTS = testwrap.sh-stamp unix/testwrap.sh
-check_PROGRAMS = AbiWord-test
+check_PROGRAMS = Abinova-test
 
 AbiWord_test_CPPFLAGS = $(WP_CPPFLAGS) \
 	-DABIWORD_DATADIR="\"$(ABIWORD_DATADIR)\"" \

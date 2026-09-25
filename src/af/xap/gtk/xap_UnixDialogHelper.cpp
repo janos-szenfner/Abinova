@@ -2,6 +2,7 @@
 
 /* AbiSource Program Utilities
  * Copyright (C) 1998-2000 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,6 +39,11 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
+
+#ifdef GDK_WINDOWING_X11
+#include <gdk/x11/gdkx.h>
+#include <X11/Xlib.h>
+#endif
 
 #include <gdk/gdkkeysyms.h>
 
@@ -230,7 +236,7 @@ GtkBuilder * newDialogBuilder(const char * name)
 GtkBuilder* newDialogBuilderFromResource(const char* name)
 {
     UT_ASSERT(name);
-	std::string ui_path = std::string("/com/abisource/AbiWord/") + name;
+	std::string ui_path = std::string("/com/abisource/Abinova/") + name;
 
 	// load the dialog from the UI file
 	GtkBuilder* builder = gtk_builder_new_from_resource(ui_path.c_str());
@@ -370,6 +376,37 @@ static void sAddHelpButton (GtkDialog * me, XAP_Dialog * pDlg)
 /*!
  * Centers a dialog, makes it transient, sets up the right window icon
  */
+/* GTK4 dropped gtk_window_move/set_position: toplevel placement is the
+ * compositor's job. transient_for hands it the hint (GNOME centres
+ * transient dialogs over their parent); under plain X11 - and under
+ * XWayland sessions whose compositor ignores the hint - nothing moves
+ * the window and it lands at 0,0, so we centre it on the parent
+ * ourselves once it is realised. */
+#ifdef GDK_WINDOWING_X11
+static void s_center_on_parent_realize(GtkWidget * child, gpointer parent_ptr)
+{
+	GtkWidget * parent = GTK_WIDGET(parent_ptr);
+	GdkSurface * cs = gtk_native_get_surface(GTK_NATIVE(child));
+	GdkSurface * ps = parent ? gtk_native_get_surface(GTK_NATIVE(parent))
+							 : nullptr;
+	if (!cs || !ps || !GDK_IS_X11_SURFACE(cs) || !GDK_IS_X11_SURFACE(ps))
+		return;
+	Window cx = gdk_x11_surface_get_xid(cs);
+	Window px = gdk_x11_surface_get_xid(ps);
+	Display * dpy = gdk_x11_display_get_xdisplay(gdk_surface_get_display(cs));
+	Window root; int px_ = 0, py_ = 0, cx_ = 0, cy_ = 0;
+	unsigned int pw = 0, ph = 0, cw_ = 0, ch_ = 0, bw = 0, depth = 0;
+	if (!XGetGeometry(dpy, px, &root, &px_, &py_, &pw, &ph, &bw, &depth))
+		return;
+	if (!XGetGeometry(dpy, cx, &root, &cx_, &cy_, &cw_, &ch_, &bw, &depth) ||
+		cw_ == 0)
+		return;
+	XMoveWindow(dpy, cx,
+				px_ + (static_cast<int>(pw) - static_cast<int>(cw_)) / 2,
+				py_ + (static_cast<int>(ph) - static_cast<int>(ch_)) / 2);
+}
+#endif
+
 void centerDialog(GtkWidget * parent, GtkWidget * child, bool set_transient_for)
 {
 	UT_return_if_fail(parent);
@@ -382,6 +419,10 @@ void centerDialog(GtkWidget * parent, GtkWidget * child, bool set_transient_for)
 	if (set_transient_for)
 	  gtk_window_set_transient_for(GTK_WINDOW(child),
 				       GTK_WINDOW(parent));
+#ifdef GDK_WINDOWING_X11
+	g_signal_connect_after(child, "realize",
+						   G_CALLBACK(s_center_on_parent_realize), parent);
+#endif
 }
 
 void abiSetupModalDialog(GtkDialog * dialog, XAP_Frame *pFrame, XAP_Dialog * pDlg, gint defaultResponse)
@@ -882,7 +923,7 @@ void messageBoxOK(const char * message)
 						   GTK_BUTTONS_OK,
 						   "%s", message ) ;
 
-	gtk_window_set_title(GTK_WINDOW(msg), "AbiWord");
+	gtk_window_set_title(GTK_WINDOW(msg), "Abinova");
 
 	gtk_widget_show ( msg ) ;
 	abiRunModalDialog(GTK_DIALOG(msg), true);

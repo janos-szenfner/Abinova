@@ -3,6 +3,7 @@
  * Copyright (C) 2005 INdT
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * Copyright 2009-2010 AbiSource Corporation B.V.
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,7 +29,7 @@
 // Internal includes
 #include "ODe_Common.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pp_AttrProp.h"
 #include "pt_Types.h"
 #include "ut_locale.h"
@@ -557,7 +558,7 @@ ODe_Style_Style& ODe_Style_Style::operator=(const ODe_Style_Style& rStyle) {
 
 
 /**
- * Defines the style from attributes and properties of an AbiWord style.
+ * Defines the style from attributes and properties of an Abinova style.
  * 
  * @return "false" if an error ocurred.
  */
@@ -603,7 +604,7 @@ bool ODe_Style_Style::fetchAttributesFromAbiStyle(const PP_AttrProp* pAP) {
 
 
 /**
- * Defines the style from attributes and properties of an AbiWord <span>.
+ * Defines the style from attributes and properties of an Abinova <span>.
  */
 void ODe_Style_Style::fetchAttributesFromAbiSpan(const PP_AttrProp* pAP) {
     const gchar* pValue;
@@ -623,7 +624,7 @@ void ODe_Style_Style::fetchAttributesFromAbiSpan(const PP_AttrProp* pAP) {
 
 
 /**
- * Fetch attributes from an AbiWord <p> tag. Usually paragraph style attributes.
+ * Fetch attributes from an Abinova <p> tag. Usually paragraph style attributes.
  */
 void ODe_Style_Style::fetchAttributesFromAbiBlock(const PP_AttrProp* pAP,
         const ODe_Style_List* pCurrentListStyle) {
@@ -666,7 +667,7 @@ void ODe_Style_Style::fetchAttributesFromAbiBlock(const PP_AttrProp* pAP,
 
 
 /**
- * Fetch attributes from an AbiWord <section> tag. Usually column info for 
+ * Fetch attributes from an Abinova <section> tag. Usually column info for 
  * an OpenDocument <style:style style:family="section"> element.
  */
 void ODe_Style_Style::fetchAttributesFromAbiSection(const PP_AttrProp* pAP) {
@@ -678,7 +679,7 @@ void ODe_Style_Style::fetchAttributesFromAbiSection(const PP_AttrProp* pAP) {
 
 
 /**
- * Defines the style from attributes and properties of an AbiWord <table>.
+ * Defines the style from attributes and properties of an Abinova <table>.
  */
 void ODe_Style_Style::fetchAttributesFromAbiTable(const PP_AttrProp* pAP) {
     if (m_pTableProps == nullptr) {
@@ -689,7 +690,7 @@ void ODe_Style_Style::fetchAttributesFromAbiTable(const PP_AttrProp* pAP) {
 
 
 /**
- * Defines the style from attributes and properties of an AbiWord <cell>.
+ * Defines the style from attributes and properties of an Abinova <cell>.
  */
 void ODe_Style_Style::fetchAttributesFromAbiCell(const PP_AttrProp* pAP) {
     if (m_pCellProps == nullptr) {
@@ -700,7 +701,7 @@ void ODe_Style_Style::fetchAttributesFromAbiCell(const PP_AttrProp* pAP) {
 
 
 /**
- * Defines the style from attributes and properties of an AbiWord <frame>.
+ * Defines the style from attributes and properties of an Abinova <frame>.
  */
 void ODe_Style_Style::fetchAttributesFromAbiFrame(const PP_AttrProp& rAP) {
     if (m_pGraphicProps == nullptr) {
@@ -846,7 +847,7 @@ bool ODe_Style_Style::hasTableStyleProps(const PP_AttrProp* pAP) {
     }
     
     // If we reached this point it's because there are no table props at all
-    // on this AbiWord element attributes and properties.
+    // on this Abinova element attributes and properties.
     return false;
 }
 
@@ -860,7 +861,7 @@ void ODe_Style_Style::inheritTableCellProperties(const ODe_Style_Style& tableSty
         m_pCellProps = new CellProps();
     }
 
-    // the following properties are always inherited by AbiWord cells
+    // the following properties are always inherited by Abinova cells
     m_pCellProps->m_leftThickness = tableStyle.m_pCellProps->m_leftThickness;
     m_pCellProps->m_leftColor = tableStyle.m_pCellProps->m_leftColor;
     m_pCellProps->m_rightThickness = tableStyle.m_pCellProps->m_rightThickness;
@@ -871,7 +872,7 @@ void ODe_Style_Style::inheritTableCellProperties(const ODe_Style_Style& tableSty
     m_pCellProps->m_bottomColor = tableStyle.m_pCellProps->m_bottomColor;
     m_pCellProps->m_verticalAlign = tableStyle.m_pCellProps->m_verticalAlign;
 
-    // Table background colors are not inherited in AbiWord and an OpenDocument
+    // Table background colors are not inherited in Abinova and an OpenDocument
     // table can have its own background color as well, so we don't inherit
     // this property
 }
@@ -1432,7 +1433,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
                     UT_LocaleInfo locale(UT_LocaleInfo::system());
                     UT_LocaleTransactor t(LC_NUMERIC, locale.toString().c_str());
                     
-                    // AbiWord always uses the locale-defined decimal point as the
+                    // Abinova always uses the locale-defined decimal point as the
                     // decimal tab character. See fp_Line::_calculateWidthOfRun()
                     // for details.
 					lconv *loc = localeconv();
@@ -2130,8 +2131,8 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     const gchar* pValue;
     bool ok;
     
-    // NOTE: Contrary to OpenDocument, AbiWord allows setting line properties on the
-    // table itself. Table line colors default to #000000 in AbiWord if unset, and cells 
+    // NOTE: Contrary to OpenDocument, Abinova allows setting line properties on the
+    // table itself. Table line colors default to #000000 in Abinova if unset, and cells 
     // inherit the table line color if they have no line color defined themselves.
     // Table line thickness defaults to 0.72pt, and again cells inherit the
     // table line thickness if they have no line thickness defined themselves.

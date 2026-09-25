@@ -3,6 +3,7 @@
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
  * <daniel.carvalho@indt.org.br>
  * Copyright (C) 2009 Hubert Figuiere
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,7 +36,7 @@
 #include "ODi_ElementStack.h"
 #include "ODi_Abi_Data.h" 
 
-// AbiWord includes
+// Abinova includes
 #include "ut_misc.h"
 #include "pd_Document.h"
 #include "ut_debugmsg.h"
@@ -82,7 +83,7 @@ ODi_Style_Style* ODi_Office_Styles::addStyle(const gchar** ppAtts,
     UT_return_val_if_fail(pFamily, pStyle);
     
     if(!strcmp(pFamily, "text")) {
-        // AbiWord doesn't support two styles with the same name, differing only
+        // Abinova doesn't support two styles with the same name, differing only
         // on its type (eg: A "Example" character style and a "Example"
         // paragraph style).
 
@@ -106,7 +107,7 @@ ODi_Style_Style* ODi_Office_Styles::addStyle(const gchar** ppAtts,
         }
         
     } else if(!strcmp(pFamily, "paragraph")) {
-        // AbiWord doesn't support two styles with the same name, differing only
+        // Abinova doesn't support two styles with the same name, differing only
         // on its type (eg: A "Example" character style and a "Example"
         // paragraph style).
 
@@ -296,7 +297,7 @@ void ODi_Office_Styles::_defineAbiStyles(PD_Document* pDocument) const
     m_textStyleStyles.defineAbiStyles(pDocument);
     m_paragraphStyleStyles.defineAbiStyles(pDocument);
     
-    // AbiWord doesn't have section, graphic and table styles.
+    // Abinova doesn't have section, graphic and table styles.
 
     // All styles defined on the content stream are automatic, so, I'm not
     // defining them.

@@ -3,6 +3,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2008 Firat Kiyak <firatkiyak@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -2320,7 +2321,7 @@ UT_Error IE_Exp_OpenXML::_writeDocProps()
 	prop(PD_META_KEY_MANAGER, "Manager", app);
 	prop(PD_META_KEY_COMPANY, "Company", app);
 
-	app += "<Application>" + _escape(std::string("AbiWord/") + PACKAGE_VERSION) +
+	app += "<Application>" + _escape(std::string("Abinova/") + PACKAGE_VERSION) +
 		"</Application>\n";
 	app += "</Properties>";
 

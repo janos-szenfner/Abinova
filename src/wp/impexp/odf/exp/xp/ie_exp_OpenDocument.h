@@ -4,6 +4,7 @@
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -27,7 +28,7 @@
 #ifndef _IE_EXP_OPENDOCUMENT_H_
 #define _IE_EXP_OPENDOCUMENT_H_
 
-// AbiWord includes
+// Abinova includes
 #include "ie_exp.h"
 #include "ut_bytebuf.h"
 

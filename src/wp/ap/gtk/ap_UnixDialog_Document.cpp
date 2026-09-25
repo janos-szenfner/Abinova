@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2026 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -851,7 +852,7 @@ void AP_UnixDialog_Document::_redrawPreview()
 	gtk_widget_queue_draw(m_wPreview);
 }
 
-/* Page Setup… - the regular AbiWord page-setup dialog applies
+/* Page Setup… - the regular Abinova page-setup dialog applies
  * size/orientation/scale to the document immediately */
 void AP_UnixDialog_Document::_doPageSetup()
 {
@@ -879,7 +880,7 @@ void AP_UnixDialog_Document::_doDefault()
 	_readWidgets();
 
 	GtkWidget * dlg = gtk_dialog_new();
-	gtk_window_set_title(GTK_WINDOW(dlg), "AbiWord");
+	gtk_window_set_title(GTK_WINDOW(dlg), "Abinova");
 	gtk_window_set_modal(GTK_WINDOW(dlg), TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(dlg),
 								 GTK_WINDOW(m_wMainWindow));
@@ -972,7 +973,7 @@ void AP_UnixDialog_Document::_writeDefaultTemplate()
 							 nullptr))
 	{
 		GtkWidget * err = gtk_dialog_new();
-		gtk_window_set_title(GTK_WINDOW(err), "AbiWord");
+		gtk_window_set_title(GTK_WINDOW(err), "Abinova");
 		gtk_window_set_modal(GTK_WINDOW(err), TRUE);
 		gtk_window_set_transient_for(GTK_WINDOW(err),
 								   GTK_WINDOW(m_wMainWindow));

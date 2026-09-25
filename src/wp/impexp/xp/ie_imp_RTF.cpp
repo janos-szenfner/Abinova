@@ -1,10 +1,11 @@
 /* -*- c-basic-offset: 4; tab-width: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1999 AbiSource, Inc.
  * Copyright (C) 2003 Tomas Frydrych <tomas@frydrych.uklinux.net>
  * Copyright (C) 2003 Martin Sevior <msevior@physics.unimelb.edu.au> 
  * Copyright (C) 2001, 2004, 2009, 2011-2025 Hubert Figuiere <hub@figuiere.net>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -379,7 +380,7 @@ void RTF_msword97_level::buildAbiListProperties( const char ** szListID,
 
 /*!
   Parse the leveltext and levelnumbers values.
-  The idea is to translate the strings into AbiWord compatible format.
+  The idea is to translate the strings into Abinova compatible format.
 
   From the RTF standard: "... a level three number such as '1.a.(i)' would
   generate the following RTF: '{\leveltext \'07\'00.\'01.(\'02)'}' where \'07
@@ -388,7 +389,7 @@ void RTF_msword97_level::buildAbiListProperties( const char ** szListID,
   {\levelnumbers \'01\'03\'06} because the level place holders have indices
   1,3,6.
 
-  In AbiWord, either this level resuses the parent label and adds on more text, or
+  In Abinova, either this level resuses the parent label and adds on more text, or
   starts a new label. So we can only get 1.a.(i) if the parent label is 1.a. or 1.a
 
   \todo look up the parent label and be more precise about what is added by this label.
@@ -11825,7 +11826,7 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 			while (ch != '}' && ch != ';')
 			{
 				/* 
-				   we have seen cases, including AbiWord, were stylename
+				   we have seen cases, including Abinova, were stylename
 				   were generated with non ASCII names encoded as 8bits...
 				   We assume it is the document charset.
 				*/

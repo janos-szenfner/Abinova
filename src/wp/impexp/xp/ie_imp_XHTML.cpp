@@ -2350,7 +2350,7 @@ static void s_props_append (UT_UTF8String & props, UT_uint32 css_mask,
 					else if ((*value == '\'') || (*value == '"'))
 						{
 							/* CSS requires font-family names to be quoted, and also allows
-							 * a sequence of these to be specified; AbiWord doesn't quote,
+							 * a sequence of these to be specified; Abinova doesn't quote,
 							 * and allows only one font-family name.
 							 */
 							char * value_end = ++value;
@@ -2401,7 +2401,7 @@ static void s_props_append (UT_UTF8String & props, UT_uint32 css_mask,
 				}
 			else if (strcmp (name, "vertical-align") == 0)
 				{
-					/* AbiWord uses "text-position" for CSS's "vertical-align" in the case
+					/* Abinova uses "text-position" for CSS's "vertical-align" in the case
 					 * of super-/subscripts.
 					 */
 					if (strcmp (value, "super") == 0)
@@ -2429,7 +2429,7 @@ static void s_props_append (UT_UTF8String & props, UT_uint32 css_mask,
 				}
 			else if ((strcmp (name, "color") == 0) || (strcmp (name, "background") == 0))
 				{
-					/* AbiWord uses rgb hex-sequence w/o the # prefix used by CSS
+					/* Abinova uses rgb hex-sequence w/o the # prefix used by CSS
 					 * and uses "bgcolor" instead of background
 					 */
 					static const char * bgcolor = "bgcolor";

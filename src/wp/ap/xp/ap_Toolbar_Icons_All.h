@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -195,7 +196,6 @@
 #	include "menu_book.xpm"
 #	include "menu_delete_table.xpm"
 #	include "menu_font.xpm"
-#	include "menu_credits.xpm"
 #	include "menu_about.xpm"
 
 #else
@@ -210,7 +210,6 @@
 	DefineToolbarIcon(menu_book_xpm)
 	DefineToolbarIcon(menu_close_xpm)
 	DefineToolbarIcon(menu_copy_xpm)
-	DefineToolbarIcon(menu_credits_xpm)
 	DefineToolbarIcon(menu_cut_xpm)
 	DefineToolbarIcon(menu_delete_column_xpm)
 	DefineToolbarIcon(menu_delete_row_xpm)

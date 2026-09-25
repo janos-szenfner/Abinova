@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -36,7 +37,7 @@
 #include "ODe_Table_Listener.h"
 #include "ODe_Style_PageLayout.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pp_AttrProp.h"
 #include "ut_units.h"
 #include "fl_TOCLayout.h"
@@ -167,7 +168,7 @@ void ODe_Text_Listener::openBlock(const PP_AttrProp* pAP,
     // We first handle the list info of that paragraph, if it exists.
     _openODListItem(pAP);
     
-    // Then we try to open an OpenDocument paragraph out of this AbiWord block.
+    // Then we try to open an OpenDocument paragraph out of this Abinova block.
     _openODParagraph(pAP);
 
 }
@@ -581,7 +582,7 @@ void ODe_Text_Listener::openTOC(const PP_AttrProp* pAP) {
     ////
     // Write <text:index-title-template>
     
-    bool hasHeading = true; // AbiWord's default
+    bool hasHeading = true; // Abinova's default
     ok = pAP->getProperty("toc-has-heading", pValue);
     if (ok && pValue) {
         hasHeading = (*pValue == '1');
@@ -1216,7 +1217,7 @@ void ODe_Text_Listener::insertPositionedImage(const gchar* pImageName,
 
 /**
  * Returns true if the properties belongs to a plain paragraph, false otherwise.
- * An AbiWord <p> tag (block) can be, for instance, a list item if it has
+ * An Abinova <p> tag (block) can be, for instance, a list item if it has
  * a "listid" and/or "level" attribute.
  */
 bool ODe_Text_Listener::_blockIsPlainParagraph(const PP_AttrProp* pAP) const {
@@ -1423,7 +1424,7 @@ void ODe_Text_Listener::_openODParagraph(const PP_AttrProp* pAP) {
     
     // The paragraph content will be stored in a separate temp file.
     // It's done that way because we may have to write a textbox (<draw:frame>)
-    // inside this paragraph, before its text content, which, in AbiWord, comes
+    // inside this paragraph, before its text content, which, in Abinova, comes
     // before the textbox.
     UT_ASSERT(m_pParagraphContent==nullptr);
     m_pParagraphContent = gsf_output_memory_new();
@@ -1515,7 +1516,7 @@ void ODe_Text_Listener::_openParagraphDelayed(){
         styleName = pStyle->getName();
 
         // There is a special case for the default-tab-interval property, as in
-        // AbiWord that is a paragraph property, but in ODF it belongs in the
+        // Abinova that is a paragraph property, but in ODF it belongs in the
         // default style for the "paragraph" family.
         ok = m_delayedAP->getProperty("default-tab-interval", pValue);
         if (ok && pValue != nullptr) {
@@ -1544,9 +1545,9 @@ void ODe_Text_Listener::_openParagraphDelayed(){
     } else {
         UT_uint8 outlineLevel = 0;
         
-        // Use the original AbiWord style name to see which outline level this
+        // Use the original Abinova style name to see which outline level this
         // style belongs to (if any). Don't use the generated ODT style for this,
-        // as that name is not what AbiWord based its decisions on.
+        // as that name is not what Abinova based its decisions on.
         ok = m_delayedAP->getAttribute("style", pValue);
         if (ok) {
             outlineLevel = m_rAuxiliaryData.m_headingStyles.

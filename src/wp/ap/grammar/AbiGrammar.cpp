@@ -1,6 +1,7 @@
 /*
  * AbiGrammar - Abiword Plugin for on-the-fly Grammar checking
  * Copyright (C) 2005 by Martin Sevior
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

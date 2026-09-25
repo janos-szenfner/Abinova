@@ -1,6 +1,17 @@
-# AbiWord GTK4 Experiment
+# Abinova GTK4 Experiment
 
-An experimental fork of the AbiWord word processor, focused on:
+**Abinova** is an experimental fork of the **AbiWord** word processor.
+Starting from version **3.1**, Abinova follows a different direction:
+a GTK4-only toolkit port, a LibreOffice NotebookBar-style ribbon UI,
+all document formats compiled into the core library (no plugins), and
+a repository-wide audit of historical Debian/Launchpad bug reports.
+AbiWord file-format compatibility is preserved: Abinova writes the
+same AWML format under the new `.abwn` extension, keeps the
+`abiword.*` metadata keys and `abiword:` ODF attributes, and opens
+legacy `.abw` documents unchanged — `.abwn` files open in AbiWord
+too (same `<abiword>` XML content).
+
+The fork is focused on:
 
 - **Built-in OpenDocument (ODT/ODF) support** — import, export, flat
   XML (`.fodt`), encryption, and RDF metadata implemented in the core
@@ -116,7 +127,7 @@ The dynamic plugin list is empty.
   - [Ubuntu Launchpad bug fixes](#ubuntu-launchpad-bug-fixes)
   - [Fonts](#fonts)
   - [Bug fixes (Debian-reported)](#bug-fixes-debian-reported)
-- [The .abw document format](#the-abw-document-format)
+- [The .abwn document format](#the-abwn-document-format)
 - [Per-commit modification log](#per-commit-modification-log)
 - [Repository layout](#repository-layout)
 - [Building](#building)
@@ -156,10 +167,10 @@ The dynamic plugin list is empty.
     `Heading 1`-`Heading 4` paragraph styles.
   - `**bold**`, `*italic*`, `***both***`, `~~strike~~`, inline
     `` `code` `` (Courier New) with backslash escapes.
-  - `[text](url)` hyperlinks (real AbiWord link objects),
+  - `[text](url)` hyperlinks (real Abinova link objects),
     `<scheme://...>` autolinks, `![alt](path)` image embedding.
   - Bullet (`-`/`*`/`+`), ordered (`1.`) and task (`[ ]`/`[x]`)
-    lists, nested by indentation, as real AbiWord lists.
+    lists, nested by indentation, as real Abinova lists.
   - `>` blockquotes (`Block Text` style), fenced/indented code
     blocks (`Plain Text` style), `---`/`***` horizontal rules
     (paragraph bottom border), GFM pipe tables with column
@@ -170,7 +181,7 @@ The dynamic plugin list is empty.
   - Reference links/images (`[text][id]` + `[id]: url` definitions)
     resolve; definition lines are consumed rather than displayed.
   - Footnotes (`[^id]` refs + `[^id]: text` definitions) become real
-    AbiWord footnote objects.
+    Abinova footnote objects.
   - Inline `$...$` and fenced `$$...$$`/`math` blocks are imported
     as styled math text (no MathML renderer — equations keep their
     TeX source, italicised).
@@ -197,7 +208,7 @@ The dynamic plugin list is empty.
     `\textsuperscript` / `\textsubscript` and the `{ \bf ... }`-style
     declarations mapped to real character formatting.
   - `itemize` / `enumerate` / `description` environments as real
-    AbiWord lists, including nesting.
+    Abinova lists, including nesting.
   - `quote` / `quotation` / `verse` (`Block Text` style),
     `verbatim` / `lstlisting` (`Plain Text` + Courier New),
     `center` / `flushleft` / `flushright` alignment environments,
@@ -271,7 +282,7 @@ The dynamic plugin list is empty.
     below).
   - `.abw` extension: paragraphs may carry `section-break:1` to mark
     the paragraph whose mark terminates a Word section; layout uses
-    it to suppress borders on the empty break mark. Older AbiWord
+    it to suppress borders on the empty break mark. Older Abinova
     versions ignore the unknown property safely.
 - **Grammar checker switched to Hunspell** (now built-in): the checker no
   longer uses link-grammar. A vendored `hunspell-1.7.0` is built in
@@ -308,7 +319,7 @@ The dynamic plugin list is empty.
   `Quote` / `Intense Quote` (0.5″ indent, 1.5 pt gray left rule),
   `Book Title`, `List Paragraph`, and character styles `Emphasis`,
   `Strong`, `Subtle`/`Intense Emphasis`, `Subtle`/`Intense
-  Reference`. Legacy AbiWord-only styles (`Block Text`,
+  Reference`. Legacy Abinova-only styles (`Block Text`,
   `Plain Text`, `Chapter`/`Section`/`Numbered Heading`) stay defined
   but are hidden from the Recommended list, and the `* List`
   pseudo-styles are filtered out of the gallery and pane entirely.
@@ -324,7 +335,7 @@ The dynamic plugin list is empty.
   thread and reports the result in a symmetric in-app dialog with a
   download link when a newer version exists.
 - **Same-application clipboard deadlock fixed**: pasting data that
-  AbiWord itself had copied wedged the UI forever — the async
+  Abinova itself had copied wedged the UI forever — the async
   `gdk_clipboard_read_async` path called back into our own
   `AbiContentProvider` on the main thread and deadlocked on a GLib
   mutex. `XAP_UnixClipboard::getData`/`getTextData` now detect a
@@ -573,13 +584,77 @@ labels, like Word's ribbon.
 
 #### Contextual tabs
 
-- **Table** — visible while the caret is inside a table.
+- **Table Layout** — appears only while the caret is inside a
+  table and hands focus back to Home when the caret leaves,
+  mirroring LibreOffice/Word contextual tabs. Groups:
+  - **Table** — Select (Cell/Row/Column/Table popover), View
+    Gridlines toggle, Properties (Format Table dialog), Draw
+    Table, Eraser, and a Delete dropdown (Cells/Rows/Columns/
+    Table).
+  - **Rows & Columns** — three-row compact grid: Insert
+    Above/Below, Insert Left/Right, Merge Cells and Split Cells
+    as anchored popovers (directional options instead of the old
+    floating dialogs), and Split Table.
+  - **Cell Size** — AutoFit dropdown (contents/window/fixed),
+    Height and Width spin fields synced to the caret cell, and
+    Distribute Rows/Columns.
+  - **Alignment** — the nine-way cell-alignment tile grid plus
+    Text Direction and Cell Margins popovers.
+  - **Data** — Sort Table (ascending/descending, keep-header),
+    Repeat Header Rows and Convert to Text (separator choice).
+  The Word "Formula" control is intentionally omitted.
 - **Equation** — visible while the caret is on an equation:
   symbol palettes (Greek letters, operators, relations, arrows —
   each appends a LaTeX snippet to the selected math object),
   structure palettes (fraction, scripts, radical, integral, sum,
   matrix) and an Inline/Block **display toggle**
   (`display:inline|block` on the math object).
+
+### Classic menu vs ribbon — feature map and gaps
+
+The ribbon is the default interface; Help → Interface switches
+back to the classic menubar at any time (the `RibbonUI`
+preference persists). The table below maps every classic menu to
+its ribbon equivalent, followed by what is **not** reachable
+from the ribbon today.
+
+| Classic menu | Ribbon home |
+|--------------|-------------|
+| File (New, New from Template, Open, Save, Save As, Revert, Page Setup, Print Preview, Print, Properties, Close) | **File** tab — Document and Print groups |
+| Edit (Undo, Redo, Cut, Copy, Paste, Paste Special, Select All, Remove Header/Footer, Find, Replace, Go To) | **Home** — Clipboard and Editing groups; Paste Special lives in the Paste split button; header/footer removal sits at the bottom of the Insert header/footer galleries |
+| View (layout modes, Ruler, Status Bar, Formatting Marks, Full Screen, Zoom presets) | **View** tab — Document Views, Immersive (Focus), Show and Zoom groups |
+| Insert (Break, Header/Footer, Table, Text Box, TOC, Footnote/Endnote, Symbol, Equation, Page Number, Date & Time, Field, Bookmark, Hyperlink, File, Graphic, Direction Markers) | **Insert** tab + **References** tab + Layout → Breaks; "Text from File" and "RDF Link" live under the Object dropdown |
+| Format (Font, Paragraph, Borders, Columns, Toggle Case, Align, character styles, Page Color/Image, Styles) | **Home** (Font/Paragraph/Styles groups) + **Layout** (Columns, Page Color/Image) + dialog launchers |
+| Table (Insert/Select/Delete, Merge/Split, Format, AutoFit, Sort, Table→Text) | Contextual **Table Layout** tab — covers the whole classic Table menu and adds Distribute Rows/Columns, cell height/width fields, nine-way alignment, cell margins, cell text direction, Repeat Header Rows, Draw Table and Eraser |
+| Tools (Spelling, Language, Word Count, Compare/Combine Documents, Revisions, Annotations) | **Review** tab — Proofing, Language, Comments, Tracking, Changes and Compare groups |
+| Window (New Window, window list) | **View** → Window group (New Window, Arrange All, Split, Switch Windows) |
+| Help (Contents, Search, Check Version, Report Bug, Credits, About, interface switch) | **Help** tab |
+
+**Features that exist in the classic menu but are missing from
+the ribbon** (switch to the classic UI to reach them):
+
+- **File** — Import Styles…, the dedicated Export item (Save As
+  covers most cases), the Recent Files list and Exit.
+- **Edit** — Clear (the `Del` key still works).
+- **View** — Web Preview, Lock Styles, and the four toolbar
+  toggles (by design — the ribbon replaces toolbars).
+- **Insert** — Mail Merge and Clip Art (the Icons and 3D Models
+  panels cover most clip-art use).
+- **Format** — the Tabs dialog, the Format Frame and Format
+  Image dialogs (Arrange covers positioning/wrap), Overline, and
+  the paragraph/section/document Direction submenu (only *cell*
+  text direction is on Table Layout).
+- **Tools** — Stylist, document History viewer, Revisions →
+  New/Purge, Scripts, Mail Merge, and the **Options/Preferences**
+  dialog (the most significant omission — preferences are only
+  editable via the config file or the classic UI for now).
+- **Table** — Text → Table conversion (the ribbon does
+  Table → Text but not the reverse) and the Sum Column/Row
+  formula rows (deliberately dropped with the Formula control).
+- **RDF** — the whole RDF menu (Highlight, Query, Editor,
+  semantic items, stylesheets); only "RDF Link" survives on the
+  Insert → Object dropdown.
+- **Help** — the Introduction/Welcome page.
 
 ### GTK4 runtime fixes (this round)
 
@@ -821,13 +896,23 @@ LP#673052, LP#674721, LP#295596, LP#388971 (collab/goffice plugins).
 
 See `CHANGELOG.md` for the categorized changelog of all changes.
 
-## The .abw document format
+## The .abwn document format
 
-`.abw` is AbiWord's native format: a single UTF-8 XML document
-("AWML") with a `PUBLIC` doctype pointing at `awml.dtd`. It is
+`.abwn` is Abinova's native file extension (the format itself is
+still "AWML"). New documents save as `.abwn` by default —
+`DefaultSaveFormat` is `.abwn`, the Save As dialog lists it first,
+and `--to=abwn`/`--to` conversions use it. Legacy `.abw` files
+(as well as `.awt` templates and the `.zabw`/`.abw.gz`/`.bzabw`/
+`.abw.bz2` compressed variants, plus their `.abwn` counterparts)
+open exactly as before — the importer recognizes all of them and
+the content sniffer matches the `<abiword>` root element anyway,
+so even a renamed file is detected by content.
+
+The file itself is a single UTF-8 XML document with a `PUBLIC`
+doctype pointing at `awml.dtd`. It is
 forward- and backward-compatible by design — the importer ignores
 unknown elements, attributes and properties, so a file written by
-this fork still opens in older AbiWord versions (new features
+this fork still opens in older Abinova versions (new features
 simply degrade), and files written by older versions open here
 unchanged.
 
@@ -913,7 +998,7 @@ namespace on `<p>`/`<c>`.
 
 ### Format extensions in this fork
 
-All extensions are ordinary elements/properties — old AbiWord
+All extensions are ordinary elements/properties — old Abinova
 versions ignore them safely, and this build reads every older
 `.abw` variant:
 
@@ -953,7 +1038,7 @@ versions ignore them safely, and this build reads every older
 
 ### Comparison with ODF coverage
 
-`.abw` covers the ODF feature set AbiWord can actually express:
+`.abw` covers the ODF feature set Abinova can actually express:
 styles, lists, tables, frames, fields, hyperlinks, images,
 footnotes/endnotes, annotations, TOC/index regions, sections,
 page geometry and document metadata.
@@ -1306,7 +1391,7 @@ Older upstream history is not listed here.
   `text/html`/`application/xhtml+xml`) are deduplicated and every
   `image/*` flavour collapses into a single "Picture" entry that
   pastes the best available format.
-- Fixed a deadlock that froze every paste path: when AbiWord owns the
+- Fixed a deadlock that froze every paste path: when Abinova owns the
   clipboard itself, `gdk_clipboard_read_async` wedges on a GLib mutex
   inside the local content provider. `XAP_UnixClipboard::getData` and
   `getTextData` now check `gdk_clipboard_is_local()` and read the
@@ -1526,7 +1611,7 @@ Standard autotools flow:
 ```bash
 ./autogen.sh          # or: autoreconf --install --force
 ./configure
-make -C src           # builds libabiword + the abiword binary
+make -C src           # builds libabiword + the abinova binary
 sudo make install     # installs binary, data files, and fonts/
 ```
 
@@ -1536,8 +1621,8 @@ to the repository root so the app picks up `<repo>/fonts`.
 Headless conversions (also usable for smoke tests):
 
 ```bash
-ABIWORD_DATADIR=$PWD src/abiword --to=odt input.abw -o out.odt
-ABIWORD_PASSWORD=secret src/abiword --to=abw encrypted.odt -o out.abw
+ABIWORD_DATADIR=$PWD src/.libs/abinova --to=odt input.abwn -o out.odt
+ABIWORD_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
 ```
 
 ## Known issues
@@ -1605,7 +1690,7 @@ following projects:
 
 - [Hunspell 1.7.0](https://hunspell.github.io/) — spell/grammar
   checking (`thirdparty/hunspell-*`)
-- [wv 1.2.9](https://github.com/AbiWord/wv) — MS Word `.doc` import,
+- [wv 1.2.9](https://github.com/Abinova/wv) — MS Word `.doc` import,
   patched for the reported buffer overflows
 - [libwpd](https://libwpd.sourceforge.io/) +
   [libwps](https://libwps.sourceforge.io/) — WordPerfect/MS Works
@@ -1623,7 +1708,7 @@ following projects:
 
 ## License
 
-AbiWord itself remains under its original license — see `COPYING` and
+Abinova itself remains under its original license — see `COPYING` and
 `COPYRIGHT.TXT`. Third-party bundled fonts carry their own licenses
 (mostly OFL 1.1) in `fonts/<family>/`; provenance is documented in
 `fonts/README.md`. Vendored Blowfish code is Apache-2.0 (see

@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -25,7 +26,7 @@
 // Internal includes
 #include "ODe_Common.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pp_AttrProp.h"
 #include "ut_units.h"
 #include "ut_locale.h"
@@ -78,7 +79,7 @@ void ODe_ListLevelStyle::calculateListMargins(const PP_AttrProp& rAP,
     ok = rAP.getProperty("margin-left", pValue);
     double abiMarginLeft = (ok && pValue != nullptr ? UT_convertToDimension(pValue, DIM_CM) : 0.0);
 
-    // AbiWord's margin-left = OpenDocument paragraph property fo:margin-left +
+    // Abinova's margin-left = OpenDocument paragraph property fo:margin-left +
     //                         OpenDocument text:space-before +
     //                         OpenDocument text:min-label-witdh
    
@@ -87,8 +88,8 @@ void ODe_ListLevelStyle::calculateListMargins(const PP_AttrProp& rAP,
                           odfMarginLeft,
                           UT_dimensionName(DIM_CM));
 
-    // OpenDocument fo:margin-left + fo:text-indent + text:space-before = AbiWord's margin-left + text-indent.
-    // Since AbiWord does not support the fo:space-before feature, we will just set that to 0. We
+    // OpenDocument fo:margin-left + fo:text-indent + text:space-before = Abinova's margin-left + text-indent.
+    // Since Abinova does not support the fo:space-before feature, we will just set that to 0. We
     // then have all the variables to calculate fo:text-indent.
 
     spaceBefore = "0cm";

@@ -3,6 +3,7 @@
  * Copyright (C) 2005 INdT
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * Copyright 2009-2010 AbiSource Corporation B.V.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,10 +29,10 @@
 
 #include <gsf/gsf.h>
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string_class.h"
 
-// AbiWord classes
+// Abinova classes
 class PP_AttrProp;
 class ODe_Style_List;
 
@@ -61,25 +62,25 @@ public:
 
     ODe_Style_Style& operator=(const ODe_Style_Style& rStyle);
 
-    // Defines the style from attributes and properties of an AbiWord <s>.
+    // Defines the style from attributes and properties of an Abinova <s>.
     bool fetchAttributesFromAbiStyle(const PP_AttrProp* pAP);
 
-    // Defines the style from attributes and properties of an AbiWord <span>.
+    // Defines the style from attributes and properties of an Abinova <span>.
     void fetchAttributesFromAbiSpan(const PP_AttrProp* pAP);
 
-    // Defines the style from attributes and properties of an AbiWord <p>.
+    // Defines the style from attributes and properties of an Abinova <p>.
     void fetchAttributesFromAbiBlock(const PP_AttrProp* pAP, const ODe_Style_List* pCurrentListStyle);
 
-    // Defines the style from attributes and properties of an AbiWord <section>.
+    // Defines the style from attributes and properties of an Abinova <section>.
     void fetchAttributesFromAbiSection(const PP_AttrProp* pAP);
 
-    // Defines the style from attributes and properties of an AbiWord <table>.
+    // Defines the style from attributes and properties of an Abinova <table>.
     void fetchAttributesFromAbiTable(const PP_AttrProp* pAP);
 
-    // Defines the style from attributes and properties of an AbiWord <cell>.
+    // Defines the style from attributes and properties of an Abinova <cell>.
     void fetchAttributesFromAbiCell(const PP_AttrProp* pAP);
 
-    // Defines the style from attributes and properties of an AbiWord <frame>.
+    // Defines the style from attributes and properties of an Abinova <frame>.
     void fetchAttributesFromAbiFrame(const PP_AttrProp& rAP);
 
     void makeDefaultStyle() {

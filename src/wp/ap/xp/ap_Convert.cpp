@@ -249,17 +249,17 @@ bool AP_Convert::convertTo(const char * szSourceFilename,
 		switch (error) {
 		case UT_INVALIDFILENAME:
 			if (m_iVerbose > 0)
-				fprintf(stderr, "AbiWord: [%s] is not a valid file name.\n", szSourceFilename);
+				fprintf(stderr, "Abinova: [%s] is not a valid file name.\n", szSourceFilename);
 			break;
 		case UT_IE_NOMEMORY:
 			if (m_iVerbose > 0)
-				fprintf(stderr, "AbiWord: Arrrgh... I don't have enough memory!\n");
+				fprintf(stderr, "Abinova: Arrrgh... I don't have enough memory!\n");
 			break;
 		case UT_NOPIECETABLE:
 			// TODO
 		default:
 			if (m_iVerbose > 0)
-				fprintf(stderr, "AbiWord: could not open the file [%s]\n", szSourceFilename);
+				fprintf(stderr, "Abinova: could not open the file [%s]\n", szSourceFilename);
 		}
 		
 		UNREFP(pNewDoc);
@@ -283,19 +283,19 @@ bool AP_Convert::convertTo(const char * szSourceFilename,
 		switch (error) {
 		case UT_OK:
 			if (m_iVerbose > 1)
-				printf("AbiWord: [%s] -> [%s]\tConversion ok!\n", szSourceFilename, szTargetFilename);
+				printf("Abinova: [%s] -> [%s]\tConversion ok!\n", szSourceFilename, szTargetFilename);
 			break;
 		case UT_SAVE_EXPORTERROR:
 			if (m_iVerbose > 0)
-				fprintf(stderr, "AbiWord: Uch! Are you sure that you've specified a valid exporter?\n");
+				fprintf(stderr, "Abinova: Uch! Are you sure that you've specified a valid exporter?\n");
 			break;
 		case UT_SAVE_WRITEERROR:
 			if (m_iVerbose > 0)
-				fprintf(stderr, "AbiWord: Uch! Could not write the file [%s]\n", szTargetFilename);
+				fprintf(stderr, "Abinova: Uch! Could not write the file [%s]\n", szTargetFilename);
 			break;
 		default:
 			if (m_iVerbose > 0)
-				fprintf(stderr, "AbiWord: could not write the file [%s]\n", szTargetFilename);
+				fprintf(stderr, "Abinova: could not write the file [%s]\n", szTargetFilename);
 			break;
 		}
 	}
@@ -392,7 +392,7 @@ bool AP_Convert::print(const char * szFile, GR_Graphics * pGraphics, const char 
 
 	if( err != UT_OK)
 	{
-		fprintf(stderr, "AbiWord: Error importing file. [%s]  Could not print \n", szFile);
+		fprintf(stderr, "Abinova: Error importing file. [%s]  Could not print \n", szFile);
 		UNREFP(pDoc);
 		return false;
 	}

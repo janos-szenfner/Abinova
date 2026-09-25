@@ -1,6 +1,6 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
-/* AbiWord
- * Copyright (C) 2025 AbiWord contributors
+/* Abinova
+ * Copyright (C) 2025 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -216,7 +216,7 @@ void AP_UnixSelPane::rebuildList()
 		gtk_widget_set_margin_top(hbox, 3);
 		gtk_widget_set_margin_bottom(hbox, 3);
 
-		/* group tick box - AbiWord's canvas only selects one frame,
+		/* group tick box - Abinova's canvas only selects one frame,
 		 * so multi-select for the Group command lives here */
 		GtkWidget * chk = gtk_check_button_new();
 		gtk_widget_set_tooltip_text(chk, "Include in the Group command");

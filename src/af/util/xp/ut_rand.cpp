@@ -20,7 +20,7 @@
  *      @(#)random.c    5.5 (Berkeley) 7/6/88
  * It was reworked for the GNU C Library by Roland McGrath.
  * Rewritten to use reentrant functions by Ulrich Drepper, 1995.
- * Adapted for use in AbiWord by Patrick Lam, 2001 (some systems suck).
+ * Adapted for use in Abinova by Patrick Lam, 2001 (some systems suck).
  */
 
 #include <limits.h>
@@ -276,7 +276,7 @@ static UT_sint32 random__ ()
  *	@(#)random.c	5.5 (Berkeley) 7/6/88
  * It was reworked for the GNU C Library by Roland McGrath.
  * Rewritten to be reentrant by Ulrich Drepper, 1995
- * Adapted for use in AbiWord by Patrick Lam, 2001 (some systems suck).
+ * Adapted for use in Abinova by Patrick Lam, 2001 (some systems suck).
  */
 
 #include <errno.h>

@@ -45,7 +45,7 @@ public:
 	static const char** _properties(int & num);
 
 	/**
-	 * List of all properties used internally by AbiWord
+	 * List of all properties used internally by Abinova
 	 * Keep these sorted.
 	 */
 	enum AbiPropertyIndex: uint8_t

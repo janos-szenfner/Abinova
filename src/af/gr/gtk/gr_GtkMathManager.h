@@ -1,7 +1,8 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2025 AbiSource
+ * Copyright (C) 2025-2026 Abinova contributors
  *
- * Built-in MathML/LaTeX equation renderer for AbiWord, replacing the
+ * Built-in MathML/LaTeX equation renderer for Abinova, replacing the
  * removed lasem-based mathview plugin. Renders through
  * GR_MathTypesetter (pure Cairo) so equations work on every build.
  *

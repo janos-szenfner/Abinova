@@ -2,6 +2,7 @@
 
 /* AbiSource Application Framework
  * Copyright (C) 2000
+ * Copyright (C) 2025-2026 Abinova contributors
  * Orignially by Vlad Harchev <hvv@hippo.ru>
  * 
  * This program is free software; you can redistribute it and/or

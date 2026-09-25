@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord: tidyImporter - plugin for Multipart [X]HTML
+/* Abinova: tidyImporter - plugin for Multipart [X]HTML
  *
  * Copyright (C) 2002-2003 Francis James Franklin <fjf@alinameridon.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -22,10 +23,10 @@
 #ifndef ODE_FONTFACEDECLS_H_
 #define ODE_FONTFACEDECLS_H_
 
-// AbiWord includes
+// Abinova includes
 #include "ut_hash.h"
 
-// AbiWord classes
+// Abinova classes
 class UT_UTF8String;
 
 /**

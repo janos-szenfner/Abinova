@@ -2,6 +2,7 @@
 /* AbiSource Program Utilities
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (C) 2019-2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -202,7 +203,7 @@ static const char ** _ev_GetLabelName(XAP_UnixApp * pUnixApp,
 }
 
 /**
- * Convert an AbiWord accel string (for instance "Ctrl+Alt+F") to the
+ * Convert an Abinova accel string (for instance "Ctrl+Alt+F") to the
  * Gtk accelerator textual form ("<Control><Alt>f") used for the
  * GMenuItem "accel" attribute.  Display only - the actual key
  * handling happens in the EV keyboard layer.

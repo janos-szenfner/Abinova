@@ -6,6 +6,7 @@
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
  * <daniel.carvalho@indt.org.br>
  * Copyright (C) 2011-2012 Ben Martin
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,7 +45,7 @@
 #include "ut_units.h"
 #include "ut_std_string.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_misc.h"
 #include "pd_Document.h"
 #include "pf_Frag_Strux.h"
@@ -143,7 +144,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         if (m_bPendingSection)
         {
             // this can only occur when we have a section pending with 
-            // no content in it, which AbiWord does not support. Since I'm 
+            // no content in it, which Abinova does not support. Since I'm 
             // not sure if OpenDocument even allows it, I'll assert on it
             // for now - MARCM
             UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN); // or should it?
@@ -166,7 +167,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         // If it don't have any properties it's useless.
         //
         // OpenDocument sections can be used just to structure the document (like
-        // naming sections and subsections). AbiWord will consider only sections
+        // naming sections and subsections). Abinova will consider only sections
         // that contains meaningful formating properties, like number of text
         // columns, etc.
         if (props.empty()) {
@@ -504,7 +505,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         UT_ASSERT(m_elementParsingLevel == 0);
                 
         // We are inside a header/footer so, there is already a section defined
-        // on the AbiWord document.
+        // on the Abinova document.
         m_inAbiSection = true;
         m_bOnContentStream = false;
         
@@ -546,7 +547,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
             
             if (pVal && (!strcmp(pVal, "paragraph") ||
                 !strcmp(pVal, "page"))) {
-                // It's postponed because AbiWord uses frames *after* the
+                // It's postponed because Abinova uses frames *after* the
                 // paragraph but OpenDocument uses them inside the paragraphs,
                 // right *before* its content.
                 rAction.postponeElementParsing("Frame");
@@ -758,7 +759,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
 	}        
     } else if (!strcmp(pName, "draw:g")) {
       UT_DEBUGMSG(("Unallowed drawing element %s \n",pName));
-       rAction.ignoreElement();  // ignore drawing shapes since AbiWord can't handle them
+       rAction.ignoreElement();  // ignore drawing shapes since Abinova can't handle them
 
     } else if (!strcmp(pName, "table:table")) {
         _insureInSection();
@@ -1439,8 +1440,8 @@ void ODi_TextContent_ListenerState::_popInlineFmt(void)
 
 
 /**
- * Makes sure that an AbiWord section have already been created. Unlike
- * OpenDocument, AbiWord can't have paragraphs without a section to hold them.
+ * Makes sure that an Abinova section have already been created. Unlike
+ * OpenDocument, Abinova can't have paragraphs without a section to hold them.
  * 
  * @param pMasterPageName The name of the master page to be used. i.e.: The name
  *                        of the master page which will have its properties used
@@ -1476,7 +1477,7 @@ void ODi_TextContent_ListenerState::_insureInSection(
         // If it don't have any properties it's useless.
         //
         // OpenDocument sections can be used just to structure the
-        // document (like naming sections and subsections). AbiWord will
+        // document (like naming sections and subsections). Abinova will
         // consider only sections that contains meaningful formating
         // properties, like number of text columns, etc.
         if (props.empty()) {
@@ -1583,7 +1584,7 @@ void ODi_TextContent_ListenerState::_openAbiSection(
         // We haven't defined any page properties yet. It's done on the
         // first abi section.
         
-        // For now we just use the Standard page master. AbiWord doesn't support
+        // For now we just use the Standard page master. Abinova doesn't support
         // multiple page formats anyway.
         
         pMasterPageStyle = m_pStyles->getMasterPageStyle("Standard");
@@ -1604,14 +1605,14 @@ void ODi_TextContent_ListenerState::_openAbiSection(
         m_openedFirstAbiSection = true;
     }
     
-    // AbiWord always needs to have the page-margin-left and page-margin-right properties
-    // set on a section, otherwise AbiWord will reset those properties to their default
-    // values. This is because AbiWord can have multiple left and right margins on 1 page,
+    // Abinova always needs to have the page-margin-left and page-margin-right properties
+    // set on a section, otherwise Abinova will reset those properties to their default
+    // values. This is because Abinova can have multiple left and right margins on 1 page,
     // something OpenOffice.org/OpenDocument can't do. Left and right page margins in 
     // OpenDocument are only set once per page layout.
     // This means that when we encounter a new OpenDocument section without an accompanying
     // page layout style (a section that thus causes no left or right page margin changes), 
-    // we will manually need to add the 'current' left and right page margin to AbiWord's
+    // we will manually need to add the 'current' left and right page margin to Abinova's
     // section properties to achieve the same effect.
     // Bug 10884 has an example of this situation.
     if (!hasLeftPageMargin && m_currentPageMarginLeft.size()) {
@@ -1625,7 +1626,7 @@ void ODi_TextContent_ListenerState::_openAbiSection(
         masterPageProps += "page-margin-right:" + m_currentPageMarginRight;
     }
 
-    // The AbiWord section properties are taken part from the OpenDocument 
+    // The Abinova section properties are taken part from the OpenDocument 
     // page layout (from the master page style) and part from the OpenDocument
     // section properties.
     
@@ -1680,8 +1681,8 @@ void ODi_TextContent_ListenerState::_openAbiSection(
 	m_bPendingSection = false;
     m_bOpenedBlock = false;
 
-    // For some reason AbiWord can't have a page break right before a new section.
-    // In AbiWord, if you want to do that you have to first open the new section
+    // For some reason Abinova can't have a page break right before a new section.
+    // In Abinova, if you want to do that you have to first open the new section
     // and then, inside this new section, do the page break.
     //
     // That's the only reason for the existence of *pending* paragraph
@@ -1876,7 +1877,7 @@ void ODi_TextContent_ListenerState::_startParagraphElement (const gchar* /*pName
             UT_ASSERT(ok);
             m_bContentWritten = true;
             
-            // Inserts a tab character. AbiWord seems to need it in order to
+            // Inserts a tab character. Abinova seems to need it in order to
             // implement the space between the list mark (number/bullet) and
             // the list text.
             UT_UCS4String string = "\t";
@@ -1885,7 +1886,7 @@ void ODi_TextContent_ListenerState::_startParagraphElement (const gchar* /*pName
             
         } else if (bIsListParagraph && m_alreadyDefinedAbiParagraphForList) {
             // OpenDocument supports multiples paragraphs on a single list item,
-            // But AbiWord works differently. So, we will put a <br/> instead
+            // But Abinova works differently. So, we will put a <br/> instead
             // of adding a new paragraph.
 
             UT_UCS4Char ucs = UCS_LF;
@@ -2073,8 +2074,8 @@ void ODi_TextContent_ListenerState::_defineAbiTOCHeadingStyles() {
 
 
 /**
- * For some reason AbiWord can't have a page break right before a new section.
- * In AbiWord, if you want to do that you have to first open the new section
+ * For some reason Abinova can't have a page break right before a new section.
+ * In Abinova, if you want to do that you have to first open the new section
  * and then, inside this new section, do the page break.
  * 
  * That's the only reason for the existence of *pending* paragraph

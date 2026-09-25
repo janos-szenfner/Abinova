@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -29,7 +30,7 @@
 
 #include <stdio.h>
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 
@@ -45,13 +46,13 @@ public:
 
     bool init();
 
-    // Do all necessary work before starting to listen the AbiWord document.
+    // Do all necessary work before starting to listen the Abinova document.
     bool doPreListeningWork();
 
     ////
     // Post listening methods
 
-    // Do all necessary work after having read the AbiWord document.
+    // Do all necessary work after having read the Abinova document.
     bool doPostListeningWork();
 
     bool writeStylesXML(GsfOutfile* pOdt) const;

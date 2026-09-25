@@ -1,11 +1,12 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
 * Copyright (C) 2011 Volodymyr Rudyj <vladimir.rudoy@gmail.com>
 * Copyright (C) 2007, 2009 Hubert Figuiere
 * Copyright (C) 2003-2005 Mark Gilbert <mg_abimail@yahoo.com>
 * Copyright (C) 2002, 2004 Francis James Franklin <fjf@alinameridon.com>
 * Copyright (C) 2001-2002 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
 * 
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -2488,7 +2489,7 @@ void IE_Exp_HTML_Listener::_insertTOC(PT_AttrPropIndex api)
     }
 
     const gchar *pValue = nullptr;
-    bool hasHeading = true; // AbiWord's default
+    bool hasHeading = true; // Abinova's default
     ok = pAP && pAP->getProperty("toc-has-heading", pValue);
     if (ok && pValue)
     {
@@ -2684,7 +2685,7 @@ void IE_Exp_HTML_Listener::_openTextbox(PT_AttrPropIndex api)
             "right-color", "border-right-color",
             "left-color", "border-left-color",
             "background-color", "background-color",
-            nullptr, nullptr}; // [AbiWord property name, CSS21 property name]
+            nullptr, nullptr}; // [Abinova property name, CSS21 property name]
         const gchar * tempProp = nullptr;
         UT_UTF8String style;
 
@@ -2694,7 +2695,7 @@ void IE_Exp_HTML_Listener::_openTextbox(PT_AttrPropIndex api)
             {
                 style += propNames[propIdx + 1]; // Add the property name of the CSS equivalent
                 style += ": "; // Don't ask (:
-                if (strstr(propNames[propIdx + 1], "color")) style += "#"; // AbiWord tends to store colors as hex, which must be prefixed by # in CSS
+                if (strstr(propNames[propIdx + 1], "color")) style += "#"; // Abinova tends to store colors as hex, which must be prefixed by # in CSS
                 style += tempProp; // Add the value
                 style += "; "; // Terminate the property
             }
@@ -3039,7 +3040,7 @@ void IE_Exp_HTML_Listener::_makeStylesheet(PT_AttrPropIndex api)
 	UT_UTF8String bodyStyle = "body{\n";
 	const gchar* szName = nullptr;
 	const gchar* szValue = nullptr;
-	// Set margins for paged media to match those set in AbiWord
+	// Set margins for paged media to match those set in Abinova
 	// TODO: consolidate all places of awml-css21 matching into one UT/PP function
 	const gchar * marginProps [10] = {"page-margin-top", "padding-top",
 		"page-margin-bottom", "padding-bottom",

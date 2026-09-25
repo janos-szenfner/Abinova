@@ -1,13 +1,13 @@
 \ab:Associated Character Properties:Toggle
-\abibotline:AbiWord proprietary:
-\abicellprops:AbiWord proprietary:
-\abiendcell:AbiWord proprietary:
-\abiendtable:AbiWord proprietary:
-\abifieldD:AbiWord proprietary:
-\abilist:AbiWord proprietary:
-\abinodiroverride:AbiWord proprietary:
-\abitableprops:AbiWord proprietary:
-\abitopline:AbiWord proprietary:
+\abibotline:Abinova proprietary:
+\abicellprops:Abinova proprietary:
+\abiendcell:Abinova proprietary:
+\abiendtable:Abinova proprietary:
+\abifieldD:Abinova proprietary:
+\abilist:Abinova proprietary:
+\abinodiroverride:Abinova proprietary:
+\abitableprops:Abinova proprietary:
+\abitopline:Abinova proprietary:
 \absh:Positioned Objects and Frames:Value
 \abslock 7.0:Positioned Objects and Frames:Flag
 \absnoovrlpN 2000:Positioned Objects and Frames:Toggle

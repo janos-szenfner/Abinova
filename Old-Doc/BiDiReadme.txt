@@ -1,5 +1,5 @@
 This file contains instructions on building, using and developing
-AbiWord with bidi-rectional support and is maintained by Tomas Frydrych
+Abinova with bidi-rectional support and is maintained by Tomas Frydrych
 <tomas@frydrych.uklinux.net> to whom comments, suggestions, and bug 
 fixes of the BiDi features should be directed.
 
@@ -23,7 +23,7 @@ dialogue.
 
 The 'Other' tab of the Preferences dialogue allows to change 
 the default direction; however, this change will only take place 
-when a new document is created or AbiWord restarted.
+when a new document is created or Abinova restarted.
 The other two bidi checkboxes in the preferences allow to turn
 the shaping engine on and off, and to specify whether when
 the shaping engine is used, it should only change the visual
@@ -57,17 +57,17 @@ text was input, the logical order. The algorithm that is used to
 work out the visual ordering is straight forward, but cannot be
 applied to an arbitrary segment of the text. Rather it has to take into
 account always an entire line, and this causes problem for software
-that does not draw text in whole lines, such as AbiWord.
+that does not draw text in whole lines, such as Abinova.
 
 A chunk of text which has uniform attributes, such as font or colour,
-is in AbiWord terminology called run. In BiDi mode, text in a run
+is in Abinova terminology called run. In BiDi mode, text in a run
 has to be also of consistent direction, with three possible options:
 ltr, rtl, and neutral. The last of these applies basically to whitespace,
 which derives its actual direction from the context. The direction of
 the run is worked out automatically from the Unicode value of a
 character, but can be overridden by the user.
 
-The heart of BiDi in AbiWord is built into fp_Line class (guess why?).
+The heart of BiDi in Abinova is built into fp_Line class (guess why?).
 Each run of text stores its direction, and this is used by the function
 fp_Line::_createMapOfRuns() to calculate the order of the runs belonging
 to the particular line. The order is stored in an array that is used

@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -26,7 +27,7 @@
 #include "ODe_Common.h"
 #include "ODe_Style_Style.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_units.h"
 #include "pd_Document.h"
 #include "ut_string_class.h"
@@ -63,7 +64,7 @@ void ODe_Style_PageLayout::fetchAttributesFromAbiDoc(PD_Document* pAbiDoc) {
 
 
 /**
- * Fetch attributes from an AbiWord <section> tag. Mostly page margins.
+ * Fetch attributes from an Abinova <section> tag. Mostly page margins.
  */
 void ODe_Style_PageLayout::fetchAttributesFromAbiSection(const PP_AttrProp* pAP) {
     const gchar* pValue;
@@ -78,14 +79,14 @@ void ODe_Style_PageLayout::fetchAttributesFromAbiSection(const PP_AttrProp* pAP)
 
     /*
      * The way on how margins (page, header and footer) are measured differs
-     * from AbiWord and OpenDocument.
+     * from Abinova and OpenDocument.
      * 
      * Some examples:
      * 
-     * OpenDocument's top margin == AbiWord's header margin
+     * OpenDocument's top margin == Abinova's header margin
      * 
-     * OpenDocument's header height == AbiWord's top margin -
-     *                                 AbiWord's header margin
+     * OpenDocument's header height == Abinova's top margin -
+     *                                 Abinova's header margin
      *
      * Note 1: OpenOffice.org will ignore the header height when
      * no actual header is specified, so don't use it when there
@@ -99,13 +100,13 @@ void ODe_Style_PageLayout::fetchAttributesFromAbiSection(const PP_AttrProp* pAP)
      * main document content is forced. There seems to be a maximum height
      * of about 0.5" for this spacing. When the height is "small enough",
      * no additional spacing is enforced. The same holds for footers.
-     * The above can thus result in differences in rendering between AbiWord
+     * The above can thus result in differences in rendering between Abinova
      * and OpenOffice.org, depending on the header/footer usage and their
      * heights.
      */
 
     // Note: no need to check separately for the existence of a "header-even"
-    // property: "header-even" only exists in AbiWord when "header" also exists.
+    // property: "header-even" only exists in Abinova when "header" also exists.
     ok = pAP->getAttribute("header", pValue);
     if (ok && pValue != nullptr)
          hasHeader = true;
@@ -134,7 +135,7 @@ void ODe_Style_PageLayout::fetchAttributesFromAbiSection(const PP_AttrProp* pAP)
     }
 
     // Note: no need to check separately for the existence of a "footer-even"
-    // property: "footer-even" only exists in AbiWord when "footer" also exists.
+    // property: "footer-even" only exists in Abinova when "footer" also exists.
     ok = pAP->getAttribute("footer", pValue);
     if (ok && pValue != nullptr)
          hasFooter = true;

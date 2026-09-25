@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2016-2021 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -83,11 +84,16 @@ IE_Imp_AbiWord_1_Sniffer::IE_Imp_AbiWord_1_Sniffer ()
 
 // supported suffixes
 static IE_SuffixConfidence IE_Imp_AbiWord_1_Sniffer__SuffixConfidence[] = {
+	{ "abwn", 	UT_CONFIDENCE_PERFECT 	},
 	{ "abw", 	UT_CONFIDENCE_PERFECT 	},
 	{ "awt", 	UT_CONFIDENCE_PERFECT 	},
+	{ "zabwn", 	UT_CONFIDENCE_PERFECT 	},
 	{ "zabw", 	UT_CONFIDENCE_PERFECT 	},
+	{ "abwn.gz", UT_CONFIDENCE_PERFECT 	},
 	{ "abw.gz", UT_CONFIDENCE_PERFECT 	},
+	{ "bzabwn", 		UT_CONFIDENCE_PERFECT 	},
 	{ "bzabw", 		UT_CONFIDENCE_PERFECT 	},
+	{ "abwn.bz2", 	UT_CONFIDENCE_PERFECT 	},
 	{ "abw.bz2", 	UT_CONFIDENCE_PERFECT 	},
 	{ "", 	UT_CONFIDENCE_ZILCH 	}
 };
@@ -101,9 +107,10 @@ const IE_SuffixConfidence * IE_Imp_AbiWord_1_Sniffer::getSuffixConfidence ()
 static IE_MimeConfidence IE_Imp_AbiWord_1_Sniffer__MimeConfidence[] = {
 	{ IE_MIME_MATCH_FULL, 	IE_MIMETYPE_AbiWord, 					UT_CONFIDENCE_GOOD 	},
 	/* aliases */
+	{ IE_MIME_MATCH_FULL, 	"application/x-abinova",				UT_CONFIDENCE_GOOD	},
 	{ IE_MIME_MATCH_FULL, 	"application/abiword",					UT_CONFIDENCE_GOOD	},
 	{ IE_MIME_MATCH_FULL, 	"application/abiword-template",			UT_CONFIDENCE_GOOD	},
-	{ IE_MIME_MATCH_FULL, 	"application/x-vnd.AbiSource.AbiWord",	UT_CONFIDENCE_GOOD	},
+	{ IE_MIME_MATCH_FULL, 	"application/x-vnd.AbiSource.Abinova",	UT_CONFIDENCE_GOOD	},
 	{ IE_MIME_MATCH_FULL, 	"text/abiword",							UT_CONFIDENCE_GOOD	},
 	{ IE_MIME_MATCH_FULL, 	"text/x-abiword",						UT_CONFIDENCE_GOOD	},
 	{ IE_MIME_MATCH_FULL,	"application/abiword-compressed", 		UT_CONFIDENCE_POOR 	}, 
@@ -133,7 +140,7 @@ UT_Confidence_t IE_Imp_AbiWord_1_Sniffer::recognizeContents (const char * szBuf,
 		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
 		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
 
-		magic = "<!-- This file is an AbiWord document." ;
+		magic = "<!-- This file is an Abinova document." ;
 		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
 		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
 		/*  Seek to the next newline:  */
@@ -159,8 +166,8 @@ bool IE_Imp_AbiWord_1_Sniffer::getDlgLabels (const char ** szDesc,
 											 const char ** szSuffixList,
 											 IEFileType * ft)
 {
-	*szDesc = "AbiWord Documents (.abw, .awt, .zabw)";
-	*szSuffixList = "*.abw; *.awt; *.zabw; *.abw.gz; *.bzabw; *.abw.bz2";
+	*szDesc = "Abinova Documents (.abwn, .abw, .awt, .zabw)";
+	*szSuffixList = "*.abwn; *.abw; *.awt; *.zabw; *.zabwn; *.abw.gz; *.abwn.gz; *.bzabw; *.bzabwn; *.abw.bz2; *.abwn.bz2";
 	*ft = getFileType();
 	return true;
 }

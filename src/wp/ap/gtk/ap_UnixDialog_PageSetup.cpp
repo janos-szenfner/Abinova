@@ -1,6 +1,7 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2009 Hubert Figuiere
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -199,9 +200,9 @@ void AP_UnixDialog_PageSetup::event_LandscapeChanged(void)
 	xap_gtk_container_remove (gtk_widget_get_parent(customPreview),
 			     customPreview);
 	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_radioPageLandscape))) {
-		customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/orient_horizontal_xpm");
+		customPreview = gtk_image_new_from_resource("/com/abisource/Abinova/orient_horizontal_xpm");
 	} else {
-		customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/orient_vertical_xpm");
+		customPreview = gtk_image_new_from_resource("/com/abisource/Abinova/orient_vertical_xpm");
 	}
 	gtk_widget_show(customPreview);
 	gtk_box_prepend(GTK_BOX(m_PageHbox), customPreview);
@@ -621,7 +622,7 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 	XAP_comboBoxSetActiveFromIntCol(combo, 1, last_margin_unit);
 
 	/* add margin image to the margin window */
-	customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/margin_xpm");
+	customPreview = gtk_image_new_from_resource("/com/abisource/Abinova/margin_xpm");
 	gtk_widget_show (customPreview);
 	gtk_grid_attach (GTK_GRID (m_MarginHbox), customPreview, 2, 0, 1, 8);
 
@@ -629,11 +630,11 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 	if (getPageOrientation() == PORTRAIT) {
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioPagePortrait), TRUE);
 
-		customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/orient_vertical_xpm");
+		customPreview = gtk_image_new_from_resource("/com/abisource/Abinova/orient_vertical_xpm");
 	} else {
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_radioPageLandscape), TRUE);
 
-		customPreview = gtk_image_new_from_resource("/com/abisource/AbiWord/orient_horizontal_xpm");
+		customPreview = gtk_image_new_from_resource("/com/abisource/Abinova/orient_horizontal_xpm");
 	}
 	gtk_widget_show(customPreview);
 	gtk_box_prepend(GTK_BOX(m_PageHbox), customPreview);

@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -34,7 +35,7 @@
 #include "ODi_ListenerStateAction.h"
 #include "ODi_StartTag.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_assert.h"
 #include "ut_misc.h"
 #include "pd_Document.h"
@@ -43,7 +44,7 @@
 /**
  * Constructor
  * 
- * @param pDocument The AbiWord document to be built.
+ * @param pDocument The Abinova document to be built.
  * 
  * @param pMasterStyles The master styles place holder to be filled by
  *                      this listener.
@@ -126,7 +127,7 @@ void ODi_StylesStream_ListenerState::startElement (const gchar* pName,
 
             // An automatic list style defined on the styles stream means
             // that it is used on headers/footers.
-            // AbiWord doesn't support lists on header/footers, so, I will ignore
+            // Abinova doesn't support lists on header/footers, so, I will ignore
             // this style.
         } else {
             ODi_ListenerState* pStyle;

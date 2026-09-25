@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +35,7 @@
 
 class PD_Document;
 
-// The importer/reader for AbiWord file format version 1.
+// The importer/reader for Abinova file format version 1.
 
 class ABI_EXPORT IE_Imp_AbiWord_1_Sniffer : public IE_ImpSniffer
 {

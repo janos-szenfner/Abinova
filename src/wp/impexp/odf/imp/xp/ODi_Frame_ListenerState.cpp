@@ -2,6 +2,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -31,7 +32,7 @@
 #include "ODi_Office_Styles.h"
 #include "ODi_Abi_Data.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pt_Types.h"
 #include "pd_Document.h"
 #include "ut_locale.h"
@@ -108,7 +109,7 @@ void ODi_Frame_ListenerState::startElement (const gchar* pName,
 		m_bInAltDesc = true;
     } else if (!strcmp(pName, "draw:text-box")) {
         if (m_rElementStack.hasElement("draw:text-box")) {
-            // AbiWord doesn't support nested text boxes.
+            // Abinova doesn't support nested text boxes.
             // Let's ignore that one
             rAction.ignoreElement();
         } else {
@@ -321,21 +322,21 @@ void ODi_Frame_ListenerState::_drawImage (const gchar** ppAtts,
     UT_ASSERT_HARMLESS(pChar);
     
 	// as-char anchoring maps to abiword's inline images
-	// Note: AbiWord does not support positioned images in Headers and Footers,
+	// Note: Abinova does not support positioned images in Headers and Footers,
 	// so convert those to inlined images.
     if ( pChar && 
 		 (!strcmp(pChar, "as-char" ) || 
 		   m_rElementStack.hasElement("style:header") || 
 		   m_rElementStack.hasElement("style:footer") )) {
-        // No frames are used on AbiWord for in-line wrapping: it
+        // No frames are used on Abinova for in-line wrapping: it
         // uses a <image> tag right in the paragraph text.
         _drawInlineImage(ppAtts);
     } else {
-        // This is a positiioned image. In AbiWord we define a frame 
+        // This is a positiioned image. In Abinova we define a frame 
 		// and place the image in it.
 
         if (m_rElementStack.hasElement("draw:text-box")) {
-            // AbiWord can't have nested frames (a framed image inside a textbox),
+            // Abinova can't have nested frames (a framed image inside a textbox),
             // so convert it to an inline image for now
 
             _drawInlineImage(ppAtts);
@@ -472,7 +473,7 @@ void ODi_Frame_ListenerState::_drawObject (const gchar** ppAtts,
     if ( pChar && (!strcmp(pChar, "as-char") ||
          !strcmp(pChar, "char"))) {
         // In-line wrapping.
-        // No frames are used on AbiWord for in-line wrapping.
+        // No frames are used on Abinova for in-line wrapping.
         // It uses a <image> tag right in the paragraph text.
         
         m_inlinedImage = true;
@@ -518,7 +519,7 @@ void ODi_Frame_ListenerState::_drawObject (const gchar** ppAtts,
         // We define a frame with the image in it.
         
         if (m_rElementStack.hasElement("draw:text-box")) {
-            // AbiWord can't have nested frames (a framed image inside a textbox).
+            // Abinova can't have nested frames (a framed image inside a textbox).
             // Abort mission!
             rAction.ignoreElement();
             return;
@@ -802,10 +803,10 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
         }
         
     } else if (pVal && (!strcmp(pVal, "char") || !strcmp(pVal, "as-char"))) {
-		// AbiWord does not support anchoring frames/texboxes to chars; 
+		// Abinova does not support anchoring frames/texboxes to chars; 
 		// let's just convert it to paragraph anchoring, so we don't lose the 
 		// entire frame
-		// FIXME: "char" means an inline thing in AbiWord terms, NOT a positioned thing
+		// FIXME: "char" means an inline thing in Abinova terms, NOT a positioned thing
 		rProps += "; position-to:block-above-text";
 
 	    pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:x");

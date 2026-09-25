@@ -3,6 +3,7 @@
 /* AbiSource Application Framework
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2009-2026 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -713,6 +714,28 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	gtk_widget_set_hexpand(chooser_hbox, TRUE);
 	gtk_widget_set_vexpand(chooser_hbox, TRUE);
 	gtk_box_append(GTK_BOX(chooser_hbox), chooser);
+
+	/* In save mode GtkFileChooserWidget draws its "Name:" row at the
+	 * top of the chooser.  Reparent that row below the chooser so it
+	 * sits directly above our file-type row, matching the usual
+	 * save-dialog layout (LibreOffice-style: filename next to the
+	 * type selector at the bottom).  The row is the first box inside
+	 * the chooser's outer box (Name label + GtkFileChooserEntry). */
+	if (m_bSave)
+	{
+		GtkWidget * outer = gtk_widget_get_first_child(chooser);
+		if (outer && GTK_IS_BOX(outer))
+		{
+			GtkWidget * name_row = gtk_widget_get_first_child(outer);
+			if (name_row && GTK_IS_BOX(name_row))
+			{
+				g_object_ref(name_row);
+				gtk_widget_unparent(name_row);
+				gtk_box_append(GTK_BOX(main_vbox), name_row);
+				g_object_unref(name_row);
+			}
+		}
+	}
 
 	/* NB: abiSetupModalDialog() is deliberately deferred until after the
 	 * folder/file seeding below — it shows the window, and seeding the

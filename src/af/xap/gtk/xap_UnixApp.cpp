@@ -2,6 +2,7 @@
 /* AbiSource Application Framework
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2019 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -100,7 +101,7 @@ XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
 
 			// Load substitution rules mapping common document font
 			// names onto the bundled metric-compatible fonts.
-			std::string fontConf = fontDir + "/abiword-fonts.conf";
+			std::string fontConf = fontDir + "/abinova-fonts.conf";
 			if (g_access(fontConf.c_str(), F_OK) == 0 &&
 				!FcConfigParseAndLoad(config,
 					reinterpret_cast<const FcChar8*>(fontConf.c_str()),
@@ -313,7 +314,7 @@ const char * XAP_UnixApp::getUserPrivateDirectory() const
     static std::string private_dir;
 
     if (private_dir.empty()) {
-        const char * szAbiDir = "abiword";
+        const char * szAbiDir = "abinova";
         const char * szCfgDir = ".config";
 
         const char * szXDG = getenv("XDG_CONFIG_HOME");
@@ -337,6 +338,7 @@ const char * XAP_UnixApp::getUserPrivateDirectory() const
         // migration / legacy
         // XXX shouldn't that be /.AbiSuite ?
         migrate("/AbiSuite", szAbiDir, private_dir.c_str());
+        migrate("/abiword", szAbiDir, private_dir.c_str());
     }
 
     return private_dir.c_str();

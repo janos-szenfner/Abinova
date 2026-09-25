@@ -1,7 +1,8 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2025 AbiSource
+ * Copyright (C) 2025-2026 Abinova contributors
  *
- * Self-contained mathematical typesetter for AbiWord equations.
+ * Self-contained mathematical typesetter for Abinova equations.
  * Parses a LaTeX subset or MathML into a box tree, lays it out and
  * renders it with Cairo. No external math libraries required.
  *

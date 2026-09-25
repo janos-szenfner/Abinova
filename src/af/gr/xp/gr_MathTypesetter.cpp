@@ -1,7 +1,8 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2025 AbiSource
+ * Copyright (C) 2025-2026 Abinova contributors
  *
- * Self-contained mathematical typesetter for AbiWord equations.
+ * Self-contained mathematical typesetter for Abinova equations.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

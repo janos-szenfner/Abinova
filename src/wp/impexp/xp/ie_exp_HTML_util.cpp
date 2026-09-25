@@ -37,7 +37,7 @@ const char s_Delimiter[] =
     "=======================================================";
 
 const char * s_Header[2] = {
-"Created by AbiWord, a free, Open Source wordprocessor. ",
+"Created by Abinova, a free, Open Source wordprocessor. ",
 "For more information visit http://www.abisource.com.   "
 };
 
@@ -260,11 +260,11 @@ bool getPropertySize(const PP_AttrProp * pAP, const gchar* szWidthProp,
 	UT_return_val_if_fail(szWidth, false)
 	UT_return_val_if_fail(szHeight, false)
 
-	// get the object width as displayed in AbiWord
+	// get the object width as displayed in Abinova
 	*szWidth = nullptr;
 	pAP->getProperty (szWidthProp, *szWidth);
 	
-	// get the object height as displayed in AbiWord
+	// get the object height as displayed in Abinova
 	*szHeight = nullptr;
 	pAP->getProperty (szHeightProp, *szHeight);
 	
@@ -490,7 +490,7 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::generateHeader(const UT_UTF8String 
     const UT_UTF8String &mimetype)
 {
     UT_UTF8String header;
-    header = MULTIPART_FIELD("From", "<Saved by AbiWord>");;
+    header = MULTIPART_FIELD("From", "<Saved by Abinova>");;
     header += MULTIPART_FIELD("Subject", m_title.utf8_str());
     
     time_t tim = time (nullptr);

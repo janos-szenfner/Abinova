@@ -133,7 +133,7 @@ bool AP_BuiltinStringSet::dumpBuiltinSet(const char * szFilename) const
 	// NOTE: this is human readable information only.
 	
 	fprintf(fp,"<!-- ==============================================================  -->\n");
-	fprintf(fp,"<!-- This file contains AbiWord Strings.  AbiWord is an Open Source  -->\n");
+	fprintf(fp,"<!-- This file contains Abinova Strings.  Abinova is an Open Source  -->\n");
 	fprintf(fp,"<!-- word processor developed by AbiSource, Inc.  Information about  -->\n");
 	fprintf(fp,"<!-- this application can be found at http://www.abisource.com       -->\n");
 	fprintf(fp,"<!-- This file contains the string translations for one language.    -->\n");

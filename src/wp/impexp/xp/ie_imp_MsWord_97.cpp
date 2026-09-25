@@ -1,10 +1,11 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (C) 2001 Dom Lachowicz <dominicl@seas.upenn.edu>
  * Copyright (C) 2001-2003 Tomas Frydrych
  * Copyright (C) 2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -412,7 +413,7 @@ static Doc_Field_Mapping_t s_Tokens[] =
 	{"NUMPAGES",   F_NUMPAGES},
 	{"NUMWORDS",   F_NUMWORDS},
 	{"MERGEFIELD", F_MERGEFIELD},
-	// these below aren't handled by AbiWord, but they're known about
+	// these below aren't handled by Abinova, but they're known about
 	{"HYPERLINK",  F_HYPERLINK},
 	{"PAGEREF",    F_PAGEREF},
 	{"EMBED",	   F_EMBED},
@@ -5227,7 +5228,7 @@ void IE_Imp_MsWord_97::_generateParaProps(UT_String &s, const PAP * apap, wvPars
 
 	// widowed/orphaned lines
 	if (!apap->fWidowControl) {
-		// these AbiWord properties give the same effect
+		// these Abinova properties give the same effect
 		s += "orphans:0;widows:0;";
 	}
 

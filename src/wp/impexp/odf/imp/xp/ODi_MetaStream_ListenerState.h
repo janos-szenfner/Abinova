@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -29,10 +30,10 @@
 // Internal includes
 #include "ODi_ListenerState.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string_class.h"
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 /**
@@ -67,7 +68,7 @@ private:
      * Holds all keywords defined on the meta stream.
      *
      * This is necessary because OpenDocument defines one keyword per
-     * meta:keyword element and AbiWord holds all the keywords on a single
+     * meta:keyword element and Abinova holds all the keywords on a single
      * abiword:keywords element.
      */
     std::string m_keywords;

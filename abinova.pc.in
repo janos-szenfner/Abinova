@@ -6,7 +6,7 @@ datarootdir=@datarootdir@
 pkgdatadir=@ABIWORD_DATADIR@
 libabiword=false
 
-Name: abiword-@ABIWORD_SERIES@
-Description: AbiWord word processor
+Name: abinova-@ABIWORD_SERIES@
+Description: Abinova word processor
 Version: @VERSION@
 Requires: @ABIWORD_REQUIRED_PKGS@

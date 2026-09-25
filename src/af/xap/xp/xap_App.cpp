@@ -2,6 +2,7 @@
 /* AbiSource Application Framework
  * Copyright (C) 1998, 1999 AbiSource, Inc.
  * Copyright (C) 2004-2026 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -529,6 +530,19 @@ const char * XAP_App::getApplicationName() const
 	// can use as a class name for various window-manager-like
 	// operations.
 	return m_szAppName;
+}
+
+const char * XAP_App::getApplicationDisplayName() const
+{
+	// user-facing product name for menu items and dialog text
+	// ("About %s", "%s Help", ...); the bare app name is
+	// lowercase ("abinova") for window-manager purposes, so the
+	// display name is capitalized.
+	static char _name[64];
+	g_strlcpy(_name, m_szAppName ? m_szAppName : "", sizeof(_name));
+	if (_name[0])
+		_name[0] = g_ascii_toupper(_name[0]);
+	return _name;
 }
 
 void XAP_App::rebuildMenus(void)

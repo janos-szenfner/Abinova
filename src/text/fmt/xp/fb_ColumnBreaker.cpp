@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -214,7 +215,7 @@ UT_sint32 fb_ColumnBreaker::breakSection()
   that the row's columns end at roughly the same height - that is what
   makes a "continuous" section with w:num="2" show its header content
   side by side instead of letting the first column fill to the bottom
-  of the page.  AbiWord historically only wrapped to the next column
+  of the page.  Abinova historically only wrapped to the next column
   when the previous one reached page height, so a short multi-column
   section rendered as a single column.
 
@@ -473,7 +474,7 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 			//
 			if(pDocLayout->getSavedContainerPointer() == pOuterContainer)
 			{
-				UT_DEBUGMSG(("AbiWord Saved from a dangling pointer in fb_ColumnBreak \n"));
+				UT_DEBUGMSG(("Abinova Saved from a dangling pointer in fb_ColumnBreak \n"));
 				UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 				pOuterContainer =  pDocLayout->getRebuiltBlock()->getFirstContainer();
 			}

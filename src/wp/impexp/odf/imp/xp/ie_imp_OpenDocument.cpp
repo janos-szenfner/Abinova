@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -33,7 +34,7 @@
 #include "ODi_ContentStreamAnnotationMatcher_ListenerState.h"
 #include "ODi_ManifestStream_ListenerState.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_types.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
@@ -502,7 +503,7 @@ UT_Error IE_Imp_OpenDocument::_handleContentStream ()
 
 /**
  * Parse an RDF/XML stream with the built-in parser, appending its
- * triples to @triples. Used when AbiWord is built without libredland.
+ * triples to @triples. Used when Abinova is built without libredland.
  */
 UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
                                                  const char * pStream,
@@ -735,7 +736,7 @@ UT_Error IE_Imp_OpenDocument::_handleRDFStreams ()
         return error;
     }
     
-    // convert the redland model into native AbiWord RDF triples
+    // convert the redland model into native Abinova RDF triples
     {
         PD_DocumentRDFHandle rdf = getDoc()->getDocumentRDF();
         PD_DocumentRDFMutationHandle m = rdf->createMutation();

@@ -3,6 +3,7 @@
 /* AbiSource
  *
  * Copyright (C) 2007 Philippe Milot <PhilMilot@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +28,7 @@
 #include "OXML_Types.h"
 #include "OXML_ObjectWithAttrProp.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_types.h"
 #include "pd_Document.h"
 
@@ -45,7 +46,7 @@ class OXML_Style : public OXML_ObjectWithAttrProp
 public:
 	/*!
 	    \param id The unique identifier for a valid OpenXML style.
-	    \param name The unique identifier for a style in the AbiWord piecetable.
+	    \param name The unique identifier for a style in the Abinova piecetable.
 	 */
 	OXML_Style(const std::string & id, const std::string & name);
 	virtual ~OXML_Style();

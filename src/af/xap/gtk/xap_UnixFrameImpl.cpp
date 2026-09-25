@@ -3,6 +3,7 @@
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (C) 2002 William Lachance
  * Copyright (C) 2019-2026 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -239,7 +240,7 @@ static int s_mapMimeToUriType (const char * uri)
 		}
 	}
 
-	UT_DEBUGMSG(("DOM: mimeType %s dropped into AbiWord(%s)\n", mimeType, uri));
+	UT_DEBUGMSG(("DOM: mimeType %s dropped into Abinova(%s)\n", mimeType, uri));
 
 	DragInfo * dragInfo = s_getDragInfo();
 	for (size_t i = 0; i < dragInfo->mimes.size(); i++)

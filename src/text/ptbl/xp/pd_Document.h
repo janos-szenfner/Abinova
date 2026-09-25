@@ -1,9 +1,10 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (c) 2001,2002 Tomas Frydrych
  * Copyright (c) 2016-2022 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -95,7 +96,7 @@ enum: uint8_t
 // Dublin Core Namespace (http://dublincore.org/documents/dces/)
 #define DC_META_PREFIX      "dc."
 
-// AbiWord Namespace
+// Abinova Namespace
 #define ABIWORD_META_PREFIX "abiword."
 
 // User-defined custom namespace
@@ -161,7 +162,7 @@ enum: uint8_t
 // the last time this document was saved
 #define PD_META_KEY_DATE_LAST_CHANGED "abiword.date_last_changed"
 
-// the creator (product) of this document. AbiWord, KWord, etc...
+// the creator (product) of this document. Abinova, KWord, etc...
 #define PD_META_KEY_GENERATOR         "abiword.generator"
 
 // the category of the document (OOXML cp:category, MS Word "Category")
@@ -264,7 +265,7 @@ typedef std::shared_ptr<PD_XMLIDCreator> PD_XMLIDCreatorHandle;
  *  (presentation notes).  The importer stores each child element
  *  verbatim - element name, attributes and text content - and the
  *  exporter re-emits them, so the data survives a load/save round
- *  trip even though no feature consumes it yet.  Older AbiWord
+ *  trip even though no feature consumes it yet.  Older Abinova
  *  releases ignore these sections; nothing else references them. */
 struct ABI_EXPORT PD_ReservedItem
 {
@@ -772,7 +773,7 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 		{ return m_bDontImmediatelyLayout;}
 
 	/* Okay, as far as I can tell this is a non-persistent document property since it is not
-	 * written to the AbiWord file when the document is saved. In fact, it is only set if a
+	 * written to the Abinova file when the document is saved. In fact, it is only set if a
 	 * mail-merge source/link is given on the command line.
 	 *
 	 * Mail merge fields are, naturally, saved and loaded, but the Insert->Mail Merge Field...

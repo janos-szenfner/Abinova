@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -214,7 +215,7 @@ protected:
 	bool						m_atticFormat; 		/* whether to use unicode for all characters >0xff or convert to native windows encoding*/
 	UT_GenericStringMap<NumberedStyle*> m_hashStyles;
 	/* Hash containing styles to be exported. The key is the
-	   AbiWord style name. The value is a NumberedStyle object
+	   Abinova style name. The value is a NumberedStyle object
 	   (see the cpp file). */
 	/* MsWord97ListMulti owns raw UT_Vector* levels and registers `this`
 	 * inside them, so it must not be copied/moved — hold it by

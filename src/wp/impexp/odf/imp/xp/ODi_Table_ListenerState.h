@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -27,13 +28,13 @@
 // Internal includes
 #include "ODi_ListenerState.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_types.h"
 
 // Internal classes
 class ODi_Office_Styles;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 
@@ -43,7 +44,7 @@ class PD_Document;
  * It uses a two-pass approach.
  *
  * The first pass gathers info about its rows and collumns to fill the
- * properties of the AbiWord <table> tag (eg: Rows and collumns sizes).
+ * properties of the Abinova <table> tag (eg: Rows and collumns sizes).
  * When the first pass is finished, the Abi <table> tag is appended.
  *
  * The second pass defines all <cell> tags with their paragraph contents (ie:

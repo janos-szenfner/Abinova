@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -171,7 +172,7 @@
 #endif
 
 #define AP_PREF_KEY_DefaultSaveFormat "DefaultSaveFormat"
-#define AP_PREF_DEFAULT_DefaultSaveFormat ".abw"
+#define AP_PREF_DEFAULT_DefaultSaveFormat ".abwn"
 #define AP_PREF_KEY_CloseOnLastDoc "CloseOnLastDoc"
 #define AP_PREF_DEFAULT_CloseOnLastDoc "0"
 

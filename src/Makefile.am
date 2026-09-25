@@ -85,18 +85,18 @@ libabiword_@ABIWORD_SERIES@_la_SOURCES = \
 	wp/main/xp/abi_ver.cpp \
 	$(libabiword_cpp)
 
-bin_PROGRAMS = abiword
+bin_PROGRAMS = abinova
 
-abiword_CPPFLAGS = \
+abinova_CPPFLAGS = \
 	$(libabiword_@ABIWORD_SERIES@_la_CPPFLAGS)
 
-abiword_LDADD = \
+abinova_LDADD = \
 	libabiword-@ABIWORD_SERIES@.la
 
-abiword_DEPENDENCIES = \
+abinova_DEPENDENCIES = \
 	libabiword-@ABIWORD_SERIES@.la
 
-abiword_SOURCES = \
+abinova_SOURCES = \
 	$(main_cpp)
 
 

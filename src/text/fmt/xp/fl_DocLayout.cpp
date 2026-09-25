@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * BIDI Copyright (c) 2001,2002 Tomas Frydrych
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -4372,7 +4373,7 @@ a contemplated on-the-fly conversion to smart quotes, but there is no
 contemplated on-the-fly conversion to ASCII QUOTEs.  So, if the
 algorithm makes a mistake by not converting, the user can correct it
 by directly entering the appropriate smart quote character or by
-heuristically tricking AbiWord into converting it for him/her and then
+heuristically tricking Abinova into converting it for him/her and then
 fixing things up.  (That heuristic step shouldn't be necessary, you
 know, but I think we all use software for which we have become
 accustomed to such things.)

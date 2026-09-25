@@ -1,9 +1,9 @@
-Testing AbiWord
+Testing Abinova
 ===============
 
 ## Built-in test suite
 
-AbiWord has a built-in testsuite.
+Abinova has a built-in testsuite.
 
 It is build as the `AbiTest` plugin. Its code is in
 `plugins/testharness/xp`
@@ -12,7 +12,7 @@ The test harness (testing framework) source code is in `src/af/tf/xp`
 It gets linked to the plugin. The plugin links to libabiword (what it
 tests).
 
-It all gets build when you build AbiWord. As of now, it needs to be
+It all gets build when you build Abinova. As of now, it needs to be
 installed like any other plugins.
 
 To run it:

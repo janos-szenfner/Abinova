@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -59,7 +60,7 @@ ODe_DocumentData::~ODe_DocumentData() {
 
 
 /**
- * Do all necessary work before starting to listen the AbiWord document.
+ * Do all necessary work before starting to listen the Abinova document.
  */
 bool ODe_DocumentData::doPreListeningWork() {
     bool ok;
@@ -101,7 +102,7 @@ bool ODe_DocumentData::doPreListeningWork() {
 
 
 /**
- * Do all necessary work after having read the AbiWord document.
+ * Do all necessary work after having read the Abinova document.
  */
 bool ODe_DocumentData::doPostListeningWork() {
     UT_uint32 i, j, count, count2;
@@ -160,7 +161,7 @@ bool ODe_DocumentData::doPostListeningWork() {
 
     ////
     // Build/expand the <style:default-style> paragraph elements for the Styles
-    // XML file based on the existence of AbiWord's default-tab-interval 
+    // XML file based on the existence of Abinova's default-tab-interval 
     // property in any of the automatic or normal styles.
     // 
     pStylesVector = m_contentAutoStyles.getParagraphStyles();
@@ -207,7 +208,7 @@ void ODe_DocumentData::handleDefaultTabInterval(ODe_Style_Style* pStyle) {
         m_styles.getDefaultStyles().storeStyle("paragraph", pDefaultStyle);
     }
     // NOTE: if a paragraph default style already exists with a default tab interval
-    // property set, then we'll just overwrite it. This can happen because AbiWord 
+    // property set, then we'll just overwrite it. This can happen because Abinova 
     // supports such a property on every paragraph and paragraph style, but ODT only 
     // supports one on the default paragraph style.
     pDefaultStyle->setDefaultTabInterval(defaultTabInterval);

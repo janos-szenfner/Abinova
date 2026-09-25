@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2012 Prashant Bafna <appu.bafna@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,7 +25,7 @@
 // Internal includes
 #include <OXML_Types.h>
 
-// AbiWord includes
+// Abinova includes
 #include "ie_math_convert.h"
 
 OXMLi_ListenerState_Math::OXMLi_ListenerState_Math():

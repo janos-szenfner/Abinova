@@ -5,6 +5,7 @@
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
  * <daniel.carvalho@indt.org.br>
  * Copyright (C) 2011-2012 Ben Martin
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -46,7 +47,7 @@ class ODi_Style_List;
 class ODi_TableOfContent_ListenerState;
 class ODi_Abi_Data;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 class pf_Frag_Strux;
 
@@ -122,8 +123,8 @@ private:
     std::string m_currentPageMarginLeft;
     std::string m_currentPageMarginRight;
 
-    // For some reason AbiWord can't have a page break right before a new section.
-    // In AbiWord, if you want to do that you have to first open the new section
+    // For some reason Abinova can't have a page break right before a new section.
+    // In Abinova, if you want to do that you have to first open the new section
     // and then, inside this new section, do the page break.
     //
     // That's the only reason for the existence of *pending* paragraph
@@ -135,11 +136,11 @@ private:
         ODI_SECTION_NONE,
 
         // The current OpenDocument section has been mapped into the current
-        // AbiWord section.
+        // Abinova section.
         ODI_SECTION_MAPPED,
 
         // The current OpenDocument section *wasn't* mapped into the current
-        // AbiWord section.
+        // Abinova section.
         ODI_SECTION_IGNORED,
 
         // It's simply undefined. Have to find out the current situation.
@@ -158,7 +159,7 @@ private:
     /**
      * In OpenDocument, <text:h> elements along the text defines the document
      * chapter's structure. So, we must get the styles used by those <text:h>
-     * for each content level in order to set AbiWord's <toc> properties
+     * for each content level in order to set Abinova's <toc> properties
      * correctly.
      */
     // It's weird, but a document may actually have several TOCs.

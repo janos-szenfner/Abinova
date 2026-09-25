@@ -4,6 +4,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -33,7 +34,7 @@
 #include "ODi_StartTag.h"
 #include "ODi_Abi_Data.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pd_Document.h"
 #include "ut_math.h"
 #include "ut_locale.h"
@@ -136,7 +137,7 @@ void ODi_Style_Style::startElement(const gchar* pName,
         UT_ASSERT(pAttr);
         m_family = pAttr;
         
-        // In AbiWord, the default style is called "Normal"
+        // In Abinova, the default style is called "Normal"
         m_displayName = m_name = "Normal";
         m_parentStyleName = "None";
         
@@ -146,7 +147,7 @@ void ODi_Style_Style::startElement(const gchar* pName,
         
         pVal = UT_getAttribute("fo:column-count", ppAtts);
         if (pVal) {
-            // A column count of "0" (zero) crashes AbiWord.
+            // A column count of "0" (zero) crashes Abinova.
             // Instead we just leave the column count empty.
             if (atoi(pVal) > 0) {
                 m_columns = pVal;
@@ -484,9 +485,9 @@ void ODi_Style_Style::_parse_style_tabStopProperties(const gchar** ppProps) {
         // decimal tab character. See fp_Line::_calculateWidthOfRun() for details.
     }
 
-    // convert the tab information into an AbiWord property value
+    // convert the tab information into an Abinova property value
     
-    UT_return_if_fail(!position.empty()); // a tab position is required (at least for AbiWord)
+    UT_return_if_fail(!position.empty()); // a tab position is required (at least for Abinova)
 
     if (!m_tabStops.empty())
         m_tabStops += ",";
@@ -508,9 +509,9 @@ void ODi_Style_Style::_parse_style_tabStopProperties(const gchar** ppProps) {
         m_tabStops += "L";
     }
 
-    // tab leader style: AbiWord's 4 tab styles map not to ODF's leader-styles but 
+    // tab leader style: Abinova's 4 tab styles map not to ODF's leader-styles but 
     // to leader-text's, with style 1 mapping to character ".", 2 to "-" and 3 to "_".
-    // AbiWord tab style 0 means no leader style. ODF's leader-styles denoting a
+    // Abinova tab style 0 means no leader style. ODF's leader-styles denoting a
     // line style are not supported.
     //
     // NOTE: in ODF, leader text (if present) *always* has a higher priority than 
@@ -535,9 +536,9 @@ void ODi_Style_Style::_parse_style_tabStopProperties(const gchar** ppProps) {
         }
     } else if (!leaderStyle.empty()) {
         
-        // AbiWord does not really support leader-styles, so do a best effort conversion.
+        // Abinova does not really support leader-styles, so do a best effort conversion.
         // Note: leader-styles describe the *underlining* line style. This means that we
-        //       won't map "dash" for example to AbiWord's tab style "2" (dashed), as that
+        //       won't map "dash" for example to Abinova's tab style "2" (dashed), as that
         //       does not represent underlining.
 
         if (leaderStyle == "none") {
@@ -642,7 +643,7 @@ void ODi_Style_Style::_parse_style_textProperties(const gchar** ppProps) {
     if ( pVal && pVal2 ) {
             
         if (!strcmp(pVal, "none") && !strcmp(pVal2, "none")) {
-            // AbiWord uses "-none-" instead of "none-none";
+            // Abinova uses "-none-" instead of "none-none";
             m_lang = "-none-";
         } else {
             m_lang = UT_std_string_sprintf ("%s-%s", pVal, pVal2);
@@ -934,10 +935,10 @@ void ODi_Style_Style::_parse_style_tableCellProperties(const gchar** ppProps) {
 
 
 /**
- * Defines an AbiWord style that is equivalent to this
+ * Defines an Abinova style that is equivalent to this
  * OpenDocument style.
  * 
- * @param pDocument The AbiWord document on which the style will be defined.
+ * @param pDocument The Abinova document on which the style will be defined.
  */
 void ODi_Style_Style::defineAbiStyle(PD_Document* pDocument) {
     
@@ -946,17 +947,17 @@ void ODi_Style_Style::defineAbiStyle(PD_Document* pDocument) {
         // That's (in other words) is what the OpenDocument standard says.
         // They are created for the sake of organization on the OpenDocument file.
         //
-        // When they are referenced by the OpenDocument content, on AbiWord
+        // When they are referenced by the OpenDocument content, on Abinova
         // their properties are just pasted into the text element.
         //
         // So, invisibility means that the user can't see this style
-        // on the styles list. In fact, on the AbiWord document, it doesn't
+        // on the styles list. In fact, on the Abinova document, it doesn't
         // even exist.
         return;
     }
     
     if (m_family == "graphic") {
-        // AbiWord don't have graphic styles.
+        // Abinova don't have graphic styles.
         return;
     }
     
@@ -986,7 +987,7 @@ void ODi_Style_Style::defineAbiStyle(PD_Document* pDocument) {
         UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
     }
 
-    // AbiWord uses the display name
+    // Abinova uses the display name
     pAttr.push_back("name");
     pAttr.push_back(m_displayName);
 
@@ -1013,7 +1014,7 @@ void ODi_Style_Style::defineAbiStyle(PD_Document* pDocument) {
 
 
 /**
- * Builds the AbiWord "props" attribute value that describes this
+ * Builds the Abinova "props" attribute value that describes this
  * Style.
  */
 void ODi_Style_Style::buildAbiPropsAttrString(ODi_FontFaceDecls& rFontFaceDecls) {
@@ -1137,7 +1138,7 @@ void ODi_Style_Style::buildAbiPropsAttrString(ODi_FontFaceDecls& rFontFaceDecls)
     APPEND_STYLE("font-style: ", m_fontStyle);
     APPEND_STYLE("font-weight: ", m_fontWeight);
 
-    // AbiWord hangs when a paragraph has a "display:none" property
+    // Abinova hangs when a paragraph has a "display:none" property
     if (m_family.length() && !strcmp("text", m_family.c_str())) {
         APPEND_STYLE("display: ", m_display);
     }

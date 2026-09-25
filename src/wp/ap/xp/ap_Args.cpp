@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 2002 Patrick Lam
  * Copyright (C) 2008 Robert Staudinger
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -71,7 +72,7 @@ static GOptionEntry _entries[] = {
         {"to-name",'o', 0, G_OPTION_ARG_STRING, &AP_Args::m_sName, "Name of output file",nullptr},
         {"import-extension", '\0', 0, G_OPTION_ARG_STRING, &AP_Args::m_sFileExtension, "Override document type detection by specifying a file extension", nullptr},
         {"userprofile", 'u', 0, G_OPTION_ARG_STRING, &AP_Args::m_sUserProfile, "Use specified user profile.",nullptr},
-        {"version", '\0', 0, G_OPTION_ARG_NONE, &AP_Args::m_iVersion, "Print AbiWord version", nullptr},
+        {"version", '\0', 0, G_OPTION_ARG_NONE, &AP_Args::m_iVersion, "Print Abinova version", nullptr},
         { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &AP_Args::m_sFiles, nullptr,  "[FILE...]" },
 #ifdef DEBUG
         {"dumpstrings", 'd', 0, G_OPTION_ARG_NONE, &AP_Args::m_iDumpstrings, "Dump strings to file", nullptr},

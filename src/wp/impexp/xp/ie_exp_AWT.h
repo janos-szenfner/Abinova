@@ -25,7 +25,7 @@
 
 class PD_Document;
 
-// The exporter/writer for AbiWord Templates
+// The exporter/writer for Abinova Templates
 
 class ABI_EXPORT IE_Exp_AWT_Sniffer : public IE_ExpSniffer
 {

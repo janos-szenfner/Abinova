@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 2001, 2002 Dom Lachowicz
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -174,7 +175,7 @@ void AP_UnixDialog_New::event_ToggleOpenExisting ()
 	pDialog->setFileTypeList(szDescList, szSuffixList, 
 							 (const UT_sint32 *) nTypeList);
 
-	pDialog->setDefaultFileType(IE_Imp::fileTypeForSuffix(".abw"));
+	pDialog->setDefaultFileType(IE_Imp::fileTypeForSuffix(".abwn"));
 
 	pDialog->runModal(m_pFrame);
 

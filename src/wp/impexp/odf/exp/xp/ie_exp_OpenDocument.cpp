@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -196,7 +197,7 @@ UT_Error IE_Exp_OpenDocument::copyToBuffer(PD_DocumentRange * pDocRange, const U
 }
 
 /**
- * This writes out our AbiWord file as an OpenOffice
+ * This writes out our Abinova file as an OpenOffice
  * compound document
  */
 UT_Error IE_Exp_OpenDocument::_writeDocument(void)
@@ -315,7 +316,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
     // when initially opening the document. Without it, it will show 
     // an empty TOC until the user regenerates it, which is not that pretty.
     // Annoyingly we have to build up the TOC ourselves during export, as
-    // it doesn't exist within AbiWord's PieceTable. Until that changes, this
+    // it doesn't exist within Abinova's PieceTable. Until that changes, this
     // is the best we can do.
 
     if (auxData.m_pTOCContents) {

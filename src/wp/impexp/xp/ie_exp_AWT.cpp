@@ -49,7 +49,7 @@ bool IE_Exp_AWT_Sniffer::getDlgLabels(const char ** pszDesc,
 											const char ** pszSuffixList,
 											IEFileType * ft)
 {
-	*pszDesc = "AbiWord Template (.awt)";
+	*pszDesc = "Abinova Template (.awt)";
 	*pszSuffixList = "*.awt";
 	*ft = getFileType();
 	return true;

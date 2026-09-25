@@ -3,6 +3,7 @@
  * Copyright (C) 2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2004 Robert Staudinger <robsta@stereolyzer.net>
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -35,7 +36,7 @@
 #include "ODi_Abi_Data.h"
 #include "ODi_RDFParser.h"
 
-// AbiWord inlcudes
+// Abinova inlcudes
 #include "ie_imp.h"
 
 // External includes

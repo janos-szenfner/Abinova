@@ -150,7 +150,7 @@ AP_BindingSet::~AP_BindingSet(void)
 void AP_BindingSet::loadBuiltin(void)
 {
 
-  m_vecBindings.addItem(new c_lb(true,	"default",			ap_LoadBindings_Default,			nullptr)); // stock AbiWord bindings
+  m_vecBindings.addItem(new c_lb(true,	"default",			ap_LoadBindings_Default,			nullptr)); // stock Abinova bindings
 #ifdef ENABLE_EMACS_KEYBINDING
   m_vecBindings.addItem(new c_lb(true,  "emacs",			ap_LoadBindings_Emacs, 				nullptr)); // emacs key bindings
   m_vecBindings.addItem(new c_lb(false, "emacsctrlx",		ap_LoadBindings_EmacsCtrlX,			nullptr)); // emacs ctrl-x key bindings

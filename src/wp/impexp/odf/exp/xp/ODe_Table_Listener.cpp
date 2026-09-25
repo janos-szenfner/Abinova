@@ -3,6 +3,7 @@
  * Copyright (C) 2005 INdT
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * Copyright 2009 AbiSource Corporation B.V.
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,7 +32,7 @@
 #include "ODe_Style_Style.h"
 #include "ODe_Text_Listener.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pp_AttrProp.h"
 
 /**
@@ -97,7 +98,7 @@ void ODe_Table_Listener::openTable(const PP_AttrProp* pAP,
   
     
     // We don't have to check if there are any properties to export at all,
-    // because AbiWord has different default cell style properties than OpenDocument,
+    // because Abinova has different default cell style properties than OpenDocument,
     // which means we'll always have to export the styles. This will only result in
     // writing out redundant properties when the user-selected style properties 
     // exactly match the default OpenDocument default properties; we will just ignore
@@ -187,7 +188,7 @@ void ODe_Table_Listener::openTable(const PP_AttrProp* pAP,
                                           m_tableName.utf8_str(), curRowProp);
 
                     pStyle = m_rAutomatiStyles.addTableRowStyle(styleName);
-					// Row heights values in AbiWord really are *minimum* row
+					// Row heights values in Abinova really are *minimum* row
 					//  heights; the property name is unfortunate.
                     pStyle->setMinRowHeight(buffer.c_str());
                     
@@ -296,7 +297,7 @@ void ODe_Table_Listener::openCell(const PP_AttrProp* pAP,
 
     // Then load the style properties that are specific for this cell.
     // We don't have to check if there are any properties to export at all,
-    // because AbiWord has different default cell style properties than OpenDocument,
+    // because Abinova has different default cell style properties than OpenDocument,
     // which means we'll always have to export the styles. This will only result in
     // writing out redundant properties when the user-selected style properties 
     // exactly match the default OpenDocument default properties; we will just ignore

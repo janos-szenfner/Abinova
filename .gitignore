@@ -48,6 +48,7 @@ po/*.strings
 src/abi-resources.c
 src/abi-resources.h
 src/abiword
+src/abinova
 src/plugins/abi-builtin-plugins-calls.inc
 src/plugins/abi-builtin-plugins-decls.inc
 src/plugins/builtin-stamp

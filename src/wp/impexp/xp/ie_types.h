@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -60,22 +61,22 @@ typedef UT_sint32 IEGraphicFileType;
 /* plug-ins adding new importers/exporters should give them names
  * such as "<plug-in name>::<format description>"
  */
-#define IE_IMPEXPNAME_AWML11		"AbiWord::AWML-1.1"
-#define IE_IMPEXPNAME_AWML11AWT		"AbiWord::AWML-1.1/template"
-#define IE_IMPEXPNAME_AWML11GZ		"AbiWord::AWML-1.1/compressed"
-#define IE_IMPEXPNAME_AWML11GZB64	"AbiWord::AWML-1.1/compressed/base64"
-#define IE_IMPEXPNAME_MSWORD97		"AbiWord::MS Word (97)"
-#define IE_IMPEXPNAME_RTF			"AbiWord::RTF"
-#define IE_IMPEXPNAME_RTFATTIC		"AbiWord::RTF (attic)"
-#define IE_IMPEXPNAME_RTFMSDOC		"AbiWord::RTF (!MSWord)"
-#define IE_IMPEXPNAME_TEXT			"AbiWord::Text"
-#define IE_IMPEXPNAME_TEXTENC		"AbiWord::Text/encoded"
-#define IE_IMPEXPNAME_HTML			"AbiWord::HTML"
-#define IE_IMPEXPNAME_MATHML    	"AbiWord::MathML"
-#define IE_IMPEXPNAME_GOCHART   	"AbiWord::GNOME Office Chart"
-#define IE_IMPEXPNAME_GOCOMPONENT   "AbiWord::GNOME Office Component"
-#define IE_IMPEXPNAME_MARKDOWN		"AbiWord::Markdown"
-#define IE_IMPEXPNAME_LATEX			"AbiWord::LaTeX"
+#define IE_IMPEXPNAME_AWML11		"Abinova::AWML-1.1"
+#define IE_IMPEXPNAME_AWML11AWT		"Abinova::AWML-1.1/template"
+#define IE_IMPEXPNAME_AWML11GZ		"Abinova::AWML-1.1/compressed"
+#define IE_IMPEXPNAME_AWML11GZB64	"Abinova::AWML-1.1/compressed/base64"
+#define IE_IMPEXPNAME_MSWORD97		"Abinova::MS Word (97)"
+#define IE_IMPEXPNAME_RTF			"Abinova::RTF"
+#define IE_IMPEXPNAME_RTFATTIC		"Abinova::RTF (attic)"
+#define IE_IMPEXPNAME_RTFMSDOC		"Abinova::RTF (!MSWord)"
+#define IE_IMPEXPNAME_TEXT			"Abinova::Text"
+#define IE_IMPEXPNAME_TEXTENC		"Abinova::Text/encoded"
+#define IE_IMPEXPNAME_HTML			"Abinova::HTML"
+#define IE_IMPEXPNAME_MATHML    	"Abinova::MathML"
+#define IE_IMPEXPNAME_GOCHART   	"Abinova::GNOME Office Chart"
+#define IE_IMPEXPNAME_GOCOMPONENT   "Abinova::GNOME Office Component"
+#define IE_IMPEXPNAME_MARKDOWN		"Abinova::Markdown"
+#define IE_IMPEXPNAME_LATEX			"Abinova::LaTeX"
 
 /*!
  * How to match mimetypes that plugins support.

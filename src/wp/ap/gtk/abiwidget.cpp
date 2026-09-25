@@ -1,12 +1,13 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
 
-/* The AbiWord Widget
+/* The Abinova Widget
  *
  * Copyright (C) 2001 AbiSource, Inc.
  * Copyright (C) 2001,2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2002 Martin Sevior <msevior@physics.unimelb.edu.au>
  * Copyright (C) 2007 Marc Maurer <uwog@uwog.net>
  * Copyright (C) 2007 One Laptop Per Child
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -66,17 +67,17 @@
 /**************************************************************************/
 
 /*
- * The AbiWord Widget
+ * The Abinova Widget
  *    by Martin Sevior and Dom Lachowicz
  *
  * Four score and 3 months ago, we decided that it would be cool to have
- * AbiWord exposed as a GTK+ widget. After inventing the computer and GTK+,
- * Dom and Martin undertook the task of exposing AbiWord's functionality
+ * Abinova exposed as a GTK+ widget. After inventing the computer and GTK+,
+ * Dom and Martin undertook the task of exposing Abinova's functionality
  * in freaky-fun GTKWidget form. And to this day, it has been a horrible
  * success.
  *
  * Not stymied by the hoopla and fanfare surrounding their earlier 
- * achievements, the two decided to actually make AbiWord's main frame
+ * achievements, the two decided to actually make Abinova's main frame
  * an instance of this AbiWidget.
  *
  */
@@ -160,7 +161,7 @@ static gboolean s_abi_widget_map_cb(GObject * w, gpointer p);
 //    onto an abi EditMethod (the rest)
 //
 // All that these functions do is marshall data into and out of
-// the AbiWord application
+// the Abinova application
 
 #define EM_NAME(n) _abi_em_##n
 #define PUBLIC_EM_NAME(n) abi_widget_##n
@@ -1301,7 +1302,7 @@ s_abi_widget_get_file_type(const char * extension_or_mimetype, const char * cont
 
 	if (ieft == IEFT_Unknown && !bImport)
 	{
-		ieft = IE_Exp::fileTypeForSuffix(".abw");
+		ieft = IE_Exp::fileTypeForSuffix(".abwn");
 	}
 
 	return ieft;
@@ -1452,7 +1453,7 @@ extern "C" GdkPixbuf *
 abi_widget_render_page_to_image(AbiWidget *abi, int iPage)
 {
 	//
-	// AbiWord counts from 0 but we let the caller count from 1.
+	// Abinova counts from 0 but we let the caller count from 1.
 	//
 	if(iPage <= 0)
 	{
@@ -2411,7 +2412,7 @@ abi_widget_get_type (void)
 /**
  * abi_widget_new:
  *
- * Creates a new AbiWord widget using an internal Abiword App
+ * Creates a new Abinova widget using an internal Abiword App
  */
 extern "C" GtkWidget *
 abi_widget_new (void)
@@ -2427,7 +2428,7 @@ abi_widget_new (void)
 /**
  * abi_widget_new_with_file:
  *
- * Creates a new AbiWord widget and tries to load the file
+ * Creates a new Abinova widget and tries to load the file
  * This uses an internal Abiword App
  *
  * \param file - A file on your HD
@@ -2457,7 +2458,7 @@ abi_widget_get_frame ( AbiWidget * w )
  *
  * Invoke any of abiword's edit methods by name
  *
- * \param w - An AbiWord widget
+ * \param w - An Abinova widget
  * \param mthdName - A null-terminated string representing the method's name
  *
  * \return FALSE if any preconditions fail
@@ -2482,7 +2483,7 @@ abi_widget_invoke (AbiWidget * w, const char * mthdName)
  *
  * Invoke any of abiword's edit methods by name
  *
- * \param w - An AbiWord widget
+ * \param w - An Abinova widget
  * \param mthdName - A null-terminated string representing the method's name
  * \param data - an optional null-terminated string data to pass to the method
  * \param x - an optional x-coordinate to pass to the method (usually 0)

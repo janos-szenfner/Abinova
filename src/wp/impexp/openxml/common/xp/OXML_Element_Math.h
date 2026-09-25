@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2012 Prashant Bafna <appu.bafna@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,7 +26,7 @@
 #include "OXML_Element.h"
 #include "ie_exp_OpenXML.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_types.h"
 #include "ut_string.h"
 #include "pd_Document.h"

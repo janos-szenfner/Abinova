@@ -100,9 +100,9 @@ def classify_topic(paths, msg):
 def print_preamble(major, minor, micro):
     print("<?")
     print("include(\"../format.inc\");")
-    print("printHeader(\"AbiWord v{}.{}.{} ChangeLog\");".format(major, minor, micro))
+    print("printHeader(\"Abinova v{}.{}.{} ChangeLog\");".format(major, minor, micro))
     print("?>")
-    print("<h1>AbiWord v{}.{}.{} Changelog</h1>".format(major, minor, micro))
+    print("<h1>Abinova v{}.{}.{} Changelog</h1>".format(major, minor, micro))
 
 def print_postamble():
     print("<?\nprintFooter();\n?>")

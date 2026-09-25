@@ -2,6 +2,7 @@
 /*
  * xap_TableWidget.h
  * Copyright 2002, Joaquin Cuenca Abela
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * Authors:
  *   Joaquin Cuenca Abela (e98cuenc@yahoo.com)

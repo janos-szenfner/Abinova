@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998-2000 AbiSource, Inc.
  * Copyright (c) 2001,2002 Tomas Frydrych
  * Copyright (c) 2016-2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -1409,6 +1410,70 @@ bool FV_View::cmdMergeCells(PT_DocPosition posSource, PT_DocPosition posDestinat
 	_ensureInsertionPointOnScreen();
 	notifyListeners(AV_CHG_MOTION);
 	return true;
+}
+
+/*!
+ * Merge the cell at the insertion point with the neighbour in the given
+ * direction (0 = left, 1 = right, 2 = above, 3 = below). This is the
+ * directional merge the Merge Cells dialog performs, packaged for the
+ * ribbon popover so it can run anchored under the button.
+ */
+bool FV_View::cmdMergeCellsDir(UT_sint32 iDir)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	PT_DocPosition posSrc = getPoint();
+	UT_sint32 iLeft = 0, iRight = 0, iTop = 0, iBot = 0;
+	getCellParams(posSrc, &iLeft, &iRight, &iTop, &iBot);
+
+	const pf_Frag_Strux* tableSDH = nullptr;
+	if (!m_pDoc->getStruxOfTypeFromPosition(posSrc, PTX_SectionTable, &tableSDH) ||
+		!tableSDH)
+	{
+		return false;
+	}
+	UT_sint32 iNumRows = 0, iNumCols = 0;
+	m_pDoc->getRowsColsFromTableStrux(tableSDH, isShowRevisions(),
+									getRevisionLevel(), &iNumRows, &iNumCols);
+
+	PT_DocPosition posDest = 0;
+	switch (iDir)
+	{
+	case 0: // left
+		if (iLeft <= 0) return false;
+		posDest = findCellPosAt(posSrc, iTop, iLeft - 1) + 1;
+		break;
+	case 1: // right
+		if (iRight >= iNumCols) return false;
+		posDest = findCellPosAt(posSrc, iTop, iRight) + 1;
+		break;
+	case 2: // above
+		if (iTop <= 0) return false;
+		posDest = findCellPosAt(posSrc, iTop - 1, iLeft) + 1;
+		break;
+	case 3: // below
+		if (iBot >= iNumRows) return false;
+		posDest = findCellPosAt(posSrc, iBot, iLeft) + 1;
+		break;
+	default:
+		return false;
+	}
+	if (!posDest)
+	{
+		return false;
+	}
+	PT_DocPosition posSource = posSrc;
+	if (posDest > posSource)
+	{
+		PT_DocPosition swap = posSource;
+		posSource = posDest;
+		posDest = swap;
+	}
+	return cmdMergeCells(posSource, posDest);
 }
 
 

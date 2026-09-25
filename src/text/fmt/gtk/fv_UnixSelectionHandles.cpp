@@ -1,5 +1,6 @@
-/* AbiWord - unix impl for selection handles
+/* Abinova - unix impl for selection handles
  * Copyright (c) 2012 One laptop per child
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

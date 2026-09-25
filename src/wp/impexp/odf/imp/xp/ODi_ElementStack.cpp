@@ -1,6 +1,7 @@
 /* AbiSource Program Utilities
  * 
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -25,7 +26,7 @@
 // Internal includes
 #include "ODi_StartTag.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string.h"
 
 

@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2011 Volodymyr Rudyj <vladimir.rudoy@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +28,7 @@
 #include <map>
 #include <string>
 
-// AbiWord includes
+// Abinova includes
 #include <ie_imp.h>
 #include <ie_imp_XHTML.h>
 #include <ut_xml.h>

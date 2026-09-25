@@ -1,9 +1,10 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4;  indent-tabs-mode: t -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (c) 2001,2002,2003 Tomas Frydrych
  * Copyright (C) 2013-2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -6386,9 +6387,9 @@ bool PD_Document::setAttrProp(const PP_PropertyVector & ppAttr)
 		// were set is not known or stored, and hence other pieces of code while capable
 		// of following WYSIWYG, are not able to do otherwise with knowledge of whether
 		// the user explicitly requested these properties to be set to these values or
-		// they're just this way by virtue of AbiWord insisting on setting the default
+		// they're just this way by virtue of Abinova insisting on setting the default
 		// upon initialization of any and every pd_Document.  This is bad for external
-		// document storage and processing solutions, not to mention plugins that AbiWord
+		// document storage and processing solutions, not to mention plugins that Abinova
 		// may ship.  Keep in mind, this is NOT the only place we have to do this.  Even
 		// individual struxes within the document have to have their properties
 		// initialized as it stands now. -MG

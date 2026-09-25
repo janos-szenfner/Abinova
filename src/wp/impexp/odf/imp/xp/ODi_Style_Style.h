@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -30,7 +31,7 @@
 class ODi_FontFaceDecls;
 class ODi_Abi_Data;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 
@@ -68,19 +69,19 @@ public:
     }
 
     /**
-     * Defines an AbiWord style that is equivalent to this
+     * Defines an Abinova style that is equivalent to this
      * OpenDocument style.
      *
      * Called by text and paragraph styles.
      *
-     * @param pDocument The AbiWord document on which the style will be defined.
+     * @param pDocument The Abinova document on which the style will be defined.
      */
     void defineAbiStyle(PD_Document* pDocument);
     ODi_Abi_Data & getAbiData(void)
       { return m_rAbiData;}
 
     /**
-     * Builds the AbiWord "props" attribute value that describes this
+     * Builds the Abinova "props" attribute value that describes this
      * Style.
      */
     void buildAbiPropsAttrString(ODi_FontFaceDecls& rFontFaceDecls);
@@ -314,28 +315,28 @@ private:
 
     // <attribute name="style:display-name"> (optional)
     // If this attribute is not present, the display name equals the style name.
-    // In AbiWord, maps to the "name" attribute.
+    // In Abinova, maps to the "name" attribute.
     std::string m_displayName;
 
     // Maps to the "type" attribute.
-    // OpenDocument | AbiWord
+    // OpenDocument | Abinova
     // "character"  - "C"
     // "paragraph"  - "P"
-    // "section"    - none (AbiWord don't have section styles)
+    // "section"    - none (Abinova don't have section styles)
     //
-    // An exception is "graphic" styles. AbiWord don't have then.
+    // An exception is "graphic" styles. Abinova don't have then.
     std::string m_family;
 
     // <attribute name="style:parent-style-name"> (optional)
     // If a parent style is not specified, a default parent style defined by
     // the application is used.
     //
-    // In AbiWord, maps to the "basedon" attribute.
+    // In Abinova, maps to the "basedon" attribute.
     std::string m_parentStyleName;
 
     // <attribute name="style:next-style-name">
     // By default, the current style is used as the next style.
-    // In AbiWord, maps to the "followedby" attribute.
+    // In Abinova, maps to the "followedby" attribute.
     std::string m_nextStyleName;
 
     // <attribute name="style:list-style-name"> (optional)
@@ -344,7 +345,7 @@ private:
     // list, where the list does not specify a list style itself, and the list
     // has no list style specification for any of its parents.
     //
-    // Maps to AbiWord, but not directly.
+    // Maps to Abinova, but not directly.
     std::string m_listStyleName;
 
     // <attribute name="style:master-page-name"> (optional)
@@ -355,7 +356,7 @@ private:
     // This attribute is ignored if it is associated with a paragraph style that
     // is applied to a paragraph within a table.
     //
-    // Maps to AbiWord, but not directly.
+    // Maps to Abinova, but not directly.
     std::string m_masterPageName;
 
 

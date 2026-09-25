@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2002 Tomas Frydrych, <tomas@frydrych.uklinux.net>
  * Copyright (C) 2021-2025 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -785,7 +786,7 @@ class ABI_EXPORT GR_Graphics
 	// the default implementation simply returns the passed value
 	virtual void adjustDeletePosition(GR_RenderInfo & ri) VIRTUAL_SFX;
 
-	// the AbiWord line breaking was designed looking for breaks at the right edge of a character,
+	// the Abinova line breaking was designed looking for breaks at the right edge of a character,
 	// i.e., the character that can break is included with the left part of the split run.
 	// the Uniscribe library, however, holds breaking info for left edge, and sometimes it is useful
 	// to know what system we are dealing with.

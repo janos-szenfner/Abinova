@@ -2,6 +2,7 @@
 /* AbiSource
  *
  * Copyright (C) 2007 Philippe Milot <PhilMilot@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,7 +29,7 @@
 
 /*!
  * Map the lowercase w:name values Word/LibreOffice write for builtin
- * styles ("heading 1", "list bullet", ...) onto AbiWord's builtin style
+ * styles ("heading 1", "list bullet", ...) onto Abinova's builtin style
  * names so imported paragraphs get the real builtin style instead of a
  * duplicate custom one. LibreOffice does the same kind of aliasing.
  */

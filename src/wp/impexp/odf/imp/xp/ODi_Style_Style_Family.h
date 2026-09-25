@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -28,7 +29,7 @@
 // Internal includes
 #include "ODi_Style_Style.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_types.h"
 #include "ut_string_class.h"
 
@@ -36,7 +37,7 @@
 class ODi_ElementStack;
 class ODi_FontFaceDecls;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 class ODi_Abi_Data;
 /**

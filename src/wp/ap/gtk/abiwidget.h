@@ -1,9 +1,10 @@
-/* The AbiWord Widget
+/* The Abinova Widget
  *
  * Copyright (C) 2001 AbiSource, Inc.
  * Copyright (C) 2001,2002 Dom Lachowicz <cinamod@hotmail.com>
  * Copyright (C) 2002 Martin Sevior <msevior@physics.unimelb.edu.au>
  * Copyright (C) 2007 One Laptop Per Child
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -100,7 +101,7 @@ G_BEGIN_DECLS
 
   /*
    * These functions basically just marshall back their arguments into
-   * the AbiWord application and return a boolean
+   * the Abinova application and return a boolean
    */
   typedef gboolean (*Abi_EditMethod) (AbiWidget *, const char *, gint32, gint32);
   typedef gboolean (*Abi_Void__Bool_EditMethod) (AbiWidget *);

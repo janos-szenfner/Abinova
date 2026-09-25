@@ -1,8 +1,9 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
  * Copyright (C) 2022 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -84,7 +85,8 @@ UT_Confidence_t IE_Exp_AbiWord_1_Sniffer::supportsMIME (const char * szMIME)
 
 bool IE_Exp_AbiWord_1_Sniffer::recognizeSuffix(const char * szSuffix)
 {
-	return (!g_ascii_strcasecmp(szSuffix,".abw") || !g_ascii_strcasecmp(szSuffix,".zabw") || !g_ascii_strcasecmp(szSuffix, ".abw.gz"));
+	return (!g_ascii_strcasecmp(szSuffix,".abwn") || !g_ascii_strcasecmp(szSuffix,".zabwn") || !g_ascii_strcasecmp(szSuffix, ".abwn.gz")
+		|| !g_ascii_strcasecmp(szSuffix,".abw") || !g_ascii_strcasecmp(szSuffix,".zabw") || !g_ascii_strcasecmp(szSuffix, ".abw.gz"));
 }
 
 UT_Error IE_Exp_AbiWord_1_Sniffer::constructExporter(PD_Document * pDocument,
@@ -98,8 +100,8 @@ bool IE_Exp_AbiWord_1_Sniffer::getDlgLabels(const char ** pszDesc,
 											const char ** pszSuffixList,
 											IEFileType * ft)
 {
-	*pszDesc = "AbiWord (.abw, .zabw, abw.gz)";
-	*pszSuffixList = "*.abw; *.zabw; *.abw.gz";
+	*pszDesc = "Abinova (.abwn, .abw, .zabw, .abw.gz)";
+	*pszSuffixList = "*.abwn; *.abw; *.zabw; *.zabwn; *.abw.gz; *.abwn.gz";
 	*ft = getFileType();
 	return true;
 }
@@ -536,9 +538,9 @@ s_AbiWord_1_Listener::s_AbiWord_1_Listener(PD_Document * pDocument,
 
 	m_pie->addString(nullptr, "\n");
 	m_pie->addComment("========================================================================");
-	m_pie->addComment("This file is an AbiWord document.                                       ");
-	m_pie->addComment("AbiWord is a free, Open Source word processor.                          ");
-	m_pie->addComment("More information about AbiWord is available at http://www.abisource.com/");
+	m_pie->addComment("This file is an Abinova document.                                       ");
+	m_pie->addComment("Abinova is a free, Open Source word processor.                          ");
+	m_pie->addComment("More information about Abinova is available at http://www.abisource.com/");
 	m_pie->addComment("You should not edit this file by hand.                                  ");
 	m_pie->addComment("========================================================================");
 	m_pie->addString(nullptr, "\n");
@@ -1200,7 +1202,7 @@ void s_AbiWord_1_Listener::_handleMetaData(void)
 
   // set all of the important meta-data props
 
-  m_pDocument->setMetaDataProp ( PD_META_KEY_GENERATOR, "AbiWord" ) ;
+  m_pDocument->setMetaDataProp ( PD_META_KEY_GENERATOR, "Abinova" ) ;
   m_pDocument->setMetaDataProp ( PD_META_KEY_FORMAT,    IE_MIMETYPE_AbiWord ) ;
 
 #if 0

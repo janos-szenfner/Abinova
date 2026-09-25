@@ -3,6 +3,7 @@
 /* AbiSource Application Framework
  * Copyright (C) 1998,1999 AbiSource, Inc.
  * Copyright (C) 2004-2026 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -140,6 +141,7 @@ public:
 	void						enumerateDocuments(UT_Vector & v, const AD_Document * pExclude) const;
 	const char *					getApplicationTitleForTitleBar() const;
 	const char *					getApplicationName() const;
+	const char *					getApplicationDisplayName() const;
 
 	virtual void                rebuildMenus(void);
 

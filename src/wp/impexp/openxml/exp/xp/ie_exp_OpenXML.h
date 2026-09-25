@@ -3,6 +3,7 @@
 /* AbiSource
  *
  * Copyright (C) 2008 Firat Kiyak <firatkiyak@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,7 +25,7 @@
 #ifndef _IE_EXP_OPENXML_H_
 #define _IE_EXP_OPENXML_H_
 
-// AbiWord includes
+// Abinova includes
 #include "ie_exp.h"
 #include "ut_debugmsg.h"
 #include "ut_types.h"

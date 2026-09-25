@@ -2,6 +2,7 @@
 
 /* AbiSource Application Framework
  * Copyright (C) 1998-2000 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,11 +31,11 @@ dcl(MSG_ImportingDoc, "Importing Document...")
 dcl(MSG_BuildingDoc,  "Building Document:")
 dcl(MSG_ParagraphsImported,  "Imported Paragraph")
 dcl(MSG_AutoRevision, "Autorevision")
-dcl(MSG_HistoryPartRestore1, "AbiWord cannot fully restore version %d of the document because the version information is incomplete.")
+dcl(MSG_HistoryPartRestore1, "Abinova cannot fully restore version %d of the document because the version information is incomplete.")
 dcl(MSG_HistoryPartRestore2, "The nearest version that can be restored fully is %d. Would you like to restore this version instead? To partially restore version %d press No.")
 dcl(MSG_HistoryPartRestore3, "To continue anyway, press OK.")
 dcl(MSG_HistoryPartRestore4, "To quit the restoration attempt, press Cancel.")
-dcl(MSG_HistoryNoRestore, "AbiWord cannot restore version %d of the document because the version information is missing.")
+dcl(MSG_HistoryNoRestore, "Abinova cannot restore version %d of the document because the version information is missing.")
 dcl(MSG_HistoryConfirmSave, "You have to save changes to document %s before proceeding. Save now?")
 
 dcl(MSG_NoUndo, "This operation cannot be undone. Are you sure you want to proceed?")
@@ -230,7 +231,7 @@ dcl(TB_Font_Symbol,						"Symbols")
 
 /* Unix Print dialog */
 dcl(DLG_UP_PrintTitle,					"Print")
-dcl(DLG_UP_PrintPreviewTitle,					   "AbiWord: Print Preview")
+dcl(DLG_UP_PrintPreviewTitle,					   "Abinova: Print Preview")
 dcl(DLG_UP_PrintTo, 					"Print to: ")
 dcl(DLG_UP_Printer, 					"Printer")
 dcl(DLG_UP_File,						"File")
@@ -262,7 +263,7 @@ dcl(DLG_IP_Width_Label, 				"Width:  ")
 dcl(DLG_IP_Button_Label,				"Insert")
 
 /* Plugin dialog */
-dcl(DLG_PLUGIN_MANAGER_TITLE,			"AbiWord Plugin Manager")
+dcl(DLG_PLUGIN_MANAGER_TITLE,			"Abinova Plugin Manager")
 dcl(DLG_PLUGIN_MANAGER_ACTIVE,			"Active Plugins")
 dcl(DLG_PLUGIN_MANAGER_DEACTIVATE,		"Deactivate plugin")
 dcl(DLG_PLUGIN_MANAGER_DEACTIVATE_ALL,		"Deactivate all plugins")
@@ -277,7 +278,7 @@ dcl(DLG_PLUGIN_MANAGER_NOT_AVAILABLE, 		"Not available")
 
 /* spellchecker */
 dcl(SPELL_CANTLOAD_DICT,				"Could not load the dictionary for the %s language")
-dcl(SPELL_CANTLOAD_DLL,					"AbiWord cannot find the spelling file %s.dll\nPlease download and install Aspell from http://aspell.net/win32/")
+dcl(SPELL_CANTLOAD_DLL,					"Abinova cannot find the spelling file %s.dll\nPlease download and install Aspell from http://aspell.net/win32/")
 
 /* plugin error messages */
 dcl(DLG_PLUGIN_MANAGER_COULDNT_LOAD,	"Could not activate/load plugin")

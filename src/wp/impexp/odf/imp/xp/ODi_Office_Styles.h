@@ -3,6 +3,7 @@
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
  * <daniel.carvalho@indt.org.br>
  * Copyright (C) 2009 Hubert Figuiere
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,7 +40,7 @@ class ODi_NotesConfiguration;
 class ODi_ElementStack;
 class ODi_Abi_Data;
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 
@@ -85,7 +86,7 @@ public:
                                                ODi_ElementStack& rElementStack);
 
     /**
-     * Will do some post-processing and then define all AbiWord styles.
+     * Will do some post-processing and then define all Abinova styles.
      */
     void addedAllStyles(PD_Document* pDocument,
                         ODi_FontFaceDecls& rFontFaceDecls) {

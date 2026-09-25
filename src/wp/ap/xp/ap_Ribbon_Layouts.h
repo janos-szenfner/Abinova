@@ -1,6 +1,7 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
-/* AbiWord
+/* Abinova
  * Copyright (C) 2026 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -619,18 +620,18 @@ static const AP_RibbonItem s_ribbon_table_table[] =
 	AP_RIBBON_END
 };
 
-/* row-major:  Insert Above | Insert Left  | Merge Cells
- *             Insert Below | Insert Right | Split Cells
- *                              -          | Split Table */
+/* row-major:  Rows Above | Columns Left  | Merge Cells
+ *             Rows Below | Columns Right | Split Cells
+ *             Split Table                               */
 static const AP_RibbonItem s_ribbon_table_rowscols[] =
 {
 	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE),
 	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE),
-	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_MERGE_CELLS),
+	AP_RIBBON_MENUPOP_W(AP_MENU_ID_TABLE_MERGE_CELLS),
 	AP_RIBBON_ROWEND,
 	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER),
 	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER),
-	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_SPLIT_CELLS),
+	AP_RIBBON_MENUPOP_W(AP_MENU_ID_TABLE_SPLIT_CELLS),
 	AP_RIBBON_ROWEND,
 	AP_RIBBON_MENU_W(AP_MENU_ID_TABLE_SPLIT_TABLE),
 	AP_RIBBON_END
@@ -718,7 +719,6 @@ static const AP_RibbonItem s_ribbon_help_items[] =
 	AP_RIBBON_MENU_L(AP_MENU_ID_HELP_SEARCH),
 	AP_RIBBON_MENU_L(AP_MENU_ID_HELP_CHECKVER),
 	AP_RIBBON_MENU_L(AP_MENU_ID_HELP_REPORT_BUG),
-	AP_RIBBON_MENU_L(AP_MENU_ID_HELP_CREDITS),
 	AP_RIBBON_MENU_L(AP_MENU_ID_HELP_ABOUT),
 	AP_RIBBON_END
 };

@@ -1,9 +1,10 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (c) 2010 GPL. V2+ copyright to AbiSource B.V.
  * Author: This file contains some code that was originally written by Ben Martin in 2010.
  * Copyright (c) 2011 Ben Martin
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,7 +55,7 @@ using std::make_pair;
 
 
 //
-// convert the redland model into native AbiWord RDF triples
+// convert the redland model into native Abinova RDF triples
 //
 UT_Error
 convertRedlandToNativeModel( PD_DocumentRDFMutationHandle m,
@@ -133,7 +134,7 @@ convertNativeToRedlandModel(
         for( POCol::iterator poiter = polist.begin();
              poiter != poend; ++poiter )
         {
-            // subject, predicate and object are the AbiWord native versions
+            // subject, predicate and object are the Abinova native versions
             // the ones with "r" prefix are redland native.
             PD_URI    predicate = poiter->first;
             PD_Object object = poiter->second;

@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -32,7 +33,7 @@
 #include "ODe_ListenerAction.h"
 #include "ODe_Style_PageLayout.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pp_AttrProp.h"
 #include "ut_units.h"
 

@@ -3,6 +3,7 @@
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
  * <daniel.carvalho@indt.org.br>
  * Copyright (C) 2021 Hubert Figuière
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,7 +36,7 @@
 #include "ODi_Table_ListenerState.h"
 #include "ODi_TextContent_ListenerState.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string.h"
 #include "ut_std_vector.h"
 

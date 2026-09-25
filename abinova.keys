@@ -1,31 +1,31 @@
 application/x-abiword:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f
 
 application/msword:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f
 
 application/rtf:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f
 
 application/vnd.oasis.opendocument.text:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f
 
 application/vnd.oasis.opendocument.text-template:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f
 
 application/vnd.openxmlformats-officedocument.wordprocessingml.document:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f
 
 application/vnd.openxmlformats-officedocument.wordprocessingml.template:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f
 
 application/epub+zip:
-	open=abiword %f
-	view=abiword %f
+	open=abinova %f
+	view=abinova %f

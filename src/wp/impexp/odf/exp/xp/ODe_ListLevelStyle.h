@@ -1,6 +1,7 @@
 /* AbiSource
  *
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -22,10 +23,10 @@
 #ifndef ODE_LISTLEVELSTYLE_H_
 #define ODE_LISTLEVELSTYLE_H_
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string_class.h"
 
-// AbiWord classes
+// Abinova classes
 class PP_AttrProp;
 
 
@@ -60,7 +61,7 @@ protected:
     void _writeListLevelProperties(GsfOutput* pODT,
                               const UT_UTF8String& rSpacesOffset) const;
 
-    // listid attribute fom AbiWord <p> tag.
+    // listid attribute fom Abinova <p> tag.
     UT_UTF8String m_AbiListId;
 
     UT_UTF8String m_level; // text:level

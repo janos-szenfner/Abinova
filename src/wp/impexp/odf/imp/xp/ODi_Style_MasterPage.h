@@ -1,6 +1,7 @@
 /* AbiSource Program Utilities
  *
  * Copyright (C) 2005 Daniel d'Andrada T. de Carvalho
+ * Copyright (C) 2025-2026 Abinova contributors
  * <daniel.carvalho@indt.org.br>
  *
  * This program is free software; you can redistribute it and/or
@@ -27,10 +28,10 @@
 #include "ODi_ListenerState.h"
 #include "ODi_Style_PageLayout.h"
 
-// AbiWord includes
+// Abinova includes
 #include "ut_string_class.h"
 
-// AbiWord classes
+// Abinova classes
 class PD_Document;
 
 /**
@@ -93,16 +94,16 @@ private:
     std::string m_name;
     std::string m_layoutName;
 
-    // The AbiWord header section id
+    // The Abinova header section id
     std::string m_AW_headerSectionID;
 
-    // The AbiWord even header section id
+    // The Abinova even header section id
     std::string m_AW_evenHeaderSectionID;
 
-    // The AbiWord footer section id
+    // The Abinova footer section id
     std::string m_AW_footerSectionID;
 
-    // The AbiWord even footer section id
+    // The Abinova even footer section id
     std::string m_AW_evenFooterSectionID;
 
     // The parsing uses a two-pass approach:
@@ -112,7 +113,7 @@ private:
     //   translated into abi sections.
     //
     // The second pass is postponed because headers and footers sections, on
-    // AbiWord, must appear after the text sections that uses then. So,
+    // Abinova, must appear after the text sections that uses then. So,
     // they must be parsed after <office:text>, which contains the entire
     // document content.
     enum ODI_ParsingState {

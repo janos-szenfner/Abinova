@@ -1,5 +1,6 @@
 /* 
  * Copyright (C) 2006 Rob Staudinger <robert.staudinger@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -74,7 +75,7 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 	dlg = gtk_about_dialog_new();
 	//JEAN: do we really need the "activate-link" signal?
 	g_signal_connect(dlg, "activate-link", G_CALLBACK(onAboutDialogActivate), nullptr);
-	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dlg), "AbiWord");
+	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dlg), "Abinova");
 	gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(dlg), authors);
 	gtk_about_dialog_set_documenters(GTK_ABOUT_DIALOG(dlg), documenters);
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dlg), copyright);
@@ -91,6 +92,7 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 		nullptr;
 	if (parent) {
 		gtk_window_set_transient_for(GTK_WINDOW(dlg), GTK_WINDOW(parent));
+		centerDialog(parent, dlg, false);
 	}
 	/* GtkAboutDialog is a GtkWindow, not a GtkDialog, in GTK4: no
 	 * response signal, no action area.  Present it directly; its own

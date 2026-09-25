@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2005 INdT
+ * Copyright (C) 2025-2026 Abinova contributors
  * Author: Daniel d'Andrada T. de Carvalho <daniel.carvalho@indt.org.br>
  * 
  * This program is free software; you can redistribute it and/or
@@ -26,7 +27,7 @@
 #include "ODe_Common.h"
 #include "ODe_Style_Style.h"
 
-// AbiWord includes
+// Abinova includes
 #include "pp_AttrProp.h"
 
 /**
@@ -68,7 +69,7 @@ ODe_Style_MasterPage::~ODe_Style_MasterPage() {
 
 
 /**
- * Fetches info from an AbiWord <section> tag (from its attributes as properties).
+ * Fetches info from an Abinova <section> tag (from its attributes as properties).
  */
 void ODe_Style_MasterPage::fetchAttributesFromAbiSection(const PP_AttrProp* pAP) {
     const gchar* pValue;
@@ -113,7 +114,7 @@ bool ODe_Style_MasterPage::write(GsfOutput* pODT) const {
     /*
     We have to deal with two confusion things when writing out header/footers:
     
-    1. Oddly enough AbiWord uses "header-even" and "footer-even" for page 1, 3, 5, etc :)
+    1. Oddly enough Abinova uses "header-even" and "footer-even" for page 1, 3, 5, etc :)
     
     2. In OpenDocument you can specify an alternative header/footer for "left" pages.
        Oddly enough OpenOffice.org seems to interpret "left" pages as page 2, 4, 6, etc.

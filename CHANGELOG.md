@@ -1,7 +1,7 @@
 # Changelog
 
-All notable changes in this experimental AbiWord GTK4 fork, grouped by
-category. Based on upstream AbiWord 3.1.90 (`5e3e1cc` import).
+All notable changes in this experimental Abinova GTK4 fork, grouped by
+category. Based on upstream Abinova 3.1.90 (`5e3e1cc` import).
 
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
@@ -60,7 +60,7 @@ below are on `main` but the release has not been cut yet.
 - **Markdown importer extended** — YAML frontmatter parses into
   document metadata (`dc.title`/`dc.creator`/`dc.date`/`dc.subject`/
   `abiword.keywords`); reference links/images resolve from `[id]: url`
-  definitions; `[^id]` footnotes become real AbiWord footnote objects;
+  definitions; `[^id]` footnotes become real Abinova footnote objects;
   inline `$…$` and fenced `$$…$$`/`math` blocks import as styled math
   text; `<!-- -->` comments are dropped; `:emoji:` shortcodes convert
   to Unicode.
@@ -138,7 +138,7 @@ below are on `main` but the release has not been cut yet.
   branch is consumed and the whole `mc:Fallback` subtree suppressed;
   Word 2010+/LibreOffice drawings and textboxes no longer duplicate.
 - **DOCX builtin style names mapped** — lowercase `w:name` values
-  (`heading 1`, `list bullet`, …) resolve to AbiWord builtins instead
+  (`heading 1`, `list bullet`, …) resolve to Abinova builtins instead
   of duplicate custom styles.
 - **DOCX headers/footers** — tables, images, math and textboxes inside
   header/footer parts now import (was Common+Field states only);
@@ -188,6 +188,64 @@ below are on `main` but the release has not been cut yet.
 
 ### User interface
 
+- **Application renamed to Abinova** — all user-facing branding
+  moved from AbiWord to Abinova: window title/WM_CLASS
+  (`abinova`), executable (`abinova`), `PACKAGE`/`PACKAGE_NAME`
+  in `configure.ac`, desktop file, AppStream metainfo, man page,
+  `abiword.keys`, user config directory (`~/.config/abinova`,
+  with automatic migration from `~/.config/abiword`), About
+  dialog and help/documentation text. File-format identifiers
+  (`abiword.*` metadata keys, `abiword:` ODF attributes, the
+  AWML doctype) are intentionally unchanged for compatibility.
+- **New native extension `.abwn`** — new documents save as
+  `.abwn` by default (`DefaultSaveFormat`, first entry in the
+  export filter list and `preferredSuffixForFileType`, so
+  `--to=`/Save As all pick it); `.abw`, `.awt`, `.zabw`,
+  `.abw.gz`, `.bzabw`, `.abw.bz2` remain fully readable, as do
+  the `.abwn` compressed variants, and content sniffing still
+  keys on the `<abiword>` root so the format is unchanged.
+  `application/x-abinova` added as an importer mime alias.
+- **Copyright attribution follows file provenance** — files
+  created in this fork carry an Abinova-only copyright; files
+  modified from upstream carry both AbiSource and Abinova;
+  untouched files and vendored third-party code (wv, hunspell,
+  wpd/wps/wpg sources) keep their original headers unchanged.
+- **Contextual Table Layout ribbon tab** — appears only while the
+  caret is inside a table and returns focus to Home when it
+  leaves. Groups: Table (Select/View Gridlines/Properties/Draw
+  Table/Eraser/Delete), Rows & Columns (Insert Above/Below/Left/
+  Right, Merge Cells, Split Cells, Split Table as a three-row
+  compact grid), Cell Size (AutoFit, Height/Width spin fields
+  synced to the caret cell, Distribute Rows/Columns), Alignment
+  (nine-way cell alignment grid, Text Direction, Cell Margins)
+  and Data (Sort Table, Repeat Header Rows, Convert to Text).
+  The Word Formula control is intentionally omitted.
+- **Merge Cells / Split Cells are anchored popovers** — the old
+  floating modeless dialogs opened at the top-left corner under
+  GTK4 (no `gtk_window_move`); both are now real `GtkPopover`s
+  anchored under their ribbon buttons, offering directional
+  merge (left/right/above/below via the new `mergeCellsDir` edit
+  method and `FV_View::cmdMergeCellsDir`) and six directional
+  split options (`splitCellsDir` → `AP_CellSplitType`). Every
+  Table Layout popover is verified anchored beneath its button.
+- **Dialog centering restored on X11** — `XAP_UnixDialogHelper::
+  centerDialog` now also positions non-modal dialogs over the
+  centre of their transient parent via `gdk_x11_surface_move_to_`
+  `rect` after map (Wayland relies on the transient-parent hint,
+  which is set for all dialogs including About).
+- **Ribbon entry/spin fields no longer lose keystrokes** — the
+  window-level key controller fed typed characters to the
+  document even when a ribbon editable (spin field, search
+  entry) had focus; it now defers to the focused widget.
+- **Cell-size spin fields hardened** — typing in the Height/Width
+  fields applies the value on text-changed debounce/focus-out
+  instead of GTK's `value-changed` commit (which raced the
+  view-notification refresh and produced a write→readback
+  feedback loop); the pending value is captured at change time,
+  dimensions are formatted in the C locale, applies dedupe by
+  last-applied value, and the caret's table position is captured
+  on focus-in so applying after the caret moved still targets
+  the right cell.
 - **LibreOffice NotebookBar-style ribbon UI** — `GtkNotebook` ribbon
   built from `ap_Ribbon_Layouts.h`, modelled on LibreOffice Writer's
   `sw/uiconfig/swriter/ui/notebookbar.ui`: File / Home / Insert /
@@ -377,7 +435,7 @@ below are on `main` but the release has not been cut yet.
   comments are being browsed.
 - **Multiple comments on the same text** — overlapping and same-range
   comment anchors are now representable in the `.abw` format: the
-  AbiWord-1 exporter tracks open `<ann>` elements as a nesting depth
+  Abinova-1 exporter tracks open `<ann>` elements as a nesting depth
   instead of a single flag, so anchors nest properly instead of one
   silently truncating the other into an empty anchor. Anonymous end
   objects pop the innermost open anchor, and section-boundary closes
@@ -660,14 +718,14 @@ below are on `main` but the release has not been cut yet.
   are now shown in the gallery and the Styles pane too (applying
   them sets the run-level style on the selection via the existing
   `changeSpanFmt` path), and the gallery tiles order like Word's.
-  Old AbiWord-only styles (Block Text, Plain Text, Chapter/Section/
+  Old Abinova-only styles (Block Text, Plain Text, Chapter/Section/
   Numbered Heading) remain defined for document compatibility but
   are hidden from the Recommended list; the .doc importer's
   `s_translateStyleId` now maps Heading 5–9, Title, Subtitle, Strong
   and Emphasis to real built-ins.
 - **Internal help window** — Help Contents / Search for Help /
   Credits no longer launch an external browser; they open an in-app
-  "AbiWord Help" window (`xap_UnixHelpWindow`, behind a new
+  "Abinova Help" window (`xap_UnixHelpWindow`, behind a new
   `XAP_AppImpl::openHelpWindow` virtual so other toolkits keep the
   old URL behaviour): a toolbar with Back/Home, a language selector
   (English / Français / Polski switching between the bundled
@@ -981,6 +1039,24 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Split Table crash fixed** — the command deleted the original
+  table rows and re-inserted them as a new table, but tracked
+  positions via `getPoint()` values that went stale mid-edit; it
+  now tracks strux handles so the new table gets a valid layout.
+- **Undo after word count no longer crashes** — `countWords`
+  iterated page pointers that could belong to a torn-down layout.
+- **`isInTable` handles strux-boundary caret positions** —
+  whole-cell selections land the caret on table/cell strux
+  boundaries; the check now resolves those positions so the
+  Table Layout tab (and Merge Cells) stays reachable mid-selection.
+- **Cell property writes go through `setCellFormat`** — calling
+  `changeStruxFmt` with a properties vector on a cell strux could
+  crash relayout; cell props now use the dedicated path.
+- **Repeat-header/split-table state balanced** — `table-wait-index`
+  was left bumped after the operation; `_restoreCellParams`
+  restores it so subsequent table commands behave.
+- **Crash diagnostics** — `catchSignals` now dumps a backtrace to
+  stderr on fatal signals.
 - **Canvas blanking fixed when selecting a transformed object** —
   `GR_CairoGraphics::getCairo()` implicitly calls `beginPaint()` when
   no paint is running; calling it from `draw()`/`drawHandles()`
@@ -1041,7 +1117,7 @@ below are on `main` but the release has not been cut yet.
   old GNOME GitLab project; the About dialog lists Janos Szenfner
   and links the fork's repository.
 - **Same-application clipboard deadlock** — `gdk_clipboard_read_async`
-  deadlocked when AbiWord itself owned the clipboard (the async read
+  deadlocked when Abinova itself owned the clipboard (the async read
   calls back into our own `AbiContentProvider` on the main thread and
   wedges on a GLib mutex). `XAP_UnixClipboard::getData`/`getTextData`
   now detect a locally-owned clipboard (`gdk_clipboard_is_local`) and
@@ -1381,6 +1457,13 @@ below are on `main` but the release has not been cut yet.
 
 ### Known issues / not done yet
 
+- Some classic-menu features are not reachable from the ribbon
+  (Preferences/Options, Mail Merge, Text→Table, Stylist, the RDF
+  menu, Recent Files list, …) — see the README "Classic menu vs
+  ribbon" section for the full gap list.
+- Closing a frame can crash in `abi_font_combo_dispose`
+  (`ev_UnixFontCombo.cpp`) unref'ing an invalid GObject
+  (pre-existing, observed during testing).
 - GTK4 dialog migration is mechanically complete but some dialogs may
   still have layout quirks.
 - Headless `--to=` conversion writes output correctly but segfaults

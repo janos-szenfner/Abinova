@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -501,7 +502,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_HELP_CHECKVER,		0,0,0,0,	"helpCheckVer",			nullptr,					ap_GetLabel_Checkver);
 	_s(AP_MENU_ID_HELP_SEARCH,		0,0,0,0,	"helpSearch",			nullptr,					ap_GetLabel_Search);
 	_s(AP_MENU_ID_HELP_ABOUT,		0,1,0,0,	"dlgAbout",			nullptr,					ap_GetLabel_About);
-	_s(AP_MENU_ID_HELP_CREDITS, 0,0,0,0, "helpCredits", nullptr, nullptr);
 	_s(AP_MENU_ID_HELP_REPORT_BUG, 0,0,0,0, "helpReportBug", nullptr, nullptr);
 	_s(AP_MENU_ID_HELP_UI,			1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_HELP_UI_CLASSIC,	0,0,0,1,	"viewClassicUI",		ap_GetState_UI,				nullptr);

@@ -7,6 +7,6 @@ contributions over the years have been invaluable.
 Current maintainer
 ------------------
 
-AbiWord current maintainer is:
+Abinova current maintainer is:
 
 Hubert Figuière <hub@figuiere.net>

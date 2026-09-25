@@ -3,6 +3,7 @@
 /* AbiSource Application Framework
  * Copyright (C) 2001 AbiSource, Inc.
  * Copyright (C) 2001 Dom Lachowicz <cinamod@hotmail.com> 
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,7 +41,7 @@
   #include "xap_UnixModule.h"
   #define MODULE_CLASS XAP_UnixModule
 
-// log information about plugin loading into the <log> section of AbiWord.profile
+// log information about plugin loading into the <log> section of Abinova.profile
 // (we save the prefs file after each call, so as to maximise the information we have in
 // case a plugin crashes and the crash handler does not get a chance to save it for us
 #define XAP_MODULE_MANAGER_LOAD_LOG(msg1, msg2)                                      \

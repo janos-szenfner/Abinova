@@ -1,6 +1,7 @@
 /* AbiSource
  * 
  * Copyright (C) 2012 Prashant Bafna <appu.bafna@gmail.com>
+ * Copyright (C) 2025-2026 Abinova contributors
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +22,7 @@
 // Class definition include
 #include <OXML_Element_Math.h>
 
-// AbiWord includes
+// Abinova includes
 #include "ut_std_string.h"
 #include "ie_math_convert.h"
 
