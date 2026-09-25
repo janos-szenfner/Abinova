@@ -136,6 +136,23 @@ def rPr_props(rPr):
     return out
 
 
+_DARK_BG = re.compile(
+    r"background-color:theme:[a-z0-9]+:s([5-9][0-9]|100)\b|"
+    r"background-color:theme:text1:t8[0-9]\b")
+
+
+def ensure_readable_text(cell, char):
+    """Word puts light text on dark fills via its rPr; some builtin
+    recipes leave the colour implicit.  When a part's fill is a dark
+    shade and no text colour is set, fall back to background1 (white)
+    so the text stays legible."""
+    if char and re.search(r"\bcolor:", char):
+        return char
+    if cell and _DARK_BG.search(cell):
+        return (char + "; " if char else "") + "color:theme:background1"
+    return char
+
+
 def style_family(style_id, name):
     n = name.lower()
     if "list" in n:
@@ -165,15 +182,28 @@ def main(path):
         fam = style_family(sid, nm)
 
         parts = []
-        # whole-table part: tblPr at style level
-        tp = re.search(r'<w:tblPr>(.*?)</w:tblPr>', body, re.S)
+        # whole-table part: tblPr/tcPr/rPr at style level (the
+        # conditional tblStylePr blocks are excluded first so their
+        # tcPr/rPr don't leak into the whole-table defaults)
+        whole = re.sub(r"<w:tblStylePr\b.*?</w:tblStylePr>", "",
+                       body, flags=re.S)
+        wp, wch = [], []
+        tp = re.search(r'<w:tblPr>(.*?)</w:tblPr>', whole, re.S)
         if tp and "<w:tblBorders>" in tp.group(1):
             wb = re.sub(r"<w:tblBorders>|</w:tblBorders>", "",
                         re.search(r"<w:tblBorders>.*?</w:tblBorders>",
                                   tp.group(1), re.S).group(0))
             wp = border_props(wb)
-            if wp:
-                parts.append(("FV_TSP_Whole", "; ".join(wp), ""))
+        tc = re.search(r"<w:tcPr>(.*?)</w:tcPr>", whole, re.S)
+        if tc:
+            wp += tc_props(tc.group(1), sid)
+        rp = re.search(r"<w:rPr>(.*?)</w:rPr>", whole, re.S)
+        if rp:
+            wch = rPr_props(rp.group(1))
+        if wp or wch:
+            parts.append(("FV_TSP_Whole", "; ".join(wp),
+                          ensure_readable_text("; ".join(wp),
+                                               "; ".join(wch))))
 
         for pm in re.finditer(
                 r'<w:tblStylePr w:type="([^"]*)">(.*?)</w:tblStylePr>',
@@ -191,7 +221,8 @@ def main(path):
                 char = rPr_props(rp.group(1))
             if cell or char:
                 parts.append((PART[ptype], "; ".join(cell),
-                              "; ".join(char)))
+                              ensure_readable_text("; ".join(cell),
+                                                   "; ".join(char))))
 
         if not parts:
             continue

@@ -48,10 +48,11 @@ struct FV_TableStyleLook
 
 	FV_TableStyleLook()
 		: firstRow(true), lastRow(false), bandRow(true),
-		  firstCol(false), lastCol(false), bandCol(false) {}
+		  firstCol(true), lastCol(false), bandCol(false) {}
 
 	/* compact on-strux form: "F L B f l b" letters present = ON,
-	 * e.g. "FB" = header row + banded rows (the default) */
+	 * e.g. "FBf" = header row + banded rows + first column, the
+	 * default (matches OOXML's shipped tblLook val="04A0") */
 	std::string toString() const;
 	static FV_TableStyleLook fromString(const char * s);
 };

@@ -46,7 +46,9 @@ FV_TableStyleLook FV_TableStyleLook::fromString(const char * s)
 	l.firstRow = l.lastRow = l.bandRow = l.firstCol = l.lastCol = l.bandCol = false;
 	if (!s)
 	{
-		l.firstRow = l.bandRow = true;	// document default
+		/* document default: header row + first column + banded
+		 * rows - the flags Word ships as tblLook val="04A0" */
+		l.firstRow = l.bandRow = l.firstCol = true;
 		return l;
 	}
 	for (const char * p = s; *p; ++p)

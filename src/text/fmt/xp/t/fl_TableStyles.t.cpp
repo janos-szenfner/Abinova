@@ -98,9 +98,9 @@ TFTEST_MAIN("fl_TableStyles")
 
 	/* ---------- look flags ---------- */
 	FV_TableStyleLook look;	/* ctor = document defaults */
-	TFPASS(look.firstRow && look.bandRow);
-	TFPASS(!look.lastRow && !look.firstCol && !look.lastCol && !look.bandCol);
-	TFPASS((look.toString()) == (std::string("FB")));
+	TFPASS(look.firstRow && look.bandRow && look.firstCol);
+	TFPASS(!look.lastRow && !look.lastCol && !look.bandCol);
+	TFPASS((look.toString()) == (std::string("FBf")));
 
 	{
 		FV_TableStyleLook l = FV_TableStyleLook::fromString("FLf");
@@ -110,7 +110,7 @@ TFTEST_MAIN("fl_TableStyles")
 	{
 		/* no stored value → document defaults */
 		FV_TableStyleLook l = FV_TableStyleLook::fromString(nullptr);
-		TFPASS(l.firstRow && l.bandRow);
+		TFPASS(l.firstRow && l.bandRow && l.firstCol);
 		/* explicit empty → all flags off */
 		FV_TableStyleLook e = FV_TableStyleLook::fromString("");
 		TFPASS(!e.firstRow && !e.lastRow && !e.bandRow &&
@@ -166,9 +166,11 @@ TFTEST_MAIN("fl_TableStyles")
 		TFPASS(body.charProps.find("font-weight:bold") ==
 			   std::string::npos);
 
-		/* Header Row off → row 0 loses the header formatting */
+		/* Header Row off → row 0 loses the header formatting
+		 * (firstCol forced off to isolate the header part) */
 		FV_TableStyleLook noHdr = look;
 		noHdr.firstRow = false;
+		noHdr.firstCol = false;
 		FV_TableStyleCell c =
 			FV_tableStyleCellProps(*g2, noHdr, 0, 0, 3, 3);
 		TFPASS(!propIs(c.cellProps, "background-color", "4472C4"));
@@ -204,7 +206,7 @@ TFTEST_MAIN("fl_TableStyles")
 		FV_TableStyleLook cb = look;
 		cb.bandCol = true;
 		cb.bandRow = false;	/* isolate column banding */
-		/* firstCol off → col 0 is band 0 */
+		cb.firstCol = false;	/* col 0 is band 0 */
 		FV_TableStyleCell c0 =
 			FV_tableStyleCellProps(*g4, cb, 1, 0, 3, 3);
 		FV_TableStyleCell c1 =
@@ -246,8 +248,10 @@ TFTEST_MAIN("fl_TableStyles")
 		TFPASS(l.charProps.find("font-weight:bold") != std::string::npos);
 
 		/* flag off → emphasis gone */
+		FV_TableStyleLook off = look;
+		off.firstCol = false;
 		FV_TableStyleCell f2 =
-			FV_tableStyleCellProps(*lt3, look, 1, 0, 3, 3);
+			FV_tableStyleCellProps(*lt3, off, 1, 0, 3, 3);
 		TFPASS(f2.charProps.find("font-weight:bold") == std::string::npos);
 	}
 

@@ -10960,7 +10960,7 @@ static void _s_tbl_tile_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 	const double m = 2.0;
 	const double cw = (width - 2 * m) / C;
 	const double rh = (height - 2 * m) / R;
-	FV_TableStyleLook look;	/* defaults: header row + banded rows */
+	FV_TableStyleLook look;	/* defaults: header, first col, banded rows */
 
 	cairo_set_line_width(cr, 1.0);
 	for (int r = 0; r < R; ++r)
@@ -10973,13 +10973,26 @@ static void _s_tbl_tile_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 
 			std::string bg = _tbl_prop_val(cp.cellProps,
 										   "background-color");
-			if (!_tbl_cairo_color(cr, bg))
-				cairo_set_source_rgb(cr, 1, 1, 1);
+			UT_RGBColor bgc(255, 255, 255);
+			if (!bg.empty() && bg != "auto" && bg != "transparent")
+				UT_parseColor(bg.c_str(), bgc);
+			cairo_set_source_rgb(cr, bgc.m_red / 255.0,
+								 bgc.m_grn / 255.0, bgc.m_blu / 255.0);
 			cairo_rectangle(cr, x, y, cw, rh);
 			cairo_fill(cr);
 
-			/* fake text baseline hint */
-			cairo_set_source_rgba(cr, 0, 0, 0, 0.35);
+			/* fake text baseline hint: the recipe's text colour if
+			 * given, else a contrast mark against the cell fill */
+			std::string tc = _tbl_prop_val(cp.charProps, "color");
+			if (!_tbl_cairo_color(cr, tc))
+			{
+				double lum = 0.299 * bgc.m_red +
+					0.587 * bgc.m_grn + 0.114 * bgc.m_blu;
+				if (lum < 140)
+					cairo_set_source_rgba(cr, 1, 1, 1, 0.75);
+				else
+					cairo_set_source_rgba(cr, 0, 0, 0, 0.35);
+			}
 			cairo_rectangle(cr, x + 2, y + rh / 2 - 0.5, cw - 4, 1.0);
 			cairo_fill(cr);
 
