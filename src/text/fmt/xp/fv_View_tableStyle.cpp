@@ -64,6 +64,7 @@ struct FV_TblCell
 {
 	const pf_Frag_Strux *	sdh;
 	PT_DocPosition			pos;
+	PT_DocPosition			posEndCell;
 	UT_sint32				row, col, rowspan, colspan;
 };
 
@@ -113,30 +114,56 @@ static UT_sint32 fv_attachInt(FV_View * view, PD_Document * doc,
 
 /* ---- find the table at the caret and enumerate its cells ---- */
 
+/* the table the caret/selection refers to: inside the caret's table,
+ * inside the anchor's table (whole-cell selections sit the anchor on
+ * the strux itself), or the first table fully inside the selection
+ * range (select-all / drags spanning the whole table) */
+static const pf_Frag_Strux * fv_tableSDH(FV_View * view, PD_Document * doc)
+{
+	const pf_Frag_Strux * tableSDH = nullptr;
+	if (doc->getStruxOfTypeFromPosition(view->getPoint(),
+									  PTX_SectionTable, &tableSDH) &&
+		tableSDH)
+		return tableSDH;
+	if (view->isSelectionEmpty())
+		return nullptr;
+	PT_DocPosition posA = view->getSelectionAnchor();
+	PT_DocPosition posB = view->getPoint();
+	if (doc->getStruxOfTypeFromPosition(posA, PTX_SectionTable,
+									  &tableSDH) && tableSDH)
+		return tableSDH;
+
+	PT_DocPosition posStart = UT_MIN(posA, posB);
+	PT_DocPosition posEnd = UT_MAX(posA, posB);
+	if (posEnd <= posStart)
+		return nullptr;
+	/* neither endpoint sits inside a table (partial overlaps were
+	 * caught above), so the only hit left is a table fully inside
+	 * the selection: scan forward from the section strux */
+	const pf_Frag_Strux * sdh = nullptr;
+	if (!doc->getStruxOfTypeFromPosition(posStart, PTX_Section, &sdh) ||
+		!sdh)
+		return nullptr;
+	const pf_Frag_Strux * tab = nullptr;
+	while (doc->getNextStruxOfType(sdh, PTX_SectionTable, &tab) && tab)
+	{
+		PT_DocPosition posTab = doc->getStruxPosition(tab);
+		if (posTab >= posEnd)
+			break;
+		if (posTab >= posStart)
+			return tab;
+		sdh = tab;
+	}
+	return nullptr;
+}
+
 static bool fv_enumTable(FV_View * view, PD_Document * doc,
 						 FV_TblCells & out)
 {
 	UT_return_val_if_fail(view && doc, false);
-	PT_DocPosition posCaret = view->getPoint();
-
-	const pf_Frag_Strux * tableSDH = nullptr;
-	if (!doc->getStruxOfTypeFromPosition(posCaret, PTX_SectionTable, &tableSDH) ||
-		!tableSDH)
-	{
-		/* whole-table/cell selection: anchor can sit on the strux
-		 * itself where the position lookup misses */
-		if (!view->isSelectionEmpty() &&
-			doc->getStruxOfTypeFromPosition(view->getSelectionAnchor(),
-											PTX_SectionTable, &tableSDH) &&
-			tableSDH)
-		{
-			// found via anchor
-		}
-		else
-		{
-			return false;
-		}
-	}
+	const pf_Frag_Strux * tableSDH = fv_tableSDH(view, doc);
+	if (!tableSDH)
+		return false;
 
 	out.tableSDH = tableSDH;
 	out.posTable = doc->getStruxPosition(tableSDH);
@@ -174,6 +201,11 @@ static bool fv_enumTable(FV_View * view, PD_Document * doc,
 		FV_TblCell c;
 		c.sdh = sdh;
 		c.pos = doc->getStruxPosition(sdh);
+		/* snapshot the end position now: strux pointers can go stale
+		 * across piece-table mutations, positions cannot */
+		const pf_Frag_Strux * endCell =
+			doc->getEndCellStruxFromCellStrux(sdh);
+		c.posEndCell = endCell ? doc->getStruxPosition(endCell) : 0;
 		c.row = fv_attachInt(view, doc, sdh, "top-attach", 0);
 		c.col = fv_attachInt(view, doc, sdh, "left-attach", 0);
 		UT_sint32 bot = fv_attachInt(view, doc, sdh, "bot-attach", c.row + 1);
@@ -249,17 +281,39 @@ static void fv_applyStyleCells(PD_Document * doc,
 		 * leak: span fmt has no snapshot/restore path here and the
 		 * previewEnd cell restore can't undo them (white text on
 		 * white cells was the symptom) */
-		if (!noUndo && !cp.charProps.empty())
+		if (!noUndo && !cp.charProps.empty() && c.posEndCell > c.pos)
 		{
-			const pf_Frag_Strux * endCell =
-				doc->getEndCellStruxFromCellStrux(c.sdh);
-			if (endCell)
-			{
-				PT_DocPosition posE = doc->getStruxPosition(endCell);
-				PP_PropertyVector cprops = fv_propsVec(cp.charProps);
-				doc->changeSpanFmt(PTC_AddFmt, c.pos + 1, posE,
-								   PP_NOPROPS, cprops);
-			}
+			PP_PropertyVector cprops = fv_propsVec(cp.charProps);
+			doc->changeSpanFmt(PTC_AddFmt, c.pos + 1, c.posEndCell,
+							   PP_NOPROPS, cprops);
+		}
+	}
+}
+
+/* strip every style-owned key (cell borders/fill + char fmt) so a
+ * previous style leaves no residue when re-styling or clearing.
+ * RemoveFmt vectors are name/value PAIRS (name, "") - mergeAP walks
+ * them two entries at a time, a bare-name list runs the iterator
+ * past end() and crashes */
+static void fv_clearStyleProps(PD_Document * doc, const FV_TblCells & t)
+{
+	PP_PropertyVector removeProps;
+	for (const char * k : s_cellStyleKeys)
+	{
+		removeProps.push_back(k);
+		removeProps.push_back("");
+	}
+	for (const FV_TblCell & c : t.cells)
+	{
+		doc->changeStruxFmt(PTC_RemoveFmt, c.pos + 1, c.pos + 1,
+							PP_NOPROPS, removeProps, PTX_SectionCell);
+		if (c.posEndCell > c.pos)
+		{
+			PP_PropertyVector rm = { "font-weight", "",
+									 "font-style", "",
+									 "color", "" };
+			doc->changeSpanFmt(PTC_RemoveFmt, c.pos + 1, c.posEndCell,
+							   PP_NOPROPS, rm);
 		}
 	}
 }
@@ -282,6 +336,10 @@ bool FV_View::cmdTableSetStyle(const char * szStyleId)
 
 	_changeCellParams(t.posTable, t.tableSDH);
 	fv_writeTableProps(m_pDoc, t, st->id.c_str(), look, false);
+	/* clear leftovers from a previous style first: cells where the
+	 * new recipe defines nothing must return to the default, not
+	 * keep the old style's fills/borders/text colour */
+	fv_clearStyleProps(m_pDoc, t);
 	fv_applyStyleCells(m_pDoc, t, *st, look, false);
 
 	/* paired with _changeCellParams above: decrements the table
@@ -300,26 +358,9 @@ bool FV_View::cmdTableClearStyle()
 
 	_changeCellParams(t.posTable, t.tableSDH);
 
-	/* drop every style-owned cell prop; border state returns to the
-	 * document default */
-	PP_PropertyVector removeProps;
-	for (const char * k : s_cellStyleKeys)
-		removeProps.push_back(k);
-	for (const FV_TblCell & c : t.cells)
-	{
-		m_pDoc->changeStruxFmt(PTC_RemoveFmt, c.pos + 1, c.pos + 1,
-							   PP_NOPROPS, removeProps, PTX_SectionCell);
-		/* reset any style-driven char fmt */
-		const pf_Frag_Strux * endCell =
-			m_pDoc->getEndCellStruxFromCellStrux(c.sdh);
-		if (endCell)
-		{
-			PT_DocPosition posE = m_pDoc->getStruxPosition(endCell);
-			PP_PropertyVector rm = { "font-weight", "font-style", "color" };
-			m_pDoc->changeSpanFmt(PTC_RemoveFmt, c.pos + 1, posE,
-								  PP_NOPROPS, rm);
-		}
-	}
+	/* drop every style-owned cell prop + char fmt; border state
+	 * returns to the document default */
+	fv_clearStyleProps(m_pDoc, t);
 
 	/* clear the stored style + look */
 	PP_PropertyVector rmProps = { ABINOVA_TBL_STYLE_ATTR, "",
@@ -368,13 +409,7 @@ bool FV_View::cmdTableSetStyleOption(UT_sint32 iOption, bool bOn)
 		const FV_TableStyle * st = FV_tableStyleById(styleId.c_str());
 		if (st)
 		{
-			PP_PropertyVector removeProps;
-			for (const char * k : s_cellStyleKeys)
-				removeProps.push_back(k);
-			for (const FV_TblCell & c : t.cells)
-				m_pDoc->changeStruxFmt(PTC_RemoveFmt, c.pos + 1, c.pos + 1,
-									   PP_NOPROPS, removeProps,
-									   PTX_SectionCell);
+			fv_clearStyleProps(m_pDoc, t);
 			fv_applyStyleCells(m_pDoc, t, *st, look, false);
 		}
 	}
@@ -478,16 +513,10 @@ bool FV_View::getTablePen(std::string & sStyle, std::string & sThickness,
 
 std::string FV_View::getTableStyleId() const
 {
-	const pf_Frag_Strux * tableSDH = nullptr;
-	if (!m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable,
-										  &tableSDH) || !tableSDH)
-	{
-		if (isSelectionEmpty() ||
-			!m_pDoc->getStruxOfTypeFromPosition(getSelectionAnchor(),
-											  PTX_SectionTable, &tableSDH) ||
-			!tableSDH)
-			return "";
-	}
+	const pf_Frag_Strux * tableSDH =
+		fv_tableSDH(const_cast<FV_View*>(this), m_pDoc);
+	if (!tableSDH)
+		return "";
 	const gchar * v = nullptr;
 	if (m_pDoc->getPropertyFromStrux(tableSDH, isShowRevisions(),
 								   getRevisionLevel(), ABINOVA_TBL_STYLE_ATTR,
@@ -498,16 +527,10 @@ std::string FV_View::getTableStyleId() const
 
 std::string FV_View::getTableStyleLook() const
 {
-	const pf_Frag_Strux * tableSDH = nullptr;
-	if (!m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable,
-										  &tableSDH) || !tableSDH)
-	{
-		if (isSelectionEmpty() ||
-			!m_pDoc->getStruxOfTypeFromPosition(getSelectionAnchor(),
-											  PTX_SectionTable, &tableSDH) ||
-			!tableSDH)
-			return "";
-	}
+	const pf_Frag_Strux * tableSDH =
+		fv_tableSDH(const_cast<FV_View*>(this), m_pDoc);
+	if (!tableSDH)
+		return "";
 	const gchar * v = nullptr;
 	if (m_pDoc->getPropertyFromStrux(tableSDH, isShowRevisions(),
 								   getRevisionLevel(), ABINOVA_TBL_LOOK_ATTR,

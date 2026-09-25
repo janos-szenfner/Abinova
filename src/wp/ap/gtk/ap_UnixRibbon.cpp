@@ -68,6 +68,7 @@
 #include "ut_color.h"
 #include "fl_DocLayout.h"
 #include "ap_UnixDialog_Document.h"
+#include "pf_Frag_Strux.h"
 #include "fv_View.h"
 #include "fl_TableStyles.h"
 #include "ie_impGraphic.h"
@@ -10800,6 +10801,43 @@ void AP_UnixRibbon::refresh()
 	m_bRefreshing = false;
 }
 
+/* a whole-table (or larger) selection leaves both endpoints outside
+ * every cell, so the layout lookups in _refreshContextualTabs miss.
+ * Probe just inside the selection bounds, then look for a table
+ * strux starting inside the range (covers select-all and drags that
+ * begin/end on strux boundaries or fully contain the table) */
+static bool _selectionTouchesTable(FV_View * view)
+{
+	if (!view || view->isSelectionEmpty())
+		return false;
+	PT_DocPosition posA = view->getSelectionAnchor();
+	PT_DocPosition posB = view->getPoint();
+	PT_DocPosition posStart = UT_MIN(posA, posB);
+	PT_DocPosition posEnd = UT_MAX(posA, posB);
+	if (posEnd <= posStart)
+		return false;
+	if (view->getTableAtPos(posStart + 1) ||
+		(posEnd > posStart + 1 && view->getTableAtPos(posEnd - 1)))
+		return true;
+
+	PD_Document * doc = view->getDocument();
+	const pf_Frag_Strux * sdh = nullptr;
+	if (!doc->getStruxOfTypeFromPosition(posStart, PTX_Section, &sdh) ||
+		!sdh)
+		return false;
+	const pf_Frag_Strux * tab = nullptr;
+	while (doc->getNextStruxOfType(sdh, PTX_SectionTable, &tab) && tab)
+	{
+		PT_DocPosition posTab = doc->getStruxPosition(tab);
+		if (posTab >= posEnd)
+			return false;
+		if (posTab >= posStart)
+			return true;
+		sdh = tab;
+	}
+	return false;
+}
+
 void AP_UnixRibbon::_refreshContextualTabs()
 {
 	FV_View * view = static_cast<FV_View *>(
@@ -10811,7 +10849,8 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		(view->isInTable() ||
 		 view->getTableAtPos(view->getPoint()) ||
 		 (!view->isSelectionEmpty() &&
-		  view->getTableAtPos(view->getSelectionAnchor())));
+		  view->getTableAtPos(view->getSelectionAnchor())) ||
+		 _selectionTouchesTable(view));
 	bool bInMath = view && view->isInMath();
 
 	UT_sint32 count = m_vecContextualPages.getItemCount();
@@ -11254,7 +11293,7 @@ GtkWidget * AP_UnixRibbon::_makeTableStyleGalleryPopover()
 	{
 		bool bAny = false;
 		for (const FV_TableStyle & st : FV_tableStyles())
-			if (st.family == fam)
+			if (st.family == fam && st.gallery)
 			{
 				bAny = true;
 				break;
@@ -11274,7 +11313,7 @@ GtkWidget * AP_UnixRibbon::_makeTableStyleGalleryPopover()
 		int n = 0;
 		for (const FV_TableStyle & st : FV_tableStyles())
 		{
-			if (st.family != fam)
+			if (st.family != fam || !st.gallery)
 				continue;
 			GtkWidget * tile = _tblStyleTile(st.id.c_str(), 64, 48, true);
 			if (tile)
@@ -11366,6 +11405,8 @@ GtkWidget * AP_UnixRibbon::_makeTableStyleGallery()
 	gtk_widget_set_margin_end(box, 2);
 	for (const FV_TableStyle & st : FV_tableStyles())
 	{
+		if (!st.gallery)
+			continue;
 		GtkWidget * tile = _tblStyleTile(st.id.c_str(), 62, 46, false);
 		if (tile)
 			gtk_box_append(GTK_BOX(box), tile);
@@ -11442,7 +11483,8 @@ void AP_UnixRibbon::_refreshTableStyleOptions()
 		(view->isInTable() ||
 		 view->getTableAtPos(view->getPoint()) ||
 		 (!view->isSelectionEmpty() &&
-		  view->getTableAtPos(view->getSelectionAnchor())));
+		  view->getTableAtPos(view->getSelectionAnchor())) ||
+		 _selectionTouchesTable(view));
 
 	FV_TableStyleLook look;	/* defaults when no tbl-look stored */
 	if (bInTbl)

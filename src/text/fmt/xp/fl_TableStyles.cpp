@@ -299,7 +299,9 @@ std::string FV_tableStyleResolveColor(const std::string & tok)
 	if (tTint > 0)
 		hex = fv_mix(hex, 255.0, 1.0 - tTint);
 	if (tShade > 0)
-		hex = fv_mix(hex, 0.0, tShade);
+		/* OOXML themeShade scales luminance by NN% - the colour
+		 * retains NN% of itself; only (1-NN)% goes toward black */
+		hex = fv_mix(hex, 0.0, 1.0 - tShade);
 	return hex;
 }
 
@@ -315,89 +317,28 @@ static const std::vector<FV_TableStyle> & fv_build()
 	if (!v.empty())
 		return v;
 
-	for (const FV_TableStyleBuiltin * b = s_tableStyleBuiltin;
-		 b->id; ++b)
-	{
-		FV_TableStyle st;
-		st.id = b->id;
-		st.name = b->name;
-		st.family = b->family;
-		for (int k = 0; k < b->nParts; ++k)
+	auto load = [](std::vector<FV_TableStyle> & out,
+				   const FV_TableStyleBuiltin * b, bool gallery) {
+		for (; b->id; ++b)
 		{
-			const FV_TableStyleBuiltinPart & bp = b->parts[k];
-			st.parts[bp.part].cellProps = bp.cellProps;
-			st.parts[bp.part].charProps = bp.charProps;
+			FV_TableStyle st;
+			st.id = b->id;
+			st.name = b->name;
+			st.family = b->family;
+			st.gallery = gallery;
+			for (int k = 0; k < b->nParts; ++k)
+			{
+				const FV_TableStyleBuiltinPart & bp = b->parts[k];
+				st.parts[bp.part].cellProps = bp.cellProps;
+				st.parts[bp.part].charProps = bp.charProps;
+			}
+			out.push_back(st);
 		}
-		v.push_back(st);
-	}
+	};
+	load(v, s_tableStyleBuiltin, true);
+	load(v, s_tableStyleBuiltinHidden, false);
 
-	/* extra plain entries not in the OOXML set, completing Word's
-	 * "Plain Tables" row: Table Grid + four plain variants +
-	 * Table Grid Light + No Style No Grid = 7 tiles */
-	{
-		FV_TableStyle st;
-		st.id = "PlainTable1";
-		st.name = "Plain Table 1";
-		st.family = FV_TSF_Plain;
-		/* accent-coloured grid, no fill */
-		fv_setPart(st, FV_TSP_Whole,
-				   fv_border4("solid", "theme:accent1", "0.5pt") +
-				   "; insideh-style:solid; insideh-color:theme:accent1;"
-				   " insideh-thickness:0.5pt; insidev-style:solid;"
-				   " insidev-color:theme:accent1; insidev-thickness:0.5pt");
-		v.push_back(st);
-	}
-	{
-		FV_TableStyle st;
-		st.id = "PlainTable2";
-		st.name = "Plain Table 2";
-		st.family = FV_TSF_Plain;
-		/* light accent-tinted borders, no fill */
-		fv_setPart(st, FV_TSP_Whole,
-				   fv_border4("solid", "theme:accent1:t40", "0.5pt") +
-				   "; insideh-style:solid; insideh-color:theme:accent1:t40;"
-				   " insideh-thickness:0.5pt; insidev-style:solid;"
-				   " insidev-color:theme:accent1:t40; insidev-thickness:0.5pt");
-		v.push_back(st);
-	}
-	{
-		FV_TableStyle st;
-		st.id = "PlainTable3";
-		st.name = "Plain Table 3";
-		st.family = FV_TSF_Plain;
-		/* dashed light-grey borders, no fill */
-		fv_setPart(st, FV_TSP_Whole,
-				   fv_border4("dashed", "theme:text1:t50", "0.5pt") +
-				   "; insideh-style:dashed; insideh-color:theme:text1:t50;"
-				   " insideh-thickness:0.5pt; insidev-style:dashed;"
-				   " insidev-color:theme:text1:t50; insidev-thickness:0.5pt");
-		v.push_back(st);
-	}
-	{
-		FV_TableStyle st;
-		st.id = "PlainTable4";
-		st.name = "Plain Table 4";
-		st.family = FV_TSF_Plain;
-		/* horizontal rules only (booktabs-like), no verticals */
-		fv_setPart(st, FV_TSP_Whole,
-				   fv_border("top", "solid", "theme:accent1", "0.75pt") +
-				   "; " + fv_border("bot", "solid", "theme:accent1", "0.75pt") +
-				   "; left-style:none; left-color:auto; left-thickness:0.5pt;"
-				   " right-style:none; right-color:auto; right-thickness:0.5pt;"
-				   " insideh-style:solid; insideh-color:theme:accent1:t40;"
-				   " insideh-thickness:0.5pt; insidev-style:none;"
-				   " insidev-color:auto; insidev-thickness:0.5pt");
-		v.push_back(st);
-	}
-	{
-		FV_TableStyle st;
-		st.id = "TableGridLight";
-		st.name = "Table Grid Light";
-		st.family = FV_TSF_Plain;
-		fv_setPart(st, FV_TSP_Whole,
-				   fv_border4("solid", "7F7F7F", "0.5pt"));
-		v.push_back(st);
-	}
+	/* no-grid entry completing Word's "Plain Tables" row */
 	{
 		FV_TableStyle st;
 		st.id = "NoStyleNoGrid";

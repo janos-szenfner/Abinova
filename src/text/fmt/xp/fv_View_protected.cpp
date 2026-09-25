@@ -701,14 +701,28 @@ bool FV_View::_restoreCellParams(PT_DocPosition posTable, const pf_Frag_Strux * 
 	PP_PropertyVector propsTable = {
 		"table-wait-index", ""
 	};
-	if (pTL->getTableWaitIndex() == 1)
+	/* pTL can be null: strux format changes made during the
+	 * operation may have destroyed and rebuilt the table's layout
+	 * objects.  The state restores below MUST still run or the
+	 * view stays frozen (no-layout/caret-lock flags left on) */
+	if (pTL)
 	{
-		m_pDoc->changeStruxFmt(PTC_RemoveFmt, posTable, posTable, PP_NOPROPS, propsTable, PTX_SectionTable);
+		if (pTL->getTableWaitIndex() == 1)
+		{
+			m_pDoc->changeStruxFmt(PTC_RemoveFmt, posTable, posTable, PP_NOPROPS, propsTable, PTX_SectionTable);
+		}
+		else
+		{
+			propsTable[1] =	UT_std_string_sprintf("%d", pTL->getTableWaitIndex() - 1);
+			m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, propsTable, PTX_SectionTable);
+		}
 	}
 	else
 	{
-		propsTable[1] =	UT_std_string_sprintf("%d", pTL->getTableWaitIndex() - 1);
-		m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, propsTable, PTX_SectionTable);
+		/* layout objects were destroyed mid-operation: drop any
+		 * lingering wait-index attr so the rebuilt table doesn't
+		 * think it is still waiting */
+		m_pDoc->changeStruxFmt(PTC_RemoveFmt, posTable, posTable, PP_NOPROPS, propsTable, PTX_SectionTable);
 	}
 
 //
@@ -749,10 +763,13 @@ bool FV_View::_changeCellParams(PT_DocPosition posTable, const pf_Frag_Strux* ta
 	// with property table-wait-index incremented by 1 so that it is set to a value different from 0.
 	//
 	fl_TableLayout * pTL = static_cast<fl_TableLayout*>(m_pDoc->getNthFmtHandle(tableSDH,m_pLayout->getLID()));
-	PP_PropertyVector propsTable = {
-		"table-wait-index", UT_std_string_sprintf("%d", pTL->getTableWaitIndex() + 1)
-	};
-	m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, propsTable, PTX_SectionTable);
+	if (pTL)
+	{
+		PP_PropertyVector propsTable = {
+			"table-wait-index", UT_std_string_sprintf("%d", pTL->getTableWaitIndex() + 1)
+		};
+		m_pDoc->changeStruxFmt(PTC_AddFmt, posTable, posTable, PP_NOPROPS, propsTable, PTX_SectionTable);
+	}
 
 	return true;
 }

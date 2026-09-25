@@ -92,6 +92,7 @@ struct FV_TableStyle
 	std::string				name;		/* "Grid Table 3 Accent 1" */
 	FV_TableStyleFamily		family;
 	FV_TableStylePartDef	parts[FV_TSP__COUNT];
+	bool					gallery = true;	/* shown in the style gallery */
 };
 
 /* merged result for one cell */
@@ -161,9 +162,10 @@ std::string FV_tableStyleShade(const std::string & hex, double pct);
 
 /* ---- theme colours ----
  * Recipe colour values may be literal "RRGGBB"/"auto" or a symbolic
- * theme token "theme:<name>" optionally followed by ":tNN" (blend
- * NN% of the theme colour with white) or ":sNN" (scale toward black
- * by NN%).  They resolve through the active theme palette - the
+ * theme token "theme:<name>" optionally followed by ":tNN" (keep NN%
+ * of the colour, blend the rest toward white) or ":sNN" (keep NN% of
+ * the colour, i.e. scale toward black to NN% - OOXML themeShade).
+ * They resolve through the active theme palette - the
  * Office default until a document theme overrides it. */
 std::string FV_tableStyleResolveColor(const std::string & tok);
 
@@ -188,3 +190,7 @@ struct FV_TableStyleBuiltin
 	int							nParts;
 	FV_TableStyleBuiltinPart	parts[16];
 };
+
+/* built-in recipes kept for document compatibility but not shown
+ * in the gallery (older-generation and Word-2003 styles) */
+extern const FV_TableStyleBuiltin s_tableStyleBuiltinHidden[];
