@@ -1,5 +1,6 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,23 +19,23 @@
  */
 
 
-#ifndef IE_EXP_ABIWORD_1_H
-#define IE_EXP_ABIWORD_1_H
+#ifndef IE_EXP_ABINOVA_1_H
+#define IE_EXP_ABINOVA_1_H
 
 #include "ie_exp_XML.h"
 #include "pl_Listener.h"
 class PD_Document;
-class s_AbiWord_1_Listener;
+class s_Abinova_1_Listener;
 
 // The exporter/writer for Abinova file format version 1.
 
-class ABI_EXPORT IE_Exp_AbiWord_1_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_Abinova_1_Sniffer : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 
 public:
-	IE_Exp_AbiWord_1_Sniffer ();
-	virtual ~IE_Exp_AbiWord_1_Sniffer () {}
+	IE_Exp_Abinova_1_Sniffer ();
+	virtual ~IE_Exp_Abinova_1_Sniffer () {}
 
 	virtual UT_Confidence_t supportsMIME (const char * szMIME) override;
 
@@ -46,11 +47,11 @@ public:
 										IE_Exp ** ppie) override;
 };
 
-class ABI_EXPORT IE_Exp_AbiWord_1 : public IE_Exp_XML
+class ABI_EXPORT IE_Exp_Abinova_1 : public IE_Exp_XML
 {
 public:
-	IE_Exp_AbiWord_1(PD_Document * pDocument, bool isTemplate = false, bool isCompressed = false);
-	virtual ~IE_Exp_AbiWord_1();
+	IE_Exp_Abinova_1(PD_Document * pDocument, bool isTemplate = false, bool isCompressed = false);
+	virtual ~IE_Exp_Abinova_1();
 
 protected:
 	virtual UT_Error _writeDocument(void) override;
@@ -58,7 +59,7 @@ protected:
 private:
 	bool m_bIsTemplate;
 	bool m_bIsCompressed;
-	s_AbiWord_1_Listener *	m_pListener;
+	s_Abinova_1_Listener *	m_pListener;
 };
 
-#endif /* IE_EXP_ABIWORD_1_H */
+#endif /* IE_EXP_ABINOVA_1_H */

@@ -1,4 +1,4 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2015 Jean Brefort <jean.brefort@normalesup.org>
  *
  * This program is free software; you can redistribute it and/or
@@ -32,6 +32,7 @@ IE_Exp_XML::~IE_Exp_XML()
 void IE_Exp_XML::setupFile(bool compressed, GsfOutput * fp)
 {
 	UT_ASSERT_HARMLESS (!m_xml);
+	m_tagStack.clear ();
 	GsfOutput * target = fp ? fp : getFp ();
 	if (compressed)
 	{
@@ -48,8 +49,18 @@ void IE_Exp_XML::setupFile(bool compressed, GsfOutput * fp)
 void IE_Exp_XML::closeHandle()
 {
 	if (m_xml) {
+		// Guarantee well-formed output even if a listener bailed out
+		// mid-document with elements still open
+		while (!m_tagStack.empty ()) {
+			UT_DEBUGMSG (("IE_Exp_XML: auto-closing unclosed element <%s>\n",
+						  m_tagStack.back ().c_str ()));
+			gsf_xml_out_end_element (m_xml);
+			m_tagStack.pop_back ();
+		}
 		g_object_unref(m_xml);
 		m_xml = nullptr;
+	} else {
+		m_tagStack.clear ();
 	}
 	if (m_zip) {
 		g_object_unref(m_zip);
@@ -64,11 +75,17 @@ void IE_Exp_XML::setDocType(char const *doctype)
 
 void IE_Exp_XML::startElement(char const *name)
 {
+	m_tagStack.emplace_back (name);
 	gsf_xml_out_start_element(m_xml, name);
 }
 
 void IE_Exp_XML::endElement(void)
 {
+	if (m_tagStack.empty ()) {
+		UT_DEBUGMSG (("IE_Exp_XML: endElement() with no open element - ignoring\n"));
+		return;
+	}
+	m_tagStack.pop_back ();
 	gsf_xml_out_end_element(m_xml);
 }
 

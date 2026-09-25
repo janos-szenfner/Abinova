@@ -1,4 +1,4 @@
-/* AbiWord
+/* Abinova
  * Copyright (C) 2015 Jean Brefort <jean.brefort@normalesup.org>
  *
  * This program is free software; you can redistribute it and/or
@@ -21,6 +21,7 @@
 
 #include "ie_exp.h"
 #include <string>
+#include <vector>
 
 class ABI_EXPORT IE_Exp_XML: public IE_Exp
 {
@@ -53,4 +54,5 @@ private:
 
     GsfOutput *m_zip;
     GsfXMLOut *m_xml;
+    std::vector<std::string> m_tagStack;
 };

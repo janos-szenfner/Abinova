@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
 
-/* AbiWord
+/* Abinova
  * Copyright (C) 1998 AbiSource, Inc.
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,8 +20,8 @@
  * 02110-1301 USA.
  */
 
-#ifndef IE_IMPEXP_ABIWORD_H
-#define IE_IMPEXP_ABIWORD_H
+#ifndef IE_IMPEXP_ABINOVA_H
+#define IE_IMPEXP_ABINOVA_H
 
 #define IE_MIMETYPE_AbiWord			"application/x-abiword"
 #define IE_MIMETYPE_ABINOVA			"application/x-abinova"
@@ -31,4 +32,4 @@
 #define ABINOVA_XMLNS				"https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/abwn.dtd"
 #define ABINOVA_XMLNS_CT			"https://raw.githubusercontent.com/janos-szenfner/Exp-Abi/main/changetracking.dtd"
 
-#endif /* IE_IMPEXP_ABIWORD_H */
+#endif /* IE_IMPEXP_ABINOVA_H */

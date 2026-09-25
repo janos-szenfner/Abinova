@@ -55,8 +55,8 @@
 
 #include "fp_PageSize.h"
 
-#include "ie_impexp_AbiWord_1.h"
-#include "ie_exp_AbiWord_1.h"
+#include "ie_impexp_Abinova_1.h"
+#include "ie_exp_Abinova_1.h"
 #include "ut_abwncrypt.h"
 
 #include "ap_Prefs.h"
@@ -69,13 +69,13 @@
 /*****************************************************************/
 /*****************************************************************/
 
-IE_Exp_AbiWord_1_Sniffer::IE_Exp_AbiWord_1_Sniffer ()
+IE_Exp_Abinova_1_Sniffer::IE_Exp_Abinova_1_Sniffer ()
 	: IE_ExpSniffer(IE_IMPEXPNAME_AWML11)
 {
 	// 
 }
 
-UT_Confidence_t IE_Exp_AbiWord_1_Sniffer::supportsMIME (const char * szMIME)
+UT_Confidence_t IE_Exp_Abinova_1_Sniffer::supportsMIME (const char * szMIME)
 {
 	if (strcmp (szMIME, IE_MIMETYPE_ABINOVA) == 0 ||
 		strcmp (szMIME, IE_MIMETYPE_AbiWord) == 0)
@@ -89,19 +89,19 @@ UT_Confidence_t IE_Exp_AbiWord_1_Sniffer::supportsMIME (const char * szMIME)
  * opened and converted, but saving them writes the Abinova format
  * under a .abwn name - nothing ever produces the old AbiWord
  * serialization any more. */
-bool IE_Exp_AbiWord_1_Sniffer::recognizeSuffix(const char * szSuffix)
+bool IE_Exp_Abinova_1_Sniffer::recognizeSuffix(const char * szSuffix)
 {
 	return (!g_ascii_strcasecmp(szSuffix,".abwn") || !g_ascii_strcasecmp(szSuffix,".zabwn") || !g_ascii_strcasecmp(szSuffix, ".abwn.gz"));
 }
 
-UT_Error IE_Exp_AbiWord_1_Sniffer::constructExporter(PD_Document * pDocument,
+UT_Error IE_Exp_Abinova_1_Sniffer::constructExporter(PD_Document * pDocument,
 													 IE_Exp ** ppie)
 {
-	*ppie = new IE_Exp_AbiWord_1(pDocument);
+	*ppie = new IE_Exp_Abinova_1(pDocument);
 	return UT_OK;
 }
 
-bool IE_Exp_AbiWord_1_Sniffer::getDlgLabels(const char ** pszDesc,
+bool IE_Exp_Abinova_1_Sniffer::getDlgLabels(const char ** pszDesc,
 											const char ** pszSuffixList,
 											IEFileType * ft)
 {
@@ -114,7 +114,7 @@ bool IE_Exp_AbiWord_1_Sniffer::getDlgLabels(const char ** pszDesc,
 /*****************************************************************/
 /*****************************************************************/
 
-IE_Exp_AbiWord_1::IE_Exp_AbiWord_1(PD_Document * pDocument, bool isTemplate, bool isCompressed)
+IE_Exp_Abinova_1::IE_Exp_Abinova_1(PD_Document * pDocument, bool isTemplate, bool isCompressed)
 	: IE_Exp_XML(pDocument), m_bIsTemplate(isTemplate), m_bIsCompressed(isCompressed), m_pListener(nullptr)
 {
 	m_error = 0;
@@ -128,19 +128,19 @@ IE_Exp_AbiWord_1::IE_Exp_AbiWord_1(PD_Document * pDocument, bool isTemplate, boo
 		pDocument->fixMissingXIDs();
 }
 
-IE_Exp_AbiWord_1::~IE_Exp_AbiWord_1()
+IE_Exp_Abinova_1::~IE_Exp_Abinova_1()
 {
 }
 
 /*****************************************************************/
 /*****************************************************************/
 
-class ABI_EXPORT s_AbiWord_1_Listener : public PL_Listener
+class ABI_EXPORT s_Abinova_1_Listener : public PL_Listener
 {
 public:
-	s_AbiWord_1_Listener(PD_Document * pDocument,
-						IE_Exp_AbiWord_1 * pie, bool isTemplate);
-	virtual ~s_AbiWord_1_Listener();
+	s_Abinova_1_Listener(PD_Document * pDocument,
+						IE_Exp_Abinova_1 * pie, bool isTemplate);
+	virtual ~s_Abinova_1_Listener();
 
 	virtual bool		populate(fl_ContainerLayout* sfh,
 								 const PX_ChangeRecord * pcr) override;
@@ -205,7 +205,7 @@ protected:
 	void                _handleReservedSections(void);
 
 	PD_Document *		m_pDocument;
-	IE_Exp_AbiWord_1 *	m_pie;
+	IE_Exp_Abinova_1 *	m_pie;
 	bool                m_bIsTemplate;
 	bool				m_bInSection;
 	bool				m_bInBlock;
@@ -229,7 +229,7 @@ private:
 	const gchar*		getObjectKey(const PT_AttrPropIndex& api, const gchar* key);
 };
 
-void s_AbiWord_1_Listener::_closeSection(void)
+void s_Abinova_1_Listener::_closeSection(void)
 {
 	if (!m_bInSection)
 		return;
@@ -240,7 +240,7 @@ void s_AbiWord_1_Listener::_closeSection(void)
 }
 
 
-void s_AbiWord_1_Listener::_closeTable(void)
+void s_Abinova_1_Listener::_closeTable(void)
 {
 	if (m_iInTable == 0)
 		return;
@@ -251,7 +251,7 @@ void s_AbiWord_1_Listener::_closeTable(void)
 }
 
 
-void s_AbiWord_1_Listener::_closeCell(void)
+void s_Abinova_1_Listener::_closeCell(void)
 {
 	if (m_iInCell == 0)
 		return;
@@ -261,7 +261,7 @@ void s_AbiWord_1_Listener::_closeCell(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_closeBlock(void)
+void s_Abinova_1_Listener::_closeBlock(void)
 {
 	if (!m_bInBlock)
 		return;
@@ -275,7 +275,7 @@ void s_AbiWord_1_Listener::_closeBlock(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_closeSpan(void)
+void s_Abinova_1_Listener::_closeSpan(void)
 {
 	if (!m_bInSpan)
 		return;
@@ -285,14 +285,14 @@ void s_AbiWord_1_Listener::_closeSpan(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_closeTag(void)
+void s_Abinova_1_Listener::_closeTag(void)
 {
 	if (m_bOpenChar)
 		m_pie->endElement();
 	m_bOpenChar = false;
 }
 
-void s_AbiWord_1_Listener::_closeField(void)
+void s_Abinova_1_Listener::_closeField(void)
 {
 	if (!m_pCurrentField)
 		return;
@@ -301,7 +301,7 @@ void s_AbiWord_1_Listener::_closeField(void)
 	m_pCurrentField = nullptr;
 }
 
-void s_AbiWord_1_Listener::_closeHyperlink(void)
+void s_Abinova_1_Listener::_closeHyperlink(void)
 {
 	if (!m_bInHyperlink)
 		return;
@@ -312,7 +312,7 @@ void s_AbiWord_1_Listener::_closeHyperlink(void)
 }
 
 
-void s_AbiWord_1_Listener::_closeAnnotation(void)
+void s_Abinova_1_Listener::_closeAnnotation(void)
 {
 	if (!m_iInAnnotation)
 		return;
@@ -323,14 +323,14 @@ void s_AbiWord_1_Listener::_closeAnnotation(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_closeAllAnnotations(void)
+void s_Abinova_1_Listener::_closeAllAnnotations(void)
 {
 	while (m_iInAnnotation > 0)
 		_closeAnnotation();
 	return;
 }
 
-void s_AbiWord_1_Listener::_closeRDFAnchor(void)
+void s_Abinova_1_Listener::_closeRDFAnchor(void)
 {
 	UT_DEBUGMSG(("Doing close rdf anchor object method \n"));
     _closeSpan();
@@ -338,7 +338,7 @@ void s_AbiWord_1_Listener::_closeRDFAnchor(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_openSpan(PT_AttrPropIndex apiSpan)
+void s_Abinova_1_Listener::_openSpan(PT_AttrPropIndex apiSpan)
 {
 	if (m_bInSpan)
 	{
@@ -356,7 +356,7 @@ void s_AbiWord_1_Listener::_openSpan(PT_AttrPropIndex apiSpan)
 	return;
 }
 
-void s_AbiWord_1_Listener::_openTag(const char * szPrefix, bool bHasContent,
+void s_Abinova_1_Listener::_openTag(const char * szPrefix, bool bHasContent,
 									PT_AttrPropIndex api, UT_uint32 iXID,
 									bool bIgnoreProperties)
 {
@@ -377,6 +377,12 @@ void s_AbiWord_1_Listener::_openTag(const char * szPrefix, bool bHasContent,
 		{
 			m_bOpenChar = true;
 			m_pie->startElement(szPrefix);
+		}
+		else
+		{
+			// nothing was opened - emitting attributes or properties now
+			// would inject them into the parent element
+			return;
 		}
 	} else {
 		m_pie->startElement(szPrefix);
@@ -432,7 +438,7 @@ void s_AbiWord_1_Listener::_openTag(const char * szPrefix, bool bHasContent,
 			m_pie->addString(PT_PROPS_ATTRIBUTE_NAME, buf.str());
 		}
 	}
-	if(strcmp(szPrefix,"math") == 0)
+	if(strcmp(szPrefix,"math") == 0 && pAP)
 	{
 		const char * szPropVal = nullptr;
 		pAP->getAttribute("dataid",szPropVal);
@@ -463,7 +469,7 @@ void s_AbiWord_1_Listener::_openTag(const char * szPrefix, bool bHasContent,
 			m_pie->endElement();
 		}
 	}
-	else if(strcmp(szPrefix,"embed") == 0)
+	else if(strcmp(szPrefix,"embed") == 0 && pAP)
 	{
 		const char * szPropVal = nullptr;
 		pAP->getAttribute("dataid",szPropVal);
@@ -500,8 +506,8 @@ void s_AbiWord_1_Listener::_openTag(const char * szPrefix, bool bHasContent,
 		m_pie->endElement();
 }
 
-s_AbiWord_1_Listener::s_AbiWord_1_Listener(PD_Document * pDocument,
-										   IE_Exp_AbiWord_1 * pie,
+s_Abinova_1_Listener::s_Abinova_1_Listener(PD_Document * pDocument,
+										   IE_Exp_Abinova_1 * pie,
 										   bool isTemplate)
 	: m_pUsedImages()
 {
@@ -571,7 +577,7 @@ s_AbiWord_1_Listener::s_AbiWord_1_Listener(PD_Document * pDocument,
 	_handleReservedSections();
 }
 
-s_AbiWord_1_Listener::~s_AbiWord_1_Listener()
+s_Abinova_1_Listener::~s_Abinova_1_Listener()
 {
 	_closeSpan();
 	_closeField();
@@ -586,7 +592,7 @@ s_AbiWord_1_Listener::~s_AbiWord_1_Listener()
 
 
 const gchar*
-s_AbiWord_1_Listener::getObjectKey(const PT_AttrPropIndex& api, const gchar* key)
+s_Abinova_1_Listener::getObjectKey(const PT_AttrPropIndex& api, const gchar* key)
 {
 	const PP_AttrProp * pAP = nullptr;
 	bool bHaveProp = m_pDocument->getAttrProp(api,&pAP);
@@ -601,7 +607,7 @@ s_AbiWord_1_Listener::getObjectKey(const PT_AttrPropIndex& api, const gchar* key
 }
 
 
-bool s_AbiWord_1_Listener::populate(fl_ContainerLayout* /*sfh*/,
+bool s_Abinova_1_Listener::populate(fl_ContainerLayout* /*sfh*/,
 									  const PX_ChangeRecord * pcr)
 {
 	switch (pcr->getType())
@@ -812,7 +818,7 @@ bool s_AbiWord_1_Listener::populate(fl_ContainerLayout* /*sfh*/,
 	}
 }
 
-bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
+bool s_Abinova_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 										   const PX_ChangeRecord * pcr,
 										   fl_ContainerLayout* * psfh)
 {
@@ -1026,14 +1032,14 @@ bool s_AbiWord_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 	}
 }
 
-bool s_AbiWord_1_Listener::change(fl_ContainerLayout* /*sfh*/,
+bool s_Abinova_1_Listener::change(fl_ContainerLayout* /*sfh*/,
 									const PX_ChangeRecord * /*pcr*/)
 {
   UT_ASSERT_NOT_REACHED();
 	return false;
 }
 
-bool s_AbiWord_1_Listener::insertStrux(fl_ContainerLayout* /*sfh*/,
+bool s_Abinova_1_Listener::insertStrux(fl_ContainerLayout* /*sfh*/,
 										  const PX_ChangeRecord * /*pcr*/,
 										  pf_Frag_Strux* /*sdh*/,
 										  PL_ListenerId /* lid */,
@@ -1045,7 +1051,7 @@ bool s_AbiWord_1_Listener::insertStrux(fl_ContainerLayout* /*sfh*/,
 	return false;
 }
 
-bool s_AbiWord_1_Listener::signal(UT_uint32 /* iSignal */)
+bool s_Abinova_1_Listener::signal(UT_uint32 /* iSignal */)
 {
   UT_ASSERT_NOT_REACHED();
 	return false;
@@ -1054,7 +1060,7 @@ bool s_AbiWord_1_Listener::signal(UT_uint32 /* iSignal */)
 /*****************************************************************/
 /*****************************************************************/
 
-UT_Error IE_Exp_AbiWord_1::_writeDocument(void)
+UT_Error IE_Exp_Abinova_1::_writeDocument(void)
 {
 	// allow people to override this on the command line or otherwise
 	const std::string & prop = (getProperty ("compress"));
@@ -1088,7 +1094,7 @@ UT_Error IE_Exp_AbiWord_1::_writeDocument(void)
 	else
 		setupFile(m_bIsCompressed);
 
-	m_pListener = new s_AbiWord_1_Listener(getDoc(),this, m_bIsTemplate);
+	m_pListener = new s_Abinova_1_Listener(getDoc(),this, m_bIsTemplate);
 	if (!m_pListener)
 	{
 		closeHandle();
@@ -1142,7 +1148,7 @@ UT_Error IE_Exp_AbiWord_1::_writeDocument(void)
 /*****************************************************************/
 /*****************************************************************/
 
-void s_AbiWord_1_Listener::_handleStyles(void)
+void s_Abinova_1_Listener::_handleStyles(void)
 {
 	bool bWroteOpenStyleSection = false;
 
@@ -1194,7 +1200,7 @@ void s_AbiWord_1_Listener::_handleStyles(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_handleLists(void)
+void s_Abinova_1_Listener::_handleLists(void)
 {
 	bool bWroteOpenListSection = false;
 
@@ -1250,7 +1256,7 @@ void s_AbiWord_1_Listener::_handleLists(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_handleMetaData(void)
+void s_Abinova_1_Listener::_handleMetaData(void)
 {
 	if (m_pie->isCopying ())
 		return;
@@ -1292,7 +1298,7 @@ void s_AbiWord_1_Listener::_handleMetaData(void)
   m_pie->endElement();
 }
 
-void s_AbiWord_1_Listener::_handleRDF(void)
+void s_Abinova_1_Listener::_handleRDF(void)
 {
   m_pie->startElement("rdf");
 
@@ -1336,7 +1342,7 @@ void s_AbiWord_1_Listener::_handleRDF(void)
   m_pie->endElement();
 }
 
-void s_AbiWord_1_Listener::_handlePageSize(void)
+void s_Abinova_1_Listener::_handlePageSize(void)
 {
   //
   // Code to write out the PageSize Definitions to disk
@@ -1354,7 +1360,7 @@ void s_AbiWord_1_Listener::_handlePageSize(void)
 	m_pie->endElement();
 }
 
-void s_AbiWord_1_Listener::_handleDataItems(void)
+void s_Abinova_1_Listener::_handleDataItems(void)
 {
 	bool bWroteOpenDataSection = false;
 
@@ -1465,7 +1471,7 @@ void s_AbiWord_1_Listener::_handleDataItems(void)
 		m_pie->endElement();
 }
 
-void s_AbiWord_1_Listener::_handleRevisions(void)
+void s_Abinova_1_Listener::_handleRevisions(void)
 {
 	bool bWroteOpenRevisionsSection = false;
 
@@ -1505,7 +1511,7 @@ void s_AbiWord_1_Listener::_handleRevisions(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_handleHistory(void)
+void s_Abinova_1_Listener::_handleHistory(void)
 {
 	bool bWroteOpenSection = false;
 
@@ -1549,7 +1555,7 @@ void s_AbiWord_1_Listener::_handleHistory(void)
 	return;
 }
 
-void s_AbiWord_1_Listener::_handleAuthors(void)
+void s_Abinova_1_Listener::_handleAuthors(void)
 {
 	UT_sint32 nAuthors = m_pDocument-> getNumAuthors();
 	if(nAuthors <= 0)
@@ -1590,7 +1596,7 @@ void s_AbiWord_1_Listener::_handleAuthors(void)
  * master-page layouts, presentation notes); writing them back keeps
  * the data alive across a load/save round trip so the file format is
  * already able to carry them once the features land. */
-void s_AbiWord_1_Listener::_handleReservedSections(void)
+void s_Abinova_1_Listener::_handleReservedSections(void)
 {
 	if (m_pie->isCopying())
 		return;

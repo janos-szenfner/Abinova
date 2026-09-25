@@ -37,13 +37,13 @@ class PD_Document;
 
 // The importer/reader for Abinova file format version 1.
 
-class ABI_EXPORT IE_Imp_AbiWord_1_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_Abinova_1_Sniffer : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 
 public:
-	IE_Imp_AbiWord_1_Sniffer();
-	virtual ~IE_Imp_AbiWord_1_Sniffer() {}
+	IE_Imp_Abinova_1_Sniffer();
+	virtual ~IE_Imp_Abinova_1_Sniffer() {}
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override;
@@ -57,15 +57,15 @@ public:
 
 };
 
-class ABI_EXPORT IE_Imp_AbiWord_1 : public IE_Imp_XML
+class ABI_EXPORT IE_Imp_Abinova_1 : public IE_Imp_XML
 {
     std::list<std::string> xmlidStackForTextMeta;
     std::map<std::string, std::string> xmlidMapForBookmarks;
 
 public:
-    IE_Imp_AbiWord_1(PD_Document * pDocument);
+    IE_Imp_Abinova_1(PD_Document * pDocument);
 
-    virtual ~IE_Imp_AbiWord_1();
+    virtual ~IE_Imp_Abinova_1();
 
     virtual void startElement(const gchar *name, const gchar **atts) override;
     virtual void endElement(const gchar *name) override;

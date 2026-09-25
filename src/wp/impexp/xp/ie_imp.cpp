@@ -29,7 +29,7 @@
 #include "ut_misc.h"
 
 #include "ie_imp.h"
-#include "ie_imp_AbiWord_1.h"
+#include "ie_imp_Abinova_1.h"
 #include "ie_imp_GraphicAsDocument.h"
 #include "pd_Document.h"
 #include "pf_Frag_Strux.h"
@@ -908,7 +908,7 @@ UT_Error IE_Imp::constructImporter(PD_Document * pDocument,
 	// if that fails, just give up.
 	if (bUseGuesswork)
 	{
-		*ppie = new IE_Imp_AbiWord_1(pDocument);
+		*ppie = new IE_Imp_Abinova_1(pDocument);
 		return ((*ppie) ? UT_OK : UT_IE_NOMEMORY);
 	}
 	else

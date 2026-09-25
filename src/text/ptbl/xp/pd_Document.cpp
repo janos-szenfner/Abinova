@@ -43,7 +43,7 @@
 #include "xad_Document.h"
 #include "xap_Strings.h"
 #include "pt_PieceTable.h"
-#include "ie_impexp_AbiWord_1.h"
+#include "ie_impexp_Abinova_1.h"
 #include "pl_Listener.h"
 #include "ie_imp.h"
 #include "ie_exp.h"

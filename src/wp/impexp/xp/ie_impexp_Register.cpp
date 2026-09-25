@@ -24,7 +24,7 @@
 #include "ie_exp.h"
 #include "ie_impexp_Register.h"
 
-#include "ie_exp_AbiWord_1.h"
+#include "ie_exp_Abinova_1.h"
 #include "ie_exp_AWT.h"
 #include "ie_exp_RTF.h"
 #include "ie_exp_Text.h"
@@ -32,7 +32,7 @@
 #include "ie_exp_LaTeX.h"
 #include "ie_exp_HTML.h"
 
-#include "ie_imp_AbiWord_1.h"
+#include "ie_imp_Abinova_1.h"
 #include "ie_imp_MsWord_97.h"
 #include "ie_imp_RTF.h"
 #include "ie_imp_Text.h"
@@ -90,7 +90,7 @@ void IE_ImpExp_RegisterXP ()
 
   /* now text-file types */
 
-	IE_Imp::registerImporter(new IE_Imp_AbiWord_1_Sniffer ());
+	IE_Imp::registerImporter(new IE_Imp_Abinova_1_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_MsWord_97_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_RTF_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_Text_Sniffer ());
@@ -113,7 +113,7 @@ void IE_ImpExp_RegisterXP ()
 #ifdef WITH_LIBICAL
 	IE_Imp::registerImporter(new IE_Imp_RDF_Calendar_Sniffer ());
 #endif
-    IE_Exp::registerExporter(new IE_Exp_AbiWord_1_Sniffer ());
+    IE_Exp::registerExporter(new IE_Exp_Abinova_1_Sniffer ());
 	IE_Exp::registerExporter(new IE_Exp_AWT_Sniffer());
 
 	// HACK - export RTF and claim it's DOC

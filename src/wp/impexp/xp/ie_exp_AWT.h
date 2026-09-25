@@ -21,7 +21,7 @@
 #ifndef IE_EXP_AWT_H
 #define IE_EXP_AWT_H
 
-#include "ie_exp_AbiWord_1.h"
+#include "ie_exp_Abinova_1.h"
 
 class PD_Document;
 
@@ -43,7 +43,7 @@ public:
 										IE_Exp ** ppie) override;
 };
 
-class ABI_EXPORT IE_Exp_AWT : public IE_Exp_AbiWord_1
+class ABI_EXPORT IE_Exp_AWT : public IE_Exp_Abinova_1
 {
 public:
 	IE_Exp_AWT(PD_Document * pDocument);

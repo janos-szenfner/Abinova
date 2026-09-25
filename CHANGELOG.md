@@ -233,6 +233,34 @@ below are on `main` but the release has not been cut yet.
   fails, and saving an opened `.abw` falls back to Save As →
   `.abwn`. Document metadata now declares
   `application/x-abinova` (which the exporter also accepts).
+- **Native importer/exporter renamed to `Abinova_1`** —
+  `ie_exp_AbiWord_1`, `ie_imp_AbiWord_1` and the shared
+  `ie_impexp_AbiWord_1.h` are now `ie_exp_Abinova_1`,
+  `ie_imp_Abinova_1` and `ie_impexp_Abinova_1.h`; the classes are
+  `IE_Exp_Abinova_1`, `IE_Imp_Abinova_1`, their sniffers and the
+  `s_Abinova_1_Listener`, with every reference
+  (`pd_Document`, `ie_exp`, `ie_imp`, `ie_exp_AWT`,
+  `ie_impexp_Register`, `ap_EditMethods`, `Makefile.am`) updated.
+  The AbiSource copyright stays (the code is still a derivative
+  work); `AbiWord`/`AbiSource` in comments, include guards and
+  header banners were renamed. Wire-level identifiers
+  (`<abiword>` root, `application/abiword` MIME aliases,
+  `abiword.date_created`) are deliberately kept for
+  compatibility.
+- **XML serializer hardened** — `IE_Exp_XML` now keeps a
+  start/end-element stack: `endElement()` on an empty stack is a
+  logged no-op instead of corrupting output, and `closeHandle()`
+  drains any elements a listener left open, so malformed `.abwn`
+  output is structurally impossible.
+- **Two latent exporter bugs fixed** — `_openTag` no longer emits
+  span attributes/properties into the parent element when a `<c>`
+  run is suppressed for having nothing to save (the #13708 case),
+  and the `math`/`embed` export branches no longer dereference a
+  null `pAP` when the strux's attr-prop index resolves to nothing.
+- **`.abwn` content sniffer rewritten** — `recognizeContents` is a
+  bounded first-six-lines scan over a magic table instead of
+  per-magic length checks with manual byte arithmetic; same
+  detection semantics.
 - **Save As dialog bottom row** — the file-name field now sits in a
   shared grid directly above the "Save file as type" selector so
   both fields share one column (the name entry is exactly as wide as

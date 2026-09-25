@@ -2301,7 +2301,7 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 
 	pDialog->setFileTypeList(szDescList, szSuffixList, static_cast<const UT_sint32 *>(nTypeList));
 
-	// Abinova uses IEFT_AbiWord_1 as the default
+	// Abinova uses IEFT_Abinova_1 as the default
 
 	// try to remember the previous file type
 	static IEFileType dflFileType = IEFT_Bogus;

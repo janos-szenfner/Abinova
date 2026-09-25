@@ -59,7 +59,7 @@ bool IE_Exp_AWT_Sniffer::getDlgLabels(const char ** pszDesc,
 /*****************************************************************/
 
 IE_Exp_AWT::IE_Exp_AWT (PD_Document * pDocument)
-	: IE_Exp_AbiWord_1 (pDocument, true)
+	: IE_Exp_Abinova_1 (pDocument, true)
 {
 }
 

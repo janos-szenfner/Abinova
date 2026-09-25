@@ -42,8 +42,8 @@
 #include "pd_DocumentRDF.h"
 #include "pd_Style.h"
 
-#include "ie_impexp_AbiWord_1.h"
-#include "ie_imp_AbiWord_1.h"
+#include "ie_impexp_Abinova_1.h"
+#include "ie_imp_Abinova_1.h"
 #include "ie_types.h"
 #include "ut_abwncrypt.h"
 
@@ -83,14 +83,14 @@
 /*****************************************************************/
 /*****************************************************************/
 
-IE_Imp_AbiWord_1_Sniffer::IE_Imp_AbiWord_1_Sniffer ()
+IE_Imp_Abinova_1_Sniffer::IE_Imp_Abinova_1_Sniffer ()
 	: IE_ImpSniffer(IE_IMPEXPNAME_AWML11)
 {
 	// 
 }
 
 // supported suffixes
-static IE_SuffixConfidence IE_Imp_AbiWord_1_Sniffer__SuffixConfidence[] = {
+static IE_SuffixConfidence IE_Imp_Abinova_1_Sniffer__SuffixConfidence[] = {
 	{ "abwn", 	UT_CONFIDENCE_PERFECT 	},
 	{ "abw", 	UT_CONFIDENCE_PERFECT 	},
 	{ "awt", 	UT_CONFIDENCE_PERFECT 	},
@@ -105,13 +105,13 @@ static IE_SuffixConfidence IE_Imp_AbiWord_1_Sniffer__SuffixConfidence[] = {
 	{ "", 	UT_CONFIDENCE_ZILCH 	}
 };
 
-const IE_SuffixConfidence * IE_Imp_AbiWord_1_Sniffer::getSuffixConfidence ()
+const IE_SuffixConfidence * IE_Imp_Abinova_1_Sniffer::getSuffixConfidence ()
 {
-	return IE_Imp_AbiWord_1_Sniffer__SuffixConfidence;
+	return IE_Imp_Abinova_1_Sniffer__SuffixConfidence;
 }
 
 // supported mimetypes
-static IE_MimeConfidence IE_Imp_AbiWord_1_Sniffer__MimeConfidence[] = {
+static IE_MimeConfidence IE_Imp_Abinova_1_Sniffer__MimeConfidence[] = {
 	{ IE_MIME_MATCH_FULL, 	IE_MIMETYPE_AbiWord, 					UT_CONFIDENCE_GOOD 	},
 	/* aliases */
 	{ IE_MIME_MATCH_FULL, 	"application/x-abinova",				UT_CONFIDENCE_GOOD	},
@@ -124,60 +124,53 @@ static IE_MimeConfidence IE_Imp_AbiWord_1_Sniffer__MimeConfidence[] = {
 	{ IE_MIME_MATCH_BOGUS, 	"", 									UT_CONFIDENCE_ZILCH }
 };
 
-const IE_MimeConfidence * IE_Imp_AbiWord_1_Sniffer::getMimeConfidence ()
+const IE_MimeConfidence * IE_Imp_Abinova_1_Sniffer::getMimeConfidence ()
 {
-	return IE_Imp_AbiWord_1_Sniffer__MimeConfidence;
+	return IE_Imp_Abinova_1_Sniffer__MimeConfidence;
 }
 
-UT_Confidence_t IE_Imp_AbiWord_1_Sniffer::recognizeContents (const char * szBuf,
+UT_Confidence_t IE_Imp_Abinova_1_Sniffer::recognizeContents (const char * szBuf,
 												  UT_uint32 iNumbytes)
 {
 	// encrypted envelope: ciphertext, but the magic is unambiguous
 	if (UT_abwn_isEncrypted(szBuf, iNumbytes))
 		return UT_CONFIDENCE_PERFECT;
 
-	UT_uint32 iLinesToRead = 6 ;  // Only examine the first few lines of the file
-	UT_uint32 iBytesScanned = 0 ;
-	const char *p ;
-	const char *magic ;
-	p = szBuf ;
-	while( iLinesToRead-- )
+	static const char * const magics[] = {
+		"<abiword", "<abinova", "<awml ",
+		"<!-- This file is an Abinova document."
+	};
+
+	// Only examine the first few lines of the file
+	const char *p = szBuf;
+	const char *end = szBuf + iNumbytes;
+	for (int iLinesToRead = 6; iLinesToRead-- > 0; )
 	{
-		magic = "<abiword" ;
-		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
-		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
-
-		magic = "<abinova" ;
-		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
-		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
-
-		magic = "<awml " ;
-		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
-		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
-
-		magic = "<!-- This file is an Abinova document." ;
-		if ( (iNumbytes - iBytesScanned) < strlen(magic) ) return(UT_CONFIDENCE_ZILCH);
-		if ( strncmp(p, magic, strlen(magic)) == 0 ) return(UT_CONFIDENCE_PERFECT);
-		/*  Seek to the next newline:  */
-		while ( *p != '\n' && *p != '\r' )
+		for (const char *magic : magics)
 		{
-			iBytesScanned++ ; p++ ;
-			if( iBytesScanned+2 >= iNumbytes ) return(UT_CONFIDENCE_ZILCH);
+			size_t len = strlen (magic);
+			if (static_cast<size_t>(end - p) < len)
+				return UT_CONFIDENCE_ZILCH;
+			if (strncmp (p, magic, len) == 0)
+				return UT_CONFIDENCE_PERFECT;
 		}
-		/*  Seek past the next newline:  */
-		if ( *p == '\n' || *p == '\r' )
-		{
-			iBytesScanned++ ; p++ ;
-			if ( *p == '\n' || *p == '\r' )
-			{
-				iBytesScanned++ ; p++ ;
-			}
-		}
+
+		// Seek to the next newline, bounded
+		while (p < end && *p != '\n' && *p != '\r')
+			p++;
+		if (p >= end)
+			return UT_CONFIDENCE_ZILCH;
+
+		// Seek past the newline(s)
+		while (p < end && (*p == '\n' || *p == '\r'))
+			p++;
+		if (p >= end)
+			return UT_CONFIDENCE_ZILCH;
 	}
 	return UT_CONFIDENCE_ZILCH;
 }
 
-bool IE_Imp_AbiWord_1_Sniffer::getDlgLabels (const char ** szDesc,
+bool IE_Imp_Abinova_1_Sniffer::getDlgLabels (const char ** szDesc,
 											 const char ** szSuffixList,
 											 IEFileType * ft)
 {
@@ -187,10 +180,10 @@ bool IE_Imp_AbiWord_1_Sniffer::getDlgLabels (const char ** szDesc,
 	return true;
 }
 
-UT_Error IE_Imp_AbiWord_1_Sniffer::constructImporter (PD_Document * pDocument,
+UT_Error IE_Imp_Abinova_1_Sniffer::constructImporter (PD_Document * pDocument,
 													  IE_Imp ** ppie)
 {
-	IE_Imp_AbiWord_1 * p = new IE_Imp_AbiWord_1(pDocument);
+	IE_Imp_Abinova_1 * p = new IE_Imp_Abinova_1(pDocument);
 	*ppie = p;
 	return UT_OK;
 }
@@ -198,7 +191,7 @@ UT_Error IE_Imp_AbiWord_1_Sniffer::constructImporter (PD_Document * pDocument,
 /*****************************************************************/
 /*****************************************************************/
 
-IE_Imp_AbiWord_1::~IE_Imp_AbiWord_1()
+IE_Imp_Abinova_1::~IE_Imp_Abinova_1()
 {
 	if(!getLoadStylesOnly()	)
 	{
@@ -216,7 +209,7 @@ IE_Imp_AbiWord_1::~IE_Imp_AbiWord_1()
   }
 }
 
-IE_Imp_AbiWord_1::IE_Imp_AbiWord_1(PD_Document * pDocument)
+IE_Imp_Abinova_1::IE_Imp_Abinova_1(PD_Document * pDocument)
   : IE_Imp_XML(pDocument, true), 
 	m_bWroteSection (false),
     m_bWroteParagraph(false), 
@@ -276,7 +269,7 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
  * feeds the plaintext (possibly still gzip-compressed) to the XML
  * loader.  Plain documents go straight through unchanged.
  */
-UT_Error IE_Imp_AbiWord_1::_loadFile(GsfInput * input)
+UT_Error IE_Imp_Abinova_1::_loadFile(GsfInput * input)
 {
 	gsf_off_t num_bytes = gsf_input_size(input);
 	if (num_bytes <= 0)
@@ -474,7 +467,7 @@ static struct xmlToIdMapping s_Tokens[] =
 
 #define TokenTableSize	((sizeof(s_Tokens)/sizeof(s_Tokens[0])))
 
-void IE_Imp_AbiWord_1::startElement(const gchar *name,
+void IE_Imp_Abinova_1::startElement(const gchar *name,
 									const gchar **attributes)
 {
 	PP_PropertyVector atts = PP_cloneAndDecodeAttributes (attributes);
@@ -1182,7 +1175,7 @@ void IE_Imp_AbiWord_1::startElement(const gchar *name,
 	}
 }
 
-void IE_Imp_AbiWord_1::endElement(const gchar *name)
+void IE_Imp_Abinova_1::endElement(const gchar *name)
 {
   	xxx_UT_DEBUGMSG(("endElement %s\n", name));
 
@@ -1558,7 +1551,7 @@ void IE_Imp_AbiWord_1::endElement(const gchar *name)
 	}
 }
 
-void IE_Imp_AbiWord_1::charData(const gchar * buffer, int length)
+void IE_Imp_Abinova_1::charData(const gchar * buffer, int length)
 {
 	/* text inside a reserved-section item (<change>, <masterpage>,
 	 * <note>) belongs to the verbatim record, not the document */
@@ -1573,12 +1566,12 @@ void IE_Imp_AbiWord_1::charData(const gchar * buffer, int length)
 /*****************************************************************/
 /*****************************************************************/
 
-const std::string & IE_Imp_AbiWord_1::_getDataItemName(const PP_PropertyVector & atts)
+const std::string & IE_Imp_Abinova_1::_getDataItemName(const PP_PropertyVector & atts)
 {
 	return PP_getAttribute ("name", atts);
 }
 
-std::string IE_Imp_AbiWord_1::_getDataItemMimeType(const PP_PropertyVector & atts)
+std::string IE_Imp_Abinova_1::_getDataItemMimeType(const PP_PropertyVector & atts)
 {
 	const std::string & val = PP_getAttribute ("mime-type", atts);
 
@@ -1587,7 +1580,7 @@ std::string IE_Imp_AbiWord_1::_getDataItemMimeType(const PP_PropertyVector & att
 	return (val.empty() ? "image/png" : val);
 }
 
-bool IE_Imp_AbiWord_1::_getDataItemEncoded(const PP_PropertyVector & atts)
+bool IE_Imp_Abinova_1::_getDataItemEncoded(const PP_PropertyVector & atts)
 {
 	const std::string & val = PP_getAttribute ("base64", atts);
 
@@ -1598,7 +1591,7 @@ bool IE_Imp_AbiWord_1::_getDataItemEncoded(const PP_PropertyVector & atts)
 	return false;
 }
 
-bool IE_Imp_AbiWord_1::_handleImage(const gchar ** atts)
+bool IE_Imp_Abinova_1::_handleImage(const gchar ** atts)
 {
 #ifdef ENABLE_RESOURCE_MANAGER
 	static const char * psz_href = "href"; // could make this xlink:href, but is #ID valid in XLINK?
@@ -1721,7 +1714,7 @@ bool IE_Imp_AbiWord_1::_handleImage(const gchar ** atts)
 #endif
 }
 
-bool IE_Imp_AbiWord_1::_handleResource (const gchar ** atts, bool isResource)
+bool IE_Imp_Abinova_1::_handleResource (const gchar ** atts, bool isResource)
 {
 #ifdef ENABLE_RESOURCE_MANAGER
 	if (atts == 0) return false;

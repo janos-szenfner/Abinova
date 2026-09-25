@@ -41,7 +41,7 @@
 #include "ut_debugmsg.h"
 
 #include "ie_exp.h"
-#include "ie_exp_AbiWord_1.h"
+#include "ie_exp_Abinova_1.h"
 
 #include "fl_DocLayout.h"
 #include "pd_Document.h"
@@ -471,7 +471,7 @@ void IE_Exp::write(const char * sz, UT_uint32 length)
   Find the filetype for the given mimetype.
  \param szMimetype File mimetype
 
- Returns IEFT_AbiWord_1 if no exporter knows this mimetype.
+ Returns IEFT_Abinova_1 if no exporter knows this mimetype.
  Note that more than one exporter may support a mimetype.
  We return the first one we find.
  This function should closely resemble IE_Exp::fileTypeForMimetype()
@@ -520,7 +520,7 @@ IEFileType IE_Exp::fileTypeForMimetype(const char * szMimetype)
   Find the filetype for the given suffix.
  \param szSuffix File suffix
 
- Returns IEFT_AbiWord_1 if no exporter knows this suffix.
+ Returns IEFT_Abinova_1 if no exporter knows this suffix.
  Note that more than one exporter may support a suffix.
  We return the first one we find.
  This function should closely resemble IE_Exp::fileTypeForSuffix()
@@ -807,7 +807,7 @@ UT_Error IE_Exp::constructExporter(PD_Document * pDocument,
 	// type of file we're supposed to be writing.
 	// assume it is our format and try to write it.
 	// if that fails, just give up.
-	*ppie = new IE_Exp_AbiWord_1(pDocument);
+	*ppie = new IE_Exp_Abinova_1(pDocument);
 	if (pieft != nullptr)
 		*pieft = IE_Exp::fileTypeForSuffix(".abw");
  	return ((*ppie) ? UT_OK : UT_IE_NOMEMORY);

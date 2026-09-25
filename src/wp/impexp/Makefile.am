@@ -46,8 +46,8 @@ AM_CPPFLAGS = \
 	$(WP_CPPFLAGS)
 
 libimpexp_la_SOURCES = \
-	xp/ie_exp_AbiWord_1.cpp \
-	xp/ie_exp_AbiWord_1.h \
+	xp/ie_exp_Abinova_1.cpp \
+	xp/ie_exp_Abinova_1.h \
 	xp/ie_exp_AWT.cpp \
 	xp/ie_exp_AWT.h \
 	xp/ie_exp.cpp \
@@ -86,10 +86,10 @@ libimpexp_la_SOURCES = \
 	xp/ut_abwncrypt.h \
 	xp/ie_FileInfo.cpp \
 	xp/ie_FileInfo.h \
-	xp/ie_imp_AbiWord_1.cpp \
-	xp/ie_imp_AbiWord_1.h \
+	xp/ie_imp_Abinova_1.cpp \
+	xp/ie_imp_Abinova_1.h \
 	xp/ie_imp.cpp \
-	xp/ie_impexp_AbiWord_1.h \
+	xp/ie_impexp_Abinova_1.h \
 	xp/ie_impexp_HTML.h \
 	xp/ie_impexp_MsWord_97.h \
 	xp/ie_impexp_Register.cpp \
