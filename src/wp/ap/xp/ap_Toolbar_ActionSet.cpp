@@ -158,7 +158,6 @@ EV_Toolbar_ActionSet * AP_CreateToolbarActionSet(void)
 	_s(AP_TOOLBAR_ID_FMT_HYPERLINK, EV_TBIT_PushButton, "insertHyperlink", AV_CHG_ALL,  ap_ToolbarGetState_HyperlinkOK);
 	_s(AP_TOOLBAR_ID_FMT_BOOKMARK, EV_TBIT_PushButton, "insertBookmark", AV_CHG_ALL, ap_ToolbarGetState_BookmarkOK);
 
-	_s(AP_TOOLBAR_ID_SCRIPT_PLAY,	EV_TBIT_PushButton,	"scriptPlay",		AV_CHG_ALL,			ap_ToolbarGetState_ScriptsActive);
 	_s(AP_TOOLBAR_ID_FMTPAINTER, EV_TBIT_PushButton, "formatPainter",
 	   AV_CHG_ALL, ap_ToolbarGetState_Clipboard);
 

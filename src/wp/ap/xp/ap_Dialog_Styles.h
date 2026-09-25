@@ -49,7 +49,6 @@ class ABI_EXPORT AP_Dialog_Styles : public XAP_Dialog_NonPersistent
 	AP_Dialog_Styles::tAnswer	  getAnswer(void) const;
 
 	// wish that this could be protected
-	void _tabCallback(const char *, const char *);
 
  protected:
 	void event_paraPreviewUpdated (const gchar * pageLeftMargin,
@@ -77,7 +76,6 @@ class ABI_EXPORT AP_Dialog_Styles : public XAP_Dialog_NonPersistent
 	void ModifyLists(void);
 	void ModifyFont(void);
 	void ModifyParagraph(void);
-	void ModifyTabs(void);
 	void ModifyLang(void);
 
 	void updateCurrentStyle(void);

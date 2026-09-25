@@ -54,7 +54,6 @@
 #   include "xap_UnixDlg_Password.h"
 #   include "xap_UnixDlg_Image.h"
 #   include "xap_UnixDlg_ListDocuments.h"
-#	include "xap_UnixDlg_History.h"
 #   include "xap_UnixDlg_DocComparison.h"
 
 #	include "ap_UnixDialog_Replace.h"
@@ -70,14 +69,12 @@
 #endif
 #	include "ap_UnixDialog_Styles.h"
 #   include "ap_UnixDialog_Stylist.h"
-#	include "ap_UnixDialog_Tab.h"
 #	include "ap_UnixDialog_Insert_DateTime.h"
 #	include "ap_UnixDialog_WordCount.h"
 #	include "ap_UnixDialog_Field.h"
 #	include "ap_UnixDialog_Lists.h"
 #	include "ap_UnixDialog_Columns.h"
 #	include "ap_UnixDialog_Document.h"
-#	include "ap_UnixDialog_Tab.h"
 #   include "ap_UnixDialog_ToggleCase.h"
 #   include "ap_UnixDialog_Background.h"
 #   include "ap_UnixDialog_New.h"
@@ -93,10 +90,8 @@
 #   include "ap_UnixDialog_MergeCells.h"
 #   include "ap_UnixDialog_SplitCells.h"
 #   include "ap_UnixDialog_FormatTable.h"
-#   include "ap_UnixDialog_FormatFrame.h"
 #   include "ap_UnixDialog_FormatFootnotes.h"
 #   include "ap_UnixDialog_FormatTOC.h"
-#   include "ap_UnixDialog_MailMerge.h"
 #   include "ap_UnixDialog_Latex.h"
 #	include "ap_UnixDialog_Border_Shading.h"
 #   ifdef ENABLE_PRINT
@@ -147,7 +142,6 @@
 	DeclareDialog(XAP_DIALOG_ID_LISTDOCUMENTS,  XAP_UnixDialog_ListDocuments, 		FALSE)
 	DeclareDialog(XAP_DIALOG_ID_COMPAREDOCUMENTS,XAP_UnixDialog_ListDocuments, 		FALSE)
 	DeclareDialog(XAP_DIALOG_ID_MERGEDOCUMENTS, XAP_UnixDialog_ListDocuments, 		FALSE)
-    DeclareDialog(XAP_DIALOG_ID_HISTORY,        XAP_UnixDialog_History, 			FALSE)
     DeclareDialog(XAP_DIALOG_ID_DOCCOMPARISON,  XAP_UnixDialog_DocComparison, 		FALSE)
 
 	DeclareDialog(AP_DIALOG_ID_REPLACE,			AP_UnixDialog_Replace, 				FALSE)
@@ -164,14 +158,12 @@
 	DeclareDialog(AP_DIALOG_ID_PAGE_NUMBERS,    AP_UnixDialog_PageNumbers, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_PARAGRAPH,		AP_UnixDialog_Paragraph, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_OPTIONS,			AP_UnixDialog_Options, 				TRUE)
-	DeclareDialog(AP_DIALOG_ID_TAB,				AP_UnixDialog_Tab, 					FALSE)
 	DeclareDialog(AP_DIALOG_ID_INSERT_DATETIME,	AP_UnixDialog_Insert_DateTime, 		FALSE)
 	DeclareDialog(AP_DIALOG_ID_WORDCOUNT,		AP_UnixDialog_WordCount, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_FIELD,			AP_UnixDialog_Field, 				FALSE)
 	DeclareDialog(AP_DIALOG_ID_LISTS,			AP_UnixDialog_Lists, 				FALSE)
 	DeclareDialog(AP_DIALOG_ID_COLUMNS,			AP_UnixDialog_Columns, 				FALSE)
 	DeclareDialog(AP_DIALOG_ID_DOCUMENT,		AP_UnixDialog_Document, 			FALSE)
-	DeclareDialog(AP_DIALOG_ID_TAB,				AP_UnixDialog_Tab, 					FALSE)
 	DeclareDialog(AP_DIALOG_ID_FILE_PAGESETUP,  AP_UnixDialog_PageSetup, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_TOGGLECASE,      AP_UnixDialog_ToggleCase, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_FILE_NEW,        AP_UnixDialog_New, 					FALSE)
@@ -187,10 +179,8 @@
 	DeclareDialog(AP_DIALOG_ID_MERGE_CELLS,		AP_UnixDialog_MergeCells, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_SPLIT_CELLS,		AP_UnixDialog_SplitCells, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_FORMAT_TABLE,	AP_UnixDialog_FormatTable, 			FALSE)
-	DeclareDialog(AP_DIALOG_ID_FORMAT_FRAME,	AP_UnixDialog_FormatFrame, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_FORMAT_FOOTNOTES,AP_UnixDialog_FormatFootnotes, 		FALSE)
 	DeclareDialog(AP_DIALOG_ID_FORMAT_TOC,		AP_UnixDialog_FormatTOC, 			FALSE)
-	DeclareDialog(AP_DIALOG_ID_MAILMERGE,		AP_UnixDialog_MailMerge, 			FALSE)
 	DeclareDialog(AP_DIALOG_ID_LATEX,		    AP_UnixDialog_Latex, 				FALSE)
 	DeclareDialog(AP_DIALOG_ID_ANNOTATION_PREVIEW,	AP_UnixPreview_Annotation, 				FALSE)
 	DeclareDialog(AP_DIALOG_ID_BORDER_SHADING,	AP_UnixDialog_Border_Shading, 				FALSE)

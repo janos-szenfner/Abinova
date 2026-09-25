@@ -100,47 +100,6 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Toolbar)
 }
 
 
-Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Recent)
-{
-	// Compute the menu label for _recent_1 thru _recent_9 on the menu.
-	// We return a pointer to a static string (which will be overwritten
-	// on the next call).
-
-	XAP_App * pApp = XAP_App::getApp();
-	UT_return_val_if_fail (pApp && pLabel, nullptr);
-
-	UT_ASSERT_HARMLESS(id >= (XAP_Menu_Id)AP_MENU_ID_FILE_RECENT_1);
-
-	UT_uint32 ndx = (id - AP_MENU_ID_FILE_RECENT_1 + 1);
-
-	XAP_Prefs * pPrefs = pApp->getPrefs();
-	UT_return_val_if_fail (pPrefs, nullptr);
-
-    static char *buf = nullptr;
-    if (ndx <= pPrefs->getRecentCount())
-    {
-        const char * szFormat = pLabel->getMenuLabel();
-        const char * szURI = pPrefs->getRecent(ndx);
-        char *szFname = g_filename_from_uri(szURI, nullptr, nullptr);
-        char *szRecent = g_filename_to_utf8(szFname, -1, nullptr, nullptr, nullptr);
-        char *szBasename = szRecent ? g_path_get_basename(szRecent) : g_strdup ("");
-		char *szMenuname = s_escapeMenuString(szBasename);
-        g_free(szFname);
-        g_free(szRecent);
-		g_free(szBasename);
-
-        g_free(buf);
-        buf = g_strdup_printf(szFormat, szMenuname);
-        g_free(szMenuname);
-        return buf;
-    }
-
-	// for the other slots, return a null string to tell
-	// the menu code to remove this item from the menu.
-
-	return nullptr;
-}
-
 Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_About)
 {
 	UT_DEBUG_ONLY_ARG(id);
@@ -525,23 +484,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_SomethingSelected)
 }
 
 
-Defun_EV_GetMenuItemState_Fn(ap_GetState_TextToTableOK)
-{
-	UT_UNUSED(id);
-	ABIWORD_VIEW ;
-	UT_return_val_if_fail (pView, EV_MIS_Gray);
-
-	EV_Menu_ItemState s = EV_MIS_ZERO ;
-
-	if ( pView->isSelectionEmpty () || pView->isInTable() || pView->isInHdrFtr(pView->getPoint()))
-	  {
-	    s = EV_MIS_Gray ;
-	  }
-
-	return s ;
-}
-
-
 static EV_Menu_ItemState HyperLinkOK(FV_View * pView)
 {
 	EV_Menu_ItemState s = EV_MIS_ZERO ;
@@ -845,21 +787,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_Changes)
 	return s;
 }
 
-Defun_EV_GetMenuItemState_Fn(ap_GetState_ScriptsActive)
-{
-  UT_UNUSED(pAV_View);
-  UT_UNUSED(id);
-  EV_Menu_ItemState s = EV_MIS_ZERO;
-
-  UT_ScriptLibrary * instance = UT_ScriptLibrary::instance ();
-  UT_uint32 filterCount = instance->getNumScripts ();
-
-  if ( filterCount == 0 )
-    s = EV_MIS_Gray;
-
-  return s;
-}
-
 Defun_EV_GetMenuItemState_Fn(ap_GetState_Selection)
 {
         ABIWORD_VIEW;
@@ -1056,17 +983,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_CharFmt)
 		prop = "text-position";
 		val  = "subscript";
 		break;
-
-	case AP_MENU_ID_FMT_DIRECTION_DO_RTL:
-		prop = "dir-override";
-		val  = "rtl";
-		break;
-		
-	case AP_MENU_ID_FMT_DIRECTION_DO_LTR:
-		prop = "dir-override";
-		val  = "ltr";
-		break;
-
 	default:
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		break;
@@ -1132,12 +1048,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_BlockFmt)
 	case AP_MENU_ID_ALIGN_JUSTIFY:
 		val  = "justify";
 		break;
-
-	case AP_MENU_ID_FMT_DIRECTION_DD_RTL:
-		prop = "dom-dir";
-		val  = "rtl";
-		break;
-
 	default:
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		break;
@@ -1181,11 +1091,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_DocFmt)
 
 	switch(id)
 	{
-		case AP_MENU_ID_FMT_DIRECTION_DOCD_RTL:
-			prop = "dom-dir";
-			val  = "rtl";
-			break;
-
 		default:
 			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 			break;
@@ -1221,11 +1126,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_SectFmt)
 
 	switch(id)
 	{
-		case AP_MENU_ID_FMT_DIRECTION_SD_RTL:
-			prop = "dom-dir";
-			val  = "rtl";
-			break;
-
 		default:
 			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 			break;
@@ -1418,21 +1318,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_StylesLocked)
         }
 
         return EV_MIS_ZERO;
-}
-
-Defun_EV_GetMenuItemState_Fn(ap_GetState_History)
-{
-	UT_UNUSED(id);
-	ABIWORD_VIEW;
-	UT_return_val_if_fail (pView, EV_MIS_Gray);
-	PD_Document * pDoc = pView->getDocument();
-	UT_return_val_if_fail( pDoc, EV_MIS_Gray );
-
-	// disable for documents that have not been saved yet
-	if(pDoc->getFilename().empty())
-		return EV_MIS_Gray;
-	
-    return EV_MIS_ZERO;
 }
 
 Defun_EV_GetMenuItemState_Fn(ap_GetState_MarkRevisionsCheck)
@@ -2170,22 +2055,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_AlwaysDisabled)
     return EV_MIS_Gray;
 }
 
-Defun_EV_GetMenuItemState_Fn(ap_GetState_Recent)
-{
-	UT_UNUSED(pAV_View);
-	UT_UNUSED(id);
-  // ABIWORD_VIEW;
-  // UT_return_val_if_fail(pView, EV_MIS_ZERO);
-
-	XAP_Prefs *pPrefs = XAP_App::getApp()->getPrefs();
-	UT_return_val_if_fail(pPrefs, EV_MIS_ZERO);
-
-	if(pPrefs->getRecentCount() > 0)
-		return EV_MIS_ZERO;
-	
-	return EV_MIS_Gray;
-}
-
 Defun_EV_GetMenuItemState_Fn(ap_GetState_Zoom)
 {
 	ABIWORD_VIEW;
@@ -2242,17 +2111,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_Lists)
 		return EV_MIS_Gray;
 	}
 
-	return EV_MIS_ZERO;
-}
-
-Defun_EV_GetMenuItemState_Fn(ap_GetState_MailMerge)
-{
-	UT_UNUSED(id);
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView, EV_MIS_ZERO);
-	
-	if (0 == IE_MailMerge::getMergerCount ())
-		return EV_MIS_Gray;
 	return EV_MIS_ZERO;
 }
 

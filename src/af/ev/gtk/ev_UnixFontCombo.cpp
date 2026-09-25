@@ -306,17 +306,33 @@ abi_font_combo_dispose (GObject *instance)
 	if (self->is_disposed) {
 		return;
 	}
+	self->is_disposed = TRUE;
 
-	if (self->popover)
+	/* Clearing the list models below emits items-changed through the
+	 * sort/filter chain into the selection model, whose notify handler
+	 * pokes the popover and the entry - both may already be gone while
+	 * the frame is being torn down. Silence callbacks before releasing
+	 * anything. */
+	self->updating = TRUE;
+	if (self->sel)
+		g_signal_handlers_disconnect_by_data (self->sel, self);
+
+	if (self->popover) {
 		gtk_widget_unparent (self->popover);
+		self->popover = nullptr;
+	}
+	self->listview = nullptr;
 
 	g_clear_object (&self->strings);
 	g_clear_object (&self->sort);
 	g_clear_object (&self->filtered);
-	g_clear_object (&self->filter);
-	g_clear_object (&self->sel);
+	/* self->filter was passed to gtk_filter_list_model_new() and
+	 * self->sel to gtk_list_view_new(), both as (transfer full): the
+	 * models above and the widget teardown own them, unreffing here
+	 * would be a double-free */
+	self->filter = nullptr;
+	self->sel = nullptr;
 
-	self->is_disposed = TRUE;
 	G_OBJECT_CLASS (abi_font_combo_parent_class)->dispose (instance);
 }
 

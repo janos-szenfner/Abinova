@@ -196,7 +196,7 @@ bool XAP_UnixApp::dragImageToFile(GtkWidget * window,
 	//
 	removeTmpFile();
 	gchar *pszTmpPath = nullptr;
-	int iTmpFd = g_file_open_tmp("abiword-XXXXXX.png", &pszTmpPath, nullptr);
+	int iTmpFd = g_file_open_tmp("abinova-XXXXXX.png", &pszTmpPath, nullptr);
 	if (iTmpFd == -1)
 	{
 		return false;

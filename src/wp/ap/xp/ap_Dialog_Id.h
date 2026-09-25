@@ -40,7 +40,6 @@ enum AP_Dialog_Id: uint16_t
 	AP_DIALOG_ID_SPELL,					/* spell check */
 	AP_DIALOG_ID_PARAGRAPH,				/* paragraph settings dialog */
 	AP_DIALOG_ID_OPTIONS,				/* edit|options settings dialog */
-	AP_DIALOG_ID_TAB,					/* tabs */
 	AP_DIALOG_ID_INSERT_DATETIME,		/* insert date and time dialog */
 	AP_DIALOG_ID_FIELD,					/* insert field dialog */
 	AP_DIALOG_ID_WORDCOUNT,             /* word count dialog */
@@ -65,10 +64,8 @@ enum AP_Dialog_Id: uint16_t
 	AP_DIALOG_ID_MERGE_CELLS,
 	AP_DIALOG_ID_SPLIT_CELLS,
 	AP_DIALOG_ID_FORMAT_TABLE,
-	AP_DIALOG_ID_FORMAT_FRAME,
 	AP_DIALOG_ID_FORMAT_FOOTNOTES,
 	AP_DIALOG_ID_FORMAT_TOC,
-	AP_DIALOG_ID_MAILMERGE,
 	AP_DIALOG_ID_LATEX, /*Insert and modify a latex based equation */
 	AP_DIALOG_ID_ANNOTATION_PREVIEW,
 #if 0

@@ -246,12 +246,9 @@ static void s_modify_format_cb(GtkWidget * widget,
 		me->event_ModifyFont();
 		break;
 	case 3:
-		me->event_ModifyTabs();
-		break;
-	case 4:
 		me->event_ModifyNumbering();
 		break;
-	case 5:
+	case 4:
 		me->event_ModifyLanguage();
 		break;
 	default:
@@ -1058,9 +1055,6 @@ void  AP_UnixDialog_Styles::_constructFormatList(GtkWidget * FormatCombo)
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyFont,s);
 	gtk_combo_box_text_append_text(combo, s.c_str());
 
-	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyTabs,s);
-	gtk_combo_box_text_append_text(combo, s.c_str());
-
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyNumbering,s);
 	gtk_combo_box_text_append_text(combo, s.c_str());
 
@@ -1716,32 +1710,6 @@ void   AP_UnixDialog_Styles::event_ModifyNumbering()
 }
 
 
-void   AP_UnixDialog_Styles::event_ModifyTabs()
-{
-#if HIDE_MAIN_DIALOG
-//
-// Hide this window
-//
-    gtk_widget_hide(m_wModifyDialog);
-#endif
-
-//
-// Can do all this in XP land.
-//
-	ModifyTabs();
-	rebuildDeleteProps();
-#if HIDE_MAIN_DIALOG
-//
-// Restore this window
-//
-    gtk_widget_show(m_wModifyDialog);
-#endif
-
-//
-// This applies the changes to current style and displays them
-//
-	updateCurrentStyle();
-}
 
 bool  AP_UnixDialog_Styles::isModifySignalBlocked(void) const
 {

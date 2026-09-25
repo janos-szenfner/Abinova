@@ -89,16 +89,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FILE_PRINT,  0,1,0,0,	"cairoPrint",nullptr,nullptr);
 	_s(AP_MENU_ID_FILE_PRINT_PREVIEW, 0,1,0,0, "cairoPrintPreview", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_PRINT_DIRECTLY, 0,1,0,0, "cairoPrintDirectly", nullptr, nullptr);
-	_s(AP_MENU_ID_FILE_RECENT,	1,0,0,0,	nullptr, ap_GetState_Recent,nullptr);
-	_s(AP_MENU_ID_FILE_RECENT_1,	0,0,0,0,	"openRecent_1",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_2,	0,0,0,0,	"openRecent_2",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_3,	0,0,0,0,	"openRecent_3",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_4,	0,0,0,0,	"openRecent_4",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_5,	0,0,0,0,	"openRecent_5",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_6,	0,0,0,0,	"openRecent_6",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_7,	0,0,0,0,	"openRecent_7",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_8,	0,0,0,0,	"openRecent_8",		nullptr,					ap_GetLabel_Recent);
-	_s(AP_MENU_ID_FILE_RECENT_9,	0,0,0,0,	"openRecent_9",		nullptr,					ap_GetLabel_Recent);
 	_s(AP_MENU_ID_FILE_REVERT, 0,0,0,0, "fileRevert", ap_GetState_Changes, nullptr);
 	_s(AP_MENU_ID_FILE_EXIT,		0,0,0,0,	"querySaveAndExit",	nullptr,					nullptr);
 	_s(AP_MENU_ID_FILE_SAVEEMBED,		0,1,0,0,	"fileSaveEmbed",	nullptr,					nullptr);
@@ -176,7 +166,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_INSERT_DATETIME,	0,1,0,0,	"insDateTime",		nullptr,					nullptr);
 	_s(AP_MENU_ID_INSERT_FIELD,		0,1,0,0,	"insField",			nullptr,					nullptr);
 	_s(AP_MENU_ID_INSERT_TEXTBOX,		0,0,0,0,	"insTextBox",   ap_GetState_InsTextBox,					nullptr);
-	_s(AP_MENU_ID_INSERT_MAILMERGE,		0,1,0,0,	"insMailMerge",			nullptr,					nullptr);
 	_s(AP_MENU_ID_INSERT_FILE, 0,1,0,0, "insFile", nullptr, nullptr);
 	_s(AP_MENU_ID_INSERT_SYMBOL,	0,1,0,0,	"insSymbol",		nullptr,					nullptr);
 	_s(AP_MENU_ID_INSERT_TABLEOFCONTENTS,	0,0,0,0,	"insTOC",	ap_GetState_TOCOK, nullptr);
@@ -220,13 +209,9 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FMT_HDRFTR,     0,1,0,0, "dlgHdrFtr", ap_GetState_FmtHdrFtr, nullptr);
 	_s(AP_MENU_ID_FMT_TABLEOFCONTENTS, 0,1,0,0, "formatTOC", ap_GetState_InTOC, nullptr);
 	_s(AP_MENU_ID_FMT_FOOTNOTES,     0,1,0,0, "formatFootnotes", nullptr, nullptr);
-	_s(AP_MENU_ID_FMT_IMAGE, 0,1,0,0, "dlgFmtImage", ap_GetState_InImage, nullptr);
-	_s(AP_MENU_ID_CONTEXT_IMAGE, 0,1,0,0, "dlgFmtImageCtxt", ap_GetState_InImage, nullptr);
 	_s(AP_MENU_ID_FMT_SETPOSIMAGE, 0,0,0,0, "setPosImage", ap_GetState_SetPosImage, nullptr);
 	_s(AP_MENU_ID_FMT_STYLE_DEFINE,		0,1,0,0,	"dlgStyle",			nullptr,					nullptr);
 	_s(AP_MENU_ID_FMT_STYLE,		1,0,0,0,	nullptr,			nullptr,					nullptr);
-	_s(AP_MENU_ID_FMT_STYLIST,		0,1,0,0,	"dlgStylist",	nullptr,					nullptr);
-	_s(AP_MENU_ID_FMT_TABS,			0,1,0,0,	"dlgTabs",			nullptr,					nullptr);
 	_s(AP_MENU_ID_FMT_BOLD,			0,0,1,0,	"toggleBold",		ap_GetState_CharFmt,	nullptr);
 	_s(AP_MENU_ID_FMT_ITALIC,		0,0,1,0,	"toggleItalic",		ap_GetState_CharFmt,	nullptr);
 	_s(AP_MENU_ID_FMT_UNDERLINE,	0,0,1,0,	"toggleUline",		ap_GetState_CharFmt,	nullptr);
@@ -240,7 +225,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FMT_SHRINKFONT,		0,0,0,0,	"fontSizeDecrease",	ap_GetState_CharFmt,	nullptr);
 	_s(AP_MENU_ID_FMT_CLEARFMT,		0,0,0,0,	"clearFormatting",	ap_GetState_SomethingSelected,	nullptr);
 	_s(AP_MENU_ID_FMT_TOGGLECASE,           0,1,0,0,  "dlgToggleCase", ap_GetState_SomethingSelected, nullptr);
-	_s(AP_MENU_ID_FMT_FRAME,           0,1,0,0,  "dlgFormatFrame", ap_GetState_InFrame, nullptr);
 
 	_s(AP_MENU_ID_LAYOUT_MARGINS,		0,1,0,0,	"docSettings",		nullptr,					nullptr);
 	_s(AP_MENU_ID_LAYOUT_ORIENTATION,	0,1,0,0,	"docSettings",		nullptr,					nullptr);
@@ -278,12 +262,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_REF_DELSOURCE, 0,0,0,0,	"refDeleteSource",	nullptr,				nullptr);
 	_s(AP_MENU_ID_REF_REMOVEBIB, 0,0,0,0,	"refRemoveBibliography", ap_GetState_HasBib,	nullptr);
 
-	_s(AP_MENU_ID_FMT_DIRECTION,  1,0,0,0, nullptr, nullptr, nullptr);
-	_s(AP_MENU_ID_FMT_DIRECTION_DD_RTL,0,0,1,0, "toggleDomDirection", ap_GetState_BlockFmt, nullptr);
-	_s(AP_MENU_ID_FMT_DIRECTION_SD_RTL,0,0,1,0, "toggleDomDirectionSect", ap_GetState_SectFmt, nullptr);
-	_s(AP_MENU_ID_FMT_DIRECTION_DOCD_RTL,0,0,1,0, "toggleDomDirectionDoc", ap_GetState_DocFmt, nullptr);
-	_s(AP_MENU_ID_FMT_DIRECTION_DO_LTR,0,0,1,0, "toggleDirOverrideLTR", ap_GetState_CharFmt, nullptr);
-	_s(AP_MENU_ID_FMT_DIRECTION_DO_RTL,0,0,1,0, "toggleDirOverrideRTL", ap_GetState_CharFmt, nullptr);
 	_s(AP_MENU_ID_FMT_EMBED,0,1,0,0, "editEmbed", nullptr, nullptr);
 
 	_s(AP_MENU_ID_ALIGN,			1,0,0,0,	nullptr,				ap_GetState_StylesLocked,	nullptr);
@@ -303,11 +281,8 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TOOLS_LANGUAGE, 1,0,0,0, nullptr, nullptr, nullptr);
 	_s(AP_MENU_ID_TOOLS_WORDCOUNT,		0,1,0,0,	"dlgWordCount",			nullptr,					nullptr);
 	_s(AP_MENU_ID_TOOLS_OPTIONS,		0,1,0,0,	"dlgOptions",		nullptr,					nullptr);
-	_s(AP_MENU_ID_TOOLS_SCRIPTS,	0,1,0,0,	"scriptPlay", ap_GetState_ScriptsActive, nullptr);
-	_s(AP_MENU_ID_TOOLS_MAILMERGE,	0,1,0,0,	"mailMerge", ap_GetState_MailMerge, nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS,  1,0,0,0,  nullptr,               nullptr,                   nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_MARK, 0,0,1,0, "toggleMarkRevisions", ap_GetState_MarkRevisionsCheck,nullptr);
-	_s(AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION, 0,1,0,0, "startNewRevision", ap_GetState_MarkRevisions,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_SHOW, 0,0,1,0, "toggleShowRevisions", ap_GetState_ShowRevisions,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTERPREV, 0,0,1,0, "toggleShowRevisionsAfterPrevious", ap_GetState_ShowRevisionsAfterPrev,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTER, 0,0,1,0, "toggleShowRevisionsAfter", ap_GetState_ShowRevisionsAfter,nullptr);
@@ -315,7 +290,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 
 	_s(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION, 0,0,0,0, "revisionAccept", ap_GetState_RevisionPresent,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION, 0,0,0,0, "revisionReject", ap_GetState_RevisionPresent,nullptr);
-	_s(AP_MENU_ID_TOOLS_REVISIONS_PURGE, 0,0,0,0, "purgeAllRevisions", ap_GetState_HasRevisions,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS, 0,1,0,0, "revisionCompareDocuments",nullptr,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_AUTO, 0,0,1,0, "toggleAutoRevision",ap_GetState_AutoRevision,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT, 0,0,0,0, "revisionFindNext", ap_GetState_HasRevisions,nullptr);
@@ -376,10 +350,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TABLE_DELETE_ROWS,0,0,0,0, "deleteRows", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_DELETEROW,0,0,0,0, "deleteRows", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_DELETE_CELLS,0,0,0,0, "deleteCell", ap_GetState_InTable, nullptr);
-	_s(AP_MENU_ID_TABLE_TEXTTOTABLE_ALL,1,0,0,0, "textToTable", ap_GetState_TextToTableOK, nullptr);
-	_s(AP_MENU_ID_TABLE_TEXTTOTABLE_COMMAS,1,0,0,0, "textToTableCommas", ap_GetState_TextToTableOK, nullptr);
-	_s(AP_MENU_ID_TABLE_TEXTTOTABLE_SPACES,1,0,0,0, "textToTableSpaces", ap_GetState_TextToTableOK, nullptr);
-	_s(AP_MENU_ID_TABLE_TEXTTOTABLE_TABS,1,0,0,0, "textToTableTabs", ap_GetState_TextToTableOK, nullptr);
 	_s(AP_MENU_ID_TABLE_SORTROWSASCEND,1,0,0,0, "sortRowsAscend", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_SORTROWSDESCEND,1,0,0,0, "sortRowsDescend", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_SORTCOLSASCEND,1,0,0,0, "sortColsAscend", ap_GetState_InTable, nullptr);
@@ -421,7 +391,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TABLE_AUTOFIT_CONTENTS,0,0,0,0, "autoFitTable", ap_GetState_PointInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_AUTOFIT_WINDOW,0,0,0,0, "autoFitTableWindow", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_AUTOFIT_FIXED,0,0,0,0, "autoFitTableFixed", ap_GetState_InTable, nullptr);
-	_s(AP_MENU_ID_TABLE_TEXTTOTABLE,0,0,0,0, nullptr, ap_GetState_TextToTableOK, nullptr);
 
 
 	_s(AP_MENU_ID_RDF,1,0,0,0,nullptr,nullptr,nullptr);
@@ -473,9 +442,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_CONTEXT_REVISIONS_FIND_NEXT, 0,0,0,0, "revisionFindNext", ap_GetState_HasRevisions,nullptr);
 	_s(AP_MENU_ID_CONTEXT_REVISIONS_FIND_PREV, 0,0,0,0, "revisionFindPrev", ap_GetState_HasRevisions,nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL, 0,1,0,0, "revisionSetViewLevel", ap_GetState_RevisionsSelectLevel, nullptr);
-	_s(AP_MENU_ID_TOOLS_HISTORY,  1,0,0,0,  nullptr,               nullptr,                   nullptr);
-	_s(AP_MENU_ID_TOOLS_HISTORY_SHOW, 0,1,0,0, "history", ap_GetState_History, nullptr);
-	_s(AP_MENU_ID_TOOLS_HISTORY_PURGE, 0,0,0,0, /* wrong: */"purgeAllRevisions"/* should be: purgeAllHistory */, ap_GetState_HasRevisions, nullptr);
 
 	_s(AP_MENU_ID_WINDOW,			1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_WINDOW_NEW,		0,0,0,0,	"newWindow",		nullptr,					nullptr);
@@ -493,7 +459,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_WINDOW_ARRANGE,	0,0,0,0,	"arrangeAll",		nullptr,					nullptr);
 
 	_s(AP_MENU_ID_WEB_SAVEASWEB, 0,1,0,0, "fileSaveAsWeb", nullptr, nullptr);
-	_s(AP_MENU_ID_WEB_WEBPREVIEW, 0,0,0,0, "filePreviewWeb", nullptr, nullptr);
 
 	_s(AP_MENU_ID_HELP,				1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_HELP_CONTENTS,		0,0,0,0,	"helpContents",			nullptr,					ap_GetLabel_Contents);

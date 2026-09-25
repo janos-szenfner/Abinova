@@ -159,7 +159,7 @@ static struct AbiStockMapping {
 	const gchar 		*gtk_stock_id;
 } const stock_mapping[] = {
   { ABIWORD_FILE_NEW,				AP_MENU_ID_FILE_NEW,			"document-new" },
-  { "abiword-file-new-template",	AP_MENU_ID_FILE_NEW_USING_TEMPLATE,	"x-office-document-template" },
+  { "abinova-file-new-template",	AP_MENU_ID_FILE_NEW_USING_TEMPLATE,	"x-office-document-template" },
   { ABIWORD_FILE_OPEN,				AP_MENU_ID_FILE_OPEN,			"document-open" },
   { ABIWORD_FILE_SAVE,				AP_MENU_ID_FILE_SAVE,			"document-save" },
   { ABIWORD_FILE_SAVEAS,			AP_MENU_ID_FILE_SAVEAS,			"document-save-as" },
@@ -169,10 +169,10 @@ static struct AbiStockMapping {
   { ABIWORD_FILE_REVERT,			AP_MENU_ID_FILE_REVERT,			"document-revert" },
   { ABIWORD_FILE_PROPERTIES,		AP_MENU_ID_FILE_PROPERTIES,		"dialog-information-symbolic" },
   { ABIWORD_FILE_EXIT,				AP_MENU_ID_FILE_EXIT,			"application-exit" },
-  { "abiword-file-pagesetup",		AP_MENU_ID_FILE_PAGESETUP,		"document-page-setup" },
+  { "abinova-file-pagesetup",		AP_MENU_ID_FILE_PAGESETUP,		"document-page-setup" },
   { ABIWORD_SPELLCHECK,				AP_MENU_ID_TOOLS_SPELL,			"tools-check-spelling" },
-  { "abiword-tools-spelling-menupop",	AP_MENU_ID_TOOLS_SPELLING_MENUPOP,	"tools-check-spelling" },
-  { "abiword-fmt-language",			AP_MENU_ID_FMT_LANGUAGE,		"preferences-desktop-locale" },
+  { "abinova-tools-spelling-menupop",	AP_MENU_ID_TOOLS_SPELLING_MENUPOP,	"tools-check-spelling" },
+  { "abinova-fmt-language",			AP_MENU_ID_FMT_LANGUAGE,		"preferences-desktop-locale" },
 
   { ABIWORD_EDIT_CUT,				AP_MENU_ID_EDIT_CUT,			"edit-cut" },
   { ABIWORD_EDIT_COPY,				AP_MENU_ID_EDIT_COPY,			"edit-copy" },
@@ -186,9 +186,9 @@ static struct AbiStockMapping {
 
   { ABIWORD_HELP,					AP_MENU_ID_HELP_CONTENTS,		"help-contents" },
   { ABIWORD_HELP_ABOUT,				AP_MENU_ID_HELP_ABOUT, 			"help-about" },
-  { "abiword-help-search",			AP_MENU_ID_HELP_SEARCH,			"system-search" },
-  { "abiword-help-checkver",		AP_MENU_ID_HELP_CHECKVER,		"software-update-available" },
-  { "abiword-help-reportbug",		AP_MENU_ID_HELP_REPORT_BUG,		"dialog-warning" },
+  { "abinova-help-search",			AP_MENU_ID_HELP_SEARCH,			"system-search" },
+  { "abinova-help-checkver",		AP_MENU_ID_HELP_CHECKVER,		"software-update-available" },
+  { "abinova-help-reportbug",		AP_MENU_ID_HELP_REPORT_BUG,		"dialog-warning" },
 //  { ABIWORD_FMT_FONT,				AP_MENU_ID_FMT_FONT,			GTK_STOCK_SELECT_FONT },
   { ABIWORD_FMT_BOLD,				AP_MENU_ID_FMT_BOLD,			"format-text-bold" },
   { ABIWORD_FMT_ITALIC,				AP_MENU_ID_FMT_ITALIC,			"format-text-italic" },
@@ -202,20 +202,21 @@ static struct AbiStockMapping {
 
   { ABIWORD_UNINDENT,				(_Ap_Menu_Id)0,					"format-indent-less" },
   { ABIWORD_INDENT,					(_Ap_Menu_Id)0,					"format-indent-more" },
-  { "abiword-sort-para",			(_Ap_Menu_Id)0,					"view-sort-ascending" },
-  { "abiword-fmt-borders",			AP_MENU_ID_FMT_BORDERS,			"tb_fmt_borders" },
+  { "abinova-sort-para",			(_Ap_Menu_Id)0,					"view-sort-ascending" },
+  { "abinova-fmt-borders",			AP_MENU_ID_FMT_BORDERS,			"tb_fmt_borders" },
 
-  { ABIWORD_SCRIPT_PLAY,			AP_MENU_ID_TOOLS_SCRIPTS,		"system-run" },
   { ABIWORD_FMT_STRIKE,				AP_MENU_ID_FMT_STRIKE,			"format-text-strikethrough" },
   { ABIWORD_FMT_CLEARFMT,			AP_MENU_ID_FMT_CLEARFMT,		"edit-clear-all-symbolic" },
   { ABIWORD_FMT_FONT,				AP_MENU_ID_FMT_FONT,			"preferences-desktop-font" },
   { ABIWORD_EDIT_SELECTALL,			AP_MENU_ID_EDIT_SELECTALL,		"edit-select-all" },
   { ABIWORD_VIEW_FULL_SCREEN,       (_Ap_Menu_Id)0,                 "view-fullscreen" },
-  { "abiword-view-fullscreen",		AP_MENU_ID_VIEW_FULLSCREEN,		"view-fullscreen" },
-  { "abiword-window-new",			AP_MENU_ID_WINDOW_NEW,			"window-new" },
-  { "abiword-page-color",			AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR,	"preferences-color-symbolic" },
-  { "abiword-page-image",			AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE,	"preferences-desktop-wallpaper-symbolic" },
-  { "abiword-selection-pane",		AP_MENU_ID_LAYOUT_SELPANE,				"sidebar-show-symbolic" },
+  { "abinova-view-fullscreen",		AP_MENU_ID_VIEW_FULLSCREEN,		"view-fullscreen" },
+  { "abinova-window-new",			AP_MENU_ID_WINDOW_NEW,			"window-new" },
+  { "abinova-page-color",			AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR,	"preferences-color-symbolic" },
+  { "abinova-page-image",			AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE,	"preferences-desktop-wallpaper-symbolic" },
+  { "abinova-selection-pane",		AP_MENU_ID_LAYOUT_SELPANE,				"sidebar-show-symbolic" },
+  { "abinova-tools-options",		AP_MENU_ID_TOOLS_OPTIONS,				"preferences-system-symbolic" },
+  { "abinova-rdf-editor",			AP_MENU_ID_RDF_EDITOR,					"accessories-text-editor-symbolic" },
   { nullptr, 					(_Ap_Menu_Id)0,					nullptr }
 };
 

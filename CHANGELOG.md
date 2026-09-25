@@ -991,6 +991,30 @@ below are on `main` but the release has not been cut yet.
   not mention are explicitly cleared so a re-styled WordArt does not
   inherit stale effects; legacy `fill-RRGGBB`/`outline-RRGGBB` specs
   still work.
+- **File tab Settings group** — **Preferences** (Options dialog) and
+  **RDF Settings** (RDF editor) are now reachable from the ribbon,
+  replacing the classic Tools/RDF menu access; both carry themed
+  icons via new `stock_mapping` entries.
+- **Classic-menu leftovers pruned** — the remaining features with no
+  ribbon home were removed entirely rather than left dangling:
+  Web Preview, Mail Merge, the Tabs dialog (including the Paragraph
+  dialog's Tabs button), the Format Frame/Image menu entries, the
+  Direction submenu, the Stylist menu entry, document History,
+  Revisions → New/Purge, Scripts, Text → Table conversion and the
+  Recent Files list — along with their menu ids, action bindings,
+  edit methods and dialog files. Internal code other subsystems
+  still use (the Stylist picker inside Format TOC, the image dialog
+  used by positioned images, mail-merge field machinery) stays.
+- **Stock icon identifiers renamed** — the ~50 internal
+  `abiword-*` action-icon lookup keys (`ABIWORD_STOCK_PREFIX` and
+  the `stock_mapping` table) are now `abinova-*`; ribbon CSS classes
+  and the online-picture temporary name renamed to match.
+- **Application id renamed to `io.github.janos_szenfner.Abinova`** —
+  GApplication id, gresource prefix
+  (`/io/github/janos_szenfner/Abinova`), desktop/metainfo filenames
+  and the installed icon theme name (`abinova`) now follow the
+  reverse-DNS scheme derived from the repository URL, so the running
+  app, its icons and its resources share one identity.
 
 ### Ubuntu Launchpad bug fixes
 
@@ -1361,6 +1385,38 @@ below are on `main` but the release has not been cut yet.
   invalidating either drawing area. Both callbacks now wrap the paint
   in a frame and a `_queueDraws()` helper invalidates both areas after
   click/key/font/scroll updates.
+- **Frame-close use-after-free fixed** — `EV_UnixMenu::_wd::s_onActivate`
+  (and `s_onChangeState`) called `refreshMenu()` on the menu after
+  `menuEvent()` returned, but actions like File → Close delete the
+  frame — and with it the menu object itself. The handlers now check
+  `XAP_App::findFrame()` before touching the menu again.
+- **`abi_font_combo_dispose` double-free fixed** — `self->filter` was
+  handed to `gtk_filter_list_model_new()` and `self->sel` to
+  `gtk_list_view_new()`, both `(transfer full)`: the model/listview
+  own them, so the extra `g_clear_object` calls unref'd objects that
+  had already been finalized by widget teardown. The dispose path now
+  silences callbacks via `updating`, disconnects the selection-model
+  notify handler first, and only releases the objects the combo
+  actually owns.
+- **Ribbon teardown hardening** — toolbar-item `ctx->widget` pointers
+  are now weak references (auto-null on widget finalize), the ribbon
+  destructor detaches ctx-bound signal handlers on still-live widgets,
+  and `AP_UnixRibbon::refresh()` bails once the frame is unregistered
+  (which happens before the widget tree comes down) — previously a
+  `switch-page` emitted mid-teardown walked dead widget pointers.
+- **Builtin-styles dangling pointer fixed** —
+  `pt_PieceTable::_loadBuiltinStyles` saved the `const char*` from
+  `findNearestFont()` and then called `findNearestFont()` again; the
+  API returns a pointer into a shared static buffer, so the saved
+  family name was overwritten/freed before use (valgrind: 108 invalid
+  reads). The family is now copied before the second lookup.
+- **ODF exporter uninitialized state fixed** —
+  `ODe_Text_Listener`'s second constructor never initialized
+  `m_bAfter`, and the delayed master-page/page-break/column-break
+  flags were only conditionally assigned yet unconditionally read in
+  `_openParagraphDelayed()` (valgrind: conditional jumps on
+  uninitialized values). Both constructors fully initialize and each
+  paragraph now resets the delayed state.
 
 ### GTK4 port (core migration)
 
@@ -1572,20 +1628,8 @@ below are on `main` but the release has not been cut yet.
 
 ### Known issues / not done yet
 
-- Some classic-menu features are not reachable from the ribbon
-  (Preferences/Options, Mail Merge, Text→Table, Stylist, the RDF
-  menu, Recent Files list, …) — see the README "Classic menu vs
-  ribbon" section for the full gap list.
-- Closing a frame can crash in `abi_font_combo_dispose`
-  (`ev_UnixFontCombo.cpp`) unref'ing an invalid GObject
-  (pre-existing, observed during testing).
 - GTK4 dialog migration is mechanically complete but some dialogs may
   still have layout quirks.
-- Headless `--to=` conversion writes output correctly but segfaults
-  during process teardown (pre-existing, unrelated to the importer
-  registry — register/unregister cycles exit cleanly).
 - macOS/Windows GTK4 builds not yet verified.
-- ~150 suspicious duplicate msgstrs in `fi-FI.po` need a Finnish
-  speaker.
 - Ribbon tab/group labels are hard-coded English (localization
   pending).

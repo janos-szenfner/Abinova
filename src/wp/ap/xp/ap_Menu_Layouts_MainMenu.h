@@ -63,12 +63,6 @@ BeginLayout(Main,0)
 		Separator()
 		MenuItem(AP_MENU_ID_FILE_PROPERTIES)
 		Separator()
-		// GNOME HIG style recent files
-		MenuItem(AP_MENU_ID_FILE_RECENT_1)
-		MenuItem(AP_MENU_ID_FILE_RECENT_2)
-		MenuItem(AP_MENU_ID_FILE_RECENT_3)
-		MenuItem(AP_MENU_ID_FILE_RECENT_4)
-		Separator()
 #endif
 #if  !XAP_SIMPLE_MENU
 		MenuItem(AP_MENU_ID_FILE_CLOSE)
@@ -113,7 +107,6 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_VIEW_WEB)
 		MenuItem(AP_MENU_ID_VIEW_PRINT)
 #if !XAP_SIMPLE_MENU
-		MenuItem(AP_MENU_ID_WEB_WEBPREVIEW)
 		Separator()
 		BeginSubMenu(AP_MENU_ID_VIEW_TOOLBARS)
 			MenuItem(AP_MENU_ID_VIEW_TB_1)
@@ -168,9 +161,6 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_INSERT_BOOKMARK)
         MenuItem(AP_MENU_ID_INSERT_XMLID)
 		MenuItem(AP_MENU_ID_INSERT_HYPERLINK)
-#if !XAP_SIMPLE_MENU
-		MenuItem(AP_MENU_ID_INSERT_MAILMERGE)
-#endif
 
 		Separator()
 
@@ -197,17 +187,12 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_FMT_PARAGRAPH)
 		MenuItem(AP_MENU_ID_FMT_BULLETS)
 		MenuItem(AP_MENU_ID_FMT_TABLE)
-		MenuItem(AP_MENU_ID_FMT_FRAME)
-		MenuItem(AP_MENU_ID_FMT_IMAGE)
 // #if 0 // someone code and turn this back on
 //	Maleesh 6/10/2010 -
 		MenuItem(AP_MENU_ID_FMT_BORDERS)
 // #endif
 		Separator()
 		MenuItem(AP_MENU_ID_FMT_COLUMNS)
-#if !XAP_SIMPLE_MENU
-		MenuItem(AP_MENU_ID_FMT_TABS)
-#endif
 		MenuItem(AP_MENU_ID_FMT_HDRFTR)
 		MenuItem(AP_MENU_ID_FMT_FOOTNOTES)
 		MenuItem(AP_MENU_ID_FMT_TABLEOFCONTENTS)
@@ -246,14 +231,6 @@ BeginLayout(Main,0)
 		EndSubMenu()
 #endif
 
-		BeginSubMenu(AP_MENU_ID_FMT_DIRECTION)
-			MenuItem(AP_MENU_ID_FMT_DIRECTION_DOCD_RTL)
-			MenuItem(AP_MENU_ID_FMT_DIRECTION_SD_RTL)
-			MenuItem(AP_MENU_ID_FMT_DIRECTION_DD_RTL)
-			MenuItem(AP_MENU_ID_FMT_DIRECTION_DO_LTR)
-			MenuItem(AP_MENU_ID_FMT_DIRECTION_DO_RTL)
-		EndSubMenu()
-
 #if !XAP_SIMPLE_MENU
 		Separator()
 		MenuItem(AP_MENU_ID_FMT_STYLE_DEFINE)
@@ -268,28 +245,11 @@ BeginLayout(Main,0)
 #endif
 		MenuItem(AP_MENU_ID_FMT_LANGUAGE)
 		MenuItem(AP_MENU_ID_TOOLS_WORDCOUNT)
-#if !XAP_SIMPLE_MENU
-        MenuItem(AP_MENU_ID_FMT_STYLIST)
-#endif
 
 		Separator()
 
-	    BeginSubMenu(AP_MENU_ID_TOOLS_HISTORY)
-	        MenuItem(AP_MENU_ID_TOOLS_HISTORY_SHOW)
-	        MenuItem(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS)
-	        MenuItem(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS)
-		    MenuItem(AP_MENU_ID_TOOLS_REVISIONS_AUTO)
-#if !XAP_SIMPLE_MENU
-		    // disable, until we'll have purgeAllHistory for it
-		    //MenuItem(AP_MENU_ID_TOOLS_HISTORY_PURGE)
-#endif
-		EndSubMenu()
-
 		BeginSubMenu(AP_MENU_ID_TOOLS_REVISIONS)
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_MARK)
-#if !XAP_SIMPLE_MENU
-			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION)
-#endif
 		    Separator()
 	        MenuItem(AP_MENU_ID_TOOLS_REVISIONS_SHOW)
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTER)
@@ -302,9 +262,6 @@ BeginLayout(Main,0)
 	        Separator()
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION)
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION)
-#if !XAP_SIMPLE_MENU
-			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_PURGE)
-#endif
 		EndSubMenu()
 
 		BeginSubMenu(AP_MENU_ID_TOOLS_ANNOTATIONS)
@@ -322,8 +279,6 @@ BeginLayout(Main,0)
 	    Separator()
 
 #if !XAP_SIMPLE_MENU
-		MenuItem(AP_MENU_ID_TOOLS_SCRIPTS)
-		MenuItem(AP_MENU_ID_TOOLS_MAILMERGE)
 #if XAP_PREFSMENU_UNDER_TOOLS
 		Separator()
 		MenuItem(AP_MENU_ID_TOOLS_OPTIONS)
@@ -371,12 +326,6 @@ BeginLayout(Main,0)
 // Not for 2.4
 		MenuItem(AP_MENU_ID_TABLE_SPLIT_TABLE)
 #endif
-		BeginSubMenu(AP_MENU_ID_TABLE_TEXTTOTABLE)
-			MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_TABS)
-			MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_COMMAS)
-			MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_SPACES)
-			MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_ALL)
-		EndSubMenu()
 #if DEBUG
 	    BeginSubMenu(AP_MENU_ID_TABLE_SORT)
 			MenuItem(AP_MENU_ID_TABLE_SORTROWSASCEND)
@@ -400,73 +349,6 @@ BeginLayout(Main,0)
 	    EndSubMenu()
 #endif
 	EndSubMenu()
-
-	BeginSubMenu(AP_MENU_ID_RDF)
-
-            MenuItem(AP_MENU_ID_RDF_HIGHLIGHT)
-            MenuItem(AP_MENU_ID_RDF_QUERY)
-            MenuItem(AP_MENU_ID_RDF_EDITOR)
-            MenuItem(AP_MENU_ID_RDF_QUERY_XMLIDS)
-			BeginSubMenu(AP_MENU_ID_RDF_SEMITEM)
-                MenuItem(AP_MENU_ID_RDF_SEMITEM_CREATEREF)
-                Separator()
-			    BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_NEW)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_NEW_CONTACT)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_NEW_CONTACT_FROM_FILE)
-                EndSubMenu()
-            EndSubMenu()
-
-            BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_RELATION)
-                MenuItem(AP_MENU_ID_RDF_SEMITEM_SET_AS_SOURCE)
-                Separator()
-                BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_RELATED_TO_SOURCE)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_RELATED_TO_SOURCE_FOAFKNOWS)
-                EndSubMenu()
-                BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_FIND_RELATED)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_FIND_RELATED_FOAFKNOWS)
-                EndSubMenu()
-            EndSubMenu()
-
-            BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_STYLESHEET)
-                MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_APPLY)
-                MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_DISASSOCIATE)
-                Separator()
-                BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_CONTACT)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_CONTACT_NAME)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_CONTACT_NICK)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_CONTACT_NAME_PHONE)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_CONTACT_NICK_PHONE)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_CONTACT_NAME_HOMEPAGE_PHONE)
-                EndSubMenu()
-			    BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_EVENT)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_EVENT_NAME)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_EVENT_SUMMARY)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_EVENT_SUMMARY_LOCATION)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_EVENT_SUMMARY_LOCATION_TIMES)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_EVENT_SUMMARY_TIMES)
-                EndSubMenu()
-			    BeginSubMenu(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_LOCATION)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_LOCATION_NAME)
-                    MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_LOCATION_NAME_LATLONG)
-                EndSubMenu()
-                Separator()
-                MenuItem(AP_MENU_ID_RDF_SEMITEM_STYLESHEET_SETTINGS)
-            EndSubMenu()
-
-#ifdef DEBUG
-			BeginSubMenu(AP_MENU_ID_RDF_ADV)
-
-			         MenuItem(AP_MENU_ID_RDF_ADV_DUMP_FOR_POINT)
-                     Separator()
-			         MenuItem(AP_MENU_ID_RDF_ADV_DUMP_OBJECTS)
-			         MenuItem(AP_MENU_ID_RDF_ADV_TEST)
-                     Separator()
-			         MenuItem(AP_MENU_ID_RDF_ADV_PLAY)
-            EndSubMenu()
-#endif
-
-	EndSubMenu()
-
 
 #if !XAP_SIMPLE_MENU
 	BeginSubMenu(AP_MENU_ID_WINDOW)

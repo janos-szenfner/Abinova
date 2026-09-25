@@ -64,7 +64,7 @@ class ABI_EXPORT AP_Dialog_Paragraph : public XAP_Dialog_NonPersistent
 	virtual void runModal(XAP_Frame * pFrame) override = 0;
 
 	// answer from dialog
-	enum tAnswer: uint8_t { a_OK, a_CANCEL, a_TABS };
+	enum tAnswer: uint8_t { a_OK, a_CANCEL };
 
 	bool setDialogData(const PP_PropertyVector & pProps);
 	bool getDialogData(PP_PropertyVector & pProps);

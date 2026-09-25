@@ -48,7 +48,6 @@
 
 #include "xap_Dlg_Language.h"
 #include "ap_Dialog_Lists.h"
-#include "ap_Dialog_Tab.h"
 
 AP_Dialog_Styles::AP_Dialog_Styles(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
 	: XAP_Dialog_NonPersistent(pDlgFactory,id, "interface/dialogstyles")
@@ -429,58 +428,9 @@ void AP_Dialog_Styles::ModifyFont(void)
 	pDialogFactory->releaseDialog(pDialog);
 }
 
-/*!
- * Used for the Tabs dialog to extract info from the tabs dialog.
- */
-void AP_Dialog_Styles::_tabCallback(const char *szTabStops,
-									const char *szDflTabStop)
-{
-	if (szTabStops)
-		PP_addOrSetAttribute("tabstops", szTabStops, m_vecAllProps);
-	if (szDflTabStop)
-		PP_addOrSetAttribute("default-tab-interval", szDflTabStop, m_vecAllProps);
-}
 
-/*!
- * Used to extract data out of the Tabs dialog.
- */
-static void
-s_TabSaveCallBack (AP_Dialog_Tab * /*pDlg*/, FV_View * /*pView*/,
-				   const char * szTabStops, const char * szDflTabStop,
-				   void * closure)
-{
-	UT_return_if_fail (closure);
 
-	AP_Dialog_Styles * pStyleDlg = static_cast<AP_Dialog_Styles *>(closure);
 
-	pStyleDlg->_tabCallback(szTabStops, szDflTabStop);
-}
-
-/*!
- * This method fires up the Tabs dialog to allow the user to edit the properties
- * associated with Tabs for their style.
- */
-void AP_Dialog_Styles::ModifyTabs(void)
-{
-
-//
-// Fire up the Tab dialog
-//
-	XAP_Dialog_Id id = (XAP_Dialog_Id)AP_DIALOG_ID_TAB;
-
-	XAP_DialogFactory * pDialogFactory
-		= (XAP_DialogFactory *) getFrame()->getDialogFactory();
-
-	AP_Dialog_Tab * pDialog
-		= (AP_Dialog_Tab *)(pDialogFactory->requestDialog(id));
-	UT_return_if_fail (pDialog);
-
-	pDialog->setSaveCallback(s_TabSaveCallBack, (void *)this);
-
-	pDialog->runModal(getFrame());
-
-	pDialogFactory->releaseDialog(pDialog);
-}
 
 /*!
  * This method runs the Lists dialog in amodal way so the user easily edit numbering

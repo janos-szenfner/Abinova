@@ -98,6 +98,7 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 {
 	{ "document",    "Document" },
 	{ "print",       "Print" },
+	{ "settings",    "Settings" },
 	{ "clipboard",   "Clipboard" },
 	{ "font",        "Font" },
 	{ "paragraph",   "Paragraph" },
@@ -200,6 +201,7 @@ static const struct {
 	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT,	"Convert to Text" },
 	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT,		"Auto-fit" },
 	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT,			"Sort" },
+	{ (XAP_Menu_Id)AP_MENU_ID_RDF_EDITOR,			"RDF Settings" },
 	{ (XAP_Menu_Id)0,							nullptr }
 };
 
@@ -250,7 +252,28 @@ AP_UnixRibbon::~AP_UnixRibbon()
 	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
 	DELETEP(m_pTBLabels);
 	UT_VECTOR_PURGEALL(_SpinField *, m_vecSpins);
-	UT_VECTOR_PURGEALL(_TbCtx *, m_vecTbCtx);
+	for (UT_sint32 i = 0; i < m_vecTbCtx.getItemCount(); ++i)
+	{
+		_TbCtx * ctx = m_vecTbCtx.getNthItem(i);
+		/* ctx is signal callback data on its widget; if the widget
+		 * outlives us, detach every handler that points back at the
+		 * freed ctx and drop the weak reference */
+		if (ctx->widget)
+		{
+			g_signal_handlers_disconnect_by_data(ctx->widget, ctx);
+			GtkWidget * entry =
+				GTK_IS_COMBO_BOX(ctx->widget)
+					? gtk_combo_box_get_child(GTK_COMBO_BOX(ctx->widget))
+					: nullptr;
+			if (entry)
+				g_signal_handlers_disconnect_by_data(entry, ctx);
+			g_object_remove_weak_pointer(
+				G_OBJECT(ctx->widget),
+				reinterpret_cast<gpointer *>(&ctx->widget));
+		}
+		delete ctx;
+	}
+	m_vecTbCtx.clear();
 	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
 	{
 		_StyleTile * t = m_vecStyleTiles.getNthItem(i);
@@ -306,65 +329,65 @@ GtkWidget * AP_UnixRibbon::createWidget()
 {
 	m_wNotebook = gtk_notebook_new();
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(m_wNotebook), TRUE);
-	gtk_widget_add_css_class(m_wNotebook, "abiword-ribbon");
+	gtk_widget_add_css_class(m_wNotebook, "abinova-ribbon");
 	gtk_widget_set_vexpand(m_wNotebook, FALSE);
 	gtk_widget_set_hexpand(m_wNotebook, TRUE);
 	gtk_widget_set_valign(m_wNotebook, GTK_ALIGN_START);
 
 	/* keep the band compact: small flat-ish buttons, tight frames */
 	static const char ribbon_css[] =
-		".abiword-ribbon button { min-height: 0; padding: 3px 10px; }"
-		".abiword-ribbon flowboxchild { padding: 0; }"
-		".abiword-ribbon flowbox { padding: 2px; }"
+		".abinova-ribbon button { min-height: 0; padding: 3px 10px; }"
+		".abinova-ribbon flowboxchild { padding: 0; }"
+		".abinova-ribbon flowbox { padding: 2px; }"
 		/* Word-style group: subtle box, title centered at the bottom */
-		".abiword-ribbon .ribbon-group {"
+		".abinova-ribbon .ribbon-group {"
 		"  margin: 2px 3px; padding: 2px 4px 0 4px;"
 		"}"
-		".abiword-ribbon separator { margin: 6px 0; }"
+		".abinova-ribbon separator { margin: 6px 0; }"
 		/* visible group separator - a real 1px line, not theme-drawn */
-		".abiword-ribbon separator.ribbon-group-sep {"
+		".abinova-ribbon separator.ribbon-group-sep {"
 		"  min-width: 0; min-height: 0; margin: 8px 2px;"
 		"  border-left: 1px solid alpha(@theme_fg_color, 0.22);"
 		"}"
 		/* File ▸ Close - red glyph like Word's destructive controls;
 		 * only the symbolic icon picks up the colour */
-		".abiword-ribbon image.ribbon-close {"
+		".abinova-ribbon image.ribbon-close {"
 		"  color: @error_color;"
 		"}"
-		".abiword-ribbon .ribbon-group-title {"
+		".abinova-ribbon .ribbon-group-title {"
 		"  font-size: 0.78em; margin-top: 1px; padding: 0 4px 2px 4px;"
 		"  color: alpha(@theme_fg_color, 0.75);"
 		"}"
 		/* Word keeps ribbon captions a notch below the document font;
 		 * smaller button labels keep wide tabs (References) inside
 		 * the window instead of being squeezed to their minimum */
-		".abiword-ribbon .ribbon-group button label,"
-		".abiword-ribbon .ribbon-group menubutton label {"
+		".abinova-ribbon .ribbon-group button label,"
+		".abinova-ribbon .ribbon-group menubutton label {"
 		"  font-size: 0.88em;"
 		"}"
 		/* SLIM large buttons (e.g. Table: Draw/Eraser/Delete) keep
 		 * the normal icon/caption but lose the frame padding */
-		".abiword-ribbon .ribbon-group button.ribbon-xslim {"
+		".abinova-ribbon .ribbon-group button.ribbon-xslim {"
 		"  padding-left: 2px; padding-right: 2px; min-width: 0;"
 		"}"
 		/* compact +/- on the Layout tab's indent/spacing spins */
-		".abiword-ribbon spinbutton.ribbon-spin button {"
+		".abinova-ribbon spinbutton.ribbon-spin button {"
 		"  min-width: 0; min-height: 0; padding: 0 3px; margin: 0;"
 		"}"
-		".abiword-ribbon combobox, .abiword-ribbon dropdown { margin: 1px 2px; }"
-		".abiword-ribbon notebook > header { margin-bottom: 0; }"
+		".abinova-ribbon combobox, .abinova-ribbon dropdown { margin: 1px 2px; }"
+		".abinova-ribbon notebook > header { margin-bottom: 0; }"
 		/* Word-style style gallery tiles */
-		".abiword-ribbon scrolledwindow { min-height: 0; }"
+		".abinova-ribbon scrolledwindow { min-height: 0; }"
 		/* style-gallery nav arrows: zero horizontal padding so an
 		 * under-allocated button can never push its icon into a
 		 * negative allocation when the ribbon is squeezed */
-		".abiword-ribbon button.ribbon-nav {"
+		".abinova-ribbon button.ribbon-nav {"
 		"  min-width: 0; min-height: 0; padding: 3px 0;"
 		"}"
-		".abiword-ribbon .abiword-style-tile {"
+		".abinova-ribbon .abinova-style-tile {"
 		"  min-height: 26px; padding: 4px 12px; margin: 1px;"
 		"}"
-		".abiword-ribbon .abiword-style-active {"
+		".abinova-ribbon .abinova-style-active {"
 		"  border: 2px solid @theme_selected_bg_color;"
 		"  border-radius: 4px;"
 		"  padding: 1px 8px;"
@@ -4465,8 +4488,6 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case (XAP_Menu_Id)AP_MENU_ID_FMT_LANGUAGE:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MARK:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PURGE:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION:
@@ -4843,14 +4864,6 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO:
 		spec.bare = true;
 		extra = _glyph_revauto;
-		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION:
-		spec.bare = true;
-		extra = _glyph_revnew;
-		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PURGE:
-		spec.bare = true;
-		extra = _glyph_revpurge;
 		break;
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW:
 	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL:
@@ -6439,7 +6452,7 @@ void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
 	if (bOK)
 	{
 		gchar * tmp = g_build_filename(g_get_tmp_dir(),
-									   "abiword-online-pic", nullptr);
+									   "abinova-online-pic", nullptr);
 		bOK = g_file_set_contents(tmp, contents, len, nullptr);
 		if (bOK)
 		{
@@ -7291,22 +7304,6 @@ GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
 							 _layout_icon(
 								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO,
 								 16, 16)));
-	gtk_box_append(GTK_BOX(box), gtk_separator_new(
-								   GTK_ORIENTATION_HORIZONTAL));
-	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Start New Revision",
-							  "Begin a new revision level",
-							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION,
-								  16, 16),
-							  "startNewRevision", nullptr));
-	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Purge All Revisions",
-							  "Delete the revision history",
-							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PURGE,
-								  16, 16),
-							  "purgeAllRevisions", nullptr));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -10284,6 +10281,10 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 	gtk_widget_set_visible(w, TRUE);
 
 	ctx->widget = w;
+	/* weak: nulls ctx->widget when the widget is finalized, so refresh
+	 * skips items whose widget already died during frame teardown */
+	g_object_add_weak_pointer(G_OBJECT(w),
+							  reinterpret_cast<gpointer *>(&ctx->widget));
 	m_vecTbCtx.addItem(ctx);
 	return w;
 }
@@ -10530,7 +10531,7 @@ void AP_UnixRibbon::_populateStyleTiles()
 			gtk_box_append(GTK_BOX(vbox), name);
 
 			gtk_button_set_child(GTK_BUTTON(tile), vbox);
-			gtk_widget_add_css_class(tile, "abiword-style-tile");
+			gtk_widget_add_css_class(tile, "abinova-style-tile");
 			gtk_widget_set_tooltip_text(tile, szDisp);
 			gtk_widget_set_valign(tile, GTK_ALIGN_FILL);
 			gtk_widget_set_size_request(tile, 104, -1);
@@ -10581,9 +10582,9 @@ void AP_UnixRibbon::_refreshStyleTiles(const char * szCurrentStyle)
 		bool bCur = szCurrentStyle && t->styleName &&
 			strcmp(t->styleName, szCurrentStyle) == 0;
 		if (bCur)
-			gtk_widget_add_css_class(t->widget, "abiword-style-active");
+			gtk_widget_add_css_class(t->widget, "abinova-style-active");
 		else
-			gtk_widget_remove_css_class(t->widget, "abiword-style-active");
+			gtk_widget_remove_css_class(t->widget, "abinova-style-active");
 	}
 
 	/* keep the docked Styles pane's current-style readout in sync */
@@ -10738,6 +10739,12 @@ void AP_UnixRibbon::_refreshToolbarItems()
 
 void AP_UnixRibbon::refresh()
 {
+	/* Frame teardown unregisters the frame before the widget tree
+	 * comes down; everything refresh touches (view, toolbar widgets,
+	 * label maps) is already half gone by then */
+	XAP_App * pApp = XAP_App::getApp();
+	if (!m_pFrame || !pApp || pApp->findFrame(m_pFrame) < 0)
+		return;
 	/* GtkNotebook emits "switch-page" while it is being disposed
 	 * during window teardown; the frame is already half gone there,
 	 * so getCurrentView() would dereference a dead view list */

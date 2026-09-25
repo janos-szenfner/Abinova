@@ -134,7 +134,7 @@ static bool abi_https_get(const char * host, const char * path,
 	req += path;
 	req += " HTTP/1.1\r\nHost: ";
 	req += host;
-	req += "\r\nUser-Agent: abiword-update-check\r\n"
+	req += "\r\nUser-Agent: abinova-update-check\r\n"
 		   "Accept: application/vnd.github+json\r\n"
 		   "Connection: close\r\n\r\n";
 

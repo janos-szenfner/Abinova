@@ -62,18 +62,6 @@ BeginLayout(Main,0)
 		Separator()
 		MenuItem(AP_MENU_ID_FILE_PROPERTIES)
 		Separator()
-		BeginSubMenu(AP_MENU_ID_FILE_RECENT)
-			MenuItem(AP_MENU_ID_FILE_RECENT_1)
-			MenuItem(AP_MENU_ID_FILE_RECENT_2)
-			MenuItem(AP_MENU_ID_FILE_RECENT_3)
-			MenuItem(AP_MENU_ID_FILE_RECENT_4)
-			MenuItem(AP_MENU_ID_FILE_RECENT_5)
-			MenuItem(AP_MENU_ID_FILE_RECENT_6)
-			MenuItem(AP_MENU_ID_FILE_RECENT_7)
-			MenuItem(AP_MENU_ID_FILE_RECENT_8)
-			MenuItem(AP_MENU_ID_FILE_RECENT_9)
-		EndSubMenu()
-		Separator()
 		MenuItem(AP_MENU_ID_FILE_EXIT)
 	EndSubMenu()
 
@@ -131,7 +119,6 @@ BeginLayout(Main,0)
 #endif
 		MenuItem(AP_MENU_ID_INSERT_TEXTBOX)
 #if 0
-		MenuItem(AP_MENU_ID_INSERT_MAILMERGE)
 #endif
 		MenuItem(AP_MENU_ID_INSERT_SYMBOL)
 
@@ -167,8 +154,6 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_FMT_PARAGRAPH)
 		MenuItem(AP_MENU_ID_FMT_BULLETS)
 		MenuItem(AP_MENU_ID_FMT_TABLE)
-		MenuItem(AP_MENU_ID_FMT_FRAME)
-    MenuItem(AP_MENU_ID_FMT_IMAGE)
 // #if 1 // someone code and turn this back on
 	//	Maleesh 6/10/2010 -
 		MenuItem(AP_MENU_ID_FMT_BORDERS)
@@ -176,7 +161,6 @@ BeginLayout(Main,0)
 		Separator()
 		MenuItem(AP_MENU_ID_FMT_COLUMNS)
 #if 0
-		MenuItem(AP_MENU_ID_FMT_TABS)
 #endif
 		MenuItem(AP_MENU_ID_FMT_HDRFTR)
 		MenuItem(AP_MENU_ID_FMT_FOOTNOTES)
@@ -213,14 +197,6 @@ BeginLayout(Main,0)
 			MenuItem(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR)
 		EndSubMenu()
 
-    BeginSubMenu(AP_MENU_ID_FMT_DIRECTION)
-      MenuItem(AP_MENU_ID_FMT_DIRECTION_DOCD_RTL)
-      MenuItem(AP_MENU_ID_FMT_DIRECTION_SD_RTL)
-      MenuItem(AP_MENU_ID_FMT_DIRECTION_DD_RTL)
-      MenuItem(AP_MENU_ID_FMT_DIRECTION_DO_LTR)
-      MenuItem(AP_MENU_ID_FMT_DIRECTION_DO_RTL)
-    EndSubMenu()
-
 		Separator()
 		MenuItem(AP_MENU_ID_FMT_STYLE_DEFINE)
 
@@ -233,26 +209,11 @@ BeginLayout(Main,0)
 #endif
 		MenuItem(AP_MENU_ID_FMT_LANGUAGE)
 		MenuItem(AP_MENU_ID_TOOLS_WORDCOUNT)
-#if !XAP_SIMPLE_MENU
-        MenuItem(AP_MENU_ID_FMT_STYLIST)
-#endif
 
 		Separator()
 
-	    BeginSubMenu(AP_MENU_ID_TOOLS_HISTORY)
-	        MenuItem(AP_MENU_ID_TOOLS_HISTORY_SHOW)
-	        MenuItem(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS)
-		    MenuItem(AP_MENU_ID_TOOLS_REVISIONS_AUTO)
-#if !XAP_SIMPLE_MENU
-		    MenuItem(AP_MENU_ID_TOOLS_HISTORY_PURGE)
-#endif
-		EndSubMenu()
-
 		BeginSubMenu(AP_MENU_ID_TOOLS_REVISIONS)
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_MARK)
-#if !XAP_SIMPLE_MENU
-			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_NEW_REVISION)
-#endif
 		    Separator()
 	        MenuItem(AP_MENU_ID_TOOLS_REVISIONS_SHOW)
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_SHOW_AFTER)
@@ -265,9 +226,6 @@ BeginLayout(Main,0)
 	        Separator()
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION)
 			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION)
-#if !XAP_SIMPLE_MENU
-			MenuItem(AP_MENU_ID_TOOLS_REVISIONS_PURGE)
-#endif
 		EndSubMenu()
 
 		// RIVERA
@@ -283,10 +241,6 @@ BeginLayout(Main,0)
 	    Separator()
 
 #if !XAP_SIMPLE_MENU
-		MenuItem(AP_MENU_ID_TOOLS_SCRIPTS)
-#if 0
-		MenuItem(AP_MENU_ID_TOOLS_MAILMERGE)
-#endif
 #if XAP_PREFSMENU_UNDER_TOOLS
 		Separator()
 		MenuItem(AP_MENU_ID_TOOLS_OPTIONS)
@@ -334,12 +288,6 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_TABLE_SPLIT_TABLE)
 #endif
 		MenuItem(AP_MENU_ID_TABLE_FORMAT)
-                BeginSubMenu(AP_MENU_ID_TABLE_TEXTTOTABLE)
-		   MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_TABS)
-		   MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_COMMAS)
-		   MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_SPACES)
-		   MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE_ALL)
-                EndSubMenu()
 #if DEBUG
 	    BeginSubMenu(AP_MENU_ID_TABLE_SORT)
 	       MenuItem(AP_MENU_ID_TABLE_SORTROWSASCEND)
@@ -387,7 +335,6 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_HELP_CHECKVER)
 		MenuItem(AP_MENU_ID_HELP_REPORT_BUG)
 		Separator()
-		MenuItem(AP_MENU_ID_HELP_ABOUT_GNOMEOFFICE)
 #endif
 		MenuItem(AP_MENU_ID_HELP_ABOUT)
 	EndSubMenu()

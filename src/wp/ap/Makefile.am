@@ -51,8 +51,6 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_Field.h \
 	xp/ap_Dialog_FormatFootnotes.cpp \
 	xp/ap_Dialog_FormatFootnotes.h \
-	xp/ap_Dialog_FormatFrame.cpp \
-	xp/ap_Dialog_FormatFrame.h \
 	xp/ap_Dialog_FormatTable.cpp \
 	xp/ap_Dialog_FormatTable.h \
 	xp/ap_Dialog_FormatTOC.cpp \
@@ -80,8 +78,6 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_ListRevisions.h \
 	xp/ap_Dialog_Lists.cpp \
 	xp/ap_Dialog_Lists.h \
-	xp/ap_Dialog_MailMerge.cpp \
-	xp/ap_Dialog_MailMerge.h \
 	xp/ap_Dialog_MarkRevisions.cpp \
 	xp/ap_Dialog_MarkRevisions.h \
 	xp/ap_Dialog_MergeCells.cpp \
@@ -107,8 +103,6 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_Styles.h \
 	xp/ap_Dialog_Stylist.cpp \
 	xp/ap_Dialog_Stylist.h \
-	xp/ap_Dialog_Tab.cpp \
-	xp/ap_Dialog_Tab.h \
 	xp/ap_Dialog_ToggleCase.cpp \
 	xp/ap_Dialog_ToggleCase.h \
 	xp/ap_Dialog_WordCount.cpp \
@@ -303,8 +297,6 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_Field.h \
 	gtk/ap_UnixDialog_FormatFootnotes.cpp \
 	gtk/ap_UnixDialog_FormatFootnotes.h \
-	gtk/ap_UnixDialog_FormatFrame.cpp \
-	gtk/ap_UnixDialog_FormatFrame.h \
 	gtk/ap_UnixDialog_FormatTable.cpp \
 	gtk/ap_UnixDialog_FormatTable.h \
 	gtk/ap_UnixDialog_FormatTOC.cpp \
@@ -329,8 +321,6 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_ListRevisions.h \
 	gtk/ap_UnixDialog_Lists.cpp \
 	gtk/ap_UnixDialog_Lists.h \
-	gtk/ap_UnixDialog_MailMerge.cpp \
-	gtk/ap_UnixDialog_MailMerge.h \
 	gtk/ap_UnixDialog_MarkRevisions.cpp \
 	gtk/ap_UnixDialog_MarkRevisions.h \
 	gtk/ap_UnixDialog_MergeCells.cpp \
@@ -356,8 +346,6 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_Styles.h \
 	gtk/ap_UnixDialog_Stylist.cpp \
 	gtk/ap_UnixDialog_Stylist.h \
-	gtk/ap_UnixDialog_Tab.cpp \
-	gtk/ap_UnixDialog_Tab.h \
 	gtk/ap_UnixDialog_ToggleCase.cpp \
 	gtk/ap_UnixDialog_ToggleCase.h \
 	gtk/ap_UnixDialog_WordCount.cpp \
@@ -446,12 +434,10 @@ EXTRA_DIST = \
 	gtk/ap_UnixDialog_FormatTOC.ui \
 	gtk/ap_UnixDialog_FormatFootnotes.ui \
 	gtk/ap_UnixDialog_FormatTable.ui \
-	gtk/ap_UnixDialog_FormatFrame.ui \
 	gtk/ap_UnixDialog_Goto.ui \
 	gtk/ap_UnixDialog_HdrFtr.ui \
 	gtk/ap_UnixDialog_InsertTable.ui \
 	gtk/ap_UnixDialog_Insert_DateTime.ui \
-	gtk/ap_UnixDialog_MailMerge.ui \
 	gtk/ap_UnixDialog_MetaData.ui \
 	gtk/ap_UnixDialog_Options.ui \
 	gtk/ap_UnixDialog_Options_ColorSel.ui \
@@ -461,7 +447,6 @@ EXTRA_DIST = \
 	gtk/ap_UnixDialog_New.ui \
 	gtk/ap_UnixDialog_Styles.ui \
 	gtk/ap_UnixDialog_Stylist.ui \
-	gtk/ap_UnixDialog_Tab.ui	\
 	gtk/ap_UnixDialog_WordCount.ui \
 	gtk/ap_UnixDialog_Latex.ui \
 	gtk/ap_UnixDialog_RDFQuery.ui \

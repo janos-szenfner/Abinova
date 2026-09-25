@@ -210,7 +210,6 @@ public:
 
 	AD_HISTORY_STATE       verifyHistoryState(UT_uint32 &iVersion) const;
 	const AD_VersionData*  findHistoryRecord(UT_uint32 iVersion) const;
-    bool                   showHistory(AV_View * pView);
 
 	bool            areDocumentsRelated (const AD_Document &d) const;
 	bool            areDocumentHistoriesEqual(const AD_Document &d, UT_uint32 &iVer) const;

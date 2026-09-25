@@ -189,8 +189,11 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 					  "color:000000; bgcolor:transparent; widows:2", pszFamily);
 
 	/* body text font - nearest to Calibri (Carlito), used by the
-	 * Word-compatible built-in styles below */
-	const char* pszBodyFamily = pszFamily;
+	 * Word-compatible built-in styles below. findNearestFont returns a
+	 * pointer into a static buffer that the next call overwrites, so
+	 * the family name must be copied before asking for another font */
+	const std::string sBodyFamily(pszFamily ? pszFamily : "");
+	const char* pszBodyFamily = sBodyFamily.c_str();
 
 	pszFamily = XAP_App::findNearestFont("Arial", "normal", "",
 										 "normal", "", "12pt", s.utf8_str());

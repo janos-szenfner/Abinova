@@ -40,7 +40,6 @@ public:
 	// callbacks can fire these events
 	virtual void event_OK(void);
 	virtual void event_Cancel(void);
-	virtual void event_Tabs(void);
 
 	// all data controls are of three types in this dialog; the static
 	// functions pass in widget pointers which are mapped into
@@ -69,8 +68,7 @@ public:
 	enum ResponseId: int8_t
 	  {
 	    BUTTON_OK = GTK_RESPONSE_OK,
-	    BUTTON_CANCEL = GTK_RESPONSE_CANCEL,
-	    BUTTON_TABS = 0
+	    BUTTON_CANCEL = GTK_RESPONSE_CANCEL
 	  };
 
 	GR_CairoGraphics	* 		m_unixGraphics;
@@ -116,7 +114,6 @@ public:
 
 	GtkWidget * m_buttonOK;
 	GtkWidget * m_buttonCancel;
-	GtkWidget * m_buttonTabs;
 
 	GtkWidget * m_checkbuttonDomDirection;
 };

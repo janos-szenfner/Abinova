@@ -189,10 +189,18 @@ static const AP_RibbonItem s_ribbon_file_print[] =
 	AP_RIBBON_END
 };
 
+static const AP_RibbonItem s_ribbon_file_settings[] =
+{
+	AP_RIBBON_MENU_L(AP_MENU_ID_TOOLS_OPTIONS),
+	AP_RIBBON_MENU_L(AP_MENU_ID_RDF_EDITOR),
+	AP_RIBBON_END
+};
+
 static const AP_RibbonGroup s_ribbon_file_groups[] =
 {
 	{ "document",	s_ribbon_file_document },
 	{ "print",		s_ribbon_file_print },
+	{ "settings",	s_ribbon_file_settings },
 	{ nullptr,		nullptr }
 };
 

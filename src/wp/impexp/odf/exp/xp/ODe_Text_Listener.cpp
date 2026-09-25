@@ -76,6 +76,12 @@ ODe_Text_Listener::ODe_Text_Listener(ODe_Styles& rStyles,
                         m_pendingPageBreak(false),
                         m_bAfter(false),
                         m_pendingMasterPageStyleChange(false),
+                        m_delayedAP(nullptr),
+                        m_delayedListStyle(nullptr),
+                        m_delayedPendingMasterPageStyleChange(false),
+                        m_delayedPageBreak(false),
+                        m_delayedColumnBreak(false),
+                        m_delayedSpacesOffset(0),
                         m_rStyles(rStyles),
                         m_rAutomatiStyles(rAutomatiStyles),
                         m_pTextOutput(pTextOutput),
@@ -112,8 +118,15 @@ ODe_Text_Listener::ODe_Text_Listener(ODe_Styles& rStyles,
                         m_pCurrentListStyle(nullptr),
                         m_pendingColumnBreak(false),
                         m_pendingPageBreak(false),
+                        m_bAfter(false),
                         m_pendingMasterPageStyleChange(true),
                         m_masterPageStyleName(rPendingMasterPageStyleName),
+                        m_delayedAP(nullptr),
+                        m_delayedListStyle(nullptr),
+                        m_delayedPendingMasterPageStyleChange(false),
+                        m_delayedPageBreak(false),
+                        m_delayedColumnBreak(false),
+                        m_delayedSpacesOffset(0),
                         m_rStyles(rStyles),
                         m_rAutomatiStyles(rAutomatiStyles),
                         m_pTextOutput(pTextOutput),
@@ -1381,6 +1394,10 @@ void ODe_Text_Listener::_openODParagraph(const PP_AttrProp* pAP) {
     ////
     // Figure out the paragraph style
     m_delayedAP = pAP;
+    m_delayedListStyle = nullptr;
+    m_delayedPendingMasterPageStyleChange = false;
+    m_delayedPageBreak = false;
+    m_delayedColumnBreak = false;
     if (ODe_Style_Style::hasParagraphStyleProps(pAP) ||
         ODe_Style_Style::hasTextStyleProps(pAP) ||
         m_pendingMasterPageStyleChange ||

@@ -302,7 +302,7 @@ GtkWidget * AP_UnixStylesPane::createWidget()
 	gtk_widget_set_margin_bottom(root, 6);
 	gtk_widget_set_margin_start(root, 8);
 	gtk_widget_set_margin_end(root, 8);
-	gtk_widget_add_css_class(root, "abiword-styles-pane");
+	gtk_widget_add_css_class(root, "abinova-styles-pane");
 
 	/* header: title + close */
 	GtkWidget * head = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);

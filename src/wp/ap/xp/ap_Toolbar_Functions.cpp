@@ -88,23 +88,6 @@ static bool s_ToolbarFunctions_check_inc_load(FV_View * pView)
 
 /****************************************************************/
 
-Defun_EV_GetToolbarItemState_Fn(ap_ToolbarGetState_ScriptsActive)
-{
-  UT_UNUSED(pAV_View);
-  UT_UNUSED(id);
-  UT_UNUSED(pszState);
-
-  EV_Toolbar_ItemState s = EV_TIS_ZERO;
-
-  UT_ScriptLibrary * instance = UT_ScriptLibrary::instance ();
-  UT_uint32 filterCount = instance->getNumScripts ();
-
-  if ( filterCount == 0 )
-    s = EV_TIS_Gray;
-
-  return s;
-}
-
 Defun_EV_GetToolbarItemState_Fn(ap_ToolbarGetState_BookmarkOK)
 {
 	ABIWORD_VIEW;

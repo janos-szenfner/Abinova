@@ -39,8 +39,6 @@ libxap_la_SOURCES = \
 	xp/xap_Dlg_FileOpenSaveAs.h \
 	xp/xap_Dlg_FontChooser.cpp \
 	xp/xap_Dlg_FontChooser.h \
-	xp/xap_Dlg_History.cpp \
-	xp/xap_Dlg_History.h \
 	xp/xap_Dlg_HTMLOptions.cpp \
 	xp/xap_Dlg_HTMLOptions.h \
 	xp/xap_Dlg_Image.cpp \
@@ -176,8 +174,6 @@ libxap_la_SOURCES += \
 	gtk/xap_UnixDlg_FileOpenSaveAs.h \
 	gtk/xap_UnixDlg_FontChooser.cpp \
 	gtk/xap_UnixDlg_FontChooser.h \
-	gtk/xap_UnixDlg_History.cpp \
-	gtk/xap_UnixDlg_History.h \
 	gtk/xap_UnixDlg_HTMLOptions.cpp \
 	gtk/xap_UnixDlg_HTMLOptions.h \
 	gtk/xap_UnixDlg_Image.cpp \
@@ -226,6 +222,5 @@ EXTRA_DIST = \
 	gtk/xap_UnixDlg_Password.ui \
 	gtk/xap_UnixDlg_WindowMore.ui \
 	gtk/xap_UnixDlg_Zoom.ui \
-	gtk/xap_UnixDlg_History.ui \
 	gtk/xap_UnixDlg_DocComparison.ui \
 	gtk/xap_UnixDlg_ListDocuments.ui

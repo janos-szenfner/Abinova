@@ -77,7 +77,6 @@ public:
 	void         event_ModifyParagraph();
 	void         event_ModifyFont();
 	void         event_ModifyNumbering();
-	void         event_ModifyTabs();
 	void         event_ModifyLanguage();
 	void event_ModifyPreviewInvalidate();
 	void event_ModifyPreviewDraw(cairo_t *cr);

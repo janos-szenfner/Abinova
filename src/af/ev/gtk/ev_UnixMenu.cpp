@@ -88,8 +88,20 @@ void EV_UnixMenu::_wd::s_onActivate(GSimpleAction * /*action*/,
 	_wd * wd = static_cast<_wd *>(callback_data);
 	UT_return_if_fail(wd && wd->m_pUnixMenu);
 
-	wd->m_pUnixMenu->menuEvent(wd->m_id);
-	wd->m_pUnixMenu->refreshMenu(wd->m_pUnixMenu->getFrame()->getCurrentView());
+	/* The menu and this callback data are owned by the frame; actions
+	 * such as File->Close delete the frame, and with it this menu and
+	 * wd. Capture what refresh needs before menuEvent and bail out if
+	 * the frame did not survive. */
+	EV_UnixMenu * menu = wd->m_pUnixMenu;
+	XAP_Frame * pFrame = menu->getFrame();
+	XAP_App * pApp = XAP_App::getApp();
+
+	menu->menuEvent(wd->m_id);
+
+	if (!pFrame || (pApp && pApp->findFrame(pFrame) < 0))
+		return;
+
+	menu->refreshMenu(menu->getFrame()->getCurrentView());
 }
 
 void EV_UnixMenu::_wd::s_onChangeState(GSimpleAction * action,
@@ -119,7 +131,16 @@ void EV_UnixMenu::_wd::s_onChangeState(GSimpleAction * action,
 	}
 	g_simple_action_set_state(action, value);
 
+	/* Same teardown caveat as s_onActivate: the action may delete the
+	 * frame and with it this menu, so check survival before refresh. */
+	XAP_Frame * pFrame = menu->getFrame();
+	XAP_App * pApp = XAP_App::getApp();
+
 	menu->menuEvent(id);
+
+	if (!pFrame || (pApp && pApp->findFrame(pFrame) < 0))
+		return;
+
 	menu->refreshMenu(menu->getFrame()->getCurrentView());
 }
 

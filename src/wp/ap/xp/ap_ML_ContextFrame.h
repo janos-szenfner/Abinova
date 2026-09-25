@@ -28,8 +28,6 @@
 BeginLayout(ContextFrameT,EV_EMC_FRAME)
 
 	BeginPopupMenu()
-		MenuItem(AP_MENU_ID_FMT_FRAME)
-		Separator()
 		MenuItem(AP_MENU_ID_EDIT_CUT_FRAME)
 		MenuItem(AP_MENU_ID_EDIT_COPY_FRAME)
 		MenuItem(AP_MENU_ID_EDIT_SELECT_FRAME)

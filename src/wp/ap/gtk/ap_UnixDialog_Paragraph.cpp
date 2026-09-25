@@ -175,24 +175,11 @@ void AP_UnixDialog_Paragraph::runModal(XAP_Frame * pFrame)
 	// HACK: the first arg gets ignored
 	_syncControls(id_MENU_ALIGNMENT, true);
 
-	bool tabs;
-	do {
-		switch(abiRunModalDialog(GTK_DIALOG(mainWindow), pFrame, this, BUTTON_CANCEL, false))
-		{
-		case BUTTON_OK:
-		  event_OK();
-		  tabs = false;
-		  break;
-		case BUTTON_TABS:
-		  event_Tabs ();
-		  tabs = true;
-		  break;
-		default:
-		  event_Cancel();
-		  tabs = false;
-		  break;
-		}
-	} while (tabs);
+	if (abiRunModalDialog(GTK_DIALOG(mainWindow), pFrame, this, BUTTON_CANCEL, false)
+		== BUTTON_OK)
+		event_OK();
+	else
+		event_Cancel();
 
 	abiDestroyWidget(mainWindow);
 }
@@ -207,13 +194,6 @@ void AP_UnixDialog_Paragraph::event_OK(void)
 void AP_UnixDialog_Paragraph::event_Cancel(void)
 {
 	m_answer = AP_Dialog_Paragraph::a_CANCEL;
-}
-
-void AP_UnixDialog_Paragraph::event_Tabs(void)
-{
-	AV_View *pView = m_pFrame->getCurrentView();
-	s_doTabDlg(static_cast<FV_View*>(pView));
-	m_answer = AP_Dialog_Paragraph::a_TABS;
 }
 
 void AP_UnixDialog_Paragraph::event_MenuChanged(GtkWidget * widget)
@@ -320,7 +300,6 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindow(void)
 	GtkWidget * windowContents;
 	GtkWidget * vboxMain;
 
-	GtkWidget * buttonTabs;
 	GtkWidget * buttonOK;
 	GtkWidget * buttonCancel;
 
@@ -337,10 +316,6 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindow(void)
 	gtk_box_append(GTK_BOX(vboxMain), windowContents);
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_Cancel, s);
 	buttonCancel = abiAddButton(GTK_DIALOG(windowParagraph), s, BUTTON_CANCEL);
-	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_ButtonTabs,s);
-	buttonTabs = abiAddButton (GTK_DIALOG(windowParagraph), s, BUTTON_TABS);
-	GtkWidget *img = gtk_image_new_from_icon_name("go-last");
-	gtk_button_set_child(GTK_BUTTON(buttonTabs), img);
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_OK, s);
 	buttonOK = abiAddButton(GTK_DIALOG(windowParagraph), s, BUTTON_OK);
 
@@ -348,7 +323,6 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindow(void)
 
 	m_buttonOK = buttonOK;
 	m_buttonCancel = buttonCancel;
-	m_buttonTabs = buttonTabs;
 
 	return windowParagraph;
 }

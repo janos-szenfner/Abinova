@@ -98,12 +98,10 @@
 
 #include "ap_Dialog_Styles.h"
 #include "ap_Dialog_Stylist.h"
-#include "ap_Dialog_Tab.h"
 #include "ap_Dialog_Insert_DateTime.h"
 #include "ap_Dialog_Field.h"
 #include "ap_Dialog_WordCount.h"
 #include "ap_Dialog_Columns.h"
-#include "ap_Dialog_Tab.h"
 #include "ap_Dialog_ToggleCase.h"
 #include "ap_Dialog_Background.h"
 #include "ap_Dialog_New.h"
@@ -119,10 +117,8 @@
 #include "ap_Dialog_FormatTable.h"
 //	Maleesh 6/8/2010 - 
 #include "ap_Dialog_Border_Shading.h"
-#include "ap_Dialog_FormatFrame.h"
 #include "ap_Dialog_FormatFootnotes.h"
 #include "ap_Dialog_FormatTOC.h"
-#include "ap_Dialog_MailMerge.h"
 #include "ap_Dialog_Latex.h"
 #include "ap_Dialog_Document.h"
 #include "fv_FrameEdit.h"
@@ -150,7 +146,6 @@
 #include "xap_Dlg_Language.h"
 #include "xap_Dlg_Image.h"
 #include "xap_Dlg_ListDocuments.h"
-#include "xap_Dlg_History.h"
 
 #include "ie_imp.h"
 #include "ie_impGraphic.h"
@@ -481,7 +476,6 @@ public:
 	static EV_EditMethod_Fn cutFrame;
 	static EV_EditMethod_Fn copyFrame;
 	static EV_EditMethod_Fn selectFrame;
-	static EV_EditMethod_Fn dlgFormatFrame;
 
 	static EV_EditMethod_Fn beginVDrag;
 	static EV_EditMethod_Fn clearSetCols;
@@ -536,7 +530,6 @@ public:
 	static EV_EditMethod_Fn insertClipart;
 	static EV_EditMethod_Fn fileSaveAsWeb;
     static EV_EditMethod_Fn fileSaveTemplate;
-	static EV_EditMethod_Fn filePreviewWeb;
 	static EV_EditMethod_Fn openTemplate;
 
 	static EV_EditMethod_Fn undo;
@@ -615,7 +608,6 @@ public:
 	static EV_EditMethod_Fn insDateTime;
 	static EV_EditMethod_Fn insField;
 	static EV_EditMethod_Fn insTextBox;
-	static EV_EditMethod_Fn insMailMerge;
 	static EV_EditMethod_Fn insSymbol;
 	static EV_EditMethod_Fn insFile;
 	static EV_EditMethod_Fn insTOC;
@@ -636,16 +628,12 @@ public:
 	static EV_EditMethod_Fn dlgBullets;
 	static EV_EditMethod_Fn dlgBorders;
 	static EV_EditMethod_Fn dlgColumns;
-	static EV_EditMethod_Fn dlgFmtImage;
-	static EV_EditMethod_Fn dlgFmtImageCtxt;
 	static EV_EditMethod_Fn dlgFmtPosImage;
 	static EV_EditMethod_Fn setPosImage;
 	static EV_EditMethod_Fn dlgHdrFtr;
 	static EV_EditMethod_Fn style;
 	static EV_EditMethod_Fn dlgBackground;
 	static EV_EditMethod_Fn dlgStyle;
-	static EV_EditMethod_Fn dlgStylist;
-	static EV_EditMethod_Fn dlgTabs;
 	static EV_EditMethod_Fn formatTOC;
 	static EV_EditMethod_Fn formatFootnotes;
 	static EV_EditMethod_Fn dlgToggleCase;
@@ -679,9 +667,6 @@ public:
 	static EV_EditMethod_Fn togglePlain;
 	static EV_EditMethod_Fn toggleDirOverrideLTR;
 	static EV_EditMethod_Fn toggleDirOverrideRTL;
-	static EV_EditMethod_Fn toggleDomDirection;
-	static EV_EditMethod_Fn toggleDomDirectionSect;
-	static EV_EditMethod_Fn toggleDomDirectionDoc;
 	static EV_EditMethod_Fn toggleRDFAnchorHighlight;
 
 	static EV_EditMethod_Fn doBullets;
@@ -716,15 +701,6 @@ public:
 	static EV_EditMethod_Fn middleSpace;
 	static EV_EditMethod_Fn doubleSpace;
 
-	static EV_EditMethod_Fn openRecent_1;
-	static EV_EditMethod_Fn openRecent_2;
-	static EV_EditMethod_Fn openRecent_3;
-	static EV_EditMethod_Fn openRecent_4;
-	static EV_EditMethod_Fn openRecent_5;
-	static EV_EditMethod_Fn openRecent_6;
-	static EV_EditMethod_Fn openRecent_7;
-	static EV_EditMethod_Fn openRecent_8;
-	static EV_EditMethod_Fn openRecent_9;
 
 	static EV_EditMethod_Fn activateWindow_1;
 	static EV_EditMethod_Fn activateWindow_2;
@@ -802,7 +778,6 @@ public:
 	static EV_EditMethod_Fn toggleAutoSpell;
 #endif
 	
-	static EV_EditMethod_Fn scriptPlay;
 	static EV_EditMethod_Fn executeScript;
 
         static EV_EditMethod_Fn mailMerge;
@@ -836,10 +811,6 @@ public:
 	static EV_EditMethod_Fn rdfSemitemSetAsSource;
 	static EV_EditMethod_Fn rdfSemitemRelatedToSourceFoafKnows;
 	static EV_EditMethod_Fn rdfSemitemFindRelatedFoafKnows;
-	static EV_EditMethod_Fn textToTable;
-	static EV_EditMethod_Fn textToTableCommas;
-	static EV_EditMethod_Fn textToTableSpaces;
-	static EV_EditMethod_Fn textToTableTabs;
 	static EV_EditMethod_Fn tocAddText;
 	static EV_EditMethod_Fn tocInsert;
 	static EV_EditMethod_Fn tocRemove;
@@ -874,8 +845,6 @@ public:
 	static EV_EditMethod_Fn toggleShowRevisionsAfter;
 	static EV_EditMethod_Fn toggleShowRevisionsAfterPrevious;
 	static EV_EditMethod_Fn revisionCompareDocuments;
-	static EV_EditMethod_Fn purgeAllRevisions;
-	static EV_EditMethod_Fn startNewRevision;
 	
     static EV_EditMethod_Fn insAnnotation;
     static EV_EditMethod_Fn insAnnotationFromSel;
@@ -887,7 +856,6 @@ public:
 	static EV_EditMethod_Fn sortRowsAscend;
 	static EV_EditMethod_Fn sortRowsDescend;
 
-	static EV_EditMethod_Fn history;
 
 	
 	static EV_EditMethod_Fn insertTable;
@@ -1069,11 +1037,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dlgColorPickerBack),	0,	""),
 	EV_EditMethod(NF(dlgColorPickerFore),	0,	""),
 	EV_EditMethod(NF(dlgColumns),			0,	""),
-	EV_EditMethod(NF(dlgFmtImage), 			0, ""),
-	EV_EditMethod(NF(dlgFmtImageCtxt), 	   	0, ""),
 	EV_EditMethod(NF(dlgFmtPosImage), 		0, ""),
 	EV_EditMethod(NF(dlgFont),				0,	""),
-	EV_EditMethod(NF(dlgFormatFrame),		0,	""),
 	EV_EditMethod(NF(dlgHdrFtr),			0,	""),
 	EV_EditMethod(NF(dlgLanguage),			0,	""),
 	EV_EditMethod(NF(dlgMetaData), 			0, ""),
@@ -1085,8 +1050,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dlgSpellPrefs), 		0,	""),
 #endif
 	EV_EditMethod(NF(dlgStyle), 			0,	""),
-	EV_EditMethod(NF(dlgStylist),           0,  ""),
-	EV_EditMethod(NF(dlgTabs),				0,	""),
 	EV_EditMethod(NF(dlgToggleCase),		0,	""),
 	EV_EditMethod(NF(dlgWordCount), 		0,	""),
 	EV_EditMethod(NF(dlgZoom),				0,	""),
@@ -1160,7 +1123,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(fileNew),				_A_,	""),
 	EV_EditMethod(NF(fileNewUsingTemplate),				_A_,	""),
 	EV_EditMethod(NF(fileOpen), 			_A_,	""),
-	EV_EditMethod(NF(filePreviewWeb), 0, ""),
 	EV_EditMethod(NF(fileRevert), 0, ""),
 	EV_EditMethod(NF(fileSave), 			0,	""),
 	EV_EditMethod(NF(fileSaveAs),			0,	""),
@@ -1204,7 +1166,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(helpIntro),			_A_,		""),
 	EV_EditMethod(NF(helpReportBug), _A_, ""),
 	EV_EditMethod(NF(helpSearch),			_A_,		""),
-	EV_EditMethod(NF(history),	            0,      ""),
 	EV_EditMethod(NF(hyperlinkCopyLocation), 0, ""),
 	EV_EditMethod(NF(hyperlinkJump),		0,		""),
 	EV_EditMethod(NF(hyperlinkJumpPos),     0,      ""),
@@ -1221,7 +1182,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insField),				0,		""),
 	EV_EditMethod(NF(insFile),				0,		""),
 	EV_EditMethod(NF(insFootnote),			0,		""),
-	EV_EditMethod(NF(insMailMerge), 		0,		""),
 	EV_EditMethod(NF(insMediaFile),		0,		""),
 	EV_EditMethod(NF(insPageNo),			0,		""),
 	EV_EditMethod(NF(insScreenshot),		0,		""),
@@ -1291,7 +1251,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(lockToolbarLayout),	0,	""),
 
 	// m
-	EV_EditMethod(NF(mailMerge), 0, ""),
 	EV_EditMethod(NF(mergeCells),			0,		""),
 	EV_EditMethod(NF(mergeCellsDir),		0,		""),
 	EV_EditMethod(NF(middleSpace),			0,		""),
@@ -1304,15 +1263,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(noteSwap),				0,	""),
 
 	// o
-	EV_EditMethod(NF(openRecent_1), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_2), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_3), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_4), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_5), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_6), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_7), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_8), 		_A_,		""),
-	EV_EditMethod(NF(openRecent_9), 		_A_,		""),
 	EV_EditMethod(NF(openTemplate), 0, ""),
 
 	// p
@@ -1344,7 +1294,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(printPreview),			0,	""),
 	EV_EditMethod(NF(printTB),				0,	""),
 #endif
-	EV_EditMethod(NF(purgeAllRevisions),	0,	""),
 
 	// q
 	EV_EditMethod(NF(querySaveAndExit), 	_A_,	""),
@@ -1434,7 +1383,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// s
 
 	EV_EditMethod(NF(saveImmediate),			0,	""),
-	EV_EditMethod(NF(scriptPlay),			0,	""),
 	EV_EditMethod(NF(scrollLineDown),		0,	""),
 	EV_EditMethod(NF(scrollLineLeft),		0,	""),
 	EV_EditMethod(NF(scrollLineRight),		0,	""),
@@ -1494,7 +1442,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(splitCells),           0,  ""),
 	EV_EditMethod(NF(splitCellsDir),        0,  ""),
 	EV_EditMethod(NF(splitTable),           0,  ""),
-	EV_EditMethod(NF(startNewRevision),     0,  ""),
 	EV_EditMethod(NF(style),				_D_,""),
 
 	// t
@@ -1508,10 +1455,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(tableToTextCommasTabs),    0,		""),
 	EV_EditMethod(NF(tableToTextParas),    0,		""),
 	EV_EditMethod(NF(tableToTextTabs),    0,		""),
-	EV_EditMethod(NF(textToTable),			0,		""),
-	EV_EditMethod(NF(textToTableCommas),		0,		""),
-	EV_EditMethod(NF(textToTableSpaces),			0,		""),
-	EV_EditMethod(NF(textToTableTabs),		0,		""),
 	EV_EditMethod(NF(tocAddText),			0,		""),
 	EV_EditMethod(NF(tocInsert),			0,		""),
 	EV_EditMethod(NF(tocRemove),			0,		""),
@@ -1526,9 +1469,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleDirOverrideLTR), 0,	""),
 	EV_EditMethod(NF(toggleDirOverrideRTL), 0,	""),
 	EV_EditMethod(NF(toggleDisplayAnnotations), 0,	""),
-	EV_EditMethod(NF(toggleDomDirection),	0,	""),
-	EV_EditMethod(NF(toggleDomDirectionDoc),	0,	""),
-	EV_EditMethod(NF(toggleDomDirectionSect),	0,	""),
 	EV_EditMethod(NF(toggleDrawTable),	0,	""),
 	EV_EditMethod(NF(toggleEquationDisplay),	0,	""),
 	EV_EditMethod(NF(toggleHidden),			0,	""),
@@ -3344,41 +3284,6 @@ Defun1(fileSaveEmbed)
 	return true;
 }
 
-Defun1(filePreviewWeb)
-{
-	CHECK_FRAME;
-	UT_return_val_if_fail (pAV_View, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pAV_View->getParentData());
-	
-	std::string file = UT_createTmpFile("web", ".html");
-
-	UT_Error errSaved = UT_OK;
-
-	// we do this because we don't want to change the default
-	// document extension or rename what we're working on
-	char *uri = UT_go_filename_to_uri(file.c_str());
-	if(uri)
-	{
-		if(XAP_App::getApp()->getPrefs())
-			XAP_App::getApp()->getPrefs()->setIgnoreNextRecent();
-
-		errSaved = pAV_View->cmdSaveAs(uri, IE_Exp::fileTypeForSuffix(".xhtml"), false);
-	}
-	else
-		errSaved = UT_IE_COULDNOTWRITE;
-
-	if(errSaved != UT_OK)
-	{
-		// throw up a dialog
-		s_TellSaveFailed(pFrame, file.c_str(), errSaved);
-		return false;
-	}
-
-	bool bOk = _openURL(uri);
-	g_free(uri);
-
-	return bOk;
-}
 
 Defun1(undo)
 {
@@ -3413,81 +3318,7 @@ Defun1(newWindow)
 	return (pClone ? true : false);
 }
 
-static bool _openRecent(AV_View* pAV_View, UT_uint32 ndx)
-{
-	XAP_Frame * pFrame = nullptr;
-	if (pAV_View) {
-		pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
-		UT_return_val_if_fail(pFrame, false);
-	}
 
-	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
-	UT_return_val_if_fail (pPrefs, false);
-
-	UT_return_val_if_fail (ndx > 0 && ndx <= pPrefs->getRecentCount(), false);
-
-	const char * szRecent = pPrefs->getRecent(ndx);
-
-	// TODO HACK BROKEN BUSTED BLAH WARNING NOTE ERROR
-	// BROKEN: We should store some sort of file type with the MRU data
-	// BROKEN: or we don't know what to open it as!  We can't assume
-	// BROKEN: IEFT_Unknown will detect what the user saved it as,
-	// BROKEN: since the user can explictly export as any type.
-	// TODO HACK BROKEN BUSTED BLAH WARNING NOTE ERROR
-
-	UT_Error error = fileOpen(pFrame, szRecent, IEFT_Unknown);
-
-    if (!UT_IS_IE_SUCCESS(error))
-		pPrefs->removeRecent(ndx);
-
-	return E2B(error);
-}
-
-Defun1(openRecent_1)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 1);
-}
-Defun1(openRecent_2)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 2);
-}
-Defun1(openRecent_3)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 3);
-}
-Defun1(openRecent_4)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 4);
-}
-Defun1(openRecent_5)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 5);
-}
-Defun1(openRecent_6)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 6);
-}
-Defun1(openRecent_7)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 7);
-}
-Defun1(openRecent_8)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 8);
-}
-Defun1(openRecent_9)
-{
-	CHECK_FRAME;
-	return _openRecent(pAV_View, 9);
-}
 
 static bool _activateWindow(AV_View* pAV_View, UT_sint32 ndx)
 {
@@ -9364,82 +9195,6 @@ UT_return_val_if_fail(pDialog, false);
 	return bOK;
 }
 
-static void
-s_TabSaveCallBack (AP_Dialog_Tab * /*pDlg*/, FV_View * pView,
-				   const char * szTabStops, const char * szDflTabStop,
-				   void * /*closure*/)
-{
-	UT_return_if_fail(szTabStops && szDflTabStop);
-
-	PP_PropertyVector properties = {
-		"tabstops", szTabStops ? szTabStops : ""
-	};
-	UT_DEBUGMSG(("AP_Dialog_Tab: Tab Stop [%s]\n",properties[1].c_str()));
-	if(szTabStops && *szTabStops)
-	{
-		pView->setBlockFormat(properties);
-	}
-	else
-	{
-		properties[1] = " ";
-		pView->setBlockFormat(properties);
-	}
-
-	properties[0] = "default-tab-interval";
-	properties[1] = szDflTabStop ? szDflTabStop : "";
-	UT_return_if_fail (szDflTabStop);
-	UT_DEBUGMSG(("AP_Dialog_Tab: Default Tab Stop [%s]\n",properties[1].c_str()));
-
-	pView->setBlockFormat(properties);
-}
-
-// non static, so it can be called from the paragraph dialog
-bool s_doTabDlg(FV_View * pView)
-{
-
-	UT_return_val_if_fail(pView, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-
-	pFrame->raise();
-
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
-
-	AP_Dialog_Tab * pDialog
-		= static_cast<AP_Dialog_Tab *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_TAB));
-
-	if(pDialog)
-	{
-		// setup the callback function, no closure
-		pDialog->setSaveCallback(s_TabSaveCallBack, nullptr);
-
-		// run the dialog
-		pDialog->runModal(pFrame);
-
-		// get the dialog answer
-		AP_Dialog_Tab::tAnswer answer = pDialog->getAnswer();
-
-		switch (answer)
-		{
-		case AP_Dialog_Tab::a_OK:
-		case AP_Dialog_Tab::a_CANCEL:
-			// do nothing
-			break;
-		default:
-			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-		}
-
-		pDialogFactory->releaseDialog(pDialog);
-	}
-	else
-	{
-		s_TellNotImplemented(pFrame, "Tabs dialog", __LINE__);
-	}
-	return true;
-}
-
-
 static bool s_doParagraphDlg(FV_View * pView)
 {
 	UT_return_val_if_fail(pView, false);
@@ -9484,12 +9239,6 @@ static bool s_doParagraphDlg(FV_View * pView)
 		// set properties back to document
 		if (!props.empty())
 			pView->setBlockFormat(props);
-
-		break;
-
-	case AP_Dialog_Paragraph::a_TABS:
-
-		s_doTabDlg(pView);
 
 		break;
 
@@ -11193,12 +10942,7 @@ Defun(arrangePosition)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	if (pView->isImageSelected())
-	{
-		dlgFmtPosImage(pAV_View, pCallData);
-		return true;
-	}
-	dlgFormatFrame(pAV_View, pCallData);
+	dlgFmtPosImage(pAV_View, pCallData);
 	return true;
 }
 
@@ -12452,34 +12196,6 @@ Defun1(insField)
 	return s_doField(pView);
 }
 
-Defun1(insMailMerge)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-
-	UT_return_val_if_fail(pView, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-
-	pFrame->raise();
-
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
-
-	AP_Dialog_MailMerge * pDialog
-		= static_cast<AP_Dialog_MailMerge *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_MAILMERGE));
-UT_return_val_if_fail(pDialog, false);
-	if(pDialog->isRunning())
-	{
-		pDialog->activate();
-	}
-	else
-	{
-		pDialog->runModeless(pFrame);
-	}
-	bool bOK = true;
-	return bOK;
-}
 
 /* shared body of insFile: load the chosen file into a
  * throwaway document and copy its whole contents into the current
@@ -12566,7 +12282,7 @@ Defun1(insScreenshot)
 	}
 
 	gchar * tmp = g_build_filename(g_get_tmp_dir(),
-								   "abiword-screenshot.png", nullptr);
+								   "abinova-screenshot.png", nullptr);
 	gchar * cmd = g_strdup_printf("%s -a -f \"%s\"", shot, tmp);
 	gint status = 0;
 	gboolean ok = g_spawn_command_line_sync(cmd, nullptr, nullptr,
@@ -13556,497 +13272,10 @@ Defun1(dlgFmtPosImage)
 }
 
 
-static bool s_doFormatImageDlg(FV_View * pView, EV_EditMethodCallData * pCallData, bool bCtxtMenu)
-{
-	UT_DEBUG_ONLY_ARG(pCallData);
-	
-	UT_return_val_if_fail(pView, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-
-	pFrame->raise();
-
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
-
-	XAP_Dialog_Image * pDialog
-		= static_cast<XAP_Dialog_Image *>(pDialogFactory->requestDialog(XAP_DIALOG_ID_IMAGE));
-	UT_return_val_if_fail(pDialog, false);
-	double max_width = 0., max_height = 0.;
-	UT_sint32 iHeight,iWidth;
-
-	// set units in the dialog.
-	std::string rulerUnits;
-	UT_Dimension dim = DIM_IN;
-	if (XAP_App::getApp()->getPrefsValue(AP_PREF_KEY_RulerUnits, rulerUnits)) {
-		dim = UT_determineDimension(rulerUnits.c_str());
-	}
-	pDialog->setPreferedUnits(dim);
-
-	fl_BlockLayout * pBL = pView->getCurrentBlock();
-	bool bInHdrFtr = pView->isInHdrFtr(pView->getPoint());
-
-	// an approximate... TODO: make me more accurate
-	fl_DocSectionLayout * pDSL = pBL->getDocSectionLayout();
-	UT_sint32 iColWidth = pDSL->getActualColumnWidth();
-	UT_sint32 iColHeight = pDSL->getActualColumnHeight();
-	max_width  = iColWidth*72.0/UT_LAYOUT_RESOLUTION;
-	max_height = iColHeight*72.0/UT_LAYOUT_RESOLUTION;
-
-	pDialog->setMaxWidth (max_width);
-	pDialog->setMaxHeight (max_height); // units are 1/72 of an inch
-	UT_DEBUGMSG(("formatting  image: %d\n", pCallData->m_xPos));
-	const fp_Run * pRun = nullptr;
-	const char * dataID = nullptr;
-	fl_BlockLayout * pBlock = nullptr;
-	PT_DocPosition pos = 0;
-
-	if (bCtxtMenu)
-	{
-		pos = pView->getDocPositionFromLastXY();
-		pBlock = pView->getBlockAtPosition(pos);
-		if(pBlock)
-        {
-			pRun = pBlock->findRunAtOffset(pos - pBlock->getPosition());
-			if(pRun && (pRun->getType() == FPRUN_IMAGE))
-			{
-				dataID = static_cast<const fp_ImageRun *>(pRun)->getDataId();
-			}
-			else
-			{
-				UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-				return false;
-			}
-		}
-		else
-		{
-			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-			return false;
-        }
-	}
-	else
-	{
-		pos = pView->getSelectedImage(&dataID,&pRun);
-		if (!pRun)
-		{
-			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-			return false;
-		}
-		pBlock = pRun->getBlock();
-	}
-
-    pView->cmdSelect(pos,pos+1);
-	PP_PropertyVector props_in;
-
-	const PP_AttrProp * pAP = nullptr;
-	pView->getAttributes (&pAP);
-	pDialog->setInHdrFtr(bInHdrFtr);
-	  
-	if (pView->getCharFormat(props_in))
-	{
-	  // stuff properties into the dialog.
-
-	  const std::string & szWidth = PP_getAttribute("width", props_in);
-	  const std::string & szHeight = PP_getAttribute("height", props_in);
-
-	  const gchar* szTitle = nullptr;
-	  const gchar* szDescription = nullptr;
-	  pDialog->setInHdrFtr(bInHdrFtr);
-	  if (pAP) {
-		  pAP->getAttribute ("title", szTitle);
-		  pAP->getAttribute ("alt", szDescription);
-	  }
-
-	  if (szTitle) {
-		  pDialog->setTitle (szTitle);
-	  }
-	  if (szDescription) {
-		  pDialog->setDescription (szDescription);
-	  }
-
-	  double width = 0., height = 0.;
-	  if(!szWidth.empty())
-		  width = UT_convertToInches(szWidth.c_str());
-	  if (width < 0.0001)
-	  {
-		  iWidth = 0;
-		  UT_return_val_if_fail (pRun, false);
-		  if(pRun->getType() == FPRUN_IMAGE)
-		  {
-			  iWidth = pRun->getWidth();
-		  }
-		  else
-		  {
-			  UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-			  return false;
-		  }
-		  width = iWidth*72.0/UT_LAYOUT_RESOLUTION;
-		  }
-	  if(!szHeight.empty())
-	      height = UT_convertToInches(szHeight.c_str());
-	  if (height < 0.0001)
-	  {
-		  iHeight = 0;
-		  UT_return_val_if_fail (pRun, false);
-		  if(pRun->getType() == FPRUN_IMAGE)
-		  {
-			  iHeight = pRun->getHeight();
-		  }
-		  else
-		  {
-			  UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-			  return false;
-		  }
-		  height = iHeight*72.0/UT_LAYOUT_RESOLUTION;
-	  }
-	  if(width > max_width)
-	  {
-	    height *= max_width / width;
-	    width = max_width;
-	  }
-	  if(height > max_height)
-	  {
-	    width *= max_height / height;
-	    height = max_height;
-	  }
-	  pDialog->setWidth( UT_convertInchesToDimensionString(dim,width));
-	  pDialog->setHeight( UT_convertInchesToDimensionString(dim,height));
-
-	  WRAPPING_TYPE oldWrap = WRAP_INLINE;
-	  pDialog->runModal(pFrame);
-
-	  XAP_Dialog_Image::tAnswer ans = pDialog->getAnswer();
-	  bool bOK = (ans == XAP_Dialog_Image::a_OK);
-	  std::string sWidth;
-	  std::string sHeight;
-	  if (bOK)
-	  {
-		  WRAPPING_TYPE newWrap = pDialog->getWrapping();
-		  // now get them back in inches
-		  sWidth = pDialog->getWidthString();
-		  sHeight = pDialog->getHeightString();
-		  UT_DEBUGMSG(("Width %s Height %s \n",sWidth.c_str(),sHeight.c_str()));
-		  // TODO: set format
-
-		  if((newWrap == WRAP_INLINE) && (oldWrap == WRAP_INLINE))
-		  {
-			  UT_DEBUGMSG(("DOM: nw:%s nh:%s\n", sWidth.c_str(), sHeight.c_str()));
-			  const PP_PropertyVector properties = {
-				  "width", sWidth,
-				  "height", sHeight
-			  };
-
-			  const PP_PropertyVector attribs = {
-				  "title", pDialog->getTitle().utf8_str(),
-				  "alt", pDialog->getDescription().utf8_str()
-			  };
-
-			  pView->setCharFormat(properties, attribs);
-			  pView->updateScreen(true);
-		  }
-
-//
-// This code turns inline-images into frames this way. Later
-// we changes frames to inline and frame types to frame types
-//
-		  else if( !bInHdrFtr && (oldWrap == WRAP_INLINE) && (newWrap != WRAP_INLINE))
-		  {
-
-// OK we gotta create a frame with the dimensions of the image and roughly the
-// the location of the image.
-//
-// Get the line of the image. (We have the run and Block)
-//
-			  fp_Line * pLine = pRun->getLine();
-
-			  std::string sFrameProps;
-			  std::string sProp;
-			  std::string sVal;
-			  sProp = "frame-type";
-			  sVal = "image";
-			  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-//
-// Turn off the borders.
-//
-			  sProp = "top-style";
-			  sVal = "none";
-			  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  sProp = "right-style";
-			  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  sProp = "left-style";
-			  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  sProp = "bot-style";
-			  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-//
-// Set width/Height
-//
-			  sProp = "frame-width";
-			  sVal = sWidth;
-			  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  sProp = "frame-height";
-			  sVal = sHeight;
-			  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  double xpos = 0.0;
-			  double ypos= 0.0;
-
-			  sProp = "position-to";
-			  if(pDialog->getPositionTo() == POSITION_TO_PARAGRAPH)
-			  {
-				  sVal = "block-above-text";
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-//
-// Now calculate the Y offset to the paragraph
-//
-				  UT_sint32 xBlockOff,yBlockOff = 0;
-				  UT_DebugOnly<bool> bValid = false;
-				  bValid = pBlock->getXYOffsetToLine(xBlockOff,yBlockOff,pLine);
-				  UT_ASSERT(bValid);
-				  ypos = static_cast<double>(yBlockOff)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-				  sProp = "ypos";
-				  sVal = UT_formatDimensionedValue(ypos,"in", nullptr);
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  }
-			  else if(pDialog->getPositionTo() == POSITION_TO_COLUMN)
-			  {
-				  sVal = "column-above-text";
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-//
-// Now calculate the Y offset to the Column
-//
-				  UT_sint32 yLine = pLine->getY();
-				  ypos = static_cast<double>(yLine)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-				  sProp = "frame-col-ypos";
-				  sVal = UT_formatDimensionedValue(ypos,"in", nullptr);
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  }
-			  else if(pDialog->getPositionTo() == POSITION_TO_PAGE)
-			  {
-				  sVal = "page-above-text";
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-//
-// Now calculate the Y offset to the Page
-//
-//
-// Need this for the X/Y calculations to follow.
-//
-				  fp_Container * pCol = pLine->getColumn();
-				  UT_ASSERT(pCol->getContainerType() == FP_CONTAINER_COLUMN);
-				  UT_sint32 yLine = pLine->getY() + pCol->getY();
-				  ypos = static_cast<double>(yLine)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-				  sProp = "frame-page-ypos";
-				  sVal = UT_formatDimensionedValue(ypos,"in", nullptr);
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  }
-//
-// Now set the wrapping type and the x-offset
-//
-			  if(pDialog->getWrapping() == WRAP_TEXTLEFT)
-			  {
-				  sProp = "wrap-mode";
-				  sVal = "wrapped-to-left";
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  UT_sint32 ix = 0;
-				  iWidth = UT_convertToLogicalUnits(sWidth.c_str());
-				  if(pDialog->getPositionTo() == POSITION_TO_PARAGRAPH)
-				  {
-					  fp_Container * pCol = pLine->getColumn();
-					  ix = pCol->getWidth() - pBlock->getRightMargin() - iWidth;
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_COLUMN)
-				  {
-					  fp_Container * pCol = pLine->getColumn();
-					  ix = pCol->getWidth() -iWidth;
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-col-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_PAGE)
-				  {
-					  fp_Page * pPage = pLine->getPage();
-					  ix = pPage->getWidth() - iWidth;
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-page-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-			  }
-			  else if(pDialog->getWrapping() == WRAP_NONE)
-			  {
-				  sProp = "wrap-mode";
-				  sVal = "above-text";
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  UT_sint32 ix = 0;
-				  if(pDialog->getPositionTo() == POSITION_TO_PARAGRAPH)
-				  {
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_COLUMN)
-				  {
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-col-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_PAGE)
-				  {
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-page-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-
-			  }
-			  else if(pDialog->getWrapping() == WRAP_TEXTRIGHT)
-			  {
-				  sProp = "wrap-mode";
-				  sVal = "wrapped-to-right";
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  UT_sint32 ix = 0;
-				  if(pDialog->getPositionTo() == POSITION_TO_PARAGRAPH)
-				  {
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_COLUMN)
-				  {
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-col-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_PAGE)
-				  {
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-page-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-			  }
-			  else if(pDialog->getWrapping() == WRAP_TEXTBOTH)
-			  {
-				  sProp = "wrap-mode";
-				  sVal = "wrapped-both";
-				  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  UT_sint32 ix = pRun->getX();
-				  if(pDialog->getPositionTo() == POSITION_TO_PARAGRAPH)
-				  {
-					  ix += pLine->getX();
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_COLUMN)
-				  {
-					  ix += pLine->getX();
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-col-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-				  else if(pDialog->getPositionTo() == POSITION_TO_PAGE)
-				  {
-					  fp_Column * pCol = static_cast<fp_Column *>(pLine->getColumn());
-					  ix += pLine->getX() + pCol->getX();
-					  xpos =  static_cast<double>(ix)/static_cast<double>(UT_LAYOUT_RESOLUTION);
-					  sProp = "frame-page-xpos";
-					  sVal = UT_formatDimensionedValue(xpos,"in", nullptr);
-					  UT_std_string_setProperty(sFrameProps, sProp, sVal);
-				  }
-			  }
-			  if(pDialog->isTightWrap())
-			  {
-			    sProp = "tight-wrap";
-			    sVal = "1";
-			    UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  }
-			  else
-			  {
-			    sProp = "tight-wrap";
-			    sVal = "0";
-			    UT_std_string_setProperty(sFrameProps, sProp, sVal);
-			  }
-//
-// Now define the Frame attributes strux
-//
-			  const PP_PropertyVector attributes = {
-				  PT_STRUX_IMAGE_DATAID, dataID,
-				  "props", sFrameProps.c_str(),
-				  "title", pDialog->getTitle().utf8_str(),
-				  "alt", pDialog->getDescription().utf8_str()
-			  };
-//
-// This deletes the inline image and places a positioned image in it's place
-// It deals with the undo/general update issues.
-//
-			  pView->convertInLineToPositioned(pos,attributes);
-//
-// Done! Now have a positioned image!
-//
-		  }
-//
-// Change properties of a positioned image
-//
-		  else if( (oldWrap != WRAP_INLINE) && (newWrap != WRAP_INLINE))
-		  {
-
-		  }
-//
-// Convert a positioned image to an inline image
-//
-		  else if((oldWrap != WRAP_INLINE) && (newWrap == WRAP_INLINE))
-		  {
-		  }
-	  }
-	  pDialogFactory->releaseDialog(pDialog);
-	  return true;
-	}
-	else
-	{
-		return false;
-	}
-}
 
 
-Defun(dlgFmtImageCtxt)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-   	return s_doFormatImageDlg(pView,pCallData,true);
-}
 
 
-Defun(dlgFmtImage)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	if(pView->getFrameEdit()->isActive())
-	{
-	  fl_FrameLayout * pFL = pView->getFrameLayout();
-
-	  if(pFL == nullptr)
-	  {
-	    return false;
-	  }
-	  if(pFL->getFrameType() == FL_FRAME_TEXTBOX_TYPE)
-	  {
-	    return true;
-	  }
-	  return EX(dlgFmtPosImage);
-	}
-
-	return s_doFormatImageDlg(pView,pCallData,false);
-}
 
 
 Defun(dlgColumns)
@@ -14269,42 +13498,8 @@ Defun1(dlgStyle)
 	return s_doStylesDlg(pView);
 }
 
-Defun1(dlgStylist)
-{
-	CHECK_FRAME;
-
-	UT_return_val_if_fail(pAV_View, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> (pAV_View->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-
-	pFrame->raise();
-
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
-
-	AP_Dialog_Stylist * pDialog
-		= static_cast<AP_Dialog_Stylist *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_STYLIST));
-UT_return_val_if_fail(pDialog, false);
-	if(pDialog->isRunning())
-	{
-		pDialog->activate();
-	}
-	else
-	{
-		pDialog->runModeless(pFrame);
-	}
-	bool bOK = true;
-	return bOK;
-}
 
 
-Defun1(dlgTabs)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-
-	return s_doTabDlg(pView);
-}
 
 Defun0(noop)
 {
@@ -14451,41 +13646,9 @@ Defun1(paraSortDescend)
 	return true;
 }
 
-Defun1(textToTable)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView,false);
-	pView->cmdTextToTable(3);
-	return true;
-}
 
-Defun1(textToTableTabs)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView,false);
-	pView->cmdTextToTable(0);
-	return true;
-}
 
-Defun1(textToTableCommas)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView,false);
-	pView->cmdTextToTable(1);
-	return true;
-}
 
-Defun1(textToTableSpaces)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView,false);
-	pView->cmdTextToTable(2);
-	return true;
-}
 
 Defun1(insertSumRows)
 {
@@ -14716,90 +13879,9 @@ Defun1(toggleDirOverrideRTL)
 	return _toggleSpan(pView, "dir-override", "rtl", "");
 }
 
-Defun1(toggleDomDirection)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-
-	UT_return_val_if_fail(pView,false);
-
-	const char* aright = "right";
-	const char* aleft  = "left";
-
-	fl_BlockLayout * pBl = pView->getCurrentBlock();
-	UT_return_val_if_fail( pBl, false );
-
-	std::string cur_alignment = pBl->getProperty("text-align");
-
-	PP_PropertyVector properties = {
-		"dom-dir", pBl->getDominantDirection() == UT_BIDI_RTL ? "ltr" : "rtl",
-		"text-align", cur_alignment
-	};
-	// if the paragraph is was aligned either left or right, then
-	// toggle the alignment as well; if it was anything else
-	// i.e., justfied or centered, then leave it
-	if(cur_alignment == aleft)
-	{
-		properties[3] = aright;
-	}
-	else if(cur_alignment == aright)
-	{
-		properties[3] = aleft;
-
-	}
-
-	pView->setBlockFormat(properties);
-
-	return true;
-}
 
 
-Defun1(toggleDomDirectionSect)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
 
-	UT_return_val_if_fail(pView,false);
-
-	fl_BlockLayout * pBl = pView->getCurrentBlock();
-	UT_return_val_if_fail( pBl, false );
-
-	fl_DocSectionLayout * pSL = pBl->getDocSectionLayout();
-	UT_return_val_if_fail( pSL, false );
-
-	const PP_PropertyVector properties = {
-		"dom-dir",
-		pSL->getColumnOrder() ? "ltr" : "rtl"
-	};
-	pView->setSectionFormat(properties);
-
-	return true;
-}
-
-Defun1(toggleDomDirectionDoc)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-
-	UT_return_val_if_fail(pView,false);
-	PD_Document * pDoc = pView->getDocument();
-	UT_return_val_if_fail(pDoc,false);
-
-	const PP_AttrProp * pAP = pDoc->getAttrProp();
-	UT_return_val_if_fail( pAP, false );
-
-	const gchar * szValue;
-
-	UT_return_val_if_fail(pAP->getProperty("dom-dir", szValue), false);
-
-	const char* drtl = "rtl";
-	const PP_PropertyVector properties = {
-		"dom-dir", !strcmp(szValue, drtl) ? "ltr" : drtl
-	};
-	UT_return_val_if_fail(pDoc->setProperties(properties), false);
-
-	return true;
-}
 
 Defun1(doBullets)
 {
@@ -15699,145 +14781,7 @@ private:
 	PD_Document *m_doc;
 };
 
-Defun1(mailMerge)
-{
-  CHECK_FRAME;
-  UT_return_val_if_fail(pAV_View, false);
-  XAP_Frame * pFrame = static_cast<XAP_Frame *> (pAV_View->getParentData());
-  UT_return_val_if_fail(pFrame, false);
 
-  PD_Document * pDoc = static_cast<PD_Document *>(pFrame->getCurrentDoc());
-  UT_return_val_if_fail(pDoc, false);
-
-  pFrame->raise();
-  XAP_Dialog_Id id = XAP_DIALOG_ID_FILE_OPEN;
-  
-  XAP_DialogFactory * pDialogFactory
-    = static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
-  
-  XAP_Dialog_FileOpenSaveAs * pDialog
-    = static_cast<XAP_Dialog_FileOpenSaveAs *>(pDialogFactory->requestDialog(id));
-  UT_return_val_if_fail (pDialog, false);
-
-  UT_uint32 filterCount = 0;
-  
-  filterCount = IE_MailMerge::getMergerCount();
-
-  const char ** szDescList = static_cast<const char **>(UT_calloc(filterCount + 1, sizeof(char *)));
-  UT_return_val_if_fail(szDescList, false);
-
-  const char ** szSuffixList = static_cast<const char **>(UT_calloc(filterCount + 1, sizeof(char *)));
-  if(!szSuffixList)
-  {
-	  UT_ASSERT_HARMLESS(szSuffixList);
-	  FREEP(szDescList);
-	  return false;
-  }
-
-  IEMergeType * nTypeList = static_cast<IEMergeType *>(UT_calloc(filterCount + 1, sizeof(IEMergeType)));
-  if(!nTypeList)
-  {
-	  UT_ASSERT_HARMLESS(nTypeList);
-	  FREEP(szDescList);
-	  FREEP(szSuffixList);
-	  return false;
-  }
-
-  UT_uint32 k = 0;
-  
-  while (IE_MailMerge::enumerateDlgLabels(k, &szDescList[k], &szSuffixList[k], &nTypeList[k]))
-	  k++;
-
-  pDialog->setFileTypeList(szDescList, szSuffixList, static_cast<const UT_sint32 *>(nTypeList));
-
-  pDialog->setDefaultFileType(IE_MailMerge::fileTypeForSuffix (".xml"));
-
-  pDialog->runModal(pFrame);
-
-  XAP_Dialog_FileOpenSaveAs::tAnswer ans = pDialog->getAnswer();
-  bool bOK = (ans == XAP_Dialog_FileOpenSaveAs::a_OK);
-
-  if (bOK)
-    {
-		UT_String filename (pDialog->getPathname());
-		UT_sint32 type = pDialog->getFileType();
-		
-		IE_MailMergePtr pie;
-		UT_Error errorCode = IE_MailMerge::constructMerger(filename.c_str(), static_cast<IEMergeType>(type), pie);
-		if (!errorCode)
-		{
-			OneShot_MailMerge_Listener listener (pDoc);
-			pie->setListener (&listener);
-			pie->mergeFile (filename.c_str());
-		}
-	}
-
-  pDialogFactory->releaseDialog(pDialog);
-  return true;
-}
-
-Defun1(scriptPlay)
-{
-	CHECK_FRAME;
-	UT_return_val_if_fail(pAV_View, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> (pAV_View->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-
-	UT_String pNewFile;
-
-	UT_ScriptLibrary * instance = UT_ScriptLibrary::instance ();
-
-	if (0 == instance->getNumScripts())
-	{
-		pFrame->showMessageBox(AP_STRING_ID_SCRIPT_NOSCRIPTS,
-				   XAP_Dialog_MessageBox::b_O,
-				   XAP_Dialog_MessageBox::a_OK);
-		return true;
-	}
-
-	UT_ScriptIdType ieft = -1;
-
-	bool bOK = s_AskForScriptName(pFrame, pNewFile, &ieft);
-
-	if (!bOK || pNewFile.empty())
-		return false;
-
-	// we have no expectations of executing a remote program
-	char * scriptName = UT_go_filename_from_uri(pNewFile.c_str());
-	UT_return_val_if_fail (scriptName != nullptr, false);
-
-#ifdef _WIN32
-	// we need to add quotes to the script name _after_ the UT_go_filename_from_uri() call above;
-	// if not, it will return nullptr and the script won't play.
-
-	UT_UTF8String script = "\"";
-	script += scriptName;
-	script += "\"";
-	g_free(scriptName);
-	scriptName = g_strdup(script.utf8_str());
-#endif
-
-	UT_DEBUGMSG(("scriptPlay (trying to play [%s])\n", pNewFile.c_str()));
-
-	if (UT_OK != instance->execute(scriptName, ieft))
-	{
-		if (instance->errmsg().size() > 0)
-		{
-			pFrame->showMessageBox(instance->errmsg().c_str(),
-					       XAP_Dialog_MessageBox::b_O,
-					       XAP_Dialog_MessageBox::a_OK);
-		}
-		else
-			pFrame->showMessageBox(AP_STRING_ID_SCRIPT_CANTRUN,
-					       XAP_Dialog_MessageBox::b_O,
-					       XAP_Dialog_MessageBox::a_OK,
-					       scriptName);
-	}
-
-	g_free (scriptName);
-
-	return true;
-}
 
 Defun(executeScript)
 {
@@ -17169,18 +16113,6 @@ UT_return_val_if_fail(pDialog, false);
 	return bOK;
 }
 
-Defun1(purgeAllRevisions)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-
-	UT_return_val_if_fail(pView,false);
-	PD_Document * pDoc = pView->getDocument();
-	UT_return_val_if_fail(pDoc,false);
-
-	//  turn revisions off
-	return pDoc->purgeAllRevisions(pView);
-}
 
 Defun1(toggleAutoRevision)
 {
@@ -17257,26 +16189,6 @@ Defun1(toggleMarkRevisions)
 	return true;
 }
 
-Defun1(startNewRevision)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-
-	UT_return_val_if_fail(pView,false);
-
-	if(!pView->isMarkRevisions())
-	{
-		// only do this when marking revisions is on
-		return false;
-	}
-
-	PD_Document * pDoc = pView->getDocument();
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
-	UT_return_val_if_fail( pDoc && pFrame, false );
-	
-	s_doMarkRevisions(pFrame, pDoc, pView, false, true);
-	return true;
-}
 
 Defun1(toggleShowRevisions)
 {
@@ -17490,19 +16402,6 @@ Defun(revisionSelect)
 	return true;
 }
 
-Defun1(history)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView,false);
-	AD_Document * pDoc = (AD_Document *) pView->getDocument();
-	UT_return_val_if_fail(pDoc,false);
-
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
-	UT_return_val_if_fail(pFrame,false);
-
-	return pDoc->showHistory(pView);
-}
 
 /*!
     This function can be used to raise one of the ListDocuments dialogues
@@ -18923,34 +17822,6 @@ Defun1(selectFrame)
 	return true;
 }
 
-Defun1(dlgFormatFrame)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_DEBUGMSG(("Format Frame \n"));
-	UT_return_val_if_fail(pView, false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-
-	pFrame->raise();
-
-
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
-
-	AP_Dialog_FormatFrame * pDialog
-		= static_cast<AP_Dialog_FormatFrame *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_FORMAT_FRAME));
-UT_return_val_if_fail(pDialog, false);
-	if(pDialog->isRunning() == true)
-	{
-		pDialog->activate();
-	}
-	else
-	{
-		pDialog->runModeless(pFrame);
-	}
-	return true;
-}
 
 Defun1(frameBringForward)
 {
