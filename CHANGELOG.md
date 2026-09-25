@@ -30,8 +30,18 @@ below are on `main` but the release has not been cut yet.
   declarations (`office:version="1.4"`, `manifest:version="1.4"`).
 - **Built-in flat-XML ODF import** (`.fodt`), including
   `office:binary-data` embedded images.
+- **Built-in `.abwn` password encryption** — the native format gains
+  an `ABWNCRP1` versioned binary envelope: PBKDF2-HMAC-SHA-256
+  (600k iterations) derives a key for AES-256-GCM with the full
+  header bound as AAD (`src/wp/impexp/xp/ut_abwncrypt.cpp`). The
+  same "Encrypt with password" save-dialog UI as ODF, the same
+  password prompt on open (three attempts), `ABINOVA_PASSWORD`
+  headless fallback, and a decrypted document keeps its password so
+  plain Ctrl+S re-encrypts. AES comes from the system `libcrypto`
+  via dlopen — no new build dependency. Autosave backups of
+  protected documents are encrypted as well.
 - **Built-in ODF encryption both ways** — decrypt on open (GTK
-  password dialog / `ABIWORD_PASSWORD` env var); encrypt on save via
+  password dialog / `ABINOVA_PASSWORD` env var); encrypt on save via
   "Encrypt with password" in the ODF save dialog. PBKDF2-SHA1 +
   Blowfish CFB64 (vendored from OpenSSL 4.0.2, Apache-2.0), no
   libgcrypt dependency.
@@ -1095,6 +1105,27 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Atomic file save** — `IE_Exp::writeFile` now exports to a
+  `<name>.part` sibling and `rename()`s it over the target: a
+  failed export, encryption failure or mid-write crash can no
+  longer destroy the previous version on disk. Existing file
+  permissions are preserved, file + directory `fsync`'d, temp
+  files cleaned on every failure path; non-local (gvfs) targets
+  keep direct writes.
+- **Failed save no longer mutates document state** —
+  `m_lastSavedAsType` is restored when `writeFile` fails (a
+  rejected Save As used to silently switch the format of the next
+  plain Save), and the save-dialog password is rolled back so a
+  failed save can't change the document's encryption state.
+- **Dialogs actually centre on their parent on X11** — the manual
+  GTK4 centering ran on "realize" before the window had a size and
+  never re-ran, so dialogs landed parent-centre-top-left (right and
+  below centre). It now centres on "map" and once more from an idle
+  after the size settles; the frame-less `abiRunModalDialog` path
+  gets the same hook.
+- **Password env var renamed** — `ABIWORD_PASSWORD` is now
+  `ABINOVA_PASSWORD` for headless encrypted conversions (both ODF
+  and `.abwn`).
 - **Split Table crash fixed** — the command deleted the original
   table rows and re-inserted them as a new table, but tracked
   positions via `getPoint()` values that went stale mid-edit; it

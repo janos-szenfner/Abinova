@@ -74,6 +74,8 @@ public:
     virtual bool supportsLoadStylesOnly() override {return true;}
 
 protected:
+    virtual UT_Error	_loadFile(GsfInput * input) override;
+
 
     static const std::string &	_getDataItemName(const PP_PropertyVector & atts);
     static std::string 	_getDataItemMimeType(const PP_PropertyVector & atts);

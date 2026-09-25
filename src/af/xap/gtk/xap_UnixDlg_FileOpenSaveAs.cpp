@@ -500,7 +500,9 @@ void XAP_UnixDialog_FileOpenSaveAs::fileTypeChanged(GtkWidget * w)
 		if (nFileType > 0)
 		{
 			IE_ExpSniffer * pSniffer = IE_Exp::snifferForFileType(nFileType);
-			bShowEncrypt = (pSniffer && pSniffer->recognizeSuffix(".odt"));
+			bShowEncrypt = (pSniffer &&
+							(pSniffer->recognizeSuffix(".odt") ||
+							 pSniffer->recognizeSuffix(".abwn")));
 		}
 		gtk_widget_set_visible(m_wEncryptBox, bShowEncrypt);
 	}
@@ -972,7 +974,9 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 		if (nFileType > 0)
 		{
 			IE_ExpSniffer * pSniffer = IE_Exp::snifferForFileType(nFileType);
-			bShowEncrypt = (pSniffer && pSniffer->recognizeSuffix(".odt"));
+			bShowEncrypt = (pSniffer &&
+							(pSniffer->recognizeSuffix(".odt") ||
+							 pSniffer->recognizeSuffix(".abwn")));
 		}
 		gtk_widget_set_visible(m_wEncryptBox, bShowEncrypt);
 	}

@@ -29,7 +29,7 @@ public:
 	virtual ~IE_Exp_XML();
 
 public:
-    void setupFile(bool compressed);
+    void setupFile(bool compressed, GsfOutput * fp = nullptr);
     void closeHandle();
     void setDocType(char const *doctype);
     void startElement(char const *name);

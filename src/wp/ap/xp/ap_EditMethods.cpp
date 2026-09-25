@@ -3012,10 +3012,20 @@ s_actuallySaveAs(AV_View * pAV_View, bool overwriteName)
 	if ( !overwriteName )
 	  id = XAP_DIALOG_ID_FILE_EXPORT;
 
+	// the dialog stashes any requested encryption password on the
+	// document before the save happens; remember the old state so a
+	// failed save does not silently change it
+	PD_Document * pDocForPw = static_cast<PD_Document*>(pFrame->getCurrentDoc());
+	const std::string oldPassword = pDocForPw ? pDocForPw->getSavePassword() : "";
+
 	bool bOK = s_AskForPathname(pFrame,true, id, pFrame->getFilename(),&pNewFile,&ieft);
 
 	if (!bOK || !pNewFile)
+	{
+		if (pDocForPw)
+			pDocForPw->setSavePassword(oldPassword);
 		return false;
+	}
 
 	UT_DEBUGMSG(("fileSaveAs: saving as [%s]\n",pNewFile));
 
@@ -3023,6 +3033,8 @@ s_actuallySaveAs(AV_View * pAV_View, bool overwriteName)
 	errSaved = pAV_View->cmdSaveAs(pNewFile, static_cast<int>(ieft), overwriteName);
 	if (errSaved)
 	{
+		if (pDocForPw)
+			pDocForPw->setSavePassword(oldPassword);
 		// throw up a dialog
 		s_TellSaveFailed(pFrame, pNewFile, errSaved);
 		g_free(pNewFile);

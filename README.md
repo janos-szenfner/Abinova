@@ -154,11 +154,14 @@ all.
   - Flat ODF (`.fodt`) import, including `office:binary-data` embedded
     images decoded via base64.
   - **Encrypted ODF**: decrypt on open with a GTK password dialog
-    (`ABIWORD_PASSWORD` env var for headless use); encrypt on save via
+    (`ABINOVA_PASSWORD` env var for headless use); encrypt on save via
     a "Encrypt with password" checkbox + password/confirm fields in
     the ODF Save As dialog. Crypto is self-contained: PBKDF2-SHA1 +
     Blowfish CFB64 (vendored from OpenSSL 4.0.2, Apache-2.0) — no
     libgcrypt dependency.
+  - **Encrypted `.abwn`**: the same save-dialog password UI now also
+    works for the native format (AES-256-GCM + PBKDF2-HMAC-SHA-256
+    envelope) — see *Password-protected `.abwn` files*.
   - **RDF metadata**: built-in RDF/XML parser (`ODi_RDFParser`) and
     serializer (`toRDFXML`) — no libredland dependency. `manifest.rdf`
     round-trips through open/save.
@@ -763,6 +766,48 @@ Autosave was rebuilt so that unsaved work survives an unclean exit:
   removes it immediately — recovery files only survive real crashes.
 - **Autosave settings** (enable/disable and the interval in minutes)
   remain on the Documents tab of Preferences.
+
+### Password-protected `.abwn` files
+
+The native format supports password encryption, using the same
+"Encrypt with password" UI the ODF save dialog already had:
+
+- Save As → pick **Abinova (.abwn, .zabwn, .abwn.gz)** → the
+  **Encrypt with password** checkbox + Password/Confirm fields appear
+  (exactly like the ODF path). Save writes an encrypted envelope.
+- Opening an encrypted `.abwn` pops the standard password dialog;
+  wrong passwords are rejected and re-prompted (three tries), Cancel
+  aborts the open. `ABINOVA_PASSWORD` supplies the password for
+  headless conversions.
+- A document opened from an encrypted file keeps its password:
+  a later plain Ctrl+S **re-encrypts**. Saving As without ticking
+  the checkbox (or to a non-encryptable format) writes plaintext.
+- Autosave backups of password-protected documents are encrypted
+  too — no plaintext leaks into `~/.config/abinova/autosave`.
+
+On-disk format (`src/wp/impexp/xp/ut_abwncrypt.{h,cpp}`): an
+`ABWNCRP1` magic + versioned header (KDF id, iteration count, salt,
+nonce, cipher id) bound into the authentication tag, then
+AES-256-GCM ciphertext. The key is derived with PBKDF2-HMAC-SHA-256
+(600,000 iterations); AES-256 still leaves ~128-bit security under
+Grover's algorithm, so the format is post-quantum-safe for
+password-based use. AES is used via the system `libcrypto` at
+runtime (dlopen, no extra build dependency); PBKDF2/HMAC uses GLib
+checksums; nothing else is vendored.
+
+### Atomic save
+
+All filename-based saves (`IE_Exp::writeFile`) now write to a
+`<name>.part` sibling and `rename()` it into place:
+
+- a crashed/failed/rejected export can never destroy the previous
+  version on disk;
+- existing file permissions are preserved; the file and its
+  directory are `fsync`'d so the rename is durable;
+- a failed save no longer switches `lastSavedAsType` or the stored
+  password — the document keeps its previous format/encryption
+  state;
+- non-local targets (gvfs URIs) keep the direct-write behaviour.
 
 ### Debian bug audit
 
@@ -1536,7 +1581,7 @@ Older upstream history is not listed here.
   `manifest:encryption-data` entries; `mimetype` stays plaintext.
 - Password plumbing: dialog → `getEncryptionPassword()` → transient
   `PD_Document::setSavePassword()`; decrypted docs keep their password
-  on re-save; `ABIWORD_PASSWORD` covers headless use.
+  on re-save; `ABINOVA_PASSWORD` covers headless use.
 - Cross-validated against libgcrypt as an independent implementation.
 - Fix: unstyled `<text:p>` was closed as `</text:h>` in the ODF text
   listener (malformed content.xml).
@@ -1547,7 +1592,7 @@ Older upstream history is not listed here.
   the single XML, `office:binary-data` base64 images.
 - Vendored Blowfish from OpenSSL 4.0.2 (Apache-2.0); removed the
   `#ifndef HAVE_GCRYPT` guard that blocked decryption;
-  `ABIWORD_PASSWORD` env fallback.
+  `ABINOVA_PASSWORD` env fallback.
 - `ODi_RDFParser`: built-in SAX RDF/XML parser; built-in `toRDFXML`
   serializer — RDF works with no libredland. `manifest.rdf` now gets a
   manifest entry on export.
@@ -1620,7 +1665,7 @@ Headless conversions (also usable for smoke tests):
 
 ```bash
 ABIWORD_DATADIR=$PWD src/.libs/abinova --to=odt input.abwn -o out.odt
-ABIWORD_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
+ABINOVA_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
 ```
 
 ## Known issues

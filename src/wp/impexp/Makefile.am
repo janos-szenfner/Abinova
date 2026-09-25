@@ -82,6 +82,8 @@ libimpexp_la_SOURCES = \
 	xp/ie_exp_Text.h \
 	xp/ie_exp_XML.cpp \
 	xp/ie_exp_XML.h \
+	xp/ut_abwncrypt.cpp \
+	xp/ut_abwncrypt.h \
 	xp/ie_FileInfo.cpp \
 	xp/ie_FileInfo.h \
 	xp/ie_imp_AbiWord_1.cpp \

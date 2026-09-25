@@ -383,9 +383,8 @@ static void sAddHelpButton (GtkDialog * me, XAP_Dialog * pDlg)
  * the window and it lands at 0,0, so we centre it on the parent
  * ourselves once it is realised. */
 #ifdef GDK_WINDOWING_X11
-static void s_center_on_parent_realize(GtkWidget * child, gpointer parent_ptr)
+static void s_center_window_x11(GtkWidget * child, GtkWidget * parent)
 {
-	GtkWidget * parent = GTK_WIDGET(parent_ptr);
 	GdkSurface * cs = gtk_native_get_surface(GTK_NATIVE(child));
 	GdkSurface * ps = parent ? gtk_native_get_surface(GTK_NATIVE(parent))
 							 : nullptr;
@@ -405,6 +404,30 @@ static void s_center_on_parent_realize(GtkWidget * child, gpointer parent_ptr)
 				px_ + (static_cast<int>(pw) - static_cast<int>(cw_)) / 2,
 				py_ + (static_cast<int>(ph) - static_cast<int>(ch_)) / 2);
 }
+
+/* at "realize" time the window has no usable size yet, so the first
+ * centre happens at "map"; an idle pass repeats it once the size has
+ * fully settled (dialogs that grow after mapping) */
+struct AbiCenterCtx { GtkWidget *child; GtkWidget *parent; };
+
+static gboolean s_center_idle(gpointer data)
+{
+	AbiCenterCtx * ctx = static_cast<AbiCenterCtx*>(data);
+	s_center_window_x11(ctx->child, ctx->parent);
+	g_object_unref(ctx->child);
+	g_object_unref(ctx->parent);
+	g_free(ctx);
+	return G_SOURCE_REMOVE;
+}
+
+static void s_center_on_parent_map(GtkWidget * child, gpointer parent_ptr)
+{
+	s_center_window_x11(child, GTK_WIDGET(parent_ptr));
+	AbiCenterCtx * ctx = g_new(AbiCenterCtx, 1);
+	ctx->child = GTK_WIDGET(g_object_ref(child));
+	ctx->parent = GTK_WIDGET(g_object_ref(parent_ptr));
+	g_idle_add(s_center_idle, ctx);
+}
 #endif
 
 void centerDialog(GtkWidget * parent, GtkWidget * child, bool set_transient_for)
@@ -420,8 +443,8 @@ void centerDialog(GtkWidget * parent, GtkWidget * child, bool set_transient_for)
 	  gtk_window_set_transient_for(GTK_WINDOW(child),
 				       GTK_WINDOW(parent));
 #ifdef GDK_WINDOWING_X11
-	g_signal_connect_after(child, "realize",
-						   G_CALLBACK(s_center_on_parent_realize), parent);
+	g_signal_connect_after(child, "map",
+						   G_CALLBACK(s_center_on_parent_map), parent);
 #endif
 }
 
@@ -496,6 +519,10 @@ gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole rol
 				GtkWidget *parent = static_cast<XAP_UnixFrameImpl*>(pImpl)->getTopLevelWindow();
 				if (GTK_IS_WINDOW (parent)) {
 					gtk_window_set_transient_for (GTK_WINDOW (me), GTK_WINDOW (parent));
+#ifdef GDK_WINDOWING_X11
+					g_signal_connect_after (GTK_WIDGET (me), "map",
+											G_CALLBACK (s_center_on_parent_map), parent);
+#endif
 				}
 			}
 		}

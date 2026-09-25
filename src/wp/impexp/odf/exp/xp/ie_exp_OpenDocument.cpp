@@ -218,7 +218,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 	  {
 	    // headless (e.g. --to= conversions) cannot show the save-dialog
 	    // password field; allow it to be supplied via the environment
-	    const char * envpw = getenv ("ABIWORD_PASSWORD");
+	    const char * envpw = getenv ("ABINOVA_PASSWORD");
 	    if (envpw)
 	      password = envpw;
 	  }

@@ -1118,6 +1118,7 @@ UT_Error PD_Document::_saveAs(const char * szFilename, int ieft, bool cpy,
 	if (expProps && strlen(expProps))
 		pie->setProps (expProps);
 
+	const IEFileType oldSavedAsType = m_lastSavedAsType;
 	if (cpy && !XAP_App::getApp()->getPrefs()->isIgnoreRecent())
 	{
 		m_lastSavedAsType = newFileType;
@@ -1138,6 +1139,9 @@ UT_Error PD_Document::_saveAs(const char * szFilename, int ieft, bool cpy,
 	if (errorCode)
 	{
 		UT_DEBUGMSG(("PD_Document::Save -- could not write file\n"));
+		// the file was not saved: the document must not silently
+		// switch to the format the failed save was attempted with
+		m_lastSavedAsType = oldSavedAsType;
 		return (errorCode == UT_SAVE_CANCELLED) ? UT_SAVE_CANCELLED : UT_SAVE_WRITEERROR;
 	}
 
@@ -1180,6 +1184,7 @@ UT_Error PD_Document::_saveAs(GsfOutput *output, int ieft, bool cpy, const char 
 	if (expProps && strlen(expProps))
 		pie->setProps (expProps);
 
+	const IEFileType oldSavedAsType = m_lastSavedAsType;
 	if (cpy && !XAP_App::getApp()->getPrefs()->isIgnoreRecent())
 	{
 		m_lastSavedAsType = newFileType;
@@ -1200,6 +1205,7 @@ UT_Error PD_Document::_saveAs(GsfOutput *output, int ieft, bool cpy, const char 
 	if (errorCode)
 	{
 		UT_DEBUGMSG(("PD_Document::Save -- could not write file\n"));
+		m_lastSavedAsType = oldSavedAsType;
 		return (errorCode == UT_SAVE_CANCELLED) ? UT_SAVE_CANCELLED : UT_SAVE_WRITEERROR;
 	}
 

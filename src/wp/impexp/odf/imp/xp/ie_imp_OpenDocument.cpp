@@ -296,7 +296,7 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
     {
       // headless (e.g. --to= conversions): allow the password to be
       // supplied via the environment
-      const char * envpw = getenv ("ABIWORD_PASSWORD");
+      const char * envpw = getenv ("ABINOVA_PASSWORD");
       if (envpw)
         password = envpw;
     }

@@ -29,6 +29,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "ut_assert.h"
 #include "ut_types.h"
@@ -312,8 +315,35 @@ UT_Error IE_Exp::writeFile(const char * szFilename)
 
 	m_bCancelled = false;
 
-	if (!(m_fp = openFile(szFilename)))
+	/* Write to a sibling temporary file and rename it over the target
+	 * so that an export, disk or encryption failure - or a crash
+	 * mid-write - can never destroy the previously saved document.
+	 * Non-local targets (gvfs URIs) keep the old direct behaviour
+	 * since rename() does not apply to them. */
+	char * localFinal = nullptr;
+	char * localTmp = nullptr;
+	const char * writeName = szFilename;
+
+	const bool bLocal = !UT_go_path_is_uri(szFilename) ||
+						g_str_has_prefix(szFilename, "file://");
+	if (bLocal)
+	{
+		localFinal = UT_go_path_is_uri(szFilename)
+					   ? UT_go_filename_from_uri(szFilename)
+					   : g_strdup(szFilename);
+		if (localFinal)
+		{
+			localTmp = g_strconcat(localFinal, ".part", nullptr);
+			writeName = localTmp;
+		}
+	}
+
+	if (!(m_fp = openFile(writeName)))
+	{
+		g_free(localFinal);
+		g_free(localTmp);
 		return m_bCancelled ? UT_SAVE_CANCELLED : UT_IE_COULDNOTWRITE;
+	}
 
 	m_bOwnsFp = true;
 
@@ -324,9 +354,53 @@ UT_Error IE_Exp::writeFile(const char * szFilename)
 	else
 		_abortFile();
 
+	if (localTmp)
+	{
+		if (UT_OK == error)
+		{
+			// keep the old file's permissions if it already existed
+			struct stat st;
+			const bool bHadOld = (::stat(localFinal, &st) == 0);
+
+			if (::rename(localTmp, localFinal) != 0)
+			{
+				(void)::unlink(localTmp);
+				error = UT_IE_COULDNOTWRITE;
+			}
+			else
+			{
+				if (bHadOld)
+					(void)::chmod(localFinal, st.st_mode);
+				// fsync the file and its directory so the rename
+				// is durable across a power loss
+				int fd = ::open(localFinal, O_RDONLY | O_CLOEXEC);
+				if (fd >= 0)
+				{
+					(void)::fsync(fd);
+					::close(fd);
+				}
+				char * dir = g_path_get_dirname(localFinal);
+				int dfd = ::open(dir, O_RDONLY | O_CLOEXEC);
+				if (dfd >= 0)
+				{
+					(void)::fsync(dfd);
+					::close(dfd);
+				}
+				g_free(dir);
+			}
+		}
+		else
+		{
+			// export failed: leave the original untouched, drop the temp
+			(void)::unlink(localTmp);
+		}
+	}
+	g_free(localFinal);
+	g_free(localTmp);
+
 	// Note: we let our caller worry about resetting the dirty bit
 	// Note: on the document and possibly updating the filename.
-	
+
 	return error;
 }
 

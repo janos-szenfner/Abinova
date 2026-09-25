@@ -29,18 +29,19 @@ IE_Exp_XML::~IE_Exp_XML()
 {
 }
 
-void IE_Exp_XML::setupFile(bool compressed)
+void IE_Exp_XML::setupFile(bool compressed, GsfOutput * fp)
 {
 	UT_ASSERT_HARMLESS (!m_xml);
+	GsfOutput * target = fp ? fp : getFp ();
 	if (compressed)
 	{
-		m_zip = gsf_output_gzip_new(getFp (), nullptr);
+		m_zip = gsf_output_gzip_new(target, nullptr);
 		m_xml = gsf_xml_out_new (m_zip);
 	}
 	else
 	{
-		m_zip = GSF_OUTPUT(g_object_ref(getFp ()));
-		m_xml = gsf_xml_out_new (getFp());
+		m_zip = GSF_OUTPUT(g_object_ref(target));
+		m_xml = gsf_xml_out_new (target);
 	}
 }
 

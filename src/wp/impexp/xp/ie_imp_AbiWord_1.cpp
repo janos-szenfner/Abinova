@@ -45,6 +45,13 @@
 #include "ie_impexp_AbiWord_1.h"
 #include "ie_imp_AbiWord_1.h"
 #include "ie_types.h"
+#include "ut_abwncrypt.h"
+
+#include "xap_App.h"
+#include "xap_Frame.h"
+#include "xap_Dialog_Id.h"
+#include "xap_Dlg_Password.h"
+#include "xap_DialogFactory.h"
 #include "pp_Author.h"
 #include "pp_AttrProp.h"
 
@@ -125,6 +132,10 @@ const IE_MimeConfidence * IE_Imp_AbiWord_1_Sniffer::getMimeConfidence ()
 UT_Confidence_t IE_Imp_AbiWord_1_Sniffer::recognizeContents (const char * szBuf,
 												  UT_uint32 iNumbytes)
 {
+	// encrypted envelope: ciphertext, but the magic is unambiguous
+	if (UT_abwn_isEncrypted(szBuf, iNumbytes))
+		return UT_CONFIDENCE_PERFECT;
+
 	UT_uint32 iLinesToRead = 6 ;  // Only examine the first few lines of the file
 	UT_uint32 iBytesScanned = 0 ;
 	const char *p ;
@@ -218,6 +229,114 @@ IE_Imp_AbiWord_1::IE_Imp_AbiWord_1(PD_Document * pDocument)
 	m_bInEmbed(false),
 	m_iImageId(0)
 {
+}
+
+/*****************************************************************/
+/*****************************************************************/
+
+/* password prompt, mirrors the ODF importer */
+static UT_UTF8String _getPassword (XAP_Frame * pFrame)
+{
+	UT_UTF8String password ( "" );
+
+	if ( pFrame )
+	{
+		pFrame->raise ();
+
+		XAP_DialogFactory * pDialogFactory
+			= (XAP_DialogFactory *)(pFrame->getDialogFactory());
+
+		XAP_Dialog_Password * pDlg = static_cast<XAP_Dialog_Password*>(pDialogFactory->requestDialog(XAP_DIALOG_ID_PASSWORD));
+		UT_return_val_if_fail(pDlg, password);
+
+		pDlg->runModal (pFrame);
+
+		XAP_Dialog_Password::tAnswer ans = pDlg->getAnswer();
+		bool bOK = (ans == XAP_Dialog_Password::a_OK);
+
+		if (bOK)
+			password = pDlg->getPassword ().utf8_str();
+
+		pDialogFactory->releaseDialog(pDlg);
+	}
+	else
+	{
+		// headless (e.g. --to= conversions): allow the password to be
+		// supplied via the environment
+		const char * envpw = getenv ("ABINOVA_PASSWORD");
+		if (envpw)
+			password = envpw;
+	}
+
+	return password;
+}
+
+/**
+ * Reads the input, decrypts an encrypted .abwn envelope if present and
+ * feeds the plaintext (possibly still gzip-compressed) to the XML
+ * loader.  Plain documents go straight through unchanged.
+ */
+UT_Error IE_Imp_AbiWord_1::_loadFile(GsfInput * input)
+{
+	gsf_off_t num_bytes = gsf_input_size(input);
+	if (num_bytes <= 0)
+		return UT_IE_BOGUSDOCUMENT;
+	const char * bytes = reinterpret_cast<const char *>(
+		gsf_input_read(input, (size_t)num_bytes, nullptr));
+	if (!bytes)
+		return UT_IE_IMPORTERROR;
+
+	if (!UT_abwn_isEncrypted(bytes, (size_t)num_bytes))
+	{
+		gsf_input_seek(input, 0, G_SEEK_SET);
+		return IE_Imp_XML::_loadFile(input);
+	}
+
+	if (!UT_abwn_cryptoAvailable())
+		return UT_IE_IMPORTERROR;
+
+	// up to three attempts; cancel bails out without parsing anything
+	for (int attempt = 0; attempt < 3; attempt++)
+	{
+		UT_UTF8String pw = _getPassword(XAP_App::getApp()->getLastFocussedFrame());
+		if (pw.empty())
+			return UT_IE_PROTECTED;
+
+		std::vector<unsigned char> plain;
+		switch (UT_abwn_decrypt(bytes, (size_t)num_bytes, pw.utf8_str(), plain))
+		{
+		case UT_AbwnCrypt::Ok:
+		{
+			// keep the password so a later plain Save re-encrypts
+			getDoc()->setSavePassword(pw.utf8_str());
+
+			GsfInput * mem = gsf_input_memory_new_clone(
+				plain.data(), (gsf_off_t)plain.size());
+			gsf_input_set_name(mem, gsf_input_name(input));
+			/* uncompress takes ownership of mem's reference - the
+			 * plaintext is still gzip-compressed when the doc was
+			 * saved with compression on */
+			GsfInput * un = gsf_input_uncompress(mem);
+
+			memset(plain.data(), 0, plain.size());
+			plain.clear();
+			plain.shrink_to_fit();
+
+			UT_Error err = IE_Imp_XML::_loadFile(un);
+			g_object_unref(G_OBJECT(un));
+			return err;
+		}
+		case UT_AbwnCrypt::WrongPassword:
+			continue;
+		case UT_AbwnCrypt::Unavailable:
+			return UT_IE_IMPORTERROR;
+		case UT_AbwnCrypt::NotEncrypted:
+		case UT_AbwnCrypt::Corrupt:
+		default:
+			return UT_IE_BOGUSDOCUMENT;
+		}
+	}
+	return UT_IE_PROTECTED;
 }
 
 /*****************************************************************/

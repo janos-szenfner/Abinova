@@ -57,6 +57,7 @@
 
 #include "ie_impexp_AbiWord_1.h"
 #include "ie_exp_AbiWord_1.h"
+#include "ut_abwncrypt.h"
 
 #include "ap_Prefs.h"
 
@@ -1059,12 +1060,39 @@ UT_Error IE_Exp_AbiWord_1::_writeDocument(void)
 	const std::string & prop = (getProperty ("compress"));
 	if (!prop.empty())
 		m_bIsCompressed = UT_parseBool(prop.c_str (), m_bIsCompressed);
-	setupFile(m_bIsCompressed);
+
+	// a document that was opened from an encrypted .abwn carries its
+	// save password; the Save As dialog may also have set one.  The
+	// environment fallback keeps headless conversions usable.
+	std::string password = getDoc() ? getDoc()->getSavePassword() : "";
+	if (password.empty())
+	{
+		const char * envpw = getenv("ABINOVA_PASSWORD");
+		if (envpw)
+			password = envpw;
+	}
+
+	// encrypted output serializes into memory first: the envelope
+	// needs the complete plaintext before the GCM tag can be computed
+	GsfOutput * mem = nullptr;
+	if (!password.empty())
+	{
+		if (!UT_abwn_cryptoAvailable())
+		{
+			UT_DEBUGMSG(("abwn export: crypto backend missing, refusing to write plaintext\n"));
+			return UT_IE_COULDNOTWRITE;
+		}
+		mem = gsf_output_memory_new();
+		setupFile(m_bIsCompressed, mem);
+	}
+	else
+		setupFile(m_bIsCompressed);
 
 	m_pListener = new s_AbiWord_1_Listener(getDoc(),this, m_bIsTemplate);
 	if (!m_pListener)
 	{
 		closeHandle();
+		g_clear_object(&mem);
 		return UT_IE_NOMEMORY;
 	}
 
@@ -1077,18 +1105,35 @@ UT_Error IE_Exp_AbiWord_1::_writeDocument(void)
 	{
 		bStatusTellListener = getDoc()->tellListener(static_cast<PL_Listener *>(m_pListener));
 	}
-	
+
 	delete m_pListener;
 	m_pListener = nullptr;
 	closeHandle();
 
 	if (!bStatusTellListener)
 	{
+		g_clear_object(&mem);
 		return UT_ERROR;
 	}
 	else if (m_error)
 	{
+		g_clear_object(&mem);
 		return UT_IE_COULDNOTWRITE;
+	}
+
+	if (mem)
+	{
+		const guint8 * bytes = gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(mem));
+		gsize len = (gsize)gsf_output_size(mem);
+		std::vector<unsigned char> envelope;
+		UT_AbwnCrypt r = UT_abwn_encrypt(bytes, len, password, envelope);
+		g_object_unref(mem);
+		if (r != UT_AbwnCrypt::Ok)
+			return UT_IE_COULDNOTWRITE;
+		if (!gsf_output_write(getFp(), envelope.size(), envelope.data()))
+			return UT_IE_COULDNOTWRITE;
+		// scrub the plaintext copy in the gsf buffer? the memory output is
+		// already freed; envelope ciphertext stays
 	}
 
 	return UT_OK;
