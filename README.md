@@ -1525,9 +1525,9 @@ Older upstream history is not listed here.
   (Calibri→Carlito, Aptos→Intos, Times New Roman→Liberation Serif,
   Arial→Liberation Sans, Courier New→Liberation Mono, …) onto the
   bundled metric-compatible fonts.
-- **Docs**: historical documentation moved to `Old-Doc/`; new
+- **Docs**: historical documentation removed; new
   `README.md` + `CHANGELOG.md`; `AM_INIT_AUTOMAKE` switched to
-  `foreign` mode since GNU-required doc files moved.
+  `foreign` mode since GNU-required doc files were removed.
 
 ### `ed9979c` — ODF: encrypted export + save-dialog password UI
 
@@ -1598,11 +1598,7 @@ Older upstream history is not listed here.
 | `plugins/` | Empty — all former plugins were integrated into `libabiword` or deleted |
 | `fonts/` | Bundled fonts + licenses + substitution config |
 | `user/` | Templates, dictionaries, clipart |
-| `Old-Doc/` | Historical documentation (pre-experiment) |
 | `tools/` | Development/test helpers |
-
-Historical design documents, the old README, NEWS, ChangeLog, INSTALL
-and build notes were moved to `Old-Doc/` and are kept for reference.
 
 ## Building
 

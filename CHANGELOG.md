@@ -1418,6 +1418,13 @@ below are on `main` but the release has not been cut yet.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.
+- **`Old-Doc/` removed** — the folder holding historical pre-experiment
+  documentation (old README/NEWS/ChangeLog/INSTALL/AUTHORS, design
+  notes) deleted along with its `EXTRA_DIST` entries.
+- **Credits feature removed** — ribbon Help button, classic Help menu
+  item, `helpCredits` edit method, menu id, label/status strings,
+  stock/toolbar icons, gresource alias, build refs, `credits.html`
+  pages and nav links in all help locales.
 - **Dead files removed** — `gr_UnixCairoImage`, `ut_PerlBindings`,
   `ut_stack`, dialog stubs, duplicate `ODc_Crypto`,
   `ie_exp_WordPerfect`, orphaned test fragments, `linkgrammarwrap`
@@ -1430,7 +1437,7 @@ below are on `main` but the release has not been cut yet.
 - **Build hardening** — `autoreconf` fixed for modern autoconf;
   vendored `AX_*` macros; GTK-only configure; `omml_xslt` install dir
   moved to `ABIWORD_DATADIR`; build-tree libtool in the test wrapper.
-- **Historical documentation preserved** in `Old-Doc/`; `README.md`
+- **Historical documentation removed** (formerly `Old-Doc/`); `README.md`
   (feature overview + per-commit modification log) and this
   `CHANGELOG.md` (categorized changelog) carry the experimental
   no-warranty notice.

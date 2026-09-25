@@ -45,16 +45,8 @@ DISTCHECK_CONFIGURE_FLAGS = \
 
 EXTRA_DIST = \
 	AUTHORS.md \
-	Old-Doc/BiDiReadme.txt \
-	Old-Doc/BUILD.TXT \
 	COPYING	\
 	COPYRIGHT.TXT \
-	Old-Doc/INSTALL \
-	Old-Doc/NEWS \
-	Old-Doc/README \
-	Old-Doc/README.md \
-	Old-Doc/ChangeLog \
-	Old-Doc/AUTHORS.old \
 	README.md \
 	com.abisource.AbiWord.desktop \
 	abinova.keys \
