@@ -948,7 +948,10 @@ recognizes all of them and the content sniffer accepts both the
 the old format; re-saving an `.abw` produces an `.abwn`.
 
 The file itself is a single UTF-8 XML document with a `PUBLIC`
-doctype pointing at `awml.dtd`. It is
+doctype pointing at `awml.dtd` — unless it was saved with a
+password, in which case the XML (possibly gzip-compressed) is
+wrapped in the binary `ABWNCRP1` envelope described under
+*Encrypted `.abwn` envelope* below. The plain serialization is
 forward- and backward-compatible by design — the importer ignores
 unknown elements, attributes and properties, so files written by
 any older `.abw` version open here unchanged, and future features
@@ -1078,6 +1081,52 @@ readers ignore them safely, and this build reads every older
   element verbatim (name, attributes, text) and the exporter
   re-emits it, so the data survives a load/save round trip
   untouched.
+
+### Encrypted `.abwn` envelope
+
+When a password is set at save time, the file is **not XML** — the
+serialized document (in whatever form it would otherwise take,
+gzip-compressed when compression applies) is wrapped in a
+versioned authenticated envelope
+(`src/wp/impexp/xp/ut_abwncrypt.{h,cpp}`):
+
+```
+offset  size    field
+0       8       magic "ABWNCRP1"
+8       2       format version (1)
+10      2       kdf id (1 = PBKDF2-HMAC-SHA-256)
+12      4       kdf iterations (LE, currently 600000)
+16      2       salt length N (LE)      + N bytes salt
+.       2       nonce length M (LE)     + M bytes nonce
+.       2       cipher id (1 = AES-256-GCM)
+.       2       flags (0)
+.       ..      ciphertext .. || 16-byte GCM tag (last 16 bytes)
+```
+
+- **KDF**: PBKDF2-HMAC-SHA-256, 600,000 iterations, 16-byte random
+  salt → 256-bit key. The iteration count lives in the header so
+  it can be raised in future versions.
+- **Cipher**: AES-256-GCM with a 12-byte random nonce; the whole
+  header is authenticated as AAD, so no parameter can be altered
+  without failing the tag check. AES-256 keeps ~128-bit security
+  under Grover's algorithm — post-quantum-safe for password use.
+- **Detection**: the sniffer checks the magic before any XML
+  sniffing, so encrypted files route to the Abinova importer with
+  full confidence instead of being mis-detected.
+- **Decryption flow**: password dialog (3 attempts, or
+  `ABINOVA_PASSWORD` headless) → KDF → tag verify → the plaintext
+  goes through the standard `gsf_input_uncompress` + XML path.
+  Wrong passwords and malformed envelopes produce a clean "could
+  not open" — nothing is partially parsed.
+- **Compatibility note**: an encrypted `.abwn` is deliberately
+  opaque — older AbiWord/Abinova builds and plain-text tools see
+  binary data, not a document. There is no silent-fallback
+  plaintext anywhere in the file.
+- Implementation lives in `ut_abwncrypt.cpp`: AES via the system
+  `libcrypto` (dlopen at runtime, no build dependency),
+  PBKDF2/HMAC on GLib checksums, `getrandom()`/`/dev/urandom` for
+  salt+nonce. See *Password-protected `.abwn` files* for the UI
+  side.
 
 ### Comparison with ODF coverage
 
