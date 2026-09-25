@@ -48,7 +48,6 @@
 #	include "xap_UnixDlg_Zoom.h"
 #	include "xap_UnixDlg_Insert_Symbol.h"
 #	include "xap_UnixDlg_Language.h"
-#   include "xap_UnixDlg_PluginManager.h"
 #   include "xap_UnixDlg_FileOpenSaveAs.h"
 #   include "xap_UnixDlg_Encoding.h"
 #   include "xap_UnixDlg_HTMLOptions.h"
@@ -138,7 +137,6 @@
 	DeclareDialog(XAP_DIALOG_ID_INSERT_PICTURE,	XAP_UnixDialog_FileOpenSaveAs, 		FALSE)
 	DeclareDialog(XAP_DIALOG_ID_INSERTMATHML,	XAP_UnixDialog_FileOpenSaveAs, 		FALSE)
 	DeclareDialog(XAP_DIALOG_ID_INSERTOBJECT,	XAP_UnixDialog_FileOpenSaveAs, 		FALSE)
-	DeclareDialog(XAP_DIALOG_ID_PLUGIN_MANAGER, XAP_UnixDialog_PluginManager, 		FALSE)
 	DeclareDialog(XAP_DIALOG_ID_ENCODING,       XAP_UnixDialog_Encoding, 			FALSE)
 	DeclareDialog(XAP_DIALOG_ID_HTMLOPTIONS,    XAP_UnixDialog_HTMLOptions, 		FALSE)
     DeclareDialog(XAP_DIALOG_ID_FILE_IMPORT,    XAP_UnixDialog_FileOpenSaveAs, 		FALSE)

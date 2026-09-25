@@ -38,13 +38,11 @@
 
 // Static initializations:
 #ifdef DEBUG
-int AP_Args::m_iDumpstrings = 0;
 #endif
 const char * AP_Args::m_sGeometry = nullptr;
 const char * AP_Args::m_sToFormat = nullptr;
 const char * AP_Args::m_sPrintTo = nullptr;
 int AP_Args::m_iVerbose = 1;
-const char ** AP_Args::m_sPluginArgs = nullptr;
 const char ** AP_Args::m_sFiles = nullptr;
 int AP_Args::m_iVersion = 0;
 int AP_Args::m_iHelp = 0;
@@ -62,9 +60,7 @@ static GOptionEntry _entries[] = {
         {"geometry", 'g', 0, G_OPTION_ARG_STRING, &AP_Args::m_sGeometry, "Set initial frame geometry", "GEOMETRY"} ,
         {"to", 't', 0, G_OPTION_ARG_STRING, &AP_Args::m_sToFormat, "Target format of the file (abw, zabw, rtf, txt, utf8, html, ...), depends on available filter plugins", "FORMAT"},
         {"verbose", '\0', 0, G_OPTION_ARG_INT, &AP_Args::m_iVerbose, "Set verbosity level (0, 1, 2), with 2 being the most verbose", "LEVEL"},
-        {"print", 'p',0, G_OPTION_ARG_STRING, &AP_Args::m_sPrintTo, "Print this file to printer","'Printer name' or '-' for default printer"},
-        {"plugin", 'E', 0, G_OPTION_ARG_STRING_ARRAY, &AP_Args::m_sPluginArgs, "Execute plugin NAME instead of the main application", nullptr},
-        {"merge", 'm', 0, G_OPTION_ARG_STRING, &AP_Args::m_sMerge, "Mail-merge", "FILE"},
+        {"print", 'p',0, G_OPTION_ARG_STRING, &AP_Args::m_sPrintTo, "Print this file to printer","'Printer name' or '-' for default printer"},        {"merge", 'm', 0, G_OPTION_ARG_STRING, &AP_Args::m_sMerge, "Mail-merge", "FILE"},
         {"imp-props", 'i', 0, G_OPTION_ARG_STRING, &AP_Args::m_impProps, "Importer Arguments", "CSS String"},
         {"exp-props", 'e', 0, G_OPTION_ARG_STRING, &AP_Args::m_expProps, "Exporter Arguments", "CSS String"},
         {"thumb", '\0', 0, G_OPTION_ARG_INT, &AP_Args::m_iToThumb, "Make a thumb nail of the first page",""},
@@ -75,7 +71,6 @@ static GOptionEntry _entries[] = {
         {"version", '\0', 0, G_OPTION_ARG_NONE, &AP_Args::m_iVersion, "Print Abinova version", nullptr},
         { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &AP_Args::m_sFiles, nullptr,  "[FILE...]" },
 #ifdef DEBUG
-        {"dumpstrings", 'd', 0, G_OPTION_ARG_NONE, &AP_Args::m_iDumpstrings, "Dump strings to file", nullptr},
 #endif
         {nullptr, 0, 0, G_OPTION_ARG_NONE, nullptr, nullptr, nullptr }
 };
@@ -158,11 +153,6 @@ void AP_Args::parseOptions()
 		XX_inplaceDecode(*arr);
 		arr++;
 	}
-	arr=m_sPluginArgs;
-	if (arr) while (*arr) {
-		XX_inplaceDecode(*arr);
-		arr++;
-	}
 	if (m_sMerge) XX_inplaceDecode(m_sMerge);
 	if (m_impProps) XX_inplaceDecode(m_impProps);
 	if (m_expProps) XX_inplaceDecode(m_expProps);
@@ -170,23 +160,6 @@ void AP_Args::parseOptions()
 	if (m_sFileExtension) XX_inplaceDecode(m_sFileExtension);
 	if (m_sUserProfile) XX_inplaceDecode(m_sUserProfile);
 #endif
-}
-
-UT_String * AP_Args::getPluginOptions() const
-{
-	UT_String *opts;
-	int i;
-
-	UT_ASSERT(m_sPluginArgs && m_sPluginArgs[0]);
-	opts = new UT_String();
-	i = 1;
-	while (m_sPluginArgs[i]) {
-		(*opts) += m_sPluginArgs[i];
-		(*opts) += " ";
-		i++;
-	}
-
-	return opts;
 }
 
 /*!
@@ -197,19 +170,6 @@ bool AP_Args::doWindowlessArgs(bool & bSuccessful)
 {
   // start out optimistic
   bSuccessful = true;
-
-#ifdef DEBUG
-	if (m_iDumpstrings)
-	{
-		// dump the string table in english as a template for translators.
-		// see abi/docs/AbiSource_Localization.abw for details.
-		AP_BuiltinStringSet * pBuiltinStringSet = 
-			new AP_BuiltinStringSet(getApp(),
-									static_cast<const gchar*>(AP_PREF_DEFAULT_StringSet));
-		pBuiltinStringSet->dumpBuiltinSet("en-US.strings");
-		delete pBuiltinStringSet;
-	}
-#endif
 
  	if (m_iVersion)
  	{		

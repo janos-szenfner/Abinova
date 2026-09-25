@@ -62,8 +62,6 @@ private:
 
 	static void		_s_back(GtkButton * btn, gpointer data);
 	static void		_s_home(GtkButton * btn, gpointer data);
-	static void		_s_lang_changed(GtkDropDown * dd, GParamSpec * ps,
-									gpointer data);
 	static void		_s_search(GtkSearchEntry * e, gpointer data);
 	static void		_s_click(GtkGestureClick * g, int n, double x,
 							 double y, gpointer data);
@@ -75,9 +73,8 @@ private:
 	GtkWidget *		m_wWindow;
 	GtkWidget *		m_wBack;
 	GtkWidget *		m_wSearch;
-	GtkWidget *		m_wLang;
 	GtkWidget *		m_wText;
-	std::string		m_lang;			/* en-US / fr-FR / pl-PL */
+	std::string		m_lang;			/* always en-US (single-locale help) */
 	std::string		m_page;			/* current page rel path */
 	std::vector<std::string> m_history;
 	guint			m_iSearchTimer;	/* debounce for live search */

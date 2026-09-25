@@ -55,8 +55,6 @@ libxap_la_SOURCES = \
 	xp/xap_Dlg_MessageBox.h \
 	xp/xap_Dlg_Password.cpp \
 	xp/xap_Dlg_Password.h \
-	xp/xap_Dlg_PluginManager.cpp \
-	xp/xap_Dlg_PluginManager.h \
 	xp/xap_Dlg_Print.cpp \
 	xp/xap_Dlg_Print.h \
 	xp/xap_Dlg_PrintPreview.cpp \
@@ -89,11 +87,6 @@ libxap_la_SOURCES = \
 	xp/xap_Menu_ActionSet.h \
 	xp/xap_Menu_LabelSet.h \
 	xp/xap_Menu_Layouts.h \
-	xp/xap_Module.cpp \
-	xp/xap_ModuleFactory.h \
-	xp/xap_Module.h \
-	xp/xap_ModuleManager.cpp \
-	xp/xap_ModuleManager.h \
 	xp/xap_Prefs.cpp \
 	xp/xap_Prefs.h \
 	xp/xap_Prefs_SchemeIds.h \
@@ -199,8 +192,6 @@ libxap_la_SOURCES += \
 	gtk/xap_UnixDlg_MessageBox.h \
 	gtk/xap_UnixDlg_Password.cpp \
 	gtk/xap_UnixDlg_Password.h \
-	gtk/xap_UnixDlg_PluginManager.cpp \
-	gtk/xap_UnixDlg_PluginManager.h \
 	gtk/xap_UnixDlg_Print.cpp \
 	gtk/xap_UnixDlg_Print.h \
 	gtk/xap_UnixDlg_PrintPreview.cpp \
@@ -216,8 +207,6 @@ libxap_la_SOURCES += \
 	gtk/xap_UnixFontPreview.h \
 	gtk/xap_UnixFrameImpl.cpp \
 	gtk/xap_UnixFrameImpl.h \
-	gtk/xap_UnixModule.cpp \
-	gtk/xap_UnixModule.h \
 	gtk/xap_UnixTableWidget.cpp \
 	gtk/xap_UnixTableWidget.h \
 	gtk/xap_Unix_TB_CFactory.h \
@@ -235,7 +224,6 @@ EXTRA_DIST = \
 	gtk/xap_UnixDlg_Image.ui \
 	gtk/xap_UnixDlg_Language.ui \
 	gtk/xap_UnixDlg_Password.ui \
-	gtk/xap_UnixDlg_PluginManager.ui \
 	gtk/xap_UnixDlg_WindowMore.ui \
 	gtk/xap_UnixDlg_Zoom.ui \
 	gtk/xap_UnixDlg_History.ui \

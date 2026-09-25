@@ -723,17 +723,9 @@ static const AP_RibbonItem s_ribbon_help_items[] =
 	AP_RIBBON_END
 };
 
-static const AP_RibbonItem s_ribbon_help_interface[] =
-{
-	AP_RIBBON_MENU_L(AP_MENU_ID_HELP_UI_CLASSIC),
-	AP_RIBBON_MENU_L(AP_MENU_ID_HELP_UI_RIBBON),
-	AP_RIBBON_END
-};
-
 static const AP_RibbonGroup s_ribbon_help_groups[] =
 {
 	{ "help",		s_ribbon_help_items },
-	{ "interface",	s_ribbon_help_interface },
 	{ nullptr,		nullptr }
 };
 

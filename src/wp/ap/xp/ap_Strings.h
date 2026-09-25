@@ -49,7 +49,6 @@ public:
 	virtual const gchar *	getValue(XAP_String_Id id) const override;
 
 #ifdef DEBUG
-	bool						dumpBuiltinSet(const char * szFilename) const;
 #endif
 
 protected:
@@ -60,17 +59,3 @@ protected:
 // a sub-class to deal with disk-based string sets (translations)
 //////////////////////////////////////////////////////////////////
 
-class ABI_EXPORT AP_DiskStringSet : public XAP_DiskStringSet
-{
-public:
-	AP_DiskStringSet(XAP_App * pApp);
-	virtual ~AP_DiskStringSet(void);
-
-	virtual bool setValue(XAP_String_Id id, const gchar * szString) override;
-	virtual bool setValue(const gchar * szId, const gchar * szString) override;
-	virtual const gchar *	getValue(XAP_String_Id id) const override;
-	virtual bool loadStringsFromDisk(const char * szFilename) override;
-
-protected:
-	UT_GenericVector<gchar*>					m_vecStringsAP;
-};

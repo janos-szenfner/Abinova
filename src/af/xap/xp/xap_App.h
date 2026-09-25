@@ -61,7 +61,6 @@ class GR_AllocInfo;
 class XAP_InputModes;
 class AV_Listener;
 class GR_EmbedManager;
-class XAP_Module;
 class UT_ScriptLibrary;
 
 
@@ -262,7 +261,6 @@ public:
 	bool					registerEmbeddable(GR_EmbedManager * pEmbed, const char *uid = nullptr);
 	bool						unRegisterEmbeddable(const char *uid);
 	GR_EmbedManager* getEmbeddableManager(GR_Graphics* pG, const char* szObjectType) const;
-	XAP_Module* getPlugin(const char* szPluginName) const;
 
 	static const char*			findNearestFont(const char* pszFontFamily,
 												const char* pszFontStyle,

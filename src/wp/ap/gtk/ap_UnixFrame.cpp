@@ -239,9 +239,9 @@ bool AP_UnixFrame::initialize(XAP_FrameMode frameMode)
 
 	if (!XAP_Frame::initialize(AP_PREF_KEY_KeyBindings,AP_PREF_DEFAULT_KeyBindings,
 				   AP_PREF_KEY_MenuLayout, AP_PREF_DEFAULT_MenuLayout,
-				   AP_PREF_KEY_StringSet, AP_PREF_KEY_StringSet,
+				   AP_PREF_DEFAULT_StringSet, AP_PREF_DEFAULT_StringSet,
 				   AP_PREF_KEY_ToolbarLayouts, AP_PREF_DEFAULT_ToolbarLayouts,
-				   AP_PREF_KEY_StringSet, AP_PREF_DEFAULT_StringSet))
+				   AP_PREF_DEFAULT_StringSet, AP_PREF_DEFAULT_StringSet))
 	{
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		return false;
@@ -560,18 +560,9 @@ void AP_UnixFrame::toggleBar(UT_uint32 iBarNb, bool bBarOn)
 	AP_FrameData *pFrameData = static_cast<AP_FrameData *> (getFrameData());
 	UT_ASSERT(pFrameData);
 	
-	if (bBarOn)
-	{
-		// the ribbon replaces the classic icon bars; restore paths
-		// such as leaving full screen must not resurface them while
-		// ribbon mode is active
-		AP_UnixFrameImpl * pImpl =
-			static_cast<AP_UnixFrameImpl *>(getFrameImpl());
-		if (!pImpl || !pImpl->m_bRibbonMode)
-			pFrameData->m_pToolbar[iBarNb]->show();
-	}
-	else	// turning toolbar off
-		pFrameData->m_pToolbar[iBarNb]->hide();
+	// ribbon-only build: the classic icon bars stay hidden regardless
+	// of the stored visibility preference
+	pFrameData->m_pToolbar[iBarNb]->hide();
 }
 
 void AP_UnixFrame::toggleStatusBar(bool bStatusBarOn)

@@ -189,9 +189,6 @@ static struct AbiStockMapping {
   { "abiword-help-search",			AP_MENU_ID_HELP_SEARCH,			"system-search" },
   { "abiword-help-checkver",		AP_MENU_ID_HELP_CHECKVER,		"software-update-available" },
   { "abiword-help-reportbug",		AP_MENU_ID_HELP_REPORT_BUG,		"dialog-warning" },
-  { "abiword-help-ui-classic",		AP_MENU_ID_HELP_UI_CLASSIC,		"view-list" },
-  { "abiword-help-ui-ribbon",		AP_MENU_ID_HELP_UI_RIBBON,		"view-grid" },
-
 //  { ABIWORD_FMT_FONT,				AP_MENU_ID_FMT_FONT,			GTK_STOCK_SELECT_FONT },
   { ABIWORD_FMT_BOLD,				AP_MENU_ID_FMT_BOLD,			"format-text-bold" },
   { ABIWORD_FMT_ITALIC,				AP_MENU_ID_FMT_ITALIC,			"format-text-italic" },

@@ -303,7 +303,7 @@ dcl(DLG_ABOUT_Title,					"About %s")
 dcl(DLG_ABOUT_Description,              "%s is an Open Source application licensed under the GNU GPL.\nYou are free to redistribute this application.")
 dcl(DLG_ABOUT_Version,                  "Version: %s")
 dcl(DLG_ABOUT_Build,                    "Build options: %s")
-dcl(DLG_ABOUT_URL,                      "For more information: http://www.abisource.com/")
+dcl(DLG_ABOUT_URL,                      "For more information: https://github.com/janos-szenfner/Exp-Abi")
 
 /* image size dialog */
 dcl(DLG_Image_Title, "Image Properties")

@@ -1416,7 +1416,8 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 	gtk_window_set_child(GTK_WINDOW(m_wTopLevelWindow), m_wVBox);
 
 	if (m_iFrameMode != XAP_NoMenusWindowLess) {
-		// synthesize a menu from the info in our base class.
+		// synthesize the menu model and its action group; no menubar
+		// widget is created - the ribbon is the only chrome.
 		m_pUnixMenu = new EV_UnixMenuBar(static_cast<XAP_UnixApp*>(XAP_App::getApp()), getFrame(), m_szMenuLayoutName,
 										 m_szMenuLabelSetName);
 		UT_return_if_fail(m_pUnixMenu);
@@ -1424,8 +1425,7 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 		bResult = m_pUnixMenu->synthesizeMenuBar();
 		UT_ASSERT(bResult);
 
-		// let the app layer build the ribbon UI (packed right after
-		// the menubar; only one of the two is visible at a time)
+		// let the app layer build the ribbon UI at the top of the frame
 		_createRibbonUI();
 	}
 

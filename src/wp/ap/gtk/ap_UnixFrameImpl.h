@@ -94,7 +94,6 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 
 	virtual void _createRibbonUI() override;
 	virtual void _rebuildMenus() override;
-	virtual void setRibbonMode(bool bRibbon) override;
 	void _applyUIMode();
 
 	/* heading-navigation pane in the side deck (View > Navigation) */
@@ -172,7 +171,6 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 
 	class AP_UnixRibbon * m_pRibbon;
 	GtkWidget * m_wRibbon;
-	bool        m_bRibbonMode;
 
 	/* document area wrapped in a GtkPaned whose end child is the
 	 * side deck (GtkStack of docked panes) */

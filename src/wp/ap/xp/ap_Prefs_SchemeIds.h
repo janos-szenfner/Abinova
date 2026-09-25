@@ -116,11 +116,8 @@
 #define AP_PREF_KEY_ParaVisible                     "ParaVisible"               /* are the paragraphs/spaces/tats/etc. visible? {0,1} */
 #define AP_PREF_DEFAULT_ParaVisible                 "0"
 
-#define AP_PREF_KEY_RibbonUI                        "RibbonUI"                  /* use the tabbed ribbon interface instead of the classic menubar {0,1} */
-#define AP_PREF_DEFAULT_RibbonUI                    "1"
 
 
-#define AP_PREF_KEY_StringSet						"StringSet"					/* name of dialog/msgbox strings */
 #define AP_PREF_DEFAULT_StringSet					"en-US"
 
 #define AP_PREF_KEY_KeyBindings						"KeyBindings"
@@ -151,8 +148,6 @@
 #define AP_PREF_KEY_SpellDirectory					"SpellCheckDirectory"		/* where we find hash files */
 #define AP_PREF_DEFAULT_SpellDirectory				"dictionary" 				/* if relative, use prefix "getAbiSuiteLibDir()" */
 
-#define AP_PREF_KEY_StringSetDirectory				"StringSetDirectory"		/* where we find StringSets */
-#define AP_PREF_DEFAULT_StringSetDirectory			"strings"					/* if relative, use prefix "getAbiSuiteAppDir()" */
 
 #define AP_PREF_KEY_LayoutMode                     "layoutMode"
 #ifdef EMBEDDED_TARGET
@@ -243,8 +238,6 @@ dcl(ExtraBarVisible)
 dcl(TableBarVisible)
 dcl(StatusBarVisible)
 dcl(ParaVisible)
-dcl(RibbonUI)
-dcl(StringSet)
 dcl(KeyBindings)
 dcl(KeyBindingsCycle)
 dcl(InsertMode)
@@ -255,7 +248,6 @@ dcl(LayoutMode)
 dcl(AlwaysPromptEncoding)
 
 dcl(SpellDirectory)
-dcl(StringSetDirectory)
 
 dcl(DefaultDirectionRtl)
 dcl(LockStyles)

@@ -46,12 +46,10 @@ public:
 
 	/* Parse options. */
 	void parseOptions();
-	UT_String * getPluginOptions() const;
 
 	AP_App* getApp() const { return m_pApp; }
 	bool doWindowlessArgs(bool & bSuccessful);
 #ifdef DEBUG
-	static int    m_iDumpstrings;
 #endif
 	static const char * m_sGeometry;
 	static const char * m_sToFormat;
@@ -61,7 +59,6 @@ public:
 	static const char * m_sThumbXY;
 	static int	  m_iVerbose;
 	static int	  m_iShow;
-	static const char ** m_sPluginArgs;
 	static const char ** m_sFiles;
 	static int    m_iVersion;
 	static int    m_iHelp;

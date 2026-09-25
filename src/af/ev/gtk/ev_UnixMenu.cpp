@@ -978,7 +978,6 @@ EV_UnixMenuBar::EV_UnixMenuBar(XAP_UnixApp * pUnixApp,
 							   const char * szMenuLayoutName,
 							   const char * szMenuLabelSetName)
 	: EV_UnixMenu(pUnixApp, pFrame, szMenuLayoutName, szMenuLabelSetName)
-	, m_wMenuBar(nullptr)
 {
 }
 
@@ -988,70 +987,12 @@ EV_UnixMenuBar::~EV_UnixMenuBar()
 
 void  EV_UnixMenuBar::destroy(void)
 {
-	if (m_wMenuBar)
-	{
-		gtk_widget_unparent(m_wMenuBar);
-		m_wMenuBar = nullptr;
-	}
-}
-
-static gboolean _ev_menubar_motion_refresh(GtkEventControllerMotion * /*controller*/,
-										   gdouble /*x*/, gdouble /*y*/,
-										   gpointer data)
-{
-	EV_UnixMenuBar * menu = static_cast<EV_UnixMenuBar*>(data);
-	if (menu && menu->getFrame() && menu->getFrame()->getCurrentView())
-		menu->refreshMenu(menu->getFrame()->getCurrentView());
-	return FALSE;
-}
-
-GtkWidget * EV_UnixMenuBar::_createMenuBarWidget(GMenu * model)
-{
-	GtkWidget * bar = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(model));
-	gtk_widget_insert_action_group(bar, "menu", G_ACTION_GROUP(m_actionGroup));
-
-	// GMenuModels are live: action states are bound to the displayed
-	// items.  We still need a trigger to sync states before a menu
-	// opens - pointer entering the bar is a good enough proxy.
-	GtkEventController * motion = gtk_event_controller_motion_new();
-	g_signal_connect(motion, "enter", G_CALLBACK(_ev_menubar_motion_refresh), this);
-	gtk_widget_add_controller(bar, motion);
-
-	return bar;
-}
-
-void EV_UnixMenuBar::_setModelOnBoundWidget(GMenu * model)
-{
-	// Do not mutate the live bar's model: GTK4 keeps internal submenu
-	// pointers that can go stale and emit criticals on teardown.
-	// Replacing the whole bound widget leaves GTK with consistent state.
-	GtkWidget * vbox = gtk_widget_get_parent(m_wMenuBar);
-	if (!vbox) {
-		gtk_popover_menu_bar_set_menu_model(GTK_POPOVER_MENU_BAR(m_wMenuBar),
-											G_MENU_MODEL(model));
-		return;
-	}
-
-	GtkWidget * oldBar = m_wMenuBar;
-	GtkWidget * newBar = _createMenuBarWidget(model);
-	gtk_widget_insert_after(newBar, GTK_WIDGET(vbox), oldBar);
-	m_wMenuBar = newBar;
-	// preserve visibility (e.g. hidden in ribbon mode); new widgets
-	// default to visible in GTK4
-	gtk_widget_set_visible(newBar, gtk_widget_get_visible(oldBar));
-	gtk_widget_unparent(oldBar);
+	// no widget is ever created; the model is dropped with the object
 }
 
 bool EV_UnixMenuBar::synthesizeMenuBar()
 {
-	GtkWidget * wVBox = static_cast<XAP_UnixFrameImpl *>(m_pFrame->getFrameImpl())->getVBoxWidget();
-
 	synthesizeMenu(m_pMenuModel, false);
-
-	m_wMenuBar = _createMenuBarWidget(m_pMenuModel);
-
-	gtk_box_append(GTK_BOX(wVBox), m_wMenuBar);
-
 	return true;
 }
 

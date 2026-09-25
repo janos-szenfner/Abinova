@@ -76,7 +76,6 @@ public:
 
 		// Application Startup
 
-		SET_GATHER (AutoLoadPlugins,	 bool);
 
 	// Documents
 
@@ -167,7 +166,6 @@ public:
 
 		// Application Startup
 
-		GtkWidget *m_checkbuttonAutoLoadPlugins;
 
 	// Documents
 

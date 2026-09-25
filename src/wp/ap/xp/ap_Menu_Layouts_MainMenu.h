@@ -322,7 +322,6 @@ BeginLayout(Main,0)
 	    Separator()
 
 #if !XAP_SIMPLE_MENU
-		MenuItem(AP_MENU_ID_TOOLS_PLUGINS)
 		MenuItem(AP_MENU_ID_TOOLS_SCRIPTS)
 		MenuItem(AP_MENU_ID_TOOLS_MAILMERGE)
 #if XAP_PREFSMENU_UNDER_TOOLS
@@ -491,10 +490,6 @@ BeginLayout(Main,0)
 		MenuItem(AP_MENU_ID_HELP_CHECKVER)
 		MenuItem(AP_MENU_ID_HELP_REPORT_BUG)
 		Separator()
-		BeginSubMenu(AP_MENU_ID_HELP_UI)
-			MenuItem(AP_MENU_ID_HELP_UI_CLASSIC)
-			MenuItem(AP_MENU_ID_HELP_UI_RIBBON)
-		EndSubMenu()
 		Separator()
 		MenuItem(AP_MENU_ID_HELP_ABOUT)
 	EndSubMenu()

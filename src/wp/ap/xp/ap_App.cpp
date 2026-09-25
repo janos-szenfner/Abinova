@@ -33,7 +33,6 @@
 #include "ap_Prefs_SchemeIds.h"
 #include "ap_Strings.h"
 #include "xap_Frame.h"
-#include "xap_ModuleManager.h"
 #include "pd_Document.h"
 #include "ie_imp.h"
 
@@ -123,67 +122,6 @@ bool AP_App::openCmdLineFiles(const AP_Args * args)
 	return true;
 }
 
-bool AP_App::openCmdLinePlugins(const AP_Args * Args, bool &bSuccess)
-{
-	if(Args->m_sPluginArgs)
-	{
-//
-// Start a plugin rather than the main abiword application.
-//
-	    const char * szName = nullptr;
-		XAP_Module * pModule = nullptr;
-		const char * szRequest = nullptr;
-		bool bFound = false;
-		if(Args->m_sPluginArgs[0])
-		{
-			szRequest = Args->m_sPluginArgs[0];
-			const UT_GenericVector<XAP_Module*> * pVec = XAP_ModuleManager::instance().enumModules ();
-			UT_DEBUGMSG((" %d plugins loaded \n",pVec->getItemCount()));
-			for (UT_sint32 i = 0; (i < pVec->size()) && !bFound; i++)
-			{
-				pModule = pVec->getNthItem (i);
-				UT_nonnull_or_continue(pModule);
-				auto moduleInfo = pModule->getModuleInfo();
-				UT_nonnull_or_continue(moduleInfo);
-				szName = moduleInfo->name;
-				UT_nonnull_or_continue(szName);
-				UT_DEBUGMSG(("%s\n", szName));
-				if(strcmp(szName,szRequest) == 0)
-				{
-					bFound = true;
-				}
-			}
-		}
-		if(!bFound)
-		{
-			fprintf(stderr, "Plugin %s not found or loaded \n", szRequest ? szRequest : "(null)");
-			bSuccess = false;
-			return false;
-		}
-//
-// You must put the name of the ev_EditMethod in the usage field
-// of the plugin registered information.
-//
-		const char * evExecute = pModule->getModuleInfo()->usage;
-		EV_EditMethodContainer* pEMC = Args->getApp()->getEditMethodContainer();
-		const EV_EditMethod * pInvoke = pEMC->findEditMethodByName(evExecute);
-		if(!pInvoke)
-		{
-			fprintf(stderr, "Plugin %s invoke method %s not found \n",
-					Args->m_sPluginArgs[0],evExecute);
-			bSuccess = false;
-			return false;
-		}
-//
-// Execute the plugin, then quit
-//
-		UT_String *sCommandLine = Args->getPluginOptions();
-		bSuccess = ev_EditMethod_invoke(pInvoke, *sCommandLine);
-		delete sCommandLine;
-		return false;
-	}
-	return true;
-}
 
 
 bool	AP_App::initialize(void)

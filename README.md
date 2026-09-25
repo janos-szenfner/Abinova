@@ -42,6 +42,10 @@ The fork is focused on:
   plugin).
 - **Repository cleanup** — obsolete plugins and dead files removed;
   Debian-reported bugs fixed against the actual implementation.
+- **Ribbon-only UI, English-only** — the classic menubar and the
+  plugin module system are gone, and the UI ships in English only
+  (the `.strings` translation catalog and `po/` files were removed
+  because the ribbon is hard-coded English).
 
 ## Plugin cleanup
 
@@ -104,7 +108,11 @@ longer exist:
 
 None — every importer/exporter is compiled into `libabiword` and
 registered centrally in `src/wp/impexp/xp/ie_impexp_Register.cpp`.
-The dynamic plugin list is empty.
+The dynamic plugin machinery itself (module loader, module
+manager, plugin-manager dialog, plugin preferences, `plugins/`
+and `src/plugins/` build trees, and the generated `plugin-*` m4
+files) has been removed entirely, so there is no plugin list at
+all.
 
 > **Disclaimer:** This is an experimental project. It is provided
 > **as is, without any warranty** of any kind, express or implied.
@@ -351,16 +359,17 @@ NotebookBar (`sw/uiconfig/swriter/ui/notebookbar.ui`). A
 `GtkNotebook` presents **File / Home / Insert / References /
 Layout / Review / View / Help** tabs — **Home is the default** —
 plus contextual **Table** and **Equation** tabs that appear only
-while the caret is inside a table or on an equation. Switch
-between interfaces via Help → Interface (ribbon is the default;
-the choice persists in the `RibbonUI` preference).
+while the caret is inside a table or on an equation. The ribbon
+is the only interface — the classic menubar/toolbar UI and its
+Help → Interface switch were removed along with the `RibbonUI`
+preference.
 
 Ribbon mechanics: groups mix compact three-row button grids with
 Word-style large icon-over-caption buttons (Paste, Find, Replace,
 Select All), split buttons and glyph-only tiles
 (bold/italic/underline, alignment). Most dropdowns open drawn
-gallery popovers. Items dispatch through the same `menu.*`
-GActions and toolbar edit methods as the classic UI, so
+gallery popovers. Items dispatch through `menu.*`
+GActions and toolbar edit methods, so
 enablement, toggle and combo state stay in sync. Ribbon groups
 are separated by a visible 1 px rule.
 
@@ -579,8 +588,6 @@ labels, like Word's ribbon.
   the GitHub releases/tags API in a background thread and
   reports in a symmetric in-app dialog with a download link when
   a newer version exists.
-- **Interface** switches between the ribbon and the classic
-  menubar/toolbar UI.
 
 #### Contextual tabs
 
@@ -612,11 +619,10 @@ labels, like Word's ribbon.
 
 ### Classic menu vs ribbon — feature map and gaps
 
-The ribbon is the default interface; Help → Interface switches
-back to the classic menubar at any time (the `RibbonUI`
-preference persists). The table below maps every classic menu to
-its ribbon equivalent, followed by what is **not** reachable
-from the ribbon today.
+The classic menubar has been removed; the ribbon is the only
+interface. The table below maps the old classic menus to their
+ribbon equivalent, followed by what is **not** reachable from
+the ribbon today.
 
 | Classic menu | Ribbon home |
 |--------------|-------------|
@@ -630,8 +636,9 @@ from the ribbon today.
 | Window (New Window, window list) | **View** → Window group (New Window, Arrange All, Split, Switch Windows) |
 | Help (Contents, Search, Check Version, Report Bug, Credits, About, interface switch) | **Help** tab |
 
-**Features that exist in the classic menu but are missing from
-the ribbon** (switch to the classic UI to reach them):
+**Features that existed in the classic menu but are missing from
+the ribbon** (currently unreachable — candidates for future
+ribbon additions):
 
 - **File** — Import Styles…, the dedicated Export item (Save As
   covers most cases), the Recent Files list and Exit.
@@ -647,7 +654,7 @@ the ribbon** (switch to the classic UI to reach them):
 - **Tools** — Stylist, document History viewer, Revisions →
   New/Purge, Scripts, Mail Merge, and the **Options/Preferences**
   dialog (the most significant omission — preferences are only
-  editable via the config file or the classic UI for now).
+  editable via the config file for now).
 - **Table** — Text → Table conversion (the ribbon does
   Table → Text but not the reverse) and the Sum Column/Row
   formula rows (deliberately dropped with the Formula control).

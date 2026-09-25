@@ -63,7 +63,6 @@
 #include "fp_Run.h"
 #include "fp_AnnotationRun.h"
 #include "fp_TextRun.h"
-#include "xap_Module.h"
 #include "fg_Graphic.h"
 #include "fg_GraphicRaster.h"
 #include "pd_Document.h"
@@ -5878,28 +5877,18 @@ bool FV_View::queryCharFormat(const gchar * szProperty, UT_UTF8String & szValue,
 
 
 /*!
- * Returns true if the abigrammar plugin is loaded
+ * Grammar checking is built in (formerly the abigrammar plugin).
  */
 bool FV_View::isGrammarLoaded(void) const
 {
-	XAP_Module * pGrammar = m_pApp->getPlugin("abigrammar");
-	if(pGrammar == nullptr)
-	{
-		return false;
-	}
 	return true;
 }
 
 /*!
- * Returns true if the abimathview plugin is loaded
+ * Equation editing is built in (formerly the abimathview plugin).
  */
 bool FV_View::isMathLoaded(void) const
 {
-	XAP_Module * pMath = m_pApp->getPlugin("abimathview");
-	if(pMath == nullptr)
-	{
-		return false;
-	}
 	return true;
 }
 

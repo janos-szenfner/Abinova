@@ -76,6 +76,5 @@ class ABI_EXPORT UT_LocaleInfo
   std::string mEncoding;
 };
 
-const char* UT_getFallBackStringSetLocale(const char* pLocale);
 
 #endif /* UT_LOCALE_H */

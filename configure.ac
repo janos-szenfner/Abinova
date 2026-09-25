@@ -148,46 +148,6 @@ AC_CHECK_FUNCS([alarm gettimeofday],
 # Features
 #
 
-AC_ARG_ENABLE([default-plugins], 
-	[AS_HELP_STRING([--disable-default-plugins], [do not build any plugins by default])], 
-[
-	if test "$enableval" = "no"; then
-		abi_cv_disable_default_plugins="yes"
-	fi
-])
-
-m4_define([plugin_list], m4_include([m4/plugin-list.m4]))
-
-AC_ARG_ENABLE([plugins], 
-	[AS_HELP_STRING([--enable-plugins], [="foo bar baz", list of plugins to build. Use --disable-plugins to disable plugin loading support, resulting in a smaller binary size. The list of plugins : ]m4_n([plugin_list]))], 
-[
-	if test "$enableval" = "no"; then
-		abi_cv_disable_exports="yes"
-		abi_cv_disable_default_plugins="yes"
-		abi_cv_plugins=""
-	elif test "$enableval" = "yes"; then
-		# auto-detect which plugins can be built
-		abi_cv_plugins="auto"
-	else
-		# custom plugins list
-		abi_cv_plugins="$enableval"
-	fi
-])
-
-AC_ARG_ENABLE([builtin-plugins], 
-	[AS_HELP_STRING([--enable-builtin-plugins], [="foo bar baz", list of plugins to link statically])], 
-[
-	if test "$enableval" = "no"; then
-		abi_cv_builtin_plugins=""
-	elif test "$enableval" = "yes"; then
-		# just build default plugins
-		abi_cv_builtin_plugins=""
-	else
-		# custom plugins list
-		abi_cv_builtin_plugins="$enableval"
-	fi
-])
-
 
 AC_ARG_ENABLE([print], 
 	[AS_HELP_STRING([--disable-print], [(Gtk+ only) do not include printing support])], 
@@ -676,7 +636,7 @@ WP_CPPFLAGS_='
   ${IMPEXP_CPPFLAGS} 
   -I${top_srcdir}/src/wp/ap/${TOOLKIT} 
   -I${top_srcdir}/src/wp/ap/xp
-  -I${top_srcdir}/src/plugins'
+'
 WP_CPPFLAGS=
 for f in $(echo $WP_CPPFLAGS_); do WP_CPPFLAGS="$WP_CPPFLAGS $f"; done
 AC_SUBST([WP_CPPFLAGS])
@@ -692,7 +652,6 @@ AC_SUBST(ABIWORD_HEADERSDIR, "${includedir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
 AC_SUBST(ABIWORD_DATADIR,    "${datadir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
 AC_SUBST(ABIWORD_UIDIR,   "${ABIWORD_DATADIR}/ui")
 AC_SUBST(ABIWORD_LIBDIR,     "${libdir}/${PACKAGE_NAME}-${ABIWORD_SERIES}")
-AC_SUBST(ABIWORD_PLUGINSDIR, "${ABIWORD_LIBDIR}/plugins")
 AC_SUBST(ABIWORD_OMMLXSLTDIR, "${ABIWORD_DATADIR}/omml_xslt")
 
 if test "$enable_shared" = ""; then
@@ -707,16 +666,6 @@ AC_DEFINE([TOOLKIT_GTK], [1], [Build gtk+ user interface])
 AC_DEFINE([TOOLKIT_GTK_ALL], [1], [Build gtk+ user interface])
 AM_CONDITIONAL([ENABLE_DYNAMIC], test "$enable_shared" = "yes")
 AM_CONDITIONAL([ENABLE_STATIC], test "$enable_static" = "yes")
-
-PKG_CHECK_MODULES(PLUGIN,[$glib_req])
-PLUGIN_CFLAGS="$PLUGIN_CFLAGS "'${WP_CPPFLAGS} -DABI_DLL'
-if test "$enable_shared" = "yes"; then
-	# link plugins to work around gcc visibility issue with
-	# derived classes in dlopened modules
-	PLUGIN_LIBS='${top_builddir}/src/libabiword-'"$ABIWORD_SERIES"'.la'" $PLUGIN_LIBS"
-fi
-AC_SUBST([PLUGIN_CFLAGS])
-AC_SUBST([PLUGIN_LIBS])
 
 if test "$abi_cv_disable_exports" = "yes"; then
 	AC_DEFINE([DISABLE_EXPORTS], [1], [Define to prevent symbols from being exported dynamically])
@@ -780,75 +729,11 @@ if test "$abi_cv_gio" = "yes"; then
 	AC_DEFINE([WITH_GIO], [1], [Define if using GIO])
 fi
 
-ALL_PLUGINS_="\
-  m4_n([plugin_list])"
-# strip trailing newline from the included file, it messes up sed on windows
-ALL_PLUGINS=
-for p in $(echo $ALL_PLUGINS_); do ALL_PLUGINS="$ALL_PLUGINS $p"; done
-AC_SUBST([ALL_PLUGINS])
 
-PLUGINS=
-if test "$abi_cv_plugins" = "auto"; then
 
-	# which plugins to auto-enable
-	# this creates variables like "enable_wordperfect=auto"
-	for plugin in `echo $ALL_PLUGINS`; do
-		eval $(echo "enable_$plugin")="auto"
-	done
-else
-	default_plugins=""
-
-	if test "$abi_cv_disable_default_plugins" != "yes"; then
-		PLUGINS="$default_plugins"
-	fi
-	for i in $abi_cv_plugins; do
-		if test -d "plugins/$i"; then 
-			PLUGINS="$PLUGINS $i"
-		else
-			AC_MSG_WARN([Plugin $i does not exist.])
-		fi
-	done
-
-	# which plugins to enable
-	# this creates variables like "enable_wordperfect=yes"
-	for plugin in `echo $PLUGINS`; do
-		eval $(echo "enable_$plugin")="yes"
-	done
-fi
-
-# enable the plugins we want to link statically
-# this creates variables like "enable_wordperfect=yes"
-BUILTIN_PLUGINS="$abi_cv_builtin_plugins"
-for plugin in `echo $BUILTIN_PLUGINS`; do
-	eval $(echo "enable_$plugin")="yes"
-done
-
-# which plugins to build in
-# this creates variables like "enable_wordperfect_builtin=yes"
-for plugin in `echo $BUILTIN_PLUGINS`; do
-	variable="enable_"$plugin"_builtin"
-	eval $(echo $variable)="yes"
-done
-
-# this creates the list of .la files to link statically
-# used in src/plugins/Makefile.am
-BUILTIN_PLUGINS_LA=
-for plugin in `echo $BUILTIN_PLUGINS`; do
-	BUILTIN_PLUGINS_LA="$BUILTIN_PLUGINS_LA ../../plugins/$plugin/$plugin.la"
-done
-
-m4_include([m4/plugin-builtin.m4])
-
-m4_include([m4/plugin-configure.m4])
-
-AC_SUBST([PLUGINS])
-AC_SUBST([BUILTIN_PLUGINS])
-AC_SUBST([BUILTIN_PLUGINS_LA])
-
-# bundled third-party libraries in thirdparty/ for plugins that need
-# them, so no external dependency downloads are required
-# bundled third-party libs are always built now that the WordPerfect,
-# WPG, MHT and WMF importers are part of the core build
+# bundled third-party libraries in thirdparty/ are always built now
+# that the WordPerfect, WPG, MHT and WMF importers are part of the core
+# build, so no external dependency downloads are required
 with_bundled_revenge=yes
 AM_CONDITIONAL([WITH_BUNDLED_REVENGE], [test "$with_bundled_revenge" = "yes"])
 
@@ -1010,7 +895,6 @@ AM_CONDITIONAL(HAVE_INTROSPECTION, test "x$found_introspection" = "xyes")
 AC_CONFIG_FILES([libabiword.pc
   Makefile
   icons/Makefile
-  po/Makefile
   src/Makefile
   thirdparty/Makefile
   src/af/Makefile
@@ -1020,7 +904,6 @@ AC_CONFIG_FILES([libabiword.pc
   src/af/util/Makefile
   src/af/xap/Makefile
   src/gi-overrides/Makefile
-  src/plugins/Makefile
   src/text/Makefile
   src/wp/Makefile
   src/wp/ap/Makefile
@@ -1040,7 +923,6 @@ AC_CONFIG_FILES([libabiword.pc
 AC_OUTPUT
 
 AC_CONFIG_FILES(
-  m4_include([m4/plugin-makefiles.m4])
 )
 AC_OUTPUT
 
@@ -1068,8 +950,5 @@ Optional dependencies:
   evolution_data_server ${abi_cv_evolution_data_server}
   libical               ${abi_cv_libical}
   champlain             ${abi_cv_champlain}
-
-Builtin plugins         ${BUILTIN_PLUGINS}
-Plugins                 ${PLUGINS}
 "
 

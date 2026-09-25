@@ -278,13 +278,7 @@ void AP_UnixRibbon::_buildIconMap()
 	if (!pTBActions)
 		return;
 
-	/* the label-set language follows the StringSet pref, the same way
-	 * xap_Frame::initialize picks m_szToolbarLabelSetName */
-	std::string lang;
-	if (!XAP_App::getApp()->getPrefsValue(AP_PREF_KEY_StringSet, lang) ||
-		lang.empty())
-		lang = AP_PREF_DEFAULT_StringSet;
-	m_pTBLabels = AP_CreateToolbarLabelSet(lang.c_str());
+	m_pTBLabels = AP_CreateToolbarLabelSet(AP_PREF_DEFAULT_StringSet);
 	if (!m_pTBLabels)
 		return;
 

@@ -54,7 +54,6 @@ enum XAP_Dialog_Id: uint16_t
 	XAP_DIALOG_ID_ZOOM,
 	XAP_DIALOG_ID_INSERT_SYMBOL,
 	XAP_DIALOG_ID_INSERT_PICTURE,
-	XAP_DIALOG_ID_PLUGIN_MANAGER,
 
 	XAP_DIALOG_ID_ABOUT,				/* about dialog */
 	/* ... add others here ... */

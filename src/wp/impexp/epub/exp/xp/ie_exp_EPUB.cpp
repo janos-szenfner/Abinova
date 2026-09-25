@@ -236,7 +236,7 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
     gsf_xml_out_start_element(ncxXml, "meta");
     gsf_xml_out_add_cstr(ncxXml, "name", "epub-creator");
     gsf_xml_out_add_cstr(ncxXml, "content",
-            "Abinova (http://www.abisource.com/)");
+            "Abinova (https://github.com/janos-szenfner/Exp-Abi)");
     // </meta>
     gsf_xml_out_end_element(ncxXml);
     // <meta name="dtb:depth" content=... >
@@ -859,7 +859,7 @@ std::string IE_Exp_EPUB::getAuthor() const
     {
         return property;
     }
-    return "Converted by Abinova(http://www.abisource.com/)";
+    return "Converted by Abinova (https://github.com/janos-szenfner/Exp-Abi)";
 }
 
 std::string IE_Exp_EPUB::getTitle() const

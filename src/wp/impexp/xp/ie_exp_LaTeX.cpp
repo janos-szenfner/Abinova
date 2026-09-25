@@ -1400,7 +1400,7 @@ s_LaTeX_Listener::s_LaTeX_Listener(PD_Document * pDocument, IE_Exp_LaTeX * pie,
 	m_pie->write("%% ================================================================================\n");
 	m_pie->write("%% This LaTeX file was created by Abinova.                                         \n");
 	m_pie->write("%% Abinova is a free, Open Source word processor.                                  \n");
-	m_pie->write("%% More information about Abinova is available at http://www.abisource.com/        \n");
+	m_pie->write("% More information about Abinova is available at https://github.com/janos-szenfner/Exp-Abi \n");
 	m_pie->write("%% ================================================================================\n");
 	m_pie->write("\n");
 

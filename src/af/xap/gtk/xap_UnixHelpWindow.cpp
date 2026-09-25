@@ -177,7 +177,6 @@ XAP_UnixHelpWindow::XAP_UnixHelpWindow(XAP_Frame * pFrame)
 	, m_wWindow(nullptr)
 	, m_wBack(nullptr)
 	, m_wSearch(nullptr)
-	, m_wLang(nullptr)
 	, m_wText(nullptr)
 	, m_lang("en-US")
 	, m_iSearchTimer(0)
@@ -625,20 +624,6 @@ void XAP_UnixHelpWindow::_s_home(GtkButton * /*btn*/, gpointer data)
 	self->_navigate("index.html", true);
 }
 
-void XAP_UnixHelpWindow::_s_lang_changed(GtkDropDown * dd,
-										 GParamSpec * /*ps*/,
-										 gpointer data)
-{
-	XAP_UnixHelpWindow * self = static_cast<XAP_UnixHelpWindow *>(data);
-	static const char * langs[] = {"en-US", "fr-FR", "pl-PL"};
-	guint sel = gtk_drop_down_get_selected(dd);
-	if (sel >= G_N_ELEMENTS(langs))
-		return;
-	self->m_lang = langs[sel];
-	self->_navigate(self->m_page.empty() ? "index.html" : self->m_page,
-					true);
-}
-
 void XAP_UnixHelpWindow::_s_search(GtkSearchEntry * e, gpointer data)
 {
 	XAP_UnixHelpWindow * self = static_cast<XAP_UnixHelpWindow *>(data);
@@ -776,14 +761,6 @@ void XAP_UnixHelpWindow::show(const char * page, bool bFocusSearch)
 		gtk_widget_set_tooltip_text(home, "Help contents");
 		g_signal_connect(home, "clicked", G_CALLBACK(_s_home), this);
 		gtk_box_append(GTK_BOX(bar), home);
-
-		static const char * langNames[] =
-			{"English", "Fran\xc3\xa7" "ais", "Polski"};
-		m_wLang = gtk_drop_down_new_from_strings(langNames);
-		gtk_widget_set_tooltip_text(m_wLang, "Help language");
-		g_signal_connect(m_wLang, "notify::selected",
-						 G_CALLBACK(_s_lang_changed), this);
-		gtk_box_append(GTK_BOX(bar), m_wLang);
 
 		m_wSearch = gtk_search_entry_new();
 		gtk_widget_set_hexpand(m_wSearch, TRUE);

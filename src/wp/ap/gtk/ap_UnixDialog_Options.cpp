@@ -298,9 +298,6 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     tmp = WID ( "lblApplicationStartup" );
     localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_AppStartup );
 
-    m_checkbuttonAutoLoadPlugins = WID ( "chkAutoLoadPlugins" );
-    localizeButtonUnderline ( m_checkbuttonAutoLoadPlugins, pSS,
-                              AP_STRING_ID_DLG_Options_Label_CheckAutoLoadPlugins );
 
 
     // Documents
@@ -596,8 +593,6 @@ GtkWidget *AP_UnixDialog_Options::_lookupWidget ( tControl id )
         case id_LIST_VIEW_RULER_UNITS:
             return m_menuUnits;
 
-        case id_CHECK_AUTO_LOAD_PLUGINS:
-            return m_checkbuttonAutoLoadPlugins;
 
         case id_PUSH_CHOOSE_COLOR_FOR_TRANSPARENT:
             return  m_pushbuttonNewTransparentColor;
@@ -868,7 +863,6 @@ void AP_UnixDialog_Options::_setInnerQuoteStyle ( gint nIndex )
 	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_omInnerQuoteStyle), 1, nIndex);
 }
 
-DEFINE_GET_SET_BOOL ( AutoLoadPlugins )
 
 #undef DEFINE_GET_SET_BOOL
 

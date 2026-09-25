@@ -176,10 +176,7 @@
 
     <file alias="margin_xpm">wp/ap/xp/margin.png</file>
     <file alias="orient_vertical_xpm">wp/ap/xp/orient-vertical.png</file>
-    <file alias="orient_horizontal_xpm">wp/ap/xp/orient-horizontal.png</file>
-
-    <file alias="xap_UnixDlg_PluginManager.ui">af/xap/gtk/xap_UnixDlg_PluginManager.ui</file>
-    <file alias="xap_UnixDlg_Password.ui">af/xap/gtk/xap_UnixDlg_Password.ui</file>
+    <file alias="orient_horizontal_xpm">wp/ap/xp/orient-horizontal.png</file>    <file alias="xap_UnixDlg_Password.ui">af/xap/gtk/xap_UnixDlg_Password.ui</file>
     <file alias="xap_UnixDlg_Language.ui">af/xap/gtk/xap_UnixDlg_Language.ui</file>
     <file alias="xap_UnixDlg_DocComparison.ui">af/xap/gtk/xap_UnixDlg_DocComparison.ui</file>
     <file alias="xap_UnixDlg_WindowMore.ui">af/xap/gtk/xap_UnixDlg_WindowMore.ui</file>

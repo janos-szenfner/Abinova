@@ -104,8 +104,6 @@
 #include "grammar/AbiGrammar.h"
 #include "xap_EditMethods.h"
 #include "ev_EditMethod.h"
-#include "xap_ModuleManager.h"
-#include "xap_Module.h"
 
 #include "ie_exp.h"
 #include "ie_exp_RTF.h"
@@ -138,7 +136,6 @@
 
 #include "ie_impGraphic.h"
 #include "ut_math.h"
-#include "abi-builtin-plugins.h"
 
 #ifdef LOGFILE
 static FILE * logfile;
@@ -181,124 +178,6 @@ AP_UnixApp::~AP_UnixApp(void)
     IE_ImpExp_UnRegisterXP ();
 }
 
-
-/*!
-* Try loading a string-set.
-* \param szStringSet Language id, e.g. de_AT
-* \param pDefaultStringSet String set to be used for untranslated strings.
-* \return AP_DiskStringSet * on success, nullptr if not found
-*/
-AP_DiskStringSet * 
-AP_UnixApp::loadStringsFromDisk(const char 			* szStringSet, 
-								AP_BuiltinStringSet * pDefaultStringSet)
-{
-	UT_ASSERT(pDefaultStringSet);
-
-	std::string directory;
-	getPrefsValueDirectory(true, AP_PREF_KEY_StringSetDirectory, directory);
-	UT_return_val_if_fail(!directory.empty(), nullptr);
-
-	UT_String szPathVariant[4];
-	char * p_strbuf = strdup("");
-	char * p_modifier = nullptr;
-	int  cur_id = 0;
-	bool three_letters = false; // some have 3!
-
-	if (szStringSet) {
-		FREEP(p_strbuf);
-		p_strbuf = strdup(szStringSet);
-		p_modifier = strrchr(p_strbuf,'@');
-		
-		char t = szStringSet[2];
-		if (t && t!='-' && t!='@' && t!='_') three_letters = true;
-	}
-
-	if (p_modifier) {
-		// fo_BA@xxx.strings
-		szPathVariant[cur_id] = directory;
-		if (directory[directory.size() - 1] != '/') {
-			szPathVariant[cur_id] += "/";
-		}
-		szPathVariant[cur_id] += p_strbuf;
-		szPathVariant[cur_id] += ".strings";
-
-		cur_id++;
-
-		// fo@xxx.strings
-		if (szStringSet && strlen(szStringSet) > 2) {
-			szPathVariant[cur_id] = directory;
-			if (directory[directory.size() - 1] != '/') {
-				szPathVariant[cur_id] += "/";
-			}
-			szPathVariant[cur_id] += p_strbuf[0];
-			szPathVariant[cur_id] += p_strbuf[1];
-			if (three_letters)
-				szPathVariant[cur_id] += p_strbuf[2];
-			szPathVariant[cur_id] += p_modifier;
-			szPathVariant[cur_id] += ".strings";
-		}
-
-		cur_id++;
-
-		// trim modifier part
-		*p_modifier = 0;
-	}
-
-	// fo_BA.strings
-	UT_String szPath = directory;
-	if (directory[szPath.size() -1 ] != '/') {
-		szPath += "/";
-	}
-	szPath += p_strbuf;
-	szPath += ".strings";
-
-	// fo.strings
-	UT_String szFallbackPath;
-	if (szStringSet && strlen(szStringSet) > 2) {
-		szFallbackPath = directory;
-		if (directory[szFallbackPath.size() - 1] != '/') {
-			szFallbackPath += "/";
-		}
-		szFallbackPath += p_strbuf[0];
-		szFallbackPath += p_strbuf[1];
-		if (three_letters)
-			szFallbackPath += p_strbuf[2];
-		szFallbackPath += ".strings";
-	}
-
-	AP_DiskStringSet * pDiskStringSet = new AP_DiskStringSet(this);
-
-	FREEP(p_strbuf);
-
-	// trying to load specific strings first
-	for (int i=0; i<cur_id; i++) {
-		if (pDiskStringSet->loadStringsFromDisk(szPathVariant[i].c_str())) {
-			pDiskStringSet->setFallbackStringSet(pDefaultStringSet);
-			UT_DEBUGMSG(("Using [v] StringSet [%s]\n",szPathVariant[i].c_str()));
-			return pDiskStringSet;
-		}
-	}
-
-	// then generic ones
-	if (pDiskStringSet->loadStringsFromDisk(szPath.c_str()))
-	{
-		pDiskStringSet->setFallbackStringSet(pDefaultStringSet);
-		UT_DEBUGMSG(("Using StringSet [%s]\n",szPath.c_str()));
-		return pDiskStringSet;
-	}
-	else if (szFallbackPath.size() && pDiskStringSet->loadStringsFromDisk(szFallbackPath.c_str())) 
-	{
-		pDiskStringSet->setFallbackStringSet(pDefaultStringSet);
-		UT_DEBUGMSG(("Using StringSet [%s]\n",szFallbackPath.c_str()));
-		return pDiskStringSet;
-	}
-	else
-	{
-		DELETEP(pDiskStringSet);
-		UT_DEBUGMSG(("Unable to load StringSet [%s] -- using builtin strings instead.\n",szPath.c_str()));
-		return nullptr;
-	}
-}
 
 /*!
   Initialize the application.  This involves preferences, keybindings,
@@ -352,26 +231,8 @@ bool AP_UnixApp::initialize(bool has_display)
 													AP_PREF_DEFAULT_StringSet);
 		UT_ASSERT(pBuiltinStringSet);
 
-		// try loading strings by preference
-		std::string stringSet;
-		if (getPrefsValue(AP_PREF_KEY_StringSet, stringSet)
-			&& !stringSet.empty()
-			&& stringSet == AP_PREF_DEFAULT_StringSet) {
-			m_pStringSet = loadStringsFromDisk(stringSet.c_str(), pBuiltinStringSet);
-		}
-
-		// try loading fallback strings for the language, e.g. es-ES for es-AR
-		if (m_pStringSet == nullptr) {
-			const char *szFallbackStringSet = UT_getFallBackStringSetLocale(stringSet.c_str());
-			if (szFallbackStringSet)
-				m_pStringSet = loadStringsFromDisk(szFallbackStringSet, pBuiltinStringSet);
-		}
-
-		// load the builtin string set
-		// this is the default
-		if (m_pStringSet == nullptr) {
-			m_pStringSet = pBuiltinStringSet;
-		}
+		// English-only build: always use the compiled-in string set
+		m_pStringSet = pBuiltinStringSet;
     }
 
     // now that preferences are established, let the xap init
@@ -421,23 +282,10 @@ bool AP_UnixApp::initialize(bool has_display)
     ///////////////////////////////////////////////////////////////////////
 
 	std::string menuLabelSetName;
-	if (getPrefsValue(AP_PREF_KEY_StringSet, menuLabelSetName) && !menuLabelSetName.empty()) {
-		;
-	} else {
-		menuLabelSetName = AP_PREF_DEFAULT_StringSet;
-	}
+	menuLabelSetName = AP_PREF_DEFAULT_StringSet;
 
 	getMenuFactory()->buildMenuLabelSet(menuLabelSetName.c_str());
 
-	abi_register_builtin_plugins();
-
-	bool bLoadPlugins = true;
-	bool bFound = getPrefsValueBool(XAP_PREF_KEY_AutoLoadPlugins, bLoadPlugins);
-	if(bLoadPlugins || !bFound)
-		loadAllPlugins();
-	//
-	// Now all the plugins are loaded we can initialize the clipboard
-	//
 	if(m_pClipboard)
 		m_pClipboard->initialize();
 
@@ -883,66 +731,6 @@ bool AP_UnixApp::canPasteFromClipboard(void) const
     return m_pClipboard->canPaste(XAP_UnixClipboard::TAG_ClipboardOnly);
 }
 
-static bool is_so (const char *file) {
-
-	size_t len = strlen (file);
-	if (len < (strlen(G_MODULE_SUFFIX) + 2)) // this is ".so" and at least one char for the filename
-		return false;
-	const char *suffix = file+(len-3);
-	if(0 == strcmp (suffix, "." G_MODULE_SUFFIX))
-		return true;
-	return false;
-}
-
-void AP_UnixApp::loadAllPlugins ()
-{
-  UT_String pluginList[2];
-  UT_String pluginDir;
-
-  // the global plugin directory
-  pluginDir += ABIWORD_PLUGINSDIR "/";
-
-  UT_DEBUGMSG(("pluginDir: '%s'\n", pluginDir.c_str ()));
-
-  pluginList[0] = pluginDir;
-
-  // the user-local plugin directory
-  pluginDir = getUserPrivateDirectory ();
-  pluginDir += "/" PACKAGE_NAME "/plugins/";
-  UT_DEBUGMSG (("ROB: private plugins in '%s'\n", pluginDir.c_str ()));
-  pluginList[1] = pluginDir;
-
-  for(UT_uint32 i = 0; i < G_N_ELEMENTS(pluginList); i++)
-  {
-	const UT_String &path = pluginList[i];
-
-	if (!g_file_test (path.c_str(), G_FILE_TEST_IS_DIR))
-		continue;
-
-	GError *err = nullptr;
-	GDir *dir = g_dir_open (path.c_str(), 0, &err);
-	if (err) {
-		g_warning ("%s", err->message);
-		g_error_free (err), err = nullptr;
-		continue;
-	}
-
-	const char *name;
-	while (nullptr != (name = g_dir_read_name (dir))) {
-		if (is_so (name)) {
-			UT_String plugin (path + name);
-			UT_DEBUGMSG(("DOM: loading plugin %s\n", plugin.c_str()));
-
-			if (XAP_ModuleManager::instance().loadModule (plugin.c_str())) {
-			  UT_DEBUGMSG(("DOM: loaded plugin: %s\n", name));
-			} else {
-			  UT_DEBUGMSG(("DOM: didn't load plugin: %s\n", name));
-			}
-		}
-	}
-	g_dir_close (dir), dir = nullptr;
-  }
-}
 
 /*****************************************************************/
 /*****************************************************************/
@@ -1403,9 +1191,6 @@ int AP_UnixApp::main(const char * szAppName, int argc, char ** argv)
 			fprintf(stderr, "No DISPLAY: this may not be what you want.\n");
 			exit_status = 1;
 		}
-		// unload all loaded plugins (remove some of the memory leaks shown at shutdown :-)
-		XAP_ModuleManager::instance().unloadAllPlugins();
-
 		// Step 4: Destroy the App.  It should take care of deleting all frames.
 		pMyUnixApp->shutdown();
 	}
@@ -1489,7 +1274,7 @@ bool AP_UnixApp::doWindowlessArgs(const AP_Args *Args, bool & bSuccess)
 		return false;
 	}
 
-	return openCmdLinePlugins(Args, bSuccess);
+	return true;
 }
 
 static gint s_signal_count = 0;

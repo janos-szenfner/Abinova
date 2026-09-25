@@ -147,8 +147,6 @@
 #define XAP_PREF_KEY_EnableSmoothScrolling  "EnableSmoothScrolling"
 #define XAP_PREF_DEFAULT_EnableSmoothScrolling		 "1"
 
-#define XAP_PREF_KEY_AutoLoadPlugins				 "AutoLoadPlugins"
-#define XAP_PREF_DEFAULT_AutoLoadPlugins			 "1"
 
 #define XAP_PREF_KEY_ToolbarNumEntries "Toolbar_NumEntries_"
 #define XAP_PREF_KEY_ToolbarID "Toolbar_ID_"
@@ -210,7 +208,6 @@ dcl(ColorForRevision8)
 dcl(ColorForRevision9)
 dcl(ColorForRevision10)
 dcl(EnableSmoothScrolling)
-dcl(AutoLoadPlugins)
 dcl(ZoomType)
 dcl(ZoomPercentage)
 dcl(DefaultSaveDirectory)

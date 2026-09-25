@@ -1425,6 +1425,44 @@ below are on `main` but the release has not been cut yet.
   item, `helpCredits` edit method, menu id, label/status strings,
   stock/toolbar icons, gresource alias, build refs, `credits.html`
   pages and nav links in all help locales.
+- **`flatpak/` removed** — the stale upstream Flatpak manifest
+  (old `com.abisource.AbiWord` app id, `abiword` command, patches
+  for dependencies of long-deleted plugins) was deleted; it was
+  not referenced by the build.
+- **Classic menubar removed — ribbon is the only UI** — the
+  `EV_UnixMenuBar` widget and the Help → Interface
+  "Classic Menus"/"Ribbon" toggle were removed along with the
+  `viewClassicUI`/`viewRibbonUI` edit methods, the `RibbonUI`
+  preference, and the `HELP_UI*` menu ids/strings. `EV_UnixMenu`
+  remains as the action/model container that backs the ribbon's
+  `menu.*` GActions and the right-click context menus.
+- **Plugin system removed entirely** — `xap_Module`,
+  `xap_ModuleManager`, `xap_UnixModule`, the plugin-manager dialog
+  (xp + gtk + `.ui`), `TOOLS_PLUGINS` menu/action/edit method, the
+  `AutoLoadPlugins` preference and Options checkbox, `plugins/` and
+  `src/plugins/` trees, `m4/plugin-list.m4` and the generated
+  `plugin-*.m4` machinery, plus every configure/Makefile plugin
+  hook. All former functionality is compiled into `libabiword`.
+- **UI localization removed — English only** — `po/` (all `.po`
+  catalogs and generated `.strings` files), `AP_DiskStringSet`,
+  `XAP_DiskStringSet`, `loadStringsFromDisk`,
+  `UT_getFallBackStringSetLocale`, the `StringSet`/
+  `StringSetDirectory`/`UseEnvLocale` preferences, the Options
+  language picker, the `--dumpstrings` debug flag, and localized
+  desktop/metainfo entries. The UI always uses the built-in
+  English string set; document-language features are unaffected.
+- **French and Polish help removed** — the `help/fr-FR/` and
+  `help/pl-PL/` documentation trees, the help-window language
+  picker, and the `howtotranslation.html` guide (the localization
+  system it documents is gone). Remaining en-US help no longer
+  references the Plugin Manager dialog, the classic menubar or
+  upstream `abisource.com` links (BugZilla/mailing list/CVS
+  instructions replaced by the project repository).
+- **`.abwn` document header updated** — the informational comment
+  now points at `https://github.com/janos-szenfner/Exp-Abi` and
+  names Abinova as the generator (the AWML doctype, namespaces and
+  `abiword.*`/`dc.format` metadata keys are format identifiers and
+  remain for compatibility).
 - **Dead files removed** — `gr_UnixCairoImage`, `ut_PerlBindings`,
   `ut_stack`, dialog stubs, duplicate `ODc_Crypto`,
   `ie_exp_WordPerfect`, orphaned test fragments, `linkgrammarwrap`

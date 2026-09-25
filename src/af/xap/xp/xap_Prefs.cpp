@@ -52,7 +52,6 @@ enum: uint8_t {
 	TT_FACE,
 	TT_FONTS,
 	TT_LOG,
-	TT_PLUGIN,
 	TT_RECENT,
 	TT_SCHEME,
 	TT_SELECT
@@ -66,7 +65,6 @@ static struct xmlToIdMapping s_Tokens[] =
 	{ "Fonts",              TT_FONTS },
 	{ "Geometry",			TT_GEOMETRY },
 	{ "Log",                TT_LOG},
-	{ "Plugin",				TT_PLUGIN },
 	{ "Recent",				TT_RECENT },
 	{ "Scheme",				TT_SCHEME },
 	{ "Select",				TT_SELECT }
@@ -183,16 +181,6 @@ void XAP_Prefs::setAutoSavePrefs(bool bAuto)
 }
 
 /*****************************************************************/
-
-bool XAP_Prefs::getUseEnvLocale(void) const
-{
-	return m_bUseEnvLocale;
-}
-
-void XAP_Prefs::setUseEnvLocale(bool bUse)
-{
-	m_bUseEnvLocale = bUse;
-}
 
 /*****************************************************************/
 
@@ -370,7 +358,6 @@ void XAP_Prefs::log(const char * where, const char * what, XAPPrefsLog_Level lev
 
 XAP_Prefs::XAP_Prefs()
 	: m_bAutoSavePrefs(atoi(XAP_PREF_DEFAULT_AutoSavePrefs) ? true : false)
-	, m_bUseEnvLocale(atoi(XAP_PREF_DEFAULT_UseEnvLocale) ? true : false)
 	, m_currentScheme(nullptr)
 	, m_builtinScheme(nullptr)
 	, m_maxRecent(atoi(XAP_PREF_DEFAULT_MaxRecent))
@@ -393,7 +380,6 @@ XAP_Prefs::XAP_Prefs()
 XAP_Prefs::~XAP_Prefs(void)
 {
 	UT_std_vector_purgeall(m_vecSchemes);
-	UT_std_vector_purgeall(m_vecPluginSchemes);
 }
 
 /*****************************************************************/
@@ -412,35 +398,12 @@ XAP_PrefsScheme* XAP_Prefs::getNthScheme(UT_uint32 k) const
 	return _getNthScheme(k, m_vecSchemes);
 }
 
-XAP_PrefsScheme* XAP_Prefs::getNthPluginScheme(UT_uint32 k) const
-{
-	return _getNthScheme(k, m_vecPluginSchemes);
-}
-
 XAP_PrefsScheme* XAP_Prefs::getScheme(const gchar * szSchemeName) const
 {
 	UT_uint32 kLimit = m_vecSchemes.size();
 
 	for (UT_uint32 k = 0; k < kLimit; k++) {
 		XAP_PrefsScheme * p = getNthScheme(k);
-		if (!p) {
-			UT_ASSERT_HARMLESS(p);
-			continue;
-		}
-		if (p->getSchemeName() == szSchemeName) {
-			return p;
-		}
-	}
-
-	return nullptr;
-}
-
-XAP_PrefsScheme* XAP_Prefs::getPluginScheme(const gchar * szSchemeName) const
-{
-	UT_uint32 kLimit = m_vecPluginSchemes.size();
-
-	for (UT_uint32 k = 0; k < kLimit; k++) {
-		XAP_PrefsScheme * p = getNthPluginScheme(k);
 		if (!p) {
 			UT_ASSERT_HARMLESS(p);
 			continue;
@@ -464,11 +427,6 @@ void XAP_Prefs::addScheme(XAP_PrefsScheme * pNewScheme)
 	}
 
 	m_vecSchemes.push_back(pNewScheme);
-}
-
-void XAP_Prefs::addPluginScheme(XAP_PrefsScheme * pNewScheme)
-{
-	m_vecPluginSchemes.push_back(pNewScheme);
 }
 
 XAP_PrefsScheme * XAP_Prefs::getCurrentScheme() const
@@ -760,11 +718,6 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 				
 				m_bAutoSavePrefs = (*a[1] == '1');
 			}
-			else if (strcmp(static_cast<const char*>(a[0]), "useenvlocale") == 0)
-			{
-				m_bUseEnvLocale = (*a[1] == '1');
-			}
-			
 			a += 2;
 		}
 
@@ -828,49 +781,6 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 		}
 
 		addScheme(pNewScheme);
-
-		pNewScheme = nullptr;				// we don't own it anymore
-		break;
-		}
-		case TT_PLUGIN:
-		{
-		// Almost the same as TT_SCHEME, except is denoted by <Plugin ... /> 
-		// instead of <Scheme ... /> and has no builtin to deal with
-
-			//		bool bIsNamed = false;
-		
-		pNewScheme = new XAP_PrefsScheme(this, nullptr);
-		if (!pNewScheme)
-			goto MemoryError;
-		
-		const gchar ** a = atts;
-		while (*a)
-		{
-			UT_ASSERT(a[1] && *a[1]);	// require a value for each attribute keyword
-
-			if (strcmp(static_cast<const char*>(a[0]), "name") == 0)
-			{
-				//				bIsNamed = true;
-				
-				if (getPluginScheme(a[1]))
-				{
-					UT_DEBUGMSG(("Duplicate Plugin scheme [%s]; ignoring latter instance.\n",a[1]));
-					goto IgnoreThisScheme;
-				}
-
-				pNewScheme->setSchemeName(a[1]);
-
-				UT_DEBUGMSG(("Found Preferences Plugin scheme [%s].\n",a[1]));
-			}
-			else
-			{
-				pNewScheme->setValue(a[0], a[1]);
-			}
-
-			a += 2;
-		}
-
-		addPluginScheme(pNewScheme);
 
 		pNewScheme = nullptr;				// we don't own it anymore
 		break;
@@ -1119,7 +1029,7 @@ bool XAP_Prefs::savePrefsFile(void)
 	fprintf(fp,"<!-- =====================================================================  -->\n");
 	fprintf(fp,"<!-- This file contains AbiSuite Preferences.  AbiSuite is a suite of Open  -->\n");
 	fprintf(fp,"<!-- Source desktop applications developed by AbiSource, Inc.  Information  -->\n");
-	fprintf(fp,"<!-- about this application can be found at http://www.abisource.com        -->\n");
+	fprintf(fp,"<!-- about this application can be found at https://github.com/janos-szenfner/Exp-Abi -->\n");
 	fprintf(fp,"<!-- You should not edit this file by hand.                                 -->\n");
 	fprintf(fp,"<!-- =====================================================================  -->\n");
 	fprintf(fp,"\n");
@@ -1176,11 +1086,10 @@ bool XAP_Prefs::savePrefsFile(void)
 					"\t<Select\n"
 					"\t    scheme=\"%s\"\n"
 					"\t    autosaveprefs=\"%d\"\n"
-					"\t    useenvlocale=\"%d\"\n"
+
 					"\t/>\n"),
 				m_currentScheme->getSchemeName().c_str(),
-				static_cast<UT_uint32>(m_bAutoSavePrefs),
-				static_cast<UT_uint32>(m_bUseEnvLocale));
+				static_cast<UT_uint32>(m_bAutoSavePrefs));
 
 		UT_uint32 kLimit = m_vecSchemes.size();
 		UT_uint32 k;
@@ -1274,55 +1183,6 @@ bool XAP_Prefs::savePrefsFile(void)
 			fprintf(fp,"\t\t/>\n");
 		}
 
-		// add Plugin Scheme (plugin specific preferences) if they exist
-		kLimit = m_vecPluginSchemes.size();
-		for (k = 0; k < kLimit; k++) {
-			XAP_PrefsScheme * p = getNthPluginScheme(k);
-			if (!p) {
-				UT_ASSERT_HARMLESS(p);
-				continue;
-			}
-
-			const std::string& thisSchemeName = p->getSchemeName();
-			fprintf(fp, "\n\t<Plugin\n\t\tname=\"%s\"\n", thisSchemeName.c_str());
-
-			for (auto entry : *p) {
-					// the value is UTF-8.  Convert to Unicode and then
-					// do XML-encoding of XML-special characters and
-					// non-ASCII characters.  The printed value
-					// strings will get XML parsing and conversion to
-					// UTF-8 the next time the application reads the
-					// prefs file.
-					UT_GrowBuf gb;
-					UT_decodeUTF8string(entry.second.c_str(), entry.second.size(), &gb);
-					UT_uint32 length = gb.getLength();
-					fprintf(fp, "\t\t%s=\"", entry.first.c_str());
-					for (UT_uint32 udex=0; udex<length; ++udex)
-					{
-						UT_UCS4Char ch = *(gb.getPointer(udex));
-						switch (ch)
-						{
-						case '&':   fputs("&amp;", fp);  break;
-						case '<':   fputs("&lt;", fp);  break;
-						case '>':   fputs("&gt;", fp);  break;
-						case '"':   fputs("&quot;", fp);  break;
-						default:
-							if (ch < ' ' || ch >= 128)
-							{
-								fprintf(fp, "&#x%x;", ch);
-							}
-							else
-							{
-								putc(ch, fp);
-							}
-						}
-					}
-					fputs("\"\n", fp);
-			}
-
-			fprintf(fp,"\t\t/>\n");
-		}
-		// end Plugin preferences
 
 		fprintf(fp,"\n\t<Recent\n\t\tmax=\"%u\"\n", m_maxRecent);
 

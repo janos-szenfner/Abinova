@@ -31,6 +31,9 @@ class XAP_UnixFrame;
 
 /*****************************************************************/
 
+/* Ribbon-only build: no menubar widget is created. This class remains
+ * as the container for the menu model, the GActionGroup that ribbon
+ * controls bind to, and the per-item state refresh. */
 class EV_UnixMenuBar : public EV_UnixMenu
 {
 public:
@@ -44,16 +47,6 @@ public:
 	virtual bool		rebuildMenuBar();
 	virtual bool		refreshMenu(AV_View * pView) override;
     virtual void        destroy(void);
-
-    GtkWidget *         getMenuBar(void) const {return m_wMenuBar;}
-
-protected:
-	GtkWidget *		_createMenuBarWidget(GMenu * model);
-	GtkWidget *		m_wMenuBar;
-
-	virtual bool		_hasBoundWidget() const override { return m_wMenuBar != nullptr; }
-	virtual void		_setModelOnBoundWidget(GMenu * model) override;
-	virtual GtkWidget *	_boundWidget() const override { return m_wMenuBar; }
 };
 
 #endif /* EV_UNIXMENUBAR_H */

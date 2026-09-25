@@ -131,7 +131,6 @@ void AP_Dialog_Options::_storeWindowData(void)
 	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_ParaVisible, _gatherViewUnprintable() );
 	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_EnableSmoothScrolling, _gatherEnableSmoothScrolling() );
     Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_InsertModeToggle, _gatherEnableOverwrite() );
-	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_AutoLoadPlugins, _gatherAutoLoadPlugins() );
 	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_DefaultDirectionRtl, _gatherOtherDirectionRtl() );
 	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_ChangeLanguageWithKeyboard, _gatherLanguageWithKeyboard() );
 	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_DirMarkerAfterClosingParenthesis, _gatherDirMarkerAfterClosingParenthesis());
@@ -151,12 +150,6 @@ void AP_Dialog_Options::_storeWindowData(void)
 	
 	// Jordi: win32 specific for now
 	
-	_gatherUILanguage(stVal);
-	if (stVal.length())
-	{
-		UT_DEBUGMSG(("Setting default UI language to [%s]\n", stVal.c_str()));
-		pPrefsScheme->setValue(AP_PREF_KEY_StringSet, stVal.c_str());
-	}
 	
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// If we changed whether the ruler is to be visible
@@ -338,10 +331,6 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_InsertModeToggle,
 					_gatherEnableOverwrite() );
             break;
-		case id_CHECK_AUTO_LOAD_PLUGINS:
-			Save_Pref_Bool (pPrefsScheme, XAP_PREF_KEY_AutoLoadPlugins,
-					_gatherAutoLoadPlugins() );
-			break;
 
 		case id_CHECK_LANG_WITH_KEYBOARD:
 			Save_Pref_Bool (pPrefsScheme, XAP_PREF_KEY_ChangeLanguageWithKeyboard,
@@ -490,9 +479,6 @@ void AP_Dialog_Options::_populateWindowData(void)
 	if (pPrefs->getPrefsValueBool(XAP_PREF_KEY_EnableSmoothScrolling, b)) {
 		_setEnableSmoothScrolling(b);
 	}
-	if (pPrefs->getPrefsValueBool(XAP_PREF_KEY_AutoLoadPlugins, b)) {
-		_setAutoLoadPlugins(b);
-	}
 
 	// TODO: JOAQUIN FIX THIS
 	if (pPrefs->getPrefsValueBool(XAP_PREF_KEY_AutoSaveFile, b)) {
@@ -508,10 +494,6 @@ void AP_Dialog_Options::_populateWindowData(void)
 		_setAutoSaveFilePeriod(stBuffer);
 	}
 
-	//Just for win32
-	if (pPrefs->getPrefsValue(AP_PREF_KEY_StringSet, stBuffer)) {
-		_setUILanguage(stBuffer);
-	}
 
 	// ------------ Screen Color
 

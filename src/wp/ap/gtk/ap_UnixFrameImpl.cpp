@@ -75,7 +75,6 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_dScrollAnimTarget(0.0),
 	m_pRibbon(nullptr),
 	m_wRibbon(nullptr),
-	m_bRibbonMode(false),
 	m_wDocPaned(nullptr),
 	m_wSideDeck(nullptr),
 	m_wStylesPaneW(nullptr),
@@ -175,10 +174,9 @@ void AP_UnixFrameImpl::_showOrHideToolbars()
 		static_cast<AP_UnixFrame *>(pFrame)->toggleBar(i, bShowBar[i]);
 	}
 
-	// the just-created bars default to their prefs; ribbon mode
-	// hides them regardless
-	if (m_bRibbonMode)
-		_applyUIMode();
+	// the just-created bars default to their prefs; the ribbon-only
+	// build keeps them hidden regardless
+	_applyUIMode();
 }
 
 /*!
@@ -1310,8 +1308,8 @@ bool AP_UnixFrameImpl::arrangeAllWindows()
 
 void AP_UnixFrameImpl::_createRibbonUI()
 {
-	// (re)create the ribbon next to the menubar; which of the two is
-	// visible is governed by the RibbonUI preference.
+	// (re)create the ribbon at the top of the frame; it is the only
+	// UI chrome in the ribbon-only build.
 	if (m_pRibbon)
 	{
 		if (m_wRibbon)
@@ -1320,13 +1318,9 @@ void AP_UnixFrameImpl::_createRibbonUI()
 		m_wRibbon = nullptr;
 	}
 
-	bool bRibbon = false;
-	XAP_App::getApp()->getPrefsValueBool(AP_PREF_KEY_RibbonUI, bRibbon);
-	m_bRibbonMode = bRibbon;
-
 	m_pRibbon = new AP_UnixRibbon(getFrame(), m_pUnixMenu);
 	m_wRibbon = m_pRibbon->createWidget();
-	gtk_widget_insert_after(m_wRibbon, m_wVBox, m_pUnixMenu->getMenuBar());
+	gtk_widget_insert_after(m_wRibbon, m_wVBox, nullptr);
 
 	_applyUIMode();
 }
@@ -1342,51 +1336,34 @@ void AP_UnixFrameImpl::_rebuildMenus()
 
 void AP_UnixFrameImpl::refreshRibbon()
 {
-	if (m_pRibbon && m_bRibbonMode)
+	if (m_pRibbon)
 		m_pRibbon->refresh();
-}
-
-void AP_UnixFrameImpl::setRibbonMode(bool bRibbon)
-{
-	m_bRibbonMode = bRibbon;
-	_applyUIMode();
 }
 
 void AP_UnixFrameImpl::_applyUIMode()
 {
-	if (!m_pUnixMenu || !m_wRibbon)
+	if (!m_wRibbon)
 		return;
 
-	gtk_widget_set_visible(m_pUnixMenu->getMenuBar(), !m_bRibbonMode);
-	gtk_widget_set_visible(m_wRibbon, m_bRibbonMode);
+	gtk_widget_set_visible(m_wRibbon, true);
 
-	// the ribbon replaces the icon bars as well as the menubar; in
-	// classic mode restore each bar to its own visibility pref.
+	// the ribbon replaces the classic icon bars permanently.
 	// m_vecToolbars may still be empty during window construction.
-	AP_FrameData * pFrameData =
-		static_cast<AP_FrameData *>(getFrame()->getFrameData());
 	UT_uint32 nrBars = m_vecToolbars.getItemCount();
 	for (UT_uint32 i = 0; i < nrBars && i < 4; ++i)
 	{
 		EV_Toolbar * pToolbar =
 			static_cast<EV_Toolbar *>(m_vecToolbars.getNthItem(i));
-		if (!pToolbar)
-			continue;
-		if (m_bRibbonMode)
+		if (pToolbar)
 			pToolbar->hide();
-		else if (pFrameData && pFrameData->m_bShowBar[i])
-			pToolbar->show();
 	}
-	if (m_bRibbonMode)
-		m_pRibbon->refresh();
+	m_pRibbon->refresh();
 }
 
 void AP_UnixFrameImpl::_hideMenuScroll(bool bHideMenuScroll)
 {
   if(bHideMenuScroll)
   {
-    UT_DEBUGMSG(("Hiding Menu \n"));
-    gtk_widget_hide(m_pUnixMenu->getMenuBar());
     if (m_wRibbon)
       gtk_widget_hide(m_wRibbon);
     UT_DEBUGMSG(("Hiding scrollbar \n"));

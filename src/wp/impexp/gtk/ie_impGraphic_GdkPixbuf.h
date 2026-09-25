@@ -40,7 +40,6 @@
 #include "ut_bytebuf.h"
 #include "ut_vector.h"
 #include "ut_string.h"
-#include "xap_Module.h"
 #include "ie_impGraphic.h"
 #include "fg_GraphicRaster.h"
 #include <png.h>

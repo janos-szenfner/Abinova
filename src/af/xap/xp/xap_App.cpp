@@ -46,8 +46,6 @@
 #include "gr_Image.h"
 #include "xap_Frame.h"
 #include "xap_EditMethods.h"
-#include "xap_ModuleManager.h"
-#include "xap_Module.h"
 
 #include "xap_Menu_ActionSet.h"
 #include "xap_Toolbar_ActionSet.h"
@@ -217,34 +215,6 @@ EV_Menu_ActionSet *XAP_App::getMenuActionSet()
 EV_Toolbar_ActionSet *XAP_App::getToolbarActionSet()
 {
 	return m_pToolbarActionSet;
-}
-
-/*!
- * Returns a pointer to the requested plugin if it is loaded.
- * Return nullptr otherwise.
- */
-XAP_Module* XAP_App::getPlugin(const char* szPluginName) const
-{
-     XAP_Module * pModule = nullptr;
-     const UT_GenericVector<XAP_Module*> * pVec = XAP_ModuleManager::instance().enumModules ();
-     bool bFound = false;
-     for (UT_sint32 i = 0; (i < pVec->size()) && !bFound; i++)
-     {
-          pModule = pVec->getNthItem (i);
-          UT_nonnull_or_continue(pModule);
-          UT_nonnull_or_continue(pModule->getModuleInfo());
-
-          const char * szName = pModule->getModuleInfo()->name;
-          if(g_ascii_strcasecmp(szName,szPluginName) == 0)
-          {
-              bFound = true;
-          }
-     }
-     if(!bFound)
-     {
-           return nullptr;
-     }
-     return pModule;
 }
 
 /*!
@@ -518,7 +488,6 @@ const char * XAP_App::getApplicationTitleForTitleBar() const
 	// return a string that the platform-specific code
 	// can copy to the title bar of a window.
 
-	//sprintf(_title, "%s (www.abisource.com)", m_szAppName);
 	sprintf(_title, "%s", m_szAppName);
 
 	return _title;

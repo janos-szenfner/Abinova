@@ -86,7 +86,6 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 
 				   id_CHECK_ENABLE_SMOOTH_SCROLLING,
                    id_CHECK_ENABLE_OVERWRITE,
-				   id_CHECK_AUTO_LOAD_PLUGINS,
 				   id_NOTEBOOK,
 				   id_CHECK_LANG_WITH_KEYBOARD,
 				   id_CHECK_DIR_MARKER_AFTER_CLOSING_PARENTHESIS,
@@ -162,7 +161,6 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	SET_GATHER			(ViewHiddenText,	bool);
 	SET_GATHER			(ViewUnprintable,	bool);
 	SET_GATHER			(EnableSmoothScrolling, bool);
-	SET_GATHER			(AutoLoadPlugins, bool);
 
 	SET_GATHER			(OtherDirectionRtl, bool);
 
@@ -174,10 +172,6 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	virtual void _gatherDefaultSaveFormat(UT_String &stRetVal) = 0;
 	virtual void _setDefaultSaveFormat(const UT_String &stExt) = 0;
 
-	// Jordi: For now this is just implemented in win32, we should make it
-	// an abstract member if we decide to implemented in all platforms
-	virtual void _gatherUILanguage(UT_String &stRetVal){stRetVal.clear();};
-	virtual void _setUILanguage(const UT_String & /*stExt*/) {};
 	virtual bool _gatherLanguageWithKeyboard() {return false;}
 	virtual void _setLanguageWithKeyboard(const bool) {}
 	virtual bool _gatherDirMarkerAfterClosingParenthesis(){return false;}

@@ -1,9 +1,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-DIST_SUBDIRS = src thirdparty plugins po user icons tools fonts
+DIST_SUBDIRS = src thirdparty user icons tools fonts
 
-SUBDIRS = thirdparty src plugins po user
+SUBDIRS = thirdparty src user
 
 
 SUBDIRS += icons fonts
@@ -15,7 +15,6 @@ mimedir = @ABIWORD_DATADIR@/mime-info
 mime_DATA = abinova.keys
 
 # MathML -> LaTeX stylesheets used by the core math import path
-# (needed by the openxml and opendocument plugins)
 xsltmldir = @ABIWORD_DATADIR@/xsltml
 xsltml_DATA = \
 	xsltml/README \
@@ -56,11 +55,7 @@ EXTRA_DIST = \
 	$(xsltml_DATA)
 
 DISTCLEANFILES = \
-	abinova-$(ABIWORD_SERIES).pc \
-	plugin-builtin.m4 \
-	plugin-configure.m4 \
-	plugin-list.m4 \
-	plugin-makefiles.m4
+	abinova-$(ABIWORD_SERIES).pc
 
 abinova-$(ABIWORD_SERIES).pc: libabiword.pc
 	cp $< $@

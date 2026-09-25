@@ -60,7 +60,6 @@ class ABI_EXPORT AP_App : public XAP_App_BaseClass
 	 */
 	XAP_Frame* openFile(const char* uri, const char* file = nullptr);
 	bool openCmdLineFiles(const AP_Args * args);
-	bool openCmdLinePlugins(const AP_Args * args, bool & bSuccess);
 protected:
 	virtual void saveRecoveryFiles() override;
  private:

@@ -49,7 +49,6 @@ class AV_View;
 class GR_Image;
 class AP_Args;
 class AP_BuiltinStringSet;
-class AP_DiskStringSet;
 
 class ABI_EXPORT AP_UnixApp : public AP_App
 {
@@ -106,14 +105,11 @@ public:
 	static int main (const char * szAppName, int argc, char ** argv);
 
 	virtual void	catchSignals(int sig_num) override ABI_NORETURN;
-	void loadAllPlugins ();
 
 	virtual void errorMsgBadFile(XAP_Frame * pFrame, const char * file,
 								 UT_Error error) override;
 	virtual bool doWindowlessArgs (const AP_Args *, bool & bSuccess) override;
 	bool makePngPreview(const char * pszInFile,const char * pszPNGFile,  UT_sint32 iWidth, UT_sint32 iHeight);
-	AP_DiskStringSet * loadStringsFromDisk(const char 		   * szStringSet,
-										   AP_BuiltinStringSet * pFallbackStringSet);
 
 	virtual XAP_UnixClipboard * getClipboard () override { return m_pClipboard; }
 

@@ -143,11 +143,8 @@ public:
 	bool					savePrefsFile(void);
 
 	XAP_PrefsScheme *		getNthScheme(UT_uint32 k) const;
-	XAP_PrefsScheme *		getNthPluginScheme(UT_uint32 k) const;
 	XAP_PrefsScheme *		getScheme(const gchar * szSchemeName) const;
-	XAP_PrefsScheme *		getPluginScheme(const gchar * szSchemeName) const;
 	void addScheme(XAP_PrefsScheme* pNewScheme);
-	void addPluginScheme(XAP_PrefsScheme* pNewScheme);
 	XAP_PrefsScheme* getCurrentScheme() const;
 	XAP_PrefsScheme* getCurrentScheme(bool bCreate);
 	bool					setCurrentScheme(const gchar * szSchemeName);
@@ -159,8 +156,6 @@ public:
 	bool					getAutoSavePrefs(void) const;
 	void					setAutoSavePrefs(bool bAuto);
 
-	bool					getUseEnvLocale(void) const;
-	void					setUseEnvLocale(bool bUse);
 
 	UT_uint32 getMaxRecent(void) const;
 	void setMaxRecent(UT_uint32 k);
@@ -198,10 +193,8 @@ protected:
 										  const std::vector<XAP_PrefsScheme *> &vecSchemes) const;
 
 	bool					m_bAutoSavePrefs; /* save on any changes or only when user asks */
-	bool					m_bUseEnvLocale; /* use POSIX env vars to set locale */
 
 	std::vector<XAP_PrefsScheme*> m_vecSchemes;
-	std::vector<XAP_PrefsScheme*> m_vecPluginSchemes;
 	XAP_PrefsScheme *		m_currentScheme;
 	XAP_PrefsScheme *		m_builtinScheme;
 
@@ -271,6 +264,5 @@ private:
 
 #define XAP_PREF_DEFAULT_AutoSavePrefs		"1"
 #define XAP_PREF_DEFAULT_MaxRecent			"9"
-#define XAP_PREF_DEFAULT_UseEnvLocale		"1"
 
 #define XAP_PREF_LIMIT_MaxRecent			9

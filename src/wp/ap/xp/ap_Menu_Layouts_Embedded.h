@@ -283,7 +283,6 @@ BeginLayout(Main,0)
 	    Separator()
 
 #if !XAP_SIMPLE_MENU
-		MenuItem(AP_MENU_ID_TOOLS_PLUGINS)
 		MenuItem(AP_MENU_ID_TOOLS_SCRIPTS)
 #if 0
 		MenuItem(AP_MENU_ID_TOOLS_MAILMERGE)

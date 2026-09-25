@@ -1,6 +1,6 @@
 #AUTOMAKE_OPTIONS = subdir-objects
 
-SUBDIRS = af plugins text wp
+SUBDIRS = af text wp
 
 libabiword_cpp = wp/main/gtk/libabiword.cpp
 main_cpp = wp/main/gtk/UnixMain.cpp
@@ -32,7 +32,6 @@ libabiword_@ABIWORD_SERIES@_la_LDFLAGS = \
 	-export-dynamic
 
 libabiword_@ABIWORD_SERIES@_la_LIBADD = \
-	plugins/libplugins.la \
 	text/libtext.la \
 	wp/ap/libap.la \
 	wp/impexp/libimpexp.la \

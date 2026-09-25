@@ -96,39 +96,3 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////
-// a sub-class to deal with disk-based string sets (translations)
-//////////////////////////////////////////////////////////////////
-
-class ABI_EXPORT XAP_DiskStringSet : public XAP_StringSet, public UT_XML::Listener
-{
-public:
-	XAP_DiskStringSet(XAP_App * pApp);
-	virtual ~XAP_DiskStringSet(void);
-
-	virtual bool				setValue(XAP_String_Id id, const gchar * szString);
-	virtual bool				setValue(const gchar * szId, const gchar * szString);
-	virtual const gchar *	getValue(XAP_String_Id id) const override;
-	virtual bool				loadStringsFromDisk(const char * szFilename);
-
-	bool						setLanguage(const gchar * szLanguageName);
-	void						setFallbackStringSet(XAP_StringSet * pFallback);
-
-public:
-	/* Implementation of UT_XML::Listener
-	 */
-	virtual void startElement(const gchar *name, const gchar **atts) override;
-	virtual void endElement(const gchar *name) override;
-	virtual void charData(const gchar *s, int len) override;
-
-protected:
-	XAP_StringSet *				m_pFallbackStringSet;
-
-private:
-	UT_GenericVector<gchar*>	m_vecStringsXAP;
-	std::map<std::string, UT_uint32> 	m_hash;
-
-	struct
-	{
-		bool				m_parserStatus;
-	} m_parserState;
-};
