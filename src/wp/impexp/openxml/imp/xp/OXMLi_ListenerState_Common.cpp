@@ -473,8 +473,9 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		const gchar * color = attrMatches(NS_W_KEY, "color", rqst->ppAtts);
 		const gchar * theme = attrMatches(NS_W_KEY, "themeColor", rqst->ppAtts);
 
-		/* Abinova edge styles: 0 none, 1 solid, 2 dotted, 3 dashed.
-		 * OOXML's single/thick/double/wave/... all degrade to solid. */
+		/* Abinova edge styles: 0 none, 1 solid, 2 dotted, 3 dashed,
+		 * 4 double, 5 dashdot, 6 dashdotdot, 7 longdash, 8 triple,
+		 * 9 wave.  Remaining OOXML values degrade to solid. */
 		std::string style = "1";
 		if (val && *val)
 		{
@@ -482,8 +483,25 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				style = "0";
 			else if (!strcmp(val, "dotted"))
 				style = "2";
-			else if (!strncmp(val, "dash", 4))
+			else if (!strcmp(val, "dashed") ||
+					 !strcmp(val, "dashSmallGap"))
 				style = "3";
+			else if (!strcmp(val, "double") ||
+					 !strncmp(val, "thinThick", 9) ||
+					 !strncmp(val, "thickThin", 9))
+				style = "4";
+			else if (!strcmp(val, "dotDash") ||
+					 !strcmp(val, "dashDotStroked"))
+				style = "5";
+			else if (!strcmp(val, "dotDotDash"))
+				style = "6";
+			else if (!strcmp(val, "dashLargeGap"))
+				style = "7";
+			else if (!strcmp(val, "triple"))
+				style = "8";
+			else if (!strcmp(val, "wave") ||
+					 !strcmp(val, "doubleWave"))
+				style = "9";
 		}
 		UT_return_if_fail( _error_if_fail( UT_OK ==
 			para->setProperty((edge + "-style").c_str(), style.c_str()) ));

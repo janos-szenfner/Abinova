@@ -169,6 +169,24 @@ static void s_background_properties (const gchar * pszBgStyle, const gchar * psz
 		}
 }
 
+/* map an internal line-style to its RTF border keyword */
+static const char * _rtfLinestyleKeyword(PP_PropertyMap::TypeLineStyle ls)
+{
+	switch (ls)
+	{
+	case PP_PropertyMap::linestyle_dotted:		return "brdrdot";
+	case PP_PropertyMap::linestyle_dashed:		return "brdrdash";
+	case PP_PropertyMap::linestyle_dashdot:		return "brdrdashd";
+	case PP_PropertyMap::linestyle_dashdotdot:	return "brdrdashdd";
+	case PP_PropertyMap::linestyle_longdash:		return "brdrdash";
+	case PP_PropertyMap::linestyle_double:		return "brdrdb";
+	case PP_PropertyMap::linestyle_triple:		return "brdrtriple";
+	case PP_PropertyMap::linestyle_wave:			return "brdrwavy";
+	case PP_PropertyMap::linestyle_solid:
+	default:									return "brdrs";
+	}
+}
+
 static void s_border_properties (const gchar * border_color, const gchar * border_style, const gchar * border_width,
 								 const gchar * color, PP_PropertyMap::Line & line)
 {
@@ -2890,18 +2908,7 @@ void s_RTF_ListenerWriteDoc::_exportCellProps(PT_AttrPropIndex  api, std::string
 		if(bDrawBorder)
 		{
 			m_pie->_rtf_keyword("clbrdrt"); // cell top border
-			if(linestyle == PP_PropertyMap::linestyle_solid)
-			{
-				m_pie->_rtf_keyword("brdrs"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dotted)
-			{
-				m_pie->_rtf_keyword("brdrdot"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dashed)
-			{
-				m_pie->_rtf_keyword("brdrdash"); // plain border
-			}
+			m_pie->_rtf_keyword(_rtfLinestyleKeyword(linestyle));
 		}
 		else
 		{
@@ -3021,18 +3028,7 @@ void s_RTF_ListenerWriteDoc::_exportCellProps(PT_AttrPropIndex  api, std::string
 		if(bDrawBorder)
 		{
 			m_pie->_rtf_keyword("clbrdrl"); // cell left border
-			if(linestyle == PP_PropertyMap::linestyle_solid)
-			{
-				m_pie->_rtf_keyword("brdrs"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dotted)
-			{
-				m_pie->_rtf_keyword("brdrdot"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dashed)
-			{
-				m_pie->_rtf_keyword("brdrdash"); // plain border
-			}
+			m_pie->_rtf_keyword(_rtfLinestyleKeyword(linestyle));
 		}
 		else
 		{
@@ -3105,18 +3101,7 @@ void s_RTF_ListenerWriteDoc::_exportCellProps(PT_AttrPropIndex  api, std::string
 		if(bDrawBorder)
 		{
 			m_pie->_rtf_keyword("clbrdrb"); // cell bottom border
-			if(linestyle == PP_PropertyMap::linestyle_solid)
-			{
-				m_pie->_rtf_keyword("brdrs"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dotted)
-			{
-				m_pie->_rtf_keyword("brdrdot"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dashed)
-			{
-				m_pie->_rtf_keyword("brdrdash"); // plain border
-			}
+			m_pie->_rtf_keyword(_rtfLinestyleKeyword(linestyle));
 		}
 		else
 		{
@@ -3190,18 +3175,7 @@ void s_RTF_ListenerWriteDoc::_exportCellProps(PT_AttrPropIndex  api, std::string
 		if(bDrawBorder)
 		{
 			m_pie->_rtf_keyword("clbrdrr"); // cell right border
-			if(linestyle == PP_PropertyMap::linestyle_solid)
-			{
-				m_pie->_rtf_keyword("brdrs"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dotted)
-			{
-				m_pie->_rtf_keyword("brdrdot"); // plain border
-			}
-			else if( linestyle == PP_PropertyMap::linestyle_dashed)
-			{
-				m_pie->_rtf_keyword("brdrdash"); // plain border
-			}
+			m_pie->_rtf_keyword(_rtfLinestyleKeyword(linestyle));
 		}
 		else
 		{

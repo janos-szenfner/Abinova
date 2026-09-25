@@ -4828,7 +4828,9 @@ void IE_Imp_MsWord_97::_row_close ()
 //--------------------------------------------------------------------------/
 //--------------------------------------------------------------------------/
 
-// from fp_TableContainer.h
+// line-style codes understood by PP_PropertyMap::linestyle_type
+// (numeric property values): 0=none 1=solid 2=dotted 3=dashed
+// 4=double 5=dashdot 6=dashdotdot 7=longdash 8=triple 9=wave
 enum: uint8_t
 {
   LS_OFF = 0,	        // No line style, which means no line is drawn
@@ -4838,13 +4840,32 @@ enum: uint8_t
 static int
 sConvertLineStyle (short lineType)
 {
+  /* Word97 BRC type codes -> our numeric line-style codes */
   switch (lineType)
     {
-    case 0: return LS_NORMAL;
-    case 1:
-      return LS_NORMAL;
-
-      // TODO: more cases here
+    case 0:  return LS_OFF;		// none
+    case 1:  return LS_NORMAL;		// single
+    case 3:  return 4;			// double
+    case 5:  return LS_NORMAL;		// hairline: thin solid
+    case 6:  return 2;			// dotted
+    case 7:  return 3;			// dashed
+    case 8:  return 5;			// dotDash
+    case 9:  return 6;			// dotDotDash
+    case 10: return 8;			// triple
+    case 20: return 9;			// wave
+    case 21: return 9;			// doubleWave -> wave
+    case 22: return 3;			// dashSmallGap -> dashed
+    case 23: return 5;			// dashDotStroked -> dashdot
+    case 11: // thinThickSmallGap: no exact match, closest is double
+    case 12: // thickThinSmallGap
+    case 13: // thinThickThinSmallGap
+    case 14: // thinThickMediumGap
+    case 15: // thickThinMediumGap
+    case 16: // thinThickThinMediumGap
+    case 17: // thinThickLargeGap
+    case 18: // thickThinLargeGap
+    case 19: // thinThickThinLargeGap
+      return 4;
     default:
       return LS_NORMAL;
     }

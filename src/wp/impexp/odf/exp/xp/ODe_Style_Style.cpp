@@ -39,6 +39,22 @@
 #include <ctype.h>
 
 
+/* map an Abinova border-style property value to the nearest
+ * ODF/CSS keyword (ODF only knows none/solid/double/dotted/dashed) */
+static const char * s_odeBorderStyle(const gchar * v)
+{
+    if (!v || !*v) return "solid";
+    if (!strcmp(v, "0") || !strcmp(v, "none")) return "none";
+    if (!strcmp(v, "2") || !strcmp(v, "dotted")) return "dotted";
+    if (!strcmp(v, "3") || !strcmp(v, "dashed") ||
+        !strcmp(v, "5") || !strcmp(v, "dashdot") ||
+        !strcmp(v, "6") || !strcmp(v, "dashdotdot") ||
+        !strcmp(v, "7") || !strcmp(v, "longdash")) return "dashed";
+    if (!strcmp(v, "4") || !strcmp(v, "double") ||
+        !strcmp(v, "8") || !strcmp(v, "triple")) return "double";
+    return "solid";
+}
+
 /*******************************************************************************
  * ODe_Style_Style
  ******************************************************************************/
@@ -1262,7 +1278,8 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     // Left border
 
     ok = rAP.getProperty("left-style", pValue);
-	if(!ok || (pValue && (*pValue == '0'))) {
+    const char * szBorderStyleLeft = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
+	if(!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
       m_borderLeft.clear();
     } else {
         ok = rAP.getProperty("left-thickness", pValue);
@@ -1275,7 +1292,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             if (!m_borderLeft.empty()) {
                 m_borderLeft += " ";
             }
-            m_borderLeft += "solid ";
+            m_borderLeft += szBorderStyleLeft; m_borderLeft += " ";
             m_borderLeft += UT_colorToHex(pValue, true);
         }
     }
@@ -1284,7 +1301,8 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     // Right border
 
     ok = rAP.getProperty("right-style", pValue);
-    if(!ok || (pValue && (*pValue == '0'))) {
+    const char * szBorderStyleRight = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
+    if(!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
       m_borderRight.clear();
     } else {
         ok = rAP.getProperty("right-thickness", pValue);
@@ -1297,7 +1315,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             if (!m_borderRight.empty()) {
                 m_borderRight += " ";
             }
-            m_borderRight += "solid ";
+            m_borderRight += szBorderStyleRight; m_borderRight += " ";
             m_borderRight += UT_colorToHex(pValue, true);
         }
     }
@@ -1306,7 +1324,8 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     // Top border
     
     ok = rAP.getProperty("top-style", pValue);
-    if(!ok || (pValue && (*pValue == '0'))) {
+    const char * szBorderStyleTop = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
+    if(!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
       m_borderTop.clear();
     } else {
         ok = rAP.getProperty("top-thickness", pValue);
@@ -1319,7 +1338,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             if (!m_borderTop.empty()) {
                 m_borderTop += " ";
             }
-            m_borderTop += "solid ";
+            m_borderTop += szBorderStyleTop; m_borderTop += " ";
             m_borderTop += UT_colorToHex(pValue, true);
         }
     }
@@ -1328,7 +1347,8 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     // Bottom border
     
     ok = rAP.getProperty("bot-style", pValue);
-    if(!ok || (pValue && (*pValue == '0'))) {
+    const char * szBorderStyleBottom = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
+    if(!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
       m_borderBottom.clear();
     } else {
         ok = rAP.getProperty("bot-thickness", pValue);
@@ -1342,7 +1362,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
                 m_borderBottom += " ";
             }
             
-            m_borderBottom += "solid ";
+            m_borderBottom += szBorderStyleBottom; m_borderBottom += " ";
             m_borderBottom += UT_colorToHex(pValue, true);
         }
     }
@@ -2356,8 +2376,9 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     // Left border
 
     ok = rAP.getProperty("left-style", pValue);
+    const char * szBorderStyleLeft = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
 
-    if (!ok || (pValue && (*pValue == '0'))) {
+    if (!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
         m_borderLeft = "none";
     } else {
         ok = rAP.getProperty("left-thickness", pValue);
@@ -2370,7 +2391,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             if (!m_borderLeft.empty()) {
                 m_borderLeft += " ";
             }
-            m_borderLeft += "solid ";
+            m_borderLeft += szBorderStyleLeft; m_borderLeft += " ";
             m_borderLeft += UT_colorToHex(pValue, true);
         }
     }
@@ -2379,8 +2400,9 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     // Right border
 
     ok = rAP.getProperty("right-style", pValue);
+    const char * szBorderStyleRight = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
     
-    if (!ok || (pValue && (*pValue == '0'))) {
+    if (!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
         m_borderRight = "none";
     } else {
         ok = rAP.getProperty("right-thickness", pValue);
@@ -2393,7 +2415,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             if (!m_borderRight.empty()) {
                 m_borderRight += " ";
             }
-            m_borderRight += "solid ";
+            m_borderRight += szBorderStyleRight; m_borderRight += " ";
             m_borderRight += UT_colorToHex(pValue, true);
         }
     }
@@ -2402,8 +2424,9 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     // Top border
     
     ok = rAP.getProperty("top-style", pValue);
+    const char * szBorderStyleTop = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
     
-    if (!ok || (pValue && (*pValue == '0'))) {
+    if (!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
         m_borderTop = "none";
     } else {
         ok = rAP.getProperty("top-thickness", pValue);
@@ -2416,7 +2439,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             if (!m_borderTop.empty()) {
                 m_borderTop += " ";
             }
-            m_borderTop += "solid ";
+            m_borderTop += szBorderStyleTop; m_borderTop += " ";
             m_borderTop += UT_colorToHex(pValue, true);
         }
     }
@@ -2426,8 +2449,9 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     
     
     ok = rAP.getProperty("bot-style", pValue);
+    const char * szBorderStyleBottom = (ok && pValue) ? s_odeBorderStyle(pValue) : "solid";
     
-    if (!ok || (pValue && (*pValue == '0'))) {
+    if (!ok || (pValue && ((*pValue == '0') || !strcmp(pValue, "none")))) {
         m_borderBottom = "none";
     } else {
         ok = rAP.getProperty("bot-thickness", pValue);
@@ -2441,7 +2465,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
                 m_borderBottom += " ";
             }
             
-            m_borderBottom += "solid ";
+            m_borderBottom += szBorderStyleBottom; m_borderBottom += " ";
             m_borderBottom += UT_colorToHex(pValue, true);
         }
     }

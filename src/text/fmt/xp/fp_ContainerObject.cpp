@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "fp_ContainerObject.h"
 #include "fl_SectionLayout.h"
@@ -233,7 +234,19 @@ void fp_Container::drawLine(const PP_PropertyMap::Line & style,
 		case PP_PropertyMap::linestyle_dashed:
 			pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_ON_OFF_DASH);
 			break;
+		case PP_PropertyMap::linestyle_dashdot:
+			pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_DASH_DOT);
+			break;
+		case PP_PropertyMap::linestyle_dashdotdot:
+			pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_DASH_DOT_DOT);
+			break;
+		case PP_PropertyMap::linestyle_longdash:
+			pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_LONG_DASH);
+			break;
 		case PP_PropertyMap::linestyle_solid:
+		case PP_PropertyMap::linestyle_double:
+		case PP_PropertyMap::linestyle_triple:
+		case PP_PropertyMap::linestyle_wave:
 			pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_SOLID);
 			break;
 		default: // do nothing; shouldn't happen
@@ -253,6 +266,70 @@ void fp_Container::drawLine(const PP_PropertyMap::Line & style,
 	xxx_UT_DEBUGMSG(("_drawLine: top %d bot %d \n",top,bot));
 
 	GR_Painter painter(pGr);
+
+	/* double / triple borders draw the edge as parallel strands inside
+	 * the nominal thickness (Word/OOXML "double"/"triple" semantics):
+	 * each strand is a third/fifth of the thickness */
+	if (style.m_t_linestyle == PP_PropertyMap::linestyle_double ||
+		style.m_t_linestyle == PP_PropertyMap::linestyle_triple)
+	{
+		const int nStrands =
+			(style.m_t_linestyle == PP_PropertyMap::linestyle_triple)
+				? 3 : 2;
+		UT_sint32 t = static_cast<UT_sint32>(style.m_thickness);
+		UT_sint32 strand = (nStrands == 3) ? t / 5 : t / 3;
+		if (strand < pGr->tlu(1))
+			strand = pGr->tlu(1);
+		UT_sint32 gap = (t - nStrands * strand) / (nStrands - 1);
+		UT_sint32 off0 = -(t - strand) / 2;	/* centre strand pack */
+		bool bVert = (left == right);
+		pGr->setLineWidth(strand);
+		for (int i = 0; i < nStrands; ++i)
+		{
+			UT_sint32 o = off0 + i * (strand + gap);
+			if (bVert)
+				painter.drawLine(left + o, top, right + o, bot);
+			else
+				painter.drawLine(left, top + o, right, bot + o);
+		}
+		pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_SOLID);
+		return;
+	}
+
+	/* wave: sine approximation as a polyline along the edge */
+	if (style.m_t_linestyle == PP_PropertyMap::linestyle_wave)
+	{
+		UT_sint32 t = static_cast<UT_sint32>(style.m_thickness);
+		UT_sint32 amp = t > pGr->tlu(2) ? t / 2 : pGr->tlu(1);
+		bool bVert = (left == right);
+		UT_sint32 len = bVert ? (bot - top) : (right - left);
+		if (len <= 0)
+		{
+			pGr->setLineProperties (pGr->tlu(1), js, cs,
+									GR_Graphics::LINE_SOLID);
+			return;
+		}
+		const double period = 6.0 * (double)(t > 0 ? t : pGr->tlu(1));
+		const int nSeg = UT_MAX(8, (int)(len / (pGr->tlu(2) > 0 ? pGr->tlu(2) : 2)));
+		UT_sint32 prevPos = 0;
+		double prevOff = 0.0;
+		for (int i = 1; i <= nSeg; ++i)
+		{
+			UT_sint32 pos = len * i / nSeg;
+			double off = amp * sin(2.0 * G_PI * (double)pos / period);
+			if (bVert)
+				painter.drawLine(left + (UT_sint32)prevOff,
+								 top + prevPos,
+								 left + (UT_sint32)off, top + pos);
+			else
+				painter.drawLine(left + prevPos, top + (UT_sint32)prevOff,
+								 left + pos, top + (UT_sint32)off);
+			prevPos = pos;
+			prevOff = off;
+		}
+		pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_SOLID);
+		return;
+	}
 
 	painter.drawLine (left, top, right, bot);
 	pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_SOLID);

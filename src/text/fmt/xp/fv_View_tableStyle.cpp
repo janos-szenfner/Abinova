@@ -26,6 +26,7 @@
  */
 
 #include "fv_View.h"
+#include "fv_ViewDoubleBuffering.h"
 #include "fl_TableStyles.h"
 #include "pd_Document.h"
 #include "pt_Types.h"
@@ -35,6 +36,8 @@
 #include "fl_TableLayout.h"
 #include "fl_BlockLayout.h"
 #include "fl_ContainerLayout.h"
+#include "fp_TableContainer.h"
+#include "fp_Page.h"
 #include "xap_App.h"
 #include "ut_debugmsg.h"
 
@@ -599,4 +602,224 @@ void FV_View::cmdTableStylePreviewEnd()
 	}
 	m_pDoc->setDontImmediatelyLayout(false);
 	_generalUpdate();
+}
+
+/* ---- Border Painter / Border Sampler ---- */
+
+/* locate the cell border nearest to the click point; posCell gets a
+ * position inside that cell and iEdge the edge index
+ * (0 top, 1 bottom, 2 left, 3 right).  false when the click is
+ * outside a table or too far from every edge */
+bool FV_View::_borderEdgeAtXY(UT_sint32 xPos, UT_sint32 yPos,
+							  PT_DocPosition & posCell, int & iEdge)
+{
+	PT_DocPosition pos = getDocPositionFromXY(xPos, yPos);
+	if (!isInTable(pos))
+	{
+		return false;
+	}
+	fp_CellContainer * pCell = getCellAtPos(pos);
+	UT_return_val_if_fail(pCell, false);
+
+	fp_TableContainer * pTab =
+		static_cast<fp_TableContainer *>(pCell->getTopmostTable());
+	fp_TableContainer * pBroke = pTab ? pTab->getFirstBrokenTable() : nullptr;
+	UT_return_val_if_fail(pBroke && pBroke->getPage(), false);
+
+	UT_sint32 xoff = 0, yoff = 0;
+	fp_Page * pPage = pBroke->getPage();
+	getPageScreenOffsets(pPage, xoff, yoff);
+	fp_Container * pCon = static_cast<fp_Container *>(pCell);
+	while (pCon && !pCon->isColumnType())
+	{
+		xoff += pCon->getX();
+		yoff += pCon->getY();
+		pCon = pCon->getContainer();
+	}
+	if (pCon)
+	{
+		xoff += pCon->getX();
+		yoff += pCon->getY();
+	}
+	yoff -= pBroke->getYBreak();
+
+	/* everything stays in layout units: xPos/yPos come from the
+	 * edit method's m_xPos which is tluD() (device -> layout) */
+	UT_Rect r;
+	r.left = xoff;
+	r.top = yoff;
+	r.width = pCell->getWidth();
+	r.height = pCell->getHeight();
+
+	UT_sint32 dL = labs(xPos - r.left);
+	UT_sint32 dR = labs(xPos - (r.left + r.width));
+	UT_sint32 dT = labs(yPos - r.top);
+	UT_sint32 dB = labs(yPos - (r.top + r.height));
+	UT_sint32 dMin = UT_MIN(UT_MIN(dL, dR), UT_MIN(dT, dB));
+	/* ~12 px of tolerance at 1440 lu/in, 96 dpi */
+	const UT_sint32 iSlop = 200;
+	if (dMin > iSlop)
+	{
+		return false;
+	}
+	iEdge = (dMin == dT) ? 0 : (dMin == dB) ? 1 : (dMin == dL) ? 2 : 3;
+	posCell = pos;
+	return true;
+}
+
+static const char * const s_edgeNames[4] = { "top", "bot", "left", "right" };
+
+/* position of the cell across the given edge, or 0 on the table's
+ * outer rim */
+static PT_DocPosition fv_neighborCellPos(FV_View * view, PD_Document * doc,
+										 PT_DocPosition posCell, int iEdge)
+{
+	UT_sint32 iLeft, iRight, iTop, iBot;
+	view->getCellParams(posCell, &iLeft, &iRight, &iTop, &iBot);
+	const pf_Frag_Strux * tableSDH = nullptr;
+	if (!doc->getStruxOfTypeFromPosition(posCell, PTX_SectionTable,
+									   &tableSDH) || !tableSDH)
+		return 0;
+	UT_sint32 numRows = 0, numCols = 0;
+	doc->getRowsColsFromTableStrux(tableSDH, view->isShowRevisions(),
+								   view->getRevisionLevel(),
+								   &numRows, &numCols);
+	PT_DocPosition posTable = doc->getStruxPosition(tableSDH) + 1;
+	switch (iEdge)
+	{
+	case 0: return iTop > 0 ? view->findCellPosAt(posTable, iTop - 1, iLeft) : 0;
+	case 1: return iBot < numRows ? view->findCellPosAt(posTable, iBot, iLeft) : 0;
+	case 2: return iLeft > 0 ? view->findCellPosAt(posTable, iTop, iLeft - 1) : 0;
+	default: return iRight < numCols ? view->findCellPosAt(posTable, iTop, iRight) : 0;
+	}
+}
+
+/* Border Painter: stamp the current table pen onto the nearest cell
+ * edge.  The complementary edge of the neighbour cell is painted too
+ * so a shared border keeps a single look */
+bool FV_View::cmdBorderPaintAt(UT_sint32 xPos, UT_sint32 yPos)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	PT_DocPosition pos = 0;
+	int iEdge = 0;
+	if (!_borderEdgeAtXY(xPos, yPos, pos, iEdge))
+	{
+		return false;
+	}
+	const pf_Frag_Strux * cellSDH = nullptr;
+	UT_return_val_if_fail(m_pDoc->getStruxOfTypeFromPosition(
+		pos, PTX_SectionCell, &cellSDH) && cellSDH, false);
+	const pf_Frag_Strux * tableSDH = nullptr;
+	UT_return_val_if_fail(m_pDoc->getStruxOfTypeFromPosition(
+		pos, PTX_SectionTable, &tableSDH) && tableSDH, false);
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	PT_DocPosition posCell = m_pDoc->getStruxPosition(cellSDH) + 1;
+
+	std::string pStyle = std::string(s_edgeNames[iEdge]) + "-style";
+	std::string pThick = std::string(s_edgeNames[iEdge]) + "-thickness";
+	std::string pColor = std::string(s_edgeNames[iEdge]) + "-color";
+
+	_changeCellParams(posTable, tableSDH);
+	const PP_PropertyVector props = {
+		pStyle.c_str(), s_tablePen.style.c_str(),
+		pThick.c_str(), s_tablePen.thickness.c_str(),
+		pColor.c_str(), s_tablePen.color.c_str()
+	};
+	m_pDoc->changeStruxFmt(PTC_AddFmt, posCell, posCell,
+						   PP_NOPROPS, props, PTX_SectionCell);
+
+	/* shared edge: paint the neighbour's complementary side too */
+	const int oppEdge[4] = { 1, 0, 3, 2 };
+	PT_DocPosition posOther = fv_neighborCellPos(this, m_pDoc, pos, iEdge);
+	if (posOther)
+	{
+		const pf_Frag_Strux * otherSDH = nullptr;
+		if (m_pDoc->getStruxOfTypeFromPosition(posOther, PTX_SectionCell,
+											 &otherSDH) && otherSDH)
+		{
+			std::string oStyle = std::string(s_edgeNames[oppEdge[iEdge]]) + "-style";
+			std::string oThick = std::string(s_edgeNames[oppEdge[iEdge]]) + "-thickness";
+			std::string oColor = std::string(s_edgeNames[oppEdge[iEdge]]) + "-color";
+			PT_DocPosition posOC = m_pDoc->getStruxPosition(otherSDH) + 1;
+			const PP_PropertyVector oprops = {
+				oStyle.c_str(), s_tablePen.style.c_str(),
+				oThick.c_str(), s_tablePen.thickness.c_str(),
+				oColor.c_str(), s_tablePen.color.c_str()
+			};
+			m_pDoc->changeStruxFmt(PTC_AddFmt, posOC, posOC,
+								   PP_NOPROPS, oprops, PTX_SectionCell);
+		}
+	}
+	_restoreCellParams(posTable, tableSDH);
+	_generalUpdate();
+	return true;
+}
+
+/* Border Sampler: copy the nearest cell edge's pen back into the
+ * table pen, then hand over to the Border Painter (the Word
+ * paintbrush workflow: sample here, paint there) */
+bool FV_View::cmdBorderSampleAt(UT_sint32 xPos, UT_sint32 yPos)
+{
+	PT_DocPosition pos = 0;
+	int iEdge = 0;
+	if (!_borderEdgeAtXY(xPos, yPos, pos, iEdge))
+	{
+		return false;
+	}
+	const pf_Frag_Strux * cellSDH = nullptr;
+	UT_return_val_if_fail(m_pDoc->getStruxOfTypeFromPosition(
+		pos, PTX_SectionCell, &cellSDH) && cellSDH, false);
+
+	auto readEdge = [&](const pf_Frag_Strux * sdh, int edge,
+						std::string & sStyle, std::string & sThick,
+						std::string & sColor) -> bool {
+		const gchar * v = nullptr;
+		bool bAny = false;
+		std::string base = s_edgeNames[edge];
+		if (m_pDoc->getPropertyFromStrux(sdh, isShowRevisions(),
+									   getRevisionLevel(),
+									   (base + "-style").c_str(),
+									   reinterpret_cast<const char**>(&v)) && v)
+		{ sStyle = v; bAny = true; }
+		v = nullptr;
+		if (m_pDoc->getPropertyFromStrux(sdh, isShowRevisions(),
+									   getRevisionLevel(),
+									   (base + "-thickness").c_str(),
+									   reinterpret_cast<const char**>(&v)) && v)
+		{ sThick = v; bAny = true; }
+		v = nullptr;
+		if (m_pDoc->getPropertyFromStrux(sdh, isShowRevisions(),
+									   getRevisionLevel(),
+									   (base + "-color").c_str(),
+									   reinterpret_cast<const char**>(&v)) && v)
+		{ sColor = v; bAny = true; }
+		return bAny;
+	};
+
+	std::string sStyle, sThick, sColor;
+	if (!readEdge(cellSDH, iEdge, sStyle, sThick, sColor))
+	{
+		/* try the neighbour's complementary edge - shared borders
+		 * may be owned by either side */
+		const int oppEdge[4] = { 1, 0, 3, 2 };
+		PT_DocPosition posOther = fv_neighborCellPos(this, m_pDoc, pos, iEdge);
+		if (posOther)
+		{
+			const pf_Frag_Strux * otherSDH = nullptr;
+			if (m_pDoc->getStruxOfTypeFromPosition(posOther,
+												 PTX_SectionCell,
+												 &otherSDH) && otherSDH)
+				readEdge(otherSDH, oppEdge[iEdge], sStyle, sThick, sColor);
+		}
+	}
+	setTablePen(sStyle.empty() ? nullptr : sStyle.c_str(),
+				sThick.empty() ? nullptr : sThick.c_str(),
+				sColor.empty() ? nullptr : sColor.c_str());
+	/* sampled pen goes straight to the painter, like Word */
+	setBorderSamplerMode(false);
+	setBorderPainterMode(true);
+	/* mode changed: nudge listeners so the ribbon toggle syncs */
+	_generalUpdate();
+	return true;
 }

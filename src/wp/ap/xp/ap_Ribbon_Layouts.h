@@ -80,7 +80,9 @@ enum AP_RibbonTblPopId : uint8_t
 	AP_RIBBON_TBLPOP_PENSTYLE,
 	AP_RIBBON_TBLPOP_PENCOLOR,
 	AP_RIBBON_TBLPOP_PENTHICK,
-	AP_RIBBON_TBLPOP_PAINTER
+	AP_RIBBON_TBLPOP_PAINTER,
+	AP_RIBBON_TBLPOP_LINESTYLE	/* compact line-style dropdown,
+								 * same popover as PENSTYLE */
 };
 
 /* ids for AP_RIBBON_ITEM_SPIN rows - not menu/toolbar ids */
@@ -720,17 +722,18 @@ static const AP_RibbonItem s_ribbon_tabledesign_styles[] =
 	AP_RIBBON_END
 };
 
-/* Borders group (Word layout): large Shading button, a three-row
- * column (Border Styles / pen-thickness combo / Pen Color), then the
- * Borders preset dropdown and the Border Painter toggle */
+/* Borders group (Word layout): large Shading, large Border Styles,
+ * a column of two compact dropdowns (line style / pen thickness),
+ * then large Pen Colour, Borders and Border Painter buttons */
 static const AP_RibbonItem s_ribbon_tabledesign_borders[] =
 {
 	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_LARGE, AP_RIBBON_TBLPOP_SHADING },
-	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PENSTYLE },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_LARGE, AP_RIBBON_TBLPOP_PENSTYLE },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_LINESTYLE },
 	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PENTHICK },
-	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PENCOLOR },
-	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_BORDERS },
-	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_NONE,  AP_RIBBON_TBLPOP_PAINTER },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_LARGE, AP_RIBBON_TBLPOP_PENCOLOR },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_LARGE, AP_RIBBON_TBLPOP_BORDERS },
+	{ AP_RIBBON_ITEM_TBLPOP, AP_RIBBON_FLAG_LARGE, AP_RIBBON_TBLPOP_PAINTER },
 	AP_RIBBON_END
 };
 

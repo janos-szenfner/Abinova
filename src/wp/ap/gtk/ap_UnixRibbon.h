@@ -139,10 +139,17 @@ private:
 	GtkWidget *		_tblBorderRow(int edges, const char * szLabel,
 								  const char * szData);
 	GtkWidget *		_makeTblPenStylePopover();
+	GtkWidget *		_makeTblLineStylePopover();
 	GtkWidget *		_makeTblPenThickPopover();
 	GtkWidget *		_tblPenRow(const char * szStyle, const char * szThickness,
 							   const char * szLabel);
+	GtkWidget *		_tblThemePenTile(const char * szThickness,
+									 const char * szHex);
 	static void		_s_tbl_painter_toggled(GtkToggleButton * tb,
+										   gpointer data);
+	static void		_s_tbl_theme_tile_clicked(GtkWidget * w,
+											  gpointer data);
+	static void		_s_tbl_sampler_clicked(GtkWidget * w,
 										   gpointer data);
 	GtkWidget *		_makeTblColorPopover(const char * szMethod,
 										 const char * szAutomaticLabel);
@@ -340,6 +347,15 @@ private:
 	bool				m_bTblOptSync = false;	/* suppress toggled-
 												 * handlers while the
 												 * checks are re-synced */
+	GtkWidget *			m_wTblLineStyleIcon = nullptr;	/* preview in the
+												 * compact style combo */
+	GtkWidget *			m_wTblPenThickIcon = nullptr;	/* preview in the
+												 * thickness combo */
+	GtkWidget *			m_wTblPenThickLabel = nullptr;	/* "½ pt" label */
+	GtkWidget *			m_wTblPenColorIcon = nullptr;	/* colour bar of
+												 * the Pen Colour icon */
+	GtkWidget *			m_wTblPainter = nullptr;	/* Border Painter
+												 * toggle button */
 	GHashTable *		m_pIconMap; /* edit-method name -> icon name */
 	GtkWidget *			m_pMarkupLabel; /* caption of the Display-for-
 										 * Review dropdown, shows the

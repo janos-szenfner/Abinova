@@ -322,6 +322,18 @@ PP_PropertyMap::TypeLineStyle PP_PropertyMap::linestyle_type (const char * prope
 		linestyle = linestyle_dotted;
 	else if (strcmp (property, "dashed") == 0)
 		linestyle = linestyle_dashed;
+	else if (strcmp (property, "double") == 0)
+		linestyle = linestyle_double;
+	else if (strcmp (property, "dashdot") == 0)
+		linestyle = linestyle_dashdot;
+	else if (strcmp (property, "dashdotdot") == 0)
+		linestyle = linestyle_dashdotdot;
+	else if (strcmp (property, "longdash") == 0)
+		linestyle = linestyle_longdash;
+	else if (strcmp (property, "triple") == 0)
+		linestyle = linestyle_triple;
+	else if (strcmp (property, "wave") == 0)
+		linestyle = linestyle_wave;
 	else
 		linestyle = linestyle_solid; // erk!
 
@@ -379,24 +391,40 @@ PP_PropertyMap::TypeBackground PP_PropertyMap::background_type (const char * pro
 	return background;
 }
 
-static const char * s_linestyle[4] = {
+static const char * s_linestyle[] = {
 	"none",
 	"solid",
 	"dotted",
-	"dashed"
+	"dashed",
+	"double",
+	"dashed",	/* dashdot has no CSS equivalent */
+	"dashed",	/* dashdotdot has no CSS equivalent */
+	"dashed",	/* longdash has no CSS equivalent */
+	"double",	/* triple approximates as double */
+	"solid"		/* wave approximates as solid */
 };
 
 const char * PP_PropertyMap::linestyle_for_CSS (const char * property)
 {
-	if (property == nullptr)
+	if (property == nullptr || *property == 0)
 		return s_linestyle[0];
 
 	unsigned char u = static_cast<unsigned char>(*property);
-	if (!isdigit (static_cast<int>(u))) return property;
+	if (isdigit (static_cast<int>(u)))
+	{
+		if ((*property > '0') && (*property <= '9'))
+			return s_linestyle[*property - '0'];
+		return s_linestyle[0];
+	}
 
-	if ((*property > '0') && (*property < '4')) return s_linestyle[*property - '0'];
-
-	return s_linestyle[0];
+	/* named style -> enum -> nearest CSS name, so extended styles
+	 * (dashdot, wave, ...) degrade to a valid CSS border-style */
+	if (strcmp(property, "inherit") == 0)
+		return "inherit";
+	TypeLineStyle t = linestyle_type(property);
+	if (t <= linestyle__unset || t >= linestyle_inherit)
+		return s_linestyle[0];
+	return s_linestyle[t - 1];
 }
 
 PP_PropertyMap::Line::Line () :

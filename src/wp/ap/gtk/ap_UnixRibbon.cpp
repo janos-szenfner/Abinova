@@ -370,6 +370,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		".abinova-ribbon .ribbon-group menubutton label {"
 		"  font-size: 0.88em;"
 		"}"
+		/* big icon-over-caption buttons (Table Design Borders) */
+		".abinova-ribbon .ribbon-group label.ribbon-big-caption {"
+		"  font-size: 0.85em; margin-top: 0;"
+		"}"
 		/* SLIM large buttons (e.g. Table: Draw/Eraser/Delete) keep
 		 * the normal icon/caption but lose the frame padding */
 		".abinova-ribbon .ribbon-group button.ribbon-xslim {"
@@ -1504,6 +1508,9 @@ void AP_UnixRibbon::_s_popover_em_clicked(GtkWidget * w, gpointer data)
 	UT_return_if_fail(self && szMethod);
 	_tb_popdown_popover(w);
 	self->_invokeEditMethod(szMethod, szData);
+	/* pen rows change the table pen; re-sync the combo previews */
+	if (!strcmp(szMethod, "tablePen"))
+		self->_refreshTableStyleOptions();
 }
 
 /* Layout tab: Line Numbering Options… / Hyphenation Options… */
@@ -11165,6 +11172,42 @@ static void _s_tbl_action_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 	}
 }
 
+/* 16x16 eyedropper over a mini table grid (Border Sampler) */
+static void _s_tbl_sampler_icon_draw(GtkDrawingArea * /*area*/,
+									 cairo_t * cr,
+									 int width, int height,
+									 gpointer /*data*/)
+{
+	double w = width, h = height;
+	/* mini 2x2 table */
+	cairo_set_source_rgb(cr, 0.35, 0.35, 0.4);
+	cairo_set_line_width(cr, 1.0);
+	double cw = w * 0.62 / 2.0, rh = h * 0.62 / 2.0;
+	for (int i = 0; i <= 2; ++i)
+	{
+		cairo_move_to(cr, i * cw, 0);
+		cairo_line_to(cr, i * cw, 2 * rh);
+		cairo_move_to(cr, 0, i * rh);
+		cairo_line_to(cr, 2 * cw, i * rh);
+	}
+	cairo_stroke(cr);
+	/* dropper: angled capsule with a tip */
+	cairo_save(cr);
+	cairo_translate(cr, w * 0.62, h * 0.30);
+	cairo_rotate(cr, -G_PI / 4);
+	cairo_set_source_rgb(cr, 0.3, 0.3, 0.35);
+	cairo_rectangle(cr, -2.0, -1.4, 8.0, 2.8);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.55, 0.55, 0.6);
+	cairo_rectangle(cr, -4.6, -1.0, 2.8, 2.0);
+	cairo_fill(cr);
+	cairo_restore(cr);
+	/* drop */
+	cairo_set_source_rgb(cr, 0.2, 0.5, 0.85);
+	cairo_arc(cr, w * 0.30, h * 0.86, 1.8, 0, 2 * G_PI);
+	cairo_fill(cr);
+}
+
 /* full gallery: family sections of tiled styles, scrolling
  * vertically, plus the Modify / Clear / New action rows at the
  * bottom (the Writer/Word gallery layout) */
@@ -11397,6 +11440,64 @@ void AP_UnixRibbon::_refreshTableStyleOptions()
 		gtk_widget_set_sensitive(m_wTblOptChecks[i], bInTbl);
 	}
 	m_bTblOptSync = false;
+
+	/* keep the compact pen combos showing the current pen */
+	if (bInTbl)
+	{
+		std::string sStyle, sThick, sColor;
+		if (view->getTablePen(sStyle, sThick, sColor))
+		{
+			if (m_wTblLineStyleIcon)
+			{
+				g_object_set_data_full(G_OBJECT(m_wTblLineStyleIcon),
+									   "pen-style",
+									   g_strdup(sStyle.c_str()), g_free);
+				gtk_widget_queue_draw(m_wTblLineStyleIcon);
+			}
+			if (m_wTblPenThickIcon)
+			{
+				g_object_set_data_full(G_OBJECT(m_wTblPenThickIcon),
+									   "pen-thick",
+									   g_strdup(sThick.c_str()),
+									   g_free);
+				gtk_widget_queue_draw(m_wTblPenThickIcon);
+			}
+			if (m_wTblPenThickLabel)
+			{
+				static const std::pair<const char *, const char *> lab[] = {
+					{ "0.25pt", "¼ pt" }, { "0.5pt", "½ pt" },
+					{ "0.75pt", "¾ pt" }, { "1pt", "1 pt" },
+					{ "1.5pt", "1 ½ pt" }, { "2.25pt", "2 ¼ pt" },
+					{ "3pt", "3 pt" }, { "4.5pt", "4 ½ pt" },
+					{ "6pt", "6 pt" }
+				};
+				const char * txt = sThick.c_str();
+				for (const auto & p : lab)
+					if (sThick == p.first)
+						{ txt = p.second; break; }
+				gtk_label_set_text(GTK_LABEL(m_wTblPenThickLabel), txt);
+			}
+			if (m_wTblPenColorIcon)
+			{
+				g_object_set_data_full(G_OBJECT(m_wTblPenColorIcon),
+									   "pen-color",
+									   g_strdup(sColor.c_str()), g_free);
+				gtk_widget_queue_draw(m_wTblPenColorIcon);
+			}
+		}
+	}
+
+	/* keep the Border Painter toggle in sync with the view mode:
+	 * the Border Sampler arms it, Esc and Draw/Eraser modes
+	 * disarm it */
+	if (m_wTblPainter && view)
+	{
+		bool bWant = view->isBorderPainterMode();
+		if (gtk_toggle_button_get_active(
+				GTK_TOGGLE_BUTTON(m_wTblPainter)) != bWant)
+			gtk_toggle_button_set_active(
+				GTK_TOGGLE_BUTTON(m_wTblPainter), bWant);
+	}
 }
 
 /* ---- Borders group ---- */
@@ -11426,65 +11527,150 @@ GtkWidget * AP_UnixRibbon::_makeTblBordersPopover()
 	add(_tblBorderRow(15, "Outside Borders", "outside"));
 	add(_tblBorderRow(48, "Inside Borders",  "inside"));
 	sep();
-	add(_tblBorderRow(16, "Inside Horizontal Borders", "insideh"));
-	add(_tblBorderRow(32, "Inside Vertical Borders",   "insidev"));
+	add(_tblBorderRow(16, "Inside Horizontal Border", "insideh"));
+	add(_tblBorderRow(32, "Inside Vertical Border",   "insidev"));
+	/* the cell-border model has no diagonal edge properties, so these
+	 * stay visible but greyed like Word does for unavailable options */
+	add(_borderRow(64,  "Diagonal-Down Border", nullptr, nullptr, false));
+	add(_borderRow(128, "Diagonal-Up Border",   nullptr, nullptr, false));
 	sep();
-	add(_borderRow(0, "Borders and Shading\xE2\x80\xA6",
+	add(_borderRow(2, "Horizontal Line", "paraBorder", "hline"));
+	add(_borderRow(0, "Draw Table", "toggleDrawTable", nullptr));
+	add(_borderRow(0, "View Gridlines", "viewGridlines", nullptr));
+	sep();
+	add(_borderRow(15, "Borders and Shading\xE2\x80\xA6",
 				   "dlgBorders", nullptr));
 
 	gtk_popover_set_child(GTK_POPOVER(pop), box);
 	return pop;
 }
 
-/* pen-style row: drawn sample line + label → "tablePen" */
-static void _s_penline_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
-							int width, int height, gpointer data)
+/* draws a horizontal sample of a table-pen style inside a row or
+ * dropdown button. style/thickness/colour are read from the widget's
+ * "pen-style"/"pen-thick"/"pen-color" data keys so the ribbon can
+ * refresh the preview after the pen changes */
+static void _s_penline_draw(GtkDrawingArea * area, cairo_t * cr,
+							int width, int height, gpointer /*data*/)
 {
-	const char * style = static_cast<const char *>(data);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_set_line_width(cr, 1.6);
+	const char * style = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(area), "pen-style"));
+	const char * thick = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(area), "pen-thick"));
+	const char * hex = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(area), "pen-color"));
+	if (!style || !*style)
+		style = "solid";
+	if (!thick || !*thick)
+		thick = "1pt";
+
+	UT_RGBColor c;
+	UT_parseColor(hex && *hex ? hex : "000000", c);
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+
+	/* pt -> px preview scale (roughly 96dpi, clamped) */
+	double w = g_str_has_suffix(thick, "pt")
+		? g_strtod(thick, nullptr) * 96.0 / 72.0 : 1.4;
+	if (w < 0.6) w = 0.6;
+	if (w > height * 0.5) w = height * 0.5;
 	double y = height / 2.0;
-	if (style && !strcmp(style, "dash"))
+	double x0 = 2, x1 = width - 2;
+
+	cairo_set_line_width(cr, w);
+	if (!strcmp(style, "none"))
+		return;
+	else if (!strcmp(style, "dotted"))
 	{
-		const double d[] = { 4.0, 2.0 };
+		const double d[] = { w, 2 * w };
+		cairo_set_dash(cr, d, 2, 0);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+	}
+	else if (!strcmp(style, "dashed"))
+	{
+		const double d[] = { 4 * w, 2 * w };
 		cairo_set_dash(cr, d, 2, 0);
 	}
-	else if (style && !strcmp(style, "dot"))
+	else if (!strcmp(style, "longdash"))
 	{
-		const double d[] = { 1.5, 2.5 };
+		const double d[] = { 8 * w, 2 * w };
 		cairo_set_dash(cr, d, 2, 0);
 	}
-	else if (style && !strcmp(style, "double"))
+	else if (!strcmp(style, "dashdot"))
 	{
-		cairo_move_to(cr, 2, y - 1.5);
-		cairo_line_to(cr, width - 2, y - 1.5);
-		cairo_move_to(cr, 2, y + 1.5);
-		cairo_line_to(cr, width - 2, y + 1.5);
-		cairo_set_line_width(cr, 1.0);
+		const double d[] = { 4 * w, 2 * w, w, 2 * w };
+		cairo_set_dash(cr, d, 4, 0);
+	}
+	else if (!strcmp(style, "dashdotdot"))
+	{
+		const double d[] = { 4 * w, 2 * w, w, 2 * w, w, 2 * w };
+		cairo_set_dash(cr, d, 6, 0);
+	}
+	else if (!strcmp(style, "double") || !strcmp(style, "triple"))
+	{
+		int strands = !strcmp(style, "triple") ? 3 : 2;
+		double sw = w / (2.0 * strands - 1);
+		if (sw < 0.6) sw = 0.6;
+		cairo_set_line_width(cr, sw);
+		double off0 = -(w - sw) / 2.0;
+		for (int i = 0; i < strands; ++i)
+		{
+			double yy = y + off0 + i * 2 * sw;
+			cairo_move_to(cr, x0, yy);
+			cairo_line_to(cr, x1, yy);
+		}
 		cairo_stroke(cr);
 		return;
 	}
-	cairo_move_to(cr, 2, y);
-	cairo_line_to(cr, width - 2, y);
+	else if (!strcmp(style, "wave"))
+	{
+		double amp = w > 1.6 ? w / 2 : 0.9;
+		double period = 6.0 * w;
+		cairo_set_line_width(cr, w * 0.5);
+		cairo_move_to(cr, x0, y);
+		for (double x = x0; x <= x1; x += 1.0)
+			cairo_line_to(cr, x,
+						  y + amp * sin(2 * G_PI * (x - x0) / period));
+		cairo_stroke(cr);
+		return;
+	}
+	cairo_move_to(cr, x0, y);
+	cairo_line_to(cr, x1, y);
 	cairo_stroke(cr);
+	cairo_set_dash(cr, nullptr, 0, 0);
 }
 
+/* one popover row of the Border Styles / thickness lists: a flat
+ * button whose child is a label (optional) + a drawn sample line.
+ * Clicking sets the corresponding tablePen fields */
 GtkWidget * AP_UnixRibbon::_tblPenRow(const char * szStyle,
 									  const char * szThickness,
 									  const char * szLabel)
 {
 	GtkWidget * btn = gtk_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	GtkWidget * wLabel = szLabel && *szLabel
+		? gtk_label_new(szLabel) : nullptr;
+	if (wLabel)
+	{
+		gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+		gtk_widget_set_margin_start(wLabel, 8);
+		gtk_box_append(GTK_BOX(box), wLabel);
+	}
 	GtkWidget * da = gtk_drawing_area_new();
-	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 40);
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 80);
 	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 14);
+	gtk_widget_set_hexpand(da, TRUE);
+	gtk_widget_set_margin_end(da, 8);
 	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
-								   _s_penline_draw,
-								   g_strdup(szStyle), g_free);
+								   _s_penline_draw, nullptr, nullptr);
+	g_object_set_data_full(G_OBJECT(da), "pen-style",
+						   g_strdup(szStyle && *szStyle ? szStyle
+													  : "solid"),
+						   g_free);
+	g_object_set_data_full(G_OBJECT(da), "pen-thick",
+						   g_strdup(szThickness ? szThickness : "1pt"),
+						   g_free);
 	gtk_box_append(GTK_BOX(box), da);
-	GtkWidget * wLabel = gtk_label_new(szLabel);
-	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
-	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_button_set_child(GTK_BUTTON(btn), box);
 	gtk_widget_add_css_class(btn, "flat");
 	char data[64];
@@ -11499,7 +11685,8 @@ GtkWidget * AP_UnixRibbon::_tblPenRow(const char * szStyle,
 	return btn;
 }
 
-/* thickness-only popover for the "½ pt" combo (Border Styles group) */
+/* thickness list (Word's "½ pt" dropdown): label + drawn line of the
+ * actual weight, rows sorted thin to thick */
 GtkWidget * AP_UnixRibbon::_makeTblPenThickPopover()
 {
 	GtkWidget * pop = xap_gtk_popover_new();
@@ -11509,68 +11696,87 @@ GtkWidget * AP_UnixRibbon::_makeTblPenThickPopover()
 	gtk_widget_set_margin_start(box, 4);
 	gtk_widget_set_margin_end(box, 4);
 
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "0.5pt",  "½ pt"));
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "0.75pt", "¾ pt"));
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "1pt",    "1 pt"));
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "1.5pt",  "1½ pt"));
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "2.25pt", "2¼ pt"));
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "3pt",    "3 pt"));
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "4.5pt",  "4½ pt"));
-	gtk_box_append(GTK_BOX(box), _tblPenRow("single", "6pt",    "6 pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "0.25pt", "¼ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "0.5pt",  "½ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "0.75pt", "¾ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "1pt",    "1 pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "1.5pt",  "1½ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "2.25pt", "2¼ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "3pt",    "3 pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "4.5pt",  "4½ pt"));
+	gtk_box_append(GTK_BOX(box), _tblPenRow("solid", "6pt",    "6 pt"));
 
 	gtk_popover_set_child(GTK_POPOVER(pop), box);
 	return pop;
 }
 
-/* pen icon with a colour bar underneath (Pen Color button) */
-static void _s_pencolor_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+/* pen icon with a colour bar underneath (Pen Colour button); the bar
+ * tracks the current pen colour via the "pen-color" data key */
+static void _s_pencolor_icon_draw(GtkDrawingArea * area, cairo_t * cr,
 								  int width, int height, gpointer /*data*/)
 {
-	/* nib: small diagonal stroke */
+	const char * hex = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(area), "pen-color"));
+	/* pen nib: diagonal stroke ending in a dot */
 	cairo_set_source_rgb(cr, 0.25, 0.25, 0.25);
-	cairo_set_line_width(cr, 2.0);
-	cairo_move_to(cr, width * 0.25, height * 0.15);
-	cairo_line_to(cr, width * 0.75, height * 0.55);
+	cairo_set_line_width(cr, 2.4);
+	cairo_move_to(cr, width * 0.22, height * 0.12);
+	cairo_line_to(cr, width * 0.72, height * 0.52);
 	cairo_stroke(cr);
-	cairo_arc(cr, width * 0.72, height * 0.58, 2.2, 0, 2 * G_PI);
+	cairo_arc(cr, width * 0.74, height * 0.55, 2.6, 0, 2 * G_PI);
 	cairo_fill(cr);
-	/* colour bar (pen colour state; default black like the doc's) */
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_rectangle(cr, width * 0.12, height * 0.72,
+	/* colour bar */
+	UT_RGBColor c;
+	UT_parseColor(hex && *hex ? hex : "000000", c);
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+	cairo_rectangle(cr, width * 0.12, height * 0.74,
 					width * 0.76, height * 0.22);
 	cairo_fill(cr);
 }
 
-/* paintbrush icon (Border Painter toggle) */
+/* paintbrush icon over a dotted table corner (Border Painter) */
 static void _s_painter_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
 								 int width, int height, gpointer /*data*/)
 {
 	double w = width, h = height;
+	/* dotted table edges behind the brush */
+	cairo_set_source_rgba(cr, 0.25, 0.25, 0.3, 0.5);
+	cairo_set_line_width(cr, 1.0);
+	const double dd[] = { 2.0, 2.0 };
+	cairo_set_dash(cr, dd, 2, 0);
+	cairo_rectangle(cr, w * 0.04, h * 0.04, w * 0.6, h * 0.6);
+	cairo_move_to(cr, w * 0.34, h * 0.04);
+	cairo_line_to(cr, w * 0.34, h * 0.64);
+	cairo_move_to(cr, w * 0.04, h * 0.34);
+	cairo_line_to(cr, w * 0.64, h * 0.34);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, nullptr, 0, 0);
 	/* handle */
 	cairo_set_source_rgb(cr, 0.35, 0.25, 0.12);
-	cairo_set_line_width(cr, 2.2);
-	cairo_move_to(cr, w * 0.72, h * 0.10);
-	cairo_line_to(cr, w * 0.46, h * 0.42);
+	cairo_set_line_width(cr, 2.4);
+	cairo_move_to(cr, w * 0.82, h * 0.06);
+	cairo_line_to(cr, w * 0.56, h * 0.38);
 	cairo_stroke(cr);
 	/* ferrule */
 	cairo_set_source_rgb(cr, 0.6, 0.6, 0.65);
 	cairo_set_line_width(cr, 3.0);
-	cairo_move_to(cr, w * 0.50, h * 0.36);
-	cairo_line_to(cr, w * 0.38, h * 0.52);
+	cairo_move_to(cr, w * 0.60, h * 0.32);
+	cairo_line_to(cr, w * 0.48, h * 0.48);
 	cairo_stroke(cr);
 	/* bristles with paint */
 	cairo_set_source_rgb(cr, 0.2, 0.35, 0.8);
-	cairo_move_to(cr, w * 0.38, h * 0.50);
-	cairo_curve_to(cr, w * 0.30, h * 0.62, w * 0.16, h * 0.62,
-				   w * 0.14, h * 0.86);
-	cairo_curve_to(cr, w * 0.12, h * 0.92, w * 0.30, h * 0.90,
-				   w * 0.42, h * 0.66);
+	cairo_move_to(cr, w * 0.48, h * 0.46);
+	cairo_curve_to(cr, w * 0.40, h * 0.58, w * 0.26, h * 0.58,
+				   w * 0.24, h * 0.82);
+	cairo_curve_to(cr, w * 0.22, h * 0.88, w * 0.40, h * 0.86,
+				   w * 0.52, h * 0.62);
 	cairo_close_path(cr);
 	cairo_fill(cr);
 	/* paint stroke it leaves */
-	cairo_set_line_width(cr, 1.4);
-	cairo_move_to(cr, w * 0.48, h * 0.88);
-	cairo_line_to(cr, w * 0.94, h * 0.88);
+	cairo_set_line_width(cr, 1.6);
+	cairo_move_to(cr, w * 0.58, h * 0.84);
+	cairo_line_to(cr, w * 0.96, h * 0.84);
 	cairo_stroke(cr);
 }
 
@@ -11586,9 +11792,19 @@ void AP_UnixRibbon::_s_tbl_painter_toggled(GtkToggleButton * tb,
 		view->setBorderPainterMode(bOn);
 }
 
-GtkWidget * AP_UnixRibbon::_makeTblPenStylePopover()
+/* compact line-style dropdown list (screenshot 2): preview-only
+ * rows covering every linestyle the engine renders */
+GtkWidget * AP_UnixRibbon::_makeTblLineStylePopover()
 {
 	GtkWidget * pop = xap_gtk_popover_new();
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(sw), 320);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_widget_set_margin_top(box, 4);
 	gtk_widget_set_margin_bottom(box, 4);
@@ -11597,19 +11813,175 @@ GtkWidget * AP_UnixRibbon::_makeTblPenStylePopover()
 	auto add = [&](GtkWidget * w) {
 		if (w) gtk_box_append(GTK_BOX(box), w);
 	};
-	auto sep = [&]() {
-		add(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
-	};
 
-	add(_tblPenRow("single", "0.5pt", "0.5 pt"));
-	add(_tblPenRow("single", "0.75pt", "0.75 pt"));
-	add(_tblPenRow("single", "1pt", "1 pt"));
-	add(_tblPenRow("single", "1.5pt", "1.5 pt"));
-	add(_tblPenRow("single", "2.25pt", "2.25 pt"));
-	sep();
-	add(_tblPenRow("dash", "1pt", "Dash"));
-	add(_tblPenRow("dot", "1pt", "Dot"));
-	add(_tblPenRow("double", "1.5pt", "Double"));
+	/* "No Border" text row first, like Word */
+	{
+		GtkWidget * btn = gtk_button_new_with_label("No Border");
+		gtk_widget_add_css_class(btn, "flat");
+		GtkWidget * l = gtk_button_get_child(GTK_BUTTON(btn));
+		gtk_widget_set_halign(l, GTK_ALIGN_START);
+		gtk_widget_set_margin_start(l, 8);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+							   g_strdup("tablePen"), g_free);
+		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
+							   g_strdup("none||"), g_free);
+		g_signal_connect(btn, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		add(btn);
+	}
+
+	static const char * const styles[][2] = {
+		{ "solid",     "0.5pt" },
+		{ "dotted",     "1pt" },
+		{ "dashed",     "0.75pt" },
+		{ "dashed",     "1pt" },
+		{ "dashdot",    "1pt" },
+		{ "dashdotdot", "1pt" },
+		{ "double",     "1pt" },
+		{ "solid",     "1.5pt" },
+		{ "solid",     "2.25pt" },
+		{ "solid",     "3pt" },
+		{ "double",     "2.25pt" },
+		{ "triple",     "2.25pt" },
+		{ "solid",     "4.5pt" },
+		{ "solid",     "6pt" },
+		{ "wave",       "1.5pt" },
+		{ "wave",       "3pt" },
+		{ "longdash",   "1pt" },
+		{ "longdash",   "2.25pt" },
+	};
+	for (const auto & s : styles)
+		add(_tblPenRow(s[0], s[1], nullptr));
+
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), box);
+	gtk_popover_set_child(GTK_POPOVER(pop), sw);
+	return pop;
+}
+
+/* one tile of the "Theme Borders" grid: a drawn sample line in the
+ * theme colour at the given weight; clicking loads {solid, weight,
+ * colour} into the table pen and switches on the Border Painter */
+GtkWidget * AP_UnixRibbon::_tblThemePenTile(const char * szThickness,
+											const char * szHex)
+{
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 48);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 26);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+								   _s_penline_draw, nullptr, nullptr);
+	g_object_set_data_full(G_OBJECT(da), "pen-style",
+						   g_strdup("solid"), g_free);
+	g_object_set_data_full(G_OBJECT(da), "pen-thick",
+						   g_strdup(szThickness), g_free);
+	g_object_set_data_full(G_OBJECT(da), "pen-color",
+						   g_strdup(szHex), g_free);
+	gtk_button_set_child(GTK_BUTTON(btn), da);
+	gtk_widget_add_css_class(btn, "flat");
+	char pen[80];
+	g_snprintf(pen, sizeof(pen), "solid|%s|%s",
+			   szThickness, szHex);
+	g_object_set_data_full(G_OBJECT(btn), "abi-pen",
+						   g_strdup(pen), g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_tbl_theme_tile_clicked), this);
+	return btn;
+}
+
+void AP_UnixRibbon::_s_tbl_theme_tile_clicked(GtkWidget * w,
+											  gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	const char * pen = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-pen"));
+	UT_return_if_fail(self && pen);
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("tablePen", pen);
+	self->_refreshTableStyleOptions();
+	/* a picked theme pen arms the Border Painter, like Word */
+	if (self->m_wTblPainter &&
+		!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(
+			self->m_wTblPainter)))
+		gtk_toggle_button_set_active(
+			GTK_TOGGLE_BUTTON(self->m_wTblPainter), TRUE);
+}
+
+/* "Border Sampler": arm the sampler mode; the next border click in
+ * the document copies that border's pen into the table pen */
+void AP_UnixRibbon::_s_tbl_sampler_clicked(GtkWidget * w,
+										   gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	FV_View * view = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	if (view)
+		view->setBorderSamplerMode(true);
+	if (self->m_wTblPainter &&
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(
+			self->m_wTblPainter)))
+		gtk_toggle_button_set_active(
+			GTK_TOGGLE_BUTTON(self->m_wTblPainter), FALSE);
+}
+
+/* the Word "Border Styles" big-button dropdown: a 3x7 "Theme
+ * Borders" grid (weights x theme colours) plus the Border Sampler
+ * command row at the bottom */
+GtkWidget * AP_UnixRibbon::_makeTblPenStylePopover()
+{
+	GtkWidget * pop = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(box, 6);
+	gtk_widget_set_margin_bottom(box, 6);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
+
+	GtkWidget * hdr = gtk_label_new("Theme Borders");
+	gtk_widget_set_halign(hdr, GTK_ALIGN_START);
+	gtk_widget_add_css_class(hdr, "ribbon-group-title");
+	gtk_box_append(GTK_BOX(box), hdr);
+
+	/* rows = line weight, columns = Office theme accent colours */
+	static const char * const thicks[] = { "0.5pt", "1pt", "2.25pt" };
+	static const char * const colors[] = {
+		"000000", "5B9BD5", "ED7D31", "A5A5A5",
+		"FFC000", "2E75B6", "70AD47"
+	};
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 3);
+	for (int r = 0; r < 3; ++r)
+		for (int c = 0; c < 7; ++c)
+			gtk_grid_attach(GTK_GRID(grid),
+							_tblThemePenTile(thicks[r], colors[c]),
+							c, r, 1, 1);
+	gtk_box_append(GTK_BOX(box), grid);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	/* Border Sampler row: grid icon + label */
+	GtkWidget * btn = gtk_button_new();
+	GtkWidget * hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_widget_set_margin_start(hbox, 4);
+	GtkWidget * ic = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(ic), 16);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(ic), 16);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(ic),
+								   _s_tbl_sampler_icon_draw,
+								   nullptr, nullptr);
+	gtk_widget_set_valign(ic, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(hbox), ic);
+	GtkWidget * wLabel = gtk_label_new("Border Sampler");
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_widget_set_hexpand(wLabel, TRUE);
+	gtk_box_append(GTK_BOX(hbox), wLabel);
+	gtk_button_set_child(GTK_BUTTON(btn), hbox);
+	gtk_widget_add_css_class(btn, "flat");
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_tbl_sampler_clicked), this);
+	gtk_box_append(GTK_BOX(box), btn);
 
 	gtk_popover_set_child(GTK_POPOVER(pop), box);
 	return pop;
@@ -11758,26 +12130,117 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 	return pop;
 }
 
-/* shading-bucket icon for the large Shading button */
-static void _s_shading_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
-								 int width, int height, gpointer data)
+/* paint-bucket icon for the large Shading button: a tilted bucket
+ * pouring a puddle of the current shade colour */
+static void _s_shading_icon_draw(GtkDrawingArea * area, cairo_t * cr,
+								 int width, int height, gpointer /*data*/)
 {
-	const char * hex = static_cast<const char *>(data);
+	const char * hex = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(area), "pen-color"));
 	UT_RGBColor c;
-	UT_parseColor(hex && *hex ? hex : "999999", c);
+	UT_parseColor(hex && *hex ? hex : "8888bb", c);
+	double w = width, h = height;
+
 	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
 						 c.m_blu / 255.0);
-	cairo_rectangle(cr, 2, 2, width - 4, height - 6);
+	/* spilled puddle along the bottom */
+	cairo_move_to(cr, w * 0.18, h * 0.78);
+	cairo_curve_to(cr, w * 0.10, h * 0.70, w * 0.30, h * 0.66,
+				   w * 0.46, h * 0.74);
+	cairo_line_to(cr, w * 0.86, h * 0.74);
+	cairo_curve_to(cr, w * 0.98, h * 0.80, w * 0.94, h * 0.90,
+				   w * 0.80, h * 0.90);
+	cairo_line_to(cr, w * 0.22, h * 0.90);
+	cairo_curve_to(cr, w * 0.08, h * 0.90, w * 0.10, h * 0.82,
+				   w * 0.18, h * 0.78);
+	cairo_close_path(cr);
 	cairo_fill(cr);
-	cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+	/* pour stream */
+	cairo_move_to(cr, w * 0.44, h * 0.42);
+	cairo_line_to(cr, w * 0.44, h * 0.74);
+	cairo_line_to(cr, w * 0.56, h * 0.74);
+	cairo_line_to(cr, w * 0.56, h * 0.38);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	/* tilted bucket body (outline + paint surface) */
+	cairo_save(cr);
+	cairo_translate(cr, w * 0.62, h * 0.30);
+	cairo_rotate(cr, -0.5);
+	cairo_set_source_rgb(cr, 0.35, 0.35, 0.4);
+	double bw = w * 0.42, bh = h * 0.34;
+	cairo_move_to(cr, -bw / 2, -bh / 2);
+	cairo_line_to(cr, bw / 2, -bh / 2);
+	cairo_line_to(cr, bw / 2 - bw * 0.16, bh / 2);
+	cairo_line_to(cr, -bw / 2 + bw * 0.16, bh / 2);
+	cairo_close_path(cr);
+	cairo_stroke_preserve(cr);
+	cairo_set_source_rgba(cr, 0.75, 0.75, 0.8, 0.6);
+	cairo_fill(cr);
+	/* paint surface inside the bucket mouth */
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+	cairo_move_to(cr, -bw / 2 + 2, -bh / 2 + 2);
+	cairo_line_to(cr, bw / 2 - 2, -bh / 2 + 2);
+	cairo_line_to(cr, bw / 2 - 4, 0);
+	cairo_line_to(cr, -bw / 2 + 4, 0);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+	cairo_restore(cr);
+	/* dripping drop */
+	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0);
+	cairo_arc(cr, w * 0.50, h * 0.60, 1.6, 0, 2 * G_PI);
+	cairo_fill(cr);
+}
+
+/* icon for the large Border Styles button: a square grid with the
+ * pen-style line along its bottom edge */
+static void _s_bstyle_icon_draw(GtkDrawingArea * /*area*/, cairo_t * cr,
+								int width, int height, gpointer /*data*/)
+{
+	double w = width, h = height;
+	cairo_set_source_rgba(cr, 0.25, 0.25, 0.3, 0.55);
 	cairo_set_line_width(cr, 1.0);
-	cairo_rectangle(cr, 2.5, 2.5, width - 5, height - 7);
+	cairo_rectangle(cr, w * 0.12, h * 0.14, w * 0.76, h * 0.6);
+	cairo_move_to(cr, w * 0.5, h * 0.14);
+	cairo_line_to(cr, w * 0.5, h * 0.74);
+	cairo_move_to(cr, w * 0.12, h * 0.44);
+	cairo_line_to(cr, w * 0.88, h * 0.44);
 	cairo_stroke(cr);
-	/* little drop under the bucket */
-	cairo_set_source_rgb(cr, c.m_red / 255.0, c.m_grn / 255.0,
-						 c.m_blu / 255.0);
-	cairo_rectangle(cr, width / 2.0 - 2, height - 3.5, 4, 2);
-	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.1, 0.1, 0.15);
+	cairo_set_line_width(cr, 2.2);
+	cairo_move_to(cr, w * 0.12, h * 0.80);
+	cairo_line_to(cr, w * 0.88, h * 0.80);
+	cairo_stroke(cr);
+}
+
+/* compact dropdown content: the current pen style drawn as a wide
+ * sample + a small down-arrow (combo-box look) */
+static GtkWidget * _tbl_pen_combo_content(const char * szStyle,
+										  const char * szThick,
+										  const char * szLabel)
+{
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	if (szLabel && *szLabel)
+	{
+		GtkWidget * l = gtk_label_new(szLabel);
+		gtk_widget_set_margin_start(l, 4);
+		gtk_box_append(GTK_BOX(box), l);
+	}
+	GtkWidget * da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 56);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 14);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+								   _s_penline_draw, nullptr, nullptr);
+	g_object_set_data_full(G_OBJECT(da), "pen-style",
+						   g_strdup(szStyle && *szStyle ? szStyle : "solid"),
+						   g_free);
+	g_object_set_data_full(G_OBJECT(da), "pen-thick",
+						   g_strdup(szThick && *szThick ? szThick : "1pt"),
+						   g_free);
+	gtk_widget_set_hexpand(da, TRUE);
+	gtk_box_append(GTK_BOX(box), da);
+	return box;
 }
 
 GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
@@ -11794,54 +12257,100 @@ GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
 		szLabel = "Shading";
 		szTip = "Shade the selected cells or table";
 		GtkWidget * da = gtk_drawing_area_new();
-		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 24);
-		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 24);
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 30);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 26);
 		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
 									   _s_shading_icon_draw,
-									   g_strdup("8888bb"), g_free);
+									   nullptr, nullptr);
 		wIcon = da;
 		pop = _makeTblColorPopover("tableShading", "No Fill");
 		break;
 	}
 	case AP_RIBBON_TBLPOP_BORDERS:
+	{
 		szLabel = "Borders";
 		szTip = "Apply a border preset to the table";
-		wIcon = _border_icon(63);	/* all four edges + inside lines */
+		GtkWidget * da = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 26);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 26);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+									   _s_border_icon_draw,
+									   GINT_TO_POINTER(63), nullptr);
+		wIcon = da;
 		pop = _makeTblBordersPopover();
 		break;
+	}
 	case AP_RIBBON_TBLPOP_PENSTYLE:
+	{
+		/* the big "Border Styles" button opens the style gallery */
 		szLabel = "Border Styles";
 		szTip = "Choose the border-pen style";
-		wIcon = gtk_drawing_area_new();
-		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(wIcon), 24);
-		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(wIcon), 14);
-		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wIcon),
-									   _s_penline_draw,
-									   g_strdup("single"), g_free);
+		GtkWidget * da = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 26);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 24);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+									   _s_bstyle_icon_draw,
+									   nullptr, nullptr);
+		wIcon = da;
 		pop = _makeTblPenStylePopover();
 		break;
+	}
+	case AP_RIBBON_TBLPOP_LINESTYLE:
+	{
+		/* compact combo: current pen style preview */
+		szTip = "Border line style";
+		GtkWidget * mb = gtk_menu_button_new();
+		GtkWidget * box = _tbl_pen_combo_content("solid", "1pt", nullptr);
+		m_wTblLineStyleIcon = gtk_widget_get_last_child(box);
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
+		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
+									  GTK_ARROW_DOWN);
+		gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb),
+									_makeTblLineStylePopover());
+		gtk_widget_set_tooltip_text(mb, szTip);
+		gtk_widget_set_valign(mb, GTK_ALIGN_CENTER);
+		return mb;
+	}
 	case AP_RIBBON_TBLPOP_PENTHICK:
-		szLabel = "½ pt";
-		szTip = "Choose the border-pen thickness";
-		pop = _makeTblPenThickPopover();
-		break;
+	{
+		/* compact combo: "½ pt" label + sample line */
+		szTip = "Border line thickness";
+		GtkWidget * mb = gtk_menu_button_new();
+		GtkWidget * box = _tbl_pen_combo_content("solid", "0.5pt",
+												 "½ pt");
+		m_wTblPenThickIcon = gtk_widget_get_last_child(box);
+		m_wTblPenThickLabel = gtk_widget_get_first_child(box);
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
+		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
+									  GTK_ARROW_DOWN);
+		gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb),
+									_makeTblPenThickPopover());
+		gtk_widget_set_tooltip_text(mb, szTip);
+		gtk_widget_set_valign(mb, GTK_ALIGN_CENTER);
+		return mb;
+	}
 	case AP_RIBBON_TBLPOP_PENCOLOR:
-		szLabel = "Pen Color";
+	{
+		szLabel = "Pen Colour";
 		szTip = "Choose the border-pen colour";
-		wIcon = gtk_drawing_area_new();
-		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(wIcon), 24);
-		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(wIcon), 14);
-		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wIcon),
+		GtkWidget * da = gtk_drawing_area_new();
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 26);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 24);
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
 									   _s_pencolor_icon_draw,
 									   nullptr, nullptr);
+		m_wTblPenColorIcon = da;
+		wIcon = da;
 		pop = _makeTblColorPopover("tablePen", "Automatic");
 		break;
+	}
 	case AP_RIBBON_TBLPOP_PAINTER:
+		szLabel = "Border Painter";
 		szTip = "Border Painter - click a table border to paint it "
 				"with the current pen";
 		wIcon = gtk_drawing_area_new();
-		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(wIcon), 20);
-		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(wIcon), 20);
+		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(wIcon), 30);
+		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(wIcon), 26);
 		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(wIcon),
 									   _s_painter_icon_draw,
 									   nullptr, nullptr);
@@ -11859,16 +12368,33 @@ GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
 	}
 	else
 	{
+		/* custom icon+caption child and always-show-arrow false:
+		 * no arrow is drawn; clicking the button opens the
+		 * popover directly, like Word's big ribbon buttons */
 		btn = gtk_menu_button_new();
-		gtk_menu_button_set_direction(GTK_MENU_BUTTON(btn), GTK_ARROW_DOWN);
+		gtk_menu_button_set_always_show_arrow(
+			GTK_MENU_BUTTON(btn), FALSE);
 	}
 	if (szTip && *szTip)
 		gtk_widget_set_tooltip_text(btn, szTip);
-	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+
+	/* Word-style big button: icon on top, caption below */
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
+	gtk_widget_set_halign(box, GTK_ALIGN_CENTER);
+	gtk_widget_set_valign(box, GTK_ALIGN_CENTER);
 	if (wIcon)
+	{
+		gtk_widget_set_halign(wIcon, GTK_ALIGN_CENTER);
 		gtk_box_append(GTK_BOX(box), wIcon);
-	if (szLabel && *szLabel)
-		gtk_box_append(GTK_BOX(box), gtk_label_new(szLabel));
+	}
+	GtkWidget * wLabel = gtk_label_new(szLabel);
+	gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
+	gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
+	gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
+	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 14);
+	gtk_widget_add_css_class(wLabel, "ribbon-big-caption");
+	gtk_box_append(GTK_BOX(box), wLabel);
+
 	if (GTK_IS_MENU_BUTTON(btn))
 	{
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(btn), box);
@@ -11880,6 +12406,7 @@ GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
 		gtk_button_set_child(GTK_BUTTON(btn), box);
 		g_signal_connect(btn, "toggled",
 						 G_CALLBACK(_s_tbl_painter_toggled), this);
+		m_wTblPainter = btn;
 	}
 	return btn;
 }

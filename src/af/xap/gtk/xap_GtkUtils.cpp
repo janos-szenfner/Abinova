@@ -20,6 +20,9 @@
 
 
 #include <gtk/gtk.h>
+#ifdef GDK_WINDOWING_X11
+#include <gdk/x11/gdkx.h>
+#endif
 
 #include "xap_GtkUtils.h"
 
@@ -140,6 +143,27 @@ static void s_popover_unmap_cb(GtkWidget * pop, gpointer)
   g_object_set_data(G_OBJECT(pop), "xap-click-ctl", nullptr);
 }
 
+static gboolean s_popover_raise_idle(gpointer data)
+{
+#ifdef GDK_WINDOWING_X11
+  GtkWidget * pop = GTK_WIDGET(data);
+  if (!gtk_widget_get_mapped(pop))
+    return G_SOURCE_REMOVE;
+  if (GdkSurface * surf = gtk_native_get_surface(GTK_NATIVE(pop)))
+    {
+      if (GDK_IS_X11_SURFACE(surf))
+        XRaiseWindow(gdk_x11_display_get_xdisplay(
+                         gdk_surface_get_display(surf)),
+                     gdk_x11_surface_get_xid(surf));
+    }
+  /* keep re-raising: GDK/own focus handling lowers the popover
+   * back under the toplevel on the next window interaction */
+  return G_SOURCE_CONTINUE;
+#else
+  return G_SOURCE_REMOVE;
+#endif
+}
+
 static gboolean s_popover_add_click_ctl_idle(gpointer data)
 {
   GtkWidget * pop = GTK_WIDGET(data);
@@ -167,6 +191,15 @@ static gboolean s_popover_add_click_ctl_idle(gpointer data)
 
 static void s_popover_map_cb(GtkWidget * pop, gpointer)
 {
+  /* on bare X servers (no compositor/WM, e.g. Xephyr) the popover
+   * surface can stay stacked below the toplevel it belongs to:
+   * it renders nowhere and outside presses land on the document.
+   * Raise it on idle, after GDK finished its own configure/lower,
+   * so it stays visible and receives pointer input. */
+  g_timeout_add_full(G_PRIORITY_DEFAULT, 120,
+                     s_popover_raise_idle,
+                     g_object_ref(pop),
+                     reinterpret_cast<GDestroyNotify>(g_object_unref));
   GtkRoot * root = gtk_widget_get_root(pop);
   if (!GTK_IS_WIDGET(root))
     return;

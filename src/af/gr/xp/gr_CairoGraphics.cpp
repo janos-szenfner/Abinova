@@ -1495,6 +1495,30 @@ static void mapDashStyle(GR_Graphics::LineStyle in, double width, double *dashes
 		dashes[0] = 2 * width;
 		*n_dashes = 1;
 		break;
+	case GR_Graphics::LINE_LONG_DASH:
+		UT_ASSERT(*n_dashes > 1);
+		dashes[0] = 8 * width;
+		dashes[1] = 2 * width;
+		*n_dashes = 2;
+		break;
+	case GR_Graphics::LINE_DASH_DOT:
+		UT_ASSERT(*n_dashes > 3);
+		dashes[0] = 4 * width;
+		dashes[1] = 2 * width;
+		dashes[2] = width;
+		dashes[3] = 2 * width;
+		*n_dashes = 4;
+		break;
+	case GR_Graphics::LINE_DASH_DOT_DOT:
+		UT_ASSERT(*n_dashes > 5);
+		dashes[0] = 4 * width;
+		dashes[1] = 2 * width;
+		dashes[2] = width;
+		dashes[3] = 2 * width;
+		dashes[4] = width;
+		dashes[5] = 2 * width;
+		*n_dashes = 6;
+		break;
 	case GR_Graphics::LINE_SOLID:
 	default:
 		*n_dashes = 0;
@@ -1550,7 +1574,7 @@ void GR_CairoGraphics::_setProps()
 	}
 	if(m_linePropsDirty)
 	{
-		double dashes[2];
+		double dashes[8];
 		double width;
 		int n_dashes;
 		width = tduD(m_lineWidth);

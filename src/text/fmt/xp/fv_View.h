@@ -1002,8 +1002,14 @@ public:
 	std::string			getTableStyleLook(void) const;
 	bool				cmdTableStylePreviewBegin(const char * szStyleId);
 	void				cmdTableStylePreviewEnd(void);
-	void				setBorderPainterMode(bool bOn) { m_bBorderPainter = bOn; }
+	void				setBorderPainterMode(bool bOn);
 	bool				isBorderPainterMode(void) const { return m_bBorderPainter; }
+	void				setBorderSamplerMode(bool bOn);
+	bool				isBorderSamplerMode(void) const { return m_bBorderSampler; }
+	bool				cmdBorderPaintAt(UT_sint32 xPos, UT_sint32 yPos);
+	bool				cmdBorderSampleAt(UT_sint32 xPos, UT_sint32 yPos);
+	bool				_borderEdgeAtXY(UT_sint32 xPos, UT_sint32 yPos,
+									PT_DocPosition & posCell, int & iEdge);
 	bool				getTablePen(std::string & sStyle, std::string & sThickness,
 									std::string & sColor) const;
 
@@ -1379,6 +1385,7 @@ private:
 	UT_GenericVector<fl_FrameLayout *> m_vecGroupSel;
 	std::string       m_sDocUUID;
 	bool				m_bBorderPainter = false;
+	bool				m_bBorderSampler = false;
 	bool				m_bAnnotationPreviewActive;
 	UT_uint32			m_iAnnPviewID;
 	bool                m_bAllowSmartQuoteReplacement;  // Enable/disable replacing of quote with smart quote

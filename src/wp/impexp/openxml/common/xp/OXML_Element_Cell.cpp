@@ -128,10 +128,7 @@ UT_Error OXML_Element_Cell::serializeProperties(IE_Exp_OpenXML* exporter)
 	borderType = "single";
 	if(getProperty("left-style", szValue) == UT_OK)
 	{
-		if(strcmp(szValue, "1") != 0)
-		{
-			 borderType = "dashed";
-		}
+		borderType = OXML_BorderStyleForValue(szValue);
 	}
 
 	color = nullptr;
@@ -154,10 +151,7 @@ UT_Error OXML_Element_Cell::serializeProperties(IE_Exp_OpenXML* exporter)
 	borderType = "single";
 	if(getProperty("right-style", szValue) == UT_OK)
 	{
-		if(strcmp(szValue, "1") != 0)
-		{
-			 borderType = "dashed";
-		}
+		borderType = OXML_BorderStyleForValue(szValue);
 	}
 
 	color = nullptr;
@@ -181,10 +175,7 @@ UT_Error OXML_Element_Cell::serializeProperties(IE_Exp_OpenXML* exporter)
 		borderType = "single";
 		if(getProperty("top-style", szValue) == UT_OK)
 		{
-			if(strcmp(szValue, "1") != 0)
-			{
-				 borderType = "dashed";
-			}
+			borderType = OXML_BorderStyleForValue(szValue);
 		}
 
 		color = nullptr;
@@ -209,10 +200,7 @@ UT_Error OXML_Element_Cell::serializeProperties(IE_Exp_OpenXML* exporter)
 		borderType = "single";
 		if(getProperty("bot-style", szValue) == UT_OK)
 		{
-			if(strcmp(szValue, "1") != 0)
-			{
-				 borderType = "dashed";
-			}
+			borderType = OXML_BorderStyleForValue(szValue);
 		}
 
 		color = nullptr;

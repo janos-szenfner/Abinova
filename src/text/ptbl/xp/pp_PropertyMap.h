@@ -269,6 +269,12 @@ public:
 		linestyle_dashed, // "3" or "dashed"
 
 		// insert new styles here; do not change order of existing styles
+		linestyle_double,      // "4" or "double"
+		linestyle_dashdot,     // "5" or "dashdot"
+		linestyle_dashdotdot,  // "6" or "dashdotdot"
+		linestyle_longdash,    // "7" or "longdash"
+		linestyle_triple,      // "8" or "triple"
+		linestyle_wave,         // "9" or "wave"
 
 		linestyle_inherit
 	};

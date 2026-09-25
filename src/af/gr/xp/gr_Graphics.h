@@ -587,7 +587,10 @@ class ABI_EXPORT GR_Graphics
 		LINE_SOLID,
 		LINE_ON_OFF_DASH,
 		LINE_DOUBLE_DASH,
-		LINE_DOTTED
+		LINE_DOTTED,
+		LINE_DASH_DOT,
+		LINE_DASH_DOT_DOT,
+		LINE_LONG_DASH
 	};
 
 	virtual void setLineProperties ( double inWidthPixels,

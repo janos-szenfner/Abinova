@@ -427,6 +427,10 @@ public:
 	static EV_EditMethod_Fn toggleTableGridlines;
 	static EV_EditMethod_Fn toggleDrawTable;
 	static EV_EditMethod_Fn toggleTableEraser;
+	static EV_EditMethod_Fn borderPaintAt;
+	static EV_EditMethod_Fn borderSampleAt;
+	static EV_EditMethod_Fn cursorBorderPaint;
+	static EV_EditMethod_Fn cursorBorderSampler;
 	static EV_EditMethod_Fn beginTableDraw;
 	static EV_EditMethod_Fn dragTableDraw;
 	static EV_EditMethod_Fn endTableDraw;
@@ -940,6 +944,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(beginHDrag), 0, ""),
 	EV_EditMethod(NF(beginTableDraw), 0, ""),
 	EV_EditMethod(NF(beginVDrag), 0, ""),
+	EV_EditMethod(NF(borderPaintAt),		0,	""),
+	EV_EditMethod(NF(borderSampleAt),		0,	""),
 	EV_EditMethod(NF(btn0Frame), 0, ""),
 	EV_EditMethod(NF(btn0InlineImage), 0, ""),
 	EV_EditMethod(NF(btn0VisualText), 0, ""),
@@ -992,6 +998,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(copyVisualText),		0,	""),
 	EV_EditMethod(NF(coverPageInsert),		0,	""),
 	EV_EditMethod(NF(coverPageRemove),		0,	""),
+	EV_EditMethod(NF(cursorBorderPaint),	0,	""),
+	EV_EditMethod(NF(cursorBorderSampler),	0,	""),
 	EV_EditMethod(NF(cursorDefault),		0,	""),
 	EV_EditMethod(NF(cursorHline),      	0,	""),
 	EV_EditMethod(NF(cursorIBeam),			0,	""),
@@ -17522,6 +17530,54 @@ Defun1(cursorTableEraser)
 	return true;
 }
 
+/* Border Painter mode (Table Design ribbon): click/drag near a cell
+ * border stamps the current table pen onto that edge */
+Defun(borderPaintAt)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->cmdBorderPaintAt(pCallData->m_xPos, pCallData->m_yPos);
+	return true;
+}
+
+/* Border Sampler mode: click near a cell border copies that edge's
+ * pen into the table pen and arms the painter */
+Defun(borderSampleAt)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->cmdBorderSampleAt(pCallData->m_xPos, pCallData->m_yPos);
+	return true;
+}
+
+Defun1(cursorBorderPaint)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	GR_Graphics * pG = pView->getGraphics();
+	if (pG)
+	{
+		pG->setCursor(GR_Graphics::GR_CURSOR_DRAGTEXT);
+	}
+	return true;
+}
+
+Defun1(cursorBorderSampler)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	GR_Graphics * pG = pView->getGraphics();
+	if (pG)
+	{
+		pG->setCursor(GR_Graphics::GR_CURSOR_CROSSHAIR);
+	}
+	return true;
+}
+
 Defun1(tableColWider)
 {
 	CHECK_FRAME;
@@ -18318,10 +18374,13 @@ Defun1(doEscape)
 	ABIWORD_VIEW;
 	UT_DEBUGMSG(("Escape Pressed. \n"));
 	UT_return_val_if_fail(pView, false);
-	if (pView->getDrawTableMode() || pView->getEraserMode())
+	if (pView->getDrawTableMode() || pView->getEraserMode() ||
+		pView->isBorderPainterMode() || pView->isBorderSamplerMode())
 	{
 		pView->setDrawTableMode(false);
 		pView->setEraserMode(false);
+		pView->setBorderPainterMode(false);
+		pView->setBorderSamplerMode(false);
 		return true;
 	}
 	FV_VisualDragText * pVis = pView->getVisualText();

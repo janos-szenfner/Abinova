@@ -655,10 +655,18 @@ void fp_FrameContainer::_drawLine (const PP_PropertyMap::Line & style,
 		case PP_PropertyMap::linestyle_dashed:
 			pGr->setLineProperties (iLineWidth, js, cs, GR_Graphics::LINE_ON_OFF_DASH);
 			break;
-		case PP_PropertyMap::linestyle_solid:
-			pGr->setLineProperties (iLineWidth, js, cs, GR_Graphics::LINE_SOLID);
+		case PP_PropertyMap::linestyle_dashdot:
+			pGr->setLineProperties (iLineWidth, js, cs, GR_Graphics::LINE_DASH_DOT);
 			break;
-		default: // do nothing; shouldn't happen
+		case PP_PropertyMap::linestyle_dashdotdot:
+			pGr->setLineProperties (iLineWidth, js, cs, GR_Graphics::LINE_DASH_DOT_DOT);
+			break;
+		case PP_PropertyMap::linestyle_longdash:
+			pGr->setLineProperties (iLineWidth, js, cs, GR_Graphics::LINE_LONG_DASH);
+			break;
+		case PP_PropertyMap::linestyle_solid:
+		default:
+			pGr->setLineProperties (iLineWidth, js, cs, GR_Graphics::LINE_SOLID);
 			break;
 	}
 

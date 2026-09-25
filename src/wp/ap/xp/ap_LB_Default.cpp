@@ -77,6 +77,8 @@
 #define _CEM		EV_EMC_EMBED
 #define _CTD		EV_EMC_TABLEDRAW
 #define _CTE		EV_EMC_TABLEERASE
+#define _CTP		EV_EMC_TABLEPAINT
+#define _CTS		EV_EMC_TABLESAMPLE
 
 #define _B0		| EV_EMB_BUTTON0
 #define _B1		| EV_EMB_BUTTON1
@@ -117,6 +119,8 @@ ap_bs_Mouse MouseTable[] =
 	{_CMA _B0,	{ "",	"",			"cursorDefault",		"",			"",			""		        }},
 	{_CTD _B0,	{ "",	"",			"cursorTableDraw",		"",			"",			""		        }},
 	{_CTE _B0,	{ "",	"",			"cursorTableEraser",	"",			"",			""		        }},
+	{_CTP _B0,	{ "",	"",			"cursorBorderPaint",	"",			"",			""		        }},
+	{_CTS _B0,	{ "",	"",			"cursorBorderSampler",	"",			"",			""		        }},
 
 
 //	Button-1, VisualTextDrag context
@@ -189,6 +193,12 @@ ap_bs_Mouse MouseTable[] =
 //	Button-1, TableDraw/TableEraser modes (Table Layout ribbon)
 	{_CTD _B1,	{ "beginTableDraw", "",				"dragTableDraw","",		"endTableDraw",	""				}},
 	{_CTE _B1,	{ "eraseTableBorder","",			"",				"",		"",				""				}},
+
+//	Button-1, Border Painter / Border Sampler modes (Table Design)
+//  dragging re-fires the paint command so a sweep paints every
+//  border it crosses
+	{_CTP _B1,	{ "borderPaintAt", "",			"borderPaintAt","",		"",				""				}},
+	{_CTS _B1,	{ "borderSampleAt","",			"",				"",		"",				""				}},
 
 
 //	Button-1, ImageSize-context

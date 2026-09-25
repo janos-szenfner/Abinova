@@ -359,7 +359,8 @@ void ODi_Style_Style::_parse_style_paragraphProperties(const gchar** ppProps) {
     pVal = UT_getAttribute("fo:border", ppProps);
     if (pVal) {
         _stripColorLength(m_borderTop_color, m_borderTop_thickness,
-                          m_haveTopBorder, pVal);
+                              m_borderTop_style,
+                              m_haveTopBorder, pVal);
         
         m_borderBottom_color = m_borderTop_color;
         m_borderBottom_thickness = m_borderTop_thickness;
@@ -377,24 +378,28 @@ void ODi_Style_Style::_parse_style_paragraphProperties(const gchar** ppProps) {
         pVal = UT_getAttribute("fo:border-top", ppProps);
         if (pVal) {
             _stripColorLength(m_borderTop_color, m_borderTop_thickness,
+                              m_borderTop_style,
                               m_haveTopBorder, pVal);
         }
         
         pVal = UT_getAttribute("fo:border-bottom", ppProps);
         if (pVal) {
             _stripColorLength(m_borderBottom_color, m_borderBottom_thickness,
+                              m_borderBottom_style,
                               m_haveBottomBorder, pVal);
         }
         
         pVal = UT_getAttribute("fo:border-left", ppProps);
         if (pVal) {
             _stripColorLength(m_borderLeft_color, m_borderLeft_thickness,
+                              m_borderLeft_style,
                               m_haveLeftBorder, pVal);
         }
         
         pVal = UT_getAttribute("fo:border-right", ppProps);
         if (pVal) {
             _stripColorLength(m_borderRight_color, m_borderRight_thickness,
+                              m_borderRight_style,
                               m_haveRightBorder, pVal);
         }
     }
@@ -754,22 +759,30 @@ void ODi_Style_Style::_parse_style_graphicProperties(const gchar** ppProps) {
 
     pVal = UT_getAttribute("fo:border-top", ppProps);
     if (pVal) {
-        _stripColorLength(m_borderTop_color, m_borderTop_thickness, m_haveTopBorder, pVal);
+        _stripColorLength(m_borderTop_color, m_borderTop_thickness,
+                              m_borderTop_style,
+                              m_haveTopBorder, pVal);
     }
 
     pVal = UT_getAttribute("fo:border-bottom", ppProps);
     if (pVal) {
-        _stripColorLength(m_borderBottom_color, m_borderBottom_thickness, m_haveBottomBorder, pVal);
+        _stripColorLength(m_borderBottom_color, m_borderBottom_thickness,
+                              m_borderBottom_style,
+                              m_haveBottomBorder, pVal);
     }
 
     pVal = UT_getAttribute("fo:border-left", ppProps);
     if (pVal) {
-        _stripColorLength(m_borderLeft_color, m_borderLeft_thickness, m_haveLeftBorder, pVal);
+        _stripColorLength(m_borderLeft_color, m_borderLeft_thickness,
+                              m_borderLeft_style,
+                              m_haveLeftBorder, pVal);
     }
 
     pVal = UT_getAttribute("fo:border-right", ppProps);
     if (pVal) {
-        _stripColorLength(m_borderRight_color, m_borderRight_thickness, m_haveRightBorder, pVal);
+        _stripColorLength(m_borderRight_color, m_borderRight_thickness,
+                              m_borderRight_style,
+                              m_haveRightBorder, pVal);
     }
 
     pVal = UT_getAttribute("fo:background-color", ppProps);
@@ -881,7 +894,8 @@ void ODi_Style_Style::_parse_style_tableCellProperties(const gchar** ppProps) {
     pVal = UT_getAttribute("fo:border", ppProps);
     if (pVal) {
         _stripColorLength(m_borderTop_color, m_borderTop_thickness,
-                          m_haveTopBorder, pVal);
+                              m_borderTop_style,
+                              m_haveTopBorder, pVal);
         
         m_borderBottom_color = m_borderTop_color;
         m_borderBottom_thickness = m_borderTop_thickness;
@@ -899,24 +913,28 @@ void ODi_Style_Style::_parse_style_tableCellProperties(const gchar** ppProps) {
         pVal = UT_getAttribute("fo:border-top", ppProps);
         if (pVal) {
             _stripColorLength(m_borderTop_color, m_borderTop_thickness,
+                              m_borderTop_style,
                               m_haveTopBorder, pVal);
         }
         
         pVal = UT_getAttribute("fo:border-bottom", ppProps);
         if (pVal) {
             _stripColorLength(m_borderBottom_color, m_borderBottom_thickness,
+                              m_borderBottom_style,
                               m_haveBottomBorder, pVal);
         }
         
         pVal = UT_getAttribute("fo:border-left", ppProps);
         if (pVal) {
             _stripColorLength(m_borderLeft_color, m_borderLeft_thickness,
+                              m_borderLeft_style,
                               m_haveLeftBorder, pVal);
         }
         
         pVal = UT_getAttribute("fo:border-right", ppProps);
         if (pVal) {
             _stripColorLength(m_borderRight_color, m_borderRight_thickness,
+                              m_borderRight_style,
                               m_haveRightBorder, pVal);
         }
     }
@@ -1084,8 +1102,9 @@ void ODi_Style_Style::buildAbiPropsAttrString(ODi_FontFaceDecls& rFontFaceDecls)
     APPEND_STYLE("bot-space: ", m_paddingBot);
     if(m_haveBottomBorder == HAVE_BORDER_YES)
     {
-        std::string solid("1");
-        APPEND_STYLE("bot-style: ", solid);
+        std::string sty = m_borderBottom_style.empty()
+            ? "solid" : m_borderBottom_style;
+        APPEND_STYLE("bot-style: ", sty);
     }
     APPEND_STYLE("bot-thickness: ", m_borderBottom_thickness);
     APPEND_STYLE("bot-color: ", m_borderBottom_color);
@@ -1093,8 +1112,9 @@ void ODi_Style_Style::buildAbiPropsAttrString(ODi_FontFaceDecls& rFontFaceDecls)
     APPEND_STYLE("left-space: ", m_paddingLeft);
     if(m_haveLeftBorder == HAVE_BORDER_YES)
     {
-        std::string solid("1");
-        APPEND_STYLE("left-style: ", solid);
+        std::string sty = m_borderLeft_style.empty()
+            ? "solid" : m_borderLeft_style;
+        APPEND_STYLE("left-style: ", sty);
     }
     APPEND_STYLE("left-thickness: ", m_borderLeft_thickness);
     APPEND_STYLE("left-color: ", m_borderLeft_color);
@@ -1102,8 +1122,9 @@ void ODi_Style_Style::buildAbiPropsAttrString(ODi_FontFaceDecls& rFontFaceDecls)
     APPEND_STYLE("right-space: ", m_paddingRight);
     if(m_haveRightBorder == HAVE_BORDER_YES)
     {
-        std::string solid("1");
-        APPEND_STYLE("right-style: ", solid);
+        std::string sty = m_borderRight_style.empty()
+            ? "solid" : m_borderRight_style;
+        APPEND_STYLE("right-style: ", sty);
     }
     APPEND_STYLE("right-thickness: ", m_borderRight_thickness);
     APPEND_STYLE("right-color: ", m_borderRight_color);
@@ -1111,8 +1132,9 @@ void ODi_Style_Style::buildAbiPropsAttrString(ODi_FontFaceDecls& rFontFaceDecls)
     APPEND_STYLE("top-space: ", m_paddingTop);
     if(m_haveTopBorder == HAVE_BORDER_YES)
     {
-        std::string solid("1");
-        APPEND_STYLE("top-style: ", solid);
+        std::string sty = m_borderTop_style.empty()
+            ? "solid" : m_borderTop_style;
+        APPEND_STYLE("top-style: ", sty);
     }
     APPEND_STYLE("top-thickness: ", m_borderTop_thickness);
     APPEND_STYLE("top-color: ", m_borderTop_color);
@@ -1258,15 +1280,17 @@ const std::string* ODi_Style_Style::getBackgroundImageID() const
  */
 void ODi_Style_Style::_stripColorLength(std::string& rColor,
                                   std::string& rLength,
+                                  std::string& rStyle,
                                   ODi_Style_Style::HAVE_BORDER& rHaveBorder,
                                   const gchar* pString) const {
-                                        
+
     UT_uint16 i, start;
     bool hasWord;
 
     rColor.clear();
     rLength.clear();
-    
+    rStyle.clear();
+
     if (!strcmp(pString, "none")) {
         // Color and length remain empty.
         rHaveBorder = HAVE_BORDER_NO;
@@ -1274,18 +1298,28 @@ void ODi_Style_Style::_stripColorLength(std::string& rColor,
     } else {
         rHaveBorder = HAVE_BORDER_YES;
     }
-    
+
     i = 0;
     start = 0;
     hasWord = true;
     while (pString[i] != 0) {
-        
+
         if (hasWord) {
             if (isspace(pString[i])) {
                 if (_isValidDimensionString(&(pString[start]), i-start)) {
                     rLength.assign(&(pString[start]), i-start);
                 } else if (pString[start] == '#') {
                     rColor.assign(&(pString[start]), i-start);
+                } else {
+                    /* the remaining word is the border-style keyword;
+                     * ODF uses CSS names: none, hidden, solid, double,
+                     * dotted, dashed, groove, ridge, inset, outset */
+                    std::string kw(&(pString[start]), i-start);
+                    if (kw == "dotted" || kw == "dashed" ||
+                        kw == "double" || kw == "solid") {
+                        rStyle = kw;
+                    }
+                    /* groove/ridge/inset/outset/hidden -> solid */
                 }
                 hasWord = false;
             }
@@ -1295,16 +1329,22 @@ void ODi_Style_Style::_stripColorLength(std::string& rColor,
                 hasWord = true;
             }
         }
-        
+
         i++;
     };
-    
+
     // Process the last word.
     if (hasWord) {
         if (_isValidDimensionString(&(pString[start]), i-start)) {
             rLength.assign(&(pString[start]), i-start);
         } else if (pString[start] == '#') {
             rColor.assign(&(pString[start]), i-start);
+        } else {
+            std::string kw(&(pString[start]), i-start);
+            if (kw == "dotted" || kw == "dashed" ||
+                kw == "double" || kw == "solid") {
+                rStyle = kw;
+            }
         }
     }
 }

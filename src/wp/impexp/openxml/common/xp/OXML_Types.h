@@ -24,6 +24,9 @@
 #ifndef _OXML_TYPES_H_
 #define _OXML_TYPES_H_
 
+#include <string.h>
+#include <glib.h>
+
 
 //There's probably a better way to do this...
 #define ALTERNATEFORMAT_REL_TYPE "http://schemas.openxmlformats.org/officeDocument/2006/relationships/aFChunk"
@@ -137,6 +140,39 @@ enum OXML_SectionBreakType {
 	EVENPAGE_BREAK,
 	ODDPAGE_BREAK
 };
+
+/* map an Abinova border-style property value (numeric code or name)
+ * to the nearest OOXML ST_Border value for export */
+inline const gchar * OXML_BorderStyleForValue(const gchar * szValue)
+{
+	if (!szValue || !*szValue)
+		return "nil";
+
+	/* numeric codes: 0 none, 1 solid, 2 dotted, 3 dashed,
+	 * 4 double, 5 dashdot, 6 dashdotdot, 7 longdash,
+	 * 8 triple, 9 wave */
+	if (szValue[0] >= '0' && szValue[0] <= '9')
+	{
+		static const gchar * const codes[] = {
+			"nil", "single", "dotted", "dashed", "double",
+			"dotDash", "dotDotDash", "dashLargeGap",
+			"triple", "wave"
+		};
+		return codes[szValue[0] - '0'];
+	}
+
+	if (!strcmp(szValue, "none"))		return "nil";
+	if (!strcmp(szValue, "solid"))		return "single";
+	if (!strcmp(szValue, "dotted"))		return "dotted";
+	if (!strcmp(szValue, "dashed"))		return "dashed";
+	if (!strcmp(szValue, "double"))		return "double";
+	if (!strcmp(szValue, "dashdot"))	return "dotDash";
+	if (!strcmp(szValue, "dashdotdot"))	return "dotDotDash";
+	if (!strcmp(szValue, "longdash"))	return "dashLargeGap";
+	if (!strcmp(szValue, "triple"))		return "triple";
+	if (!strcmp(szValue, "wave"))		return "wave";
+	return "single";
+}
 
 #endif //_OXML_TYPES_H_
 

@@ -11110,6 +11110,16 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 		m_prevMouseContext = EV_EMC_TABLEERASE;
 		return EV_EMC_TABLEERASE;
 	}
+	if(m_bBorderPainter)
+	{
+		m_prevMouseContext = EV_EMC_TABLEPAINT;
+		return EV_EMC_TABLEPAINT;
+	}
+	if(m_bBorderSampler)
+	{
+		m_prevMouseContext = EV_EMC_TABLESAMPLE;
+		return EV_EMC_TABLESAMPLE;
+	}
 	if(m_bDragTableLine)
 	{
 		return m_prevMouseContext;
@@ -12495,6 +12505,8 @@ void FV_View::setDrawTableMode(bool bSet)
 	if (bSet)
 	{
 		m_bEraserMode = false;
+		m_bBorderPainter = false;
+		m_bBorderSampler = false;
 	}
 }
 
@@ -12509,6 +12521,44 @@ void FV_View::setEraserMode(bool bSet)
 	{
 		m_bDrawTableMode = false;
 		m_bTableDrawDragging = false;
+		m_bBorderPainter = false;
+		m_bBorderSampler = false;
+	}
+}
+
+/* Border Painter / Border Sampler modes (Table Design ribbon):
+ * painter clicks paint the current table pen onto the nearest cell
+ * edge; sampler clicks copy the nearest edge's pen back.  Both are
+ * exclusive with each other and with the Draw/Eraser modes. */
+void FV_View::setBorderPainterMode(bool bOn)
+{
+	if (bOn == m_bBorderPainter)
+	{
+		return;
+	}
+	m_bBorderPainter = bOn;
+	if (bOn)
+	{
+		m_bBorderSampler = false;
+		m_bDrawTableMode = false;
+		m_bTableDrawDragging = false;
+		m_bEraserMode = false;
+	}
+}
+
+void FV_View::setBorderSamplerMode(bool bOn)
+{
+	if (bOn == m_bBorderSampler)
+	{
+		return;
+	}
+	m_bBorderSampler = bOn;
+	if (bOn)
+	{
+		m_bBorderPainter = false;
+		m_bDrawTableMode = false;
+		m_bTableDrawDragging = false;
+		m_bEraserMode = false;
 	}
 }
 

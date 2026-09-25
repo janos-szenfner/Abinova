@@ -271,10 +271,34 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 		}
 
 		std::string styleValue = "1"; //single line border by default
-		if(val)
+		if(val && *val)
 		{
-			if(!strcmp(val, "dashed"))
-				styleValue = "0"; 
+			/* Abinova edge styles: 0 none, 1 solid, 2 dotted,
+			 * 3 dashed, 4 double, 5 dashdot, 6 dashdotdot,
+			 * 7 longdash, 8 triple, 9 wave */
+			if (!strcmp(val, "none") || !strcmp(val, "nil"))
+				styleValue = "0";
+			else if (!strcmp(val, "dotted"))
+				styleValue = "2";
+			else if (!strcmp(val, "dashed") ||
+					 !strcmp(val, "dashSmallGap"))
+				styleValue = "3";
+			else if (!strcmp(val, "double") ||
+					 !strncmp(val, "thinThick", 9) ||
+					 !strncmp(val, "thickThin", 9))
+				styleValue = "4";
+			else if (!strcmp(val, "dotDash") ||
+					 !strcmp(val, "dashDotStroked"))
+				styleValue = "5";
+			else if (!strcmp(val, "dotDotDash"))
+				styleValue = "6";
+			else if (!strcmp(val, "dashLargeGap"))
+				styleValue = "7";
+			else if (!strcmp(val, "triple"))
+				styleValue = "8";
+			else if (!strcmp(val, "wave") ||
+					 !strcmp(val, "doubleWave"))
+				styleValue = "9";
 		}
 
 		ret = element->setProperty(borderStyle, styleValue);

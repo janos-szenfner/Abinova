@@ -287,6 +287,7 @@ private:
      * rHaveBorder will be "no"
      */
     void _stripColorLength(std::string& rColor, std::string& rLength,
+                           std::string& rStyle,
                            HAVE_BORDER& rHaveBorder,
                            const gchar* pString) const;
 
@@ -450,21 +451,25 @@ private:
     // fo:border-top
     std::string m_borderTop_thickness;
     std::string m_borderTop_color;
+    std::string m_borderTop_style;
     HAVE_BORDER m_haveTopBorder;
 
     // fo:border-bottom
     std::string m_borderBottom_thickness;
     std::string m_borderBottom_color;
+    std::string m_borderBottom_style;
     HAVE_BORDER m_haveBottomBorder;
 
     // fo:border-left
     std::string m_borderLeft_thickness;
     std::string m_borderLeft_color;
+    std::string m_borderLeft_style;
     HAVE_BORDER m_haveLeftBorder;
 
     // fo:border-right
     std::string m_borderRight_thickness;
     std::string m_borderRight_color;
+    std::string m_borderRight_style;
     HAVE_BORDER m_haveRightBorder;
 
     // fo:padding
