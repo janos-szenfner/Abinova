@@ -1,15 +1,20 @@
 # Abinova GTK4 Experiment
 
-**Abinova** is an experimental fork of the **AbiWord** word processor.
-Starting from version **3.1**, Abinova follows a different direction:
-a GTK4-only toolkit port, a LibreOffice NotebookBar-style ribbon UI,
-all document formats compiled into the core library (no plugins), and
-a repository-wide audit of historical Debian/Launchpad bug reports.
-AbiWord file-format compatibility is preserved: Abinova writes the
-same AWML format under the new `.abwn` extension, keeps the
-`abiword.*` metadata keys and `abiword:` ODF attributes, and opens
-legacy `.abw` documents unchanged — `.abwn` files open in AbiWord
-too (same `<abiword>` XML content).
+**Abinova** is an experimental fork of the **AbiWord** word
+processor (upstream base 3.1.90) taking its own direction: a
+GTK4-only toolkit port, a LibreOffice NotebookBar-style ribbon UI,
+all document formats compiled into the core library (no plugins),
+and a repository-wide audit of historical Debian/Launchpad bug
+reports. The first release is planned as version **4.0.0**.
+
+The native format keeps the AWML vocabulary but writes it under
+the new `.abwn` extension with `<abinova>` as the root element,
+the repository `abwn.dtd` doctype, and optional password
+encryption — a distinct serialization, so `.abwn` files do **not**
+open in AbiWord. Legacy `.abw`/`.awt` documents (and their
+compressed variants) still open unchanged, and the `abiword.*`
+metadata keys and `abiword:` ODF attributes are preserved for
+interoperability.
 
 The fork is focused on:
 
