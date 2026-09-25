@@ -342,10 +342,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		".abiword-ribbon .ribbon-group menubutton label {"
 		"  font-size: 0.88em;"
 		"}"
-		/* SLIM large buttons (e.g. Table: Draw/Eraser/Delete) get a
-		 * tighter caption so the whole button can go narrower */
-		".abiword-ribbon .ribbon-group label.ribbon-xslim {"
-		"  font-size: 0.80em;"
+		/* SLIM large buttons (e.g. Table: Draw/Eraser/Delete) keep
+		 * the normal icon/caption but lose the frame padding */
+		".abiword-ribbon .ribbon-group button.ribbon-xslim {"
+		"  padding-left: 2px; padding-right: 2px; min-width: 0;"
 		"}"
 		/* compact +/- on the Layout tab's indent/spacing spins */
 		".abiword-ribbon spinbutton.ribbon-spin button {"
@@ -779,17 +779,16 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		 * page-glyphs, the rest a stock/theme icon */
 		GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 		GtkWidget * image;
-		const int iIcon = (flags & AP_RIBBON_FLAG_SLIM) ? 18 : 24;
 		if (bDrawnIcon ||
 			id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR) ||
 			id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE))
 		{
-			image = _layout_icon(id, iIcon, iIcon);
+			image = _layout_icon(id, 24, 24);
 		}
 		else
 		{
 			image = gtk_image_new_from_icon_name(szIcon);
-			gtk_image_set_pixel_size(GTK_IMAGE(image), iIcon);
+			gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
 		}
 		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
 		/* Close: red icon only, button face and label stay normal */
@@ -812,11 +811,11 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_label_set_lines(GTK_LABEL(wLabel), 2);
 		gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
 			(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
-		if (flags & AP_RIBBON_FLAG_SLIM)
-			gtk_widget_add_css_class(wLabel, "ribbon-xslim");
 		gtk_box_append(GTK_BOX(box), image);
 		gtk_box_append(GTK_BOX(box), wLabel);
 		gtk_button_set_child(GTK_BUTTON(btn), box);
+		if (flags & AP_RIBBON_FLAG_SLIM)
+			gtk_widget_add_css_class(btn, "ribbon-xslim");
 		if (flags & AP_RIBBON_FLAG_SLIM)
 			gtk_style_context_add_provider(
 				gtk_widget_get_style_context(btn),
@@ -5057,8 +5056,7 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 	_ribbon_strip_mnemonic(szLabel ? szLabel : "", label, sizeof(label));
 	GtkWidget * mb = gtk_menu_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-	const int iIcon = (flags & AP_RIBBON_FLAG_SLIM) ? 18 : 24;
-	GtkWidget * icon = _layout_icon(id, iIcon, iIcon);
+	GtkWidget * icon = _layout_icon(id, 24, 24);
 	gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(box), icon);
 	/* Word breaks large-button captions onto two lines */
@@ -5075,15 +5073,16 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 	gtk_label_set_lines(GTK_LABEL(wLabel), 2);
 	gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
 		(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
-	if (flags & AP_RIBBON_FLAG_SLIM)
-		gtk_widget_add_css_class(wLabel, "ribbon-xslim");
 	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
 	if (flags & AP_RIBBON_FLAG_SLIM)
+	{
+		gtk_widget_add_css_class(mb, "ribbon-xslim");
 		_slim_widget_tree(mb);
+	}
 
 	const char * szStatus = pLabel ? pLabel->getMenuStatusMessage() : nullptr;
 	if (szStatus && *szStatus && strcmp(szStatus, " ") != 0)
