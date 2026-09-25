@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes in this experimental Abinova GTK4 fork, grouped by
-category. Based on upstream Abinova 3.1.90 (`5e3e1cc` import).
+category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
