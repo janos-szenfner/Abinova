@@ -42,7 +42,7 @@ m4/plugin-makefiles.m4
 
 # configure/build generated files
 *.pc
-com.abisource.AbiWord.metainfo.xml
+io.github.janos_szenfner.Abinova.metainfo.xml
 .dirstamp
 po/*.strings
 src/abi-resources.c
