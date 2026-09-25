@@ -220,7 +220,12 @@ public:
 	XAP_Dialog_MessageBox::tAnswer		showMessageBox(XAP_Dialog_MessageBox * pDialog);
 
 	UT_Error	    backup(const char* stExt = nullptr, UT_sint32 iEFT = -1);
+	// returns the backup path in the autosave directory (local fs path)
 	std::string       makeBackupName(const char * szExt = nullptr);
+	// one autosave cycle: save if dirty, drop the backup if the doc is clean
+	void							autosaveTick();
+	void							discardAutosaveFile();
+	static std::string	getAutosaveDirectory();
 
 	bool                        isStatusBarShown(void) const { return m_bShowStatusbar;}
 	bool                        isMenuBarShown(void) const { return m_bShowMenubar;}
@@ -261,8 +266,8 @@ protected:
 	static int					_getNextUntitledNumber();
 
 private:
-	void						_createAutoSaveTimer();
 	void						_removeAutoSaveFile();
+	void						_writeBackupInfo(const std::string &backupPath);
 
 	std::string					m_sTitle;
 	std::string					m_sNonDecoratedTitle;

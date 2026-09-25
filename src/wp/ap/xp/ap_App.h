@@ -60,6 +60,8 @@ class ABI_EXPORT AP_App : public XAP_App_BaseClass
 	 */
 	XAP_Frame* openFile(const char* uri, const char* file = nullptr);
 	bool openCmdLineFiles(const AP_Args * args);
+	/* Open leftover autosave recovery files from a previous session. */
+	void recoverAutosavedDocs();
 protected:
 	virtual void saveRecoveryFiles() override;
  private:

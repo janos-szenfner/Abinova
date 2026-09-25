@@ -35,6 +35,7 @@ dcl(MSG_SaveFailedExport,		"Error while attempting to save %s: could not constru
 dcl(MSG_SaveFailedName, 		"Error while attempting to save %s: invalid name")
 dcl(MSG_OpenFailed, "Could not open file %s.")
 dcl(MSG_OpenRecovered,          "Some errors were encountered during the import.")
+dcl(MSG_RecoveredDocuments,     "Abinova recovered %d unsaved document(s) from a previous session. They are opened for review - save them to keep your changes.")
 dcl(MSG_DlgNotImp,				"%s not implemented yet.\n\nIf you are a programmer, feel free to add code in %s, line %d\nand report issues at:\n\n\thttps://github.com/janos-szenfner/Exp-Abi\n\nOtherwise, please be patient.")
 dcl(MSG_RevertBuffer,			"Revert to saved copy of %s?")
 dcl(MSG_QueryExit,				"Close all windows and exit?")

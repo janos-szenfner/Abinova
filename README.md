@@ -729,6 +729,35 @@ labels, like Word's ribbon.
   every visible row in its own typeface, type-to-search, incremental
   sort. The collapsed entry shows plain GUI-font text like LO.
 
+### Autosave and crash recovery
+
+Autosave was rebuilt so that unsaved work survives an unclean exit:
+
+- **Central recovery directory**: backup copies live in
+  `autosave/` under the user config directory
+  (`~/.config/abinova/autosave`), not beside the document —
+  previously backups were written next to the file, which could not
+  work for never-saved documents and left `.bak~` litter in user
+  directories.
+- **Unique names**: recovery files are named
+  `<basename>-<hash-of-full-uri>.bak~` for saved documents and
+  `Untitled-<n>.bak~` for new ones, so two documents sharing a
+  basename in different folders can no longer collide.
+- **Atomic writes**: each backup is written to a `.part` file and
+  renamed into place; a crash mid-write cannot leave a half-written
+  recovery file.
+- **`.info` sidecar**: next to every backup a small metadata file
+  records the document's original URI and the write timestamp.
+- **Startup recovery**: on launch, leftover recovery files are
+  detected, opened in their own windows with the original filename
+  restored and marked dirty — the user is told how many documents
+  were recovered and only needs a normal Save to keep them.
+- **Self-cleaning**: a successful regular Save drops the pending
+  recovery copy at the next autosave tick, and a clean window close
+  removes it immediately — recovery files only survive real crashes.
+- **Autosave settings** (enable/disable and the interval in minutes)
+  remain on the Documents tab of Preferences.
+
 ### Debian bug audit
 
 - **#896745 font size by keyboard** — fixed: typed sizes not in the

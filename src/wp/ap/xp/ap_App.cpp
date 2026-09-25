@@ -25,6 +25,10 @@
 #endif
 
 #include <stdio.h>
+#include <string.h>
+#include <vector>
+#include <glib.h>
+#include <glib/gstdio.h>
 
 #include "ev_EditMethod.h"
 #include "ap_Features.h"
@@ -35,6 +39,7 @@
 #include "xap_Frame.h"
 #include "pd_Document.h"
 #include "ie_imp.h"
+#include "ut_go_file.h"
 
 AP_App::AP_App (const char * szAppName)
   : XAP_App_BaseClass(szAppName, "io.github.janos_szenfner.Abinova")
@@ -137,6 +142,89 @@ void AP_App::errorMsgBadFile(XAP_Frame *, const char *, UT_Error)
 bool AP_App::doWindowlessArgs (const AP_Args *, bool & /*bSuccess*/)
 {
 	return false;
+}
+
+/*!
+ * Scans the autosave directory for recovery files left behind by an
+ * unclean shutdown and opens each one for review. A ".info" sidecar
+ * written next to each backup carries the document's original URI, so
+ * recovered documents get their filename back and only need a normal
+ * Save to be restored in place. Successfully recovered backups are
+ * removed; files that fail to load are left alone.
+ */
+void AP_App::recoverAutosavedDocs()
+{
+	std::string dir = XAP_Frame::getAutosaveDirectory();
+	GDir *d = g_dir_open(dir.c_str(), 0, nullptr);
+	if (!d)
+		return;
+
+	std::vector<std::string> files;
+	const gchar *name;
+	while ((name = g_dir_read_name(d)) != nullptr) {
+		if (g_str_has_suffix(name, ".part") || g_str_has_suffix(name, ".info"))
+			continue;
+		files.push_back(name);
+	}
+	g_dir_close(d);
+	if (files.empty())
+		return;
+
+	IEFileType abiType = IE_Imp::fileTypeForSuffix(".abwn");
+	int recovered = 0;
+	for (const std::string &nm : files) {
+		std::string path = dir + nm;
+
+		// the sidecar holds the original URI, if any
+		std::string orig;
+		FILE *info = g_fopen((path + ".info").c_str(), "r");
+		if (info) {
+			char buf[4096];
+			if (fgets(buf, sizeof(buf), info)) {
+				buf[strcspn(buf, "\r\n")] = 0;
+				orig = buf;
+			}
+			fclose(info);
+		}
+
+		gchar *uri = UT_go_filename_to_uri(path.c_str());
+		if (!uri)
+			continue;
+		XAP_Frame *f = newFrame();
+		UT_Error error = f->loadDocument(uri, abiType, true);
+		g_free(uri);
+
+		if (UT_IS_IE_SUCCESS(error)) {
+			AD_Document *pDoc = f->getCurrentDoc();
+			if (pDoc) {
+				if (!orig.empty())
+					pDoc->setFilename(orig.c_str());
+				else
+					pDoc->clearFilename();
+				pDoc->forceDirty(); // an explicit Save is required to keep the recovery
+			}
+			f->updateTitle();
+			g_unlink(path.c_str());
+			g_unlink((path + ".info").c_str());
+			recovered++;
+		}
+		else {
+			// give the frame an empty document so it isn't left unusable
+			f->loadDocument((const char *)nullptr, IEFT_Unknown);
+		}
+	}
+
+	if (recovered > 0) {
+		XAP_Frame *f = m_vecFrames.getItemCount() ? m_vecFrames.getNthItem(0) : nullptr;
+		if (f) {
+			XAP_Dialog_MessageBox *dlg = f->createMessageBox(
+				AP_STRING_ID_MSG_RecoveredDocuments,
+				XAP_Dialog_MessageBox::b_O,
+				XAP_Dialog_MessageBox::a_OK,
+				recovered);
+			f->showMessageBox(dlg);
+		}
+	}
 }
 
 void AP_App::saveRecoveryFiles()

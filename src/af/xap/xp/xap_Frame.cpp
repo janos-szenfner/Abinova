@@ -56,6 +56,7 @@
 #include "xap_Dlg_Zoom.h"
 #include "xap_Toolbar_Layouts.h"
 #include "ut_sleep.h"
+#include "../../../wp/impexp/xp/ie_exp.h"
 
 #ifdef _MSC_VER
 // MSVC++ warns about using 'this' in initializer list.
@@ -286,8 +287,10 @@ bool XAP_Frame::initialize(const char * /*szKeyBindingsKey*/, const char * /*szK
 	pApp->getPrefsValue(XAP_PREF_KEY_AutoSaveFileExt, m_stAutoSaveExt);
 	pApp->getPrefsValueBool(XAP_PREF_KEY_AutoSaveFile, autosave);
 
-	if (autosave)
-		_createAutoSaveTimer();
+	int iPeriod = atoi(XAP_PREF_DEFAULT_AutoSaveFilePeriod);
+	if (pApp->getPrefsValue(XAP_PREF_KEY_AutoSaveFilePeriod, stTmp) && !stTmp.empty())
+		iPeriod = atoi(stTmp.c_str());
+	setAutoSaveFilePeriod(iPeriod);
 	setAutoSaveFile(autosave);
 
 	//////////////////////////////////////////////////////////////////
@@ -372,82 +375,68 @@ bool XAP_Frame::initialize(const char * /*szKeyBindingsKey*/, const char * /*szK
 extern "C" {
 static void autoSaveCallback(UT_Worker *wkr)
 {
-	xxx_UT_DEBUGMSG(("Autosaving doc...\n"));
 	XAP_Frame *me = static_cast<XAP_Frame *> (wkr->getInstanceData());
-	AD_Document * pDoc = me->getCurrentDoc();
-	if(pDoc && pDoc->isPieceTableChanging())
-	{
-		UT_DEBUGMSG(("PieceTable is changing no backup made \n"));
-	}
-	if (me->isDirty())
-	{
-		UT_Error error = me->backup();
-
-		if (!error) {
-			xxx_UT_DEBUGMSG(("Document Auto saved\n"));
-		}
-		else {
-			xxx_UT_DEBUGMSG(("Error [%d] saving document.\n", error));
-		}
-	}
-	else
-	{
-		 UT_DEBUGMSG(("Doc is not dirty\n"));
-	}
+	me->autosaveTick();
 }
 }
 
-void XAP_Frame::_createAutoSaveTimer()
+/*!
+ * One autosave cycle. Saves a recovery copy when the document is dirty
+ * and drops the leftover backup once the document has been saved by
+ * other means, so the autosave directory only ever holds files that
+ * represent actual unsaved work.
+ */
+void XAP_Frame::autosaveTick()
 {
-	UT_Timer *timer = UT_Timer::static_constructor(autoSaveCallback, this);
-	std::string stPeriod;
-	
-	bool bFound = XAP_App::getApp()->getPrefsValue(XAP_PREF_KEY_AutoSaveFilePeriod, stPeriod);
+	AD_Document * pDoc = getCurrentDoc();
+	if (!pDoc || pDoc->isPieceTableChanging())
+		return; // mid-mutation saves can produce a corrupt export; retry next period
 
-	if(!bFound || stPeriod.empty())
-		m_iAutoSavePeriod = atoi(XAP_PREF_DEFAULT_AutoSaveFilePeriod);
+	if (isDirty())
+	{
+		UT_Error error = backup();
+		if (error) {
+			UT_DEBUGMSG(("Autosave of document failed [%d].\n", error));
+		}
+	}
 	else
-		m_iAutoSavePeriod = atoi(stPeriod.c_str());
+	{
+		discardAutosaveFile();
+	}
+}
 
-	if(m_iAutoSavePeriod < 1)
-		m_iAutoSavePeriod = 1;
+void XAP_Frame::discardAutosaveFile()
+{
+	if (!m_stAutoSaveNamePrevious.empty())
+		_removeAutoSaveFile();
+}
 
-	// stPeriod is in minutes, and we should use milliseconds
-	timer->set(m_iAutoSavePeriod * 60000);
-	m_iIdAutoSaveTimer = timer->getIdentifier();
-	UT_DEBUGMSG(("Creating auto save timer [%d] with a timeout of [%d] minutes.\n", m_iIdAutoSaveTimer, m_iAutoSavePeriod));
+/*!
+ * Directory that holds per-document recovery copies. Lives under the
+ * user config dir so it is writable even for untitled documents and
+ * can be scanned for leftovers after a crash.
+ */
+std::string XAP_Frame::getAutosaveDirectory()
+{
+	std::string dir = XAP_App::getApp()->getUserPrivateDirectory();
+	if (!dir.empty() && dir.back() != '/')
+		dir.push_back('/');
+	dir += "autosave/";
+	return dir;
 }
 
 void XAP_Frame::_removeAutoSaveFile()
 {
-	const char *filename = nullptr;
-	gboolean bURI = UT_go_path_is_uri(m_stAutoSaveNamePrevious.c_str());
+	if (m_stAutoSaveNamePrevious.empty())
+		return;
 
-	if(bURI)
+	UT_DEBUGMSG(("autosave: removing backup file %s\n", m_stAutoSaveNamePrevious.c_str()));
+	if (g_unlink(m_stAutoSaveNamePrevious.c_str()) != 0)
 	{
-		filename = UT_go_filename_from_uri(m_stAutoSaveNamePrevious.c_str());
+		UT_DEBUGMSG(("Failed to unlink old backup file %s\n", m_stAutoSaveNamePrevious.c_str()));
 	}
-	else
-	{
-		// It shouldn't be a file name here, but handle it nonetheless
-		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-		filename = m_stAutoSaveNamePrevious.c_str();
-	}
-
-	if(filename)
-	{
-		UT_DEBUGMSG(("DOM: removing backup file %s\n", filename));
-		int res = g_unlink(filename);
-
-		if(res == -1)
-		{
-			UT_DEBUGMSG(("Failed to unlink old backup file %s\n", filename));
-		}
-
-		// only g_free in the UT_go_filename_from_uri case
-		if(bURI)
-			FREEP(filename);
-	}
+	g_unlink((m_stAutoSaveNamePrevious + ".info").c_str());
+	m_stAutoSaveNamePrevious.clear();
 }
 
 /*!
@@ -710,54 +699,42 @@ UT_sint32 XAP_Frame::findToolbarNr(EV_Toolbar * pTB)
 void XAP_Frame::setAutoSaveFile(bool b)
 {
 	m_bBackupRunning = b;
-	if (b && !m_iIdAutoSaveTimer)
-	{
-		UT_Timer *timer = UT_Timer::static_constructor(autoSaveCallback, this);
-		if(m_iAutoSavePeriod < 1)
-		{
-			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-			m_iAutoSavePeriod = 1;
-		}
 
-		timer->set(m_iAutoSavePeriod * 60000);
-		m_iIdAutoSaveTimer = timer->getIdentifier();
-		timer->start();
-		return;
-	}
+	UT_Timer *timer = m_iIdAutoSaveTimer
+		? UT_Timer::findTimer(m_iIdAutoSaveTimer) : nullptr;
+	if (m_iIdAutoSaveTimer && !timer)
+		m_iIdAutoSaveTimer = 0; // stale identifier
 
-	if (!b && m_iIdAutoSaveTimer)
+	if (!b)
 	{
-		// TODO: We're leaking UT_Timer objects.  We should
-		// TODO: give the posibility to erase a UT_Timer...
-		// TODO: something like UT_Timer::eraseTimer(...) should
-		// TODO: do the work (we should change the sign. of findTimer).
-		UT_Timer *timer = UT_Timer::findTimer(m_iIdAutoSaveTimer);
 		if (timer)
 			timer->stop();
-	}
-	if(b)
-	{
-		UT_Timer *timer = UT_Timer::findTimer(m_iIdAutoSaveTimer);
-		if(m_iAutoSavePeriod < 1)
-		{
-			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-			m_iAutoSavePeriod = 1;
-		}
-
-		// reset the timer, because the interval might have changed (Bug 9329)
-		timer->set(m_iAutoSavePeriod * 60000);
-		timer->start();
 		return;
 	}
+
+	if (m_iAutoSavePeriod < 1)
+		m_iAutoSavePeriod = 1;
+
+	if (!timer)
+	{
+		timer = UT_Timer::static_constructor(autoSaveCallback, this);
+		m_iIdAutoSaveTimer = timer->getIdentifier();
+		UT_DEBUGMSG(("Creating auto save timer [%d] with a timeout of [%d] minutes.\n", m_iIdAutoSaveTimer, m_iAutoSavePeriod));
+	}
+
+	// set() updates the frequency and (re)starts the timer
+	timer->set(m_iAutoSavePeriod * 60000);
 }
 
 void XAP_Frame::setAutoSaveFilePeriod(int min)
 {
+	if (min < 1)
+		min = 1;
 	m_iAutoSavePeriod = min;
-	
+
 	if (m_iIdAutoSaveTimer != 0)
 	{
-		// I know, it looks weird... I just want to restart the timer
+		// restart the timer so the new interval takes effect (Bug 9329)
 		setAutoSaveFile(false);
 		setAutoSaveFile(true);
 	}
@@ -847,99 +824,136 @@ XAP_Dialog_MessageBox::tAnswer XAP_Frame::showMessageBox(const char * szMessage,
 
 std::string XAP_Frame::makeBackupName(const char* szExt)
 {
-  std::string ext(szExt ? szExt : m_stAutoSaveExt);
-  std::string oldName(m_pDoc->getFilename());
-  std::string backupName;
-  UT_DEBUGMSG(("In make Backup name. Old Name is (%s) \n",oldName.c_str()));
-  if (oldName.empty())
-  {
-      const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
-      std::string sTmp;
-      pSS->getValue(XAP_STRING_ID_UntitledDocument, XAP_App::getApp()->getDefaultEncoding(), sTmp);
-      oldName = UT_std_string_sprintf(sTmp.c_str(), m_iUntitled);
+	if (!m_pDoc)
+		return std::string();
 
-      UT_DEBUGMSG(("Untitled.  We will give it the name [%s]\n", oldName.c_str()));
-  }
-  else {
-    UT_DEBUGMSG(("Filename [%s]\n", oldName.c_str()));
-  }
-  
-  backupName = oldName + ext;
+	std::string dir = getAutosaveDirectory();
+	if (g_mkdir_with_parents(dir.c_str(), 0700) != 0)
+	{
+		UT_DEBUGMSG(("autosave: cannot create directory %s\n", dir.c_str()));
+		return std::string();
+	}
 
-  const char* uri = nullptr;
-  gboolean bURI = UT_go_path_is_uri(backupName.c_str());
+	std::string ext = (szExt && *szExt) ? szExt : m_stAutoSaveExt;
+	if (ext.empty())
+		ext = ".bak~";
 
-  if(!bURI)
-    uri = UT_go_filename_to_uri(backupName.c_str());
+	// a readable but unique token: <basename>-<hash of the full uri> for
+	// named documents, untitled-<n> for unnamed ones
+	std::string token;
+	const std::string &docName = m_pDoc->getFilename();
+	if (!docName.empty())
+	{
+		std::string base = docName;
+		size_t slash = base.find_last_of('/');
+		if (slash != std::string::npos)
+			base.erase(0, slash + 1);
+		gchar *unesc = g_uri_unescape_string(base.c_str(), nullptr);
+		if (unesc)
+		{
+			base = unesc;
+			g_free(unesc);
+		}
+		token = base + "-" + UT_std_string_sprintf("%08x", g_str_hash(docName.c_str()));
+	}
+	else
+	{
+		const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+		std::string sUntitled;
+		pSS->getValue(XAP_STRING_ID_UntitledDocument, XAP_App::getApp()->getDefaultEncoding(), sUntitled);
+		if (sUntitled.empty())
+			sUntitled = "Untitled";
+		token = UT_std_string_sprintf("%s-%d", sUntitled.c_str(), m_iUntitled);
+	}
+	for (char &c : token)
+	{
+		if (!g_ascii_isalnum(c) && c != '.' && c != '-' && c != '_')
+			c = '_';
+	}
 
-  if(uri)
-  {
-    backupName = uri;
-    FREEP(uri);
-  }
-
-  UT_DEBUGMSG(("DOM: created backup filename (%s)\n", backupName.c_str()));
-
-  return backupName;
+	return dir + token + ext;
 }
 
 /**
- * It saves the current document with an extension stExt.
- * If the extension is empty, then it save the document with
- * the default extension (as defined in the preferences dialog box)
+ * Writes a recovery copy of the current document into the autosave
+ * directory. The copy is written to a temporary file first and renamed
+ * into place, so a crash mid-write can never leave a truncated
+ * recovery file. A small ".info" sidecar records the document's real
+ * URI so the recovery scan can restore the original filename.
+ * szExt overrides the suffix of the backup file; the native .abwn
+ * format is used unless a different filetype is passed.
  */
 UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT)
 {
-	if (m_bBackupInProgress)
+	if (m_bBackupInProgress || !m_pDoc)
 		return UT_OK;
-
-	if (!m_pDoc)
-	{
-		UT_DEBUGMSG(("File NOT saved! doc is nullptr.\n"));
-		return UT_OK;
-	}
 
 	m_bBackupInProgress = true;
 
-	std::string backupName = makeBackupName ( szExt );
+	std::string backupPath = makeBackupName(szExt);
+	if (backupPath.empty())
+	{
+		m_bBackupInProgress = false;
+		return UT_SAVE_NAMEERROR;
+	}
 
-	if (m_stAutoSaveNamePrevious.size() && (backupName != m_stAutoSaveNamePrevious))
+	if (!m_stAutoSaveNamePrevious.empty() && (backupPath != m_stAutoSaveNamePrevious))
 	{
 		/* If the user does a Save-As to rename the file then the auto-save name also changes, so
 		 * need to remove the old backup file...
 		 */
 		_removeAutoSaveFile();
 	}
-	m_stAutoSaveNamePrevious = backupName;
-	
-	UT_Error error;
+	m_stAutoSaveNamePrevious = backupPath;
+
+	if (iEFT < 0)
+		iEFT = IE_Exp::fileTypeForSuffix(".abwn");
+
+	// write beside the final name under a temporary name, then rename
+	std::string partPath = backupPath + ".part";
+	gchar *partUri = UT_go_filename_to_uri(partPath.c_str());
+	if (!partUri)
+	{
+		m_bBackupInProgress = false;
+		return UT_SAVE_NAMEERROR;
+	}
+
 //
 // Don't put this auto-save in the most recent list.
 //
 	XAP_App::getApp()->getPrefs()->setIgnoreNextRecent();
-	
-	if(iEFT < 0)
+
+	UT_Error error = m_pDoc->saveAs(partUri, iEFT, false);
+	g_free(partUri);
+
+	if (error == UT_OK && g_rename(partPath.c_str(), backupPath.c_str()) != 0)
 	{
-	        iEFT = 1; // *.abw format
-		error = m_pDoc->saveAs(backupName.c_str(), iEFT, false);
-	}
-	else
-	{
-		error = m_pDoc->saveAs(backupName.c_str(), iEFT, false);
+		UT_DEBUGMSG(("autosave: rename %s -> %s failed\n", partPath.c_str(), backupPath.c_str()));
+		error = UT_SAVE_WRITEERROR;
 	}
 
-	if(error == UT_OK)
+	if (error != UT_OK)
 	{
-		UT_DEBUGMSG(("File %s saved.\n", backupName.c_str()));
+		g_unlink(partPath.c_str());
+		UT_DEBUGMSG(("File backup failed.\n"));
 	}
 	else
 	{
-		// TODO: alert the user
-		UT_DEBUGMSG(("File backup failed.\n"));
+		UT_DEBUGMSG(("File %s saved.\n", backupPath.c_str()));
+		_writeBackupInfo(backupPath);
 	}
 
 	m_bBackupInProgress = false;
 	return error;
+}
+
+void XAP_Frame::_writeBackupInfo(const std::string &backupPath)
+{
+	FILE *f = g_fopen((backupPath + ".info").c_str(), "w");
+	if (!f)
+		return; // non-fatal: recovery just falls back to an untitled name
+	fprintf(f, "%s\n%ld\n", m_pDoc ? m_pDoc->getFilename().c_str() : "", (long)time(nullptr));
+	fclose(f);
 }
 
 void XAP_Frame::quickZoom(void)

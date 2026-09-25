@@ -1429,6 +1429,32 @@ below are on `main` but the release has not been cut yet.
   `_openParagraphDelayed()` (valgrind: conditional jumps on
   uninitialized values). Both constructors fully initialize and each
   paragraph now resets the delayed state.
+- **Autosave rewritten end-to-end** — recovery copies are written to
+  a central `autosave/` directory under the user config dir instead
+  of beside the document (which could never work for unsaved
+  documents and left `.bak~` files in user folders); file names are
+  `<basename>-<uri-hash>.bak~` / `Untitled-<n>.bak~` so same-named
+  documents in different folders no longer collide; writes go through
+  a `.part` file renamed into place so a crash mid-write cannot leave
+  a truncated backup; a `.info` sidecar records the original URI and
+  timestamp; startup scans the directory and opens each leftover
+  copy in its own window with the original filename restored and the
+  document marked dirty; a summary message box reports how many
+  documents were recovered.
+- **Stale backups clean themselves up** — a successful regular save
+  drops the pending recovery copy at the next autosave tick and a
+  clean window close removes it immediately, so the recovery
+  directory only ever holds files that represent actual unsaved work.
+- **Autosave timer lifecycle fixed** — `setAutoSaveFile` /
+  `setAutoSaveFilePeriod` now manage one persistent periodic timer
+  (stale timer ids are reaped, disabling stops it, period changes
+  restart it) instead of the previous ad-hoc create/cancel code
+  (Bug 9329 still honoured).
+- **Autosave no longer exports mid-mutation** — the old timer
+  callback logged "no backup made" when the piece table was changing
+  and then exported anyway; the tick now defers to the next period.
+- **Backup filetype pinned to `.abwn`** — the recovery copy no longer
+  relies on a hardcoded integer filetype index.
 
 ### GTK4 port (core migration)
 

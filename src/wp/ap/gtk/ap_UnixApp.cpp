@@ -1074,11 +1074,26 @@ static void s_open(GApplication*, gpointer files, gint n_files, gchar* /*hint*/,
 }
 
 /**
- * Activate event handler called from signal.
+ * Activate event handler called from signal. Fires again on every
+ * remote activation of this single-instance application, so the
+ * startup sequence (cmdline files + autosave recovery) must only
+ * run once — re-running it would open clone frames for files that
+ * are already loaded and rescan the recovery directory.
  */
 void AP_UnixApp::_appActivate()
 {
-	openCmdLineFiles(m_args.get());
+	static bool s_firstActivationDone = false;
+	if (!s_firstActivationDone)
+	{
+		s_firstActivationDone = true;
+		openCmdLineFiles(m_args.get());
+		recoverAutosavedDocs();
+		return;
+	}
+
+	XAP_Frame *f = getLastFocussedFrame();
+	if (f)
+		f->raise();
 }
 
 void AP_UnixApp::_appOpen(GFile* files[], gint n_files)
