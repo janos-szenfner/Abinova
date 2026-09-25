@@ -413,7 +413,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			bool bRowMajor = false;
 			/* groups whose items are all LARGE (Word's Footnotes /
 			 * Index / Table of Authorities rows) get homogeneous grid
-			 * columns so every button comes out the same size */
+			 * columns so every button comes out the same size; a SLIM
+			 * item breaks the tie so it can sit at its natural width */
 			bool bAllLarge = true;
 			for (const AP_RibbonItem * it = group->items;
 				 !(it->kind == AP_RIBBON_ITEM_MENU &&
@@ -424,7 +425,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					bRowMajor = true;
 					break;
 				}
-				if (!(it->flags & AP_RIBBON_FLAG_LARGE))
+				if (!(it->flags & AP_RIBBON_FLAG_LARGE) ||
+					(it->flags & AP_RIBBON_FLAG_SLIM))
 					bAllLarge = false;
 			}
 			if (!bRowMajor && bAllLarge)
