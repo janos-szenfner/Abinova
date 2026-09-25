@@ -100,3 +100,4 @@ src/wp/test/unix/testwrap.sh.trs
 __pycache__/
 *~
 *.saved
+src/wp/test/Abinova-test
