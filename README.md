@@ -863,16 +863,21 @@ The file itself is a single UTF-8 XML document with a `PUBLIC`
 doctype pointing at `awml.dtd`. It is
 forward- and backward-compatible by design — the importer ignores
 unknown elements, attributes and properties, so a file written by
-this fork still opens in older Abinova versions (new features
-simply degrade), and files written by older versions open here
-unchanged.
+this fork still opens in older AbiWord versions and any other AWML
+consumer (new features simply degrade), and files written by any
+older `.abw` version open here unchanged.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml.dtd">
-<abiword fileformat="1.2" version="3.0" template="false"
-         xid-max="N" props="document-level props" ...>
-  <metadata>  <m key="dc.title">…</m> … </metadata>
+<abiword xmlns="http://www.abisource.com/awml.dtd"
+         xmlns:awml,dc,math,fo,svg,xlink,ct="…"
+         version="4.0.0" fileformat="1.2" template="false"
+         xid-max="N" props="document-level props" xml:space="preserve">
+<!-- This file is an Abinova document.                                   -->
+<!-- More information: https://github.com/janos-szenfner/Exp-Abi         -->
+<!-- You should not edit this file by hand.                              -->
+  <metadata>  <m key="abiword.generator">Abinova</m> <m key="dc.title">…</m> </metadata>
   <rdf>…</rdf>
   <history version="…"> <version id="…"/> </history>
   <styles>    <s name="Normal" type="P" props="…"/> … </styles>
@@ -949,7 +954,7 @@ namespace on `<p>`/`<c>`.
 
 ### Format extensions in this fork
 
-All extensions are ordinary elements/properties — old Abinova
+All extensions are ordinary elements/properties — old AbiWord
 versions ignore them safely, and this build reads every older
 `.abw` variant:
 
@@ -989,14 +994,14 @@ versions ignore them safely, and this build reads every older
 
 ### Comparison with ODF coverage
 
-`.abw` covers the ODF feature set Abinova can actually express:
+`.abwn` covers the ODF feature set Abinova can actually express:
 styles, lists, tables, frames, fields, hyperlinks, images,
 footnotes/endnotes, annotations, TOC/index regions, sections,
 page geometry and document metadata.
 
 Divergences to be aware of:
 
-- `.abw`-only features: nested annotation anchors (ODF
+- `.abwn`-only features: nested annotation anchors (ODF
   `office:annotation` spans cannot overlap), the `frame-*`
   arrangement properties (group/z-order/hidden/name beyond what
   `draw:frame` attributes carry) and WordArt `text-*` effects
@@ -1011,7 +1016,7 @@ Divergences to be aware of:
   reads them back on import and restores the original source and
   mode instead of relying on MathML→LaTeX conversion alone.
 - ODF-only features — change-tracking metadata, master-page
-  layouts, presentation notes — now have reserved `.abw` schema
+  layouts, presentation notes — now have reserved `.abwn` schema
   sections (`<changes>`, `<masterpages>`, `<notes>`) that are
   preserved verbatim on a load/save round trip even though no
   feature consumes them yet.
