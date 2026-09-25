@@ -354,7 +354,7 @@ all.
 
 ### Ribbon UI (LibreOffice NotebookBar-style)
 
-An alternative interface modelled on LibreOffice Writer's
+The only interface — modelled on LibreOffice Writer's
 NotebookBar (`sw/uiconfig/swriter/ui/notebookbar.ui`). A
 `GtkNotebook` presents **File / Home / Insert / References /
 Layout / Review / View / Help** tabs — **Home is the default** —
@@ -617,61 +617,8 @@ labels, like Word's ribbon.
   matrix) and an Inline/Block **display toggle**
   (`display:inline|block` on the math object).
 
-### Classic menu vs ribbon — feature map and gaps
-
-The classic menubar has been removed; the ribbon is the only
-interface. The table below maps the old classic menus to their
-ribbon equivalent, followed by what is **not** reachable from
-the ribbon today.
-
-| Classic menu | Ribbon home |
-|--------------|-------------|
-| File (New, New from Template, Open, Save, Save As, Revert, Page Setup, Print Preview, Print, Properties, Close) | **File** tab — Document and Print groups |
-| Edit (Undo, Redo, Cut, Copy, Paste, Paste Special, Select All, Remove Header/Footer, Find, Replace, Go To) | **Home** — Clipboard and Editing groups; Paste Special lives in the Paste split button; header/footer removal sits at the bottom of the Insert header/footer galleries |
-| View (layout modes, Ruler, Status Bar, Formatting Marks, Full Screen, Zoom presets) | **View** tab — Document Views, Immersive (Focus), Show and Zoom groups |
-| Insert (Break, Header/Footer, Table, Text Box, TOC, Footnote/Endnote, Symbol, Equation, Page Number, Date & Time, Field, Bookmark, Hyperlink, File, Graphic, Direction Markers) | **Insert** tab + **References** tab + Layout → Breaks; "Text from File" and "RDF Link" live under the Object dropdown |
-| Format (Font, Paragraph, Borders, Columns, Toggle Case, Align, character styles, Page Color/Image, Styles) | **Home** (Font/Paragraph/Styles groups) + **Layout** (Columns, Page Color/Image) + dialog launchers |
-| Table (Insert/Select/Delete, Merge/Split, Format, AutoFit, Sort, Table→Text) | Contextual **Table Layout** tab — covers the whole classic Table menu and adds Distribute Rows/Columns, cell height/width fields, nine-way alignment, cell margins, cell text direction, Repeat Header Rows, Draw Table and Eraser |
-| Tools (Spelling, Language, Word Count, Compare/Combine Documents, Revisions, Annotations) | **Review** tab — Proofing, Language, Comments, Tracking, Changes and Compare groups |
-| Window (New Window, window list) | **View** → Window group (New Window, Arrange All, Split, Switch Windows) |
-| Help (Contents, Search, Check Version, Report Bug, Credits, About, interface switch) | **Help** tab |
-
-**Features that existed in the classic menu but are missing from
-the ribbon** (currently unreachable — candidates for future
-ribbon additions):
-
-- **File** — Import Styles…, the dedicated Export item (Save As
-  covers most cases), the Recent Files list and Exit.
-- **Edit** — Clear (the `Del` key still works).
-- **View** — Web Preview, Lock Styles, and the four toolbar
-  toggles (by design — the ribbon replaces toolbars).
-- **Insert** — Mail Merge and Clip Art (the Icons and 3D Models
-  panels cover most clip-art use).
-- **Format** — the Tabs dialog, the Format Frame and Format
-  Image dialogs (Arrange covers positioning/wrap), Overline, and
-  the paragraph/section/document Direction submenu (only *cell*
-  text direction is on Table Layout).
-- **Tools** — Stylist, document History viewer, Revisions →
-  New/Purge, Scripts, Mail Merge, and the **Options/Preferences**
-  dialog (the most significant omission — preferences are only
-  editable via the config file for now).
-- **Table** — Text → Table conversion (the ribbon does
-  Table → Text but not the reverse) and the Sum Column/Row
-  formula rows (deliberately dropped with the Formula control).
-- **RDF** — the whole RDF menu (Highlight, Query, Editor,
-  semantic items, stylesheets); only "RDF Link" survives on the
-  Insert → Object dropdown.
-- **Help** — the Introduction/Welcome page.
-
 ### GTK4 runtime fixes (this round)
 
-- **Menubar pointer-motion crash (auto-close)**: an "enter" motion
-  controller called `refreshMenu`, which could run `g_menu_remove_all()`
-  on the live `GMenuModel` while a `GtkPopoverMenu` was open — GTK then
-  crashed inside `gtk_popover_menu_remove_child` and the whole app
-  exited. Menu models are now rebuilt and swapped atomically via
-  `gtk_menu_button_set_menu_model`/`gtk_menu_bar_set_menu_model`
-  instead of mutated in place.
 - **Keyboard input restored**: the document drawing area had
   `can-focus` but not `focusable`, so `grab_focus()` silently failed
   and keystrokes never reached the view.
@@ -696,15 +643,13 @@ ribbon additions):
   swallow the whole toolbar; `hexpand` is now explicitly disabled and
   the entry width capped.
 - **Internal help bundled**: the upstream `abiword-docs` manual was
-  imported and converted to HTML (`help/`, 220 pages). Help buttons
-  open a built-in help browser (`xap_UnixHelpWindow`) — a popup
-  window with Back/Home navigation, clickable cross-page links, a
-  language selector (English / Français / Polski over the bundled
-  `help/<lang>` trees), and live search across every page of the
-  selected language with titled results and match snippets. Dialog
-  F1 help targets route there too. The 25 Polish pages were repaired
-  to true UTF-8 (they were mixed UTF-8/Windows-1250 and rendered as
-  mojibake).
+  imported and converted to HTML (`help/en-US`, ~200 pages —
+  English only; the `fr-FR`/`pl-PL` trees and the language
+  selector were removed). Help buttons open a built-in help
+  browser (`xap_UnixHelpWindow`) — a popup window with Back/Home
+  navigation, clickable cross-page links and live search across
+  every page with titled results and match snippets. Dialog F1
+  help targets route there too.
 - **Ruler redesign** (`ap_TopRuler.cpp`): full-height bar, bottom-
   anchored tick hierarchy, gray margin bands, and inch/half-inch
   numeric labels drawn with the GUI font so they stay a constant
@@ -792,9 +737,8 @@ ribbon additions):
   every view notification.
 - **#704629 Finnish translations** — fixed the reported menu items
   (`Save`, `Tools`, `Table`, `View`, `Cut`, `Copy`, `Paste`, `Print`
-  were copy-paste corrupted in `fi-FI.po`/`.strings`). ~150 further
-  suspicious duplicate msgstrs remain; a full pass needs a Finnish
-  speaker.
+  were copy-paste corrupted in `fi-FI.po`/`.strings`). Now moot —
+  all UI translations were removed later (English-only UI).
 - **#845137 crash opening files** — already resolved: upstream
   reverted svn r33154 (table-breaking change that caused the
   crashes); this tree carries the reverted code in
@@ -1602,10 +1546,14 @@ Older upstream history is not listed here.
 | Path | Contents |
 |------|----------|
 | `src/` | Application and library source (GTK port) |
-| `plugins/` | Empty — all former plugins were integrated into `libabiword` or deleted |
 | `fonts/` | Bundled fonts + licenses + substitution config |
 | `user/` | Templates, dictionaries, clipart |
 | `tools/` | Development/test helpers |
+| `help/` | Bundled English user manual (`en-US`, ~200 HTML pages) |
+
+The deleted `plugins/` and `src/plugins/` trees, the old `po/`
+catalogs and the upstream `flatpak/` manifest are gone entirely —
+see *Plugin cleanup* above.
 
 ## Building
 
@@ -1630,6 +1578,13 @@ ABIWORD_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
 
 ## Known issues
 
+- Some commands from the removed classic menu have no ribbon
+  home yet — most notably the **Options/Preferences** dialog
+  (only editable via the config file for now), Web Preview,
+  Mail Merge, the Tabs dialog, the Format Frame/Image dialogs,
+  the paragraph/section Direction submenu, Stylist, document
+  History, Revisions → New/Purge, Scripts, the RDF menu,
+  Text → Table conversion and the Recent Files list.
 - The GTK4 dialog migration is in progress — `.ui` files were
   mechanically converted from GTK3 markup; some dialogs may still have
   layout or widget-type quirks.
