@@ -92,7 +92,10 @@ opt_pkgs=''
 # gtk deps
 cairo_req='cairo-pdf cairo-ps pangocairo'
 #
-gtk_req="gtk4 >= $GTK_VERSION_REQ gtk4-unix-print librsvg-2.0 >= 2.46.0 pango >= 1.44"
+gtk_req="gtk4 >= $GTK_VERSION_REQ librsvg-2.0 >= 2.46.0 pango >= 1.44"
+dnl gtk4-unix-print only exists when GTK is built with the Unix
+dnl print backend (Linux/BSD); Quartz and Win32 GTK lack it
+PKG_CHECK_EXISTS([gtk4-unix-print], [gtk_req="$gtk_req gtk4-unix-print"],[])
 dnl cairo-fc is needed but only available on cairo > 1.10
 dnl http://bugzilla.abisource.com/show_bug.cgi?id=13265
 PKG_CHECK_EXISTS(cairo >= 1.10, [gtk_req="$gtk_req cairo-fc"],[])
@@ -137,6 +140,9 @@ AC_CHECK_FUNCS([localeconv strcspn strncasecmp strtoul],
 ])
 
 AC_CHECK_HEADERS([sys/time.h], [], [$header_err])
+dnl execinfo.h and sigaction() are POSIX/glibc; absent on MinGW
+AC_CHECK_HEADERS([execinfo.h], [], [])
+AC_CHECK_FUNCS([sigaction], [], [])
 AC_FUNC_STRTOD
 AC_TYPE_UINT32_T
 AC_CHECK_FUNCS([alarm gettimeofday],
@@ -552,7 +558,14 @@ deps_pkgs="$xp_pkgs $opt_pkgs"
 SYSTEM_LIBS=
 SYSTEM_CFLAGS=$PNG_CFLAGS
 SYSTEM_LIBS="$PNG_LIBS -ljpeg"
-deps_pkgs="$deps_pkgs $gtk_pkgs x11"
+dnl the X11 module is only needed (and only present) for GTK builds
+dnl using the X11 backend; macOS/Quartz and Windows/Win32 skip it
+abi_x11_pkg=''
+case "$host_os" in
+  darwin*|mingw*|msys*|cygwin*|windows*) ;;
+  *) abi_x11_pkg='x11' ;;
+esac
+deps_pkgs="$deps_pkgs $gtk_pkgs $abi_x11_pkg"
 
 PKG_CHECK_MODULES(DEPS,[$deps_pkgs])
 

@@ -232,10 +232,18 @@ void XAP_UnixHelpWindow::_loadPage(const std::string& rel)
 	gchar * contents = nullptr;
 	if (!g_file_get_contents(path.c_str(), &contents, nullptr, nullptr))
 	{
-		/* fall back to the English copy, then to the index page */
+		/* fall back to the English copy, then to the index page —
+		 * the manual is a single page now, so stale per-dialog
+		 * help URLs just land on the index */
 		std::string enPath = XAP_App::getApp()->getAbiSuiteLibDir();
 		enPath += "/help/en-US/" + rel;
-		if (!g_file_get_contents(enPath.c_str(), &contents, nullptr, nullptr))
+		if (!g_file_get_contents(enPath.c_str(), &contents, nullptr, nullptr)
+			&& rel != "index.html")
+		{
+			path = _langDir() + "/index.html";
+			g_file_get_contents(path.c_str(), &contents, nullptr, nullptr);
+		}
+		if (!contents)
 		{
 			GtkTextBuffer * buf =
 				gtk_text_view_get_buffer(GTK_TEXT_VIEW(m_wText));

@@ -21,8 +21,10 @@
 #endif
 
 #include <gtk/gtk.h>
+#ifdef GDK_WINDOWING_X11
 #include <gdk/x11/gdkx.h>
 #include <X11/Xlib.h>
+#endif
 #include <cstring>
 #include <cmath>
 #include <vector>
@@ -1219,6 +1221,7 @@ void AP_UnixFrameImpl::setSplitView(bool bSplit)
 
 bool AP_UnixFrameImpl::arrangeAllWindows()
 {
+#ifdef GDK_WINDOWING_X11
 	GdkDisplay * display = gdk_display_get_default();
 	if (!display || !GDK_IS_X11_DISPLAY(display))
 		return false;
@@ -1304,6 +1307,11 @@ bool AP_UnixFrameImpl::arrangeAllWindows()
 	}
 	XFlush(xdpy);
 	return true;
+#else
+	/* programmatic window tiling is only implemented for the X11
+	 * backend; Wayland/Quartz/Win32 leave placement to the WM */
+	return false;
+#endif
 }
 
 void AP_UnixFrameImpl::_createRibbonUI()

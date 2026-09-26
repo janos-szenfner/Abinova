@@ -6,4 +6,7 @@ EXTRA_DIST = \
 	rtfgen/rtf-keywords.txt \
 	rtfgen/README \
 	clang-fmt.py \
-	release.sh
+	release.sh \
+	changelog2html.sh \
+	build-macos.sh \
+	build-windows-msys2.sh

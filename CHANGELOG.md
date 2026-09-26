@@ -1141,6 +1141,18 @@ below are on `main` but the release has not been cut yet.
   and the installed icon theme name (`abinova`) now follow the
   reverse-DNS scheme derived from the repository URL, so the running
   app, its icons and its resources share one identity.
+- **Bundled manual replaced with a single page** — the 108-file
+  inherited HTML manual (howto/info/interface/problems/tutorial/
+  plugins trees, stale AbiWord content) was deleted; the internal
+  help browser now ships one page, `help/en-US/index.html`, written
+  for the current feature set, and missing pages (e.g. stale
+  per-dialog help URLs) fall back to the index.
+- **Changelog button on the Help ribbon** — `AP_MENU_ID_HELP_CHANGELOG`
+  + `helpChangelog` edit method open the help window at
+  `changelog.html`, generated at build time from `CHANGELOG.md` by
+  `tools/changelog2html.sh` (awk, no extra deps); a drawn clock-badge
+  page glyph serves as the icon, and the classic Help menu gained the
+  same entry.
 
 ### Ubuntu Launchpad bug fixes
 
@@ -1664,6 +1676,15 @@ below are on `main` but the release has not been cut yet.
   `--with-goffice`).
 - **Dead platform backends removed** — Cocoa, Win32, Qt (~110 k
   lines); the tree carries a single GTK toolkit.
+- **macOS and Windows build support via GTK's native backends** —
+  `tools/build-macos.sh` (Homebrew + GTK/Quartz) and
+  `tools/build-windows-msys2.sh` (MSYS2 MINGW64/UCRT64 + GTK/Win32)
+  install dependencies, run configure and build; configure.ac now
+  detects the host and drops the `x11`/`gtk4-unix-print`
+  pkg-config requirements off X11 platforms, the remaining Xlib
+  calls are guarded by `GDK_WINDOWING_X11`/`HAVE_SIGACTION`/
+  `HAVE_EXECINFO_H`, and `XParseGeometry` was replaced by a portable
+  parser (`s_parseGeometry`) so `--geometry` still works everywhere.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

@@ -1,70 +1,191 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml/DTD/xhtml1-strict.dtd">
-
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<!-- 
-Copyright 2002, 2004 David Chart, Ryan Pavlik, Mark Gilbert Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts A copy of the license is included in the section entitled "GNU Free Documentation License"
-//-->
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<title>Abinova Help Top Page</title>
-<link href="style.css" rel="stylesheet" type="text/css" />
-
-</head>
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Abinova Help</title></head>
 <body>
 
-<div class="banner">
-Home 
-</div>
+<h1>Abinova</h1>
 
-<div class="main">
+<p>Abinova is a free word processor built on GTK4. It reads and
+writes the document formats you actually exchange with other people
+— Office Open XML, OpenDocument, EPUB, Markdown, LaTeX — without
+needing any plugin to be installed, and keeps its own compact
+<i>.abw</i> format (with an encrypted variant) for everyday work.</p>
 
+<p>This project is experimental and supplied <b>without any
+warranty</b>. See the Changelog (Help ribbon) for what changed in
+each version.</p>
 
-            <h1 id="AbiTOC0">
-Abinova Help
-            </h1>
-<p>Thank you for installing Abinova, and welcome! &nbsp;This documentation is normally installed with your Abinova distribution package, however, if you are viewing this on-line, you can usually update both your Abinova version and your copy of the manual by visiting <a href="https://github.com/janos-szenfner/Abinova">the project repository</a>.</p><p>Abinova is a full-featured word processor forked from AbiWord; since version 3.1 it follows a different direction and is maintained in its own repository. &nbsp;The application code is quite mature and stable, and developers are adding new features to development branches daily. &nbsp;However, this manual may be incomplete. &nbsp;Help is always appreciated with either the manual or the program itself. &nbsp;If you would like to help with development of the program or manual, please consult the "Problems" section of this manual or the <a href="https://github.com/janos-szenfner/Abinova">project repository</a>. &nbsp;Thanks!</p><p>The top of every page has links to all the pages leading to your current page, so that it is easy to retrace your steps. The Help link brings you to this page.</p><p>The help files are divided into several sections. These sections are linked from every page. The links are either in a column at the left of the page or in a line at the bottom, depending on your browser. The sections are:</p>            <h2 id="AbiTOC1">
-Top Page
-            </h2>
-<p>This page.</p>            <h2 id="AbiTOC2">
-<a href="introduction.html">Introduction</a>
-            </h2>
-<p>A quick overview of Abinova.</p>            <h2 id="AbiTOC3">
-<a href="tutorial/index.html">Tutorial</a>
-            </h2>
-<p>Get started quickly with this advanced word-processor, and learn its most frequently-used features.</p>            <h2 id="AbiTOC4">
-<a href="howto/index.html">How To</a>
-            </h2>
-<p>Find step-by-step instructions for common tasks in Abinova. &nbsp;If you are unsure of how to start helping out with documentation, writing a How-To is a great way to start!</p>            <h2 id="AbiTOC5">
-<a href="info/index.html">Information</a>
-            </h2>
-<p>Information about &nbsp;specific aspects of Abinova's numerous features. Check here to learn what else you can do with Abinova.</p>            <h2 id="AbiTOC6">
-<a href="interface/index.html">Interface</a>
-            </h2>
-<p>You can find instructions on every command in Abinova's user interface here.</p>            <h2 id="AbiTOC7">
-<a href="problems/index.html">Problems</a>
-            </h2>
-<p>Having problems? &nbsp;Check here for some common solutions, and ways to receive additional help. &nbsp;This is also where to look to find information about contributing to the Abinova project.</p>            <h2 id="AbiTOC9">
-<a href="azindex.html">Index</a>
-            </h2>
-<p>An index of the help documentation. Adding entries is a good way to help out.</p>            <h2 id="AbiTOC10">
-<a href="fdl.html">GNU Free Documentation License</a>
-            </h2>
-<p>A copy of the GNU Free Documentation License, under which these documents are released.</p>
-        </div>
+<hr>
 
-<div class="index">
-<a href="index.html" class="bars">Top Page</a>
-<a href="tutorial/index.html" class="bars">Tutorial</a>
-<a href="howto/index.html" class="bars">How To</a>
-<a href="info/index.html" class="bars">Information</a>
-<a href="interface/index.html" class="bars">Interface</a>
-<a href="problems/index.html" class="bars">Problems</a>
-<a href="azindex.html" class="bars">Index</a>
-<a href="search.html" class="bars">Search</a>
-<a href="fdl.html" class="bars">GNU FDL</a> 
-</div>
+<h2>Documents and file formats</h2>
 
-</body>
-</html>
+<p><b>Native format</b> — <code>.abw</code> (AbiWord XML) is the
+default. <code>.abwn</code> is the same document inside an encrypted
+envelope; pick a password when saving and the file cannot be opened
+without it. Encryption is PBKDF2-HMAC-SHA-256 key derivation
+(600,000 rounds) plus AES-256-GCM, so both the content and the
+header are authenticated.</p>
 
+<p><b>Office formats</b> — DOCX / DOTX / DOCM and legacy DOC open
+and save natively; the code lives in the core, not in a plugin.
+Complex Word files (tables, fields, comments, tracked changes) are
+imported to the closest matching document model.</p>
+
+<p><b>OpenDocument</b> — ODT / OTT and flat-XML FODT open and save
+with ODF 1.4 declarations. ODF password protection works in both
+directions: you are asked for the password when opening an encrypted
+file, and the ODF save dialog offers "Encrypt with password".</p>
+
+<p><b>EPUB</b> — import an ebook as an editable document, or export
+the current document as EPUB 3.3 with export options for splitting,
+metadata and cover handling.</p>
+
+<p><b>Markdown</b> — <code>.md</code>/<code>.markdown</code> files
+import and export: headings, emphasis, links, images, nested and
+task lists, blockquotes, fenced code, pipe tables and hard breaks.
+YAML frontmatter becomes document metadata, <code>[^id]</code>
+footnotes become real footnotes, and fenced <code>mermaid</code>
+blocks are rendered inline as images (flowcharts, sequence, Gantt,
+class and pie diagrams).</p>
+
+<p><b>LaTeX</b> — <code>.tex</code> files import (sectioning,
+formatting, lists, tables, graphics, footnotes, math) and export,
+so documents can round-trip to and from TeX sources.</p>
+
+<p><b>Other formats</b> — RTF, HTML, plain text (with encoding
+detection) and WordPerfect/works documents are supported for import
+or export as indicated by the file dialog.</p>
+
+<hr>
+
+<h2>Editing and formatting</h2>
+
+<p><b>Styles</b> — paragraph and character styles (Normal, Heading
+1-3, lists, etc.) are applied from the Home ribbon or the style box.
+Direct formatting stacks on top of the style; Ctrl+Space removes
+character formatting and Ctrl+Q removes direct paragraph formatting
+while keeping the style.</p>
+
+<p><b>Formatting</b> — bold, italic, underline, strikethrough,
+sub/superscript, font family and size, text color and highlight,
+alignment (left/center/right/justify), line spacing (1, 1.5, 2),
+paragraph spacing and indentation, bullets and numbering, columns,
+tab stops, borders and shading — all from the ribbon.</p>
+
+<p><b>Insertions</b> — page and column breaks, line breaks,
+tables, images, equations (MathML and LaTeX source), headers and
+footers, footnotes and endnotes, page numbers and other fields,
+hyperlinks, comments, symbols and special characters, text boxes
+and bookmarks.</p>
+
+<p><b>Find &amp; replace</b> — Ctrl+F / Ctrl+H, with whole-word and
+match-case options; F3 finds again. Ctrl+G opens Go To.</p>
+
+<hr>
+
+<h2>Tables</h2>
+
+<p>Tables have two contextual ribbon tabs that appear when the caret
+or selection touches a table:</p>
+
+<ul>
+<li><b>Table Design</b> — a Word-compatible style gallery with the
+Grid Table, List Table and Plain Table families, first/last column
+and banded row/column options, live preview on hover, and a Clear
+command that strips all style-owned formatting.</li>
+<li><b>Table Layout</b> — insert/delete rows, columns and cells,
+merge and split cells, cell alignment, auto-fit, borders, shading
+and table properties.</li>
+</ul>
+
+<p>Tab moves to the next cell (a new row is appended at the end),
+Shift+Tab moves back, and Ctrl+Alt+arrow keys resize columns and
+rows from the keyboard.</p>
+
+<hr>
+
+<h2>Review</h2>
+
+<ul>
+<li><b>Spell checking</b> — on-the-fly underlining plus the
+full dialog (F7 or Cmd+;). Dictionaries come from the system
+enchant providers.</li>
+<li><b>Grammar checking</b> — built-in Hunspell-based grammar
+checking runs in the background and can be toggled in the
+preferences.</li>
+<li><b>Track changes</b> — Ctrl+Shift+E toggles revision marks;
+insertions, deletions and formatting changes are recorded and shown
+inline.</li>
+<li><b>Comments</b> — Ctrl+Alt+M inserts a comment at the caret;
+Alt+↑ / Alt+↓ move between comments.</li>
+</ul>
+
+<hr>
+
+<h2>Interface</h2>
+
+<p><b>Ribbon</b> — a LibreOffice/Word-style NotebookBar replaces the
+old menu bar: File, Home, Insert, References, Layout, Review, View
+and Help, with contextual tabs for tables and equations. A
+menu-bar / classic mode is still available from the View options.</p>
+
+<p><b>Layout views</b> — Print Layout (Ctrl+Alt+P) and Normal/draft
+(Ctrl+Alt+N), rulers, zoom, split view (Ctrl+Alt+S, remove with
+Alt+Shift+C) and fullscreen (F11).</p>
+
+<p><b>Multiple documents</b> — Ctrl+F6 / Ctrl+Shift+F6 cycle through
+open windows; the Window menu lists them all and can arrange them.</p>
+
+<hr>
+
+<h2>Keyboard shortcuts</h2>
+
+<p>The default keymap follows MS Word on every platform. On macOS
+the Command (⌘) key acts as Control, so Cmd+S, Cmd+B, Cmd+Shift+Z
+(redo) etc. work as expected; ⌥ is Alt (Option+←/→ move by word,
+Option+Delete deletes the word before the caret). Highlights:</p>
+
+<ul>
+<li><b>File</b> — Ctrl+N new, Ctrl+O open, Ctrl+S save,
+F12 / Ctrl+Shift+S Save As, Ctrl+P print, Ctrl+F2 print preview,
+Ctrl+W close.</li>
+<li><b>Editing</b> — Ctrl+Z/Y undo/redo, Ctrl+X/C/V cut/copy/paste,
+Ctrl+Alt+V paste special, Ctrl+Shift+V paste formatting, Ctrl+A
+select all, Ctrl+F find, Ctrl+H replace, Ctrl+G go to.</li>
+<li><b>Format</b> — Ctrl+B/I/U, Ctrl+Shift+X strike, Ctrl+= sub,
+Ctrl+Shift+= super, Ctrl+L/E/R/J align, Ctrl+1/5/2 spacing,
+Ctrl+0 space before, Ctrl+M / Ctrl+Shift+M indent, Ctrl+Q clear
+paragraph formatting, Ctrl+Space clear character formatting,
+Ctrl+Shift+N Normal, Alt+Ctrl+1/2/3 headings.</li>
+<li><b>Insert</b> — Ctrl+Enter page break, Shift+Enter line break,
+Ctrl+Shift+Space non-breaking space, Ctrl+K hyperlink, Ctrl+Alt+F
+footnote, Ctrl+Alt+D endnote, Ctrl+Alt+M comment, Ctrl+Alt+C/R/T for
+©/®/™, Ctrl+Alt+- em dash, Ctrl+- soft hyphen, Ctrl+Shift+-
+non-breaking hyphen.</li>
+</ul>
+
+<p>The full table is in the README. Emacs and vi keymaps are still
+available through the input-mode switcher.</p>
+
+<hr>
+
+<h2>Safety</h2>
+
+<p>Abinova autosaves recovery copies in the background; after a
+crash the next start offers to restore them. Recovery copies of
+password-protected documents stay encrypted. Documents are written
+atomically via a sibling <code>.part</code> file so a failed save
+never destroys the existing file.</p>
+
+<hr>
+
+<h2>Links</h2>
+
+<ul>
+<li>Changelog — use the <b>Changelog</b> button on the Help ribbon,
+or the Help menu.</li>
+<li>Report a bug —
+<a href="https://github.com/janos-szenfner/Abinova/issues/new">github.com/janos-szenfner/Abinova/issues</a></li>
+</ul>
+
+</body></html>

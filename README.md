@@ -1426,15 +1426,17 @@ Older upstream history is not listed here.
   (Normal, No Spacing, Heading 1-3, Title, Subtitle, emphasis
   styles, quotes, Book Title, List Paragraph); the Styles pane
   lists char styles as well.
-- New internal help browser (`xap_UnixHelpWindow`, wired through
-  `XAP_AppImpl::openHelpWindow`): Back/Home buttons, English /
-  Français / Polski language dropdown over the bundled
-  help/<lang> trees, live search across all pages of the current
-  language with linked results and snippets, HTML rendered into a
-  GtkTextView with clickable links; Help Contents / Search for Help
-  / Credits edit methods open it instead of a browser.
-- Repaired the 25 Polish help pages to true UTF-8 (they were a mix
-  of UTF-8 and Windows-1250 → mojibake).
+- Internal help browser (`xap_UnixHelpWindow`, wired through
+  `XAP_AppImpl::openHelpWindow`): Back/Home buttons, live search,
+  HTML rendered into a GtkTextView with clickable links; Help
+  Contents / Search for Help / Credits edit methods open it instead
+  of a browser. The bundled manual is now a single page
+  (`help/en-US/index.html`) rewritten for the current feature set;
+  missing pages fall back to the index.
+- The Help ribbon's **Changelog** button (and Help menu →
+  Changelog) opens the same window at `changelog.html`, generated
+  at build time from `CHANGELOG.md` by `tools/changelog2html.sh`
+  so it never drifts out of sync.
 - Ribbon group separators are drawn with an explicit 1 px border
   colour so the line is actually visible (Help ↔ Interface etc.).
 
@@ -1794,12 +1796,42 @@ ABIWORD_DATADIR=$PWD src/.libs/abinova --to=odt input.abwn -o out.odt
 ABINOVA_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
 ```
 
+### Building on macOS
+
+The UI is pure GTK4, so on macOS it runs on GTK's Quartz backend —
+no Cocoa port and no X11 are needed. `tools/build-macos.sh`
+installs the Homebrew dependencies (gtk4, libgsf, enchant,
+hunspell, boost, …), configures and builds:
+
+```bash
+tools/build-macos.sh            # deps + configure + make
+tools/build-macos.sh --skip-deps -j8
+```
+
+### Building on Windows
+
+On Windows the build runs inside MSYS2 (MINGW64/UCRT64) on GDK's
+native Win32 backend — no X11 there either (the remaining Xlib
+calls are compiled only when `GDK_WINDOWING_X11` is set).
+`tools/build-windows-msys2.sh` installs the pacman dependencies,
+configures and builds:
+
+```bash
+# inside an MSYS2 UCRT64 shell
+tools/build-windows-msys2.sh
+```
+
+The resulting `abinova.exe` needs the MSYS2 runtime DLLs on PATH;
+bundle them (e.g. via `ldd`) when packaging for distribution.
+
 ## Known issues
 
 - The GTK4 dialog migration is in progress — `.ui` files were
   mechanically converted from GTK3 markup; some dialogs may still have
   layout or widget-type quirks.
-- macOS/Windows GTK4 builds not yet verified.
+- macOS (GTK/Quartz) and Windows (MSYS2/GTK4-win32) builds now have
+  toolchain scripts and the source is guarded for the missing X11
+  backend, but neither has been verified on real hardware yet.
 
 ### Resolved: ODF export teardown crash
 

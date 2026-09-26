@@ -735,6 +735,7 @@ public:
 	static EV_EditMethod_Fn dlgMoreWindows;
 
 	static EV_EditMethod_Fn dlgAbout;
+	static EV_EditMethod_Fn helpChangelog;
 	static EV_EditMethod_Fn helpContents;
 	static EV_EditMethod_Fn helpIntro;
 	static EV_EditMethod_Fn helpSearch;
@@ -1187,6 +1188,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(go),					0,	""),
 
 	// h
+	EV_EditMethod(NF(helpChangelog),		_A_,		""),
 	EV_EditMethod(NF(helpCheckVer), 		_A_,		""),
 	EV_EditMethod(NF(helpContents), 		_A_,		""),
 	EV_EditMethod(NF(helpIntro),			_A_,		""),
@@ -3868,9 +3870,14 @@ Defun1(helpContents)
 	return _openHelpWindow(pAV_View, "index.html", false);
 }
 
+Defun1(helpChangelog)
+{
+	return _openHelpWindow(pAV_View, "changelog.html", false);
+}
+
 Defun1(helpIntro)
 {
-	return _openHelpWindow(pAV_View, "introduction.html", false);
+	return _openHelpWindow(pAV_View, "index.html", false);
 }
 
 Defun1(helpCheckVer)

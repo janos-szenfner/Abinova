@@ -4210,6 +4210,28 @@ static void _overlay_rotate(cairo_t * cr, double w, double h)
 	cairo_fill(cr);
 }
 
+/* clock badge for the Changelog button — a document page overlaid
+ * with a small clock reads as "what changed over time" */
+static void _overlay_changelog(cairo_t * cr, double w, double h)
+{
+	double cx = w - 7.2, cy = h - 7.2, r = 5.0;
+	/* white disc so the badge reads over the page glyph's lines */
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_arc(cr, cx, cy, r + 0.6, 0, 2 * G_PI);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
+	cairo_set_line_width(cr, 1.2);
+	cairo_arc(cr, cx, cy, r, 0, 2 * G_PI);
+	cairo_stroke(cr);
+	/* hands: pointing to twelve and four o'clock */
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, cx, cy);
+	cairo_line_to(cr, cx, cy - r + 1.2);
+	cairo_move_to(cr, cx, cy);
+	cairo_line_to(cr, cx + (r - 1.6) * 0.866, cy + (r - 1.6) * 0.5);
+	cairo_stroke(cr);
+}
+
 /* leader-dot column for the Table of Contents button */
 static void _overlay_toc(cairo_t * cr, double w, double h)
 {
@@ -4442,6 +4464,7 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 {
 	switch (id)
 	{
+	case (XAP_Menu_Id)AP_MENU_ID_HELP_CHANGELOG:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTNOTE:
 	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ENDNOTE:
 	case (XAP_Menu_Id)AP_MENU_ID_FMT_FOOTNOTES:
@@ -4563,6 +4586,9 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 
 	switch (id)
 	{
+	case (XAP_Menu_Id)AP_MENU_ID_HELP_CHANGELOG:
+		extra = _overlay_changelog;
+		break;
 	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_MARGINS:
 		extra = _overlay_margin_corners;
 		break;

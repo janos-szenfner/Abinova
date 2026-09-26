@@ -43,8 +43,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
+#ifdef HAVE_EXECINFO_H
 #include <execinfo.h>
-#include <X11/Xlib.h>
+#endif
 #include <glib.h>
 
 #include "ut_compiler.h"
@@ -1067,6 +1068,42 @@ static void s_activate(GApplication*, gpointer user_data)
 	static_cast<AP_UnixApp*>(user_data)->_appActivate();
 }
 
+/* portable replacement for XParseGeometry(): parses the standard
+ * "[=]WxH+X+Y" command-line geometry form; fields not present keep
+ * their incoming values, signed offsets are stored as-is (the same
+ * convention XParseGeometry returned). */
+static void s_parseGeometry(const char * str, gint * x, gint * y,
+							guint * width, guint * height)
+{
+	if (!str || !*str)
+		return;
+	const char * p = str;
+	if (*p == '=')
+		p++;
+	char * end = nullptr;
+	long w = strtol(p, &end, 10);
+	if (end != p && *end == 'x')
+	{
+		*width = static_cast<guint>(w < 0 ? 0 : w);
+		p = end + 1;
+		long h = strtol(p, &end, 10);
+		if (end != p)
+			*height = static_cast<guint>(h < 0 ? 0 : h);
+		p = end;
+	}
+	for (int i = 0; i < 2 && (*p == '+' || *p == '-'); ++i)
+	{
+		long v = strtol(p, &end, 10);
+		if (end == p)
+			break;
+		if (i == 0)
+			*x = static_cast<gint>(v);
+		else
+			*y = static_cast<gint>(v);
+		p = end;
+	}
+}
+
 static void s_open(GApplication*, gpointer files, gint n_files, gchar* /*hint*/,
 				   gpointer user_data)
 {
@@ -1162,9 +1199,10 @@ int AP_UnixApp::main(const char * szAppName, int argc, char ** argv)
 	
 		// Setup signal handlers, primarily for segfault
 		// If we segfaulted before here, we *really* blew it
+#ifdef HAVE_SIGACTION
 		struct sigaction sa;
 		sa.sa_handler = &XAP_App::signalWrapper;
-    
+
 		sigfillset(&sa.sa_mask);  // We don't want to hear about other signals
 		sigdelset(&sa.sa_mask, SIGABRT); // But we will call abort(), so we can't ignore that
 #if defined (SA_NODEFER) && defined (SA_RESETHAND)
@@ -1172,12 +1210,20 @@ int AP_UnixApp::main(const char * szAppName, int argc, char ** argv)
 #else
 		sa.sa_flags = 0;
 #endif
-    
+
+#endif
+#ifdef HAVE_SIGACTION
 		sigaction(SIGSEGV, &sa, nullptr);
 		sigaction(SIGBUS, &sa, nullptr);
 		sigaction(SIGILL, &sa, nullptr);
 		sigaction(SIGQUIT, &sa, nullptr);
 		sigaction(SIGFPE, &sa, nullptr);
+#else
+		/* MinGW/Windows has signal() but no sigaction() */
+		signal(SIGSEGV, &XAP_App::signalWrapper);
+		signal(SIGILL,  &XAP_App::signalWrapper);
+		signal(SIGFPE,  &XAP_App::signalWrapper);
+#endif
 
 		// TODO: handle SIGABRT
 	
@@ -1236,15 +1282,15 @@ bool AP_UnixApp::doWindowlessArgs(const AP_Args *Args, bool & bSuccess)
 	if (Args->m_sGeometry)
     {
 		// [--geometry <X geometry string>]
-      
+
 		// TODO : does X have a dummy geometry value reserved for this?
 		gint dummy = 1 << ((sizeof(gint) * 8) - 1);
 		gint x = dummy;
 		gint y = dummy;
 		guint width = 0;
 		guint height = 0;
-		
-		XParseGeometry(Args->m_sGeometry, &x, &y, &width, &height);
+
+		s_parseGeometry(Args->m_sGeometry, &x, &y, &width, &height);
 		
 		// use both by default
 		UT_uint32 f = (XAP_UnixApp::GEOMETRY_FLAG_SIZE
@@ -1307,9 +1353,11 @@ void AP_UnixApp::catchSignals(int /*sig_num*/)
     // (not that it matters - this is mostly for race conditions)
     signal(SIGSEGV, &XAP_App::signalWrapper);
 
+#ifdef HAVE_EXECINFO_H
 	void * frames[80];
 	int nfr = backtrace(frames, 80);
 	backtrace_symbols_fd(frames, nfr, STDERR_FILENO);
+#endif
 
     s_signal_count = s_signal_count + 1;
     if(s_signal_count > 1)

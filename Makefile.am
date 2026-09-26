@@ -60,7 +60,14 @@ abinova-$(ABIWORD_SERIES).pc: libabinova.pc
 	cp $< $@
 
 
-# bundled user manual (generated from Abinova/abiword-docs .abw sources)
+# the Changelog help page is generated from CHANGELOG.md so the
+# in-app viewer never drifts out of sync with the repository file
+all-local: $(srcdir)/help/en-US/changelog.html
+
+$(srcdir)/help/en-US/changelog.html: $(srcdir)/CHANGELOG.md $(srcdir)/tools/changelog2html.sh
+	$(srcdir)/tools/changelog2html.sh $(srcdir)/CHANGELOG.md $@
+
+# bundled user manual (single-page HTML for the built-in help browser)
 install-data-local:
 	cp -r $(srcdir)/help $(DESTDIR)@ABIWORD_DATADIR@/
 	cp -r $(srcdir)/artwork $(DESTDIR)@ABIWORD_DATADIR@/
