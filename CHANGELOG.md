@@ -1676,6 +1676,12 @@ below are on `main` but the release has not been cut yet.
   `--with-goffice`).
 - **Dead platform backends removed** — Cocoa, Win32, Qt (~110 k
   lines); the tree carries a single GTK toolkit.
+- **Minimum dependency versions raised to a known-good set** —
+  GTK4 ≥ 4.14.5 (`GDK_VERSION_4_14` encode follows), GLib/GIO ≥
+  2.80.0, Pango ≥ 1.52.1, cairo ≥ 1.18.0, librsvg ≥ 2.58.0,
+  libgsf ≥ 1.14.51, FriBidi ≥ 1.0.13, libxslt ≥ 1.1.39,
+  zlib ≥ 1.3, enchant-2 ≥ 2.3.3, Boost ≥ 1.83 — all match the
+  versions the tree is developed and tested against.
 - **macOS and Windows build support via GTK's native backends** —
   `tools/build-macos.sh` (Homebrew + GTK/Quartz) and
   `tools/build-windows-msys2.sh` (MSYS2 MINGW64/UCRT64 + GTK/Win32)

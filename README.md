@@ -1864,25 +1864,31 @@ following projects:
 - [EPUB 3.3 specification](https://www.w3.org/TR/epub-33/) — ebook
   import/export.
 
-**Build dependencies** (system, via pkg-config)
+**Build dependencies** (system, via pkg-config — minimum versions
+are enforced by `configure`)
 
-- [GTK 4](https://gtk.org/) + gtk4-unix-print — UI toolkit
-- [GLib](https://docs.gtk.org/glib/) / GIO — core platform library
-- [Pango](https://pango.gnome.org/) — text shaping
-- [cairo](https://cairographics.org/) (pdf/ps/fc/pangocairo) —
-  rendering and PDF/PS export
-- [libgsf](https://gitlab.gnome.org/GNOME/libgsf) — OLE2/ZIP
-  container I/O (`.doc`, `.docx`, `.epub`)
+- [GTK 4](https://gtk.org/) **≥ 4.14.5** + gtk4-unix-print — UI
+  toolkit
+- [GLib](https://docs.gtk.org/glib/) / GIO **≥ 2.80.0** — core
+  platform library
+- [Pango](https://pango.gnome.org/) **≥ 1.52.1** — text shaping
+- [cairo](https://cairographics.org/) **≥ 1.18.0**
+  (pdf/ps/fc/pangocairo) — rendering and PDF/PS export
+- [libgsf](https://gitlab.gnome.org/GNOME/libgsf) **≥ 1.14.51** —
+  OLE2/ZIP container I/O (`.doc`, `.docx`, `.epub`)
 - [fontconfig](https://www.freedesktop.org/wiki/Software/fontconfig/)
   — bundled-font registration and substitution
-- [FriBidi](https://github.com/fribidi/fribidi) — bidirectional text
-- [libxslt](https://gitlab.gnome.org/GNOME/libxslt) — XSLT
-  (MathML↔LaTeX stylesheets)
-- [zlib](https://zlib.net/), [libpng](https://libpng.org/),
+- [FriBidi](https://github.com/fribidi/fribidi) **≥ 1.0.13** —
+  bidirectional text
+- [libxslt](https://gitlab.gnome.org/GNOME/libxslt) **≥ 1.1.39** —
+  XSLT (MathML↔LaTeX stylesheets)
+- [zlib](https://zlib.net/) **≥ 1.3**, [libpng](https://libpng.org/),
   [libjpeg](https://ijg.org/) — image/archive support
-- [enchant-2](https://rrthomas.github.io/enchant/) — spell-checker
-  abstraction
-- [librsvg](https://gitlab.gnome.org/GNOME/librsvg) — SVG rendering
+- [enchant-2](https://rrthomas.github.io/enchant/) **≥ 2.3.3** —
+  spell-checker abstraction
+- [librsvg](https://gitlab.gnome.org/GNOME/librsvg) **≥ 2.58.0** —
+  SVG rendering
+- [Boost](https://www.boost.org/) **≥ 1.83** — headers only
   (rsvg plugin)
 - [Boost](https://www.boost.org/) headers
 - X11 — X11/XWayland platform glue
