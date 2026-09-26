@@ -1832,8 +1832,8 @@ libdrm, glib if needed) — into a private prefix. Nothing is installed
 system-wide and the system GTK is never touched:
 
 ```bash
-tools/build-gtk-prefix.sh                 # GTK 4.18 -> ~/.local/abinova-gtk-dev
-tools/build-gtk-prefix.sh --gtk-ref gtk-4-20   # newer stable branch
+tools/build-gtk-prefix.sh                 # GTK 4.22 -> ~/.local/abinova-gtk-dev
+tools/build-gtk-prefix.sh --gtk-ref gtk-4-18   # an older stable branch
 tools/build-gtk-prefix.sh --gtk-ref master     # development HEAD
 ```
 

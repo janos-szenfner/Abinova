@@ -23,16 +23,16 @@
 #   tools/build-gtk-prefix.sh [--prefix DIR] [--gtk-ref REF]
 #                             [--jobs N] [--skip-check]
 #
-#   --gtk-ref   git ref of gtk.git to build (default: gtk-4-18 branch,
-#               i.e. latest 4.18 point release; e.g. use "gtk-4-20"
-#               or "master" for newer/development GTK)
+#   --gtk-ref   git ref of gtk.git to build (default: gtk-4-22 branch,
+#               i.e. the latest 4.22 point release; use "gtk-4-NN" for
+#               another stable series or "master" for development)
 #   --skip-check  rebuild every dep even if pkg-config already
 #                 satisfies it (e.g. after a git pull)
 
 set -e
 
 prefix="$HOME/.local/abinova-gtk-dev"
-gtk_ref="gtk-4-18"
+gtk_ref="gtk-4-22"
 jobs=$(nproc 2>/dev/null || echo 4)
 skip_check=0
 
@@ -175,6 +175,11 @@ build_dep epoxy libepoxy 1.5.0 \
 	https://github.com/anholt/libepoxy.git 1.5.10 \
 	-Dtests=false -Ddocs=false -Degl=yes -Dx11=true -Dglx=yes
 
+# --- wayland: gtk >= 4.22 wants wayland-client >= 1.24; system has 1.22
+build_dep wayland wayland-client 1.24.0 \
+	https://gitlab.freedesktop.org/wayland/wayland.git 1.26.0 \
+	-Dtests=false -Ddocumentation=false -Ddtd_validation=false
+
 # --- libdrm: needed by GTK's Wayland backend, missing on this system
 build_dep libdrm libdrm 2.4.99 \
 	https://gitlab.freedesktop.org/mesa/drm.git libdrm-2.4.125 \
@@ -185,7 +190,14 @@ build_dep libdrm libdrm 2.4.99 \
 	-Dtests=false
 
 # --- gtk itself
-build_dep gtk gtk4 4.18.0 \
+# derive the skip-check version from the ref so that switching branches
+# (e.g. gtk-4-18 -> gtk-4-22) actually triggers a rebuild
+case $gtk_ref in
+	gtk-4-*)     gtk_min="4.${gtk_ref#gtk-4-}.0" ;;
+	master|main) gtk_min=99.0 ;;            # always rebuild
+	*)           gtk_min=$gtk_ref ;;         # plain tag like 4.22.5
+esac
+build_dep gtk gtk4 "$gtk_min" \
 	https://gitlab.gnome.org/GNOME/gtk.git "$gtk_ref" \
 	-Dintrospection=disabled -Ddocumentation=false \
 	-Dman-pages=false -Dbuild-demos=false -Dbuild-examples=false \
