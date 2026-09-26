@@ -372,6 +372,13 @@ public:
 
 	static EV_EditMethod_Fn insertSpace;
 	static EV_EditMethod_Fn insertNBSpace;
+	static EV_EditMethod_Fn insertNBHyphen;
+	static EV_EditMethod_Fn insertSoftHyphen;
+	static EV_EditMethod_Fn insertEmDash;
+	static EV_EditMethod_Fn insertEnDash;
+	static EV_EditMethod_Fn insertCopyright;
+	static EV_EditMethod_Fn insertRegistered;
+	static EV_EditMethod_Fn insertTrademark;
 	static EV_EditMethod_Fn insertNBZWSpace;
 	static EV_EditMethod_Fn insertZWJoiner;
 	static EV_EditMethod_Fn insertLRM;
@@ -663,6 +670,7 @@ public:
 	static EV_EditMethod_Fn caseToggle;
 	static EV_EditMethod_Fn caseUpper;
 	static EV_EditMethod_Fn clearFormatting;
+	static EV_EditMethod_Fn clearParaFormatting;
 	static EV_EditMethod_Fn toggleBold;
 	static EV_EditMethod_Fn toggleDisplayAnnotations;
 	static EV_EditMethod_Fn toggleAutoGrammar;
@@ -700,9 +708,11 @@ public:
 	static EV_EditMethod_Fn setStyleHeading1;
 	static EV_EditMethod_Fn setStyleHeading2;
 	static EV_EditMethod_Fn setStyleHeading3;
+	static EV_EditMethod_Fn setStyleNormal;
 
 	static EV_EditMethod_Fn paraBefore0;
 	static EV_EditMethod_Fn paraBefore12;
+	static EV_EditMethod_Fn toggleParaBefore;
 
 	static EV_EditMethod_Fn sectColumns1;
 	static EV_EditMethod_Fn sectColumns2;
@@ -972,6 +982,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(cellAlignTopRight),	0,	""),
 	EV_EditMethod(NF(cellTextDirection),	_D_,""),
 	EV_EditMethod(NF(clearFormatting),		0,	""),
+	EV_EditMethod(NF(clearParaFormatting),	0,	""),
 	EV_EditMethod(NF(clearSetCols), 0, ""),
 	EV_EditMethod(NF(clearSetRows), 0, ""),
 	EV_EditMethod(NF(closeWindow),			0,	""),
@@ -1219,9 +1230,12 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertColsAfter),	0,	""),
 	EV_EditMethod(NF(insertColsBefore),	0,	""),
 	EV_EditMethod(NF(insertColumnBreak),	0,	""),
+	EV_EditMethod(NF(insertCopyright),		0,	""),
 	EV_EditMethod(NF(insertData),			_D_,	""),
 	EV_EditMethod(NF(insertDiaeresisData),	_D_,	""),
 	EV_EditMethod(NF(insertDoubleacuteData),_D_,	""),
+	EV_EditMethod(NF(insertEmDash),			0,	""),
+	EV_EditMethod(NF(insertEnDash),			0,	""),
 	EV_EditMethod(NF(insertEquation),		0,	""),
 	EV_EditMethod(NF(insertFooterPreset),	0,	""),
 	EV_EditMethod(NF(insertGraveData),		_D_,	""),
@@ -1232,6 +1246,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertLatexEquation),	0,	""),
 	EV_EditMethod(NF(insertLineBreak),		0,	""),
 	EV_EditMethod(NF(insertMacronData), 	_D_,	""),
+	EV_EditMethod(NF(insertNBHyphen),		0,	""),
 	EV_EditMethod(NF(insertNBSpace),		0,	""),
 	EV_EditMethod(NF(insertNBZWSpace),		0,	""),
 	EV_EditMethod(NF(insertOgonekData), 	_D_,	""),
@@ -1239,12 +1254,14 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertPageBreak),		0,	""),
 	EV_EditMethod(NF(insertParagraphBreak), 0,	""),
 	EV_EditMethod(NF(insertRLM),		0,	""),
+	EV_EditMethod(NF(insertRegistered),		0,	""),
 	EV_EditMethod(NF(insertRowsAfter),	0,	""),
 	EV_EditMethod(NF(insertRowsBefore),	0,	""),
 	EV_EditMethod(NF(insertSectionBreak),	0,	""),
 	EV_EditMethod(NF(insertShape),			0,	""),
 	EV_EditMethod(NF(insertSignatureLine),	0,	""),
 	EV_EditMethod(NF(insertSoftBreak),		0,	""),
+	EV_EditMethod(NF(insertSoftHyphen),		0,	""),
 	EV_EditMethod(NF(insertSpace),			0,	""),
 	EV_EditMethod(NF(insertSumCols),			0,	""),
 	EV_EditMethod(NF(insertSumRows),			0,	""),
@@ -1253,6 +1270,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertTabShift),			0,	""),
 	EV_EditMethod(NF(insertTable),          0,  ""),
 	EV_EditMethod(NF(insertTildeData),		_D_,	""),
+	EV_EditMethod(NF(insertTrademark),		0,	""),
 	EV_EditMethod(NF(insertWordArt),		0,	""),
 	EV_EditMethod(NF(insertXMLID),    		0,	""),
 	EV_EditMethod(NF(insertZWJoiner),		0,	""),
@@ -1434,6 +1452,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(setStyleHeading1), 	0,		""),
 	EV_EditMethod(NF(setStyleHeading2), 	0,		""),
 	EV_EditMethod(NF(setStyleHeading3), 	0,		""),
+	EV_EditMethod(NF(setStyleNormal), 		0,		""),
 	EV_EditMethod(NF(showNotes),			0,		""),
 	EV_EditMethod(NF(singleSpace),			0,		""),
 	EV_EditMethod(NF(sortColsAscend),       0,  ""),
@@ -1498,6 +1517,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleItalic), 		0,	""),
 	EV_EditMethod(NF(toggleMarkRevisions),  0,  ""),
 	EV_EditMethod(NF(toggleOline),			0,  ""),
+	EV_EditMethod(NF(toggleParaBefore),		0,	""),
 	EV_EditMethod(NF(togglePlain),			0,	""),
 	EV_EditMethod(NF(toggleRDFAnchorHighlight), 0,	""),
 	EV_EditMethod(NF(toggleShowRevisions),  0,  ""),
@@ -7981,7 +8001,84 @@ Defun1(insertNBSpace)
 	return true;
 }
 
-// non-breaking, zerrow width 
+// non-breaking hyphen U+2011 (Word: Ctrl+Shift+-)
+Defun1(insertNBHyphen)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = 0x2011;
+	pView->cmdCharInsert(&c,1);
+	return true;
+}
+
+// optional (soft) hyphen U+00AD (Word: Ctrl+-)
+Defun1(insertSoftHyphen)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = 0x00AD;
+	pView->cmdCharInsert(&c,1);
+	return true;
+}
+
+// em dash U+2014 (Word: Ctrl+Alt+Num-)
+Defun1(insertEmDash)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = 0x2014;
+	pView->cmdCharInsert(&c,1);
+	return true;
+}
+
+// en dash U+2013 (Word: Ctrl+Num-)
+Defun1(insertEnDash)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = 0x2013;
+	pView->cmdCharInsert(&c,1);
+	return true;
+}
+
+// copyright sign U+00A9 (Word: Ctrl+Alt+C)
+Defun1(insertCopyright)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = 0x00A9;
+	pView->cmdCharInsert(&c,1);
+	return true;
+}
+
+// registered sign U+00AE (Word: Ctrl+Alt+R)
+Defun1(insertRegistered)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = 0x00AE;
+	pView->cmdCharInsert(&c,1);
+	return true;
+}
+
+// trademark sign U+2122 (Word: Ctrl+Alt+T)
+Defun1(insertTrademark)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UCS4Char c = 0x2122;
+	pView->cmdCharInsert(&c,1);
+	return true;
+}
+
+// non-breaking, zerrow width
 Defun1(insertNBZWSpace)
 {
 	CHECK_FRAME;
@@ -9473,6 +9570,19 @@ Defun1(clearFormatting)
 	ABIWORD_VIEW;
 
 	return pView->resetCharFormat(false);
+}
+
+// Ctrl+Q (Word): remove direct paragraph formatting, keep the style
+Defun1(clearParaFormatting)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	UT_return_val_if_fail(pView,false);
+	if (pView->getDocument()->areStylesLocked())
+		return true;
+
+	return pView->resetBlockFormat();
 }
 
 Defun1(fontSizeDecrease)
@@ -14257,6 +14367,18 @@ Defun1(setStyleHeading3)
 	return true;
 }
 
+// Ctrl+Shift+N (Word): apply the Normal paragraph style
+Defun1(setStyleNormal)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	const gchar * style = "Normal";
+	pView->setStyle(style,false);
+	pView->notifyListeners(AV_CHG_MOTION | AV_CHG_HDRFTR);
+	return true;
+}
+
 Defun1(sectColumns1)
 {
 	CHECK_FRAME;
@@ -14328,6 +14450,28 @@ Defun1(paraBefore12)
 
 	const PP_PropertyVector properties = {
 		"margin-top", "12pt"
+	};
+	pView->setBlockFormat(properties);
+	return true;
+}
+
+// Ctrl+0 (Word): add/remove the 12pt space before the paragraph
+Defun1(toggleParaBefore)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	UT_return_val_if_fail(pView,false);
+	if (pView->getDocument()->areStylesLocked())
+		return true;
+
+	PP_PropertyVector props_in;
+	pView->getBlockFormat(props_in);
+	const std::string & sBefore = PP_getAttribute("margin-top", props_in);
+	const bool bHasSpace = (!sBefore.empty() && sBefore != "0pt");
+
+	const PP_PropertyVector properties = {
+		"margin-top", bHasSpace ? "0pt" : "12pt"
 	};
 	pView->setBlockFormat(properties);
 	return true;

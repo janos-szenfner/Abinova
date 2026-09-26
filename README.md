@@ -634,6 +634,78 @@ labels, like Word's ribbon.
   matrix) and an Inline/Block **display toggle**
   (`display:inline|block` on the math object).
 
+### Keyboard shortcuts (Word-compatible)
+
+The default key binding map (`src/wp/ap/xp/ap_LB_Default.cpp`)
+follows the MS Word keymap wherever an equivalent function exists.
+Shortcuts whose function has no counterpart are intentionally
+unbound. Emacs and vi binding sets still cycle via the input-mode
+switcher.
+
+- **File** — Ctrl+N new · Ctrl+O open · Ctrl+S save ·
+  Ctrl+Shift+S / F12 Save As · Shift+F12 save · Ctrl+F12 open ·
+  Ctrl+Shift+F12 / Ctrl+P print · Ctrl+F2 print preview ·
+  Ctrl+W close document · Alt+F4 exit.
+- **Editing** — Ctrl+Z/X/C/V undo/cut/copy/paste · Ctrl+Alt+V
+  Paste Special · Ctrl+Shift+V paste clipboard formatting onto the
+  selection (format painter) · Ctrl+A select all · Ctrl+F find ·
+  Ctrl+H replace · Ctrl+G / F5 Go To · Ctrl+Backspace / Ctrl+Delete
+  delete word left/right · Shift+Insert paste · Ctrl+Insert copy.
+- **Formatting** — Ctrl+B/I/U bold/italic/underline · Ctrl+Shift+X
+  strikethrough · Ctrl+= subscript · Ctrl+Shift+= superscript ·
+  Shift+F3 rotate case · Ctrl+Shift+> / Ctrl+Shift+< grow/shrink
+  font · Ctrl+D font dialog.
+- **Paragraph** — Ctrl+L/E/R/J left/centre/right/justify ·
+  Ctrl+1/5/2 single/1.5/double spacing · Ctrl+0 toggle 12 pt space
+  before paragraph · Ctrl+M / Ctrl+Shift+M increase/decrease indent ·
+  Ctrl+Q remove direct paragraph formatting (keeps the style) ·
+  Ctrl+Space remove character formatting · Ctrl+Shift+N Normal style ·
+  Alt+Ctrl+1/2/3 Heading 1/2/3.
+- **Navigation & selection** — arrows, Ctrl+arrows (word/paragraph
+  jumps), Home/End, Ctrl+Home/End (document bounds), all with Shift
+  to extend the selection · PageUp/PageDown · Ctrl+Tab or
+  Ctrl+F6 / Ctrl+Shift+F6 cycle open documents.
+- **Insertions** — Enter paragraph · Shift+Enter line break ·
+  Ctrl+Enter page break · Ctrl+Shift+Enter column break ·
+  Ctrl+Shift+Space non-breaking space · Ctrl+Shift+- non-breaking
+  hyphen · Ctrl+- optional (soft) hyphen · Ctrl+Alt+- em dash ·
+  Ctrl+Alt+Shift+- en dash · Ctrl+Alt+R/T/C ® / ™ / © ·
+  Ctrl+Alt+F footnote · Ctrl+Alt+D endnote · Ctrl+Alt+M comment ·
+  Ctrl+K hyperlink · Alt+Shift+P page numbers · Alt+Shift+D
+  date & time.
+- **Tables** — Tab / Shift+Tab next/previous cell (Tab in the last
+  cell appends a row) · Alt+Shift+U insert column-sum field ·
+  Ctrl+Alt+arrows resize columns/rows.
+- **Review** — F7 spell check · Ctrl+Shift+E toggle track changes ·
+  Alt+↑ / Alt+↓ previous/next comment · Alt+Shift+X mark index entry.
+- **View & windows** — Ctrl+Alt+P print layout · Ctrl+Alt+N normal
+  (draft) layout · Ctrl+Alt+S split window · Alt+Shift+C remove
+  split · F11 fullscreen · Ctrl+wheel zoom.
+- **Misc** — F1 help · F10 context menu · Alt+F8 run script ·
+  F3 find again.
+
+Notable moves away from the historical AbiWord map: Ctrl+K is now
+hyperlink (strikethrough moved to Ctrl+Shift+X), Ctrl+L is align-left
+(was bullets), Ctrl+M indents (symbol dialog stays in the menus),
+Ctrl+Shift+N applies Normal (template-new moved off the key), Ctrl+Q
+clears paragraph formatting (quit remains on Alt+F4), F12 is Save As,
+and Ctrl+= / Ctrl+- mean subscript / optional hyphen — zoom lives on
+Ctrl+mouse-wheel.
+
+**macOS**: the GTK keyboard layer folds the Command (⌘) modifier —
+delivered by GDK as Meta/Super — into the Control state, so every
+Ctrl binding above works as its Cmd equivalent out of the box
+(Cmd+S save, Cmd+P print, Cmd+B/I/U, Cmd+F find, Cmd+Home/End for
+document bounds, Cmd+; spell check, Cmd+, Preferences, and so on).
+Divergent Mac conventions are bound explicitly: Cmd+Shift+Z is redo
+(platform-conditional — Ctrl+Shift+Z stays undo elsewhere),
+Option+←/→ and Option+Shift+←/→ move/select by word, Option+Delete
+deletes the word to the left, and Ctrl+/Cmd+; opens the spell
+checker. ⌥ maps to Alt. Function keys may require Fn depending on
+the "Use F1, F2…" system setting, and window-manager shortcuts like
+Cmd+Q/Cmd+M are left to the platform. Bindings whose command does
+not exist remain unbound on all platforms.
+
 ### GTK4 runtime fixes (this round)
 
 - **Keyboard input restored**: the document drawing area had

@@ -67,7 +67,10 @@ bool ev_UnixKeyboard::keyPressEvent(AV_View* pView, GdkEvent* e)
 
 	if (ev_state & GDK_SHIFT_MASK)
 		state |= EV_EMS_SHIFT;
-	if (ev_state & GDK_CONTROL_MASK)
+	/* Command on macOS arrives as Meta (or Super via XQuartz);
+	 * fold it into Control so the Cmd column of the Word keymap
+	 * resolves to the same bindings as Ctrl. */
+	if (ev_state & (GDK_CONTROL_MASK | GDK_META_MASK | GDK_SUPER_MASK))
 	{
 		state |= EV_EMS_CONTROL;
 

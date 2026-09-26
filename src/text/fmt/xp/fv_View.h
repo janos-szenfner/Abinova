@@ -521,6 +521,7 @@ public:
 	bool	setCharFormat(const PP_PropertyVector & properties,
                           const PP_PropertyVector & attribs = PP_NOPROPS);
 	bool	resetCharFormat(bool bAll);
+	bool	resetBlockFormat();
 	bool	getCharFormat(PP_PropertyVector & properties, bool bExpandStyles = true) const;
 	bool	getCharFormat(PP_PropertyVector & properties, bool bExpandStyles, PT_DocPosition posStart) const;
 	fl_BlockLayout * getBlockFromStrux(const pf_Frag_Strux* pfs);

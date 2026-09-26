@@ -196,6 +196,61 @@ below are on `main` but the release has not been cut yet.
     `section-break` paragraph property in `.abw`; layout suppresses
     their borders, matching Word's paragraph-border merging.
 
+### Keyboard shortcuts (Word-compatible default map)
+
+- **Default keymap aligned to MS Word** — the stock `default`
+  binding set (`src/wp/ap/xp/ap_LB_Default.cpp`) now mirrors the
+  Word shortcut table; shortcuts with no equivalent function are
+  intentionally left unbound. The map is covered by a new unit test
+  (`src/wp/ap/xp/t/ap_KeyBindings.t.cpp`) that resolves every
+  documented shortcut against the live `EV_EditBindingMap`.
+- **File** — Ctrl+Shift+S / F12 Save As, Shift+F12 Save,
+  Ctrl+F12 Open, Ctrl+Shift+F12 Print, Ctrl+F2 print preview.
+- **Editing** — Ctrl+Alt+V Paste Special, Ctrl+Shift+V paste
+  formatting (format painter), F5 Go To.
+- **Formatting** — Ctrl+Shift+X strikethrough, Ctrl+= subscript,
+  Ctrl+Shift+= superscript, Ctrl+D font dialog.
+- **Paragraph** — Ctrl+L align left, Ctrl+M / Ctrl+Shift+M
+  indent/un-indent, Ctrl+0 toggle space-before-paragraph (new
+  `toggleParaBefore` method), Ctrl+Q clear direct paragraph
+  formatting (new `FV_View::resetBlockFormat()` — clears the block
+  `props` attribute while keeping the paragraph style),
+  Ctrl+Shift+N Normal style (new `setStyleNormal` method).
+- **Insertions** — new char-insert edit methods for Word's symbol
+  keys: Ctrl+- optional hyphen (U+00AD), Ctrl+Shift+-
+  non-breaking hyphen (U+2011), Ctrl+Alt+- em dash,
+  Ctrl+Alt+Shift+- en dash, Ctrl+Alt+C/R/T ©/®/™;
+  Alt+Shift+P page numbers, Alt+Shift+D date & time,
+  Alt+Shift+U column-sum field, Alt+Shift+X mark index entry.
+- **Review** — Ctrl+Shift+E toggles track changes, Alt+↑/Alt+↓
+  previous/next comment.
+- **View & windows** — Ctrl+Alt+P print layout, Ctrl+Alt+N normal
+  layout, Ctrl+Alt+S split window, Alt+Shift+C remove split,
+  Ctrl+F6 / Ctrl+Shift+F6 cycle documents, Alt+F8 run script.
+- **macOS Command-key parity** — `ev_UnixKeyboard.cpp` folds
+  GDK_META_MASK/GDK_SUPER_MASK (⌘ under Quartz/XQuartz) into
+  EV_EMS_CONTROL, so every Ctrl binding resolves as its Cmd
+  equivalent; Cmd+Shift+Z resolves to `redo` via a platform-conditional
+  binding (Ctrl+Shift+Z stays `undo` elsewhere), Option+←/→ move by
+  word (`warpInsPtBOW`/`warpInsPtEOW`), Option+Delete deletes a word
+  left (`delBOW`), Cmd+; spell check, Cmd+, Preferences.
+- **Reassigned (Word takes precedence)** — Ctrl+K hyperlink
+  (strikethrough moved to Ctrl+Shift+X), Ctrl+L align-left (was
+  bullets), Ctrl+M indent (was symbol dialog), Ctrl+N fileNew on
+  the unshifted key with Ctrl+Shift+N applying Normal (was
+  new-from-template), Ctrl+Q clear paragraph formatting (was quit;
+  quit stays on Alt+F4), Ctrl+Shift+V paste formatting (was a
+  second paste), F12 Save As (was input-mode cycling —
+  `cycleInputMode` remains available programmatically), Ctrl+=
+  subscript and Ctrl+- optional hyphen (zoom remains on
+  Ctrl+mouse-wheel).
+- **Skipped (no function exists)** — double underline, word-only
+  underline, small caps and all-caps format toggles, hanging
+  indent, Styles-pane shortcut, format-copy, thesaurus, Shift+F5
+  go-back, F8 extend-selection, vertical-block selection, all field
+  lock/unlink/toggle shortcuts (F9/Alt+F9/Ctrl+F9/F11 family),
+  mark-citation (requires call data), and table AutoSum variants.
+
 ### User interface
 
 - **Application renamed to Abinova** — all user-facing branding

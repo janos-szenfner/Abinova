@@ -6495,6 +6495,81 @@ bool FV_View::setBlockFormat(const PP_PropertyVector & properties)
 	return bRet;
 }
 
+/*!
+ * Remove all direct paragraph (block-level) formatting from the
+ * current block / selected blocks while keeping the paragraph style.
+ * This is the Ctrl+Q behaviour familiar from MS Word: the "props"
+ * attribute of each block strux is cleared, the named style stays.
+ */
+bool FV_View::resetBlockFormat()
+{
+	bool bRet;
+
+	// Signal PieceTable Change
+	_saveAndNotifyPieceTableChange();
+
+	_clearIfAtFmtMark(getPoint());
+
+	PT_DocPosition posStart = getPoint();
+	PT_DocPosition posEnd = posStart;
+	if (!isSelectionEmpty())
+	{
+		if (m_Selection.getSelectionAnchor() < posStart)
+		{
+			posStart = m_Selection.getSelectionAnchor();
+		}
+		else
+		{
+			posEnd = m_Selection.getSelectionAnchor();
+		}
+	}
+	if(posStart < 2)
+	{
+		posStart = 2;
+	}
+
+	// setting the "props" attribute to "" drops every direct
+	// property but leaves "style" (the paragraph style) alone
+	const PP_PropertyVector attrs_clear = {
+		"props", ""
+	};
+
+	// same table containment rule as setBlockFormat: when the
+	// selection sits inside a single table, apply per block so
+	// that the change never leaks outside the cell range
+	const pf_Frag_Strux *tstart, *tend;
+	if (m_pDoc->getStruxOfTypeFromPosition(posStart,PTX_SectionTable,&tstart)
+	    && m_pDoc->getStruxOfTypeFromPosition(posEnd,PTX_SectionTable,&tend)
+	    && tstart == tend)
+	{
+		bRet = false;
+		UT_GenericVector<fl_BlockLayout*> vBlock;
+		getBlocksInSelection(&vBlock);
+		for(UT_sint32 i=0; i<vBlock.getItemCount();i++)
+		{
+			fl_BlockLayout * pBL = vBlock.getNthItem(i);
+			if(pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_CELL)
+			{
+				PT_DocPosition pos = pBL->getPosition();
+				bRet = m_pDoc->changeStruxFmt(PTC_AddFmt, pos, pos, attrs_clear, PP_NOPROPS, PTX_Block);
+			}
+		}
+	}
+	else
+		bRet = m_pDoc->changeStruxFmt(PTC_AddFmt, posStart, posEnd, attrs_clear, PP_NOPROPS, PTX_Block);
+
+	// Signal PieceTable Changes have finished
+	_restorePieceTableState();
+
+	_generalUpdate();
+
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+
+	_fixInsertionPointCoords();
+
+	return bRet;
+}
+
 
 /*!
  * Collapse text to the level specified over the range of text given.
