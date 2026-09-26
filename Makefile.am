@@ -67,8 +67,11 @@ all-local: $(srcdir)/help/en-US/changelog.html
 $(srcdir)/help/en-US/changelog.html: $(srcdir)/CHANGELOG.md $(srcdir)/tools/changelog2html.sh
 	$(srcdir)/tools/changelog2html.sh $(srcdir)/CHANGELOG.md $@
 
-# bundled user manual (single-page HTML for the built-in help browser)
+# bundled user manual (single-page HTML for the built-in help
+# browser); wipe first so removed pages don't linger from older
+# installs
 install-data-local:
+	rm -rf $(DESTDIR)@ABIWORD_DATADIR@/help
 	cp -r $(srcdir)/help $(DESTDIR)@ABIWORD_DATADIR@/
 	cp -r $(srcdir)/artwork $(DESTDIR)@ABIWORD_DATADIR@/
 
