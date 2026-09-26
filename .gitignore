@@ -4,6 +4,7 @@ Makefile.in
 aclocal.m4
 autom4te.cache/
 config.h
+!thirdparty/wv-1.2.9/config.h
 config.h.in
 config.log
 config.status

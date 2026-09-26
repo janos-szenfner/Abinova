@@ -1682,6 +1682,20 @@ below are on `main` but the release has not been cut yet.
   libgsf ≥ 1.14.51, FriBidi ≥ 1.0.13, libxslt ≥ 1.1.39,
   zlib ≥ 1.3, enchant-2 ≥ 2.3.3, Boost ≥ 1.83 — all match the
   versions the tree is developed and tested against.
+- **Sandboxed newer-GTK development toolchain** —
+  `tools/build-gtk-prefix.sh` builds GTK4 (default 4.18) plus only
+  the deps the distro is too old for (pango, harfbuzz, libepoxy,
+  libdrm; glib overridable via `GLIB_MINVER`/`GLIB_REF`) into
+  `~/.local/abinova-gtk-dev`, fetching standalone meson/ninja into
+  the prefix so no system packages are needed; a generated `env.sh`
+  switches `PKG_CONFIG_PATH`/`LD_LIBRARY_PATH` so a worktree build
+  uses the new GTK while normal builds stay on the system GTK.
+  Verified end-to-end: configure + full build + run on GTK 4.18.7.
+- **Fixed: vendored `wv` config.h was untracked** — the hand-written
+  `thirdparty/wv-1.2.9/config.h` was matched by the `config.h` rule
+  in `.gitignore`, so fresh clones/worktrees failed compiling
+  `wvConfig.c` (`xmlparse.h` not found); added a `!` negation and
+  tracked the file.
 - **macOS and Windows build support via GTK's native backends** —
   `tools/build-macos.sh` (Homebrew + GTK/Quartz) and
   `tools/build-windows-msys2.sh` (MSYS2 MINGW64/UCRT64 + GTK/Win32)

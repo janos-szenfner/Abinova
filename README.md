@@ -1824,6 +1824,36 @@ tools/build-windows-msys2.sh
 The resulting `abinova.exe` needs the MSYS2 runtime DLLs on PATH;
 bundle them (e.g. via `ldd`) when packaging for distribution.
 
+### Building against a newer GTK (sandboxed)
+
+`tools/build-gtk-prefix.sh` builds a modern GTK4 — plus only the
+dependencies your distro is too old for (pango, harfbuzz, libepoxy,
+libdrm, glib if needed) — into a private prefix. Nothing is installed
+system-wide and the system GTK is never touched:
+
+```bash
+tools/build-gtk-prefix.sh                 # GTK 4.18 -> ~/.local/abinova-gtk-dev
+tools/build-gtk-prefix.sh --gtk-ref gtk-4-20   # newer stable branch
+tools/build-gtk-prefix.sh --gtk-ref master     # development HEAD
+```
+
+It fetches a standalone meson/ninja toolchain into the prefix as
+well, so no `apt`/`pip` packages are required. When it finishes,
+source the generated environment and build in a scratch tree (a git
+worktree is the easiest — the main tree stays on system GTK):
+
+```bash
+. ~/.local/abinova-gtk-dev/env.sh
+git worktree add /tmp/abinova-gtkdev
+cd /tmp/abinova-gtkdev && ./autogen.sh && ./configure && make -j$(nproc)
+```
+
+Sourcing `env.sh` puts the prefix first in `PKG_CONFIG_PATH`/
+`LD_LIBRARY_PATH`, so `configure` picks up the new GTK while every
+other dependency (libgsf, enchant, hunspell, boost, …) still comes
+from the system. Delete `~/.local/abinova-gtk-dev` to remove the
+sandbox entirely.
+
 ## Known issues
 
 - The GTK4 dialog migration is in progress — `.ui` files were

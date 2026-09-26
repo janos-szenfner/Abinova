@@ -9,4 +9,5 @@ EXTRA_DIST = \
 	release.sh \
 	changelog2html.sh \
 	build-macos.sh \
-	build-windows-msys2.sh
+	build-windows-msys2.sh \
+	build-gtk-prefix.sh
