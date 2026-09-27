@@ -999,7 +999,8 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					bool bGrayed = EV_TIS_ShouldBeGray(tis);
 
 					_wd * wd = m_vecToolbarWidgets.getNthItem(k);
-					UT_ASSERT(wd && wd->m_widget);
+					if (!wd || !wd->m_widget)
+						continue;
 					gtk_widget_set_sensitive(wd->m_widget, !bGrayed);     					
 					gtk_widget_set_visible(wd->m_widget, !EV_TIS_ShouldBeHidden(tis));
 				}
@@ -1012,7 +1013,8 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					bool bToggled = EV_TIS_ShouldBeToggled(tis);
 
 					_wd * wd = m_vecToolbarWidgets.getNthItem(k);
-					UT_ASSERT(wd && wd->m_widget);
+					if (!wd || !wd->m_widget)
+						continue;
 					// Block the signal, throw the toggle event
 					bool wasBlocked = wd->m_blockSignal;
 					wd->m_blockSignal = true;
@@ -1105,8 +1107,8 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					bool bGrayed = EV_TIS_ShouldBeGray(tis);
 					
 					_wd * wd = m_vecToolbarWidgets.getNthItem(k);
-					UT_ASSERT(wd);
-					UT_ASSERT(wd->m_widget);
+					if (!wd || !wd->m_widget)
+						continue;
 					gtk_widget_set_sensitive(GTK_WIDGET(wd->m_widget), !bGrayed);   // Disable/enable toolbar item
                 }
 				break;
@@ -1185,7 +1187,7 @@ bool EV_UnixToolbar::repopulateStyles(void)
 		if(id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
 			break;
 	}
-	if(i>=count)
+	if(i>=count || !wd)
 		return false;
 //
 // GOT IT!
@@ -1195,6 +1197,7 @@ bool EV_UnixToolbar::repopulateStyles(void)
 	UT_return_val_if_fail(pFactory, false);
 	EV_Toolbar_Control * pControl = pFactory->getControl(this, id);
 	AP_UnixToolbar_StyleCombo * pStyleC = static_cast<AP_UnixToolbar_StyleCombo *>(pControl);
+	UT_return_val_if_fail(pStyleC, false);
 	pStyleC->repopulate();
 	GtkComboBox * combo = (GtkComboBox*)wd->m_widget; /* font combo is a GtkBox wrapper, not GtkComboBox */
 	GtkTreeModel *model = gtk_combo_box_get_model(combo);

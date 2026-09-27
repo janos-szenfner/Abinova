@@ -96,6 +96,7 @@ void fp_AnnotationRun::_draw(dg_DrawArgs* pDA)
 	UT_sint32 iFillHeight = getAscent() + getDescent();
 
 	FV_View* pView = _getView();
+	UT_return_if_fail(pView);
 	UT_uint32 iSelAnchor = pView->getSelectionAnchor();
 	UT_uint32 iPoint = pView->getPoint();
 

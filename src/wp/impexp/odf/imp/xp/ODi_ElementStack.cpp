@@ -75,7 +75,8 @@ void ODi_ElementStack::startElement (const gchar* pName,
     } else {
         UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
     }
-    
+
+    UT_return_if_fail(pStartTag != nullptr);
     pStartTag->set(pName, ppAtts);
     
     m_stackSize++;

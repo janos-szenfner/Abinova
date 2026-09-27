@@ -627,6 +627,7 @@ IEFileType IE_Exp::fileTypeForDescription(const char * szDescription)
 	for (UT_uint32 k=0; k < nrElements; k++)
 	{
 		IE_ExpSniffer * pSniffer = m_sniffers.getNthItem(k);
+		UT_nonnull_or_continue(pSniffer);
 
 		const char * szDummy;
 		const char * szDescription2 = nullptr;
@@ -731,7 +732,7 @@ const char * IE_Exp::descriptionForFileType(IEFileType ieft)
 
 	IE_ExpSniffer * pSniffer = snifferForFileType(ieft);
 
-	if (pSniffer->getDlgLabels(&szDescription,&szDummy,&ieftDummy))
+	if (pSniffer && pSniffer->getDlgLabels(&szDescription,&szDummy,&ieftDummy))
 	{
 		return szDescription;
 	}

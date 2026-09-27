@@ -780,6 +780,7 @@ XAP_Dialog_MessageBox * XAP_Frame::createMessageBox(XAP_String_Id id,
 }
 XAP_Dialog_MessageBox::tAnswer XAP_Frame::showMessageBox(XAP_Dialog_MessageBox * pDialog)
 {
+	UT_return_val_if_fail(pDialog, XAP_Dialog_MessageBox::a_CANCEL);
 	raise();
 
 	pDialog->runModal(this);
@@ -818,6 +819,7 @@ XAP_Dialog_MessageBox::tAnswer XAP_Frame::showMessageBox(const char * szMessage,
 							 XAP_Dialog_MessageBox::tAnswer default_answer)
 {
   XAP_Dialog_MessageBox * pDialog = createMessageBox(0, buttons, default_answer);
+  UT_return_val_if_fail(pDialog, XAP_Dialog_MessageBox::a_CANCEL);
   pDialog->setMessage("%s", szMessage);
   return showMessageBox(pDialog);
 }

@@ -2269,6 +2269,7 @@ void IE_Imp_TableHelper::padAllRowsWithCells(UT_GenericVector<CellHelper *> & ve
 	UT_nonnull_or_return(pCell,);
 	UT_sint32 FirstRow = pCell->m_top;
 	pCell = static_cast<CellHelper *>(vecCells.getNthItem(vecCells.getItemCount()-1));
+	UT_nonnull_or_return(pCell,);
 	LastRow = pCell->m_top;
 	UT_sint32 i = 0;
 	for(i=FirstRow; i<=LastRow; i++)
@@ -2412,6 +2413,7 @@ bool IE_Imp_TableHelper::tdEnd(void) const
 					pVecCells = & m_tbody;
 				}
 		}
+	UT_return_val_if_fail(pVecCells != nullptr, false);
 	if(pCell == nullptr)
 		{
 			m_col_next += colspan;

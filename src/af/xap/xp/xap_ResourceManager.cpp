@@ -216,6 +216,7 @@ UT_Error XAP_ResourceManager::write_xml (void * context, Writer & writer)
 		if (m_resource[i]->bInternal)
 			{
 				XAP_InternalResource * ri = dynamic_cast<XAP_InternalResource *>(m_resource[i]);
+				UT_nonnull_or_continue(ri);
 
 				UT_uint32 n = 0;
 

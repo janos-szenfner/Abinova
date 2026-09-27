@@ -182,6 +182,8 @@ void FV_Selection::pasteRowOrCol(void)
 			posCell = m_pView->findCellPosAt(posTable,i,iLeft)+2;
 			m_pView->setPoint(posCell);
 			PD_DocumentRange * pR = getNthSelection(i);
+			if(!pR)
+				continue;
 			if(pR->m_pos1 == pR->m_pos2)
 			{
 //

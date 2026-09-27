@@ -72,8 +72,9 @@ UT_Timer* UT_Timer::findTimer(UT_uint32 iIdentifier)
 	for (int i=0; i<count; i++)
 	{
 		UT_Timer* pTimer = static_vecTimers.getNthItem(i);
-		UT_ASSERT(pTimer);
-		
+		if (!pTimer)
+			continue;
+
 		if (pTimer->getIdentifier() == iIdentifier)
 		{
 			return pTimer;

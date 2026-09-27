@@ -101,6 +101,8 @@ bool XAP_FakeClipboard::addData(const char* format, const void* pData, UT_sint32
 	_ClipboardItem * pItem = new _ClipboardItem(format, pData, iNumBytes);
 
 	UT_sint32 err = m_vecData.addItem(pItem);
+	if (err < 0)
+		delete pItem;
 	return (err >= 0);
 }
 

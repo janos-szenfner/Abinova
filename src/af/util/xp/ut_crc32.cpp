@@ -152,22 +152,8 @@ void UT_CRC32::Fill(const unsigned char *s, UT_uint32 n)
                           q[i] = static_cast<unsigned char>(0);
               }
           }
-        for(; q && n > 0; n--)
+        for(; n > 0; n--)
                 crc = m_tab[CRC32_INDEX(crc) ^ *q++] ^ CRC32_SHIFTED(crc);
-
-        while (n >= 4)
-        {
-                crc ^= *(const UT_uint32 *)q;
-                crc = m_tab[CRC32_INDEX(crc)] ^ CRC32_SHIFTED(crc);
-                crc = m_tab[CRC32_INDEX(crc)] ^ CRC32_SHIFTED(crc);
-                crc = m_tab[CRC32_INDEX(crc)] ^ CRC32_SHIFTED(crc);
-                crc = m_tab[CRC32_INDEX(crc)] ^ CRC32_SHIFTED(crc);
-                n -= 4;
-                q += 4;
-        }
-
-        while (n--)
-                crc = m_tab[CRC32_INDEX(crc) ^ *s++] ^ CRC32_SHIFTED(crc);
 
         m_crc = crc;
         delete [] p;

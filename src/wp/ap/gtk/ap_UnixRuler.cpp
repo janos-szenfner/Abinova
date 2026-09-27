@@ -159,7 +159,7 @@ void AP_UnixRuler::_fe::button_pressed(GtkGestureClick* g, gint /*n_press*/,
 {
     AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(data);
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
-    UT_ASSERT(ruler);
+    UT_nonnull_or_return(ruler,);
 
     FV_View* pView = static_cast<FV_View *>(ruler->getFrame()->getCurrentView());
     if (!pView || pView->getPoint() == 0 || !ruler->getGraphics()) {
@@ -183,7 +183,7 @@ void AP_UnixRuler::_fe::button_released(GtkGestureClick* g, gint /*n_press*/,
 {
     AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(data);
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
-    UT_ASSERT(ruler);
+    UT_nonnull_or_return(ruler,);
 
     FV_View* pView = static_cast<FV_View*>(ruler->getFrame()->getCurrentView());
     if (!pView || pView->getPoint() == 0 || !ruler->getGraphics()) {
@@ -221,7 +221,7 @@ void AP_UnixRuler::_fe::motion_notify(GtkEventControllerMotion* c,
 {
     AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(data);
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
-    UT_ASSERT(ruler);
+    UT_nonnull_or_return(ruler,);
 
     XAP_App* pApp = XAP_App::getApp();
     XAP_Frame* pFrame = pApp->getLastFocussedFrame();

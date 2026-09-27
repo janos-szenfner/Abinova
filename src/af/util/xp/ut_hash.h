@@ -507,6 +507,16 @@ bool UT_GenericStringMap<T>::insert(const UT_String& key, T value)
 	if(key_found)
 		return false;
 
+	if (!sl)
+	{
+		/* empty table (m_nSlots == 0): allocate a minimal table and retry */
+		grow();
+		sl = find_slot(key, SM_INSERT, slot, key_found,
+					  hashval, nullptr, nullptr, nullptr, 0);
+		if (!sl)
+			return false;
+	}
+
 	sl->insert(value, key, hashval);
 	++n_keys;
 

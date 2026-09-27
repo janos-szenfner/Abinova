@@ -1148,6 +1148,10 @@ void FL_DocLayout::setFramePageNumbers(UT_sint32 iStartPage)
       for(iPage=iStartPage; iPage<countPages();iPage++)
       {
 	  pPage = getNthPage(iPage);
+	  if(pPage == nullptr)
+	  {
+	      continue;
+	  }
 	  pPage->setPageNumberInFrames();
       }
 }

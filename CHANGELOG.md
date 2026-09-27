@@ -1602,6 +1602,54 @@ below are on `main` but the release has not been cut yet.
   and then exported anyway; the tick now defers to the next period.
 - **Backup filetype pinned to `.abwn`** — the recovery copy no longer
   relies on a hardcoded integer filetype index.
+- **Static-analysis sweep (GCC `-fanalyzer`, full tree)** — the whole
+  codebase was rebuilt under the GCC static analyzer and every
+  high-signal finding triaged and fixed:
+  - `XAP_Dialog_Modeless::BuildWindowName` wrote `name[width]` one byte
+    past its 100-byte stack buffer when the window title filled the
+    buffer (CWE-121 out-of-bounds write).
+  - `EV_Toolbar_Label`'s bidi conversion path could leak one buffer on
+    a partial allocation failure and read `fbdStr[0]` uninitialized;
+    the pair is now `std::unique_ptr`-managed and guarded.
+  - `EV_UnixToolbar::refreshToolbar`/`repopulateStyles` dereferenced
+    `getNthItem()` results behind `UT_ASSERT` (a no-op in release
+    builds) — now real NULL guards.
+  - `UT_CRC32::Fill` dead-code cleanup — the `q &&` NULL check implied
+    `new` could return NULL and the two word-at-a-time loops could
+    never run (n was always 0); removed.
+  - `XAP_Log` crashed on startup when the log `fopen` failed —
+    `fprintf(NULL)`; constructor and `log()` now guard.
+  - `XAP_FakeClipboard::addData` leaked the new `_ClipboardItem` when
+    `addItem` failed.
+  - `fl_HdrFtrSectionLayout::~` freed each `_PageHdrFtrShadowPair`'s
+    shadow but never the pair itself — one heap leak per attached
+    page on teardown.
+  - `FV_View::insertHeaderFooter` dereferenced `getCurrentPage()`,
+    `pDocL` and `pBL` unguarded (pre-layout NULLs).
+  - `UT_GenericStringMap::insert` dereferenced `find_slot`'s NULL
+    return on an empty table (m_nSlots == 0) — now grows and retries.
+  - `px_ChangeHistory` dereferenced `getNthItem` results on three undo
+    adjustment paths (out-of-range → NULL).
+  - `AP_UnixRuler` gesture handlers dereferenced `dynamic_cast` results
+    behind `UT_ASSERT` (three sites).
+  - `IE_Exp` dereferenced `getNthItem`/`snifferForFileType` results on
+    two paths; `IE_ImpGraphic` and `IE_Imp_TableHelper` on three more.
+  - `fp_ShadowContainer`, `fp_AnnotationRun`, `fp_RDFAnchorRun`,
+    `fp_EmbedRun` draw paths now early-return when `_getView()` /
+    `getView()` is NULL instead of dereferencing it.
+  - `fp_VerticalContainer` offset walks now NULL-check
+    `getCorrectBrokenTOC`/`getMasterTable` and stop on a NULL container
+    instead of calling `pCon->getContainer()` on NULL.
+  - `AP_UnixDialog_Styles` guarded `enumStyles` output and per-item
+    NULLs; `OXMLi_ListenerState_Image::charData` moved its NULL check
+    ahead of the first dereference; `ODe_Table_Listener`,
+    `ODi_ElementStack`, `UT_Timer::findTimer`, `XAP_Frame` message-box
+    creation, `XAP_ResourceManager::write_xml`, `EV_UnixToolbar`
+    widget-vector lookups, `XAP_UnixFrameImpl::_rebuildToolbar`,
+    `FV_Selection` cell ranges and `fl_DocLayout` page numbering all
+    gained real NULL guards in place of assert-only checks.
+  - Verified: 1129 unit tests pass, `make check` green, Valgrind
+    reports **0 errors and 0 definite leaks** on the full suite.
 
 ### GTK4 port (core migration)
 

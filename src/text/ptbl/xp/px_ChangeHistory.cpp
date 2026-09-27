@@ -239,6 +239,8 @@ bool px_ChangeHistory::getUndo(PX_ChangeRecord ** ppcr, bool bStatic) const
 			for (UT_sint32 i = 0; i<m_iAdjustOffset;i++)
 			{
 				PX_ChangeRecord *pcrTmp = m_vecChangeRecords.getNthItem(m_undoPosition-i-1);
+				if (!pcrTmp)
+					break;
 				if (!pcrTmp->isFromThisDoc())
 				{
 					UT_sint32 iCur = getDoc()->getAdjustmentForCR(pcrTmp);
@@ -291,6 +293,8 @@ bool px_ChangeHistory::getUndo(PX_ChangeRecord ** ppcr, bool bStatic) const
 	    for (UT_sint32 i = m_iAdjustOffset-1; i>=0;i--)
 	    {
 			pcr = m_vecChangeRecords.getNthItem(m_undoPosition-i-1);
+			if (!pcr)
+				break;
 			if (!pcr->isFromThisDoc())
 			{
 				iCurrAdj = getDoc()->getAdjustmentForCR(pcr);
@@ -416,6 +420,8 @@ bool px_ChangeHistory::getRedo(PX_ChangeRecord ** ppcr) const
 	    for (UT_sint32 i = m_iAdjustOffset; i >= 1;i--)
 	    {
 			pcr = m_vecChangeRecords.getNthItem(m_undoPosition-i);
+			if (!pcr)
+				break;
 			if (!pcr->isFromThisDoc())
 			{
 				UT_sint32 iCur = getDoc()->getAdjustmentForCR(pcr);

@@ -475,7 +475,8 @@ UT_Error IE_ImpGraphic::constructImporter(GsfInput * input,
 		for (UT_uint32 k=0; k < nrElements; k++)
 			{
 				IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers[k];
-				
+				UT_nonnull_or_continue(s);
+
 				UT_Confidence_t content_confidence = UT_CONFIDENCE_ZILCH;
 				UT_Confidence_t suffix_confidence = UT_CONFIDENCE_ZILCH;
 				

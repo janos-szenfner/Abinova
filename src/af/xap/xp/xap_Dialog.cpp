@@ -276,7 +276,7 @@ XAP_Dialog_Modeless::BuildWindowName(char * pWindowName, const char * pDialogNam
 		wn += pFrame->getTitle();
 	}
 
-	UT_uint32 len = UT_MIN(wn.byteLength(), width);
+	UT_uint32 len = UT_MIN(wn.byteLength(), width - 1);
 	strncpy(pWindowName, wn.utf8_str(), len);
 	pWindowName[len] = '\0';
 }

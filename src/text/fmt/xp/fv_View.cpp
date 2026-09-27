@@ -13500,13 +13500,16 @@ bool FV_View::insertHeaderFooter(const PP_PropertyVector & props, HdrFtrType hfT
 	if(pDocL == nullptr)
 	{
 		fp_Page* pCurrentPage = getCurrentPage();
+		UT_return_val_if_fail(pCurrentPage, false);
 		pDocL = pCurrentPage->getOwningSection();
 	}
+	UT_return_val_if_fail(pDocL, false);
 
 //
 // Now find the position of this section
 //
 	fl_BlockLayout * pBL = pDocL->getNextBlockInDocument();
+	UT_return_val_if_fail(pBL, false);
 	PT_DocPosition posSec = pBL->getPosition();
 
 	// change the section to point to the footer which doesn't exist yet.

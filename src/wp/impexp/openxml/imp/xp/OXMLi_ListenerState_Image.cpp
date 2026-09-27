@@ -394,15 +394,15 @@ void OXMLi_ListenerState_Image::charData (OXMLi_CharDataRequest * rqst)
 	{
 		return;
 	}
+	if(!rqst)
+	{
+		UT_DEBUGMSG(("SERHAT: OpenXML importer invalid NULL request in OXMLi_ListenerState_Image.charData\n"));
+		return;
+	}
 	if(rqst->stck->empty())
 	{
 		rqst->handled = false;
 		rqst->valid = false;
-		return;
-	}
-	if(!rqst)
-	{
-		UT_DEBUGMSG(("SERHAT: OpenXML importer invalid NULL request in OXMLi_ListenerState_Image.charData\n"));
 		return;
 	}
 

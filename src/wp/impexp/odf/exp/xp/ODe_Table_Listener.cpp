@@ -158,7 +158,8 @@ void ODe_Table_Listener::openTable(const PP_AttrProp* pAP,
                     }
                     pStyle = vecStyles.getNthItem(cnt);
 		    cnt++;
-                    pStyle->setRelColumnWidth(buffer.c_str());
+                    if (pStyle)
+                        pStyle->setRelColumnWidth(buffer.c_str());
                     buffer.clear();
                 } 
             } 

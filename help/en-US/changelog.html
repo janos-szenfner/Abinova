@@ -322,6 +322,23 @@
 <li><b>Autosave timer lifecycle fixed</b> — <code>setAutoSaveFile</code> /   <code>setAutoSaveFilePeriod</code> now manage one persistent periodic timer   (stale timer ids are reaped, disabling stops it, period changes   restart it) instead of the previous ad-hoc create/cancel code   (Bug 9329 still honoured).</li>
 <li><b>Autosave no longer exports mid-mutation</b> — the old timer   callback logged "no backup made" when the piece table was changing   and then exported anyway; the tick now defers to the next period.</li>
 <li><b>Backup filetype pinned to <code>.abwn</code></b> — the recovery copy no longer   relies on a hardcoded integer filetype index.</li>
+<li><b>Static-analysis sweep (GCC <code>-fanalyzer</code>, full tree)</b> — the whole   codebase was rebuilt under the GCC static analyzer and every   high-signal finding triaged and fixed:</li>
+<li><code>XAP_Dialog_Modeless::BuildWindowName</code> wrote <code>name[width]</code> one byte     past its 100-byte stack buffer when the window title filled the     buffer (CWE-121 out-of-bounds write).</li>
+<li><code>EV_Toolbar_Label</code>'s bidi conversion path could leak one buffer on     a partial allocation failure and read <code>fbdStr[0]</code> uninitialized;     the pair is now <code>std::unique_ptr</code>-managed and guarded.</li>
+<li><code>EV_UnixToolbar::refreshToolbar</code>/<code>repopulateStyles</code> dereferenced     <code>getNthItem()</code> results behind <code>UT_ASSERT</code> (a no-op in release     builds) — now real NULL guards.</li>
+<li><code>UT_CRC32::Fill</code> dead-code cleanup — the <code>q &amp;&amp;</code> NULL check implied     <code>new</code> could return NULL and the two word-at-a-time loops could     never run (n was always 0); removed.</li>
+<li><code>XAP_Log</code> crashed on startup when the log <code>fopen</code> failed —     <code>fprintf(NULL)</code>; constructor and <code>log()</code> now guard.</li>
+<li><code>XAP_FakeClipboard::addData</code> leaked the new <code>_ClipboardItem</code> when     <code>addItem</code> failed.</li>
+<li><code>fl_HdrFtrSectionLayout::~</code> freed each <code>_PageHdrFtrShadowPair</code>'s     shadow but never the pair itself — one heap leak per attached     page on teardown.</li>
+<li><code>FV_View::insertHeaderFooter</code> dereferenced <code>getCurrentPage()</code>,     <code>pDocL</code> and <code>pBL</code> unguarded (pre-layout NULLs).</li>
+<li><code>UT_GenericStringMap::insert</code> dereferenced <code>find_slot</code>'s NULL     return on an empty table (m_nSlots == 0) — now grows and retries.</li>
+<li><code>px_ChangeHistory</code> dereferenced <code>getNthItem</code> results on three undo     adjustment paths (out-of-range → NULL).</li>
+<li><code>AP_UnixRuler</code> gesture handlers dereferenced <code>dynamic_cast</code> results     behind <code>UT_ASSERT</code> (three sites).</li>
+<li><code>IE_Exp</code> dereferenced <code>getNthItem</code>/<code>snifferForFileType</code> results on     two paths; <code>IE_ImpGraphic</code> and <code>IE_Imp_TableHelper</code> on three more.</li>
+<li><code>fp_ShadowContainer</code>, <code>fp_AnnotationRun</code>, <code>fp_RDFAnchorRun</code>,     <code>fp_EmbedRun</code> draw paths now early-return when <code>_getView()</code> /     <code>getView()</code> is NULL instead of dereferencing it.</li>
+<li><code>fp_VerticalContainer</code> offset walks now NULL-check     <code>getCorrectBrokenTOC</code>/<code>getMasterTable</code> and stop on a NULL container     instead of calling <code>pCon-&gt;getContainer()</code> on NULL.</li>
+<li><code>AP_UnixDialog_Styles</code> guarded <code>enumStyles</code> output and per-item     NULLs; <code>OXMLi_ListenerState_Image::charData</code> moved its NULL check     ahead of the first dereference; <code>ODe_Table_Listener</code>,     <code>ODi_ElementStack</code>, <code>UT_Timer::findTimer</code>, <code>XAP_Frame</code> message-box     creation, <code>XAP_ResourceManager::write_xml</code>, <code>EV_UnixToolbar</code>     widget-vector lookups, <code>XAP_UnixFrameImpl::_rebuildToolbar</code>,     <code>FV_Selection</code> cell ranges and <code>fl_DocLayout</code> page numbering all     gained real NULL guards in place of assert-only checks.</li>
+<li>Verified: 1129 unit tests pass, <code>make check</code> green, Valgrind     reports <b>0 errors and 0 definite leaks</b> on the full suite.</li>
 </ul>
 <h3>GTK4 port (core migration)</h3>
 <ul>

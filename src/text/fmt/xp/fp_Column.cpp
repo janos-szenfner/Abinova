@@ -395,7 +395,7 @@ void fp_VerticalContainer::getOffsets(const fp_ContainerObject* pContainer, UT_s
 				UT_sint32 iTable =  getYoffsetFromTable(pCon, pPrev, pContainer);
 				my_yoff += iTable;
 				pTab = static_cast<const fp_TableContainer *>(pVCon);
-				if(pTab->isThisBroken() && (pTab != pTab->getMasterTable()->getFirstBrokenTable()))
+				if(pTab && pTab->isThisBroken() && pTab->getMasterTable() && (pTab != pTab->getMasterTable()->getFirstBrokenTable()))
 				{
 					my_yoff = my_yoff + pVCon->getY() -iycon;
 				}
@@ -429,6 +429,11 @@ void fp_VerticalContainer::getOffsets(const fp_ContainerObject* pContainer, UT_s
 // move it up the correct broken table line when we come across a cell
 //
 			pVCon = getCorrectBrokenTOC(static_cast<const fp_Container *>(pContainer));
+			if(pVCon == nullptr)
+			{
+				pCon = nullptr;
+				break;
+			}
 			pCon = static_cast<const fp_Container *>(pVCon);
 		}
 		pPrev = pCon;
@@ -544,6 +549,10 @@ std::optional<UT_Rect> fp_VerticalContainer::getScreenRect(void) const
 			return std::nullopt;
 		}
 		auto pFrameC = static_cast<const fp_FrameContainer *>(this);
+		if(getView() == nullptr)
+		{
+			return std::nullopt;
+		}
 		getView()->getPageScreenOffsets(pPage,xoff,yoff);
 		xoff += pFrameC->getFullX();
 		yoff += pFrameC->getFullY();
@@ -668,7 +677,7 @@ void fp_VerticalContainer::getScreenOffsets(const fp_ContainerObject* pContainer
 			{
 				my_yoff += getYoffsetFromTable(pCon,pPrev,pContainer);
 				pTab = static_cast<const fp_TableContainer *>(pVCon);
-				if(pTab->isThisBroken() && pTab != pTab->getMasterTable()->getFirstBrokenTable())
+				if(pTab && pTab->isThisBroken() && pTab->getMasterTable() && pTab != pTab->getMasterTable()->getFirstBrokenTable())
 				{
 					my_yoff = my_yoff + pVCon->getY() -iycon;
 				}
@@ -704,7 +713,7 @@ void fp_VerticalContainer::getScreenOffsets(const fp_ContainerObject* pContainer
 			pCon = static_cast<const fp_Container *>(pVCon);
 		}
 		pPrev = pCon;
-		pCon = pCon->getContainer();
+		pCon = pCon ? pCon->getContainer() : nullptr;
 		if (!pCon)
 		{
 			// Can happen during loading
@@ -748,8 +757,9 @@ void fp_VerticalContainer::getScreenOffsets(const fp_ContainerObject* pContainer
 		yoff += col_y;
 	        if(pFC->getPage() && getView() && (getView()->getViewMode() != VIEW_PRINT))
 		{
-		       fl_DocSectionLayout * pDSL = getPage()->getOwningSection();
-		       yoff -= pDSL->getTopMargin();
+		       fl_DocSectionLayout * pDSL = getPage() ? getPage()->getOwningSection() : nullptr;
+		       if(pDSL)
+			       yoff -= pDSL->getTopMargin();
 		}
 	}
 	else if(pCon->getContainerType() == FP_CONTAINER_ANNOTATION)
@@ -761,8 +771,9 @@ void fp_VerticalContainer::getScreenOffsets(const fp_ContainerObject* pContainer
 		yoff += col_y;
 	        if(pAC->getPage() && getView() && (getView()->getViewMode() != VIEW_PRINT))
 		{
-		       fl_DocSectionLayout * pDSL = getPage()->getOwningSection();
-		       yoff -= pDSL->getTopMargin();
+		       fl_DocSectionLayout * pDSL = getPage() ? getPage()->getOwningSection() : nullptr;
+		       if(pDSL)
+			       yoff -= pDSL->getTopMargin();
 		}
 	}
 	else if(pCon->getContainerType() == FP_CONTAINER_FRAME)
@@ -2109,6 +2120,7 @@ void fp_Column::layout(void)
 	for(i=0; i < count; i++)
 	{
 		fl_BlockLayout * pBlock = vecBlocks.getNthItem(i);
+		UT_nonnull_or_continue(pBlock);
 		if(i < count -1)
 		{
 			pBlock->setFramesOnPage(nullptr);
@@ -2365,7 +2377,7 @@ void fp_ShadowContainer::draw(dg_DrawArgs* pDA)
 			break;
 		pContainer->draw(&da);
 	}
-    if(pView && pView->isHdrFtrEdit() && pDA->pG->queryProperties(GR_Graphics::DGP_SCREEN) && pView->getEditShadow() == getShadow())
+    if(pView->isHdrFtrEdit() && pDA->pG->queryProperties(GR_Graphics::DGP_SCREEN) && pView->getEditShadow() == getShadow())
 	{
 		_drawHdrFtrBoundaries(pDA);
 	}

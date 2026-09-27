@@ -23,6 +23,7 @@
 #endif
 
 #include <stdlib.h>
+#include <memory>
 
 #include "ut_types.h"
 #include "ut_assert.h"
@@ -65,7 +66,7 @@ EV_Toolbar_Label::EV_Toolbar_Label(XAP_Toolbar_Id id,
 	if(XAP_App::getApp()->theOSHasBidiSupport() == XAP_App::BIDI_SUPPORT_NONE)
 	{
         UT_uint32 iOldLen = 0;
-        UT_UCS4Char *fbdStr = nullptr, *fbdStr2 = nullptr;
+        std::unique_ptr<UT_UCS4Char[]> fbdStr, fbdStr2;
 
 		const char * encoding = (XAP_EncodingManager::get_instance()->getNativeSystemEncodingName()) ?
 		  XAP_EncodingManager::get_instance()->getNativeSystemEncodingName() :
@@ -88,16 +89,8 @@ EV_Toolbar_Label::EV_Toolbar_Label(XAP_Toolbar_Id id,
 
 				if(iStrLen > iOldLen)
 				{
-					if(fbdStr)
-					{
-						delete [] fbdStr;
-						delete [] fbdStr2;
-					}
-
-					fbdStr   = new UT_UCS4Char [iStrLen + 1];
-					UT_return_if_fail(fbdStr);
-					fbdStr2  = new UT_UCS4Char [iStrLen + 1];
-					UT_return_if_fail(fbdStr2);
+					fbdStr.reset(new UT_UCS4Char [iStrLen + 1]);
+					fbdStr2.reset(new UT_UCS4Char [iStrLen + 1]);
 					iOldLen = iStrLen;
 				}
 
@@ -113,31 +106,31 @@ EV_Toolbar_Label::EV_Toolbar_Label(XAP_Toolbar_Id id,
 				}
 
 				// TODO -- this should be lang based as we do for string set
-				UT_BidiCharType iDomDir = UT_bidiGetCharType(fbdStr[0]);
+				if (j > 0)
+				{
+					UT_BidiCharType iDomDir = UT_bidiGetCharType(fbdStr[0]);
 
 // this has been crashing with en-US (but not en-GB), due to some
 // weird memory managment in the fribidi library; so I defined
 // USE_SIMPLE_MALLOC for it, which solved the problem
-				UT_bidiReorderString(fbdStr, j, iDomDir, fbdStr2);
+					UT_bidiReorderString(fbdStr.get(), j, iDomDir, fbdStr2.get());
 
-				for(i = 0; i < j; i++)
-				{
-					if (wctomb_conv.wctomb(letter_buf,length,fbdStr2[i]))
+					for(i = 0; i < j; i++)
 					{
-						for(k = 0; k < static_cast<unsigned>(length); k++)
-							szStr[i++] = letter_buf[k];
-						i--;
+						if (wctomb_conv.wctomb(letter_buf,length,fbdStr2[i]))
+						{
+							for(k = 0; k < static_cast<unsigned>(length); k++)
+								szStr[i++] = letter_buf[k];
+							i--;
+						}
 					}
-				}
 
-				UT_ASSERT(szStr[i] == 0);
+					UT_ASSERT(szStr[i] == 0);
+				}
 			}
 
 			szStr = m_szStatusMsg;
 		}
-
-		delete[] fbdStr;
-		delete[] fbdStr2;
 	}
 }
 

@@ -3250,6 +3250,7 @@ fl_HdrFtrSectionLayout::~fl_HdrFtrSectionLayout()
 		_PageHdrFtrShadowPair* pPair = static_cast<_PageHdrFtrShadowPair*>(m_vecPages.getNthItem(i));
 		UT_nonnull_or_continue(pPair);
 		delete pPair->getShadow();
+		delete pPair;
 	}
 	_purgeLayout();
 	DELETEP(m_pHdrFtrContainer);

@@ -1492,10 +1492,11 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 //
 	UT_GenericVector<PD_Style*> * pStyles = nullptr;
 	getDoc()->enumStyles(pStyles);
-	UT_sint32 nStyles = pStyles->getItemCount();
+	UT_sint32 nStyles = pStyles ? pStyles->getItemCount() : 0;
 	for (UT_sint32 i = 0; i < nStyles; i++)
 	{
 		const PD_Style * pcStyle = pStyles->getNthItem(i);
+		UT_nonnull_or_continue(pcStyle);
 		const char * name = pcStyle->getName();
 		std::string sLoc;
 		pt_PieceTable::s_getLocalisedStyleName(name, sLoc);

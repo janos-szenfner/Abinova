@@ -1825,6 +1825,7 @@ void XAP_UnixFrameImpl::_rebuildToolbar(UT_uint32 ibar)
 	EV_Toolbar * pToolbar = static_cast<EV_Toolbar *>(m_vecToolbars.getNthItem(ibar));
 	const char * szTBName = reinterpret_cast<const char *>(m_vecToolbarLayoutNames.getNthItem(ibar));
 	EV_UnixToolbar * pUTB = static_cast<EV_UnixToolbar *>(pToolbar);
+	UT_return_if_fail(pUTB);
 	UT_sint32 oldpos = pUTB->destroy();
 
 	// Delete the old class

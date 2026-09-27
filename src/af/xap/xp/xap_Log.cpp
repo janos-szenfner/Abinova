@@ -22,8 +22,11 @@ static XAP_LogDestructor g_pLogDestructor;
 XAP_Log::XAP_Log(const std::string &logfile)
 {
 	m_pOutput = fopen(logfile.c_str(), "w");
-	fprintf(m_pOutput, "<?xml version=\"1.0\"?>\n");
-	fprintf(m_pOutput, "<logger>\n");
+	if (m_pOutput != nullptr)
+	{
+		fprintf(m_pOutput, "<?xml version=\"1.0\"?>\n");
+		fprintf(m_pOutput, "<logger>\n");
+	}
 }
 
 XAP_Log::~XAP_Log()
@@ -37,7 +40,7 @@ XAP_Log::~XAP_Log()
 
 void XAP_Log::log(const std::string &method_name, AV_View * /*pAV_View*/, EV_EditMethodCallData *pCallData)
 {
-	UT_ASSERT(m_pOutput != nullptr);
+	UT_return_if_fail(m_pOutput != nullptr);
 	fprintf(m_pOutput, "\t<event name=\"%s\"", method_name.c_str());
 
 	if (pCallData != nullptr)
