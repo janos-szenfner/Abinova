@@ -388,11 +388,11 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		".abinova-ribbon notebook > header { margin-bottom: 0; }"
 		/* Word-style style gallery tiles */
 		".abinova-ribbon scrolledwindow { min-height: 0; }"
-		/* style-gallery nav arrows: zero horizontal padding so an
-		 * under-allocated button can never push its icon into a
-		 * negative allocation when the ribbon is squeezed */
+		/* style-gallery nav arrows: the icon inside is 16px; keep a
+		 * matching minimum so a squeezed button can never push its
+		 * icon into a negative allocation */
 		".abinova-ribbon button.ribbon-nav {"
-		"  min-width: 0; min-height: 0; padding: 3px 0;"
+		"  min-width: 16px; min-height: 0; padding: 3px 0; margin: 0;"
 		"}"
 		".abinova-ribbon .abinova-style-tile {"
 		"  min-height: 26px; padding: 4px 12px; margin: 1px;"
@@ -854,6 +854,12 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		gtk_label_set_lines(GTK_LABEL(wLabel), 2);
 		gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
 			(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
+		/* a wrapping label reports a taller minimum when squeezed;
+		 * width-chars pins its minimum width to the intended wrap
+		 * width so the ribbon's height-for-width min/nat passes
+		 * agree (GTK 4.18+ warns when natural < minimum) */
+		gtk_label_set_width_chars(GTK_LABEL(wLabel),
+			(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
 		gtk_box_append(GTK_BOX(box), image);
 		gtk_box_append(GTK_BOX(box), wLabel);
 		gtk_button_set_child(GTK_BUTTON(btn), box);
@@ -877,6 +883,8 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 			gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
 				(flags & AP_RIBBON_FLAG_WRAP) ? 9 : 16);
+			gtk_label_set_width_chars(GTK_LABEL(wLabel),
+				(flags & AP_RIBBON_FLAG_WRAP) ? 9 : 16);
 		}
 		else if (flags & AP_RIBBON_FLAG_WRAP)
 		{
@@ -886,6 +894,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
 			gtk_label_set_lines(GTK_LABEL(wLabel), 2);
 			gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 9);
+			gtk_label_set_width_chars(GTK_LABEL(wLabel), 9);
 		}
 		else if ((szIcon && *szIcon) || bDrawnIcon)
 		{
@@ -10435,7 +10444,13 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 	gtk_widget_set_visible(m_wStylePrev, FALSE);
 	gtk_widget_set_visible(m_wStyleNext, FALSE);
 	_populateStyleTiles();
-	_updateStyleScrollButtons(this);
+	/* defer the first visibility update past the initial allocation:
+	 * the scrollable notebook briefly squeezes pages to ~0 width and
+	 * the arrow button's icon gets allocated width -1 */
+	g_idle_add(+[](gpointer p) -> gboolean {
+		_updateStyleScrollButtons(static_cast<AP_UnixRibbon *>(p));
+		return G_SOURCE_REMOVE;
+	}, this);
 	return outer;
 }
 

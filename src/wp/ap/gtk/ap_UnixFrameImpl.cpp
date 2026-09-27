@@ -910,7 +910,7 @@ void AP_UnixFrameImpl::setScrollRange2()
 	if (bDifferentPosition || bDifferentLimits)
 	{
 		gtk_adjustment_configure(m_pVadj2, newvalue, 0.0,
-								 static_cast<gfloat>(height),
+								 static_cast<gfloat>(UT_MAX(height, windowHeight)),
 								 pGr->tluD(20.0),
 								 static_cast<gfloat>(windowHeight),
 								 static_cast<gfloat>(windowHeight));
@@ -1437,7 +1437,11 @@ void AP_UnixFrameImpl::_setScrollRange(apufi_ScrollType scrollType, int iValue, 
 	XAP_Frame::tZoomType tZoom = getFrame()->getZoomType();
 	if(pScrollAdjustment) //this isn't guaranteed in AbiCommand
 	{
-		gtk_adjustment_configure(pScrollAdjustment, iValue, 0.0, fUpperLimit,
+		gfloat fUpper = UT_MAX(fUpperLimit, fSize);
+		gfloat fValue = UT_MAX(0.0f, UT_MIN(static_cast<gfloat>(iValue),
+											fUpper - fSize));
+		gtk_adjustment_configure(pScrollAdjustment, fValue, 0.0,
+								 fUpper,
                                  pGr->tluD(20.0), fSize, fSize);
 	}
 
