@@ -4659,6 +4659,20 @@ void FV_View::insertParagraphBreak(void)
 	// otherwise blank.
 	//
 	m_pDoc->disableListUpdates();
+
+	// Markdown-style "+---+---+" autoformat: replace the pattern line
+	// with a real table (still inside this user-atomic glob)
+	if (_autoFormatTableOnEnter())
+	{
+		m_pDoc->enableListUpdates();
+		m_pDoc->updateDirtyLists();
+		m_pDoc->endUserAtomicGlob();
+		_fixInsertionPointCoords();
+		_ensureInsertionPointOnScreen();
+		notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+		return;
+	}
+
 	fl_BlockLayout * pBlock = getCurrentBlock();
 	pf_Frag_Strux* sdh = pBlock->getStruxDocHandle();
 //
@@ -11739,6 +11753,11 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 	{
 		m_prevMouseContext = EV_EMC_REVISION;
 		return EV_EMC_REVISION;
+	}
+	else if(pos && isInTable(pos))
+	{
+		m_prevMouseContext = EV_EMC_TABLE;
+		return EV_EMC_TABLE;
 	}
 	else
 	{

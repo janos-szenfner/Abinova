@@ -110,6 +110,13 @@ private:
 	GtkWidget *		_makeRotatePopover();
 	GtkWidget *		_makeGroupPopover();
 	/* Insert tab */
+	GtkWidget *		_makeTableGridPopover();
+	static void			_tablegrid_commit(struct _TableGridPick * pk);
+	static void			_s_tablegrid_click(GtkGestureClick * g, int n,
+										   double x, double y, gpointer data);
+	static gboolean		_s_tablegrid_event(GtkEventControllerLegacy * c,
+										   GdkEvent * event, gpointer data);
+	static gboolean		_s_tablegrid_commit_idle(gpointer data);
 	GtkWidget *		_makeCoverPagePopover();
 	GtkWidget *		_makePicturesPopover();
 	GtkWidget *		_makeShapesPopover();

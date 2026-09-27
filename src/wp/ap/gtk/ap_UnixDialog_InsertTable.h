@@ -42,13 +42,17 @@ protected:
 	void					_populateWindowData(void);
 	void					_storeWindowData(void);
 	AP_Dialog_InsertTable::columnType _getActiveRadioItem(void);
+	static void				_s_previewDraw(GtkDrawingArea * da, cairo_t * cr,
+										   int w, int h, gpointer data);
 
 	// pointers to widgets we need to query/set
 	GtkWidget * m_windowMain;
 
 	GtkWidget* m_autoCol;
 	GtkWidget* m_fixedCol;
+	GtkWidget* m_contentsCol;
 	GtkWidget * m_pColSpin;
 	GtkWidget * m_pRowSpin;
 	GtkWidget * m_pColWidthSpin;
+	GtkWidget * m_pPreview;
 };

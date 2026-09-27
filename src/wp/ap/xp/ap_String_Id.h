@@ -142,7 +142,10 @@ dcl(DLG_InsertTable_NumCols,		"Number of columns:")
 dcl(DLG_InsertTable_NumRows,		"Number of rows:")
 dcl(DLG_InsertTable_AutoFit,		"AutoFit Behavior")
 dcl(DLG_InsertTable_AutoColSize, 	"Automatic column size")
-dcl(DLG_InsertTable_FixedColSize,	"Fixed column size:")
+dcl(DLG_InsertTable_AutoFitWindow,	"AutoFit to _window")
+dcl(DLG_InsertTable_AutoFitContents,	"AutoFit to con_tents")
+dcl(DLG_InsertTable_Preview,		"Preview")
+dcl(DLG_InsertTable_FixedColSize,	"Fixed column _width:")
 
 /* Format FootNotes dialog */
 dcl(DLG_FormatFootnotes_Title,             "Format Footnotes and Endnotes")

@@ -23,8 +23,10 @@
 #include "ap_Features.h"
 #include "ut_assert.h"
 #include "ut_string.h"
+#include "ut_locale.h"
 #include "ut_debugmsg.h"
 
+#include "xap_Prefs.h"
 #include "xap_Dialog_Id.h"
 #include "xap_DialogFactory.h"
 #include "xap_Dlg_MessageBox.h"
@@ -54,6 +56,50 @@ AP_Dialog_InsertTable::AP_Dialog_InsertTable(XAP_DialogFactory * pDlgFactory, XA
 	// if the user default unit is different
 	if (m_dim != DIM_IN)
 		m_columnWidth = static_cast<float>(UT_convertInchesToDimension(m_columnWidth, m_dim));
+
+	m_columnType = b_AUTOFIT_WINDOW;
+
+	// restore the last-used table geometry
+	XAP_Prefs * pPrefs = getApp()->getPrefs();
+	if (pPrefs)
+	{
+		int n = 0;
+		if (pPrefs->getPrefsValueInt("InsertTableLastRows", n) && n >= 1 && n <= 2000)
+			m_numRows = static_cast<UT_uint32>(n);
+		if (pPrefs->getPrefsValueInt("InsertTableLastCols", n) && n >= 1 && n <= 64)
+			m_numCols = static_cast<UT_uint32>(n);
+		if (pPrefs->getPrefsValueInt("InsertTableLastColType", n) &&
+			n >= b_AUTOFIT_WINDOW && n <= b_AUTOFIT_CONTENTS)
+			m_columnType = static_cast<columnType>(n);
+		std::string s;
+		if (pPrefs->getPrefsValue("InsertTableLastColWidth", s))
+		{
+			double d = UT_convertToInches(s.c_str());
+			if (d > 0)
+				m_columnWidth = static_cast<float>(
+					UT_convertInchesToDimension(d, m_dim));
+		}
+	}
+}
+
+// remember the last-used geometry so the next insertion defaults to it
+void AP_Dialog_InsertTable::saveLastUsed(void) const
+{
+	XAP_Prefs * pPrefs = getApp()->getPrefs();
+	UT_return_if_fail(pPrefs);
+	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+	UT_return_if_fail(pScheme);
+	pScheme->setValueInt("InsertTableLastRows",
+						 static_cast<int>(m_numRows));
+	pScheme->setValueInt("InsertTableLastCols",
+						 static_cast<int>(m_numCols));
+	pScheme->setValueInt("InsertTableLastColType",
+						 static_cast<int>(m_columnType));
+	char buf[32];
+	UT_LocaleTransactor t(LC_NUMERIC, "C");
+	snprintf(buf, sizeof(buf), "%.2fin",
+			 UT_convertDimToInches(m_columnWidth, m_dim));
+	pScheme->setValue("InsertTableLastColWidth", buf);
 }
 
 void AP_Dialog_InsertTable::setColumnWidth(float columnWidth)

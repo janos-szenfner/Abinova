@@ -39,6 +39,7 @@
 #include "ut_growbuf.h"
 #include "ut_misc.h"
 #include "ut_units.h"
+#include "ut_locale.h"
 #include "ut_std_string.h"
 #include "ut_string.h"
 #include "ut_bytebuf.h"
@@ -4432,6 +4433,123 @@ UT_Error FV_View::cmdInsertTable(UT_sint32 numRows, UT_sint32 numCols, const PP_
 	_ensureInsertionPointOnScreen();
 	AV_View::notifyListeners (AV_CHG_ALL);
 	return e;
+}
+
+/*!
+ * Markdown-style table autoformat. If the block ending at the
+ * insertion point consists solely of a "+---...---+" pattern (at
+ * least two '+' separators with a non-empty dash run between each
+ * pair), replace it with a single-row table whose columns are
+ * proportional to the dash-run widths.  Called from
+ * insertParagraphBreak() while a user atomic glob and disabled list
+ * updates are already in effect.
+ */
+bool FV_View::_autoFormatTableOnEnter(void)
+{
+	if (!isSelectionEmpty() || m_FrameEdit.isActive() ||
+		isHdrFtrEdit() || isInTable(getPoint()) || isInTable(getPoint()-1))
+	{
+		return false;
+	}
+	fl_BlockLayout * pBlock = getCurrentBlock();
+	UT_return_val_if_fail(pBlock, false);
+	PT_DocPosition posBlock = pBlock->getPosition(true);
+	UT_GrowBuf buf;
+	if (!pBlock->getBlockBuf(&buf))
+	{
+		return false;
+	}
+	UT_uint32 len = buf.getLength();
+	if (len < 4 || len > 512)
+	{
+		return false;
+	}
+	// the pattern only triggers when the caret is at end-of-line:
+	// posBlock is the block's strux, text occupies posBlock+1 .. +len
+	if (getPoint() != posBlock + len + 1)
+	{
+		return false;
+	}
+	const UT_UCS4Char * pText =
+		reinterpret_cast<const UT_UCS4Char *>(buf.getPointer(0));
+	UT_return_val_if_fail(pText, false);
+	if (pText[0] != '+' || pText[len-1] != '+')
+	{
+		return false;
+	}
+
+	std::vector<UT_uint32> vecDashes;
+	UT_uint32 run = 0;
+	for (UT_uint32 i = 1; i < len; i++)
+	{
+		if (pText[i] == '-')
+		{
+			run++;
+		}
+		else if (pText[i] == '+')
+		{
+			if (run == 0)
+			{
+				return false;
+			}
+			vecDashes.push_back(run);
+			run = 0;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	UT_uint32 nCols = static_cast<UT_uint32>(vecDashes.size());
+	if (nCols == 0 || nCols > 64)
+	{
+		return false;
+	}
+
+	// column widths proportional to the dash-run widths, spanning the
+	// text column
+	fl_DocSectionLayout * pDSL = pBlock->getDocSectionLayout();
+	double dTotalIn = 6.0;
+	if (pDSL)
+	{
+		UT_sint32 iAvail = pDSL->getActualColumnWidth();
+		if (iAvail > 0)
+		{
+			dTotalIn = static_cast<double>(iAvail) / UT_LAYOUT_RESOLUTION;
+		}
+	}
+	UT_uint32 iSum = 0;
+	for (UT_uint32 i = 0; i < nCols; i++)
+	{
+		iSum += vecDashes[i];
+	}
+	if (iSum == 0)
+	{
+		return false;
+	}
+
+	std::string sColProps;
+	UT_LocaleTransactor t(LC_NUMERIC, "C");
+	double dUsed = 0.0;
+	for (UT_uint32 i = 0; i < nCols; i++)
+	{
+		double dW = (i + 1 == nCols) ? dTotalIn - dUsed
+			: dTotalIn * vecDashes[i] / iSum;
+		dW = UT_MAX(dW, 0.3);
+		dUsed += dW;
+		sColProps += UT_std_string_sprintf("%.2fin/", dW);
+	}
+
+	// replace the pattern line with the table: delete the text, then
+	// insert at the first character position of the now-empty block
+	setPoint(posBlock + len + 1);
+	cmdCharDelete(false, len);
+	setPoint(posBlock + 1);
+	const PP_PropertyVector props = {
+		"table-column-props", sColProps,
+	};
+	cmdInsertTable(1, nCols, props);
+	return true;
 }
 
 bool

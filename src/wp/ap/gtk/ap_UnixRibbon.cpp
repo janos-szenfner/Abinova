@@ -32,6 +32,7 @@
 
 #include "ap_UnixRibbon.h"
 
+#include "ap_Strings.h"
 #include "ut_vector.h"
 #include "ut_debugmsg.h"
 #include "ut_string.h"
@@ -2103,6 +2104,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	GtkWidget * popover = nullptr;
 	switch (id)
 	{
+	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
+		popover = _makeTableGridPopover();
+		break;
 	case (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE:
 		popover = _makeChangeCasePopover();
 		break;
@@ -6350,6 +6354,231 @@ void AP_UnixRibbon::_s_cover_gallery_map(GtkWidget * popover,
 
 /* Word's Cover Page dropdown: a scrolling column of preview cards for
  * the code-generated designs, then "Remove Current Cover" */
+/* Insert tab: Word-style hover grid for quick table insertion */
+
+#define _TABLEGRID_COLS 10
+#define _TABLEGRID_ROWS 8
+#define _TABLEGRID_PITCH 19.0 /* 18px cell + 1px gap */
+
+struct _TableGridPick
+{
+	AP_UnixRibbon * pRib;
+	GtkWidget * pCaption;
+	const XAP_StringSet * pSS;
+	int iCols;
+	int iRows;
+	bool bCommitted;
+	bool bPending;
+};
+
+static void _tablegrid_draw(GtkDrawingArea * da, cairo_t * cr,
+							int, int, gpointer data)
+{
+	_TableGridPick * pk = static_cast<_TableGridPick *>(data);
+	GdkRGBA fg;
+	gtk_widget_get_color(GTK_WIDGET(da), &fg);
+
+	for (int r = 0; r < _TABLEGRID_ROWS; r++)
+	{
+		for (int c = 0; c < _TABLEGRID_COLS; c++)
+		{
+			double x = c * _TABLEGRID_PITCH;
+			double y = r * _TABLEGRID_PITCH;
+			bool bSel = (r < pk->iRows && c < pk->iCols);
+			if (bSel)
+				cairo_set_source_rgba(cr, 0.19, 0.52, 0.90, 0.85);
+			else
+				cairo_set_source_rgba(cr, fg.red, fg.green, fg.blue, 0.08);
+			cairo_rectangle(cr, x, y, _TABLEGRID_PITCH - 1,
+							_TABLEGRID_PITCH - 1);
+			cairo_fill_preserve(cr);
+			if (bSel)
+				cairo_set_source_rgba(cr, 0.19, 0.52, 0.90, 1.0);
+			else
+				cairo_set_source_rgba(cr, fg.red, fg.green, fg.blue, 0.30);
+			cairo_set_line_width(cr, 1.0);
+			cairo_stroke(cr);
+		}
+	}
+}
+
+static void _tablegrid_set_caption(_TableGridPick * pk)
+{
+	char buf[64];
+	if (pk->iRows > 0 && pk->iCols > 0)
+		snprintf(buf, sizeof(buf), "%d × %d",
+				 pk->iRows, pk->iCols);
+	else
+		snprintf(buf, sizeof(buf), "%s", pk->pSS->getValue(
+			AP_STRING_ID_MENU_STATUSLINE_TABLE_INSERT_TABLE));
+	gtk_label_set_text(GTK_LABEL(pk->pCaption), buf);
+}
+
+static void _tablegrid_motion(GtkEventControllerMotion *, double x,
+							  double y, gpointer data)
+{
+	_TableGridPick * pk = static_cast<_TableGridPick *>(data);
+	int c = static_cast<int>(x / _TABLEGRID_PITCH) + 1;
+	int r = static_cast<int>(y / _TABLEGRID_PITCH) + 1;
+	c = CLAMP(c, 0, _TABLEGRID_COLS);
+	r = CLAMP(r, 0, _TABLEGRID_ROWS);
+	if (c == pk->iCols && r == pk->iRows)
+		return;
+	pk->iCols = c;
+	pk->iRows = r;
+	_tablegrid_set_caption(pk);
+	gtk_widget_queue_draw(GTK_WIDGET(g_object_get_data(
+		G_OBJECT(pk->pCaption), "abi-grid-da")));
+}
+
+static void _tablegrid_leave(GtkEventControllerMotion *, gpointer data)
+{
+	_TableGridPick * pk = static_cast<_TableGridPick *>(data);
+	pk->iCols = pk->iRows = 0;
+	_tablegrid_set_caption(pk);
+	gtk_widget_queue_draw(GTK_WIDGET(g_object_get_data(
+		G_OBJECT(pk->pCaption), "abi-grid-da")));
+}
+
+void AP_UnixRibbon::_tablegrid_commit(_TableGridPick * pk)
+{
+	if (pk->iRows < 1 || pk->iCols < 1)
+		return;
+	char buf[32];
+	snprintf(buf, sizeof(buf), "%d,%d", pk->iRows, pk->iCols);
+	GtkWidget * da = GTK_WIDGET(g_object_get_data(
+		G_OBJECT(pk->pCaption), "abi-grid-da"));
+	_tb_popdown_popover(da);
+	pk->pRib->_invokeEditMethod("insertTableGrid", buf);
+}
+
+gboolean AP_UnixRibbon::_s_tablegrid_commit_idle(gpointer data)
+{
+	_tablegrid_commit(static_cast<_TableGridPick *>(data));
+	return G_SOURCE_REMOVE;
+}
+
+void AP_UnixRibbon::_s_tablegrid_click(GtkGestureClick *, int,
+									   double, double, gpointer data)
+{
+	// Defer the actual insertion: popping the popover down mid-press
+	// upsets GTK's active-state accounting.
+	_TableGridPick * pk = static_cast<_TableGridPick *>(data);
+	if (pk->bCommitted)
+		return;
+	pk->bCommitted = TRUE;
+	g_idle_add(_s_tablegrid_commit_idle, pk);
+}
+
+// Raw-event fallback: a GtkGestureClick can lose the sequence to the
+// popover's own click-to-dismiss gesture, so watch button presses with
+// a legacy controller too and commit on the first press we see.
+gboolean AP_UnixRibbon::_s_tablegrid_event(GtkEventControllerLegacy *,
+										   GdkEvent * event, gpointer data)
+{
+	_TableGridPick * pk = static_cast<_TableGridPick *>(data);
+	GdkEventType t = gdk_event_get_event_type(event);
+	// Motion tracking already holds the hovered cell; mark the intent on
+	// press and commit on release so the popover pops down only once the
+	// click sequence has fully unwound (GTK active-state accounting).
+	if (t == GDK_BUTTON_PRESS && pk->iRows > 0 && pk->iCols > 0)
+		pk->bPending = TRUE;
+	else if (t == GDK_BUTTON_RELEASE && pk->bPending && !pk->bCommitted)
+	{
+		pk->bPending = FALSE;
+		pk->bCommitted = TRUE;
+		g_idle_add(_s_tablegrid_commit_idle, pk);
+	}
+	return GDK_EVENT_PROPAGATE;
+}
+
+GtkWidget * AP_UnixRibbon::_makeTableGridPopover()
+{
+	GtkWidget * popover = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_widget_set_margin_top(box, 8);
+	gtk_widget_set_margin_bottom(box, 8);
+	gtk_widget_set_margin_start(box, 8);
+	gtk_widget_set_margin_end(box, 8);
+
+	_TableGridPick * pk = g_new0(_TableGridPick, 1);
+	pk->pRib = this;
+	pk->pSS = XAP_App::getApp()->getStringSet();
+	g_object_set_data_full(G_OBJECT(popover), "abi-grid-pick",
+						   pk, g_free);
+
+	GtkWidget * caption = gtk_label_new(pk->pSS->getValue(
+		AP_STRING_ID_MENU_STATUSLINE_TABLE_INSERT_TABLE));
+	pk->pCaption = caption;
+	gtk_box_append(GTK_BOX(box), caption);
+
+	GtkWidget * da = gtk_drawing_area_new();
+	gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da),
+		_TABLEGRID_COLS * _TABLEGRID_PITCH - 1);
+	gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da),
+		_TABLEGRID_ROWS * _TABLEGRID_PITCH - 1);
+	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+								   _tablegrid_draw, pk, nullptr);
+	g_object_set_data(G_OBJECT(pk->pCaption), "abi-grid-da", da);
+
+	GtkEventController * motion = gtk_event_controller_motion_new();
+	g_signal_connect(motion, "motion",
+					 G_CALLBACK(_tablegrid_motion), pk);
+	g_signal_connect(motion, "leave",
+					 G_CALLBACK(_tablegrid_leave), pk);
+	gtk_widget_add_controller(da, motion);
+
+	GtkGesture * click = gtk_gesture_click_new();
+	g_signal_connect(click, "released",
+					 G_CALLBACK(_s_tablegrid_click), pk);
+	gtk_widget_add_controller(da, GTK_EVENT_CONTROLLER(click));
+
+	GtkEventController * legacy = gtk_event_controller_legacy_new();
+	gtk_event_controller_set_propagation_phase(legacy, GTK_PHASE_CAPTURE);
+	g_signal_connect(legacy, "event",
+					 G_CALLBACK(_s_tablegrid_event), pk);
+	gtk_widget_add_controller(popover, legacy);
+
+	// The popover widget persists across popups; reset pick state on show.
+	g_signal_connect_swapped(popover, "show", G_CALLBACK(+[](gpointer p){
+		_TableGridPick * k = static_cast<_TableGridPick *>(p);
+		k->iCols = k->iRows = 0;
+		k->bCommitted = FALSE;
+		k->bPending = FALSE;
+		_tablegrid_set_caption(k);
+	}), pk);
+
+	gtk_box_append(GTK_BOX(box), da);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+
+	std::string szDlg = pk->pSS->getValue(
+		AP_STRING_ID_MENU_STATUSLINE_TABLE_INSERT_TABLE);
+	szDlg += "…";
+	GtkWidget * btn = gtk_button_new_with_label(szDlg.c_str());
+	gtk_button_set_has_frame(GTK_BUTTON(btn), FALSE);
+	gtk_widget_set_halign(btn, GTK_ALIGN_START);
+	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
+						   g_strdup("insertTable"), g_free);
+	g_signal_connect(btn, "clicked",
+					 G_CALLBACK(_s_popover_em_clicked), this);
+	gtk_box_append(GTK_BOX(box), btn);
+
+	GtkWidget * btnT2T = gtk_button_new_with_label(pk->pSS->getValue(
+		AP_STRING_ID_MENU_LABEL_TABLE_TEXTTOTABLE));
+	gtk_button_set_has_frame(GTK_BUTTON(btnT2T), FALSE);
+	gtk_widget_set_halign(btnT2T, GTK_ALIGN_START);
+	g_object_set_data_full(G_OBJECT(btnT2T), "abi-em-method",
+						   g_strdup("textToTable"), g_free);
+	g_signal_connect(btnT2T, "clicked",
+					 G_CALLBACK(_s_popover_em_clicked), this);
+	gtk_box_append(GTK_BOX(box), btnT2T);
+
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
 GtkWidget * AP_UnixRibbon::_makeCoverPagePopover()
 {
 	GtkWidget * popover = xap_gtk_popover_new();

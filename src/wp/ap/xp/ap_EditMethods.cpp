@@ -449,6 +449,7 @@ public:
         static EV_EditMethod_Fn removeThisRowRepeat;
         static EV_EditMethod_Fn tableToTextCommas;
         static EV_EditMethod_Fn tableToTextTabs;
+	static EV_EditMethod_Fn textToTable;
         static EV_EditMethod_Fn tableToTextCommasTabs;
 
 	static EV_EditMethod_Fn tableStyle;
@@ -881,6 +882,7 @@ public:
 
 	
 	static EV_EditMethod_Fn insertTable;
+	static EV_EditMethod_Fn insertTableGrid;
 
 #ifdef DEBUG
 	static EV_EditMethod_Fn dumpRDFForPoint;
@@ -1271,6 +1273,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertTabCTL),			0,	""),
 	EV_EditMethod(NF(insertTabShift),			0,	""),
 	EV_EditMethod(NF(insertTable),          0,  ""),
+	EV_EditMethod(NF(insertTableGrid),      0,  ""),
 	EV_EditMethod(NF(insertTildeData),		_D_,	""),
 	EV_EditMethod(NF(insertTrademark),		0,	""),
 	EV_EditMethod(NF(insertWordArt),		0,	""),
@@ -1497,6 +1500,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(tableToTextCommasTabs),    0,		""),
 	EV_EditMethod(NF(tableToTextParas),    0,		""),
 	EV_EditMethod(NF(tableToTextTabs),    0,		""),
+	EV_EditMethod(NF(textToTable),		0,		""),
 	EV_EditMethod(NF(tocAddText),			0,		""),
 	EV_EditMethod(NF(tocInsert),			0,		""),
 	EV_EditMethod(NF(tocRemove),			0,		""),
@@ -5064,6 +5068,12 @@ Defun(contextText)
 	if(pView->isMathLoaded() && pView->isMathSelected(pCallData->m_xPos, pCallData->m_yPos,pos))
 	{
 	  return s_doContextMenu(EV_EMC_MATH,pCallData->m_xPos, pCallData->m_yPos,pView,pFrame);
+	}
+	// right-click inside a table gets the table context menu instead
+	pos = pView->getDocPositionFromXY(pCallData->m_xPos, pCallData->m_yPos);
+	if(pos && pView->isInTable(pos))
+	{
+	  return s_doContextMenu(EV_EMC_TABLE,pCallData->m_xPos, pCallData->m_yPos,pView,pFrame);
 	}
 	return s_doContextMenu(EV_EMC_TEXT,pCallData->m_xPos, pCallData->m_yPos,pView,pFrame);
 }
@@ -13723,7 +13733,9 @@ UT_return_val_if_fail(pDialog, false);
 //
 	if (bOK)
 	{
-		if (pDialog->getColumnType() == AP_Dialog_InsertTable::b_FIXEDSIZE)
+		switch (pDialog->getColumnType())
+		{
+		case AP_Dialog_InsertTable::b_FIXEDSIZE:
 		{
 			std::string propBuffer;
 			UT_LocaleTransactor t(LC_NUMERIC, "C");
@@ -13735,9 +13747,33 @@ UT_return_val_if_fail(pDialog, false);
 				"table-column-props", propBuffer,
 			};
 			pView->cmdInsertTable(pDialog->getNumRows(), pDialog->getNumCols(), propsArray);
-		} else
+			break;
+		}
+		case AP_Dialog_InsertTable::b_AUTOFIT_WINDOW:
 		{
-			pView->cmdInsertTable(pDialog->getNumRows(), pDialog->getNumCols(), PP_NOPROPS);
+			// keep spanning the text column even if the page is resized
+			const PP_PropertyVector propsArray = {
+				"table-rel-width", "100",
+			};
+			pView->cmdInsertTable(pDialog->getNumRows(), pDialog->getNumCols(), propsArray);
+			break;
+		}
+		case AP_Dialog_InsertTable::b_AUTOFIT_CONTENTS:
+		default:
+		{
+			// narrow fixed columns are the closest the layout engine
+			// has to Word's shrink-to-fit; AutoFit can be applied on
+			// the table afterwards
+			std::string propBuffer;
+			for (UT_uint32 i = 0; i < pDialog->getNumCols(); i++)	{
+				propBuffer += "0.8in/";
+			}
+			const PP_PropertyVector propsArray = {
+				"table-column-props", propBuffer,
+			};
+			pView->cmdInsertTable(pDialog->getNumRows(), pDialog->getNumCols(), propsArray);
+			break;
+		}
 		}
 	}
 
@@ -13829,6 +13865,153 @@ Defun1(insertTable)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	return s_doInsertTableDlg(pView);
+}
+
+// "insertTableGrid": called from the ribbon's table grid picker with
+// call data "rows,cols" -- inserts a default table without a dialog
+Defun(insertTableGrid)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String sData(pCallData->m_pData, pCallData->m_dataLength);
+	UT_sint32 iRows = 0, iCols = 0;
+	if (sscanf(sData.utf8_str(), "%d,%d", &iRows, &iCols) == 2
+		&& iRows > 0 && iCols > 0)
+	{
+		pView->cmdInsertTable(iRows, iCols, PP_NOPROPS);
+	}
+	return true;
+}
+
+// "textToTable": Word's Convert Text to Table.  Splits the selection
+// into rows at paragraph breaks and into columns at the delimiter
+// named in call data ("tabs", "commas", "spaces", or "all" for any of
+// them).  With no call data the delimiter is auto-detected.
+Defun(textToTable)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	if (pView->isSelectionEmpty())
+		return true;
+
+	PD_DocumentRange dr;
+	pView->getDocumentRangeOfCurrentSelection(&dr);
+	UT_return_val_if_fail(dr.m_pos2 > dr.m_pos1, true);
+	UT_UCS4Char * pSel = pView->getTextBetweenPos(dr.m_pos1, dr.m_pos2);
+	UT_return_val_if_fail(pSel, true);
+	UT_UCS4String sSel(pSel);
+	delete[] pSel;
+	if (sSel.empty())
+		return true;
+
+	// pick the column delimiter
+	std::string sMode;
+	if (pCallData && pCallData->m_pData)
+	{
+		UT_UCS4String sArg(pCallData->m_pData, pCallData->m_dataLength);
+		sMode = sArg.utf8_str();
+	}
+	bool bTabs = false, bCommas = false, bSpaces = false;
+	if (sMode == "commas")
+		bCommas = true;
+	else if (sMode == "spaces")
+		bSpaces = true;
+	else if (sMode == "tabs")
+		bTabs = true;
+	else
+	{
+		// auto / "all": prefer tabs, then commas, then spaces
+		const UT_UCS4Char * p = sSel.ucs4_str();
+		for (size_t i = 0; i < sSel.size(); i++)
+		{
+			if (p[i] == UCS_TAB)
+				bTabs = true;
+			else if (p[i] == ',')
+				bCommas = true;
+			else if (p[i] == ' ')
+				bSpaces = true;
+		}
+		if (sMode == "all")
+		{ /* keep all three flags */ }
+		else if (bTabs)
+		{
+			bCommas = bSpaces = false;
+		}
+		else if (bCommas)
+		{
+			bSpaces = false;
+		}
+	}
+	auto isDelim = [&](UT_UCS4Char c) -> bool
+	{
+		return (bTabs && c == UCS_TAB) || (bCommas && c == ',') ||
+			(bSpaces && c == ' ');
+	};
+
+	// split into rows (paragraph breaks) then cells (delimiter)
+	std::vector<std::vector<UT_UCS4String> > rows;
+	size_t iStart = 0;
+	size_t iLen = sSel.size();
+	const UT_UCS4Char * pBuf = sSel.ucs4_str();
+	for (size_t i = 0; i <= iLen; i++)
+	{
+		if (i < iLen && pBuf[i] != '\n')
+			continue;
+		// one row: [iStart, i)
+		std::vector<UT_UCS4String> cells;
+		size_t iCell = iStart;
+		for (size_t j = iStart; j <= i; j++)
+		{
+			if (j < i && !isDelim(pBuf[j]))
+				continue;
+			cells.push_back(sSel.substr(iCell, j - iCell));
+			iCell = j + 1;
+		}
+		if (!cells.empty() || iStart < i)
+			rows.push_back(cells);
+		iStart = i + 1;
+	}
+	if (rows.empty())
+		return true;
+	UT_uint32 nCols = 1;
+	for (auto & r : rows)
+		nCols = UT_MAX(nCols, static_cast<UT_uint32>(r.size()));
+	UT_uint32 nRows = static_cast<UT_uint32>(rows.size());
+
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, true);
+	pDoc->beginUserAtomicGlob();
+	// replaces the selection with the empty table
+	pView->cmdInsertTable(nRows, nCols, PP_NOPROPS);
+
+	const pf_Frag_Strux * tableSDH = nullptr;
+	if (pDoc->getStruxOfTypeFromPosition(pView->getPoint(),
+									   PTX_SectionTable, &tableSDH))
+	{
+		PT_DocPosition posTable =
+			pDoc->getStruxPosition(tableSDH) + 1;
+		for (UT_uint32 r = 0; r < nRows; r++)
+		{
+			for (UT_uint32 c = 0; c < nCols && c < rows[r].size(); c++)
+			{
+				if (rows[r][c].empty())
+					continue;
+				PT_DocPosition posCell =
+					pView->findCellPosAt(posTable, r, c) + 1;
+				if (posCell <= 0)
+					continue;
+				pView->setPoint(posCell);
+				pView->cmdCharInsert(rows[r][c].ucs4_str(),
+									 rows[r][c].size());
+			}
+		}
+	}
+	pDoc->endUserAtomicGlob();
+	pView->updateScreen(false);
+	return true;
 }
 
 

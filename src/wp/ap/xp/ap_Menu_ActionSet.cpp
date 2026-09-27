@@ -368,6 +368,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TABLE_FORMAT,0,1,0,0, "formatTable", ap_GetState_PointOrAnchorInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_AUTOFIT,0,0,0,0, "autoFitTable", ap_GetState_PointInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_TABLETOTEXT,0,0,0,0, nullptr, ap_GetState_PointInTable, nullptr);
+	_s(AP_MENU_ID_TABLE_TEXTTOTABLE,0,0,0,0, "textToTable", ap_GetState_Selection, nullptr);
 	_s(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT,0,0,1,0, "repeatHeaderRows", ap_GetState_TableModes, nullptr);
 	_s(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT_THIS,0,0,0,0, "repeatThisRow", ap_GetState_PointInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT_REMOVE,0,0,0,0, "removeThisRowRepeat", ap_GetState_InTableIsRepeat, nullptr);

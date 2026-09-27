@@ -1908,7 +1908,10 @@ bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char *
 		if (GTK_IS_POPOVER(menu))
 		{
 			GtkWidget * toplevel = m_wTopLevelWindow;
-			gtk_widget_set_parent(menu, toplevel);
+			// _createPopupWidget() already parents the popover to the
+			// toplevel; re-parenting emits a Gtk-CRITICAL
+			if (!gtk_widget_get_parent(menu))
+				gtk_widget_set_parent(menu, toplevel);
 
 			GdkRectangle rect = { x, y, 1, 1 };
 			GdkSurface * surface = gtk_native_get_surface(GTK_NATIVE(toplevel));

@@ -68,6 +68,10 @@
 #include "ev_EditEventMapper.h"
 #include "xap_UnixDialogHelper.h"
 #include "ap_Menu_Id.h"
+#include "ev_Toolbar_Labels.h"
+#include "xap_Toolbar_LabelSet.h"
+#include "ap_Prefs_SchemeIds.h"
+#include "ap_UnixStockIcons.h"
 
 /*****************************************************************/
 
@@ -547,6 +551,33 @@ GMenuItem * EV_UnixMenu::_createMenuItem(XAP_Menu_Id id,
 	else
 	{
 		g_menu_item_set_action_and_target_value(item, actionName, nullptr);
+	}
+
+	// Word-style icon column in popup menus: resolve the toolbar icon
+	// registered for this menu id.  XAP_Toolbar_Id is uint8 so ids
+	// above 255 cannot be mapped safely.
+	if (isPopup && id < 256)
+	{
+		static EV_Toolbar_LabelSet * s_pPopupTBLabels = nullptr;
+		if (!s_pPopupTBLabels)
+		{
+			s_pPopupTBLabels = AP_CreateToolbarLabelSet(
+				AP_PREF_DEFAULT_StringSet);
+		}
+		if (s_pPopupTBLabels)
+		{
+			EV_Toolbar_Label * pTBLabel = s_pPopupTBLabels->getLabel(
+				static_cast<XAP_Toolbar_Id>(id));
+			const char * szIcon = pTBLabel ? pTBLabel->getIconName() : nullptr;
+			if (szIcon && *szIcon && g_ascii_strcasecmp(szIcon, "NoIcon"))
+			{
+				gchar * szStock = abi_stock_from_toolbar_id(szIcon);
+				GIcon * icon = g_themed_icon_new(szStock);
+				g_menu_item_set_icon(item, icon);
+				g_object_unref(icon);
+				g_free(szStock);
+			}
+		}
 	}
 
 	// display-only shortcut label; the EV keyboard layer performs the

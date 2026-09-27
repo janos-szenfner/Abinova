@@ -38,6 +38,7 @@
 #endif
 
 #include "ap_ML_ContextText.h"
+#include "ap_ML_ContextTable.h"
 
 #ifdef ENABLE_SPELL
 #include "ap_ML_ContextSquiggle.h"

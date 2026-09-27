@@ -1154,6 +1154,57 @@ below are on `main` but the release has not been cut yet.
   page glyph serves as the icon, and the classic Help menu gained the
   same entry.
 
+### Tables (Word-style creation and context menus)
+
+- **Word-style table grid picker** — the ribbon's Table button now
+  opens a popover with a hoverable 10×8 cell grid: hovering paints
+  the selected rectangle and a live `N × M` caption, clicking
+  inserts a default table instantly (`insertTableGrid` edit method,
+  `rows,cols` call data), no dialog round-trip. Under it sit
+  "Insert Table…" (full dialog) and "Convert Text to Table". The
+  ribbon button itself is unchanged — only its behavior.
+- **Modernized Insert Table dialog** — Word's three AutoFit modes
+  (AutoFit to contents / AutoFit to window / Fixed column width), a
+  live miniature preview that redraws as the spins change, and
+  remembered geometry: the last-used rows/columns/mode/width persist
+  in the profile (`InsertTableLast*` pref keys) and preload on the
+  next open. Reachable from the grid popover, the classic Table menu
+  and the right-click menus.
+- **Contextual right-click menus** — a new `ContextTable` layout
+  (`EV_EMC_TABLE`, `ap_ML_ContextTable.h`) appears when the click
+  position is inside a table: Cut/Copy/Paste, Insert Table…, Insert
+  rows/columns, Delete rows/columns/table, Select cell/row/column/
+  table, Merge/Split cells, Split table, all three AutoFit variants,
+  Distribute rows/columns, Convert Table to Text, Format Table and
+  View Gridlines — matching Word's structure. Right-click in plain
+  text still gets `ContextText`, which gained a Table submenu with
+  Insert Table, Convert Text to Table, insert/delete rows & columns,
+  merge/split and Format Table. `_getMouseContext` now reports
+  `EV_EMC_TABLE` for clicks in cells (also covers the cell-border
+  hit-contexts) and `contextText` re-checks the position so stale
+  context can't misroute the menu.
+- **Word-style popup menu icons** — `EV_UnixMenu::_createMenuItem`
+  resolves each popup item's toolbar icon
+  (`AP_CreateToolbarLabelSet` + `abi_stock_from_toolbar_id`) and sets
+  it as the `GMenuItem` icon attribute, so `GtkPopoverMenu` renders
+  an icon+text column.
+- **Convert Text to Table** (`textToTable`) — splits the selection
+  into rows at paragraph breaks and cells at the delimiter passed as
+  call data (`tabs`/`commas`/`spaces`/`all`); with no call data it
+  auto-detects (tabs, then commas, then spaces). The selection is
+  replaced by a populated table inside a single user-atomic glob, so
+  it is one undo step.
+- **Markdown-style table autoformat** — typing a `+---+---`-style
+  ruler line and pressing Enter replaces it with a real one-row
+  table whose column widths are proportional to the dash runs
+  (`FV_View::_autoFormatTableOnEnter`, hooked into
+  `insertParagraphBreak`; capped at 64 columns / 512 chars, inactive
+  during selection, frame or header/footer editing, and inside
+  tables).
+- **GTK4 context-menu parenting fix** — `runModalContextMenu` no
+  longer re-parents an already-parented `GtkPopover` (silences a
+  `gtk_widget_set_parent` CRITICAL).
+
 ### Ubuntu Launchpad bug fixes
 
 - **LP#921756 / LP#1712097** — `GR_Graphics::tlu()`/`tluD()`/`tduD()`

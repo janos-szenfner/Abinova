@@ -326,7 +326,7 @@ static const AP_RibbonItem s_ribbon_insert_pages[] =
 
 static const AP_RibbonItem s_ribbon_insert_tables[] =
 {
-	AP_RIBBON_MENU_LS(AP_MENU_ID_TABLE_INSERT_TABLE),
+	AP_RIBBON_MENUPOP_LS(AP_MENU_ID_TABLE_INSERT_TABLE),
 	AP_RIBBON_END
 };
 

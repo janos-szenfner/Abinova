@@ -46,11 +46,16 @@
 
 /*****************************************************************/
 
+// the fixed-width spin is only editable while "Fixed column width" is
+// active; connected to each radio's toggled with the fixed radio as data
 static void
-s_auto_colsize_toggled (GtkCheckButton *radio,
-                        GtkWidget       *spinner)
+s_fixed_colsize_toggled (GtkCheckButton *,
+                         GtkCheckButton   *fixed)
 {
-	gtk_widget_set_sensitive (spinner, !gtk_check_button_get_active (radio));
+	GtkWidget * spinner = GTK_WIDGET(g_object_get_data(G_OBJECT(fixed),
+													 "abi-width-spin"));
+	gtk_widget_set_sensitive (GTK_WIDGET(spinner),
+							  gtk_check_button_get_active (fixed));
 }
 
 XAP_Dialog * AP_UnixDialog_InsertTable::static_constructor(XAP_DialogFactory * pFactory,
@@ -66,9 +71,11 @@ AP_UnixDialog_InsertTable::AP_UnixDialog_InsertTable(XAP_DialogFactory * pDlgFac
 	, m_windowMain(nullptr)
 	, m_autoCol(nullptr)
 	, m_fixedCol(nullptr)
+	, m_contentsCol(nullptr)
 	, m_pColSpin(nullptr)
 	, m_pRowSpin(nullptr)
 	, m_pColWidthSpin(nullptr)
+	, m_pPreview(nullptr)
 {
 }
 
@@ -118,10 +125,26 @@ GtkWidget * AP_UnixDialog_InsertTable::_constructWindow(void)
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(m_pColSpin), getNumCols());
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(m_pRowSpin), getNumRows());
 
-	GtkWidget *rbAutoColSize = GTK_WIDGET(gtk_builder_get_object(builder, "rbAutoColSize"));
-    UT_ASSERT(rbAutoColSize);
-	s_auto_colsize_toggled (GTK_CHECK_BUTTON(rbAutoColSize), m_pColWidthSpin);
-	g_signal_connect (G_OBJECT (rbAutoColSize), "toggled", G_CALLBACK (s_auto_colsize_toggled), m_pColWidthSpin);
+	m_fixedCol = GTK_WIDGET(gtk_builder_get_object(builder, "rbFixedColSize"));
+	m_autoCol = GTK_WIDGET(gtk_builder_get_object(builder, "rbAutoColSize"));
+	m_contentsCol = GTK_WIDGET(gtk_builder_get_object(builder, "rbAutoContents"));
+	g_object_set_data(G_OBJECT(m_fixedCol), "abi-width-spin", m_pColWidthSpin);
+	s_fixed_colsize_toggled (nullptr, GTK_CHECK_BUTTON(m_fixedCol));
+	g_signal_connect (G_OBJECT (m_fixedCol), "toggled", G_CALLBACK (s_fixed_colsize_toggled), m_fixedCol);
+	g_signal_connect (G_OBJECT (m_autoCol), "toggled", G_CALLBACK (s_fixed_colsize_toggled), m_fixedCol);
+	g_signal_connect (G_OBJECT (m_contentsCol), "toggled", G_CALLBACK (s_fixed_colsize_toggled), m_fixedCol);
+
+	// live preview: a miniature grid tracking the spin values
+	m_pPreview = GTK_WIDGET(gtk_builder_get_object(builder, "daPreview"));
+	if (m_pPreview)
+	{
+		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_pPreview),
+									   _s_previewDraw, this, nullptr);
+		g_signal_connect_swapped(G_OBJECT(m_pColSpin), "value-changed",
+								 G_CALLBACK(gtk_widget_queue_draw), m_pPreview);
+		g_signal_connect_swapped(G_OBJECT(m_pRowSpin), "value-changed",
+								 G_CALLBACK(gtk_widget_queue_draw), m_pPreview);
+	}
 	
 	// set the dialog title
     std::string s;
@@ -143,11 +166,31 @@ GtkWidget * AP_UnixDialog_InsertTable::_constructWindow(void)
 	
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbAutoFit")), pSS, AP_STRING_ID_DLG_InsertTable_AutoFit);
 
-	m_autoCol = GTK_WIDGET(gtk_builder_get_object(builder, "rbAutoColSize"));
-	localizeButton(m_autoCol, pSS, AP_STRING_ID_DLG_InsertTable_AutoColSize);
-
-	m_fixedCol = GTK_WIDGET(gtk_builder_get_object(builder, "rbFixedColSize"));
+	localizeButton(m_autoCol, pSS, AP_STRING_ID_DLG_InsertTable_AutoFitWindow);
+	localizeButton(m_contentsCol, pSS, AP_STRING_ID_DLG_InsertTable_AutoFitContents);
 	localizeButton(m_fixedCol, pSS, AP_STRING_ID_DLG_InsertTable_FixedColSize);
+
+	GtkWidget * frPreview = GTK_WIDGET(gtk_builder_get_object(builder, "frPreview"));
+	if (frPreview)
+	{
+		std::string sPrev;
+		pSS->getValueUTF8(AP_STRING_ID_DLG_InsertTable_Preview, sPrev);
+		gtk_frame_set_label(GTK_FRAME(frPreview), sPrev.c_str());
+	}
+
+	// restore the persisted radio choice
+	switch (m_columnType)
+	{
+	case b_FIXEDSIZE:
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_fixedCol), TRUE);
+		break;
+	case b_AUTOFIT_CONTENTS:
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_contentsCol), TRUE);
+		break;
+	default:
+		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_autoCol), TRUE);
+		break;
+	}
 
 	localizeButtonUnderline(GTK_WIDGET(gtk_builder_get_object(builder, "btInsert")), pSS, AP_STRING_ID_DLG_InsertButton);
 
@@ -168,6 +211,8 @@ void AP_UnixDialog_InsertTable::_storeWindowData(void)
 	m_numRows = static_cast<UT_uint32>(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(m_pRowSpin)));
 	m_numCols = static_cast<UT_uint32>(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(m_pColSpin)));
 	m_columnWidth = static_cast<float>(gtk_spin_button_get_value(GTK_SPIN_BUTTON(m_pColWidthSpin)));
+	if (m_answer == AP_Dialog_InsertTable::a_OK)
+		saveLastUsed();
 }
 
 AP_Dialog_InsertTable::columnType AP_UnixDialog_InsertTable::_getActiveRadioItem(void)
@@ -175,6 +220,59 @@ AP_Dialog_InsertTable::columnType AP_UnixDialog_InsertTable::_getActiveRadioItem
 	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_fixedCol))) {
 		return AP_Dialog_InsertTable::b_FIXEDSIZE;
 	}
+	if (m_contentsCol &&
+		gtk_check_button_get_active(GTK_CHECK_BUTTON(m_contentsCol))) {
+		return AP_Dialog_InsertTable::b_AUTOFIT_CONTENTS;
+	}
 
-	return AP_Dialog_InsertTable::b_AUTOSIZE;
+	return AP_Dialog_InsertTable::b_AUTOFIT_WINDOW;
+}
+
+/* miniature live preview: draws the rows/cols grid like the picker */
+void
+AP_UnixDialog_InsertTable::_s_previewDraw (GtkDrawingArea * /*da*/,
+										   cairo_t * cr,
+										   int w, int h, gpointer data)
+{
+	AP_UnixDialog_InsertTable * dlg =
+		static_cast<AP_UnixDialog_InsertTable *>(data);
+	UT_return_if_fail(dlg);
+
+	int nCols = gtk_spin_button_get_value_as_int(
+		GTK_SPIN_BUTTON(dlg->m_pColSpin));
+	int nRows = gtk_spin_button_get_value_as_int(
+		GTK_SPIN_BUTTON(dlg->m_pRowSpin));
+	nCols = CLAMP(nCols, 1, 20);
+	nRows = CLAMP(nRows, 1, 20);
+
+	double pad = 6.0;
+	double gw = w - 2 * pad;
+	double gh = h - 2 * pad;
+	double cw = gw / nCols;
+	double ch = gh / nRows;
+
+	/* paper */
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+	cairo_rectangle(cr, pad, pad, gw, gh);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgba(cr, 0.55, 0.55, 0.55, 1.0);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	/* grid lines */
+	cairo_set_source_rgba(cr, 0.35, 0.35, 0.35, 0.8);
+	cairo_set_line_width(cr, 0.7);
+	for (int i = 1; i < nCols; ++i)
+	{
+		double x = pad + i * cw;
+		cairo_move_to(cr, x, pad);
+		cairo_line_to(cr, x, pad + gh);
+	}
+	for (int j = 1; j < nRows; ++j)
+	{
+		double y = pad + j * ch;
+		cairo_move_to(cr, pad, y);
+		cairo_line_to(cr, pad + gw, y);
+	}
+	cairo_stroke(cr);
 }

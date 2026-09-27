@@ -1239,6 +1239,9 @@ private:
 	UT_Error			_markTextAsBookmark(const char * szText, const char * szBookmark);
 	void				_collectMarkedEntries(const char * szPrefix, std::vector<FV_RefEntry> & entries) const;
 
+	// Markdown-style "+---+---+" auto-table on paragraph break
+	bool				_autoFormatTableOnEnter(void);
+
 	UT_uint32			m_iNumHorizPages; /////////////////////////////////////////////////
 	UT_uint32			m_getNumHorizPagesCachedWindowWidth;
 	bool				m_autoNumHorizPages;

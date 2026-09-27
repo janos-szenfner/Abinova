@@ -1,5 +1,4 @@
-/* Abinova
- * Copyright (C) 1998 AbiSource, Inc.
+/* AbiWord
  * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
@@ -21,51 +20,60 @@
 
 /*****************************************************************
 ******************************************************************
+** THIS FILE DEFINES THE CONTEXT MENU SHOWN FOR A RIGHT-CLICK
+** INSIDE A TABLE CELL, matching the structure Word uses.
 ** IT IS IMPORTANT THAT THIS FILE ALLOW ITSELF TO BE INCLUDED
 ** MORE THAN ONE TIME.
 ******************************************************************
 *****************************************************************/
 
-BeginLayout(ContextText,EV_EMC_TEXT)
+BeginLayout(ContextTable,EV_EMC_TABLE)
 
 	BeginPopupMenu()
 		MenuItem(AP_MENU_ID_EDIT_CUT)
 		MenuItem(AP_MENU_ID_EDIT_COPY)
 		MenuItem(AP_MENU_ID_EDIT_PASTE)
-   	        MenuItem(AP_MENU_ID_EDIT_PASTE_SPECIAL)
+		MenuItem(AP_MENU_ID_EDIT_PASTE_SPECIAL)
 		Separator()
-	BeginSubMenu(AP_MENU_ID_TABLE)
 		MenuItem(AP_MENU_ID_TABLE_INSERTTABLE)
-		MenuItem(AP_MENU_ID_TABLE_TEXTTOTABLE)
-		MenuItem(AP_MENU_ID_TABLE_DELETETABLE)
 		Separator()
-		BeginSubMenu(AP_MENU_ID_INSERT)
-			MenuItem(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE)
-			MenuItem(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER)
-			MenuItem(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE)
-			MenuItem(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER)
-		EndSubMenu()
-		MenuItem(AP_MENU_ID_TABLE_DELETEROW)
-		MenuItem(AP_MENU_ID_TABLE_DELETECOLUMN)
+	BeginSubMenu(AP_MENU_ID_TABLE_INSERT)
+		MenuItem(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE)
+		MenuItem(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER)
+		MenuItem(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE)
+		MenuItem(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER)
+	EndSubMenu()
+	BeginSubMenu(AP_MENU_ID_TABLE_DELETE)
+		MenuItem(AP_MENU_ID_TABLE_DELETE_ROWS)
+		MenuItem(AP_MENU_ID_TABLE_DELETE_COLUMNS)
+		MenuItem(AP_MENU_ID_TABLE_DELETE_TABLE)
+	EndSubMenu()
+	BeginSubMenu(AP_MENU_ID_TABLE_SELECT)
+		MenuItem(AP_MENU_ID_TABLE_SELECT_CELL)
+		MenuItem(AP_MENU_ID_TABLE_SELECT_ROW)
+		MenuItem(AP_MENU_ID_TABLE_SELECT_COLUMN)
+		MenuItem(AP_MENU_ID_TABLE_SELECT_TABLE)
+	EndSubMenu()
+		Separator()
 		MenuItem(AP_MENU_ID_TABLE_MERGE_CELLS)
 		MenuItem(AP_MENU_ID_TABLE_SPLIT_CELLS)
+		MenuItem(AP_MENU_ID_TABLE_SPLIT_TABLE)
+		Separator()
+		MenuItem(AP_MENU_ID_TABLE_AUTOFIT)
+		MenuItem(AP_MENU_ID_TABLE_AUTOFIT_CONTENTS)
+		MenuItem(AP_MENU_ID_TABLE_AUTOFIT_WINDOW)
+		MenuItem(AP_MENU_ID_TABLE_AUTOFIT_FIXED)
+		MenuItem(AP_MENU_ID_TABLE_DISTRIBUTE_ROWS)
+		MenuItem(AP_MENU_ID_TABLE_DISTRIBUTE_COLS)
+		Separator()
+	BeginSubMenu(AP_MENU_ID_TABLE_TABLETOTEXT)
+		MenuItem(AP_MENU_ID_TABLE_TABLETOTEXTCOMMAS)
+		MenuItem(AP_MENU_ID_TABLE_TABLETOTEXTTABS)
+		MenuItem(AP_MENU_ID_TABLE_TABLETOTEXTCOMMASTABS)
+	EndSubMenu()
 		Separator()
 		MenuItem(AP_MENU_ID_TABLE_FORMAT)
-	EndSubMenu()
-// RIVERA
-	BeginSubMenu(AP_MENU_ID_TOOLS_ANNOTATIONS)
-		MenuItem(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT)
-		MenuItem(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT_FROMSEL)
-		MenuItem(AP_MENU_ID_TOOLS_ANNOTATIONS_PREV)
-		MenuItem(AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT)
-		MenuItem(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE)
-	EndSubMenu()
-	MenuItem(AP_MENU_ID_INSERT_HYPERLINK)
-		Separator()
-		MenuItem(AP_MENU_ID_FMT_FONT)
-	    MenuItem(AP_MENU_ID_FMT_LANGUAGE)
-		MenuItem(AP_MENU_ID_FMT_PARAGRAPH)
-	    MenuItem(AP_MENU_ID_FMT_BULLETS)
+		MenuItem(AP_MENU_ID_TABLE_VIEW_GRIDLINES)
 	EndPopupMenu()
 
 EndLayout()

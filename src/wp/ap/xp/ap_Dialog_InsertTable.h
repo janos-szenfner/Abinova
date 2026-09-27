@@ -36,7 +36,11 @@ public:
 	virtual void runModal(XAP_Frame * pFrame) override = 0;
 
 	enum tAnswer: uint8_t { a_OK, a_CANCEL };
-	enum columnType: uint8_t { b_AUTOSIZE = 0, b_FIXEDSIZE };
+	// Word-style column sizing modes: b_AUTOFIT_WINDOW spans the text
+	// column, b_FIXEDSIZE uses an explicit width, b_AUTOFIT_CONTENTS
+	// starts narrow and lets content drive the columns
+	enum columnType: uint8_t { b_AUTOFIT_WINDOW = 0, b_FIXEDSIZE,
+							   b_AUTOFIT_CONTENTS };
 
 	AP_Dialog_InsertTable::tAnswer		getAnswer(void) const;
 	AP_Dialog_InsertTable::columnType	getColumnType(void) const;
@@ -46,6 +50,7 @@ public:
 	void								setColumnWidth(float columnWidth);
 	double								getSpinIncr (void);
 	double								getSpinMin (void);
+	void								saveLastUsed(void) const;
 
 protected:
 

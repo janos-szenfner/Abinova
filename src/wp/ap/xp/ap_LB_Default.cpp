@@ -79,6 +79,7 @@
 #define _CTE		EV_EMC_TABLEERASE
 #define _CTP		EV_EMC_TABLEPAINT
 #define _CTS		EV_EMC_TABLESAMPLE
+#define _CTB		EV_EMC_TABLE
 
 #define _B0		| EV_EMB_BUTTON0
 #define _B1		| EV_EMB_BUTTON1
@@ -220,6 +221,10 @@ ap_bs_Mouse MouseTable[] =
 //  { context	{ click					dblclick	drag,	dbldrag,	release,	doublerelease	}},
 	//{_CU _B3,	{ "contextDefault",		"",			"",		"",			"",			""				}},
 	{_CT _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
+	{_CTB _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
+	{_CTV _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
+	{_CTH _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
+	{_CTC _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
 	{_CVD _B3,  { "contextText",		"",			"",		"",			"",			""				}},
 	//{_CL _B3,	{ "contextLeftOfText",	"",			"",		"",			"",			""				}},
 #ifdef ENABLE_SPELL
