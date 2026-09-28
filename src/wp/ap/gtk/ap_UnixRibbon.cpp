@@ -627,8 +627,18 @@ GtkWidget * AP_UnixRibbon::createWidget()
 
 		GtkWidget * tabLabel = gtk_label_new(_ribbon_label(tab->szTabKey,
 														 s_ribbon_tab_labels));
-		gtk_notebook_append_page(GTK_NOTEBOOK(m_wNotebook), page, tabLabel);
-		g_object_set_data(G_OBJECT(page), "abi-tab-key",
+		/* let a tab page shrink below its content width: the widest
+		 * page (Home) otherwise forces a window minimum wider than
+		 * small screens, which breaks resize and maximize */
+		GtkWidget * scroll = gtk_scrolled_window_new();
+		gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
+									   GTK_POLICY_AUTOMATIC,
+									   GTK_POLICY_NEVER);
+		gtk_scrolled_window_set_propagate_natural_height(
+			GTK_SCROLLED_WINDOW(scroll), TRUE);
+		gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), page);
+		gtk_notebook_append_page(GTK_NOTEBOOK(m_wNotebook), scroll, tabLabel);
+		g_object_set_data(G_OBJECT(scroll), "abi-tab-key",
 						  (gpointer)tab->szTabKey);
 
 		if (!strcmp(tab->szTabKey, "home"))
@@ -638,10 +648,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 
 		if (tab->bContextual)
 		{
-			m_vecContextualPages.addItem(page);
-			g_object_set_data(G_OBJECT(page), "abi-ctx-key",
+			m_vecContextualPages.addItem(scroll);
+			g_object_set_data(G_OBJECT(scroll), "abi-ctx-key",
 							  (gpointer)tab->szTabKey);
-			gtk_widget_set_visible(page, FALSE);
+			gtk_widget_set_visible(scroll, FALSE);
 		}
 	}
 
@@ -1454,6 +1464,12 @@ GtkWidget * AP_UnixRibbon::_popoverTbButton(XAP_Toolbar_Id id,
 
 	GtkWidget * btn = gtk_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	/* flat buttons shrink to their label; pad the row so the click
+	 * target is a full-height menu row, not just the text */
+	gtk_widget_set_margin_top(box, 5);
+	gtk_widget_set_margin_bottom(box, 5);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
 	const char * szIcon = pLabel->getIconName();
 	if (szIcon && g_ascii_strcasecmp(szIcon, "NoIcon") != 0)
 	{
@@ -1464,6 +1480,7 @@ GtkWidget * AP_UnixRibbon::_popoverTbButton(XAP_Toolbar_Id id,
 	}
 	GtkWidget * wLabel = gtk_label_new(szLabel);
 	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_widget_set_hexpand(wLabel, TRUE);
 	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_button_set_child(GTK_BUTTON(btn), box);
 
@@ -1490,11 +1507,18 @@ GtkWidget * AP_UnixRibbon::_popoverEmButton(const char * szLabel,
 {
 	GtkWidget * btn = gtk_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	/* flat buttons shrink to their label; give the row real padding so
+	 * the click target is a full-height menu row, not just the text */
+	gtk_widget_set_margin_top(box, 5);
+	gtk_widget_set_margin_bottom(box, 5);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
 	if (szIcon && *szIcon)
 		gtk_box_append(GTK_BOX(box),
 					   gtk_image_new_from_icon_name(szIcon));
 	GtkWidget * wLabel = gtk_label_new(szLabel);
 	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_widget_set_hexpand(wLabel, TRUE);
 	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_button_set_child(GTK_BUTTON(btn), box);
 
@@ -6556,24 +6580,22 @@ GtkWidget * AP_UnixRibbon::_makeTableGridPopover()
 	std::string szDlg = pk->pSS->getValue(
 		AP_STRING_ID_MENU_STATUSLINE_TABLE_INSERT_TABLE);
 	szDlg += "…";
-	GtkWidget * btn = gtk_button_new_with_label(szDlg.c_str());
-	gtk_button_set_has_frame(GTK_BUTTON(btn), FALSE);
-	gtk_widget_set_halign(btn, GTK_ALIGN_START);
-	g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
-						   g_strdup("insertTable"), g_free);
-	g_signal_connect(btn, "clicked",
-					 G_CALLBACK(_s_popover_em_clicked), this);
-	gtk_box_append(GTK_BOX(box), btn);
+	gtk_box_append(GTK_BOX(box),
+				   _popoverEmButton(szDlg.c_str(), nullptr,
+									"insertTable", nullptr));
 
-	GtkWidget * btnT2T = gtk_button_new_with_label(pk->pSS->getValue(
-		AP_STRING_ID_MENU_LABEL_TABLE_TEXTTOTABLE));
-	gtk_button_set_has_frame(GTK_BUTTON(btnT2T), FALSE);
-	gtk_widget_set_halign(btnT2T, GTK_ALIGN_START);
-	g_object_set_data_full(G_OBJECT(btnT2T), "abi-em-method",
-						   g_strdup("textToTable"), g_free);
-	g_signal_connect(btnT2T, "clicked",
-					 G_CALLBACK(_s_popover_em_clicked), this);
-	gtk_box_append(GTK_BOX(box), btnT2T);
+	gtk_box_append(GTK_BOX(box),
+				   _popoverEmButton(pk->pSS->getValue(
+						AP_STRING_ID_MENU_LABEL_TABLE_TEXTTOTABLE),
+									nullptr, "textToTable", nullptr));
+
+	// Word puts Draw Table on the Insert > Table flyout too: the
+	// pencil can create a table from an empty spot, so it must be
+	// reachable when no table is under the caret yet
+	gtk_box_append(GTK_BOX(box),
+				   _popoverEmButton(pk->pSS->getValue(
+						AP_STRING_ID_MENU_LABEL_TABLE_DRAW),
+									nullptr, "toggleDrawTable", nullptr));
 
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -10215,9 +10237,14 @@ GtkWidget * AP_UnixRibbon::_borderRow(int edges, const char * szLabel,
 {
 	GtkWidget * btn = gtk_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_widget_set_margin_top(box, 5);
+	gtk_widget_set_margin_bottom(box, 5);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
 	gtk_box_append(GTK_BOX(box), _border_icon(edges));
 	GtkWidget * wLabel = gtk_label_new(szLabel);
 	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_widget_set_hexpand(wLabel, TRUE);
 	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_button_set_child(GTK_BUTTON(btn), box);
 	gtk_widget_add_css_class(btn, "flat");
@@ -11436,9 +11463,14 @@ GtkWidget * AP_UnixRibbon::_tblBorderRow(int edges, const char * szLabel,
 {
 	GtkWidget * btn = gtk_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_widget_set_margin_top(box, 5);
+	gtk_widget_set_margin_bottom(box, 5);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
 	gtk_box_append(GTK_BOX(box), _border_icon(edges));
 	GtkWidget * wLabel = gtk_label_new(szLabel);
 	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_widget_set_hexpand(wLabel, TRUE);
 	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_button_set_child(GTK_BUTTON(btn), box);
 	gtk_widget_add_css_class(btn, "flat");

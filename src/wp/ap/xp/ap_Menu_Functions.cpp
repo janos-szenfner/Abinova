@@ -1602,8 +1602,7 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_TableModes)
 		break;
 
 	case AP_MENU_ID_TABLE_DRAW:
-		if (!pView->isInTable() && !pView->getDrawTableMode())
-			return EV_MIS_Gray;
+		/* the pencil is a mode toggle, usable in and out of tables */
 		if (pView->getDrawTableMode())
 			s = EV_MIS_Toggled;
 		break;

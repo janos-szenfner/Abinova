@@ -12725,17 +12725,52 @@ void FV_View::endTableDraw(UT_sint32 xPos, UT_sint32 yPos)
 	m_rectTableDraw.height = 0;
 	queueDraw();
 
-	/* device pixels per inch -> roughly one column per inch,
-	 * one row per half inch, clamped to something sane */
+	/* the drag rect is in layout units; convert to device pixels and
+	 * divide by screen dpi -> roughly one column per inch, one row per
+	 * half inch, clamped to something sane */
 	const double dpi = getGraphics()->getDeviceResolution();
+	const double wPx = getGraphics()->tduD(w);
+	const double hPx = getGraphics()->tduD(h);
 	UT_sint32 iCols = UT_MAX(1, UT_MIN(16,
-		static_cast<UT_sint32>(w / dpi + 0.5)));
+		static_cast<UT_sint32>(wPx / dpi + 0.5)));
 	UT_sint32 iRows = UT_MAX(1, UT_MIN(32,
-		static_cast<UT_sint32>(h / (dpi / 2.0) + 0.5)));
+		static_cast<UT_sint32>(hPx / (dpi / 2.0) + 0.5)));
 
-	warpInsPtToXY(x0, y0, true);
-	if (!isInTable())
+	/* Decide by the layout under the drag origin rather than by the
+	 * warped insertion point: warpInsPtToXY can resolve to a strux
+	 * boundary where isInTable() reports false even though the stroke
+	 * began inside a cell. */
+	UT_sint32 xClick = 0, yClick = 0;
+	fp_Page * pPage = _getPageForXY(x0, y0, xClick, yClick);
+	PT_DocPosition posHit = 0;
+	fl_TableLayout * pTab = nullptr;
+	if (pPage)
 	{
+		bool bBOL = false, bEOL = false, isTOC = false;
+		pPage->mapXYToPosition(xClick, yClick, posHit, bBOL, bEOL, isTOC, true);
+		pTab = getTableAtPos(posHit);
+		if (!pTab && posHit > 0)
+		{
+			pTab = getTableAtPos(posHit + 1);
+		}
+	}
+	if (pTab)
+	{
+		setPoint(posHit);
+		if (!isInTable() && posHit > 0)
+		{
+			setPoint(posHit + 1);
+		}
+		/* Word's pencil inside a table: a stroke splits the cell under
+		 * the drag origin along the dominant axis */
+		if (w >= 8 || h >= 8)
+		{
+			cmdSplitCells(w >= h ? vert_mid : hori_mid);
+		}
+	}
+	else
+	{
+		warpInsPtToXY(x0, y0, true);
 		cmdInsertTable(iRows, iCols, PP_NOPROPS);
 	}
 }

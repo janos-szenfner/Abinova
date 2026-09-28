@@ -156,12 +156,11 @@ static gboolean s_popover_raise_idle(gpointer data)
                          gdk_surface_get_display(surf)),
                      gdk_x11_surface_get_xid(surf));
     }
-  /* keep re-raising: GDK/own focus handling lowers the popover
-   * back under the toplevel on the next window interaction */
-  return G_SOURCE_CONTINUE;
-#else
-  return G_SOURCE_REMOVE;
 #endif
+  /* one shot is enough under a compositor; a continuous restack
+   * flood keeps cancelling the surface's pending frame and the
+   * popover stays invisible under Mutter */
+  return G_SOURCE_REMOVE;
 }
 
 static gboolean s_popover_add_click_ctl_idle(gpointer data)

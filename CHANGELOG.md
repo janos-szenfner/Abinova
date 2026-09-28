@@ -1204,6 +1204,36 @@ below are on `main` but the release has not been cut yet.
 - **GTK4 context-menu parenting fix** — `runModalContextMenu` no
   longer re-parents an already-parented `GtkPopover` (silences a
   `gtk_widget_set_parent` CRITICAL).
+- **Draw Table pencil mode** — a real Word-style pencil: Draw Table
+  (Table Layout tab or the Insert ▸ Table popover row) toggles a
+  crosshair mode where press+drag shows a live dashed blue
+  rubber-band preview, and release either inserts a table sized to
+  the dragged rectangle (roughly a column per inch, a row per half
+  inch) or — when the stroke starts inside an existing cell — splits
+  that cell along the dominant axis (drag mostly sideways → vertical
+  split, mostly down → horizontal split). Escape exits the mode.
+  Fixes along the way: the preview was painted in layout units as if
+  they were device pixels (drawn thousands of pixels off-screen,
+  `AP_UnixFrameImpl::_postDocDrawTableRect` now converts via
+  `tduD`), the created table's dimensions mixed layout units with
+  device DPI (now converted), in-table drags inserted nested tables
+  instead of splitting (hit-test now uses `mapXYToPosition` +
+  `getTableAtPos` at the drag origin instead of trusting the warped
+  insertion point), and the menu item was greyed out when the caret
+  was not in a table.
+- **Popover menu rows are real click targets** — popover action rows
+  (`_popoverEmButton`, `_popoverTbButton`, border-row helpers) now
+  have padding and full-width expanding labels instead of shrinking
+  to the ~15 px label text, so e.g. the popover's Draw Table row
+  clicks reliably across the whole row.
+- **Popover restack flood** — `xap_gtk_popover_new`'s delayed raise
+  is now a one-shot instead of a repeating `XRaiseWindow` every
+  120 ms; under a compositor the flood kept cancelling the surface's
+  pending frame and the popover could stay invisible.
+- **Window wider than the screen / maximize** — ribbon tab pages now
+  live in horizontally-scrolling containers so the window's minimum
+  width (~2043 px, driven by the Home tab) no longer exceeds a
+  1920 px screen; the window maximizes correctly.
 
 ### Ubuntu Launchpad bug fixes
 

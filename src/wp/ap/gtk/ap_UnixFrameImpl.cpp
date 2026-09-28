@@ -665,17 +665,26 @@ void AP_UnixFrameImpl::toggleGridlines()
 static void _postDocDrawTableRect(cairo_t * cr, AV_View * pView)
 {
 	FV_View * pFV = static_cast<FV_View *>(pView);
-	if (!pFV)
+	if (!pFV || !pFV->getGraphics())
 		return;
 	UT_Rect r;
 	if (!pFV->getTableDrawRect(&r) || r.width <= 0 || r.height <= 0)
 		return;
+	/* the rect is kept in layout units by FV_View; convert to
+	 * widget pixels for this cairo context */
+	GR_Graphics * pG = pFV->getGraphics();
+	double x = pG->tduD(r.left) + 0.5;
+	double y = pG->tduD(r.top) + 0.5;
+	double w = pG->tduD(r.width);
+	double h = pG->tduD(r.height);
 	cairo_save(cr);
+	cairo_set_source_rgba(cr, 0.2, 0.45, 0.9, 0.12);
+	cairo_rectangle(cr, x, y, w, h);
+	cairo_fill_preserve(cr);
 	cairo_set_source_rgba(cr, 0.2, 0.45, 0.9, 0.85);
 	cairo_set_line_width(cr, 1.2);
 	static const double dashes[] = { 4.0, 3.0 };
 	cairo_set_dash(cr, dashes, 2, 0);
-	cairo_rectangle(cr, r.left + 0.5, r.top + 0.5, r.width, r.height);
 	cairo_stroke(cr);
 	cairo_restore(cr);
 }
