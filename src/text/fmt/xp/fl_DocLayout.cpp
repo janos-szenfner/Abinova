@@ -946,6 +946,10 @@ bool FL_DocLayout::AnchoredObjectHelper(double x, double y, UT_sint32 iPage, UT_
 	if(iPage>=m_vecPages.getItemCount())
 	    iPage = m_vecPages.getItemCount()-1;
 	pPage = m_vecPages.getNthItem(iPage);
+	if(pPage == nullptr)
+	{
+	    return false;
+	}
 	UT_sint32 xPos = UT_LAYOUT_RESOLUTION*x;
 	UT_sint32 yPos = UT_LAYOUT_RESOLUTION*y;
 	bool bBOL,bEOL,isTOC;

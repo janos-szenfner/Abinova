@@ -1859,6 +1859,9 @@ below are on `main` but the release has not been cut yet.
   - `fp_Line::getLastVisRun()` read `s_pMapOfRunsV2L[count-1]` with
     `count` only asserted positive — a `count==0` release build
     read before the run map. Now guarded.
+  - `FL_DocLayout::AnchoredObjectHelper()` dereferenced a `getNthPage`
+    result without checking — out-of-range page index crashed the
+    drag/image anchor path. Now returns false.
   - `UT_GrowBuf` (backs every block's text buffer): `del()` trusted
     `position+amount <= size` as an assert — a bad range underflowed
     the `memmove` length into a heap smash. `del()` and `truncate()`
