@@ -143,17 +143,32 @@ bool UT_GrowBuf::del(UT_uint32 position, UT_uint32 amount)
 		return false;
 	UT_ASSERT(position < m_iSize);
 	UT_ASSERT(position+amount <= m_iSize);
-	
+	// without the bounds check a bad range underflows the memmove
+	// length and destroys heap beyond the buffer.
+	if (position >= m_iSize || amount > m_iSize - position)
+		return false;
+
 	memmove(m_pBuf+position,m_pBuf+position+amount,(m_iSize-position-amount)*sizeof(*m_pBuf));
 	m_iSize -= amount;
 
 	UT_uint32 newSpace = ((m_iSize+m_iChunk-1)/m_iChunk)*m_iChunk; //Calculate the new space needed
 	if (newSpace != m_iSpace)
 	{
-		m_pBuf = static_cast<UT_GrowBufElement *>(g_try_realloc(m_pBuf, newSpace*sizeof(*m_pBuf)));  //Re-allocate to the smaller size
-		m_iSpace = newSpace; //update m_iSpace to the new figure
+		UT_GrowBufElement * pNew = static_cast<UT_GrowBufElement *>(g_try_realloc(m_pBuf, newSpace*sizeof(*m_pBuf)));  //Re-allocate to the smaller size
+		if (pNew)
+		{
+			m_pBuf = pNew;
+			m_iSpace = newSpace; //update m_iSpace to the new figure
+		}
+		// shrink failure is harmless: keep the larger buffer
+		else if (newSpace == 0)
+		{
+			// realloc(p,0) may free and return NULL
+			m_pBuf = nullptr;
+			m_iSpace = 0;
+		}
 	}
-	
+
 	return true;
 }
 
@@ -167,10 +182,14 @@ UT_uint32 UT_GrowBuf::getLength(void) const
 UT_GrowBufElement * UT_GrowBuf::getPointer(UT_uint32 position) const
 {
 	// return a read-only pointer to the buffer
-	
+
 	if (!m_pBuf || !m_iSize)
 		return nullptr;
 	UT_ASSERT(position < m_iSize);
+	// allow position == m_iSize (legal one-past-the-end pointer, used
+	// by callers walking the buffer) but never beyond it.
+	if (position > m_iSize)
+		return nullptr;
 	return m_pBuf+position;
 }
 
@@ -206,8 +225,13 @@ void UT_GrowBuf::truncate(UT_uint32 position)
 	if (newSpace == 0) newSpace = m_iChunk; // In case of UT_GrowBuf::truncate (0)
 	if (newSpace != m_iSpace)
 	{
-		m_pBuf = static_cast<UT_GrowBufElement *>(g_try_realloc(m_pBuf, newSpace*sizeof(*m_pBuf)));  //Re-allocate to the smaller size
-		m_iSpace = newSpace; //update m_iSpace to the new figure
+		UT_GrowBufElement * pNew = static_cast<UT_GrowBufElement *>(g_try_realloc(m_pBuf, newSpace*sizeof(*m_pBuf)));  //Re-allocate to the smaller size
+		if (pNew)
+		{
+			m_pBuf = pNew;
+			m_iSpace = newSpace; //update m_iSpace to the new figure
+		}
+		// shrink failure is harmless: keep the larger buffer
 	}
 }
 

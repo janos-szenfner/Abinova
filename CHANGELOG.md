@@ -1859,6 +1859,12 @@ below are on `main` but the release has not been cut yet.
   - `fp_Line::getLastVisRun()` read `s_pMapOfRunsV2L[count-1]` with
     `count` only asserted positive — a `count==0` release build
     read before the run map. Now guarded.
+  - `UT_GrowBuf` (backs every block's text buffer): `del()` trusted
+    `position+amount <= size` as an assert — a bad range underflowed
+    the `memmove` length into a heap smash. `del()` and `truncate()`
+    assigned the unchecked result of `g_try_realloc`, losing the
+    buffer on shrink failure; `getPointer()` returned out-of-bounds
+    pointers in release builds. All now validated.
   - Removed the dead `pDoc` fetch left in
     `fp_FieldMailMergeRun::calculateValue` by the mail-merge
     removal.
