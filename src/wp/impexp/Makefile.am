@@ -131,8 +131,6 @@ libimpexp_la_SOURCES = \
 	xp/ie_imp_XHTML.h \
 	xp/ie_imp_XML.cpp \
 	xp/ie_imp_XML.h \
-	xp/ie_mailmerge.cpp \
-	xp/ie_mailmerge.h \
 	xp/ie_math_convert.cpp \
 	xp/ie_math_convert.h \
 	xp/ie_Table.cpp \

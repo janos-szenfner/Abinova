@@ -315,28 +315,6 @@ AM_CONDITIONAL([WITH_REDLAND], test "$abi_cv_redland" = "yes")
 AM_CONDITIONAL([HAVE_REDLAND], test "$abi_cv_redland" = "yes")
 
 
-evolution_data_server_req='libebook-1.2 >= 3.6'
-AC_ARG_WITH([evolution_data_server], 
-	[AS_HELP_STRING([--with-evolution-data-server], [Use Evolution Data Server to get at contact information])], 
-[
-	abi_cv_evolution_data_server="$withval"
-],[
-	# use evolution_data_server if detected
-	PKG_CHECK_EXISTS([ $evolution_data_server_req ],
-	[
-		abi_cv_evolution_data_server="yes"
-	], [
-		abi_cv_evolution_data_server="no"
-	])
-])
-
-if test "$abi_cv_evolution_data_server" = "yes"; then
-	opt_pkgs="$opt_pkgs $evolution_data_server_req"
-	AC_DEFINE([WITH_EVOLUTION_DATA_SERVER], [1], [Using evolution_data_server])
-fi
-
-AM_CONDITIONAL([WITH_EVOLUTION_DATA_SERVER], test "$abi_cv_evolution_data_server" = "yes")
-AM_CONDITIONAL([HAVE_EVOLUTION_DATA_SERVER], test "$abi_cv_evolution_data_server" = "yes")
 
 
 libical_req=' libical >= 0.46 '
@@ -960,7 +938,6 @@ Optional features:
 Optional dependencies:
   gio			${abi_cv_gio}
   redland               ${abi_cv_redland}
-  evolution_data_server ${abi_cv_evolution_data_server}
   libical               ${abi_cv_libical}
   champlain             ${abi_cv_champlain}
 "

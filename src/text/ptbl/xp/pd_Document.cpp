@@ -310,31 +310,6 @@ bool PD_Document::getAnnotationProp (const std::string & /*key*/, std::string & 
 }
 
 
-std::string PD_Document::getMailMergeField(const std::string & key) const
-{
-	auto iter = m_mailMergeMap.find(key);
-	if(iter != m_mailMergeMap.end()) {
-		return iter->second;
-	}
-	return "";
-}
-
-bool PD_Document::mailMergeFieldExists(const std::string & key) const
-{
-	return (m_mailMergeMap.find(key) != m_mailMergeMap.end());
-}
-
-void PD_Document::setMailMergeField(const std::string & key,
-									const std::string & value)
-{
-	m_mailMergeMap[key] = value;
-}
-
-void PD_Document::clearMailMergeMap()
-{
-	m_mailMergeMap.clear();
-}
-
 void PD_Document::setMarginChangeOnly(bool b)
 {
 	m_bMarginChangeOnly = b;

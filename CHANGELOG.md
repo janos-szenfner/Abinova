@@ -250,6 +250,20 @@ below are on `main` but the release has not been cut yet.
   go-back, F8 extend-selection, vertical-block selection, all field
   lock/unlink/toggle shortcuts (F9/Alt+F9/Ctrl+F9/F11 family),
   mark-citation (requires call data), and table AutoSum variants.
+- **Dead keybinding entries removed** — every active binding string in
+  `ap_LB_*.cpp` is now verified against the registered edit-method
+  table: the image double-click binding dropped `dlgFmtImage`
+  (method deleted with the old image-format dialog) for
+  `selectObject`, the vi `r`-prefix Ctrl+N/N bindings dropped
+  `toolbarNew` (method deleted) for `fileNew`/`setStyleNormal`, and
+  all commented-out rows referencing deleted mouse-context methods
+  were removed.
+- **Duplicate and contradictory mouse bindings fixed** — the default
+  map carried a duplicated `_CF _B1` row and duplicated `_CTO`
+  wheel-up/wheel-down rows; the spare copies are gone. The
+  table-cell/TOC/frame/misspelling Ctrl+wheel-down rows had `zoomIn`
+  left in the dead double-click slot — normalized to `zoomOut` to
+  match every other wheel-down binding.
 
 ### User interface
 
@@ -2094,6 +2108,49 @@ below are on `main` but the release has not been cut yet.
   anchors, `text-*` effects, `frame-*` arrangement state, math
   `display`/`latexid`, `section-break`, `toc-level`,
   `annotation-resolved`) and an honest ODF-coverage comparison.
+- **Classic menubar/embedded layouts deleted** — the ribbon is the
+  only chrome: `ap_Menu_Layouts_MainMenu.h` (384-line classic File/
+  Edit/View/… layout) and `ap_Menu_Layouts_Embedded.h` are gone;
+  `ap_Menu_Layouts_All.h` keeps an empty `Main` stub so
+  `EV_UnixMenuBar` still owns the shared action group and label set
+  that the ribbon buttons and the right-click context popovers
+  (`ap_ML_Context*.h`, all retained) resolve against.
+- **Plugin-era dynamic menu API removed** — with no plugins left,
+  nothing could mutate menus at runtime: `EV_Menu::addMenuItem`,
+  `EV_Menu::_doAddMenuItem`/`EV_UnixMenu::_doAddMenuItem`,
+  `EV_Menu_Layout::addLayoutItem`/`addFakeLayoutItem`/`m_iMaxId`,
+  `EV_searchMenuLabel`, and the whole `XAP_Menu_Factory` mutation
+  surface (`getNewID`, `addNewMenuAfter/Before`, `removeMenuItem`,
+  `resetMenusToDefault`, `addNewLabel`, `removeLabel`,
+  `resetLabelsToDefault`, `createContextMenu`, `removeContextMenu`,
+  `GetMenuLabelSetLanguageCount`, `GetNthMenuLabelLanguageName`)
+  deleted — the factory is now a pure static-table lookup
+  (`CreateMenuLayout`/`FindContextMenu`/`CreateMenuLabelSet`).
+  `xap_Menu_LabelSet.h` reduced to nothing and deleted.
+- **Mail-merge feature removed** — intentional: the ribbon never
+  mapped it. `ie_mailmerge.cpp/.h` (787 + 170 lines), the `--merge`
+  CLI option, `AP_Convert::setMergeSource` plus its
+  Save/Print listener classes, `PD_Document`'s merge map
+  (`getMailMergeField`/`mailMergeFieldExists`/`setMailMergeField`/
+  `clearMailMergeMap`/`m_mailMergeMap`), `ap_Args` plumbing,
+  DLG_MailMerge_* strings and `test/wp/mailmerge/` fixtures all gone.
+  `MERGEFIELD` field import stays for DOC/DOCX compatibility —
+  `fp_FieldMailMergeRun` now always renders `«fieldname»`, matching
+  Word's unmerged display, instead of consulting a map nothing could
+  populate.
+- **Evolution Data Server integration removed** — configure.ac no
+  longer detects `evolution-data-server`/`libebook`; the
+  `WITH_EVOLUTION_DATA_SERVER` blocks resolved to their non-EDS
+  paths; the `IE_Imp_RDF_VCard`/`IE_Imp_RDF_VCard_Sniffer` importer
+  classes (only reachable through that integration) deleted from
+  `ie_imp_RDF.*` while `IE_Imp_RDF` and `IE_Imp_RDF_Calendar` stay.
+- **Permanently-disabled RDF contact paths removed** —
+  `AP_MENU_ID_RDFANCHOR_EXPORTSEMITEM` (dead item in the RDF-anchor
+  context menu) and `AP_MENU_ID_RDF_SEMITEM_NEW_CONTACT_FROM_FILE`
+  (in no layout, vCard import was an upstream stub) deleted with
+  their edit methods (`rdfAnchorExportSemanticItem`,
+  `rdfInsertNewContactFromFile`), action entries, label strings and
+  the `ap_GetState_RDF_Contact` state function.
 
 ### Resolved root causes worth noting
 

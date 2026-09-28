@@ -775,24 +775,10 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 	/* Okay, as far as I can tell this is a non-persistent document property since it is not
 	 * written to the Abinova file when the document is saved. In fact, it is only set if a
 	 * mail-merge source/link is given on the command line.
-	 *
-	 * Mail merge fields are, naturally, saved and loaded, but the Insert->Mail Merge Field...
-	 * dialog doesn't reflect the current document's fields but rather some internal set of
-	 * fields, which is confusing if you are trying to work with muliple mail merge sources.
+	 * Mail merge fields are, naturally, saved and loaded; the document no
+	 * longer carries a merge map — MERGEFIELD fields render as
+	 * <fieldname>, matching Word's unmerged display.
 	 */
-
-	std::string 	getMailMergeField(const std::string & key) const;
-	bool			mailMergeFieldExists(const std::string & key) const;
-	void			setMailMergeField(const std::string & key, const std::string & value);
-
-	void			clearMailMergeMap();
-
-	void setMailMergeLink (const char * file) {
-		m_mailMergeLink = file;
-	}
-
-	const std::string & 							getMailMergeLink() const { return m_mailMergeLink; }
-	const std::map<std::string, std::string> &	getMailMergeMap() const  { return m_mailMergeMap; }
 
 	void invalidateCache(void);
 
@@ -949,11 +935,10 @@ private:
 	PT_AttrPropIndex        m_indexAP;
 	bool                    m_bDontImmediatelyLayout;
 
-	std::map<std::string, std::string>  m_mailMergeMap;
+
 
 	UT_UCS4Char             m_iLastDirMarker;
 
-	std::string             m_mailMergeLink;
 
 	// these are for use with the export*VisDirection functions
 	const fl_BlockLayout *  m_pVDBl;

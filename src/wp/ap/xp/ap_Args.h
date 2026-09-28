@@ -62,7 +62,6 @@ public:
 	static const char ** m_sFiles;
 	static int    m_iVersion;
 	static int    m_iHelp;
-	static const char * m_sMerge;
 
 	static const char * m_impProps;
 	static const char * m_expProps;

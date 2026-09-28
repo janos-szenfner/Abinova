@@ -83,7 +83,6 @@ libxap_la_SOURCES = \
 	xp/xap_Log.cpp \
 	xp/xap_Log.h \
 	xp/xap_Menu_ActionSet.h \
-	xp/xap_Menu_LabelSet.h \
 	xp/xap_Menu_Layouts.h \
 	xp/xap_Prefs.cpp \
 	xp/xap_Prefs.h \

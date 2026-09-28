@@ -105,11 +105,6 @@ bool AP_App::openCmdLineFiles(const AP_Args * args)
 		g_free(uri);
 
 		kWindowsOpened++;
-
-		if (args->m_sMerge) {
-			PD_Document * pDoc = static_cast<PD_Document*>(pFrame->getCurrentDoc());
-			pDoc->setMailMergeLink(args->m_sMerge);
-		}
 	}
 
 	if (kWindowsOpened == 0)
@@ -118,10 +113,6 @@ bool AP_App::openCmdLineFiles(const AP_Args * args)
 		
 		XAP_Frame * pFrame = newFrame();
 		pFrame->loadDocument((const char *)nullptr, IEFT_Unknown);
-		if (args->m_sMerge) {
-			PD_Document * pDoc = static_cast<PD_Document*>(pFrame->getCurrentDoc());
-			pDoc->setMailMergeLink(args->m_sMerge);
-		}
 	}
 
 	return true;

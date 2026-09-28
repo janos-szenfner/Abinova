@@ -39,57 +39,12 @@ public:
 	~XAP_Menu_Factory(void);
 	EV_Menu_Layout * CreateMenuLayout(const char * szName);
 	const char * FindContextMenu(EV_EditMouseContext emc);
-	XAP_Menu_Id			addNewMenuAfter(const char * szMenu,
-									   const char * szLanguage,
-									   const XAP_Menu_Id afterID,
-									   EV_Menu_LayoutFlags flags,
-									   XAP_Menu_Id newID = (XAP_Menu_Id)0);
-	XAP_Menu_Id        addNewMenuAfter(const char * szMenu,
-									   const char * szLanguage,
-									   const char * szAfter,
-									   EV_Menu_LayoutFlags flags,
-									   XAP_Menu_Id menuID = (XAP_Menu_Id)0);
-	XAP_Menu_Id			addNewMenuBefore(const char * szMenu,
-									   const char * szLanguage,
-									   const XAP_Menu_Id beforeID,
-									   EV_Menu_LayoutFlags flags,
-									   XAP_Menu_Id newID = (XAP_Menu_Id)0);
-	XAP_Menu_Id         addNewMenuBefore(const char * szMenu,
-										 const char * szLanguage,
-										 const char * szBefore,
-									   EV_Menu_LayoutFlags flags, XAP_Menu_Id menuID = (XAP_Menu_Id)0);
-	XAP_Menu_Id        getNewID(void);
-    XAP_Menu_Id        removeMenuItem(const char * szMenu,
-									  const char * szLanguage,
-									  XAP_Menu_Id nukeID);
-    XAP_Menu_Id        removeMenuItem(const char * szMenu,
-									  const char * szLanguage,
-									  const char * szNuke);
-	void         resetMenusToDefault(void);
-	UT_uint32    GetMenuLabelSetLanguageCount(void);
-	const std::string& GetNthMenuLabelLanguageName(UT_uint32 ndx);
 	EV_Menu_LabelSet *  CreateMenuLabelSet(const char * szLanguage_);
 	bool         buildMenuLabelSet(const char * szLanguage_);
-	bool         buildBuiltInMenuLabelSet(  EV_Menu_LabelSet *& pLabelSet);
-	bool         addNewLabel(const char * szMenu,
-								  XAP_Menu_Id newID,
-								  const char * szNewLabel,
-								  const char * szNewTooltip);
-	bool         removeLabel(const char * szMenu,
-							 XAP_Menu_Id nukeID);
-
-	void         resetLabelsToDefault(void);
-
-	EV_EditMouseContext createContextMenu(const char * szMenu);
-	void removeContextMenu(EV_EditMouseContext menuID);
 
 private:
 
   UT_GenericVector<_vectt *> m_vecTT;
   XAP_App * m_pApp;
   EV_Menu_LabelSet * m_pLabelSet;
-  EV_Menu_LabelSet * m_pEnglishLabelSet;
-  uint16_t m_maxID;
-  XAP_StringSet * m_pBSS;
-  EV_EditMouseContext m_NextContext;
 };

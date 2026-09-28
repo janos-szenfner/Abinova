@@ -73,8 +73,6 @@ public:
     ~EV_Menu_Layout();
 
     bool setLayoutItem(UT_uint32 indexLayoutItem, XAP_Menu_Id id, EV_Menu_LayoutFlags flags);
-    XAP_Menu_Id addLayoutItem(UT_uint32 indexLayoutItem, EV_Menu_LayoutFlags flags);
-    void addFakeLayoutItem(UT_uint32 indexLayoutItem, EV_Menu_LayoutFlags flags);
     EV_Menu_LayoutItem* getLayoutItem(UT_uint32 indexLayoutItem) const;
     UT_uint32 getLayoutIndex(XAP_Menu_Id id) const;
     const std::string& getName() const;
@@ -84,5 +82,4 @@ public:
 private:
     std::string m_stName; /* the name of our layout (like "MainMenu") */
     std::vector<EV_Menu_LayoutItem*> m_layoutTable;
-    uint16_t m_iMaxId;
 };

@@ -1004,25 +1004,6 @@ bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 	return true;
 }
 
-/*!
- * That will add a new menu entry for the menu item at layout_pos.
- *
- * @param layout_pos UT_uint32 with the relative position of the item in the
- * menu.
- * @return true if there were no problems.  False elsewere.
- */
-bool EV_UnixMenu::_doAddMenuItem(UT_uint32 layout_pos)
-{
-	if (layout_pos > 0) {
-		m_vecItemRecs.insert(m_vecItemRecs.begin() + layout_pos, _ItemRec());
-		// a new layout item appeared: rebuild the model
-		_rebuildBoundModel();
-		return true;
-	}
-
-	return false;
-}
-
 /*****************************************************************/
 
 EV_UnixMenuBar::EV_UnixMenuBar(XAP_UnixApp * pUnixApp,

@@ -52,24 +52,6 @@ class ABI_EXPORT IE_Imp_RDF_Sniffer : public IE_ImpSniffer
 };
 
 
-class ABI_EXPORT IE_Imp_RDF_VCard_Sniffer : public IE_Imp_RDF_Sniffer
-{
-  public:
-	IE_Imp_RDF_VCard_Sniffer();
-	virtual ~IE_Imp_RDF_VCard_Sniffer();
-
-	virtual bool getDlgLabels(const char ** szDesc,
-							   const char ** szSuffixList,
-							   IEFileType * ft) override;
-	virtual UT_Error constructImporter(PD_Document * pDocument,
-										IE_Imp ** ppie) override;
-
-    const IE_SuffixConfidence* getSuffixConfidence() override;
-    const IE_MimeConfidence*   getMimeConfidence() override;
-
-};
-
-
 class ABI_EXPORT IE_Imp_RDF_Calendar_Sniffer : public IE_Imp_RDF_Sniffer
 {
   public:
@@ -115,20 +97,6 @@ class ABI_EXPORT IE_Imp_RDF : public IE_Imp
   private:
 
 };
-
-class ABI_EXPORT IE_Imp_RDF_VCard : public IE_Imp_RDF
-{
-  public:
-	IE_Imp_RDF_VCard(PD_Document * pDocument, bool bEncoded=false);
-	IE_Imp_RDF_VCard(PD_Document * pDocument, const char * encoding);
-	virtual ~IE_Imp_RDF_VCard();
-
-    virtual bool pasteFromBufferSS(PD_DocumentRange * pDocRange,
-                                    std::stringstream& ss,
-                                    const char * szEncoding) override;
-
-};
-
 
 class ABI_EXPORT IE_Imp_RDF_Calendar : public IE_Imp_RDF
 {

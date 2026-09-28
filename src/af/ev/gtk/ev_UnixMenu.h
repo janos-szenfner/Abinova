@@ -68,7 +68,6 @@ public:
 
 protected:
 	bool				_refreshMenu(AV_View * pView);
-	virtual bool		_doAddMenuItem(UT_uint32 layout_pos) override;
 
 	// Rebuild the menu model. When a widget is already bound to
 	// m_pMenuModel (menubar/popup), the model must not be mutated in

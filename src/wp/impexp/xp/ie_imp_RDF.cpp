@@ -49,7 +49,6 @@
 #include <sstream>
 #include <list>
 
-#define IE_MIMETYPE_VCard			"text/x-vcard"
 #define IE_MIMETYPE_Calendar        "text/calendar"
 
 IE_Imp_RDF_Sniffer::IE_Imp_RDF_Sniffer( const char * n )
@@ -80,56 +79,6 @@ IE_Imp_RDF_Sniffer::recognizeContents( const char * szBuf, UT_uint32 iNumbytes )
 /**********/
 /**********/
 /**********/
-
-IE_Imp_RDF_VCard_Sniffer::IE_Imp_RDF_VCard_Sniffer()
-    :
-    IE_Imp_RDF_Sniffer( IE_MIMETYPE_VCard )
-{
-}
-
-IE_Imp_RDF_VCard_Sniffer::~IE_Imp_RDF_VCard_Sniffer()
-{
-}
-
-const IE_SuffixConfidence * IE_Imp_RDF_VCard_Sniffer::getSuffixConfidence ()
-{
-    static IE_SuffixConfidence ret[] = {
-        { "vcf", 	UT_CONFIDENCE_PERFECT 	},
-        { "vcard", 	UT_CONFIDENCE_PERFECT 	},
-        { "", 	UT_CONFIDENCE_ZILCH 	}
-    };
-    return ret;
-}
-
-const IE_MimeConfidence * IE_Imp_RDF_VCard_Sniffer::getMimeConfidence ()
-{
-    static IE_MimeConfidence ret[] = {
-        { IE_MIME_MATCH_FULL, 	IE_MIMETYPE_VCard, 	UT_CONFIDENCE_GOOD 	},
-        { IE_MIME_MATCH_CLASS, 	"text", 			UT_CONFIDENCE_SOSO 	}, 
-        { IE_MIME_MATCH_BOGUS, 	"", 				UT_CONFIDENCE_ZILCH }
-    };
-    return ret;
-}
-
-UT_Error IE_Imp_RDF_VCard_Sniffer::constructImporter( PD_Document * pDocument,
-                                                      IE_Imp ** ppie)
-{
-	IE_Imp_RDF* p = new IE_Imp_RDF_VCard( pDocument, false );
-	*ppie = p;
-	return UT_OK;
-}
-
-bool IE_Imp_RDF_VCard_Sniffer::getDlgLabels( const char ** /*pszDesc*/,
-                                             const char ** /*pszSuffixList*/,
-                                             IEFileType * /*ft*/ )
-{
-    return false;
-	// *pszDesc = "VCard (.vcf, .vcard)";
-	// *pszSuffixList = "*.vcf; *.vcard";
-	// *ft = getFileType();
-	// return true;
-}
-
 
 /**********/
 /**********/
@@ -278,124 +227,6 @@ IE_Imp_RDF::insertTextWithXMLID( const std::string& textconst,
 /**********/
 /**********/
 /**********/
-
-IE_Imp_RDF_VCard::IE_Imp_RDF_VCard( PD_Document * pDocument, bool bEncoded )
-    : IE_Imp_RDF( pDocument, bEncoded )
-{
-}
-
-IE_Imp_RDF_VCard::IE_Imp_RDF_VCard( PD_Document * pDocument, const char * encoding )
-    : IE_Imp_RDF( pDocument, encoding )
-{
-}
-
-IE_Imp_RDF_VCard::~IE_Imp_RDF_VCard()
-{
-}
-
-
-// #ifdef WITH_EVOLUTION_DATA_SERVER
-// extern "C" {
-//   #include <libebook/e-book.h>
-// };
-
-// static std::string get( EVCard* c, const char* v )
-// {
-//     EVCardAttribute* a = e_vcard_get_attribute( c, v );
-
-//     if( a && e_vcard_attribute_is_single_valued(a) )
-//     {
-//         return e_vcard_attribute_get_value(a);
-//     }
-//     return "";
-// }
-
-// static void addFoafProp( PD_DocumentRDFMutationHandle m,
-//                          EVCard* c,
-//                          const char* vckey,
-//                          const PD_URI& uuidnode,
-//                          const std::string& predend )
-// {
-//     PD_URI pred("http://xmlns.com/foaf/0.1/" + predend );
-//     std::string objdata = get( c, vckey );
-//     if( !objdata.empty() )
-//     {
-//         m->add( uuidnode, pred, PD_Literal( objdata ));
-//     }
-// }
-
-// #endif
-
-
-bool
-IE_Imp_RDF_VCard::pasteFromBufferSS( PD_DocumentRange * pDocRange,
-                                     std::stringstream& inputss,
-                                     const char * /*szEncoding*/ )
-{
-#ifndef WITH_EVOLUTION_DATA_SERVER
-	UT_UNUSED(pDocRange);
-	UT_UNUSED(inputss);
-    UT_DEBUGMSG(("can not parse vcards!\n"));
-    return true;
-#else
-
-    UT_DEBUGMSG(("trying to get card for data:%s\n",inputss.str().c_str() ));
-
-    PD_DocumentRDFHandle rdf = getDoc()->getDocumentRDF();
-    PD_RDFSemanticItemHandle obj = PD_RDFSemanticItem::createSemanticItem( rdf, "Contact" );
-    obj->importFromData( inputss, rdf, pDocRange );
-    
-    // if( EVCard* c = e_vcard_new_from_string( inputss.str().c_str() ) )
-    // {
-    //     std::string textrep = "";
-    //     typedef std::list< char* > charplist_t;
-    //     charplist_t textreplist;
-    //     textreplist.push_back( EVC_EMAIL );
-    //     textreplist.push_back( EVC_FN );
-    //     textreplist.push_back( EVC_NICKNAME );
-    //     textreplist.push_back( EVC_UID );
-    //     for( charplist_t::iterator iter = textreplist.begin();
-    //          iter != textreplist.end(); ++iter )
-    //     {
-    //         textrep = get( c, *iter );
-    //         if( !textrep.empty() )
-    //             break;
-    //     }
-    //     UT_DEBUGMSG(("have card!\n"));
-
-    //     PD_DocumentRDFHandle rdf = getDoc()->getDocumentRDF();
-        
-    //     std::string fn    = get( c, EVC_FN );
-    //     std::string uid   = get( c, EVC_UID );
-    //     std::string xmlid = rdf->makeLegalXMLID( fn + "_" + uid );
-    //     std::string email = get( c, EVC_EMAIL );
-
-    //     std::pair< PT_DocPosition, PT_DocPosition > se = insertTextWithXMLID( textrep, xmlid );
-    //     PT_DocPosition startpos = se.first;
-    //     PT_DocPosition   endpos = se.second;
-        
-    //     std::string uuid = "http://abicollab.net/rdf/foaf#" + xmlid;
-    //     PD_URI uuidnode(uuid);
-    //     PD_DocumentRDFMutationHandle m = rdf->createMutation();
-    //     m->add( PD_URI(uuid),
-    //             PD_URI("http://docs.oasis-open.org/opendocument/meta/package/common#idref"),
-    //             PD_Literal( xmlid ) );
-    //     m->add( PD_URI(uuid),
-    //             PD_URI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-    //             PD_Object("http://xmlns.com/foaf/0.1/Person") );
-    //     addFoafProp( m, c, EVC_TEL,      uuidnode, "phone" );
-    //     addFoafProp( m, c, EVC_NICKNAME, uuidnode, "nick" );
-    //     addFoafProp( m, c, EVC_FN,       uuidnode, "name" );
-    //     addFoafProp( m, c, EVC_N,        uuidnode, "givenName" );
-    //     addFoafProp( m, c, EVC_X_JABBER, uuidnode, "jabberID" );
-            
-    //     m->commit();
-    // }
-
-    return true;
-
-#endif
-}
 
 /**********/
 /**********/

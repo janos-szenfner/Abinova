@@ -46,7 +46,6 @@ int AP_Args::m_iVerbose = 1;
 const char ** AP_Args::m_sFiles = nullptr;
 int AP_Args::m_iVersion = 0;
 int AP_Args::m_iHelp = 0;
-const char * AP_Args::m_sMerge = nullptr;
 const char * AP_Args::m_impProps=nullptr;
 const char * AP_Args::m_expProps=nullptr;
 const char * AP_Args::m_sUserProfile = nullptr;
@@ -60,7 +59,7 @@ static GOptionEntry _entries[] = {
         {"geometry", 'g', 0, G_OPTION_ARG_STRING, &AP_Args::m_sGeometry, "Set initial frame geometry", "GEOMETRY"} ,
         {"to", 't', 0, G_OPTION_ARG_STRING, &AP_Args::m_sToFormat, "Target format of the file (abw, zabw, rtf, txt, utf8, html, ...), depends on available filter plugins", "FORMAT"},
         {"verbose", '\0', 0, G_OPTION_ARG_INT, &AP_Args::m_iVerbose, "Set verbosity level (0, 1, 2), with 2 being the most verbose", "LEVEL"},
-        {"print", 'p',0, G_OPTION_ARG_STRING, &AP_Args::m_sPrintTo, "Print this file to printer","'Printer name' or '-' for default printer"},        {"merge", 'm', 0, G_OPTION_ARG_STRING, &AP_Args::m_sMerge, "Mail-merge", "FILE"},
+        {"print", 'p',0, G_OPTION_ARG_STRING, &AP_Args::m_sPrintTo, "Print this file to printer","'Printer name' or '-' for default printer"},
         {"imp-props", 'i', 0, G_OPTION_ARG_STRING, &AP_Args::m_impProps, "Importer Arguments", "CSS String"},
         {"exp-props", 'e', 0, G_OPTION_ARG_STRING, &AP_Args::m_expProps, "Exporter Arguments", "CSS String"},
         {"thumb", '\0', 0, G_OPTION_ARG_INT, &AP_Args::m_iToThumb, "Make a thumb nail of the first page",""},
@@ -153,7 +152,6 @@ void AP_Args::parseOptions()
 		XX_inplaceDecode(*arr);
 		arr++;
 	}
-	if (m_sMerge) XX_inplaceDecode(m_sMerge);
 	if (m_impProps) XX_inplaceDecode(m_impProps);
 	if (m_expProps) XX_inplaceDecode(m_expProps);
 	if (m_sName) XX_inplaceDecode(m_sName);
@@ -181,8 +179,6 @@ bool AP_Args::doWindowlessArgs(bool & bSuccessful)
 	{
 		AP_Convert * conv = new AP_Convert();
 		conv->setVerbose(m_iVerbose);
-		if (m_sMerge)
-			conv->setMergeSource (m_sMerge);
 		if (m_impProps)
 			conv->setImpProps (m_impProps);
 		if (m_expProps)

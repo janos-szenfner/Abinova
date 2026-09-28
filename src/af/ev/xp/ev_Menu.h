@@ -62,8 +62,6 @@ public:
 	EV_Menu_Layout *			getLayout() { return m_pMenuLayout; }
 	EV_Menu_LabelSet *			getLabelSet() { return m_pMenuLabelSet; }
 
-	XAP_Menu_Id					addMenuItem(const UT_String& path, const UT_String& description);
-
 protected:
 	const char ** 				getLabelName(XAP_App * pApp,
 											 const EV_Menu_Action * pAction, const EV_Menu_Label * pLabel) const;
@@ -74,11 +72,6 @@ protected:
 	EV_Menu_Layout *			m_pMenuLayout;	/* abstract ordering of our menu */
 	EV_Menu_LabelSet *			m_pMenuLabelSet;/* strings (in a given language) for the menu */
 
-protected:
-	virtual bool				_doAddMenuItem(UT_uint32 layout_pos) = 0;
-
 private:
 	XAP_App *					m_pApp;
 };
-
-XAP_Menu_Id EV_searchMenuLabel(const EV_Menu_LabelSet* labels, const UT_String &label);

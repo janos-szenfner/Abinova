@@ -155,7 +155,6 @@
 #include "ut_timer.h"
 #include "ut_Script.h"
 #include "ut_path.h"
-#include "ie_mailmerge.h"
 #include "gr_Painter.h"
 #include "fp_FootnoteContainer.h"
 
@@ -803,8 +802,6 @@ public:
 	
 	static EV_EditMethod_Fn executeScript;
 
-        static EV_EditMethod_Fn mailMerge;
-
 	static EV_EditMethod_Fn hyperlinkCopyLocation;
 	static EV_EditMethod_Fn hyperlinkJump;
 	static EV_EditMethod_Fn hyperlinkJumpPos;
@@ -812,7 +809,6 @@ public:
 	static EV_EditMethod_Fn rdfAnchorEditTriples;
 	static EV_EditMethod_Fn rdfAnchorQuery;
 	static EV_EditMethod_Fn rdfAnchorEditSemanticItem;
-	static EV_EditMethod_Fn rdfAnchorExportSemanticItem;
 	static EV_EditMethod_Fn rdfAnchorSelectThisReferenceToSemanticItem;
 	static EV_EditMethod_Fn rdfAnchorSelectNextReferenceToSemanticItem;
 	static EV_EditMethod_Fn rdfAnchorSelectPrevReferenceToSemanticItem;
@@ -895,7 +891,6 @@ public:
 	static EV_EditMethod_Fn rdfQueryXMLIDs;
  	static EV_EditMethod_Fn rdfInsertRef;
 	static EV_EditMethod_Fn rdfInsertNewContact;
-	static EV_EditMethod_Fn rdfInsertNewContactFromFile;
 	
 	static EV_EditMethod_Fn noop;
 
@@ -1339,7 +1334,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// r
 	EV_EditMethod(NF(rdfAnchorEditSemanticItem) , 0,  ""),
 	EV_EditMethod(NF(rdfAnchorEditTriples), 0,  ""),
-	EV_EditMethod(NF(rdfAnchorExportSemanticItem) , 0,  ""),
 	EV_EditMethod(NF(rdfAnchorQuery) ,     0,  ""),
 	EV_EditMethod(NF(rdfAnchorSelectNextReferenceToSemanticItem) , 0,  ""),
 	EV_EditMethod(NF(rdfAnchorSelectPrevReferenceToSemanticItem) , 0,  ""),
@@ -1360,7 +1354,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(rdfDisassocateCurrentStyleSheet),  0,  ""),
 	EV_EditMethod(NF(rdfEditor),            0,	""),
 	EV_EditMethod(NF(rdfInsertNewContact),  0,	""),
-	EV_EditMethod(NF(rdfInsertNewContactFromFile),  0,	""),
 	EV_EditMethod(NF(rdfInsertRef),         0,	""),
 #ifdef DEBUG
 	EV_EditMethod(NF(rdfPlay), 				0,	""),
@@ -12799,26 +12792,6 @@ Defun1(rdfInsertNewContact)
 	return 0;
 }
 
-Defun1(rdfInsertNewContactFromFile)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-
-	if( PD_Document * pDoc = pView->getDocument() )
-	{
-		if( PD_DocumentRDFHandle rdf = pDoc->getDocumentRDF() )
-		{
-			std::string objname;
-			const XAP_StringSet *pSS = XAP_App::getApp()->getStringSet();
-			pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Insert_NewContact, objname);
-			PD_RDFSemanticItemHandle obj = PD_RDFSemanticItem::createSemanticItem( rdf, "Contact" );
-			obj->setName( objname );
-			obj->importFromFile();
-		}
-	}
-	return 0;
-}
-
 Defun1(rdfInsertRef)
 {
 	CHECK_FRAME;
@@ -15142,37 +15115,6 @@ static bool s_AskForScriptName(XAP_Frame * pFrame,
 	return bOK;
 }
 
-class ABI_EXPORT OneShot_MailMerge_Listener : public IE_MailMerge::IE_MailMerge_Listener
-{
-public:
-
-	explicit OneShot_MailMerge_Listener (PD_Document * pd)
-		: IE_MailMerge::IE_MailMerge_Listener (), m_doc (pd)
-		{
-
-		}
-
-	virtual ~OneShot_MailMerge_Listener ()
-		{
-		}
-		
-	virtual PD_Document* getMergeDocument() const  override
-		{
-			return m_doc;
-		}
-	
-	virtual bool fireUpdate() override
-		{
-			// don't process any more data
-			return false;
-		}
-	
-private:
-	PD_Document *m_doc;
-};
-
-
-
 Defun(executeScript)
 {
 	CHECK_FRAME;
@@ -15697,85 +15639,6 @@ Defun1(rdfAnchorEditSemanticItem)
 			// 	{
 			// 		c->showEditorWindow(c);
 			// 	}
-			// }
-		}
-	}
-	return 0;
-}
-
-Defun1(rdfAnchorExportSemanticItem)
-{
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView,false);
-	if( PD_Document * pDoc = pView->getDocument() )
-	{
-		if( PD_DocumentRDFHandle rdf = pDoc->getDocumentRDF() )
-		{
-			std::set< std::string > xmlids;
-			rdf->addRelevantIDsForPosition( xmlids, pView->getPoint() );
-
-			if( xmlids.empty() )
-				return 0;
-
-			std::string filename = "";
-			PD_RDFSemanticItems sl = rdf->getSemanticObjects( xmlids );
-			for( PD_RDFSemanticItems::iterator ci = sl.begin();
-				 ci != sl.end(); ++ci )
-			{
-				PD_RDFSemanticItemHandle h = *ci;
-				std::set< std::string > clist = h->getXMLIDs();
-				std::set< std::string > tmp;
-				std::set_intersection( xmlids.begin(), xmlids.end(),
-									   clist.begin(), clist.end(),
-									   std::inserter( tmp, tmp.end() ));
-				if( !tmp.empty() )
-				{
-					h->exportToFile();
-				}
-				
-			}
-			
-			
-			// rdf->addRelevantIDsForPosition( xmlids, pView->getPoint() );
-			// PD_RDFContacts contacts = rdf->getContacts();
-			// for( PD_RDFContacts::iterator ci = contacts.begin();
-			// 	 ci != contacts.end(); ++ci )
-			// {
-			// 	PD_RDFContactHandle c = *ci;
-			// 	std::set< std::string > clist = c->getXMLIDs();
-			// 	std::set< std::string > tmp;
-			// 	std::set_intersection( xmlids.begin(), xmlids.end(),
-			// 						   clist.begin(), clist.end(),
-			// 						   inserter( tmp, tmp.end() ));
-			// 	if( !tmp.empty() )
-			// 		c->exportToFile();
-			// }
-			// PD_RDFEvents events = rdf->getEvents();
-			// for( PD_RDFEvents::iterator ci = events.begin();
-			// 	 ci != events.end(); ++ci )
-			// {
-			// 	PD_RDFEventHandle c = *ci;
-			// 	std::set< std::string > clist = c->getXMLIDs();
-			// 	std::set< std::string > tmp;
-			// 	std::set_intersection( xmlids.begin(), xmlids.end(),
-			// 						   clist.begin(), clist.end(),
-			// 						   inserter( tmp, tmp.end() ));
-			// 	if( !tmp.empty() )
-			// 		c->exportToFile();
-			// }
-			// PD_RDFLocations locations = rdf->getLocations();
-			// for( PD_RDFLocations::iterator ci = locations.begin();
-			// 	 ci != locations.end(); ++ci )
-			// {
-			// 	PD_RDFLocationHandle c = *ci;
-			// 	std::set< std::string > clist = c->getXMLIDs();
-			// 	std::set< std::string > tmp;
-			// 	std::set_intersection( xmlids.begin(), xmlids.end(),
-			// 						   clist.begin(), clist.end(),
-			// 						   inserter( tmp, tmp.end() ));
-			// 	if( !tmp.empty() )
-			// 		c->exportToFile();
 			// }
 		}
 	}

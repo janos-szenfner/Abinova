@@ -38,7 +38,6 @@
 #include "ev_Menu_Actions.h"
 #include "ev_Menu_Labels.h"
 #include "xap_Menu_Layouts.h"
-#include "xap_Menu_LabelSet.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 
@@ -67,84 +66,6 @@ EV_Menu::~EV_Menu()
 {
 	DELETEP(m_pMenuLayout);
 	DELETEP(m_pMenuLabelSet);
-}
-
-XAP_Menu_Id
-EV_Menu::addMenuItem(const UT_String &path, const UT_String& description)
-{
-	UT_DEBUGMSG(("Adding path %s.\n", path.c_str()));
-	std::vector<std::string> names = UT_simpleSplit(path.c_str(), '/');
-//	EV_Menu_ActionSet *pMenuActionSet = getApp()->getMenuActionSet();
-	std::string label;
-	UT_uint32 last_pos = 1;
-	XAP_Menu_Id last_index = (XAP_Menu_Id)0;
-	XAP_Menu_Id index = (XAP_Menu_Id)0;
-	UT_ASSERT(!names.empty());
-	UT_ASSERT(m_pMenuLabelSet);
-//	UT_ASSERT(pMenuActionSet);
-
-	// if need, we create submenus
-	UT_DEBUGMSG(("Gonna create submenus...\n"));
-	size_t end = names.size() - 1;
-	for (size_t i = 0; i < end; ++i)
-	{
-		label = names[i];
-		UT_ASSERT(!label.empty());
-		index = EV_searchMenuLabel(m_pMenuLabelSet, label);
-
-		// Here we should create end - i submenus
-		if (index == 0)
-		{
-			UT_DEBUGMSG(("... yes.  i = [%zd], end = [%zd]\n", i, end));
-			UT_uint32 lpos = m_pMenuLayout->getLayoutIndex(last_index);
-
-			// and now we add the new submenus
-			for (size_t j = i; j < end; ++j)
-			{
-				label = names[j];
-				UT_ASSERT(!label.empty());
-				index = m_pMenuLayout->addLayoutItem(++lpos, EV_MLF_BeginSubMenu);
-//				pMenuActionSet->addAction(action);
-				m_pMenuLabelSet->addLabel(new EV_Menu_Label(index, label.c_str(), description.c_str()));
-				_doAddMenuItem(lpos);
-			}
-
-			last_pos = lpos + 1;
-
-			// and we close the submenus
-			for (size_t k = i; k < end; ++k)
-			{
-				m_pMenuLayout->addFakeLayoutItem(++lpos, EV_MLF_EndSubMenu);
-				_doAddMenuItem(lpos);
-			}
-
-			break;
-		}
-
-		last_index = index;
-	}
-
-	if (index != 0)
-		last_pos = m_pMenuLayout->getLayoutIndex(last_index) + 1;
-
-	UT_DEBUGMSG(("Gonna add a menu item.\n"));
-	// and now we create the menu item
-	index = m_pMenuLayout->addLayoutItem(last_pos, EV_MLF_Normal);
-//	pMenuActionSet->addAction(new EV_Menu_Action(index, false, false, false, "scriptPlay", nullptr, nullptr));
-	m_pMenuLabelSet->addLabel(new EV_Menu_Label(index, names.back().c_str(),
-												names.back().c_str()));
-
-	if (!_doAddMenuItem(last_pos))
-	{
-		UT_ASSERT(UT_NOT_IMPLEMENTED);
-#if 0
-//		pMenuActionSet->deleteAction(index);
-		m_pMenuLabelSet->deleteLabel(index);
-		m_pMenuLayout->deleteLayoutItem(index);
-#endif
-	}
-
-	return index;
 }
 
 bool EV_Menu::invokeMenuMethod(AV_View * pView,
@@ -269,25 +190,4 @@ const char ** EV_Menu::getLabelName(XAP_App * pApp,
 	data[0] = buf;
 
 	return data;
-}
-
-XAP_Menu_Id EV_searchMenuLabel(const EV_Menu_LabelSet *labels, const UT_String &label)
-{
-	const std::vector<EV_Menu_Label*>& labels_table = labels->getAllLabels();
-	const EV_Menu_Label *l = nullptr;
-
-	UT_uint32 size_labels = labels_table.size();
-	XAP_Menu_Id id = (XAP_Menu_Id)0;
-
-	for (UT_uint32 i = 0; i < size_labels; ++i)
-	{
-		l = labels_table.at(i);
-		if (l && label ==l->getMenuLabel())
-		{
-			id = l->getMenuId();
-			break;
-		}
-	}
-
-	return id;
 }

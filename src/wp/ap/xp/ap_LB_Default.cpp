@@ -137,10 +137,9 @@ ap_bs_Mouse MouseTable[] =
 
 //	Button-1, Image-context
 //  { context	{ click				doubleclick		drag,		dbldrag,		release,	doublerelease }},
-	{_CI _B1,	{ "selectObject",	"dlgFmtImage",	"",			"",				"",			""	}},
+	{_CI _B1,	{ "selectObject",	"selectObject",	"",			"",				"",			""	}},
 	{_CI _B1 _C,{ "copyInlineImage",	"copyInlineImage",				"dragInlineImage","dragInlineImage",				"releaseInlineImage","releaseInlineImage"	}},
 
-	{_CF _B1,	{ "warpInsPtToXY",	"selectObject",	"",			"",				"",			""	}},
 	{_CF _B1,	{ "warpInsPtToXY",	"selectObject",	"",			"",				"",			""	}},
 	
 //	Button-1, Text-context
@@ -177,12 +176,8 @@ ap_bs_Mouse MouseTable[] =
 	{_CEM _B1,	{ "btn1InlineImage",				"dlgFmtPosImage",				"dragInlineImage",	"",		"releaseInlineImage",	"releaseInlineImage"				}},
 	{_CEM _B1 _C,{ "copyInlineImage",	"copyInlineImage",				"dragInlineImage","dragInlineImage",				"releaseInlineImage","releaseInlineImage"	}},
 
-//	{_CI _B1,	{ "selectImage",	"editImage",	"moveImage","",			"endImageMove",	""				}},
-
 //	Button-1, Math-context
 	{_CMA _B1, {"selectMath",                "editLatexEquation",   "selectMath",            "",             "",                       "" }},
-
-//	{_CI _B1,	{ "selectImage",	"editImage",	"moveImage","",			"endImageMove",	""				}},
 
 //	Button-1, TableLine-context
 
@@ -202,14 +197,6 @@ ap_bs_Mouse MouseTable[] =
 	{_CTS _B1,	{ "borderSampleAt","",			"",				"",		"",				""				}},
 
 
-//	Button-1, ImageSize-context
-//  { context	{ click				doubleclick		drag,		dbldrag,	release,		doublerelease	}},
-//	{_CI _B1,	{ "startImageSize",	"",				"dragImageSize","",		"endImageSize",	""				}},
-
-//	Button-1, Field-context
-//  { context	{ click				doubleclick		drag,	dbldrag,	release,	doublerelease	}},
-//	{_CI _B1,	{ "selectField",	"editField",	"",		"",			"",			""				}},
-
 //	Button-2, Text-context
 //  { context	{ click				doubleclick		drag,		dbldrag,		release,	doublerelease	}},
 
@@ -219,14 +206,12 @@ ap_bs_Mouse MouseTable[] =
 
 //	Button-3, context menus
 //  { context	{ click					dblclick	drag,	dbldrag,	release,	doublerelease	}},
-	//{_CU _B3,	{ "contextDefault",		"",			"",		"",			"",			""				}},
 	{_CT _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
 	{_CTB _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
 	{_CTV _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
 	{_CTH _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
 	{_CTC _B3,	{ "contextText",		"",			"",		"",			"",			""				}},
 	{_CVD _B3,  { "contextText",		"",			"",		"",			"",			""				}},
-	//{_CL _B3,	{ "contextLeftOfText",	"",			"",		"",			"",			""				}},
 #ifdef ENABLE_SPELL
 	{_CM _B3,	{ "contextMisspellText","",			"",		"",			"",			""				}},
 #endif
@@ -236,9 +221,6 @@ ap_bs_Mouse MouseTable[] =
 	{_CPO _B3,	{ "contextPosObject",		"",			"",		"",			"",			""				}},
 	{_CEM _B3,	{ "contextEmbedLayout",		"",			"",		"",			"",			""				}},
 	{_CMA _B3, {"editLatexEquation",                "editLatexEquation",   "selectMath",            "",             "",                       "" }},
-
-	//{_CZ _B3,	{ "contextImageSize",	"",			"",		"",			"",			""				}},
-	//{_CF _B3,	{ "contextField",		"",			"",		"",			"",			""				}},
 
 	{_CH _B3,	{ "contextHyperlink", "",  "",	"", "",	 ""  }},
 
@@ -277,8 +259,6 @@ ap_bs_Mouse MouseTable[] =
 	{_CVD _B4 _C,{ "zoomIn",		            "zoomIn",           			"",		"",			"",			""				}},
 	{_CTC _B4,	{ "scrollWheelMouseUp",		"scrollWheelMouseUp",			"",		"",			"",			""				}},
 	{_CTC _B4 _C,{ "zoomIn",		            "zoomIn",           			"",		"",			"",			""				}},
-	{_CTO _B4,	{ "scrollWheelMouseUp",		"scrollWheelMouseUp",			"",		"",			"",			""				}},
-	{_CTO _B4 _C,{ "zoomIn",		            "zoomIn",           			"",		"",			"",			""				}},
 	{_CPO _B4,	{ "scrollWheelMouseUp",		"scrollWheelMouseUp",			"",		"",			"",			""				}},
 	{_CPO _B4 _C,{ "zoomIn",		            "zoomIn",           			"",		"",			"",			""				}},
 	{_CMA _B4,	{ "scrollWheelMouseUp",		"scrollWheelMouseUp",			"",		"",			"",			""				}},
@@ -317,13 +297,11 @@ ap_bs_Mouse MouseTable[] =
 	{_CTO _B5,	{ "scrollWheelMouseDown",		"scrollWheelMouseDown",			"",		"",			"",			""				}},
 	{_CTO _B5 _C,{ "zoomOut",		            "zoomOut",           			"",		"",			"",			""				}},
 	{_CTC _B5,	{ "scrollWheelMouseDown",		"scrollWheelMouseDown",			"",		"",			"",			""				}},
-	{_CTC _B5 _C,{ "zoomOut",		            "zoomIn",           			"",		"",			"",			""				}},
-	{_CTO _B5,	{ "scrollWheelMouseDown",		"scrollWheelMouseDown",			"",		"",			"",			""				}},
-	{_CTO _B5 _C,{ "zoomOut",		            "zoomIn",           			"",		"",			"",			""				}},
+	{_CTC _B5 _C,{ "zoomOut",		            "zoomOut",           			"",		"",			"",			""				}},
 	{_CPO _B5,	{ "scrollWheelMouseDown",		"scrollWheelMouseDown",			"",		"",			"",			""				}},
-	{_CPO _B5 _C,{ "zoomOut",		            "zoomIn",           			"",		"",			"",			""				}},
+	{_CPO _B5 _C,{ "zoomOut",		            "zoomOut",           			"",		"",			"",			""				}},
 	{_CMA _B5,	{ "scrollWheelMouseDown",		"scrollWheelMouseDown",			"",		"",			"",			""				}},
-	{_CMA _B5 _C,{ "zoomOut",		            "zoomIn",           			"",		"",			"",			""				}},
+	{_CMA _B5 _C,{ "zoomOut",		            "zoomOut",           			"",		"",			"",			""				}},
 	{_CEM _B5,	{ "scrollWheelMouseDown",		"scrollWheelMouseDown",			"",		"",			"",			""				}},
 	{_CEM _B5 _C,{ "zoomOut",		            "zoomIn",           			"",		"",			"",			""				}},
 

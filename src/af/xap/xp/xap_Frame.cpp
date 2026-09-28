@@ -42,7 +42,6 @@
 #include "ev_Menu_Layouts.h"
 #include "ev_Menu_Labels.h"
 #include "xap_Menu_Layouts.h"
-#include "xap_Menu_LabelSet.h"
 #include "xav_View.h"
 #include "xad_Document.h"
 #include "xap_Scrollbar_ViewListener.h"

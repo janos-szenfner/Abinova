@@ -31,11 +31,12 @@
 
 // Include each menu layout that we want to build.
 
-#if defined (EMBEDDED_TARGET) && EMBEDDED_TARGET != EMBEDDED_TARGET_HILDON
-#include "ap_Menu_Layouts_Embedded.h"
-#else
-#include "ap_Menu_Layouts_MainMenu.h"
-#endif
+/* The ribbon is the only chrome — there is no classic menubar.
+ * A stub "Main" layout is kept so EV_UnixMenuBar can still own the
+ * shared label set and action group that the ribbon and the
+ * context popups draw from. */
+BeginLayout(Main,0)
+EndLayout()
 
 #include "ap_ML_ContextText.h"
 #include "ap_ML_ContextTable.h"

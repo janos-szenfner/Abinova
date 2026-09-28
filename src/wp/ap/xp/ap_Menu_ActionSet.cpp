@@ -322,7 +322,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_RDFANCHOR_EDIT_TRIPLES,   0,0,0,0, "rdfAnchorEditTriples", nullptr, nullptr);
 	_s(AP_MENU_ID_RDFANCHOR_QUERY,         0,0,0,0, "rdfAnchorQuery", nullptr, nullptr);
 	_s(AP_MENU_ID_RDFANCHOR_EDITSEMITEM,      0,0,0,0, "rdfAnchorEditSemanticItem", ap_GetState_haveSemItems, nullptr);
-	_s(AP_MENU_ID_RDFANCHOR_EXPORTSEMITEM,    0,0,0,0, "rdfAnchorExportSemanticItem", ap_GetState_haveSemItems, nullptr);
 	_s(AP_MENU_ID_RDFANCHOR_SELECTTHISREFTOSEMITEM,    0,0,0,0, "rdfAnchorSelectThisReferenceToSemanticItem", ap_GetState_haveSemItems, nullptr);
 	_s(AP_MENU_ID_RDFANCHOR_SELECTNEXTREFTOSEMITEM,    0,0,0,0, "rdfAnchorSelectNextReferenceToSemanticItem", ap_GetState_haveSemItems, nullptr);
 	_s(AP_MENU_ID_RDFANCHOR_SELECTPREVREFTOSEMITEM,    0,0,0,0, "rdfAnchorSelectPrevReferenceToSemanticItem", ap_GetState_haveSemItems, nullptr);
@@ -404,7 +403,6 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_RDF_SEMITEM_CREATEREF,    0,1,0,0,"rdfInsertRef",ap_GetState_RDF_Query,nullptr);
     _s(AP_MENU_ID_RDF_SEMITEM_NEW,          1,0,0,0,nullptr,nullptr,nullptr);
     _s(AP_MENU_ID_RDF_SEMITEM_NEW_CONTACT,  0,0,0,0,"rdfInsertNewContact",nullptr,nullptr);
-    _s(AP_MENU_ID_RDF_SEMITEM_NEW_CONTACT_FROM_FILE,  0,1,0,0,"rdfInsertNewContactFromFile",ap_GetState_RDF_Contact,nullptr);
 #ifdef DEBUG
 	_s(AP_MENU_ID_RDF_ADV,1,0,0,0,nullptr,nullptr,nullptr);
 	_s(AP_MENU_ID_RDF_ADV_DUMP_FOR_POINT,0,0,0,0,"dumpRDFForPoint",nullptr,nullptr);

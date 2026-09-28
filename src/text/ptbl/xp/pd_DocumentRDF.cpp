@@ -1880,40 +1880,6 @@ PD_RDFContact::className() const
 }
 
 
-#ifdef WITH_EVOLUTION_DATA_SERVER
-#include "ut_compiler.h"
-ABI_W_NO_DEPRECATED
-#include <libebook/libebook.h>
-ABI_W_POP
-
-static std::string get( EVCard* c, const char* v )
-{
-    EVCardAttribute* a = e_vcard_get_attribute( c, v );
-    UT_DEBUGMSG((" cvard.group:%s v:%s\n", e_vcard_attribute_get_group( a ), v ));
-
-    if( a && e_vcard_attribute_is_single_valued(a) )
-    {
-        return e_vcard_attribute_get_value(a);
-    }
-    return "";
-}
-
-static void set( EVCard* c, const char* k, const std::string& v )
-{
-    EVCardAttribute* a = e_vcard_get_attribute( c, k );
-    if( !a )
-    {
-        a = e_vcard_attribute_new(nullptr, k);
-        e_vcard_append_attribute( c, a );
-    }
-    
-    if( a )
-    {
-        e_vcard_attribute_add_value( a, v.c_str() );
-    }
-}
-#endif
-
 std::list< std::pair< std::string, std::string> >
 PD_RDFContact::getImportTypes() const
 {
@@ -1925,77 +1891,9 @@ PD_RDFContact::getImportTypes() const
 void
 PD_RDFContact::importFromData( std::istream& iss, PD_DocumentRDFHandle rdf, PD_DocumentRange * pDocRange )
 {
-#ifdef WITH_EVOLUTION_DATA_SERVER
-
-    std::string vcard = StreamToString( iss );
-    UT_DEBUGMSG(("trying to get card for data:%s\n", vcard.c_str() ));
-    if( EVCard* c = e_vcard_new_from_string( vcard.c_str() ) )
-    {
-        std::string textrep = "";
-        typedef std::list< const char* > charplist_t;
-        charplist_t textreplist;
-        textreplist.push_back( EVC_EMAIL );
-        textreplist.push_back( EVC_FN );
-        textreplist.push_back( EVC_NICKNAME );
-        textreplist.push_back( EVC_UID );
-        for( charplist_t::iterator iter = textreplist.begin();
-             iter != textreplist.end(); ++iter )
-        {
-            textrep = get( c, *iter );
-            if( !textrep.empty() )
-                break;
-        }
-        UT_DEBUGMSG(("have card!\n"));
-
-        std::string fn    = get( c, EVC_FN );
-        std::string uid   = get( c, EVC_UID );
-        std::string xmlid = rdf->makeLegalXMLID( fn + "_" + uid );
-        std::string email = get( c, EVC_EMAIL );
-        UT_DEBUGMSG(("uid:%s xmlid:%s\n", uid.c_str(), xmlid.c_str() ));
-
-        m_name  = fn;
-        m_nick  = get( c, EVC_NICKNAME );
-        m_email = email;
-        m_phone = get( c, EVC_TEL );
-        m_jabberID = get( c, EVC_X_JABBER );
-        
-        // std::pair< PT_DocPosition, PT_DocPosition > se = insertTextWithXMLID( textrep, xmlid );
-        // PT_DocPosition startpos = se.first;
-        // PT_DocPosition   endpos = se.second;
-
-        std::string uuid = "http://abicollab.net/rdf/foaf#" + uid;
-        m_linkingSubject = PD_URI( uuid );
-        XAP_Frame* lff = XAP_App::getApp()->getLastFocussedFrame();
-        if(lff) 
-        {
-//            FV_View * pView = static_cast<FV_View*>( lff->getCurrentView() );
-//            std::pair< PT_DocPosition, PT_DocPosition > se = insert( pView );
-//            PT_DocPosition startpos = se.first;
-//            PT_DocPosition   endpos = se.second;
-        }
-        
-        // PD_DocumentRDFMutationHandle m = rdf->createMutation();
-        // m->add( PD_URI(uuid),
-        //         PD_URI("http://docs.oasis-open.org/opendocument/meta/package/common#idref"),
-        //         PD_Literal( xmlid ) );
-        // // m->add( PD_URI(uuid),
-        // //         PD_URI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-        // //         PD_Object("http://xmlns.com/foaf/0.1/Person") );
-        // // addFoafProp( m, c, EVC_TEL,      uuidnode, "phone" );
-        // // addFoafProp( m, c, EVC_NICKNAME, uuidnode, "nick" );
-        // // addFoafProp( m, c, EVC_FN,       uuidnode, "name" );
-        // // addFoafProp( m, c, EVC_N,        uuidnode, "givenName" );
-        // // addFoafProp( m, c, EVC_X_JABBER, uuidnode, "jabberID" );
-            
-        PD_DocumentRDFMutationHandle m = rdf->createMutation();
-        importFromDataComplete( iss, rdf, m, pDocRange );
-        m->commit();
-    }
-#else
 	UT_UNUSED(iss);
 	UT_UNUSED(rdf);
 	UT_UNUSED(pDocRange);
-#endif
 }
 
 
@@ -2023,28 +1921,6 @@ PD_RDFContact::exportToFile( const std::string& filename_const ) const
                                                 getExportTypes() );
 
     UT_DEBUGMSG(( "saving vcard to file:%s\n", filename.c_str() ));
-
-#ifdef WITH_EVOLUTION_DATA_SERVER
-
-    if( EVCard* c = e_vcard_new() )
-    {
-        set( c, EVC_FN,    m_name );
-        set( c, EVC_UID,   m_linkingSubject.toString() );
-        set( c, EVC_EMAIL, m_email );
-        set( c, EVC_NICKNAME, m_nick );
-        set( c, EVC_TEL,      m_phone );
-        set( c, EVC_X_JABBER, m_jabberID );
-
-        gchar* data =  e_vcard_to_string( c, EVC_FORMAT_VCARD_30 );
-        UT_DEBUGMSG(( "saving vcard to file:%s vcard.len:%ld\n", filename.c_str(), strlen(data) ));
-        std::ofstream oss( filename.c_str() );
-        oss.write( data, strlen(data) );
-        oss.flush();
-        oss.close();
-        g_free(data);
-    }
-    
-#endif    
 }
 
 /******************************/

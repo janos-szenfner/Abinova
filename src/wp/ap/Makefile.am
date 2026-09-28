@@ -157,8 +157,6 @@ libap_la_SOURCES = \
 	xp/ap_Menu_Id_List.h \
 	xp/ap_Menu_Layouts_All.h \
 	xp/ap_Menu_Layouts.cpp \
-	xp/ap_Menu_Layouts_Embedded.h \
-	xp/ap_Menu_Layouts_MainMenu.h \
 	xp/ap_ML_ContextEmbed.h \
 	xp/ap_ML_ContextEquation.h \
 	xp/ap_ML_ContextFrame.h \

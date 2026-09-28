@@ -49,7 +49,6 @@ class ABI_EXPORT AP_Convert
 		       const char * szTargetSuffixOrMime);
 
 	void setVerbose(int level);
-	void setMergeSource (const char * source);
 
 	bool print(const char * file, GR_Graphics * pGraphics, const char * szFileExtension = nullptr);
 	bool printFirstPage(GR_Graphics * pGraphics, PD_Document * pDoc);
@@ -64,7 +63,6 @@ class ABI_EXPORT AP_Convert
 
  private:
 	int m_iVerbose;
-	UT_UTF8String m_mergeSource;
 
 	UT_UTF8String m_impProps;
 	UT_UTF8String m_expProps;

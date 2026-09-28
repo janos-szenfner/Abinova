@@ -62,7 +62,6 @@
 #include "ie_impGraphic_PNG.h"
 #include "ie_impGraphic_SVG.h"
 
-#include "ie_mailmerge.h"
 
 void IE_ImpExp_UnRegisterXP ()
 {
@@ -70,7 +69,6 @@ void IE_ImpExp_UnRegisterXP ()
   IE_Exp::unregisterAllExporters ();
   IE_Imp::unregisterAllImporters ();
 
-  IE_MailMerge_UnRegisterXP ();
 }
 
 /*!
@@ -107,9 +105,6 @@ void IE_ImpExp_RegisterXP ()
 #endif
 	IE_Imp::registerImporter(new IE_Imp_WordPerfect_Sniffer ());
 	IE_Imp::registerImporter(new IE_Imp_MSWorks_Sniffer ());
-#ifdef WITH_EVOLUTION_DATA_SERVER
-	IE_Imp::registerImporter(new IE_Imp_RDF_VCard_Sniffer ());
-#endif
 #ifdef WITH_LIBICAL
 	IE_Imp::registerImporter(new IE_Imp_RDF_Calendar_Sniffer ());
 #endif
@@ -133,6 +128,5 @@ void IE_ImpExp_RegisterXP ()
 	/* Register platform specific. */
 	IE_ImpExp_RegisterPlatform ();
 
-	IE_MailMerge_RegisterXP ();
 }
     

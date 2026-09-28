@@ -5490,18 +5490,11 @@ bool fp_FieldMailMergeRun::calculateValue(void)
 	  PD_Document * pDoc = getBlock()->getDocument();
 	  UT_ASSERT(pDoc);	  
 
-	  if (!pDoc->mailMergeFieldExists(param))
-	  {
-	    // we'll take this branch if there's no mapping, we'll display
-	    // the field name instead
-	    value = "<";
-	    value += param;
-	    value += ">";
-	  }
-	  else
-	    {
-	      value = pDoc->getMailMergeField(param);
-	    }
+	  // no merge mapping exists anymore; display the field name,
+	  // matching Word's unmerged MERGEFIELD rendering
+	  value = "<";
+	  value += param;
+	  value += ">";
 
 	  fld->setValue(static_cast<const gchar*>(value.utf8_str()));
 

@@ -57,7 +57,6 @@
 #include "spell_manager.h"
 #endif
 
-#include "ie_mailmerge.h"
 #include "fp_TableContainer.h"
 #include "fl_BlockLayout.h"
 #include "fl_FrameLayout.h"
@@ -573,20 +572,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_RDF_Query)
 #endif
 }
 
-Defun_EV_GetMenuItemState_Fn(ap_GetState_RDF_Contact)
-{
-	UT_UNUSED(id);
-	ABIWORD_VIEW ;
-	UT_return_val_if_fail (pView, EV_MIS_Gray);
-
-	return 
-#ifdef WITH_EVOLUTION_DATA_SERVER
-	       EV_MIS_ZERO; 
-#else
-	       EV_MIS_Gray;
-#endif
-}
-
 Defun_EV_GetMenuItemState_Fn(ap_GetState_haveSemItems)
 {
 	ABIWORD_VIEW ;
@@ -600,11 +585,6 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_haveSemItems)
 	if (id == (XAP_Menu_Id)AP_MENU_ID_RDFANCHOR_EDITSEMITEM) 
 		return EV_MIS_Gray;
 
-#ifndef WITH_EVOLUTION_DATA_SERVER
-	if (id == (XAP_Menu_Id)AP_MENU_ID_RDFANCHOR_EXPORTSEMITEM) 
-		return EV_MIS_Gray;
-#endif
-    
 	EV_Menu_ItemState s = EV_MIS_ZERO ;
     return s;
 
