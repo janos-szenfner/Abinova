@@ -119,24 +119,23 @@ void pf_Fragments::purgeFrags()
 void pf_Fragments::appendFrag(pf_Frag * pf)
 {
 	// append a frag to the end of the list
-	
+
 	UT_return_if_fail (pf);
 	xxx_UT_DEBUGMSG(("AppendFrag %p of Type %d \n",pf,pf->getType()));
 	if ( m_pRoot == m_pLeaf ) //If tree is empty.
 	{
-		insertRoot(pf);	
+		insertRoot(pf);
 	}
-	else 
+	else
 	{
 		//Since this fragment is at the end of the document,
 		//we find the last piece and insert it to its right.
-		Iterator lastIt = find(sizeDocument()-1);
-		// Find returns the first fragment before the position
-		// requested. If we have zero length frags, these are
-		// not accounted for. So we itterate to find the truley last
-		// fragment
-		while( lastIt.value()->getNext() != nullptr)
-		  lastIt++;
+		// _last() is the in-order tail — always correct even when
+		// trailing frags are zero-length (find(sizeDocument()-1)
+		// underflows to find(UINT_MAX) in that case and returns an
+		// invalid iterator, which used to crash getNext() or, worse,
+		// silently install the new frag as root).
+		Iterator lastIt(this, _last());
 		insertRight(pf, lastIt);
 	}
 
@@ -153,7 +152,10 @@ pf_Frag * pf_Fragments::getFirst() const
   //
         if(m_pLeaf == m_pRoot)
 	  return nullptr;
-	return find( 0 ).value();
+	// _first() is the true in-order head; find(0) skips leading
+	// zero-length frags and would return the second frag instead.
+	Node* pn = _first();
+	return pn ? pn->item : nullptr;
 }
 
 
@@ -167,7 +169,22 @@ pf_Frag * pf_Fragments::getLast() const
   //
         if(m_pLeaf == m_pRoot)
 	  return nullptr;
-	return find( sizeDocument() - 1 ).value();
+	/* _last() is the true in-order tail; the old find(sizeDocument()-1)
+	 * underflowed when sizeDocument()==0 and also skipped trailing
+	 * zero-length frags.  Callers expect the last *content* frag —
+	 * never the EOD marker — so step back over a trailing EOD (an
+	 * EOD-only document then yields nullptr, matching the original
+	 * behaviour). */
+	Node* pn = _last();
+	if (!pn || !pn->item)
+		return nullptr;
+	if (pn->item->getType() == pf_Frag::PFT_EndOfDoc)
+	{
+		Iterator it(this, pn);
+		--it;
+		return it.value();
+	}
+	return pn->item;
 }
 
 void pf_Fragments::insertFrag(const pf_Frag * pfPlace, pf_Frag * pfNew)
@@ -202,7 +219,12 @@ void pf_Fragments::unlinkFrag(const pf_Frag * pf)
 {
 	// NOTE:  it is the caller's responsibility to delete pf if appropriate.
         xxx_UT_DEBUGMSG(("Unlinking frag %p \n",pf));
+	UT_return_if_fail (pf);
 	UT_return_if_fail (pf->getType() != pf_Frag::PFT_EndOfDoc);
+	// a frag that is not in the tree (never inserted, or already
+	// unlinked) has no node — nothing to do.  This also makes a
+	// double-unlink a no-op instead of erasing an innocent frag.
+	UT_return_if_fail (pf->_getNode());
 	// verifyDoc();
 	Iterator it(this,pf->_getNode());
 	erase(it);
@@ -217,7 +239,9 @@ void pf_Fragments::unlinkFrag(const pf_Frag * pf)
  * @returns pf_Frag * pointer to the Frag with position immediately before pos
 */
 pf_Frag * pf_Fragments::findFirstFragBeforePos(PT_DocPosition pos) const
-{       
+{
+	if (m_pRoot == m_pLeaf || sizeDocument() == 0)
+		return nullptr;
 	if (pos >= sizeDocument())
 	  pos = sizeDocument()-1;
 	Iterator it = find(pos);
@@ -526,6 +550,13 @@ pf_Fragments::erase(Iterator it)
 	--m_nSize;
 	m_nDocumentSize -= pNode->item->getLength();
 	pNode->item->zero();
+	/* Detach the leaving frag from its node.  When y != pNode the
+	 * node is recycled for the successor's frag; when y == pNode the
+	 * node is deleted.  In both cases the removed frag must not keep
+	 * a back-pointer — getPos()/getNext()/getPrev() would otherwise
+	 * answer for a different frag, and a second unlinkFrag() would
+	 * erase a node belonging to an innocent frag. */
+	pNode->item->_setNode(nullptr);
 	fixSize(it);
 
        	Node* y;

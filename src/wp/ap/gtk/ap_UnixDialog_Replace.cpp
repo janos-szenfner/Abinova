@@ -1,21 +1,20 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* Abinova
- * Copyright (C) 1998 AbiSource, Inc.
+/* Abinova — find / replace dialog (GTK4)
  * Copyright (C) 2025-2026 Abinova contributors
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA.
  */
 
@@ -49,14 +48,18 @@ XAP_Dialog * AP_UnixDialog_Replace::static_constructor(XAP_DialogFactory * pFact
 AP_UnixDialog_Replace::AP_UnixDialog_Replace(XAP_DialogFactory * pDlgFactory,
 											   XAP_Dialog_Id id)
 	: AP_Dialog_Replace(pDlgFactory,id)
-	, m_comboFind(nullptr)
-	, m_comboReplace(nullptr)
-	, m_checkbuttonMatchCase(nullptr)
-	, m_checkbuttonWholeWord(nullptr)
-	, m_checkbuttonReverseFind(nullptr)
-	, m_buttonFind(nullptr)
+	, m_buttonFindNext(nullptr)
+	, m_buttonFindPrev(nullptr)
 	, m_buttonFindReplace(nullptr)
 	, m_buttonReplaceAll(nullptr)
+	, m_entryFind(nullptr)
+	, m_entryReplace(nullptr)
+	, m_historyFind(nullptr)
+	, m_historyReplace(nullptr)
+	, m_menuBtnFind(nullptr)
+	, m_menuBtnReplace(nullptr)
+	, m_checkbuttonMatchCase(nullptr)
+	, m_checkbuttonWholeWord(nullptr)
 {
 }
 
@@ -65,95 +68,93 @@ AP_UnixDialog_Replace::~AP_UnixDialog_Replace(void)
 }
 
 /*****************************************************************/
+/* Signal trampolines                                             */
+/*****************************************************************/
 
-void AP_UnixDialog_Replace::s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Replace * dlg)
+static void s_response_triggered(GtkWidget * widget, gint resp,
+								 AP_UnixDialog_Replace * dlg)
 {
 	UT_return_if_fail(widget && dlg);
 
-	if ( resp == BUTTON_FIND )
-	  dlg->event_Find();
-	else if ( resp == BUTTON_REPLACE)
-	  dlg->event_Replace();
-	else if ( resp == BUTTON_REPLACE_ALL)
-	  dlg->event_ReplaceAll();
-	else if (dlg->isRunning())
-	  // modeless: run destroy() so the dialog is unregistered; GTK4's
-	  // gtk_window_destroy emits no signal to chain off
-	  dlg->destroy();
-	else
-	  abiDestroyWidget ( widget ) ; // will trigger other events
+	switch (resp)
+	{
+		case AP_UnixDialog_Replace::BUTTON_FIND_NEXT:
+			dlg->event_FindNext();
+			break;
+		case AP_UnixDialog_Replace::BUTTON_FIND_PREV:
+			dlg->event_FindPrev();
+			break;
+		case AP_UnixDialog_Replace::BUTTON_REPLACE:
+			dlg->event_Replace();
+			break;
+		case AP_UnixDialog_Replace::BUTTON_REPLACE_ALL:
+			dlg->event_ReplaceAll();
+			break;
+		default:
+			// modeless: run destroy() so the dialog is unregistered;
+			// GTK4's gtk_window_destroy emits no signal to chain off
+			if (dlg->isRunning())
+				dlg->destroy();
+			else
+				abiDestroyWidget(widget);
+			break;
+	}
 }
 
-static void s_find_entry_activate(GtkWidget * widget, AP_UnixDialog_Replace * dlg)
+static void s_find_entry_activate(GtkWidget * /*w*/, AP_UnixDialog_Replace * dlg)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && dlg);
-	dlg->event_Find();
+	dlg->event_FindNext();
 }
 
-static void s_find_entry_change(GtkWidget * widget, AP_UnixDialog_Replace * dlg)
+static void s_find_entry_change(GtkWidget * /*w*/, AP_UnixDialog_Replace * dlg)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && dlg);
 	dlg->event_FindEntryChange();
 }
 
-static void s_replace_entry_activate(GtkWidget * widget, AP_UnixDialog_Replace * dlg)
+static void s_replace_entry_activate(GtkWidget * /*w*/, AP_UnixDialog_Replace * dlg)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && dlg);
 	dlg->event_Replace();
 }
 
-static void s_match_case_toggled(GtkWidget * widget, AP_UnixDialog_Replace * dlg)
+static void s_option_toggled(GtkWidget * /*w*/, AP_UnixDialog_Replace * dlg)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && dlg);
-	dlg->event_MatchCaseToggled();
+	dlg->event_OptionsChanged();
 }
 
-static void s_whole_word_toggled(GtkWidget * widget, AP_UnixDialog_Replace * dlg)
+static gboolean s_close_request(GtkWidget * /*w*/, AP_UnixDialog_Replace * dlg)
 {
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && dlg);
-	dlg->event_WholeWordToggled();
-}
-
-static void s_reverse_find_toggled(GtkWidget * widget, AP_UnixDialog_Replace * dlg)
-{
-	UT_UNUSED(widget);
-	UT_ASSERT(widget && dlg);
-	dlg->event_ReverseFindToggled();
-}
-
-static gboolean s_destroy_clicked (GtkWidget * /* widget */,
-			      AP_UnixDialog_Replace * dlg)
-{
-	UT_ASSERT(dlg);
 	dlg->event_Cancel();
 	return TRUE;
 }
 
-static void s_find_clicked(GtkWidget * /*btn*/, GtkWidget * dlg)
+/* A history row is activated: put its text into the paired entry and
+ * close the popover.  The entry pointer is stashed on the row. */
+static void s_history_row_activated(GtkListBox * /*box*/, GtkListBoxRow * row,
+									gpointer /*data*/)
 {
-	gtk_dialog_response (GTK_DIALOG(dlg), AP_UnixDialog_Replace::BUTTON_FIND);
+	GtkWidget * entry = GTK_WIDGET(
+		g_object_get_data(G_OBJECT(row), "abi-target-entry"));
+	GtkWidget * label = gtk_list_box_row_get_child(row);
+	if (!entry || !label)
+		return;
+	gtk_editable_set_text(GTK_EDITABLE(entry),
+						  gtk_label_get_text(GTK_LABEL(label)));
+	gtk_editable_set_position(GTK_EDITABLE(entry), -1);
+
+	GtkWidget * pop = gtk_widget_get_ancestor(GTK_WIDGET(row),
+											  GTK_TYPE_POPOVER);
+	if (pop)
+		gtk_popover_popdown(GTK_POPOVER(pop));
 }
 
-static void s_findreplace_clicked(GtkWidget * /*btn*/, GtkWidget * dlg)
-{
-	gtk_dialog_response (GTK_DIALOG(dlg), AP_UnixDialog_Replace::BUTTON_REPLACE);
-}
-
-static void s_replaceall_clicked(GtkWidget * /*btn*/, GtkWidget * dlg)
-{
-	gtk_dialog_response (GTK_DIALOG(dlg), AP_UnixDialog_Replace::BUTTON_REPLACE_ALL);
-}
-
+/*****************************************************************/
+/* Dialog protocol                                                */
 /*****************************************************************/
 
 void AP_UnixDialog_Replace::activate(void)
 {
-	UT_ASSERT(m_windowMain);
+	if (!m_windowMain)
+		return;
 	ConstructWindowName();
 	gtk_window_set_title (GTK_WINDOW (m_windowMain), m_WindowName);
 	XAP_gtk_window_raise(m_windowMain);
@@ -161,108 +162,116 @@ void AP_UnixDialog_Replace::activate(void)
 
 void AP_UnixDialog_Replace::notifyActiveFrame(XAP_Frame * /*pFrame*/)
 {
-	UT_ASSERT(m_windowMain);
+	if (!m_windowMain)
+		return;
 	ConstructWindowName();
 	gtk_window_set_title (GTK_WINDOW (m_windowMain), m_WindowName);
 }
 
 void AP_UnixDialog_Replace::runModeless(XAP_Frame * pFrame)
 {
-	// Build the window's widgets and arrange them
 	GtkWidget * mainWindow = _constructWindow();
 	UT_return_if_fail(mainWindow);
 
-	abiSetupModelessDialog (GTK_DIALOG(mainWindow), pFrame, this, BUTTON_CANCEL) ;
+	abiSetupModelessDialog (GTK_DIALOG(mainWindow), pFrame, this,
+							BUTTON_CANCEL);
 
 	// Populate the window's data items
 	_populateWindowData();
-	
+
 	// this dialog needs this
 	setView(static_cast<FV_View *> (getActiveFrame()->getCurrentView()));
 }
 
-static UT_UCS4String
-get_combobox_text(GtkWidget* combo)
-{
-	UT_UCS4String ucs = XAP_gtk_entry_get_text(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(combo))));
+/*****************************************************************/
+/* Widget helpers                                                 */
+/*****************************************************************/
 
-	return ucs;
+UT_UCS4String AP_UnixDialog_Replace::_entryText(GtkWidget * entry) const
+{
+	if (!entry)
+		return UT_UCS4String();
+	return XAP_gtk_entry_get_text(GTK_EDITABLE(entry));
 }
 
-void AP_UnixDialog_Replace::event_Find(void)
+void AP_UnixDialog_Replace::_syncStringsFromWidgets(void)
 {
-	UT_UCS4String findEntryText = get_combobox_text(m_comboFind);
-	if (findEntryText.empty()) // do nothing when the find field is empty
+	UT_UCS4String findText = _entryText(m_entryFind);
+	setFindString(findText.ucs4_str());
+
+	if (m_id == (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE && m_entryReplace)
+	{
+		UT_UCS4String replaceText = _entryText(m_entryReplace);
+		setReplaceString(replaceText.ucs4_str());
+	}
+}
+
+void AP_UnixDialog_Replace::_updateSensitivity(void)
+{
+	bool enable = !_entryText(m_entryFind).empty();
+	gtk_widget_set_sensitive(m_buttonFindNext, enable);
+	gtk_widget_set_sensitive(m_buttonFindPrev, enable);
+	if (m_buttonFindReplace)
+		gtk_widget_set_sensitive(m_buttonFindReplace, enable);
+	if (m_buttonReplaceAll)
+		gtk_widget_set_sensitive(m_buttonReplaceAll, enable);
+}
+
+/*****************************************************************/
+/* Events                                                         */
+/*****************************************************************/
+
+void AP_UnixDialog_Replace::event_FindNext(void)
+{
+	UT_UCS4String findText = _entryText(m_entryFind);
+	if (findText.empty())
 		return;
 
-	// utf8->ucs4
-	setFindString(findEntryText.ucs4_str());
-
-	UT_UCS4String replaceEntryText = get_combobox_text(m_comboReplace);
-	setReplaceString(replaceEntryText.ucs4_str());
-
-	if (!getReverseFind())	
-		findNext();
-	else
-		findPrev();
+	_syncStringsFromWidgets();
+	findNext();
 }
 
-void AP_UnixDialog_Replace::event_FindEntryChange(void)
+void AP_UnixDialog_Replace::event_FindPrev(void)
 {
-	const UT_UCS4String input = get_combobox_text(m_comboFind);
-	bool enable = !input.empty();
-	gtk_widget_set_sensitive(m_buttonFind, enable);
-	if (m_id == (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE)
-	{
-		gtk_widget_set_sensitive(m_buttonFindReplace, enable);
-		gtk_widget_set_sensitive(m_buttonReplaceAll, enable);
-	}
-}		
+	UT_UCS4String findText = _entryText(m_entryFind);
+	if (findText.empty())
+		return;
+
+	_syncStringsFromWidgets();
+	findPrev();
+}
 
 void AP_UnixDialog_Replace::event_Replace(void)
 {
-	UT_UCS4String findEntryText;
-	UT_UCS4String replaceEntryText;
+	UT_UCS4String findText = _entryText(m_entryFind);
+	if (findText.empty())
+		return;
 
-	findEntryText = get_combobox_text(m_comboFind);
-	replaceEntryText = get_combobox_text(m_comboReplace);
-	
-	setFindString(findEntryText.ucs4_str());
-	setReplaceString(replaceEntryText.ucs4_str());
-
-	if(!getReverseFind())	
-		findReplace();
-	else
-		findReplaceReverse();
+	_syncStringsFromWidgets();
+	findReplace();
 }
 
 void AP_UnixDialog_Replace::event_ReplaceAll(void)
 {
-	UT_UCS4String findEntryText;
-	UT_UCS4String replaceEntryText;
+	UT_UCS4String findText = _entryText(m_entryFind);
+	if (findText.empty())
+		return;
 
-	findEntryText = get_combobox_text(m_comboFind);
-	replaceEntryText = get_combobox_text(m_comboReplace);
-	
-	setFindString(findEntryText.ucs4_str());
-	setReplaceString(replaceEntryText.ucs4_str());
-	
+	_syncStringsFromWidgets();
 	findReplaceAll();
 }
 
-void AP_UnixDialog_Replace::event_MatchCaseToggled(void)
+void AP_UnixDialog_Replace::event_FindEntryChange(void)
 {
-	setMatchCase(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkbuttonMatchCase)));
+	_updateSensitivity();
 }
 
-void AP_UnixDialog_Replace::event_WholeWordToggled(void)
+void AP_UnixDialog_Replace::event_OptionsChanged(void)
 {
-	setWholeWord(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkbuttonWholeWord)));
-}
-
-void AP_UnixDialog_Replace::event_ReverseFindToggled(void)
-{
-	setReverseFind(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_checkbuttonReverseFind)));
+	setMatchCase(gtk_check_button_get_active(
+					 GTK_CHECK_BUTTON(m_checkbuttonMatchCase)));
+	setWholeWord(gtk_check_button_get_active(
+					 GTK_CHECK_BUTTON(m_checkbuttonWholeWord)));
 }
 
 void AP_UnixDialog_Replace::event_Cancel(void)
@@ -280,204 +289,267 @@ void AP_UnixDialog_Replace::destroy(void)
 }
 
 /*****************************************************************/
+/* Construction                                                   */
+/*****************************************************************/
+
+/* Build an entry + optional history drop-down (a flat menu button
+ * with a list box in its popover).  GTK4 has no combo-with-entry;
+ * this is the modern equivalent. */
+static GtkWidget * s_entry_with_history(GtkWidget *& listBoxOut,
+										GtkWidget *& menuBtnOut,
+										GtkWidget * entry)
+{
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_set_hexpand(box, TRUE);
+
+	gtk_widget_set_hexpand(entry, TRUE);
+	gtk_box_append(GTK_BOX(box), entry);
+
+	GtkWidget * pop = gtk_popover_new();
+	GtkWidget * list = gtk_list_box_new();
+	gtk_list_box_set_selection_mode(GTK_LIST_BOX(list),
+									GTK_SELECTION_SINGLE);
+	g_signal_connect(list, "row-activated",
+					 G_CALLBACK(s_history_row_activated), nullptr);
+	gtk_popover_set_child(GTK_POPOVER(pop), list);
+
+	GtkWidget * btn = gtk_menu_button_new();
+	gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(btn),
+								  "pan-down-symbolic");
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(btn), pop);
+	gtk_widget_set_tooltip_text(btn, "Search history");
+	gtk_widget_add_css_class(btn, "flat");
+	gtk_widget_set_visible(btn, FALSE);	/* shown when history exists */
+	gtk_box_append(GTK_BOX(box), btn);
+
+	listBoxOut = list;
+	menuBtnOut = btn;
+	return box;
+}
 
 GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 {
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
+	const bool bReplaceMode = (m_id == (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE);
+
+	ConstructWindowName();
+	m_windowMain = abiDialogNew("find dialog", FALSE);
+	/* title set explicitly: m_WindowName can contain printf-unsafe
+	 * characters from the document name */
+	gtk_window_set_title(GTK_WINDOW(m_windowMain), m_WindowName);
+	GtkWidget * content = gtk_dialog_get_content_area(GTK_DIALOG(m_windowMain));
+
+	GtkWidget * grid = gtk_grid_new();
+	g_object_set(G_OBJECT(grid),
+				 "row-spacing", 8,
+				 "column-spacing", 12,
+				 "margin-top", 12,
+				 "margin-bottom", 6,
+				 "margin-start", 12,
+				 "margin-end", 12,
+				 nullptr);
+	gtk_box_append(GTK_BOX(content), grid);
 
 	char * unixstr = nullptr;
 
-	// load the dialog from the UI file
-	GtkBuilder* builder = newDialogBuilderFromResource("ap_UnixDialog_Replace.ui");
-
-	m_windowMain = GTK_WIDGET(gtk_builder_get_object(builder, "ap_UnixDialog_Replace"));
-	m_buttonFind = GTK_WIDGET(gtk_builder_get_object(builder, "btnFind"));
-	m_buttonFindReplace = GTK_WIDGET(gtk_builder_get_object(builder, "btnFindReplace"));
-	m_buttonReplaceAll = GTK_WIDGET(gtk_builder_get_object(builder, "btnReplaceAll"));
-	m_comboFind = GTK_WIDGET(gtk_builder_get_object(builder, "comboFind"));
-	m_comboReplace = GTK_WIDGET(gtk_builder_get_object(builder, "comboReplace"));
-	m_checkbuttonMatchCase = GTK_WIDGET(gtk_builder_get_object(builder, "chkMatchCase"));
-	m_checkbuttonWholeWord = GTK_WIDGET(gtk_builder_get_object(builder, "chkWholeWord"));
-	m_checkbuttonReverseFind = GTK_WIDGET(gtk_builder_get_object(builder, "chkReverseFind"));
-
-	GtkListStore* comboFind_model = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_POINTER);
-	gtk_combo_box_set_model(GTK_COMBO_BOX(m_comboFind), GTK_TREE_MODEL(comboFind_model));
-	g_object_unref(G_OBJECT(comboFind_model));
-
-	GtkListStore* comboReplace_model = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_POINTER);
-	gtk_combo_box_set_model(GTK_COMBO_BOX(m_comboReplace), GTK_TREE_MODEL(comboReplace_model));
-	g_object_unref(G_OBJECT(comboReplace_model));
-
-	GtkWidget * labelFind = GTK_WIDGET(gtk_builder_get_object(builder, "lblFind"));
-	GtkWidget * labelReplace = GTK_WIDGET(gtk_builder_get_object(builder, "lblReplace"));
-
-	ConstructWindowName();
-	gtk_window_set_title(GTK_WINDOW(m_windowMain), m_WindowName);
-
-	UT_UTF8String s;
-	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_MatchCase,unixstr);
-	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_checkbuttonMatchCase), unixstr); 
-
-	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_WholeWord,unixstr);
-	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_checkbuttonWholeWord), unixstr);
-
-	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_ReverseFind,unixstr);
-	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_checkbuttonReverseFind), unixstr);
-
-	CONVERT_TO_UNIX_STRING(dummy,AP_STRING_ID_DLG_FR_ReplaceWithLabel,unixstr);
-	gtk_label_set_text(GTK_LABEL(labelReplace), unixstr);
-
-	CONVERT_TO_UNIX_STRING(dummy,AP_STRING_ID_DLG_FR_FindLabel,unixstr);
+	/* ---- Find row ---- */
+	GtkWidget * labelFind = gtk_label_new(nullptr);
+	CONVERT_TO_UNIX_STRING(dummy, AP_STRING_ID_DLG_FR_FindLabel, unixstr);
 	gtk_label_set_text(GTK_LABEL(labelFind), unixstr);
+	gtk_label_set_xalign(GTK_LABEL(labelFind), 0.0);
+	gtk_grid_attach(GTK_GRID(grid), labelFind, 0, 0, 1, 1);
 
-	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_FindNextButton,unixstr);
-	gtk_button_set_label(GTK_BUTTON(m_buttonFind), unixstr);
+	m_entryFind = gtk_entry_new();
+	gtk_widget_set_size_request(m_entryFind, 260, -1);
+	gtk_grid_attach(GTK_GRID(grid),
+					s_entry_with_history(m_historyFind, m_menuBtnFind,
+										 m_entryFind),
+					1, 0, 1, 1);
+	gtk_label_set_mnemonic_widget(GTK_LABEL(labelFind), m_entryFind);
 
-	CONVERT_TO_ACC_STRING(dummy,AP_STRING_ID_DLG_FR_ReplaceButton,unixstr);
-	gtk_button_set_label(GTK_BUTTON(m_buttonFindReplace), unixstr);
+	/* ---- Replace row ---- */
+	if (bReplaceMode)
+	{
+		GtkWidget * labelReplace = gtk_label_new(nullptr);
+		CONVERT_TO_UNIX_STRING(dummy, AP_STRING_ID_DLG_FR_ReplaceWithLabel,
+							   unixstr);
+		gtk_label_set_text(GTK_LABEL(labelReplace), unixstr);
+		gtk_label_set_xalign(GTK_LABEL(labelReplace), 0.0);
+		gtk_grid_attach(GTK_GRID(grid), labelReplace, 0, 1, 1, 1);
 
-	CONVERT_TO_UNIX_STRING(dummy,AP_STRING_ID_DLG_FR_ReplaceAllButton,unixstr);
-	gtk_button_set_label(GTK_BUTTON(m_buttonReplaceAll), unixstr);
-	FREEP(unixstr);
-
-	// create and disable the find button initially
-	gtk_widget_set_sensitive(m_buttonFind, FALSE);
-	gtk_widget_set_sensitive(m_buttonFindReplace, FALSE);
-	gtk_widget_set_sensitive(m_buttonReplaceAll, FALSE);
-
-	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonMatchCase), getMatchCase());
-	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonWholeWord), getWholeWord());
-	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonReverseFind), getReverseFind());
-	
-
-	
-	if (m_id != (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE){
-		// todo: get rid of this code once bug # 5085 is closed
-		gtk_widget_hide (labelReplace);
-		gtk_widget_hide (m_comboReplace);
-		gtk_widget_hide (m_buttonFindReplace);
-		gtk_widget_hide (m_buttonReplaceAll);
+		m_entryReplace = gtk_entry_new();
+		gtk_grid_attach(GTK_GRID(grid),
+						s_entry_with_history(m_historyReplace,
+											 m_menuBtnReplace,
+											 m_entryReplace),
+						1, 1, 1, 1);
+		gtk_label_set_mnemonic_widget(GTK_LABEL(labelReplace), m_entryReplace);
 	}
 
+	/* ---- Options row ---- */
+	GtkWidget * opts = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 18);
+	gtk_grid_attach(GTK_GRID(grid), opts, 0, 2, 2, 1);
+
+	CONVERT_TO_ACC_STRING(dummy, AP_STRING_ID_DLG_FR_MatchCase, unixstr);
+	m_checkbuttonMatchCase = gtk_check_button_new_with_mnemonic(unixstr);
+	gtk_box_append(GTK_BOX(opts), m_checkbuttonMatchCase);
+
+	CONVERT_TO_ACC_STRING(dummy, AP_STRING_ID_DLG_FR_WholeWord, unixstr);
+	m_checkbuttonWholeWord = gtk_check_button_new_with_mnemonic(unixstr);
+	gtk_box_append(GTK_BOX(opts), m_checkbuttonWholeWord);
+
+	/* ---- Action buttons ---- */
+	std::string s;
+
+	pSS->getValueUTF8(AP_STRING_ID_DLG_FR_FindNextButton, s);
+	m_buttonFindNext = abiAddButton(GTK_DIALOG(m_windowMain), s,
+									BUTTON_FIND_NEXT);
+
+	/* No translated "Find Previous" string exists in the string set;
+	 * the & is the mnemonic marker converted by abiAddButton. */
+	m_buttonFindPrev = abiAddButton(GTK_DIALOG(m_windowMain),
+									std::string("Find Pre&vious"),
+									BUTTON_FIND_PREV);
+
+	if (bReplaceMode)
+	{
+		pSS->getValueUTF8(AP_STRING_ID_DLG_FR_ReplaceButton, s);
+		m_buttonFindReplace = abiAddButton(GTK_DIALOG(m_windowMain), s,
+										   BUTTON_REPLACE);
+
+		pSS->getValueUTF8(AP_STRING_ID_DLG_FR_ReplaceAllButton, s);
+		m_buttonReplaceAll = abiAddButton(GTK_DIALOG(m_windowMain), s,
+										BUTTON_REPLACE_ALL);
+	}
+
+	pSS->getValueUTF8(XAP_STRING_ID_DLG_Close, s);
+	abiAddButton(GTK_DIALOG(m_windowMain), s, BUTTON_CANCEL);
+
+	FREEP(unixstr);
+
+	/* Direction is explicit in the Previous/Next buttons; the legacy
+	 * "reverse find" mode flag stays off so Replace always moves
+	 * forward. */
+	setReverseFind(false);
+
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonMatchCase),
+								getMatchCase());
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonWholeWord),
+								getWholeWord());
+
+	/* ---- Signals ---- */
 	connectBasicSignals();
-	g_signal_connect(G_OBJECT(m_windowMain), "response", 
+	g_signal_connect(G_OBJECT(m_windowMain), "response",
 					 G_CALLBACK(s_response_triggered), this);
 
-	// attach generic signals
-	g_signal_connect(G_OBJECT(m_checkbuttonMatchCase),
-					 "toggled",
-					 G_CALLBACK(s_match_case_toggled),
-					 this);
+	g_signal_connect(G_OBJECT(m_entryFind), "activate",
+					 G_CALLBACK(s_find_entry_activate), this);
+	g_signal_connect(G_OBJECT(m_entryFind), "changed",
+					 G_CALLBACK(s_find_entry_change), this);
+	if (m_entryReplace)
+		g_signal_connect(G_OBJECT(m_entryReplace), "activate",
+						 G_CALLBACK(s_replace_entry_activate), this);
 
-	g_signal_connect(G_OBJECT(m_checkbuttonWholeWord),
-					 "toggled",
-					 G_CALLBACK(s_whole_word_toggled),
-					 this);
+	g_signal_connect(G_OBJECT(m_checkbuttonMatchCase), "toggled",
+					 G_CALLBACK(s_option_toggled), this);
+	g_signal_connect(G_OBJECT(m_checkbuttonWholeWord), "toggled",
+					 G_CALLBACK(s_option_toggled), this);
 
-	g_signal_connect(G_OBJECT(m_checkbuttonReverseFind),
-					 "toggled",
-					 G_CALLBACK(s_reverse_find_toggled),
-					 this);
-	
-	g_signal_connect(G_OBJECT(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboFind))),
-			 "activate",
-			 G_CALLBACK(s_find_entry_activate),
-			 (gpointer) this);
-	g_signal_connect(G_OBJECT(m_comboFind),
-			 "changed",
-			 G_CALLBACK(s_find_entry_change),
-			 (gpointer) this);
-	g_signal_connect(G_OBJECT(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboReplace))),
-			 "activate",
-			 G_CALLBACK(s_replace_entry_activate),
-			 (gpointer) this);
+	g_signal_connect(G_OBJECT(m_windowMain), "close-request",
+					 G_CALLBACK(s_close_request), this);
 
-	g_signal_connect (G_OBJECT(m_buttonFind), "clicked", G_CALLBACK(s_find_clicked), m_windowMain);
-	g_signal_connect (G_OBJECT(m_buttonFindReplace), "clicked", G_CALLBACK(s_findreplace_clicked), m_windowMain);
-	g_signal_connect (G_OBJECT(m_buttonReplaceAll), "clicked", G_CALLBACK(s_replaceall_clicked), m_windowMain);
-
-	// the catch-alls
-	// Dont use gtk_signal_connect_after for modeless dialogs
-	g_signal_connect(G_OBJECT(m_windowMain),
-					   "close-request",
-					   G_CALLBACK(s_destroy_clicked),
-					   (gpointer) this);
-
-	gtk_widget_queue_resize (m_windowMain);
-
-	g_object_unref(G_OBJECT(builder));
+	_updateSensitivity();
+	gtk_window_set_default_widget(GTK_WINDOW(m_windowMain),
+								  m_buttonFindNext);
 
 	return m_windowMain;
 }
 
-static void append_string_to_model(const UT_UCS4Char* str, GtkWidget* combo, AP_UnixDialog_Replace* pThis)
-{
-	GtkTreeIter iter;
-	GtkListStore* model = GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(combo)));
-
-	UT_UCS4String ucs4s(str, 0); 
-	gtk_list_store_append(model, &iter);
-	gtk_list_store_set(model, &iter,
-			   0, ucs4s.utf8_str(),
-			   1, pThis,
-			   -1);
-}
-
 void AP_UnixDialog_Replace::_populateWindowData(void)
 {
-	UT_ASSERT(m_comboFind && m_checkbuttonMatchCase);
+	UT_ASSERT(m_entryFind && m_checkbuttonMatchCase);
 
-	// last used find string
+	// restore the most recent find/replace strings
 	{
-		auto str = getFindString();
-		append_string_to_model(str, m_comboFind, this);
-		FREEP(str);
+		UT_UCS4Char * str = getFindString();
+		if (str)
+		{
+			UT_UCS4String ucs(str);
+			gtk_editable_set_text(GTK_EDITABLE(m_entryFind),
+								  ucs.utf8_str());
+			FREEP(str);
+		}
 	}
 
-	// last used replace string
-	if (m_id == (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE)
+	if (m_entryReplace)
 	{
-		UT_ASSERT(m_comboReplace);
-		auto str = getReplaceString();
-		append_string_to_model(str, m_comboReplace, this);
-		FREEP(str);
+		UT_UCS4Char * str = getReplaceString();
+		if (str)
+		{
+			UT_UCS4String ucs(str);
+			gtk_editable_set_text(GTK_EDITABLE(m_entryReplace),
+								  ucs.utf8_str());
+			FREEP(str);
+		}
 	}
 
-	// update lists
 	_updateLists();
-
-	// match case button
-	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_checkbuttonMatchCase), getMatchCase());
+	_updateSensitivity();
 
 	// Find entry should have focus, for immediate typing
-	gtk_widget_grab_focus(m_comboFind);	
+	gtk_widget_grab_focus(m_entryFind);
 }
 
 void AP_UnixDialog_Replace::_storeWindowData(void)
 {
-	// TODO: nothing?  The actual methods store
-	// out last used data to the persist variables,
-	// since we need to save state when things actually
-	// happen (not when the dialog closes).
+	// The XP layer already persists find/replace state on every action.
 }
 
 void AP_UnixDialog_Replace::_updateLists()
 {
-	_updateList(m_comboFind, &m_findList);
-	_updateList(m_comboReplace, &m_replaceList);
+	_updateList(GTK_LIST_BOX(m_historyFind), m_entryFind, &m_findList);
+	if (m_historyReplace)
+		_updateList(GTK_LIST_BOX(m_historyReplace), m_entryReplace,
+					&m_replaceList);
+	gtk_widget_set_visible(m_menuBtnFind,
+						   m_findList.getItemCount() > 0);
+	if (m_menuBtnReplace)
+		gtk_widget_set_visible(m_menuBtnReplace,
+							   m_replaceList.getItemCount() > 0);
 }
 
-void AP_UnixDialog_Replace::_updateList(GtkWidget* combo, UT_GenericVector<UT_UCS4Char*>* list)
+void AP_UnixDialog_Replace::_updateList(GtkListBox* history,
+										GtkWidget * entry,
+										UT_GenericVector<UT_UCS4Char*>* list)
 {
-	if (!combo) return; // no combo? do nothing
-	if (!list) return; // no list? do nothing
-	
-	GtkListStore* model = GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(combo)));
-	gtk_list_store_clear(model);
+	if (!history || !list)
+		return;
 
-	for (UT_sint32 i = 0; i<list->getItemCount(); i++)
+	/* clear existing rows */
+	for (;;)
 	{
-		UT_UCS4String ucs4s(list->getNthItem(i), 0); 
-		append_string_to_model(list->getNthItem(i), combo, this);
+		GtkWidget * child = gtk_widget_get_first_child(GTK_WIDGET(history));
+		if (!child)
+			break;
+		gtk_list_box_remove(history, child);
+	}
+
+	for (UT_sint32 i = 0; i < list->getItemCount(); i++)
+	{
+		UT_UCS4Char * item = list->getNthItem(i);
+		if (!item)
+			continue;
+		UT_UCS4String ucs4s(item);
+		GtkWidget * label = gtk_label_new(ucs4s.utf8_str());
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
+		gtk_widget_set_margin_start(label, 8);
+		gtk_widget_set_margin_end(label, 8);
+		gtk_widget_set_margin_top(label, 4);
+		gtk_widget_set_margin_bottom(label, 4);
+		gtk_list_box_append(history, label);
+		GtkWidget * row = gtk_widget_get_parent(label);
+		if (row)
+			g_object_set_data(G_OBJECT(row), "abi-target-entry", entry);
 	}
 }

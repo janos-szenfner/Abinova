@@ -1,5 +1,5 @@
-/* AbiWord
- * Copyright (C) 1998,1999 AbiSource, Inc.
+/* Abinova — spelling dialog (GTK4)
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,37 +38,39 @@ public:
 	virtual void runModal(XAP_Frame * pFrame) override;
 
 	// callbacks can fire these events
-	virtual void onChangeClicked	  (void);
-	virtual void onChangeAllClicked	  (void);
-	virtual void onIgnoreClicked	  (void);
-	virtual void onIgnoreAllClicked	  (void);
-	virtual void onAddClicked		  (void);
-	virtual void onSuggestionSelected (void);
-	virtual void onSuggestionChanged  (void);
+	void onChangeClicked	  (void);
+	void onChangeAllClicked	  (void);
+	void onIgnoreClicked	  (void);
+	void onIgnoreAllClicked	  (void);
+	void onAddClicked		  (void);
+	void onSuggestionSelected (void);
+	void onSuggestionChanged  (void);
+	void onSuggestionActivated(void);
 
-	const GtkWidget * getWindow (void) const { return m_wDialog; }
-
-protected:
-
-   virtual GtkWidget * _constructWindow	   (void);
-   void				   _populateWindowData (void);
-   void 			   _updateWindow 	   (void);
+	GtkWidget * getWindow (void) const { return m_wDialog; }
 
 private:
 
-   char 	  * _convertToMB   (const UT_UCS4Char *wword);
-   char 	  * _convertToMB   (const UT_UCS4Char *wword,
+	GtkWidget * _constructWindow	   (void);
+	void 			   _updateWindow 	   (void);
+
+	char 	  * _convertToMB   (const UT_UCS4Char *wword);
+	char 	  * _convertToMB   (const UT_UCS4Char *wword,
 								UT_sint32 iLength);
-   UT_UCS4Char * _convertFromMB (const char *word);
+	UT_UCS4Char * _convertFromMB (const char *word);
 
-   // pointers to widgets we need to query/set
-   GtkWidget * m_wDialog;
-   GtkWidget * m_txWrong;
-   GtkWidget * m_eChange;
-   GtkWidget * m_lvSuggestions;
+	// pointers to widgets we need to query/set
+	GtkWidget * m_wDialog;
+	GtkWidget * m_txWrong;
+	GtkWidget * m_eChange;
+	GtkWidget * m_lbSuggestions;	/* GtkListBox */
 
-   GdkRGBA m_highlight;
+	GtkTextTag * m_pMisspellTag;
+	GtkTextTag * m_pBoldTag;
 
-   guint m_listHandlerID;
-   guint m_replaceHandlerID;
+	gulong m_changeHandlerID;
+	gulong m_selectHandlerID;
+
+	/* suppress entry/selection feedback while repopulating widgets */
+	bool   m_bUiUpdating;
 };

@@ -1,7 +1,4 @@
-/* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode:t -*- */
-/* Abinova
- * Copyright (C) 1998 AbiSource, Inc.
- * Copyright (C) 2009, 2019 Hubert Figuiere
+/* Abinova — bullets & numbering dialog (GTK4)
  * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
@@ -28,7 +25,6 @@
 #include "xap_UnixDialog.h"
 #include "ap_Dialog_Lists.h"
 #include "ut_timer.h"
-#include "xap_GtkObjectHolder.h"
 
 class XAP_UnixFrame;
 class GR_CairoGraphics;
@@ -54,46 +50,47 @@ class AP_UnixDialog_Lists
 
 	void					customChanged(void);
 	void					applyClicked(void);
-	void closeClicked(void);
-	void					styleChanged( gint style);
-	void previewInvalidate(void);
-	void previewDraw(cairo_t *cr);
-	void                    setFoldLevel(UT_sint32 iLevel,bool bSet);
+	void					closeClicked(void);
+	void					styleChanged(gint style);
+	void					previewInvalidate(void);
+	void					previewDraw(cairo_t *cr);
+	void					setFoldLevel(UT_sint32 iLevel, bool bSet);
 
 	/* Just Plain Useful Functions */
 
-	void                    setListTypeFromWidget(void);
+	void					setListTypeFromWidget(void);
 	void					setXPFromLocal(void);
 	void					loadXPDataIntoLocal(void);
 	void					updateFromDocument(void);
 	void					setAllSensitivity(void);
 	void					updateDialog(void);
-	bool                                    dontUpdate(void);
+	bool					dontUpdate(void);
 	static void				autoupdateLists(UT_Worker * pTimer);
-	virtual bool            isPageLists(void) const override;
-	virtual void            setFoldLevelInGUI(void) override;
+	virtual bool			isPageLists(void) const override;
+	virtual void			setFoldLevelInGUI(void) override;
+
+	void					teardown(void);
+
+	/* for the drop-down notify trampolines */
+	GtkWidget *				typeDrop(void) const { return m_wTypeDrop; }
+
  protected:
 	virtual GtkWidget* _constructWindow(void);
 	GtkWidget *				_constructWindowContents(void);
+	GtkWidget *				_constructListsPage(void);
+	GtkWidget *				_constructFoldingPage(void);
+	GtkWidget *				_constructPreview(void);
 	void					_setRadioButtonLabels(void);
 	void					_connectSignals(void);
-	void					_fillNumberedStyleMenu( GtkListStore *listmenu);
-	void					_fillBulletedStyleMenu( GtkListStore *listmenu);
-	void					_fillNoneStyleMenu( GtkListStore *listmenu);
 	void					_gatherData(void);
-	void					_getGlistFonts (std::vector<std::string> & glFonts);
-	void					_fillFontMenu(GtkListStore* store);
+	void					_getGlistFonts(std::vector<std::string> & glFonts);
+	void					_fillFontDrop(void);
+	void					_setStyleModel(gint which);
 
-	inline GtkWidget *		_getCloseButton(void) { return m_wClose; }
-	inline GtkWidget *		_getApplyButton(void) { return m_wApply; }
 	inline GtkWidget *		_getMainWindow(void) { return m_windowMain; }
 
-	inline void				_setCloseButton(GtkWidget *w) { m_wClose = w; }
-	inline void				_setApplyButton(GtkWidget *w) { m_wApply = w; }
-	inline void				_setMainWindow(GtkWidget *w) { m_windowMain = w; }
-
  private:
-    enum ResponseId: int8_t
+	enum ResponseId: int8_t
 	{
 		BUTTON_OK = GTK_RESPONSE_OK,
 		BUTTON_CANCEL = GTK_RESPONSE_CANCEL,
@@ -102,48 +99,52 @@ class AP_UnixDialog_Lists
 		BUTTON_RESET
 	};
 
-    std::vector<std::string>  m_glFonts;
-	GR_CairoGraphics *		        m_pPreviewWidget;
+	std::vector<std::string>	m_glFonts;
+	GR_CairoGraphics *			m_pPreviewWidget;
 
-	bool					m_bManualListStyle;
-	bool					m_bDestroy_says_stopupdating;
-	bool					m_bAutoUpdate_happening_now;
-	bool                                    m_bDontUpdate;
-	UT_Timer *				m_pAutoUpdateLists;
+	bool						m_bManualListStyle;
+	bool						m_bDestroy_says_stopupdating;
+	bool						m_bAutoUpdate_happening_now;
+	bool						m_bDontUpdate;
+	UT_Timer *					m_pAutoUpdateLists;
 
-	GtkWidget * m_wApply;
-	GtkWidget * m_wClose;
-	GtkWidget * m_wContents;
-	GtkWidget * m_wStartNewList;
-	GtkWidget * m_wApplyCurrent;
-	GtkWidget * m_wStartSubList;
-	GtkWidget * m_wRadioGroup;
-	GtkWidget * m_wPreviewArea;
-	GtkWidget * m_wDelimEntry;
-	GtkWidget * m_wDecimalEntry;
-	GtkAdjustment * m_oAlignList_adj;
-	GtkWidget * m_wAlignListSpin;
-	GtkAdjustment * m_oIndentAlign_adj;
-	GtkWidget * m_wIndentAlignSpin;
-	GtkComboBox * m_wFontOptions;
-	GtkListStore * m_wFontOptions_menu;
-	GtkWidget * m_wCustomFrame;
-	GtkWidget * m_wCustomTable;
-	GtkWidget * m_wCustomLabel;
-	GtkComboBox * m_wListStyleBox;
-	XAP_GtkObjectHolder<GtkListStore> m_wListStyleNumbered_menu;
-	XAP_GtkObjectHolder<GtkListStore> m_wListStyleBulleted_menu;
-	XAP_GtkObjectHolder<GtkListStore> m_wListStyleNone_menu;
-	XAP_GtkObjectHolder<GtkListStore> m_wListStyle_menu;
-	GtkComboBox * m_wListTypeBox;
-	XAP_GtkObjectHolder<GtkListStore> m_wListType_menu;
-	GtkAdjustment * m_oStartSpin_adj;
-	GtkWidget * m_wStartSpin;
-	gint m_iDelimEntryID;
-	gint m_iDecimalEntryID;
-	gint m_iStyleBoxID;
-	gint m_iAlignListSpinID;
-	gint m_iIndentAlignSpinID;
+	GtkWidget *	m_wApply;
+	GtkWidget *	m_wClose;
+	GtkWidget *	m_wContents;
+	GtkWidget *	m_wStartNewList;
+	GtkWidget *	m_wApplyCurrent;
+	GtkWidget *	m_wStartSubList;
+	GtkWidget *	m_wPreviewArea;
+	GtkWidget *	m_wDelimEntry;
+	GtkWidget *	m_wDecimalEntry;
+	GtkWidget *	m_wAlignListSpin;
+	GtkWidget *	m_wIndentAlignSpin;
+	GtkWidget *	m_wFontDrop;			/* GtkDropDown */
+	GtkWidget *	m_wCustomGrid;
+	GtkWidget *	m_wStyleDrop;			/* GtkDropDown */
+	GtkWidget *	m_wTypeDrop;			/* GtkDropDown */
+	GtkWidget *	m_wStartSpin;
+	GtkWidget *	m_wResetButton;
+
+	/* NOTE: GtkDropDown models are fully owned by GTK here — this
+	 * object never stores a model pointer. GTK 4.14 crashes when a
+	 * GListModel instance that was previously attached to a
+	 * GtkDropDown is re-set, so a fresh GtkStringList is created on
+	 * every style-model swap. */
+
+	/* the FL_ListType table matching the current style model order */
+	const FL_ListType *	m_curStyleTypes;
+	UT_sint32			m_curStyleTypeCount;
+
+	gulong m_idStyleChanged;
+	gulong m_idTypeChanged;
+	gulong m_idFontChanged;
+	gulong m_idDelimChanged;
+	gulong m_idDecimalChanged;
+	gulong m_idStartChanged;
+	gulong m_idAlignChanged;
+	gulong m_idIndentChanged;
+
 	UT_sint32  m_iPageLists;
 	UT_sint32  m_iPageFold;
 	UT_GenericVector<GtkWidget*>  m_vecFoldCheck;

@@ -608,7 +608,9 @@ bool pt_PieceTable::_realInsertStrux(PT_DocPosition dpos,
 	{
 		// Inserting a sectionFrame screws up dos. It goes just before the next
 		// block strux found.
-		dpos = pfsNew->getPrev()->getPos() + pfsNew->getPrev()->getLength();
+		pf_Frag * pfPrev = pfsNew->getPrev();
+		if (pfPrev)
+			dpos = pfPrev->getPos() + pfPrev->getLength();
 	}
 	PX_ChangeRecord_Strux * pcrs
 		= new PX_ChangeRecord_Strux(PX_ChangeRecord::PXT_InsertStrux,

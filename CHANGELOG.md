@@ -1153,6 +1153,42 @@ below are on `main` but the release has not been cut yet.
   `tools/changelog2html.sh` (awk, no extra deps); a drawn clock-badge
   page glyph serves as the icon, and the classic Help menu gained the
   same entry.
+- **Find/Replace dialog rewritten from scratch** —
+  `ap_UnixDialog_Replace` replaces the partially-ported GTK3-era
+  implementation: `GtkEntry` + `GtkMenuButton` history popovers
+  replace deprecated `GtkComboBox` for both find and replace text,
+  action buttons enable/disable live on input state, replace-all
+  reports a proper result message, the window title is applied
+  separately so a `%` in a document name can no longer reach a
+  printf-style format string, and popovers are cleaned up on close.
+- **Spell Check dialog rewritten from scratch** —
+  `ap_UnixDialog_Spell`: suggestions use a `GtkListBox` (first
+  suggestion pre-selected and mirrored into "Change to"), response
+  ids travel as connect data instead of a mutable pending-response
+  member (no stale-callback state), and Change / Ignore / Ignore
+  All / Add / Close all verified live.
+- **Bullets and Numbering (Lists) dialog rewritten from scratch** —
+  `ap_UnixDialog_Lists` (~1300 lines): Type/Style/Font use
+  `GtkDropDown`s, the customize grid (format, delimiter, decimal,
+  start-at, text/label align) syncs through `XAP_GtkSignalBlocker`
+  guards without recursive update loops, the preview is a
+  `GtkDrawingArea` sized via `gtk_widget_compute_bounds` with a
+  size-request fallback, the three apply-mode radios and the Text
+  Folding page are preserved, and modeless+modal lifecycles are
+  explicit (`destroy()` clears `m_windowMain` before
+  `gtk_window_destroy` so focus notifications can't re-enter a
+  dying dialog). The old `Current_Dialog` global-callback hack is
+  gone (`connectFocusModelessOther` takes a null optional hook).
+- **GTK 4.14 `GtkDropDown` model-swap crash worked around** —
+  swapping a drop-down's `GListModel` segfaulted inside
+  `gtk_drop_down_set_model` (verified against a minimal
+  reproducer): a model installed via `gtk_drop_down_new()` gets
+  fewer internal references than one installed via `set_model`, so
+  the first swap over-unrefs and corrupts the next model — and
+  re-setting any previously-attached instance trips stale
+  selection/factory state. All drop-downs are now created with a
+  NULL model and every model (a fresh `GtkStringList` per swap)
+  goes through `set_model` with consistent ref accounting.
 
 ### Tables (Word-style creation and context menus)
 
@@ -1739,6 +1775,47 @@ below are on `main` but the release has not been cut yet.
     gained real NULL guards in place of assert-only checks.
   - Verified: 1129 unit tests pass, `make check` green, Valgrind
     reports **0 errors and 0 definite leaks** on the full suite.
+- **Piece-table fragment/undo corruption audit** — the fragment
+  red-black tree (`pf_Fragments`) and the undo path got a targeted
+  hardening pass against the "mystery corruption" bug class:
+  - `pf_Fragments::erase()` never cleared `pf_Frag::m_pMyNode` — an
+    unlinked fragment kept pointing at a node that was either freed
+    or reassigned to the successor's fragment, so `getPos()`
+    reported another fragment's position and a second
+    `unlinkFrag()` could erase an innocent neighbour's node. The
+    back-pointer is now invalidated on erase.
+  - `appendFrag()` computed `find(sizeDocument()-1)`, which
+    underflows to `find(UINT_MAX)` when the tree holds only
+    zero-length fragments — an invalid iterator feeding
+    `insertRight` could install a new fragment as the tree root.
+    The in-order tail is now used directly.
+  - `getFirst()`/`getLast()` used `find(0)`/`find(sizeDocument()-1)`
+    — position-based lookups that silently skip zero-length
+    fragments. Both now use the true in-order head/tail, with
+    `getLast()` stepping back over a trailing EndOfDoc marker so
+    callers keep their original "last content fragment" contract.
+  - `findFirstFragBeforePos` guards the empty-tree / zero-size
+    document cases instead of underflowing position math.
+  - The undo span loop cached a `pf_Frag*` across `_deleteSpan()`
+    calls that can free it or coalesce its neighbours — a
+    use-after-free on the next iteration; positions/iterators are
+    now recomputed after each mutation.
+  - Undo format-mark paths dereferenced `getPrev()` without a NULL
+    check; neighbour-traversal sites in `pt_PT_Append`,
+    `pt_PT_DeleteSpan`, `pt_PT_DeleteStrux`, `pt_PT_InsertSpan`
+    (including an `else if` reachable when `getPrev()` is NULL) and
+    `pt_PT_InsertStrux` (section-frame position math) all gained
+    guards.
+  - New regression tests in `pf_Fragments.t.cpp` (44 assertions —
+    the file previously held only `#if 0`-disabled stubs) cover
+    empty-tree invariants, ordering/positions, the zero-length
+    underflow, node invalidation on unlink, double unlink no-ops,
+    head/tail unlinks and the PTS_Editing EOD transition; all pass
+    with zero valgrind errors/leaks.
+  - Verified: full suite 1186 tests / 0 failures with
+    `ABINOVA_TEST_SRC_DIR` set (the earlier 5 `ie_abinova` fixture
+    failures were a test-data path issue, not a code regression),
+    `-fanalyzer` clean on all touched files.
 
 ### GTK4 port (core migration)
 

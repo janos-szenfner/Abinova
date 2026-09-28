@@ -739,7 +739,9 @@ void pt_PieceTable::_deleteHdrFtrStruxWithNotify( pf_Frag_Strux * pfFragStruxHdr
 	TextEndPos = getFragPosition(pfFrag);
 	if(pfFrag == getFragments().getLast())
 	{
-		TextEndPos = getFragPosition(pfFrag->getPrev()) + pfFrag->getPrev()->getLength();
+		pf_Frag * pfPrev = pfFrag->getPrev();
+		if (pfPrev)
+			TextEndPos = getFragPosition(pfPrev) + pfPrev->getLength();
 	}
 	UT_DEBUGMSG(("SEVIOR: Deleting hdrftr Text End Pos = %d \n",TextEndPos));
 //

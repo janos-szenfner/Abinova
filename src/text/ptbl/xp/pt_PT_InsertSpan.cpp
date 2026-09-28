@@ -492,7 +492,7 @@ bool pt_PieceTable::_realInsertSpan(PT_DocPosition dpos,
 				fragOffset = pf->getLength();
 			}
 		}
-		else if (pf->getPrev()->getType() == pf_Frag::PFT_Text && pf->getPrev()->getField()==nullptr)
+		else if (pf->getPrev() && pf->getPrev()->getType() == pf_Frag::PFT_Text && pf->getPrev()->getField()==nullptr)
 		{
 			pf_Frag_Text * pfPrevText = static_cast<pf_Frag_Text *>(pf->getPrev());
 			indexAP = pfPrevText->getIndexAP();

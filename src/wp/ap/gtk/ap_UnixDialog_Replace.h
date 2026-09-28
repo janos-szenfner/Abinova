@@ -1,6 +1,6 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: t -*- */
-/* AbiWord
- * Copyright (C) 1998 AbiSource, Inc.
+/* Abinova — find / replace dialog (GTK4)
+ * Copyright (C) 2025-2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -46,13 +46,12 @@ public:
 	static XAP_Dialog *		static_constructor(XAP_DialogFactory *, XAP_Dialog_Id id);
 
 	// callbacks can fire these events
-	void			event_Find(void);
-	void			event_FindEntryChange(void);
+	void			event_FindNext(void);
+	void			event_FindPrev(void);
 	void			event_Replace(void);
 	void			event_ReplaceAll(void);
-	void			event_MatchCaseToggled(void);
-	void			event_WholeWordToggled(void);
-	void			event_ReverseFindToggled(void);
+	void			event_OptionsChanged(void);
+	void			event_FindEntryChange(void);
 	void			event_Cancel(void);
 
 	enum ResponseId: int8_t
@@ -60,9 +59,10 @@ public:
 	    BUTTON_CANCEL = GTK_RESPONSE_CANCEL,
 	    // enum GtkResponseType seems to only use negative integers, so we'll use positive ones to
 	    // prevent potential conflicts (the cause of Bug 11583)
-	    BUTTON_FIND = 0,
-	    BUTTON_REPLACE = 1,
-	    BUTTON_REPLACE_ALL = 2
+	    BUTTON_FIND_NEXT = 0,
+	    BUTTON_FIND_PREV = 1,
+	    BUTTON_REPLACE = 2,
+	    BUTTON_REPLACE_ALL = 3
 	  };
 
 protected:
@@ -76,19 +76,25 @@ private:
 	void		_populateWindowData(void);
 	void 		_storeWindowData(void);
 
-	static void s_response_triggered(GtkWidget * widget, gint resp, AP_UnixDialog_Replace * dlg);
-
-	void			_updateList(GtkWidget* combo, UT_GenericVector<UT_UCS4Char*>* list);
+	UT_UCS4String _entryText(GtkWidget * entry) const;
+	void		_syncStringsFromWidgets(void);
+	void		_updateSensitivity(void);
+	void		_updateList(GtkListBox* history, GtkWidget * entry,
+							UT_GenericVector<UT_UCS4Char*>* list);
 
 	// pointers to widgets we need to query/set
-	GtkWidget *	m_buttonFind;
+	GtkWidget *	m_buttonFindNext;
+	GtkWidget *	m_buttonFindPrev;
 	GtkWidget *	m_buttonFindReplace;
 	GtkWidget *	m_buttonReplaceAll;
 
-	GtkWidget * m_comboFind;
-	GtkWidget * m_comboReplace;
+	GtkWidget * m_entryFind;
+	GtkWidget * m_entryReplace;
+	GtkWidget * m_historyFind;		/* list box inside the history popover */
+	GtkWidget * m_historyReplace;
+	GtkWidget * m_menuBtnFind;
+	GtkWidget * m_menuBtnReplace;
 
 	GtkWidget * m_checkbuttonMatchCase;
 	GtkWidget * m_checkbuttonWholeWord;
-	GtkWidget * m_checkbuttonReverseFind;
 };

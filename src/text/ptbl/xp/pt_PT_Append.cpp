@@ -504,7 +504,7 @@ bool pt_PieceTable::insertSpanBeforeFrag(const pf_Frag * pf, const UT_UCS4Char *
 	pf_Frag_Text * pft = nullptr;
 
 	// see if the fragement before this one is a text frag ...
-	if (pf->getPrev()->getType() == pf_Frag::PFT_Text)
+	if (pf->getPrev() && pf->getPrev()->getType() == pf_Frag::PFT_Text)
 	{
 		pft = static_cast<pf_Frag_Text *>(pf->getPrev());
 	}

@@ -3378,13 +3378,13 @@ void pt_PieceTable::_tweakFieldSpan(PT_DocPosition & dpos1,
         auto pft = static_cast<const pf_Frag_Text *>(pf_First);
         // we can't delete part of a field so widen deletion to
         // include object at start
-        while (pft->getPrev()->getType() == pf_Frag::PFT_Text)
+        while (pft->getPrev() && pft->getPrev()->getType() == pf_Frag::PFT_Text)
         {
             auto pft2 = static_cast<const pf_Frag_Text *>(pft->getPrev());
             UT_ASSERT_HARMLESS(pft->getField() == pft2->getField());
             pft = pft2;
         }
-        UT_return_if_fail (pft->getPrev()->getType() == pf_Frag::PFT_Object);
+        UT_return_if_fail (pft->getPrev() && pft->getPrev()->getType() == pf_Frag::PFT_Object);
         auto pfo = static_cast<const pf_Frag_Object *>(pft->getPrev());
         UT_return_if_fail (pfo->getObjectType()==PTO_Field);
         UT_return_if_fail (pfo->getField()==pft->getField());

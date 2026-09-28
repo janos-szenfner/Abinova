@@ -136,19 +136,47 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 			}
 			else
 			{
-			    pf_Frag_Text * pftNext = static_cast<pf_Frag_Text *>(pft->getNext());
-			    UT_uint32 iLenDel = pft->getLength() - fragOffset;
-			    iLenDeleted = 0;
-			    while(pft && (pft ->getType() == pf_Frag::PFT_Text) && (iLenDeleted <pcrSpan->getLength()) )
+			    // the delete may span multiple text frags.  NB: _deleteSpan()
+			    // can free pft outright and _unlinkFrag() may coalesce (and
+			    // free) its neighbours, so a cached next pointer would
+			    // dangle — always re-fetch via the ppfEnd out-param.
+			    UT_uint32 remaining = pcrSpan->getLength();
+			    while (remaining > 0 && pft && (pft->getType() == pf_Frag::PFT_Text))
 			    {
-				_deleteSpan(pft,fragOffset,pcrSpan->getBufIndex(),iLenDel,nullptr,nullptr);
-				pft = pftNext;
-				pftNext = static_cast<pf_Frag_Text *>(pft->getNext());
-				iLenDeleted += iLenDel;
-				iLenDel = pcrSpan->getLength() - iLenDeleted;
-				if(iLenDel > pft->getLength())
-				  iLenDel = pft->getLength();
-				fragOffset = 0;
+				pf_Frag * pfAfter = nullptr;
+				UT_uint32 offAfter = 0;
+				UT_uint32 avail = (fragOffset < pft->getLength())
+				    ? pft->getLength() - fragOffset : 0;
+				UT_uint32 step = UT_MIN(avail, remaining);
+				if (step > 0)
+				{
+				    _deleteSpan(pft,fragOffset,pcrSpan->getBufIndex(),step,
+						&pfAfter,&offAfter);
+				    remaining -= step;
+				}
+				else
+				{
+				    pfAfter = pft->getNext();
+				    offAfter = 0;
+				}
+				if (remaining == 0)
+				    break;
+				if (!pfAfter || pfAfter->getType() != pf_Frag::PFT_Text)
+				    break;
+				pft = static_cast<pf_Frag_Text *>(pfAfter);
+				if (offAfter >= pft->getLength())
+				{
+				    // consumed to the frag end (e.g. after a merge) —
+				    // advance to the next text frag
+				    pf_Frag * n = pft->getNext();
+				    pft = (n && n->getType() == pf_Frag::PFT_Text)
+					? static_cast<pf_Frag_Text *>(n) : nullptr;
+				    fragOffset = 0;
+				}
+				else
+				{
+				    fragOffset = offAfter;
+				}
 			    }
 			}
 			UT_DEBUGMSG(("newOffset %d spanBlockOffset %d \n",newOffset,pcrSpan->getBlockOffset()));
@@ -450,7 +478,7 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 			// returns the right-most thing with this document position.
 			if(pf->getType() != pf_Frag::PFT_FmtMark)
 			  pf = pf->getPrev();
-			if(pf->getType()==pf_Frag::PFT_Strux)
+			if(pf && pf->getType()==pf_Frag::PFT_Strux)
 			{
 			    if(pf->getNext() && pf->getNext()->getType() == pf_Frag::PFT_Strux)
 			    {
@@ -461,7 +489,7 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 			    if(pf->getNext() && pf->getNext()->getType() == pf_Frag::PFT_Text)
 			    {
 			        pf = pf->getNext();
-			    
+
 				if(pf->getNext() && pf->getNext()->getType() == pf_Frag::PFT_FmtMark)
 				{
 				    pf = pf->getNext();
@@ -469,7 +497,7 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 			    }
 			}
 
-			UNDO_return_val_if_fail (pf->getType() == pf_Frag::PFT_FmtMark,false);
+			UNDO_return_val_if_fail (pf && pf->getType() == pf_Frag::PFT_FmtMark,false);
 			UNDO_return_val_if_fail (fragOffset == 0,false);
 			
 			pf_Frag_Strux * pfs = nullptr;
@@ -503,7 +531,7 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 			// returns the right-most thing with this document position.
 			if(pf->getType() != pf_Frag::PFT_FmtMark)
 			  pf = pf->getPrev();
-			if(pf->getType()==pf_Frag::PFT_Strux)
+			if(pf && pf->getType()==pf_Frag::PFT_Strux)
 			{
 			    if(pf->getNext() && pf->getNext()->getType() == pf_Frag::PFT_Strux)
 			    {
@@ -512,7 +540,7 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 				return true;
 			    }
 			}
-			UNDO_return_val_if_fail (pf->getType() == pf_Frag::PFT_FmtMark,false);
+			UNDO_return_val_if_fail (pf && pf->getType() == pf_Frag::PFT_FmtMark,false);
 			UNDO_return_val_if_fail (fragOffset == 0,false);
 
 			pf_Frag_Strux * pfs = nullptr;
