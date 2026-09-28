@@ -376,10 +376,13 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		".abinova-ribbon .ribbon-group label.ribbon-big-caption {"
 		"  font-size: 0.85em; margin-top: 0;"
 		"}"
-		/* SLIM large buttons (e.g. Table: Draw/Eraser/Delete) keep
-		 * the normal icon/caption but lose the frame padding */
-		".abinova-ribbon .ribbon-group button.ribbon-xslim {"
-		"  padding-left: 2px; padding-right: 2px; min-width: 0;"
+		/* SLIM large buttons (Insert/Review/Table tabs) keep the
+		 * normal icon/caption but lose most of the frame padding;
+		 * menubutton needs its own selector - MENUPOP items are
+		 * GtkMenuButton, not GtkButton */
+		".abinova-ribbon .ribbon-group button.ribbon-xslim,"
+		".abinova-ribbon .ribbon-group menubutton.ribbon-xslim {"
+		"  padding: 1px 3px; min-width: 0; min-height: 0;"
 		"}"
 		/* compact +/- on the Layout tab's indent/spacing spins */
 		".abinova-ribbon spinbutton.ribbon-spin button {"
@@ -828,6 +831,9 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	else if (((szIcon && *szIcon) || bDrawnIcon) &&
 			 (flags & AP_RIBBON_FLAG_LARGE))
 	{
+		/* extra-slim tier (Insert tab): smaller icon so long words
+		 * are the only width floor */
+		const int iIconPx = (flags & AP_RIBBON_FLAG_EVEN) ? 20 : 24;
 		/* Word-style large button: icon on top, caption underneath;
 		 * the background and references buttons use drawn
 		 * page-glyphs, the rest a stock/theme icon */
@@ -837,12 +843,12 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR) ||
 			id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE))
 		{
-			image = _layout_icon(id, 24, 24);
+			image = _layout_icon(id, iIconPx, iIconPx);
 		}
 		else
 		{
 			image = gtk_image_new_from_icon_name(szIcon);
-			gtk_image_set_pixel_size(GTK_IMAGE(image), 24);
+			gtk_image_set_pixel_size(GTK_IMAGE(image), iIconPx);
 		}
 		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
 		/* Close: red icon only, button face and label stay normal */
@@ -858,19 +864,27 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			*sp = '\n';
 		GtkWidget * wLabel = gtk_label_new(caption);
 		/* Word wraps long captions onto a second line rather than
-		 * ellipsizing ("Document Properties", "New using Template") */
+		 * ellipsizing ("Document Properties", "New using Template");
+		 * the extra-slim tier may break inside a long word
+		 * ("Screen\nshot") since the word sets the width floor */
 		gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
-		gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
+		gtk_label_set_wrap_mode(GTK_LABEL(wLabel),
+			(flags & AP_RIBBON_FLAG_EVEN) ? PANGO_WRAP_WORD_CHAR
+										: PANGO_WRAP_WORD);
 		gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 		gtk_label_set_lines(GTK_LABEL(wLabel), 2);
-		gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
-			(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
+		/* caption width tiers: default 12 chars, SLIM 10,
+		 * SLIM+WRAP 8 (~2/3 width) and SLIM+WRAP+EVEN 7 (extra-slim
+		 * Insert tab) for tabs that must squeeze onto small screens */
+		const int iCapW = (flags & AP_RIBBON_FLAG_WRAP)
+			? ((flags & AP_RIBBON_FLAG_EVEN) ? 7 : 8)
+			: ((flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
+		gtk_label_set_max_width_chars(GTK_LABEL(wLabel), iCapW);
 		/* a wrapping label reports a taller minimum when squeezed;
 		 * width-chars pins its minimum width to the intended wrap
 		 * width so the ribbon's height-for-width min/nat passes
 		 * agree (GTK 4.18+ warns when natural < minimum) */
-		gtk_label_set_width_chars(GTK_LABEL(wLabel),
-			(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
+		gtk_label_set_width_chars(GTK_LABEL(wLabel), iCapW);
 		gtk_box_append(GTK_BOX(box), image);
 		gtk_box_append(GTK_BOX(box), wLabel);
 		gtk_button_set_child(GTK_BUTTON(btn), box);
@@ -5155,7 +5169,9 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 	_ribbon_strip_mnemonic(szLabel ? szLabel : "", label, sizeof(label));
 	GtkWidget * mb = gtk_menu_button_new();
 	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-	GtkWidget * icon = _layout_icon(id, 24, 24);
+	GtkWidget * icon = _layout_icon(id,
+		(flags & AP_RIBBON_FLAG_EVEN) ? 20 : 24,
+		(flags & AP_RIBBON_FLAG_EVEN) ? 20 : 24);
 	gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(box), icon);
 	/* Word breaks large-button captions onto two lines */
@@ -5167,11 +5183,16 @@ GtkWidget * AP_UnixRibbon::_makeLargeMenuButton(XAP_Menu_Id id,
 		*sp = '\n';
 	GtkWidget * wLabel = gtk_label_new(caption);
 	gtk_label_set_wrap(GTK_LABEL(wLabel), TRUE);
-	gtk_label_set_wrap_mode(GTK_LABEL(wLabel), PANGO_WRAP_WORD);
+	gtk_label_set_wrap_mode(GTK_LABEL(wLabel),
+		(flags & AP_RIBBON_FLAG_EVEN) ? PANGO_WRAP_WORD_CHAR
+									: PANGO_WRAP_WORD);
 	gtk_label_set_justify(GTK_LABEL(wLabel), GTK_JUSTIFY_CENTER);
 	gtk_label_set_lines(GTK_LABEL(wLabel), 2);
-	gtk_label_set_max_width_chars(GTK_LABEL(wLabel),
-		(flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
+	const int iCapW = (flags & AP_RIBBON_FLAG_WRAP)
+		? ((flags & AP_RIBBON_FLAG_EVEN) ? 7 : 8)
+		: ((flags & AP_RIBBON_FLAG_SLIM) ? 10 : 12);
+	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), iCapW);
+	gtk_label_set_width_chars(GTK_LABEL(wLabel), iCapW);
 	gtk_box_append(GTK_BOX(box), wLabel);
 	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_DOWN);
