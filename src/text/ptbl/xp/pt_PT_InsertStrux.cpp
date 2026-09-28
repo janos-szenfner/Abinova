@@ -767,3 +767,22 @@ bool pt_PieceTable::_insertNoteInEmbeddedStruxList(pf_Frag_Strux * pfsNew)
 		return false;
 	}
 }
+
+/*!
+ * Drop every embedded-strux pair that references \a pfs as either its
+ * beginNote or its endNote.  Must be called before any strux frag that
+ * can appear in m_embeddedStrux is deleted, or the dangling pointer is
+ * dereferenced later by isInsideFootnote()/getEmbeddedStruxList().
+ */
+void pt_PieceTable::_removeFromEmbeddedStruxList(const pf_Frag_Strux * pfs)
+{
+	if (m_embeddedStrux.empty())
+		return;
+	for (auto it = m_embeddedStrux.begin(); it != m_embeddedStrux.end(); )
+	{
+		if ((*it).beginNote == pfs || (*it).endNote == pfs)
+			it = m_embeddedStrux.erase(it);
+		else
+			++it;
+	}
+}

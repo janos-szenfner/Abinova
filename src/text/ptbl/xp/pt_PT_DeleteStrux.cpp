@@ -317,30 +317,9 @@ bool pt_PieceTable::_unlinkStrux_Section(pf_Frag_Strux * pfs,
 		return false;
 	}
 
-	// delete frag from the embedded_strux list if needed
-	if ((pfs->getStruxType() == PTX_SectionFootnote) || 
-		(pfs->getStruxType() == PTX_SectionEndnote) || 
-		(pfs->getStruxType() == PTX_SectionAnnotation)) 
-	{
-		bool bNoteRemoved = false;
-		if (!m_embeddedStrux.empty())
-		{
-			std::list<embeddedStrux>::iterator it;
-			for (it = m_embeddedStrux.begin(); it != m_embeddedStrux.end(); ++it)
-			{
-				if ((*it).beginNote == pfs)
-				{
-					m_embeddedStrux.erase(it);
-					bNoteRemoved = true;
-					break;
-				}
-			}
-		}
-		if (!bNoteRemoved)
-		{
-			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-		}
-	}
+	// delete frag from the embedded_strux list if needed; the helper
+	// matches on either end of the pair (beginNote or endNote)
+	_removeFromEmbeddedStruxList(pfs);
 
 	switch (pfsPrev->getStruxType())
 	{

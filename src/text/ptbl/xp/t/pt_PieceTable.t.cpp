@@ -49,3 +49,59 @@ TFTEST_MAIN("pt_PieceTable")
 
 	TFPASS(pt.appendFmtMark());
 }
+
+// m_embeddedStrux pairs begin/end note strux pointers. Deleting a note
+// strux via the no-change-record paths must drop the pair, otherwise
+// isInsideFootnote() dereferences a dangling pf_Frag_Strux*.
+TFTEST_MAIN("pt_PieceTable_embeddedStrux")
+{
+	const PP_PropertyVector attrs = {
+		"foo", "bar"
+	};
+
+	// Deleting the end note must drop the pair.
+	{
+		pt_PieceTable pt(nullptr);
+		pt.setPieceTableState(PTS_Loading);
+
+		pf_Frag_Strux *begin = nullptr;
+		pf_Frag_Strux *inside = nullptr;
+		pf_Frag_Strux *end = nullptr;
+		TFPASS(pt.appendStrux(PTX_Block, attrs));
+		TFPASS(pt.appendStrux(PTX_SectionFootnote, attrs, &begin));
+		TFPASS(pt.appendStrux(PTX_Block, attrs, &inside));
+		TFPASS(pt.appendStrux(PTX_EndFootnote, attrs, &end));
+		TFPASS(begin);
+		TFPASS(inside);
+		TFPASS(end);
+
+		const pf_Frag *pfBegin = nullptr;
+		PT_DocPosition posInside = inside->getPos();
+		TFPASS(pt.isInsideFootnote(posInside, &pfBegin));
+		TFPASS(pfBegin == begin);
+
+		pt.deleteStruxNoUpdate(end);
+		TFPASS(!pt.isInsideFootnote(posInside));
+	}
+
+	// Deleting the begin note must drop the pair as well.
+	{
+		pt_PieceTable pt(nullptr);
+		pt.setPieceTableState(PTS_Loading);
+
+		pf_Frag_Strux *begin = nullptr;
+		pf_Frag_Strux *inside = nullptr;
+		TFPASS(pt.appendStrux(PTX_Block, attrs));
+		TFPASS(pt.appendStrux(PTX_SectionEndnote, attrs, &begin));
+		TFPASS(pt.appendStrux(PTX_Block, attrs, &inside));
+		TFPASS(pt.appendStrux(PTX_EndEndnote, attrs));
+		TFPASS(begin);
+		TFPASS(inside);
+
+		PT_DocPosition posInside = inside->getPos();
+		TFPASS(pt.isInsideFootnote(posInside));
+
+		pt.deleteStruxNoUpdate(begin);
+		TFPASS(!pt.isInsideFootnote(posInside));
+	}
+}

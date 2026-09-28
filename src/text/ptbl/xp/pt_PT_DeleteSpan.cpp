@@ -1212,11 +1212,13 @@ bool pt_PieceTable::deleteSpan(PT_DocPosition dpos1,
                     {
                         const pf_Frag * pft = nullptr;
                         PT_BlockOffset toffset;
-                        getFragFromPosition(dpos1, &pft, &toffset);
-                        UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) addfmt dpos1:%d dposEnd:%d toffset:%d pftpos:%d pftlen:%d\n",
-                                     dpos1, dposEnd, toffset, pft->getPos(), pft->getLength() ));
+                        if (getFragFromPosition(dpos1, &pft, &toffset))
+                        {
+                            UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) addfmt dpos1:%d dposEnd:%d toffset:%d pftpos:%d pftlen:%d\n",
+                                         dpos1, dposEnd, toffset, pft->getPos(), pft->getLength() ));
 
-                        dposEnd = pft->getPos() + pft->getLength();
+                            dposEnd = pft->getPos() + pft->getLength();
+                        }
                     }
                     
 					break;
@@ -3183,7 +3185,7 @@ bool pt_PieceTable::_realDeleteSpan(PT_DocPosition dpos1,
 		const pf_Frag * pf1;
 		PT_BlockOffset Offset1;
 		getFragFromPosition(dpos1, &pf1, &Offset1);
-		if(pf1->getType() == pf_Frag::PFT_Text)
+		if(pf1 && (pf1->getType() == pf_Frag::PFT_Text))
 		{
 			const PP_AttrProp *p_AttrProp;
 			getAttrProp(static_cast<const pf_Frag_Text *>(pf1)->getIndexAP(), &p_AttrProp);
@@ -3289,7 +3291,8 @@ bool pt_PieceTable::_realDeleteSpan(PT_DocPosition dpos1,
 	PT_BlockOffset Offset_after;
 	getFragFromPosition(dpos1, &p_frag_after, &Offset_after);
 
-	if(((p_frag_before->getType() == pf_Frag::PFT_Strux) ||
+	if(p_frag_before && p_frag_after &&
+	   ((p_frag_before->getType() == pf_Frag::PFT_Strux) ||
 		(p_frag_before->getType() == pf_Frag::PFT_EndOfDoc)) &&
 	   ((p_frag_after->getType() == pf_Frag::PFT_Strux) ||
 		(p_frag_after->getType() == pf_Frag::PFT_EndOfDoc)))

@@ -1005,22 +1005,33 @@ void PP_AttrProp::_computeCheckSum(void)
 		cch = attr.first.size();
 		m_checkSum = hashcodeBytesAP(m_checkSum, attr.first.c_str(), cch);
 
+		// rgch only holds the first 8 chars; hash exactly the copied
+		// prefix rather than relying on hashcodeBytesAP's internal clamp.
 		cch = attr.second.size();
-		strncpy(rgch, attr.second.c_str(), 8);
-		ascii_strdown(rgch, 8);
+		if (cch > 8)
+			cch = 8;
+		memcpy(rgch, attr.second.c_str(), cch);
+		rgch[cch] = 0;
+		ascii_strdown(rgch, cch);
 		m_checkSum = hashcodeBytesAP(m_checkSum, rgch, cch);
 	}
 
 	for (const auto & prop : m_properties) {
 
 		cch = prop.first.size();
-		strncpy(rgch, prop.first.c_str(), 8);
-		ascii_strdown(rgch, 8);
+		if (cch > 8)
+			cch = 8;
+		memcpy(rgch, prop.first.c_str(), cch);
+		rgch[cch] = 0;
+		ascii_strdown(rgch, cch);
 		m_checkSum = hashcodeBytesAP(m_checkSum, rgch, cch);
 
 		cch = prop.second.size();
-		strncpy(rgch, prop.second.c_str(), 8);
-		ascii_strdown(rgch, 8);
+		if (cch > 8)
+			cch = 8;
+		memcpy(rgch, prop.second.c_str(), cch);
+		rgch[cch] = 0;
+		ascii_strdown(rgch, cch);
 		m_checkSum = hashcodeBytesAP(m_checkSum, rgch, cch);
 	}
 }

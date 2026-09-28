@@ -645,6 +645,7 @@ protected:
 														const PP_PropertyVector & ppAttrib,
 														const PP_PropertyVector & ppProps);
 	bool                    _insertNoteInEmbeddedStruxList(pf_Frag_Strux * pfsNew);
+	void                    _removeFromEmbeddedStruxList(const pf_Frag_Strux * pfs);
 
 	PTState					m_pts;		/* are we loading or editing */
 	pt_VarSet				m_varset;

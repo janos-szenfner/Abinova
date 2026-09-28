@@ -1826,6 +1826,29 @@ below are on `main` but the release has not been cut yet.
     underflow, node invalidation on unlink, double unlink no-ops,
     head/tail unlinks and the PTS_Editing EOD transition; all pass
     with zero valgrind errors/leaks.
+  - `m_embeddedStrux` paired begin/end note strux pointers but the
+    deletion side only erased entries matching `beginNote` — deleting
+    an `EndFootnote`/`EndEndnote`/`EndAnnotation` strux (or any note
+    strux via `deleteStruxNoUpdate`/`deleteFragNoUpdate`) left a
+    dangling pointer later dereferenced by `isInsideFootnote()` and
+    `_checkSkipFootnote()`. A new `_removeFromEmbeddedStruxList()`
+    helper drops every pair referencing the frag and is called from
+    all three deletion paths before unlink+free.
+  - Unchecked position lookups fixed: `deleteFmtMark()` dereferenced
+    the result of `getMutFragFromPosition()` unconditionally;
+    `_checkSkipFootnote()` and three `_realDeleteSpan()`/revision
+    sites dereferenced `getFragFromPosition()` results that can be
+    NULL; `fl_BlockLayout::getLength()` did the same for the
+    preceding fragment; `getBounds()` no longer dereferences a NULL
+    tail on an empty fragment tree.
+  - `PP_AttrProp::_computeCheckSum()` now copies the bounded 8-byte
+    prefix explicitly (`memcpy` + NUL) instead of `strncpy` relying
+    on `hashcodeBytesAP`'s internal length clamp.
+  - New `pt_PieceTable_embeddedStrux` test builds real footnote and
+    endnote regions, deletes each side of the pair via
+    `deleteStruxNoUpdate()` and asserts `isInsideFootnote()` reports
+    correctly — a UAF regression guard under the suite's valgrind
+    checks.
   - Verified: full suite 1186 tests / 0 failures with
     `ABINOVA_TEST_SRC_DIR` set (the earlier 5 `ie_abinova` fixture
     failures were a test-data path issue, not a code regression),

@@ -106,6 +106,9 @@ bool pt_PieceTable::deleteStruxNoUpdate(pf_Frag_Strux* pfs)
 		getFragments().unlinkFrag(pf);
 		delete pf;
 	}
+	// pfs may be a beginNote or endNote of an embedded-strux pair;
+	// remove it before freeing or the list keeps a dangling pointer.
+	_removeFromEmbeddedStruxList(pfs);
 	getFragments().unlinkFrag(pfs);
 	delete pfs;
 	return true;
@@ -119,6 +122,8 @@ bool pt_PieceTable::deleteStruxNoUpdate(pf_Frag_Strux* pfs)
 bool pt_PieceTable::deleteFragNoUpdate(pf_Frag * pf)
 {
 	UT_DEBUGMSG(("SEVIOR: deleting frag no update %p \n", (void*)pf));
+	if (pf->getType() == pf_Frag::PFT_Strux)
+		_removeFromEmbeddedStruxList(static_cast<pf_Frag_Strux *>(pf));
 	getFragments().unlinkFrag(pf);
 	delete pf;
 	return true;
@@ -233,6 +238,7 @@ bool pt_PieceTable::deleteFmtMark(PT_DocPosition dpos)
 	pf_Frag * pf = nullptr;
 	PT_BlockOffset pOffset= 0;
 	getMutFragFromPosition(dpos, &pf, &pOffset);
+	UT_return_val_if_fail (pf, false);
 	pf_Frag_FmtMark * pfm = nullptr;
 	if(pf->getType() == pf_Frag::PFT_FmtMark)
 	{
@@ -715,18 +721,16 @@ PT_DocPosition pt_PieceTable::getPosEnd() const
 
 bool pt_PieceTable::getBounds(bool bEnd, PT_DocPosition & docPos) const
 {
-	// be optimistic
-	bool res = true;
-
 	if (!bEnd)
 	{
 		docPos = pt_BOD_POSITION;
 	}
 	else
 	{
-		docPos = m_fragments.getLast()->getPos()+m_fragments.getLast()->getLength();
+		const pf_Frag * pLast = m_fragments.getLast();
+		docPos = pLast ? pLast->getPos() + pLast->getLength() : pt_BOD_POSITION;
 	}
-	return res;
+	return true;
 }
 
 PT_DocPosition pt_PieceTable::getStruxPosition(const pf_Frag_Strux* pfs) const
@@ -1534,7 +1538,7 @@ bool pt_PieceTable::_checkSkipFootnote(PT_DocPosition dpos1, PT_DocPosition dpos
 		PT_BlockOffset offset;
 		getFragFromPosition(dpos2, &pf_End, &offset);
 	}
-	if ((dpos1 == 1) && ((pf_End->getType() == pf_Frag::PFT_EndOfDoc) ||
+	if (pf_End && (dpos1 == 1) && ((pf_End->getType() == pf_Frag::PFT_EndOfDoc) ||
 						 ((pf_End->getType() == pf_Frag::PFT_Strux) && 
 						  (static_cast<const pf_Frag_Strux*>(pf_End)->getStruxType() == PTX_SectionHdrFtr))))
 	{

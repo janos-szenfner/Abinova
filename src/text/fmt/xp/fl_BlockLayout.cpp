@@ -4454,7 +4454,7 @@ UT_sint32 fl_BlockLayout::getLength() const
 	// it's length.
 	//
 	const pf_Frag * pf = m_pDoc->getFragFromPosition(posNext - 1);
-	if(pf->getType() == pf_Frag::PFT_Strux)
+	if(pf && pf->getType() == pf_Frag::PFT_Strux)
 	{
 		auto pfsTemp = static_cast<const pf_Frag_Strux *>(pf);
 		if (pfsTemp->getStruxType() == PTX_EndTOC)	// did we find it

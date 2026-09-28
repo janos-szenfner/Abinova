@@ -821,7 +821,7 @@ void pf_Fragments::verifyDoc(void) const
   }
   UT_ASSERT(pf && (pf->getType() ==  pf_Frag::PFT_EndOfDoc));
   UT_ASSERT(pf && (pf->getNext() == nullptr));
-  UT_DEBUGMSG(("Last Frag is %p Type is %d pos is %d \n", (void*)getLast(), getLast()->getType(), getLast()->getPos()));
+  UT_DEBUGMSG(("Last Frag is %p Type is %d pos is %d \n", (void*)getLast(), getLast() ? getLast()->getType() : -1, getLast() ? getLast()->getPos() : 0));
 }
 
 /**
