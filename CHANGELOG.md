@@ -1234,6 +1234,14 @@ below are on `main` but the release has not been cut yet.
   live in horizontally-scrolling containers so the window's minimum
   width (~2043 px, driven by the Home tab) no longer exceeds a
   1920 px screen; the window maximizes correctly.
+- **Slimmer ribbon buttons on small screens** — large ribbon buttons
+  get two width tiers: a ~2/3-width tier (8-char wrapping captions)
+  on the Review, Layout, View, References, File, Equation and Help
+  tabs plus Home's Paste, and an extra-slim tier (20 px icons,
+  7-char captions that can break inside long words) on the Insert
+  and Table Layout tabs. The `ribbon-xslim` style now trims button
+  padding on all sides and also matches `GtkMenuButton`, which the
+  plain `button` selector never reached.
 
 ### Ubuntu Launchpad bug fixes
 
