@@ -4457,7 +4457,8 @@ fp_Run * fp_Line::getLastVisRun()
 
 	_createMapOfRuns();
 	UT_sint32 count = m_vecRuns.getItemCount();
-	UT_ASSERT(count > 0);
+	if(count <= 0)
+		return nullptr;
 	return m_vecRuns.getNthItem(s_pMapOfRunsV2L[count - 1]);
 }
 

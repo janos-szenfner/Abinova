@@ -5487,9 +5487,6 @@ bool fp_FieldMailMergeRun::calculateValue(void)
 
 	  UT_UTF8String value ;
 
-	  PD_Document * pDoc = getBlock()->getDocument();
-	  UT_ASSERT(pDoc);	  
-
 	  // no merge mapping exists anymore; display the field name,
 	  // matching Word's unmerged MERGEFIELD rendering
 	  value = "<";

@@ -96,9 +96,9 @@ public:
 	{
 	    UT_ASSERT_HARMLESS(m_pEntries);
 	    UT_ASSERT_HARMLESS(m_iCount > 0);
-	    UT_ASSERT_HARMLESS(n<m_iCount);
+	    UT_ASSERT_HARMLESS(n >= 0 && n<m_iCount);
 
-	    if(n >= m_iCount || !m_pEntries) {
+	    if(n < 0 || n >= m_iCount || !m_pEntries) {
 			return UT_null<T>::value;
 		}
 	    return m_pEntries[n];
@@ -258,7 +258,7 @@ UT_sint32 UT_GenericVector<T>::grow(UT_sint32 ndx)
 template <class T>
 UT_sint32 UT_GenericVector<T>::insertItemAt(const T p, UT_sint32 ndx)
 {
-	if (ndx > m_iCount + 1)
+	if (ndx < 0 || ndx > m_iCount + 1)
 		return -1;
 
 	if ((m_iCount+1) > m_iSpace)
@@ -333,6 +333,11 @@ UT_sint32 UT_GenericVector<T>::setNthItem(UT_sint32 ndx, T pNew, T* ppOld)
 {
 	const UT_sint32 old_iSpace = m_iSpace;
 
+	if (ndx < 0)
+	{
+		return -1;
+	}
+
 	if (ndx >= m_iSpace)
 	{
 		const UT_sint32 err = grow(ndx+1);
@@ -381,8 +386,13 @@ const T UT_GenericVector<T>::getFirstItem() const
 template <class T>
 void UT_GenericVector<T>::deleteNthItem(UT_sint32 n)
 {
-	UT_ASSERT_HARMLESS(n < m_iCount);
+	UT_ASSERT_HARMLESS(n >= 0 && n < m_iCount);
 	UT_ASSERT_HARMLESS(m_iCount > 0);
+	UT_ASSERT_HARMLESS(m_pEntries);
+
+	if (n < 0 || n >= m_iCount || !m_pEntries) {
+		return;
+	}
 
 	memmove(&m_pEntries[n], &m_pEntries[n+1], (m_iCount - (n + 1)) * sizeof(T));
 

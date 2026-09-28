@@ -1849,10 +1849,24 @@ below are on `main` but the release has not been cut yet.
     `deleteStruxNoUpdate()` and asserts `isInsideFootnote()` reports
     correctly — a UAF regression guard under the suite's valgrind
     checks.
+  - `UT_GenericVector` hardening — `getNthItem` rejected only
+    over-range indices; a negative index read before the buffer.
+    `setNthItem` and `insertItemAt` accepted negative indices into
+    `m_pEntries[ndx]` (heap underflow **write**), and
+    `deleteNthItem` passed unchecked `n` to `memmove` where
+    `n > count` produced a huge byte count. All four now reject
+    out-of-range indices in release builds.
+  - `fp_Line::getLastVisRun()` read `s_pMapOfRunsV2L[count-1]` with
+    `count` only asserted positive — a `count==0` release build
+    read before the run map. Now guarded.
+  - Removed the dead `pDoc` fetch left in
+    `fp_FieldMailMergeRun::calculateValue` by the mail-merge
+    removal.
   - Verified: full suite 1186 tests / 0 failures with
     `ABINOVA_TEST_SRC_DIR` set (the earlier 5 `ie_abinova` fixture
     failures were a test-data path issue, not a code regression),
-    `-fanalyzer` clean on all touched files.
+    `-fanalyzer` clean on all touched files and the ten largest
+    fmt-layer files.
 
 ### GTK4 port (core migration)
 
