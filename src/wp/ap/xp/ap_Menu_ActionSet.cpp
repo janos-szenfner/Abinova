@@ -87,7 +87,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FILE_CLOSE,		0,0,0,0,	"closeWindow",		nullptr,					nullptr);
 	_s(AP_MENU_ID_FILE_PAGESETUP,	0,1,0,0,	"pageSetup",		nullptr,					nullptr);
 	_s(AP_MENU_ID_FILE_PRINT,  0,1,0,0,	"cairoPrint",nullptr,nullptr);
-	_s(AP_MENU_ID_FILE_PRINT_PREVIEW, 0,1,0,0, "cairoPrintPreview", nullptr, nullptr);
+	_s(AP_MENU_ID_FILE_PRINT_PREVIEW, 0,1,0,0, "printPreview", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_PRINT_DIRECTLY, 0,1,0,0, "cairoPrintDirectly", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_REVERT, 0,0,0,0, "fileRevert", ap_GetState_Changes, nullptr);
 	_s(AP_MENU_ID_FILE_EXIT,		0,0,0,0,	"querySaveAndExit",	nullptr,					nullptr);

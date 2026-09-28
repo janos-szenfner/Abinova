@@ -317,9 +317,12 @@ UT_Error IE_Exp_HTML::_doOptions()
 
 UT_Error IE_Exp_HTML::_writeDocument()
 {
-	m_pNavigationHelper = new IE_Exp_HTML_NavigationHelper(getDoc(), getFileName());
-    UT_UTF8String basename = UT_go_basename(getFileName());
-    m_suffix = strchr(basename.utf8_str(), '.');
+	const char * szFileName = getFileName();
+	m_pNavigationHelper = new IE_Exp_HTML_NavigationHelper(getDoc(),
+		szFileName ? szFileName : "");
+    UT_UTF8String basename = szFileName ? UT_go_basename(szFileName) : UT_UTF8String("untitled");
+    const char * szDot = strchr(basename.utf8_str(), '.');
+    m_suffix = szDot ? szDot : ".html";
     UT_DEBUGMSG(("Determined suffix: %s", m_suffix.utf8_str()));
     
     if (!UT_go_utf8_collate_casefold(m_suffix.utf8_str(), ".html")||
@@ -642,8 +645,8 @@ void IE_Exp_HTML::_createChapter(PD_DocumentRange* range, const std::string &tit
     if (isIndex)
     {
         output = getFp();
-		char* s = UT_go_basename_from_uri(getFileName());
-        filename = s;
+		char* s = getFileName() ? UT_go_basename_from_uri(getFileName()) : nullptr;
+        filename = s ? s : "untitled";
 		g_free(s);
     }
 	else
@@ -662,7 +665,7 @@ void IE_Exp_HTML::_createChapter(PD_DocumentRange* range, const std::string &tit
     
     IE_Exp_HTML_DataExporter* pDataExporter = 
         new IE_Exp_HTML_FileExporter(getDoc(), 
-            getFileName());
+            getFileName() ? getFileName() : "");
     
     IE_Exp_HTML_DocumentWriter* pMainListener = 
 		m_pWriterFactory->constructDocumentWriter(pOutputWriter);

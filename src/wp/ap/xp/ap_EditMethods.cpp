@@ -10154,85 +10154,15 @@ static bool s_doPrintPreview(FV_View * pView)
 								 ? doc->getFilename().c_str()
 								 : pFrame->getNonDecoratedTitle());
 
+	/* The preview dialog renders and owns its own print layout; it
+	 * hands off to the real print dialog when the user picks Print. */
 	pDialog->runModal(pFrame);
-
-	GR_Graphics * pGraphics = pDialog->getPrinterGraphicsContext();
-	if (!(pGraphics && pGraphics->queryProperties(GR_Graphics::DGP_PAPER)))
-		{
-			UT_ASSERT_HARMLESS(pGraphics);
-			UT_ASSERT_HARMLESS(pGraphics->queryProperties(GR_Graphics::DGP_PAPER));
-			
-			pDialogFactory->releaseDialog(pDialog);
-			
-			// Turn off wait cursor
-			pView->clearCursorWait();
-
-			return false;
-		}
-
-	/*
-	We need to re-layout the document for now, so the UnixPSGraphics class will
-	get it's font list filled. When we find a better way to fill the UnixPSGraphics
-	font list, we can remove the 4 lines below. - MARCM
-	*/
-	FL_DocLayout * pDocLayout = nullptr;
-	FV_View * pPrintView = nullptr;
-	bool bHideFmtMarks = false;
-	bool bDidQuickPrint = false;
-	if(!pGraphics->canQuickPrint() || (pView->getViewMode() != VIEW_PRINT))
-	{
-			pDocLayout = new FL_DocLayout(doc,pGraphics);
-			pPrintView = new FV_View(XAP_App::getApp(), nullptr, pDocLayout);
-			pPrintView->setViewMode(VIEW_PRINT);
-			pPrintView->getLayout()->fillLayouts();
-			pPrintView->getLayout()->formatAll();
-			pPrintView->getLayout()->recalculateTOCFields();
-	}
-	else
-	{
-			pDocLayout = pLayout;
-			pPrintView = pView;
-			pDocLayout->setQuickPrint(pGraphics);
-			bDidQuickPrint = true;
-			if(pFrameData->m_bShowPara)
-			{
-				pPrintView->setShowPara(false);
-				bHideFmtMarks = true;
-			}
-	}
-	
-	UT_uint32 nFromPage = 1, nToPage = pLayout->countPages(), nCopies = 1;
-	bool bCollate  = false;
-
-	// TODO these are here temporarily to make printing work.  We'll fix the hack later.
-	// BUGBUG assumes all pages are same size and orientation
-	UT_sint32 iWidth = pDocLayout->getWidth();
-	UT_sint32 iHeight = pDocLayout->getHeight() / pDocLayout->countPages();
-
-	const char *pDocName = ((!doc->getFilename().empty()) ? doc->getFilename().c_str() : pFrame->getNonDecoratedTitle());
-
-	s_actuallyPrint(doc, pGraphics, pPrintView, pDocName, nCopies, bCollate,
-					iWidth,  iHeight, nToPage, nFromPage);
-
-	if(!bDidQuickPrint)
-	{
-			delete pDocLayout;
-			delete pPrintView;
-	}
-	else
-	{
-		if(bHideFmtMarks)
-			pPrintView->setShowPara(true);
-
-		pDocLayout->setQuickPrint(nullptr);
-	}
-	pDialog->releasePrinterGraphicsContext(pGraphics);
 
 	pDialogFactory->releaseDialog(pDialog);
 
     // Turn off wait cursor
 	pView->clearCursorWait();
-	
+
 	return true;
 }
 #endif

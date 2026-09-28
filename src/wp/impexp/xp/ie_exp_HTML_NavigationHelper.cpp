@@ -90,9 +90,16 @@ IE_Exp_HTML_NavigationHelper::IE_Exp_HTML_NavigationHelper(
   m_suffix(""),
   m_minTOCLevel(0),
   m_minTOCIndex(0),
-  m_baseName(UT_go_basename_from_uri(baseName.utf8_str()))
+  m_baseName(nullptr)
 {
-    UT_ASSERT(m_baseName);
+    if (baseName.size())
+        m_baseName = UT_go_basename_from_uri(baseName.utf8_str());
+
+    /* copy-to-clipboard exports have no file name; basename_of a NULL or
+     * empty URI comes back NULL - keep a harmless fallback instead of
+     * dereferencing it below */
+    if (!m_baseName)
+        m_baseName = g_strdup("untitled");
 
     m_suffix = strchr(m_baseName, '.');
     m_minTOCLevel = 10;

@@ -34,14 +34,14 @@ struct _ClipboardItem
 	~_ClipboardItem();
 	void replace(const void * pData, UT_uint32 iLen);
 
-	const char *	m_szFormat;
+	char *			m_szFormat;		/* owned copy */
 	unsigned char *	m_pData;
 	UT_uint32		m_iLen;
 };
 
 _ClipboardItem::_ClipboardItem(const char * szFormat, const void* pData, UT_uint32 iLen)
 {
-	m_szFormat = szFormat;
+	m_szFormat = g_strdup(szFormat);
 	m_pData = new unsigned char[iLen];
 	memcpy(m_pData, pData, iLen);
 	m_iLen = iLen;
@@ -49,6 +49,7 @@ _ClipboardItem::_ClipboardItem(const char * szFormat, const void* pData, UT_uint
 
 _ClipboardItem::~_ClipboardItem()
 {
+	g_free(m_szFormat);
 	delete [] m_pData;
 }
 

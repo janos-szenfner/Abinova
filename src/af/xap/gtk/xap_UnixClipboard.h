@@ -70,7 +70,13 @@ public:
 
 	// called by the GdkContentProvider when a pasting peer requests data
 	bool				writeData(const char * mime_type, GOutputStream * stream,
-								  bool bPrimary, GError ** error);
+								  bool bPrimary, GCancellable *cancellable,
+								  GError ** error);
+
+	// called from AbiContentProvider's ctor/weak-notify to keep the
+	// provider's raw owner pointer from outliving this object
+	void				_registerProvider(GObject * provider);
+	void				_unregisterProvider(GObject * provider);
 
 protected:
 
@@ -88,7 +94,10 @@ protected:
 								  void ** ppData, UT_uint32 * pLen,
 								  const char **pszFormatFound);
 
-	std::vector<const char*>  m_vecFormat_MimeType;
+	std::vector<std::string>  m_vecFormat_MimeType;
+
+	// live content providers holding a raw 'this'; nulled at teardown
+	std::vector<GObject*>	m_vecProviders;
 
 	UT_ByteBuf m_databuf; // for gets only
 

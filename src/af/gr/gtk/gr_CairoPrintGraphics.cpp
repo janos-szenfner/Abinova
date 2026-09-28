@@ -1,7 +1,8 @@
 /* -*- mode: C++; tab-width: 4; c-basic-offset: 4; -*- */
-/* AbiWord
+/* Abinova — cairo print graphics
  * Copyright (C) 2008 Robert Staudinger
- * 
+ * Copyright (C) 2025-2026 Abinova contributors
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -19,6 +20,8 @@
  */
 
 #include "gr_CairoPrintGraphics.h"
+
+#include <math.h>
 
 GR_CairoPrintGraphics::GR_CairoPrintGraphics(cairo_t *cr, UT_uint32 iDeviceResolution)
   : GR_UnixCairoGraphicsBase(cr, iDeviceResolution),
@@ -68,6 +71,11 @@ bool GR_CairoPrintGraphics::queryProperties(GR_Graphics::Properties gp) const
  */
 void GR_CairoPrintGraphics::setResolutionRatio(double dres)
 {
+	/* Reject non-finite and non-positive ratios: they would poison
+	 * every font-size conversion downstream and are only produced by
+	 * a zero/degenerate screen resolution. */
+	if (!isfinite(dres) || dres <= 0.0)
+		dres = 1.0;
 	m_dResRatio = dres;
 }
 
@@ -76,29 +84,29 @@ double GR_CairoPrintGraphics::getResolutionRatio(void) const
 	return 	m_dResRatio;
 }
 
-bool GR_CairoPrintGraphics::GR_CairoPrintGraphics::startPrint(void)
+bool GR_CairoPrintGraphics::startPrint(void)
 {
 	m_bDoShowPage = false;
-	return true;
+	return (m_cr != nullptr);
 }
 
 bool GR_CairoPrintGraphics::startPage(const char * /*szPagelabel*/, UT_uint32 /*pageNumber*/,
 									  bool /*bPortrait*/, UT_uint32 /*iWidth*/, UT_uint32 /*iHeight*/)
 {
-	if (m_bDoShowPage) {
+	if (m_bDoShowPage && m_cr) {
 		cairo_show_page(m_cr);
 	}
 
 	m_bDoShowPage = true;
 
-	return true;
+	return (m_cr != nullptr);
 }
 
 bool GR_CairoPrintGraphics::endPrint(void)
 {
-	if (m_bDoShowPage) {
+	if (m_bDoShowPage && m_cr) {
 		cairo_show_page(m_cr);
+		m_bDoShowPage = false;
 	}
 	return true;
 }
-

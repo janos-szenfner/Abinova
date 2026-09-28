@@ -333,12 +333,12 @@ IE_Exp_HTML_DataExporter::IE_Exp_HTML_DataExporter(PD_Document* pDocument,
     m_pDocument(pDocument)
 {
 	auto baseName = UT_go_basename_from_uri(filename.utf8_str());
-	m_fileDirectory = baseName;
+	m_fileDirectory = baseName ? baseName : "untitled";
     m_fileDirectory += FILES_DIR_NAME;
 	g_free(baseName);
 
 	auto path = g_path_get_dirname(filename.utf8_str());
-	m_baseDirectory = path;
+	m_baseDirectory = path ? path : "";
 	g_free(path);
 }
 

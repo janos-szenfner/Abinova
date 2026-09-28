@@ -1763,6 +1763,55 @@ below are on `main` but the release has not been cut yet.
   style-context color queries.
 - **GTK2-era `--enable-menubutton` dead code removed** — it used APIs
   that cannot compile under GTK4.
+- **Print preview rewritten from scratch** — the GTK4 dialog
+  (`xap_UnixDlg_PrintPreview`) renders each page once into a cairo
+  recording surface (vector ops replay losslessly at any zoom), shows
+  a scrolled page strip with drop shadows, a header bar with page
+  navigation (previous/next arrows, spin entry, "/ N" label), zoom
+  out/in buttons and a preset popover (50–400 %), Fit Width / Whole
+  Page toggles, a Print button that hands off to the normal GTK print
+  dialog, and Close/Escape to dismiss. The initial fit is deferred
+  until the drawing area has a real allocation (it used to compute
+  ~17 % zoom against a zero-size window), paper is painted white
+  beneath the recorded print content (print graphics intentionally
+  skip the paper fill), and Win32 `&` mnemonics are stripped from
+  GTK labels. Menu and toolbar Print Preview actions now invoke this
+  in-app dialog instead of the external viewer path.
+- **Clipboard subsystem hardened** (`xap_UnixClipboard`) — the
+  `GdkContentProvider` no longer holds a raw owner pointer that could
+  outlive the clipboard object (providers are weak-ref'd and disowned
+  at teardown); synchronous clipboard reads run a nested main loop
+  bounded by a 5 s timeout + `GCancellable` so a dead peer can't
+  freeze the editor, and abandoned reads free their context from the
+  late callback; stream reads are capped at 64 MiB to stop hostile
+  payloads exhausting memory; `canPaste()` now checks real clipboard
+  formats instead of always returning true; foreign clipboard text
+  is served from an owned buffer and never contaminates the local
+  fake clipboard; the fake clipboard owns copies of its format names
+  (previously raw `const char*` that could dangle); local clipboard
+  reads hit the fake clipboard directly instead of round-tripping
+  through our own async provider (which could deadlock).
+- **Drag-and-drop hardened** (`xap_UnixFrameImpl`) — drop reads are
+  bounded (64 MiB) and time out after 10 s with a `GCancellable`;
+  `text/uri-list` payloads are NUL-terminated before
+  `g_uri_list_extract_uris` (out-of-bounds read risk); dropped URIs
+  are scheme-checked — only `file:` URIs reach the local
+  document/image loaders, remote or hostile schemes are refused;
+  `UT_go_get_mime_type` NULL results are handled instead of
+  dereferenced; `s_loadImage`/`s_pasteText`/`s_pasteFile` guard
+  against missing views so a drop on a not-yet-initialized frame
+  can't crash.
+- **Copying an untitled document no longer crashes** — the HTML
+  clipboard exporter dereferenced NULL basenames from
+  `UT_go_basename_from_uri()`/`getFileName()` in
+  `IE_Exp_HTML_NavigationHelper`, `IE_Exp_HTML::_createChapter`,
+  `IE_Exp_HTML::_writeDocument` and `IE_Exp_HTML_DataExporter`;
+  untitled documents now export with an "untitled" fallback name.
+- **`GR_CairoPrintGraphics` hardened** — `setResolutionRatio` rejects
+  non-finite/non-positive ratios that would poison every font-size
+  conversion; `startPrint`/`startPage`/`endPrint` NULL-check the
+  cairo context and `endPrint` resets the show-page flag (also fixed
+  a duplicated `GR_CairoPrintGraphics::` qualified name).
 
 ### Performance
 

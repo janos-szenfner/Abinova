@@ -215,9 +215,12 @@ static int s_mapMimeToUriType (const char * uri)
 
 	int target = TARGET_UNKNOWN;
 
-	gchar *mimeType;
+	gchar *mimeType = UT_go_get_mime_type (uri);
 
-	mimeType = UT_go_get_mime_type (uri);
+	/* UT_go_get_mime_type may return NULL for malformed or unresolvable
+	 * URIs - treat the drop as unhandled rather than dereferencing it */
+	if (!mimeType)
+		return TARGET_UNKNOWN;
 
 	if (g_ascii_strcasecmp (mimeType, "application/octet-stream") == 0) {
 		FREEP (mimeType);
@@ -256,6 +259,8 @@ static int s_mapMimeToUriType (const char * uri)
 static void
 s_loadImage (const UT_UTF8String & file, FV_View * pView, XAP_Frame * pF, gint x, gint y)
 {
+	if (!pView)
+		return;
 	FG_ConstGraphicPtr pFG;
 	UT_Error error = IE_ImpGraphic::loadGraphic(file.utf8_str(), 0, pFG);
 	if (error != UT_OK || !pFG)
@@ -286,6 +291,8 @@ s_loadImage (const UT_UTF8String & file, FV_View * pView, XAP_Frame * pF, gint x
 static void
 s_loadImage (const UT_ConstByteBufPtr & bytes, FV_View * pView, XAP_Frame * pF, gint x, gint y)
 {
+	if (!pView)
+		return;
 	FG_ConstGraphicPtr pFG;
 	UT_Error error = IE_ImpGraphic::loadGraphic(bytes, 0, pFG);
 	if (error != UT_OK || !pFG)
@@ -342,6 +349,11 @@ static void s_pasteFile(const UT_UTF8String & file, XAP_Frame * pFrame)
 			return;
 		}
 		FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
+		if (!pView)
+		{
+			UNREFP(newDoc);
+			return;
+		}
 		// we'll share the same graphics context, which won't matter because
 		// we only use it to get font metrics and stuff and not actually draw
 		GR_Graphics *pGraphics = pView->getGraphics();
@@ -365,6 +377,21 @@ static void
 s_loadUri (XAP_Frame * pFrame, const char * uri,gint x, gint y)
 {
 	FV_View * pView  = static_cast<FV_View*>(pFrame->getCurrentView ());
+
+	/* Only local files are loadable; anything else (http://, ftp://,
+	 * javascript:, ...) is a link or outright hostile - never feed it
+	 * to the document/image loaders */
+	if (uri && strchr(uri, ':'))
+	{
+		gchar * scheme = g_uri_parse_scheme(uri);
+		if (!scheme || g_ascii_strcasecmp(scheme, "file") != 0)
+		{
+			UT_DEBUGMSG(("DOM: refusing non-local uri: %s\n", uri));
+			g_free(scheme);
+			return;
+		}
+		g_free(scheme);
+	}
 
 	int type = s_mapMimeToUriType (uri);
 	if (type == TARGET_UNKNOWN)
@@ -417,6 +444,8 @@ s_pasteText (XAP_Frame * pFrame, const char * target_name,
 			 const unsigned char * data, UT_uint32 data_length)
 {
 	FV_View   * pView  = static_cast<FV_View*>(pFrame->getCurrentView ());
+	if (!pView)
+		return;
 	PD_Document * pDoc = pView->getDocument ();
 
 	IEFileType file_type = IEFT_Unknown;
@@ -513,18 +542,67 @@ s_dropDispatch(XAP_Frame * pFrame, const char * targetName, int target,
 	}
 }
 
+/* Bound a single drop payload: dropped images/documents are a few MB
+ * at most; this stops a hostile or broken drag source from exhausting
+ * memory. */
+#define ABI_DROP_MAX_BYTES  (64u * 1024u * 1024u)
+/* A drag source that never answers must not freeze the editor. */
+#define ABI_DROP_TIMEOUT_MS  10000
+
 struct DropReadCtx
 {
 	GMainLoop * loop;
+	GCancellable * cancellable;
+	guint timeout_id;
+	bool done;			/* async callback already ran */
+	bool abandoned;		/* caller timed out; callback frees ctx */
 	GInputStream * stream;
 };
+
+static void s_drop_ctx_cleanup(DropReadCtx * ctx)
+{
+	g_clear_object(&ctx->stream);
+	g_clear_object(&ctx->cancellable);
+	if (ctx->loop)
+		g_main_loop_unref(ctx->loop);
+	g_free(ctx);
+}
+
+static void s_drop_read_done(DropReadCtx * ctx)
+{
+	if (ctx->timeout_id)
+	{
+		g_source_remove(ctx->timeout_id);
+		ctx->timeout_id = 0;
+	}
+	if (ctx->abandoned)
+	{
+		s_drop_ctx_cleanup(ctx);
+		return;
+	}
+	ctx->done = true;
+	g_main_loop_quit(ctx->loop);
+}
 
 static void s_drop_read_cb(GObject *src, GAsyncResult *res, gpointer data)
 {
 	DropReadCtx * ctx = static_cast<DropReadCtx*>(data);
 	const char * mime = nullptr;
 	ctx->stream = gdk_drop_read_finish(GDK_DROP(src), res, &mime, nullptr);
-	g_main_loop_quit(ctx->loop);
+	s_drop_read_done(ctx);
+}
+
+static gboolean s_drop_timeout_cb(gpointer data)
+{
+	DropReadCtx * ctx = static_cast<DropReadCtx*>(data);
+	ctx->timeout_id = 0;
+	g_cancellable_cancel(ctx->cancellable);
+	if (!ctx->done)
+	{
+		ctx->abandoned = true;
+		g_main_loop_quit(ctx->loop);
+	}
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -558,33 +636,61 @@ s_drop_cb(GtkDropTargetAsync * /*target*/, GdkDrop *drop,
 	if (!mime)
 		return;
 
-	// read the drop data through a nested main loop, like the GTK3
-	// synchronous gtk_selection_data path did
-	DropReadCtx ctx;
-	ctx.loop = g_main_loop_new(nullptr, FALSE);
-	ctx.stream = nullptr;
+	/* Read the drop data through a nested main loop (the XP dispatch is
+	 * synchronous), bounded by a timeout so a stuck drag source cannot
+	 * freeze the editor.  The DropReadCtx is heap-allocated: if we give
+	 * up waiting, the late callback frees it itself. */
+	DropReadCtx * ctx = g_new0(DropReadCtx, 1);
+	ctx->loop = g_main_loop_new(nullptr, FALSE);
+	ctx->cancellable = g_cancellable_new();
+	ctx->timeout_id = g_timeout_add(ABI_DROP_TIMEOUT_MS,
+									s_drop_timeout_cb, ctx);
 
 	const char * mimes[] = { mime, nullptr };
-	gdk_drop_read_async(drop, mimes, G_PRIORITY_DEFAULT, nullptr,
-						s_drop_read_cb, &ctx);
-	g_main_loop_run(ctx.loop);
-	g_main_loop_unref(ctx.loop);
+	gdk_drop_read_async(drop, mimes, G_PRIORITY_DEFAULT, ctx->cancellable,
+						s_drop_read_cb, ctx);
+	g_main_loop_run(ctx->loop);
 
-	if (ctx.stream)
+	if (ctx->abandoned)
+		return;	/* freed by the late callback */
+
+	GInputStream * stream = ctx->stream;
+	ctx->stream = nullptr;
+	s_drop_ctx_cleanup(ctx);
+
+	if (!stream)
+		return;
+
+	UT_ByteBuf buf;
+	guchar chunk[8192];
+	gssize n;
+	gboolean bOverflow = FALSE;
+	while ((n = g_input_stream_read(stream, chunk, sizeof(chunk),
+									nullptr, nullptr)) > 0)
 	{
-		UT_ByteBuf buf;
-		guchar chunk[8192];
-		gssize n;
-		while ((n = g_input_stream_read(ctx.stream, chunk, sizeof(chunk),
-										nullptr, nullptr)) > 0)
+		if (buf.getLength() + static_cast<gsize>(n) > ABI_DROP_MAX_BYTES)
 		{
-			buf.append(chunk, n);
+			bOverflow = TRUE;
+			break;
 		}
-		g_object_unref(ctx.stream);
+		buf.append(chunk, n);
+	}
+	g_object_unref(stream);
 
-		if (buf.getLength() > 0)
-			s_dropDispatch(pFrame, mime, s_targetForMime(mime),
-						   buf.getPointer(0), buf.getLength(), x, y);
+	if (!bOverflow && buf.getLength() > 0)
+	{
+		/* text-uri-list / text payload is consumed as C strings by the
+		 * dispatch helpers - guarantee NUL termination regardless of
+		 * what the source sent */
+		int target = s_targetForMime(mime);
+		if (target == TARGET_URI_LIST || target == TARGET_URL ||
+			target == TARGET_DOCUMENT)
+		{
+			const guchar z = 0;
+			buf.append(&z, 1);
+		}
+		s_dropDispatch(pFrame, mime, target,
+					   buf.getPointer(0), buf.getLength(), x, y);
 	}
 }
 

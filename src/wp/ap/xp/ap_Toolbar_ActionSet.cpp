@@ -83,7 +83,7 @@ EV_Toolbar_ActionSet * AP_CreateToolbarActionSet(void)
 	_s(AP_TOOLBAR_ID_FILE_SAVE,		EV_TBIT_PushButton,		"fileSave",		AV_CHG_ALL,		ap_ToolbarGetState_Changes);
 	_s(AP_TOOLBAR_ID_FILE_SAVEAS,	EV_TBIT_PushButton,		"fileSaveAs",	AV_CHG_NONE,		nullptr);
 	_s(AP_TOOLBAR_ID_FILE_PRINT,	EV_TBIT_PushButton,		"cairoPrint",		AV_CHG_NONE,		nullptr);
-	_s(AP_TOOLBAR_ID_FILE_PRINT_PREVIEW, EV_TBIT_PushButton,	"cairoPrintPreview", AV_CHG_NONE,	nullptr);
+	_s(AP_TOOLBAR_ID_FILE_PRINT_PREVIEW, EV_TBIT_PushButton,	"printPreview", AV_CHG_NONE,	nullptr);
 	// AV_CHG_ALL doesn't seem right here. TODO!
 #ifdef ENABLE_SPELL
 	_s(AP_TOOLBAR_ID_SPELLCHECK,	EV_TBIT_PushButton,		"dlgSpell",		AV_CHG_ALL,		ap_ToolbarGetState_Spelling);
