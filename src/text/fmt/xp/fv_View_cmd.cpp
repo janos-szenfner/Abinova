@@ -7331,7 +7331,7 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 			setPoint(2);
 		}
 	}
-	const PT_DocPosition posMark = getPoint();
+	PT_DocPosition posMark = getPoint();
 	bool bPasted = false;
 
 	// Frame-based presets carry an abwn template in the "covers/"
@@ -7368,7 +7368,27 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 										"UTF-8");
 			if(bPasted)
 			{
-				setPoint(imp.getDocPos());
+				// m_dpos stops on the strux position of the block
+				// that followed the paste; step inside it, then
+				// split off the shell paragraph that carries the
+				// trailing page break and the end marker. Objects
+				// inserted at strux level would leak out of any
+				// block and corrupt the piece table.
+				setPoint(imp.getDocPos() + 1);
+				insertParagraphBreak();
+				setPoint(getPoint() - 1);
+
+				// A zero-width sentinel at the start of the cover's
+				// first paragraph keeps the start marker off block
+				// offset 0. Without it the deleteSpan tweak drags
+				// the block strux into the span and the piece table
+				// refuses to unlink the section's first block when
+				// a frame follows it - aborting the delete mid-way.
+				UT_UCS4Char cSentinel = 0x200B;
+				if(m_pDoc->insertSpan(posPaste + 1, &cSentinel, 1))
+				{
+					posMark = posPaste + 2;
+				}
 			}
 			g_bytes_unref(pBytes);
 		}
