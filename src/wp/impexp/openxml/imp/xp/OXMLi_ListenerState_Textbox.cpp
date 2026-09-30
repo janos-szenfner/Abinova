@@ -291,8 +291,10 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 	if (nameMatches(rqst->pName, NS_A_KEY, "headEnd") ||
 		nameMatches(rqst->pName, NS_A_KEY, "tailEnd"))
 	{
-		/* line arrowheads (children of a:ln) */
-		if (rqst->stck && !rqst->stck->empty())
+		/* line arrowheads (children of a:ln). The m_bInOutline check
+		 * skips same-named elements inside a14 extension blocks
+		 * (e.g. a14:hiddenLine carries dummy empty ends) */
+		if (m_bInOutline && rqst->stck && !rqst->stck->empty())
 		{
 			std::string base =
 				nameMatches(rqst->pName, NS_A_KEY, "headEnd") ?
@@ -599,7 +601,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				bGrpSpPr = (rqst->context->at(rqst->context->size() - 3) ==
 							"wpg:grpSpPr");
 		}
-		if ((bInGroup || bGrpSpPr) && rqst->stck && !rqst->stck->empty())
+		if (rqst->stck && !rqst->stck->empty())
 		{
 			OXML_SharedElement top = rqst->stck->top();
 			auto att = [&](const char * n) -> const char * {
@@ -650,12 +652,15 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 					if (cy) top->setProperty("grp-height", cy);
 				}
 			}
-			else if (rqst->context->size() >= 3 &&
-					 rqst->context->at(rqst->context->size() - 3) ==
+			else if (rqst->context->size() >= 2 &&
+					 rqst->context->at(rqst->context->size() - 2) ==
 						 "wps:spPr")
 			{
 				/* top-level shape's own extent — used for line
-				 * direction and as the frame size fallback */
+				 * direction and as the frame size fallback. The
+				 * context vector holds only ancestors (the current
+				 * element is pushed after startElement returns), so
+				 * a:ext inside wps:spPr > a:xfrm sits at size-2 */
 				const char * cx = att("A:cx"), * cy = att("A:cy");
 				if (rqst->pName == "A:ext")
 				{

@@ -19,10 +19,10 @@
 </frame>
     <frame props="position-to:page-above-text; frame-height:3.8854in; xpos:3.5094in; grp-ypos:3695700; grp-height:3552825; base-h:10.500000in; bot-style:none; xpad-left:0.0500in; grp-width:3900170; top-style:none; frame-page-xpos:3.5094in; text-warp:textNoShape; left-style:none; frame-width:4.2653in; right-style:none; frame-valign:top; bg-style:0; xpad-right:0.0500in; ypad-bottom:0.0500in; grp-xpos:3095625; frame-page-ypos:4.6382in; base-valign:center; ypos:4.6382in; base-w:8.020000in; ypad:0.0500in; ypad-top:0.0500in; wrap-mode:wrapped-topbot; frame-text-direction:horz; frame-stack-order:251659264; xpad:0.0500in; frame-type:textbox; base-halign:center">
       <p style="cover_NoSpacing" props="margin-bottom:12.000000pt; line-height:1.100000; font-size:39.000000pt"><c props="font-family:Calibri Light; color:E7E6E6; font-size:39.000000pt">[Document Title]</c></p>
-      <p style="cover_NoSpacing" props="line-height:1.100000; font-size:20.000000pt"><c props="color:E7E6E6; font-size:20.000000pt">[Document Subtitle]</c></p>
+      <p style="cover_NoSpacing" props="line-height:1.100000; font-size:20.000000pt"><c props="color:E7E6E6; char-spacing:1.000000pt; font-size:20.000000pt">[Document Subtitle]</c></p>
 </frame>
     <frame props="position-to:page-above-text; frame-height:1.6458in; xpos:3.5094in; grp-ypos:7305675; grp-height:1504950; base-h:10.500000in; bot-style:none; xpad-left:0.1000in; grp-width:3904488; top-style:none; frame-page-xpos:3.5094in; text-warp:textNoShape; left-style:none; frame-width:4.2700in; right-style:none; frame-valign:center; bg-style:0; xpad-right:0.1000in; ypad-bottom:0.1500in; grp-xpos:3095625; frame-page-ypos:8.5861in; base-valign:center; ypos:8.5861in; base-w:8.020000in; ypad:0.1500in; ypad-top:0.1500in; wrap-mode:wrapped-topbot; frame-text-direction:horz; frame-stack-order:251659264; xpad:0.1000in; frame-type:textbox; base-halign:center">
-      <p style="cover_NoSpacing" props="margin-bottom:9.000000pt; font-size:18.000000pt"><c props="color:E7E6E6; font-size:18.000000pt">Szenfner János (EXT)</c></p>
-      <p style="cover_NoSpacing" props="font-size:18.000000pt"><c props="color:E7E6E6; font-size:18.000000pt">[Company Name]</c></p>
+      <p style="cover_NoSpacing" props="margin-bottom:9.000000pt; font-size:18.000000pt"><c props="color:E7E6E6; char-spacing:1.000000pt; font-size:18.000000pt">Szenfner János (EXT)</c></p>
+      <p style="cover_NoSpacing" props="font-size:18.000000pt"><c props="color:E7E6E6; char-spacing:1.000000pt; font-size:18.000000pt">[Company Name]</c></p>
 </frame>
 </abinova>

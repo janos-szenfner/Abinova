@@ -23,3 +23,10 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
   the app config resolves "Calibri Light"->Carlito (Noto Sans
   systemwide); Badge.docx PDF embeds Carlito and the tracked title
   wraps cleanly
+- 2026-09-30 D03: painted OOXML headEnd/tailEnd line decorations on
+  bar frames (triangle/stealth/diamond/oval/arrow; sm/med/lg scale);
+  gated ends to a:ln context (skips a14:hiddenLine dummies); fixed
+  dead top-level shape-extent capture (context ancestor-only
+  off-by-one) so vertical lines become bar-w; regenerated headline +
+  feathered cover fragments — synthetic docx->pdf shows all types on
+  horizontal and vertical bars; abwn round-trip preserves the props

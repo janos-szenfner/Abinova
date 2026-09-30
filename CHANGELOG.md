@@ -220,6 +220,15 @@ below are on `main` but the release has not been cut yet.
   - Text-box insets map to per-side `xpad-left`/`xpad-right`/
     `ypad-top`/`ypad-bottom` frame properties instead of collapsing
     to `max()` — asymmetric `bodyPr` insets no longer squeeze text.
+  - `a:headEnd`/`a:tailEnd` line-end decorations now paint on
+    `prstGeom="line"` shapes (imported as `bar-w`/`bar-h` bars) —
+    triangle, stealth, diamond, oval and open arrow heads sized
+    sm/med/lg relative to the stroke width, colored with the line.
+  - Vertical line shapes no longer collapse into invisible slivers:
+    the importer never captured a top-level shape's `a:xfrm` extent
+    (only group children were read), so `prstGeom="line"` bars were
+    always treated as horizontal.  The Headline cover page's accent
+    bar renders again.
 - **DOCX letter-spacing rendered** — `w:spacing` inside `w:rPr`
   (expanded/condensed character pitch in twentieths of a point) now
   imports as the `char-spacing` character property and renders by

@@ -611,6 +611,200 @@ static bool s_paintFrameShape(GR_Graphics * pG,
 }
 
 /*!
+ * Map an OOXML line-end size token (a:headEnd/a:tailEnd @w/@len:
+ * "sm"/"med"/"lg") to the marker-cell multiplier other DrawingML
+ * renderers use - sm/med/lg = 2/3/5 times the line width, with the
+ * open "arrow" head on a slightly larger 2.5/3.5/5.5 scale.
+ */
+static double s_arrowScale(const gchar * sz, bool bArrow)
+{
+	if (!sz || !*sz || !strcmp(sz, "med"))
+		return bArrow ? 3.5 : 3.0;
+	if (!strcmp(sz, "sm"))
+		return bArrow ? 2.5 : 2.0;
+	if (!strcmp(sz, "lg"))
+		return bArrow ? 5.5 : 5.0;
+	return bArrow ? 3.5 : 3.0;
+}
+
+/*!
+ * Stroke out one line-end marker into the cairo path.  The marker
+ * cell is 100x100 with the tip at (50,0) and the body extending to
+ * y=100; (mx,my) are cell coordinates in percent, (dx,dy) the unit
+ * vector from the tip back into the line body, (px,py) its
+ * perpendicular.  fW/fL are the full marker width/length in device
+ * units, lw the line width.
+ */
+static void s_arrowMarkerPath(cairo_t * cr, const gchar * szType,
+							  double tipX, double tipY,
+							  double dx, double dy,
+							  double fW, double fL, double lw)
+{
+	double px = -dy, py = dx;
+	auto pt = [&](double mx, double my) {
+		cairo_line_to(cr,
+					  tipX + px * (mx - 50.0) / 100.0 * fW +
+						  dx * my / 100.0 * fL,
+					  tipY + py * (mx - 50.0) / 100.0 * fW +
+						  dy * my / 100.0 * fL);
+	};
+	if (!strcmp(szType, "oval"))
+	{
+		/* ellipse inscribed in the marker cell, cell +y along (dx,dy) */
+		cairo_save(cr);
+		cairo_translate(cr, tipX + dx * fL / 2.0, tipY + dy * fL / 2.0);
+		cairo_rotate(cr, atan2(dy, dx) - M_PI / 2.0);
+		cairo_scale(cr, fW / 2.0, fL / 2.0);
+		cairo_arc(cr, 0.0, 0.0, 1.0, 0.0, 2.0 * M_PI);
+		cairo_restore(cr);
+		return;
+	}
+	cairo_move_to(cr, tipX, tipY);
+	if (!strcmp(szType, "stealth"))
+	{
+		pt(100.0, 100.0); pt(50.0, 60.0); pt(0.0, 100.0);
+	}
+	else if (!strcmp(szType, "diamond"))
+	{
+		pt(100.0, 50.0); pt(50.0, 100.0); pt(0.0, 50.0);
+	}
+	else if (!strcmp(szType, "arrow"))
+	{
+		/* open arrow outline - the waist notch follows the line's
+		 * half-width expressed in marker-cell percent (tdf#100491) */
+		double hw = UT_MAX(50.0 * lw / fW, 1.0);
+		pt(100.0, 100.0 - 1.5 * hw);
+		pt(100.0 - 1.5 * hw, 100.0);
+		pt(50.0 + hw, 5.5 * hw);
+		pt(50.0 + hw, 100.0);
+		pt(50.0 - hw, 100.0);
+		pt(50.0 - hw, 5.5 * hw);
+		pt(1.5 * hw, 100.0);
+		pt(0.0, 100.0 - 1.5 * hw);
+	}
+	else /* triangle */
+	{
+		pt(100.0, 100.0); pt(0.0, 100.0);
+	}
+	cairo_close_path(cr);
+}
+
+/*!
+ * Paint OOXML line-end decorations (a:headEnd/a:tailEnd, serialized
+ * as the line-start-arrow/line-end-arrow frame props) at the ends of
+ * a bar frame.  The importer renders prstGeom="line" shapes as filled
+ * bars whose short side is the stroke width, so a decorated end lands
+ * centred on the end cap with its tip pointing outward; head is the
+ * left/top end, tail the right/bottom end (frame flips transform the
+ * whole scene and swap the ends automatically).  Per ECMA-376 line
+ * ends only apply to open line elements - frames without the
+ * bar-w/bar-h marker prop are skipped.  (x,y,w,h) are layout units.
+ */
+static void s_paintFrameArrows(GR_Graphics * pG,
+							   fp_FrameContainer * pFC,
+							   UT_sint32 x, UT_sint32 y,
+							   UT_sint32 w, UT_sint32 h)
+{
+	if (w <= 0 || h <= 0)
+		return;
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	if (!pAP)
+		return;
+	const gchar * szHead = nullptr, * szTail = nullptr;
+	const gchar * szHeadW = nullptr, * szHeadL = nullptr;
+	const gchar * szTailW = nullptr, * szTailL = nullptr;
+	const gchar * szBarW = nullptr, * szBarH = nullptr;
+	pAP->getProperty("line-start-arrow", szHead);
+	pAP->getProperty("line-end-arrow", szTail);
+	pAP->getProperty("line-start-arrow-w", szHeadW);
+	pAP->getProperty("line-start-arrow-len", szHeadL);
+	pAP->getProperty("line-end-arrow-w", szTailW);
+	pAP->getProperty("line-end-arrow-len", szTailL);
+	bool bHead = szHead && *szHead && strcmp(szHead, "none") != 0;
+	bool bTail = szTail && *szTail && strcmp(szTail, "none") != 0;
+	if (!bHead && !bTail)
+		return;
+	bool bBarW = pAP->getProperty("bar-w", szBarW) && szBarW && *szBarW;
+	bool bBarH = pAP->getProperty("bar-h", szBarH) && szBarH && *szBarH;
+	if (!bBarW && !bBarH)
+		return;
+	/* vertical when the width carries the stroke thickness */
+	bool bVert = (bBarW && !bBarH) || (bBarW && bBarH && h > w);
+	double lw = pG->tdu(bVert ? w : h);
+	if (lw <= 0.0)
+		return;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return;
+	/* same implicit-beginPaint guard as the other cairo painters */
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return;
+
+	const UT_RGBColor * pFill = pFC->getFillType().getColor();
+	UT_RGBColor col;
+	if (pFill && !pFill->isTransparent())
+		col = *pFill;
+	else
+		col = pFC->getTopStyle().m_color;
+
+	/* arrows stick out past the bar caps - grow the damage bounds by
+	 * the largest possible marker extent (lg len = 5.5x the width) */
+	if (pFC->getPage())
+	{
+		UT_sint32 pad = static_cast<UT_sint32>(6.0 * (bVert ? w : h)) + 1;
+		UT_Rect dmg;
+		s_rotatedBounds(x - pad, y - pad,
+						w + 2 * pad, h + 2 * pad,
+						pFC->getRotation(), dmg);
+		pFC->getPage()->expandDamageRect(dmg.left, dmg.top,
+									   dmg.width, dmg.height);
+	}
+
+	cairo_set_source_rgb(cr,
+						 col.m_red / 255.0, col.m_grn / 255.0,
+						 col.m_blu / 255.0);
+	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
+	double dx1 = pG->tdu(x + w), dy1 = pG->tdu(y + h);
+	double cx = (dx0 + dx1) / 2.0, cy = (dy0 + dy1) / 2.0;
+	for (int end = 0; end < 2; end++)
+	{
+		const gchar * szType = end ? szTail : szHead;
+		if (!szType || !*szType || !strcmp(szType, "none"))
+			continue;
+		bool bArrow = !strcmp(szType, "arrow");
+		double fW = s_arrowScale(end ? szTailW : szHeadW, bArrow) * lw;
+		double fL = s_arrowScale(end ? szTailL : szHeadL, bArrow) * lw;
+		double tipX, tipY, dx, dy;
+		if (bVert)
+		{
+			/* head at the top cap, tail at the bottom */
+			tipX = cx;
+			tipY = end ? dy1 : dy0;
+			dx = 0.0;
+			dy = end ? -1.0 : 1.0;
+		}
+		else
+		{
+			/* head at the left cap, tail at the right */
+			tipX = end ? dx1 : dx0;
+			tipY = cy;
+			dx = end ? -1.0 : 1.0;
+			dy = 0.0;
+		}
+		s_arrowMarkerPath(cr, szType, tipX, tipY, dx, dy, fW, fL, lw);
+	}
+	cairo_fill(cr);
+}
+
+/*!
  * Bounding box of the possibly-rotated frame in page coordinates -
  * used for damage intersection so rotated frames are still painted.
  */
@@ -1362,6 +1556,10 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		pDA->pG->setClipRect(pPrevRect.get());
 	}
 	drawBoundaries(pDA);
+	/* OOXML head/tail line ends decorate the bar frames that stand
+	 * in for prstGeom="line" shapes - painted under the same
+	 * rotation/flip transform as the rest of the frame */
+	s_paintFrameArrows(pG, this, x, y, getFullWidth(), getFullHeight());
 	if (cr)
 	{
 		cairo_restore(cr);
