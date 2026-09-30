@@ -41,9 +41,20 @@ OXMLi_ListenerState_Numbering::OXMLi_ListenerState_Numbering():
 	OXMLi_ListenerState(),
 	m_currentList(nullptr),
 	m_currentNumId(""),
-	m_parentListId("")
+	m_parentListId(""),
+	m_inLvlOverride(false),
+	m_overrideIlvl(-1),
+	m_overrideStart(-1),
+	m_overrideLvl(nullptr)
 {
 
+}
+
+OXMLi_ListenerState_Numbering::~OXMLi_ListenerState_Numbering()
+{
+	DELETEP(m_overrideLvl);
+	for (auto & r : m_numOverrides)
+		DELETEP(r.lvl);
 }
 
 void OXMLi_ListenerState_Numbering::startElement (OXMLi_StartElementRequest * rqst)
@@ -123,8 +134,8 @@ void OXMLi_ListenerState_Numbering::startElement (OXMLi_StartElementRequest * rq
 		}
 		rqst->handled = true;	
 	}
-	else if(nameMatches(rqst->pName, NS_W_KEY, "abstractNumId")) 
-	{	
+	else if(nameMatches(rqst->pName, NS_W_KEY, "abstractNumId"))
+	{
 		const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 		if(val && !m_currentNumId.empty())
 		{
@@ -134,7 +145,32 @@ void OXMLi_ListenerState_Numbering::startElement (OXMLi_StartElementRequest * rq
 			if(doc)
 				doc->setMappedNumberingId(m_currentNumId, abstractNumId);
 		}
-		rqst->handled = true;	
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "lvlOverride"))
+	{
+		/* w:num > w:lvlOverride ilvl=N — collect; clones applied at </w:num> */
+		std::string contextTag = rqst->context->back();
+		if (contextMatches(contextTag, NS_W_KEY, "num"))
+		{
+			const gchar* ilvl = attrMatches(NS_W_KEY, "ilvl", rqst->ppAtts);
+			m_inLvlOverride = true;
+			m_overrideIlvl = ilvl ? atoi(ilvl) : -1;
+			m_overrideStart = -1;
+			m_overrideLvl = nullptr;
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "startOverride"))
+	{
+		std::string contextTag = rqst->context->back();
+		if (m_inLvlOverride && contextMatches(contextTag, NS_W_KEY, "lvlOverride"))
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			if (val)
+				m_overrideStart = atoi(val);
+		}
+		rqst->handled = true;
 	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "pPr"))
 	{
@@ -180,18 +216,54 @@ void OXMLi_ListenerState_Numbering::endElement (OXMLi_EndElementRequest * rqst)
 	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "lvl"))
 	{
-		OXML_Document * doc = OXML_Document::getInstance();		
+		if (m_inLvlOverride)
+		{
+			/* nested w:lvl inside lvlOverride is a replacement
+			 * definition for that level — keep it as the override
+			 * template instead of registering it as a normal list */
+			DELETEP(m_overrideLvl);
+			m_overrideLvl = m_currentList;
+			m_currentList = nullptr;
+			rqst->handled = true;
+			return;
+		}
+		OXML_Document * doc = OXML_Document::getInstance();
 		if(!doc)
 		{
 			doc = OXML_Document::getNewInstance();
-		}			
+		}
 		OXML_SharedList sharedList(m_currentList);
 		doc->addList(sharedList);
 		m_currentList = nullptr;
 		rqst->handled = true;
 	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "lvlOverride"))
+	{
+		if (m_inLvlOverride && m_overrideIlvl >= 0)
+		{
+			OverrideRec rec;
+			rec.ilvl = m_overrideIlvl;
+			rec.start = m_overrideStart;
+			rec.lvl = m_overrideLvl;
+			m_numOverrides.push_back(rec);
+			m_overrideLvl = nullptr;
+		}
+		else
+		{
+			DELETEP(m_overrideLvl);
+		}
+		m_inLvlOverride = false;
+		m_overrideIlvl = -1;
+		m_overrideStart = -1;
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "startOverride"))
+	{
+		rqst->handled = true;
+	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "num"))
 	{
+		applyNumOverrides();
 		m_currentNumId.clear(); //set it to empty string
 		rqst->handled = true;
 	}
@@ -272,5 +344,94 @@ void OXMLi_ListenerState_Numbering::handleFormattingType(const gchar* val)
 	else //default
 		m_currentList->setType(BULLETED_LIST);
 	//TODO: add more types here
+}
+
+/* Apply collected w:num > w:lvlOverride records at </w:num>.
+ * The numId -> abstract root ("1"+absNumId) mapping was recorded when
+ * w:abstractNumId ran; with overrides we clone every abstract level
+ * list under a synthetic "9"+numId root so per-instance changes do not
+ * leak into other nums sharing the abstract definition. */
+void OXMLi_ListenerState_Numbering::applyNumOverrides()
+{
+	OXML_Document * doc = OXML_Document::getInstance();
+	if (!doc || m_currentNumId.empty() || m_numOverrides.empty())
+	{
+		for (auto & r : m_numOverrides)
+			DELETEP(r.lvl);
+		m_numOverrides.clear();
+		return;
+	}
+
+	std::string absRoot = doc->getMappedNumberingId(m_currentNumId);
+	if (absRoot.empty())
+	{
+		for (auto & r : m_numOverrides)
+			DELETEP(r.lvl);
+		m_numOverrides.clear();
+		return;
+	}
+
+	std::string newRoot("9");
+	newRoot += m_currentNumId;
+	bool madeAny = false;
+	for (int ilvl = 0; ilvl <= 8; ilvl++)
+	{
+		std::string baseId(absRoot);
+		baseId += static_cast<char>('0' + ilvl);
+		OXML_SharedList base = doc->getListById(atoi(baseId.c_str()));
+		if (!base)
+			continue;
+
+		/* manual deep copy — OXML_ObjectWithAttrProp owns a raw
+		 * PP_AttrProp* so the implicit copy would double-delete */
+		OXML_SharedList clone(new OXML_List());
+		clone->setStartValue(base->getStartValue());
+		clone->setType(base->getType());
+		if (base->getDelim() && *base->getDelim())
+			clone->setDelim(base->getDelim());
+		if (base->getDecimal() && *base->getDecimal())
+			clone->setDecimal(base->getDecimal());
+		clone->setAttributes(base->getAttributes());
+		clone->setProperties(base->getProperties());
+
+		std::string cid(newRoot);
+		cid += static_cast<char>('0' + ilvl);
+		clone->setId(atoi(cid.c_str()));
+		clone->setLevel(ilvl + 1);
+		clone->setParentId(ilvl ?
+			atoi((newRoot + static_cast<char>('0' + ilvl - 1)).c_str()) : 0);
+
+		for (auto & r : m_numOverrides)
+		{
+			if (r.ilvl != ilvl)
+				continue;
+			if (r.lvl)
+			{
+				/* full w:lvl replacement carries format/props */
+				clone->setType(r.lvl->getType());
+				if (r.lvl->getDelim() && *r.lvl->getDelim())
+					clone->setDelim(r.lvl->getDelim());
+				if (r.lvl->getDecimal() && *r.lvl->getDecimal())
+					clone->setDecimal(r.lvl->getDecimal());
+				if (r.lvl->getStartValue())
+					clone->setStartValue(r.lvl->getStartValue());
+				clone->setAttributes(r.lvl->getAttributes());
+				clone->setProperties(r.lvl->getProperties());
+			}
+			if (r.start >= 0)
+				clone->setStartValue(r.start); // startOverride wins
+		}
+		doc->addList(clone);
+		madeAny = true;
+	}
+
+	/* paragraph w:numPr resolution reads numId -> root; only re-point
+	 * when at least one clone was actually produced */
+	if (madeAny)
+		doc->setMappedNumberingId(m_currentNumId, newRoot);
+
+	for (auto & r : m_numOverrides)
+		DELETEP(r.lvl);
+	m_numOverrides.clear();
 }
 

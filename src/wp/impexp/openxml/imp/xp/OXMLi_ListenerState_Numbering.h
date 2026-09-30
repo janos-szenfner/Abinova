@@ -29,6 +29,9 @@
 #include <OXMLi_Types.h>
 #include <OXML_Types.h>
 
+// External includes
+#include <vector>
+
 /* \class OXMLi_ListenerState_Numbering
  * \brief This ListenerState parses the Document Numbering part.
 */
@@ -36,6 +39,7 @@ class OXMLi_ListenerState_Numbering : public OXMLi_ListenerState
 {
 public:
 	OXMLi_ListenerState_Numbering();
+	virtual ~OXMLi_ListenerState_Numbering();
 	virtual void startElement (OXMLi_StartElementRequest * rqst) override;
 	virtual void endElement (OXMLi_EndElementRequest * rqst) override;
 	virtual void charData (OXMLi_CharDataRequest * rqst) override;
@@ -45,8 +49,23 @@ private:
 	std::string m_currentNumId;
 	std::string m_parentListId;
 
+	/* w:num > w:lvlOverride capture: per-instance level overrides
+	 * (startOverride and/or a replacement w:lvl) get cloned lists under
+	 * a synthetic "9"+numId root applied at </w:num> */
+	bool m_inLvlOverride;
+	int m_overrideIlvl;
+	int m_overrideStart; // -1 = none
+	OXML_List* m_overrideLvl; // replacement lvl template, owned
+	struct OverrideRec {
+		int ilvl;
+		int start;
+		OXML_List* lvl;
+	};
+	std::vector<OverrideRec> m_numOverrides;
+
 	void handleLevel(const gchar* ilvl);
 	void handleFormattingType(const gchar* val);
+	void applyNumOverrides();
 
 };
 

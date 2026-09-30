@@ -1,0 +1,17 @@
+<abinova version="4.0.0" xml:space="preserve" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="http://www.w3.org/2000/svg" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:awml="http://www.abisource.com/awml.dtd">
+<styles>
+    <s name="cover_NoSpacing" type="P" basedon="Normal" props="lang:en-US; font-size:11.000000pt; char-kern:0.000000pt"/>
+    <s name="cover_Normal" type="P" basedon="Normal"/>
+</styles>
+<p style="cover_Normal"><c props="lang:-none-"/></p>
+    <frame props="position-to:page-above-text; frame-height:1.5000in; base-h:9.977612in; bot-style:none; grp-height:1371600; grp-ypos:0; frame-type:textbox; base-halign:center; xpad:0.1000in; bg-style:1; xpos:0.3803in; frame-valign:center; right-style:none; background-color:4472C4; xpad-left:0.1000in; grp-width:6858000; top-style:none; left-style:none; frame-width:7.5000in; xpad-right:0.1000in; ypad-bottom:0.0500in; grp-xpos:0; text-warp:textNoShape; frame-page-xpos:0.3803in; frame-page-ypos:0.8577in; base-valign:center; ypos:0.8577in; base-w:7.507463in; ypad:0.0500in; ypad-top:0.0500in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264">
+      <p><c props="lang:-none-"/></p>
+</frame>
+    <frame props="position-to:page-above-text; frame-height:5.5000in; base-h:9.977612in; bot-style:none; grp-height:5029200; grp-ypos:4094328; frame-type:textbox; base-halign:center; xpad:0.5000in; bg-style:1; xpos:0.3803in; frame-valign:bottom; right-style:none; background-color:4472C4; xpad-left:0.5000in; grp-width:6858000; top-style:none; left-style:none; frame-width:7.5000in; xpad-right:0.5000in; ypad-bottom:0.5000in; grp-xpos:0; text-warp:textNoShape; frame-page-xpos:0.3803in; frame-page-ypos:5.3353in; base-valign:center; ypos:5.3353in; base-w:7.507463in; ypad:0.8000in; ypad-top:0.8000in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264">
+      <p style="cover_NoSpacing" props="margin-top:6.000000pt; text-align:center"><c props="color:FFFFFF">Szenfner János (EXT)</c></p>
+      <p style="cover_NoSpacing" props="margin-top:6.000000pt; text-align:center"><c props="text-transform:uppercase; color:FFFFFF">[Company name]</c><c props="color:FFFFFF">  [Company address]</c></p>
+</frame>
+    <frame props="position-to:page-above-text; frame-height:2.9776in; base-h:9.977612in; bot-style:none; grp-height:2722728; grp-ypos:1371600; frame-type:textbox; base-halign:center; xpad:0.5000in; bg-style:1; xpos:0.3878in; frame-valign:center; right-style:none; background-color:FFFFFF; xpad-left:0.5000in; grp-width:6858000; top-style:none; left-style:none; frame-width:7.5000in; xpad-right:0.5000in; ypad-bottom:0.1000in; grp-xpos:6824; text-warp:textNoShape; frame-page-xpos:0.3878in; frame-page-ypos:2.3577in; base-valign:center; ypos:2.3577in; base-w:7.507463in; ypad:0.1000in; ypad-top:0.1000in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264">
+      <p style="cover_NoSpacing" props="text-align:center; font-size:36.000000pt"><c props="font-family:Calibri Light; text-transform:uppercase; color:4472C4; font-size:36.000000pt">[Document title]</c></p>
+</frame>
+</abinova>

@@ -177,6 +177,10 @@ private:
 
 	UT_sint32               m_iXpad;
 	UT_sint32               m_iYpad;
+	UT_sint32               m_iXpadLeft;
+	UT_sint32               m_iXpadRight;
+	UT_sint32               m_iYpadTop;
+	UT_sint32               m_iYpadBottom;
 
 	UT_sint32               m_iXColumn;
 	UT_sint32               m_iYColumn;

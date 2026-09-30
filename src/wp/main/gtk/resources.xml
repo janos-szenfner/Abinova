@@ -215,5 +215,40 @@
     <file alias="ap_UnixDialog_FormatFootnotes.ui">wp/ap/gtk/ap_UnixDialog_FormatFootnotes.ui</file>
     <file alias="ap_UnixDialog_SemanticStylesheets.ui">wp/ap/gtk/ap_UnixDialog_SemanticStylesheets.ui</file>
     <file alias="ap_UnixDialog_RDFEditor.ui">wp/ap/gtk/ap_UnixDialog_RDFEditor.ui</file>
+    <!-- built-in cover page templates + thumbnails -->
+    <file alias="covers/austin.xml">wp/covers/austin.xml</file>
+    <file alias="covers/austin.png">wp/covers/thumbs/austin.png</file>
+    <file alias="covers/badge.xml">wp/covers/badge.xml</file>
+    <file alias="covers/badge.png">wp/covers/thumbs/badge.png</file>
+    <file alias="covers/banded.xml">wp/covers/banded.xml</file>
+    <file alias="covers/banded.png">wp/covers/thumbs/banded.png</file>
+    <file alias="covers/crop.xml">wp/covers/crop.xml</file>
+    <file alias="covers/crop.png">wp/covers/thumbs/crop.png</file>
+    <file alias="covers/facet.xml">wp/covers/facet.xml</file>
+    <file alias="covers/facet.png">wp/covers/thumbs/facet.png</file>
+    <file alias="covers/feathered.xml">wp/covers/feathered.xml</file>
+    <file alias="covers/feathered.png">wp/covers/thumbs/feathered.png</file>
+    <file alias="covers/filigree.xml">wp/covers/filigree.xml</file>
+    <file alias="covers/filigree.png">wp/covers/thumbs/filigree.png</file>
+    <file alias="covers/headline.xml">wp/covers/headline.xml</file>
+    <file alias="covers/headline.png">wp/covers/thumbs/headline.png</file>
+    <file alias="covers/integral.xml">wp/covers/integral.xml</file>
+    <file alias="covers/integral.png">wp/covers/thumbs/integral.png</file>
+    <file alias="covers/iondark.xml">wp/covers/iondark.xml</file>
+    <file alias="covers/iondark.png">wp/covers/thumbs/iondark.png</file>
+    <file alias="covers/ionlight.xml">wp/covers/ionlight.xml</file>
+    <file alias="covers/ionlight.png">wp/covers/thumbs/ionlight.png</file>
+    <file alias="covers/retrospect.xml">wp/covers/retrospect.xml</file>
+    <file alias="covers/retrospect.png">wp/covers/thumbs/retrospect.png</file>
+    <file alias="covers/semaphore.xml">wp/covers/semaphore.xml</file>
+    <file alias="covers/semaphore.png">wp/covers/thumbs/semaphore.png</file>
+    <file alias="covers/slicedark.xml">wp/covers/slicedark.xml</file>
+    <file alias="covers/slicedark.png">wp/covers/thumbs/slicedark.png</file>
+    <file alias="covers/slicelight.xml">wp/covers/slicelight.xml</file>
+    <file alias="covers/slicelight.png">wp/covers/thumbs/slicelight.png</file>
+    <file alias="covers/viewmaster.xml">wp/covers/viewmaster.xml</file>
+    <file alias="covers/viewmaster.png">wp/covers/thumbs/viewmaster.png</file>
+    <file alias="covers/whisp.xml">wp/covers/whisp.xml</file>
+    <file alias="covers/whisp.png">wp/covers/thumbs/whisp.png</file>
   </gresource>
 </gresources>

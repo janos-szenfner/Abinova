@@ -195,10 +195,11 @@ public:
 	void setProps (const char * props);
 	bool isPasting(void) const { return m_isPaste;}
 
+	// position after the last fragment inserted by pasteFromBuffer
+	PT_DocPosition getDocPos() const;
+
  protected:
 	IE_Imp(PD_Document * pDocument, UT_Confidence_t fidelity = 0);
-
-	PT_DocPosition getDocPos() const;
 	void setClipboard (PT_DocPosition dpos);
 	bool isClipboard () const;
 

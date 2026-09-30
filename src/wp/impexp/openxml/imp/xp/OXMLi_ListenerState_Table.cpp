@@ -246,6 +246,156 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		rqst->handled = true;
 	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "jc") &&
+			!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tblPr"))
+	{
+		//table alignment: left|center|right|start|end
+		if(!m_tableStack.empty())
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			if(val && *val)
+			{
+				std::string al(val);
+				if(!al.compare("start")) al = "left";
+				else if(!al.compare("end")) al = "right";
+				m_tableStack.top()->setProperty("table-position", al.c_str());
+			}
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblpPr") &&
+			!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tblPr"))
+	{
+		/* floating table position — preserved on the table as
+		 * table-float-* props (no floating-table layout yet) */
+		if(!m_tableStack.empty())
+		{
+			auto tbl = m_tableStack.top();
+			struct { const char* a; const char* p; } names[] = {
+				{"horzAnchor",  "table-float-hanchor"},
+				{"vertAnchor",  "table-float-vanchor"},
+				{"tblpXSpec",   "table-float-halign"},
+				{"tblpYSpec",   "table-float-valign"} };
+			for(auto & e : names)
+			{
+				const gchar* v = attrMatches(NS_W_KEY, e.a, rqst->ppAtts);
+				if(v && *v)
+					tbl->setProperty(e.p, v);
+			}
+			struct { const char* a; const char* p; } dims[] = {
+				{"tblpX",          "table-float-x"},
+				{"tblpY",          "table-float-y"},
+				{"leftFromText",   "table-float-margin-left"},
+				{"rightFromText",  "table-float-margin-right"},
+				{"topFromText",    "table-float-margin-top"},
+				{"bottomFromText", "table-float-margin-bottom"} };
+			for(auto & e : dims)
+			{
+				const gchar* v = attrMatches(NS_W_KEY, e.a, rqst->ppAtts);
+				if(v && *v)
+				{
+					std::string s(_TwipsToPoints(v));
+					s += "pt";
+					tbl->setProperty(e.p, s.c_str());
+				}
+			}
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblLook") &&
+			!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tblPr"))
+	{
+		if(!m_tableStack.empty())
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			if(val && *val)
+			{
+				m_tableStack.top()->setProperty("table-look", val);
+			}
+			else
+			{
+				/* pre-2007 form: assemble the bitmask from the
+				 * boolean attributes */
+				struct { const char* a; int bit; } flags[] = {
+					{"firstRow",0x020},{"lastRow",0x040},
+					{"firstColumn",0x080},{"lastColumn",0x100},
+					{"noHBand",0x200},{"noVBand",0x400} };
+				int mask = 0;
+				for(auto & e : flags)
+				{
+					const gchar* v = attrMatches(NS_W_KEY, e.a, rqst->ppAtts);
+					if(v && (!strcmp(v,"1") || !strcmp(v,"true") || !strcmp(v,"on")))
+						mask |= e.bit;
+				}
+				char buf[16];
+				g_snprintf(buf, sizeof(buf), "%04X", mask);
+				m_tableStack.top()->setProperty("table-look", buf);
+			}
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblCaption") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblDescription"))
+	{
+		if(!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tblPr") &&
+			!m_tableStack.empty())
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			if(val && *val)
+				m_tableStack.top()->setProperty(
+					nameMatches(rqst->pName, NS_W_KEY, "tblCaption") ?
+						"table-caption" : "table-description", val);
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "bidiVisual") &&
+			!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tblPr"))
+	{
+		if(!m_tableStack.empty())
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			bool bOn = !val || !*val || !strcmp(val, "true") ||
+				!strcmp(val, "1") || !strcmp(val, "on");
+			m_tableStack.top()->setProperty("table-bidi-visual", bOn ? "1" : "0");
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "textDirection") &&
+			!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tcPr"))
+	{
+		if(!m_cellStack.empty())
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			if(val && *val)
+				m_cellStack.top()->setProperty("cell-text-direction", val);
+		}
+		rqst->handled = true;
+	}
+	else if((nameMatches(rqst->pName, NS_W_KEY, "noWrap") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "tcFitText") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "hideMark")) &&
+			!rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tcPr"))
+	{
+		if(!m_cellStack.empty())
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			bool bOn = !val || !*val || !strcmp(val, "true") ||
+				!strcmp(val, "1") || !strcmp(val, "on");
+			const char* prop =
+				nameMatches(rqst->pName, NS_W_KEY, "noWrap") ? "cell-no-wrap" :
+				nameMatches(rqst->pName, NS_W_KEY, "tcFitText") ? "cell-fit-text" :
+					"cell-hide-mark";
+			m_cellStack.top()->setProperty(prop, bOn ? "1" : "0");
+		}
+		rqst->handled = true;
+	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "left") ||
 			nameMatches(rqst->pName, NS_W_KEY, "right") ||
 			nameMatches(rqst->pName, NS_W_KEY, "top") ||
@@ -646,6 +796,16 @@ void OXMLi_ListenerState_Table::endElement (OXMLi_EndElementRequest * rqst)
 			nameMatches(rqst->pName, NS_W_KEY, "vAlign") ||
 			nameMatches(rqst->pName, NS_W_KEY, "tblCellMar") ||
 			nameMatches(rqst->pName, NS_W_KEY, "tcMar") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblpPr") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblLook") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblCaption") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblDescription") ||
+			nameMatches(rqst->pName, NS_W_KEY, "bidiVisual") ||
+			nameMatches(rqst->pName, NS_W_KEY, "textDirection") ||
+			nameMatches(rqst->pName, NS_W_KEY, "noWrap") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tcFitText") ||
+			nameMatches(rqst->pName, NS_W_KEY, "hideMark") ||
+			nameMatches(rqst->pName, NS_W_KEY, "jc") ||
 			nameMatches(rqst->pName, NS_W_KEY, "tblStyle"))
 	{
 		rqst->handled = true;

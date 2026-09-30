@@ -92,6 +92,10 @@ fl_FrameLayout::fl_FrameLayout(FL_DocLayout* pLayout,
 	  m_iYpos(0),
 	  m_iXpad(0),
 	  m_iYpad(0),
+	  m_iXpadLeft(0),
+	  m_iXpadRight(0),
+	  m_iYpadTop(0),
+	  m_iYpadBottom(0),
 	  m_iXColumn(0),
 	  m_iYColumn(0),
 	  m_iXPage(0),
@@ -156,8 +160,10 @@ void 	fl_FrameLayout::setContainerProperties(void)
 	pFrame->setTopStyle(m_lineTop  );
 	pFrame->setLeftStyle(m_lineLeft  );
 	pFrame->setRightStyle(m_lineRight );
-	pFrame->setXpad(m_iXpad);
-	pFrame->setYpad(m_iYpad);
+	pFrame->setXpadLeft(m_iXpadLeft);
+	pFrame->setXpadRight(m_iXpadRight);
+	pFrame->setYpadTop(m_iYpadTop);
+	pFrame->setYpadBottom(m_iYpadBottom);
 	pFrame->setTightWrapping(m_bIsTightWrap);
 	if(FL_FRAME_BELOW_TEXT ==  m_iFrameWrapMode)
         {
@@ -212,6 +218,26 @@ void 	fl_FrameLayout::setContainerProperties(void)
 			m_pImageImage = pImage;
 		}
 		pFrame->getFillType().setImagePointer(m_pGraphicImage, &m_pImageImage);
+		/* a:srcRect picture crop: "l t r b" in 1000ths of a percent of
+		 * the source image (stored by the DOCX importer as
+		 * image-src-rect) */
+		{
+			const PP_AttrProp * pCropAP = nullptr;
+			getAP(pCropAP);
+			const gchar * szCrop = nullptr;
+			if (pCropAP && pCropAP->getProperty("image-src-rect", szCrop) &&
+				szCrop && *szCrop)
+			{
+				double c[4] = {0.0, 0.0, 0.0, 0.0};
+				if (sscanf(szCrop, "%lf %lf %lf %lf",
+						   &c[0], &c[1], &c[2], &c[3]) == 4)
+				{
+					pFrame->getFillType().setSrcRectCrop(
+						c[0] / 100000.0, c[1] / 100000.0,
+						c[2] / 100000.0, c[3] / 100000.0);
+				}
+			}
+		}
 	}
 	if(m_iFrameWrapMode >= FL_FRAME_WRAPPED_TO_RIGHT)
 	{ 
@@ -997,6 +1023,28 @@ void fl_FrameLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	{
 		m_iYpad = UT_convertToLogicalUnits(pszYpad);
 	}
+
+// Per-side padding (OOXML lIns/rIns/tIns/bIns); each empty prop
+// falls back to the symmetric value.
+
+	const gchar * pszPad = nullptr;
+	m_iXpadLeft = m_iXpadRight = m_iXpad;
+	if (pSectionAP && pSectionAP->getProperty("xpad-left", pszPad)
+		&& pszPad && *pszPad)
+		m_iXpadLeft = UT_convertToLogicalUnits(pszPad);
+	pszPad = nullptr;
+	if (pSectionAP && pSectionAP->getProperty("xpad-right", pszPad)
+		&& pszPad && *pszPad)
+		m_iXpadRight = UT_convertToLogicalUnits(pszPad);
+	pszPad = nullptr;
+	m_iYpadTop = m_iYpadBottom = m_iYpad;
+	if (pSectionAP && pSectionAP->getProperty("ypad-top", pszPad)
+		&& pszPad && *pszPad)
+		m_iYpadTop = UT_convertToLogicalUnits(pszPad);
+	pszPad = nullptr;
+	if (pSectionAP && pSectionAP->getProperty("ypad-bottom", pszPad)
+		&& pszPad && *pszPad)
+		m_iYpadBottom = UT_convertToLogicalUnits(pszPad);
 
 
 	/* Frame-border properties:

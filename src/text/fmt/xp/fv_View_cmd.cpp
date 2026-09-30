@@ -30,6 +30,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <locale.h>
+#include <gio/gio.h>
 #include <vector>
 #include <algorithm>
 
@@ -68,6 +69,7 @@
 #include "fg_GraphicRaster.h"
 #include "pd_Document.h"
 #include "pd_Style.h"
+#include "ie_imp_Abinova_1.h"
 #include "pp_Property.h"
 #include "pp_AttrProp.h"
 #include "gr_Graphics.h"
@@ -7110,6 +7112,10 @@ struct FV_CoverPreset
 	const char * szId;
 	const char * szName;
 	const FV_CoverLine * pLines;
+	// true => insert the frame-based abwn template from the
+	// "covers/<id>.xml" gresource; pLines is the fallback/legacy
+	// path for presets without one
+	bool bTemplate;
 };
 
 // Paragraph-formatting reset applied to every cover line so
@@ -7122,622 +7128,6 @@ struct FV_CoverPreset
 	"top-style:none; bot-style:none; left-style:none; right-style:none; " \
 	"top-thickness:0pt; bot-thickness:0pt; " \
 	"left-thickness:0pt; right-thickness:0pt"
-
-static const FV_CoverLine s_coverAustin[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; margin-top:-0.5in;"
-	  "line-height:0.3in; shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in;"
-	  "shading-background-color:D6DCE4; line-height:0.28in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.76in; margin-right:0.59in;"
-	  "shading-background-color:44546A; line-height:0.7in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.76in; margin-right:0.59in;"
-	  "shading-background-color:44546A; text-align:center",
-	  "font-family:Carlito; font-size:9pt; color:FFFFFF", "[Draw your reader in with an engaging abstract. It is typically a short summary of the document.]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.76in; margin-right:0.59in;"
-	  "shading-background-color:44546A; line-height:0.7in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in;"
-	  "shading-background-color:D6DCE4; line-height:0.5in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in; shading-background-color:D6DCE4",
-	  "font-family:Carlito; font-size:36pt; color:4472C4", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in; shading-background-color:D6DCE4",
-	  "font-family:Carlito; font-size:16pt; color:44546A", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in;"
-	  "shading-background-color:D6DCE4; line-height:1.3in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in; shading-background-color:D6DCE4",
-	  "font-family:Carlito; font-size:11pt; color:44546A", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in; shading-background-color:D6DCE4",
-	  "font-family:Carlito; font-size:10pt; color:44546A", "@date" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.64in; margin-right:0.46in;"
-	  "shading-background-color:D6DCE4; line-height:0.3in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; line-height:0.5in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverBadge[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; margin-top:-0.5in;"
-	  "line-height:0.5in; shading-background-color:4472C4; left-style:solid;"
-	  "left-color:44546A; left-thickness:22pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; line-height:0.5in;"
-	  "shading-background-color:4472C4; left-style:solid; left-color:44546A;"
-	  "left-thickness:22pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:1.0in; margin-right:0.63in; line-height:0.7in;"
-	  "shading-background-color:E7E6E6",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:1.0in; margin-right:0.63in;"
-	  "shading-background-color:E7E6E6; text-align:center",
-	  "font-family:Carlito; font-size:60pt; color:44546A", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:1.0in; margin-right:0.63in; line-height:0.8in;"
-	  "shading-background-color:E7E6E6",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:1.0in; margin-right:0.63in;"
-	  "shading-background-color:E7E6E6; text-align:center",
-	  "font-family:Carlito; font-size:20pt; color:44546A", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:1.0in; margin-right:0.63in; line-height:0.9in;"
-	  "shading-background-color:E7E6E6",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; line-height:1.0in;"
-	  "shading-background-color:4472C4; left-style:solid; left-color:44546A;"
-	  "left-thickness:22pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; shading-background-color:4472C4;"
-	  "left-style:solid; left-color:44546A; left-thickness:22pt;"
-	  "text-align:center",
-	  "font-family:Carlito; font-size:16pt; color:E7E6E6", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; shading-background-color:4472C4;"
-	  "left-style:solid; left-color:44546A; left-thickness:22pt;"
-	  "text-align:center",
-	  "font-family:Carlito; font-size:12pt; color:E7E6E6", "[Company Name] | [Company Address]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; line-height:0.7in;"
-	  "shading-background-color:4472C4; left-style:solid; left-color:44546A;"
-	  "left-thickness:22pt",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverBanded[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; margin-top:-0.5in;"
-	  "line-height:0.75in; shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:0.75in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "line-height:1.4in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "text-align:center",
-	  "font-family:Carlito; font-size:36pt; font-weight:bold; color:4472C4", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:center; margin-top:0.2in",
-	  "font-family:Carlito; font-size:16pt; color:595959", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:1.2in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:0.7in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in;"
-	  "shading-background-color:4472C4; text-align:center",
-	  "font-family:Carlito; font-size:14pt; font-weight:bold; color:FFFFFF", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in;"
-	  "shading-background-color:4472C4; text-align:center",
-	  "font-family:Carlito; font-size:11pt; color:FFFFFF", "[Company name]  |  [Company address]" },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverCrop[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; margin-right:4.4in; margin-top:-0.55in;"
-	  "line-height:0.35in; shading-background-color:E7E6E6; left-style:solid;"
-	  "left-color:44546A; left-thickness:20pt; top-style:solid;"
-	  "top-color:44546A; top-thickness:20pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; margin-right:4.4in; line-height:0.35in;"
-	  "shading-background-color:E7E6E6; left-style:solid; left-color:44546A;"
-	  "left-thickness:20pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; margin-right:4.4in; line-height:0.35in;"
-	  "shading-background-color:E7E6E6; left-style:solid; left-color:44546A;"
-	  "left-thickness:20pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.9in; margin-right:-0.7in; margin-top:0.4in;"
-	  "shading-background-color:E7E6E6",
-	  "font-family:Carlito; font-size:18pt; color:44546A", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.9in; margin-right:-0.7in; margin-top:0.2in;"
-	  "shading-background-color:E7E6E6",
-	  "font-family:Carlito; font-size:48pt; color:44546A", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; margin-right:-0.7in; line-height:3.7in;"
-	  "shading-background-color:E7E6E6",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; margin-right:-0.7in;"
-	  "shading-background-color:E7E6E6; text-align:right",
-	  "font-family:Carlito; font-size:18pt; color:44546A", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; margin-right:-0.7in;"
-	  "shading-background-color:E7E6E6; text-align:right",
-	  "font-family:Carlito; font-size:14pt; color:44546A", "[Company Name]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:4.4in; margin-right:-0.67in; margin-top:0.35in;"
-	  "line-height:0.35in; shading-background-color:E7E6E6; right-style:solid;"
-	  "right-color:44546A; right-thickness:20pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:4.4in; margin-right:-0.67in; line-height:0.35in;"
-	  "shading-background-color:E7E6E6; right-style:solid; right-color:44546A;"
-	  "right-thickness:20pt",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:4.4in; margin-right:-0.67in; line-height:0.35in;"
-	  "shading-background-color:E7E6E6; right-style:solid; right-color:44546A;"
-	  "right-thickness:20pt; bot-style:solid; bot-color:44546A;"
-	  "bot-thickness:20pt",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-
-static const FV_CoverLine s_coverFacet[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.75in; margin-right:-0.75in; margin-top:-0.5in;"
-	  "line-height:0.55in; shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.75in; margin-right:-0.75in; line-height:0.55in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "line-height:2.2in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right",
-	  "font-family:Carlito; font-size:32pt; color:4472C4", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right; margin-top:0.15in",
-	  "font-family:Carlito; font-size:18pt; color:404040", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:2.3in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right",
-	  "font-family:Carlito; font-size:14pt; color:4472C4", "Abstract" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right; margin-top:0.12in; margin-left:2.5in",
-	  "font-family:Carlito; font-size:10pt; color:595959", "[Draw your reader in with an engaging abstract. It is typically a short summary of the document.]" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:0.8in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right",
-	  "font-family:Carlito; font-size:14pt; color:595959", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right",
-	  "font-family:Carlito; font-size:9pt; color:595959", "[Email address]" },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverFeathered[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; margin-top:-0.5in;"
-	  "line-height:1.8in; shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; line-height:1.8in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.6in; margin-right:-1in; shading-background-color:4472C4",
-	  "font-family:Carlito; font-size:39pt; color:E7E6E6", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.6in; margin-right:-1in; shading-background-color:4472C4",
-	  "font-family:Carlito; font-size:20pt; color:E7E6E6", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; line-height:1.6in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.6in; margin-right:-1in; shading-background-color:4472C4",
-	  "font-family:Carlito; font-size:18pt; color:E7E6E6", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.6in; margin-right:-1in; shading-background-color:4472C4",
-	  "font-family:Carlito; font-size:18pt; color:E7E6E6", "[Company Name]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-1in; margin-right:-1in; line-height:0.7in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverFiligree[] = {
-	{ ABI_COVER_RESET "; "
-	  "line-height:2.2in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "text-align:center",
-	  "font-family:Carlito; font-size:40pt; color:4472C4", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:center; margin-top:0.2in",
-	  "font-family:Carlito; font-size:14pt; color:4472C4", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:3.0in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "text-align:center",
-	  "font-family:Carlito; font-size:14pt; color:4472C4", "@date" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:center; margin-top:0.1in",
-	  "font-family:Carlito; font-size:11pt; color:4472C4", "[Company name]" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:center",
-	  "font-family:Carlito; font-size:11pt; color:4472C4", "[Company address]" },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverHeadline[] = {
-	{ ABI_COVER_RESET "; "
-	  "line-height:0.7in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.17in; left-style:solid; left-color:000000;"
-	  "left-thickness:1.5pt",
-	  "font-family:Carlito; font-size:60pt; color:262626", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.17in; left-style:solid; left-color:000000;"
-	  "left-thickness:1.5pt; margin-top:0.1in",
-	  "font-family:Carlito; font-size:18pt; color:262626", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:3.6in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "font-family:Carlito; font-size:16pt; color:262626",
-	  "font-family:Carlito; font-size:16pt; color:262626", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-top:0.1in",
-	  "font-family:Carlito; font-size:13pt; color:262626", "[Company Name] | [Company Address]" },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverIntegral[] = {
-	{ ABI_COVER_RESET "; "
-	  "line-height:2.4in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6;"
-	  "top-style:solid; top-color:ED7D31; top-thickness:2.25pt;"
-	  "line-height:0.3in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6;"
-	  "text-align:right",
-	  "font-family:Carlito; font-size:26pt; color:191919", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6;"
-	  "text-align:right",
-	  "font-family:Carlito; font-size:12pt; color:000000", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6;"
-	  "line-height:0.35in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6",
-	  "font-family:Carlito; font-size:13pt; color:ED7D31", "Abstract" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6",
-	  "font-family:Carlito; font-size:9pt; color:000000", "[Draw your reader in with an engaging abstract.]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6",
-	  "font-family:Carlito; font-size:13pt; color:ED7D31", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6",
-	  "font-family:Carlito; font-size:10pt; color:44546A", "[Course title]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:2.3in; margin-right:2.3in; shading-background-color:E7E6E6;"
-	  "bot-style:solid; bot-color:ED7D31; bot-thickness:2.25pt;"
-	  "line-height:0.3in",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverIonDark[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; margin-top:-0.5in;"
-	  "shading-background-color:000000; text-align:right; line-height:0.5in",
-	  "font-family:Carlito; font-size:12pt; color:FFFFFF", "@year  " },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:1.6in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.2in; margin-right:-0.5in; shading-background-color:000000",
-	  "font-family:Carlito; font-size:36pt; color:FFFFFF", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:4.3in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "line-height:0.7in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "font-family:Carlito",
-	  "font-family:Carlito; font-size:14pt; color:4472C4", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-top:0.15in",
-	  "font-family:Carlito; font-size:12pt; color:5B9BD5", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-top:0.35in",
-	  "font-family:Carlito; font-size:9pt; color:7F7F7F", "[Company name]  |  [Company address]" },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverIonLight[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:5.2in; margin-right:-0.5in; margin-top:-0.4in;"
-	  "shading-background-color:4472C4; text-align:center; line-height:0.6in",
-	  "font-family:Carlito; font-size:12pt; color:FFFFFF", "@year" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:5.2in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.5in",
-	  "font-family:Carlito; font-size:36pt; color:4472C4", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.5in; margin-top:0.15in",
-	  "font-family:Carlito; font-size:14pt; color:5B9BD5", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.5in; margin-top:0.3in",
-	  "font-family:Carlito; font-size:12pt; color:5B9BD5", "@author" },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverRetrospect[] = {
-	{ ABI_COVER_RESET "; "
-	  "line-height:1.9in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.2in",
-	  "font-family:Carlito; font-size:54pt; color:595959", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.23in; margin-top:0.2in",
-	  "font-family:Carlito; font-size:18pt; color:44546A", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:3.0in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:0.12in;"
-	  "shading-background-color:4472C4",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:0.5in;"
-	  "shading-background-color:ED7D31",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; margin-left:0.3in;"
-	  "shading-background-color:ED7D31",
-	  "font-family:Carlito; font-size:16pt; color:FFFFFF", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.33in; margin-right:-0.5in; shading-background-color:ED7D31",
-	  "font-family:Carlito; font-size:11pt; color:FFFFFF", "[Company name] | [Company address]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:0.6in;"
-	  "shading-background-color:ED7D31",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverSemaphore[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; text-align:right; line-height:0.6in",
-	  "font-family:Carlito; font-size:20pt; color:323E4F", "@date " },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; line-height:3.2in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; text-align:right",
-	  "font-family:Carlito; font-size:26pt; color:323E4F", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; text-align:right; margin-top:0.15in",
-	  "font-family:Carlito; font-size:18pt; color:44546A", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; line-height:3.2in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; text-align:right",
-	  "font-family:Carlito; font-size:14pt; color:262626", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; text-align:right; margin-top:0.05in",
-	  "font-family:Carlito; font-size:10pt; color:262626", "[Company name]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.63in; left-style:solid; left-color:ED7D31;"
-	  "left-thickness:18pt; text-align:right",
-	  "font-family:Carlito; font-size:10pt; color:262626", "[Company address]" },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverSliceDark[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; margin-top:-0.5in;"
-	  "line-height:1.6in; shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:1.6in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:1.6in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:1.6in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.2in; margin-right:-0.5in; shading-background-color:000000",
-	  "font-family:Carlito; font-size:32pt; color:FFFFFF", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.17in; margin-right:-0.5in;"
-	  "shading-background-color:000000",
-	  "font-family:Carlito; font-size:18pt; color:4472C4", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:1.4in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverSliceLight[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-top:0.3in",
-	  "font-family:Carlito; font-size:34pt; color:44546A", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-top:0.15in",
-	  "font-family:Carlito; font-size:18pt; color:4472C4", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "line-height:1.1in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.82in; margin-right:-0.33in; line-height:1.4in;"
-	  "shading-background-color:8496B0",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.82in; margin-right:-0.33in; line-height:1.4in;"
-	  "shading-background-color:8496B0",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.82in; margin-right:-0.33in; line-height:1.4in;"
-	  "shading-background-color:8496B0",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:0.82in; margin-right:-0.33in; line-height:1.0in;"
-	  "shading-background-color:8496B0",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "line-height:0.3in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right",
-	  "font-family:Carlito; font-size:18pt; color:4472C4", "[School]" },
-	{ ABI_COVER_RESET "; "
-	  "text-align:right",
-	  "font-family:Carlito; font-size:18pt; color:4472C4", "[Course title]" },
-	{ nullptr, nullptr, nullptr }
-};
-
-
-static const FV_CoverLine s_coverViewMaster[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; margin-top:-0.5in;"
-	  "line-height:1.3in; shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.2in; margin-right:-0.5in; shading-background-color:000000",
-	  "font-family:Carlito; font-size:42pt; color:FFFFFF", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.17in; margin-right:-0.5in;"
-	  "shading-background-color:000000",
-	  "font-family:Carlito; font-size:14pt; color:FFFFFF", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:2.4in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:1.9in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.2in; margin-right:-0.5in; shading-background-color:000000",
-	  "font-family:Carlito; font-size:16pt; color:FFFFFF", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.17in; margin-right:-0.5in;"
-	  "shading-background-color:000000",
-	  "font-family:Carlito; font-size:9pt; color:FFFFFF", "[Company name]  [Company address]" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.5in; margin-right:-0.5in; line-height:0.9in;"
-	  "shading-background-color:000000",
-	  nullptr, nullptr },
-	{ nullptr, nullptr, nullptr }
-};
-
-static const FV_CoverLine s_coverWhisp[] = {
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; left-style:solid; left-color:44546A;"
-	  "left-thickness:15pt; left-space:0.25in; margin-right:-0.5in;"
-	  "line-height:1.5in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; left-style:solid; left-color:44546A;"
-	  "left-thickness:15pt; left-space:0.25in; margin-right:-0.5in",
-	  "font-family:Carlito; font-size:36pt; color:262626", "@title" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; left-style:solid; left-color:44546A;"
-	  "left-thickness:15pt; left-space:0.25in; margin-right:-0.5in",
-	  "font-family:Carlito; font-size:18pt; color:404040", "@subtitle" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; left-style:solid; left-color:44546A;"
-	  "left-thickness:15pt; left-space:0.25in; margin-right:-0.5in;"
-	  "line-height:4.6in",
-	  nullptr, nullptr },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; left-style:solid; left-color:44546A;"
-	  "left-thickness:15pt; left-space:0.25in; margin-right:-0.5in",
-	  "font-family:Carlito; font-size:13pt; color:4472C4", "@author" },
-	{ ABI_COVER_RESET "; "
-	  "margin-left:-0.67in; left-style:solid; left-color:44546A;"
-	  "left-thickness:15pt; left-space:0.25in; margin-right:-0.5in",
-	  "font-family:Carlito; font-size:10pt; color:595959", "[company name]" },
-	{ nullptr, nullptr, nullptr }
-};
 
 #define ABI_COVER_SIDELINE \
 	"left-style:solid; left-color:4472C4; left-thickness:0.3in; left-space:0.25in"
@@ -7830,28 +7220,28 @@ static const FV_CoverLine s_coverYearly[] = {
 
 
 static const FV_CoverPreset s_coverPresets[] = {
-	{ "austin",     "Austin",       s_coverAustin },
-	{ "badge",      "Badge",        s_coverBadge },
-	{ "banded",     "Banded",       s_coverBanded },
-	{ "crop",       "Crop",         s_coverCrop },
-	{ "facet",      "Facet",        s_coverFacet },
-	{ "feathered",  "Feathered",    s_coverFeathered },
-	{ "filigree",   "Filigree",     s_coverFiligree },
-	{ "frame",      "Frame",        s_coverFrame },
-	{ "headline",   "Headline",     s_coverHeadline },
-	{ "integral",   "Integral",     s_coverIntegral },
-	{ "iondark",    "Ion (Dark)",   s_coverIonDark },
-	{ "ionlight",   "Ion (Light)",  s_coverIonLight },
-	{ "motion",     "Motion",       s_coverMotion },
-	{ "retrospect", "Retrospect",   s_coverRetrospect },
-	{ "semaphore",  "Semaphore",    s_coverSemaphore },
-	{ "slicedark",  "Slice (Dark)", s_coverSliceDark },
-	{ "slicelight", "Slice (Light)",s_coverSliceLight },
-	{ "sideline",   "Sideline",     s_coverSideline },
-	{ "viewmaster", "ViewMaster",   s_coverViewMaster },
-	{ "whisp",      "Whisp",        s_coverWhisp },
-	{ "yearly",     "Yearly",       s_coverYearly },
-	{ nullptr, nullptr, nullptr }
+	{ "austin",     "Austin",       nullptr,          true  },
+	{ "badge",      "Badge",        nullptr,          true  },
+	{ "banded",     "Banded",       nullptr,          true  },
+	{ "crop",       "Crop",         nullptr,          true  },
+	{ "facet",      "Facet",        nullptr,          true  },
+	{ "feathered",  "Feathered",    nullptr,          true  },
+	{ "filigree",   "Filigree",     nullptr,          true  },
+	{ "frame",      "Frame",        s_coverFrame,     false },
+	{ "headline",   "Headline",     nullptr,          true  },
+	{ "integral",   "Integral",     nullptr,          true  },
+	{ "iondark",    "Ion (Dark)",   nullptr,          true  },
+	{ "ionlight",   "Ion (Light)",  nullptr,          true  },
+	{ "motion",     "Motion",       s_coverMotion,    false },
+	{ "retrospect", "Retrospect",   nullptr,          true  },
+	{ "semaphore",  "Semaphore",    nullptr,          true  },
+	{ "slicedark",  "Slice (Dark)", nullptr,          true  },
+	{ "slicelight", "Slice (Light)",nullptr,          true  },
+	{ "sideline",   "Sideline",     s_coverSideline,  false },
+	{ "viewmaster", "ViewMaster",   nullptr,          true  },
+	{ "whisp",      "Whisp",        nullptr,          true  },
+	{ "yearly",     "Yearly",       s_coverYearly,    false },
+	{ nullptr, nullptr, nullptr, false }
 };
 
 static const FV_CoverPreset * _coverPresetById(const char * szId)
@@ -7914,31 +7304,6 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 	const FV_CoverPreset * pPreset = _coverPresetById(szPreset);
 	UT_return_val_if_fail(pPreset, UT_ERROR);
 
-	std::string sTitle, sAuthor;
-	if(!m_pDoc->getMetaDataProp(PD_META_KEY_TITLE, sTitle) ||
-	   sTitle.empty())
-	{
-		sTitle = "Document Title";
-	}
-	if(!m_pDoc->getMetaDataProp(PD_META_KEY_CREATOR, sAuthor) ||
-	   sAuthor.empty())
-	{
-		sAuthor = "Author";
-	}
-	char szDate[64];
-	{
-		time_t tNow = time(nullptr);
-		struct tm * pTM = localtime(&tNow);
-		if(pTM)
-		{
-			strftime(szDate, sizeof(szDate), "%B %Y", pTM);
-		}
-		else
-		{
-			szDate[0] = 0;
-		}
-	}
-
 	m_pDoc->beginUserAtomicGlob();
 	_saveAndNotifyPieceTableChange();
 
@@ -7960,58 +7325,129 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 	{
 		// The cover always goes above the first body paragraph.
 		setPoint(2);
-		insertParagraphBreak();
-		setPoint(2);
+		if(!pPreset->bTemplate)
+		{
+			insertParagraphBreak();
+			setPoint(2);
+		}
 	}
 	const PT_DocPosition posMark = getPoint();
+	bool bPasted = false;
 
-	for(const FV_CoverLine * pL = pPreset->pLines;
-		pL->szBlockProps || pL->szText; pL++)
+	// Frame-based presets carry an abwn template in the "covers/"
+	// gresource (generated from the reference .docx designs by
+	// tools/mkcovers.py); it splices real positioned frames, fills
+	// and images into the top of the section via the paste importer.
+	if(pPreset->bTemplate)
 	{
-		setStyle("Normal", true);
-		if(pL->szBlockProps)
+		std::string res = "/io/github/janos_szenfner/Abinova/covers/";
+		res += pPreset->szId;
+		res += ".xml";
+		GBytes * pBytes = g_resources_lookup_data(
+			res.c_str(), G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
+		if(pBytes)
 		{
-			PP_PropertyVector props;
-			_coverParseProps(props, pL->szBlockProps);
-			setBlockFormat(props);
+			gsize len = 0;
+			const unsigned char * pData =
+				static_cast<const unsigned char *>(
+					g_bytes_get_data(pBytes, &len));
+			// Paste at the first block's strux position: inserting
+			// strux at a content position would split the block and
+			// make the frame snap rules scramble the order.
+			PT_DocPosition posPaste = posMark;
+			const pf_Frag_Strux * sdh = nullptr;
+			if(m_pDoc->getStruxOfTypeFromPosition(posMark, PTX_Block,
+												  &sdh) && sdh)
+			{
+				posPaste = sdh->getPos();
+			}
+			PD_DocumentRange dr(m_pDoc, posPaste, posPaste);
+			IE_Imp_Abinova_1 imp(m_pDoc);
+			bPasted = imp.pasteFromBuffer(&dr, pData,
+										static_cast<UT_uint32>(len),
+										"UTF-8");
+			if(bPasted)
+			{
+				setPoint(imp.getDocPos());
+			}
+			g_bytes_unref(pBytes);
 		}
-		if(pL->szText)
+	}
+
+	if(!bPasted)
+	{
+		std::string sTitle, sAuthor;
+		if(!m_pDoc->getMetaDataProp(PD_META_KEY_TITLE, sTitle) ||
+		   sTitle.empty())
 		{
-			std::string sText;
-			if(0 == strcmp(pL->szText, "@title"))
+			sTitle = "Document Title";
+		}
+		if(!m_pDoc->getMetaDataProp(PD_META_KEY_CREATOR, sAuthor) ||
+		   sAuthor.empty())
+		{
+			sAuthor = "Author";
+		}
+		char szDate[64];
+		{
+			time_t tNow = time(nullptr);
+			struct tm * pTM = localtime(&tNow);
+			if(pTM)
 			{
-				sText = sTitle;
-			}
-			else if(0 == strcmp(pL->szText, "@author"))
-			{
-				sText = sAuthor;
-			}
-			else if(0 == strcmp(pL->szText, "@date"))
-			{
-				sText = szDate;
-			}
-			else if(0 == strcmp(pL->szText, "@year"))
-			{
-				size_t len = strlen(szDate);
-				sText = len >= 4 ? szDate + len - 4 : szDate;
-			}
-			else if(0 == strcmp(pL->szText, "@subtitle"))
-			{
-				sText = "Document Subtitle";
+				strftime(szDate, sizeof(szDate), "%B %Y", pTM);
 			}
 			else
 			{
-				sText = pL->szText;
+				szDate[0] = 0;
 			}
-			if(pL->szCharProps)
-			{
-				PP_PropertyVector cprops;
-				_coverParseProps(cprops, pL->szCharProps);
-				setCharFormat(cprops);
-			}
-			cmdCharInsert(sText, false);
 		}
-		insertParagraphBreak();
+		for(const FV_CoverLine * pL = pPreset->pLines;
+				pL && (pL->szBlockProps || pL->szText); pL++)
+		{
+			setStyle("Normal", true);
+			if(pL->szBlockProps)
+			{
+				PP_PropertyVector props;
+				_coverParseProps(props, pL->szBlockProps);
+				setBlockFormat(props);
+			}
+			if(pL->szText)
+			{
+				std::string sText;
+				if(0 == strcmp(pL->szText, "@title"))
+				{
+					sText = sTitle;
+				}
+				else if(0 == strcmp(pL->szText, "@author"))
+				{
+					sText = sAuthor;
+				}
+				else if(0 == strcmp(pL->szText, "@date"))
+				{
+					sText = szDate;
+				}
+				else if(0 == strcmp(pL->szText, "@year"))
+				{
+					size_t len = strlen(szDate);
+					sText = len >= 4 ? szDate + len - 4 : szDate;
+				}
+				else if(0 == strcmp(pL->szText, "@subtitle"))
+				{
+					sText = "Document Subtitle";
+				}
+				else
+				{
+					sText = pL->szText;
+				}
+				if(pL->szCharProps)
+				{
+					PP_PropertyVector cprops;
+					_coverParseProps(cprops, pL->szCharProps);
+					setCharFormat(cprops);
+				}
+				cmdCharInsert(sText, false);
+			}
+			insertParagraphBreak();
+		}
 	}
 
 	// Trailing page break so the body starts on page 2; it sits

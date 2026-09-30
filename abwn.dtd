@@ -1,5 +1,5 @@
 <!--
-  AWNL 1.0 - Abinova Word-processing Markup Language (skeletal DTD)
+  AWNL 1.0 - Abinova Word-processing Markup Language (DTD)
 
   This DTD describes the serialization written by Abinova 4.x to
   .abwn files.  It is derived from AWML 1.0 (AbiWord Markup
@@ -9,6 +9,18 @@
   accept the <abinova> root element.
 
   Repository: https://github.com/janos-szenfner/Abinova
+
+  Companion document: ABWN-FORMAT.md (semantics, units, property
+  reference).
+
+  Conventions:
+   * All elements may carry xid  = stable piece-table object id
+     and props = "name:value; name:value; ..." property bag.
+   * Property values use '.' OR ',' as decimal separator
+     (the writer emits ',').
+   * Lengths carry a unit suffix (in, cm, mm, pt, pi, or none
+     = layout units).
+   * Colors are RRGGBB hex without '#'.
 -->
 
 <!ELEMENT abinova (metadata?, rdf?, history?, changes?, masterpages?,
@@ -44,11 +56,25 @@
 	basedon    CDATA  #IMPLIED
 	followedby CDATA  #IMPLIED
 	props      CDATA  #IMPLIED
+	xid        CDATA  #IMPLIED
 >
 
+<!-- list definitions: <l id parentid type ...> — list levels use
+     direct attributes, not a props bag -->
 <!ELEMENT lists (l*)>
 <!ELEMENT l EMPTY>
-<!ATTLIST l id CDATA #REQUIRED>
+<!ATTLIST l
+	id           CDATA  #REQUIRED
+	parentid     CDATA  #IMPLIED
+	type         CDATA  #IMPLIED
+	start-value  CDATA  #IMPLIED
+	list-delim   CDATA  #IMPLIED
+	list-decimal CDATA  #IMPLIED
+	list-style   CDATA  #IMPLIED
+	level        CDATA  #IMPLIED
+	props        CDATA  #IMPLIED
+	xid          CDATA  #IMPLIED
+>
 
 <!ELEMENT pagesize EMPTY>
 <!ATTLIST pagesize
@@ -64,14 +90,158 @@
 <!ELEMENT author EMPTY>
 <!ATTLIST author id CDATA #IMPLIED>
 
-<!-- flow root: body, headers/footers, footnotes, annotations -->
-<!ELEMENT section ANY>
+<!--
+  Flow roots.  The first <section> is the document body; further
+  sections (referenced by the header/footer attrs, or by
+  type="footnote|endnote|annotation|toc") hold out-of-flow content.
+-->
+<!ELEMENT section (p | table | frame | toc | section | pbr | embed)*>
 <!ATTLIST section
 	xid    CDATA  #IMPLIED
 	type   CDATA  #IMPLIED
 	header CDATA  #IMPLIED
 	footer CDATA  #IMPLIED
 	props  CDATA  #IMPLIED
+>
+
+<!-- block: paragraph -->
+<!ELEMENT p (c | a | ann | annotate | field | image | foot | endnote |
+             bookmark | margin | textmeta | embed | math | toc | pbr |
+             frame)*>
+<!ATTLIST p
+	style  CDATA  #IMPLIED
+	listid CDATA  #IMPLIED
+	xid    CDATA  #IMPLIED
+	props  CDATA  #IMPLIED
+>
+
+<!-- run: styled character span; text content -->
+<!ELEMENT c (#PCDATA | a | ann | field | image | foot | endnote |
+             bookmark | margin | textmeta | embed | math | pbr)*>
+<!ATTLIST c
+	style CDATA  #IMPLIED
+	xid   CDATA  #IMPLIED
+	props CDATA  #IMPLIED
+>
+
+<!-- page break marker -->
+<!ELEMENT pbr EMPTY>
+<!ATTLIST pbr xid CDATA #IMPLIED props CDATA #IMPLIED>
+
+<!-- hyperlink anchor -->
+<!ELEMENT a (c | image | field | bookmark | ann)*>
+<!ATTLIST a
+	xlink:href CDATA  #REQUIRED
+	props      CDATA  #IMPLIED
+	xid        CDATA  #IMPLIED
+	xmlns:xlink CDATA #IMPLIED
+>
+
+<!-- annotation (comment) span anchor; content lives in the
+     annotation section keyed by the annotation-id property -->
+<!ELEMENT ann (c | a | field | image | ann)*>
+<!ATTLIST ann
+	xid   CDATA  #IMPLIED
+	props CDATA  #IMPLIED
+>
+
+<!-- annotation body: marker embeds the comment's block content -->
+<!ELEMENT annotate (p | table | frame | c | a)*>
+<!ATTLIST annotate
+	annotation CDATA  #IMPLIED
+	author     CDATA  #IMPLIED
+	date       CDATA  #IMPLIED
+	initials   CDATA  #IMPLIED
+	xid        CDATA  #IMPLIED
+	props      CDATA  #IMPLIED
+>
+
+<!ELEMENT bookmark EMPTY>
+<!ATTLIST bookmark
+	type  CDATA  #IMPLIED
+	name  CDATA  #IMPLIED
+	xid   CDATA  #IMPLIED
+	props CDATA  #IMPLIED
+>
+
+<!-- field: computed span (page numbers, TOC, hyperlinks, ...) -->
+<!ELEMENT field (c*)>
+<!ATTLIST field
+	type  CDATA  #IMPLIED
+	xid   CDATA  #IMPLIED
+	props CDATA  #IMPLIED
+>
+
+<!-- image reference; payload is a <d> item in <data> -->
+<!ELEMENT image EMPTY>
+<!ATTLIST image
+	dataid CDATA  #REQUIRED
+	xid    CDATA  #IMPLIED
+	props  CDATA  #IMPLIED
+>
+
+<!-- footnote / endnote: the reference marker embeds the note's own
+     block content (paragraphs) inline -->
+<!ELEMENT foot (p | table | frame | c)*>
+<!ATTLIST foot
+	footnote-id CDATA  #IMPLIED
+	type        CDATA  #IMPLIED
+	xid         CDATA  #IMPLIED
+	props       CDATA  #IMPLIED
+>
+<!ELEMENT endnote (p | table | frame | c)*>
+<!ATTLIST endnote
+	endnote-id CDATA  #IMPLIED
+	xid        CDATA  #IMPLIED
+	props      CDATA  #IMPLIED
+>
+
+<!-- margin note / RDF metadata anchors -->
+<!ELEMENT margin (#PCDATA | c)*>
+<!ATTLIST margin xid CDATA #IMPLIED props CDATA #IMPLIED>
+<!ELEMENT textmeta (#PCDATA | c)*>
+<!ATTLIST textmeta xid CDATA #IMPLIED props CDATA #IMPLIED>
+
+<!-- MathML fragment and generic embedded object -->
+<!ELEMENT math ANY>
+<!ATTLIST math xid CDATA #IMPLIED props CDATA #IMPLIED>
+<!ELEMENT embed EMPTY>
+<!ATTLIST embed
+	dataid CDATA  #IMPLIED
+	xid    CDATA  #IMPLIED
+	props  CDATA  #IMPLIED
+>
+
+<!-- table of contents block -->
+<!ELEMENT toc (p*)>
+<!ATTLIST toc xid CDATA #IMPLIED props CDATA #IMPLIED>
+
+<!-- table: rows are implicit; <cell> carries cell-attach-* props -->
+<!ELEMENT table (cell+)>
+<!ATTLIST table
+	xid   CDATA  #IMPLIED
+	props CDATA  #IMPLIED
+>
+<!ELEMENT cell (p | table | frame | toc)+>
+<!ATTLIST cell
+	xid   CDATA  #IMPLIED
+	props CDATA  #IMPLIED
+>
+
+<!--
+  frame: absolutely-positioned box (textbox / drawing shape).
+  Content is block-level flow clipped to the frame rectangle.
+  Geometry and paint are described by FRAME-level props:
+  frame-page-xpos/ypos, frame-width/height, xpad/ypad,
+  background-color, fill-gradient, fill-alpha, shape-path,
+  wrap-mode, position-to, frame-stack-order, frame-rotation,
+  frame-flip-horiz/vert, frame-valign, frame-text-direction,
+  image-src-rect; borders via bot-style/top-style/... .
+-->
+<!ELEMENT frame (p | table | frame | toc)+>
+<!ATTLIST frame
+	xid   CDATA  #IMPLIED
+	props CDATA  #IMPLIED
 >
 
 <!-- named binary/text payloads: images, MathML/LaTeX sources,

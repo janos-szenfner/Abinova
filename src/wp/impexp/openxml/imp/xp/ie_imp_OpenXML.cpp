@@ -37,6 +37,7 @@
 // Abinova includes
 #include "ut_types.h"
 #include "ut_assert.h"
+#include "ut_locale.h"
 #include "ut_xml.h"
 #include "pd_Document.h"
 
@@ -187,6 +188,11 @@ UT_Error IE_Imp_OpenXML::_loadFile (GsfInput * oo_src)
 {
 	UT_DEBUGMSG(("\n\n\nLoading an OpenXML file\n"));
 
+	/* The piece-table property strings written during import must be
+	 * locale-independent ('.' decimal separator) - snprintf("%f") follows
+	 * the ambient locale, so pin LC_NUMERIC for the whole import. */
+	UT_LocaleTransactor localeGuard(LC_NUMERIC, "C");
+
 	UT_Error ret = UT_OK;
 
 	GsfInfile * pGsfInfile = GSF_INFILE (gsf_infile_zip_new (oo_src, nullptr));
@@ -220,6 +226,12 @@ UT_Error IE_Imp_OpenXML::_loadFile (GsfInput * oo_src)
 	if (UT_OK != (ret = mgr->parseDocumentEndnotes()))
 	{
 		UT_DEBUGMSG(("OpenXML import: failed to parse the document endnotes\n"));
+	}
+
+	// word/comments.xml is optional; absence is not an error
+	if (UT_OK != (ret = mgr->parseDocumentComments()))
+	{
+		UT_DEBUGMSG(("OpenXML import: no comments part to parse\n"));
 	}
 
 	if (UT_OK != (ret = mgr->parseDocumentTheme()))

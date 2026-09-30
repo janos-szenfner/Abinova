@@ -52,8 +52,10 @@
 fp_FrameContainer::fp_FrameContainer(fl_SectionLayout* pSectionLayout) 
 	: fp_VerticalContainer(FP_CONTAINER_FRAME, pSectionLayout),
 	  m_pPage(nullptr),
-	  m_iXpad(0),
-	  m_iYpad(0),
+	  m_iXpadLeft(0),
+	  m_iXpadRight(0),
+	  m_iYpadTop(0),
+	  m_iYpadBottom(0),
 	  m_bNeverDrawn(true),
 	  m_bOverWrote(false),
 	  m_bIsWrapped(false),
@@ -251,6 +253,361 @@ static void s_rotatedBounds(double rx, double ry, double rw, double rh,
 	out.top = static_cast<UT_sint32>(floor(yMin));
 	out.width = static_cast<UT_sint32>(ceil(xMax)) - out.left;
 	out.height = static_cast<UT_sint32>(ceil(yMax)) - out.top;
+}
+
+/*!
+ * Paint a linear gradient across the frame box from the
+ * "fill-gradient" property.  The property serializes DrawingML
+ * gradFill as "lin:<ang60000>,<pos>:<RRGGBB>,..." where pos is
+ * 0..100000 (fraction of the gradient vector in thousandths of a
+ * percent) and ang is the DrawingML angle in 60000ths of a degree,
+ * measured clockwise from the 3 o'clock direction with y pointing
+ * down.  Returns false when no usable gradient is present (or the
+ * graphics isn't cairo mid-paint) so the caller can fall back to the
+ * solid fill.
+ */
+static bool s_paintFrameGradient(GR_Graphics * pG,
+								 fp_FrameContainer * pFC,
+								 UT_sint32 x, UT_sint32 y,
+								 UT_sint32 w, UT_sint32 h)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * szGrad = nullptr;
+	if (!pAP || !pAP->getProperty("fill-gradient", szGrad) ||
+		!szGrad || !*szGrad)
+		return false;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	/* getCairo() auto-beginPaints when no paint is running - that is
+	 * harmless on the print/PDF graphics (its _beginPaint is a no-op
+	 * counter) but would unbalance the group stack on screen, so only
+	 * allow the implicit beginPaint off-screen */
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+
+	struct GradStop { double pos, r, g, b; };
+	std::vector<GradStop> stops;
+	double dAng60000 = 5400000.0; /* default: straight down (90 deg) */
+
+	gchar ** toks = g_strsplit(szGrad, ",", -1);
+	if (toks)
+	{
+		for (int i = 0; toks[i]; i++)
+		{
+			gchar * tok = g_strstrip(toks[i]);
+			if (!*tok)
+				continue;
+			if (strncmp(tok, "lin:", 4) == 0)
+			{
+				dAng60000 = g_ascii_strtod(tok + 4, nullptr);
+				continue;
+			}
+			gchar * colon = strchr(tok, ':');
+			if (!colon)
+				continue;
+			*colon = 0;
+			double pos = g_ascii_strtod(tok, nullptr) / 100000.0;
+			const gchar * hex = colon + 1;
+			unsigned int rv = 0, gv = 0, bv = 0;
+			if (sscanf(hex, "%02x%02x%02x", &rv, &gv, &bv) == 3)
+			{
+				GradStop gs { pos, rv / 255.0, gv / 255.0, bv / 255.0 };
+				stops.push_back(gs);
+			}
+		}
+		g_strfreev(toks);
+	}
+	if (stops.size() < 2)
+		return false;
+
+	/* gradient vector endpoints: project the box corners onto the
+	 * direction axis so the first/last stops land on opposite edges */
+	double rad = (dAng60000 / 60000.0) * M_PI / 180.0;
+	double dx = cos(rad), dy = sin(rad);
+	double x0 = pG->tdu(x), y0 = pG->tdu(y);
+	double x1 = pG->tdu(x + w), y1 = pG->tdu(y + h);
+	double cx = (x0 + x1) / 2.0, cy = (y0 + y1) / 2.0;
+	double corners[4][2] = {{x0,y0},{x1,y0},{x1,y1},{x0,y1}};
+	double pmin = 1e30, pmax = -1e30;
+	for (int i = 0; i < 4; i++)
+	{
+		double t = (corners[i][0] - cx) * dx + (corners[i][1] - cy) * dy;
+		pmin = UT_MIN(pmin, t);
+		pmax = UT_MAX(pmax, t);
+	}
+	cairo_pattern_t * pat = cairo_pattern_create_linear(
+		cx + dx * pmin, cy + dy * pmin,
+		cx + dx * pmax, cy + dy * pmax);
+	for (const GradStop & gs : stops)
+	{
+		double pos = gs.pos < 0.0 ? 0.0 : (gs.pos > 1.0 ? 1.0 : gs.pos);
+		cairo_pattern_add_color_stop_rgb(pat, pos, gs.r, gs.g, gs.b);
+	}
+	cairo_save(cr);
+	cairo_rectangle(cr, x0, y0, x1 - x0, y1 - y0);
+	cairo_set_source(cr, pat);
+	cairo_fill(cr);
+	cairo_restore(cr);
+	cairo_pattern_destroy(pat);
+	return true;
+}
+
+/*!
+ * Parse an abwn number that may use a decimal comma ("0,300").
+ */
+static double s_abwnDouble(const gchar * sz)
+{
+	if (!sz)
+		return 0.0;
+	gchar * copy = g_strdup(sz);
+	for (gchar * p = copy; *p; p++)
+	{
+		if (*p == ',')
+			*p = '.';
+	}
+	double v = g_ascii_strtod(copy, nullptr);
+	g_free(copy);
+	return v;
+}
+
+/*!
+ * Paint the frame's background color with the transparency from
+ * "fill-alpha" (a:alpha on the fill, serialized as a 0..1 fraction).
+ * Returns false when fill-alpha is absent or ~opaque so the caller
+ * falls back to the plain solid fill.
+ */
+static bool s_paintFrameAlpha(GR_Graphics * pG,
+							  fp_FrameContainer * pFC,
+							  UT_sint32 x, UT_sint32 y,
+							  UT_sint32 w, UT_sint32 h)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * szAlpha = nullptr;
+	if (!pAP || !pAP->getProperty("fill-alpha", szAlpha) ||
+		!szAlpha || !*szAlpha)
+		return false;
+	/* abwn writes decimal commas */
+	double alpha = s_abwnDouble(szAlpha);
+	if (alpha >= 0.999)
+		return false;
+	if (alpha < 0.0)
+		alpha = 0.0;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+
+	const UT_RGBColor * pCol = pFC->getFillType().getColor();
+	if (!pCol || pCol->isTransparent())
+		return false;
+
+	cairo_save(cr);
+	cairo_rectangle(cr, pG->tdu(x), pG->tdu(y),
+					pG->tdu(x + w) - pG->tdu(x),
+					pG->tdu(y + h) - pG->tdu(y));
+	cairo_set_source_rgba(cr,
+						  pCol->m_red / 255.0, pCol->m_grn / 255.0,
+						  pCol->m_blu / 255.0, alpha);
+	cairo_fill(cr);
+	cairo_restore(cr);
+	return true;
+}
+
+/*!
+ * Paint a freeform shape from the "shape-path" property - the
+ * DrawingML a:custGeom path serialized as "M x y L x y C x1 y1 x2 y2
+ * x3 y3 Q x1 y1 x2 y2 Z" with coordinates normalized into a 0..1000
+ * box that maps onto the frame rectangle.  Fills the path with the
+ * frame's gradient (when present) or solid background color, then
+ * strokes it with the frame's border.  Returns false when no usable
+ * path is stored or the graphics isn't cairo.
+ */
+static bool s_paintFrameShape(GR_Graphics * pG,
+							  fp_FrameContainer * pFC,
+							  UT_sint32 x, UT_sint32 y,
+							  UT_sint32 w, UT_sint32 h)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * szPath = nullptr;
+	if (!pAP || !pAP->getProperty("shape-path", szPath) ||
+		!szPath || !*szPath)
+		return false;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+
+	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
+	double dw = pG->tdu(x + w) - dx0, dh = pG->tdu(y + h) - dy0;
+	if (dw <= 0 || dh <= 0)
+		return false;
+
+	/* tokenize: letters start a command, numbers feed the pending
+	 * command (M/L need 2, Q needs 4, C needs 6 coordinates) */
+	cairo_new_path(cr);
+	char cmd = 0;
+	double nums[6];
+	int nNums = 0;
+	double cx0 = 0.0, cy0 = 0.0; /* current point, for Q->C conversion */
+	bool bAny = false;
+
+	gchar * copy = g_strdup(szPath);
+	gchar * save = nullptr;
+	for (gchar * tok = strtok_r(copy, " \t", &save); tok;
+		 tok = strtok_r(nullptr, " \t", &save))
+	{
+		if ((tok[0] >= 'A' && tok[0] <= 'Z') ||
+			(tok[0] >= 'a' && tok[0] <= 'z'))
+		{
+			cmd = tok[0];
+			nNums = 0;
+			if (cmd == 'Z' || cmd == 'z')
+			{
+				cairo_close_path(cr);
+				bAny = true;
+			}
+			continue;
+		}
+		double v = g_ascii_strtod(tok, nullptr);
+		nums[nNums < 6 ? nNums : 5] = v;
+		nNums++;
+		double px = 0.0, py = 0.0;
+		switch (cmd)
+		{
+		case 'M':
+			if (nNums >= 2)
+			{
+				px = dx0 + nums[0] * dw / 1000.0;
+				py = dy0 + nums[1] * dh / 1000.0;
+				cairo_move_to(cr, px, py);
+				cx0 = px; cy0 = py;
+				nNums = 0; bAny = true;
+			}
+			break;
+		case 'L':
+			if (nNums >= 2)
+			{
+				px = dx0 + nums[0] * dw / 1000.0;
+				py = dy0 + nums[1] * dh / 1000.0;
+				cairo_line_to(cr, px, py);
+				cx0 = px; cy0 = py;
+				nNums = 0; bAny = true;
+			}
+			break;
+		case 'C':
+			if (nNums >= 6)
+			{
+				cairo_curve_to(cr,
+							   dx0 + nums[0] * dw / 1000.0,
+							   dy0 + nums[1] * dh / 1000.0,
+							   dx0 + nums[2] * dw / 1000.0,
+							   dy0 + nums[3] * dh / 1000.0,
+							   dx0 + nums[4] * dw / 1000.0,
+							   dy0 + nums[5] * dh / 1000.0);
+				cx0 = dx0 + nums[4] * dw / 1000.0;
+				cy0 = dy0 + nums[5] * dh / 1000.0;
+				nNums = 0; bAny = true;
+			}
+			break;
+		case 'Q':
+			if (nNums >= 4)
+			{
+				/* quadratic -> cubic: c1 = p0 + 2/3(q-p0),
+				 * c2 = p2 + 2/3(q-p2) */
+				double qx = dx0 + nums[0] * dw / 1000.0;
+				double qy = dy0 + nums[1] * dh / 1000.0;
+				double ex = dx0 + nums[2] * dw / 1000.0;
+				double ey = dy0 + nums[3] * dh / 1000.0;
+				cairo_curve_to(cr,
+							   cx0 + 2.0 * (qx - cx0) / 3.0,
+							   cy0 + 2.0 * (qy - cy0) / 3.0,
+							   ex + 2.0 * (qx - ex) / 3.0,
+							   ey + 2.0 * (qy - ey) / 3.0,
+							   ex, ey);
+				cx0 = ex; cy0 = ey;
+				nNums = 0; bAny = true;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	g_free(copy);
+	if (!bAny)
+		return false;
+
+	/* fill: gradient clipped to the path when present, else the
+	 * frame's resolved background color */
+	cairo_save(cr);
+	cairo_clip(cr);
+	bool bPainted = s_paintFrameGradient(pG, pFC, x, y, w, h);
+	if (!bPainted)
+	{
+		const UT_RGBColor * pCol = pFC->getFillType().getColor();
+		if (pCol && !pCol->isTransparent())
+		{
+			double alpha = 1.0;
+			const gchar * szAlpha = nullptr;
+			if (pAP->getProperty("fill-alpha", szAlpha) && szAlpha)
+			{
+				alpha = s_abwnDouble(szAlpha);
+				if (alpha < 0.0)
+					alpha = 0.0;
+				if (alpha > 1.0)
+					alpha = 1.0;
+			}
+			cairo_set_source_rgba(cr,
+								  pCol->m_red / 255.0,
+								  pCol->m_grn / 255.0,
+								  pCol->m_blu / 255.0,
+								  alpha);
+			cairo_paint(cr);
+		}
+	}
+	cairo_restore(cr);
+
+	/* stroke with the frame's border (uniform-outline approximation:
+	 * uses the top edge's style/color/thickness) */
+	const PP_PropertyMap::Line & topLine = pFC->getTopStyle();
+	if (topLine.m_t_linestyle != PP_PropertyMap::linestyle_none &&
+		topLine.m_thickness > 0)
+	{
+		const UT_RGBColor & bc = topLine.m_color;
+		cairo_set_source_rgb(cr,
+							 bc.m_red / 255.0, bc.m_grn / 255.0,
+							 bc.m_blu / 255.0);
+		cairo_set_line_width(cr, pG->tdu(topLine.m_thickness));
+		cairo_stroke(cr);
+	}
+	cairo_new_path(cr);
+	return true;
 }
 
 /*!
@@ -518,26 +875,28 @@ UT_sint32 fp_FrameContainer::getFullY(void) const
 
 UT_sint32 fp_FrameContainer::getWidth(void) const
 {
-	UT_sint32 iWidth = fp_VerticalContainer::getWidth() - m_iXpad*2;
+	UT_sint32 iWidth = fp_VerticalContainer::getWidth()
+		- m_iXpadLeft - m_iXpadRight;
 	return iWidth;
 }
 
 UT_sint32 fp_FrameContainer::getX(void) const
 {
-	UT_sint32 iX = fp_VerticalContainer::getX() + m_iXpad;
+	UT_sint32 iX = fp_VerticalContainer::getX() + m_iXpadLeft;
 	return iX;
 }
 
 
 UT_sint32 fp_FrameContainer::getY(void) const
 {
-	UT_sint32 iY = fp_VerticalContainer::getY() + m_iYpad;
+	UT_sint32 iY = fp_VerticalContainer::getY() + m_iYpadTop;
 	return iY;
 }
 
 UT_sint32 fp_FrameContainer::getHeight(void) const
 {
-	UT_sint32 iHeight = fp_VerticalContainer::getHeight() - m_iYpad*2;
+	UT_sint32 iHeight = fp_VerticalContainer::getHeight()
+		- m_iYpadTop - m_iYpadBottom;
 	return iHeight;
 }
 
@@ -682,9 +1041,9 @@ void fp_FrameContainer::_drawLine (const PP_PropertyMap::Line & style,
  */
 void  fp_FrameContainer::drawBoundaries(dg_DrawArgs * pDA)
 {
-	UT_sint32 iXlow = pDA->xoff - m_iXpad;
+	UT_sint32 iXlow = pDA->xoff - m_iXpadLeft;
 	UT_sint32 iXhigh = iXlow + getFullWidth() ;
-	UT_sint32 iYlow = pDA->yoff - m_iYpad;
+	UT_sint32 iYlow = pDA->yoff - m_iYpadTop;
 	UT_sint32 iYhigh = iYlow + getFullHeight();
 	GR_Graphics * pG = pDA->pG;
 	if(getPage())
@@ -711,6 +1070,18 @@ void  fp_FrameContainer::drawBoundaries(dg_DrawArgs * pDA)
 		        iFullHeight = iFullHeight - (iBot-iMaxHeight);
 			iYhigh = iFullHeight;
 		}
+	}
+	/* custGeom freeforms stroke their actual path in s_paintFrameShape;
+	 * drawing the rectangular border too would add a phantom box */
+	{
+		fl_FrameLayout * pFLb = static_cast<fl_FrameLayout *>(getSectionLayout());
+		const PP_AttrProp * pAPb = nullptr;
+		const gchar * szPath = nullptr;
+		if (pFLb)
+			pFLb->getAP(pAPb);
+		if (pAPb && pAPb->getProperty("shape-path", szPath) &&
+			szPath && *szPath)
+			return;
 	}
 	_drawLine(m_lineTop,iXlow,iYlow,iXhigh,iYlow,pDA->pG); // top
 	_drawLine(m_lineRight,iXhigh,iYlow,iXhigh,iYhigh,pDA->pG); // right
@@ -757,8 +1128,8 @@ void  fp_FrameContainer::drawHandles(dg_DrawArgs * pDA)
 	{
 	    iFullHeight = iFullHeight - (iBot-iMaxHeight);
 	}
-	UT_sint32 iXlow = pDA->xoff - m_iXpad;
-	UT_sint32 iYlow = pDA->yoff - m_iYpad;
+	UT_sint32 iXlow = pDA->xoff - m_iXpadLeft;
+	UT_sint32 iYlow = pDA->yoff - m_iYpadTop;
 
 	UT_Rect box(iXlow + pDA->pG->tlu(2), iYlow + pDA->pG->tlu(2), getFullWidth() - pDA->pG->tlu(4), iFullHeight - pDA->pG->tlu(4));
 	UT_Rect inkBox;
@@ -776,8 +1147,11 @@ void  fp_FrameContainer::drawHandles(dg_DrawArgs * pDA)
 		GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
 		/* getCairo() calls beginPaint() when no paint is running -
 		 * doing that outside a real draw unbalances the paint/group
-		 * stack and blanks the canvas, so only transform mid-paint */
-		if (pCG && pCG->getPaintCount() > 0)
+		 * stack and blanks the canvas on screen, so only transform
+		 * mid-paint; on the print/PDF graphics _beginPaint is a no-op
+		 * counter and the implicit begin is harmless */
+		if (pCG && (pCG->getPaintCount() > 0 ||
+					!pG->queryProperties(GR_Graphics::DGP_SCREEN)))
 			cr = pCG->getCairo();
 	}
 	if (cr)
@@ -846,8 +1220,8 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 	GR_Graphics * pG = da.pG;
 	UT_return_if_fail( pG);
 
-	UT_sint32 x = pDA->xoff - m_iXpad;
-	UT_sint32 y = pDA->yoff - m_iYpad;
+	UT_sint32 x = pDA->xoff - m_iXpadLeft;
+	UT_sint32 y = pDA->yoff - m_iYpadTop;
 	UT_Rect inkBounds;
 	s_rotatedBounds(x, y, getFullWidth(), getFullHeight(),
 					getRotation(), inkBounds);
@@ -867,8 +1241,10 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
 		/* guard against getCairo()'s implicit beginPaint() when this
 		 * draw runs outside a paint cycle (frame-edit redraw) - an
-		 * unbalanced beginPaint corrupts the canvas group stack */
-		if (pCG && pCG->getPaintCount() > 0)
+		 * unbalanced beginPaint corrupts the canvas group stack on
+		 * screen; the print graphics' beginPaint is a no-op counter */
+		if (pCG && (pCG->getPaintCount() > 0 ||
+					!pG->queryProperties(GR_Graphics::DGP_SCREEN)))
 			cr = pCG->getCairo();
 	}
 	if (cr)
@@ -889,8 +1265,8 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		} 
 		UT_sint32 srcX,srcY;
 		getSectionLayout()->checkGraphicTick(pG);
-		srcX = -m_iXpad;
-		srcY = -m_iYpad;
+		srcX = -m_iXpadLeft;
+		srcY = -m_iYpadTop;
 		//
 		// Only fill to the bottom of the viewed page.
 		//
@@ -910,7 +1286,15 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		{
 		        iFullHeight = iFullHeight - (iBot-iMaxHeight);
 		}
-		getFillType().Fill(pG,srcX,srcY,x,y,getFullWidth(),iFullHeight);
+		if (!s_paintFrameShape(pG, this, x, y,
+							   getFullWidth(), iFullHeight) &&
+			!s_paintFrameGradient(pG, this, x, y,
+								  getFullWidth(), iFullHeight) &&
+			!s_paintFrameAlpha(pG, this, x, y,
+							   getFullWidth(), iFullHeight))
+		{
+			getFillType().Fill(pG,srcX,srcY,x,y,getFullWidth(),iFullHeight);
+		}
 		m_bNeverDrawn = false;
 	}
 	UT_uint32 count = countCons();
@@ -1015,7 +1399,34 @@ void fp_FrameContainer::layout(void)
 {
 	_setMaxContainerHeight(0);
 	UT_sint32 iY = 0, iPrevY = 0;
-	iY= 0;
+	/* "frame-valign": vertical alignment of the content inside the
+	 * padded box (Word's v:textAnchor / wps:bodyPr@anchor).  The
+	 * children are stacked from iY relative to the content origin, so
+	 * center/bottom just start the stack at an offset when the total
+	 * content height is smaller than the inner box height. */
+	UT_sint32 iYOffset = 0;
+	UT_sint32 iContentH = 0;
+	for (UT_uint32 iH = 0; iH < countCons(); iH++)
+	{
+		fp_Container * pHC = static_cast<fp_Container*>(getNthCon(iH));
+		iContentH += pHC->getHeight() + pHC->getMarginAfter();
+	}
+	if (iContentH < getHeight())
+	{
+		const gchar * szValign = nullptr;
+		fl_FrameLayout * pFLv = static_cast<fl_FrameLayout *>(getSectionLayout());
+		const PP_AttrProp * pAPv = nullptr;
+		if (pFLv)
+			pFLv->getAP(pAPv);
+		if (pAPv && pAPv->getProperty("frame-valign", szValign) && szValign)
+		{
+			if (strcmp(szValign, "center") == 0 || strcmp(szValign, "middle") == 0)
+				iYOffset = (getHeight() - iContentH) / 2;
+			else if (strcmp(szValign, "bottom") == 0)
+				iYOffset = getHeight() - iContentH;
+		}
+	}
+	iY = iYOffset;
 	UT_uint32 iCountContainers = countCons();
 	fp_Container *pContainer, *pPrevContainer = nullptr;
 	for (UT_uint32 i=0; i < iCountContainers; i++)
@@ -1078,7 +1489,7 @@ void fp_FrameContainer::layout(void)
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(getSectionLayout());
 	if(pFL->expandHeight() && (iY > pFL->minHeight()))
 	{
-	     setHeight(iY+m_iYpad*2);
+	     setHeight(iY+m_iYpadTop+m_iYpadBottom);
 	}
 }
 

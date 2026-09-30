@@ -70,6 +70,7 @@ OXML_Document::OXML_Document()
 	clearSections();
 	clearFootnotes();
 	clearEndnotes();
+	clearAnnotations();
 }
 
 OXML_Document::~OXML_Document()
@@ -80,6 +81,7 @@ OXML_Document::~OXML_Document()
 	clearSections();
 	clearFootnotes();
 	clearEndnotes();
+	clearAnnotations();
 }
 
 OXML_SharedStyle OXML_Document::getStyleById(const std::string & id) const
@@ -285,6 +287,27 @@ UT_Error OXML_Document::clearEndnotes()
 {
 	m_endnotes.clear();
 	return m_endnotes.size() == 0 ? UT_OK : UT_ERROR;
+}
+
+OXML_SharedSection OXML_Document::getAnnotation(const std::string & id) const
+{
+	OXML_SectionMap::const_iterator it;
+	it = m_annotations.find(id);
+	return it != m_annotations.end() ? it->second : OXML_SharedSection() ;
+}
+
+UT_Error OXML_Document::addAnnotation(const OXML_SharedSection & obj)
+{
+	UT_return_val_if_fail(obj, UT_ERROR);
+
+	m_annotations[obj->getId()] = obj;
+	return UT_OK;
+}
+
+UT_Error OXML_Document::clearAnnotations()
+{
+	m_annotations.clear();
+	return m_annotations.size() == 0 ? UT_OK : UT_ERROR;
 }
 
 OXML_SharedSection OXML_Document::getFooter(const std::string & id) const
@@ -670,7 +693,10 @@ std::string OXML_Document::getMappedNumberingId(const std::string & numId) const
 
 bool OXML_Document::setMappedNumberingId(const std::string & numId, const std::string & abstractNumId)
 {
-	m_numberingMap.insert(std::make_pair(numId, abstractNumId));
+	/* assignment, not insert(): w:lvlOverride processing re-points
+	 * the numId to a cloned override root after the initial
+	 * abstractNumId mapping was recorded */
+	m_numberingMap[numId] = abstractNumId;
 	return m_numberingMap.find(numId) != m_numberingMap.end();
 }
 

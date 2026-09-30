@@ -38,6 +38,19 @@
 // External includes
 #include <string>
 
+/* wp:wrap* elements set the text-wrap mode, but wp:anchor
+ * behindDoc="1" already put the element in the below-text layer —
+ * the wrap style must not clobber the layer flag */
+static void _setWrapMode(const OXML_SharedElement & elem, const char * mode)
+{
+	const gchar * cur = nullptr;
+	if (elem->getProperty("wrap-mode", cur) == UT_OK &&
+		cur && !strcmp(cur, "below-text"))
+		return;
+	if (elem->setProperty("wrap-mode", mode) != UT_OK)
+		UT_DEBUGMSG(("OpenXML importer image wrap-mode property can't be set\n"));
+}
+
 OXMLi_ListenerState_Image::OXMLi_ListenerState_Image()
   : OXMLi_ListenerState(),
 	m_style(""),
@@ -217,6 +230,24 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			rqst->handled = true;
 		}
 	}
+	else if(nameMatches(rqst->pName, NS_A_KEY, "srcRect"))
+	{
+		/* a:srcRect - blip crop: l/t/r/b in 1000ths of a percent */
+		if(!rqst->stck->empty() && rqst->stck->top())
+		{
+			std::string rect;
+			const char* sides[] = {"l", "t", "r", "b"};
+			for (const char* s : sides)
+			{
+				const gchar * v = attrMatches(NS_A_KEY, s, rqst->ppAtts);
+				rect += (v && *v) ? v : "0";
+				rect += " ";
+			}
+			rect.pop_back();
+			rqst->stck->top()->setProperty("image-src-rect", rect.c_str());
+		}
+		rqst->handled = true;
+	}
 	else if(nameMatches(rqst->pName, NS_WP_KEY, "posOffset"))
 	{
 		if(rqst->stck->empty())
@@ -311,26 +342,11 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		if(wrapText)
 		{
 			if(!strcmp(wrapText, "bothSides"))
-			{
-				if(imgElem->setProperty("wrap-mode", "wrapped-both") != UT_OK)
-				{
-					UT_DEBUGMSG(("SERHAT:OpenXML importer image wrap-mode property can't be set\n"));
-				}
-			}
+				_setWrapMode(imgElem, "wrapped-both");
 			else if(!strcmp(wrapText, "right"))
-			{
-				if(imgElem->setProperty("wrap-mode", "wrapped-to-right") != UT_OK)
-				{
-					UT_DEBUGMSG(("SERHAT:OpenXML importer image wrap-mode property can't be set\n"));
-				}
-			}
+				_setWrapMode(imgElem, "wrapped-to-right");
 			else if(!strcmp(wrapText, "left"))
-			{
-				if(imgElem->setProperty("wrap-mode", "wrapped-to-left") != UT_OK)
-				{
-					UT_DEBUGMSG(("SERHAT:OpenXML importer image wrap-mode property can't be set\n"));
-				}
-			}
+				_setWrapMode(imgElem, "wrapped-to-left");
 		}
 		rqst->handled = true;
 	}
@@ -359,10 +375,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			else if(!strcmp(wrapText, "largest"))
 				mode = "wrapped-both";
 		}
-		if(imgElem->setProperty("wrap-mode", mode.c_str()) != UT_OK)
-		{
-			UT_DEBUGMSG(("OpenXML importer image wrap-mode property can't be set\n"));
-		}
+		_setWrapMode(imgElem, mode.c_str());
 		rqst->handled = true;
 	}
 	else if(nameMatches(rqst->pName, NS_WP_KEY, "wrapTopAndBottom") ||
@@ -380,10 +393,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			return;
 
 		//both modes wrap only above/below; closest is wrapped-topbot
-		if(imgElem->setProperty("wrap-mode", "wrapped-topbot") != UT_OK)
-		{
-			UT_DEBUGMSG(("OpenXML importer image wrap-mode property can't be set\n"));
-		}
+		_setWrapMode(imgElem, "wrapped-topbot");
 		rqst->handled = true;
 	}
 	else if (nameMatches(rqst->pName, NS_A_KEY, "blip"))
@@ -492,6 +502,7 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 		rqst->handled = (_flushTopLevel(rqst->stck, rqst->sect_stck) == UT_OK);
 	}
 	else if(nameMatches(rqst->pName, NS_A_KEY, "blip") ||
+			nameMatches(rqst->pName, NS_A_KEY, "srcRect") ||
 			nameMatches(rqst->pName, NS_WP_KEY, "extent") ||
 			nameMatches(rqst->pName, NS_WP_KEY, "wrapSquare") ||
 			nameMatches(rqst->pName, NS_WP_KEY, "posOffset") ||

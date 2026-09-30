@@ -669,7 +669,12 @@ fg_FillType::fg_FillType(fg_FillType *pParent, fp_ContainerObject * pContainer, 
 	m_iWidth(0),
 	m_iHeight(0),
 	m_pDocImage(nullptr),
-	m_bIgnoreLineLevel(false)
+	m_bIgnoreLineLevel(false),
+	m_bSrcRectCrop(false),
+	m_dCropL(0.0),
+	m_dCropT(0.0),
+	m_dCropR(0.0),
+	m_dCropB(0.0)
 {
 }
 
@@ -748,6 +753,15 @@ void fg_FillType::setImagePointer(const FG_SharedGraphicPtr & pDocGraphic, GR_Im
 	m_pDocImage = pDocImage;
 	m_pDocGraphic = pDocGraphic;
 	m_FillType = FG_FILL_IMAGE;
+}
+
+void fg_FillType::setSrcRectCrop(double l, double t, double r, double b)
+{
+	m_dCropL = l;
+	m_dCropT = t;
+	m_dCropR = r;
+	m_dCropB = b;
+	m_bSrcRectCrop = (l > 0.0 || t > 0.0 || r > 0.0 || b > 0.0);
 }
 
 /*!
@@ -1065,6 +1079,21 @@ void fg_FillType::Fill(GR_Graphics * pG, UT_sint32 & srcX, UT_sint32 & srcY, UT_
 			 dest.top = y;
 			 dest.width = width;
 			 dest.height = height;
+			 /* a:srcRect crop: shrink the source window; the remainder
+			  * is stretched over the full destination */
+			 if(m_bSrcRectCrop)
+			 {
+				 UT_sint32 cl = static_cast<UT_sint32>(src.width * m_dCropL + 0.5);
+				 UT_sint32 ct = static_cast<UT_sint32>(src.height * m_dCropT + 0.5);
+				 UT_sint32 cr = static_cast<UT_sint32>(src.width * m_dCropR + 0.5);
+				 UT_sint32 cb = static_cast<UT_sint32>(src.height * m_dCropB + 0.5);
+				 src.left += cl;
+				 src.top += ct;
+				 src.width -= cl + cr;
+				 src.height -= ct + cb;
+				 if(src.width < 1) src.width = 1;
+				 if(src.height < 1) src.height = 1;
+			 }
 //
 // Overwrite With white first for alpha blended images
 //
@@ -1145,6 +1174,21 @@ void fg_FillType::Fill(GR_Graphics * pG, UT_sint32 & srcX, UT_sint32 & srcY, UT_
 		dest.top = y;
 		dest.width = width+imageOffset;
 		dest.height = height+imageOffset;
+		/* a:srcRect crop: shrink the source window; the remainder is
+		 * stretched over the full destination */
+		if(m_bSrcRectCrop)
+		{
+			UT_sint32 cl = static_cast<UT_sint32>(src.width * m_dCropL + 0.5);
+			UT_sint32 ct = static_cast<UT_sint32>(src.height * m_dCropT + 0.5);
+			UT_sint32 cr = static_cast<UT_sint32>(src.width * m_dCropR + 0.5);
+			UT_sint32 cb = static_cast<UT_sint32>(src.height * m_dCropB + 0.5);
+			src.left += cl;
+			src.top += ct;
+			src.width -= cl + cr;
+			src.height -= ct + cb;
+			if(src.width < 1) src.width = 1;
+			if(src.height < 1) src.height = 1;
+		}
 //
 // Only fill the bits exposed by the clip rect
 //

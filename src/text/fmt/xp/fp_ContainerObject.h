@@ -146,6 +146,10 @@ public:
 	const UT_RGBColor *  getColor(void) const;
 	void           setImagePointer(const FG_SharedGraphicPtr & pDocGraphic, GR_Image ** pDocImage);
 	void           setIgnoreLineLevel(bool b);
+	/* DrawingML a:srcRect picture crop: fractions of the source image
+	 * discarded on the left/top/right/bottom edges before the
+	 * remainder is stretched to fill the destination */
+	void           setSrcRectCrop(double l, double t, double r, double b);
 private:
     void        	     _regenerateImage(GR_Graphics * pG);
 	fg_FillType *        m_pParent;
@@ -164,6 +168,11 @@ private:
 	GR_Image **          m_pDocImage;
 	FG_SharedGraphicPtr  m_pDocGraphic;
 	bool                 m_bIgnoreLineLevel;
+	bool                 m_bSrcRectCrop;
+	double               m_dCropL;
+	double               m_dCropT;
+	double               m_dCropR;
+	double               m_dCropB;
 };
 
 

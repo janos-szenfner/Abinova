@@ -981,7 +981,22 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		{
 			m_ShadingForeColor.setColor("white");
 		}
-		sShadingBackCol = getProperty("shading-background-color",true);
+		/* the property table defaults shading-background-color to
+		 * "white", so getProperty()/PP_evalProperty() always returns a
+		 * value and cannot tell whether the block actually requested
+		 * shading.  An always-on white fill makes every line paint an
+		 * opaque band, which covers the background of frames behind
+		 * the text.  Only treat it as set when it is explicitly present
+		 * on the block AP or in the style chain. */
+		sShadingBackCol = nullptr;
+		if (!(pBlockAP && pBlockAP->getProperty ("shading-background-color",sShadingBackCol) && sShadingBackCol))
+		{
+			const gchar * pszStyle = nullptr;
+			PD_Style * pStyle = nullptr;
+			if (pBlockAP && pBlockAP->getAttribute (PT_STYLE_ATTRIBUTE_NAME,pszStyle) &&
+				pszStyle && m_pDoc->getStyle (pszStyle,&pStyle) && pStyle)
+				pStyle->getPropertyExpand ("shading-background-color",sShadingBackCol);
+		}
 		m_bShadingBackColorSet = (sShadingBackCol != nullptr);
 		if(sShadingBackCol)
 		{

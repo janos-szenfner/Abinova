@@ -80,7 +80,8 @@ enum OXML_ElementTag {
 	BOOK_TAG,
 	FLD_TAG,
 	TXTBX_TAG,
-	MATH_TAG
+	MATH_TAG,
+	ANNOT_TAG
 };
 
 enum OXML_ElementType {
@@ -95,7 +96,8 @@ enum OXML_ElementType {
 	BOOKMRK,
 	FIELD,
 	TEXTBOX,
-	MATH
+	MATH,
+	ANNOT
 };
 
 enum OXML_HeaderFooterType {

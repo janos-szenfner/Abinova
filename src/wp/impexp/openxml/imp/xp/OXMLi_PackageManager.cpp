@@ -163,7 +163,16 @@ UT_Error OXMLi_PackageManager::parseDocumentEndnotes()
 	UT_return_val_if_fail(doc != nullptr, UT_ERROR);
 	OXMLi_StreamListener listener;
 	listener.setupStates(ENDNOTES_PART);
-	return parseChildByType(doc, ENDNOTES_PART, &listener); 
+	return parseChildByType(doc, ENDNOTES_PART, &listener);
+}
+
+UT_Error OXMLi_PackageManager::parseDocumentComments()
+{
+	GsfInput * doc = _getDocumentStream();
+	UT_return_val_if_fail(doc != nullptr, UT_ERROR);
+	OXMLi_StreamListener listener;
+	listener.setupStates(COMMENTS_PART);
+	return parseChildByType(doc, COMMENTS_PART, &listener);
 }
 
 GsfInput* OXMLi_PackageManager::getChildById( GsfInput * parent, const char * id )

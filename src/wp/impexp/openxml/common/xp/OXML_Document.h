@@ -80,6 +80,11 @@ public:
 	UT_Error addEndnote(const OXML_SharedSection & obj);
 	UT_Error clearEndnotes();
 
+	//! Comment bodies from word/comments.xml, keyed by comment id.
+	OXML_SharedSection getAnnotation(const std::string & id) const;
+	UT_Error addAnnotation(const OXML_SharedSection & obj);
+	UT_Error clearAnnotations();
+
 	//! Returns a reference to the FIRST header with corresponding ID OR empty SharedSection if none found.
 	OXML_SharedSection getHeader(const std::string & id) const;
 	UT_Error addHeader(const OXML_SharedSection & obj);
@@ -145,6 +150,7 @@ private:
 	OXML_SectionMap m_footers;
 	OXML_SectionMap m_footnotes;
 	OXML_SectionMap m_endnotes;
+	OXML_SectionMap m_annotations;
 
 	OXML_StyleMap m_styles_by_id;
 	OXML_StyleMap m_styles_by_name;

@@ -290,6 +290,8 @@ openxml/common/xp/OXML_Document.cpp \
 	openxml/common/xp/OXML_Document.h \
 	openxml/common/xp/OXML_Element.cpp \
 	openxml/common/xp/OXML_Element.h \
+	openxml/common/xp/OXML_Element_Annotation.cpp \
+	openxml/common/xp/OXML_Element_Annotation.h \
 	openxml/common/xp/OXML_Element_Bookmark.cpp \
 	openxml/common/xp/OXML_Element_Bookmark.h \
 	openxml/common/xp/OXML_Element_Cell.cpp \
@@ -342,6 +344,8 @@ openxml/common/xp/OXML_Document.cpp \
 	openxml/imp/xp/OXMLi_ListenerState.h \
 	openxml/imp/xp/OXMLi_ListenerState_Common.cpp \
 	openxml/imp/xp/OXMLi_ListenerState_Common.h \
+	openxml/imp/xp/OXMLi_ListenerState_Comments.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_Comments.h \
 	openxml/imp/xp/OXMLi_ListenerState_DocSettings.cpp \
 	openxml/imp/xp/OXMLi_ListenerState_DocSettings.h \
 	openxml/imp/xp/OXMLi_ListenerState_Endnote.cpp \

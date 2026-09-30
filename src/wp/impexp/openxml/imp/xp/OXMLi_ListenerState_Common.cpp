@@ -32,6 +32,7 @@
 #include "OXML_Element_Run.h"
 #include "OXML_Element_Text.h"
 #include "OXML_Element_Field.h"
+#include "OXML_Element_Annotation.h"
 #include "OXML_Types.h"
 #include "OXML_Theme.h"
 #include "OXML_Style.h"
@@ -190,6 +191,26 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 		rqst->stck->push(elem);
 
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "altChunk")) {
+		/* external subdocument reference (html/mht/docx/rtf...) —
+		 * keep the resolved part path + format on an empty paragraph
+		 * so the link survives in .abwn for round-tripping */
+		OXML_Element_Paragraph * para = new OXML_Element_Paragraph("");
+		const gchar * id = attrMatches(NS_R_KEY, "id", rqst->ppAtts);
+		if (id) {
+			OXMLi_PackageManager * mgr = OXMLi_PackageManager::getInstance();
+			if (mgr) {
+				std::string target = mgr->getPartName(id);
+				if (!target.empty()) {
+					para->setProperty("altchunk-path", target.c_str());
+					std::string::size_type dot = target.rfind('.');
+					para->setProperty("altchunk-format",
+						dot != std::string::npos ? target.substr(dot + 1).c_str() : "");
+				}
+			}
+		}
+		rqst->stck->push(OXML_SharedElement(para));
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "r")) {
 		//New text run...
@@ -401,6 +422,19 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "widowControl") ||
 				nameMatches(rqst->pName, NS_W_KEY, "framePr") ||
 				nameMatches(rqst->pName, NS_W_KEY, "bidi") ||
+				nameMatches(rqst->pName, NS_W_KEY, "outlineLvl") ||
+				nameMatches(rqst->pName, NS_W_KEY, "textAlignment") ||
+				nameMatches(rqst->pName, NS_W_KEY, "snapToGrid") ||
+				nameMatches(rqst->pName, NS_W_KEY, "kinsoku") ||
+				nameMatches(rqst->pName, NS_W_KEY, "wordWrap") ||
+				nameMatches(rqst->pName, NS_W_KEY, "suppressLineNumbers") ||
+				nameMatches(rqst->pName, NS_W_KEY, "suppressAutoHyphens") ||
+				nameMatches(rqst->pName, NS_W_KEY, "mirrorIndents") ||
+				nameMatches(rqst->pName, NS_W_KEY, "adjustRightInd") ||
+				nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDE") ||
+				nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDN") ||
+				nameMatches(rqst->pName, NS_W_KEY, "overflowPunct") ||
+				nameMatches(rqst->pName, NS_W_KEY, "topLinePunct") ||
 				nameMatches(rqst->pName, NS_W_KEY, "pStyle")) {
 	//Verify the context...
 	std::string contextTag = rqst->context->at(rqst->context->size() - 2);
@@ -470,6 +504,48 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				!strcmp(val, "on");
 			UT_return_if_fail( _error_if_fail( UT_OK ==
 				para->setProperty("dom-dir", bOn ? "rtl" : "ltr") ));
+
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "outlineLvl")) {
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			if (val && *val)
+				para->setProperty("outline-level", val);
+
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "textAlignment")) {
+			//auto|baseline|top|center|bottom - vertical run alignment
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			if (val && *val)
+				para->setProperty("baseline-align", val);
+
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "snapToGrid") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "kinsoku") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "wordWrap") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "suppressLineNumbers") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "suppressAutoHyphens") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "mirrorIndents") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "adjustRightInd") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDE") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDN") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "overflowPunct") ||
+				   nameMatches(rqst->pName, NS_W_KEY, "topLinePunct")) {
+			//OOXML on/off paragraph switches preserved as 0/1 props
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			bool bOn = !val || !*val ||
+				!strcmp(val, "true") || !strcmp(val, "1") ||
+				!strcmp(val, "on");
+			const char * prop = nullptr;
+			if (nameMatches(rqst->pName, NS_W_KEY, "snapToGrid")) prop = "snap-to-grid";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "kinsoku")) prop = "kinsoku";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "wordWrap")) prop = "word-wrap";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "suppressLineNumbers")) prop = "suppress-line-numbers";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "suppressAutoHyphens")) prop = "suppress-auto-hyphens";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "mirrorIndents")) prop = "mirror-indents";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "adjustRightInd")) prop = "adjust-right-ind";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDE")) prop = "auto-space-de";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDN")) prop = "auto-space-dn";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "overflowPunct")) prop = "overflow-punct";
+			else if (nameMatches(rqst->pName, NS_W_KEY, "topLinePunct")) prop = "top-line-punct";
+			if (prop)
+				para->setProperty(prop, bOn ? "1" : "0");
 
 		} else if (nameMatches(rqst->pName, NS_W_KEY, "framePr")) {
 			/* w:framePr - paragraph framed as positioned text. Stored as
@@ -583,13 +659,91 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			   nameMatches(rqst->pName, NS_W_KEY, "left") ||
 			   nameMatches(rqst->pName, NS_W_KEY, "bottom") ||
 			   nameMatches(rqst->pName, NS_W_KEY, "right")) {
-		/* A <w:pBdr> edge: same attribute set as a table-cell
-		 * border (val/sz/space/color[/themeColor]) but it lands
-		 * on a paragraph or style element.  The <tcBorders>/
-		 * <tblBorders> variants are left for the table state. */
+		/* <w:pBdr> edges land on the paragraph element;
+		 * <w:pgBorders> edges land on the section as
+		 * page-border-<side>-* properties. */
+		bool pgBorder = !rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "pgBorders");
 		if (rqst->context->empty() ||
-			!contextMatches(rqst->context->back(), NS_W_KEY, "pBdr"))
+			(!contextMatches(rqst->context->back(), NS_W_KEY, "pBdr") &&
+			 !pgBorder))
 			return;
+
+		if (pgBorder)
+		{
+			UT_return_if_fail(_error_if_fail(
+				rqst->sect_stck && !rqst->sect_stck->empty()));
+			OXML_SharedSection sect = rqst->sect_stck->top();
+			UT_return_if_fail(_error_if_fail(sect.get() != nullptr));
+
+			std::string pfx("page-border-");
+			std::string side(rqst->pName);
+			pfx += side.substr(strlen(NS_W_KEY) + 1);
+
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			const gchar * sz = attrMatches(NS_W_KEY, "sz", rqst->ppAtts);
+			const gchar * space = attrMatches(NS_W_KEY, "space", rqst->ppAtts);
+			const gchar * color = attrMatches(NS_W_KEY, "color", rqst->ppAtts);
+			const gchar * theme = attrMatches(NS_W_KEY, "themeColor", rqst->ppAtts);
+			const gchar * shadow = attrMatches(NS_W_KEY, "shadow", rqst->ppAtts);
+
+			if (val && *val)
+			{
+				if (!strcmp(val, "none") || !strcmp(val, "nil"))
+					sect->setProperty(pfx.c_str(), "none");
+				else
+				{
+					static const char * lineStyles[] = {
+						"single","double","triple","dotted","dashed",
+						"dashLargeGap","dashSmallGap","dotDash",
+						"dotDotDash","dashDotStroked","doubleWave","wave",
+						"thick","thinThickSmallGap","thinThickMediumGap",
+						"thinThickLargeGap","thickThinSmallGap",
+						"thickThinMediumGap","thickThinLargeGap",
+						"thinThickThinSmallGap","thinThickThinMediumGap",
+						"thinThickThinLargeGap","threeDEmboss",
+						"threeDEngrave","inset","outset", nullptr };
+					bool lineStyle = false;
+					for (int i = 0; lineStyles[i]; i++)
+						if (!strcmp(val, lineStyles[i])) { lineStyle = true; break; }
+					if (lineStyle)
+						sect->setProperty(pfx.c_str(), val);
+					else
+					{
+						// a Page Border Art name (e.g. "apples")
+						sect->setProperty(pfx.c_str(), "art");
+						sect->setProperty((pfx + "-art").c_str(), val);
+					}
+				}
+			}
+			if (sz && *sz)
+			{
+				std::string thick(_EighthPointsToPoints(sz));
+				thick += "pt";
+				sect->setProperty((pfx + "-thickness").c_str(), thick.c_str());
+			}
+			if (space && *space)
+			{
+				std::string sp(space);
+				sp += "pt";
+				sect->setProperty((pfx + "-space").c_str(), sp.c_str());
+			}
+			if (color && *color && strcmp(color, "auto"))
+				sect->setProperty((pfx + "-color").c_str(), color);
+			else if (theme && *theme)
+			{
+				std::string tcolor(_resolveThemeColor(theme));
+				if (!tcolor.empty())
+					sect->setProperty((pfx + "-color").c_str(), tcolor.c_str());
+			}
+			if (shadow && *shadow)
+				sect->setProperty((pfx + "-shadow").c_str(),
+					(!strcmp(shadow,"on") || !strcmp(shadow,"1") ||
+					 !strcmp(shadow,"true")) ? "1" : "0");
+			rqst->handled = true;
+			return;
+		}
+
 
 		OXML_SharedElement para = rqst->stck->top();
 		UT_return_if_fail( _error_if_fail( para.get() != nullptr ) );
@@ -692,6 +846,10 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "smallCaps") ||
 				nameMatches(rqst->pName, NS_W_KEY, "w") ||
 				nameMatches(rqst->pName, NS_W_KEY, "rtl") ||
+				nameMatches(rqst->pName, NS_W_KEY, "kern") ||
+				nameMatches(rqst->pName, NS_W_KEY, "spacing") ||
+				nameMatches(rqst->pName, NS_W_KEY, "em") ||
+				nameMatches(rqst->pName, NS_W_KEY, "position") ||
 				nameMatches(rqst->pName, NS_W_KEY, "sz") ) {
 		//Verify the context...
 		std::string contextTag = rqst->context->at(rqst->context->size() - 2);
@@ -911,6 +1069,41 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				std::string pt_value = UT_convertToDimensionlessString(sz);
 				pt_value += "pt";
 				UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("font-size", pt_value.c_str()) ));
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "kern")) {
+				//half-point threshold at which kerning applies
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (val && *val) {
+					double hp = UT_convertDimensionless(val);
+					std::string pt(UT_convertToDimensionlessString(hp / 2.0));
+					pt += "pt";
+					run->setProperty("char-kern", pt.c_str());
+				}
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "spacing")) {
+				//letter spacing in twentieths of a point (signed)
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (val && *val) {
+					std::string pt(_TwipsToPoints(val));
+					pt += "pt";
+					run->setProperty("char-spacing", pt.c_str());
+				}
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "em")) {
+				//emphasis mark: none|dot|comma|circle|underDot
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (val && *val)
+					run->setProperty("char-emphasis", val);
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "position")) {
+				//raise/lower by half-points (signed)
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (val && *val) {
+					double hp = UT_convertDimensionless(val);
+					std::string pt(UT_convertToDimensionlessString(hp / 2.0));
+					pt += "pt";
+					run->setProperty("vert-position", pt.c_str());
+				}
 			}
 			rqst->handled = true;
 		}
@@ -926,6 +1119,15 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "headerReference") ||
 				nameMatches(rqst->pName, NS_W_KEY, "titlePg") ||
 				nameMatches(rqst->pName, NS_W_KEY, "pgNumType") ||
+				nameMatches(rqst->pName, NS_W_KEY, "pgBorders") ||
+				nameMatches(rqst->pName, NS_W_KEY, "vAlign") ||
+				nameMatches(rqst->pName, NS_W_KEY, "textDirection") ||
+				nameMatches(rqst->pName, NS_W_KEY, "paperSrc") ||
+				nameMatches(rqst->pName, NS_W_KEY, "lnNumType") ||
+				nameMatches(rqst->pName, NS_W_KEY, "docGrid") ||
+				nameMatches(rqst->pName, NS_W_KEY, "rtlGutter") ||
+				nameMatches(rqst->pName, NS_W_KEY, "formProt") ||
+				nameMatches(rqst->pName, NS_W_KEY, "noEndnote") ||
 				nameMatches(rqst->pName, NS_W_KEY, "cols")) {
 		//Verify the context...
 		std::string contextTag = rqst->context->back();
@@ -969,6 +1171,91 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 						sect->setProperty("section-restart-value", start);
 					}
 				}
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "pgBorders")) {
+				const gchar * off = attrMatches(NS_W_KEY, "offsetFrom", rqst->ppAtts);
+				const gchar * disp = attrMatches(NS_W_KEY, "display", rqst->ppAtts);
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get()) {
+					if (off && *off)
+						sect->setProperty("page-border-offset", off);
+					if (disp && *disp)
+						sect->setProperty("page-border-display", disp);
+				}
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "vAlign")) {
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get() && val && *val)
+					sect->setProperty("section-y-align", val);
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "textDirection")) {
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get() && val && *val)
+					sect->setProperty("section-text-direction", val);
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "paperSrc")) {
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get()) {
+					const gchar * f = attrMatches(NS_W_KEY, "first", rqst->ppAtts);
+					const gchar * o = attrMatches(NS_W_KEY, "other", rqst->ppAtts);
+					if (f && *f)
+						sect->setProperty("section-paper-src-first", f);
+					if (o && *o)
+						sect->setProperty("section-paper-src-other", o);
+				}
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "lnNumType")) {
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get()) {
+					struct { const char * a; const char * p; } m[] = {
+						{"countBy", "section-ln-count-by"},
+						{"start",   "section-ln-start"},
+						{"distance","section-ln-distance"},
+						{"restart", "section-ln-restart"} };
+					for (auto & e : m) {
+						const gchar * v = attrMatches(NS_W_KEY, e.a, rqst->ppAtts);
+						if (v && *v)
+							sect->setProperty(e.p, v);
+					}
+				}
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "docGrid")) {
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get()) {
+					struct { const char * a; const char * p; } m[] = {
+						{"type",      "section-doc-grid"},
+						{"linePitch", "section-doc-grid-line-pitch"},
+						{"charSpace", "section-doc-grid-char-space"} };
+					for (auto & e : m) {
+						const gchar * v = attrMatches(NS_W_KEY, e.a, rqst->ppAtts);
+						if (v && *v)
+							sect->setProperty(e.p, v);
+					}
+				}
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "rtlGutter") ||
+					   nameMatches(rqst->pName, NS_W_KEY, "formProt") ||
+					   nameMatches(rqst->pName, NS_W_KEY, "noEndnote")) {
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				bool bOn = !val || !*val || !strcmp(val, "true") ||
+					!strcmp(val, "1") || !strcmp(val, "on");
+				const char * prop =
+					nameMatches(rqst->pName, NS_W_KEY, "rtlGutter") ?
+						"section-rtl-gutter" :
+					nameMatches(rqst->pName, NS_W_KEY, "formProt") ?
+						"section-form-protected" : "section-endnote-suppress";
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get())
+					sect->setProperty(prop, bOn ? "1" : "0");
 				rqst->handled = true;
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "footerReference")) {
@@ -1064,7 +1351,32 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			OXML_SharedElement endnote(new OXML_Element_Field(id, fd_Field::FD_Endnote_Ref, ""));
 			rqst->stck->push(endnote);
 		}
-		rqst->handled = true;		
+		rqst->handled = true;
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "commentRangeStart")) {
+		/* emits the PTO_Annotation start object plus the whole comment
+		 * shadow (SectionAnnotation + blocks + EndAnnotation) so the
+		 * anchored text that follows sits between the markers */
+		const gchar * id = attrMatches(NS_W_KEY, "id", rqst->ppAtts);
+		if(id)
+		{
+			OXML_SharedElement ann(new OXML_Element_Annotation(id, false));
+			rqst->stck->push(ann);
+		}
+		rqst->handled = true;
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "commentRangeEnd")) {
+		const gchar * id = attrMatches(NS_W_KEY, "id", rqst->ppAtts);
+		OXML_SharedElement ann(
+			new OXML_Element_Annotation(id ? id : "", true));
+		rqst->stck->push(ann);
+		rqst->handled = true;
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "commentReference") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "annotationRef")) {
+		/* Word's in-run reference mark — the annotation layout draws
+		 * its own anchor, nothing to emit */
+		rqst->handled = true;
 
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "hyperlink")) {
 		const gchar * id = attrMatches(NS_R_KEY, "id", rqst->ppAtts);
@@ -1183,6 +1495,19 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 		}
 
 		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "altChunk")) {
+		//close the reference paragraph pushed at startElement
+		if (rqst->stck->size() == 1) {
+			OXML_SharedElement elem = rqst->stck->top();
+			UT_return_if_fail( this->_error_if_fail(elem.get() != nullptr) );
+			OXML_SharedSection sect = rqst->sect_stck->top();
+			UT_return_if_fail( this->_error_if_fail(sect.get() != nullptr) );
+			UT_return_if_fail( this->_error_if_fail(UT_OK == sect->appendElement(elem) ) );
+			rqst->stck->pop();
+		} else {
+			UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
+		}
+		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "r")) {
 		//Run is done, appending it.
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
@@ -1251,6 +1576,23 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "framePr") ||
 				nameMatches(rqst->pName, NS_W_KEY, "bidi") ||
 				nameMatches(rqst->pName, NS_W_KEY, "fldChar") ||
+				nameMatches(rqst->pName, NS_W_KEY, "outlineLvl") ||
+				nameMatches(rqst->pName, NS_W_KEY, "textAlignment") ||
+				nameMatches(rqst->pName, NS_W_KEY, "snapToGrid") ||
+				nameMatches(rqst->pName, NS_W_KEY, "kinsoku") ||
+				nameMatches(rqst->pName, NS_W_KEY, "wordWrap") ||
+				nameMatches(rqst->pName, NS_W_KEY, "suppressLineNumbers") ||
+				nameMatches(rqst->pName, NS_W_KEY, "suppressAutoHyphens") ||
+				nameMatches(rqst->pName, NS_W_KEY, "mirrorIndents") ||
+				nameMatches(rqst->pName, NS_W_KEY, "adjustRightInd") ||
+				nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDE") ||
+				nameMatches(rqst->pName, NS_W_KEY, "autoSpaceDN") ||
+				nameMatches(rqst->pName, NS_W_KEY, "overflowPunct") ||
+				nameMatches(rqst->pName, NS_W_KEY, "topLinePunct") ||
+				nameMatches(rqst->pName, NS_W_KEY, "kern") ||
+				nameMatches(rqst->pName, NS_W_KEY, "spacing") ||
+				nameMatches(rqst->pName, NS_W_KEY, "em") ||
+				nameMatches(rqst->pName, NS_W_KEY, "position") ||
 				nameMatches(rqst->pName, NS_W_KEY, "sz") ) {
 		rqst->handled = true;
 	} else if (	nameMatches(rqst->pName, NS_W_KEY, "type") ||
@@ -1258,6 +1600,15 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "headerReference") ||
 				nameMatches(rqst->pName, NS_W_KEY, "titlePg") ||
 				nameMatches(rqst->pName, NS_W_KEY, "pgNumType") ||
+				nameMatches(rqst->pName, NS_W_KEY, "pgBorders") ||
+				nameMatches(rqst->pName, NS_W_KEY, "vAlign") ||
+				nameMatches(rqst->pName, NS_W_KEY, "textDirection") ||
+				nameMatches(rqst->pName, NS_W_KEY, "paperSrc") ||
+				nameMatches(rqst->pName, NS_W_KEY, "lnNumType") ||
+				nameMatches(rqst->pName, NS_W_KEY, "docGrid") ||
+				nameMatches(rqst->pName, NS_W_KEY, "rtlGutter") ||
+				nameMatches(rqst->pName, NS_W_KEY, "formProt") ||
+				nameMatches(rqst->pName, NS_W_KEY, "noEndnote") ||
 				nameMatches(rqst->pName, NS_W_KEY, "cols")) {
 		std::string contextTag = rqst->context->back();
 		if (contextMatches(contextTag, NS_W_KEY, "sectPr")) {
@@ -1279,9 +1630,14 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "br")) {
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
 		rqst->handled = true;
-	} else if (nameMatches(rqst->pName, NS_W_KEY, "footnoteReference") || 
-			   nameMatches(rqst->pName, NS_W_KEY, "endnoteReference")) {
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "footnoteReference") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "endnoteReference") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "commentRangeStart") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "commentRangeEnd")) {
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "commentReference") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "annotationRef")) {
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "hyperlink")) {
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );

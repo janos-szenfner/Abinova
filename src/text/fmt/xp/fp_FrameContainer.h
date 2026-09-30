@@ -72,11 +72,19 @@ public:
 	UT_sint32           getFullWidth() const;
 	UT_sint32           getFullHeight() const;
 	void                setXpad(UT_sint32 xPad)
-		{m_iXpad = xPad;}
+		{m_iXpadLeft = m_iXpadRight = xPad;}
 	void                setYpad(UT_sint32 yPad)
-		{m_iYpad = yPad;}
-	UT_sint32           getXPad(void) const { return m_iXpad;}
-	UT_sint32           getYPad(void) const { return m_iYpad;}
+		{m_iYpadTop = m_iYpadBottom = yPad;}
+	void                setXpadLeft(UT_sint32 xPad)
+		{m_iXpadLeft = xPad;}
+	void                setXpadRight(UT_sint32 xPad)
+		{m_iXpadRight = xPad;}
+	void                setYpadTop(UT_sint32 yPad)
+		{m_iYpadTop = yPad;}
+	void                setYpadBottom(UT_sint32 yPad)
+		{m_iYpadBottom = yPad;}
+	UT_sint32           getXPad(void) const { return m_iXpadLeft;}
+	UT_sint32           getYPad(void) const { return m_iYpadTop;}
 	void                setPage(fp_Page * pPage);
 	fl_DocSectionLayout * getDocSectionLayout(void) const;
 	void                getBlocksAroundFrame(UT_GenericVector<fl_BlockLayout *> & vecBlocks);
@@ -94,6 +102,7 @@ public:
 	void setLeftStyle   (const PP_PropertyMap::Line & style) { m_lineLeft   = style; }
 	void setRightStyle  (const PP_PropertyMap::Line & style) { m_lineRight  = style; }
 	void setTopStyle    (const PP_PropertyMap::Line & style) { m_lineTop    = style; }
+	const PP_PropertyMap::Line & getTopStyle(void) const { return m_lineTop; }
 	void                setOverWrote(void)
 		{m_bOverWrote = true;}
 	void                setWrapping(bool bWrapping)
@@ -146,8 +155,10 @@ private:
 									  UT_sint32 right, UT_sint32 bot,
 									  GR_Graphics * pGr);
 	fp_Page * m_pPage;
-	UT_sint32 m_iXpad;
-	UT_sint32 m_iYpad;
+	UT_sint32 m_iXpadLeft;
+	UT_sint32 m_iXpadRight;
+	UT_sint32 m_iYpadTop;
+	UT_sint32 m_iYpadBottom;
 	bool      m_bNeverDrawn;
 
 // cell-background properties

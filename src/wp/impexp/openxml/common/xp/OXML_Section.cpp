@@ -588,6 +588,48 @@ UT_Error OXML_Section::addToPTAsEndnote(PD_Document * pDocument)
 	return pDocument->appendStrux(PTX_EndEndnote, PP_NOPROPS) ? UT_OK : UT_ERROR;
 }
 
+UT_Error OXML_Section::addToPTAsAnnotation(PD_Document * pDocument)
+{
+	/* comment shadow: [SectionAnnotation][blocks][EndAnnotation]
+	 * The PTO_Annotation start/end objects that bracket the anchored
+	 * text are emitted by OXML_Element_Annotation around this call. */
+	UT_Error ret = UT_OK;
+	PP_PropertyVector attr = { "annotation-id", m_id };
+
+	/* section properties (annotation-author/-date/-initials) ride in
+	 * the strux "props" attribute, same convention as the ODF and RTF
+	 * importers */
+	PP_PropertyVector props = this->getProperties();
+	if (!props.empty())
+	{
+		std::string propStr;
+		for (size_t i = 0; i + 1 < props.size(); i += 2)
+		{
+			if (!propStr.empty())
+				propStr += "; ";
+			propStr += props[i];
+			propStr += ": ";
+			propStr += props[i + 1];
+		}
+		if (!propStr.empty())
+		{
+			attr.push_back(PT_PROPS_ATTRIBUTE_NAME);
+			attr.push_back(propStr);
+		}
+	}
+
+	ret = pDocument->appendStrux(PTX_SectionAnnotation, attr) ? UT_OK : UT_ERROR;
+	UT_return_val_if_fail(ret == UT_OK, ret);
+
+	for (OXML_ElementVector::size_type i = 0; i < m_children.size(); i++)
+	{
+		ret = m_children[i]->addToPT(pDocument);
+		UT_return_val_if_fail(ret == UT_OK, ret);
+	}
+
+	return pDocument->appendStrux(PTX_EndAnnotation, PP_NOPROPS) ? UT_OK : UT_ERROR;
+}
+
 UT_Error OXML_Section::addToPTAsHdrFtr(PD_Document * pDocument)
 {
 	UT_Error ret = UT_OK;

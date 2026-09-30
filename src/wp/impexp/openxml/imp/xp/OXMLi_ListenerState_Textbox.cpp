@@ -220,7 +220,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 	if (nameMatches(rqst->pName, "wps", "bodyPr"))
 	{
 		/* textbox text insets (EMU; Word defaults 91440/45720) map to
-		 * the frame's symmetric padding */
+		 * per-side frame padding; "xpad"/"ypad" keep the max for
+		 * readers that only know the symmetric property */
 		if (rqst->stck && !rqst->stck->empty())
 		{
 			auto emu = [&](const char * n) -> double {
@@ -233,16 +234,44 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			char buf[24];
 			if (l >= 0.0 || r >= 0.0)
 			{
+				double lEff = l >= 0.0 ? l : 0.0;
+				double rEff = r >= 0.0 ? r : 0.0;
 				g_snprintf(buf, sizeof(buf), "%.4fin",
-						   (l > r ? l : r) / 914400.0);
+						   (lEff > rEff ? lEff : rEff) / 914400.0);
 				rqst->stck->top()->setProperty("xpad", buf);
+				g_snprintf(buf, sizeof(buf), "%.4fin", lEff / 914400.0);
+				rqst->stck->top()->setProperty("xpad-left", buf);
+				g_snprintf(buf, sizeof(buf), "%.4fin", rEff / 914400.0);
+				rqst->stck->top()->setProperty("xpad-right", buf);
 			}
 			if (t >= 0.0 || b >= 0.0)
 			{
+				double tEff = t >= 0.0 ? t : 0.0;
+				double bEff = b >= 0.0 ? b : 0.0;
 				g_snprintf(buf, sizeof(buf), "%.4fin",
-						   (t > b ? t : b) / 914400.0);
+						   (tEff > bEff ? tEff : bEff) / 914400.0);
 				rqst->stck->top()->setProperty("ypad", buf);
+				g_snprintf(buf, sizeof(buf), "%.4fin", tEff / 914400.0);
+				rqst->stck->top()->setProperty("ypad-top", buf);
+				g_snprintf(buf, sizeof(buf), "%.4fin", bEff / 914400.0);
+				rqst->stck->top()->setProperty("ypad-bottom", buf);
 			}
+
+			/* vertical text alignment inside the box and writing
+			 * direction for vertical text */
+			auto it = rqst->ppAtts->find("wps:anchor");
+			if (it != rqst->ppAtts->end())
+			{
+				std::string a(it->second); // t|ctr|b|just|dist
+				if (a == "ctr") a = "center";
+				else if (a == "b") a = "bottom";
+				else if (a == "t") a = "top";
+				rqst->stck->top()->setProperty("frame-valign", a.c_str());
+			}
+			it = rqst->ppAtts->find("wps:vert");
+			if (it != rqst->ppAtts->end())
+				rqst->stck->top()->setProperty("frame-text-direction",
+											 it->second.c_str());
 		}
 		rqst->handled = true;
 		return;
@@ -255,6 +284,152 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			rqst->stck && !rqst->stck->empty())
 		{
 			rqst->stck->top()->setProperty("frame-expand-height", "1");
+		}
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "headEnd") ||
+		nameMatches(rqst->pName, NS_A_KEY, "tailEnd"))
+	{
+		/* line arrowheads (children of a:ln) */
+		if (rqst->stck && !rqst->stck->empty())
+		{
+			std::string base =
+				nameMatches(rqst->pName, NS_A_KEY, "headEnd") ?
+					"line-start-arrow" : "line-end-arrow";
+			const gchar * type = attrMatches(NS_A_KEY, "type", rqst->ppAtts);
+			const gchar * w = attrMatches(NS_A_KEY, "w", rqst->ppAtts);
+			const gchar * len = attrMatches(NS_A_KEY, "len", rqst->ppAtts);
+			if (type && *type)
+				rqst->stck->top()->setProperty(base.c_str(), type);
+			if (w && *w)
+				rqst->stck->top()->setProperty((base + "-w").c_str(), w);
+			if (len && *len)
+				rqst->stck->top()->setProperty((base + "-len").c_str(), len);
+		}
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "outerShdw"))
+	{
+		/* drop shadow inside a:effectLst — preserved as frame-shadow-* */
+		if (rqst->stck && !rqst->stck->empty())
+		{
+			rqst->stck->top()->setProperty("frame-shadow", "outer");
+			const gchar * dist = attrMatches(NS_A_KEY, "dist", rqst->ppAtts);
+			const gchar * dir = attrMatches(NS_A_KEY, "dir", rqst->ppAtts);
+			const gchar * blur = attrMatches(NS_A_KEY, "blurRad", rqst->ppAtts);
+			if (dist && *dist)
+			{
+				char buf[24];
+				g_snprintf(buf, sizeof(buf), "%.2fpt",
+						   UT_convertDimensionless(dist) / 12700.0);
+				rqst->stck->top()->setProperty("frame-shadow-offset", buf);
+			}
+			if (dir && *dir)
+				rqst->stck->top()->setProperty("frame-shadow-dir", dir);
+			if (blur && *blur)
+			{
+				char buf[24];
+				g_snprintf(buf, sizeof(buf), "%.2fpt",
+						   UT_convertDimensionless(blur) / 12700.0);
+				rqst->stck->top()->setProperty("frame-shadow-blur", buf);
+			}
+		}
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "prstTxWarp"))
+	{
+		const gchar * prst = attrMatches(NS_A_KEY, "prst", rqst->ppAtts);
+		if (prst && *prst && rqst->stck && !rqst->stck->empty())
+			rqst->stck->top()->setProperty("text-warp", prst);
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "srcRect"))
+	{
+		/* picture fill crop: l/t/r/b in 1000ths of a percent */
+		if (rqst->stck && !rqst->stck->empty() && rqst->stck->top())
+		{
+			std::string rect;
+			const char* sides[] = {"l", "t", "r", "b"};
+			for (const char* s : sides)
+			{
+				const gchar * v = attrMatches(NS_A_KEY, s, rqst->ppAtts);
+				rect += (v && *v) ? v : "0";
+				rect += " ";
+			}
+			rect.pop_back();
+			rqst->stck->top()->setProperty("image-src-rect", rect.c_str());
+		}
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "custGeom"))
+	{
+		m_inCustGeom = true;
+		m_shapePath.clear();
+		m_custGeomW = m_custGeomH = 0.0;
+		m_pathCmd = 0;
+		rqst->handled = true;
+		return;
+	}
+	if (m_inCustGeom && nameMatches(rqst->pName, NS_A_KEY, "path"))
+	{
+		const gchar * w = attrMatches(NS_A_KEY, "w", rqst->ppAtts);
+		const gchar * h = attrMatches(NS_A_KEY, "h", rqst->ppAtts);
+		m_custGeomW = w ? UT_convertDimensionless(w) : 0.0;
+		m_custGeomH = h ? UT_convertDimensionless(h) : 0.0;
+		rqst->handled = true;
+		return;
+	}
+	if (m_inCustGeom &&
+		(nameMatches(rqst->pName, NS_A_KEY, "moveTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "lnTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "cubicBezTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "quadBezTo")))
+	{
+		if (nameMatches(rqst->pName, NS_A_KEY, "moveTo"))
+			m_pathCmd = 'M';
+		else if (nameMatches(rqst->pName, NS_A_KEY, "lnTo"))
+			m_pathCmd = 'L';
+		else if (nameMatches(rqst->pName, NS_A_KEY, "cubicBezTo"))
+			m_pathCmd = 'C';
+		else
+			m_pathCmd = 'Q';
+		m_pathPtN = 0;
+		rqst->handled = true;
+		return;
+	}
+	if (m_inCustGeom && nameMatches(rqst->pName, NS_A_KEY, "close"))
+	{
+		m_shapePath += "Z ";
+		m_pathCmd = 0;
+		rqst->handled = true;
+		return;
+	}
+	if (m_inCustGeom && nameMatches(rqst->pName, NS_A_KEY, "pt"))
+	{
+		const gchar * x = attrMatches(NS_A_KEY, "x", rqst->ppAtts);
+		const gchar * y = attrMatches(NS_A_KEY, "y", rqst->ppAtts);
+		if (m_pathCmd && x && y)
+		{
+			//normalize into a 0..1000 box
+			double sx = m_custGeomW > 0.0 ?
+				UT_convertDimensionless(x) * 1000.0 / m_custGeomW :
+				UT_convertDimensionless(x);
+			double sy = m_custGeomH > 0.0 ?
+				UT_convertDimensionless(y) * 1000.0 / m_custGeomH :
+				UT_convertDimensionless(y);
+			char buf[64];
+			if (m_pathPtN == 0)
+				g_snprintf(buf, sizeof(buf), "%c %.1f %.1f ",
+						   m_pathCmd, sx, sy);
+			else
+				g_snprintf(buf, sizeof(buf), "%.1f %.1f ", sx, sy);
+			m_shapePath += buf;
+			m_pathPtN++;
 		}
 		rqst->handled = true;
 		return;
@@ -311,7 +486,15 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		if (rqst->context && !rqst->context->empty())
 		{
 			if (rqst->context->back() == "wps:spPr")
+			{
 				m_bInShapeFill = !nameMatches(rqst->pName, NS_A_KEY, "noFill");
+				m_inGradFill = nameMatches(rqst->pName, NS_A_KEY, "gradFill");
+				if (m_inGradFill)
+				{
+					m_gradDesc.clear();
+					m_gradPos.clear();
+				}
+			}
 			else if (m_bInOutline && rqst->context->back() == "A:ln")
 			{
 				if (nameMatches(rqst->pName, NS_A_KEY, "noFill"))
@@ -319,6 +502,26 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				else
 					m_bInOutlineFill = true;
 			}
+		}
+		rqst->handled = true;
+		return;
+	}
+	if (m_inGradFill && nameMatches(rqst->pName, NS_A_KEY, "gs"))
+	{
+		const gchar * pos = attrMatches(NS_A_KEY, "pos", rqst->ppAtts);
+		m_gradPos = pos ? pos : "0";
+		rqst->handled = true;
+		return;
+	}
+	if (m_inGradFill && nameMatches(rqst->pName, NS_A_KEY, "lin"))
+	{
+		const gchar * ang = attrMatches(NS_A_KEY, "ang", rqst->ppAtts);
+		if (ang && *ang)
+		{
+			std::string a("lin:");
+			a += ang;
+			a += ",";
+			m_gradDesc = a + m_gradDesc;
 		}
 		rqst->handled = true;
 		return;
@@ -464,6 +667,77 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		rqst->handled = true;
 		return;
 	}
+	if(nameMatches(rqst->pName, NS_V_KEY, "group"))
+	{
+		/* v:group is a pure coordinate-space container: its own
+		 * style positions/sizes the group box on the page, while
+		 * children use coordorigin/coordsize units. Record the
+		 * transform (composed with any enclosing group) so child
+		 * style values can be mapped to page points. No element is
+		 * pushed — children emit their own frames. */
+		VmlGroupX g;
+		g.originX = 0.0; g.originY = 0.0;
+		g.scaleX = 1.0;  g.scaleY = 1.0;
+		g.offX = 0.0;    g.offY = 0.0;
+
+		const gchar * cs = attrMatches(NS_V_KEY, "coordsize", rqst->ppAtts);
+		const gchar * co = attrMatches(NS_V_KEY, "coordorigin", rqst->ppAtts);
+		double csizeW = 1000.0, csizeH = 1000.0;
+		if (co)
+			sscanf(co, "%lf%*[, ]%lf", &g.originX, &g.originY);
+		if (cs)
+			sscanf(cs, "%lf%*[, ]%lf", &csizeW, &csizeH);
+
+		double ml = 0.0, mt = 0.0, w = 0.0, h = 0.0;
+		const gchar * style = attrMatches(NS_V_KEY, "style", rqst->ppAtts);
+		if (style)
+		{
+			std::string s(style);
+			size_t pos = 0;
+			while (pos < s.length())
+			{
+				size_t end = s.find(';', pos);
+				if (end == std::string::npos)
+					end = s.length();
+				std::string kv = s.substr(pos, end - pos);
+				size_t colon = kv.find(':');
+				if (colon != std::string::npos)
+				{
+					std::string k = kv.substr(0, colon);
+					std::string v = kv.substr(colon + 1);
+					while (!k.empty() && (k[0] == ' ' || k[0] == '\t')) k.erase(0, 1);
+					if (k == "margin-left" || k == "left")
+						ml = _vmlLenToPt(v);
+					else if (k == "margin-top" || k == "top")
+						mt = _vmlLenToPt(v);
+					else if (k == "width")
+						w = _vmlLenToPt(v);
+					else if (k == "height")
+						h = _vmlLenToPt(v);
+				}
+				pos = end + 1;
+			}
+		}
+
+		/* group position/size are in the PARENT group's coord space */
+		if (!m_vmlGroupStack.empty())
+		{
+			const VmlGroupX & p = m_vmlGroupStack.back();
+			ml = p.offX + (ml - p.originX) * p.scaleX;
+			mt = p.offY + (mt - p.originY) * p.scaleY;
+			w *= p.scaleX;
+			h *= p.scaleY;
+		}
+		g.offX = ml;
+		g.offY = mt;
+		if (csizeW != 0.0 && w != 0.0)
+			g.scaleX = w / csizeW;
+		if (csizeH != 0.0 && h != 0.0)
+			g.scaleY = h / csizeH;
+		m_vmlGroupStack.push_back(g);
+		rqst->handled = true;
+		return;
+	}
 	if(nameMatches(rqst->pName, NS_V_KEY, "shape") ||
 		nameMatches(rqst->pName, NS_V_KEY, "rect") ||
 		nameMatches(rqst->pName, NS_V_KEY, "roundrect") ||
@@ -534,13 +808,13 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 						std::string k = kv.substr(0, colon);
 						std::string v = kv.substr(colon + 1);
 						if (k == "margin-left" || k == "left")
-							vShape->setProperty("xpos", v.c_str());
+							vShape->setProperty("xpos", _vmlXformX(v).c_str());
 						else if (k == "margin-top" || k == "top")
-							vShape->setProperty("ypos", v.c_str());
+							vShape->setProperty("ypos", _vmlXformY(v).c_str());
 						else if (k == "width")
-							vShape->setProperty("frame-width", v.c_str());
+							vShape->setProperty("frame-width", _vmlScaleX(v).c_str());
 						else if (k == "height")
-							vShape->setProperty("frame-height", v.c_str());
+							vShape->setProperty("frame-height", _vmlScaleY(v).c_str());
 						else if (k == "z-index")
 							vShape->setProperty("frame-stack-order", v.c_str());
 						else if (k == "mso-wrap-style" && v == "none")
@@ -592,11 +866,11 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 					//convert and apply attributes here
 					if(!attrName.compare("width"))
 					{
-						textboxElem->setProperty("frame-width", attrValue);
+						textboxElem->setProperty("frame-width", _vmlScaleX(attrValue).c_str());
 					}
 					else if(!attrName.compare("height"))
 					{
-						textboxElem->setProperty("frame-height", attrValue);
+						textboxElem->setProperty("frame-height", _vmlScaleY(attrValue).c_str());
 					}
 					//TODO: more attributes coming
 				}	
@@ -792,6 +1066,12 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		nameMatches(rqst->pName, NS_A_KEY, "grpFill") ||
 		nameMatches(rqst->pName, NS_A_KEY, "noFill"))
 	{
+		if (m_inGradFill && !m_gradDesc.empty() &&
+			rqst->stck && !rqst->stck->empty())
+			rqst->stck->top()->setProperty("fill-gradient",
+										 m_gradDesc.c_str());
+		m_inGradFill = false;
+		m_gradDesc.clear();
 		m_bInShapeFill = false;
 		m_bInOutlineFill = false;
 		rqst->handled = true;
@@ -810,6 +1090,56 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		rqst->handled = true;
 		return;
 	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "custGeom"))
+	{
+		/* store the recorded freeform path on the host shape —
+		 * normalized "M x y L x y C ... Z" in a 0..1000 box */
+		if (!m_shapePath.empty() && rqst->stck && !rqst->stck->empty())
+			rqst->stck->top()->setProperty("shape-path",
+										 m_shapePath.c_str());
+		m_inCustGeom = false;
+		m_shapePath.clear();
+		rqst->handled = true;
+		return;
+	}
+	if (m_inCustGeom &&
+		(nameMatches(rqst->pName, NS_A_KEY, "path") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "pathLst") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "moveTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "lnTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "cubicBezTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "quadBezTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "arcTo") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "close") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "pt") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "gdLst") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "ahLst") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "avLst") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "cxnLst") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "rect")))
+	{
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "headEnd") ||
+		nameMatches(rqst->pName, NS_A_KEY, "tailEnd") ||
+		nameMatches(rqst->pName, NS_A_KEY, "outerShdw") ||
+		nameMatches(rqst->pName, NS_A_KEY, "effectLst") ||
+		nameMatches(rqst->pName, NS_A_KEY, "effectRef") ||
+		nameMatches(rqst->pName, NS_A_KEY, "gs") ||
+		nameMatches(rqst->pName, NS_A_KEY, "gsLst") ||
+		nameMatches(rqst->pName, NS_A_KEY, "lin") ||
+		nameMatches(rqst->pName, NS_A_KEY, "pathLst") ||
+		nameMatches(rqst->pName, NS_A_KEY, "srcRect") ||
+		nameMatches(rqst->pName, NS_A_KEY, "blipFill") ||
+		nameMatches(rqst->pName, NS_A_KEY, "stretch") ||
+		nameMatches(rqst->pName, NS_A_KEY, "fillRect") ||
+		nameMatches(rqst->pName, NS_A_KEY, "tile") ||
+		nameMatches(rqst->pName, NS_A_KEY, "prstTxWarp"))
+	{
+		rqst->handled = true;
+		return;
+	}
 	if (!m_pendColor.empty() &&
 		(nameMatches(rqst->pName, NS_A_KEY, "srgbClr") ||
 		 nameMatches(rqst->pName, NS_A_KEY, "schemeClr") ||
@@ -823,6 +1153,7 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 			s_transformColor(m_pendColor, m_lumMod, m_lumOff,
 							 m_tint, m_shade, m_alpha);
 		bool bOutline = m_bPendOutline;
+		double alpha = m_alpha;
 		m_pendColor.clear();
 		m_bPendOutline = false;
 		if (!final.empty() && rqst->stck && !rqst->stck->empty())
@@ -834,6 +1165,16 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 			}
 			else
 			{
+				/* gradient stop: record the transformed color at its
+				 * a:gs position (appending here, at the color end tag,
+				 * picks up lumMod/lumOff/tint/shade children) */
+				if (m_inGradFill)
+				{
+					m_gradDesc += m_gradPos.empty() ? "0" : m_gradPos;
+					m_gradDesc += ":";
+					m_gradDesc += final;
+					m_gradDesc += ",";
+				}
 				const gchar * existing = nullptr;
 				if (rqst->stck->top()->getProperty("background-color", existing) != UT_OK ||
 					!existing)
@@ -841,8 +1182,21 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 					rqst->stck->top()->setProperty("background-color", final.c_str());
 					rqst->stck->top()->setProperty("bg-style", "1");
 				}
+				if (alpha >= 0.0)
+				{
+					char abuf[24];
+					g_snprintf(abuf, sizeof(abuf), "%.3f", alpha);
+					rqst->stck->top()->setProperty("fill-alpha", abuf);
+				}
 			}
 		}
+		rqst->handled = true;
+		return;
+	}
+	if(nameMatches(rqst->pName, NS_V_KEY, "group"))
+	{
+		if (!m_vmlGroupStack.empty())
+			m_vmlGroupStack.pop_back();
 		rqst->handled = true;
 		return;
 	}
@@ -924,4 +1278,63 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 void OXMLi_ListenerState_Textbox::charData (OXMLi_CharDataRequest * /*rqst*/)
 {
 	//don't do anything here
+}
+
+/* VML length → points. VML style values carry units (pt/in/cm/mm/pc/px);
+ * bare numbers are points. Returns NAN for unparseable input. */
+double OXMLi_ListenerState_Textbox::_vmlLenToPt(const std::string & v) const
+{
+	char * end = nullptr;
+	double n = strtod(v.c_str(), &end);
+	if (!end || end == v.c_str())
+		return 0.0;
+	std::string u(end);
+	if (u.empty() || u == "pt")
+		return n;
+	if (u == "in") return n * 72.0;
+	if (u == "cm") return n * 72.0 / 2.54;
+	if (u == "mm") return n * 7.2 / 0.254;
+	if (u == "pc") return n * 12.0;
+	if (u == "px") return n * 0.75;
+	return n; // unknown unit — treat as pt
+}
+
+static std::string _vmlPt(double pt)
+{
+	char buf[32];
+	g_snprintf(buf, sizeof(buf), "%.2fpt", pt);
+	return std::string(buf);
+}
+
+/* Transform a child position/size through the top group's coord
+ * space: page = off + (coord - origin) * scale. No group →
+ * pass through unchanged. */
+std::string OXMLi_ListenerState_Textbox::_vmlXformX(const std::string & v) const
+{
+	if (m_vmlGroupStack.empty())
+		return v;
+	const VmlGroupX & g = m_vmlGroupStack.back();
+	return _vmlPt(g.offX + (_vmlLenToPt(v) - g.originX) * g.scaleX);
+}
+
+std::string OXMLi_ListenerState_Textbox::_vmlXformY(const std::string & v) const
+{
+	if (m_vmlGroupStack.empty())
+		return v;
+	const VmlGroupX & g = m_vmlGroupStack.back();
+	return _vmlPt(g.offY + (_vmlLenToPt(v) - g.originY) * g.scaleY);
+}
+
+std::string OXMLi_ListenerState_Textbox::_vmlScaleX(const std::string & v) const
+{
+	if (m_vmlGroupStack.empty())
+		return v;
+	return _vmlPt(_vmlLenToPt(v) * m_vmlGroupStack.back().scaleX);
+}
+
+std::string OXMLi_ListenerState_Textbox::_vmlScaleY(const std::string & v) const
+{
+	if (m_vmlGroupStack.empty())
+		return v;
+	return _vmlPt(_vmlLenToPt(v) * m_vmlGroupStack.back().scaleY);
 }

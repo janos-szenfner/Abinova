@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <string>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -66,13 +67,32 @@ const char * UT_dimensionName(UT_Dimension dim)
 	}
 }
 
+/*
+ * Some writers in the tree emitted decimal commas (locale-sensitive
+ * printf) instead of the C-locale period, and such files exist in the
+ * wild.  Normalize a single ',' decimal point to '.' before parsing.
+ */
+static void s_localeNormalize(const char * sz, std::string & out)
+{
+	out = sz ? sz : "";
+	size_t comma = out.find(',');
+	if (comma != std::string::npos && comma > 0 &&
+		out.find(',', comma + 1) == std::string::npos)
+	{
+		out[comma] = '.';
+	}
+}
+
 UT_Dimension UT_determineDimension(const char * sz, UT_Dimension fallback)
 {
   char * p = nullptr ;
 
+  std::string norm;
+  s_localeNormalize(sz, norm);
+
   {
 	  UT_LocaleTransactor t(LC_NUMERIC, "C");
-	  strtod(sz, &p);
+	  strtod(norm.c_str(), &p);
   }
 
   // p should now point to the unit
@@ -366,10 +386,13 @@ double UT_convertDimensionless(const char * sz)
 	// we can let the GUI do locale-specific conversions for presentation
 	// in dialogs and etc.
 
+	std::string norm;
+	s_localeNormalize(sz, norm);
+
 	double f;
 	{
 		UT_LocaleTransactor t(LC_NUMERIC, "C");
-		f = atof(sz);
+		f = atof(norm.c_str());
 	}
 
 	return f;

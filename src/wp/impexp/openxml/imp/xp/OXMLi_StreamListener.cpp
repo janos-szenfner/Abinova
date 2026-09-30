@@ -38,6 +38,7 @@
 #include "OXMLi_ListenerState_Field.h"
 #include "OXMLi_ListenerState_Footnote.h"
 #include "OXMLi_ListenerState_Endnote.h"
+#include "OXMLi_ListenerState_Comments.h"
 #include "OXMLi_ListenerState_Image.h"
 #include "OXMLi_ListenerState_Textbox.h"
 #include "OXMLi_ListenerState_Valid.h"
@@ -137,12 +138,20 @@ void OXMLi_StreamListener::setupStates(OXML_PartType type, const char * partId)
 		state = new OXMLi_ListenerState_Common();
 		this->pushState(state);
 		break;	
-	case ENDNOTES_PART: 
+	case ENDNOTES_PART:
 		state = new OXMLi_ListenerState_Endnote();
 		this->pushState(state);
 		state = new OXMLi_ListenerState_Common();
 		this->pushState(state);
-		break;	
+		break;
+	case COMMENTS_PART:
+		state = new OXMLi_ListenerState_Comments();
+		this->pushState(state);
+		state = new OXMLi_ListenerState_Common();
+		this->pushState(state);
+		state = new OXMLi_ListenerState_Table();
+		this->pushState(state);
+		break;
 	case NUMBERING_PART:
 		state = new OXMLi_ListenerState_Numbering();
 		this->pushState(state);

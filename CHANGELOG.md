@@ -195,6 +195,58 @@ below are on `main` but the release has not been cut yet.
   - Paragraphs carrying a `w:sectPr` break mark get a
     `section-break` paragraph property in `.abw`; layout suppresses
     their borders, matching Word's paragraph-border merging.
+- **DOCX schema coverage broadened** — `w:lvlOverride`/`startOverride`
+  (per-numbering-instance list clones), `w:altChunk` (references kept
+  as `altchunk-path`/`altchunk-format` links), `w:comment*` imported
+  as real annotations (comment range anchors + comment bodies with
+  author/date/initials), `v:group` coordinate-space transforms for
+  VML groups, `a:arrowhead`, `a:effectRef`, `a:prstTxWarp`, `a:srcRect`
+  and `a:gradFill` captured into frame properties.
+- **DOCX positioned objects rendered properly** —
+  - `behindDoc` anchors no longer lose `wrap-mode:below-text` when a
+    `wp:wrap*` child follows, so background shapes paint behind text.
+  - `frame-valign` (top/center/bottom) implemented in
+    `fp_FrameContainer::layout()`.
+  - `fill-gradient` renders multi-stop linear gradients; gradient
+    stop colors are serialized after `lumMod`/`lumOff`/`tint`/`shade`/
+    `satMod` transforms and round-trip through `.abwn`.
+  - `shape-path` (`a:custGeom`) is drawn as a real cairo path
+    (M/L/C/Q/Z over a 1000x1000 box) instead of a bounding rectangle.
+  - `image-src-rect` crops picture frames to the declared source
+    rectangle.
+  - `fill-alpha` applies fill transparency on screen and PDF.
+  - Frame rotation/flip transforms now also apply on the PDF/export
+    path, not just on screen.
+  - Text-box insets map to per-side `xpad-left`/`xpad-right`/
+    `ypad-top`/`ypad-bottom` frame properties instead of collapsing
+    to `max()` — asymmetric `bodyPr` insets no longer squeeze text.
+- **Locale decimal-separator corruption fixed** — the OOXML
+  importer serialized lengths with locale-sensitive `snprintf`
+  (`xpos:3,7620in` under comma-decimal locales) while the abwn
+  reader parses C-locale, so positions truncated to whole inches and
+  `1,25pt` became a 72pt border.  Import now pins
+  `LC_NUMERIC` to C for the whole load, and the unit parser accepts
+  a single decimal comma for backward compatibility with existing
+  files.
+- **Font substitution extended** (`fonts/abinova-fonts.conf`) —
+  Calibri Light, Segoe UI/Light/Semibold, Georgia (Gelasio),
+  Tahoma, Arial Black, Impact, Consolas, Candara, Corbel,
+  Constantia, Palatino Linotype/Book Antiqua, Franklin Gothic and
+  Comic Sans MS now resolve to bundled metric-compatible or
+  stylistically closest fonts instead of arbitrary fallbacks.
+- **White strip over dark textboxes fixed** — every paragraph was
+  treated as shaded because `shading-background-color` has a registry
+  default of `white` and `PP_evalProperty()` returns table defaults;
+  `fl_BlockLayout` now marks shading set only when the property is
+  explicitly present, so lines stop painting opaque white bands over
+  frame backgrounds.
+- **ABWN format documented** — `abwn.dtd` expanded to the full
+  element/attribute content model and `docs/ABWN-FORMAT.md` added:
+  serialization conventions (props grammar, units, decimal commas,
+  colors, OOXML angle/position units), element semantics, frame
+  placement/paint/layout properties, `fill-gradient` and
+  `shape-path` sub-grammars, AWML extension list, and the complete
+  generated property reference.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

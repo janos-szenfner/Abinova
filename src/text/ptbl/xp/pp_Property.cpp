@@ -76,7 +76,14 @@
  */
 static PP_Property _props[] =
 {
+	{ "adjust-right-ind",      "1",               false, PP_LEVEL_BLOCK}, // OOXML w:adjustRightInd
+	{ "altchunk-format",       "",                false, PP_LEVEL_BLOCK}, // OOXML w:altChunk part extension
+	{ "altchunk-path",         "",                false, PP_LEVEL_BLOCK}, // OOXML w:altChunk resolved part path
+	{ "auto-space-de",         "1",               false, PP_LEVEL_BLOCK}, // OOXML w:autoSpaceDE
+	{ "auto-space-dn",         "1",               false, PP_LEVEL_BLOCK}, // OOXML w:autoSpaceDN
+
 	{ "background-color",      "transparent",     false, PP_LEVEL_SECT},
+	{ "baseline-align",        "auto",            false, PP_LEVEL_BLOCK}, // OOXML w:textAlignment
 	{ "bgcolor",               "transparent",     true,  PP_LEVEL_CHAR},
 	{"border-merge",           "0",               true,  PP_LEVEL_BLOCK},
 	{"border-shadow-merge",    "0",               true,  PP_LEVEL_BLOCK},
@@ -90,10 +97,19 @@ static PP_Property _props[] =
 
 	{ "bounding-space",        "0.05in",          false, PP_LEVEL_FRAME},
 
+	{ "cell-fit-text",         "0",              false,  PP_LEVEL_TABLE}, // OOXML w:tcFitText
+	{ "cell-hide-mark",        "0",              false,  PP_LEVEL_TABLE}, // OOXML w:hideMark
 	{ "cell-margin-bottom",   "0.002in",         false,  PP_LEVEL_TABLE},
 	{ "cell-margin-left",     "0.002in",         false,  PP_LEVEL_TABLE},
 	{ "cell-margin-right",    "0.002in",         false,  PP_LEVEL_TABLE},
 	{ "cell-margin-top",      "0.002in",         false,  PP_LEVEL_TABLE},
+	{ "cell-no-wrap",          "0",              false,  PP_LEVEL_TABLE}, // OOXML w:noWrap
+	{ "cell-text-direction",   "",               false,  PP_LEVEL_TABLE}, // OOXML w:textDirection
+
+	{ "char-emphasis",         "",               true,   PP_LEVEL_CHAR}, // OOXML w:em
+	{ "char-kern",             "0pt",            true,   PP_LEVEL_CHAR}, // OOXML w:kern (half-point threshold)
+	{ "char-spacing",          "0pt",            true,   PP_LEVEL_CHAR}, // OOXML w:spacing
+	{ "char-width",            "100",            true,   PP_LEVEL_CHAR}, // OOXML w:w (percent)
 
 	{ "color",                 "000000",          true,  PP_LEVEL_CHAR},
 	{ "column-gap",	           "0.25in",          false, PP_LEVEL_SECT},
@@ -104,10 +120,34 @@ static PP_Property _props[] =
 	{ "default-tab-interval",  "0.5in",           false, PP_LEVEL_BLOCK},
 	{ "dir-override",          nullptr,              true,  PP_LEVEL_CHAR},
 	{ "display",               "inline",          true,  PP_LEVEL_CHAR},
+
+	{ "document-auto-hyphenation",      "0",      false, PP_LEVEL_DOC},  // OOXML w:autoHyphenation
+	{ "document-book-fold-printing",    "0",      false, PP_LEVEL_DOC},  // OOXML w:bookFoldPrinting
+	{ "document-book-fold-rev",         "0",      false, PP_LEVEL_DOC},  // OOXML w:bookFoldRevPrinting
+	{ "document-clr-scheme-mapping",    "",       false, PP_LEVEL_DOC},  // OOXML w:clrSchemeMapping
+	{ "document-consecutive-hyphen-limit","",     false, PP_LEVEL_DOC},  // OOXML w:consecutiveHyphenLimit
+	{ "document-decimal-symbol",        "",       false, PP_LEVEL_DOC},  // OOXML w:decimalSymbol
+	{ "document-default-tab-stop",      "",       false, PP_LEVEL_DOC},  // OOXML w:defaultTabStop (twips)
+	{ "document-do-not-track-formatting","0",     false, PP_LEVEL_DOC},  // OOXML w:doNotTrackFormatting
+	{ "document-do-not-track-moves",    "0",      false, PP_LEVEL_DOC},  // OOXML w:doNotTrackMoves
+	{ "document-even-odd-headers",      "0",      false, PP_LEVEL_DOC},  // OOXML w:evenAndOddHeaders
+	{ "document-gutter-at-top",         "0",      false, PP_LEVEL_DOC},  // OOXML w:gutterAtTop
+	{ "document-hyphenation-zone",      "",       false, PP_LEVEL_DOC},  // OOXML w:hyphenationZone
+	{ "document-list-separator",        "",       false, PP_LEVEL_DOC},  // OOXML w:listSeparator
+	{ "document-mirror-margins",        "0",      false, PP_LEVEL_DOC},  // OOXML w:mirrorMargins
+	{ "document-protected",             "0",      false, PP_LEVEL_DOC},  // OOXML w:documentProtection
+	{ "document-protection-mode",       "",       false, PP_LEVEL_DOC},  // OOXML w:documentProtection@edit
+	{ "document-remove-date-info",      "0",      false, PP_LEVEL_DOC},  // OOXML w:removeDateAndTime
+	{ "document-remove-personal-info",  "0",      false, PP_LEVEL_DOC},  // OOXML w:removePersonalInformation
+	{ "document-track-changes",         "0",      false, PP_LEVEL_DOC},  // OOXML w:trackChanges
+	{ "document-zoom",                  "",       false, PP_LEVEL_DOC},  // OOXML w:zoom
+
 	{ "dom-dir",               def_dom_dir,       true,  PP_LEVEL_BLOCK | PP_LEVEL_SECT},
 
 	{ "field-color",           "dcdcdc",          true,  PP_LEVEL_FIELD},
 	{ "field-font",	           "NULL",	          true,  PP_LEVEL_FIELD},
+	{ "fill-alpha",            "1.0",             false, PP_LEVEL_FRAME}, // OOXML a:alpha on fill
+	{ "fill-gradient",         "",                false, PP_LEVEL_FRAME}, // OOXML a:gradFill descriptor
 	{ "font-family",           "Carlito",         true,  PP_LEVEL_CHAR},
 	{ "font-size",	           "12pt",	          true,  PP_LEVEL_CHAR},	// MS word defaults to 10pt, but it just seems too small
 	{ "font-stretch",          "normal",          true,  PP_LEVEL_CHAR},
@@ -137,8 +177,15 @@ static PP_Property _props[] =
 	{"frame-pref-page",        "0",               false, PP_LEVEL_FRAME},
 	{"frame-rel-width",        "0.5",             false, PP_LEVEL_FRAME},
 	{"frame-rotation",         "0",               false, PP_LEVEL_FRAME},
+	{"frame-shadow",           "none",            false, PP_LEVEL_FRAME}, // OOXML a:outerShdw presence
+	{"frame-shadow-blur",      "0pt",             false, PP_LEVEL_FRAME}, // OOXML a:outerShdw@blurRad
+	{"frame-shadow-color",     "000000",          false, PP_LEVEL_FRAME}, // OOXML a:outerShdw color
+	{"frame-shadow-dir",       "0",               false, PP_LEVEL_FRAME}, // OOXML a:outerShdw@dir (60000ths of a degree)
+	{"frame-shadow-offset",    "0pt",             false, PP_LEVEL_FRAME}, // OOXML a:outerShdw@dist
 	{"frame-stack-order",      "0",               false, PP_LEVEL_FRAME},
+	{"frame-text-direction",   "",                false, PP_LEVEL_FRAME}, // OOXML wps:bodyPr@vert
 	{"frame-type",             "textbox",         false, PP_LEVEL_FRAME},
+	{"frame-valign",           "top",             false, PP_LEVEL_FRAME}, // OOXML wps:bodyPr@anchor
 	{"frame-width",            "0.0in",           false, PP_LEVEL_FRAME},
 
 	{ "header",                "",                false, PP_LEVEL_SECT},
@@ -149,8 +196,11 @@ static PP_Property _props[] =
 	{ "height",                "0in",             false, PP_LEVEL_CHAR},
 	{ "homogeneous",           "1",               false, PP_LEVEL_CHAR},
 
+	{ "image-src-rect",        "",                false, PP_LEVEL_FRAME}, // OOXML a:srcRect crop: "l t r b" in 1000ths of percent
+
 	{ "keep-together",         "no",              false, PP_LEVEL_BLOCK},
 	{ "keep-with-next",        "no",              false, PP_LEVEL_BLOCK},
+	{ "kinsoku",               "1",               false, PP_LEVEL_BLOCK}, // OOXML w:kinsoku
 
 	{ "lang",                  "en-US",           true,  PP_LEVEL_CHAR},
 	{ "left-attach",           "",               false,  PP_LEVEL_TABLE},
@@ -161,7 +211,13 @@ static PP_Property _props[] =
 	{ "left-style",            "1",           false, PP_LEVEL_TABLE},
 	{ "left-thickness",        "1px",             false, PP_LEVEL_TABLE},
 
+	{ "line-end-arrow",        "none",            false, PP_LEVEL_FRAME}, // OOXML a:tailEnd@type
+	{ "line-end-arrow-len",    "med",             false, PP_LEVEL_FRAME}, // OOXML a:tailEnd@len
+	{ "line-end-arrow-w",      "med",             false, PP_LEVEL_FRAME}, // OOXML a:tailEnd@w
 	{ "line-height",           "1.0",             false, PP_LEVEL_BLOCK},
+	{ "line-start-arrow",      "none",            false, PP_LEVEL_FRAME}, // OOXML a:headEnd@type
+	{ "line-start-arrow-len",  "med",             false, PP_LEVEL_FRAME}, // OOXML a:headEnd@len
+	{ "line-start-arrow-w",    "med",             false, PP_LEVEL_FRAME}, // OOXML a:headEnd@w
 	{ "list-decimal",          ".",               true,  PP_LEVEL_BLOCK},
 	{ "list-delim",            "%L",              true,  PP_LEVEL_BLOCK},
 	{ "list-style",            "None",            true,  PP_LEVEL_CHAR},
@@ -171,9 +227,41 @@ static PP_Property _props[] =
 	{ "margin-left",           "0in",	          false, PP_LEVEL_BLOCK},
 	{ "margin-right",          "0in",             false, PP_LEVEL_BLOCK},
 	{ "margin-top",	           "0in",             false, PP_LEVEL_BLOCK}, // zero to be consistent with other WPs
+	{ "mirror-indents",        "0",               false, PP_LEVEL_BLOCK}, // OOXML w:mirrorIndents
+	{ "no-proof",              "0",               true,  PP_LEVEL_CHAR}, // OOXML w:noProof
 
 	{ "orphans",               "2",               false, PP_LEVEL_BLOCK}, // 2 to be consistent with widows & CSS
+	{ "outline-level",         "",                false, PP_LEVEL_BLOCK}, // OOXML w:outlineLvl
+	{ "overflow-punct",        "1",               false, PP_LEVEL_BLOCK}, // OOXML w:overflowPunct
 
+	{ "page-border-art",       "",                false, PP_LEVEL_SECT},  // OOXML w:pgBorders art names
+	{ "page-border-bottom",    "none",            false, PP_LEVEL_SECT},
+	{ "page-border-bottom-art","",                false, PP_LEVEL_SECT},
+	{ "page-border-bottom-color","auto",          false, PP_LEVEL_SECT},
+	{ "page-border-bottom-shadow","0",            false, PP_LEVEL_SECT},
+	{ "page-border-bottom-space","0pt",           false, PP_LEVEL_SECT},
+	{ "page-border-bottom-thickness","0pt",       false, PP_LEVEL_SECT},
+	{ "page-border-display",   "all",             false, PP_LEVEL_SECT},  // OOXML w:pgBorders@display
+	{ "page-border-left",      "none",            false, PP_LEVEL_SECT},
+	{ "page-border-left-art",  "",                false, PP_LEVEL_SECT},
+	{ "page-border-left-color","auto",            false, PP_LEVEL_SECT},
+	{ "page-border-left-shadow","0",              false, PP_LEVEL_SECT},
+	{ "page-border-left-space","0pt",             false, PP_LEVEL_SECT},
+	{ "page-border-left-thickness","0pt",         false, PP_LEVEL_SECT},
+	{ "page-border-offset",    "page",            false, PP_LEVEL_SECT},  // OOXML w:pgBorders@offsetFrom
+	{ "page-border-right",     "none",            false, PP_LEVEL_SECT},
+	{ "page-border-right-art", "",                false, PP_LEVEL_SECT},
+	{ "page-border-right-color","auto",           false, PP_LEVEL_SECT},
+	{ "page-border-right-shadow","0",             false, PP_LEVEL_SECT},
+	{ "page-border-right-space","0pt",            false, PP_LEVEL_SECT},
+	{ "page-border-right-thickness","0pt",        false, PP_LEVEL_SECT},
+	{ "page-border-shadow",    "0",               false, PP_LEVEL_SECT},
+	{ "page-border-top",       "none",            false, PP_LEVEL_SECT},
+	{ "page-border-top-art",   "",                false, PP_LEVEL_SECT},
+	{ "page-border-top-color", "auto",            false, PP_LEVEL_SECT},
+	{ "page-border-top-shadow","0",               false, PP_LEVEL_SECT},
+	{ "page-border-top-space", "0pt",             false, PP_LEVEL_SECT},
+	{ "page-border-top-thickness","0pt",          false, PP_LEVEL_SECT},
 	{ "page-margin-bottom",	   "1in",             false, PP_LEVEL_SECT},
 	{ "page-margin-footer",    "0.0in",           false, PP_LEVEL_SECT},
 	{ "page-margin-header",    "0.0in",           false, PP_LEVEL_SECT},
@@ -189,28 +277,61 @@ static PP_Property _props[] =
 	{ "right-style",           "1",           false, PP_LEVEL_TABLE},
 	{ "right-thickness",       "1px",             false, PP_LEVEL_TABLE},
 
+	{ "section-doc-grid",      "",                false, PP_LEVEL_SECT}, // OOXML w:docGrid@type
+	{ "section-doc-grid-char-space","",           false, PP_LEVEL_SECT}, // OOXML w:docGrid@charSpace
+	{ "section-doc-grid-line-pitch","",           false, PP_LEVEL_SECT}, // OOXML w:docGrid@linePitch
+	{ "section-endnote-suppress","0",             false, PP_LEVEL_SECT}, // OOXML w:noEndnote
 	{ "section-footnote-line-thickness","0.005in",false, PP_LEVEL_SECT},
 	{ "section-footnote-yoff", "0.01in",          false, PP_LEVEL_SECT},
+	{ "section-form-protected","0",               false, PP_LEVEL_SECT}, // OOXML w:formProt
+	{ "section-ln-count-by",   "",                false, PP_LEVEL_SECT}, // OOXML w:lnNumType@countBy
+	{ "section-ln-distance",   "",                false, PP_LEVEL_SECT}, // OOXML w:lnNumType@distance
+	{ "section-ln-restart",    "",                false, PP_LEVEL_SECT}, // OOXML w:lnNumType@restart
+	{ "section-ln-start",      "",                false, PP_LEVEL_SECT}, // OOXML w:lnNumType@start
 	{ "section-max-column-height", "0in",         false, PP_LEVEL_SECT},
+	{ "section-paper-src-first","",               false, PP_LEVEL_SECT}, // OOXML w:paperSrc@first
+	{ "section-paper-src-other","",               false, PP_LEVEL_SECT}, // OOXML w:paperSrc@other
 	{ "section-restart",       "",                false, PP_LEVEL_SECT},
 	{ "section-restart-value", "",                false, PP_LEVEL_SECT},
+	{ "section-rtl-gutter",    "0",               false, PP_LEVEL_SECT}, // OOXML w:rtlGutter
 	{ "section-space-after",   "0.25in",          false, PP_LEVEL_SECT},
+	{ "section-text-direction","",                false, PP_LEVEL_SECT}, // OOXML w:textDirection
+	{ "section-y-align",       "top",             false, PP_LEVEL_SECT}, // OOXML w:vAlign
 	{"shading-background-color", "white",         false, PP_LEVEL_BLOCK},
 	{"shading-foreground-color", "white",         false, PP_LEVEL_BLOCK},
 	{"shading-pattern",          "0",             false, PP_LEVEL_BLOCK},
+	{ "shape-path",            "",                false, PP_LEVEL_FRAME}, // OOXML a:custGeom normalized path
+	{ "snap-to-grid",          "1",               false, PP_LEVEL_BLOCK}, // OOXML w:snapToGrid
 	{ "start-value",           "1",               true,  PP_LEVEL_BLOCK},
+	{ "suppress-auto-hyphens", "0",               false, PP_LEVEL_BLOCK}, // OOXML w:suppressAutoHyphens
+	{ "suppress-line-numbers", "0",               false, PP_LEVEL_BLOCK}, // OOXML w:suppressLineNumbers
 
+	{ "table-bidi-visual",     "0",               false, PP_LEVEL_TABLE}, // OOXML w:bidiVisual
 	{ "table-border",          "0.1in",           false, PP_LEVEL_TABLE},
+	{ "table-caption",         "",                false, PP_LEVEL_TABLE}, // OOXML w:tblCaption
 	{ "table-col-spacing",     "0.03in",          false, PP_LEVEL_TABLE},
 	{ "table-column-leftpos",  "0.0in",           false, PP_LEVEL_TABLE},
 	{ "table-column-props",    "",                false, PP_LEVEL_TABLE},
+	{ "table-description",     "",                false, PP_LEVEL_TABLE}, // OOXML w:tblDescription
+	{ "table-float-halign",    "",                false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@tblpXSpec
+	{ "table-float-hanchor",   "",                false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@horzAnchor
+	{ "table-float-margin-bottom","",             false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@bottomFromText
+	{ "table-float-margin-left","",               false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@leftFromText
+	{ "table-float-margin-right","",              false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@rightFromText
+	{ "table-float-margin-top","",                false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@topFromText
+	{ "table-float-valign",    "",                false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@tblpYSpec
+	{ "table-float-vanchor",   "",                false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@vertAnchor
+	{ "table-float-x",         "",                false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@tblpX
+	{ "table-float-y",         "",                false, PP_LEVEL_TABLE}, // OOXML w:tblpPr@tblpY
 	{ "table-line-thickness",  "0.8pt",           false, PP_LEVEL_TABLE},
 	{ "table-line-type",       "1",               false, PP_LEVEL_TABLE},
+	{ "table-look",            "",                false, PP_LEVEL_TABLE}, // OOXML w:tblLook bitmask
 	{ "table-margin-bottom",   "0.01in",          false, PP_LEVEL_TABLE},
  	{ "table-margin-left",     "0.005in",         false, PP_LEVEL_TABLE},
 	{ "table-margin-right",    "0.005in",         false, PP_LEVEL_TABLE},
 	{ "table-margin-top",      "0.01in",          false, PP_LEVEL_TABLE},
 	{ "table-max-extra-margin","0.05",            false, PP_LEVEL_TABLE},
+	{ "table-position",        "left",            false, PP_LEVEL_TABLE}, // OOXML w:tblPr/w:jc
 	{ "table-row-props",       "",                false, PP_LEVEL_TABLE},
 	{ "table-row-spacing",     "0.01in",          false, PP_LEVEL_TABLE},
 	{ "tabstops",              "",                false, PP_LEVEL_BLOCK},
@@ -221,6 +342,7 @@ static PP_Property _props[] =
 	{ "text-indent",           "0in",             false, PP_LEVEL_BLOCK},
 	{ "text-position",         "normal",          true,  PP_LEVEL_CHAR},
 	{ "text-transform",         "none",          true,  PP_LEVEL_CHAR},
+	{ "text-warp",             "none",           false, PP_LEVEL_FRAME}, // OOXML a:prstTxWarp@prst
 	{ "toc-dest-style1",      "Contents 1"   ,   false, PP_LEVEL_BLOCK},
 	{ "toc-dest-style2",      "Contents 2",      false, PP_LEVEL_BLOCK},
 	{ "toc-dest-style3",      "Contents 3",      false, PP_LEVEL_BLOCK},
@@ -274,6 +396,7 @@ static PP_Property _props[] =
 
 	{ "top-attach",             "",               false, PP_LEVEL_TABLE},
 	{ "top-color",             "000000",          false, PP_LEVEL_TABLE},
+	{ "top-line-punct",        "0",               false, PP_LEVEL_BLOCK}, // OOXML w:topLinePunct
 	{ "top-shadow",            "0",               false, PP_LEVEL_BLOCK},
 	{ "top-shadow-color",      "grey",            false, PP_LEVEL_BLOCK},
 	{ "top-space",             "0.02in",          false, PP_LEVEL_BLOCK},
@@ -282,13 +405,19 @@ static PP_Property _props[] =
 
 
 	{ "vert-align",            "0",               false, PP_LEVEL_TABLE},
+	{ "vert-position",         "0pt",             true,  PP_LEVEL_CHAR}, // OOXML w:position (raise/lower)
 
 	{ "widows",                "2",               false, PP_LEVEL_BLOCK},
 	{ "width",                 "0in",             false, PP_LEVEL_CHAR},
+	{ "word-wrap",             "1",               false, PP_LEVEL_BLOCK}, // OOXML w:wordWrap
 	{ "wrap-mode",             "above-text",      false, PP_LEVEL_FRAME},
 	{ "xpad",                  "0.03in",          false, PP_LEVEL_FRAME},
+	{ "xpad-left",             "",                false, PP_LEVEL_FRAME}, // OOXML lIns; empty = use xpad
+	{ "xpad-right",            "",                false, PP_LEVEL_FRAME}, // OOXML rIns; empty = use xpad
 	{ "xpos",                  "0.0in",           false, PP_LEVEL_FRAME},
 	{ "ypad",                  "0.03in",          false, PP_LEVEL_FRAME},
+	{ "ypad-bottom",           "",                false, PP_LEVEL_FRAME}, // OOXML bIns; empty = use ypad
+	{ "ypad-top",              "",                false, PP_LEVEL_FRAME}, // OOXML tIns; empty = use ypad
 	{ "ypos",                  "0.0in",           false, PP_LEVEL_FRAME}
 };
 

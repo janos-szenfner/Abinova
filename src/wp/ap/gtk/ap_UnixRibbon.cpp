@@ -6755,13 +6755,30 @@ GtkWidget * AP_UnixRibbon::_makeCoverPagePopover()
 	{
 		GtkWidget * v = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
 
-		/* A4 portrait thumbnail, like Word's cover gallery */
-		GtkWidget * da = gtk_drawing_area_new();
-		gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 95);
-		gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 134);
-		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
-									   _cover_card_draw,
-									   g_strdup(szPreset), g_free);
+		/* A4 portrait thumbnail, like Word's cover gallery.  Frame-
+		 * based presets show a pre-rendered snapshot of the real
+		 * template; the paragraph-based ones keep the sketch. */
+		char * res = g_strdup_printf(
+			"/io/github/janos_szenfner/Abinova/covers/%s.png", szPreset);
+		GtkWidget * da;
+		if (g_resources_get_info(res, G_RESOURCE_LOOKUP_FLAGS_NONE,
+								 nullptr, nullptr, nullptr))
+		{
+			da = gtk_picture_new_for_resource(res);
+			gtk_picture_set_content_fit(GTK_PICTURE(da),
+										GTK_CONTENT_FIT_CONTAIN);
+			gtk_widget_set_size_request(da, 95, 134);
+		}
+		else
+		{
+			da = gtk_drawing_area_new();
+			gtk_drawing_area_set_content_width(GTK_DRAWING_AREA(da), 95);
+			gtk_drawing_area_set_content_height(GTK_DRAWING_AREA(da), 134);
+			gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(da),
+										   _cover_card_draw,
+										   g_strdup(szPreset), g_free);
+		}
+		g_free(res);
 		gtk_widget_set_halign(da, GTK_ALIGN_CENTER);
 		gtk_box_append(GTK_BOX(v), da);
 

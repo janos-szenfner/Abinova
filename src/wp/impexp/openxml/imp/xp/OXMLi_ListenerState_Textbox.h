@@ -30,6 +30,9 @@
 #include <OXML_Types.h>
 #include <OXML_Element_TextBox.h>
 
+// External includes
+#include <vector>
+
 /* \class OXMLi_ListenerState_Textbox
  * \brief This ListenerState parses the Textboxes
 */
@@ -50,6 +53,17 @@ private:
 	bool m_bInStyleFill = false;
 	std::string m_pendColor;
 	bool m_bPendOutline = false;
+	// a:custGeom freeform capture -> shape-path prop
+	bool m_inCustGeom = false;
+	char m_pathCmd = 0;
+	int m_pathPtN = 0;
+	double m_custGeomW = 0.0;
+	double m_custGeomH = 0.0;
+	std::string m_shapePath;
+	// a:gradFill stops -> fill-gradient descriptor "ang;pos:col;pos:col"
+	bool m_inGradFill = false;
+	std::string m_gradDesc;
+	std::string m_gradPos;
 	double m_lumMod = 1.0;
 	double m_lumOff = 0.0;
 	double m_tint = -1.0;
@@ -62,6 +76,21 @@ private:
 	std::string m_outlineStyle;
 	double m_outlineW = -1.0;
 	std::string m_shapePrst;
+
+	/* v:group coordinate space stack — children positions/sizes are
+	 * in coordorigin/coordsize units and must be scaled into the
+	 * group's real page box (nested groups compose) */
+	struct VmlGroupX {
+		double originX, originY; // coordorigin
+		double scaleX, scaleY;   // style size / coordsize
+		double offX, offY;       // group position on the page (pt)
+	};
+	std::vector<VmlGroupX> m_vmlGroupStack;
+	double _vmlLenToPt(const std::string & v) const;
+	std::string _vmlXformX(const std::string & v) const;
+	std::string _vmlXformY(const std::string & v) const;
+	std::string _vmlScaleX(const std::string & v) const;
+	std::string _vmlScaleY(const std::string & v) const;
 };
 
 #endif //_OXMLI_LISTENERSTATE_TEXTBOX_H_

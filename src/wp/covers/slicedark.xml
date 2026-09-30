@@ -1,0 +1,14 @@
+<abinova version="4.0.0" xml:space="preserve" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="http://www.w3.org/2000/svg" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:awml="http://www.abisource.com/awml.dtd">
+<styles>
+    <s name="cover_NoSpacing" type="P" basedon="Normal" props="lang:en-US; font-size:11.000000pt; char-kern:0.000000pt"/>
+    <s name="cover_Normal" type="P" basedon="Normal"/>
+</styles>
+<p style="cover_Normal"><c props="lang:-none-"/></p>
+    <frame props="frame-height:10.0000in; frame-type:textbox; base-halign:center; fill-gradient:lin:6120000,10000:7992B5,100000:3B495C,; xpad:1.0000in; base-h:10.000000in; bot-style:none; grp-ypos:0; grp-height:9144000; bg-style:1; xpos:0.3840in; background-color:7992B5; xpad-left:0.7500in; grp-width:6858000; top-style:none; position-to:page-above-text; left-style:none; frame-width:7.5000in; xpad-right:1.0000in; ypad-bottom:5.0000in; grp-xpos:0; right-style:none; frame-valign:top; text-warp:textNoShape; frame-page-xpos:0.3840in; frame-page-ypos:0.8465in; base-valign:center; ypos:0.8465in; base-w:7.500000in; ypad:5.0000in; ypad-top:0.7500in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264">
+      <p style="cover_NoSpacing" props="font-size:24.000000pt"><c props="lang:-none-"/></p>
+</frame>
+    <frame props="position-to:page-above-text; frame-height:4.1445in; xpos:0.3944in; grp-ypos:4838700; grp-height:3789752; base-h:10.000000in; bot-style:none; xpad-left:0.7500in; grp-width:6843395; top-style:none; frame-page-xpos:0.3944in; text-warp:textNoShape; left-style:none; frame-width:7.4840in; right-style:none; frame-valign:bottom; bg-style:0; xpad-right:1.0000in; ypad-bottom:0.0000in; grp-xpos:9518; frame-page-ypos:6.1382in; base-valign:center; ypos:6.1382in; base-w:7.500000in; ypad:0.0000in; ypad-top:0.0000in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264; xpad:1.0000in; frame-type:textbox; base-halign:center">
+      <p style="cover_NoSpacing" props="font-size:32.000000pt"><c props="font-family:Calibri Light; text-transform:uppercase; color:FFFFFF; font-size:32.000000pt">[Document title]</c></p>
+      <p style="cover_NoSpacing" props="margin-top:6.000000pt; font-size:18.000000pt"><c props="color:4472C4; font-size:18.000000pt">[Document subtitle]</c></p>
+</frame>
+</abinova>
