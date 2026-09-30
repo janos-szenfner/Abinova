@@ -1143,6 +1143,7 @@ bool GR_Graphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& pri)
 	pRI->m_iTotalLength = si.m_iLength;
 	pRI->m_eScriptType = si.m_pItem->getType();
 	pRI->m_pItem = si.m_pItem;
+	pRI->m_iLetterSpacing = si.m_iLetterSpacing;
 
 	UT_UCS4Char glyph, current;
 	UT_UCS4Char * dst_ptr = pRI->m_pChars;
@@ -1262,6 +1263,7 @@ void GR_Graphics::measureRenderedCharWidths(GR_RenderInfo & ri)
 			measureString(RI.m_pChars + i, 0, 1,
 					 static_cast<UT_GrowBufElement*>(RI.m_pWidths) + i);
 		}
+		RI.m_pWidths[i] += RI.m_iLetterSpacing;
 	}
 
 	if(RI.isJustified())

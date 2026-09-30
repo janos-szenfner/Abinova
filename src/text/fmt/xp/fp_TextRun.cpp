@@ -163,6 +163,7 @@ fp_TextRun::fp_TextRun(fl_BlockLayout* pBL,
 					   bool bLookupProperties)
 :	fp_Run(pBL,iOffsetFirst, iLen, FPRUN_TEXT),
 	m_TextTransform(GR_ShapingInfo::NONE),
+	m_iLetterSpacing(0),
 	m_fPosition(TEXT_POSITION_NORMAL),
 #ifdef ENABLE_SPELL
 	m_bSpellSquiggled(false),
@@ -443,6 +444,22 @@ void fp_TextRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	}
 
 	bChanged |= (oldTextTransform != getTextTransform());
+
+	// letter-spacing (OOXML w:spacing) feeds the glyph advances at
+	// shape() time, so a change needs a full reshape
+	const gchar * pszSpacing = PP_evalProperty("char-spacing",pSpanAP,pBlockAP,
+											   pSectionAP, pDoc, true);
+	UT_sint32 iSpacing = (pszSpacing && *pszSpacing)
+		? UT_convertToLogicalUnits(pszSpacing) : 0;
+	if(iSpacing != m_iLetterSpacing)
+	{
+		m_iLetterSpacing = iSpacing;
+		markDrawBufferDirty();
+		markWidthDirty();
+		if(m_pRenderInfo)
+			m_pRenderInfo->m_eShapingResult = GRSR_Unknown;
+		bChanged = true;
+	}
 
 	if(bChanged && !bDontClear)
 		clearScreen();
@@ -1154,6 +1171,7 @@ bool fp_TextRun::canMergeWithNext(void) const
 		|| (pNext->_getColorHL() != _getColorHL())
 		|| (pNext->_getColorHL().isTransparent() != _getColorHL().isTransparent())
 		|| (pNext->m_fPosition != m_fPosition)
+		|| (pNext->m_iLetterSpacing != m_iLetterSpacing)
 		|| (pNext->getVisDirection() != getVisDirection())
 		// we also want to test the override, because we do not want runs that have the same
 		// visual direction but different override merged
@@ -2254,7 +2272,8 @@ bool fp_TextRun::_refreshDrawBuffer()
 
 		GR_ShapingInfo si(text,iLen, m_pLanguage, iVisDir,
 						  m_pRenderInfo ? m_pRenderInfo->m_eShapingResult : GRSR_Unknown,
-						  _getFont(), m_pItem, getTextTransform(), lastWasSpace);		
+						  _getFont(), m_pItem, getTextTransform(), lastWasSpace);
+		si.m_iLetterSpacing = m_iLetterSpacing;
 		getGraphics()->shape(si, m_pRenderInfo);
 		
 		UT_ASSERT(m_pRenderInfo && m_pRenderInfo->m_eShapingResult != GRSR_Error );

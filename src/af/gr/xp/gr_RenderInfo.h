@@ -288,6 +288,7 @@ class ABI_EXPORT GR_XPRenderInfo : public GR_RenderInfo
 	UT_sint32           m_iSegmentCount;
 	UT_sint32           m_iSpaceWidthBeforeJustification; // <0 for not justified
 	UT_uint32           m_iTotalLength;
+	UT_sint32           m_iLetterSpacing; // per-char extra advance, layout units
 
 	// these can be static as for now we do not want to chache anything
 	static UT_sint32	    s_iClassInstanceCount;
@@ -332,7 +333,8 @@ class ABI_EXPORT GR_ShapingInfo
 		m_iJustifyBy(0),
 		m_pItem(pItem),
 		m_TextTransform(textTransform),
-		m_previousWasSpace(previousWasSpace)
+		m_previousWasSpace(previousWasSpace),
+		m_iLetterSpacing(0)
 	{
 	}
 
@@ -352,4 +354,6 @@ class ABI_EXPORT GR_ShapingInfo
 
 	TextTransform       m_TextTransform;
 	bool                m_previousWasSpace;
+	/* extra per-character advance in layout units (OOXML w:spacing) */
+	UT_sint32           m_iLetterSpacing;
 };

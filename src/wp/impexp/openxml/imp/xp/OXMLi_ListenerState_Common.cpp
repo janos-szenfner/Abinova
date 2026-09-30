@@ -415,7 +415,6 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		rqst->handled = true;
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "jc") ||
 				nameMatches(rqst->pName, NS_W_KEY, "ind") ||
-				nameMatches(rqst->pName, NS_W_KEY, "spacing") ||
 				nameMatches(rqst->pName, NS_W_KEY, "contextualSpacing") ||
 				nameMatches(rqst->pName, NS_W_KEY, "keepNext") ||
 				nameMatches(rqst->pName, NS_W_KEY, "keepLines") ||
@@ -602,7 +601,36 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				UT_return_if_fail( _error_if_fail( UT_OK == para->setProperty("text-indent", final.c_str()) ));
 			}
 
-		} else if (nameMatches(rqst->pName, NS_W_KEY, "spacing")) {
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "pStyle")) {
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			UT_return_if_fail( _error_if_fail(val != nullptr) );
+			if (!strcmp(val, "Normal")) val = "_Normal"; //Cannot interfere with document defaults
+			OXML_Document * doc = OXML_Document::getInstance();
+			UT_return_if_fail( _error_if_fail(doc != nullptr) );
+			OXML_SharedStyle ref = doc->getStyleById(val);
+			if (ref.get() != nullptr && ref->getName().compare("")) {
+				UT_return_if_fail( _error_if_fail( UT_OK == para->setAttribute(PT_STYLE_ATTRIBUTE_NAME, ref->getName().c_str()) ));
+			}
+
+		}
+
+		rqst->handled = true;
+	}
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "spacing")) {
+		/* <w:spacing> is ambiguous: inside <w:pPr> it carries
+		 * paragraph spacing (w:before/w:after/w:line); inside
+		 * <w:rPr> it is letter-spacing (w:val in twentieths of a
+		 * point, signed).  Dispatch on the parent element. */
+		std::string contextTag = rqst->context->back();
+		std::string parent = rqst->context->size() >= 2 ?
+			rqst->context->at(rqst->context->size() - 2) : "";
+		if (contextMatches(contextTag, NS_W_KEY, "pPr") &&
+			(contextMatches(parent, NS_W_KEY, "p") ||
+			 contextMatches(parent, NS_W_KEY, "pPrDefault") ||
+			 contextMatches(parent, NS_W_KEY, "lvl") ||
+			 contextMatches(parent, NS_W_KEY, "style"))) {
+
+			OXML_SharedElement para = rqst->stck->top();
 			const gchar * before = attrMatches(NS_W_KEY, "before", rqst->ppAtts);
 			const gchar * after = attrMatches(NS_W_KEY, "after", rqst->ppAtts);
 			const gchar * lineRule = attrMatches(NS_W_KEY, "lineRule", rqst->ppAtts);
@@ -626,21 +654,21 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				final = UT_convertToDimensionlessString(ln_spc);
 				UT_return_if_fail( _error_if_fail( UT_OK == para->setProperty("line-height", final.c_str()) ));
 			}
-		} else if (nameMatches(rqst->pName, NS_W_KEY, "pStyle")) {
+		} else if (contextMatches(contextTag, NS_W_KEY, "rPr") &&
+				   (contextMatches(parent, NS_W_KEY, "r") ||
+					contextMatches(parent, NS_W_KEY, "rPrDefault") ||
+					contextMatches(parent, NS_W_KEY, "lvl") ||
+					contextMatches(parent, NS_W_KEY, "style"))) {
+			OXML_SharedElement run = rqst->stck->top();
 			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
-			UT_return_if_fail( _error_if_fail(val != nullptr) );
-			if (!strcmp(val, "Normal")) val = "_Normal"; //Cannot interfere with document defaults
-			OXML_Document * doc = OXML_Document::getInstance();
-			UT_return_if_fail( _error_if_fail(doc != nullptr) );
-			OXML_SharedStyle ref = doc->getStyleById(val);
-			if (ref.get() != nullptr && ref->getName().compare("")) {
-				UT_return_if_fail( _error_if_fail( UT_OK == para->setAttribute(PT_STYLE_ATTRIBUTE_NAME, ref->getName().c_str()) ));
+			if (val && *val) {
+				std::string pt(_TwipsToPoints(val));
+				pt += "pt";
+				run->setProperty("char-spacing", pt.c_str());
 			}
-
 		}
-
 		rqst->handled = true;
-	}
+
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "pBdr")) {
 		/* Paragraph border container - the <w:top>/<w:left>/
 		 * <w:bottom>/<w:right> edges are handled below; nothing
@@ -847,7 +875,6 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "w") ||
 				nameMatches(rqst->pName, NS_W_KEY, "rtl") ||
 				nameMatches(rqst->pName, NS_W_KEY, "kern") ||
-				nameMatches(rqst->pName, NS_W_KEY, "spacing") ||
 				nameMatches(rqst->pName, NS_W_KEY, "em") ||
 				nameMatches(rqst->pName, NS_W_KEY, "position") ||
 				nameMatches(rqst->pName, NS_W_KEY, "sz") ) {
@@ -1078,15 +1105,6 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 					std::string pt(UT_convertToDimensionlessString(hp / 2.0));
 					pt += "pt";
 					run->setProperty("char-kern", pt.c_str());
-				}
-
-			} else if (nameMatches(rqst->pName, NS_W_KEY, "spacing")) {
-				//letter spacing in twentieths of a point (signed)
-				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
-				if (val && *val) {
-					std::string pt(_TwipsToPoints(val));
-					pt += "pt";
-					run->setProperty("char-spacing", pt.c_str());
 				}
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "em")) {

@@ -300,6 +300,10 @@ all.
     the paragraph whose mark terminates a Word section; layout uses
     it to suppress borders on the empty break mark. Older Abinova
     versions ignore the unknown property safely.
+  - `w:spacing` inside `w:rPr` (expanded/condensed tracking) imports
+    as the `char-spacing` character property and is rendered by
+    widening each glyph cluster's advance at shape time — tracked-out
+    cover-page titles render like Word's.
 - **Grammar checker switched to Hunspell** (now built-in): the checker no
   longer uses link-grammar. A vendored `hunspell-1.7.0` is built in
   `thirdparty/` and the sentence walker now flags each

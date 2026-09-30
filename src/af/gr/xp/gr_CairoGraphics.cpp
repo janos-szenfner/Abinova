@@ -992,7 +992,28 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 	RI->m_pLogOffsets = _calculateLogicalOffsets(RI->m_pGlyphs,
 												 si.m_iVisDir,
 												 utf8.utf8_str());
-	
+
+	/*
+	 * letter-spacing (char-spacing prop / OOXML w:spacing): extend
+	 * the advance of the last glyph of each cluster by the
+	 * per-character spacing.  m_pScaledGlyphs inherits the
+	 * adjustment through _scaleCharacterMetrics().
+	 */
+	if(si.m_iLetterSpacing != 0 && RI->m_pGlyphs->num_glyphs > 0)
+	{
+		int iSpacing = ltpunz(si.m_iLetterSpacing);
+		PangoGlyphString * pg = RI->m_pGlyphs;
+		for(int g = 0; g < pg->num_glyphs; ++g)
+		{
+			if(g + 1 == pg->num_glyphs ||
+			   pg->log_clusters[g + 1] != pg->log_clusters[g])
+			{
+				pg->glyphs[g].geometry.width =
+					UT_MAX(0, pg->glyphs[g].geometry.width + iSpacing);
+			}
+		}
+	}
+
 	// need to transfer data that we will need later from si to RI
 	RI->m_iLength = si.m_iLength;
 	RI->m_pItem   = si.m_pItem;

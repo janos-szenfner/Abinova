@@ -127,8 +127,12 @@ public:
 	GR_ShapingInfo::TextTransform getTextTransform() const { return m_TextTransform;}
 	void setTextTransform(GR_ShapingInfo::TextTransform transform) { m_TextTransform = transform; }
 
+	/* extra per-character advance in layout units (char-spacing prop) */
+	UT_sint32           getLetterSpacing() const { return m_iLetterSpacing; }
+
 private:
 	GR_ShapingInfo::TextTransform m_TextTransform;
+	UT_sint32           m_iLetterSpacing;
 
 	bool				_refreshDrawBuffer();
 	bool				_addupCharWidths(void);

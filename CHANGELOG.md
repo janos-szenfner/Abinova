@@ -220,6 +220,14 @@ below are on `main` but the release has not been cut yet.
   - Text-box insets map to per-side `xpad-left`/`xpad-right`/
     `ypad-top`/`ypad-bottom` frame properties instead of collapsing
     to `max()` — asymmetric `bodyPr` insets no longer squeeze text.
+- **DOCX letter-spacing rendered** — `w:spacing` inside `w:rPr`
+  (expanded/condensed character pitch in twentieths of a point) now
+  imports as the `char-spacing` character property and renders by
+  widening each glyph cluster's advance in the Pango shaper, so
+  tracked-out titles (e.g. cover pages at 8 pt) match Word.  The
+  importer previously dropped it: the element name is shared with
+  paragraph spacing (`w:pPr/w:spacing`) whose handler consumed it
+  unconditionally.  Round-trips through `.abwn`.
 - **Locale decimal-separator corruption fixed** — the OOXML
   importer serialized lengths with locale-sensitive `snprintf`
   (`xpos:3,7620in` under comma-decimal locales) while the abwn

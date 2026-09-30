@@ -57,7 +57,8 @@ GR_XPRenderInfo::GR_XPRenderInfo(GR_ScriptType type)
 		 m_pSegmentOffset(nullptr),
 		 m_iSegmentCount(0),
 		 m_iSpaceWidthBeforeJustification(0xfffffff), // note one less 'f'
-		 m_iTotalLength(0)
+		 m_iTotalLength(0),
+		 m_iLetterSpacing(0)
 {
 	_constructorCommonCode();
 }
@@ -285,6 +286,7 @@ bool  GR_XPRenderInfo::split (GR_RenderInfo *&pri, bool bReverse)
 	m_pWidths = pWB;
 	
 	pRI->m_eShapingResult = m_eShapingResult;
+	pRI->m_iLetterSpacing = m_iLetterSpacing;
 
 	// Deal with justification
 	// this has to be always done (used by isJustified())
