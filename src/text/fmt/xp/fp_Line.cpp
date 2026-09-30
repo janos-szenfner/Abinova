@@ -465,7 +465,7 @@ UT_sint32 fp_Line::calcRightBorderThick(void)
 
 bool fp_Line::hasBordersOrShading(void) const
 {
-  if(getBlock() && (getBlock()->hasBorders() || (getBlock()->getPattern() > 0)))
+  if(getBlock() && (getBlock()->hasBorders() || getBlock()->hasShading()))
   {
     return true;
   }
@@ -1427,9 +1427,14 @@ void fp_Line::setBlock(fl_BlockLayout * pBlock)
       //      UT_ASSERT(pBlock->findLineInBlock(this) >= 0);
     }
     m_pBlock = pBlock;
-    if(m_pBlock && (m_pBlock->getPattern() > 0))
+    if(m_pBlock && m_pBlock->hasShading())
     {
-        UT_RGBColor c = m_pBlock->getShadingingForeColor();
+        /* a pattern fill paints with the foreground color; a bare
+         * shading-background-color (the Word/ODF "fill") is a solid
+         * band painted with the background color */
+        UT_RGBColor c = (m_pBlock->getPattern() > 0)
+            ? m_pBlock->getShadingingForeColor()
+            : m_pBlock->getShadingingBackColor();
         getFillType().setColor(c);
     }
 }
@@ -2186,7 +2191,7 @@ void fp_Line::draw(GR_Graphics* pG)
 	da.pG = pG;
 	da.bDirtyRunsOnly = true; //magic line to give a factor 2 speed up!
 	const UT_Rect* pRect = pG->getClipRect();
-	bool bDoShade = (getBlock() && (getBlock()->getPattern() > 0));
+	bool bDoShade = (getBlock() && getBlock()->hasShading());
 	if(bDoShade)
 	{
 	    da.bDirtyRunsOnly = false;
@@ -2271,7 +2276,7 @@ void fp_Line::draw(dg_DrawArgs* pDA)
 	pDA->yoff += getAscent();
 	xxx_UT_DEBUGMSG(("fp_Line::draw getAscent() %d getAscent() %d yoff %d \n",getAscent(),getAscent(),pDA->yoff));
 	auto clipRect = pDA->pG->getClipRectOptional();
-	if(getBlock() && (getBlock()->getPattern() > 0))
+	if(getBlock() && getBlock()->hasShading())
 	{
 	      xxx_UT_DEBUGMSG(("pRect in fp_Line::draw is %p \n",pRect));
 	      UT_sint32 x = pDA->xoff;

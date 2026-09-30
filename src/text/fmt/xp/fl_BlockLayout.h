@@ -397,6 +397,14 @@ public:
 	const UT_RGBColor      getShadingingForeColor(void) const;
 	const UT_RGBColor      getShadingingBackColor(void) const;
 	UT_sint32              getPattern(void) const;
+	/* true when the block requests background painting, either via
+	 * shading-pattern or an explicit shading-background-color (the
+	 * Word/ODF "fill" semantic: a fill color alone means a solid
+	 * band) */
+	bool                   hasShading(void) const
+	{
+		return m_iPattern > 0 || m_bShadingBackColorSet;
+	}
 
 	const PP_PropertyMap::Line & getBottom () const { return m_lineBottom; }
 	const PP_PropertyMap::Line & getLeft ()   const { return m_lineLeft; }
@@ -569,6 +577,7 @@ protected:
 	UT_RGBColor             m_ShadingForeColor;
 	UT_RGBColor             m_ShadingBackColor;
 	UT_sint32               m_iPattern;
+	bool                    m_bShadingBackColorSet;
 
 	PP_PropertyMap::Line    m_lineBottom;
 	PP_PropertyMap::Line    m_lineLeft;

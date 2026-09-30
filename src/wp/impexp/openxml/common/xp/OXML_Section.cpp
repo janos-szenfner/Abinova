@@ -43,7 +43,8 @@ OXML_Section::OXML_Section() :
 	m_breakType(NEXTPAGE_BREAK),
 	m_lastParagraph(nullptr),
 	m_target(0),
-	m_handledHdrFtr(false)
+	m_handledHdrFtr(false),
+	m_titlePg(false)
 {
 	m_headerIds[0] = nullptr;
 	m_headerIds[1] = nullptr;
@@ -62,7 +63,8 @@ OXML_Section::OXML_Section(const std::string & id) :
 	m_breakType(NEXTPAGE_BREAK),
 	m_lastParagraph(nullptr),
 	m_target(0),
-	m_handledHdrFtr(false)
+	m_handledHdrFtr(false),
+	m_titlePg(false)
 {
 	m_headerIds[0] = nullptr;
 	m_headerIds[1] = nullptr;
@@ -619,7 +621,8 @@ UT_Error OXML_Section::_setReferenceIds()
 			if (i == DEFAULT_HDRFTR) {
 				this->setAttribute("header", abw_id );
 			} else if (i == FIRSTPAGE_HDRFTR) {
-				this->setAttribute("header-first", abw_id );
+				if (m_titlePg) //Word only honors first-page refs with w:titlePg
+					this->setAttribute("header-first", abw_id );
 			} else if (i == EVENPAGE_HDRFTR) {
 				this->setAttribute("header-even", abw_id );
 			}	
@@ -637,7 +640,8 @@ UT_Error OXML_Section::_setReferenceIds()
 			if (i == DEFAULT_HDRFTR) {
 				this->setAttribute("footer", abw_id );
 			} else if (i == FIRSTPAGE_HDRFTR) {
-				this->setAttribute("footer-first", abw_id );
+				if (m_titlePg)
+					this->setAttribute("footer-first", abw_id );
 			} else if (i == EVENPAGE_HDRFTR) {
 				this->setAttribute("footer-even", abw_id );
 			}	

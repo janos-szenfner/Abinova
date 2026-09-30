@@ -38,6 +38,7 @@
 #include "ie_exp_OpenXML.h"
 
 // External includes
+#include <map>
 #include <string>
 
 /* \class OXML_Document
@@ -123,9 +124,15 @@ public:
 
 	void setPageWidth(const std::string & width);
 	void setPageHeight(const std::string & height);
+	const std::string & getPageWidth() const { return m_pageWidth; }
+	const std::string & getPageHeight() const { return m_pageHeight; }
 	void setPageOrientation(const std::string & orientation);
 	void setPageMargins(const std::string & top, const std::string & left, const std::string & right, const std::string & bottom);
 	void setColumns(const std::string & colNum, const std::string & colSep);
+
+	//! Document-level settings properties (settings.xml footnotePr etc.)
+	void setDocProperty(const std::string & name, const std::string & val)
+		{ m_docProps[name] = val; }
 
 private:
 	static OXML_Document* s_docInst;
@@ -154,6 +161,8 @@ private:
 	std::string m_pageWidth;
 	std::string m_pageHeight;
 	std::string m_pageOrientation;
+
+	std::map<std::string, std::string> m_docProps;
 
 	std::string m_pageMarginTop;
 	std::string m_pageMarginLeft;

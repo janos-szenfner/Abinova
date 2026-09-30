@@ -168,7 +168,11 @@ UT_Error OXMLi_PackageManager::parseDocumentEndnotes()
 
 GsfInput* OXMLi_PackageManager::getChildById( GsfInput * parent, const char * id )
 {
-	return gsf_open_pkg_open_rel_by_id(parent, id, nullptr);
+	GsfInput * pInput =
+		gsf_open_pkg_open_rel_by_id(parent, id, nullptr);
+	if (!pInput)
+		pInput = _relLookup(parent, id, nullptr);
+	return pInput;
 }
 
 GsfInput* OXMLi_PackageManager::getChildByType( GsfInput * parent, OXML_PartType type )
@@ -176,7 +180,179 @@ GsfInput* OXMLi_PackageManager::getChildByType( GsfInput * parent, OXML_PartType
 	const char * fulltype;
 	fulltype = _getFullType(type);
 	UT_return_val_if_fail(fulltype != nullptr, nullptr);
-	return gsf_open_pkg_open_rel_by_type(parent, fulltype, nullptr);
+	GsfInput * pInput =
+		gsf_open_pkg_open_rel_by_type(parent, fulltype, nullptr);
+	if (!pInput)
+	{
+		/* ISO Strict packages use purl.oclc.org relationship types —
+		 * retry with the strict URI so those documents still open */
+		static const char * transPrefix =
+			"http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
+		static const char * strictPrefix =
+			"http://purl.oclc.org/ooxml/officeDocument/relationships/";
+		if (!strncmp(fulltype, transPrefix, strlen(transPrefix)))
+		{
+			std::string strictType = strictPrefix;
+			strictType += fulltype + strlen(transPrefix);
+			pInput = gsf_open_pkg_open_rel_by_type(
+				parent, strictType.c_str(), nullptr);
+			/* when libgsf cannot read strict .rels parts at all,
+			 * resolve the relationship from our own map instead */
+			if (!pInput)
+				pInput = _relLookup(parent, nullptr, strictType.c_str());
+		}
+		if (!pInput)
+			pInput = _relLookup(parent, nullptr, fulltype);
+	}
+	return pInput;
+}
+
+const std::string & OXMLi_PackageManager::_docDir()
+{
+	if (m_docDir.empty())
+	{
+		if (!m_rootRelsLoaded)
+		{
+			m_rootRelsLoaded = true;
+			_loadRels("_rels/.rels", m_rootRels);
+		}
+		for (auto & kv : m_rootRels)
+		{
+			if (kv.second.target.empty())
+				continue;
+			size_t slash = kv.second.target.find('/');
+			if (slash != std::string::npos &&
+				kv.second.target.find("document.xml") != std::string::npos)
+			{
+				m_docDir = kv.second.target.substr(0, slash + 1);
+				break;
+			}
+		}
+		if (m_docDir.empty())
+			m_docDir = "word/";
+	}
+	return m_docDir;
+}
+
+/* open a zip member by its slash-separated path — gsf children are
+ * addressed one path component at a time */
+GsfInput * OXMLi_PackageManager::_childByPath(const std::string & path)
+{
+	if (!m_pPkg || path.empty() || path[0] == '/')
+		return nullptr;
+	GsfInput * cur = GSF_INPUT(m_pPkg);
+	g_object_ref(cur);
+	size_t pos = 0;
+	while (pos < path.size() && cur)
+	{
+		size_t slash = path.find('/', pos);
+		std::string comp = path.substr(
+			pos, slash == std::string::npos ? std::string::npos :
+				slash - pos);
+		if (comp.empty() || comp == "." || comp == "..")
+			return (g_object_unref(cur), nullptr);
+		GsfInput * next =
+			gsf_infile_child_by_name(GSF_INFILE(cur), comp.c_str());
+		g_object_unref(cur);
+		cur = next;
+		pos = (slash == std::string::npos) ? path.size() : slash + 1;
+	}
+	return cur;
+}
+
+/* read a .rels part directly from the package and build an
+ * Id -> {type,target} map. Used when libgsf does not recognise the
+ * rels namespace (ISO Strict packages). */
+bool OXMLi_PackageManager::_loadRels(const std::string & zipPath,
+									 std::map<std::string, _RelRec> & out)
+{
+	GsfInput * rels = _childByPath(zipPath);
+	if (!rels)
+		return false;
+	gsf_off_t len = gsf_input_remaining(rels);
+	const guint8 * data =
+		len > 0 ? gsf_input_read(rels, len, nullptr) : nullptr;
+	if (!data)
+	{
+		g_object_unref(rels);
+		return false;
+	}
+	std::string xml(reinterpret_cast<const char *>(data),
+					static_cast<size_t>(len));
+	g_object_unref(rels);
+
+	size_t pos = 0;
+	while ((pos = xml.find("<Relationship", pos)) != std::string::npos)
+	{
+		size_t end = xml.find('>', pos);
+		if (end == std::string::npos)
+			break;
+		std::string tag = xml.substr(pos, end - pos);
+		pos = end + 1;
+		auto attr = [&tag](const char * n) -> std::string {
+			std::string pat = std::string(n) + "=";
+			size_t a = tag.find(pat);
+			if (a == std::string::npos)
+				return "";
+			a += pat.size();
+			if (a >= tag.size() || (tag[a] != '"' && tag[a] != '\''))
+				return "";
+			char q = tag[a++];
+			size_t b = tag.find(q, a);
+			return b == std::string::npos ? "" : tag.substr(a, b - a);
+		};
+		std::string id = attr("Id");
+		if (id.empty())
+			continue;
+		_RelRec rec;
+		rec.type = attr("Type");
+		rec.target = attr("Target");
+		rec.external = (attr("TargetMode") == "External");
+		out[id] = rec;
+	}
+	return true;
+}
+
+/* fallback rel resolution for packages libgsf cannot enumerate —
+ * supports the package root and the main document part */
+GsfInput * OXMLi_PackageManager::_relLookup(GsfInput * parent,
+											const char * id,
+											const char * type)
+{
+	const std::map<std::string, _RelRec> * rels = nullptr;
+	std::string base;
+	if (m_pPkg && parent == GSF_INPUT(m_pPkg))
+	{
+		if (!m_rootRelsLoaded)
+		{
+			m_rootRelsLoaded = true;
+			_loadRels("_rels/.rels", m_rootRels);
+		}
+		rels = &m_rootRels;
+	}
+	else if (m_pDocPart && parent == m_pDocPart)
+	{
+		if (!m_docRelsLoaded)
+		{
+			m_docRelsLoaded = true;
+			_loadRels(_docDir() + "_rels/document.xml.rels", m_docRels);
+		}
+		rels = &m_docRels;
+		base = _docDir();
+	}
+	if (!rels)
+		return nullptr;
+	for (auto & kv : *rels)
+	{
+		if ((id && kv.first == id) ||
+			(type && !kv.second.type.empty() && kv.second.type == type))
+		{
+			if (kv.second.external || kv.second.target.empty())
+				return nullptr;
+			return _childByPath(base + kv.second.target);
+		}
+	}
+	return nullptr;
 }
 
 UT_Error OXMLi_PackageManager::parseChildById( GsfInput * parent, const char * id, OXMLi_StreamListener * pListener)
@@ -314,6 +490,10 @@ UT_ConstByteBufPtr OXMLi_PackageManager::parseImageStream(const char * id)
 	GsfInput * parent = _getDocumentStream();
 	GsfInput * stream = getChildById(parent, id);
 
+	//the image relationship may not exist (broken or strict package)
+	if (stream == nullptr)
+		return nullptr;
+
 	//First, we check if this stream has already been parsed before
 	std::string part_name = gsf_input_name(stream); //TODO: determine if part names are truly unique
 	std::map<std::string, bool>::iterator it;
@@ -338,7 +518,28 @@ UT_ConstByteBufPtr OXMLi_PackageManager::parseImageStream(const char * id)
 std::string OXMLi_PackageManager::getPartName(const char * id)
 {
 	GsfInput * parent = _getDocumentStream();
-	const char* target = gsf_open_pkg_rel_get_target(gsf_open_pkg_lookup_rel_by_id(parent, id));	
-	return std::string(target);
+	const char* target = nullptr;
+	if (parent)
+	{
+		const GsfOpenPkgRel * rel =
+			gsf_open_pkg_lookup_rel_by_id(parent, id);
+		if (rel)
+			target = gsf_open_pkg_rel_get_target(rel);
+	}
+	if (!target && parent)
+	{
+		/* strict packages: look the id up in the rel map and return
+		 * the recorded target without opening the part */
+		if (!m_docRelsLoaded)
+		{
+			m_docRelsLoaded = true;
+			_loadRels(_docDir() + "_rels/document.xml.rels", m_docRels);
+		}
+		auto it = m_docRels.find(id);
+		if (it != m_docRels.end())
+			return _docDir() + it->second.target;
+		return "";
+	}
+	return target ? std::string(target) : std::string();
 }
 

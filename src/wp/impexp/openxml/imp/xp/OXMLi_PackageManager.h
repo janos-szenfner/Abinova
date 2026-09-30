@@ -113,11 +113,27 @@ private:
 	GsfInput * _getDocumentStream();
 	UT_Error _parseStream( GsfInput * stream, OXMLi_StreamListener * pListener );
 
+	/* strict-OOXML fallback: libgsf does not parse .rels parts whose
+	 * root uses the purl.oclc.org namespace, so relationship maps are
+	 * loaded manually when the gsf rel lookups fail */
+	struct _RelRec { std::string type, target; bool external; };
+	GsfInput * _relLookup(GsfInput * parent, const char * id,
+						  const char * type);
+	GsfInput * _childByPath(const std::string & path);
+	bool _loadRels(const std::string & zipPath,
+				   std::map<std::string, _RelRec> & out);
+	const std::string & _docDir();
+
 	static OXMLi_PackageManager * s_pInst;
 
 	GsfInfile* m_pPkg;
 	GsfInput* m_pDocPart;
 	std::map<std::string, bool> m_parsedParts;
+	std::map<std::string, _RelRec> m_rootRels;
+	std::map<std::string, _RelRec> m_docRels;
+	bool m_rootRelsLoaded = false;
+	bool m_docRelsLoaded = false;
+	std::string m_docDir;
 };
 
 #endif //_OXMLI_PACKAGEMANAGER_H_

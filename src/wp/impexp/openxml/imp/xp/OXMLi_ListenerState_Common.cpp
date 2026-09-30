@@ -46,6 +46,47 @@
 
 // External includes
 #include <cstring>
+#include <cstdlib>
+
+/* Adobe Symbol charset -> Unicode. w:sym/w:char stores the codepoint in
+ * the symbol font's own encoding; Symbol is the common case. Table covers
+ * 0x20-0xFF; 0 = unmapped (font-private extension glyphs). */
+static UT_UCS4Char _symbolCharToUnicode(UT_UCS4Char c)
+{
+	if (c < 0x20 || c > 0xFE)
+		return c;
+	static const UT_UCS4Char map[] = {
+		0x0020,0x0021,0x2200,0x0023,0x2203,0x0025,0x0026,0x220D, /* 20-27 */
+		0x0028,0x0029,0x2217,0x002B,0x002C,0x2212,0x002E,0x002F, /* 28-2F */
+		0x0030,0x0031,0x0032,0x0033,0x0034,0x0035,0x0036,0x0037, /* 30-37 */
+		0x0038,0x0039,0x003A,0x003B,0x003C,0x003D,0x003E,0x003F, /* 38-3F */
+		0x2245,0x0391,0x0392,0x03A7,0x0394,0x0395,0x03A6,0x0393, /* 40-47 */
+		0x0397,0x0399,0x03D1,0x039A,0x039B,0x039C,0x039D,0x039F, /* 48-4F */
+		0x03A0,0x0398,0x03A1,0x03A3,0x03A4,0x03A5,0x03C2,0x03A9, /* 50-57 */
+		0x039E,0x03A8,0x0396,0x005B,0x2234,0x005D,0x22A5,0x005F, /* 58-5F */
+		0xF8E5,0x03B1,0x03B2,0x03C7,0x03B4,0x03B5,0x03C6,0x03B3, /* 60-67 */
+		0x03B7,0x03B9,0x03D5,0x03BA,0x03BB,0x03BC,0x03BD,0x03BF, /* 68-6F */
+		0x03C0,0x03B8,0x03C1,0x03C3,0x03C4,0x03C5,0x03D6,0x03C9, /* 70-77 */
+		0x03BE,0x03C8,0x03B6,0x007B,0x007C,0x007D,0x223C,0x007F, /* 78-7F */
+		0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000, /* 80-87 */
+		0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000, /* 88-8F */
+		0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000, /* 90-97 */
+		0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000, /* 98-9F */
+		0x20AC,0x03D2,0x2032,0x2264,0x2044,0x221E,0x0192,0x2663, /* A0-A7 */
+		0x2666,0x2665,0x2660,0x2194,0x2190,0x2191,0x2192,0x2193, /* A8-AF */
+		0x00B0,0x00B1,0x2033,0x2265,0x00D7,0x221D,0x2202,0x2022, /* B0-B7 */
+		0x00F7,0x2260,0x2261,0x2248,0x2026,0xF8E6,0xF8E7,0x21B5, /* B8-BF */
+		0x2135,0x2111,0x211C,0x2118,0x2297,0x2295,0x2205,0x2229, /* C0-C7 */
+		0x222A,0x2283,0x2287,0x2284,0x2282,0x2286,0x2208,0x2209, /* C8-CF */
+		0x2220,0x2207,0x00AE,0x00A9,0x2122,0x220F,0x221A,0x22C5, /* D0-D7 */
+		0x00AC,0x2227,0x2228,0x21D4,0x21D0,0x21D1,0x21D2,0x21D3, /* D8-DF */
+		0x25CA,0x2329,0xF8E8,0xF8E9,0xF8EA,0x2211,0xF8EB,0xF8EC, /* E0-E7 */
+		0xF8ED,0xF8EE,0xF8EF,0xF8F0,0xF8F1,0xF8F2,0xF8F3,0xF8F4, /* E8-EF */
+		0x0000,0x232A,0x222B,0x2320,0xF8F5,0x2321,0xF8F6,0xF8F7, /* F0-F7 */
+		0xF8F8,0xF8F9,0xF8FA,0xF8FB,0xF8FC,0xF8FD,0xF8FE,0x0000  /* F8-FF */
+	};
+	return map[c - 0x20];
+}
 
 OXMLi_ListenerState_Common::OXMLi_ListenerState_Common() : 
 	OXMLi_ListenerState(), 
@@ -102,6 +143,10 @@ static std::string _resolveThemeColor(const gchar * name)
 void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 {
 	UT_return_if_fail( this->_error_if_fail(rqst != nullptr) );
+
+	/* w:sdt content controls pass their sdtContent children through
+	 * normally; showingPlcHdr placeholder text is imported as visible
+	 * text to match Word's on-screen rendering. */
 
 	if(nameMatches(rqst->pName, NS_W_KEY, "instrText"))
 	{
@@ -288,6 +333,37 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			para->setProperty("tabstops", tabstops);						
 		}		
 		rqst->handled = true;
+	} else if ( nameMatches(rqst->pName, NS_W_KEY, "noBreakHyphen") ||
+				nameMatches(rqst->pName, NS_W_KEY, "softHyphen") ) {
+		std::string contextTag = rqst->context->back();
+		if (contextMatches(contextTag, NS_W_KEY, "r")) {
+			//U+2011 NON-BREAKING HYPHEN / U+00AD SOFT HYPHEN (UTF-8)
+			const char * ch = nameMatches(rqst->pName, NS_W_KEY, "noBreakHyphen")
+				? "\xE2\x80\x91" : "\xC2\xAD";
+			OXML_SharedElement t( new OXML_Element_Text(ch, strlen(ch)) );
+			rqst->stck->push(t);
+		}
+		rqst->handled = true;
+	} else if ( nameMatches(rqst->pName, NS_W_KEY, "sym")) {
+		std::string contextTag = rqst->context->back();
+		if (contextMatches(contextTag, NS_W_KEY, "r")) {
+			const gchar * font = attrMatches(NS_W_KEY, "font", rqst->ppAtts);
+			const gchar * chAttr = attrMatches(NS_W_KEY, "char", rqst->ppAtts);
+			if (chAttr && *chAttr) {
+				UT_UCS4Char ucs = (UT_UCS4Char)strtoul(chAttr, nullptr, 16);
+				if (ucs >= 0xF020 && ucs <= 0xF0FE)
+					ucs -= 0xF000; //strip PUA marker used by some writers
+				if (font && !strcmp(font, "Symbol"))
+					ucs = _symbolCharToUnicode(ucs);
+				if (ucs) {
+					UT_UCS4String s;
+					s += ucs;
+					OXML_SharedElement t( new OXML_Element_Text(s.utf8_str(), strlen(s.utf8_str())) );
+					rqst->stck->push(t);
+				}
+			}
+		}
+		rqst->handled = true;
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "ilvl")){
 		//verify the context
 		std::string contextTag = rqst->context->back();
@@ -320,6 +396,11 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "ind") ||
 				nameMatches(rqst->pName, NS_W_KEY, "spacing") ||
 				nameMatches(rqst->pName, NS_W_KEY, "contextualSpacing") ||
+				nameMatches(rqst->pName, NS_W_KEY, "keepNext") ||
+				nameMatches(rqst->pName, NS_W_KEY, "keepLines") ||
+				nameMatches(rqst->pName, NS_W_KEY, "widowControl") ||
+				nameMatches(rqst->pName, NS_W_KEY, "framePr") ||
+				nameMatches(rqst->pName, NS_W_KEY, "bidi") ||
 				nameMatches(rqst->pName, NS_W_KEY, "pStyle")) {
 	//Verify the context...
 	std::string contextTag = rqst->context->at(rqst->context->size() - 2);
@@ -356,11 +437,62 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			 * w:val on/off switch, on when absent */
 			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 			bool bOn = !val || !*val ||
-				(!strcmp(val, "true") && !strcmp(val, "1") &&
-				 !strcmp(val, "on"));
+				!strcmp(val, "true") || !strcmp(val, "1") ||
+				!strcmp(val, "on");
 			UT_return_if_fail( _error_if_fail( UT_OK ==
 				para->setProperty("contextual-spacing",
 								  bOn ? "1" : "0") ));
+
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "keepNext") ||
+				nameMatches(rqst->pName, NS_W_KEY, "keepLines") ||
+				nameMatches(rqst->pName, NS_W_KEY, "widowControl")) {
+			/* OOXML on/off switches; w:val absent or true/1/on = enabled */
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			bool bOn = !val || !*val ||
+				!strcmp(val, "true") || !strcmp(val, "1") ||
+				!strcmp(val, "on");
+			const char * prop = "keep-with-next";
+			const char * onVal = "yes", * offVal = "no";
+			if (nameMatches(rqst->pName, NS_W_KEY, "keepLines")) {
+				prop = "keep-together";
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "widowControl")) {
+				prop = "widows";
+				onVal = "2"; //default widow/orphan count
+				offVal = "0";
+			}
+			UT_return_if_fail( _error_if_fail( UT_OK ==
+				para->setProperty(prop, bOn ? onVal : offVal) ));
+
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "bidi")) {
+			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			bool bOn = !val || !*val ||
+				!strcmp(val, "true") || !strcmp(val, "1") ||
+				!strcmp(val, "on");
+			UT_return_if_fail( _error_if_fail( UT_OK ==
+				para->setProperty("dom-dir", bOn ? "rtl" : "ltr") ));
+
+		} else if (nameMatches(rqst->pName, NS_W_KEY, "framePr")) {
+			/* w:framePr - paragraph framed as positioned text. Stored as
+			 * props; Paragraph::addToPT wraps the block in a frame strux */
+			const gchar * v;
+			auto twipProp = [&](const char * key, const char * attr) {
+				const gchar * a = attrMatches(NS_W_KEY, attr, rqst->ppAtts);
+				if (a) {
+					std::string dim(_TwipsToPoints(a));
+					dim += "pt";
+					para->setProperty(key, dim.c_str());
+				}
+			};
+			twipProp("framePr-x", "x");
+			twipProp("framePr-y", "y");
+			twipProp("framePr-w", "w");
+			twipProp("framePr-h", "h");
+			if ((v = attrMatches(NS_W_KEY, "hAnchor", rqst->ppAtts)))
+				para->setProperty("framePr-hAnchor", v);
+			if ((v = attrMatches(NS_W_KEY, "vAnchor", rqst->ppAtts)))
+				para->setProperty("framePr-vAnchor", v);
+			if ((v = attrMatches(NS_W_KEY, "wrap", rqst->ppAtts)))
+				para->setProperty("framePr-wrap", v);
 
 		} else if (nameMatches(rqst->pName, NS_W_KEY, "ind")) {
 			const gchar * left = attrMatches(NS_W_KEY, "left", rqst->ppAtts);
@@ -554,6 +686,12 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "lang") ||
 				nameMatches(rqst->pName, NS_W_KEY, "noProof") ||
 				nameMatches(rqst->pName, NS_W_KEY, "vanish") ||
+				nameMatches(rqst->pName, NS_W_KEY, "specVanish") ||
+				nameMatches(rqst->pName, NS_W_KEY, "webHidden") ||
+				nameMatches(rqst->pName, NS_W_KEY, "caps") ||
+				nameMatches(rqst->pName, NS_W_KEY, "smallCaps") ||
+				nameMatches(rqst->pName, NS_W_KEY, "w") ||
+				nameMatches(rqst->pName, NS_W_KEY, "rtl") ||
 				nameMatches(rqst->pName, NS_W_KEY, "sz") ) {
 		//Verify the context...
 		std::string contextTag = rqst->context->at(rqst->context->size() - 2);
@@ -568,6 +706,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 						 contextMatches(rqst->context->at(rqst->context->size() - 3), NS_W_KEY, "p");
 		if (contextMatches(contextTag, NS_W_KEY, "r") ||
 			contextMatches(contextTag, NS_W_KEY, "rPrDefault") ||
+			contextMatches(contextTag, NS_W_KEY, "lvl") ||
 			contextMatches(contextTag, NS_W_KEY, "style") ||
 			bParaMark) {
 			OXML_SharedElement run = rqst->stck->top();
@@ -719,12 +858,49 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				if (isOn == nullptr || !strcmp(isOn, "on") || !strcmp(isOn, "1") || !strcmp(isOn, "true") )
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("lang", "-none-") ));
 
-			} else if (nameMatches(rqst->pName, NS_W_KEY, "vanish")) {
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "vanish") ||
+					   nameMatches(rqst->pName, NS_W_KEY, "specVanish") ||
+					   nameMatches(rqst->pName, NS_W_KEY, "webHidden")) {
 				const gchar * isOn = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 				if (isOn == nullptr || !strcmp(isOn, "on") || !strcmp(isOn, "1") || !strcmp(isOn, "true") ) {
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("display", "none") ));
 				} else {
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("display", "inline") ));
+				}
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "caps")) {
+				const gchar * isOn = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (isOn == nullptr || !strcmp(isOn, "on") || !strcmp(isOn, "1") || !strcmp(isOn, "true") ) {
+					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("text-transform", "uppercase") ));
+				} else {
+					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("text-transform", "none") ));
+				}
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "smallCaps")) {
+				const gchar * isOn = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (isOn == nullptr || !strcmp(isOn, "on") || !strcmp(isOn, "1") || !strcmp(isOn, "true") ) {
+					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("font-variant", "small-caps") ));
+				} else {
+					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("font-variant", "normal") ));
+				}
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "w")) {
+				//character expansion percent -> named stretch
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (val && *val) {
+					double pct = UT_convertDimensionless(val);
+					if (pct < 87.5)
+						run->setProperty("font-stretch", "Condensed");
+					else if (pct > 112.5)
+						run->setProperty("font-stretch", "Expanded");
+				}
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "rtl")) {
+				const gchar * isOn = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				if (isOn == nullptr || !strcmp(isOn, "on") || !strcmp(isOn, "1") || !strcmp(isOn, "true") ) {
+					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("dir-override", "rtl") ));
+				} else {
+					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("dir-override", "ltr") ));
 				}
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "sz")) {
@@ -748,11 +924,21 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 	} else if (	nameMatches(rqst->pName, NS_W_KEY, "type") ||
 				nameMatches(rqst->pName, NS_W_KEY, "footerReference") ||
 				nameMatches(rqst->pName, NS_W_KEY, "headerReference") ||
+				nameMatches(rqst->pName, NS_W_KEY, "titlePg") ||
+				nameMatches(rqst->pName, NS_W_KEY, "pgNumType") ||
 				nameMatches(rqst->pName, NS_W_KEY, "cols")) {
 		//Verify the context...
 		std::string contextTag = rqst->context->back();
 		if (contextMatches(contextTag, NS_W_KEY, "sectPr")) {
-			if (nameMatches(rqst->pName, NS_W_KEY, "type")) {
+			if (nameMatches(rqst->pName, NS_W_KEY, "titlePg")) {
+				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+				bool bOn = !val || !*val || !strcmp(val, "true") ||
+					!strcmp(val, "1") || !strcmp(val, "on");
+				OXML_SharedSection sect = rqst->sect_stck->top();
+				if (sect.get())
+					sect->setTitlePg(bOn);
+				rqst->handled = true;
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "type")) {
 				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 				UT_return_if_fail( this->_error_if_fail(val != nullptr) );
 
@@ -770,6 +956,18 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 					sect->setBreakType(ODDPAGE_BREAK);
 				} else { //nextPage and nextColumn
 					sect->setBreakType(NEXTPAGE_BREAK);
+				}
+				rqst->handled = true;
+
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "pgNumType")) {
+				//w:pgNumType@w:start restarts page numbering in this section
+				const gchar * start = attrMatches(NS_W_KEY, "start", rqst->ppAtts);
+				if (start && *start) {
+					OXML_SharedSection sect = rqst->sect_stck->top();
+					if (sect.get()) {
+						sect->setProperty("section-restart", "1");
+						sect->setProperty("section-restart-value", start);
+					}
 				}
 				rqst->handled = true;
 
@@ -830,6 +1028,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			else if (nameMatches(rqst->pName, NS_W_KEY, "cols")) {
 				const gchar * num = attrMatches(NS_W_KEY, "num", rqst->ppAtts);
 				const gchar * sep = attrMatches(NS_W_KEY, "sep", rqst->ppAtts);
+				const gchar * space = attrMatches(NS_W_KEY, "space", rqst->ppAtts);
 
 				if(!num || atoi(num)<1)
 					num = "1";
@@ -840,6 +1039,12 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				OXML_SharedSection last = rqst->sect_stck->top();
 				last->setProperty("columns", num);
 				last->setProperty("column-line", sep);
+				if(space && *space)
+				{
+					std::string gap(_TwipsToInches(space));
+					gap += "in";
+					last->setProperty("column-gap", gap.c_str());
+				}
 			}
 		}
 
@@ -918,6 +1123,11 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 /******* END OF SECTION FORMATTING ********/
 		
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "lastRenderedPageBreak")) {
+		//Word's recorded pagination point; honor it for layout parity
+		OXML_SharedElement br ( new OXML_Element("", PG_BREAK, SPAN) );
+		rqst->stck->push(br);
+		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "br")) {
 		const gchar * type = attrMatches(NS_W_KEY, "type", rqst->ppAtts);
 // The optional attribute can be missing. In that case a default 
@@ -942,6 +1152,13 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 {
 	UT_return_if_fail( this->_error_if_fail(rqst != nullptr) );
+
+	if (nameMatches(rqst->pName, NS_W_KEY, "sdt") ||
+		nameMatches(rqst->pName, NS_W_KEY, "showingPlcHdr") ||
+		nameMatches(rqst->pName, NS_W_KEY, "sdtContent")) {
+		rqst->handled = true;
+		return;
+	}
 
 	if (nameMatches(rqst->pName, NS_W_KEY, "p")) {
 		//Paragraph is done, appending it.
@@ -1022,24 +1239,42 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "lang") ||
 				nameMatches(rqst->pName, NS_W_KEY, "noProof") ||
 				nameMatches(rqst->pName, NS_W_KEY, "vanish") ||
+				nameMatches(rqst->pName, NS_W_KEY, "specVanish") ||
+				nameMatches(rqst->pName, NS_W_KEY, "webHidden") ||
+				nameMatches(rqst->pName, NS_W_KEY, "caps") ||
+				nameMatches(rqst->pName, NS_W_KEY, "smallCaps") ||
+				nameMatches(rqst->pName, NS_W_KEY, "w") ||
+				nameMatches(rqst->pName, NS_W_KEY, "rtl") ||
+				nameMatches(rqst->pName, NS_W_KEY, "keepNext") ||
+				nameMatches(rqst->pName, NS_W_KEY, "keepLines") ||
+				nameMatches(rqst->pName, NS_W_KEY, "widowControl") ||
+				nameMatches(rqst->pName, NS_W_KEY, "framePr") ||
+				nameMatches(rqst->pName, NS_W_KEY, "bidi") ||
 				nameMatches(rqst->pName, NS_W_KEY, "fldChar") ||
 				nameMatches(rqst->pName, NS_W_KEY, "sz") ) {
 		rqst->handled = true;
 	} else if (	nameMatches(rqst->pName, NS_W_KEY, "type") ||
 				nameMatches(rqst->pName, NS_W_KEY, "footerReference") ||
 				nameMatches(rqst->pName, NS_W_KEY, "headerReference") ||
+				nameMatches(rqst->pName, NS_W_KEY, "titlePg") ||
+				nameMatches(rqst->pName, NS_W_KEY, "pgNumType") ||
 				nameMatches(rqst->pName, NS_W_KEY, "cols")) {
 		std::string contextTag = rqst->context->back();
 		if (contextMatches(contextTag, NS_W_KEY, "sectPr")) {
 			rqst->handled = true;
 		}
-	} else if (nameMatches(rqst->pName, NS_W_KEY, "tab")) {
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "tab") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "noBreakHyphen") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "softHyphen") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "lastRenderedPageBreak") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "sym")) {
 		std::string contextTag = rqst->context->back();
 		if (contextMatches(contextTag, NS_W_KEY, "r")) {
 			UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
 			rqst->handled = true;
 		}
-		else if(contextMatches(contextTag, NS_W_KEY, "tabs"))
+		else if(contextMatches(contextTag, NS_W_KEY, "tabs") &&
+				nameMatches(rqst->pName, NS_W_KEY, "tab"))
 			rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "br")) {
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );

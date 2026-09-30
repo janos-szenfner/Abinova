@@ -55,3 +55,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_abinova.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_tocstyle.t.cpp"
+#undef TFSUITE

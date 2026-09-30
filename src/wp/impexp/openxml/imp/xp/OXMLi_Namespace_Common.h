@@ -72,6 +72,7 @@ public:
 	void addNamespace(const char* ns, char* uri);
 	std::string processName(const char* name);
 	std::map<std::string, std::string>* processAttributes(const char* tag, const char** attributes);
+	bool isPrefixHandled(const std::string & prefix) const;
 
 
 private:

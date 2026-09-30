@@ -41,7 +41,27 @@ public:
 	virtual void endElement (OXMLi_EndElementRequest * rqst) override;
 	virtual void charData (OXMLi_CharDataRequest * rqst) override;
 private:
+	void _markFlatIfHdrFtr(OXML_SharedElement & tb);
 	std::string m_style;
+	bool m_bDmlTextbox = false;
+	int m_wspDepth = 0;
+	int m_vShapeDepth = 0; //VML v:rect/oval/line pushed a frame element
+	bool m_bInShapeFill = false;
+	bool m_bInStyleFill = false;
+	std::string m_pendColor;
+	bool m_bPendOutline = false;
+	double m_lumMod = 1.0;
+	double m_lumOff = 0.0;
+	double m_tint = -1.0;
+	double m_shade = -1.0;
+	double m_alpha = -1.0;
+	/* a:ln outline state for the current shape */
+	bool m_bInOutline = false;
+	bool m_bInOutlineFill = false;
+	std::string m_outlineColor;
+	std::string m_outlineStyle;
+	double m_outlineW = -1.0;
+	std::string m_shapePrst;
 };
 
 #endif //_OXMLI_LISTENERSTATE_TEXTBOX_H_

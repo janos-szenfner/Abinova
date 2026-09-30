@@ -376,6 +376,46 @@ void XAP_UnixApp::_setAbiSuiteLibDir()
 	// otherwise, use the hard-coded value
 	XAP_App::_setAbiSuiteLibDir(getAbiSuiteHome());
 
+	// Running from the build tree: the install prefix points at an
+	// empty (or not-yet-installed) datadir, so bundled content like
+	// the artwork galleries would be unreachable. Walk up from the
+	// executable path looking for the source root (identified by its
+	// artwork/ directory) and prefer it when the configured dir has
+	// no artwork of its own.
+	{
+		std::string artdir = getAbiSuiteLibDir();
+		artdir += "/artwork";
+		if (g_access(artdir.c_str(), F_OK) != 0)
+		{
+			gchar * exe = g_file_read_link("/proc/self/exe", nullptr);
+			if (exe)
+			{
+				gchar * dir = g_path_get_dirname(exe);
+				for (int up = 0; up < 5 && dir; up++)
+				{
+					gchar * cand = g_build_filename(dir, "artwork", nullptr);
+					if (g_file_test(cand, G_FILE_TEST_IS_DIR))
+					{
+						XAP_App::_setAbiSuiteLibDir(dir);
+						g_free(cand);
+						break;
+					}
+					g_free(cand);
+					gchar * parent = g_path_get_dirname(dir);
+					if (0 == strcmp(parent, dir))
+					{
+						g_free(parent);
+						break;
+					}
+					g_free(dir);
+					dir = parent;
+				}
+				g_free(dir);
+				g_free(exe);
+			}
+		}
+	}
+
 	return;
 }
 

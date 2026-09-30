@@ -189,6 +189,17 @@ FL_DocLayout::~FL_DocLayout()
         UT_DEBUGMSG(("Deleting DocLayout %p DocListener %p lid %d\n", (void*)this, (void*)m_pDocListener, m_lid));
 
 	m_bDeletingLayout = true;
+
+	/* detach the back-pointer on our view: ~FV_View calls
+	 * m_pLayout->setView(nullptr), which would dereference this
+	 * already-dead layout when the view outlives it (e.g. the
+	 * _replaceView order in AP_Frame) */
+	if (m_pView)
+	{
+		m_pView->m_pLayout = nullptr;
+		m_pView = nullptr;
+	}
+
 	if (m_pPrefs)
 	{
 		m_pPrefs->removeListener ( _prefsListener, this );

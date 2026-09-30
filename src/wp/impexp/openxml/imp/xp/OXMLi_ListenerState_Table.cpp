@@ -209,12 +209,78 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		rqst->handled = true;
 	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "vAlign") &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "tcPr"))
+	{
+		if(m_cellStack.empty())
+		{
+			rqst->handled = false;
+			rqst->valid = false;
+			return;
+		}
+		auto cell = m_cellStack.top();
+		const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+		/* vert-align is a 0-100 offset: top 0, center 50, bottom 100;
+		 * both/justify degrade to top */
+		const char* va = "0";
+		if(val && !strcmp(val, "center"))
+			va = "50";
+		else if(val && !strcmp(val, "bottom"))
+			va = "100";
+		cell->setProperty("vert-align", va);
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblHeader") &&
+			contextMatches(rqst->context->back(), NS_W_KEY, "trPr"))
+	{
+		//repeat-on-each-page header row; marked on the row element,
+		//fanned out to its cells when the row flushes
+		if(!rqst->stck->empty())
+		{
+			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+			bool bOn = !val || !*val || !strcmp(val, "true") ||
+				!strcmp(val, "1") || !strcmp(val, "on");
+			OXML_SharedElement row = rqst->stck->top();
+			if(row)
+				row->setProperty("tblheader", bOn ? "1" : "0");
+		}
+		rqst->handled = true;
+	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "left") ||
 			nameMatches(rqst->pName, NS_W_KEY, "right") ||
 			nameMatches(rqst->pName, NS_W_KEY, "top") ||
 			nameMatches(rqst->pName, NS_W_KEY, "bottom"))
 	{
 		rqst->handled = true;
+
+		/* w:tblCellMar / w:tcMar children carry cell padding, not borders */
+		if(!rqst->context->empty() &&
+			(contextMatches(rqst->context->back(), NS_W_KEY, "tblCellMar") ||
+			 contextMatches(rqst->context->back(), NS_W_KEY, "tcMar")))
+		{
+			bool bCellMar = contextMatches(rqst->context->back(), NS_W_KEY, "tcMar");
+			OXML_SharedElement marElem;
+			if(bCellMar)
+				marElem = m_cellStack.empty() ? OXML_SharedElement() : m_cellStack.top();
+			else
+				marElem = m_tableStack.empty() ? OXML_SharedElement() : m_tableStack.top();
+			if(!marElem)
+				return;
+			const gchar* w = attrMatches(NS_W_KEY, "w", rqst->ppAtts);
+			const gchar* type = attrMatches(NS_W_KEY, "type", rqst->ppAtts);
+			if(w && *w && (!type || !strcmp(type, "dxa")))
+			{
+				std::string edgeName(rqst->pName);
+				edgeName = edgeName.substr(strlen(NS_W_KEY)+1);
+				std::string propName(bCellMar ? "cell-margin-" : "tblcellmar-");
+				propName += edgeName;
+				std::string dim(_TwipsToPoints(w));
+				dim += "pt";
+				marElem->setProperty(propName.c_str(), dim.c_str());
+			}
+			return;
+		}
+
 		const gchar* color = attrMatches(NS_W_KEY, "color", rqst->ppAtts);
 		const gchar* sz = attrMatches(NS_W_KEY, "sz", rqst->ppAtts);
 		const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
@@ -343,6 +409,75 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		rqst->handled = true;
 	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblCellSpacing"))
+	{
+		if(m_tableStack.empty())
+		{
+			rqst->handled = false;
+			rqst->valid = false;
+			return;
+		}
+		auto table = m_tableStack.top();
+		const gchar* w = attrMatches(NS_W_KEY, "w", rqst->ppAtts);
+		const gchar* type = attrMatches(NS_W_KEY, "type", rqst->ppAtts);
+		if(w && *w && (!type || !strcmp(type, "dxa")))
+		{
+			std::string dim(_TwipsToPoints(w));
+			dim += "pt";
+			table->setProperty("table-col-spacing", dim.c_str());
+			table->setProperty("table-row-spacing", dim.c_str());
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblInd"))
+	{
+		if(m_tableStack.empty())
+		{
+			rqst->handled = false;
+			rqst->valid = false;
+			return;
+		}
+		auto table = m_tableStack.top();
+		const gchar* w = attrMatches(NS_W_KEY, "w", rqst->ppAtts);
+		const gchar* type = attrMatches(NS_W_KEY, "type", rqst->ppAtts);
+		if(w && *w && (!type || !strcmp(type, "dxa")))
+		{
+			std::string dim(_TwipsToPoints(w));
+			dim += "pt";
+			table->setProperty("table-margin-left", dim.c_str());
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblW"))
+	{
+		if(m_tableStack.empty())
+		{
+			rqst->handled = false;
+			rqst->valid = false;
+			return;
+		}
+		auto table = m_tableStack.top();
+		const gchar* w = attrMatches(NS_W_KEY, "w", rqst->ppAtts);
+		const gchar* type = attrMatches(NS_W_KEY, "type", rqst->ppAtts);
+		if(w && *w)
+		{
+			if(type && !strcmp(type, "pct"))
+			{
+				//50ths of a percent -> percent number
+				double pct = UT_convertDimensionless(w) / 50.0;
+				table->setProperty("table-rel-width",
+								   UT_convertToDimensionlessString(pct));
+			}
+			else if(!type || !strcmp(type, "dxa"))
+			{
+				std::string dim(_TwipsToPoints(w));
+				dim += "pt";
+				table->setProperty("table-width", dim.c_str());
+			}
+			//type nil/auto: table autosizes - no property needed
+		}
+		rqst->handled = true;
+	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "tblStyle"))
 	{
 		if(m_tableStack.empty())
@@ -434,6 +569,16 @@ void OXMLi_ListenerState_Table::endElement (OXMLi_EndElementRequest * rqst)
 
 		OXML_SharedElement row = rqst->stck->top();
 		rqst->stck->pop(); //pop row
+
+		const gchar* hdr = nullptr;
+		if(row->getProperty("tblheader", hdr) == UT_OK && hdr && !strcmp(hdr, "1"))
+		{
+			OXML_ElementVector cells = row->getChildren();
+			for(auto c : cells)
+				if(c)
+					c->setProperty("header-row", "1");
+		}
+
 		OXML_SharedElement table = rqst->stck->top();
 		table->appendElement(row);
 		m_rowStack.pop();
@@ -494,6 +639,13 @@ void OXMLi_ListenerState_Table::endElement (OXMLi_EndElementRequest * rqst)
 			nameMatches(rqst->pName, NS_W_KEY, "right") ||
 			nameMatches(rqst->pName, NS_W_KEY, "top") ||
 			nameMatches(rqst->pName, NS_W_KEY, "bottom") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblW") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblInd") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblCellSpacing") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblHeader") ||
+			nameMatches(rqst->pName, NS_W_KEY, "vAlign") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblCellMar") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tcMar") ||
 			nameMatches(rqst->pName, NS_W_KEY, "tblStyle"))
 	{
 		rqst->handled = true;

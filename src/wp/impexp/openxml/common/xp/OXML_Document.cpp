@@ -598,6 +598,18 @@ UT_Error OXML_Document::addToPT(PD_Document * pDocument)
 			return ret;
 	}
 
+	if(!m_docProps.empty())
+	{
+		PP_PropertyVector docAtts;
+		for(std::map<std::string, std::string>::const_iterator itp = m_docProps.begin();
+			itp != m_docProps.end(); itp++)
+		{
+			docAtts.push_back(itp->first);
+			docAtts.push_back(itp->second);
+		}
+		pDocument->setProperties(docAtts);
+	}
+
 	return applyPageProps(pDocument);
 }
 

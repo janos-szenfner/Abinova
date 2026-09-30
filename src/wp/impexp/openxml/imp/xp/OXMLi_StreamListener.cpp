@@ -52,6 +52,7 @@ OXMLi_StreamListener::OXMLi_StreamListener() :
 	m_pSectStack(new OXMLi_SectionStack()),
 	m_context(new OXMLi_ContextVector()),
 	m_parseStatus(UT_OK),
+	m_partType(ROOT_PART),
 	m_namespaces(new OXMLi_Namespace_Common())
 {
 	clearStates();
@@ -70,6 +71,7 @@ void OXMLi_StreamListener::setupStates(OXML_PartType type, const char * partId)
 {
 	OXMLi_ListenerState * state = nullptr;
 	m_namespaces->reset();
+	m_partType = type;
 
 	//this has to be the first pushed state since it checks the validity of the input
 	state = new OXMLi_ListenerState_Valid();

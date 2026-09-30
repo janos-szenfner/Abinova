@@ -97,6 +97,12 @@ public:
 
 	void setTarget(int target);
 
+	/* Convert wp:align-based anchoring ("halign"/"valign" props recorded
+	 * by the importer) into absolute xpos/ypos offsets. Needs the
+	 * document page size, so call it at addToPT time. */
+	void resolveAnchorMetrics();
+	void resolveAnchorAlignment();
+
 protected:
 	//! Calls the method serialize() on all children.
 	/*! WARNING: if you derive OXML_Element, you probably shouldn't redefine this method.

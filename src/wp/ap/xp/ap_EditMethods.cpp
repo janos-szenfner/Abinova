@@ -2389,8 +2389,10 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 	  }
 	else
 	  {
-		// try to load ABW by default
-		dflFileType = IE_Imp::fileTypeForSuffix (".abwn");
+		// open dialogs must default to auto-detect so non-native
+		// formats (e.g. .docx) are sniffed rather than forced
+		// through the .abwn importer, which reports them as invalid
+		dflFileType = XAP_DIALOG_FILEOPENSAVEAS_FILE_TYPE_AUTO;
 	  }
 
 	pDialog->setDefaultFileType(dflFileType);
@@ -7288,11 +7290,27 @@ Defun1(insertBlankPage)
 	{
 		return true;
 	}
+	// Mid-document a blank page needs two breaks: the first ends the
+	// current page, the second closes off the blank one so following
+	// content resumes on the page after. When the point is at the
+	// end of the document a single break already produces the new
+	// blank page — a second would add a further empty page.
+	/* The caret cannot always reach the final position: when the
+	 * document ends with a block boundary the last editable slot sits
+	 * one before posEnd. Treat that slot as end-of-document too. */
+	PT_DocPosition posEnd = 0;
+	pView->getEditableBounds(true, posEnd);
+	const bool bAtEnd = (pView->getPoint() + 1 >= posEnd);
+	fprintf(stderr, "DBG blankpage point=%d posEnd=%d bAtEnd=%d\n",
+			(int)pView->getPoint(), (int)posEnd, bAtEnd ? 1 : 0);
 	UT_UCS4Char c = UCS_FF;
 	pView->getDocument()->beginUserAtomicGlob();
 	pView->cmdCharInsert(&c, 1);
-	pView->cmdCharInsert(&c, 1);
-	pView->cmdCharMotion(false, 1);
+	if(!bAtEnd)
+	{
+		pView->cmdCharInsert(&c, 1);
+		pView->cmdCharMotion(false, 1);
+	}
 	pView->getDocument()->endUserAtomicGlob();
 	return true;
 }
@@ -12197,8 +12215,10 @@ static bool s_doInsertPageNumbers(FV_View * pView)
 
 	AP_Dialog_PageNumbers * pDialog
 		= static_cast<AP_Dialog_PageNumbers *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_PAGE_NUMBERS));
-UT_return_val_if_fail(pDialog, false);
+	fprintf(stderr, "DBG pageno dialog=%p\n", (void*)pDialog);
+	UT_return_val_if_fail(pDialog, false);
 	pDialog->runModal(pFrame);
+	fprintf(stderr, "DBG pageno answer=%d\n", (int)pDialog->getAnswer());
 
 	if (pDialog->getAnswer() != AP_Dialog_PageNumbers::a_OK)
 	{
@@ -12866,6 +12886,7 @@ static bool s_doBullets(FV_View *pView)
 		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
 	AP_Dialog_Lists * pDialog
 		= static_cast<AP_Dialog_Lists *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_LISTS));
+	fprintf(stderr, "DBG bullets dialog=%p\n", (void *)pDialog);
 UT_return_val_if_fail(pDialog, false);
 	if(pDialog->isRunning() == true)
 	{
@@ -14196,10 +14217,14 @@ Defun(doListType)
 	else if (sType == "HEBREW")      lType = HEBREW_LIST;
 	else if (sType == "ARABICNUM")   lType = ARABICNUMBERED_LIST;
 	else if (sType == "NONE")
+	{
+		fprintf(stderr, "DBG doListType NONE -> remove\n");
 		return pView->cmdRemoveListFormat();
+	}
 	else
 		return false;
 
+	fprintf(stderr, "DBG doListType %s\n", arg.c_str());
 	return pView->cmdApplyListType(
 		lType,
 		sDecimal.empty() ? nullptr : sDecimal.c_str(),

@@ -116,7 +116,16 @@ protected: // FIXME! These variables should be private.
 		bool				isRadio = false;
 	};
 
+	// index-aligned with m_pMenuLayout items only; actions created
+	// on demand via ensureAction() (e.g. ribbon-only buttons for ids
+	// the layout does not contain) live in m_vecExtraRecs so the
+	// layout/rec count check in _refreshMenu() stays meaningful.
 	std::vector<_ItemRec> m_vecItemRecs;
+	std::vector<_ItemRec> m_vecExtraRecs;
+
+	// shared radio-group action handed to consecutive radio items
+	// created through ensureAction(); reset by any non-radio ensure
+	GSimpleAction *		m_extraRadioGroup = nullptr;
 
 	class _wd
 	{

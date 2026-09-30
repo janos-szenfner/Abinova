@@ -71,6 +71,24 @@ void OXMLi_Namespace_Common::reset()
 	m_uriToKey.insert(std::make_pair(NS_WNE_URI, NS_WNE_KEY));
 	m_uriToKey.insert(std::make_pair(NS_PIC_URI, NS_PIC_KEY));
 	m_uriToKey.insert(std::make_pair(NS_XML_URI, NS_XML_KEY));
+
+	/* ISO/IEC 29500 Strict namespaces (purl.oclc.org) map onto the
+	 * same internal keys as their Transitional counterparts —
+	 * otherwise strict-conforming documents import as empty */
+	m_uriToKey.insert(std::make_pair(
+		"http://purl.oclc.org/ooxml/wordprocessingml/main", NS_W_KEY));
+	m_uriToKey.insert(std::make_pair(
+		"http://purl.oclc.org/ooxml/officeDocument/relationships",
+		NS_R_KEY));
+	m_uriToKey.insert(std::make_pair(
+		"http://purl.oclc.org/ooxml/drawingml/main", NS_A_KEY));
+	m_uriToKey.insert(std::make_pair(
+		"http://purl.oclc.org/ooxml/drawingml/wordprocessingDrawing",
+		NS_WP_KEY));
+	m_uriToKey.insert(std::make_pair(
+		"http://purl.oclc.org/ooxml/drawingml/picture", NS_PIC_KEY));
+	m_uriToKey.insert(std::make_pair(
+		"http://purl.oclc.org/ooxml/officeDocument/math", NS_M_KEY));
 }
 
 void OXMLi_Namespace_Common::addNamespace(const char* ns, char* uri)
@@ -172,12 +190,18 @@ std::map<std::string, std::string>* OXMLi_Namespace_Common::processAttributes(co
 			iter = m_uriToKey.find(uri);
 			if(iter == m_uriToKey.end())
 			{
-				UT_DEBUGMSG(("FRT:OpenXML importer unhandled namespace key for uri:%s\n", uri.c_str()));
+				/* unknown namespace — keep the literal prefix:name so
+				 * extension attributes (wp14:*, wps:*, ...) still reach
+				 * the listeners instead of being dropped */
+				std::string pName = name_space;
+				pName += ":";
+				pName += tag_name;
+				m_attsMap.insert(std::make_pair(pName, std::string(pp[1])));
 				pp += 2;
 				continue;
 			}
 
-			std::string pName = iter->second;		
+			std::string pName = iter->second;
 			pName += ":";
 			pName += tag_name;
 			std::string pVal(pp[1]);
@@ -187,4 +211,33 @@ std::map<std::string, std::string>* OXMLi_Namespace_Common::processAttributes(co
 	}
 
 	return &m_attsMap;
+}
+
+/* mc:Choice/@Requires lists namespace prefixes a reader must
+ * understand; returns true when the importer has meaningful handling
+ * for the namespace the document binds to that prefix, either via a
+ * registered URI key or as a literal prefix we parse by name */
+bool OXMLi_Namespace_Common::isPrefixHandled(const std::string & prefix) const
+{
+	std::map<std::string, std::string>::const_iterator it =
+		m_nsToURI.find(prefix);
+	if (it == m_nsToURI.end())
+		return false;
+	if (m_uriToKey.find(it->second) != m_uriToKey.end())
+		return true;
+
+	/* extension namespaces parsed by their literal prefix */
+	static const char * handledURIs[] = {
+		"http://schemas.microsoft.com/office/word/2010/wordprocessingShape",
+		"http://schemas.microsoft.com/office/word/2010/wordprocessingGroup",
+		"http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing",
+		"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas",
+		"http://schemas.microsoft.com/office/word/2010/wordml",
+		"http://schemas.microsoft.com/office/word/2012/wordml",
+		"http://schemas.microsoft.com/office/drawing/2010/main"
+	};
+	for (const char * uri : handledURIs)
+		if (it->second == uri)
+			return true;
+	return false;
 }

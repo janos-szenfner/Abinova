@@ -6644,9 +6644,15 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 //
 // Handle simple cases of inserting into non-existing header/footers.
 //
-	fl_DocSectionLayout * pDSL = getCurrentPage()->getOwningSection();
+	fp_Page * pCurPage = getCurrentPage();
+	fprintf(stderr, "DBG pageno curpage=%p hf=%d\n", (void*)pCurPage,
+			(int)hfType);
+	UT_return_val_if_fail(pCurPage, false);
+	fl_DocSectionLayout * pDSL = pCurPage->getOwningSection();
+	UT_return_val_if_fail(pDSL, false);
 	if(hfType == FL_HDRFTR_FOOTER && pDSL->getFooter() == nullptr)
 	{
+		fprintf(stderr, "DBG pageno insert footer\n");
 		insertPageNum(atts, hfType);
 		setPoint(oldpos);
 		if(m_pDoc->isEndFrameAtPos(oldpos-1))
@@ -6657,6 +6663,7 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 	}
 	else if(hfType == FL_HDRFTR_HEADER && pDSL->getHeader() == nullptr)
 	{
+		fprintf(stderr, "DBG pageno insert header\n");
 		insertPageNum(atts, hfType);
 		setPoint(oldpos);
 		if(m_pDoc->isEndFrameAtPos(oldpos-1))
@@ -6729,6 +6736,12 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 		"type", "page_number"
 	};
 	pBL = pHFSL->getNextBlockInDocument();
+	if(!pBL)
+	{
+		_restorePieceTableState();
+		_generalUpdate();
+		return false;
+	}
 	pos = pBL->getPosition();
 
 	//Glob it all together so it can be undone with one
@@ -6783,11 +6796,15 @@ bool FV_View::removePageNumbers(void)
 		for(fl_DocSectionLayout * pDSL = getLayout()->getFirstSection();
 			pDSL && !pFound; pDSL = pDSL->getNextDocSection())
 		{
-			for(int hf = 0; hf < 2 && !pFound; hf++)
+			fl_HdrFtrSectionLayout * hfTypes[8] = {
+				pDSL->getHeader(), pDSL->getHeaderEven(),
+				pDSL->getHeaderFirst(), pDSL->getHeaderLast(),
+				pDSL->getFooter(), pDSL->getFooterEven(),
+				pDSL->getFooterFirst(), pDSL->getFooterLast()
+			};
+			for(fl_HdrFtrSectionLayout * pHFSL : hfTypes)
 			{
-				fl_HdrFtrSectionLayout * pHFSL = hf ? pDSL->getFooter()
-												  : pDSL->getHeader();
-				if(!pHFSL)
+				if(!pHFSL || pFound)
 					continue;
 				fl_BlockLayout * pB = pHFSL->getNextBlockInDocument();
 				while(pB && !pFound)
@@ -6812,7 +6829,7 @@ bool FV_View::removePageNumbers(void)
 		if(!pFound || !pBL)
 			break;
 		PT_DocPosition pos = pBL->getPosition()
-			+ pFound->getBlockOffset() + 1;
+			+ pFound->getBlockOffset();
 		_saveAndNotifyPieceTableChange();
 		m_pDoc->disableListUpdates();
 		bool bRet = m_pDoc->deleteSpan(pos, pos + 1, nullptr,
@@ -13461,6 +13478,9 @@ void FV_View::insertHeaderFooter(HdrFtrType hfType)
 // Now extract the shadow section from this.
 //
 	fp_Page * pPage = m_pLayout->getNthPage(iPageNo);
+	if(!pPage)
+		pPage = m_pLayout->getNthPage(0);
+	UT_return_if_fail(pPage);
 	fl_HdrFtrShadow * pShadow = nullptr;
 	fp_ShadowContainer * pHFCon = nullptr;
 	if(hfType >= FL_HDRFTR_FOOTER)
@@ -15447,13 +15467,19 @@ bool FV_View::insertPageNum(const PP_PropertyVector & props, HdrFtrType hfType)
 
 	UT_uint32 oldPos = getPoint();	// This ends up being redundant, but it's neccessary
 	bool bResult = insertHeaderFooter(props, hfType);
+	fprintf(stderr, "DBG insertPageNum insertHF=%d\n", bResult ? 1 : 0);
 
 	//
 	// after this call the insertion point is at the position where stuff
 	// can be inserted into the header/footer
 	//
 	if(!bResult)
+	{
+		m_pDoc->enableListUpdates();
+		_restorePieceTableState();
+		m_pDoc->endUserAtomicGlob();
 		return false;
+	}
 
 	// Insert the page_number field
 

@@ -40,6 +40,7 @@ public:
 	virtual void charData (OXMLi_CharDataRequest * rqst) override;
 private:
 	std::string _convert_ST_LANG(std::string code_in);
+	std::string _numFmtToType(const std::string & fmt);
 };
 
 #endif //_OXMLI_LISTENERSTATE_DOCSETTINGS_H_

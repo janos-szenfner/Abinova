@@ -26,14 +26,17 @@
 
 // Internal includes
 #include "OXML_Types.h"
+#include "OXML_Document.h"
 
 // Abinova includes
 #include "ut_types.h"
+#include "ut_misc.h"
 #include "pd_Document.h"
 #include "pt_Types.h"
 
 // External includes
 #include <string>
+#include <cstdio>
 
 OXML_Element::OXML_Element(const std::string & id, OXML_ElementTag tag, OXML_ElementType type) : 
 	OXML_ObjectWithAttrProp(),
@@ -171,4 +174,202 @@ UT_Error OXML_Element::addToPT(PD_Document * pDocument)
 void OXML_Element::setTarget(int target)
 {
 	TARGET = target;
+}
+
+void OXML_Element::resolveAnchorMetrics()
+{
+	OXML_Document * doc = OXML_Document::getInstance();
+	double pageW = 8.5, pageH = 11.0; //US Letter fallback (inches)
+	if (doc)
+	{
+		if (!doc->getPageWidth().empty())
+			pageW = UT_convertDimensionless(doc->getPageWidth().c_str());
+		if (!doc->getPageHeight().empty())
+			pageH = UT_convertDimensionless(doc->getPageHeight().c_str());
+	}
+
+	const gchar * v = nullptr;
+	char buf[32];
+
+	/* wp14 percent sizing — raw fractions recorded by the listener,
+	 * resolved against the real page size now that it is known */
+	if (getProperty("pct-width", v) == UT_OK && v)
+	{
+		g_snprintf(buf, sizeof(buf), "%.4fin",
+				   UT_convertDimensionless(v) * pageW);
+		setProperty("frame-width", buf);
+	}
+	if (getProperty("pct-height", v) == UT_OK && v)
+	{
+		g_snprintf(buf, sizeof(buf), "%.4fin",
+				   UT_convertDimensionless(v) * pageH);
+		setProperty("frame-height", buf);
+	}
+
+	/* wp14 percent position — replaces the Letter estimate the
+	 * listener stored in xpos/ypos */
+	if (getProperty("pct-pos-x", v) == UT_OK && v)
+	{
+		g_snprintf(buf, sizeof(buf), "%.4fin",
+				   UT_convertDimensionless(v) * pageW);
+		setProperty("xpos", buf);
+	}
+	if (getProperty("pct-pos-y", v) == UT_OK && v)
+	{
+		g_snprintf(buf, sizeof(buf), "%.4fin",
+				   UT_convertDimensionless(v) * pageH);
+		setProperty("ypos", buf);
+	}
+
+	/* group children: grp-* hold child-space EMU, grp-chOff/chExt the
+	 * child coordinate space, grp-ext the group's rect, and base-* the
+	 * group's resolved anchor geometry — child pos on the page is
+	 * base + (childOff - chOff) * (ext / chExt) */
+	if (getProperty("grp-xpos", v) != UT_OK || !v)
+		return;
+	double grpX = UT_convertDimensionless(v);
+	double grpY = 0.0, grpW = 0.0, grpH = 0.0;
+	if (getProperty("grp-ypos", v) == UT_OK && v)
+		grpY = UT_convertDimensionless(v);
+	if (getProperty("grp-width", v) == UT_OK && v)
+		grpW = UT_convertDimensionless(v);
+	if (getProperty("grp-height", v) == UT_OK && v)
+		grpH = UT_convertDimensionless(v);
+
+	double chOffX = 0.0, chOffY = 0.0, chExtX = 0.0, chExtY = 0.0;
+	double extX = 0.0, extY = 0.0, offX = 0.0, offY = 0.0;
+	if (getProperty("grp-chOffX", v) == UT_OK && v)
+		chOffX = UT_convertDimensionless(v);
+	if (getProperty("grp-chOffY", v) == UT_OK && v)
+		chOffY = UT_convertDimensionless(v);
+	if (getProperty("grp-chExtX", v) == UT_OK && v)
+		chExtX = UT_convertDimensionless(v);
+	if (getProperty("grp-chExtY", v) == UT_OK && v)
+		chExtY = UT_convertDimensionless(v);
+	if (getProperty("grp-extX", v) == UT_OK && v)
+		extX = UT_convertDimensionless(v);
+	if (getProperty("grp-extY", v) == UT_OK && v)
+		extY = UT_convertDimensionless(v);
+	if (getProperty("grp-offX", v) == UT_OK && v)
+		offX = UT_convertDimensionless(v);
+	if (getProperty("grp-offY", v) == UT_OK && v)
+		offY = UT_convertDimensionless(v);
+
+	const double sx = (chExtX > 0.0 && extX > 0.0) ? extX / chExtX : 1.0;
+	const double sy = (chExtY > 0.0 && extY > 0.0) ? extY / chExtY : 1.0;
+
+	double baseW = extX / 914400.0, baseH = extY / 914400.0;
+	const gchar * bv = nullptr;
+	if (getProperty("base-w", bv) == UT_OK && bv)
+		baseW = UT_convertToInches(bv);
+	if (getProperty("base-h", bv) == UT_OK && bv)
+		baseH = UT_convertToInches(bv);
+	if (getProperty("base-pctw", bv) == UT_OK && bv)
+		baseW = UT_convertDimensionless(bv) * pageW;
+	if (getProperty("base-pcth", bv) == UT_OK && bv)
+		baseH = UT_convertDimensionless(bv) * pageH;
+
+	double baseX = 0.0, baseY = 0.0;
+	if (getProperty("base-xpos", bv) == UT_OK && bv)
+		baseX = UT_convertToInches(bv);
+	else if (getProperty("base-pctpx", bv) == UT_OK && bv)
+		baseX = UT_convertDimensionless(bv) * pageW;
+	else if (getProperty("base-halign", bv) == UT_OK && bv)
+	{
+		if (!strcmp(bv, "center"))
+			baseX = (pageW - baseW) / 2.0;
+		else if (!strcmp(bv, "right"))
+			baseX = pageW - baseW;
+	}
+	if (getProperty("base-ypos", bv) == UT_OK && bv)
+		baseY = UT_convertToInches(bv);
+	else if (getProperty("base-pctpy", bv) == UT_OK && bv)
+		baseY = UT_convertDimensionless(bv) * pageH;
+	else if (getProperty("base-valign", bv) == UT_OK && bv)
+	{
+		if (!strcmp(bv, "center"))
+			baseY = (pageH - baseH) / 2.0;
+		else if (!strcmp(bv, "bottom"))
+			baseY = pageH - baseH;
+	}
+	if (baseX < 0.0)
+		baseX = 0.0;
+	if (baseY < 0.0)
+		baseY = 0.0;
+
+	g_snprintf(buf, sizeof(buf), "%.4fin",
+			   baseX + (offX + (grpX - chOffX) * sx) / 914400.0);
+	setProperty("xpos", buf);
+	g_snprintf(buf, sizeof(buf), "%.4fin",
+			   baseY + (offY + (grpY - chOffY) * sy) / 914400.0);
+	setProperty("ypos", buf);
+	if (grpW > 0.0)
+	{
+		g_snprintf(buf, sizeof(buf), "%.4fin", grpW * sx / 914400.0);
+		setProperty("frame-width", buf);
+	}
+	if (grpH > 0.0)
+	{
+		g_snprintf(buf, sizeof(buf), "%.4fin", grpH * sy / 914400.0);
+		setProperty("frame-height", buf);
+	}
+}
+
+void OXML_Element::resolveAnchorAlignment()
+{
+	const gchar * szH = nullptr;
+	const gchar * szV = nullptr;
+	const gchar * szExisting = nullptr;
+	const bool bHasH = (getProperty("halign", szH) == UT_OK) && szH &&
+		(getProperty("xpos", szExisting) != UT_OK || !szExisting);
+	const bool bHasV = (getProperty("valign", szV) == UT_OK) && szV &&
+		(getProperty("ypos", szExisting) != UT_OK || !szExisting);
+	if (!bHasH && !bHasV)
+		return;
+
+	OXML_Document * doc = OXML_Document::getInstance();
+	double pageW = 8.5, pageH = 11.0; //US Letter fallback (inches)
+	if (doc)
+	{
+		if (!doc->getPageWidth().empty())
+			pageW = UT_convertDimensionless(doc->getPageWidth().c_str());
+		if (!doc->getPageHeight().empty())
+			pageH = UT_convertDimensionless(doc->getPageHeight().c_str());
+	}
+
+	const gchar * szW = nullptr;
+	const gchar * szHgt = nullptr;
+	double frameW = 0.0, frameH = 0.0;
+	if (getProperty("frame-width", szW) == UT_OK && szW)
+		frameW = UT_convertToInches(szW);
+	if (getProperty("frame-height", szHgt) == UT_OK && szHgt)
+		frameH = UT_convertToInches(szHgt);
+
+	char buf[32];
+	if (bHasH)
+	{
+		double x = 0.0;
+		if (!strcmp(szH, "center"))
+			x = (pageW - frameW) / 2.0;
+		else if (!strcmp(szH, "right"))
+			x = pageW - frameW;
+		/* "left" / "inside"/"outside" fall back to 0 */
+		if (x < 0.0)
+			x = 0.0;
+		g_snprintf(buf, sizeof(buf), "%.4fin", x);
+		setProperty("xpos", buf);
+	}
+	if (bHasV)
+	{
+		double y = 0.0;
+		if (!strcmp(szV, "center"))
+			y = (pageH - frameH) / 2.0;
+		else if (!strcmp(szV, "bottom"))
+			y = pageH - frameH;
+		/* "top" / "inside"/"outside" fall back to 0 */
+		if (y < 0.0)
+			y = 0.0;
+		g_snprintf(buf, sizeof(buf), "%.4fin", y);
+		setProperty("ypos", buf);
+	}
 }

@@ -4288,11 +4288,8 @@ void fp_FieldRun::mapXYToPosition(UT_sint32 x, UT_sint32 /*y*/, PT_DocPosition& 
 		pos = getBlock()->getPosition() + getBlockOffset() + getLength();
 
 	bBOL = false;
-	if(getNextRun() == nullptr)
-	{
-		bEOL = true;
-	}
-	if(getNextRun()->getType() == FPRUN_ENDOFPARAGRAPH)
+	fp_Run * pNext = getNextRun();
+	if(pNext == nullptr || pNext->getType() == FPRUN_ENDOFPARAGRAPH)
 	{
 		bEOL = true;
 	}

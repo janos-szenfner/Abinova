@@ -221,6 +221,7 @@ fl_BlockLayout::fl_BlockLayout(pf_Frag_Strux* sdh,
 	  m_ShadingForeColor(0,0,0),
 	  m_ShadingBackColor(0,0,0),
 	  m_iPattern(0),
+	  m_bShadingBackColorSet(false),
 	  m_bCanMergeBordersWithNext(true),
 	  m_bHasBorders(false)
 {
@@ -981,6 +982,7 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 			m_ShadingForeColor.setColor("white");
 		}
 		sShadingBackCol = getProperty("shading-background-color",true);
+		m_bShadingBackColorSet = (sShadingBackCol != nullptr);
 		if(sShadingBackCol)
 		{
 			m_ShadingBackColor.setColor(sShadingBackCol);

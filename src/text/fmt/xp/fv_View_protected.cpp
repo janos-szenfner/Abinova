@@ -6084,6 +6084,7 @@ void FV_View::_removeThisHdrFtr(fl_HdrFtrSectionLayout * pHdrFtr)
 void FV_View::_cmdEditHdrFtr(HdrFtrType hfType)
 {
 	fp_Page * pPage = getCurrentPage();
+	UT_return_if_fail(pPage);
 //
 // If there is no header/footer, insert it and start to edit it.
 //

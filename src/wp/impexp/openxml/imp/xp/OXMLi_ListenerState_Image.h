@@ -46,6 +46,8 @@ private:
 	std::string m_style;
 	bool m_isEmbeddedObject;
 	bool m_isInlineImage;
+	bool m_bSimplePos;
+	int m_grpPicDepth = 0;
 };
 
 #endif //_OXMLI_LISTENERSTATE_IMAGE_H_

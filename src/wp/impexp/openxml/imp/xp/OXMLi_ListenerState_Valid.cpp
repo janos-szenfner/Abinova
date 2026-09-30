@@ -50,12 +50,69 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 		contextTag = rqst->context->back();
 	}
 
-	// everything inside an mc:Fallback branch is ignored: mc:Choice is
-	// the preferred branch (markup-compatibility spec), so consuming
-	// the fallback too would duplicate textboxes/drawings.
-	for (const std::string & ancestor : *rqst->context)
+	/* mc:Choice inside a branch we already rejected is swallowed with
+	 * the rest of that subtree */
+	for (size_t d : m_rejectedChoices)
 	{
-		if (nameMatches(ancestor, NS_VE_KEY, "Fallback"))
+		if (rqst->context->size() > d)
+		{
+			rqst->valid = true;
+			rqst->handled = true;
+			return;
+		}
+	}
+
+	/* mc:Choice/@Requires lists the namespace prefixes a reader must
+	 * understand to use that branch (markup-compatibility spec). If we
+	 * cannot handle them, the branch is rejected — the AC's
+	 * mc:Fallback then becomes the representation to import. */
+	if (nameMatches(rqst->pName, NS_VE_KEY, "Choice"))
+	{
+		bool bSupported = true;
+		const gchar * szReq =
+			attrMatches(NS_VE_KEY, "Requires", rqst->ppAtts);
+		if (szReq)
+		{
+			OXMLi_StreamListener * l = getListener();
+			OXMLi_Namespace_Common * ns = l ? l->getNamespaces() : nullptr;
+			std::string reqs(szReq);
+			size_t pos = 0;
+			while (pos < reqs.size())
+			{
+				size_t sp = reqs.find(' ', pos);
+				std::string prefix = reqs.substr(
+					pos, sp == std::string::npos ?
+						std::string::npos : sp - pos);
+				if (!prefix.empty() &&
+					(!ns || !ns->isPrefixHandled(prefix)))
+				{
+					bSupported = false;
+					break;
+				}
+				pos = (sp == std::string::npos) ? reqs.size() : sp + 1;
+			}
+		}
+		if (bSupported)
+		{
+			if (!rqst->context->empty() &&
+				nameMatches(rqst->context->back(),
+							NS_VE_KEY, "AlternateContent"))
+				m_takenACs.insert(rqst->context->size() - 1);
+		}
+		else
+			m_rejectedChoices.insert(rqst->context->size());
+		rqst->valid = true;
+		return;
+	}
+
+	/* everything inside an mc:Fallback branch is ignored when a
+	 * sibling mc:Choice was accepted; with no supported choice the
+	 * fallback (usually VML or a rendered picture) is imported so the
+	 * document keeps its content */
+	for (size_t i = 1; i < rqst->context->size(); ++i)
+	{
+		if (nameMatches((*rqst->context)[i], NS_VE_KEY, "Fallback") &&
+			m_takenACs.count(i - 1))
 		{
 			rqst->valid = true;
 			rqst->handled = true;
@@ -4724,15 +4781,34 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 
 void OXMLi_ListenerState_Valid::endElement (OXMLi_EndElementRequest * rqst)
 {
-	for (const std::string & ancestor : *rqst->context)
+	/* context was already popped — the ending element's depth is
+	 * context.size() */
+	for (size_t d : m_rejectedChoices)
 	{
-		if (nameMatches(ancestor, NS_VE_KEY, "Fallback"))
+		if (rqst->context->size() > d)
 		{
 			rqst->valid = true;
 			rqst->handled = true;
 			return;
 		}
 	}
+
+	for (size_t i = 1; i < rqst->context->size(); ++i)
+	{
+		if (nameMatches((*rqst->context)[i], NS_VE_KEY, "Fallback") &&
+			m_takenACs.count(i - 1))
+		{
+			rqst->valid = true;
+			rqst->handled = true;
+			return;
+		}
+	}
+
+	/* drop branch bookkeeping as the elements that own it close */
+	if (nameMatches(rqst->pName, NS_VE_KEY, "Choice"))
+		m_rejectedChoices.erase(rqst->context->size());
+	else if (nameMatches(rqst->pName, NS_VE_KEY, "AlternateContent"))
+		m_takenACs.erase(rqst->context->size());
 
 	std::map<std::string, int>::iterator it;
 	it = m_keywordMap.find(rqst->pName);
@@ -4746,9 +4822,19 @@ void OXMLi_ListenerState_Valid::endElement (OXMLi_EndElementRequest * rqst)
 
 void OXMLi_ListenerState_Valid::charData (OXMLi_CharDataRequest * rqst)
 {
-	for (const std::string & ancestor : *rqst->context)
+	for (size_t d : m_rejectedChoices)
 	{
-		if (nameMatches(ancestor, NS_VE_KEY, "Fallback"))
+		if (rqst->context->size() > d)
+		{
+			rqst->valid = true;
+			rqst->handled = true;
+			return;
+		}
+	}
+	for (size_t i = 1; i < rqst->context->size(); ++i)
+	{
+		if (nameMatches((*rqst->context)[i], NS_VE_KEY, "Fallback") &&
+			m_takenACs.count(i - 1))
 		{
 			rqst->valid = true;
 			rqst->handled = true;

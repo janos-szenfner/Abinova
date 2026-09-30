@@ -376,6 +376,7 @@ EV_UnixMenu::~EV_UnixMenu()
 		m_rebuildSourceId = 0;
 	}
 	m_vecItemRecs.clear();
+	m_vecExtraRecs.clear();
 	UT_std_vector_purgeall(m_vecCallbacks);
 	g_object_unref(m_actionGroup);
 	g_object_unref(m_pMenuModel);
@@ -420,6 +421,11 @@ GAction * EV_UnixMenu::lookupAction(XAP_Menu_Id id) const
 		if (rec.id == id && rec.present)
 			return G_ACTION(rec.action);
 	}
+	for (const _ItemRec & rec : m_vecExtraRecs)
+	{
+		if (rec.id == id)
+			return G_ACTION(rec.action);
+	}
 	return nullptr;
 }
 
@@ -434,8 +440,11 @@ GAction * EV_UnixMenu::ensureAction(XAP_Menu_Id id)
 	const EV_Menu_Action * pAction = pActionSet->getAction(id);
 	UT_return_val_if_fail(pAction, nullptr);
 
-	GSimpleAction * radioGroup = nullptr;
-	GSimpleAction * action = _createAction(id, pAction, &radioGroup);
+	// keep extra recs out of m_vecItemRecs: that vector is
+	// index-aligned with the layout and _refreshMenu() rebuilds it.
+	if (!pAction->isRadio())
+		m_extraRadioGroup = nullptr;
+	GSimpleAction * action = _createAction(id, pAction, &m_extraRadioGroup);
 	UT_return_val_if_fail(action, nullptr);
 
 	_ItemRec rec;
@@ -443,7 +452,7 @@ GAction * EV_UnixMenu::ensureAction(XAP_Menu_Id id)
 	rec.action = action;
 	rec.present = true;
 	rec.isRadio = pAction->isRadio();
-	m_vecItemRecs.push_back(rec);
+	m_vecExtraRecs.push_back(rec);
 	return G_ACTION(action);
 }
 
@@ -605,7 +614,6 @@ void EV_UnixMenu::_buildItems(GMenu * pMenuRoot, bool isPopup)
 	UT_ASSERT(pMenuActionSet);
 
 	size_t nrLabelItemsInLayout = m_pMenuLayout->getLayoutItemCount();
-	UT_ASSERT(nrLabelItemsInLayout > 0);
 
 	g_menu_remove_all(pMenuRoot);
 	m_vecItemRecs.clear();
@@ -998,6 +1006,52 @@ bool EV_UnixMenu::_refreshMenu(AV_View * pView)
 		{
 			g_simple_action_set_state(rec.action, g_variant_new_boolean(bCheck));
 		}
+	}
+
+	// actions created on demand via ensureAction() are not layout
+	// items, but widgets (ribbon buttons) can still be bound to them -
+	// keep their enabled/toggled state in sync as well
+	GSimpleAction * extraRadioGroup = nullptr;
+	for (const _ItemRec & rec : m_vecExtraRecs)
+	{
+		if (!rec.action)
+			continue;
+		const EV_Menu_Action * pAction = pMenuActionSet->getAction(rec.id);
+		if (!pAction)
+			continue;
+
+		bool bEnable = true;
+		bool bCheck = false;
+		if (pAction->hasGetStateFunction())
+		{
+			EV_Menu_ItemState mis = pAction->getMenuItemState(pView);
+			if (mis & EV_MIS_Gray)
+				bEnable = false;
+			if (mis & EV_MIS_Toggled)
+				bCheck = true;
+		}
+
+		if (pAction->isRadio())
+		{
+			extraRadioGroup = rec.action;
+			if (extraRadioGroup && bCheck)
+			{
+				char target[32];
+				g_snprintf(target, sizeof(target), "%u",
+						   static_cast<unsigned>(rec.id));
+				g_simple_action_set_state(extraRadioGroup,
+										  g_variant_new_string(target));
+			}
+			if (extraRadioGroup)
+				g_simple_action_set_enabled(extraRadioGroup, bEnable);
+			continue;
+		}
+		extraRadioGroup = nullptr;
+
+		g_simple_action_set_enabled(rec.action, bEnable);
+		if (pAction->isCheckable())
+			g_simple_action_set_state(rec.action,
+									  g_variant_new_boolean(bCheck));
 	}
 
 	m_bUpdatingActions = false;

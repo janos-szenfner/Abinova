@@ -65,11 +65,79 @@ void OXMLi_ListenerState_DocSettings::startElement (OXMLi_StartElementRequest * 
 
 		rqst->handled = true;
 	}
+	else if (nameMatches(rqst->pName, NS_W_KEY, "footnotePr") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "endnotePr") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "footnote") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "endnote")) {
+		rqst->handled = true;
+	}
+	else if (nameMatches(rqst->pName, NS_W_KEY, "numFmt") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "numStart") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "numRestart") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "pos")) {
+		if (rqst->context == nullptr || rqst->context->empty()) {
+			return;
+		}
+		std::string contextTag = rqst->context->back();
+		bool foot = contextMatches(contextTag, NS_W_KEY, "footnotePr");
+		bool endn = contextMatches(contextTag, NS_W_KEY, "endnotePr");
+		if (!foot && !endn) {
+			return;
+		}
+		const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
+		if (val == nullptr || val[0] == '\0') {
+			rqst->handled = true;
+			return;
+		}
+		OXML_Document * doc = OXML_Document::getInstance();
+		UT_return_if_fail( this->_error_if_fail(doc != nullptr) );
+
+		if (nameMatches(rqst->pName, NS_W_KEY, "numFmt")) {
+			std::string mapped = _numFmtToType(val);
+			if (!mapped.empty()) {
+				doc->setDocProperty(foot ? "document-footnote-type"
+										 : "document-endnote-type",
+									mapped);
+			}
+		}
+		else if (nameMatches(rqst->pName, NS_W_KEY, "numStart")) {
+			doc->setDocProperty(foot ? "document-footnote-initial"
+									 : "document-endnote-initial",
+								val);
+		}
+		else if (nameMatches(rqst->pName, NS_W_KEY, "numRestart")) {
+			if (strcmp(val, "eachSect") == 0) {
+				doc->setDocProperty(foot ? "document-footnote-restart-section"
+										 : "document-endnote-restart-section",
+									"1");
+			}
+			else if (foot && strcmp(val, "eachPage") == 0) {
+				doc->setDocProperty("document-footnote-restart-page", "1");
+			}
+		}
+		else if (endn && nameMatches(rqst->pName, NS_W_KEY, "pos")) {
+			if (strcmp(val, "sectEnd") == 0) {
+				doc->setDocProperty("document-endnote-place-endsection", "1");
+			}
+			else if (strcmp(val, "docEnd") == 0) {
+				doc->setDocProperty("document-endnote-place-enddoc", "1");
+			}
+		}
+		rqst->handled = true;
+	}
 }
 
 void OXMLi_ListenerState_DocSettings::endElement (OXMLi_EndElementRequest * rqst)
 {
-	if (nameMatches(rqst->pName, NS_W_KEY, "themeFontLang")) {
+	if (nameMatches(rqst->pName, NS_W_KEY, "themeFontLang") ||
+		nameMatches(rqst->pName, NS_W_KEY, "footnotePr") ||
+		nameMatches(rqst->pName, NS_W_KEY, "endnotePr") ||
+		nameMatches(rqst->pName, NS_W_KEY, "footnote") ||
+		nameMatches(rqst->pName, NS_W_KEY, "endnote") ||
+		nameMatches(rqst->pName, NS_W_KEY, "numFmt") ||
+		nameMatches(rqst->pName, NS_W_KEY, "numStart") ||
+		nameMatches(rqst->pName, NS_W_KEY, "numRestart") ||
+		nameMatches(rqst->pName, NS_W_KEY, "pos")) {
 		rqst->handled = true;
 	}
 }
@@ -96,5 +164,27 @@ std::string OXMLi_ListenerState_DocSettings::_convert_ST_LANG(std::string code_i
 	} else {
 		return code_in;
 	}
+}
+
+//Maps an ST_NumberFormat value (footnote/endnote numFmt) to an Abinova
+//footnote-type property value. Returns an empty string when unmappable.
+std::string OXMLi_ListenerState_DocSettings::_numFmtToType(const std::string & fmt)
+{
+	if (fmt == "decimal" || fmt == "decimalFullWidth" || fmt == "chicago") {
+		return "numeric";
+	}
+	else if (fmt == "lowerLetter") {
+		return "lower";
+	}
+	else if (fmt == "upperLetter") {
+		return "upper";
+	}
+	else if (fmt == "lowerRoman") {
+		return "lower-roman";
+	}
+	else if (fmt == "upperRoman") {
+		return "upper-roman";
+	}
+	return "";
 }
 

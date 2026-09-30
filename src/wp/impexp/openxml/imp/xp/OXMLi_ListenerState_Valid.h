@@ -29,6 +29,8 @@
 #include <OXMLi_Types.h>
 #include <OXML_Types.h>
 
+#include <set>
+
 /* \class OXMLi_ListenerState_Valid
  * \brief This ListenerState checks for the correctness of the input based on OpenXML specifications
 */
@@ -44,6 +46,13 @@ private:
 	void populateKeywordTable();
 
 	std::map<std::string, int> m_keywordMap;
+
+	/* mc:AlternateContent branch tracking: depths of mc:Choice
+	 * branches whose Required namespaces we cannot handle, and of
+	 * mc:AlternateContent blocks that had at least one supported
+	 * choice. Indexed by the element's depth in the context vector. */
+	std::set<size_t> m_rejectedChoices;
+	std::set<size_t> m_takenACs;
 };
 
 #endif //_OXMLI_LISTENERSTATE_VALID_H_

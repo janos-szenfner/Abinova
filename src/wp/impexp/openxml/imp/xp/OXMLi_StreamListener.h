@@ -57,6 +57,9 @@ public:
 
 	void setupStates(OXML_PartType type, const char * partId = "");
 
+	inline OXML_PartType getPartType() const { return m_partType; }
+	inline OXMLi_Namespace_Common* getNamespaces() { return m_namespaces; }
+
 	virtual void startElement (const gchar* pName, const gchar** ppAtts) override;
 	virtual void endElement (const gchar* pName) override;
 	virtual void charData (const gchar* pBuffer, int length) override;
@@ -67,6 +70,7 @@ private:
 	OXMLi_ContextVector* m_context;
 	std::list<OXMLi_ListenerState*> m_states;
 	UT_Error m_parseStatus;
+	OXML_PartType m_partType;
 	OXMLi_Namespace_Common* m_namespaces;
 
 	void pushState(OXMLi_ListenerState * s);

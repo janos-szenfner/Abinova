@@ -290,6 +290,67 @@ UT_Error OXML_Element_Paragraph::addToPT(PD_Document * pDocument)
 
 	const PP_PropertyVector atts = getAttributesWithProps();
 
+	/* w:framePr - the paragraph is a positioned frame (legacy pre-VML
+	 * textbox form). Wrap the block in a frame strux anchored to the
+	 * page/column per hAnchor/vAnchor. */
+	const gchar* fpX = nullptr;
+	const gchar* fpY = nullptr;
+	const gchar* fpW = nullptr;
+	getProperty("framePr-x", fpX);
+	getProperty("framePr-y", fpY);
+	getProperty("framePr-w", fpW);
+	if (fpX || fpY || fpW) {
+		PP_PropertyVector frameProps;
+		const gchar* anchor = nullptr;
+		getProperty("framePr-vAnchor", anchor);
+		bool bPage = anchor && !strcmp(anchor, "page");
+		if (!bPage) {
+			getProperty("framePr-hAnchor", anchor);
+			bPage = anchor && !strcmp(anchor, "page");
+		}
+		frameProps.push_back("position-to");
+		frameProps.push_back(bPage ? "page-above-text" : "column-above-text");
+
+		const gchar* wrap = nullptr;
+		getProperty("framePr-wrap", wrap);
+		const char* wrapMode = "wrapped-both"; //around/auto/through/tight
+		if (wrap && (!strcmp(wrap, "none") || !strcmp(wrap, "notBeside")))
+			wrapMode = "wrapped-topbot";
+		frameProps.push_back("wrap-mode");
+		frameProps.push_back(wrapMode);
+
+		frameProps.push_back("frame-type");
+		frameProps.push_back("textbox");
+		if (fpX) {
+			frameProps.push_back("xpos");
+			frameProps.push_back(fpX);
+		}
+		if (fpY) {
+			frameProps.push_back("ypos");
+			frameProps.push_back(fpY);
+		}
+		if (fpW) {
+			frameProps.push_back("frame-width");
+			frameProps.push_back(fpW);
+		}
+		const gchar* fpH = nullptr;
+		getProperty("framePr-h", fpH);
+		if (fpH) {
+			frameProps.push_back("frame-height");
+			frameProps.push_back(fpH);
+		}
+		if (!pDocument->appendStrux(PTX_SectionFrame, frameProps))
+			return UT_ERROR;
+		if (!pDocument->appendStrux(PTX_Block, atts.empty() ? PP_NOPROPS : atts))
+			return UT_ERROR;
+		ret = addChildrenToPT(pDocument);
+		if (ret != UT_OK)
+			return ret;
+		if (!pDocument->appendStrux(PTX_EndFrame, PP_NOPROPS))
+			return UT_ERROR;
+		return UT_OK;
+	}
+
 	if (!atts.empty()) {
 		ret = pDocument->appendStrux(PTX_Block, atts) ? UT_OK : UT_ERROR;
 		if(ret != UT_OK) {

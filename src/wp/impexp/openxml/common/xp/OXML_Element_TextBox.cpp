@@ -24,6 +24,9 @@
 // Class definition include
 #include "OXML_Element_TextBox.h"
 
+// Internal includes
+#include "OXML_Document.h"
+
 // Abinova includes
 #include "ut_types.h"
 #include "ut_misc.h"
@@ -104,34 +107,107 @@ UT_Error OXML_Element_TextBox::addToPT(PD_Document* pDocument)
 {
 	UT_Error ret = UT_OK;
 
-	ret = setProperty("frame-type", "textbox");
+	/* PTX_SectionFrame doesn't layout inside PTX_SectionHdrFtr; in
+	 * header/footer parts emit the textbox's children inline so the
+	 * content is still visible rather than silently dropped */
+	if (m_flatten)
+		return addChildrenToPT(pDocument);
+
+	/* invisible empty shapes (no content, no fill) produce nothing —
+	 * skipping them avoids polluting the piece table */
+	const gchar * szFillChk = nullptr;
+	if (getChildren().empty() &&
+		(getProperty("background-color", szFillChk) != UT_OK || !szFillChk))
+		return UT_OK;
+
+	/* a:blipFill inside a shape gives the element an image id — emit
+	 * an image frame so the picture fill renders */
+	OXML_Document * model = OXML_Document::getInstance();
+	if (!getId().empty() && model && model->getImageById(getId()))
+	{
+		ret = setProperty("frame-type", "image");
+		if (ret == UT_OK)
+			ret = setAttribute("strux-image-dataid", getId().c_str());
+	}
+	else
+		ret = setProperty("frame-type", "textbox");
 	if(ret != UT_OK)
 		return ret;
 
-	ret = setProperty("position-to", "column-above-text");
+	/* wp14 percent metrics and group child-space offsets resolve to
+	 * page coordinates now that the page size is known, then
+	 * wp:align keywords fill any remaining position */
+	resolveAnchorMetrics();
+	resolveAnchorAlignment();
+
+	/* prstGeom="line" shapes are rendered as filled bars — the
+	 * short side carries the outline thickness */
+	const gchar * szBar = nullptr;
+	if (getProperty("bar-w", szBar) == UT_OK && szBar)
+		setProperty("frame-width", szBar);
+	if (getProperty("bar-h", szBar) == UT_OK && szBar)
+		setProperty("frame-height", szBar);
+
+	/* halign/valign resolve to xpos/ypos which aren't frame props —
+	 * translate to page offsets */
+	const gchar * szX = nullptr;
+	const gchar * szY = nullptr;
+	if (getProperty("xpos", szX) == UT_OK && szX)
+		setProperty("frame-page-xpos", szX);
+	if (getProperty("ypos", szY) == UT_OK && szY)
+		setProperty("frame-page-ypos", szY);
+
+	/* DrawingML anchors are positioned relative to the page; when the
+	 * importer carried frame-page-xpos/ypos over from wp:anchor, use
+	 * page anchoring instead of the column default */
+	const gchar * szPagePos = nullptr;
+	if (getProperty("frame-page-xpos", szPagePos) == UT_OK && szPagePos)
+		ret = setProperty("position-to", "page-above-text");
+	else
+		ret = setProperty("position-to", "column-above-text");
 	if(ret != UT_OK)
 		return ret;
 
-	ret = setProperty("wrap-mode", "wrapped-both");
+	const gchar * szWrap = nullptr;
+	if (getProperty("wrap-mode", szWrap) != UT_OK || !szWrap)
+		ret = setProperty("wrap-mode", "wrapped-both");
 	if(ret != UT_OK)
 		return ret;
 
-	ret = setProperty("background-color", "ffffff");
-	if(ret != UT_OK)
-		return ret;
-
-	ret = setProperty("bg-style", "1");
-	if(ret != UT_OK)
-		return ret;
+	/* Word textboxes default to no outline and no fill; our frames
+	 * default to a solid 1-unit border, so suppress it explicitly */
+	const gchar * szHas = nullptr;
+	if (getProperty("top-style", szHas) != UT_OK || !szHas)
+	{
+		setProperty("top-style", "none");
+		setProperty("bot-style", "none");
+		setProperty("left-style", "none");
+		setProperty("right-style", "none");
+	}
+	if ((getProperty("background-color", szHas) != UT_OK || !szHas) &&
+		(getProperty("bgcolor", szHas) != UT_OK || !szHas))
+		setProperty("bg-style", "0");
 
 	const PP_PropertyVector attr = this->getAttributesWithProps();
 	ret = pDocument->appendStrux(PTX_SectionFrame, attr) ? UT_OK : UT_ERROR;
 	if(ret != UT_OK)
 		return ret;
 
-	ret = this->addChildrenToPT(pDocument);
-	if(ret != UT_OK)
-		return ret;
+	if (getChildren().empty())
+	{
+		/* a frame with no content block breaks the surrounding frame
+		 * chain — filled panels still get a (minimal) block so the
+		 * colored background renders */
+		ret = pDocument->appendStrux(PTX_Block, PP_NOPROPS) ? UT_OK : UT_ERROR;
+		if(ret != UT_OK)
+			return ret;
+	}
+	else
+	{
+		ret = this->addChildrenToPT(pDocument);
+		if(ret != UT_OK)
+			return ret;
+	}
 
 	ret = pDocument->appendStrux(PTX_EndFrame, PP_NOPROPS) ? UT_OK : UT_ERROR;
 	return ret;

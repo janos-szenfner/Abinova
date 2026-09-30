@@ -104,13 +104,17 @@ UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 	OXML_Document* doc = OXML_Document::getInstance();
 	if(!doc)
 	{
-		return UT_OK;
+		/* even without a document context, still flush children:
+		 * w:drawing wraps shapes/textboxes too, and a bare
+		 * OXML_Element_Image pushed for them can own a TextBox
+		 * child that must not be dropped */
+		return addChildrenToPT(pDocument);
 	}
 	OXML_SharedImage sImage = doc->getImageById(getId());
 	if(!sImage)
 	{
 		UT_DEBUGMSG(("SERHAT: Skipping image element in import, since fail occurred in import of image data previously\n"));
-		return UT_OK;
+		return addChildrenToPT(pDocument);
 	}
 
 	UT_Error ret = UT_OK;
@@ -128,11 +132,39 @@ UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 		ret = setProperty("frame-type", "image");
 		if(ret != UT_OK)
 			return ret;
+
+		/* wp14 percent metrics and wp:align anchoring resolve to
+		 * offsets now that page size and extent are known */
+		resolveAnchorMetrics();
+		resolveAnchorAlignment();
+
+		/* the listener records wp:anchor offsets as xpos/ypos which are
+		 * not frame props — translate them to page anchoring */
+		const gchar * szPos = nullptr;
+		if (getProperty("xpos", szPos) == UT_OK && szPos)
+		{
+			setProperty("frame-page-xpos", szPos);
+			setProperty("position-to", "page-above-text");
+		}
+		if (getProperty("ypos", szPos) == UT_OK && szPos)
+			setProperty("frame-page-ypos", szPos);
+
+		/* Word pictures don't carry our default frame outline */
+		const gchar * szHas = nullptr;
+		if (getProperty("top-style", szHas) != UT_OK || !szHas)
+		{
+			setProperty("top-style", "none");
+			setProperty("bot-style", "none");
+			setProperty("left-style", "none");
+			setProperty("right-style", "none");
+		}
+		if (getProperty("bg-style", szHas) != UT_OK || !szHas)
+			setProperty("bg-style", "0");
 	}
 
 	if(getId().empty())
 	{
-		return UT_OK;
+		return addChildrenToPT(pDocument);
 	}
 
 	if(bInline)

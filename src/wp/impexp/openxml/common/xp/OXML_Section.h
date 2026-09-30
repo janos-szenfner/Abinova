@@ -106,6 +106,10 @@ public:
 	void setTarget(int target);
 	bool hasFirstPageHdrFtr() const;
 	bool hasEvenPageHdrFtr() const;
+	void setTitlePg(bool val)
+		{ m_titlePg = val; }
+	bool getTitlePg() const
+		{ return m_titlePg; }
 	void setHandledHdrFtr(bool val)
 		{ m_handledHdrFtr = val; }
 	bool getHandledHdrFtr() const
@@ -122,6 +126,7 @@ private:
 	char * m_footerIds[3];
 	int m_target;
 	bool m_handledHdrFtr;
+	bool m_titlePg;
 
 	UT_Error _setReferenceIds();
 };

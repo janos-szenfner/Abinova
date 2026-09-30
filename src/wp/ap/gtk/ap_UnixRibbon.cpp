@@ -1556,6 +1556,8 @@ void AP_UnixRibbon::_s_popover_em_clicked(GtkWidget * w, gpointer data)
 		g_object_get_data(G_OBJECT(w), "abi-em-data"));
 	UT_return_if_fail(self && szMethod);
 	_tb_popdown_popover(w);
+	fprintf(stderr, "DBG emclick method=%s data=%s\n",
+			szMethod, szData ? szData : "");
 	self->_invokeEditMethod(szMethod, szData);
 	/* pen rows change the table pen; re-sync the combo previews */
 	if (!strcmp(szMethod, "tablePen"))
@@ -1991,7 +1993,13 @@ GtkWidget * AP_UnixRibbon::_makeNumberingLibraryPopover()
 
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
-	GtkWidget * w = _popoverEmButton("Define New Number Format\xE2\x80\xA6",
+	GtkWidget * w = _popoverEmButton("Remove Numbering",
+								   nullptr, "doListType", "NONE");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("Numbering Settings\xE2\x80\xA6",
+						 nullptr, "dlgBullets");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _popoverEmButton("Define New Number Format\xE2\x80\xA6",
 								   nullptr, "dlgBullets");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 
@@ -6250,6 +6258,12 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 		cairo_rectangle(cr, 12, y, pw - 24, hh);
 		cairo_fill(cr);
 	};
+	auto fband = [&](double y, double hh, double r, double g, double b)
+	{
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_rectangle(cr, 0, y, pw, hh);
+		cairo_fill(cr);
+	};
 	auto tbar = [&](double x, double y, double ww, double hh,
 					double r, double g, double b)
 	{
@@ -6258,127 +6272,214 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 		cairo_fill(cr);
 	};
 	double cx = pw / 2;
+	const double BLU = 0.18, BLU2 = 0.45, BLU3 = 0.71;   /* 4472C4 */
+	const double DK2 = 0.27, DK2b = 0.33, DK2c = 0.42;   /* 44546A */
 
 	if (!strcmp(szPreset, "austin"))
 	{
-		band(18, 26, 0.12, 0.22, 0.39);               /* navy band */
-		tbar(cx - 32, 88, 64, 10, 0.12, 0.22, 0.39);  /* title */
-		tbar(cx - 22, 104, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
-		tbar(cx - 36, 126, 72, 1.6, 0.18, 0.45, 0.71);/* rule */
-		tbar(cx - 17, 138, 34, 5, 0.35, 0.35, 0.35);  /* author */
-		tbar(cx - 13, 148, 26, 4, 0.65, 0.65, 0.65);  /* date */
+		/* blue page + light right panel + dark box top-right */
+		fband(0, ph, BLU, BLU2, BLU3);                    /* blue page */
+		tbar(56, 5, 52, 130, 0.84, 0.86, 0.89);           /* light panel */
+		tbar(58, 5, 48, 56, DK2, DK2b, DK2c);             /* dark box */
+		tbar(66, 20, 32, 3, 1.0, 1.0, 1.0);               /* abstract */
+		tbar(66, 27, 30, 3, 1.0, 1.0, 1.0);
+		tbar(58, 74, 47, 9, BLU, BLU2, BLU3);             /* title */
+		tbar(58, 88, 40, 5, DK2, DK2b, DK2c);             /* subtitle */
+		tbar(58, 128, 30, 4, DK2, DK2b, DK2c);            /* author */
+		tbar(58, 137, 24, 3, DK2, DK2b, DK2c);            /* date */
+	}
+	else if (!strcmp(szPreset, "badge"))
+	{
+		fband(0, ph, BLU, BLU2, BLU3);                    /* blue page */
+		tbar(0, 0, 5, ph, DK2, DK2b, DK2c);               /* dark stripe */
+		tbar(30, 23, 75, 82, 0.91, 0.90, 0.90);           /* light square */
+		tbar(46, 50, 44, 13, DK2, DK2b, DK2c);            /* big title */
+		tbar(52, 70, 32, 5, DK2, DK2b, DK2c);             /* subtitle */
+		tbar(48, 90, 38, 3, DK2, DK2b, DK2c);             /* company */
+		tbar(cx - 16, 150, 32, 5, 0.91, 0.90, 0.90);      /* author */
+		tbar(cx - 22, 161, 44, 3, 0.91, 0.90, 0.90);      /* meta */
 	}
 	else if (!strcmp(szPreset, "banded"))
 	{
-		band(10, 30, 0.18, 0.45, 0.71);               /* top band */
-		tbar(24, 74, 70, 10, 0.15, 0.15, 0.15);       /* title */
-		tbar(24, 90, 50, 5, 0.60, 0.60, 0.60);        /* subtitle */
-		tbar(24, 138, 34, 5, 0.35, 0.35, 0.35);       /* author */
-		tbar(24, 148, 26, 4, 0.65, 0.65, 0.65);       /* date */
-		band(ph - 22, 14, 0.18, 0.45, 0.71);          /* bottom band */
-	}
-	else if (!strcmp(szPreset, "facet"))
-	{
-		band(14, 5, 0.75, 0.0, 0.0);                  /* thin top bar */
-		tbar(22, 72, 6, 30, 0.75, 0.0, 0.0);          /* red sidebar */
-		tbar(34, 74, 66, 10, 0.15, 0.15, 0.15);       /* title */
-		tbar(34, 90, 48, 5, 0.60, 0.60, 0.60);        /* subtitle */
-		tbar(26, 140, 34, 5, 0.35, 0.35, 0.35);       /* author */
-		tbar(26, 150, 26, 4, 0.65, 0.65, 0.65);       /* date */
-	}
-	else if (!strcmp(szPreset, "filigree"))
-	{
-		tbar(cx - 42, 56, 84, 1.2, 0.50, 0.39, 0.64); /* top rule */
-		tbar(cx - 32, 76, 64, 10, 0.25, 0.19, 0.31);  /* title */
-		tbar(cx - 42, 98, 84, 1.2, 0.50, 0.39, 0.64); /* bottom rule */
-		tbar(cx - 22, 110, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
-		tbar(cx - 17, 148, 34, 5, 0.35, 0.35, 0.35);  /* author */
-		tbar(cx - 13, 158, 26, 4, 0.65, 0.65, 0.65);  /* date */
-	}
-	else if (!strcmp(szPreset, "integral"))
-	{
-		band(52, 62, 0.06, 0.42, 0.42);               /* teal block */
-		tbar(cx - 32, 70, 64, 10, 1.0, 1.0, 1.0);     /* title */
-		tbar(cx - 22, 88, 44, 5, 0.85, 0.95, 0.95);   /* subtitle */
-		tbar(cx - 17, 146, 34, 5, 0.06, 0.42, 0.42);  /* author */
-		tbar(cx - 13, 156, 26, 4, 0.65, 0.65, 0.65);  /* date */
+		fband(0, 25, BLU, BLU2, BLU3);                    /* top band */
+		tbar(cx - 28, 58, 56, 9, BLU, BLU2, BLU3);        /* title */
+		tbar(cx - 20, 72, 40, 5, 0.55, 0.55, 0.55);       /* subtitle */
+		fband(120, ph - 120, BLU, BLU2, BLU3);            /* bottom band */
+		tbar(cx - 15, 138, 30, 5, 1.0, 1.0, 1.0);         /* author */
+		tbar(cx - 24, 150, 48, 3, 1.0, 1.0, 1.0);         /* company */
 	}
 	else if (!strcmp(szPreset, "crop"))
 	{
-		/* L brackets: top-left and bottom-right */
-		cairo_set_source_rgb(cr, 0.27, 0.45, 0.77);
-		cairo_set_line_width(cr, 2.0);
-		cairo_move_to(cr, 16, 34); cairo_line_to(cr, 16, 16);
-		cairo_line_to(cr, 44, 16); cairo_stroke(cr);
-		cairo_move_to(cr, pw - 16, ph - 34);
-		cairo_line_to(cr, pw - 16, ph - 16);
-		cairo_line_to(cr, pw - 44, ph - 16); cairo_stroke(cr);
-		tbar(34, 84, 68, 10, 0.15, 0.27, 0.47);       /* title */
-		tbar(34, 100, 46, 5, 0.60, 0.60, 0.60);       /* subtitle */
-		tbar(pw - 66, 138, 32, 5, 0.15, 0.27, 0.47);  /* author */
-		tbar(pw - 58, 148, 24, 4, 0.65, 0.65, 0.65);  /* date */
+		fband(0, ph, 0.91, 0.90, 0.90);                   /* gray page */
+		cairo_set_source_rgb(cr, DK2, DK2b, DK2c);
+		cairo_set_line_width(cr, 4.0);
+		cairo_move_to(cr, 9, 30); cairo_line_to(cr, 9, 7);
+		cairo_line_to(cr, 46, 7); cairo_stroke(cr);       /* top-left L */
+		cairo_move_to(cr, pw - 9, ph - 28);
+		cairo_line_to(cr, pw - 9, ph - 7);
+		cairo_line_to(cr, pw - 46, ph - 7); cairo_stroke(cr); /* bottom-right L */
+		tbar(26, 44, 44, 5, DK2, DK2b, DK2c);             /* subtitle */
+		tbar(26, 54, 62, 11, DK2, DK2b, DK2c);            /* title */
+		tbar(pw - 56, 128, 34, 5, DK2, DK2b, DK2c);       /* author */
+		tbar(pw - 50, 138, 28, 4, DK2, DK2b, DK2c);       /* company */
 	}
-	else if (!strcmp(szPreset, "sideline"))
+	else if (!strcmp(szPreset, "facet"))
 	{
-		tbar(10, 8, 12, ph - 16, 0.27, 0.45, 0.77);   /* left stripe */
-		tbar(32, 66, 66, 10, 0.15, 0.27, 0.47);       /* title */
-		tbar(32, 82, 46, 5, 0.60, 0.60, 0.60);        /* subtitle */
-		tbar(32, 140, 32, 5, 0.15, 0.27, 0.47);       /* author */
-		tbar(32, 150, 24, 4, 0.65, 0.65, 0.65);       /* date */
+		/* blue top band + right-aligned blocks */
+		fband(5, 22, BLU, BLU2, BLU3);                    /* top band */
+		tbar(pw - 78, 60, 58, 9, BLU, BLU2, BLU3);        /* title */
+		tbar(pw - 66, 74, 46, 5, 0.25, 0.25, 0.25);       /* subtitle */
+		tbar(pw - 42, 138, 22, 5, BLU, BLU2, BLU3);       /* Abstract */
+		tbar(pw - 76, 148, 56, 3, 0.55, 0.55, 0.55);      /* abstract */
+		tbar(pw - 66, 154, 46, 3, 0.55, 0.55, 0.55);
+		tbar(pw - 50, 168, 30, 5, 0.55, 0.55, 0.55);      /* author */
+		tbar(pw - 44, 178, 24, 3, 0.55, 0.55, 0.55);      /* email */
+	}
+	else if (!strcmp(szPreset, "feathered"))
+	{
+		fband(0, ph, BLU, BLU2, BLU3);                    /* full blue page */
+		tbar(56, 74, 60, 10, 0.91, 0.90, 0.90);           /* title */
+		tbar(56, 90, 46, 6, 0.91, 0.90, 0.90);            /* subtitle */
+		tbar(56, 140, 34, 5, 0.91, 0.90, 0.90);           /* author */
+		tbar(56, 150, 40, 4, 0.91, 0.90, 0.90);           /* company */
+	}
+	else if (!strcmp(szPreset, "filigree"))
+	{
+		tbar(cx - 30, 60, 60, 10, BLU, BLU2, BLU3);       /* title */
+		tbar(cx - 22, 78, 44, 5, BLU, BLU2, BLU3);        /* subtitle */
+		tbar(cx - 15, 140, 30, 5, BLU, BLU2, BLU3);       /* date */
+		tbar(cx - 20, 152, 40, 4, BLU, BLU2, BLU3);       /* company */
+	}
+	else if (!strcmp(szPreset, "headline"))
+	{
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+		cairo_set_line_width(cr, 1.5);
+		cairo_move_to(cr, 10, 22); cairo_line_to(cr, 10, 52);
+		cairo_stroke(cr);                                 /* thin vline */
+		tbar(16, 24, 66, 11, 0.25, 0.25, 0.25);           /* title */
+		tbar(16, 40, 44, 5, 0.25, 0.25, 0.25);            /* subtitle */
+		tbar(14, 156, 30, 5, 0.25, 0.25, 0.25);           /* author */
+		tbar(14, 166, 40, 4, 0.25, 0.25, 0.25);           /* company */
+	}
+	else if (!strcmp(szPreset, "integral"))
+	{
+		/* narrow centered column with orange rules */
+		tbar(cx - 20, 40, 40, 2, 0.93, 0.49, 0.19);       /* top rule */
+		tbar(cx - 16, 50, 32, 6, 0.1, 0.1, 0.1);          /* title */
+		tbar(cx - 13, 60, 26, 4, 0.1, 0.1, 0.1);          /* subtitle */
+		tbar(cx - 11, 80, 22, 4, 0.93, 0.49, 0.19);       /* Abstract */
+		tbar(cx - 18, 88, 36, 3, 0.2, 0.2, 0.2);          /* abstract */
+		tbar(cx - 11, 104, 22, 4, 0.93, 0.49, 0.19);      /* author */
+		tbar(cx - 13, 112, 26, 3, DK2, DK2b, DK2c);       /* course */
+		tbar(cx - 20, 120, 40, 2, 0.93, 0.49, 0.19);      /* bot rule */
+	}
+	else if (!strcmp(szPreset, "iondark"))
+	{
+		fband(0, 118, 0.0, 0.0, 0.0);                     /* black panel */
+		tbar(pw - 36, 8, 24, 4, 1.0, 1.0, 1.0);           /* year */
+		tbar(16, 42, 56, 9, 1.0, 1.0, 1.0);               /* white title */
+		tbar(14, 138, 44, 5, BLU, BLU2, BLU3);            /* subtitle */
+		tbar(14, 150, 34, 4, 0.36, 0.61, 0.84);           /* author 5B9BD5 */
+		tbar(14, 168, 40, 3, 0.5, 0.5, 0.5);              /* meta */
+	}
+	else if (!strcmp(szPreset, "ionlight"))
+	{
+		tbar(pw - 42, 6, 30, 12, BLU, BLU2, BLU3);        /* year chip */
+		tbar(pw - 34, 10, 15, 4, 1.0, 1.0, 1.0);
+		tbar(24, 116, 56, 9, BLU, BLU2, BLU3);            /* title */
+		tbar(24, 130, 44, 5, 0.12, 0.31, 0.47);           /* subtitle */
+		tbar(24, 148, 30, 4, 0.36, 0.61, 0.84);           /* author */
 	}
 	else if (!strcmp(szPreset, "retrospect"))
 	{
-		cairo_set_source_rgb(cr, 0.18, 0.45, 0.71);
-		cairo_set_line_width(cr, 1.6);
-		cairo_rectangle(cr, 26, 68, pw - 52, 34);     /* title box */
-		cairo_stroke(cr);
-		tbar(cx - 30, 80, 60, 9, 0.12, 0.31, 0.47);   /* title */
-		tbar(cx - 22, 110, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
-		tbar(cx - 17, 150, 34, 5, 0.35, 0.35, 0.35);  /* author */
-		tbar(cx - 13, 160, 26, 4, 0.65, 0.65, 0.65);  /* date */
+		/* white page + muted title + blue hairline + orange band */
+		tbar(14, 40, 66, 12, 0.35, 0.35, 0.35);           /* muted title */
+		tbar(15, 58, 44, 5, DK2, DK2b, DK2c);             /* subtitle */
+		fband(135, 3, BLU, BLU2, BLU3);                   /* blue hairline */
+		fband(138, 48, 0.93, 0.49, 0.19);                 /* orange band */
+		tbar(16, 152, 34, 5, 1.0, 1.0, 1.0);              /* author */
+		tbar(16, 163, 48, 3, 1.0, 1.0, 1.0);              /* company */
+	}
+	else if (!strcmp(szPreset, "semaphore"))
+	{
+		tbar(5, 4, 5, ph - 8, 0.93, 0.49, 0.19);          /* orange stripe */
+		tbar(pw - 50, 16, 34, 5, 0.2, 0.24, 0.31);        /* date */
+		tbar(pw - 66, 84, 50, 7, 0.2, 0.24, 0.31);        /* title */
+		tbar(pw - 56, 96, 40, 5, DK2, DK2b, DK2c);        /* subtitle */
+		tbar(pw - 48, 156, 32, 4, 0.25, 0.25, 0.25);      /* author */
+	}
+	else if (!strcmp(szPreset, "slicedark"))
+	{
+		fband(6, ph - 12, 0.0, 0.0, 0.0);                 /* black page */
+		tbar(16, 32, 56, 9, 1.0, 1.0, 1.0);               /* white title */
+		tbar(18, 46, 44, 5, BLU, BLU2, BLU3);             /* blue subtitle */
+	}
+	else if (!strcmp(szPreset, "slicelight"))
+	{
+		tbar(16, 22, 56, 9, 0.52, 0.59, 0.69);            /* title 8496B0 */
+		tbar(16, 36, 44, 5, BLU, BLU2, BLU3);             /* subtitle */
+		tbar(28, 60, 93, 104, 0.52, 0.59, 0.69);          /* slate panel */
+		tbar(pw - 60, 164, 44, 4, BLU, BLU2, BLU3);       /* school */
+		tbar(pw - 66, 174, 50, 4, BLU, BLU2, BLU3);       /* course */
+	}
+	else if (!strcmp(szPreset, "sideline"))
+	{
+		tbar(8, 8, 10, ph - 16, 0.27, 0.45, 0.77);        /* left stripe */
+		tbar(32, 66, 66, 10, 0.15, 0.27, 0.47);           /* title */
+		tbar(32, 82, 46, 5, 0.60, 0.60, 0.60);            /* subtitle */
+		tbar(32, 140, 32, 5, 0.15, 0.27, 0.47);           /* author */
+		tbar(32, 150, 24, 4, 0.65, 0.65, 0.65);           /* date */
+	}
+	else if (!strcmp(szPreset, "viewmaster"))
+	{
+		fband(6, ph - 12, 0.0, 0.0, 0.0);                 /* black page */
+		tbar(16, 28, 60, 10, 1.0, 1.0, 1.0);              /* title */
+		tbar(17, 44, 44, 5, 0.85, 0.85, 0.85);            /* subtitle */
+		tbar(16, 150, 34, 5, 0.9, 0.9, 0.9);              /* author */
+		tbar(17, 162, 40, 3, 0.75, 0.75, 0.75);           /* company */
 	}
 	else if (!strcmp(szPreset, "yearly"))
 	{
-		tbar(cx - 40, 30, 80, 22, 0.85, 0.89, 0.95);  /* pale year */
-		tbar(cx - 32, 66, 64, 9, 0.12, 0.31, 0.47);   /* title */
-		tbar(cx - 22, 80, 44, 5, 0.60, 0.60, 0.60);   /* subtitle */
-		tbar(cx - 17, 138, 34, 5, 0.35, 0.35, 0.35);  /* author */
-		band(ph - 20, 12, 0.18, 0.45, 0.71);          /* bottom band */
+		tbar(cx - 40, 30, 80, 22, 0.85, 0.89, 0.95);      /* pale year */
+		tbar(cx - 32, 66, 64, 9, 0.12, 0.31, 0.47);       /* title */
+		tbar(cx - 22, 80, 44, 5, 0.60, 0.60, 0.60);       /* subtitle */
+		tbar(cx - 17, 138, 34, 5, 0.35, 0.35, 0.35);      /* author */
+		band(ph - 20, 12, 0.18, 0.45, 0.71);              /* bottom band */
 	}
 	else if (!strcmp(szPreset, "motion"))
 	{
 		cairo_set_source_rgb(cr, 0.18, 0.45, 0.71);
 		cairo_rectangle(cr, pw / 2, 24, pw / 2 - 14, 10);
-		cairo_fill(cr);                               /* right band */
+		cairo_fill(cr);                                   /* right band */
 		cairo_set_source_rgb(cr, 0.71, 0.78, 0.91);
 		cairo_rectangle(cr, 14, 38, pw / 2 - 14, 10);
-		cairo_fill(cr);                               /* left band */
-		tbar(20, 84, 70, 9, 0.15, 0.15, 0.15);        /* title */
-		tbar(20, 98, 50, 5, 0.60, 0.60, 0.60);        /* subtitle */
-		tbar(20, 148, 32, 5, 0.35, 0.35, 0.35);       /* author */
-		tbar(20, 158, 24, 4, 0.65, 0.65, 0.65);       /* date */
+		cairo_fill(cr);                                   /* left band */
+		tbar(20, 84, 70, 9, 0.15, 0.15, 0.15);            /* title */
+		tbar(20, 98, 50, 5, 0.60, 0.60, 0.60);            /* subtitle */
+		tbar(20, 148, 32, 5, 0.35, 0.35, 0.35);           /* author */
+		tbar(20, 158, 24, 4, 0.65, 0.65, 0.65);           /* date */
 	}
 	else if (!strcmp(szPreset, "frame"))
 	{
 		cairo_set_source_rgb(cr, 0.85, 0.89, 0.95);
-		cairo_rectangle(cr, 22, 22, pw - 44, 56);     /* picture fill */
+		cairo_rectangle(cr, 22, 22, pw - 44, 56);         /* picture fill */
 		cairo_fill(cr);
 		cairo_set_source_rgb(cr, 0.18, 0.45, 0.71);
 		cairo_set_line_width(cr, 1.4);
 		cairo_rectangle(cr, 22, 22, pw - 44, 56);
 		cairo_stroke(cr);
-		tbar(cx - 32, 92, 64, 9, 0.12, 0.31, 0.47);   /* title */
-		tbar(cx - 22, 106, 44, 5, 0.60, 0.60, 0.60);  /* subtitle */
-		tbar(cx - 17, 150, 34, 5, 0.35, 0.35, 0.35);  /* author */
-		tbar(cx - 13, 160, 26, 4, 0.65, 0.65, 0.65);  /* date */
+		tbar(cx - 32, 92, 64, 9, 0.12, 0.31, 0.47);       /* title */
+		tbar(cx - 22, 106, 44, 5, 0.60, 0.60, 0.60);      /* subtitle */
+		tbar(cx - 17, 150, 34, 5, 0.35, 0.35, 0.35);      /* author */
+		tbar(cx - 13, 160, 26, 4, 0.65, 0.65, 0.65);      /* date */
 	}
 	else /* whisp */
 	{
-		tbar(16, 16, 64, 2.4, 0.75, 0.56, 0.0);       /* amber rule */
-		tbar(20, 80, 74, 10, 0.25, 0.25, 0.25);       /* title */
-		tbar(20, 96, 52, 5, 0.55, 0.55, 0.55);        /* subtitle */
-		tbar(20, 152, 34, 5, 0.35, 0.35, 0.35);       /* author */
-		tbar(20, 162, 26, 4, 0.65, 0.65, 0.65);       /* date */
+		tbar(4, 0, 4, ph, DK2, DK2b, DK2c);               /* thin dark stripe */
+		tbar(52, 34, 62, 9, 0.15, 0.15, 0.15);            /* title */
+		tbar(52, 48, 46, 5, 0.35, 0.35, 0.35);            /* subtitle */
+		tbar(52, 160, 30, 5, BLU, BLU2, BLU3);            /* author */
+		tbar(52, 171, 24, 4, 0.55, 0.55, 0.55);           /* company */
 	}
 }
 
@@ -6687,15 +6788,24 @@ GtkWidget * AP_UnixRibbon::_makeCoverPagePopover()
 	s_coverTypes[] =
 	{
 		{ "Austin",		"austin" },
+		{ "Badge",		"badge" },
 		{ "Banded",		"banded" },
 		{ "Crop",		"crop" },
 		{ "Facet",		"facet" },
+		{ "Feathered",	"feathered" },
 		{ "Filigree",	"filigree" },
 		{ "Frame",		"frame" },
+		{ "Headline",	"headline" },
 		{ "Integral",	"integral" },
+		{ "Ion (Dark)",	"iondark" },
+		{ "Ion (Light)","ionlight" },
 		{ "Motion",		"motion" },
 		{ "Retrospect",	"retrospect" },
+		{ "Semaphore",	"semaphore" },
+		{ "Slice (Dark)",	"slicedark" },
+		{ "Slice (Light)",	"slicelight" },
 		{ "Sideline",	"sideline" },
+		{ "ViewMaster",	"viewmaster" },
 		{ "Whisp",		"whisp" },
 		{ "Yearly",		"yearly" },
 	};
@@ -8818,30 +8928,33 @@ static void _hdrftr_card_draw(GtkDrawingArea *, cairo_t * cr,
 		}
 		else if (!strcmp(id, "viewmasterh"))
 		{
-			hline(m + w * 0.1, h * 0.34, w - m, 0.2, 0.2, 0.2, 1.0);
+			hline(m + 4, h * 0.3, w - m - 4, 0.1, 0.1, 0.1, 1.4);
 			cairo_text_extents_t ext;
 			cairo_select_font_face(cr, "sans",
 								   CAIRO_FONT_SLANT_NORMAL,
 								   CAIRO_FONT_WEIGHT_NORMAL);
-			cairo_set_font_size(cr, 8.5);
+			cairo_set_font_size(cr, 8.0);
 			cairo_text_extents(cr, "[Date]", &ext);
-			text("[Date]", w - m - 26 - ext.width - 4, h * 0.62,
+			band(w - m - 26, h * 0.42, 26, h * 0.34, 0.1, 0.1, 0.1);
+			text("[Date]", w - m - 26 - 5 - ext.width, h * 0.62,
 				 0.5, 0.5, 0.5, false, false, 0);
-			band(w - m - 26, h * 0.42, 26, h * 0.36, 0.1, 0.1, 0.1);
 			text("1", w - m - 16, h * 0.66, 1, 1, 1, true, false, 0);
 		}
 		else if (!strcmp(id, "viewmasterv"))
 		{
+			cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+			cairo_rectangle(cr, w - m - 1.5, h * 0.12, 1.5, h * 0.76);
+			cairo_fill(cr);
 			cairo_text_extents_t ext;
 			cairo_select_font_face(cr, "sans",
 								   CAIRO_FONT_SLANT_NORMAL,
 								   CAIRO_FONT_WEIGHT_NORMAL);
 			cairo_set_font_size(cr, 7.5);
 			cairo_text_extents(cr, "[Date]", &ext);
-			text("[Date]", w - m - ext.width, h * 0.34,
+			text("[Date]", w - m - 8 - ext.width, h * 0.34,
 				 0.5, 0.5, 0.5, false, false, 0);
-			band(w - m - 26, h * 0.46, 26, h * 0.34, 0.1, 0.1, 0.1);
-			text("1", w - m - 16, h * 0.68, 1, 1, 1, true, false, 0);
+			band(w - m - 24, h * 0.56, 22, h * 0.3, 0.1, 0.1, 0.1);
+			text("1", w - m - 15, h * 0.77, 1, 1, 1, true, false, 0);
 		}
 		else /* whisp */
 			text("Page 1", 0, h * 0.5 + 3, 0.5, 0.5, 0.5,
@@ -8889,9 +9002,9 @@ static void _hdrftr_card_draw(GtkDrawingArea *, cairo_t * cr,
 	}
 	else if (!strcmp(id, "crop"))
 	{
-		band(m, h * 0.18, w * 0.16, 7, 0.27, 0.33, 0.42);
-		band(m, h * 0.18, 7, h * 0.5, 0.27, 0.33, 0.42);
-		text("1", w - m - 6, h * 0.5, 0.5, 0.5, 0.55,
+		band(m, h * 0.16, w * 0.34, 8, 0.27, 0.33, 0.42);
+		band(m, h * 0.16, 8, h * 0.62, 0.27, 0.33, 0.42);
+		text("1", m + w * 0.34 + 5, h * 0.42, 0.3, 0.3, 0.3,
 			 false, false, 0);
 	}
 	else if (!strcmp(id, "faceteven") || !strcmp(id, "facetodd"))
@@ -10388,7 +10501,7 @@ GtkWidget * AP_UnixRibbon::_wrapSplit(GtkWidget * w, GtkWidget * popover,
 	/* slim the drop-arrow: zero padding on the button and its
 	 * internal children so it is just a narrow wedge */
 	_slim_widget_tree(arrow);
-	gtk_widget_set_size_request(arrow, 12, -1);
+	gtk_widget_set_size_request(arrow, 16, -1);
 
 	GtkWidget * box = gtk_box_new(
 		bVertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, 0);

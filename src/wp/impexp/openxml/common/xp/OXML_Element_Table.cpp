@@ -297,6 +297,35 @@ UT_Error OXML_Element_Table::addToPT(PD_Document * pDocument)
 		}
 	}
 
+	//propagate table-level cell margins (w:tblCellMar defaults) to cells;
+	//explicit per-cell w:tcMar margins take precedence
+	static const char * tblCellMarSides[] =
+		{ "left", "top", "right", "bottom" };
+	for (auto side : tblCellMarSides)
+	{
+		std::string tblProp("tblcellmar-");
+		tblProp += side;
+		const gchar * marVal = nullptr;
+		if(getProperty(tblProp.c_str(), marVal) == UT_OK && marVal && *marVal)
+		{
+			for (i = 0; i < children.size(); i++)
+			{
+				OXML_ElementVector cells = children[i]->getChildren();
+				for (auto cell : cells)
+				{
+					std::string cellProp("cell-margin-");
+					cellProp += side;
+					const gchar * existing = nullptr;
+					if(!cell ||
+						(cell->getProperty(cellProp.c_str(), existing) == UT_OK &&
+						 existing && *existing))
+						continue;
+					cell->setProperty(cellProp.c_str(), marVal);
+				}
+			}
+		}
+	}
+
 	const PP_PropertyVector atts = getAttributesWithProps();
 	if(!pDocument->appendStrux(PTX_SectionTable, atts))
 		return UT_ERROR;
