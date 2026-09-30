@@ -35,6 +35,7 @@
 #include "gr_DrawArgs.h"
 #include "ut_vector.h"
 #include "ut_types.h"
+#include "ut_units.h"
 #include "ut_debugmsg.h"
 #include "ut_assert.h"
 #include "fl_FrameLayout.h"
@@ -432,46 +433,19 @@ static bool s_paintFrameAlpha(GR_Graphics * pG,
 }
 
 /*!
- * Paint a freeform shape from the "shape-path" property - the
- * DrawingML a:custGeom path serialized as "M x y L x y C x1 y1 x2 y2
- * x3 y3 Q x1 y1 x2 y2 Z" with coordinates normalized into a 0..1000
- * box that maps onto the frame rectangle.  Fills the path with the
- * frame's gradient (when present) or solid background color, then
- * strokes it with the frame's border.  Returns false when no usable
- * path is stored or the graphics isn't cairo.
+ * Append the "shape-path" freeform geometry (DrawingML a:custGeom
+ * serialized as "M x y L x y C x1 y1 x2 y2 x3 y3 Q x1 y1 x2 y2 Z" in
+ * a normalized 0..1000 box) to the current cairo path, mapped onto
+ * the device-space rectangle (dx0,dy0,dw,dh).  Returns false when the
+ * descriptor produced no path.  Used for both painting the shape and
+ * building its shadow silhouette.
  */
-static bool s_paintFrameShape(GR_Graphics * pG,
-							  fp_FrameContainer * pFC,
-							  UT_sint32 x, UT_sint32 y,
-							  UT_sint32 w, UT_sint32 h)
+static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
+							 double dx0, double dy0,
+							 double dw, double dh)
 {
-	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
-	const PP_AttrProp * pAP = nullptr;
-	if (pFL)
-		pFL->getAP(pAP);
-	const gchar * szPath = nullptr;
-	if (!pAP || !pAP->getProperty("shape-path", szPath) ||
-		!szPath || !*szPath)
-		return false;
-
-	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
-	if (!pCG)
-		return false;
-	if (pCG->getPaintCount() <= 0 &&
-		pG->queryProperties(GR_Graphics::DGP_SCREEN))
-		return false;
-	cairo_t * cr = pCG->getCairo();
-	if (!cr)
-		return false;
-
-	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
-	double dw = pG->tdu(x + w) - dx0, dh = pG->tdu(y + h) - dy0;
-	if (dw <= 0 || dh <= 0)
-		return false;
-
 	/* tokenize: letters start a command, numbers feed the pending
 	 * command (M/L need 2, Q needs 4, C needs 6 coordinates) */
-	cairo_new_path(cr);
 	char cmd = 0;
 	double nums[6];
 	int nNums = 0;
@@ -560,7 +534,49 @@ static bool s_paintFrameShape(GR_Graphics * pG,
 		}
 	}
 	g_free(copy);
-	if (!bAny)
+	return bAny;
+}
+
+/*!
+ * Paint a freeform shape from the "shape-path" property - the
+ * DrawingML a:custGeom path serialized as "M x y L x y C x1 y1 x2 y2
+ * x3 y3 Q x1 y1 x2 y2 Z" with coordinates normalized into a 0..1000
+ * box that maps onto the frame rectangle.  Fills the path with the
+ * frame's gradient (when present) or solid background color, then
+ * strokes it with the frame's border.  Returns false when no usable
+ * path is stored or the graphics isn't cairo.
+ */
+static bool s_paintFrameShape(GR_Graphics * pG,
+							  fp_FrameContainer * pFC,
+							  UT_sint32 x, UT_sint32 y,
+							  UT_sint32 w, UT_sint32 h)
+{
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * szPath = nullptr;
+	if (!pAP || !pAP->getProperty("shape-path", szPath) ||
+		!szPath || !*szPath)
+		return false;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+
+	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
+	double dw = pG->tdu(x + w) - dx0, dh = pG->tdu(y + h) - dy0;
+	if (dw <= 0 || dh <= 0)
+		return false;
+
+	cairo_new_path(cr);
+	if (!s_frameShapePath(cr, szPath, dx0, dy0, dw, dh))
 		return false;
 
 	/* fill: gradient clipped to the path when present, else the
@@ -802,6 +818,207 @@ static void s_paintFrameArrows(GR_Graphics * pG,
 		s_arrowMarkerPath(cr, szType, tipX, tipY, dx, dy, fW, fL, lw);
 	}
 	cairo_fill(cr);
+}
+
+/*!
+ * Separable box blur over the alpha byte of a CAIRO_FORMAT_ARGB32
+ * image surface (the shadow silhouette is opaque black, so RGB stay
+ * zero and alpha carries the coverage).  Three passes approximate a
+ * gaussian; edges use replicate extension.
+ */
+static void s_blurShadowAlpha(cairo_surface_t * surf, int radius)
+{
+	if (radius < 1)
+		return;
+	int w = cairo_image_surface_get_width(surf);
+	int h = cairo_image_surface_get_height(surf);
+	int stride = cairo_image_surface_get_stride(surf);
+	unsigned char * data = cairo_image_surface_get_data(surf);
+	if (!data || w <= 0 || h <= 0)
+		return;
+	cairo_surface_flush(surf);
+	/* ARGB32 stores alpha in the most significant byte of each
+	 * native-endian pixel word */
+	const int aoff = (G_BYTE_ORDER == G_LITTLE_ENDIAN) ? 3 : 0;
+	const int n = 2 * radius + 1;
+	std::vector<unsigned char> tmp(w > h ? w : h);
+	for (int pass = 0; pass < 3; pass++)
+	{
+		for (int y = 0; y < h; y++) /* horizontal */
+		{
+			unsigned char * row = data + y * stride + aoff;
+			int sum = 0;
+			for (int i = -radius; i <= radius; i++)
+				sum += row[4 * (i < 0 ? 0 : (i >= w ? w - 1 : i))];
+			for (int x = 0; x < w; x++)
+			{
+				tmp[x] = static_cast<unsigned char>((sum + n / 2) / n);
+				int co = x - radius, cn = x + radius + 1;
+				sum -= row[4 * (co < 0 ? 0 : (co >= w ? w - 1 : co))];
+				sum += row[4 * (cn < 0 ? 0 : (cn >= w ? w - 1 : cn))];
+			}
+			for (int x = 0; x < w; x++)
+				row[4 * x] = tmp[x];
+		}
+		for (int x = 0; x < w; x++) /* vertical */
+		{
+			unsigned char * col = data + x * 4 + aoff;
+			int sum = 0;
+			for (int i = -radius; i <= radius; i++)
+				sum += col[stride * (i < 0 ? 0 : (i >= h ? h - 1 : i))];
+			for (int y = 0; y < h; y++)
+			{
+				tmp[y] = static_cast<unsigned char>((sum + n / 2) / n);
+				int ro = y - radius, rn = y + radius + 1;
+				sum -= col[stride * (ro < 0 ? 0 : (ro >= h ? h - 1 : ro))];
+				sum += col[stride * (rn < 0 ? 0 : (rn >= h ? h - 1 : rn))];
+			}
+			for (int y = 0; y < h; y++)
+				col[stride * y] = tmp[y];
+		}
+	}
+	cairo_surface_mark_dirty(surf);
+}
+
+/*!
+ * Paint the OOXML a:outerShdw drop shadow (the "frame-shadow",
+ * "frame-shadow-offset", "frame-shadow-dir", "frame-shadow-blur",
+ * "frame-shadow-color", "frame-shadow-alpha" and "frame-shadow-rot"
+ * properties).  The shape's silhouette - its custGeom path when
+ * present, else the frame rectangle - is rasterized, box-blurred by
+ * blurRad and masked onto the page in the shadow color, offset by
+ * dist along dir (60000ths of a degree, clockwise from 3 o'clock,
+ * matching the fill-gradient convention).  Painted under the frame's
+ * rotation/flip transform so the silhouette follows the shape; a
+ * rotWithShape="0" shadow keeps its offset fixed in page space by
+ * undoing the transform on the offset vector.  (x,y,w,h) are layout
+ * units.
+ */
+static void s_paintFrameShadow(GR_Graphics * pG,
+							   fp_FrameContainer * pFC,
+							   UT_sint32 x, UT_sint32 y,
+							   UT_sint32 w, UT_sint32 h)
+{
+	if (w <= 0 || h <= 0)
+		return;
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	if (!pAP || !pAP->getProperty("frame-shadow", sz) ||
+		!sz || !*sz || !strcmp(sz, "none") || !strcmp(sz, "0"))
+		return;
+
+	/* a shape with nothing painted casts no shadow */
+	const gchar * szPath = nullptr;
+	bool bHasPath = pAP->getProperty("shape-path", szPath) &&
+					szPath && *szPath;
+	const UT_RGBColor * pFill = pFC->getFillType().getColor();
+	bool bHasFill = pFill && !pFill->isTransparent();
+	const PP_PropertyMap::Line & topLine = pFC->getTopStyle();
+	bool bHasBorder = topLine.m_t_linestyle != PP_PropertyMap::linestyle_none &&
+					  topLine.m_thickness > 0;
+	if (!bHasFill && !bHasPath && !bHasBorder)
+		return;
+
+	UT_sint32 distLU = 0, blurLU = 0;
+	if (pAP->getProperty("frame-shadow-offset", sz) && sz && *sz)
+		distLU = UT_convertToLogicalUnits(sz);
+	if (pAP->getProperty("frame-shadow-blur", sz) && sz && *sz)
+		blurLU = UT_convertToLogicalUnits(sz);
+	if (distLU <= 0 && blurLU <= 0)
+		return;
+
+	double dirRad = 0.0;
+	if (pAP->getProperty("frame-shadow-dir", sz) && sz && *sz)
+		dirRad = g_ascii_strtod(sz, nullptr) / 60000.0 * M_PI / 180.0;
+
+	double alpha = 0.5;
+	if (pAP->getProperty("frame-shadow-alpha", sz) && sz && *sz)
+		alpha = s_abwnDouble(sz);
+	if (alpha <= 0.0)
+		return;
+	if (alpha > 1.0)
+		alpha = 1.0;
+
+	unsigned int rv = 0, gv = 0, bv = 0;
+	if (pAP->getProperty("frame-shadow-color", sz) && sz)
+		sscanf(sz, "%02x%02x%02x", &rv, &gv, &bv);
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return;
+	/* same implicit-beginPaint guard as the other cairo painters */
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return;
+
+	double distDev = pG->tdu(distLU);
+	double blurDev = pG->tdu(blurLU);
+	double ox = cos(dirRad) * distDev;
+	double oy = sin(dirRad) * distDev;
+
+	bool bRotWith = true;
+	if (pAP->getProperty("frame-shadow-rot", sz) && sz &&
+		(!strcmp(sz, "0") || !strcmp(sz, "false")))
+		bRotWith = false;
+	if (!bRotWith)
+	{
+		double rad = -pFC->getRotation() * M_PI / 180.0;
+		double c = cos(rad), s = sin(rad);
+		double ux = ox * c - oy * s;
+		double uy = ox * s + oy * c;
+		ox = pFC->isFlippedHoriz() ? -ux : ux;
+		oy = pFC->isFlippedVert() ? -uy : uy;
+	}
+
+	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
+	double dw = pG->tdu(x + w) - dx0, dh = pG->tdu(y + h) - dy0;
+	if (dw <= 0.0 || dh <= 0.0)
+		return;
+
+	/* the blur spills ~3 radii past the silhouette - grow the damage
+	 * rect so a repaint covers the soft edge */
+	if (pFC->getPage())
+	{
+		UT_sint32 padLU = distLU + 3 * blurLU + pG->tlu(2);
+		UT_Rect dmg;
+		s_rotatedBounds(x - padLU, y - padLU,
+						w + 2 * padLU, h + 2 * padLU,
+						pFC->getRotation(), dmg);
+		pFC->getPage()->expandDamageRect(dmg.left, dmg.top,
+									   dmg.width, dmg.height);
+	}
+
+	double margin = blurDev * 3.0 + 2.0;
+	int sw = static_cast<int>(ceil(dw + 2.0 * margin));
+	int sh = static_cast<int>(ceil(dh + 2.0 * margin));
+	if (sw <= 0 || sh <= 0 || sw > 8192 || sh > 8192)
+		return;
+	cairo_surface_t * mask =
+		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, sw, sh);
+	cairo_t * mcr = cairo_create(mask);
+	cairo_translate(mcr, margin, margin);
+	cairo_new_path(mcr);
+	bool bSilhouette = bHasPath &&
+		s_frameShapePath(mcr, szPath, 0.0, 0.0, dw, dh);
+	if (!bSilhouette)
+		cairo_rectangle(mcr, 0.0, 0.0, dw, dh);
+	cairo_set_source_rgba(mcr, 0.0, 0.0, 0.0, 1.0);
+	cairo_fill(mcr);
+	cairo_destroy(mcr);
+	s_blurShadowAlpha(mask, static_cast<int>(blurDev + 0.5));
+
+	cairo_set_source_rgba(cr,
+						  rv / 255.0, gv / 255.0, bv / 255.0, alpha);
+	cairo_mask_surface(cr, mask,
+					   dx0 - margin + ox, dy0 - margin + oy);
+	cairo_surface_destroy(mask);
+	cairo_new_path(cr);
 }
 
 /*!
@@ -1480,6 +1697,9 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		{
 		        iFullHeight = iFullHeight - (iBot-iMaxHeight);
 		}
+		/* a:outerShdw drop shadow paints under the frame transform,
+		 * before the fill - Word draws it beneath the shape */
+		s_paintFrameShadow(pG, this, x, y, getFullWidth(), iFullHeight);
 		if (!s_paintFrameShape(pG, this, x, y,
 							   getFullWidth(), iFullHeight) &&
 			!s_paintFrameGradient(pG, this, x, y,

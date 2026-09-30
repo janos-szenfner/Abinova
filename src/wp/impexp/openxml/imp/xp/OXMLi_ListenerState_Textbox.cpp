@@ -314,13 +314,16 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "outerShdw"))
 	{
-		/* drop shadow inside a:effectLst — preserved as frame-shadow-* */
+		/* drop shadow inside a:effectLst — preserved as frame-shadow-*;
+		 * the color child (a:srgbClr/…) is captured while m_bInShadow */
+		m_bInShadow = true;
 		if (rqst->stck && !rqst->stck->empty())
 		{
 			rqst->stck->top()->setProperty("frame-shadow", "outer");
 			const gchar * dist = attrMatches(NS_A_KEY, "dist", rqst->ppAtts);
 			const gchar * dir = attrMatches(NS_A_KEY, "dir", rqst->ppAtts);
 			const gchar * blur = attrMatches(NS_A_KEY, "blurRad", rqst->ppAtts);
+			const gchar * rws = attrMatches(NS_A_KEY, "rotWithShape", rqst->ppAtts);
 			if (dist && *dist)
 			{
 				char buf[24];
@@ -337,6 +340,10 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 						   UT_convertDimensionless(blur) / 12700.0);
 				rqst->stck->top()->setProperty("frame-shadow-blur", buf);
 			}
+			if (rws && *rws)
+				rqst->stck->top()->setProperty("frame-shadow-rot",
+											 (!strcmp(rws, "0") ||
+											  !strcmp(rws, "false")) ? "0" : "1");
 		}
 		rqst->handled = true;
 		return;
@@ -541,7 +548,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		rqst->handled = true;
 		return;
 	}
-	if ((m_bInShapeFill || m_bInStyleFill || m_bInOutlineFill) &&
+	if ((m_bInShapeFill || m_bInStyleFill || m_bInOutlineFill ||
+		 m_bInShadow) &&
 		(nameMatches(rqst->pName, NS_A_KEY, "srgbClr") ||
 		 nameMatches(rqst->pName, NS_A_KEY, "schemeClr") ||
 		 nameMatches(rqst->pName, NS_A_KEY, "sysClr") ||
@@ -555,6 +563,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			color.erase(0, 1);
 		m_pendColor = color;
 		m_bPendOutline = m_bInOutlineFill;
+		m_bPendShadow = m_bInShadow;
 		m_lumMod = 1.0; m_lumOff = 0.0;
 		m_tint = -1.0; m_shade = -1.0; m_alpha = -1.0;
 		rqst->handled = true;
@@ -1142,6 +1151,8 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		nameMatches(rqst->pName, NS_A_KEY, "tile") ||
 		nameMatches(rqst->pName, NS_A_KEY, "prstTxWarp"))
 	{
+		if (nameMatches(rqst->pName, NS_A_KEY, "outerShdw"))
+			m_bInShadow = false;
 		rqst->handled = true;
 		return;
 	}
@@ -1153,17 +1164,33 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		 nameMatches(rqst->pName, NS_A_KEY, "scrgbClr")))
 	{
 		/* color element closed — apply recorded transforms and write
-		 * the fill or outline color (first color wins) */
+		 * the fill or outline color (first color wins). Shadow alpha
+		 * stays a separate prop rather than flattening over white */
 		std::string final =
 			s_transformColor(m_pendColor, m_lumMod, m_lumOff,
-							 m_tint, m_shade, m_alpha);
+							 m_tint, m_shade,
+							 m_bPendShadow ? -1.0 : m_alpha);
 		bool bOutline = m_bPendOutline;
+		bool bShadow = m_bPendShadow;
 		double alpha = m_alpha;
 		m_pendColor.clear();
 		m_bPendOutline = false;
+		m_bPendShadow = false;
 		if (!final.empty() && rqst->stck && !rqst->stck->empty())
 		{
-			if (bOutline)
+			if (bShadow)
+			{
+				rqst->stck->top()->setProperty("frame-shadow-color",
+											 final.c_str());
+				if (alpha >= 0.0)
+				{
+					char abuf[24];
+					g_snprintf(abuf, sizeof(abuf), "%.3f", alpha);
+					rqst->stck->top()->setProperty("frame-shadow-alpha",
+												 abuf);
+				}
+			}
+			else if (bOutline)
 			{
 				if (m_outlineColor.empty())
 					m_outlineColor = final;

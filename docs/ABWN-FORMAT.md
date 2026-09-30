@@ -131,6 +131,7 @@ described by FRAME-level properties.
 | `fill-alpha` | fill opacity 0..1 (OOXML `a:alpha`) |
 | `shape-path` | custom geometry, see §4.2 |
 | `bot-style`/`top-style`/`left-style`/`right-style` + `*-color`/`*-thickness` | border; `shape-path` suppresses the rectangular border and strokes the path instead |
+| `frame-shadow` | `outer` = drop shadow (OOXML `a:outerShdw`); see §4.3 |
 
 ### Content layout
 
@@ -198,6 +199,30 @@ props="frame-width:2,0000in; frame-height:1,0000in;
        background-color:4472C4"
 ```
 
+### 4.3 `frame-shadow-*` properties
+
+OOXML `a:outerShdw` drop shadow, painted as a blurred silhouette of
+the shape (its `shape-path` when present, else the frame box) masked
+in the shadow color:
+
+| Property | Meaning |
+|---|---|
+| `frame-shadow` | `outer` when an outer shadow is present (`none` otherwise) |
+| `frame-shadow-offset` | `a:outerShdw@dist` — offset distance (length) |
+| `frame-shadow-dir` | `a:outerShdw@dir` — offset direction, degrees×60000 |
+| `frame-shadow-blur` | `a:outerShdw@blurRad` — blur radius (length) |
+| `frame-shadow-color` | shadow color `RRGGBB` |
+| `frame-shadow-alpha` | shadow opacity 0..1 (color child `a:alpha`) |
+| `frame-shadow-rot` | `a:outerShdw@rotWithShape` — `1` rotates the offset with the shape (default), `0` keeps it fixed in page space |
+
+Example:
+
+```
+props="frame-shadow:outer; frame-shadow-offset:4,00pt;
+       frame-shadow-dir:2700000; frame-shadow-blur:6,00pt;
+       frame-shadow-color:000000; frame-shadow-alpha:0,450"
+```
+
 ## 5. Extensions over AWML
 
 Properties added beyond the AbiWord registry, all round-tripped:
@@ -207,6 +232,7 @@ Properties added beyond the AbiWord registry, all round-tripped:
   `frame-text-dir-flag`, `frame-page-xpos/ypos`,
   `frame-column-xpos/ypos`, `position-to`, `wrap-mode`,
   `fill-gradient`, `fill-alpha`, `shape-path`, `image-src-rect`,
+  `frame-shadow*` (OOXML `a:outerShdw`, see §4.3),
   `text-warp` (OOXML `a:prstTxWarp` name, stored for fidelity).
 - **Character**: OOXML fidelity props such as `em`, `fit-text`,
   `kern`, `char-position`, `char-spacing`, `text-outline-*`,
@@ -513,7 +539,7 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `top-thickness` | `1px` | no |
 | `vert-align` | `0` | no |
 
-### Frame / positioned-object properties (49)
+### Frame / positioned-object properties (51)
 
 | Property | Default | Inherited |
 |---|---|---|
@@ -538,10 +564,12 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `frame-rel-width` | `0.5` | no |
 | `frame-rotation` | `0` | no |
 | `frame-shadow` | `none` | no |
+| `frame-shadow-alpha` | `0.5` | no |
 | `frame-shadow-blur` | `0pt` | no |
 | `frame-shadow-color` | `000000` | no |
 | `frame-shadow-dir` | `0` | no |
 | `frame-shadow-offset` | `0pt` | no |
+| `frame-shadow-rot` | `1` | no |
 | `frame-stack-order` | `0` | no |
 | `frame-text-direction` | `*(empty)*` | no |
 | `frame-type` | `textbox` | no |

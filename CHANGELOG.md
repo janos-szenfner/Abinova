@@ -229,6 +229,13 @@ below are on `main` but the release has not been cut yet.
     (only group children were read), so `prstGeom="line"` bars were
     always treated as horizontal.  The Headline cover page's accent
     bar renders again.
+  - `a:outerShdw` drop shadows now paint — the shape silhouette
+    (custom `shape-path` when present, else the frame box) is
+    rasterized, box-blurred by `blurRad` and masked in the shadow
+    color at the `dist`/`dir` offset; `rotWithShape="0"` keeps the
+    offset fixed in page space.  Shadow color and `a:alpha` opacity
+    are imported too (`frame-shadow-*` properties, round-tripping
+    through `.abwn`).
 - **DOCX letter-spacing rendered** — `w:spacing` inside `w:rPr`
   (expanded/condensed character pitch in twentieths of a point) now
   imports as the `char-spacing` character property and renders by

@@ -178,10 +178,12 @@ static PP_Property _props[] =
 	{"frame-rel-width",        "0.5",             false, PP_LEVEL_FRAME},
 	{"frame-rotation",         "0",               false, PP_LEVEL_FRAME},
 	{"frame-shadow",           "none",            false, PP_LEVEL_FRAME}, // OOXML a:outerShdw presence
+	{"frame-shadow-alpha",     "0.5",             false, PP_LEVEL_FRAME}, // OOXML a:outerShdw color a:alpha (0..1)
 	{"frame-shadow-blur",      "0pt",             false, PP_LEVEL_FRAME}, // OOXML a:outerShdw@blurRad
 	{"frame-shadow-color",     "000000",          false, PP_LEVEL_FRAME}, // OOXML a:outerShdw color
 	{"frame-shadow-dir",       "0",               false, PP_LEVEL_FRAME}, // OOXML a:outerShdw@dir (60000ths of a degree)
 	{"frame-shadow-offset",    "0pt",             false, PP_LEVEL_FRAME}, // OOXML a:outerShdw@dist
+	{"frame-shadow-rot",       "1",               false, PP_LEVEL_FRAME}, // OOXML a:outerShdw@rotWithShape
 	{"frame-stack-order",      "0",               false, PP_LEVEL_FRAME},
 	{"frame-text-direction",   "",                false, PP_LEVEL_FRAME}, // OOXML wps:bodyPr@vert
 	{"frame-type",             "textbox",         false, PP_LEVEL_FRAME},

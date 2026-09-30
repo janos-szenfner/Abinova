@@ -51,8 +51,10 @@ private:
 	int m_vShapeDepth = 0; //VML v:rect/oval/line pushed a frame element
 	bool m_bInShapeFill = false;
 	bool m_bInStyleFill = false;
+	bool m_bInShadow = false; // inside a:outerShdw — colors go to frame-shadow-*
 	std::string m_pendColor;
 	bool m_bPendOutline = false;
+	bool m_bPendShadow = false;
 	// a:custGeom freeform capture -> shape-path prop
 	bool m_inCustGeom = false;
 	char m_pathCmd = 0;

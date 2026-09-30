@@ -30,3 +30,12 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
   off-by-one) so vertical lines become bar-w; regenerated headline +
   feathered cover fragments — synthetic docx->pdf shows all types on
   horizontal and vertical bars; abwn round-trip preserves the props
+- 2026-09-30 D04: a:outerShdw drop shadows now paint —
+  s_paintFrameShadow in fp_FrameContainer::draw (under the frame
+  transform, before the fill) blurs a rasterized silhouette of the
+  shape (custGeom path or box) and masks it at dist/dir in the
+  shadow color; importer captures the color child, a:alpha and
+  rotWithShape into new frame-shadow-alpha/-rot props — synthetic
+  docx->pdf shows blurred/colored/offset shadows on rect and
+  custGeom diamond, abwn round-trip preserves all props, banded.docx
+  regression-free
