@@ -150,6 +150,10 @@ described by FRAME-level properties.
 | `frame-type` | `image` for picture frames |
 | `image-dataid` | `data/d` payload name |
 | `image-src-rect` | source crop `l,t,r,b` in 1000ths of a percent (OOXML `a:srcRect`) |
+| `image-duotone` | `loRRGGBB hiRRGGBB` luminance remap pair (OOXML `a:duotone`) |
+| `image-grayscale` | `1` to convert to gray (OOXML `a:grayscl`) |
+| `image-lum` | `bright contrast` fractions (OOXML `a:lum`) |
+| `image-alpha-mod` | alpha multiplier 0..1 (OOXML `a:alphaModFix@amt`) |
 
 ### Grouped shapes
 
@@ -232,6 +236,8 @@ Properties added beyond the AbiWord registry, all round-tripped:
   `frame-text-dir-flag`, `frame-page-xpos/ypos`,
   `frame-column-xpos/ypos`, `position-to`, `wrap-mode`,
   `fill-gradient`, `fill-alpha`, `shape-path`, `image-src-rect`,
+  `image-duotone`, `image-grayscale`, `image-lum`, `image-alpha-mod`
+  (OOXML `a:blip` effects),
   `frame-shadow*` (OOXML `a:outerShdw`, see §4.3),
   `text-warp` (OOXML `a:prstTxWarp` name, stored for fidelity).
 - **Character**: OOXML fidelity props such as `em`, `fit-text`,
@@ -575,6 +581,10 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `frame-type` | `textbox` | no |
 | `frame-valign` | `top` | no |
 | `frame-width` | `0.0in` | no |
+| `image-alpha-mod` | `*(empty)*` | no |
+| `image-duotone` | `*(empty)*` | no |
+| `image-grayscale` | `0` | no |
+| `image-lum` | `*(empty)*` | no |
 | `image-src-rect` | `*(empty)*` | no |
 | `line-end-arrow` | `none` | no |
 | `line-end-arrow-len` | `med` | no |

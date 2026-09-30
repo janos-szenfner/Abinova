@@ -26,9 +26,30 @@
 #include "ut_bytebuf.h"
 #include "ut_string_class.h"
 #include "ut_misc.h"
+#include "ut_color.h"
 #include "ut_vector.h"
 
 class GR_Graphics;
+
+/*!
+ * DrawingML a:blip picture effects (a:duotone/a:grayscl/a:lum/
+ * a:alphaModFix) captured by the OOXML importer as image-* props and
+ * applied to the raster pixels when an image is generated.
+ */
+struct ABI_EXPORT GR_BlipEffects
+{
+	bool        grayscale = false;   // a:grayscl
+	bool        duotone = false;     // a:duotone — two-color remap
+	UT_RGBColor duoLo;               //   maps pixel luminance 0
+	UT_RGBColor duoHi;               //   maps pixel luminance 1
+	bool        lum = false;         // a:lum bright/contrast
+	double      lumBright = 0.0;     //   -1..1
+	double      lumContrast = 0.0;   //   -1..1
+	double      alphaMod = -1.0;     // a:alphaModFix@amt 0..1, <0 none
+
+	bool        any(void) const
+		{ return grayscale || duotone || lum || alphaMod >= 0.0; }
+};
 
 class ABI_EXPORT GR_Image_Point
 {
@@ -84,6 +105,10 @@ public:
 	static GRType		getBufferType(const UT_ConstByteBufPtr & pBB);
    	virtual GRType		getType() const;
    	virtual bool		render(GR_Graphics *pGR, UT_sint32 iDisplayWidth, UT_sint32 iDisplayHeight);
+
+	/* apply DrawingML blip effects to the image's pixels; raster
+	 * images override, everything else keeps the default no-op */
+	virtual void		applyBlipEffects(const GR_BlipEffects & /*fx*/) {}
 
    	void setDisplaySize(UT_sint32 iDisplayWidth, UT_sint32 iDisplayHeight);
 

@@ -24,9 +24,11 @@
 #include <string>
 
 #include "ut_assert.h"
+#include "ut_color.h"
 #include "ut_png.h"
 #include "ut_jpeg.h"
 #include "ut_string.h"
+#include "ut_units.h"
 #include "ut_debugmsg.h"
 #include "ut_bytebuf.h"
 #include "fl_ContainerLayout.h"
@@ -34,6 +36,67 @@
 #include "pd_Document.h"
 #include "pp_AttrProp.h"
 #include "fg_GraphicRaster.h"
+
+
+/* DrawingML a:blip effects arrive as image-* props on the picture
+ * object or frame strux (the props carried by the AP handed to
+ * generateImage) — decode them for GR_Image::applyBlipEffects */
+static void s_applyBlipEffects(GR_Image * pImage, const PP_AttrProp * pAP)
+{
+	if (!pImage || !pAP)
+		return;
+
+	GR_BlipEffects fx;
+	const gchar * sz = nullptr;
+	if (pAP->getProperty("image-grayscale", sz) && sz && *sz &&
+		strcmp(sz, "0") != 0)
+		fx.grayscale = true;
+	if (pAP->getProperty("image-duotone", sz) && sz && *sz)
+	{
+		unsigned r1, g1, b1, r2, g2, b2;
+		if (sscanf(sz, "%02x%02x%02x %02x%02x%02x",
+				   &r1, &g1, &b1, &r2, &g2, &b2) == 6)
+		{
+			fx.duotone = true;
+			fx.duoLo = UT_RGBColor(static_cast<unsigned char>(r1),
+								   static_cast<unsigned char>(g1),
+								   static_cast<unsigned char>(b1));
+			fx.duoHi = UT_RGBColor(static_cast<unsigned char>(r2),
+								   static_cast<unsigned char>(g2),
+								   static_cast<unsigned char>(b2));
+		}
+	}
+	if (pAP->getProperty("image-lum", sz) && sz && *sz)
+	{
+		/* "bright contrast" as C-locale decimals — sscanf %lf is
+		 * locale-dependent, so split the token and use
+		 * UT_convertDimensionless like the other numeric props */
+		char buf[48];
+		g_strlcpy(buf, sz, sizeof(buf));
+		char * sp = strchr(buf, ' ');
+		if (sp)
+		{
+			*sp = 0;
+			double bright = UT_convertDimensionless(buf);
+			double contrast = UT_convertDimensionless(sp + 1);
+			if (bright != 0.0 || contrast != 0.0)
+			{
+				fx.lum = true;
+				fx.lumBright = bright;
+				fx.lumContrast = contrast;
+			}
+		}
+	}
+	if (pAP->getProperty("image-alpha-mod", sz) && sz && *sz)
+	{
+		double a = UT_convertDimensionless(sz);
+		if (a >= 0.0)
+			fx.alphaMod = a > 1.0 ? 1.0 : a;
+	}
+
+	if (fx.any())
+		pImage->applyBlipEffects(fx);
+}
 
 
 FG_GraphicPtr FG_GraphicRaster::createFromChangeRecord(const fl_ContainerLayout* pFL,
@@ -298,6 +361,7 @@ GR_Image* FG_GraphicRaster::generateImage(GR_Graphics* pG,
 	m_iMaxW = maxW;
 	m_iMaxH = maxH;
    	GR_Image *pImage = pG->createNewImage(m_pszDataID, m_pbb, getMimeType(), iDisplayWidth, iDisplayHeight, GR_Image::GRT_Raster);
+	s_applyBlipEffects(pImage, m_pSpanAP);
 
 	return pImage;
 }

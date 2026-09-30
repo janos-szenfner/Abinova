@@ -37,6 +37,196 @@
 
 // External includes
 #include <string>
+#include <math.h>
+
+/* DrawingML percentage attribute — 1000ths of a percent as a bare int
+ * or the occasional "40%" literal */
+static double s_fxPct(const gchar * v)
+{
+	if (!v || !*v)
+		return 0.0;
+	std::string s(v);
+	if (s.back() == '%')
+		return UT_convertDimensionless(s.c_str()) / 100.0;
+	return UT_convertDimensionless(s.c_str()) / 100000.0;
+}
+
+/* sRGB <-> HSL for a:hslClr and the hue/sat transforms carried by
+ * DrawingML color elements inside a:duotone */
+static void s_rgbToHsl(int ri, int gi, int bi, double & h, double & s,
+					   double & l)
+{
+	double r = ri / 255.0, g = gi / 255.0, b = bi / 255.0;
+	double mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+	double mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+	l = (mx + mn) / 2.0;
+	if (mx == mn)
+	{
+		h = s = 0.0;
+		return;
+	}
+	double d = mx - mn;
+	s = l > 0.5 ? d / (2.0 - mx - mn) : d / (mx + mn);
+	if (mx == r)      h = (g - b) / d + (g < b ? 6.0 : 0.0);
+	else if (mx == g) h = (b - r) / d + 2.0;
+	else              h = (r - g) / d + 4.0;
+	h *= 60.0;
+}
+
+static unsigned char s_fxByte(double v)
+{
+	if (v < 0.0)   return 0;
+	if (v > 255.0) return 255;
+	return (unsigned char)(v + 0.5);
+}
+
+static std::string s_hslToHex(double h, double s, double l)
+{
+	while (h < 0.0)    h += 360.0;
+	while (h >= 360.0) h -= 360.0;
+	double c = (1.0 - fabs(2.0 * l - 1.0)) * s;
+	double x = c * (1.0 - fabs(fmod(h / 60.0, 2.0) - 1.0));
+	double r1 = 0.0, g1 = 0.0, b1 = 0.0;
+	if      (h < 60.0)  { r1 = c; g1 = x; }
+	else if (h < 120.0) { r1 = x; g1 = c; }
+	else if (h < 180.0) { g1 = c; b1 = x; }
+	else if (h < 240.0) { g1 = x; b1 = c; }
+	else if (h < 300.0) { r1 = x; b1 = c; }
+	else                { r1 = c; b1 = x; }
+	double m = l - c / 2.0;
+	char buf[8];
+	snprintf(buf, sizeof(buf), "%02X%02X%02X",
+			 s_fxByte((r1 + m) * 255.0),
+			 s_fxByte((g1 + m) * 255.0),
+			 s_fxByte((b1 + m) * 255.0));
+	return buf;
+}
+
+/* resolve a DrawingML color element (a:srgbClr / a:schemeClr / ...)
+ * to a bare "RRGGBB" hex string for the duotone color slots */
+static std::string s_fxDmlColor(const std::string & name,
+								std::map<std::string, std::string>* atts)
+{
+	auto attr = [&](const char * n) -> const char * {
+		auto it = atts->find(n);
+		return it != atts->end() ? it->second.c_str() : nullptr;
+	};
+	if (name == "A:srgbClr")
+	{
+		const char * v = attr("A:val");
+		return v ? v : "";
+	}
+	if (name == "A:scrgbClr")
+	{
+		/* channels are 0..100000 percentages */
+		const char * rr = attr("A:r"), * gg = attr("A:g"),
+			* bb = attr("A:b");
+		if (!rr || !gg || !bb)
+			return "";
+		char buf[8];
+		snprintf(buf, sizeof(buf), "%02X%02X%02X",
+				 s_fxByte(s_fxPct(rr) * 255.0),
+				 s_fxByte(s_fxPct(gg) * 255.0),
+				 s_fxByte(s_fxPct(bb) * 255.0));
+		return buf;
+	}
+	if (name == "A:sysClr")
+	{
+		/* lastClr is the value at save time — the system name cannot
+		 * be resolved headlessly */
+		const char * v = attr("A:lastClr");
+		if (v)
+			return v;
+		v = attr("A:val");
+		if (v && !strcmp(v, "windowText")) return "000000";
+		if (v && !strcmp(v, "window"))     return "FFFFFF";
+		return "";
+	}
+	if (name == "A:prstClr")
+	{
+		const char * v = attr("A:val");
+		if (!v)
+			return "";
+		static const std::map<std::string, std::string> prst = {
+			{"black","000000"},{"white","FFFFFF"},{"red","FF0000"},
+			{"green","008000"},{"blue","0000FF"},{"yellow","FFFF00"},
+			{"gray","808080"},{"dkGray","A9A9A9"},{"ltGray","D3D3D3"},
+			{"orange","FFA500"},{"purple","800080"},{"cyan","00FFFF"},
+			{"magenta","FF00FF"},{"brown","A52A2A"},{"navy","000080"},
+			{"silver","C0C0C0"},{"maroon","800000"},{"olive","808000"},
+			{"teal","008080"},{"lime","00FF00"},{"pink","FFC0CB"},
+			{"gold","FFD700"},{"violet","EE82EE"},{"indigo","4B0082"}
+		};
+		auto c = prst.find(v);
+		return c != prst.end() ? c->second : "";
+	}
+	if (name == "A:hslClr")
+	{
+		double h = UT_convertDimensionless(attr("A:hue") ? attr("A:hue")
+										   : "0") / 60000.0;
+		return s_hslToHex(h, s_fxPct(attr("A:sat")),
+						  s_fxPct(attr("A:lum")));
+	}
+	if (name == "A:schemeClr")
+	{
+		const char * v = attr("A:val");
+		if (!v)
+			return "";
+		OXML_Document * doc = OXML_Document::getInstance();
+		if (!doc || !doc->getTheme())
+			return "";
+		/* bg1/bg2/tx1/tx2 map onto dk/lt slots per ECMA-376 */
+		OXML_ColorName cn = LIGHT1;
+		std::string val(v);
+		if (val == "lt1" || val == "bg1")      cn = LIGHT1;
+		else if (val == "lt2" || val == "bg2") cn = LIGHT2;
+		else if (val == "dk1" || val == "tx1") cn = DARK1;
+		else if (val == "dk2" || val == "tx2") cn = DARK2;
+		else if (val == "accent1") cn = ACCENT1;
+		else if (val == "accent2") cn = ACCENT2;
+		else if (val == "accent3") cn = ACCENT3;
+		else if (val == "accent4") cn = ACCENT4;
+		else if (val == "accent5") cn = ACCENT5;
+		else if (val == "accent6") cn = ACCENT6;
+		else if (val == "hlink")   cn = HYPERLINK;
+		else if (val == "folHlink") cn = FOLLOWED_HYPERLINK;
+		else return "";
+		return doc->getTheme()->getColor(cn);
+	}
+	return "";
+}
+
+/* apply the color transforms recorded while a duotone color element
+ * was open — ECMA-376 applies them in HSL space */
+static std::string s_fxXformColor(const std::string & hex,
+								  double lumMod, double lumOff,
+								  double tint, double shade,
+								  double satMod, double satOff,
+								  double hueMod, double hueOff)
+{
+	if (hex.size() < 6)
+		return hex;
+	int r = 0, g = 0, b = 0;
+	if (sscanf(hex.c_str(), "%02x%02x%02x", &r, &g, &b) != 3)
+		return hex;
+	if (lumMod == 1.0 && lumOff == 0.0 && tint < 0.0 && shade < 0.0 &&
+		satMod < 0.0 && satOff == 0.0 && hueMod < 0.0 && hueOff == 0.0)
+		return hex;
+	double h, s, l;
+	s_rgbToHsl(r, g, b, h, s, l);
+	if (shade >= 0.0) l *= shade;
+	if (tint >= 0.0)  l = l * tint + (1.0 - tint);
+	if (hueMod >= 0.0) h *= hueMod;
+	h += hueOff;
+	if (satMod >= 0.0) s *= satMod;
+	s += satOff;
+	if (s < 0.0) s = 0.0;
+	if (s > 1.0) s = 1.0;
+	l = l * lumMod + lumOff;
+	if (l < 0.0) l = 0.0;
+	if (l > 1.0) l = 1.0;
+	return s_hslToHex(h, s, l);
+}
 
 /* wp:wrap* elements set the text-wrap mode, but wp:anchor
  * behindDoc="1" already put the element in the below-text layer —
@@ -416,7 +606,95 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			imgElem->setId(id);
 			rqst->handled = addImage(imageId);
 		}
-	}	
+	}
+	/* CT_Blip children — picture effects (a:duotone, a:grayscl, a:lum,
+	 * a:alphaModFix, ...) land on the same element the blip's id did.
+	 * Everything under a:blip is swallowed here so the color elements
+	 * aren't misread as shape fills by the textbox listener */
+	else if (rqst->context && !rqst->context->empty() &&
+			 rqst->context->back() == "A:blip")
+	{
+		if (!rqst->stck->empty() && rqst->stck->top())
+		{
+			OXML_SharedElement fxElem = rqst->stck->top();
+			if (nameMatches(rqst->pName, NS_A_KEY, "duotone"))
+			{
+				m_bInDuotone = true;
+				m_duotone.clear();
+				m_pendFxColor.clear();
+			}
+			else if (nameMatches(rqst->pName, NS_A_KEY, "grayscl"))
+				fxElem->setProperty("image-grayscale", "1");
+			else if (nameMatches(rqst->pName, NS_A_KEY, "lum"))
+			{
+				double br = s_fxPct(attrMatches(NS_A_KEY, "bright",
+												rqst->ppAtts));
+				double ct = s_fxPct(attrMatches(NS_A_KEY, "contrast",
+												rqst->ppAtts));
+				if (br != 0.0 || ct != 0.0)
+				{
+					char buf[48];
+					g_snprintf(buf, sizeof(buf), "%.4f %.4f", br, ct);
+					fxElem->setProperty("image-lum", buf);
+				}
+			}
+			else if (nameMatches(rqst->pName, NS_A_KEY, "alphaModFix") ||
+					 nameMatches(rqst->pName, NS_A_KEY, "alphaMod"))
+			{
+				/* both modulate the alpha channel by a fixed amount;
+				 * amt is required by the schema — without it the
+				 * effect is a no-op */
+				const gchar * amt = attrMatches(NS_A_KEY, "amt",
+												rqst->ppAtts);
+				if (amt)
+				{
+					char buf[24];
+					g_snprintf(buf, sizeof(buf), "%.4f", s_fxPct(amt));
+					fxElem->setProperty("image-alpha-mod", buf);
+				}
+			}
+		}
+		rqst->handled = true;
+	}
+	else if (m_bInDuotone)
+	{
+		/* a:duotone children: two color specs, each possibly carrying
+		 * transform children (a:shade, a:tint, a:satMod, ...) */
+		if (nameMatches(rqst->pName, NS_A_KEY, "srgbClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "schemeClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "sysClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "prstClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "scrgbClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "hslClr"))
+		{
+			m_pendFxColor = s_fxDmlColor(rqst->pName, rqst->ppAtts);
+			if (!m_pendFxColor.empty() && m_pendFxColor[0] == '#')
+				m_pendFxColor.erase(0, 1);
+			m_fxLumMod = 1.0; m_fxLumOff = 0.0;
+			m_fxTint = -1.0;  m_fxShade = -1.0;
+			m_fxSatMod = -1.0; m_fxSatOff = 0.0;
+			m_fxHueMod = -1.0; m_fxHueOff = 0.0;
+		}
+		else if (!m_pendFxColor.empty())
+		{
+			const gchar * v = attrMatches(NS_A_KEY, "val", rqst->ppAtts);
+			double f = v ? UT_convertDimensionless(v) : 0.0;
+			if (rqst->pName == "A:hueOff")
+				m_fxHueOff = f / 60000.0;   /* 60000ths of a degree */
+			else if (v)
+			{
+				f /= 100000.0;
+				if (rqst->pName == "A:lumMod")      m_fxLumMod = f;
+				else if (rqst->pName == "A:lumOff") m_fxLumOff = f;
+				else if (rqst->pName == "A:tint")   m_fxTint = f;
+				else if (rqst->pName == "A:shade")  m_fxShade = f;
+				else if (rqst->pName == "A:satMod") m_fxSatMod = f;
+				else if (rqst->pName == "A:satOff") m_fxSatOff = f;
+				else if (rqst->pName == "A:hueMod") m_fxHueMod = f;
+			}
+		}
+		rqst->handled = true;
+	}
 	else if(nameMatches(rqst->pName, NS_V_KEY, "shape"))
 	{
 		const gchar* style = attrMatches(NS_V_KEY, "style", rqst->ppAtts);
@@ -510,6 +788,48 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 			nameMatches(rqst->pName, NS_WP_KEY, "positionV") ||
 			nameMatches(rqst->pName, NS_WP_KEY, "simplePos"))
 	{
+		m_bInDuotone = false;
+		m_pendFxColor.clear();
+		rqst->handled = true;
+	}
+	else if (m_bInDuotone)
+	{
+		if (nameMatches(rqst->pName, NS_A_KEY, "srgbClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "schemeClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "sysClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "prstClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "scrgbClr") ||
+			nameMatches(rqst->pName, NS_A_KEY, "hslClr"))
+		{
+			/* color element closed — apply the recorded transforms
+			 * and take the result into the duotone pair */
+			if (!m_pendFxColor.empty() && m_duotone.size() < 2)
+				m_duotone.push_back(
+					s_fxXformColor(m_pendFxColor, m_fxLumMod, m_fxLumOff,
+								   m_fxTint, m_fxShade, m_fxSatMod,
+								   m_fxSatOff, m_fxHueMod, m_fxHueOff));
+			m_pendFxColor.clear();
+		}
+		else if (nameMatches(rqst->pName, NS_A_KEY, "duotone"))
+		{
+			if (m_duotone.size() >= 2 && rqst->stck &&
+				!rqst->stck->empty() && rqst->stck->top())
+			{
+				std::string duo = m_duotone[0] + " " + m_duotone[1];
+				rqst->stck->top()->setProperty("image-duotone",
+											 duo.c_str());
+			}
+			m_bInDuotone = false;
+			m_duotone.clear();
+			m_pendFxColor.clear();
+		}
+		rqst->handled = true;
+	}
+	else if (rqst->context && !rqst->context->empty() &&
+			 rqst->context->back() == "A:blip")
+	{
+		/* blip children ends (lum/grayscl/alphaModFix/extLst) —
+		 * captured, or intentionally ignored, at their start tags */
 		rqst->handled = true;
 	}
 	else if(nameMatches(rqst->pName, NS_WP_KEY, "anchor") ||

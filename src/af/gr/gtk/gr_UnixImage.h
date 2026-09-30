@@ -47,6 +47,7 @@ public:
 	virtual bool isTransparentAt(UT_sint32 x, UT_sint32 y) override;
     void scale (UT_sint32 iDisplayWidth, UT_sint32 iDisplayHeight);
 	virtual void cairoSetSource(cairo_t *) override;
+	virtual void applyBlipEffects(const GR_BlipEffects & fx) override;
 protected:
 	virtual GR_UnixImage *makeSubimage(const std::string & n,
 											  UT_sint32 x, UT_sint32 y,

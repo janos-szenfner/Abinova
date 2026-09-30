@@ -40,3 +40,4 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
   custGeom diamond, abwn round-trip preserves all props, banded.docx
   regression-free
 - 2026-09-30 D05: wps:style theme refs resolve — lnRef->lnStyleLst outline default, effectRef->effectStyleLst shadow, fontRef->default run font/color; theme parses effectStyleLst+lnStyleLst — verified on synthetic Austin.docx (theme shadow+outline render, explicit effectLst suppresses, fontRef recolors), abwn round-trip OK, corpus regression clean
+- 2026-10-01 D06: a:blip effects imported+rendered — a:duotone/a:grayscl/a:lum/a:alphaModFix captured in Image listener, stored as image-* props, pixel-applied in GR_UnixImage::applyBlipEffects — filgree.pdf flowers tint (160,172,193) matching duotone lerp; synthetic docx verifies lum+alphaModFix; Austin regression clean

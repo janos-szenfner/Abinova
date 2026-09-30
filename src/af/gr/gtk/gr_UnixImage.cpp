@@ -411,6 +411,94 @@ bool GR_UnixImage::convertFromBuffer(const UT_ConstByteBufPtr & pBB,
 }
 
 
+/*!
+ * DrawingML a:blip picture effects: remap the pixbuf's pixels in place.
+ * Applied in the canonical ECMA-376 order — luminance, grayscale,
+ * duotone, then the fixed alpha modulation.
+ */
+void GR_UnixImage::applyBlipEffects(const GR_BlipEffects & fx)
+{
+	if (!m_image || !fx.any())
+		return;
+
+	/* a:alphaModFix on an opaque image still needs an alpha channel
+	 * to modulate — add one (all pixels start fully opaque) */
+	if (fx.alphaMod >= 0.0 && !gdk_pixbuf_get_has_alpha(m_image))
+	{
+		GdkPixbuf * pAlpha = gdk_pixbuf_add_alpha(m_image,
+												  FALSE, 0, 0, 0);
+		if (pAlpha)
+		{
+			g_object_unref(G_OBJECT(m_image));
+			m_image = pAlpha;
+		}
+	}
+
+	const gint w = gdk_pixbuf_get_width(m_image);
+	const gint h = gdk_pixbuf_get_height(m_image);
+	const gint nChannels = gdk_pixbuf_get_n_channels(m_image);
+	const gint stride = gdk_pixbuf_get_rowstride(m_image);
+	const bool hasAlpha = gdk_pixbuf_get_has_alpha(m_image);
+	guchar * pixels = gdk_pixbuf_get_pixels(m_image);
+
+	const double lo_r = fx.duoLo.m_red, lo_g = fx.duoLo.m_grn,
+		lo_b = fx.duoLo.m_blu;
+	const double hi_r = fx.duoHi.m_red, hi_g = fx.duoHi.m_grn,
+		hi_b = fx.duoHi.m_blu;
+
+	for (gint y = 0; y < h; ++y)
+	{
+		guchar * row = pixels + y * stride;
+		for (gint x = 0; x < w; ++x)
+		{
+			guchar * p = row + x * nChannels;
+			double r = p[0], g = p[1], b = p[2];
+
+			/* a:lum: bright lerps toward white (positive) or black
+			 * (negative); contrast pivots the result on mid-gray */
+			if (fx.lum)
+			{
+				double br = fx.lumBright;
+				double ct = 1.0 + fx.lumContrast;
+				auto adj = [br, ct](double v) -> double {
+					v = br >= 0.0 ? v + (255.0 - v) * br
+								  : v * (1.0 + br);
+					return (v - 127.5) * ct + 127.5;
+				};
+				r = adj(r);
+				g = adj(g);
+				b = adj(b);
+			}
+
+			/* a:grayscl: Rec.601 luminance into all channels */
+			if (fx.grayscale)
+			{
+				double lum = 0.299 * r + 0.587 * g + 0.114 * b;
+				r = g = b = lum;
+			}
+
+			/* a:duotone: the pixel's luminance lerps between the two
+			 * declared colors */
+			if (fx.duotone)
+			{
+				double t = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
+				r = lo_r + (hi_r - lo_r) * t;
+				g = lo_g + (hi_g - lo_g) * t;
+				b = lo_b + (hi_b - lo_b) * t;
+			}
+
+			p[0] = r < 0.0 ? 0 : (r > 255.0 ? 255 : (guchar)(r + 0.5));
+			p[1] = g < 0.0 ? 0 : (g > 255.0 ? 255 : (guchar)(g + 0.5));
+			p[2] = b < 0.0 ? 0 : (b > 255.0 ? 255 : (guchar)(b + 0.5));
+			if (hasAlpha && fx.alphaMod >= 0.0)
+			{
+				double a = p[3] * fx.alphaMod;
+				p[3] = a < 0.0 ? 0 : (a > 255.0 ? 255 : (guchar)(a + 0.5));
+			}
+		}
+	}
+}
+
 void GR_UnixImage::cairoSetSource(cairo_t * cr)
 {
 	UT_return_if_fail(m_image);

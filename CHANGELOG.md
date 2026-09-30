@@ -252,6 +252,18 @@ below are on `main` but the release has not been cut yet.
   importer previously dropped it: the element name is shared with
   paragraph spacing (`w:pPr/w:spacing`) whose handler consumed it
   unconditionally.  Round-trips through `.abwn`.
+- **DOCX picture effects rendered** — `a:blip` children
+  `a:duotone` (two-color luminance remap), `a:grayscl`, `a:lum`
+  (brightness/contrast) and `a:alphaModFix` are imported as
+  `image-duotone`/`image-grayscale`/`image-lum`/`image-alpha-mod`
+  properties and applied to the raster pixels when the image is
+  generated, covering both inline pictures and positioned picture
+  fills.  Duotone colors resolve `a:schemeClr` theme slots,
+  `a:srgbClr`, `a:prstClr`, `a:sysClr`, `a:scrgbClr` and `a:hslClr`,
+  with the full DrawingML transform set (`shade`/`tint`/`lumMod`/
+  `lumOff`/`satMod`/`satOff`/`hueMod`/`hueOff`) applied in HSL space
+  — e.g. the Filigree cover's flowers render tinted toward the
+  `accent1` theme color instead of staying flat gray.
 - **Locale decimal-separator corruption fixed** — the OOXML
   importer serialized lengths with locale-sensitive `snprintf`
   (`xpos:3,7620in` under comma-decimal locales) while the abwn

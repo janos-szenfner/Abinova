@@ -30,6 +30,8 @@
 #include <OXML_Types.h>
 #include <OXML_Element_Image.h>
 
+#include <vector>
+
 /* \class OXMLi_ListenerState_Image
  * \brief This ListenerState parses the Images.
 */
@@ -48,6 +50,19 @@ private:
 	bool m_isInlineImage;
 	bool m_bSimplePos;
 	int m_grpPicDepth = 0;
+	/* a:blip effect capture — a:duotone holds two color elements whose
+	 * transform children resolve when the color element closes */
+	bool m_bInDuotone = false;
+	std::vector<std::string> m_duotone;
+	std::string m_pendFxColor;
+	double m_fxLumMod = 1.0;
+	double m_fxLumOff = 0.0;
+	double m_fxTint = -1.0;
+	double m_fxShade = -1.0;
+	double m_fxSatMod = -1.0;
+	double m_fxSatOff = 0.0;
+	double m_fxHueMod = -1.0;
+	double m_fxHueOff = 0.0;
 };
 
 #endif //_OXMLI_LISTENERSTATE_IMAGE_H_
