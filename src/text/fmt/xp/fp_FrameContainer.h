@@ -62,6 +62,7 @@ public:
 	virtual UT_sint32   getY() const override;
 	virtual UT_sint32   getWidth() const override;
 	virtual UT_sint32   getHeight() const override;
+	virtual void        setWidth(UT_sint32 iWidth) override;
 	virtual void        setHeight(UT_sint32 iHeight) override;
 	UT_sint32           getLeftPad(UT_sint32 y, UT_sint32 height) const;
 	UT_sint32           getRightPad(UT_sint32 y, UT_sint32 height) const;
@@ -138,6 +139,14 @@ public:
 	/* "frame-rotation" property - clockwise degrees, drawn via a
 	 * cairo transform around the frame centre */
 	double              getRotation(void);
+	/* "frame-text-direction" property (OOXML wps:bodyPr@vert) -
+	 * clockwise degrees the text stack is rotated inside the box;
+	 * vertical text lays out in a swapped logical space so
+	 * getWidth()/getHeight() return the box's inner height/width */
+	int                 getTextRotation(void) const;
+	virtual void        mapXYToPosition(UT_sint32 xPos, UT_sint32 yPos,
+								PT_DocPosition& pos, bool& bBOL,
+								bool& bEOL, bool &isTOC) override;
 	/* "frame-flip-horiz" / "frame-flip-vert" properties */
 	bool                isFlippedHoriz(void);
 	bool                isFlippedVert(void);

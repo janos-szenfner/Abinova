@@ -174,6 +174,39 @@ double fp_FrameContainer::getRotation(void)
 	return 0.0;
 }
 
+/*!
+ * Clockwise rotation of the frame's text stack in degrees, from the
+ * "frame-text-direction" property (the raw OOXML wps:bodyPr@vert
+ * token).  vert/eaVert/mongolianVert run lines top to bottom and
+ * stack them right to left (90 degrees); vert270 runs bottom to top
+ * stacking left to right (270 degrees).  The wordArt modes stack
+ * upright glyphs one per line - a plain 90 degree rotation is the
+ * closest single-transform approximation and keeps the tall narrow
+ * footprint Word reserves for the box.  The content is laid out in a
+ * logical space whose extents are the swapped inner box (see
+ * getWidth()/getHeight()) and rotated into place in draw().
+ */
+int fp_FrameContainer::getTextRotation(void) const
+{
+	fp_FrameContainer * self = const_cast<fp_FrameContainer *>(this);
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(
+		self->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	const gchar * sz = nullptr;
+	if (!pAP || !pAP->getProperty("frame-text-direction", sz) ||
+		!sz || !*sz)
+		return 0;
+	if (!strcmp(sz, "vert270"))
+		return 270;
+	if (!strcmp(sz, "vert") || !strcmp(sz, "eaVert") ||
+		!strcmp(sz, "mongolianVert") || !strcmp(sz, "wordArtVert") ||
+		!strcmp(sz, "wordArtVertRtl"))
+		return 90;
+	return 0;
+}
+
 static bool s_frameBoolProp(fp_FrameContainer * pFC, const char * szName)
 {
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
@@ -254,6 +287,36 @@ static void s_rotatedBounds(double rx, double ry, double rw, double rh,
 	out.top = static_cast<UT_sint32>(floor(yMin));
 	out.width = static_cast<UT_sint32>(ceil(xMax)) - out.left;
 	out.height = static_cast<UT_sint32>(ceil(yMax)) - out.top;
+}
+
+/*!
+ * Inverse of the vertical-text paint transform: maps a rect in the
+ * frame's physical (page) space to the logical space the content is
+ * laid out in.  The rotation is a multiple of 90 degrees so the
+ * result stays axis-aligned.  (ox,oy) is the inner box origin, iw/ih
+ * the inner box extents, all in layout units.
+ */
+static void s_unrotateFrameRect(UT_Rect & r, UT_sint32 ox, UT_sint32 oy,
+								UT_sint32 iw, UT_sint32 ih, int rot)
+{
+	UT_Rect t;
+	if (rot == 90)
+	{
+		/* forward map: lx = py - oy, ly = ox + iw - px */
+		t.left = r.top - oy;
+		t.top = ox + iw - (r.left + r.width);
+		t.width = r.height;
+		t.height = r.width;
+	}
+	else
+	{
+		/* vert270, forward map: lx = oy + ih - py, ly = px - ox */
+		t.left = oy + ih - (r.top + r.height);
+		t.top = r.left - ox;
+		t.width = r.height;
+		t.height = r.width;
+	}
+	r = t;
 }
 
 /*!
@@ -1286,9 +1349,17 @@ UT_sint32 fp_FrameContainer::getFullY(void) const
 
 UT_sint32 fp_FrameContainer::getWidth(void) const
 {
-	UT_sint32 iWidth = fp_VerticalContainer::getWidth()
+	/* "frame-text-direction": vertical text is laid out in a logical
+	 * space rotated 90 degrees against the box - the logical line
+	 * width is the box's inner height and the line stack advances
+	 * across the inner width.  Everything that queries the content
+	 * area (line breaking, justification, overflow) sees the swapped
+	 * extents; the physical box stays in getFullWidth/getFullHeight. */
+	if (getTextRotation() != 0)
+		return fp_VerticalContainer::getHeight()
+			- m_iYpadTop - m_iYpadBottom;
+	return fp_VerticalContainer::getWidth()
 		- m_iXpadLeft - m_iXpadRight;
-	return iWidth;
 }
 
 UT_sint32 fp_FrameContainer::getX(void) const
@@ -1306,9 +1377,11 @@ UT_sint32 fp_FrameContainer::getY(void) const
 
 UT_sint32 fp_FrameContainer::getHeight(void) const
 {
-	UT_sint32 iHeight = fp_VerticalContainer::getHeight()
+	if (getTextRotation() != 0)
+		return fp_VerticalContainer::getWidth()
+			- m_iXpadLeft - m_iXpadRight;
+	return fp_VerticalContainer::getHeight()
 		- m_iYpadTop - m_iYpadBottom;
-	return iHeight;
 }
 
 	
@@ -1720,9 +1793,33 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 	bool bRemoveRectAfter = false;
 	bool bSetOrigClip = false;
 	bool bSkip = false;
+	/* "frame-text-direction": vertical text is laid out in a logical
+	 * space with swapped extents and rotated into the box below.
+	 * The GR clip applies lazily under that rotation, so the stored
+	 * rect has to be inverse-rotated into the logical space - it then
+	 * lands on the physical box.  The skip decision keeps using the
+	 * physical rect. */
+	int iTextRot = getTextRotation();
+	cairo_t * crT = nullptr;
+	if (iTextRot != 0)
+	{
+		GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+		/* same implicit-beginPaint guard as the frame rotation */
+		if (pCG && (pCG->getPaintCount() > 0 ||
+					!pG->queryProperties(GR_Graphics::DGP_SCREEN)))
+			crT = pCG->getCairo();
+		else
+			iTextRot = 0;
+	}
+	UT_sint32 iInnerW = getFullWidth() - m_iXpadLeft - m_iXpadRight;
+	UT_sint32 iInnerH = getFullHeight() - m_iYpadTop - m_iYpadBottom;
 	if((pPrevRect == nullptr) && pG->queryProperties(GR_Graphics::DGP_SCREEN))
 	{
-		pDA->pG->setClipRect(&pRect);
+		UT_Rect rClip = pRect;
+		if (iTextRot)
+			s_unrotateFrameRect(rClip, pDA->xoff, pDA->yoff,
+								iInnerW, iInnerH, iTextRot);
+		pDA->pG->setClipRect(&rClip);
 		UT_DEBUGMSG(("Clip bottom is %d \n", pRect.top + pRect.height));
 		bRemoveRectAfter = true;
 	}
@@ -1747,6 +1844,9 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		if((newRect.height > 0) && (newRect.width > 0) &&
 		   pDA->pG->queryProperties(GR_Graphics::DGP_SCREEN))
 		{
+			if (iTextRot)
+				s_unrotateFrameRect(newRect, pDA->xoff, pDA->yoff,
+									iInnerW, iInnerH, iTextRot);
 			pDA->pG->setClipRect(&newRect);
 			bSetOrigClip = true;
 		}
@@ -1757,12 +1857,33 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 	}
 	if(!bSkip)
 	{
+		if (crT)
+		{
+			/* rotate the logical content space onto the box:
+			 * vert(90) maps the line axis onto +y (text runs down)
+			 * and the stack axis onto -x (lines go right to left);
+			 * vert270 mirrors that - text runs up, lines go left
+			 * to right */
+			double ox = pG->tdu(pDA->xoff), oy = pG->tdu(pDA->yoff);
+			cairo_save(crT);
+			if (iTextRot == 90)
+				cairo_translate(crT, pG->tdu(pDA->xoff + iInnerW), oy);
+			else
+				cairo_translate(crT, ox, pG->tdu(pDA->yoff + iInnerH));
+			cairo_rotate(crT,
+						 (iTextRot == 90 ? 1.0 : -1.0) * M_PI_2);
+			cairo_translate(crT, -ox, -oy);
+		}
 		for (UT_uint32 i = 0; i<count; i++)
 		{
 			fp_ContainerObject* pContainer = static_cast<fp_ContainerObject*>(getNthCon(i));
 			da.xoff = pDA->xoff + pContainer->getX();
 			da.yoff = pDA->yoff + pContainer->getY();
 			pContainer->draw(&da);
+		}
+		if (crT)
+		{
+			cairo_restore(crT);
 		}
 	}
 	m_bNeverDrawn = false;
@@ -1905,9 +2026,31 @@ void fp_FrameContainer::layout(void)
 		}
 	}
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(getSectionLayout());
-	if(pFL->expandHeight() && (iY > pFL->minHeight()))
+	if(pFL->expandHeight())
 	{
-	     setHeight(iY+m_iYpadTop+m_iYpadBottom);
+		if (getTextRotation() != 0)
+		{
+			/* vertical text: spAutoFit grows the box along the
+			 * stacking axis - its width; the specified inner width
+			 * acts as the minimum */
+			if (iY > getHeight())
+				setWidth(iY + m_iXpadLeft + m_iXpadRight);
+		}
+		else if (iY > pFL->minHeight())
+		{
+		     setHeight(iY+m_iYpadTop+m_iYpadBottom);
+		}
+	}
+}
+
+void fp_FrameContainer::setWidth(UT_sint32 iW)
+{
+        if(iW != getFullWidth())
+	{
+	     clearScreen();
+	     fp_VerticalContainer::setWidth(iW);
+	     fp_Page * pPage = getPage();
+	     getDocSectionLayout()->setNeedsSectionBreak(true,pPage);
 	}
 }
 
@@ -1921,4 +2064,37 @@ void fp_FrameContainer::setHeight(UT_sint32 iY)
 	     fp_Page * pPage = getPage();
 	     getDocSectionLayout()->setNeedsSectionBreak(true,pPage);
 	}
+}
+
+/*!
+ * Map a point inside the frame to a document position.  Vertical
+ * text first un-rotates the point into the logical layout space the
+ * children were laid out in - the runs know nothing about the
+ * rotation.  (x,y) are relative to the inner box origin.
+ */
+void fp_FrameContainer::mapXYToPosition(UT_sint32 x, UT_sint32 y,
+										PT_DocPosition& pos, bool& bBOL,
+										bool& bEOL, bool & isTOC)
+{
+	int rot = getTextRotation();
+	if (rot != 0)
+	{
+		UT_sint32 iw = getFullWidth() - m_iXpadLeft - m_iXpadRight;
+		UT_sint32 ih = getFullHeight() - m_iYpadTop - m_iYpadBottom;
+		UT_sint32 lx, ly;
+		if (rot == 90)
+		{
+			lx = y;
+			ly = iw - x;
+		}
+		else
+		{
+			lx = ih - y;
+			ly = x;
+		}
+		fp_VerticalContainer::mapXYToPosition(lx, ly, pos,
+										  bBOL, bEOL, isTOC);
+		return;
+	}
+	fp_VerticalContainer::mapXYToPosition(x, y, pos, bBOL, bEOL, isTOC);
 }

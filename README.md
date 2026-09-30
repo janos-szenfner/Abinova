@@ -309,6 +309,12 @@ all.
     font scheme — theme outlines, effect-list drop shadows and the
     font/color defaults apply to shapes and textbox runs that don't
     specify their own.
+  - `wps:bodyPr@vert` vertical text boxes render: `vert`/`eaVert`/
+    `mongolianVert` stack rotated lines right-to-left, `vert270`
+    left-to-right, and `wordArtVert*` approximate as a 90° rotation;
+    wrapping, anchoring and `spAutoFit` growth follow the rotated
+    axes, and the `frame-text-direction` property round-trips
+    through `.abwn`.
 - **Grammar checker switched to Hunspell** (now built-in): the checker no
   longer uses link-grammar. A vendored `hunspell-1.7.0` is built in
   `thirdparty/` and the sentence walker now flags each

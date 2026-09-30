@@ -244,6 +244,16 @@ below are on `main` but the release has not been cut yet.
     text color for shape runs that set neither directly nor through
     their paragraph style.  Explicit `a:ln`/`a:effectLst` in `spPr`
     (even empty ones) still take precedence.
+  - Vertical text boxes render — `wps:bodyPr@vert` imports as
+    `frame-text-direction`; `vert`/`eaVert`/`mongolianVert` run lines
+    top-to-bottom stacking right-to-left and `vert270` runs them
+    bottom-to-top stacking left-to-right.  Text is laid out in a
+    swapped logical space (line width is the box height) and rotated
+    into the box with a cairo transform at paint time, so wrapping,
+    alignment, `frame-valign` anchoring and `spAutoFit` growth all
+    follow the rotated axes.  `wordArtVert*` modes approximate with
+    the same 90° rotation (upright stacked glyphs are not yet
+    supported).  Round-trips through `.abwn`.
 - **DOCX letter-spacing rendered** — `w:spacing` inside `w:rPr`
   (expanded/condensed character pitch in twentieths of a point) now
   imports as the `char-spacing` character property and renders by
