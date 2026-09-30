@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <utility>
+#include <vector>
 
 #include "fp_FrameContainer.h"
 #include "fp_Column.h"
@@ -320,43 +322,30 @@ static void s_unrotateFrameRect(UT_Rect & r, UT_sint32 ox, UT_sint32 oy,
 }
 
 /*!
- * Paint a linear gradient across the frame box from the
- * "fill-gradient" property.  The property serializes DrawingML
- * gradFill as "lin:<ang60000>,<pos>:<RRGGBB>,..." where pos is
- * 0..100000 (fraction of the gradient vector in thousandths of a
- * percent) and ang is the DrawingML angle in 60000ths of a degree,
- * measured clockwise from the 3 o'clock direction with y pointing
- * down.  Returns false when no usable gradient is present (or the
- * graphics isn't cairo mid-paint) so the caller can fall back to the
- * solid fill.
+ * Build a cairo linear gradient pattern from a "*-gradient" frame
+ * property ("fill-gradient", "outline-gradient").  The property
+ * serializes DrawingML gradFill as "lin:<ang60000>,<pos>:<RRGGBB>,..."
+ * where pos is 0..100000 (fraction of the gradient vector in
+ * thousandths of a percent) and ang is the DrawingML angle in
+ * 60000ths of a degree, measured clockwise from the 3 o'clock
+ * direction with y pointing down.  (x,y,w,h) are layout units.
+ * Returns nullptr when the property is absent or unparseable; the
+ * caller owns a successful pattern.
  */
-static bool s_paintFrameGradient(GR_Graphics * pG,
-								 fp_FrameContainer * pFC,
-								 UT_sint32 x, UT_sint32 y,
-								 UT_sint32 w, UT_sint32 h)
+static cairo_pattern_t * s_frameGradientPattern(GR_Graphics * pG,
+												fp_FrameContainer * pFC,
+												UT_sint32 x, UT_sint32 y,
+												UT_sint32 w, UT_sint32 h,
+												const char * szProp)
 {
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
 	const PP_AttrProp * pAP = nullptr;
 	if (pFL)
 		pFL->getAP(pAP);
 	const gchar * szGrad = nullptr;
-	if (!pAP || !pAP->getProperty("fill-gradient", szGrad) ||
+	if (!pAP || !pAP->getProperty(szProp, szGrad) ||
 		!szGrad || !*szGrad)
-		return false;
-
-	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
-	if (!pCG)
-		return false;
-	/* getCairo() auto-beginPaints when no paint is running - that is
-	 * harmless on the print/PDF graphics (its _beginPaint is a no-op
-	 * counter) but would unbalance the group stack on screen, so only
-	 * allow the implicit beginPaint off-screen */
-	if (pCG->getPaintCount() <= 0 &&
-		pG->queryProperties(GR_Graphics::DGP_SCREEN))
-		return false;
-	cairo_t * cr = pCG->getCairo();
-	if (!cr)
-		return false;
+		return nullptr;
 
 	struct GradStop { double pos, r, g, b; };
 	std::vector<GradStop> stops;
@@ -391,7 +380,7 @@ static bool s_paintFrameGradient(GR_Graphics * pG,
 		g_strfreev(toks);
 	}
 	if (stops.size() < 2)
-		return false;
+		return nullptr;
 
 	/* gradient vector endpoints: project the box corners onto the
 	 * direction axis so the first/last stops land on opposite edges */
@@ -416,8 +405,43 @@ static bool s_paintFrameGradient(GR_Graphics * pG,
 		double pos = gs.pos < 0.0 ? 0.0 : (gs.pos > 1.0 ? 1.0 : gs.pos);
 		cairo_pattern_add_color_stop_rgb(pat, pos, gs.r, gs.g, gs.b);
 	}
+	return pat;
+}
+
+/*!
+ * Paint a linear gradient across the frame box from the
+ * "fill-gradient" property (see s_frameGradientPattern for the
+ * descriptor grammar).  Returns false when no usable gradient is
+ * present (or the graphics isn't cairo mid-paint) so the caller can
+ * fall back to the solid fill.
+ */
+static bool s_paintFrameGradient(GR_Graphics * pG,
+								 fp_FrameContainer * pFC,
+								 UT_sint32 x, UT_sint32 y,
+								 UT_sint32 w, UT_sint32 h)
+{
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	/* getCairo() auto-beginPaints when no paint is running - that is
+	 * harmless on the print/PDF graphics (its _beginPaint is a no-op
+	 * counter) but would unbalance the group stack on screen, so only
+	 * allow the implicit beginPaint off-screen */
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+
+	cairo_pattern_t * pat =
+		s_frameGradientPattern(pG, pFC, x, y, w, h, "fill-gradient");
+	if (!pat)
+		return false;
 	cairo_save(cr);
-	cairo_rectangle(cr, x0, y0, x1 - x0, y1 - y0);
+	cairo_rectangle(cr, pG->tdu(x), pG->tdu(y),
+					pG->tdu(x + w) - pG->tdu(x),
+					pG->tdu(y + h) - pG->tdu(y));
 	cairo_set_source(cr, pat);
 	cairo_fill(cr);
 	cairo_restore(cr);
@@ -601,6 +625,226 @@ static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
 }
 
 /*!
+ * Compound-line strand layout (OOXML a:ln@cmpd, the "line-compound"
+ * frame prop): splits a stroke of total width wDev into parallel
+ * strands.  Each band is a signed centre offset from the path edge
+ * (positive = inward) plus a strand thickness.  Stripes are listed
+ * outer-to-inner per ST_CompoundLine (thickThin = thick outside +
+ * thin inside).  ECMA-376 doesn't fix stripe ratios — dbl = thirds,
+ * thickThin/thinThick = 1/2 + 1/4 + 1/4 and tri = contiguous
+ * 1/5 + 3/5 + 1/5 follow the common renderer convention (contiguous
+ * same-colour stripes paint as a solid stroke of full width).
+ */
+static void s_lineBands(const gchar * szCmpd, double wDev,
+						std::vector<std::pair<double,double>> & bands)
+{
+	bands.clear();
+	if (!szCmpd || !*szCmpd || !strcmp(szCmpd, "sng"))
+	{
+		bands.push_back(std::make_pair(0.0, wDev));
+		return;
+	}
+	if (!strcmp(szCmpd, "dbl"))
+	{
+		double s = wDev / 3.0;
+		bands.push_back(std::make_pair(-s, s));
+		bands.push_back(std::make_pair( s, s));
+	}
+	else if (!strcmp(szCmpd, "thickThin"))
+	{
+		bands.push_back(std::make_pair(-wDev / 4.0,       wDev / 2.0));
+		bands.push_back(std::make_pair( wDev * 3.0 / 8.0, wDev / 4.0));
+	}
+	else if (!strcmp(szCmpd, "thinThick"))
+	{
+		bands.push_back(std::make_pair(-wDev * 3.0 / 8.0, wDev / 4.0));
+		bands.push_back(std::make_pair( wDev / 4.0,       wDev / 2.0));
+	}
+	else if (!strcmp(szCmpd, "tri"))
+	{
+		bands.push_back(std::make_pair(-wDev * 2.0 / 5.0, wDev / 5.0));
+		bands.push_back(std::make_pair(0.0,               wDev * 3.0 / 5.0));
+		bands.push_back(std::make_pair( wDev * 2.0 / 5.0, wDev / 5.0));
+	}
+	else
+		bands.push_back(std::make_pair(0.0, wDev));
+}
+
+/*!
+ * Apply the "line-custom-dash" prop (OOXML a:custDash a:ds@d/@sp
+ * pairs serialized as space-separated fractions of the line width)
+ * to the cairo context.  Returns false when fewer than two usable
+ * lengths were recorded so the caller can keep the preset dash.
+ */
+static bool s_setCustomDash(cairo_t * cr, const gchar * szDash,
+							double lwDev)
+{
+	std::vector<double> dashes;
+	gchar ** toks = g_strsplit(szDash ? szDash : "", " ", -1);
+	if (toks)
+	{
+		for (int i = 0; toks[i]; i++)
+		{
+			double v = g_ascii_strtod(toks[i], nullptr) * lwDev;
+			if (v > 0.0)
+				dashes.push_back(v);
+		}
+		g_strfreev(toks);
+	}
+	if (dashes.size() < 2)
+		return false;
+	cairo_set_dash(cr, dashes.data(),
+				   static_cast<int>(dashes.size()), 0.0);
+	return true;
+}
+
+/*!
+ * cairo dash pattern for a named border linestyle — the same width
+ * multiples GR_CairoGraphics maps the GR line styles to.  Used for
+ * strokes that bypass GR_Painter (frame outline painter, bar shapes).
+ */
+static void s_setPresetDash(cairo_t * cr,
+							PP_PropertyMap::TypeLineStyle ls,
+							double lwDev)
+{
+	double d[6];
+	int n = 0;
+	switch (ls)
+	{
+	case PP_PropertyMap::linestyle_dashed:
+		d[0] = 4 * lwDev; n = 1; break;
+	case PP_PropertyMap::linestyle_dotted:
+		d[0] = 2 * lwDev; n = 1; break;
+	case PP_PropertyMap::linestyle_longdash:
+		d[0] = 8 * lwDev; d[1] = 2 * lwDev; n = 2; break;
+	case PP_PropertyMap::linestyle_dashdot:
+		d[0] = 4 * lwDev; d[1] = 2 * lwDev; d[2] = lwDev;
+		d[3] = 2 * lwDev; n = 4; break;
+	case PP_PropertyMap::linestyle_dashdotdot:
+		d[0] = 4 * lwDev; d[1] = 2 * lwDev; d[2] = lwDev;
+		d[3] = 2 * lwDev; d[4] = lwDev; d[5] = 2 * lwDev; n = 6; break;
+	default:
+		return;
+	}
+	cairo_set_dash(cr, d, n, 0.0);
+}
+
+/*!
+ * Apply the a:ln stroke extras captured on the frame — "line-join"
+ * (a:round/a:bevel/a:miter), "line-miter-limit" (a:miter@lim as a
+ * ratio), "line-cap" (a:ln@cap: flat/sq/rnd) and "line-custom-dash"
+ * (a:custDash) — to the cairo context.  lwDev is the stroke width in
+ * device units.
+ */
+static void s_applyLineExtras(cairo_t * cr, const PP_AttrProp * pAP,
+							  double lwDev)
+{
+	const gchar * sz = nullptr;
+	if (pAP->getProperty("line-join", sz) && sz && *sz)
+	{
+		if (!strcmp(sz, "round"))
+			cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+		else if (!strcmp(sz, "bevel"))
+			cairo_set_line_join(cr, CAIRO_LINE_JOIN_BEVEL);
+		else
+		{
+			cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
+			const gchar * lim = nullptr;
+			if (pAP->getProperty("line-miter-limit", lim) &&
+				lim && *lim)
+				cairo_set_miter_limit(cr, s_abwnDouble(lim));
+		}
+	}
+	sz = nullptr;
+	if (pAP->getProperty("line-cap", sz) && sz && *sz)
+	{
+		if (!strcmp(sz, "rnd"))
+			cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		else if (!strcmp(sz, "flat"))
+			cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+		else
+			cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE); /* sq */
+	}
+	sz = nullptr;
+	if (pAP->getProperty("line-custom-dash", sz) && sz && *sz)
+		s_setCustomDash(cr, sz, lwDev);
+}
+
+/*!
+ * Stroke one strand of a compound outline along a custGeom path.
+ * (t1,t2) is the strand's offset interval signed inward from the path
+ * edge, in device units.  Outside bands clip to the complement of the
+ * path (a huge rect plus the path under EVEN_ODD), inside bands clip
+ * to the path itself; a DEST_OUT stroke within the caller's group
+ * carves the band's inner edge when the band doesn't reach the path
+ * line.  Must run inside a cairo group — DEST_OUT would otherwise
+ * erase the page underneath.
+ */
+static void s_strokePathBand(cairo_t * cr, const gchar * szPath,
+							 double dx0, double dy0, double dw, double dh,
+							 double t1, double t2)
+{
+	if (t2 <= t1)
+		return;
+	if (t1 < 0.0 && t2 > 0.0)
+	{
+		/* straddles the path — split at the edge */
+		s_strokePathBand(cr, szPath, dx0, dy0, dw, dh, t1, 0.0);
+		s_strokePathBand(cr, szPath, dx0, dy0, dw, dh, 0.0, t2);
+		return;
+	}
+	cairo_save(cr);
+	if (t1 >= 0.0)
+	{
+		/* inside band [t1,t2]: clip to the path interior, stroke wide
+		 * enough to reach t2, erase the part below t1 */
+		cairo_new_path(cr);
+		s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+		cairo_clip(cr);
+		cairo_new_path(cr);
+		s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+		cairo_set_line_width(cr, 2.0 * t2);
+		cairo_stroke(cr);
+		if (t1 > 0.0)
+		{
+			cairo_new_path(cr);
+			s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+			cairo_set_line_width(cr, 2.0 * t1);
+			cairo_set_operator(cr, CAIRO_OPERATOR_DEST_OUT);
+			cairo_stroke(cr);
+		}
+	}
+	else
+	{
+		/* outside band: clip to the path's complement (rect + path
+		 * under EVEN_ODD), stroke to the outer edge, erase toward
+		 * the path when the band doesn't reach it */
+		double u1 = -t2, u2 = -t1;
+		cairo_new_path(cr);
+		/* generous margin — thick strands can spill well past the
+		 * shape box on thin shapes */
+		cairo_rectangle(cr, dx0 - 4.0 * dw, dy0 - 4.0 * dh,
+						9.0 * dw, 9.0 * dh);
+		s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+		cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+		cairo_clip(cr);
+		cairo_new_path(cr);
+		s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+		cairo_set_line_width(cr, 2.0 * u2);
+		cairo_stroke(cr);
+		if (u1 > 0.0)
+		{
+			cairo_new_path(cr);
+			s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+			cairo_set_line_width(cr, 2.0 * u1);
+			cairo_set_operator(cr, CAIRO_OPERATOR_DEST_OUT);
+			cairo_stroke(cr);
+		}
+	}
+	cairo_restore(cr);
+}
+
+/*!
  * Paint a freeform shape from the "shape-path" property - the
  * DrawingML a:custGeom path serialized as "M x y L x y C x1 y1 x2 y2
  * x3 y3 Q x1 y1 x2 y2 Z" with coordinates normalized into a 0..1000
@@ -673,17 +917,89 @@ static bool s_paintFrameShape(GR_Graphics * pG,
 	cairo_restore(cr);
 
 	/* stroke with the frame's border (uniform-outline approximation:
-	 * uses the top edge's style/color/thickness) */
+	 * uses the top edge's style/color/thickness).  The a:ln extras
+	 * captured on the frame — join, cap, custDash/prstDash, gradient
+	 * outline, compound stripes and inside alignment — apply here. */
 	const PP_PropertyMap::Line & topLine = pFC->getTopStyle();
 	if (topLine.m_t_linestyle != PP_PropertyMap::linestyle_none &&
 		topLine.m_thickness > 0)
 	{
 		const UT_RGBColor & bc = topLine.m_color;
-		cairo_set_source_rgb(cr,
-							 bc.m_red / 255.0, bc.m_grn / 255.0,
-							 bc.m_blu / 255.0);
-		cairo_set_line_width(cr, pG->tdu(topLine.m_thickness));
-		cairo_stroke(cr);
+		double lwDev = pG->tdu(topLine.m_thickness);
+		const gchar * szCmpd = nullptr, * szOGrad = nullptr,
+					* szAlign = nullptr;
+		pAP->getProperty("line-compound", szCmpd);
+		pAP->getProperty("outline-gradient", szOGrad);
+		pAP->getProperty("line-align", szAlign);
+		bool bCmpd = szCmpd && *szCmpd && strcmp(szCmpd, "sng");
+		bool bIn = szAlign && !strcmp(szAlign, "in");
+		cairo_pattern_t * pat = (szOGrad && *szOGrad) ?
+			s_frameGradientPattern(pG, pFC, x, y, w, h,
+								   "outline-gradient") : nullptr;
+
+		cairo_save(cr);
+		s_applyLineExtras(cr, pAP, lwDev);
+		/* a custom dash wins over the prstDash-derived style */
+		const gchar * szCust = nullptr;
+		if (!pAP->getProperty("line-custom-dash", szCust) ||
+			!szCust || !*szCust)
+			s_setPresetDash(cr, topLine.m_t_linestyle, lwDev);
+		if (bCmpd)
+		{
+			/* paint the strands into a mask group so the DEST_OUT
+			 * edge carving can't punch through the page */
+			std::vector<std::pair<double,double>> bands;
+			s_lineBands(szCmpd, lwDev, bands);
+			double shift = bIn ? lwDev / 2.0 : 0.0;
+			cairo_push_group(cr);
+			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+			for (const auto & b : bands)
+				s_strokePathBand(cr, szPath, dx0, dy0, dw, dh,
+								 b.first + shift - b.second / 2.0,
+								 b.first + shift + b.second / 2.0);
+			cairo_pattern_t * mask = cairo_pop_group(cr);
+			if (pat)
+				cairo_set_source(cr, pat);
+			else
+				cairo_set_source_rgb(cr,
+									 bc.m_red / 255.0,
+									 bc.m_grn / 255.0,
+									 bc.m_blu / 255.0);
+			cairo_mask(cr, mask);
+			cairo_pattern_destroy(mask);
+		}
+		else
+		{
+			if (bIn)
+			{
+				/* algn="in" — the stroke lies fully inside the edge */
+				cairo_new_path(cr);
+				s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+				cairo_clip(cr);
+				cairo_new_path(cr);
+				s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+				lwDev *= 2.0;
+			}
+			else
+			{
+				/* rebuild — an earlier gradient fill cleared the
+				 * path */
+				cairo_new_path(cr);
+				s_frameShapePath(cr, szPath, dx0, dy0, dw, dh);
+			}
+			cairo_set_line_width(cr, lwDev);
+			if (pat)
+				cairo_set_source(cr, pat);
+			else
+				cairo_set_source_rgb(cr,
+									 bc.m_red / 255.0,
+									 bc.m_grn / 255.0,
+									 bc.m_blu / 255.0);
+			cairo_stroke(cr);
+		}
+		cairo_restore(cr);
+		if (pat)
+			cairo_pattern_destroy(pat);
 	}
 	cairo_new_path(cr);
 	return true;
@@ -881,6 +1197,318 @@ static void s_paintFrameArrows(GR_Graphics * pG,
 		s_arrowMarkerPath(cr, szType, tipX, tipY, dx, dy, fW, fL, lw);
 	}
 	cairo_fill(cr);
+}
+
+/*!
+ * Paint the frame's rectangular border with the a:ln extras the
+ * plain per-edge _drawLine path can't express: "line-compound"
+ * (a:ln@cmpd parallel strands), "line-join"/"line-miter-limit"
+ * (a:round/a:bevel/a:miter — only meaningful on a closed path),
+ * "line-cap" (a:ln@cap), "line-custom-dash" (a:custDash),
+ * "outline-gradient" (a:ln/a:gradFill stroke source) and
+ * "line-align"="in" (a:ln@algn, stroke fully inside the box).
+ *
+ * A uniform four-edge outline is stroked as one closed rectangle so
+ * corner joins apply; compound strands become inset/expanded rect
+ * strokes.  Non-uniform edges fall back to per-edge segments offset
+ * along the inward normal (positive offset = into the box).
+ *
+ * (x,y,w,h) are layout units.  Returns false when no a:ln extra is
+ * present or the graphics isn't cairo mid-paint — the caller then
+ * paints the borders the old way.
+ */
+static bool s_paintFrameOutline(GR_Graphics * pG,
+								fp_FrameContainer * pFC,
+								UT_sint32 x, UT_sint32 y,
+								UT_sint32 w, UT_sint32 h)
+{
+	if (w <= 0 || h <= 0)
+		return false;
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	if (!pAP)
+		return false;
+	const gchar * szCmpd = nullptr, * szJoin = nullptr,
+				* szCap = nullptr, * szDash = nullptr,
+				* szAlign = nullptr, * szOGrad = nullptr;
+	pAP->getProperty("line-compound", szCmpd);
+	pAP->getProperty("line-join", szJoin);
+	pAP->getProperty("line-cap", szCap);
+	pAP->getProperty("line-custom-dash", szDash);
+	pAP->getProperty("line-align", szAlign);
+	pAP->getProperty("outline-gradient", szOGrad);
+	bool bCmpd = szCmpd && *szCmpd && strcmp(szCmpd, "sng");
+	bool bFancy = bCmpd || (szJoin && *szJoin) || (szCap && *szCap) ||
+				  (szDash && *szDash) || (szAlign && *szAlign) ||
+				  (szOGrad && *szOGrad);
+	if (!bFancy)
+		return false;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	/* same implicit-beginPaint guard as the other cairo painters */
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+
+	const PP_PropertyMap::Line & lnT = pFC->getTopStyle();
+	const PP_PropertyMap::Line & lnB = pFC->getBottomStyle();
+	const PP_PropertyMap::Line & lnL = pFC->getLeftStyle();
+	const PP_PropertyMap::Line & lnR = pFC->getRightStyle();
+	auto edgeOn = [](const PP_PropertyMap::Line & e) {
+		return e.m_t_linestyle != PP_PropertyMap::linestyle_none &&
+			   e.m_thickness > 0;
+	};
+	if (!edgeOn(lnT) && !edgeOn(lnB) && !edgeOn(lnL) && !edgeOn(lnR))
+		return false;
+	bool bUniform =
+		lnT.m_t_linestyle == lnB.m_t_linestyle &&
+		lnT.m_t_linestyle == lnL.m_t_linestyle &&
+		lnT.m_t_linestyle == lnR.m_t_linestyle &&
+		lnT.m_thickness == lnB.m_thickness &&
+		lnT.m_thickness == lnL.m_thickness &&
+		lnT.m_thickness == lnR.m_thickness &&
+		lnT.m_color.m_red == lnB.m_color.m_red &&
+		lnT.m_color.m_red == lnL.m_color.m_red &&
+		lnT.m_color.m_red == lnR.m_color.m_red &&
+		lnT.m_color.m_grn == lnB.m_color.m_grn &&
+		lnT.m_color.m_grn == lnL.m_color.m_grn &&
+		lnT.m_color.m_grn == lnR.m_color.m_grn &&
+		lnT.m_color.m_blu == lnB.m_color.m_blu &&
+		lnT.m_color.m_blu == lnL.m_color.m_blu &&
+		lnT.m_color.m_blu == lnR.m_color.m_blu;
+
+	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
+	double dx1 = pG->tdu(x + w), dy1 = pG->tdu(y + h);
+	double dw = dx1 - dx0, dh = dy1 - dy0;
+	bool bIn = szAlign && !strcmp(szAlign, "in");
+
+	/* compound strands and miter spikes spill past the frame box —
+	 * grow the damage rect so repaints cover them */
+	if (pFC->getPage())
+	{
+		UT_sint32 t = UT_MAX(UT_MAX(lnT.m_thickness, lnB.m_thickness),
+							 UT_MAX(lnL.m_thickness, lnR.m_thickness));
+		UT_Rect dmg;
+		s_rotatedBounds(x - t, y - t, w + 2 * t, h + 2 * t,
+						pFC->getRotation(), dmg);
+		pFC->getPage()->expandDamageRect(dmg.left, dmg.top,
+									   dmg.width, dmg.height);
+	}
+
+	cairo_pattern_t * pat = (szOGrad && *szOGrad) ?
+		s_frameGradientPattern(pG, pFC, x, y, w, h,
+							   "outline-gradient") : nullptr;
+	auto setSrc = [&](const UT_RGBColor & c) {
+		if (pat)
+			cairo_set_source(cr, pat);
+		else
+			cairo_set_source_rgb(cr,
+								 c.m_red / 255.0, c.m_grn / 255.0,
+								 c.m_blu / 255.0);
+	};
+
+	if (bUniform)
+	{
+		if (!edgeOn(lnT))
+		{
+			if (pat)
+				cairo_pattern_destroy(pat);
+			return true;
+		}
+		double lwDev = pG->tdu(lnT.m_thickness);
+		std::vector<std::pair<double,double>> bands;
+		s_lineBands(bCmpd ? szCmpd : nullptr, lwDev, bands);
+		double shift = bIn ? lwDev / 2.0 : 0.0;
+		cairo_save(cr);
+		s_applyLineExtras(cr, pAP, lwDev);
+		if (!szDash || !*szDash)
+			s_setPresetDash(cr, lnT.m_t_linestyle, lwDev);
+		setSrc(lnT.m_color);
+		for (const auto & b : bands)
+		{
+			double c = b.first + shift;
+			double rw = dw - 2.0 * c, rh = dh - 2.0 * c;
+			if (rw <= 0.0 || rh <= 0.0 || b.second <= 0.0)
+				continue;
+			cairo_set_line_width(cr, b.second);
+			cairo_rectangle(cr, dx0 + c, dy0 + c, rw, rh);
+			cairo_stroke(cr);
+		}
+		cairo_restore(cr);
+		if (pat)
+			cairo_pattern_destroy(pat);
+		return true;
+	}
+
+	/* non-uniform edges: strands offset along the inward normal */
+	const struct { const PP_PropertyMap::Line * l;
+				   double x1, y1, x2, y2, nx, ny; } edges[4] = {
+		{ &lnT, dx0, dy0, dx1, dy0,  0.0,  1.0 },
+		{ &lnR, dx1, dy0, dx1, dy1, -1.0,  0.0 },
+		{ &lnB, dx0, dy1, dx1, dy1,  0.0, -1.0 },
+		{ &lnL, dx0, dy0, dx0, dy1,  1.0,  0.0 }
+	};
+	for (const auto & e : edges)
+	{
+		if (!edgeOn(*e.l))
+			continue;
+		double lwDev = pG->tdu(e.l->m_thickness);
+		std::vector<std::pair<double,double>> bands;
+		s_lineBands(bCmpd ? szCmpd : nullptr, lwDev, bands);
+		double shift = bIn ? lwDev / 2.0 : 0.0;
+		cairo_save(cr);
+		/* square caps keep corners closed, as the old GR path did */
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+		s_applyLineExtras(cr, pAP, lwDev);
+		if (!szDash || !*szDash)
+			s_setPresetDash(cr, e.l->m_t_linestyle, lwDev);
+		setSrc(e.l->m_color);
+		for (const auto & b : bands)
+		{
+			double c = b.first + shift;
+			if (b.second <= 0.0)
+				continue;
+			cairo_set_line_width(cr, b.second);
+			cairo_move_to(cr, e.x1 + e.nx * c, e.y1 + e.ny * c);
+			cairo_line_to(cr, e.x2 + e.nx * c, e.y2 + e.ny * c);
+			cairo_stroke(cr);
+		}
+		cairo_restore(cr);
+	}
+	if (pat)
+		cairo_pattern_destroy(pat);
+	return true;
+}
+
+/*!
+ * Paint a prstGeom="line" shape (imported as a filled bar whose short
+ * side is the stroke width) with its a:ln extras: "line-compound"
+ * strands across the thickness, "line-dash" (the prstDash style the
+ * bar's uniform fill would have swallowed), "line-custom-dash",
+ * "line-cap" and an "outline-gradient" source.  Returns false when
+ * none apply so the caller's solid fill draws the plain bar.
+ * (x,y,w,h) are layout units.
+ */
+static bool s_paintFrameLineShape(GR_Graphics * pG,
+								  fp_FrameContainer * pFC,
+								  UT_sint32 x, UT_sint32 y,
+								  UT_sint32 w, UT_sint32 h)
+{
+	if (w <= 0 || h <= 0)
+		return false;
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	if (!pAP)
+		return false;
+	const gchar * szBarW = nullptr, * szBarH = nullptr;
+	bool bBarW = pAP->getProperty("bar-w", szBarW) && szBarW && *szBarW;
+	bool bBarH = pAP->getProperty("bar-h", szBarH) && szBarH && *szBarH;
+	if (!bBarW && !bBarH)
+		return false;
+	const gchar * szCmpd = nullptr, * szDash = nullptr,
+				* szCustDash = nullptr, * szCap = nullptr,
+				* szOGrad = nullptr;
+	pAP->getProperty("line-compound", szCmpd);
+	pAP->getProperty("line-dash", szDash);
+	pAP->getProperty("line-custom-dash", szCustDash);
+	pAP->getProperty("line-cap", szCap);
+	pAP->getProperty("outline-gradient", szOGrad);
+	bool bCmpd = szCmpd && *szCmpd && strcmp(szCmpd, "sng");
+	bool bPresetDash = szDash && *szDash && strcmp(szDash, "solid") &&
+					   strcmp(szDash, "none");
+	bool bCustomDash = szCustDash && *szCustDash;
+	bool bGrad = szOGrad && *szOGrad;
+	if (!bCmpd && !bPresetDash && !bCustomDash && !bGrad &&
+		!(szCap && *szCap))
+		return false;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+
+	/* vertical when the width carries the stroke thickness */
+	bool bVert = (bBarW && !bBarH) || (bBarW && bBarH && h > w);
+	double lwDev = pG->tdu(bVert ? w : h);
+	if (lwDev <= 0.0)
+		return false;
+
+	const UT_RGBColor * pFill = pFC->getFillType().getColor();
+	UT_RGBColor col;
+	if (pFill && !pFill->isTransparent())
+		col = *pFill;
+	else
+		col = pFC->getTopStyle().m_color;
+
+	/* capped/rounded ends stick out past the bar — grow the damage
+	 * rect so a repaint covers them (rotated bounds like the arrow
+	 * painter uses) */
+	if (pFC->getPage())
+	{
+		UT_sint32 padLU = (bVert ? w : h) / 2 + pG->tlu(1);
+		UT_Rect dmg;
+		s_rotatedBounds(x - padLU, y - padLU,
+						w + 2 * padLU, h + 2 * padLU,
+						pFC->getRotation(), dmg);
+		pFC->getPage()->expandDamageRect(dmg.left, dmg.top,
+									   dmg.width, dmg.height);
+	}
+
+	cairo_pattern_t * pat = bGrad ?
+		s_frameGradientPattern(pG, pFC, x, y, w, h,
+							   "outline-gradient") : nullptr;
+	cairo_save(cr);
+	s_applyLineExtras(cr, pAP, lwDev);
+	if (!bCustomDash && bPresetDash)
+		s_setPresetDash(cr, PP_PropertyMap::linestyle_type(szDash),
+						lwDev);
+	if (pat)
+		cairo_set_source(cr, pat);
+	else
+		cairo_set_source_rgb(cr,
+							 col.m_red / 255.0, col.m_grn / 255.0,
+							 col.m_blu / 255.0);
+
+	std::vector<std::pair<double,double>> bands;
+	s_lineBands(bCmpd ? szCmpd : nullptr, lwDev, bands);
+	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
+	double dx1 = pG->tdu(x + w), dy1 = pG->tdu(y + h);
+	double cx = (dx0 + dx1) / 2.0, cy = (dy0 + dy1) / 2.0;
+	for (const auto & b : bands)
+	{
+		if (b.second <= 0.0)
+			continue;
+		cairo_set_line_width(cr, b.second);
+		if (bVert)
+		{
+			cairo_move_to(cr, cx + b.first, dy0);
+			cairo_line_to(cr, cx + b.first, dy1);
+		}
+		else
+		{
+			cairo_move_to(cr, dx0, cy + b.first);
+			cairo_line_to(cr, dx1, cy + b.first);
+		}
+		cairo_stroke(cr);
+	}
+	cairo_restore(cr);
+	if (pat)
+		cairo_pattern_destroy(pat);
+	return true;
 }
 
 /*!
@@ -1515,6 +2143,71 @@ void fp_FrameContainer::_drawLine (const PP_PropertyMap::Line & style,
 
 	xxx_UT_DEBUGMSG(("_drawLine: top %d bot %d \n",top,bot));
 
+	/* double / triple borders draw the edge as parallel strands inside
+	 * the nominal thickness (Word/OOXML "double"/"triple" semantics):
+	 * each strand is a third/fifth of the thickness.  Same scheme as
+	 * fp_ContainerObject::_drawLine - frame borders just never got it */
+	if (style.m_t_linestyle == PP_PropertyMap::linestyle_double ||
+		style.m_t_linestyle == PP_PropertyMap::linestyle_triple)
+	{
+		const int nStrands =
+			(style.m_t_linestyle == PP_PropertyMap::linestyle_triple)
+				? 3 : 2;
+		UT_sint32 t = static_cast<UT_sint32>(style.m_thickness);
+		UT_sint32 strand = (nStrands == 3) ? t / 5 : t / 3;
+		if (strand < pGr->tlu(1))
+			strand = pGr->tlu(1);
+		UT_sint32 gap = (t - nStrands * strand) / (nStrands - 1);
+		UT_sint32 off0 = -(t - strand) / 2;	/* centre strand pack */
+		bool bVert = (left == right);
+		pGr->setLineWidth(strand);
+		for (int i = 0; i < nStrands; ++i)
+		{
+			UT_sint32 o = off0 + i * (strand + gap);
+			if (bVert)
+				painter.drawLine(left + o, top, right + o, bot);
+			else
+				painter.drawLine(left, top + o, right, bot + o);
+		}
+		pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_SOLID);
+		return;
+	}
+
+	/* wave: sine approximation as a polyline along the edge */
+	if (style.m_t_linestyle == PP_PropertyMap::linestyle_wave)
+	{
+		UT_sint32 t = static_cast<UT_sint32>(style.m_thickness);
+		UT_sint32 amp = t > pGr->tlu(2) ? t / 2 : pGr->tlu(1);
+		bool bVert = (left == right);
+		UT_sint32 len = bVert ? (bot - top) : (right - left);
+		if (len <= 0)
+		{
+			pGr->setLineProperties (pGr->tlu(1), js, cs,
+									GR_Graphics::LINE_SOLID);
+			return;
+		}
+		const double period = 6.0 * (double)(t > 0 ? t : pGr->tlu(1));
+		const int nSeg = UT_MAX(8, (int)(len / (pGr->tlu(2) > 0 ? pGr->tlu(2) : 2)));
+		UT_sint32 prevPos = 0;
+		double prevOff = 0.0;
+		for (int i = 1; i <= nSeg; ++i)
+		{
+			UT_sint32 pos = len * i / nSeg;
+			double off = amp * sin(2.0 * G_PI * (double)pos / period);
+			if (bVert)
+				painter.drawLine(left + (UT_sint32)prevOff,
+								 top + prevPos,
+								 left + (UT_sint32)off, top + pos);
+			else
+				painter.drawLine(left + prevPos, top + (UT_sint32)prevOff,
+								 left + pos, top + (UT_sint32)off);
+			prevPos = pos;
+			prevOff = off;
+		}
+		pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_SOLID);
+		return;
+	}
+
 	painter.drawLine (left, top, right, bot);
 	
 	pGr->setLineProperties (pGr->tlu(1), js, cs, GR_Graphics::LINE_SOLID);
@@ -1567,6 +2260,12 @@ void  fp_FrameContainer::drawBoundaries(dg_DrawArgs * pDA)
 			szPath && *szPath)
 			return;
 	}
+	/* a:ln extras (compound strands, corner joins, caps, custDash,
+	 * gradient strokes, inside alignment) need one cairo pass; plain
+	 * borders keep the per-edge GR path */
+	if (s_paintFrameOutline(pG, this, iXlow, iYlow,
+							iXhigh - iXlow, iYhigh - iYlow))
+		return;
 	_drawLine(m_lineTop,iXlow,iYlow,iXhigh,iYlow,pDA->pG); // top
 	_drawLine(m_lineRight,iXhigh,iYlow,iXhigh,iYhigh,pDA->pG); // right
 	_drawLine(m_lineBottom,iXlow,iYhigh,iXhigh,iYhigh,pDA->pG); // bottom
@@ -1773,7 +2472,12 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		/* a:outerShdw drop shadow paints under the frame transform,
 		 * before the fill - Word draws it beneath the shape */
 		s_paintFrameShadow(pG, this, x, y, getFullWidth(), iFullHeight);
-		if (!s_paintFrameShape(pG, this, x, y,
+		/* prstGeom="line" bars with a:ln extras (compound, dash,
+		 * cap, gradient) draw as a stroked line instead of the
+		 * solid fill */
+		if (!s_paintFrameLineShape(pG, this, x, y,
+								   getFullWidth(), iFullHeight) &&
+			!s_paintFrameShape(pG, this, x, y,
 							   getFullWidth(), iFullHeight) &&
 			!s_paintFrameGradient(pG, this, x, y,
 								  getFullWidth(), iFullHeight) &&

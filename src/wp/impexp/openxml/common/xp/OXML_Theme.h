@@ -68,6 +68,7 @@ public:
 		double wPt = -1.0;        // a:ln@w in pt
 		std::string color;
 		std::string dash;         // border style name; "none" = a:noFill
+		std::string cmpd;         // a:ln@cmpd (dbl/thickThin/thinThick/tri)
 	};
 	const ThemeShadow * getEffectShadow(int idx) const;
 	const ThemeLine * getLineStyle(int idx) const;

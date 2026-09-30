@@ -493,6 +493,25 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			m_outlineStyle = "solid";
 			const gchar * w = attrMatches(NS_A_KEY, "w", rqst->ppAtts);
 			m_outlineW = w ? UT_convertDimensionless(w) / 12700.0 : -1.0;
+			m_outlineCmpd.clear();
+			m_outlineCap.clear();
+			m_outlineAlign.clear();
+			m_outlineJoin.clear();
+			m_outlineMiterLim = -1.0;
+			m_outlineCustDash.clear();
+			m_outlineGradDesc.clear();
+			m_outlineGradPos.clear();
+			/* a:ln@cmpd (compound stroke), @cap (line cap) and @algn
+			 * (stroke sits inside the shape when "in") */
+			const gchar * cmpd = attrMatches(NS_A_KEY, "cmpd", rqst->ppAtts);
+			if (cmpd && *cmpd && strcmp(cmpd, "sng"))
+				m_outlineCmpd = cmpd;
+			const gchar * cap = attrMatches(NS_A_KEY, "cap", rqst->ppAtts);
+			if (cap && *cap)
+				m_outlineCap = cap;
+			const gchar * algn = attrMatches(NS_A_KEY, "algn", rqst->ppAtts);
+			if (algn && !strcmp(algn, "in"))
+				m_outlineAlign = "in";
 		}
 		rqst->handled = true;
 		return;
@@ -534,6 +553,49 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		rqst->handled = true;
 		return;
 	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "custDash"))
+	{
+		/* custom dash pattern inside a:ln — the a:ds children carry
+		 * dash/space lengths as fractions of the line width */
+		if (m_bInOutline)
+			m_bInCustDash = true;
+		rqst->handled = true;
+		return;
+	}
+	if (m_bInCustDash && nameMatches(rqst->pName, NS_A_KEY, "ds"))
+	{
+		const gchar * d = attrMatches(NS_A_KEY, "d", rqst->ppAtts);
+		const gchar * sp = attrMatches(NS_A_KEY, "sp", rqst->ppAtts);
+		char buf[64];
+		g_snprintf(buf, sizeof(buf), "%.4f %.4f ",
+				   (d ? UT_convertDimensionless(d) : 0.0) / 100000.0,
+				   (sp ? UT_convertDimensionless(sp) : 0.0) / 100000.0);
+		m_outlineCustDash += buf;
+		rqst->handled = true;
+		return;
+	}
+	if (m_bInOutline &&
+		(nameMatches(rqst->pName, NS_A_KEY, "round") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "bevel") ||
+		 nameMatches(rqst->pName, NS_A_KEY, "miter")))
+	{
+		/* a:ln line-join children — a:miter carries @lim, the miter
+		 * limit in 1000ths of a percent of the line width */
+		if (nameMatches(rqst->pName, NS_A_KEY, "round"))
+			m_outlineJoin = "round";
+		else if (nameMatches(rqst->pName, NS_A_KEY, "bevel"))
+			m_outlineJoin = "bevel";
+		else
+		{
+			m_outlineJoin = "miter";
+			const gchar * lim = attrMatches(NS_A_KEY, "lim", rqst->ppAtts);
+			if (lim && *lim)
+				m_outlineMiterLim =
+					UT_convertDimensionless(lim) / 100000.0;
+		}
+		rqst->handled = true;
+		return;
+	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "solidFill") ||
 		nameMatches(rqst->pName, NS_A_KEY, "gradFill") ||
 		nameMatches(rqst->pName, NS_A_KEY, "noFill"))
@@ -559,20 +621,34 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				if (nameMatches(rqst->pName, NS_A_KEY, "noFill"))
 					m_outlineStyle = "none";
 				else
+				{
 					m_bInOutlineFill = true;
+					/* a:gradFill inside the outline collects its own
+					 * stop list into the outline-gradient prop; the
+					 * first stop still lands in m_outlineColor as the
+					 * solid fallback */
+					if (nameMatches(rqst->pName, NS_A_KEY, "gradFill"))
+					{
+						m_bInLnGradFill = true;
+						m_outlineGradDesc.clear();
+						m_outlineGradPos.clear();
+					}
+				}
 			}
 		}
 		rqst->handled = true;
 		return;
 	}
-	if (m_inGradFill && nameMatches(rqst->pName, NS_A_KEY, "gs"))
+	if ((m_inGradFill || m_bInLnGradFill) &&
+		nameMatches(rqst->pName, NS_A_KEY, "gs"))
 	{
 		const gchar * pos = attrMatches(NS_A_KEY, "pos", rqst->ppAtts);
-		m_gradPos = pos ? pos : "0";
+		(m_bInLnGradFill ? m_outlineGradPos : m_gradPos) = pos ? pos : "0";
 		rqst->handled = true;
 		return;
 	}
-	if (m_inGradFill && nameMatches(rqst->pName, NS_A_KEY, "lin"))
+	if ((m_inGradFill || m_bInLnGradFill) &&
+		nameMatches(rqst->pName, NS_A_KEY, "lin"))
 	{
 		const gchar * ang = attrMatches(NS_A_KEY, "ang", rqst->ppAtts);
 		if (ang && *ang)
@@ -580,7 +656,10 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			std::string a("lin:");
 			a += ang;
 			a += ",";
-			m_gradDesc = a + m_gradDesc;
+			if (m_bInLnGradFill)
+				m_outlineGradDesc = a + m_outlineGradDesc;
+			else
+				m_gradDesc = a + m_gradDesc;
 		}
 		rqst->handled = true;
 		return;
@@ -1110,10 +1189,51 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		if (m_bInOutline && !m_outlineStyle.empty() &&
 			m_outlineStyle != "none" && rqst->stck &&
 			!rqst->stck->empty())
-			_applyOutline(rqst->stck->top(), m_outlineColor,
+		{
+			OXML_SharedElement shape = rqst->stck->top();
+			_applyOutline(shape, m_outlineColor,
 						  m_outlineStyle, m_outlineW);
+			/* the finer a:ln features ride along as frame props —
+			 * the renderer maps them onto the border stroke */
+			if (!m_outlineCmpd.empty())
+				shape->setProperty("line-compound", m_outlineCmpd.c_str());
+			if (!m_outlineJoin.empty())
+				shape->setProperty("line-join", m_outlineJoin.c_str());
+			if (m_outlineMiterLim > 0.0)
+			{
+				char buf[24];
+				g_snprintf(buf, sizeof(buf), "%.3f", m_outlineMiterLim);
+				shape->setProperty("line-miter-limit", buf);
+			}
+			if (!m_outlineCap.empty())
+				shape->setProperty("line-cap", m_outlineCap.c_str());
+			if (!m_outlineAlign.empty())
+				shape->setProperty("line-align", m_outlineAlign.c_str());
+			if (!m_outlineCustDash.empty())
+				shape->setProperty("line-custom-dash",
+								   m_outlineCustDash.c_str());
+			if (!m_outlineGradDesc.empty())
+				shape->setProperty("outline-gradient",
+								   m_outlineGradDesc.c_str());
+			/* prstGeom="line" shapes get no border styles (they're
+			 * filled bars) — keep the dash style so the bar painter
+			 * can dash the stripe */
+			if (m_shapePrst == "line" &&
+				m_outlineStyle != "solid" && m_outlineStyle != "none")
+				shape->setProperty("line-dash", m_outlineStyle.c_str());
+		}
 		m_bInOutline = false;
 		m_bInOutlineFill = false;
+		m_bInCustDash = false;
+		m_bInLnGradFill = false;
+		m_outlineCmpd.clear();
+		m_outlineCap.clear();
+		m_outlineAlign.clear();
+		m_outlineJoin.clear();
+		m_outlineMiterLim = -1.0;
+		m_outlineCustDash.clear();
+		m_outlineGradDesc.clear();
+		m_outlineGradPos.clear();
 		rqst->handled = true;
 		return;
 	}
@@ -1130,6 +1250,7 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		m_gradDesc.clear();
 		m_bInShapeFill = false;
 		m_bInOutlineFill = false;
+		m_bInLnGradFill = false;
 		rqst->handled = true;
 		return;
 	}
@@ -1225,10 +1346,17 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		nameMatches(rqst->pName, NS_A_KEY, "stretch") ||
 		nameMatches(rqst->pName, NS_A_KEY, "fillRect") ||
 		nameMatches(rqst->pName, NS_A_KEY, "tile") ||
+		nameMatches(rqst->pName, NS_A_KEY, "custDash") ||
+		nameMatches(rqst->pName, NS_A_KEY, "ds") ||
+		nameMatches(rqst->pName, NS_A_KEY, "round") ||
+		nameMatches(rqst->pName, NS_A_KEY, "bevel") ||
+		nameMatches(rqst->pName, NS_A_KEY, "miter") ||
 		nameMatches(rqst->pName, NS_A_KEY, "prstTxWarp"))
 	{
 		if (nameMatches(rqst->pName, NS_A_KEY, "outerShdw"))
 			m_bInShadow = false;
+		else if (nameMatches(rqst->pName, NS_A_KEY, "custDash"))
+			m_bInCustDash = false;
 		rqst->handled = true;
 		return;
 	}
@@ -1278,6 +1406,16 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 			{
 				if (m_outlineColor.empty())
 					m_outlineColor = final;
+				/* under a:ln/a:gradFill also record the stop into the
+				 * outline gradient descriptor */
+				if (m_bInLnGradFill)
+				{
+					m_outlineGradDesc +=
+						m_outlineGradPos.empty() ? "0" : m_outlineGradPos;
+					m_outlineGradDesc += ":";
+					m_outlineGradDesc += final;
+					m_outlineGradDesc += ",";
+				}
 			}
 			else
 			{
@@ -1471,6 +1609,9 @@ void OXMLi_ListenerState_Textbox::_applyLnRef(const OXML_SharedElement & shape)
 		color.erase(0, 1);
 	std::string style = tl->dash.empty() ? "solid" : tl->dash;
 	_applyOutline(shape, color, style, tl->wPt);
+	/* the theme line's own cmpd applies too (unless a:noFill) */
+	if (!tl->cmpd.empty() && style != "none")
+		shape->setProperty("line-compound", tl->cmpd.c_str());
 }
 
 /* wps:style/a:effectRef — resolve the referenced theme effectStyle;

@@ -254,6 +254,17 @@ below are on `main` but the release has not been cut yet.
     follow the rotated axes.  `wordArtVert*` modes approximate with
     the same 90° rotation (upright stacked glyphs are not yet
     supported).  Round-trips through `.abwn`.
+  - `a:ln` outline details render — `a:ln@cmpd` compound strokes
+    (`dbl`/`thickThin`/`thinThick`/`tri`) paint as parallel strands,
+    the join children (`a:round`/`a:bevel`/`a:miter` with `@lim`),
+    `a:ln@cap` end caps and `a:custDash`/`a:ds` custom dash patterns
+    map onto the cairo stroke, `a:ln/a:gradFill` paints the outline
+    as a linear gradient, and `a:ln@algn="in"` draws the stroke fully
+    inside the shape edge.  Applies to uniform box borders (stroked
+    as one closed rect so joins show), non-uniform edges, freeform
+    `custGeom` paths (whose stroke previously never painted) and
+    `prstGeom="line"` bars.  Frame borders also gained the
+    double/triple/wave styles `fp_ContainerObject` already had.
 - **DOCX letter-spacing rendered** — `w:spacing` inside `w:rPr`
   (expanded/condensed character pitch in twentieths of a point) now
   imports as the `char-spacing` character property and renders by

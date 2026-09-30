@@ -245,6 +245,9 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 			const gchar * w = attrMatches(NS_A_KEY, "w", rqst->ppAtts);
 			if (w)
 				m_ln.wPt = UT_convertDimensionless(w) / 12700.0;
+			const gchar * cmpd = attrMatches(NS_A_KEY, "cmpd", rqst->ppAtts);
+			if (cmpd && *cmpd && strcmp(cmpd, "sng"))
+				m_ln.cmpd = cmpd;
 		}
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_A_KEY, "prstDash")) {

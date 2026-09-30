@@ -82,6 +82,19 @@ private:
 	std::string m_outlineStyle;
 	double m_outlineW = -1.0;
 	std::string m_shapePrst;
+	/* a:ln completeness: @cmpd/@cap/@algn attributes, the join
+	 * children (a:round/a:bevel/a:miter + miter@lim), a:custDash
+	 * a:ds pairs and a a:gradFill outline descriptor */
+	std::string m_outlineCmpd;
+	std::string m_outlineCap;
+	std::string m_outlineAlign;
+	std::string m_outlineJoin;
+	double m_outlineMiterLim = -1.0;
+	std::string m_outlineCustDash;
+	bool m_bInCustDash = false;
+	bool m_bInLnGradFill = false;
+	std::string m_outlineGradDesc;
+	std::string m_outlineGradPos;
 
 	/* wps:style *Ref state — lnRef/effectRef idx is the 1-based
 	 * position in the theme's lnStyleLst/effectStyleLst; fontRef idx

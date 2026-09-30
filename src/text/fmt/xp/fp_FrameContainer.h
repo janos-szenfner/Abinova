@@ -104,6 +104,9 @@ public:
 	void setRightStyle  (const PP_PropertyMap::Line & style) { m_lineRight  = style; }
 	void setTopStyle    (const PP_PropertyMap::Line & style) { m_lineTop    = style; }
 	const PP_PropertyMap::Line & getTopStyle(void) const { return m_lineTop; }
+	const PP_PropertyMap::Line & getBottomStyle(void) const { return m_lineBottom; }
+	const PP_PropertyMap::Line & getLeftStyle(void) const { return m_lineLeft; }
+	const PP_PropertyMap::Line & getRightStyle(void) const { return m_lineRight; }
 	void                setOverWrote(void)
 		{m_bOverWrote = true;}
 	void                setWrapping(bool bWrapping)
