@@ -765,6 +765,22 @@ void fg_FillType::setSrcRectCrop(double l, double t, double r, double b)
 }
 
 /*!
+ * The generated image behind an FG_FILL_IMAGE fill, inheriting from
+ * the parent fill like Fill() does when the pointer was not set on
+ * this container.  Returns nullptr when no image exists yet.
+ */
+GR_Image * fg_FillType::getImage(void) const
+{
+	if (m_pDocImage && *m_pDocImage)
+		return *m_pDocImage;
+	if (getParent() &&
+		(m_FillType == FG_FILL_IMAGE || m_FillType == FG_FILL_TRANSPARENT) &&
+		getParent()->m_pDocImage)
+		return *getParent()->m_pDocImage;
+	return nullptr;
+}
+
+/*!
  * set this class to have a solid color fill but not print this color.
  */
 void fg_FillType::setTransColor(UT_RGBColor & color)

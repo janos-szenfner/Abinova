@@ -202,9 +202,11 @@ static PP_Property _props[] =
 
 	{ "image-alpha-mod",       "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:alphaModFix@amt alpha multiplier 0..1
 	{ "image-duotone",         "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:duotone: "loRRGGBB hiRRGGBB"
+	{ "image-fill-rect",       "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:stretch/a:fillRect destination "l t r b" in 1000ths of percent
 	{ "image-grayscale",       "0",               false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:grayscl
 	{ "image-lum",             "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:lum: "bright contrast" fractions
 	{ "image-src-rect",        "",                false, PP_LEVEL_FRAME}, // OOXML a:srcRect crop: "l t r b" in 1000ths of percent
+	{ "image-tile",            "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:tile: "tx ty sx sy flip algn" (EMU, 1000ths pct, tokens)
 
 	{ "keep-together",         "no",              false, PP_LEVEL_BLOCK},
 	{ "keep-with-next",        "no",              false, PP_LEVEL_BLOCK},

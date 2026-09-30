@@ -150,6 +150,9 @@ public:
 	 * discarded on the left/top/right/bottom edges before the
 	 * remainder is stretched to fill the destination */
 	void           setSrcRectCrop(double l, double t, double r, double b);
+	/* the shared fill image (null until layout has generated one);
+	 * used by the cairo blipFill painter in fp_FrameContainer */
+	GR_Image *     getImage(void) const;
 private:
     void        	     _regenerateImage(GR_Graphics * pG);
 	fg_FillType *        m_pParent;

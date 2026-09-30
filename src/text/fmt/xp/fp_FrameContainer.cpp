@@ -38,6 +38,8 @@
 #include "ut_vector.h"
 #include "ut_types.h"
 #include "ut_units.h"
+#include "ut_png.h"
+#include "ut_jpeg.h"
 #include "ut_debugmsg.h"
 #include "ut_assert.h"
 #include "fl_FrameLayout.h"
@@ -845,6 +847,273 @@ static void s_strokePathBand(cairo_t * cr, const gchar * szPath,
 }
 
 /*!
+ * Set an image as the cairo source, scaled to its display size.
+ * Returns false when the image has no cairo representation.
+ */
+static bool s_cairoSetImageSource(cairo_t * cr, GR_Image * pImg)
+{
+	GR_CairoRasterImage * pRast = dynamic_cast<GR_CairoRasterImage *>(pImg);
+	if (pRast)
+	{
+		pRast->cairoSetSource(cr);
+		return true;
+	}
+	GR_CairoVectorImage * pVect = dynamic_cast<GR_CairoVectorImage *>(pImg);
+	if (pVect)
+	{
+		pVect->cairoSetSource(cr);
+		return true;
+	}
+	return false;
+}
+
+/*!
+ * Paint the frame's image fill (DrawingML a:blipFill) directly in
+ * cairo.  Three blipFill details the generic fg_FillType path can't
+ * express land here:
+ *
+ *  - a:tile (prop "image-tile": "tx ty sx sy flip algn") repeats the
+ *    blip — at its natural size times sx/sy — across the fill rect,
+ *    anchoring the grid per algn, shifting it by tx/ty EMUs and
+ *    mirroring alternate tiles per flip.  The cell size is derived
+ *    from the blip's encoded pixel size (96dpi) since the image
+ *    itself stays scaled to the frame for the generic paths.
+ *  - a:srcRect crops the source; the cropped remainder then
+ *    restretches over the destination (the generic path blitted it
+ *    unscaled, and dropped it entirely for frames on paper).
+ *  - a:stretch/a:fillRect ("image-fill-rect") stretches into a
+ *    subrect of the bounding box; negative insets expand past it and
+ *    clip at the shape.
+ *
+ * bShaped is true when the caller (s_paintFrameShape) already
+ * clipped to the shape's custom geometry — the frame-rect clip is
+ * then skipped and even a plain a:stretch blipFill is painted (the
+ * shape path would otherwise swallow the image).  Returns false when
+ * the frame has no image fill, none of the props exist (and we're
+ * not inside a shape clip), or the graphics isn't cairo mid-paint.
+ */
+static bool s_paintFrameImageFill(GR_Graphics * pG,
+								  fp_FrameContainer * pFC,
+								  UT_sint32 x, UT_sint32 y,
+								  UT_sint32 w, UT_sint32 h,
+								  bool bShaped)
+{
+	if (w <= 0 || h <= 0)
+		return false;
+	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pFL)
+		pFL->getAP(pAP);
+	if (!pAP)
+		return false;
+	const gchar * szTile = nullptr, * szFillR = nullptr, * szCrop = nullptr;
+	pAP->getProperty("image-tile", szTile);
+	pAP->getProperty("image-fill-rect", szFillR);
+	pAP->getProperty("image-src-rect", szCrop);
+	bool bTile = szTile && *szTile;
+	if (!bTile && !(szCrop && *szCrop) && !(szFillR && *szFillR) &&
+		!bShaped)
+		return false;
+	if (pFC->getFillType().getFillType() != FG_FILL_IMAGE)
+		return false;
+	GR_Image * pImg = pFC->getFillType().getImage();
+	if (!pImg)
+		return false;
+
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG)
+		return false;
+	if (pCG->getPaintCount() <= 0 &&
+		pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		return false;
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+		return false;
+	if (!dynamic_cast<GR_CairoRasterImage *>(pImg) &&
+		!dynamic_cast<GR_CairoVectorImage *>(pImg))
+		return false;
+
+	/* the a:srcRect crop window, as fractions of the source image */
+	double cl = 0.0, ct = 0.0, crp = 0.0, cb = 0.0;
+	if (szCrop && *szCrop)
+	{
+		long v[4] = {0, 0, 0, 0};
+		if (sscanf(szCrop, "%ld %ld %ld %ld",
+				   &v[0], &v[1], &v[2], &v[3]) == 4)
+		{
+			cl = v[0] / 100000.0;
+			ct = v[1] / 100000.0;
+			crp = v[2] / 100000.0;
+			cb = v[3] / 100000.0;
+		}
+	}
+	double vw = UT_MAX(1.0 - cl - crp, 0.01);
+	double vh = UT_MAX(1.0 - ct - cb, 0.01);
+
+	double dx0 = pG->tdu(x), dy0 = pG->tdu(y);
+	double dw = pG->tdu(x + w) - dx0, dh = pG->tdu(y + h) - dy0;
+	if (dw <= 0 || dh <= 0)
+		return false;
+	double dispW = pImg->getDisplayWidth();
+	double dispH = pImg->getDisplayHeight();
+	if (dispW <= 0 || dispH <= 0)
+		return false;
+
+	cairo_save(cr);
+	if (!bShaped)
+	{
+		cairo_rectangle(cr, dx0, dy0, dw, dh);
+		cairo_clip(cr);
+	}
+	if (pG->queryProperties(GR_Graphics::DGP_SCREEN))
+	{
+		/* white underlay behind alpha images, matching the generic
+		 * fill's screen behaviour */
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_paint(cr);
+	}
+	if (bTile)
+	{
+		long txi = 0, tyi = 0, tsx = 100000, tsy = 100000;
+		char flip[8] = "none", algn[8] = "tl";
+		sscanf(szTile, "%ld %ld %ld %ld %7s %7s", &txi, &tyi,
+			   &tsx, &tsy, flip, algn);
+		if (tsx <= 0)
+			tsx = 100000;
+		if (tsy <= 0)
+			tsy = 100000;
+
+		/* the tile cell is the blip at its natural size (px at
+		 * 96dpi = 15 layout units/px) times sx/sy.  The frame keeps
+		 * the image scaled to the bounding box, so the natural size
+		 * comes from the encoded buffer, not the display size */
+		UT_sint32 pxW = 0, pxH = 0;
+		UT_ConstByteBufPtr pBB;
+		if (pImg->convertToBuffer(pBB) && pBB)
+		{
+			if (!UT_PNG_getDimensions(pBB, pxW, pxH))
+				UT_JPEG_getDimensions(pBB, pxW, pxH);
+		}
+		double cellW, cellH;
+		if (pxW > 0 && pxH > 0)
+		{
+			/* the tile shows the srcRect-cropped blip, so the cell
+			 * carries the cropped natural size */
+			cellW = pG->tduD(pxW * vw * tsx * 15.0 / 100000.0);
+			cellH = pG->tduD(pxH * vh * tsy * 15.0 / 100000.0);
+		}
+		else
+		{
+			/* vector image or unreadable buffer — the display size
+			 * stands in for the natural size */
+			cellW = dispW * vw * tsx / 100000.0;
+			cellH = dispH * vh * tsy / 100000.0;
+		}
+		/* x/y/xy mirror alternate tiles — bake a 2x supercell (per
+		 * flipped axis) holding normal + mirrored copies so a plain
+		 * REPEAT pattern produces the alternation */
+		int nx = strchr(flip, 'x') ? 2 : 1;
+		int ny = strchr(flip, 'y') ? 2 : 1;
+		int tw = static_cast<int>(cellW + 0.5);
+		int th = static_cast<int>(cellH + 0.5);
+		if (tw < 1 || th < 1 || tw * nx > 0x8000 || th * ny > 0x8000)
+		{
+			cairo_restore(cr);
+			return true;
+		}
+		cairo_surface_t * surf = cairo_image_surface_create(
+			CAIRO_FORMAT_ARGB32, tw * nx, th * ny);
+		cairo_t * tcr = cairo_create(surf);
+		for (int j = 0; j < ny; ++j)
+			for (int i = 0; i < nx; ++i)
+			{
+				cairo_save(tcr);
+				cairo_translate(tcr, i * tw, j * th);
+				if (i)
+				{
+					cairo_translate(tcr, tw, 0.0);
+					cairo_scale(tcr, -1.0, 1.0);
+				}
+				if (j)
+				{
+					cairo_translate(tcr, 0.0, th);
+					cairo_scale(tcr, 1.0, -1.0);
+				}
+				/* the srcRect crop window of the source covers the
+				 * whole cell */
+				cairo_scale(tcr, tw / (vw * dispW),
+							th / (vh * dispH));
+				cairo_translate(tcr, -cl * dispW, -ct * dispH);
+				s_cairoSetImageSource(tcr, pImg);
+				cairo_paint(tcr);
+				cairo_restore(tcr);
+			}
+		cairo_destroy(tcr);
+		cairo_pattern_t * pat = cairo_pattern_create_for_surface(surf);
+		cairo_surface_destroy(surf);
+		cairo_pattern_set_extend(pat, CAIRO_EXTEND_REPEAT);
+
+		/* algn anchors a tile edge/centre to the matching point of
+		 * the bounding box; tx/ty (EMU) then shift the grid */
+		double ax = 0.0, ay = 0.0;
+		if (!strcmp(algn, "t") || !strcmp(algn, "ctr") ||
+			!strcmp(algn, "b"))
+			ax = 0.5;
+		else if (!strcmp(algn, "tr") || !strcmp(algn, "r") ||
+				 !strcmp(algn, "br"))
+			ax = 1.0;
+		if (!strcmp(algn, "l") || !strcmp(algn, "ctr") ||
+			!strcmp(algn, "r"))
+			ay = 0.5;
+		else if (!strcmp(algn, "bl") || !strcmp(algn, "b") ||
+				 !strcmp(algn, "br"))
+			ay = 1.0;
+		double ox = dx0 + ax * (dw - tw) + pG->tduD(txi / 635.0);
+		double oy = dy0 + ay * (dh - th) + pG->tduD(tyi / 635.0);
+		cairo_matrix_t m;
+		cairo_matrix_init_translate(&m, -ox, -oy);
+		cairo_pattern_set_matrix(pat, &m);
+		cairo_set_source(cr, pat);
+		cairo_paint(cr);
+		cairo_pattern_destroy(pat);
+	}
+	else
+	{
+		/* a:stretch: the cropped source restretches over the
+		 * fillRect subrect of the bounding box (all-zero fillRect =
+		 * the whole box) */
+		double fl = 0.0, ft = 0.0, fr = 0.0, fb = 0.0;
+		if (szFillR && *szFillR)
+		{
+			long v[4] = {0, 0, 0, 0};
+			if (sscanf(szFillR, "%ld %ld %ld %ld",
+					   &v[0], &v[1], &v[2], &v[3]) == 4)
+			{
+				fl = v[0] / 100000.0;
+				ft = v[1] / 100000.0;
+				fr = v[2] / 100000.0;
+				fb = v[3] / 100000.0;
+			}
+		}
+		double fx0 = dx0 + fl * dw, fy0 = dy0 + ft * dh;
+		double fw = dw * (1.0 - fl - fr), fh = dh * (1.0 - ft - fb);
+		if (fw > 0.0 && fh > 0.0)
+		{
+			cairo_rectangle(cr, fx0, fy0, fw, fh);
+			cairo_clip(cr);
+			cairo_translate(cr, fx0, fy0);
+			cairo_scale(cr, fw / (vw * dispW), fh / (vh * dispH));
+			cairo_translate(cr, -cl * dispW, -ct * dispH);
+			s_cairoSetImageSource(cr, pImg);
+			cairo_paint(cr);
+		}
+	}
+	cairo_restore(cr);
+	cairo_new_path(cr);
+	return true;
+}
+
+/*!
  * Paint a freeform shape from the "shape-path" property - the
  * DrawingML a:custGeom path serialized as "M x y L x y C x1 y1 x2 y2
  * x3 y3 Q x1 y1 x2 y2 Z" with coordinates normalized into a 0..1000
@@ -886,11 +1155,14 @@ static bool s_paintFrameShape(GR_Graphics * pG,
 	if (!s_frameShapePath(cr, szPath, dx0, dy0, dw, dh))
 		return false;
 
-	/* fill: gradient clipped to the path when present, else the
-	 * frame's resolved background color */
+	/* fill: gradient clipped to the path when present, then the
+	 * a:blipFill image (it covers the shape's geometry, not the
+	 * bounding box), else the frame's resolved background color */
 	cairo_save(cr);
 	cairo_clip(cr);
 	bool bPainted = s_paintFrameGradient(pG, pFC, x, y, w, h);
+	if (!bPainted)
+		bPainted = s_paintFrameImageFill(pG, pFC, x, y, w, h, true);
 	if (!bPainted)
 	{
 		const UT_RGBColor * pCol = pFC->getFillType().getColor();
@@ -2482,7 +2754,9 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 			!s_paintFrameGradient(pG, this, x, y,
 								  getFullWidth(), iFullHeight) &&
 			!s_paintFrameAlpha(pG, this, x, y,
-							   getFullWidth(), iFullHeight))
+							   getFullWidth(), iFullHeight) &&
+			!s_paintFrameImageFill(pG, this, x, y,
+								   getFullWidth(), iFullHeight, false))
 		{
 			getFillType().Fill(pG,srcX,srcY,x,y,getFullWidth(),iFullHeight);
 		}

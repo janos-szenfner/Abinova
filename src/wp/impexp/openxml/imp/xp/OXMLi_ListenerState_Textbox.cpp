@@ -413,6 +413,60 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		rqst->handled = true;
 		return;
 	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "tile"))
+	{
+		/* a:blipFill/a:tile — tile the blip across the shape instead
+		 * of stretching it: tx/ty grid offset in EMUs, sx/sy tile
+		 * scale in 1000ths of a percent of the blip's natural size,
+		 * flip (none/x/y/xy) mirrors alternate tiles, algn anchors
+		 * the tile grid to an edge or corner of the fill rect */
+		if (rqst->stck && !rqst->stck->empty() && rqst->stck->top())
+		{
+			const gchar * tx = attrMatches(NS_A_KEY, "tx", rqst->ppAtts);
+			const gchar * ty = attrMatches(NS_A_KEY, "ty", rqst->ppAtts);
+			const gchar * sx = attrMatches(NS_A_KEY, "sx", rqst->ppAtts);
+			const gchar * sy = attrMatches(NS_A_KEY, "sy", rqst->ppAtts);
+			const gchar * flip = attrMatches(NS_A_KEY, "flip", rqst->ppAtts);
+			const gchar * algn = attrMatches(NS_A_KEY, "algn", rqst->ppAtts);
+			std::string tile;
+			tile += (tx && *tx) ? tx : "0";
+			tile += " ";
+			tile += (ty && *ty) ? ty : "0";
+			tile += " ";
+			tile += (sx && *sx) ? sx : "100000";
+			tile += " ";
+			tile += (sy && *sy) ? sy : "100000";
+			tile += " ";
+			tile += (flip && *flip) ? flip : "none";
+			tile += " ";
+			tile += (algn && *algn) ? algn : "tl";
+			rqst->stck->top()->setProperty("image-tile", tile.c_str());
+		}
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "fillRect"))
+	{
+		/* a:stretch/a:fillRect — the destination rectangle the blip
+		 * is stretched into, l/t/r/b in 1000ths of a percent of the
+		 * bounding box like a:srcRect (negative insets expand past
+		 * it and get clipped by the shape) */
+		if (rqst->stck && !rqst->stck->empty() && rqst->stck->top())
+		{
+			std::string rect;
+			const char* sides[] = {"l", "t", "r", "b"};
+			for (const char* s : sides)
+			{
+				const gchar * v = attrMatches(NS_A_KEY, s, rqst->ppAtts);
+				rect += (v && *v) ? v : "0";
+				rect += " ";
+			}
+			rect.pop_back();
+			rqst->stck->top()->setProperty("image-fill-rect", rect.c_str());
+		}
+		rqst->handled = true;
+		return;
+	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "custGeom"))
 	{
 		m_inCustGeom = true;

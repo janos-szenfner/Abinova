@@ -265,6 +265,17 @@ below are on `main` but the release has not been cut yet.
     `custGeom` paths (whose stroke previously never painted) and
     `prstGeom="line"` bars.  Frame borders also gained the
     double/triple/wave styles `fp_ContainerObject` already had.
+  - `a:blipFill` image fills now honor `a:tile` — the blip repeats
+    across the shape at its natural size scaled by `sx`/`sy`, with
+    the tile grid anchored by `algn`, shifted by `tx`/`ty` and
+    mirroring alternate tiles per `flip` — and `a:stretch` now
+    respects its `a:fillRect` destination subrectangle (negative
+    insets expand past the box and clip at the shape).  `a:srcRect`
+    crops apply once and the cropped remainder re-stretches into the
+    tile cell or fill rect on screen and PDF, where the generic
+    image fill used to blit it unscaled or drop it for positioned
+    frames.  Imported as the `image-tile`/`image-fill-rect`
+    frame/image properties.
 - **DOCX letter-spacing rendered** — `w:spacing` inside `w:rPr`
   (expanded/condensed character pitch in twentieths of a point) now
   imports as the `char-spacing` character property and renders by
