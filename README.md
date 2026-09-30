@@ -304,6 +304,11 @@ all.
     as the `char-spacing` character property and is rendered by
     widening each glyph cluster's advance at shape time — tracked-out
     cover-page titles render like Word's.
+  - `wps:style` theme references (`a:lnRef`/`a:effectRef`/`a:fontRef`)
+    resolve against the theme's `a:lnStyleLst`/`a:effectStyleLst`/
+    font scheme — theme outlines, effect-list drop shadows and the
+    font/color defaults apply to shapes and textbox runs that don't
+    specify their own.
 - **Grammar checker switched to Hunspell** (now built-in): the checker no
   longer uses link-grammar. A vendored `hunspell-1.7.0` is built in
   `thirdparty/` and the sentence walker now flags each

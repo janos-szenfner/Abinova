@@ -39,3 +39,4 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
   docx->pdf shows blurred/colored/offset shadows on rect and
   custGeom diamond, abwn round-trip preserves all props, banded.docx
   regression-free
+- 2026-09-30 D05: wps:style theme refs resolve — lnRef->lnStyleLst outline default, effectRef->effectStyleLst shadow, fontRef->default run font/color; theme parses effectStyleLst+lnStyleLst — verified on synthetic Austin.docx (theme shadow+outline render, explicit effectLst suppresses, fontRef recolors), abwn round-trip OK, corpus regression clean

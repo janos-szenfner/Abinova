@@ -32,6 +32,8 @@
 
 // External includes
 #include <vector>
+#include <map>
+#include <utility>
 
 /* \class OXMLi_ListenerState_Textbox
  * \brief This ListenerState parses the Textboxes
@@ -74,10 +76,34 @@ private:
 	/* a:ln outline state for the current shape */
 	bool m_bInOutline = false;
 	bool m_bInOutlineFill = false;
+	bool m_bHadExplicitLn = false;      // spPr carried its own a:ln
+	bool m_bHadExplicitEffect = false;  // spPr carried its own a:effectLst
 	std::string m_outlineColor;
 	std::string m_outlineStyle;
 	double m_outlineW = -1.0;
 	std::string m_shapePrst;
+
+	/* wps:style *Ref state — lnRef/effectRef idx is the 1-based
+	 * position in the theme's lnStyleLst/effectStyleLst; fontRef idx
+	 * is "minor"|"major". The refs' color child is captured through
+	 * m_pendColor and lands in m_refColor. */
+	int  m_lnRefIdx = 0;
+	int  m_effectRefIdx = 0;
+	bool m_fontRefMajor = false;
+	bool m_bInRefColor = false;
+	bool m_bPendRef = false;
+	std::string m_refColor;
+	/* fontRef defaults apply to runs parsed later in txbxContent —
+	 * keyed by shape element so nested shapes stay separate */
+	std::map<const OXML_Element*, std::pair<std::string,std::string>>
+		m_fontRefByShape;
+	void _applyLnRef(const OXML_SharedElement & shape);
+	void _applyEffectRef(const OXML_SharedElement & shape);
+	void _applyOutline(const OXML_SharedElement & shape, const std::string & color,
+					   const std::string & style, double wPt);
+	void _applyFontRefDefaults(OXML_Element * el, bool bParaColor,
+							   bool bParaFont, const std::string & color,
+							   const std::string & font);
 
 	/* v:group coordinate space stack — children positions/sizes are
 	 * in coordorigin/coordsize units and must be scaled into the

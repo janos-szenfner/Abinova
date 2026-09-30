@@ -52,11 +52,35 @@ public:
 	inline void setMajorFont(std::string script, std::string val) { m_majorFontScheme[script] = val; }
 	inline void setMinorFont(std::string script, std::string val) { m_minorFontScheme[script] = val; }
 
+	/* a:fmtScheme style lists — indexed by the 1-based position that
+	 * wps:style's a:lnRef/a:effectRef @idx refer to (ECMA-376).
+	 * color is "#RRGGBB" or "phClr" (placeholder — substituted by the
+	 * referencing *Ref element's own color child). */
+	struct ThemeShadow {
+		double blurPt = 0.0;      // a:outerShdw@blurRad in pt
+		double distPt = 0.0;      // a:outerShdw@dist in pt
+		int dir = 0;              // a:outerShdw@dir (60000ths of a degree)
+		bool rotWithShape = true; // a:outerShdw@rotWithShape
+		std::string color;
+		double alpha = -1.0;      // a:alpha on the shadow color
+	};
+	struct ThemeLine {
+		double wPt = -1.0;        // a:ln@w in pt
+		std::string color;
+		std::string dash;         // border style name; "none" = a:noFill
+	};
+	const ThemeShadow * getEffectShadow(int idx) const;
+	const ThemeLine * getLineStyle(int idx) const;
+	inline void setEffectShadow(int idx, const ThemeShadow & s) { m_effectStyles[idx] = s; }
+	inline void setLineStyle(int idx, const ThemeLine & l) { m_lineStyles[idx] = l; }
+
 private:
 	std::string m_colorScheme[12];
 	typedef std::map<std::string, std::string> OXML_FontScheme;
 	OXML_FontScheme m_majorFontScheme;
 	OXML_FontScheme m_minorFontScheme;
+	std::map<int, ThemeShadow> m_effectStyles;
+	std::map<int, ThemeLine> m_lineStyles;
 };
 
 typedef std::shared_ptr<OXML_Theme> OXML_SharedTheme;

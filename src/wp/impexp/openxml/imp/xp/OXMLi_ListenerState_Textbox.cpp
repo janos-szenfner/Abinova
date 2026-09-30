@@ -187,6 +187,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		_markFlatIfHdrFtr(shapeElem);
 		rqst->stck->push(shapeElem);
 		m_shapePrst.clear();
+		m_bHadExplicitLn = false;
+		m_bHadExplicitEffect = false;
 		++m_wspDepth;
 		rqst->handled = true;
 		return;
@@ -450,11 +452,23 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			rqst->context->back() == "wps:spPr")
 		{
 			m_bInOutline = true;
+			m_bHadExplicitLn = true;
 			m_outlineColor.clear();
 			m_outlineStyle = "solid";
 			const gchar * w = attrMatches(NS_A_KEY, "w", rqst->ppAtts);
 			m_outlineW = w ? UT_convertDimensionless(w) / 12700.0 : -1.0;
 		}
+		rqst->handled = true;
+		return;
+	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "effectLst") ||
+		nameMatches(rqst->pName, NS_A_KEY, "effectDag"))
+	{
+		/* an explicit (even empty) spPr effect list suppresses the
+		 * wps:style a:effectRef theme default */
+		if (rqst->context && !rqst->context->empty() &&
+			rqst->context->back() == "wps:spPr")
+			m_bHadExplicitEffect = true;
 		rqst->handled = true;
 		return;
 	}
@@ -548,8 +562,32 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		rqst->handled = true;
 		return;
 	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "lnRef") ||
+		nameMatches(rqst->pName, NS_A_KEY, "effectRef") ||
+		nameMatches(rqst->pName, NS_A_KEY, "fontRef"))
+	{
+		/* wps:style theme references: lnRef/effectRef idx is the
+		 * 1-based position in the theme's lnStyleLst/effectStyleLst;
+		 * fontRef idx is "minor"|"major". The refs' color child
+		 * substitutes for phClr placeholders in the theme style. */
+		if (rqst->context && !rqst->context->empty() &&
+			rqst->context->back() == "wps:style")
+		{
+			const gchar * idx = attrMatches(NS_A_KEY, "idx", rqst->ppAtts);
+			if (nameMatches(rqst->pName, NS_A_KEY, "lnRef"))
+				m_lnRefIdx = idx ? atoi(idx) : 0;
+			else if (nameMatches(rqst->pName, NS_A_KEY, "effectRef"))
+				m_effectRefIdx = idx ? atoi(idx) : 0;
+			else
+				m_fontRefMajor = (idx && !strcmp(idx, "major"));
+			m_bInRefColor = true;
+			m_refColor.clear();
+		}
+		rqst->handled = true;
+		return;
+	}
 	if ((m_bInShapeFill || m_bInStyleFill || m_bInOutlineFill ||
-		 m_bInShadow) &&
+		 m_bInShadow || m_bInRefColor) &&
 		(nameMatches(rqst->pName, NS_A_KEY, "srgbClr") ||
 		 nameMatches(rqst->pName, NS_A_KEY, "schemeClr") ||
 		 nameMatches(rqst->pName, NS_A_KEY, "sysClr") ||
@@ -564,6 +602,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		m_pendColor = color;
 		m_bPendOutline = m_bInOutlineFill;
 		m_bPendShadow = m_bInShadow;
+		m_bPendRef = m_bInRefColor;
 		m_lumMod = 1.0; m_lumOff = 0.0;
 		m_tint = -1.0; m_shade = -1.0; m_alpha = -1.0;
 		rqst->handled = true;
@@ -938,6 +977,15 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 			return;
 		}
 		OXML_SharedElement shape = rqst->stck->top();
+		/* fontRef defaults land on the shape's txbxContent runs — those
+		 * only exist now that the shape is complete */
+		auto fit = m_fontRefByShape.find(shape.get());
+		if (fit != m_fontRefByShape.end())
+		{
+			_applyFontRefDefaults(shape.get(), false, false,
+								  fit->second.first, fit->second.second);
+			m_fontRefByShape.erase(fit);
+		}
 		rqst->stck->pop();
 		if (rqst->stck->empty())
 		{
@@ -1021,55 +1069,13 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "ln"))
 	{
-		/* write the captured outline as uniform frame borders —
-		 * Word outlines apply to all four edges. A prstGeom="line"
-		 * shape has no interior — render it as a filled bar whose
-		 * short side is the line thickness */
+		/* write the captured outline via the shared helper — also used
+		 * for wps:style a:lnRef theme line defaults */
 		if (m_bInOutline && !m_outlineStyle.empty() &&
 			m_outlineStyle != "none" && rqst->stck &&
 			!rqst->stck->empty())
-		{
-			OXML_SharedElement shape = rqst->stck->top();
-			if (m_shapePrst == "line" && !m_outlineColor.empty())
-			{
-				double sw = 0.0, sh = 0.0;
-				const gchar * sv = nullptr;
-				if (shape->getProperty("grp-width", sv) == UT_OK && sv)
-					sw = UT_convertDimensionless(sv);
-				else if (shape->getProperty("shape-w", sv) == UT_OK && sv)
-					sw = UT_convertDimensionless(sv);
-				if (shape->getProperty("grp-height", sv) == UT_OK && sv)
-					sh = UT_convertDimensionless(sv);
-				else if (shape->getProperty("shape-h", sv) == UT_OK && sv)
-					sh = UT_convertDimensionless(sv);
-				double thick = m_outlineW > 0.0 ?
-					m_outlineW / 72.0 : 0.03; /* pt -> in */
-				char buf[24];
-				g_snprintf(buf, sizeof(buf), "%.4fin", thick);
-				shape->setProperty("background-color",
-								   m_outlineColor.c_str());
-				shape->setProperty("bg-style", "1");
-				shape->setProperty(sh > sw ? "bar-w" : "bar-h", buf);
-			}
-			else
-			{
-				static const char * edges[] =
-					{ "top", "bot", "left", "right" };
-				for (const char * e : edges)
-				{
-					std::string k(e);
-					shape->setProperty(k + "-style", m_outlineStyle);
-					if (m_outlineW > 0.0)
-					{
-						char buf[24];
-						g_snprintf(buf, sizeof(buf), "%.2fpt", m_outlineW);
-						shape->setProperty(k + "-thickness", buf);
-					}
-					if (!m_outlineColor.empty())
-						shape->setProperty(k + "-color", m_outlineColor);
-				}
-			}
-		}
+			_applyOutline(rqst->stck->top(), m_outlineColor,
+						  m_outlineStyle, m_outlineW);
 		m_bInOutline = false;
 		m_bInOutlineFill = false;
 		rqst->handled = true;
@@ -1135,11 +1141,44 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		rqst->handled = true;
 		return;
 	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "lnRef") ||
+		nameMatches(rqst->pName, NS_A_KEY, "effectRef") ||
+		nameMatches(rqst->pName, NS_A_KEY, "fontRef"))
+	{
+		/* resolve the wps:style theme reference now that its color
+		 * child has been captured into m_refColor. fontRef only records
+		 * the default — the runs don't exist until txbxContent ends */
+		if (rqst->stck && !rqst->stck->empty())
+		{
+			OXML_SharedElement shape = rqst->stck->top();
+			if (nameMatches(rqst->pName, NS_A_KEY, "lnRef"))
+				_applyLnRef(shape);
+			else if (nameMatches(rqst->pName, NS_A_KEY, "effectRef"))
+				_applyEffectRef(shape);
+			else
+			{
+				std::string font;
+				OXML_Document * doc = OXML_Document::getInstance();
+				if (doc && doc->getTheme())
+				{
+					font = m_fontRefMajor ?
+						doc->getTheme()->getMajorFont("latin") :
+						doc->getTheme()->getMinorFont("latin");
+				}
+				m_fontRefByShape[shape.get()] =
+					std::make_pair(m_refColor, font);
+			}
+		}
+		m_bInRefColor = false;
+		m_refColor.clear();
+		rqst->handled = true;
+		return;
+	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "headEnd") ||
 		nameMatches(rqst->pName, NS_A_KEY, "tailEnd") ||
 		nameMatches(rqst->pName, NS_A_KEY, "outerShdw") ||
 		nameMatches(rqst->pName, NS_A_KEY, "effectLst") ||
-		nameMatches(rqst->pName, NS_A_KEY, "effectRef") ||
+		nameMatches(rqst->pName, NS_A_KEY, "effectDag") ||
 		nameMatches(rqst->pName, NS_A_KEY, "gs") ||
 		nameMatches(rqst->pName, NS_A_KEY, "gsLst") ||
 		nameMatches(rqst->pName, NS_A_KEY, "lin") ||
@@ -1172,11 +1211,19 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 							 m_bPendShadow ? -1.0 : m_alpha);
 		bool bOutline = m_bPendOutline;
 		bool bShadow = m_bPendShadow;
+		bool bRef = m_bPendRef;
 		double alpha = m_alpha;
 		m_pendColor.clear();
 		m_bPendOutline = false;
 		m_bPendShadow = false;
-		if (!final.empty() && rqst->stck && !rqst->stck->empty())
+		m_bPendRef = false;
+		if (bRef)
+		{
+			/* color child of a wps:style *Ref — substitutes for phClr
+			 * placeholders when the theme style resolves */
+			m_refColor = final;
+		}
+		else if (!final.empty() && rqst->stck && !rqst->stck->empty())
 		{
 			if (bShadow)
 			{
@@ -1310,6 +1357,184 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 void OXMLi_ListenerState_Textbox::charData (OXMLi_CharDataRequest * /*rqst*/)
 {
 	//don't do anything here
+}
+
+/* shared outline writer for explicit a:ln and wps:style a:lnRef
+ * theme defaults: a prstGeom="line" shape has no interior — render it
+ * as a filled bar whose short side is the line thickness; other
+ * shapes get uniform four-edge borders (Word outlines apply to all
+ * four edges) */
+void OXMLi_ListenerState_Textbox::_applyOutline(const OXML_SharedElement & shape,
+											  const std::string & color,
+											  const std::string & style,
+											  double wPt)
+{
+	if (!shape || style.empty() || style == "none")
+		return;
+	if (m_shapePrst == "line" && !color.empty())
+	{
+		double sw = 0.0, sh = 0.0;
+		const gchar * sv = nullptr;
+		if (shape->getProperty("grp-width", sv) == UT_OK && sv)
+			sw = UT_convertDimensionless(sv);
+		else if (shape->getProperty("shape-w", sv) == UT_OK && sv)
+			sw = UT_convertDimensionless(sv);
+		if (shape->getProperty("grp-height", sv) == UT_OK && sv)
+			sh = UT_convertDimensionless(sv);
+		else if (shape->getProperty("shape-h", sv) == UT_OK && sv)
+			sh = UT_convertDimensionless(sv);
+		double thick = wPt > 0.0 ? wPt / 72.0 : 0.03; /* pt -> in */
+		char buf[24];
+		g_snprintf(buf, sizeof(buf), "%.4fin", thick);
+		shape->setProperty("background-color", color.c_str());
+		shape->setProperty("bg-style", "1");
+		shape->setProperty(sh > sw ? "bar-w" : "bar-h", buf);
+	}
+	else
+	{
+		static const char * edges[] = { "top", "bot", "left", "right" };
+		for (const char * e : edges)
+		{
+			std::string k(e);
+			shape->setProperty(k + "-style", style);
+			if (wPt > 0.0)
+			{
+				char buf[24];
+				g_snprintf(buf, sizeof(buf), "%.2fpt", wPt);
+				shape->setProperty(k + "-thickness", buf);
+			}
+			if (!color.empty())
+				shape->setProperty(k + "-color", color);
+		}
+	}
+}
+
+/* wps:style/a:lnRef — the theme lnStyleLst entry supplies a default
+ * outline when the shape's spPr carried no a:ln of its own */
+void OXMLi_ListenerState_Textbox::_applyLnRef(const OXML_SharedElement & shape)
+{
+	if (m_lnRefIdx <= 0 || !shape || m_bHadExplicitLn)
+		return;
+	OXML_Document * doc = OXML_Document::getInstance();
+	if (!doc || !doc->getTheme())
+		return;
+	const OXML_Theme::ThemeLine * tl =
+		doc->getTheme()->getLineStyle(m_lnRefIdx);
+	if (!tl)
+		return;
+	const gchar * v = nullptr;
+	if ((shape->getProperty("top-style", v) == UT_OK && v) ||
+		(shape->getProperty("bar-w", v) == UT_OK && v) ||
+		(shape->getProperty("bar-h", v) == UT_OK && v))
+		return; /* an outline was already written another way */
+	std::string color = tl->color;
+	if (color.empty() || color == "phClr")
+		color = m_refColor;
+	if (!color.empty() && color[0] == '#')
+		color.erase(0, 1);
+	std::string style = tl->dash.empty() ? "solid" : tl->dash;
+	_applyOutline(shape, color, style, tl->wPt);
+}
+
+/* wps:style/a:effectRef — resolve the referenced theme effectStyle;
+ * only a:outerShdw is renderable (glow/reflection/etc. skipped) */
+void OXMLi_ListenerState_Textbox::_applyEffectRef(const OXML_SharedElement & shape)
+{
+	if (m_effectRefIdx <= 0 || !shape || m_bHadExplicitEffect)
+		return;
+	OXML_Document * doc = OXML_Document::getInstance();
+	if (!doc || !doc->getTheme())
+		return;
+	const OXML_Theme::ThemeShadow * sh =
+		doc->getTheme()->getEffectShadow(m_effectRefIdx);
+	if (!sh)
+		return;
+	const gchar * v = nullptr;
+	if (shape->getProperty("frame-shadow", v) == UT_OK && v)
+		return;
+	shape->setProperty("frame-shadow", "outer");
+	char buf[24];
+	if (sh->blurPt > 0.0)
+	{
+		g_snprintf(buf, sizeof(buf), "%.2fpt", sh->blurPt);
+		shape->setProperty("frame-shadow-blur", buf);
+	}
+	if (sh->distPt > 0.0)
+	{
+		g_snprintf(buf, sizeof(buf), "%.2fpt", sh->distPt);
+		shape->setProperty("frame-shadow-offset", buf);
+	}
+	g_snprintf(buf, sizeof(buf), "%d", sh->dir);
+	shape->setProperty("frame-shadow-dir", buf);
+	shape->setProperty("frame-shadow-rot", sh->rotWithShape ? "1" : "0");
+	std::string color = sh->color;
+	if (color.empty() || color == "phClr")
+		color = m_refColor;
+	if (!color.empty() && color[0] == '#')
+		color.erase(0, 1);
+	if (!color.empty())
+		shape->setProperty("frame-shadow-color", color.c_str());
+	if (sh->alpha >= 0.0)
+	{
+		g_snprintf(buf, sizeof(buf), "%.3f", sh->alpha);
+		shape->setProperty("frame-shadow-alpha", buf);
+	}
+}
+
+/* does the element's named style define the given property? — used to
+ * keep fontRef defaults from overriding pStyle/rStyle formatting */
+static bool s_elemStyleHasProp(OXML_Element * el, const char * prop)
+{
+	const gchar * sty = nullptr;
+	if (!el || el->getAttribute(PT_STYLE_ATTRIBUTE_NAME, sty) != UT_OK ||
+		!sty || !*sty)
+		return false;
+	OXML_Document * doc = OXML_Document::getInstance();
+	if (!doc)
+		return false;
+	OXML_SharedStyle s = doc->getStyleByName(sty);
+	const gchar * v = nullptr;
+	return s.get() && s->getProperty(prop, v) == UT_OK && v && *v;
+}
+
+/* wps:style/a:fontRef — the theme font and the ref's color child are
+ * defaults for the shape's text: applied to runs that specify neither
+ * directly nor through their paragraph style. Nested frames keep
+ * their own refs. */
+void OXMLi_ListenerState_Textbox::_applyFontRefDefaults(
+	OXML_Element * el, bool bParaColor, bool bParaFont,
+	const std::string & color, const std::string & font)
+{
+	if (!el || (color.empty() && font.empty()))
+		return;
+	const OXML_ElementVector & children = el->getChildren();
+	for (const OXML_SharedElement & child : children)
+	{
+		if (!child || child->getType() == TEXTBOX)
+			continue;
+		bool bColor = bParaColor, bFont = bParaFont;
+		if (child->getType() == BLOCK)
+		{
+			if (s_elemStyleHasProp(child.get(), "color"))
+				bColor = true;
+			if (s_elemStyleHasProp(child.get(), "font-family"))
+				bFont = true;
+		}
+		else if (child->getType() == SPAN)
+		{
+			const gchar * v = nullptr;
+			if (!bColor && !color.empty() &&
+				!s_elemStyleHasProp(child.get(), "color") &&
+				(child->getProperty("color", v) != UT_OK || !v || !*v))
+				child->setProperty("color", color.c_str());
+			v = nullptr;
+			if (!bFont && !font.empty() &&
+				!s_elemStyleHasProp(child.get(), "font-family") &&
+				(child->getProperty("font-family", v) != UT_OK || !v || !*v))
+				child->setProperty("font-family", font.c_str());
+		}
+		_applyFontRefDefaults(child.get(), bColor, bFont, color, font);
+	}
 }
 
 /* VML length → points. VML style values carry units (pt/in/cm/mm/pc/px);

@@ -236,6 +236,14 @@ below are on `main` but the release has not been cut yet.
     offset fixed in page space.  Shadow color and `a:alpha` opacity
     are imported too (`frame-shadow-*` properties, round-tripping
     through `.abwn`).
+  - `wps:style` theme style references resolve per ECMA-376:
+    `a:lnRef` supplies a default outline from the theme's
+    `a:lnStyleLst` (width, dash and the ref's color child in place of
+    `phClr`), `a:effectRef` applies the referenced `a:effectStyleLst`
+    drop shadow, and `a:fontRef` provides the default theme font and
+    text color for shape runs that set neither directly nor through
+    their paragraph style.  Explicit `a:ln`/`a:effectLst` in `spPr`
+    (even empty ones) still take precedence.
 - **DOCX letter-spacing rendered** — `w:spacing` inside `w:rPr`
   (expanded/condensed character pitch in twentieths of a point) now
   imports as the `char-spacing` character property and renders by

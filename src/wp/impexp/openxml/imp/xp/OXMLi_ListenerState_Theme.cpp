@@ -48,7 +48,12 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 			nameMatches(rqst->pName, NS_A_KEY, "sysClr") ) {
 
 		std::string contextTag = rqst->context->at(rqst->context->size() - 2);
-		if (!contextMatches(contextTag, NS_A_KEY, "clrScheme")) return; //we only worry about the color scheme for now.
+		bool bClrScheme = contextMatches(contextTag, NS_A_KEY, "clrScheme");
+		/* fmtScheme colors: the color child of an effectStyle's
+		 * a:outerShdw, or a fill color inside an lnStyleLst a:ln */
+		bool bShdwClr = m_bInShdw &&
+			contextMatches(rqst->context->back(), NS_A_KEY, "outerShdw");
+		if (!bClrScheme && !bShdwClr && !m_bInThemeLn) return;
 
 		std::string color = "";
 
@@ -75,6 +80,7 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 			} else if (!strcmp(val, "accent6")) { color = m_theme->getColor(ACCENT6);
 			} else if (!strcmp(val, "hlink")) { color = m_theme->getColor(HYPERLINK);
 			} else if (!strcmp(val, "folHlink")) { color = m_theme->getColor(FOLLOWED_HYPERLINK);
+			} else if (!strcmp(val, "phClr")) { color = "phClr"; //placeholder — substituted by the *Ref color
 			}
 		} else if (nameMatches(rqst->pName, NS_A_KEY, "scrgbClr")) {
 			//parse RGB color, percentage variant
@@ -105,6 +111,20 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 				color = "#";
 				color += hexVal;
 			}
+		}
+
+		if (bShdwClr)
+		{
+			m_bShdwColor = true;
+			m_shdw.color = color;
+			rqst->handled = true;
+			return;
+		}
+		if (m_bInThemeLn)
+		{
+			m_ln.color = color;
+			rqst->handled = true;
+			return;
 		}
 
 		if (!color.compare("") || color[0] != '#') return;
@@ -166,6 +186,104 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 		}
 
 		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "effectStyleLst")) {
+		/* a:fmtScheme effect list — each a:effectStyle is positionally
+		 * indexed (1-based) for wps:style/a:effectRef lookup */
+		m_bInEffectStyleLst = true;
+		m_effectStyleIdx = 0;
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "effectStyle")) {
+		if (m_bInEffectStyleLst)
+			++m_effectStyleIdx;
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "outerShdw")) {
+		/* drop shadow inside an effectStyle's a:effectLst — its color
+		 * child is captured while m_bInShdw, transforms via m_bShdwColor */
+		if (m_bInEffectStyleLst && m_effectStyleIdx > 0)
+		{
+			m_bInShdw = true;
+			m_shdw = OXML_Theme::ThemeShadow();
+			const gchar * dist = attrMatches(NS_A_KEY, "dist", rqst->ppAtts);
+			const gchar * dir = attrMatches(NS_A_KEY, "dir", rqst->ppAtts);
+			const gchar * blur = attrMatches(NS_A_KEY, "blurRad", rqst->ppAtts);
+			const gchar * rws = attrMatches(NS_A_KEY, "rotWithShape", rqst->ppAtts);
+			if (dist)
+				m_shdw.distPt = UT_convertDimensionless(dist) / 12700.0;
+			if (blur)
+				m_shdw.blurPt = UT_convertDimensionless(blur) / 12700.0;
+			if (dir)
+				m_shdw.dir = (int)UT_convertDimensionless(dir);
+			if (rws)
+				m_shdw.rotWithShape =
+					(strcmp(rws, "0") && strcmp(rws, "false"));
+		}
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "alpha") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "lumMod") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "lumOff")) {
+		/* transform children of the shadow color — a:alpha is the one
+		 * themes actually use for effect shadows */
+		if (m_bShdwColor && nameMatches(rqst->pName, NS_A_KEY, "alpha"))
+		{
+			const gchar * v = attrMatches(NS_A_KEY, "val", rqst->ppAtts);
+			if (v)
+				m_shdw.alpha = UT_convertDimensionless(v) / 100000.0;
+		}
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "lnStyleLst")) {
+		m_bInLnStyleLst = true;
+		m_lnStyleIdx = 0;
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "ln")) {
+		/* a:ln entries of lnStyleLst (w in EMU — 12700 EMU = 1pt) */
+		if (m_bInLnStyleLst && rqst->context && !rqst->context->empty() &&
+			contextMatches(rqst->context->back(), NS_A_KEY, "lnStyleLst"))
+		{
+			++m_lnStyleIdx;
+			m_bInThemeLn = true;
+			m_ln = OXML_Theme::ThemeLine();
+			const gchar * w = attrMatches(NS_A_KEY, "w", rqst->ppAtts);
+			if (w)
+				m_ln.wPt = UT_convertDimensionless(w) / 12700.0;
+		}
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "prstDash")) {
+		if (m_bInThemeLn)
+		{
+			const gchar * v = attrMatches(NS_A_KEY, "val", rqst->ppAtts);
+			if (v)
+			{
+				if (!strcmp(v, "sysDash") || !strcmp(v, "dash"))
+					m_ln.dash = "dashed";
+				else if (!strcmp(v, "dot") || !strcmp(v, "sysDot"))
+					m_ln.dash = "dotted";
+				else if (!strcmp(v, "lgDash"))
+					m_ln.dash = "longdash";
+				else if (!strcmp(v, "dashDot") || !strcmp(v, "sysDashDot") ||
+						 !strcmp(v, "lgDashDot"))
+					m_ln.dash = "dashdot";
+				else if (!strcmp(v, "sysDashDotDot") ||
+						 !strcmp(v, "lgDashDotDot"))
+					m_ln.dash = "dashdotdot";
+				else
+					m_ln.dash = "solid";
+			}
+		}
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "noFill")) {
+		/* <a:ln><a:noFill/></a:ln> — the referenced line is invisible */
+		if (m_bInThemeLn)
+			m_ln.dash = "none";
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "effectLst") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "effectDag") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "solidFill") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "gradFill") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "fmtScheme") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "fillStyleLst") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "bgFillStyleLst")) {
+		/* containers we consume quietly */
+		rqst->handled = true;
 	}
 }
 
@@ -189,6 +307,43 @@ void OXMLi_ListenerState_Theme::endElement (OXMLi_EndElementRequest * rqst)
 		std::string contextTag = rqst->context->back();
 		if (contextMatches(contextTag, NS_A_KEY, "majorFont") && contextMatches(contextTag, NS_A_KEY, "minorFont"))
 			return;
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "effectStyleLst")) {
+		m_bInEffectStyleLst = false;
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "outerShdw")) {
+		if (m_bInShdw)
+		{
+			m_bInShdw = false;
+			m_bShdwColor = false;
+			if (m_effectStyleIdx > 0)
+				m_theme->setEffectShadow(m_effectStyleIdx, m_shdw);
+		}
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "lnStyleLst")) {
+		m_bInLnStyleLst = false;
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "ln")) {
+		if (m_bInThemeLn)
+		{
+			m_bInThemeLn = false;
+			if (m_lnStyleIdx > 0)
+				m_theme->setLineStyle(m_lnStyleIdx, m_ln);
+		}
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_A_KEY, "effectStyle") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "effectLst") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "effectDag") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "alpha") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "lumMod") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "lumOff") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "noFill") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "prstDash") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "solidFill") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "gradFill") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "fmtScheme") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "fillStyleLst") ||
+			   nameMatches(rqst->pName, NS_A_KEY, "bgFillStyleLst")) {
 		rqst->handled = true;
 	}
 

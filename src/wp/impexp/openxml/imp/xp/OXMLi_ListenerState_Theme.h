@@ -45,6 +45,19 @@ private:
 
 	UT_Error _initializeTheme();
 	std::string _getHexFromPreset(std::string preset);
+
+	/* a:fmtScheme parsing — effectStyleLst shadows and lnStyleLst
+	 * lines, stored on the theme at their 1-based position for
+	 * wps:style *Ref resolution */
+	bool m_bInEffectStyleLst = false;
+	int  m_effectStyleIdx = 0;
+	bool m_bInShdw = false;      // inside a:outerShdw of an effectStyle
+	bool m_bShdwColor = false;   // inside the shadow's color element
+	OXML_Theme::ThemeShadow m_shdw;
+	bool m_bInLnStyleLst = false;
+	int  m_lnStyleIdx = 0;
+	bool m_bInThemeLn = false;   // inside a top-level a:ln of lnStyleLst
+	OXML_Theme::ThemeLine m_ln;
 };
 
 #endif //_OXMLI_LISTENERSTATE_THEME_H_

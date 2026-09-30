@@ -45,3 +45,15 @@ std::string OXML_Theme::getMinorFont(std::string script)
 	return it != m_minorFontScheme.end() ? it->second : "" ;
 }
 
+const OXML_Theme::ThemeShadow * OXML_Theme::getEffectShadow(int idx) const
+{
+	std::map<int, ThemeShadow>::const_iterator it = m_effectStyles.find(idx);
+	return it != m_effectStyles.end() ? &it->second : nullptr;
+}
+
+const OXML_Theme::ThemeLine * OXML_Theme::getLineStyle(int idx) const
+{
+	std::map<int, ThemeLine>::const_iterator it = m_lineStyles.find(idx);
+	return it != m_lineStyles.end() ? &it->second : nullptr;
+}
+
