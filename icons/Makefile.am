@@ -12,7 +12,7 @@ public_icons = \
         hicolor_apps_scalable_abinova.svg \
         $(NULL)
 
-icondir= $(ABIWORD_ICONDIR)
+icondir= $(ABINOVA_ICONDIR)
 
 gtk_update_icon_cache = gtk-update-icon-cache -f -t
 

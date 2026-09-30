@@ -2041,6 +2041,14 @@ below are on `main` but the release has not been cut yet.
   Calibri→Carlito, Cambria→Caladea, Aptos→Intos, Times New
   Roman→Liberation Serif, Arial→Liberation Sans, Courier
   New→Liberation Mono, etc.
+- **Bundled fonts actually install** — stale `ABIWORD_DATADIR`/
+  `ABIWORD_ICONDIR`/`ABIWORD_SERIES` variables left over from the
+  rename meant `make install` dropped `fonts/` (and help, artwork,
+  templates, mime info) into a literal `@ABIWORD_DATADIR@` directory,
+  so the fontconfig substitution rules only ever loaded from the
+  build tree.  All datadir references now use the `ABINOVA_*`
+  substituted names and `Calibri Light`→Carlito etc. resolve after a
+  real install too.
 
 ### Build system and repository cleanup
 

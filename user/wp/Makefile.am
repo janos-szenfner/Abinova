@@ -9,7 +9,7 @@ endif
 EXTRA_DIST = \
 	$(wp_DATA)
 
-wpdir = $(ABIWORD_DATADIR)
+wpdir = $(ABINOVA_DATADIR)
 wp_DATA = \
 	system.profile
 

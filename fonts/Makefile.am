@@ -1,4 +1,4 @@
-fontsdir = @ABIWORD_DATADIR@/fonts
+fontsdir = @ABINOVA_DATADIR@/fonts
 
 nobase_dist_fonts_DATA = \
 README.md \

@@ -1,5 +1,5 @@
 
-clipartdir = $(ABIWORD_DATADIR)/clipart
+clipartdir = $(ABINOVA_DATADIR)/clipart
 clipart_DATA = \
 	book.png \
 	chip.png \

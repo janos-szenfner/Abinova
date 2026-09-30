@@ -11,11 +11,11 @@ SUBDIRS += icons fonts
 desktopdir = $(datadir)/applications
 desktop_DATA = io.github.janos_szenfner.Abinova.desktop
 
-mimedir = @ABIWORD_DATADIR@/mime-info
+mimedir = @ABINOVA_DATADIR@/mime-info
 mime_DATA = abinova.keys
 
 # MathML -> LaTeX stylesheets used by the core math import path
-xsltmldir = @ABIWORD_DATADIR@/xsltml
+xsltmldir = @ABINOVA_DATADIR@/xsltml
 xsltml_DATA = \
 	xsltml/README \
 	xsltml/cmarkup.xsl \
@@ -30,7 +30,7 @@ metainfodir = $(datarootdir)/metainfo
 metainfo_DATA = io.github.janos_szenfner.Abinova.metainfo.xml
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = abinova-$(ABIWORD_SERIES).pc
+pkgconfig_DATA = abinova-$(ABINOVA_SERIES).pc
 
 dist_man1_MANS = abinova.1
 
@@ -54,9 +54,9 @@ EXTRA_DIST = \
 	$(xsltml_DATA)
 
 DISTCLEANFILES = \
-	abinova-$(ABIWORD_SERIES).pc
+	abinova-$(ABINOVA_SERIES).pc
 
-abinova-$(ABIWORD_SERIES).pc: libabinova.pc
+abinova-$(ABINOVA_SERIES).pc: libabinova.pc
 	cp $< $@
 
 
@@ -71,13 +71,13 @@ $(srcdir)/help/en-US/changelog.html: $(srcdir)/CHANGELOG.md $(srcdir)/tools/chan
 # browser); wipe first so removed pages don't linger from older
 # installs
 install-data-local:
-	rm -rf $(DESTDIR)@ABIWORD_DATADIR@/help
-	cp -r $(srcdir)/help $(DESTDIR)@ABIWORD_DATADIR@/
-	cp -r $(srcdir)/artwork $(DESTDIR)@ABIWORD_DATADIR@/
+	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/help
+	cp -r $(srcdir)/help $(DESTDIR)@ABINOVA_DATADIR@/
+	cp -r $(srcdir)/artwork $(DESTDIR)@ABINOVA_DATADIR@/
 
 uninstall-local:
-	rm -rf $(DESTDIR)@ABIWORD_DATADIR@/help
-	rm -rf $(DESTDIR)@ABIWORD_DATADIR@/artwork
+	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/help
+	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/artwork
 
 # needed to make sure we don't include .svn directories.
 dist-hook:

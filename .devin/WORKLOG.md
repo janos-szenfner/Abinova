@@ -14,3 +14,12 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
   cluster-advance widening in GR_CairoGraphics::shape (+XP path) —
   Badge.docx title/subtitle show 8pt/7pt tracking in PDF render;
   char-spacing round-trips abwn->abwn
+- 2026-09-30 D02: fixed leftover ABIWORD_DATADIR/ABIWORD_ICONDIR/
+  ABIWORD_SERIES variables in Makefile.am files so `make install`
+  actually installs fonts/abinova-fonts.conf (plus help, artwork,
+  templates, mime-info, icons) under <datadir>/abinova-4.0 — staged
+  DESTDIR install verified; strace confirms the conf is parsed at
+  runtime from both build tree and installed libdir; fc-match under
+  the app config resolves "Calibri Light"->Carlito (Noto Sans
+  systemwide); Badge.docx PDF embeds Carlito and the tracked title
+  wraps cleanly

@@ -79,7 +79,7 @@ templates_extra = \
 	Two-Columns.awt \
 	US-Letter.awt
 
-templatesdir = $(ABIWORD_DATADIR)/templates
+templatesdir = $(ABINOVA_DATADIR)/templates
 templates_DATA = $(templates_normal)
 if ENABLE_TEMPLATES
 templates_DATA += $(templates_extra)
