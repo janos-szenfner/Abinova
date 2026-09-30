@@ -236,6 +236,7 @@
   background-color, fill-gradient, fill-alpha, shape-path,
   wrap-mode, position-to, frame-stack-order, frame-rotation,
   frame-flip-horiz/vert, frame-valign, frame-text-direction,
+  frame-font-scale, frame-linesp-reduction,
   image-src-rect; borders via bot-style/top-style/... .
 -->
 <!ELEMENT frame (p | table | frame | toc)+>

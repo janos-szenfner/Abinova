@@ -49,6 +49,8 @@
 #include "fp_FootnoteContainer.h"
 #include "fp_FrameContainer.h"
 #include "ut_color.h"
+#include "ut_units.h"
+#include "pp_AttrProp.h"
 
 #ifdef USE_STATIC_MAP
 //initialize the static members of the class
@@ -1591,6 +1593,30 @@ void fp_Line::recalcHeight(fp_Run * pLastRun)
 		else
 		{
 			iNewHeight = UT_MAX(iMaxAscent+static_cast<UT_sint32>(iMaxDescent*dLineSpace + 0.5), static_cast<UT_sint32>(dLineSpace));
+		}
+	}
+	/* OOXML wps:bodyPr/a:normAutofit@lnSpcReduction — when the block
+	 * lives in such a frame, squeeze every line box by the stored
+	 * fraction (Word precomputes it for shrink-on-overflow). */
+	{
+		fl_SectionLayout * pSLr = getBlock() ? getBlock()->getSectionLayout() : nullptr;
+		if (pSLr && pSLr->getContainerType() == FL_CONTAINER_FRAME)
+		{
+			const PP_AttrProp * pFrameAP = nullptr;
+			pSLr->getAP(pFrameAP);
+			const gchar * szRed = nullptr;
+			if (pFrameAP &&
+				pFrameAP->getProperty("frame-linesp-reduction", szRed) && szRed)
+			{
+				double dRed = UT_convertDimensionless(szRed);
+				if (dRed > 1.0) dRed = 1.0;
+				if (dRed > 0.0)
+				{
+					double f = 1.0 - dRed;
+					iNewHeight = static_cast<UT_sint32>(iNewHeight * f + 0.5);
+					iNewDescent = static_cast<UT_sint32>(iNewDescent * f + 0.5);
+				}
+			}
 		}
 	}
 	if(getBlock() && getBlock()->hasBorders())

@@ -1150,6 +1150,9 @@ readers ignore them safely, and this build reads every older
   `frame-flip-horiz`/`frame-flip-vert`, `frame-group` (shared
   `gN` id), `frame-stack-order`, `frame-hidden`, `frame-name`,
   `frame-wrap` — Selection Pane / Arrange-tab state.
+  `frame-font-scale`/`frame-linesp-reduction` carry OOXML
+  `a:normAutofit` text-shrink factors and are applied when the
+  frame's text is laid out.
 - **`section-break` paragraph prop** — marks the paragraph mark
   that terminates a Word section (used to suppress border
   painting on the break mark).

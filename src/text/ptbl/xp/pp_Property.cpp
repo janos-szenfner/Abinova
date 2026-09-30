@@ -165,10 +165,12 @@ static PP_Property _props[] =
 	{"frame-expand-height",    "0.0in",           false, PP_LEVEL_FRAME},
 	{"frame-flip-horiz",       "0",               false, PP_LEVEL_FRAME},
 	{"frame-flip-vert",        "0",               false, PP_LEVEL_FRAME},
+	{"frame-font-scale",       "1",               false, PP_LEVEL_FRAME}, // OOXML a:normAutofit@fontScale as fraction
 	{"frame-group",            "",                false, PP_LEVEL_FRAME},
 	{"frame-height",           "0.0in",           false, PP_LEVEL_FRAME},
 	{"frame-hidden",           "0",               false, PP_LEVEL_FRAME},
 	{"frame-horiz-align",      "left",            false, PP_LEVEL_FRAME},
+	{"frame-linesp-reduction", "0",               false, PP_LEVEL_FRAME}, // OOXML a:normAutofit@lnSpcReduction as fraction
 	{"frame-min-height",       "0.0in",           false, PP_LEVEL_FRAME},
 	{"frame-name",             "",                false, PP_LEVEL_FRAME},
 	{"frame-page-xpos",        "0.0in",           false, PP_LEVEL_FRAME},

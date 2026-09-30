@@ -264,6 +264,14 @@ below are on `main` but the release has not been cut yet.
   `lumOff`/`satMod`/`satOff`/`hueMod`/`hueOff`) applied in HSL space
   — e.g. the Filigree cover's flowers render tinted toward the
   `accent1` theme color instead of staying flat gray.
+- **DOCX text-box autofit shrink rendered** — `a:normAutofit` inside
+  `wps:bodyPr` now imports `fontScale`/`lnSpcReduction` as
+  `frame-font-scale`/`frame-linesp-reduction` frame properties.
+  Runs inside such a frame render at the scaled size (the resolved
+  size is pinned on a cloned attribute set, so sizes inherited from
+  styles scale too) and the line spacing reduction squeezes each
+  line box, matching the shrink Word already computed and stored.
+  Round-trips through `.abwn`.
 - **Locale decimal-separator corruption fixed** — the OOXML
   importer serialized lengths with locale-sensitive `snprintf`
   (`xpos:3,7620in` under comma-decimal locales) while the abwn

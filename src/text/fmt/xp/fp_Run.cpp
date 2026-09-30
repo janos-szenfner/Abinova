@@ -47,6 +47,7 @@
 #include "ut_assert.h"
 #include "ut_string.h"
 #include "ut_std_string.h"
+#include "ut_units.h"
 #include "ut_growbuf.h"
 #include "ut_go_file.h"
 #include "fp_TableContainer.h"
@@ -427,6 +428,45 @@ void fp_Run::lookupProperties(GR_Graphics * pG)
 	else
 	{
 		pSpanAP = pBlockAP;
+	}
+
+	/* OOXML wps:bodyPr/a:normAutofit — "frame-font-scale" on the
+	 * containing frame shrinks the effective font size of every run
+	 * inside it (Word stores the shrink it computed for autofit).
+	 * The fully-resolved size is pinned on a cloned span AP so
+	 * sizes inherited from styles scale too, without touching the
+	 * document's AP. */
+	std::unique_ptr<PP_AttrProp> apScaledSpan;
+	fl_SectionLayout * pSLF = getBlock() ? getBlock()->getSectionLayout() : nullptr;
+	if (pSLF && pSLF->getContainerType() == FL_CONTAINER_FRAME)
+	{
+		const PP_AttrProp * pFrameAP = nullptr;
+		pSLF->getAP(pFrameAP);
+		const gchar * szScale = nullptr;
+		double dScale = 1.0;
+		if (pFrameAP &&
+			pFrameAP->getProperty("frame-font-scale", szScale) && szScale)
+		{
+			dScale = UT_convertDimensionless(szScale);
+		}
+		if (dScale > 0.0 && (dScale < 0.9999 || dScale > 1.0001))
+		{
+			const gchar * pszSize = PP_evalProperty("font-size", pSpanAP,
+												  pBlockAP, pSectionAP,
+												  pDoc, true);
+			if (pszSize && *pszSize)
+			{
+				char szBuf[24];
+				g_snprintf(szBuf, sizeof(szBuf), "%.2fpt",
+						   UT_convertToPoints(pszSize) * dScale);
+				const PP_PropertyVector props = { "font-size", szBuf };
+				apScaledSpan.reset(pSpanAP ?
+					pSpanAP->cloneWithReplacements(PP_NOPROPS, props, false) :
+					PP_AttrProp::createExactly(PP_NOPROPS, props));
+				if (apScaledSpan)
+					pSpanAP = apScaledSpan.get();
+			}
+		}
 	}
 	xxx_UT_DEBUGMSG(("fp_Run: pSpanAP %x \n",pSpanAP));
 

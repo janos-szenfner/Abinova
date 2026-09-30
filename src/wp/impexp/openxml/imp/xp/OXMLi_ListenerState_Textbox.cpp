@@ -290,6 +290,42 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		rqst->handled = true;
 		return;
 	}
+	if (nameMatches(rqst->pName, NS_A_KEY, "normAutofit"))
+	{
+		/* <a:normAutofit fontScale="N" lnSpcReduction="M"/> inside
+		 * wps:bodyPr — normAutofit records the shrink Word already
+		 * computed: N scales every run's font size, M reduces line
+		 * spacing. Both are in 1000ths of a percent; kept as plain
+		 * fractions on the frame and applied at layout so sizes
+		 * inherited from styles scale too. */
+		if (rqst->stck && !rqst->stck->empty())
+		{
+			char buf[24];
+			const gchar * sc = attrMatches(NS_A_KEY, "fontScale", rqst->ppAtts);
+			if (sc && *sc)
+			{
+				double f = UT_convertDimensionless(sc) / 100000.0;
+				if (f > 0.0 && (f < 0.9999 || f > 1.0001))
+				{
+					g_snprintf(buf, sizeof(buf), "%.4f", f);
+					rqst->stck->top()->setProperty("frame-font-scale", buf);
+				}
+			}
+			const gchar * lr = attrMatches(NS_A_KEY, "lnSpcReduction", rqst->ppAtts);
+			if (lr && *lr)
+			{
+				double f = UT_convertDimensionless(lr) / 100000.0;
+				if (f > 1.0) f = 1.0;
+				if (f > 0.0)
+				{
+					g_snprintf(buf, sizeof(buf), "%.4f", f);
+					rqst->stck->top()->setProperty("frame-linesp-reduction", buf);
+				}
+			}
+		}
+		rqst->handled = true;
+		return;
+	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "headEnd") ||
 		nameMatches(rqst->pName, NS_A_KEY, "tailEnd"))
 	{
@@ -1105,6 +1141,7 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "spAutoFit") ||
 		nameMatches(rqst->pName, NS_A_KEY, "noAutofit") ||
+		nameMatches(rqst->pName, NS_A_KEY, "normAutofit") ||
 		nameMatches(rqst->pName, "wps", "bodyPr"))
 	{
 		rqst->handled = true;

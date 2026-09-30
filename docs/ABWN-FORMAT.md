@@ -142,6 +142,8 @@ described by FRAME-level properties.
 | `frame-valign` | vertical alignment of content: `top` (default), `center`, `bottom` |
 | `frame-text-direction` | OOXML `vert`/`vert270`/`eaVert`/`wordArtVert*` values (stored; vertical layout supported for `vert`/`vert270`) |
 | `frame-text-dir-flag` | normalization flag emitted by the importer |
+| `frame-font-scale` | font size multiplier 0..1 applied to all runs in the frame (OOXML `a:normAutofit@fontScale`, stored as a fraction) |
+| `frame-linesp-reduction` | line-height reduction 0..1 for all lines in the frame (OOXML `a:normAutofit@lnSpcReduction`, stored as a fraction) |
 
 ### Images inside frames
 
@@ -238,6 +240,7 @@ Properties added beyond the AbiWord registry, all round-tripped:
   `fill-gradient`, `fill-alpha`, `shape-path`, `image-src-rect`,
   `image-duotone`, `image-grayscale`, `image-lum`, `image-alpha-mod`
   (OOXML `a:blip` effects),
+  `frame-font-scale`, `frame-linesp-reduction` (OOXML `a:normAutofit`),
   `frame-shadow*` (OOXML `a:outerShdw`, see §4.3),
   `text-warp` (OOXML `a:prstTxWarp` name, stored for fidelity).
 - **Character**: OOXML fidelity props such as `em`, `fit-text`,
