@@ -2328,6 +2328,18 @@ below are on `main` but the release has not been cut yet.
   - Semantic (RDF) metadata refreshes no longer read freed strings,
     and single-xmlid models now apply their computed properties
     instead of discarding and recomputing them forever.
+- **Double-free / stale-pointer sweep** — fixed several places where
+  released memory could still be touched:
+  - Table-of-contents and table layout no longer inspect a just-deleted
+    broken-page container when deciding which fragment to delete next.
+  - The RTF importer's parser-state stack could attempt to `delete` an
+    object that was never heap-allocated (the pending footnote-reference
+    state is a member, not a `new`), which would corrupt the heap if a
+    malformed document ever left it on the stack; the stack now
+    recognizes and skips it.
+  - Importing legacy `.doc` documents whose embedded images fail to
+    decompress no longer leaks the image buffer; EPUB export no longer
+    leaks file handles when a packaged file cannot be opened.
 
 ### GTK4 port (core migration)
 

@@ -5156,6 +5156,7 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 		{
 			UT_DEBUGMSG(("Could not uncompress image\n"));
 			DELETEPV(uncompr);
+			DELETEPV(data);
 			goto Cleanup;
 		}
 		pictData->append(reinterpret_cast<const UT_Byte*>(uncompr), uncomprLen);
@@ -5300,6 +5301,7 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
     {
         UT_DEBUGMSG(("Could not uncompress image\n"));
         DELETEPV(uncompr);
+        DELETEPV(data);
         goto Cleanup;
     }
     pictData->append(reinterpret_cast<const UT_Byte*>(uncompr), uncomprLen);

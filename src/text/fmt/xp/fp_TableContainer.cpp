@@ -3845,15 +3845,9 @@ void fp_TableContainer::deleteBrokenTables(bool bClearFirst, bool bRecurseUp)
 			}
 		}
 		xxx_UT_DEBUGMSG(("SEVIOR: table %x  Deleting broken table %x \n",this,pBroke));
+		bool bWasLast = (pBroke == getLastBrokenTable());
 		delete pBroke;
-		if(pBroke == getLastBrokenTable())
-		{
-			pBroke = nullptr;
-		}
-		else
-		{
-			pBroke = pNext;
-		}
+		pBroke = bWasLast ? nullptr : pNext;
 	}
 	setFirstBrokenTable(nullptr);
 	setLastBrokenTable(nullptr);

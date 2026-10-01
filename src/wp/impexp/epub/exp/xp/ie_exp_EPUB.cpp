@@ -878,7 +878,13 @@ UT_Error IE_Exp_EPUB::compress()
         if (item == NULL || file == NULL)
         {
             UT_DEBUGMSG(("RUDYJ: Can`t open file\n"));
-            if (item) gsf_output_close(item);
+            if (item)
+            {
+                gsf_output_close(item);
+                g_object_unref(item);
+            }
+            if (file)
+                g_object_unref(file);
             g_object_unref(oebpsDir);
             return UT_ERROR;
         }

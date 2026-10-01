@@ -868,15 +868,9 @@ void fp_TOCContainer::deleteBrokenTOCs(bool bClearFirst)
 		}
 		bFirst = false;
 		xxx_UT_DEBUGMSG(("SEVIOR: Deleting broken TOC %x \n",pBroke));
+		bool bWasLast = (pBroke == getLastBrokenTOC());
 		delete pBroke;
-		if(pBroke == getLastBrokenTOC())
-		{
-			pBroke = nullptr;
-		}
-		else
-		{
-			pBroke = pNext;
-		}
+		pBroke = bWasLast ? nullptr : pNext;
 	}
 	setFirstBrokenTOC(nullptr);
 	setLastBrokenTOC(nullptr);

@@ -126,7 +126,10 @@ bool IE_Imp_RTF::PopRTFState(void)
 	if (pState != nullptr)	{
 		bool ok = FlushStoredChars();
 		m_currentRTFState = *pState;
-		delete pState;
+		// &m_FootnoteRefState is a member, not heap (pushed by
+		// HandleNoteReference) - restoring is fine, deleting is not
+		if (pState != &m_FootnoteRefState)
+			delete pState;
 
 		m_currentRTFState.m_unicodeInAlternate = 0;
 		return ok;

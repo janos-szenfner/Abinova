@@ -1537,7 +1537,10 @@ IE_Imp_RTF::~IE_Imp_RTF()
 		RTFStateStore* pItem = m_stateStack.top();
 		m_stateStack.pop();
 		UT_DEBUGMSG(("Deleting item %p in RTF destructor \n", (void*)pItem));
-		delete pItem;
+		// HandleNoteReference pushes &m_FootnoteRefState, a member
+		// subobject - it is never owned by the stack
+		if (pItem != &m_FootnoteRefState)
+			delete pItem;
 	}
 	UT_DEBUGMSG(("Closing pastetable In RTF destructor %p \n", (void*)this));
 	closePastedTableIfNeeded();
