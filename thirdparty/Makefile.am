@@ -403,40 +403,43 @@ libwv_la_CFLAGS = -fPIC -DHAVE_CONFIG_H
 
 EXTRA_DIST += wv-1.2.9/config.h
 
-## Vendored hunspell 1.7.0 spell-checking engine for the grammar
+## Vendored hunspell 1.7.4 spell-checking engine for the grammar
 ## plugin (replaces link-grammar).
 
 noinst_LTLIBRARIES += libhunspell.la
 
 libhunspell_la_SOURCES = \
-	hunspell-1.7.0/src/hunspell/affentry.cxx \
-	hunspell-1.7.0/src/hunspell/affentry.hxx \
-	hunspell-1.7.0/src/hunspell/affixmgr.cxx \
-	hunspell-1.7.0/src/hunspell/affixmgr.hxx \
-	hunspell-1.7.0/src/hunspell/atypes.hxx \
-	hunspell-1.7.0/src/hunspell/baseaffix.hxx \
-	hunspell-1.7.0/src/hunspell/csutil.cxx \
-	hunspell-1.7.0/src/hunspell/csutil.hxx \
-	hunspell-1.7.0/src/hunspell/filemgr.cxx \
-	hunspell-1.7.0/src/hunspell/filemgr.hxx \
-	hunspell-1.7.0/src/hunspell/hashmgr.cxx \
-	hunspell-1.7.0/src/hunspell/hashmgr.hxx \
-	hunspell-1.7.0/src/hunspell/htypes.hxx \
-	hunspell-1.7.0/src/hunspell/hunspell.cxx \
-	hunspell-1.7.0/src/hunspell/hunspell.h \
-	hunspell-1.7.0/src/hunspell/hunspell.hxx \
-	hunspell-1.7.0/src/hunspell/hunvisapi.h \
-	hunspell-1.7.0/src/hunspell/hunzip.cxx \
-	hunspell-1.7.0/src/hunspell/hunzip.hxx \
-	hunspell-1.7.0/src/hunspell/langnum.hxx \
-	hunspell-1.7.0/src/hunspell/phonet.cxx \
-	hunspell-1.7.0/src/hunspell/phonet.hxx \
-	hunspell-1.7.0/src/hunspell/replist.cxx \
-	hunspell-1.7.0/src/hunspell/replist.hxx \
-	hunspell-1.7.0/src/hunspell/suggestmgr.cxx \
-	hunspell-1.7.0/src/hunspell/suggestmgr.hxx \
-	hunspell-1.7.0/src/hunspell/utf_info.hxx \
-	hunspell-1.7.0/src/hunspell/w_char.hxx
+	hunspell-1.7.4/src/hunspell/affentry.cxx \
+	hunspell-1.7.4/src/hunspell/affentry.hxx \
+	hunspell-1.7.4/src/hunspell/affixmgr.cxx \
+	hunspell-1.7.4/src/hunspell/affixmgr.hxx \
+	hunspell-1.7.4/src/hunspell/atypes.hxx \
+	hunspell-1.7.4/src/hunspell/baseaffix.hxx \
+	hunspell-1.7.4/src/hunspell/csutil.cxx \
+	hunspell-1.7.4/src/hunspell/csutil.hxx \
+	hunspell-1.7.4/src/hunspell/filemgr.cxx \
+	hunspell-1.7.4/src/hunspell/filemgr.hxx \
+	hunspell-1.7.4/src/hunspell/hashmgr.cxx \
+	hunspell-1.7.4/src/hunspell/hashmgr.hxx \
+	hunspell-1.7.4/src/hunspell/htypes.hxx \
+	hunspell-1.7.4/src/hunspell/hunspell.cxx \
+	hunspell-1.7.4/src/hunspell/hunspell.h \
+	hunspell-1.7.4/src/hunspell/hunspell.hxx \
+	hunspell-1.7.4/src/hunspell/hunspelltrace.cxx \
+	hunspell-1.7.4/src/hunspell/hunspelltrace.hxx \
+	hunspell-1.7.4/src/hunspell/hunversion.h \
+	hunspell-1.7.4/src/hunspell/hunvisapi.h \
+	hunspell-1.7.4/src/hunspell/hunzip.cxx \
+	hunspell-1.7.4/src/hunspell/hunzip.hxx \
+	hunspell-1.7.4/src/hunspell/langnum.hxx \
+	hunspell-1.7.4/src/hunspell/phonet.cxx \
+	hunspell-1.7.4/src/hunspell/phonet.hxx \
+	hunspell-1.7.4/src/hunspell/replist.cxx \
+	hunspell-1.7.4/src/hunspell/replist.hxx \
+	hunspell-1.7.4/src/hunspell/suggestmgr.cxx \
+	hunspell-1.7.4/src/hunspell/suggestmgr.hxx \
+	hunspell-1.7.4/src/hunspell/utf_info.hxx \
+	hunspell-1.7.4/src/hunspell/w_char.hxx
 
-libhunspell_la_CPPFLAGS = -I$(srcdir)/hunspell-1.7.0/src/hunspell \
+libhunspell_la_CPPFLAGS = -I$(srcdir)/hunspell-1.7.4/src/hunspell \
 	-DHUNSPELL_STATIC -DBUILDING_LIBHUNSPELL

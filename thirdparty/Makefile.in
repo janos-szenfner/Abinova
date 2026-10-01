@@ -112,16 +112,17 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 libhunspell_la_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
 am_libhunspell_la_OBJECTS =  \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-affentry.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-affixmgr.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-csutil.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-filemgr.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-hashmgr.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-hunspell.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-hunzip.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-phonet.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-replist.lo \
-	hunspell-1.7.0/src/hunspell/libhunspell_la-suggestmgr.lo
+	hunspell-1.7.4/src/hunspell/libhunspell_la-affentry.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-affixmgr.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-csutil.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-filemgr.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-hashmgr.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-hunspell.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-hunspelltrace.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-hunzip.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-phonet.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-replist.lo \
+	hunspell-1.7.4/src/hunspell/libhunspell_la-suggestmgr.lo
 libhunspell_la_OBJECTS = $(am_libhunspell_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -476,16 +477,17 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo \
+am__depfiles_remade = hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspelltrace.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo \
@@ -1485,36 +1487,39 @@ libwv_la_SOURCES = \
 libwv_la_CPPFLAGS = -I$(srcdir)/wv-1.2.9 $(DEPS_CFLAGS)
 libwv_la_CFLAGS = -fPIC -DHAVE_CONFIG_H
 libhunspell_la_SOURCES = \
-	hunspell-1.7.0/src/hunspell/affentry.cxx \
-	hunspell-1.7.0/src/hunspell/affentry.hxx \
-	hunspell-1.7.0/src/hunspell/affixmgr.cxx \
-	hunspell-1.7.0/src/hunspell/affixmgr.hxx \
-	hunspell-1.7.0/src/hunspell/atypes.hxx \
-	hunspell-1.7.0/src/hunspell/baseaffix.hxx \
-	hunspell-1.7.0/src/hunspell/csutil.cxx \
-	hunspell-1.7.0/src/hunspell/csutil.hxx \
-	hunspell-1.7.0/src/hunspell/filemgr.cxx \
-	hunspell-1.7.0/src/hunspell/filemgr.hxx \
-	hunspell-1.7.0/src/hunspell/hashmgr.cxx \
-	hunspell-1.7.0/src/hunspell/hashmgr.hxx \
-	hunspell-1.7.0/src/hunspell/htypes.hxx \
-	hunspell-1.7.0/src/hunspell/hunspell.cxx \
-	hunspell-1.7.0/src/hunspell/hunspell.h \
-	hunspell-1.7.0/src/hunspell/hunspell.hxx \
-	hunspell-1.7.0/src/hunspell/hunvisapi.h \
-	hunspell-1.7.0/src/hunspell/hunzip.cxx \
-	hunspell-1.7.0/src/hunspell/hunzip.hxx \
-	hunspell-1.7.0/src/hunspell/langnum.hxx \
-	hunspell-1.7.0/src/hunspell/phonet.cxx \
-	hunspell-1.7.0/src/hunspell/phonet.hxx \
-	hunspell-1.7.0/src/hunspell/replist.cxx \
-	hunspell-1.7.0/src/hunspell/replist.hxx \
-	hunspell-1.7.0/src/hunspell/suggestmgr.cxx \
-	hunspell-1.7.0/src/hunspell/suggestmgr.hxx \
-	hunspell-1.7.0/src/hunspell/utf_info.hxx \
-	hunspell-1.7.0/src/hunspell/w_char.hxx
+	hunspell-1.7.4/src/hunspell/affentry.cxx \
+	hunspell-1.7.4/src/hunspell/affentry.hxx \
+	hunspell-1.7.4/src/hunspell/affixmgr.cxx \
+	hunspell-1.7.4/src/hunspell/affixmgr.hxx \
+	hunspell-1.7.4/src/hunspell/atypes.hxx \
+	hunspell-1.7.4/src/hunspell/baseaffix.hxx \
+	hunspell-1.7.4/src/hunspell/csutil.cxx \
+	hunspell-1.7.4/src/hunspell/csutil.hxx \
+	hunspell-1.7.4/src/hunspell/filemgr.cxx \
+	hunspell-1.7.4/src/hunspell/filemgr.hxx \
+	hunspell-1.7.4/src/hunspell/hashmgr.cxx \
+	hunspell-1.7.4/src/hunspell/hashmgr.hxx \
+	hunspell-1.7.4/src/hunspell/htypes.hxx \
+	hunspell-1.7.4/src/hunspell/hunspell.cxx \
+	hunspell-1.7.4/src/hunspell/hunspell.h \
+	hunspell-1.7.4/src/hunspell/hunspell.hxx \
+	hunspell-1.7.4/src/hunspell/hunspelltrace.cxx \
+	hunspell-1.7.4/src/hunspell/hunspelltrace.hxx \
+	hunspell-1.7.4/src/hunspell/hunversion.h \
+	hunspell-1.7.4/src/hunspell/hunvisapi.h \
+	hunspell-1.7.4/src/hunspell/hunzip.cxx \
+	hunspell-1.7.4/src/hunspell/hunzip.hxx \
+	hunspell-1.7.4/src/hunspell/langnum.hxx \
+	hunspell-1.7.4/src/hunspell/phonet.cxx \
+	hunspell-1.7.4/src/hunspell/phonet.hxx \
+	hunspell-1.7.4/src/hunspell/replist.cxx \
+	hunspell-1.7.4/src/hunspell/replist.hxx \
+	hunspell-1.7.4/src/hunspell/suggestmgr.cxx \
+	hunspell-1.7.4/src/hunspell/suggestmgr.hxx \
+	hunspell-1.7.4/src/hunspell/utf_info.hxx \
+	hunspell-1.7.4/src/hunspell/w_char.hxx
 
-libhunspell_la_CPPFLAGS = -I$(srcdir)/hunspell-1.7.0/src/hunspell \
+libhunspell_la_CPPFLAGS = -I$(srcdir)/hunspell-1.7.4/src/hunspell \
 	-DHUNSPELL_STATIC -DBUILDING_LIBHUNSPELL
 
 all: all-am
@@ -1561,42 +1566,45 @@ clean-noinstLTLIBRARIES:
 	  echo rm -f $${locs}; \
 	  rm -f $${locs}; \
 	}
-hunspell-1.7.0/src/hunspell/$(am__dirstamp):
-	@$(MKDIR_P) hunspell-1.7.0/src/hunspell
-	@: > hunspell-1.7.0/src/hunspell/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) hunspell-1.7.0/src/hunspell/$(DEPDIR)
-	@: > hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-affentry.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-affixmgr.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-csutil.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-filemgr.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-hashmgr.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-hunspell.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-hunzip.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-phonet.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-replist.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-hunspell-1.7.0/src/hunspell/libhunspell_la-suggestmgr.lo:  \
-	hunspell-1.7.0/src/hunspell/$(am__dirstamp) \
-	hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/$(am__dirstamp):
+	@$(MKDIR_P) hunspell-1.7.4/src/hunspell
+	@: > hunspell-1.7.4/src/hunspell/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) hunspell-1.7.4/src/hunspell/$(DEPDIR)
+	@: > hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-affentry.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-affixmgr.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-csutil.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-filemgr.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-hashmgr.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-hunspell.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-hunspelltrace.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-hunzip.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-phonet.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-replist.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+hunspell-1.7.4/src/hunspell/libhunspell_la-suggestmgr.lo:  \
+	hunspell-1.7.4/src/hunspell/$(am__dirstamp) \
+	hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
 
 libhunspell.la: $(libhunspell_la_OBJECTS) $(libhunspell_la_DEPENDENCIES) $(EXTRA_libhunspell_la_DEPENDENCIES) 
 	$(AM_V_CXXLD)$(CXXLINK)  $(libhunspell_la_OBJECTS) $(libhunspell_la_LIBADD) $(LIBS)
@@ -2639,8 +2647,8 @@ libwv.la: $(libwv_la_OBJECTS) $(libwv_la_DEPENDENCIES) $(EXTRA_libwv_la_DEPENDEN
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f hunspell-1.7.0/src/hunspell/*.$(OBJEXT)
-	-rm -f hunspell-1.7.0/src/hunspell/*.lo
+	-rm -f hunspell-1.7.4/src/hunspell/*.$(OBJEXT)
+	-rm -f hunspell-1.7.4/src/hunspell/*.lo
 	-rm -f librevenge-0.0.6/src/lib/*.$(OBJEXT)
 	-rm -f librevenge-0.0.6/src/lib/*.lo
 	-rm -f libwpd-0.10.3/src/lib/*.$(OBJEXT)
@@ -2655,16 +2663,17 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspelltrace.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo@am__quote@ # am--include-marker
@@ -3725,75 +3734,82 @@ wv-1.2.9/libwv_la-xst.lo: wv-1.2.9/xst.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-affentry.lo: hunspell-1.7.0/src/hunspell/affentry.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-affentry.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-affentry.lo `test -f 'hunspell-1.7.0/src/hunspell/affentry.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/affentry.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/affentry.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-affentry.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-affentry.lo: hunspell-1.7.4/src/hunspell/affentry.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-affentry.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-affentry.lo `test -f 'hunspell-1.7.4/src/hunspell/affentry.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/affentry.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/affentry.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-affentry.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-affentry.lo `test -f 'hunspell-1.7.0/src/hunspell/affentry.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/affentry.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-affentry.lo `test -f 'hunspell-1.7.4/src/hunspell/affentry.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/affentry.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-affixmgr.lo: hunspell-1.7.0/src/hunspell/affixmgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-affixmgr.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-affixmgr.lo `test -f 'hunspell-1.7.0/src/hunspell/affixmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/affixmgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/affixmgr.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-affixmgr.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-affixmgr.lo: hunspell-1.7.4/src/hunspell/affixmgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-affixmgr.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-affixmgr.lo `test -f 'hunspell-1.7.4/src/hunspell/affixmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/affixmgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/affixmgr.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-affixmgr.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-affixmgr.lo `test -f 'hunspell-1.7.0/src/hunspell/affixmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/affixmgr.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-affixmgr.lo `test -f 'hunspell-1.7.4/src/hunspell/affixmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/affixmgr.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-csutil.lo: hunspell-1.7.0/src/hunspell/csutil.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-csutil.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-csutil.lo `test -f 'hunspell-1.7.0/src/hunspell/csutil.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/csutil.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/csutil.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-csutil.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-csutil.lo: hunspell-1.7.4/src/hunspell/csutil.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-csutil.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-csutil.lo `test -f 'hunspell-1.7.4/src/hunspell/csutil.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/csutil.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/csutil.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-csutil.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-csutil.lo `test -f 'hunspell-1.7.0/src/hunspell/csutil.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/csutil.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-csutil.lo `test -f 'hunspell-1.7.4/src/hunspell/csutil.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/csutil.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-filemgr.lo: hunspell-1.7.0/src/hunspell/filemgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-filemgr.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-filemgr.lo `test -f 'hunspell-1.7.0/src/hunspell/filemgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/filemgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/filemgr.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-filemgr.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-filemgr.lo: hunspell-1.7.4/src/hunspell/filemgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-filemgr.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-filemgr.lo `test -f 'hunspell-1.7.4/src/hunspell/filemgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/filemgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/filemgr.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-filemgr.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-filemgr.lo `test -f 'hunspell-1.7.0/src/hunspell/filemgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/filemgr.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-filemgr.lo `test -f 'hunspell-1.7.4/src/hunspell/filemgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/filemgr.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-hashmgr.lo: hunspell-1.7.0/src/hunspell/hashmgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-hashmgr.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-hashmgr.lo `test -f 'hunspell-1.7.0/src/hunspell/hashmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/hashmgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/hashmgr.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-hashmgr.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-hashmgr.lo: hunspell-1.7.4/src/hunspell/hashmgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-hashmgr.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hashmgr.lo `test -f 'hunspell-1.7.4/src/hunspell/hashmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hashmgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/hashmgr.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-hashmgr.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-hashmgr.lo `test -f 'hunspell-1.7.0/src/hunspell/hashmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/hashmgr.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hashmgr.lo `test -f 'hunspell-1.7.4/src/hunspell/hashmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hashmgr.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-hunspell.lo: hunspell-1.7.0/src/hunspell/hunspell.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-hunspell.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-hunspell.lo `test -f 'hunspell-1.7.0/src/hunspell/hunspell.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/hunspell.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/hunspell.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-hunspell.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-hunspell.lo: hunspell-1.7.4/src/hunspell/hunspell.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-hunspell.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hunspell.lo `test -f 'hunspell-1.7.4/src/hunspell/hunspell.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hunspell.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/hunspell.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-hunspell.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-hunspell.lo `test -f 'hunspell-1.7.0/src/hunspell/hunspell.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/hunspell.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hunspell.lo `test -f 'hunspell-1.7.4/src/hunspell/hunspell.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hunspell.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-hunzip.lo: hunspell-1.7.0/src/hunspell/hunzip.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-hunzip.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-hunzip.lo `test -f 'hunspell-1.7.0/src/hunspell/hunzip.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/hunzip.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/hunzip.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-hunzip.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-hunspelltrace.lo: hunspell-1.7.4/src/hunspell/hunspelltrace.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-hunspelltrace.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspelltrace.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hunspelltrace.lo `test -f 'hunspell-1.7.4/src/hunspell/hunspelltrace.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hunspelltrace.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspelltrace.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspelltrace.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/hunspelltrace.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-hunspelltrace.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-hunzip.lo `test -f 'hunspell-1.7.0/src/hunspell/hunzip.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/hunzip.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hunspelltrace.lo `test -f 'hunspell-1.7.4/src/hunspell/hunspelltrace.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hunspelltrace.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-phonet.lo: hunspell-1.7.0/src/hunspell/phonet.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-phonet.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-phonet.lo `test -f 'hunspell-1.7.0/src/hunspell/phonet.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/phonet.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/phonet.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-phonet.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-hunzip.lo: hunspell-1.7.4/src/hunspell/hunzip.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-hunzip.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hunzip.lo `test -f 'hunspell-1.7.4/src/hunspell/hunzip.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hunzip.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/hunzip.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-hunzip.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-phonet.lo `test -f 'hunspell-1.7.0/src/hunspell/phonet.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/phonet.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-hunzip.lo `test -f 'hunspell-1.7.4/src/hunspell/hunzip.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/hunzip.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-replist.lo: hunspell-1.7.0/src/hunspell/replist.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-replist.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-replist.lo `test -f 'hunspell-1.7.0/src/hunspell/replist.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/replist.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/replist.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-replist.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-phonet.lo: hunspell-1.7.4/src/hunspell/phonet.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-phonet.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-phonet.lo `test -f 'hunspell-1.7.4/src/hunspell/phonet.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/phonet.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/phonet.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-phonet.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-replist.lo `test -f 'hunspell-1.7.0/src/hunspell/replist.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/replist.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-phonet.lo `test -f 'hunspell-1.7.4/src/hunspell/phonet.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/phonet.cxx
 
-hunspell-1.7.0/src/hunspell/libhunspell_la-suggestmgr.lo: hunspell-1.7.0/src/hunspell/suggestmgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.0/src/hunspell/libhunspell_la-suggestmgr.lo -MD -MP -MF hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Tpo -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-suggestmgr.lo `test -f 'hunspell-1.7.0/src/hunspell/suggestmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/suggestmgr.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Tpo hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.0/src/hunspell/suggestmgr.cxx' object='hunspell-1.7.0/src/hunspell/libhunspell_la-suggestmgr.lo' libtool=yes @AMDEPBACKSLASH@
+hunspell-1.7.4/src/hunspell/libhunspell_la-replist.lo: hunspell-1.7.4/src/hunspell/replist.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-replist.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-replist.lo `test -f 'hunspell-1.7.4/src/hunspell/replist.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/replist.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/replist.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-replist.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.0/src/hunspell/libhunspell_la-suggestmgr.lo `test -f 'hunspell-1.7.0/src/hunspell/suggestmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.0/src/hunspell/suggestmgr.cxx
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-replist.lo `test -f 'hunspell-1.7.4/src/hunspell/replist.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/replist.cxx
+
+hunspell-1.7.4/src/hunspell/libhunspell_la-suggestmgr.lo: hunspell-1.7.4/src/hunspell/suggestmgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hunspell-1.7.4/src/hunspell/libhunspell_la-suggestmgr.lo -MD -MP -MF hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Tpo -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-suggestmgr.lo `test -f 'hunspell-1.7.4/src/hunspell/suggestmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/suggestmgr.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Tpo hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hunspell-1.7.4/src/hunspell/suggestmgr.cxx' object='hunspell-1.7.4/src/hunspell/libhunspell_la-suggestmgr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhunspell_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hunspell-1.7.4/src/hunspell/libhunspell_la-suggestmgr.lo `test -f 'hunspell-1.7.4/src/hunspell/suggestmgr.cxx' || echo '$(srcdir)/'`hunspell-1.7.4/src/hunspell/suggestmgr.cxx
 
 librevenge-0.0.6/src/lib/librevenge_la-RVNGBinaryData.lo: librevenge-0.0.6/src/lib/RVNGBinaryData.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librevenge-0.0.6/src/lib/librevenge_la-RVNGBinaryData.lo -MD -MP -MF librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Tpo -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGBinaryData.lo `test -f 'librevenge-0.0.6/src/lib/RVNGBinaryData.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGBinaryData.cpp
@@ -5707,7 +5723,7 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-	-rm -rf hunspell-1.7.0/src/hunspell/.libs hunspell-1.7.0/src/hunspell/_libs
+	-rm -rf hunspell-1.7.4/src/hunspell/.libs hunspell-1.7.4/src/hunspell/_libs
 	-rm -rf librevenge-0.0.6/src/lib/.libs librevenge-0.0.6/src/lib/_libs
 	-rm -rf libwpd-0.10.3/src/lib/.libs libwpd-0.10.3/src/lib/_libs
 	-rm -rf libwpg-0.3.4/src/lib/.libs libwpg-0.3.4/src/lib/_libs
@@ -5828,8 +5844,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/$(am__dirstamp)
-	-rm -f hunspell-1.7.0/src/hunspell/$(am__dirstamp)
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/$(am__dirstamp)
+	-rm -f hunspell-1.7.4/src/hunspell/$(am__dirstamp)
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/$(am__dirstamp)
 	-rm -f librevenge-0.0.6/src/lib/$(am__dirstamp)
 	-rm -f libwpd-0.10.3/src/lib/$(DEPDIR)/$(am__dirstamp)
@@ -5850,16 +5866,17 @@ clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo
+		-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspelltrace.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo
@@ -6266,16 +6283,17 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo
-	-rm -f hunspell-1.7.0/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo
+		-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affixmgr.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-csutil.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-filemgr.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hashmgr.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspell.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunspelltrace.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-hunzip.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-phonet.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-replist.Plo
+	-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-suggestmgr.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo

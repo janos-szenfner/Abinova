@@ -19,7 +19,7 @@ core tree (`src/wp/impexp/`, `src/wp/ap/grammar/`).
   wv-1.2.9           legacy .doc (OLE2/Word 97) import (GPL-2.0+)
                      vendored with local security patches so no
                      system libwv is required
-  hunspell-1.7.0     spell-checking engine (MPL-1.1/GPL-2.0/LGPL-2.1)
+  hunspell-1.7.4     spell-checking engine (MPL-1.1/GPL-2.0/LGPL-2.1)
                      used by the built-in spell and Hunspell-based
                      grammar checking (HUNSPELL_STATIC, no shared
                      library installed)

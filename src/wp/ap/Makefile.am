@@ -215,7 +215,7 @@ libap_la_SOURCES += \
 
 # grammar checking, bundled hunspell backend (formerly the grammar plugin)
 AM_CPPFLAGS += \
-	-I$(top_srcdir)/thirdparty/hunspell-1.7.0/src/hunspell \
+	-I$(top_srcdir)/thirdparty/hunspell-1.7.4/src/hunspell \
 	-DHUNSPELL_STATIC
 
 libap_la_SOURCES += \

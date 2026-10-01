@@ -2574,9 +2574,11 @@ below are on `main` but the release has not been cut yet.
   (unused since the hunspell switch), `--enable-menubutton` code.
 - **Vendored third-party libraries** — `librevenge 0.0.6`,
   `libwpd 0.10.3`, `libwpg 0.3.4`, `libwps 0.4.14` (upgraded from
-  0.4.11), `wv-1.2.9`, `hunspell-1.7.0` — all built as noinst
-  convenience libs; no external downloads needed. The 43 MB
-  `link-grammar-5.12.5` tree was dropped.
+  0.4.11), `wv-1.2.9`, `hunspell-1.7.4` (upgraded from 1.7.0 —
+  faster ICONV tries, lower dictionary memory use, XDG dictionary
+  dirs, compound/affix/morphology fixes and a word-acceptance trace
+  API) — all built as noinst convenience libs; no external downloads
+  needed. The 43 MB `link-grammar-5.12.5` tree was dropped.
 - **Build hardening** — `autoreconf` fixed for modern autoconf;
   vendored `AX_*` macros; GTK-only configure; `omml_xslt` install dir
   moved to `ABIWORD_DATADIR`; build-tree libtool in the test wrapper.
