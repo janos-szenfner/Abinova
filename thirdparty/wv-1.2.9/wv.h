@@ -1083,10 +1083,18 @@ number to use for each list entry, Caolan
 	U32 icoFore:5;
 	U32 icoBack:5;
 	U32 ipat:6;
+	/* Word 2000+ SHDOperand (sprmPShd 0xC64D and friends): full
+	   COLORREF colors plus the complete Ipat; meaningful only when
+	   fCv is nonzero */
+	U32 cvFore;
+	U32 cvBack;
+	U16 ipatFull;
+	U8 fCv;
     } SHD;
 
     void wvGetSHD (SHD * item, wvStream * fd);
     void wvGetSHDFromBucket (SHD * item, U8 * pointer);
+    int wvGetSHDOperandFromBucket (SHD * item, U8 * pointer);
     void wvInitSHD (SHD * item);
     void wvCopySHD (SHD * dest, SHD * src);
 
@@ -1111,10 +1119,16 @@ number to use for each list entry, Caolan
 	U32 fShadow:1;
 	U32 fFrame:1;
 	U32 reserved:1;
+	/* Word 2000+ BrcOperand (sprmPBrcTop 0xC64E and friends): the
+	   8-byte Brc carries a full COLORREF; meaningful only when fCv
+	   is nonzero */
+	U32 cv;
+	U8 fCv;
     } BRC;
 
     void wvGetBRC (wvVersion ver, BRC * abrc, wvStream * fd);
     int wvGetBRCFromBucket (wvVersion ver, BRC * abrc, U8 * pointer);
+    int wvGetBRCOperandFromBucket (BRC * abrc, U8 * pointer);
     void wvInitBRC (BRC * abrc);
     void wvCopyBRC (BRC * dest, BRC * src);
     int wvEqualBRC (BRC * a, BRC * b);
@@ -1565,6 +1579,31 @@ brc.dxpSpace should be set to 0.
       /* BiDi */
       U32 fBidi:1;
 		wvListInfo linfo;
+
+	/* Word 2000+ paragraph sprms (MS-DOC 2.6.x) */
+	S32 itap;		/* sprmPItap/sprmPDtap table depth; fInTable
+				   is kept in sync for legacy consumers */
+	S32 ipgp;		/* sprmPIpgp paragraph-group info */
+	U8 fInnerTableCell;	/* sprmPFInnerTableCell: last para of a
+				   nested table cell */
+	U8 fInnerTtp;		/* sprmPFInnerTtp: nested table row mark */
+	U8 fOpenTch;		/* sprmPFOpenTch */
+	U8 fDyaBeforeAuto;	/* sprmPFDyaBeforeAuto: dyaBefore is auto */
+	U8 fDyaAfterAuto;	/* sprmPFDyaAfterAuto: dyaAfter is auto */
+	U8 fNoAllowOverlap;	/* sprmPFNoAllowOverlap: frame may not
+				   overlap other frames */
+	U8 fContextualSpacing;	/* sprmPFContextualSpacing */
+	U8 fMirrorIndents;	/* sprmPFMirrorIndents */
+	U8 fWall;		/* sprmPWall: properties preserved for
+				   revision marking */
+	U8 tTwo;		/* sprmPTtwo: textbox tight-wrap lines */
+	S16 dxcRight;		/* sprmPDxcRight: right indent, 1/100
+				   character units */
+	S16 dxcLeft;		/* sprmPDxcLeft: left indent, ditto */
+	S16 dxcLeft1;		/* sprmPDxcLeft1: first-line indent, ditto */
+	S16 dylBefore;		/* sprmPDylBefore: space before, 1/100
+				   line units */
+	S16 dylAfter;		/* sprmPDylAfter: space after, ditto */
     } PAP;
 
 #define istdNil 4095
@@ -1952,7 +1991,7 @@ that indicates their length.
 	sprmPIstd = 0x4600,
 	sprmPIstdPermute = 0xC601,
 	sprmPIncLvl = 0x2602,
-	sprmPJc = 0x2403,
+	sprmPJc80 = 0x2403,
 	sprmPFSideBySide = 0x2404,
 	sprmPFKeep = 0x2405,
 	sprmPFKeepFollow = 0x2406,
@@ -1963,10 +2002,10 @@ that indicates their length.
 	sprmPIlfo = 0x460B,
 	sprmPFNoLineNumb = 0x240C,
 	sprmPChgTabsPapx = 0xC60D,
-	sprmPDxaRight = 0x840E,
-	sprmPDxaLeft = 0x840F,
-	sprmPNest = 0x4610,
-	sprmPDxaLeft1 = 0x8411,
+	sprmPDxaRight80 = 0x840E,
+	sprmPDxaLeft80 = 0x840F,
+	sprmPNest80 = 0x4610,
+	sprmPDxaLeft180 = 0x8411,
 	sprmPDyaLine = 0x6412,
 	sprmPDyaBefore = 0xA413,
 	sprmPDyaAfter = 0xA414,
@@ -1985,16 +2024,16 @@ that indicates their length.
 	sprmPBrcBar10 = 0x4621,
 	sprmPDxaFromText10 = 0x4622,
 	sprmPWr = 0x2423,
-	sprmPBrcTop = 0x6424,
-	sprmPBrcLeft = 0x6425,
-	sprmPBrcBottom = 0x6426,
-	sprmPBrcRight = 0x6427,
-	sprmPBrcBetween = 0x6428,
-	sprmPBrcBar = 0x6629,
+	sprmPBrcTop80 = 0x6424,
+	sprmPBrcLeft80 = 0x6425,
+	sprmPBrcBottom80 = 0x6426,
+	sprmPBrcRight80 = 0x6427,
+	sprmPBrcBetween80 = 0x6428,
+	sprmPBrcBar80 = 0x6629,
 	sprmPFNoAutoHyph = 0x242A,
 	sprmPWHeightAbs = 0x442B,
 	sprmPDcs = 0x442C,
-	sprmPShd = 0x442D,
+	sprmPShd80 = 0x442D,
 	sprmPDyaFromText = 0x842E,
 	sprmPDxaFromText = 0x842F,
 	sprmPFLocked = 0x2430,
@@ -2024,6 +2063,45 @@ that indicates their length.
 	sprmPFAdjustRight = 0x2448,
 	sprmPItap = 0x6649,
 	sprmPRsid = 0x6467,
+
+	/* Word 2000+ paragraph sprms (MS-DOC 2.6.x). Producers that support
+	   these emit the corresponding low-ispmd (*80) sprm first, then the
+	   high-ispmd equivalent below, so readers can take whichever they
+	   understand; the later one wins when both are applied. */
+	sprmPDtap = 0x664A,
+	sprmPFInnerTableCell = 0x244B,
+	sprmPFInnerTtp = 0x244C,
+	sprmPShd = 0xC64D,
+	sprmPBrcTop = 0xC64E,
+	sprmPBrcLeft = 0xC64F,
+	sprmPBrcBottom = 0xC650,
+	sprmPBrcRight = 0xC651,
+	sprmPBrcBetween = 0xC652,
+	sprmPBrcBar = 0xC653,
+	sprmPDxcRight = 0x4455,
+	sprmPDxcLeft = 0x4456,
+	sprmPDxcLeft1 = 0x4457,
+	sprmPDylBefore = 0x4458,
+	sprmPDylAfter = 0x4459,
+	sprmPFOpenTch = 0x245A,
+	sprmPFDyaBeforeAuto = 0x245B,
+	sprmPFDyaAfterAuto = 0x245C,
+	sprmPDxaRight = 0x845D,
+	sprmPDxaLeft = 0x845E,
+	sprmPNest = 0x465F,
+	sprmPDxaLeft1 = 0x8460,
+	sprmPJc = 0x2461,
+	sprmPFNoAllowOverlap = 0x2462,
+	sprmPWall = 0x2664,
+	sprmPIpgp = 0x6465,
+	sprmPCnf = 0xC666,
+	sprmPIstdListPermute = 0xC669,
+	sprmPTableProps = 0x646B,
+	sprmPTIstdInfo = 0xC66C,
+	sprmPFContextualSpacing = 0x246D,
+	sprmPFMirrorIndents = 0x2470,
+	sprmPTtwo = 0x2471,
+
 	sprmCRsidText = 0x6816,
 
 	sprmCFRMarkDel = 0x0800,

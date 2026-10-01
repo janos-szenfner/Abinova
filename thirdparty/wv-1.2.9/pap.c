@@ -197,12 +197,15 @@ wvInitPAP (PAP * item)
     item->fUsePgsuSettings = 0;
     item->fAdjustRight = 0;
     item->reserved4 = 0;
-    item->fKinsoku = 0;
-    item->fWordWrap = 0;
-    item->fOverflowPunct = 0;
+    /* MS-DOC: these paragraph toggles default to 1 (enabled); init to
+       the spec defaults so a sprm that explicitly disables them is
+       distinguishable from an absent sprm */
+    item->fKinsoku = 1;
+    item->fWordWrap = 1;
+    item->fOverflowPunct = 1;
     item->fTopLinePunct = 0;
-    item->fAutoSpaceDE = 0;
-    item->fAtuoSpaceDN = 0;
+    item->fAutoSpaceDE = 1;
+    item->fAtuoSpaceDN = 1;
     item->wAlignFont = 4;
     item->fVertical = 0;
     item->fBackward = 0;
@@ -251,6 +254,24 @@ wvInitPAP (PAP * item)
 	item->stylename[0] = 0;
 
 	memset(&item->linfo,0,sizeof(item->linfo));
+
+    item->itap = 0;
+    item->ipgp = 0;
+    item->fInnerTableCell = 0;
+    item->fInnerTtp = 0;
+    item->fOpenTch = 0;
+    item->fDyaBeforeAuto = 0;
+    item->fDyaAfterAuto = 0;
+    item->fNoAllowOverlap = 0;
+    item->fContextualSpacing = 0;
+    item->fMirrorIndents = 0;
+    item->fWall = 0;
+    item->tTwo = 0;
+    item->dxcRight = 0;
+    item->dxcLeft = 0;
+    item->dxcLeft1 = 0;
+    item->dylBefore = 0;
+    item->dylAfter = 0;
 }
 
 /*

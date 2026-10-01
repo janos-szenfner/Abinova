@@ -261,7 +261,9 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmPIncLvl:
 	  wvApplysprmPIncLvl (apap, pointer, pos);
 	  break;
-      case sprmPJc:
+      case sprmPJc80:
+      case sprmPJc:		/* 0x2461; same operand as sprmPJc80 but
+				   also carries jc values 5..9 */
 	  apap->jc = bread_8ubit (pointer, pos);
 	  wvTrace (("jc is now %d\n", apap->jc));
 	  break;
@@ -296,15 +298,18 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmPChgTabsPapx:
 	  wvApplysprmPChgTabsPapx (apap, pointer, pos);
 	  break;
-      case sprmPDxaRight:
+      case sprmPDxaRight80:
+      case sprmPDxaRight:	/* 0x845D */
 	  apap->dxaRight = (S16) bread_16ubit (pointer, pos);
 	  break;
-      case sprmPDxaLeft:
+      case sprmPDxaLeft80:
+      case sprmPDxaLeft:	/* 0x845E */
 	  apap->dxaLeft = (S16) bread_16ubit (pointer, pos);
 	  break;
-      case sprmPNest:
+      case sprmPNest80:
+      case sprmPNest:		/* 0x465F */
 	  /*
-	     sprmPNest (opcode 0x4610) causes its operand, a two-byte dxa value to be
+	     sprmPNest causes its operand, a two-byte dxa value to be
 	     added to pap.dxaLeft. If the result of the addition is less than 0, 0 is
 	     stored into pap.dxaLeft.
 	   */
@@ -313,7 +318,8 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  if (apap->dxaLeft < 0)
 	      apap->dxaLeft = 0;
 	  break;
-      case sprmPDxaLeft1:
+      case sprmPDxaLeft180:
+      case sprmPDxaLeft1:	/* 0x8460 */
 	  apap->dxaLeft1 = (S16) bread_16ubit (pointer, pos);
 	  break;
       case sprmPDyaLine:
@@ -383,23 +389,41 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmPWr:
 	  apap->wr = bread_8ubit (pointer, pos);
 	  break;
-      case sprmPBrcTop:
+      case sprmPBrcTop80:
 	  (*pos) += wvGetBRCFromBucket (ver, &apap->brcTop, pointer);
 	  break;
-      case sprmPBrcLeft:
+      case sprmPBrcLeft80:
 	  (*pos) += wvGetBRCFromBucket (ver, &apap->brcLeft, pointer);
 	  break;
-      case sprmPBrcBottom:
+      case sprmPBrcBottom80:
 	  (*pos) += wvGetBRCFromBucket (ver, &apap->brcBottom, pointer);
 	  break;
-      case sprmPBrcRight:
+      case sprmPBrcRight80:
 	  (*pos) += wvGetBRCFromBucket (ver, &apap->brcRight, pointer);
 	  break;
-      case sprmPBrcBetween:
+      case sprmPBrcBetween80:
 	  (*pos) += wvGetBRCFromBucket (ver, &apap->brcBetween, pointer);
 	  break;
-      case sprmPBrcBar:
+      case sprmPBrcBar80:
 	  (*pos) += wvGetBRCFromBucket (ver, &apap->brcBar, pointer);
+	  break;
+      case sprmPBrcTop:		/* 0xC64E: BrcOperand, full COLORREF */
+	  (*pos) += wvGetBRCOperandFromBucket (&apap->brcTop, pointer);
+	  break;
+      case sprmPBrcLeft:	/* 0xC64F */
+	  (*pos) += wvGetBRCOperandFromBucket (&apap->brcLeft, pointer);
+	  break;
+      case sprmPBrcBottom:	/* 0xC650 */
+	  (*pos) += wvGetBRCOperandFromBucket (&apap->brcBottom, pointer);
+	  break;
+      case sprmPBrcRight:	/* 0xC651 */
+	  (*pos) += wvGetBRCOperandFromBucket (&apap->brcRight, pointer);
+	  break;
+      case sprmPBrcBetween:	/* 0xC652 */
+	  (*pos) += wvGetBRCOperandFromBucket (&apap->brcBetween, pointer);
+	  break;
+      case sprmPBrcBar:		/* 0xC653 */
+	  (*pos) += wvGetBRCOperandFromBucket (&apap->brcBar, pointer);
 	  break;
       case sprmPFNoAutoHyph:
 	  apap->fNoAutoHyph = bread_8ubit (pointer, pos);
@@ -412,9 +436,12 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  wvGetDCSFromBucket (&apap->dcs, pointer);
 	  (*pos) += 2;
 	  break;
-      case sprmPShd:
+      case sprmPShd80:
 	  wvGetSHDFromBucket (&apap->shd, pointer);
 	  (*pos) += 2;
+	  break;
+      case sprmPShd:		/* 0xC64D: SHDOperand, COLORREF colors */
+	  (*pos) += wvGetSHDOperandFromBucket (&apap->shd, pointer);
 	  break;
       case sprmPDyaFromText:
 	  apap->dyaFromText = (S16) bread_16ubit (pointer, pos);
@@ -444,8 +471,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  apap->fAutoSpaceDE = bread_8ubit (pointer, pos);
 	  break;
       case sprmPFAutoSpaceDN:
-	  /* ???? apap->fAutoSpaceDN */
-	  (*pos)++;
+	  apap->fAtuoSpaceDN = bread_8ubit (pointer, pos);
 	  break;
       case sprmPWAlignFont:
 	  apap->wAlignFont = (S16) bread_16ubit (pointer, pos);
@@ -501,8 +527,83 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  /*  apap->rsid = */ bread_32ubit (pointer, pos);
 	  break;
       case sprmPItap:
-		 apap->fInTable =bread_32ubit (pointer, pos); /*  Need to introduce apap->fInTableW97? */ 
+	  apap->itap = (S32) bread_32ubit (pointer, pos);
+	  /* itap is the nested-table depth; fInTable stays a boolean
+	     since consumers test it with == 1 */
+	  apap->fInTable = (apap->itap > 0) ? 1 : 0;
 		/* apap->fTtp++;   this line fixed bug #11433 but caused #12476 */
+	  break;
+      case sprmPDtap:		/* 0x664A: table depth delta */
+	  apap->itap += (S32) bread_32ubit (pointer, pos);
+	  if (apap->itap < 0)
+	      apap->itap = 0;
+	  apap->fInTable = (apap->itap > 0) ? 1 : 0;
+	  break;
+      case sprmPFInnerTableCell:
+	  apap->fInnerTableCell = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPFInnerTtp:
+	  apap->fInnerTtp = bread_8ubit (pointer, pos);
+	  /* a TTP mark of a nested table is still a row end for our
+	     flat table model */
+	  if (apap->fInnerTtp)
+	      apap->fTtp = 1;
+	  break;
+      case sprmPDxcRight:	/* 0x4455: right indent, 1/100 chars */
+	  apap->dxcRight = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmPDxcLeft:	/* 0x4456 */
+	  apap->dxcLeft = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmPDxcLeft1:	/* 0x4457 */
+	  apap->dxcLeft1 = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmPDylBefore:	/* 0x4458: space before, 1/100 lines */
+	  apap->dylBefore = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmPDylAfter:	/* 0x4459 */
+	  apap->dylAfter = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmPFOpenTch:
+	  apap->fOpenTch = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPFDyaBeforeAuto:
+	  apap->fDyaBeforeAuto = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPFDyaAfterAuto:
+	  apap->fDyaAfterAuto = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPFNoAllowOverlap:
+	  apap->fNoAllowOverlap = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPWall:
+	  apap->fWall = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPIpgp:
+	  apap->ipgp = (S32) bread_32ubit (pointer, pos);
+	  break;
+      case sprmPCnf:		/* conditional table-style formatting;
+				   only valid inside table styles */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
+      case sprmPIstdListPermute:	/* MUST be ignored (MS-DOC) */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
+      case sprmPTIstdInfo:	/* MUST be ignored (MS-DOC) */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
+      case sprmPTableProps:	/* 0x646B: PrcData in Data stream;
+				   same handling as sprmPHugePapx */
+	  wvApplysprmPHugePapx (apap, pointer, pos, data, stsh);
+	  break;
+      case sprmPFContextualSpacing:
+	  apap->fContextualSpacing = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPFMirrorIndents:
+	  apap->fMirrorIndents = bread_8ubit (pointer, pos);
+	  break;
+      case sprmPTtwo:
+	  apap->tTwo = bread_8ubit (pointer, pos);
 	  break;
 	  /*End of PAP */
 
@@ -1217,6 +1318,7 @@ wvApplysprmPChgTabsPapx (PAP * apap, U8 * pointer, U16 * pos)
 	  for (i = 0; i < itbdAddMax; i++)
 	    {
 		wvGetTBDFromBucket (&rgtbdAdd[i], pointer);
+		pointer++;
 		(*pos)++;
 	    }
       }
@@ -1377,6 +1479,7 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
 	  for (i = 0; i < itbdAddMax; i++)
 	    {
 		wvGetTBDFromBucket (&rgtbdAdd[i], pointer);
+		pointer++;
 		(*pos)++;
 	    }
       }
@@ -2914,7 +3017,7 @@ wvApplysprmTVertAlign (TAP * aTap, U8 * pointer, U16 * pos)
 }
 
 SprmName rgsprmPrm[0x80] =
-    { sprmNoop, sprmNoop, sprmNoop, sprmNoop, sprmPIncLvl, sprmPJc,
+    { sprmNoop, sprmNoop, sprmNoop, sprmNoop, sprmPIncLvl, sprmPJc80,
     sprmPFSideBySide, sprmPFKeep, sprmPFKeepFollow, sprmPFPageBreakBefore,
     sprmPBrcl, sprmPBrcp, sprmPIlvl, sprmNoop, sprmPFNoLineNumb, sprmNoop,
     sprmNoop, sprmNoop, sprmNoop, sprmNoop, sprmNoop, sprmNoop, sprmNoop,
@@ -2958,7 +3061,7 @@ SprmName rgsprmWord6[256] = {
     sprmPIstd /*         2 */ ,
     sprmPIstdPermute /*  3 */ ,
     sprmPIncLvl /*       4 */ ,
-    sprmPJc /*           5 */ ,
+    sprmPJc80 /*           5 */ ,
     sprmPFSideBySide /*  6 */ ,
     sprmPFKeep /*        7 */ ,
     sprmPFKeepFollow /*  8 */ ,
@@ -2969,10 +3072,10 @@ SprmName rgsprmWord6[256] = {
     sprmPNLvlAnm /*      13 */ ,
     sprmPFNoLineNumb /*  14 */ ,
     sprmPChgTabsPapx /*  15 */ ,
-    sprmPDxaRight /*     16 */ ,
-    sprmPDxaLeft /*      17 */ ,
-    sprmPNest /*         18 */ ,
-    sprmPDxaLeft1 /*     19 */ ,
+    sprmPDxaRight80 /*     16 */ ,
+    sprmPDxaLeft80 /*      17 */ ,
+    sprmPNest80 /*         18 */ ,
+    sprmPDxaLeft180 /*     19 */ ,
     sprmPDyaLine /*      20 */ ,
     sprmPDyaBefore /*    21 */ ,
     sprmPDyaAfter /*     22 */ ,
@@ -2991,16 +3094,16 @@ SprmName rgsprmWord6[256] = {
     sprmPBrcBar10 /*     35 */ ,
     sprmPDxaFromText10 /*   36 */ ,	/* new name */
     sprmPWr /*           37 */ ,
-    sprmPBrcTop /*       38 */ ,
-    sprmPBrcLeft /*      39 */ ,
-    sprmPBrcBottom /*    40 */ ,
-    sprmPBrcRight /*     41 */ ,
-    sprmPBrcBetween /*   42 */ ,
-    sprmPBrcBar /*       43 */ ,
+    sprmPBrcTop80 /*       38 */ ,
+    sprmPBrcLeft80 /*      39 */ ,
+    sprmPBrcBottom80 /*    40 */ ,
+    sprmPBrcRight80 /*     41 */ ,
+    sprmPBrcBetween80 /*   42 */ ,
+    sprmPBrcBar80 /*       43 */ ,
     sprmPFNoAutoHyph /*  44 */ ,
     sprmPWHeightAbs /*   45 */ ,
     sprmPDcs /*          46 */ ,
-    sprmPShd /*          47 */ ,
+    sprmPShd80 /*          47 */ ,
     sprmPDyaFromText /*  48 */ ,
     sprmPDxaFromText /*  49 */ ,
     sprmPFLocked /*      50 */ ,

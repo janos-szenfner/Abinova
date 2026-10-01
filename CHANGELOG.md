@@ -381,6 +381,25 @@ below are on `main` but the release has not been cut yet.
   `lcb` values that could underflow. A 200-case FIB fuzz battery
   (mutated fields, truncations, garbage blobs) now yields only clean
   conversions or clean rejections — no crashes.
+- **`.doc` paragraph formatting audit** — the bundled `wv` parser now
+  understands the full MS-DOC paragraph-sprm table, including the
+  Word 2000+ opcodes: full-COLORREF paragraph borders and shading
+  (`sprmPBrc*`/`sprmPShd` BrcOperand/SHDOperand, alongside the legacy
+  `*80` indexed-color forms), character-unit and line-unit indents and
+  spacing (`sprmPDxc*`/`sprmPDyl*`, resolved against the document's
+  Normal font), `sprmPDtap`/`sprmPIpgp`/`sprmPItap` table depth
+  bookkeeping, contextual spacing, mirrored indents and the East-Asian
+  typography toggles. Paragraph borders now import as real block
+  borders (style, color, thickness, spacing, shadow) and paragraph
+  shading as real block shading instead of text highlight colors;
+  exact and at-least line heights, tab-stop leader characters and
+  Word's extended justification values are mapped too. A latent bug
+  that made every tab stop in `sprmPChgTabs`/`sprmPChgTabsPapx`
+  decode with the first stop's type and leader is fixed. Verified
+  with a synthetic document driving both PAPX decode paths — tabs
+  with leaders, all four paragraph borders, spacing and shading
+  import with the correct properties, and the `.doc` corpus still
+  converts cleanly.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

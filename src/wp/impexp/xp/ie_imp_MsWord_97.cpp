@@ -5199,7 +5199,118 @@ void IE_Imp_MsWord_97::_generateCharProps(UT_String &s, const CHP * achp, wvPars
 	FREEP(fname);
 }
 
-void IE_Imp_MsWord_97::_generateParaProps(UT_String &s, const PAP * apap, wvParseStruct * /*ps*/)
+/*! one MS-DOC "character unit" (sprmPDxc* operands) is the width of a
+ *  full-width character in the document's default font, i.e. roughly
+ *  the Normal style's font size; resolve it from the Normal style
+ *  (sti == 0) when we can */
+static UT_sint32
+s_docCharUnitTwips(const wvParseStruct *ps)
+{
+	const UT_sint32 fallback = 240; /* 12pt */
+	if (!ps || !ps->stsh.std)
+	{
+		return fallback;
+	}
+	for (UT_uint32 i = 0; i < ps->stsh.Stshi.cstd; i++)
+	{
+		if (ps->stsh.std[i].sti == 0 /* stiNormal */ &&
+			ps->stsh.std[i].cupx > 0)
+		{
+			CHP achp;
+			wvInitCHPFromIstd(&achp, static_cast<U16>(i),
+							  const_cast<STSH *>(&ps->stsh));
+			if (achp.hps)
+			{
+				return achp.hps * 10; /* half-points -> twips */
+			}
+			break;
+		}
+	}
+	return fallback;
+}
+
+/*! convert a COLORREF (0x00BBGGRR) to an RRGGBB string; returns false
+ *  for the "auto" color (0xFF000000, i.e. the fAuto bit of the high
+ *  byte set) */
+static bool
+s_mapColorRefToColor(UT_uint32 cv, UT_String & sColor)
+{
+	if (cv & 0xFF000000)
+	{
+		return false;
+	}
+	sColor = UT_String_sprintf("%02x%02x%02x",
+							   cv & 0xFF, (cv >> 8) & 0xFF, (cv >> 16) & 0xFF);
+	return true;
+}
+
+/*! emit one side of a paragraph border (block-level "X-style",
+ *  "X-color", "X-thickness", "X-space", "X-shadow" props) */
+static void
+s_emitParaBorder(UT_String &s, const char * pszSide, const BRC * brc,
+				 UT_Dimension dim)
+{
+	UT_String propBuffer;
+
+	if (!brc->brcType)
+	{
+		return;
+	}
+
+	UT_String_sprintf(propBuffer, "%s-style:%d;", pszSide,
+					  sConvertLineStyle(brc->brcType));
+	s += propBuffer;
+
+	UT_String sColor;
+	if (brc->fCv)
+	{
+		if (s_mapColorRefToColor(brc->cv, sColor))
+		{
+			UT_String_sprintf(propBuffer, "%s-color:%s;", pszSide,
+							  sColor.c_str());
+			s += propBuffer;
+		}
+	}
+	else if (brc->ico && brc->ico <= 16)
+	{
+		UT_String_sprintf(propBuffer, "%s-color:%s;", pszSide,
+						  sMapIcoToColor(brc->ico, true).c_str());
+		s += propBuffer;
+	}
+
+	/* dptLineWidth is in 1/8-point increments for brcType < 0x40 (with
+	   values < 2 treated as 2), and in whole points for brcType >=
+	   0x40 (page-border art) */
+	double dPoints;
+	if (brc->brcType < 0x40)
+	{
+		dPoints = (brc->dptLineWidth < 2 ? 2 : brc->dptLineWidth) / 8.0;
+	}
+	else
+	{
+		dPoints = brc->dptLineWidth;
+	}
+	UT_String_sprintf(propBuffer, "%s-thickness:%s;", pszSide,
+					  UT_convertInchesToDimensionString(dim, dPoints / 72.0));
+	s += propBuffer;
+
+	/* dptSpace is the text-to-border distance in points */
+	if (brc->dptSpace)
+	{
+		UT_String_sprintf(propBuffer, "%s-space:%s;", pszSide,
+						  UT_convertInchesToDimensionString(dim,
+											brc->dptSpace / 72.0));
+		s += propBuffer;
+	}
+
+	if (brc->fShadow)
+	{
+		UT_String_sprintf(propBuffer, "%s-shadow:1;", pszSide);
+		s += propBuffer;
+	}
+}
+
+void IE_Imp_MsWord_97::_generateParaProps(UT_String &s, const PAP * apap, wvParseStruct * ps)
 {
 	UT_String propBuffer;
 
@@ -5228,12 +5339,16 @@ void IE_Imp_MsWord_97::_generateParaProps(UT_String &s, const PAP * apap, wvPars
 		case 3:
 			s += "text-align:justify;";
 			break;
-		case 4:
-			/* this type of justification is of unknown purpose and is
-			 * undocumented , but it shows up in asian documents so someone
-			 * should be able to tell me what it is someday
-			 */
+		case 4: // distribute
+		case 5: // mediumKashida
+		case 7: // highKashida
+		case 8: // lowKashida
+		case 9: // thaiDistribute
+			/* all of these are justification variants; our closest
+			 * match is plain justified text */
 			s += "text-align:justify;";
+			break;
+		default:
 			break;
 	}
 
@@ -5259,8 +5374,32 @@ void IE_Imp_MsWord_97::_generateParaProps(UT_String &s, const PAP * apap, wvPars
 						  "line-height:%s;",
 						  UT_convertToDimensionlessString( (static_cast<double>(apap->lspd.dyaLine) / 240), "1.1"));
 		s += propBuffer;
-	} else {
-		// TODO: handle exact line heights
+	} else if (apap->lspd.dyaLine < 0) {
+		// negative dyaLine is an "exact" line height
+		UT_String_sprintf(propBuffer,
+						  "line-height:%s;",
+						  UT_convertInchesToDimensionString(m_dim,
+											(static_cast<double>(-apap->lspd.dyaLine) / 1440)));
+		s += propBuffer;
+	} else if (apap->lspd.dyaLine > 0) {
+		// positive dyaLine without fMultLinespace is an "at least"
+		// height; a trailing '+' marks that in our prop syntax
+		UT_String_sprintf(propBuffer,
+						  "line-height:%s+;",
+						  UT_convertInchesToDimensionString(m_dim,
+											(static_cast<double>(apap->lspd.dyaLine) / 1440)));
+		s += propBuffer;
+	}
+
+	/* one character unit is about the width of a full-width char in
+	   the default font; one line unit is a single-spaced line of it */
+	UT_sint32 iCharUnit = 0;
+	UT_sint32 iLineUnit = 0;
+	if (apap->dxcRight || apap->dxcLeft || apap->dxcLeft1 ||
+		apap->dylBefore || apap->dylAfter)
+	{
+		iCharUnit = s_docCharUnitTwips(ps);
+		iLineUnit = iCharUnit * 6 / 5;
 	}
 
 	//
@@ -5268,40 +5407,67 @@ void IE_Imp_MsWord_97::_generateParaProps(UT_String &s, const PAP * apap, wvPars
 	//
 
 	// margin-right
-	if (apap->dxaRight) {
+	if (apap->dxaRight || apap->dxcRight) {
+		double dTwips = apap->dxaRight;
+		if (!dTwips)
+		{
+			dTwips = static_cast<double>(apap->dxcRight) * iCharUnit / 100;
+		}
 		UT_String_sprintf(propBuffer,
 						  "margin-right:%s;",
-						  UT_convertInchesToDimensionString(m_dim, (static_cast<double>(apap->dxaRight) / 1440)));
+						  UT_convertInchesToDimensionString(m_dim, dTwips / 1440));
 		s += propBuffer;
 	}
 
 	// margin-left
-	if (apap->dxaLeft) {
+	if (apap->dxaLeft || apap->dxcLeft) {
+		double dTwips = apap->dxaLeft;
+		if (!dTwips)
+		{
+			dTwips = static_cast<double>(apap->dxcLeft) * iCharUnit / 100;
+		}
 		UT_String_sprintf(propBuffer,
 						  "margin-left:%s;",
-						  UT_convertInchesToDimensionString(m_dim, (static_cast<double>(apap->dxaLeft) / 1440)));
+						  UT_convertInchesToDimensionString(m_dim, dTwips / 1440));
 		s += propBuffer;
 	}
 
 	// margin-left first line (indent)
-	if (apap->dxaLeft1) {
+	if (apap->dxaLeft1 || apap->dxcLeft1) {
+		double dTwips = apap->dxaLeft1;
+		if (!dTwips)
+		{
+			dTwips = static_cast<double>(apap->dxcLeft1) * iCharUnit / 100;
+		}
 		UT_String_sprintf(propBuffer,
 						  "text-indent:%s;",
-						  UT_convertInchesToDimensionString(m_dim, (static_cast<double>(apap->dxaLeft1) / 1440)));
+						  UT_convertInchesToDimensionString(m_dim, dTwips / 1440));
 		s += propBuffer;
 	}
 
 	// margin-top
-	if (apap->dyaBefore) {
+	if (apap->dyaBefore || apap->dylBefore) {
+		double dTwips = apap->dyaBefore;
+		if (!dTwips)
+		{
+			dTwips = static_cast<double>(apap->dylBefore) * iLineUnit / 100;
+		}
 		UT_String_sprintf(propBuffer,
-						  "margin-top:%dpt;", (apap->dyaBefore / 20));
+						  "margin-top:%s;",
+						  UT_convertInchesToDimensionString(m_dim, dTwips / 1440));
 		s += propBuffer;
 	}
 
 	// margin-bottom
-	if (apap->dyaAfter) {
+	if (apap->dyaAfter || apap->dylAfter) {
+		double dTwips = apap->dyaAfter;
+		if (!dTwips)
+		{
+			dTwips = static_cast<double>(apap->dylAfter) * iLineUnit / 100;
+		}
 		UT_String_sprintf(propBuffer,
-						  "margin-bottom:%dpt;", (apap->dyaAfter / 20));
+						  "margin-bottom:%s;",
+						  UT_convertInchesToDimensionString(m_dim, dTwips / 1440));
 		s += propBuffer;
 	}
 
@@ -5313,46 +5479,170 @@ void IE_Imp_MsWord_97::_generateParaProps(UT_String &s, const PAP * apap, wvPars
 			propBuffer += UT_String_sprintf("%s/",
 						UT_convertInchesToDimensionString(m_dim,
 										((static_cast<double>(apap->rgdxaTab[iTab])) / 1440)));
-			
+
+			bool bBar = false;
 			switch (apap->rgtbd[iTab].jc) {
 				case 1:
-					propBuffer += "C,";
+					propBuffer += "C";
 					break;
 				case 2:
-					propBuffer += "R,";
+					propBuffer += "R";
 					break;
 				case 3:
-					propBuffer += "D,";
+					propBuffer += "D";
 					break;
 				case 4:
-					propBuffer += "B,";
+					propBuffer += "B";
+					bBar = true;
 					break;
 				case 0:
 				default:
-					propBuffer += "L,";
+					propBuffer += "L";
 					break;
 			}
+			/* tab leader, MS-DOC TabLC -> FL_LEADER_*: dot=1,
+			   hyphen=2, underscore=3; tlcHeavy is underscore-like
+			   and tlcMiddleDot folds to dot; leaders are ignored
+			   on bar tabs */
+			if (!bBar && apap->rgtbd[iTab].tlc && apap->rgtbd[iTab].tlc < 7)
+			{
+				static const UT_uint8 s_tlcMap[7] = {0, 1, 2, 3, 3, 1, 0};
+				propBuffer += UT_String_sprintf("%d",
+						s_tlcMap[apap->rgtbd[iTab].tlc]);
+			}
+			propBuffer += ",";
 		}
 		// replace final comma with a semi-colon
 		propBuffer[propBuffer.size()-1] = ';';
 		s += propBuffer;
 	}
 
-	// foreground color
-	U8 ico = apap->shd.icoFore;
-	if (ico) {
-		UT_String_sprintf(propBuffer, "color:%s;",
-						  sMapIcoToColor(ico, true).c_str());
+	// paragraph borders (w:pBdr); "between" and "bar" borders have no
+	// block-level equivalent here
+	s_emitParaBorder(s, "top", &apap->brcTop, m_dim);
+	s_emitParaBorder(s, "left", &apap->brcLeft, m_dim);
+	s_emitParaBorder(s, "bot", &apap->brcBottom, m_dim);
+	s_emitParaBorder(s, "right", &apap->brcRight, m_dim);
+
+	// paragraph shading (w:shd): ipat 0 is a solid fill of the back
+	// color, ipat 1 is a solid fill of the fore color, higher values
+	// are patterns which we approximate with the fore color
+	if (apap->shd.fCv)
+	{
+		UT_String sFore, sBack;
+		bool bFore = s_mapColorRefToColor(apap->shd.cvFore, sFore);
+		bool bBack = s_mapColorRefToColor(apap->shd.cvBack, sBack);
+		if (apap->shd.ipatFull == 0)
+		{
+			if (bBack)
+			{
+				UT_String_sprintf(propBuffer, "shading-background-color:%s;",
+								  sBack.c_str());
+				s += propBuffer;
+			}
+		}
+		else
+		{
+			UT_String_sprintf(propBuffer, "shading-pattern:%d;",
+							  apap->shd.ipatFull);
+			s += propBuffer;
+			if (bFore)
+			{
+				UT_String_sprintf(propBuffer, "shading-foreground-color:%s;",
+								  sFore.c_str());
+				s += propBuffer;
+			}
+			if (bBack)
+			{
+				UT_String_sprintf(propBuffer, "shading-background-color:%s;",
+								  sBack.c_str());
+				s += propBuffer;
+			}
+		}
+	}
+	else
+	{
+		// Shd80: ico values are 1..16; 0 is "auto", and
+		// 0x1F/0x1F/0x3F is Shd80Nil (no shading)
+		U8 icoBack = apap->shd.icoBack;
+		U8 icoFore = apap->shd.icoFore;
+		U8 ipat = apap->shd.ipat;
+		if (ipat == 0)
+		{
+			if (icoBack && icoBack <= 16)
+			{
+				UT_String_sprintf(propBuffer, "shading-background-color:%s;",
+								  sMapIcoToColor(icoBack, false).c_str());
+				s += propBuffer;
+			}
+		}
+		else if (ipat != 0x3F)
+		{
+			UT_String_sprintf(propBuffer, "shading-pattern:%d;", ipat);
+			s += propBuffer;
+			if (icoFore && icoFore <= 16)
+			{
+				UT_String_sprintf(propBuffer, "shading-foreground-color:%s;",
+								  sMapIcoToColor(icoFore, true).c_str());
+				s += propBuffer;
+			}
+			if (icoBack && icoBack <= 16)
+			{
+				UT_String_sprintf(propBuffer, "shading-background-color:%s;",
+								  sMapIcoToColor(icoBack, false).c_str());
+				s += propBuffer;
+			}
+		}
+	}
+
+	// paragraph outline level (0-8; 9 is the default "body text")
+	if (apap->lvl >= 0 && apap->lvl <= 8)
+	{
+		UT_String_sprintf(propBuffer, "outline-level:%d;", apap->lvl);
 		s += propBuffer;
 	}
 
-	// background color
-	ico = apap->shd.icoBack;
-	if (ico) {
-		UT_String_sprintf(propBuffer, "background-color:%s;",
-						  sMapIcoToColor(ico, false).c_str());
-		s += propBuffer;
+	// wAlignFont is OOXML w:textAlignment: vertical run alignment
+	switch (apap->wAlignFont)
+	{
+		case 0:
+			s += "baseline-align:top;";
+			break;
+		case 1:
+			s += "baseline-align:center;";
+			break;
+		case 3:
+			s += "baseline-align:bottom;";
+			break;
+		default:
+			break; // 2 baseline, 4 auto
 	}
+
+	// East Asian / compatibility paragraph toggles, kept as 0/1 props
+	// under the same names the docx importer uses; emit only when a
+	// sprm moved the value away from its MS-DOC default
+	if (apap->fContextualSpacing)
+		s += "contextual-spacing:1;";
+	if (apap->fMirrorIndents)
+		s += "mirror-indents:1;";
+	if (apap->fNoLnn)
+		s += "suppress-line-numbers:1;";
+	if (apap->fNoAutoHyph)
+		s += "suppress-auto-hyphens:1;";
+	if (apap->fAdjustRight)
+		s += "adjust-right-ind:1;";
+	if (apap->fTopLinePunct)
+		s += "top-line-punct:1;";
+	if (!apap->fKinsoku)
+		s += "kinsoku:0;";
+	if (!apap->fWordWrap)
+		s += "word-wrap:0;";
+	if (!apap->fOverflowPunct)
+		s += "overflow-punct:0;";
+	if (!apap->fAutoSpaceDE)
+		s += "auto-space-de:0;";
+	if (!apap->fAtuoSpaceDN)
+		s += "auto-space-dn:0;";
 
 	// remove the trailing semi-colon
 	s [s.size()-1] = 0;

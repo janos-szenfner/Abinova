@@ -37,6 +37,10 @@ wvGetSHD_internal (SHD * item, wvStream * fd, U8 * pointer)
     item->icoFore = temp16 & 0x001F;
     item->icoBack = (temp16 & 0x03E0) >> 5;
     item->ipat = (temp16 & 0xFC00) >> 10;
+    item->cvFore = 0;
+    item->cvBack = 0;
+    item->ipatFull = 0;
+    item->fCv = 0;
 }
 
 void
@@ -51,12 +55,42 @@ wvGetSHDFromBucket (SHD * item, U8 * pointer)
     wvGetSHD_internal (item, NULL, pointer);
 }
 
+/*
+  SHDOperand (MS-DOC 2.9.249): cb (1 byte) then a 10-byte Shd:
+  cvFore (4-byte COLORREF), cvBack (4-byte COLORREF), ipat (2-byte Ipat).
+  cb MUST be 10; anything else is consumed but not applied.
+  Returns the operand length in bytes (1 + cb).
+*/
+int
+wvGetSHDOperandFromBucket (SHD * item, U8 * pointer)
+{
+    U8 cb;
+    U8 *p = pointer;
+
+    cb = dread_8ubit (NULL, &p);
+    if (cb >= 10)
+      {
+	  item->cvFore = dread_32ubit (NULL, &p);
+	  item->cvBack = dread_32ubit (NULL, &p);
+	  item->ipatFull = dread_16ubit (NULL, &p);
+	  item->icoFore = 0;
+	  item->icoBack = 0;
+	  item->ipat = 0;
+	  item->fCv = 1;
+      }
+    return (cb + 1);
+}
+
 void
 wvInitSHD (SHD * item)
 {
     item->icoFore = 0;
     item->icoBack = 0;
     item->ipat = 0;
+    item->cvFore = 0;
+    item->cvBack = 0;
+    item->ipatFull = 0;
+    item->fCv = 0;
 }
 
 void

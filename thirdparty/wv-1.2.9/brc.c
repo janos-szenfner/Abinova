@@ -43,6 +43,8 @@ wvGetBRC_internal (BRC * abrc, wvStream * infd, U8 * pointer)
     abrc->fShadow = (temp8 & 0x20) >> 5;
     abrc->fFrame = (temp8 & 0x40) >> 6;
     abrc->reserved = (temp8 & 0x80) >> 7;
+    abrc->cv = 0;
+    abrc->fCv = 0;
 }
 
 void
@@ -70,6 +72,10 @@ wvGetBRC_internal6 (BRC * abrc, wvStream * infd, U8 * pointer)
     abrc->fShadow = (temp16 & 0x0020) >> 5;
     abrc->ico = (temp16 & 0x07C0) >> 6;
     abrc->dptSpace = (temp16 & 0xF800) >> 11;
+    abrc->fFrame = 0;
+    abrc->reserved = 0;
+    abrc->cv = 0;
+    abrc->fCv = 0;
 }
 
 
@@ -84,6 +90,38 @@ wvGetBRCFromBucket (wvVersion ver, BRC * abrc, U8 * pointer)
 	  return (cb6BRC);
       }
     return (cbBRC);
+}
+
+/*
+  BrcOperand (MS-DOC 2.9.21): cb (1 byte) then an 8-byte Brc:
+  cv (4-byte COLORREF), dptLineWidth (8 bits), brcType (8 bits),
+  dptSpace (5 bits), fShadow (1 bit), fFrame (1 bit), fReserved (9 bits).
+  cb MUST be 8; anything else is consumed but not applied.
+  Returns the operand length in bytes (1 + cb).
+*/
+int
+wvGetBRCOperandFromBucket (BRC * abrc, U8 * pointer)
+{
+    U8 cb;
+    U8 *p = pointer;
+
+    cb = dread_8ubit (NULL, &p);
+    if (cb >= 8)
+      {
+	  U16 temp16;
+
+	  abrc->cv = dread_32ubit (NULL, &p);
+	  abrc->dptLineWidth = dread_8ubit (NULL, &p);
+	  abrc->brcType = dread_8ubit (NULL, &p);
+	  temp16 = dread_16ubit (NULL, &p);
+	  abrc->dptSpace = temp16 & 0x1f;
+	  abrc->fShadow = (temp16 & 0x20) >> 5;
+	  abrc->fFrame = (temp16 & 0x40) >> 6;
+	  abrc->reserved = 0;
+	  abrc->ico = 0;
+	  abrc->fCv = 1;
+      }
+    return (cb + 1);
 }
 
 void
@@ -130,6 +168,8 @@ wvInitBRC (BRC * abrc)
     abrc->fShadow = 0;
     abrc->fFrame = 0;
     abrc->reserved = 0;
+    abrc->cv = 0;
+    abrc->fCv = 0;
 }
 
 int
@@ -142,7 +182,9 @@ wvEqualBRC (BRC * a, BRC * b)
 		    if (a->fShadow == b->fShadow)
 			if (a->fFrame == b->fFrame)
 			    if (a->reserved == b->reserved)
-				return (1);
+				if (a->fCv == b->fCv)
+				    if (!a->fCv || a->cv == b->cv)
+					return (1);
     return (0);
 }
 
@@ -156,6 +198,8 @@ wvCopyBRC (BRC * dest, BRC * src)
     dest->fShadow = src->fShadow;
     dest->fFrame = src->fFrame;
     dest->reserved = src->reserved;
+    dest->cv = src->cv;
+    dest->fCv = src->fCv;
 }
 
 /* 
