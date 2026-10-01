@@ -64,6 +64,9 @@ private:
     std::map<std::string, std::string> m_manifestItems;
     /* manifest id -> extracted file URI inside m_tmpDir */
     std::map<std::string, std::string> m_extractedItems;
+    /* dc:* metadata captured from the OPF package document -
+     * PD_META_KEY_* -> text */
+    std::map<std::string, std::string> m_metaProps;
 
     UT_Error readMetadata();
     UT_Error readPackage();
@@ -116,6 +119,10 @@ public:
     {
         return m_spine;
     }
+    const std::map<std::string, std::string> & getMetadata() const
+    {
+        return m_metadata;
+    }
     bool isRootOk() const
     {
         return m_rootOk;
@@ -132,8 +139,17 @@ private:
      */
     std::map<std::string, std::string> m_manifestItems;
 
+    /* dc:* children of <metadata>: PD_META_KEY_* -> text */
+    std::map<std::string, std::string> m_metadata;
+    /* local name of the dc element currently open, its mapped
+     * metadata key and accumulated character data */
+    std::string m_metaElem;
+    std::string m_metaKey;
+    std::string m_metaText;
+
     bool m_inManifest;
     bool m_inSpine;
+    bool m_inMetadata;
     bool m_rootOk;
     bool m_checkedRoot;
 };

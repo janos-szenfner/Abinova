@@ -255,6 +255,10 @@ all.
   attributes), `xmlns:epub` declared on content documents, BCP 47
   language tags (`en-US`, not `en_US`), and `urn:uuid:` identifiers.
   EPUB 3 is now the default export version; EPUB 2 remains available.
+  Import keeps chapter images as data items with their media types,
+  maps Dublin Core metadata to document properties and applies basic
+  CSS (element/`.class`/`#id` selectors plus inline `style=`) for
+  font size/weight/style, alignment and margins.
 - **WordPerfect plugin refreshed**: vendored `libwps` updated from
   0.4.11 to 0.4.14 (current upstream); `libwpd-0.10.3` already
   matches upstream.

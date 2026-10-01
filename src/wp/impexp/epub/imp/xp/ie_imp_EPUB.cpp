@@ -227,6 +227,15 @@ UT_Error IE_Imp_EPUB::_loadFile(GsfInput* input)
         return UT_ERROR;
     }
 
+    /* Dublin Core metadata from the OPF package document -> the
+     * document's meta properties (dc:title etc.)
+     */
+    for (std::map<std::string, std::string>::const_iterator m =
+            m_metaProps.begin(); m != m_metaProps.end(); m++)
+    {
+        getDoc()->setMetaDataProp(m->first, m->second);
+    }
+
     return UT_OK;
 
 }
@@ -354,6 +363,7 @@ UT_Error IE_Imp_EPUB::readPackage()
 
     m_spine = opfListener.getSpine();
     m_manifestItems = opfListener.getManifestItems();
+    m_metaProps = opfListener.getMetadata();
 
     if (m_spine.empty())
     {
@@ -493,6 +503,12 @@ UT_Error IE_Imp_EPUB::readStructure()
 
         IE_Imp_PasteListener * pPasteListener = new IE_Imp_PasteListener(
                 getDoc(), posEnd, currentDoc);
+        /* each spine item is pasted into a fresh empty block; let the
+         * chapter's first paragraph donate its style/props to it
+         * (otherwise a chapter opening with e.g. a centered Heading 1
+         * would lose both)
+         */
+        pPasteListener->setAdoptFirstBlockFmt(true);
         currentDoc->tellListener(static_cast<PL_Listener *> (pPasteListener));
 
 
@@ -619,9 +635,34 @@ const std::string & ContainerListener::getRootFilePath() const
 
  */
 
+/* Dublin Core element local-names (namespace prefix stripped by
+ * s_localName) -> document metadata keys. OPF 2.0.1 dc-metadata /
+ * OPF 3.x dc:* elements inside <metadata>.
+ */
+static const struct {
+    const char* dc;
+    const char* key;
+} s_dcMeta[] = {
+    { "title",       PD_META_KEY_TITLE },
+    { "creator",     PD_META_KEY_CREATOR },
+    { "subject",     PD_META_KEY_SUBJECT },
+    { "description", PD_META_KEY_DESCRIPTION },
+    { "publisher",   PD_META_KEY_PUBLISHER },
+    { "contributor", PD_META_KEY_CONTRIBUTOR },
+    { "date",        PD_META_KEY_DATE },
+    { "type",        PD_META_KEY_TYPE },
+    { "format",      PD_META_KEY_FORMAT },
+    { "source",      PD_META_KEY_SOURCE },
+    { "language",    PD_META_KEY_LANGUAGE },
+    { "relation",    PD_META_KEY_RELATION },
+    { "coverage",    PD_META_KEY_COVERAGE },
+    { "rights",      PD_META_KEY_RIGHTS },
+};
+
 OpfListener::OpfListener() :
     m_inManifest(false),
     m_inSpine(false),
+    m_inMetadata(false),
     m_rootOk(false),
     m_checkedRoot(false)
 {
@@ -642,6 +683,29 @@ void OpfListener::startElement(const gchar* name, const gchar** atts)
     else if (s_isElement(name, "spine"))
     {
         m_inSpine = true;
+    }
+    else if (s_isElement(name, "metadata"))
+    {
+        m_inMetadata = true;
+    }
+    else if (m_inMetadata && m_metaElem.empty())
+    {
+        /* dc:* children of <metadata> carry the Dublin Core
+         * document metadata
+         */
+        const gchar* local = s_localName(name);
+        for (size_t i = 0; i < sizeof(s_dcMeta) / sizeof(s_dcMeta[0]);
+                i++)
+        {
+            if (UT_go_utf8_collate_casefold(local, s_dcMeta[i].dc)
+                    == 0)
+            {
+                m_metaElem = local;
+                m_metaKey = s_dcMeta[i].key;
+                m_metaText.clear();
+                break;
+            }
+        }
     }
     else if (m_inManifest && s_isElement(name, "item"))
     {
@@ -686,11 +750,41 @@ void OpfListener::endElement(const gchar* name)
     {
         m_inSpine = false;
     }
+    else if (s_isElement(name, "metadata"))
+    {
+        m_inMetadata = false;
+    }
+
+    if (!m_metaElem.empty()
+            && (UT_go_utf8_collate_casefold(s_localName(name),
+                    m_metaElem.c_str()) == 0))
+    {
+        /* commit the dc element's text; repeatable fields
+         * (creator, subject) join with "; "
+         */
+        size_t b = m_metaText.find_first_not_of(" \t\r\n");
+        if (b != std::string::npos)
+        {
+            size_t e = m_metaText.find_last_not_of(" \t\r\n");
+            std::string& cur = m_metadata[m_metaKey];
+            if (!cur.empty())
+            {
+                cur += "; ";
+            }
+            cur += m_metaText.substr(b, e - b + 1);
+        }
+        m_metaElem.clear();
+        m_metaKey.clear();
+        m_metaText.clear();
+    }
 }
 
-void OpfListener::charData(const gchar* /*buffer*/, int /*length*/)
+void OpfListener::charData(const gchar* buffer, int length)
 {
-
+    if (!m_metaElem.empty())
+    {
+        m_metaText.append(buffer, length);
+    }
 }
 
 /*

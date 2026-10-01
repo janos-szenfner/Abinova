@@ -50,6 +50,7 @@ IE_Imp_PasteListener::IE_Imp_PasteListener(PD_Document * pDocToPaste, PT_DocPosi
 	m_insPoint(insPoint),
 	m_bFirstSection(true),
 	m_bFirstBlock(true),
+	m_bAdoptFirstBlockFmt(false),
 	m_pSourceDoc(pSourceDoc)
 {
 }	
@@ -220,10 +221,27 @@ bool  IE_Imp_PasteListener::populateStrux(pf_Frag_Strux* sdh,
 		if(m_bFirstBlock)
 		{
 			m_bFirstBlock = false;
+			if (m_bAdoptFirstBlockFmt && (!atts.empty() || !props.empty()))
+			{
+				/* the first source block is merged into the block
+				 * containing the insertion point - donate its
+				 * attributes/props so e.g. a pasted chapter heading
+				 * keeps its style */
+				m_pPasteDocument->changeStruxFmt(PTC_AddFmt,
+						m_insPoint, m_insPoint, atts, props, PTX_Block);
+			}
 			return true;
 		}
 		m_pPasteDocument->insertStrux(m_insPoint,PTX_Block,atts,props);
 		m_insPoint++;
+		if (m_bAdoptFirstBlockFmt)
+		{
+			/* insertStrux inherits the previous block's attr/props
+			 * (paragraph-split semantics); when splicing whole
+			 * documents the source block's AP is authoritative */
+			m_pPasteDocument->changeStruxFmt(PTC_SetExactly,
+					m_insPoint, m_insPoint, atts, props, PTX_Block);
+		}
 		return true;
 	}
 	case PTX_SectionTable:

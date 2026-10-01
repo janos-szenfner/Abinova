@@ -22,6 +22,9 @@
 #pragma once
 
 #include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "ie_imp_XML.h"
 #include "fg_Graphic.h"
@@ -104,6 +107,9 @@ protected:
 
 private:
 	FG_ConstGraphicPtr	importDataURLImage(const gchar * szData);
+	void					loadStyleSheet (const char * href);
+	std::string				cascadeStyle (const gchar * name,
+										  const PP_PropertyVector & atts) const;
 
 	bool					pushInline (const char * props);
 	bool					newBlock (const char * style, const char * css, const char * align);
@@ -132,4 +138,12 @@ private:
 	bool		m_bInMath;
 	UT_ByteBufPtr m_pMathBB;
 	std::string m_Title;
+
+	/* <style> chardata accumulator + collected stylesheet rules
+	 * ((compound selector, declaration block) in source order) -
+	 * see cascadeStyle() for the supported selector subset
+	 */
+	bool        m_bInStyle;
+	std::string m_styleText;
+	std::vector<std::pair<std::string, std::string> >	m_cssRules;
 };

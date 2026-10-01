@@ -64,6 +64,8 @@ static const char * s_section_classes[sc_other] = {
 #define CSS_MASK_BODY   (1<<3)
 
 static UT_UTF8String s_parseCSStyle (const UT_UTF8String & style, UT_uint32 css_mask);
+static void s_css_parse_rules (const std::string & css,
+		std::vector<std::pair<std::string, std::string> > & rules);
 
 /*****************************************************************/
 /*****************************************************************/
@@ -236,7 +238,8 @@ IE_Imp_XHTML::IE_Imp_XHTML(PD_Document * pDocument) :
 	m_iPreCount(0),
 	m_bFirstBlock(false),
 	m_bInMath(false),
-	m_pMathBB(new UT_ByteBuf)
+	m_pMathBB(new UT_ByteBuf),
+	m_bInStyle(false)
 {
 }
 
@@ -293,6 +296,7 @@ static struct xmlToIdMapping s_Tokens[] =
 	{ "img",		TT_IMG			},
 	{ "kbd",		TT_KBD			},
 	{ "li",			TT_LI			},
+	{ "link",		TT_LINK			},
 	{ "math",		TT_MATH			},
 	{ "meta",		TT_META			},
 	{ "ol",			TT_OL			},
@@ -846,9 +850,10 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 						}
 				}
 
-			const std::string & styleVal = PP_getAttribute("style", atts);
+			const std::string styleVal = cascadeStyle (name, atts);
 			if (style && !styleVal.empty())
 				{
+					/* styleVal is normalized - no trailing ';' */
 					*style += styleVal;
 					*style += "; ";
 				}
@@ -939,7 +944,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 	{
 		if (m_parseState == _PS_Block) m_parseState = _PS_Sec;
 
-		const std::string & style = PP_getAttribute("style", atts);
+		const std::string style = cascadeStyle (name, atts);
 		newBlock ("Plain Text", style.c_str(), nullptr);
 
 		m_iPreCount++;
@@ -969,7 +974,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 		}
 		else
 		{
-			const std::string & styleVal = PP_getAttribute("style", atts);
+			const std::string styleVal = cascadeStyle (name, atts);
 			const std::string & alignVal = PP_getAttribute("align", atts);
 
 			const std::string & awmlStyleVal = PP_getAttribute("awml:style", atts);
@@ -1089,6 +1094,20 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 			std::string props = listAtts[propsPos];
 			props += szMarginLeft;
 
+			/* stylesheet/inline CSS on the list item */
+			const std::string liCss = cascadeStyle (name, atts);
+			if (!liCss.empty ())
+				{
+					UT_UTF8String liProps = s_parseCSStyle (
+							liCss.c_str(),
+							CSS_MASK_BLOCK | CSS_MASK_INLINE);
+					if (liProps.byteLength ())
+						{
+							props += "; ";
+							props += liProps.utf8_str ();
+						}
+				}
+
 			listAtts[LevelPos] = szLevel.c_str();
 			listAtts[IDpos] = szListID.c_str();
 			listAtts[parentIDpos] = szParentID.c_str();
@@ -1123,10 +1142,10 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 		{
 			UT_UTF8String utf8val;
 
-			const std::string & style = PP_getAttribute(static_cast<const gchar *>("style"), atts);
+			const std::string style = cascadeStyle (name, atts);
 			if (!style.empty())
 				{
-					utf8val = style;
+					utf8val = style.c_str();
 					utf8val = s_parseCSStyle (utf8val, CSS_MASK_INLINE);
 					UT_DEBUGMSG(("CSS->Props (utf8val): [%s]\n",utf8val.utf8_str()));
 				}
@@ -1186,7 +1205,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 	case TT_IMG:
 		{
 			const std::string & szSrc    = PP_getAttribute("src", atts);
-			const std::string & szStyle  = PP_getAttribute("style",  atts);
+			const std::string szStyle    = cascadeStyle (name, atts);
 			std::string szWidth  = PP_getAttribute("width",  atts);
 			std::string szHeight = PP_getAttribute("height", atts);
 			const std::string & szTitle  = PP_getAttribute("title", atts);
@@ -1371,7 +1390,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 		{
 			requireSection();
 			m_parseState = _PS_Table;
-			const std::string & szStyle = PP_getAttribute("style", atts);
+			const std::string szStyle = cascadeStyle (name, atts);
 
 			X_CheckError(m_TableHelperStack->tableStart(getDoc(), szStyle.c_str()));
 		}
@@ -1379,7 +1398,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 	case TT_THEAD:
 		{
 			m_parseState = _PS_Table;
-			const std::string & szStyle = PP_getAttribute("style", atts);
+			const std::string szStyle = cascadeStyle (name, atts);
 
 			m_TableHelperStack->theadStart(szStyle.c_str());
 		}
@@ -1387,7 +1406,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 	case TT_TFOOT:
 		{
 			m_parseState = _PS_Table;
-			const std::string & szStyle = PP_getAttribute("style", atts);
+			const std::string szStyle = cascadeStyle (name, atts);
 
 			m_TableHelperStack->tfootStart(szStyle.c_str());
 		}
@@ -1395,7 +1414,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 	case TT_TBODY:
 		{
 			m_parseState = _PS_Table;
-			const std::string & szStyle = PP_getAttribute("style", atts);
+			const std::string szStyle = cascadeStyle (name, atts);
 
 			m_TableHelperStack->tbodyStart(szStyle.c_str());
 		}
@@ -1403,7 +1422,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 	case TT_TR:
 		{
 			m_parseState = _PS_Cell;
-			const std::string & szStyle = PP_getAttribute("style", atts);
+			const std::string szStyle = cascadeStyle (name, atts);
 
 			m_TableHelperStack->trStart (szStyle.c_str());
 			UT_DEBUGMSG(("Finished TR process \n"));
@@ -1414,7 +1433,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 		{
 			UT_DEBUGMSG(("Doing TD \n"));
 			m_parseState = _PS_Block;
-			const std::string & szStyle   = PP_getAttribute("style", atts);
+			const std::string szStyle     = cascadeStyle (name, atts);
 			const std::string & szColSpan = PP_getAttribute("colspan", atts);
 			const std::string & szRowSpan = PP_getAttribute("rowspan", atts);
 
@@ -1437,8 +1456,56 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 		break;
 #endif /* USE_IE_IMP_TABLEHELPER */
 	case TT_HEAD:
+		return;
+
 	case TT_STYLE:
-		// these tags are ignored for the time being
+		/* collect the embedded stylesheet; its rules are applied to
+		 * matching elements via cascadeStyle(). non-CSS style
+		 * elements are skipped */
+		{
+			const std::string & typeVal = PP_getAttribute("type", atts);
+			m_bInStyle = typeVal.empty ()
+				|| (g_ascii_strcasecmp (typeVal.c_str (),
+										"text/css") == 0);
+			m_styleText.clear ();
+		}
+		return;
+
+	case TT_LINK:
+		{
+			/* rel is a space-separated token list; "stylesheet" pulls
+			 * the file in unless "alternate" is also present
+			 * (alternate stylesheets are not applied - CSS2 3.3/6.4)
+			 */
+			const std::string & relVal = PP_getAttribute("rel", atts);
+			bool bSheet = false;
+			bool bAlt = false;
+			size_t rpos = 0;
+			while (rpos < relVal.size ())
+				{
+					size_t sp = relVal.find_first_of (" \t", rpos);
+					std::string tok = relVal.substr (rpos,
+							(sp == std::string::npos) ?
+								std::string::npos : sp - rpos);
+					if (g_ascii_strcasecmp (tok.c_str (),
+											"stylesheet") == 0)
+						bSheet = true;
+					else if (g_ascii_strcasecmp (tok.c_str (),
+												 "alternate") == 0)
+						bAlt = true;
+					if (sp == std::string::npos)
+						break;
+					rpos = sp + 1;
+				}
+
+			if (bSheet && !bAlt && !isPasting () && !isClipboard ())
+				{
+					const std::string & hrefVal =
+							PP_getAttribute("href", atts);
+					if (!hrefVal.empty ())
+						loadStyleSheet (hrefVal.c_str());
+				}
+		}
 		return;
 
 	case TT_TITLE:
@@ -1682,7 +1749,15 @@ void IE_Imp_XHTML::endElement(const gchar *name)
 #endif /* USE_IE_IMP_TABLEHELPER */
 	case TT_HEAD:
 	case TT_META:
+		return;
+
 	case TT_STYLE:
+		if (m_bInStyle)
+			{
+				m_bInStyle = false;
+				s_css_parse_rules (m_styleText, m_cssRules);
+				m_styleText.clear ();
+			}
 		return;
 
 	case TT_TITLE:
@@ -1786,6 +1861,12 @@ void IE_Imp_XHTML::charData (const gchar * buffer, int length)
 		m_pMathBB->append(reinterpret_cast<const UT_Byte *>(buffer), length);
 		return; //don't insert mathml character data
 	}
+
+	if (m_bInStyle)
+		{
+			m_styleText.append (buffer, length);
+			return;
+		}
 
 	if (m_parseState == _PS_MetaData && !isPasting ())
 		{
@@ -1908,6 +1989,304 @@ FG_ConstGraphicPtr IE_Imp_XHTML::importImage (const gchar * szSrc)
 	return pfg;
 }
 
+/* Minimal stylesheet support for XHTML import: <style> bodies and
+ * <link rel="stylesheet"> targets are collected into m_cssRules and
+ * applied per element by cascadeStyle(). Only compound selectors are
+ * honoured - element, .class, #id and combinations, plus bare '*';
+ * selectors using combinators, pseudo-classes or attribute matching
+ * are ignored rather than mis-applied.
+ */
+
+/* Parse a stylesheet into (selector, declarations) pairs. Comments
+ * are stripped first so stray braces inside them cannot desync the
+ * block parser; stray statements and block-less @-rules (@charset,
+ * @import) are dropped; @media blocks are applied unconditionally
+ * (the media list is not evaluated); other @-blocks are skipped.
+ */
+static void s_css_parse_rules (const std::string & css,
+		std::vector<std::pair<std::string, std::string> > & rules)
+{
+	std::string s;
+	s.reserve (css.size ());
+	for (size_t i = 0; i < css.size (); )
+	{
+		if ((css[i] == '/') && (i + 1 < css.size ())
+				&& (css[i + 1] == '*'))
+		{
+			size_t e = css.find ("*/", i + 2);
+			i = (e == std::string::npos) ? css.size () : e + 2;
+		}
+		else
+		{
+			s += css[i++];
+		}
+	}
+
+	size_t pos = 0;
+	while (pos < s.size ())
+	{
+		size_t brace = s.find ('{', pos);
+		size_t semi  = s.find (';', pos);
+
+		if ((semi != std::string::npos)
+				&& ((brace == std::string::npos) || (semi < brace)))
+			{
+				pos = semi + 1;
+				continue;
+			}
+		if (brace == std::string::npos)
+			{
+				break;
+			}
+
+		std::string sel = s.substr (pos, brace - pos);
+
+		size_t j = brace + 1;
+		int depth = 1;
+		while ((j < s.size ()) && (depth > 0))
+		{
+			if (s[j] == '{') depth++;
+			else if (s[j] == '}') depth--;
+			j++;
+		}
+		size_t blkEnd = (depth == 0) ? j - 1 : s.size ();
+		std::string block = s.substr (brace + 1,
+				blkEnd - brace - 1);
+		pos = j;
+
+		size_t sb = sel.find_first_not_of (" \t\r\n");
+		size_t se = sel.find_last_not_of (" \t\r\n");
+		if (sb == std::string::npos)
+			{
+				continue;
+			}
+		sel = sel.substr (sb, se - sb + 1);
+
+		if (sel[0] == '@')
+			{
+				if (sel.compare (0, 6, "@media") == 0)
+					{
+						s_css_parse_rules (block, rules);
+					}
+				continue;
+			}
+
+		size_t cpos = 0;
+		while (cpos <= sel.size ())
+			{
+				size_t comma = sel.find (',', cpos);
+				std::string one = sel.substr (cpos,
+						(comma == std::string::npos) ?
+							std::string::npos : comma - cpos);
+				size_t cb = one.find_first_not_of (" \t\r\n");
+				if (cb != std::string::npos)
+					{
+						size_t ce = one.find_last_not_of (" \t\r\n");
+						rules.push_back (std::make_pair (
+								one.substr (cb, ce - cb + 1), block));
+					}
+				if (comma == std::string::npos) break;
+				cpos = comma + 1;
+			}
+	}
+}
+
+/* Match a compound selector against an element. Returns a
+ * specificity tier (0 = element/universal, 1 = has class part,
+ * 2 = has id part) or -1 when the selector does not match or uses
+ * unsupported syntax.
+ */
+static int s_css_match (const std::string & sel, const std::string & tag,
+		const std::string & cls, const std::string & id)
+{
+	if (sel.empty ()
+			|| (sel.find_first_of (" \t>+~[:") != std::string::npos))
+		{
+			return -1;
+		}
+
+	int tier = 0;
+	size_t i = 0;
+
+	/* optional leading element name or '*' */
+	if (g_ascii_isalpha (sel[i]) || (sel[i] == '*'))
+		{
+			size_t j = i;
+			while ((j < sel.size ())
+					&& (g_ascii_isalnum (sel[j]) || (sel[j] == '-')
+						|| (sel[j] == '_') || (sel[j] == '*')))
+				{
+					j++;
+				}
+			std::string el = sel.substr (i, j - i);
+			if ((el != "*")
+					&& (g_ascii_strcasecmp (el.c_str (),
+							tag.c_str ()) != 0))
+				{
+					return -1;
+				}
+			i = j;
+		}
+
+	while (i < sel.size ())
+		{
+			char kind = sel[i++];
+			if ((kind != '.') && (kind != '#'))
+				{
+					return -1;
+				}
+			size_t j = i;
+			while ((j < sel.size ())
+					&& (g_ascii_isalnum (sel[j]) || (sel[j] == '-')
+						|| (sel[j] == '_')))
+				{
+					j++;
+				}
+			if (j == i)
+				{
+					return -1;
+				}
+			std::string name = sel.substr (i, j - i);
+			i = j;
+
+			if (kind == '#')
+				{
+					if (name != id) return -1;
+					tier = 2;
+				}
+			else
+				{
+					if (tier < 1) tier = 1;
+					/* the class attribute is a whitespace-separated
+					 * list - every .name must be present */
+					bool found = false;
+					size_t cpos = 0;
+					while (cpos < cls.size ())
+						{
+							size_t sp = cls.find_first_of (" \t", cpos);
+							if (cls.compare (cpos,
+										(sp == std::string::npos) ?
+											std::string::npos
+											: sp - cpos,
+										name) == 0)
+								{
+									found = true;
+									break;
+								}
+							if (sp == std::string::npos) break;
+							cpos = sp + 1;
+						}
+					if (!found) return -1;
+				}
+		}
+	return tier;
+}
+
+/* Append a declaration fragment to a declaration list. The piece is
+ * trimmed of whitespace and stray ';' at both ends and joined with
+ * a single "; " separator, so the result can never contain an empty
+ * ";;" declaration (which aborts s_parseCSStyle mid-list).
+ */
+static void s_css_join (std::string & out, const std::string & piece)
+{
+	size_t b = piece.find_first_not_of (" \t\r\n;");
+	size_t e = piece.find_last_not_of (" \t\r\n;");
+	if (b == std::string::npos)
+		{
+			return;
+		}
+	if (!out.empty ()) out += "; ";
+	out += piece.substr (b, e - b + 1);
+}
+
+/* Merge stylesheet rules matching this element with its inline style
+ * attribute. Rules apply in rising specificity order (element <
+ * class < id) and the inline style is appended last so it wins - the
+ * property parser keeps the last occurrence of a duplicate property.
+ */
+std::string IE_Imp_XHTML::cascadeStyle (const gchar * name,
+		const PP_PropertyVector & atts) const
+{
+	const std::string & inlineStyle = PP_getAttribute ("style", atts);
+	std::string out;
+
+	if (m_cssRules.empty ())
+		{
+			s_css_join (out, inlineStyle);
+			return out;
+		}
+
+	/* element names may carry a namespace prefix; compare on the
+	 * local part, lower-cased (selectors are lower-cased by
+	 * convention)
+	 */
+	const gchar * local = strrchr (name, ':');
+	local = local ? local + 1 : name;
+	std::string tag;
+	while (*local)
+		{
+			tag += static_cast<char>(g_ascii_tolower (*local++));
+		}
+
+	const std::string & cls = PP_getAttribute ("class", atts);
+	const std::string & id  = PP_getAttribute ("id", atts);
+
+	std::string tiers[3];
+	for (std::vector<std::pair<std::string, std::string> >::
+			const_iterator r = m_cssRules.begin ();
+			r != m_cssRules.end (); r++)
+		{
+			int tier = s_css_match (r->first, tag, cls, id);
+			if (tier >= 0)
+				{
+					s_css_join (tiers[tier], r->second);
+				}
+		}
+
+	for (int t = 0; t < 3; t++)
+		{
+			s_css_join (out, tiers[t]);
+		}
+	s_css_join (out, inlineStyle);
+	return out;
+}
+
+/* Load a linked stylesheet referenced by a document-relative href
+ * (the same URI resolution used for <img src>).
+ */
+void IE_Imp_XHTML::loadStyleSheet (const char * href)
+{
+	if ((m_szFileName == nullptr) || (href == nullptr) || (*href == 0))
+		{
+			return;
+		}
+	char * resolved = UT_go_url_resolve_relative (m_szFileName, href);
+	if (resolved == nullptr)
+		{
+			return;
+		}
+	GsfInput * input = UT_go_file_open (resolved, nullptr);
+	g_free (resolved);
+	if (input == nullptr)
+		{
+			UT_DEBUGMSG(("unable to open stylesheet %s\n", href));
+			return;
+		}
+
+	size_t size = gsf_input_size (input);
+	if (size > 0)
+		{
+			std::string css;
+			css.resize (size);
+			if (gsf_input_read (input, size,
+					reinterpret_cast<guint8*>(&css[0])) != nullptr)
+				{
+					s_css_parse_rules (css, m_cssRules);
+				}
+		}
+	g_object_unref (input);
+}
+
 bool IE_Imp_XHTML::pushInline (const char * props)
 {
 	if (!requireBlock ()) {
@@ -1915,7 +2294,16 @@ bool IE_Imp_XHTML::pushInline (const char * props)
 	}
 
 	if (props == nullptr || *props == 0) {
-		return true;
+		/* keep the inline-format stack balanced for elements that
+		 * carry no formatting (<span>, <font> without attrs): their
+		 * endElement handlers pop unconditionally, and skipping the
+		 * push used to fail the whole import via
+		 * X_CheckDocument(_getInlineDepth()>0). Emitting the
+		 * (now empty) fmt also resets formatting marks left by a
+		 * preceding element - otherwise e.g. a heading's font-size
+		 * would leak into the next paragraph. */
+		_pushInlineFmt(PP_NOPROPS);
+		return appendFmt(m_vecInlineFmt);
 	}
 	const PP_PropertyVector api_atts = {
 		PT_PROPS_ATTRIBUTE_NAME, props

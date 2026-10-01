@@ -1701,6 +1701,16 @@ below are on `main` but the release has not been cut yet.
   aborting or crashing on them. Fixed crashes on missing rootfiles,
   absent manifest attributes and the shared zip-stream read position,
   plus several GsfInput/GsfOutput leaks.
+- **EPUB import fidelity** — chapters now keep their images (imported
+  as Abi data items with their declared media types), Dublin Core
+  metadata (`dc:title`/`creator`/`language`/`date`/`subject`/etc.)
+  lands in document properties, and the XHTML importer applies basic
+  CSS: `<style>` blocks and `<link rel="stylesheet">` files are parsed
+  for element/`.class`/`#id` selectors and combined with inline
+  `style=` attributes in specificity order. Splicing chapters into the
+  document no longer leaks the previous paragraph's formatting into
+  the next one, and a chapter's opening paragraph keeps its own
+  style/properties.
 - **Atomic file save** — `IE_Exp::writeFile` now exports to a
   `<name>.part` sibling and `rename()`s it over the target: a
   failed export, encryption failure or mid-write crash can no

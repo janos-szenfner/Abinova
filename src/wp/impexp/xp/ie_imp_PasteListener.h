@@ -76,12 +76,22 @@ public:
 			return PTL_UNKNOWN;
 		}
 
+	/* When set, the first source block (which is merged into the
+	 * block containing the insertion point rather than inserted as
+	 * a new block) donates its attributes/props to that block -
+	 * used when splicing whole documents (e.g. EPUB chapters) so
+	 * e.g. a chapter's opening heading keeps its style.
+	 */
+	void              setAdoptFirstBlockFmt(bool adopt)
+		{ m_bAdoptFirstBlockFmt = adopt; }
+
 private:
 	PD_Document *     getDoc(void) const;
 	PD_Document *     m_pPasteDocument;
 	PT_DocPosition    m_insPoint;
 	bool              m_bFirstSection;
 	bool              m_bFirstBlock;
+	bool              m_bAdoptFirstBlockFmt;
 	PD_Document *     m_pSourceDoc;
 };
 #endif  /* IE_IMP_PASTELISTENER_H */
