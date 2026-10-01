@@ -22,7 +22,7 @@
 #include "xap_UnixDialogHelper.h"
 
 
-std::unique_ptr<UT_RGBColor> XAP_UnixDlg_RunColorChooser(GtkWindow* parent,
+std::optional<UT_RGBColor> XAP_UnixDlg_RunColorChooser(GtkWindow* parent,
                                                          GtkColorButton* colorbtn)
 {
 	GtkWidget *colordlg = gtk_color_chooser_dialog_new("", parent);
@@ -32,7 +32,7 @@ std::unique_ptr<UT_RGBColor> XAP_UnixDlg_RunColorChooser(GtkWindow* parent,
 	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(colorbtn), &initialColor);
 	gtk_color_chooser_set_rgba(colorsel, &initialColor);
 
-	UT_RGBColor* rgb = nullptr;
+	std::optional<UT_RGBColor> rgb;
 
 	gint result = abiRunModalDialog (GTK_DIALOG (colordlg), false);
 	if (result == GTK_RESPONSE_OK) {
@@ -42,10 +42,14 @@ std::unique_ptr<UT_RGBColor> XAP_UnixDlg_RunColorChooser(GtkWindow* parent,
 		gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER(colorbtn), &color);
 
 		// update dialog
-		rgb = UT_UnixGdkRGBAToRGBColor (color);
+		UT_RGBColor* pRgb = UT_UnixGdkRGBAToRGBColor (color);
+		if (pRgb) {
+			rgb = *pRgb;
+			delete pRgb;
+		}
 	}
 
 	// do not propagate further
 	gtk_window_destroy(GTK_WINDOW(colordlg)); // TOPLEVEL
-	return std::unique_ptr<UT_RGBColor>(rgb);
+	return rgb;
 }

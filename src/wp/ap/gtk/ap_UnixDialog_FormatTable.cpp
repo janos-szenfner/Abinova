@@ -148,10 +148,10 @@ AP_UnixDialog_FormatTable__onBorderColorClicked(GtkGestureClick *g, gint /*n_pre
 	UT_return_if_fail (button && dlg);
 
 
-	std::unique_ptr<UT_RGBColor> color =
+	std::optional<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
 					    GTK_COLOR_BUTTON(button));
-	if (color.get()) {
+	if (color) {
 		dlg->setBorderColor (*color);
 		dlg->event_previewInvalidate();
 	}
@@ -171,10 +171,10 @@ AP_UnixDialog_FormatTable__onBackgroundColorClicked(GtkGestureClick *g, gint /*n
 	AP_UnixDialog_FormatTable *dlg = static_cast<AP_UnixDialog_FormatTable *>(data);
 	UT_return_if_fail (button && dlg);
 
-	std::unique_ptr<UT_RGBColor> color =
+	std::optional<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
 					    GTK_COLOR_BUTTON(button));
-	if (color.get()) {
+	if (color) {
 		dlg->setBackgroundColor (*color);
 		dlg->event_previewInvalidate();
 	}

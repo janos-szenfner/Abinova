@@ -133,9 +133,9 @@ SpellChecker::SpellCheckResult SpellChecker::checkWord(const UT_UCS4Char* word, 
 	return ret;
 }
 
-std::unique_ptr<std::vector<UT_UCS4Char*>> SpellChecker::suggestWord(const UT_UCS4Char* word, size_t len)
+std::vector<UT_UCS4Char*> SpellChecker::suggestWord(const UT_UCS4Char* word, size_t len)
 {
-	auto pvSugg = _suggestWord(word, len);
+	std::vector<UT_UCS4Char*> pvSugg = _suggestWord(word, len);
 
 	m_BarbarismChecker.suggestWord(word, len, pvSugg);
 

@@ -2764,8 +2764,7 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 	}
 	UT_uint32 count = countCons();
 	xxx_UT_DEBUGMSG(("Number of containers in frame %d \n",count));
-	auto p = pDA->pG->getClipRect();
-	std::unique_ptr<UT_Rect> pPrevRect(p ? new UT_Rect(*p) : nullptr);
+	std::optional<UT_Rect> pPrevRect = pDA->pG->getClipRectOptional();
 	UT_Rect pRect = getScreenRect().value();
 	UT_Rect newRect;
 	bool bRemoveRectAfter = false;
@@ -2791,7 +2790,7 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 	}
 	UT_sint32 iInnerW = getFullWidth() - m_iXpadLeft - m_iXpadRight;
 	UT_sint32 iInnerH = getFullHeight() - m_iYpadTop - m_iYpadBottom;
-	if((pPrevRect == nullptr) && pG->queryProperties(GR_Graphics::DGP_SCREEN))
+	if(!pPrevRect && pG->queryProperties(GR_Graphics::DGP_SCREEN))
 	{
 		UT_Rect rClip = pRect;
 		if (iTextRot)
@@ -2801,7 +2800,7 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 		UT_DEBUGMSG(("Clip bottom is %d \n", pRect.top + pRect.height));
 		bRemoveRectAfter = true;
 	}
-	else if(pPrevRect && !pRect.intersectsRect(pPrevRect.get()))
+	else if(pPrevRect && !pRect.intersectsRect(&*pPrevRect))
 	{
 		bSkip = true;
 		xxx_UT_DEBUGMSG(("External Clip bottom is %d \n", pRect.top + pRect.height));
@@ -2872,7 +2871,7 @@ void fp_FrameContainer::draw(dg_DrawArgs* pDA)
 	}
 	if(bSetOrigClip)
 	{
-		pDA->pG->setClipRect(pPrevRect.get());
+		pDA->pG->setClipRect(pPrevRect ? &*pPrevRect : nullptr);
 	}
 	drawBoundaries(pDA);
 	/* OOXML head/tail line ends decorate the bar frames that stand

@@ -129,11 +129,11 @@ static void s_on_border_color_clicked(GtkGestureClick *g, gint /*n_press*/, gdou
 	AP_UnixDialog_Border_Shading *dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
 	UT_return_if_fail (button && dlg);
 
-	std::unique_ptr<UT_RGBColor> color =
+	std::optional<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
 					    GTK_COLOR_BUTTON(button));
 
-	if (color.get()) {
+	if (color) {
 		dlg->setBorderColor (*color);
 		dlg->event_previewInvalidate();
 	}
@@ -166,11 +166,11 @@ static void s_on_shading_color_clicked(GtkGestureClick *g, gint /*n_press*/, gdo
 	AP_UnixDialog_Border_Shading *dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
 	UT_return_if_fail (button && dlg);
 
-	std::unique_ptr<UT_RGBColor> color =
+	std::optional<UT_RGBColor> color =
 		XAP_UnixDlg_RunColorChooser(GTK_WINDOW (dlg->getWindow ()),
 					    GTK_COLOR_BUTTON(button));
 
-	if (color.get()) {
+	if (color) {
 		dlg->setShadingColor (*color);
 		dlg->event_previewInvalidate();
 	}

@@ -106,13 +106,13 @@ EnchantChecker::_checkWord (const UT_UCS4Char * ucszWord, size_t len)
 	}
 }
 
-std::unique_ptr<std::vector<UT_UCS4Char*>>
+std::vector<UT_UCS4Char*>
 EnchantChecker::_suggestWord (const UT_UCS4Char *ucszWord, size_t len)
 {
-	UT_return_val_if_fail(m_dict, nullptr);
-	UT_return_val_if_fail(ucszWord && len, nullptr);
+	UT_return_val_if_fail(m_dict, std::vector<UT_UCS4Char*>());
+	UT_return_val_if_fail(ucszWord && len, std::vector<UT_UCS4Char*>());
 
-	std::unique_ptr<std::vector<UT_UCS4Char*>> pvSugg(new std::vector<UT_UCS4Char*>());
+	std::vector<UT_UCS4Char*> pvSugg;
 
 	UT_UTF8String utf8 (ucszWord, len);
 
@@ -125,7 +125,7 @@ EnchantChecker::_suggestWord (const UT_UCS4Char *ucszWord, size_t len)
 		for (size_t i = 0; i < n_suggestions; i++) {
 			UT_UCS4Char *ucszSugg = utf8_to_utf32(suggestions[i]);
 			if (ucszSugg)
-				pvSugg->push_back(ucszSugg);
+				pvSugg.push_back(ucszSugg);
 		}
 
 		enchant_dict_free_string_list(m_dict, suggestions);

@@ -51,7 +51,7 @@ public:
 	};
 
 	SpellCheckResult	checkWord(const UT_UCS4Char* word, size_t len);
-	std::unique_ptr<std::vector<UT_UCS4Char*>> suggestWord(const UT_UCS4Char* word, size_t len);
+	std::vector<UT_UCS4Char*> suggestWord(const UT_UCS4Char* word, size_t len);
 
 	// vector of DictionaryMapping*
 	virtual	const std::vector<DictionaryMapping> & getMapping() const {return m_vecEmpty;};
@@ -103,7 +103,7 @@ private:
 
 	virtual bool				_requestDictionary (const char * szLang) = 0;
 	virtual SpellCheckResult	_checkWord(const UT_UCS4Char* word, size_t len) = 0;
-	virtual std::unique_ptr<std::vector<UT_UCS4Char*>> _suggestWord(const UT_UCS4Char* word, size_t len) = 0;
+	virtual std::vector<UT_UCS4Char*> _suggestWord(const UT_UCS4Char* word, size_t len) = 0;
 };
 
 class ABI_EXPORT SpellManager

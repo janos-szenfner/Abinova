@@ -3846,10 +3846,10 @@ void fp_ImageRun::_draw(dg_DrawArgs* pDA)
 	// and gnome-print print images. Otherwise your commit priviliges will be revoked.
 	//
 	// Try me. -- Hub
-	std::unique_ptr<UT_Rect> pSavedRect;
+	std::optional<UT_Rect> pSavedRect;
 	if(pG->getClipRect())
 	{
-		pSavedRect.reset(new UT_Rect(*pG->getClipRect()));
+		pSavedRect = *pG->getClipRect();
 	}
 	if(pG->queryProperties(GR_Graphics::DGP_SCREEN))
 	{
@@ -3950,7 +3950,7 @@ void fp_ImageRun::_draw(dg_DrawArgs* pDA)
 	}
 
 	// unf*ck clipping rect
-	pG->setClipRect(pSavedRect.get());
+	pG->setClipRect(pSavedRect ? &*pSavedRect : nullptr);
 }
 
 GR_Image* fp_ImageRun::getImage() const

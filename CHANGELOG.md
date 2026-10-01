@@ -2346,6 +2346,20 @@ below are on `main` but the release has not been cut yet.
     leaked the temporary file descriptor); EPUB export now cleans up
     its staging directory on failure; decompression of embedded
     archives no longer double-closes output files on write errors.
+- **Smart-pointer / ownership sweep** — tightened a few places where
+  heap allocation or shared ownership was gratuitous:
+  - List-numbering objects (`fl_AutoNum`) no longer keep a removed
+    parent list alive — the child→parent link is now a `weak_ptr`
+    (the document and layout blocks own lists), so a deleted list
+    stops being consulted by its children instead of surviving as a
+    zombie.
+  - The spell-check suggestion API returns a plain `std::vector`
+    instead of a heap-allocated `unique_ptr<vector>`, and the
+    colour-picker dialog returns `std::optional<UT_RGBColor>` rather
+    than a heap-allocated colour.
+  - The graphics clip rectangle and the image-run saved clip are
+    `std::optional<UT_Rect>` values instead of heap-allocated
+    `unique_ptr`s.
 
 ### GTK4 port (core migration)
 

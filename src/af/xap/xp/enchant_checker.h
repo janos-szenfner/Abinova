@@ -52,7 +52,7 @@ private:
 
 	virtual bool _requestDictionary (const char * szLang) override;
 	virtual SpellChecker::SpellCheckResult _checkWord (const UT_UCS4Char * word, size_t len) override;
-	virtual std::unique_ptr<std::vector<UT_UCS4Char*>> _suggestWord (const UT_UCS4Char * word, size_t len) override;
+	virtual std::vector<UT_UCS4Char*> _suggestWord (const UT_UCS4Char * word, size_t len) override;
 
 	EnchantDict *m_dict;
 };

@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 
 #include "ap_Features.h"
 
@@ -253,12 +254,12 @@ bool AP_Dialog_Spell::nextMisspelledWord(void)
 
 					if (checker->checkWord(m_pWord, m_iWordLength) == SpellChecker::LOOKUP_FAILED)
 					{
-						std::unique_ptr<std::vector<UT_UCS4Char*>> cpvEngineSuggestions;
-						cpvEngineSuggestions = checker->suggestWord(m_pWord, m_iWordLength);
+						std::vector<UT_UCS4Char*> vEngineSuggestions =
+							checker->suggestWord(m_pWord, m_iWordLength);
 
-						for (UT_uint32 i = 0; i < cpvEngineSuggestions->size(); ++i)
+						for (UT_uint32 i = 0; i < vEngineSuggestions.size(); ++i)
 						{
-							UT_UCS4Char *sug = cpvEngineSuggestions->at(i);
+							UT_UCS4Char *sug = vEngineSuggestions.at(i);
 							UT_return_val_if_fail (sug, false);
 							m_Suggestions->addItem(sug);
 						}

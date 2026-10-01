@@ -103,7 +103,7 @@ bool BarbarismChecker::checkWord(const UT_UCS4Char * word32, size_t length)
 	Looks for an exact case match of the suggestion
 	Returns true if word is a barbarism
 */
-bool BarbarismChecker::suggestExactWord(const UT_UCS4Char *word32, size_t length, const std::unique_ptr<std::vector<UT_UCS4Char*>>& pVecsugg)
+bool BarbarismChecker::suggestExactWord(const UT_UCS4Char *word32, size_t length, std::vector<UT_UCS4Char*>& vecsugg)
 {
 	const char* pUTF8;
 	const UT_UCS4Char *pWord;
@@ -131,7 +131,7 @@ bool BarbarismChecker::suggestExactWord(const UT_UCS4Char *word32, size_t length
 		suggest32 = static_cast<UT_UCS4Char*>(g_try_malloc(nSize));
 		memcpy (suggest32, pWord, nSize);
 		
-		pVecsugg->insert(pVecsugg->begin(), suggest32);
+		vecsugg.insert(vecsugg.begin(), suggest32);
 	}
 
 	return true;
@@ -146,7 +146,7 @@ bool BarbarismChecker::suggestExactWord(const UT_UCS4Char *word32, size_t length
 
 	Returns true if word is a barbarism
 */
-bool BarbarismChecker::suggestWord(const UT_UCS4Char *word32, size_t length, const std::unique_ptr<std::vector<UT_UCS4Char*>>& pVecsugg)
+bool BarbarismChecker::suggestWord(const UT_UCS4Char *word32, size_t length, std::vector<UT_UCS4Char*>& vecsugg)
 {
 	bool bIsBarbarism = false;
 	bool bIsLower = true;
@@ -171,7 +171,7 @@ bool BarbarismChecker::suggestWord(const UT_UCS4Char *word32, size_t length, con
 		}
 	}
 	if (bIsLower)
-		return suggestExactWord(word32, length, pVecsugg);
+		return suggestExactWord(word32, length, vecsugg);
 
 	/*
 		If the word has the first char upper case and the rest lower case
@@ -202,15 +202,15 @@ bool BarbarismChecker::suggestWord(const UT_UCS4Char *word32, size_t length, con
 		/* Convert word into lowercase (only need the first char) */
 		wordsearch[0] = UT_UCS4_tolower(wordsearch[0]);
 
-		if ((bIsBarbarism = suggestExactWord(wordsearch,  length, pVecsugg)))
+		if ((bIsBarbarism = suggestExactWord(wordsearch,  length, vecsugg)))
 		{
-			const UT_uint32 nItems = pVecsugg->size();
+			const UT_uint32 nItems = vecsugg.size();
 			UT_UCS4Char* pSug;
 
 			/* Make the first letter of all the results uppercase */
 			for (UT_uint32 iItem = nItems; iItem; --iItem)
 			{
-				pSug = pVecsugg->at(iItem - 1);
+				pSug = vecsugg.at(iItem - 1);
 				*pSug = UT_UCS4_toupper(*pSug);
 			}
 		}

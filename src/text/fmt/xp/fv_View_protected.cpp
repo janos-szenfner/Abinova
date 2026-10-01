@@ -30,6 +30,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <locale.h>
+#include <vector>
 
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -5872,13 +5873,12 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 		if (checker && (checker->checkWord(stMisspelledWord.ucs4_str(), iLength) == SpellChecker::LOOKUP_FAILED))
 		{
 			// get suggestions from spelling engine
-			std::unique_ptr<std::vector<UT_UCS4Char*>> cpvEngineSuggestions;
+			std::vector<UT_UCS4Char*> vEngineSuggestions =
+				checker->suggestWord (stMisspelledWord.ucs4_str(), iLength);
 
-			cpvEngineSuggestions = checker->suggestWord (stMisspelledWord.ucs4_str(), iLength);
-
-			for (UT_uint32 i = 0; i < cpvEngineSuggestions->size(); ++i)
+			for (UT_uint32 i = 0; i < vEngineSuggestions.size(); ++i)
 			{
-				UT_UCS4Char *sug = cpvEngineSuggestions->at(i);
+				UT_UCS4Char *sug = vEngineSuggestions.at(i);
 				UT_ASSERT(sug);
 				pvFreshSuggestions->addItem(sug);
 			}

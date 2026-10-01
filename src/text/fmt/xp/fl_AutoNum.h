@@ -50,6 +50,7 @@ class fl_AutoNum;
 
 typedef std::shared_ptr<fl_AutoNum> fl_AutoNumPtr;
 typedef std::shared_ptr<const fl_AutoNum> fl_AutoNumConstPtr;
+typedef std::weak_ptr<fl_AutoNum> fl_AutoNumWeakPtr;
 
 class ABI_EXPORT fl_AutoNum
     : public std::enable_shared_from_this<fl_AutoNum>
@@ -156,7 +157,7 @@ public:
 	pf_Frag_Strux*			getLastItem(void) const;
 	bool						isLastOnLevel(const pf_Frag_Strux* pItem) const;
 
-	fl_AutoNumPtr				getParent(void) const { return m_pParent; }
+	fl_AutoNumPtr				getParent(void) const { return m_pParent.lock(); }
 	fl_AutoNumPtr				getActiveParent(void) const;
 	fl_AutoNumConstPtr			getAutoNumFromSdh(const pf_Frag_Strux* sdh) const;
 	void						fixListOrder(void);
@@ -188,7 +189,7 @@ protected:
 	bool						_updateItems(UT_sint32 start, const pf_Frag_Strux* notMe);
 	UT_uint32					_getLevelValue(const fl_AutoNumConstPtr & pAutoNum) const;
 
-	fl_AutoNumPtr				m_pParent;
+	fl_AutoNumWeakPtr			m_pParent;
 
 private:
 	ItemStorage                 m_items;

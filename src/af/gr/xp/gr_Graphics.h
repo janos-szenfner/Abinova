@@ -552,7 +552,7 @@ class ABI_EXPORT GR_Graphics
 	/// Invalidate the rect of the whole view
 	virtual void queueDraw(const UT_Rect* pRect) = 0;
 	virtual void      setClipRect(const UT_Rect* pRect) = 0;
-	const UT_Rect *   getClipRect(void) const { return m_pRect.get();}
+	const UT_Rect *   getClipRect(void) const { return m_pRect ? &*m_pRect : nullptr; }
 	std::optional<UT_Rect> getClipRectOptional(void) const;
 	virtual void      scroll(UT_sint32, UT_sint32) = 0;
 	virtual void      scroll(UT_sint32 x_dest,
@@ -912,7 +912,7 @@ class ABI_EXPORT GR_Graphics
 	static XAP_PrefsScheme *m_pPrefsScheme;
 	static UT_uint32 m_uTick;
 
-	std::unique_ptr<const UT_Rect> m_pRect;
+	std::optional<UT_Rect> m_pRect;
 
 	bool m_bHave3DColors;
 

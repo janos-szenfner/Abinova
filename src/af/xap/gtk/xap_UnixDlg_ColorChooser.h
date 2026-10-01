@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <memory>
+#include <optional>
 
 #include <gtk/gtk.h>
 
@@ -26,7 +26,6 @@
 
 
 // TODO I'm sure we can make this XP. currently only Gtk
-// The use of unique_ptr<> is only meant to ensure the deletion
-// out of scope when returning.
-std::unique_ptr<UT_RGBColor> XAP_UnixDlg_RunColorChooser(GtkWindow* parent,
+// Returns the chosen color, or std::nullopt if the dialog was cancelled.
+std::optional<UT_RGBColor> XAP_UnixDlg_RunColorChooser(GtkWindow* parent,
 						       GtkColorButton* colorBtn);
