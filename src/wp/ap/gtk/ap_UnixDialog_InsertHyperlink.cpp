@@ -71,19 +71,34 @@ AP_UnixDialog_InsertHyperlink::~AP_UnixDialog_InsertHyperlink(void)
 
 /*****************************************************************/
 
-static void s_blist_clicked(GtkTreeSelection * select,
+static void s_bookmark_setup(GtkSignalListItemFactory * /*factory*/,
+							 GtkListItem *item,
+							 gpointer /*data*/)
+{
+	GtkWidget *label = gtk_label_new(nullptr);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+	gtk_list_item_set_child(item, label);
+}
+
+static void s_bookmark_bind(GtkSignalListItemFactory * /*factory*/,
+							GtkListItem *item,
+							gpointer /*data*/)
+{
+	GtkStringObject *strobj =
+		GTK_STRING_OBJECT(gtk_list_item_get_item(item));
+	gtk_label_set_text(GTK_LABEL(gtk_list_item_get_child(item)),
+					   gtk_string_object_get_string(strobj));
+}
+
+static void s_blist_clicked(GtkSingleSelection * select,
+							GParamSpec * /*pspec*/,
 							AP_UnixDialog_InsertHyperlink *me)
 {
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	if(gtk_tree_selection_get_selected(select, &model, &iter)) {
-		GtkTreePath * path = gtk_tree_model_get_path(model, &iter);
-		gint* rows = gtk_tree_path_get_indices(path);
-		if(rows) {
-			me->setRow(*rows);
-			XAP_gtk_entry_set_text(GTK_EDITABLE(me->m_entry),
-					   me->m_pBookmarks[*rows].c_str());
-		}
+	guint pos = gtk_single_selection_get_selected(select);
+	if (pos != GTK_INVALID_LIST_POSITION) {
+		me->setRow(static_cast<gint>(pos));
+		XAP_gtk_entry_set_text(GTK_EDITABLE(me->m_entry),
+					   me->m_pBookmarks[pos].c_str());
 	}
 }
 
@@ -198,23 +213,6 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
 			gtk_widget_set_hexpand(m_swindow, TRUE);
 			gtk_widget_set_vexpand(m_swindow, TRUE);
    
-  GtkListStore * store = gtk_list_store_new(1, G_TYPE_STRING);
-
-  GtkTreeView * treeview;
-  m_clist = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
-  g_object_unref (G_OBJECT (store));
-  treeview = GTK_TREE_VIEW(m_clist);
-  gtk_tree_view_set_headers_visible(treeview, FALSE);
-  gtk_tree_selection_set_mode(gtk_tree_view_get_selection(treeview), 
-							  GTK_SELECTION_BROWSE);
-
-  GtkCellRenderer *renderer = GTK_CELL_RENDERER(gtk_cell_renderer_text_new());
-  GtkTreeViewColumn *col;
-  col = gtk_tree_view_column_new_with_attributes("",
-												 renderer, "text", 0, nullptr);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), col);
-  //gtk_box_append(GTK_BOX(vbox2), m_blist);
-
   m_pBookmarks.clear();
 
   for (int i = 0; i < static_cast<int>(getExistingBookmarksCount()); i++) {
@@ -223,11 +221,24 @@ void AP_UnixDialog_InsertHyperlink::_constructWindowContents ( GtkWidget * vbox2
 
   std::sort(m_pBookmarks.begin(), m_pBookmarks.end());
 
+  GtkStringList * store = gtk_string_list_new(nullptr);
   for (int i = 0; i < static_cast<int>(getExistingBookmarksCount()); i++) {
-		  GtkTreeIter iter;
-		  gtk_list_store_append(store, &iter);
-		  gtk_list_store_set(store, &iter, 0, m_pBookmarks[i].c_str(), -1);
+		  gtk_string_list_append(store, m_pBookmarks[i].c_str());
   }
+
+  /* gtk_single_selection_new takes over the store reference
+   * (model arg is transfer full) */
+  GtkSingleSelection *selection =
+	  gtk_single_selection_new(G_LIST_MODEL(store));
+  gtk_single_selection_set_autoselect(selection, FALSE);
+  gtk_single_selection_set_can_unselect(selection, FALSE);
+
+  GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
+  g_signal_connect(factory, "setup", G_CALLBACK(s_bookmark_setup), nullptr);
+  g_signal_connect(factory, "bind", G_CALLBACK(s_bookmark_bind), nullptr);
+
+  m_clist = gtk_list_view_new(GTK_SELECTION_MODEL(selection), factory);
+  gtk_widget_set_visible(m_clist, TRUE);
 
   xap_gtk_container_add (m_swindow, m_clist);
 
@@ -290,7 +301,7 @@ GtkWidget*  AP_UnixDialog_InsertHyperlink::_constructWindow(void)
 
 void AP_UnixDialog_InsertHyperlink::_connectSignals (void)
 {
-	GtkTreeSelection *select = gtk_tree_view_get_selection(GTK_TREE_VIEW(m_clist));
-	g_signal_connect (G_OBJECT(select), "changed",
+	GtkSelectionModel *select = gtk_list_view_get_model(GTK_LIST_VIEW(m_clist));
+	g_signal_connect (G_OBJECT(select), "notify::selected-item",
 					  G_CALLBACK (s_blist_clicked), this);
 }

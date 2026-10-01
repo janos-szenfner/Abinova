@@ -38,82 +38,143 @@
 #include "ap_Dialog_Id.h"
 #include "ap_UnixDialog_Stylist.h"
 
-static gint s_compare (GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer /*userdata*/)
-{
-	GtkTreePath *path;
-	gint depth, row1, row2, res;
-	gchar *style1, *style2;
+#include <algorithm>
+#include <string>
+#include <vector>
 
-	path = gtk_tree_model_get_path(model, a);	
-	depth = gtk_tree_path_get_depth(path);
-	
-	if (depth == 1)
-	{
-		gtk_tree_model_get(model, a, 1, &row1, -1);
-		gtk_tree_model_get(model, b, 1, &row2, -1);
-		
-		res = row1 - row2;
-	}
-	else
-	{
-		gtk_tree_model_get(model, a, 0, &style1, -1);
-		gtk_tree_model_get(model, b, 0, &style2, -1);
-	
-		res = g_utf8_collate(style1, style2);
-	
-		g_free(style1);
-		g_free(style2);
-	}
-	
-	gtk_tree_path_free(path);
-	
-	return res;
+/* Item objects for the style list model: depth-0 items are the style
+ * categories ("Heading styles" etc.) and carry their child styles in a
+ * GListModel; depth-1 items are the styles themselves and store the XP
+ * (row, col) coordinates that styleClicked expects. */
+#define ABI_TYPE_STYLE_ITEM (abi_style_item_get_type ())
+G_DECLARE_FINAL_TYPE (AbiStyleItem, abi_style_item, ABI, STYLE_ITEM, GObject)
+
+struct _AbiStyleItem
+{
+	GObject parent_instance;
+	gchar *name;            /* localized display name */
+	gint row;
+	gint col;
+	GListModel *children;   /* GListStore of AbiStyleItem, or NULL */
+};
+
+G_DEFINE_TYPE (AbiStyleItem, abi_style_item, G_TYPE_OBJECT)
+
+static void
+abi_style_item_init (AbiStyleItem * /*self*/)
+{
 }
 
-static void s_types_clicked(GtkTreeView *treeview,
-                            AP_UnixDialog_Stylist * dlg)
+static void
+abi_style_item_finalize (GObject *object)
 {
-	UT_ASSERT(treeview && dlg);
+	AbiStyleItem *item = ABI_STYLE_ITEM (object);
+	g_free (item->name);
+	g_clear_object (&item->children);
+	G_OBJECT_CLASS (abi_style_item_parent_class)->finalize (object);
+}
 
-	GtkTreeSelection * selection;
-	GtkTreeIter iter;
-	GtkTreeModel * model;
-	UT_sint32 row,col;
+static void
+abi_style_item_class_init (AbiStyleItemClass *klass)
+{
+	G_OBJECT_CLASS (klass)->finalize = abi_style_item_finalize;
+}
 
-	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(treeview) );
-	if (!selection || !gtk_tree_selection_get_selected (selection, &model, &iter)) {
+/* takes over the children reference */
+static AbiStyleItem *
+abi_style_item_new (const gchar *name, gint row, gint col,
+					GListModel *children)
+{
+	AbiStyleItem *item =
+		ABI_STYLE_ITEM (g_object_new (ABI_TYPE_STYLE_ITEM, nullptr));
+	item->name = g_strdup (name);
+	item->row = row;
+	item->col = col;
+	item->children = children;
+	return item;
+}
+
+static GListModel *
+s_style_create_model (gpointer item, gpointer /*data*/)
+{
+	AbiStyleItem *it = ABI_STYLE_ITEM (item);
+	return it->children ? G_LIST_MODEL (g_object_ref (it->children))
+						: nullptr;
+}
+
+static void
+s_style_setup (GtkSignalListItemFactory * /*factory*/,
+			   GtkListItem *item,
+			   gpointer /*data*/)
+{
+	GtkWidget *expander = gtk_tree_expander_new ();
+	GtkWidget *label = gtk_label_new (nullptr);
+	gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+	gtk_tree_expander_set_child (GTK_TREE_EXPANDER (expander), label);
+	gtk_list_item_set_child (item, expander);
+}
+
+static void
+s_style_bind (GtkSignalListItemFactory * /*factory*/,
+			  GtkListItem *item,
+			  gpointer /*data*/)
+{
+	GtkTreeListRow *row =
+		GTK_TREE_LIST_ROW (gtk_list_item_get_item (item));
+	GtkTreeExpander *expander =
+		GTK_TREE_EXPANDER (gtk_list_item_get_child (item));
+	gtk_tree_expander_set_list_row (expander, row);
+	AbiStyleItem *it =
+		ABI_STYLE_ITEM (gtk_tree_list_row_get_item (row));
+	gtk_label_set_text (GTK_LABEL (gtk_tree_expander_get_child (expander)),
+						it->name);
+	/* category headings are display-only, like the old select filter */
+	gboolean isStyle = gtk_tree_list_row_get_depth (row) > 0;
+	gtk_list_item_set_selectable (item, isStyle);
+	gtk_list_item_set_activatable (item, isStyle);
+	g_object_unref (it);
+}
+
+static void
+s_types_clicked (GtkSingleSelection *selection,
+				 GParamSpec * /*pspec*/,
+				 AP_UnixDialog_Stylist *dlg)
+{
+	UT_ASSERT (selection && dlg);
+
+	gpointer item = gtk_single_selection_get_selected_item (selection);
+	if (!item || !GTK_IS_TREE_LIST_ROW (item))
 		return;
+
+	AbiStyleItem *it = ABI_STYLE_ITEM (
+		gtk_tree_list_row_get_item (GTK_TREE_LIST_ROW (item)));
+	if (it)
+	{
+		dlg->styleClicked (it->row, it->col);
+		g_object_unref (it);
 	}
-
-	// Get the row and col number
-	GValue value;
-	memset(&value, 0, sizeof(value));
-	gtk_tree_model_get_value (model, &iter,1,&value);
-	row = g_value_get_int(&value);
-	g_value_unset (&value);
-	gtk_tree_model_get_value (model, &iter,2,&value);
-	col = g_value_get_int(&value);
-	dlg->styleClicked(row,col);
 }
 
-static gboolean
-tree_select_filter (GtkTreeSelection * /*selection*/, GtkTreeModel * /*model*/,
-								  GtkTreePath *path, gboolean /*path_selected*/,
-								  gpointer /*data*/)
-{
-	if (gtk_tree_path_get_depth (path) > 1)
-		return TRUE;
-	return FALSE;
-}
-
-static void s_types_dblclicked(GtkTreeView *treeview,
-							   GtkTreePath * /*arg1*/,
-							   GtkTreeViewColumn * /*arg2*/,
+static void s_types_dblclicked(GtkListView *listview,
+							   guint pos,
 							   AP_UnixDialog_Stylist * me)
 {
+	GtkSelectionModel *selection = gtk_list_view_get_model (listview);
+	GListModel *model =
+		gtk_single_selection_get_model (GTK_SINGLE_SELECTION (selection));
+	GtkTreeListRow *row =
+		GTK_TREE_LIST_ROW (g_list_model_get_item (model, pos));
+	AbiStyleItem *it =
+		ABI_STYLE_ITEM (gtk_tree_list_row_get_item (row));
+
 	// simulate the effects of a single click
-	s_types_clicked (treeview, me);
-	me->event_Apply ();
+	if (it)
+	{
+		me->styleClicked (it->row, it->col);
+		g_object_unref (it);
+		me->event_Apply ();
+	}
+	g_object_unref (row);
 }
 
 static gboolean s_destroy_clicked (GtkWidget * /*wid*/, AP_UnixDialog_Stylist * me )
@@ -144,10 +205,8 @@ XAP_Dialog * AP_UnixDialog_Stylist::static_constructor(XAP_DialogFactory * pFact
 
 AP_UnixDialog_Stylist::AP_UnixDialog_Stylist(XAP_DialogFactory * pDlgFactory,
 												   XAP_Dialog_Id id)
-	: AP_Dialog_Stylist(pDlgFactory,id), 
+	: AP_Dialog_Stylist(pDlgFactory,id),
 	  m_wStyleList(nullptr),
-	  m_wRenderer(nullptr),
-	  m_wModel(nullptr),
 	  m_wStyleListContainer(nullptr)
 {
 }
@@ -163,9 +222,6 @@ void AP_UnixDialog_Stylist::event_Close(void)
 
 void AP_UnixDialog_Stylist::setStyleInGUI(void)
 {
-	GtkTreeIter child, parent;
-	gboolean itering;
-	gchar *entry;
 	std::string sLocCurStyle;
 	std::string sCurStyle = getCurStyle();
 
@@ -180,46 +236,85 @@ void AP_UnixDialog_Stylist::setStyleInGUI(void)
 
 	pt_PieceTable::s_getLocalisedStyleName(sCurStyle.c_str(), sLocCurStyle);
 
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(m_wStyleList));
-	itering = gtk_tree_model_get_iter_first(model, &parent);
+	GtkSelectionModel *selection =
+		gtk_list_view_get_model(GTK_LIST_VIEW(m_wStyleList));
+	GListModel *model =
+		gtk_single_selection_get_model(GTK_SINGLE_SELECTION(selection));
 
-	GtkTreePath *gPathFull = nullptr;
-	GtkTreePath *gPathRow = nullptr;
-	while (itering)
+	// find the matching style item inside its (still collapsed)
+	// category's child model
+	GtkTreeListRow *parentRow = nullptr;
+	AbiStyleItem *target = nullptr;
+	guint n = g_list_model_get_n_items(model);
+	for (guint i = 0; i < n && !target; i++)
 	{
-		if (gtk_tree_model_iter_children(model, &child, &parent))
+		GtkTreeListRow *row =
+			GTK_TREE_LIST_ROW(g_list_model_get_item(model, i));
+		if (!row)
+			break;
+		if (gtk_tree_list_row_get_depth(row) == 0)
 		{
-			do
+			GListModel *children = gtk_tree_list_row_get_children(row);
+			if (children)
 			{
-				gtk_tree_model_get(model, &child, 0, &entry, -1);
-
-				if (entry && sLocCurStyle.c_str() == entry)
+				guint cn = g_list_model_get_n_items(children);
+				for (guint j = 0; j < cn; j++)
 				{
-					g_free(entry);
-					gPathFull = gtk_tree_model_get_path(model, &child);
-					gPathRow = gtk_tree_model_get_path(model, &parent);
-					itering = FALSE;
-					break;
+					AbiStyleItem *it = ABI_STYLE_ITEM(
+						g_list_model_get_item(children, j));
+					bool match = it && it->name &&
+						sLocCurStyle == it->name;
+					if (match)
+					{
+						target = it; // keep the ref
+						parentRow = row;
+						break;
+					}
+					if (it)
+						g_object_unref(it);
 				}
-
-				g_free(entry);
-
 			}
-			while (gtk_tree_model_iter_next(model, &child));
 		}
-
-		if (itering)
-			itering = gtk_tree_model_iter_next(model, &parent);
+		if (row != parentRow)
+			g_object_unref(row);
 	}
 
-	if (gPathRow) {
-		gtk_tree_view_expand_row(GTK_TREE_VIEW(m_wStyleList), gPathRow, TRUE);
-		gtk_tree_path_free(gPathRow);
-	}
-	if (gPathFull) {
-		gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(m_wStyleList), gPathFull, nullptr, TRUE, 0.5, 0.5);
-		gtk_tree_view_set_cursor(GTK_TREE_VIEW(m_wStyleList), gPathFull, nullptr, TRUE);
-		gtk_tree_path_free(gPathFull);
+	if (target)
+	{
+		gtk_tree_list_row_set_expanded(parentRow, TRUE);
+		g_object_unref(parentRow);
+
+		// the children slot in right after their parent row; find the
+		// flat position of the matching item
+		guint pos = GTK_INVALID_LIST_POSITION;
+		guint m = g_list_model_get_n_items(model);
+		for (guint k = 0; k < m; k++)
+		{
+			GtkTreeListRow *row =
+				GTK_TREE_LIST_ROW(g_list_model_get_item(model, k));
+			if (!row)
+				break;
+			gpointer item = gtk_tree_list_row_get_item(row);
+			bool found = (item == target);
+			if (item)
+				g_object_unref(item);
+			g_object_unref(row);
+			if (found)
+			{
+				pos = k;
+				break;
+			}
+		}
+		g_object_unref(target);
+
+		if (pos != GTK_INVALID_LIST_POSITION)
+		{
+			gtk_list_view_scroll_to(GTK_LIST_VIEW(m_wStyleList), pos,
+									static_cast<GtkListScrollFlags>(
+										GTK_LIST_SCROLL_FOCUS |
+										GTK_LIST_SCROLL_SELECT),
+									nullptr);
+		}
 	}
 	setStyleChanged(false);
 }
@@ -229,7 +324,6 @@ void AP_UnixDialog_Stylist::destroy(void)
 	finalize();
 	abiDestroyWidget(m_windowMain); // TOPLEVEL
 	m_windowMain = nullptr;
-	m_wRenderer = nullptr;
 	m_wStyleList = nullptr;
 }
 
@@ -359,25 +453,13 @@ void  AP_UnixDialog_Stylist::_fillTree(void)
 		pStyleTree = getStyleTree();
 	}
 	UT_DEBUGMSG(("Number of rows of styles in document %d \n", pStyleTree->getNumRows()));
-	if (m_wRenderer)
-	{
-//		g_object_unref (G_OBJECT (m_wRenderer));
-		xap_gtk_container_remove (gtk_widget_get_parent(m_wStyleList), m_wStyleList);
-		m_wStyleList = nullptr;
-	}
 
-	GtkTreeIter iter;
-	GtkTreeIter child_iter;
-	GtkTreeSelection *sel;
-	UT_sint32 row,col, page;
+	GListStore *root = g_list_store_new (ABI_TYPE_STYLE_ITEM);
+	UT_sint32 row, col;
 
-	m_wModel = gtk_tree_store_new (3, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT);
-
-	page = 0;
 	std::string sTmp, sLoc;
 	for (row = 0; row < pStyleTree->getNumRows(); row++)
 	{
-		gtk_tree_store_append (m_wModel, &iter, nullptr);
 		if (!pStyleTree->getNameOfRow(sTmp, row))
 		{
 			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
@@ -387,10 +469,13 @@ void  AP_UnixDialog_Stylist::_fillTree(void)
 		{
 			xxx_UT_DEBUGMSG(("Adding Heading %s at row %d \n", sTmp.c_str(), row));
 
-			gtk_tree_store_set (m_wModel, &iter, 0, sTmp.c_str(), 1, row,2,0, -1);
+			/* children are shown sorted by their localized name, like
+			 * the old tree-sortable collation; categories keep their
+			 * insertion order */
+			struct StyleEntry { std::string label; gint col; };
+			std::vector<StyleEntry> styles;
 			for (col = 0; col < pStyleTree->getNumCols(row); col++)
 			{
-				gtk_tree_store_append(m_wModel, &child_iter, &iter);
 				std::string style;
 				if (!pStyleTree->getStyleAtRowCol(style, row, col))
 				{
@@ -399,53 +484,81 @@ void  AP_UnixDialog_Stylist::_fillTree(void)
 				}
 				pt_PieceTable::s_getLocalisedStyleName(style.c_str(), sLoc);
 				xxx_UT_DEBUGMSG(("Adding style %s at row %d col %d \n", sLoc.c_str(), row, col + 1));
-				gtk_tree_store_set(m_wModel, &child_iter, 0, sLoc.c_str(), 1, row, 2, col + 1, -1);
-				page++;
+				styles.push_back({sLoc, col + 1});
 			}
+			std::sort(styles.begin(), styles.end(),
+					  [](const StyleEntry &a, const StyleEntry &b) {
+						  return g_utf8_collate(a.label.c_str(),
+												b.label.c_str()) < 0;
+					  });
+			GListStore *children = g_list_store_new (ABI_TYPE_STYLE_ITEM);
+			for (const StyleEntry &st : styles)
+			{
+				AbiStyleItem *it = abi_style_item_new (st.label.c_str(),
+													 row, st.col, nullptr);
+				g_list_store_append (children, it);
+				g_object_unref (it);
+			}
+			AbiStyleItem *it = abi_style_item_new (sTmp.c_str(), row, 0,
+												 G_LIST_MODEL (children));
+			g_list_store_append (root, it);
+			g_object_unref (it);
 		}
 		else
 		{
 			pt_PieceTable::s_getLocalisedStyleName(sTmp.c_str(), sLoc);
 			xxx_UT_DEBUGMSG(("Adding style %s at row %d \n", sLoc.c_str(), row));
-			gtk_tree_store_set(m_wModel, &iter, 0, sLoc.c_str(), 1, row, 2, 0, -1);
-			page++;
+			AbiStyleItem *it = abi_style_item_new (sLoc.c_str(), row, 0,
+												 nullptr);
+			g_list_store_append (root, it);
+			g_object_unref (it);
 		}
 	}
 
-	// create a new treeview
-	GtkTreeSortable *sort = GTK_TREE_SORTABLE(m_wModel);
-	gtk_tree_sortable_set_sort_func(sort, 0, s_compare, nullptr, nullptr);
-	gtk_tree_sortable_set_sort_column_id(sort, 0, GTK_SORT_ASCENDING);
-	m_wStyleList = gtk_tree_view_new_with_model (GTK_TREE_MODEL (sort));
-	g_object_unref (G_OBJECT (m_wModel));
 
-	// get the current selection
-	sel = gtk_tree_view_get_selection (GTK_TREE_VIEW (m_wStyleList));
-	gtk_tree_selection_set_mode (sel, GTK_SELECTION_BROWSE);
-	gtk_tree_selection_set_select_function (sel, tree_select_filter,
-														 nullptr, nullptr);
 
-	const XAP_StringSet * pSS = m_pApp->getStringSet ();
-	m_wRenderer = gtk_cell_renderer_text_new ();
-	std::string s;
-	pSS->getValueUTF8(AP_STRING_ID_DLG_Stylist_Styles,s);
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (m_wStyleList),
-												 -1, s.c_str(),
-												 m_wRenderer, "text", 0, nullptr);
+	/* the flat model consumed by the GtkListView; rows start collapsed */
+	GtkTreeListModel *treemodel =
+		gtk_tree_list_model_new (G_LIST_MODEL (root), FALSE, FALSE,
+								 s_style_create_model, nullptr, nullptr);
 
-	gtk_tree_view_collapse_all (GTK_TREE_VIEW (m_wStyleList));
-	xap_gtk_container_add (m_wStyleListContainer, m_wStyleList);
+	if (m_wStyleList == nullptr)
+	{
+		GtkSingleSelection *sel = gtk_single_selection_new (
+			G_LIST_MODEL (g_object_ref (treemodel)));
+		gtk_single_selection_set_autoselect (sel, FALSE);
+		gtk_single_selection_set_can_unselect (sel, FALSE);
 
-	g_signal_connect_after(G_OBJECT(m_wStyleList),
-						   "cursor-changed",
-						   G_CALLBACK(s_types_clicked),
-						   static_cast<gpointer>(this));
+		GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
+		g_signal_connect (factory, "setup", G_CALLBACK (s_style_setup),
+						  nullptr);
+		g_signal_connect (factory, "bind", G_CALLBACK (s_style_bind),
+						  nullptr);
 
-	g_signal_connect_after(G_OBJECT(m_wStyleList),
-						   "row-activated",
-						   G_CALLBACK(s_types_dblclicked),
-						   static_cast<gpointer>(this));
-	gtk_widget_set_visible(m_wStyleList, TRUE);
+		m_wStyleList = gtk_list_view_new (GTK_SELECTION_MODEL (sel),
+										factory);
+		xap_gtk_container_add (m_wStyleListContainer, m_wStyleList);
+
+		g_signal_connect (G_OBJECT (sel),
+						  "notify::selected-item",
+						  G_CALLBACK (s_types_clicked),
+						  static_cast<gpointer> (this));
+
+		g_signal_connect (G_OBJECT (m_wStyleList),
+						  "activate",
+						  G_CALLBACK (s_types_dblclicked),
+						  static_cast<gpointer> (this));
+		gtk_widget_set_visible (m_wStyleList, TRUE);
+	}
+	else
+	{
+		gtk_single_selection_set_model (
+			GTK_SINGLE_SELECTION (
+				gtk_list_view_get_model (GTK_LIST_VIEW (m_wStyleList))),
+			G_LIST_MODEL (treemodel));
+	}
+	g_object_unref (treemodel);
+
 	setStyleTreeChanged(false);
 }
 

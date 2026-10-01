@@ -2342,6 +2342,15 @@ below are on `main` but the release has not been cut yet.
   conversion; `startPrint`/`startPage`/`endPrint` NULL-check the
   cairo context and `endPrint` resets the show-page flag (also fixed
   a duplicated `GR_CairoPrintGraphics::` qualified name).
+- **Last `GtkTreeView` dialogs ported to GTK4 list widgets** — the
+  Insert Hyperlink bookmark list is now a `GtkListView` over a
+  `GtkStringList`; the Revisions list is a `GtkColumnView` over a
+  `GListStore` of row objects with clickable column-header sorting
+  (still opening on newest-first by date) and double-click/Enter to
+  accept; the Stylist is a `GtkListView` over a `GtkTreeListModel`
+  with `GtkTreeExpander` rows — style categories still expand and
+  can't be selected, double-click applies the style, and the current
+  style auto-expands and scrolls into view.
 
 ### Performance
 

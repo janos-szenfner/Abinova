@@ -40,24 +40,152 @@
 #include "ap_UnixDialog_ListRevisions.h"
 
 
-void 
-AP_UnixDialog_ListRevisions::select_row_cb(GtkTreeSelection * select, 
+/* One row object per document revision for the GtkColumnView model. */
+#define ABI_TYPE_REV_ROW (abi_rev_row_get_type())
+G_DECLARE_FINAL_TYPE (AbiRevRow, abi_rev_row, ABI, REV_ROW, GObject)
+
+struct _AbiRevRow
+{
+	GObject parent_instance;
+	guint revid;
+	gchar *comment;
+	gchar *date;
+	gint64 timet;
+};
+
+G_DEFINE_TYPE (AbiRevRow, abi_rev_row, G_TYPE_OBJECT)
+
+static void
+abi_rev_row_init (AbiRevRow * /*self*/)
+{
+}
+
+static void
+abi_rev_row_finalize (GObject *object)
+{
+	AbiRevRow *row = ABI_REV_ROW (object);
+	g_free (row->comment);
+	g_free (row->date);
+	G_OBJECT_CLASS (abi_rev_row_parent_class)->finalize (object);
+}
+
+static void
+abi_rev_row_class_init (AbiRevRowClass *klass)
+{
+	G_OBJECT_CLASS (klass)->finalize = abi_rev_row_finalize;
+}
+
+static AbiRevRow *
+abi_rev_row_new (guint revid, const gchar *comment,
+				 const gchar *date, gint64 timet)
+{
+	AbiRevRow *row =
+		ABI_REV_ROW (g_object_new (ABI_TYPE_REV_ROW, nullptr));
+	row->revid = revid;
+	row->comment = g_strdup (comment);
+	row->date = g_strdup (date);
+	row->timet = timet;
+	return row;
+}
+
+static void
+s_rev_setup (GtkSignalListItemFactory * /*factory*/,
+			 GtkListItem *item,
+			 gpointer /*data*/)
+{
+	GtkWidget *label = gtk_label_new (nullptr);
+	gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+	gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
+	gtk_list_item_set_child (item, label);
+}
+
+static void
+s_rev_bind_comment (GtkSignalListItemFactory * /*factory*/,
+					GtkListItem *item,
+					gpointer /*data*/)
+{
+	AbiRevRow *row = ABI_REV_ROW (gtk_list_item_get_item (item));
+	gtk_label_set_text (GTK_LABEL (gtk_list_item_get_child (item)),
+						row->comment ? row->comment : "");
+}
+
+static void
+s_rev_bind_date (GtkSignalListItemFactory * /*factory*/,
+				 GtkListItem *item,
+				 gpointer /*data*/)
+{
+	AbiRevRow *row = ABI_REV_ROW (gtk_list_item_get_item (item));
+	gtk_label_set_text (GTK_LABEL (gtk_list_item_get_child (item)),
+						row->date ? row->date : "");
+}
+
+static void
+s_rev_bind_revid (GtkSignalListItemFactory * /*factory*/,
+				  GtkListItem *item,
+				  gpointer /*data*/)
+{
+	AbiRevRow *row = ABI_REV_ROW (gtk_list_item_get_item (item));
+	gchar *buf = g_strdup_printf ("%u", row->revid);
+	gtk_label_set_text (GTK_LABEL (gtk_list_item_get_child (item)), buf);
+	g_free (buf);
+}
+
+static GtkListItemFactory *
+s_rev_factory (void (*bind) (GtkSignalListItemFactory *,
+							 GtkListItem *, gpointer))
+{
+	GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
+	g_signal_connect (factory, "setup", G_CALLBACK (s_rev_setup), nullptr);
+	g_signal_connect (factory, "bind", G_CALLBACK (bind), nullptr);
+	return factory;
+}
+
+static gint
+s_sort_rev_comment (gconstpointer p1, gconstpointer p2, gpointer /*data*/)
+{
+	const AbiRevRow *a = static_cast<const AbiRevRow *>(p1);
+	const AbiRevRow *b = static_cast<const AbiRevRow *>(p2);
+	return g_utf8_collate (a->comment ? a->comment : "",
+						   b->comment ? b->comment : "");
+}
+
+static gint
+s_sort_rev_timet (gconstpointer p1, gconstpointer p2, gpointer /*data*/)
+{
+	const AbiRevRow *a = static_cast<const AbiRevRow *>(p1);
+	const AbiRevRow *b = static_cast<const AbiRevRow *>(p2);
+	return (a->timet > b->timet) - (a->timet < b->timet);
+}
+
+static gint
+s_sort_rev_id (gconstpointer p1, gconstpointer p2, gpointer /*data*/)
+{
+	const AbiRevRow *a = static_cast<const AbiRevRow *>(p1);
+	const AbiRevRow *b = static_cast<const AbiRevRow *>(p2);
+	return (a->revid > b->revid) - (a->revid < b->revid);
+}
+
+void
+AP_UnixDialog_ListRevisions::select_row_cb(GtkSingleSelection * select,
+										   GParamSpec * /*pspec*/,
 										   AP_UnixDialog_ListRevisions * me )
 {
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	if(gtk_tree_selection_get_selected(select, &model, &iter))
+	gpointer item = gtk_single_selection_get_selected_item (select);
+	if (item)
     {
-        me->select_Row (iter);
+        me->select_Row (ABI_REV_ROW (item)->revid);
     }
+	else
+	{
+		me->unselect_Row ();
+	}
 }
 
 
-void 
-AP_UnixDialog_ListRevisions::row_activated_cb(GtkTreeView *, 
-											  GtkTreePath *, 
-											  GtkTreeViewColumn*, 
-											  AP_UnixDialog_ListRevisions * me) 
+void
+AP_UnixDialog_ListRevisions::row_activated_cb(GtkColumnView *,
+											  guint /*pos*/,
+											  AP_UnixDialog_ListRevisions * me)
 {
 	UT_DEBUGMSG(("row_activated\n"));
 	gtk_dialog_response(GTK_DIALOG(me->m_mainWindow), BUTTON_OK);
@@ -77,14 +205,14 @@ AP_UnixDialog_ListRevisions::AP_UnixDialog_ListRevisions(XAP_DialogFactory * pDl
 							 XAP_Dialog_Id id)
   : AP_Dialog_ListRevisions(pDlgFactory,id)
   , m_mainWindow(nullptr)
-  , m_treeModel(nullptr)
+  , m_store(nullptr)
 {
 }
 
 AP_UnixDialog_ListRevisions::~AP_UnixDialog_ListRevisions(void)
 {
-  if (m_treeModel)
-    g_object_unref (G_OBJECT (m_treeModel));
+  if (m_store)
+    g_object_unref (G_OBJECT (m_store));
 }
 
 void AP_UnixDialog_ListRevisions::runModal(XAP_Frame * pFrame)
@@ -115,12 +243,10 @@ void AP_UnixDialog_ListRevisions::event_OK ()
   m_answer = AP_Dialog_ListRevisions::a_OK ;
 }
 
-void AP_UnixDialog_ListRevisions::select_Row (GtkTreeIter iter)
+void AP_UnixDialog_ListRevisions::select_Row (guint id)
 {
-    guint t = 0;
-    gtk_tree_model_get (GTK_TREE_MODEL(m_treeModel), &iter, COL_REVID, &t, -1);
-    m_iId = t;
-    UT_DEBUGMSG(("DOM: select row: %d\n", m_iId));  
+    m_iId = id;
+    UT_DEBUGMSG(("DOM: select row: %d\n", m_iId));
 }
 
 void AP_UnixDialog_ListRevisions::unselect_Row()
@@ -182,90 +308,95 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
   xap_gtk_container_add (vbContent, swExistingRevisions);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (swExistingRevisions), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  m_treeModel = gtk_list_store_new(4, G_TYPE_UINT, G_TYPE_STRING,
-                                   G_TYPE_STRING, G_TYPE_LONG );
+  m_store = g_list_store_new(ABI_TYPE_REV_ROW);
 
-  clExistingRevisions = gtk_tree_view_new_with_model (GTK_TREE_MODEL(m_treeModel));
-  gtk_widget_show (clExistingRevisions);
+  GtkSortListModel *sortModel =
+	  gtk_sort_list_model_new(G_LIST_MODEL(g_object_ref(m_store)), nullptr);
+  GtkSingleSelection *selection =
+	  gtk_single_selection_new(G_LIST_MODEL(sortModel));
+  gtk_single_selection_set_autoselect(selection, FALSE);
+  gtk_single_selection_set_can_unselect(selection, TRUE);
+
+  clExistingRevisions = gtk_column_view_new (GTK_SELECTION_MODEL(selection));
+  gtk_widget_set_visible(clExistingRevisions, TRUE);
   xap_gtk_container_add (swExistingRevisions, clExistingRevisions);
 
-  // Note that columns are displayed in a different order to the model,
-  // data from col2 is shown in the first column in the view.
-  GtkCellRenderer *renderer = gtk_cell_renderer_text_new ();
-  GtkTreeViewColumn *col;
+  GtkColumnView *view = GTK_COLUMN_VIEW(clExistingRevisions);
+  GtkColumnViewColumn *col;
+  GtkColumnViewColumn *dateCol;
+  GtkSorter *sorter;
 
   // comment column
-  col = gtk_tree_view_column_new_with_attributes(getColumn3Label(),
-												 renderer, "text", COL_COMMENT, nullptr);
-  gtk_tree_view_column_set_sort_column_id(col, COL_COMMENT);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(clExistingRevisions), col);
+  col = gtk_column_view_column_new(getColumn3Label(),
+								   s_rev_factory(s_rev_bind_comment));
+  sorter = GTK_SORTER(gtk_custom_sorter_new(s_sort_rev_comment,
+											nullptr, nullptr));
+  gtk_column_view_column_set_sorter(col, sorter);
+  g_object_unref(sorter);
+  gtk_column_view_column_set_expand(col, TRUE);
+  gtk_column_view_append_column(view, col);
+  g_object_unref(col);
 
   // revision date column
-  col = gtk_tree_view_column_new_with_attributes(getColumn2Label(),
-												 renderer, "text", COL_DATE_STRING, nullptr);
-  // we sort on the numerical tt column instead of the human readable text
-  gtk_tree_view_column_set_sort_column_id(col, COL_DATE_AS_TIMET);
-  // later we sort on date desc.
-  gtk_tree_view_column_set_sort_order( col, GTK_SORT_DESCENDING);
-  gtk_tree_view_column_set_fixed_width(col, 80);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(clExistingRevisions), col);
+  col = gtk_column_view_column_new(getColumn2Label(),
+								   s_rev_factory(s_rev_bind_date));
+  // we sort on the numerical timet instead of the human readable text
+  sorter = GTK_SORTER(gtk_custom_sorter_new(s_sort_rev_timet,
+											nullptr, nullptr));
+  gtk_column_view_column_set_sorter(col, sorter);
+  g_object_unref(sorter);
+  gtk_column_view_column_set_fixed_width(col, 120);
+  gtk_column_view_append_column(view, col);
+  dateCol = col;
+  g_object_unref(col);
 
-  
   // revision # column
-  col = gtk_tree_view_column_new_with_attributes(getColumn1Label(),
-												 renderer, "text", COL_REVID, nullptr);
-  gtk_tree_view_column_set_fixed_width(col, 80);
-  gtk_tree_view_column_set_sort_column_id(col, COL_REVID);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(clExistingRevisions), col);
+  col = gtk_column_view_column_new(getColumn1Label(),
+								   s_rev_factory(s_rev_bind_revid));
+  sorter = GTK_SORTER(gtk_custom_sorter_new(s_sort_rev_id,
+											nullptr, nullptr));
+  gtk_column_view_column_set_sorter(col, sorter);
+  g_object_unref(sorter);
+  gtk_column_view_column_set_fixed_width(col, 80);
+  gtk_column_view_append_column(view, col);
+  g_object_unref(col);
 
-
-  
-  gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(clExistingRevisions), TRUE);
-
-
-  
-//  g_object_freeze_notify(G_OBJECT(m_treeModel));
+  // clicking a column header sorts on that column's sorter
+  gtk_sort_list_model_set_sorter(sortModel,
+								 gtk_column_view_get_sorter(view));
+  // initial sort is date desc.
+  gtk_column_view_sort_by_column(view, dateCol, GTK_SORT_DESCENDING);
 
   UT_uint32 itemCnt = getItemCount () ;
 
   UT_DEBUGMSG(("DOM: %d items\n", itemCnt));
 
-  GtkTreeIter iter;
   for ( UT_uint32 i = 0; i < itemCnt; i++ )
   {
     char buf [ 35 ] ;
 
     g_snprintf(buf, 35, "%d", getNthItemId(i));
-    gtk_list_store_append(m_treeModel, &iter);
 
     gchar * txt = getNthItemText(i, true);
     gchar * itemtime = g_locale_to_utf8(getNthItemTime(i), -1, nullptr, nullptr, nullptr);
-    gtk_list_store_set(m_treeModel, &iter,
-                       COL_REVID,         getNthItemId(i),
-                       COL_DATE_STRING,   itemtime?itemtime:"",
-                       COL_COMMENT,       txt,
-                       COL_DATE_AS_TIMET, getNthItemTimeT(i),
-                       -1);
+    AbiRevRow *row = abi_rev_row_new(getNthItemId(i),
+									 txt ? txt : "",
+									 itemtime ? itemtime : "",
+									 getNthItemTimeT(i));
+    g_list_store_append(m_store, row);
+    g_object_unref(row);
     UT_DEBUGMSG(("appending revision %s : %s, %s\n", itemtime, buf, txt));
 
     g_free(itemtime);
 
     FREEP(txt);
   }
-//  g_object_thaw_notify(G_OBJECT(list_store));
 
-//  gtk_clist_select_row (GTK_CLIST (clExistingRevisions), 0, 0);
-
-  GtkTreeSelection *select = gtk_tree_view_get_selection(GTK_TREE_VIEW(clExistingRevisions));
-  gtk_tree_selection_set_mode (select, GTK_SELECTION_SINGLE);
-  g_signal_connect (G_OBJECT(select), "changed",
+  g_signal_connect (G_OBJECT(selection), "notify::selected-item",
 					G_CALLBACK(select_row_cb), this);
 
   g_signal_connect(G_OBJECT(clExistingRevisions),
-		   "row-activated",
+		   "activate",
 		   G_CALLBACK(row_activated_cb),
 		   static_cast<gpointer>(this));
-
-  gtk_tree_sortable_set_sort_column_id( GTK_TREE_SORTABLE(m_treeModel),
-                                        3, GTK_SORT_DESCENDING );
 }

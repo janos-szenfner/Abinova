@@ -46,10 +46,10 @@ class AP_UnixDialog_ListRevisions: public AP_Dialog_ListRevisions
 
 	virtual GtkWidget * constructWindow () ;
 
-	static void select_row_cb(GtkTreeSelection * select,
-							   AP_UnixDialog_ListRevisions * me);
-	static void row_activated_cb(GtkTreeView *, GtkTreePath *,
-								 GtkTreeViewColumn*,
+	static void select_row_cb(GtkSingleSelection * select,
+							  GParamSpec * pspec,
+							  AP_UnixDialog_ListRevisions * me);
+	static void row_activated_cb(GtkColumnView *, guint pos,
 								 AP_UnixDialog_ListRevisions * me);
 
 	void event_OK () ;
@@ -59,18 +59,9 @@ class AP_UnixDialog_ListRevisions: public AP_Dialog_ListRevisions
 
 	void constructWindowContents ( GtkWidget * container ) ;
 
-	void select_Row (GtkTreeIter iter) ;
+	void select_Row (guint id) ;
 	void unselect_Row () ;
 
 	GtkWidget* m_mainWindow;
-	GtkListStore* m_treeModel;
-
-    enum: uint8_t
-    {
-        COL_REVID = 0,
-        COL_DATE_STRING,
-        COL_COMMENT,
-        COL_DATE_AS_TIMET,
-        COL_MAX
-    };
+	GListStore* m_store;
 };

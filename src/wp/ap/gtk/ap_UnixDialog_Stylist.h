@@ -55,8 +55,6 @@ private:
 	void            _fillTree(void);
 
 	GtkWidget * m_wStyleList;
-	GtkCellRenderer * m_wRenderer;
-	GtkTreeStore * m_wModel;
 	GtkWidget * m_wStyleListContainer;
 };
 
