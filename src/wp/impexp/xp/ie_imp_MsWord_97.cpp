@@ -7058,7 +7058,7 @@ void IE_Imp_MsWord_97::_handleStyleSheet(const wvParseStruct *ps)
 			}
 		}
 
-		if(pSTD->istdBase != istdNil)
+		if(pSTD->istdBase != istdNil && pSTD->istdBase < iCount)
 		{
 			attribs[iOffset++] = PT_BASEDON_ATTRIBUTE_NAME;
 			const char * t = s_translateStyleId(pSTD->istdBase);
