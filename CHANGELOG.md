@@ -2292,6 +2292,25 @@ below are on `main` but the release has not been cut yet.
     failures were a test-data path issue, not a code regression),
     `-fanalyzer` clean on all touched files and the ten largest
     fmt-layer files.
+- **Memory-leak sweep** — fixed several real leaks found by auditing
+  allocator/release pairing and running headless conversions under
+  valgrind:
+  - EPUB import no longer double-initializes documents: the importer
+    called `createRawDocument()` on the main document (already set up
+    by the file loader) and on each per-chapter scratch document before
+    `importFile()` — orphaning a whole piece table with all its
+    built-in styles (~100 KB per call) every time an `.epub` was
+    opened or pasted.
+  - The registered embeddable-manager prototypes (the built-in
+    MathML/LaTeX manager) were never deleted; they are now released
+    when the application shuts down.
+  - `UT_UCS2_mbtowc`/`UT_UCS4_mbtowc` leaked a `GError` per failed
+    iconv conversion — one per undecodable byte on bad input.
+  - HTML copy-to-buffer leaked `GError`s and could leak the temp
+    file on exporter-construction failure; DOCX export leaked a
+    `GError` when the zip sink could not be created.
+  - The text-rendering font-substitution path dropped a `PangoFont`
+    reference for every substituted item.
 
 ### GTK4 port (core migration)
 

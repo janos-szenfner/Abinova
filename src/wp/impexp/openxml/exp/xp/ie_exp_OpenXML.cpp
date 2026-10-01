@@ -124,9 +124,10 @@ UT_Error IE_Exp_OpenXML::startDocument()
 
 	if(err || !root)
 	{
-		UT_DEBUGMSG(("FRT: ERROR, Zip root file couldn't be created\n"));	
+		UT_DEBUGMSG(("FRT: ERROR, Zip root file couldn't be created\n"));
+		g_clear_error(&err);
 		g_object_unref (G_OBJECT (sink));
-		return UT_IE_COULDNOTWRITE;		
+		return UT_IE_COULDNOTWRITE;
 	}
 
 	g_object_unref (G_OBJECT (sink));

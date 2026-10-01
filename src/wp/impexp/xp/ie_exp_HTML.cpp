@@ -188,13 +188,17 @@ UT_Error IE_Exp_HTML::copyToBuffer(PD_DocumentRange * pDocRange,UT_ByteBuf *  bu
     GError *err = nullptr;
     g_file_open_tmp ("XXXXXX", &szTempFileName, &err);
     GsfOutput * outBuf =  gsf_output_stdio_new (szTempFileName,&err);
+    g_clear_error(&err);
     IEFileType ftHTML = IE_Exp::fileTypeForMimetype("text/html");
     UT_Error aerr = IE_Exp::constructExporter(outDoc,outBuf,
 											  ftHTML,(IE_Exp**)&pNewExp);
     g_object_unref(outBuf);
     if(pNewExp == nullptr)
     {
-         return aerr;
+        g_clear_error(&err);
+        g_remove(szTempFileName);
+        g_free (szTempFileName);
+        return aerr;
     }
 
 	pNewExp->suppressDialog();
@@ -214,12 +218,16 @@ UT_Error IE_Exp_HTML::copyToBuffer(PD_DocumentRange * pDocRange,UT_ByteBuf *  bu
     //
 
     GsfInput *  fData = gsf_input_stdio_new(szTempFileName,&err);
-    UT_DebugOnly<UT_sint32> siz = gsf_input_size(fData);
-    const UT_Byte * pData = gsf_input_read(fData,gsf_input_size(fData),nullptr);
-    UT_DEBUGMSG(("Writing %d bytes to clipboard \n", (UT_sint32)siz));
-    bufHTML->append( pData, gsf_input_size(fData));
+    g_clear_error(&err);
+    if (fData)
+    {
+        UT_DebugOnly<UT_sint32> siz = gsf_input_size(fData);
+        const UT_Byte * pData = gsf_input_read(fData,gsf_input_size(fData),nullptr);
+        UT_DEBUGMSG(("Writing %d bytes to clipboard \n", (UT_sint32)siz));
+        bufHTML->append( pData, gsf_input_size(fData));
 
-    g_object_unref(fData);
+        g_object_unref(fData);
+    }
     delete pNewExp;
     delete pRangeListener;
     UNREFP( outDoc);

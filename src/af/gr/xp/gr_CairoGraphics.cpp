@@ -2460,6 +2460,7 @@ void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 			PangoFontDescription * pfd = pango_font_describe (pf);
 			pango_font_description_set_size (pfd, fontSize*m_iDeviceResolution/getResolution());
 			UT_ASSERT(pfd);
+			g_object_unref(pf);
 			pf = pango_context_load_font(getLayoutContext(), pfd);
 			pango_font_description_free(pfd);
 			bClear_pf = true;

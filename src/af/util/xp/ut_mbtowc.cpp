@@ -107,6 +107,7 @@ int UT_UCS2_mbtowc::mbtowc (UT_UCS2Char & wc, char mb)
 	}
 
 	FREEP(out);
+	g_clear_error(&error);
 
 	if (bytes_written != 2 || (out == nullptr && !error))
 	{
@@ -202,6 +203,7 @@ int UT_UCS4_mbtowc::mbtowc (UT_UCS4Char & wc, char mb)
 	}
 
 	FREEP(out);
+	g_clear_error(&error);
 
 	if (bytes_written != 4 && (out == nullptr && !error))
 	{

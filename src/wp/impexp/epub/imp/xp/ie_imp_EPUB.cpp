@@ -446,7 +446,11 @@ UT_Error IE_Imp_EPUB::uncompress()
 
 UT_Error IE_Imp_EPUB::readStructure()
 {
-    getDoc()->createRawDocument();
+    /* the document already has a loading piece table (built by
+     * PD_Document::_importFile on the open path and by the caller's
+     * createRawDocument() on the paste path) -- a second
+     * createRawDocument() here would leak it
+     */
     getDoc()->finishRawCreation();
 
     bool bFirstItem = true;
@@ -468,7 +472,9 @@ UT_Error IE_Imp_EPUB::readStructure()
         std::string itemPath = iter->second;
 
         PD_Document *currentDoc = new PD_Document();
-        currentDoc->createRawDocument();
+        /* importFile() builds the piece table itself; calling
+         * createRawDocument() first would orphan it
+         */
         const char *suffix = strrchr(itemPath.c_str(), '.');
         XAP_App::getApp()->getPrefs()->setIgnoreNextRecent();
         if (currentDoc->importFile(itemPath.c_str(),

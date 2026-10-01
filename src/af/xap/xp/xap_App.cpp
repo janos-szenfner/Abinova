@@ -162,6 +162,12 @@ XAP_App::~XAP_App()
 	DELETEP(m_pImpl);
 	DELETEP(m_pScriptLibrary);
 
+	// delete the embeddable-manager prototypes still registered via
+	// registerEmbeddable() -- the app owns them once registered
+	for (auto & it : m_mapEmbedManagers)
+		delete it.second;
+	m_mapEmbedManagers.clear();
+
 	/* reset the static pointer, since it is no longer valid */
 	m_pApp = nullptr;
 }
