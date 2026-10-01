@@ -105,6 +105,10 @@ public:
 
 	inline const UT_UTF8String & getSuffix() const { return m_suffix; }
 	inline IE_Exp_HTML_NavigationHelper *getNavigationHelper() { return m_pNavigationHelper; }
+	/* path (relative to the output directory) of the first raster
+	 * image written by the file exporter; empty when the document has
+	 * none. EPUB export uses it as the cover image */
+	inline const UT_UTF8String & getFirstImageURI() const { return m_firstImageURI; }
 	void setWriterFactory(IE_Exp_HTML_WriterFactory *pWriterFactory);
 
 private:
@@ -132,5 +136,6 @@ private:
 	// We need to know file suffix to create chapters with the same suffix as the main file
 	UT_UTF8String m_suffix;
 	std::map<std::string, bool> m_mathmlFlags;
+	UT_UTF8String m_firstImageURI;
 	IE_Exp_HTML_NavigationHelper *m_pNavigationHelper;
 };

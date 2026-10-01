@@ -1722,6 +1722,17 @@ below are on `main` but the release has not been cut yet.
   and EPUB output emits XHTML5-legal markup (no `img@align`,
   `cellpadding`, or empty `rowspan`/`colspan`) with locale-independent
   CSS dimension formatting.
+- **EPUB export fidelity** — chapter splitting is now configurable by
+  heading level in the EPUB export options dialog (and via the
+  `split-level` export property), the first document image is declared
+  as the cover (`properties="cover-image"`, plus the EPUB 2
+  `meta name="cover"` convention), and footnote/endnote references
+  carry `epub:type="noteref"` links to `epub:type="footnote"` /
+  `rearnote` aside sections. Note output in split chapters is no
+  longer malformed: inline footnote/endnote sections used to close the
+  containing paragraph early, which pushed note markup (and sometimes
+  `</body>`) past the end of the document body; multi-paragraph notes
+  now export in full.
 - **Atomic file save** — `IE_Exp::writeFile` now exports to a
   `<name>.part` sibling and `rename()`s it over the target: a
   failed export, encryption failure or mid-write crash can no

@@ -50,6 +50,18 @@ UT_Error IE_Exp_EPUB::_writeDocument()
         return UT_ERROR;
     }
 
+    /* headless/scripted exports can override the chapter split depth
+     * via --exp-props (e.g. -e "split-level:2") */
+    {
+        std::string prop = getProperty("split-level");
+        if (!prop.empty())
+        {
+            m_exp_opt.iSplitLevel = atoi(prop.c_str());
+            if (m_exp_opt.iSplitLevel < 0 || m_exp_opt.iSplitLevel > 9)
+                m_exp_opt.iSplitLevel = 0;
+        }
+    }
+
     m_root = gsf_outfile_zip_new(getFp(), NULL);
 
     if (m_root == NULL)
@@ -193,18 +205,20 @@ UT_Error IE_Exp_EPUB::EPUB2_writeStructure()
     std::string indexPath = m_oebpsDir + G_DIR_SEPARATOR_S;
     indexPath += "index.xhtml";
 
-    // Exporting document to XHTML using HTML export plugin 
+    // Exporting document to XHTML using HTML export plugin
 	// We need to setup options for HTML exporter according to current settings of EPUB exporter
-	std::string htmlProps = 
-	UT_std_string_sprintf("embed-css:no;html4:no;use-awml:no;declare-xml:yes;mathml-render-png:%s;split-document:%s;add-identifiers:yes;",
+	std::string htmlProps =
+	UT_std_string_sprintf("embed-css:no;html4:no;use-awml:no;declare-xml:yes;mathml-render-png:%s;split-document:%s;split-level:%d;add-identifiers:yes;",
 		m_exp_opt.bRenderMathMLToPNG ? "yes" : "no",
-		m_exp_opt.bSplitDocument ? "yes" : "no");
+		m_exp_opt.bSplitDocument ? "yes" : "no",
+		m_exp_opt.iSplitLevel);
 
     m_pHmtlExporter = new IE_Exp_HTML(getDoc());
     m_pHmtlExporter->suppressDialog(true);
     m_pHmtlExporter->setProps(htmlProps.c_str());
     m_pHmtlExporter->writeFile(indexPath.c_str());
- 
+
+    m_coverURI = m_pHmtlExporter->getFirstImageURI().utf8_str();
 
     return UT_OK;
 }
@@ -589,11 +603,14 @@ UT_Error IE_Exp_EPUB::EPUB3_writeStructure()
     m_pHmtlExporter->setWriterFactory(pWriterFactory);
     m_pHmtlExporter->suppressDialog(true);
     m_pHmtlExporter->setProps(
-        "embed-css:no;html4:no;use-awml:no;declare-xml:yes;add-identifiers:yes;");
-    
+        UT_std_string_sprintf(
+            "embed-css:no;html4:no;use-awml:no;declare-xml:yes;add-identifiers:yes;split-level:%d;",
+            m_exp_opt.iSplitLevel).c_str());
+
     m_pHmtlExporter->set_SplitDocument(m_exp_opt.bSplitDocument);
     m_pHmtlExporter->set_MathMLRenderPNG(m_exp_opt.bRenderMathMLToPNG);
     m_pHmtlExporter->writeFile(szIndexPath);
+    m_coverURI = m_pHmtlExporter->getFirstImageURI().utf8_str();
     g_free(szIndexPath);
     DELETEP(pWriterFactory);
     return UT_OK;
@@ -684,7 +701,18 @@ UT_Error IE_Exp_EPUB::package()
             }
         }
     }
-    // </metadata> 
+    if (m_exp_opt.bEpub2 && !m_coverURI.empty())
+    {
+        // EPUB 2.0.1 cover convention: a meta entry naming the
+        // manifest id of the cover image (EPUB 3 uses the item
+        // properties="cover-image" attribute below instead)
+        gsf_xml_out_start_element(opfXml, "meta");
+        gsf_xml_out_add_cstr(opfXml, "name", "cover");
+        gsf_xml_out_add_cstr(opfXml, "content",
+                             escapeForId(m_coverURI).c_str());
+        gsf_xml_out_end_element(opfXml);
+    }
+    // </metadata>
     gsf_xml_out_end_element(opfXml);
 
     // <manifest>
@@ -705,12 +733,23 @@ UT_Error IE_Exp_EPUB::package()
         gsf_xml_out_add_cstr(opfXml, "href", (*i).c_str());
         gsf_xml_out_add_cstr(opfXml, "media-type",
                 getMimeType(fullItemPath).c_str());
+        std::string itemProps;
         if (!m_exp_opt.bEpub2 && m_pHmtlExporter->hasMathML((*i)))
         {
             // EPUB 3: a content document using MathML must declare it in
             // the item properties (the old mathml="true" attribute was
             // draft syntax and fails EPUBCheck).
-            gsf_xml_out_add_cstr(opfXml, "properties", "mathml");
+            itemProps = "mathml";
+        }
+        if (!m_exp_opt.bEpub2 && !m_coverURI.empty() && *i == m_coverURI)
+        {
+            // EPUB 3: the cover image is declared via the manifest
+            // "cover-image" property
+            itemProps += itemProps.empty() ? "cover-image" : " cover-image";
+        }
+        if (!itemProps.empty())
+        {
+            gsf_xml_out_add_cstr(opfXml, "properties", itemProps.c_str());
         }
         gsf_xml_out_end_element(opfXml);
     }
@@ -886,23 +925,45 @@ std::string IE_Exp_EPUB::escapeForId(const std::string& src)
 
 std::string IE_Exp_EPUB::getMimeType(const std::string &uri)
 {
-    const gchar *extension = strchr(uri.c_str(), '.');
+    /* OCF/EPUB requires accurate media types for manifest items.
+     * Cover the content documents, stylesheets, images, fonts and
+     * media we may emit explicitly instead of trusting the platform
+     * mime resolver. */
+    static const struct { const char *ext; const char *mime; } s_mimes[] =
+    {
+        { "xhtml", "application/xhtml+xml" },
+        { "html",  "application/xhtml+xml" },
+        { "css",   "text/css" },
+        { "ncx",   "application/x-dtbncx+xml" },
+        { "opf",   OPF_MIMETYPE },
+        { "png",   "image/png" },
+        { "jpg",   "image/jpeg" },
+        { "jpeg",  "image/jpeg" },
+        { "gif",   "image/gif" },
+        { "svg",   "image/svg+xml" },
+        { "webp",  "image/webp" },
+        { "js",    "text/javascript" },
+        { "mp3",   "audio/mpeg" },
+        { "mp4",   "video/mp4" },
+        { "m4a",   "audio/mp4" },
+        { "ttf",   "font/ttf" },
+        { "otf",   "font/otf" },
+        { "woff",  "font/woff" },
+        { "woff2", "font/woff2" },
+    };
 
-    if (extension == NULL)
+    const gchar *extension = strrchr(uri.c_str(), '.');
+
+    if (extension != NULL)
     {
-        return UT_go_get_mime_type(uri.c_str());
-    }
-    else
-    {
-        if (!UT_go_utf8_collate_casefold(extension + 1, "xhtml"))
+        for (size_t i = 0; i < G_N_ELEMENTS(s_mimes); i++)
         {
-            return "application/xhtml+xml";
-        }
-        else
-        {
-            return UT_go_get_mime_type(uri.c_str());
+            if (!g_ascii_strcasecmp(extension + 1, s_mimes[i].ext))
+                return s_mimes[i].mime;
         }
     }
+
+    return UT_go_get_mime_type(uri.c_str());
 }
 
 std::string IE_Exp_EPUB::getAuthor() const

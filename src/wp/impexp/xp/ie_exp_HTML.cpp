@@ -116,6 +116,7 @@ IE_Exp_HTML::IE_Exp_HTML(PD_Document * pDocument)
     m_exp_opt.bAbsUnits = false;
     m_exp_opt.bAddIdentifiers = false;
     m_exp_opt.iCompact = 0;
+    m_exp_opt.iSplitLevel = 0;
 
     m_error = UT_OK;
 
@@ -412,6 +413,17 @@ UT_Error IE_Exp_HTML::_writeDocument()
     if (!prop.empty())
         m_exp_opt.bSplitDocument = UT_parseBool(prop.c_str(), m_exp_opt.bSplitDocument);
 
+    prop = getProperty("split-level");
+    if (!prop.empty())
+        m_exp_opt.iSplitLevel = atoi(prop.c_str());
+
+    /* clamp: levels run 1..9 (h1..h9); 0 means "shallowest level
+     * present in the document" */
+    if (m_exp_opt.iSplitLevel < 0 || m_exp_opt.iSplitLevel > 9)
+        m_exp_opt.iSplitLevel = 0;
+    if (m_pNavigationHelper)
+        m_pNavigationHelper->setSplitLevel(m_exp_opt.iSplitLevel);
+
     prop = getProperty("abs-units");
     if (!prop.empty())
         m_exp_opt.bAbsUnits = UT_parseBool(prop.c_str(), m_exp_opt.bAbsUnits);
@@ -566,15 +578,16 @@ UT_Error IE_Exp_HTML::_writeDocument(bool /*bClipBoard*/, bool /*bTemplateBody*/
         docBegin = posEnd;
         posEnd = 0;
         currentTitle = m_pNavigationHelper->getNthTOCEntry(0, nullptr).utf8_str();
+        const int iSplitLevel = m_pNavigationHelper->getSplitLevel();
         bool isIndex = true;
-        for (int i = m_pNavigationHelper->getMinTOCIndex();
+        for (int i = m_pNavigationHelper->getFirstSplitIndex();
             i < m_pNavigationHelper->getNumTOCEntries(); i++)
         {
             UT_DEBUGMSG(("MIN TOC LEVEL: %d", m_pNavigationHelper->getMinTOCLevel()));
 
             m_pNavigationHelper->getNthTOCEntry(i, &currentLevel);
 
-            if (currentLevel == m_pNavigationHelper->getMinTOCLevel())
+            if (currentLevel <= iSplitLevel)
             {
                 chapterTitle = m_pNavigationHelper->getNthTOCEntry(i, nullptr).utf8_str();
                 m_pNavigationHelper->getNthTOCEntryPos(i, posCurrent);
@@ -697,7 +710,12 @@ void IE_Exp_HTML::_createChapter(PD_DocumentRange* range, const std::string &tit
     pListener->endOfDocument();
     
     m_mathmlFlags[filename] = pListener->get_HasMathML();
-    
+
+    /* first raster image in document order — EPUB uses it as the
+     * cover image */
+    if (m_firstImageURI.empty())
+        m_firstImageURI = pListener->getFirstImageURI();
+
     DELETEP(pHeaderFooterListener);
     DELETEP(pListener);
     DELETEP(pMainListener);

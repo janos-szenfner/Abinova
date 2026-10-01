@@ -46,6 +46,9 @@ struct XAP_Exp_HTMLOptions
 	 */
 	bool	bMultipart;
 	bool	bAddIdentifiers;
+	/* split chapters at every heading with TOC level <= iSplitLevel;
+	 * 0 means "only the shallowest heading level found" (legacy) */
+	UT_sint32 iSplitLevel;
 };
 
 class ABI_EXPORT XAP_Dialog_HTMLOptions : public XAP_Dialog_NonPersistent

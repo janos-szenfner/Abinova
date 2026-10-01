@@ -217,8 +217,8 @@ void IE_Exp_HTML_DocumentWriter::openField(const UT_UTF8String& fieldType,
     if (fieldType == "footnote_ref")
     {
         m_pTagWriter->openTag("a", true);
-        m_pTagWriter->addAttribute("href",UT_UTF8String_sprintf("#footnote-%d", 
-            m_iEndnoteCount + 1).utf8_str());
+        m_pTagWriter->addAttribute("href",UT_UTF8String_sprintf("#footnote-%d",
+            m_iFootnoteCount + 1).utf8_str());
         m_pTagWriter->writeData(UT_UTF8String_sprintf("%d", 
             m_iFootnoteCount + 1).utf8_str());
         m_iFootnoteCount++;

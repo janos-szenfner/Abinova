@@ -39,6 +39,7 @@ public:
     void toggle_Epub2();
     void toggle_SplitDocument();
     void toggle_RenderMathMlToPng();
+    void select_SplitLevel();
     void refreshStates();
 private:
     void event_OK(void);
@@ -52,6 +53,7 @@ private:
 
     GtkWidget * m_wEpub2;
     GtkWidget * m_wSplitDocument;
+    GtkWidget * m_wSplitLevel;
     GtkWidget * m_wRenderMathMlToPng;
 
 };

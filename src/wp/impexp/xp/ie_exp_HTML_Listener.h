@@ -203,6 +203,10 @@ public:
 		{ m_bRenderMathToPng = bRender; }
     bool get_HasMathML() const
 		{ return m_bHasMathMl; }
+    /* href of the first raster image actually written out (empty when
+     * none, or when images are embedded as data: URIs) */
+    const UT_UTF8String & getFirstImageURI() const
+		{ return m_firstImageURI; }
 private:
     const gchar* _getObjectKey(const PT_AttrPropIndex& api,
             const gchar* key);
@@ -338,6 +342,7 @@ private:
     IE_Exp_HTML_StyleTree *m_pStyleTree;
     IE_Exp_HTML_NavigationHelper *m_pNavigationHelper;
     UT_UTF8String m_stylesheet;
+    UT_UTF8String m_firstImageURI;
     UT_uint32 m_iHeadingCount;
 
     double m_dPageWidthInches;

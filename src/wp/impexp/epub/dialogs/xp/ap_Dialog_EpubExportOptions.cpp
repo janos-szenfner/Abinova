@@ -57,6 +57,7 @@ void AP_Dialog_EpubExportOptions::getEpubExportDefaults(
     exp_opt->bEpub2 = false;
     exp_opt->bRenderMathMLToPNG = true;
     exp_opt->bSplitDocument = true;
+    exp_opt->iSplitLevel = 0;
     if (app == NULL) return;
 
     const XAP_Prefs * pPrefs = app->getPrefs();
@@ -70,6 +71,13 @@ void AP_Dialog_EpubExportOptions::getEpubExportDefaults(
         exp_opt->bEpub2 = strstr(value.c_str(), "EPUB2") != NULL;
         exp_opt->bSplitDocument = strstr(value.c_str(), "split-document") != NULL;
         exp_opt->bRenderMathMLToPNG = strstr(value.c_str(), "mathml-to-png") != NULL;
+        const char * lvl = strstr(value.c_str(), "split-level-");
+        if (lvl != NULL)
+        {
+            exp_opt->iSplitLevel = atoi(lvl + strlen("split-level-"));
+            if (exp_opt->iSplitLevel < 0 || exp_opt->iSplitLevel > 9)
+                exp_opt->iSplitLevel = 0;
+        }
     }
 }
 
@@ -97,6 +105,11 @@ void AP_Dialog_EpubExportOptions::saveDefaults()
     if (m_exp_opt->bRenderMathMLToPNG) {
         if (pref.byteLength()) pref += ",";
         pref += "mathml-to-png";
+    }
+    if (m_exp_opt->bSplitDocument && m_exp_opt->iSplitLevel > 0) {
+        if (pref.byteLength()) pref += ",";
+        pref += UT_UTF8String_sprintf("split-level-%d",
+                                      m_exp_opt->iSplitLevel);
     }
    
     const gchar * szValue = (const gchar *) pref.utf8_str();
@@ -127,6 +140,11 @@ void AP_Dialog_EpubExportOptions::set_SplitDocument(bool enable)
 void AP_Dialog_EpubExportOptions::set_RenderMathMlToPng(bool enable)
 {
     m_exp_opt->bRenderMathMLToPNG = enable;
+}
+
+void AP_Dialog_EpubExportOptions::set_SplitLevel(int level)
+{
+    m_exp_opt->iSplitLevel = level;
 }
 
 bool AP_Dialog_EpubExportOptions::shouldSave() const

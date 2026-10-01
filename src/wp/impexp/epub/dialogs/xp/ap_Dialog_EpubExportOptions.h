@@ -33,6 +33,9 @@ struct XAP_Exp_EpubExportOptions
     bool bSplitDocument;
     bool bRenderMathMLToPNG;
     bool bEpub2;
+    /* chapter split depth: 0 = only the shallowest heading level
+     * found in the document, N = every heading of level <= N */
+    int iSplitLevel;
 };
 
 class AP_Dialog_EpubExportOptions : public XAP_Dialog_NonPersistent
@@ -54,15 +57,18 @@ protected:
     inline bool get_Epub2 () const { return m_exp_opt->bEpub2; }
     inline bool get_SplitDocument () const { return m_exp_opt->bSplitDocument; }
     inline bool get_RenderMathMlToPng () const { return m_exp_opt->bRenderMathMLToPNG; }
+    inline int  get_SplitLevel () const { return m_exp_opt->iSplitLevel; }
 
     inline bool can_set_Epub2 () const { return true; }
     inline bool can_set_SplitDocument() const { return true; }
     inline bool can_set_RenderMathMlToPng() const { return !m_exp_opt->bEpub2; }
+    inline bool can_set_SplitLevel () const { return m_exp_opt->bSplitDocument; }
 
 
     void set_Epub2  (bool enable);
     void set_SplitDocument (bool enable);
     void set_RenderMathMlToPng (bool enable);
+    void set_SplitLevel (int level);
 
     void saveDefaults();
     void restoreDefaults();

@@ -254,6 +254,9 @@ all.
   content (replacing the draft-era `mathml="true"` and `profile`
   attributes), `xmlns:epub` declared on content documents, BCP 47
   language tags (`en-US`, not `en_US`), and `urn:uuid:` identifiers.
+  Chapter splitting is configurable by heading level (export dialog,
+  or the `split-level` export property), the first document image is
+  declared as the cover, and notes carry `epub:type` semantics.
   EPUB 3 is now the default export version; EPUB 2 remains available.
   Import keeps chapter images as data items with their media types,
   maps Dublin Core metadata to document properties and applies basic

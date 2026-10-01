@@ -52,12 +52,24 @@ public:
     UT_UTF8String getFilenameByPosition(PT_DocPosition position) const;
     inline int getMinTOCLevel() const { return m_minTOCLevel; }
     inline int getMinTOCIndex() const { return m_minTOCIndex; }
+    /* chapter-split policy: headings with TOC level <= getSplitLevel()
+     * start a new chapter file. 0 means the shallowest level present
+     * (the historical behaviour). */
+    void setSplitLevel(int level);
+    inline int getSplitLevel() const
+        { return m_iSplitLevel > 0 ? m_iSplitLevel : m_minTOCLevel; }
+    /* index of the first TOC entry that opens a chapter */
+    inline int getFirstSplitIndex() const { return m_firstSplitIndex; }
     inline std::map<UT_UTF8String, UT_UTF8String> & getBookmarks()
         { return m_bookmarks; }
 private:
+    void _updateSplitPolicy();
+    PD_Document *m_pDocument;
     UT_UTF8String m_suffix;
     int m_minTOCLevel;
     int m_minTOCIndex;
+    int m_iSplitLevel;
+    int m_firstSplitIndex;
     bool m_bFirstChapterIsIndex;
     std::map<UT_UTF8String, UT_UTF8String> m_bookmarks;
     char* m_baseName;

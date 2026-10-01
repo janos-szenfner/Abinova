@@ -31,6 +31,8 @@ public:
             const std::string &lang);
     virtual void openAnnotation() override;
     virtual void closeAnnotation() override;
+    virtual void openField(const UT_UTF8String& fieldType,
+            const UT_UTF8String& fieldValue) override;
 
     virtual void openDocument() override;
     virtual void insertDTD() override;

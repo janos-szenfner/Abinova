@@ -43,6 +43,32 @@ void IE_Exp_EPUB_EPUB3Writer::openDocument()
 }
 
 
+void IE_Exp_EPUB_EPUB3Writer::openField(const UT_UTF8String& fieldType,
+	const UT_UTF8String& value)
+{
+	/* EPUB 3 semantics: in-text references to notes carry
+	 * epub:type="noteref" so readers can present them as pop-up
+	 * notes. Same numbering scheme as the base writer. */
+	if (fieldType == "endnote_ref" || fieldType == "footnote_ref")
+	{
+		const bool isEndnote = (fieldType == "endnote_ref");
+		UT_uint32 n = (isEndnote ? m_iEndnoteCount : m_iFootnoteCount) + 1;
+		m_pTagWriter->openTag("a", true);
+		m_pTagWriter->addAttribute("href",
+			UT_UTF8String_sprintf("#%s-%d",
+				isEndnote ? "endnote" : "footnote", n).utf8_str());
+		m_pTagWriter->addAttribute("epub:type", "noteref");
+		m_pTagWriter->writeData(
+			UT_UTF8String_sprintf("%d", n).utf8_str());
+		if (isEndnote)
+			m_iEndnoteCount++;
+		else
+			m_iFootnoteCount++;
+		return;
+	}
+	IE_Exp_HTML_DocumentWriter::openField(fieldType, value);
+}
+
 void IE_Exp_EPUB_EPUB3Writer::openAnnotation()
 {
 	m_pTagWriter->openTag("a", true);

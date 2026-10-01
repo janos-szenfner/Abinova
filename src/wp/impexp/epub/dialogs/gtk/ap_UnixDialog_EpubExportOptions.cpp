@@ -38,6 +38,7 @@ AP_UnixDialog_EpubExportOptions::AP_UnixDialog_EpubExportOptions(
 	  m_windowMain(NULL),
 	  m_wEpub2(NULL),
 	  m_wSplitDocument(NULL),
+	  m_wSplitLevel(NULL),
       m_wRenderMathMlToPng(NULL)
 {
     
@@ -104,6 +105,14 @@ void AP_UnixDialog_EpubExportOptions::toggle_SplitDocument()
 	refreshStates ();
 }
 
+void AP_UnixDialog_EpubExportOptions::select_SplitLevel()
+{
+	/* combo index 0 is "automatic" (legacy: shallowest level only);
+	 * indices 1..9 map to heading levels 1..9 */
+	int level = gtk_combo_box_get_active (GTK_COMBO_BOX (m_wSplitLevel));
+	set_SplitLevel (level < 0 ? 0 : level);
+}
+
 void AP_UnixDialog_EpubExportOptions::toggle_RenderMathMlToPng()
 {
 	bool on = (gtk_check_button_get_active (GTK_CHECK_BUTTON (m_wRenderMathMlToPng)) == TRUE);
@@ -126,6 +135,14 @@ void AP_UnixDialog_EpubExportOptions::refreshStates()
 
 	on = can_set_SplitDocument () ? TRUE : FALSE;
 	gtk_widget_set_sensitive (m_wSplitDocument, on);
+
+	if (m_wSplitLevel)
+	{
+		gtk_combo_box_set_active (GTK_COMBO_BOX (m_wSplitLevel),
+		                          get_SplitLevel ());
+		gtk_widget_set_sensitive (m_wSplitLevel,
+		                          can_set_SplitLevel () ? TRUE : FALSE);
+	}
 
 	on = get_RenderMathMlToPng () ? TRUE : FALSE;
 	gtk_check_button_set_active (GTK_CHECK_BUTTON (m_wRenderMathMlToPng), on);
@@ -167,6 +184,11 @@ static void s_SplitDocument(GtkWidget * /* w */, AP_UnixDialog_EpubExportOptions
 	dlg->toggle_SplitDocument();
 }
 
+static void s_SplitLevel(GtkWidget * /* w */, AP_UnixDialog_EpubExportOptions * dlg)
+{
+	dlg->select_SplitLevel();
+}
+
 static void s_RenderMathMlToPng (GtkWidget * /* w */, AP_UnixDialog_EpubExportOptions * dlg)
 {
 	dlg->toggle_RenderMathMlToPng ();
@@ -181,6 +203,7 @@ GtkWidget * AP_UnixDialog_EpubExportOptions::_constructWindow ()
 
 	const char * Epub2              = "EPUB 2.0.1";
 	const char * SplitDocument      = "Split document";
+	const char * SplitLevelLabel    = "Chapter split level";
 	const char * RenderMathMlToPng  = "Use PNG instead of MathML";
 
 
@@ -226,7 +249,28 @@ GtkWidget * AP_UnixDialog_EpubExportOptions::_constructWindow ()
         g_signal_connect(G_OBJECT(m_wSplitDocument), "toggled",
                          G_CALLBACK(s_SplitDocument), static_cast<gpointer> (this));
     }
-    
+
+	/* "chapter split level" selector: index 0 = automatic (only the
+	 * shallowest heading level present), index N = split at every
+	 * heading of level <= N */
+	GtkWidget * hboxSplit = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget * labelSplitLevel = gtk_label_new (SplitLevelLabel);
+	gtk_box_append (GTK_BOX (hboxSplit), labelSplitLevel);
+	m_wSplitLevel = gtk_combo_box_text_new ();
+	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	                                "Top-level headings only");
+	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	                                "Heading 1");
+	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	                                "Heading 2");
+	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	                                "Heading 3");
+	gtk_box_append (GTK_BOX (hboxSplit), m_wSplitLevel);
+	XAP_gtk_widget_set_margin(hboxSplit, 5);
+	gtk_box_append (GTK_BOX (vboxMain), hboxSplit);
+	g_signal_connect (G_OBJECT (m_wSplitLevel), "changed",
+	                  G_CALLBACK (s_SplitLevel), static_cast<gpointer> (this));
+
 	m_wRenderMathMlToPng = gtk_check_button_new_with_label (RenderMathMlToPng);
 	if (m_wRenderMathMlToPng) 
     {

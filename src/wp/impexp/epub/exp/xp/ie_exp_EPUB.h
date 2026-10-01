@@ -86,6 +86,9 @@ private:
     GsfOutfile* m_root;
     GsfOutput* m_oebps;
     IE_Exp_HTML *m_pHmtlExporter;
+    // path (relative to OEBPS) of the first image written by the HTML
+    // exporter; declared as the cover image in the package manifest
+    std::string m_coverURI;
     // Array with file id`s in linear reading order
     std::vector<std::string> m_opsId;
 

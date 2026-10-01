@@ -103,6 +103,8 @@ IE_Exp_HTML_NavigationHelper::IE_Exp_HTML_NavigationHelper(
 
     m_suffix = strchr(m_baseName, '.');
     m_minTOCLevel = 10;
+    m_iSplitLevel = 0;
+    m_firstSplitIndex = 0;
     m_bFirstChapterIsIndex = false;
     for (int i = 0; i < getNumTOCEntries(); i++)
     {
@@ -115,16 +117,8 @@ IE_Exp_HTML_NavigationHelper::IE_Exp_HTML_NavigationHelper(
         }
     }
 
-    /* When the document starts with a top-level heading, the split
-     * exporter writes that first chapter into the index file rather
-     * than a chapter-named file (see IE_Exp_HTML::_writeDocument). */
-    if (hasTOC())
-    {
-        PT_DocPosition docBegin = 0, firstChapter = 0;
-        pDocument->getBounds(false, docBegin);
-        if (getNthTOCEntryPos(m_minTOCIndex, firstChapter))
-            m_bFirstChapterIsIndex = (firstChapter <= docBegin);
-    }
+    m_pDocument = pDocument;
+    _updateSplitPolicy();
 
     IE_Exp_HTML_BookmarkListener * bookmarkListener =
         new IE_Exp_HTML_BookmarkListener(pDocument, this);
@@ -151,6 +145,41 @@ UT_UTF8String IE_Exp_HTML_NavigationHelper::getBookmarkFilename(
 	}    
 }
 
+void IE_Exp_HTML_NavigationHelper::setSplitLevel(int level)
+{
+    m_iSplitLevel = level;
+    _updateSplitPolicy();
+}
+
+void IE_Exp_HTML_NavigationHelper::_updateSplitPolicy()
+{
+    /* first TOC entry that opens a chapter under the current policy */
+    const int effLevel = getSplitLevel();
+    m_firstSplitIndex = getNumTOCEntries();
+    for (int i = 0; i < getNumTOCEntries(); i++)
+    {
+        int currentLevel = 0;
+        getNthTOCEntry(i, &currentLevel);
+        if (currentLevel <= effLevel)
+        {
+            m_firstSplitIndex = i;
+            break;
+        }
+    }
+
+    /* When the document starts with a chapter-opening heading, the
+     * split exporter writes that first chapter into the index file
+     * rather than a chapter-named file (see IE_Exp_HTML::_writeDocument). */
+    m_bFirstChapterIsIndex = false;
+    if (hasTOC() && m_firstSplitIndex < getNumTOCEntries())
+    {
+        PT_DocPosition docBegin = 0, firstChapter = 0;
+        m_pDocument->getBounds(false, docBegin);
+        if (getNthTOCEntryPos(m_firstSplitIndex, firstChapter))
+            m_bFirstChapterIsIndex = (firstChapter <= docBegin);
+    }
+}
+
 UT_UTF8String IE_Exp_HTML_NavigationHelper::getFilenameByPosition(
     PT_DocPosition position) const
 {
@@ -165,18 +194,19 @@ UT_UTF8String IE_Exp_HTML_NavigationHelper::getFilenameByPosition(
 		getNthTOCEntryPos(0, minTocPosition);
 		if (position >= minTocPosition){
 
-			for (int i = getNumTOCEntries() - 1; i >= m_minTOCIndex; i--)
+			const int effLevel = getSplitLevel();
+			for (int i = getNumTOCEntries() - 1; i >= m_firstSplitIndex; i--)
 			{
 				int currentLevel;
 				getNthTOCEntry(i, &currentLevel);
 				getNthTOCEntryPos(i, posCurrent);
 
-				if (currentLevel == m_minTOCLevel)
+				if (currentLevel <= effLevel)
 				{
 					if (posCurrent <= position)
 					{
 						/* the first chapter may live in the index file */
-						if (!(m_bFirstChapterIsIndex && i == m_minTOCIndex))
+						if (!(m_bFirstChapterIsIndex && i == m_firstSplitIndex))
 							chapterFile = ConvertToClean(getNthTOCEntry(i, nullptr)) + m_suffix;
 						break;
 					}

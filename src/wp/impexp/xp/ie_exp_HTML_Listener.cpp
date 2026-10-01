@@ -105,20 +105,29 @@ bool IE_Exp_HTML_Listener::populate(fl_ContainerLayout* /*sfh*/, const PX_Change
         UT_UTF8String utf8String(m_pDocument->getPointer(bi),
                                  pcrs->getLength());
         
+        /* note and annotation struxes are inline in the containing
+         * block; accumulate all of their spans until the matching
+         * End strux clears the flag */
         if (m_bInEndnote)
         {
-            m_endnotes.push_back(utf8String);
-            m_bInEndnote = false;
+            if (m_endnotes.empty())
+                m_endnotes.push_back(utf8String);
+            else
+                m_endnotes.back() += utf8String;
         } else
         if (m_bInFootnote)
         {
-            m_footnotes.push_back(utf8String);
-            m_bInFootnote = false;
+            if (m_footnotes.empty())
+                m_footnotes.push_back(utf8String);
+            else
+                m_footnotes.back() += utf8String;
         } else
         if (m_bInAnnotationSection)
-        { 
-            m_annotationContents.push_back(utf8String);
-            m_bInAnnotationSection = false;
+        {
+            if (m_annotationContents.empty())
+                m_annotationContents.push_back(utf8String);
+            else
+                m_annotationContents.back() += utf8String;
         }else
         {
             _openSpan(api);
@@ -408,6 +417,9 @@ bool IE_Exp_HTML_Listener::populateStrux(pf_Frag_Strux* sdh,
         _closeHyperlink();
         // _openAnnotation(api);
         m_bInAnnotationSection = true;
+        /* keep contents aligned with the title/author entries pushed
+         * by _handleAnnotationData */
+        m_annotationContents.push_back(UT_UTF8String());
         _handleAnnotationData(api);
     }
         break;
@@ -486,13 +498,13 @@ bool IE_Exp_HTML_Listener::populateStrux(pf_Frag_Strux* sdh,
 
     case PTX_EndFootnote:
     {
+        /* note sections are inline in the containing block — do not
+         * close the block/heading/list here, the paragraph continues
+         * after the note */
         _closeSpan();
         _closeField();
         _closeBookmark();
         _closeHyperlink();
-        _closeBlock();
-        _closeHeading();
-        _closeLists();
         _closeFootnote();
     }
         break;
@@ -503,9 +515,6 @@ bool IE_Exp_HTML_Listener::populateStrux(pf_Frag_Strux* sdh,
         _closeField();
         _closeBookmark();
         _closeHyperlink();
-        _closeBlock();
-        _closeHeading();
-        _closeLists();
         _closeEndnote();
     }
         break;
@@ -704,7 +713,11 @@ bool IE_Exp_HTML_Listener::endOfDocument()
     _closeCell();
     _closeTable();
     _closeSection();
-    
+
+    /* endnotes are normally emitted at each section close; ranges
+     * starting mid-section (split documents) never see a Section
+     * strux, so flush any collected endnotes here too */
+    _insertEndnotes();
     _insertFootnotes();
     _insertAnnotations();
     _closeBody();
@@ -1254,6 +1267,7 @@ void IE_Exp_HTML_Listener::_closeSection(bool recursiveCall)
     }
 
     m_pCurrentImpl->insertEndnotes(m_endnotes);
+    m_endnotes.clear();
     m_pCurrentImpl->closeSection();
 }
 
@@ -1287,6 +1301,13 @@ void IE_Exp_HTML_Listener::_openField(const PX_ChangeRecord_Object* pcro,
         if (fieldType == "footnote_anchor")
         {
             m_bInFootnote = true;
+        } else
+        if (fieldType == "footnote_ref" || fieldType == "endnote_ref")
+        {
+            /* the reference link is emitted at the note strux itself
+             * (which always follows the ref field), so documents that
+             * carry no ref field object — e.g. <foot>/<endnote>
+             * markup — still get exactly one noteref link */
         } else
         {
             m_pCurrentField = pField;
@@ -1325,6 +1346,13 @@ void IE_Exp_HTML_Listener::_openFootnote(PT_AttrPropIndex api)
         pAP = nullptr;
     }
 
+    /* the strux marks the in-text reference point; emit the noteref
+     * link here (the footnote_ref field, when present, is suppressed
+     * in _openField so the link appears exactly once) */
+    m_pCurrentImpl->openField("footnote_ref", "");
+    m_pCurrentImpl->closeField("footnote_ref");
+
+    m_footnotes.push_back(UT_UTF8String());
     m_bInFootnote = true;
 }
 
@@ -1333,8 +1361,6 @@ void IE_Exp_HTML_Listener::_openFootnote(PT_AttrPropIndex api)
  */
 void IE_Exp_HTML_Listener::_closeFootnote()
 {
-    m_bInBlock = true;
-
     m_bInFootnote = false;
 }
 
@@ -1352,7 +1378,10 @@ void IE_Exp_HTML_Listener::_openEndnote(PT_AttrPropIndex api)
         pAP = nullptr;
     }
 
+    m_pCurrentImpl->openField("endnote_ref", "");
+    m_pCurrentImpl->closeField("endnote_ref");
 
+    m_endnotes.push_back(UT_UTF8String());
     m_bInEndnote = true;
 }
 
@@ -2870,6 +2899,8 @@ void IE_Exp_HTML_Listener::_handleImage(PT_AttrPropIndex api,
     }
     else {
         imageName = m_pDataExporter->saveData(szDataId, extension.c_str());
+        if (m_firstImageURI.empty() && imageName.size())
+            m_firstImageURI = imageName;
     }
     UT_UTF8String align = "";
     if (bIsPositioned) {
