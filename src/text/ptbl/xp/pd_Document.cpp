@@ -6648,7 +6648,7 @@ bool PD_Document::insertSpanBeforeFrag(const pf_Frag * pF, const UT_UCS4Char * p
 	if(pF->getType() == pf_Frag::PFT_Strux)
 	{
 		auto pfs = static_cast<const pf_Frag_Strux *>(pF);
-		if((pfs->getStruxType() != PTX_Block) && (pfs->getStruxType() != PTX_EndFootnote) && (pfs->getStruxType() != PTX_EndEndnote) && (pfs->getStruxType() != PTX_EndAnnotation) && (pfs->getStruxType() != PTX_EndCell) )
+		if((pfs->getStruxType() != PTX_Block) && (pfs->getStruxType() != PTX_EndFootnote) && (pfs->getStruxType() != PTX_EndEndnote) && (pfs->getStruxType() != PTX_EndAnnotation) && (pfs->getStruxType() != PTX_EndCell) && (pfs->getStruxType() != PTX_SectionHdrFtr) )
 		{
 			//
 			// Append a block!
@@ -6733,7 +6733,7 @@ bool PD_Document::insertObjectBeforeFrag(const pf_Frag * pF, PTObjectType pto,
 	if(pF->getType() == pf_Frag::PFT_Strux)
 	{
 		auto pfs = static_cast<const pf_Frag_Strux *>(pF);
-		if((pfs->getStruxType() != PTX_Block) && (pfs->getStruxType() != PTX_EndFootnote) && (pfs->getStruxType() != PTX_EndEndnote)  && (pfs->getStruxType() != PTX_EndAnnotation) )
+		if((pfs->getStruxType() != PTX_Block) && (pfs->getStruxType() != PTX_EndFootnote) && (pfs->getStruxType() != PTX_EndEndnote)  && (pfs->getStruxType() != PTX_EndAnnotation) && (pfs->getStruxType() != PTX_SectionHdrFtr) )
 		{
 			//
 			// Append a block!
@@ -6754,7 +6754,7 @@ bool PD_Document::insertFmtMarkBeforeFrag(const pf_Frag * pF)
 	if(pF->getType() == pf_Frag::PFT_Strux)
 	{
 		auto pfs = static_cast<const pf_Frag_Strux *>(pF);
-		if((pfs->getStruxType() != PTX_Block) && (pfs->getStruxType() != PTX_EndFootnote) && (pfs->getStruxType() != PTX_EndEndnote) && (pfs->getStruxType() != PTX_EndAnnotation) )
+		if((pfs->getStruxType() != PTX_Block) && (pfs->getStruxType() != PTX_EndFootnote) && (pfs->getStruxType() != PTX_EndEndnote) && (pfs->getStruxType() != PTX_EndAnnotation) && (pfs->getStruxType() != PTX_SectionHdrFtr) )
 		{
 			//
 			// Append a block!

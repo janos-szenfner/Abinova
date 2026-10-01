@@ -102,6 +102,7 @@ struct header
 	UT_uint32    pos;
 	UT_uint32    len;
 	UT_uint32    pid;
+	bool         bDerivative;
 
 	struct _d
 	{

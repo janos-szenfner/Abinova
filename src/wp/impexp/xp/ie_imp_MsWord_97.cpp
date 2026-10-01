@@ -6966,7 +6966,15 @@ bool IE_Imp_MsWord_97::_insertFootnote(const footnote * f, UT_UCS4Char c)
 	{
 		// set the formatting to whatever it was, in case the footnote
 		// marker is longer than one character
-		_appendFmt(attribsR);
+		PP_PropertyVector attribsF = {
+			"props", m_charProps.c_str()
+		};
+		if(!m_charStyle.empty())
+		{
+			attribsF.push_back("style");
+			attribsF.push_back(m_charStyle.c_str());
+		}
+		_appendFmt(attribsF);
 	}
 
 	return res;
@@ -7015,7 +7023,15 @@ bool IE_Imp_MsWord_97::_insertEndnote(const footnote * f, UT_UCS4Char c)
 	{
 		// set the formatting to whatever it was, in case the footnote
 		// marker is longer than one character
-		_appendFmt(attribsR);
+		PP_PropertyVector attribsF = {
+			"props", m_charProps.c_str()
+		};
+		if(!m_charStyle.empty())
+		{
+			attribsF.push_back("style");
+			attribsF.push_back(m_charStyle.c_str());
+		}
+		_appendFmt(attribsF);
 	}
 
 	return res;
@@ -7595,7 +7611,6 @@ bool IE_Imp_MsWord_97::_appendSpanHdrFtr(const UT_UCS4Char * p, UT_uint32 length
 	UT_return_val_if_fail(m_iCurrentHeader < m_iHeadersCount,false);
 
 	bool bRet = true;
-	
 	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.getItemCount(); i++)
 	{
 		pf_Frag * pF = (pf_Frag*) m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i);
@@ -7706,6 +7721,7 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 				m_pHeaders[i].pos = pPLCF_txt[i] + m_iHeadersStart;
 				m_pHeaders[i].len = pPLCF_txt[i+1] - pPLCF_txt[i];
 				m_pHeaders[i].pid = getDoc()->getUID(UT_UniqueId::HeaderFtr);
+				m_pHeaders[i].bDerivative = false;
 
 				UT_DEBUGMSG(("Header %d has pid %d \n",i,m_pHeaders[i].pid));
 				if(i < 6)
@@ -7799,8 +7815,11 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 
 						// so we have found a meaningful header k that is to
 						// be used in place of header i; we add header
-						// i to k's d-struct
+						// i to k's d-struct; the section strux for i is
+						// created when k is inserted, so it must not be
+						// inserted again when we reach its position
 
+						m_pHeaders[i].bDerivative = true;
 						m_pHeaders[k].d.hdr.addItem((void*)(m_pHeaders+i));
 					}
 #endif
@@ -7942,7 +7961,6 @@ bool IE_Imp_MsWord_97::_insertHeaderSection(bool bDoBlockIns)
 					UT_ASSERT_HARMLESS(UT_NOT_REACHED);
 			}
 			UT_DEBUGMSG(("Appending Dirivative HdrFtr in MSWord_import \n"));
-
 			getDoc()->appendStrux(PTX_SectionHdrFtr, attribsS);
 			m_bInHeaders = true;
 
@@ -8005,7 +8023,8 @@ bool IE_Imp_MsWord_97::_handleHeadersText(UT_uint32 iDocPosition,bool bDoBlockIn
 		
 			for(; m_iCurrentHeader < m_iHeadersCount; m_iCurrentHeader++)
 			{
-				if(m_pHeaders[m_iCurrentHeader].type != HF_Unsupported)
+				if(m_pHeaders[m_iCurrentHeader].type != HF_Unsupported
+				   && !m_pHeaders[m_iCurrentHeader].bDerivative)
 					_insertHeaderSection(bDoBlockIns);
 			}
 		}
@@ -8062,7 +8081,9 @@ bool IE_Imp_MsWord_97::_handleHeadersText(UT_uint32 iDocPosition,bool bDoBlockIn
 				// some headers can be 0-length, skip them ... (0-length:  len <=2)
 				// some 0-length headers we are actually interested in; the 0-length
 				// headers we do not care about should already be marked as HF_Unsupported
-				while(m_iCurrentHeader < m_iHeadersCount && m_pHeaders[m_iCurrentHeader].type == HF_Unsupported
+				while(m_iCurrentHeader < m_iHeadersCount
+					  && (m_pHeaders[m_iCurrentHeader].type == HF_Unsupported
+						  || m_pHeaders[m_iCurrentHeader].bDerivative)
 					  /*m_pHeaders[m_iCurrentHeader].len <= 2*/)
 				{
 					bScrolledHeader = true;

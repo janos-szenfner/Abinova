@@ -157,6 +157,14 @@ below are on `main` but the release has not been cut yet.
   overflows Debian reported in libwv-1.2 (bounded sprm walks,
   page-bound memcpys, FKP record clamps, `vsnprintf`); verified with a
   600-case byte-mutation ASan fuzz run.
+- **Legacy `.doc` headers/footers inherited across sections fixed** —
+  a section that shares its previous section's header/footer (empty
+  `Plcfhdd` story) now renders the inherited content instead of
+  swallowing the source section's text; the copied header/footer no
+  longer gets a duplicate strux that ate the following story's text.
+- **Legacy `.doc` custom footnote/endnote marks** — manual reference
+  marks no longer leak `footnote-id`/`endnote-id` attributes onto the
+  following body text.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last
