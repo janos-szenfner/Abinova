@@ -21,8 +21,9 @@
 #include "ie_exp_EPUB_EPUB3Writer.h"
 
 IE_Exp_EPUB_EPUB3Writer::IE_Exp_EPUB_EPUB3Writer(IE_Exp_HTML_OutputWriter* 
-	pOutputWriter):
-IE_Exp_HTML_DocumentWriter(pOutputWriter)
+	pOutputWriter, const std::string &lang):
+IE_Exp_HTML_DocumentWriter(pOutputWriter),
+m_lang(lang)
 {
     m_pTagWriter->enableXmlMode(true);
 }
@@ -35,6 +36,10 @@ void IE_Exp_EPUB_EPUB3Writer::openDocument()
     // writer emits epub:type attributes (footnotes, annotations).
     // The draft-era "profile" attribute was removed in the final spec.
     m_pTagWriter->addAttribute("xmlns:epub", "http://www.idpf.org/2007/ops");
+    // Content documents must declare the publication language (BCP 47)
+    // on the root element.
+    m_pTagWriter->addAttribute("xml:lang", m_lang.c_str());
+    m_pTagWriter->addAttribute("lang", m_lang.c_str());
 }
 
 
@@ -57,6 +62,56 @@ void IE_Exp_EPUB_EPUB3Writer::closeAnnotation()
 void IE_Exp_EPUB_EPUB3Writer::insertDTD()
 {
     m_pOutputWriter->write("<?xml version=\"1.0\"?>\n");	
+}
+
+void IE_Exp_EPUB_EPUB3Writer::openTable(const UT_UTF8String &style,
+	const UT_UTF8String & /*cellPadding*/, const UT_UTF8String &border)
+{
+	/* XHTML5 (EPUB 3) has no cellpadding attribute, and border is only
+	 * allowed the values "" or "1" */
+	m_pTagWriter->openTag("table");
+	if (border == "1")
+		m_pTagWriter->addAttribute("border", "1");
+	_handleStyleAndId(nullptr, nullptr, style.utf8_str());
+}
+
+void IE_Exp_EPUB_EPUB3Writer::openCell(const UT_UTF8String &style,
+	const UT_UTF8String &rowspan, const UT_UTF8String &colspan)
+{
+	/* rowspan/colspan must be integers; empty values are invalid, so
+	 * omit the attributes entirely when unset */
+	m_pTagWriter->openTag("td");
+	if (rowspan.size())
+		m_pTagWriter->addAttribute("rowspan", rowspan.utf8_str());
+	if (colspan.size())
+		m_pTagWriter->addAttribute("colspan", colspan.utf8_str());
+	_handleStyleAndId(nullptr, nullptr, style.utf8_str());
+}
+
+void IE_Exp_EPUB_EPUB3Writer::insertImage(const UT_UTF8String &url,
+	const UT_UTF8String &align, const UT_UTF8String &style,
+	const UT_UTF8String &title, const UT_UTF8String &alt)
+{
+	/* XHTML5 has no img@align; map it to the CSS float/vertical-align
+	 * equivalents instead */
+	UT_UTF8String imgStyle = style;
+	if (align == "left" || align == "right")
+	{
+		imgStyle += "; float:";
+		imgStyle += align;
+	}
+	else if (align.size())
+	{
+		imgStyle += "; vertical-align:";
+		imgStyle += align;
+	}
+
+	m_pTagWriter->openTag("img", true, true);
+	_handleStyleAndId(nullptr, nullptr, imgStyle.utf8_str());
+	m_pTagWriter->addAttribute("src", url.utf8_str());
+	m_pTagWriter->addAttribute("title", title.utf8_str());
+	m_pTagWriter->addAttribute("alt", alt.utf8_str());
+	m_pTagWriter->closeTag();
 }
 
 void IE_Exp_EPUB_EPUB3Writer::insertTOC(const gchar * /*title*/,
@@ -161,5 +216,5 @@ void IE_Exp_EPUB_EPUB3Writer::insertAnnotations(
 IE_Exp_HTML_DocumentWriter *IE_Exp_EPUB_EPUB3WriterFactory::
 constructDocumentWriter(IE_Exp_HTML_OutputWriter* pOutputWriter)
 {
-	return new IE_Exp_EPUB_EPUB3Writer(pOutputWriter);
+	return new IE_Exp_EPUB_EPUB3Writer(pOutputWriter, m_lang);
 }

@@ -113,12 +113,12 @@ IE_Exp_HTML_StyleTree::IE_Exp_HTML_StyleTree(IE_Exp_HTML_StyleTree * parent, con
             if (strstr(name.c_str(), "border"))
             {
                 double dPT = UT_convertToDimension(value.c_str(), DIM_PT);
-                value = UT_std_string_sprintf("%.2fpt", dPT);
+                value = UT_formatDimensionString(DIM_PT, dPT, ".2");
             }
             else
             {
                 double dMM = UT_convertToDimension(value.c_str(), DIM_MM);
-                value = UT_std_string_sprintf("%.1fmm", dMM);
+                value = UT_formatDimensionString(DIM_MM, dMM, ".1");
             }
         }
 

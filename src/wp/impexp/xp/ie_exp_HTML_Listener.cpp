@@ -1441,7 +1441,7 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 	if (prop)
 	{
 		double dPT = UT_convertToDimension(prop, DIM_PT);
-		border_default = UT_UTF8String_sprintf("%.2fpt", dPT);
+		border_default = UT_formatDimensionString(DIM_PT, dPT, ".2");
 	}
 
 #if 0
@@ -1462,9 +1462,7 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 			styles += "width:";
 			// use mm (inches are too big, since we want to use an int).
 			double dMM = UT_convertToDimension(pszWidth, DIM_MM);
-			UT_UTF8String t2;
-			UT_UTF8String_sprintf(t2, "%.1fmm", dMM);
-			styles += t2;
+			styles += UT_formatDimensionString(DIM_MM, dMM, ".1");
 		}
 	} else if (m_bScaleUnits) {
 		// TEST ME!
@@ -1597,7 +1595,7 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 	if (pszBorderWidth)
 	{
 		dB[3] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[3] = UT_UTF8String_sprintf("%.2fpt", dB[3]);
+		sB[3] = UT_formatDimensionString(DIM_PT, dB[3], ".2");
 	}
 	else
 		sB[3] += border_default;
@@ -1605,7 +1603,7 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 	if (pszBorderWidth)
 	{
 		dB[0] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[0] = UT_UTF8String_sprintf("%.2fpt", dB[0]);
+		sB[0] = UT_formatDimensionString(DIM_PT, dB[0], ".2");
 	}
 	else
 		sB[0] = border_default;
@@ -1613,7 +1611,7 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 	if (pszBorderWidth)
 	{
 		dB[1] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[1] = UT_UTF8String_sprintf("%.2fpt", dB[1]);
+		sB[1] = UT_formatDimensionString(DIM_PT, dB[1], ".2");
 	}
 	else
 		sB[1] = border_default;
@@ -1621,7 +1619,7 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 	if (pszBorderWidth)
 	{
 		dB[2] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[2] = UT_UTF8String_sprintf("%.2fpt", dB[2]);
+		sB[2] = UT_formatDimensionString(DIM_PT, dB[2], ".2");
 	}
 	else
 		sB[2] += border_default;
@@ -1878,11 +1876,17 @@ void IE_Exp_HTML_Listener::_openCell(PT_AttrPropIndex api, bool recursiveCall)
 
 	UT_UTF8String styles;
 
+	/* CSS always uses '.' as decimal separator;
+	 * UT_formatDimensionString formats under the C locale */
 	if (dColSpacePT == dRowSpacePT) {
-		styles += UT_UTF8String_sprintf("padding: %.2fpt", dColSpacePT);
+		styles += "padding: ";
+		styles += UT_formatDimensionString(DIM_PT, dColSpacePT, ".2");
 	}
 	else {
-		styles += UT_UTF8String_sprintf("padding: %.2fpt %.2fpt", dRowSpacePT, dColSpacePT);
+		styles += "padding: ";
+		styles += UT_formatDimensionString(DIM_PT, dRowSpacePT, ".2");
+		styles += " ";
+		styles += UT_formatDimensionString(DIM_PT, dColSpacePT, ".2");
 	}
 
 	UT_sint32 rowspan = m_tableHelper.getBot() - m_tableHelper.getTop();
@@ -1987,22 +1991,22 @@ void IE_Exp_HTML_Listener::_openCell(PT_AttrPropIndex api, bool recursiveCall)
 	pszBorderWidth = m_tableHelper.getCellProp("bot-thickness");
 	if (pszBorderWidth) {
 		dB[3] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[3] = UT_UTF8String_sprintf("%.2fpt", dB[3]);
+		sB[3] = UT_formatDimensionString(DIM_PT, dB[3], ".2");
 	}
 	pszBorderWidth = m_tableHelper.getCellProp("left-thickness");
 	if (pszBorderWidth) {
 		dB[0] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[0] = UT_UTF8String_sprintf("%.2fpt", dB[0]);
+		sB[0] = UT_formatDimensionString(DIM_PT, dB[0], ".2");
 	}
 	pszBorderWidth = m_tableHelper.getCellProp("right-thickness");
 	if (pszBorderWidth) {
 		dB[1] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[1] = UT_UTF8String_sprintf("%.2fpt", dB[1]);
+		sB[1] = UT_formatDimensionString(DIM_PT, dB[1], ".2");
 	}
 	pszBorderWidth = m_tableHelper.getCellProp("top-thickness");
 	if (pszBorderWidth) {
 		dB[2] = UT_convertToDimension(pszBorderWidth, DIM_PT);
-		sB[2] = UT_UTF8String_sprintf("%.2fpt", dB[2]);
+		sB[2] = UT_formatDimensionString(DIM_PT, dB[2], ".2");
 	}
 
 	// now we need to decide which attributes are to be used in the
@@ -2951,8 +2955,8 @@ void IE_Exp_HTML_Listener::_insertMath(PT_AttrPropIndex api)
             return;
         }
         
-        UT_UTF8String width = UT_UTF8String_sprintf("%fin", dWidth);
-        UT_UTF8String height = UT_UTF8String_sprintf("%fin", dHeight);
+        UT_UTF8String width = UT_formatDimensionString(DIM_IN, dWidth);
+        UT_UTF8String height = UT_formatDimensionString(DIM_IN, dHeight);
         
         m_pCurrentImpl->insertMath(sMathML, width, height);
         m_bHasMathMl = true;

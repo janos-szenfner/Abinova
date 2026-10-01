@@ -103,6 +103,7 @@ IE_Exp_HTML_NavigationHelper::IE_Exp_HTML_NavigationHelper(
 
     m_suffix = strchr(m_baseName, '.');
     m_minTOCLevel = 10;
+    m_bFirstChapterIsIndex = false;
     for (int i = 0; i < getNumTOCEntries(); i++)
     {
         int currentLevel = 10;
@@ -113,7 +114,18 @@ IE_Exp_HTML_NavigationHelper::IE_Exp_HTML_NavigationHelper(
             m_minTOCIndex = i;
         }
     }
-            
+
+    /* When the document starts with a top-level heading, the split
+     * exporter writes that first chapter into the index file rather
+     * than a chapter-named file (see IE_Exp_HTML::_writeDocument). */
+    if (hasTOC())
+    {
+        PT_DocPosition docBegin = 0, firstChapter = 0;
+        pDocument->getBounds(false, docBegin);
+        if (getNthTOCEntryPos(m_minTOCIndex, firstChapter))
+            m_bFirstChapterIsIndex = (firstChapter <= docBegin);
+    }
+
     IE_Exp_HTML_BookmarkListener * bookmarkListener =
         new IE_Exp_HTML_BookmarkListener(pDocument, this);
     pDocument->tellListener(bookmarkListener);
@@ -163,7 +175,9 @@ UT_UTF8String IE_Exp_HTML_NavigationHelper::getFilenameByPosition(
 				{
 					if (posCurrent <= position)
 					{
-						chapterFile = ConvertToClean(getNthTOCEntry(i, nullptr)) + m_suffix;
+						/* the first chapter may live in the index file */
+						if (!(m_bFirstChapterIsIndex && i == m_minTOCIndex))
+							chapterFile = ConvertToClean(getNthTOCEntry(i, nullptr)) + m_suffix;
 						break;
 					}
 				}

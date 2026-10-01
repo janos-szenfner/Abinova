@@ -1711,6 +1711,17 @@ below are on `main` but the release has not been cut yet.
   document no longer leaks the previous paragraph's formatting into
   the next one, and a chapter's opening paragraph keeps its own
   style/properties.
+- **EPUB export correctness** — exported `.epub` files now pass
+  `epubcheck` 5.2.1 cleanly: the OPF 3.0 package document carries
+  `xml:lang`, `dcterms:modified` and a `urn:uuid:` identifier that the
+  NCX `dtb:uid` matches verbatim, the navigation document is emitted as
+  `nav.xhtml` with `properties="nav"` (unique nav ids), and the NCX
+  reports the real TOC depth. Split-export filenames no longer derive
+  from the internal `.part` scratch file, the first split chapter
+  correctly maps to `index.xhtml`, stylesheets ship inside the package,
+  and EPUB output emits XHTML5-legal markup (no `img@align`,
+  `cellpadding`, or empty `rowspan`/`colspan`) with locale-independent
+  CSS dimension formatting.
 - **Atomic file save** — `IE_Exp::writeFile` now exports to a
   `<name>.part` sibling and `rename()`s it over the target: a
   failed export, encryption failure or mid-write crash can no

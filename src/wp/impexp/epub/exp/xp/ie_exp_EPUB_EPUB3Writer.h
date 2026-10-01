@@ -27,7 +27,8 @@
 
 class IE_Exp_EPUB_EPUB3Writer : public IE_Exp_HTML_DocumentWriter {
 public:
-    IE_Exp_EPUB_EPUB3Writer(IE_Exp_HTML_OutputWriter* pOutputWriter);
+    IE_Exp_EPUB_EPUB3Writer(IE_Exp_HTML_OutputWriter* pOutputWriter,
+            const std::string &lang);
     virtual void openAnnotation() override;
     virtual void closeAnnotation() override;
 
@@ -40,13 +41,26 @@ public:
     virtual void insertAnnotations(const std::vector<UT_UTF8String> &titles,
             const std::vector<UT_UTF8String> &authors,
             const std::vector<UT_UTF8String> &annotations) override;
+    virtual void openTable(const UT_UTF8String &style,
+            const UT_UTF8String &cellPadding, const UT_UTF8String &border) override;
+    virtual void openCell(const UT_UTF8String &style,
+            const UT_UTF8String &rowspan, const UT_UTF8String &colspan) override;
+    virtual void insertImage(const UT_UTF8String &url, const UT_UTF8String &align,
+            const UT_UTF8String &style, const UT_UTF8String &title,
+            const UT_UTF8String &alt) override;
+private:
+    std::string m_lang;
 };
 
 class IE_Exp_EPUB_EPUB3WriterFactory : public IE_Exp_HTML_WriterFactory
 {
 public:
+    IE_Exp_EPUB_EPUB3WriterFactory(const std::string &lang = "en-US")
+        : m_lang(lang) {}
     virtual IE_Exp_HTML_DocumentWriter *constructDocumentWriter(
         IE_Exp_HTML_OutputWriter* pOutputWriter) override;
+private:
+    std::string m_lang;
 };
 
 #endif	/* IE_EXP_EPUB_EPUB3WRITER_H */

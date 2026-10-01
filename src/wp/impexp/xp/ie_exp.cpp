@@ -48,6 +48,18 @@
 
 static UT_GenericVector<IE_ExpSniffer *> m_sniffers(20);
 
+/* remove a file named by URI or plain local path (UT_go_file_remove()
+ * only understands URIs) */
+static void s_remove_output_file(const std::string &name)
+{
+	if (name.empty())
+		return;
+	if (UT_go_file_remove(name.c_str(), nullptr))
+		return;
+	if (G_IS_DIR_SEPARATOR(name[0]))
+		(void)::remove(name.c_str());
+}
+
 /*****************************************************************/
 /*****************************************************************/
 
@@ -225,6 +237,7 @@ GsfOutput* IE_Exp::openFile(const char * szFilename)
 	UT_return_val_if_fail(szFilename, nullptr);
 
 	m_szFileName = szFilename;
+	m_szWriteFileName = szFilename;
 
 	GsfOutput* file = _openFile(szFilename);
 	if (file) {
@@ -263,7 +276,8 @@ bool IE_Exp::_closeFile(void)
 
 		if (!res) {
 			// then remove the unwritten file
-			(void)UT_go_file_remove (m_szFileName.c_str(), nullptr);
+			s_remove_output_file (m_szWriteFileName.empty()
+					      ? m_szFileName : m_szWriteFileName);
 		}
 
 		return (res == TRUE);
@@ -280,7 +294,8 @@ void IE_Exp::_abortFile(void)
         _closeFile();
 
         // then remove the unwanted file
-        (void)UT_go_file_remove (m_szFileName.c_str(), nullptr);
+        s_remove_output_file (m_szWriteFileName.empty()
+			      ? m_szFileName : m_szWriteFileName);
     }
 }
 
@@ -307,6 +322,7 @@ UT_Error IE_Exp::writeFile(GsfOutput * fp)
 	// unnamed sinks (e.g. GsfOutputMemory) must not propagate a
 	// null name into exporters that read m_szFileName
 	m_szFileName = gsf_output_name(fp) ? gsf_output_name(fp) : "";
+	m_szWriteFileName = m_szFileName;
 	return _writeDocument();
 }
 
@@ -348,6 +364,12 @@ UT_Error IE_Exp::writeFile(const char * szFilename)
 	}
 
 	m_bOwnsFp = true;
+
+	/* report the requested name, not the ".part" scratch path, so
+	 * exporters that derive sibling names from getFileName() (HTML
+	 * split chapters, image/_files dirs, EPUB sub-export) keep working
+	 * with the logical target */
+	m_szFileName = szFilename;
 
 	UT_Error error = _writeDocument();
 

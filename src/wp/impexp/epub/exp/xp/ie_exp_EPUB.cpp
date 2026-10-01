@@ -150,6 +150,7 @@ UT_Error IE_Exp_EPUB::writeContainer()
     // </container>
     gsf_xml_out_end_element(containerXml);
 
+    g_object_unref(containerXml);
     gsf_output_close(container);
     gsf_output_close(metaInf);
     return UT_OK;
@@ -226,10 +227,12 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
     gsf_xml_out_add_cstr(ncxXml, "xml:lang", getLanguage().c_str());
     // <head>
     gsf_xml_out_start_element(ncxXml, "head");
-    // <meta name="dtb:uid" content=... >
+    // <meta name="dtb:uid" content=... > — must match the OPF
+    // dc:identifier verbatim (including the urn:uuid: scheme prefix)
     gsf_xml_out_start_element(ncxXml, "meta");
     gsf_xml_out_add_cstr(ncxXml, "name", "dtb:uid");
-    gsf_xml_out_add_cstr(ncxXml, "content", getDoc()->getDocUUIDString());
+    gsf_xml_out_add_cstr(ncxXml, "content",
+            ("urn:uuid:" + std::string(getDoc()->getDocUUIDString())).c_str());
     // </meta>
     gsf_xml_out_end_element(ncxXml);
     // <meta name="epub-creator" content=... >
@@ -239,10 +242,20 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
             "Abinova (https://github.com/janos-szenfner/Abinova)");
     // </meta>
     gsf_xml_out_end_element(ncxXml);
-    // <meta name="dtb:depth" content=... >
+    // <meta name="dtb:depth" content=... > — deepest navPoint level
+    int iTocDepth = 1;
+    for (int i = 0;
+        i < m_pHmtlExporter->getNavigationHelper()->getNumTOCEntries(); i++)
+    {
+        int lvl = 0;
+        m_pHmtlExporter->getNavigationHelper()->getNthTOCEntry(i, &lvl);
+        if (lvl > iTocDepth)
+            iTocDepth = lvl;
+    }
     gsf_xml_out_start_element(ncxXml, "meta");
     gsf_xml_out_add_cstr(ncxXml, "name", "dtb:depth");
-    gsf_xml_out_add_cstr(ncxXml, "content", "1");
+    gsf_xml_out_add_cstr(ncxXml, "content",
+            UT_std_string_sprintf("%d", iTocDepth).c_str());
     // </meta>
     gsf_xml_out_end_element(ncxXml);
     // <meta name="dtb:totalPageCount" content=... >
@@ -285,6 +298,7 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
         int curItemLevel = 0;
         std::vector<int> tagLevels;
         int tocNum = 0;
+        std::string prevFile;
         for (int currentItem = 0; 
             currentItem < m_pHmtlExporter->getNavigationHelper()->getNumTOCEntries(); 
             currentItem++)
@@ -305,10 +319,6 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
                 {
                     itemFilename = "index.xhtml";
                 }
-                else
-                {
-                    itemFilename +=   + ".xhtml";
-                }
             } else
             {
                 itemFilename = "index.xhtml";
@@ -318,7 +328,14 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
                           escapeForId(itemFilename)) == m_opsId.end())
             {
                 m_opsId.push_back(escapeForId(itemFilename));
+            }
+
+            /* content anchors number each file's own headings
+             * (AbiTOC0..N); TOC entries for one file are contiguous */
+            if (itemFilename != prevFile)
+            {
                 tocNum = 0;
+                prevFile = itemFilename;
             }
 
             UT_DEBUGMSG(("Item filename %s at pos %d\n", 
@@ -336,8 +353,12 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
             }
 
 	    std::string navClass = UT_std_string_sprintf("h%d", curItemLevel);
-	    std::string navId = UT_std_string_sprintf("AbiTOC%d", tocNum);
-	    std::string navSrc = std::string(itemFilename.c_str()) + "#" + navId;
+	    /* the fragment id inside the content file numbers the file's
+	     * own headings (AbiTOC0..N); the navPoint id must instead be
+	     * unique across the whole NCX document */
+	    std::string navId = UT_std_string_sprintf("navPoint-%d", currentItem + 1);
+	    std::string navSrc = std::string(itemFilename.c_str()) +
+		UT_std_string_sprintf("#AbiTOC%d", tocNum);
             gsf_xml_out_start_element(ncxXml, "navPoint");
             gsf_xml_out_add_cstr(ncxXml, "playOrder",
                     UT_std_string_sprintf("%d", currentItem + 1).c_str());
@@ -383,6 +404,7 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
 
     // </ncx>
     gsf_xml_out_end_element(ncxXml);
+    g_object_unref(ncxXml);
     gsf_output_close(ncx);
 
     return UT_OK;
@@ -390,11 +412,11 @@ UT_Error IE_Exp_EPUB::EPUB2_writeNavigation()
 
 UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
 {
-    GsfOutput* nav = gsf_outfile_new_child(GSF_OUTFILE(m_oebps), "toc.xhtml",
+    GsfOutput* nav = gsf_outfile_new_child(GSF_OUTFILE(m_oebps), "nav.xhtml",
             FALSE);
     if (nav == NULL)
     {
-        UT_DEBUGMSG(("Can`t create toc.xhtml file\n"));
+        UT_DEBUGMSG(("Can`t create nav.xhtml file\n"));
         return UT_ERROR;
     }
     GsfXMLOut* navXHTML = gsf_xml_out_new(nav);
@@ -431,6 +453,7 @@ UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
         int curItemLevel = 0;
         std::vector<int> tagLevels;
         int tocNum = 0;
+        std::string prevFile;
         bool newList = true;
         for (int currentItem = 0; 
             currentItem < m_pHmtlExporter->getNavigationHelper()->getNumTOCEntries(); 
@@ -449,12 +472,9 @@ UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
                 itemFilename = m_pHmtlExporter->getNavigationHelper()
 					->getFilenameByPosition(itemPos).utf8_str();
 
-                if ((itemFilename == "") || itemFilename.length() == 0)
+                if (itemFilename.length() == 0 || (itemFilename[0] == '.'))
                 {
                     itemFilename = "index.xhtml";
-                } else
-                {
-                    itemFilename +=  ".xhtml";
                 }
             } else
             {
@@ -465,7 +485,14 @@ UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
                           escapeForId(itemFilename)) == m_opsId.end())
             {
                 m_opsId.push_back(escapeForId(itemFilename));
+            }
+
+            /* content anchors number each file's own headings
+             * (AbiTOC0..N); TOC entries for one file are contiguous */
+            if (itemFilename != prevFile)
+            {
                 tocNum = 0;
+                prevFile = itemFilename;
             }
 
             UT_DEBUGMSG(("Item filename %s at pos %d\n", 
@@ -495,9 +522,12 @@ UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
             }
 
 	    std::string navClass = UT_std_string_sprintf("h%d", curItemLevel);
-	    std::string navId = UT_std_string_sprintf("AbiTOC%d",
-                    tocNum);
-	    std::string navSrc = std::string(itemFilename.c_str()) + "#" + navId;
+	    /* <li> ids must be unique in the nav document; the href keeps
+	     * the per-file AbiTOC anchor generated inside the content file */
+	    std::string navId = UT_std_string_sprintf("nav-item-%d",
+                    currentItem + 1);
+	    std::string navSrc = std::string(itemFilename.c_str()) +
+		UT_std_string_sprintf("#AbiTOC%d", tocNum);
             gsf_xml_out_start_element(navXHTML, "li");
             gsf_xml_out_add_cstr(navXHTML, "class", navClass.c_str());
             gsf_xml_out_add_cstr(navXHTML, "id", navId.c_str());
@@ -535,6 +565,7 @@ UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
     
     
     gsf_xml_out_end_element(navXHTML);
+    g_object_unref(navXHTML);
     gsf_output_close(nav);
     return UT_OK;
 }
@@ -552,7 +583,8 @@ UT_Error IE_Exp_EPUB::EPUB3_writeStructure()
     // Exporting document to XHTML using HTML export plugin 
     char *szIndexPath = (char*) g_malloc(strlen(indexPath.c_str()) + 1);
     strcpy(szIndexPath, indexPath.c_str());
-    IE_Exp_HTML_WriterFactory *pWriterFactory = new IE_Exp_EPUB_EPUB3WriterFactory();
+    IE_Exp_HTML_WriterFactory *pWriterFactory =
+		new IE_Exp_EPUB_EPUB3WriterFactory(getLanguage());
     m_pHmtlExporter = new IE_Exp_HTML(getDoc());
     m_pHmtlExporter->setWriterFactory(pWriterFactory);
     m_pHmtlExporter->suppressDialog(true);
@@ -619,7 +651,12 @@ UT_Error IE_Exp_EPUB::package()
     gsf_xml_out_end_element(opfXml);
     gsf_xml_out_start_element(opfXml, "dc:creator");
     gsf_xml_out_add_cstr(opfXml, "id", "creator");
-    gsf_xml_out_add_cstr(opfXml, "opf:role", "aut");
+    if (m_exp_opt.bEpub2)
+    {
+        // EPUB 2 mechanism for contributor roles; in EPUB 3 this is
+        // expressed by the refines/meta element below instead
+        gsf_xml_out_add_cstr(opfXml, "opf:role", "aut");
+    }
     gsf_xml_out_add_cstr(opfXml, NULL, getAuthor().c_str());
     gsf_xml_out_end_element(opfXml);
     if (!m_exp_opt.bEpub2)
@@ -688,7 +725,7 @@ UT_Error IE_Exp_EPUB::package()
     {
         gsf_xml_out_start_element(opfXml, "item");
         gsf_xml_out_add_cstr(opfXml, "id", "toc");
-        gsf_xml_out_add_cstr(opfXml, "href", "toc.xhtml");
+        gsf_xml_out_add_cstr(opfXml, "href", "nav.xhtml");
         gsf_xml_out_add_cstr(opfXml, "media-type", "application/xhtml+xml");
         // EPUB 3 requires the Navigation Document to be declared with
         // the "nav" property.
@@ -698,18 +735,21 @@ UT_Error IE_Exp_EPUB::package()
     // </manifest>
     gsf_xml_out_end_element(opfXml);
 
-    // <spine>
+    // <spine> — the Navigation Document is referenced by the manifest
+    // "nav" property and stays out of the spine (a linear="no" itemref
+    // would require a hyperlink target to stay reachable per OPF-096)
     gsf_xml_out_start_element(opfXml, "spine");
     gsf_xml_out_add_cstr(opfXml, "toc", "ncx");
-    
-    
-    if (!m_exp_opt.bEpub2)
+
+    /* the index document holds any preamble content that precedes the
+     * first heading; when the TOC did not reference it, it must still
+     * lead the spine or its content is unreachable */
+    if (std::find(m_opsId.begin(), m_opsId.end(),
+                  escapeForId("index.xhtml")) == m_opsId.end())
     {
-        gsf_xml_out_start_element(opfXml, "itemref");
-        gsf_xml_out_add_cstr(opfXml, "idref","toc");
-        gsf_xml_out_end_element(opfXml);
+        m_opsId.insert(m_opsId.begin(), escapeForId("index.xhtml"));
     }
-    
+
     for(std::vector<std::string>::iterator i = m_opsId.begin(); i != m_opsId.end(); i++)
     {
         gsf_xml_out_start_element(opfXml, "itemref");
@@ -724,6 +764,7 @@ UT_Error IE_Exp_EPUB::package()
 
     // </package>
     gsf_xml_out_end_element(opfXml);
+    g_object_unref(opfXml);
     gsf_output_close(opf);
     return compress();
 }
@@ -795,9 +836,11 @@ UT_Error IE_Exp_EPUB::compress()
 	std::string fullPath = m_oebpsDir + G_DIR_SEPARATOR_S + *i;
         GsfInput* file = UT_go_file_open(fullPath.c_str(), NULL);
 
-        if (file == NULL)
+        if (item == NULL || file == NULL)
         {
             UT_DEBUGMSG(("RUDYJ: Can`t open file\n"));
+            if (item) gsf_output_close(item);
+            g_object_unref(oebpsDir);
             return UT_ERROR;
         }
 
@@ -805,9 +848,12 @@ UT_Error IE_Exp_EPUB::compress()
         gsf_input_seek(file, 0, G_SEEK_SET);
         gsf_input_copy(file, item);
         gsf_output_close(item);
+        g_object_unref(file);
         // Time to delete temporary file
         UT_go_file_remove(fullPath.c_str(), NULL);
     }
+
+    g_object_unref(oebpsDir);
 
     UT_go_file_remove((m_oebpsDir + G_DIR_SEPARATOR_S + "index.xhtml_files").c_str(), NULL);
     UT_go_file_remove(m_oebpsDir.c_str(), NULL);
@@ -825,8 +871,17 @@ void IE_Exp_EPUB::closeNTags(GsfXMLOut* xml, int n)
 
 std::string IE_Exp_EPUB::escapeForId(const std::string& src)
 {
-
-    return UT_escapeXML(src);
+    /* manifest item ids are xs:ID / NCName values: no '/', spaces or
+     * other markup chars, and a letter or '_' first */
+    std::string id = UT_escapeXML(src);
+    for (std::string::iterator c = id.begin(); c != id.end(); ++c)
+    {
+        if (!(g_ascii_isalnum(*c) || *c == '.' || *c == '_' || *c == '-'))
+            *c = '_';
+    }
+    if (id.empty() || !(g_ascii_isalpha(id[0]) || id[0] == '_'))
+        id.insert(0, "id-");
+    return id;
 }
 
 std::string IE_Exp_EPUB::getMimeType(const std::string &uri)

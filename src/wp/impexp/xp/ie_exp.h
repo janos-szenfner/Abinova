@@ -208,6 +208,12 @@ private:
 	PD_DocumentRange *	m_pDocRange;
 	UT_ByteBuf *		m_pByteBuf;
 	std::string         m_szFileName;
+	/* actual file being written to; differs from m_szFileName when
+	 * writeFile() streams to a sibling ".part" file that is renamed
+	 * over the target at close.  Exporters use getFileName() (the
+	 * logical target name) to derive sibling output names; the write
+	 * name is only used to clean up the scratch file on failure. */
+	std::string         m_szWriteFileName;
 	GsfOutput *				m_fp;
 	bool                m_bOwnsFp;
 

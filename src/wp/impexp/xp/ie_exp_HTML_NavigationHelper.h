@@ -58,6 +58,7 @@ private:
     UT_UTF8String m_suffix;
     int m_minTOCLevel;
     int m_minTOCIndex;
+    bool m_bFirstChapterIsIndex;
     std::map<UT_UTF8String, UT_UTF8String> m_bookmarks;
     char* m_baseName;
 };
