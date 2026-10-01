@@ -165,6 +165,14 @@ below are on `main` but the release has not been cut yet.
 - **Legacy `.doc` custom footnote/endnote marks** — manual reference
   marks no longer leak `footnote-id`/`endnote-id` attributes onto the
   following body text.
+- **Legacy `.doc` fields, hyperlinks and bookmarks hardened** — stray
+  field separator/end characters can no longer corrupt the field
+  stack, oversized field instructions are truncated instead of
+  overflowing, and `HYPERLINK` fields resolve their target from the
+  instruction (`\l` bookmark links included) or from the document's
+  `_PID_HLINKS` hyperlink table (MS-DOC 2.4.7) instead of emitting
+  empty links; bookmarks anchored inside skipped field content are no
+  longer dropped.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

@@ -383,6 +383,11 @@ struct field
 	char *		fieldC;
 	UT_sint32   fieldRet;
 	Doc_Field_t type;
+	// index of this field's begin character in the Plcfld of the
+	// document part it lives in (-1 when unknown); used to resolve
+	// _PID_HLINKS dwApp values (MS-DOC 2.4.7)
+	UT_sint32   iFldStory;
+	UT_sint32   iFldIndex;
 };
 
 
@@ -988,6 +993,7 @@ IE_Imp_MsWord_97::~IE_Imp_MsWord_97()
 	DELETEPV(m_pFootnotes);
 	DELETEPV(m_pEndnotes);
 	DELETEPV(m_pHeaders);
+	_freeFields();
 }
 
 IE_Imp_MsWord_97::IE_Imp_MsWord_97(PD_Document * pDocument)
@@ -1047,11 +1053,13 @@ IE_Imp_MsWord_97::IE_Imp_MsWord_97(PD_Document * pDocument)
 	m_bTOCsupported(false),
 	m_bInTextboxes(false),
 	m_pTextboxEndSection(nullptr),
-	m_iLastAppendedHeader(0xffffffff)
+	m_iLastAppendedHeader(0xffffffff),
+	m_iBmCursor(0)
 {
   for(UT_uint32 i = 0; i < 9; i++)
 	  m_iListIdIncrement[i] = 0;
   m_vecTextboxPos.clear();
+  memset(m_aStoryFlds, 0, sizeof(m_aStoryFlds));
 }
 
 /****************************************************************************/
@@ -1334,6 +1342,7 @@ UT_Error IE_Imp_MsWord_97::_loadFile(GsfInput * fp)
 	  getDoc()->setAttrProp(PP_NOPROPS);
   
   _handleMetaData(&ps);
+  _parseHyperlinkProps(&ps);
   wvText(&ps);
 
   if(getLoadStylesOnly()) {
@@ -1612,13 +1621,7 @@ static int s_cmp_bookmarks_qsort(const void * a, const void * b)
 		return static_cast<UT_sint32>(B->start) - static_cast<UT_sint32>(A->start);
 }
 
-static int s_cmp_bookmarks_bsearch(const void * a, const void * b)
-{
-	UT_uint32 A = *static_cast<const UT_uint32 *>(a);
-	const bookmark * B = static_cast<const bookmark *>(b);
 
-	return (A - B->pos);
-}
 
 gchar * IE_Imp_MsWord_97::_getBookmarkName(const wvParseStruct * ps, UT_uint32 pos)
 {
@@ -1690,6 +1693,7 @@ int IE_Imp_MsWord_97::_docProc (wvParseStruct * ps, UT_uint32 tag)
 			return 1;
 
 		// deal with bookmarks
+		m_iBmCursor = 0;
 		_handleBookmarks(ps);
 
 		// deal with footnotes and endnotes, headers
@@ -1741,6 +1745,10 @@ int IE_Imp_MsWord_97::_docProc (wvParseStruct * ps, UT_uint32 tag)
 		_handleNotes(ps);
 		_handleHeaders(ps);
 		_handleTextBoxes(ps);
+
+		// per-story field character tables (needed to resolve the
+		// _PID_HLINKS dwApp values to fields, MS-DOC 2.4.7)
+		_handleFields(ps);
 		
 		if(m_iAnnotationsEnd != m_iAnnotationsStart)
 			{
@@ -1782,6 +1790,10 @@ int IE_Imp_MsWord_97::_docProc (wvParseStruct * ps, UT_uint32 tag)
 	case DOCEND:
 		// we want to clean up fmt marks
 		getDoc()->purgeFmtMarks();
+		// drain bookmarks whose CPs were never reached (e.g. a bookmark
+		// ending exactly at the end of the document)
+		while(m_pBookmarks && m_iBmCursor < m_iBookmarksCount)
+			_insertBookmark(&m_pBookmarks[m_iBmCursor++]);
 		break;
 	default:
 		break;
@@ -1843,28 +1855,17 @@ bool IE_Imp_MsWord_97::_insertBookmark(bookmark * bm)
 
 bool IE_Imp_MsWord_97::_insertBookmarkIfAppropriate(UT_uint32 iDocPosition)
 {
-	//now search for position iDocPosition in our bookmark list;
-	bookmark * bm, * lastBm;
-	if (m_iBookmarksCount == 0) {
-		bm = static_cast<bookmark*>(nullptr);
-	}
-	else {
-		bm = static_cast<bookmark*>( bsearch(static_cast<const void *>(&iDocPosition),
-				m_pBookmarks, m_iBookmarksCount, sizeof(bookmark),
-				s_cmp_bookmarks_bsearch));
-	}
+	// the bookmark array is sorted by position (start bookmarks before
+	// end bookmarks at the same position); document positions increase
+	// monotonically during import, so a simple cursor suffices. Using
+	// <= rather than == means a bookmark whose CP fell inside a field
+	// (skipped while ps->fieldstate was set) is still inserted at the
+	// first character after the field instead of being dropped.
 	bool error = false;
-	if(bm)
+	while(m_pBookmarks && m_iBmCursor < m_iBookmarksCount &&
+		  m_pBookmarks[m_iBmCursor].pos <= iDocPosition)
 	{
-	   // there is a bookmark at the current position
-	   // first make sure the returned bookmark is the first one at this position
-	   while(bm > m_pBookmarks && (bm - 1)->pos == iDocPosition)
-		   bm--;
-
-	   lastBm = &m_pBookmarks[m_iBookmarksCount];
-
-	   while(bm < lastBm && bm->pos == iDocPosition)
-		  error |= _insertBookmark(bm++);
+		error |= _insertBookmark(&m_pBookmarks[m_iBmCursor++]);
 	}
 	return error;
 }
@@ -2061,19 +2062,25 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 		this->_fieldProc (ps, eachchar, 0, 0x400);
 		return 0;
 
-	case 20: // field separator
-		if (achp->fOle2)
+	case 20: // field separator; ignore spurious ones outside a field
+		if (ps->fieldstate)
 		{
-			UT_DEBUGMSG(("Field has an associated embedded OLE object\n"));
+			if (achp->fOle2)
+			{
+				UT_DEBUGMSG(("Field has an associated embedded OLE object\n"));
+			}
+			ps->fieldmiddle = 1;
+			this->_fieldProc (ps, eachchar, 0, 0x400);
 		}
-		ps->fieldmiddle = 1;
-		this->_fieldProc (ps, eachchar, 0, 0x400);
 		return 0;
 
-	case 21: // field end
-		ps->fieldstate--;
-		ps->fieldmiddle = 0;
-		this->_fieldProc (ps, eachchar, 0, 0x400);
+	case 21: // field end; a stray 0x15 must not underflow fieldstate
+		if (ps->fieldstate)
+		{
+			ps->fieldstate--;
+			ps->fieldmiddle = 0;
+			this->_fieldProc (ps, eachchar, 0, 0x400);
+		}
 		return 0;
 
 	}
@@ -3662,6 +3669,10 @@ int IE_Imp_MsWord_97::_fieldProc (wvParseStruct *ps, U16 eachchar,
 		f->fieldI = 0;
 		f->fieldRet = 1;
 		f->type = F_OTHER;
+		f->iFldStory = -1;
+		f->iFldIndex = -1;
+		if(ps)
+			_fldIndexAtCp(ps->currentcp, &f->iFldStory, &f->iFldIndex);
 		m_stackField.push(f);
 	}
 	else if (eachchar == 0x14) // field trigger
@@ -3683,17 +3694,12 @@ int IE_Imp_MsWord_97::_fieldProc (wvParseStruct *ps, U16 eachchar,
 	}
 	if(!f)
 	{
+		if(m_stackField.empty())
+			return 1;
 		f = m_stackField.top();
 	}
-	
+
 	UT_return_val_if_fail(f,0);
-	
-	if (f->fieldI >= FLD_SIZE)
-	{
-		UT_DEBUGMSG(("DOM: Something completely absurd in the fields implementation!\n"));
-		UT_ASSERT_NOT_REACHED();
-		return 1;
-	}
 
 	if (!f->fieldWhich) {
 		UT_DEBUGMSG(("DOM: _fieldProc - 'which' is null\n"));
@@ -3701,12 +3707,17 @@ int IE_Imp_MsWord_97::_fieldProc (wvParseStruct *ps, U16 eachchar,
 		return 1;
 	}
 
-	if (chartype)
-		f->fieldWhich[f->fieldI] = wvHandleCodePage(eachchar, lid);
-	else
-		f->fieldWhich[f->fieldI] = eachchar;
+	if (f->fieldI < FLD_SIZE - 1)
+	{
+		if (chartype)
+			f->fieldWhich[f->fieldI] = wvHandleCodePage(eachchar, lid);
+		else
+			f->fieldWhich[f->fieldI] = eachchar;
 
-	f->fieldI++;
+		f->fieldI++;
+	}
+	// else: oversized field - keep consuming the field characters so
+	// the nesting balance is preserved, just don't overrun the buffer
 
 	if (eachchar == 0x15) // end of field marker
 	{
@@ -3721,6 +3732,8 @@ int IE_Imp_MsWord_97::_fieldProc (wvParseStruct *ps, U16 eachchar,
 		wvFree (f->fieldC);
 		iRet = f->fieldRet;
 
+		if(m_stackField.empty())
+			return iRet;
 		f = m_stackField.top();
 		m_stackField.pop();
 		UT_return_val_if_fail(f,0);
@@ -3734,7 +3747,7 @@ bool IE_Imp_MsWord_97::_handleFieldEnd (char *command, UT_uint32 /*iDocPosition*
 	Doc_Field_t tokenIndex = F_OTHER;
 	char *token;
 	field * f = nullptr;
-	f = m_stackField.top();
+	f = m_stackField.empty() ? nullptr : m_stackField.top();
 	UT_return_val_if_fail(f, true);
 
 	if (*command != 0x13)
@@ -3833,8 +3846,13 @@ bool IE_Imp_MsWord_97::_handleFieldEnd (char *command, UT_uint32 /*iDocPosition*
 						m_bInPara = true ;
 					}
 
-					_appendObject(PTO_Hyperlink, PP_NOPROPS);
-					m_bInLink = false;
+					// only close the link if the instruction actually
+					// opened one, otherwise we'd emit an orphan end
+					if(m_bInLink)
+					{
+						_appendObject(PTO_Hyperlink, PP_NOPROPS);
+						m_bInLink = false;
+					}
 					break;
 				}
 			case F_TOC:             
@@ -4205,7 +4223,7 @@ bool IE_Imp_MsWord_97::_handleCommandField (char *command)
 	
 	Doc_Field_t tokenIndex = F_OTHER;
 	char *token = nullptr;
-	field * f = m_stackField.top();
+	field * f = m_stackField.empty() ? nullptr : m_stackField.top();
 	UT_return_val_if_fail(f,true);
 	bool bTypeSet = false;
 	
@@ -4282,21 +4300,49 @@ bool IE_Imp_MsWord_97::_handleCommandField (char *command)
 
 			case F_HYPERLINK:
 				{
+					/* HYPERLINK "target" [\o "tip"] [\t frame] [\l "bookmark"] ...
+					 * walk the tokens so stray switches don't get mistaken
+					 * for the target */
+					std::string href;
 					token = strtok (nullptr, "\"\" ");
+					while(token)
+					{
+						if(token[0] == '\\')
+						{
+							if(!strcmp(token, "\\l"))
+							{
+								// link to a place in this document
+								token = strtok (nullptr, "\"\" ");
+								if(token)
+								{
+									href = "#";
+									href += token;
+								}
+								break;
+							}
+							// \o "tip", \t frame and \* format take an argument
+							if(!strcmp(token, "\\o") || !strcmp(token, "\\t") ||
+							   !strcmp(token, "\\*"))
+								strtok (nullptr, "\"\" ");
+							token = strtok (nullptr, "\"\" ");
+							continue;
+						}
+						href = token;
+						break;
+					}
 
-					if(token) {
-					  // hyperlink or hyperlink to bookmark
-					  std::string href;
-					  if ( !strcmp(token, "\\l") )
-					    {
-					      token = strtok (nullptr, "\"\" ");
-					      href = "#";
-					      href += token;
-					    }
-					  else
-					    {
-						  href = token;
-					    }
+					/* MS-DOC 2.4.7: the document's _PID_HLINKS property carries
+					 * the authoritative target for this field; use it when the
+					 * instruction had none (or was flagged out of sync) */
+					if(href.empty() || !m_mapFieldHlink.empty())
+					{
+						std::string vt = _hyperlinkForField(f->iFldStory, f->iFldIndex);
+						if(href.empty())
+							href = vt;
+					}
+
+					if(!href.empty())
+					{
 					  PP_PropertyVector new_atts = {
 						  "xlink:href", href
 					  };
@@ -6531,6 +6577,393 @@ int IE_Imp_MsWord_97::_handleBookmarks(const wvParseStruct *ps)
 #endif
 	}
 	return 0;
+}
+
+void IE_Imp_MsWord_97::_freeFields()
+{
+	for(int i = 0; i < FLDSTORY_COUNT; i++)
+	{
+		wvFree(m_aStoryFlds[i].cps);
+		wvFree(m_aStoryFlds[i].flds);
+		m_aStoryFlds[i].count = 0;
+	}
+	m_mapFieldHlink.clear();
+}
+
+/*!
+ * reads each document part's Plcfld (MS-DOC 2.8.25) and resolves the
+ * _PID_HLINKS hyperlink properties onto their fields (MS-DOC 2.4.7)
+ */
+void IE_Imp_MsWord_97::_handleFields(const wvParseStruct *ps)
+{
+	_freeFields();
+
+	// FIB offsets per story, in FLDSTORY_* order
+	static const struct { S32 FIB::*fc; U32 FIB::*lcb; } s_fibFld[FLDSTORY_COUNT] = {
+		{&FIB::fcPlcffldMom,     &FIB::lcbPlcffldMom},
+		{&FIB::fcPlcffldFtn,     &FIB::lcbPlcffldFtn},
+		{&FIB::fcPlcffldHdr,     &FIB::lcbPlcffldHdr},
+		{&FIB::fcPlcffldMcr,     &FIB::lcbPlcffldMcr},
+		{&FIB::fcPlcffldAtn,     &FIB::lcbPlcffldAtn},
+		{&FIB::fcPlcffldEdn,     &FIB::lcbPlcffldEdn},
+		{&FIB::fcPlcffldTxbx,    &FIB::lcbPlcffldTxbx},
+		{&FIB::fcPlcffldHdrTxbx, &FIB::lcbPlcffldHdrTxbx},
+	};
+	for(UT_sint32 s = 0; s < FLDSTORY_COUNT; s++)
+	{
+		FLD *flds = nullptr;
+		U32 *cps = nullptr, n = 0;
+		if(!wvGetFLD_PLCF(&flds, &cps, &n,
+						 static_cast<U32>(ps->fib.*(s_fibFld[s].fc)),
+						 ps->fib.*(s_fibFld[s].lcb), ps->tablefd))
+		{
+			m_aStoryFlds[s].cps = cps;
+			m_aStoryFlds[s].flds = flds;
+			m_aStoryFlds[s].count = n;
+		}
+	}
+
+	if(m_vecHyperlinks.empty())
+		return;
+
+	// index-typed dwApp elements are grouped by document part in this
+	// order (MS-DOC 2.4.7), largest index first inside each group; so a
+	// dwApp that is a hyperlink-field index in several stories belongs
+	// to the earliest group that has not consumed it yet
+	static const UT_sint32 s_hlinkGroups[] = {
+		FLDSTORY_MOM, FLDSTORY_FTN, FLDSTORY_HDR, FLDSTORY_ATN,
+		FLDSTORY_EDN, FLDSTORY_TXBX, FLDSTORY_HDRTXBX
+	};
+	for(MsHyperlink & hl : m_vecHyperlinks)
+	{
+			if(hl.dwApp == 0xffffffff)
+			continue;	// hyperlink of an OfficeArt shape (dwOfficeArt holds the spid)
+		for(UT_sint32 g : s_hlinkGroups)
+		{
+			const storyFields *sf = &m_aStoryFlds[g];
+			UT_uint64 key = (static_cast<UT_uint64>(g) << 32) | hl.dwApp;
+			if(hl.dwApp < sf->count &&
+			   sf->flds[hl.dwApp].var1.ch == 0x13 &&
+			   sf->flds[hl.dwApp].var1.flt == 0x58 /* flt: HYPERLINK */ &&
+			   m_mapFieldHlink.find(key) == m_mapFieldHlink.end())
+			{
+				std::string url = hl.target;
+				// a relative target resolves against _PID_LINKBASE
+				if(!url.empty() && !m_sLinkBase.empty() &&
+				   url.find(':') == std::string::npos &&
+				   url[0] != '#' && url[0] != '/')
+					url = m_sLinkBase + url;
+				if(!hl.location.empty())
+				{
+					url += '#';
+					url += hl.location;
+				}
+				m_mapFieldHlink[key] = url;
+				hl.used = true;
+				break;
+			}
+		}
+	}
+}
+
+/*!
+ * locates the field-begin character at document position \a cp in its
+ * document part's Plcfld; on success returns true and fills \a story
+ * and \a index (the Plcfld element index used by _PID_HLINKS dwApp)
+ */
+bool IE_Imp_MsWord_97::_fldIndexAtCp(UT_uint32 cp, UT_sint32 *story,
+									 UT_sint32 *index) const
+{
+	UT_sint32 s;
+	UT_uint32 rel;
+	if(cp >= m_iTextStart && cp < m_iTextEnd)
+		{ s = FLDSTORY_MOM; rel = cp - m_iTextStart; }
+	else if(cp >= m_iFootnotesStart && cp < m_iFootnotesEnd)
+		{ s = FLDSTORY_FTN; rel = cp - m_iFootnotesStart; }
+	else if(cp >= m_iHeadersStart && cp < m_iHeadersEnd)
+		{ s = FLDSTORY_HDR; rel = cp - m_iHeadersStart; }
+	else if(cp >= m_iMacrosStart && cp < m_iMacrosEnd)
+		{ s = FLDSTORY_MCR; rel = cp - m_iMacrosStart; }
+	else if(cp >= m_iAnnotationsStart && cp < m_iAnnotationsEnd)
+		{ s = FLDSTORY_ATN; rel = cp - m_iAnnotationsStart; }
+	else if(cp >= m_iEndnotesStart && cp < m_iEndnotesEnd)
+		{ s = FLDSTORY_EDN; rel = cp - m_iEndnotesStart; }
+	else if(cp >= m_iTextboxesStart && cp < m_iTextboxesEnd)
+		{ s = FLDSTORY_TXBX; rel = cp - m_iTextboxesStart; }
+	else
+		{ s = FLDSTORY_HDRTXBX; rel = cp - m_iTextboxesEnd; }
+
+	*story = s;
+	*index = -1;
+
+	const storyFields *sf = &m_aStoryFlds[s];
+	if(!sf->cps || !sf->count)
+		return false;
+
+	// cps is sorted ascending (PLC)
+	UT_uint32 lo = 0, hi = sf->count;
+	while(lo < hi)
+	{
+		UT_uint32 mid = (lo + hi) / 2;
+		if(sf->cps[mid] < rel)
+			lo = mid + 1;
+		else
+			hi = mid;
+	}
+	if(lo < sf->count && sf->cps[lo] == rel &&
+	   sf->flds[lo].var1.ch == 0x13)
+	{
+		*index = static_cast<UT_sint32>(lo);
+		return true;
+	}
+	return false;
+}
+
+/*!
+ * returns the _PID_HLINKS-resolved target for the hyperlink field whose
+ * begin character is element \a index of story \a story's Plcfld, or ""
+ */
+std::string IE_Imp_MsWord_97::_hyperlinkForField(UT_sint32 story, UT_sint32 index)
+{
+	if(story < 0 || index < 0 || m_mapFieldHlink.empty())
+		return std::string();
+	auto it = m_mapFieldHlink.find((static_cast<UT_uint64>(story) << 32) |
+								   static_cast<UT_uint32>(index));
+	if(it == m_mapFieldHlink.end())
+		return std::string();
+	return it->second;
+}
+
+static UT_uint16 s_propRd16(const guint8 *p)
+{
+	return static_cast<UT_uint16>(p[0] | (p[1] << 8));
+}
+static UT_uint32 s_propRd32(const guint8 *p)
+{
+	return static_cast<UT_uint32>(p[0]) | (static_cast<UT_uint32>(p[1]) << 8) |
+		(static_cast<UT_uint32>(p[2]) << 16) | (static_cast<UT_uint32>(p[3]) << 24);
+}
+
+/*!
+ * reads a TypedPropertyValue string (VT_LPWSTR/VT_LPSTR) starting at
+ * \a off, returns it as UTF-8 and stores the offset just past it in
+ * \a next; returns false if the blob is malformed
+ */
+static bool s_propReadString(const guint8 *buf, gsize sz, UT_uint32 off,
+							 UT_uint32 *next, std::string & out)
+{
+	out.clear();
+	if(off + 8 > sz)
+		return false;
+	UT_uint16 wt = s_propRd16(&buf[off]);
+	UT_uint32 p = off + 4;
+	UT_uint32 cch = s_propRd32(&buf[p]);
+	p += 4;
+	if(wt == 0x001f)	// VT_LPWSTR
+	{
+		if(cch > (sz - p) / 2)
+			return false;
+		UT_UTF8String s;
+		for(UT_uint32 i = 0; i < cch; i++)
+		{
+			UT_UCS2Char c = s_propRd16(&buf[p + 2 * i]);
+			if(c)
+				s.appendUCS2(&c, 1);
+		}
+		out = s.utf8_str();
+		// an Lpwstr is padded to a multiple of 4 bytes
+		UT_uint32 adv = (4 + 2 * cch + 3) & ~3u;
+		*next = off + 4 + adv;
+		return true;
+	}
+	if(wt == 0x001e)	// VT_LPSTR
+	{
+		if(cch > sz - p)
+			return false;
+		for(UT_uint32 i = 0; i < cch && buf[p + i]; i++)
+			out += static_cast<char>(buf[p + i]);
+		UT_uint32 adv = (4 + cch + 3) & ~3u;
+		*next = off + 4 + adv;
+		return true;
+	}
+	return false;
+}
+
+/*!
+ * parses the \005DocumentSummaryInformation property set for the
+ * user-defined _PID_HLINKS (VtHyperlinks, [MS-OSHARED] 2.3.3.1.21) and
+ * _PID_LINKBASE properties; hyperlink targets are bound to fields once
+ * the Plcflds have been read in _handleFields()
+ */
+void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
+{
+	m_vecHyperlinks.clear();
+	m_sLinkBase.clear();
+
+	if(!ps->ole_file || !GSF_IS_INFILE(ps->ole_file))
+		return;
+	GsfInput *st = gsf_infile_child_by_name(GSF_INFILE(ps->ole_file),
+										  "\005DocumentSummaryInformation");
+	if(!st)
+		return;
+	gsize sz = static_cast<gsize>(gsf_input_size(st));
+	guint8 *buf = sz ? new guint8[sz] : nullptr;
+	if(buf && !gsf_input_read(st, sz, buf))
+	{
+		delete [] buf;
+		buf = nullptr;
+	}
+	g_object_unref(G_OBJECT(st));
+	if(!buf)
+		return;
+
+	// property set header (MS-OLEPS 2.20)
+	if(sz < 48 || s_propRd16(buf) != 0xFFFE)
+		goto fail;
+	{
+		// locate the user-defined section (FMTID
+		// {D5CDD505-2E9C-101B-9397-08002B2CF9AE})
+		static const guint8 s_userFmtid[16] =
+			{0x05, 0xD5, 0xCD, 0xD5, 0x9C, 0x2E, 0x1B, 0x10,
+			 0x93, 0x97, 0x08, 0x00, 0x2B, 0x2C, 0xF9, 0xAE};
+		UT_uint32 cSections = s_propRd32(&buf[24]);
+		UT_uint32 sectOff = 0;
+		for(UT_uint32 i = 0; i < cSections && i < 8; i++)
+		{
+			if(28 + i * 20 + 20 > sz)
+				break;
+			if(!memcmp(buf + 28 + i * 20, s_userFmtid, 16))
+			{
+				sectOff = s_propRd32(&buf[28 + i * 20 + 16]);
+				break;
+			}
+		}
+		if(!sectOff || sectOff + 8 > sz)
+			goto fail;
+
+		UT_uint32 cProps = s_propRd32(&buf[sectOff + 4]);
+		if(cProps > (sz - sectOff - 8) / 8)
+			goto fail;
+
+		UT_uint32 dictOff = 0, hlinksPid = 0, linkBasePid = 0;
+		for(UT_uint32 i = 0; i < cProps; i++)
+		{
+			if(s_propRd32(&buf[sectOff + 8 + i * 8]) == 0)
+				dictOff = s_propRd32(&buf[sectOff + 8 + i * 8 + 4]);
+		}
+		if(!dictOff || sectOff + dictOff + 4 > sz)
+			goto fail;
+
+		// the Dictionary property maps property names to propIds
+		{
+			UT_uint32 nEnt = s_propRd32(&buf[sectOff + dictOff]);
+			UT_uint32 pos = sectOff + dictOff + 4;
+			for(UT_uint32 k = 0; k < nEnt && pos + 8 <= sz; k++)
+			{
+				UT_uint32 pid = s_propRd32(&buf[pos]);
+				UT_uint32 len = s_propRd32(&buf[pos + 4]);
+				pos += 8;
+				bool uni = (pid & 0x80000000) != 0;
+				UT_uint32 nbytes = uni ? len * 2 : len;
+				if(nbytes > sz - pos)
+					break;
+				UT_UTF8String sName;
+				if(uni)
+				{
+					for(UT_uint32 i = 0; i < len; i++)
+					{
+						UT_UCS2Char c = s_propRd16(&buf[pos + 2 * i]);
+						if(c)
+							sName.appendUCS2(&c, 1);
+					}
+				}
+				else
+				{
+					for(UT_uint32 i = 0; i < len && buf[pos + i]; i++)
+						sName += static_cast<char>(buf[pos + i]);
+				}
+				pos += (nbytes + 3) & ~3u;
+				if(sName == "_PID_HLINKS")
+					hlinksPid = pid & 0x7fffffff;
+				else if(sName == "_PID_LINKBASE")
+					linkBasePid = pid & 0x7fffffff;
+			}
+		}
+
+		auto propOffset = [&](UT_uint32 pid) -> UT_uint32 {
+			for(UT_uint32 i = 0; i < cProps; i++)
+				if(s_propRd32(&buf[sectOff + 8 + i * 8]) == pid)
+					return s_propRd32(&buf[sectOff + 8 + i * 8 + 4]);
+			return 0;
+		};
+
+		// _PID_LINKBASE (Lpstr/Lpwstr): base for relative targets
+		if(linkBasePid)
+		{
+			UT_uint32 off = propOffset(linkBasePid);
+			if(off && sectOff + off < sz)
+			{
+				UT_uint32 next;
+				s_propReadString(buf, sz, sectOff + off, &next, m_sLinkBase);
+			}
+		}
+
+		// _PID_HLINKS: VT_BLOB TypedPropertyValue wrapping VecVtHyperlink
+		if(!hlinksPid)
+			goto fail;
+		{
+			UT_uint32 off = propOffset(hlinksPid);
+			if(!off || sectOff + off + 12 > sz)
+				goto fail;
+			UT_uint32 p = sectOff + off;
+			if(s_propRd16(&buf[p]) != 0x0041)	// VT_BLOB
+				goto fail;
+			UT_uint32 cbData = s_propRd32(&buf[p + 4]);
+			p += 8;
+			if(cbData > sz - p)
+				cbData = sz - p;
+			UT_uint32 blobEnd = p + cbData;
+			if(p + 4 > blobEnd)
+				goto fail;
+			// VecVtHyperlink: cElements counts the 6 values of each
+			// VtHyperlink (dwHash, dwApp, dwOfficeArt, dwInfo, hlink1,
+			// hlink2)
+			UT_uint32 nH = s_propRd32(&buf[p]) / 6;
+			p += 4;
+			for(UT_uint32 i = 0; i < nH && p + 32 <= blobEnd; i++)
+			{
+				MsHyperlink hl;
+				// four VT_I4 TypedPropertyValues (wType, pad, value)
+				for(int v = 0; v < 4; v++)
+				{
+					if(s_propRd16(&buf[p]) != 0x0003)
+						goto fail;
+					p += 8;
+				}
+				hl.dwApp       = s_propRd32(&buf[p - 20]);
+				hl.dwOfficeArt = s_propRd32(&buf[p - 12]);
+				hl.dwInfo      = s_propRd32(&buf[p - 4]);
+				UT_uint32 next;
+				if(!s_propReadString(buf, blobEnd, p, &next, hl.target))
+					goto fail;
+				p = next;
+				if(!s_propReadString(buf, blobEnd, p, &next, hl.location))
+					goto fail;
+				p = next;
+				hl.used = false;
+				m_vecHyperlinks.push_back(hl);
+			}
+		}
+	}
+
+	UT_DEBUGMSG(("DOM: %u hyperlink properties, linkbase '%s'\n",
+				 (unsigned)m_vecHyperlinks.size(), m_sLinkBase.c_str()));
+	goto out;
+fail:
+	m_vecHyperlinks.clear();
+	m_sLinkBase.clear();
+out:
+	delete [] buf;
 }
 
 void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)

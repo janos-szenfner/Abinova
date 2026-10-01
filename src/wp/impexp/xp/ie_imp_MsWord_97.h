@@ -28,6 +28,8 @@
 
 #include <stack>
 #include <map>
+#include <vector>
+#include <string>
 
 #include "ie_imp.h"
 #include "ut_string_class.h"
@@ -42,6 +44,7 @@ typedef struct _Blip Blip;
 typedef struct _CHP CHP;
 typedef struct _PAP PAP;
 typedef struct _TAP TAP;
+union _FLD;
 class PD_Document;
 class pf_Frag;
 
@@ -82,6 +85,42 @@ struct textboxPos
 {
 	UT_uint32 lid;
 	pf_Frag * endFrame;
+};
+
+// one document part's Plcfld (MS-DOC 2.8.25): cps[i] is the
+// story-relative CP of the field character described by flds[i]
+struct storyFields
+{
+	UT_uint32 * cps;
+	union _FLD * flds;
+	UT_uint32 count;
+};
+
+// the document parts that carry their own Plcfld; the numeric order
+// follows the order of the subdocument CP ranges in the text stream
+enum MsFldStory: uint8_t
+{
+	FLDSTORY_MOM = 0,
+	FLDSTORY_FTN,
+	FLDSTORY_HDR,
+	FLDSTORY_MCR,
+	FLDSTORY_ATN,
+	FLDSTORY_EDN,
+	FLDSTORY_TXBX,
+	FLDSTORY_HDRTXBX,
+	FLDSTORY_COUNT
+};
+
+// one VtHyperlink element from the _PID_HLINKS property
+// ([MS-OSHARED] 2.3.3.1.18)
+struct MsHyperlink
+{
+	UT_uint32 dwApp;        // Plcfld index / 0xffffffff shape / FcCompressed picture
+	UT_uint32 dwOfficeArt;  // MSOSPID when dwApp == 0xffffffff
+	UT_uint32 dwInfo;
+	std::string target;     // hlink1
+	std::string location;   // hlink2
+	bool used;
 };
 
 enum _headerTypes: uint8_t
@@ -293,6 +332,13 @@ private:
 	bool        _isTOCsupported(field *f);
 	bool        _insertTOC(field *f);
 
+	void        _handleFields(const wvParseStruct *ps);
+	void        _freeFields();
+	void        _parseHyperlinkProps(const wvParseStruct *ps);
+	bool        _fldIndexAtCp(UT_uint32 cp, UT_sint32 *story,
+							  UT_sint32 *index) const;
+	std::string _hyperlinkForField(UT_sint32 story, UT_sint32 index);
+
 
 	UT_UCS4String		m_pTextRun;
 	//UT_uint32			m_iImageCount;
@@ -380,4 +426,11 @@ private:
 	pf_Frag *    m_pTextboxEndSection;
 	UT_GenericVector<textboxPos *> m_vecTextboxPos;
 	UT_uint32    m_iLastAppendedHeader;
+
+	UT_uint32    m_iBmCursor;   // cursor into sorted m_pBookmarks
+	storyFields  m_aStoryFlds[FLDSTORY_COUNT];
+	std::vector<MsHyperlink> m_vecHyperlinks;
+	std::string  m_sLinkBase;
+	// resolved hyperlink targets keyed by (story << 32) | plcfld index
+	std::map<UT_uint64, std::string> m_mapFieldHlink;
 };
