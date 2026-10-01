@@ -1710,6 +1710,14 @@ below are on `main` but the release has not been cut yet.
   importer now opens the stream (rewinding the input and reading it
   defensively), so multipart archives import their HTML body and
   embedded images.
+- **MHTML body decoding fixed** — part bodies are now decoded per
+  their `Content-Transfer-Encoding` over the raw body bytes instead of
+  being re-wrapped line-by-line: raw (`7bit`/`8bit`/`binary`) parts no
+  longer lose their `\r\n` line endings (which corrupted embedded
+  binaries), quoted-printable no longer reads past the buffer on a
+  truncated `=X` escape at end-of-input, and base64 runs to end-of-body
+  rather than per line. Parts ending at a delimiter without a blank
+  line are handled too.
 - **EPUB import hardened** — the importer now percent-decodes and
   normalizes rootfile paths and manifest hrefs (so OPF files at the
   archive root, `%20`-style names and `..`-relative chapters resolve),

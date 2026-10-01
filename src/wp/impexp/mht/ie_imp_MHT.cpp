@@ -111,6 +111,14 @@ static const char * s_strnstr (const char * haystack, UT_uint32 iNumbytes, const
 	return match;
 }
 
+static int s_hexval (char c)
+{
+	if (c >= '0' && c <= '9') return c - '0';
+	if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+	return -1;
+}
+
 /* UT_MHTStream - self-contained MIME multipart parser for MHTML files
  * (RFC 2045/2046 multipart/related), replacing the obsolete libeps dependency.
  */
@@ -136,7 +144,7 @@ public:
 
 	bool nextPart ();
 	bool nextHeader (std::string & name, std::string & value);
-	bool nextLine (std::string & line);
+	bool nextBody (std::string & body);
 
 private:
 	bool readLine (std::string & out);
@@ -257,9 +265,20 @@ void UT_MHTStream::parseHeaders (std::vector<std::pair<std::string,std::string> 
 	out.clear ();
 	std::string line;
 
-	while (readLine (line))
+	while (true)
 		{
+			size_t linestart = m_pos;
+			if (!readLine (line)) break;
 			if (line.empty()) break;
+
+			bool closing = false;
+			if (isBoundaryLine (line, closing))
+				{
+					// a delimiter directly after headers (no blank line):
+					// rewind so nextBody/nextPart can see it
+					m_pos = linestart;
+					break;
+				}
 
 			if ((line[0] == ' ' || line[0] == '\t') && !out.empty())
 				{
@@ -360,19 +379,60 @@ bool UT_MHTStream::nextHeader (std::string & name, std::string & value)
 	return true;
 }
 
-bool UT_MHTStream::nextLine (std::string & out)
+bool UT_MHTStream::nextBody (std::string & out)
 {
-	std::string line;
-	if (!readLine (line)) return false;
+	out.clear ();
+	if (!m_multipart || m_boundary.empty() || m_pendingBoundary) return false;
 
-	bool closing;
-	if (isBoundaryLine (line, closing))
+	size_t start = m_pos;
+	size_t cursor = m_pos;
+
+	while (cursor < m_data.size())
 		{
+			// a delimiter is "--boundary" at a line start, followed by an
+			// optional "--" close marker, optional WSP, then EOL/EOF
+			size_t pos = m_data.find (m_boundary, cursor);
+			if (pos == std::string::npos) break;
+			if (pos != 0 && m_data[pos - 1] != '\n')
+				{
+					cursor = pos + 1;
+					continue;
+				}
+
+			size_t rest = pos + m_boundary.size();
+			bool closing = false;
+			if (rest + 1 < m_data.size() && m_data[rest] == '-' && m_data[rest + 1] == '-')
+				{
+					closing = true;
+					rest += 2;
+				}
+			while (rest < m_data.size() && (m_data[rest] == ' ' || m_data[rest] == '\t')) rest++;
+			if (rest < m_data.size() && m_data[rest] != '\r' && m_data[rest] != '\n')
+				{
+					cursor = pos + 1;
+					continue;
+				}
+			size_t lend = rest;
+			if (lend < m_data.size() && m_data[lend] == '\r') lend++;
+			if (lend < m_data.size() && m_data[lend] == '\n') lend++;
+
+			// the CRLF preceding the delimiter belongs to it (RFC 2046 5.1.1)
+			size_t body_end = pos;
+			if (body_end > start && m_data[body_end - 1] == '\n')
+				{
+					body_end--;
+					if (body_end > start && m_data[body_end - 1] == '\r') body_end--;
+				}
+			out.assign (m_data, start, body_end - start);
+			m_pos = lend;
 			m_pendingBoundary = true;
 			m_pendingClosing = closing;
-			return false;
+			return true;
 		}
-	out = line;
+
+	// no further boundary — the rest of the archive is the body (malformed input)
+	out.assign (m_data, start, std::string::npos);
+	m_pos = m_data.size();
 	return true;
 }
 
@@ -622,16 +682,19 @@ UT_Multipart * IE_Imp_MHT::importMultipart (UT_MHTStream & stream)
 	UT_Multipart * part = new UT_Multipart;
 	if (part == 0) return 0;
 
-	std::string name, value, line;
+	std::string name, value;
 
 	while (stream.nextHeader (name, value))
 		part->insert (name.c_str(), value.c_str());
 
 	bool bLoad = (part->isImage () || part->isXHTML () || part->isHTML4 ());
 
-	while (stream.nextLine (line))
+	if (bLoad)
 		{
-			if (bLoad && !line.empty()) part->append (line.c_str(), static_cast<UT_uint32>(line.size()));
+			std::string body;
+			if (stream.nextBody (body) && !body.empty())
+				if (!part->append (body.data(), static_cast<UT_uint32>(body.size())))
+					UT_DEBUGMSG(("Multipart HTML: importMultipart: failed to decode part body!\n"));
 		}
 	return part;
 }
@@ -723,10 +786,12 @@ const char * UT_Multipart::lookup (const char * name)
 	return reinterpret_cast<const char *>(vptr);
 }
 
+/* Append the raw (undecoded) body of a part; bytes are decoded per the
+ * part's Content-Transfer-Encoding. Raw/7bit/8bit/binary bodies are stored
+ * verbatim — no line re-wrapping.
+ */
 bool UT_Multipart::append (const char * buffer, UT_uint32 length)
 {
-	static const char * s_newline = "\n";
-
 	if (m_buf == 0) return false;
 
 	if ((buffer == 0) || (length == 0)) return true; // ??
@@ -734,7 +799,7 @@ bool UT_Multipart::append (const char * buffer, UT_uint32 length)
 	if (isBase64 ()) return append_Base64 (buffer, length);
 	if (isQuoted ()) return append_Quoted (buffer, length);
 
-	return (m_buf->append (reinterpret_cast<const UT_Byte *>(buffer), length) && m_buf->append (reinterpret_cast<const UT_Byte *>(s_newline), 1));
+	return m_buf->append (reinterpret_cast<const UT_Byte *>(buffer), length);
 }
 
 bool UT_Multipart::append_Base64 (const char * buffer, UT_uint32 length)
@@ -744,22 +809,29 @@ bool UT_Multipart::append_Base64 (const char * buffer, UT_uint32 length)
 	char binbuffer[60];
 
 	const char * bufptr = buffer;
-	for (UT_uint32 i = 0; i < length; i++)
+	const char * bufend = buffer + length;
+
+	while (bufptr < bufend)
 		{
 			char c = *bufptr++;
 			bool bEnd = (c == '=');
 
 			unsigned char u = static_cast<unsigned char>(c);
-			if (!isspace ((int) u)) m_b64buffer[m_b64length++] = c;
+			if (isspace ((int) u)) continue;
 
-			if (bEnd || (m_b64length == 80) || ((i + 1 == length) && m_b64length && ((m_b64length & 0x03) == 0)))
+			m_b64buffer[m_b64length++] = c;
+
+			bool bFlush = (m_b64length == 80) || bEnd ||
+						  ((bufptr == bufend) && m_b64length && ((m_b64length & 0x03) == 0));
+			if (bFlush)
 				{
 					const char * b64bufptr = m_b64buffer;
 
 					char * binbufptr = binbuffer;
-					size_t binlength = 60;
+					size_t binlength = sizeof (binbuffer);
 
-					UT_UTF8_Base64Decode (binbufptr, binlength, b64bufptr, m_b64length);
+					if (!UT_UTF8_Base64Decode (binbufptr, binlength, b64bufptr, m_b64length))
+						success = false;
 					if (m_b64length) memmove (m_b64buffer, b64bufptr, m_b64length);
 
 					if (m_b64length > 3)
@@ -767,61 +839,66 @@ bool UT_Multipart::append_Base64 (const char * buffer, UT_uint32 length)
 							UT_DEBUGMSG(("Multipart HTML: append_Base64: oddness while decoding!\n"));
 							success = false;
 						}
-					if (binlength < 60)
-						if (!m_buf->append (reinterpret_cast<UT_Byte *>(binbuffer), 60 - binlength)) success = false;
+					if (binlength < sizeof (binbuffer))
+						if (!m_buf->append (reinterpret_cast<UT_Byte *>(binbuffer), sizeof (binbuffer) - binlength)) success = false;
 				}
 			if (bEnd || !success) break;
 		}
 	return success;
 }
 
+/* Decode a whole quoted-printable body (RFC 2045 6.7): =XX hex escapes and
+ * =<CRLF>/=<LF> soft line breaks. A truncated or non-hex escape is emitted
+ * literally rather than reading past the buffer.
+ */
 bool UT_Multipart::append_Quoted (const char * buffer, UT_uint32 length)
 {
-	char * str = 0;
-
-	if (length > 78) // shouldn't be
-		{
-			str = (char *) g_try_malloc (length + 2);
-			if (str == 0) return false;
-		}
-	else str = m_b64buffer;
-
-	char hexbuf[3];
-	hexbuf[2] = 0;
-
-	bool suppressNewLine = false;
+	std::string out;
+	out.reserve (length);
 
 	const char * bufptr = buffer;
 	const char * bufend = buffer + length;
 
-	char * strptr = str;
-
-	while ((bufptr < bufend) && !suppressNewLine)
-		switch (*bufptr)
-			{
-			case '=':
-				if (bufptr + 1 == bufend) suppressNewLine = true;
-				else
-					{
-						bufptr++;
-						hexbuf[0] = *bufptr++;
-						hexbuf[1] = *bufptr++;
-
-						unsigned int escape;
-						if (sscanf (hexbuf, "%x", &escape) == 1) *strptr++ = static_cast<char>(escape & 0xff);
-					}
-				break;
-			default:
-				*strptr++ = *bufptr++;
-				break;
-			}
-	if (!suppressNewLine) *strptr++ = '\n';
-	*strptr = 0;
-
-	bool success = m_buf->append (reinterpret_cast<UT_Byte *>(str), strlen (str));
-
-	if (length > 80) FREEP(str);
-	return success;
+	while (bufptr < bufend)
+		{
+			char c = *bufptr;
+			if (c != '=')
+				{
+					out += c;
+					bufptr++;
+					continue;
+				}
+			if (bufptr + 1 == bufend) break; // trailing '=' — soft break at EOF
+			if (bufptr[1] == '\r' || bufptr[1] == '\n')
+				{
+					bufptr++;
+					if (*bufptr == '\r')
+						{
+							bufptr++;
+							if (bufptr < bufend && *bufptr == '\n') bufptr++;
+						}
+					else bufptr++;
+					continue; // soft line break
+				}
+			if (bufptr + 2 >= bufend)
+				{
+					// '=' followed by a single trailing char — not a valid escape
+					out += c;
+					bufptr++;
+					continue;
+				}
+			int hi = s_hexval (bufptr[1]);
+			int lo = s_hexval (bufptr[2]);
+			if (hi < 0 || lo < 0)
+				{
+					out += c; // invalid escape — literal '='
+					bufptr++;
+					continue;
+				}
+			out += static_cast<char>((hi << 4) | lo);
+			bufptr += 3;
+		}
+	return m_buf->append (reinterpret_cast<const UT_Byte *>(out.data()), static_cast<UT_uint32>(out.size()));
 }
 
 UT_ByteBufPtr && UT_Multipart::detachBuffer ()
