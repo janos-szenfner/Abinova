@@ -2385,6 +2385,25 @@ below are on `main` but the release has not been cut yet.
   - The graphics clip rectangle and the image-run saved clip are
     `std::optional<UT_Rect>` values instead of heap-allocated
     `unique_ptr`s.
+- **Null-dereference hardening on file-fed paths** — an audit of the
+  `.doc`, RTF and ODF importers closed a set of crashes a corrupt
+  document could trigger: `wvWideStrToMB` NULL/short results were
+  dereferenced in TOC field parsing (`command + 5`, unchecked
+  `strchr`/`strstr` on `\b`/`\\t` switches), bookmark-name lookup
+  indexed the STTBF string table without a bounds check, and missing
+  ODF attributes (`style:name`, `style:family`, `text:name`,
+  `xlink:href`, `meta:name`, `text:note-class`, `text:display`) were
+  assigned into `std::string`/`std::map` keys or `strcmp`'d unchecked.
+  The ODF element stack gained NULL-safe `getStartTagName()` /
+  `getStartTagAttribute()` accessors used at ~35 sites so elements
+  nested shallower than expected no longer crash, and
+  `ODi_ElementStack` itself no longer dereferences a NULL vector on
+  destruction. RTF paste-table strux lookups now check
+  `getStruxOfTypeFromPosition` before `getStruxPosition`, missing
+  cell props no longer feed `atoi(NULL)`, and several
+  `std::optional::value()` sites in layout code check `has_value()`
+  first. Malformed `.fodt`/`.odt`/`.rtf`/`.doc` fixtures now convert
+  or fail cleanly.
 
 ### GTK4 port (core migration)
 

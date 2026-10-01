@@ -8,9 +8,20 @@ Your job in THIS run:
 2. Pick the FIRST row whose Status is `pending` or `in_progress`
    (in_progress means a previous run was interrupted — inspect the
    working tree and git log to figure out what was already done, then
-   continue rather than restart).
-3. Set that row's Status to `in_progress` and save TASKS.md.
-4. Do the task fully:
+   continue rather than restart). SKIP rows whose Notes declare an
+   unsatisfied `needs:` tag (e.g. `needs:tool:xvfb-run` when xvfb-run
+   is not installed, `needs:macos` on this Linux box) — the loop also
+   skips them, but check in case you were resumed into one.
+3. Feasibility gate — BEFORE doing any work, verify the task's
+   requirements exist in this environment: required tools installed
+   (command -v), right OS, required inputs present, and any task it
+   depends on is `done` not `blocked`. If a requirement is missing and
+   cannot be cheaply installed (no sudo, no network, wrong OS, needs a
+   display and xvfb-run is absent), do NOT start the task — set Status
+   `blocked` with Notes `blocked:missing <what>`, commit just TASKS.md,
+   and stop. Never burn the run grinding on an impossible prerequisite.
+4. Set that row's Status to `in_progress` and save TASKS.md.
+5. Do the task fully:
    - The task row points at relevant files. Follow existing code
      conventions. Use the official OOXML/ECMA-376 semantics described
      in the task.
@@ -19,7 +30,7 @@ Your job in THIS run:
      `src/abinova --to=pdf --to-name=/tmp/x.pdf FILE` then
      `pdftoppm -png -r 72 /tmp/x.pdf /tmp/x` and read the PNG.
    - If you regenerate cover fragments, use `tools/mkcovers.py`.
-5. On success:
+6. On success:
    a. Update the row Status to `done` and write a one-line summary +
       verification result into the Notes column of `.devin/TASKS.md`.
    b. Append a bullet to `CHANGELOG.md` (user-visible change wording).
@@ -29,9 +40,9 @@ Your job in THIS run:
       `- <date> <ID>: <what changed> — <verification>`.
    e. `git add -A`, `git commit` with a descriptive message
       (why, not just what), then `git push`.
-6. If you genuinely cannot complete it, set Status `blocked` and Notes
+7. If you genuinely cannot complete it, set Status `blocked` and Notes
    `blocked:<short reason>`, then commit+push just the TASKS.md update.
-7. STOP after exactly one task. Do NOT start the next row — the outer
+8. STOP after exactly one task. Do NOT start the next row — the outer
    loop launches a fresh run for it.
 
 Hard rules:

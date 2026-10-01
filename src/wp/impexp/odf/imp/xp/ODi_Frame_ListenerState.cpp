@@ -312,13 +312,13 @@ void ODi_Frame_ListenerState::_drawImage (const gchar** ppAtts,
     // Adds a reference to the added data item according to anchor mode, etc.
     //
    
-    pChar = m_rElementStack.getStartTag(0)->getAttributeValue("draw:style-name");
+    pChar = m_rElementStack.getStartTagAttribute(0, "draw:style-name");
     UT_ASSERT(pChar);
     
     UT_DebugOnly<const ODi_Style_Style*> pGraphicStyle = m_pStyles->getGraphicStyle(pChar, m_bOnContentStream);
     UT_ASSERT(pGraphicStyle);
     
-    pChar = m_rElementStack.getStartTag(0)->getAttributeValue("text:anchor-type");
+    pChar = m_rElementStack.getStartTagAttribute(0, "text:anchor-type");
     UT_ASSERT_HARMLESS(pChar);
     
 	// as-char anchoring maps to abiword's inline images
@@ -394,10 +394,10 @@ void ODi_Frame_ListenerState::_drawInlineImage (const gchar** ppAtts)
 
     UT_String propsBuffer;
         
-    pWidth = m_rElementStack.getStartTag(0)->getAttributeValue("svg:width");
+    pWidth = m_rElementStack.getStartTagAttribute(0, "svg:width");
     UT_ASSERT(pWidth);
         
-    pHeight = m_rElementStack.getStartTag(0)->getAttributeValue("svg:height");
+    pHeight = m_rElementStack.getStartTagAttribute(0, "svg:height");
     UT_ASSERT(pHeight);  
         
     UT_String_sprintf(propsBuffer, "width:%s; height:%s", pWidth, pHeight);
@@ -460,14 +460,14 @@ void ODi_Frame_ListenerState::_drawObject (const gchar** ppAtts,
     // Adds a reference to the added data item according to anchor mode, etc.
     //
    
-    pChar = m_rElementStack.getStartTag(0)->getAttributeValue("draw:style-name");
+    pChar = m_rElementStack.getStartTagAttribute(0, "draw:style-name");
     UT_ASSERT(pChar);
     
     UT_DebugOnly<const ODi_Style_Style*> pGraphicStyle;
     pGraphicStyle = m_pStyles->getGraphicStyle(pChar, m_bOnContentStream);
     UT_ASSERT(pGraphicStyle);
     
-    pChar = m_rElementStack.getStartTag(0)->getAttributeValue("text:anchor-type");
+    pChar = m_rElementStack.getStartTagAttribute(0, "text:anchor-type");
     UT_ASSERT_HARMLESS(pChar);
     
     if ( pChar && (!strcmp(pChar, "as-char") ||
@@ -497,10 +497,10 @@ void ODi_Frame_ListenerState::_drawObject (const gchar** ppAtts,
 
 	   
         
-        pWidth = m_rElementStack.getStartTag(0)->getAttributeValue("svg:width");
+        pWidth = m_rElementStack.getStartTagAttribute(0, "svg:width");
         UT_ASSERT(pWidth);
         
-        pHeight = m_rElementStack.getStartTag(0)->getAttributeValue("svg:height");
+        pHeight = m_rElementStack.getStartTagAttribute(0, "svg:height");
         UT_ASSERT(pHeight);  
         
         std::string propsBuffer =
@@ -603,7 +603,7 @@ void ODi_Frame_ListenerState::_drawTextBox (const gchar** ppAtts,
     }
 
     if (m_rElementStack.getStartTag(0)) {
-        pStyleName = m_rElementStack.getStartTag(0)->getAttributeValue("draw:style-name");
+        pStyleName = m_rElementStack.getStartTagAttribute(0, "draw:style-name");
     }
 
     if (pStyleName) {
@@ -735,7 +735,7 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
     const std::string* pBackgroundColor;
     const gchar* pVal = nullptr;
     
-    pStyleName = m_rElementStack.getStartTag(0)->getAttributeValue("draw:style-name");
+    pStyleName = m_rElementStack.getStartTagAttribute(0, "draw:style-name");
     UT_ASSERT(pStyleName);
     
     pGraphicStyle = m_pStyles->getGraphicStyle(pStyleName, m_bOnContentStream);
@@ -770,18 +770,18 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
     }
 
     
-    pVal = m_rElementStack.getStartTag(0)->getAttributeValue("text:anchor-type");
+    pVal = m_rElementStack.getStartTagAttribute(0, "text:anchor-type");
 
     if (pVal && !strcmp(pVal, "paragraph")) {
         rProps += "; position-to:block-above-text";
         
-        pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:x");
+        pVal = m_rElementStack.getStartTagAttribute(0, "svg:x");
         if (pVal) {
             rProps += "; xpos:";
             rProps += pVal;
         }
         
-        pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:y");
+        pVal = m_rElementStack.getStartTagAttribute(0, "svg:y");
         if (pVal) {
             rProps += "; ypos:";
             rProps += pVal;
@@ -790,13 +790,13 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
     } else if (pVal && !strcmp(pVal, "page")) {
         rProps += "; position-to:page-above-text";
         
-        pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:x");
+        pVal = m_rElementStack.getStartTagAttribute(0, "svg:x");
         if (pVal && *pVal) {
             rProps += "; frame-page-xpos:";
             rProps += pVal;
         }
         
-        pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:y");
+        pVal = m_rElementStack.getStartTagAttribute(0, "svg:y");
         if (pVal && *pVal) {
             rProps += "; frame-page-ypos:";
             rProps += pVal;
@@ -809,13 +809,13 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
 		// FIXME: "char" means an inline thing in Abinova terms, NOT a positioned thing
 		rProps += "; position-to:block-above-text";
 
-	    pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:x");
+	    pVal = m_rElementStack.getStartTagAttribute(0, "svg:x");
         if (pVal && *pVal) {
             rProps += "; xpos:";
             rProps += pVal;
         }
         
-        pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:y");
+        pVal = m_rElementStack.getStartTagAttribute(0, "svg:y");
         if (pVal && *pVal) {
             rProps += "; ypos:";
             rProps += pVal;
@@ -837,9 +837,9 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
     
     pVal = UT_getAttribute("fo:min-width", ppAtts);
     if (pVal == nullptr) {
-        pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:width");
+        pVal = m_rElementStack.getStartTagAttribute(0, "svg:width");
         if (pVal == nullptr) {
-            pVal = m_rElementStack.getStartTag(0)->getAttributeValue("fo:min-width");
+            pVal = m_rElementStack.getStartTagAttribute(0, "fo:min-width");
             if (UT_determineDimension(pVal, DIM_none) == DIM_PERCENT) {
                 // TODO: Do the conversion from percentage to a real
                 //       unit (ie: "cm" or "in").
@@ -868,7 +868,7 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
     }
     else
     {
-         pVal = m_rElementStack.getStartTag(0)->getAttributeValue("style:rel-width");
+         pVal = m_rElementStack.getStartTagAttribute(0, "style:rel-width");
 	 if(pVal)
 	 {
 	      rProps += "; frame-rel-width:";
@@ -878,9 +878,9 @@ bool ODi_Frame_ListenerState::_getFrameProperties(std::string& rProps,
 
     pVal = UT_getAttribute("fo:min-height", ppAtts);
     if (pVal == nullptr) {
-        pVal = m_rElementStack.getStartTag(0)->getAttributeValue("svg:height");
+        pVal = m_rElementStack.getStartTagAttribute(0, "svg:height");
         if (pVal == nullptr) {
-            pVal = m_rElementStack.getStartTag(0)->getAttributeValue("fo:min-height");
+            pVal = m_rElementStack.getStartTagAttribute(0, "fo:min-height");
             if (UT_determineDimension(pVal, DIM_none) == DIM_PERCENT) {
                 // TODO: Do the conversion from percentage to a real
                 //       unit (ie: "cm" or "in").

@@ -43,8 +43,9 @@ void ODi_NotesConfiguration::startElement(const gchar* pName,
     if (!strcmp("text:notes-configuration", pName)) {
         
         pVal = UT_getAttribute ("text:note-class", ppAtts);
-        UT_ASSERT(pVal);
-        m_noteClass = pVal;
+        if (pVal) {
+            m_noteClass = pVal;
+        }
         
         pVal = UT_getAttribute ("text:citation-style-name", ppAtts);
         if (pVal) {

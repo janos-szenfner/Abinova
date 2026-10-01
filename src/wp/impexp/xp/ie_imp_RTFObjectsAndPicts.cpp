@@ -1046,12 +1046,14 @@ IE_Imp_ShpGroupParser::tokenKeyword(IE_Imp_RTF * ie, RTF_KEYWORD_ID kwID,
 
 bool IE_Imp_ShpGroupParser::tokenCloseBrace(IE_Imp_RTF * ie)
 {
-	switch(m_last_kwID) 
+	switch(m_last_kwID)
 	{
 	case RTF_KW_abiframeprops:
-		UT_ASSERT(m_lastData);
-		m_currentFrame.m_abiProps = *m_lastData;
-		m_lastData = nullptr;
+		if(m_lastData)
+		{
+			m_currentFrame.m_abiProps = *m_lastData;
+			m_lastData = nullptr;
+		}
 		m_last_kwID = RTF_UNKNOWN_KEYWORD;
 		break;
 	default:

@@ -45,7 +45,9 @@ ODi_ElementStack::ODi_ElementStack() :
  */
 ODi_ElementStack::~ODi_ElementStack() {
 
-    UT_VECTOR_PURGEALL(ODi_StartTag*, (*m_pStartTags));
+    if (m_pStartTags) {
+        UT_VECTOR_PURGEALL(ODi_StartTag*, (*m_pStartTags));
+    }
     DELETEP(m_pStartTags);
 }
 
@@ -115,6 +117,32 @@ const ODi_StartTag* ODi_ElementStack::getStartTag(UT_sint32 level) {
     } else {
         return nullptr;
     }
+}
+
+
+
+/**
+ * Returns the name of the start tag at the given level, or "" if the stack
+ * does not reach that level.
+ */
+const char* ODi_ElementStack::getStartTagName(UT_sint32 level) {
+
+    const ODi_StartTag* pStartTag = getStartTag(level);
+    return pStartTag ? pStartTag->getName() : "";
+}
+
+
+
+/**
+ * Returns the value of attribute pName on the start tag at the given level,
+ * or nullptr if the stack does not reach that level or the attribute is
+ * absent.
+ */
+const char* ODi_ElementStack::getStartTagAttribute(UT_sint32 level,
+                                                 const char* pName) {
+
+    const ODi_StartTag* pStartTag = getStartTag(level);
+    return pStartTag ? pStartTag->getAttributeValue(pName) : nullptr;
 }
 
 

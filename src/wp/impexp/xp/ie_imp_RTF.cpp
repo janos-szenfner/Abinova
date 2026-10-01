@@ -1290,11 +1290,17 @@ RTFProps_ParaProps& RTFProps_ParaProps::operator=(const RTFProps_ParaProps& othe
 		if(!m_tabTypes.empty())
 		{
 			m_curTabType = m_tabTypes.at(0);
-			m_curTabLeader = m_tabLeader.at(0);
 		}
 		else
 		{
 			m_curTabType = FL_TAB_LEFT;
+		}
+		if(!m_tabLeader.empty())
+		{
+			m_curTabLeader = m_tabLeader.at(0);
+		}
+		else
+		{
 			m_curTabLeader = FL_LEADER_NONE;
 		}
 		m_rtfListTable = other.m_rtfListTable;
@@ -1830,10 +1836,18 @@ void IE_Imp_RTF::closePastedTableIfNeeded(void)
 				const pf_Frag_Strux* sdhTable = nullptr;
 				const pf_Frag_Strux* sdhEndTable = nullptr;
 				bool b = getDoc()->getStruxOfTypeFromPosition(m_dposPaste,PTX_SectionTable,&sdhTable);
+				if(!b || !sdhTable)
+				{
+					delete pPaste;
+					continue;
+				}
 				PT_DocPosition posTable = getDoc()->getStruxPosition(sdhTable);
-				UT_ASSERT(b);
 				sdhEndTable = getDoc()->getEndTableStruxFromTableStrux(sdhTable);
-				UT_ASSERT(sdhEndTable);
+				if(!sdhEndTable)
+				{
+					delete pPaste;
+					continue;
+				}
 				PT_DocPosition posEndTable = getDoc()->getStruxPosition(sdhEndTable);
 				b = getDoc()->getStruxOfTypeFromPosition(m_dposPaste-1,PTX_SectionCell,&sdhCell);
 				b = getDoc()->getNextStruxOfType(sdhCell,PTX_SectionCell,&sdhCell);
@@ -1851,7 +1865,10 @@ void IE_Imp_RTF::closePastedTableIfNeeded(void)
 												 true,
 												 PD_MAX_REVISION,
 												 "top-attach", &szVal);
-					UT_ASSERT(szVal);
+					if(!szVal)
+					{
+						break;
+					}
 					UT_sint32 iTop = atoi(szVal);
 					iTop += numRows;
 					sTop = UT_std_string_sprintf("%d",iTop);
@@ -1859,7 +1876,10 @@ void IE_Imp_RTF::closePastedTableIfNeeded(void)
 												 true,
 												 PD_MAX_REVISION,
 												 "bot-attach", &szVal);
-					UT_ASSERT(szVal);
+					if(!szVal)
+					{
+						break;
+					}
 					UT_sint32 iBot = atoi(szVal);
 					iBot += numRows;
 					sBot = UT_std_string_sprintf("%d",iBot);
@@ -5957,6 +5977,10 @@ bool IE_Imp_RTF::HandleStarKeyword()
 				case RTF_KW_abifieldD:
 				{
 					char * pszField = strstr(reinterpret_cast<char *>(keyword_star),"D");
+					if(!pszField)
+					{
+						break;
+					}
 					pszField++;
 					char * pszAbiField = g_strdup(pszField);
 					char * pszD = strstr(pszAbiField,"D");

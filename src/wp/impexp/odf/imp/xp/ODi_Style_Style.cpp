@@ -85,8 +85,8 @@ void ODi_Style_Style::startElement(const gchar* pName,
     } else if (!strcmp("style:tab-stop", pName)) {
 
         if (m_rElementStack.getStackSize() >= 2 &&
-            !strcmp(m_rElementStack.getStartTag(1)->getName(), "style:paragraph-properties") &&
-            !strcmp(m_rElementStack.getStartTag(0)->getName(), "style:tab-stops")) {
+            !strcmp(m_rElementStack.getStartTagName(1), "style:paragraph-properties") &&
+            !strcmp(m_rElementStack.getStartTagName(0), "style:tab-stops")) {
 
             _parse_style_tabStopProperties(ppAtts);
             
@@ -134,8 +134,9 @@ void ODi_Style_Style::startElement(const gchar* pName,
         const gchar* pAttr;
         
         pAttr = UT_getAttribute("style:family", ppAtts);
-        UT_ASSERT(pAttr);
-        m_family = pAttr;
+        if (pAttr) {
+            m_family = pAttr;
+        }
         
         // In Abinova, the default style is called "Normal"
         m_displayName = m_name = "Normal";
@@ -194,13 +195,15 @@ void ODi_Style_Style::_parse_style_style(const gchar** ppAtts) {
     
     if (m_name.empty()) {
         pAttr = UT_getAttribute("style:name", ppAtts);
-        UT_ASSERT(pAttr);
-        m_name = pAttr;
+        if (pAttr) {
+            m_name = pAttr;
+        }
     }
 
     pAttr = UT_getAttribute("style:family", ppAtts);
-    UT_ASSERT(pAttr);
-    m_family = pAttr;
+    if (pAttr) {
+        m_family = pAttr;
+    }
 
     if (m_displayName.empty()) {
         pAttr = UT_getAttribute("style:display-name", ppAtts);

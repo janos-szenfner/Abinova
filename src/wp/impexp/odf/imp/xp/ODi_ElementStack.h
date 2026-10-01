@@ -72,6 +72,20 @@ public:
      */
     const ODi_StartTag* getStartTag(UT_sint32 level);
 
+    /**
+     * Returns the name of the start tag at the given level, or "" if the
+     * stack does not reach that level (e.g. a malformed document nests an
+     * element shallower than expected).
+     */
+    const char* getStartTagName(UT_sint32 level);
+
+    /**
+     * Returns the value of attribute pName on the start tag at the given
+     * level, or nullptr if the stack does not reach that level or the
+     * attribute is absent.
+     */
+    const char* getStartTagAttribute(UT_sint32 level, const char* pName);
+
     bool hasElement(const gchar* pName) const;
 
     /**

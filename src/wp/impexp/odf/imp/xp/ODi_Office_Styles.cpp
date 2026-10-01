@@ -168,7 +168,7 @@ ODi_Style_PageLayout* ODi_Office_Styles::addPageLayout(const gchar** ppAtts,
                              
     pStyle = new ODi_Style_PageLayout(rElementStack, rAbiData);
     pAttrValue = UT_getAttribute("style:name", ppAtts);
-    m_pageLayoutStyles.insert(std::make_pair(pAttrValue, pStyle));
+    m_pageLayoutStyles.insert(std::make_pair(pAttrValue ? pAttrValue : "", pStyle));
     
     return pStyle;
 }
@@ -188,7 +188,7 @@ ODi_Style_MasterPage* ODi_Office_Styles::addMasterPage(const gchar** ppAtts,
                              
     pStyle = new ODi_Style_MasterPage(pDocument, rElementStack);
     pAttrValue = UT_getAttribute("style:name", ppAtts);
-    m_masterPageStyles.insert(std::make_pair(pAttrValue, pStyle));
+    m_masterPageStyles.insert(std::make_pair(pAttrValue ? pAttrValue : "", pStyle));
     
     return pStyle;
 }
@@ -449,7 +449,7 @@ ODi_Style_List* ODi_Office_Styles::addList(const gchar** ppAtts,
     pStyle = new ODi_Style_List(rElementStack);
     pAttrValue = UT_getAttribute("style:name", ppAtts);
     xxx_UT_DEBUGMSG(("Adding list |%s| to outline collection \n",pAttrValue));
-    m_listStyles.insert(std::make_pair(pAttrValue, pStyle));
+    m_listStyles.insert(std::make_pair(pAttrValue ? pAttrValue : "", pStyle));
             
     return pStyle;
 }
@@ -468,7 +468,7 @@ ODi_NotesConfiguration* ODi_Office_Styles::addNotesConfiguration(
     pNotesConfig = new ODi_NotesConfiguration(rElementStack);
     pAttrValue = UT_getAttribute("text:note-class", ppAtts);
                                             
-    m_notesConfigurations.insert(std::make_pair(pAttrValue, pNotesConfig));
+    m_notesConfigurations.insert(std::make_pair(pAttrValue ? pAttrValue : "", pNotesConfig));
     
     return pNotesConfig;
 }

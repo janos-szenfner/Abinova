@@ -1653,9 +1653,17 @@ gchar * IE_Imp_MsWord_97::_getBookmarkName(const wvParseStruct * ps, UT_uint32 p
 	gchar *str;
 	UT_UTF8String sUTF8;
 
+	// a malformed document can declare more bookmarks than the STTBF
+	// actually contains
+	if(pos >= ps->Sttbfbkmk.nostrings)
+		return nullptr;
+
 	if(ps->Sttbfbkmk.extendedflag == 0xFFFF)
 	{
 		// 16 bit stuff
+		if(!ps->Sttbfbkmk.u16strings)
+			return nullptr;
+
 		const UT_UCS2Char * p = static_cast<const UT_UCS2Char *>(ps->Sttbfbkmk.u16strings[pos]);
 		if(p) {
 		  UT_uint32 len  = UT_UCS2_strlen(p);
@@ -1672,7 +1680,7 @@ gchar * IE_Imp_MsWord_97::_getBookmarkName(const wvParseStruct * ps, UT_uint32 p
 		// 8 bit stuff
 		// there is a bug in wv, and the table gets incorrectly retrieved
 		// if it contains 8-bit strings
-		if(ps->Sttbfbkmk.s8strings[pos])
+		if(ps->Sttbfbkmk.s8strings && ps->Sttbfbkmk.s8strings[pos])
 		{
 			UT_uint32 len = strlen(ps->Sttbfbkmk.s8strings[pos]);
 			str = new gchar[len + 1];
@@ -1840,9 +1848,10 @@ bool IE_Imp_MsWord_97::_insertBookmark(bookmark * bm)
 	// first of all flush what is in the buffers
 	this->_flush();
 	bool error = false;
+	UT_return_val_if_fail(bm, false);
 
 	PP_PropertyVector propsArray = {
-		"name", bm->name,
+		"name", (bm->name ? bm->name : ""),
 		"type", bm->start ? "start" : "end"
 	};
 
@@ -4395,6 +4404,7 @@ bool IE_Imp_MsWord_97::_handleFieldEnd (char *command, UT_uint32 /*iDocPosition*
 	field * f = nullptr;
 	f = m_stackField.empty() ? nullptr : m_stackField.top();
 	UT_return_val_if_fail(f, true);
+	UT_return_val_if_fail(command, true);
 
 	if (*command != 0x13)
 	{
@@ -4555,21 +4565,33 @@ bool IE_Imp_MsWord_97::_isTOCsupported(field *f)
 	
 	bool bRet = true;
 	char * command = wvWideStrToMB (f->command);
-	UT_DEBUGMSG(("IE_Imp_MsWord_97::_isTOCsupported: command %s\n", command));
+	UT_DEBUGMSG(("IE_Imp_MsWord_97::_isTOCsupported: command %s\n", command ? command : ""));
 
 	char * params = nullptr;
+	char * t = nullptr;
 
 	if(f->type == F_TOC)
 	{
+		// command is "<0x13>TOC ..."; anything shorter has no usable params
+		if(!command || strlen(command) < 5)
+		{
+			bRet = false;
+			goto finish;
+		}
 		params = command + 5;
 	}
 	else if(f->type == F_TOC_FROM_RANGE)
 	{
+		if(!command || strlen(command) < 4)
+		{
+			bRet = false;
+			goto finish;
+		}
 		params = command + 4;
 	}
 	
 	// we only support the heading based TOC for now
-	char * t = strstr(params, "\\o");
+	t = strstr(params, "\\o");
 
 	if(!t)
 		t = strstr(params, "\\t");
@@ -4607,16 +4629,26 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 	const gchar * attrs [3] = {"props", nullptr, nullptr};
 
 	char * command = wvWideStrToMB (f->command);
-	UT_DEBUGMSG(("IE_Imp_MsWord_97::_insertTOC: command %s\n", command));
+	UT_DEBUGMSG(("IE_Imp_MsWord_97::_insertTOC: command %s\n", command ? command : ""));
 
 	char * params = nullptr;
-	
+
 	if(f->type == F_TOC)
 	{
+		if(!command || strlen(command) < 5)
+		{
+			bRet = false;
+			goto finish;
+		}
 		params = command + 5;
 	}
 	else if(f->type == F_TOC_FROM_RANGE)
 	{
+		if(!command || strlen(command) < 4)
+		{
+			bRet = false;
+			goto finish;
+		}
 		params = command + 4;
 	}
 	else
@@ -4654,6 +4686,11 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 			t1++;
 
 			t2 = strchr(t1, '\"');
+			if(!t2)
+			{
+				bRet = false;
+				goto finish;
+			}
 
 			char c = *t2;
 			*t2 = 0;
@@ -4778,6 +4815,11 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 		}
 
 		char * end = strchr(t1+1, '\"');
+		if(!end)
+		{
+			bRet = false;
+			goto finish;
+		}
 
 		while(t1 && t1 < end)
 		{
@@ -4879,7 +4921,7 @@ bool IE_Imp_MsWord_97::_handleCommandField (char *command)
 		"type"
 	};
 
-	if (*command != 0x13)
+	if (!command || *command != 0x13)
 	{
 		UT_DEBUGMSG(("DOM: field did not begin with 0x13\n"));
 		return true;

@@ -61,7 +61,11 @@ ODi_Style_Style* ODi_Style_Style_Family::addStyle(const gchar** ppAtts,
     bOnContentStream = rElementStack.hasElement("office:document-content");
     
     pName = UT_getAttribute("style:name", ppAtts);
-    UT_ASSERT(pName);
+    if (!pName) {
+        // A style without a name (malformed document) maps to the
+        // empty-string key rather than crashing on a NULL std::string.
+        pName = "";
+    }
 
     
     if (bOnContentStream) {

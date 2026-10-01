@@ -380,8 +380,9 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
     } else if (!strcmp(pName, "text:a")) {
         
         _flush();
+        const gchar* pHRef = UT_getAttribute("xlink:href", ppAtts);
         const PP_PropertyVector xlink_atts = {
-            "xlink:href", UT_getAttribute("xlink:href", ppAtts)
+            "xlink:href", (pHRef ? pHRef : "")
         };
         m_pAbiDocument->appendObject(PTO_Hyperlink, xlink_atts);
         
@@ -403,9 +404,9 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         _flush ();
         const gchar * pAttr = UT_getAttribute ("text:name", ppAtts);
         const gchar* xmlid = UT_getAttribute("xml:id", ppAtts);
-        xmlidMapForBookmarks[pAttr] = ( xmlid ? xmlid : "" );
-        
+
         if(pAttr) {
+            xmlidMapForBookmarks[pAttr] = ( xmlid ? xmlid : "" );
             _insertBookmark (pAttr, "start", xmlid );
         } else {
             UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
@@ -422,12 +423,12 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         {
             xmlid = t;
         }
-        else
+        else if (pAttr)
         {
             xmlid = xmlidMapForBookmarks[pAttr];
         }
-        xmlidMapForBookmarks.erase(pAttr);
-        
+        xmlidMapForBookmarks.erase(pAttr ? pAttr : "");
+
         if(pAttr) {
             _insertBookmark (pAttr, "end", xmlid.c_str() );
         } else {
@@ -463,7 +464,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
             type = "page_count";
         else if(!strcmp(pName, "text:file-name")){
         	const gchar * pDisplay = UT_getAttribute ("text:display", ppAtts);
-        	if (!strcmp(pDisplay, "name-and-extension"))
+        	if (pDisplay && !strcmp(pDisplay, "name-and-extension"))
         		type = "short_file_name";
         	else type = "file_name";
         }
@@ -535,9 +536,9 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         
     } else if (!strcmp(pName, "draw:frame")) {
         
-        if (!strcmp(m_rElementStack.getStartTag(0)->getName(), "text:p") ||
-            !strcmp(m_rElementStack.getStartTag(0)->getName(), "text:h") ||
-            !strcmp(m_rElementStack.getStartTag(0)->getName(), "office:text")) 
+        if (!strcmp(m_rElementStack.getStartTagName(0), "text:p") ||
+            !strcmp(m_rElementStack.getStartTagName(0), "text:h") ||
+            !strcmp(m_rElementStack.getStartTagName(0), "office:text")) 
 	{
             
             const gchar* pVal = nullptr;
@@ -558,7 +559,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
             }
             
         } 
-	else if (!strcmp(m_rElementStack.getStartTag(0)->getName(), "office:text")) 
+	else if (!strcmp(m_rElementStack.getStartTagName(0), "office:text")) 
 	{
             
  	  // A page anchored frame.
@@ -654,7 +655,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
 	      }
 	  }
         } 
-	else if (!strcmp(m_rElementStack.getStartTag(0)->getName(),
+	else if (!strcmp(m_rElementStack.getStartTagName(0),
                               "text:span")) 
         {
             // Must be an inlined image, otherwise we can't handle it.
@@ -693,7 +694,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
 	  const ODi_Style_Style* pGraphicStyle;
 	  const std::string* pWrap;
     
-	  pStyleName = m_rElementStack.getStartTag(0)->getAttributeValue("draw:style-name");
+	  pStyleName = m_rElementStack.getStartTagAttribute(0, "draw:style-name");
 	  UT_ASSERT(pStyleName);
     
 	  pGraphicStyle = m_pStyles->getGraphicStyle(pStyleName, true);
@@ -792,7 +793,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         bool isFootnote = false;
         const gchar* pNoteClass;
         
-        pNoteClass = m_rElementStack.getStartTag(0)->getAttributeValue("text:note-class");
+        pNoteClass = m_rElementStack.getStartTagAttribute(0, "text:note-class");
         UT_ASSERT_HARMLESS(pNoteClass != nullptr);
         
         if (pNoteClass && !strcmp(pNoteClass, "footnote")) {
@@ -1005,8 +1006,11 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
 
         _flush ();
 
-        std::string xmlid = xmlidStackForTextMeta.back();
-        xmlidStackForTextMeta.pop_back();
+        std::string xmlid;
+        if (!xmlidStackForTextMeta.empty()) {
+            xmlid = xmlidStackForTextMeta.back();
+            xmlidStackForTextMeta.pop_back();
+        }
 
         const PP_PropertyVector ppAtts = {
             PT_XMLID, xmlid,
@@ -1097,7 +1101,7 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
         UT_DebugOnly<bool> ok = false;
         const gchar* pNoteClass;
         
-        pNoteClass = m_rElementStack.getStartTag(1)->getAttributeValue("text:note-class");
+        pNoteClass = m_rElementStack.getStartTagAttribute(1, "text:note-class");
         UT_ASSERT_HARMLESS(pNoteClass != nullptr);
         
         if (pNoteClass && !strcmp(pNoteClass, "footnote")) {
@@ -1729,7 +1733,7 @@ void ODi_TextContent_ListenerState::_startParagraphElement (const gchar* /*pName
 
         xmlid = UT_getAttribute ("xml:id", ppParagraphAtts);
         
-        if (!strcmp(m_rElementStack.getStartTag(0)->getName(), "text:list-item")) {
+        if (!strcmp(m_rElementStack.getStartTagName(0), "text:list-item")) {
             // That's a list paragraph.
             bIsListParagraph = true;
         }
@@ -2001,8 +2005,7 @@ void ODi_TextContent_ListenerState::_endParagraphElement (
     m_bAcceptingText = false;
     
    
-    pStyleName = m_rElementStack.getStartTag(0)->
-                    getAttributeValue("text:style-name");
+    pStyleName = m_rElementStack.getStartTagAttribute(0, "text:style-name");
                     
     if (pStyleName) {
         pStyle = m_pStyles->getParagraphStyle(pStyleName, m_bOnContentStream);

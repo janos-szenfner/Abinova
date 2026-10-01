@@ -51,8 +51,9 @@ void ODi_Style_PageLayout::startElement(const gchar* pName,
     if (!strcmp("style:page-layout", pName)) {
         
         pVal = UT_getAttribute ("style:name", ppAtts);
-        UT_ASSERT(pVal);
-        m_name = pVal;
+        if (pVal) {
+            m_name = pVal;
+        }
         
     } else if (!strcmp("style:page-layout-properties", pName)) {
         

@@ -123,7 +123,7 @@ void ODi_StylesStream_ListenerState::startElement (const gchar* pName,
     } else if (!strcmp (pName, "text:list-style")) {
         
         if (!strcmp("office:automatic-styles",
-                      m_rElementStack.getStartTag(0)->getName())) {
+                      m_rElementStack.getStartTagName(0))) {
 
             // An automatic list style defined on the styles stream means
             // that it is used on headers/footers.

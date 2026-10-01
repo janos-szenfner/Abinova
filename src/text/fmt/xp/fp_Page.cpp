@@ -1411,8 +1411,11 @@ void   fp_Page::expandDamageRect(UT_sint32 x, UT_sint32 y,
  */
 bool   fp_Page::intersectsDamagedRect(fp_ContainerObject * pObj) const
 {
-	UT_Rect pRec = pObj->getScreenRect().value();
-	bool bIntersects = m_rDamageRect.intersectsRect(&pRec);
+	auto result = pObj->getScreenRect();
+	if (!result.has_value()) {
+		return false;
+	}
+	bool bIntersects = m_rDamageRect.intersectsRect(&result.value());
 	return bIntersects;
 }
 

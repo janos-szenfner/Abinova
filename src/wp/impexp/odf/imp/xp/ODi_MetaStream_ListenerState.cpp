@@ -158,11 +158,11 @@ void ODi_MetaStream_ListenerState::endElement (const gchar* pName,
 
             const gchar* pMetaName = nullptr;
             
-            pMetaName = m_rElementStack.getStartTag(0)->getAttributeValue("meta:name");
-            
-            UT_ASSERT(pMetaName != nullptr);
+            pMetaName = m_rElementStack.getStartTagAttribute(0, "meta:name");
 
-            m_pDocument->setMetaDataProp(pMetaName, m_charData);
+            if (pMetaName) {
+                m_pDocument->setMetaDataProp(pMetaName, m_charData);
+            }
 
         } else if (!strcmp (pName, "office:meta")) {
             

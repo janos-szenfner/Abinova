@@ -54,12 +54,46 @@ LOCK="$REPO/.devin/taskloop.lock"
 exec 9>"$LOCK" || exit 1
 flock -n 9 || { echo "[$(ts)] another taskloop is already running (lock: $LOCK)" >&2; exit 1; }
 
-# id of first task row with status pending|in_progress ("" when none)
+# A task row may declare environment requirements in Notes via needs: tags,
+# e.g. `needs:tool:xvfb-run` or `needs:macos`/`needs:windows`/`needs:freebsd`.
+# Rows whose requirements are not met on this host are SKIPPED (not blocked —
+# they may run elsewhere); the loop picks the next runnable task instead.
+task_runnable() {
+	local notes="$1" req
+	while read -r req; do
+		[ -n "$req" ] || continue
+		case "$req" in
+			tool:*) command -v "${req#tool:}" >/dev/null 2>&1 || return 1 ;;
+			macos)   [ "$(uname -s)" = Darwin ] || return 1 ;;
+			windows) case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*|Windows*) ;; *) return 1 ;; esac ;;
+			freebsd) [ "$(uname -s)" = FreeBSD ] || return 1 ;;
+			linux)   [ "$(uname -s)" = Linux ] || return 1 ;;
+		esac
+	done < <(echo "$notes" | grep -oE 'needs:[a-zA-Z0-9:_-]+' | sed 's/^needs://')
+	return 0
+}
+
+# id of first task row with status pending|in_progress whose needs: tags
+# are satisfiable on this host ("" when none)
 next_task() {
-	awk -F'|' '/^\|[[:space:]]*[A-Z]+[0-9]+[[:space:]]*\|/ {
-		s=$4; gsub(/[[:space:]]/,"",s);
-		if (s=="pending" || s=="in_progress") { id=$2; gsub(/[[:space:]]/,"",id); print id; exit }
-	}' "$TASKS"
+	local id status notes
+	while IFS=$'\x1f' read -r id status notes; do
+		id="${id//[[:space:]]/}"
+		status="${status//[[:space:]]/}"
+		case "$status" in
+			pending|in_progress) ;;
+			*) continue ;;
+		esac
+		if task_runnable "$notes"; then
+			echo "$id"
+			return 0
+		else
+			echo "[$(ts)] skipping $id — needs: requirement not met on this host" >>"$LOG"
+		fi
+	done < <(awk -F'|' '/^\|[[:space:]]*[A-Z]+[0-9]+[[:space:]]*\|/ {
+		print $2 "\x1f" $4 "\x1f" $6
+	}' "$TASKS")
+	return 0
 }
 
 # numeric Attempts column of a task row
