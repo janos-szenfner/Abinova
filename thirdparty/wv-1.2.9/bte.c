@@ -59,7 +59,9 @@ wvGetBTE_PLCF6 (BTE ** bte, U32 ** pos, U32 * nobte, U32 offset, U32 len,
 		wvStream * fd)
 {
     U32 i;
-    if (len == 0)
+    /* a len under 4 cannot hold even the first FC of the plcf;
+       treat as empty (avoids (len - 4) unsigned underflow) */
+    if (len < 4)
       {
 	  *bte = NULL;
 	  *pos = NULL;
@@ -108,7 +110,9 @@ wvGetBTE_PLCF (BTE ** bte, U32 ** pos, U32 * nobte, U32 offset, U32 len,
 	       wvStream * fd)
 {
     U32 i;
-    if (len == 0)
+    /* a len under 4 cannot hold even the first FC of the plcf;
+       treat as empty (avoids (len - 4) unsigned underflow) */
+    if (len < 4)
       {
 	  *bte = NULL;
 	  *pos = NULL;
@@ -155,6 +159,10 @@ int
 wvGetBTE_FromFC (BTE * bte, U32 currentfc, BTE * list, U32 * fcs, int nobte)
 {
     int i = 0;
+    /* an empty or missing bin table means we cannot map the fc to a
+       page; report failure rather than reading list[-1] */
+    if ((nobte <= 0) || (list == NULL) || (fcs == NULL))
+	return (1);
     while (i < nobte)
       {
 	  if ((currentfc >= wvNormFC (fcs[i], NULL))

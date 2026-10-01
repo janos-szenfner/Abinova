@@ -102,6 +102,9 @@ wvGetCLX (wvVersion ver, CLX * clx, U32 offset, U32 len, U8 fExtChar,
 	    {
 		cb = read_16ubit (fd);
 		j += 2;
+		/* a corrupt cb must not run past the end of the clx */
+		if (j > len || cb > len - j)
+		    cb = (j < len) ? (U16) (len - j) : 0;
 		clx->grpprl_count++;
 		clx->cbGrpprl =
 		    (U16 *) realloc (clx->cbGrpprl,
@@ -133,6 +136,10 @@ wvGetCLX (wvVersion ver, CLX * clx, U32 offset, U32 len, U8 fExtChar,
 		      lcb = read_32ubit (fd);	/* word 6 specs appeared to have lied ! */
 		      j += 4;
 		  }
+		/* a corrupt lcb must not run past the end of the clx:
+		   it controls how much wvGetPCD_PLCF allocates and reads */
+		if (j > len || lcb > len - j)
+		    lcb = (j < len) ? len - j : 0;
 		wvGetPCD_PLCF (&clx->pcd, &clx->pos, &clx->nopcd,
 			       wvStream_tell (fd), lcb, fd);
 		j += lcb;
@@ -316,6 +323,9 @@ wvConvertCPToFC (U32 currentcp, CLX * clx)
     U32 i = 0;
     int flag;
 
+    if ((clx->nopcd == 0) || (clx->pcd == NULL) || (clx->pos == NULL))
+	return (0xffffffffL);
+
     while (i < clx->nopcd)
       {
 	  if ((currentcp >= clx->pos[i]) && (currentcp < clx->pos[i + 1]))
@@ -332,6 +342,8 @@ wvConvertCPToFC (U32 currentcp, CLX * clx)
 
     if (currentfc == 0xffffffffL)
       {
+	  if (i == 0)
+	      return (0xffffffffL);
 	  i--;
 	  currentfc = wvNormFC (clx->pcd[i].fc, &flag);
 	  if (flag)

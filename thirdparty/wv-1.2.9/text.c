@@ -633,7 +633,7 @@ swap_iconv (U16 lid)
     size_t ibuflen, obuflen;
 
     U8 buffer[2];
-    U8 buffer2[2];
+    U8 buffer2[2] = { 0x20, 0 };	/* default: looks like an ASCII space */
 
     gchar *ibuf, *obuf;
 
@@ -689,7 +689,7 @@ wvHandleCodePage (U16 eachchar, U16 lid)
     gchar *obuf;			/* Buffer for converted characters      */
     U8 *p;
     U8 buffer[2];
-    U8 buffer2[2];
+    U8 buffer2[2] = { '?', 0 };	/* default to '?' if conversion fails  */
 
     U16 rtn;
 
@@ -735,7 +735,18 @@ wvHandleCodePage (U16 eachchar, U16 lid)
     ibuflen = obuflen = 2;
     p = obuf;
 
+    /* a byte sequence that is invalid in the document codepage (e.g. a
+       lone DBCS lead byte) leaves buffer2 untouched; rather than return
+       uninitialized memory, report the failure as '?'.  (a -1 return
+       alone is not enough: converting the trailing NUL overflows the
+       2-byte output buffer and sets E2BIG *after* the real character
+       has been written, so the true failure signal is an empty output) */
     g_iconv (g_iconv_handle, &ibuf, &ibuflen, &obuf, &obuflen);
+    if (obuflen == 2)
+      {
+	  g_iconv_close (g_iconv_handle);
+	  return ('?');
+      }
 
     /* We might have double byte char here. */
 

@@ -69,7 +69,10 @@ wvGetPCD_PLCF (PCD ** pcd, U32 ** pos, U32 * nopcd, U32 offset, U32 len,
 	       wvStream * fd)
 {
     U32 i;
-    if (len == 0)
+    /* len is the byte count of the PlcfPcd; anything under 4 cannot
+       even hold the trailing CP, treat as empty (also avoids the
+       (len - 4) unsigned underflow) */
+    if (len < 4)
       {
 	  *pcd = NULL;
 	  *pos = NULL;

@@ -946,6 +946,13 @@ wvGetComplexSEP (wvVersion ver, SEP * sep, U32 cpiece, STSH * stsh, CLX * clx)
     U8 val;
     Sprm RetSprm;
 
+    if (cpiece >= clx->nopcd)
+      {
+	  wvError (("piece index %u out of range (%u pieces)\n", cpiece,
+		    clx->nopcd));
+	  return (0);
+      }
+
     if (clx->pcd[cpiece].prm.fComplex == 0)
       {
 	  val = clx->pcd[cpiece].prm.para.var1.val;
@@ -964,6 +971,12 @@ wvGetComplexSEP (wvVersion ver, SEP * sep, U32 cpiece, STSH * stsh, CLX * clx)
     else
       {
 	  index = clx->pcd[cpiece].prm.para.var2.igrpprl;
+	  if (index >= clx->grpprl_count)
+	    {
+		wvError (("grpprl index %u out of range (%u grpprls)\n",
+			  index, clx->grpprl_count));
+		return (0);
+	    }
 #ifdef SPRMTEST
 	  fprintf (stderr, "\n");
 	  while (i < clx->cbGrpprl[index])
@@ -1020,6 +1033,13 @@ wvAssembleComplexPAP (wvVersion ver, PAP * apap, U32 cpiece, wvParseStruct *ps)
     U8 val;
     Sprm RetSprm;
 
+    if (cpiece >= ps->clx.nopcd)
+      {
+	  wvError (("piece index %u out of range (%u pieces)\n", cpiece,
+		    ps->clx.nopcd));
+	  return (0);
+      }
+
     if (ps->clx.pcd[cpiece].prm.fComplex == 0)
       {
 	  val = ps->clx.pcd[cpiece].prm.para.var1.val;
@@ -1038,6 +1058,12 @@ wvAssembleComplexPAP (wvVersion ver, PAP * apap, U32 cpiece, wvParseStruct *ps)
     else
       {
 	  index = ps->clx.pcd[cpiece].prm.para.var2.igrpprl;
+	  if (index >= ps->clx.grpprl_count)
+	    {
+		wvError (("grpprl index %u out of range (%u grpprls)\n",
+			  index, ps->clx.grpprl_count));
+		return (0);
+	    }
 #ifdef SPRMTEST
 	  wvError (("HERE-->\n"));
 	  fprintf (stderr, "\n");
@@ -1080,6 +1106,13 @@ wvAssembleComplexCHP (wvVersion ver, CHP * achp, U32 cpiece, STSH * stsh,
     U8 val;
     Sprm RetSprm;
 
+    if (cpiece >= clx->nopcd)
+      {
+	  wvError (("piece index %u out of range (%u pieces)\n", cpiece,
+		    clx->nopcd));
+	  return (0);
+      }
+
     if (clx->pcd[cpiece].prm.fComplex == 0)
       {
 	  val = clx->pcd[cpiece].prm.para.var1.val;
@@ -1098,6 +1131,12 @@ wvAssembleComplexCHP (wvVersion ver, CHP * achp, U32 cpiece, STSH * stsh,
     else
       {
 	  index = clx->pcd[cpiece].prm.para.var2.igrpprl;
+	  if (index >= clx->grpprl_count)
+	    {
+		wvError (("grpprl index %u out of range (%u grpprls)\n",
+			  index, clx->grpprl_count));
+		return (0);
+	    }
 #ifdef SPRMTEST
 	  fprintf (stderr, "\n");
 	  for (i = 0; i < clx->cbGrpprl[index]; i++)

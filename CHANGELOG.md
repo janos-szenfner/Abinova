@@ -354,6 +354,18 @@ below are on `main` but the release has not been cut yet.
   placement/paint/layout properties, `fill-gradient` and
   `shape-path` sub-grammars, AWML extension list, and the complete
   generated property reference.
+- **`.doc` piece-table decoding hardened** — the bundled `wv` text
+  retriever no longer reads out of bounds on corrupt files: the CLX
+  `grpprl`/`PlcfPcd` block lengths are clamped to the declared CLX
+  size, `wvConvertCPToFC` handles an empty piece table, out-of-range
+  piece and `igrpprl` indices are rejected instead of dereferenced,
+  empty `PlcBte` bin tables report failure instead of reading
+  `bte[-1]`, and a failed iconv codepage conversion now yields a
+  deterministic `?` instead of uninitialized memory. Verified with
+  synthetic fast-saved-style documents mixing compressed
+  (8-bit ANSI) and uncompressed UTF-16 pieces, including a
+  CP1251 (Russian-lid) document — all pieces import in order with
+  the correct characters.
 
 ### Keyboard shortcuts (Word-compatible default map)
 
