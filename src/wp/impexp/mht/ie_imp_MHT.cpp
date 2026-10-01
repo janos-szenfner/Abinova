@@ -160,12 +160,20 @@ private:
 
 bool UT_MHTStream::open (GsfInput * input)
 {
-	gsf_off_t size = gsf_input_size (input);
+	gsf_input_seek (input, 0, G_SEEK_SET);
+
+	gsf_off_t size = gsf_input_remaining (input);
 	if (size <= 0) return false;
 
 	m_data.resize (static_cast<size_t>(size));
-	if (!gsf_input_read (input, static_cast<size_t>(size),
-					   reinterpret_cast<guint8 *>(&m_data[0])))
+
+	gsf_off_t done = 0;
+	while (done < size &&
+		   gsf_input_read (input, static_cast<size_t>(size - done),
+						   reinterpret_cast<guint8 *>(&m_data[done])))
+		done = size - gsf_input_remaining (input);
+	m_data.resize (static_cast<size_t>(done));
+	if (done == 0)
 		{
 			m_data.clear ();
 			return false;
@@ -415,6 +423,12 @@ IE_Imp_MHT::~IE_Imp_MHT ()
 UT_Error IE_Imp_MHT::_loadFile (GsfInput * input)
 {
 	UT_MHTStream stream;
+
+	if (!stream.open (input))
+		{
+			UT_DEBUGMSG(("Unable to read MHTML stream!\n"));
+			return UT_IE_BOGUSDOCUMENT;
+		}
 
 	bool bValid = false;
 
