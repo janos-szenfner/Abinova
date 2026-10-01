@@ -47,11 +47,16 @@ wvGetLFO_records (LFO ** lfo, LFOLVL ** lfolvl, LVL ** lvl, U32 * nolfo,
 		  U32 * nooflvl, U32 offset, U32 len, wvStream * fd)
 {
     U32 i;
-    U32 end;
+    U32 end, lim;
     *nooflvl = 0;
     wvTrace (("lfo begins at %x len %d\n", offset, len));
     wvStream_offset_from_end (fd, 0);
     end = wvStream_tell (fd);
+    /* the LFOLVL/LVL pairs live inside the declared PlfLfo region;
+       never let a corrupt clfolvl/fFormatting walk us past it */
+    lim = offset + len;
+    if (lim > end || lim < offset)	/* offset+len wrapped or out of file */
+	lim = end;
     wvGetLFO_PLF (lfo, nolfo, offset, len, fd);
 
     for (i = 0; i < *nolfo; i++)
@@ -76,14 +81,15 @@ wvGetLFO_records (LFO ** lfo, LFOLVL ** lfolvl, LVL ** lvl, U32 * nolfo,
       {
 	  wvInitLVL (&((*lvl)[i]));
 	  wvTrace (("%d pos now %x %d\n", i, wvStream_tell (fd), *nooflvl));
-	  if (wvStream_tell (fd) == end)
+	  if (wvStream_tell (fd) + cbLFOLVL > lim)
 	    {
 		wvWarning
-		    ("LFOLVL off the end of the file, continuing anyway\n");
+		    ("LFOLVL off the end of the PlfLfo, continuing anyway\n");
+		wvInitLFOLVL (&((*lfolvl)[i]));
 		i++;
 		continue;
 	    }
-	  wvGetLFOLVL (&((*lfolvl)[i]), fd);
+	  wvGetLFOLVL (&((*lfolvl)[i]), fd, lim);
 #if 0
 	  if (wvInvalidLFOLVL (&((*lfolvl)[i])))
 	      continue;
@@ -91,7 +97,11 @@ wvGetLFO_records (LFO ** lfo, LFOLVL ** lfolvl, LVL ** lvl, U32 * nolfo,
 	  if ((*lfolvl)[i].fFormatting)
 	    {
 		wvTrace (("formatting set\n"));
-		wvGetLVL (&((*lvl)[i]), fd);
+		if (wvStream_tell (fd) < lim)
+		    wvGetLVL (&((*lvl)[i]), fd);
+		else
+		    wvWarning (("LFOLVL formatting overrun, keeping "
+				"initialised LVL\n"));
 	    }
 	  i++;
       }
@@ -113,8 +123,11 @@ wvGetLFO_PLF (LFO ** lfo, U32 * nolfo, U32 offset, U32 len, wvStream * fd)
 	  *nolfo = read_32ubit (fd);
 	  wvTrace (("%d\n", *nolfo));
 
-	  /* check for integer overflow */
-	  if (multiplication_will_overflow(*nolfo, sizeof(LFO))) {
+	  /* check for integer overflow, and that the claimed count can
+	     actually fit in the declared PlfLfo region (each LFO is 16
+	     bytes after the 4-byte count) */
+	  if (multiplication_will_overflow(*nolfo, sizeof(LFO)) ||
+	      (len > 4 && *nolfo > (len - 4) / cbLFO)) {
 	    wvError (("Malicious document!\n"));			
 	    *nolfo = 0;
 	    return (1);
@@ -158,7 +171,7 @@ wvInitLFO (LFO * item)
 }
 
 void
-wvGetLFOLVL (LFOLVL * item, wvStream * fd)
+wvGetLFOLVL (LFOLVL * item, wvStream * fd, U32 lim)
 {
     U8 temp8;
 #ifdef PURIFY
@@ -166,10 +179,25 @@ wvGetLFOLVL (LFOLVL * item, wvStream * fd)
 #endif
     item->iStartAt = read_32ubit (fd);
 
-    while (wvInvalidLFOLVL (item))
+    /* some writers emit 0xffffffff filler LFOLVLs; skip them, but stay
+       inside the PlfLfo region (lim) so a corrupt tail cannot send us
+       running through the rest of the table stream */
+    while (wvInvalidLFOLVL (item) && wvStream_tell (fd) + 4 <= lim)
       {
 	  wvTrace (("pos %x\n", wvStream_tell (fd)));
 	  item->iStartAt = read_32ubit (fd);
+      }
+
+    if (wvStream_tell (fd) + 4 > lim)
+      {
+	  item->ilvl = 0;
+	  item->fStartAt = 0;
+	  item->fFormatting = 0;
+	  item->reserved1 = 0;
+	  item->reserved2 = 0;
+	  item->reserved3 = 0;
+	  item->reserved4 = 0;
+	  return;
       }
 
     temp8 = read_8ubit (fd);

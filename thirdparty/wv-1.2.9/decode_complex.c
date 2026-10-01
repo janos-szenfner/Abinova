@@ -662,11 +662,37 @@ encoded into the first 22 bytes.
 
 		if (j == para_fcFirst)
 		  {
+		      S16 list_ilfo;
+		      U8 list_ilvl;
+
 		      para_dirty =
 			  wvAssembleSimplePAP (ver, &apap, para_fcLim, &para_fkp, ps);
+		      list_ilfo = apap.ilfo;
+		      list_ilvl = apap.ilvl;
 		      para_dirty =
 			  (wvAssembleComplexPAP
 			   (ver, &apap, cpiece, ps) ? 1 : para_dirty);
+
+		      /* the piece's grpprl may have moved the paragraph
+			 into or out of a list (or to another level) after
+			 wvAssembleSimplePAP resolved linfo; resolve it
+			 again against the final ilfo/ilvl, then let the
+			 paragraph sprms win once more (MS-DOC 2.4.6) */
+		      if ((apap.ilfo != list_ilfo || apap.ilvl != list_ilvl)
+			  && ps->lfo)
+			{
+			    int lidx;
+			    PAPX *lpapx = NULL;
+
+			    para_dirty = 1;
+			    lidx = wvGetIndexFCInFKP_PAPX (&para_fkp,
+							 para_fcLim);
+			    if (lidx > 0 && lidx <= para_fkp.crun)
+				lpapx = &para_fkp.grppapx[lidx - 1];
+			    if (wvAssembleListPAP (ver, &apap, ps, lpapx))
+				para_dirty = 1;
+			    wvAssembleComplexPAP (ver, &apap, cpiece, ps);
+			}
 #ifdef SPRMTEST
 		      {
 			  int p;

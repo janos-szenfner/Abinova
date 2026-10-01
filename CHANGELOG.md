@@ -423,6 +423,27 @@ below are on `main` but the release has not been cut yet.
   restoration. Verified with a synthetic document exercising both
   CHPX decode paths — all properties import and render correctly, and
   the `.doc` corpus still converts cleanly.
+- **`.doc` list/numbering audit** — legacy Word list handling is now
+  complete per MS-DOC: `LVLF` fields follow the spec layout
+  (`fIndentSav`/`fConverted`/`fTentative`/`dxaIndentSav`/
+  `ilvlRestartLim`/`grfhic`), `PlcfLst`/`PlfLfo` reads are bounded to
+  their declared regions, and list resolution (`wvAssembleListPAP`)
+  honours `LFOLVL` start-at and whole-`LVL` formatting overrides,
+  clamps corrupt `ilfo`/`ilvl` indexes, applies `LSTF.rgistd`
+  level-to-style links (a level linked to "Heading 1" now produces
+  Heading-1 paragraphs), and re-resolves when complex-decode grpprls
+  move a paragraph between lists. The importer now splits multi-level
+  number text into `list-delim`/`list-decimal` so "1.a.i." labels
+  compose correctly, maps bullet glyphs (including Symbol/Wingdings
+  private-use codepoints) onto the matching Abi bullet type, takes
+  the label font from the number's own character properties, and keys
+  list instances by a collision-free composite (lsid+ilfo+level+
+  format+restart) — fixed a real collision where a lower-roman level
+  could merge into a lower-letter list. Verified with a synthetic
+  multilevel `.doc`: numbered 1./1.a./1.a.i. levels, an embedded
+  square-bullet level, a `•` bullet list and an LFOLVL restart at 5
+  all import and render correctly on both decode paths, and the
+  `.doc` corpus still converts cleanly.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

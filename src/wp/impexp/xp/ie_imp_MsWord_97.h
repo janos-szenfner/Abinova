@@ -27,6 +27,7 @@
 // The importer/reader for Microsoft Word Documents
 
 #include <stack>
+#include <map>
 
 #include "ie_imp.h"
 #include "ut_string_class.h"
@@ -331,7 +332,7 @@ private:
 	UT_uint32   m_iTextEnd;
 	bool        m_bPageBreakPending;
 	bool        m_bLineBreakPending;
-	UT_NumberVector m_vListIdMap;
+	std::map<UT_uint64, UT_uint32> m_mListIdMap;
 	bool        m_bSymbolFont;
 	UT_Dimension m_dim;
 	UT_sint32    m_iLeft;

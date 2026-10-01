@@ -304,32 +304,6 @@ wvAssembleSimplePAP (wvVersion ver, PAP * apap, U32 fc, PAPX_FKP * fkp, wvParseS
     UPXF upxf;
     int ret = 0;
 
-	/* list processing vars */
-	U32 myListId = 0;
-	LVLF * myLVLF = NULL;
-	LVL * myLVL = NULL;
-	LFO * myLFO = NULL;
-	LST * myLST = NULL;
-	LFOLVL * myLFOLVL = NULL;
-
-	S32 myStartAt = -1;
-	U8 * mygPAPX = NULL;
-	U8 * mygCHPX = NULL;
-	XCHAR * myNumberStr = NULL;
-	S32 myNumberStr_count = 0;
-	U32 mygPAPX_count = 0, mygCHPX_count = 0;
-
-	PAPX myPAPX;
-	CHPX myCHPX;
-
-	S32 i = 0, j = 0, k = 0;
-
-	int bNeedLST_LVL;
-	int bLST_LVL_format;
-	
-	LVL * prevLVL;
-	LVLF * prevLVLF;
-
     /*index is the i in the text above */
     index = wvGetIndexFCInFKP_PAPX (fkp, fc);
 
@@ -395,285 +369,259 @@ wvAssembleSimplePAP (wvVersion ver, PAP * apap, U32 fc, PAPX_FKP * fkp, wvParseS
 
 	if (!ps->lfo)
 	  return ret;
-	
-	wvTrace(("list: ilvl %d, ilfo %d\n",apap->ilvl,apap->ilfo));	/* ilvl is the list level */
 
-	/* first, get the LFO, and then find the lfovl for this paragraph */
-	if (ps->lfo) 
-	  myLFO = &ps->lfo[apap->ilfo - 1];
+	if (wvAssembleListPAP (ver, apap, ps, papx))
+	    ret = 1;
 
-	while(i < (S32)apap->ilfo - 1 && i < (S32)ps->nolfo)
-	{
-		j += ps->lfo[i].clfolvl;
-		i++;
-	}
+	return (ret);
+}
 
-	/* 	remember how many overrides are there for this record */
-        if (ps->lfo)
-	  k = ps->lfo[i].clfolvl;
-	else
-	  k = 0;
+/*
+  Resolve a paragraph's list formatting per MS-DOC "Determining List
+  Numbering of a Paragraph": pap.ilfo indexes the PlfLfo (one-based);
+  the LFO names the LST through lsid; an LFOLVL record can override
+  the level's start-at value (fStartAt) and/or its whole LVL
+  (fFormatting -- stored next to the LFOLVL inside the PlfLfo, parsed
+  into ps->lvl).  The chosen level's grpprlPapx is applied to the
+  paragraph underneath papx (the paragraph's own papx, reapplied so it
+  wins; may be NULL), the number's grpprlChpx is folded into
+  apap->linfo.chp, and a style linked through LSTF.rgistd replaces the
+  paragraph style.
 
-	/* 	if there are any overrides, then see if one of them applies to this level */
-	if(k && ps->lfolvl)
-	{
-		i = 0;
-		while(i < k && ps->lfolvl[j].ilvl != apap->ilvl)
-		{
-			j++;
-			i++;
-		}
+  Called from wvAssembleSimplePAP, and again from the complex decoder
+  when a CLX grpprl changed ilfo/ilvl after the simple pass.
+*/
+int
+wvAssembleListPAP (wvVersion ver, PAP * apap, wvParseStruct * ps,
+		   PAPX * papx)
+{
+    U32 myListId = 0;
+    LVLF * myLVLF = NULL;
+    LVL * myLVL = NULL;
+    LVL * lstLVL = NULL;
+    LFO * myLFO = NULL;
+    LST * myLST = NULL;
+    LFOLVL * myLFOLVL = NULL;
+    U32 iLFOLVL = 0;
 
-		if(i >= k)
-		{
-			wvTrace(("list: no LFOLVL found for this level (1)\n"));
-			myLFOLVL = NULL;
-		}
-		else
-		{
-			myLFOLVL = &ps->lfolvl[j];
-			wvTrace(("list: lfovl: iStartAt %d, fStartAt\n", myLFOLVL->iStartAt,myLFOLVL->fStartAt,myLFOLVL->fFormatting));
-			if(!myLFOLVL->fFormatting && myLFOLVL->fStartAt)
-				myStartAt = myLFOLVL->iStartAt;
-		}
-	}
-	else
-	{
-		wvTrace(("list: no LFOLVL found for this level (2)\n"));
-		myLFOLVL = NULL;
-	}
+    S32 myStartAt = -1;
+    U8 * mygPAPX = NULL;
+    U8 * mygCHPX = NULL;
+    XCHAR * myNumberStr = NULL;
+    S32 myNumberStr_count = 0;
+    U32 mygPAPX_count = 0, mygCHPX_count = 0;
 
-	/* now that we might have the LFOLVL, let's see if we should use
-	   the LVL from the LFO */
-	bNeedLST_LVL = (!myLFOLVL || !myLFOLVL->fStartAt || !myLFOLVL->fFormatting);
-	bLST_LVL_format = 1;
-	
-	if(myLFOLVL)
-	{
-		/* this branch has not been (thoroughly) debugged
-		   Abi bugs 2205 and 2393 exhibit this behavior */
-		wvTrace(("list: using the LVL from LFO\n"));
-		myListId = myLFOLVL->iStartAt;
-		i = 0;
-		wvTrace(("list: number of LSTs %d, my lsid %d\n", ps->noofLST,myListId));
-		while(i < ps->noofLST && ps->lst[i].lstf.lsid != myListId)
-		{
-			i++;
-			wvTrace(("list: lsid in LST %d\n", ps->lst[i-1].lstf.lsid));
-		}
+    PAPX myPAPX;
+    UPXF upxf;
 
-		if(i == ps->noofLST || ps->lst[i].lstf.lsid != myListId)
-		{
-			wvTrace(("error: could not locate LST entry\n"));
-			goto list_error;
-		}
+    S32 i = 0, j = 0, k = 0;
 
-		myLST = &ps->lst[i];
-		myLVL = &myLST->lvl[apap->ilvl];
+    int ret = 0;
 
-		/* now we should have the LVL */
-		if(!myLVL)
-			return ret;
+    memset (&apap->linfo, 0, sizeof (apap->linfo));
 
-		myLVLF = &myLVL->lvlf;
+    if (!ps->lfo || !ps->nolfo)
+	return (0);
 
-		if(!myLVLF)
-			return ret;
+    wvTrace (("list: ilvl %d, ilfo %d\n", apap->ilvl, apap->ilfo));
 
-		myStartAt = myLFOLVL->fStartAt ? (S32)(myLVLF->iStartAt) : -1;
+    /* ilfo indexes ps->lfo one-based; MS-DOC reserves 0 (and 0x7FF for
+       "not part of a list"), and a corrupt sprmPIlfo must not send us
+       out of bounds */
+    if (apap->ilfo < 0 || apap->ilfo == 2047)
+      {
+	  apap->ilfo = 0;
+	  return (0);
+      }
+    if (apap->ilfo > (S32) ps->nolfo)
+      {
+	  wvWarning (("ilfo %d exceeds PlfLfo count %d, dropping list\n",
+		      apap->ilfo, ps->nolfo));
+	  return (0);
+      }
 
-		mygPAPX = myLFOLVL->fFormatting ? myLVL->grpprlPapx : NULL;
-		mygPAPX_count = myLFOLVL->fFormatting ? myLVLF->cbGrpprlPapx : 0;
+    /* ilvl selects one of a list's nine levels; clamp garbage */
+    if (apap->ilvl > 8)
+      {
+	  wvWarning (("list level %d out of range, clamping to 8\n",
+		      apap->ilvl));
+	  apap->ilvl = 8;
+      }
 
-		/* not sure about this, the CHPX applies to the number, so it
-		   might be that we should take this if the fStartAt is set --
-		   the docs are not clear */
-		mygCHPX = myLFOLVL->fFormatting ? myLVL->grpprlChpx : NULL;
-		mygCHPX_count = myLFOLVL->fFormatting ? myLVLF->cbGrpprlChpx : 0;
+    myLFO = &ps->lfo[apap->ilfo - 1];
 
-		myNumberStr = myLFOLVL->fStartAt && myLVL->numbertext ? myLVL->numbertext + 1 : NULL;
-		myNumberStr_count = myNumberStr ? *(myLVL->numbertext) : 0;
+    /* find this LFO's first LFOLVL: they are stored contiguously, in
+       LFO order */
+    while (i < (S32) apap->ilfo - 1 && i < (S32) ps->nolfo)
+      {
+	  j += ps->lfo[i].clfolvl;
+	  i++;
+      }
 
-		if(myLFOLVL->fFormatting)
-			bLST_LVL_format = 0;
+    /* remember how many overrides there are for this record */
+    k = ps->lfo[i].clfolvl;
 
-	}
+    /* if there are any overrides, see whether one applies to this level */
+    if (k && ps->lfolvl)
+      {
+	  S32 m;
+	  for (m = 0; m < k && j + m < (S32) ps->nooflvl; m++)
+	    {
+		if (ps->lfolvl[j + m].ilvl == apap->ilvl)
+		  {
+		      myLFOLVL = &ps->lfolvl[j + m];
+		      iLFOLVL = j + m;
+		      wvTrace (("list: lfolvl: iStartAt %d, fStartAt %d, "
+				"fFormatting %d\n", myLFOLVL->iStartAt,
+				myLFOLVL->fStartAt, myLFOLVL->fFormatting));
+		      break;
+		  }
+	    }
+	  if (!myLFOLVL)
+	      wvTrace (("list: no LFOLVL found for this level\n"));
+      }
 
-	if(bNeedLST_LVL)
-	{
-		prevLVL = myLVL;
-		prevLVLF = myLVLF;
-		myListId = myLFO ? myLFO->lsid : 0;
-		wvTrace(("list: using the LVL from LST\n"));
-		i = 0;
-		
-		wvTrace(("list: number of LSTs %d, my lsid %d\n", ps->noofLST,myListId));
-		while(i < ps->noofLST && ps->lst[i].lstf.lsid != myListId)
-		{
-			i++;
-			wvTrace(("list: lsid in LST %d\n", ps->lst[i-1].lstf.lsid));
-		}
+    /* the LST is located through the LFO's lsid -- not through anything
+       inside the LFOLVL */
+    myListId = myLFO->lsid;
+    if (ps->lst)
+      {
+	  for (i = 0; (S32) i < ps->noofLST; i++)
+	    {
+		if (ps->lst[i].lstf.lsid == myListId)
+		  {
+		      myLST = &ps->lst[i];
+		      break;
+		  }
+	    }
+      }
+    if (!myLST)
+	wvTrace (("error: could not locate LST entry\n"));
 
-		if(i == ps->noofLST || ps->lst[i].lstf.lsid != myListId)
-		{
-			wvTrace(("error: could not locate LST entry\n"));
-			goto list_error;
-		}
+    wvTrace (("is a simple list? %d - requested level %d\n",
+	      myLST ? myLST->lstf.fSimpleList : -1, apap->ilvl));
+    if (myLST)
+	lstLVL = myLST->lstf.fSimpleList ? myLST->lvl
+				       : &myLST->lvl[apap->ilvl];
 
-		myLST = &ps->lst[i];
-		wvTrace(("is a simple list? %d - requested level %d\n", myLST->lstf.fSimpleList, apap->ilvl));
-		if(myLST->lstf.fSimpleList)
-			myLVL = myLST->lvl;
-		else
-			myLVL = &myLST->lvl[apap->ilvl];
+    /* an fFormatting LFOLVL completely replaces the LST's LVL for this
+       level (MS-DOC) -- the overridden LVL was parsed into ps->lvl
+       parallel to ps->lfolvl */
+    if (myLFOLVL && myLFOLVL->fFormatting && ps->lvl)
+      {
+	  wvTrace (("list: using the LVL override from the LFO\n"));
+	  myLVL = &ps->lvl[iLFOLVL];
+      }
+    else
+	myLVL = lstLVL;
 
-		/* now we should have the correct LVL */
-		if(!myLVL)
-			return ret;
-		
-		myLVLF = &myLVL->lvlf;
+    if (!myLVL)
+      {
+	  wvWarning (("no LVL available for list %d level %d\n",
+		      myListId, apap->ilvl));
+	  return (0);
+      }
 
-		if(!myLVLF)
-			return ret;
+    myLVLF = &myLVL->lvlf;
 
-		/* retrieve any stuff we need from here (i.e., only what we
-		   did not get from the LFO LVL) */
-		myStartAt = myStartAt == -1 ? myLVLF->iStartAt : myStartAt;
+    if (myLFOLVL && myLFOLVL->fStartAt)
+	myStartAt = (S32) myLFOLVL->iStartAt;
+    else if (lstLVL)
+	myStartAt = (S32) lstLVL->lvlf.iStartAt;
+    else
+	myStartAt = (S32) myLVLF->iStartAt;
 
-		mygPAPX_count = !mygPAPX ? myLVLF->cbGrpprlPapx : mygPAPX_count;
-		mygPAPX = !mygPAPX ? myLVL->grpprlPapx : mygPAPX;
+    mygPAPX = myLVL->grpprlPapx;
+    mygPAPX_count = myLVLF->cbGrpprlPapx;
+    mygCHPX = myLVL->grpprlChpx;
+    mygCHPX_count = myLVLF->cbGrpprlChpx;
+    if (myLVL->numbertext)
+      {
+	  myNumberStr = myLVL->numbertext + 1;
+	  myNumberStr_count = *(myLVL->numbertext);
+      }
 
-		mygCHPX_count = !mygCHPX ? myLVLF->cbGrpprlChpx : mygCHPX_count;
-		mygCHPX = !mygCHPX ? myLVL->grpprlChpx : mygCHPX;
+    wvTrace (("list: id %d, iStartAt %d, nfc %d, align %d, "
+	      "ixchFollow %d, numbertext len %d, papx len %d, "
+	      "chpx len %d\n", myListId, myStartAt, myLVLF->nfc,
+	      myLVLF->jc, myLVLF->ixchFollow, myNumberStr_count,
+	      mygPAPX_count, mygCHPX_count));
 
-		myNumberStr_count = !myNumberStr && myLVL->numbertext ? *(myLVL->numbertext) : myNumberStr_count;
-		myNumberStr = !myNumberStr && myLVL->numbertext ? myLVL->numbertext + 1 : myNumberStr;
+    apap->linfo.id = myListId;
+    apap->linfo.start = myStartAt;
+    apap->linfo.numberstr = myNumberStr;
+    apap->linfo.numberstr_size = myNumberStr_count;
+    apap->linfo.format = myLVLF->nfc;
+    apap->linfo.align = myLVLF->jc;
+    apap->linfo.ixchFollow = myLVLF->ixchFollow;
 
+    /* apply the level's grpprlPapx to the paragraph */
+    myPAPX.cb = mygPAPX_count;
+    myPAPX.grpprl = mygPAPX;
+    myPAPX.istd = apap->istd;
 
-		/* if there was a valid LFO LVL record that pertained to
-		   formatting then we will set the myLVL and myLVLF variables
-		   back to this record so that it can be used */
-		if(!bLST_LVL_format && prevLVL && prevLVLF)
-		{
-			myLVL = prevLVL;
-			myLVLF = prevLVLF;
-		}
-	}
-
-	wvTrace(("list: number text len %d, papx len %d, chpx len%d\n",myNumberStr_count,mygPAPX_count,mygCHPX_count));
-	myPAPX.cb = mygPAPX_count;
-	myPAPX.grpprl = mygPAPX;
-	myPAPX.istd = apap->istd;
-
-	/*
-	  IMPORTANT now we have the list formatting sutff retrieved; it is found in several
-	  different places:
-	  apap->ilvl - the level of this list (0-8)
-
-	  myStartAt	- the value at which the numbering for this listshould start
-	  (i.e., the number of the first item on the list)
-
-	  myListId	- the id of this list, we need this to know to which list this
-	  paragraph belongs; unfortunately, there seem to be some cases where separate
-	  lists *share* the same id, for instance when two lists, of different formatting,
-	  are separated by only empty paragraphs. As a hack, AW will add the format number
-	  to the list id, so gaining different id for different formattings (it is not foolproof,
-	  for if id1 + format1 == id2 + format2 then we get two lists joined, but the probability
-	  of that should be small). Further problem is that in AW, list id refers to the set of
-	  list elements on the same level, while in Word the id is that of the entire list. The
-	  easiest way to tranform the Word id to AW id is to add the level to the id
-
-	  PAPX - the formatting information that needs to be added to the
-	  format of this list
-
-	  CHPX - the formatting of the list number
-
-	  myNumberStr - the actual number string to display (XCHAR *); we probably need
-	  this to work out the number separator, since there does not seem
-	  to be any reference to this anywhere
-
-	  myNumberStr_count - length of the number string
-
-	  myLVLF->nfc - number format (see the enum below)
-
-	  myLVLF->jc	- number alignment [0: lft, 1: rght, 2: cntr]
-
-	  myLVLF->ixchFollow - what character stands between the number and the para
-	  [0:= tab, 1: spc, 2: none]
-
-	  we shall copy this info, except the ilvl, to the wv extension of
-	  the PAP structure
-
-	*/
-	wvTrace(("list: id %d \n",myListId));
-	wvTrace(("list: iStartAt %d\n", myStartAt));
-	wvTrace(("list: lvlf: format %d\n",myLVLF->nfc)); /* see the comment above for nfc values */
-	wvTrace(("list: lvlf: number align %d [0: lft, 1: rght, 2: cntr]\n",myLVLF->jc));
-	wvTrace(("list: lvlf: ixchFollow %d [0:= tab, 1: spc, 2: none]\n",myLVLF->ixchFollow));
-
-	apap->linfo.id = myListId;
-	apap->linfo.start = myStartAt;
-	apap->linfo.numberstr = myNumberStr;
-	apap->linfo.numberstr_size = myNumberStr_count;
-	apap->linfo.format = myLVLF->nfc;
-	apap->linfo.align = myLVLF->jc;
-	apap->linfo.ixchFollow = myLVLF->ixchFollow;
-
-	/* the number formatting */
-	myCHPX.cbGrpprl = mygCHPX_count;
-	myCHPX.grpprl = mygCHPX;
-	myCHPX.istd = 4095; 
-
-	/* next we need to apply the list PAPX to our PAP */
     if (myPAPX.cb > 2)
-	{
+      {
+	  ret = 1;
+	  upxf.cbUPX = myPAPX.cb;
+	  upxf.upx.papx.istd = myPAPX.istd;
+	  upxf.upx.papx.grpprl = myPAPX.grpprl;
+	  if (ver == WORD8)
+	      wvAddPAPXFromBucket (apap, &upxf, &ps->stsh, ps->data);
+	  else
+	      wvAddPAPXFromBucket6 (apap, &upxf, &ps->stsh);
+
+	  /* now we have to reapply the original PAPX, see note at top
+	     of the list code */
+	  if ((papx) && (papx->cb > 2))
+	    {
 		ret = 1;
-		upxf.cbUPX = myPAPX.cb;
-		upxf.upx.papx.istd = myPAPX.istd;
-		upxf.upx.papx.grpprl = myPAPX.grpprl;
+		upxf.cbUPX = papx->cb;
+		upxf.upx.papx.istd = papx->istd;
+		upxf.upx.papx.grpprl = papx->grpprl;
 		if (ver == WORD8)
-			wvAddPAPXFromBucket (apap, &upxf, &ps->stsh, ps->data);
+		    wvAddPAPXFromBucket (apap, &upxf, &ps->stsh, ps->data);
 		else
-			wvAddPAPXFromBucket6 (apap, &upxf, &ps->stsh);
+		    wvAddPAPXFromBucket6 (apap, &upxf, &ps->stsh);
+	    }
+      }
 
-		/* now we have to reapply the original PAPX, see note at top
-		   of the list code */
-		if((papx) && (papx->cb > 2))
-		{
-			ret = 1;
-			upxf.cbUPX = papx->cb;
-			upxf.upx.papx.istd = papx->istd;
-			upxf.upx.papx.grpprl = papx->grpprl;
-			if (ver == WORD8)
-				wvAddPAPXFromBucket (apap, &upxf, &ps->stsh, ps->data);
-			else
-				wvAddPAPXFromBucket6 (apap, &upxf, &ps->stsh);
-		}
-	}
+    /* a level can be linked to a paragraph style through the LSTF's
+       rgistd (MS-DOC: the style applies to both the paragraph and the
+       number text); 0x0FFF means "not linked" */
+    if (myLST && myLST->lstf.rgistd[apap->ilvl] != istdNil &&
+	myLST->lstf.rgistd[apap->ilvl] < ps->stsh.Stshi.cstd)
+      {
+	  U16 istdLink = myLST->lstf.rgistd[apap->ilvl];
+	  wvTrace (("list: level %d linked to istd %d\n", apap->ilvl,
+		    istdLink));
+	  apap->istd = istdLink;
+	  if (ps->stsh.std && ps->stsh.std[istdLink].xstzName)
+	    {
+		strncpy (apap->stylename,
+			 ps->stsh.std[istdLink].xstzName,
+			 sizeof (apap->stylename) - 1);
+		apap->stylename[sizeof (apap->stylename) - 1] = 0;
+	    }
+      }
+    else if (myPAPX.istd != istdNil)
+	apap->istd = myPAPX.istd;
 
-	/* next see if the list number comes with
-	   additional char formatting information; if it does, we will
-	   stre it the linfo.chp */
+    /* the number text takes the paragraph's character properties plus
+       the level's grpprlChpx (MS-DOC); always assemble it so the
+       importer can pick up the number font even with no chpx */
+    wvAssembleSimpleCHP (ver, &apap->linfo.chp, apap, 0, NULL, &ps->stsh);
+    if (mygCHPX_count)
+      {
+	  ret = 1;
+	  upxf.cbUPX = mygCHPX_count;
+	  upxf.upx.chpx.grpprl = mygCHPX;
+	  if (ver == WORD8)
+	      wvAddCHPXFromBucket (&apap->linfo.chp, &upxf, &ps->stsh);
+	  else
+	      wvAddCHPXFromBucket6 (&apap->linfo.chp, &upxf, &ps->stsh);
+      }
 
-	if(myCHPX.cbGrpprl)
-	{
-		ret = 1;
-
-		wvAssembleSimpleCHP(ver, &apap->linfo.chp, apap, 0, NULL, &ps->stsh);
-		upxf.cbUPX = myCHPX.cbGrpprl;
-		upxf.upx.chpx.grpprl = myCHPX.grpprl;
-		if (ver == WORD8)
-			wvAddCHPXFromBucket (&apap->linfo.chp, &upxf, &ps->stsh);
-		else
-			wvAddCHPXFromBucket6 (&apap->linfo.chp, &upxf, &ps->stsh);
-	}
-	
-
-
-    if (myPAPX.istd != istdNil)
-		apap->istd = myPAPX.istd;
-	
-list_error:
     return (ret);
 }
 

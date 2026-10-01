@@ -109,17 +109,18 @@ wvGetListEntryInfo (wvVersion ver, LVL ** finallvl, U32 ** nos, U8 ** nfcs,
 	  retlvl->lvlf.jc = apap->anld.jc;
 	  retlvl->lvlf.fLegal = 0;	/*? */
 	  retlvl->lvlf.fNoRestart = 0;	/*? */
-	  retlvl->lvlf.fPrev = apap->anld.fPrev;
-	  retlvl->lvlf.fPrevSpace = apap->anld.fPrevSpace;
-	  retlvl->lvlf.fWord6 = 1;
+	  retlvl->lvlf.fIndentSav = apap->anld.fPrev;
+	  retlvl->lvlf.fConverted = apap->anld.fPrevSpace;
+	  retlvl->lvlf.unused1 = 1;
 	  retlvl->lvlf.rgbxchNums[0] = 0;	/*wrong for now */
 	  retlvl->lvlf.ixchFollow = 2;	/*wrong for now */
-	  retlvl->lvlf.dxaSpace = apap->anld.dxaSpace;
+	  retlvl->lvlf.dxaIndentSav = apap->anld.dxaSpace;
 	  retlvl->lvlf.dxaIndent = apap->anld.dxaIndent;
 	  retlvl->lvlf.cbGrpprlChpx = 0;	/* wrong */
 	  retlvl->lvlf.cbGrpprlPapx = 0;	/* wrong */
-	  retlvl->lvlf.reserved1 = 0;
-	  retlvl->lvlf.reserved2 = 0;
+	  retlvl->lvlf.fTentative = 0;
+	  retlvl->lvlf.ilvlRestartLim = 0;
+	  retlvl->lvlf.grfhic = 0;
 	  retlvl->grpprlChpx = NULL;	/* wrong */
 	  retlvl->grpprlPapx = NULL;	/* wrong */
 

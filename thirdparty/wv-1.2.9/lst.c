@@ -37,6 +37,7 @@ int
 wvGetLST (LST ** lst, U16 * noofLST, U32 offset, U32 len, wvStream * fd)
 {
     U16 i, j;
+    U32 lim;
     *lst = NULL;
     *noofLST = 0;
 
@@ -45,11 +46,21 @@ wvGetLST (LST ** lst, U16 * noofLST, U32 offset, U32 len, wvStream * fd)
 
     wvStream_goto (fd, offset);
     wvTrace (("offset is %x, len is %d\n", offset, len));
+    lim = offset + len;
 
     *noofLST = read_16ubit (fd);
     wvTrace (("noofLST is %d\n", *noofLST));
     if (*noofLST == 0)
 	return (0);
+
+    /* each LST costs at least an LSTF (28 bytes) inside the PlcfLst;
+       a count that cannot fit the declared region is corrupt */
+    if (len > 2 && *noofLST > (len - 2) / cbLSTF)
+      {
+	  wvWarning (("PlcfLst count %d exceeds region (%d bytes), "
+		      "clamping\n", *noofLST, len));
+	  *noofLST = (len - 2) / cbLSTF;
+      }
 
     *lst = (LST *) wvMalloc (*noofLST * sizeof (LST));
     if (*lst == NULL)
@@ -74,23 +85,23 @@ wvGetLST (LST ** lst, U16 * noofLST, U32 offset, U32 len, wvStream * fd)
 		(*lst)[i].current_no = (U32 *) wvMalloc (9 * sizeof (U32));
 	    }
       }
+    /* the LVLs follow the LSTFs; never read past the end of the
+       declared PlcfLst region */
     for (i = 0; i < *noofLST; i++)
       {
+	  U16 nlvl = (*lst)[i].lstf.fSimpleList ? 1 : 9;
 	  wvTrace (("getting lvl, the id is %x\n", (*lst)[i].lstf.lsid));
-	  if ((*lst)[i].lstf.fSimpleList)
+	  for (j = 0; j < nlvl; j++)
 	    {
-		wvTrace (("simple 1\n"));
-		wvGetLVL (&((*lst)[i].lvl[0]), fd);
-		(*lst)[i].current_no[0] = (*lst)[i].lvl[0].lvlf.iStartAt;
-	    }
-	  else
-	    {
-		wvTrace (("complex 9\n"));
-		for (j = 0; j < 9; j++)
+		if (wvStream_tell (fd) >= lim)
 		  {
-		      wvGetLVL (&((*lst)[i].lvl[j]), fd);
-		      (*lst)[i].current_no[j] = (*lst)[i].lvl[j].lvlf.iStartAt;
+		      wvWarning (("LVL data overruns PlcfLst region, "
+				  "padding the rest\n"));
+		      wvInitLVL (&((*lst)[i].lvl[j]));
 		  }
+		else
+		    wvGetLVL (&((*lst)[i].lvl[j]), fd);
+		(*lst)[i].current_no[j] = (*lst)[i].lvl[j].lvlf.iStartAt;
 	    }
       }
     return (0);

@@ -501,150 +501,275 @@ struct ListIdLevelPair {
 };
 
 /*!
- * Map msword list enums back to abi's
+ * Map a Word number format (LVLF.nfc, an MSONFC) plus the level's
+ * number text onto an Abi list type.  For bullet levels (nfc 0x17) and
+ * numberless levels (nfc 0xFF) the bullet glyph itself selects the Abi
+ * bullet type, the same table the OOXML importer uses; Symbol and
+ * Wingdings private-use codepoints are covered.
  */
-static const char *
-s_mapDocToAbiListId (MSWordListIdType id)
+static UT_uint32
+s_mapDocToAbiListType (UT_uint32 nfc, const UT_uint16 * pStr,
+					   UT_uint32 iLen)
 {
+  MSWordListIdType id = static_cast<MSWordListIdType>(nfc);
+
+  if (id == WLNF_BULLETS || nfc == 0xFF)
+	{
+	  UT_uint32 i;
+	  for (i = 0; pStr && i < iLen; i++)
+		{
+		  UT_UCS4Char c = pStr[i];
+		  if (c <= 8)
+			continue;   /* level placeholders are not the glyph */
+		  switch (c)
+			{
+			case 0x00B7: /* middle dot (Symbol bullet) */
+			case 0xF0B7: /* Symbol bullet via font */
+			case 0x2022:
+			  return 5;  /* BULLETED_LIST */
+			case 0x002D:
+			case 0x2013:
+			  return 6;  /* DASHED_LIST */
+			case 0x25A0:
+			case 0x25AA:
+			case 0xF0A7: /* Wingdings square */
+			  return 7;  /* SQUARE_LIST */
+			case 0x25B2:
+			case 0x25BA:
+			case 0xF0D8: /* Wingdings triangle */
+			  return 8;  /* TRIANGLE_LIST */
+			case 0x25C6:
+			case 0x2666:
+			case 0xF076: /* Wingdings diamond */
+			  return 9;  /* DIAMOND_LIST */
+			case 0x002A:
+			case 0x2733:
+			  return 10; /* STAR_LIST */
+			case 0x21D2:
+			case 0xF0DE: /* Wingdings double arrow */
+			  return 11; /* IMPLIES_LIST */
+			case 0x2713:
+			case 0x2714:
+			case 0xF0FC: /* Wingdings check */
+			  return 12; /* TICK_LIST */
+			case 0x25A1:
+			case 0x2752:
+			  return 13; /* BOX_LIST */
+			case 0x261B:
+			case 0x261E:
+			  return 14; /* HAND_LIST */
+			case 0x2665:
+			case 0xF0A9: /* Wingdings heart */
+			  return 15; /* HEART_LIST */
+			case 0x27A3:
+			case 0xF0D9: /* Wingdings arrowhead */
+			  return 16; /* ARROWHEAD_LIST */
+			default:
+			  return 5;
+			}
+		}
+	  return 5;
+	}
+
   switch (id)
 	{
-	case WLNF_UPPER_ROMAN: // upper roman
-	  return "4";
+	case WLNF_UPPER_ROMAN:
+	  return 4;  /* UPPERROMAN_LIST */
 
-	case WLNF_LOWER_ROMAN: // lower roman
-	  return "3";
+	case WLNF_LOWER_ROMAN:
+	  return 3;  /* LOWERROMAN_LIST */
 
-	case WLNF_UPPER_LETTER: // upper letter
-	  return "2";
+	case WLNF_UPPER_LETTER:
+	  return 2;  /* UPPERCASE_LIST */
 
-	case WLNF_LOWER_LETTER: // lower letter
-	  return "1";
-
-	case WLNF_BULLETS: // bullet list
-	  return "5";
+	case WLNF_LOWER_LETTER:
+	  return 1;  /* LOWERCASE_LIST */
 
 	case WLNF_HEBREW_NUMBERS:
-	  return "129";
+	  return 129; /* HEBREW_LIST */
 
 	case WLNF_EUROPEAN_ARABIC:
-	case WLNF_ORDINAL: // ordinal
+	case WLNF_ORDINAL:
 	default:
-	  return "0";
+	  /* decimal, ordinal/-text, hex, CJK formats: plain decimal is
+	     the closest Abi type */
+	  return 0;  /* NUMBERED_LIST */
 	}
 }
 
 /*!
- * form AW list deliminator string
+ * Map a Word list level's number text onto Abi's list-delim and
+ * list-decimal strings.
+ *
+ * The MS-DOC number text mixes literal characters with placeholders:
+ * a character whose value is a zero-based ilvl (0-8) is replaced by
+ * that level's number.  Abi composes a level label recursively as
+ *   parentLabel + list-decimal + leftDelim + %L + rightDelim
+ * and suppresses an ancestor's rightDelim when it equals that level's
+ * own list-decimal (so "1.2.3." does not double the separator).  Hence
+ * for level k:
+ *   text before our placeholder, when ours is first -> delim prefix
+ *   text after our placeholder                     -> delim suffix
+ *   text between the previous placeholder and ours -> list-decimal
+ *     (or our own suffix when ours is the first placeholder, which is
+ *     what makes the ancestor-suffix suppression work)
+ *
+ * bRefsAncestors is set false when the number text references no
+ * earlier level, so the caller can drop the parent link Word would
+ * not have rendered.
  */
-static void s_mapDocToAbiListDelim (UT_uint16 * pStr, UT_uint32 iLen, UT_UTF8String &sDelim)
+static void
+s_mapDocToAbiListDelim (const UT_uint16 * pStr, UT_uint32 iLen,
+						UT_uint32 iLvl, UT_UTF8String & sDelim,
+						UT_UTF8String & sDecimal, bool & bRefsAncestors)
 {
-	// the Word format string looks like this
-	//    prefix '\0' suffix
-	// and the '\0' represents the location of the list number/bullet
-	UT_uint16 * pPfx = nullptr;
-	UT_uint16 * pSfx = nullptr;
-
-	if(iLen && *pStr)
-		pPfx = pStr;
-
+	std::vector<UT_sint32> ph;
 	UT_sint32 i;
-	for(i = 0; i < (UT_sint32)iLen - 1; i++)
+	UT_UTF8String sPfx, sSfx, sSep;
+
+	bRefsAncestors = false;
+	sDecimal.clear();
+
+	if (!pStr)
+		iLen = 0;
+
+	for (i = 0; i < (UT_sint32)iLen; i++)
 	{
-		if(pStr[i] == 0)
+		if (pStr[i] <= 8)
+			ph.push_back(i);   /* placeholder: value is the level */
+	}
+
+	if (ph.empty())
+	{
+		/* pure literal text (a bullet glyph, or a static label);
+		   keep it as the delim prefix */
+		for (i = 0; i < (UT_sint32)iLen; i++)
 		{
-			pSfx = pStr + i + 1;
+			UT_UCS4Char c = pStr[i];
+			sPfx.appendUCS4(&c, 1);
+		}
+		sDelim = sPfx;
+		sDelim += "%L";
+		return;
+	}
+
+	/* our own placeholder: the first one whose value is this level,
+	   falling back to the last placeholder for corrupt level text */
+	UT_sint32 iOwn = -1;
+	for (i = 0; i < (UT_sint32)ph.size(); i++)
+	{
+		if (pStr[ph[i]] == iLvl)
+		{
+			iOwn = i;
 			break;
 		}
 	}
-	
-	UT_UTF8String sUtf8Pfx;
-	UT_UTF8String sUtf8Sfx;
+	if (iOwn < 0)
+		iOwn = (UT_sint32)ph.size() - 1;
 
-	i= 0;
-	while(pPfx && *pPfx && i < (UT_sint32)iLen)
+	UT_sint32 ownPos = ph[iOwn];
+	UT_sint32 nextPos = (iOwn + 1 < (UT_sint32)ph.size())
+		? ph[iOwn + 1] : (UT_sint32)iLen;
+
+	if (iOwn > 0)
 	{
-		UT_UCS4Char c = *pPfx;
-		sUtf8Pfx.appendUCS4(&c,1);
-		i++;
-		pPfx++;
+		/* a placeholder for an earlier level precedes ours; the
+		   text between the two is the inter-level separator */
+		UT_sint32 prevPos = ph[iOwn - 1];
+		bRefsAncestors = true;
+		for (i = prevPos + 1; i < ownPos; i++)
+		{
+			UT_UCS4Char c = pStr[i];
+			sSep.appendUCS4(&c, 1);
+		}
+	}
+	else
+	{
+		for (i = 0; i < ownPos; i++)
+		{
+			UT_UCS4Char c = pStr[i];
+			sPfx.appendUCS4(&c, 1);
+		}
 	}
 
-	i++; // move past the '\0' divider
-	while(pSfx && *pSfx && i < (UT_sint32)iLen)
+	for (i = ownPos + 1; i < nextPos; i++)
 	{
-		UT_UCS4Char c = *pSfx;
-		sUtf8Sfx.appendUCS4(&c,1);
-		i++;
-		pSfx++;
+		UT_UCS4Char c = pStr[i];
+		sSfx.appendUCS4(&c, 1);
 	}
 
-	sDelim = sUtf8Pfx;
+	sDelim = sPfx;
 	sDelim += "%L";
-	sDelim += sUtf8Sfx;
+	sDelim += sSfx;
+
+	/* see the function comment: when there is a previous placeholder
+	   the separator is the text between it and ours; otherwise our
+	   suffix doubles as the decimal so a descendant's equal suffix
+	   is suppressed when this level's label is composed into it */
+	sDecimal = (iOwn > 0) ? sSep : sSfx;
 }
 
 /*!
- * Map msword list enums back to abi's list styles
+ * Map an Abi list type back to one of the defined list styles
  */
 static const char *
-s_mapDocToAbiListStyle (MSWordListIdType id)
+s_mapDocToAbiListStyle (UT_uint32 iType)
 {
-  switch (id)
+  switch (iType)
 	{
-	case WLNF_UPPER_ROMAN: // upper roman
-	  return "Upper Roman List";
-
-	case WLNF_LOWER_ROMAN: // lower roman
-	  return "Lower Roman List";
-
-	case WLNF_UPPER_LETTER: // upper letter
-	  return "Upper Case List";
-
-	case WLNF_LOWER_LETTER: // lower letter
-	  return "Lower Case List";
-
-	case WLNF_BULLETS: // bullet list
-	  return "Bullet List";
-
-	case WLNF_EUROPEAN_ARABIC:
-	case WLNF_ORDINAL: // ordinal
-	default:
-	  return "Numbered List";
+	case 0:  return "Numbered List";
+	case 1:  return "Lower Case List";
+	case 2:  return "Upper Case List";
+	case 3:  return "Lower Roman List";
+	case 4:  return "Upper Roman List";
+	case 5:  return "Bullet List";
+	case 6:  return "Dashed List";
+	case 7:  return "Square List";
+	case 8:  return "Triangle List";
+	case 9:  return "Diamond List";
+	case 10: return "Star List";
+	case 11: return "Implies List";
+	case 12: return "Tick List";
+	case 13: return "Box List";
+	case 14: return "Hand List";
+	case 15: return "Heart List";
+	case 16: return "Arrowhead List";
+	default: return "Numbered List"; /* hebrew + other numbered */
 	}
 }
 
 /*!
- * Map msword list enums back to abi's field font for that given style
+ * Font for the list label field.  Bullet types keep "NULL" -- the
+ * glyph Abi draws is fixed per type -- while numbered levels take the
+ * number's own font, which wv has resolved into apap->linfo.chp from
+ * the paragraph style plus the level's grpprlChpx.
  */
-static const char *
-s_fieldFontForListStyle (MSWordListIdType id)
+static std::string
+s_fieldFontForList (UT_uint32 iType, wvParseStruct * ps, const CHP * achp)
 {
-  switch (id)
+	if (iType >= 5 && iType < 0x7f) /* bullet types */
+		return "NULL";
+
+	if (ps && achp)
 	{
-	case WLNF_UPPER_ROMAN: // upper roman
-	  return "NULL";
+		char * fname = nullptr;
+		if (achp->xchSym)
+			fname = wvGetFontnameFromCode (&ps->fonts, achp->ftcSym);
+		else if (achp->fBidi)
+			fname = wvGetFontnameFromCode (&ps->fonts, achp->ftcBidi);
+		else if (!ps->fib.fFarEast)
+			fname = wvGetFontnameFromCode (&ps->fonts, achp->ftcAscii);
+		else
+			fname = wvGetFontnameFromCode (&ps->fonts, achp->ftcFE);
 
-	case WLNF_LOWER_ROMAN: // lower roman
-	  return "NULL";
-
-	case WLNF_UPPER_LETTER: // upper letter
-	  return "Times New Roman";
-
-	case WLNF_LOWER_LETTER: // lower letter
-	  return "Times New Roman";
-
-	case WLNF_BULLETS: // bullet list
-		UT_DEBUGMSG(("Fieldfont set to symbol \n"));
-	  return "NULL";
-
-	case WLNF_EUROPEAN_ARABIC:
-	case WLNF_ORDINAL: // ordinal
-		return "Times New Roman";
-		
-	default:
-		UT_DEBUGMSG(("unknown list type %d field-font set to Times New Roman \n",id));
-	  return "Times New Roman";
+		if (fname)
+		{
+			std::string sFont = fname;
+			FREEP(fname);
+			return sFont;
+		}
 	}
+	return "Times New Roman";
 }
 
 #if 0
@@ -2942,10 +3067,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 			m_vLists.clear();
 		}
 
-		// a hack -- see the note on myListId below
 		myListId = apap->linfo.id;
-		myListId += apap->linfo.format;
-		myListId += apap->ilvl;
 
 		/*
 		  IMPORTANT the list sutff is found in several different
@@ -2993,26 +3115,30 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		for(j = apap->ilvl + 1; j < 9; j++)
 			m_iListIdIncrement[j]++;
 
-		myListId += m_iListIdIncrement[apap->ilvl];
+		// collision-free list-instance key: the lsid picks the list
+		// definition, ilfo the concrete instance (restarts share an
+		// lsid), ilvl/format the Abi level slice, and the per-level
+		// increment splits sibling segments.  The old additive scheme
+		// let e.g. lsid+fmt1+ilvl1+inc1 alias lsid+fmt2+ilvl2+inc2.
+		UT_uint64 myListKey =
+			((UT_uint64)apap->linfo.id << 32)
+			| ((UT_uint64)(apap->ilfo & 0x7ff) << 21)
+			| ((UT_uint64)(apap->ilvl & 0xf) << 17)
+			| ((UT_uint64)(m_iListIdIncrement[apap->ilvl] & 0x1ff) << 8)
+			| (apap->linfo.format & 0xff);
 
 		// see if this id is already in our map
-		UT_sint32 k;
-		for(k = 0; k < m_vListIdMap.getItemCount(); k+=2)
-		{
-			if((UT_uint32)m_vListIdMap.getNthItem(k) == myListId)
-			{
-				iAWListId = m_vListIdMap.getNthItem(k+1);
-				break;
-			}
-		}
-		
+		std::map<UT_uint64, UT_uint32>::iterator it =
+			m_mListIdMap.find(myListKey);
+		if (it != m_mListIdMap.end())
+			iAWListId = it->second;
+
 		if(iAWListId == UT_UID_INVALID)
 		{
 			iAWListId = getDoc()->getUID(UT_UniqueId::List);
 			UT_ASSERT_HARMLESS(iAWListId != UT_UID_INVALID);
 
-			m_vListIdMap.addItem(myListId);
-			m_vListIdMap.addItem(iAWListId);
+			m_mListIdMap[myListKey] = iAWListId;
 		}
 
 		UT_String propBuffer;
@@ -3032,12 +3158,33 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 			}
 		}
 
-		// list delimiter
-		UT_UTF8String sDelim;
-		s_mapDocToAbiListDelim (apap->linfo.numberstr,apap->linfo.numberstr_size,sDelim);
+		// list delimiter: the Word number text splits into Abi's
+		// list-delim (this level's own decorations) and list-decimal
+		// (the separator between ancestor and descendant numbers)
+		UT_UTF8String sDelim, sDecimal;
+		bool bRefsAncestors = true;
+		s_mapDocToAbiListDelim (apap->linfo.numberstr,
+					apap->linfo.numberstr_size,
+					apap->ilvl, sDelim, sDecimal,
+					bRefsAncestors);
 		char * t = s_stripDangerousChars(sDelim.utf8_str());
 		std::string sDlm = t;
 		FREEP(t);
+		t = s_stripDangerousChars(sDecimal.utf8_str());
+		std::string sDec = t;
+		FREEP(t);
+
+		// the Abi list type (the bullet glyph picks the bullet type)
+		UT_uint32 iAbiType = s_mapDocToAbiListType
+			(apap->linfo.format,
+			 apap->linfo.numberstr, apap->linfo.numberstr_size);
+		std::string sType = UT_std_string_sprintf("%u", iAbiType);
+
+		// if the level's number text references no earlier-level
+		// placeholder, Word does not prefix parent numbers -- don't
+		// pretend it does by keeping a parent link
+		if (!bRefsAncestors)
+			myParentID = 0;
 
 		// generate character props for the number
 		// TODO -- the properties represented by apap->linfo.chp need
@@ -3057,9 +3204,10 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		const PP_PropertyVector list_atts = {
 			"id", sListId,
 			"parentid", sParentId,
-			"type", s_mapDocToAbiListId (static_cast<MSWordListIdType>(apap->linfo.format)),
+			"type", sType,
 			"start-value", startValue,
-			"list-delim", std::move(sDlm),
+			"list-delim", sDlm,
+			"list-decimal", sDec,
 			"level", sLevel,
 			"props", szNumberProps.c_str()
 		};
@@ -3073,9 +3221,6 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		getDoc()->appendList(list_atts);
 		UT_DEBUGMSG(("DOM: appended a list\n"));
 
-		// TODO: merge in list properties and such here with the variable 'props',
-		// such as list-style, field-font, ...
-
 		// start-value
 		// Need to put the ";" back in the para string.
 		//
@@ -3084,14 +3229,24 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		m_paraProps += startValue;
 		m_paraProps += ";";
 
-		// list style
-		m_paraProps += "list-style:";
-		m_paraProps += s_mapDocToAbiListStyle (static_cast<MSWordListIdType>(apap->linfo.format));
+		// the delim/decimal as para props too, so the values survive
+		// serialization paths that rebuild the list record
+		m_paraProps += "list-delim:";
+		m_paraProps += sDlm;
+		m_paraProps += ";list-decimal:";
+		m_paraProps += sDec;
 		m_paraProps += ";";
 
-		// field-font
+		// list style
+		m_paraProps += "list-style:";
+		m_paraProps += s_mapDocToAbiListStyle (iAbiType);
+		m_paraProps += ";";
+
+		// field-font: the number's own font (bullets take their
+		// glyph from the list type and get "NULL")
 		m_paraProps += "field-font:";
-		m_paraProps += s_fieldFontForListStyle (static_cast<MSWordListIdType>(apap->linfo.format));
+		m_paraProps += s_fieldFontForList (iAbiType, ps,
+						   &apap->linfo.chp);
 	} // end of list-related code
 
  	// props

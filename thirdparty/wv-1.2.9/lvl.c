@@ -67,7 +67,10 @@ wvCopyLVL (LVL * dest, LVL * src)
       {
 	  len = src->numbertext[0];
 	  dest->numbertext = (U16 *) wvMalloc (sizeof (U16) * (len + 2));
-	  memcpy (dest->numbertext, src->numbertext, len + 2);
+	  /* numbertext is a U16 vector (length prefix + chars + NUL);
+	     copy (len + 2) *elements*, not bytes */
+	  memcpy (dest->numbertext, src->numbertext,
+		  sizeof (U16) * (len + 2));
       }
 }
 
@@ -138,18 +141,19 @@ wvGetLVLF (LVLF * item, wvStream * fd)
     item->jc = temp8 & 0x03;
     item->fLegal = (temp8 & 0x04) >> 2;
     item->fNoRestart = (temp8 & 0x08) >> 3;
-    item->fPrev = (temp8 & 0x10) >> 4;
-    item->fPrevSpace = (temp8 & 0x20) >> 5;
-    item->fWord6 = (temp8 & 0x40) >> 6;
-    item->reserved1 = (temp8 & 0x80) >> 7;
+    item->fIndentSav = (temp8 & 0x10) >> 4;
+    item->fConverted = (temp8 & 0x20) >> 5;
+    item->unused1 = (temp8 & 0x40) >> 6;
+    item->fTentative = (temp8 & 0x80) >> 7;
     for (i = 0; i < 9; i++)
 	item->rgbxchNums[i] = read_8ubit (fd);
     item->ixchFollow = read_8ubit (fd);;
-    item->dxaSpace = read_32ubit (fd);
+    item->dxaIndentSav = read_32ubit (fd);
     item->dxaIndent = read_32ubit (fd);
     item->cbGrpprlChpx = read_8ubit (fd);
     item->cbGrpprlPapx = read_8ubit (fd);
-    item->reserved2 = read_16ubit (fd);;
+    item->ilvlRestartLim = read_8ubit (fd);
+    item->grfhic = read_8ubit (fd);
 }
 
 
@@ -162,16 +166,17 @@ wvInitLVLF (LVLF * item)
     item->jc = 0;
     item->fLegal = 0;
     item->fNoRestart = 0;
-    item->fPrev = 0;
-    item->fPrevSpace = 0;
-    item->fWord6 = 0;
-    item->reserved1 = 0;
+    item->fIndentSav = 0;
+    item->fConverted = 0;
+    item->unused1 = 0;
+    item->fTentative = 0;
     for (i = 0; i < 9; i++)
 	item->rgbxchNums[i] = 0;
     item->ixchFollow = 0;
-    item->dxaSpace = 0;
+    item->dxaIndentSav = 0;
     item->dxaIndent = 0;
     item->cbGrpprlChpx = 0;
     item->cbGrpprlPapx = 0;
-    item->reserved2 = 0;
+    item->ilvlRestartLim = 0;
+    item->grfhic = 0;
 }

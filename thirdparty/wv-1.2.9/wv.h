@@ -963,17 +963,18 @@ void _wvFree (void *ptr);
 	U32 jc:2;
 	U32 fLegal:1;
 	U32 fNoRestart:1;
-	U32 fPrev:1;
-	U32 fPrevSpace:1;
-	U32 fWord6:1;
-	U32 reserved1:1;
+	U32 fIndentSav:1;
+	U32 fConverted:1;
+	U32 unused1:1;
+	U32 fTentative:1;
 	U8 rgbxchNums[9];
 	U8 ixchFollow;
-	U32 dxaSpace;
+	U32 dxaIndentSav;
 	U32 dxaIndent;
 	U8 cbGrpprlChpx;
 	U8 cbGrpprlPapx;
-	U16 reserved2;
+	U8 ilvlRestartLim;
+	U8 grfhic;
     } LVLF;
 
     void wvGetLVLF (LVLF * item, wvStream * fd);
@@ -1065,7 +1066,7 @@ number to use for each list entry, Caolan
 	U32 reserved4:8;
     } LFOLVL;
 
-    void wvGetLFOLVL (LFOLVL * item, wvStream * fd);
+    void wvGetLFOLVL (LFOLVL * item, wvStream * fd, U32 lim);
     void wvInitLFOLVL (LFOLVL * item);
     int wvInvalidLFOLVL (LFOLVL * item);
 
@@ -2986,6 +2987,8 @@ returns the same as wvOLEDecode with the addition that
 	cbTAP = 1728,
 	cbWKB = 12,
 	cbLSTF = 28,
+	cbLFO = 16,
+	cbLFOLVL = 8,
 	cbFDOA = 6,
 	cbFTXBXS = 22,
 
@@ -3107,6 +3110,7 @@ returns the same as wvOLEDecode with the addition that
 #endif
 
     int wvAssembleSimplePAP (wvVersion ver, PAP * apap, U32 fc, PAPX_FKP * fkp, wvParseStruct * ps);
+    int wvAssembleListPAP (wvVersion ver, PAP * apap, wvParseStruct * ps, PAPX * papx);
     int wvAssembleComplexCHP (wvVersion ver, CHP * achp, U32 cpiece,STSH * stsh, CLX * clx);
 
     void wvAppendStr (char **orig, const char *add);
