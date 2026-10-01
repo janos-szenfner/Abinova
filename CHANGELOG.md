@@ -238,6 +238,14 @@ below are on `main` but the release has not been cut yet.
   (`Sttbfbkmk`).  The importer no longer strands a loaded footnote/
   endnote PLCF when its zero-length sibling loads as NULL, and a
   missing reference table leaves no stale note count.
+- **Legacy `.doc` importer uninitialized-read fixes** — vendored wv
+  now fully initializes the OfficeArt drawing structs: a `.doc` whose
+  escher stream lacks a `DgContainer`/`FSP` record no longer leaves
+  shape counts, pointers and geometry read from uninitialized memory
+  (bogus frees / garbage anchors).  `wvStream_read` also zero-fills
+  the unread tail on short reads at end-of-stream on both the GSF and
+  `FILE*` paths instead of leaving caller buffers uninitialized —
+  matching the memory-stream behaviour.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

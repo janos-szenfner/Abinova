@@ -720,7 +720,7 @@ IE_Imp_Text::~IE_Imp_Text ()
  */
 UT_Error IE_Imp_Text::_recognizeEncoding(GsfInput * fp)
 {
-	char szBuf[4096];  // 4096 ought to be enough
+	char szBuf[4096] = "";  // 4096 ought to be enough
 	UT_sint32 iNumbytes;
 
 	iNumbytes = UT_MIN(4096, gsf_input_remaining(fp));

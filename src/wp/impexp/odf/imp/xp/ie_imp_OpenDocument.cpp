@@ -541,7 +541,10 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
         // smart_ptr to an array an explicitly nul-terminate it.
         std::unique_ptr<char[]> data( new char[sz+1] );
         data[sz] = '\0';
-        gsf_input_read ( pInput, sz, (guint8*)data.get() );
+        if (nullptr == gsf_input_read ( pInput, sz, (guint8*)data.get() ))
+        {
+            return UT_ERROR;
+        }
         if( sz && !data )
         {
             return UT_ERROR;

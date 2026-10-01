@@ -180,8 +180,12 @@ wvReleaseDgContainer (DgContainer * item)
 void
 wvInitDgContainer (DgContainer * item)
 {
+    item->fdg.csp = 0;
+    item->fdg.spidCur = 0;
     item->no_spgrcontainer = 0;
     item->spgrcontainer = NULL;
+    item->no_spcontainer = 0;
+    item->spcontainer = NULL;
 }
 
 void
@@ -461,6 +465,7 @@ wvReleaseDgg (Dgg * dgg)
 void
 wvInitDgg (Dgg * dgg)
 {
+    memset (&dgg->fdgg, 0, sizeof (FDGG));
     dgg->fidcl = NULL;
 }
 
@@ -675,6 +680,10 @@ wvReleaseFSPContainer (FSPContainer * item)
 void
 wvInitFSPContainer (FSPContainer * item)
 {
+    memset (&item->fspgr, 0, sizeof (FSPGR));
+    item->fsp.spid = 0;
+    item->fsp.grfPersistent = 0;
+    memset (&item->fanchor, 0, sizeof (FAnchor));
     wvInitFOPTEArray (&item->fopte);
     wvInitClientData (&item->clientdata);
     wvInitClientTextbox (&item->clienttextbox);

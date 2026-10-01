@@ -494,4 +494,8 @@ wvInitDOP (DOP * dop)
     dop->new_nfcEdnRef = 0;
     dop->hpsZoonFontPag = 0;
     dop->dywDispPag = 0;
+    dop->reserved3a = 0;
+    dop->reserved3b = 0;
+    dop->reserver11 = 0;
+    dop->wSpare3 = 0;
 }

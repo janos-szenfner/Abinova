@@ -85,4 +85,5 @@ wvInitTLP (TLP * item)
     item->fLastRow = 0;
     item->fHdrCols = 0;
     item->fLastCol = 0;
+    item->unused = 0;
 }

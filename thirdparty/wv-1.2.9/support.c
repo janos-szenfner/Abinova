@@ -275,12 +275,24 @@ wvStream_read (void *ptr, size_t size, size_t nmemb, wvStream * in)
 {
     if (in->kind == GSF_STREAM)
       {
-	gsf_input_read (GSF_INPUT (in->stream.gsf_stream), size*nmemb, ptr);
+	size_t want = size * nmemb;
+	gsf_off_t avail = gsf_input_remaining (GSF_INPUT (in->stream.gsf_stream));
+	size_t got = (avail > 0) ? ((size_t) avail < want ? (size_t) avail : want) : 0;
+	/* gsf_input_read short-reads at end of stream; keep the tail
+	   deterministic instead of leaving caller buffer bytes
+	   uninitialized */
+	if (got)
+	    gsf_input_read (GSF_INPUT (in->stream.gsf_stream), got, ptr);
+	if (got < want)
+	    memset ((char *) ptr + got, 0, want - got);
 	return size*nmemb;
       }
     else if (in->kind == FILE_STREAM)
       {
-	  return (fread (ptr, size, nmemb, in->stream.file_stream));
+	  size_t got = fread (ptr, size, nmemb, in->stream.file_stream);
+	  if (got < nmemb && size)
+	      memset ((char *) ptr + got * size, 0, (nmemb - got) * size);
+	  return (got);
       }
     else
       {
