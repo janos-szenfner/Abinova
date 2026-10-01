@@ -152,13 +152,17 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 
 		if ( bpp < 9)
 		{
-		    colors_used = bmp_header[32]
-			+ (bmp_header[33] << 8)
-			+ (bmp_header[34] << 16)
-			+ (bmp_header[35] << 24);
+		    /* cast each byte to U32 before shifting: a byte >= 0x80
+		       shifted into the sign bit is undefined behaviour */
+		    colors_used = (U32) bmp_header[32]
+			+ ((U32) bmp_header[33] << 8)
+			+ ((U32) bmp_header[34] << 16)
+			+ ((U32) bmp_header[35] << 24);
 		    /* bpp<=8 always has a color table; a biClrUsed of 0
-		       means the full 1<<bpp entries */
-		    if (colors_used == 0)
+		       means the full 1<<bpp entries, and a corrupt
+		       biClrUsed can never exceed that palette size --
+		       clamp it so 4*colors_used below cannot wrap */
+		    if (colors_used == 0 || colors_used > (U32) (1 << bpp))
 			colors_used = 1 << bpp;
 		}
 		else

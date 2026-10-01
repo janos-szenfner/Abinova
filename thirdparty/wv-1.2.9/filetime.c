@@ -129,7 +129,11 @@ wvDOSFS_FileTimeToUnixTime (const FILETIME * filetime, U32 * remainder)
     if (remainder)
 	*remainder = r;
 /* Do not replace this by << 32, it gives a compiler warning and it does
-       not work. */
-    return ((((time_t) a2) << 16) << 16) + (a1 << 16) + a0;
+       not work.  The shifts are done on an unsigned 64-bit type so that a
+       file-supplied FILETIME can never shift into a signed type's sign
+       bit (undefined behaviour); the single narrowing conversion to
+       time_t at the end wraps like the original signed version did. */
+    return (time_t) ((((unsigned long long) a2) << 16 << 16)
+		     + (((unsigned long long) a1) << 16) + a0);
 
 }

@@ -128,6 +128,14 @@ wvGetFOPTE (FOPTE * afopte, wvStream * fd)
 	      afopte->pid, afopte->op));
     if (afopte->fComplex)
       {
+	  /* a corrupt op can claim a payload far larger than the record
+	     or the file; it can never extend past the end of the
+	     stream, so clamp before allocating */
+	  long avail = (long) wvStream_size (fd) - (long) wvStream_tell (fd);
+	  if (avail < 0)
+	      avail = 0;
+	  if (afopte->op > (U32) avail)
+	      afopte->op = (U32) avail;
 	  wvTrace (("1 complex len is %d (%x)\n", afopte->op, afopte->op));
 	  afopte->entry = (U8 *) wvMalloc (afopte->op);
 	  return (afopte->op + 6);

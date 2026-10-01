@@ -246,6 +246,23 @@ below are on `main` but the release has not been cut yet.
   the unread tail on short reads at end-of-stream on both the GSF and
   `FILE*` paths instead of leaving caller buffers uninitialized —
   matching the memory-stream behaviour.
+- **Legacy `.doc` importer arithmetic hardened** — a signed-overflow /
+  shift audit of the vendored wv parser closed off remaining
+  undefined behaviour on corrupt length and offset fields: BMP
+  `biClrUsed` assembly no longer shifts a byte into the sign bit and
+  corrupt palette sizes are clamped to `1<<bpp`, `sprmCHpsMul`
+  font-size scaling uses 32-bit unsigned math instead of overflowing
+  `int`, `sprmPChgTabs`/`sprmPChgTabsPapx` tab-stop merges can no
+  longer write past the 64-entry `rgdxaTab`/`rgtbd` arrays, the
+  `cch == 255` long-operand form of `sprmPChgTabs` now returns its
+  real (int) length instead of a wrapped `U8`, grpprl sprm walkers
+  in the complex-decode path (SEP/PAP/CHP and `sprmPHugePapx`)
+  validate each operand against the declared grpprl length before
+  applying it, TDefTable tail-eaters stop at the operand end instead
+  of looping forever on overshot positions, FILETIME-to-`time_t`
+  conversion computes in unsigned 64-bit so extreme dates can't
+  shift into the sign bit, `PlcfandRef` rejects `lcb < 4`, and piece-
+  table CP deltas clamp instead of wrapping on non-monotonic tables.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

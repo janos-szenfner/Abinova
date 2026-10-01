@@ -195,10 +195,18 @@ wvAddSEPXFromBucket (SEP * asep, SEPX * item, STSH * stsh)
     fprintf (stderr, "\n");
     i = 0;
 #endif
-    while (i < item->cb - 2)
+    while (i + 2 <= item->cb)
       {
+	  U16 scratch;
+	  int oplen;
 	  sprm = bread_16ubit (item->grpprl + i, &i);
 	  pointer = item->grpprl + i;
+	  /* reject operands that would run past the end of the grpprl;
+	     the handler would read them out of bounds */
+	  scratch = i;
+	  oplen = wvEatSprm (sprm, pointer, &scratch);
+	  if ((U32) i + (U32) oplen > (U32) item->cb)
+	      break;
 	  RetSprm =
 	      wvApplySprmFromBucket (WORD8, sprm, NULL, NULL, asep, stsh,
 				     pointer, &i, NULL);
@@ -230,6 +238,8 @@ wvAddSEPXFromBucket6 (SEP * asep, SEPX * item, STSH * stsh)
 #endif
     while (i < item->cb)
       {
+	  U16 scratch;
+	  int oplen;
 	  sprm8 = bread_8ubit (item->grpprl + i, &i);
 #ifdef SPRMTEST
 	  wvError (("sep word 6 sprm is %x (%d)\n", sprm8, sprm8));
@@ -239,6 +249,10 @@ wvAddSEPXFromBucket6 (SEP * asep, SEPX * item, STSH * stsh)
 	  wvTrace (("sep word 6 sprm is converted to %x\n", sprm));
 #endif
 	  pointer = item->grpprl + i;
+	  scratch = i;
+	  oplen = wvEatSprm (sprm, pointer, &scratch);
+	  if ((U32) i + (U32) oplen > (U32) item->cb)
+	      break;
 	  RetSprm =
 	      wvApplySprmFromBucket (WORD6, sprm, NULL, NULL, asep, stsh,
 				     pointer, &i, NULL);

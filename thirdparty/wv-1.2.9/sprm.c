@@ -785,7 +785,8 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  break;
       case sprmCHpsMul:
 	  /*percentage to grow hps ?? */
-	  achp->hps = achp->hps * bread_16ubit (pointer, pos) / 100;
+	  /* U16*U16 can exceed INT_MAX -- do the multiply in U32 */
+	  achp->hps = (U16) ((achp->hps * (U32) bread_16ubit (pointer, pos)) / 100);
 	  break;
       case sprmCHresi:
 	  /* HresiOperand: hres byte + chHres byte */
@@ -1637,7 +1638,9 @@ wvApplysprmPChgTabsPapx (PAP * apap, U8 * pointer, U16 * pos)
     k = 0;
     j = 0;
     i = 0;
-    while ((j < apap->itbdMac) || (i < itbdAddMax))
+    /* a corrupt itbdAddMax can push the merged count past itbdMax; the
+       pap's rgdxaTab/rgtbd only hold itbdMax entries, so stop there */
+    while (((j < apap->itbdMac) || (i < itbdAddMax)) && (k < itbdMax))
       {
 #if 0
 	  wvTrace (("i %d j apap->itbdMac %d %d\n", i, j, apap->itbdMac));
@@ -1695,6 +1698,7 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
     S16 *rgdxaAdd;
     TBD *rgtbdAdd;
     int add = 0;
+    int retlen;
     U8 i, j, k = 0;
 
     wvTrace (("entering wvApplysprmPChgTabs\n"));
@@ -1759,8 +1763,12 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
 	  rgtbdAdd = NULL;
       }
 
-    if (cch == 225)
-	cch = 2 + itbdDelMax * 4 + itbdAddMax * 3;
+    /* when cch == 255 the real operand length is computed from the
+       counts; it can exceed 255, so keep it in an int (storing it back
+       into the U8 cch would wrap) */
+    retlen = cch;
+    if (cch == 255)
+	retlen = 2 + itbdDelMax * 4 + itbdAddMax * 3;
 
     /*
        When sprmPChgTabs is interpreted, the rgdxaDel of the sprm is applied first
@@ -1780,7 +1788,7 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
 	  wvFree (rgtbdAdd);
 	  wvFree (rgdxaAdd);
 	  wvFree (rgdxaClose);
-	  return (cch);
+	  return (retlen);
       }
 
     wvTrace (("here %d\n", apap->itbdMac));
@@ -1812,7 +1820,9 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
     k = 0;
     j = 0;
     i = 0;
-    while ((j < apap->itbdMac) || (i < itbdAddMax))
+    /* a corrupt itbdAddMax can push the merged count past itbdMax; the
+       pap's rgdxaTab/rgtbd only hold itbdMax entries, so stop there */
+    while (((j < apap->itbdMac) || (i < itbdAddMax)) && (k < itbdMax))
       {
 	  if ((j < apap->itbdMac)
 	      && (i >= itbdAddMax || temp_rgdxaTab[j] < rgdxaAdd[i]))
@@ -1852,7 +1862,7 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
     wvFree (rgdxaClose);
     wvTrace (("Exiting Successfully\n"));
 
-    return (cch);
+    return (retlen);
 }
 
 void
@@ -1976,16 +1986,22 @@ wvApplysprmPHugePapx (PAP * apap, U8 * pointer, U16 * pos, wvStream * data,
 	grpprl[i] = read_8ubit (data);
 
     i = 0;
-    while (i < len - 2)
+    while (i + 2 <= len)
       {
+	  U16 scratch;
+	  int oplen;
 	  sprm = bread_16ubit (grpprl + i, &i);
 #ifdef SPRMTEST
 	  wvError (("sprm is %x\n", sprm));
 #endif
 	  pointer2 = grpprl + i;
-	  if (i < len)
-	      wvApplySprmFromBucket (WORD8, sprm, apap, NULL, NULL, stsh,
-				     pointer2, &i, data);
+	  /* reject operands that would run past the end of the grpprl */
+	  scratch = i;
+	  oplen = wvEatSprm (sprm, pointer2, &scratch);
+	  if ((U32) i + (U32) oplen > (U32) len)
+	      break;
+	  wvApplySprmFromBucket (WORD8, sprm, apap, NULL, NULL, stsh,
+				 pointer2, &i, data);
       }
     wvFree (grpprl);
 }
@@ -2781,7 +2797,10 @@ wvApplysprmTDefTable (TAP * aTap, U8 * pointer, U16 * pos)
 
     wvTrace (("left over is %d\n", len - (*pos - oldpos)));
 
-    while (len - (*pos - oldpos))
+    /* if the declared TC block overshot the operand length, *pos -
+       oldpos can exceed len -- an != 0 condition would loop forever
+       reading past the buffer */
+    while ((*pos - oldpos) < (int) len)
       {
 	  wvTrace (("Eating byte %x\n", dread_8ubit (NULL, &pointer)));
 	  (*pos)++;
@@ -2900,7 +2919,10 @@ wvApplysprmTDefTableShd (TAP * aTap, U8 * pointer, U16 * pos)
 	    }
       }
 
-    while (len - (*pos - oldpos))
+    /* if the declared SHD block overshot the operand length, *pos -
+       oldpos can exceed len -- an != 0 condition would loop forever
+       reading past the buffer */
+    while ((*pos - oldpos) < (int) len)
       {
 	  wvTrace (("Eating byte %x\n", dread_8ubit (NULL, &pointer)));
 	  (*pos)++;

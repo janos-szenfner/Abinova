@@ -1033,6 +1033,12 @@ wvGetComplexSEP (wvVersion ver, SEP * sep, U32 cpiece, STSH * stsh, CLX * clx)
 #endif
 	  while (i < clx->cbGrpprl[index])
 	    {
+		U16 scratch;
+		int oplen;
+		/* a truncated grpprl must not let the opcode or operand
+		   reads run past its end */
+		if (i + (ver == WORD8 ? 2 : 1) > clx->cbGrpprl[index])
+		    break;
 		if (ver == WORD8)
 		    sprm = bread_16ubit (clx->grpprl[index] + i, &i);
 		else
@@ -1041,6 +1047,10 @@ wvGetComplexSEP (wvVersion ver, SEP * sep, U32 cpiece, STSH * stsh, CLX * clx)
 		      sprm = (U8) wvGetrgsprmWord6 ( (U8) sprm);
 		  }
 		pointer = clx->grpprl[index] + i;
+		scratch = i;
+		oplen = wvEatSprm (sprm, pointer, &scratch);
+		if ((U32) i + (U32) oplen > (U32) clx->cbGrpprl[index])
+		    break;
 		RetSprm =
 		    wvApplySprmFromBucket (ver, sprm, NULL, NULL, sep, stsh,
 					   pointer, &i, NULL);
@@ -1117,6 +1127,10 @@ wvAssembleComplexPAP (wvVersion ver, PAP * apap, U32 cpiece, wvParseStruct *ps)
 #endif
 	  while (i < ps->clx.cbGrpprl[index])
 	    {
+		U16 scratch;
+		int oplen;
+		if (i + (ver == WORD8 ? 2 : 1) > ps->clx.cbGrpprl[index])
+		    break;
 		if (ver == WORD8)
 		    sprm = bread_16ubit (ps->clx.grpprl[index] + i, &i);
 		else
@@ -1126,6 +1140,10 @@ wvAssembleComplexPAP (wvVersion ver, PAP * apap, U32 cpiece, wvParseStruct *ps)
 		      wvTrace (("sprm is %x\n", sprm));
 		  }
 		pointer = ps->clx.grpprl[index] + i;
+		scratch = i;
+		oplen = wvEatSprm (sprm, pointer, &scratch);
+		if ((U32) i + (U32) oplen > (U32) ps->clx.cbGrpprl[index])
+		    break;
 		RetSprm =
 		    wvApplySprmFromBucket (ver, sprm, apap, NULL, NULL, &ps->stsh,
 					   pointer, &i, ps->data);
@@ -1189,6 +1207,10 @@ wvAssembleComplexCHP (wvVersion ver, CHP * achp, U32 cpiece, STSH * stsh,
 #endif
 	  while (i < clx->cbGrpprl[index])
 	    {
+		U16 scratch;
+		int oplen;
+		if (i + (ver == WORD8 ? 2 : 1) > clx->cbGrpprl[index])
+		    break;
 		if (ver == WORD8)
 		    sprm = bread_16ubit (clx->grpprl[index] + i, &i);
 		else
@@ -1197,6 +1219,10 @@ wvAssembleComplexCHP (wvVersion ver, CHP * achp, U32 cpiece, STSH * stsh,
 		      sprm = (U16) wvGetrgsprmWord6 (sprm8);
 		  }
 		pointer = clx->grpprl[index] + i;
+		scratch = i;
+		oplen = wvEatSprm (sprm, pointer, &scratch);
+		if ((U32) i + (U32) oplen > (U32) clx->cbGrpprl[index])
+		    break;
 		RetSprm =
 		    wvApplySprmFromBucket (ver, sprm, NULL, achp, NULL, stsh,
 					   pointer, &i, NULL);

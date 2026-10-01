@@ -57,14 +57,24 @@ wvAddPAPXFromBucket (PAP * apap, UPXF * upxf, STSH * stsh, wvStream * data)
     while (i < upxf->cbUPX - 4)	/* the end of the list is at -2, but there has to be a full sprm of
 				   len 2 as well */
       {
+	  U16 scratch;
+	  int oplen;
 	  sprm = bread_16ubit (upxf->upx.papx.grpprl + i, &i);
 #ifdef SPRMTEST
 	  wvError (("sprm is %x\n", sprm));
 #endif
 	  pointer = upxf->upx.papx.grpprl + i;
 	  if (i < upxf->cbUPX - 2)
-	      wvApplySprmFromBucket (WORD8, sprm, apap, NULL, NULL, stsh,
-				     pointer, &i, data);
+	    {
+		/* reject operands that would run past the end of the
+		   grpprl; the handler would read them out of bounds */
+		scratch = i;
+		oplen = wvEatSprm (sprm, pointer, &scratch);
+		if ((U32) i + (U32) oplen > (U32) upxf->cbUPX)
+		    break;
+		wvApplySprmFromBucket (WORD8, sprm, apap, NULL, NULL, stsh,
+				       pointer, &i, data);
+	    }
       }
 }
 
@@ -108,8 +118,16 @@ wvAddPAPXFromBucket6 (PAP * apap, UPXF * upxf, STSH * stsh)
 	   * word 6 sprm lists being stored in the file
 	   */
 	  if (i < upxf->cbUPX - 2)
-	      wvApplySprmFromBucket (WORD6, sprm, apap, NULL, NULL, stsh,
-				     pointer, &i, NULL);
+	    {
+		U16 scratch;
+		int oplen;
+		scratch = i;
+		oplen = wvEatSprm (sprm, pointer, &scratch);
+		if ((U32) i + (U32) oplen > (U32) upxf->cbUPX)
+		    break;
+		wvApplySprmFromBucket (WORD6, sprm, apap, NULL, NULL, stsh,
+				       pointer, &i, NULL);
+	    }
       }
 }
 

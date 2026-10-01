@@ -196,12 +196,19 @@ wvGetPieceBoundsFC (U32 * begin, U32 * end, CLX * clx, U32 piececount)
 		    clx->nopcd));
 	  return (-1);
       }
-    *begin = wvNormFC (clx->pcd[piececount].fc, &type);
+    {
+	U32 cpcount;
+	/* a non-monotonic piece table would wrap this subtraction;
+	   clamp to an empty piece instead */
+	cpcount = (clx->pos[piececount + 1] > clx->pos[piececount])
+	    ? clx->pos[piececount + 1] - clx->pos[piececount] : 0;
+	*begin = wvNormFC (clx->pcd[piececount].fc, &type);
 
-    if (type)
-	*end = *begin + (clx->pos[piececount + 1] - clx->pos[piececount]);
-    else
-	*end = *begin + ((clx->pos[piececount + 1] - clx->pos[piececount]) * 2);
+	if (type)
+	    *end = *begin + cpcount;
+	else
+	    *end = *begin + cpcount * 2;
+    }
 
     return (type);
 }
@@ -261,6 +268,8 @@ wvAutoCharset (wvParseStruct * ps)
 int
 wvQuerySamePiece (U32 fcTest, CLX * clx, U32 piece)
 {
+    if (piece >= clx->nopcd || clx->pcd == NULL)
+	return (0);
     /*
        wvTrace(("Same Piece, %x %x %x\n",fcTest,wvNormFC(clx->pcd[piece].fc,NULL),wvNormFC(clx->pcd[piece+1].fc,NULL)));
        if ( (fcTest >= wvNormFC(clx->pcd[piece].fc,NULL)) && (fcTest < wvNormFC(clx->pcd[piece+1].fc,NULL)) )
@@ -297,7 +306,12 @@ wvGetEndFCPiece (U32 piece, CLX * clx)
 {
     int flag;
     U32 fc;
-    U32 offset = clx->pos[piece + 1] - clx->pos[piece];
+    if (piece >= clx->nopcd || clx->pcd == NULL || clx->pos == NULL)
+	return (0);
+    /* a non-monotonic piece table would wrap this subtraction;
+       clamp to an empty piece instead */
+    U32 offset = (clx->pos[piece + 1] > clx->pos[piece])
+	? clx->pos[piece + 1] - clx->pos[piece] : 0;
 
     wvTrace (("offset is %x, befc is %x\n", offset, clx->pcd[piece].fc));
     fc = wvNormFC (clx->pcd[piece].fc, &flag);
@@ -342,14 +356,18 @@ wvConvertCPToFC (U32 currentcp, CLX * clx)
 
     if (currentfc == 0xffffffffL)
       {
+	  U32 cpdelta;
 	  if (i == 0)
 	      return (0xffffffffL);
 	  i--;
+	  /* currentcp may sit before this piece's start on a corrupt,
+	     non-monotonic table; clamp rather than wrap */
+	  cpdelta = (currentcp > clx->pos[i]) ? currentcp - clx->pos[i] : 0;
 	  currentfc = wvNormFC (clx->pcd[i].fc, &flag);
 	  if (flag)
-	      currentfc += (currentcp - clx->pos[i]);
+	      currentfc += cpdelta;
 	  else
-	      currentfc += ((currentcp - clx->pos[i]) * 2);
+	      currentfc += cpdelta * 2;
 	  wvTrace (("flaky cp to fc conversion underway\n"));
       }
 
@@ -390,6 +408,8 @@ wvGuess16bit (PCD * pcd, U32 * pos, U32 nopcd)
     struct test *fcs;
     U32 i;
     int ret = 1;
+    if (nopcd == 0)
+	return (ret);
     fcs = (struct test *) wvMalloc (sizeof (struct test) * nopcd);
     for (i = 0; i < nopcd; i++)
       {
@@ -399,9 +419,11 @@ wvGuess16bit (PCD * pcd, U32 * pos, U32 nopcd)
 
     qsort (fcs, nopcd, sizeof (struct test), compar);
 
-    for (i = 0; i < nopcd - 1; i++)
+    for (i = 0; i + 1 < nopcd; i++)
       {
-	  if (fcs[i].fc + fcs[i].offset > fcs[i + 1].fc)
+	  /* fcs is sorted, so the subtraction can't underflow; doing it
+	     this way avoids a fc+offset U32 wrap on corrupt data */
+	  if (fcs[i].offset > fcs[i + 1].fc - fcs[i].fc)
 	    {
 		wvTrace (("overlap, my guess is 8 bit\n"));
 		ret = 0;
