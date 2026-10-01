@@ -225,6 +225,19 @@ below are on `main` but the release has not been cut yet.
   `ABINOVA_PASSWORD` like the ODF/.abwn paths.  (Also fixes the
   vendored MD5 `UINT4` typedef being 64 bits on LP64, which had
   silently broken the RC4 password verifier.)
+- **Legacy `.doc` importer memory-safety pass** — fixed a class of
+  heap-corruption bugs in vendored wv where the `wvGet*_PLCF` table
+  readers (`atrd`, `bte`, `pcd`, `fld`, `lst`, `ftxbxs`, `bkd`, `fdoa`,
+  `frd`, `ffn`, `fspa`) freed the caller's stack pointer instead of the
+  positions array on allocation failure (`wvFree(pos)` → `wvFree(*pos)`).
+  The PAPX/CHPX formatted-disk-page caches now deep-copy their arrays
+  (previously the cache aliased the caller's buffers, forcing
+  `wvReleasePAPX_FKP`/`wvReleaseCHPX_FKP` into no-op stubs — every FKP
+  page read leaked); both release functions now actually free, and the
+  complex-decode path finally releases the bookmark string table
+  (`Sttbfbkmk`).  The importer no longer strands a loaded footnote/
+  endnote PLCF when its zero-length sibling loads as NULL, and a
+  missing reference table leaves no stale note count.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

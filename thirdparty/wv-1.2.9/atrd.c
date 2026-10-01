@@ -66,7 +66,7 @@ wvGetATRD_PLCF (ATRD ** atrd, U32 ** pos, U32 * noatrd, U32 offset, U32 len,
 		wvError (
 			 ("NO MEM 1, failed to alloc %d bytes\n",
 			  *noatrd * sizeof (ATRD)));
-		wvFree (pos);
+		wvFree (*pos);
 		return (1);
 	    }
 	  wvStream_goto (fd, offset);

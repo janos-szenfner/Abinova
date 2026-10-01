@@ -7682,7 +7682,16 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 	
 		if(!bNoteError)
 		{
-			UT_return_if_fail(pPLCF_ref && pPLCF_txt);
+			/* a zero-length PLCF loads as NULL without flagging an
+			   error; free whichever sibling was read and leave no
+			   count over the uninitialized notes array */
+			if(!pPLCF_ref || !pPLCF_txt)
+			{
+				wvFree(pPLCF_ref);
+				wvFree(pPLCF_txt);
+				m_iFootnotesCount = 0;
+				return;
+			}
 			for(i = 0; i < m_iFootnotesCount; i++)
 			{
 				m_pFootnotes[i].ref_pos = pPLCF_ref[i];
@@ -7800,7 +7809,13 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 
 		if(!bNoteError)
 		{
-			UT_return_if_fail(pPLCF_ref && pPLCF_txt);
+			if(!pPLCF_ref || !pPLCF_txt)
+			{
+				wvFree(pPLCF_ref);
+				wvFree(pPLCF_txt);
+				m_iEndnotesCount = 0;
+				return;
+			}
 			for(i = 0; i < m_iEndnotesCount; i++)
 			{
 				m_pEndnotes[i].ref_pos = pPLCF_ref[i];

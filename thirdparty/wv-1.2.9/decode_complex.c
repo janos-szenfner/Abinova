@@ -950,6 +950,7 @@ encoded into the first 22 bytes.
     wvReleaseLST (&ps->lst, ps->noofLST);
     wvReleaseLFO_records (&ps->lfo, &ps->lfolvl, &ps->lvl, ps->nooflvl);
     wvReleaseSTTBF (&ps->anSttbfAssoc);
+    wvReleaseSTTBF (&ps->Sttbfbkmk);
 
     wvFree (btePapx);
     wvFree (posPapx);

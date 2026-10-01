@@ -39,6 +39,7 @@ external_wvReleasePAPX_FKP (void)
 {
         if (wvPAPX_pn_previous != 0)
         {
+                internal_wvReleasePAPX_FKP (&wvPAPX_FKP_previous);
                 wvPAPX_pn_previous = 0;
         }
 }
@@ -48,8 +49,55 @@ external_wvReleaseCHPX_FKP (void)
 {
         if (wvCHPX_pn_previous != 0)
         {
+                internal_wvReleaseCHPX_FKP (&wvCHPX_FKP_previous);
                 wvCHPX_pn_previous = 0;
         }
+}
+
+/*
+Deep-copy an FKP's heap members: the page cache below used to memcpy the
+struct, leaving the cached copy ALIASING the caller's rgfc/rgbx/grppapx
+arrays (and the grpprl buffers inside each element), which is why
+wvRelease*_FKP had to be a no-op.  With real copies, caller and cache own
+independent storage and both can be released normally.
+*/
+static void
+s_CopyPAPX_FKP (PAPX_FKP * dest, PAPX_FKP * src)
+{
+    int i;
+    dest->crun = src->crun;
+    dest->rgfc = NULL;
+    dest->rgbx = NULL;
+    dest->grppapx = NULL;
+    if (src->rgfc)
+      {
+	  dest->rgfc = (U32 *) wvMalloc (sizeof (U32) * (src->crun + 1));
+	  memcpy (dest->rgfc, src->rgfc, sizeof (U32) * (src->crun + 1));
+      }
+    if (src->rgbx)
+      {
+	  dest->rgbx = (BX *) wvMalloc (sizeof (BX) * src->crun);
+	  memcpy (dest->rgbx, src->rgbx, sizeof (BX) * src->crun);
+      }
+    if (src->grppapx)
+      {
+	  dest->grppapx = (PAPX *) wvMalloc (sizeof (PAPX) * src->crun);
+	  for (i = 0; i < src->crun; i++)
+	    {
+		dest->grppapx[i].cb = src->grppapx[i].cb;
+		dest->grppapx[i].istd = src->grppapx[i].istd;
+		if (src->grppapx[i].grpprl && src->grppapx[i].cb > 2)
+		  {
+		      dest->grppapx[i].grpprl =
+			  (U8 *) wvMalloc (src->grppapx[i].cb - 2);
+		      memcpy (dest->grppapx[i].grpprl,
+			      src->grppapx[i].grpprl,
+			      src->grppapx[i].cb - 2);
+		  }
+		else
+		    dest->grppapx[i].grpprl = NULL;
+	    }
+      }
 }
 
 void
@@ -110,7 +158,7 @@ wvGetPAPX_FKP (wvVersion ver, PAPX_FKP * fkp, U32 pn, wvStream * fd)
     /* pn=0 is safe because thats the index block, not a PAPX_FKP */
     if (pn != 0 && pn == wvPAPX_pn_previous)
       {
-	  memcpy (fkp, &wvPAPX_FKP_previous, sizeof (PAPX_FKP));
+	  s_CopyPAPX_FKP (fkp, &wvPAPX_FKP_previous);
 	  return;
       }
 
@@ -182,7 +230,7 @@ wvGetPAPX_FKP (wvVersion ver, PAPX_FKP * fkp, U32 pn, wvStream * fd)
       }
     if (wvPAPX_pn_previous != 0)
 	internal_wvReleasePAPX_FKP (&wvPAPX_FKP_previous);
-    memcpy (&wvPAPX_FKP_previous, fkp, sizeof (PAPX_FKP));
+    s_CopyPAPX_FKP (&wvPAPX_FKP_previous, fkp);
     wvPAPX_pn_previous = pn;
 }
 
@@ -273,7 +321,7 @@ wvSearchNextSmallestFCPAPX_FKP (PAPX_FKP * fkp, U32 currentfc)
 void
 wvReleasePAPX_FKP (PAPX_FKP * fkp)
 {
-    return;
+    internal_wvReleasePAPX_FKP (fkp);
 }
 
 
@@ -330,12 +378,38 @@ internal_wvReleaseCHPX_FKP (CHPX_FKP * fkp)
 }
 
 
-/* Character properties 
+/* Character properties
  * -basically just like PAPX FKPs above
  * however, rather than an array of BX structs in rgbx,
  * there is an array of bytes (giving the word offset to the CHPX) in rgb
  * -JB
  */
+static void
+s_CopyCHPX_FKP (CHPX_FKP * dest, CHPX_FKP * src)
+{
+    int i;
+    dest->crun = src->crun;
+    dest->rgfc = NULL;
+    dest->rgb = NULL;
+    dest->grpchpx = NULL;
+    if (src->rgfc)
+      {
+	  dest->rgfc = (U32 *) wvMalloc (sizeof (U32) * (src->crun + 1));
+	  memcpy (dest->rgfc, src->rgfc, sizeof (U32) * (src->crun + 1));
+      }
+    if (src->rgb)
+      {
+	  dest->rgb = (U8 *) wvMalloc (sizeof (U8) * src->crun);
+	  memcpy (dest->rgb, src->rgb, sizeof (U8) * src->crun);
+      }
+    if (src->grpchpx)
+      {
+	  dest->grpchpx = (CHPX *) wvMalloc (sizeof (CHPX) * src->crun);
+	  for (i = 0; i < src->crun; i++)
+	      wvCopyCHPX (&(dest->grpchpx[i]), &(src->grpchpx[i]));
+      }
+}
+
 void
 wvGetCHPX_FKP (wvVersion ver, CHPX_FKP * fkp, U32 pn, wvStream * fd)
 {
@@ -349,7 +423,7 @@ wvGetCHPX_FKP (wvVersion ver, CHPX_FKP * fkp, U32 pn, wvStream * fd)
     /* pn=0 is safe because thats the index block, not a CHPX_FKP */
     if (pn != 0 && pn == wvCHPX_pn_previous)
       {
-	  memcpy (fkp, &wvCHPX_FKP_previous, sizeof (CHPX_FKP));
+	  s_CopyCHPX_FKP (fkp, &wvCHPX_FKP_previous);
 	  return;
       }
     wvStream_goto (fd, pn * WV_PAGESIZE);
@@ -418,14 +492,14 @@ wvGetCHPX_FKP (wvVersion ver, CHPX_FKP * fkp, U32 pn, wvStream * fd)
       }
     if (wvCHPX_pn_previous != 0)
 	internal_wvReleaseCHPX_FKP (&wvCHPX_FKP_previous);
-    memcpy (&wvCHPX_FKP_previous, fkp, sizeof (CHPX_FKP));
+    s_CopyCHPX_FKP (&wvCHPX_FKP_previous, fkp);
     wvCHPX_pn_previous = pn;
 }
 
 void
 wvReleaseCHPX_FKP (CHPX_FKP * fkp)
 {
-    return;
+    internal_wvReleaseCHPX_FKP (fkp);
 }
 
 

@@ -62,7 +62,7 @@ wvGetFDOA_PLCF (FDOA ** fdoa, U32 ** pos, U32 * nofdoa, U32 offset, U32 len,
 		wvError (
 			 ("NO MEM 1, failed to alloc %d bytes\n",
 			  *nofdoa * sizeof (FDOA)));
-		wvFree (pos);
+		wvFree (*pos);
 		return (1);
 	    }
 	  wvStream_goto (fd, offset);

@@ -250,7 +250,7 @@ wvGetFRD_PLCF (FRD ** frd, U32 ** pos, int *nofrd, U32 offset, U32 len,
 		wvError (
 			 ("NO MEM 1, failed to alloc %d bytes\n",
 			  *nofrd * sizeof (FRD)));
-		wvFree (pos);
+		wvFree (*pos);
 		return (1);
 	    }
 	  wvStream_goto (fd, offset);
