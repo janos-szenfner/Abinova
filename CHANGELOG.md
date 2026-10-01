@@ -284,6 +284,16 @@ below are on `main` but the release has not been cut yet.
   harness replaying each malformed-input path (all reports on the old
   code, clean after the fix) plus PDF conversions of the `.doc` test
   corpus.
+- **Container-invalidation audit (iterators/references across
+  mutation)** — swept erase-while-iterate loops, element references
+  held across `push_back`/`erase`, and stale index/iterator reuse
+  across `UT_Vector`, `std::vector`, maps and stacks throughout the
+  importers, layout engine and piece table.  Fixed the one real bug
+  found: the "previous reference to semantic item" command
+  (`rdfAnchorSelectPrevReferenceToSemanticItem`) incremented the
+  `begin()`/`end()` iterator of an empty `std::set` after a resync —
+  undefined behaviour and a potential crash; it now returns early when
+  the set is empty.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

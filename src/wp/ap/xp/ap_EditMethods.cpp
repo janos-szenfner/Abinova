@@ -15906,9 +15906,9 @@ Defun1(rdfAnchorSelectPrevReferenceToSemanticItem)
 			if( ring.iter == ring.xmlids.end() )
 			{
 				UT_DEBUGMSG((" selectPrev() iter IS end()\n" ));
-				if( wasContained )
+				if( wasContained || ring.xmlids.empty() )
 					return 0;
-				
+
 				// if we resynced, and there is no prev, then select the first one.
 				UT_DEBUGMSG((" selectPrev() set iter to the first item due to resync...\n" ));
 				ring.iter = ring.xmlids.begin();
