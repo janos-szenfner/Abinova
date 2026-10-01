@@ -1718,6 +1718,16 @@ below are on `main` but the release has not been cut yet.
   truncated `=X` escape at end-of-input, and base64 runs to end-of-body
   rather than per line. Parts ending at a delimiter without a blank
   line are handled too.
+- **MHTML export produces valid multipart files** — saved `.mht`
+  archives now use standard `Name: value` header syntax, put every
+  part's `--boundary` delimiter on its own line, end with a proper
+  `--boundary--` closing delimiter, and write an English RFC 2822
+  `Date` with the real timezone offset. Exported `.mht` files are
+  recognized as MHTML again on reimport (previously the Markdown
+  sniffer claimed them), and `cid:` image references now match
+  `Content-ID` regardless of `<>` brackets, whitespace or %-encoding,
+  with a `Content-Location` fallback that accepts absolute-vs-relative
+  URLs — so a save/reimport round-trip keeps embedded images.
 - **EPUB import hardened** — the importer now percent-decodes and
   normalizes rootfile paths and manifest hrefs (so OPF files at the
   archive root, `%20`-style names and `..`-relative chapters resolve),

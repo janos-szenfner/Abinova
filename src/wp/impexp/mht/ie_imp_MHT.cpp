@@ -119,6 +119,92 @@ static int s_hexval (char c)
 	return -1;
 }
 
+static std::string s_urlDecode (const char * s)
+{
+	std::string out;
+	while (*s)
+		{
+			if (s[0] == '%' && s_hexval (s[1]) >= 0 && s_hexval (s[2]) >= 0)
+				{
+					out += static_cast<char>((s_hexval (s[1]) << 4) | s_hexval (s[2]));
+					s += 3;
+				}
+			else out += *s++;
+		}
+	return out;
+}
+
+/* Normalize a Content-ID header value or a cid: reference for comparison:
+ * trim surrounding whitespace and strip the RFC 2392 "<...>" msg-id
+ * brackets that Content-ID values carry (and cid: URLs omit).
+ */
+static std::string s_normalizeCID (const char * s)
+{
+	while (*s == ' ' || *s == '\t') s++;
+	std::string out (s);
+	while (!out.empty() && (out.back() == ' ' || out.back() == '\t')) out.pop_back();
+	if (out.size() >= 2 && out.front() == '<' && out.back() == '>')
+		{
+			out = out.substr (1, out.size() - 2);
+			while (!out.empty() && (out.front() == ' ' || out.front() == '\t')) out.erase (0, 1);
+			while (!out.empty() && (out.back() == ' ' || out.back() == '\t')) out.pop_back();
+		}
+	return out;
+}
+
+/* Scan the RFC 822 header block at the top of the buffer: a run of
+ * "Field-Name: value" lines (folded continuations start with WSP) ended by
+ * a blank line. Returns true and sets blockLen when every line before the
+ * first blank line has a valid header shape — i.e. the buffer really is a
+ * MIME message and not text that merely mentions MIME strings.
+ */
+static bool s_mimeHeaderBlock (const char * szBuf, UT_uint32 iNumbytes,
+							   UT_uint32 & blockLen)
+{
+	blockLen = 0;
+	UT_uint32 pos = 0;
+	bool bSawHeader = false;
+
+	while (pos < iNumbytes)
+		{
+			UT_uint32 linelen = 0;
+			while (pos + linelen < iNumbytes &&
+				   szBuf[pos + linelen] != '\r' && szBuf[pos + linelen] != '\n')
+				linelen++;
+			const char * line = szBuf + pos;
+
+			if (linelen == 0)
+				{
+					blockLen = pos;
+					return bSawHeader;
+				}
+			if (line[0] == ' ' || line[0] == '\t')
+				{
+					// folded continuation of the previous header
+					if (!bSawHeader) return false;
+				}
+			else
+				{
+					const char * colon = static_cast<const char *>
+						(memchr (line, ':', linelen));
+					if (!colon || colon == line) return false;
+
+					// header name: alnum + '-', tolerating stray WSP
+					// before the colon (non-strict writers produce it)
+					for (const char * p = line; p < colon; p++)
+						if (!isalnum (static_cast<unsigned char>(*p)) &&
+							*p != '-' && *p != ' ' && *p != '\t')
+							return false;
+					bSawHeader = true;
+				}
+
+			pos += linelen;
+			if (pos < iNumbytes && szBuf[pos] == '\r') pos++;
+			if (pos < iNumbytes && szBuf[pos] == '\n') pos++;
+		}
+	return false;
+}
+
 /* UT_MHTStream - self-contained MIME multipart parser for MHTML files
  * (RFC 2045/2046 multipart/related), replacing the obsolete libeps dependency.
  */
@@ -438,6 +524,19 @@ bool UT_MHTStream::nextBody (std::string & out)
 
 UT_Confidence_t IE_Imp_MHT_Sniffer::recognizeContents (const char * szBuf, UT_uint32 iNumbytes)
 {
+	// A well-formed RFC 822 header block declaring multipart/related with an
+	// (x)html document type is definitive MHTML — plain-text matchers (text,
+	// markdown) must not win over it just because a boundary string or
+	// escaped markup happens to look like their syntax.
+	UT_uint32 hdrLen = 0;
+	if (s_mimeHeaderBlock (szBuf, iNumbytes, hdrLen) &&
+		s_strnstr (szBuf, hdrLen, IE_MIMETYPE_RELATED) &&
+		(s_strnstr (szBuf, hdrLen, IE_MIMETYPE_HTML) ||
+		 s_strnstr (szBuf, hdrLen, IE_MIMETYPE_XHTML)))
+		{
+			return UT_CONFIDENCE_PERFECT;
+		}
+
 	if (s_strnstr (szBuf, iNumbytes, IE_MIMETYPE_RELATED))
 		if (s_strnstr (szBuf, iNumbytes, IE_MIMETYPE_HTML) ||
 			s_strnstr (szBuf, iNumbytes, IE_MIMETYPE_XHTML))
@@ -563,7 +662,11 @@ UT_Error IE_Imp_MHT::_loadFile (GsfInput * input)
 
 FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 {
-	bool bContentID = (strncmp ((const char *) szSrc, "cid:", 4) == 0);
+	bool bContentID = (g_ascii_strncasecmp (szSrc, "cid:", 4) == 0);
+
+	// decode %-escapes in the reference — cid: and location URLs arrive
+	// URL-encoded per RFC 2392 / RFC 2557
+	const std::string wanted = s_urlDecode (szSrc + (bContentID ? 4 : 0));
 
 	const UT_Multipart * part = 0;
 
@@ -573,23 +676,31 @@ FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 			const UT_Multipart * ptr = reinterpret_cast<const UT_Multipart *>((*m_parts)[i]);
 			if (!ptr->isImage ()) continue;
 
-			if (bContentID)
+			if (bContentID && ptr->contentID ())
 				{
-					if (ptr->contentID ())
-						if (strncmp (reinterpret_cast<const char *>(szSrc) + 4, ptr->contentID () + 1, strlen (static_cast<const char *> (szSrc)) - 4) == 0)
-							{
-								part = ptr;
-								break;
-							}
+					// Content-ID is a msg-id ("<id>"), the cid: reference
+					// drops the brackets — compare full normalized strings
+					if (wanted == s_normalizeCID (ptr->contentID ()))
+						{
+							part = ptr;
+							break;
+						}
 				}
-			else
+			if (ptr->contentLocation ())
 				{
-					if (ptr->contentLocation ())
-						if (strcmp (reinterpret_cast<const char *>(szSrc), ptr->contentLocation ()) == 0)
-							{
-								part = ptr;
-								break;
-							}
+					const std::string loc = s_urlDecode (ptr->contentLocation ());
+					// exact match, or the part's absolute location ending in
+					// the document's relative reference (Word writes
+					// file:///... locations against bare filenames)
+					if (loc == wanted ||
+						(loc.size() > wanted.size() && !wanted.empty() &&
+						 loc.compare (loc.size() - wanted.size(), std::string::npos,
+									  wanted) == 0 &&
+						 loc[loc.size() - wanted.size() - 1] == '/'))
+						{
+							part = ptr;
+							break;
+						}
 				}
 		}
 	if (part == 0)

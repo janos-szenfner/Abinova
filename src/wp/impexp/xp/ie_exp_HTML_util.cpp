@@ -24,6 +24,7 @@
 
 #include "ie_exp_HTML_util.h"
 #include "ut_std_string.h"
+#include "ut_locale.h"
 
 #define SEPARATOR "/"
 
@@ -437,6 +438,11 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const gchar *szDataId,
     std::string mime;
     UT_ConstByteBufPtr bb;
     m_pDocument->getDataItemDataByName(szDataId, bb, &mime, nullptr);
+    // every part opens with its own boundary delimiter line so that the
+    // delimiter is always at a line start (RFC 2046 5.1.1)
+    m_buffer += "--";
+    m_buffer += MULTIPART_BOUNDARY;
+    m_buffer += MYEOL;
     m_buffer += MULTIPART_FIELD("Content-Type",
                               (mime).c_str());
     m_buffer += MULTIPART_FIELD("Content-Transfer-Encoding", "base64");
@@ -446,10 +452,9 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const gchar *szDataId,
     encodeDataBase64(szDataId, contents, false);
     UT_DEBUGMSG(("%lu", (long unsigned)contents.length()));
     m_buffer += contents;
+    // encoded lines carry no trailing EOL — terminate the body so the next
+    // delimiter (or the closing delimiter) starts on its own line
     m_buffer += MYEOL;
-    m_buffer += MYEOL;
-    m_buffer += "--";
-    m_buffer += MULTIPART_BOUNDARY;
     
     return m_fileDirectory + SEPARATOR + filename;
 }
@@ -471,6 +476,9 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const UT_UTF8String &name,
     UT_UTF8String filePath = m_fileDirectory
         + SEPARATOR + name;
     
+    m_buffer += "--";
+    m_buffer += MULTIPART_BOUNDARY;
+    m_buffer += MYEOL;
     m_buffer += MULTIPART_FIELD("Content-Type",
                               (mime).utf8_str());
     m_buffer += MULTIPART_FIELD("Content-Transfer-Encoding", "quoted-printable");
@@ -481,7 +489,6 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const UT_UTF8String &name,
     contents.escapeMIME();
     m_buffer += contents;
     m_buffer += MYEOL;
-    m_buffer += MULTIPART_BOUNDARY;
 
     return filePath;
 }
@@ -490,15 +497,19 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::generateHeader(const UT_UTF8String 
     const UT_UTF8String &mimetype)
 {
     UT_UTF8String header;
-    header = MULTIPART_FIELD("From", "<Saved by Abinova>");;
+    header = MULTIPART_FIELD("From", "<Saved by Abinova>");
     header += MULTIPART_FIELD("Subject", m_title.utf8_str());
     
-    time_t tim = time (nullptr);
-	struct tm * pTime = localtime (&tim);
-	char timestr[64];
-	strftime (timestr, 63, "%a, %d %b %Y %H:%M:%S +0100", pTime); // hmm, hard-code time zone
-	timestr[63] = 0;
-    header += MULTIPART_FIELD("Date", timestr);
+    // RFC 2822 requires English day/month names and the real zone offset
+    {
+		UT_LocaleTransactor t (LC_TIME, "C");
+		time_t tim = time (nullptr);
+		struct tm * pTime = localtime (&tim);
+		char timestr[64];
+		strftime (timestr, 63, "%a, %d %b %Y %H:%M:%S %z", pTime);
+		timestr[63] = 0;
+		header += MULTIPART_FIELD("Date", timestr);
+	}
     header += MULTIPART_FIELD("MIME-Version", "1.0");
     
     UT_UTF8String contentType = "multipart/related;\n\tboundary=\"";
@@ -519,9 +530,9 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::generateHeader(const UT_UTF8String 
     contents.escapeMIME();
     header += contents;
     header += MYEOL;
-    header += "--";
-    header += MULTIPART_BOUNDARY;
-    header += MYEOL;
+    // no trailing delimiter here — each data part emitted via saveData()
+    // opens with its own boundary line, and _createMultipart() writes the
+    // final "--boundary--" closing delimiter
     return header;
 }
 

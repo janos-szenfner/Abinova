@@ -674,8 +674,7 @@ void IE_Exp_HTML::_createChapter(PD_DocumentRange* range, const std::string &tit
     }
     IE_Exp_HTML_OutputWriter *pOutputWriter = 
         new IE_Exp_HTML_FileWriter(output);
-//	pOutputWriter->enableQuotedPrintable(m_exp_opt.bMultipart);
-    
+
     IE_Exp_HTML_DataExporter* pDataExporter = 
         new IE_Exp_HTML_FileExporter(getDoc(), 
             getFileName() ? getFileName() : "");
@@ -777,8 +776,15 @@ void IE_Exp_HTML::_createMultipart()
     
    
     write(header.utf8_str(), header.byteLength());
-    buffer +="--";
     write(buffer.utf8_str(), buffer.byteLength());
+
+    // every part (incl. the document part above) ends with a newline, so
+    // the closing delimiter lands at a line start per RFC 2046 5.1.1
+    UT_UTF8String closer = "--";
+    closer += MULTIPART_BOUNDARY;
+    closer += "--";
+    closer += MYEOL;
+    write(closer.utf8_str(), closer.byteLength());
     
     DELETEP(pHeaderFooterListener);
     DELETEP(pListener);

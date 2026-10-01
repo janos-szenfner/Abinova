@@ -43,7 +43,7 @@
 #define MYEOL "\n"
 #define FILES_DIR_NAME "_files"
 #define MULTIPART_BOUNDARY "AbiWord_multipart_boundary____________"
-#define MULTIPART_FIELD(key, value) UT_UTF8String_sprintf("%s : %s\n", key, value)
+#define MULTIPART_FIELD(key, value) UT_UTF8String_sprintf("%s: %s\n", key, value)
 
 extern const char * s_prop_list[];
 extern const UT_uint32 s_PropListLen;
