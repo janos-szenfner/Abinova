@@ -1017,6 +1017,8 @@ IE_Imp_MsWord_97::IE_Imp_MsWord_97(PD_Document * pDocument)
 	m_iEndnotesCount(0),
 	m_pTextboxes(nullptr),
 	m_iTextboxCount(0),
+	m_dSectMarginLeft(1.0),
+	m_dSectMarginTop(1.0),
     m_iMSWordListId(0),
     m_bEncounteredRevision(false),
     m_bInTable(false),
@@ -1920,7 +1922,7 @@ int IE_Imp_MsWord_97::_charProc (wvParseStruct *ps, U16 eachchar, U8 chartype, U
 		return 0;
 	if(!_handleAnnotationsText(ps->currentcp,eachchar))
 		return 0;
-	if(!_handleTextboxesText(ps->currentcp))
+	if(!_handleTextboxesText(ps->currentcp,eachchar))
 		return 0;
 
 	// insert any required bookmarks, but only if we are not in a
@@ -2025,6 +2027,46 @@ int IE_Imp_MsWord_97::_charProc (wvParseStruct *ps, U16 eachchar, U8 chartype, U
 	return 0;
 }
 
+/*! fetch a simple (non-complex) property from an OfficeArtRGFOPTE
+ *  (MS-ODRAW 2.2.7); the table is terminated by a zero pid */
+static bool s_getOPTProp (const FOPTE * fopte, U32 pid, U32 & val)
+{
+	if(!fopte)
+		return false;
+	for(const FOPTE * f = fopte; f->pid; ++f)
+	{
+		if(f->pid == pid && !f->fComplex)
+		{
+			val = f->op;
+			return true;
+		}
+	}
+	return false;
+}
+
+/*! convert an MSOCLR to a "rrggbb" string; only plain RGB colors
+ *  (high byte 0) can be resolved without the document color
+ *  scheme */
+static bool s_msoclrToRGB (U32 clr, UT_String & rgb)
+{
+	if(clr & 0xff000000)
+		return false;
+	UT_String_sprintf(rgb, "%02x%02x%02x",
+					  clr & 0xff, (clr >> 8) & 0xff, (clr >> 16) & 0xff);
+	return true;
+}
+
+/*! append "name:<dInches>in; " to sProps; dimensions are formatted
+ *  under the C locale so the prop stays locale-independent */
+static void s_appendInchProp (std::string & sProps, const char * szName,
+							  double dInches)
+{
+	sProps += szName;
+	sProps += ':';
+	sProps += UT_convertInchesToDimensionString(DIM_IN, dInches);
+	sProps += "; ";
+}
+
 int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 {
 	// make sure we are not past the end of the document ...
@@ -2053,7 +2095,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 	if(!_handleAnnotationsText(ps->currentcp,eachchar))
 		return 0;
 
-	if(!_handleTextboxesText(ps->currentcp))
+	if(!_handleTextboxesText(ps->currentcp,eachchar))
 		return 0;
 
 	// insert any required bookmarks, but only if we are not in a
@@ -2209,7 +2251,6 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 					   bPositionObject = true;
 				}
 				bool isTextBox = false;
-				UT_uint32 textOff = 0;
 				UT_uint32 i;
 				escherstruct item;
 				FSPContainer *answer = nullptr;
@@ -2225,22 +2266,38 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 						break;
 					}
 				}
+				/* ungrouped shapes are direct children of the
+				 * drawing container, not of a shape group */
+				if(!answer)
+				{
+					for (i = 0; i < item.dgcontainer.no_spcontainer; i++)
+					{
+						if(item.dgcontainer.spcontainer[i].fsp.spid == (U32) fspa->spid)
+						{
+							answer = &item.dgcontainer.spcontainer[i];
+							break;
+						}
+					}
+				}
 				if(answer != nullptr)
 				{
 					ClientTextbox cTextBox = answer->clienttextbox;
 					if(cTextBox.textid != nullptr)
 					{
 						isTextBox = true;
-						textOff = *cTextBox.textid;
-						UT_DEBUGMSG(("Found a Text box! text offset is.. %d \n",textOff));
+						UT_DEBUGMSG(("Found a Text box! text id is %d \n",*cTextBox.textid));
 					}
-                    // passing struct to format parameter. WTF?
-					xxx_UT_DEBUGMSG((" clienttextbox %x clientdata %x \n",answer->clienttextbox,answer->clientdata));
 				}
-				if(isTextBox || bPositionObject)
+				/* OfficeArtFSP.grfPersistent (MS-ODRAW 2.2.40):
+				 * fDelete 0x0008, fOleShape 0x0010, fFlipH 0x0040,
+				 * fFlipV 0x0080, fConnector 0x0100,
+				 * fBackground 0x0400; deleted and background-part
+				 * shapes carry no document content, do not emit
+				 * frames for them */
+				const U32 grfPersistent = answer ? answer->fsp.grfPersistent : 0;
+				if((isTextBox || bPositionObject || answer != nullptr)
+				   && !(grfPersistent & 0x408))
 				{
-//				if(answer != nullptr)
-//				{
 					const char * atts[] = {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr};
 					if(bPositionObject && sImageName.size())
 					{
@@ -2256,71 +2313,282 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 					std::string sProps;
 					std::string sVal;
 					sProps = "frame-type:";
-					if(isTextBox)
-					{
-					  sProps += "textbox; ";
-					}
-					else
+					if(bPositionObject)
 					{
 					  sProps += "image; ";
 					}
+					else
+					{
+					  sProps += "textbox; ";
+					}
 					sProps += "position-to:";
-					if(fspa->by ==2)
+					/* Spa.bx/by coordinate origins (MS-DOC 2.9.x SPA):
+					 * 0 = page margin, 1 = page edge, 2 = column
+					 * edge (bx) / paragraph top (by); only a
+					 * paragraph vertical anchor maps to our
+					 * block-relative frame type, everything else is
+					 * positioned on the page */
+					if(fspa->by == 2)
 					{
 						sVal = "block-above-text; ";
 					}
-					else if(fspa->by ==0)
+					else
 					{
-						sVal = "column-above-text; ";
-					}
-					else if(fspa->by ==1)
-					{
-						sVal = "page-above-text; "; // should be page-above-text
+						sVal = "page-above-text; ";
 					}
 					sProps += sVal;
+					/* Spa.wr/wrk: 0 wrap both sides, 1 top/bottom
+					 * only, 2 square, 3 float above or below text
+					 * (fBelowText selects), 4/5 tight/through;
+					 * wrk refines the side text wraps on */
 					sProps += "wrap-mode:";
-					if(fspa->wr == 3)
+					if(fspa->wr == 1)
 					{
-					  sVal = "above-text; ";
+						sVal = "wrapped-topbot; ";
+					}
+					else if(fspa->wr == 3)
+					{
+						sVal = fspa->fBelowText ? "below-text; " : "above-text; ";
 					}
 					else
 					{
-						sVal = "wrapped-both; ";
-					}
-					if(fspa->fBelowText == 1 && fspa->wr == 3)
-					{
-						UT_DEBUGMSG(("Set Below Text \n"));
-						sVal = "below-text; ";
+						if(fspa->wrk == 1)
+						{
+							sVal = "wrapped-to-left; ";
+						}
+						else if(fspa->wrk == 2)
+						{
+							sVal = "wrapped-to-right; ";
+						}
+						else
+						{
+							sVal = "wrapped-both; ";
+						}
+						if(fspa->wr == 4 || fspa->wr == 5)
+						{
+							sProps += "tight-wrap:1; ";
+						}
 					}
 					sProps += sVal;
 
-					sProps += UT_std_string_sprintf("xpos:%fin; ", dLeft);
-					sProps += UT_std_string_sprintf("ypos:%fin; ", dTop);
-					sProps += UT_std_string_sprintf("frame-col-xpos:%fin; ",
-													dLeft);
-					sProps += UT_std_string_sprintf("frame-col-ypos:%fin; ",
-													dTop);
-
-					sProps += UT_std_string_sprintf("frame-width:%fin; ",
-													dRight-dLeft);
-
-					UT_DEBUGMSG(("Inserting Frame of width %s \n",sVal.c_str()));
-					sProps += UT_std_string_sprintf("frame-height:%fin",
-													dBottom-dTop);
-//
-// Turn off the borders.
-//
-					if(bPositionObject && !isTextBox)
+					/* resolve margin- and column-relative origins to
+					 * the absolute coordinate systems the frame
+					 * layout uses; the paragraph anchor keeps its
+					 * recorded offsets */
+					const double dColX = (fspa->bx == 1) ? dLeft - m_dSectMarginLeft : dLeft;
+					const double dColY = (fspa->by == 1) ? dTop - m_dSectMarginTop : dTop;
+					double dPageX = (fspa->bx == 1) ? dLeft : dLeft + m_dSectMarginLeft;
+					double dPageY = (fspa->by == 1) ? dTop : dTop + m_dSectMarginTop;
+					if(dPageX < 0.0)
 					{
-					  sProp = "top-style";
-					  sVal = "none";
-					  UT_std_string_setProperty(sProps, sProp, sVal);
-					  sProp = "right-style";
-					  UT_std_string_setProperty(sProps, sProp, sVal);
-					  sProp = "left-style";
-					  UT_std_string_setProperty(sProps, sProp, sVal);
-					  sProp = "bot-style";
-					  UT_std_string_setProperty(sProps, sProp, sVal);
+						dPageX = 0.0;
+					}
+					if(dPageY < 0.0)
+					{
+						dPageY = 0.0;
+					}
+
+					s_appendInchProp(sProps, "xpos", dColX);
+					s_appendInchProp(sProps, "ypos", dTop);
+					s_appendInchProp(sProps, "frame-col-xpos", dColX);
+					s_appendInchProp(sProps, "frame-col-ypos", dColY);
+					s_appendInchProp(sProps, "frame-page-xpos", dPageX);
+					s_appendInchProp(sProps, "frame-page-ypos", dPageY);
+
+					s_appendInchProp(sProps, "frame-width", dRight-dLeft);
+					s_appendInchProp(sProps, "frame-height", dBottom-dTop);
+					sProps.resize(sProps.size() - 2); // drop trailing "; "
+					if(grfPersistent & 0x40)
+					{
+						sProps += "; frame-flip-horiz:1";
+					}
+					if(grfPersistent & 0x80)
+					{
+						sProps += "; frame-flip-vert:1";
+					}
+
+					// OfficeArt shape properties (MS-ODRAW 2.3)
+					bool bFilled = true;
+					bool bLined = true;
+					bool bLineDefined = false;
+					UT_String sFillClr;
+					UT_String sLineClr;
+					double dLineWidthPt = 0.75;
+					const char * pszLineStyle = nullptr;
+					if(answer && answer->fopte)
+					{
+						U32 v = 0;
+						/* rotation is a 16.16 fixed point angle in
+						 * degrees */
+						if(s_getOPTProp(answer->fopte, rotation, v) && v)
+						{
+							double dRot = static_cast<S32>(v) / 65536.0;
+							if(dRot < 0.0)
+							{
+								dRot += 360.0;
+							}
+							sProps += "; frame-rotation:";
+							sProps += UT_convertToDimensionlessString(dRot, ".4");
+						}
+						// text inset margins, EMU
+						if(s_getOPTProp(answer->fopte, dxTextLeft, v))
+						{
+							sProps += "; xpad-left:";
+							sProps += UT_convertInchesToDimensionString(
+								DIM_IN, v / 914400.0);
+						}
+						if(s_getOPTProp(answer->fopte, dxTextRight, v))
+						{
+							sProps += "; xpad-right:";
+							sProps += UT_convertInchesToDimensionString(
+								DIM_IN, v / 914400.0);
+						}
+						if(s_getOPTProp(answer->fopte, dyTextTop, v))
+						{
+							sProps += "; ypad-top:";
+							sProps += UT_convertInchesToDimensionString(
+								DIM_IN, v / 914400.0);
+						}
+						if(s_getOPTProp(answer->fopte, dyTextBottom, v))
+						{
+							sProps += "; ypad-bottom:";
+							sProps += UT_convertInchesToDimensionString(
+								DIM_IN, v / 914400.0);
+						}
+						// text anchor (MSOANCHOR)
+						if(s_getOPTProp(answer->fopte, anchorText, v))
+						{
+							if(v == 1 || v == 4)
+							{
+								sProps += "; frame-valign:middle";
+							}
+							else if(v != 0 && v != 3 && v != 6)
+							{
+								sProps += "; frame-valign:bottom";
+							}
+						}
+						// text flow (MSOTXFL)
+						if(s_getOPTProp(answer->fopte, txflTextFlow, v))
+						{
+							if(v == 2)
+							{
+								sProps += "; frame-text-direction:vert270";
+							}
+							else if(v == 1 || v == 3 || v == 5)
+							{
+								sProps += "; frame-text-direction:vert";
+							}
+						}
+						/* the Fill/Line Style Boolean Properties
+						 * records carry the real flags in their low
+						 * bits: fFilled 0x10 of fNoFillHitTest
+						 * (pid 447), fLine 0x08 of fNoLineDrawDash
+						 * (pid 511) */
+						if(s_getOPTProp(answer->fopte, fNoFillHitTest, v))
+						{
+							bFilled = (v & 0x10) != 0;
+						}
+						if(s_getOPTProp(answer->fopte, fNoLineDrawDash, v))
+						{
+							bLined = (v & 0x08) != 0;
+							bLineDefined = true;
+						}
+						if(s_getOPTProp(answer->fopte, fillColor, v))
+						{
+							s_msoclrToRGB(v, sFillClr);
+						}
+						if(s_getOPTProp(answer->fopte, fillOpacity, v))
+						{
+							sProps += "; fill-alpha:";
+							sProps += UT_convertToDimensionlessString(
+								v / 65536.0, ".4");
+						}
+						if(s_getOPTProp(answer->fopte, lineColor, v))
+						{
+							s_msoclrToRGB(v, sLineClr);
+						}
+						if(s_getOPTProp(answer->fopte, lineWidth, v))
+						{
+							dLineWidthPt = static_cast<S32>(v) / 12700.0;
+							bLineDefined = true;
+						}
+						if(s_getOPTProp(answer->fopte, lineDashing, v))
+						{
+							/* MSOLINEDASHING: 0 solid, 1/5/6 dotted,
+							 * anything else dashed */
+							if(v == 0)
+							{
+								pszLineStyle = "solid";
+							}
+							else if(v == 1 || v == 5 || v == 6)
+							{
+								pszLineStyle = "dotted";
+							}
+							else
+							{
+								pszLineStyle = "dashed";
+							}
+							bLineDefined = true;
+						}
+						if(s_getOPTProp(answer->fopte, lineStyle, v) && v == 1)
+						{
+							pszLineStyle = "double";
+							bLineDefined = true;
+						}
+					}
+
+					// fills: Word text boxes default to a white fill
+					if(bFilled && !bPositionObject)
+					{
+						sProp = "background-color";
+						sVal = sFillClr.size() ? sFillClr.c_str() : "ffffff";
+						UT_std_string_setProperty(sProps, sProp, sVal);
+					}
+					else if(!bFilled)
+					{
+						sProp = "bg-style";
+						sVal = "0";    /* no background */
+						UT_std_string_setProperty(sProps, sProp, sVal);
+						sProp = "background-color";
+						sVal = "transparent";
+						UT_std_string_setProperty(sProps, sProp, sVal);
+					}
+
+					/* outlines: Word text boxes default to a
+					 * 0.75 pt solid black border; positioned images
+					 * carry no border unless the shape asks for
+					 * one */
+					if(!bLined || (bPositionObject && !bLineDefined))
+					{
+						pszLineStyle = "none";
+					}
+					if(pszLineStyle == nullptr)
+					{
+						pszLineStyle = "solid";
+					}
+					static const char * const sSides[] =
+						{"top", "right", "left", "bot"};
+					for(UT_uint32 s = 0; s < G_N_ELEMENTS(sSides); s++)
+					{
+						sProp = sSides[s];
+						sProp += "-style";
+						sVal = pszLineStyle;
+						UT_std_string_setProperty(sProps, sProp, sVal);
+						if(strcmp(pszLineStyle, "none") != 0)
+						{
+							sProp = sSides[s];
+							sProp += "-thickness";
+							sVal = UT_formatDimensionedValue(dLineWidthPt,
+															 "pt", ".2");
+							UT_std_string_setProperty(sProps, sProp, sVal);
+							if(sLineClr.size())
+							{
+								sProp = sSides[s];
+								sProp += "-color";
+								sVal = sLineClr.c_str();
+								UT_std_string_setProperty(sProps, sProp, sVal);
+							}
+						}
 					}
 					if(bPositionObject)
 					{
@@ -2332,6 +2600,11 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 					}
 					PP_PropertyVector vatts = PP_std_copyProps(atts);
 					_appendStrux(PTX_SectionFrame, vatts);
+					/* a frame with no content block breaks the
+					 * surrounding frame chain (same rule as the
+					 * OOXML importer); the textbox story fills
+					 * this block in via insert-before-EndFrame */
+					_appendStrux(PTX_Block, PP_NOPROPS);
 					_appendStrux(PTX_EndFrame, vatts);
 					if(isTextBox)
 					{
@@ -2637,6 +2910,11 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 											  (static_cast<double>(asep->dyaBottom)/1440)));
 	props += propBuffer;
 
+	// remember the margins; FSPA origins of anchored frames are
+	// frequently relative to the page margins (Spa.bx/by == 0)
+	m_dSectMarginLeft = static_cast<double>(asep->dxaLeft) / 1440.0;
+	m_dSectMarginTop = static_cast<double>(asep->dyaTop) / 1440.0;
+
 	// page-margin-header
 	UT_String_sprintf(propBuffer, "page-margin-header:%s;",
 			UT_convertInchesToDimensionString(m_dim,
@@ -2905,6 +3183,23 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 	{
 		bDoNotInsertStrux  = true;
 	}
+
+	/* a paragraph beginning exactly at a textbox range boundary is
+	 * handled by _handleTextboxesText, which fires once the insert
+	 * point has been re-targeted to that box's frame; a strux
+	 * appended here would land at the tail of the previous box's
+	 * frame (the para's props still get generated below) */
+	if(m_bInTextboxes && m_pTextboxes)
+	{
+		for(UT_sint32 t = 0; t < m_iTextboxCount; t++)
+		{
+			if(ps->currentcp + 1 == m_pTextboxes[t].txt_pos)
+			{
+				bDoNotInsertStrux = true;
+				break;
+			}
+		}
+	}
 	bool bInHdrFtr = false;
 	if((ps->currentcp+1 >= m_iHeadersStart) && (ps->currentcp < m_iHeadersEnd))
 	{
@@ -2970,7 +3265,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		  // we have to call this unconditionally, since m_bInHeaders set does not mean that
 		  // the HdrFtr strux for this section has been inserted.
 		  _handleHeadersText(ps->currentcp +1, false);
-		  _handleTextboxesText(ps->currentcp+1);
+		  _handleTextboxesText(ps->currentcp+1, 0);
 
 		  while (static_cast<int>(m_vecTableCtx.getItemCount()) < tblDepth)
 		  {
@@ -7304,64 +7599,67 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 
 void IE_Imp_MsWord_97::_handleTextBoxes(const wvParseStruct *ps)
 {
-	UT_uint32 *pPLCF_dgg = nullptr;
-	UT_uint32 *pPLCF_txt = nullptr;
-
 	DELETEPV(m_pTextboxes);
-
-	bool bTextboxError = false;
 	m_iTextboxCount = 0;
-	UT_sint32 i = 0;
-	if(ps->fib.ccpTxbx > 0)
+
+	if(ps->fib.ccpTxbx == 0)
 	{
-		m_iTextboxCount = ps->nooffspa;
-		m_pTextboxes = new textbox [m_iTextboxCount];
-
-		
-		// this is really quite straight forward; we retrieve the PLCF
-		// chunks that describe the references/text of the textboxes, and
-		// then use those to init our textbox stucts
-		// for n textboxes the reference PLCF is a sequnce of (n+1) doc
-		// positions (UT_uint32) followed by n type flags (UT_uint16)
-		// the text PLCF is a sequence of n+2 positions (UT_uint32) of the 
-        // textbox
-		// text in its data stream
-
-// This appears to be identical to how footnotes/endnotes are handled.
-
-		if(wvGetPLCF((void **) &pPLCF_dgg, ps->fib.fcDggInfo, ps->fib.lcbDggInfo, ps->tablefd))
-		{
-			bTextboxError = true;
-		}
-
-		UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleTextBoxes: ps->fib.fcDggInfo %d ps->fib.lcbDggInfo %d \n", ps->fib.fcDggInfo,ps->fib.lcbDggInfo));
-
-		UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleTextBoxes: Text size %d bytes\n", ps->fib.ccpTxbx));
-		
-		UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleTextBoxes: fib.lid %d \n", ps->fib.lid));
-		if(!bTextboxError && 		   
-		   wvGetPLCF((void **) &pPLCF_txt, ps->fib.fcPlcftxbxTxt, ps->fib.lcbPlcftxbxTxt, ps->tablefd))
-		{
-			bTextboxError = true;
-		}
-		if(!bTextboxError)
-		{
-			UT_return_if_fail(pPLCF_dgg && pPLCF_txt);
-			for(i = 0; i < m_iTextboxCount; i++)
-			{
-				m_pTextboxes[i].ref_pos = pPLCF_dgg[i];
-				m_pTextboxes[i].txt_pos = pPLCF_txt[i] + m_iTextboxesStart;
-				m_pTextboxes[i].txt_len = pPLCF_txt[i+1] - pPLCF_txt[i];
-				UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleTextbox: Tbox %d, rpos %d, tpos %d len %d \n",
-							 i, m_pTextboxes[i].ref_pos, m_pTextboxes[i].txt_pos,m_pTextboxes[i].txt_len));
-			}
-
-			wvFree(pPLCF_dgg);
-			wvFree(pPLCF_txt);
-
-		}
+		return;
 	}
-	
+
+	// MS-DOC 2.4.1: PlcftxbxTxt is a PLC of (n+1) CPs into the
+	// Textboxes subdocument followed by n FTXBXS records; the lid
+	// of each FTXBXS is the spid of the OfficeArt shape (and of the
+	// main-story FSPA anchor) that displays this text range
+	FTXBXS * pFTXBXS = nullptr;
+	U32 *    pPLCF_txt = nullptr;
+	U32      nFTXBXS = 0;
+
+	if(wvGetFTXBXS_PLCF(&pFTXBXS, &pPLCF_txt, &nFTXBXS,
+					   ps->fib.fcPlcftxbxTxt,
+					   ps->fib.lcbPlcftxbxTxt, ps->tablefd))
+	{
+		UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleTextBoxes: bad PlcftxbxTxt\n"));
+		return;
+	}
+	if(!pFTXBXS || !pPLCF_txt)
+	{
+		wvFree(pFTXBXS);
+		wvFree(pPLCF_txt);
+		return;
+	}
+
+	/* the last CPs of the PLC delimit the "unused" padding at the
+	 * end of the story (MS-DOC 2.4.1); only keep ranges that end
+	 * before the story's last paragraph mark */
+	const UT_uint32 iEndUsable = (m_iTextboxesEnd > 2) ? m_iTextboxesEnd - 2 : m_iTextboxesEnd;
+	while(nFTXBXS > 0 &&
+		  pPLCF_txt[nFTXBXS] + m_iTextboxesStart > iEndUsable)
+	{
+		nFTXBXS--;
+	}
+
+	m_pTextboxes = new textbox [nFTXBXS ? nFTXBXS : 1];
+	for(U32 i = 0; i < nFTXBXS; i++)
+	{
+		if(pFTXBXS[i].fReusable)
+		{
+			// a reusable FTXBXS holds spare text for a text box
+			// chain; its range does not belong to its shape
+			continue;
+		}
+		m_pTextboxes[m_iTextboxCount].lid = pFTXBXS[i].lid;
+		m_pTextboxes[m_iTextboxCount].txt_pos = pPLCF_txt[i] + m_iTextboxesStart;
+		m_pTextboxes[m_iTextboxCount].txt_len = pPLCF_txt[i + 1] - pPLCF_txt[i];
+		UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleTextBoxes: Tbox %d, lid %u, tpos %d len %d \n",
+					 m_iTextboxCount, m_pTextboxes[m_iTextboxCount].lid,
+					 m_pTextboxes[m_iTextboxCount].txt_pos,
+					 m_pTextboxes[m_iTextboxCount].txt_len));
+		m_iTextboxCount++;
+	}
+
+	wvFree(pFTXBXS);
+	wvFree(pPLCF_txt);
 }
 
 /*!
@@ -8173,7 +8471,8 @@ bool IE_Imp_MsWord_97::_findNextAnnotationSection()
     \return returns false if the present character is to be skipped,
             true otherwise
 */
-bool IE_Imp_MsWord_97::_handleTextboxesText(UT_uint32 iDocPosition)
+bool IE_Imp_MsWord_97::_handleTextboxesText(UT_uint32 iDocPosition,
+											UT_UCS4Char c)
 {
 	if(iDocPosition >= m_iTextboxesStart && iDocPosition < m_iTextboxesEnd)
 	{
@@ -8194,7 +8493,7 @@ bool IE_Imp_MsWord_97::_handleTextboxesText(UT_uint32 iDocPosition)
 			m_bInTextboxes = true;
 			m_bInFNotes = false;
 			m_bInHeaders = false;
-			
+
 			// we will reuse the m_iNextTextbox variable, noting it
 			// refers to the CURRENT textbox
 
@@ -8204,47 +8503,75 @@ bool IE_Imp_MsWord_97::_handleTextboxesText(UT_uint32 iDocPosition)
 			m_bInSect = true;
 		}
 
-		// the current footnote will end at pos
-		// f.txt_pos + f.txt_len, 
-		if( m_iNextTextbox < m_iTextboxCount && iDocPosition == m_pTextboxes[m_iNextTextbox].txt_pos +
-		                   m_pTextboxes[m_iNextTextbox].txt_len)
+		// past the end of a box's range the insert point retargets to
+		// the frame of the next box in the story
+		while(m_iNextTextbox < m_iTextboxCount &&
+			  iDocPosition >= m_pTextboxes[m_iNextTextbox].txt_pos +
+							  m_pTextboxes[m_iNextTextbox].txt_len)
 		{
+			// push out any buffered text while the insert point still
+			// refers to the box it belongs to
+			this->_flush();
 			m_iNextTextbox++;
-
-			// after the last footnote there is an extra paragraph
-			// marker that is still a part of the footnote section --
-			// we do not want that marker imported
 			if(m_iNextTextbox < m_iTextboxCount)
 				_findNextTextboxSection();
-			else
-			{
-				UT_DEBUGMSG(("End of Textbox marker at pos %d\n", iDocPosition));
-				return false;
-			}
 		}
 
-// 		if(iDocPosition == m_pTextboxes[m_iNextTextbox].txt_pos)
-// 		{
-// 			const gchar * attribsB[] = {"props", nullptr,
-// 											"style", nullptr,
-// 											nullptr};
+		// anything outside a box's range -- the story's trailing
+		// paragraph marks, gaps between ranges and the text of boxes
+		// whose frame was never emitted -- contributes nothing
+		if(m_iNextTextbox >= m_iTextboxCount ||
+		   !m_pTextboxEndSection ||
+		   iDocPosition < m_pTextboxes[m_iNextTextbox].txt_pos)
+		{
+			if(m_iNextTextbox >= m_iTextboxCount)
+			{
+				m_pTextboxEndSection = nullptr;
+			}
+			return false;
+		}
 
-// 			attribsB[1] = m_paraProps.c_str();
-// 			attribsB[3] = m_paraStyle.c_str();
+		const textbox * pT = &m_pTextboxes[m_iNextTextbox];
+		if(iDocPosition == pT->txt_pos)
+		{
+			/* the frame was emitted with a single empty block; give
+			 * it this paragraph's properties (the para strux itself
+			 * is suppressed in _beginPara, which fires before the
+			 * insert point is re-targeted) */
+			pf_Frag * pPrev = m_pTextboxEndSection->getPrev();
+			if(pPrev && pPrev->getType() == pf_Frag::PFT_Strux)
+			{
+				pf_Frag_Strux * pfs =
+					static_cast<pf_Frag_Strux *>(pPrev);
+				if(pfs->getStruxType() == PTX_Block)
+				{
+					const PP_PropertyVector attribsB = {
+						"props", m_paraProps.c_str(),
+						"style", m_paraStyle.c_str()
+					};
+					getDoc()->changeStruxFormatNoUpdate(PTC_AddFmt,
+													  pfs, attribsB);
+				}
+			}
+			m_bInPara = true;
+		}
 
-// 			_appendStrux(PTX_Block,attribsB);
-// 			m_bInPara = true;
-// 			return true;
-// 		}
-		
+		// the last character of each range is the box's terminating
+		// paragraph mark -- not document content
+		if(iDocPosition == pT->txt_pos + pT->txt_len - 1 && c == 0x0D)
+		{
+			return false;
+		}
+
 		xxx_UT_DEBUGMSG(("In Textbox %d, on pos %d\n", m_iNextTextbox, iDocPosition));
 	}
 	else if(m_bInTextboxes)
 	{
 		m_bInTextboxes = false;
+		m_pTextboxEndSection = nullptr;
 		UT_DEBUGMSG(("Leaving Textbox territory\n"));
 	}
-	
+
 	return true;
 }
 
@@ -8279,50 +8606,32 @@ bool IE_Imp_MsWord_97::_findNextFNoteSection()
 
 
 ///////////////////////////////////////////////////////////////////////
-/*!
- * s_cmp_lids This function is used to sort the textboxPos lids in order
- * of their lid values. This matches the order of the text sort in the
- * in the out-of-stream table.
- * Used by theqsort method on UT_Vector.
-\param const void * P1  - pointer to a textboxPos pointer
-\param const void * P2  - pointer to a textboxPos pointer
-\returns -ve if sz1 < sz2, 0 if sz1 == sz2, +ve if sz1 > sz2
-*/
-static UT_sint32 s_cmp_lids(const void * P1, const void * P2)
-{
-	const textboxPos ** pP1 = (const textboxPos **) P1;
-	const textboxPos ** pP2 = (const textboxPos **) P2;
-	UT_uint32 lid1 = (*pP1)->lid;
-	UT_uint32 lid2 = (*pP2)->lid;
-	return static_cast<UT_sint32>(lid1) - static_cast<UT_sint32>(lid2);
-}
-
 bool IE_Imp_MsWord_97::_findNextTextboxSection()
 {
-	if(m_iNextTextbox == 0)
+	m_pTextboxEndSection = nullptr;
+
+	if(m_iNextTextbox >= m_iTextboxCount || !m_pTextboxes)
 	{
-		// move to the start of the doc first
-		m_pTextboxEndSection = nullptr;
-		m_vecTextboxPos.qsort(s_cmp_lids);
-		
-	}
-	if(m_iNextTextbox >= m_vecTextboxPos.getItemCount())
-	{
-		UT_DEBUGMSG(("Error: Textbox section not found!!!\n"));
 		return false;
 	}
 
-	textboxPos * pPos = m_vecTextboxPos.getNthItem(m_iNextTextbox);
-	UT_nonnull_or_return(pPos, false);
-	m_pTextboxEndSection = pPos->endFrame;
-
-	if(!m_pTextboxEndSection)
+	/* the FTXBXS lid is the spid of the shape whose frame was
+	 * emitted when its anchor was reached in the main story */
+	const UT_uint32 iLid = m_pTextboxes[m_iNextTextbox].lid;
+	for(UT_uint32 i = 0; i < m_vecTextboxPos.getItemCount(); i++)
 	{
-		UT_DEBUGMSG(("Error: Textbox section not found!!!\n"));
-		return false;
+		textboxPos * pPos = m_vecTextboxPos.getNthItem(i);
+		if(pPos && pPos->lid == iLid && pPos->endFrame)
+		{
+			m_pTextboxEndSection = pPos->endFrame;
+			return true;
+		}
 	}
 
-	return true;
+	UT_DEBUGMSG(("No frame found for textbox %u (lid %u); its text "
+				 "will be appended to the main document\n",
+				 m_iNextTextbox, iLid));
+	return false;
 }
 
 bool IE_Imp_MsWord_97::_findNextENoteSection()

@@ -329,7 +329,7 @@ private:
 	void        _dropAnnotationBreaks(void);
 	bool        _insertAnnotationIfAppropriate(UT_uint32 iDocPosition);
 	bool        _insertAnnotationStart(msAnnotation * a);
-	bool        _handleTextboxesText(UT_uint32 iPos);
+	bool        _handleTextboxesText(UT_uint32 iPos, UT_UCS4Char c);
 	bool        _findNextTextboxSection();
 	bool        _findNextFNoteSection();
 	bool        _findNextENoteSection();
@@ -397,6 +397,11 @@ private:
 	UT_uint32  m_iEndnotesCount;
 	textbox *  m_pTextboxes;
 	UT_sint32  m_iTextboxCount;
+	// current section margins (inches); used to resolve the
+	// margin-relative FSPA origins (Spa.bx/by == 0) to the absolute
+	// coordinate systems that frames use
+	double     m_dSectMarginLeft;
+	double     m_dSectMarginTop;
 	UT_Vector  m_vLists;
 	UT_uint32  m_iListIdIncrement[9];
 	UT_uint32  m_iMSWordListId;

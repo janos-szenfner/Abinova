@@ -181,6 +181,18 @@ below are on `main` but the release has not been cut yet.
   `GrpXstAtnOwners`), initials and date (Word 2000+ `AtrdExtra`
   DTTM) are preserved. Point comments and nested/overlapping
   comment ranges are handled.
+- **Legacy `.doc` text boxes and anchored shapes imported** — Word 97+
+  drawing objects (`FSPA` anchors + Escher/`OfficeArt` shape records)
+  now arrive as positioned Abinova frames instead of being dropped:
+  text-box story text (`PlcftxbxTxt`/`FTXBXS`) is routed into the
+  frame matching its shape `spid`, FSPA geometry maps to
+  margin/page/paragraph-relative frame positions and Word wrap modes
+  (square, top/bottom, behind/in-front, tight), and shape properties
+  (fill color/opacity, line color/width/dash, rotation, flips, text
+  insets, vertical alignment, vertical text flow) are applied.
+  Word-style defaults are honoured (white fill + 0.75 pt border on
+  text boxes, no border on floating images); deleted and
+  background-part shapes are skipped.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last
