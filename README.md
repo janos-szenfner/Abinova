@@ -843,6 +843,12 @@ not exist remain unbound on all platforms.
   system. The arrow opens the lazy `GtkDropDown` list: instant popup,
   every visible row in its own typeface, type-to-search, incremental
   sort. The collapsed entry shows plain GUI-font text like LO.
+- **Insert-table grid selection painted**: GTK4 never applied
+  `*:selected` styling to the picker's drawing area (the GTK3-era
+  `gtk_style_context_set_state` trick is a no-op there), so hovered
+  cells stayed invisible. Cells now render through `.view` style
+  donors — a normal one plus a permanent `GTK_STATE_FLAG_SELECTED`
+  one — giving a visible grid and a theme-accent selection highlight.
 
 ### Autosave and crash recovery
 

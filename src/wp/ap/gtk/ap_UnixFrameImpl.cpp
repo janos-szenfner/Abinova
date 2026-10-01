@@ -1501,33 +1501,14 @@ UT_RGBColor AP_UnixFrameImpl::getColorSelBackground () const
     rgba_.green = rgba1.green*(1.-COLOR_MIX) + rgba2.green*COLOR_MIX;
     rgba_.blue = rgba1.blue*(1.-COLOR_MIX) + rgba2.blue*COLOR_MIX;
 
-#if 0 // this totally broke in Gtk 3.20. Deprecated APIs return rubbish.
-    // owen says that any widget should be ok, not just text widgets
-    GtkStyleContext *pCtxt = gtk_widget_get_style_context(m_dArea);
-    GdkRGBA rgba;
-    gtk_style_context_get_background_color(pCtxt, GTK_STATE_FLAG_SELECTED, &rgba);
-#endif
+    /* GTK4 has no state-dependent color query and the theme gives the
+     * drawing area no selected appearance anyway, so keep the guessed
+     * blend rather than asking the style context. */
     return UT_RGBColor(rgba_.red * 255, rgba_.green * 255, rgba_.blue * 255);
 }
 
 UT_RGBColor AP_UnixFrameImpl::getColorSelForeground () const
 {
+  // don't risk it. return black.
   return UT_RGBColor(0,0,0);
-#if 0 // don't risk it. return black.
-  UT_return_val_if_fail(m_dArea, UT_RGBColor(0,0,0));
-  
-  // owen says that any widget should be ok, not just text widgets
-  GtkStateFlags state;
-  
-  // our text widget has focus
-  if (gtk_widget_has_focus(m_dArea))
-    state = GTK_STATE_FLAG_SELECTED;
-  else
-    state = GTK_STATE_FLAG_ACTIVE;
-  
-  GtkStyleContext *pCtxt = gtk_widget_get_style_context(m_dArea);
-  GdkRGBA rgba;
-  gtk_style_context_get_color(pCtxt, state, &rgba);
-  return UT_RGBColor (rgba.red * 255, rgba.green * 255, rgba.blue * 255);
-#endif
 }

@@ -213,20 +213,26 @@ on_drawing_area_event (GtkDrawingArea *area, cairo_t *cr, int /*w*/, int /*h*/, 
 	guint x;
 	guint y;
 
-	GtkStyleContext* ctxt = gtk_widget_get_style_context(GTK_WIDGET(area));
+	/* GTK4 themes only style :selected where the theme defines it, and
+	 * the drawing area's own context has no selected appearance at all,
+	 * so render cells through .view donors (like GTK3 did via the
+	 * GtkTreeView style path): one normal, one with SELECTED forced on
+	 * once at creation — GTK4 no longer lets us flip a context's state
+	 * mid-draw. */
+	GtkStyleContext* ctxt = gtk_widget_get_style_context(
+		XAP_GtkStyle_get_widget("GtkTreeView.view", GTK_STATE_FLAG_NORMAL));
+	GtkStyleContext* sel_ctxt = gtk_widget_get_style_context(
+		XAP_GtkStyle_get_widget("GtkTreeView.view", GTK_STATE_FLAG_SELECTED));
 	for (i = 0; i < table->total_rows; ++i) {
 		for (j = 0; j < table->total_cols; ++j) {
-			cells_to_pixels(j, i, &x, &y);
+			GtkStyleContext* cell_ctxt =
+				(i < selected_rows && j < selected_cols) ? sel_ctxt : ctxt;
 
-			gtk_style_context_save(ctxt);
-			if (i < selected_rows && j < selected_cols) {
-				gtk_style_context_set_state(ctxt, GTK_STATE_FLAG_SELECTED);
-			}
-			gtk_render_background(ctxt, cr, x + 1, y + 1,
+			cells_to_pixels(j, i, &x, &y);
+			gtk_render_background(cell_ctxt, cr, x + 1, y + 1,
 								  cell_width - 1, cell_height - 1);
 
-			gtk_render_frame(ctxt, cr, x, y, cell_width, cell_height);
-			gtk_style_context_restore(ctxt);
+			gtk_render_frame(cell_ctxt, cr, x, y, cell_width, cell_height);
 		}
 	}
 }

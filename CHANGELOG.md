@@ -2351,6 +2351,14 @@ below are on `main` but the release has not been cut yet.
   with `GtkTreeExpander` rows — style categories still expand and
   can't be selected, double-click applies the style, and the current
   style auto-expands and scrolls into view.
+- **Insert-table picker selection visible again** — the deprecated
+  `gtk_style_context_get_color`/`get_background_color` lookups were
+  replaced with `gtk_widget_get_color`, and the toolbar table-size
+  grid no longer forces `GTK_STATE_FLAG_SELECTED` onto its own context
+  mid-draw (a no-op in GTK4, which left selected cells invisible); it
+  now renders cells through `.view` style donors, so the chosen rows ×
+  columns highlight in the theme accent and the unselected grid shows
+  again too.
 
 ### Performance
 

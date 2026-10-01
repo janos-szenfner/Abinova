@@ -14,30 +14,34 @@
 #include "xap_GtkStyle.h"
 
 static GtkWidget *
-donor_widget (const char *selector)
+donor_widget (const char *selector, gboolean selected)
 {
-	static GtkWidget *button = nullptr;
-	static GtkWidget *textview = nullptr;
-	static GtkWidget *label = nullptr;
-	GtkWidget **slot = &label;
+	static GtkWidget *donors[2][3] = { { nullptr, nullptr, nullptr },
+					   { nullptr, nullptr, nullptr } };
+	int index = 2; /* label */
 
 	if (strstr (selector, "Button") || strstr (selector, "button"))
 	  {
-		slot = &button;
+		index = 0;
 	  }
 	else if (strstr (selector, "TreeView") || strstr (selector, "textview"))
 	  {
-		slot = &textview;
+		index = 1;
 	  }
+
+	GtkWidget **slot = &donors[selected ? 1 : 0][index];
 
 	if (!*slot)
 	  {
-		if (slot == &button)
+		if (index == 0)
 		  *slot = gtk_button_new ();
-		else if (slot == &textview)
+		else if (index == 1)
 		  *slot = gtk_text_view_new ();
 		else
 		  *slot = gtk_label_new (nullptr);
+		if (selected)
+		  gtk_widget_set_state_flags (*slot, GTK_STATE_FLAG_SELECTED,
+					      TRUE);
 		/* intentional leak: style donors live as long as the app */
 		g_object_ref_sink (*slot);
 	  }
@@ -49,6 +53,14 @@ GtkStyleContext *
 XAP_GtkStyle_get_style (GtkStyleContext * /*parent*/,
                         const char      *selector)
 {
-	GtkWidget *w = donor_widget (selector);
+	GtkWidget *w = donor_widget (selector, FALSE);
 	return g_object_ref (gtk_widget_get_style_context (w));
+}
+
+GtkWidget *
+XAP_GtkStyle_get_widget (const char   *selector,
+                         GtkStateFlags state_flags)
+{
+	return donor_widget (selector,
+			     (state_flags & GTK_STATE_FLAG_SELECTED) != 0);
 }

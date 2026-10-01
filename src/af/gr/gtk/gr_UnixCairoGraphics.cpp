@@ -200,10 +200,7 @@ void GR_UnixCairoGraphics::init3dColors(GtkWidget* w)
 		g_object_unref(m_styleHighlight);
 	}
 	m_styleHighlight = XAP_GtkStyle_get_style(nullptr, "GtkTreeView.view"); // "textview.view"
-	gtk_style_context_save (m_styleHighlight);
-	gtk_style_context_set_state (m_styleHighlight, GTK_STATE_FLAG_NORMAL);
-	gtk_style_context_get_color (m_styleHighlight, &rgba1);
-	gtk_style_context_restore (m_styleHighlight);
+	gtk_widget_get_color(XAP_GtkStyle_get_widget("GtkTreeView.view", GTK_STATE_FLAG_NORMAL), &rgba1);
 	m_3dColors[CLR3D_Highlight] = _convertGdkRGBA(rgba1);
 
 	// guess colours.
@@ -232,29 +229,14 @@ void GR_UnixCairoGraphics::init3dColors(GtkWidget* w)
 	 * foregrounds paint invisibly on the light 3D background. */
 	if (w)
 	{
-#if GTK_CHECK_VERSION(4, 10, 0)
 		gtk_widget_get_color(w, &rgba2);
-		m_3dColors[CLR3D_Foreground] = _convertGdkRGBA(rgba2);
-#else
-		GtkStyleContext *widget_style = gtk_widget_get_style_context(w);
-		gtk_style_context_save (widget_style);
-		gtk_style_context_set_state (widget_style, GTK_STATE_FLAG_NORMAL);
-		gtk_style_context_get_color (widget_style, &rgba2);
-		gtk_style_context_restore (widget_style);
-		m_3dColors[CLR3D_Foreground] = _convertGdkRGBA(rgba2);
-#endif
 	}
 	else
 	{
 		g_type_ensure(GTK_TYPE_LABEL);
-		GtkStyleContext *text_style = XAP_GtkStyle_get_style(nullptr, "GtkLabel.view"); // "label.view"
-		gtk_style_context_save (text_style);
-		gtk_style_context_set_state (text_style, GTK_STATE_FLAG_NORMAL);
-		gtk_style_context_get_color (text_style, &rgba2);
-		gtk_style_context_restore (text_style);
-		m_3dColors[CLR3D_Foreground]	= _convertGdkRGBA(rgba2);
-		g_object_unref(text_style);
+		gtk_widget_get_color(XAP_GtkStyle_get_widget("GtkLabel.view", GTK_STATE_FLAG_NORMAL), &rgba2); // "label.view"
 	}
+	m_3dColors[CLR3D_Foreground]	= _convertGdkRGBA(rgba2);
 
 	m_bHave3DColors = true;
 }
