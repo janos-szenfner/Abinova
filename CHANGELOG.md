@@ -366,6 +366,21 @@ below are on `main` but the release has not been cut yet.
   (8-bit ANSI) and uncompressed UTF-16 pieces, including a
   CP1251 (Russian-lid) document — all pieces import in order with
   the correct characters.
+- **`.doc` FIB validation and hardening** — the bundled `wv` parser
+  now validates the File Information Block per MS-DOC 2.5 before
+  trusting it: truncated or non-Word FIBs (`wIdent`, `csw`, `clw`,
+  `cfclcb`, `fcMin > fcMac`) are rejected cleanly, every `fc`/`lcb`
+  pair of `FibRgFcLcb` is clamped to the actual table-stream size so
+  corrupt offsets can no longer drive wild seeks or giant
+  allocations, memory-stream seeks/reads/writes are bounds-checked,
+  and the `wvGetFIB*` readers report failure to their callers.
+  Importer and parser crash sites found by fuzzing are fixed:
+  annotation-owner strings (`wvGetGrpXst`), missing style slots
+  (`grupe` NULL), bookmark `bkf`/`bkl` mismatches and out-of-range
+  `ibkf` indices, and footnote/endnote/header counts derived from
+  `lcb` values that could underflow. A 200-case FIB fuzz battery
+  (mutated fields, truncations, garbage blobs) now yields only clean
+  conversions or clean rejections — no crashes.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

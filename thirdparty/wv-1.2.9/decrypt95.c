@@ -184,7 +184,9 @@ wvDecrypt95 (wvParseStruct * ps)
 
     wvStream_rewind (ps->mainfd);
     ps->fib.fEncrypted = 0;
-    wvGetFIB (&ps->fib, ps->mainfd);
+    if (wvGetFIB (&ps->fib, ps->mainfd))
+	return (-1);
+    wvClampFIBFcLcb (&ps->fib, wvStream_size (ps->mainfd));
     ps->fib.fEncrypted = 0;
     return (ret);
 }

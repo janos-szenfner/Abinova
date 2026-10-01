@@ -168,7 +168,12 @@ int wvInitParser_gsf (wvParseStruct * ps, GsfInput *path)
 	  return (-1);
       }
 
-    wvGetFIB (&ps->fib, ps->mainfd);
+    if (wvGetFIB (&ps->fib, ps->mainfd))
+      {
+	  wvOLEFree (ps);
+	  wvError (("FIB is corrupt or truncated\n"));
+	  return (-1);
+      }
 
     ps->tablefd = wvWhichTableStream (&ps->fib, ps);
 
@@ -179,7 +184,12 @@ int wvInitParser_gsf (wvParseStruct * ps, GsfInput *path)
 	wvError(("Data Stream Corrupt or Not Readable\n"));
 	return (-1);
       }
-    
+
+    /* all FibRgFcLcb offsets index the table stream; clamp them to its
+       real size before anything trusts them (for word<8 the table
+       stream is the main stream, which is equally correct) */
+    wvClampFIBFcLcb (&ps->fib, wvStream_size (ps->tablefd));
+
     /* When the data stream is null, it is highly probable
        that the document is corrupt */
     if (ps->data == NULL)

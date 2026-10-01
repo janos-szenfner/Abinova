@@ -5515,32 +5515,36 @@ int IE_Imp_MsWord_97::_handleBookmarks(const wvParseStruct *ps)
 		}
 		delete [] m_pBookmarks;
 	}
-	BKF *bkf;
-	BKL *bkl;
-	U32 *posf, *posl, nobkf, nobkl;
+	BKF *bkf = nullptr;
+	BKL *bkl = nullptr;
+	U32 *posf = nullptr, *posl = nullptr, nobkf = 0, nobkl = 0;
 
-	if(!wvGetBKF_PLCF (&bkf, &posf, &nobkf, ps->fib.fcPlcfbkf, ps->fib.lcbPlcfbkf, ps->tablefd))
-	{
-		m_iBookmarksCount = nobkf;
-	}
-	else
-		m_iBookmarksCount = 0;
+	// the wvGet*_PLCF callees free their outputs on failure without
+	// NULLing them, so only free on the success paths
+	bool bBkfOk = !wvGetBKF_PLCF (&bkf, &posf, &nobkf, ps->fib.fcPlcfbkf, ps->fib.lcbPlcfbkf, ps->tablefd);
+	bool bBklOk = !wvGetBKL_PLCF (&bkl, &posl, &nobkl, ps->fib.fcPlcfbkl, ps->fib.lcbPlcfbkl, ps->fib.fcPlcfbkf, ps->fib.lcbPlcfbkf, ps->tablefd);
 
-	if(!wvGetBKL_PLCF (&bkl, &posl, &nobkl, ps->fib.fcPlcfbkl, ps->fib.lcbPlcfbkl, ps->fib.fcPlcfbkf, ps->fib.lcbPlcfbkf, ps->tablefd))
+	if(!bBkfOk || !bBklOk || nobkl != nobkf)
 	{
-		m_iBookmarksCount += nobkl;
-	}
-	else
-	{
-		if(m_iBookmarksCount > 0)
+		// a corrupt file can disagree on the bkf/bkl counts; without
+		// this reset m_iBookmarksCount would stay > 0 while
+		// m_pBookmarks is nullptr and _insertBookmarkIfAppropriate
+		// would bsearch() a NULL base
+		if(bBkfOk)
 		{
-			//g_free the bkf and posf
 			wvFree(bkf);
 			wvFree(posf);
-			m_iBookmarksCount = 0;
 		}
+		if(bBklOk)
+		{
+			wvFree(bkl);
+			wvFree(posl);
+		}
+		m_iBookmarksCount = 0;
+		return 0;
 	}
-	UT_return_val_if_fail(nobkl == nobkf, 0);
+
+	m_iBookmarksCount = nobkf + nobkl;
 	if(m_iBookmarksCount > 0)
 	{
 		try
@@ -5552,7 +5556,15 @@ int IE_Imp_MsWord_97::_handleBookmarks(const wvParseStruct *ps)
 			m_pBookmarks = nullptr;
 		}
 
-		UT_return_val_if_fail(m_pBookmarks, 0);
+		if(!m_pBookmarks)
+		{
+			wvFree(bkf);
+			wvFree(bkl);
+			wvFree(posf);
+			wvFree(posl);
+			m_iBookmarksCount = 0;
+			return 0;
+		}
 		for(i = 0; i < nobkf; i++)
 		{
 			m_pBookmarks[i].name = _getBookmarkName(ps, i);
@@ -5563,9 +5575,17 @@ int IE_Imp_MsWord_97::_handleBookmarks(const wvParseStruct *ps)
 		for(j = i; j < nobkl + i; j++)
 		{
 			// since the name is shared with the start of the bookmark,
-			// we reuse it
+			// we reuse it; ibkf comes from the file so it must be
+			// range-checked before it indexes m_pBookmarks
 			UT_sint32 iBkf = static_cast<UT_sint32>(bkl[j-i].ibkf) < 0 ? nobkl + static_cast<UT_sint32>(bkl[j-i].ibkf) : bkl[j-i].ibkf;
-			m_pBookmarks[j].name = m_pBookmarks[iBkf].name;
+			if(iBkf < 0 || iBkf >= static_cast<UT_sint32>(i))
+			{
+				m_pBookmarks[j].name = nullptr;
+			}
+			else
+			{
+				m_pBookmarks[j].name = m_pBookmarks[iBkf].name;
+			}
 			m_pBookmarks[j].pos  = posl[j - i];
 			m_pBookmarks[j].start = false;
 		}
@@ -5606,10 +5626,18 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 
 	bool bNoteError = false;
 
-	if(ps->fib.lcbPlcffndTxt)
+	if(ps->fib.lcbPlcffndTxt >= 8)
 	{
-		/* the docs say -1, but that is an error */
+		/* the docs say -1, but that is an error; lcb < 8 would
+		   underflow the count to ~4G entries */
 		m_iFootnotesCount = ps->fib.lcbPlcffndTxt/4 - 2;
+		/* the reference PLCF holds n+1 U32 positions plus n U16
+		   flags, i.e. 6n+4 bytes -- never let the count ask for
+		   more than it actually contains */
+		if(4*(m_iFootnotesCount+1) + 2*m_iFootnotesCount > ps->fib.lcbPlcffndRef)
+		{
+			m_iFootnotesCount = ps->fib.lcbPlcffndRef >= 4 ? (ps->fib.lcbPlcffndRef-4)/6 : 0;
+		}
 		try
 		{
 			m_pFootnotes = new footnote[m_iFootnotesCount];
@@ -5619,7 +5647,11 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 			m_pFootnotes = nullptr;
 		}
 
-		UT_return_if_fail(m_pFootnotes);
+		if(!m_pFootnotes)
+		{
+			m_iFootnotesCount = 0;
+			return;
+		}
 		
 		// this is really quite straight forward; we retrieve the PLCF
 		// chunks that describe the references/text of the footnotes, and
@@ -5723,9 +5755,13 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 		getDoc()->setProperties(props);
 	}
 
-	if(ps->fib.lcbPlcfendTxt)
+	if(ps->fib.lcbPlcfendTxt >= 8)
 	{
 		m_iEndnotesCount  = ps->fib.lcbPlcfendTxt/4 - 2;
+		if(4*(m_iEndnotesCount+1) + 2*m_iEndnotesCount > ps->fib.lcbPlcfendRef)
+		{
+			m_iEndnotesCount = ps->fib.lcbPlcfendRef >= 4 ? (ps->fib.lcbPlcfendRef-4)/6 : 0;
+		}
 		try
 		{
 			m_pEndnotes  = new footnote[m_iEndnotesCount];
@@ -5735,7 +5771,11 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 			m_pEndnotes = nullptr;
 		}
 
-		UT_return_if_fail(m_pEndnotes);
+		if(!m_pEndnotes)
+		{
+			m_iEndnotesCount = 0;
+			return;
+		}
 
 		bNoteError = false;
 		if(wvGetPLCF((void **) &pPLCF_ref, ps->fib.fcPlcfendRef, ps->fib.lcbPlcfendRef, ps->tablefd))
@@ -6701,7 +6741,7 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 
 	bool bHeaderError = false;
 
-	if(ps->fib.lcbPlcfhdd)
+	if(ps->fib.lcbPlcfhdd >= 8)
 	{
 		/* the docs are ambiguous, at one place saying the PLCF
 		   contains n+2 entries, another n+1; I think the former is correct*/
@@ -6715,7 +6755,13 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 			m_pHeaders = nullptr;
 		}
 
-		UT_return_if_fail(m_pHeaders);
+		/* leaving a nonzero count with a NULL array would send
+		   _beginSect indexing into nothing */
+		if(!m_pHeaders)
+		{
+			m_iHeadersCount = 0;
+			return;
+		}
 		
 		// this is really quite straight forward; we retrieve the PLCF
 		// which is a sequence of n+2 positions (UT_uint32) of the
@@ -6725,9 +6771,15 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 			bHeaderError = true;
 		}
 
-		if(!bHeaderError)
+		if(bHeaderError || !pPLCF_txt)
 		{
-			UT_return_if_fail(pPLCF_txt);
+			/* the array was allocated but never filled; do not leave
+			   a count that describes uninitialized headers */
+			m_iHeadersCount = 0;
+			return;
+		}
+
+		{
 			for(i = 0; i < m_iHeadersCount; i++)
 			{
 				m_pHeaders[i].pos = pPLCF_txt[i] + m_iHeadersStart;

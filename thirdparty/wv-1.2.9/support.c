@@ -192,7 +192,17 @@ static size_t memorystream_read(MemoryStream *stream, void *buf, size_t count)
 {
   size_t ret;
 
-  if ( stream->current + count <= stream->size)
+  /* a previous seek may have left current beyond the end; an
+     unchecked current + count could also wrap around */
+  if (stream->current > stream->size)
+    {
+      memset(buf, 0, count);
+      stream->current = stream->size;
+      wvTrace(("read out of bounds\n"));
+      return 0;
+    }
+
+  if (count <= stream->size - stream->current)
     {  
       memcpy(buf, stream->mem + stream->current, count);
       stream->current += count;
@@ -306,7 +316,14 @@ wvStream_goto (wvStream * in, long position)
       }
     else
       {
-	in->stream.memory_stream->current = position;
+	/* clamp into [0,size] so a corrupt offset can never send a
+	   later read outside the buffer */
+	if (position < 0)
+	  in->stream.memory_stream->current = 0;
+	else if ((unsigned long)position > in->stream.memory_stream->size)
+	  in->stream.memory_stream->current = in->stream.memory_stream->size;
+	else
+	  in->stream.memory_stream->current = position;
         return in->stream.memory_stream->current;
       }
 }
@@ -325,7 +342,18 @@ wvStream_offset (wvStream * in, long offset)
       }
     else
       {
-	in->stream.memory_stream->current += offset;
+	MemoryStream *mem = in->stream.memory_stream;
+	long pos;
+
+	if (mem->current > mem->size)
+	  mem->current = mem->size;
+	pos = (long) mem->current + offset;
+	if (pos < 0)
+	  mem->current = 0;
+	else if ((unsigned long) pos > mem->size)
+	  mem->current = mem->size;
+	else
+	  mem->current = pos;
 	return  in->stream.memory_stream->current;
       }
 }
@@ -344,8 +372,15 @@ wvStream_offset_from_end (wvStream * in, long offset)
       }
     else
       {
-	in->stream.memory_stream->current = 
-	in->stream.memory_stream->size + offset;
+	MemoryStream *mem = in->stream.memory_stream;
+	long pos = (long) mem->size + offset;
+
+	if (pos < 0)
+	  mem->current = 0;
+	else if ((unsigned long) pos > mem->size)
+	  mem->current = mem->size;
+	else
+	  mem->current = pos;
         return in->stream.memory_stream->current;
       }
 }
@@ -554,6 +589,23 @@ dread_8ubit (wvStream * in, U8 ** list)
       }
 }
 
+static size_t memorystream_write(MemoryStream *stream, const void *buf, size_t count)
+{
+  size_t avail = 0;
+
+  if (stream->current < stream->size)
+    {
+      avail = stream->size - stream->current;
+      if (avail > count)
+	  avail = count;
+      memcpy(stream->mem + stream->current, buf, avail);
+      stream->current += avail;
+    }
+  if (avail != count)
+    wvTrace(("write out of bounds\n"));
+  return avail;
+}
+
 int
 write_32ubit (wvStream * in, U32 out)
 {
@@ -575,10 +627,7 @@ write_32ubit (wvStream * in, U32 out)
 	      (int) fwrite (&cpy, sizeof (guint32), 1, in->stream.file_stream);
       }
     else{
-	    nwr = 4;
-	   	*((U32 *) (in->stream.memory_stream->mem + 
-			           in->stream.memory_stream->current)) = cpy;
-		   in->stream.memory_stream->current +=4;
+	    nwr = (int) memorystream_write(in->stream.memory_stream, &cpy, 4);
 	    }
     return nwr;
 }
@@ -604,10 +653,7 @@ write_16ubit (wvStream * in, U16 out)
 	      (int) fwrite (&cpy, sizeof (guint16), 1, in->stream.file_stream);
       }
     else{
-	    nwr = 2;
-	    *((U16 *) (in->stream.memory_stream->mem + 
-		             in->stream.memory_stream->current))= cpy;
-	    in->stream.memory_stream->current+=2;
+	    nwr = (int) memorystream_write(in->stream.memory_stream, &cpy, 2);
 	    }
 
     return nwr;
@@ -633,10 +679,7 @@ write_8ubit (wvStream * in, U8 out)
 	  nwr = (int) fwrite (&cpy, sizeof (guint8), 1, in->stream.file_stream);
       }
     else{
-      nwr = 1;
-	    *((U8 *)(in->stream.memory_stream->mem + 
-		           in->stream.memory_stream->current)) = cpy;
-	    in->stream.memory_stream->current++;
+      nwr = (int) memorystream_write(in->stream.memory_stream, &cpy, 1);
 	  }
     return nwr;
 }
@@ -658,10 +701,7 @@ wvStream_write (void *ptr, size_t size, size_t nmemb, wvStream * in)
 	  nwr = (int) fwrite (ptr, size, nmemb, in->stream.file_stream);
       }
     else{
-      nwr = size * nmemb;
-    	memcpy(in->stream.memory_stream->mem + 
-                    in->stream.memory_stream->current,ptr, size * nmemb);
-	    in->stream.memory_stream->current+=size* nmemb;
+      nwr = (int) memorystream_write(in->stream.memory_stream, ptr, size * nmemb);
     }
     return nwr;
 }

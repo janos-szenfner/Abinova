@@ -325,10 +325,18 @@ wvGetGrpXst (STTBF * anS, U32 offset, U32 len, wvStream * fd)
 	return;
     wvStream_goto (fd, offset);
 
-    while (pos < len)
+    while (pos + 2 <= len)
       {
 	  slen = read_16ubit (fd);
 	  pos += 2;
+	  /* a GrpXst is a run of Xsts inside lcb bytes; an Xst whose
+	     cch overruns the remainder is corrupt, truncate it */
+	  if ((U32) slen * 2 > len - pos)
+	      slen = (U16) ((len - pos) / 2);
+	  /* nostrings is a U16 -- do not let it wrap and corrupt the
+	     realloc below */
+	  if (anS->nostrings == 0xFFFF)
+	      break;
 	  anS->nostrings++;
 	  anS->u16strings =
 	      (U16 **) realloc (anS->u16strings,

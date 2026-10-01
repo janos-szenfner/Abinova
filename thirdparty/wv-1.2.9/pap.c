@@ -121,7 +121,7 @@ wvInitPAPFromIstd (PAP * apap, U16 istdBase, STSH * stsh)
 	wvInitPAP (apap);
     else
       {
-	  if (istdBase >= stsh->Stshi.cstd)
+	  if (istdBase >= stsh->Stshi.cstd || stsh->std == NULL)
 	    {
 		wvError (
 			 ("ISTD out of bounds, requested %d of %d\n",
@@ -131,7 +131,8 @@ wvInitPAPFromIstd (PAP * apap, U16 istdBase, STSH * stsh)
 	    }
 	  else
 	    {
-		if (stsh->std[istdBase].cupx == 0)	/*empty slot in the array, i don't think this should happen */
+		if (stsh->std[istdBase].cupx == 0
+		    || stsh->std[istdBase].grupe == NULL)	/*empty slot in the array, i don't think this should happen */
 		  {
 		      wvTrace (("Empty style slot used (chp)\n"));
 		      wvInitPAP (apap);

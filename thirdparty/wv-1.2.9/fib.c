@@ -308,38 +308,63 @@ wvInitFIB (FIB * item)
     item->wSpare4 = 0;
 }
 
-void
+/* MS-DOC 2.5: for nFib >= 0x00C1 (Word 97 and later) the stream begins
+   FibBase (32 bytes), csw (2), fibRgW (csw*2 bytes), clw (2), fibRgLw
+   (clw*4 bytes), cfclcb (2), fibRgFcLcbBlob (cfclcb*8 bytes), cswNew (2),
+   fibRgCswNew.  csw MUST be 0x000E (FibRgW97), clw MUST be 0x0016
+   (FibRgLw97) and cfclcb MUST cover at least the 0x005D pairs of
+   FibRgFcLcb97; newer nFib versions append further pairs that we ignore. */
+#define WV_FIBBASE_LEN		32
+#define WV_FIBRGW97		14
+#define WV_FIBRGLW97		22
+#define WV_FIBRGFCLCB97		93
+#define WV_FIB97_FCLCB_OFF	(WV_FIBBASE_LEN + 2 + WV_FIBRGW97 * 2 + 2 \
+				 + WV_FIBRGLW97 * 4 + 2)
+
+int
 wvGetFIB (FIB * item, wvStream * fd)
 {
     U16 temp16;
     U8 temp8;
+    U32 fibsize;
 
-    item->fEncrypted = 0;
+    wvInitFIB (item);
+
+    fibsize = wvStream_size (fd);
+    if (fibsize < WV_FIBBASE_LEN)
+      {
+	  wvError (("FIB: stream too small (%u bytes) for FibBase\n",
+		    fibsize));
+	  return (-1);
+      }
 
     wvStream_goto (fd, 0);
-#ifdef PURIFY
-    wvInitFIB (item);
-#endif
     item->wIdent = read_16ubit (fd);
     item->nFib = read_16ubit (fd);
 
     if ((wvQuerySupported (item, NULL) == WORD2))
       {
-	  wvInitFIB (item);
 	  wvStream_offset (fd, -4);
-	  wvGetFIB2 (item, fd);
-	  return;
+	  return (wvGetFIB2 (item, fd));
       }
 
     if ((wvQuerySupported (item, NULL) == WORD5)
 	|| (wvQuerySupported (item, NULL) == WORD6)
 	|| (wvQuerySupported (item, NULL) == WORD7))
       {
-	  wvInitFIB (item);
 	  wvStream_offset (fd, -4);
-	  wvGetFIB6 (item, fd);
-	  return;
+	  return (wvGetFIB6 (item, fd));
       }
+
+    /* everything else is parsed as a Word 97+ FIB; enforce the parts of
+       MS-DOC 2.5 that the fields read below depend on */
+    if (item->wIdent != 0xA5EC)
+      {
+	  wvError (("FIB: wIdent is 0x%04x, not 0xA5EC\n", item->wIdent));
+	  return (-1);
+      }
+    if (item->nFib < 0x00C1)
+	wvError (("FIB: nFib %u is below 0x00C1 (Word 97)\n", item->nFib));
 
     item->nProduct = read_16ubit (fd);
     item->lid = read_16ubit (fd);
@@ -375,6 +400,12 @@ wvGetFIB (FIB * item, wvStream * fd)
     item->fcMin = read_32ubit (fd);
     item->fcMac = read_32ubit (fd);
     item->csw = read_16ubit (fd);
+    if (item->csw != WV_FIBRGW97)
+      {
+	  wvError (("FIB: csw is %u, not %u (fibRgW97)\n", item->csw,
+		    WV_FIBRGW97));
+	  return (-1);
+      }
     item->wMagicCreated = read_16ubit (fd);
     item->wMagicRevised = read_16ubit (fd);
     item->wMagicCreatedPrivate = read_16ubit (fd);
@@ -390,6 +421,12 @@ wvGetFIB (FIB * item, wvStream * fd)
     item->cpnBteLvc_W6 = (S16) read_16ubit (fd);
     item->lidFE = (S16) read_16ubit (fd);
     item->clw = read_16ubit (fd);
+    if (item->clw != WV_FIBRGLW97)
+      {
+	  wvError (("FIB: clw is %u, not %u (fibRgLw97)\n", item->clw,
+		    WV_FIBRGLW97));
+	  return (-1);
+      }
     item->cbMac = (S32) read_32ubit (fd);
     item->lProductCreated = read_32ubit (fd);
     item->lProductRevised = read_32ubit (fd);
@@ -413,6 +450,15 @@ wvGetFIB (FIB * item, wvStream * fd)
     item->fcIslandFirst = (S32) read_32ubit (fd);
     item->fcIslandLim = (S32) read_32ubit (fd);
     item->cfclcb = read_16ubit (fd);
+    /* we only consume the first FibRgFcLcb97 pairs; the blob must at
+       least claim that many and fit inside the stream */
+    if (item->cfclcb < WV_FIBRGFCLCB97
+	|| (U32) WV_FIB97_FCLCB_OFF + (U32) item->cfclcb * 8 > fibsize)
+      {
+	  wvError (("FIB: cfclcb %u invalid for stream size %u\n",
+		    item->cfclcb, fibsize));
+	  return (-1);
+      }
     item->fcStshfOrig = (S32) read_32ubit (fd);
     item->lcbStshfOrig = read_32ubit (fd);
     item->fcStshf = (S32) read_32ubit (fd);
@@ -599,6 +645,64 @@ wvGetFIB (FIB * item, wvStream * fd)
     item->lcbSttbListNames = read_32ubit (fd);
     item->fcSttbfUssr = (S32) read_32ubit (fd);
     item->lcbSttbfUssr = read_32ubit (fd);
+
+    /* [MS-DOC 2.5.3] fcMin is the offset of the first byte of document
+       text and fcMac the offset after the last; a reversed range or a
+       range outside the stream means the FIB is lying */
+    if (item->fcMac > fibsize)
+      {
+	  wvError (("FIB: fcMac 0x%x beyond stream size 0x%x, clamping\n",
+		    item->fcMac, fibsize));
+	  item->fcMac = fibsize;
+      }
+    if (item->fcMin > item->fcMac)
+      {
+	  wvError (("FIB: fcMin 0x%x beyond fcMac 0x%x\n", item->fcMin,
+		    item->fcMac));
+	  return (-1);
+      }
+
+    return (0);
+}
+
+/* MS-DOC 2.5.3: every fc/lcb pair of FibRgFcLcb97 addresses data in the
+   Table stream, so each pair must describe a range that lies inside it.
+   The pairs are stored back to back from fcStshfOrig through
+   lcbSttbfUssr (one slot in the middle holds ftModified -- clamping a
+   timestamp is harmless); walk them in place: an fc outside the stream
+   (or negative) voids the pair, an oversized lcb is cut down to the
+   bytes actually present.  This keeps corrupt FIBs from steering the
+   table readers into wild seeks and giant allocations. */
+void
+wvClampFIBFcLcb (FIB * item, U32 tablesize)
+{
+    U32 *pairs = (U32 *) & item->fcStshfOrig;
+    U32 npairs = ((U32) ((char *) &item->lcbSttbfUssr -
+			 (char *) &item->fcStshfOrig)) / 8 + 1;
+    U32 i;
+
+    for (i = 0; i < npairs; i++)
+      {
+	  S32 *fc = (S32 *) & pairs[i * 2];
+	  U32 *lcb = &pairs[i * 2 + 1];
+
+	  if (*fc < 0 || (U32) * fc >= tablesize)
+	    {
+		if (*fc != 0 || *lcb != 0)
+		    wvTrace (
+			     ("FIB: fc/lcb pair %d (0x%x/0x%x) outside table stream, cleared\n",
+			      i, *fc, *lcb));
+		*fc = 0;
+		*lcb = 0;
+	    }
+	  else if (*lcb > tablesize - (U32) * fc)
+	    {
+		wvTrace (
+			 ("FIB: fc/lcb pair %d (0x%x/0x%x) truncated to table stream\n",
+			  i, *fc, *lcb));
+		*lcb = tablesize - (U32) * fc;
+	    }
+      }
 }
 
 wvStream *
@@ -684,7 +788,7 @@ wvQuerySupported (FIB * fib, int *reason)
     return (ret);
 }
 
-void
+int
 wvGetFIB2 (FIB * item, wvStream * fd)
 {
     U16 temp16 = 0;
@@ -822,9 +926,16 @@ wvGetFIB2 (FIB * item, wvStream * fd)
     item->cpnBteChp = read_16ubit (fd);
     item->cpnBtePap = read_16ubit (fd);
 
+    if (item->fcMin > item->fcMac)
+      {
+	  wvError (("FIB2: fcMin 0x%x beyond fcMac 0x%x\n", item->fcMin,
+		    item->fcMac));
+	  return (-1);
+      }
+    return (0);
 }
 
-void
+int
 wvGetFIB6 (FIB * item, wvStream * fd)
 {
     U16 temp16;
@@ -1053,4 +1164,12 @@ wvGetFIB6 (FIB * item, wvStream * fd)
     item->lcbSttbSavedBy = read_32ubit (fd);
     item->fcSttbFnm = (S32) read_32ubit (fd);
     item->lcbSttbFnm = read_32ubit (fd);
+
+    if (item->fcMin > item->fcMac)
+      {
+	  wvError (("FIB6: fcMin 0x%x beyond fcMac 0x%x\n", item->fcMin,
+		    item->fcMac));
+	  return (-1);
+      }
+    return (0);
 }

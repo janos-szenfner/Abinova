@@ -456,7 +456,11 @@ wvInitCHPXFromIstd (CHPX * chpx, U16 istdBase, STSH * stsh)
 	wvInitCHPX (chpx);
     else
       {
-	  if (istdBase >= stsh->Stshi.cstd)
+	  /* a style that was never read (cbStd == 0, or a failed std
+	     allocation) has no grupe array to copy from */
+	  if (istdBase >= stsh->Stshi.cstd || stsh->std == NULL
+	      || stsh->std[istdBase].cupx == 0
+	      || stsh->std[istdBase].grupe == NULL)
 	    {
 		wvError (
 			 ("ISTD out of bounds, requested %d of %d\n",

@@ -481,10 +481,11 @@ void _wvFree (void *ptr);
 
     } FIB;
 
-    void wvGetFIB (FIB * item, wvStream * fd);
-    void wvGetFIB2 (FIB * item, wvStream * fd);
-    void wvGetFIB6 (FIB * item, wvStream * fd);
+    int wvGetFIB (FIB * item, wvStream * fd);
+    int wvGetFIB2 (FIB * item, wvStream * fd);
+    int wvGetFIB6 (FIB * item, wvStream * fd);
     void wvInitFIB (FIB * item);
+    void wvClampFIBFcLcb (FIB * item, U32 tablesize);
 
 
     int wvGetEmpty_PLCF (U32 ** cp, U32 * nocps, U32 offset, U32 len,

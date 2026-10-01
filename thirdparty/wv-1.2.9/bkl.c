@@ -39,7 +39,8 @@ wvGetBKL_PLCF (BKL ** bkl, U32 ** pos, U32 * nobkl, U32 bkloffset, U32 bkllen, U
     U32 *posf,nobkf;
 
     U32 i, j;
-    if (bkllen == 0 || bkflen == 0)
+    /* lengths < 4 would underflow the (len - 4) counts below */
+    if (bkllen < 4 || bkflen < 4)
       {
 	  *bkl = NULL;
 	  *pos = NULL;
