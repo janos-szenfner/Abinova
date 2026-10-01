@@ -29,6 +29,7 @@
 #endif
 
 #include "ut_go_file.h"
+#include "ut_raii.h"
 #include <glib/gstdio.h>
 #include <libxml/encoding.h>
 
@@ -1049,8 +1050,8 @@ UT_go_file_open_impl (char const *uri, GError **err)
 #if defined G_OS_WIN32
 		setmode (fd, O_BINARY);
 #endif
-		int fd2 = dup (fd);
-		FILE *fil = fd2 != -1 ? fdopen (fd2, "rb") : nullptr;
+		UT_ScopedFD fd2 (dup (fd));
+		UT_FilePtr fil (fd2 ? fdopen (fd2.get(), "rb") : nullptr);
 		GsfInput *result;
 
 		if (!fil) {
@@ -1058,10 +1059,10 @@ UT_go_file_open_impl (char const *uri, GError **err)
 				     "Unable to read from %s", uri);
 			return nullptr;
 		}
+		fd2.release (); /* fil owns the descriptor now */
 
 		/* guarantee that file descriptors will be seekable */
-		result = gsf_input_memory_new_from_file (fil);
-		fclose (fil);
+		result = gsf_input_memory_new_from_file (fil.get());
 
 		return result;
 	}
@@ -1102,7 +1103,10 @@ gsf_output_proxy_create (GsfOutput *wrapped, char const *uri, GError **err)
 			     "Unable to write to %s", uri);
 		return nullptr;
 	}
-	
+
+	/* the proxy refs the sink itself, so our ref must go */
+	UT_GObjPtr<GsfOutput> sink (wrapped);
+
 	/* guarantee that file descriptors will be seekable */
 	return gsf_output_proxy_new (wrapped);
 }
@@ -1131,9 +1135,14 @@ UT_go_file_create_impl (char const *uri, GError **err)
 #if defined G_OS_WIN32
 		setmode (fd, O_BINARY);
 #endif
-		int fd2 = dup (fd);
-		FILE *fil = fd2 != -1 ? fdopen (fd2, "wb") : nullptr;
-		GsfOutput *result = fil ? gsf_output_stdio_new_FILE (uri, fil, FALSE) : nullptr;
+		UT_ScopedFD fd2 (dup (fd));
+		UT_FilePtr fil (fd2 ? fdopen (fd2.get(), "wb") : nullptr);
+		if (fil)
+			fd2.release (); /* fil owns the descriptor now */
+		GsfOutput *result = fil ? gsf_output_stdio_new_FILE (uri, fil.get(), FALSE) : nullptr;
+		if (result)
+			/* keep_file=FALSE: the GsfOutput owns and will fclose fil */
+			fil.release ();
 
 		/* guarantee that file descriptors will be seekable */
 		return gsf_output_proxy_create(result, uri, err);

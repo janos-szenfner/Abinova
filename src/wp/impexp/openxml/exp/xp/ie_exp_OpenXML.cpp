@@ -27,9 +27,27 @@
 
 // Abiword includes
 #include "ut_std_string.h"
+#include "ut_raii.h"
 #include "pd_Document.h"
 
 namespace {
+
+/*
+ * Drop the caller's reference on a GsfOutput/GsfOutfile handle,
+ * closing the stream first if it is still open, and clear the
+ * pointer so it cannot be released twice.
+ */
+template <typename T>
+void s_release_gsf_output(T*& output)
+{
+	if (!output)
+		return;
+	GsfOutput* out = GSF_OUTPUT(output);
+	if (!gsf_output_is_closed(out))
+		gsf_output_close(out);
+	g_object_unref(G_OBJECT(output));
+	output = nullptr;
+}
 
 /*
  * True when the value looks like an ISO-8601/W3CDTF date-time
@@ -120,17 +138,16 @@ UT_Error IE_Exp_OpenXML::startDocument()
 	if(!sink)
 		return UT_SAVE_EXPORTERROR;
 
+	/* gsf_outfile_zip_new refs the sink itself; m_fp's reference stays
+	 * with the exporter and is released by IE_Exp::_closeFile() */
 	root = gsf_outfile_zip_new(sink, &err);
 
 	if(err || !root)
 	{
 		UT_DEBUGMSG(("FRT: ERROR, Zip root file couldn't be created\n"));
 		g_clear_error(&err);
-		g_object_unref (G_OBJECT (sink));
 		return UT_IE_COULDNOTWRITE;
 	}
-
-	g_object_unref (G_OBJECT (sink));
 
 	error = startEndnotes();
 	if(error != UT_OK)
@@ -247,6 +264,8 @@ UT_Error IE_Exp_OpenXML::finishDocument()
 		UT_DEBUGMSG(("FRT: ERROR, zip root file couldn't be closed\n"));
 		return UT_SAVE_EXPORTERROR;
 	}
+
+	s_release_gsf_output(root);
 
 	return UT_OK;
 }
@@ -2032,73 +2051,46 @@ void IE_Exp_OpenXML::_cleanup ()
 {
 	m_pDoc = nullptr;
 
-	if(footnoteStream && !gsf_output_is_closed(footnoteStream))
-		gsf_output_close(footnoteStream);
+	/* the media/header/footer maps own their streams; headerStream and
+	 * footerStream are merely aliases of the most recent map entry */
+	std::map<std::string, GsfOutput*>::iterator it;
+	for (it = mediaStreams.begin(); it != mediaStreams.end(); ++it)
+		s_release_gsf_output(it->second);
+	mediaStreams.clear();
 
-	if(endnoteStream && !gsf_output_is_closed(endnoteStream))
-		gsf_output_close(endnoteStream);
-
-	if(settingsStream && !gsf_output_is_closed(settingsStream))
-		gsf_output_close(settingsStream);
-
-	if(headerStream && !gsf_output_is_closed(headerStream))
-		gsf_output_close(headerStream);
-	
-	if(footerStream && !gsf_output_is_closed(footerStream))
-		gsf_output_close(footerStream);
-	
-	if(numberingStream && !gsf_output_is_closed(numberingStream))
-		gsf_output_close(numberingStream);
-
-	if(stylesStream && !gsf_output_is_closed(stylesStream))
-		gsf_output_close(stylesStream);
-
-	if(contentTypesStream && !gsf_output_is_closed(contentTypesStream))
-		gsf_output_close(contentTypesStream);
-
-	if(relStream && !gsf_output_is_closed(relStream))
-		gsf_output_close(relStream);
-
-	if(wordRelStream && !gsf_output_is_closed(wordRelStream))
-		gsf_output_close(wordRelStream);
-
-	if(documentStream && !gsf_output_is_closed(documentStream))
-		gsf_output_close(documentStream);
-
-	if(relsDir)
+	for (it = headerStreams.begin(); it != headerStreams.end(); ++it)
 	{
-		GsfOutput* rels_out = GSF_OUTPUT(relsDir);
-		if(!gsf_output_is_closed(rels_out))
-			gsf_output_close(rels_out);
+		if (headerStream == it->second)
+			headerStream = nullptr;
+		s_release_gsf_output(it->second);
 	}
+	headerStreams.clear();
 
-	if(wordMediaDir)
+	for (it = footerStreams.begin(); it != footerStreams.end(); ++it)
 	{
-		GsfOutput* wordMedia_out = GSF_OUTPUT(wordMediaDir);
-		if(!gsf_output_is_closed(wordMedia_out))
-			gsf_output_close(wordMedia_out);
+		if (footerStream == it->second)
+			footerStream = nullptr;
+		s_release_gsf_output(it->second);
 	}
+	footerStreams.clear();
 
-	if(wordRelsDir)
-	{
-		GsfOutput* wordRels_out = GSF_OUTPUT(wordRelsDir);
-		if(!gsf_output_is_closed(wordRels_out))
-			gsf_output_close(wordRels_out);
-	}
+	s_release_gsf_output(footnoteStream);
+	s_release_gsf_output(endnoteStream);
+	s_release_gsf_output(settingsStream);
+	s_release_gsf_output(headerStream);
+	s_release_gsf_output(footerStream);
+	s_release_gsf_output(numberingStream);
+	s_release_gsf_output(stylesStream);
+	s_release_gsf_output(contentTypesStream);
+	s_release_gsf_output(relStream);
+	s_release_gsf_output(wordRelStream);
+	s_release_gsf_output(documentStream);
 
-	if(wordDir)
-	{
-		GsfOutput* word_out = GSF_OUTPUT(wordDir);
-		if(!gsf_output_is_closed(word_out))
-			gsf_output_close(word_out);
-	}
-
-	if(root)
-	{
-		GsfOutput* root_out = GSF_OUTPUT(root);
-		if(!gsf_output_is_closed(root_out))
-			gsf_output_close(root_out);
-	}
+	s_release_gsf_output(relsDir);
+	s_release_gsf_output(wordMediaDir);
+	s_release_gsf_output(wordRelsDir);
+	s_release_gsf_output(wordDir);
+	s_release_gsf_output(root);
 }
 
 /**
@@ -2143,28 +2135,26 @@ UT_Error IE_Exp_OpenXML::finishNumbering()
 		return err;
 	}
 
-	GsfOutput* numberingFile = gsf_outfile_new_child(wordDir, "numbering.xml", FALSE);
+	UT_GsfOutputPtr numberingFile(gsf_outfile_new_child(wordDir, "numbering.xml", FALSE));
 
 	if(!numberingFile)
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(numberingFile, gsf_output_size(numberingStream), 
+ 	if(!gsf_output_write(numberingFile.get(), gsf_output_size(numberingStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(numberingStream))))
 	{
-		gsf_output_close(numberingFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	if(!gsf_output_close(numberingStream))
 	{
-		gsf_output_close(numberingFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(numberingFile))
+	if(!gsf_output_close(numberingFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, numbering.xml file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, numbering.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 	return UT_OK;
 }
@@ -2211,28 +2201,26 @@ UT_Error IE_Exp_OpenXML::finishStyles()
 		return err;
 	}
 
-	GsfOutput* stylesFile = gsf_outfile_new_child(wordDir, "styles.xml", FALSE);
+	UT_GsfOutputPtr stylesFile(gsf_outfile_new_child(wordDir, "styles.xml", FALSE));
 
 	if(!stylesFile)
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(stylesFile, gsf_output_size(stylesStream), 
+ 	if(!gsf_output_write(stylesFile.get(), gsf_output_size(stylesStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(stylesStream))))
 	{
-		gsf_output_close(stylesFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	if(!gsf_output_close(stylesStream))
 	{
-		gsf_output_close(stylesFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(stylesFile))
+	if(!gsf_output_close(stylesFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, styles.xml file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, styles.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 	return UT_OK;
 }
@@ -2244,8 +2232,7 @@ UT_Error IE_Exp_OpenXML::finishStyles()
  */
 UT_Error IE_Exp_OpenXML::_writeDocProps()
 {
-	GsfOutfile * propsDir =
-		GSF_OUTFILE(gsf_outfile_new_child(root, "docProps", TRUE));
+	UT_GsfOutputPtr propsDir(gsf_outfile_new_child(root, "docProps", TRUE));
 	if (!propsDir)
 		return UT_SAVE_EXPORTERROR;
 
@@ -2295,12 +2282,13 @@ UT_Error IE_Exp_OpenXML::_writeDocProps()
 
 	core += "</cp:coreProperties>";
 
-	GsfOutput * coreFile = gsf_outfile_new_child(propsDir, "core.xml", FALSE);
+	UT_GsfOutputPtr coreFile(gsf_outfile_new_child(
+		GSF_OUTFILE(propsDir.get()), "core.xml", FALSE));
 	if (!coreFile)
 		return UT_SAVE_EXPORTERROR;
-	if (!gsf_output_write(coreFile, core.size(),
+	if (!gsf_output_write(coreFile.get(), core.size(),
 						 reinterpret_cast<const guint8 *>(core.c_str())) ||
-		!gsf_output_close(coreFile))
+		!gsf_output_close(coreFile.get()))
 		return UT_SAVE_EXPORTERROR;
 
 	// ---------- app.xml ----------
@@ -2326,12 +2314,13 @@ UT_Error IE_Exp_OpenXML::_writeDocProps()
 		"</Application>\n";
 	app += "</Properties>";
 
-	GsfOutput * appFile = gsf_outfile_new_child(propsDir, "app.xml", FALSE);
+	UT_GsfOutputPtr appFile(gsf_outfile_new_child(
+		GSF_OUTFILE(propsDir.get()), "app.xml", FALSE));
 	if (!appFile)
 		return UT_SAVE_EXPORTERROR;
-	if (!gsf_output_write(appFile, app.size(),
+	if (!gsf_output_write(appFile.get(), app.size(),
 						 reinterpret_cast<const guint8 *>(app.c_str())) ||
-		!gsf_output_close(appFile))
+		!gsf_output_close(appFile.get()))
 		return UT_SAVE_EXPORTERROR;
 
 	return UT_OK;
@@ -2403,28 +2392,26 @@ UT_Error IE_Exp_OpenXML::finishContentTypes()
 		return err;
 	}
 
-	GsfOutput* contentTypesFile = gsf_outfile_new_child(root, "[Content_Types].xml", FALSE);
+	UT_GsfOutputPtr contentTypesFile(gsf_outfile_new_child(root, "[Content_Types].xml", FALSE));
 
 	if(!contentTypesFile)
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(contentTypesFile, gsf_output_size(contentTypesStream), 
+ 	if(!gsf_output_write(contentTypesFile.get(), gsf_output_size(contentTypesStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(contentTypesStream))))
 	{
-		gsf_output_close(contentTypesFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	if(!gsf_output_close(contentTypesStream))
 	{
-		gsf_output_close(contentTypesFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(contentTypesFile))
+	if(!gsf_output_close(contentTypesFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, [Content_Types].xml file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, [Content_Types].xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 	return UT_OK;
 }
@@ -2486,28 +2473,26 @@ UT_Error IE_Exp_OpenXML::finishRelations()
 		return UT_SAVE_EXPORTERROR;
 	}
 
-	GsfOutput* relFile = gsf_outfile_new_child(relsDir, ".rels", FALSE);
+	UT_GsfOutputPtr relFile(gsf_outfile_new_child(relsDir, ".rels", FALSE));
 
 	if(!relFile)
 		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(relFile, gsf_output_size(relStream), 
+ 	if(!gsf_output_write(relFile.get(), gsf_output_size(relStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(relStream))))
 	{
-		gsf_output_close(relFile);
 		return UT_SAVE_EXPORTERROR;
 	}
 
 	if(!gsf_output_close(relStream))
 	{
-		gsf_output_close(relFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(relFile))
+	if(!gsf_output_close(relFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, .rels file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, .rels file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	return UT_OK;
@@ -2575,28 +2560,26 @@ UT_Error IE_Exp_OpenXML::finishWordRelations()
 		return UT_SAVE_EXPORTERROR;
 	}
 
-	GsfOutput* wordRelFile = gsf_outfile_new_child(wordRelsDir, "document.xml.rels", FALSE);
+	UT_GsfOutputPtr wordRelFile(gsf_outfile_new_child(wordRelsDir, "document.xml.rels", FALSE));
 
 	if(!wordRelFile)
 		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(wordRelFile, gsf_output_size(wordRelStream), 
+ 	if(!gsf_output_write(wordRelFile.get(), gsf_output_size(wordRelStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(wordRelStream))))
 	{
-		gsf_output_close(wordRelFile);
 		return UT_SAVE_EXPORTERROR;
 	}
 
 	if(!gsf_output_close(wordRelStream))
 	{
-		gsf_output_close(wordRelFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(wordRelFile))
+	if(!gsf_output_close(wordRelFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, document.xml.rels file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, document.xml.rels file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	return UT_OK;
@@ -2626,28 +2609,26 @@ UT_Error IE_Exp_OpenXML::finishWordMedia()
 	std::map<std::string, GsfOutput*>::iterator it;
 	for (it = mediaStreams.begin(); it != mediaStreams.end(); it++) {
 
-		GsfOutput* imageFile = gsf_outfile_new_child(wordMediaDir, it->first.c_str(), FALSE);
+		UT_GsfOutputPtr imageFile(gsf_outfile_new_child(wordMediaDir, it->first.c_str(), FALSE));
 
 		if(!imageFile)
 			return UT_SAVE_EXPORTERROR;
 
-	 	if(!gsf_output_write(imageFile, gsf_output_size(it->second), 
+	 	if(!gsf_output_write(imageFile.get(), gsf_output_size(it->second),
 						 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(it->second))))
 		{
-			gsf_output_close(imageFile);
 			return UT_SAVE_EXPORTERROR;
 		}
-	
+
 		if(!gsf_output_close(it->second))
 		{
-			gsf_output_close(imageFile);
-			return UT_SAVE_EXPORTERROR;		
+			return UT_SAVE_EXPORTERROR;
 		}
 
-		if(!gsf_output_close(imageFile))
+		if(!gsf_output_close(imageFile.get()))
 		{
-			UT_DEBUGMSG(("FRT: ERROR, image file couldn't be closed\n"));	
-			return UT_SAVE_EXPORTERROR;		
+			UT_DEBUGMSG(("FRT: ERROR, image file couldn't be closed\n"));
+			return UT_SAVE_EXPORTERROR;
 		}
 	}
 	
@@ -2707,28 +2688,26 @@ UT_Error IE_Exp_OpenXML::finishMainPart()
 		return UT_SAVE_EXPORTERROR;
 	}
 	
-	GsfOutput* documentFile = gsf_outfile_new_child(wordDir, "document.xml", FALSE);
+	UT_GsfOutputPtr documentFile(gsf_outfile_new_child(wordDir, "document.xml", FALSE));
 
 	if(!documentFile)
 		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(documentFile, gsf_output_size(documentStream), 
+ 	if(!gsf_output_write(documentFile.get(), gsf_output_size(documentStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(documentStream))))
 	{
-		gsf_output_close(documentFile);
 		return UT_SAVE_EXPORTERROR;
 	}
-	
+
 	if(!gsf_output_close(documentStream))
 	{
-		gsf_output_close(documentFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(documentFile))
+	if(!gsf_output_close(documentFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, document.xml file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, document.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	return UT_OK;
@@ -2774,28 +2753,26 @@ UT_Error IE_Exp_OpenXML::finishSettings()
 		return err;
 	}
 	
-	GsfOutput* settingsFile = gsf_outfile_new_child(wordDir, "settings.xml", FALSE);
+	UT_GsfOutputPtr settingsFile(gsf_outfile_new_child(wordDir, "settings.xml", FALSE));
 
 	if(!settingsFile)
 		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(settingsFile, gsf_output_size(settingsStream), 
+ 	if(!gsf_output_write(settingsFile.get(), gsf_output_size(settingsStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(settingsStream))))
 	{
-		gsf_output_close(settingsFile);
 		return UT_SAVE_EXPORTERROR;
 	}
-	
+
 	if(!gsf_output_close(settingsStream))
 	{
-		gsf_output_close(settingsFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(settingsFile))
+	if(!gsf_output_close(settingsFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, setting.xml file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, setting.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	return UT_OK;
@@ -2821,28 +2798,26 @@ UT_Error IE_Exp_OpenXML::finishHeaders()
 		filename += it->first.c_str();
 		filename += ".xml";
 
-		GsfOutput* headerFile = gsf_outfile_new_child(wordDir, filename.c_str(), FALSE);
+		UT_GsfOutputPtr headerFile(gsf_outfile_new_child(wordDir, filename.c_str(), FALSE));
 
 		if(!headerFile)
 			return UT_SAVE_EXPORTERROR;
 
-	 	if(!gsf_output_write(headerFile, gsf_output_size(it->second), 
+	 	if(!gsf_output_write(headerFile.get(), gsf_output_size(it->second),
 						 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(it->second))))
 		{
-			gsf_output_close(headerFile);
 			return UT_SAVE_EXPORTERROR;
 		}
-	
+
 		if(!gsf_output_close(it->second))
 		{
-			gsf_output_close(headerFile);
-			return UT_SAVE_EXPORTERROR;		
+			return UT_SAVE_EXPORTERROR;
 		}
 
-		if(!gsf_output_close(headerFile))
+		if(!gsf_output_close(headerFile.get()))
 		{
-			UT_DEBUGMSG(("FRT: ERROR, header file couldn't be closed\n"));	
-			return UT_SAVE_EXPORTERROR;		
+			UT_DEBUGMSG(("FRT: ERROR, header file couldn't be closed\n"));
+			return UT_SAVE_EXPORTERROR;
 		}
 	}
 	
@@ -2869,28 +2844,26 @@ UT_Error IE_Exp_OpenXML::finishFooters()
 		filename += it->first.c_str();
 		filename += ".xml";
 
-		GsfOutput* footerFile = gsf_outfile_new_child(wordDir, filename.c_str(), FALSE);
+		UT_GsfOutputPtr footerFile(gsf_outfile_new_child(wordDir, filename.c_str(), FALSE));
 
 		if(!footerFile)
 			return UT_SAVE_EXPORTERROR;
 
-	 	if(!gsf_output_write(footerFile, gsf_output_size(it->second), 
+	 	if(!gsf_output_write(footerFile.get(), gsf_output_size(it->second),
 						 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(it->second))))
 		{
-			gsf_output_close(footerFile);
 			return UT_SAVE_EXPORTERROR;
 		}
-	
+
 		if(!gsf_output_close(it->second))
 		{
-			gsf_output_close(footerFile);
-			return UT_SAVE_EXPORTERROR;		
+			return UT_SAVE_EXPORTERROR;
 		}
 
-		if(!gsf_output_close(footerFile))
+		if(!gsf_output_close(footerFile.get()))
 		{
-			UT_DEBUGMSG(("FRT: ERROR, footer file couldn't be closed\n"));	
-			return UT_SAVE_EXPORTERROR;		
+			UT_DEBUGMSG(("FRT: ERROR, footer file couldn't be closed\n"));
+			return UT_SAVE_EXPORTERROR;
 		}
 	}
 	
@@ -2939,28 +2912,26 @@ UT_Error IE_Exp_OpenXML::finishFootnotes()
 		return err;
 	}
 
-	GsfOutput* footnoteFile = gsf_outfile_new_child(wordDir, "footnotes.xml", FALSE);
+	UT_GsfOutputPtr footnoteFile(gsf_outfile_new_child(wordDir, "footnotes.xml", FALSE));
 
 	if(!footnoteFile)
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(footnoteFile, gsf_output_size(footnoteStream), 
+ 	if(!gsf_output_write(footnoteFile.get(), gsf_output_size(footnoteStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(footnoteStream))))
 	{
-		gsf_output_close(footnoteFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	if(!gsf_output_close(footnoteStream))
 	{
-		gsf_output_close(footnoteFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(footnoteFile))
+	if(!gsf_output_close(footnoteFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, footnotes.xml file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, footnotes.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 	return UT_OK;
 }
@@ -3007,28 +2978,26 @@ UT_Error IE_Exp_OpenXML::finishEndnotes()
 		return err;
 	}
 
-	GsfOutput* endnoteFile = gsf_outfile_new_child(wordDir, "endnotes.xml", FALSE);
+	UT_GsfOutputPtr endnoteFile(gsf_outfile_new_child(wordDir, "endnotes.xml", FALSE));
 
 	if(!endnoteFile)
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 
- 	if(!gsf_output_write(endnoteFile, gsf_output_size(endnoteStream), 
+ 	if(!gsf_output_write(endnoteFile.get(), gsf_output_size(endnoteStream),
 					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(endnoteStream))))
 	{
-		gsf_output_close(endnoteFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	if(!gsf_output_close(endnoteStream))
 	{
-		gsf_output_close(endnoteFile);
-		return UT_SAVE_EXPORTERROR;		
+		return UT_SAVE_EXPORTERROR;
 	}
 
-	if(!gsf_output_close(endnoteFile))
+	if(!gsf_output_close(endnoteFile.get()))
 	{
-		UT_DEBUGMSG(("FRT: ERROR, endnotes.xml file couldn't be closed\n"));	
-		return UT_SAVE_EXPORTERROR;		
+		UT_DEBUGMSG(("FRT: ERROR, endnotes.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
 	}
 	return UT_OK;
 }
@@ -3129,14 +3098,14 @@ UT_Error IE_Exp_OpenXML::writeImage(const char* filename, const UT_ConstByteBufP
 
 	if(!imageStream)
 	{
-		UT_DEBUGMSG(("FRT: ERROR, image file couldn't be created\n"));	
+		UT_DEBUGMSG(("FRT: ERROR, image file couldn't be created\n"));
 		return UT_SAVE_EXPORTERROR;
-	}	
+	}
 
  	if(!gsf_output_write(imageStream, data->getLength(), data->getPointer(0)))
 	{
-		gsf_output_close(imageStream);
-		return UT_SAVE_EXPORTERROR;		
+		s_release_gsf_output(imageStream);
+		return UT_SAVE_EXPORTERROR;
 	}
 
 	std::string str("");

@@ -26,6 +26,7 @@
 #include "ut_path.h"
 #include "ut_debugmsg.h"
 #include "ut_decompress.h"
+#include "ut_raii.h"
 
 /* Portions based on or from untgz.c in zlib contrib directory */
 #define TGZ_BLOCKSIZE 512
@@ -108,7 +109,8 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 	int    remaining = 0;
 	int    len;
 	char   fname[TGZ_BLOCKSIZE];
-	FILE   *outfile = nullptr;
+	UT_FilePtr outfile;
+	std::string outfilename;
 	int    fileSize = 0;
 	
 	if (retBuf)
@@ -171,18 +173,19 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 						*retFileSize = fileSize;
 					
 					if (szDestPath) {
-						std::string outfilename(szDestPath);
+						outfilename = szDestPath;
 						outfilename += "/";
 						outfilename += fname;
-						if ((outfile = fopen(outfilename.c_str(), "wb")) == nullptr) {
+						outfile.reset(fopen(outfilename.c_str(), "wb"));
+						if (!outfile) {
 							UT_DEBUGMSG(("untgz: Unable to save %s", outfilename.c_str()));
 							}
 					}
 					else
-						outfile = nullptr;
+						outfile.reset();
 				}
 				else
-					outfile = nullptr;
+					outfile.reset();
 
 				/*
 				 * could have no contents
@@ -196,29 +199,24 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 			
 			if (retBuf && *retBuf)
 			{
-				memcpy(retBuf[fileSize - remaining], buffer.buffer, bytes);
+				memcpy(*retBuf + (fileSize - remaining), buffer.buffer, bytes);
 			}
-			
-			if (outfile != nullptr)
+
+			if (outfile)
 			{
-				if (fwrite(&buffer,sizeof(char),bytes,outfile) != bytes)
+				if (fwrite(&buffer,sizeof(char),bytes,outfile.get()) != bytes)
 				{
 					UT_DEBUGMSG(("untgz: error writing, skipping %s", fname));
-					fclose(outfile);
-					g_unlink(fname);
+					outfile.reset();
+					g_unlink(outfilename.c_str());
 				}
 			}
-			
+
 			remaining -= bytes;
 			if (remaining == 0)
 			{
 				getheader = 1;
-				if (outfile != nullptr)
-				{
-					// TODO: should actually set proper time from archive, oh well
-					fclose(outfile);
-					outfile = nullptr;
-				}
+				outfile.reset();
 			}
 		} // if (getheader == 1) else end
 	}

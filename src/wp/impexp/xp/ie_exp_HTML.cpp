@@ -27,6 +27,7 @@
 
 #include <pd_DocumentRDF.h>
 #include "ut_std_string.h"
+#include "ut_raii.h"
 #include "ie_exp_DocRangeListener.h"
 #include "pl_ListenerCoupleCloser.h"
 
@@ -186,7 +187,9 @@ UT_Error IE_Exp_HTML::copyToBuffer(PD_DocumentRange * pDocRange,UT_ByteBuf *  bu
     IE_Exp_HTML * pNewExp = nullptr;
     char *szTempFileName = nullptr;
     GError *err = nullptr;
-    g_file_open_tmp ("XXXXXX", &szTempFileName, &err);
+    UT_ScopedFD tmpFd(g_file_open_tmp ("XXXXXX", &szTempFileName, &err));
+    // gsf_output_stdio_new re-opens the path itself
+    tmpFd.reset();
     GsfOutput * outBuf =  gsf_output_stdio_new (szTempFileName,&err);
     g_clear_error(&err);
     IEFileType ftHTML = IE_Exp::fileTypeForMimetype("text/html");

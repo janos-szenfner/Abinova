@@ -54,6 +54,7 @@
 #include "fg_Graphic.h"
 #include "fl_DocLayout.h"
 #include "ut_go_file.h"
+#include "ut_raii.h"
 #include "ut_timer.h"
 #include "ev_Toolbar_Actions.h"
 #include "ap_Toolbar_Id.h"
@@ -1759,12 +1760,12 @@ abi_widget_load_file_from_memory(AbiWidget * w, const gchar * extension_or_mimet
 	UT_return_val_if_fail(w && w->priv, false);
     UT_return_val_if_fail(buf && length > 0, false);
 	
-	GsfInputMemory* source = GSF_INPUT_MEMORY(gsf_input_memory_new((guint8 *)buf, length, false));
+	UT_GsfInputPtr source(gsf_input_memory_new((guint8 *)buf, length, false));
 	UT_return_val_if_fail(source, false);
 
 	IEFileType ieft = s_abi_widget_get_file_type(extension_or_mimetype, buf, length, true);
 	UT_DEBUGMSG(("Will use ieft %d to load file\n", ieft));
-	
+
 	bool res = false;
 	if (w->priv->m_bMappedToScreen)
 	{
@@ -1774,8 +1775,8 @@ abi_widget_load_file_from_memory(AbiWidget * w, const gchar * extension_or_mimet
 		s_StartStopLoadingCursor( true, pFrame);
 		pFrame->setCursor(GR_Graphics::GR_CURSOR_WAIT);
 
-		UT_DEBUGMSG(("Attempting to load from stream\n"));		
-		res = (pFrame->loadDocument(GSF_INPUT(source), ieft) == UT_OK);
+		UT_DEBUGMSG(("Attempting to load from stream\n"));
+		res = (pFrame->loadDocument(source.get(), ieft) == UT_OK);
 		
 		FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
 		w->priv->m_pDoc = pView->getDocument();
@@ -1788,7 +1789,7 @@ abi_widget_load_file_from_memory(AbiWidget * w, const gchar * extension_or_mimet
 		// FIXME: DELETEP(abi->priv->m_pDoc);
 
 		w->priv->m_pDoc = new PD_Document();
-		w->priv->m_pDoc->readFromFile(GSF_INPUT(source), ieft);		
+		w->priv->m_pDoc->readFromFile(source.get(), ieft);
 	}
 
     return res;

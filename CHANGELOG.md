@@ -2340,6 +2340,12 @@ below are on `main` but the release has not been cut yet.
   - Importing legacy `.doc` documents whose embedded images fail to
     decompress no longer leaks the image buffer; EPUB export no longer
     leaks file handles when a packaged file cannot be opened.
+  - Error paths no longer leak file descriptors, `FILE*` handles, or
+    GSF stream objects: DOCX export previously leaked ~20 archive
+    stream objects per save (and the ODT/HTML copy-to-clipboard paths
+    leaked the temporary file descriptor); EPUB export now cleans up
+    its staging directory on failure; decompression of embedded
+    archives no longer double-closes output files on write errors.
 
 ### GTK4 port (core migration)
 

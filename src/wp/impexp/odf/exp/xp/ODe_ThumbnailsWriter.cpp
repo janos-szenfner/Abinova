@@ -35,31 +35,31 @@
 #include "fv_View.h"
 #include "gr_Graphics.h"
 #include "gr_Painter.h"
+#include "ut_raii.h"
 
 bool ODe_ThumbnailsWriter::writeThumbnails(PD_Document* /*pDoc*/, GsfOutfile* oo) {
 
-	GsfOutput* thumbnailsDir = gsf_outfile_new_child (oo, "Thumbnails", TRUE);
-	if(thumbnailsDir == nullptr){
+	UT_GsfOutputPtr thumbnailsDir(gsf_outfile_new_child (oo, "Thumbnails", TRUE));
+	if(!thumbnailsDir){
 		return false;
 	}
 
-	GsfOutput* thumbnail = gsf_outfile_new_child(GSF_OUTFILE(thumbnailsDir),
-			 "thumbnail.png", FALSE);
-	if(thumbnail == nullptr){
+	UT_GsfOutputPtr thumbnail(gsf_outfile_new_child(GSF_OUTFILE(thumbnailsDir.get()),
+			 "thumbnail.png", FALSE));
+	if(!thumbnail){
 		return false;
 	}
 
     XAP_Frame *pFrame = XAP_App::getApp()->getLastFocussedFrame();
     // not sure we have a frame e.g. when running abiword -t odt myfile.abw
-    if (!pFrame)
+    FV_View* pView = pFrame
+        ? static_cast<FV_View*>(pFrame->getCurrentView()) : nullptr;
+    if (!pView)
     {
-        gsf_output_close(thumbnail);
-        gsf_output_close(thumbnailsDir);
         /* return true because it's better to export a file without thumbnails
          * than no file at all */
         return true;
     }
-    FV_View* pView = static_cast<FV_View*>(pFrame->getCurrentView());
 
     GR_Graphics* pVG = pView->getGraphics();
 
@@ -71,21 +71,16 @@ bool ODe_ThumbnailsWriter::writeThumbnails(PD_Document* /*pDoc*/, GsfOutfile* oo
 	GR_Image * pImage = painter.genImageFromRectangle(rect);
 
 	if(pImage == nullptr){
-		gsf_output_close(thumbnail);
-		gsf_output_close(thumbnailsDir);
 		return false;
 	}
 
 	UT_ConstByteBufPtr pBuf;
 	pImage->convertToBuffer(pBuf);
 
-	gsf_output_write(thumbnail, pBuf->getLength(),
+	gsf_output_write(thumbnail.get(), pBuf->getLength(),
 			pBuf->getPointer(0));
 
 	DELETEP(pImage);
-
-	gsf_output_close(thumbnail);
-	gsf_output_close(thumbnailsDir);
 
 	return true;
 }

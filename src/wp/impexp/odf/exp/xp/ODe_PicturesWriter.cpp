@@ -61,15 +61,19 @@ bool ODe_PicturesWriter::writePictures(PD_Document* pDoc, GsfOutfile* pODT)
             if (pPicsDir == nullptr) {
                 // create Pictures directory
                 pPicsDir = gsf_outfile_new_child(pODT, "Pictures", TRUE);
+                if (pPicsDir == nullptr)
+                    return false;
             }
 			pDoc->getDataItemFileExtension(szName, extension, true);
 			fullName = szName + extension;
             pImg = gsf_outfile_new_child(GSF_OUTFILE(pPicsDir),
-                                         fullName.c_str(), FALSE);    
-                                                    
+                                         fullName.c_str(), FALSE);
+            if (pImg == nullptr)
+                continue;
+
             ODe_gsf_output_write(pImg, pByteBuf->getLength(),
                                 pByteBuf->getPointer(0));
-    
+
             ODe_gsf_output_close(pImg);
         }
     }

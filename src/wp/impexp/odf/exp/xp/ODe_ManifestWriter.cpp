@@ -84,9 +84,16 @@ bool ODe_ManifestWriter::writeManifest(PD_Document* pDoc, GsfOutfile* pODT)
 {
     // Create META-INF directory
     GsfOutput* meta_inf = gsf_outfile_new_child(pODT, "META-INF", TRUE);
-    
+    if (meta_inf == nullptr)
+        return false;
+
     GsfOutput* manifest = gsf_outfile_new_child(
                             GSF_OUTFILE(meta_inf), "manifest.xml", FALSE);
+    if (manifest == nullptr)
+    {
+        ODe_gsf_output_close(meta_inf);
+        return false;
+    }
 
     std::string name;
 

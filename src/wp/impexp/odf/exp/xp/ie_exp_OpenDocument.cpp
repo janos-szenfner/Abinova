@@ -45,6 +45,7 @@
 // Abiword includes
 #include "ut_assert.h"
 #include "ut_locale.h"
+#include "ut_raii.h"
 #include "ut_xml.h"
 #include "pd_Document.h"
 #include "pd_DocumentRDF.h"
@@ -156,17 +157,31 @@ UT_Error IE_Exp_OpenDocument::copyToBuffer(PD_DocumentRange * pDocRange, const U
     // OK now we have a complete and valid document containing our selected 
     // content. We export this to an in memory GSF buffer
     //
-    IE_Exp * pNewExp = nullptr; 
+    IE_Exp * pNewExp = nullptr;
     char *szTempFileName = nullptr;
     GError *err = nullptr;
-    g_file_open_tmp ("XXXXXX", &szTempFileName, &err);
-    GsfOutput * outBuf =  gsf_output_stdio_new (szTempFileName,&err);
+    UT_ScopedFD tmpFd(g_file_open_tmp ("XXXXXX", &szTempFileName, &err));
+    if (!tmpFd || !szTempFileName)
+    {
+	if (err)
+	    g_error_free(err);
+	delete pRangeListener;
+	UNREFP( outDoc);
+	return UT_IE_COULDNOTWRITE;
+    }
+    // the exporter re-opens the path itself, so the creation fd can go
+    tmpFd.reset();
+
     IEFileType ftODT = IE_Exp::fileTypeForMimetype("application/vnd.oasis.opendocument.text");
-    UT_Error aerr = IE_Exp::constructExporter(outDoc,outBuf,
-					     ftODT,&pNewExp);
+    UT_Error aerr = IE_Exp::constructExporter(outDoc, szTempFileName,
+					     ftODT, &pNewExp);
     if(pNewExp == nullptr)
     {
-         return aerr;
+	delete pRangeListener;
+	UNREFP( outDoc);
+	g_remove(szTempFileName);
+	g_free (szTempFileName);
+	return aerr;
     }
     aerr = pNewExp->writeFile(szTempFileName);
     if(aerr != UT_OK)
@@ -182,12 +197,22 @@ UT_Error IE_Exp_OpenDocument::copyToBuffer(PD_DocumentRange * pDocRange, const U
     // File is closed at the end of the export. Open it again.
     //
 
-    GsfInput *  fData = gsf_input_stdio_new(szTempFileName,&err);
-    UT_DebugOnly<UT_sint32> siz = gsf_input_size(fData);
-    const UT_Byte * pData = gsf_input_read(fData,gsf_input_size(fData),nullptr);
-    UT_DEBUGMSG(("Writing %d bytes to clipboard \n", (UT_sint32)siz));
-    bufODT->append( pData, gsf_input_size(fData));
-    
+    UT_GsfInputPtr fData(gsf_input_stdio_new(szTempFileName,&err));
+    if (err)
+    {
+	g_error_free(err);
+	err = nullptr;
+    }
+    if (fData)
+    {
+	gsf_off_t size = gsf_input_size(fData.get());
+	const UT_Byte * pData = size > 0
+	    ? gsf_input_read(fData.get(), size, nullptr) : nullptr;
+	UT_DEBUGMSG(("Writing %d bytes to clipboard \n", (UT_sint32)size));
+	if (pData)
+	    bufODT->append( pData, size);
+    }
+
     delete pNewExp;
     delete pRangeListener;
     UNREFP( outDoc);
