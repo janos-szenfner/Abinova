@@ -9155,7 +9155,12 @@ bool IE_Imp_RTF::ReadFontTable()
 					goto IEImpRTF_ReadFontTable_ErrorExit;
 				}
 				bGotFontIndex = true;
-				fontIndex = parameter;
+				if (parameter < 0 || parameter > 0xFFFF)
+				{
+					UT_DEBUGMSG(("RTF: font index %d out of range.\n", parameter));
+					goto IEImpRTF_ReadFontTable_ErrorExit;
+				}
+				fontIndex = static_cast<UT_uint16>(parameter);
 				break;
 			// Handle the "\fcharset", character set, keyword.
 			case RTF_KW_fcharset:

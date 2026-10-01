@@ -2455,6 +2455,20 @@ below are on `main` but the release has not been cut yet.
   and the `.doc` parser/importer no longer reads `U8`/`U32` buffers
   through `U16` lvalues (footnote/endnote type codes are decoded
   little-endian portably, which also fixes a latent big-endian bug).
+- **Narrowing/truncation audit (TS01)** — a `-Wconversion`/manual sweep
+  of importer, layout and crypto code fixed the real narrowing bugs:
+  the ODF decrypt path no longer truncates `gsf_off_t` stream sizes to
+  `UT_sint32` (and now grows the inflate buffer instead of failing when
+  `manifest:size` is absent or wrong), manifest-declared sizes outside
+  `UT_uint32` range map to the "unknown" sentinel instead of wrapping,
+  DOCX theme `scrgbClr` channels are rounded and clamped so >100% or
+  negative values can't wrap to a wrong color, DOCX numbering clones no
+  longer truncate list start values above 65535 to 16 bits, RTF font
+  indexes outside 0–65535 reject the font-table entry instead of
+  wrapping, ODF heading outline levels are clamped to `UT_uint8`, the
+  caret blink timestamp moved from `long` to `gint64`, and a column
+  distance calculation now squares its operands in `double` so large
+  coordinates can't overflow 32-bit multiplication before `sqrt`.
 
 ### GTK4 port (core migration)
 

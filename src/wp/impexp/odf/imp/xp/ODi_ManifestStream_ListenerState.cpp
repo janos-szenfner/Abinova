@@ -109,7 +109,9 @@ void ODi_ManifestStream_ListenerState::endElement (const gchar* pName,
         UT_return_if_fail(m_pCryptoInfo);
 		
         // store the encryption information
-		m_pCryptoInfo->m_decryptedSize = m_iSize;
+		m_pCryptoInfo->m_decryptedSize =
+			(m_iSize >= 0 && m_iSize <= 0xFFFFFFFFLL)
+				? static_cast<UT_uint32>(m_iSize) : 0;
         m_cryptoInfo[m_sFullPath] = *m_pCryptoInfo;
         DELETEP(m_pCryptoInfo);
     }

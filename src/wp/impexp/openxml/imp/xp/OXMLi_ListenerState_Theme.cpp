@@ -34,6 +34,7 @@
 #include "ut_misc.h"
 
 // External includes
+#include <math.h>
 #include <string>
 
 void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
@@ -88,10 +89,13 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 			const gchar * g = attrMatches(NS_A_KEY, "g", rqst->ppAtts);
 			const gchar * b = attrMatches(NS_A_KEY, "b", rqst->ppAtts);
 			UT_return_if_fail( this->_error_if_fail(r != nullptr && g != nullptr && b != nullptr ));
-			char dR, dG, dB; //test these conversions for data loss
-			dR = 255 * (UT_convertDimensionless(r) / 100000);
-			dG = 255 * (UT_convertDimensionless(g) / 100000);
-			dB = 255 * (UT_convertDimensionless(b) / 100000);
+			// scRGB channels are thousandths of a percent; clamp out-of-gamut
+			// values so out-of-range input cannot wrap.
+			auto scrgbChan = [](const gchar * s) -> unsigned char {
+				long v = lround(255.0 * (UT_convertDimensionless(s) / 100000.0));
+				return static_cast<unsigned char>(v < 0 ? 0 : v > 255 ? 255 : v);
+			};
+			unsigned char dR = scrgbChan(r), dG = scrgbChan(g), dB = scrgbChan(b);
 
 			UT_HashColor conv;
 			const gchar * result = conv.setColor(dR, dG, dB);

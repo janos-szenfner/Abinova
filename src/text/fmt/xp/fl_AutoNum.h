@@ -133,7 +133,7 @@ public:
 	}
 	const gchar *			getDecimal() const;
 	bool						isDirty() const;
-	UT_uint16					getStartValue() const { return m_iStartValue; }
+	UT_uint32					getStartValue() const { return m_iStartValue; }
 
 	UT_uint32					getStartValue32() const;
 	void						setStartValue(UT_uint32 start);

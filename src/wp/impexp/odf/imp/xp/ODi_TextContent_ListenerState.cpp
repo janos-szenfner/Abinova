@@ -206,7 +206,10 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
             pOutlineLevel = "1";
         }
         std::string sHeadingListName = "BaseHeading";
-        m_listLevel = atoi(pOutlineLevel);
+        {
+            int lvl = atoi(pOutlineLevel);
+            m_listLevel = static_cast<UT_uint8>(lvl < 1 ? 1 : lvl > 255 ? 255 : lvl);
+        }
         m_pCurrentListStyle =  m_pStyles->getList( sHeadingListName.c_str());
         if(m_pCurrentListStyle)
         {

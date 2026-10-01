@@ -86,9 +86,10 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 		return UT_ERROR;
 
     // Get the encrypted content ready
-	UT_sint32 content_size = gsf_input_size(pStream); 
-	if (content_size == -1)
+	gsf_off_t stream_size = gsf_input_size(pStream);
+	if (stream_size <= 0 || stream_size > G_MAXUINT)
 		return UT_ERROR;
+	const gsize content_size = static_cast<gsize>(stream_size);
 	const unsigned char* content = gsf_input_read(pStream, content_size, nullptr);
 	if (!content)
 		return UT_ERROR;
@@ -131,7 +132,9 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 
 #endif
     
-	// deflate the decrypted content
+	// inflate the decrypted content. decrypted_size comes from the
+	// manifest:size entry and may be absent (0) or wrong, so grow the
+	// output buffer when the stream needs more room instead of failing.
 	z_stream zs;
 	zs.zalloc = nullptr;
 	zs.zfree = nullptr;
@@ -144,26 +147,60 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 	if (err != Z_OK)
 		return UT_ERROR;
 
-	unsigned char* decrypted = (unsigned char*)g_malloc(decrypted_size);
-	zs.avail_in = content_size;
-	zs.avail_out = decrypted_size;
+	size_t cap = decrypted_size ? decrypted_size
+	                            : (content_size > G_MAXUINT / 2 - 65536
+	                               ? static_cast<size_t>(G_MAXUINT)
+	                               : content_size * 2 + 65536);
+	unsigned char* decrypted = (unsigned char*)g_malloc(cap);
+	zs.avail_in = static_cast<uInt>(content_size);
 	zs.next_in = content_decrypted;
 	zs.next_out = decrypted;
+	zs.avail_out = static_cast<uInt>(cap);
 
-	err = inflate(&zs, Z_FINISH);
-	FREEP(content_decrypted);
-	
-	if (err != Z_STREAM_END)
+	for (;;)
 	{
-		inflateEnd(&zs);
-		FREEP(decrypted);
-		return UT_ERROR;
+		err = inflate(&zs, Z_NO_FLUSH);
+		if (err == Z_STREAM_END)
+			break;
+		if (err != Z_OK && err != Z_BUF_ERROR)
+		{
+			inflateEnd(&zs);
+			FREEP(content_decrypted);
+			FREEP(decrypted);
+			return UT_ERROR;
+		}
+		if (zs.avail_out == 0)
+		{
+			size_t used = cap;
+			if (cap > static_cast<size_t>(G_MAXUINT) / 2)
+			{
+				inflateEnd(&zs);
+				FREEP(content_decrypted);
+				FREEP(decrypted);
+				return UT_ERROR;
+			}
+			cap *= 2;
+			decrypted = (unsigned char*)g_realloc(decrypted, cap);
+			zs.next_out = decrypted + used;
+			zs.avail_out = static_cast<uInt>(cap - used);
+			continue;
+		}
+		if (err == Z_BUF_ERROR || zs.avail_in == 0)
+		{
+			// no further progress possible: truncated or corrupt stream
+			inflateEnd(&zs);
+			FREEP(content_decrypted);
+			FREEP(decrypted);
+			return UT_ERROR;
+		}
+		// Z_OK with input and output room left: keep inflating
 	}
-
+	const gsize out_len = zs.total_out;
 	inflateEnd(&zs);
+	FREEP(content_decrypted);
 
-	*pDecryptedInput = gsf_input_memory_new(decrypted, decrypted_size, TRUE);
-	
+	*pDecryptedInput = gsf_input_memory_new(decrypted, out_len, TRUE);
+
 	return UT_OK;
 }
 
@@ -242,6 +279,7 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     UT_return_val_if_fail(encrypted, UT_ERROR);
     UT_return_val_if_fail(encryptedSize, UT_ERROR);
     UT_return_val_if_fail(!password.empty(), UT_ERROR);
+    UT_return_val_if_fail(plaintextSize <= G_MAXUINT, UT_ERROR);
 
     // random per-file salt and initialisation vector
     unsigned char salt[16];

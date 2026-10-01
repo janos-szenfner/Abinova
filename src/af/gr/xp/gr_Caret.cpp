@@ -362,10 +362,10 @@ void GR_Caret::_blink(bool bExplicit)
 
 	UT_clock_gettime_realtime(&spec);
 
-    UT_sint32 s  = spec.tv_sec;
-    long ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-	long this_time = 1000l*s + ms;
-	long time_between = this_time - m_iLastDrawTime;
+    gint64 s  = spec.tv_sec;
+    gint64 ms = static_cast<gint64>(round(spec.tv_nsec / 1.0e6)); // Convert nanoseconds to milliseconds
+	gint64 this_time = 1000*s + ms;
+	gint64 time_between = this_time - m_iLastDrawTime;
 	m_iLastDrawTime = this_time;
     //
 	// If this number is high enough the caret will not blink at all
