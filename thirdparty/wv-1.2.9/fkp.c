@@ -198,7 +198,11 @@ wvGetPAPX_FKP (wvVersion ver, PAPX_FKP * fkp, U32 pn, wvStream * fd)
 
     for (i = 0; i < fkp->crun; i++)
       {
-	  if (pos >= WV_PAGESIZE)
+	  /* AbiWord: a BX is 13 bytes on WORD8 (1-byte offset + 12-byte
+	     PHE) and 7 bytes otherwise -- a truncated tail entry must not
+	     read past the 512-byte page */
+	  U16 need = (ver == WORD8) ? 13 : 7;
+	  if (pos + need > WV_PAGESIZE)
 	    {
 		memset (&fkp->rgbx[i], 0, sizeof (BX));
 		continue;

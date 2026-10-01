@@ -3856,8 +3856,13 @@ gchar *IE_Imp_RTF::_parseFldinstBlock (UT_ByteBuf & _buf, gchar *xmlField, bool 
 			if(*instr == '\"')
 				instr++;
 
-			if(instr[strlen(instr)-1])
-				instr[strlen(instr)-1] = 0;
+			// strip the trailing quote; strlen(instr)-1 on an empty
+			// string would read/write before the buffer
+			{
+				size_t instrLen = strlen(instr);
+				if(instrLen)
+					instr[instrLen-1] = 0;
+			}
 
 			href += instr;
 
@@ -3872,13 +3877,15 @@ gchar *IE_Imp_RTF::_parseFldinstBlock (UT_ByteBuf & _buf, gchar *xmlField, bool 
 				// absolute one
 				full_href = m_hyperlinkBase;
 				const char * s2 = full_href.c_str();
+				// an empty base has no last char to inspect
+				const size_t s2len = strlen(s2);
 
-				if(*s != '/' && s2[strlen(s2)-1] != '/')
+				if(*s != '/' && (s2len == 0 || s2[s2len-1] != '/'))
 				{
 					full_href += '/';
 					full_href += s;
 				}
-				else if(*s == '/' && s2[strlen(s2)-1] == '/')
+				else if(*s == '/' && s2len && s2[s2len-1] == '/')
 				{
 					full_href += (s+1);
 				}

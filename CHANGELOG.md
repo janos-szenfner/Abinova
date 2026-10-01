@@ -263,6 +263,27 @@ below are on `main` but the release has not been cut yet.
   conversion computes in unsigned 64-bit so extreme dates can't
   shift into the sign bit, `PlcfandRef` rejects `lcb < 4`, and piece-
   table CP deltas clamp instead of wrapping on non-monotonic tables.
+- **Legacy `.doc` importer out-of-bounds access fixed** — an index/
+  length audit of the vendored wv parser closed the remaining
+  file-controlled overruns: PAPX/CHPX FKP pages no longer read BX+PHE
+  records past the 512-byte page when `crun` leaves a truncated tail,
+  `sprmPIstdPermute`/`sprmCIstdPermute` bound the `rgistd` index to the
+  styles actually supplied (and no longer dereference a NULL table),
+  corrupt ANLD `cxchTextBefore/After` lengths and `nLvlAnm` levels are
+  clamped to the real `rgxch`/`lvl[]` capacities, password handling
+  reserves room for the terminator instead of writing past
+  `password[15]` and no longer loops on failed multibyte conversion,
+  `expandpw` bounds its scan, `FFN`/`ATRD`/`xstDispFldRMark` strings
+  are force-terminated so `wvWideStrToMB` can't scan off fixed arrays,
+  field instruction/argument writes stop at the 40000-entry arrays,
+  `msofbtClientTextbox` records shorter than a `U32` no longer
+  under-allocate, and font-table indexing validates `ftc`/`ftcSym`
+  against `nostrings`.  The RTF, HTML and GdkPixbuf importers no
+  longer index `len-1` on empty strings, and an overlapping `strcpy`
+  in the GTK dialog helper became `memmove`.  Verified with an ASan
+  harness replaying each malformed-input path (all reports on the old
+  code, clean after the fix) plus PDF conversions of the `.doc` test
+  corpus.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

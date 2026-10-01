@@ -750,7 +750,7 @@ void convertMnemonics(gchar * s)
 			if (i > 0 && s[i-1] == '\\')
 			{
 				s[i-1] = '&';
-				strcpy( &s[i], &s[i+1]);
+				memmove( &s[i], &s[i+1], strlen(&s[i+1]) + 1);
 				i--;
 				}
 			else

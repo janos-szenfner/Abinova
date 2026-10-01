@@ -67,10 +67,16 @@ wvGetFFN6 (FFN * item, wvStream * fd)
     wvInitPANOSE (&(item->panose));
     wvInitFONTSIGNATURE (&(item->fs));
     len = item->cbFfnM1 - 5;
-    if (len > 65)
-	len = 65;
+    /* AbiWord: xszFfn has exactly 65 slots and consumers scan for a
+       NUL -- keep room for the terminator, and always write one so a
+       short/negative cbFfnM1 cannot leave the array unterminated */
+    if (len > 64)
+	len = 64;
+    if (len < 0)
+	len = 0;
     for (i = 0; i < len; i++)
 	item->xszFfn[i] = read_8ubit (fd);
+    item->xszFfn[len] = 0;
 }
 
 
@@ -101,10 +107,15 @@ wvGetFFN (FFN * item, wvStream * fd)
     /*
        item->xszFfn = (U16) wvMalloc(sizeof(U16) * len));
      */
-    if (len > 65)
-	len = 65;
+    /* AbiWord: same termination fix as wvGetFFN6 -- never fill all 65
+       slots without leaving a NUL for wvWideStrToMB */
+    if (len > 64)
+	len = 64;
+    if (len < 0)
+	len = 0;
     for (i = 0; i < len; i++)
 	item->xszFfn[i] = read_16ubit (fd);
+    item->xszFfn[len] = 0;
 }
 
 void
@@ -213,7 +224,7 @@ one.
 char *
 wvGetFontnameFromCode (FFN_STTBF * item, int fontcode)
 {
-    if (fontcode >= item->nostrings)
+    if (fontcode < 0 || fontcode >= item->nostrings || item->ffn == NULL)
 	return (NULL);
 
     return (wvWideStrToMB (item->ffn[fontcode].xszFfn));

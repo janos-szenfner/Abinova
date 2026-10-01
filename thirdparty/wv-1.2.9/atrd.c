@@ -31,6 +31,9 @@ wvGetATRD (ATRD * item, wvStream * fd)
     int i;
     for (i = 0; i < 10; i++)
 	item->xstUsrInitl[i] = read_16ubit (fd);
+    /* AbiWord: xstUsrInitl is a fixed 10-XCHAR array; force a NUL so
+       wvWideStrToMB(xstUsrInitl + 1) cannot scan past the end */
+    item->xstUsrInitl[9] = 0;
     item->ibst = (S16) read_16ubit (fd);
     item->ak = read_16ubit (fd);
     item->grfbmc = read_16ubit (fd);

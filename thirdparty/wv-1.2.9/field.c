@@ -422,6 +422,11 @@ fieldCharProc (wvParseStruct * ps, U16 eachchar, U8 chartype, U16 lid)
       {
 	  if (depth == 1)
 	    {
+		/* i can already be at the cap when a 0x14 arrives (the
+		   bounds check below only gates the append) -- clamp before
+		   terminating the instruction */
+		if (i >= 40000)
+		    i = 39999;
 		command[i] = 0;
 		c = wvWideStrToMB (command);
 		if (wvHandleCommandField (ps, c))
@@ -453,6 +458,10 @@ fieldCharProc (wvParseStruct * ps, U16 eachchar, U8 chartype, U16 lid)
 	  depth--;
 	  if (depth == 0)
 	    {
+		/* i was already incremented above -- it can be 40000
+		   here, one past the end of command[]/argumen[] */
+		if (i >= 40000)
+		    i = 39999;
 		which[i] = 0;
 		a = wvWideStrToMB (argumen);
 		c = wvWideStrToMB (command);

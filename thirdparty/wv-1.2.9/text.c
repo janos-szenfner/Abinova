@@ -139,12 +139,13 @@ wvOutputTextChar (U16 eachchar, U8 chartype, wvParseStruct * ps, CHP * achp)
           {
 	      lid = 0;
 	  }
-	  else
+	  else if (achp->ftc < ps->fonts.nostrings)
           {
 	  	currentfont = ps->fonts.ffn[achp->ftc];
 	  	/* Return 0 if no match */
 	  	lid = wvnLocaleToLIDConverter (currentfont.chs);
 	  }
+	  /* else: file supplied an out-of-range font index -> no LID */
       }
 
     if ((v > WORD6) && !lid)

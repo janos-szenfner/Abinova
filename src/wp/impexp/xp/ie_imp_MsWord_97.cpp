@@ -4117,7 +4117,7 @@ int IE_Imp_MsWord_97::_beginChar (wvParseStruct *ps, UT_uint32 /*tag*/,
 	m_charStyle.clear();
 
 	UT_uint32 iFontType = 0;
-	if(achp->xchSym && ps->fonts.ffn)
+	if(achp->xchSym && ps->fonts.ffn && (achp->ftcSym < ps->fonts.nostrings))
 	{
 		// inserting a symbol char ...
 		iFontType = ps->fonts.ffn[achp->ftcSym].chs;

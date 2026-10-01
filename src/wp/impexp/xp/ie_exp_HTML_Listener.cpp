@@ -1800,7 +1800,7 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 
 	const char * p = styles.utf8_str();
 	UT_UTF8String s;
-	if(p[styles.byteLength()-1] == ';')
+	if(styles.byteLength() && p[styles.byteLength()-1] == ';')
 	{
 		s.append(p, styles.byteLength()-1);
 	}

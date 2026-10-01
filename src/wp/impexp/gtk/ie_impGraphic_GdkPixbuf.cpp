@@ -700,8 +700,10 @@ bool IE_ImpGraphicGdkPixbuf_Sniffer::getDlgLabels(const char ** pszDesc,
 			}
 			suffixIter++;
 		}
-		// cut off trailing ';'
-		suffixString[g_utf8_strlen(suffixString,-1)-1] = '\0';
+		// cut off trailing ';' (guard against an empty suffix table
+		// leaving suffixString NULL/empty -> [-1] access)
+		if (suffixString && *suffixString)
+			suffixString[g_utf8_strlen(suffixString,-1)-1] = '\0';
 	}
 	*pszDesc = "All platform supported image formats";
 	*pszSuffixList = suffixString;

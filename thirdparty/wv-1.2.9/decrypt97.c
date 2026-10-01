@@ -159,7 +159,9 @@ expandpw (U16 password[16], U8 pwarray[64])
 	pwarray[i] = 0;
 
     i = 0;
-    while (password[i])
+    /* AbiWord: bound the scan to the 16-entry password array -- a
+       non-terminated input must not read/write past pwarray[64] */
+    while (i < 16 && password[i])
       {
 	  pwarray[2 * i] = (password[i] & 0xff);
 	  pwarray[(2 * i) + 1] = ((password[i] >> 8) & 0xff);

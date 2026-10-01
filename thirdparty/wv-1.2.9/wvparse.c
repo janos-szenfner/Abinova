@@ -253,13 +253,17 @@ wvSetPassword (const char *pass, wvParseStruct * ps)
        yet, and this is the only time i think i go from utf to 
        unicode */
 
-    while (*password)
+    /* AbiWord: MS-DOC allows at most 15 password chars; the array is
+       U16[16] and needs room for the terminator, so stop at i==15
+       (writing password[16] would overwrite the next member), and bail
+       on a failed/0-length conversion instead of looping forever */
+    while (*password && i < 15)
       {
 	  len = our_mbtowc (&(ps->password[i]), password, 5);
+	  if (len <= 0)
+	      break;
 	  i++;
 	  password += len;
-	  if (i == 16)
-	      break;
       }
     ps->password[i] = 0;
 }

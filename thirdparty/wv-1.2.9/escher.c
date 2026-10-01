@@ -822,7 +822,10 @@ wvReleaseClientTextbox (ClientTextbox * item)
 U32
 wvGetClientTextbox (ClientTextbox * item, MSOFBH * amsofbh, wvStream * fd)
 {
-    item->textid = (U32 *) wvMalloc (amsofbh->cbLength);
-    *item->textid = read_32ubit (fd);
+    /* AbiWord: cbLength is file-controlled; a record shorter than a
+       U32 still allocates it, so always reserve 4 bytes and check */
+    item->textid = (U32 *) wvMalloc (amsofbh->cbLength < 4 ? 4 : amsofbh->cbLength);
+    if (item->textid)
+	*item->textid = read_32ubit (fd);
     return (amsofbh->cbLength);
 }

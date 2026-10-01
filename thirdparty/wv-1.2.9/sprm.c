@@ -1487,7 +1487,10 @@ wvApplysprmPIstdPermute (PAP * apap, U8 * pointer, U16 * pos)
        has no effect. If it is, pap.istd is set to rgistd[pap.istd - istdFirst]
      */
 
-    if ((apap->istd > istdFirst) && (apap->istd <= istdLast))
+    /* AbiWord: istdLast is file-controlled and can claim more entries
+       than cch actually supplied -- never index past rgistd */
+    if ((apap->istd > istdFirst) && (apap->istd <= istdLast)
+	&& ((U32) (apap->istd - istdFirst) < (U32) ((cch - 6) / 2)))
       {
 	  wvTrace (("%d %d %d\n", apap->istd, istdFirst, istdLast));
 	  apap->istd = rgistd[apap->istd - istdFirst];
@@ -2106,7 +2109,10 @@ wvApplysprmCIstdPermute (CHP * achp, U8 * pointer, U16 * pos)
        istd for a paragraph style should never be recorded in chp.istd.
      */
 
-    if ((achp->istd > istdFirst) && (achp->istd <= istdLast))
+    /* AbiWord: rgistd is NULL when cch <= 6, and istdLast is
+       file-controlled -- bound the index to the entries present */
+    if (rgistd && (achp->istd > istdFirst) && (achp->istd <= istdLast)
+	&& ((U32) (achp->istd - istdFirst) < (U32) ((cch - 6) / 2)))
       {
 	  achp->istd = rgistd[achp->istd - istdFirst];
 	  /*
@@ -2628,6 +2634,9 @@ wvApplysprmCDispFldRMark (CHP * achp, U8 * pointer, U16 * pos)
 	  achp->xstDispFldRMark[i] = dread_16ubit (NULL, &pointer);
 	  (*pos) += 2;
       }
+    /* AbiWord: the field is a fixed 16-XCHAR array; guarantee a NUL so
+       later string conversion cannot scan off the end */
+    achp->xstDispFldRMark[15] = 0;
 }
 
 

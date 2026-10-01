@@ -130,16 +130,27 @@ wvGetListEntryInfo (wvVersion ver, LVL ** finallvl, U32 ** nos, U8 ** nfcs,
 	  wvTrace (("before len %d\n", apap->anld.cxchTextBefore));
 	  wvTrace (("after len %d\n", apap->anld.cxchTextAfter));
 	  retlvl->numbertext = (XCHAR *) wvMalloc (sizeof (XCHAR) * 64);
-	  i = 0;
-	  for (; i < apap->anld.cxchTextBefore; i++)
-	      retlvl->numbertext[i] = apap->anld.rgxch[i];
+	  {
+	      /* AbiWord: cxchTextBefore/cxchTextAfter are file bytes;
+		 rgxch has 32 entries and numbertext 64 -- clamp both so a
+		 corrupt ANLD cannot read/write past either array */
+	      U8 cbefore = apap->anld.cxchTextBefore;
+	      U8 cafter = apap->anld.cxchTextAfter;
+	      if (cbefore > 32)
+		  cbefore = 32;
+	      if (cafter > 32)
+		  cafter = 32;
+	      i = 0;
+	      for (; i < cbefore; i++)
+		  retlvl->numbertext[i] = apap->anld.rgxch[i];
 
-	  retlvl->numbertext[i] = 2;
+	      retlvl->numbertext[i] = 2;
 
-	  for (i = apap->anld.cxchTextBefore; i < apap->anld.cxchTextAfter; i++)
-	      retlvl->numbertext[i + 1] = apap->anld.rgxch[i];
+	      for (i = cbefore; i < cafter; i++)
+		  retlvl->numbertext[i + 1] = apap->anld.rgxch[i];
 
-	  retlvl->numbertext[i + 1] = '\0';
+	      retlvl->numbertext[i + 1] = '\0';
+	  }
 	  /* end of numbertext twiddling */
 
 
@@ -169,6 +180,12 @@ wvGetListEntryInfo (wvVersion ver, LVL ** finallvl, U32 ** nos, U8 ** nfcs,
 
 		      if (apap->ilvl >= 10)
 			  apap->ilvl -= 10;
+
+		      /* AbiWord: nLvlAnm is a file byte -- a single -=10
+			 does not tame values >= 20, and ilvl indexes the
+			 9-entry lvl[] arrays below */
+		      if (apap->ilvl > 8)
+			  apap->ilvl = 8;
 
 		      for (i = 0; i < 9; i++)
 			  (*nos)[(apap->ilfo - 1) * 9 + i] = 0xffffffffL;
@@ -262,6 +279,11 @@ wvGetListEntryInfo (wvVersion ver, LVL ** finallvl, U32 ** nos, U8 ** nfcs,
 	      apap->ilvl = 0;
 	  else
 	      apap->ilvl = apap->nLvlAnm - 1;
+
+	  /* AbiWord: same clamp as above -- nLvlAnm >= 20 leaves ilvl
+	     past the end of the 9-entry lvl[] array */
+	  if (apap->ilvl > 8)
+	      apap->ilvl = 8;
 
 	  wvTrace (("ilfo set to %d\n", apap->ilfo));
 
