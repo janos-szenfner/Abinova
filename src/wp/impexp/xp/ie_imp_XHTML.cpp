@@ -67,6 +67,62 @@ static UT_UTF8String s_parseCSStyle (const UT_UTF8String & style, UT_uint32 css_
 static void s_css_parse_rules (const std::string & css,
 		std::vector<std::pair<std::string, std::string> > & rules);
 
+/* is TOKEN among the whitespace-separated values of an epub:type
+ * attribute?
+ */
+static bool s_epubTypeContains (const std::string & types, const char * token)
+{
+	const size_t len = strlen (token);
+	size_t pos = 0;
+	while (pos <= types.size ())
+		{
+			size_t end = types.find_first_of (" \t\r\n", pos);
+			if (end == std::string::npos) end = types.size ();
+			if (end - pos == len && types.compare (pos, len, token) == 0)
+				return true;
+			if (end == types.size ()) break;
+			pos = end + 1;
+		}
+	return false;
+}
+
+/* epub:type values marking out-of-flow note bodies */
+static bool s_epub_isNoteBody (const std::string & types)
+{
+	return s_epubTypeContains (types, "footnote") ||
+		   s_epubTypeContains (types, "rearnote") ||
+		   s_epubTypeContains (types, "endnote");
+}
+
+/* note bodies plus their collection wrappers ("footnotes",
+ * "rearnotes", ...) - all of it is rendered at the noteref anchor,
+ * not in the reading order
+ */
+static bool s_epub_isNoteMaterial (const std::string & types)
+{
+	return s_epub_isNoteBody (types) ||
+		   s_epubTypeContains (types, "footnotes") ||
+		   s_epubTypeContains (types, "rearnotes") ||
+		   s_epubTypeContains (types, "endnotes");
+}
+
+static void s_xmlEscapeInto (std::string & out, const gchar * s,
+							 UT_uint32 length, bool bAttr)
+{
+	const gchar * end = s + length;
+	for (; s < end && *s; ++s)
+		{
+			switch (*s)
+				{
+				case '&':	out += "&amp;"; break;
+				case '<':	out += "&lt;";  break;
+				case '>':	out += "&gt;";  break;
+				case '"':	out += (bAttr ? "&quot;" : "\""); break;
+				default:	out += *s;
+				}
+		}
+}
+
 /*****************************************************************/
 /*****************************************************************/
 
@@ -239,7 +295,9 @@ IE_Imp_XHTML::IE_Imp_XHTML(PD_Document * pDocument) :
 	m_bFirstBlock(false),
 	m_bInMath(false),
 	m_pMathBB(new UT_ByteBuf),
-	m_bInStyle(false)
+	m_bInStyle(false),
+	m_iSkipDepth(0),
+	m_iNoteDepth(0)
 {
 }
 
@@ -637,6 +695,83 @@ static bool recognizeXHTML (const char * szBuf, UT_uint32 iNumbytes)
 	return false;
 }
 
+/* Pre-pass listener: indexes the inner markup of every element carrying
+ * epub:type="footnote|rearnote|endnote" plus an id, re-serialized so the
+ * main parse can feed it back through IE_Imp_XHTML at the noteref site.
+ */
+class IE_Imp_XHTML_NoteCapture : public UT_XML::Listener
+{
+public:
+	IE_Imp_XHTML_NoteCapture (std::map<std::string, IE_Imp_XHTML::s_NoteBody> & notes)
+		: m_notes (notes), m_iDepth (0), m_bEndnote (false) {}
+
+	virtual void startElement (const gchar * name, const gchar ** atts) override
+	{
+		if (m_iDepth)
+			{
+				m_buf += '<';
+				m_buf += name;
+				for (int i = 0; atts && atts[i]; i += 2)
+					{
+						m_buf += ' ';
+						m_buf += atts[i];
+						m_buf += "=\"";
+						s_xmlEscapeInto (m_buf, atts[i + 1],
+										 strlen (atts[i + 1]), true);
+						m_buf += '"';
+					}
+				m_buf += '>';
+				++m_iDepth;
+				return;
+			}
+
+		const gchar * id = nullptr;
+		const gchar * type = nullptr;
+		for (int i = 0; atts && atts[i]; i += 2)
+			{
+				if (!strcmp (atts[i], "id")) id = atts[i + 1];
+				else if (!strcmp (atts[i], "epub:type")) type = atts[i + 1];
+			}
+		if (id && type && s_epub_isNoteBody (type))
+			{
+				m_id = id;
+				m_bEndnote = !s_epubTypeContains (type, "footnote");
+				m_buf.clear ();
+				m_iDepth = 1;
+			}
+	}
+
+	virtual void endElement (const gchar * name) override
+	{
+		if (!m_iDepth) return;
+		if (m_iDepth == 1)
+			{
+				/* closing the note element itself */
+				IE_Imp_XHTML::s_NoteBody body = { m_bEndnote, m_buf };
+				m_notes[m_id] = body;
+				m_iDepth = 0;
+				return;
+			}
+		m_buf += "</";
+		m_buf += name;
+		m_buf += '>';
+		--m_iDepth;
+	}
+
+	virtual void charData (const gchar * buffer, int length) override
+	{
+		if (m_iDepth)
+			s_xmlEscapeInto (m_buf, buffer, length, false);
+	}
+
+private:
+	std::map<std::string, IE_Imp_XHTML::s_NoteBody> &	m_notes;
+	std::string		m_id;
+	std::string		m_buf;
+	int				m_iDepth;
+	bool			m_bEndnote;
+};
+
 UT_Error IE_Imp_XHTML::_loadFile(GsfInput * input)
 {
 	// see bug 10726 for why this is so convoluted, at least
@@ -661,7 +796,35 @@ UT_Error IE_Imp_XHTML::_loadFile(GsfInput * input)
 	UT_XML * parser;
 
 	if (is_xml)
-		parser = new UT_XML;
+		{
+			/* index EPUB3 note bodies before the real parse - their
+			 * noteref anchors point forward at trailing asides, which
+			 * the streaming pass cannot otherwise reach */
+			{
+				GsfInputMarker input_marker (input);
+				gsf_off_t size = gsf_input_remaining (input);
+				if (size > 0 && size < (50 << 20))
+					{
+						std::string buf;
+						buf.resize (static_cast<size_t>(size));
+						gsf_off_t done = 0;
+						while (done < size &&
+							   gsf_input_read (input,
+									   static_cast<size_t>(size - done),
+									   reinterpret_cast<guint8*>(&buf[done])))
+							done = size - gsf_input_remaining (input);
+						if (done > 0)
+							{
+								IE_Imp_XHTML_NoteCapture capture (m_notes);
+								UT_XML noteParser;
+								noteParser.setListener (&capture);
+								noteParser.parse (buf.c_str (),
+										  static_cast<UT_uint32>(done));
+							}
+					}
+			}
+			parser = new UT_XML;
+		}
 	else
 		parser = new UT_HTML;
 			
@@ -789,6 +952,27 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 		m_pMathBB->append(reinterpret_cast<const UT_Byte *>(">"), 1);
 		return;
 	}
+
+	/* swallowing an EPUB note body or the children of a handled noteref
+	 * anchor: count the subtree until it closes */
+	if (m_iSkipDepth)
+		{
+			++m_iSkipDepth;
+			return;
+		}
+
+	/* EPUB3 note material (<aside epub:type="footnote">, the
+	 * "footnotes" wrapper, ...) is rendered at its noteref anchor, not
+	 * in flow - _loadFile's capture pass already indexed each body by
+	 * id for insertNoteRef() to replay. No capture ran for the HTML
+	 * parser or clipboard paths (m_notes stays empty), so there the
+	 * bodies still import as plain text rather than vanishing. */
+	if (!m_notes.empty ()
+			&& s_epub_isNoteMaterial (PP_getAttribute("epub:type", atts)))
+		{
+			m_iSkipDepth = 1;
+			return;
+		}
 
 	switch (tokenIndex)
 	{
@@ -1169,6 +1353,23 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 		if (val->empty()) {
 			val = &PP_getAttribute("href", atts);
 		}
+
+		/* EPUB3 noteref: replay the captured note body inside a real
+		 * footnote/endnote strux instead of leaving a dead "1"
+		 * hyperlink plus a loose paragraph at the end of the chapter */
+		if (!val->empty() && (*val)[0] == '#'
+				&& s_epubTypeContains (PP_getAttribute("epub:type", atts),
+									   "noteref"))
+			{
+				std::map<std::string, s_NoteBody>::const_iterator it =
+						m_notes.find (val->substr (1));
+				if (it != m_notes.end () && insertNoteRef (it->second))
+					{
+						/* swallow the anchor's children and </a> */
+						m_iSkipDepth = 1;
+						return;
+					}
+			}
 		if(!val->empty()) {
 			X_CheckError(requireBlock ());
 			const PP_PropertyVector new_atts = {
@@ -1594,6 +1795,12 @@ void IE_Imp_XHTML::endElement(const gchar *name)
 		return;
 	}
 
+	if (m_iSkipDepth)
+		{
+			--m_iSkipDepth;
+			return;
+		}
+
 	switch (tokenIndex)
 	{
 	case TT_HTML:
@@ -1861,6 +2068,9 @@ void IE_Imp_XHTML::charData (const gchar * buffer, int length)
 		m_pMathBB->append(reinterpret_cast<const UT_Byte *>(buffer), length);
 		return; //don't insert mathml character data
 	}
+
+	if (m_iSkipDepth)
+		return;
 
 	if (m_bInStyle)
 		{
@@ -2385,6 +2595,16 @@ bool IE_Imp_XHTML::requireSection ()
 {
 	if (m_parseState == _PS_Sec) return true;
 
+	/* inside a note strux the note region itself is the section
+	 * context - a real PTX_Section would nest a document section
+	 * inside the note, which the piecetable does not allow */
+	if (m_iNoteDepth)
+		{
+			m_parseState = _PS_Sec;
+			m_bFirstBlock = false;
+			return true;
+		}
+
 	if (!appendStrux (PTX_Section, PP_NOPROPS))
 		{
 			UT_return_val_if_fail(0,false);
@@ -2393,6 +2613,91 @@ bool IE_Imp_XHTML::requireSection ()
 	m_bFirstBlock = false;
 	m_addedPTXSection = true;
 	return true;
+}
+
+/* Replays a captured EPUB3 note body at its <a epub:type="noteref">
+ * site: emits the reference field, wraps the body's markup in a real
+ * footnote/endnote strux (same shape the .abw importer produces for
+ * <foot>/<endnote>), then resumes the containing block.
+ */
+bool IE_Imp_XHTML::insertNoteRef (const s_NoteBody & note)
+{
+	if (!requireBlock ())
+		return false;
+
+	UT_uint32 uid = getDoc()->getUID (note.bEndnote ? UT_UniqueId::Endnote
+												  : UT_UniqueId::Footnote);
+	std::string sUid = UT_std_string_sprintf ("%u", uid);
+	const char * szIdAtt = note.bEndnote ? "endnote-id" : "footnote-id";
+
+	const PP_PropertyVector refAtts = {
+		"type", note.bEndnote ? "endnote_ref" : "footnote_ref",
+		szIdAtt, sUid,
+		"props", "text-position:superscript"
+	};
+	if (!appendObject (PTO_Field, refAtts))
+		return false;
+
+	const PP_PropertyVector secAtts = { szIdAtt, sUid };
+	if (!appendStrux (note.bEndnote ? PTX_SectionEndnote : PTX_SectionFootnote,
+					  secAtts))
+		return false;
+
+	/* the note region is its own section context (see the m_iNoteDepth
+	 * guard in requireSection) */
+	m_parseState = _PS_Sec;
+	m_bFirstBlock = false;
+	++m_iNoteDepth;
+
+	/* the first block carries the anchor mark; a bare-text body lands
+	 * in it while <p>-led bodies open further blocks inside the note */
+	const PP_PropertyVector blkAtts = {
+		"style", note.bEndnote ? "Endnote Text" : "Footnote Text"
+	};
+	bool ok = appendStrux (PTX_Block, blkAtts);
+	m_parseState = _PS_Block;
+	m_bFirstBlock = true;
+
+	if (ok)
+		{
+			const PP_PropertyVector ancAtts = {
+				"type", note.bEndnote ? "endnote_anchor" : "footnote_anchor",
+				szIdAtt, sUid,
+				"props", "text-position:superscript"
+			};
+			ok = appendObject (PTO_Field, ancAtts);
+		}
+
+	if (ok && !note.xml.empty ())
+		{
+			/* feed the captured body back through ourselves; the
+			 * neutral root keeps a bare-text body well-formed */
+			UT_XML noteParser;
+			noteParser.setListener (this);
+			std::string doc ("<note-body>");
+			doc += note.xml;
+			doc += "</note-body>";
+			noteParser.parse (doc.c_str (),
+							  static_cast<UT_uint32>(doc.size ()));
+			if (m_error != UT_OK)
+				{
+					/* keep a possibly partial note rather than failing
+					 * the whole import over one bad body */
+					UT_DEBUGMSG(("note body replay failed - keeping partial content\n"));
+					m_error = UT_OK;
+				}
+		}
+
+	--m_iNoteDepth;
+
+	if (!appendStrux (note.bEndnote ? PTX_EndEndnote : PTX_EndFootnote,
+					  PP_NOPROPS))
+		return false;
+
+	/* back inside the still-open containing block */
+	m_parseState = _PS_Block;
+	m_bFirstBlock = true;
+	return ok;
 }
 
 bool IE_Imp_XHTML::appendStrux(PTStruxType pts, const PP_PropertyVector & attributes)

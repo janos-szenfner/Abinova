@@ -1746,6 +1746,13 @@ below are on `main` but the release has not been cut yet.
   containing paragraph early, which pushed note markup (and sometimes
   `</body>`) past the end of the document body; multi-paragraph notes
   now export in full.
+- **EPUB import reconstructs real footnotes/endnotes** — an
+  `<a epub:type="noteref">` pointing at an `epub:type="footnote"` /
+  `rearnote` body (as written by Abinova's own export) is imported as a
+  real note again instead of a dead "1" hyperlink plus a loose
+  paragraph at the end of the chapter. A capture pass indexes each
+  note body by id before the main XHTML parse, and the body is then
+  replayed inside a real footnote/endnote strux at the reference.
 - **Atomic file save** — `IE_Exp::writeFile` now exports to a
   `<name>.part` sibling and `rename()`s it over the target: a
   failed export, encryption failure or mid-write crash can no

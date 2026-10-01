@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <map>
 #include <stack>
 #include <string>
 #include <utility>
@@ -100,6 +101,18 @@ public:
 	virtual bool appendSpan(const UT_UCS4Char * p, UT_uint32 length) override;
 	virtual bool  appendObject(PTObjectType pto, const PP_PropertyVector & attributes);
 
+	/* EPUB3 note support: _loadFile's capture pass indexes the inner
+	 * markup of every element carrying epub:type="footnote|rearnote|
+	 * endnote" plus an id, so that an <a epub:type="noteref"> can replay
+	 * the body inside a real note strux at its own position - the aside
+	 * holding the body follows its anchor in reading order, which a
+	 * single streaming pass cannot reach (see insertNoteRef)
+	 */
+	struct s_NoteBody
+	{
+		bool		bEndnote;
+		std::string	xml;
+	};
 
 protected:
 	virtual UT_Error _loadFile (GsfInput * input) override;
@@ -146,4 +159,10 @@ private:
 	bool        m_bInStyle;
 	std::string m_styleText;
 	std::vector<std::pair<std::string, std::string> >	m_cssRules;
+
+	std::map<std::string, s_NoteBody>	m_notes;
+	UT_uint32	m_iSkipDepth;	/* swallow subtrees while > 0 */
+	UT_uint32	m_iNoteDepth;	/* > 0 while replaying a note body */
+
+	bool					insertNoteRef (const s_NoteBody & note);
 };

@@ -64,3 +64,16 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
 - 2026-10-01 E03: EPUB export correctness — nav doc renamed nav.xhtml with properties="nav" + globally unique nav/NCX ids; NCX dtb:uid now matches the urn:uuid OPF identifier verbatim and dtb:depth reflects real TOC depth; IE_Exp gained m_szWriteFileName so the .part atomic-save scratch path no longer leaks into getFileName (was producing .html-named split chapters inside the epub); NavigationHelper maps the first split chapter to index.xhtml; EPUB3Writer XHTML5 overrides drop img@align/cellpadding/empty rowspan+colspan (align mapped to CSS float/vertical-align); table/style/MathML CSS dims switched to UT_formatDimensionString (locale-safe '.' decimals); GsfInput/GsfXMLOut leaks in compress() fixed — epubcheck 5.2.1: 0 errors/0 warnings on 6 exports (2 synthetic + Austin/filgree/retrospect/integral docx), mimetype first+stored verified; abwn/pdf/docx/html regression exports clean
 - 2026-10-01 E04: EPUB export fidelity — heading-level chapter split (dialog combo + split-level exp-prop -> NavigationHelper <=level policy), first image -> OPF cover-image (EPUB2 meta name=cover), explicit media-type table, EPUB3 noteref/footnote/rearnote semantics; fixed shared HTML exporter note bugs (End-note strux prematurely closed block popping div/body early, first-span note truncation, no ref for field-less foot/endnote markup, footnote_ref href used endnote counter, endnotes dropped in split ranges) — verified: split-level:2 epub -> per-heading chapters, all package XML well-formed, manifest/spine/nav/ncx anchors resolve, mimetype first+stored, docx footnote fixture emits single noteref+aside; no reader/epubcheck binary in env (structural validation)
 - 2026-10-01 DOC15: wv memory-bug fixes — 11x wvFree(pos)->wvFree(*pos) heap-corruption fixes in PLCF getters (atrd/bte/pcd/fld/lst/ftxbxs/bkd/fdoa/frd/ffn + restored the commented-out fspa free); FKP page caches now deep-copy rgfc/rgb(x)/grp arrays incl. per-element grpprl so wvReleasePAPX_FKP/wvReleaseCHPX_FKP/external_wvRelease*_FKP actually free instead of leaking; decode_complex releases Sttbfbkmk; importer footnote/endnote zero-length-sibling-PLCF bail frees both buffers + zeroes the count — make -C thirdparty + src build clean, 7 test/wp .doc -> pdf conversions pass, valgrind on 907.doc: 0 errors / 0 definite leaks
+- 2026-10-01 E05: EPUB roundtrip smoke + package validation — new
+  tools/epub-rt-check.sh automates doc->epub->structural checks
+  (mimetype first+stored, all-member XML well-formedness, container->OPF
+  resolution, manifest coverage, spine idrefs, ncx dtb:uid==OPF id,
+  internal href existence) + epub->abwn reimport text/image compare.
+  Roundtrip found a real gap: epub:type=noteref/footnote markup degraded
+  to a dead "1" hyperlink + loose paragraph; ie_imp_XHTML now indexes
+  note bodies by id in a capture pre-pass and replays them inside real
+  footnote/endnote struxes (ref+anchor fields, Footnote/Endnote Text)
+  at the noteref site, swallowing in-flow aside copies via m_iSkipDepth
+  — verified: split-chapter fixture + filgree/Austin/retrospect/integral
+  text-identical roundtrips with images preserved, footnote renders at
+  page bottom in PDF, html/xhtml/doc/abw regression clean
