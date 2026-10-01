@@ -1692,6 +1692,15 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **EPUB import hardened** — the importer now percent-decodes and
+  normalizes rootfile paths and manifest hrefs (so OPF files at the
+  archive root, `%20`-style names and `..`-relative chapters resolve),
+  handles namespace-prefixed `container`/`package` documents and
+  OPF 2.0/3.0 manifests, prefers the rootfile declared with the
+  OEBPS media type, and skips missing manifest ids/files instead of
+  aborting or crashing on them. Fixed crashes on missing rootfiles,
+  absent manifest attributes and the shared zip-stream read position,
+  plus several GsfInput/GsfOutput leaks.
 - **Atomic file save** — `IE_Exp::writeFile` now exports to a
   `<name>.part` sibling and `rename()`s it over the target: a
   failed export, encryption failure or mid-write crash can no

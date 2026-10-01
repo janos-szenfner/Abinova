@@ -62,6 +62,8 @@ private:
     std::string m_opsDir;
     std::vector<std::string> m_spine;
     std::map<std::string, std::string> m_manifestItems;
+    /* manifest id -> extracted file URI inside m_tmpDir */
+    std::map<std::string, std::string> m_extractedItems;
 
     UT_Error readMetadata();
     UT_Error readPackage();
@@ -76,14 +78,24 @@ private:
 class ContainerListener: public UT_XML::Listener
 {
 public:
+    ContainerListener();
+
     virtual void startElement(const gchar * name, const gchar ** atts) override;
     virtual void endElement(const gchar * name) override;
     virtual void charData(const gchar * buffer, int length) override;
 
     const std::string & getRootFilePath() const;
+    bool isRootOk() const
+    {
+        return m_rootOk;
+    }
 
 private:
+    /* rootfile candidates (full-path, media-type) in document order */
+    std::vector<string_pair> m_rootFiles;
     std::string m_rootFilePath;
+    bool m_rootOk;
+    bool m_checkedRoot;
 };
 
 /*
@@ -104,6 +116,10 @@ public:
     {
         return m_spine;
     }
+    bool isRootOk() const
+    {
+        return m_rootOk;
+    }
 
     OpfListener();
 
@@ -118,6 +134,8 @@ private:
 
     bool m_inManifest;
     bool m_inSpine;
+    bool m_rootOk;
+    bool m_checkedRoot;
 };
 
 /*

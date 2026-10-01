@@ -21,15 +21,143 @@
 
 #include "ie_imp_EPUB.h"
 
+/* Strip a namespace prefix ("opf:item" -> "item"). UT_XML does no
+ * namespace processing, so prefixed names reach listeners verbatim.
+ */
+static const gchar* s_localName(const gchar* name)
+{
+    const gchar* colon = strrchr(name, ':');
+    return colon ? colon + 1 : name;
+}
+
+static bool s_isElement(const gchar* name, const char* local)
+{
+    return UT_go_utf8_collate_casefold(s_localName(name), local) == 0;
+}
+
+/* Decode %XX escapes in an href/full-path (OCF paths are URIs, so they
+ * may be percent-encoded). '+' is left alone: it is only meaningful in
+ * query strings, not in path segments.
+ */
+static std::string s_percentDecode(const std::string& s)
+{
+    std::string out;
+    out.reserve(s.size());
+
+    for (size_t i = 0; i < s.size(); i++)
+    {
+        if (s[i] == '%' && i + 2 < s.size()
+                && g_ascii_isxdigit(s[i + 1]) && g_ascii_isxdigit(s[i + 2]))
+        {
+            out += static_cast<char>((g_ascii_xdigit_value(s[i + 1]) << 4)
+                    | g_ascii_xdigit_value(s[i + 2]));
+            i += 2;
+        }
+        else
+        {
+            out += s[i];
+        }
+    }
+
+    return out;
+}
+
+/* Lexically normalize a '/'-separated relative path: collapse empty
+ * and "." components and resolve ".." against the accumulated path.
+ * Returns false if the path escapes its root (more ".." than leading
+ * components) - such paths must never be used for zip lookup or file
+ * extraction.
+ */
+static bool s_normalizePath(const std::string& path, std::string& out)
+{
+    std::vector<std::string> stack;
+    size_t pos = 0;
+
+    while (pos <= path.size())
+    {
+        size_t slash = path.find('/', pos);
+        std::string comp =
+                (slash == std::string::npos) ?
+                    path.substr(pos) : path.substr(pos, slash - pos);
+        pos = (slash == std::string::npos) ? path.size() + 1 : slash + 1;
+
+        if (comp.empty() || comp == ".")
+        {
+            continue;
+        }
+        if (comp == "..")
+        {
+            if (stack.empty())
+            {
+                return false;
+            }
+            stack.pop_back();
+            continue;
+        }
+        stack.push_back(comp);
+    }
+
+    out.clear();
+    for (std::vector<std::string>::const_iterator i = stack.begin(); i
+            != stack.end(); i++)
+    {
+        if (!out.empty())
+        {
+            out += '/';
+        }
+        out += *i;
+    }
+
+    return true;
+}
+
+/* Open a zip member by its normalized '/'-separated path, one path
+ * component at a time (the same approach as the OOXML importer's
+ * _childByPath).
+ */
+static GsfInput* s_childByPath(GsfInfile* zip, const std::string& path)
+{
+    if (zip == NULL || path.empty() || path[0] == '/')
+    {
+        return NULL;
+    }
+    GsfInput* cur = GSF_INPUT(zip);
+    g_object_ref(G_OBJECT(cur));
+
+    size_t pos = 0;
+    while (pos < path.size() && cur != NULL)
+    {
+        size_t slash = path.find('/', pos);
+        std::string comp = path.substr(pos,
+                slash == std::string::npos ?
+                    std::string::npos : slash - pos);
+        if (comp.empty() || comp == "." || comp == "..")
+        {
+            g_object_unref(G_OBJECT(cur));
+            return NULL;
+        }
+        GsfInput* next = gsf_infile_child_by_name(GSF_INFILE(cur),
+                comp.c_str());
+        g_object_unref(G_OBJECT(cur));
+        cur = next;
+        pos = (slash == std::string::npos) ? path.size() : slash + 1;
+    }
+    return cur;
+}
+
 IE_Imp_EPUB::IE_Imp_EPUB(PD_Document* pDocument) :
-    IE_Imp(pDocument)
+    IE_Imp(pDocument),
+    m_epub(NULL)
 {
 
 }
 
 IE_Imp_EPUB::~IE_Imp_EPUB()
 {
-
+    if (m_epub != NULL)
+    {
+        g_object_unref(G_OBJECT(m_epub));
+    }
 }
 
 bool IE_Imp_EPUB::pasteFromBuffer(PD_DocumentRange* pDocRange,
@@ -48,6 +176,7 @@ bool IE_Imp_EPUB::pasteFromBuffer(PD_DocumentRange* pDocRange,
     GsfInput * pInStream = gsf_input_memory_new((const guint8 *) pData,
             (gsf_off_t) lenData, FALSE);
     pEPUBImp->loadFile(newDoc, pInStream);
+    g_object_unref(G_OBJECT(pInStream));
 
     newDoc->finishRawCreation();
 
@@ -114,6 +243,7 @@ UT_Error IE_Imp_EPUB::readMetadata()
 
     GsfInput* meta = gsf_infile_child_by_name(GSF_INFILE(metaInf),
             "container.xml");
+    g_object_unref(G_OBJECT(metaInf));
 
     if (meta == NULL)
     {
@@ -121,27 +251,37 @@ UT_Error IE_Imp_EPUB::readMetadata()
         return UT_ERROR;
     }
 
+    /* zip children share the infile's inflate state - rewind before
+     * reading or we get bytes from wherever the previous child left off
+     */
+    gsf_input_seek(meta, 0, G_SEEK_SET);
     size_t metaSize = gsf_input_size(meta);
 
     if (metaSize == 0)
     {
         UT_DEBUGMSG(("Container metadata file is empty\n"));
+        g_object_unref(G_OBJECT(meta));
         return UT_ERROR;
     }
 
-    gchar* metaXml = (gchar*) gsf_input_read(meta, metaSize, NULL);
+    const guint8* metaData = gsf_input_read(meta, metaSize, NULL);
 
-    std::string rootfilePath;
+    if (metaData == NULL)
+    {
+        UT_DEBUGMSG(("Can`t read container metadata\n"));
+        g_object_unref(G_OBJECT(meta));
+        return UT_ERROR;
+    }
+    /* the returned buffer is owned by the input - copy before unref */
+    std::string metaXml((const char*) metaData, metaSize);
+    g_object_unref(G_OBJECT(meta));
+
     UT_XML metaParser;
     ContainerListener containerListener;
     metaParser.setListener(&containerListener);
 
-    if (metaParser.sniff(metaXml, metaSize, "container"))
-    {
-        UT_DEBUGMSG(("Parsing container.xml file\n"));
-        metaParser.parse(metaXml, metaSize);
-    }
-    else
+    if (metaParser.parse(metaXml.c_str(), metaXml.size()) != UT_OK
+            || !containerListener.isRootOk())
     {
         UT_DEBUGMSG(("Incorrect container.xml file\n"));
         return UT_ERROR;
@@ -149,59 +289,86 @@ UT_Error IE_Imp_EPUB::readMetadata()
 
     m_rootfilePath = containerListener.getRootFilePath();
 
-    g_object_unref(G_OBJECT(meta));
-    g_object_unref(G_OBJECT(metaInf));
+    if (m_rootfilePath.empty())
+    {
+        UT_DEBUGMSG(("No rootfile declared in container.xml\n"));
+        return UT_ERROR;
+    }
 
     return UT_OK;
 }
 
 UT_Error IE_Imp_EPUB::readPackage()
 {
-    gchar **aname = g_strsplit(m_rootfilePath.c_str(), G_DIR_SEPARATOR_S, 0);
-    GsfInput* opf = gsf_infile_child_by_aname(m_epub, (const char**) aname);
-
-    UT_DEBUGMSG(("Getting parent\n"));
-    GsfInfile* opfParent = gsf_input_container(opf);
-    m_opsDir = std::string(gsf_input_name(GSF_INPUT(opfParent)));
-
-    UT_DEBUGMSG(("OPS dir: %s\n", m_opsDir.c_str()));
-
-    if (opf == NULL)
+    /* The rootfile full-path is a '/'-separated path relative to the
+     * archive root (OCF 2.0.1 / 3.x). It may be percent-encoded and is
+     * the base for resolving all manifest hrefs.
+     */
+    std::string opfPath;
+    if (!s_normalizePath(s_percentDecode(m_rootfilePath), opfPath)
+            || opfPath.empty())
     {
-        UT_DEBUGMSG(("Can`t open .opf file\n"));
+        UT_DEBUGMSG(("Invalid rootfile path %s\n", m_rootfilePath.c_str()));
         return UT_ERROR;
     }
 
+    size_t slash = opfPath.find_last_of('/');
+    m_opsDir = (slash == std::string::npos) ? "" : opfPath.substr(0, slash);
+    UT_DEBUGMSG(("OPS dir: %s\n", m_opsDir.c_str()));
+
+    GsfInput* opf = s_childByPath(m_epub, opfPath);
+
+    if (opf == NULL)
+    {
+        UT_DEBUGMSG(("Can`t open .opf file %s\n", opfPath.c_str()));
+        return UT_ERROR;
+    }
+
+    gsf_input_seek(opf, 0, G_SEEK_SET);
     size_t opfSize = gsf_input_size(opf);
-    gchar* opfXml = (gchar*) gsf_input_read(opf, opfSize, NULL);
+    const guint8* opfData = (opfSize > 0) ? gsf_input_read(opf, opfSize, NULL)
+            : NULL;
+    /* the returned buffer is owned by the input - copy before unref */
+    std::string opfXml;
+    if (opfData != NULL)
+    {
+        opfXml.assign((const char*) opfData, opfSize);
+    }
+    g_object_unref(G_OBJECT(opf));
+
+    if (opfXml.empty())
+    {
+        UT_DEBUGMSG(("Can`t read .opf file\n"));
+        return UT_ERROR;
+    }
 
     UT_XML opfParser;
     OpfListener opfListener;
     opfParser.setListener(&opfListener);
-    if (opfParser.sniff(opfXml, opfSize, "package"))
-    {
-        UT_DEBUGMSG(("Parsing opf file\n"));
-        opfParser.parse(opfXml, opfSize);
-    }
-    else
+    if (opfParser.parse(opfXml.c_str(), opfXml.size()) != UT_OK
+            || !opfListener.isRootOk())
     {
         UT_DEBUGMSG(("Incorrect opf file found \n"));
         return UT_ERROR;
     }
 
-    g_strfreev(aname);
-    g_object_unref(G_OBJECT(opf));
-    //g_object_unref(G_OBJECT(opfParent));
-
     m_spine = opfListener.getSpine();
     m_manifestItems = opfListener.getManifestItems();
+
+    if (m_spine.empty())
+    {
+        UT_DEBUGMSG(("Empty spine in .opf file\n"));
+        return UT_ERROR;
+    }
 
     return UT_OK;
 }
 
 UT_Error IE_Imp_EPUB::uncompress()
 {
-    m_tmpDir = UT_go_filename_to_uri(g_get_tmp_dir());
+    gchar* tmpUri = UT_go_filename_to_uri(g_get_tmp_dir());
+    m_tmpDir = tmpUri;
+    g_free(tmpUri);
     m_tmpDir += G_DIR_SEPARATOR_S;
     m_tmpDir += getDoc()->getDocUUIDString();
 
@@ -210,35 +377,59 @@ UT_Error IE_Imp_EPUB::uncompress()
         UT_DEBUGMSG(("Can`t create temporary directory\n"));
         return UT_ERROR;
     }
-    GsfInput *opsDirInput = gsf_infile_child_by_name(m_epub,
-            m_opsDir.c_str());
-    UT_DEBUGMSG(("Child count : %d", gsf_infile_num_children(m_epub)));
-    if (opsDirInput == NULL)
-    {
-        UT_DEBUGMSG(("Failed to open OPS dir\n"));
-        return UT_ERROR;
-    }
 
     for (std::map<std::string, std::string>::iterator i =
             m_manifestItems.begin(); i != m_manifestItems.end(); i++)
     {
-        gchar *itemFileName = UT_go_filename_from_uri(
-                (m_tmpDir + G_DIR_SEPARATOR_S + (*i).second).c_str());
-        gchar** aname =
-                g_strsplit((*i).second.c_str(), G_DIR_SEPARATOR_S, 0);
+        /* href is a URI relative to the OPF location (OPF 2.0.1/3.x
+         * manifest). Decode escapes, join with the OPF directory and
+         * resolve ".." lexically against it.
+         */
+        std::string joined = m_opsDir.empty() ? s_percentDecode(i->second)
+                : m_opsDir + "/" + s_percentDecode(i->second);
+        std::string zipPath;
+        if (!s_normalizePath(joined, zipPath))
+        {
+            UT_DEBUGMSG(("Href %s escapes the archive - skipped\n",
+                    i->second.c_str()));
+            continue;
+        }
+        if (zipPath.empty())
+        {
+            continue;
+        }
 
-        GsfInput* itemInput = gsf_infile_child_by_aname(
-                GSF_INFILE(opsDirInput), (const char**) aname);
-        GsfOutput* itemOutput = createFileByPath(itemFileName);
+        GsfInput* itemInput = s_childByPath(m_epub, zipPath);
+
+        if (itemInput == NULL)
+        {
+            UT_DEBUGMSG(("Manifest item %s not in archive - skipped\n",
+                    zipPath.c_str()));
+            continue;
+        }
+
+        std::string itemUri = m_tmpDir + G_DIR_SEPARATOR_S + zipPath;
+        gchar *itemFileName = UT_go_filename_from_uri(itemUri.c_str());
+        GsfOutput* itemOutput = itemFileName ?
+                createFileByPath(itemFileName) : NULL;
+        g_free(itemFileName);
+
+        if (itemOutput == NULL)
+        {
+            UT_DEBUGMSG(("Can`t create temp file for %s - skipped\n",
+                    zipPath.c_str()));
+            g_object_unref(G_OBJECT(itemInput));
+            continue;
+        }
+
         gsf_input_seek(itemInput, 0, G_SEEK_SET);
         gsf_input_copy(itemInput, itemOutput);
-        g_strfreev(aname);
-        g_free(itemFileName);
-        g_object_unref(G_OBJECT(itemInput));
         gsf_output_close(itemOutput);
-    }
+        g_object_unref(G_OBJECT(itemInput));
+        g_object_unref(G_OBJECT(itemOutput));
 
-    g_object_unref(G_OBJECT(opsDirInput));
+        m_extractedItems.insert(make_pair(i->first, itemUri));
+    }
 
     return UT_OK;
 }
@@ -248,44 +439,35 @@ UT_Error IE_Imp_EPUB::readStructure()
     getDoc()->createRawDocument();
     getDoc()->finishRawCreation();
 
+    bool bFirstItem = true;
     for (std::vector<std::string>::iterator i = m_spine.begin(); i
             != m_spine.end(); i++)
     {
+        /* A spine itemref with no matching manifest id is malformed;
+         * skip it and keep importing the rest of the book.
+         */
         std::map<std::string, std::string>::iterator iter =
-                m_manifestItems.find(*i);
+                m_extractedItems.find(*i);
 
-        if (iter == m_manifestItems.end())
+        if (iter == m_extractedItems.end())
         {
-            UT_DEBUGMSG(("Manifest item with id %s not found\n", (*i).c_str()));
-            return UT_ERROR;
-        }
-	std::string itemPath = m_tmpDir + G_DIR_SEPARATOR_S + (iter->second);
-        PT_DocPosition posEnd = 0;
-        getDoc()->getBounds(true, posEnd);
-
-        if (i != m_spine.begin())
-        {
-            getDoc()->insertStrux(posEnd, PTX_Section, PP_NOPROPS, PP_NOPROPS);
-            getDoc()->insertStrux(posEnd+1, PTX_Block, PP_NOPROPS, PP_NOPROPS);
-            posEnd+=2;
+            UT_DEBUGMSG(("Spine item %s not found - skipped\n", (*i).c_str()));
+            continue;
         }
 
-        GsfInput* itemInput = UT_go_file_open(itemPath.c_str(), NULL);
-        if (itemInput == NULL)
-        {
-            UT_DEBUGMSG(("Can`t open item for reading\n"));
-            return UT_ERROR;
-        }
+        std::string itemPath = iter->second;
 
         PD_Document *currentDoc = new PD_Document();
         currentDoc->createRawDocument();
-        const char *suffix = strchr(itemPath.c_str(), '.');
+        const char *suffix = strrchr(itemPath.c_str(), '.');
         XAP_App::getApp()->getPrefs()->setIgnoreNextRecent();
         if (currentDoc->importFile(itemPath.c_str(),
                 IE_Imp::fileTypeForSuffix(suffix), true, false, NULL) != UT_OK)
         {
-            UT_DEBUGMSG(("Failed to import file %s\n", itemPath.c_str()));
-            return UT_ERROR;
+            UT_DEBUGMSG(("Failed to import file %s - skipped\n",
+                    itemPath.c_str()));
+            UNREFP(currentDoc);
+            continue;
         }
 
         currentDoc->finishRawCreation();
@@ -299,6 +481,16 @@ UT_Error IE_Imp_EPUB::readStructure()
         // currentDoc->getBounds(true, pos);
         // currentDoc->insertStrux(pos, PTX_Block, attributes, PP_NOPROPS, PP_NOPROPS);
 
+        PT_DocPosition posEnd = 0;
+        getDoc()->getBounds(true, posEnd);
+
+        if (!bFirstItem)
+        {
+            getDoc()->insertStrux(posEnd, PTX_Section, PP_NOPROPS, PP_NOPROPS);
+            getDoc()->insertStrux(posEnd+1, PTX_Block, PP_NOPROPS, PP_NOPROPS);
+            posEnd+=2;
+        }
+
         IE_Imp_PasteListener * pPasteListener = new IE_Imp_PasteListener(
                 getDoc(), posEnd, currentDoc);
         currentDoc->tellListener(static_cast<PL_Listener *> (pPasteListener));
@@ -306,7 +498,7 @@ UT_Error IE_Imp_EPUB::readStructure()
 
         DELETEP(pPasteListener);
         UNREFP(currentDoc);
-        g_object_unref(G_OBJECT(itemInput));
+        bFirstItem = false;
     }
 
     return UT_OK;
@@ -314,49 +506,79 @@ UT_Error IE_Imp_EPUB::readStructure()
 
 GsfOutput* IE_Imp_EPUB::createFileByPath(const char* path)
 {
-    gchar** components = g_strsplit(path, G_DIR_SEPARATOR_S, 0);
-    std::string curPath = "";
-
-    int current = 0;
-    GsfOutput* output = NULL;
-    while (components[current] != NULL)
+    /* Create each missing parent directory (UT_go_directory_create is
+     * not recursive), then the file itself. Returns NULL when the
+     * file already exists - extraction tmpdirs are per-document so a
+     * collision means two manifest hrefs normalized to the same path.
+     */
+    std::string p(path);
+    for (size_t slash = p.find('/'); slash != std::string::npos; slash =
+            p.find('/', slash + 1))
     {
-        curPath += components[current];
-        current++;
-
-        char *uri = UT_go_filename_to_uri(curPath.c_str());
-        bool fileExists = UT_go_file_exists(uri);
-        if (!fileExists && (components[current] != NULL))
+        std::string dir = p.substr(0, slash);
+        if (dir.empty())
+        {
+            continue;
+        }
+        gchar* uri = UT_go_filename_to_uri(dir.c_str());
+        if (!UT_go_file_exists(uri))
         {
             UT_go_directory_create(uri, NULL);
         }
-        else
-        {
-            if (!fileExists)
-            {
-                output = UT_go_file_create(uri, NULL);
-                break;
-            }
-        }
-
         g_free(uri);
-
-        if (components[current] != NULL)
-        {
-            curPath += G_DIR_SEPARATOR_S;
-        }
     }
 
-    g_strfreev(components);
+    gchar* uri = UT_go_filename_to_uri(path);
+    GsfOutput* output = UT_go_file_exists(uri) ?
+        NULL : UT_go_file_create(uri, NULL);
+    g_free(uri);
     return output;
+}
+
+/* Decide whether the element that opened the document matches the
+ * expected root, so container/package checks work regardless of
+ * namespace prefixes (the old UT_XML::sniff only matched unprefixed
+ * names).
+ */
+static bool s_checkRoot(const gchar* name, const char* expected,
+        bool& checked, bool& ok)
+{
+    if (checked)
+    {
+        return ok;
+    }
+    checked = true;
+    ok = s_isElement(name, expected);
+    return ok;
+}
+
+ContainerListener::ContainerListener() :
+    m_rootOk(false),
+    m_checkedRoot(false)
+{
+
 }
 
 void ContainerListener::startElement(const gchar* name, const gchar** atts)
 {
-    if (!UT_go_utf8_collate_casefold(name, "rootfile"))
+    if (!s_checkRoot(name, "container", m_checkedRoot, m_rootOk))
     {
-        m_rootFilePath = std::string(UT_getAttribute("full-path", atts));
-        UT_DEBUGMSG(("Found rootfile%s\n", m_rootFilePath.c_str()));
+        return;
+    }
+
+    if (s_isElement(name, "rootfile"))
+    {
+        const gchar* fullPath = UT_getAttribute("full-path", atts);
+        const gchar* mediaType = UT_getAttribute("media-type", atts);
+
+        if (fullPath == NULL || *fullPath == '\0')
+        {
+            return;
+        }
+        m_rootFiles.push_back(
+                make_pair(std::string(fullPath),
+                        mediaType ? std::string(mediaType) : std::string()));
+        UT_DEBUGMSG(("Found rootfile %s\n", fullPath));
     }
 }
 
@@ -371,6 +593,25 @@ void ContainerListener::charData(const gchar* /*buffer*/, int /*length*/)
 
 const std::string & ContainerListener::getRootFilePath() const
 {
+    /* Per OCF the right rootfile carries
+     * media-type="application/oebps-package+xml"; fall back to the
+     * first declared rootfile when none does.
+     */
+    for (std::vector<string_pair>::const_iterator i = m_rootFiles.begin(); i
+            != m_rootFiles.end(); i++)
+    {
+        if (UT_go_utf8_collate_casefold(i->second.c_str(),
+                "application/oebps-package+xml") == 0)
+        {
+            const_cast<ContainerListener*>(this)->m_rootFilePath = i->first;
+            return m_rootFilePath;
+        }
+    }
+    if (!m_rootFiles.empty())
+    {
+        const_cast<ContainerListener*>(this)->m_rootFilePath =
+                m_rootFiles.begin()->first;
+    }
     return m_rootFilePath;
 }
 
@@ -379,49 +620,72 @@ const std::string & ContainerListener::getRootFilePath() const
  */
 
 OpfListener::OpfListener() :
-    m_inManifest(false)
+    m_inManifest(false),
+    m_inSpine(false),
+    m_rootOk(false),
+    m_checkedRoot(false)
 {
 
 }
 
 void OpfListener::startElement(const gchar* name, const gchar** atts)
 {
-    if (!UT_go_utf8_collate_casefold(name, "manifest"))
+    if (!s_checkRoot(name, "package", m_checkedRoot, m_rootOk))
+    {
+        return;
+    }
+
+    if (s_isElement(name, "manifest"))
     {
         m_inManifest = true;
     }
-
-    if (!UT_go_utf8_collate_casefold(name, "spine"))
+    else if (s_isElement(name, "spine"))
     {
         m_inSpine = true;
     }
-
-    if (m_inManifest)
+    else if (m_inManifest && s_isElement(name, "item"))
     {
-        if (!UT_go_utf8_collate_casefold(name, "item"))
+        const gchar* id = UT_getAttribute("id", atts);
+        const gchar* href = UT_getAttribute("href", atts);
+
+        if (id == NULL || *id == '\0' || href == NULL || *href == '\0')
         {
-            m_manifestItems.insert(
-				   make_pair(std::string(UT_getAttribute("id", atts)),
-					     std::string(UT_getAttribute("href", atts))));
-            UT_DEBUGMSG(("Found manifest item: %s\n", UT_getAttribute("href", atts)));
+            return;
         }
+        /* OPF 2.0.1 and 3.x share this manifest shape; a duplicate id
+         * keeps the first entry.
+         */
+        m_manifestItems.insert(
+			   make_pair(std::string(id), std::string(href)));
+        UT_DEBUGMSG(("Found manifest item: %s\n", href));
     }
-
-    if (m_inSpine)
+    else if (m_inSpine && s_isElement(name, "itemref"))
     {
-        if (!UT_go_utf8_collate_casefold(name, "itemref"))
+        /* We can ignore the "linear" attribute - non-linear items are
+         * still content and are imported in spine order.
+         */
+        const gchar* idref = UT_getAttribute("idref", atts);
+
+        if (idref == NULL || *idref == '\0')
         {
-            // We can ignore "linear" attribute as it said in specification
-	    m_spine.push_back(std::string(UT_getAttribute("idref", atts)));
-            UT_DEBUGMSG(("Found spine itemref: %s\n", UT_getAttribute("idref", atts)));
+            return;
         }
+        m_spine.push_back(std::string(idref));
+        UT_DEBUGMSG(("Found spine itemref: %s\n", idref));
     }
 
 }
 
-void OpfListener::endElement(const gchar* /*name*/)
+void OpfListener::endElement(const gchar* name)
 {
-
+    if (s_isElement(name, "manifest"))
+    {
+        m_inManifest = false;
+    }
+    else if (s_isElement(name, "spine"))
+    {
+        m_inSpine = false;
+    }
 }
 
 void OpfListener::charData(const gchar* /*buffer*/, int /*length*/)
