@@ -40,6 +40,12 @@
 
 #define MIN_DRAG_PIXELS 8
 
+/* the autoscroll worker carries this object as instance data; it is
+ * killed from the destructor so a dead view never gets fired on */
+static UT_sint32 iExtra = 0;
+static bool bScrollRunning = false;
+static UT_Worker * s_pScroll = nullptr;
+
 FV_VisualInlineImage::FV_VisualInlineImage (FV_View * pView)
 	: FV_Base(pView), 
 	  m_iInlineDragMode(FV_InlineDrag_NOT_ACTIVE),
@@ -70,6 +76,13 @@ FV_VisualInlineImage::~FV_VisualInlineImage()
 		m_pAutoScrollTimer->stop();
 		DELETEP(m_pAutoScrollTimer);
 	}
+	if(s_pScroll && s_pScroll->getInstanceData() == this)
+	{
+		s_pScroll->stop();
+		delete s_pScroll;
+		s_pScroll = nullptr;
+		bScrollRunning = false;
+	}
 	DELETEP(m_screenCache);
 	DELETEP(m_pDocUnderCursor);
 }
@@ -98,10 +111,6 @@ void FV_VisualInlineImage::setMode(FV_InlineDragMode iEditMode)
 	    m_bSelectionDrawn = false;
        }
 }
-
-static UT_sint32 iExtra = 0;
-static bool bScrollRunning = false;
-static UT_Worker * s_pScroll = nullptr;
 
 void FV_VisualInlineImage::_actuallyScroll(UT_Worker * pWorker)
 {

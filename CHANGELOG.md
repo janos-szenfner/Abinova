@@ -2311,6 +2311,23 @@ below are on `main` but the release has not been cut yet.
     `GError` when the zip sink could not be created.
   - The text-rendering font-substitution path dropped a `PangoFont`
     reference for every substituted item.
+- **Use-after-free sweep** — fixed several places where the app could
+  use a pointer to already-freed objects:
+  - Closing a document window while it is still loading no longer
+    leaves the one-second "building document" timer firing on a dead
+    frame (both the normal app and the embedded AbiWidget).
+  - Closing a window mid-drag (text drag, inline-image drag or frame
+    drag) now also stops the pending autoscroll timers instead of
+    letting them run on the dead view.
+  - Deferred dispatches — the ribbon's paste-special insertion, the
+    key-repeat coalescing timer, and the style-strip arrow update —
+    now verify the view/object is still alive before running.
+  - The Insert Table popover's deferred insert no longer touches its
+    freed pick state if the popover is destroyed first.
+  - Restoring an older document version could read freed history data.
+  - Semantic (RDF) metadata refreshes no longer read freed strings,
+    and single-xmlid models now apply their computed properties
+    instead of discarding and recomputing them forever.
 
 ### GTK4 port (core migration)
 

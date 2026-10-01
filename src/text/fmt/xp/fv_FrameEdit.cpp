@@ -41,6 +41,12 @@
 #include "xap_App.h"
 #include "fv_ViewDoubleBuffering.h"
 
+/* the autoscroll worker carries this object as instance data; it is
+ * killed from the destructor so a dead view never gets fired on */
+static bool bScrollRunning = false;
+static UT_Worker * s_pScroll = nullptr;
+static UT_sint32 iExtra = 0;
+
 FV_FrameEdit::FV_FrameEdit (FV_View * pView)
 	: FV_Base (pView), 
 	  m_iFrameEditMode(FV_FrameEdit_NOT_ACTIVE),
@@ -69,6 +75,13 @@ FV_FrameEdit::~FV_FrameEdit()
 	{
 		m_pAutoScrollTimer->stop();
 		DELETEP(m_pAutoScrollTimer);
+	}
+	if(s_pScroll && s_pScroll->getInstanceData() == this)
+	{
+		s_pScroll->stop();
+		delete s_pScroll;
+		s_pScroll = nullptr;
+		bScrollRunning = false;
 	}
 }
 
@@ -135,10 +148,6 @@ void FV_FrameEdit::selectFrame(fl_FrameLayout * pFL)
 	drawFrame(true);
 }
 
-
-static bool bScrollRunning = false;
-static UT_Worker * s_pScroll = nullptr;
-static UT_sint32 iExtra = 0;
 
 void FV_FrameEdit::_actuallyScroll(UT_Worker * pWorker)
 {

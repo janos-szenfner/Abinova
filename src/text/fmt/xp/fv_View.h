@@ -1166,6 +1166,7 @@ protected:
 
 	static void 		_autoScroll(UT_Worker * pTimer);
 	static void 		_actuallyScroll(UT_Worker * pTimer);
+	void				_stopPendingScrollWorker(void);
 
 	// localize handling of insertion point logic
 	void				_setPoint(PT_DocPosition pt, bool bEOL = false);

@@ -2473,6 +2473,20 @@ void FV_View::_moveInsPtToPage(fp_Page *page)
 static bool bScrollRunning = false;
 static UT_Worker * s_pScroll = nullptr;
 
+/* the file-static autoscroll worker carries this view as instance
+ * data and can outlive _autoScroll's timer by a main-loop turn; the
+ * destructor calls this so it can never fire on a dead view */
+void FV_View::_stopPendingScrollWorker(void)
+{
+	if (s_pScroll && s_pScroll->getInstanceData() == this)
+	{
+		s_pScroll->stop();
+		delete s_pScroll;
+		s_pScroll = nullptr;
+		bScrollRunning = false;
+	}
+}
+
 void FV_View::_actuallyScroll(UT_Worker * pWorker)
 {
 

@@ -688,6 +688,7 @@ FV_View::~FV_View()
 	m_pApp->getPrefs()->removeListener( _prefsListener, this );
 
 	DELETEP(m_pAutoScrollTimer);
+	_stopPendingScrollWorker();
 	if(m_caretListener != nullptr)
 	{
 		DELETEP(m_caretListener);

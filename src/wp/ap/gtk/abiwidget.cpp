@@ -1041,10 +1041,24 @@ static void s_LoadingCursorCallback(UT_Worker * pTimer )
 	xxx_UT_DEBUGMSG(("Update Screen on load Frame %x \n",s_pLoadingFrame));
 	XAP_Frame * pFrame = s_pLoadingFrame;
 	UT_uint32 iPageCount = 0;
-	
+
 	if(pFrame == nullptr)
 	{
 		s_bFirstDrawDone = false;
+		return;
+	}
+	if(XAP_App::getApp()->safefindFrame(pFrame) < 0)
+	{
+		/* the loading frame was closed before the load finished -
+		 * s_pLoadingFrame is dangling now, so stop the updater
+		 * rather than dereference it */
+		if(s_pToUpdateCursor)
+		{
+			s_pToUpdateCursor->stop();
+			DELETEP(s_pToUpdateCursor);
+		}
+		s_pLoadingFrame = nullptr;
+		s_pLoadingDoc = nullptr;
 		return;
 	}
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();

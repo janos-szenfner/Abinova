@@ -36,6 +36,12 @@
 
 #define MIN_DRAG_PIXELS 8
 
+/* the autoscroll worker carries this object as instance data; it is
+ * killed from the destructor so a dead view never gets fired on */
+static UT_sint32 iExtra = 0;
+static bool bScrollRunning = false;
+static UT_Worker * s_pScroll = nullptr;
+
 FV_VisualDragText::FV_VisualDragText (FV_View * pView)
 	: m_pView (pView), 
 	  m_iVisualDragMode(FV_VisualDrag_NOT_ACTIVE),
@@ -69,6 +75,13 @@ FV_VisualDragText::~FV_VisualDragText()
 		m_pAutoScrollTimer->stop();
 		DELETEP(m_pAutoScrollTimer);
 	}
+	if(s_pScroll && s_pScroll->getInstanceData() == this)
+	{
+		s_pScroll->stop();
+		delete s_pScroll;
+		s_pScroll = nullptr;
+		bScrollRunning = false;
+	}
 }
 
 bool FV_VisualDragText::isActive(void) const
@@ -94,10 +107,6 @@ void FV_VisualDragText::setMode(FV_VisualDragMode iEditMode)
 	    m_yLastMouse = 0;
 	}
 }
-
-static UT_sint32 iExtra = 0;
-static bool bScrollRunning = false;
-static UT_Worker * s_pScroll = nullptr;
 
 void FV_VisualDragText::_actuallyScroll(UT_Worker * pWorker)
 {

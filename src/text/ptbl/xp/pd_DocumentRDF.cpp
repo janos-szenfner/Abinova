@@ -4554,15 +4554,15 @@ RDFModel_SPARQLLimited::update()
         
 
         POCol l;
-        const gchar* szName = s.toString().c_str();
+        const std::string sName = s.toString();
         const gchar* szValue = nullptr;
-        if( AP->getProperty( szName, szValue) )
+        if( AP->getProperty( sName, szValue) )
         {
             l = decodePOCol(szValue);
         }
         l.insert( std::make_pair( p, o ));
         std::string po = encodePOCol(l);
-        AP->setProperty(szName, po);
+        AP->setProperty(sName, po);
         
         PD_RDFStatement st( s, p, o );
         UT_DEBUGMSG(("RDFModel_SPARQLLimited::update() adding st:%s \n", st.toString().c_str() ));
@@ -4633,12 +4633,15 @@ RDFModel_XMLIDLimited::update()
         PD_URI s = m_delegate->getSubject( idref, rdflink );
         POCol polist = m_delegate->getArcsOut( s );
 
-        const gchar* szName = s.toString().c_str();
+        const std::string sName = s.toString();
         std::string po = encodePOCol( polist );
-        AP->setProperty(szName, po);
+        AP->setProperty(sName, po);
+        delete m_AP;
+        m_AP = AP;
+        m_version = m_delegate->getVersion();
         return;
     }
-    
+
     RDFModel_SPARQLLimited::update();
 }
 

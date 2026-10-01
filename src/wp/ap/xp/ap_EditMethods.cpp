@@ -1782,7 +1782,22 @@ static void _sFrequentRepeat(UT_Worker * pWorker)
 	//
 	s_pFrequentRepeat = nullptr;
 
-	pFreq->m_pExe(pFreq->m_pView,pFreq->m_pData);
+	/* the view may have died between the key event and this deferred
+	 * dispatch (e.g. a close queued ahead of it) - only execute on a
+	 * view that is still a live frame's current view */
+	bool bLive = false;
+	XAP_App * pApp = XAP_App::getApp();
+	for (UT_sint32 i = 0; pApp && i < pApp->getFrameCount(); ++i)
+	{
+		XAP_Frame * pFrame = pApp->getFrame(i);
+		if (pFrame && pFrame->getCurrentView() == pFreq->m_pView)
+		{
+			bLive = true;
+			break;
+		}
+	}
+	if (bLive)
+		pFreq->m_pExe(pFreq->m_pView,pFreq->m_pData);
 	DELETEP(pFreq->m_pData);
 	delete pFreq;
 	delete pTmp;
@@ -1994,6 +2009,20 @@ static void s_LoadingCursorCallback(UT_Worker * pTimer )
 	if(pFrame == nullptr)
 	{
 		s_bFirstDrawDone = false;
+		return;
+	}
+	if(XAP_App::getApp()->safefindFrame(pFrame) < 0)
+	{
+		/* the loading frame was closed before the load finished -
+		 * s_pLoadingFrame is dangling now, so stop the 1Hz updater
+		 * rather than dereference it */
+		if(s_pToUpdateCursor)
+		{
+			s_pToUpdateCursor->stop();
+			DELETEP(s_pToUpdateCursor);
+		}
+		s_pLoadingFrame = nullptr;
+		s_pLoadingDoc = nullptr;
 		return;
 	}
 	pFrame->setCursor(GR_Graphics::GR_CURSOR_WAIT);

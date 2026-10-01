@@ -256,6 +256,8 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 AP_UnixRibbon::~AP_UnixRibbon()
 {
 	// m_wNotebook is owned by the widget tree; nothing to unref here.
+	if (m_iStyleBtnIdle)
+		g_source_remove(m_iStyleBtnIdle);
 	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
 	DELETEP(m_pTBLabels);
 	UT_VECTOR_PURGEALL(_SpinField *, m_vecSpins);
@@ -1786,7 +1788,22 @@ struct _PasteAsCtx
 static gboolean _paste_as_idle(gpointer data)
 {
 	_PasteAsCtx * ctx = static_cast<_PasteAsCtx *>(data);
-	if (ctx->view && ctx->mime)
+	/* ctx->view is a raw pointer across a main-loop turn: a frame
+	 * closed in between (queued close event) would make this UAF.
+	 * Only paste into a view that is still a live frame's current
+	 * view. */
+	bool bLive = false;
+	XAP_App * pApp = XAP_App::getApp();
+	for (UT_sint32 i = 0; pApp && i < pApp->getFrameCount(); ++i)
+	{
+		XAP_Frame * pFrame = pApp->getFrame(i);
+		if (pFrame && pFrame->getCurrentView() == ctx->view)
+		{
+			bLive = true;
+			break;
+		}
+	}
+	if (bLive && ctx->mime)
 		ctx->view->cmdPasteAs(ctx->mime);
 	g_free(ctx->mime);
 	g_free(ctx);
@@ -6515,7 +6532,18 @@ struct _TableGridPick
 	int iRows;
 	bool bCommitted;
 	bool bPending;
+	guint idleId;	/* pending one-shot commit source, if any */
 };
+
+static void _tablegrid_pick_free(gpointer data)
+{
+	/* the popover owns pk via data_full; if it dies while a commit
+	 * idle is still queued the source would fire on freed memory */
+	_TableGridPick * pk = static_cast<_TableGridPick *>(data);
+	if (pk->idleId)
+		g_source_remove(pk->idleId);
+	g_free(pk);
+}
 
 static void _tablegrid_draw(GtkDrawingArea * da, cairo_t * cr,
 							int, int, gpointer data)
@@ -6600,7 +6628,9 @@ void AP_UnixRibbon::_tablegrid_commit(_TableGridPick * pk)
 
 gboolean AP_UnixRibbon::_s_tablegrid_commit_idle(gpointer data)
 {
-	_tablegrid_commit(static_cast<_TableGridPick *>(data));
+	_TableGridPick * pk = static_cast<_TableGridPick *>(data);
+	pk->idleId = 0;
+	_tablegrid_commit(pk);
 	return G_SOURCE_REMOVE;
 }
 
@@ -6613,7 +6643,7 @@ void AP_UnixRibbon::_s_tablegrid_click(GtkGestureClick *, int,
 	if (pk->bCommitted)
 		return;
 	pk->bCommitted = TRUE;
-	g_idle_add(_s_tablegrid_commit_idle, pk);
+	pk->idleId = g_idle_add(_s_tablegrid_commit_idle, pk);
 }
 
 // Raw-event fallback: a GtkGestureClick can lose the sequence to the
@@ -6633,7 +6663,7 @@ gboolean AP_UnixRibbon::_s_tablegrid_event(GtkEventControllerLegacy *,
 	{
 		pk->bPending = FALSE;
 		pk->bCommitted = TRUE;
-		g_idle_add(_s_tablegrid_commit_idle, pk);
+		pk->idleId = g_idle_add(_s_tablegrid_commit_idle, pk);
 	}
 	return GDK_EVENT_PROPAGATE;
 }
@@ -6651,7 +6681,7 @@ GtkWidget * AP_UnixRibbon::_makeTableGridPopover()
 	pk->pRib = this;
 	pk->pSS = XAP_App::getApp()->getStringSet();
 	g_object_set_data_full(G_OBJECT(popover), "abi-grid-pick",
-						   pk, g_free);
+						   pk, _tablegrid_pick_free);
 
 	GtkWidget * caption = gtk_label_new(pk->pSS->getValue(
 		AP_STRING_ID_MENU_STATUSLINE_TABLE_INSERT_TABLE));
@@ -10854,8 +10884,10 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 	/* defer the first visibility update past the initial allocation:
 	 * the scrollable notebook briefly squeezes pages to ~0 width and
 	 * the arrow button's icon gets allocated width -1 */
-	g_idle_add(+[](gpointer p) -> gboolean {
-		_updateStyleScrollButtons(static_cast<AP_UnixRibbon *>(p));
+	m_iStyleBtnIdle = g_idle_add(+[](gpointer p) -> gboolean {
+		AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(p);
+		self->m_iStyleBtnIdle = 0;
+		_updateStyleScrollButtons(self);
 		return G_SOURCE_REMOVE;
 	}, this);
 	return outer;

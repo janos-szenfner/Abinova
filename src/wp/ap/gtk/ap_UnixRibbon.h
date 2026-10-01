@@ -339,6 +339,8 @@ private:
 	GtkWidget *			m_wStyleScroll;
 	GtkWidget *			m_wStylePrev;
 	GtkWidget *			m_wStyleNext;
+	guint				m_iStyleBtnIdle = 0;	/* deferred arrow
+											 * visibility update */
 
 	XAP_Frame *			m_pFrame;
 	EV_UnixMenuBar *	m_pMenu;

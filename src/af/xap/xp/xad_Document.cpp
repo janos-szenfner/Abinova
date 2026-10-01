@@ -999,7 +999,8 @@ bool AD_Document::_restoreVersion(XAP_Frame * pFrame, UT_uint32 iVersion)
 		// we succeeded in restoring the document, so now clear the
 		// history record
 		UT_uint32 iCount = getHistoryCount();
-		const AD_VersionData * pVLast = nullptr;
+		bool bFound = false;
+		time_t iLastTime = 0;
 		time_t iEditTime = 0;
 
 		for(UT_uint32 j = 0; j < iCount; ++j)
@@ -1008,7 +1009,9 @@ bool AD_Document::_restoreVersion(XAP_Frame * pFrame, UT_uint32 iVersion)
 
 			if (v.getId() == iVersion)
 			{
-				pVLast = &v;
+				// don't keep a pointer: erase() below can invalidate it
+				bFound = true;
+				iLastTime = v.getTime();
 				continue;
 			}
 
@@ -1023,11 +1026,11 @@ bool AD_Document::_restoreVersion(XAP_Frame * pFrame, UT_uint32 iVersion)
 			}
 		}
 
-		UT_return_val_if_fail(pVLast,false);
+		UT_return_val_if_fail(bFound,false);
 
 		// set the document version correctly
 		setDocVersion(iVersion);
-		setLastSavedTime(pVLast->getTime());
+		setLastSavedTime(iLastTime);
 		setLastOpenedTime(time(nullptr));
 
 		UT_ASSERT(m_iEditTime >= iEditTime);
