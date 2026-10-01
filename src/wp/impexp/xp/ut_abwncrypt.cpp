@@ -161,28 +161,31 @@ static const UT_EvpApi * ut_evp()
 	if (!a.lib)
 		return nullptr;
 
-	struct { const char * name; void ** slot; } syms[] = {
-		{"EVP_aes_256_gcm",   reinterpret_cast<void **>(&a.aes_256_gcm)},
-		{"EVP_CIPHER_CTX_new",reinterpret_cast<void **>(&a.ctx_new)},
-		{"EVP_CIPHER_CTX_free",reinterpret_cast<void **>(&a.ctx_free)},
-		{"EVP_EncryptInit_ex",reinterpret_cast<void **>(&a.enc_init)},
-		{"EVP_EncryptUpdate", reinterpret_cast<void **>(&a.enc_update)},
-		{"EVP_EncryptFinal_ex",reinterpret_cast<void **>(&a.enc_final)},
-		{"EVP_DecryptInit_ex",reinterpret_cast<void **>(&a.dec_init)},
-		{"EVP_DecryptUpdate", reinterpret_cast<void **>(&a.dec_update)},
-		{"EVP_DecryptFinal_ex",reinterpret_cast<void **>(&a.dec_final)},
-		{"EVP_CIPHER_CTX_ctrl",reinterpret_cast<void **>(&a.ctx_ctrl)},
+	static_assert(sizeof(void *) == sizeof(a.aes_256_gcm),
+				  "POSIX function pointers must fit in void *");
+	struct { const char * name; void * slot; } syms[] = {
+		{"EVP_aes_256_gcm",   &a.aes_256_gcm},
+		{"EVP_CIPHER_CTX_new",&a.ctx_new},
+		{"EVP_CIPHER_CTX_free",&a.ctx_free},
+		{"EVP_EncryptInit_ex",&a.enc_init},
+		{"EVP_EncryptUpdate", &a.enc_update},
+		{"EVP_EncryptFinal_ex",&a.enc_final},
+		{"EVP_DecryptInit_ex",&a.dec_init},
+		{"EVP_DecryptUpdate", &a.dec_update},
+		{"EVP_DecryptFinal_ex",&a.dec_final},
+		{"EVP_CIPHER_CTX_ctrl",&a.ctx_ctrl},
 	};
 	for (size_t i = 0; i < G_N_ELEMENTS(syms); i++)
 	{
-		*syms[i].slot = ut_dlsym(a.lib, syms[i].name);
-		if (!*syms[i].slot)
+		void * fn = ut_dlsym(a.lib, syms[i].name);
+		if (!fn)
 		{
 			UT_DEBUGMSG(("abwncrypt: %s missing in libcrypto\n", syms[i].name));
 			dlclose(a.lib);
 			memset(&a, 0, sizeof(a));
 			return nullptr;
 		}
+		memcpy(syms[i].slot, &fn, sizeof(fn));
 	}
 	return &a;
 }

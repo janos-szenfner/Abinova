@@ -62,6 +62,13 @@
 /*****************************************************************/
 /*****************************************************************/
 
+/* weak-pointer notify: nulls a GtkWidget* slot through its own type
+ * (avoids the gpointer* alias pun g_object_add_weak_pointer requires) */
+static void abi_widget_weak_notify(gpointer data, GObject * /*where_dead*/)
+{
+	*static_cast<GtkWidget **>(data) = nullptr;
+}
+
 static void focus_in_event(GtkEventControllerFocus* /*controller*/, GtkWidget *widget)
 {
       XAP_Frame *pFrame=static_cast<XAP_Frame *>(g_object_get_data(G_OBJECT(widget), "frame"));
@@ -529,7 +536,7 @@ gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole rol
 	}
 
 	GtkWidget *w = GTK_WIDGET (me);
-	g_object_add_weak_pointer (G_OBJECT (w), reinterpret_cast<gpointer*>(&w));
+	g_object_weak_ref (G_OBJECT (w), abi_widget_weak_notify, &w);
 
 	AbiDialogRun run;
 	run.loop = g_main_loop_new (nullptr, FALSE);
@@ -554,7 +561,7 @@ gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole rol
         abiDestroyWidget ( w );
     }
 	if (w != nullptr)
-		g_object_remove_weak_pointer (G_OBJECT (w), reinterpret_cast<gpointer*>(&w));
+		g_object_weak_unref (G_OBJECT (w), abi_widget_weak_notify, &w);
 
     return result ;
 }

@@ -9192,7 +9192,8 @@ bool IE_Imp_RTF::ReadFontTable()
 				// Then append the UCS2 char.
 				// TODO Since we process one character at a time, this code 
 				// will not handle surrogate pairs.
-				sFontNamesAndPanose[currentState->iCurrentInputData].appendUCS2(reinterpret_cast<UT_UCS2Char *>(&parameter), 1);
+				UT_UCS2Char c16 = static_cast<UT_UCS2Char>(parameter);
+				sFontNamesAndPanose[currentState->iCurrentInputData].appendUCS2(&c16, 1);
 
 				// Set the reader to skip the appropriate number of ANSI
 				// characters after the \uXXXXX command.

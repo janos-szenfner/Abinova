@@ -262,10 +262,9 @@ bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream
 		pView->cmdCopy(false);
 	}
 
-	guchar * data = nullptr;
+	void * data = nullptr;
 	UT_uint32 data_len = 0;
-	guchar **pdata = &data;
-	if (which_clip.getClipboardData(mime_type, reinterpret_cast<void**>(pdata), &data_len))
+	if (which_clip.getClipboardData(mime_type, &data, &data_len))
 	{
 		if (data_len > ABI_CLIPBOARD_MAX_BYTES)
 		{

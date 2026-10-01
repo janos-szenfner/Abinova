@@ -296,6 +296,14 @@ _fv_text_handle_update_windows (FvTextHandle *handle)
   _fv_text_handle_update_widget_state (handle, FV_TEXT_HANDLE_POSITION_SELECTION_START);
 }
 
+/* weak-ref notify: nulls a GtkWidget* slot through its own type
+ * (avoids the gpointer* alias pun g_object_add_weak_pointer requires) */
+static void
+_fv_text_handle_widget_notify (gpointer data, GObject * /*where_dead*/)
+{
+  *static_cast<GtkWidget **>(data) = nullptr;
+}
+
 static void
 fv_text_handle_finalize (GObject *object)
 {
@@ -309,8 +317,9 @@ fv_text_handle_finalize (GObject *object)
         {
           if (priv->windows[i].widget)
             {
-              g_object_remove_weak_pointer (G_OBJECT (priv->windows[i].widget),
-                                            (gpointer *) &priv->windows[i].widget);
+              g_object_weak_unref (G_OBJECT (priv->windows[i].widget),
+                                   _fv_text_handle_widget_notify,
+                                   &priv->windows[i].widget);
               gtk_overlay_remove_overlay (GTK_OVERLAY (priv->overlay),
                                           priv->windows[i].widget);
             }
@@ -369,12 +378,14 @@ _fv_text_handle_new (GtkWidget *overlay)
   priv->windows[FV_TEXT_HANDLE_POSITION_SELECTION_START].widget =
     _fv_text_handle_create_widget (handle, FV_TEXT_HANDLE_POSITION_SELECTION_START);
 
-  /* the overlay owns the widgets; keep weak pointers so a torn-down
+  /* the overlay owns the widgets; keep weak refs so a torn-down
    * widget tree cannot leave us holding dangling pointers */
-  g_object_add_weak_pointer (G_OBJECT (priv->windows[FV_TEXT_HANDLE_POSITION_CURSOR].widget),
-                             (gpointer *) &priv->windows[FV_TEXT_HANDLE_POSITION_CURSOR].widget);
-  g_object_add_weak_pointer (G_OBJECT (priv->windows[FV_TEXT_HANDLE_POSITION_SELECTION_START].widget),
-                             (gpointer *) &priv->windows[FV_TEXT_HANDLE_POSITION_SELECTION_START].widget);
+  g_object_weak_ref (G_OBJECT (priv->windows[FV_TEXT_HANDLE_POSITION_CURSOR].widget),
+                     _fv_text_handle_widget_notify,
+                     &priv->windows[FV_TEXT_HANDLE_POSITION_CURSOR].widget);
+  g_object_weak_ref (G_OBJECT (priv->windows[FV_TEXT_HANDLE_POSITION_SELECTION_START].widget),
+                     _fv_text_handle_widget_notify,
+                     &priv->windows[FV_TEXT_HANDLE_POSITION_SELECTION_START].widget);
 
   gtk_overlay_add_overlay (GTK_OVERLAY (overlay),
                            priv->windows[FV_TEXT_HANDLE_POSITION_CURSOR].widget);

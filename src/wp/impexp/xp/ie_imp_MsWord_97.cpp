@@ -7712,13 +7712,13 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 		// positions (UT_uint32) followed by n type flags (UT_uint16)
 		// the text PLCF is a sequence of n+2 positions (UT_uint32) of the footnote
 		// text in its data stream 
-		if(wvGetPLCF((void **) &pPLCF_ref, ps->fib.fcPlcffndRef, ps->fib.lcbPlcffndRef, ps->tablefd))
+		if(wvGetPLCF(&pPLCF_ref, ps->fib.fcPlcffndRef, ps->fib.lcbPlcffndRef, ps->tablefd))
 		{
 			bNoteError = true;
 		}
 
 		if(!bNoteError &&
-		   wvGetPLCF((void **) &pPLCF_txt, ps->fib.fcPlcffndTxt, ps->fib.lcbPlcffndTxt, ps->tablefd))
+		   wvGetPLCF(&pPLCF_txt, ps->fib.fcPlcffndTxt, ps->fib.lcbPlcffndTxt, ps->tablefd))
 		{
 			wvFree(pPLCF_ref);
 			bNoteError = true;
@@ -7753,7 +7753,8 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 					m_iFootnotesCount--;
 					break;
 				}
-				UT_uint32 iType = ((UT_uint16*)pPLCF_ref)[idx];
+				const UT_Byte * pRef8 = reinterpret_cast<const UT_Byte *>(pPLCF_ref);
+				UT_uint32 iType = pRef8[2*idx] | (static_cast<UT_uint32>(pRef8[2*idx+1]) << 8);
 				m_pFootnotes[i].type = iType;
 				m_pFootnotes[i].pid = getDoc()->getUID(UT_UniqueId::Footnote);
 				UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleNotes: fnote %d, rpos %d, tpos %d, type %d\n",
@@ -7839,13 +7840,13 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 		}
 
 		bNoteError = false;
-		if(wvGetPLCF((void **) &pPLCF_ref, ps->fib.fcPlcfendRef, ps->fib.lcbPlcfendRef, ps->tablefd))
+		if(wvGetPLCF(&pPLCF_ref, ps->fib.fcPlcfendRef, ps->fib.lcbPlcfendRef, ps->tablefd))
 		{
 			bNoteError = true;
 		}
 
 		if(!bNoteError &&
-		   wvGetPLCF((void **) &pPLCF_txt, ps->fib.fcPlcfendTxt, ps->fib.lcbPlcfendTxt, ps->tablefd))
+		   wvGetPLCF(&pPLCF_txt, ps->fib.fcPlcfendTxt, ps->fib.lcbPlcfendTxt, ps->tablefd))
 		{
 			wvFree(pPLCF_ref);
 			bNoteError = true;
@@ -7877,7 +7878,8 @@ void IE_Imp_MsWord_97::_handleNotes(const wvParseStruct *ps)
 					m_iEndnotesCount--;
 					break;
 				}
-				UT_uint32 iType = ((UT_uint16*)pPLCF_ref)[idx];
+				const UT_Byte * pRef8 = reinterpret_cast<const UT_Byte *>(pPLCF_ref);
+				UT_uint32 iType = pRef8[2*idx] | (static_cast<UT_uint32>(pRef8[2*idx+1]) << 8);
 				m_pEndnotes[i].type = iType;
 				m_pEndnotes[i].pid = getDoc()->getUID(UT_UniqueId::Endnote);
 				UT_DEBUGMSG(("IE_Imp_MsWord_97::_handleNotes: enote %d, rpos %d, tpos %d, type %d\n",
@@ -8410,7 +8412,7 @@ void IE_Imp_MsWord_97::_handleAnnotations(const wvParseStruct *ps)
 
 	U32 *pTxt = nullptr;
 	if(!count ||
-	   wvGetPLCF((void **) &pTxt, ps->fib.fcPlcfandTxt,
+	   wvGetPLCF(&pTxt, ps->fib.fcPlcfandTxt,
 				 ps->fib.lcbPlcfandTxt, ps->tablefd))
 	{
 		wvFree(atrd);
@@ -9328,7 +9330,7 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 		// this is really quite straight forward; we retrieve the PLCF
 		// which is a sequence of n+2 positions (UT_uint32) of the
 		// header text in its data stream
-		if(wvGetPLCF((void **) &pPLCF_txt, ps->fib.fcPlcfhdd, ps->fib.lcbPlcfhdd, ps->tablefd))
+		if(wvGetPLCF(&pPLCF_txt, ps->fib.fcPlcfhdd, ps->fib.lcbPlcfhdd, ps->tablefd))
 		{
 			bHeaderError = true;
 		}

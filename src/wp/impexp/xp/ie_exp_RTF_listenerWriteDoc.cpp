@@ -2121,7 +2121,7 @@ const UT_UCS4Char * s_RTF_ListenerWriteDoc::_getFieldValue(void)
 		m_pDocument->getMutStruxOfTypeFromPosition(m_posDoc, PTX_Block, &m_sdh);
 	}
 	fl_ContainerLayout* sfh = m_pDocument->getNthFmtHandle(m_sdh,0);
-	const fl_Layout * pL = reinterpret_cast<const fl_Layout *>(sfh);
+	const fl_Layout * pL = static_cast<const fl_Layout *>(sfh);
 	UT_return_val_if_fail(pL,nullptr);
 	if(pL && pL->getType() != PTX_Block)
 	{

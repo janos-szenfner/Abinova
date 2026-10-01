@@ -549,21 +549,21 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
 					   : XAP_UnixClipboard::TAG_PrimaryOnly);
 
     const char * szFormatFound = nullptr;
-    const unsigned char * pData = nullptr;
+    const void * pData = nullptr;
     UT_uint32 iLen = 0;
 
     bool bFoundOne = false;
-    
+
     if ( bHonorFormatting )
-      bFoundOne = m_pClipboard->getSupportedData(tFrom,reinterpret_cast<const void **>(&pData),&iLen,&szFormatFound);
+      bFoundOne = m_pClipboard->getSupportedData(tFrom,&pData,&iLen,&szFormatFound);
     else
-      bFoundOne = m_pClipboard->getTextData(tFrom,reinterpret_cast<const void **>(&pData),&iLen, &szFormatFound);
+      bFoundOne = m_pClipboard->getTextData(tFrom,&pData,&iLen, &szFormatFound);
 
 #ifdef DUMP_CLIPBOARD_PASTE
     if (bFoundOne)
     {
         std::ofstream oss("/tmp/clips");
-        oss.write( (const char*)pData, iLen );
+        oss.write( static_cast<const char*>(pData), iLen );
         oss.close();
     }
 #endif
@@ -574,7 +574,8 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
 		return;
     }
 
-    pasteDataToDocRange(pDocRange, pData, iLen, szFormatFound, tFrom);
+    pasteDataToDocRange(pDocRange, static_cast<const unsigned char*>(pData),
+						iLen, szFormatFound, tFrom);
 }
 
 /*!
@@ -588,7 +589,7 @@ void AP_UnixApp::pasteFromClipboardWithFormat(PD_DocumentRange * pDocRange,
 	UT_return_if_fail(szMimeType && *szMimeType);
 
 	const char * szFormatFound = nullptr;
-	const unsigned char * pData = nullptr;
+	void * pData = nullptr;
 	UT_uint32 iLen = 0;
 	const char * formatList[] = { szMimeType, nullptr };
 
@@ -596,8 +597,7 @@ void AP_UnixApp::pasteFromClipboardWithFormat(PD_DocumentRange * pDocRange,
 	 * only goes to the server for foreign clipboard owners */
 	if (!m_pClipboard->getData(XAP_UnixClipboard::TAG_ClipboardOnly,
 							   formatList,
-							   reinterpret_cast<void **>(
-								   const_cast<unsigned char **>(&pData)),
+							   &pData,
 							   &iLen, &szFormatFound))
 	{
 		UT_DEBUGMSG(("PasteWithFormat: no data for %s\n", szMimeType));
@@ -606,7 +606,8 @@ void AP_UnixApp::pasteFromClipboardWithFormat(PD_DocumentRange * pDocRange,
 	if (!szFormatFound)
 		szFormatFound = szMimeType;
 
-	pasteDataToDocRange(pDocRange, pData, iLen, szFormatFound,
+	pasteDataToDocRange(pDocRange, static_cast<const unsigned char*>(pData),
+						iLen, szFormatFound,
 						XAP_UnixClipboard::TAG_ClipboardOnly);
 }
 
@@ -717,11 +718,13 @@ bool AP_UnixApp::pasteDataToDocRange(PD_DocumentRange * pDocRange,
  retry_text:
 
 	// we failed to paste *anything.* try plaintext as a last-ditch effort
-	if(!bSuccess && m_pClipboard->getTextData(tFrom,reinterpret_cast<const void **>(&pData),&iLen, &szFormatFound)) {
-		UT_DEBUGMSG(("DOM: pasting text as an absolute fallback (bug 7666)\n"));		
+	const void * pTextData = nullptr;
+	if(!bSuccess && m_pClipboard->getTextData(tFrom,&pTextData,&iLen, &szFormatFound)) {
+		UT_DEBUGMSG(("DOM: pasting text as an absolute fallback (bug 7666)\n"));
 
 		IE_Imp_Text * pImpText = new IE_Imp_Text(pDocRange->m_pDoc,"UTF-8");
-		bSuccess = pImpText->pasteFromBuffer(pDocRange,pData,iLen);
+		bSuccess = pImpText->pasteFromBuffer(pDocRange,
+										   static_cast<const unsigned char*>(pTextData),iLen);
 		DELETEP(pImpText);
 	}
 	return bSuccess;

@@ -97,6 +97,13 @@ GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 	}
 }
 
+/* weak-ref notify: nulls a GtkWidget* slot through its own type
+ * (avoids the gpointer* alias pun g_object_add_weak_pointer requires) */
+static void s_widget_weak_notify(gpointer data, GObject * /*where_dead*/)
+{
+	*static_cast<GtkWidget **>(data) = nullptr;
+}
+
 GR_UnixCairoGraphics::~GR_UnixCairoGraphics()
 {
 	/* m_cr may still point at a cairo_t borrowed from a GtkDrawingArea
@@ -112,8 +119,8 @@ GR_UnixCairoGraphics::~GR_UnixCairoGraphics()
 		if (m_Signal) {
 			g_signal_handler_disconnect (G_OBJECT (m_Widget), m_Signal);
 		}
-		g_object_remove_weak_pointer (G_OBJECT (m_Widget),
-									  reinterpret_cast<gpointer*>(&m_Widget));
+		g_object_weak_unref (G_OBJECT (m_Widget),
+							 s_widget_weak_notify, &m_Widget);
 	}
 	if (m_backSurface) {
 		cairo_surface_destroy (m_backSurface);
@@ -168,10 +175,10 @@ void GR_UnixCairoGraphics::_initWidget()
 	if (GTK_IS_DRAWING_AREA(m_Widget)) {
 		m_Signal = g_signal_connect(G_OBJECT(m_Widget), "resize", G_CALLBACK(widget_resize), this);
 	}
-	/* GTK4 removed the ::destroy signal; a weak pointer nulls m_Widget
+	/* GTK4 removed the ::destroy signal; a weak ref nulls m_Widget
 	 * when the widget is finalized */
-	g_object_add_weak_pointer (G_OBJECT (m_Widget),
-							   reinterpret_cast<gpointer*>(&m_Widget));
+	g_object_weak_ref (G_OBJECT (m_Widget),
+					   s_widget_weak_notify, &m_Widget);
 }
 
 #define COLOR_MIX 0.67   //COLOR_MIX should be between 0 and 1

@@ -40,7 +40,7 @@
    fd - the stream from which to read the PLCF
 */
 int
-wvGetPLCF (void ** plcf, U32 offset, U32 len, wvStream * fd)
+wvGetPLCF (U32 ** plcf, U32 offset, U32 len, wvStream * fd)
 {
     U32 i, i32, i8;
 	

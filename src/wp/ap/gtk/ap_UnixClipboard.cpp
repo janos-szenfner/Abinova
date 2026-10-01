@@ -191,14 +191,27 @@ bool  AP_UnixClipboard::getSupportedData(T_AllowGet tFrom,
 	// Firefox, we also get HTML and some other "text" format when
 	// pasting a copied image. The assumption is that for text-only
 	// we'll never get images.
-	if (getData(tFrom, imgszFormatsAccepted, (void**)ppData, pLen, pszFormatFound))
+	void * pTmp = nullptr;
+	if (getData(tFrom, imgszFormatsAccepted, &pTmp, pLen, pszFormatFound))
+	{
+		*ppData = pTmp;
 		return true;
-	else if (getData(tFrom, rtfszFormatsAccepted, (void**)ppData, pLen, pszFormatFound))
+	}
+	else if (getData(tFrom, rtfszFormatsAccepted, &pTmp, pLen, pszFormatFound))
+	{
+		*ppData = pTmp;
 		return true;
-	else if (getData (tFrom, htmlszFormatsAccepted, (void**)ppData, pLen, pszFormatFound))
+	}
+	else if (getData (tFrom, htmlszFormatsAccepted, &pTmp, pLen, pszFormatFound))
+	{
+		*ppData = pTmp;
 		return true;
-	else if (!vec_DynamicFormatsAccepted.empty() && getData(tFrom, &vec_DynamicFormatsAccepted[0], (void**)ppData, pLen, pszFormatFound))
+	}
+	else if (!vec_DynamicFormatsAccepted.empty() && getData(tFrom, &vec_DynamicFormatsAccepted[0], &pTmp, pLen, pszFormatFound))
+	{
+		*ppData = pTmp;
 		return true;
+	}
 	else if (getTextData (tFrom, ppData, pLen, pszFormatFound))
 		return true;
 	return false;
@@ -208,7 +221,9 @@ bool  AP_UnixClipboard::getTextData(T_AllowGet tFrom,
 									const void ** ppData, UT_uint32 * pLen,
 									const char **pszFormatFound)
 {
-	bool rval = XAP_UnixClipboard::getTextData(tFrom, (void**)ppData, pLen);
+	void * pTmp = nullptr;
+	bool rval = XAP_UnixClipboard::getTextData(tFrom, &pTmp, pLen);
+	*ppData = pTmp;
 	*pszFormatFound = "text/plain";
 	return rval;
 }
@@ -217,21 +232,30 @@ bool  AP_UnixClipboard::getRichTextData(T_AllowGet tFrom,
 					const void ** ppData, UT_uint32 * pLen,
 					const char **pszFormatFound)
 {
-  return getData( tFrom, rtfszFormatsAccepted, (void**)ppData, pLen, pszFormatFound ) ;
+  void * pTmp = nullptr;
+  bool rval = getData( tFrom, rtfszFormatsAccepted, &pTmp, pLen, pszFormatFound ) ;
+  *ppData = pTmp;
+  return rval;
 }
 
 bool AP_UnixClipboard::getImageData(T_AllowGet tFrom,
 									const void ** ppData, UT_uint32 * pLen,
 									const char **pszFormatFound)
 {
-  return getData ( tFrom, imgszFormatsAccepted, (void**)ppData, pLen, pszFormatFound );
+  void * pTmp = nullptr;
+  bool rval = getData ( tFrom, imgszFormatsAccepted, &pTmp, pLen, pszFormatFound );
+  *ppData = pTmp;
+  return rval;
 }
 
 bool AP_UnixClipboard::getDynamicData(T_AllowGet tFrom,
 			  const void ** ppData, UT_uint32 * pLen,
 			  const char **pszFormatFound)
 {
-  return getData ( tFrom, &vec_DynamicFormatsAccepted[0], (void**)ppData, pLen, pszFormatFound );
+  void * pTmp = nullptr;
+  bool rval = getData ( tFrom, &vec_DynamicFormatsAccepted[0], &pTmp, pLen, pszFormatFound );
+  *ppData = pTmp;
+  return rval;
 }
 
 bool AP_UnixClipboard::isTextTag ( const char * tag )

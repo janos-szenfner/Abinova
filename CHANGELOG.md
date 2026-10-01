@@ -2443,6 +2443,18 @@ below are on `main` but the release has not been cut yet.
   `std::optional::value()` sites in layout code check `has_value()`
   first. Malformed `.fodt`/`.odt`/`.rtf`/`.doc` fixtures now convert
   or fail cleanly.
+- **Strict-aliasing violations removed** — a sweep for object storage
+  accessed through unrelated pointer types closed the remaining real
+  cases: clipboard out-parameters no longer write a `void *` through a
+  `const unsigned char **`/`const void **` pun (paste path and the
+  fake-clipboard wrappers now use properly typed temporaries), widget
+  weak pointers in the dialog helper, canvas graphics, ribbon and
+  text-handle overlay now use `g_object_weak_ref` with a typed notify
+  slot instead of `g_object_add_weak_pointer`'s `gpointer *` pun, the
+  `.abwn` crypto `dlsym` table stores function pointers via `memcpy`,
+  and the `.doc` parser/importer no longer reads `U8`/`U32` buffers
+  through `U16` lvalues (footnote/endnote type codes are decoded
+  little-endian portably, which also fixes a latent big-endian bug).
 
 ### GTK4 port (core migration)
 

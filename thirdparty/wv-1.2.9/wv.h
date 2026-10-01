@@ -5100,7 +5100,7 @@ has got
 
 	int wvIsBidiDocument(wvParseStruct * ps);
 
-	int wvGetPLCF (void ** plcf, U32 offset, U32 len, wvStream * fd);
+	int wvGetPLCF (U32 ** plcf, U32 offset, U32 len, wvStream * fd);
 	
 /* & finally */
     extern const char* wv_version;

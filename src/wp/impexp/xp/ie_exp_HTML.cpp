@@ -193,8 +193,10 @@ UT_Error IE_Exp_HTML::copyToBuffer(PD_DocumentRange * pDocRange,UT_ByteBuf *  bu
     GsfOutput * outBuf =  gsf_output_stdio_new (szTempFileName,&err);
     g_clear_error(&err);
     IEFileType ftHTML = IE_Exp::fileTypeForMimetype("text/html");
+    IE_Exp * pBaseExp = nullptr;
     UT_Error aerr = IE_Exp::constructExporter(outDoc,outBuf,
-											  ftHTML,(IE_Exp**)&pNewExp);
+											  ftHTML,&pBaseExp);
+    pNewExp = static_cast<IE_Exp_HTML *>(pBaseExp);
     g_object_unref(outBuf);
     if(pNewExp == nullptr)
     {

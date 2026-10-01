@@ -234,6 +234,13 @@ struct AP_UnixRibbon::_TbCtx
 	gulong			handlerId;
 };
 
+/* weak-ref notify: nulls a GtkWidget* slot through its own type
+ * (avoids the gpointer* alias pun g_object_add_weak_pointer requires) */
+static void s_widget_weak_notify(gpointer data, GObject * /*where_dead*/)
+{
+	*static_cast<GtkWidget **>(data) = nullptr;
+}
+
 /* forward decl: drawn page-glyph icons for the Layout popovers */
 static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h);
 static bool _has_drawn_icon(XAP_Menu_Id id);
@@ -276,9 +283,9 @@ AP_UnixRibbon::~AP_UnixRibbon()
 					: nullptr;
 			if (entry)
 				g_signal_handlers_disconnect_by_data(entry, ctx);
-			g_object_remove_weak_pointer(
+			g_object_weak_unref(
 				G_OBJECT(ctx->widget),
-				reinterpret_cast<gpointer *>(&ctx->widget));
+				s_widget_weak_notify, &ctx->widget);
 		}
 		delete ctx;
 	}
@@ -10776,8 +10783,7 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 	ctx->widget = w;
 	/* weak: nulls ctx->widget when the widget is finalized, so refresh
 	 * skips items whose widget already died during frame teardown */
-	g_object_add_weak_pointer(G_OBJECT(w),
-							  reinterpret_cast<gpointer *>(&ctx->widget));
+	g_object_weak_ref(G_OBJECT(w), s_widget_weak_notify, &ctx->widget);
 	m_vecTbCtx.addItem(ctx);
 	return w;
 }

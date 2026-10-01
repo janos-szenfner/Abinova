@@ -671,7 +671,14 @@ swap_iconv (U16 lid)
 
     g_iconv_close (handle);
 
-    ret = *(U16 *) buffer2 != 0x20;
+    {
+	/* buffer2 is a byte array holding iconv's native-endian UCS-2
+	   output; fetch it via memcpy rather than reading the U8[] through
+	   a U16 lvalue (strict-aliasing/alignment-safe) */
+	U16 probe;
+	memcpy (&probe, buffer2, sizeof (probe));
+	ret = probe != 0x20;
+    }
     return ret;
 }
 
@@ -758,7 +765,7 @@ wvHandleCodePage (U16 eachchar, U16 lid)
       }
     else
       {
-	  rtn = *(U16 *) buffer2;
+	  memcpy (&rtn, buffer2, sizeof (rtn));
       }
 
     g_iconv_close (g_iconv_handle);
