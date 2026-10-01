@@ -2579,6 +2579,10 @@ XAP_Dialog_MessageBox::tAnswer s_CouldNotLoadFileMessage(XAP_Frame * pFrame, con
 		String_id = AP_STRING_ID_MSG_IE_BogusDocument;
 		break;
 
+	  case UT_IE_PROTECTED:
+		String_id = AP_STRING_ID_MSG_IE_ProtectedDocument;
+		break;
+
 	  case UT_IE_COULDNOTOPEN:
 		String_id = AP_STRING_ID_MSG_IE_CouldNotOpen;
 		break;

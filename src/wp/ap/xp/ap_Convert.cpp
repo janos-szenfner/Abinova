@@ -121,6 +121,10 @@ bool AP_Convert::convertTo(const char * szSourceFilename,
 			if (m_iVerbose > 0)
 				fprintf(stderr, "Abinova: Arrrgh... I don't have enough memory!\n");
 			break;
+		case UT_IE_PROTECTED:
+			if (m_iVerbose > 0)
+				fprintf(stderr, "Abinova: [%s] is password-protected and cannot be opened.\n", szSourceFilename);
+			break;
 		case UT_NOPIECETABLE:
 			// TODO
 		default:

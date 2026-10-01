@@ -37,8 +37,11 @@
  **********************************************************************
  */
 
-/* typedef a 32 bit type */
-typedef unsigned long int UINT4;
+/* typedef a 32 bit type -- on LP64 platforms "unsigned long" is 64
+   bits, which makes the ROTATE_LEFT shifts and the state accumulators
+   in md5.c produce a garbage digest.  Use a real 32-bit type. */
+#include <stdint.h>
+typedef uint32_t UINT4;
 
 /* Data structure for MD5 (Message Digest) computation */
 typedef struct {

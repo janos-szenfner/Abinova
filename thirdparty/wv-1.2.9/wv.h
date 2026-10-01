@@ -3075,6 +3075,7 @@ that indicates their length.
     int wvTableDepth (PAP * apap);
     int wvDecrypt95 (wvParseStruct * ps);
     int wvDecrypt97 (wvParseStruct * ps);
+    int wvDecryptObfuscated (wvParseStruct * ps);
 
     void wvPrintTitle (wvParseStruct * ps, STTBF * item);
 

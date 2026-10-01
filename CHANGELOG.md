@@ -212,6 +212,19 @@ below are on `main` but the release has not been cut yet.
   break in a column-less section degrades to a page break like Word.
   Note: Abinova's layout model has a single page size per document,
   so per-section page sizes collapse to the first section's.
+- **Password-protected legacy `.doc` files open** — the importer now
+  detects `fEncrypted` in the FIB (the WordDocument stream's 68-byte
+  cleartext prefix is parsed, the rest left as ciphertext until a
+  password is supplied) and decrypts both Word 97+ schemes:
+  XOR obfuscation (`fObfuscated`, MS-OFFCRYPTO 2.3.7) and the
+  RC4 `EncryptionVersionInfo` 1.1 scheme with per-512-byte-block
+  rekeying; the RC4 CryptoAPI/AES variants are rejected cleanly.
+  Word 95 and earlier protected files, and unsupported cipher
+  variants, report "The file is password-protected" instead of
+  importing garbage.  Headless conversions take the password from
+  `ABINOVA_PASSWORD` like the ODF/.abwn paths.  (Also fixes the
+  vendored MD5 `UINT4` typedef being 64 bits on LP64, which had
+  silently broken the RC4 password verifier.)
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

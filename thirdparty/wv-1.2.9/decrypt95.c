@@ -31,6 +31,237 @@
 /* ROTATE_LEFT rotates x left n bits , with a bitlen of b*/
 #define ROTATE_LEFT(x, n,b) (((x) << (n)) | ((x) >> (b-(n))))
 
+/* MS-OFFCRYPTO 2.3.7.2 helper: rotate a byte right one bit */
+#define WV_ROR8(x)	((((x) >> 1) | ((x) << 7)) & 0xFF)
+
+/* MS-OFFCRYPTO 2.3.7.2 PadArray */
+static const U8 wv_xor_pad[15] = {
+    0xBB, 0xFF, 0xFF, 0xBA, 0xFF, 0xFF, 0xB9, 0x80,
+    0x00, 0xBE, 0x0F, 0x00, 0xBF, 0x0F, 0x00
+};
+
+/* MS-OFFCRYPTO 2.3.7.2 InitialCode */
+static const U16 wv_xor_initial_code[15] = {
+    0xE1F0, 0x1D0F, 0xCC9C, 0x84C0, 0x110C,
+    0x0E10, 0xF1CE, 0x313E, 0x1872, 0xE139,
+    0xD40F, 0x84F9, 0x280C, 0xA96A, 0x4EC3
+};
+
+/* MS-OFFCRYPTO 2.3.7.2 XorMatrix */
+static const U16 wv_xor_matrix[105] = {
+    0xAEFC, 0x4DD9, 0x9BB2, 0x2745, 0x4E8A, 0x9D14, 0x2A09,
+    0x7B61, 0xF6C2, 0xFDA5, 0xEB6B, 0xC6F7, 0x9DCF, 0x2BBF,
+    0x4563, 0x8AC6, 0x05AD, 0x0B5A, 0x16B4, 0x2D68, 0x5AD0,
+    0x0375, 0x06EA, 0x0DD4, 0x1BA8, 0x3750, 0x6EA0, 0xDD40,
+    0xD849, 0xA0B3, 0x5147, 0xA28E, 0x553D, 0xAA7A, 0x44D5,
+    0x6F45, 0xDE8A, 0xAD35, 0x4A4B, 0x9496, 0x390D, 0x721A,
+    0xEB23, 0xC667, 0x9CEF, 0x29FF, 0x53FE, 0xA7FC, 0x5FD9,
+    0x47D3, 0x8FA6, 0x0F6D, 0x1EDA, 0x3DB4, 0x7B68, 0xF6D0,
+    0xB861, 0x60E3, 0xC1C6, 0x93AD, 0x377B, 0x6EF6, 0xDDEC,
+    0x45A0, 0x8B40, 0x06A1, 0x0D42, 0x1A84, 0x3508, 0x6A10,
+    0xAA51, 0x4483, 0x8906, 0x022D, 0x045A, 0x08B4, 0x1168,
+    0x76B4, 0xED68, 0xCAF1, 0x85C3, 0x1BA7, 0x374E, 0x6E9C,
+    0x3730, 0x6E60, 0xDCC0, 0xA9A1, 0x4363, 0x86C6, 0x1DAD,
+    0x3331, 0x6662, 0xCCC4, 0x89A9, 0x0373, 0x06E6, 0x0DCC,
+    0x1021, 0x2042, 0x4084, 0x8108, 0x1231, 0x2462, 0x48C4
+};
+
+/* MS-OFFCRYPTO 2.3.7.2 CreateXorKey_Method1: password is a single-byte
+   string of <= 15 characters */
+static U16
+wvCreateXorKey_Method1 (const U8 * pw, int len)
+{
+    U16 xorkey;
+    int ce, ch, bit;
+
+    if (len < 1 || len > 15)
+	return (0);
+
+    xorkey = wv_xor_initial_code[len - 1];
+    ce = 0x68;
+
+    for (ch = len - 1; ch >= 0; ch--)
+      {
+	  U8 c = pw[ch];
+	  for (bit = 0; bit < 7; bit++)
+	    {
+		if (c & 0x40)
+		    xorkey ^= wv_xor_matrix[ce];
+		c <<= 1;
+		ce--;
+	    }
+      }
+    return (xorkey);
+}
+
+/* MS-OFFCRYPTO 2.3.7.1 CreatePasswordVerifier_Method1 */
+static U16
+wvCreatePasswordVerifier_Method1 (const U8 * pw, int len)
+{
+    U16 verifier = 0;
+    int i;
+
+    /* PasswordArray = [length byte] + password, consumed in reverse */
+    for (i = len; i >= 0; i--)
+      {
+	  U8 byte = (i == 0) ? (U8) len : pw[i - 1];
+	  U16 inter1 = (verifier & 0x4000) ? 1 : 0;
+	  U16 inter2 = (U16) ((verifier * 2) & 0x7FFF);
+	  verifier = (U16) ((inter1 | inter2) ^ byte);
+      }
+    return (verifier ^ 0xCE4B);
+}
+
+/* MS-OFFCRYPTO 2.3.7.4/2.3.7.5: build the 16-byte XOR obfuscation
+   array; *verifier receives the 32-bit Method-2 password verifier */
+static void
+wvCreateXorArray_Method2 (const U8 * pw, int len, U8 array[16],
+			  U32 * verifier)
+{
+    U16 keyhigh16 = wvCreateXorKey_Method1 (pw, len);
+    U16 keylow16 = wvCreatePasswordVerifier_Method1 (pw, len);
+    U8 keyhigh = (U8) (keyhigh16 >> 8);
+    U8 keylow = (U8) (keyhigh16 & 0xFF);
+    int i;
+
+    *verifier = ((U32) keyhigh16 << 16) | keylow16;
+
+    memset (array, 0, 16);
+    for (i = 0; i < 16; i++)
+	array[i] = (i < len) ? pw[i] : wv_xor_pad[i - len];
+
+    for (i = 0; i < 16; i += 2)
+      {
+	  array[i] = WV_ROR8 (array[i] ^ keylow);
+	  array[i + 1] = WV_ROR8 (array[i + 1] ^ keyhigh);
+      }
+}
+
+/* MS-OFFCRYPTO 2.3.7.6 XOR Data Transformation Method 2: transform a
+   whole stream into a fresh buffer; the first `skip` bytes keep their
+   stored (untransformed) values, the obfuscation index tracks the
+   absolute stream offset. */
+static U8 *
+wvXorTransformStream (wvStream * in, const U8 array[16], U32 skip,
+		      size_t * len)
+{
+    U8 *buf;
+    U32 size, pos;
+
+    size = wvStream_size (in);
+    wvStream_goto (in, 0);
+
+    buf = (U8 *) malloc (size ? size : 1);
+    if (!buf)
+	return (NULL);
+
+    for (pos = 0; pos < size; pos++)
+      {
+	  U8 b = read_8ubit (in);
+	  if (pos >= skip)
+	    {
+		U8 a = array[pos & 0xF];
+		if (b != 0 && (b ^ a) != 0)
+		    b ^= a;
+	    }
+	  buf[pos] = b;
+      }
+
+    *len = size;
+    return (buf);
+}
+
+/*
+ * MS-DOC 2.2.6.1 XOR obfuscation (Word 97+): FibBase.fEncrypted and
+ * fObfuscated are both 1 and FibBase.lKey is the password verifier.
+ * The WordDocument stream is obfuscated from offset 68 on, the Table
+ * and Data streams in full.
+ */
+int
+wvDecryptObfuscated (wvParseStruct * ps)
+{
+    U8 pw[15];
+    U8 array[16];
+    U32 verifier;
+    int i, len;
+    U8 *mainbuf, *tablebuf, *databuf;
+    size_t mainlen, tablelen, datalen;
+
+    if (!ps->tablefd)
+	return (1);
+
+    /* Unicode -> single-byte password (MS-OFFCRYPTO 2.3.7.4): take the
+       low byte of each character unless it is 0x00, in which case take
+       the high byte; truncate to 15 characters */
+    len = 0;
+    for (i = 0; i < 16 && ps->password[i]; i++)
+      {
+	  U16 c = ps->password[i];
+	  pw[len++] = (c & 0xFF) ? (U8) c : (U8) (c >> 8);
+	  if (len == 15)
+	      break;
+      }
+
+    if (len < 1)
+	return (1);
+
+    wvCreateXorArray_Method2 (pw, len, array, &verifier);
+    if (verifier != ps->fib.lKey)
+      {
+	  wvTrace (("obfuscated .doc: password verifier mismatch "
+		    "(%08x vs %08x)\n", verifier, ps->fib.lKey));
+	  return (1);
+      }
+
+    tablebuf = wvXorTransformStream (ps->tablefd, array, 0, &tablelen);
+    mainbuf = wvXorTransformStream (ps->mainfd, array, 68, &mainlen);
+
+    databuf = NULL;
+    datalen = 0;
+    if (ps->data && ps->data != ps->mainfd)
+	databuf = wvXorTransformStream (ps->data, array, 0, &datalen);
+
+    if (!tablebuf || !mainbuf)
+      {
+	  free (tablebuf);
+	  free (mainbuf);
+	  free (databuf);
+	  return (-1);
+      }
+
+    /* clear fEncrypted/fObfuscated in the cleartext copy's FibBase so
+       the FIB re-read below parses the whole stream */
+    if (mainlen > 0x0B)
+	mainbuf[0x0B] &= 0x7E;
+
+    if (ps->tablefd0)
+	wvStream_close (ps->tablefd0);
+    if (ps->tablefd1)
+	wvStream_close (ps->tablefd1);
+    if (ps->summary)
+	wvStream_close (ps->summary);
+    if (ps->data && ps->data != ps->mainfd)
+	wvStream_close (ps->data);
+
+    wvStream_close (ps->mainfd);
+
+    wvStream_memory_create (&ps->tablefd0, (char *) tablebuf, tablelen);
+    wvStream_memory_create (&ps->mainfd, (char *) mainbuf, mainlen);
+    if (databuf)
+	wvStream_memory_create (&ps->data, (char *) databuf, datalen);
+
+    ps->tablefd = ps->tablefd0;
+    ps->tablefd1 = ps->tablefd0;
+
+    wvStream_rewind (ps->tablefd0);
+    wvStream_rewind (ps->mainfd);
+    if (wvGetFIB (&ps->fib, ps->mainfd))
+	return (-1);
+    wvClampFIBFcLcb (&ps->fib, wvStream_size (ps->tablefd0));
+    ps->fib.fEncrypted = 0;
+    return (0);
+}
+
 int
 wvDecrypt95 (wvParseStruct * ps)
 {

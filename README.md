@@ -35,6 +35,9 @@ The fork is focused on:
   pipeline, gated by the `AutoGrammarCheck` preference.
 - **MS Word (.doc) support** — bundled `wv-1.2.9` in `thirdparty/`,
   patched for the buffer overflows reported against libwv-1.2.
+  Password-protected Word 97+ documents open via the password dialog
+  (`ABINOVA_PASSWORD` for headless use); both XOR-obfuscated and RC4
+  1.1 encryption are supported.
 - **Bundled fonts** — a curated, redistributable font collection is
   installed with the application and registered with fontconfig at
   startup, so documents render consistently without relying on

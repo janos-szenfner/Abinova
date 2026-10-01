@@ -430,6 +430,21 @@ wvGetFIB (FIB * item, wvStream * fd)
 	  return (-1);
       }
     item->cbMac = (S32) read_32ubit (fd);
+
+    /* MS-DOC 2.2.6: for encrypted/obfuscated files only the first 68
+       bytes of the WordDocument stream are stored untransformed --
+       everything from lProductCreated on (incl. the whole fibRgLw and
+       fibRgFcLcb blobs) is ciphertext until decrypted.  Bail out here
+       with the FibBase fields populated; the decryptor re-reads the
+       FIB on the cleartext stream afterwards. */
+    if (item->fEncrypted)
+      {
+	  wvTrace (("FIB: file is %s, stopping at the 68-byte cleartext "
+		    "prefix\n", item->fCrypto ? "XOR-obfuscated"
+		    : "RC4-encrypted"));
+	  return (0);
+      }
+
     item->lProductCreated = read_32ubit (fd);
     item->lProductRevised = read_32ubit (fd);
     item->ccpText = read_32ubit (fd);

@@ -20,6 +20,20 @@
 /*
  *  Password verification in Microsoft Word 8.0
  *  see D_CREDITS & D_README
+ *
+ *  Encryption semantics per MS-DOC 2.2.6 + MS-OFFCRYPTO 2.3.6:
+ *  the EncryptionHeader sits unencrypted in the first FibBase.lKey
+ *  bytes of the Table stream; its EncryptionVersionInfo.vMajor MUST
+ *  be 0x0001 for the plain RC4 scheme implemented here (vMajor
+ *  0x0002..0x0004 denote RC4 CryptoAPI encryption, which uses a
+ *  different key derivation and is rejected).  The rest of the Table
+ *  stream, the WordDocument stream beyond its initial 68 bytes and the
+ *  whole Data stream are RC4-encrypted in 512-byte blocks (the block
+ *  number restarts at 0 for each stream and a fresh RC4 key is derived
+ *  per block).  The cipher logically runs over the plaintext prefix
+ *  bytes too -- they are simply stored untransformed -- so on decrypt
+ *  the keystream must advance over them while their stored bytes are
+ *  left alone.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,8 +50,6 @@
 #undef S32
 #include "rc4.h"
 #include "md5.h"
-
-#include <gsf/gsf-output-memory.h>
 
 void wvMD5StoreDigest (wvMD5_CTX * mdContext);
 
@@ -158,22 +170,95 @@ expandpw (U16 password[16], U8 pwarray[64])
     pwarray[56] = (i << 4);
 }
 
+/*
+ * RC4-decrypt a whole stream into a freshly allocated buffer.
+ * "prefix" bytes at the start of the stream are stored untransformed
+ * (MS-DOC 2.2.6); the cipher still runs over them, so their decrypted
+ * output is discarded and the stored bytes kept.  Returns the buffer
+ * or NULL; *len receives the stream size.
+ */
+static U8 *
+decrypt_rc4_stream (wvStream * enc, wvMD5_CTX * valContext, U32 prefix,
+		    size_t * len)
+{
+    U8 *buf;
+    U8 test[0x10];
+    U32 size, pos;
+    unsigned int blk, i, n;
+    rc4_key key;
+
+    size = wvStream_size (enc);
+    wvStream_goto (enc, 0);
+
+    buf = (U8 *) malloc (size ? size : 1);
+    if (!buf)
+	return (NULL);
+
+    blk = 0;
+    makekey (blk, &key, valContext);
+
+    for (pos = 0; pos < size;)
+      {
+	  n = (size - pos < 0x10) ? (unsigned int) (size - pos) : 0x10;
+	  for (i = 0; i < n; i++)
+	      {
+		  test[i] = read_8ubit (enc);
+		  buf[pos + i] = test[i];	/* keep the stored bytes */
+	      }
+
+	  /* the cipher also ran over the untransformed prefix, so the
+	     keystream must advance over it even though its output is
+	     discarded there */
+	  rc4 (test, n, &key);
+
+	  for (i = 0; i < n; i++)
+	      if (pos + i >= prefix)
+		  buf[pos + i] = test[i];
+
+	  pos += n;
+	  if ((pos % 0x200) == 0)
+	    {
+		/*
+		   at this stage we need to rekey the rc4 algorithm
+		   Dieter Spaar <spaar@mirider.augusta.de> figured out
+		   this rekeying, big kudos to him
+		 */
+		blk++;
+		makekey (blk, &key, valContext);
+	    }
+      }
+
+    *len = size;
+    return (buf);
+}
+
 int
 wvDecrypt97 (wvParseStruct * ps)
 {
-    GsfOutput *outtable;
-    GsfOutput *outmain;
-    wvStream *enc;
     U8 pwarray[64];
-    U8 docid[16], salt[64], hashedsalt[16], x;
-    int i, j, end;
-    unsigned int blk;
-    rc4_key key;
-    unsigned char test[0x10];
+    U8 docid[16], salt[64], hashedsalt[16];
+    U16 vMajor, vMinor;
+    int i;
+    U8 *mainbuf, *tablebuf, *databuf;
+    size_t mainlen, tablelen, datalen;
+    U32 tableprefix;
     wvMD5_CTX valContext;
 
-    for (i = 0; i < 4; i++)
-	x = read_8ubit (ps->tablefd);
+    if (!ps->tablefd)
+	return (1);
+
+    /* EncryptionVersionInfo: vMajor 0x0001 = RC4, 0x0002..0x0004 =
+       RC4 CryptoAPI (MS-OFFCRYPTO 2.3.5), which we cannot decrypt */
+    wvStream_rewind (ps->tablefd);
+    vMajor = read_16ubit (ps->tablefd);
+    vMinor = read_16ubit (ps->tablefd);
+    if (vMajor != 0x0001 || vMinor != 0x0001)
+      {
+	  wvError (("Encrypted .doc: unsupported EncryptionVersionInfo "
+		    "%u.%u (only RC4 1.1 is supported)\n",
+		    vMajor, vMinor));
+	  return (-2);
+      }
 
     for (i = 0; i < 16; i++)
 	docid[i] = read_8ubit (ps->tablefd);
@@ -189,100 +274,52 @@ wvDecrypt97 (wvParseStruct * ps)
     if (verifypwd (pwarray, docid, salt, hashedsalt, &valContext))
 	return (1);
 
-    enc = ps->tablefd;
+    /* the first lKey bytes of the Table stream hold the plaintext
+       EncryptionHeader; clamp defensively against a corrupt FIB */
+    tableprefix = ps->fib.lKey;
+    if (tableprefix > wvStream_size (ps->tablefd))
+	tableprefix = wvStream_size (ps->tablefd);
 
-    wvStream_offset_from_end (enc, 0);
-    end = wvStream_tell (enc);
+    tablebuf = decrypt_rc4_stream (ps->tablefd, &valContext, tableprefix,
+				   &tablelen);
+    mainbuf = decrypt_rc4_stream (ps->mainfd, &valContext, 68, &mainlen);
 
-    j = 0;
-    wvStream_goto (enc, j);
+    /* the Data stream, when present, is wholly encrypted with its own
+       block numbering starting at 0 */
+    databuf = NULL;
+    datalen = 0;
+    if (ps->data && ps->data != ps->mainfd)
+	databuf = decrypt_rc4_stream (ps->data, &valContext, 0, &datalen);
 
-    outtable = gsf_output_memory_new ();
-
-    blk = 0;
-    makekey (blk, &key, &valContext);
-
-    while (j < end)
+    if (!tablebuf || !mainbuf)
       {
-	  for (i = 0; i < 0x10; i++)
-	      test[i] = read_8ubit (enc);
-
-	  rc4 (test, 0x10, &key);
-
-	  for (i = 0; i < 0x10; i++)
-	    gsf_output_write (outtable, 1, &(test[i]));
-	  j += 0x10;
-	  if ((j % 0x200) == 0)
-	    {
-		/* 
-		   at this stage we need to rekey the rc4 algorithm
-		   Dieter Spaar <spaar@mirider.augusta.de> figured out
-		   this rekeying, big kudos to him 
-		 */
-		blk++;
-		makekey (blk, &key, &valContext);
-	    }
-
+	  free (tablebuf);
+	  free (mainbuf);
+	  free (databuf);
+	  return (-1);
       }
 
-    gsf_output_close (outtable);
-
-    enc = ps->mainfd;
-
-    wvStream_offset_from_end (enc, 0);
-    end = wvStream_tell (enc);
-
-    j = 0;
-    wvStream_goto (enc, j);
-
-    outmain = gsf_output_memory_new ();
-
-    blk = 0;
-    makekey (blk, &key, &valContext);
-
-    while (j < end)
-      {
-	  for (i = 0; i < 0x10; i++)
-	      test[i] = read_8ubit (enc);
-
-	  rc4 (test, 0x10, &key);
-
-	  for (i = 0; i < 0x10; i++)
-	    gsf_output_write (outmain, 1, &(test[i]));
-	  j += 0x10;
-	  if ((j % 0x200) == 0)
-	    {
-		/* 
-		   at this stage we need to rekey the rc4 algorithm
-		   Dieter Spaar <spaar@mirider.augusta.de> figured out
-		   this rekeying, big kudos to him 
-		 */
-		blk++;
-		makekey (blk, &key, &valContext);
-	    }
-
-      }
-
-    gsf_output_close (outmain);
+    /* the stored FibBase flags keep advertising fEncrypted/fObfuscated;
+       clear them in the cleartext copy so the FIB re-read below parses
+       the whole stream */
+    if (mainlen > 0x0B)
+	mainbuf[0x0B] &= 0x7E;
 
     if (ps->tablefd0)
-        wvStream_close (ps->tablefd0);
+	wvStream_close (ps->tablefd0);
     if (ps->tablefd1)
-        wvStream_close (ps->tablefd1);
+	wvStream_close (ps->tablefd1);
     if (ps->summary)
-        wvStream_close (ps->summary);
+	wvStream_close (ps->summary);
+    if (ps->data && ps->data != ps->mainfd)
+	wvStream_close (ps->data);
 
     wvStream_close (ps->mainfd);
- 
-    wvStream_memory_create(&ps->tablefd0, 
-			   g_memdup2 (gsf_output_memory_get_bytes (GSF_OUTPUT_MEMORY (outtable)), gsf_output_size (outtable)),
-			   gsf_output_size (outtable));
-    wvStream_memory_create(&ps->mainfd, 
-			   g_memdup2 (gsf_output_memory_get_bytes (GSF_OUTPUT_MEMORY (outmain)), gsf_output_size (outmain)),
-			   gsf_output_size (outmain));
 
-    g_object_unref (G_OBJECT (outtable));
-    g_object_unref (G_OBJECT (outmain));
+    wvStream_memory_create (&ps->tablefd0, (char *) tablebuf, tablelen);
+    wvStream_memory_create (&ps->mainfd, (char *) mainbuf, mainlen);
+    if (databuf)
+	wvStream_memory_create (&ps->data, (char *) databuf, datalen);
 
     ps->tablefd = ps->tablefd0;
     ps->tablefd1 = ps->tablefd0;
@@ -298,7 +335,7 @@ wvDecrypt97 (wvParseStruct * ps)
 }
 
 
-/* 
+/*
 this is just cut out of wvMD5Final to get the byte order correct
 under MSB systems, the previous code was woefully tied to intel
 x86

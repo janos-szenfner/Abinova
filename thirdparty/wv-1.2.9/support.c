@@ -99,7 +99,10 @@ static U32 wvStream_close_stream(wvStream * in);
 void
 wvOLEFree (wvParseStruct * ps)
 {
-  if(wvQuerySupported (&ps->fib, NULL) != WORD2 && !ps->fib.fEncrypted) {
+  /* encrypted files whose decryption was abandoned still own their
+     (ciphertext) streams -- the WORD2 exception only exists because a
+     pre-OLE doc aliases all five stream pointers to a single object */
+  if(wvQuerySupported (&ps->fib, NULL) != WORD2 || ps->fib.fEncrypted) {
     wvStream_list *tempList = streams;
 
     while (tempList != NULL)

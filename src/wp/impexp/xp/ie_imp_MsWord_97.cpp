@@ -1105,6 +1105,14 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
 
       pDialogFactory->releaseDialog(pDlg);
     }
+  else
+    {
+      // headless (e.g. --to= conversions): allow the password to be
+      // supplied via the environment, like the ODF/.abwn paths
+      const char * envpw = getenv ("ABINOVA_PASSWORD");
+      if (envpw)
+		  password = envpw;
+    }
 
   return password;
 }
@@ -1301,15 +1309,18 @@ UT_Error IE_Imp_MsWord_97::_loadFile(GsfInput * fp)
 	  ret = 0;
 	  if (password == nullptr)
 	    {
-			//ErrorMessage(AP_STRING_ID_WORD_PassRequired);
 	      ErrCleanupAndExit(UT_IE_PROTECTED);
 	    }
 	  else
 	    {
 	      wvSetPassword (password, &ps);
-	      if (wvDecrypt97 (&ps))
+	      /* MS-DOC 2.2.6: fEncrypted+fObfuscated is XOR obfuscation;
+		 fEncrypted alone is RC4 (wvDecrypt97 also rejects the
+		 CryptoAPI/AES EncryptionVersionInfo variants) */
+	      if (ps.fib.fCrypto
+		  ? wvDecryptObfuscated (&ps)
+		  : wvDecrypt97 (&ps))
 		{
-			//ErrorMessage(AP_STRING_ID_WORD_PassInvalid);
 		  ErrCleanupAndExit(UT_IE_PROTECTED);
 		}
 	    }
@@ -1319,7 +1330,6 @@ UT_Error IE_Imp_MsWord_97::_loadFile(GsfInput * fp)
 	  ret = 0;
 	  if (password == nullptr)
 	    {
-			//ErrorMessage(AP_STRING_ID_WORD_PassRequired);
 	      ErrCleanupAndExit(UT_IE_PROTECTED);
 	    }
 	  else
@@ -1327,10 +1337,15 @@ UT_Error IE_Imp_MsWord_97::_loadFile(GsfInput * fp)
 	      wvSetPassword (password, &ps);
 	      if (wvDecrypt95 (&ps))
 		{
-		  //("Incorrect Password\n"));
 		  ErrCleanupAndExit(UT_IE_PROTECTED);
 		}
 	    }
+	}
+      else
+	{
+	  /* protected pre-Word95 document -- nothing to decrypt it
+	     with, but report it as protected rather than corrupt */
+	  ErrCleanupAndExit(UT_IE_PROTECTED);
 	}
     }
 
