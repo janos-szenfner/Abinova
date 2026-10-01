@@ -1095,6 +1095,7 @@ number to use for each list entry, Caolan
 
     void wvGetSHD (SHD * item, wvStream * fd);
     void wvGetSHDFromBucket (SHD * item, U8 * pointer);
+    void wvGetSHD10FromBucket (SHD * item, U8 * pointer);
     int wvGetSHDOperandFromBucket (SHD * item, U8 * pointer);
     void wvInitSHD (SHD * item);
     void wvCopySHD (SHD * dest, SHD * src);
@@ -1129,6 +1130,7 @@ number to use for each list entry, Caolan
 
     void wvGetBRC (wvVersion ver, BRC * abrc, wvStream * fd);
     int wvGetBRCFromBucket (wvVersion ver, BRC * abrc, U8 * pointer);
+    void wvGetBRC8FromBucket (BRC * abrc, U8 * pointer);
     int wvGetBRCOperandFromBucket (BRC * abrc, U8 * pointer);
     void wvInitBRC (BRC * abrc);
     void wvCopyBRC (BRC * dest, BRC * src);
@@ -1403,11 +1405,24 @@ brc.dxpSpace should be set to 0.
 	U32 fVertRestart:1;
 	U32 vertAlign:2;
 	U32 fUnused:7;
-	U32 wUnused:16;
+	U32 wUnused:16;		/* kept for layout compatibility */
 	BRC brcTop;
 	BRC brcLeft;
 	BRC brcBottom;
 	BRC brcRight;
+	/* Word 2000+ per-cell properties (MS-DOC 2.4.5 / TC80) */
+	U8 textFlow;		/* TCGRF.textFlow / sprmTTextFlow */
+	U8 ftsWidth;		/* TCGRF.ftsWidth: units of wWidth */
+	S16 wWidth;		/* TC80.wWidth: preferred cell width */
+	U8 fFitText;		/* TCGRF.fFitText / sprmTFitText */
+	U8 fNoWrap;		/* TCGRF.fNoWrap / sprmTFCellNoWrap */
+	U8 fHideMark;		/* TCGRF.fHideMark / sprmTCellFHideMark */
+	U8 fPadMask;		/* bitmask of sides set by sprmTCellPadding:
+				   bit0 top, bit1 left, bit2 bottom, bit3 right */
+	S16 padTop;		/* sprmTCellPadding cell margins, twips */
+	S16 padLeft;
+	S16 padBottom;
+	S16 padRight;
     } TC;
 
     void wvCopyTC (TC * dest, TC * src);
@@ -1433,6 +1448,16 @@ brc.dxpSpace should be set to 0.
     void wvGetTLP (TLP * item, wvStream * fd);
     void wvGetTLPFromBucket (TLP * item, U8 * pointer);
 
+    /* Fts (MS-DOC 2.9.82): measurement units used by the table width
+       and cell spacing/padding operands */
+    typedef enum {
+	ftsNil = 0,
+	ftsAuto = 1,
+	ftsPercent = 2,		/* wWidth in 50ths of a percent */
+	ftsDxa = 3,		/* wWidth in twips */
+	ftsDxaSys = 0x13	/* cell spacing in twips, from table border */
+    } wvFts;
+
     typedef struct _TAP {
 	S16 jc;
 	S32 dxaGapHalf;
@@ -1457,6 +1482,39 @@ brc.dxpSpace should be set to 0.
 	TC rgtc[itcMax];
 	SHD rgshd[itcMax];
 	BRC rgbrcTable[6];
+
+	/* Word 2000+ / MS-DOC 2.4.5 additions */
+	U8 fBiDi;		/* sprmTFBiDi/sprmTFBiDi90 */
+	U8 fAutofit;		/* sprmTFAutofit */
+	U8 fKeepFollow;		/* sprmTFKeepFollow: keep rows on one page */
+	U8 fNoAllowOverlap;	/* sprmTFNoAllowOverlap */
+	U8 fWall;		/* sprmTWall */
+	U8 pcVert;		/* sprmTPc anchor codes; 3 = not
+				   absolutely positioned */
+	U8 pcHorz;
+	S16 dxaAbs;		/* sprmTDxaAbs (XAS_plusOne) */
+	S16 dyaAbs;		/* sprmTDyaAbs (YAS_plusOne) */
+	U16 dxaFromText;	/* sprmTDxaFromText */
+	U16 dyaFromText;	/* sprmTDyaFromText */
+	U16 dxaFromTextRight;	/* sprmTDxaFromTextRight */
+	U16 dyaFromTextBottom;	/* sprmTDyaFromTextBottom */
+	U8 ftsTableWidth;	/* sprmTTableWidth */
+	S16 wTableWidth;
+	U8 ftsWidthBefore;	/* sprmTWidthBefore */
+	S16 wWidthBefore;
+	U8 ftsWidthAfter;	/* sprmTWidthAfter */
+	S16 wWidthAfter;
+	U8 ftsWidthIndent;	/* sprmTWidthIndent */
+	S16 wWidthIndent;
+	U16 istdTable;		/* sprmTIstd */
+	U8 fCellPadMask;	/* sides set by sprmTCellPaddingDefault */
+	S16 cellPadTop;		/* default cell margins, twips */
+	S16 cellPadLeft;
+	S16 cellPadBottom;
+	S16 cellPadRight;
+	U8 fCellSpacing;	/* sprmTCellSpacingDefault present */
+	S16 cellSpacing;	/* cell spacing, twips */
+	SHD shdTable;		/* sprmTSetShdTable */
     } TAP;
 
 #define itbdMax 64
@@ -2276,32 +2334,92 @@ that indicates their length.
 	sprmSClm = 0x5032,
 	sprmSTextFlow = 0x5033,
 
-	sprmTJc = 0x5400,
+	sprmTJc90 = 0x5400,
 	sprmTDxaLeft = 0x9601,
 	sprmTDxaGapHalf = 0x9602,
-	sprmTFCantSplit = 0x3403,
+	sprmTFCantSplit90 = 0x3403,
 	sprmTTableHeader = 0x3404,
-	sprmTTableBorders = 0xD605,
+	sprmTTableBorders80 = 0xD605,
 	sprmTDefTable10 = 0xD606,
 	sprmTDyaRowHeight = 0x9407,
 	sprmTDefTable = 0xD608,
-	sprmTDefTableShd = 0xD609,
+	sprmTDefTableShd80 = 0xD609,
 	sprmTTlp = 0x740A,
 	sprmTFBiDi = 0x560B,
-	sprmTHTMLProps = 0x740C,
-	sprmTSetBrc = 0xD620,
+	sprmTDefTableShd3rd = 0xD60C,
+	sprmTPc = 0x360D,
+	sprmTDxaAbs = 0x940E,
+	sprmTDyaAbs = 0x940F,
+	sprmTDxaFromText = 0x9410,
+	sprmTDyaFromText = 0x9411,
+	sprmTDefTableShd = 0xD612,
+	sprmTTableBorders = 0xD613,
+	sprmTTableWidth = 0xF614,
+	sprmTFAutofit = 0x3615,
+	sprmTDefTableShd2nd = 0xD616,
+	sprmTWidthBefore = 0xF617,
+	sprmTWidthAfter = 0xF618,
+	sprmTFKeepFollow = 0x3619,
+	sprmTBrcTopCv = 0xD61A,
+	sprmTBrcLeftCv = 0xD61B,
+	sprmTBrcBottomCv = 0xD61C,
+	sprmTBrcRightCv = 0xD61D,
+	sprmTDxaFromTextRight = 0x941E,
+	sprmTDyaFromTextBottom = 0x941F,
+	sprmTSetBrc80 = 0xD620,
 	sprmTInsert = 0x7621,
 	sprmTDelete = 0x5622,
 	sprmTDxaCol = 0x7623,
 	sprmTMerge = 0x5624,
 	sprmTSplit = 0x5625,
 	sprmTSetBrc10 = 0xD626,
-	sprmTSetShd = 0x7627,
-	sprmTSetShdOdd = 0x7628,
+	sprmTSetShd95 = 0x7627,	/* pre-Word97: ItcFirstLim + 2-byte Shd80 */
+	sprmTSetShdOdd95 = 0x7628,
 	sprmTTextFlow = 0x7629,
-	sprmTDiagLine = 0xD62A,
+	sprmTDiagLine = 0xD62A,	/* undocumented legacy opcode */
 	sprmTVertMerge = 0xD62B,
-	sprmTVertAlign = 0xD62C
+	sprmTVertAlign = 0xD62C,
+	sprmTSetShd = 0xD62D,
+	sprmTSetShdOdd = 0xD62E,
+	sprmTSetBrc = 0xD62F,
+	sprmTCellPadding = 0xD632,
+	sprmTCellSpacingDefault = 0xD633,
+	sprmTCellPaddingDefault = 0xD634,
+	sprmTCellWidth = 0xD635,
+	sprmTFitText = 0xF636,
+	sprmTFCellNoWrap = 0xD639,
+	sprmTIstd = 0x563A,
+	sprmTCellPaddingStyle = 0xD63E,
+	sprmTCellFHideMark = 0xD642,
+	sprmTSetShdTable = 0xD660,
+	sprmTWidthIndent = 0xF661,
+	sprmTCellBrcType = 0xD662,
+	sprmTFBiDi90 = 0x5664,
+	sprmTFNoAllowOverlap = 0x3465,
+	sprmTFCantSplit = 0x3466,
+	sprmTPropRMark = 0xD667,
+	sprmTWall = 0x3668,
+	sprmTIpgp = 0x7469,
+	sprmTCnf = 0xD66A,
+	sprmTDefTableShdRaw = 0xD670,
+	sprmTDefTableShdRaw2nd = 0xD671,
+	sprmTDefTableShdRaw3rd = 0xD672,
+	sprmTRsid = 0x7479,
+	sprmTCellVertAlignStyle = 0x347C,
+	sprmTCellNoWrapStyle = 0x347D,
+	sprmTCellBrcTopStyle = 0xD47F,
+	sprmTCellBrcBottomStyle = 0xD680,
+	sprmTCellBrcLeftStyle = 0xD681,
+	sprmTCellBrcRightStyle = 0xD682,
+	sprmTCellBrcInsideHStyle = 0xD683,
+	sprmTCellBrcInsideVStyle = 0xD684,
+	sprmTCellBrcTL2BRStyle = 0xD685,
+	sprmTCellBrcTR2BLStyle = 0xD686,
+	sprmTCellShdStyle = 0xD687,
+	sprmTCHorzBands = 0x3488,
+	sprmTCVertBands = 0x3489,
+	sprmTJc = 0x548A,
+	sprmTHTMLProps = 0x740C	/* undocumented legacy opcode */
     } SprmName;
 
     SprmName wvGetrgsprmWord6 (U8 in);
@@ -2359,6 +2477,36 @@ that indicates their length.
     void wvApplysprmTTextFlow (TAP * tap, U8 * pointer, U16 * pos);
     void wvApplysprmTVertMerge (TAP * tap, U8 * pointer, U16 * pos);
     void wvApplysprmTVertAlign (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTSetShd80 (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTSetShdOdd80 (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTSetShd97 (wvVersion ver, TAP * tap, U8 * pointer,
+			       U16 * pos);
+    void wvApplysprmTSetBrc97 (wvVersion ver, TAP * tap, U8 * pointer,
+			       U16 * pos);
+    void wvApplysprmTSetBrc97v (wvVersion ver, TAP * tap, U8 * pointer,
+				U16 * pos);
+    void wvApplysprmTTextFlow97 (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTCellPadding (TAP * tap, U8 * pointer, U16 * pos,
+				  U8 isDefault);
+    void wvApplysprmTCellWidth (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTFitText (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTFCellNoWrap (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTCellFHideMark (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTSetShdTable (wvVersion ver, TAP * tap, U8 * pointer,
+				  U16 * pos);
+    void wvApplysprmTCellBrcType (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTWidthIndent (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTDefTableShdNew (TAP * tap, U8 * pointer, U16 * pos,
+				    int firstCell);
+    void wvApplysprmTSetShdNew (TAP * tap, U8 * pointer, U16 * pos,
+				int odd);
+    void wvApplysprmTTableBorders97 (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTSetBrcNew (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTBrcCv (TAP * tap, U8 * pointer, U16 * pos,
+			    int which);
+    void wvApplysprmTCellSpacing (TAP * tap, U8 * pointer, U16 * pos);
+    void wvApplysprmTFlagRange (TAP * tap, U8 * pointer, U16 * pos,
+				int which);
 
 
     U8 wvToggle (U8 in, U8 toggle);
@@ -2811,6 +2959,19 @@ that indicates their length.
 	COMMENTEND
     } wvTag;
 
+/* MS-DOC 2.4.3: arbitrary table depth is possible, but a sane cap keeps
+   corrupt documents from eating memory */
+#define WV_MAX_TABLE_DEPTH 8
+
+    typedef struct _wvTableLevel
+      {
+	  U8 initialized;	/* wvGetFullTableInit ran for this depth */
+	  S16 **vmerges;
+	  U16 norows;
+	  S16 *cellbounds;
+	  int nocellbounds;
+      } wvTableLevel;
+
     typedef struct _wvParseStruct {
 	/*public */
 	void *userData;
@@ -2857,6 +3018,11 @@ that indicates their length.
 	int nocellbounds;
 	S16 **vmerges;
 	U16 norows;
+	/* per-depth table state for nested tables (MS-DOC 2.4.3);
+	   tablelevel[d] describes the open table at itap==d+1; the
+	   legacy vmerges/cellbounds/norows/nocellbounds members above
+	   mirror tablelevel[0] for depth-1 tables */
+	wvTableLevel tablelevel[WV_MAX_TABLE_DEPTH];
 	U8 endcell;
 	U32 currentcp;
 	PAP nextpap;
@@ -2880,6 +3046,11 @@ that indicates their length.
 
     void wvSetPassword (const char *password, wvParseStruct * ps);
     void wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no);
+    void wvSetTableInfoLevel (wvParseStruct * ps, TAP * ptap, int no,
+			      int depth);
+    void wvClearTableLevel (wvParseStruct * ps, int depth);
+    void wvFreeTableLevels (wvParseStruct * ps);
+    int wvTableDepth (PAP * apap);
     int wvDecrypt95 (wvParseStruct * ps);
     int wvDecrypt97 (wvParseStruct * ps);
 
@@ -4149,13 +4320,16 @@ Property       PID            Type            Default        Description
     int wvSumInfoGetPreview (char *lpStr, U16 cbStr, U32 pid, SummaryInfo * si);
 
     void wvGetRowTap (wvParseStruct * ps, PAP * dpap, U32 para_intervals,
-		      BTE * btePapx, U32 * posPapx);
+		      BTE * btePapx, U32 * posPapx, int depth);
     void wvGetComplexRowTap (wvParseStruct * ps, PAP * dpap, U32 para_intervals,
-			     BTE * btePapx, U32 * posPapx, U32 piececount);
+			     BTE * btePapx, U32 * posPapx, U32 piececount,
+			     int depth);
     void wvGetFullTableInit (wvParseStruct * ps, U32 para_intervals,
-			     BTE * btePapx, U32 * posPapx);
+			     BTE * btePapx, U32 * posPapx, int depth);
     void wvGetComplexFullTableInit (wvParseStruct * ps, U32 para_intervals,
-				    BTE * btePapx, U32 * posPapx, U32 piece);
+				    BTE * btePapx, U32 * posPapx, U32 piece,
+				    int depth);
+    void wvClearTableLevel (wvParseStruct * ps, int depth);
 
 
 /*end of clean interface*/

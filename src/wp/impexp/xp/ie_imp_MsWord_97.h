@@ -41,6 +41,7 @@ typedef struct _wvParseStruct wvParseStruct;
 typedef struct _Blip Blip;
 typedef struct _CHP CHP;
 typedef struct _PAP PAP;
+typedef struct _TAP TAP;
 class PD_Document;
 class pf_Frag;
 
@@ -127,6 +128,37 @@ public:
 	PTObjectType objType;
 };
 
+class pf_Frag_Strux;
+
+// per-level state for .doc tables; Word nests tables by paragraph
+// depth (itap), so one of these is pushed for every open table level
+class ABI_EXPORT MsTableCtx
+{
+public:
+	MsTableCtx(void):
+		iRowsRemaining(0), iCellsRemaining(0), iCurrentRow(0),
+		iCurrentCell(0), bRowOpen(false), bCellOpen(false),
+		bCoveredCell(false), iLeft(0), iRight(0), iLeftCellPos(0),
+		pTapLast(nullptr), pTableSdH(nullptr) {}
+	~MsTableCtx(void);
+	int			iRowsRemaining;		// number of rows left to process
+	int			iCellsRemaining;	// number of cells left in the row
+	int			iCurrentRow;
+	int			iCurrentCell;
+	bool		bRowOpen;			// row strux open ?
+	bool		bCellOpen;			// cell strux open ?
+	bool		bCoveredCell;		// current cell is merge-covered
+	UT_sint32   iLeft;
+	UT_sint32   iRight;
+	UT_sint32   iLeftCellPos;
+	UT_NumberVector	vecColumnSpansForCurrentRow;	// horizontal cell spans
+	UT_GenericVector<MsColSpan *>	vecColumnWidths;
+	UT_NumberVector vecColumnPositions;
+	UT_NumberVector vecRowHeights;	// per-row dyaRowHeight, twips
+	TAP *		pTapLast;			// most recent row TAP
+	pf_Frag_Strux * pTableSdH;		// this table's strux
+};
+
 //
 // The Sniffer/Manager/Creator Class for DOC
 //
@@ -211,12 +243,18 @@ private:
 	void	   _appendChar (UT_UCS4Char ch);
 	void	   _flush ();
 
-	void		_table_open();
-	void		_table_close(const wvParseStruct *ps, const PAP *apap);
-	void		_row_open(const wvParseStruct *ps);
-	void		_row_close();
-	void		_cell_open(const wvParseStruct *ps, const PAP *apap);
-	void		_cell_close();
+	void		_table_open(MsTableCtx * ctx);
+	void		_table_close(const wvParseStruct *ps, const PAP *apap,
+							 MsTableCtx * ctx);
+	void		_table_push_level(const wvParseStruct *ps);
+	void		_table_pop_level(const wvParseStruct *ps, const PAP *apap);
+	MsTableCtx * _curTableCtx() const;
+	void		_row_open(MsTableCtx * ctx, const wvParseStruct *ps,
+						  const PAP *apap);
+	void		_row_close(MsTableCtx * ctx);
+	void		_cell_open(MsTableCtx * ctx, const wvParseStruct *ps,
+						   const PAP *apap);
+	void		_cell_close(MsTableCtx * ctx);
 	void        _handleStyleSheet(const wvParseStruct *ps);
 	void        _generateCharProps(UT_String &s, const CHP * achp, wvParseStruct *ps);
 	void        _generateParaProps(UT_String &s, const PAP * apap, wvParseStruct *ps);
@@ -243,10 +281,12 @@ private:
 	void        _handleHeaders(const wvParseStruct *ps);
 	bool        _handleHeadersText(UT_uint32 iPos, bool bDoBlockIns);
 	bool        _insertHeaderSection(bool bDoBlockIns);
-	bool        _build_ColumnWidths(UT_NumberVector & colWidths);
+	bool        _build_ColumnWidths(MsTableCtx * ctx,
+									UT_NumberVector & colWidths);
 	bool        _isVectorFull(UT_NumberVector & vec);
 	void        setNumberVector(UT_NumberVector & vec, UT_sint32 i, UT_sint32 val);
-	bool        findMatchSpan(UT_sint32 iLeft,UT_sint32 iRight);
+	bool        findMatchSpan(MsTableCtx * ctx,
+							  UT_sint32 iLeft, UT_sint32 iRight);
 	bool        _ignorePosition(UT_uint32 pos);
 
 	bool        _isTOCsupported(field *f);
@@ -291,17 +331,9 @@ private:
 
 	bool m_bEncounteredRevision;
 	bool		m_bInTable;						// are we in a table ?
-	int			m_iRowsRemaining;				// number of rows left to process
-	int			m_iCellsRemaining;				// number of cells left to process in the current row
-	int			m_iCurrentRow;					//
-	int			m_iCurrentCell;					//
-	bool		m_bRowOpen;						// row strux open ?
-	bool		m_bCellOpen;					// cell strux open ?
-	UT_NumberVector	m_vecColumnSpansForCurrentRow;	// placeholder for horizontal cell spans
-	UT_GenericVector<MsColSpan *>	m_vecColumnWidths;
+	UT_GenericVector<MsTableCtx *>	m_vecTableCtx;	// open tables, deepest last
 	UT_GenericVector<emObject*>   m_vecEmObjects;               // Objects between cell
-											  // struxes
-	UT_NumberVector m_vecColumnPositions;
+										  // struxes
 	UT_String   m_charProps;
 	UT_String   m_charRevs;
 	UT_String   m_charStyle;
@@ -335,8 +367,6 @@ private:
 	std::map<UT_uint64, UT_uint32> m_mListIdMap;
 	bool        m_bSymbolFont;
 	UT_Dimension m_dim;
-	UT_sint32    m_iLeft;
-	UT_sint32    m_iRight;
 	UT_uint32    m_iTextboxesStart;
 	UT_uint32    m_iTextboxesEnd;
 	UT_sint32    m_iNextTextbox;
@@ -348,6 +378,5 @@ private:
 	bool         m_bInTextboxes;
 	pf_Frag *    m_pTextboxEndSection;
 	UT_GenericVector<textboxPos *> m_vecTextboxPos;
-	UT_sint32    m_iLeftCellPos;
 	UT_uint32    m_iLastAppendedHeader;
 };

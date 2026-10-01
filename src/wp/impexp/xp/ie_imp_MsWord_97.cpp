@@ -328,6 +328,8 @@ static Doc_Color_t word_colors [][3] = {
 };
 
 static bool s_mapColorRefToColor(UT_uint32 cv, UT_String & sColor);
+static void s_emitParaBorder(UT_String &s, const char * pszSide,
+							 const BRC * brc, UT_Dimension dim);
 
 static UT_String sMapIcoToColor (UT_uint16 ico, bool bForeground)
 {
@@ -980,6 +982,7 @@ IE_Imp_MsWord_97::~IE_Imp_MsWord_97()
 	UT_VECTOR_PURGEALL(ListIdLevelPair *, m_vLists);
 	UT_VECTOR_PURGEALL(emObject *, m_vecEmObjects);
 	UT_VECTOR_PURGEALL(textboxPos *, m_vecTextboxPos);
+	UT_VECTOR_PURGEALL(MsTableCtx *, m_vecTableCtx);
 
 	DELETEPV(m_pTextboxes);
 	DELETEPV(m_pFootnotes);
@@ -1009,12 +1012,6 @@ IE_Imp_MsWord_97::IE_Imp_MsWord_97(PD_Document * pDocument)
     m_iMSWordListId(0),
     m_bEncounteredRevision(false),
     m_bInTable(false),
-	m_iRowsRemaining(0),
-    m_iCellsRemaining(0),
-    m_iCurrentRow(0),
-    m_iCurrentCell(0),
-    m_bRowOpen(false),
-	m_bCellOpen(false),
 	m_iFootnotesStart(0xffffffff),
 	m_iFootnotesEnd(0xffffffff),
 	m_iEndnotesStart(0xffffffff),
@@ -1041,8 +1038,6 @@ IE_Imp_MsWord_97::IE_Imp_MsWord_97(PD_Document * pDocument)
     m_bLineBreakPending(false),
 	m_bSymbolFont(false),
 	m_dim(DIM_IN),
-	m_iLeft(0),
-	m_iRight(0),
 	m_iTextboxesStart(0xffffffff),
 	m_iTextboxesEnd(0xffffffff),
 	m_iNextTextbox(0),
@@ -1052,7 +1047,6 @@ IE_Imp_MsWord_97::IE_Imp_MsWord_97(PD_Document * pDocument)
 	m_bTOCsupported(false),
 	m_bInTextboxes(false),
 	m_pTextboxEndSection(nullptr),
-	m_iLeftCellPos(0),
 	m_iLastAppendedHeader(0xffffffff)
 {
   for(UT_uint32 i = 0; i < 9; i++)
@@ -1580,6 +1574,14 @@ void IE_Imp_MsWord_97::_flush ()
 void IE_Imp_MsWord_97::_appendChar (UT_UCS4Char ch)
 {
   if (m_bInTable) {
+    /* merge-covered cell slots (TCGRF.horzMerge==1 / vertical
+       continuations) hold no content in MS-DOC; anything present is
+       pathological and would flush into an orphan block at table
+       level, so drop it */
+    MsTableCtx * ctx = _curTableCtx();
+    if (ctx && ctx->bCoveredCell)
+      return;
+
     switch (ch) {
     case 7:			// eat tab characters
       return;
@@ -1799,7 +1801,7 @@ bool IE_Imp_MsWord_97::_insertBookmark(bookmark * bm)
 		"type", bm->start ? "start" : "end"
 	};
 
-	if(m_bInTable && !m_bCellOpen)
+	if(m_bInTable && !(_curTableCtx() && _curTableCtx()->bCellOpen))
 	{
 		emObject * pObject = new emObject;
 		pObject->props1 = propsArray[1];
@@ -2904,95 +2906,78 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 	}
 
 	{
-	  if (apap->fInTable) 
+	  const int tblDepth = apap->fInTable ? wvTableDepth(apap) : 0;
+
+	  /* a paragraph at a shallower depth (or outside any table) closes
+	     every deeper table still open */
+	  while (static_cast<int>(m_vecTableCtx.getItemCount()) > tblDepth)
+	  {
+		  _table_pop_level(ps, apap);
+	  }
+
+	  if (tblDepth > 0)
 	  {
 		  // we have to call this unconditionally, since m_bInHeaders set does not mean that
 		  // the HdrFtr strux for this section has been inserted.
 		  _handleHeadersText(ps->currentcp +1, false);
 		  _handleTextboxesText(ps->currentcp+1);
-		  if (!m_bInTable) 
+
+		  while (static_cast<int>(m_vecTableCtx.getItemCount()) < tblDepth)
 		  {
-			  m_bInTable = true;
-			  _table_open();
-//
-// Fill Column positions
-//
-			  UT_sint32 i= 0;
-			  for(i=0;i < ps->nocellbounds; i++) 
-			  {
-				  if(ps->cellbounds)
-				  {
-					  UT_sint32 pos = ps->cellbounds[i];
-					  m_vecColumnPositions.addItem(pos);
-				  }
-			  }
+			  _table_push_level(ps);
 		  }
 
-		  if (ps->endcell) 
+		  MsTableCtx * ctx = _curTableCtx();
+		  UT_return_val_if_fail(ctx, 0);
+
+		  if (tblDepth == 1 && ps->endcell)
 		  {
+			  /* depth-1 cells end on the 0x07 mark char seen while
+			     reading the previous paragraph's text */
 			  ps->endcell = 0;
-			  _cell_close();
-			  if (m_iCellsRemaining > 0) 
+			  _cell_close(ctx);
+			  if (ctx->iCellsRemaining > 0)
 			  {
-				  m_iCellsRemaining--;
-				  if (m_iCellsRemaining == 0) 
+				  ctx->iCellsRemaining--;
+				  if (ctx->iCellsRemaining == 0)
 				  {
-					  _row_close();
+					  _row_close(ctx);
 				  }
 			  }
 		  }
+		  /* deeper cells end on the cell paragraph's own mark
+		     (fInnerTableCell/fInnerTtp) - handled in _endPara() */
 
-	    _row_open(ps);
+	    _row_open(ctx, ps, apap);
+	    _cell_open(ctx, ps, apap);
 
-	    // determine column spans
-	    if (!m_bCellOpen) 
-		{
-			m_vecColumnSpansForCurrentRow.clear();
-
-			xxx_UT_DEBUGMSG(("Number of cell bounds in New row %d \n",ps->nocellbounds));
-			UT_sint32 column =1;
-			UT_sint32 i =0;
-			UT_sint32 posLeft = 0;
-			UT_sint32 posRight =0;
-			if (ps->cellbounds)
-				posLeft = ps->cellbounds[0];
-			for (column = 1; column < ps->nocellbounds; column++) 
-			{
-				int span = 0;
-				posRight = apap->ptap.rgdxaCenter[column];
-				xxx_UT_DEBUGMSG(("column %d posLeft %d posRight %d \n",column,posLeft,posRight));
-				for (i = 0; i < ps->nocellbounds; i++) 
-				{
-					if (ps->cellbounds[i] >= posLeft && ps->cellbounds[i] < posRight) 
-					{
-						span++;
-					}
-					else if (ps->cellbounds[i] >= posRight)
-					{
-						break;
-					}
-				}
-				xxx_UT_DEBUGMSG(("COlumn %d has span %d \n",column,span));
-				m_vecColumnSpansForCurrentRow.addItem(span);
-				posLeft = posRight;
-			}
+	    if (ctx->iCellsRemaining == 0) {
+	      ctx->iCellsRemaining = apap->ptap.itcMac + 1;
 	    }
 
-	    _cell_open(ps, apap);
-
-	    if (m_iCellsRemaining == 0) {
-	      m_iCellsRemaining = apap->ptap.itcMac + 1;
+	    if (ctx->iRowsRemaining == 0) {
+	      ctx->iRowsRemaining = ps->norows;
 	    }
 
-	    if (m_iRowsRemaining == 0) {
-	      m_iRowsRemaining = ps->norows;
+	    ctx->iRowsRemaining--;
+
+	    /* a row-mark paragraph carries the TAP of the row it ends;
+	       collect the row heights in document order */
+	    if (apap->fTtp || apap->fInnerTtp)
+	    {
+		ctx->vecRowHeights.addItem(apap->ptap.dyaRowHeight);
 	    }
 
-	    m_iRowsRemaining--;
+	    /* merge-covered cells carry no rendered content (MS-DOC
+	       TCGRF.horzMerge == 1); do not emit a paragraph for them */
+	    if (ctx->bCoveredCell)
+	    {
+		this->_flush ();
+		return 0;
+	    }
 	  }
-	  else if (m_bInTable) {
+	  else {
 	    m_bInTable = false;
-	    _table_close(ps, apap);
 	  }
 	}
 
@@ -3006,8 +2991,9 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		this->_flush ();
 	}
 	
-	if (apap->fTtp)
+	if (apap->fTtp || apap->fInnerTtp)
 	  {
+	    /* row-mark paragraphs carry no text of their own */
 	    m_bInPara = true;
 		xxx_UT_DEBUGMSG(("m_bInPara set true here -1 \n"));
 	    return 0;
@@ -3351,7 +3337,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 }
 
 int IE_Imp_MsWord_97::_endPara (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
-								void * /*prop*/, int /*dirty*/)
+								void * prop, int /*dirty*/)
 {
 	xxx_UT_DEBUGMSG(("#DOM: _endPara\n"));
 	// have to flush here, otherwise flushing later on will result in
@@ -3360,7 +3346,31 @@ int IE_Imp_MsWord_97::_endPara (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 	this->_flush ();
 	m_bInPara = false;
 	m_bLineBreakPending = false;
-	
+
+	/* inner-table cells end on a 0x0D paragraph mark whose PAP carries
+	   fInnerTableCell, and inner rows on fInnerTtp (MS-DOC 2.4.3);
+	   depth-1 cells end on the 0x07 char handled in _beginPara */
+	const PAP * apap = static_cast<const PAP *>(prop);
+	if (apap && m_bInTable)
+	{
+		MsTableCtx * ctx = _curTableCtx();
+		const int depth =
+			static_cast<int>(m_vecTableCtx.getItemCount());
+		if (ctx && depth > 1 &&
+			(apap->fInnerTableCell || apap->fInnerTtp || apap->fTtp))
+		{
+			_cell_close(ctx);
+			if (ctx->iCellsRemaining > 0)
+			{
+				ctx->iCellsRemaining--;
+				if (ctx->iCellsRemaining == 0)
+				{
+					_row_close(ctx);
+				}
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -3540,6 +3550,12 @@ int IE_Imp_MsWord_97::_beginChar (wvParseStruct *ps, UT_uint32 /*tag*/,
 		_appendStrux(PTX_Section, PP_NOPROPS);
 		m_bInSect = true ;
 	}
+
+	// characters belonging to a merge-covered table cell are dropped by
+	// _appendChar(); do not resurrect a block for their formatting
+	MsTableCtx * pCtxC = _curTableCtx();
+	if(pCtxC && pCtxC->bCoveredCell)
+		return 0;
 
 	if(!m_bInPara && !bDoNotAppendFmt)
 	{
@@ -4666,16 +4682,16 @@ static int docProc (wvParseStruct *ps, wvTag tag)
 //--------------------------------------------------------------------------/
 //--------------------------------------------------------------------------/
 
-void IE_Imp_MsWord_97::_table_open ()
+MsTableCtx::~MsTableCtx(void)
 {
-  m_iCurrentRow = 0;
-  m_iCurrentCell = 0;
+	UT_VECTOR_PURGEALL(MsColSpan *, vecColumnWidths);
+	delete pTapLast;
+}
 
+void IE_Imp_MsWord_97::_table_open (MsTableCtx * ctx)
+{
   //  _appendStrux(PTX_Block, nullptr); // Don't need/want this after 27/3/2005
   _appendStrux(PTX_SectionTable, PP_NOPROPS);
-  m_vecColumnWidths.clear();
-  m_bRowOpen = false;
-  m_bCellOpen = false;
   m_bInPara = false;
 #ifdef DEBUG
   static UT_sint32 sTableCount = 0;
@@ -4683,6 +4699,66 @@ void IE_Imp_MsWord_97::_table_open ()
 #endif
   UT_DEBUGMSG(("\n<TABLE> [%d]", sTableCount));
 
+  /* remember this table's strux so that close-time property fixups
+	 still hit the right table when tables are nested */
+  PT_DocPosition posEnd = 0;
+  getDoc()->getBounds(true,posEnd); // clean frags!
+  ctx->pTableSdH = getDoc()->getLastStruxOfType(PTX_SectionTable);
+}
+
+//--------------------------------------------------------------------------/
+//--------------------------------------------------------------------------/
+
+MsTableCtx * IE_Imp_MsWord_97::_curTableCtx () const
+{
+	UT_sint32 iCount = static_cast<UT_sint32>(m_vecTableCtx.getItemCount());
+	if (iCount < 1)
+		return nullptr;
+	return m_vecTableCtx.getNthItem(iCount - 1);
+}
+
+//--------------------------------------------------------------------------/
+//--------------------------------------------------------------------------/
+
+/*! open a new (possibly nested) table level for the current paragraph */
+void IE_Imp_MsWord_97::_table_push_level (const wvParseStruct * ps)
+{
+	/* a table can start a document before any section strux exists */
+	if (!m_bInSect)
+	{
+		_appendStrux(PTX_Section, PP_NOPROPS);
+		m_bInSect = true;
+	}
+
+	MsTableCtx * ctx = new MsTableCtx;
+	m_vecTableCtx.addItem(ctx);
+	m_bInTable = true;
+	_table_open(ctx);
+
+	/* snapshot the column grid for this table level */
+	if (ps->cellbounds)
+	{
+		for (UT_sint32 i = 0; i < ps->nocellbounds; i++)
+			ctx->vecColumnPositions.addItem(ps->cellbounds[i]);
+	}
+}
+
+//--------------------------------------------------------------------------/
+//--------------------------------------------------------------------------/
+
+/*! close the innermost open table level */
+void IE_Imp_MsWord_97::_table_pop_level (const wvParseStruct * ps,
+										 const PAP * apap)
+{
+	MsTableCtx * ctx = _curTableCtx();
+	if (!ctx)
+		return;
+
+	_table_close(ps, apap, ctx);
+	m_vecTableCtx.pop_back();
+	delete ctx;
+
+	m_bInTable = (m_vecTableCtx.getItemCount() > 0);
 }
 
 //--------------------------------------------------------------------------/
@@ -4708,7 +4784,7 @@ void IE_Imp_MsWord_97::setNumberVector(UT_NumberVector & vec, UT_sint32 i, UT_si
  * some cases you can get a table with no row fully partitioned into 
  * individual cells.
  */
-bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
+bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & colWidths)
 {
 
 // OK handle the easy cases first and find the maximum value of iRight
@@ -4716,10 +4792,10 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
 	UT_sint32 iMaxRight = 0;
 	UT_sint32 i = 0;
 	UT_sint32 iLeft,iRight = 0;
-	UT_sint32 iSize = static_cast<UT_sint32>(m_vecColumnWidths.size());
+	UT_sint32 iSize = static_cast<UT_sint32>(ctx->vecColumnWidths.size());
 	for(i=0; i< iSize;i++)
 	{
-		MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(m_vecColumnWidths.getNthItem(i));
+		MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(ctx->vecColumnWidths.getNthItem(i));
 		UT_nonnull_or_continue(pSpan);
 		iLeft = pSpan->iLeft;
 		iRight = pSpan->iRight;
@@ -4757,9 +4833,9 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
 	UT_uint32 iLoop = 0;
 	while(iLoop < 1000 && !_isVectorFull(colWidths))
 	{
-		for(i=0; i<static_cast<UT_sint32>(m_vecColumnWidths.size()); i++)
+		for(i=0; i<static_cast<UT_sint32>(ctx->vecColumnWidths.size()); i++)
 		{
-			MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(m_vecColumnWidths.getNthItem(i));
+			MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(ctx->vecColumnWidths.getNthItem(i));
 			UT_nonnull_or_continue(pSpan);
 			iLeft = pSpan->iLeft;
 			iRight = pSpan->iRight;
@@ -4776,24 +4852,24 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
 			{
 				if(colWidths[iLeft] > 0)
 				{
-					if(!findMatchSpan(iLeft+1,iRight))
+					if(!findMatchSpan(ctx, iLeft+1,iRight))
 					{
 						MsColSpan * pNewSpan = new MsColSpan();
 						pNewSpan->iLeft = iLeft+1;
 						pNewSpan->iRight = iRight;
 						pNewSpan->width = pSpan->width - colWidths[iLeft];
-						m_vecColumnWidths.addItem(pNewSpan);
+						ctx->vecColumnWidths.addItem(pNewSpan);
 					}
 				}
 				else if(colWidths[iRight - 1] > 0)
 				{
-					if(!findMatchSpan(iLeft,iRight-1))
+					if(!findMatchSpan(ctx, iLeft,iRight-1))
 					{
 						MsColSpan * pNewSpan = new MsColSpan();
 						pNewSpan->iLeft = iLeft;
 						pNewSpan->iRight = iRight-1;
 						pNewSpan->width = pSpan->width - colWidths[iRight-1];
-						m_vecColumnWidths.addItem(pNewSpan);
+						ctx->vecColumnWidths.addItem(pNewSpan);
 					}
 				}
 //
@@ -4803,9 +4879,9 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
 				else
 				{
 					UT_sint32 k =0;
-					for(k=0; k<static_cast<UT_sint32>(m_vecColumnWidths.size()); k++)
+					for(k=0; k<static_cast<UT_sint32>(ctx->vecColumnWidths.size()); k++)
 					{
-						MsColSpan * pMulSpan = m_vecColumnWidths.getNthItem(i);
+						MsColSpan * pMulSpan = ctx->vecColumnWidths.getNthItem(i);
 						UT_nonnull_or_continue(pMulSpan);
 						UT_sint32 iMulLeft = pMulSpan->iLeft;
 						UT_sint32 iMulRight = pMulSpan->iRight;
@@ -4815,13 +4891,13 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
 // Make a new span fragment out of the bit greater than MulRight if one doesn't
 // exist
 //
-							if(!findMatchSpan(iMulRight+1,iRight))
+							if(!findMatchSpan(ctx, iMulRight+1,iRight))
 							{
 								MsColSpan * pNewSpan = new MsColSpan();
 								pNewSpan->iLeft = iMulRight+1;
 								pNewSpan->iRight = iRight;
 								pNewSpan->width = pSpan->width - pMulSpan->width;
-								m_vecColumnWidths.addItem(pNewSpan);
+								ctx->vecColumnWidths.addItem(pNewSpan);
 							}
 
 						}
@@ -4830,13 +4906,13 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
 //
 // Make a new span fragment out of the bit less than MulLeft
 //
-							if(!findMatchSpan(iLeft,iMulLeft))
+							if(!findMatchSpan(ctx, iLeft,iMulLeft))
 							{
 								MsColSpan * pNewSpan = new MsColSpan();
 								pNewSpan->iLeft = iLeft;
 								pNewSpan->iRight = iMulLeft;
 								pNewSpan->width = pSpan->width - pMulSpan->width;
-								m_vecColumnWidths.addItem(pNewSpan);
+								ctx->vecColumnWidths.addItem(pNewSpan);
 							}							
 						}
 					}
@@ -4851,15 +4927,15 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(UT_NumberVector & colWidths)
 }
 
 /*!
- * Returns true if a span in the m_vecColumnWidths span matches the left, right
+ * Returns true if a span in the ctx->vecColumnWidths span matches the left, right
  * values given
  */
-bool IE_Imp_MsWord_97::findMatchSpan(UT_sint32 iLeft,UT_sint32 iRight)
+bool IE_Imp_MsWord_97::findMatchSpan(MsTableCtx * ctx, UT_sint32 iLeft,UT_sint32 iRight)
 {
 	UT_sint32 i =0;
-	for(i=0; i< static_cast<UT_sint32>(m_vecColumnWidths.size());i++)
+	for(i=0; i< static_cast<UT_sint32>(ctx->vecColumnWidths.size());i++)
 	{
-		MsColSpan * pSpan = m_vecColumnWidths.getNthItem(i);
+		MsColSpan * pSpan = ctx->vecColumnWidths.getNthItem(i);
 		UT_nonnull_or_continue(pSpan);
 		if(pSpan->iLeft == iLeft && pSpan->iRight == iRight)
 		{
@@ -4887,60 +4963,208 @@ bool IE_Imp_MsWord_97::_isVectorFull(UT_NumberVector & vec)
 	return true;
 }
 
-void IE_Imp_MsWord_97::_table_close (const wvParseStruct * /*ps*/, const PAP *apap)
+void IE_Imp_MsWord_97::_table_close (const wvParseStruct * /*ps*/,
+									 const PAP * /*apap*/, MsTableCtx * ctx)
 {
-  _cell_close();
-  _row_close();
+  _cell_close(ctx);
+  _row_close(ctx);
 
   UT_String props("table-column-props:");
   UT_String propBuffer;
 
-  if (m_vecColumnWidths.size() > 0) 
+  if (ctx->vecColumnWidths.size() > 0)
   {
 	  // build column width properties string
 	  UT_NumberVector colWidths;
 //
 // Some tables maybe too complicated for my simple algorithim to work out
 //
-	  if(_build_ColumnWidths(colWidths))
+	  if(_build_ColumnWidths(ctx, colWidths))
 	  {
 
-		  for (UT_sint32 i = 0; i < colWidths.size(); i++) 
+		  for (UT_sint32 i = 0; i < colWidths.size(); i++)
 		  {
 			  UT_String_sprintf(propBuffer,"%s/",
 							UT_convertInchesToDimensionString(m_dim,
 															  (static_cast<double>(colWidths.getNthItem(i)))/1440.0));
-	  
+
 			  props += propBuffer;
 		  }
 	  }
-	  
+
 	  props += "; ";
-//
-// FIXME: Put in left position here!!!!
-//
+
 	  UT_String_sprintf(propBuffer,"table-column-leftpos:%s; ",
 							UT_convertInchesToDimensionString(m_dim,
-															  (static_cast<double>(m_iLeftCellPos)/1440.0)));
+															  (static_cast<double>(ctx->iLeftCellPos)/1440.0)));
 	  props += propBuffer;
-	  UT_VECTOR_PURGEALL(MsColSpan *,m_vecColumnWidths);
-	  m_vecColumnWidths.clear ();
   }
 
   props += "table-line-ignore:0; table-line-type:1; table-line-thickness:0.8pt;";
-  if(apap->ptap.dxaGapHalf > 0)
+
+  static const TAP s_emptyTap = TAP();
+  const TAP * ptap = ctx->pTapLast ? ctx->pTapLast : &s_emptyTap;
+
+  /* cell spacing: sprmTCellSpacingDefault (twips between cell edges)
+	 wins over the legacy half-gap estimate */
+  if (ptap->fCellSpacing && ptap->cellSpacing > 0)
   {
-	  props += UT_String_sprintf("table-col-spacing:%din", (2 * apap->ptap.dxaGapHalf)/ 1440);
+	  props += UT_String_sprintf("table-col-spacing:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->cellSpacing)/1440.0));
+  }
+  else if (ptap->dxaGapHalf > 0)
+  {
+	  props += UT_String_sprintf("table-col-spacing:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						(2.0 * ptap->dxaGapHalf)/1440.0));
   }
   else
   {
-	  props += "table-col-spacing:0.03in";
+	  props += "table-col-spacing:0.03in; ";
   }
-  // apply properties 
-  PT_DocPosition posEnd =0;
-  getDoc()->getBounds(true,posEnd); // clean frags!
-  pf_Frag_Strux* sdh = getDoc()->getLastStruxOfType(PTX_SectionTable);
-  getDoc()->changeStruxAttsNoUpdate(sdh,"props",props.c_str());
+
+  /* row heights collected at each row mark; 0 means auto.  Word's
+	 dyaRowHeight is negative for exact heights, positive for
+	 at-least, so track the dominant type for table-row-height-type */
+  if (ctx->vecRowHeights.getItemCount() > 0)
+  {
+	  bool bAnyAtLeast = false;
+	  bool bAnyExact = false;
+	  propBuffer.clear();
+	  for (UT_sint32 i = 0;
+		   i < static_cast<UT_sint32>(ctx->vecRowHeights.getItemCount()); i++)
+	  {
+		  UT_sint32 h = ctx->vecRowHeights.getNthItem(i);
+		  if (h < 0)
+		  {
+			  bAnyExact = true;
+			  h = -h;
+		  }
+		  else if (h > 0)
+		  {
+			  bAnyAtLeast = true;
+		  }
+		  propBuffer += UT_String_sprintf("%s/",
+				UT_convertInchesToDimensionString(m_dim, h/1440.0));
+	  }
+	  props += UT_String_sprintf("table-row-heights:%s; ", propBuffer.c_str());
+	  /* mixed exact/at-least rows cannot be expressed - prefer
+		 at-least so content is never clipped */
+	  if (bAnyAtLeast)
+		  props += "table-row-height-type:at-least; ";
+	  else if (bAnyExact)
+		  props += "table-row-height-type:exactly; ";
+  }
+
+  /* table justification (jc: 0 left, 1 center, 2 right) */
+  switch (ptap->jc)
+  {
+	  case 1: props += "table-position:center; "; break;
+	  case 2: props += "table-position:right; "; break;
+	  default: break; /* 0 and jcBidi are left-ish */
+  }
+
+  /* floating-table position (sprmTPc/DxaAbs/DyaAbs/*FromText); there
+	 is no floating-table layout yet, so these are informational */
+  if (ptap->pcVert != 3 || ptap->pcHorz != 3)
+  {
+	  if (ptap->pcHorz != 3)
+	  {
+		  /* pcHorz: 0 = column/text, 1 = margin, 2 = page */
+		  const char * hAnchor = (ptap->pcHorz == 0) ? "text" :
+			  (ptap->pcHorz == 1) ? "margin" : "page";
+		  props += UT_String_sprintf("table-float-hanchor:%s; ", hAnchor);
+	  }
+	  if (ptap->pcVert != 3)
+	  {
+		  /* pcVert: 0 = top margin, 1 = page, 2 = text/paragraph */
+		  const char * vAnchor = (ptap->pcVert == 2) ? "text" :
+			  (ptap->pcVert == 1) ? "page" : "margin";
+		  props += UT_String_sprintf("table-float-vanchor:%s; ", vAnchor);
+	  }
+	  if (ptap->dxaAbs != 0)
+		  props += UT_String_sprintf("table-float-x:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->dxaAbs)/1440.0));
+	  if (ptap->dyaAbs != 0)
+		  props += UT_String_sprintf("table-float-y:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->dyaAbs)/1440.0));
+	  if (ptap->dxaFromText)
+		  props += UT_String_sprintf("table-float-margin-left:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->dxaFromText)/1440.0));
+	  if (ptap->dxaFromTextRight)
+		  props += UT_String_sprintf("table-float-margin-right:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->dxaFromTextRight)/1440.0));
+	  if (ptap->dyaFromText)
+		  props += UT_String_sprintf("table-float-margin-top:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->dyaFromText)/1440.0));
+	  if (ptap->dyaFromTextBottom)
+		  props += UT_String_sprintf("table-float-margin-bottom:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->dyaFromTextBottom)/1440.0));
+  }
+
+  /* default cell margins (sprmTCellPaddingDefault) */
+  if (ptap->fCellPadMask)
+  {
+	  if (ptap->fCellPadMask & 0x01)
+		  props += UT_String_sprintf("tblcellmar-top:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->cellPadTop)/1440.0));
+	  if (ptap->fCellPadMask & 0x02)
+		  props += UT_String_sprintf("tblcellmar-left:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->cellPadLeft)/1440.0));
+	  if (ptap->fCellPadMask & 0x04)
+		  props += UT_String_sprintf("tblcellmar-bottom:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->cellPadBottom)/1440.0));
+	  if (ptap->fCellPadMask & 0x08)
+		  props += UT_String_sprintf("tblcellmar-right:%s; ",
+				UT_convertInchesToDimensionString(m_dim,
+						static_cast<double>(ptap->cellPadRight)/1440.0));
+  }
+
+  /* whole-table shading (sprmTSetShdTable) */
+  if (ptap->shdTable.fCv || ptap->shdTable.icoBack)
+  {
+	  UT_String sBack;
+	  if (ptap->shdTable.fCv)
+	  {
+		  if (s_mapColorRefToColor(ptap->shdTable.cvBack, sBack))
+			  props += UT_String_sprintf("bgcolor:%s; ", sBack.c_str());
+	  }
+	  else
+	  {
+		  props += UT_String_sprintf("bgcolor:%s; ",
+						  sMapIcoToColor(ptap->shdTable.icoBack, false).c_str());
+	  }
+  }
+
+  /* the props parser rejects a trailing ';' (empty segment) - trim it */
+  {
+	  size_t nProps = props.size();
+	  while (nProps > 0 &&
+			 (props[nProps-1] == ';' || isspace(props[nProps-1])))
+		  nProps--;
+	  props = props.substr(0, nProps);
+  }
+
+  // apply properties to this table's strux
+  pf_Frag_Strux* sdh = ctx->pTableSdH;
+  if (!sdh)
+  {
+	  PT_DocPosition posEnd = 0;
+	  getDoc()->getBounds(true,posEnd); // clean frags!
+	  sdh = getDoc()->getLastStruxOfType(PTX_SectionTable);
+  }
+  if (sdh)
+	  getDoc()->changeStruxAttsNoUpdate(sdh,"props",props.c_str());
 
   // end-of-table
   _appendStrux(PTX_EndTable, PP_NOPROPS);
@@ -4952,34 +5176,42 @@ void IE_Imp_MsWord_97::_table_close (const wvParseStruct * /*ps*/, const PAP *ap
 //--------------------------------------------------------------------------/
 //--------------------------------------------------------------------------/
 
-void IE_Imp_MsWord_97::_row_open (const wvParseStruct *ps)
+void IE_Imp_MsWord_97::_row_open (MsTableCtx * ctx, const wvParseStruct *ps,
+								  const PAP *apap)
 {
-  if (m_bRowOpen)
-    return;
+  if (ctx->bRowOpen)
+	return;
 
-  if (m_iCurrentRow > ps->norows) {
+  if (ctx->iCurrentRow > ps->norows) {
 	  //UT_ASSERT(m_iCurrentRow <= ps->norows);
 	  return;
   }
 
-  m_bRowOpen = true;
-  m_iCurrentRow++;
-  xxx_UT_DEBUGMSG(("imp_MsWord: _row_open: Last Left %d Last Right %d \n",m_iLeft,m_iRight));
-  m_iCurrentCell = 0;
-  m_iLeft = 0;
-  m_iRight = 0;
-  xxx_UT_DEBUGMSG(("\n\t<ROW:%d>", m_iCurrentRow));
+  ctx->bRowOpen = true;
+  ctx->iCurrentRow++;
+  xxx_UT_DEBUGMSG(("imp_MsWord: _row_open: Last Left %d Last Right %d \n",ctx->iLeft,ctx->iRight));
+  ctx->iCurrentCell = 0;
+  ctx->iLeft = 0;
+  ctx->iRight = 0;
+
+  /* the row TAP on this paragraph belongs to the row that is being
+	 opened - remember it for table-level properties at close */
+  if (!ctx->pTapLast)
+	  ctx->pTapLast = new TAP;
+  memcpy(ctx->pTapLast, &apap->ptap, sizeof(TAP));
+
+  xxx_UT_DEBUGMSG(("\n\t<ROW:%d>", ctx->iCurrentRow));
 }
 
 //--------------------------------------------------------------------------/
 //--------------------------------------------------------------------------/
 
-void IE_Imp_MsWord_97::_row_close ()
+void IE_Imp_MsWord_97::_row_close (MsTableCtx * ctx)
 {
-  if (m_bRowOpen) {
-    xxx_UT_DEBUGMSG(("\t</ROW>"));
+  if (ctx->bRowOpen) {
+	xxx_UT_DEBUGMSG(("\t</ROW>"));
   }
-  m_bRowOpen = false;
+  ctx->bRowOpen = false;
 }
 
 //--------------------------------------------------------------------------/
@@ -5028,26 +5260,92 @@ sConvertLineStyle (short lineType)
     }
 }
 
-static double
-brc_to_pixel (int x)
+/*! locate a cell edge (twips) in the table's merged cellbounds grid;
+    wv merges bounds that are within 3 twips of each other, so match
+    with that tolerance */
+static UT_sint32
+s_cellBoundIndex (const S16 * bounds, UT_sint32 n, S16 pos)
 {
-  // each unit is 1/8 of a pixel. abi only deals with whole numbers,
-  if(x == 255)
-    return  0.;
-  return x/8.;
+	UT_sint32 i;
+	UT_sint32 iBest = -1;
+
+	for (i = 0; i < n; i++)
+	{
+		if (abs(bounds[i] - pos) <= 3)
+			return i;
+		if (bounds[i] >= pos && iBest < 0)
+			iBest = i;
+	}
+	return (iBest >= 0) ? iBest : n - 1;
 }
 
-void IE_Imp_MsWord_97::_cell_open (const wvParseStruct *ps, const PAP *apap)
+/*! emit a cell margin property, preferring the per-cell value
+    (TC.fPadMask) and falling back to the row's table-level default */
+static void
+s_cellMarginProp (UT_String & s, const char * pszSide, U8 bit,
+				  const TC * tc, const TAP * ptap, UT_Dimension dim)
 {
-  if (m_bCellOpen || apap->fTtp)
-    return;
+	UT_sint32 val;
+	bool bHave = false;
 
-  if (!m_bRowOpen || m_iCurrentRow > ps->norows) {
+	if (tc->fPadMask & bit)
+	{
+		switch (bit)
+		{
+			case 1: val = tc->padTop; break;
+			case 2: val = tc->padLeft; break;
+			case 4: val = tc->padBottom; break;
+			default: val = tc->padRight; break;
+		}
+		bHave = true;
+	}
+	else if (ptap->fCellPadMask & bit)
+	{
+		switch (bit)
+		{
+			case 1: val = ptap->cellPadTop; break;
+			case 2: val = ptap->cellPadLeft; break;
+			case 4: val = ptap->cellPadBottom; break;
+			default: val = ptap->cellPadRight; break;
+		}
+		bHave = true;
+	}
+	else
+	{
+		return;
+	}
+
+	if (bHave)
+	{
+		s += UT_String_sprintf("cell-margin-%s:%s; ", pszSide,
+				UT_convertInchesToDimensionString(dim, val/1440.0));
+	}
+}
+
+void IE_Imp_MsWord_97::_cell_open (MsTableCtx * ctx,
+								   const wvParseStruct *ps,
+								   const PAP *apap)
+{
+  /* row-mark paragraphs do not start cells: fTtp at depth 1,
+	 fInnerTtp inside nested tables */
+  if (ctx->bCellOpen || apap->fTtp || apap->fInnerTtp)
+	return;
+
+  if (!ctx->bRowOpen || ctx->iCurrentRow > ps->norows) {
 	  //UT_ASSERT(m_bRowOpen || m_iCurrentRow <= ps->norows);
 	  return;
   }
 
-  UT_Vector columnWidths;
+  ctx->bCellOpen = true;
+  ctx->bCoveredCell = false;
+
+  const TAP * ptap = &apap->ptap;
+  const UT_sint32 itc = ctx->iCurrentCell;
+
+  /* cell properties live in the row's TC array */
+  const bool bHaveTC = (itc >= 0 && itc < ptap->itcMac);
+  const TC * tc = bHaveTC ? &ptap->rgtc[itc] : nullptr;
+
   UT_sint32 vspan = 0;
   UT_String propBuffer;
 
@@ -5055,29 +5353,18 @@ void IE_Imp_MsWord_97::_cell_open (const wvParseStruct *ps, const PAP *apap)
   propsArray[0] = static_cast<const gchar*>("props");
   propsArray[1] = "";
   propsArray[2] = nullptr;
-	  
-  
-#if 0
-  if(m_iCurrentCell >= apap->ptap.itcMac)
-  {
-	  // this happens when the row contains no cell definitions; we
-	  // need to insert a dummy cell into our row
-	  goto do_insert;
-  }
-#endif
-  
-  // add a new cell
-  m_bCellOpen = true;
-  if(m_iCurrentCell == 0)
+
+  if(ctx->iCurrentCell == 0 && ctx->iCurrentRow == 1)
   {
 //
 // Scan the differences in centers for this row so we can work out the column
 // widths of the table eventually.
 //
-	  m_iLeftCellPos = 0;
+	  ctx->iLeftCellPos = 0;
 	  UT_sint32 iLeft, iRight, i;
-	  m_iLeftCellPos = ps->cellbounds[0];
-	  for(i = 0; i < ps->nocellbounds-1; i++) 
+	  if (ps->cellbounds)
+		  ctx->iLeftCellPos = ps->cellbounds[0];
+	  for(i = 0; i < ps->nocellbounds-1; i++)
 	  {
 		  iLeft = i;
 		  iRight = i+1;
@@ -5089,73 +5376,190 @@ void IE_Imp_MsWord_97::_cell_open (const wvParseStruct *ps, const PAP *apap)
 		  pSpan->iRight = iRight;
 		  pSpan->width = width;
 		  xxx_UT_DEBUGMSG(("MsImport iLeft %d  iRight %d width  %d \n",iLeft,iRight,width));
-		  m_vecColumnWidths.addItem(pSpan);
+		  ctx->vecColumnWidths.addItem(pSpan);
 	  }
   }
 
-  if (ps->vmerges && ps->vmerges[m_iCurrentRow - 1])
-    vspan = ps->vmerges[m_iCurrentRow - 1][m_iCurrentCell];
+  /* grid position of this cell: map the row's rgdxaCenter edges onto
+	 the whole-table cellbounds grid so that cells covered by merges
+	 still advance the column counter */
+  if (ps->cellbounds && ps->nocellbounds > 1 &&
+	  itc + 1 <= ptap->itcMac)
+  {
+	  ctx->iLeft = s_cellBoundIndex(ps->cellbounds, ps->nocellbounds,
+									ptap->rgdxaCenter[itc]);
+	  ctx->iRight = s_cellBoundIndex(ps->cellbounds, ps->nocellbounds,
+									ptap->rgdxaCenter[itc + 1]);
+  }
+  else
+  {
+	  ctx->iLeft = ctx->iCurrentCell;
+	  ctx->iRight = ctx->iLeft + 1;
+  }
+
+  /* a horizontally merged cell (TCGRF.horzMerge >= 2) spans the
+	 following merge-covered cells as well - its right edge is the
+	 last covered cell's right edge */
+  if (tc && tc->fFirstMerged)
+  {
+	  UT_sint32 j = itc + 1;
+	  while (j < ptap->itcMac && ptap->rgtc[j].fMerged)
+		  j++;
+	  if (ps->cellbounds && ps->nocellbounds > 1 && j <= ptap->itcMac)
+		  ctx->iRight = s_cellBoundIndex(ps->cellbounds, ps->nocellbounds,
+										ptap->rgdxaCenter[j]);
+	  else
+		  ctx->iRight = ctx->iLeft + (j - itc);
+  }
+
+  if (ctx->iRight <= ctx->iLeft)
+	  ctx->iRight = ctx->iLeft + 1;
+
+  /* vertical merge: vmerges[row][cell] is the rowspan on the restart
+	 cell and 0 on the covered continuation cells */
+  if (ps->vmerges && ctx->iCurrentRow - 1 < ps->norows &&
+	  ps->vmerges[ctx->iCurrentRow - 1] && bHaveTC)
+	vspan = ps->vmerges[ctx->iCurrentRow - 1][itc];
+
+  /* merge-covered cells keep no strux of their own */
+  if ((tc && (tc->fMerged || (tc->fVertMerge && !tc->fVertRestart)))
+	  || vspan == 0)
+  {
+	  ctx->bCoveredCell = true;
+	  ctx->iCurrentCell++;
+	  ctx->iLeft = ctx->iRight;
+	  return;
+  }
 
   if (vspan > 0)
-    vspan--;
+	vspan--;
+  else
+	vspan = 0;
 
-  m_iRight = m_iLeft + m_vecColumnSpansForCurrentRow.getNthItem(m_iCurrentCell);
-  if(m_iRight == m_iLeft)
-  {
-	  m_iRight++;
-  }
-  xxx_UT_DEBUGMSG(("MSWord Import:  iLeft %d iRight %d m_iCurrentCell %d \n",m_iLeft,m_iRight,m_iCurrentCell));
-  UT_return_if_fail(vspan >= 0);
   UT_String_sprintf(propBuffer,
 		    "left-attach:%d; right-attach:%d; top-attach:%d; bot-attach:%d; ",
-		    m_iLeft,
-		    m_iRight,
-		    m_iCurrentRow - 1,
-		    m_iCurrentRow + vspan
+		    ctx->iLeft,
+		    ctx->iRight,
+		    ctx->iCurrentRow - 1,
+		    ctx->iCurrentRow + vspan
 		    );
 
-  if(apap->ptap.dyaRowHeight < 0)
+  if(ptap->dyaRowHeight < 0)
   {
-	  // absolute height
-	  double dHin = -(apap->ptap.dyaRowHeight/1440);
-	  propBuffer += UT_String_sprintf("height:%fin;",dHin);
+	  // absolute height (dyaRowHeight is negative for exact heights)
+	  propBuffer += UT_String_sprintf("height:%s;",
+				UT_convertInchesToDimensionString(m_dim,
+						-ptap->dyaRowHeight/1440.0));
   }
-  else if(apap->ptap.dyaRowHeight > 0)
+  else if(ptap->dyaRowHeight > 0)
   {
 	  // at-least height -- I do not think we support this for now
-	  // double dHin = -(apap->ptap.dyaRowHeight/1440);
+	  // double dHin = -(ptap->dyaRowHeight/1440);
 	  // propBuffer += UT_String_sprintf("height:%fin;",dHin);
   }
   else
   {
 	  // auto height, do nothing
   }
-    
-  propBuffer += UT_String_sprintf("color:%s;", sMapIcoToColor(apap->ptap.rgshd[m_iCurrentCell].icoFore, true).c_str());
-  propBuffer += UT_String_sprintf("background-color:%s;", sMapIcoToColor(apap->ptap.rgshd[m_iCurrentCell].icoBack, false).c_str());
-  // so long as it's not the "auto" color
-  if (apap->ptap.rgshd[m_iCurrentCell].icoBack != 0)
-    propBuffer += "bg-style:1;";
 
+  /* header-row marker so the layout can repeat it on each page */
+  if (ptap->fTableHeader)
+	propBuffer += "header-row:1; ";
+
+  /* cell shading: full color (Shd.cv) when set, indexed otherwise */
+  const SHD * shd = (itc >= 0 && itc < itcMax) ? &ptap->rgshd[itc] : nullptr;
+  if (shd && shd->fCv)
   {
-	  UT_LocaleTransactor t(LC_NUMERIC, "C");
-	  propBuffer += UT_String_sprintf("top-color:%s; top-thickness:%fpt; top-style:%d;",
-									  sMapIcoToColor(apap->ptap.rgtc[m_iCurrentCell].brcTop.ico, true).c_str(),
-									  brc_to_pixel(apap->ptap.rgtc[m_iCurrentCell].brcTop.dptLineWidth),
-									  sConvertLineStyle(apap->ptap.rgtc[m_iCurrentCell].brcTop.brcType));
-	  propBuffer += UT_String_sprintf("left-color:%s; left-thickness:%fpx; left-style:%d;",
-									  sMapIcoToColor(apap->ptap.rgtc[m_iCurrentCell].brcLeft.ico, true).c_str(),
-									  brc_to_pixel(apap->ptap.rgtc[m_iCurrentCell].brcLeft.dptLineWidth),
-									  sConvertLineStyle(apap->ptap.rgtc[m_iCurrentCell].brcLeft.brcType));
-	  propBuffer += UT_String_sprintf("bot-color:%s; bot-thickness:%fpx; bot-style:%d;",
-									  sMapIcoToColor(apap->ptap.rgtc[m_iCurrentCell].brcBottom.ico, true).c_str(),
-									  brc_to_pixel(apap->ptap.rgtc[m_iCurrentCell].brcBottom.dptLineWidth),
-									  sConvertLineStyle(apap->ptap.rgtc[m_iCurrentCell].brcBottom.brcType));
-	  propBuffer += UT_String_sprintf("right-color:%s; right-thickness:%fpx; right-style:%d",
-									  sMapIcoToColor(apap->ptap.rgtc[m_iCurrentCell].brcRight.ico, true).c_str(),
-									  brc_to_pixel(apap->ptap.rgtc[m_iCurrentCell].brcRight.dptLineWidth),
-									  sConvertLineStyle(apap->ptap.rgtc[m_iCurrentCell].brcRight.brcType));
+	  UT_String sFore, sBack;
+	  if (s_mapColorRefToColor(shd->cvFore, sFore))
+		propBuffer += UT_String_sprintf("color:%s;", sFore.c_str());
+	  if (s_mapColorRefToColor(shd->cvBack, sBack))
+	  {
+		propBuffer += UT_String_sprintf("background-color:%s;", sBack.c_str());
+		propBuffer += "bg-style:1;";
+	  }
   }
+  else
+  {
+	  const U8 icoFore = shd ? shd->icoFore : 0;
+	  const U8 icoBack = shd ? shd->icoBack : 0;
+	  propBuffer += UT_String_sprintf("color:%s;", sMapIcoToColor(icoFore, true).c_str());
+	  propBuffer += UT_String_sprintf("background-color:%s;", sMapIcoToColor(icoBack, false).c_str());
+	  // so long as it's not the "auto" color
+	  if (icoBack != 0)
+		propBuffer += "bg-style:1;";
+  }
+
+  if (tc)
+  {
+	  /* cell borders reuse the block-level border emitters
+		 ("top-style" & friends are shared cell/para props) */
+	  s_emitParaBorder(propBuffer, "top", &tc->brcTop, m_dim);
+	  s_emitParaBorder(propBuffer, "left", &tc->brcLeft, m_dim);
+	  s_emitParaBorder(propBuffer, "bot", &tc->brcBottom, m_dim);
+	  s_emitParaBorder(propBuffer, "right", &tc->brcRight, m_dim);
+
+	  /* vertical alignment: 0-100 offset, top=0 center=50 bottom=100 */
+	  switch (tc->vertAlign)
+	  {
+		  case 1: propBuffer += "vert-align:50; "; break;
+		  case 2: propBuffer += "vert-align:100; "; break;
+		  default: break;
+	  }
+
+	  /* text direction, mapped to the OOXML keywords the layout
+		 already understands */
+	  switch (tc->textFlow)
+	  {
+		  case 1: propBuffer += "cell-text-direction:tbRl; "; break;
+		  case 3: propBuffer += "cell-text-direction:btLr; "; break;
+		  case 4: propBuffer += "cell-text-direction:lrTbV; "; break;
+		  case 5: propBuffer += "cell-text-direction:tbRlV; "; break;
+		  default: break;
+	  }
+
+	  if (tc->fFitText)
+		propBuffer += "cell-fit-text:1; ";
+	  if (tc->fNoWrap)
+		propBuffer += "cell-no-wrap:1; ";
+	  if (tc->fHideMark)
+		propBuffer += "cell-hide-mark:1; ";
+  }
+  else
+  {
+	  /* fall back to the table-edge borders when the row carries no
+		 per-cell TC records */
+	  UT_LocaleTransactor t(LC_NUMERIC, "C");
+	  const BRC * brc = &ptap->rgbrcTable[0];
+	  propBuffer += UT_String_sprintf("top-style:%d; left-style:%d; bot-style:%d; right-style:%d;",
+									  sConvertLineStyle(brc[0].brcType),
+									  sConvertLineStyle(brc[1].brcType),
+									  sConvertLineStyle(brc[2].brcType),
+									  sConvertLineStyle(brc[3].brcType));
+  }
+
+  /* cell margins: per-cell overrides, then table defaults */
+  if (tc || ptap->fCellPadMask)
+  {
+	  static const TC s_emptyTC = TC();
+	  if (!tc)
+		  tc = &s_emptyTC;
+	  s_cellMarginProp(propBuffer, "top", 1, tc, ptap, m_dim);
+	  s_cellMarginProp(propBuffer, "left", 2, tc, ptap, m_dim);
+	  s_cellMarginProp(propBuffer, "bottom", 4, tc, ptap, m_dim);
+	  s_cellMarginProp(propBuffer, "right", 8, tc, ptap, m_dim);
+  }
+
+  /* the props parser rejects a trailing ';' (empty segment) - trim it */
+  {
+	  size_t nProps = propBuffer.size();
+	  while (nProps > 0 &&
+			 (propBuffer[nProps-1] == ';' ||
+			  isspace(propBuffer[nProps-1])))
+		  nProps--;
+	  propBuffer = propBuffer.substr(0, nProps);
+  }
+
   xxx_UT_DEBUGMSG(("propbuffer: %s \n",propBuffer.c_str()));
 
   propsArray[1] = propBuffer.c_str();
@@ -5163,22 +5567,29 @@ void IE_Imp_MsWord_97::_cell_open (const wvParseStruct *ps, const PAP *apap)
   // do_insert:
   _appendStrux(PTX_SectionCell, PP_std_copyProps(propsArray));
   m_bInPara = false;
-  m_iCurrentCell++;
-  m_iLeft = m_iRight;
-  xxx_UT_DEBUGMSG(("\t<CELL:%d:%d>", static_cast<int>(m_vecColumnSpansForCurrentRow.getNthItem(m_iCurrentCell - 1)), ps->vmerges[m_iCurrentRow - 1][m_iCurrentCell - 1]));
+  ctx->iCurrentCell++;
+  ctx->iLeft = ctx->iRight;
+  xxx_UT_DEBUGMSG(("\t<CELL:%d>", static_cast<int>(ctx->iRight - ctx->iLeft)));
 }
 
 //--------------------------------------------------------------------------/
 //--------------------------------------------------------------------------/
 
-void IE_Imp_MsWord_97::_cell_close ()
+void IE_Imp_MsWord_97::_cell_close (MsTableCtx * ctx)
 {
-  if (!m_bCellOpen)
-    return;
+  if (!ctx->bCellOpen)
+	return;
 
-  m_bCellOpen = false;
-  _appendStrux(PTX_EndCell, PP_NOPROPS);
-  m_bInPara = false ;
+  ctx->bCellOpen = false;
+
+  /* merge-covered slots emitted no cell strux, so there is nothing to
+	 close */
+  if (!ctx->bCoveredCell)
+  {
+	  _appendStrux(PTX_EndCell, PP_NOPROPS);
+	  m_bInPara = false ;
+  }
+  ctx->bCoveredCell = false;
 
   xxx_UT_DEBUGMSG(("</CELL>"));
 }

@@ -444,6 +444,21 @@ below are on `main` but the release has not been cut yet.
   square-bullet level, a `•` bullet list and an LFOLVL restart at 5
   all import and render correctly on both decode paths, and the
   `.doc` corpus still converts cleanly.
+- **`.doc` table import rework** — legacy Word tables now import
+  structurally correct per MS-DOC 2.4.3-2.4.5: the bundled `wv`
+  parser tracks table state per nesting depth (`itap`), detects
+  inner-table row/cell marks on both decode paths, and decodes the
+  spec layouts for vertical-merge, cell-TCGRF, padding, spacing,
+  width and table-positioning sprms (including the `ftsDxa` and
+  TVertMerge operand fixes). The importer keeps a per-depth table
+  context so nested tables open inside their parent cell, vertical
+  and horizontal merges produce proper row/column spans with
+  merge-covered cells emitted as nothing, and cell borders, shading
+  (indexed and full-color), margins, vertical alignment, row heights
+  (exact/at-least), header rows and floating-table position all map
+  to table/cell properties. Tables at document start and inside
+  frames no longer drop their struxes, and merge-covered cells no
+  longer leak orphan paragraphs into the table.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

@@ -56,8 +56,26 @@ wvGetSHDFromBucket (SHD * item, U8 * pointer)
 }
 
 /*
-  SHDOperand (MS-DOC 2.9.249): cb (1 byte) then a 10-byte Shd:
-  cvFore (4-byte COLORREF), cvBack (4-byte COLORREF), ipat (2-byte Ipat).
+  Bare 10-byte Shd (MS-DOC): cvFore (4-byte COLORREF), cvBack (4-byte
+  COLORREF), ipat (2-byte Ipat).  Used by DefTableShdOperand,
+  TableShadeOperand, SHDOperand etc.
+*/
+void
+wvGetSHD10FromBucket (SHD * item, U8 * pointer)
+{
+    U8 *p = pointer;
+
+    item->cvFore = dread_32ubit (NULL, &p);
+    item->cvBack = dread_32ubit (NULL, &p);
+    item->ipatFull = dread_16ubit (NULL, &p);
+    item->icoFore = 0;
+    item->icoBack = 0;
+    item->ipat = 0;
+    item->fCv = 1;
+}
+
+/*
+  SHDOperand (MS-DOC 2.9.249): cb (1 byte) then a 10-byte Shd.
   cb MUST be 10; anything else is consumed but not applied.
   Returns the operand length in bytes (1 + cb).
 */
@@ -69,15 +87,7 @@ wvGetSHDOperandFromBucket (SHD * item, U8 * pointer)
 
     cb = dread_8ubit (NULL, &p);
     if (cb >= 10)
-      {
-	  item->cvFore = dread_32ubit (NULL, &p);
-	  item->cvBack = dread_32ubit (NULL, &p);
-	  item->ipatFull = dread_16ubit (NULL, &p);
-	  item->icoFore = 0;
-	  item->icoBack = 0;
-	  item->ipat = 0;
-	  item->fCv = 1;
-      }
+	wvGetSHD10FromBucket (item, p);
     return (cb + 1);
 }
 

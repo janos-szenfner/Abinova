@@ -729,16 +729,35 @@ encoded into the first 22 bytes.
 			  wvInitPAP (&ps->nextpap);
 		      /* end test section */
 
-		      if ((apap.fInTable) && (!apap.fTtp))
+		      if (apap.fInTable)
 			{
-			    wvGetComplexFullTableInit (ps, para_intervals,
-						       btePapx, posPapx,
-						       piececount);
-			    wvGetComplexRowTap (ps, &apap, para_intervals,
-						btePapx, posPapx, piececount);
+			    int depth = wvTableDepth (&apap);
+			    int dd;
+
+			    /* nested tables: drop any deeper levels that
+			       are no longer active */
+			    for (dd = WV_MAX_TABLE_DEPTH; dd > depth; dd--)
+				if (ps->tablelevel[dd - 1].initialized)
+				    wvClearTableLevel (ps, dd);
+
+			    if (!((depth == 1) ? apap.fTtp
+				  : (apap.fInnerTtp || apap.fTtp)))
+			      {
+				  if (!ps->tablelevel[depth - 1].initialized)
+				      wvGetComplexFullTableInit (ps,
+								 para_intervals,
+								 btePapx,
+								 posPapx,
+								 piececount,
+								 depth);
+				  wvGetComplexRowTap (ps, &apap,
+						      para_intervals,
+						      btePapx, posPapx,
+						      piececount, depth);
+			      }
 			}
-		      else if (apap.fInTable == 0)
-			  ps->intable = 0;
+		      else if (ps->intable)
+			  wvFreeTableLevels (ps);
 
 		      wvHandleElement (ps, PARABEGIN, (void *) &apap,
 				       para_dirty);
@@ -839,7 +858,10 @@ encoded into the first 22 bytes.
 		   use ps in this function
 		   C.
 		 */
-		if ((eachchar == 0x07) && (!achp.fSpec))
+		/* the 0x07 cell/row mark exists only at table depth 1;
+		   deeper levels terminate cells with a 0x0D mark */
+		if ((eachchar == 0x07) && (!achp.fSpec)
+		    && (wvTableDepth (&apap) <= 1))
 		    ps->endcell = 1;
 
 		wvTrace (("char pos is %x %x\n", j, eachchar));
@@ -938,13 +960,7 @@ encoded into the first 22 bytes.
     wvReleaseSTSH (&ps->stsh);
     wvReleaseSTTBF (&SttbfAtnbkmk);
     wvReleaseSTTBF (&grpXstAtnOwners);
-    if (ps->vmerges)
-      {
-	  for (i = 0; i < ps->norows; i++)
-	      wvFree (ps->vmerges[i]);
-	  wvFree (ps->vmerges);
-      }
-    wvFree (ps->cellbounds);
+    wvFreeTableLevels (ps);
 	wvOLEFree(ps);
     tokenTreeFreeAll ();
 }

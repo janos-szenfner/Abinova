@@ -93,9 +93,47 @@ wvGetBRCFromBucket (wvVersion ver, BRC * abrc, U8 * pointer)
 }
 
 /*
+  Bare 8-byte Brc/BrcMayBeNil (MS-DOC): cv (4-byte COLORREF),
+  dptLineWidth (8 bits), brcType (8 bits), dptSpace (5 bits),
+  fShadow (1 bit), fFrame (1 bit), fReserved (9 bits).
+  An all-0xFF value is BrcMayBeNil "no border": handled by leaving
+  brcType 0.
+*/
+void
+wvGetBRC8FromBucket (BRC * abrc, U8 * pointer)
+{
+    U16 temp16;
+    U8 *p = pointer;
+
+    abrc->cv = dread_32ubit (NULL, &p);
+    abrc->dptLineWidth = dread_8ubit (NULL, &p);
+    abrc->brcType = dread_8ubit (NULL, &p);
+    temp16 = dread_16ubit (NULL, &p);
+    if (abrc->cv == 0xffffffffUL && abrc->dptLineWidth == 0xff &&
+	abrc->brcType == 0xff && temp16 == 0xffff)
+      {
+	  /* BrcMayBeNil: no border */
+	  abrc->cv = 0;
+	  abrc->dptLineWidth = 0;
+	  abrc->brcType = 0;
+	  abrc->dptSpace = 0;
+	  abrc->fShadow = 0;
+	  abrc->fFrame = 0;
+	  abrc->reserved = 0;
+	  abrc->ico = 0;
+	  abrc->fCv = 0;
+	  return;
+      }
+    abrc->dptSpace = temp16 & 0x1f;
+    abrc->fShadow = (temp16 & 0x20) >> 5;
+    abrc->fFrame = (temp16 & 0x40) >> 6;
+    abrc->reserved = 0;
+    abrc->ico = 0;
+    abrc->fCv = 1;
+}
+
+/*
   BrcOperand (MS-DOC 2.9.21): cb (1 byte) then an 8-byte Brc:
-  cv (4-byte COLORREF), dptLineWidth (8 bits), brcType (8 bits),
-  dptSpace (5 bits), fShadow (1 bit), fFrame (1 bit), fReserved (9 bits).
   cb MUST be 8; anything else is consumed but not applied.
   Returns the operand length in bytes (1 + cb).
 */
@@ -107,20 +145,7 @@ wvGetBRCOperandFromBucket (BRC * abrc, U8 * pointer)
 
     cb = dread_8ubit (NULL, &p);
     if (cb >= 8)
-      {
-	  U16 temp16;
-
-	  abrc->cv = dread_32ubit (NULL, &p);
-	  abrc->dptLineWidth = dread_8ubit (NULL, &p);
-	  abrc->brcType = dread_8ubit (NULL, &p);
-	  temp16 = dread_16ubit (NULL, &p);
-	  abrc->dptSpace = temp16 & 0x1f;
-	  abrc->fShadow = (temp16 & 0x20) >> 5;
-	  abrc->fFrame = (temp16 & 0x40) >> 6;
-	  abrc->reserved = 0;
-	  abrc->ico = 0;
-	  abrc->fCv = 1;
-      }
+	wvGetBRC8FromBucket (abrc, p);
     return (cb + 1);
 }
 

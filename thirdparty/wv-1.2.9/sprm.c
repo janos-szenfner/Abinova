@@ -544,10 +544,6 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  break;
       case sprmPFInnerTtp:
 	  apap->fInnerTtp = bread_8ubit (pointer, pos);
-	  /* a TTP mark of a nested table is still a row end for our
-	     flat table model */
-	  if (apap->fInnerTtp)
-	      apap->fTtp = 1;
 	  break;
       case sprmPDxcRight:	/* 0x4455: right indent, 1/100 chars */
 	  apap->dxcRight = (S16) bread_16ubit (pointer, pos);
@@ -1139,23 +1135,87 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  /* End of SEP */
 
 	  /* Begin of TAP */
+      case sprmTJc90:
       case sprmTJc:
 	  apap->ptap.jc = (S16) bread_16ubit (pointer, pos);
 	  break;
+      case sprmTFCantSplit90:
       case sprmTFCantSplit:
 	  apap->ptap.fCantSplit = bread_8ubit (pointer, pos);
 	  break;
       case sprmTTableHeader:
 	  apap->ptap.fTableHeader = bread_8ubit (pointer, pos);
 	  break;
-      case sprmTDyaRowHeight:	/* check len */
-	  asep->dyaLinePitch = (S16) bread_16ubit (pointer, pos);
+      case sprmTDyaRowHeight:
+	  /* NOTE: this previously wrote to asep->dyaLinePitch, dumping
+	     row heights into the SEP; it belongs in the TAP */
+	  apap->ptap.dyaRowHeight = (S16) bread_16ubit (pointer, pos);
 	  break;
-      case sprmTDiagLine:	/* ????? */
-	  wvError (("huh, show me this document\n"));
+      case sprmTDiagLine:
+	  wvEatSprm (sprm, pointer, pos);
 	  break;
-      case sprmTHTMLProps:	/* ???? */
+      case sprmTHTMLProps:
 	  apap->ptap.lwHTMLProps = (S32) bread_32ubit (pointer, pos);
+	  break;
+      case sprmTFBiDi:
+      case sprmTFBiDi90:
+	  apap->ptap.fBiDi = bread_16ubit (pointer, pos);
+	  break;
+      case sprmTPc:
+	  {
+	      U8 pc = bread_8ubit (pointer, pos);
+	      apap->ptap.pcVert = (pc & 0x30) >> 4;
+	      apap->ptap.pcHorz = (pc & 0xC0) >> 6;
+	  }
+	  break;
+      case sprmTDxaAbs:
+	  apap->ptap.dxaAbs = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmTDyaAbs:
+	  apap->ptap.dyaAbs = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmTDxaFromText:
+	  apap->ptap.dxaFromText = bread_16ubit (pointer, pos);
+	  break;
+      case sprmTDyaFromText:
+	  apap->ptap.dyaFromText = bread_16ubit (pointer, pos);
+	  break;
+      case sprmTDxaFromTextRight:
+	  apap->ptap.dxaFromTextRight = bread_16ubit (pointer, pos);
+	  break;
+      case sprmTDyaFromTextBottom:
+	  apap->ptap.dyaFromTextBottom = bread_16ubit (pointer, pos);
+	  break;
+      case sprmTTableWidth:
+	  apap->ptap.ftsTableWidth = bread_8ubit (pointer, pos);
+	  apap->ptap.wTableWidth = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmTWidthBefore:
+	  apap->ptap.ftsWidthBefore = bread_8ubit (pointer, pos);
+	  apap->ptap.wWidthBefore = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmTWidthAfter:
+	  apap->ptap.ftsWidthAfter = bread_8ubit (pointer, pos);
+	  apap->ptap.wWidthAfter = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmTWidthIndent:
+	  apap->ptap.ftsWidthIndent = bread_8ubit (pointer, pos);
+	  apap->ptap.wWidthIndent = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmTFAutofit:
+	  apap->ptap.fAutofit = bread_8ubit (pointer, pos);
+	  break;
+      case sprmTFKeepFollow:
+	  apap->ptap.fKeepFollow = bread_8ubit (pointer, pos);
+	  break;
+      case sprmTFNoAllowOverlap:
+	  apap->ptap.fNoAllowOverlap = bread_8ubit (pointer, pos);
+	  break;
+      case sprmTWall:
+	  apap->ptap.fWall = bread_8ubit (pointer, pos);
+	  break;
+      case sprmTIstd:
+	  apap->ptap.istdTable = bread_16ubit (pointer, pos);
 	  break;
       case sprmTDxaLeft:
 	  wvApplysprmTDxaLeft (&apap->ptap, pointer, pos);
@@ -1163,8 +1223,11 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmTDxaGapHalf:
 	  wvApplysprmTDxaGapHalf (&apap->ptap, pointer, pos);
 	  break;
-      case sprmTTableBorders:
+      case sprmTTableBorders80:
 	  wvApplysprmTTableBorders (ver, &apap->ptap, pointer, pos);
+	  break;
+      case sprmTTableBorders:
+	  wvApplysprmTTableBorders97 (&apap->ptap, pointer, pos);
 	  break;
       case sprmTDefTable10:
 	  wvApplysprmTDefTable10 (&apap->ptap, pointer, pos);
@@ -1172,7 +1235,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmTDefTable:
 	  wvApplysprmTDefTable (&apap->ptap, pointer, pos);
 	  break;
-      case sprmTDefTableShd:
+      case sprmTDefTableShd80:
 	  /*
 	     wvApplysprmTDefTableShd follows the written spec, but
 	     it isnt't working out for me, maybe its my own fault,
@@ -1183,12 +1246,27 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	     wvApplysprmTDefTableShd(&apap->ptap,pointer,pos);
 	   */
 	  break;
+      case sprmTDefTableShd:
+      case sprmTDefTableShdRaw:
+	  wvApplysprmTDefTableShdNew (&apap->ptap, pointer, pos, 0);
+	  break;
+      case sprmTDefTableShd2nd:
+      case sprmTDefTableShdRaw2nd:
+	  wvApplysprmTDefTableShdNew (&apap->ptap, pointer, pos, 22);
+	  break;
+      case sprmTDefTableShd3rd:
+      case sprmTDefTableShdRaw3rd:
+	  wvApplysprmTDefTableShdNew (&apap->ptap, pointer, pos, 44);
+	  break;
       case sprmTTlp:
 	  wvGetTLPFromBucket (&(apap->ptap.tlp), pointer);
 	  (*pos) += cbTLP;
 	  break;
-      case sprmTSetBrc:
+      case sprmTSetBrc80:
 	  wvApplysprmTSetBrc (ver, &apap->ptap, pointer, pos);
+	  break;
+      case sprmTSetBrc:
+	  wvApplysprmTSetBrcNew (&apap->ptap, pointer, pos);
 	  break;
       case sprmTInsert:
 	  wvApplysprmTInsert (&apap->ptap, pointer, pos);
@@ -1208,21 +1286,81 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmTSetBrc10:
 	  wvApplysprmTSetBrc10 (&apap->ptap, pointer, pos);
 	  break;
-      case sprmTSetShd:
+      case sprmTSetShd95:
 	  wvApplysprmTSetShd (&apap->ptap, pointer, pos);
 	  break;
-      case sprmTSetShdOdd:
+      case sprmTSetShdOdd95:
 	  wvApplysprmTSetShdOdd (&apap->ptap, pointer, pos);
 	  break;
+      case sprmTSetShd:
+	  wvApplysprmTSetShdNew (&apap->ptap, pointer, pos, 0);
+	  break;
+      case sprmTSetShdOdd:
+	  wvApplysprmTSetShdNew (&apap->ptap, pointer, pos, 1);
+	  break;
       case sprmTTextFlow:
-	  wvError (("huh, show me this document\n"));
 	  wvApplysprmTTextFlow (&apap->ptap, pointer, pos);
 	  break;
       case sprmTVertMerge:
 	  wvApplysprmTVertMerge (&apap->ptap, pointer, pos);
 	  break;
-      case sprmTFBiDi:		/* ????? */
-	  bread_16ubit (pointer, pos);
+      case sprmTVertAlign:
+	  wvApplysprmTVertAlign (&apap->ptap, pointer, pos);
+	  break;
+      case sprmTCellPadding:
+	  wvApplysprmTCellPadding (&apap->ptap, pointer, pos, 0);
+	  break;
+      case sprmTCellSpacingDefault:
+	  wvApplysprmTCellSpacing (&apap->ptap, pointer, pos);
+	  apap->ptap.fCellSpacing = 1;
+	  break;
+      case sprmTCellPaddingDefault:
+      case sprmTCellPaddingStyle:
+	  wvApplysprmTCellPadding (&apap->ptap, pointer, pos, 1);
+	  break;
+      case sprmTCellWidth:
+	  wvApplysprmTCellWidth (&apap->ptap, pointer, pos);
+	  break;
+      case sprmTFitText:
+	  wvApplysprmTFitText (&apap->ptap, pointer, pos);
+	  break;
+      case sprmTFCellNoWrap:
+	  wvApplysprmTFlagRange (&apap->ptap, pointer, pos, 0);
+	  break;
+      case sprmTCellFHideMark:
+	  wvApplysprmTFlagRange (&apap->ptap, pointer, pos, 1);
+	  break;
+      case sprmTSetShdTable:
+	  wvApplysprmTSetShdTable (ver, &apap->ptap, pointer, pos);
+	  break;
+      case sprmTCellBrcType:
+	  wvApplysprmTCellBrcType (&apap->ptap, pointer, pos);
+	  break;
+      case sprmTBrcTopCv:
+	  wvApplysprmTBrcCv (&apap->ptap, pointer, pos, 0);
+	  break;
+      case sprmTBrcLeftCv:
+	  wvApplysprmTBrcCv (&apap->ptap, pointer, pos, 1);
+	  break;
+      case sprmTBrcBottomCv:
+	  wvApplysprmTBrcCv (&apap->ptap, pointer, pos, 2);
+	  break;
+      case sprmTBrcRightCv:
+	  wvApplysprmTBrcCv (&apap->ptap, pointer, pos, 3);
+	  break;
+      case sprmTIpgp:
+      case sprmTRsid:
+	  bread_32ubit (pointer, pos);
+	  break;
+      case sprmTPropRMark:
+      case sprmTCnf:
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
+      case sprmTCellVertAlignStyle:
+      case sprmTCellNoWrapStyle:
+      case sprmTCHorzBands:
+      case sprmTCVertBands:
+	  bread_8ubit (pointer, pos);
 	  break;
       case sprmTUNKNOWN1:
 	  /* read wv.h and word 6 sprm 204
@@ -1230,9 +1368,6 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	   */
 	  bread_8ubit (pointer, pos);
 	  bread_16ubit (pointer, pos);
-	  break;
-      case sprmTVertAlign:
-	  wvApplysprmTVertAlign (&apap->ptap, pointer, pos);
 	  break;
 
 	  /* end of TAP */
@@ -2550,11 +2685,17 @@ wvApplysprmTDefTable (TAP * aTap, U8 * pointer, U16 * pos)
     wvTrace (("wvApplysprmTDefTable\n"));
     aTap->itcMac = dread_8ubit (NULL, &pointer);
     (*pos)++;
+    /* a corrupt document can claim more cells than the arrays hold;
+       clamp rather than scribble over memory */
+    if (aTap->itcMac > itcMax)
+	aTap->itcMac = itcMax;
     oldpos = (*pos) - 2;
     wvTrace (("oldpos is %x\n", oldpos));
     wvTrace (("C: there are %d cells\n", aTap->itcMac));
     for (i = 0; i < aTap->itcMac + 1; i++)
       {
+	  if (len - (*pos - oldpos) < 2)
+	      break;
 	  aTap->rgdxaCenter[i] = (S16) dread_16ubit (NULL, &pointer);
 	  wvTrace (("C: cell boun is %d\n", aTap->rgdxaCenter[i]));
 	  (*pos) += 2;
@@ -2618,8 +2759,12 @@ wvApplysprmTDefTable10 (TAP * aTap, U8 * pointer, U16 * pos)
     (*pos) += 2;
     aTap->itcMac = dread_8ubit (NULL, &pointer);
     (*pos)++;
+    if (aTap->itcMac > itcMax)
+	aTap->itcMac = itcMax;
     for (i = 0; i < aTap->itcMac + 1; i++)
       {
+	  if (len - (1 + i * 2) < 2)
+	      break;
 	  aTap->rgdxaCenter[i] = (S16) dread_16ubit (NULL, &pointer);
 	  (*pos) += 2;
       }
@@ -2645,6 +2790,8 @@ wv2ApplysprmTDefTableShd (TAP * aTap, U8 * pointer, U16 * pos)
 	     ("len in 2sprmTDefTableShd is %d, no of cells is %d\n", len,
 	      itcMac));
 
+    if (itcMac > itcMax)
+	itcMac = itcMax;
     for (i = 0; i < itcMac; i++)
       {
 	  wvGetSHDFromBucket (&(aTap->rgshd[i]), pointer);
@@ -2782,6 +2929,10 @@ wvApplysprmTSetBrc (wvVersion ver, TAP * aTap, U8 * pointer, U16 * pos)
     (*pos) += 3;
     (*pos) += wvGetBRCFromBucket (ver, &abrc, pointer);
 
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
     for (i = itcFirst; i < itcLim; i++)
       {
 	  if (temp8 & 0x08)
@@ -2839,26 +2990,34 @@ wvApplysprmTInsert (TAP * aTap, U8 * pointer, U16 * pos)
     int i;
     (*pos) += 4;
 
+    if (aTap->itcMac + ctc >= itcMax)
+	ctc = itcMax - 1 - aTap->itcMac;
+    if (ctc <= 0)
+	return;
+
     if (itcInsert <= aTap->itcMac + 1)
       {
 	  for (i = aTap->itcMac + 1; i >= itcInsert; i--)
 	    {
 		aTap->rgdxaCenter[i + ctc] =
 		    aTap->rgdxaCenter[i] + ctc * dxaCol;
-		aTap->rgtc[i + ctc] = aTap->rgtc[i];
+		if (i + ctc < itcMax)
+		    aTap->rgtc[i + ctc] = aTap->rgtc[i];
 	    }
       }
 
     if (itcInsert > aTap->itcMac)
       {
-	  for (i = aTap->itcMac; i < aTap->itcMac + itcInsert - ctc; i++)
+	  for (i = aTap->itcMac + 1;
+	       i <= itcInsert && i <= itcMax; i++)
 	    {
 		aTap->rgdxaCenter[i] = aTap->rgdxaCenter[i - 1] + dxaCol;
-		wvInitTC (&(aTap->rgtc[i]));
+		if (i < itcMax)
+		    wvInitTC (&(aTap->rgtc[i]));
 	    }
       }
 
-    for (i = itcInsert; i < ctc + itcInsert; i++)
+    for (i = itcInsert; i < ctc + itcInsert && i < itcMax; i++)
       {
 	  aTap->rgdxaCenter[i] = aTap->rgdxaCenter[i - 1] + dxaCol;
 	  wvInitTC (&(aTap->rgtc[i]));
@@ -2887,11 +3046,17 @@ wvApplysprmTDelete (TAP * aTap, U8 * pointer, U16 * pos)
     int i;
     (*pos) += 2;
 
+    if (itcLim > aTap->itcMac || itcFirst >= itcLim)
+	return;
+
     for (i = itcLim; i < aTap->itcMac + 1; i++)
       {
 	  aTap->rgdxaCenter[i - (itcLim - itcFirst)] = aTap->rgdxaCenter[i];
-	  wvCopyTC (&(aTap->rgtc[i - (itcLim - itcFirst)]), &(aTap->rgtc[i]));
+	  if (i - (itcLim - itcFirst) < itcMax)
+	      wvCopyTC (&(aTap->rgtc[i - (itcLim - itcFirst)]),
+			&(aTap->rgtc[i]));
       }
+    aTap->itcMac -= itcLim - itcFirst;
 }
 
 /*
@@ -2916,13 +3081,19 @@ wvApplysprmTDxaCol (TAP * aTap, U8 * pointer, U16 * pos)
     S16 diff = 0;
     int i;
     (*pos) += 4;
+
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
     for (i = itcFirst; i < itcLim; i++)
       {
 	  diff += aTap->rgdxaCenter[i + 1] - (aTap->rgdxaCenter[i] + dxaCol);
 	  aTap->rgdxaCenter[i + 1] = aTap->rgdxaCenter[i] + dxaCol;
       }
-    for (i = itcLim; i < aTap->itcMac + 1; i++);
-    aTap->rgdxaCenter[i + 1] += diff;
+    /* the original code had a stray semicolon here which caused a
+       single out-of-bounds write past rgdxaCenter instead of shifting
+       all following column positions */
+    for (i = itcLim + 1; i <= aTap->itcMac; i++)
+	aTap->rgdxaCenter[i] -= diff;
 }
 
 /*
@@ -2946,7 +3117,11 @@ wvApplysprmTMerge (TAP * aTap, U8 * pointer, U16 * pos)
     int i;
     (*pos) += 2;
 
+    if (itcFirst >= itcMax)
+	return;
     aTap->rgtc[itcFirst].fFirstMerged = 1;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
     for (i = itcFirst + 1; i < itcLim; i++)
 	aTap->rgtc[i].fMerged = 1;
 }
@@ -2971,11 +3146,12 @@ wvApplysprmTSplit (TAP * aTap, U8 * pointer, U16 * pos)
     int i;
     (*pos) += 2;
 
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    if (itcFirst < itcMax)
+	aTap->rgtc[itcFirst].fFirstMerged = 0;
     for (i = itcFirst; i < itcLim; i++)
-      {
-	  aTap->rgtc[i].fMerged = 0;
-	  aTap->rgtc[itcFirst].fFirstMerged = 0;
-      }
+	aTap->rgtc[i].fMerged = 0;
 }
 
 /*
@@ -2994,6 +3170,10 @@ wvApplysprmTSetBrc10 (TAP * aTap, U8 * pointer, U16 * pos)
     (*pos) += 3;
     (*pos) += wvGetBRC10FromBucket (&abrc, pointer);
 
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
     for (i = itcFirst; i < itcLim; i++)
       {
 	  if (temp8 & 0x08)
@@ -3029,6 +3209,8 @@ wvApplysprmTSetShd (TAP * aTap, U8 * pointer, U16 * pos)
     wvGetSHDFromBucket (&shd, pointer);
     (*pos) += cbSHD;
 
+    if (itcLim > itcMax)
+	itcLim = itcMax;
     for (i = itcFirst; i < itcLim; i++)
 	wvCopySHD (&aTap->rgshd[i], &shd);
 }
@@ -3050,27 +3232,36 @@ wvApplysprmTSetShdOdd (TAP * aTap, U8 * pointer, U16 * pos)
     wvGetSHDFromBucket (&shd, pointer);
     (*pos) += cbSHD;
 
+    if (itcLim > itcMax)
+	itcLim = itcMax;
     for (i = itcFirst; i < itcLim; i++)
       {
-	  if ((i / 2) != (i + 1) / 2)
+	  if ((i - itcFirst) % 2 == 0)
 	      wvCopySHD (&aTap->rgshd[i], &shd);
       }
 }
 
-/* guess */
+/* CellRangeTextFlow (MS-DOC 2.9.31): itcFirst, itcLim (1 byte each),
+   then a 2-byte TextFlow enum. */
 void
 wvApplysprmTTextFlow (TAP * aTap, U8 * pointer, U16 * pos)
 {
-    U8 val = dread_8ubit (NULL, &pointer);
+    U8 itcFirst = dread_8ubit (NULL, &pointer);
+    U8 itcLim = dread_8ubit (NULL, &pointer);
+    U16 tf = dread_16ubit (NULL, &pointer);
     int i;
-    (*pos)++;
+    (*pos) += 4;
 
-    for (i = 0; i < aTap->itcMac; i++)
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    for (i = itcFirst; i < itcLim; i++)
       {
-	  /* just a complete guess who knows */
-	  aTap->rgtc[i].fVertical = val & 0x0001;
-	  aTap->rgtc[i].fBackward = (val & 0x0002) >> 1;
-	  aTap->rgtc[i].fRotateFont = (val & 0x0004) >> 2;
+	  aTap->rgtc[i].textFlow = tf;
+	  /* MS-DOC TextFlow: 1 (tbrl), 3 (btlr) and 5 (tbrlv) are the
+	     rotated line layouts; 0 and 4 run lines horizontally */
+	  aTap->rgtc[i].fVertical = (tf == 1 || tf == 3 || tf == 5);
+	  aTap->rgtc[i].fBackward = (tf == 3);
+	  aTap->rgtc[i].fRotateFont = (tf == 4 || tf == 5);
       }
 }
 
@@ -3086,29 +3277,48 @@ only in grpprls linked to piece table entries.
 void
 wvApplysprmTVertMerge (TAP * aTap, U8 * pointer, U16 * pos)
 {
-    U8 index, props, count;
+    /* spra 6 operand (MS-DOC VertMergeOperand): cb byte, then an
+       ItcFirstLim (itcFirst, itcLim) and a 1-byte VerticalMergeFlag;
+       the flag applies to the whole range, not a single cell */
+    U8 len, itcFirst, itcLim, props;
+    int i;
     wvTrace (("doing Vertical merge\n"));
 
-    count = dread_8ubit (NULL, &pointer);
-    wvTrace (("count is %d\n", count));	/* check against word 8 please */
-    index = dread_8ubit (NULL, &pointer);
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len < 3)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    itcFirst = dread_8ubit (NULL, &pointer);
+    itcLim = dread_8ubit (NULL, &pointer);
     props = dread_8ubit (NULL, &pointer);
     (*pos) += 3;
+    if (len > 3)
+	(*pos) += len - 3;
 
-    switch (props)
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    for (i = itcFirst; i < itcLim; i++)
       {
-      case 0:
-	  aTap->rgtc[index].fVertMerge = 0;
-	  aTap->rgtc[index].fVertRestart = 0;
-	  break;
-      case 1:
-	  aTap->rgtc[index].fVertMerge = 1;
-	  aTap->rgtc[index].fVertRestart = 0;
-	  break;
-      case 3:
-	  aTap->rgtc[index].fVertMerge = 1;
-	  aTap->rgtc[index].fVertRestart = 1;
-	  break;
+	  switch (props)
+	    {
+	    case 0:
+		aTap->rgtc[i].fVertMerge = 0;
+		aTap->rgtc[i].fVertRestart = 0;
+		break;
+	    case 1:
+		aTap->rgtc[i].fVertMerge = 1;
+		aTap->rgtc[i].fVertRestart = 0;
+		break;
+	    case 3:
+		aTap->rgtc[i].fVertMerge = 1;
+		aTap->rgtc[i].fVertRestart = 1;
+		break;
+	    }
       }
 }
 
@@ -3125,14 +3335,436 @@ sprmTVertAlign is stored only in grpprls linked to piece table entries.
 void
 wvApplysprmTVertAlign (TAP * aTap, U8 * pointer, U16 * pos)
 {
-    U8 itcFirst = dread_8ubit (NULL, &pointer);
-    U8 itcLim = dread_8ubit (NULL, &pointer);
-    U8 props = dread_8ubit (NULL, &pointer);
+    /* spra 6 variable-length operand: cb byte, then ItcFirstLim
+       (2 bytes), then a 1-byte vertAlign */
+    U8 len = dread_8ubit (NULL, &pointer);
+    U8 itcFirst, itcLim, props;
     int i;
-    (*pos) += 3;
+    (*pos)++;
 
+    if (len < 3)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    itcFirst = dread_8ubit (NULL, &pointer);
+    itcLim = dread_8ubit (NULL, &pointer);
+    props = dread_8ubit (NULL, &pointer);
+    (*pos) += 3;
+    if (len > 3)
+	(*pos) += len - 3;
+
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
     for (i = itcFirst; i < itcLim; i++)
 	aTap->rgtc[i].vertAlign = props;
+}
+
+/* DefTableShdOperand (MS-DOC 2.9.94): 1-byte cb followed by cb/10
+   10-byte Shd structures applied to cells firstCell..firstCell+n-1.
+   sprmTDefTableShd/sprmTDefTableShd2nd/sprmTDefTableShd3rd (and the
+   Raw variants) differ only in the first cell index (0, 22, 44). */
+void
+wvApplysprmTDefTableShdNew (TAP * aTap, U8 * pointer, U16 * pos,
+			    int firstCell)
+{
+    U8 len;
+    int i, nop;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    nop = len / 10;
+    for (i = 0; i < nop; i++)
+      {
+	  if (firstCell + i >= itcMax)
+	      break;
+	  wvGetSHD10FromBucket (&aTap->rgshd[firstCell + i],
+				pointer + i * 10);
+      }
+    (*pos) += len;
+}
+
+/* TableShadeOperand (MS-DOC 2.9.312): cb byte, ItcFirstLim (2 bytes),
+   then a 10-byte Shd.  With odd set only every other cell of the range
+   is shaded. */
+void
+wvApplysprmTSetShdNew (TAP * aTap, U8 * pointer, U16 * pos, int odd)
+{
+    U8 len;
+    int i, itcFirst, itcLim, step;
+    SHD shd;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len < 12)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    itcFirst = dread_8ubit (NULL, &pointer);
+    itcLim = dread_8ubit (NULL, &pointer);
+    pointer += 2;
+    (*pos) += 4;
+    wvGetSHD10FromBucket (&shd, pointer);
+    (*pos) += 10;
+    if (len > 12)
+	(*pos) += len - 12;
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    step = odd ? 2 : 1;
+    for (i = itcFirst; i < itcLim; i += step)
+	wvCopySHD (&(aTap->rgshd[i]), &shd);
+}
+
+/* TableBordersOperand (MS-DOC): cb byte followed by six 8-byte Brc
+   structures (top, left, bottom, right, insideH, insideV). */
+void
+wvApplysprmTTableBorders97 (TAP * aTap, U8 * pointer, U16 * pos)
+{
+    U8 len;
+    int i;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    for (i = 0; i < 6 && len >= 8; i++, len -= 8)
+      {
+	  wvGetBRC8FromBucket (&aTap->rgbrcTable[i], pointer);
+	  pointer += 8;
+	  (*pos) += 8;
+      }
+    (*pos) += len;
+}
+
+/* TableBrcOperand (MS-DOC 2.9.308): cb byte, ItcFirstLim (2 bytes), a
+   bitmask of borders to set (top 0x01, left 0x02, bottom 0x04, right
+   0x08, diag tl2br 0x10, diag tr2bl 0x20), then an 8-byte
+   BrcMayBeNil. */
+void
+wvApplysprmTSetBrcNew (TAP * aTap, U8 * pointer, U16 * pos)
+{
+    U8 len, temp8;
+    int i, itcFirst, itcLim;
+    BRC brc;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len < 11)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    itcFirst = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    itcLim = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    temp8 = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    wvGetBRC8FromBucket (&brc, pointer);
+    pointer += 8;
+    (*pos) += 8;
+    if (len > 11)
+	(*pos) += len - 11;
+
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    for (i = itcFirst; i < itcLim; i++)
+      {
+	  if (temp8 & 0x08)
+	      wvCopyBRC (&aTap->rgtc[i].brcRight, &brc);
+	  if (temp8 & 0x04)
+	      wvCopyBRC (&aTap->rgtc[i].brcBottom, &brc);
+	  if (temp8 & 0x02)
+	      wvCopyBRC (&aTap->rgtc[i].brcLeft, &brc);
+	  if (temp8 & 0x01)
+	      wvCopyBRC (&aTap->rgtc[i].brcTop, &brc);
+	  /* 0x10/0x20 diagonal borders are not represented in TC */
+      }
+}
+
+/* BrcCvOperand (MS-DOC): cb byte followed by itcMac*4 COLORREFs, one
+   for each cell's border in the affected position. */
+void
+wvApplysprmTBrcCv (TAP * aTap, U8 * pointer, U16 * pos, int which)
+{
+    U8 len;
+    int i;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    for (i = 0; i < len / 4 && i < aTap->itcMac && i < itcMax; i++)
+      {
+	  BRC *b = NULL;
+
+	  switch (which)
+	    {
+	    case 0:
+		b = &aTap->rgtc[i].brcTop;
+		break;
+	    case 1:
+		b = &aTap->rgtc[i].brcLeft;
+		break;
+	    case 2:
+		b = &aTap->rgtc[i].brcBottom;
+		break;
+	    case 3:
+		b = &aTap->rgtc[i].brcRight;
+		break;
+	    }
+	  if (b)
+	    {
+		b->cv = dread_32ubit (NULL, &pointer);
+		b->fCv = 1;
+	    }
+      }
+    (*pos) += len;
+}
+
+/* CSSAOperand (MS-DOC 2.9.38): cb byte, ItcFirstLim (2 bytes), mask
+   (top 0x01, left 0x02, bottom 0x04, right 0x08), fts (1 byte),
+   wWidth (2 bytes).  isDefault applies the padding to the TAP
+   defaults (sprmTCellPaddingDefault / sprmTCellPaddingStyle),
+   otherwise it lands in the per-cell TC pad fields (sprmTCellPadding). */
+void
+wvApplysprmTCellPadding (TAP * aTap, U8 * pointer, U16 * pos,
+			 U8 isDefault)
+{
+    U8 len, mask, fts;
+    S16 w;
+    int i, itcFirst, itcLim;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len < 6)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    itcFirst = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    itcLim = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    mask = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    fts = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    w = (S16) dread_16ubit (NULL, &pointer);
+    (*pos) += 2;
+    if (len > 6)
+	(*pos) += len - 6;
+
+    if (fts != ftsDxa)
+	w = 0;			/* only twips margins are representable */
+    if (isDefault)
+      {
+	  if (mask & 0x01)
+	      aTap->cellPadTop = w;
+	  if (mask & 0x02)
+	      aTap->cellPadLeft = w;
+	  if (mask & 0x04)
+	      aTap->cellPadBottom = w;
+	  if (mask & 0x08)
+	      aTap->cellPadRight = w;
+	  aTap->fCellPadMask |= mask & 0x0f;
+	  return;
+      }
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    for (i = itcFirst; i < itcLim; i++)
+      {
+	  if (mask & 0x01)
+	    {
+		aTap->rgtc[i].padTop = w;
+		aTap->rgtc[i].fPadMask |= 0x01;
+	    }
+	  if (mask & 0x02)
+	    {
+		aTap->rgtc[i].padLeft = w;
+		aTap->rgtc[i].fPadMask |= 0x02;
+	    }
+	  if (mask & 0x04)
+	    {
+		aTap->rgtc[i].padBottom = w;
+		aTap->rgtc[i].fPadMask |= 0x04;
+	    }
+	  if (mask & 0x08)
+	    {
+		aTap->rgtc[i].padRight = w;
+		aTap->rgtc[i].fPadMask |= 0x08;
+	    }
+      }
+}
+
+/* sprmTCellSpacingDefault: CSSAOperand, spacing stored in wWidth. */
+void
+wvApplysprmTCellSpacing (TAP * aTap, U8 * pointer, U16 * pos)
+{
+    U8 len, fts;
+    S16 w;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len < 6)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    pointer += 3;		/* itc + mask */
+    (*pos) += 3;
+    fts = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    w = (S16) dread_16ubit (NULL, &pointer);
+    (*pos) += 2;
+    if (len > 6)
+	(*pos) += len - 6;
+
+    if (fts == ftsDxa || fts == ftsDxaSys)
+      {
+	  aTap->cellSpacing = w;
+	  aTap->fCellSpacing = 1;
+      }
+}
+
+/* TableCellWidthOperand (MS-DOC 2.9.309): cb byte, ItcFirstLim
+   (2 bytes), then a 3-byte FtsWWidth_Table preferred cell width. */
+void
+wvApplysprmTCellWidth (TAP * aTap, U8 * pointer, U16 * pos)
+{
+    U8 len, fts;
+    S16 w;
+    int i, itcFirst, itcLim;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len < 5)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    itcFirst = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    itcLim = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    fts = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    w = (S16) dread_16ubit (NULL, &pointer);
+    (*pos) += 2;
+    if (len > 5)
+	(*pos) += len - 5;
+
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    for (i = itcFirst; i < itcLim; i++)
+      {
+	  aTap->rgtc[i].ftsWidth = fts;
+	  aTap->rgtc[i].wWidth = w;
+      }
+}
+
+/* sprmTFitText (MS-DOC): FtsCellWidth operand — ItcFirstLim then a
+   boolean flag, applied per cell. */
+void
+wvApplysprmTFitText (TAP * aTap, U8 * pointer, U16 * pos)
+{
+    int i, itcFirst, itcLim;
+    U8 f;
+
+    itcFirst = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    itcLim = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    f = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    for (i = itcFirst; i < itcLim; i++)
+	aTap->rgtc[i].fFitText = f;
+}
+
+/* Variable-length boolean cell-flag sprms (sprmTFCellNoWrap,
+   sprmTCellFHideMark): cb byte, ItcFirstLim, 1-byte flag.  which
+   selects the TC field. */
+void
+wvApplysprmTFlagRange (TAP * aTap, U8 * pointer, U16 * pos, int which)
+{
+    U8 len, f;
+    int i, itcFirst, itcLim;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len < 3)
+      {
+	  (*pos) += len;
+	  return;
+      }
+    itcFirst = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    itcLim = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    f = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    if (len > 3)
+	(*pos) += len - 3;
+
+    if (itcLim > aTap->itcMac)
+	itcLim = aTap->itcMac;
+    if (itcLim > itcMax)
+	itcLim = itcMax;
+    for (i = itcFirst; i < itcLim; i++)
+      {
+	  switch (which)
+	    {
+	    case 0:
+		aTap->rgtc[i].fNoWrap = f;
+		break;
+	    case 1:
+		aTap->rgtc[i].fHideMark = f;
+		break;
+	    }
+      }
+}
+
+/* TCellBrcTypeOperand (MS-DOC 2.9.302): cb byte followed by 4 BrcType
+   bytes per cell (top, left, bottom, right). */
+void
+wvApplysprmTCellBrcType (TAP * aTap, U8 * pointer, U16 * pos)
+{
+    U8 len;
+    int i;
+
+    len = dread_8ubit (NULL, &pointer);
+    (*pos)++;
+    for (i = 0; i < len / 4 && i < aTap->itcMac && i < itcMax; i++)
+      {
+	  aTap->rgtc[i].brcTop.brcType = pointer[i * 4];
+	  aTap->rgtc[i].brcTop.fCv = 0;
+	  aTap->rgtc[i].brcLeft.brcType = pointer[i * 4 + 1];
+	  aTap->rgtc[i].brcLeft.fCv = 0;
+	  aTap->rgtc[i].brcBottom.brcType = pointer[i * 4 + 2];
+	  aTap->rgtc[i].brcBottom.fCv = 0;
+	  aTap->rgtc[i].brcRight.brcType = pointer[i * 4 + 3];
+	  aTap->rgtc[i].brcRight.fCv = 0;
+      }
+    (*pos) += len;
+}
+
+/* sprmTSetShdTable (MS-DOC): SHDOperand applied to the whole table. */
+void
+wvApplysprmTSetShdTable (wvVersion ver, TAP * aTap, U8 * pointer,
+			 U16 * pos)
+{
+    (*pos) += wvGetSHDOperandFromBucket (&aTap->shdTable, pointer);
 }
 
 SprmName rgsprmPrm[0x80] =

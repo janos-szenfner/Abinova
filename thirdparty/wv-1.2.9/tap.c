@@ -69,6 +69,11 @@ wvInitTAP (TAP * item)
 	      wvInitSHD (&(cache.rgshd[i]));
 	  for (i = 0; i < 6; i++)
 	      wvInitBRC (&(cache.rgbrcTable[i]));
+
+	  /* 3 means "not absolutely positioned" in the sprmTPc anchor
+	     codes; everything else defaults to zero */
+	  cache.pcVert = 3;
+	  cache.pcHorz = 3;
 	  test++;
       }
     wvCopyTAP (item, &cache);

@@ -58,16 +58,124 @@ cellCompEQ (void *a, void *b)
     return (ret);
 }
 
+/* effective table depth of a paragraph: sprmPItap/sprmPDtap set itap
+   and derive fInTable; when itap was never set but fInTable is on
+   (very old documents), the para is at depth 1 */
+int
+wvTableDepth (PAP * apap)
+{
+    if (apap->itap > 0)
+      {
+	  if (apap->itap > WV_MAX_TABLE_DEPTH)
+	      return (WV_MAX_TABLE_DEPTH);
+	  return (apap->itap);
+      }
+    return (apap->fInTable ? 1 : 0);
+}
+
+/* true when apap is the row-terminating mark of the table at the
+   given depth: at depth 1 this is the 0x07 TTP mark (fTtp), deeper
+   tables use a 0x0D paragraph mark carrying fInnerTtp (or, in quirky
+   files, plain fTtp at that depth) */
+static int
+s_isRowMark (PAP * apap, int depth)
+{
+    if (wvTableDepth (apap) != depth)
+	return (0);
+    if (depth == 1)
+	return (apap->fTtp);
+    return (apap->fInnerTtp || apap->fTtp);
+}
+
+/* mirror the deepest initialized table level into the legacy ps->
+   vmerges/cellbounds/norows/nocellbounds fields so existing depth-1
+   consumers keep working */
+static void
+s_updateTableMirror (wvParseStruct * ps)
+{
+    int d;
+
+    ps->vmerges = NULL;
+    ps->norows = 0;
+    ps->cellbounds = NULL;
+    ps->nocellbounds = 0;
+    ps->intable = 0;
+    for (d = WV_MAX_TABLE_DEPTH; d >= 1; d--)
+      {
+	  if (ps->tablelevel[d - 1].initialized)
+	    {
+		ps->vmerges = ps->tablelevel[d - 1].vmerges;
+		ps->norows = ps->tablelevel[d - 1].norows;
+		ps->cellbounds = ps->tablelevel[d - 1].cellbounds;
+		ps->nocellbounds = ps->tablelevel[d - 1].nocellbounds;
+		ps->intable = 1;
+		return;
+	    }
+      }
+}
+
+/* free a level's arrays; when depth <= 0 frees all levels */
+void
+wvClearTableLevel (wvParseStruct * ps, int depth)
+{
+    wvTableLevel *lvl;
+    int i;
+
+    if (depth < 1 || depth > WV_MAX_TABLE_DEPTH)
+	return;
+    lvl = &ps->tablelevel[depth - 1];
+    if (lvl->vmerges)
+      {
+	  for (i = 0; i < lvl->norows; i++)
+	      wvFree (lvl->vmerges[i]);
+	  wvFree (lvl->vmerges);
+	  lvl->vmerges = NULL;
+      }
+    wvFree (lvl->cellbounds);
+    lvl->cellbounds = NULL;
+    lvl->norows = 0;
+    lvl->nocellbounds = 0;
+    lvl->initialized = 0;
+    s_updateTableMirror (ps);
+}
+
+void
+wvFreeTableLevels (wvParseStruct * ps)
+{
+    int d;
+
+    for (d = 1; d <= WV_MAX_TABLE_DEPTH; d++)
+      {
+	  wvTableLevel *lvl = &ps->tablelevel[d - 1];
+	  int i;
+
+	  if (lvl->vmerges)
+	    {
+		for (i = 0; i < lvl->norows; i++)
+		    wvFree (lvl->vmerges[i]);
+		wvFree (lvl->vmerges);
+		lvl->vmerges = NULL;
+	    }
+	  wvFree (lvl->cellbounds);
+	  lvl->cellbounds = NULL;
+	  lvl->norows = 0;
+	  lvl->nocellbounds = 0;
+	  lvl->initialized = 0;
+      }
+    s_updateTableMirror (ps);
+}
+
 void
 wvGetRowTap (wvParseStruct * ps, PAP * dpap, U32 para_intervals,
-	     BTE * btePapx, U32 * posPapx)
+	     BTE * btePapx, U32 * posPapx, int depth)
 {
     PAPX_FKP para_fkp;
-	
+
     U32 para_fcFirst, para_fcLim = 0xffffffffL;
     PAP apap;
     U32 i;
     S32 j = 0;
+    int pd;
     wvVersion ver = wvQuerySupported (&ps->fib, NULL);
     wvCopyPAP (&apap, dpap);
 
@@ -78,14 +186,20 @@ wvGetRowTap (wvParseStruct * ps, PAP * dpap, U32 para_intervals,
     do
       {
 	  wvReleasePAPX_FKP (&para_fkp);
-	  wvGetSimpleParaBounds (ver, &para_fkp,
-				 &para_fcFirst, &para_fcLim, i, btePapx,
-				 posPapx, para_intervals, ps->mainfd);
+	  if (wvGetSimpleParaBounds (ver, &para_fkp,
+				     &para_fcFirst, &para_fcLim, i, btePapx,
+				     posPapx, para_intervals, ps->mainfd))
+	      break;
 	  wvTrace (("2: para from %x to %x\n", para_fcFirst, para_fcLim));
 	  wvAssembleSimplePAP (ver, &apap, para_fcLim, &para_fkp, ps);
 	  i = para_fcLim;
+	  pd = wvTableDepth (&apap);
+	  /* a paragraph belonging to a shallower table means this
+	     table ended abruptly without its row mark */
+	  if (depth > 1 && pd < depth)
+	      break;
       }
-    while ((apap.fTtp == 0) && apap.fInTable); /* placing '&& apap.fInTable' here fixes #11433. I can't find any regressions */
+    while ((s_isRowMark (&apap, depth) == 0) && apap.fInTable); /* placing '&& apap.fInTable' here fixes #11433. I can't find any regressions */
 
     wvTrace (("fTtp is %d\n", apap.fTtp));
 
@@ -98,15 +212,22 @@ wvGetRowTap (wvParseStruct * ps, PAP * dpap, U32 para_intervals,
 
 void
 wvGetFullTableInit (wvParseStruct * ps, U32 para_intervals, BTE * btePapx,
-		    U32 * posPapx)
+		    U32 * posPapx, int depth)
 {
     PAPX_FKP para_fkp;
 	U32 para_fcFirst, para_fcLim = 0xffffffffL;
     PAP apap;
     U32 i, j = 0;
     TAP *test = NULL;
+    wvTableLevel *lvl;
     wvVersion ver = wvQuerySupported (&ps->fib, NULL);
-    if (ps->intable)
+
+    if (depth < 1)
+	depth = 1;
+    if (depth > WV_MAX_TABLE_DEPTH)
+	depth = WV_MAX_TABLE_DEPTH;
+    lvl = &ps->tablelevel[depth - 1];
+    if (lvl->initialized)
 	return;
 
     wvInitPAPX_FKP (&para_fkp);
@@ -116,9 +237,10 @@ wvGetFullTableInit (wvParseStruct * ps, U32 para_intervals, BTE * btePapx,
     do
       {
 	  wvReleasePAPX_FKP (&para_fkp);
-	  wvGetSimpleParaBounds (ver, &para_fkp,
-				 &para_fcFirst, &para_fcLim, i, btePapx,
-				 posPapx, para_intervals, ps->mainfd);
+	  if (wvGetSimpleParaBounds (ver, &para_fkp,
+				     &para_fcFirst, &para_fcLim, i, btePapx,
+				     posPapx, para_intervals, ps->mainfd))
+	      break;
 	  wvAssembleSimplePAP (ver, &apap, para_fcLim, &para_fkp, ps);
 	  wvTrace (("para from %x to %x\n", para_fcFirst, para_fcLim));
 	  i = para_fcLim;
@@ -127,7 +249,7 @@ wvGetFullTableInit (wvParseStruct * ps, U32 para_intervals, BTE * btePapx,
 	  /*if (apap.ptap.itcMac)*/
 	  /* we ascertain the number of rows by counting the end of row
 		 markers. NB: a row marker can have a 0 itcMac*/
-	  if (apap.fTtp)
+	  if (s_isRowMark (&apap, depth))
 	    {
 		test = (TAP *) realloc (test, sizeof (TAP) * (j + 1));
 		wvCopyTAP (&(test[j]), &apap.ptap);
@@ -136,14 +258,12 @@ wvGetFullTableInit (wvParseStruct * ps, U32 para_intervals, BTE * btePapx,
 	    }
 
       }
-    while (apap.fInTable);
+    while (apap.fInTable && (depth == 1 || wvTableDepth (&apap) >= depth));
     wvTrace (("BOTTOM\n"));
 
     wvReleasePAPX_FKP (&para_fkp);
 
-    wvSetTableInfo (ps, test, j);
-    ps->intable = 1;
-    ps->norows = j;
+    wvSetTableInfoLevel (ps, test, j, depth);
     wvFree (test);
 }
 
@@ -175,25 +295,37 @@ We will have to match boundaries that are with in
 that occurs frequently in word tables, (gagh!)
 */
 void
-wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no)
+wvSetTableInfoLevel (wvParseStruct * ps, TAP * ptap, int no, int depth)
 {
     BintreeInfo tree;
     Node *testn, *testp;
     int i, j, k;
+    wvTableLevel *lvl;
 
-    if (ps->vmerges)
+    if (depth < 1)
+	depth = 1;
+    if (depth > WV_MAX_TABLE_DEPTH)
+	depth = WV_MAX_TABLE_DEPTH;
+    lvl = &ps->tablelevel[depth - 1];
+
+    if (lvl->vmerges)
       {
 	  wvTrace (("vmerges is not NULL\n"));
-	  for (i = 0; i < ps->norows; i++)
-	      wvFree (ps->vmerges[i]);
-	  wvFree (ps->vmerges);
-	  ps->vmerges = NULL;
+	  for (i = 0; i < lvl->norows; i++)
+	      wvFree (lvl->vmerges[i]);
+	  wvFree (lvl->vmerges);
+	  lvl->vmerges = NULL;
       }
+    wvFree (lvl->cellbounds);
+    lvl->cellbounds = NULL;
 
     if (no == 0)
       {
 	  wvWarning ("Broken tables, continuing and hoping for the best\n");
-	  ps->nocellbounds = 0;
+	  lvl->nocellbounds = 0;
+	  lvl->norows = 0;
+	  lvl->initialized = 1;
+	  s_updateTableMirror (ps);
 	  return;
       }
 
@@ -213,19 +345,18 @@ wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no)
 
     testn = NextNode (&tree, NULL);
 
-    ps->nocellbounds = tree.no_in_tree;
-    wvFree (ps->cellbounds);
+    lvl->nocellbounds = tree.no_in_tree;
     if (tree.no_in_tree)
-	ps->cellbounds = (S16 *) wvMalloc (sizeof (S16) * tree.no_in_tree);
+	lvl->cellbounds = (S16 *) wvMalloc (sizeof (S16) * tree.no_in_tree);
     else
-	ps->cellbounds = NULL;
+	lvl->cellbounds = NULL;
 
     i = 0;
     wvTrace (("No in tree is %d\n", tree.no_in_tree));
     while (testn != NULL)
       {
-	  ps->cellbounds[i++] = *((S16 *) testn->Data);
-	  wvTrace (("cellbound are %d\n", ps->cellbounds[i - 1]));
+	  lvl->cellbounds[i++] = *((S16 *) testn->Data);
+	  wvTrace (("cellbound are %d\n", lvl->cellbounds[i - 1]));
 	  testp = NextNode (&tree, testn);
 	  wvDeleteNode (&tree, testn);
 	  testn = testp;
@@ -234,14 +365,15 @@ wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no)
 
     wvTrace (("end of out\n"));
 
-    ps->vmerges = (S16 **) wvMalloc (sizeof (S16 *) * no);
+    lvl->vmerges = (S16 **) wvMalloc (sizeof (S16 *) * no);
+    lvl->norows = no;
     wvTrace (("no of rows is %d\n", no));
     for (i = 0; i < no; i++)
       {
-	  ps->vmerges[i] = (S16 *) wvMalloc (sizeof (S16) * ptap[i].itcMac);
+	  lvl->vmerges[i] = (S16 *) wvMalloc (sizeof (S16) * ptap[i].itcMac);
 	  wvTrace (("no of cells is %d\n", ptap[i].itcMac));
 	  for (j = 0; j < ptap[i].itcMac; j++)
-	      ps->vmerges[i][j] = 1;
+	      lvl->vmerges[i][j] = 1;
       }
 
     for (i = no - 1; i > 0; i--)
@@ -256,7 +388,7 @@ wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no)
 		      wvTrace (
 			       ("Vertical merge found, row %d, cell %d\n", i,
 				j));
-		      /* 
+		      /*
 		         find a cell above me with the same boundaries
 		         if it is also merged increment it, and set myself to 0
 		         else leave me alone
@@ -284,9 +416,9 @@ wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no)
 				  wvTrace (("found a cell above me, yippee\n"));
 				  if (ptap[i - 1].rgtc[k].fVertMerge)
 				    {
-					ps->vmerges[i - 1][k] +=
-					    ps->vmerges[i][j];
-					ps->vmerges[i][j] = 0;
+					lvl->vmerges[i - 1][k] +=
+					    lvl->vmerges[i][j];
+					lvl->vmerges[i][j] = 0;
 				    }
 			      }
 
@@ -298,7 +430,16 @@ wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no)
 
     for (i = 0; i < no; i++)
 	for (j = 0; j < ptap[i].itcMac; j++)
-	    wvTrace (("rowspan numbers are %d\n", ps->vmerges[i][j]));
+	    wvTrace (("rowspan numbers are %d\n", lvl->vmerges[i][j]));
+
+    lvl->initialized = 1;
+    s_updateTableMirror (ps);
+}
+
+void
+wvSetTableInfo (wvParseStruct * ps, TAP * ptap, int no)
+{
+    wvSetTableInfoLevel (ps, ptap, no, 1);
 }
 
 
@@ -784,7 +925,8 @@ TheTest (wvParseStruct * ps, U32 piece, BTE * btePapx, U32 * posPapx,
 
 void
 wvGetComplexFullTableInit (wvParseStruct * ps, U32 para_intervals,
-			   BTE * btePapx, U32 * posPapx, U32 piece)
+			   BTE * btePapx, U32 * posPapx, U32 piece,
+			   int depth)
 {
     PAPX_FKP para_fkp;
 	U32 para_fcFirst, para_fcLim = 0xffffffffL;
@@ -792,8 +934,15 @@ wvGetComplexFullTableInit (wvParseStruct * ps, U32 para_intervals,
     U32 i, j = 0, k = 0;
     S32 l;
     TAP *test = NULL;
+    wvTableLevel *lvl;
     wvVersion ver = wvQuerySupported (&ps->fib, NULL);
-    if (ps->intable)
+
+    if (depth < 1)
+	depth = 1;
+    if (depth > WV_MAX_TABLE_DEPTH)
+	depth = WV_MAX_TABLE_DEPTH;
+    lvl = &ps->tablelevel[depth - 1];
+    if (lvl->initialized)
 	return;
 
 #if 0
@@ -837,7 +986,7 @@ wvGetComplexFullTableInit (wvParseStruct * ps, U32 para_intervals,
 	  /*  if ((apap.ptap.itcMac) (apap.fTtp))*/
 	  /* we ascertain the number of rows by counting the end of row
 		 markers. NB: a row marker can have a 0 itcMac*/
-	  if (apap.fTtp)
+	  if (s_isRowMark (&apap, depth))
 	    {
 		test = (TAP *) realloc (test, sizeof (TAP) * (j + 1));
 		wvCopyTAP (&(test[j]), &apap.ptap);
@@ -845,10 +994,10 @@ wvGetComplexFullTableInit (wvParseStruct * ps, U32 para_intervals,
 		    wvTrace (("In This Row-->%d\n", apap.ptap.rgdxaCenter[l]));
 		j++;
 	    }
-	  if (apap.fTtp)
+	  if (s_isRowMark (&apap, depth))
 	      k++;
       }
-    while (apap.fInTable);
+    while (apap.fInTable && (depth == 1 || wvTableDepth (&apap) >= depth));
     wvTrace (("BOTTOM\n"));
 #ifdef DEBUG
     if (piece == 0xffffffffL)
@@ -858,21 +1007,20 @@ wvGetComplexFullTableInit (wvParseStruct * ps, U32 para_intervals,
 
     wvReleasePAPX_FKP (&para_fkp);
 
-    wvSetTableInfo (ps, test, j);
-    ps->intable = 1;
-    ps->norows = j;
+    wvSetTableInfoLevel (ps, test, j, depth);
     wvFree (test);
 }
 
 void
 wvGetComplexRowTap (wvParseStruct * ps, PAP * dpap, U32 para_intervals,
-		    BTE * btePapx, U32 * posPapx, U32 piece)
+		    BTE * btePapx, U32 * posPapx, U32 piece, int depth)
 {
     PAPX_FKP para_fkp;
 	U32 para_fcFirst, para_fcLim = 0xffffffffL;
     PAP apap;
     U32 i;
     S32 j = 0;
+    int pd;
     wvVersion ver = wvQuerySupported (&ps->fib, NULL);
     wvCopyPAP (&apap, dpap);
 
@@ -899,8 +1047,11 @@ wvGetComplexRowTap (wvParseStruct * ps, PAP * dpap, U32 para_intervals,
 		   ("para from %x to %x, table is %d\n", para_fcFirst,
 		    para_fcLim, apap.fInTable));
 	  i = para_fcLim;
+	  pd = wvTableDepth (&apap);
+	  if (depth > 1 && pd < depth)
+	      break;
       }
-    while (apap.fTtp == 0);
+    while (apap.fInTable && s_isRowMark (&apap, depth) == 0);
 
     wvReleasePAPX_FKP (&para_fkp);
     wvCopyTAP (&(dpap->ptap), &apap.ptap);

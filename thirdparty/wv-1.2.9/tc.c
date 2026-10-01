@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "wv.h"
 #include "wvinternal.h"
 
@@ -41,17 +42,32 @@ wvGetTC_internal (wvVersion ver, TC * tc, wvStream * infd, U8 * pointer)
 
     if (ver == WORD8)
       {
-	  tc->fFirstMerged = temp16 & 0x0001;
-	  tc->fMerged = (temp16 & 0x0002) >> 1;
-	  tc->fVertical = (temp16 & 0x0004) >> 2;
-	  tc->fBackward = (temp16 & 0x0008) >> 3;
-	  tc->fRotateFont = (temp16 & 0x0010) >> 4;
-	  tc->fVertMerge = (temp16 & 0x0020) >> 5;
-	  tc->fVertRestart = (temp16 & 0x0040) >> 6;
+	  /* TCGRF (MS-DOC 2.9.x): horzMerge:2, textFlow:3, vertMerge:2,
+	     vertAlign:2, ftsWidth:3, fFitText:1, fNoWrap:1, fHideMark:1.
+	     horzMerge 1 means this cell is *covered* by a merge starting
+	     at an earlier cell; 2/3 means this cell is the first of a
+	     merged set.  vertMerge 1 = fvmMerge, 3 = fvmRestart. */
+	  U8 horzMerge = temp16 & 0x0003;
+	  tc->fFirstMerged = (horzMerge >= 2);
+	  tc->fMerged = (horzMerge == 1);
+	  tc->textFlow = (temp16 & 0x001C) >> 2;
+	  /* tbrl(1), btlr(3) and tbrlv(5) are the rotated layouts */
+	  tc->fVertical = (tc->textFlow == 1 || tc->textFlow == 3 ||
+			   tc->textFlow == 5);
+	  /* bits 3-4 belong to textFlow in TCGRF; the legacy
+	     fBackward/fRotateFont flags no longer exist here */
+	  tc->fBackward = (tc->textFlow == 3);
+	  tc->fRotateFont = (tc->textFlow == 4 || tc->textFlow == 5);
+	  tc->fVertMerge = ((temp16 & 0x0060) != 0);
+	  tc->fVertRestart = ((temp16 & 0x0060) == 0x60);
 	  tc->vertAlign = (temp16 & 0x0180) >> 7;
-	  tc->fUnused = (temp16 & 0xFE00) >> 9;
+	  tc->ftsWidth = (temp16 & 0x0E00) >> 9;
+	  tc->fFitText = (temp16 & 0x1000) >> 12;
+	  tc->fNoWrap = (temp16 & 0x2000) >> 13;
+	  tc->fHideMark = (temp16 & 0x4000) >> 14;
+	  tc->fUnused = 0;
 
-	  tc->wUnused = dread_16ubit (infd, &pointer);
+	  tc->wWidth = dread_16ubit (infd, &pointer);
 	  wvGetBRC_internal (&tc->brcTop, infd, pointer);
 	  pointer += cbBRC;
 	  wvGetBRC_internal (&tc->brcLeft, infd, pointer);
@@ -107,39 +123,11 @@ wvGetTCFromBucket (wvVersion ver, TC * abrc, U8 * pointer)
 void
 wvCopyTC (TC * dest, TC * src)
 {
-    dest->fFirstMerged = src->fFirstMerged;
-    dest->fMerged = src->fMerged;
-    dest->fVertical = src->fVertical;
-    dest->fBackward = src->fBackward;
-    dest->fRotateFont = src->fRotateFont;
-    dest->fVertMerge = src->fVertMerge;
-    dest->fVertRestart = src->fVertRestart;
-    dest->vertAlign = src->vertAlign;
-    dest->fUnused = src->fUnused;
-    dest->wUnused = src->wUnused;
-
-    wvCopyBRC (&src->brcTop, &dest->brcTop);
-    wvCopyBRC (&src->brcLeft, &dest->brcLeft);
-    wvCopyBRC (&src->brcBottom, &dest->brcBottom);
-    wvCopyBRC (&src->brcRight, &dest->brcRight);
+    memcpy (dest, src, sizeof (TC));
 }
 
 void
 wvInitTC (TC * item)
 {
-    item->fFirstMerged = 0;
-    item->fMerged = 0;
-    item->fVertical = 0;
-    item->fBackward = 0;
-    item->fRotateFont = 0;
-    item->fVertMerge = 0;
-    item->fVertRestart = 0;
-    item->vertAlign = 0;
-    item->fUnused = 0;
-    item->wUnused = 0;
-
-    wvInitBRC (&item->brcTop);
-    wvInitBRC (&item->brcLeft);
-    wvInitBRC (&item->brcBottom);
-    wvInitBRC (&item->brcRight);
+    memset (item, 0, sizeof (TC));
 }
