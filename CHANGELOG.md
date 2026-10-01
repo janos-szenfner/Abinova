@@ -294,6 +294,14 @@ below are on `main` but the release has not been cut yet.
   `begin()`/`end()` iterator of an empty `std::set` after a resync —
   undefined behaviour and a potential crash; it now returns early when
   the set is empty.
+- **Expression-sequencing audit** — swept the tree for unsequenced
+  read+modify of the same object (`x = x++`, `f(i++, i)`,
+  `*p++ = *p` forms), side effects inside function-call arguments that
+  depend on evaluation order, and side effects hidden inside
+  assert/debug macros that vanish in release builds.  No undefined
+  behaviour found; the one fragile construct — the tab-type cycler in
+  the top ruler assigning and pre-incrementing the same variable in a
+  single ternary — was rewritten as explicit branches.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

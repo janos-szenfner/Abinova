@@ -2203,11 +2203,13 @@ void AP_TopRuler::mousePress(EV_EditModifierState /* ems */,
 		int currentTabType = m_iDefaultTabType;
 		if(emb == EV_EMB_BUTTON1)
 		{
-			currentTabType = ++currentTabType >= __FL_TAB_MAX ? FL_TAB_NONE+1 : currentTabType;
+			if (++currentTabType >= __FL_TAB_MAX)
+				currentTabType = FL_TAB_NONE+1;
 		}
 		else
 		{
-			currentTabType = --currentTabType <= FL_TAB_NONE ? __FL_TAB_MAX-1 :  currentTabType;
+			if (--currentTabType <= FL_TAB_NONE)
+				currentTabType = __FL_TAB_MAX-1;
 		}
 		m_iDefaultTabType = static_cast<eTabType>(currentTabType);
 		queueDraw();
