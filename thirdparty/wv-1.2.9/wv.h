@@ -1955,7 +1955,9 @@ that indicates their length.
 	S16 reserved1;
 	U8 dmOrientPage;
 	U8 iHeadingPgn;
-	U16 pgnStart;
+	U32 pgnStart;
+	U8 fRTLGutter;
+	U8 reserved5;
 	S16 lnnMin;
 	S16 wTextFlow;
 	S16 reserved2;
@@ -2314,7 +2316,7 @@ that indicates their length.
 	sprmSLBetween = 0x3019,
 	sprmSVjc = 0x301A,
 	sprmSLnnMin = 0x501B,
-	sprmSPgnStart = 0x501C,
+	sprmSPgnStart97 = 0x501C,
 	sprmSBOrientation = 0x301D,
 	sprmSBCustomize = 0x301E,
 	sprmSXaPage = 0xB01F,
@@ -2325,19 +2327,34 @@ that indicates their length.
 	sprmSDyaBottom = 0x9024,
 	sprmSDzaGutter = 0xB025,
 	sprmSDmPaperReq = 0x5026,
-	sprmSPropRMark = 0xD227,
+	sprmSPropRMark97 = 0xD227,
 	sprmSFBiDi = 0x3228,
 	sprmSFFacingCol = 0x3229,
 	sprmSFRTLGutter = 0x322A,
-	sprmSBrcTop = 0x702B,
-	sprmSBrcLeft = 0x702C,
-	sprmSBrcBottom = 0x702D,
-	sprmSBrcRight = 0x702E,
+	sprmSBrcTop80 = 0x702B,
+	sprmSBrcLeft80 = 0x702C,
+	sprmSBrcBottom80 = 0x702D,
+	sprmSBrcRight80 = 0x702E,
 	sprmSPgbProp = 0x522F,
 	sprmSDxtCharSpace = 0x7030,
 	sprmSDyaLinePitch = 0x9031,
 	sprmSClm = 0x5032,
 	sprmSTextFlow = 0x5033,
+	sprmSBrcTop = 0xD234,
+	sprmSBrcLeft = 0xD235,
+	sprmSBrcBottom = 0xD236,
+	sprmSBrcRight = 0xD237,
+	sprmSWall = 0x3239,
+	sprmSRsid = 0x703A,
+	sprmSFpc = 0x303B,
+	sprmSRncFtn = 0x303C,
+	sprmSRncEdn = 0x303E,
+	sprmSNFtn = 0x503F,
+	sprmSNfcFtnRef = 0x5040,
+	sprmSNEdn = 0x5041,
+	sprmSNfcEdnRef = 0x5042,
+	sprmSPropRMark = 0xD243,
+	sprmSPgnStart = 0x7044,
 
 	sprmTJc90 = 0x5400,
 	sprmTDxaLeft = 0x9601,

@@ -982,13 +982,16 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  break;
       case sprmSDxaColWidth:
       case sprmSDxaColSpacing:
-	  /* well then no one has docs for these two , they're 3 long
-	     but affects (i guess by name) a 89 long array so who
-	     knows
-	   */
-	  bread_8ubit (pointer, pos);
-	  bread_8ubit (pointer, pos);
-	  bread_8ubit (pointer, pos);
+	  {
+	      /* ColWidthOperand / ColSpacingOperand (MS-DOC 2.4.2.19):
+	         byte 0 is the column index, bytes 1-2 the signed dxa */
+	      U8 iCol = bread_8ubit (pointer, pos);
+	      S32 dxaCol = (S32) (S16) bread_16ubit (pointer, pos);
+	      if (iCol <= 43)
+		  asep->rgdxaColumnWidthSpacing[iCol * 2
+						+ (sprm == sprmSDxaColWidth ? 0 : 1)]
+			  = dxaCol;
+	  }
 	  break;
       case sprmSFEvenlySpaced:
 	  asep->fEvenlySpaced = bread_8ubit (pointer, pos);
@@ -1000,7 +1003,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  asep->dmBinFirst = bread_16ubit (pointer, pos);
 	  break;
       case sprmSDmBinOther:
-	  asep->dmBinFirst = bread_16ubit (pointer, pos);
+	  asep->dmBinOther = bread_16ubit (pointer, pos);
 	  break;
       case sprmSBkc:
 	  asep->bkc = bread_8ubit (pointer, pos);
@@ -1054,13 +1057,16 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  asep->fLBetween = bread_8ubit (pointer, pos);
 	  break;
       case sprmSVjc:
-	  asep->fLBetween = bread_8ubit (pointer, pos);
+	  asep->vjc = bread_8ubit (pointer, pos);
 	  break;
       case sprmSLnnMin:
 	  asep->lnnMin = (S16) bread_16ubit (pointer, pos);
 	  break;
-      case sprmSPgnStart:
+      case sprmSPgnStart97:
 	  asep->pgnStart = bread_16ubit (pointer, pos);
+	  break;
+      case sprmSPgnStart:
+	  asep->pgnStart = bread_32ubit (pointer, pos);
 	  break;
       case sprmSBOrientation:
 	  asep->dmOrientPage = bread_8ubit (pointer, pos);
@@ -1093,30 +1099,54 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmSDmPaperReq:
 	  asep->dmPaperReq = bread_16ubit (pointer, pos);
 	  break;
+      case sprmSPropRMark97:
       case sprmSPropRMark:
 	  wvApplysprmSPropRMark (asep, pointer, pos);
 	  break;
       case sprmSFBiDi:
 	  asep->fBidi = bread_8ubit (pointer, pos);
 	  break;
-      case sprmSFFacingCol: /* ?????? , what the hell are these two */
-      case sprmSFRTLGutter:
+      case sprmSFFacingCol:
 	  bread_8ubit (pointer, pos);
 	  break;
-      case sprmSBrcTop:
+      case sprmSFRTLGutter:
+	  asep->fRTLGutter = bread_8ubit (pointer, pos);
+	  break;
+      case sprmSBrcTop80:
 	  (*pos) += wvGetBRCFromBucket (ver, &asep->brcTop, pointer);
 	  break;
-      case sprmSBrcLeft:
+      case sprmSBrcLeft80:
 	  (*pos) += wvGetBRCFromBucket (ver, &asep->brcLeft, pointer);
 	  break;
-      case sprmSBrcBottom:
+      case sprmSBrcBottom80:
 	  (*pos) += wvGetBRCFromBucket (ver, &asep->brcBottom, pointer);
 	  break;
-      case sprmSBrcRight:
+      case sprmSBrcRight80:
 	  (*pos) += wvGetBRCFromBucket (ver, &asep->brcRight, pointer);
 	  break;
+      case sprmSBrcTop:
+	  (*pos) += wvGetBRCOperandFromBucket (&asep->brcTop, pointer);
+	  break;
+      case sprmSBrcLeft:
+	  (*pos) += wvGetBRCOperandFromBucket (&asep->brcLeft, pointer);
+	  break;
+      case sprmSBrcBottom:
+	  (*pos) += wvGetBRCOperandFromBucket (&asep->brcBottom, pointer);
+	  break;
+      case sprmSBrcRight:
+	  (*pos) += wvGetBRCOperandFromBucket (&asep->brcRight, pointer);
+	  break;
       case sprmSPgbProp:
-	  asep->pgbProp = (S16) bread_16ubit (pointer, pos);
+	  {
+	      /* SPgbPropOperand: low byte packs pgbApplyTo (bits 0-2),
+	         pgbPageDepth (3-4) and pgbOffsetFrom (5-7); byte 1 is
+	         reserved */
+	      U16 pgb = bread_16ubit (pointer, pos);
+	      asep->pgbProp = (S16) pgb;
+	      asep->pgbApplyTo = pgb & 0x7;
+	      asep->pgbPageDepth = (pgb >> 3) & 0x3;
+	      asep->pgbOffsetFrom = (pgb >> 5) & 0x7;
+	  }
 	  break;
       case sprmSDxtCharSpace:
 	  asep->dxtCharSpace = (S32) bread_32ubit (pointer, pos);
@@ -1126,11 +1156,29 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  asep->dyaLinePitch = (S32) bread_16ubit (pointer, pos);
 	  break;
       case sprmSClm:
-	  /* who knows */
-	  bread_16ubit (pointer, pos);
+	  asep->clm = bread_16ubit (pointer, pos);
 	  break;
       case sprmSTextFlow:
 	  asep->wTextFlow = (S16) bread_16ubit (pointer, pos);
+	  break;
+      case sprmSWall:
+	  /* Bool8 "barrier": sprms after this must override, so
+	     plain sequential application is already correct */
+	  bread_8ubit (pointer, pos);
+	  break;
+      case sprmSRsid:
+	  bread_32ubit (pointer, pos);
+	  break;
+      case sprmSFpc:
+      case sprmSRncFtn:
+      case sprmSRncEdn:
+	  bread_8ubit (pointer, pos);
+	  break;
+      case sprmSNFtn:
+      case sprmSNfcFtnRef:
+      case sprmSNEdn:
+      case sprmSNfcEdnRef:
+	  bread_16ubit (pointer, pos);
 	  break;
 	  /* End of SEP */
 
@@ -3968,7 +4016,7 @@ SprmName rgsprmWord6[256] = {
     sprmNoop /*          158 */ ,
     sprmSVjc /*          159 */ ,
     sprmSLnnMin /*       160 */ ,
-    sprmSPgnStart /*     161 */ ,
+    sprmSPgnStart97 /*   161 */ ,
     sprmSBOrientation /* 162 */ ,
     sprmSBCustomize /*   163 */ ,
     sprmSXaPage /*       164 */ ,

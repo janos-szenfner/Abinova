@@ -193,6 +193,25 @@ below are on `main` but the release has not been cut yet.
   Word-style defaults are honoured (white fill + 0.75 pt border on
   text boxes, no border on floating images); deleted and
   background-part shapes are skipped.
+- **Legacy `.doc` sections/page setup audited against MS-DOC 2.6.6** —
+  the SED/SEPX sprm table in vendored wv now covers the Word 2000+
+  opcodes (`sprmSBrcTop/Left/Bottom/Right` BrcOperand page borders,
+  `sprmSPgnStart`, `sprmSWall`, `sprmSRsid`, footnote/endnote
+  numbering sprms) and decodes `sprmSDxaColWidth`/`ColSpacing`,
+  `sprmSClm`, `sprmSFRTLGutter` and `sprmSPgbProp` bitfields;
+  long-standing misparse bugs fixed (`sprmSDmBinOther` overwrote
+  `dmBinFirst`, `sprmSVjc` overwrote `fLBetween`, `sprmSBOrientation`
+  was inverted so landscape sections imported as portrait).
+  The importer now emits per-section `section-y-align`,
+  `section-text-direction`, `section-doc-grid*` (document grid),
+  `section-ln-*` (line numbering), `section-paper-src-*`,
+  `section-endnote-suppress`, `section-rtl-gutter`,
+  `section-form-protected` and `page-border-*` properties matching
+  the OOXML importer's vocabulary; `section-restart-value` is only
+  emitted when page-number restart is enabled, and a "new column"
+  break in a column-less section degrades to a page break like Word.
+  Note: Abinova's layout model has a single page size per document,
+  so per-section page sizes collapse to the first section's.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

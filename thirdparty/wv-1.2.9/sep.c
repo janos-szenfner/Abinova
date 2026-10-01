@@ -113,9 +113,11 @@ wvInitSEP (SEP * item)
     item->dyaLinePitch = 0;
     item->clm = 0;
     item->reserved1 = 0;
-    item->dmOrientPage = 0;
+    item->dmOrientPage = 1;
     item->iHeadingPgn = 0;
     item->pgnStart = 1;
+    item->fRTLGutter = 0;
+    item->reserved5 = 0;
     item->lnnMin = 0;
     item->wTextFlow = 0;
     item->reserved2 = 0;

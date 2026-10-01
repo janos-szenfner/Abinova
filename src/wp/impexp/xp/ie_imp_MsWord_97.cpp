@@ -2709,7 +2709,125 @@ int IE_Imp_MsWord_97::_eleProc(wvParseStruct *ps, UT_uint32 tag,
 /****************************************************************************/
 /****************************************************************************/
 
-int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
+/*! map a Word97+ brcType code to the OOXML ST_Border token used by the
+    page-border-* section properties (MS-DOC BrcType 2.9.22) */
+static const char *
+s_mapBrcTypeToOoxml (UT_sint32 brcType)
+{
+	switch (brcType)
+	{
+		case 1:  return "single";
+		case 3:  return "double";
+		case 5:  return "single";		// hairline
+		case 6:  return "dotted";
+		case 7:  return "dashed";
+		case 8:  return "dotDash";
+		case 9:  return "dotDotDash";
+		case 10: return "triple";
+		case 11: return "thinThickSmallGap";
+		case 12: return "thickThinSmallGap";
+		case 13: return "thinThickThinSmallGap";
+		case 14: return "thinThickMediumGap";
+		case 15: return "thickThinMediumGap";
+		case 16: return "thinThickThinMediumGap";
+		case 17: return "thinThickLargeGap";
+		case 18: return "thickThinLargeGap";
+		case 19: return "thinThickThinLargeGap";
+		case 20: return "wave";
+		case 21: return "doubleWave";
+		case 22: return "dashSmallGap";
+		case 23: return "dashDotStroked";
+		case 24: return "threeDEmboss";
+		case 25: return "threeDEngrave";
+		case 26: return "outset";
+		case 27: return "inset";
+		default: return nullptr;
+	}
+}
+
+/*! emit one side of a page border as page-border-<side>* props; sets
+    *pbHave when the side carries a real border. brcType >= 0x40 is page
+    border art which we store under a synthetic ms-art-<n> name */
+static void
+s_emitPageBorder (UT_String & s, const char * pszSide, const BRC * brc,
+				  UT_Dimension dim, bool * pbHave)
+{
+	UT_String propBuffer;
+
+	if (!brc->brcType)
+	{
+		return;
+	}
+	*pbHave = true;
+
+	if (brc->brcType >= 0x40)
+	{
+		UT_String_sprintf(propBuffer, "%s:art;", pszSide);
+		s += propBuffer;
+		UT_String_sprintf(propBuffer, "%s-art:ms-art-%d;", pszSide,
+						  brc->brcType - 0x40);
+		s += propBuffer;
+	}
+	else
+	{
+		const char * pszStyle = s_mapBrcTypeToOoxml(brc->brcType);
+		UT_String_sprintf(propBuffer, "%s:%s;", pszSide,
+						  pszStyle ? pszStyle : "single");
+		s += propBuffer;
+	}
+
+	UT_String sColor;
+	if (brc->fCv)
+	{
+		if (s_mapColorRefToColor(brc->cv, sColor))
+		{
+			UT_String_sprintf(propBuffer, "%s-color:%s;", pszSide,
+							  sColor.c_str());
+			s += propBuffer;
+		}
+	}
+	else if (brc->ico && brc->ico <= 16)
+	{
+		UT_String_sprintf(propBuffer, "%s-color:%s;", pszSide,
+						  sMapIcoToColor(brc->ico, true).c_str());
+		s += propBuffer;
+	}
+
+	/* dptLineWidth is in 1/8-point increments for brcType < 0x40 (with
+	   values < 2 treated as 2), and in whole points for brcType >=
+	   0x40 (page-border art) */
+	double dPoints;
+	if (brc->brcType < 0x40)
+	{
+		dPoints = (brc->dptLineWidth < 2 ? 2 : brc->dptLineWidth) / 8.0;
+	}
+	else
+	{
+		dPoints = brc->dptLineWidth;
+	}
+	UT_String_sprintf(propBuffer, "%s-thickness:%s;", pszSide,
+					  UT_convertInchesToDimensionString(dim, dPoints / 72.0));
+	s += propBuffer;
+
+	/* dptSpace is the border distance in points; whether it is measured
+	   from the text or the page edge is given by pgbOffsetFrom and
+	   emitted once per section */
+	if (brc->dptSpace)
+	{
+		UT_String_sprintf(propBuffer, "%s-space:%s;", pszSide,
+						  UT_convertInchesToDimensionString(dim,
+											brc->dptSpace / 72.0));
+		s += propBuffer;
+	}
+
+	if (brc->fShadow)
+	{
+		UT_String_sprintf(propBuffer, "%s-shadow:1;", pszSide);
+		s += propBuffer;
+	}
+}
+
+int IE_Imp_MsWord_97::_beginSect (wvParseStruct * ps, UT_uint32 /*tag*/,
 				  void *prop, int /*dirty*/)
 {
 	SEP * asep = static_cast <SEP *>(prop);
@@ -2734,7 +2852,8 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 		double page_height = 0.0;
 		double page_scale  = 1.0;
 
-		if (asep->dmOrientPage == 1)
+		// dmOrientPage (SBOrientationOperand): 1 = portrait, 2 = landscape
+		if (asep->dmOrientPage == 2)
 			getDoc()->m_docPageSize.setLandscape ();
 		else
 			getDoc()->m_docPageSize.setPortrait ();
@@ -2851,11 +2970,12 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 	{
 		// set to 1 when page numbering should be restarted at the beginning of this section
 		props += "section-restart:1;";
-	}
 
-	// user specified starting page number
-	UT_String_sprintf(propBuffer, "section-restart-value:%d;", asep->pgnStart);
-	props += propBuffer;
+		// user specified starting page number; sprmSPgnStart/97 are
+		// only meaningful when page number restart is enabled
+		UT_String_sprintf(propBuffer, "section-restart-value:%u;", asep->pgnStart);
+		props += propBuffer;
+	}
 
 	// columns
 	if (asep->ccolM1) {
@@ -2863,10 +2983,27 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 		UT_String_sprintf(propBuffer,"columns:%d;", (asep->ccolM1+1));
 		props += propBuffer;
 
-		// columns gap
+		// columns gap; when columns are not evenly spaced our model
+		// cannot express per-column widths -- approximate with the
+		// average inter-column spacing from sprmSDxaColSpacing
+		double dGap = static_cast<double>(asep->dxaColumns);
+		if (!asep->fEvenlySpaced)
+		{
+			double dSum = 0.0;
+			UT_sint32 n = 0;
+			for (UT_sint32 c = 0; c < asep->ccolM1 && c < 44; c++)
+			{
+				if (asep->rgdxaColumnWidthSpacing[c * 2 + 1])
+				{
+					dSum += asep->rgdxaColumnWidthSpacing[c * 2 + 1];
+					n++;
+				}
+			}
+			if (n)
+				dGap = dSum / n;
+		}
 		UT_String_sprintf(propBuffer,"column-gap:%s;",
-			UT_convertInchesToDimensionString(m_dim,
-											  (static_cast<double>(asep->dxaColumns) / 1440)));
+			UT_convertInchesToDimensionString(m_dim, dGap / 1440));
 		props += propBuffer;
 	}
 
@@ -2882,9 +3019,156 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 											  (static_cast<double>(asep->dzaGutter) / 1440)));
 	props += propBuffer;
 
-	//
-	// TODO: section breaks
-	//
+	// vertical justification of section content (Vjc)
+	if (asep->vjc)
+	{
+		const char * pszVjc = nullptr;
+		switch (asep->vjc)
+		{
+			case 1: pszVjc = "center"; break;
+			case 2: pszVjc = "both"; break;	// vjcBoth == vAlign "both" (justified vertically)
+			case 3: pszVjc = "bottom"; break;
+		}
+		if (pszVjc)
+		{
+			UT_String_sprintf(propBuffer, "section-y-align:%s;", pszVjc);
+			props += propBuffer;
+		}
+	}
+
+	// text flow (MSOTXFL -> OOXML ST_TextDirection tokens)
+	if (asep->wTextFlow)
+	{
+		const char * pszDir = nullptr;
+		switch (asep->wTextFlow)
+		{
+			case 1: pszDir = "tbRl"; break;	// msotxflVertN
+			case 2: pszDir = "btLr"; break;	// msotxflHorzA
+			case 3: pszDir = "tbRlV"; break;	// msotxflVert270
+			case 4: pszDir = "lrTbV"; break;	// msotxflWordArtVert
+			case 5: pszDir = "tbLrV"; break;	// msotxflWordArtVertL
+		}
+		if (pszDir)
+		{
+			UT_String_sprintf(propBuffer, "section-text-direction:%s;", pszDir);
+			props += propBuffer;
+		}
+	}
+
+	// printer paper sources (tray indices) for first/other pages
+	if (asep->dmBinFirst)
+	{
+		UT_String_sprintf(propBuffer, "section-paper-src-first:%d;", asep->dmBinFirst);
+		props += propBuffer;
+	}
+	if (asep->dmBinOther)
+	{
+		UT_String_sprintf(propBuffer, "section-paper-src-other:%d;", asep->dmBinOther);
+		props += propBuffer;
+	}
+
+	// line numbering (sprmSNLnnMod != 0 enables it)
+	if (asep->nLnnMod)
+	{
+		UT_String_sprintf(propBuffer, "section-ln-count-by:%d;", asep->nLnnMod);
+		props += propBuffer;
+		if (asep->dxaLnn)
+		{
+			UT_String_sprintf(propBuffer, "section-ln-distance:%d;", asep->dxaLnn);
+			props += propBuffer;
+		}
+		// SLncOperand -> OOXML lnNumType@restart tokens
+		const char * pszLnRestart = (asep->lnc == 0) ? "newPage" :
+			(asep->lnc == 1) ? "newSection" : "continuous";
+		UT_String_sprintf(propBuffer, "section-ln-restart:%s;", pszLnRestart);
+		props += propBuffer;
+		// lnnMin is one less than the number of the first line number
+		UT_String_sprintf(propBuffer, "section-ln-start:%d;", asep->lnnMin + 1);
+		props += propBuffer;
+	}
+
+	// document grid (SClmOperand -> OOXML docGrid@type tokens)
+	if (asep->clm)
+	{
+		const char * pszGrid = nullptr;
+		switch (asep->clm)
+		{
+			case 1: pszGrid = "linesAndChars"; break;	// clmCharsAndLines
+			case 2: pszGrid = "lines"; break;		// clmLinesOnly
+			case 3: pszGrid = "snapToChars"; break;	// clmEnforceGrid
+		}
+		if (pszGrid)
+		{
+			UT_String_sprintf(propBuffer, "section-doc-grid:%s;", pszGrid);
+			props += propBuffer;
+		}
+		if (asep->dyaLinePitch)
+		{
+			UT_String_sprintf(propBuffer, "section-doc-grid-line-pitch:%d;",
+							  asep->dyaLinePitch);
+			props += propBuffer;
+		}
+		if (asep->dxtCharSpace)
+		{
+			// dxtCharSpace is a pitch difference in 1/4096 pt; the
+			// OOXML prop carries twentieths of a point
+			UT_String_sprintf(propBuffer, "section-doc-grid-char-space:%d;",
+							  static_cast<UT_sint32>(asep->dxtCharSpace * 20 / 4096));
+			props += propBuffer;
+		}
+	}
+
+	// endnote suppression (sprmSFEndnote == 0)
+	if (!asep->fEndNote)
+	{
+		props += "section-endnote-suppress:1;";
+	}
+
+	// right-to-left gutter position
+	if (asep->fRTLGutter)
+	{
+		props += "section-rtl-gutter:1;";
+	}
+
+	// a section is only protected when document protection is on
+	// (DopBase.fProtEnabled); sprmSFProtected un-protects a section
+	if (ps && ps->dop.fProtEnabled)
+	{
+		UT_String_sprintf(propBuffer, "section-form-protected:%d;",
+						  asep->fUnlocked ? 0 : 1);
+		props += propBuffer;
+	}
+
+	// page borders
+	bool bHavePageBorders = false;
+	s_emitPageBorder(props, "page-border-top", &asep->brcTop, m_dim,
+					 &bHavePageBorders);
+	s_emitPageBorder(props, "page-border-left", &asep->brcLeft, m_dim,
+					 &bHavePageBorders);
+	s_emitPageBorder(props, "page-border-bottom", &asep->brcBottom, m_dim,
+					 &bHavePageBorders);
+	s_emitPageBorder(props, "page-border-right", &asep->brcRight, m_dim,
+					 &bHavePageBorders);
+	if (bHavePageBorders)
+	{
+		// PgbApplyTo -> OOXML pgBorders@display tokens
+		const char * pszDisplay = nullptr;
+		switch (asep->pgbApplyTo)
+		{
+			case 0: pszDisplay = "allPages"; break;
+			case 1: pszDisplay = "firstPage"; break;
+			case 2: pszDisplay = "notFirstPage"; break;
+		}
+		if (pszDisplay)
+		{
+			UT_String_sprintf(propBuffer, "page-border-display:%s;", pszDisplay);
+			props += propBuffer;
+		}
+		// PgbOffsetFrom -> OOXML pgBorders@offsetFrom tokens
+		UT_String_sprintf(propBuffer, "page-border-offset:%s;",
+						  asep->pgbOffsetFrom ? "page" : "text");
+		props += propBuffer;
+	}
 
 	// page-margin-left
 	UT_String_sprintf(propBuffer, "page-margin-left:%s;",
@@ -3066,15 +3350,13 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 	// TODO: we need to do some work on Headers/Footers
 
 	/*
-	 * break codes:
-	 * 0 No break
-	 * 1 New column
-	 * 2 New page
-	 * 3 Even page
-	 * 4 Odd page
+	 * break codes (SBkcOperand):
+	 * 0 continuous -- the section starts on the next line
+	 * 1 new column
+	 * 2 new page
+	 * 3 even page
+	 * 4 odd page
 	 */
-
-	//	if (asep->bkc > 1 && m_nSections > 1) // don't apply on the 1st page
 	if (m_nSections > 1) // don't apply on the 1st page
 	{
 		// new sections always need a block
@@ -3088,19 +3370,22 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 		UT_UCS4Char ucs = UCS_FF;
 		switch (asep->bkc) {
 			case 1:
-				ucs = UCS_VTAB;
+				// a column break in a section without columns is
+				// treated as a page break by MSO
+				if (asep->ccolM1 > 0)
+					ucs = UCS_VTAB;
+				X_CheckError(_appendSpan(&ucs,1));
+				break;
+
+			case 3: // even page
+			case 4: // odd page
+				// our model cannot insert the filler page that a
+				// true even/odd section break requires; a page break
+				// is the closest we can do
 				X_CheckError(_appendSpan(&ucs,1));
 				break;
 
 			case 2:
-				X_CheckError(_appendSpan(&ucs,1));
-				break;
-
-			case 3: // TODO: handle me better (not even)
-				X_CheckError(_appendSpan(&ucs,1));
-				break;
-
-			case 4: // TODO: handle me better (not odd)
 				X_CheckError(_appendSpan(&ucs,1));
 				break;
 
