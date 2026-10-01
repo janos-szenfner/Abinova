@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 #include "ut_locale.h"
 
 #include <zlib.h>
@@ -992,6 +993,7 @@ IE_Imp_MsWord_97::~IE_Imp_MsWord_97()
 	DELETEPV(m_pTextboxes);
 	DELETEPV(m_pFootnotes);
 	DELETEPV(m_pEndnotes);
+	DELETEPV(m_pAnnotations);
 	DELETEPV(m_pHeaders);
 	_freeFields();
 }
@@ -1027,6 +1029,12 @@ IE_Imp_MsWord_97::IE_Imp_MsWord_97(PD_Document * pDocument)
 	m_bInFNotes(false),
 	m_bInENotes(false),
 	m_pNotesEndSection(nullptr),
+	m_pAnnotations(nullptr),
+	m_iAnnotationsCount(0),
+	m_iNextAnnotation(0),
+	m_iAnnAnchor(0),
+	m_bInAnnotations(false),
+	m_pAnnotationEndSection(nullptr),
 	m_pHeaders(nullptr),
 	m_iHeadersCount(0),
 	m_iHeadersStart(0xffffffff),
@@ -1377,7 +1385,7 @@ void IE_Imp_MsWord_97::_flush ()
   pf_Frag * pF = getDoc()->getLastFrag();
   if (pF && pF->getType() == pf_Frag::PFT_Strux) {
 	  pf_Frag_Strux * pFS = (pf_Frag_Strux*)pF;
-	  if ((pFS->getStruxType() != PTX_Block) && (pFS->getStruxType() != PTX_EndFootnote) && (pFS->getStruxType() != PTX_EndEndnote))
+	  if ((pFS->getStruxType() != PTX_Block) && (pFS->getStruxType() != PTX_EndFootnote) && (pFS->getStruxType() != PTX_EndEndnote) && (pFS->getStruxType() != PTX_EndAnnotation))
 		  m_bInPara = false;
   }
 
@@ -1743,6 +1751,7 @@ int IE_Imp_MsWord_97::_docProc (wvParseStruct * ps, UT_uint32 tag)
 		UT_DEBUGMSG(("  Found %d Positioned TextBoxes \n",ps->nooffspa));
 		// now retrieve the note info ...
 		_handleNotes(ps);
+		_handleAnnotations(ps);
 		_handleHeaders(ps);
 		_handleTextBoxes(ps);
 
@@ -1794,6 +1803,13 @@ int IE_Imp_MsWord_97::_docProc (wvParseStruct * ps, UT_uint32 tag)
 		// ending exactly at the end of the document)
 		while(m_pBookmarks && m_iBmCursor < m_iBookmarksCount)
 			_insertBookmark(&m_pBookmarks[m_iBmCursor++]);
+		// close any annotation anchors left dangling, e.g. a comment
+		// range that ran to (or past) the last imported CP
+		while(!m_vecAnnOpen.empty())
+		{
+			m_vecAnnOpen.pop_back();
+			_appendObject(PTO_Annotation, PP_NOPROPS);
+		}
 		break;
 	default:
 		break;
@@ -1902,6 +1918,8 @@ int IE_Imp_MsWord_97::_charProc (wvParseStruct *ps, U16 eachchar, U8 chartype, U
 		return 0;
 	if(!_handleNotesText(ps->currentcp))
 		return 0;
+	if(!_handleAnnotationsText(ps->currentcp,eachchar))
+		return 0;
 	if(!_handleTextboxesText(ps->currentcp))
 		return 0;
 
@@ -1911,6 +1929,9 @@ int IE_Imp_MsWord_97::_charProc (wvParseStruct *ps, U16 eachchar, U8 chartype, U
 		_insertBookmarkIfAppropriate(ps->currentcp);
 
 	if(_insertNoteIfAppropriate(ps->currentcp,eachchar))
+		return 0;
+
+	if(_insertAnnotationIfAppropriate(ps->currentcp))
 		return 0;
 
 	// convert incoming character to unicode
@@ -2029,6 +2050,9 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 	if(!_handleNotesText(ps->currentcp))
 		return 0;
 
+	if(!_handleAnnotationsText(ps->currentcp,eachchar))
+		return 0;
+
 	if(!_handleTextboxesText(ps->currentcp))
 		return 0;
 
@@ -2036,8 +2060,11 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 	// field ...
 	if(!ps->fieldstate)
 		_insertBookmarkIfAppropriate(ps->currentcp);
-	
+
 	if(_insertNoteIfAppropriate(ps->currentcp,0))
+		return 0;
+
+	if(_insertAnnotationIfAppropriate(ps->currentcp))
 		return 0;
 
 	if(eachchar == 0x28)
@@ -2106,10 +2133,16 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 			return 0;
 		}
 
-		pos = wvStream_tell(ps->data);
-
 #ifdef SUPPORTS_OLD_IMAGES
 		UT_DEBUGMSG(("Pre W97 Image format.\n"));
+		// sprmCPicLocation points at a PICF in the Data stream;
+		// reject offsets that can't possibly hold one
+		if (ps->data == nullptr || achp->fcPic_fcObj_lTagObj >= wvStream_size(ps->data))
+		{
+			UT_DEBUGMSG(("Bogus fcPic %u\n", achp->fcPic_fcObj_lTagObj));
+			return 0;
+		}
+		pos = wvStream_tell(ps->data);
 		wvStream_goto(ps->data, achp->fcPic_fcObj_lTagObj);
 
 		if (1 == wvGetPICF(wvQuerySupported(&ps->fib, nullptr), &picf,
@@ -2117,7 +2150,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 		{
 			fil = picf.rgb;
 
-			if (wv0x01(&blip, fil, picf.lcb - picf.cbHeader))
+			if (wv0x01(&blip, fil, wvStream_size(fil), ps->data))
 			{
 				this->_handleImage(&blip, picf.mx * picf.dxaGoal / 1000, picf.my * picf.dyaGoal / 1000, picf.dyaCropTop, picf.dyaCropBottom, picf.dxaCropLeft, picf.dxaCropRight);
 			}
@@ -2133,12 +2166,11 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 		else
 		{
 			UT_DEBUGMSG(("Couldn't import graphic!\n"));
+			wvStream_goto(ps->data, pos);
 			return 0;
 		}
 #else
 		UT_DEBUGMSG(("DOM: 0x01 graphics support is disabled at the moment\n"));
-		wvStream_goto(ps->data, pos);
-
 		return 0;
 #endif
 		break;
@@ -2184,7 +2216,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 
 				UT_DEBUGMSG(("IE_Imp_MsWord_97:: escher: ps->fib.fcDggInfo %d ps->fib.lcbDggInfo %d \n", ps->fib.fcDggInfo,ps->fib.lcbDggInfo));
 				wvGetEscher (&item, ps->fib.fcDggInfo, ps->fib.lcbDggInfo, ps->tablefd,
-							 ps->mainfd);
+							 ps->data);
 				for (i = 0; i < item.dgcontainer.no_spgrcontainer; i++)
 				{
 					answer = wvFindSPID (&(item.dgcontainer.spgrcontainer[i]), fspa->spid);
@@ -2346,7 +2378,7 @@ int IE_Imp_MsWord_97::_beginComment(wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 int IE_Imp_MsWord_97::_endComment(wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 				  void * /*props*/, int /*dirty*/)
 {
-  UT_DEBUGMSG(("DOM: begin comment\n"));
+  UT_DEBUGMSG(("DOM: end comment\n"));
   return 0;
 }
 
@@ -2824,7 +2856,7 @@ int IE_Imp_MsWord_97::_endSect (wvParseStruct * /* ps */ , UT_uint32  /* tag */ 
 #endif
 
 	// we never appended a paragraph inside of this section. we're naughty. correct that here.
-	if (!m_bInPara  && !m_bInTextboxes)
+	if (!m_bInPara  && !m_bInTextboxes && !m_bInAnnotations)
 		_appendStrux(PTX_Block, PP_NOPROPS);
 
 	// if there is a pending page break it belongs to the section and
@@ -2856,6 +2888,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 	// for future use, but we do not want the strux actually inserted
 	bool bDoNotInsertStrux = (ps->currentcp == m_iFootnotesStart ||
 							  ps->currentcp == m_iEndnotesStart  ||
+							  ps->currentcp == m_iAnnotationsStart ||
 							  ps->currentcp == m_iHeadersStart);
 
 	// the end of endnotes/fnotes/headers and all other subsections in
@@ -2895,7 +2928,17 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 	{
 		bDoNotInsertStrux = true;
 	}
-	
+
+	// a comment body likewise ends in a superfluous paragraph mark,
+	// and paragraph struxes inside the body are suppressed -- the
+	// body gets a single block created when its range is entered
+	if(m_bInAnnotations && m_iNextAnnotation < m_iAnnotationsCount && m_pAnnotations &&
+	   m_pAnnotations[m_iNextAnnotation].txt_len &&
+	   m_pAnnotations[m_iNextAnnotation].txt_pos + m_pAnnotations[m_iNextAnnotation].txt_len - 1 >= ps->currentcp)
+	{
+		bDoNotInsertStrux = true;
+	}
+
 
 	// the header section requires even more special care; since we
 	// need to insert the HdrFtr strux for each header before we can
@@ -3397,6 +3440,7 @@ int IE_Imp_MsWord_97::_beginChar (wvParseStruct *ps, UT_uint32 /*tag*/,
 	// for future use, but we do not want them actually appended
 	bool bDoNotAppendFmt = (ps->currentcp == m_iFootnotesStart ||
 							  ps->currentcp == m_iEndnotesStart  ||
+							  ps->currentcp == m_iAnnotationsStart ||
 							  ps->currentcp == m_iHeadersStart);
 
 	// the end of endnotes/fnotes/headers and all other subsections in
@@ -3427,7 +3471,14 @@ int IE_Imp_MsWord_97::_beginChar (wvParseStruct *ps, UT_uint32 /*tag*/,
 	{
 		bDoNotAppendFmt = true;
 	}
-	 
+
+	if(m_bInAnnotations && m_iNextAnnotation < m_iAnnotationsCount && m_pAnnotations &&
+	   m_pAnnotations[m_iNextAnnotation].txt_len &&
+	   m_pAnnotations[m_iNextAnnotation].txt_pos + m_pAnnotations[m_iNextAnnotation].txt_len - 1 >= ps->currentcp)
+	{
+		bDoNotAppendFmt = true;
+	}
+
 	// the header section requires even more special care; since we
 	// need to insert the HdrFtr strux for each header before we can
 	// insert the block, we do not want a strux and fmt inserted at the start
@@ -4532,6 +4583,14 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 		UT_DEBUGMSG(("Could not import graphic\n"));
 		return error;
 	}
+
+	// Word picture fields can legitimately carry a zero or negative
+	// goal size (or a zero scaling factor); fall back to the image's
+	// natural size so we don't emit a zero-sized object
+	if (width <= 0)
+		width = static_cast<long>(pFG->getWidth() * 1440.0);
+	if (height <= 0)
+		height = static_cast<long>(pFG->getHeight() * 1440.0);
 
 	buf = pFG->getBuffer();
 
@@ -7648,6 +7707,460 @@ bool IE_Imp_MsWord_97::_handleNotesText(UT_uint32 iDocPosition)
 	return true;
 }
 
+/*!
+    Retrieve the comment tables (MS-DOC 2.3.4): PlcfandRef gives the
+    main-document CP of each 0x05 comment reference mark plus an
+    ATRDPre10 of metadata, PlcfandTxt the body ranges in the annotation
+    subdocument.  The annotated range itself is resolved through the
+    ATRD's lTagBkmk -- the matching ATNBE in SttbfAtnBkmk indexes
+    PlcfAtnbkf/PlcfAtnbkl; comments with lTagBkmk -1 anchor at a point.
+    Author names come from GrpXstAtnOwners (ATRD.ibst) and initials from
+    the ATRD's LPXCharBuffer9; Word 2000+ also carries an AtrdExtra with
+    a DTTM per comment.
+*/
+void IE_Imp_MsWord_97::_handleAnnotations(const wvParseStruct *ps)
+{
+	UT_uint32 i;
+
+	DELETEPV(m_pAnnotations);
+	m_iAnnotationsCount = 0;
+	m_iAnnAnchor = 0;
+	m_vecAnnOrder.clear();
+	m_vecAnnOpen.clear();
+
+	// PlcfandTxt holds n+2 CPs; a smaller lcb cannot describe a comment
+	if(ps->fib.lcbPlcfandTxt < 12)
+		return;
+
+	UT_uint32 count = ps->fib.lcbPlcfandTxt/4 - 2;
+	/* PlcfandRef holds n+1 U32 positions plus n ATRDPre10s of cbATRD
+	   bytes each -- never let the count exceed what it can hold */
+	UT_uint32 maxByRef = ps->fib.lcbPlcfandRef >= 4 ?
+		(ps->fib.lcbPlcfandRef - 4)/(4 + cbATRD) : 0;
+	if(count > maxByRef)
+		count = maxByRef;
+	if(!count)
+		return;
+
+	ATRD *atrd = nullptr;
+	U32 *posRef = nullptr;
+	U32  noatrd = 0;
+	if(wvGetATRD_PLCF(&atrd, &posRef, &noatrd, ps->fib.fcPlcfandRef,
+					 ps->fib.lcbPlcfandRef, ps->tablefd))
+		return;
+	if(noatrd < count)
+		count = noatrd;
+
+	U32 *pTxt = nullptr;
+	if(!count ||
+	   wvGetPLCF((void **) &pTxt, ps->fib.fcPlcfandTxt,
+				 ps->fib.lcbPlcfandTxt, ps->tablefd))
+	{
+		wvFree(atrd);
+		wvFree(posRef);
+		return;
+	}
+
+	// annotation bookmarks: lTagBkmk -> ATNBE in SttbfAtnBkmk ->
+	// PlcfAtnbkf/PlcfAtnbkl bounds
+	STTBF atnbkmk;
+	atnbkmk.extendedflag = 0;
+	atnbkmk.nostrings = 0;
+	atnbkmk.extradatalen = 0;
+	atnbkmk.s8strings = nullptr;
+	atnbkmk.u16strings = nullptr;
+	atnbkmk.extradata = nullptr;
+	wvGetSTTBF(&atnbkmk, ps->fib.fcSttbfAtnbkmk,
+			   ps->fib.lcbSttbfAtnbkmk, ps->tablefd);
+
+	BKF *bkf = nullptr;
+	BKL *bkl = nullptr;
+	U32 *posBKF = nullptr, *posBKL = nullptr, nbkf = 0, nbkl = 0;
+	bool bBkfOk = !wvGetBKF_PLCF(&bkf, &posBKF, &nbkf,
+							   ps->fib.fcPlcfAtnbkf,
+							   ps->fib.lcbPlcfAtnbkf, ps->tablefd);
+	bool bBklOk = !wvGetBKL_PLCF(&bkl, &posBKL, &nbkl,
+							   ps->fib.fcPlcfAtnbkl,
+							   ps->fib.lcbPlcfAtnbkl,
+							   ps->fib.fcPlcfAtnbkf,
+							   ps->fib.lcbPlcfAtnbkf, ps->tablefd);
+
+	// the author names
+	STTBF owners;
+	wvGetGrpXst(&owners, ps->fib.fcGrpXstAtnOwners,
+				ps->fib.lcbGrpXstAtnOwners, ps->tablefd);
+
+	try
+	{
+		m_pAnnotations = new msAnnotation[count];
+	}
+	catch(...)
+	{
+		m_pAnnotations = nullptr;
+	}
+
+	if(!m_pAnnotations)
+	{
+		wvFree(atrd);
+		wvFree(posRef);
+		wvFree(pTxt);
+		if(bBkfOk)
+		{
+			wvFree(bkf);
+			wvFree(posBKF);
+		}
+		if(bBklOk)
+		{
+			wvFree(bkl);
+			wvFree(posBKL);
+		}
+		wvReleaseSTTBF(&atnbkmk);
+		wvReleaseSTTBF(&owners);
+		return;
+	}
+	m_iAnnotationsCount = count;
+
+	for(i = 0; i < count; i++)
+	{
+		msAnnotation & a = m_pAnnotations[i];
+		a.ref_pos       = posRef[i];
+		a.txt_pos       = pTxt[i] + m_iAnnotationsStart;
+		a.txt_len       = (pTxt[i+1] > pTxt[i]) ? pTxt[i+1] - pTxt[i] : 0;
+		a.pid           = getDoc()->getUID(UT_UniqueId::Annotation);
+		a.open          = false;
+		a.endSection    = nullptr;
+
+		// default to a point comment anchored at the reference mark
+		a.anchor_first  = a.ref_pos;
+		a.anchor_last   = a.ref_pos;
+
+		if(atrd[i].lTagBkmk >= 0 && bBkfOk && bBklOk && atnbkmk.extradata)
+		{
+			for(U32 j = 0; j < atnbkmk.nostrings; j++)
+			{
+				// ATNBE: bmc (2) + lTag (4) + lTagOld (4)
+				if(atnbkmk.extradatalen < 6 || !atnbkmk.extradata[j])
+					continue;
+				S32 lTag = (S32) sread_32ubit(atnbkmk.extradata[j] + 2);
+				if(lTag == atrd[i].lTagBkmk && j < nbkf &&
+				   bkf[j].ibkl >= 0 && (U32) bkf[j].ibkl < nbkl)
+				{
+					a.anchor_first = posBKF[j];
+					a.anchor_last  = posBKL[bkf[j].ibkl];
+					break;
+				}
+			}
+		}
+		/* keep the anchor sane: it cannot begin after its reference
+		   mark, and it ends where the reference mark sits at the
+		   latest */
+		if(a.anchor_first > a.ref_pos)
+			a.anchor_first = a.ref_pos;
+		if(a.anchor_last > a.ref_pos || a.anchor_last < a.anchor_first)
+			a.anchor_last = a.ref_pos;
+
+		// author name: ATRD.ibst indexes the GrpXstAtnOwners XSTs
+		if(atrd[i].ibst >= 0 && (U32) atrd[i].ibst < owners.nostrings &&
+		   owners.u16strings && owners.u16strings[atrd[i].ibst])
+		{
+			UT_UTF8String s;
+			const U16 * p = owners.u16strings[atrd[i].ibst];
+			s.appendUCS2(reinterpret_cast<const UT_UCS2Char *>(p),
+						 UT_UCS2_strlen(reinterpret_cast<const UT_UCS2Char *>(p)));
+			a.author = s.utf8_str();
+		}
+
+		// initials: LPXCharBuffer9 is cch (<= 9) then 9 U16 chars
+		if(atrd[i].xstUsrInitl[0] && atrd[i].xstUsrInitl[0] <= 9)
+		{
+			UT_UTF8String s;
+			s.appendUCS2(reinterpret_cast<const UT_UCS2Char *>(atrd[i].xstUsrInitl + 1),
+						 atrd[i].xstUsrInitl[0]);
+			a.initials = s.utf8_str();
+		}
+	}
+
+	/* AtrdExtra carries one ATRDPost10 (18 bytes) per comment, in the
+	   same order; its first member is the comment's DTTM: mint:6,
+	   hr:5, dom:5, mon:4, yr:9 (offset 1900), wdy:3 */
+	if(ps->fib.lcbAtrdExtra >= count * 18 && ps->fib.fcAtrdExtra > 0)
+	{
+		for(i = 0; i < count; i++)
+		{
+			wvStream_goto(ps->tablefd, ps->fib.fcAtrdExtra + i * 18);
+			U32 dttm = read_32ubit(ps->tablefd);
+			U32 mon = (dttm >> 16) & 0xF;
+			U32 dom = (dttm >> 11) & 0x1F;
+			U32 yr  = ((dttm >> 20) & 0x1FF) + 1900;
+			if(dom && mon)
+			{
+				m_pAnnotations[i].date =
+					UT_std_string_sprintf("%u-%u-%u", mon, dom, yr);
+			}
+		}
+	}
+
+	// anchors fire in document order of their start position, which
+	// need not match the comment order in a nested/overlapping range
+	for(i = 0; i < count; i++)
+		m_vecAnnOrder.push_back(i);
+	std::stable_sort(m_vecAnnOrder.begin(), m_vecAnnOrder.end(),
+					 [this](UT_uint32 x, UT_uint32 y) {
+						 return m_pAnnotations[x].anchor_first <
+							 m_pAnnotations[y].anchor_first;
+					 });
+
+#ifdef DEBUG
+	for(i = 0; i < count; i++)
+	{
+		UT_DEBUGMSG(("Annotation %d: ref %d anchor [%d,%d] txt [%d,+%d] "
+					 "author '%s' date '%s'\n", i, m_pAnnotations[i].ref_pos,
+					 m_pAnnotations[i].anchor_first,
+					 m_pAnnotations[i].anchor_last,
+					 m_pAnnotations[i].txt_pos, m_pAnnotations[i].txt_len,
+					 m_pAnnotations[i].author.c_str(),
+					 m_pAnnotations[i].date.c_str()));
+	}
+#endif
+
+	wvFree(atrd);
+	wvFree(posRef);
+	wvFree(pTxt);
+	if(bBkfOk)
+	{
+		wvFree(bkf);
+		wvFree(posBKF);
+	}
+	if(bBklOk)
+	{
+		wvFree(bkl);
+		wvFree(posBKL);
+	}
+	wvReleaseSTTBF(&atnbkmk);
+	wvReleaseSTTBF(&owners);
+}
+
+/*!
+    Emit the anchor start object and the (empty) shadow section for a
+    comment: [PTO_Annotation][SectionAnnotation][EndAnnotation], the
+    same skeleton the OXML importer builds at a w:commentRangeStart.
+    The body's own block is created when the decode reaches the
+    annotation subdocument.  Author/initials/date ride in the strux
+    "props" attribute -- fl_AnnotationLayout reads them as properties.
+*/
+bool IE_Imp_MsWord_97::_insertAnnotationStart(msAnnotation * a)
+{
+	UT_return_val_if_fail(a, false);
+	this->_flush();
+
+	std::string pid = UT_std_string_sprintf("%u", a->pid);
+	const PP_PropertyVector attribsA = {
+		"annotation", pid
+	};
+	_appendObject(PTO_Annotation, attribsA);
+
+	PP_PropertyVector attribsS = {
+		"annotation-id", pid
+	};
+	// ';' and ':' are the prop-list separators in the serialized form
+	std::string props;
+	for(const std::string * pVal : {&a->author, &a->initials, &a->date})
+	{
+		if(pVal->empty())
+			continue;
+		std::string v = *pVal;
+		std::replace(v.begin(), v.end(), ';', ',');
+		std::replace(v.begin(), v.end(), ':', ',');
+		const char * name = (pVal == &a->author) ? "annotation-author" :
+			(pVal == &a->initials) ? "annotation-initials" :
+			"annotation-date";
+		if(!props.empty())
+			props += "; ";
+		props += name;
+		props += ":";
+		props += v;
+	}
+	if(!props.empty())
+	{
+		attribsS.push_back("props");
+		attribsS.push_back(props);
+	}
+
+	_appendStrux(PTX_SectionAnnotation, attribsS);
+	_appendStrux(PTX_EndAnnotation, PP_NOPROPS);
+	a->endSection = getDoc()->getLastFrag();
+	a->open = true;
+	return true;
+}
+
+/*!
+    Open/close the comment anchors due at this main-document position.
+    The end object is anonymous (it closes the innermost open anchor),
+    so a simple stack of open comments suffices even for nested or
+    overlapping comment ranges.
+
+    \return true if the character at this position is a comment
+            reference mark (0x05) that must not be imported
+*/
+bool IE_Imp_MsWord_97::_insertAnnotationIfAppropriate(UT_uint32 iDocPosition)
+{
+	if(!m_pAnnotations || !m_iAnnotationsCount ||
+	   iDocPosition >= m_iTextEnd)
+		return false;
+
+	// open every anchor whose range begins here
+	while(m_iAnnAnchor < m_vecAnnOrder.size() &&
+		  m_pAnnotations[m_vecAnnOrder[m_iAnnAnchor]].anchor_first <=
+		  iDocPosition)
+	{
+		_insertAnnotationStart(&m_pAnnotations[m_vecAnnOrder[m_iAnnAnchor]]);
+		m_vecAnnOpen.push_back(m_vecAnnOrder[m_iAnnAnchor]);
+		m_iAnnAnchor++;
+	}
+
+	// close anchors whose range ended before this character; flush
+	// first so the last anchored characters land before the end
+	// marker instead of after it
+	for(size_t k = m_vecAnnOpen.size(); k > 0; )
+	{
+		k--;
+		msAnnotation * pA = &m_pAnnotations[m_vecAnnOpen[k]];
+		if(pA->anchor_last <= iDocPosition)
+		{
+			this->_flush();
+			_appendObject(PTO_Annotation, PP_NOPROPS);
+			m_vecAnnOpen.erase(m_vecAnnOpen.begin() + k);
+		}
+	}
+
+	// swallow a reference mark (0x05) that arrived without sprmCFSpec
+	bool res = false;
+	for(UT_uint32 i = 0; i < m_iAnnotationsCount; i++)
+	{
+		if(m_pAnnotations[i].ref_pos == iDocPosition)
+		{
+			res = true;
+			break;
+		}
+	}
+	return res;
+}
+
+/*!
+    Discard a pending line/page break and any run of break characters
+    already buffered when a character inside the annotation
+    subdocument is swallowed.  Each comment body ends in a paragraph
+    mark, which the main char path turns into a pending UCS_LF --
+    without this it would surface as a leading break in the next
+    comment's text.
+*/
+void IE_Imp_MsWord_97::_dropAnnotationBreaks(void)
+{
+	m_bPageBreakPending = false;
+	m_bLineBreakPending = false;
+
+	bool bAllBreaks = true;
+	for(UT_uint32 i = 0; i < m_pTextRun.size(); i++)
+	{
+		UT_UCS4Char ch = m_pTextRun[i];
+		if(ch != UCS_LF && ch != UCS_FF)
+		{
+			bAllBreaks = false;
+			break;
+		}
+	}
+	if(bAllBreaks)
+		m_pTextRun.clear();
+}
+
+/*!
+    Route the annotation-subdocument text into the comment shadows.
+    Mirrors _handleNotesText: entering the story switches the append
+    methods over to insert-before the current comment's EndAnnotation
+    frag; each body begins with a spec'd 0x05 mark and ends before the
+    next range, the story's trailing paragraph mark is dropped.
+
+    \return false if the present character is to be skipped
+*/
+bool IE_Imp_MsWord_97::_handleAnnotationsText(UT_uint32 iDocPosition,
+											  UT_UCS4Char c)
+{
+	if(iDocPosition >= m_iAnnotationsStart &&
+	   iDocPosition < m_iAnnotationsEnd)
+	{
+		if(!m_bInAnnotations)
+		{
+			xxx_UT_DEBUGMSG(("In annotation territory: pos %d\n",
+							 iDocPosition));
+			m_bInAnnotations = true;
+			m_bInHeaders = false;
+			m_iNextAnnotation = 0;
+			_findNextAnnotationSection();
+			_endSect(nullptr,0,nullptr,0);
+			m_bInSect = true;
+		}
+
+		while(m_iNextAnnotation < m_iAnnotationsCount &&
+			  iDocPosition >= m_pAnnotations[m_iNextAnnotation].txt_pos +
+							  m_pAnnotations[m_iNextAnnotation].txt_len)
+		{
+			// push out any buffered text while the insert point still
+			// refers to the comment it belongs to
+			this->_flush();
+			m_iNextAnnotation++;
+			if(m_iNextAnnotation < m_iAnnotationsCount)
+				_findNextAnnotationSection();
+		}
+
+		// anything outside a body range -- the story's trailing
+		// paragraph mark, gaps between bodies and bodies of comments
+		// whose shadow was never created -- contributes nothing
+		if(m_iNextAnnotation >= m_iAnnotationsCount ||
+		   !m_pAnnotationEndSection ||
+		   iDocPosition < m_pAnnotations[m_iNextAnnotation].txt_pos)
+		{
+			_dropAnnotationBreaks();
+			return false;
+		}
+
+		msAnnotation * pA = &m_pAnnotations[m_iNextAnnotation];
+		if(iDocPosition == pA->txt_pos)
+		{
+			// the first character of a body is the comment's own 0x05
+			// reference mark; start the shadow's paragraph here and
+			// drop the mark (the layout draws its own anchor)
+			const PP_PropertyVector attribsB = {
+				"props", m_paraProps.c_str(),
+				"style", m_paraStyle.c_str()
+			};
+			_appendStrux(PTX_Block, attribsB);
+			m_bInPara = true;
+			if(c == 0x05)
+			{
+				_dropAnnotationBreaks();
+				return false;
+			}
+		}
+
+		xxx_UT_DEBUGMSG(("In annotation %d, on pos %d\n",
+						 m_iNextAnnotation, iDocPosition));
+		return true;
+	}
+	else if(m_bInAnnotations)
+	{
+		m_bInAnnotations = false;
+		xxx_UT_DEBUGMSG(("Leaving annotation territory\n"));
+	}
+	return true;
+}
+
+bool IE_Imp_MsWord_97::_findNextAnnotationSection()
+{
+	m_pAnnotationEndSection =
+		(m_iNextAnnotation < m_iAnnotationsCount) ?
+		m_pAnnotations[m_iNextAnnotation].endSection : nullptr;
+	return m_pAnnotationEndSection != nullptr;
+}
 
 
 /*!
@@ -7891,6 +8404,10 @@ bool IE_Imp_MsWord_97::_appendStrux(PTStruxType pts, const PP_PropertyVector & a
 	{
 		return getDoc()->insertStruxBeforeFrag(m_pNotesEndSection, pts, attributes);
 	}
+	else if(m_bInAnnotations && m_pAnnotationEndSection)
+	{
+		return getDoc()->insertStruxBeforeFrag(m_pAnnotationEndSection, pts, attributes);
+	}
 	else if(m_bInTextboxes && m_pTextboxEndSection)
 	{
 		if(pts == PTX_Block)
@@ -7938,6 +8455,10 @@ bool IE_Imp_MsWord_97::_appendObject(PTObjectType pto, const PP_PropertyVector &
 	{
 		return getDoc()->insertObjectBeforeFrag(m_pNotesEndSection, pto, attributes);
 	}
+	else if(m_bInAnnotations && m_pAnnotationEndSection)
+	{
+		return getDoc()->insertObjectBeforeFrag(m_pAnnotationEndSection, pto, attributes);
+	}
 	else if(m_bInTextboxes && m_pTextboxEndSection)
 	{
 		return getDoc()->insertObjectBeforeFrag(m_pTextboxEndSection, pto, attributes);
@@ -7959,6 +8480,10 @@ bool IE_Imp_MsWord_97::_appendSpan(const UT_UCS4Char * p, UT_uint32 length)
 	else if(_shouldUseInsert() && m_pNotesEndSection)
 	{
 		return getDoc()->insertSpanBeforeFrag(m_pNotesEndSection, p, length);
+	}
+	else if(m_bInAnnotations && m_pAnnotationEndSection)
+	{
+		return getDoc()->insertSpanBeforeFrag(m_pAnnotationEndSection, p, length);
 	}
 	else if(m_bInTextboxes && m_pTextboxEndSection)
 	{

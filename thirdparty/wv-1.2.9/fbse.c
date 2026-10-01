@@ -36,9 +36,10 @@ wvCopyBlip (Blip * dest, Blip * src)
 
     if (src->name)
       {
-	  dest->name = (U16 *) wvMalloc (src->fbse.cbName * sizeof (U16));
-	  for (i = 0; i < src->fbse.cbName; i++)
-	      dest->name[i] = src->name[i];
+	  /* fbse.cbName is a byte count; name holds cbName/2 U16s */
+	  dest->name = (U16 *) wvMalloc (src->fbse.cbName);
+	  for (i = 0; i + 1 < src->fbse.cbName; i += 2)
+	      dest->name[i / 2] = src->name[i / 2];
       }
     else
 	dest->name = NULL;
@@ -63,56 +64,126 @@ wvReleaseBlip (Blip * blip)
     wvFree (blip->name);
 }
 
+/*
+  Read one OfficeArtBlip record (header + payload) from fd into blip.
+  Returns bytes consumed.  Unknown record types are skipped so the
+  caller's stream stays aligned; blip->type is msoblipERROR then.
+*/
+static U32
+wvGetBlipData (Blip * blip, wvStream * fd)
+{
+    MSOFBH amsofbh;
+    U32 count2;
+    U16 type;
+
+    count2 = wvGetMSOFBH (&amsofbh, fd);
+    wvTrace (
+	     ("HERE is %x %x (%d)\n", wvStream_tell (fd), amsofbh.fbt,
+	      amsofbh.fbt - msofbtBlipFirst));
+    type = (U16) (amsofbh.fbt - msofbtBlipFirst);
+    switch (type)
+      {
+      case msoblipWMF:
+      case msoblipEMF:
+      case msoblipPICT:
+	  count2 += wvGetMetafile (&blip->blip.metafile, &amsofbh, fd);
+	  blip->type = type;
+	  break;
+      case msoblipJPEG:
+      case msoblipPNG:
+      case msoblipDIB:
+	  count2 += wvGetBitmap (&blip->blip.bitmap, &amsofbh, fd);
+	  blip->type = type;
+	  break;
+      default:
+	  /* not a blip we can use (TIFF, client blips, or a misparse):
+	     eat the record so the caller's stream stays aligned */
+	  blip->type = msoblipERROR;
+	  wvStream_offset (fd, amsofbh.cbLength);
+	  count2 += amsofbh.cbLength;
+	  break;
+      }
+    return (count2);
+}
+
+/*
+  Read a bare OfficeArtBlip record (0xF018-0xF117) -- the kind stored
+  directly in an OfficeArtBStoreContainerFileBlock or in the rgfb of
+  an OfficeArtInlineSpContainer, i.e. without a wrapping FBSE.
+*/
+U32
+wvGetBlipRecord (Blip * blip, wvStream * fd)
+{
+    memset (&blip->fbse, 0, sizeof (FBSE));
+    blip->name = NULL;
+    return wvGetBlipData (blip, fd);
+}
+
 U32
 wvGetBlip (Blip * blip, wvStream * fd, wvStream * delay)
 {
     U32 i, count, count2;
     MSOFBH amsofbh;
     long pos = 0;
+    int delayed = 0;
+
     count = wvGetFBSE (&blip->fbse, fd);
     wvTrace (("count is %d\n", count));
+
+    /* cbName is the length in BYTES of the UTF-16LE nameData field
+       (even, <=0xfe); an odd byte is padding */
     if (blip->fbse.cbName == 0)
 	blip->name = NULL;
     else
-	blip->name = (U16 *) wvMalloc (sizeof (U16) * blip->fbse.cbName);
-    for (i = 0; i < blip->fbse.cbName; i++)
-	blip->name[i] = read_16ubit (fd);
-    count += blip->fbse.cbName * 2;
+	blip->name = (U16 *) wvMalloc (blip->fbse.cbName);
+    if (blip->name)
+      {
+	  for (i = 0; i + 1 < blip->fbse.cbName; i += 2)
+	      blip->name[i / 2] = read_16ubit (fd);
+	  if (blip->fbse.cbName & 1)
+	      read_8ubit (fd);
+      }
+    else
+	wvStream_offset (fd, blip->fbse.cbName);
+    count += blip->fbse.cbName;
     wvTrace (("count is %d\n", count));
     wvTrace (("offset %x\n", blip->fbse.foDelay));
 
-    if (delay)
+    /* foDelay == 0xffffffff means the blip is embedded in this record;
+       anything else is an offset into the delay stream (the Data
+       stream for Word) */
+    if (blip->fbse.foDelay != 0xffffffffUL)
       {
-	  pos = wvStream_tell (delay);
-	  if(blip->fbse.foDelay!=-1)
+	  if (delay && blip->fbse.foDelay < wvStream_size (delay))
+	    {
+		pos = wvStream_tell (delay);
 		wvStream_goto (delay, blip->fbse.foDelay);
-	  wvTrace (("offset %x\n", blip->fbse.foDelay));
-	  fd = delay;
+		wvTrace (("offset %x\n", blip->fbse.foDelay));
+		fd = delay;
+		delayed = 1;
+	    }
+	  else
+	    {
+		/* no delay stream available (or a bogus offset): peek
+		   whether the blip was embedded anyway; if not, report
+		   an empty slot but stay aligned for the next record */
+		long save = wvStream_tell (fd);
+		U16 fbt;
+		read_16ubit (fd);
+		fbt = read_16ubit (fd);
+		wvStream_goto (fd, save);
+		if (fbt < msofbtBlipFirst || fbt > 0xF117)
+		  {
+		      blip->type = msoblipERROR;
+		      return (count);
+		  }
+	    }
       }
 
-    count2 = wvGetMSOFBH (&amsofbh, fd);
+    count2 = wvGetBlipData (blip, fd);
     wvTrace (("count is %d\n", count2));
-    wvTrace (
-	     ("HERE is %x %x (%d)\n", wvStream_tell (fd), amsofbh.fbt,
-	      amsofbh.fbt - msofbtBlipFirst));
-    wvTrace (("type is %x\n", amsofbh.fbt));
-    switch (amsofbh.fbt - msofbtBlipFirst)
-      {
-      case msoblipWMF:
-      case msoblipEMF:
-      case msoblipPICT:
-	  count2 += wvGetMetafile (&blip->blip.metafile, &amsofbh, fd);
-	  break;
-      case msoblipJPEG:
-      case msoblipPNG:
-      case msoblipDIB:
-	  count2 += wvGetBitmap (&blip->blip.bitmap, &amsofbh, fd);
-	  break;
-      }
-    wvTrace (("count is %d\n", count2));
-    blip->type = amsofbh.fbt - msofbtBlipFirst;
 
-    if (delay)
+    if (delayed)
       {
 	  wvStream_goto (delay, pos);
 	  return (count);
@@ -166,25 +237,20 @@ wvGetBitmap (BitmapBlip * abm, MSOFBH * amsofbh, wvStream * fd)
       {
       case msoblipPNG:
 	  wvTrace (("msoblipPNG\n"));
-	  /*  sprintf(buffer,"%s-wv-%d.png",aimage,no++); */
-	  if (amsofbh->inst ^ msobiPNG)
-	      extra = 1;
 	  break;
       case msoblipJPEG:
 	  wvTrace (("msoblipJPEG\n"));
-	  /*  sprintf(buffer,"%s-wv-%d.jpg",aimage,no++); */
-	  if (amsofbh->inst ^ msobiJFIF)
-	      extra = 1;
 	  break;
       case msoblipDIB:
 	  wvTrace (("msoblipDIB\n"));
-	  /*  sprintf(buffer,"%s-wv-%d.dib",aimage,no++); */
-	  if (amsofbh->inst ^ msobiDIB)
-	      extra = 1;
 	  break;
       }
 
-    if (extra)
+    /* per MS-ODRAW the two-UID variants are exactly the odd
+       recInstance values (0x217/0x3D5/0x543/0x46B/0x6E1/0x6E3/0x7A9);
+       testing inst^sig!=0 would wrongly eat a second UID for
+       e.g. JPEG 0x6E2 */
+    if (amsofbh->inst & 1)
       {
 	  for (i = 0; i < 16; i++)
 	      abm->m_rgbUidPrimary[i] = read_8ubit (fd);
@@ -195,28 +261,34 @@ wvGetBitmap (BitmapBlip * abm, MSOFBH * amsofbh, wvStream * fd)
     abm->m_pvBits = NULL;
 
     count++;
-    stm = wvStream_TMP_create (amsofbh->cbLength);
+    if (amsofbh->cbLength <= count)
+	return amsofbh->cbLength;
 
-    if (!stm) {
-      abm->m_pvBits = NULL;
-      return 0;
-    }
+    U32 datalen = amsofbh->cbLength - count;
+    long avail = (long) wvStream_size (fd) - (long) wvStream_tell (fd);
+    if (avail < 0)
+	avail = 0;
+    if (datalen > (U32) avail)
+	datalen = (U32) avail;
 
-    char *tmp = wvMalloc( amsofbh->cbLength - count);
-    if (!tmp) {
-      abm->m_pvBits = NULL;
-      return 0;
-    }
-    wvStream_read(tmp,1,amsofbh->cbLength - count,fd);
-    wvStream_write(tmp,1,amsofbh->cbLength - count,stm);
-    wvFree(tmp);
-    
+    /* the stream must hold exactly the image bytes, not cbLength:
+       the uid/tag header is not part of the image data */
+    stm = wvStream_TMP_create (datalen);
+    if (!stm)
+	return count;
+
+    char *tmp = wvMalloc (datalen ? datalen : 1);
+    if (!tmp)
+	return count;
+    wvStream_read (tmp, 1, datalen, fd);
+    wvStream_write (tmp, 1, datalen, stm);
+    wvFree (tmp);
+
     wvStream_rewind (stm);
-    
+
     abm->m_pvBits = stm;
 
-    count += i;
-    return count;
+    return (count + datalen);
 }
 
 void
@@ -252,31 +324,18 @@ wvGetMetafile (MetaFileBlip * amf, MSOFBH * amsofbh, wvStream * fd)
       {
       case msoblipEMF:
 	  wvTrace (("msoblipEMF\n"));
-	  /*
-	     sprintf(buffer,"%s-wv-%d.emf",aimage,no++);
-	   */
-	  if (amsofbh->inst ^ msobiEMF)
-	      extra = 1;
 	  break;
       case msoblipWMF:
 	  wvTrace (("msoblipWMF\n"));
-	  /*
-	     sprintf(buffer,"%s-wv-%d.wmf",aimage,no++);
-	   */
-	  if (amsofbh->inst ^ msobiWMF)
-	      extra = 1;
 	  break;
       case msoblipPICT:
 	  wvTrace (("msoblipPICT\n"));
-	  /*
-	     sprintf(buffer,"%s-wv-%d.pict",aimage,no++);
-	   */
-	  if (amsofbh->inst ^ msobiPICT)
-	      extra = 1;
 	  break;
       }
 
-    if (extra)
+    /* two-UID variants are the odd recInstance values (see
+       wvGetBitmap) */
+    if (amsofbh->inst & 1)
       {
 	  for (i = 0; i < 16; i++)
 	      amf->m_rgbUidPrimary[i] = read_8ubit (fd);
@@ -297,16 +356,29 @@ wvGetMetafile (MetaFileBlip * amf, MSOFBH * amsofbh, wvStream * fd)
     amf->m_pvBits = NULL;
     count += 34;
 
-    buf = wvMalloc(amsofbh->cbLength);
+    if (amsofbh->cbLength <= count)
+	return amsofbh->cbLength;
+
+    U32 datalen = amsofbh->cbLength - count;
+    long avail = (long) wvStream_size (fd) - (long) wvStream_tell (fd);
+    if (avail < 0)
+	avail = 0;
+    if (datalen > (U32) avail)
+	datalen = (U32) avail;
+
+    buf = wvMalloc (datalen ? datalen : 1);
+    if (!buf)
+	return count;
     p = buf;
 
-    for (i = count; i < amsofbh->cbLength; i++)
+    for (i = 0; i < datalen; i++)
 	*p++ = read_8ubit (fd);
     count += i;
 
-    wvStream_memory_create (&stm, buf, amsofbh->cbLength);
+    /* the stream must hold exactly the metafile bytes */
+    wvStream_memory_create (&stm, buf, datalen);
 
-    amf->m_pvBits = stm; 
+    amf->m_pvBits = stm;
 
     return (count);
 }

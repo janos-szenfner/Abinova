@@ -45,9 +45,21 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
     size_t size;
 
     long pos = wvStream_tell (fd);
+    long recstart = pos;
 
     apicf->lcb = read_32ubit (fd);
     apicf->cbHeader = read_16ubit (fd);
+    apicf->rgb = NULL;
+    /* sanity: the header must fit inside lcb, and lcb must fit in
+       what remains of the stream */
+    {
+	long avail = (long) wvStream_size (fd) - recstart;
+	if (avail < 6 || (long) apicf->lcb < (long) apicf->cbHeader + 6L
+	    || apicf->cbHeader < 6)
+	    return 0;
+	if (avail >= 0 && apicf->lcb > (U32) avail)
+	    apicf->lcb = (U32) avail;
+    }
     wvTrace (("size of pic is %x (%d)\n", apicf->cbHeader, apicf->cbHeader));
     apicf->mfp_mm = (S16) read_16ubit (fd);
     wvTrace (("mm type is %d\n", apicf->mfp_mm));
@@ -123,14 +135,14 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
   	  if(i!=-1)/*Found BMP */
 	  {
 		wvTrace (("len is %d, header len guess is %d\n", len, i));
-		if (i + 2 >= len)
+		if (i + 2 >= len || i + 40 > len)
 		{
 			wvTrace (("all read ok methinks\n"));
 			apicf->rgb = NULL;
 			return 1;
 		}
 	    len -= i;
-		
+
 		pos = wvStream_tell (fd);
 
 		for(j=0;j< sizeof(bmp_header);j++)
@@ -140,16 +152,20 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 
 		if ( bpp < 9)
 		{
-		    colors_used = bmp_header[32] 
+		    colors_used = bmp_header[32]
 			+ (bmp_header[33] << 8)
 			+ (bmp_header[34] << 16)
 			+ (bmp_header[35] << 24);
+		    /* bpp<=8 always has a color table; a biClrUsed of 0
+		       means the full 1<<bpp entries */
+		    if (colors_used == 0)
+			colors_used = 1 << bpp;
 		}
 		else
 		{
 		colors_used = 0;
 		}
-	
+
 		wvStream_goto(fd,pos);  
 		
 		header_len = 14 + 40 + 4 * colors_used;
@@ -188,7 +204,7 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 	  pWordStructs = wvMalloc(lWordStructsSize);	  
 	  PutWord8Structs(&bse_pic_amsofbh, pWordStructs, lWordStructsSize);
 
- 	  size = lHeaderSize + lWordStructsSize + apicf->lcb - apicf->cbHeader;
+ 	  size = lHeaderSize + lWordStructsSize + len;
 	  p = buf = wvMalloc(size);
 
 	  if(!p)
@@ -207,11 +223,23 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 	  wvFree(pHeader);
 	}
 	else{
- 		size = apicf->lcb - apicf->cbHeader;
+		U32 remaining = apicf->lcb - apicf->cbHeader;
+		/* for MM_SHAPEFILE (0x66) a counted picture name precedes
+		   the OfficeArtInlineSpContainer */
+		if (apicf->mfp_mm == 0x66 && remaining > 0)
+		{
+			U32 namelen = read_8ubit (fd);
+			remaining--;
+			if (namelen > remaining)
+				namelen = remaining;
+			wvStream_offset (fd, namelen);
+			remaining -= namelen;
+		}
+ 		size = remaining;
 		p = buf = wvMalloc(size);
 	}
-	
-	for (; i < apicf->lcb - apicf->cbHeader; i++)
+
+	for (; i < apicf->lcb - apicf->cbHeader && (U32)(p - buf) < size; i++)
 	  *p++ = read_8ubit (fd);
 	
 /*	f = fopen("test.dat","wb");
@@ -408,10 +436,10 @@ U32 PutWord8Structs(MSOFBH *bse_pic_amsofbh, U8* buf, size_t size)
 	}
 
 	/*Container amsofbh*/
-	amsofbh.ver=0;
+	amsofbh.ver=0xF;
 	amsofbh.inst=0;
 	amsofbh.fbt = msofbtSpContainer;
-	amsofbh.cbLength = sizeof(opt_amsofbh) + opt_amsofbh.cbLength;
+	amsofbh.cbLength = 8 + opt_amsofbh.cbLength;
 	
 	/*Write Data*/
 	/*Container amsofbh*/
@@ -432,19 +460,23 @@ U32 PutWord8Structs(MSOFBH *bse_pic_amsofbh, U8* buf, size_t size)
 	afbse.btWin32 = 4;
 	afbse.cRef    = 1;
 	afbse.tag     = 0xff;
-	afbse.size = sizeof(*bse_pic_amsofbh) + bse_pic_amsofbh->cbLength;
-	
+	/* foDelay == 0xffffffff marks the blip record as embedded in
+	   this BSE; afbse.size is the embedded record's total size and
+	   the on-disk FBSE is 36 bytes (MSOFBH headers are 8) */
+	afbse.foDelay = 0xffffffffUL;
+	afbse.size = 8 + bse_pic_amsofbh->cbLength;
+
 	/*msofbtBSE amsofbh*/
 	bse_amsofbh.ver=0;
 	bse_amsofbh.inst=0;
 	bse_amsofbh.fbt = msofbtBSE;
-	bse_amsofbh.cbLength = sizeof(afbse) + afbse.size;
+	bse_amsofbh.cbLength = 36 + afbse.size;
 
 	count+=wvPutMSOFBH(&bse_amsofbh, fd);
-	
+
 	if(buf)
 	 wvPutFBSE (&afbse, fd);
-	count+=sizeof(afbse);
+	count+=36;
 	
 	count+=wvPutMSOFBH(bse_pic_amsofbh, fd);
 	

@@ -48,12 +48,16 @@ wvGetEscher (escherstruct * item, U32 offset, U32 len, wvStream * fd,
 {
     U32 count = 0;
     MSOFBH amsofbh;
+    long base;
 
     wvStream_goto (fd, offset);
     wvTrace (("offset %x, len %d\n", offset, len));
     wvInitEscher (item);
+    base = wvStream_tell (fd);
     while (count < len)
       {
+	  long recstart = wvStream_tell (fd);
+	  long recend;
 	  count += wvGetMSOFBH (&amsofbh, fd);
 	  wvTrace (
 		   ("count is %x,len is %x, next len is %x\n", count, len,
@@ -70,10 +74,20 @@ wvGetEscher (escherstruct * item, U32 offset, U32 len, wvStream * fd,
 		count += wvGetDgContainer (&item->dgcontainer, &amsofbh, fd);
 		break;
 	    default:
-		wvError (("Not a container, panic (%x)\n", amsofbh.fbt));
-		return;
-		break;
+		/* stray padding bytes appear between the top-level
+		   records of some producers' OfficeArtDggInfo (the old
+		   "extra byte" hack in wvGetDggContainer worked around
+		   exactly this): skip a single byte and rescan */
+		wvTrace (("skipping pad byte at %x\n", recstart));
+		wvStream_goto (fd, recstart + 1);
+		count = recstart + 1 - base;
+		continue;
 	    }
+	  /* resync to the end of the record whatever the child read */
+	  recend = recstart + 8 + amsofbh.cbLength;
+	  if ((long) wvStream_tell (fd) != recend)
+	      wvStream_goto (fd, recend);
+	  count = recend - base;
       }
     wvTrace (("offset %x, len %d (pos %x)\n", offset, len, wvStream_tell (fd)));
 }
@@ -100,9 +114,12 @@ wvGetDggContainer (DggContainer * item, MSOFBH * msofbh, wvStream * fd,
 {
     MSOFBH amsofbh;
     U32 count = 0;
+    long entry = wvStream_tell (fd);
 
     while (count < msofbh->cbLength)
       {
+	  long recstart = wvStream_tell (fd);
+	  long recend;
 	  count += wvGetMSOFBH (&amsofbh, fd);
 	  wvTrace (
 		   ("len is %x, type is %x, count %x,fullen %x\n",
@@ -121,7 +138,8 @@ wvGetDggContainer (DggContainer * item, MSOFBH * msofbh, wvStream * fd,
 		count +=
 		    wvGetBstoreContainer (&item->bstorecontainer, &amsofbh,
 					  fd, delay);
-		wvTrace (
+		if (item->bstorecontainer.no_fbse)
+		    wvTrace (
 			 ("type is %d (number is %d\n",
 			  item->bstorecontainer.blip[item->bstorecontainer.
 						     no_fbse - 1].type,
@@ -132,14 +150,17 @@ wvGetDggContainer (DggContainer * item, MSOFBH * msofbh, wvStream * fd,
 		wvError (("Eating type 0x%x\n", amsofbh.fbt));
 		break;
 	    }
+	  /* resync the stream to the end of the record whatever the
+	     child actually consumed */
+	  recend = recstart + 8 + amsofbh.cbLength;
+	  if ((long) wvStream_tell (fd) != recend)
+	      wvStream_goto (fd, recend);
+	  count = recend - entry;
       }
-    /*
-       For some reason I appear to have an extra byte associated either with
-       this or its wrapper, I will investigate further.
-     */
-    read_8ubit (fd);
-    count++;
 
+    /* note: the stray pad byte that used to be eaten here lives
+       between the top-level records and is now skipped in
+       wvGetEscher */
     return (count);
 }
 
@@ -185,8 +206,11 @@ wvGetBstoreContainer (BstoreContainer * item, MSOFBH * msofbh, wvStream * fd,
 {
     MSOFBH amsofbh;
     U32 count = 0;
+    long entry = wvStream_tell (fd);
     while (count < msofbh->cbLength)
       {
+	  long recstart = wvStream_tell (fd);
+	  long recend;
 	  count += wvGetMSOFBH (&amsofbh, fd);
 	  wvTrace (("type is %x\n	", amsofbh.fbt));
 	  switch (amsofbh.fbt)
@@ -204,10 +228,31 @@ wvGetBstoreContainer (BstoreContainer * item, MSOFBH * msofbh, wvStream * fd,
 			  item->blip[item->no_fbse - 1].type, item->no_fbse));
 		break;
 	    default:
-		count += wvEatmsofbt (&amsofbh, fd);
-		wvError (("Eating type 0x%x\n", amsofbh.fbt));
+		/* an OfficeArtBStoreContainerFileBlock can also be a
+		   bare OfficeArtBlip record (0xF018-0xF117): it still
+		   occupies one rgfb slot, which the pib index counts */
+		if (amsofbh.fbt >= msofbtBlipFirst && amsofbh.fbt <= 0xF117)
+		  {
+		      wvTrace (("Bare blip at %x\n", wvStream_tell (fd)));
+		      item->no_fbse++;
+		      item->blip =
+			  (Blip *) realloc (item->blip,
+					    sizeof (Blip) * item->no_fbse);
+		      item->blip[item->no_fbse - 1].fbse.cbName = 0;
+		      wvGetBlipRecord (&(item->blip[item->no_fbse - 1]), fd);
+		      /* wvGetBlipData already consumed header+payload */
+		  }
+		else
+		  {
+		      count += wvEatmsofbt (&amsofbh, fd);
+		      wvError (("Eating type 0x%x\n", amsofbh.fbt));
+		  }
 		break;
 	    }
+	  recend = recstart + 8 + amsofbh.cbLength;
+	  if ((long) wvStream_tell (fd) != recend)
+	      wvStream_goto (fd, recend);
+	  count = recend - entry;
       }
     return (count);
 }
@@ -217,12 +262,15 @@ wvGetDgContainer (DgContainer * item, MSOFBH * msofbh, wvStream * fd)
 {
     MSOFBH amsofbh;
     U32 count = 0;
+    long entry = wvStream_tell (fd);
 
     item->spcontainer = NULL;
     item->no_spcontainer = 0;
 
     while (count < msofbh->cbLength)
       {
+	  long recstart = wvStream_tell (fd);
+	  long recend;
 	  count += wvGetMSOFBH (&amsofbh, fd);
 	  wvTrace (
 		   ("len is %x, type is %x, count %x,fullen %x\n",
@@ -245,7 +293,7 @@ wvGetDgContainer (DgContainer * item, MSOFBH * msofbh, wvStream * fd)
 					 [item->no_spgrcontainer - 1]), &amsofbh, fd);
 		break;
 		case msofbtSpContainer:
-	      	item->no_spcontainer++; 
+	      	item->no_spcontainer++;
 		item->spcontainer =
 		    (FSPContainer *) realloc (item->spcontainer,
 					       sizeof (FSPContainer) *
@@ -254,12 +302,16 @@ wvGetDgContainer (DgContainer * item, MSOFBH * msofbh, wvStream * fd)
 		    wvGetFSPContainer (&
 	        			(item->spcontainer
 					 [item->no_spcontainer - 1]), &amsofbh, fd);
-		break; 
+		break;
 	    default:
 		count += wvEatmsofbt (&amsofbh, fd);
 		wvError (("Eating type 0x%x\n", amsofbh.fbt));
 		break;
 	    }
+	  recend = recstart + 8 + amsofbh.cbLength;
+	  if ((long) wvStream_tell (fd) != recend)
+	      wvStream_goto (fd, recend);
+	  count = recend - entry;
       }
     return (count);
 }
@@ -307,6 +359,7 @@ wvGetSpgrContainer (SpgrContainer * item, MSOFBH * msofbh, wvStream * fd)
 {
     MSOFBH amsofbh;
     U32 count = 0;
+    long entry = wvStream_tell (fd);
 
     item->spgrcontainer = NULL;
     item->no_spgrcontainer = 0;
@@ -315,6 +368,8 @@ wvGetSpgrContainer (SpgrContainer * item, MSOFBH * msofbh, wvStream * fd)
 
     while (count < msofbh->cbLength)
       {
+	  long recstart = wvStream_tell (fd);
+	  long recend;
 	  count += wvGetMSOFBH (&amsofbh, fd);
 	  wvTrace (
 		   ("len is %x, type is %x, count %x,fullen %x\n",
@@ -347,6 +402,10 @@ wvGetSpgrContainer (SpgrContainer * item, MSOFBH * msofbh, wvStream * fd)
 		wvError (("Eating type 0x%x\n", amsofbh.fbt));
 		break;
 	    }
+	  recend = recstart + 8 + amsofbh.cbLength;
+	  if ((long) wvStream_tell (fd) != recend)
+	      wvStream_goto (fd, recend);
+	  count = recend - entry;
       }
     return (count);
 }
@@ -464,8 +523,10 @@ wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
     escherstruct item;
     FSPContainer *answer = NULL;
     wvTrace (("spid is %x\n", spid));
+    /* the OfficeArt delay stream for Word documents is the Data
+       stream, not the main stream */
     wvGetEscher (&item, ps->fib.fcDggInfo, ps->fib.lcbDggInfo, ps->tablefd,
-		 ps->mainfd);
+		 ps->data);
 
     for (i = 0; i < item.dgcontainer.no_spgrcontainer; i++)
       {
@@ -481,6 +542,8 @@ wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
       {
 	  while (answer->fopte[i].pid != 0)
 	    {
+		/* 260 == 0x104 == the pib property: a 1-based index into
+		   the blip store */
 		if (answer->fopte[i].pid == 260)
 		  {
 		      wvTrace (
@@ -489,7 +552,8 @@ wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
 		      wvTrace (
 			       ("no blips is %d\n",
 				item.dggcontainer.bstorecontainer.no_fbse));
-		      wvTrace (
+		      if (item.dggcontainer.bstorecontainer.no_fbse)
+			  wvTrace (
 			       ("type is %d (number is %d\n",
 				item.dggcontainer.bstorecontainer.blip[item.
 								       dggcontainer.
@@ -497,7 +561,7 @@ wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
 								       no_fbse -
 								       1].type,
 				item.dggcontainer.bstorecontainer.no_fbse));
-		      if (answer->fopte[i].op <=
+		      if (answer->fopte[i].op >= 1 && answer->fopte[i].op <=
 			  item.dggcontainer.bstorecontainer.no_fbse)
 			{
 			    wvTrace (("Copied Blip\n"));
@@ -517,60 +581,66 @@ wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
     return (ret);
 }
 
-int
-wv0x01 (Blip * blip, wvStream * fd, U32 len)
+/*
+  Walk the records of a picture data region (a real
+  OfficeArtInlineSpContainer from a Word8 PICF payload, or the
+  synthesized escher wrapper that wvGetPICF builds for pre-Word8
+  data) looking for blip payloads: msofbtBSE records and bare
+  OfficeArtBlip records (0xF018-0xF117).  Shape containers are
+  recursed into, everything else is skipped in place.
+*/
+static int
+wvFindBlipInRegion (Blip * blip, wvStream * fd, U32 len, wvStream * delay)
 {
     MSOFBH amsofbh;
-    FSPContainer item;
     U32 count = 0;
-/*    char test[3];*/
     int ret = 0;
+    long base = wvStream_tell (fd);
 
+    while (count < len)
+      {
+	  long recstart = wvStream_tell (fd);
+	  long recend;
+	  count += wvGetMSOFBH (&amsofbh, fd);
+	  wvTrace (("type is %x\n	", amsofbh.fbt));
+	  if (amsofbh.fbt == msofbtBSE)
+	    {
+		wvTrace (("Blip at %x\n", wvStream_tell (fd)));
+		count += wvGetBlip (blip, fd, delay);
+		ret = 1;
+	    }
+	  else if (amsofbh.fbt >= msofbtBlipFirst && amsofbh.fbt <= 0xF117)
+	    {
+		wvTrace (("Bare blip at %x\n", wvStream_tell (fd)));
+		count += wvGetBlipRecord (blip, fd);
+		ret = 1;
+	    }
+	  else if (amsofbh.ver == 0xF)
+	    {
+		/* container: recurse into it */
+		wvTrace (("Container at %x\n", wvStream_tell (fd)));
+		if (wvFindBlipInRegion (blip, fd, amsofbh.cbLength, delay))
+		    ret = 1;
+	    }
+	  else
+	    wvStream_offset (fd, amsofbh.cbLength);
 
+	  /* resync to the declared end of the record */
+	  recend = recstart + 8 + amsofbh.cbLength;
+	  if ((long) wvStream_tell (fd) != recend)
+	      wvStream_goto (fd, recend);
+	  count = recend - base;
+      }
+    return (ret);
+}
+
+int
+wv0x01 (Blip * blip, wvStream * fd, U32 len, wvStream * delay)
+{
     if (fd == NULL)
 	return (0);
 
-  /*lvm007@aha.ru fix hack as outdated look picf*/
-    /* 
-       temp hack to test older included bmps in word 6 and 7,
-       should be wrapped in a modern escher strucure before getting
-       to here, and then handled as normal
-     */
-    /*test[2] = '\0';
-    test[0] = read_8ubit (fd);
-    test[1] = read_8ubit (fd);
-    wvStream_rewind (fd);
-    if (!(strcmp (test, "BM")))
-      {
-	  blip->blip.bitmap.m_pvBits = fd;
-	  blip->type = msoblipDIB;
-	  return (1);
-      }
-	*/
-    while (count < len)
-      {
-	  wvTrace (("count is %x,len is %x\n", count, len));
-	  count += wvGetMSOFBH (&amsofbh, fd);
-	  wvTrace (("type is %x\n	", amsofbh.fbt));
-	  switch (amsofbh.fbt)
-	    {
-	    case msofbtSpContainer:
-		wvTrace (("Container at %x\n", wvStream_tell (fd)));
-		count += wvGetFSPContainer (&item, &amsofbh, fd);
-		wvReleaseFSPContainer (&item);
-		break;
-	    case msofbtBSE:
-		wvTrace (("Blip at %x\n", wvStream_tell (fd)));
-		count += wvGetBlip (blip, fd, NULL);
-		ret = 1;
-		break;
-	    default:
-		wvError (("Not a shape container\n"));
-		return (0);
-		break;
-	    }
-      }
-    return (ret);
+    return wvFindBlipInRegion (blip, fd, len, delay);
 }
 
 U32
@@ -615,9 +685,12 @@ wvGetFSPContainer (FSPContainer * item, MSOFBH * msofbh, wvStream * fd)
 {
     MSOFBH amsofbh;
     U32 count = 0;
+    long entry = wvStream_tell (fd);
     wvInitFSPContainer (item);
     while (count < msofbh->cbLength)
       {
+	  long recstart = wvStream_tell (fd);
+	  long recend;
 	  count += wvGetMSOFBH (&amsofbh, fd);
 	  wvTrace (
 		   ("len is %x, type is %x, count %x,fullen %x\n",
@@ -653,14 +726,10 @@ wvGetFSPContainer (FSPContainer * item, MSOFBH * msofbh, wvStream * fd)
 		break;
 
 	    case msofbtTextbox:
-		wvError (("unimp\n"));
-		break;
 	    case msofbtOleObject:
-		wvError (("unimp\n"));
-		break;
-
 	    case msofbtDeletedPspl:
-		wvError (("unimp\n"));
+		/* unimplemented: eat the record so we keep advancing */
+		count += wvEatmsofbt (&amsofbh, fd);
 		break;
 
 	    default:
@@ -668,6 +737,10 @@ wvGetFSPContainer (FSPContainer * item, MSOFBH * msofbh, wvStream * fd)
 		wvError (("Eating type 0x%x\n", amsofbh.fbt));
 		break;
 	    }
+	  recend = recstart + 8 + amsofbh.cbLength;
+	  if ((long) wvStream_tell (fd) != recend)
+	      wvStream_goto (fd, recend);
+	  count = recend - entry;
       }
     return (count);
 }

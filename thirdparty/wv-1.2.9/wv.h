@@ -457,6 +457,11 @@ void _wvFree (void *ptr);
 	S32 fcSttbfUssr;	/* 0x037A */
 	U32 lcbSttbfUssr;	/* 0x037E */
 
+	/* FibRgFcLcb2002 pair 111 (MS-DOC 2.5.8); read separately since
+	   it lies beyond the Word 97 pairs */
+	S32 fcAtrdExtra;
+	U32 lcbAtrdExtra;
+
 	/* Added for Word 2 */
 
 	U32 Spare;		/* 0x000E */
@@ -3741,7 +3746,8 @@ returns the same as wvOLEDecode with the addition that
 #endif
     } FSPContainer;
 
-    int wv0x01 (Blip * blip, wvStream * fd, U32 len);
+    int wv0x01 (Blip * blip, wvStream * fd, U32 len, wvStream * delay);
+    U32 wvGetBlipRecord (Blip * blip, wvStream * fd);
     char *wvHtmlGraphic (wvParseStruct * ps, Blip * blip);
 
     U32 wvGetFSPContainer (FSPContainer * item, MSOFBH * msofbh, wvStream * fd);

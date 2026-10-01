@@ -66,6 +66,25 @@ struct footnote
 	UT_uint32  pid;
 };
 
+// a Word comment (MS-DOC 2.3.4): the PlcfandRef CP marks the 0x05
+// reference character, the ATRD's lTagBkmk resolves the annotated
+// range through SttbfAtnBkmk/PlcfAtnbkf/PlcfAtnbkl, and PlcfandTxt
+// delimits the comment body inside the annotation subdocument
+struct msAnnotation
+{
+	UT_uint32  ref_pos;
+	UT_uint32  anchor_first;
+	UT_uint32  anchor_last;
+	UT_uint32  txt_pos;
+	UT_uint32  txt_len;
+	UT_uint32  pid;
+	bool	   open;
+	pf_Frag *  endSection;	// the shadow's PTX_EndAnnotation frag
+	std::string author;
+	std::string initials;
+	std::string date;
+};
+
 
 struct textbox
 {
@@ -300,15 +319,21 @@ private:
 	void        _generateParaProps(UT_String &s, const PAP * apap, wvParseStruct *ps);
 	int         _handleBookmarks(const wvParseStruct *ps);
 	void        _handleNotes(const wvParseStruct *ps);
+	void        _handleAnnotations(const wvParseStruct *ps);
 	void        _handleTextBoxes(const wvParseStruct *ps);
 	bool        _insertNoteIfAppropriate(UT_uint32 iDocPosition,UT_UCS4Char c);
 	bool        _insertFootnote(const footnote * f, UT_UCS4Char c);
 	bool        _insertEndnote(const footnote * f, UT_UCS4Char c);
 	bool        _handleNotesText(UT_uint32 iPos);
+	bool        _handleAnnotationsText(UT_uint32 iPos, UT_UCS4Char c);
+	void        _dropAnnotationBreaks(void);
+	bool        _insertAnnotationIfAppropriate(UT_uint32 iDocPosition);
+	bool        _insertAnnotationStart(msAnnotation * a);
 	bool        _handleTextboxesText(UT_uint32 iPos);
 	bool        _findNextTextboxSection();
 	bool        _findNextFNoteSection();
 	bool        _findNextENoteSection();
+	bool        _findNextAnnotationSection();
 	bool        _shouldUseInsert()const;
 	bool        _ensureInBlock();
 	bool        _appendStrux(PTStruxType pts, const PP_PropertyVector & attributes);
@@ -396,6 +421,14 @@ private:
 	bool        m_bInFNotes;
 	bool        m_bInENotes;
 	pf_Frag *   m_pNotesEndSection;
+	msAnnotation * m_pAnnotations;
+	UT_uint32   m_iAnnotationsCount;
+	UT_uint32   m_iNextAnnotation;	// comment whose body is being read
+	UT_uint32   m_iAnnAnchor;		// cursor into m_vecAnnOrder
+	bool        m_bInAnnotations;
+	pf_Frag *   m_pAnnotationEndSection;
+	std::vector<UT_uint32> m_vecAnnOrder;	// indices sorted by anchor_first
+	std::vector<UT_uint32> m_vecAnnOpen;	// anchors currently open
 	header *    m_pHeaders;
 	UT_uint32   m_iHeadersCount;
 	UT_uint32   m_iHeadersStart;

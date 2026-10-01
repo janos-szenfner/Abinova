@@ -62,10 +62,11 @@ U32
 wvGetFOPTEArray (FOPTE ** fopte, MSOFBH * msofbh, wvStream * fd)
 {
     U32 i, j, count = 0;
-    U32 no = msofbh->cbLength / 6;
-    *fopte = (FOPTE *) wvMalloc (sizeof (FOPTE) * no);
-    no = 0;
-    while (count < msofbh->cbLength)
+    U32 alloc = msofbh->cbLength / 6 + 1;
+    U32 no = 0;
+    U32 cxavail;
+    *fopte = (FOPTE *) wvMalloc (sizeof (FOPTE) * alloc);
+    while (count < msofbh->cbLength && no < alloc)
       {
 	  wvTrace (
 		   ("count %x %x, pos %x\n", count, msofbh->cbLength,
@@ -74,11 +75,23 @@ wvGetFOPTEArray (FOPTE ** fopte, MSOFBH * msofbh, wvStream * fd)
 	  no++;
       }
     *fopte = (FOPTE *) realloc (*fopte, sizeof (FOPTE) * (no + 1));
+    /* complex property payloads follow the headers, in header order;
+       cap each at what remains of the record */
+    cxavail = (msofbh->cbLength > 6 * no) ? msofbh->cbLength - 6 * no : 0;
     for (i = 0; i < no; i++)
       {
 	  if ((*fopte)[i].fComplex)
-	      for (j = 0; j < (*fopte)[i].op; j++)
-		  (*fopte)[i].entry[j] = read_8ubit (fd);
+	    {
+		U32 toread = (*fopte)[i].op;
+		if (toread > cxavail)
+		    toread = cxavail;
+		if ((*fopte)[i].entry)
+		    for (j = 0; j < toread; j++)
+			(*fopte)[i].entry[j] = read_8ubit (fd);
+		else
+		    wvStream_offset (fd, toread);
+		cxavail -= toread;
+	    }
       }
     (*fopte)[i].pid = 0;
     wvTrace (("returning %x\n", count));

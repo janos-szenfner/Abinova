@@ -75,12 +75,15 @@ wvGetSPID (U32 spid, fsp_list * afsp_list, fbse_list * afbse_list)
 		temp = afsp_list->afopte_list;
 		while (temp != NULL)
 		  {
-		      if ((temp->afopte.fBid) && (!(temp->afopte.fComplex)))
+		      /* 260 == 0x104 == pib: 1-based index into the
+			 blip store; fBid marks a blip reference */
+		      if ((temp->afopte.fBid) && (!(temp->afopte.fComplex))
+			  && temp->afopte.pid == 260)
 			{
 			    wvTrace (
 				     ("found a graphic to go with the spid, no %d\n",
 				      temp->afopte.op));
-			    for (i = 1; i < temp->afopte.op; i++)
+			    for (i = 1; i < temp->afopte.op && afbse_list; i++)
 				afbse_list = afbse_list->next;
 			    return (afbse_list);
 			    break;

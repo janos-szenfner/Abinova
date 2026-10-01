@@ -99,14 +99,22 @@ wvGetCommentBounds (U32 * comment_cpFirst, U32 * comment_cpLim, U32 currentcp,
 		  {
 		    for (j = 0; j < bookmarks->nostrings; j++)
 			{
+			    if (!bookmarks->extradata[j])
+				continue;
 			    id =
 				(S32) sread_32ubit (bookmarks->extradata[j] +
 						    2);
-			    if (id == atrd[i].lTagBkmk)
+			    /* j indexes the annotation bookmarks (the
+			       SttbfAtnBkmk order matches PlcfAtnbkf), not
+			       the comment -- using i here resolves the
+			       wrong range for any doc where they differ */
+			    if (id == atrd[i].lTagBkmk
+				&& j < bkf_intervals
+				&& bkf[j].ibkl < bkl_intervals)
 			      {
 				  wvTrace (("bingo, index is %d!!\n", j));
-				  *comment_cpFirst = posBKF[i];
-				  *comment_cpLim = posBKL[bkf[i].ibkl];
+				  *comment_cpFirst = posBKF[j];
+				  *comment_cpLim = posBKL[bkf[j].ibkl];
 				  wvTrace (
 					   ("begin end are %d %d\n",
 					    *comment_cpFirst, *comment_cpLim));

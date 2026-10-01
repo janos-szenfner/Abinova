@@ -173,6 +173,14 @@ below are on `main` but the release has not been cut yet.
   `_PID_HLINKS` hyperlink table (MS-DOC 2.4.7) instead of emitting
   empty links; bookmarks anchored inside skipped field content are no
   longer dropped.
+- **Legacy `.doc` comments/annotations imported** — Word comments
+  (`PlcfandRef`/`PlcfandTxt` + `ATRD` records per MS-DOC 2.3.4) now
+  arrive as real Abinova annotations: the anchored text range is
+  resolved through the comment's `SttbfAtnBkmk` bookmark, comment
+  bodies land in the annotation shadow, and author (from
+  `GrpXstAtnOwners`), initials and date (Word 2000+ `AtrdExtra`
+  DTTM) are preserved. Point comments and nested/overlapping
+  comment ranges are handled.
 - **Legacy `.doc` exporter removed** (`ie_exp_MsWord_97` was dead code);
   DOC export continues via the RTF-as-DOC hack sniffer.
 - **Column balancing for short multi-column sections** — the last

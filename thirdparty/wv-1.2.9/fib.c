@@ -284,6 +284,8 @@ wvInitFIB (FIB * item)
     item->lcbSttbListNames = 0;
     item->fcSttbfUssr = 0;
     item->lcbSttbfUssr = 0;
+    item->fcAtrdExtra = 0;
+    item->lcbAtrdExtra = 0;
 
     /* Word 2 */
     item->Spare = 0;
@@ -646,6 +648,18 @@ wvGetFIB (FIB * item, wvStream * fd)
     item->fcSttbfUssr = (S32) read_32ubit (fd);
     item->lcbSttbfUssr = read_32ubit (fd);
 
+    /* fcAtrdExtra is pair 111 of FibRgFcLcb2002 (MS-DOC 2.5.8), past
+       the Word 97 pairs read above; fetch it by absolute offset when
+       the blob is long enough */
+    item->fcAtrdExtra = 0;
+    item->lcbAtrdExtra = 0;
+    if (item->cfclcb > 111)
+      {
+	  wvStream_goto (fd, WV_FIB97_FCLCB_OFF + 111 * 8);
+	  item->fcAtrdExtra = (S32) read_32ubit (fd);
+	  item->lcbAtrdExtra = read_32ubit (fd);
+      }
+
     /* [MS-DOC 2.5.3] fcMin is the offset of the first byte of document
        text and fcMac the offset after the last; a reversed range or a
        range outside the stream means the FIB is lying */
@@ -668,7 +682,7 @@ wvGetFIB (FIB * item, wvStream * fd)
 /* MS-DOC 2.5.3: every fc/lcb pair of FibRgFcLcb97 addresses data in the
    Table stream, so each pair must describe a range that lies inside it.
    The pairs are stored back to back from fcStshfOrig through
-   lcbSttbfUssr (one slot in the middle holds ftModified -- clamping a
+   lcbAtrdExtra (one slot in the middle holds ftModified -- clamping a
    timestamp is harmless); walk them in place: an fc outside the stream
    (or negative) voids the pair, an oversized lcb is cut down to the
    bytes actually present.  This keeps corrupt FIBs from steering the
@@ -677,7 +691,7 @@ void
 wvClampFIBFcLcb (FIB * item, U32 tablesize)
 {
     U32 *pairs = (U32 *) & item->fcStshfOrig;
-    U32 npairs = ((U32) ((char *) &item->lcbSttbfUssr -
+    U32 npairs = ((U32) ((char *) &item->lcbAtrdExtra -
 			 (char *) &item->fcStshfOrig)) / 8 + 1;
     U32 i;
 
