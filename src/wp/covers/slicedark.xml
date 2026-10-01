@@ -9,6 +9,6 @@
 </frame>
     <frame props="position-to:page-above-text; frame-height:4.1445in; xpos:0.3944in; grp-ypos:4838700; grp-height:3789752; base-h:10.000000in; bot-style:none; xpad-left:0.7500in; grp-width:6843395; top-style:none; frame-page-xpos:0.3944in; text-warp:textNoShape; left-style:none; frame-width:7.4840in; right-style:none; frame-valign:bottom; bg-style:0; xpad-right:1.0000in; ypad-bottom:0.0000in; grp-xpos:9518; frame-page-ypos:6.1382in; base-valign:center; ypos:6.1382in; base-w:7.500000in; ypad:0.0000in; ypad-top:0.0000in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264; xpad:1.0000in; frame-type:textbox; base-halign:center">
       <p style="cover_NoSpacing" props="font-size:32.000000pt"><c props="font-family:Calibri Light; text-transform:uppercase; color:FFFFFF; font-size:32.000000pt">[Document title]</c></p>
-      <p style="cover_NoSpacing" props="margin-top:6.000000pt; font-size:18.000000pt"><c props="color:4472C4; font-size:18.000000pt">[Document subtitle]</c></p>
+      <p style="cover_NoSpacing" props="margin-top:6.000000pt; font-size:18.000000pt"><c props="color:4472C4; font-size:18.000000pt; font-family:Calibri">[Document subtitle]</c></p>
 </frame>
 </abinova>

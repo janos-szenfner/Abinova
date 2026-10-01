@@ -8,11 +8,11 @@
       <p><c props="lang:-none-"/></p>
 </frame>
     <frame props="position-to:page-above-text; frame-height:2.0043in; base-h:9.998611in; bot-style:none; grp-height:1832725; grp-ypos:7439025; frame-type:textbox; base-halign:center; xpad:0.5000in; bg-style:1; xpos:0.3868in; frame-valign:bottom; right-style:none; background-color:ED7D31; xpad-left:0.5000in; grp-width:6858000; top-style:none; left-style:none; frame-width:7.5000in; xpad-right:0.5000in; ypad-bottom:0.5000in; grp-xpos:0; text-warp:textNoShape; frame-page-xpos:0.3868in; frame-page-ypos:8.9826in; base-valign:center; ypos:8.9826in; base-w:7.494444in; ypad:0.5000in; ypad-top:0.2000in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264">
-      <p style="cover_NoSpacing" props="font-size:16.000000pt"><c props="color:FFFFFF; font-size:16.000000pt">Szenfner János (EXT)</c></p>
-      <p style="cover_NoSpacing"><c props="text-transform:uppercase; color:FFFFFF">[Company name] | [Company address]</c></p>
+      <p style="cover_NoSpacing" props="font-size:16.000000pt"><c props="color:FFFFFF; font-size:16.000000pt; font-family:Calibri">Szenfner János (EXT)</c></p>
+      <p style="cover_NoSpacing"><c props="text-transform:uppercase; color:FFFFFF; font-family:Calibri">[Company name] | [Company address]</c></p>
 </frame>
     <frame props="position-to:page-above-text; frame-height:8.0000in; xpos:0.3868in; grp-ypos:0; grp-height:7315200; base-h:9.998611in; bot-style:none; xpad-left:0.5000in; grp-width:6858000; top-style:none; frame-page-xpos:0.3868in; text-warp:textNoShape; left-style:none; frame-width:7.5000in; right-style:none; frame-valign:center; bg-style:0; xpad-right:0.5000in; ypad-bottom:0.5000in; grp-xpos:0; frame-page-ypos:0.8472in; base-valign:center; ypos:0.8472in; base-w:7.494444in; ypad:0.5000in; ypad-top:0.5000in; wrap-mode:below-text; frame-text-direction:horz; frame-stack-order:251659264; xpad:0.5000in; frame-type:textbox; base-halign:center">
       <p style="cover_NoSpacing" props="bot-style:1; bot-thickness:0.750000pt; bot-space:4pt; bot-color:7F7F7F; font-size:54.000000pt"><c props="font-family:Calibri Light; color:595959; font-size:54.000000pt">[Document title]</c></p>
-      <p style="cover_NoSpacing" props="margin-top:12.000000pt; font-size:18.000000pt"><c props="text-transform:uppercase; color:44546A; font-size:18.000000pt">[Document subtitle]</c></p>
+      <p style="cover_NoSpacing" props="margin-top:12.000000pt; font-size:18.000000pt"><c props="text-transform:uppercase; color:44546A; font-size:18.000000pt; font-family:Calibri">[Document subtitle]</c></p>
 </frame>
 </abinova>

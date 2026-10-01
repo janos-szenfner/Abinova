@@ -438,9 +438,12 @@ Laid out as large icon-over-caption buttons with two-line
 labels, like Word's ribbon.
 
 - **Pages**: **Cover Page** opens a scrolling 3-column gallery
-  of twelve code-drawn A4-portrait preview cards (Austin,
-  Banded, Crop, Facet, Filigree, Frame, Integral, Motion,
-  Retrospect, Sideline, Whisp, Yearly) — no third-party artwork.
+  of twenty A4-portrait preview cards (Austin, Badge, Banded,
+  Crop, Facet, Feathered, Filigree, Frame, Headline, Integral,
+  Ion Dark/Light, Motion, Retrospect, Semaphore, Slice Dark/
+  Light, Sideline, ViewMaster, Whisp, Yearly) — seventeen
+  spliced from real positioned-frame templates, three drawn in
+  code, no third-party artwork.
   Cover pages pull title/author from document metadata
   (`dc.title`/`dc.creator`, placeholders as fallback), add the
   current month/year, and are wrapped in a `_cover-page` marker

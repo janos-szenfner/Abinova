@@ -316,6 +316,17 @@ below are on `main` but the release has not been cut yet.
   were missing from the property registry — now registered in
   `pp_Property.cpp`, documented in `docs/ABWN-FORMAT.md` (new §4.4,
   refreshed §6 defaults table) and listed in `abwn.dtd`.
+- **Built-in cover pages regenerated and re-verified** — all 17
+  cover templates (`src/wp/covers/*.xml`) were rebuilt from fresh
+  imports of the reference `.docx` designs, so they now carry the
+  `char-spacing` tracking, theme-resolved fonts and verbatim image
+  bytes the older exports lacked (e.g. Badge's tracked-out title,
+  Integral's full-quality JPEG), and each was rendered against its
+  source design for a pixel-level comparison.  Inserting a template
+  cover while the caret sat inside an old frame could scramble the
+  splice because frame-edit mode hijacked the view point; the
+  template path now probes the piece table and builds the sentinel
+  and trailing shell paragraph at document level instead.
 - **Locale decimal-separator corruption fixed** — the OOXML
   importer serialized lengths with locale-sensitive `snprintf`
   (`xpos:3,7620in` under comma-decimal locales) while the abwn
