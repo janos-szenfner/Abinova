@@ -327,6 +327,8 @@ static Doc_Color_t word_colors [][3] = {
 	{0xc0, 0xc0, 0xc0}, /* light gray */
 };
 
+static bool s_mapColorRefToColor(UT_uint32 cv, UT_String & sColor);
+
 static UT_String sMapIcoToColor (UT_uint16 ico, bool bForeground)
 {
 	// need to handle the automatic colour 0; see bug 10261 for bounds-check
@@ -5098,33 +5100,58 @@ void IE_Imp_MsWord_97::_generateCharProps(UT_String &s, const CHP * achp, wvPars
 		s += "font-style:italic;";
 	}
 
-	// foreground color
-	U8 ico = (achp->fBidi ? achp->icoBidi : achp->ico);
-	if (ico) {
-		UT_String_sprintf(propBuffer, "color:%s;",
-						  sMapIcoToColor(ico, true).c_str());
-		s += propBuffer;
+	// all-caps / small-caps (sprmCFCaps / sprmCFSmallCaps); these are
+	// what OOXML w:caps / w:smallCaps map to
+	if (achp->fCaps) {
+		s += "text-transform:uppercase;";
+	}
+	if (achp->fSmallCaps) {
+		s += "font-variant:small-caps;";
+	}
+
+	// foreground color: sprmCCv (a full COLORREF, Word 2000+) takes
+	// precedence over sprmCIco's 5-bit index because it occurs later in
+	// the grpprl (MS-DOC)
+	{
+		UT_String sColor;
+		if (s_mapColorRefToColor(achp->cv, sColor)) {
+			UT_String_sprintf(propBuffer, "color:%s;", sColor.c_str());
+			s += propBuffer;
+		} else {
+			U8 ico = (achp->fBidi ? achp->icoBidi : achp->ico);
+			if (ico) {
+				UT_String_sprintf(propBuffer, "color:%s;",
+								  sMapIcoToColor(ico, true).c_str());
+				s += propBuffer;
+			}
+		}
 	}
 
 	// background color
-	ico = achp->shd.icoBack;
-	if (ico) {
-		if (!achp->fHighlight) {
-			// HACK: We don't support borders and shading yet, so it seems safe to use the background
-			// color as a substitute when there's no true highlight color (see the doc from Bug 6432)
-			UT_String_sprintf(propBuffer, "bgcolor:%s;",
-							  sMapIcoToColor(ico, false).c_str());
-		} else {
-			// Note: This property won't be rendered until we have borders and shading support
-			UT_String_sprintf(propBuffer, "background-color:%s;",
-							  sMapIcoToColor(ico, false).c_str());
+	{
+		UT_String sColor;
+		if (achp->shd.fCv && s_mapColorRefToColor(achp->shd.cvBack, sColor)) {
+			// sprmCShd carries full COLORREF shading (solid back color)
+			UT_String_sprintf(propBuffer, "bgcolor:%s;", sColor.c_str());
+			s += propBuffer;
+		} else if (achp->shd.icoBack) {
+			if (!achp->fHighlight) {
+				// HACK: We don't support borders and shading yet, so it seems safe to use the background
+				// color as a substitute when there's no true highlight color (see the doc from Bug 6432)
+				UT_String_sprintf(propBuffer, "bgcolor:%s;",
+								  sMapIcoToColor(achp->shd.icoBack, false).c_str());
+			} else {
+				// Note: This property won't be rendered until we have borders and shading support
+				UT_String_sprintf(propBuffer, "background-color:%s;",
+								  sMapIcoToColor(achp->shd.icoBack, false).c_str());
+			}
+			s += propBuffer;
 		}
-		s += propBuffer;
 	}
-	
+
 
 	// underline and strike-through
-	if (achp->fStrike || achp->kul) {
+	if (achp->fStrike || achp->fDStrike || achp->kul) {
 		s += "text-decoration:";
 		if ((achp->fStrike || achp->fDStrike) && achp->kul) {
 			s += "underline line-through;";
@@ -5147,6 +5174,44 @@ void IE_Imp_MsWord_97::_generateCharProps(UT_String &s, const CHP * achp, wvPars
 		s += "text-position: superscript;";
 	} else if (achp->iss == 2) {
 		s += "text-position: subscript;";
+	} else if (achp->hpsPos > 0) {
+		// sprmCHpsPos raised text; we have no fractional raise prop,
+		// so approximate with superscript
+		s += "text-position: superscript;";
+	} else if (achp->hpsPos < 0) {
+		s += "text-position: subscript;";
+	}
+
+	// letter spacing (sprmCDxaSpace, in twips) -> char-spacing
+	if (achp->dxaSpace) {
+		UT_String_sprintf(propBuffer, "char-spacing:%s;",
+						  UT_convertInchesToDimensionString(m_dim,
+												achp->dxaSpace / 1440.0));
+		s += propBuffer;
+	}
+
+	// font-size threshold above which kerning applies (sprmCHpsKern is
+	// in half-points)
+	if (achp->hpsKern) {
+		UT_String_sprintf(propBuffer, "char-kern:%spt;",
+						  UT_convertToDimensionlessString(
+							  achp->hpsKern / 2.0));
+		s += propBuffer;
+	}
+
+	// horizontal character scale, percent (sprmCCharScale)
+	if (achp->wCharScale && achp->wCharScale != 100) {
+		UT_String_sprintf(propBuffer, "char-width:%d;", achp->wCharScale);
+		s += propBuffer;
+	}
+
+	// East Asian emphasis marks (sprmCKcd) -> char-emphasis
+	switch (achp->kcd) {
+		case 1: s += "char-emphasis:dot;";      break; // solid circle above
+		case 2: s += "char-emphasis:comma;";    break; // comma above
+		case 3: s += "char-emphasis:circle;";   break; // circle above
+		case 4: s += "char-emphasis:underDot;"; break; // solid circle below
+		default: break;
 	}
 
 	if (achp->fVanish)

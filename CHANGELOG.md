@@ -400,6 +400,29 @@ below are on `main` but the release has not been cut yet.
   with leaders, all four paragraph borders, spacing and shading
   import with the correct properties, and the `.doc` corpus still
   converts cleanly.
+- **`.doc` character formatting audit** — the bundled `wv` parser now
+  understands the full MS-DOC character-sprm table, including the
+  Word 2000+ opcodes: full-COLORREF text color (`sprmCCv`), character
+  shading (`sprmCShd` SHDOperand) and border (`sprmCBrc` BrcOperand)
+  alongside the legacy `*80` indexed forms, modern language IDs
+  (`sprmCRgLid0/1`), underline color (`sprmCCvUl`), `sprmCFNoProof`,
+  `sprmCFWebHidden`, `sprmCFSpecVanish`/`sprmCFSdtVanish` style-
+  separator visibility, `sprmCFitText`, `sprmCFELayout`,
+  `sprmCCharScale`, revision-mark and East-Asian operands — all with
+  spec-correct operand lengths so grpprls no longer desynchronise.
+  Previously truncated operands (`sprmCPlain`, `sprmCIcoBi`,
+  `sprmCHpsInc`, `sprmCFDiacColor`, `sprmCPropRMark90`,
+  `sprmCDispFldRMark`, `sprmCHpsNew50`) now consume their full operand.
+  Imported documents map these to character properties: COLORREF text
+  color and character shading, double-strikethrough, raised/lowered
+  runs (`sprmCHpsPos`), letter spacing (`sprmCDxaSpace` →
+  `char-spacing`), kerning threshold (`sprmCHpsKern` → `char-kern`),
+  horizontal scaling (`sprmCCharScale` → `char-width`), all-caps and
+  small-caps (`text-transform`/`font-variant`), East-Asian emphasis
+  marks (`sprmCKcd` → `char-emphasis`) and `sprmCFtcDefault` style font
+  restoration. Verified with a synthetic document exercising both
+  CHPX decode paths — all properties import and render correctly, and
+  the `.doc` corpus still converts cleanly.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

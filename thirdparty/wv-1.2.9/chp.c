@@ -311,6 +311,14 @@ wvInitCHP (CHP * item)
 
     wvInitBRC (&item->brc);
 
+    item->cv = 0xFF000000;	/* cvAuto doubles as "not set" */
+    item->cvUl = 0xFF000000;
+    item->fWebHidden = 0;
+    item->fSpecVanish = 0;
+    item->fNoProof = 0;
+    item->fNeedFontFixup = 0;
+    item->fSdtVanish = 0;
+
     /* bidi */
     item->fBidi = 0;
     item->fBoldBidi = 0;
@@ -420,6 +428,14 @@ wvCopyCHP (CHP * dest, CHP * src)
     wvCopySHD (&dest->shd, &src->shd);
 
     wvCopyBRC (&dest->brc, &src->brc);
+
+    dest->cv = src->cv;
+    dest->cvUl = src->cvUl;
+    dest->fWebHidden = src->fWebHidden;
+    dest->fSpecVanish = src->fSpecVanish;
+    dest->fNoProof = src->fNoProof;
+    dest->fNeedFontFixup = src->fNeedFontFixup;
+    dest->fSdtVanish = src->fSdtVanish;
 
     /* bidi */
     dest->fBidi = src->fBidi;

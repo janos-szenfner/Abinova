@@ -1309,12 +1309,12 @@ brc.dxpSpace should be set to 0.
 	S32 dxaSpace;
 
 	U32 iss:3;
-	U32 kul:4;
+	U32 kul:8;		/* Kul is a full byte; values > 15 exist */
 	U32 fSpecSymbol:1;
 	U32 ico:5;
 	U32 reserved3:1;
 	U32 fSysVanish:1;
-	U32 hpsPos:1;
+	S16 hpsPos;		/* sprmCHpsPos raise/lower, half-points */
 	S32 super_sub:16;
 
 	LID lid;
@@ -1363,6 +1363,16 @@ brc.dxpSpace should be set to 0.
 	XCHAR xstDispFldRMark[16];
 	SHD shd;
 	BRC brc;
+
+	/* Word 2000+ char sprms (MS-DOC): COLORREFs use 0xFF000000 for
+	   the "auto" value, which doubles as "not set" */
+	U32 cv;			/* sprmCCv text color */
+	U32 cvUl;		/* sprmCCvUl underline color */
+	U8 fWebHidden;		/* sprmCFWebHidden */
+	U8 fSpecVanish;		/* sprmCFSpecVanish: 0x0B is a style separator */
+	U8 fNoProof;		/* sprmCFNoProof */
+	U8 fNeedFontFixup;	/* sprmCNeedFontFixup */
+	U8 fSdtVanish;		/* sprmCFSdtVanish */
 
       /* BiDi properties */
       U32  fBidi:1;
@@ -2105,7 +2115,7 @@ that indicates their length.
 	sprmCRsidText = 0x6816,
 
 	sprmCFRMarkDel = 0x0800,
-	sprmCFRMark = 0x0801,
+	sprmCFRMarkIns = 0x0801,	/* MS-DOC name for the legacy sprmCFRMark */
 	sprmCFFldVanish = 0x0802,
 	sprmCPicLocation = 0x6A03,
 	sprmCIbstRMark = 0x4804,
@@ -2119,6 +2129,11 @@ that indicates their length.
 	sprmCHighlight = 0x2A0C,
 	sprmCObjLocation = 0x680E,
 	sprmCFFtcAsciSymb = 0x2A10,
+	sprmCFWebHidden = 0x0811,
+	sprmCRsidProp = 0x6815,
+	sprmCRsidRMDel = 0x6817,
+	sprmCFSpecVanish = 0x0818,
+	sprmCFMathPr = 0xC81A,
 	sprmCIstd = 0x4A30,
 	sprmCIstdPermute = 0xCA31,
 	sprmCDefault = 0x2A32,
@@ -2149,7 +2164,7 @@ that indicates their length.
 	sprmCHpsKern = 0x484B,
 	sprmCMajority50 = 0xCA4C,
 	sprmCHpsMul = 0x4A4D,
-	sprmCYsri = 0x484E,
+	sprmCHresi = 0x484E,		/* spec name; wv used to call it sprmCYsri */
 	sprmCRgFtc0 = 0x4A4F,
 	sprmCRgFtc1 = 0x4A50,
 	sprmCRgFtc2 = 0x4A51,
@@ -2158,7 +2173,7 @@ that indicates their length.
 	sprmCFImprint = 0x0854,
 	sprmCFSpec = 0x0855,
 	sprmCFObj = 0x0856,
-	sprmCPropRMark = 0xCA57,
+	sprmCPropRMark90 = 0xCA57,	/* was sprmCPropRMark */
 	sprmCFEmboss = 0x0858,
 	sprmCSfxText = 0x2859,
 	sprmCFBiDi = 0x085A,
@@ -2172,14 +2187,33 @@ that indicates their length.
 	sprmCDispFldRMark = 0xCA62,
 	sprmCIbstRMarkDel = 0x4863,
 	sprmCDttmRMarkDel = 0x6864,
-	sprmCBrc = 0x6865,
-	sprmCShd = 0x4866,
+	sprmCBrc80 = 0x6865,		/* was sprmCBrc; BRC80 operand */
+	sprmCShd80 = 0x4866,		/* was sprmCShd; Shd80 operand */
 	sprmCIdslRMarkDel = 0x4867,
 	sprmCFUsePgsuSettings = 0x0868,
 	sprmCCpg = 0x486B,
-	sprmCRgLid0 = 0x486D,
-	sprmCRgLid1 = 0x486E,
+	sprmCRgLid0_80 = 0x486D,	/* was sprmCRgLid0 */
+	sprmCRgLid1_80 = 0x486E,	/* was sprmCRgLid1 */
 	sprmCIdctHint = 0x286F,
+	/* Word 2000+ character sprms (MS-DOC sprm table) */
+	sprmCCv = 0x6870,		/* COLORREF text color */
+	sprmCShd = 0xCA71,		/* SHDOperand char shading */
+	sprmCBrc = 0xCA72,		/* BrcOperand char border */
+	sprmCRgLid0 = 0x4873,
+	sprmCRgLid1 = 0x4874,
+	sprmCFNoProof = 0x0875,
+	sprmCFitText = 0xCA76,
+	sprmCCvUl = 0x6877,		/* COLORREF underline color */
+	sprmCFELayout = 0xCA78,
+	sprmCLbcCRJ = 0x2879,
+	sprmCFComplexScripts = 0x0882,
+	sprmCWall = 0x2A83,
+	sprmCCnf = 0xCA85,
+	sprmCNeedFontFixup = 0x2A86,
+	sprmCPbiIBullet = 0x6887,
+	sprmCPbiGrf = 0x4888,
+	sprmCPropRMark = 0xCA89,
+	sprmCFSdtVanish = 0x2A90,
 
 	sprmPicBrcl = 0x2E00,
 	sprmPicScale = 0xCE01,
@@ -2296,6 +2330,8 @@ that indicates their length.
     void wvApplysprmCMajority50 (CHP * achp, STSH * stsh, U8 * pointer, U16 * pos);	/*possibly wrong */
     void wvApplysprmCHpsInc1 (CHP * achp, U8 * pointer, U16 * pos);
     void wvApplysprmCPropRMark (CHP * achp, U8 * pointer, U16 * pos);
+    void wvApplysprmCFtcDefault (CHP * achp, STSH * stsh, U8 * pointer,
+				 U16 * pos);
     void wvApplysprmCDispFldRMark (CHP * achp, U8 * pointer, U16 * pos);
 
     void wvApplysprmSOlstAnm (wvVersion ver, SEP * asep, U8 * pointer,

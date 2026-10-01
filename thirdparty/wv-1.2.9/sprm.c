@@ -612,7 +612,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmCFRMarkDel:
 	  achp->fRMarkDel = bread_8ubit (pointer, pos);
 	  break;
-      case sprmCFRMark:
+      case sprmCFRMarkIns:
 	  achp->fRMark = bread_8ubit (pointer, pos);
 	  break;
       case sprmCFFldVanish:
@@ -671,6 +671,22 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmCObjLocation:
 	  achp->fcPic_fcObj_lTagObj = (S32) bread_32ubit (pointer, pos);
 	  break;
+      case sprmCIdCharType:	/* obsolete; 2-byte operand must be consumed */
+	  bread_16ubit (pointer, pos);
+	  break;
+      case sprmCFWebHidden:
+	  achp->fWebHidden = bread_8ubit (pointer, pos);
+	  break;
+      case sprmCRsidProp:
+      case sprmCRsidRMDel:
+	  bread_32ubit (pointer, pos);
+	  break;
+      case sprmCFSpecVanish:
+	  achp->fSpecVanish = bread_8ubit (pointer, pos);
+	  break;
+      case sprmCFMathPr:	/* MathPrOperand; equation justification */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
       case sprmCIstd:
 	  achp->istd = bread_16ubit (pointer, pos);
 	  break;
@@ -681,7 +697,13 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  wvApplysprmCDefault (achp, pointer, pos);
 	  break;
       case sprmCPlain:
+	  /* operand is a single byte that MUST be 0 and is ignored */
+	  bread_8ubit (pointer, pos);
 	  wvApplysprmCPlain (achp, stsh);
+	  break;
+      case sprmCKcd:
+	  /* emphasis-mark kind (East Asian), stored for completeness */
+	  achp->kcd = bread_8ubit (pointer, pos);
 	  break;
       case sprmCFBold:
 	  toggle = bread_8ubit (pointer, pos);
@@ -713,8 +735,8 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  toggle = bread_8ubit (pointer, pos);
 	  wvTOGGLE (achp->fVanish, achp, stsh, toggle, fVanish) break;
       case sprmCFtcDefault:
-	  toggle = bread_8ubit (pointer, pos);
-	  wvTOGGLE (achp->fBold, achp, stsh, toggle, fBold) break;
+	  wvApplysprmCFtcDefault (achp, stsh, pointer, pos);
+	  break;
       case sprmCKul:
 	  achp->kul = bread_8ubit (pointer, pos);
 	  break;
@@ -748,8 +770,12 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  achp->iss = bread_8ubit (pointer, pos);
 	  break;
       case sprmCHpsNew50:
-	  bread_8ubit (pointer, pos);
-	  achp->hps = bread_16ubit (pointer, pos);
+	  /* spra 6: cb byte followed by the operand (a U16 hps) */
+	  temp8 = bread_8ubit (pointer, pos);
+	  if (temp8 >= 2)
+	      achp->hps = bread_16ubit (pointer, pos);
+	  if (temp8 > 2)
+	      (*pos) += temp8 - 2;
 	  break;
       case sprmCHpsInc1:
 	  wvApplysprmCHpsInc1 (achp, pointer, pos);
@@ -765,9 +791,10 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  /*percentage to grow hps ?? */
 	  achp->hps = achp->hps * bread_16ubit (pointer, pos) / 100;
 	  break;
-      case sprmCYsri:
-	  /* ???? achp->ysri */
-	  bread_8ubit (pointer, pos);
+      case sprmCHresi:
+	  /* HresiOperand: hres byte + chHres byte */
+	  achp->ysr = bread_8ubit (pointer, pos);
+	  achp->chYsr = bread_8ubit (pointer, pos);
 	  break;
       case sprmCRgFtc0:
 	  achp->ftcAscii = bread_16ubit (pointer, pos);
@@ -777,6 +804,10 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  break;
       case sprmCRgFtc2:
 	  achp->ftcOther = bread_16ubit (pointer, pos);
+	  break;
+      case sprmCCharScale:
+	  /* horizontal scale, percent (1-600); 100 is normal */
+	  achp->wCharScale = bread_16ubit (pointer, pos);
 	  break;
       case sprmCFDStrike:
 	  achp->fDStrike = bread_8ubit (pointer, pos);
@@ -790,6 +821,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmCFObj:
 	  achp->fObj = bread_8ubit (pointer, pos);
 	  break;
+      case sprmCPropRMark90:
       case sprmCPropRMark:
 	  wvApplysprmCPropRMark (achp, pointer, pos);
 	  break;
@@ -809,12 +841,13 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  wvGetDTTMFromBucket (&achp->dttmRMarkDel, pointer);
 	  (*pos) += 4;
 	  break;
-      case sprmCBrc:
+      case sprmCBrc80:
 	  (*pos) += wvGetBRCFromBucket (ver, &achp->brc, pointer);
 	  break;
-      case sprmCShd:
+      case sprmCShd80:
 	  wvGetSHDFromBucket (&achp->shd, pointer);
 	  (*pos) += 2;
+	  break;
       case sprmCIdslRMarkDel:
 	  /* achp->idslRMReasonDel ???? */
 	  (S16) bread_16ubit (pointer, pos);
@@ -822,10 +855,10 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
       case sprmCFUsePgsuSettings:
 	  achp->fUsePgsuSettings = bread_8ubit (pointer, pos);
 	  break;
-      case sprmCRgLid0:
+      case sprmCRgLid0_80:
 	  achp->lidDefault = bread_16ubit (pointer, pos);
 	  break;
-      case sprmCRgLid1:
+      case sprmCRgLid1_80:
 	  achp->lidFE = bread_16ubit (pointer, pos);
 	  break;
       case sprmCIdctHint:
@@ -850,14 +883,69 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 		 bread_32ubit (pointer, pos);
 	  break;
 
+	  /* Word 2000+ (MS-DOC) */
+      case sprmCCv:
+	  achp->cv = bread_32ubit (pointer, pos);
+	  break;
+      case sprmCShd:
+	  (*pos) += wvGetSHDOperandFromBucket (&achp->shd, pointer);
+	  break;
+      case sprmCBrc:
+	  (*pos) += wvGetBRCOperandFromBucket (&achp->brc, pointer);
+	  break;
+      case sprmCRgLid0:
+	  achp->lidDefault = bread_16ubit (pointer, pos);
+	  break;
+      case sprmCRgLid1:
+	  achp->lidFE = bread_16ubit (pointer, pos);
+	  break;
+      case sprmCFNoProof:
+	  achp->fNoProof = bread_8ubit (pointer, pos);
+	  break;
+      case sprmCFitText:	/* CFitTextOperand; no Abi equivalent */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
+      case sprmCCvUl:
+	  achp->cvUl = bread_32ubit (pointer, pos);
+	  break;
+      case sprmCFELayout:	/* FarEastLayoutOperand */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
+      case sprmCLbcCRJ:		/* LBCOperand; line-break char kind */
+	  bread_8ubit (pointer, pos);
+	  break;
+      case sprmCFComplexScripts:
+	  /* complex-script formatting applies regardless of the Unicode
+	     coverage; same prop selection as sprmCFBiDi */
+	  achp->fBidi = bread_8ubit (pointer, pos);
+	  break;
+      case sprmCWall:
+	  bread_8ubit (pointer, pos);
+	  break;
+      case sprmCCnf:		/* conditional table-style formatting */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
+      case sprmCNeedFontFixup:
+	  achp->fNeedFontFixup = bread_8ubit (pointer, pos);
+	  break;
+      case sprmCPbiIBullet:
+	  bread_32ubit (pointer, pos);
+	  break;
+      case sprmCPbiGrf:
+	  bread_16ubit (pointer, pos);
+	  break;
+      case sprmCFSdtVanish:
+	  achp->fSdtVanish = bread_8ubit (pointer, pos);
+	  break;
+
 	  /* BiDi */
 
       case sprmCFBiDi:		/* is this run BiDi */
 	  achp->fBidi = bread_8ubit (pointer, pos);
 	  break;
 
-      case sprmCFDiacColor: /* ???? */
-	bread_16ubit (pointer, pos);
+      case sprmCFDiacColor: /* ???? spra is 0, so the operand is 1 byte */
+	bread_8ubit (pointer, pos);
 	break;
 
       case sprmCFBoldBi:	
@@ -877,7 +965,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	break;
 
       case sprmCIcoBi:
-	achp->icoBidi = bread_8ubit (pointer, pos);
+	achp->icoBidi = (U8) bread_16ubit (pointer, pos);
 	break;
 
       case sprmCHpsBi:
@@ -1153,10 +1241,9 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	     case sprmPicBrcl
 	   */
 
-      case sprmPRuler:		/* ???? */
-      case sprmCIdCharType:	/* obsolete */
-      case sprmCKcd:		/* ???? */
-      case sprmCCharScale:	/* ???? */
+      case sprmPRuler:		/* ???? variable-length; skip it safely */
+	  wvEatSprm (sprm, pointer, pos);
+	  break;
       case sprmNoop:		/* no operand */
 	  break;
       default:
@@ -1858,6 +1945,22 @@ wvApplysprmCDefault (CHP * achp, U8 * pointer, U16 * pos)
 }
 
 void
+wvApplysprmCFtcDefault (CHP * achp, STSH * stsh, U8 * pointer, U16 * pos)
+{
+    CHP ctemp;
+
+    /* sprmCFtcDefault (0x4A3D): the 2-byte operand is unused; the sprm
+       restores the chp's font indices to the underlying style's values
+       (the "Default Paragraph Font" behaviour) */
+    bread_16ubit (pointer, pos);
+    wvInitCHPFromIstd (&ctemp, achp->istd, stsh);
+    achp->ftcAscii = ctemp.ftcAscii;
+    achp->ftcFE = ctemp.ftcFE;
+    achp->ftcOther = ctemp.ftcOther;
+    achp->ftcBidi = ctemp.ftcBidi;
+}
+
+void
 wvApplysprmCPlain (CHP * achp, STSH * stsh)
 {
     U8 fSpec;
@@ -2009,6 +2112,7 @@ wvApplysprmCHpsInc (CHP * achp, U8 * pointer, U16 * pos)
     wvError (("get any examples of it so as to figure out how to handle it\n"));
 
     param = dread_8ubit (NULL, &pointer);
+    (*pos)++;
 
     /*
        Now for christ sake !!, how on earth would i have an "ordered array of the
@@ -2275,14 +2379,28 @@ wvApplysprmCMajority50 (CHP * achp, STSH * stsh, U8 * pointer, U16 * pos)
 void
 wvApplysprmCPropRMark (CHP * achp, U8 * pointer, U16 * pos)
 {
-    dread_8ubit (NULL, &pointer);	/*len */
+    /* spra 6: cbGrpprl-style length byte followed by the operand.
+       sprmCPropRMark (0xCA89) carries a PropRMark (7 bytes, incl DTTM);
+       sprmCPropRMark90 (0xCA57) carries a PropRMark90 (3 bytes, no DTTM) */
+    U16 len = dread_8ubit (NULL, &pointer);
+    U16 end = *pos + 1 + len;
     (*pos)++;
-    achp->fPropRMark = dread_8ubit (NULL, &pointer);
-    (*pos)++;
-    achp->ibstPropRMark = (S16) dread_16ubit (NULL, &pointer);
-    (*pos) += 2;
-    wvGetDTTMFromBucket (&achp->dttmPropRMark, pointer);
-    (*pos) += 4;
+    if (*pos < end)
+      {
+	  achp->fPropRMark = dread_8ubit (NULL, &pointer);
+	  (*pos)++;
+      }
+    if (*pos + 2 <= end)
+      {
+	  achp->ibstPropRMark = (S16) dread_16ubit (NULL, &pointer);
+	  (*pos) += 2;
+      }
+    if (*pos + 4 <= end)
+      {
+	  wvGetDTTMFromBucket (&achp->dttmPropRMark, pointer);
+	  (*pos) += 4;
+      }
+    *pos = end;
 }
 
 void
@@ -2304,7 +2422,8 @@ wvApplysprmCDispFldRMark (CHP * achp, U8 * pointer, U16 * pos)
     (*pos) += 2;
     wvGetDTTMFromBucket (&achp->dttmDispFldRMark, pointer);
     (*pos) += 4;
-    pointer += 4;
+    pointer += 4;		/* 4 unused bytes before the XCHAR array */
+    (*pos) += 4;
     for (i = 0; i < 16; i++)
       {
 	  achp->xstDispFldRMark[i] = dread_16ubit (NULL, &pointer);
@@ -3028,7 +3147,7 @@ SprmName rgsprmPrm[0x80] =
     sprmPFLocked, sprmPFWidowControl, sprmNoop, sprmPFKinsoku, sprmPFWordWrap,
     sprmPFOverflowPunct, sprmPFTopLinePunct, sprmPFAutoSpaceDE,
     sprmPFAutoSpaceDN, sprmNoop, sprmNoop, sprmPISnapBaseLine, sprmNoop,
-    sprmNoop, sprmNoop, sprmCFStrikeRM, sprmCFRMark, sprmCFFldVanish,
+    sprmNoop, sprmNoop, sprmCFStrikeRM, sprmCFRMarkIns, sprmCFFldVanish,
     sprmNoop,
     sprmNoop, sprmNoop, sprmCFData, sprmNoop, sprmNoop, sprmNoop, sprmCFOle2,
     sprmNoop, sprmCHighlight, sprmCFEmboss, sprmCSfxText, sprmNoop, sprmNoop,
@@ -3122,7 +3241,7 @@ SprmName rgsprmWord6[256] = {
     sprmNoop /*          63 */ ,
     sprmNoop /*          64 */ ,
     sprmCFStrikeRM /*    65 */ ,
-    sprmCFRMark /*       66 */ ,
+    sprmCFRMarkIns /*    66 */ ,
     sprmCFFldVanish /*   67 */ ,
     sprmCPicLocation /*  68 */ ,
     sprmCIbstRMark /*    69 */ ,
@@ -3166,7 +3285,7 @@ SprmName rgsprmWord6[256] = {
     sprmCHpsKern /*      107 */ ,
     sprmCMajority50 /*   108 */ ,
     sprmCHpsMul /*       109 */ ,
-    sprmCYsri /*             110 */ ,	/* new name */
+    sprmCHresi /*         110 */ ,	/* spec name */
     sprmCUNKNOWN5 /*     111 */ ,
     sprmCUNKNOWN6 /*     112 */ ,
     sprmCUNKNOWN7 /*     113 */ ,
