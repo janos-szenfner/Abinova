@@ -132,6 +132,7 @@ described by FRAME-level properties.
 | `shape-path` | custom geometry, see §4.2 |
 | `bot-style`/`top-style`/`left-style`/`right-style` + `*-color`/`*-thickness` | border; `shape-path` suppresses the rectangular border and strokes the path instead |
 | `frame-shadow` | `outer` = drop shadow (OOXML `a:outerShdw`); see §4.3 |
+| `line-*` / `outline-gradient` | stroke extras (compound lines, joins, caps, dashes, arrowheads, gradient stroke); see §4.4 |
 
 ### Content layout
 
@@ -156,6 +157,8 @@ described by FRAME-level properties.
 | `image-grayscale` | `1` to convert to gray (OOXML `a:grayscl`) |
 | `image-lum` | `bright contrast` fractions (OOXML `a:lum`) |
 | `image-alpha-mod` | alpha multiplier 0..1 (OOXML `a:alphaModFix@amt`) |
+| `image-tile` | tile the blip instead of stretching: `tx ty sx sy flip algn` — `tx`/`ty` offset in EMU, `sx`/`sy` scale in 1000ths of a percent, `flip` = `x`/`y`/`xy`/`none` alternation, `algn` = anchor (OOXML `a:tile`) |
+| `image-fill-rect` | destination rect `l,t,r,b` in 1000ths of a percent inside the frame (OOXML `a:stretch`/`a:fillRect`) |
 
 ### Grouped shapes
 
@@ -229,6 +232,24 @@ props="frame-shadow:outer; frame-shadow-offset:4,00pt;
        frame-shadow-color:000000; frame-shadow-alpha:0,450"
 ```
 
+### 4.4 `line-*` outline properties
+
+OOXML `a:ln` extras, applied wherever the frame border is stroked
+(rect border, `shape-path` outline, `prstGeom="line"` bars):
+
+| Property | Meaning |
+|---|---|
+| `line-compound` | `a:ln@cmpd`: `sng`, `dbl`, `thickThin`, `thinThick`, `tri` — stroked as parallel strands |
+| `line-join` | join style: `round`, `bevel`, `miter` |
+| `line-miter-limit` | `a:miter@lim` as a ratio (OOXML `800000` → `8`) |
+| `line-cap` | `a:ln@cap`: `flat`, `sq`, `rnd` |
+| `line-align` | `a:ln@algn`: `ctr` or `in` (stroke inset inside the edge) |
+| `line-dash` | `a:prstDash@val` style for `prstGeom="line"` bars: `solid`, `dashed`, `dotted`, `longdash`, `dashdot`, `dashdotdot` |
+| `line-custom-dash` | `a:custDash` `a:ds` pairs: `d sp d sp ...` as fractions of the line width; wins over `line-dash` |
+| `outline-gradient` | `a:ln`/`a:gradFill`, same grammar as `fill-gradient` (§4.1); the stroke is painted with the gradient instead of `*-color` |
+| `line-start-arrow` / `line-end-arrow` | `a:headEnd`/`a:tailEnd@type`: `none`, `arrow`, `triangle`, `stealth`, `diamond`, `oval` |
+| `line-start-arrow-w` / `-len`, `line-end-arrow-w` / `-len` | `a:headEnd`/`a:tailEnd` `@w`/`@len`: `sm`, `med`, `lg` |
+
 ## 5. Extensions over AWML
 
 Properties added beyond the AbiWord registry, all round-tripped:
@@ -239,7 +260,9 @@ Properties added beyond the AbiWord registry, all round-tripped:
   `frame-column-xpos/ypos`, `position-to`, `wrap-mode`,
   `fill-gradient`, `fill-alpha`, `shape-path`, `image-src-rect`,
   `image-duotone`, `image-grayscale`, `image-lum`, `image-alpha-mod`
-  (OOXML `a:blip` effects),
+  (OOXML `a:blip` effects), `image-tile`, `image-fill-rect`
+  (OOXML `a:blipFill` tiling/stretch),
+  `line-*`, `outline-gradient` (OOXML `a:ln` stroke extras, §4.4),
   `frame-font-scale`, `frame-linesp-reduction` (OOXML `a:normAutofit`),
   `frame-shadow*` (OOXML `a:outerShdw`, see §4.3),
   `text-warp` (OOXML `a:prstTxWarp` name, stored for fidelity).
@@ -548,7 +571,7 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `top-thickness` | `1px` | no |
 | `vert-align` | `0` | no |
 
-### Frame / positioned-object properties (51)
+### Frame / positioned-object properties (67)
 
 | Property | Default | Inherited |
 |---|---|---|
@@ -560,10 +583,12 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `frame-expand-height` | `0.0in` | no |
 | `frame-flip-horiz` | `0` | no |
 | `frame-flip-vert` | `0` | no |
+| `frame-font-scale` | `1` | no |
 | `frame-group` | `*(empty)*` | no |
 | `frame-height` | `0.0in` | no |
 | `frame-hidden` | `0` | no |
 | `frame-horiz-align` | `left` | no |
+| `frame-linesp-reduction` | `0` | no |
 | `frame-min-height` | `0.0in` | no |
 | `frame-name` | `*(empty)*` | no |
 | `frame-page-xpos` | `0.0in` | no |
@@ -586,15 +611,25 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `frame-width` | `0.0in` | no |
 | `image-alpha-mod` | `*(empty)*` | no |
 | `image-duotone` | `*(empty)*` | no |
+| `image-fill-rect` | `*(empty)*` | no |
 | `image-grayscale` | `0` | no |
 | `image-lum` | `*(empty)*` | no |
 | `image-src-rect` | `*(empty)*` | no |
+| `image-tile` | `*(empty)*` | no |
+| `line-align` | `ctr` | no |
+| `line-cap` | `flat` | no |
+| `line-compound` | `sng` | no |
+| `line-custom-dash` | `*(empty)*` | no |
+| `line-dash` | `solid` | no |
 | `line-end-arrow` | `none` | no |
 | `line-end-arrow-len` | `med` | no |
 | `line-end-arrow-w` | `med` | no |
+| `line-join` | `miter` | no |
+| `line-miter-limit` | `8` | no |
 | `line-start-arrow` | `none` | no |
 | `line-start-arrow-len` | `med` | no |
 | `line-start-arrow-w` | `med` | no |
+| `outline-gradient` | `*(empty)*` | no |
 | `position-to` | `block-above-text` | no |
 | `shape-path` | `*(empty)*` | no |
 | `text-warp` | `none` | no |

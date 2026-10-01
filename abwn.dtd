@@ -236,8 +236,12 @@
   background-color, fill-gradient, fill-alpha, shape-path,
   wrap-mode, position-to, frame-stack-order, frame-rotation,
   frame-flip-horiz/vert, frame-valign, frame-text-direction,
-  frame-font-scale, frame-linesp-reduction,
-  image-src-rect; borders via bot-style/top-style/... .
+  frame-font-scale, frame-linesp-reduction, frame-shadow-*,
+  line-align/cap/compound/custom-dash/dash/join/miter-limit,
+  line-start-arrow*/line-end-arrow*, outline-gradient,
+  image-src-rect, image-tile, image-fill-rect,
+  image-duotone, image-grayscale, image-lum, image-alpha-mod;
+  borders via bot-style/top-style/... .
 -->
 <!ELEMENT frame (p | table | frame | toc)+>
 <!ATTLIST frame

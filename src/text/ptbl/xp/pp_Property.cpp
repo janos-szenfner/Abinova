@@ -221,10 +221,17 @@ static PP_Property _props[] =
 	{ "left-style",            "1",           false, PP_LEVEL_TABLE},
 	{ "left-thickness",        "1px",             false, PP_LEVEL_TABLE},
 
+	{ "line-align",            "ctr",             false, PP_LEVEL_FRAME}, // OOXML a:ln@algn
+	{ "line-cap",              "flat",            false, PP_LEVEL_FRAME}, // OOXML a:ln@cap
+	{ "line-compound",         "sng",             false, PP_LEVEL_FRAME}, // OOXML a:ln@cmpd
+	{ "line-custom-dash",      "",                false, PP_LEVEL_FRAME}, // OOXML a:custDash: "d sp" pairs, fractions of line width
+	{ "line-dash",             "solid",           false, PP_LEVEL_FRAME}, // OOXML a:prstDash@val for prstGeom=line bars
 	{ "line-end-arrow",        "none",            false, PP_LEVEL_FRAME}, // OOXML a:tailEnd@type
 	{ "line-end-arrow-len",    "med",             false, PP_LEVEL_FRAME}, // OOXML a:tailEnd@len
 	{ "line-end-arrow-w",      "med",             false, PP_LEVEL_FRAME}, // OOXML a:tailEnd@w
 	{ "line-height",           "1.0",             false, PP_LEVEL_BLOCK},
+	{ "line-join",             "miter",           false, PP_LEVEL_FRAME}, // OOXML a:ln join: round/bevel/miter
+	{ "line-miter-limit",      "8",               false, PP_LEVEL_FRAME}, // OOXML a:miter@lim as a ratio
 	{ "line-start-arrow",      "none",            false, PP_LEVEL_FRAME}, // OOXML a:headEnd@type
 	{ "line-start-arrow-len",  "med",             false, PP_LEVEL_FRAME}, // OOXML a:headEnd@len
 	{ "line-start-arrow-w",    "med",             false, PP_LEVEL_FRAME}, // OOXML a:headEnd@w
@@ -241,6 +248,7 @@ static PP_Property _props[] =
 	{ "no-proof",              "0",               true,  PP_LEVEL_CHAR}, // OOXML w:noProof
 
 	{ "orphans",               "2",               false, PP_LEVEL_BLOCK}, // 2 to be consistent with widows & CSS
+	{ "outline-gradient",      "",                false, PP_LEVEL_FRAME}, // OOXML a:ln/a:gradFill serialized gradient
 	{ "outline-level",         "",                false, PP_LEVEL_BLOCK}, // OOXML w:outlineLvl
 	{ "overflow-punct",        "1",               false, PP_LEVEL_BLOCK}, // OOXML w:overflowPunct
 

@@ -304,6 +304,18 @@ below are on `main` but the release has not been cut yet.
   styles scale too) and the line spacing reduction squeezes each
   line box, matching the shrink Word already computed and stored.
   Round-trips through `.abwn`.
+- **`.abwn` round-trip verified for all new drawing properties** —
+  the DrawingML properties added above (`char-spacing`,
+  `frame-shadow-*`, `image-*` effects/tiling, `frame-font-scale`,
+  `frame-text-direction`, `line-*`/`outline-gradient` stroke extras)
+  serialize and re-import loss-free; a `docx → .abwn → .abwn`
+  property diff over the whole cover-page corpus plus the synthetic
+  feature docs shows zero dropped properties.  The `a:ln` extras
+  (`line-compound`, `line-join`, `line-miter-limit`, `line-cap`,
+  `line-align`, `line-dash`, `line-custom-dash`, `outline-gradient`)
+  were missing from the property registry — now registered in
+  `pp_Property.cpp`, documented in `docs/ABWN-FORMAT.md` (new §4.4,
+  refreshed §6 defaults table) and listed in `abwn.dtd`.
 - **Locale decimal-separator corruption fixed** — the OOXML
   importer serialized lengths with locale-sensitive `snprintf`
   (`xpos:3,7620in` under comma-decimal locales) while the abwn
