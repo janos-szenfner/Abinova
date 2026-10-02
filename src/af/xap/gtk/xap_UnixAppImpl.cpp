@@ -26,6 +26,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+#include <memory>
 #include <string>
 
 #include "xap_UnixAppImpl.h"
@@ -221,52 +222,64 @@ static void abi_update_check_thread(GTask * task, gpointer /*source*/,
 									gpointer /*data*/,
 									GCancellable * /*cancellable*/)
 {
-	AbiUpdateInfo * info = new AbiUpdateInfo;
-
-	/* newest published release first... */
-	std::string body;
-	bool answered = abi_https_get(
-		"api.github.com",
-		"/repos/janos-szenfner/Abinova/releases/latest", body);
-	if (answered)
+	std::unique_ptr<AbiUpdateInfo> info;
+	try
 	{
-		info->version = abi_json_string(body, "tag_name");
-		info->url = abi_json_string(body, "html_url");
-	}
+		info.reset(new AbiUpdateInfo);
 
-	/* ...otherwise fall back to the newest git tag */
-	if (info->version.empty())
-	{
-		body.clear();
-		if (abi_https_get("api.github.com",
-						  "/repos/janos-szenfner/Abinova/tags", body))
+		/* newest published release first... */
+		std::string body;
+		bool answered = abi_https_get(
+			"api.github.com",
+			"/repos/janos-szenfner/Abinova/releases/latest", body);
+		if (answered)
 		{
-			answered = true;
-			info->version = abi_json_string(body, "name");
+			info->version = abi_json_string(body, "tag_name");
+			info->url = abi_json_string(body, "html_url");
+		}
+
+		/* ...otherwise fall back to the newest git tag */
+		if (info->version.empty())
+		{
+			body.clear();
+			if (abi_https_get("api.github.com",
+							  "/repos/janos-szenfner/Abinova/tags", body))
+			{
+				answered = true;
+				info->version = abi_json_string(body, "name");
+			}
+		}
+
+		/* the check itself succeeded if the server answered at all, even
+		 * when the repo simply has no releases/tags yet */
+		info->fetched = answered;
+		if (info->fetched)
+		{
+			int cur[3], lat[3];
+			if (abi_parse_version(PACKAGE_VERSION, cur) &&
+				abi_parse_version(info->version, lat))
+			{
+				info->newer = lat[0] > cur[0] ||
+					(lat[0] == cur[0] && lat[1] > cur[1]) ||
+					(lat[0] == cur[0] && lat[1] == cur[1] && lat[2] > cur[2]);
+			}
+			if (info->url.empty())
+			{
+				info->url =
+					"https://github.com/janos-szenfner/Abinova/releases/tag/" +
+					info->version;
+			}
 		}
 	}
-
-	/* the check itself succeeded if the server answered at all, even
-	 * when the repo simply has no releases/tags yet */
-	info->fetched = answered;
-	if (info->fetched)
+	catch (...)
 	{
-		int cur[3], lat[3];
-		if (abi_parse_version(PACKAGE_VERSION, cur) &&
-			abi_parse_version(info->version, lat))
-		{
-			info->newer = lat[0] > cur[0] ||
-				(lat[0] == cur[0] && lat[1] > cur[1]) ||
-				(lat[0] == cur[0] && lat[1] == cur[1] && lat[2] > cur[2]);
-		}
-		if (info->url.empty())
-		{
-			info->url =
-				"https://github.com/janos-szenfner/Abinova/releases/tag/" +
-				info->version;
-		}
+		/* a C++ exception escaping into GLib's C worker-thread frames
+		 * would terminate() the process, and skipping g_task_return_*
+		 * leaves the task uncompleted and the UI hanging; degrade to
+		 * "could not check" (nullptr info) instead */
+		info.reset();
 	}
-	g_task_return_pointer(task, info,
+	g_task_return_pointer(task, info.release(),
 		+[](gpointer p) { delete static_cast<AbiUpdateInfo *>(p); });
 }
 
@@ -277,25 +290,33 @@ static void abi_update_check_done(GObject * /*source*/, GAsyncResult * res,
 	AbiUpdateInfo * info = static_cast<AbiUpdateInfo *>(
 		g_task_propagate_pointer(G_TASK(res), nullptr));
 
-	if (info && info->fetched && info->newer)
+	try
 	{
-		std::string text = "A new version is available: " +
-			info->version + "\nYou are running " + PACKAGE_VERSION + ".";
-		gtk_label_set_text(GTK_LABEL(ui->label), text.c_str());
-		gtk_link_button_set_uri(GTK_LINK_BUTTON(ui->link),
-								info->url.c_str());
-		gtk_widget_set_visible(ui->link, TRUE);
+		if (info && info->fetched && info->newer)
+		{
+			std::string text = "A new version is available: " +
+				info->version + "\nYou are running " + PACKAGE_VERSION + ".";
+			gtk_label_set_text(GTK_LABEL(ui->label), text.c_str());
+			gtk_link_button_set_uri(GTK_LINK_BUTTON(ui->link),
+									info->url.c_str());
+			gtk_widget_set_visible(ui->link, TRUE);
+		}
+		else if (info && info->fetched)
+		{
+			gtk_label_set_text(GTK_LABEL(ui->label),
+							   "There is no update at the moment.");
+		}
+		else
+		{
+			gtk_label_set_text(GTK_LABEL(ui->label),
+							   "Could not check for updates.\n"
+							   "Please try again later.");
+		}
 	}
-	else if (info && info->fetched)
+	catch (...)
 	{
-		gtk_label_set_text(GTK_LABEL(ui->label),
-						   "There is no update at the moment.");
-	}
-	else
-	{
-		gtk_label_set_text(GTK_LABEL(ui->label),
-						   "Could not check for updates.\n"
-						   "Please try again later.");
+		/* the std::string assembly above can throw; an exception
+		 * escaping this main-context callback would terminate() */
 	}
 
 	g_object_unref(ui->dialog);

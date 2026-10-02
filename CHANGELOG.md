@@ -2688,6 +2688,22 @@ below are on `main` but the release has not been cut yet.
   worker thread (update-check `GTask`, CON01–03) shares no
   mutable state, so there is nothing to migrate.  No changes
   needed.
+- **Thread-lifecycle audit (CON05)** — swept `src/`,
+  `thirdparty/` and `test/` for hand-managed threads: there are no
+  `std::thread`, `std::jthread`, `std::async`, `pthread_create`,
+  `g_thread_*` or `GThreadPool` uses anywhere (not even a
+  `<thread>`/`<future>`/`<pthread>` include), so no join/detach or
+  stop-token defects can exist; `UT_Worker`'s `CAN_USE_THREAD` mode
+  is compiled out and all workers are GLib main-loop sources.  The
+  one worker thread — the Help ▸ Check for Updates `GTask` — could
+  let a C++ exception (`new`, `std::string` growth/slicing) escape
+  its thread function into GLib's C frames, which would
+  `terminate()` the process, and an early escape would leave the
+  task uncompleted so the dialog would hang on "Checking for
+  updates…".  The thread body is now guarded so the task always
+  completes — degrading to "Could not check for updates." — and the
+  completion callback's string assembly is guarded the same way
+  while still releasing the UI refs.
 
 ### GTK4 port (core migration)
 
