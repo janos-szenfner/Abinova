@@ -201,15 +201,24 @@ wvDecryptObfuscated (wvParseStruct * ps)
 	  if (len == 15)
 	      break;
       }
+    /* the cleartext password is no longer needed once reduced to the
+       single-byte form */
+    wvSecureClear (ps->password, sizeof (ps->password));
 
     if (len < 1)
-	return (1);
+      {
+	  wvSecureClear (pw, sizeof (pw));
+	  return (1);
+      }
 
     wvCreateXorArray_Method2 (pw, len, array, &verifier);
+    wvSecureClear (pw, sizeof (pw));
     if (verifier != ps->fib.lKey)
       {
-	  wvTrace (("obfuscated .doc: password verifier mismatch "
-		    "(%08x vs %08x)\n", verifier, ps->fib.lKey));
+	  /* do not log the computed verifier: it is a hash of the
+	     attempted password */
+	  wvTrace (("obfuscated .doc: password verifier mismatch\n"));
+	  wvSecureClear (array, sizeof (array));
 	  return (1);
       }
 
@@ -223,9 +232,14 @@ wvDecryptObfuscated (wvParseStruct * ps)
 
     if (!tablebuf || !mainbuf)
       {
+	  /* these buffers may hold partial plaintext */
+	  wvSecureClear (tablebuf, tablelen);
+	  wvSecureClear (mainbuf, mainlen);
+	  wvSecureClear (databuf, datalen);
 	  free (tablebuf);
 	  free (mainbuf);
 	  free (databuf);
+	  wvSecureClear (array, sizeof (array));
 	  return (-1);
       }
 
@@ -256,9 +270,13 @@ wvDecryptObfuscated (wvParseStruct * ps)
     wvStream_rewind (ps->tablefd0);
     wvStream_rewind (ps->mainfd);
     if (wvGetFIB (&ps->fib, ps->mainfd))
-	return (-1);
+      {
+	  wvSecureClear (array, sizeof (array));
+	  return (-1);
+      }
     wvClampFIBFcLcb (&ps->fib, wvStream_size (ps->tablefd0));
     ps->fib.fEncrypted = 0;
+    wvSecureClear (array, sizeof (array));
     return (0);
 }
 
@@ -348,21 +366,26 @@ wvDecrypt95 (wvParseStruct * ps)
       }
 
     h = 0xce4b;
-    wvTrace (("hash is now %x\n", hash));
     for (i = 0; i < 16; i++)
       {
 	  g = (pw[i] ^ pwkey[i & 1]);
 	  g = ROTATE_LEFT (g, 7, 8);
 	  h ^= (ROTATE_LEFT (pw[i], i + 1, 15) ^ (i + 1) ^ i);
-	  wvTrace (("h is now %x\n", h));
 	  if (i == len - 1)
 	      if (h == hash)
 		  ret = 0;
 	  key[i] = g;
       }
 
+    /* h accumulated password-derived state; the whole key schedule in
+       pw/key goes away here */
+    wvSecureClear (ps->password, sizeof (ps->password));
     if (ret)
-	return (ret);
+      {
+	  wvSecureClear (pw, sizeof (pw));
+	  wvSecureClear (key, sizeof (key));
+	  return (ret);
+      }
 
     wvStream_offset_from_end (ps->mainfd, 0);
     end = wvStream_tell (ps->mainfd);
@@ -403,10 +426,14 @@ wvDecrypt95 (wvParseStruct * ps)
 
     gsf_output_close (mainfd);
 
-    wvStream_memory_create(&ps->mainfd, 
+    wvStream_memory_create(&ps->mainfd,
 			   g_memdup2 (gsf_output_memory_get_bytes (GSF_OUTPUT_MEMORY (mainfd)), gsf_output_size (mainfd)),
 			   gsf_output_size (mainfd));
 
+    /* gsf frees its buffer unwiped; it holds the whole decrypted
+       stream, so clear it first */
+    wvSecureClear ((void *) gsf_output_memory_get_bytes (GSF_OUTPUT_MEMORY (mainfd)),
+		   gsf_output_size (mainfd));
     g_object_unref (G_OBJECT (mainfd));
 
     ps->tablefd = ps->mainfd;
@@ -415,6 +442,9 @@ wvDecrypt95 (wvParseStruct * ps)
 
     wvStream_rewind (ps->mainfd);
     ps->fib.fEncrypted = 0;
+    wvSecureClear (pw, sizeof (pw));
+    wvSecureClear (key, sizeof (key));
+    wvSecureClear (test, sizeof (test));
     if (wvGetFIB (&ps->fib, ps->mainfd))
 	return (-1);
     wvClampFIBFcLcb (&ps->fib, wvStream_size (ps->mainfd));

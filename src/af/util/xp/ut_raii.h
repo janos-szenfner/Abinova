@@ -25,11 +25,14 @@
 
 #include <cstdio>
 #include <memory>
+#include <string>
 #include <unistd.h>
 
 #include <glib-object.h>
 #include <gsf/gsf.h>
 #include <cairo.h>
+
+#include "ut_misc.h"
 
 /*!
  * Scoped holders for raw C handles so early returns and error paths
@@ -114,6 +117,25 @@ typedef std::unique_ptr<cairo_surface_t,
 /* generic GObject-derived handle (GdkPixbuf, GsfInfile, ...) */
 template <typename T>
 using UT_GObjPtr = std::unique_ptr<T, UT_gobj_unref>;
+
+struct UT_secure_wipe
+{
+	void operator()(std::string * p) const noexcept
+	{
+		if (p)
+			UT_secureClearString(*p);
+	}
+};
+
+/*!
+ * UT_SecureStringGuard - securely wipes a function-local std::string
+ * holding a secret (password, key material) on scope exit, on every
+ * return path:
+ *
+ *   std::string password = ...;
+ *   UT_SecureStringGuard wipe(&password);
+ */
+using UT_SecureStringGuard = std::unique_ptr<std::string, UT_secure_wipe>;
 
 /* scoped POSIX fd (-1 = empty) */
 class UT_ScopedFD

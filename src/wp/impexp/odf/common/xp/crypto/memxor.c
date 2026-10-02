@@ -33,3 +33,12 @@ memxor (void * /*restrict*/ dest, const void * /*restrict*/ src, size_t n)
 
   return dest;
 }
+
+void
+memwipe (void *p, size_t n)
+{
+  volatile char *v = (volatile char *) p;
+
+  for (; n > 0; n--)
+    *v++ = 0;
+}

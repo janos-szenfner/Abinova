@@ -311,7 +311,7 @@ UT_Error IE_Imp_Abinova_1::_loadFile(GsfInput * input)
 			 * saved with compression on */
 			GsfInput * un = gsf_input_uncompress(mem);
 
-			memset(plain.data(), 0, plain.size());
+			UT_secureZero(plain.data(), plain.size());
 			plain.clear();
 			plain.shrink_to_fit();
 

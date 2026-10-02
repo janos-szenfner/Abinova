@@ -24,6 +24,7 @@
 
 #include "gc-pbkdf2-sha1.h"
 #include "hmac.h"
+#include "memxor.h"
 
 #include <string.h>
 
@@ -89,6 +90,8 @@
 
           if (rc != /*GC_OK*/ 0)
             {
+              memwipe (U, sizeof (U));
+              memwipe (T, sizeof (T));
               free (tmp);
               return rc;
             }
@@ -100,6 +103,9 @@
       memcpy (DK + (i - 1) * hLen, T, i == l ? r : hLen);
     }
 
+  /* U/T accumulate key-derived material */
+  memwipe (U, sizeof (U));
+  memwipe (T, sizeof (T));
   free (tmp);
 
   return /*GC_OK*/ 0;

@@ -241,6 +241,8 @@ PD_Document::~PD_Document()
 	// will do for now though
 	removeConnections();
 
+	UT_secureClearString(m_savePassword);
+
 	if (m_pPieceTable)
 		delete m_pPieceTable;
 

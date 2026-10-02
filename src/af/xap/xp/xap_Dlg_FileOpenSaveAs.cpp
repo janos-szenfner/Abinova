@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "ut_assert.h"
+#include "ut_misc.h"
 #include "ut_string.h"
 #include "ut_debugmsg.h"
 #include "xap_App.h"
@@ -77,6 +78,7 @@ XAP_Dialog_FileOpenSaveAs::XAP_Dialog_FileOpenSaveAs(XAP_DialogFactory * pDlgFac
 
 XAP_Dialog_FileOpenSaveAs::~XAP_Dialog_FileOpenSaveAs(void)
 {
+	UT_secureClearString(m_encryptionPassword);
 	UT_ASSERT(!m_bInUse);
 }
 
@@ -94,6 +96,9 @@ void XAP_Dialog_FileOpenSaveAs::useEnd(void)
 {
 	XAP_Dialog_AppPersistent::useEnd();
 
+	// the dialog is app-persistent; do not keep the encryption
+	// password around until the next use
+	UT_secureClearString(m_encryptionPassword);
 	m_initialPathname.clear();
 	if (m_answer == a_OK)
 	{

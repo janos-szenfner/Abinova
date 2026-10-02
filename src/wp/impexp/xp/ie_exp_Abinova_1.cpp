@@ -31,6 +31,7 @@
 #include "ut_bytebuf.h"
 #include "ut_base64.h"
 #include "ut_debugmsg.h"
+#include "ut_raii.h"
 #include "ut_uuid.h"
 
 #include "xap_App.h"
@@ -1071,6 +1072,7 @@ UT_Error IE_Exp_Abinova_1::_writeDocument(void)
 	// save password; the Save As dialog may also have set one.  The
 	// environment fallback keeps headless conversions usable.
 	std::string password = getDoc() ? getDoc()->getSavePassword() : "";
+	UT_SecureStringGuard wipePassword(&password);
 	if (password.empty())
 	{
 		const char * envpw = getenv("ABINOVA_PASSWORD");

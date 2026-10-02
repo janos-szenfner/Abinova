@@ -234,6 +234,14 @@ ABI_EXPORT const gchar ** UT_splitPropsToArray(gchar * props);
 UT_uint64 UT_hash64(const char * p, UT_uint32 bytelen = 0);
 UT_uint32 UT_hash32(const char * p, UT_uint32 bytelen = 0);
 
+// zero memory that held secrets so the bytes do not linger in
+// reclaimed heap blocks, core dumps or swap; a plain memset at end of
+// life is a dead store the compiler may legally delete
+ABI_EXPORT void UT_secureZero(void * p, size_t len);
+// zeroes the whole allocation (a shorter earlier assignment can leave
+// stale bytes in the spare capacity), then clears the string
+ABI_EXPORT void UT_secureClearString(std::string & s);
+
 // Hack so we get AbiNativeWidget with an xp include
 
 #include <gtk/gtk.h>

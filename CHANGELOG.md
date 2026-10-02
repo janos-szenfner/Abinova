@@ -2777,6 +2777,28 @@ below are on `main` but the release has not been cut yet.
   audit was clean: `.abwn` encryption uses PBKDF2-SHA256 (600k rounds)
   + AES-256-GCM via OpenSSL EVP with a hard-fail entropy source, and
   all `UT_rand`/`rand()` users are non-security document IDs.
+- **Sensitive-data lifetime hardening (SEC05)** — passwords and
+  derived key material are now wiped before their memory is released,
+  using compiler-proof zeroing (`UT_secureZero`/`UT_secureClearString`
+  in `ut_misc`, `wvSecureClear` in `wv`, `memwipe` in the ODF crypto
+  helpers — a plain `memset` at end of life can be deleted by the
+  optimizer as a dead store).  Covered: `.doc` decrypt keeps no
+  cleartext password in `wvParseStruct` past key derivation, per-block
+  RC4 keys, MD5 contexts and XOR arrays are wiped on every exit, and
+  decrypted whole-stream buffers (including the `wvDecrypt95` gsf
+  buffer) are wiped before free; ODF import/export wipes the SHA-1
+  password hash and PBKDF2 key, the decrypted-content buffer is wiped
+  on every error path, and the inflate grow path no longer `realloc`s
+  a plaintext buffer (a moved block would leave a plaintext copy in
+  the freed allocation); `.abwn` decrypt wipes the plaintext vector
+  before `shrink_to_fit` and on a wrong-password tag failure; the
+  document's saved password (`PD_Document::m_savePassword`), the ODF
+  importer's password member, and the save-dialog's encryption
+  password are wiped on overwrite/destruction, and every
+  `UT_UTF8String` password (import dialogs, `ABINOVA_PASSWORD`
+  copies) is wiped when its buffer is freed.  Debug traces that
+  printed password-derived values in the Word-95 key check were also
+  removed.
 
 ### GTK4 port (core migration)
 

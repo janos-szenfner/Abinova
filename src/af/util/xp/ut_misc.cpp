@@ -552,6 +552,28 @@ UT_uint32 UT_hash32(const char * p, UT_uint32 bytelen)
 
 #undef MYZERO
 
+void UT_secureZero(void * p, size_t len)
+{
+	if (!p || !len)
+		return;
+#if defined(__GLIBC__)
+	explicit_bzero(p, len);
+#else
+	volatile unsigned char * v = static_cast<volatile unsigned char *>(p);
+	while (len--)
+		*v++ = 0;
+#endif
+}
+
+void UT_secureClearString(std::string & s)
+{
+	// resize() can only grow in place up to capacity(), so this never
+	// reallocates and zeroes every byte the allocation ever held
+	s.resize(s.capacity());
+	UT_secureZero(s.data(), s.size());
+	s.clear();
+}
+
 #if defined(__MACH__) && !defined(CLOCK_REALTIME)
 #include <mach/clock.h>
 #include <mach/mach.h>

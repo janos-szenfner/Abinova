@@ -20,6 +20,7 @@
 
 #include "ut_abwncrypt.h"
 #include "ut_debugmsg.h"
+#include "ut_misc.h"
 
 #include <glib.h>
 #include <dlfcn.h>
@@ -88,10 +89,10 @@ static void ut_hmac_sha256(const unsigned char * key, size_t keyLen,
 	g_checksum_get_digest(c, out, &l);
 	g_checksum_free(c);
 
-	memset(k, 0, sizeof(k));
-	memset(pad, 0, sizeof(pad));
-	memset(inner, 0, sizeof(inner));
-	memset(khash, 0, sizeof(khash));
+	UT_secureZero(k, sizeof(k));
+	UT_secureZero(pad, sizeof(pad));
+	UT_secureZero(inner, sizeof(inner));
+	UT_secureZero(khash, sizeof(khash));
 }
 
 static void ut_pbkdf2_sha256(const char * password,
@@ -112,8 +113,8 @@ static void ut_pbkdf2_sha256(const char * password,
 			t[j] ^= u[j];
 	}
 	memcpy(out, t, 32);
-	memset(u, 0, sizeof(u));
-	memset(t, 0, sizeof(t));
+	UT_secureZero(u, sizeof(u));
+	UT_secureZero(t, sizeof(t));
 }
 
 /*****************************************************************/
@@ -389,7 +390,7 @@ UT_AbwnCrypt UT_abwn_encrypt(const void * plain, size_t plainLen,
 					 header.data(), header.size(),
 					 static_cast<const unsigned char *>(plain), plainLen,
 					 out.data() + header.size(), tag);
-	memset(key, 0, sizeof(key));
+	UT_secureZero(key, sizeof(key));
 	if (!ok)
 	{
 		out.clear();
@@ -455,9 +456,11 @@ UT_AbwnCrypt UT_abwn_decrypt(const void * blob, size_t blobLen,
 	bool ok = ut_gcm(false, key, nonce, nonceLen,
 					 aad, aadLen, ciphertext, cipherLen,
 					 out.data(), tag);
-	memset(key, 0, sizeof(key));
+	UT_secureZero(key, sizeof(key));
 	if (!ok)
 	{
+		// out may hold partial plaintext
+		UT_secureZero(out.data(), out.size());
 		out.clear();
 		return UT_AbwnCrypt::WrongPassword;
 	}

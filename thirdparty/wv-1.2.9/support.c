@@ -96,9 +96,25 @@ indentation.
 static wvStream_list *streams = NULL;
 static U32 wvStream_close_stream(wvStream * in);
 
+/* dead-store-elimination-proof bzero for secrets: the volatile
+   pointer keeps the stores observable */
+void
+wvSecureClear (void *p, size_t len)
+{
+    volatile unsigned char *v = (volatile unsigned char *) p;
+    if (!p)
+	return;
+    while (len--)
+	*v++ = 0;
+}
+
 void
 wvOLEFree (wvParseStruct * ps)
 {
+    /* drop the cleartext password (wvSetPassword) before the struct
+       goes out of scope */
+    wvSecureClear (ps->password, sizeof (ps->password));
+
   /* encrypted files whose decryption was abandoned still own their
      (ciphertext) streams -- the WORD2 exception only exists because a
      pre-OLE doc aliases all five stream pointers to a single object */
@@ -474,6 +490,11 @@ wvStream_close_stream (wvStream * in)
     else
     if (in->kind == MEMORY_STREAM)
       {
+	  /* memory streams can hold decrypted document content
+	     (wvDecrypt97/wvDecrypt95 hand their plaintext buffers to
+	     wvStream_memory_create) -- wipe before freeing */
+	  wvSecureClear (in->stream.memory_stream->mem,
+			 in->stream.memory_stream->size);
 	  wvFree (in->stream.memory_stream->mem);
 	  wvFree (in->stream.memory_stream);
 	  wvFree (in);

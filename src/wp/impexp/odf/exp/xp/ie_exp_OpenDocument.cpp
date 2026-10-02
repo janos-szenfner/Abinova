@@ -249,6 +249,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
     
 	const std::string & prop = getProperty ("uncompressed");
 	std::string password = getDoc()->getSavePassword();
+	UT_SecureStringGuard wipePassword(&password);
 	if (password.empty())
 	  {
 	    // headless (e.g. --to= conversions) cannot show the save-dialog

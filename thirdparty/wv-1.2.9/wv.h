@@ -3204,6 +3204,10 @@ returns the same as wvOLEDecode with the addition that
     int wvGetPieceBoundsCP (U32 * begin, U32 * end, CLX * clx, U32 piececount);
     U16 wvGetChar (wvStream * fd, U8 chartype);
     void *wvMalloc (U32 size);
+    /* zero memory that held secrets (passwords, key material,
+       decrypted streams) before it is freed; a plain memset at end of
+       life is a dead store the compiler may delete */
+    void wvSecureClear (void *p, size_t len);
 
     typedef struct _BTE {
 	U32 pn:22;

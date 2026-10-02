@@ -39,6 +39,7 @@
 
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
+#include "ut_misc.h"
 #include "ODc_Crypto.h"
 
 #ifdef HAVE_CONFIG_H
@@ -86,8 +87,12 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 
 	// create a PBKDF2 key from the sha1 sum
 	int k = pbkdf2_sha1 (reinterpret_cast<const char*>(sha1_password), PASSWORD_HASH_LEN, reinterpret_cast<const char*>(salt), salt_length, iter_count, key, PBKDF2_KEYLEN);
+	UT_secureZero(sha1_password, sizeof(sha1_password));
 	if (k != 0)
+	{
+		UT_secureZero(key, sizeof(key));
 		return UT_ERROR;
+	}
 
     // Get the encrypted content ready
 	gsf_off_t stream_size = gsf_input_size(pStream);
@@ -99,7 +104,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 		return UT_ERROR;
 
 	unsigned char* content_decrypted = static_cast<unsigned char*>(g_malloc(content_size));
-    
+
 	// perform the actual decryption
 #ifdef HAVE_GCRYPT
 
@@ -125,6 +130,8 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
     }
     if( gerr != GPG_ERR_NO_ERROR )
     {
+        UT_secureZero( key, sizeof(key) );
+        UT_secureZero( content_decrypted, content_size );
         g_free( content_decrypted );
         HANDLEGERR( gerr );
     }
@@ -143,9 +150,14 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
     BF_set_key(&bf_key, PBKDF2_KEYLEN, reinterpret_cast<const unsigned char*>(key));
     BF_cfb64_encrypt(content, content_decrypted, content_size,
                      &bf_key, ivec_copy, &num, BF_DECRYPT);
+    UT_secureZero(&bf_key, sizeof(bf_key));
+    UT_secureZero(ivec_copy, sizeof(ivec_copy));
 
 #endif
-    
+
+    // the password-derived key is consumed; drop it before the
+    // (longer-lived) inflate stage
+    UT_secureZero( key, sizeof(key) );
 	// inflate the decrypted content. decrypted_size comes from the
 	// manifest:size entry and may be absent (0) or wrong, so grow the
 	// output buffer when the stream needs more room instead of failing.
@@ -159,7 +171,11 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 	int err;
 	err = inflateInit2(&zs, -MAX_WBITS);
 	if (err != Z_OK)
+	{
+		UT_secureZero(content_decrypted, content_size);
+		FREEP(content_decrypted);
 		return UT_ERROR;
+	}
 
 	size_t cap = decrypted_size ? decrypted_size
 	                            : (content_size > G_MAXUINT / 2 - 65536
@@ -179,6 +195,8 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 		if (err != Z_OK && err != Z_BUF_ERROR)
 		{
 			inflateEnd(&zs);
+			UT_secureZero(content_decrypted, content_size);
+			UT_secureZero(decrypted, cap);
 			FREEP(content_decrypted);
 			FREEP(decrypted);
 			return UT_ERROR;
@@ -189,12 +207,20 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 			if (cap > static_cast<size_t>(G_MAXUINT) / 2)
 			{
 				inflateEnd(&zs);
+				UT_secureZero(content_decrypted, content_size);
+				UT_secureZero(decrypted, cap);
 				FREEP(content_decrypted);
 				FREEP(decrypted);
 				return UT_ERROR;
 			}
 			cap *= 2;
-			decrypted = static_cast<unsigned char*>(g_realloc(decrypted, cap));
+			// not g_realloc: a moved block would leave plaintext in
+			// the freed old allocation
+			unsigned char* grown = static_cast<unsigned char*>(g_malloc(cap));
+			memcpy(grown, decrypted, used);
+			UT_secureZero(decrypted, used);
+			g_free(decrypted);
+			decrypted = grown;
 			zs.next_out = decrypted + used;
 			zs.avail_out = static_cast<uInt>(cap - used);
 			continue;
@@ -203,6 +229,8 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 		{
 			// no further progress possible: truncated or corrupt stream
 			inflateEnd(&zs);
+			UT_secureZero(content_decrypted, content_size);
+			UT_secureZero(decrypted, cap);
 			FREEP(content_decrypted);
 			FREEP(decrypted);
 			return UT_ERROR;
@@ -211,6 +239,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 	}
 	const gsize out_len = zs.total_out;
 	inflateEnd(&zs);
+	UT_secureZero(content_decrypted, content_size);
 	FREEP(content_decrypted);
 
 	*pDecryptedInput = gsf_input_memory_new(decrypted, out_len, TRUE);
@@ -340,8 +369,12 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     int k = pbkdf2_sha1(reinterpret_cast<const char*>(sha1_password), PASSWORD_HASH_LEN,
                         reinterpret_cast<const char*>(salt), sizeof(salt), iter_count,
                         key, PBKDF2_KEYLEN);
+    UT_secureZero(sha1_password, sizeof(sha1_password));
     if (k != 0)
+    {
+        UT_secureZero(key, sizeof(key));
         return UT_ERROR;
+    }
 
     // SHA1/1K checksum of the plaintext for the manifest
     {
@@ -360,7 +393,10 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     zs.opaque = nullptr;
     if (deflateInit2(&zs, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
                      -MAX_WBITS, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+    {
+        UT_secureZero(key, sizeof(key));
         return UT_ERROR;
+    }
 
     uLongf compBound = deflateBound(&zs, plaintextSize);
     unsigned char* compressed = static_cast<unsigned char*>(g_malloc(compBound));
@@ -373,6 +409,8 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     if (err != Z_STREAM_END)
     {
         deflateEnd(&zs);
+        UT_secureZero(key, sizeof(key));
+        UT_secureZero(compressed, compBound);
         g_free(compressed);
         return UT_ERROR;
     }
@@ -397,6 +435,8 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     }
     if (gerr != GPG_ERR_NO_ERROR)
     {
+        UT_secureZero(key, sizeof(key));
+        UT_secureZero(compressed, compSize);
         g_free(compressed);
         g_free(out);
         return UT_ERROR;
@@ -410,9 +450,13 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
         BF_set_key(&bf_key, PBKDF2_KEYLEN, reinterpret_cast<const unsigned char*>(key));
         BF_cfb64_encrypt(compressed, out, compSize,
                          &bf_key, ivec_copy, &num, BF_ENCRYPT);
+        UT_secureZero(&bf_key, sizeof(bf_key));
+        UT_secureZero(ivec_copy, sizeof(ivec_copy));
     }
 #endif
 
+    UT_secureZero(key, sizeof(key));
+    UT_secureZero(compressed, compSize);
     g_free(compressed);
 
     // fill in the manifest information

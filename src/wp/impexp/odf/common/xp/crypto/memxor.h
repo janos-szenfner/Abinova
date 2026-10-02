@@ -28,4 +28,9 @@
    DEST. */
 void *memxor (void * /*restrict*/ dest, const void * /*restrict*/ src, size_t n);
 
+/* Securely zero N bytes at P -- for key material and other secrets.
+   Unlike memset at end of life, this is not a dead store the compiler
+   may eliminate (volatile-qualified writes). */
+void memwipe (void *p, size_t n);
+
 #endif /* MEMXOR_H */

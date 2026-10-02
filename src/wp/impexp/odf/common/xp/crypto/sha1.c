@@ -26,6 +26,7 @@
 // #include <config.h>
 
 #include "sha1.h"
+#include "memxor.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -207,7 +208,13 @@ sha1_buffer (const char *buffer, size_t len, void *resblock)
   sha1_process_bytes (buffer, len, &ctx);
 
   /* Put result in desired memory area.  */
-  return sha1_finish_ctx (&ctx, resblock);
+  {
+    void *res = sha1_finish_ctx (&ctx, resblock);
+    /* ctx holds the un-padded tail of the input plus digest state;
+       wipe it so password buffers hashed through here do not linger */
+    memwipe (&ctx, sizeof (ctx));
+    return res;
+  }
 }
 
 void

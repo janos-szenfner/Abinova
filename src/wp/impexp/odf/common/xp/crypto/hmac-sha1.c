@@ -77,5 +77,12 @@ hmac_sha1 (const void *key, size_t keylen,
 
   sha1_finish_ctx (&outer, resbuf);
 
+  /* the padded key and intermediate hashes are key material */
+  memwipe (&inner, sizeof (inner));
+  memwipe (&outer, sizeof (outer));
+  memwipe (optkeybuf, sizeof (optkeybuf));
+  memwipe (block, sizeof (block));
+  memwipe (innerhash, sizeof (innerhash));
+
   return 0;
 }

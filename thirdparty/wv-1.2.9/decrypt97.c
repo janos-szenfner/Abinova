@@ -77,6 +77,8 @@ makekey (U32 block, rc4_key * key, wvMD5_CTX * valContext)
     wvMD5Update (&mdContext, pwarray, 64);
     wvMD5StoreDigest (&mdContext);
     prepare_key (mdContext.digest, 16, key);
+    wvSecureClear (pwarray, sizeof (pwarray));
+    wvSecureClear (&mdContext, sizeof (mdContext));
 }
 
 static int
@@ -146,7 +148,11 @@ verifypwd (U8 pwarray[64], U8 docid[16], U8 salt[64], U8 hashedsalt[16],
     wvMD5Update (&mdContext2, salt, 64);
     wvMD5StoreDigest (&mdContext2);
 
-    return (memcmp (mdContext2.digest, hashedsalt, 16));
+    offset = memcmp (mdContext2.digest, hashedsalt, 16);
+    wvSecureClear (&mdContext1, sizeof (mdContext1));
+    wvSecureClear (&mdContext2, sizeof (mdContext2));
+    wvSecureClear (&key, sizeof (key));
+    return (offset);
 }
 
 static void
@@ -231,6 +237,8 @@ decrypt_rc4_stream (wvStream * enc, wvMD5_CTX * valContext, U32 prefix,
       }
 
     *len = size;
+    wvSecureClear (&key, sizeof (key));
+    wvSecureClear (test, sizeof (test));
     return (buf);
 }
 
@@ -242,7 +250,7 @@ wvDecrypt97 (wvParseStruct * ps)
     U16 vMajor, vMinor;
     int i;
     U8 *mainbuf, *tablebuf, *databuf;
-    size_t mainlen, tablelen, datalen;
+    size_t mainlen = 0, tablelen = 0, datalen;
     U32 tableprefix;
     wvMD5_CTX valContext;
 
@@ -259,6 +267,7 @@ wvDecrypt97 (wvParseStruct * ps)
 	  wvError (("Encrypted .doc: unsupported EncryptionVersionInfo "
 		    "%u.%u (only RC4 1.1 is supported)\n",
 		    vMajor, vMinor));
+	  wvSecureClear (ps->password, sizeof (ps->password));
 	  return (-2);
       }
 
@@ -272,9 +281,16 @@ wvDecrypt97 (wvParseStruct * ps)
 	hashedsalt[i] = read_8ubit (ps->tablefd);
 
     expandpw (ps->password, pwarray);
+    /* the cleartext password is no longer needed past key
+       derivation */
+    wvSecureClear (ps->password, sizeof (ps->password));
 
     if (verifypwd (pwarray, docid, salt, hashedsalt, &valContext))
-	return (1);
+      {
+	  wvSecureClear (pwarray, sizeof (pwarray));
+	  wvSecureClear (&valContext, sizeof (valContext));
+	  return (1);
+      }
 
     /* the first lKey bytes of the Table stream hold the plaintext
        EncryptionHeader; clamp defensively against a corrupt FIB */
@@ -295,9 +311,15 @@ wvDecrypt97 (wvParseStruct * ps)
 
     if (!tablebuf || !mainbuf)
       {
+	  /* these buffers may hold partial plaintext */
+	  wvSecureClear (tablebuf, tablelen);
+	  wvSecureClear (mainbuf, mainlen);
+	  wvSecureClear (databuf, datalen);
 	  free (tablebuf);
 	  free (mainbuf);
 	  free (databuf);
+	  wvSecureClear (pwarray, sizeof (pwarray));
+	  wvSecureClear (&valContext, sizeof (valContext));
 	  return (-1);
       }
 
@@ -330,9 +352,15 @@ wvDecrypt97 (wvParseStruct * ps)
     wvStream_rewind (ps->mainfd);
     ps->fib.fEncrypted = 0;
     if (wvGetFIB (&ps->fib, ps->mainfd))
-	return (-1);
+      {
+	  wvSecureClear (pwarray, sizeof (pwarray));
+	  wvSecureClear (&valContext, sizeof (valContext));
+	  return (-1);
+      }
     wvClampFIBFcLcb (&ps->fib, wvStream_size (ps->tablefd0));
     ps->fib.fEncrypted = 0;
+    wvSecureClear (pwarray, sizeof (pwarray));
+    wvSecureClear (&valContext, sizeof (valContext));
     return (0);
 }
 

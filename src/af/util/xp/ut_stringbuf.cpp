@@ -31,6 +31,7 @@
 #include <glib.h>
 
 #include "ut_string.h"
+#include "ut_misc.h"
 #include "ut_stringbuf.h"
 #include "ut_unicode.h"
 #include "ut_string_class.h"
@@ -798,7 +799,13 @@ void UT_UTF8Stringbuf::escapeMIME ()
 void UT_UTF8Stringbuf::clear ()
 {
 	if (m_psz)
+	{
+		// wipe before free: passwords (import dialogs, protected
+		// documents) travel through UT_UTF8String and must not linger
+		// in the reclaimed heap block
+		UT_secureZero (m_psz, m_buflen);
 		g_free (m_psz);
+	}
 	m_psz = nullptr;
 	m_pEnd = nullptr;
 	m_strlen = 0;

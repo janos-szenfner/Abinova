@@ -36,6 +36,7 @@
 
 // Abinova includes
 #include "ut_types.h"
+#include "ut_misc.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "xap_DialogFactory.h"
@@ -76,6 +77,7 @@ IE_Imp_OpenDocument::IE_Imp_OpenDocument (PD_Document * pDocument)
  */
 IE_Imp_OpenDocument::~IE_Imp_OpenDocument ()
 {
+    UT_secureClearString(m_sPassword);
     if (m_pGsfInfile) {
         g_object_unref (G_OBJECT(m_pGsfInfile));
     }
@@ -311,7 +313,7 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
 UT_Error IE_Imp_OpenDocument::_handleManifestStream() {
     // clear the cryptography state
     m_cryptoInfo.clear();
-    m_sPassword = "";
+    UT_secureClearString(m_sPassword);
 
 	GsfInput* pMetaInf = gsf_infile_child_by_name(m_pGsfInfile, "META-INF");
     ODi_ManifestStream_ListenerState manifestListener(*(m_pStreamListener->getElementStack()),
