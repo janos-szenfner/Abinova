@@ -21,6 +21,7 @@
 
 #include "ie_math_convert.h"
 #include "ut_debugmsg.h"
+#include "ut_xml.h"
 #include "xap_App.h"
 
 #include <libxslt/xslt.h>
@@ -53,7 +54,12 @@ bool convertMathMLtoLaTeX(const UT_UTF8String & sMathML, UT_UTF8String & sLaTeX)
 	}
     }
 
-    doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(sMathML.utf8_str()));
+    // sMathML is document-controlled - never let it pull in external
+    // entities/DTDs
+    {
+        UT_XML_UntrustedParseScope xxeGuard;
+        doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(sMathML.utf8_str()));
+    }
     if (!doc)
     {
         xxx_UT_DEBUGMSG(("convertMathMLtoLaTeX: Parsing MathML document failed\n"));
@@ -155,7 +161,12 @@ bool convertOMMLtoMathML(const std::string & pOMML, std::string & pMathML)
 
     }
 
-    doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(pOMML.c_str()));
+    // pOMML is document-controlled - never let it pull in external
+    // entities/DTDs
+    {
+        UT_XML_UntrustedParseScope xxeGuard;
+        doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(pOMML.c_str()));
+    }
     if(!doc)
     {
         xxx_UT_DEBUGMSG(("convertOMMLtoMathML : Parsing OMML document failed\n"));
@@ -224,7 +235,12 @@ bool convertMathMLtoOMML(const std::string & rMathML, std::string & rOMML)
         }
     }
 
-    doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(rMathML.c_str()));
+    // rMathML is document-controlled - never let it pull in external
+    // entities/DTDs
+    {
+        UT_XML_UntrustedParseScope xxeGuard;
+        doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(rMathML.c_str()));
+    }
     if(!doc)
     {
         xxx_UT_DEBUGMSG(("convertMathMLtoOMML : Parsing MathML document failed\n"));

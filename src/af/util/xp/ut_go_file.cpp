@@ -794,6 +794,29 @@ UT_go_url_resolve_relative (const char *ref_uri, const char *rel_uri)
 	return simp;
 }
 
+/*
+ * UT_go_url_is_local :
+ * @uri : a URI or plain path.
+ *
+ * TRUE if @uri names a local file, i.e. a plain (scheme-less) path or a
+ * file:// URI.  Any other scheme (http, https, ftp, smb, ...) names a remote
+ * resource that UT_go_file_open would fetch over the network - importers
+ * must not do that merely because a document referenced it (SSRF /
+ * tracking-pixel risk).
+ */
+gboolean
+UT_go_url_is_local (const char *uri)
+{
+	if (uri == nullptr)
+		return FALSE;
+
+	/* "scheme://" marks a URI; no marker means a plain local path. */
+	if (strstr (uri, "://") == nullptr)
+		return TRUE;
+
+	return g_ascii_strncasecmp (uri, "file://", 7) == 0;
+}
+
 static char *
 make_rel (const char *uri, const char *ref_uri,
 	  const char *uri_host, const char *slash)

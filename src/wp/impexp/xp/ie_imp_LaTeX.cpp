@@ -978,6 +978,14 @@ void IE_Imp_LaTeX::_emitImagePublic(const std::string & file)
 												 file.c_str());
 	if (!resolved)
 		return;
+	/* Never fetch remote resources at import time - a document must not
+	 * trigger network access just by being opened. */
+	if (!UT_go_url_is_local(resolved))
+	{
+		UT_DEBUGMSG(("skipping remote \\includegraphics target %s\n", resolved));
+		g_free(resolved);
+		return;
+	}
 	FG_ConstGraphicPtr pfg;
 	UT_Error err = IE_ImpGraphic::loadGraphic(resolved, IEGFT_Unknown, pfg);
 	g_free(resolved);

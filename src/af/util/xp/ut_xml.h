@@ -29,6 +29,28 @@
 
 ABI_EXPORT char * UT_XML_Decode( const char * inKey );
 
+/* RAII guard for parsing XML out of untrusted documents.  While a scope is
+ * active, libxml2's external entity loader refuses every load, so SYSTEM
+ * entities, external DTDs and external parameter entities can neither read
+ * local files nor reach the network (XXE prevention).  Entities declared
+ * inside the document itself still expand normally.
+ *
+ * The block is scoped rather than permanent because the entity loader is
+ * process-global and trusted local resources (e.g. the bundled XSLT
+ * stylesheets libxslt reads through the same machinery) must keep loading.
+ * Scopes nest.  No-op where the XML backend is not libxml2.
+ */
+class ABI_EXPORT UT_XML_UntrustedParseScope
+{
+public:
+	UT_XML_UntrustedParseScope ();
+	~UT_XML_UntrustedParseScope ();
+
+private:
+	UT_XML_UntrustedParseScope (const UT_XML_UntrustedParseScope &) = delete;
+	UT_XML_UntrustedParseScope & operator= (const UT_XML_UntrustedParseScope &) = delete;
+};
+
 class ABI_EXPORT UT_XML
 {
  public:

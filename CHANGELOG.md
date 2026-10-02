@@ -2799,6 +2799,31 @@ below are on `main` but the release has not been cut yet.
   copies) is wiped when its buffer is freed.  Debug traces that
   printed password-derived values in the Word-95 key check were also
   removed.
+- **XXE / external-resource hardening (SEC06)** — the shared libxml2
+  readers ran with `XML_PARSE_NOENT` (entity substitution on) and no
+  network/load restriction, so a crafted XML document could declare
+  `SYSTEM` entities pointing at `file://` paths or remote URLs and
+  have libxml2 read local files or fetch network resources while
+  opening the document.  A new scoped guard
+  (`UT_XML_UntrustedParseScope` in `ut_xml.h`) installs a process-wide
+  libxml2 external-entity loader that refuses all loads only while an
+  untrusted-document parse is active — scoped rather than permanent
+  because trusted local resources (e.g. the bundled XSLT stylesheets
+  libxslt loads through the same machinery) must keep working.
+  Applied to `UT_XML::parse` (both entry points), `UT_HTML::parse`,
+  the three document-controlled `xmlParseDoc` calls in the
+  MathML/OMML converters, and the `xmlReadMemory` MathML typesetter
+  parse; both push parsers also gained `XML_PARSE_NONET`.  Internal
+  entities and predefined entities keep expanding as before.  The
+  sweep also found that XHTML, Markdown and LaTeX importers resolved
+  document-controlled image/stylesheet URIs through
+  `UT_go_file_open`, which can fetch `http://`/`https://` and other
+  remote schemes — a silent network request (SSRF/tracking-pixel risk)
+  on document open.  New `UT_go_url_is_local()` now gates those
+  references: plain paths and `file://` still resolve, remote schemes
+  are skipped (the user-invoked "Insert Online Picture" feature is
+  unaffected).  ODF embedded images (package-internal) and OOXML
+  external relationships (already rejected) needed no change.
 
 ### GTK4 port (core migration)
 

@@ -151,6 +151,55 @@ static void _fatalErrorSAXFunc(void *xmlp,
 }
 
 
+/* libxml2 resolves every external entity/system identifier (SYSTEM
+ * entities, external DTD subsets, external parameter entities) through a
+ * single process-global loader that reads local files and fetches network
+ * resources.  It cannot be blocked outright - trusted local resources such
+ * as the bundled XSLT stylesheets (read by libxslt through the same
+ * machinery) must keep loading - so the loader installed below refuses
+ * loads only while a UT_XML_UntrustedParseScope is active.  XML parsing
+ * happens on the main thread (no libxml2 use in worker threads), so a
+ * plain counter suffices.
+ */
+static xmlExternalEntityLoader s_prevEntityLoader = nullptr;
+static bool s_guardedLoaderInstalled = false;
+static UT_uint32 s_untrustedParseDepth = 0;
+
+static xmlParserInputPtr s_guardedEntityLoader (const char * URL,
+                                                const char * ID,
+                                                xmlParserCtxtPtr ctxt)
+{
+	if (s_untrustedParseDepth > 0)
+	{
+		UT_DEBUGMSG (("XML: blocked external resource '%s' in untrusted document\n",
+		              URL ? URL : "(null)"));
+		return nullptr;
+	}
+	if (s_prevEntityLoader == nullptr)
+		return nullptr;
+	return s_prevEntityLoader (URL, ID, ctxt);
+}
+
+UT_XML_UntrustedParseScope::UT_XML_UntrustedParseScope ()
+{
+	if (!s_guardedLoaderInstalled)
+	{
+		xmlInitParser (); /* in case no one initialized libxml2 yet */
+		s_prevEntityLoader = xmlGetExternalEntityLoader ();
+		if (s_prevEntityLoader == nullptr)
+			s_prevEntityLoader = xmlNoNetExternalEntityLoader;
+		xmlSetExternalEntityLoader (s_guardedEntityLoader);
+		s_guardedLoaderInstalled = true;
+	}
+	s_untrustedParseDepth++;
+}
+
+UT_XML_UntrustedParseScope::~UT_XML_UntrustedParseScope ()
+{
+	s_untrustedParseDepth--;
+}
+
+
 UT_Error UT_XML::parse (const char * szFilename)
 {
 	UT_ASSERT (m_pListener || m_pExpertListener);
@@ -167,12 +216,14 @@ UT_Error UT_XML::parse (const char * szFilename)
 	if (m_pReader)
 		reader = m_pReader;
 	
+	UT_XML_UntrustedParseScope xxeGuard;
+
 	if (!reader->openFile (szFilename))
     {
 		UT_DEBUGMSG (("Could not open file %s\n", szFilename));
 		return UT_errnoToUTError ();
     }
-	
+
 	char buffer[2048];
 	
 	m_bStopped = false;
@@ -204,7 +255,7 @@ UT_Error UT_XML::parse (const char * szFilename)
 			reader->closeFile ();
 			return UT_ERROR;
 		}
-		xmlCtxtUseOptions (ctxt, XML_PARSE_NOENT);
+		xmlCtxtUseOptions (ctxt, XML_PARSE_NOENT | XML_PARSE_NONET);
 		UT_sint32 chucks = -1;
 		while (!done && !m_bStopped)
 		{
@@ -280,6 +331,8 @@ UT_Error UT_XML::parse (const char * buffer, UT_uint32 length)
   hdl.processingInstruction = _processingInstruction;
   hdl.comment      = _comment;
   hdl.cdataBlock   = _cdata;
+
+  UT_XML_UntrustedParseScope xxeGuard;
 
   ctxt = xmlCreateMemoryParserCtxt (buffer, static_cast<int>(length));
   if (ctxt == nullptr)

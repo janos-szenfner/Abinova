@@ -2181,6 +2181,17 @@ FG_ConstGraphicPtr IE_Imp_XHTML::importImage (const gchar * szSrc)
 	if(!relative_file)
 		return nullptr;
 
+	/* Never fetch remote resources at import time - a document must not
+	 * trigger network access just by being opened (SSRF/tracking).  The
+	 * user-invoked "Insert Online Picture" path stays available.
+	 */
+	if (!UT_go_url_is_local(relative_file))
+		{
+			UT_DEBUGMSG(("skipping remote image reference %s\n", relative_file));
+			g_free(relative_file);
+			return nullptr;
+		}
+
 	UT_DEBUGMSG(("found image reference (%s) - loading... \n", relative_file));
 
 	FG_ConstGraphicPtr pfg;
@@ -2473,6 +2484,13 @@ void IE_Imp_XHTML::loadStyleSheet (const char * href)
 	char * resolved = UT_go_url_resolve_relative (m_szFileName, href);
 	if (resolved == nullptr)
 		{
+			return;
+		}
+	if (!UT_go_url_is_local (resolved))
+		{
+			/* never fetch remote stylesheets at import time */
+			UT_DEBUGMSG(("skipping remote stylesheet %s\n", resolved));
+			g_free (resolved);
 			return;
 		}
 	GsfInput * input = UT_go_file_open (resolved, nullptr);

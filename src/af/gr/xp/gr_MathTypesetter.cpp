@@ -21,6 +21,7 @@
  */
 
 #include "gr_MathTypesetter.h"
+#include "ut_xml.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -1011,9 +1012,14 @@ bool GR_MathTypesetter::parseMathML(const char *sz, int len)
 		return false;
 	}
 	if (len < 0) len = static_cast<int>(strlen(sz));
-	xmlDoc *doc = xmlReadMemory(sz, len, "mathml", "UTF-8",
-	                            XML_PARSE_RECOVER | XML_PARSE_NOERROR |
-	                            XML_PARSE_NOWARNING | XML_PARSE_NONET);
+	xmlDoc *doc = nullptr;
+	{	// sz is document-controlled - never let it pull in external
+		// entities/DTDs
+		UT_XML_UntrustedParseScope xxeGuard;
+		doc = xmlReadMemory(sz, len, "mathml", "UTF-8",
+		                    XML_PARSE_RECOVER | XML_PARSE_NOERROR |
+		                    XML_PARSE_NOWARNING | XML_PARSE_NONET);
+	}
 	if (!doc) {
 		m_bError = true;
 		m_sErr = "unparsable MathML";

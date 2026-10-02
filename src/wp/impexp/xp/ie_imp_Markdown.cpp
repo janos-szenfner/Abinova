@@ -1219,6 +1219,15 @@ bool IE_Imp_Markdown::_emitImage(const std::string & url, const std::string & al
 	if (!resolved)
 		return false;
 
+	/* Never fetch remote resources at import time - a document must not
+	 * trigger network access just by being opened. */
+	if (!UT_go_url_is_local(resolved))
+	{
+		UT_DEBUGMSG(("skipping remote image %s\n", resolved));
+		g_free(resolved);
+		return false;
+	}
+
 	FG_ConstGraphicPtr pfg;
 	UT_Error err = IE_ImpGraphic::loadGraphic(resolved, IEGFT_Unknown, pfg);
 	g_free(resolved);

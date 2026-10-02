@@ -63,6 +63,7 @@ ABI_EXPORT char *UT_go_filename_to_uri (const char *filename);
 
 ABI_EXPORT char *UT_go_url_resolve_relative (const char *ref_uri, const char *rel_uri);
 ABI_EXPORT char *UT_go_url_make_relative (const char *uri, const char *ref_uri);
+ABI_EXPORT gboolean UT_go_url_is_local (const char *uri);
 
 ABI_EXPORT char *UT_go_shell_arg_to_uri (const char *arg);
 ABI_EXPORT char *UT_go_basename_from_uri (const char *uri);

@@ -127,6 +127,8 @@ UT_Error UT_HTML::parse (const char * szFilename)
 	if (m_pReader)
 		reader = m_pReader;
 
+	UT_XML_UntrustedParseScope xxeGuard;
+
 	if (!reader->openFile (szFilename))
 		{
 			UT_DEBUGMSG (("Could not open file %s\n", szFilename));
@@ -165,7 +167,7 @@ UT_Error UT_HTML::parse (const char * szFilename)
 					reader->closeFile ();
 					return UT_ERROR;
 				}
-			xmlCtxtUseOptions (ctxt, XML_PARSE_NOENT);
+			xmlCtxtUseOptions (ctxt, XML_PARSE_NOENT | XML_PARSE_NONET);
 
 			while (!done && !m_bStopped)
 				{
