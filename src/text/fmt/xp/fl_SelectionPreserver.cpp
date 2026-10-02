@@ -19,6 +19,7 @@
 
 #include "fv_View.h"
 #include "fl_SelectionPreserver.h"
+#include "ut_debugmsg.h"
 
 FL_SelectionPreserver::FL_SelectionPreserver (FV_View * pView)
 	: m_pView (pView), m_bHadSelection (false)
@@ -38,8 +39,14 @@ FL_SelectionPreserver::~FL_SelectionPreserver ()
 	// TODO: this might not be entirely correct, but it's probably
 	// a "close enough" heuristic for this class' uses
 	if (m_bHadSelection) {
-		m_pView->cmdUnselectSelection();
-		m_pView->cmdSelect (m_docRange.m_pos1, m_docRange.m_pos2);
+		/* cmdSelect allocates via the view; an exception escaping a
+		 * destructor is std::terminate, so never let one out */
+		try {
+			m_pView->cmdUnselectSelection();
+			m_pView->cmdSelect (m_docRange.m_pos1, m_docRange.m_pos2);
+		} catch (...) {
+			UT_DEBUGMSG(("~FL_SelectionPreserver: selection restore threw\n"));
+		}
 	}
 }
 

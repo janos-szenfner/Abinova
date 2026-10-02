@@ -1457,7 +1457,14 @@ fl_BlockLayout::~fl_BlockLayout()
 	{
 		if(!isNotTOCable())
 		{
-			m_pLayout->removeBlockFromTOC(this);
+			/* removeBlockFromTOC -> fl_TOCLayout::_calculateLabels uses a
+			 * std::stack that allocates; an exception escaping a
+			 * destructor is std::terminate */
+			try {
+				m_pLayout->removeBlockFromTOC(this);
+			} catch (...) {
+				xxx_UT_DEBUGMSG(("~fl_BlockLayout: removeBlockFromTOC threw\n"));
+			}
 		}
 	}
 

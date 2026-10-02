@@ -204,10 +204,13 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
  */
 SpellManager::~SpellManager ()
 {
-	auto pVec = m_map.enumerate();
-	UT_ASSERT(pVec);
-	if (pVec) {
-		UT_VECTOR_PURGEALL (SpellCheckerClass *, (*pVec));
+	/* walk the map directly rather than enumerate(): enumerate()
+	 * allocates a vector, and a destructor must not let an exception
+	 * escape (-> std::terminate) */
+	UT_StringPtrMap::UT_Cursor _hc1(&m_map);
+	for (const void* pVal = _hc1.first(); _hc1.is_valid(); pVal = _hc1.next())
+	{
+		delete static_cast<const SpellCheckerClass *>(pVal);
 	}
 }
 

@@ -4688,7 +4688,13 @@ class ABI_EXPORT PD_RDFMutation_XMLIDLimited
     virtual ~PD_RDFMutation_XMLIDLimited() override
     {
         if( !m_committed && !m_rolledback )
-            commit();
+        {
+            /* an exception escaping a destructor is std::terminate */
+            try { commit(); }
+            catch (...) {
+                UT_DEBUGMSG(("~PD_RDFMutation_XMLIDLimited(): commit() threw, change dropped\n"));
+            }
+        }
     }
 
     using PD_DocumentRDFMutation::add;
@@ -5159,7 +5165,15 @@ PD_DocumentRDFMutation::PD_DocumentRDFMutation( PD_DocumentRDF* rdf )
 PD_DocumentRDFMutation::~PD_DocumentRDFMutation()
 {
     if( !m_committed )
-        commit();
+    {
+        /* commit() allocates (new AttrProps, SPARQL strings, librdf
+         * calls); an exception escaping a destructor is
+         * std::terminate, so never let one out. */
+        try { commit(); }
+        catch (...) {
+            UT_DEBUGMSG(("~PD_DocumentRDFMutation(): commit() threw, change dropped\n"));
+        }
+    }
     
     if(m_pAP)
         delete m_pAP;

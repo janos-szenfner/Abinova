@@ -434,7 +434,11 @@ void XAP_Frame::_removeAutoSaveFile()
 	{
 		UT_DEBUGMSG(("Failed to unlink old backup file %s\n", m_stAutoSaveNamePrevious.c_str()));
 	}
-	g_unlink((m_stAutoSaveNamePrevious + ".info").c_str());
+	/* also called from ~XAP_Frame -- build the name with glib so a
+	 * bad_alloc cannot escape the destructor (g_malloc aborts on OOM) */
+	gchar * szInfoName = g_strconcat(m_stAutoSaveNamePrevious.c_str(), ".info", nullptr);
+	g_unlink(szInfoName);
+	g_free(szInfoName);
 	m_stAutoSaveNamePrevious.clear();
 }
 

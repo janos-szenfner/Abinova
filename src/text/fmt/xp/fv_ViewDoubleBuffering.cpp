@@ -40,7 +40,14 @@ FV_ViewDoubleBuffering::FV_ViewDoubleBuffering(FV_View *pView, bool suspendDirec
 
 FV_ViewDoubleBuffering::~FV_ViewDoubleBuffering()
 {
-	this->endDoubleBuffering();
+	/* endDoubleBuffering() can draw via callUnifiedDraw() -> _draw(),
+	 * which allocates; an exception escaping a destructor is
+	 * std::terminate, so never let one out */
+	try {
+		this->endDoubleBuffering();
+	} catch (...) {
+		xxx_UT_DEBUGMSG(("~FV_ViewDoubleBuffering: endDoubleBuffering threw\n"));
+	}
 }
 
 

@@ -2824,6 +2824,24 @@ below are on `main` but the release has not been cut yet.
   are skipped (the user-invoked "Insert Online Picture" feature is
   unaffected).  ODF embedded images (package-internal) and OOXML
   external relationships (already rejected) needed no change.
+- **Exception-safety audit of destructors (EX01)** — C++ destructors
+  are implicitly `noexcept`, so any allocation or throwing call that
+  escapes one is an immediate `std::terminate` (crash on close,
+  autosave cleanup, or error-path teardown).  A full sweep of all 378
+  destructor definitions found and fixed every reachable throwing
+  path: the RDF mutation destructors called `commit()` (which
+  allocates attribute properties, SPARQL strings and librdf objects),
+  `~XAP_App` ran the user-dictionary `save()` (hash enumeration +
+  string buffers), `~fl_BlockLayout` could reach TOC relabeling
+  (`std::stack` push), `~FL_SelectionPreserver` re-selected via view
+  ops, and `~FV_ViewDoubleBuffering` drew on teardown — all now
+  log-and-drop instead of terminating.  `~FL_DocLayout` deduplicated
+  embed managers through an allocating `std::set`; it now walks the
+  two manager maps allocation-free.  `~SpellManager` no longer builds
+  an intermediate vector to delete its checkers.  `~XAP_Frame` builds
+  the autosave `.info` name with glib instead of `std::string`
+  concatenation.  There are no user-declared move operations in the
+  tree, so the missing-`noexcept` leg was vacuous.
 
 ### GTK4 port (core migration)
 

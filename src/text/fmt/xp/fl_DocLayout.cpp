@@ -248,22 +248,35 @@ FL_DocLayout::~FL_DocLayout()
 		delete m_pFirstSection;
 		m_pFirstSection = pNext;
 	}
-	std::set<GR_EmbedManager *> garbage;
+	/* delete each embed manager exactly once: a manager is owned by the
+	 * entry whose key equals its object type; other entries are aliases.
+	 * The same manager may be canonical in BOTH maps, so check the main
+	 * map before deleting from the quick-print one. This must not
+	 * allocate (no std::set) -- a throw inside a destructor is
+	 * std::terminate. */
 	std::map<std::string, GR_EmbedManager *>::iterator i, iend;
 	iend = m_mapEmbedManager.end();
 	for (i = m_mapEmbedManager.begin(); i != iend; i++)
-		if ((*i).first == (*i).second->getObjectType())
-			garbage.insert((*i).second);
-	m_mapEmbedManager.clear();
+	{
+		GR_EmbedManager * pMgr = (*i).second;
+		if (pMgr && (*i).first == pMgr->getObjectType())
+			delete pMgr;
+	}
 	iend = m_mapQuickPrintEmbedManager.end();
 	for (i = m_mapQuickPrintEmbedManager.begin(); i != iend; i++)
-		if ((*i).first == (*i).second->getObjectType())
-			garbage.insert((*i).second);
+	{
+		GR_EmbedManager * pMgr = (*i).second;
+		if (pMgr && (*i).first == pMgr->getObjectType())
+		{
+			std::map<std::string, GR_EmbedManager *>::iterator dup =
+				m_mapEmbedManager.find((*i).first);
+			if (dup != m_mapEmbedManager.end() && (*dup).second == pMgr)
+				continue; // already deleted via the primary map
+			delete pMgr;
+		}
+	}
+	m_mapEmbedManager.clear();
 	m_mapQuickPrintEmbedManager.clear();
-	std::set<GR_EmbedManager *>::iterator j, jend = garbage.end();
-	for (j = garbage.begin(); j != jend; j++)
-		delete *j;
-	garbage.clear();
 }
 
 /*!

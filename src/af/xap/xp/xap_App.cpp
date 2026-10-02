@@ -135,7 +135,15 @@ XAP_App::~XAP_App()
 	// HACK: for now, this works from XAP code
 	// TODO: where should this really go?
 	if (m_pDict)
-		m_pDict->save();
+	{
+		/* save() allocates (hash enumeration + UTF8 buffers); an
+		 * exception escaping a destructor is std::terminate */
+		try {
+			m_pDict->save();
+		} catch (...) {
+			UT_DEBUGMSG(("~XAP_App: dictionary save threw, word list not written\n"));
+		}
+	}
 
 	// run thru and destroy all frames on our window list.
 	UT_VECTOR_PURGEALL(XAP_Frame *, m_vecFrames);
