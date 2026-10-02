@@ -2572,6 +2572,18 @@ below are on `main` but the release has not been cut yet.
   `PD_RDFModel::contains` no longer slices `PD_Object` down to
   `PD_URI`, and the (currently unused) `PD_URIListCompare` functor
   takes `const PD_URI&` so a future derived argument cannot slice.
+- **Virtual-calls-in-ctor/dtor audit (OO03)** — a scripted audit of
+  all 1,221 classes (direct calls plus ctor/dtor -> helper -> virtual
+  chains) found one real dispatch bug: `PD_RDFMutation_XMLIDLimited`
+  had no destructor, so when an XMLID-restricted RDF mutation died
+  uncommitted the base `~PD_DocumentRDFMutation` auto-`commit()`
+  statically resolved to the base implementation — which sees only
+  the wrapper's always-empty attr/props and early-returns — silently
+  skipping the delegate commit and the orphan `pkg:idref` link
+  cleanup.  The class now commits (or honors `rollback()`) from its
+  own destructor while the override still resolves.  No
+  pure-virtual-call abort paths exist; all other flagged sites
+  dispatch to implementations the calling class itself provides.
 
 ### GTK4 port (core migration)
 

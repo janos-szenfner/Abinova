@@ -4676,7 +4676,19 @@ class ABI_EXPORT PD_RDFMutation_XMLIDLimited
         , m_writeID( xmlid )
     {
     }
-    
+
+    /* ~PD_DocumentRDFMutation() commit()s uncommitted mutations, but by
+     * the time it runs our members (m_delegate, m_cleanupSubjects) are
+     * already destroyed and dispatch resolves to the base commit(),
+     * which sees only our empty APs -- the delegate commit and the
+     * pkg:idref cleanup below would be skipped. Commit while the
+     * override still resolves. */
+    virtual ~PD_RDFMutation_XMLIDLimited() override
+    {
+        if( !m_committed && !m_rolledback )
+            commit();
+    }
+
     virtual bool add( const PD_URI& s, const PD_URI& p, const PD_Object& o ) override
     {
         UT_DEBUGMSG(("XMLIDLimited::add() s:%s\n", s.toString().c_str() ));
@@ -4717,6 +4729,8 @@ class ABI_EXPORT PD_RDFMutation_XMLIDLimited
     virtual UT_Error commit() override
     {
         UT_DEBUGMSG(("XMLIDLimited::commit()\n" ));
+        if( m_rolledback )
+            return UT_OK;
         UT_Error ret = m_delegate->commit();
 
         //
@@ -4778,6 +4792,7 @@ class ABI_EXPORT PD_RDFMutation_XMLIDLimited
     
     virtual void rollback() override
     {
+        m_rolledback = true;
         m_delegate->rollback();
     }
     
