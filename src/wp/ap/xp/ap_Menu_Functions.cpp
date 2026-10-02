@@ -53,6 +53,17 @@
 #include "pd_DocumentRDF.h"
 #include "ut_Script.h"
 
+/*!
+ * A localized menu label doubles as a printf format ("&1 %s", "About
+ * %s").  Use it as a format only when it takes exactly the single %s
+ * we pass an argument for; otherwise print the template verbatim so a
+ * stray or missing conversion in a translation cannot crash us.
+ */
+static const char * s_safeMenuLabelFormat(const char * szFormat)
+{
+	return (UT_checkedPrintfArgCount(szFormat, "s") == 1) ? szFormat : "%s";
+}
+
 #ifdef ENABLE_SPELL
 #include "spell_manager.h"
 #endif
@@ -91,7 +102,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Toolbar)
 
 		const char * szRecent = vec.getNthItem(ndx)->utf8_str();
 
-		snprintf(buf,sizeof(buf),szFormat,szRecent);
+		snprintf(buf,sizeof(buf),s_safeMenuLabelFormat(szFormat),szRecent);
 		return buf;
 	}
 
@@ -114,7 +125,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_About)
 
 	const char * szAppName = pApp->getApplicationDisplayName();
 
-	snprintf(buf, 128, szFormat, szAppName);
+	snprintf(buf, 128, s_safeMenuLabelFormat(szFormat), szAppName);
 	return buf;
 }
 
@@ -133,7 +144,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Contents)
 
 	const char * szAppName = pApp->getApplicationDisplayName();
 
-	snprintf(buf, 128, szFormat, szAppName);
+	snprintf(buf, 128, s_safeMenuLabelFormat(szFormat), szAppName);
 	return buf;
 }
 
@@ -152,7 +163,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Intro)
 
 	const char * szAppName = pApp->getApplicationDisplayName();
 
-	snprintf(buf, 128, szFormat, szAppName);
+	snprintf(buf, 128, s_safeMenuLabelFormat(szFormat), szAppName);
 	return buf;
 }
 
@@ -172,7 +183,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Search)
 
 	const char * szAppName = pApp->getApplicationDisplayName();
 
-	snprintf(buf, 128, szFormat, szAppName);
+	snprintf(buf, 128, s_safeMenuLabelFormat(szFormat), szAppName);
 	return buf;
 }
 
@@ -191,7 +202,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Checkver)
 
 	const char * szAppName = pApp->getApplicationDisplayName();
 
-	snprintf(buf, 128, szFormat, szAppName);
+	snprintf(buf, 128, s_safeMenuLabelFormat(szFormat), szAppName);
 	return buf;
 }
 /*****************************************************************/
@@ -246,7 +257,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Window)
 		UT_return_val_if_fail (pFrame, nullptr);
 
 		memset(buf, 0, sizeof(buf));
-		snprintf(buf, sizeof(buf), szFormat, pFrame->getTitle().c_str());
+		snprintf(buf, sizeof(buf), s_safeMenuLabelFormat(szFormat), pFrame->getTitle().c_str());
 		buf[sizeof(buf) - 1] = '\0';
 		return buf;
 	}
@@ -667,7 +678,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Suggest)
 		const char * szFormat = pLabel->getMenuLabel();
 		static char buf[128];	// BUGBUG: possible buffer overflow
 
-		snprintf(buf, 128, szFormat, c);
+		snprintf(buf, 128, s_safeMenuLabelFormat(szFormat), c);
 		g_free (c); c = nullptr;
 		return buf;
 	}

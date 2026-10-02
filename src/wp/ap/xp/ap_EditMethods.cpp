@@ -9942,6 +9942,10 @@ bool s_actuallyPrint(PD_Document *doc,  GR_Graphics *pGraphics,
 
 	  gchar msgBuf [1024];
 
+	  /* msgTmpl is a localized format string; only substitute when it
+	     takes exactly the two integer conversions we pass */
+	  const bool bMsgTmplOk = (UT_checkedPrintfArgCount(msgTmpl, "diuxX") == 2);
+
 	  dg_DrawArgs da;
 	  da.pG = pGraphics;
 
@@ -9958,7 +9962,11 @@ bool s_actuallyPrint(PD_Document *doc,  GR_Graphics *pGraphics,
 						{
 							i++;
 							k = *page;
-							snprintf (msgBuf, 1024, msgTmpl, i, pages.size());
+							if(bMsgTmplOk)
+								snprintf (msgBuf, sizeof(msgBuf), msgTmpl, i,
+										  static_cast<int>(pages.size()));
+							else
+								snprintf (msgBuf, sizeof(msgBuf), "%s", msgTmpl);
 
 							if(pFrame) {
 								pFrame->setStatusMessage ( msgBuf );
@@ -9986,7 +9994,11 @@ bool s_actuallyPrint(PD_Document *doc,  GR_Graphics *pGraphics,
 
 					for (j=1; (j <= nCopies); j++)
 						{
-							snprintf (msgBuf, 1024, msgTmpl, i, pages.size());
+							if(bMsgTmplOk)
+								snprintf (msgBuf, sizeof(msgBuf), msgTmpl, i,
+										  static_cast<int>(pages.size()));
+							else
+								snprintf (msgBuf, sizeof(msgBuf), "%s", msgTmpl);
 
 							if(pFrame) {
 								pFrame->setStatusMessage ( msgBuf );

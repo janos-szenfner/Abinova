@@ -191,7 +191,8 @@ wvInitCHPFromIstd (CHP * achp, U16 istdBase, STSH * stsh)
 			    wvApplyCHPXFromBucket (achp,
 						   &(stsh->std[istdBase].
 						     grupe[0].chpx), stsh);
-				strncpy(achp->stylename,stsh->std[istdBase].xstzName, sizeof(achp->stylename));
+				strncpy(achp->stylename,stsh->std[istdBase].xstzName, sizeof(achp->stylename) - 1);
+				achp->stylename[sizeof(achp->stylename) - 1] = 0;
 			    break;
 			}
 		  }
@@ -813,7 +814,8 @@ wvAssembleSimpleCHP (wvVersion ver, CHP * achp, const PAP * apap, U32 fc, CHPX_F
 
 		if(achp->istd < stsh->Stshi.cstd) {
 		  if (0 != stsh->std[achp->istd].xstzName) {
-		    strncpy(achp->stylename,stsh->std[achp->istd].xstzName, sizeof(achp->stylename));
+		    strncpy(achp->stylename,stsh->std[achp->istd].xstzName, sizeof(achp->stylename) - 1);
+		    achp->stylename[sizeof(achp->stylename) - 1] = 0;
 		  }
 		  else {
 		    wvError (("trying to copy null string\n"));

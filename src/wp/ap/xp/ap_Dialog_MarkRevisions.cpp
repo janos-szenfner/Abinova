@@ -80,10 +80,15 @@ char * AP_Dialog_MarkRevisions::getRadio1Label()
 	const char * pLabel = m_pSS->getValue(AP_STRING_ID_DLG_MarkRevisions_Check1Label);
 
 	UT_return_val_if_fail(pLabel,nullptr);
-	char * pBuff = static_cast<char*>(UT_calloc(strlen(pLabel) + 35, sizeof(char)));
+	const size_t nBuff = strlen(pLabel) + 35;
+	char * pBuff = static_cast<char*>(UT_calloc(nBuff, sizeof(char)));
 
-	
-	sprintf(pBuff, pLabel, m_pRev->getId());
+	/* the label is a localized format string; only substitute when it
+	   contains exactly the one %d-style conversion we pass an argument for */
+	if(UT_checkedPrintfArgCount(pLabel, "diuxX") == 1)
+		snprintf(pBuff, nBuff, pLabel, m_pRev->getId());
+	else
+		snprintf(pBuff, nBuff, "%s", pLabel);
 
 	return pBuff;
 }

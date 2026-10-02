@@ -49,6 +49,40 @@ TFTEST_MAIN("UT_ensureValidXML")
     TFPASS(str == "poo\nbar\tbaz\rbizz fuzz");
 }
 
+TFTEST_MAIN("UT_checkedPrintfArgCount")
+{
+	/* plain literals: directive counting */
+	TFPASS(UT_checkedPrintfArgCount("no directives", "s") == 0);
+	TFPASS(UT_checkedPrintfArgCount("&1 %s", "s") == 1);
+	TFPASS(UT_checkedPrintfArgCount("Printing page %d of %d", "diuxX") == 2);
+	TFPASS(UT_checkedPrintfArgCount("100%% done", "s") == 0);
+	TFPASS(UT_checkedPrintfArgCount("%5.1f", "f") == 1);
+	TFPASS(UT_checkedPrintfArgCount("%ld", "diuxX") == 1);
+	TFPASS(UT_checkedPrintfArgCount("%2$s %1$d", "ds") == 2);
+
+	/* conversion char not in the caller's set -> unsafe; extra
+	 * directives just raise the count above the caller's expectation */
+	TFPASS(UT_checkedPrintfArgCount("%s", "d") == -1);
+	TFPASS(UT_checkedPrintfArgCount("About %s %s", "s") == 2);
+	TFPASS(UT_checkedPrintfArgCount("%d words", "d") == 1);
+
+	/* dangerous or uncheckable forms are rejected */
+	TFPASS(UT_checkedPrintfArgCount("%n", "dis") == -1);
+	TFPASS(UT_checkedPrintfArgCount("%*d", "d") == -1);
+	TFPASS(UT_checkedPrintfArgCount("%.*f", "f") == -1);
+	TFPASS(UT_checkedPrintfArgCount("%[abc]", "s") == -1);
+	TFPASS(UT_checkedPrintfArgCount("trailing %", "s") == -1);
+	TFPASS(UT_checkedPrintfArgCount("%$d", "d") == -1);
+	TFPASS(UT_checkedPrintfArgCount("%0$d", "d") == -1);
+	TFPASS(UT_checkedPrintfArgCount(nullptr, "s") == -1);
+	TFPASS(UT_checkedPrintfArgCount("%s", nullptr) == -1);
+
+	/* flags / length modifiers pass through */
+	TFPASS(UT_checkedPrintfArgCount("%+08.3f", "f") == 1);
+	TFPASS(UT_checkedPrintfArgCount("%llu", "u") == 1);
+	TFPASS(UT_checkedPrintfArgCount("'%d'", "d") == 1);
+}
+
 
 /*UT_XML_cloneNoAmpersands*/
 

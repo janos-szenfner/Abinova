@@ -30,6 +30,7 @@
 #include "xap_Strings.h"
 #include "xap_Frame.h"
 #include "ut_misc.h"
+#include "ut_string.h"
 #include "xad_Document.h"
 #include "pd_Document.h"
 
@@ -193,7 +194,12 @@ void XAP_UnixDialog_Print::PrintPage(gint page_nr)
 	const XAP_StringSet *pSS = XAP_App::getApp()->getStringSet ();
 	const gchar * msgTmpl = pSS->getValue (AP_STRING_ID_MSG_PrintStatus);
 	gchar msgBuf [1024];
-	sprintf (msgBuf, msgTmpl, page_nr+1, m_iNumberPages);
+	/* msgTmpl is a localized format string; only substitute when it
+	   takes exactly the two integer conversions we pass */
+	if(UT_checkedPrintfArgCount(msgTmpl, "diuxX") == 2)
+		snprintf (msgBuf, sizeof(msgBuf), msgTmpl, page_nr+1, m_iNumberPages);
+	else
+		snprintf (msgBuf, sizeof(msgBuf), "%s", msgTmpl);
 	if(m_pFrame) 
 	{
 		m_pFrame->setStatusMessage ( msgBuf );

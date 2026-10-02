@@ -63,6 +63,7 @@ const gchar * AP_Dialog_InsertBookmark::getBookmark() const
 void AP_Dialog_InsertBookmark::setBookmark(const gchar * mark)
 {
 	strncpy(m_pBookmark, mark, BOOKMARK_SIZE_LIMIT);
+	m_pBookmark[BOOKMARK_SIZE_LIMIT] = 0;
 }
 
 void AP_Dialog_InsertBookmark::setDoc(FV_View * pView)

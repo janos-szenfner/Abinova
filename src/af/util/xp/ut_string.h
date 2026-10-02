@@ -44,6 +44,20 @@ ABI_EXPORT void  UT_decodeUTF8string(const gchar * p, UT_uint32 len, UT_GrowBuf 
 ABI_EXPORT bool  UT_ensureValidXML(std::string & s);
 ABI_EXPORT bool  UT_isValidXML(const char *s);
 
+/// Validate a non-literal printf-family format string (localized
+/// message template, .ui placeholder, document-derived text) before
+/// handing it to a printf-family call.  Every conversion in @fmt must
+/// use only a conversion character listed in @allowedConversions
+/// (e.g. "s" or "diuxX"); %% escapes are always fine and %N$
+/// positional reordering is permitted.  '*' width/precision and %n are
+/// always rejected since they consume or write arguments the caller
+/// does not supply.  Returns the number of arguments the format
+/// requires, or -1 when the format is unsafe or malformed.  Callers
+/// should require an exact match with the argument count they pass and
+/// fall back to printing the string verbatim otherwise.
+ABI_EXPORT int   UT_checkedPrintfArgCount(const char * fmt,
+										  const char * allowedConversions);
+
 /* ABI_EXPORT gchar *  UT_decodeXMLstring(gchar *pcIn);
  * This has moved to ut_xml.cpp as UT_XML::decode ()
  */

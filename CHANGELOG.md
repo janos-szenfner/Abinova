@@ -2727,6 +2727,23 @@ below are on `main` but the release has not been cut yet.
   a lone quote.  A dozen further `sprintf`/`strcpy`/`strcat` calls
   on fixed buffers were converted to bounded `snprintf` as
   defensive hardening.
+- **Format-string audit (SEC02)** — localized strings, GTK `.ui`
+  markup templates, menu labels and document-derived strings were
+  being passed to `printf`-family calls as the format argument, so a
+  malformed translation or crafted input could be interpreted as
+  arbitrary `%` directives.  Added
+  `UT_checkedPrintfArgCount()` (`src/af/util/xp/ut_string.cpp`), a
+  small parser that counts a format's argument requirements while
+  rejecting `%n`, `*`-width/precision, unsupported conversions and
+  malformed positional syntax.  All non-literal format sites now
+  require an exact match before substituting and otherwise print the
+  template verbatim — print status, print progress, ruler status
+  messages, mark-revisions labels, spell-dictionary errors, menu
+  computed labels, page-setup markup and the field page-reference
+  message.  Also NUL-terminated `strncpy` destinations that
+  `%s`-family calls could later read past (insert-bookmark dialog,
+  `wv` style-name copies from `.doc` files).  New unit tests in
+  `ut_string.t.cpp` cover the parser.
 
 ### GTK4 port (core migration)
 

@@ -25,6 +25,7 @@
 #include "xap_UnixApp.h"
 #include "xap_Frame.h"
 #include "ap_Strings.h"
+#include "ut_string.h"
 #include "ut_string_class.h"
 #include "xap_UnixDialogHelper.h"
 #include "xap_GtkSignalBlocker.h"
@@ -507,7 +508,13 @@ void Markup(GtkWidget * widget, const XAP_StringSet * /*pSS*/, char *string)
 {
 	gchar * unixstr = nullptr;	// used for conversions
 	UT_XML_cloneNoAmpersands(unixstr, string);
-	UT_String markupStr(UT_String_sprintf(gtk_label_get_label (GTK_LABEL(widget)), unixstr));
+	/* the .ui label is the markup template ("<b>%s</b>"); it is
+	   translatable, so only substitute when it still takes exactly the
+	   single %s we pass -- otherwise set the translated text verbatim */
+	const gchar * szMarkup = gtk_label_get_label (GTK_LABEL(widget));
+	UT_String markupStr(UT_checkedPrintfArgCount(szMarkup, "s") == 1
+						? UT_String_sprintf(szMarkup, unixstr ? unixstr : "")
+						: UT_String(unixstr ? unixstr : ""));
 	gtk_label_set_markup (GTK_LABEL(widget), markupStr.c_str());
 	FREEP(unixstr);	
 }

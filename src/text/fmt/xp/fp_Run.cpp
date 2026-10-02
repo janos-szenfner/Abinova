@@ -5471,7 +5471,13 @@ bool fp_FieldPageReferenceRun::calculateValue(void)
 		std::string Msg2;
 		pSS->getValue(AP_STRING_ID_MSG_BookmarkNotFound, XAP_App::getApp()->getDefaultEncoding(), Msg2);
 		std::string format = UT_std_string_sprintf("{%s: %s}", Msg1.c_str(), Msg2.c_str());
-		UT_UTF8String_sprintf(szFieldValue, format.c_str(), _getParameter());
+		/* the assembled format embeds two localized strings; only
+		   substitute the parameter when it leaves exactly one %s */
+		if(UT_checkedPrintfArgCount(format.c_str(), "s") == 1)
+			UT_UTF8String_sprintf(szFieldValue, format.c_str(), _getParameter());
+		else
+			UT_UTF8String_sprintf(szFieldValue, "{%s: %s}",
+								  Msg1.c_str(), Msg2.c_str());
 	}
 
 	if (getField())

@@ -1930,7 +1930,10 @@ void AP_LeftRuler::_displayStatusMessage(XAP_String_Id messageID, const ap_Ruler
 	const gchar * pText = m_pG->invertDimension(tick.dimType, dValue);
 	char temp[100];
 	const gchar *pzMessageFormat = XAP_App::getApp()->getStringSet()->getValue(messageID);
-	sprintf(temp, pzMessageFormat, pText);
+	if(UT_checkedPrintfArgCount(pzMessageFormat, "s") == 1)
+		snprintf(temp, sizeof(temp), pzMessageFormat, pText);
+	else
+		snprintf(temp, sizeof(temp), "%s", pzMessageFormat);
 
 	AP_FrameData * pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
 	if(m_pFrame->getFrameMode() == XAP_NormalFrame)

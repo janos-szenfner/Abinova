@@ -270,6 +270,81 @@ bool UT_isValidXML(const char *pString)
 	return true;
 }
 
+int UT_checkedPrintfArgCount(const char * fmt, const char * allowedConversions)
+{
+	if(!fmt || !allowedConversions)
+		return -1;
+
+	int sequential = 0;	/* args consumed by positional-free conversions */
+	int maxPositional = 0;	/* highest %N$ index seen */
+
+	for(const char * p = fmt; *p; ++p)
+	{
+		if(*p != '%')
+			continue;
+		++p;
+		if(*p == '%')
+			continue;			/* %% is literal text */
+		if(*p == 0)
+			return -1;			/* trailing bare % is malformed */
+
+		/* optional %N$ positional index (glibc/POSIX extension used by
+		 * translations to reorder arguments) */
+		const char * q = p;
+		while(*q >= '0' && *q <= '9')
+			++q;
+		bool bPositional = false;
+		if(*q == '$')
+		{
+			if(q == p)
+				return -1;		/* "$" without an index */
+			int idx = 0;
+			while(*p >= '0' && *p <= '9')
+				idx = idx * 10 + (*p++ - '0');
+			if(idx <= 0)
+				return -1;
+			maxPositional = std::max(maxPositional, idx);
+			bPositional = true;
+			++p;			/* skip '$' */
+		}
+
+		/* flags */
+		while(*p == '-' || *p == '+' || *p == ' ' || *p == '#'
+			  || *p == '0' || *p == '\'')
+			++p;
+		/* field width: digits only; '*' consumes an argument we cannot
+		 * type-check, so reject it */
+		while(*p >= '0' && *p <= '9')
+			++p;
+		if(*p == '*')
+			return -1;
+		/* precision */
+		if(*p == '.')
+		{
+			++p;
+			while(*p >= '0' && *p <= '9')
+				++p;
+			if(*p == '*')
+				return -1;
+		}
+		/* length modifiers */
+		if((p[0] == 'h' && p[1] == 'h') || (p[0] == 'l' && p[1] == 'l'))
+			p += 2;
+		else if(*p == 'h' || *p == 'l' || *p == 'L' || *p == 'j'
+				|| *p == 'z' || *p == 't' || *p == 'q')
+			++p;
+
+		/* the conversion character itself must be in the caller's set;
+		 * this always excludes %n (never listed) and %[ scansets */
+		if(*p == 0 || !strchr(allowedConversions, *p))
+			return -1;
+		if(!bPositional)
+			++sequential;
+	}
+
+	return std::max(sequential, maxPositional);
+}
+
 void UT_decodeUTF8string(const gchar * pString, UT_uint32 len, UT_GrowBuf * pResult)
 {
 	// decode the given string [ p[0]...p[len] ] and append to the given growbuf.

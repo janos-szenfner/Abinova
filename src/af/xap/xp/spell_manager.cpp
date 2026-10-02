@@ -27,6 +27,7 @@
 #include "xap_Strings.h"
 #include "spell_manager.h"
 #include "ut_debugmsg.h"
+#include "ut_string.h"
 #include "ut_Language.h"
 
 #ifdef WITH_ENCHANT
@@ -163,8 +164,13 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
 	const gchar* pLang  = lang.getNthLangName(id);	
 	snprintf(szLangName, sizeof(szLangName), "%s [%s]", pLang, szLang); // language name [language_code]
 
-	UT_String buf (UT_String_sprintf(pApp->getStringSet ()->getValue (XAP_STRING_ID_SPELL_CANTLOAD_DICT),
-									 szLangName));
+	const char * szMsgFmt =
+		pApp->getStringSet ()->getValue (XAP_STRING_ID_SPELL_CANTLOAD_DICT);
+	/* localized format string: only substitute when it takes exactly
+	   the one %s we pass an argument for */
+	UT_String buf (UT_checkedPrintfArgCount(szMsgFmt, "s") == 1
+				   ? UT_String_sprintf(szMsgFmt, szLangName)
+				   : UT_String(szMsgFmt ? szMsgFmt : ""));
 	if (pFrame)
 		pFrame->showMessageBox (buf.c_str(),
 								XAP_Dialog_MessageBox::b_O,

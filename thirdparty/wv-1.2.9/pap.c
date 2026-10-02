@@ -158,7 +158,8 @@ wvInitPAPFromIstd (PAP * apap, U16 istdBase, STSH * stsh)
 		else
 		  {
 		    wvCopyPAP (apap, &(stsh->std[istdBase].grupe[0].apap));
-		    strncpy(apap->stylename,stsh->std[istdBase].xstzName, sizeof(apap->stylename));
+		    strncpy(apap->stylename,stsh->std[istdBase].xstzName, sizeof(apap->stylename) - 1);
+		    apap->stylename[sizeof(apap->stylename) - 1] = 0;
 		  }
 	    }
       }

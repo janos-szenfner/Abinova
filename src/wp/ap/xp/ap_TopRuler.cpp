@@ -4625,7 +4625,9 @@ void AP_TopRuler::_displayStatusMessage(XAP_String_Id messageID, const ap_RulerT
 	const gchar * pText = m_pG->invertDimension(tick.dimType, dValue);
 	std::string pzMessageFormat;
 	XAP_App::getApp()->getStringSet()->getValue(messageID, XAP_App::getApp()->getDefaultEncoding(),pzMessageFormat);
-	UT_String temp(UT_String_sprintf(pzMessageFormat.c_str(), pText));
+	UT_String temp(UT_checkedPrintfArgCount(pzMessageFormat.c_str(), "s") == 1
+				   ? UT_String_sprintf(pzMessageFormat.c_str(), pText)
+				   : UT_String(pzMessageFormat.c_str()));
 
 	AP_FrameData * pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
 	if(m_pFrame->getFrameMode() == XAP_NormalFrame)
@@ -4640,12 +4642,14 @@ void AP_TopRuler::_displayStatusMessage(XAP_String_Id messageID, const ap_RulerT
 #ifdef ENABLE_STATUSBAR
 	const gchar * pText = m_pG->invertDimension(tick.dimType, dValue1);
 	char buf1[100];
-	strcpy(buf1, pText);
+	snprintf(buf1, sizeof(buf1), "%s", pText);
 	pText = m_pG->invertDimension(tick.dimType, dValue2);
 
 	std::string pzMessageFormat;
 	XAP_App::getApp()->getStringSet()->getValue(messageID, XAP_App::getApp()->getDefaultEncoding(), pzMessageFormat);
-	UT_String temp(UT_String_sprintf(pzMessageFormat.c_str(), buf1, pText));
+	UT_String temp(UT_checkedPrintfArgCount(pzMessageFormat.c_str(), "s") == 2
+				   ? UT_String_sprintf(pzMessageFormat.c_str(), buf1, pText)
+				   : UT_String(pzMessageFormat.c_str()));
 
 	AP_FrameData * pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
 	if(m_pFrame->getFrameMode() == XAP_NormalFrame)
@@ -4661,7 +4665,10 @@ void AP_TopRuler::_displayStatusMessage(XAP_String_Id FormatMessageID, UT_sint32
 	std::string pzMessageFormat;
 	XAP_App::getApp()->getStringSet()->getValue(FormatMessageID, XAP_App::getApp()->getDefaultEncoding(), pzMessageFormat);
 	static UT_String sCell;
-	UT_String_sprintf(sCell,pzMessageFormat.c_str(),iCol);
+	if(UT_checkedPrintfArgCount(pzMessageFormat.c_str(), "diuxX") == 1)
+		UT_String_sprintf(sCell,pzMessageFormat.c_str(),iCol);
+	else
+		sCell = pzMessageFormat.c_str();
 
 	AP_FrameData * pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
 	if(m_pFrame->getFrameMode() == XAP_NormalFrame)
