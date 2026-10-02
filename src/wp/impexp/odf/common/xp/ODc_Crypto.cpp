@@ -24,6 +24,10 @@
 #if defined(__linux__) || defined(__GLIBC__)
 #include <sys/random.h>
 #endif
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 #include <zlib.h>
 #include <glib.h>
@@ -101,19 +105,29 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 
     UT_DEBUGMSG(("ODc_Crypto::performDecrypt() using gcrypt\n" ));
 
-    gcry_cipher_hd_t h;
-    HANDLEGERR( gcry_cipher_open( &h,
-                                  GCRY_CIPHER_BLOWFISH,
-                                  GCRY_CIPHER_MODE_CFB,
-                                  0 ));
-    HANDLEGERR( gcry_cipher_setkey( h, key, PBKDF2_KEYLEN ));
-    HANDLEGERR( gcry_cipher_setiv ( h, ivec, ivec_length ));
-    HANDLEGERR( gcry_cipher_decrypt( h,
-                                     content_decrypted,
-                                     content_size,
-                                     content,
-                                     content_size ));
-    gcry_cipher_close( h );
+    gcry_cipher_hd_t h = nullptr;
+    gcry_err_code_t gerr = gcry_cipher_open( &h,
+                                             GCRY_CIPHER_BLOWFISH,
+                                             GCRY_CIPHER_MODE_CFB,
+                                             0 );
+    if( gerr == GPG_ERR_NO_ERROR )
+    {
+        gerr = gcry_cipher_setkey( h, key, PBKDF2_KEYLEN );
+        if( gerr == GPG_ERR_NO_ERROR )
+            gerr = gcry_cipher_setiv( h, ivec, ivec_length );
+        if( gerr == GPG_ERR_NO_ERROR )
+            gerr = gcry_cipher_decrypt( h,
+                                        content_decrypted,
+                                        content_size,
+                                        content,
+                                        content_size );
+        gcry_cipher_close( h );
+    }
+    if( gerr != GPG_ERR_NO_ERROR )
+    {
+        g_free( content_decrypted );
+        HANDLEGERR( gerr );
+    }
 
 
 #else
@@ -235,8 +249,13 @@ UT_Error ODc_Crypto::decrypt(GsfInput* pStream, const ODc_CryptoInfo& cryptInfo,
 
 /**
  * Fill @buf with @len cryptographically-suitable random bytes.
+ * Returns false when no OS entropy source is available; callers must
+ * then fail rather than emit ciphertext with a predictable salt/IV.
+ * Never fall back to a non-crypto PRNG (a g_random_int fallback here
+ * used to produce guessable salts on exactly the builds that needed
+ * it most). Windows has no path yet - see PORT03 for the CNG side.
  */
-static void odRandomBytes(unsigned char* buf, gsize len)
+static bool odRandomBytes(unsigned char* buf, gsize len)
 {
 #if defined(__linux__) || defined(__GLIBC__)
     gsize done = 0;
@@ -252,11 +271,33 @@ static void odRandomBytes(unsigned char* buf, gsize len)
         done += static_cast<gsize>(n);
     }
     if (done == len)
-        return;
-    // fall through to the weaker source on failure
+        return true;
 #endif
-    for (gsize i = 0; i < len; i++)
-        buf[i] = static_cast<unsigned char>(g_random_int_range(0, 256));
+#ifndef _WIN32
+    // /dev/urandom covers non-glibc POSIX (old kernels, BSDs, macOS)
+    int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+    if (fd >= 0)
+    {
+        gsize done = 0;
+        bool ok = true;
+        while (done < len)
+        {
+            ssize_t n = read(fd, buf + done, len - done);
+            if (n <= 0)
+            {
+                if (n < 0 && errno == EINTR)
+                    continue;
+                ok = false;
+                break;
+            }
+            done += static_cast<gsize>(n);
+        }
+        close(fd);
+        if (ok)
+            return true;
+    }
+#endif
+    return false;
 }
 
 /**
@@ -281,11 +322,14 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     UT_return_val_if_fail(!password.empty(), UT_ERROR);
     UT_return_val_if_fail(plaintextSize <= G_MAXUINT, UT_ERROR);
 
-    // random per-file salt and initialisation vector
+    // random per-file salt and initialisation vector; refuse to
+    // encrypt when no real entropy source exists - a predictable
+    // salt/IV is worse than a clean failure
     unsigned char salt[16];
     unsigned char ivec[8];
-    odRandomBytes(salt, sizeof(salt));
-    odRandomBytes(ivec, sizeof(ivec));
+    if (!odRandomBytes(salt, sizeof(salt)) ||
+        !odRandomBytes(ivec, sizeof(ivec)))
+        return UT_ERROR;
 
     const UT_uint32 iter_count = 1024;
 
@@ -339,17 +383,18 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     unsigned char* out = static_cast<unsigned char*>(g_malloc(compSize));
 
 #ifdef HAVE_GCRYPT
-    gcry_cipher_hd_t h;
-    gcry_err_code_t gerr;
-    gerr = gcry_cipher_open(&h, GCRY_CIPHER_BLOWFISH,
-                            GCRY_CIPHER_MODE_CFB, 0);
+    gcry_cipher_hd_t h = nullptr;
+    gcry_err_code_t gerr = gcry_cipher_open(&h, GCRY_CIPHER_BLOWFISH,
+                                            GCRY_CIPHER_MODE_CFB, 0);
     if (gerr == GPG_ERR_NO_ERROR)
+    {
         gerr = gcry_cipher_setkey(h, key, PBKDF2_KEYLEN);
-    if (gerr == GPG_ERR_NO_ERROR)
-        gerr = gcry_cipher_setiv(h, ivec, sizeof(ivec));
-    if (gerr == GPG_ERR_NO_ERROR)
-        gerr = gcry_cipher_encrypt(h, out, compSize, compressed, compSize);
-    gcry_cipher_close(h);
+        if (gerr == GPG_ERR_NO_ERROR)
+            gerr = gcry_cipher_setiv(h, ivec, sizeof(ivec));
+        if (gerr == GPG_ERR_NO_ERROR)
+            gerr = gcry_cipher_encrypt(h, out, compSize, compressed, compSize);
+        gcry_cipher_close(h);
+    }
     if (gerr != GPG_ERR_NO_ERROR)
     {
         g_free(compressed);

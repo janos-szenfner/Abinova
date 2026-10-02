@@ -2764,6 +2764,19 @@ below are on `main` but the release has not been cut yet.
   string to argv-form `g_spawn_sync`, removing shell-quoting risk.
   No `system()`/`popen()`/`exec*()` calls exist in the tree; the EPUB
   importer and tar extractor were already hardened (E01).
+- **Weak-PRNG / crypto audit (SEC04)** — ODF encrypted export
+  generated its per-stream Blowfish salt and IV from
+  `g_random_int_range()` (non-cryptographic Mersenne Twister) whenever
+  `getrandom()` was unavailable — i.e. always, on non-Linux builds —
+  silently producing predictable encryption parameters.  The entropy
+  helper now tries `getrandom()` then `/dev/urandom` and fails the
+  export cleanly when no OS entropy source exists rather than writing
+  weakly-protected ciphertext.  Also fixed two latent gcrypt-build
+  bugs in the same file (a decrypted-buffer leak on the error path and
+  `gcry_cipher_close` on a possibly-invalid handle).  The rest of the
+  audit was clean: `.abwn` encryption uses PBKDF2-SHA256 (600k rounds)
+  + AES-256-GCM via OpenSSL EVP with a hard-fail entropy source, and
+  all `UT_rand`/`rand()` users are non-security document IDs.
 
 ### GTK4 port (core migration)
 
