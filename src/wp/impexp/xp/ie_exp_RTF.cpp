@@ -2479,14 +2479,14 @@ void IE_Exp_RTF::_write_stylesheets(void)
 
 		_write_style_fmt(pStyle);
 
-		const PD_Style * pStyleBasedOn =  reinterpret_cast<const PD_Style *> (pStyle->getBasedOn());
+		const PD_Style * pStyleBasedOn =  pStyle->getBasedOn();
 		// TODO: Can this really return nullptr?
 		if (pStyleBasedOn != nullptr)
 		{
 			_rtf_keyword("sbasedon", _getStyleNumber(pStyleBasedOn));
 		}
 
-		const PD_Style * pStyleNext = reinterpret_cast<const PD_Style *> (pStyle->getFollowedBy());
+		const PD_Style * pStyleNext = pStyle->getFollowedBy();
 		// TODO: Can this really return nullptr?
 		if (pStyleNext != nullptr)
 		{

@@ -47,6 +47,7 @@
 #include "fp_Column.h"
 #include "fp_FootnoteContainer.h"
 #include "fp_TableContainer.h"
+#include "fp_TOCContainer.h"
 #include "fp_Line.h"
 #include "fp_Run.h"
 #include "fp_AnnotationRun.h"
@@ -4325,7 +4326,7 @@ fp_Container* fl_BlockLayout::getNewContainer(const fp_Container* /* pCon*/)
 				{
 					pContainer = static_cast<fp_VerticalContainer *>( ppPrev->getContainer());
 					pPrevLine = nullptr;
-					pPrevTOC = reinterpret_cast<fp_TOCContainer*>(ppPrev);
+					pPrevTOC = static_cast<fp_TOCContainer*>(ppPrev);
 				}
 				else
 				{
@@ -4384,7 +4385,7 @@ fp_Container* fl_BlockLayout::getNewContainer(const fp_Container* /* pCon*/)
 		}
 		else if((pPrevLine==nullptr) &&(nullptr!=pPrevTOC))
 		{
-			pContainer->insertContainerAfter(reinterpret_cast<fp_Container *>(pLine), reinterpret_cast<fp_Container *>( pPrevTOC));
+			pContainer->insertContainerAfter(static_cast<fp_Container *>(pLine), static_cast<fp_Container *>( pPrevTOC));
 		}
 		else
 		{

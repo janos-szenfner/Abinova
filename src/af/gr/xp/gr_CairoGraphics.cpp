@@ -2189,7 +2189,7 @@ void GR_CairoGraphics::positionToXY(const GR_RenderInfo & ri,
 										UT_sint32& /*height*/, bool& /*bDirection*/) const
 {
 	UT_return_if_fail(ri.getType() == GRRI_CAIRO_PANGO);
-	GR_PangoRenderInfo & RI = const_cast<GR_PangoRenderInfo &>(reinterpret_cast<const GR_PangoRenderInfo &>( ri));
+	GR_PangoRenderInfo & RI = const_cast<GR_PangoRenderInfo &>(static_cast<const GR_PangoRenderInfo &>( ri));
 	GR_CairoPangoItem * pItem = const_cast<GR_CairoPangoItem *>(static_cast<const GR_CairoPangoItem*>(RI.m_pItem));
   
 	if(!pItem)
@@ -2466,7 +2466,7 @@ void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 			bClear_pf = true;
 		}
 		g_object_unref(pItem->analysis.font);
-		pItem->analysis.font = reinterpret_cast<PangoFont*>(g_object_ref(reinterpret_cast<GObject*>(pf)));
+		pItem->analysis.font = static_cast<PangoFont*>(g_object_ref(pf));
 
 		pango_shape(utf8.utf8_str()+ pItem->offset,
 					pItem->length,
@@ -2606,7 +2606,7 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 
 		// the PangoItem has to take ownership of that.
 		g_object_unref(pItem->analysis.font);
-		pItem->analysis.font = reinterpret_cast<PangoFont*>(g_object_ref(reinterpret_cast<GObject*>(pf)));
+		pItem->analysis.font = static_cast<PangoFont*>(g_object_ref(pf));
 
 		pango_shape(utf8.utf8_str()+ pItem->offset,
 					pItem->length,
@@ -3080,8 +3080,9 @@ void GR_CairoGraphics::getCoverage(UT_NumberVector& coverage)
 	if(!pc)
 		return;
 
-	MyPangoCoverage * mpc = reinterpret_cast<MyPangoCoverage*>( pc);
-	UT_uint32 iMaxChar = mpc->n_blocks * 256;
+	MyPangoCoverage mpc;
+	memcpy(&mpc, pc, sizeof(mpc));
+	UT_uint32 iMaxChar = mpc.n_blocks * 256;
 
 	xxx_UT_DEBUGMSG(("GR_CairoGraphics::getCoverage: iMaxChar %d\n", iMaxChar));
 	
@@ -3933,7 +3934,7 @@ static PangoGlyph getGlyphForChar(UT_UCS4Char g,
 		}
 
 		g_object_unref(pItem->analysis.font);
-		pItem->analysis.font = reinterpret_cast<PangoFont*>(g_object_ref(reinterpret_cast<GObject*>(pf)));
+		pItem->analysis.font = static_cast<PangoFont*>(g_object_ref(pf));
 
 		pango_shape(utf8.utf8_str()+ pItem->offset,
 					pItem->length,

@@ -358,9 +358,10 @@ void AP_UnixDialog_Lists::runModal(XAP_Frame * pFrame)
 	if (w == 0 || h == 0)
 	{
 		// not allocated yet — use the request size
-		gtk_widget_get_size_request(m_wPreviewArea,
-									reinterpret_cast<int*>(&w),
-									reinterpret_cast<int*>(&h));
+		gint reqW = 0, reqH = 0;
+		gtk_widget_get_size_request(m_wPreviewArea, &reqW, &reqH);
+		if (reqW > 0) w = static_cast<UT_uint32>(reqW);
+		if (reqH > 0) h = static_cast<UT_uint32>(reqH);
 	}
 	_createPreviewFromGC(m_pPreviewWidget, w, h);
 
@@ -409,9 +410,10 @@ void AP_UnixDialog_Lists::runModeless(XAP_Frame * pFrame)
 	}
 	if (w == 0 || h == 0)
 	{
-		gtk_widget_get_size_request(m_wPreviewArea,
-									reinterpret_cast<int*>(&w),
-									reinterpret_cast<int*>(&h));
+		gint reqW = 0, reqH = 0;
+		gtk_widget_get_size_request(m_wPreviewArea, &reqW, &reqH);
+		if (reqW > 0) w = static_cast<UT_uint32>(reqW);
+		if (reqH > 0) h = static_cast<UT_uint32>(reqH);
 	}
 	_createPreviewFromGC(m_pPreviewWidget, w, h);
 

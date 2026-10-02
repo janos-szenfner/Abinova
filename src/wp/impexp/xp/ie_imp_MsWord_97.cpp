@@ -8530,8 +8530,8 @@ void IE_Imp_MsWord_97::_handleAnnotations(const wvParseStruct *ps)
 		{
 			UT_UTF8String s;
 			const U16 * p = owners.u16strings[atrd[i].ibst];
-			s.appendUCS2(reinterpret_cast<const UT_UCS2Char *>(p),
-						 UT_UCS2_strlen(reinterpret_cast<const UT_UCS2Char *>(p)));
+			s.appendUCS2(static_cast<const UT_UCS2Char *>(p),
+						 UT_UCS2_strlen(static_cast<const UT_UCS2Char *>(p)));
 			a.author = s.utf8_str();
 		}
 
@@ -8539,7 +8539,7 @@ void IE_Imp_MsWord_97::_handleAnnotations(const wvParseStruct *ps)
 		if(atrd[i].xstUsrInitl[0] && atrd[i].xstUsrInitl[0] <= 9)
 		{
 			UT_UTF8String s;
-			s.appendUCS2(reinterpret_cast<const UT_UCS2Char *>(atrd[i].xstUsrInitl + 1),
+			s.appendUCS2(static_cast<const UT_UCS2Char *>(atrd[i].xstUsrInitl + 1),
 						 atrd[i].xstUsrInitl[0]);
 			a.initials = s.utf8_str();
 		}

@@ -120,6 +120,12 @@ bool IE_Imp_RTF::PushRTFState(void)
 bool IE_Imp_RTF::PopRTFState(void)
 {
 	xxx_UT_DEBUGMSG(("Pop RTF state depth %d \n", m_stateStack.size()));
+	// top() on an empty std::stack is UB - check before calling it
+	if (m_stateStack.empty())
+	{
+		UT_DEBUGMSG(("RTF ERROR: pop on empty state stack! Will try to recover."));
+		return false;
+	}
 	RTFStateStore* pState = m_stateStack.top();
 	m_stateStack.pop();
 

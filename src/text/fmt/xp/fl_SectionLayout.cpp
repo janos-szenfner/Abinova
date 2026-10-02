@@ -58,6 +58,7 @@
 #include "px_CR_Strux.h"
 #include "px_CR_StruxChange.h"
 #include "px_CR_Glob.h"
+#include "px_CR_FmtMark.h"
 #include "fv_View.h"
 #include "fp_Run.h"
 #include "ut_debugmsg.h"
@@ -5481,7 +5482,7 @@ bool fl_ShadowListener::populate(fl_ContainerLayout* sfh,
 			UT_ASSERT(pL->getType() == PTX_Block);
 			UT_ASSERT(m_pCurrentBL == (static_cast<const fl_ContainerLayout *>(pL)));
 		}
-		bResult = static_cast<fl_BlockLayout *>(m_pCurrentBL)->doclistener_insertFmtMark( reinterpret_cast<const PX_ChangeRecord_FmtMark *>(pcr));
+		bResult = static_cast<fl_BlockLayout *>(m_pCurrentBL)->doclistener_insertFmtMark( static_cast<const PX_ChangeRecord_FmtMark *>(pcr));
 		goto finish_up;
 	}
 

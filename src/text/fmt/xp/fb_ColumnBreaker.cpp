@@ -26,6 +26,7 @@
 #include "fp_ContainerObject.h"
 #include "fp_TableContainer.h"
 #include "fp_FootnoteContainer.h"
+#include "fp_FrameContainer.h"
 #include "fp_TOCContainer.h"
 #include "fl_BlockLayout.h"
 #include "fp_Line.h"
@@ -988,7 +989,7 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 						fp_Page * pNextPage = pCurColumn->getPage();
 						if(pNextPage && pPage && (pNextPage != pPage))
 						{
-							fp_FrameContainer * pFC = reinterpret_cast<fp_FrameContainer *>(pCurContainer);
+							fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(pCurContainer);
 							if(( pDocLayout->findPage(pPage) >= 0) && ( pDocLayout->findPage(pNextPage) >= 0))
 							{
 								if((pPage->findFrameContainer(pFC) >=0) &&

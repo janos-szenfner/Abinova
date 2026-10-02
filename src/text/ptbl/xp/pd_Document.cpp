@@ -4144,7 +4144,7 @@ void PD_Document::getAllViews(UT_GenericVector<AV_View *> * vecViews) const
 					const FL_DocLayout * pLayout = pLayoutList->getLayout();
 					if(pLayout != nullptr)
 					{
-						AV_View * pView = reinterpret_cast<AV_View *>(pLayout->getView());
+						AV_View * pView = pLayout->getView();
 						if(pView != nullptr)
 						 {
 							 vecViews->addItem(pView);
@@ -6599,7 +6599,7 @@ bool PD_Document::_exportFindVisDirectionRunAtPos(PT_DocPosition pos)
 			const fl_ContainerLayout * pCL = pBL->getNext();
 			
 			if(pCL && pCL->getContainerType() == FL_CONTAINER_BLOCK)
-				pBL = reinterpret_cast<const fl_BlockLayout*>(pCL);
+				pBL = static_cast<const fl_BlockLayout*>(pCL);
 			else
 				break;
 		}
@@ -6893,7 +6893,7 @@ bool PD_Document::areDocumentStylesheetsEqual(const AD_Document &D) const
 	if(D.getType() != ADDOCUMENT_ABIWORD)
 		return false;
 
-	PD_Document &d = const_cast<PD_Document &>(reinterpret_cast<const PD_Document &>(D));
+	PD_Document &d = const_cast<PD_Document &>(static_cast<const PD_Document &>(D));
 	UT_return_val_if_fail(m_pPieceTable || d.m_pPieceTable, false);
 
 	const std::map<std::string,PD_Style*> & hS1 = m_pPieceTable->getAllStyles();
@@ -7982,7 +7982,7 @@ bool PD_Document::areDocumentContentsEqual(const AD_Document &D, UT_uint32 &pos)
 	if(D.getType() != ADDOCUMENT_ABIWORD)
 		return false;
 	
-	PD_Document &d = const_cast<PD_Document &>(reinterpret_cast<const PD_Document &>(D));
+	PD_Document &d = const_cast<PD_Document &>(static_cast<const PD_Document &>(D));
 	UT_return_val_if_fail(m_pPieceTable || d.m_pPieceTable, false);
 		
 	// test the docs for length
@@ -8126,7 +8126,7 @@ bool PD_Document::areDocumentFormatsEqual(const AD_Document &D, UT_uint32 &pos) 
 	if(D.getType() != ADDOCUMENT_ABIWORD)
 		return false;
 	
-	PD_Document &d = const_cast<PD_Document &>(reinterpret_cast<const PD_Document &>(D));
+	PD_Document &d = const_cast<PD_Document &>(static_cast<const PD_Document &>(D));
 	UT_return_val_if_fail(m_pPieceTable || d.m_pPieceTable, false);
 		
 	//  scroll through the documents comparing fmt

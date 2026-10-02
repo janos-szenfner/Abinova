@@ -908,7 +908,7 @@ public:
 	bool					_setValue(const UT_UCS4Char *p_new_value);
 
 	virtual bool			calculateValue(void);
-	virtual const UT_UCS4Char *    getValue(void) const { return reinterpret_cast<const UT_UCS4Char *>(m_sFieldValue);}
+	virtual const UT_UCS4Char *    getValue(void) const { return m_sFieldValue;}
 	virtual UT_uint32		needsFrequentUpdates() {return 0;}
 
 protected:

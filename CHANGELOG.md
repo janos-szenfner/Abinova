@@ -2517,6 +2517,26 @@ below are on `main` but the release has not been cut yet.
   ribbon tab keys, `ut_hash` value cleanup) — those now spell out the
   `const` drop as `const_cast<gpointer>(static_cast<const void
   *>(...))` instead of hiding it.
+- **`reinterpret_cast` misuse cleaned up (TS04)** — downcast and
+  upcast reinterprets across the class hierarchy (`PD_Document`,
+  `GR_PangoRenderInfo`, `fp_TOCContainer`, `fp_FrameContainer`,
+  `fl_BlockLayout`, `FV_View`, `PX_ChangeRecord_FmtMark`,
+  `PP_Revision`) are now `static_cast` or plain implicit conversions,
+  so the compiler verifies the relationship and the correct
+  base-subobject adjustment is guaranteed.  Scalar bit-puns
+  (`signedLoWord`/`signedHiWord`, RTF `\u` export of high Unicode
+  values, the `PangoCoverage` layout probe in `getCoverage`) now use
+  `memcpy` or a correctly-typed buffer instead of dereferencing
+  storage through an unrelated type, and a `UT_uint32*` reinterpreted
+  as `int*` for `gtk_widget_get_size_request` in the Lists dialog no
+  longer turns an unset size request (`-1`) into a 4-billion-pixel
+  preview.
+- **RTF import: crash on stray closing brace fixed** — a `}` popped
+  with an empty RTF state stack called `std::stack::top()` on an
+  empty container (undefined behavior, crash on import); the pop is
+  now guarded and falls back to the existing recovery path.
+  A `docx -> rtf -> abinova` round-trip that previously aborted now
+  converts cleanly.
 
 ### GTK4 port (core migration)
 

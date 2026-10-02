@@ -294,7 +294,8 @@ UT_sint32 signedLoWord(UT_uint32 dw)
 	// return low word as a signed quantity
 
 	unsigned short u16 = static_cast<unsigned short>(dw & 0xffff);
-	signed short   s16 = *reinterpret_cast<signed short *>(&u16);
+	signed short   s16;
+	memcpy(&s16, &u16, sizeof(s16));
 	UT_sint32      s32 = s16;
 
 	return s32;
@@ -305,7 +306,8 @@ UT_sint32 signedHiWord(UT_uint32 dw)
 	// return high word as a signed quantity
 
 	unsigned short u16 = static_cast<unsigned short>((dw >> 16) & 0xffff);
-	signed short   s16 = *reinterpret_cast<signed short *>(&u16);
+	signed short   s16;
+	memcpy(&s16, &u16, sizeof(s16));
 	UT_sint32      s32 = s16;
 
 	return s32;

@@ -1385,7 +1385,7 @@ abi_widget_get_selection(AbiWidget * w, const gchar * extension_or_mimetype, gin
 	XAP_Frame * pFrame = w->priv->m_pFrame;
 	UT_return_val_if_fail(w->priv->m_pFrame, nullptr); // TODO: remove this restriction
 
-	FV_View * pView = reinterpret_cast<FV_View *>(pFrame->getCurrentView());
+	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
 	UT_return_val_if_fail(pView, nullptr); // TODO: remove this restriction
 
 	if (pView->isSelectionEmpty())
@@ -2566,7 +2566,7 @@ abi_widget_draw (AbiWidget * w)
 	{
 		// obtain a valid view
 		UT_return_if_fail (w != nullptr);
-		FV_View * view = reinterpret_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
+		FV_View * view = static_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
 		if (view)
 			view->queueDraw();
 	}
@@ -2673,7 +2673,7 @@ abi_widget_get_page_count(AbiWidget * w)
 	UT_return_val_if_fail ( IS_ABI_WIDGET(w), FALSE );
 	UT_return_val_if_fail ( w->priv->m_pFrame, FALSE );
 
-	FV_View * pView = reinterpret_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
+	FV_View * pView = static_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
 	UT_return_val_if_fail(pView, 0);
 
 	FL_DocLayout* pLayout = pView->getLayout();
@@ -2689,7 +2689,7 @@ abi_widget_set_current_page(AbiWidget * w, guint32 curpage)
 	UT_return_if_fail ( IS_ABI_WIDGET(w) );
 	UT_return_if_fail ( w->priv->m_pFrame );
 	
-	FV_View * pView = reinterpret_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
+	FV_View * pView = static_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
 	UT_return_if_fail( pView );
 	
 	FL_DocLayout* pLayout = pView->getLayout();
@@ -2710,7 +2710,7 @@ abi_widget_get_current_page_num(AbiWidget * w)
 	UT_return_val_if_fail ( IS_ABI_WIDGET(w), FALSE );
 	UT_return_val_if_fail ( w->priv->m_pFrame, FALSE );
 
-	FV_View * pView = reinterpret_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
+	FV_View * pView = static_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
 	UT_return_val_if_fail(pView, 0);
 
 	// there's also getCurrentPageNumber() we can use, but that is slower

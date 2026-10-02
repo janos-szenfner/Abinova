@@ -673,7 +673,7 @@ FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 	UT_uint32 count = m_parts->getItemCount ();
 	for (UT_uint32 i = 0; i < count; i++)
 		{
-			const UT_Multipart * ptr = reinterpret_cast<const UT_Multipart *>((*m_parts)[i]);
+			const UT_Multipart * ptr = static_cast<const UT_Multipart *>((*m_parts)[i]);
 			if (!ptr->isImage ()) continue;
 
 			if (bContentID && ptr->contentID ())

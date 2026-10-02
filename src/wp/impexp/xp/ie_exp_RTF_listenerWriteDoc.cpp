@@ -1686,7 +1686,8 @@ void s_RTF_ListenerWriteDoc::_outputData(const UT_UCS4Char * data, UT_uint32 len
 					UT_UCS4Char lc = XAP_EncodingManager::get_instance()->try_UToWindows(*pData);
 					m_pie->_rtf_keyword("uc",lc && lc<256 ? 1 : 0);
 					unsigned short ui = (static_cast<unsigned short>((*pData)));	// RTF is limited to +/-32K ints
-					signed short si = *(reinterpret_cast<signed short *>((&ui)));		// so we need to write negative
+					signed short si;
+					memcpy(&si, &ui, sizeof(si));		// so we need to write negative
 					m_pie->_rtf_keyword("u",si);					// numbers for large unicode values.
 					if (lc && lc <256)
 						m_pie->_rtf_nonascii_hex2(lc);
@@ -1736,7 +1737,8 @@ void s_RTF_ListenerWriteDoc::_outputData(const UT_UCS4Char * data, UT_uint32 len
 
 					m_pie->_rtf_keyword("uc",0);
 					unsigned short ui = (static_cast<unsigned short>((*pData)));	// RTF is limited to +/-32K ints
-					signed short si = *(reinterpret_cast<signed short *>((&ui)));		// so we need to write negative
+					signed short si;
+					memcpy(&si, &ui, sizeof(si));		// so we need to write negative
 					m_pie->_rtf_keyword("u",si);					// numbers for large unicode values.
 				}
 				else

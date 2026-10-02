@@ -1802,7 +1802,7 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 	// remember if it is selected or not,  where in the run it starts,
 	// and how wide it is
 	UT_uint32 iSegmentCount = 1;
-	UT_uint32 iSegmentOffset[4]; //the fourth segment is only would-be ...
+	UT_sint32 iSegmentOffset[4]; //the fourth segment is only would-be ...
 	bool      bSegmentSelected[3];
 	UT_uint32 iSegmentWidth[3];
 	UT_Rect   rSegment;
@@ -1910,7 +1910,7 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 		// drawing. As a result, the offsets of the segments we
 		// calculated above need to be adjusted
 		GR_XPRenderInfo * pRI = static_cast<GR_XPRenderInfo *>( m_pRenderInfo);
-		pRI->m_pSegmentOffset = reinterpret_cast<UT_sint32 *>(&iSegmentOffset[0]);
+		pRI->m_pSegmentOffset = &iSegmentOffset[0];
 		pRI->m_iSegmentCount = iSegmentCount;
 	}
 

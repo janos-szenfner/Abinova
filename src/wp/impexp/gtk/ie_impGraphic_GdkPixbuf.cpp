@@ -463,7 +463,7 @@ UT_Error IE_ImpGraphic_GdkPixbuf::Initialize_PNG(void)
 	
 	/* Setting up the Data Writing Function */
 	png_set_write_fn(m_pPNG, const_cast<void *>(reinterpret_cast<const void *>(m_pPngBB.get())),
-					 reinterpret_cast<png_rw_ptr>(_write_png), nullptr);
+					 _write_png, nullptr);
 	
 	return UT_OK;
 }

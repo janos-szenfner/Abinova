@@ -98,7 +98,7 @@ bool UT_PNG_getDimensions(const UT_ConstByteBufPtr & pBB, UT_sint32& iImageWidth
 	myBB.pBB = pBB;
 	myBB.iCurPos = 0;
 	
-	png_set_read_fn(png_ptr, static_cast<void *>(&myBB), reinterpret_cast<png_rw_ptr>(_png_read));
+	png_set_read_fn(png_ptr, static_cast<void *>(&myBB), _png_read);
 
 	/* The call to png_read_info() gives us all of the information from the
 	 * PNG file before the first IDAT (image data chunk).  REQUIRED
