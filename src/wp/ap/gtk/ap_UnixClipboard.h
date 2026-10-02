@@ -28,11 +28,13 @@
 
 #include "xap_UnixClipboard.h"
 class AP_UnixApp;
+class PD_Document;
 
 class AP_UnixClipboard : public XAP_UnixClipboard
 {
 public:
 	AP_UnixClipboard(AP_UnixApp * pUnixApp);
+	virtual ~AP_UnixClipboard();
 
 	bool addTextData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes);
 	bool addRichTextData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes);
@@ -63,11 +65,28 @@ public:
 	void addFormat(const char * fmt);
 	void deleteFormat(const char * fmt);
 
+	/* Adopt a frozen snapshot document that rich clipboard formats are
+	 * materialized from on demand.  Drops the previous snapshot and all
+	 * buffers stored for the target so no stale format survives a new
+	 * copy.  Takes ownership of the reference (may be nullptr). */
+	void setCopySnapshot(T_AllowGet tTo, PD_Document * pSnapshot);
+
+	virtual void clearData(bool bClipboard, bool bPrimary) override;
+
 	static bool isTextTag ( const char * tag ) ;
 	static bool isRichTextTag ( const char * tag ) ;
 	static bool isHTMLTag ( const char * tag ) ;
 	static bool isImageTag ( const char * tag ) ;
 	static bool isDynamicTag ( const char * tag ) ;
+
+protected:
+	virtual bool _materializeData(T_AllowGet tFrom, const char * szFormat) override;
+
+private:
+	PD_Document * _snapshotFor(T_AllowGet tFrom) const;
+
+	PD_Document * m_pSnapshotClipboard;	/* owned ref - CLIPBOARD copy */
+	PD_Document * m_pSnapshotPrimary;	/* owned ref - PRIMARY copy */
 };
 
 #endif /* AP_UNIXCLIPBOARD_H */

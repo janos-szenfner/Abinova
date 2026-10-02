@@ -3116,6 +3116,14 @@ below are on `main` but the release has not been cut yet.
 
 ### Performance
 
+- **Copy is instant again on large selections** — copying used to
+  serialize the selection into five formats (RTF, XHTML, HTML4, ODT and
+  UTF-8 text) up front on every copy. The copy now freezes the selected
+  range into a snapshot document and the rich formats are exported only
+  if a paste actually asks for them (text and image data stay eager).
+  Clipboard content is also immune to edits made after the copy, so
+  paste can no longer pick up later document state or leftover formats
+  from a previous copy.
 - **Font selector** — lazy `GtkListItemFactory` + incremental sort:
   popup is instant (was ~2.7 s+ blocked measuring ~2000 fonts).
 - **Insert Symbol dialog opens ~10× faster** — the point-size search

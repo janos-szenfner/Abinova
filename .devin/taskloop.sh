@@ -198,7 +198,7 @@ while :; do
 			sleep 5; elapsed=$((elapsed+5))
 		done
 		wait "$child"
-	) >>"$LOG" 2>&1
+	) >>"$LOG" 2>&1 9>&-
 	rc=$?
 	log "<<< devin exited rc=$rc (task $tid)"
 

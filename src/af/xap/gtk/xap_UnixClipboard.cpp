@@ -248,6 +248,7 @@ bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream
 								  bool bPrimary, GCancellable *cancellable,
 								  GError ** error)
 {
+	T_AllowGet tFrom = ( bPrimary ? TAG_PrimaryOnly : TAG_ClipboardOnly );
 	XAP_FakeClipboard & which_clip = ( bPrimary ? m_fakePrimaryClipboard : m_fakeClipboard );
 
 	// if this is for PRIMARY, we need to copy the current selection
@@ -264,7 +265,13 @@ bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream
 
 	void * data = nullptr;
 	UT_uint32 data_len = 0;
-	if (which_clip.getClipboardData(mime_type, &data, &data_len))
+	if (!which_clip.getClipboardData(mime_type, &data, &data_len))
+	{
+		/* not stored eagerly - let the subclass produce it on demand */
+		if (_materializeData(tFrom, mime_type))
+			which_clip.getClipboardData(mime_type, &data, &data_len);
+	}
+	if (data && data_len)
 	{
 		if (data_len > ABI_CLIPBOARD_MAX_BYTES)
 		{
@@ -322,6 +329,20 @@ void XAP_UnixClipboard::finishedAddingData(void)
 								 false);
 	gdk_clipboard_set_content(clipboardForTarget(TAG_ClipboardOnly), provider);
 	g_object_unref(provider);
+}
+
+void XAP_UnixClipboard::_clearStoredData(T_AllowGet tFrom)
+{
+	if (tFrom == TAG_PrimaryOnly)
+		m_fakePrimaryClipboard.clearClipboard();
+	else
+		m_fakeClipboard.clearClipboard();
+}
+
+bool XAP_UnixClipboard::_materializeData(T_AllowGet /*tFrom*/,
+										 const char * /*szFormat*/)
+{
+	return false;
 }
 
 void XAP_UnixClipboard::clearData(bool bClipboard, bool bPrimary)
@@ -533,7 +554,9 @@ bool XAP_UnixClipboard::_getDataFromFakeClipboard(T_AllowGet tFrom, const char**
 	XAP_FakeClipboard & which_clip = ( tFrom == TAG_ClipboardOnly ? m_fakeClipboard : m_fakePrimaryClipboard );
 
 	for (int k=0; (formatList[k]); k++)
-		if (which_clip.getClipboardData(formatList[k],ppData,pLen))
+		if (which_clip.getClipboardData(formatList[k],ppData,pLen) ||
+			(_materializeData(tFrom, formatList[k]) &&
+			 which_clip.getClipboardData(formatList[k],ppData,pLen)))
 		{
 			*pszFormatFound = formatList[k];
 			return true;

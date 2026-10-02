@@ -59,3 +59,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_pastelistener.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_clipcopy.t.cpp"
+#undef TFSUITE

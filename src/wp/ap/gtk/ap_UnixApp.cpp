@@ -128,6 +128,8 @@
 #include "xap_UnixDialogHelper.h"
 #include "gr_UnixCairoGraphics.h"
 #include "ie_exp_DocRangeListener.h"
+#include "pd_DocumentRDF.h"
+#include "pl_ListenerCoupleCloser.h"
 
 #ifdef GTK_WIN_POS_CENTER_ALWAYS
 #define WIN_POS GTK_WIN_POS_CENTER_ALWAYS
@@ -409,83 +411,7 @@ void AP_UnixApp::copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboar
 								 AV_View * pSourceView)
 {
 
-    UT_ByteBuf bufRTF;
-    UT_ByteBuf bufHTML4;
-    UT_ByteBuf bufXHTML;
     UT_ByteBuf bufTEXT;
-    UT_ByteBuf bufODT;
-
-    // create RTF buffer to put on the clipboard
-		
-    IE_Exp_RTF * pExpRtf = new IE_Exp_RTF(pDocRange->m_pDoc);
-    if (pExpRtf)
-    {
-		pExpRtf->copyToBuffer(pDocRange,&bufRTF);
-		DELETEP(pExpRtf);
-    }
-
-	// create XHTML buffer to put on the clipboard
-
-	IE_Exp_HTML * pExpHtml = new IE_Exp_HTML(pDocRange->m_pDoc);
-	if (pExpHtml)
-		{
-			pExpHtml->set_HTML4 (false);
-			pExpHtml->copyToBuffer (pDocRange, &bufXHTML);
-			DELETEP(pExpHtml);
-		}
-
-	// create HTML4 buffer to put on the clipboard
-	
-	pExpHtml = new IE_Exp_HTML(pDocRange->m_pDoc);
-	if (pExpHtml)
-		{
-			pExpHtml->set_HTML4 (true);
-			pExpHtml->copyToBuffer(pDocRange, &bufHTML4);
-			DELETEP(pExpHtml);
-		}
-
-	// Look to see if the ODT plugin is loaded
-
-	IEFileType ftODT = IE_Exp::fileTypeForMimetype("application/vnd.oasis.opendocument.text");
-	bool bExpODT = false;
-	if(ftODT != IEFT_Unknown)
-	{
-		// ODT plugin is present construct an exporter
-		//
-		IE_Exp * pODT = nullptr;
-		IEFileType genIEFT = IEFT_Unknown;
-		GsfOutput * outBuf =  gsf_output_memory_new();
-		UT_Error err = IE_Exp::constructExporter(pDocRange->m_pDoc,outBuf,
-												 ftODT,&pODT,& genIEFT);
-		if(pODT && (genIEFT == ftODT))
-		{
-			//												 
-			// Copy to the buffer
-			//
-			err = pODT->copyToBuffer(pDocRange, &bufODT);
-			bExpODT = (err == UT_OK);
-            UT_DEBUGMSG(("Putting ODF on the clipboard...e:%d bExpODT:%d\n", err, bExpODT ));
-
-#ifdef DUMP_CLIPBOARD_COPY
-            std::ofstream oss("/tmp/abinova-clipboard-copy.odt");
-            oss.write( static_cast<const char*>(bufODT.getPointer (0)), bufODT.getLength () );
-            oss.close();
-#endif
-		}
-		if (pODT != nullptr) {
-			delete pODT;
-		}
-		g_object_unref(outBuf);
-	}
-
-    // create UTF-8 text buffer to put on the clipboard
-		
-    IE_Exp_Text * pExpText = new IE_Exp_Text(pDocRange->m_pDoc, "UTF-8");
-    if (pExpText)
-    {
-		pExpText->copyToBuffer(pDocRange,&bufTEXT);
-		DELETEP(pExpText);
-    }
 
     // NOTE: this clearData() will actually release our ownership of
     // NOTE: the CLIPBOARD property in addition to clearing any
@@ -493,20 +419,57 @@ void AP_UnixApp::copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboar
     // NOTE: clr callback after we have done some other processing
     // NOTE: (like adding the new stuff).
     // m_pClipboard->clearData(true,false);
-	
+
     // TODO: handle CLIPBOARD vs PRIMARY
     XAP_UnixClipboard::T_AllowGet target = ((bUseClipboard)
 					    ? XAP_UnixClipboard::TAG_ClipboardOnly
 					    : XAP_UnixClipboard::TAG_PrimaryOnly);
 
-	if (bufRTF.getLength () > 0)
-		m_pClipboard->addRichTextData (target, bufRTF.getPointer (0), bufRTF.getLength ());
-	if (bufXHTML.getLength () > 0)
-		m_pClipboard->addHtmlData (target, bufXHTML.getPointer (0), bufXHTML.getLength (), true);
-	if (bufHTML4.getLength () > 0)
-		m_pClipboard->addHtmlData (target, bufHTML4.getPointer (0), bufHTML4.getLength (), false);
-	if (bExpODT && bufODT.getLength () > 0)
-		m_pClipboard->addODTData (target, bufODT.getPointer (0), bufODT.getLength ());
+    /* Freeze the copied range into a snapshot document - the same splice
+       the ODT exporter does via IE_Exp_DocRangeListener - so the rich
+       formats (rtf/xhtml/html4/odt) can be materialized on demand by the
+       clipboard (see AP_UnixClipboard::_materializeData) and later edits
+       to the source document can't change what was copied. */
+    PD_Document * pSnapshot = new PD_Document;
+    if (pSnapshot->createRawDocument() == UT_OK)
+    {
+		IE_Exp_DocRangeListener * pRangeListener =
+			new IE_Exp_DocRangeListener(pDocRange, pSnapshot);
+		PL_ListenerCoupleCloser * pCloser = new PL_ListenerCoupleCloser();
+		pDocRange->m_pDoc->tellListenerSubset(pRangeListener, pDocRange, pCloser);
+		delete pCloser;
+		delete pRangeListener;
+
+		if (PD_DocumentRDFHandle outrdf = pSnapshot->getDocumentRDF())
+		{
+			std::set<std::string> xmlids;
+			PD_DocumentRDFHandle inrdf = pDocRange->m_pDoc->getDocumentRDF();
+			inrdf->addRelevantIDsForRange(xmlids, pDocRange);
+			if (!xmlids.empty())
+			{
+				PD_RDFModelHandle subm = inrdf->createRestrictedModelForXMLIDs(xmlids);
+				PD_DocumentRDFMutationHandle m = outrdf->createMutation();
+				m->add(subm);
+				m->commit();
+			}
+		}
+		pSnapshot->finishRawCreation();
+		m_pClipboard->setCopySnapshot(target, pSnapshot);
+    }
+    else
+    {
+		pSnapshot->unref();
+		m_pClipboard->setCopySnapshot(target, nullptr);
+    }
+
+    // plain text is cheap and the most-requested format - keep it eager
+    IE_Exp_Text * pExpText = new IE_Exp_Text(pDocRange->m_pDoc, "UTF-8");
+    if (pExpText)
+    {
+		pExpText->copyToBuffer(pDocRange,&bufTEXT);
+		DELETEP(pExpText);
+    }
+
 	if (bufTEXT.getLength () > 0)
 		m_pClipboard->addTextData (target, bufTEXT.getPointer (0), bufTEXT.getLength ());
 

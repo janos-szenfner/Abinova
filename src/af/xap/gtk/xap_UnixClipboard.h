@@ -57,7 +57,7 @@ public:
 	bool				addData(T_AllowGet tTo, const char* format, const void* pData,
 								UT_sint32 iNumBytes);
 
-	void				clearData(bool bClipboard, bool bPrimary);
+	virtual void		clearData(bool bClipboard, bool bPrimary);
 	void			finishedAddingData(void);
 	bool				getData(T_AllowGet tFrom, const char** formatList,
 								void ** ppData, UT_uint32 * pLen,
@@ -82,6 +82,17 @@ protected:
 
 	void				AddFmt(const char * fmt);
 	void				deleteFmt(const char * fmt);
+
+	/* drop the fake-clipboard buffers for one target without touching
+	 * the GdkClipboard ownership - used when a new copy replaces the
+	 * cached materializations of the previous one */
+	void				_clearStoredData(T_AllowGet tFrom);
+
+	/* subclass hook to produce a format lazily: called when a local
+	 * lookup misses; implementations materialize the bytes and addData()
+	 * them, returning whether the format is now available.  The base
+	 * class produces nothing. */
+	virtual bool		_materializeData(T_AllowGet tFrom, const char * szFormat);
 
  private:
 

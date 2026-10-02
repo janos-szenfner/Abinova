@@ -25,9 +25,19 @@
 #include "ut_types.h"
 #include "ut_string.h"
 #include "ut_vector.h"
+#include "ut_bytebuf.h"
 #include "ap_UnixClipboard.h"
 #include "ap_UnixApp.h"
 #include <vector>
+
+#include <gsf/gsf-output-memory.h>
+
+#include "pd_Document.h"
+#include "ie_types.h"
+#include "ie_exp.h"
+#include "ie_exp_RTF.h"
+#include "ie_exp_HTML.h"
+#include "ie_exp_Text.h"
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
@@ -103,6 +113,8 @@ std::vector<const char*> vec_DynamicFormatsAccepted;
 
 AP_UnixClipboard::AP_UnixClipboard(AP_UnixApp * pApp)
   : XAP_UnixClipboard(pApp)
+  , m_pSnapshotClipboard(nullptr)
+  , m_pSnapshotPrimary(nullptr)
 {
   // DECLARE IN ORDER OF PREFERENCE RECEIVING
 
@@ -143,6 +155,118 @@ AP_UnixClipboard::AP_UnixClipboard(AP_UnixApp * pApp)
   // O Dformat. This is provided by a plugin
 
   addFormat(AP_CLIPBOARD_APPLICATION_ODT);
+}
+
+AP_UnixClipboard::~AP_UnixClipboard()
+{
+  UNREFP(m_pSnapshotClipboard);
+  UNREFP(m_pSnapshotPrimary);
+}
+
+PD_Document * AP_UnixClipboard::_snapshotFor(T_AllowGet tFrom) const
+{
+  return (tFrom == TAG_PrimaryOnly) ? m_pSnapshotPrimary : m_pSnapshotClipboard;
+}
+
+void AP_UnixClipboard::setCopySnapshot(T_AllowGet tTo, PD_Document * pSnapshot)
+{
+  // buffers materialized from the previous copy must not be served for
+  // this one - clear the fake clipboard first, the eager formats are
+  // re-added by the caller
+  _clearStoredData(tTo);
+
+  PD_Document * & slot = (tTo == TAG_PrimaryOnly) ? m_pSnapshotPrimary
+                                                : m_pSnapshotClipboard;
+  UNREFP(slot);
+  slot = pSnapshot;
+}
+
+void AP_UnixClipboard::clearData(bool bClipboard, bool bPrimary)
+{
+  if (bClipboard)
+    UNREFP(m_pSnapshotClipboard);
+  if (bPrimary)
+    UNREFP(m_pSnapshotPrimary);
+  XAP_UnixClipboard::clearData(bClipboard, bPrimary);
+}
+
+/*
+ * Produce a clipboard format lazily from the frozen copy snapshot and
+ * cache it in the fake clipboard.  Runs the same exporters the eager
+ * copy path used, over a whole-document range of the snapshot.  Returns
+ * whether the format is now stored locally.
+ */
+bool AP_UnixClipboard::_materializeData(T_AllowGet tFrom, const char * szFormat)
+{
+  PD_Document * pSnap = _snapshotFor(tFrom);
+  if (!pSnap || !szFormat || !szFormat[0])
+    return false;
+
+  PT_DocPosition posBOD = 0;
+  PT_DocPosition posEOD = 0;
+  pSnap->getBounds(false, posBOD);
+  pSnap->getBounds(true, posEOD);
+  PD_DocumentRange dr(pSnap, posBOD, posEOD);
+
+  UT_ByteBuf buf;
+  UT_Error err = UT_ERROR;
+
+  if (isRichTextTag(szFormat))
+    {
+      IE_Exp_RTF exp(pSnap);
+      err = exp.copyToBuffer(&dr, &buf);
+      if (err != UT_OK || buf.getLength() == 0)
+        return false;
+      // both rtf aliases share the one export
+      addData(tFrom, AP_CLIPBOARD_TXT_RTF, buf.getPointer(0), buf.getLength());
+      addData(tFrom, AP_CLIPBOARD_APPLICATION_RTF, buf.getPointer(0), buf.getLength());
+      return true;
+    }
+
+  if (isHTMLTag(szFormat))
+    {
+      IE_Exp_HTML exp(pSnap);
+      exp.set_HTML4(g_ascii_strcasecmp(szFormat, AP_CLIPBOARD_TXT_HTML) == 0);
+      err = exp.copyToBuffer(&dr, &buf);
+      if (err != UT_OK || buf.getLength() == 0)
+        return false;
+      return addData(tFrom, szFormat, buf.getPointer(0), buf.getLength());
+    }
+
+  if (g_ascii_strcasecmp(szFormat, AP_CLIPBOARD_APPLICATION_ODT) == 0)
+    {
+      IEFileType ftODT = IE_Exp::fileTypeForMimetype(AP_CLIPBOARD_APPLICATION_ODT);
+      if (ftODT == IEFT_Unknown)
+        return false;
+      IE_Exp * pODT = nullptr;
+      IEFileType genIEFT = IEFT_Unknown;
+      GsfOutput * outBuf = gsf_output_memory_new();
+      UT_Error cerr = IE_Exp::constructExporter(pSnap, outBuf, ftODT, &pODT, &genIEFT);
+      if (pODT && genIEFT == ftODT)
+        err = pODT->copyToBuffer(&dr, &buf);
+      delete pODT;
+      g_object_unref(outBuf);
+      if (cerr != UT_OK || err != UT_OK || buf.getLength() == 0)
+        return false;
+      return addData(tFrom, szFormat, buf.getPointer(0), buf.getLength());
+    }
+
+  if (isTextTag(szFormat))
+    {
+      IE_Exp_Text exp(pSnap, "UTF-8");
+      err = exp.copyToBuffer(&dr, &buf);
+      if (err != UT_OK || buf.getLength() == 0)
+        return false;
+      // all plain-text aliases share the one export
+      addData(tFrom, AP_CLIPBOARD_TEXT_UTF8_STRING, buf.getPointer(0), buf.getLength());
+      addData(tFrom, AP_CLIPBOARD_TEXT, buf.getPointer(0), buf.getLength());
+      addData(tFrom, AP_CLIPBOARD_TEXT_STRING, buf.getPointer(0), buf.getLength());
+      addData(tFrom, AP_CLIPBOARD_TEXT_PLAIN, buf.getPointer(0), buf.getLength());
+      addData(tFrom, AP_CLIPBOARD_TEXT_COMPOUND, buf.getPointer(0), buf.getLength());
+      return true;
+    }
+
+  return false;
 }
 
 bool AP_UnixClipboard::addTextData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes)
