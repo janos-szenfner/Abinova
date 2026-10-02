@@ -47,7 +47,7 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 	std::string contextTag = "";
 	if(!rqst->context->empty())
 	{
-		contextTag = rqst->context->back();
+		contextTag = OXMLi_contextBack(rqst->context);
 	}
 
 	/* mc:Choice inside a branch we already rejected is swallowed with
@@ -95,7 +95,7 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 		if (bSupported)
 		{
 			if (!rqst->context->empty() &&
-				nameMatches(rqst->context->back(),
+				nameMatches(OXMLi_contextBack(rqst->context),
 							NS_VE_KEY, "AlternateContent"))
 				m_takenACs.insert(rqst->context->size() - 1);
 		}

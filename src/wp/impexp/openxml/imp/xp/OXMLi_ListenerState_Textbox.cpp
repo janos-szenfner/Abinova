@@ -199,7 +199,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * The color resolves onto the w:drawing element and is copied
 		 * to fill-less children at flush */
 		if (rqst->context && !rqst->context->empty() &&
-			rqst->context->back() == "wpg:grpSpPr")
+			OXMLi_contextBack(rqst->context) == "wpg:grpSpPr")
 			m_bInShapeFill = true;
 		rqst->handled = true;
 		return;
@@ -209,7 +209,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		/* preset geometry name — prstGeom="line" shapes are zero-size
 		 * rules drawn with their outline; remembered for a:ln */
 		if (rqst->context && !rqst->context->empty() &&
-			rqst->context->back() == "wps:spPr")
+			OXMLi_contextBack(rqst->context) == "wps:spPr")
 		{
 			const gchar * prst =
 				attrMatches(NS_A_KEY, "prst", rqst->ppAtts);
@@ -240,11 +240,14 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				double rEff = r >= 0.0 ? r : 0.0;
 				g_snprintf(buf, sizeof(buf), "%.4fin",
 						   (lEff > rEff ? lEff : rEff) / 914400.0);
-				rqst->stck->top()->setProperty("xpad", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("xpad", buf); }
 				g_snprintf(buf, sizeof(buf), "%.4fin", lEff / 914400.0);
-				rqst->stck->top()->setProperty("xpad-left", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("xpad-left", buf); }
 				g_snprintf(buf, sizeof(buf), "%.4fin", rEff / 914400.0);
-				rqst->stck->top()->setProperty("xpad-right", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("xpad-right", buf); }
 			}
 			if (t >= 0.0 || b >= 0.0)
 			{
@@ -252,11 +255,14 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				double bEff = b >= 0.0 ? b : 0.0;
 				g_snprintf(buf, sizeof(buf), "%.4fin",
 						   (tEff > bEff ? tEff : bEff) / 914400.0);
-				rqst->stck->top()->setProperty("ypad", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("ypad", buf); }
 				g_snprintf(buf, sizeof(buf), "%.4fin", tEff / 914400.0);
-				rqst->stck->top()->setProperty("ypad-top", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("ypad-top", buf); }
 				g_snprintf(buf, sizeof(buf), "%.4fin", bEff / 914400.0);
-				rqst->stck->top()->setProperty("ypad-bottom", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("ypad-bottom", buf); }
 			}
 
 			/* vertical text alignment inside the box and writing
@@ -268,12 +274,14 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				if (a == "ctr") a = "center";
 				else if (a == "b") a = "bottom";
 				else if (a == "t") a = "top";
-				rqst->stck->top()->setProperty("frame-valign", a.c_str());
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-valign", a.c_str()); }
 			}
 			it = rqst->ppAtts->find("wps:vert");
 			if (it != rqst->ppAtts->end())
-				rqst->stck->top()->setProperty("frame-text-direction",
-											 it->second.c_str());
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-text-direction",
+											 it->second.c_str()); }
 		}
 		rqst->handled = true;
 		return;
@@ -285,7 +293,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		if (nameMatches(rqst->pName, NS_A_KEY, "spAutoFit") &&
 			rqst->stck && !rqst->stck->empty())
 		{
-			rqst->stck->top()->setProperty("frame-expand-height", "1");
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("frame-expand-height", "1"); }
 		}
 		rqst->handled = true;
 		return;
@@ -308,7 +317,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				if (f > 0.0 && (f < 0.9999 || f > 1.0001))
 				{
 					g_snprintf(buf, sizeof(buf), "%.4f", f);
-					rqst->stck->top()->setProperty("frame-font-scale", buf);
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("frame-font-scale", buf); }
 				}
 			}
 			const gchar * lr = attrMatches(NS_A_KEY, "lnSpcReduction", rqst->ppAtts);
@@ -319,7 +329,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				if (f > 0.0)
 				{
 					g_snprintf(buf, sizeof(buf), "%.4f", f);
-					rqst->stck->top()->setProperty("frame-linesp-reduction", buf);
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("frame-linesp-reduction", buf); }
 				}
 			}
 		}
@@ -341,11 +352,14 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			const gchar * w = attrMatches(NS_A_KEY, "w", rqst->ppAtts);
 			const gchar * len = attrMatches(NS_A_KEY, "len", rqst->ppAtts);
 			if (type && *type)
-				rqst->stck->top()->setProperty(base.c_str(), type);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty(base.c_str(), type); }
 			if (w && *w)
-				rqst->stck->top()->setProperty((base + "-w").c_str(), w);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty((base + "-w").c_str(), w); }
 			if (len && *len)
-				rqst->stck->top()->setProperty((base + "-len").c_str(), len);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty((base + "-len").c_str(), len); }
 		}
 		rqst->handled = true;
 		return;
@@ -357,7 +371,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		m_bInShadow = true;
 		if (rqst->stck && !rqst->stck->empty())
 		{
-			rqst->stck->top()->setProperty("frame-shadow", "outer");
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("frame-shadow", "outer"); }
 			const gchar * dist = attrMatches(NS_A_KEY, "dist", rqst->ppAtts);
 			const gchar * dir = attrMatches(NS_A_KEY, "dir", rqst->ppAtts);
 			const gchar * blur = attrMatches(NS_A_KEY, "blurRad", rqst->ppAtts);
@@ -367,21 +382,25 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				char buf[24];
 				g_snprintf(buf, sizeof(buf), "%.2fpt",
 						   UT_convertDimensionless(dist) / 12700.0);
-				rqst->stck->top()->setProperty("frame-shadow-offset", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-shadow-offset", buf); }
 			}
 			if (dir && *dir)
-				rqst->stck->top()->setProperty("frame-shadow-dir", dir);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-shadow-dir", dir); }
 			if (blur && *blur)
 			{
 				char buf[24];
 				g_snprintf(buf, sizeof(buf), "%.2fpt",
 						   UT_convertDimensionless(blur) / 12700.0);
-				rqst->stck->top()->setProperty("frame-shadow-blur", buf);
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-shadow-blur", buf); }
 			}
 			if (rws && *rws)
-				rqst->stck->top()->setProperty("frame-shadow-rot",
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-shadow-rot",
 											 (!strcmp(rws, "0") ||
-											  !strcmp(rws, "false")) ? "0" : "1");
+											  !strcmp(rws, "false")) ? "0" : "1"); }
 		}
 		rqst->handled = true;
 		return;
@@ -390,14 +409,15 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 	{
 		const gchar * prst = attrMatches(NS_A_KEY, "prst", rqst->ppAtts);
 		if (prst && *prst && rqst->stck && !rqst->stck->empty())
-			rqst->stck->top()->setProperty("text-warp", prst);
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("text-warp", prst); }
 		rqst->handled = true;
 		return;
 	}
 	if (nameMatches(rqst->pName, NS_A_KEY, "srcRect"))
 	{
 		/* picture fill crop: l/t/r/b in 1000ths of a percent */
-		if (rqst->stck && !rqst->stck->empty() && rqst->stck->top())
+		if (rqst->stck && !rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 		{
 			std::string rect;
 			const char* sides[] = {"l", "t", "r", "b"};
@@ -408,7 +428,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				rect += " ";
 			}
 			rect.pop_back();
-			rqst->stck->top()->setProperty("image-src-rect", rect.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("image-src-rect", rect.c_str()); }
 		}
 		rqst->handled = true;
 		return;
@@ -420,7 +441,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * scale in 1000ths of a percent of the blip's natural size,
 		 * flip (none/x/y/xy) mirrors alternate tiles, algn anchors
 		 * the tile grid to an edge or corner of the fill rect */
-		if (rqst->stck && !rqst->stck->empty() && rqst->stck->top())
+		if (rqst->stck && !rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 		{
 			const gchar * tx = attrMatches(NS_A_KEY, "tx", rqst->ppAtts);
 			const gchar * ty = attrMatches(NS_A_KEY, "ty", rqst->ppAtts);
@@ -440,7 +461,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			tile += (flip && *flip) ? flip : "none";
 			tile += " ";
 			tile += (algn && *algn) ? algn : "tl";
-			rqst->stck->top()->setProperty("image-tile", tile.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("image-tile", tile.c_str()); }
 		}
 		rqst->handled = true;
 		return;
@@ -451,7 +473,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * is stretched into, l/t/r/b in 1000ths of a percent of the
 		 * bounding box like a:srcRect (negative insets expand past
 		 * it and get clipped by the shape) */
-		if (rqst->stck && !rqst->stck->empty() && rqst->stck->top())
+		if (rqst->stck && !rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 		{
 			std::string rect;
 			const char* sides[] = {"l", "t", "r", "b"};
@@ -462,7 +484,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				rect += " ";
 			}
 			rect.pop_back();
-			rqst->stck->top()->setProperty("image-fill-rect", rect.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("image-fill-rect", rect.c_str()); }
 		}
 		rqst->handled = true;
 		return;
@@ -539,7 +562,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 	{
 		/* shape outline (border). w is EMU — 12700 EMU = 1pt */
 		if (rqst->context && !rqst->context->empty() &&
-			rqst->context->back() == "wps:spPr")
+			OXMLi_contextBack(rqst->context) == "wps:spPr")
 		{
 			m_bInOutline = true;
 			m_bHadExplicitLn = true;
@@ -576,7 +599,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		/* an explicit (even empty) spPr effect list suppresses the
 		 * wps:style a:effectRef theme default */
 		if (rqst->context && !rqst->context->empty() &&
-			rqst->context->back() == "wps:spPr")
+			OXMLi_contextBack(rqst->context) == "wps:spPr")
 			m_bHadExplicitEffect = true;
 		rqst->handled = true;
 		return;
@@ -660,7 +683,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * first stop color */
 		if (rqst->context && !rqst->context->empty())
 		{
-			if (rqst->context->back() == "wps:spPr")
+			if (OXMLi_contextBack(rqst->context) == "wps:spPr")
 			{
 				m_bInShapeFill = !nameMatches(rqst->pName, NS_A_KEY, "noFill");
 				m_inGradFill = nameMatches(rqst->pName, NS_A_KEY, "gradFill");
@@ -670,7 +693,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 					m_gradPos.clear();
 				}
 			}
-			else if (m_bInOutline && rqst->context->back() == "A:ln")
+			else if (m_bInOutline && OXMLi_contextBack(rqst->context) == "A:ln")
 			{
 				if (nameMatches(rqst->pName, NS_A_KEY, "noFill"))
 					m_outlineStyle = "none";
@@ -725,7 +748,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * shading ignored, base color used) */
 		const gchar * idx = attrMatches(NS_A_KEY, "idx", rqst->ppAtts);
 		if (rqst->context && !rqst->context->empty() &&
-			rqst->context->back() == "wps:style" &&
+			OXMLi_contextBack(rqst->context) == "wps:style" &&
 			idx && strcmp(idx, "0"))
 			m_bInStyleFill = true;
 		rqst->handled = true;
@@ -740,7 +763,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * fontRef idx is "minor"|"major". The refs' color child
 		 * substitutes for phClr placeholders in the theme style. */
 		if (rqst->context && !rqst->context->empty() &&
-			rqst->context->back() == "wps:style")
+			OXMLi_contextBack(rqst->context) == "wps:style")
 		{
 			const gchar * idx = attrMatches(NS_A_KEY, "idx", rqst->ppAtts);
 			if (nameMatches(rqst->pName, NS_A_KEY, "lnRef"))
@@ -820,7 +843,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		}
 		if (rqst->stck && !rqst->stck->empty())
 		{
-			OXML_SharedElement top = rqst->stck->top();
+			OXML_SharedElement top = OXMLi_elemTop(rqst->stck);
 			auto att = [&](const char * n) -> const char * {
 				auto it = rqst->ppAtts->find(n);
 				return it != rqst->ppAtts->end() ? it->second.c_str() : nullptr;
@@ -870,7 +893,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				}
 			}
 			else if (rqst->context->size() >= 2 &&
-					 rqst->context->at(rqst->context->size() - 2) ==
+					 OXMLi_contextParent(rqst->context) ==
 						 "wps:spPr")
 			{
 				/* top-level shape's own extent — used for line
@@ -1113,7 +1136,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * namespace key, so the context tag stays literal. */
 		std::string contextTag;
 		if (rqst->context && !rqst->context->empty())
-			contextTag = rqst->context->back();
+			contextTag = OXMLi_contextBack(rqst->context);
 		if (contextTag == "wps:txbx")
 		{
 			if (m_wspDepth > 0)
@@ -1145,7 +1168,7 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 			rqst->handled = false;
 			return;
 		}
-		OXML_SharedElement shape = rqst->stck->top();
+		OXML_SharedElement shape = OXMLi_elemTop(rqst->stck);
 		/* fontRef defaults land on the shape's txbxContent runs — those
 		 * only exist now that the shape is complete */
 		auto fit = m_fontRefByShape.find(shape.get());
@@ -1163,11 +1186,11 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 				rqst->handled = false;
 				return;
 			}
-			OXML_SharedSection sect = rqst->sect_stck->top();
+			OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 			rqst->handled = (sect->appendElement(shape) == UT_OK);
 			return;
 		}
-		OXML_SharedElement parent = rqst->stck->top();
+		OXML_SharedElement parent = OXMLi_elemTop(rqst->stck);
 		/* group children carry child-space offsets in grp-* props plus
 		 * the parent's anchor geometry as base-* — the final page
 		 * position is resolved in addToPT once the page size is known.
@@ -1244,7 +1267,7 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 			m_outlineStyle != "none" && rqst->stck &&
 			!rqst->stck->empty())
 		{
-			OXML_SharedElement shape = rqst->stck->top();
+			OXML_SharedElement shape = OXMLi_elemTop(rqst->stck);
 			_applyOutline(shape, m_outlineColor,
 						  m_outlineStyle, m_outlineW);
 			/* the finer a:ln features ride along as frame props —
@@ -1298,8 +1321,9 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 	{
 		if (m_inGradFill && !m_gradDesc.empty() &&
 			rqst->stck && !rqst->stck->empty())
-			rqst->stck->top()->setProperty("fill-gradient",
-										 m_gradDesc.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("fill-gradient",
+										 m_gradDesc.c_str()); }
 		m_inGradFill = false;
 		m_gradDesc.clear();
 		m_bInShapeFill = false;
@@ -1327,8 +1351,9 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		/* store the recorded freeform path on the host shape —
 		 * normalized "M x y L x y C ... Z" in a 0..1000 box */
 		if (!m_shapePath.empty() && rqst->stck && !rqst->stck->empty())
-			rqst->stck->top()->setProperty("shape-path",
-										 m_shapePath.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("shape-path",
+										 m_shapePath.c_str()); }
 		m_inCustGeom = false;
 		m_shapePath.clear();
 		rqst->handled = true;
@@ -1362,7 +1387,7 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		 * the default — the runs don't exist until txbxContent ends */
 		if (rqst->stck && !rqst->stck->empty())
 		{
-			OXML_SharedElement shape = rqst->stck->top();
+			OXML_SharedElement shape = OXMLi_elemTop(rqst->stck);
 			if (nameMatches(rqst->pName, NS_A_KEY, "lnRef"))
 				_applyLnRef(shape);
 			else if (nameMatches(rqst->pName, NS_A_KEY, "effectRef"))
@@ -1446,14 +1471,16 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		{
 			if (bShadow)
 			{
-				rqst->stck->top()->setProperty("frame-shadow-color",
-											 final.c_str());
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-shadow-color",
+											 final.c_str()); }
 				if (alpha >= 0.0)
 				{
 					char abuf[24];
 					g_snprintf(abuf, sizeof(abuf), "%.3f", alpha);
-					rqst->stck->top()->setProperty("frame-shadow-alpha",
-												 abuf);
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("frame-shadow-alpha",
+												 abuf); }
 				}
 			}
 			else if (bOutline)
@@ -1484,17 +1511,21 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 					m_gradDesc += ",";
 				}
 				const gchar * existing = nullptr;
-				if (rqst->stck->top()->getProperty("background-color", existing) != UT_OK ||
+				OXML_SharedElement _top = OXMLi_elemTop(rqst->stck);
+				if (!_top.get() || _top->getProperty("background-color", existing) != UT_OK ||
 					!existing)
 				{
-					rqst->stck->top()->setProperty("background-color", final.c_str());
-					rqst->stck->top()->setProperty("bg-style", "1");
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("background-color", final.c_str()); }
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("bg-style", "1"); }
 				}
 				if (alpha >= 0.0)
 				{
 					char abuf[24];
 					g_snprintf(abuf, sizeof(abuf), "%.3f", alpha);
-					rqst->stck->top()->setProperty("fill-alpha", abuf);
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("fill-alpha", abuf); }
 				}
 			}
 		}
@@ -1540,7 +1571,7 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 				rqst->handled = false;
 				return;
 			}
-			OXML_SharedElement tb = rqst->stck->top();
+			OXML_SharedElement tb = OXMLi_elemTop(rqst->stck);
 			rqst->stck->pop();
 			if (rqst->stck->empty())
 			{
@@ -1549,12 +1580,12 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 					rqst->handled = false;
 					return;
 				}
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				rqst->handled = (sect->appendElement(tb) == UT_OK);
 			}
 			else
 			{
-				OXML_SharedElement parent = rqst->stck->top();
+				OXML_SharedElement parent = OXMLi_elemTop(rqst->stck);
 				/* the w:drawing wrapper pushed an Image element that
 				 * recorded wp:posOffset/wp:extent as xpos/ypos/
 				 * frame-width/frame-height — carry that anchor

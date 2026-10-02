@@ -65,7 +65,7 @@ void OXMLi_ListenerState_HdrFtr::endElement (OXMLi_EndElementRequest * rqst)
 
 		if(!rqst->stck->empty())
 		{
-			OXML_SharedElement container = rqst->stck->top();
+			OXML_SharedElement container = OXMLi_elemTop(rqst->stck);
 			s->setChildren( container->getChildren() );
 		}
 

@@ -117,7 +117,7 @@ void OXMLi_ListenerState_MainDocument::startElement (OXMLi_StartElementRequest *
 		 * fallback for sections that never specify their own margins. */
 		doc->setPageMargins(top, left, right, bottom);
 		if (!rqst->sect_stck->empty()) {
-			rqst->sect_stck->top()->setPageMargins(top, left, right, bottom);
+			OXMLi_sectTop(rqst->sect_stck)->setPageMargins(top, left, right, bottom);
 		}
 		rqst->handled = true;
 	}
@@ -132,7 +132,7 @@ void OXMLi_ListenerState_MainDocument::endElement (OXMLi_EndElementRequest * rqs
 		//TODO: there should be a better way of doing this
 		OXMLi_SectionStack reversedStck;
 		while(!rqst->sect_stck->empty()){		
-			OXML_SharedSection sect = rqst->sect_stck->top();
+			OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 			rqst->sect_stck->pop();
 			reversedStck.push(sect);
 		}		

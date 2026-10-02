@@ -132,7 +132,7 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 	  pos = wvStream_tell (fd);
 
 	  i = wvEatOldGraphicHeader (fd, len);
-  	  if(i!=-1)/*Found BMP */
+  	  if(i != (U32)-1)/*Found BMP */
 	  {
 		wvTrace (("len is %d, header len guess is %d\n", len, i));
 		if (i + 2 >= len || i + 40 > len)
@@ -263,13 +263,13 @@ wvEatOldGraphicHeader (wvStream * fd, U32 len)
     test = read_32ubit (fd);	/*0x00090001 */
     if (test != 0x00090001L){
 	 wvError (("Old Graphic\n"));
-	 return -1;
+	 return (U32)-1;
 	}
     count += 4;
     test = read_16ubit (fd);	/*0x0300 */
     if (test != 0x0300){
 		wvError (("Old Graphic\n"));
- 	    return -1;
+ 	    return (U32)-1;
 	}
 
     count += 2;
@@ -279,7 +279,7 @@ wvEatOldGraphicHeader (wvStream * fd, U32 len)
     test = read_16ubit (fd);	/*0x0000 */
     if (test != 0x00000000L){
   		wvError (("Old Graphic\n"));
-		return -1;
+		return (U32)-1;
 	}
     count += 2;
     X = read_32ubit (fd);	/*changes, lets call this X */
@@ -288,7 +288,7 @@ wvEatOldGraphicHeader (wvStream * fd, U32 len)
     test = read_16ubit (fd);		/*0x0000 */
     if (test != 0x00000000L){
 		wvError (("Old Graphic\n"));
-		return -1;
+		return (U32)-1;
 	}
     count += 2;
 

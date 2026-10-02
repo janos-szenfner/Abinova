@@ -1184,11 +1184,12 @@ const UT_RGBColor fp_Run::getFGColor(void) const
 	if(m_pRevisions && bShow)
 	{
 		bool bMark = pView->isMarkRevisions();
-		UT_uint32 iId = 0;
 		const PP_Revision * r = nullptr;
 		r = m_pRevisions->getLastRevision();
 
 		UT_return_val_if_fail(r != nullptr, _getColorFG());
+
+		UT_uint32 iId = r->getId();
 
 		bool bRevColor = false;
 
@@ -1209,7 +1210,7 @@ const UT_RGBColor fp_Run::getFGColor(void) const
 			bRevColor = true;
 		}
 		
-		if(bMark && iShowId != 0 && (iId-1 == iShowId))
+		if(bMark && iShowId != 0 && iId != 0 && (iId-1 == iShowId))
 		{
 			// this is the case when we are in marking mode, and are
 			// supposed to reveal id > iShowId
@@ -1219,7 +1220,7 @@ const UT_RGBColor fp_Run::getFGColor(void) const
 		if(!bRevColor)
 			return _getColorFG();
 
-		s_fgColor = _getView()->getColorRevisions(iId-1);
+		s_fgColor = _getView()->getColorRevisions(static_cast<int>(iId) - 1);
 	}
 	else if(m_pHyperlink && getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN) && 
 			(m_pHyperlink->getHyperlinkType() ==  HYPERLINK_NORMAL))
@@ -1422,7 +1423,7 @@ void fp_Run::draw(dg_DrawArgs* pDA)
 			UT_uint32 iShowId = pView->getRevisionLevel();
 			bool bMark = pView->isMarkRevisions();
 			
-			if(bMark && iShowId != 0)
+			if(bMark && iShowId != 0 && iId != 0)
 				iId--;
 			
 			if(!bMark || !iShowId || iId == iShowId)

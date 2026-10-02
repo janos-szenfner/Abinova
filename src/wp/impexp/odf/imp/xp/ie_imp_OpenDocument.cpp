@@ -532,7 +532,7 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
 {
     UT_return_val_if_fail(pInput, UT_ERROR);
 
-    int sz = gsf_input_size (pInput);
+    gsf_off_t sz = gsf_input_size (pInput);
     if (sz > 0)
     {
         // I would have liked to pass 0 to input_read() and

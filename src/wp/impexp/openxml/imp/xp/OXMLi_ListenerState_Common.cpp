@@ -232,7 +232,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "sectPr")) {
 		//Verify the context...
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "pPr") ||
 			contextMatches(contextTag, NS_W_KEY, "body")) {
 			if (contextMatches(contextTag, NS_W_KEY, "pPr") && !rqst->stck->empty()) {
@@ -240,7 +240,8 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				// not paint paragraph borders on such break paragraphs;
 				// flag it so layout can suppress them (kept in .abw as
 				// the "section-break" paragraph property).
-				rqst->stck->top()->setProperty("section-break", "1");
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("section-break", "1"); }
 			}
 			OXML_SharedElement dummy(new OXML_Element_Paragraph(""));
 			rqst->stck->push(dummy);
@@ -253,7 +254,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
  ****  PARAGRAPH FORMATTING  ****
  ********************************/
 	} else if(nameMatches(rqst->pName, NS_W_KEY, "shd")) {
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 
 		if(!contextMatches(contextTag, NS_W_KEY, "pPr") &&
 			!contextMatches(contextTag, NS_W_KEY, "rPr"))
@@ -263,7 +264,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		// paragraph shading - ignore it.
 		if (contextMatches(contextTag, NS_W_KEY, "rPr") &&
 			rqst->context->size() >= 3 &&
-			contextMatches(rqst->context->at(rqst->context->size() - 2), NS_W_KEY, "pPr"))
+			contextMatches(OXMLi_contextParent(rqst->context), NS_W_KEY, "pPr"))
 		{
 			rqst->handled = true;
 			return;
@@ -271,7 +272,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 		const gchar* fill = attrMatches(NS_W_KEY, "fill", rqst->ppAtts);
 
-		OXML_SharedElement elem = rqst->stck->top();
+		OXML_SharedElement elem = OXMLi_elemTop(rqst->stck);
 
 		if(fill && strcmp(fill, "auto")) 
 		{
@@ -291,7 +292,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "tab")){
 		//verify the context
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 
 		if (contextMatches(contextTag, NS_W_KEY, "r")) {
 			//This is an actual tab to be inserted
@@ -300,7 +301,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			rqst->handled = true;
 		}
 		else if(contextMatches(contextTag, NS_W_KEY, "tabs")){
-			OXML_SharedElement para = rqst->stck->top();
+			OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
 			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 			const gchar* pos = attrMatches(NS_W_KEY, "pos", rqst->ppAtts);
 			const gchar* leadCh = attrMatches(NS_W_KEY, "leader", rqst->ppAtts);
@@ -356,7 +357,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		rqst->handled = true;
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "noBreakHyphen") ||
 				nameMatches(rqst->pName, NS_W_KEY, "softHyphen") ) {
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "r")) {
 			//U+2011 NON-BREAKING HYPHEN / U+00AD SOFT HYPHEN (UTF-8)
 			const char * ch = nameMatches(rqst->pName, NS_W_KEY, "noBreakHyphen")
@@ -366,7 +367,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		rqst->handled = true;
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "sym")) {
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "r")) {
 			const gchar * font = attrMatches(NS_W_KEY, "font", rqst->ppAtts);
 			const gchar * chAttr = attrMatches(NS_W_KEY, "char", rqst->ppAtts);
@@ -387,9 +388,9 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		rqst->handled = true;
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "ilvl")){
 		//verify the context
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if(contextMatches(contextTag, NS_W_KEY, "numPr")){
-			OXML_SharedElement para = rqst->stck->top();
+			OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
 			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 			if(!val || !*val)
 				return;
@@ -399,9 +400,9 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		rqst->handled = true;
 	} else if ( nameMatches(rqst->pName, NS_W_KEY, "numId")){
 		//verify the context
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if(contextMatches(contextTag, NS_W_KEY, "numPr")){
-			OXML_SharedElement para = rqst->stck->top();
+			OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
 			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 			if(!val || !*val)
 				return;
@@ -436,13 +437,13 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "topLinePunct") ||
 				nameMatches(rqst->pName, NS_W_KEY, "pStyle")) {
 	//Verify the context...
-	std::string contextTag = rqst->context->at(rqst->context->size() - 2);
+	std::string contextTag = OXMLi_contextParent(rqst->context);
 	if (contextMatches(contextTag, NS_W_KEY, "p") ||
 		contextMatches(contextTag, NS_W_KEY, "pPrDefault") ||
 		contextMatches(contextTag, NS_W_KEY, "lvl") ||  
 		contextMatches(contextTag, NS_W_KEY, "style")) { 
 
-		OXML_SharedElement para = rqst->stck->top();
+		OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
 
 		if (nameMatches(rqst->pName, NS_W_KEY, "jc")) {
 			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
@@ -621,16 +622,16 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		 * paragraph spacing (w:before/w:after/w:line); inside
 		 * <w:rPr> it is letter-spacing (w:val in twentieths of a
 		 * point, signed).  Dispatch on the parent element. */
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		std::string parent = rqst->context->size() >= 2 ?
-			rqst->context->at(rqst->context->size() - 2) : "";
+			OXMLi_contextParent(rqst->context) : "";
 		if (contextMatches(contextTag, NS_W_KEY, "pPr") &&
 			(contextMatches(parent, NS_W_KEY, "p") ||
 			 contextMatches(parent, NS_W_KEY, "pPrDefault") ||
 			 contextMatches(parent, NS_W_KEY, "lvl") ||
 			 contextMatches(parent, NS_W_KEY, "style"))) {
 
-			OXML_SharedElement para = rqst->stck->top();
+			OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
 			const gchar * before = attrMatches(NS_W_KEY, "before", rqst->ppAtts);
 			const gchar * after = attrMatches(NS_W_KEY, "after", rqst->ppAtts);
 			const gchar * lineRule = attrMatches(NS_W_KEY, "lineRule", rqst->ppAtts);
@@ -659,7 +660,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 					contextMatches(parent, NS_W_KEY, "rPrDefault") ||
 					contextMatches(parent, NS_W_KEY, "lvl") ||
 					contextMatches(parent, NS_W_KEY, "style"))) {
-			OXML_SharedElement run = rqst->stck->top();
+			OXML_SharedElement run = OXMLi_elemTop(rqst->stck);
 			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 			if (val && *val) {
 				std::string pt(_TwipsToPoints(val));
@@ -680,7 +681,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		/* <w:between> and <w:bar> inside <w:pBdr> have no Abinova
 		 * equivalent - accept and ignore them. */
 		if (!rqst->context->empty() &&
-			contextMatches(rqst->context->back(), NS_W_KEY, "pBdr"))
+			contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "pBdr"))
 			rqst->handled = true;
 
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "top") ||
@@ -691,9 +692,9 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		 * <w:pgBorders> edges land on the section as
 		 * page-border-<side>-* properties. */
 		bool pgBorder = !rqst->context->empty() &&
-			contextMatches(rqst->context->back(), NS_W_KEY, "pgBorders");
+			contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "pgBorders");
 		if (rqst->context->empty() ||
-			(!contextMatches(rqst->context->back(), NS_W_KEY, "pBdr") &&
+			(!contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "pBdr") &&
 			 !pgBorder))
 			return;
 
@@ -701,7 +702,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		{
 			UT_return_if_fail(_error_if_fail(
 				rqst->sect_stck && !rqst->sect_stck->empty()));
-			OXML_SharedSection sect = rqst->sect_stck->top();
+			OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 			UT_return_if_fail(_error_if_fail(sect.get() != nullptr));
 
 			std::string pfx("page-border-");
@@ -773,8 +774,13 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		}
 
 
-		OXML_SharedElement para = rqst->stck->top();
-		UT_return_if_fail( _error_if_fail( para.get() != nullptr ) );
+		OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
+		if (!para.get()) {
+			/* a w:pBdr edge without an enclosing paragraph (malformed
+			 * doc) has nothing to attach to -- ignore it */
+			rqst->handled = true;
+			return;
+		}
 
 		std::string edge(rqst->pName);
 		edge = edge.substr(strlen(NS_W_KEY) + 1);
@@ -879,7 +885,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "position") ||
 				nameMatches(rqst->pName, NS_W_KEY, "sz") ) {
 		//Verify the context...
-		std::string contextTag = rqst->context->at(rqst->context->size() - 2);
+		std::string contextTag = OXMLi_contextParent(rqst->context);
 		// w:pPr/w:rPr is the paragraph MARK's formatting, not text
 		// formatting. The only property meaningful to us is its font
 		// size, which controls the height of an empty paragraph line.
@@ -894,7 +900,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			contextMatches(contextTag, NS_W_KEY, "lvl") ||
 			contextMatches(contextTag, NS_W_KEY, "style") ||
 			bParaMark) {
-			OXML_SharedElement run = rqst->stck->top();
+			OXML_SharedElement run = OXMLi_elemTop(rqst->stck);
 
 			if (nameMatches(rqst->pName, NS_W_KEY, "b")) {
 				const gchar * isOn = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
@@ -1148,13 +1154,13 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "noEndnote") ||
 				nameMatches(rqst->pName, NS_W_KEY, "cols")) {
 		//Verify the context...
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "sectPr")) {
 			if (nameMatches(rqst->pName, NS_W_KEY, "titlePg")) {
 				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 				bool bOn = !val || !*val || !strcmp(val, "true") ||
 					!strcmp(val, "1") || !strcmp(val, "on");
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get())
 					sect->setTitlePg(bOn);
 				rqst->handled = true;
@@ -1166,7 +1172,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				// sectPr terminates starts relative to the *previous*
 				// section, so it applies to the section on top of the
 				// stack, not the section that follows.
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				UT_return_if_fail( this->_error_if_fail(sect.get() != nullptr) );
 				if (!strcmp(val, "continuous")) {
 					sect->setBreakType(CONTINUOUS_BREAK);
@@ -1183,7 +1189,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				//w:pgNumType@w:start restarts page numbering in this section
 				const gchar * start = attrMatches(NS_W_KEY, "start", rqst->ppAtts);
 				if (start && *start) {
-					OXML_SharedSection sect = rqst->sect_stck->top();
+					OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 					if (sect.get()) {
 						sect->setProperty("section-restart", "1");
 						sect->setProperty("section-restart-value", start);
@@ -1194,7 +1200,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "pgBorders")) {
 				const gchar * off = attrMatches(NS_W_KEY, "offsetFrom", rqst->ppAtts);
 				const gchar * disp = attrMatches(NS_W_KEY, "display", rqst->ppAtts);
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get()) {
 					if (off && *off)
 						sect->setProperty("page-border-offset", off);
@@ -1205,20 +1211,20 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "vAlign")) {
 				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get() && val && *val)
 					sect->setProperty("section-y-align", val);
 				rqst->handled = true;
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "textDirection")) {
 				const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get() && val && *val)
 					sect->setProperty("section-text-direction", val);
 				rqst->handled = true;
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "paperSrc")) {
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get()) {
 					const gchar * f = attrMatches(NS_W_KEY, "first", rqst->ppAtts);
 					const gchar * o = attrMatches(NS_W_KEY, "other", rqst->ppAtts);
@@ -1230,7 +1236,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				rqst->handled = true;
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "lnNumType")) {
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get()) {
 					struct { const char * a; const char * p; } m[] = {
 						{"countBy", "section-ln-count-by"},
@@ -1246,7 +1252,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				rqst->handled = true;
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "docGrid")) {
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get()) {
 					struct { const char * a; const char * p; } m[] = {
 						{"type",      "section-doc-grid"},
@@ -1271,7 +1277,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 						"section-rtl-gutter" :
 					nameMatches(rqst->pName, NS_W_KEY, "formProt") ?
 						"section-form-protected" : "section-endnote-suppress";
-				OXML_SharedSection sect = rqst->sect_stck->top();
+				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 				if (sect.get())
 					sect->setProperty(prop, bOn ? "1" : "0");
 				rqst->handled = true;
@@ -1279,7 +1285,8 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "footerReference")) {
 				const gchar * id = attrMatches(NS_R_KEY, "id", rqst->ppAtts);
 				UT_return_if_fail( this->_error_if_fail(id != nullptr) );
-				OXML_SharedSection last = rqst->sect_stck->top();
+				OXML_SharedSection last = OXMLi_sectTop(rqst->sect_stck);
+				UT_return_if_fail( this->_error_if_fail(last.get() != nullptr) );
 
 				OXMLi_PackageManager * mgr = OXMLi_PackageManager::getInstance();
 				UT_return_if_fail( _error_if_fail( UT_OK == mgr->parseDocumentHdrFtr(id) ) );
@@ -1306,7 +1313,8 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "headerReference")) {
 				const gchar * id = attrMatches(NS_R_KEY, "id", rqst->ppAtts);
 				UT_return_if_fail( this->_error_if_fail(id != nullptr) );
-				OXML_SharedSection last = rqst->sect_stck->top();
+				OXML_SharedSection last = OXMLi_sectTop(rqst->sect_stck);
+				UT_return_if_fail( this->_error_if_fail(last.get() != nullptr) );
 
 				OXMLi_PackageManager * mgr = OXMLi_PackageManager::getInstance();
 				UT_return_if_fail( _error_if_fail( UT_OK == mgr->parseDocumentHdrFtr(id) ) );
@@ -1341,7 +1349,11 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				if(!sep)
 					sep = "off";
 				
-				OXML_SharedSection last = rqst->sect_stck->top();
+				OXML_SharedSection last = OXMLi_sectTop(rqst->sect_stck);
+				if (!last.get()) {
+					rqst->handled = true;
+					return;
+				}
 				last->setProperty("columns", num);
 				last->setProperty("column-line", sep);
 				if(space && *space)
@@ -1493,9 +1505,9 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 	if (nameMatches(rqst->pName, NS_W_KEY, "p")) {
 		//Paragraph is done, appending it.
 		if (rqst->stck->size() == 1) { //Only the paragraph is on the stack, append to section
-			OXML_SharedElement elem = rqst->stck->top();
+			OXML_SharedElement elem = OXMLi_elemTop(rqst->stck);
 			UT_return_if_fail( this->_error_if_fail(elem.get() != nullptr) );
-			OXML_SharedSection sect = rqst->sect_stck->top();
+			OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 			UT_return_if_fail( this->_error_if_fail(sect.get() != nullptr) );
 			UT_return_if_fail( this->_error_if_fail(UT_OK == sect->appendElement(elem) ) );
 			rqst->stck->pop();
@@ -1516,9 +1528,9 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "altChunk")) {
 		//close the reference paragraph pushed at startElement
 		if (rqst->stck->size() == 1) {
-			OXML_SharedElement elem = rqst->stck->top();
+			OXML_SharedElement elem = OXMLi_elemTop(rqst->stck);
 			UT_return_if_fail( this->_error_if_fail(elem.get() != nullptr) );
-			OXML_SharedSection sect = rqst->sect_stck->top();
+			OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 			UT_return_if_fail( this->_error_if_fail(sect.get() != nullptr) );
 			UT_return_if_fail( this->_error_if_fail(UT_OK == sect->appendElement(elem) ) );
 			rqst->stck->pop();
@@ -1548,12 +1560,12 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 		}
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "sectPr")) {
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "pPr") ||
 			contextMatches(contextTag, NS_W_KEY, "body")) {
-			OXML_SharedSection sect = rqst->sect_stck->top();
+			OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 			UT_return_if_fail(_error_if_fail(sect.get() != nullptr));
-			OXML_SharedElement dummy = rqst->stck->top();
+			OXML_SharedElement dummy = OXMLi_elemTop(rqst->stck);
 			PP_PropertyVector atts = dummy->getAttributes();
 			if (!atts.empty()) {
 				UT_return_if_fail(_error_if_fail(UT_OK == sect->appendAttributes(atts)));
@@ -1628,7 +1640,7 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 				nameMatches(rqst->pName, NS_W_KEY, "formProt") ||
 				nameMatches(rqst->pName, NS_W_KEY, "noEndnote") ||
 				nameMatches(rqst->pName, NS_W_KEY, "cols")) {
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "sectPr")) {
 			rqst->handled = true;
 		}
@@ -1637,7 +1649,7 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 			   nameMatches(rqst->pName, NS_W_KEY, "softHyphen") ||
 			   nameMatches(rqst->pName, NS_W_KEY, "lastRenderedPageBreak") ||
 			   nameMatches(rqst->pName, NS_W_KEY, "sym")) {
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "r")) {
 			UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
 			rqst->handled = true;
@@ -1668,7 +1680,7 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "shd")) {
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		rqst->handled = contextMatches(contextTag, NS_W_KEY, "pPr") || contextMatches(contextTag, NS_W_KEY, "rPr");
 	}
 }
@@ -1687,13 +1699,13 @@ void OXMLi_ListenerState_Common::charData (OXMLi_CharDataRequest * rqst)
 	std::string contextTag = "";
 	if(!rqst->context->empty())
 	{
-		contextTag = rqst->context->back();
+		contextTag = OXMLi_contextBack(rqst->context);
 	}
 	int instrText = contextMatches(contextTag, NS_W_KEY, "instrText");
 	if(instrText)
 	{
 		UT_ASSERT(rqst->buffer != nullptr);
-		OXML_SharedElement run = rqst->stck->top();
+		OXML_SharedElement run = OXMLi_elemTop(rqst->stck);
 		OXML_SharedElement sharedElem(new OXML_Element_Text("", 0));
 		std::string overline = "\\to";
 		std::string underline = "\\bo";
@@ -1755,7 +1767,7 @@ void OXMLi_ListenerState_Common::charData (OXMLi_CharDataRequest * rqst)
 	}
 	else
 	{
-		OXML_SharedElement sharedElem = rqst->stck->top();
+		OXML_SharedElement sharedElem = OXMLi_elemTop(rqst->stck);
 		OXML_Element* elem = sharedElem.get();
 
 		if(!elem || (elem->getTag() != T_TAG))

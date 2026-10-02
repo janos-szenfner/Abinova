@@ -192,8 +192,9 @@ void fp_MathRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	/* Only mark dirty when the metrics actually changed: this runs
 	 * inside layout passes, so unconditional dirtying reschedules
 	 * layout forever (a 100%-CPU re-layout loop). */
-	if (iWidth != getWidth() || iAscent != getAscent() ||
-	    iDescent != getDescent())
+	if (iWidth != getWidth() ||
+	    iAscent != static_cast<UT_sint32>(getAscent()) ||
+	    iDescent != static_cast<UT_sint32>(getDescent()))
 	{
 		markAsDirty();
 		if(getLine())

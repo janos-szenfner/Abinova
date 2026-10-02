@@ -113,8 +113,19 @@ UT_Error IE_Imp_XML::_loadFile(GsfInput * input)
 	if (m_pReader) parser->setReader (m_pReader);
 
 	// hack!!!
-	size_t num_bytes = gsf_input_size(input);
+	gsf_off_t input_size = gsf_input_size(input);
+	if (input_size < 0)
+		{
+			m_error = UT_IE_BOGUSDOCUMENT;
+			return m_error;
+		}
+	size_t num_bytes = static_cast<size_t>(input_size);
 	char * bytes = (char *)gsf_input_read(input, num_bytes, nullptr);
+	if (num_bytes > 0 && !bytes)
+		{
+			m_error = UT_IE_BOGUSDOCUMENT;
+			return m_error;
+		}
 
 	UT_Error err = parser->parse (bytes, num_bytes);
 	

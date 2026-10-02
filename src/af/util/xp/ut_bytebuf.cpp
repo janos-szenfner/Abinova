@@ -207,7 +207,9 @@ bool UT_ByteBuf::insertFromInput(UT_uint32 iPosition, GsfInput * fp)
 {
   UT_return_val_if_fail (fp != nullptr, false);
 
-  UT_uint32 iLengthOfFile = gsf_input_size(fp);
+  const gsf_off_t fileSize = gsf_input_size(fp);
+  UT_return_val_if_fail (fileSize >= 0, false);
+  UT_uint32 iLengthOfFile = static_cast<UT_uint32>(fileSize);
 
   // create a lot of space initialized to 0s
   this->ins (iPosition, iLengthOfFile);

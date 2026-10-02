@@ -83,7 +83,7 @@ void OXMLi_ListenerState_Comments::endElement (OXMLi_EndElementRequest * rqst)
 			return;
 		}
 
-		OXML_SharedSection sect = rqst->sect_stck->top();
+		OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
 		rqst->sect_stck->pop();
 		OXML_Document* pDoc = OXML_Document::getInstance();
 		if (pDoc)

@@ -302,7 +302,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		std::string contextTag = "";
 		if(!rqst->context->empty())
 		{
-			contextTag = rqst->context->back();
+			contextTag = OXMLi_contextBack(rqst->context);
 		}
 		int drawing = contextMatches(contextTag, NS_W_KEY, "drawing");
 		if(drawing)
@@ -322,7 +322,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		std::string contextTag = "";
 		if(!rqst->context->empty())
 		{
-			contextTag = rqst->context->back();
+			contextTag = OXMLi_contextBack(rqst->context);
 		}
 		int drawing = contextMatches(contextTag, NS_W_KEY, "drawing");
 		if(drawing)
@@ -335,7 +335,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			const gchar * behind = attrMatches(NS_WP_KEY, "behindDoc", rqst->ppAtts);
 			if (behind && !strcmp(behind, "1"))
 			{
-				OXML_SharedElement imgElem = rqst->stck->top();
+				OXML_SharedElement imgElem = OXMLi_elemTop(rqst->stck);
 				if (imgElem)
 					imgElem->setProperty("wrap-mode", "below-text");
 			}
@@ -343,8 +343,9 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			 * front. Feed our frame-stack-order property so the page's
 			 * frame layer orders like Word */
 			const gchar * rh = attrMatches(NS_WP_KEY, "relativeHeight", rqst->ppAtts);
-			if (rh && rqst->stck->top())
-				rqst->stck->top()->setProperty("frame-stack-order", rh);
+			if (rh && OXMLi_elemTop(rqst->stck))
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("frame-stack-order", rh); }
 			/* simplePos="1" makes wp:simplePos@x/y the position,
 			 * overriding positionH/positionV */
 			const gchar * sp = attrMatches(NS_WP_KEY, "simplePos", rqst->ppAtts);
@@ -357,11 +358,11 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		std::string contextTag = "";
 		if(!rqst->context->empty())
 		{
-			contextTag = rqst->context->back();
+			contextTag = OXMLi_contextBack(rqst->context);
 		}
 		if(contextMatches(contextTag, NS_WP_KEY, "anchor"))
 		{
-			if(m_bSimplePos && !rqst->stck->empty() && rqst->stck->top())
+			if(m_bSimplePos && !rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 			{
 				const gchar * x = attrMatches(NS_WP_KEY, "x", rqst->ppAtts);
 				const gchar * y = attrMatches(NS_WP_KEY, "y", rqst->ppAtts);
@@ -369,13 +370,15 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 				{
 					std::string position(_EmusToInches(x));
 					position += "in";
-					rqst->stck->top()->setProperty("xpos", position);
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("xpos", position); }
 				}
 				if(y && *y)
 				{
 					std::string position(_EmusToInches(y));
 					position += "in";
-					rqst->stck->top()->setProperty("ypos", position);
+					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+					  if (_e.get()) _e->setProperty("ypos", position); }
 				}
 			}
 			m_bSimplePos = false;
@@ -393,7 +396,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		std::string contextTag = "";
 		if(!rqst->context->empty())
 		{
-			contextTag = rqst->context->back();
+			contextTag = OXMLi_contextBack(rqst->context);
 		}
 		int anchor = contextMatches(contextTag, NS_WP_KEY, "anchor");
 		if(anchor)
@@ -412,7 +415,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		std::string contextTag = "";
 		if(!rqst->context->empty())
 		{
-			contextTag = rqst->context->back();
+			contextTag = OXMLi_contextBack(rqst->context);
 		}
 		int anchor = contextMatches(contextTag, NS_WP_KEY, "anchor");
 		if(anchor)
@@ -423,7 +426,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 	else if(nameMatches(rqst->pName, NS_A_KEY, "srcRect"))
 	{
 		/* a:srcRect - blip crop: l/t/r/b in 1000ths of a percent */
-		if(!rqst->stck->empty() && rqst->stck->top())
+		if(!rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 		{
 			std::string rect;
 			const char* sides[] = {"l", "t", "r", "b"};
@@ -434,7 +437,8 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 				rect += " ";
 			}
 			rect.pop_back();
-			rqst->stck->top()->setProperty("image-src-rect", rect.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("image-src-rect", rect.c_str()); }
 		}
 		rqst->handled = true;
 	}
@@ -445,7 +449,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		 * sx/sy tile scale in 1000ths of a percent of the blip's
 		 * natural size, flip (none/x/y/xy) mirrors alternate
 		 * tiles, algn anchors the tile grid */
-		if(!rqst->stck->empty() && rqst->stck->top())
+		if(!rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 		{
 			const gchar * tx = attrMatches(NS_A_KEY, "tx", rqst->ppAtts);
 			const gchar * ty = attrMatches(NS_A_KEY, "ty", rqst->ppAtts);
@@ -465,7 +469,8 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			tile += (flip && *flip) ? flip : "none";
 			tile += " ";
 			tile += (algn && *algn) ? algn : "tl";
-			rqst->stck->top()->setProperty("image-tile", tile.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("image-tile", tile.c_str()); }
 		}
 		rqst->handled = true;
 	}
@@ -474,7 +479,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		/* a:stretch/a:fillRect — the destination rectangle the blip
 		 * is stretched into, l/t/r/b in 1000ths of a percent of the
 		 * bounding box (negative insets expand past it) */
-		if(!rqst->stck->empty() && rqst->stck->top())
+		if(!rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 		{
 			std::string rect;
 			const char* sides[] = {"l", "t", "r", "b"};
@@ -485,7 +490,8 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 				rect += " ";
 			}
 			rect.pop_back();
-			rqst->stck->top()->setProperty("image-fill-rect", rect.c_str());
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("image-fill-rect", rect.c_str()); }
 		}
 		rqst->handled = true;
 	}
@@ -500,7 +506,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		std::string contextTag = "";
 		if(!rqst->context->empty())
 		{
-			contextTag = rqst->context->back();
+			contextTag = OXMLi_contextBack(rqst->context);
 		}
 		int positionH = contextMatches(contextTag, NS_WP_KEY, "positionH");
 		int positionV = contextMatches(contextTag, NS_WP_KEY, "positionV");
@@ -518,7 +524,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			return;
 		}
 
-		OXML_SharedElement imgElem = rqst->stck->top();
+		OXML_SharedElement imgElem = OXMLi_elemTop(rqst->stck);
 		if(!imgElem)
 			return;
 
@@ -575,7 +581,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			return;
 		}
 
-		OXML_SharedElement imgElem = rqst->stck->top();
+		OXML_SharedElement imgElem = OXMLi_elemTop(rqst->stck);
 		if(!imgElem)
 			return;
 
@@ -601,7 +607,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			return;
 		}
 
-		OXML_SharedElement imgElem = rqst->stck->top();
+		OXML_SharedElement imgElem = OXMLi_elemTop(rqst->stck);
 		if(!imgElem)
 			return;
 
@@ -629,7 +635,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			return;
 		}
 
-		OXML_SharedElement imgElem = rqst->stck->top();
+		OXML_SharedElement imgElem = OXMLi_elemTop(rqst->stck);
 		if(!imgElem)
 			return;
 
@@ -646,7 +652,7 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			return;
 		}
 
-		OXML_SharedElement imgElem = rqst->stck->top();
+		OXML_SharedElement imgElem = OXMLi_elemTop(rqst->stck);
 		if(!imgElem)
 			return;
 
@@ -663,11 +669,11 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 	 * Everything under a:blip is swallowed here so the color elements
 	 * aren't misread as shape fills by the textbox listener */
 	else if (rqst->context && !rqst->context->empty() &&
-			 rqst->context->back() == "A:blip")
+			 OXMLi_contextBack(rqst->context) == "A:blip")
 	{
-		if (!rqst->stck->empty() && rqst->stck->top())
+		if (!rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 		{
-			OXML_SharedElement fxElem = rqst->stck->top();
+			OXML_SharedElement fxElem = OXMLi_elemTop(rqst->stck);
 			if (nameMatches(rqst->pName, NS_A_KEY, "duotone"))
 			{
 				m_bInDuotone = true;
@@ -869,11 +875,12 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 		else if (nameMatches(rqst->pName, NS_A_KEY, "duotone"))
 		{
 			if (m_duotone.size() >= 2 && rqst->stck &&
-				!rqst->stck->empty() && rqst->stck->top())
+				!rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
 			{
 				std::string duo = m_duotone[0] + " " + m_duotone[1];
-				rqst->stck->top()->setProperty("image-duotone",
-											 duo.c_str());
+				{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				  if (_e.get()) _e->setProperty("image-duotone",
+											 duo.c_str()); }
 			}
 			m_bInDuotone = false;
 			m_duotone.clear();
@@ -882,7 +889,7 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 		rqst->handled = true;
 	}
 	else if (rqst->context && !rqst->context->empty() &&
-			 rqst->context->back() == "A:blip")
+			 OXMLi_contextBack(rqst->context) == "A:blip")
 	{
 		/* blip children ends (lum/grayscl/alphaModFix/extLst) —
 		 * captured, or intentionally ignored, at their start tags */
@@ -903,7 +910,7 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 			rqst->handled = false;
 			return;
 		}
-		OXML_SharedElement pic = rqst->stck->top();
+		OXML_SharedElement pic = OXMLi_elemTop(rqst->stck);
 		rqst->stck->pop();
 		if (rqst->stck->empty())
 		{
@@ -913,10 +920,10 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 				return;
 			}
 			rqst->handled =
-				(rqst->sect_stck->top()->appendElement(pic) == UT_OK);
+				(OXMLi_sectTop(rqst->sect_stck)->appendElement(pic) == UT_OK);
 			return;
 		}
-		OXML_SharedElement parent = rqst->stck->top();
+		OXML_SharedElement parent = OXMLi_elemTop(rqst->stck);
 		/* carry the group's transform and anchor geometry through as
 		 * base-* so addToPT can resolve the child-space offset */
 		const gchar * bv = nullptr;
@@ -971,16 +978,16 @@ void OXMLi_ListenerState_Image::charData (OXMLi_CharDataRequest * rqst)
 	std::string contextTag = "";
 	if(!rqst->context->empty())
 	{
-		contextTag = rqst->context->back();
+		contextTag = OXMLi_contextBack(rqst->context);
 	}
 	int posOffset = contextMatches(contextTag, NS_WP_KEY, "posOffset");
 	if(posOffset && !m_isInlineImage)
 	{
-		OXML_SharedElement imgElem = rqst->stck->top();
+		OXML_SharedElement imgElem = OXMLi_elemTop(rqst->stck);
 		rqst->stck->pop();
 
 		if(rqst->context->size() >= 2)
-			contextTag = rqst->context->at(rqst->context->size() - 2);
+			contextTag = OXMLi_contextParent(rqst->context);
 		int positionH = contextMatches(contextTag, NS_WP_KEY, "positionH");
 		int positionV = contextMatches(contextTag, NS_WP_KEY, "positionV");
 		if(rqst->buffer == nullptr)
@@ -1013,12 +1020,14 @@ void OXMLi_ListenerState_Image::charData (OXMLi_CharDataRequest * rqst)
 			return;
 		std::string parentTag;
 		if (rqst->context->size() >= 2)
-			parentTag = rqst->context->at(rqst->context->size() - 2);
+			parentTag = OXMLi_contextParent(rqst->context);
 		std::string align(rqst->buffer);
 		if (contextMatches(parentTag, NS_WP_KEY, "positionH"))
-			rqst->stck->top()->setProperty("halign", align);
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("halign", align); }
 		else if (contextMatches(parentTag, NS_WP_KEY, "positionV"))
-			rqst->stck->top()->setProperty("valign", align);
+			{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			  if (_e.get()) _e->setProperty("valign", align); }
 		rqst->handled = true;
 		return;
 	}
@@ -1039,14 +1048,16 @@ void OXMLi_ListenerState_Image::charData (OXMLi_CharDataRequest * rqst)
 		double pct = UT_convertDimensionless(rqst->buffer) / 100000.0;
 		/* keep the raw fraction — addToPT resolves it against the
 		 * real page size (sectPr may not have been parsed yet) */
-		rqst->stck->top()->setProperty(
+		{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+		  if (_e.get()) _e->setProperty(
 			contextTag == "wp14:pctPosHOffset" ? "pct-pos-x" : "pct-pos-y",
-			UT_convertToDimensionlessString(pct));
+			UT_convertToDimensionlessString(pct)); }
 		double base = (contextTag == "wp14:pctPosHOffset") ? 8.5 : 11.0;
 		char buf[32];
 		g_snprintf(buf, sizeof(buf), "%.4fin", pct * base);
-		rqst->stck->top()->setProperty(
-			contextTag == "wp14:pctPosHOffset" ? "xpos" : "ypos", buf);
+		{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+		  if (_e.get()) _e->setProperty(
+			contextTag == "wp14:pctPosHOffset" ? "xpos" : "ypos", buf); }
 		rqst->handled = true;
 	}
 
@@ -1061,15 +1072,17 @@ void OXMLi_ListenerState_Image::charData (OXMLi_CharDataRequest * rqst)
 		if (rqst->buffer == nullptr)
 			return;
 		double pct = UT_convertDimensionless(rqst->buffer) / 100000.0;
-		rqst->stck->top()->setProperty(
+		{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+		  if (_e.get()) _e->setProperty(
 			contextTag == "wp14:pctWidth" ? "pct-width" : "pct-height",
-			UT_convertToDimensionlessString(pct));
+			UT_convertToDimensionlessString(pct)); }
 		double base = (contextTag == "wp14:pctWidth") ? 8.5 : 11.0;
 		char buf[32];
 		g_snprintf(buf, sizeof(buf), "%.4fin", pct * base);
-		rqst->stck->top()->setProperty(
+		{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+		  if (_e.get()) _e->setProperty(
 			contextTag == "wp14:pctWidth" ? "frame-width" : "frame-height",
-			buf);
+			buf); }
 		rqst->handled = true;
 	}
 }

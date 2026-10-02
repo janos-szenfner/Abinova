@@ -33,6 +33,46 @@ typedef std::stack<OXML_SharedElement> OXMLi_ElementStack;
 typedef std::stack<OXML_SharedSection> OXMLi_SectionStack;
 typedef std::vector<std::string> OXMLi_ContextVector;
 
+/* Context-stack accessors that never underflow or dereference an
+ * empty vector: the context does not include the element currently
+ * being dispatched, so in a malformed part a handled tag can sit at
+ * (or as) the root where fewer ancestors exist than the lookup
+ * assumes -- context->at(size()-2) on a size<2 vector wraps to a
+ * huge index (throws through the SAX callbacks) and back() on an
+ * empty vector dereferences nullptr-1. */
+static inline const std::string &
+OXMLi_contextBack (const OXMLi_ContextVector * ctx)
+{
+	static const std::string s_empty;
+	return (ctx && !ctx->empty ()) ? ctx->back () : s_empty;
+}
+
+static inline const std::string &
+OXMLi_contextParent (const OXMLi_ContextVector * ctx)
+{
+	static const std::string s_empty;
+	return (ctx && ctx->size () >= 2) ? (*ctx)[ctx->size () - 2] : s_empty;
+}
+
+/* Same for the section stack: it is only seeded by a w:body element,
+ * so malformed parts that omit the body would otherwise top() an
+ * empty stack.  Returns a null OXML_SharedSection when empty --
+ * call sites already test with sect.get(). */
+static inline OXML_SharedSection
+OXMLi_sectTop (OXMLi_SectionStack * stck)
+{
+	return (stck && !stck->empty ()) ? stck->top () : OXML_SharedSection();
+}
+
+/* Same for the element stack: a handled tag with no element-owning
+ * ancestor (e.g. <w:pBdr> edges at the root of a malformed part)
+ * would otherwise top() an empty stack. */
+static inline OXML_SharedElement
+OXMLi_elemTop (OXMLi_ElementStack * stck)
+{
+	return (stck && !stck->empty ()) ? stck->top () : OXML_SharedElement();
+}
+
 struct OXMLi_StartElementRequest
 {
 	std::string pName;

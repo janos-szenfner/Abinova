@@ -150,7 +150,7 @@ void OXMLi_ListenerState_Numbering::startElement (OXMLi_StartElementRequest * rq
 	else if(nameMatches(rqst->pName, NS_W_KEY, "lvlOverride"))
 	{
 		/* w:num > w:lvlOverride ilvl=N — collect; clones applied at </w:num> */
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "num"))
 		{
 			const gchar* ilvl = attrMatches(NS_W_KEY, "ilvl", rqst->ppAtts);
@@ -163,7 +163,7 @@ void OXMLi_ListenerState_Numbering::startElement (OXMLi_StartElementRequest * rq
 	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "startOverride"))
 	{
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (m_inLvlOverride && contextMatches(contextTag, NS_W_KEY, "lvlOverride"))
 		{
 			const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
@@ -276,7 +276,7 @@ void OXMLi_ListenerState_Numbering::endElement (OXMLi_EndElementRequest * rqst)
 			rqst->valid = false;
 			return;
 		}
-		OXML_SharedElement dummy = rqst->stck->top();
+		OXML_SharedElement dummy = OXMLi_elemTop(rqst->stck);
 		
 		if(m_currentList)
 		{

@@ -48,12 +48,12 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 			nameMatches(rqst->pName, NS_A_KEY, "srgbClr") ||
 			nameMatches(rqst->pName, NS_A_KEY, "sysClr") ) {
 
-		std::string contextTag = rqst->context->at(rqst->context->size() - 2);
+		std::string contextTag = OXMLi_contextParent(rqst->context);
 		bool bClrScheme = contextMatches(contextTag, NS_A_KEY, "clrScheme");
 		/* fmtScheme colors: the color child of an effectStyle's
 		 * a:outerShdw, or a fill color inside an lnStyleLst a:ln */
 		bool bShdwClr = m_bInShdw &&
-			contextMatches(rqst->context->back(), NS_A_KEY, "outerShdw");
+			contextMatches(OXMLi_contextBack(rqst->context), NS_A_KEY, "outerShdw");
 		if (!bClrScheme && !bShdwClr && !m_bInThemeLn) return;
 
 		std::string color = "";
@@ -133,7 +133,7 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 
 		if (!color.compare("") || color[0] != '#') return;
 
-		contextTag = rqst->context->back();
+		contextTag = OXMLi_contextBack(rqst->context);
 
 		if (contextMatches(contextTag, NS_A_KEY, "accent1")) {
 			m_theme->setColor(ACCENT1, color);
@@ -182,7 +182,7 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 			UT_return_if_fail( this->_error_if_fail(script != nullptr) );
 		}
 		//TODO: check for unicode compatibility for typeface name
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_A_KEY, "majorFont")) {
 			m_theme->setMajorFont(script, typeface);
 		} else if (contextMatches(contextTag, NS_A_KEY, "minorFont")) {
@@ -241,7 +241,7 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 	} else if (nameMatches(rqst->pName, NS_A_KEY, "ln")) {
 		/* a:ln entries of lnStyleLst (w in EMU — 12700 EMU = 1pt) */
 		if (m_bInLnStyleLst && rqst->context && !rqst->context->empty() &&
-			contextMatches(rqst->context->back(), NS_A_KEY, "lnStyleLst"))
+			contextMatches(OXMLi_contextBack(rqst->context), NS_A_KEY, "lnStyleLst"))
 		{
 			++m_lnStyleIdx;
 			m_bInThemeLn = true;
@@ -303,7 +303,7 @@ void OXMLi_ListenerState_Theme::endElement (OXMLi_EndElementRequest * rqst)
 			nameMatches(rqst->pName, NS_A_KEY, "srgbClr") ||
 			nameMatches(rqst->pName, NS_A_KEY, "sysClr") ) {
 
-		std::string contextTag = rqst->context->at(rqst->context->size() - 2);
+		std::string contextTag = OXMLi_contextParent(rqst->context);
 		if (!contextMatches(contextTag, NS_A_KEY, "clrScheme")) return;
 		rqst->handled = true;
 	} else if (	nameMatches(rqst->pName, NS_A_KEY, "latin") ||
@@ -311,7 +311,7 @@ void OXMLi_ListenerState_Theme::endElement (OXMLi_EndElementRequest * rqst)
 				nameMatches(rqst->pName, NS_A_KEY, "cs") ||
 				nameMatches(rqst->pName, NS_A_KEY, "font") ) {
 
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_A_KEY, "majorFont") && contextMatches(contextTag, NS_A_KEY, "minorFont"))
 			return;
 		rqst->handled = true;

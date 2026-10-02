@@ -2922,7 +2922,7 @@ void fp_FrameContainer::layout(void)
 	 * content height is smaller than the inner box height. */
 	UT_sint32 iYOffset = 0;
 	UT_sint32 iContentH = 0;
-	for (UT_uint32 iH = 0; iH < countCons(); iH++)
+	for (UT_sint32 iH = 0; iH < countCons(); iH++)
 	{
 		fp_Container * pHC = static_cast<fp_Container*>(getNthCon(iH));
 		iContentH += pHC->getHeight() + pHC->getMarginAfter();
@@ -2943,9 +2943,9 @@ void fp_FrameContainer::layout(void)
 		}
 	}
 	iY = iYOffset;
-	UT_uint32 iCountContainers = countCons();
+	UT_sint32 iCountContainers = countCons();
 	fp_Container *pContainer, *pPrevContainer = nullptr;
-	for (UT_uint32 i=0; i < iCountContainers; i++)
+	for (UT_sint32 i=0; i < iCountContainers; i++)
 	{
 		pContainer = static_cast<fp_Container*>(getNthCon(i));
 //

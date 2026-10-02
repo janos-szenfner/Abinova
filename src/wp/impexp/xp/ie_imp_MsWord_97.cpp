@@ -2202,10 +2202,13 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 #ifdef SUPPORTS_OLD_IMAGES
 		UT_DEBUGMSG(("Pre W97 Image format.\n"));
 		// sprmCPicLocation points at a PICF in the Data stream;
-		// reject offsets that can't possibly hold one
-		if (ps->data == nullptr || achp->fcPic_fcObj_lTagObj >= wvStream_size(ps->data))
+		// reject offsets that can't possibly hold one. fcPic is
+		// S32: check < 0 explicitly so a negative offset can't
+		// wrap huge against the unsigned stream size.
+		if (ps->data == nullptr || achp->fcPic_fcObj_lTagObj < 0 ||
+			static_cast<U32>(achp->fcPic_fcObj_lTagObj) >= wvStream_size(ps->data))
 		{
-			UT_DEBUGMSG(("Bogus fcPic %u\n", achp->fcPic_fcObj_lTagObj));
+			UT_DEBUGMSG(("Bogus fcPic %d\n", achp->fcPic_fcObj_lTagObj));
 			return 0;
 		}
 		pos = wvStream_tell(ps->data);
@@ -7504,7 +7507,10 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 										  "\005DocumentSummaryInformation");
 	if(!st)
 		return;
-	gsize sz = static_cast<gsize>(gsf_input_size(st));
+	// gsf_input_size is signed and can be -1 on error; casting that
+	// to gsize would wrap huge and make new[] throw.
+	const gsf_off_t rawSz = gsf_input_size(st);
+	gsize sz = (rawSz > 0) ? static_cast<gsize>(rawSz) : 0;
 	guint8 *buf = sz ? new guint8[sz] : nullptr;
 	if(buf && !gsf_input_read(st, sz, buf))
 	{
@@ -8979,7 +8985,7 @@ bool IE_Imp_MsWord_97::_findNextTextboxSection()
 	/* the FTXBXS lid is the spid of the shape whose frame was
 	 * emitted when its anchor was reached in the main story */
 	const UT_uint32 iLid = m_pTextboxes[m_iNextTextbox].lid;
-	for(UT_uint32 i = 0; i < m_vecTextboxPos.getItemCount(); i++)
+	for(UT_sint32 i = 0; i < m_vecTextboxPos.getItemCount(); i++)
 	{
 		textboxPos * pPos = m_vecTextboxPos.getNthItem(i);
 		if(pPos && pPos->lid == iLid && pPos->endFrame)

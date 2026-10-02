@@ -187,7 +187,7 @@ void OXMLi_ListenerState_Styles::endElement (OXMLi_EndElementRequest * rqst)
 			   nameMatches(rqst->pName, NS_W_KEY, "trPr") ||
 			   nameMatches(rqst->pName, NS_W_KEY, "tcPr")) {
 		//Retrieve the formatting collected by the Common listener state.
-		OXML_SharedElement dummy = rqst->stck->top();
+		OXML_SharedElement dummy = OXMLi_elemTop(rqst->stck);
 		PP_PropertyVector props = dummy->getProperties();
 		if (!props.empty()) {
 			//Pass the retrieved properties to a new style object

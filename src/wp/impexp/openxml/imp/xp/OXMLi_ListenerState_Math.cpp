@@ -121,7 +121,7 @@ void OXMLi_ListenerState_Math::endElement (OXMLi_EndElementRequest * rqst)
                 return;
             }
                   
-            OXML_SharedElement mathElem = rqst->stck->top();
+            OXML_SharedElement mathElem = OXMLi_elemTop(rqst->stck);
             OXML_Element* elem = mathElem.get();
 
             if(!elem || (elem->getTag() != MATH_TAG))

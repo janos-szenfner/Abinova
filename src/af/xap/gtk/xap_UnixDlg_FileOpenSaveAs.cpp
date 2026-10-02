@@ -1176,7 +1176,12 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	if (!input)
 		goto Cleanup;
 	char Buf[4097] = "";  // 4096+nul ought to be enough
-	UT_uint32 iNumbytes = UT_MIN(4096, gsf_input_size(input));
+	// gsf_input_size is a signed gsf_off_t and can be -1 on error;
+	// clamping that through UT_MIN into UT_uint32 would wrap huge and
+	// overflow Buf.
+	const gsf_off_t inputSize = gsf_input_size(input);
+	UT_uint32 iNumbytes = (inputSize > 0)
+		? static_cast<UT_uint32>(UT_MIN(inputSize, static_cast<gsf_off_t>(4096))) : 0;
 	gsf_input_read(input, iNumbytes, (guint8 *)(Buf));
 	Buf[iNumbytes] = '\0';
 

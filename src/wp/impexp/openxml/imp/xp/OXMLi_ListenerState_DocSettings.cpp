@@ -78,7 +78,7 @@ void OXMLi_ListenerState_DocSettings::startElement (OXMLi_StartElementRequest * 
 		if (rqst->context == nullptr || rqst->context->empty()) {
 			return;
 		}
-		std::string contextTag = rqst->context->back();
+		std::string contextTag = OXMLi_contextBack(rqst->context);
 		bool foot = contextMatches(contextTag, NS_W_KEY, "footnotePr");
 		bool endn = contextMatches(contextTag, NS_W_KEY, "endnotePr");
 		if (!foot && !endn) {

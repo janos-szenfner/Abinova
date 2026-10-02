@@ -67,10 +67,10 @@ void OXMLi_ListenerState_Field::endElement (OXMLi_EndElementRequest * rqst)
 			return;
 		}
 
-		OXML_SharedElement field = rqst->stck->top();
+		OXML_SharedElement field = OXMLi_elemTop(rqst->stck);
 		rqst->stck->pop();
 
-		OXML_SharedElement parent = rqst->stck->top();
+		OXML_SharedElement parent = OXMLi_elemTop(rqst->stck);
 		if(parent)
 			parent->appendElement(field);
 

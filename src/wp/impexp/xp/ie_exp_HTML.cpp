@@ -226,10 +226,14 @@ UT_Error IE_Exp_HTML::copyToBuffer(PD_DocumentRange * pDocRange,UT_ByteBuf *  bu
     g_clear_error(&err);
     if (fData)
     {
-        UT_DebugOnly<UT_sint32> siz = gsf_input_size(fData);
-        const UT_Byte * pData = gsf_input_read(fData,gsf_input_size(fData),nullptr);
-        UT_DEBUGMSG(("Writing %d bytes to clipboard \n", (UT_sint32)siz));
-        bufHTML->append( pData, gsf_input_size(fData));
+        const gsf_off_t htmlSize = gsf_input_size(fData);
+        UT_DEBUGMSG(("Writing %d bytes to clipboard \n", static_cast<UT_sint32>(htmlSize)));
+        if (htmlSize > 0)
+        {
+            const UT_Byte * pData = gsf_input_read(fData, static_cast<gsize>(htmlSize), nullptr);
+            if (pData)
+                bufHTML->append( pData, static_cast<gsize>(htmlSize));
+        }
 
         g_object_unref(fData);
     }

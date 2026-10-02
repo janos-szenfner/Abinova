@@ -2469,6 +2469,41 @@ below are on `main` but the release has not been cut yet.
   caret blink timestamp moved from `long` to `gint64`, and a column
   distance calculation now squares its operands in `double` so large
   coordinates can't overflow 32-bit multiplication before `sqrt`.
+- **Signed/unsigned-mixing audit (TS02)** — a `-Wsign-conversion`/
+  manual sweep of importers, layout and the vendored wv parser closed
+  the real wrap-to-huge and empty-container cases:
+  - **Malformed `.docx` crash class fixed** — OOXML listener code
+    dereferenced the element/section/context stacks without checking
+    they were non-empty; a crafted part placing a handled tag at (or
+    under) the wrong parent — e.g. `<w:pBdr><w:top/></w:pBdr>` with no
+    paragraph, or property elements at shallow depth — crashed on
+    `vector::back()`/`at(size()-2)` underflow and `stack::top()` on an
+    empty stack.  New `OXMLi_contextBack`/`OXMLi_contextParent`/
+    `OXMLi_elemTop`/`OXMLi_sectTop` accessors return safe defaults, and
+    the orphan `w:pBdr` edge is skipped instead of aborting the import.
+  - **`gsf_input_size` error sentinel wrapped huge** — the signed
+    `gsf_off_t` result (`-1` on error) was assigned or clamped into
+    `size_t`/`UT_uint32` at several sites; in the importer/graphic
+    sniffers and the file-dialog preview a `-1` became ~4 GB and would
+    have been used as the read count into a 4097-byte stack buffer.
+    All sites now clamp through `gsf_off_t` first (XML, XHTML, EPUB
+    sniffer, ODF RDF loader, `UT_ByteBuf::insertFromInput`, the legacy
+    `.doc` summary-info stream, HTML clipboard read-back, and the three
+    `UT_MIN(4096, gsf_input_size())` sniffers).
+  - **`.doc` PICF offset check hardened** — `fcPic` (`S32`) is
+    explicitly rejected when negative before comparing against the
+    unsigned stream size, and the `wvEatOldGraphicHeader` "not found"
+    sentinel is now an explicit `(U32)-1`.
+  - **Revision color fix** — `fp_Run` never actually read the
+    revision's id (`iId` stayed 0), so `iId-1` silently wrapped and
+    the per-revision color never applied; the id is now read and the
+    subtraction guarded.
+  - Mixed-sign comparisons in `fp_FrameContainer`/`fp_MathRun`/
+    `ie_imp_MsWord_97` now use consistent `UT_sint32`/`UT_uint32`
+    types.  Verified: full build clean, malformed-`.docx` battery
+    imports or rejects gracefully (previously crashed), valgrind
+    quiet, `src/wp/test` suite PASS, `.doc`/`.rtf`/`.odt`/`.docx`
+    corpus converts to PDF.
 
 ### GTK4 port (core migration)
 

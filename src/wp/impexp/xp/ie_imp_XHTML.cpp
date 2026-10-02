@@ -2483,12 +2483,12 @@ void IE_Imp_XHTML::loadStyleSheet (const char * href)
 			return;
 		}
 
-	size_t size = gsf_input_size (input);
+	gsf_off_t size = gsf_input_size (input);
 	if (size > 0)
 		{
 			std::string css;
-			css.resize (size);
-			if (gsf_input_read (input, size,
+			css.resize (static_cast<size_t>(size));
+			if (gsf_input_read (input, static_cast<size_t>(size),
 					reinterpret_cast<guint8*>(&css[0])) != nullptr)
 				{
 					s_css_parse_rules (css, m_cssRules);
