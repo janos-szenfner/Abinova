@@ -2560,6 +2560,18 @@ below are on `main` but the release has not been cut yet.
   the drawable/ruler hierarchy.  Also fixed a bad `static_cast`
   between unrelated pointer types in `UT_CRC32::GetCrcByte`
   (regression from the TS03 cast sweep, hidden by stale depfiles).
+- **Object-slicing audit (OO02)** — a scripted sweep of all 1,221
+  classes for derived objects copied into by-value base
+  params/returns/containers/members found no exploitable slicing:
+  polymorphic classes are handled through pointers everywhere
+  (`PP_Revision`, `fp_Run`, listener/importer hierarchies), and the
+  one by-value hierarchy (`PD_URI`/`PD_Object`/`PD_Literal` stored in
+  RDF lists and multimaps) documents `PD_Literal` slicing as
+  intentional because it carries no members and its type survives in
+  `m_objectType`.  Two latent spots hardened anyway:
+  `PD_RDFModel::contains` no longer slices `PD_Object` down to
+  `PD_URI`, and the (currently unused) `PD_URIListCompare` functor
+  takes `const PD_URI&` so a future derived argument cannot slice.
 
 ### GTK4 port (core migration)
 

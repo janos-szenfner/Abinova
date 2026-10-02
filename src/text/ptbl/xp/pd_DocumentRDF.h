@@ -156,7 +156,7 @@ typedef std::multimap< PD_URI, PD_Object > POCol;
 typedef std::list< PD_Object > PD_ObjectList;
 
 struct PD_URIListCompare : public std::function<bool(PD_URI, PD_URI)> {
-	bool operator()(PD_URI x, PD_URI y) { return x.toString() < y.toString(); }
+	bool operator()(const PD_URI& x, const PD_URI& y) const { return x.toString() < y.toString(); }
 };
 
 

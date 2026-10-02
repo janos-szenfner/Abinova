@@ -312,7 +312,7 @@ PD_RDFModel::getAllSubjects()
 bool
 PD_RDFModel::contains( const PD_URI& s, const PD_URI& p )
 {
-    PD_URI u = getObject( s, p );
+    PD_Object u = getObject( s, p );
     return u.isValid();
 }
 
@@ -4255,7 +4255,7 @@ void PD_DocumentRDF::runMilestone2Test2()
 {
 #ifdef DEBUG
     PD_URI s;
-    PD_URI o = getObject( PD_URI("http://www.example.com/emu"),
+    PD_Object o = getObject( PD_URI("http://www.example.com/emu"),
                           PD_URI("http://www.example.com/lives-in"));
     UT_DEBUGMSG(("PD_DocumentRDF::runMilestone2Test2() o:%s\n", o.toString().c_str()));
 
