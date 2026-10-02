@@ -94,7 +94,12 @@ OXMLi_ListenerState_Common::OXMLi_ListenerState_Common() :
 	m_pendingSectBreak(false),
 	m_eqField(false),
 	m_pageNumberField(false),
-	m_fldChar(false)
+	m_fldChar(false),
+	m_fieldDepth(0),
+	m_tocFieldDepth(0),
+	m_tocField(false),
+	m_tocFieldEnd(false),
+	m_tocFirst(false)
 {
 
 }
@@ -164,9 +169,34 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			m_eqField = false;
 			m_pageNumberField = false;
 			m_fldChar = true;
+			m_fieldDepth++;
+			m_fieldInstr.clear();
+		}
+		else if(!strcmp(fldCharType, "separate"))
+		{
+			/* the field instruction is complete — a TOC field wraps its
+			 * result in a table-of-contents strux, so flag the result
+			 * paragraphs until the matching fldChar end */
+			std::string instr = m_fieldInstr;
+			size_t first = instr.find_first_not_of(" \t\r\n");
+			if(first != std::string::npos)
+				instr.erase(0, first);
+			if(instr.compare(0, 3, "TOC") == 0 &&
+			   (instr.size() == 3 || instr[3] == ' ' || instr[3] == '\\'))
+			{
+				m_tocField = true;
+				m_tocFieldEnd = false;
+				m_tocFirst = true;
+				m_tocFieldDepth = m_fieldDepth;
+				m_tocInstr = instr;
+			}
 		}
 		else if(!strcmp(fldCharType, "end"))
 		{
+			if(m_tocField && m_fieldDepth == m_tocFieldDepth)
+				m_tocFieldEnd = true;
+			if(m_fieldDepth > 0)
+				m_fieldDepth--;
 			m_eqField = false;
 			m_pageNumberField = false;
 			m_fldChar = false;
@@ -1504,6 +1534,20 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 
 	if (nameMatches(rqst->pName, NS_W_KEY, "p")) {
 		//Paragraph is done, appending it.
+		if (m_tocField) {
+			/* inside a TOC field result: flag the paragraph so the
+			 * section builder wraps the run in a TOC strux */
+			OXML_SharedElement pe = OXMLi_elemTop(rqst->stck);
+			OXML_Document * doc = OXML_Document::getInstance();
+			if (pe.get() && pe->getTag() == P_TAG && doc) {
+				doc->markTOCParagraph(pe.get(), m_tocFirst ? m_tocInstr : "");
+				m_tocFirst = false;
+				if (m_tocFieldEnd) {
+					m_tocField = false;
+					m_tocFieldEnd = false;
+				}
+			}
+		}
 		if (rqst->stck->size() == 1) { //Only the paragraph is on the stack, append to section
 			OXML_SharedElement elem = OXMLi_elemTop(rqst->stck);
 			UT_return_if_fail( this->_error_if_fail(elem.get() != nullptr) );
@@ -1705,6 +1749,8 @@ void OXMLi_ListenerState_Common::charData (OXMLi_CharDataRequest * rqst)
 	if(instrText)
 	{
 		UT_ASSERT(rqst->buffer != nullptr);
+		if (rqst->buffer)
+			m_fieldInstr += rqst->buffer;
 		OXML_SharedElement run = OXMLi_elemTop(rqst->stck);
 		OXML_SharedElement sharedElem(new OXML_Element_Text("", 0));
 		std::string overline = "\\to";

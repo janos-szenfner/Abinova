@@ -296,7 +296,7 @@ bool pt_PieceTable::insertStruxNoUpdateBefore(const pf_Frag_Strux* pfs, PTStruxT
 
 	m_fragments.insertFrag(pfPrev,pNewStrux);
 	// insert frag in the embedded_strux list if needed
-	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation)) 
+	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation) || (pts == PTX_EndMarginnote))
 	{
 		_insertNoteInEmbeddedStruxList(pNewStrux);
 	}

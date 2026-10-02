@@ -41,6 +41,20 @@ OXML_Element_Annotation::~OXML_Element_Annotation()
 {
 }
 
+UT_Error OXML_Element_Annotation::serialize(IE_Exp_OpenXML* exporter)
+{
+	UT_return_val_if_fail(exporter != nullptr, UT_ERROR);
+
+	if (m_bEnd)
+	{
+		/* w:commentRangeEnd plus the w:commentReference run Word
+		 * shows as the anchor mark */
+		return exporter->setCommentRangeEnd(TARGET, getId().c_str());
+	}
+
+	return exporter->setCommentRangeStart(TARGET, getId().c_str());
+}
+
 UT_Error OXML_Element_Annotation::addToPT(PD_Document * pDocument)
 {
 	UT_return_val_if_fail(pDocument != nullptr, UT_ERROR);

@@ -97,6 +97,7 @@ protected:
 	bool                m_bAutoRevisioning;
 	bool                m_bInMath;
 	bool                m_bInEmbed;
+	ParseState          m_parseStateBeforeMargin;
 	UT_uint32           m_iImageId;
 
 	/* reserved-section placeholders (<changes>, <masterpages>,

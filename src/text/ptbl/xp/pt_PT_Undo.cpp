@@ -273,7 +273,7 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 			_insertStrux(pf,fragOffset,pfsNew);
 			// insert frag in the embedded_strux list if needed
 			PTStruxType pts = pcrStrux->getStruxType();
-			if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation)) 
+			if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation) || (pts == PTX_EndMarginnote))
 			{
 			    _insertNoteInEmbeddedStruxList(pfsNew);
 			}

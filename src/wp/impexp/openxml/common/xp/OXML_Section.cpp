@@ -37,6 +37,7 @@
 
 // External includes
 #include <string>
+#include <vector>
 
 OXML_Section::OXML_Section() : 
 	OXML_ObjectWithAttrProp(), 
@@ -521,14 +522,129 @@ UT_Error OXML_Section::addToPT(PD_Document * pDocument)
 		UT_return_val_if_fail(ret == UT_OK, ret);
 	}
 
+	OXML_Document* doc = OXML_Document::getInstance();
 	OXML_ElementVector::size_type i;
+	bool bInTOC = false;
 	for (i = 0; i < m_children.size(); i++)
 	{
+		/* paragraphs flagged by the importer's TOC-field tracking get
+		 * wrapped in a TOC strux */
+		bool tocPart = doc && doc->isTOCParagraph(m_children[i].get());
+		if (tocPart && !bInTOC)
+		{
+			PP_PropertyVector tocAtts;
+			std::string props = _tocPropsFromInstr(m_children[i].get());
+			if (!props.empty())
+			{
+				tocAtts.push_back(PT_PROPS_ATTRIBUTE_NAME);
+				tocAtts.push_back(props);
+			}
+			ret = pDocument->appendStrux(PTX_SectionTOC, tocAtts) ? UT_OK : UT_ERROR;
+			UT_return_val_if_fail(ret == UT_OK, ret);
+			bInTOC = true;
+		}
+		else if (!tocPart && bInTOC)
+		{
+			ret = pDocument->appendStrux(PTX_EndTOC, PP_NOPROPS) ? UT_OK : UT_ERROR;
+			UT_return_val_if_fail(ret == UT_OK, ret);
+			bInTOC = false;
+		}
+
 		ret = m_children[i]->addToPT(pDocument);
+		UT_return_val_if_fail(ret == UT_OK, ret);
+	}
+	if (bInTOC)
+	{
+		ret = pDocument->appendStrux(PTX_EndTOC, PP_NOPROPS) ? UT_OK : UT_ERROR;
 		UT_return_val_if_fail(ret == UT_OK, ret);
 	}
 
 	return UT_OK;
+}
+
+/* Translate a Word TOC field instruction (e.g. `TOC \o "1-3" \h \z`
+ * or `TOC \t "Heading 1,1"`) into a "props" string for the TOC strux.
+ * \t pairs map to toc-source-styleN/toc-dest-styleN; \o outline levels
+ * map to Heading N sources with Contents N destinations. */
+std::string OXML_Section::_tocPropsFromInstr(OXML_Element* pPara) const
+{
+	std::string props = "toc-has-heading:0";
+	if (!pPara)
+		return props;
+
+	OXML_Document* doc = OXML_Document::getInstance();
+	std::string s = doc ? doc->getTOCInstr(pPara) : "";
+	if (s.empty())
+		return props;
+
+	/* \t "Style1,level1,Style2,level2..." — comma-separated pairs inside
+	 * a single quoted string */
+	size_t tpos = s.find("\\t");
+	if (tpos != std::string::npos)
+	{
+		size_t q1 = s.find('"', tpos);
+		size_t q2 = (q1 != std::string::npos) ? s.find('"', q1 + 1) : std::string::npos;
+		if (q1 != std::string::npos && q2 != std::string::npos)
+		{
+			/* the quoted list holds "Style,level" pairs */
+			std::string list = s.substr(q1 + 1, q2 - q1 - 1);
+			std::vector<std::string> toks;
+			size_t pos = 0;
+			while (pos <= list.size())
+			{
+				size_t comma = list.find(',', pos);
+				std::string tok = list.substr(pos, comma - pos);
+				size_t b = tok.find_first_not_of(" \t");
+				size_t e = tok.find_last_not_of(" \t");
+				toks.push_back(b != std::string::npos ? tok.substr(b, e - b + 1) : "");
+				if (comma == std::string::npos)
+					break;
+				pos = comma + 1;
+			}
+			for (size_t i = 0; i + 1 < toks.size(); i += 2)
+			{
+				int lev = atoi(toks[i + 1].c_str());
+				if (lev < 1 || lev > 9 || toks[i].empty())
+					continue;
+				props += "; toc-source-style" + std::to_string(lev);
+				props += ":" + toks[i];
+				props += "; toc-dest-style" + std::to_string(lev);
+				props += ":Contents " + std::to_string(lev);
+			}
+			return props;
+		}
+	}
+
+	/* \o "a-b" or bare \o — built-in heading outline levels */
+	int fromLevel = 1;
+	int toLevel = 3;
+	size_t opos = s.find("\\o");
+	if (opos != std::string::npos)
+	{
+		size_t q1 = s.find('"', opos);
+		size_t q2 = (q1 != std::string::npos) ? s.find('"', q1 + 1) : std::string::npos;
+		if (q1 != std::string::npos && q2 != std::string::npos)
+		{
+			std::string range = s.substr(q1 + 1, q2 - q1 - 1);
+			size_t dash = range.find('-');
+			if (dash != std::string::npos)
+			{
+				fromLevel = atoi(range.substr(0, dash).c_str());
+				toLevel = atoi(range.substr(dash + 1).c_str());
+			}
+		}
+		if (fromLevel < 1) fromLevel = 1;
+		if (toLevel > 9) toLevel = 9;
+		for (int l = fromLevel; l <= toLevel; l++)
+		{
+			props += "; toc-source-style" + std::to_string(l);
+			props += ":Heading " + std::to_string(l);
+			props += "; toc-dest-style" + std::to_string(l);
+			props += ":Contents " + std::to_string(l);
+		}
+	}
+
+	return props;
 }
 
 UT_Error OXML_Section::addToPTAsFootnote(PD_Document * pDocument)
@@ -601,6 +717,48 @@ UT_Error OXML_Section::addToPTAsEndnote(PD_Document * pDocument)
 	}
 
 	return pDocument->appendStrux(PTX_EndEndnote, PP_NOPROPS) ? UT_OK : UT_ERROR;
+}
+
+/**
+ * Serialize the section as a Word comment in word/comments.xml.
+ * The anchor (w:commentRangeStart/End + w:commentReference) is
+ * emitted separately by OXML_Element_Annotation in the document
+ * part; this writes the comment body plus author/date/initials.
+ */
+UT_Error OXML_Section::serializeAnnotation(IE_Exp_OpenXML* exporter)
+{
+	UT_Error ret = UT_OK;
+
+	const gchar* author = nullptr;
+	const gchar* date = nullptr;
+	const gchar* initials = nullptr;
+
+	/* DOCX-imported annotations carry these in props (see
+	 * addToPTAsAnnotation); the .abwn <annotate> element also
+	 * declares bare author/date/initials attributes — check both */
+	getAttribute("annotation-author", author);
+	if (!author) getProperty("annotation-author", author);
+	if (!author) getAttribute("author", author);
+	getAttribute("annotation-date", date);
+	if (!date) getProperty("annotation-date", date);
+	if (!date) getAttribute("date", date);
+	getAttribute("annotation-initials", initials);
+	if (!initials) getProperty("annotation-initials", initials);
+	if (!initials) getAttribute("initials", initials);
+
+	ret = exporter->startComment(m_id.c_str(), author, date, initials);
+	if(ret != UT_OK)
+		return ret;
+
+	OXML_ElementVector::size_type i;
+	for (i = 0; i < m_children.size(); i++)
+	{
+		ret = m_children[i]->serialize(exporter);
+		if(ret != UT_OK)
+			return ret;
+	}
+
+	return exporter->finishComment();
 }
 
 UT_Error OXML_Section::addToPTAsAnnotation(PD_Document * pDocument)

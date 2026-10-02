@@ -435,6 +435,7 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 	case PTX_SectionFootnote:
 	case PTX_SectionEndnote:
 	case PTX_SectionAnnotation:
+	case PTX_SectionMarginnote:
 	{
 		bool isFoot = (pcrx->getStruxType() == PTX_SectionFootnote);
 		UT_ASSERT(m_pCurrentSL);
@@ -450,9 +451,12 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 			UT_DEBUGMSG(("fl_DocListener::populateStrux for 'SectionEndnote'\n"));
 			pSL = static_cast<fl_SectionLayout *>( m_pCurrentSL->append(sdh, pcr->getIndexAP(),FL_CONTAINER_ENDNOTE));
 		}
-		else if(pcrx->getStruxType() == PTX_SectionAnnotation)
+		else if(pcrx->getStruxType() == PTX_SectionAnnotation
+			|| pcrx->getStruxType() == PTX_SectionMarginnote)
 		{
-			UT_DEBUGMSG(("fl_DocListener::populateStrux for 'SectionAnnotation'\n"));
+			// margin notes lay out like annotations: an off-flow
+			// panel anchored at the preceding document position
+			UT_DEBUGMSG(("fl_DocListener::populateStrux for 'SectionAnnotation/Marginnote'\n"));
 			pSL = static_cast<fl_SectionLayout *>( m_pCurrentSL->append(sdh, pcr->getIndexAP(),FL_CONTAINER_ANNOTATION));
 		}
 		else
@@ -469,6 +473,7 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 	case PTX_EndFootnote:
 	case PTX_EndEndnote:
 	case PTX_EndAnnotation:
+	case PTX_EndMarginnote:
 	{
 //
 // CurrentSL is a Footnote. Return this and set the m_pCurrentSL to it's 
@@ -489,9 +494,10 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 			UT_DEBUGMSG(("fl_DocListener::populateStrux for 'EndEndnote'\n"));
 			UT_ASSERT(pCL->getContainerType() == FL_CONTAINER_ENDNOTE);
 		}
-		else if(pcrx->getStruxType() == PTX_EndAnnotation)
+		else if(pcrx->getStruxType() == PTX_EndAnnotation
+			|| pcrx->getStruxType() == PTX_EndMarginnote)
 		{
-			UT_DEBUGMSG(("fl_DocListener::populateStrux for 'EndAnnotation'\n"));
+			UT_DEBUGMSG(("fl_DocListener::populateStrux for 'EndAnnotation/Marginnote'\n"));
 			UT_ASSERT(pCL->getContainerType() == FL_CONTAINER_ANNOTATION);
 		}
 #endif
@@ -511,7 +517,8 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 			pEL->setFootnoteEndIn();
 			pBL = static_cast<fl_BlockLayout *>( pEL->getFirstLayout());
 		}
-		else if(pcrx->getStruxType() == PTX_EndAnnotation)
+		else if(pcrx->getStruxType() == PTX_EndAnnotation
+			|| pcrx->getStruxType() == PTX_EndMarginnote)
 		{
 			fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>( pCL);
 			pAL->setFootnoteEndIn();
@@ -1156,8 +1163,10 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			goto finish_up;
 		}
 		case PTX_SectionAnnotation:
+		case PTX_SectionMarginnote:
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
+			// margin notes use the annotation layout
 			UT_ASSERT(pL->getType() == PTX_SectionAnnotation);
 			fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>( pL);
 			pAL->doclistener_deleteStrux(pcrx);
@@ -1221,6 +1230,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			goto finish_up;
 		}
 		case PTX_EndAnnotation:
+		case PTX_EndMarginnote:
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 			UT_ASSERT(pL->getType() == PTX_SectionAnnotation);
@@ -1886,6 +1896,7 @@ bool fl_DocListener::insertStrux(fl_ContainerLayout* sfh,
 	case PTX_SectionHdrFtr:	   //  ... or a HdrFtr.
 	case PTX_SectionFootnote:  //  ... or a Footnote.
 	case PTX_SectionAnnotation:  //  ... or a Annotation.
+	case PTX_SectionMarginnote:  //  ... or a Marginnote.
 	case PTX_SectionEndnote:  //  ... or a Endnote.
     {
 		switch (pcrx->getStruxType())	// see what we are inserting.
@@ -1894,6 +1905,7 @@ bool fl_DocListener::insertStrux(fl_ContainerLayout* sfh,
 		case PTX_SectionHdrFtr:			//  ... or a HdrFtr section.
 		case PTX_SectionFootnote:        //  ... or a Footnote section.
 		case PTX_SectionAnnotation:        //  ... or a Annotation section.
+		case PTX_SectionMarginnote:        //  ... or a Marginnote section.
 		case PTX_SectionEndnote:        //  ... or a Endnote section.
 		case PTX_SectionTOC:  //  ... or a Table Of Contents.
 			// We are inserting a section immediately after a section
@@ -2025,7 +2037,9 @@ bool fl_DocListener::insertStrux(fl_ContainerLayout* sfh,
 			   return bResult;
 		   }
 		case PTX_SectionAnnotation:
+		case PTX_SectionMarginnote:
 		   {
+			   // margin notes lay out like annotations
 			   fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 			   fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 
@@ -2098,6 +2112,7 @@ bool fl_DocListener::insertStrux(fl_ContainerLayout* sfh,
 			   return bResult;
 		   }
 		case PTX_EndAnnotation:
+		case PTX_EndMarginnote:
 		   {
 			   fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout*>(pL);
 

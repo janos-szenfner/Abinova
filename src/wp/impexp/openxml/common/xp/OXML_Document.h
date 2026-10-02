@@ -139,6 +139,18 @@ public:
 	void setDocProperty(const std::string & name, const std::string & val)
 		{ m_docProps[name] = val; }
 
+	/* Import bookkeeping for TOC complex fields: the importer flags
+	 * the field's result paragraphs so OXML_Section::addToPT can wrap
+	 * the run in a TOC strux; the first paragraph carries the field
+	 * instruction. */
+	void markTOCParagraph(const OXML_Element* pPara, const std::string & instr)
+		{ m_tocParagraphs[pPara] = instr; }
+	bool isTOCParagraph(const OXML_Element* pPara) const
+		{ return m_tocParagraphs.find(pPara) != m_tocParagraphs.end(); }
+	std::string getTOCInstr(const OXML_Element* pPara) const
+		{ auto it = m_tocParagraphs.find(pPara);
+		  return it != m_tocParagraphs.end() ? it->second : ""; }
+
 private:
 	static OXML_Document* s_docInst;
 	OXML_Document();
@@ -169,6 +181,8 @@ private:
 	std::string m_pageOrientation;
 
 	std::map<std::string, std::string> m_docProps;
+
+	std::map<const OXML_Element*, std::string> m_tocParagraphs;
 
 	std::string m_pageMarginTop;
 	std::string m_pageMarginLeft;

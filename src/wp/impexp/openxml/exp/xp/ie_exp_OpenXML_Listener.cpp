@@ -44,7 +44,10 @@ IE_Exp_OpenXML_Listener::IE_Exp_OpenXML_Listener(PD_Document* doc)
 	bInPositionedImage(false),
 	bInHyperlink(false),
 	bInTextbox(false),
-	idCount(10) //the first ten IDs are reserved for the XML file references
+	idCount(10), //the first ten IDs are reserved for the XML file references
+	m_bInTOC(false),
+	m_bTOCFieldStarted(false),
+	m_bTOCHasHeading(false)
 {
 	document = OXML_Document::getNewInstance();
 
@@ -500,6 +503,41 @@ bool IE_Exp_OpenXML_Listener::populate(fl_ContainerLayout* /* sfh */, const PX_C
 					}
 					return true;
 				}
+
+				case PTO_Annotation:
+				{
+					if(!paragraph)
+						return true;
+
+					/* the anchor number sits on the "annotation" object
+					 * attribute (PT_ANNOTATION_NUMBER, .abwn <ann>) —
+					 * "annotation-id" is kept for content imported
+					 * from DOCX */
+					if(bHaveProp && pAP &&
+					   ((pAP->getAttribute("annotation", szValue) &&
+					     szValue && *szValue) ||
+					    (pAP->getAttribute("annotation-id", szValue) &&
+					     szValue && *szValue)))
+					{
+						//start of a comment range — the body lives in
+						//comments.xml (see the PTX_SectionAnnotation case)
+						std::string cmtId = mapAnnotationId(szValue);
+						m_annotationStack.push_back(cmtId);
+						OXML_SharedElement shared_ann(static_cast<OXML_Element*>(
+							new OXML_Element_Annotation(cmtId, false)));
+						return paragraph->appendElement(shared_ann) == UT_OK;
+					}
+
+					//anonymous end marker — closes the innermost open range
+					if(!m_annotationStack.empty())
+					{
+						OXML_SharedElement shared_ann(static_cast<OXML_Element*>(
+							new OXML_Element_Annotation(m_annotationStack.back(), true)));
+						m_annotationStack.pop_back();
+						return paragraph->appendElement(shared_ann) == UT_OK;
+					}
+					return true;
+				}
 				default:
 					return true;
 			}
@@ -597,6 +635,31 @@ bool IE_Exp_OpenXML_Listener::populateStrux(pf_Frag_Strux* sdh, const PX_ChangeR
 						if(paragraph->setAttribute(szName, szValue) != UT_OK)
 							return false;
 					}
+				}
+			}
+
+			/* the TOC's heading paragraph stays outside the field;
+			 * the field opens at the first entry paragraph so the
+			 * entries are cached as the field result */
+			if(m_bInTOC && !m_bTOCFieldStarted)
+			{
+				if(m_bTOCHasHeading)
+				{
+					m_bTOCHasHeading = false;
+				}
+				else
+				{
+					m_bTOCFieldStarted = true;
+					OXML_SharedElement fBegin(static_cast<OXML_Element*>(
+						new OXML_Element_FieldChar(getNextId(), "begin")));
+					OXML_SharedElement fInstr(static_cast<OXML_Element*>(
+						new OXML_Element_FieldChar(getNextId(), m_tocInstr)));
+					OXML_SharedElement fSeparate(static_cast<OXML_Element*>(
+						new OXML_Element_FieldChar(getNextId(), "separate")));
+					if(paragraph->appendElement(fBegin) != UT_OK ||
+					   paragraph->appendElement(fInstr) != UT_OK ||
+					   paragraph->appendElement(fSeparate) != UT_OK)
+						return false;
 				}
 			}
 
@@ -1067,12 +1130,157 @@ bool IE_Exp_OpenXML_Listener::populateStrux(pf_Frag_Strux* sdh, const PX_ChangeR
 				bInTextbox = false;
 			return true;
 		}
-		case PTX_SectionMarginnote:
 		case PTX_SectionAnnotation:
+		case PTX_SectionMarginnote:
+		{
+			/* comments and margin notes both export as Word comments —
+			 * OOXML has no dedicated margin-note construct and Word
+			 * renders comments in the margin, which is the closest
+			 * interoperable mapping. The strux body becomes the
+			 * w:comment content in word/comments.xml */
+			const gchar* szAnnId = nullptr;
+			if(bHaveProp && pAP)
+				pAP->getAttribute("annotation-id", szAnnId);
+			std::string cmtId = mapAnnotationId(szAnnId);
+
+			savedSection = section; //save the current section
+			savedParagraph = paragraph; //save the current paragraph
+
+			section = new OXML_Section(cmtId);
+			OXML_SharedSection shared_section(static_cast<OXML_Section*>(section));
+
+			section->setTarget(TARGET_COMMENTS);
+
+			if(bHaveProp && pAP)
+			{
+				const gchar* szValue;
+				const gchar* szName;
+				size_t propCount = pAP->getPropertyCount();
+
+				size_t i;
+				for(i=0; i<propCount; i++)
+				{
+					if(pAP->getNthProperty(i, szName, szValue))
+					{
+						if(section->setProperty(szName, szValue) != UT_OK)
+							return false;
+					}
+				}
+
+				size_t attrCount = pAP->getAttributeCount();
+
+				for(i=0; i<attrCount; i++)
+				{
+					if(pAP->getNthAttribute(i, szName, szValue))
+					{
+						if(section->setAttribute(szName, szValue) != UT_OK)
+							return false;
+					}
+				}
+			}
+
+			if(document->addAnnotation(shared_section) != UT_OK)
+				return false;
+
+			if(pcrx->getStruxType() == PTX_SectionMarginnote && savedParagraph)
+			{
+				/* margin notes carry no PTO_Annotation object pair —
+				 * emit a point anchor so the comment has a location
+				 * in the document */
+				OXML_SharedElement aStart(static_cast<OXML_Element*>(
+					new OXML_Element_Annotation(cmtId, false)));
+				OXML_SharedElement aEnd(static_cast<OXML_Element*>(
+					new OXML_Element_Annotation(cmtId, true)));
+				if(savedParagraph->appendElement(aStart) != UT_OK ||
+				   savedParagraph->appendElement(aEnd) != UT_OK)
+					return false;
+			}
+			return true;
+		}
 		case PTX_SectionTOC:
+		{
+			/* wrap the TOC's generated blocks in a real complex TOC
+			 * field (fldChar/instrText) so Word recognises and can
+			 * update it. Abinova TOCs are driven by per-level source
+			 * styles (toc-source-style1..4); the \t switch reproduces
+			 * that mapping, \o is the fallback for an unstyled TOC */
+			m_bInTOC = true;
+			m_bTOCFieldStarted = false;
+			m_tocInstr.clear();
+
+			// matches fl_TOCLayout: absent or "1" means the TOC's
+			// first block is the heading, outside the field
+			const gchar* szHeading = nullptr;
+			bool bHasHeadingProp = bHaveProp && pAP &&
+				pAP->getProperty("toc-has-heading", szHeading);
+			m_bTOCHasHeading = !bHasHeadingProp || !szHeading ||
+				!strcmp(szHeading, "1");
+
+			std::string sources;
+			for(int lvl = 1; lvl <= 4; lvl++)
+			{
+				char prop[24];
+				snprintf(prop, sizeof(prop), "toc-source-style%d", lvl);
+				const gchar* szSrc = nullptr;
+				if(!(bHaveProp && pAP && pAP->getProperty(prop, szSrc)) ||
+				   !szSrc || !*szSrc || !strcmp(szSrc, "none"))
+					continue;
+				if(!sources.empty())
+					sources += ",";
+				sources += szSrc;
+				sources += ",";
+				sources += std::to_string(lvl);
+			}
+			if(!sources.empty())
+				m_tocInstr = "TOC \\t \"" + sources + "\" \\h \\z";
+			else
+				m_tocInstr = "TOC \\o \"1-3\" \\h \\z \\u";
+			return true;
+		}
+		case PTX_EndTOC:
+		{
+			if(m_bInTOC)
+			{
+				if(m_bTOCFieldStarted && paragraph)
+				{
+					//field result ends at the last TOC block
+					OXML_SharedElement fEnd(static_cast<OXML_Element*>(
+						new OXML_Element_FieldChar(getNextId(), "end")));
+					if(paragraph->appendElement(fEnd) != UT_OK)
+						return false;
+				}
+				else if(section)
+				{
+					/* heading-only or empty TOC — emit the field in a
+					 * dedicated paragraph so the construct survives */
+					OXML_Element_Paragraph* para =
+						new OXML_Element_Paragraph(getNextId());
+					OXML_SharedElement shared_para(static_cast<OXML_Element*>(para));
+					OXML_SharedElement fBegin(static_cast<OXML_Element*>(
+						new OXML_Element_FieldChar(getNextId(), "begin")));
+					OXML_SharedElement fInstr(static_cast<OXML_Element*>(
+						new OXML_Element_FieldChar(getNextId(), m_tocInstr)));
+					OXML_SharedElement fEnd(static_cast<OXML_Element*>(
+						new OXML_Element_FieldChar(getNextId(), "end")));
+					if(para->appendElement(fBegin) != UT_OK ||
+					   para->appendElement(fInstr) != UT_OK ||
+					   para->appendElement(fEnd) != UT_OK ||
+					   section->appendElement(shared_para) != UT_OK)
+						return false;
+				}
+				m_bInTOC = false;
+				m_bTOCFieldStarted = false;
+				m_tocInstr.clear();
+			}
+			return true;
+		}
 		case PTX_EndMarginnote:
 		case PTX_EndAnnotation:
-		case PTX_EndTOC:
+		{
+			section = savedSection; //recover the last section
+			paragraph = savedParagraph; //recover the last paragraph
+			return true;
+		}
 		default:
 			return true;
 	}
@@ -1296,6 +1504,31 @@ std::string IE_Exp_OpenXML_Listener::getNextId()
 	std::string str("");
 	str += buffer;
 	return str;
+}
+
+/**
+ * Maps a piece-table annotation id to the numeric id written as
+ * w:id in document.xml and word/comments.xml. OOXML comment ids
+ * are xsd:decimalNumber, so non-numeric or missing source ids are
+ * remapped to a fresh generated id; the mapping is stable so the
+ * anchor object and the comment strux agree on it.
+ */
+std::string IE_Exp_OpenXML_Listener::mapAnnotationId(const gchar* srcId)
+{
+	if(!srcId || !*srcId)
+		return getNextId();
+
+	std::string key(srcId);
+	std::map<std::string, std::string>::const_iterator it =
+		m_annotationIdMap.find(key);
+	if(it != m_annotationIdMap.end())
+		return it->second;
+
+	std::string mapped =
+		(key.find_first_not_of("0123456789") == std::string::npos) ?
+		key : getNextId();
+	m_annotationIdMap[key] = mapped;
+	return mapped;
 }
 
 UT_Error IE_Exp_OpenXML_Listener::setPageSize()

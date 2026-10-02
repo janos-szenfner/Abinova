@@ -347,6 +347,21 @@ below are on `main` but the release has not been cut yet.
   author/date/initials), `v:group` coordinate-space transforms for
   VML groups, `a:arrowhead`, `a:effectRef`, `a:prstTxWarp`, `a:srcRect`
   and `a:gradFill` captured into frame properties.
+- **DOCX export no longer drops comments, TOCs and margin notes** —
+  annotations now serialize as real Word comments: a `word/comments.xml`
+  part (with content-type override and document relationship) holding
+  the comment bodies plus `w:author`/`w:date`/`w:initials`, and
+  `w:commentRangeStart`/`w:commentRangeEnd`/`w:commentReference`
+  anchors in `document.xml` (nested anchors supported, non-numeric
+  source ids remapped to decimal ids).  Margin notes export as
+  point-anchored comments — the closest OOXML construct.  A TOC strux
+  now wraps its generated entries in a real `TOC` complex field
+  (`w:fldChar` + `w:instrText`, `\t` built from the
+  `toc-source-styleN` props, `\o "1-3"` fallback) so Word recognises
+  and can update it.  The importer reconstructs the TOC strux from
+  the field and maps `\t`/`\o` instructions back to
+  `toc-source-styleN`/`toc-dest-styleN`, so comments and TOCs
+  round-trip through `.docx` and `.abwn`.
 - **DOCX positioned objects rendered properly** —
   - `behindDoc` anchors no longer lose `wrap-mode:below-text` when a
     `wp:wrap*` child follows, so background shapes paint behind text.

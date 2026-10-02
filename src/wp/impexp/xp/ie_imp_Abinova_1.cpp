@@ -220,6 +220,7 @@ IE_Imp_Abinova_1::IE_Imp_Abinova_1(PD_Document * pDocument)
 	m_bAutoRevisioning(false),
 	m_bInMath(false),
 	m_bInEmbed(false),
+	m_parseStateBeforeMargin(_PS_Init),
 	m_iImageId(0)
 {
 }
@@ -573,6 +574,24 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 		}
 		X_CheckError(appendStrux(PTX_SectionAnnotation, atts));
 		UT_DEBUGMSG(("FInished Append Annotation strux \n"));
+		return;
+	}
+	case TT_MARGINNOTE:
+	{
+		// Margin notes are a shadow section like annotations. The DTD
+		// places <margin> inside a block with inline #PCDATA/c content
+		// (wrap it in an implicit paragraph), while files written by
+		// the exporter emit it between blocks with <p> children —
+		// accept either context.
+		m_parseStateBeforeMargin = m_parseState;
+		if(m_parseState == _PS_Block) {
+			X_CheckError(appendStrux(PTX_SectionMarginnote, atts));
+			X_CheckError(appendStrux(PTX_Block, PP_NOPROPS));
+		} else {
+			X_VerifyParseState(_PS_Sec);
+			X_CheckError(appendStrux(PTX_SectionMarginnote, atts));
+		}
+		m_bWroteSection = true;
 		return;
 	}
 	case TT_ENDNOTE:
@@ -1219,6 +1238,13 @@ void IE_Imp_Abinova_1::endElement(const gchar *name)
 		X_CheckError(appendStrux(PTX_EndAnnotation, PP_NOPROPS));
 		UT_DEBUGMSG(("FInished Append End annotation strux \n"));
 		m_parseState = _PS_Block;
+		return;
+
+	case TT_MARGINNOTE:
+		if(m_parseStateBeforeMargin == _PS_Sec)
+			X_VerifyParseState(_PS_Sec);
+		X_CheckError(appendStrux(PTX_EndMarginnote, PP_NOPROPS));
+		m_parseState = m_parseStateBeforeMargin;
 		return;
 
 	case TT_ENDNOTE:

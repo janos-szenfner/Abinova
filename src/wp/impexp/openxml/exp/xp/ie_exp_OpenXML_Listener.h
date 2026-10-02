@@ -35,6 +35,8 @@
 #include "OXML_Element_Hyperlink.h"
 #include "OXML_Element_Bookmark.h"
 #include "OXML_Element_Field.h"
+#include "OXML_Element_FieldChar.h"
+#include "OXML_Element_Annotation.h"
 #include "OXML_Element_TextBox.h"
 #include "OXML_Element_Math.h"
 #include "OXML_List.h"
@@ -92,11 +94,23 @@ private:
 	bool bInTextbox;
 	int idCount;
 
+	/* open comment anchors: the anonymous PTO_Annotation end object
+	 * closes the innermost one, so keep them on a stack */
+	std::vector<std::string> m_annotationStack;
+	/* maps the piece-table annotation-id to the numeric id written
+	 * as w:id — OOXML comment ids must be decimal integers */
+	std::map<std::string, std::string> m_annotationIdMap;
+	bool m_bInTOC;
+	bool m_bTOCFieldStarted;
+	bool m_bTOCHasHeading;
+	std::string m_tocInstr;
+
 	UT_Error addDocumentStyles();
 	UT_Error addLists();
 	UT_Error addImages();
 	UT_Error setPageSize();
 	std::string getNextId();
+	std::string mapAnnotationId(const gchar* srcId);
 };
 
 #endif //_IE_EXP_OPENXMLLISTENER_H_

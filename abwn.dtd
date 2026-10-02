@@ -95,7 +95,7 @@
   sections (referenced by the header/footer attrs, or by
   type="footnote|endnote|annotation|toc") hold out-of-flow content.
 -->
-<!ELEMENT section (p | table | frame | toc | section | pbr | embed)*>
+<!ELEMENT section (p | table | frame | toc | margin | section | pbr | embed)*>
 <!ATTLIST section
 	xid    CDATA  #IMPLIED
 	type   CDATA  #IMPLIED
@@ -196,8 +196,10 @@
 	props      CDATA  #IMPLIED
 >
 
-<!-- margin note / RDF metadata anchors -->
-<!ELEMENT margin (#PCDATA | c)*>
+<!-- margin note / RDF metadata anchors.  The exporter emits <margin>
+     between blocks with <p> children; the DTD also allows it inline in
+     <p>/<c> with text or <c> runs — the importer accepts both shapes. -->
+<!ELEMENT margin (#PCDATA | c | p)*>
 <!ATTLIST margin xid CDATA #IMPLIED props CDATA #IMPLIED>
 <!ELEMENT textmeta (#PCDATA | c)*>
 <!ATTLIST textmeta xid CDATA #IMPLIED props CDATA #IMPLIED>

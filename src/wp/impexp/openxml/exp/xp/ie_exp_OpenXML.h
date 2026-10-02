@@ -52,6 +52,7 @@
 #define TARGET_SETTINGS 8
 #define TARGET_FOOTNOTE 9
 #define TARGET_ENDNOTE 10
+#define TARGET_COMMENTS 11
 
 class OXML_Document;
 
@@ -134,6 +135,12 @@ public:
 	UT_Error finishFootnote();
 	UT_Error startEndnote(const gchar* id);
 	UT_Error finishEndnote();
+	UT_Error startComment(const char* id, const gchar* author, const gchar* date, const gchar* initials);
+	UT_Error finishComment();
+	UT_Error setCommentRangeStart(int target, const char* id);
+	UT_Error setCommentRangeEnd(int target, const char* id);
+	UT_Error setFieldChar(int target, const char* fldCharType);
+	UT_Error setFieldInstr(int target, const std::string& instr);
 	UT_Error setBold(int target);
 	UT_Error setItalic(int target);
 	UT_Error setUnderline(int target);
@@ -222,6 +229,7 @@ private:
 	GsfOutput* footerStream; //word/footerXX.xml
 	GsfOutput* footnoteStream; //word/footnotes.xml
 	GsfOutput* endnoteStream; //word/endnotes.xml
+	GsfOutput* commentStream; //word/comments.xml
 	std::map<std::string, GsfOutput*> mediaStreams; // all image filename, stream pairs
 	std::map<std::string, GsfOutput*> headerStreams; //all header id, stream pairs
 	std::map<std::string, GsfOutput*> footerStreams; //all footer id, stream pairs
@@ -240,6 +248,7 @@ private:
 	UT_Error startSettings();
 	UT_Error startFootnotes();
 	UT_Error startEndnotes();
+	UT_Error startComments();
 	UT_Error finishNumbering();
 	UT_Error finishStyles();
 	UT_Error finishContentTypes();
@@ -252,6 +261,7 @@ private:
 	UT_Error finishSettings();
 	UT_Error finishFootnotes();
 	UT_Error finishEndnotes();
+	UT_Error finishComments();
 	UT_Error writeXmlHeader(GsfOutput* file);
 
 	const gchar* convertToPoints(const gchar* str);

@@ -93,6 +93,7 @@ public:
 	UT_Error serializeFooter(IE_Exp_OpenXML* exporter);
 	UT_Error serializeFootnote(IE_Exp_OpenXML* exporter);
 	UT_Error serializeEndnote(IE_Exp_OpenXML* exporter);
+	UT_Error serializeAnnotation(IE_Exp_OpenXML* exporter);
 	UT_Error addToPTAsAnnotation(PD_Document * pDocument);
 
 	//! Appends this section and all its content to the Abiword Piecetable.
@@ -130,6 +131,7 @@ private:
 	bool m_titlePg;
 
 	UT_Error _setReferenceIds();
+	std::string _tocPropsFromInstr(OXML_Element* pPara) const;
 };
 
 

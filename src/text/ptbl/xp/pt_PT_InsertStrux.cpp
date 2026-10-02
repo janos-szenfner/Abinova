@@ -241,6 +241,10 @@ bool pt_PieceTable::_createStrux(PTStruxType pts,
 		pfs = new pf_Frag_Strux_SectionAnnotation(this, indexAP);
 		break;
 
+	case PTX_SectionMarginnote:
+		pfs = new pf_Frag_Strux_SectionMarginnote(this, indexAP);
+		break;
+
 	case PTX_SectionEndnote:
 		pfs = new pf_Frag_Strux_SectionEndnote(this, indexAP);
 		break;
@@ -273,6 +277,9 @@ bool pt_PieceTable::_createStrux(PTStruxType pts,
 		break;
 	case PTX_EndAnnotation:
 		pfs = new pf_Frag_Strux_SectionEndAnnotation(this, indexAP);
+		break;
+	case PTX_EndMarginnote:
+		pfs = new pf_Frag_Strux_SectionEndMarginnote(this, indexAP);
 		break;
 	case PTX_EndEndnote:
 		pfs = new pf_Frag_Strux_SectionEndEndnote(this, indexAP);
@@ -597,7 +604,7 @@ bool pt_PieceTable::_realInsertStrux(PT_DocPosition dpos,
 		*ppfs_ret = pfsNew;
 
 	// insert frag in the embedded_strux list if needed
-	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation)) 
+	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation) || (pts == PTX_EndMarginnote))
 	{
 		_insertNoteInEmbeddedStruxList(pfsNew);
 	}
@@ -728,7 +735,8 @@ bool pt_PieceTable::_insertNoteInEmbeddedStruxList(pf_Frag_Strux * pfsNew)
 			pfsPrev = static_cast <pf_Frag_Strux *> (pfPrev);
 			if ((pfsPrev->getStruxType() == PTX_SectionFootnote) ||
 				(pfsPrev->getStruxType() == PTX_SectionEndnote) ||
-				(pfsPrev->getStruxType() == PTX_SectionAnnotation))
+				(pfsPrev->getStruxType() == PTX_SectionAnnotation) ||
+				(pfsPrev->getStruxType() == PTX_SectionMarginnote))
 			{
 				break;
 			}

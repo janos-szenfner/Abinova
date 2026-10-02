@@ -94,6 +94,7 @@ IE_Exp_OpenXML::IE_Exp_OpenXML (PD_Document * pDocument)
 	footerStream(nullptr),
 	footnoteStream(nullptr),
 	endnoteStream(nullptr),
+	commentStream(nullptr),
 	isOverline(false)
 {
 }
@@ -150,6 +151,10 @@ UT_Error IE_Exp_OpenXML::startDocument()
 	}
 
 	error = startEndnotes();
+	if(error != UT_OK)
+		return error;
+
+	error = startComments();
 	if(error != UT_OK)
 		return error;
 
@@ -256,6 +261,10 @@ UT_Error IE_Exp_OpenXML::finishDocument()
 		return error;
 
 	error = finishEndnotes();
+	if(error != UT_OK)
+		return error;
+
+	error = finishComments();
 	if(error != UT_OK)
 		return error;
 
@@ -845,6 +854,8 @@ GsfOutput* IE_Exp_OpenXML::getTargetStream(int target)
 			return footnoteStream;
 		case TARGET_ENDNOTE:
 			return endnoteStream;
+		case TARGET_COMMENTS:
+			return commentStream;
 		default:
 			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 			return documentStream;
@@ -1544,6 +1555,96 @@ UT_Error IE_Exp_OpenXML::finishEndnote()
 }
 
 /**
+ * Starts a comment in word/comments.xml; author/date/initials are
+ * optional and skipped when empty. All are document-controlled so
+ * they are XML-escaped before being written as attribute values.
+ */
+UT_Error IE_Exp_OpenXML::startComment(const char* id, const gchar* author, const gchar* date, const gchar* initials)
+{
+	std::string str("<w:comment w:id=\"");
+	str += id;
+	str += "\"";
+	if(author && *author)
+	{
+		str += " w:author=\"";
+		str += UT_escapeXML(author);
+		str += "\"";
+	}
+	if(date && *date)
+	{
+		str += " w:date=\"";
+		str += UT_escapeXML(date);
+		str += "\"";
+	}
+	if(initials && *initials)
+	{
+		str += " w:initials=\"";
+		str += UT_escapeXML(initials);
+		str += "\"";
+	}
+	str += ">";
+	return writeTargetStream(TARGET_COMMENTS, str.c_str());
+}
+
+/**
+ * Finishes a comment in word/comments.xml
+ */
+UT_Error IE_Exp_OpenXML::finishComment()
+{
+	return writeTargetStream(TARGET_COMMENTS, "</w:comment>");
+}
+
+/**
+ * Starts a comment range in the main document
+ */
+UT_Error IE_Exp_OpenXML::setCommentRangeStart(int target, const char* id)
+{
+	std::string str("<w:commentRangeStart w:id=\"");
+	str += id;
+	str += "\"/>";
+	return writeTargetStream(target, str.c_str());
+}
+
+/**
+ * Ends a comment range in the main document and emits the run
+ * carrying the w:commentReference mark that Word displays for it
+ */
+UT_Error IE_Exp_OpenXML::setCommentRangeEnd(int target, const char* id)
+{
+	std::string str("<w:commentRangeEnd w:id=\"");
+	str += id;
+	str += "\"/>";
+	str += "<w:r><w:rPr><w:rStyle w:val=\"CommentReference\"/></w:rPr>";
+	str += "<w:commentReference w:id=\"";
+	str += id;
+	str += "\"/></w:r>";
+	return writeTargetStream(target, str.c_str());
+}
+
+/**
+ * Emits a complex-field character run (begin/separate/end) — used
+ * for the TOC field wrapper
+ */
+UT_Error IE_Exp_OpenXML::setFieldChar(int target, const char* fldCharType)
+{
+	std::string str("<w:r><w:fldChar w:fldCharType=\"");
+	str += fldCharType;
+	str += "\"/></w:r>";
+	return writeTargetStream(target, str.c_str());
+}
+
+/**
+ * Emits a field instruction run — used for the TOC field instruction
+ */
+UT_Error IE_Exp_OpenXML::setFieldInstr(int target, const std::string& instr)
+{
+	std::string str("<w:r><w:instrText xml:space=\"preserve\">");
+	str += UT_escapeXML(instr);
+	str += "</w:instrText></w:r>";
+	return writeTargetStream(target, str.c_str());
+}
+
+/**
  * Sets grid column
  */
 UT_Error IE_Exp_OpenXML::setGridCol(int target, const char* column)
@@ -2076,6 +2177,7 @@ void IE_Exp_OpenXML::_cleanup ()
 
 	s_release_gsf_output(footnoteStream);
 	s_release_gsf_output(endnoteStream);
+	s_release_gsf_output(commentStream);
 	s_release_gsf_output(settingsStream);
 	s_release_gsf_output(headerStream);
 	s_release_gsf_output(footerStream);
@@ -2370,6 +2472,8 @@ UT_Error IE_Exp_OpenXML::startContentTypes()
 	str += "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml\"/>";
 	str += "<Override PartName=\"/word/endnotes.xml\" ";
 	str += "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml\"/>";
+	str += "<Override PartName=\"/word/comments.xml\" ";
+	str += "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml\"/>";
 	str += "<Override PartName=\"/docProps/core.xml\" ";
 	str += "ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>";
 	str += "<Override PartName=\"/docProps/app.xml\" ";
@@ -2534,6 +2638,9 @@ UT_Error IE_Exp_OpenXML::startWordRelations()
 	str += "<Relationship Id=\"rId5\" ";
 	str += "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes\" ";
 	str += "Target=\"endnotes.xml\"/>";
+	str += "<Relationship Id=\"rId6\" ";
+	str += "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments\" ";
+	str += "Target=\"comments.xml\"/>";
 
 	return writeTargetStream(TARGET_DOCUMENT_RELATION, str.c_str());
 
@@ -2997,6 +3104,73 @@ UT_Error IE_Exp_OpenXML::finishEndnotes()
 	if(!gsf_output_close(endnoteFile.get()))
 	{
 		UT_DEBUGMSG(("FRT: ERROR, endnotes.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
+	}
+	return UT_OK;
+}
+
+/**
+ * Starts the comments.xml file which describes the document comments
+ * (Abinova annotations and margin notes)
+ */
+UT_Error IE_Exp_OpenXML::startComments()
+{
+	UT_Error err = UT_OK;
+
+	commentStream = gsf_output_memory_new();
+
+	if(!commentStream)
+	{
+		UT_DEBUGMSG(("FRT: ERROR, comments.xml file couldn't be created\n"));
+		return UT_SAVE_EXPORTERROR;
+	}
+
+	err = writeXmlHeader(commentStream);
+	if(err != UT_OK)
+	{
+		return err;
+	}
+
+	std::string str("<w:comments ");
+	str += "xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"";
+	str += ">";
+
+	return writeTargetStream(TARGET_COMMENTS, str.c_str());
+}
+
+/**
+ * Finishes the comments.xml file
+ */
+UT_Error IE_Exp_OpenXML::finishComments()
+{
+	UT_Error err = UT_OK;
+
+	err = writeTargetStream(TARGET_COMMENTS, "</w:comments>");
+	if(err != UT_OK)
+	{
+		UT_DEBUGMSG(("FRT: ERROR, cannot write to comments.xml file\n"));
+		return err;
+	}
+
+	UT_GsfOutputPtr commentFile(gsf_outfile_new_child(wordDir, "comments.xml", FALSE));
+
+	if(!commentFile)
+		return UT_SAVE_EXPORTERROR;
+
+ 	if(!gsf_output_write(commentFile.get(), gsf_output_size(commentStream),
+					 gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(commentStream))))
+	{
+		return UT_SAVE_EXPORTERROR;
+	}
+
+	if(!gsf_output_close(commentStream))
+	{
+		return UT_SAVE_EXPORTERROR;
+	}
+
+	if(!gsf_output_close(commentFile.get()))
+	{
+		UT_DEBUGMSG(("FRT: ERROR, comments.xml file couldn't be closed\n"));
 		return UT_SAVE_EXPORTERROR;
 	}
 	return UT_OK;

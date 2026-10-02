@@ -1002,6 +1002,7 @@ bool s_Abinova_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
             _closeHyperlink();
 			_closeAllAnnotations();
 			_closeBlock();
+			m_pie->endElement();
 			return true;
 		}
 	case PTX_EndFrame:

@@ -46,6 +46,13 @@ private:
 	bool m_eqField;
 	bool m_pageNumberField;
 	bool m_fldChar;
+	int m_fieldDepth;
+	int m_tocFieldDepth;
+	bool m_tocField;
+	bool m_tocFieldEnd;
+	bool m_tocFirst;
+	std::string m_fieldInstr;
+	std::string m_tocInstr;
 };
 
 #endif //_OXMLI_LISTENERSTATE_COMMON_H_

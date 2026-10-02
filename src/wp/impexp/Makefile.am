@@ -298,6 +298,8 @@ openxml/common/xp/OXML_Document.cpp \
 	openxml/common/xp/OXML_Element_Cell.h \
 	openxml/common/xp/OXML_Element_Field.cpp \
 	openxml/common/xp/OXML_Element_Field.h \
+	openxml/common/xp/OXML_Element_FieldChar.cpp \
+	openxml/common/xp/OXML_Element_FieldChar.h \
 	openxml/common/xp/OXML_Element_Hyperlink.cpp \
 	openxml/common/xp/OXML_Element_Hyperlink.h \
 	openxml/common/xp/OXML_Element_Image.cpp \

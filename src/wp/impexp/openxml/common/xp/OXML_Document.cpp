@@ -559,6 +559,14 @@ UT_Error OXML_Document::serialize(IE_Exp_OpenXML* exporter)
 			return ret;
 	}
 
+	//serialize comments (annotations + margin notes)
+	OXML_SectionMap::iterator it9;
+	for (it9 = m_annotations.begin(); it9 != m_annotations.end(); it9++) {
+		ret = it9->second->serializeAnnotation(exporter);
+		if (ret != UT_OK)
+			return ret;
+	}
+
 	return exporter->finishDocument();
 }
 

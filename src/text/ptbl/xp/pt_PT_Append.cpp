@@ -73,7 +73,7 @@ bool pt_PieceTable::appendStrux(PTStruxType pts, const PP_PropertyVector & attri
 	}
 	m_fragments.appendFrag(pfs);
 	// insert frag in the embedded_strux list if needed
-	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation))
+	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation) || (pts == PTX_EndMarginnote))
 	{
 		_insertNoteInEmbeddedStruxList(pfs);
 	}
@@ -473,7 +473,7 @@ bool pt_PieceTable::insertStruxBeforeFrag(const pf_Frag * pF, PTStruxType pts,
 	if (ppfs_ret)
 		*ppfs_ret = pfs;
 	// insert frag in the embedded_strux list if needed
-	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation))
+	if ((pts == PTX_EndFootnote) || (pts == PTX_EndEndnote) || (pts == PTX_EndAnnotation) || (pts == PTX_EndMarginnote))
 	{
 		_insertNoteInEmbeddedStruxList(pfs);
 	}

@@ -51,6 +51,7 @@ public:
 	OXML_Element_Annotation(const std::string & id, bool bEnd);
 	virtual ~OXML_Element_Annotation();
 
+	virtual UT_Error serialize(IE_Exp_OpenXML* exporter) override;
 	virtual UT_Error addToPT(PD_Document * pDocument) override;
 
 	inline bool isEnd() const { return m_bEnd; }
