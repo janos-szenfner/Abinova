@@ -279,8 +279,11 @@ bool OXMLi_PackageManager::_loadRels(const std::string & zipPath,
 	if (!rels)
 		return false;
 	gsf_off_t len = gsf_input_remaining(rels);
+	// reject absurd declared sizes — the zip directory is
+	// attacker-controlled and the read materializes it all
 	const guint8 * data =
-		len > 0 ? gsf_input_read(rels, len, nullptr) : nullptr;
+		(len > 0 && len <= UT_MAX_ARCHIVE_MEMBER_SIZE)
+			? gsf_input_read(rels, len, nullptr) : nullptr;
 	if (!data)
 	{
 		g_object_unref(rels);
@@ -470,12 +473,18 @@ UT_Error OXMLi_PackageManager::_parseStream( GsfInput * stream, OXMLi_StreamList
 	UT_XML reader;
 	reader.setListener(pListener);
 
+	// reject members whose declared size is absurd — the zip directory
+	// is attacker-controlled and gsf_input_read materializes it all
+	if (gsf_input_size (stream) > UT_MAX_ARCHIVE_MEMBER_SIZE) {
+		return UT_ERROR;
+	}
+
 	if (gsf_input_size (stream) > 0) {
 		len = gsf_input_remaining (stream);
 		if (len > 0) {
 			data = gsf_input_read (stream, len, nullptr);
 			if (nullptr == data) {
-				g_object_unref (G_OBJECT (stream));
+				// caller owns stream and unrefs it — do not unref here
 				return UT_ERROR;
 			}
 			cdata = reinterpret_cast<const char *>(data);
@@ -502,6 +511,14 @@ UT_ConstByteBufPtr OXMLi_PackageManager::parseImageStream(const char * id)
 	//the image relationship may not exist (broken or strict package)
 	if (stream == nullptr)
 		return nullptr;
+
+	// reject members whose declared size is absurd — the zip directory
+	// is attacker-controlled
+	if (gsf_input_size(stream) > UT_MAX_ARCHIVE_MEMBER_SIZE)
+	{
+		g_object_unref (G_OBJECT (stream));
+		return nullptr;
+	}
 
 	//First, we check if this stream has already been parsed before
 	std::string part_name = gsf_input_name(stream); //TODO: determine if part names are truly unique

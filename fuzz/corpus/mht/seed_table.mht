@@ -1,0 +1,107 @@
+From: <Saved by Abinova>
+Subject: 
+Date: Fri, 02 Oct 2026 17:21:44 +0200
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	boundary="AbiWord_multipart_boundary____________";
+	type="application/xhtml+xml"
+
+--AbiWord_multipart_boundary____________
+Content-Type: application/xhtml+xml;charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<?xml version=3D"1.0" encoding=3D"UTF-8" ?>=0A<!DOCTYPE html PUBLIC "-=
+//ABISOURCE//DTD XHTML plus AWML 2.2//EN" "http://www.abisource.com/20=
+04/xhtml-awml/xhtml-awml.mod"><html xmlns=3D"http://www.w3.org/1999/xh=
+tml" xmlns:awml=3D"http://www.abisource.com/2004/xhtml-awml/">=0A    <=
+head>=0A        <meta http-equiv=3D"Content-Type" content=3D"applicati=
+on/xhtml+xml; charset=3DUTF-8"/>=0A        <title>=0AAbiword HTML Docu=
+ment=0A        </title>=0A        <meta name=3D"author" content=3D"Hub=
+ert Figui=C3=A8re"/>=0A        <style type=3D"text/css">=0A<!-- #toc,=0A=
+.toc,=0A.mw-warning {=0A	border: 1px solid #aaa;=0A	background-color: =
+#f9f9f9;=0A	padding: 5px;=0A	font-size: 95%;=0A}=0A#toc h2,=0A.toc h2 =
+{=0A	display: inline;=0A	border: none;=0A	padding: 0;=0A	font-size: 10=
+0%;=0A	font-weight: bold;=0A}=0A#toc #toctitle,=0A.toc #toctitle,=0A#t=
+oc .toctitle,=0A.toc .toctitle {=0A	text-align: center;=0A}=0A#toc ul,=
+=0A.toc ul {=0A	list-style-type: none;=0A	list-style-image: none;=0A	m=
+argin-left: 0;=0A	padding-left: 0;=0A	text-align: left;=0A}=0A#toc ul =
+ul,=0A.toc ul ul {=0A	margin: 0 0 0 2em;=0A}=0A#toc .toctoggle,=0A.toc=
+ .toctoggle {=0A	font-size: 94%;=0A}p, h1, h2, h3, li {=0A	color:#0000=
+00;=0A	font-family:'Times New Roman';=0A	font-size:12pt;=0A	text-align=
+:left;=0A	vertical-align:normal;=0A}=0Abody{=0Apadding-top : 1in;=0Apa=
+dding-bottom : 1in;=0Apadding-left : 1in;=0Apadding-right : 1in;=0Afon=
+t-size:12pt;=0Atext-decoration:none;=0Afont-variant:normal;=0Afont-fam=
+ily:'Times New Roman';=0Afont-style:normal;=0Atext-align:left;=0Acolor=
+:#000000;=0Awidows:2;=0Atext-indent:0in;=0Afont-weight:normal;=0A} -->=
+=0A        </style>=0A=0A    </head>=0A<body>        <div>=0A<p><br/>T=
+his file is used by the test for ie_Table.cpp</p><p></p>            <t=
+able border=3D"0" cellpadding=3D"0" style=3D"width:100%;border:1pt;bor=
+der-collapse:collapse;empty-cells:show;table-layout:fixed;border-style=
+:solid">=0A                <tr>=0A                    <td rowspan=3D""=
+ colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit inherit"=
+>=0A<p awml:style=3D"Normal"></p></td>=0A                    <td rowsp=
+an=3D"" colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit i=
+nherit">=0A<p awml:style=3D"Normal"></p>                        <table=
+ border=3D"0" cellpadding=3D"0" style=3D"width:100%;border:1pt;border-=
+collapse:collapse;empty-cells:show;table-layout:fixed;border-style:sol=
+id">=0A                            <tr>=0A                            =
+    <td rowspan=3D"" colspan=3D"" style=3D"padding: 0.00pt;border:inhe=
+rit inherit inherit">=0A<p awml:style=3D"Normal">1</p>=0A             =
+                   </td>=0A                                <td rowspan=
+=3D"" colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit inh=
+erit">=0A<p awml:style=3D"Normal">2</p>=0A                            =
+    </td>=0A                                <td rowspan=3D"" colspan=3D=
+"" style=3D"padding: 0.00pt;border:inherit inherit inherit">=0A<p awml=
+:style=3D"Normal">3</p>=0A                                </td>=0A    =
+                            <td rowspan=3D"" colspan=3D"" style=3D"pad=
+ding: 0.00pt;border:inherit inherit inherit">=0A<p awml:style=3D"Norma=
+l">4</p>=0A                                </td>=0A=0A                =
+            </tr>=0A                            <tr>=0A               =
+                 <td rowspan=3D"" colspan=3D"" style=3D"padding: 0.00p=
+t;border:inherit inherit inherit">=0A<p awml:style=3D"Normal">a</p>=0A=
+                                </td>=0A                              =
+  <td rowspan=3D"" colspan=3D"" style=3D"padding: 0.00pt;border:inheri=
+t inherit inherit">=0A<p awml:style=3D"Normal">b</p>=0A               =
+                 </td>=0A                                <td rowspan=3D=
+"" colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit inheri=
+t">=0A<p awml:style=3D"Normal">c</p>=0A                               =
+ </td>=0A                                <td rowspan=3D"" colspan=3D""=
+ style=3D"padding: 0.00pt;border:inherit inherit inherit">=0A<p awml:s=
+tyle=3D"Normal">d</p>=0A                                </td>=0A=0A   =
+                         </tr>=0A                            <tr>=0A  =
+                              <td rowspan=3D"" colspan=3D"" style=3D"p=
+adding: 0.00pt;border:inherit inherit inherit">=0A<p awml:style=3D"Nor=
+mal">A</p>=0A                                </td>=0A                 =
+               <td rowspan=3D"" colspan=3D"" style=3D"padding: 0.00pt;=
+border:inherit inherit inherit">=0A<p awml:style=3D"Normal">B</p>=0A  =
+                              </td>=0A                                =
+<td rowspan=3D"" colspan=3D"" style=3D"padding: 0.00pt;border:inherit =
+inherit inherit">=0A<p awml:style=3D"Normal">C</p>=0A                 =
+               </td>=0A                                <td rowspan=3D"=
+" colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit inherit=
+">=0A<p awml:style=3D"Normal">D</p>=0A                                =
+</td>=0A=0A                            </tr>=0A=0A                    =
+    </table>=0A<p awml:style=3D"Normal">inside table 4x3</p>=0A       =
+             </td>=0A                    <td rowspan=3D"" colspan=3D""=
+ style=3D"padding: 0.00pt;border:inherit inherit inherit">=0A<p awml:s=
+tyle=3D"Normal">column 3</p>=0A                    </td>=0A           =
+         <td rowspan=3D"" colspan=3D"" style=3D"padding: 0.00pt;border=
+:inherit inherit inherit">=0A<p awml:style=3D"Normal"></p></td>=0A    =
+                <td rowspan=3D"" colspan=3D"" style=3D"padding: 0.00pt=
+;border:inherit inherit inherit">=0A<p awml:style=3D"Normal"></p></td>=
+=0A</tr>=0A                <tr>=0A                    <td rowspan=3D""=
+ colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit inherit"=
+>=0A<p awml:style=3D"Normal">row 2</p>=0A                    </td>=0A =
+                   <td rowspan=3D"" colspan=3D"" style=3D"padding: 0.0=
+0pt;border:inherit inherit inherit">=0A<p awml:style=3D"Normal">data 1=
+</p>=0A                    </td>=0A                    <td rowspan=3D"=
+" colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit inherit=
+">=0A<p awml:style=3D"Normal">more data</p>=0A                    </td=
+>=0A                    <td rowspan=3D"" colspan=3D"" style=3D"padding=
+: 0.00pt;border:inherit inherit inherit">=0A<p awml:style=3D"Normal"><=
+/p></td>=0A                    <td rowspan=3D"" colspan=3D"" style=3D"=
+padding: 0.00pt;border:inherit inherit inherit">=0A<p awml:style=3D"No=
+rmal"></p></td>=0A</tr>=0A</table>=0A<p awml:style=3D"Normal"></p></di=
+v>=0A</body></html>=0A=
+
+--AbiWord_multipart_boundary____________--

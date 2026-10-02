@@ -356,10 +356,14 @@ UT_Error IE_Imp_OpenDocument::_handleMimetype ()
 
     UT_UTF8String mimetype;
     
-    if (gsf_input_size (pInput) > 0) {
-        mimetype.append(
-            reinterpret_cast<const char *>(gsf_input_read(pInput, gsf_input_size (pInput), nullptr)),
-            gsf_input_size (pInput));
+    const gsf_off_t mimeSize = gsf_input_size (pInput);
+    if (mimeSize > 0 && mimeSize <= UT_MAX_ARCHIVE_MEMBER_SIZE) {
+        const guint8 * pMimeData = gsf_input_read(pInput, mimeSize, nullptr);
+        if (pMimeData) {
+            mimetype.append(
+                reinterpret_cast<const char *>(pMimeData),
+                mimeSize);
+        }
     }
 
     UT_Error err = UT_OK;
@@ -535,7 +539,7 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
     UT_return_val_if_fail(pInput, UT_ERROR);
 
     gsf_off_t sz = gsf_input_size (pInput);
-    if (sz > 0)
+    if (sz > 0 && sz <= UT_MAX_ARCHIVE_MEMBER_SIZE)
     {
         // I would have liked to pass 0 to input_read() and
         // get a shared buffer back, but doing so seems to
@@ -868,14 +872,20 @@ UT_Error IE_Imp_OpenDocument::_parseStream (GsfInput* pInput, UT_XML & parser)
     UT_Error ret = UT_OK;
 
 	UT_return_val_if_fail(pInput, UT_ERROR);
-	
+
+    // reject members whose declared size is absurd — the zip directory
+    // is attacker-controlled and gsf_input_read materializes it all
+    if (gsf_input_size (pInput) > UT_MAX_ARCHIVE_MEMBER_SIZE) {
+        return UT_ERROR;
+    }
+
     if (gsf_input_size (pInput) > 0) {
         while ((len = gsf_input_remaining (pInput)) > 0) {
             // FIXME: we want to pass the stream in chunks, but libXML2 finds this disagreeable.
             // we probably need to pass some magic to our XML parser? 
             // len = UT_MIN (len, BUF_SZ);
             if (nullptr == (data = gsf_input_read (pInput, len, nullptr))) {
-                g_object_unref (G_OBJECT (pInput));
+                // caller owns pInput and unrefs it — do not unref here
                 return UT_ERROR;
             }
             ret = parser.parse (reinterpret_cast<const char *>(data), len);

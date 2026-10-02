@@ -114,7 +114,10 @@ UT_Error IE_Imp_XML::_loadFile(GsfInput * input)
 
 	// hack!!!
 	gsf_off_t input_size = gsf_input_size(input);
-	if (input_size < 0)
+	// reject absurd declared sizes — container members (epub chapters,
+	// odf streams) report attacker-controlled uncompressed sizes and
+	// the read below materializes them all
+	if (input_size < 0 || input_size > UT_MAX_ARCHIVE_MEMBER_SIZE)
 		{
 			m_error = UT_IE_BOGUSDOCUMENT;
 			return m_error;

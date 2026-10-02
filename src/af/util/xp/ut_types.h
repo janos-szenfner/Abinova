@@ -94,6 +94,16 @@ typedef UT_uint8 UT_Confidence_t;
 #define UT_CONFIDENCE_POOR     85
 #define UT_CONFIDENCE_ZILCH     0
 
+/*!
+ * Bound on the declared (uncompressed) size of a single archive member
+ * an importer may materialize in memory.  Container directory entries
+ * (zip central directory records, ODF manifest sizes, ...) are
+ * attacker-controlled — a few-KB package can claim a multi-GB member
+ * and force a matching allocation on read.  Members declaring more
+ * than this are rejected as corrupt.
+ */
+#define UT_MAX_ARCHIVE_MEMBER_SIZE (256u * 1024u * 1024u)
+
 #include "ut_export.h" // ABI_EXPORT is defined in there.
 
 #if __GNUC__

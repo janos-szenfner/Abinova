@@ -153,7 +153,9 @@ static void _parsePropsPart(GsfInfile * zip, const char * szName,
 	reader.setListener(&listener);
 
 	size_t len = gsf_input_remaining(stream);
-	if (len > 0)
+	// reject absurd declared sizes — the zip directory is
+	// attacker-controlled and the read materializes it all
+	if (len > 0 && len <= UT_MAX_ARCHIVE_MEMBER_SIZE)
 	{
 		const guint8 * data = gsf_input_read(stream, len, nullptr);
 		if (data)

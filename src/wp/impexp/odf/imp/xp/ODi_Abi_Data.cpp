@@ -314,7 +314,14 @@ UT_Error ODi_Abi_Data::_loadStream (GsfInfile* oo,
     if (!input){
     	return UT_ERROR;
     }
-  
+
+    // reject members whose declared size is absurd — the zip directory
+    // is attacker-controlled
+    if (gsf_input_size (input) > UT_MAX_ARCHIVE_MEMBER_SIZE) {
+        g_object_unref (G_OBJECT (input));
+        return UT_ERROR;
+    }
+
     if (gsf_input_size (input) > 0) {
         while ((len = gsf_input_remaining (input)) > 0) {
             len = UT_MIN (len, BUF_SZ);

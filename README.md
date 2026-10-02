@@ -1906,7 +1906,8 @@ Each `fuzz/fuzz_<fmt>.cpp` harness feeds bytes through the
 `IE_Imp::fileTypeForContents()` sniff plus a full
 `PD_Document::readFromFile()` pinned to one importer: `fuzz_abw`
 (native `.abw`/`.abwn`), `fuzz_doc` (legacy Word `.doc` via wv),
-`fuzz_rtf` and `fuzz_wpd` (WordPerfect via libwpd). Seed corpora live
+`fuzz_rtf` and `fuzz_wpd` (WordPerfect via libwpd), `fuzz_odt` and
+`fuzz_docx` (zip+XML containers) and `fuzz_mht` (MHTML). Seed corpora live
 in `fuzz/corpus/<fmt>/`. `tools/build-fuzz.sh` maintains an
 instrumented copy of the tree under `fuzz-build/tree` (see its
 header comment for bounded-run usage and why `detect_leaks=0` is

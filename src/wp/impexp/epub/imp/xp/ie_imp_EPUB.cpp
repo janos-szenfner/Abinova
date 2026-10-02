@@ -315,9 +315,9 @@ UT_Error IE_Imp_EPUB::readMetadata()
     gsf_input_seek(meta, 0, G_SEEK_SET);
     size_t metaSize = gsf_input_size(meta);
 
-    if (metaSize == 0)
+    if (metaSize == 0 || metaSize > UT_MAX_ARCHIVE_MEMBER_SIZE)
     {
-        UT_DEBUGMSG(("Container metadata file is empty\n"));
+        UT_DEBUGMSG(("Container metadata file is empty or absurdly large\n"));
         g_object_unref(G_OBJECT(meta));
         return UT_ERROR;
     }
@@ -384,7 +384,8 @@ UT_Error IE_Imp_EPUB::readPackage()
 
     gsf_input_seek(opf, 0, G_SEEK_SET);
     size_t opfSize = gsf_input_size(opf);
-    const guint8* opfData = (opfSize > 0) ? gsf_input_read(opf, opfSize, NULL)
+    const guint8* opfData = (opfSize > 0 && opfSize <= UT_MAX_ARCHIVE_MEMBER_SIZE)
+            ? gsf_input_read(opf, opfSize, NULL)
             : NULL;
     /* the returned buffer is owned by the input - copy before unref */
     std::string opfXml;

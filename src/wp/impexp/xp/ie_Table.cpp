@@ -2026,7 +2026,7 @@ void CellHelper::setProp(const char * szProp, const std::string & sVal)
 
 IE_Imp_TableHelper::IE_Imp_TableHelper (PD_Document * pDocument, pf_Frag_Strux * pfsInsertionPoint, const char * style) :
 	m_pDocument(pDocument),
-	m_style_table(style),
+	m_style_table(style ? style : ""),
 	m_style_tzone(""),
 	m_style(""),
 	m_pfsInsertionPoint(pfsInsertionPoint),
@@ -2383,7 +2383,7 @@ bool IE_Imp_TableHelper::tdEnd(void) const
 	m_current = pCell;
     m_current->m_rowspan = rowspan;
 	m_current->m_colspan = colspan;
-	m_current->m_style = style;
+	m_current->m_style = style ? style : "";
 	m_current->m_left = m_col_next;
 	m_current->m_right = m_col_next+colspan;
 	m_current->m_top = m_row_next;

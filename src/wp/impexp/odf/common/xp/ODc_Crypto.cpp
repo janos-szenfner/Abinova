@@ -96,7 +96,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 
     // Get the encrypted content ready
 	gsf_off_t stream_size = gsf_input_size(pStream);
-	if (stream_size <= 0 || stream_size > G_MAXUINT)
+	if (stream_size <= 0 || stream_size > UT_MAX_ARCHIVE_MEMBER_SIZE)
 		return UT_ERROR;
 	const gsize content_size = static_cast<gsize>(stream_size);
 	const unsigned char* content = gsf_input_read(pStream, content_size, nullptr);

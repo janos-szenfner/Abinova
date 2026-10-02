@@ -1,0 +1,23 @@
+MIME-Version: 1.0
+Content-Type: multipart/related; type="application/xhtml+xml"; boundary="----=_NextPart_000_TEST"
+
+------=_NextPart_000_TEST
+Content-Type: application/xhtml+xml; charset="utf-8"
+Content-Location: file:///C:/test.html
+
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>MHT smoke</title></head>
+<body>
+<p>MHTIMPORTMARKER text survives.</p>
+<p><img src="image1.png" alt="dot"/></p>
+</body>
+</html>
+------=_NextPart_000_TEST
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Location: image1.png
+
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGM4ISdHEmIY1TCqYfhq
+AADkYgQQ60fIxgAAAABJRU5ErkJggg==
+------=_NextPart_000_TEST--

@@ -91,7 +91,9 @@ UT_Confidence_t IE_Imp_OpenDocument_Sniffer::recognizeContents (GsfInput * input
 			std::string mimetype;
 			
 			gsf_off_t size = gsf_input_size (pInput);
-			if (size > 0) {
+			// the mimetype member is tiny; reject absurd declared sizes
+			// (the zip directory is attacker-controlled)
+			if (size > 0 && size <= UT_MAX_ARCHIVE_MEMBER_SIZE) {
 				const char * p = reinterpret_cast<const char *>(gsf_input_read(pInput, size, nullptr));
 				if(p) {
 					mimetype.assign(p, size);

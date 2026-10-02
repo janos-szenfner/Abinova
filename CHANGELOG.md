@@ -3415,6 +3415,21 @@ below are on `main` but the release has not been cut yet.
   fixtures plus hand-built minimal WP6 `.wpd` files exercising the
   header, index, single/variable/fixed-length function-group
   parsers.
+- **Fuzz harnesses for the container importers** — `fuzz_odt`,
+  `fuzz_docx` and `fuzz_mht` cover the zip-based and MHTML entry
+  points. Bounded runs found and fixed real importer bugs:
+  double-`g_object_unref` on corrupt zip members in both the ODF and
+  OOXML XML-stream parsers, a NULL `std::string` assignment for
+  ragged XHTML table rows, an unsigned-underflow bounds check in the
+  PNG memory reader, and zip-bomb whole-member materialization —
+  declared member sizes are now capped by
+  `UT_MAX_ARCHIVE_MEMBER_SIZE` (256 MB) across the ODF, OOXML, EPUB,
+  crypto and shared-XML importers. Also fixed an
+  `ODi_StreamListener` constructor that dereferenced a null
+  `ODi_ElementStack*` in its initializer list (latent UB that clang
+  folds into a null element-stack pointer). Seed corpora live in
+  `fuzz/corpus/{odt,docx,mht}`, including a saved zip-bomb
+  reproducer.
 
 ### Resolved root causes worth noting
 

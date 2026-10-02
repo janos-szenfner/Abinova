@@ -105,6 +105,11 @@ private:
     GsfInfile* m_pGsfInfile;
     ODi_Office_Styles* m_pStyles;
     ODi_Abi_Data& m_rAbiData;
+
+    // Backing stack used when the caller does not supply one.  Declared
+    // before m_fontFaceDecls so it is constructed first and can be bound
+    // to m_fontFaceDecls' reference without dereferencing a null pointer.
+    ODi_ElementStack m_defaultElementStack;
     ODi_FontFaceDecls m_fontFaceDecls;
 
     // Used by the current listener state to signal state changes, etc.
@@ -154,7 +159,6 @@ private:
 
     ODi_ListenerState* m_pCurrentState;
     bool m_deleteCurrentWhenPop;
-    bool m_ownStack;
 
     std::stack<ODi_StreamListener::StackCell> m_stateStack;
     std::vector<ODi_Postpone_ListenerState*> m_postponedParsing;
