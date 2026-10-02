@@ -39,7 +39,6 @@
 fb_ColumnBreaker::fb_ColumnBreaker(fl_DocSectionLayout * pDSL) :
 	m_pStartPage(nullptr),
 	m_bStartFromStart(true),
-	m_bReBreak(false),
 	m_pDocSec(pDSL)
 {
 }
@@ -181,13 +180,19 @@ fp_Page * fb_ColumnBreaker::needsRebreak(void)
 	}
 	else if(pLine->getY() >  m_pDocSec->getActualColumnHeight())
 	{
+	     UT_DEBUGMSG(("fb_ColumnBreaker::needsRebreak: tail line overflows column (y %d > %d) on page %d\n",
+			  pLine->getY(), m_pDocSec->getActualColumnHeight(),
+			  m_pDocSec->getDocLayout()->findPage(pPage)));
 	     return pPage;
 	}
 	else
 	{
 	    fp_Column * pCol = pPage->getNthColumnLeader(0);
-	    if(pCol->getHeight() >  m_pDocSec->getActualColumnHeight())
+	    if(pCol && pCol->getHeight() >  m_pDocSec->getActualColumnHeight())
 	    {
+		UT_DEBUGMSG(("fb_ColumnBreaker::needsRebreak: column leader overflows (%d > %d) on page %d\n",
+			     pCol->getHeight(), m_pDocSec->getActualColumnHeight(),
+			     m_pDocSec->getDocLayout()->findPage(pPage)));
 		return pPage;
 	    }
 	}
@@ -196,6 +201,13 @@ fp_Page * fb_ColumnBreaker::needsRebreak(void)
 }
 
 	
+// Re-break escalation thresholds used by breakSection(). These are the
+// long-standing heuristic values; see the breakSection() comment for
+// why a break pass can fail to converge and what each rung does.
+static const UT_sint32 REBREAK_RESTART_PREV_PAGE = 10; // retry from the previous page
+static const UT_sint32 REBREAK_EVICT_FOOTNOTES = 15;   // evict footnotes off over-full pages
+static const UT_sint32 REBREAK_MAX_ATTEMPTS    = 50;   // hard cap, then give up
+
 /*!
   Layout sections on pages
   \return zero
@@ -204,10 +216,44 @@ fp_Page * fb_ColumnBreaker::needsRebreak(void)
   blocks, and lines are laid out on the pages. Doing so it refers to
   the various layout configurations such as orphan/widow controls and
   break Runs embedded in the text.
-  At the eof the break we check to see that that all the text has been layed
- out.
- If it hasn't we rebreak from invalid page forward.
- FIXME we should try to detect the error in the code rather than rebreak.
+  At the end of the break we check that all the text has been laid out.
+  If it hasn't we rebreak from the invalid page forward.
+
+  Why a break pass can fail to converge (needsRebreak() keeps reporting
+  a page):
+  - footnote/annotation containers re-anchor to their referencing
+    line's page *during* a pass (_reparentNotesToPage), so the
+    available-height figures an earlier break decision relied on are
+    stale by the time the pass ends; a retry once the anchors have
+    settled usually converges;
+  - setStartPage() restart requests arrive mid-pass (a previous column
+    discovered over-full, or a new page minted for a section/page
+    break) and force another pass from an earlier page;
+  - a container that can never fit (a line or table row taller than the
+    whole column) overflows wherever the break lands, and no amount of
+    retrying fixes it.
+
+  Escalation ladder, tuned by the constants above:
+  - while iAttempt <= REBREAK_RESTART_PREV_PAGE the retry restarts from
+    the reported page;
+  - after that it restarts from the page BEFORE the reported one - the
+    break decision that produced the overflow usually lives there;
+  - after REBREAK_EVICT_FOOTNOTES attempts, pages whose footnote
+    containers alone exceed the usable height have them evicted so the
+    body can flow (they are re-anchored on the next pass if room
+    reappears);
+  - REBREAK_MAX_ATTEMPTS is the hard cap: on hitting it the overflow is
+    left in place and a warning is emitted - a slightly wrong layout
+    beats a hang.
+
+  Termination: iAttempt increments unconditionally each iteration, so
+  the loop body runs at most REBREAK_MAX_ATTEMPTS times; the
+  previous-page retreat is additionally monotone toward the first page
+  and ends on its own when getPrev() returns nullptr; the footnote
+  eviction loop is bounded by the container count it started with, so
+  a failed removal cannot spin.
+
+  FIXME we should try to detect the error in the code rather than rebreak.
 */
 
 UT_sint32 fb_ColumnBreaker::breakSection()
@@ -220,35 +266,51 @@ UT_sint32 fb_ColumnBreaker::breakSection()
   if(iPage < 0)
        pStartPage = nullptr;
   UT_sint32 iVal = _breakSection(pStartPage);
-  UT_sint32 icnt = 0;
+  UT_sint32 iAttempt = 0;
   pStartPage = needsRebreak();
   if(m_pStartPage)
   {
-      icnt = 0;
+      iAttempt = 0;
       pStartPage = m_pStartPage;
   }
-  while(pStartPage && (icnt < 50))
+  while(pStartPage && (iAttempt < REBREAK_MAX_ATTEMPTS))
   {
 
-      UT_DEBUGMSG(("Try to get a decent break Column %d times \n",icnt));
+      UT_DEBUGMSG(("fb_ColumnBreaker: re-break attempt %d\n",iAttempt));
       iPage = pDL->findPage(pStartPage);
       if(iPage < 0)
       {
+	  // The retry target left the page list (e.g. an empty page was
+	  // reaped mid-break): fall back to a whole-section pass.
+	  UT_DEBUGMSG(("fb_ColumnBreaker: re-break target page gone; restarting whole section\n"));
 	  pStartPage = nullptr;
       }
       else
       {
-	  UT_DEBUGMSG(("Retrying from page %d \n",iPage));
-	  if(icnt >15)
+	  UT_DEBUGMSG(("fb_ColumnBreaker: retrying from page %d\n",iPage));
+	  if((iAttempt > REBREAK_EVICT_FOOTNOTES) &&
+	     (pStartPage->getAvailableHeight() < 0))
 	  {
-	      if(pStartPage->getAvailableHeight() <0)
+	      // Pathological page: the footnote containers anchored to
+	      // it are taller than the page itself, so no break can
+	      // ever converge. Evict them so the body text can flow;
+	      // _reparentNotesToPage() re-anchors them on the next
+	      // pass if room reappears. Bounded by the initial count
+	      // so a failed removal cannot spin this loop.
+	      const UT_sint32 iToEvict = pStartPage->countFootnoteContainers();
+	      UT_sint32 iEvicted = 0;
+	      for(UT_sint32 i = 0; i < iToEvict; i++)
 	      {
-		  while(pStartPage->countFootnoteContainers()>0)
+		  fp_FootnoteContainer* pFC = pStartPage->getNthFootnoteContainer(0);
+		  if(pFC == nullptr)
 		  {
-		      fp_FootnoteContainer* pFC = pStartPage->getNthFootnoteContainer(0);
-		      pStartPage->removeFootnoteContainer(pFC);
+		      break;
 		  }
+		  pStartPage->removeFootnoteContainer(pFC);
+		  iEvicted++;
 	      }
+	      UT_DEBUGMSG(("fb_ColumnBreaker: page %d over-full (avail %d); evicted %d footnote containers\n",
+			   iPage,pStartPage->getAvailableHeight(),iEvicted));
 	  }
       }
 
@@ -256,13 +318,28 @@ UT_sint32 fb_ColumnBreaker::breakSection()
       pStartPage = needsRebreak();
       if(m_pStartPage)
       {
+	  // A restart request arrived mid-pass (setStartPage() from
+	  // getNewContainer() or updatePageForWrapping()); it outranks
+	  // the needsRebreak() target.
+	  UT_DEBUGMSG(("fb_ColumnBreaker: mid-pass restart request to page %d\n",
+		       pDL->findPage(m_pStartPage)));
   	  pStartPage = m_pStartPage;
-	  if(icnt > 10)
+	  if(iAttempt > REBREAK_RESTART_PREV_PAGE)
 	  {
-	      pStartPage = pStartPage->getPrev();
+	      fp_Page * pPrev = pStartPage->getPrev();
+	      UT_DEBUGMSG(("fb_ColumnBreaker: escalating - restart from previous page %d\n",
+			   pPrev ? pDL->findPage(pPrev) : -1));
+	      pStartPage = pPrev;
 	  }
       }
-      icnt++;
+      iAttempt++;
+  }
+  if(pStartPage != nullptr)
+  {
+      // REBREAK_MAX_ATTEMPTS exhausted with the tail still
+      // overflowing: give up and leave the layout as-is.
+      UT_WARNINGMSG(("Abinova: section break did not converge after %d re-break attempts; leaving layout as-is\n",
+		     REBREAK_MAX_ATTEMPTS));
   }
   _balanceLastColumnRow();
   pDL->deleteEmptyColumnsAndPages();
@@ -393,7 +470,6 @@ fp_Page * fb_ColumnBreaker::_getLastValidPage(void)
 
 UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 {
-	m_bReBreak = false;
 	m_pStartPage = nullptr;
 	FL_DocLayout * pDocLayout = m_pDocSec->getDocLayout();
 	fl_ContainerLayout* pFirstLayout = nullptr;
@@ -1344,13 +1420,6 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 //
 // End of massive while loop here
 //
-	if(m_bReBreak)
-	{
-		UT_ASSERT(0);
-		m_pStartPage = nullptr;
-		m_bStartFromStart = false;
-		breakSection();
-	}
 
 	return 0; // TODO return code
 }

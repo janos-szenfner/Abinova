@@ -56,7 +56,6 @@ private:
 	                                    UT_GenericVector<fp_AnnotationContainer*> & vecAnnotations) const;
 	fp_Page *             m_pStartPage;
 	bool                  m_bStartFromStart;
-	bool                  m_bReBreak;
 	fl_DocSectionLayout * m_pDocSec;
 };
 

@@ -1802,6 +1802,15 @@ below are on `main` but the release has not been cut yet.
   edits) was silently dropped, and a break ending the *previous* line
   could be misread as this line's. Break detection now scans every run
   on the line.
+- **Section re-break loop instrumented and bounded** — when a section's
+  tail can't be placed inside its column (oversized unbreakable
+  content, footnote containers taller than the page, or a mid-pass
+  restart request), the page-breaker retries with a now-documented
+  escalation ladder: retry the failing page, then retry from the page
+  before it, then evict footnote containers off over-full pages so
+  body text can flow — and after a bounded number of attempts it gives
+  up with a diagnostic message instead of risking a hang. Documents
+  that paginated correctly before are unaffected.
 - **Empty-stack access hardening** — a C++ Core Guidelines
   bounds/lifetime audit found parser and piece-table paths that call
   `std::stack::top()`/`vector::back()` without checking the container
