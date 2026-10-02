@@ -565,7 +565,11 @@ encoded into the first 22 bytes.
 	   */
 	  char_fcLim = beginfc;
 
-	  for (i = begincp, j = beginfc; (i < endcp /*&& i<ps->fib.ccpText */ );
+	  /* AbiWord: bound the walk by the piece's byte extent too -- a
+	     corrupt piece table can claim more CPs than the fc range
+	     holds (incl. an endfc that wrapped below the stream size),
+	     and only the bytes actually exist to read */
+	  for (i = begincp, j = beginfc; i < endcp && j < endfc;
 	       i++, j += wvIncFC (chartype))
 	    {
 		ps->currentcp = i;
@@ -1048,7 +1052,9 @@ wvGetComplexSEP (wvVersion ver, SEP * sep, U32 cpiece, STSH * stsh, CLX * clx)
 		  }
 		pointer = clx->grpprl[index] + i;
 		scratch = i;
-		oplen = wvEatSprm (sprm, pointer, &scratch);
+		oplen = wvEatSprm (sprm, pointer,
+				   clx->grpprl[index] + clx->cbGrpprl[index],
+				   &scratch);
 		if ((U32) i + (U32) oplen > (U32) clx->cbGrpprl[index])
 		    break;
 		RetSprm =
@@ -1141,7 +1147,9 @@ wvAssembleComplexPAP (wvVersion ver, PAP * apap, U32 cpiece, wvParseStruct *ps)
 		  }
 		pointer = ps->clx.grpprl[index] + i;
 		scratch = i;
-		oplen = wvEatSprm (sprm, pointer, &scratch);
+		oplen = wvEatSprm (sprm, pointer,
+				   ps->clx.grpprl[index] +
+				   ps->clx.cbGrpprl[index], &scratch);
 		if ((U32) i + (U32) oplen > (U32) ps->clx.cbGrpprl[index])
 		    break;
 		RetSprm =
@@ -1220,7 +1228,9 @@ wvAssembleComplexCHP (wvVersion ver, CHP * achp, U32 cpiece, STSH * stsh,
 		  }
 		pointer = clx->grpprl[index] + i;
 		scratch = i;
-		oplen = wvEatSprm (sprm, pointer, &scratch);
+		oplen = wvEatSprm (sprm, pointer,
+				   clx->grpprl[index] + clx->cbGrpprl[index],
+				   &scratch);
 		if ((U32) i + (U32) oplen > (U32) clx->cbGrpprl[index])
 		    break;
 		RetSprm =

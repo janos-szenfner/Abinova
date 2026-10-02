@@ -56,6 +56,7 @@ wvGetSTTBF (STTBF * anS, U32 offset, U32 len, wvStream * fd)
 {
     int i, j;
     U16 slen;
+    U32 remaining, strmin, take;
 
     anS->s8strings = NULL;
     anS->u16strings = NULL;
@@ -81,12 +82,24 @@ wvGetSTTBF (STTBF * anS, U32 offset, U32 len, wvStream * fd)
       }
     anS->extradatalen = read_16ubit (fd);
 
+    /* AbiWord: the whole table occupies len bytes -- every entry costs
+       at least its length byte(s) plus extradatalen of extra data, so a
+       corrupt nostrings/extradatalen pair must not be allowed to claim
+       (and allocate) more than the table can actually hold */
+    if (len >= ((anS->extendedflag == 0xFFFF) ? 6U : 4U))
+	remaining = len - ((anS->extendedflag == 0xFFFF) ? 6U : 4U);
+    else
+	remaining = 0;
+    strmin = ((anS->extendedflag == 0xFFFF) ? 2U : 1U) + anS->extradatalen;
+    if (anS->nostrings > remaining / strmin)
+	anS->nostrings = (U16) (remaining / strmin);
+
     if (anS->extendedflag == 0xFFFF)
 	anS->u16strings = (U16 **) wvMalloc (sizeof (U16 *) * anS->nostrings);
     else
 	anS->s8strings = (S8 **) wvMalloc (sizeof (S8 *) * anS->nostrings);
 
-    if (anS->extradatalen)
+    if (anS->extradatalen && anS->nostrings)
       {
 	  anS->extradata = (U8 **) wvMalloc (sizeof (U8 *) * anS->nostrings);
 	  for (i = 0; i < anS->nostrings; i++)
@@ -97,39 +110,60 @@ wvGetSTTBF (STTBF * anS, U32 offset, U32 len, wvStream * fd)
       {
 	  for (i = 0; i < anS->nostrings; i++)
 	    {
+		anS->u16strings[i] = NULL;
+		if (remaining < 2)
+		    continue;
 		slen = read_16ubit (fd);
-		if (slen == 0)
-		    anS->u16strings[i] = NULL;
-		else
+		remaining -= 2;
+		/* corrupt cch running past the end of the table */
+		if ((U32) slen * 2 > remaining)
+		    slen = (U16) (remaining / 2);
+		if (slen != 0)
 		  {
 		      anS->u16strings[i] =
 			  (U16 *) wvMalloc (sizeof (U16) * (slen + 1));
 		      for (j = 0; j < slen; j++)
 			  anS->u16strings[i][j] = read_16ubit (fd);
 		      anS->u16strings[i][j] = 0;
+		      remaining -= (U32) slen * 2;
 		  }
 		if (anS->extradatalen)
-		    for (j = 0; j < anS->extradatalen; j++)
-			anS->extradata[i][j] = read_8ubit (fd);
+		  {
+		      take = ((U32) anS->extradatalen < remaining)
+			  ? anS->extradatalen : remaining;
+		      for (j = 0; j < (int) take; j++)
+			  anS->extradata[i][j] = read_8ubit (fd);
+		      remaining -= take;
+		  }
 	    }
       }
     else
       {
 	  for (i = 0; i < anS->nostrings; i++)
 	    {
+		anS->s8strings[i] = NULL;
+		if (remaining < 1)
+		    continue;
 		slen = read_8ubit (fd);
-		if (slen == 0)
-		    anS->s8strings[i] = NULL;
-		else
+		remaining -= 1;
+		if ((U32) slen > remaining)
+		    slen = (U16) remaining;
+		if (slen != 0)
 		  {
 		      anS->s8strings[i] = (S8 *) wvMalloc (slen + 1);
 		      for (j = 0; j < slen; j++)
 			  anS->s8strings[i][j] = read_8ubit (fd);
 		      anS->s8strings[i][j] = 0;
+		      remaining -= slen;
 		  }
 		if (anS->extradatalen)
-		    for (j = 0; j < anS->extradatalen; j++)
-			anS->extradata[i][j] = read_8ubit (fd);
+		  {
+		      take = ((U32) anS->extradatalen < remaining)
+			  ? anS->extradatalen : remaining;
+		      for (j = 0; j < (int) take; j++)
+			  anS->extradata[i][j] = read_8ubit (fd);
+		      remaining -= take;
+		  }
 	    }
       }
 }

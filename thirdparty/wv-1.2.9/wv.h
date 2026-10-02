@@ -2020,7 +2020,7 @@ that indicates their length.
 
     int wvSprmLen (int spra);
     void wvGetSprmFromU16 (Sprm * Sprm, U16 sprm);
-    int wvEatSprm (U16 sprm, U8 * pointer, U16 * pos);
+    int wvEatSprm (U16 sprm, U8 * pointer, const U8 * end, U16 * pos);
 
     typedef enum _SprmName {
 	/*

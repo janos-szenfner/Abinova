@@ -604,6 +604,23 @@ below are on `main` but the release has not been cut yet.
   to table/cell properties. Tables at document start and inside
   frames no longer drop their struxes, and merge-covered cells no
   longer leak orphan paragraphs into the table.
+- **`.doc` parser bounds hardening (AddressSanitizer batch)** — a
+  libFuzzer/ASan-instrumented run over a 1000+-file mutated `.doc`
+  corpus found and fixed a further layer of corrupt-input defects in
+  the bundled `wv` parser: sprm operand measurement can no longer
+  read past its buffer (`wvEatSprm` is now buffer-bounded and the
+  `sprmPChgTabs` count fields are clamped to the operand payload),
+  PLC readers reject `lcb` lengths under 4 that previously wrapped
+  into bogus counts, Escher/OfficeArt record lengths are clamped to
+  what the stream actually holds (killing a ~4GB `malloc` and
+  container-walk spins), FKP property pages located past the end of
+  the document stream are rejected instead of looping on zeroed
+  reads, string tables and style sheets bound their element counts
+  and force NUL termination, and the Word 2.0 text walk and the
+  piece-table character walks are bounded by the bytes that exist —
+  a corrupt `fcMac`/piece table can no longer drive gigabytes of
+  appends. All ten fuzz-found reproducer files now import in
+  milliseconds, and the `.doc` corpus converts cleanly.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

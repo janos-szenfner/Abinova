@@ -42,6 +42,16 @@ wvInitEscher (escherstruct * item)
     wvInitDgContainer (&item->dgcontainer);
 }
 
+/* AbiWord: bytes still readable from the stream, clamped at 0.
+   Corrupt record lengths must not drive allocation or loop counts
+   past EOF -- reads at/after end of stream only ever yield zeros */
+static U32
+s_stream_remaining (wvStream * fd)
+{
+    long left = (long) wvStream_size (fd) - (long) wvStream_tell (fd);
+    return (left > 0) ? (U32) left : 0;
+}
+
 void
 wvGetEscher (escherstruct * item, U32 offset, U32 len, wvStream * fd,
 	     wvStream * delay)
@@ -54,7 +64,7 @@ wvGetEscher (escherstruct * item, U32 offset, U32 len, wvStream * fd,
     wvTrace (("offset %x, len %d\n", offset, len));
     wvInitEscher (item);
     base = wvStream_tell (fd);
-    while (count < len)
+    while (count < len && s_stream_remaining (fd) != 0)
       {
 	  long recstart = wvStream_tell (fd);
 	  long recend;
@@ -116,7 +126,7 @@ wvGetDggContainer (DggContainer * item, MSOFBH * msofbh, wvStream * fd,
     U32 count = 0;
     long entry = wvStream_tell (fd);
 
-    while (count < msofbh->cbLength)
+    while (count < msofbh->cbLength && s_stream_remaining (fd) != 0)
       {
 	  long recstart = wvStream_tell (fd);
 	  long recend;
@@ -211,7 +221,7 @@ wvGetBstoreContainer (BstoreContainer * item, MSOFBH * msofbh, wvStream * fd,
     MSOFBH amsofbh;
     U32 count = 0;
     long entry = wvStream_tell (fd);
-    while (count < msofbh->cbLength)
+    while (count < msofbh->cbLength && s_stream_remaining (fd) != 0)
       {
 	  long recstart = wvStream_tell (fd);
 	  long recend;
@@ -271,7 +281,7 @@ wvGetDgContainer (DgContainer * item, MSOFBH * msofbh, wvStream * fd)
     item->spcontainer = NULL;
     item->no_spcontainer = 0;
 
-    while (count < msofbh->cbLength)
+    while (count < msofbh->cbLength && s_stream_remaining (fd) != 0)
       {
 	  long recstart = wvStream_tell (fd);
 	  long recend;
@@ -370,7 +380,7 @@ wvGetSpgrContainer (SpgrContainer * item, MSOFBH * msofbh, wvStream * fd)
     item->spcontainer = NULL;
     item->no_spcontainer = 0;
 
-    while (count < msofbh->cbLength)
+    while (count < msofbh->cbLength && s_stream_remaining (fd) != 0)
       {
 	  long recstart = wvStream_tell (fd);
 	  long recend;
@@ -446,6 +456,10 @@ wvGetSplitMenuColors (SplitMenuColors * splitmenucolors, MSOFBH * amsofbh,
 {
     U32 i = 0;
     splitmenucolors->noofcolors = amsofbh->cbLength / 4;
+    /* cbLength is file-controlled: never claim more colors than the
+       stream still holds */
+    if (splitmenucolors->noofcolors > s_stream_remaining (fd) / 4)
+	splitmenucolors->noofcolors = s_stream_remaining (fd) / 4;
     if (splitmenucolors->noofcolors)
       {
 	  splitmenucolors->colors =
@@ -478,8 +492,17 @@ wvGetDgg (Dgg * dgg, MSOFBH * amsofbh, wvStream * fd)
     count += wvGetFDGG (&dgg->fdgg, fd);
     if (dgg->fdgg.cidcl != 0)
       {
-	  wvTrace (("There are %d bytes left\n", amsofbh->cbLength - count));
-	  no = (amsofbh->cbLength - count) / 8;
+	  /* cbLength is file-controlled: a record shorter than the
+	     FDGG it claims must not wrap this subtraction into a ~4GB
+	     malloc, and only as many FIDCLs as the stream still holds
+	     can exist */
+	  if (amsofbh->cbLength <= count)
+	      no = 0;
+	  else
+	      no = (amsofbh->cbLength - count) / 8;
+	  if (no > s_stream_remaining (fd) / 8)
+	      no = s_stream_remaining (fd) / 8;
+	  wvTrace (("There are %d bytes left\n", no * 8));
 	  if (no != dgg->fdgg.cidcl)
 	    {
 		wvWarning
@@ -603,7 +626,7 @@ wvFindBlipInRegion (Blip * blip, wvStream * fd, U32 len, wvStream * delay,
     int ret = 0;
     long base = wvStream_tell (fd);
 
-    while (count < len)
+    while (count < len && s_stream_remaining (fd) != 0)
       {
 	  long recstart = wvStream_tell (fd);
 	  long recend;
@@ -708,7 +731,7 @@ wvGetFSPContainer (FSPContainer * item, MSOFBH * msofbh, wvStream * fd)
     U32 count = 0;
     long entry = wvStream_tell (fd);
     wvInitFSPContainer (item);
-    while (count < msofbh->cbLength)
+    while (count < msofbh->cbLength && s_stream_remaining (fd) != 0)
       {
 	  long recstart = wvStream_tell (fd);
 	  long recend;
@@ -781,11 +804,15 @@ wvReleaseClientData (ClientData * item)
 U32
 wvGetClientData (ClientData * item, MSOFBH * msofbh, wvStream * fd)
 {
-    U32 i;
-    if (msofbh->cbLength)
+    U32 i, n = msofbh->cbLength;
+    /* cbLength is file-controlled: never allocate or read more than
+       the stream actually holds */
+    if (n > s_stream_remaining (fd))
+	n = s_stream_remaining (fd);
+    if (n)
       {
-	  item->data = (U8 *) wvMalloc (msofbh->cbLength);
-	  for (i = 0; i < msofbh->cbLength; i++)
+	  item->data = (U8 *) wvMalloc (n);
+	  for (i = 0; i < n; i++)
 	      item->data[i] = read_8ubit (fd);
       }
     else
@@ -835,8 +862,13 @@ U32
 wvGetClientTextbox (ClientTextbox * item, MSOFBH * amsofbh, wvStream * fd)
 {
     /* AbiWord: cbLength is file-controlled; a record shorter than a
-       U32 still allocates it, so always reserve 4 bytes and check */
-    item->textid = (U32 *) wvMalloc (amsofbh->cbLength < 4 ? 4 : amsofbh->cbLength);
+       U32 still allocates it, so always reserve 4 bytes and check.
+       Only the first U32 is ever read -- cap the reservation by what
+       the stream can actually hold */
+    U32 n = amsofbh->cbLength;
+    if (n > s_stream_remaining (fd))
+	n = s_stream_remaining (fd);
+    item->textid = (U32 *) wvMalloc (n < 4 ? 4 : n);
     if (item->textid)
 	*item->textid = read_32ubit (fd);
     return (amsofbh->cbLength);

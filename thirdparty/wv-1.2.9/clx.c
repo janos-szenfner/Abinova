@@ -208,6 +208,11 @@ wvGetPieceBoundsFC (U32 * begin, U32 * end, CLX * clx, U32 piececount)
 	    *end = *begin + cpcount;
 	else
 	    *end = *begin + cpcount * 2;
+	/* an inflated cpcount can wrap the end below the begin --
+	   treat the piece as empty rather than let readers walk a
+	   four-gigabyte char range */
+	if (*end < *begin)
+	    *end = *begin;
     }
 
     return (type);
@@ -320,6 +325,10 @@ wvGetEndFCPiece (U32 piece, CLX * clx)
 	fc += offset;
     else
 	fc += offset * 2;
+    /* an inflated offset can wrap the end below the start -- an empty
+       range matches nothing */
+    if (fc < wvNormFC (clx->pcd[piece].fc, NULL))
+	fc = wvNormFC (clx->pcd[piece].fc, NULL);
     wvTrace (("fc is finally %x\n", fc));
     return (fc);
 }

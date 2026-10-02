@@ -143,10 +143,12 @@ wvGetSprmFromU16 (Sprm * aSprm, U16 sprm)
 
 #undef EXAMINE_SPRM
 int
-wvEatSprm (U16 sprm, U8 * pointer, U16 * pos)
+wvEatSprm (U16 sprm, U8 * pointer, const U8 * end, U16 * pos)
 {
     /* returns the operand length in bytes; callers must verify that the
-       returned length does not run past the end of the grpprl buffer */
+       returned length does not run past the end of the grpprl buffer.
+       end is one-past-the-last buffer byte (NULL = unknown) and lets the
+       measurement of count-derived operands stay inside the buffer */
     int len;
     Sprm aSprm;
 #ifdef EXAMINE_SPRM
@@ -160,6 +162,37 @@ wvEatSprm (U16 sprm, U8 * pointer, U16 * pos)
     if (sprm == sprmPChgTabs)
       {
 	  wvTrace (("sprmPChgTabs\n"));
+	  if (end != NULL)
+	    {
+		U8 dmx, amx;
+
+		/* cch < 255 is the operand length itself; cch == 255 means
+		   the counts define it -- probe only the two count bytes,
+		   clamped to itbdMax, never reading outside the buffer.
+		   An unmeasurable operand returns a length past the end so
+		   every caller's bound check stops the walk */
+		if (pointer >= end)
+		    return (0x40000000);
+		if (pointer[0] != 255)
+		  {
+		      len = pointer[0] + 1;
+		      (*pos) += len;
+		      return (len);
+		  }
+		if (pointer + 2 > end)
+		    return (0x40000000);
+		dmx = pointer[1];
+		if (dmx > itbdMax)
+		    dmx = itbdMax;
+		if (pointer + 2 + 4 * (U32) dmx >= end)
+		    return (0x40000000);
+		amx = pointer[2 + 4 * dmx];
+		if (amx > itbdMax)
+		    amx = itbdMax;
+		len = 3 + 4 * dmx + 3 * amx;
+		(*pos) += len;
+		return (len);
+	    }
 	  len = wvApplysprmPChgTabs (NULL, pointer, pos);
 	  len++;
 	  return (len);
@@ -580,13 +613,13 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  break;
       case sprmPCnf:		/* conditional table-style formatting;
 				   only valid inside table styles */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmPIstdListPermute:	/* MUST be ignored (MS-DOC) */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmPTIstdInfo:	/* MUST be ignored (MS-DOC) */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmPTableProps:	/* 0x646B: PrcData in Data stream;
 				   same handling as sprmPHugePapx */
@@ -681,7 +714,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  achp->fSpecVanish = bread_8ubit (pointer, pos);
 	  break;
       case sprmCFMathPr:	/* MathPrOperand; equation justification */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmCIstd:
 	  achp->istd = bread_16ubit (pointer, pos);
@@ -900,13 +933,13 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  achp->fNoProof = bread_8ubit (pointer, pos);
 	  break;
       case sprmCFitText:	/* CFitTextOperand; no Abi equivalent */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmCCvUl:
 	  achp->cvUl = bread_32ubit (pointer, pos);
 	  break;
       case sprmCFELayout:	/* FarEastLayoutOperand */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmCLbcCRJ:		/* LBCOperand; line-break char kind */
 	  bread_8ubit (pointer, pos);
@@ -920,7 +953,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  bread_8ubit (pointer, pos);
 	  break;
       case sprmCCnf:		/* conditional table-style formatting */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmCNeedFontFixup:
 	  achp->fNeedFontFixup = bread_8ubit (pointer, pos);
@@ -1201,7 +1234,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  apap->ptap.dyaRowHeight = (S16) bread_16ubit (pointer, pos);
 	  break;
       case sprmTDiagLine:
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmTHTMLProps:
 	  apap->ptap.lwHTMLProps = (S32) bread_32ubit (pointer, pos);
@@ -1403,7 +1436,7 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	  break;
       case sprmTPropRMark:
       case sprmTCnf:
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmTCellVertAlignStyle:
       case sprmTCellNoWrapStyle:
@@ -1426,13 +1459,13 @@ wvApplySprmFromBucket (wvVersion ver, U16 sprm, PAP * apap, CHP * achp,
 	   */
 
       case sprmPRuler:		/* ???? variable-length; skip it safely */
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       case sprmNoop:		/* no operand */
 	  break;
       default:
 	wvTrace(("unknown sprm: %d\n", sprm));
-	  wvEatSprm (sprm, pointer, pos);
+	  wvEatSprm (sprm, pointer, NULL, pos);
 	  break;
       }
 
@@ -1559,12 +1592,25 @@ wvApplysprmPChgTabsPapx (PAP * apap, U8 * pointer, U16 * pos)
     S16 *rgdxaAdd;
     int add = 0;
     TBD *rgtbdAdd;
+    U32 rem;
 
     oldpos = *pos;
     cch = dread_8ubit (NULL, &pointer);
     (*pos)++;
-    itbdDelMax = dread_8ubit (NULL, &pointer);
-    (*pos)++;
+    /* cch counts the operand bytes that follow it; the del/add counts
+       of a corrupt operand must not drive reads past it */
+    rem = cch;
+
+    if (rem == 0)
+	itbdDelMax = 0;
+    else
+      {
+	  itbdDelMax = dread_8ubit (NULL, &pointer);
+	  (*pos)++;
+	  rem--;
+      }
+    if ((U32) itbdDelMax * 2 > rem)
+	itbdDelMax = (U8) (rem / 2);
     if (itbdDelMax != 0)
       {
 	  rgdxaDel = (S16 *) wvMalloc (sizeof (U16) * itbdDelMax);
@@ -1573,12 +1619,22 @@ wvApplysprmPChgTabsPapx (PAP * apap, U8 * pointer, U16 * pos)
 		rgdxaDel[i] = (S16) dread_16ubit (NULL, &pointer);
 		(*pos) += 2;
 	    }
+	  rem -= (U32) itbdDelMax * 2;
       }
     else
 	rgdxaDel = NULL;
-    itbdAddMax = dread_8ubit (NULL, &pointer);
-    wvTrace (("itbdAddMax is %d\n", itbdAddMax));
-    (*pos)++;
+    if (rem == 0)
+	itbdAddMax = 0;
+    else
+      {
+	  itbdAddMax = dread_8ubit (NULL, &pointer);
+	  wvTrace (("itbdAddMax is %d\n", itbdAddMax));
+	  (*pos)++;
+	  rem--;
+      }
+    /* each add entry costs 2 rgdxa bytes + 1 TBD byte */
+    if ((U32) itbdAddMax * 3 > rem)
+	itbdAddMax = (U8) (rem / 3);
     if (itbdAddMax != 0)
       {
 	  rgdxaAdd = (S16 *) wvMalloc (sizeof (U16) * itbdAddMax);
@@ -1588,6 +1644,7 @@ wvApplysprmPChgTabsPapx (PAP * apap, U8 * pointer, U16 * pos)
 		wvTrace (("stops are %d\n", rgdxaAdd[i]));
 		(*pos) += 2;
 	    }
+	  rem -= (U32) itbdAddMax * 2;
 	  rgtbdAdd = (TBD *) wvMalloc (itbdAddMax * sizeof (TBD));
 	  for (i = 0; i < itbdAddMax; i++)
 	    {
@@ -1602,10 +1659,9 @@ wvApplysprmPChgTabsPapx (PAP * apap, U8 * pointer, U16 * pos)
 	  rgtbdAdd = NULL;
       }
 
-#ifdef DEBUG
-    if (*pos - oldpos != cch + 1)
-	wvTrace (("Offset Problem in wvApplysprmPChgTabsPapx\n"));
-#endif
+    /* the sprm occupies exactly cch+1 bytes no matter what the counts
+       claimed -- keep the caller's sprm walk in sync */
+    *pos = oldpos + cch + 1;
 
     /*
        When sprmPChgTabsPapx is interpreted, the rgdxaDel of the sprm is applied
@@ -1703,6 +1759,8 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
     int add = 0;
     int retlen;
     U8 i, j, k = 0;
+    U32 rem;
+    int oldpos;
 
     wvTrace (("entering wvApplysprmPChgTabs\n"));
     /*
@@ -1716,8 +1774,28 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
     cch = dread_8ubit (NULL, &pointer);
     wvTrace (("cch is %d\n", cch));
     (*pos)++;
-    itbdDelMax = dread_8ubit (NULL, &pointer);
-    (*pos)++;
+    oldpos = *pos;
+
+    /* bound every internal count: for cch < 255 by the declared
+       operand payload, for cch == 255 only by itbdMax (the counts
+       define the length then; the caller measured the operand against
+       the buffer already, and the pap cannot merge more than itbdMax
+       stops anyway) */
+    rem = (cch == 255) ? 0xffffffffU : (U32) cch;
+
+    if (rem == 0)
+	itbdDelMax = 0;
+    else
+      {
+	  itbdDelMax = dread_8ubit (NULL, &pointer);
+	  (*pos)++;
+	  rem--;
+      }
+    if (itbdDelMax > itbdMax)
+	itbdDelMax = itbdMax;
+    /* each del entry costs 2 rgdxa + 2 rgdxaClose bytes */
+    if ((U32) itbdDelMax * 4 > rem)
+	itbdDelMax = (U8) (rem / 4);
 
     wvTrace (("itbdDelMax is %d\n", itbdDelMax));
     if (itbdDelMax != 0)
@@ -1734,15 +1812,27 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
 		rgdxaClose[i] = dread_16ubit (NULL, &pointer);
 		(*pos) += 2;
 	    }
+	  rem -= (U32) itbdDelMax * 4;
       }
     else
       {
 	  rgdxaDel = NULL;
 	  rgdxaClose = NULL;
       }
-    itbdAddMax = dread_8ubit (NULL, &pointer);
+    if (rem == 0)
+	itbdAddMax = 0;
+    else
+      {
+	  itbdAddMax = dread_8ubit (NULL, &pointer);
+	  (*pos)++;
+	  rem--;
+      }
+    if (itbdAddMax > itbdMax)
+	itbdAddMax = itbdMax;
+    /* each add entry costs 2 rgdxa + 1 TBD bytes */
+    if ((U32) itbdAddMax * 3 > rem)
+	itbdAddMax = (U8) (rem / 3);
     wvTrace (("itbdAddMax is %d\n", itbdAddMax));
-    (*pos)++;
     if (itbdAddMax != 0)
       {
 	  rgdxaAdd = (S16 *) wvMalloc (sizeof (S16) * itbdAddMax);
@@ -1772,6 +1862,10 @@ wvApplysprmPChgTabs (PAP * apap, U8 * pointer, U16 * pos)
     retlen = cch;
     if (cch == 255)
 	retlen = 2 + itbdDelMax * 4 + itbdAddMax * 3;
+
+    /* the sprm occupies exactly retlen+1 bytes no matter what the
+       counts claimed -- keep the caller's sprm walk in sync */
+    *pos = (U16) (oldpos + retlen);
 
     /*
        When sprmPChgTabs is interpreted, the rgdxaDel of the sprm is applied first
@@ -2000,7 +2094,7 @@ wvApplysprmPHugePapx (PAP * apap, U8 * pointer, U16 * pos, wvStream * data,
 	  pointer2 = grpprl + i;
 	  /* reject operands that would run past the end of the grpprl */
 	  scratch = i;
-	  oplen = wvEatSprm (sprm, pointer2, &scratch);
+	  oplen = wvEatSprm (sprm, pointer2, grpprl + len, &scratch);
 	  if ((U32) i + (U32) oplen > (U32) len)
 	      break;
 	  wvApplySprmFromBucket (WORD8, sprm, apap, NULL, NULL, stsh,

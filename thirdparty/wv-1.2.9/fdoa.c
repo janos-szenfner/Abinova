@@ -38,7 +38,8 @@ wvGetFDOA_PLCF (FDOA ** fdoa, U32 ** pos, U32 * nofdoa, U32 offset, U32 len,
 		wvStream * fd)
 {
     U32 i;
-    if ((len == 0) || (offset == 0))
+    /* len < 4 would underflow the (len - 4) count below */
+    if ((len < 4) || (offset == 0))
       {
 	  *fdoa = NULL;
 	  *pos = NULL;

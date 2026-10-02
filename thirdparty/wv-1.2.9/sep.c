@@ -204,7 +204,8 @@ wvAddSEPXFromBucket (SEP * asep, SEPX * item, STSH * stsh)
 	  /* reject operands that would run past the end of the grpprl;
 	     the handler would read them out of bounds */
 	  scratch = i;
-	  oplen = wvEatSprm (sprm, pointer, &scratch);
+	  oplen = wvEatSprm (sprm, pointer, item->grpprl + item->cb,
+			     &scratch);
 	  if ((U32) i + (U32) oplen > (U32) item->cb)
 	      break;
 	  RetSprm =
@@ -250,7 +251,8 @@ wvAddSEPXFromBucket6 (SEP * asep, SEPX * item, STSH * stsh)
 #endif
 	  pointer = item->grpprl + i;
 	  scratch = i;
-	  oplen = wvEatSprm (sprm, pointer, &scratch);
+	  oplen = wvEatSprm (sprm, pointer, item->grpprl + item->cb,
+			     &scratch);
 	  if ((U32) i + (U32) oplen > (U32) item->cb)
 	      break;
 	  RetSprm =

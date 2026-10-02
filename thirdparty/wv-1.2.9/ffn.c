@@ -237,7 +237,8 @@ wvGetFRD_PLCF (FRD ** frd, U32 ** pos, int *nofrd, U32 offset, U32 len,
 	       wvStream * fd)
 {
     int i;
-    if (len == 0)
+    /* len < 4 would underflow the (len - 4) count below */
+    if (len < 4)
       {
 	  *frd = NULL;
 	  *pos = NULL;

@@ -161,7 +161,9 @@ int wvIsBidiDocumentComplex (wvParseStruct * ps)
 		*/
 		char_fcLim = beginfc;
 
-		for (i = begincp, j = beginfc; (i < endcp /*&& i<ps->fib.ccpText */ );
+		/* bound by the piece's byte extent as well -- see
+		   wvDecodeSimple */
+		for (i = begincp, j = beginfc; i < endcp && j < endfc;
 			 i++, j += wvIncFC (chartype))
 	    {
 			ps->currentcp = i;
@@ -422,7 +424,9 @@ int wvIsBidiDocumentSimple(wvParseStruct * ps, subdocument whichdoc)
 		*/
 		char_fcLim = beginfc;
 		wvTrace (("%d %d %d\n", begincp, endcp, ps->fib.ccpText));
-		for (i = begincp, j = beginfc; (i < endcp /*&& i<ps->fib.ccpText */ );
+		/* bound by the piece's byte extent as well -- see
+		   wvDecodeSimple */
+		for (i = begincp, j = beginfc; i < endcp && j < endfc;
 			 i++, j += wvIncFC (chartype))
 	    {
 			if ((section_fcLim == 0xffffffff) || (section_fcLim == j))

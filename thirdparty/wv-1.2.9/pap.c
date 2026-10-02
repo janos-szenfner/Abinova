@@ -69,7 +69,9 @@ wvAddPAPXFromBucket (PAP * apap, UPXF * upxf, STSH * stsh, wvStream * data)
 		/* reject operands that would run past the end of the
 		   grpprl; the handler would read them out of bounds */
 		scratch = i;
-		oplen = wvEatSprm (sprm, pointer, &scratch);
+		oplen = wvEatSprm (sprm, pointer,
+				   upxf->upx.papx.grpprl + upxf->cbUPX,
+				   &scratch);
 		if ((U32) i + (U32) oplen > (U32) upxf->cbUPX)
 		    break;
 		wvApplySprmFromBucket (WORD8, sprm, apap, NULL, NULL, stsh,
@@ -122,7 +124,9 @@ wvAddPAPXFromBucket6 (PAP * apap, UPXF * upxf, STSH * stsh)
 		U16 scratch;
 		int oplen;
 		scratch = i;
-		oplen = wvEatSprm (sprm, pointer, &scratch);
+		oplen = wvEatSprm (sprm, pointer,
+				   upxf->upx.papx.grpprl + upxf->cbUPX,
+				   &scratch);
 		if ((U32) i + (U32) oplen > (U32) upxf->cbUPX)
 		    break;
 		wvApplySprmFromBucket (WORD6, sprm, apap, NULL, NULL, stsh,
@@ -327,7 +331,10 @@ wvAssembleSimplePAP (wvVersion ver, PAP * apap, U32 fc, PAPX_FKP * fkp, wvParseS
     index = wvGetIndexFCInFKP_PAPX (fkp, fc);
 
     wvTrace (("index is %d, using %d\n", index, index - 1));
-    papx = &(fkp->grppapx[index - 1]);
+    /* AbiWord: grppapx has crun entries -- an unreadable or crun==0 FKP
+       must not be indexed */
+    papx = (index > 0 && index <= fkp->crun && fkp->grppapx)
+	? &(fkp->grppapx[index - 1]) : NULL;
 
     if (papx)
       {
@@ -358,7 +365,7 @@ wvAssembleSimplePAP (wvVersion ver, PAP * apap, U32 fc, PAPX_FKP * fkp, wvParseS
     if (papx)
 	apap->istd = papx->istd;
 
-    if (fkp->rgbx != NULL)
+    if (fkp->rgbx != NULL && index > 0 && index <= fkp->crun)
       wvCopyPHE (&apap->phe, &(fkp->rgbx[index - 1].phe), apap->fTtp);
 
 	/*

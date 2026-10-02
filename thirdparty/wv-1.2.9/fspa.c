@@ -74,7 +74,8 @@ wvGetFSPA_PLCF (FSPA ** fspa, U32 ** pos, U32 * nofspa, U32 offset, U32 len,
 		wvStream * fd)
 {
     U32 i;
-    if (len == 0)
+    /* len < 4 would underflow the (len - 4) count below */
+    if (len < 4)
       {
 	  *fspa = NULL;
 	  *pos = NULL;

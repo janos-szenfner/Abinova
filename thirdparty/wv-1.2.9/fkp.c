@@ -165,6 +165,21 @@ wvGetPAPX_FKP (wvVersion ver, PAPX_FKP * fkp, U32 pn, wvStream * fd)
     wvTrace (
 	     ("seeking to %x to get crun\n",
 	      pn * WV_PAGESIZE + (WV_PAGESIZE - 1)));
+    /* AbiWord: a page wholly past the end of the stream is unreadable.
+       wvStream_read zero-fills short reads and reports success, so a
+       corrupt pn can no longer be caught by the read's return value --
+       without this bound the FKP page-walk loops in
+       wvGetSimpleParaBounds/wvGetSimpleCharBounds spin forever on
+       zeroed pages */
+    if (pn >= (wvStream_size (fd) + WV_PAGESIZE - 1) / WV_PAGESIZE)
+      {
+	  wvError (("PAPX FKP page %u past end of stream\n", pn));
+	  fkp->crun = 0;
+	  fkp->rgfc = NULL;
+	  fkp->rgbx = NULL;
+	  fkp->grppapx = NULL;
+	  return;
+      }
     wvStream_goto (fd, pn * WV_PAGESIZE);
     /* AbiWord: a corrupt file can point us past EOF -- without this check
        'page' stays uninitialized and crun becomes garbage */
@@ -249,6 +264,9 @@ wvSearchNextLargestFCPAPX_FKP (PAPX_FKP * fkp, U32 currentfc)
     U8 until = fkp->crun + 1;
     U32 fcTest = 0;
 
+    /* unreadable FKP page -- nothing to search */
+    if (fkp->rgfc == NULL)
+	return (fcTest);
 
     while (i < until)
       {
@@ -277,6 +295,9 @@ wvSearchNextLargestFCCHPX_FKP (CHPX_FKP * fkp, U32 currentfc)
     U8 until = fkp->crun + 1;
     U32 fcTest = 0;
 
+    /* unreadable FKP page -- nothing to search */
+    if (fkp->rgfc == NULL)
+	return (fcTest);
 
     while (i < until)
       {
@@ -307,6 +328,10 @@ wvSearchNextSmallestFCPAPX_FKP (PAPX_FKP * fkp, U32 currentfc)
     U32 i = 0;
     U32 fcTest = 0xffffffffL;
     U8 until = fkp->crun + 1;
+
+    /* unreadable FKP page -- nothing to search */
+    if (fkp->rgfc == NULL)
+	return (fcTest);
 
     while (i < until)
       {
@@ -343,6 +368,10 @@ wvGetIndexFCInFKP_PAPX (PAPX_FKP * fkp, U32 currentfc)
 {
     U32 i = 1;			/*was 0, there is something slightly out of sync in the system */
     U8 until = fkp->crun + 1;
+
+    /* unreadable FKP page -- same fallback as a failed search */
+    if (fkp->rgfc == NULL)
+	return (1);
 
     while (i < until)
       {
@@ -428,6 +457,17 @@ wvGetCHPX_FKP (wvVersion ver, CHPX_FKP * fkp, U32 pn, wvStream * fd)
     if (pn != 0 && pn == wvCHPX_pn_previous)
       {
 	  s_CopyCHPX_FKP (fkp, &wvCHPX_FKP_previous);
+	  return;
+      }
+    /* AbiWord: a page wholly past the end of the stream is unreadable --
+       see wvGetPAPX_FKP */
+    if (pn >= (wvStream_size (fd) + WV_PAGESIZE - 1) / WV_PAGESIZE)
+      {
+	  wvError (("CHPX FKP page %u past end of stream\n", pn));
+	  fkp->crun = 0;
+	  fkp->rgfc = NULL;
+	  fkp->rgb = NULL;
+	  fkp->grpchpx = NULL;
 	  return;
       }
     wvStream_goto (fd, pn * WV_PAGESIZE);

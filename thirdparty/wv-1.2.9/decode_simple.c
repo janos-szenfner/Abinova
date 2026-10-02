@@ -235,7 +235,12 @@ wvDecodeSimple (wvParseStruct * ps, subdocument whichdoc)
       {
 	  wvHandleDocument (ps, DOCBEGIN);
 	  wvStream_goto (ps->mainfd, ps->fib.fcMin);
-	  for (i = ps->fib.fcMin; i < ps->fib.fcMac; i++)
+	  /* AbiWord: fcMac is file-controlled -- a corrupt fib can claim
+	     gigabytes of text, and reads past EOF only yield zeros while
+	     the char handler appends each one, so clamp the walk to the
+	     bytes the stream actually holds */
+	  for (i = ps->fib.fcMin;
+	       i < ps->fib.fcMac && i < wvStream_size (ps->mainfd); i++)
 	    {
 		eachchar = wvGetChar (ps->mainfd, 1);
 		(*(ps->charhandler)) (ps, eachchar, 1, ps->fib.lid);
@@ -302,7 +307,11 @@ wvDecodeSimple (wvParseStruct * ps, subdocument whichdoc)
 	   */
 	  char_fcLim = beginfc;
 	  wvTrace (("%d %d %d\n", begincp, endcp, ps->fib.ccpText));
-	  for (i = begincp, j = beginfc; (i < endcp /*&& i<ps->fib.ccpText */ );
+	  /* AbiWord: bound the walk by the piece's byte extent too -- a
+	     corrupt piece table can claim more CPs than the fc range
+	     holds (incl. an endfc that wrapped below the stream size),
+	     and only the bytes actually exist to read */
+	  for (i = begincp, j = beginfc; i < endcp && j < endfc;
 	       i++, j += wvIncFC (chartype))
 	    {
 		/* character properties */

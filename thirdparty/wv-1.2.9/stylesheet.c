@@ -279,6 +279,10 @@ wvGetSTD (STD * item, U16 baselen, U16 fixedlen, wvStream * fd)
 
 	  wvTrace (("sample letter is %c\n", item->xstzName[i]));
       }
+    /* corrupt files may not supply the terminating NUL -- force one
+       inside the allocation (allocName stays len+1 on the 8-bit path
+       and can only grow on the unicode path) */
+    item->xstzName[allocName - 1] = 0;
     g_iconv_close(conv);
     wvTrace (("string ended\n"));
 
@@ -357,7 +361,12 @@ wvGetSTD (STD * item, U16 baselen, U16 fixedlen, wvStream * fd)
 		    item->grupxf[i].upx.papx.grpprl =
 			(U8 *) wvMalloc (item->grupxf[i].cbUPX - 2);
 		else
-		    item->grupxf[i].upx.papx.grpprl = NULL;
+		  {
+		      /* istd-only papx: nothing to walk, so don't leave
+			 a count that claims there is */
+		      item->grupxf[i].upx.papx.grpprl = NULL;
+		      item->grupxf[i].cbUPX = 0;
+		  }
 		for (j = 0; j + 2 < item->grupxf[i].cbUPX; j++)
 		  {
 		      item->grupxf[i].upx.papx.grpprl[j] = read_8ubit (fd);
@@ -369,6 +378,8 @@ wvGetSTD (STD * item, U16 baselen, U16 fixedlen, wvStream * fd)
 		wvTrace (("Strange cupx option\n"));
 		wvStream_offset (fd, item->grupxf[i].cbUPX);
 		pos += item->grupxf[i].cbUPX;
+		/* no grpprl was materialized for this entry */
+		item->grupxf[i].cbUPX = 0;
 	    }
       }
 
@@ -508,7 +519,8 @@ wvGetSTSH (STSH * item, U32 offset, U32 len, wvStream * fd)
 void
 wvGenerateStyle (STSH * item, U16 i, U16 word6)
 {
-    if (item->std[i].cupx == 0)
+    if (item->std[i].cupx == 0 || item->std[i].grupe == NULL
+	|| item->std[i].grupxf == NULL)
       {
 	  wvTrace (("Empty Slot %d\n", i));
 	  return;

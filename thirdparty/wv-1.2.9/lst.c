@@ -147,7 +147,8 @@ wvGetLSTF_PLCF (LSTF ** lstf, U32 ** pos, U32 * nolstf, U32 offset, U32 len,
 		wvStream * fd)
 {
     U32 i;
-    if (len == 0)
+    /* len < 4 would underflow the (len - 4) count below */
+    if (len < 4)
       {
 	  *lstf = NULL;
 	  *pos = NULL;

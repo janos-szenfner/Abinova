@@ -62,7 +62,8 @@ wvAddCHPXFromBucket (CHP * achp, UPXF * upxf, STSH * stsh)
 	  /* AbiWord: reject operands that run past the end of the bucket --
 	     the handler would read them out of bounds */
 	  scratch = i;
-	  oplen = wvEatSprm (sprm, pointer, &scratch);
+	  oplen = wvEatSprm (sprm, pointer,
+			     upxf->upx.chpx.grpprl + upxf->cbUPX, &scratch);
 	  if ((U32) i + (U32) oplen > upxf->cbUPX)
 	      break;
 	  wvApplySprmFromBucket (WORD8, sprm, NULL, achp, NULL, stsh, pointer,
@@ -95,7 +96,8 @@ wvApplyCHPXFromBucket (CHP * achp, CHPX * chpx, STSH * stsh)
 	  wvTrace (("the sprm is %d\n", sprm));
 	  pointer = chpx->grpprl + i;
 	  scratch = i;
-	  oplen = wvEatSprm (sprm, pointer, &scratch);
+	  oplen = wvEatSprm (sprm, pointer,
+			     chpx->grpprl + chpx->cbGrpprl, &scratch);
 	  if ((U32) i + (U32) oplen > chpx->cbGrpprl)
 	      break;		/* truncated operand: stop */
 	  wvApplySprmFromBucket (WORD8, sprm, NULL, achp, NULL, stsh, pointer,
@@ -139,7 +141,8 @@ wvAddCHPXFromBucket6 (CHP * achp, UPXF * upxf, STSH * stsh)
 
 	  pointer = upxf->upx.chpx.grpprl + i;
 	  scratch = i;
-	  oplen = wvEatSprm (sprm, pointer, &scratch);
+	  oplen = wvEatSprm (sprm, pointer,
+			     upxf->upx.chpx.grpprl + upxf->cbUPX, &scratch);
 	  if ((U32) i + (U32) oplen > upxf->cbUPX)
 	      break;		/* truncated operand: stop */
 	  wvApplySprmFromBucket (WORD6, sprm, NULL, achp, NULL, stsh, pointer,
@@ -172,7 +175,8 @@ wvInitCHPFromIstd (CHP * achp, U16 istdBase, STSH * stsh)
 	    }
 	  else
 	    {
-		if (stsh->std[istdBase].cupx == 0)	/*empty slot in the array, i don't think this should happen */
+		if (stsh->std[istdBase].cupx == 0
+		    || stsh->std[istdBase].grupe == NULL)	/*empty slot in the array, i don't think this should happen */
 		  {
 		      wvTrace (("Empty style slot used (chp)\n"));
 		      wvInitCHP (achp);
@@ -183,8 +187,14 @@ wvInitCHPFromIstd (CHP * achp, U16 istdBase, STSH * stsh)
 		      switch (stsh->std[istdBase].sgc)
 			{
 			case sgcPara:
-			    wvCopyCHP (achp,
-				       &(stsh->std[istdBase].grupe[1].achp));
+			    /* a para style's character props live in
+			       grupe[1]; a truncated style with only one
+			       UPE has none, so start from a blank CHP */
+			    if (stsh->std[istdBase].cupx < 2)
+				wvInitCHP (achp);
+			    else
+				wvCopyCHP (achp,
+					   &(stsh->std[istdBase].grupe[1].achp));
 			    break;
 			case sgcChp:
 			    wvInitCHP (achp);
@@ -581,12 +591,13 @@ wvMergeCHPXFromBucket (CHPX * dest, UPXF * src)
     InitBintree (&tree, wvCompLT, wvCompEQ);
     pointer = dest->grpprl;
 
-    while (i + 2 <= dest->cbGrpprl)
+    while (pointer != NULL && i + 2 <= dest->cbGrpprl)
       {
 	  U16 scratch = 0;
 	  wvTrace (("gotcha the sprm is %x\n", *((U16 *) pointer)));
 	  sprm = sread_16ubit (pointer);
-	  temp = wvEatSprm (sprm, pointer + 2, &scratch);
+	  temp = wvEatSprm (sprm, pointer + 2,
+			    dest->grpprl + dest->cbGrpprl, &scratch);
 	  if ((U32) i + 2 + (U32) temp > dest->cbGrpprl)
 	      break;		/* operand runs past the buffer: stop */
 	  test = InsertNode (&tree, (void *) pointer);
@@ -600,11 +611,12 @@ wvMergeCHPXFromBucket (CHPX * dest, UPXF * src)
 
     i = 0;
     pointer = src->upx.chpx.grpprl;
-    while (i + 2 <= src->cbUPX)
+    while (pointer != NULL && i + 2 <= src->cbUPX)
       {
 	  U16 scratch = 0;
 	  sprm = sread_16ubit (pointer);
-	  temp = wvEatSprm (sprm, pointer + 2, &scratch);
+	  temp = wvEatSprm (sprm, pointer + 2,
+			    src->upx.chpx.grpprl + src->cbUPX, &scratch);
 	  if ((U32) i + 2 + (U32) temp > src->cbUPX)
 	      break;		/* operand runs past the buffer: stop */
 	  /*wvTrace(("gotcha 2 the sprm is %x\n",*((U16 *)pointer))); */
@@ -639,7 +651,9 @@ wvMergeCHPXFromBucket (CHPX * dest, UPXF * src)
 	  pointer += 2;
 
 	  i = 0;
-	  temp = wvEatSprm (sprm, pointer, &i);
+	  /* tree nodes point into either operand buffer; both were
+	     bounded at insertion, so no end bound is available here */
+	  temp = wvEatSprm (sprm, pointer, NULL, &i);
 	  wvTrace (("i is now %d\n", i));
 
 	  /* never write past the allocated grpprl */
@@ -668,7 +682,8 @@ wvMergeCHPXFromBucket (CHPX * dest, UPXF * src)
       {
 	  U16 scratch = 0;
 	  sprm = sread_16ubit (pointer);
-	  temp = wvEatSprm (sprm, pointer + 2, &scratch);
+	  temp = wvEatSprm (sprm, pointer + 2,
+			    dest->grpprl + dest->cbGrpprl, &scratch);
 	  if ((U32) i + 2 + (U32) temp > dest->cbGrpprl)
 	      break;
 	  sprm = dread_16ubit (NULL, &pointer);
@@ -692,7 +707,7 @@ wvUpdateCHPXBucket (UPXF * src)
     U8 *grpprl = NULL;
 
     i = 0;
-    if (src->cbUPX == 0)
+    if (src->cbUPX == 0 || src->upx.chpx.grpprl == NULL)
 	return;
     pointer = src->upx.chpx.grpprl;
     wvTrace (("Msrc->cbUPX len is %d\n", src->cbUPX));
@@ -711,7 +726,8 @@ wvUpdateCHPXBucket (UPXF * src)
 	  i++;
 	  len += 2;
 	  avail = (U16) (src->cbUPX - i);
-	  temp = wvEatSprm (sprm, pointer, &i);
+	  temp = wvEatSprm (sprm, pointer,
+			    src->upx.chpx.grpprl + src->cbUPX, &i);
 	  wvTrace (("Mlen of op is %d\n", temp));
 	  if (temp > avail)
 	    {
@@ -742,7 +758,8 @@ wvUpdateCHPXBucket (UPXF * src)
 	  *dpointer++ = (sprm & 0x00FF);
 	  *dpointer++ = (sprm & 0xff00) >> 8;
 	  avail = (U16) (src->cbUPX - i);
-	  temp = wvEatSprm (sprm, pointer, &i);
+	  temp = wvEatSprm (sprm, pointer,
+			    src->upx.chpx.grpprl + src->cbUPX, &i);
 	  if (temp > avail)
 	    {
 		temp = avail;
@@ -797,7 +814,10 @@ wvAssembleSimpleCHP (wvVersion ver, CHP * achp, const PAP * apap, U32 fc, CHPX_F
 
 		wvTrace (("index is %d, using %d\n", index, index - 1));
 
-		chpx = &(fkp->grpchpx[index - 1]);
+		/* grpchpx has crun entries -- an unreadable or crun==0 FKP
+		   must not be indexed */
+		chpx = (index > 0 && index <= fkp->crun && fkp->grpchpx)
+		    ? &(fkp->grpchpx[index - 1]) : NULL;
 
 		/* apply CHPX from FKP */
 		if ((chpx) && (chpx->cbGrpprl > 0))
