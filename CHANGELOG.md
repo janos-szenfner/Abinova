@@ -2550,6 +2550,16 @@ below are on `main` but the release has not been cut yet.
   `getParentData`, `XAP_App::rememberFocussedFrame`) is now a real
   `XAP_Frame*` instead of `void*`, so passing a non-frame pointer is
   a compile-time error.
+- **Virtual-destructor audit (OO01)** — a `-Wdelete-non-virtual-dtor`
+  syntax scan of every translation unit plus a scripted
+  class-hierarchy audit (1,046 classes, 721 polymorphic) found no
+  live delete-through-base-pointer UB, but five polymorphic bases
+  lacked a virtual destructor: `XAP_Drawable`, `XAP_CustomWidget`,
+  `XAP_UnixCustomWidget`, `XAP_UnixDialog` and `AP_UnixRuler`.  All
+  now have one, closing the latent UB hole for the dialog mixin and
+  the drawable/ruler hierarchy.  Also fixed a bad `static_cast`
+  between unrelated pointer types in `UT_CRC32::GetCrcByte`
+  (regression from the TS03 cast sweep, hidden by stale depfiles).
 
 ### GTK4 port (core migration)
 

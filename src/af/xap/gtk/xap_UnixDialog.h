@@ -29,6 +29,7 @@ public:
         : m_windowMain(nullptr)
         {
         }
+    virtual ~XAP_UnixDialog() {}
 
 protected:
     virtual void connectBasicSignals();

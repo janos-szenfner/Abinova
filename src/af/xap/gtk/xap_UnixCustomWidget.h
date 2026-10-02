@@ -27,6 +27,7 @@
 class XAP_UnixCustomWidget: virtual public XAP_CustomWidget
 {
 public:
+	virtual ~XAP_UnixCustomWidget() {}
 	virtual GtkWidget *getWidget() = 0;
 
 protected:

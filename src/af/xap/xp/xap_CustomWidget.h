@@ -30,6 +30,7 @@ class ABI_EXPORT XAP_CustomWidget
     : public XAP_Drawable
 {
 public:
+    virtual ~XAP_CustomWidget() {}
     virtual void queueDrawLU(const UT_Rect* clip);
     virtual void drawImmediate(const UT_Rect* clip) override;
     virtual void queueDraw(const UT_Rect *clip = nullptr) override;

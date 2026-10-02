@@ -39,6 +39,7 @@ class AP_UnixRuler
 {
 public:
     AP_UnixRuler(XAP_Frame* pFrame);
+    virtual ~AP_UnixRuler() {}
 
     virtual GtkWidget* getWidget() override
         { return m_wRuler; }
