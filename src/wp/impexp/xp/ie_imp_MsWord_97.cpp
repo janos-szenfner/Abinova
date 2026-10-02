@@ -2070,11 +2070,9 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 		return 0;
 	}
 	
+#ifdef SUPPORTS_OLD_IMAGES
 	Blip blip;
 	long pos;
-	FSPA * fspa;
-	//FDOA * fdoa;
-#ifdef SUPPORTS_OLD_IMAGES
 	wvStream *fil;
 	PICF picf;
 #endif
@@ -2213,425 +2211,436 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 #endif
 		break;
 	case 0x08: // Word 97, 2000, XP image
-		if (wvQuerySupported(&ps->fib, nullptr) >= WORD8) // sanity check
+		return _specCharImage08 (ps);
+	}
+
+	return 0;
+}
+
+/*! handle a 0x08 embedded-object marker (Word97+): resolve the FSPA
+ * anchor to its escher shape and emit a positioned image or
+ * textbox frame. Returns 1 when a frame strux was emitted. */
+int IE_Imp_MsWord_97::_specCharImage08 (wvParseStruct *ps)
+{
+	Blip blip;
+	FSPA * fspa;
+
+	if (wvQuerySupported(&ps->fib, nullptr) >= WORD8) // sanity check
+	{
+		if (ps->nooffspa > 0)
 		{
-			if (ps->nooffspa > 0)
+
+			fspa = wvGetFSPAFromCP(ps->currentcp, ps->fspa,
+								   ps->fspapos, ps->nooffspa);
+
+			if(!fspa)
 			{
-
-				fspa = wvGetFSPAFromCP(ps->currentcp, ps->fspa,
-									   ps->fspapos, ps->nooffspa);
-
-				if(!fspa)
-				{
-					UT_DEBUGMSG(("No fspa! Panic and Insanity Abounds!\n"));
-					return 0;
-				}
-				UT_DEBUGMSG(("Found a psfa! \n"));
-				double dLeft,dRight,dTop,dBottom = 0.0;
-				dLeft = static_cast<double>(fspa->xaLeft)/1440.0;
-				dRight = static_cast<double>(fspa->xaRight)/1440.0;
-				dTop = static_cast<double>(fspa->yaTop)/1440.0;
-				dBottom = static_cast<double>(fspa->yaBottom)/1440.0;
-				UT_DEBUGMSG(("Left %f Right %f Top %f Bottom %f \n",dLeft,dRight,dTop,dBottom));
-				UT_DEBUGMSG(("spid %d cTxbx %d \n",fspa->spid,fspa->cTxbx));
-				UT_DEBUGMSG(("fHdr %d bx %d by %d wr %d wrk %d fRcaSimple %d fBelowText %d fAnchorLock %d \n",fspa->fHdr,fspa->bx,fspa->by,fspa->wr,fspa->wrk,fspa->fRcaSimple,fspa->fBelowText,fspa->fAnchorLock));
-				UT_String sImageName;
-				bool bPositionObject = false;
-				if (wv0x08(&blip, fspa->spid, ps))
-				{
+				UT_DEBUGMSG(("No fspa! Panic and Insanity Abounds!\n"));
+				return 0;
+			}
+			UT_DEBUGMSG(("Found a psfa! \n"));
+			double dLeft,dRight,dTop,dBottom = 0.0;
+			dLeft = static_cast<double>(fspa->xaLeft)/1440.0;
+			dRight = static_cast<double>(fspa->xaRight)/1440.0;
+			dTop = static_cast<double>(fspa->yaTop)/1440.0;
+			dBottom = static_cast<double>(fspa->yaBottom)/1440.0;
+			UT_DEBUGMSG(("Left %f Right %f Top %f Bottom %f \n",dLeft,dRight,dTop,dBottom));
+			UT_DEBUGMSG(("spid %d cTxbx %d \n",fspa->spid,fspa->cTxbx));
+			UT_DEBUGMSG(("fHdr %d bx %d by %d wr %d wrk %d fRcaSimple %d fBelowText %d fAnchorLock %d \n",fspa->fHdr,fspa->bx,fspa->by,fspa->wr,fspa->wrk,fspa->fRcaSimple,fspa->fBelowText,fspa->fAnchorLock));
+			UT_String sImageName;
+			bool bPositionObject = false;
+			if (wv0x08(&blip, fspa->spid, ps))
+			{
 //
 // FIXME! Put some code in here to make this use Sectionframes!!
 //
-					UT_DEBUGMSG(("!!!!Found a blip in a fspa!!!!!!!!!! \n"));
-					if(UT_OK == this->_handlePositionedImage(&blip, sImageName))
-					   bPositionObject = true;
-				}
-				bool isTextBox = false;
-				UT_uint32 i;
-				escherstruct item;
-				FSPContainer *answer = nullptr;
+				UT_DEBUGMSG(("!!!!Found a blip in a fspa!!!!!!!!!! \n"));
+				if(UT_OK == this->_handlePositionedImage(&blip, sImageName))
+				   bPositionObject = true;
+			}
+			bool isTextBox = false;
+			UT_uint32 i;
+			escherstruct item;
+			FSPContainer *answer = nullptr;
 
-				UT_DEBUGMSG(("IE_Imp_MsWord_97:: escher: ps->fib.fcDggInfo %d ps->fib.lcbDggInfo %d \n", ps->fib.fcDggInfo,ps->fib.lcbDggInfo));
-				wvGetEscher (&item, ps->fib.fcDggInfo, ps->fib.lcbDggInfo, ps->tablefd,
-							 ps->data);
-				for (i = 0; i < item.dgcontainer.no_spgrcontainer; i++)
+			UT_DEBUGMSG(("IE_Imp_MsWord_97:: escher: ps->fib.fcDggInfo %d ps->fib.lcbDggInfo %d \n", ps->fib.fcDggInfo,ps->fib.lcbDggInfo));
+			wvGetEscher (&item, ps->fib.fcDggInfo, ps->fib.lcbDggInfo, ps->tablefd,
+						 ps->data);
+			for (i = 0; i < item.dgcontainer.no_spgrcontainer; i++)
+			{
+				answer = wvFindSPID (&(item.dgcontainer.spgrcontainer[i]), fspa->spid);
+				if (answer)
 				{
-					answer = wvFindSPID (&(item.dgcontainer.spgrcontainer[i]), fspa->spid);
-					if (answer)
+					break;
+				}
+			}
+			/* ungrouped shapes are direct children of the
+			 * drawing container, not of a shape group */
+			if(!answer)
+			{
+				for (i = 0; i < item.dgcontainer.no_spcontainer; i++)
+				{
+					if(item.dgcontainer.spcontainer[i].fsp.spid == static_cast<U32>( fspa->spid))
 					{
+						answer = &item.dgcontainer.spcontainer[i];
 						break;
 					}
 				}
-				/* ungrouped shapes are direct children of the
-				 * drawing container, not of a shape group */
-				if(!answer)
+			}
+			if(answer != nullptr)
+			{
+				ClientTextbox cTextBox = answer->clienttextbox;
+				if(cTextBox.textid != nullptr)
 				{
-					for (i = 0; i < item.dgcontainer.no_spcontainer; i++)
+					isTextBox = true;
+					UT_DEBUGMSG(("Found a Text box! text id is %d \n",*cTextBox.textid));
+				}
+			}
+			/* OfficeArtFSP.grfPersistent (MS-ODRAW 2.2.40):
+			 * fDelete 0x0008, fOleShape 0x0010, fFlipH 0x0040,
+			 * fFlipV 0x0080, fConnector 0x0100,
+			 * fBackground 0x0400; deleted and background-part
+			 * shapes carry no document content, do not emit
+			 * frames for them */
+			const U32 grfPersistent = answer ? answer->fsp.grfPersistent : 0;
+			if((isTextBox || bPositionObject || answer != nullptr)
+			   && !(grfPersistent & 0x408))
+			{
+				const char * atts[] = {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr};
+				if(bPositionObject && sImageName.size())
+				{
+				  atts[0] =  PT_STRUX_IMAGE_DATAID;
+				  atts[1] = sImageName.c_str();
+				  atts[2] = "props";
+				}
+				else
+				{
+				  atts[0] = "props";
+				}
+				std::string sProp;
+				std::string sProps;
+				std::string sVal;
+				sProps = "frame-type:";
+				if(bPositionObject)
+				{
+				  sProps += "image; ";
+				}
+				else
+				{
+				  sProps += "textbox; ";
+				}
+				sProps += "position-to:";
+				/* Spa.bx/by coordinate origins (MS-DOC 2.9.x SPA):
+				 * 0 = page margin, 1 = page edge, 2 = column
+				 * edge (bx) / paragraph top (by); only a
+				 * paragraph vertical anchor maps to our
+				 * block-relative frame type, everything else is
+				 * positioned on the page */
+				if(fspa->by == 2)
+				{
+					sVal = "block-above-text; ";
+				}
+				else
+				{
+					sVal = "page-above-text; ";
+				}
+				sProps += sVal;
+				/* Spa.wr/wrk: 0 wrap both sides, 1 top/bottom
+				 * only, 2 square, 3 float above or below text
+				 * (fBelowText selects), 4/5 tight/through;
+				 * wrk refines the side text wraps on */
+				sProps += "wrap-mode:";
+				if(fspa->wr == 1)
+				{
+					sVal = "wrapped-topbot; ";
+				}
+				else if(fspa->wr == 3)
+				{
+					sVal = fspa->fBelowText ? "below-text; " : "above-text; ";
+				}
+				else
+				{
+					if(fspa->wrk == 1)
 					{
-						if(item.dgcontainer.spcontainer[i].fsp.spid == static_cast<U32>( fspa->spid))
-						{
-							answer = &item.dgcontainer.spcontainer[i];
-							break;
-						}
+						sVal = "wrapped-to-left; ";
+					}
+					else if(fspa->wrk == 2)
+					{
+						sVal = "wrapped-to-right; ";
+					}
+					else
+					{
+						sVal = "wrapped-both; ";
+					}
+					if(fspa->wr == 4 || fspa->wr == 5)
+					{
+						sProps += "tight-wrap:1; ";
 					}
 				}
-				if(answer != nullptr)
+				sProps += sVal;
+
+				/* resolve margin- and column-relative origins to
+				 * the absolute coordinate systems the frame
+				 * layout uses; the paragraph anchor keeps its
+				 * recorded offsets */
+				const double dColX = (fspa->bx == 1) ? dLeft - m_dSectMarginLeft : dLeft;
+				const double dColY = (fspa->by == 1) ? dTop - m_dSectMarginTop : dTop;
+				double dPageX = (fspa->bx == 1) ? dLeft : dLeft + m_dSectMarginLeft;
+				double dPageY = (fspa->by == 1) ? dTop : dTop + m_dSectMarginTop;
+				if(dPageX < 0.0)
 				{
-					ClientTextbox cTextBox = answer->clienttextbox;
-					if(cTextBox.textid != nullptr)
-					{
-						isTextBox = true;
-						UT_DEBUGMSG(("Found a Text box! text id is %d \n",*cTextBox.textid));
-					}
+					dPageX = 0.0;
 				}
-				/* OfficeArtFSP.grfPersistent (MS-ODRAW 2.2.40):
-				 * fDelete 0x0008, fOleShape 0x0010, fFlipH 0x0040,
-				 * fFlipV 0x0080, fConnector 0x0100,
-				 * fBackground 0x0400; deleted and background-part
-				 * shapes carry no document content, do not emit
-				 * frames for them */
-				const U32 grfPersistent = answer ? answer->fsp.grfPersistent : 0;
-				if((isTextBox || bPositionObject || answer != nullptr)
-				   && !(grfPersistent & 0x408))
+				if(dPageY < 0.0)
 				{
-					const char * atts[] = {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr};
-					if(bPositionObject && sImageName.size())
+					dPageY = 0.0;
+				}
+
+				s_appendInchProp(sProps, "xpos", dColX);
+				s_appendInchProp(sProps, "ypos", dTop);
+				s_appendInchProp(sProps, "frame-col-xpos", dColX);
+				s_appendInchProp(sProps, "frame-col-ypos", dColY);
+				s_appendInchProp(sProps, "frame-page-xpos", dPageX);
+				s_appendInchProp(sProps, "frame-page-ypos", dPageY);
+
+				s_appendInchProp(sProps, "frame-width", dRight-dLeft);
+				s_appendInchProp(sProps, "frame-height", dBottom-dTop);
+				sProps.resize(sProps.size() - 2); // drop trailing "; "
+				if(grfPersistent & 0x40)
+				{
+					sProps += "; frame-flip-horiz:1";
+				}
+				if(grfPersistent & 0x80)
+				{
+					sProps += "; frame-flip-vert:1";
+				}
+
+				// OfficeArt shape properties (MS-ODRAW 2.3)
+				bool bFilled = true;
+				bool bLined = true;
+				bool bLineDefined = false;
+				UT_String sFillClr;
+				UT_String sLineClr;
+				double dLineWidthPt = 0.75;
+				const char * pszLineStyle = nullptr;
+				if(answer && answer->fopte)
+				{
+					U32 v = 0;
+					/* rotation is a 16.16 fixed point angle in
+					 * degrees */
+					if(s_getOPTProp(answer->fopte, rotation, v) && v)
 					{
-					  atts[0] =  PT_STRUX_IMAGE_DATAID;
-					  atts[1] = sImageName.c_str();
-					  atts[2] = "props";
-					}
-					else
-					{
-					  atts[0] = "props";
-					}
-					std::string sProp;
-					std::string sProps;
-					std::string sVal;
-					sProps = "frame-type:";
-					if(bPositionObject)
-					{
-					  sProps += "image; ";
-					}
-					else
-					{
-					  sProps += "textbox; ";
-					}
-					sProps += "position-to:";
-					/* Spa.bx/by coordinate origins (MS-DOC 2.9.x SPA):
-					 * 0 = page margin, 1 = page edge, 2 = column
-					 * edge (bx) / paragraph top (by); only a
-					 * paragraph vertical anchor maps to our
-					 * block-relative frame type, everything else is
-					 * positioned on the page */
-					if(fspa->by == 2)
-					{
-						sVal = "block-above-text; ";
-					}
-					else
-					{
-						sVal = "page-above-text; ";
-					}
-					sProps += sVal;
-					/* Spa.wr/wrk: 0 wrap both sides, 1 top/bottom
-					 * only, 2 square, 3 float above or below text
-					 * (fBelowText selects), 4/5 tight/through;
-					 * wrk refines the side text wraps on */
-					sProps += "wrap-mode:";
-					if(fspa->wr == 1)
-					{
-						sVal = "wrapped-topbot; ";
-					}
-					else if(fspa->wr == 3)
-					{
-						sVal = fspa->fBelowText ? "below-text; " : "above-text; ";
-					}
-					else
-					{
-						if(fspa->wrk == 1)
+						double dRot = static_cast<S32>(v) / 65536.0;
+						if(dRot < 0.0)
 						{
-							sVal = "wrapped-to-left; ";
+							dRot += 360.0;
 						}
-						else if(fspa->wrk == 2)
+						sProps += "; frame-rotation:";
+						sProps += UT_convertToDimensionlessString(dRot, ".4");
+					}
+					// text inset margins, EMU
+					if(s_getOPTProp(answer->fopte, dxTextLeft, v))
+					{
+						sProps += "; xpad-left:";
+						sProps += UT_convertInchesToDimensionString(
+							DIM_IN, v / 914400.0);
+					}
+					if(s_getOPTProp(answer->fopte, dxTextRight, v))
+					{
+						sProps += "; xpad-right:";
+						sProps += UT_convertInchesToDimensionString(
+							DIM_IN, v / 914400.0);
+					}
+					if(s_getOPTProp(answer->fopte, dyTextTop, v))
+					{
+						sProps += "; ypad-top:";
+						sProps += UT_convertInchesToDimensionString(
+							DIM_IN, v / 914400.0);
+					}
+					if(s_getOPTProp(answer->fopte, dyTextBottom, v))
+					{
+						sProps += "; ypad-bottom:";
+						sProps += UT_convertInchesToDimensionString(
+							DIM_IN, v / 914400.0);
+					}
+					// text anchor (MSOANCHOR)
+					if(s_getOPTProp(answer->fopte, anchorText, v))
+					{
+						if(v == 1 || v == 4)
 						{
-							sVal = "wrapped-to-right; ";
+							sProps += "; frame-valign:middle";
+						}
+						else if(v != 0 && v != 3 && v != 6)
+						{
+							sProps += "; frame-valign:bottom";
+						}
+					}
+					// text flow (MSOTXFL)
+					if(s_getOPTProp(answer->fopte, txflTextFlow, v))
+					{
+						if(v == 2)
+						{
+							sProps += "; frame-text-direction:vert270";
+						}
+						else if(v == 1 || v == 3 || v == 5)
+						{
+							sProps += "; frame-text-direction:vert";
+						}
+					}
+					/* the Fill/Line Style Boolean Properties
+					 * records carry the real flags in their low
+					 * bits: fFilled 0x10 of fNoFillHitTest
+					 * (pid 447), fLine 0x08 of fNoLineDrawDash
+					 * (pid 511) */
+					if(s_getOPTProp(answer->fopte, fNoFillHitTest, v))
+					{
+						bFilled = (v & 0x10) != 0;
+					}
+					if(s_getOPTProp(answer->fopte, fNoLineDrawDash, v))
+					{
+						bLined = (v & 0x08) != 0;
+						bLineDefined = true;
+					}
+					if(s_getOPTProp(answer->fopte, fillColor, v))
+					{
+						s_msoclrToRGB(v, sFillClr);
+					}
+					if(s_getOPTProp(answer->fopte, fillOpacity, v))
+					{
+						sProps += "; fill-alpha:";
+						sProps += UT_convertToDimensionlessString(
+							v / 65536.0, ".4");
+					}
+					if(s_getOPTProp(answer->fopte, lineColor, v))
+					{
+						s_msoclrToRGB(v, sLineClr);
+					}
+					if(s_getOPTProp(answer->fopte, lineWidth, v))
+					{
+						dLineWidthPt = static_cast<S32>(v) / 12700.0;
+						bLineDefined = true;
+					}
+					if(s_getOPTProp(answer->fopte, lineDashing, v))
+					{
+						/* MSOLINEDASHING: 0 solid, 1/5/6 dotted,
+						 * anything else dashed */
+						if(v == 0)
+						{
+							pszLineStyle = "solid";
+						}
+						else if(v == 1 || v == 5 || v == 6)
+						{
+							pszLineStyle = "dotted";
 						}
 						else
 						{
-							sVal = "wrapped-both; ";
+							pszLineStyle = "dashed";
 						}
-						if(fspa->wr == 4 || fspa->wr == 5)
-						{
-							sProps += "tight-wrap:1; ";
-						}
+						bLineDefined = true;
 					}
-					sProps += sVal;
+					if(s_getOPTProp(answer->fopte, lineStyle, v) && v == 1)
+					{
+						pszLineStyle = "double";
+						bLineDefined = true;
+					}
+				}
 
-					/* resolve margin- and column-relative origins to
-					 * the absolute coordinate systems the frame
-					 * layout uses; the paragraph anchor keeps its
-					 * recorded offsets */
-					const double dColX = (fspa->bx == 1) ? dLeft - m_dSectMarginLeft : dLeft;
-					const double dColY = (fspa->by == 1) ? dTop - m_dSectMarginTop : dTop;
-					double dPageX = (fspa->bx == 1) ? dLeft : dLeft + m_dSectMarginLeft;
-					double dPageY = (fspa->by == 1) ? dTop : dTop + m_dSectMarginTop;
-					if(dPageX < 0.0)
-					{
-						dPageX = 0.0;
-					}
-					if(dPageY < 0.0)
-					{
-						dPageY = 0.0;
-					}
+				// fills: Word text boxes default to a white fill
+				if(bFilled && !bPositionObject)
+				{
+					sProp = "background-color";
+					sVal = sFillClr.size() ? sFillClr.c_str() : "ffffff";
+					UT_std_string_setProperty(sProps, sProp, sVal);
+				}
+				else if(!bFilled)
+				{
+					sProp = "bg-style";
+					sVal = "0";    /* no background */
+					UT_std_string_setProperty(sProps, sProp, sVal);
+					sProp = "background-color";
+					sVal = "transparent";
+					UT_std_string_setProperty(sProps, sProp, sVal);
+				}
 
-					s_appendInchProp(sProps, "xpos", dColX);
-					s_appendInchProp(sProps, "ypos", dTop);
-					s_appendInchProp(sProps, "frame-col-xpos", dColX);
-					s_appendInchProp(sProps, "frame-col-ypos", dColY);
-					s_appendInchProp(sProps, "frame-page-xpos", dPageX);
-					s_appendInchProp(sProps, "frame-page-ypos", dPageY);
-
-					s_appendInchProp(sProps, "frame-width", dRight-dLeft);
-					s_appendInchProp(sProps, "frame-height", dBottom-dTop);
-					sProps.resize(sProps.size() - 2); // drop trailing "; "
-					if(grfPersistent & 0x40)
-					{
-						sProps += "; frame-flip-horiz:1";
-					}
-					if(grfPersistent & 0x80)
-					{
-						sProps += "; frame-flip-vert:1";
-					}
-
-					// OfficeArt shape properties (MS-ODRAW 2.3)
-					bool bFilled = true;
-					bool bLined = true;
-					bool bLineDefined = false;
-					UT_String sFillClr;
-					UT_String sLineClr;
-					double dLineWidthPt = 0.75;
-					const char * pszLineStyle = nullptr;
-					if(answer && answer->fopte)
-					{
-						U32 v = 0;
-						/* rotation is a 16.16 fixed point angle in
-						 * degrees */
-						if(s_getOPTProp(answer->fopte, rotation, v) && v)
-						{
-							double dRot = static_cast<S32>(v) / 65536.0;
-							if(dRot < 0.0)
-							{
-								dRot += 360.0;
-							}
-							sProps += "; frame-rotation:";
-							sProps += UT_convertToDimensionlessString(dRot, ".4");
-						}
-						// text inset margins, EMU
-						if(s_getOPTProp(answer->fopte, dxTextLeft, v))
-						{
-							sProps += "; xpad-left:";
-							sProps += UT_convertInchesToDimensionString(
-								DIM_IN, v / 914400.0);
-						}
-						if(s_getOPTProp(answer->fopte, dxTextRight, v))
-						{
-							sProps += "; xpad-right:";
-							sProps += UT_convertInchesToDimensionString(
-								DIM_IN, v / 914400.0);
-						}
-						if(s_getOPTProp(answer->fopte, dyTextTop, v))
-						{
-							sProps += "; ypad-top:";
-							sProps += UT_convertInchesToDimensionString(
-								DIM_IN, v / 914400.0);
-						}
-						if(s_getOPTProp(answer->fopte, dyTextBottom, v))
-						{
-							sProps += "; ypad-bottom:";
-							sProps += UT_convertInchesToDimensionString(
-								DIM_IN, v / 914400.0);
-						}
-						// text anchor (MSOANCHOR)
-						if(s_getOPTProp(answer->fopte, anchorText, v))
-						{
-							if(v == 1 || v == 4)
-							{
-								sProps += "; frame-valign:middle";
-							}
-							else if(v != 0 && v != 3 && v != 6)
-							{
-								sProps += "; frame-valign:bottom";
-							}
-						}
-						// text flow (MSOTXFL)
-						if(s_getOPTProp(answer->fopte, txflTextFlow, v))
-						{
-							if(v == 2)
-							{
-								sProps += "; frame-text-direction:vert270";
-							}
-							else if(v == 1 || v == 3 || v == 5)
-							{
-								sProps += "; frame-text-direction:vert";
-							}
-						}
-						/* the Fill/Line Style Boolean Properties
-						 * records carry the real flags in their low
-						 * bits: fFilled 0x10 of fNoFillHitTest
-						 * (pid 447), fLine 0x08 of fNoLineDrawDash
-						 * (pid 511) */
-						if(s_getOPTProp(answer->fopte, fNoFillHitTest, v))
-						{
-							bFilled = (v & 0x10) != 0;
-						}
-						if(s_getOPTProp(answer->fopte, fNoLineDrawDash, v))
-						{
-							bLined = (v & 0x08) != 0;
-							bLineDefined = true;
-						}
-						if(s_getOPTProp(answer->fopte, fillColor, v))
-						{
-							s_msoclrToRGB(v, sFillClr);
-						}
-						if(s_getOPTProp(answer->fopte, fillOpacity, v))
-						{
-							sProps += "; fill-alpha:";
-							sProps += UT_convertToDimensionlessString(
-								v / 65536.0, ".4");
-						}
-						if(s_getOPTProp(answer->fopte, lineColor, v))
-						{
-							s_msoclrToRGB(v, sLineClr);
-						}
-						if(s_getOPTProp(answer->fopte, lineWidth, v))
-						{
-							dLineWidthPt = static_cast<S32>(v) / 12700.0;
-							bLineDefined = true;
-						}
-						if(s_getOPTProp(answer->fopte, lineDashing, v))
-						{
-							/* MSOLINEDASHING: 0 solid, 1/5/6 dotted,
-							 * anything else dashed */
-							if(v == 0)
-							{
-								pszLineStyle = "solid";
-							}
-							else if(v == 1 || v == 5 || v == 6)
-							{
-								pszLineStyle = "dotted";
-							}
-							else
-							{
-								pszLineStyle = "dashed";
-							}
-							bLineDefined = true;
-						}
-						if(s_getOPTProp(answer->fopte, lineStyle, v) && v == 1)
-						{
-							pszLineStyle = "double";
-							bLineDefined = true;
-						}
-					}
-
-					// fills: Word text boxes default to a white fill
-					if(bFilled && !bPositionObject)
-					{
-						sProp = "background-color";
-						sVal = sFillClr.size() ? sFillClr.c_str() : "ffffff";
-						UT_std_string_setProperty(sProps, sProp, sVal);
-					}
-					else if(!bFilled)
-					{
-						sProp = "bg-style";
-						sVal = "0";    /* no background */
-						UT_std_string_setProperty(sProps, sProp, sVal);
-						sProp = "background-color";
-						sVal = "transparent";
-						UT_std_string_setProperty(sProps, sProp, sVal);
-					}
-
-					/* outlines: Word text boxes default to a
-					 * 0.75 pt solid black border; positioned images
-					 * carry no border unless the shape asks for
-					 * one */
-					if(!bLined || (bPositionObject && !bLineDefined))
-					{
-						pszLineStyle = "none";
-					}
-					if(pszLineStyle == nullptr)
-					{
-						pszLineStyle = "solid";
-					}
-					static const char * const sSides[] =
-						{"top", "right", "left", "bot"};
-					for(UT_uint32 s = 0; s < G_N_ELEMENTS(sSides); s++)
+				/* outlines: Word text boxes default to a
+				 * 0.75 pt solid black border; positioned images
+				 * carry no border unless the shape asks for
+				 * one */
+				if(!bLined || (bPositionObject && !bLineDefined))
+				{
+					pszLineStyle = "none";
+				}
+				if(pszLineStyle == nullptr)
+				{
+					pszLineStyle = "solid";
+				}
+				static const char * const sSides[] =
+					{"top", "right", "left", "bot"};
+				for(UT_uint32 s = 0; s < G_N_ELEMENTS(sSides); s++)
+				{
+					sProp = sSides[s];
+					sProp += "-style";
+					sVal = pszLineStyle;
+					UT_std_string_setProperty(sProps, sProp, sVal);
+					if(strcmp(pszLineStyle, "none") != 0)
 					{
 						sProp = sSides[s];
-						sProp += "-style";
-						sVal = pszLineStyle;
+						sProp += "-thickness";
+						sVal = UT_formatDimensionedValue(dLineWidthPt,
+														 "pt", ".2");
 						UT_std_string_setProperty(sProps, sProp, sVal);
-						if(strcmp(pszLineStyle, "none") != 0)
+						if(sLineClr.size())
 						{
 							sProp = sSides[s];
-							sProp += "-thickness";
-							sVal = UT_formatDimensionedValue(dLineWidthPt,
-															 "pt", ".2");
+							sProp += "-color";
+							sVal = sLineClr.c_str();
 							UT_std_string_setProperty(sProps, sProp, sVal);
-							if(sLineClr.size())
-							{
-								sProp = sSides[s];
-								sProp += "-color";
-								sVal = sLineClr.c_str();
-								UT_std_string_setProperty(sProps, sProp, sVal);
-							}
 						}
 					}
-					if(bPositionObject)
-					{
-					  atts[3] = sProps.c_str();
-					}
-					else
-					{
-					  atts[1] = sProps.c_str();
-					}
-					PP_PropertyVector vatts = PP_std_copyProps(atts);
-					_appendStrux(PTX_SectionFrame, vatts);
-					/* a frame with no content block breaks the
-					 * surrounding frame chain (same rule as the
-					 * OOXML importer); the textbox story fills
-					 * this block in via insert-before-EndFrame */
-					_appendStrux(PTX_Block, PP_NOPROPS);
-					_appendStrux(PTX_EndFrame, vatts);
-					if(isTextBox)
-					{
-					  textboxPos * pPos = new textboxPos;
-					  pPos->lid = fspa->spid;
-					  PT_DocPosition posEnd =0;
-					  getDoc()->getBounds(true,posEnd); // clean frags!
+				}
+				if(bPositionObject)
+				{
+				  atts[3] = sProps.c_str();
+				}
+				else
+				{
+				  atts[1] = sProps.c_str();
+				}
+				PP_PropertyVector vatts = PP_std_copyProps(atts);
+				_appendStrux(PTX_SectionFrame, vatts);
+				/* a frame with no content block breaks the
+				 * surrounding frame chain (same rule as the
+				 * OOXML importer); the textbox story fills
+				 * this block in via insert-before-EndFrame */
+				_appendStrux(PTX_Block, PP_NOPROPS);
+				_appendStrux(PTX_EndFrame, vatts);
+				if(isTextBox)
+				{
+				  textboxPos * pPos = new textboxPos;
+				  pPos->lid = fspa->spid;
+				  PT_DocPosition posEnd =0;
+				  getDoc()->getBounds(true,posEnd); // clean frags!
 
-					  pPos->endFrame = getDoc()->getLastFrag();
-					  m_vecTextboxPos.addItem(pPos);
-					}
-					wvReleaseEscher (&item);
-					return true;
+				  pPos->endFrame = getDoc()->getLastFrag();
+				  m_vecTextboxPos.addItem(pPos);
 				}
 				wvReleaseEscher (&item);
+				return true;
 			}
-			else
-			{
-				xxx_UT_DEBUGMSG(("nooffspa was <= 0 -- ignoring"));
-			}
+			wvReleaseEscher (&item);
 		}
 		else
 		{
-			UT_DEBUGMSG(("pre Word8 0x08 graphic -- unsupported at the moment"));
-			/*fdoa =*/ wvGetFDOAFromCP(ps->currentcp, nullptr, ps->fdoapos,
-								   ps->nooffdoa);
-
-			// TODO: do something with the data in this fdoa someday...
+			xxx_UT_DEBUGMSG(("nooffspa was <= 0 -- ignoring"));
 		}
+	}
+	else
+	{
+		UT_DEBUGMSG(("pre Word8 0x08 graphic -- unsupported at the moment"));
+		/*fdoa =*/ wvGetFDOAFromCP(ps->currentcp, nullptr, ps->fdoapos,
+							   ps->nooffdoa);
 
-		return 0;
+		// TODO: do something with the data in this fdoa someday...
 	}
 
 	return 0;

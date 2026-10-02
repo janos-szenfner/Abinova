@@ -1234,6 +1234,79 @@ void IE_Imp_LaTeX::_parseDocument(const std::string & utf8)
 	_parseText(body);
 }
 
+/*! split the contents of a list environment on \item boundaries and
+ * emit each item; nested lists recurse through _parseText */
+void IE_Imp_LaTeX::_emitListEnv(const std::string & env,
+								const std::string & contents)
+{
+	const bool ordered =
+		(env == "enumerate" || env == "enumerate*");
+	// split contents on \item
+	size_t k = 0;
+	int itemLevel = 0;
+	// count nesting depth for the level
+	{
+		// level = number of enclosing list envs + 1
+		// we don't track env stack; approximate by
+		// counting \begin{itemize/enumerate} inside
+		// contents later — instead track via member
+		itemLevel = static_cast<int>(m_listIds.size()) + 1;
+	}
+	while (k < contents.size())
+	{
+		size_t it = contents.find("\\item", k);
+		if (it == std::string::npos)
+			break;
+		size_t bodyStart = it + strlen("\\item");
+		s_skipOptArg(contents, bodyStart);
+		size_t bodyEnd = contents.find("\\item", bodyStart);
+		// but a nested \begin{...} inside may contain
+		// \item too — find matching boundaries naively
+		// by scanning for the next \item at depth 0
+		{
+			int depth = 0;
+			size_t scan = bodyStart;
+			bodyEnd = contents.size();
+			while (scan < contents.size())
+			{
+				if (contents.compare(scan, 6, "\\begin") == 0)
+					depth++;
+				else if (contents.compare(scan, 4, "\\end") == 0 &&
+						 depth > 0)
+					depth--;
+				else if (contents.compare(scan, 5, "\\item") == 0 &&
+						 depth == 0)
+				{
+					bodyEnd = scan;
+					break;
+				}
+				scan++;
+			}
+		}
+		std::string itemText = s_trim(
+			contents.substr(bodyStart, bodyEnd - bodyStart));
+		// nested list inside the item: split it out
+		size_t nest = itemText.find("\\begin{itemize");
+		size_t nestEnum = itemText.find("\\begin{enumerate");
+		size_t nestPos = std::min(
+			nest == std::string::npos ? itemText.size() : nest,
+			nestEnum == std::string::npos ? itemText.size() : nestEnum);
+		if (nestPos < itemText.size())
+		{
+			// emit the item text before the nested env
+			std::string head = s_trim(itemText.substr(0, nestPos));
+			if (!head.empty())
+				_emitListItem(itemLevel, ordered, head);
+			// recurse into the nested env text
+			_parseText(itemText.substr(nestPos));
+		}
+		else
+			_emitListItem(itemLevel, ordered, itemText);
+		k = bodyEnd;
+	}
+	_resetLists();
+}
+
 void IE_Imp_LaTeX::_parseText(const std::string & text)
 {
 	size_t i = 0;
@@ -1309,71 +1382,7 @@ void IE_Imp_LaTeX::_parseText(const std::string & text)
 					env == "description")
 				{
 					flushPara();
-					bool ordered = (env == "enumerate" || env == "enumerate*");
-					// split contents on \item
-					size_t k = 0;
-					int itemLevel = 0;
-					// count nesting depth for the level
-					{
-						// level = number of enclosing list envs + 1
-						// we don't track env stack; approximate by
-						// counting \begin{itemize/enumerate} inside
-						// contents later — instead track via member
-						itemLevel = static_cast<int>(m_listIds.size()) + 1;
-					}
-					while (k < contents.size())
-					{
-						size_t it = contents.find("\\item", k);
-						if (it == std::string::npos)
-							break;
-						size_t bodyStart = it + strlen("\\item");
-						s_skipOptArg(contents, bodyStart);
-						size_t bodyEnd = contents.find("\\item", bodyStart);
-						// but a nested \begin{...} inside may contain
-						// \item too — find matching boundaries naively
-						// by scanning for the next \item at depth 0
-						{
-							int depth = 0;
-							size_t scan = bodyStart;
-							bodyEnd = contents.size();
-							while (scan < contents.size())
-							{
-								if (contents.compare(scan, 6, "\\begin") == 0)
-									depth++;
-								else if (contents.compare(scan, 4, "\\end") == 0 &&
-										 depth > 0)
-									depth--;
-								else if (contents.compare(scan, 5, "\\item") == 0 &&
-										 depth == 0)
-								{
-									bodyEnd = scan;
-									break;
-								}
-								scan++;
-							}
-						}
-						std::string itemText = s_trim(
-							contents.substr(bodyStart, bodyEnd - bodyStart));
-						// nested list inside the item: split it out
-						size_t nest = itemText.find("\\begin{itemize");
-						size_t nestEnum = itemText.find("\\begin{enumerate");
-						size_t nestPos = std::min(
-							nest == std::string::npos ? itemText.size() : nest,
-							nestEnum == std::string::npos ? itemText.size() : nestEnum);
-						if (nestPos < itemText.size())
-						{
-							// emit the item text before the nested env
-							std::string head = s_trim(itemText.substr(0, nestPos));
-							if (!head.empty())
-								_emitListItem(itemLevel, ordered, head);
-							// recurse into the nested env text
-							_parseText(itemText.substr(nestPos));
-						}
-						else
-							_emitListItem(itemLevel, ordered, itemText);
-						k = bodyEnd;
-					}
-					_resetLists();
+					_emitListEnv(env, contents);
 					i = next;
 					continue;
 				}

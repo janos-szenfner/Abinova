@@ -63,6 +63,7 @@ private:
 	void _emitInline(const std::string & text);
 	bool _emitHeading(int level, const std::string & text);
 	bool _emitListItem(int level, bool bOrdered, const std::string & text);
+	void _emitListEnv(const std::string & env, const std::string & contents);
 	bool _emitVerbatim(const std::string & text);
 	bool _emitTable(const std::vector<std::vector<std::string> > & rows);
 	bool _emitHR(void);

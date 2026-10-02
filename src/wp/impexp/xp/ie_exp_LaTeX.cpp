@@ -1952,1176 +1952,398 @@ void s_LaTeX_Listener::_handleImage(const PP_AttrProp * pAP)
 /*
   This is a copy from wv. Returns 1 if was translated, 0 if wasn't.
   It can convert to empty string.
+
+  Historically this was a ~1100-line switch whose cases wrote through a
+  "#define printf(x) out = (x);" hack; it is now a sorted lookup table.
 */
-#undef printf
-#define printf(x) out = (x); 
+struct s_U2LxMapping
+{
+	U16			code;
+	const char *	repl;
+};
+
+static const s_U2LxMapping s_UnicodeToLaTeX[] = {
+	{ 0x0007, "" },
+	{ 0x000b, "\\\\\n" },
+	{ 0x000c, "" },
+	{ 0x000d, "" },
+	{ 0x000e, "" },
+	{ 0x001e, "" },
+	{ 0x001f, "" },
+	{ 0x0022, "\"" },
+	{ 0x0023, "\\#" },
+	{ 0x0024, "\\$" },
+	{ 0x0025, "\\%%" },
+	{ 0x0026, "\\&" },
+	{ 0x002d, "-" },
+	{ 0x003c, "$<$" },
+	{ 0x003e, "$>$" },
+	{ 0x00a1, "!`" },
+	{ 0x00b1, "$\\pm$" },
+	{ 0x00b2, "$\\mathtwosuperior$" },
+	{ 0x00b3, "$\\maththreesuperior$" },
+	{ 0x00b5, "$\\mu$" },
+	{ 0x00b9, "$\\mathonesuperior$" },
+	{ 0x00bf, "?`" },
+	{ 0x00c0, "\\`{A}" },
+	{ 0x00c1, "\\\'{A}" },
+	{ 0x00c2, "\\^{A}" },
+	{ 0x00c3, "\\~{A}" },
+	{ 0x00c4, "\\\"{A}" },
+	{ 0x00c7, "\\c{C}" },
+	{ 0x00c8, "\\`{E}" },
+	{ 0x00c9, "\\\'{E}" },
+	{ 0x00ca, "\\^{E}" },
+	{ 0x00cb, "\\\"{E}" },
+	{ 0x00cd, "\\\'{I}" },
+	{ 0x00ce, "\\^{I}" },
+	{ 0x00d1, "\\~{N}" },
+	{ 0x00d3, "\\\'{O}" },
+	{ 0x00d4, "\\^{O}" },
+	{ 0x00d5, "\\~{O}" },
+	{ 0x00d6, "\\\"{O}" },
+	{ 0x00d8, "{\\O}" },
+	{ 0x00da, "\\\'{U}" },
+	{ 0x00db, "\\^{U}" },
+	{ 0x00dc, "\\ldots{}" },
+	{ 0x00dd, "\\\'{Y}" },
+	{ 0x00df, "\\ss{}" },
+	{ 0x00e0, "\\`{a}" },
+	{ 0x00e1, "\\\'{a}" },
+	{ 0x00e2, "\\^{a}" },
+	{ 0x00e3, "\\~{a}" },
+	{ 0x00e4, "\\\"{a}" },
+	{ 0x00e7, "\\c{c}" },
+	{ 0x00e8, "\\`{e}" },
+	{ 0x00e9, "\\\'{e}" },
+	{ 0x00ea, "\\^{e}" },
+	{ 0x00eb, "\\\"{e}" },
+	{ 0x00ed, "\\\'{i}" },
+	{ 0x00ee, "\\^{i}" },
+	{ 0x00f1, "\\~{n}" },
+	{ 0x00f2, "\\`{o}" },
+	{ 0x00f3, "\\\'{o}" },
+	{ 0x00f4, "\\^{o}" },
+	{ 0x00f5, "\\~{o}" },
+	{ 0x00f6, "\\\"{o}" },
+	{ 0x00f8, "{\\o}" },
+	{ 0x00fa, "\\\'{u}" },
+	{ 0x00fb, "\\^{u}" },
+	{ 0x00fc, "\\\"{u}" },
+	{ 0x00fd, "\\\'{y}" },
+	{ 0x0100, "\\=A" },
+	{ 0x0101, "\\=a" },
+	{ 0x0102, "\\u{A}" },
+	{ 0x0103, "\\u{a}" },
+	{ 0x0106, "\\'C" },
+	{ 0x0107, "\\'c" },
+	{ 0x0108, "\\^C" },
+	{ 0x0109, "\\^c" },
+	{ 0x010a, "\\.C" },
+	{ 0x010b, "\\.c" },
+	{ 0x010c, "\\v{C}" },
+	{ 0x010d, "\\v{c}" },
+	{ 0x010e, "\\v{D}" },
+	{ 0x010f, "\\v{d}" },
+	{ 0x0110, "\\DJ{}" },
+	{ 0x0111, "\\dj{}" },
+	{ 0x0112, "\\=E" },
+	{ 0x0113, "\\=e" },
+	{ 0x0114, "\\u{E}" },
+	{ 0x0115, "\\u{e}" },
+	{ 0x0116, "\\.E" },
+	{ 0x0117, "\\.e" },
+	{ 0x011a, "\\v{E}" },
+	{ 0x011b, "\\v{e}" },
+	{ 0x011c, "\\^G" },
+	{ 0x011d, "\\^g" },
+	{ 0x011e, "\\u{G}" },
+	{ 0x011f, "\\u{g}" },
+	{ 0x0120, "\\.G" },
+	{ 0x0121, "\\u{g}" },
+	{ 0x0122, "^H" },
+	{ 0x0123, "^h" },
+	{ 0x0128, "\\~I" },
+	{ 0x0129, "\\~{\\i}" },
+	{ 0x012a, "\\=I" },
+	{ 0x012b, "\\={\\i}" },
+	{ 0x012c, "\\u{I}" },
+	{ 0x012d, "\\u{\\i}" },
+	{ 0x0130, "\\.I" },
+	{ 0x0131, "\\i{}" },
+	{ 0x0132, "IJ" },
+	{ 0x0133, "ij" },
+	{ 0x0134, "\\^J" },
+	{ 0x0135, "\\^{\\j}" },
+	{ 0x0136, "\\c{K}" },
+	{ 0x0137, "\\c{k}" },
+	{ 0x0138, "k" },
+	{ 0x0139, "\\'L" },
+	{ 0x013a, "\\'l" },
+	{ 0x013b, "\\c{L}" },
+	{ 0x013c, "\\c{l}" },
+	{ 0x013d, "\\v{L}" },
+	{ 0x013e, "\\v{l}" },
+	{ 0x0141, "\\L{}" },
+	{ 0x0142, "\\l{}" },
+	{ 0x0143, "\\'N" },
+	{ 0x0144, "\\'n" },
+	{ 0x0145, "\\c{N}" },
+	{ 0x0146, "\\c{n}" },
+	{ 0x0147, "\\v{N}" },
+	{ 0x0148, "\\v{n}" },
+	{ 0x0149, "'n" },
+	{ 0x014a, "\\NG{}" },
+	{ 0x014b, "\\ng{}" },
+	{ 0x014c, "\\=O" },
+	{ 0x014d, "\\=o" },
+	{ 0x014e, "\\u{O}" },
+	{ 0x014f, "\\u{o}" },
+	{ 0x0150, "\\H{O}" },
+	{ 0x0151, "\\H{o}" },
+	{ 0x0152, "\\OE{}" },
+	{ 0x0153, "\\oe{}" },
+	{ 0x0154, "\\'R" },
+	{ 0x0155, "\\'r" },
+	{ 0x0156, "\\c{R}" },
+	{ 0x0157, "\\c{r}" },
+	{ 0x0158, "\\v{R}" },
+	{ 0x0159, "\\v{r}" },
+	{ 0x015a, "\\'S" },
+	{ 0x015b, "\\'s" },
+	{ 0x015c, "\\^S" },
+	{ 0x015d, "\\^s" },
+	{ 0x015e, "\\c{S}" },
+	{ 0x015f, "\\c{s}" },
+	{ 0x0160, "\\v{S}" },
+	{ 0x0161, "\\v{s}" },
+	{ 0x0162, "\\c{T}" },
+	{ 0x0163, "\\c{t}" },
+	{ 0x0164, "\\v{T}" },
+	{ 0x0165, "\\v{t}" },
+	{ 0x0168, "\\~U" },
+	{ 0x0169, "\\~u" },
+	{ 0x016a, "\\=U" },
+	{ 0x016b, "\\=u" },
+	{ 0x016c, "\\u{U}" },
+	{ 0x016d, "\\u{u}" },
+	{ 0x016e, "\\r{U}" },
+	{ 0x016f, "\\r{u}" },
+	{ 0x0170, "\\H{U}" },
+	{ 0x0171, "\\H{u}" },
+	{ 0x0174, "\\^W" },
+	{ 0x0175, "\\^w" },
+	{ 0x0176, "\\^Y" },
+	{ 0x0177, "\\^y" },
+	{ 0x0178, "\\\"Y" },
+	{ 0x0179, "\\'Z" },
+	{ 0x017a, "\\'z" },
+	{ 0x017b, "\\.Z" },
+	{ 0x017c, "\\.z" },
+	{ 0x017d, "\\v{Z}" },
+	{ 0x017e, "\\v{z}" },
+	{ 0x01c7, "LJ" },
+	{ 0x01c8, "Lj" },
+	{ 0x01c9, "lj" },
+	{ 0x01ca, "NJ" },
+	{ 0x01cb, "Nj" },
+	{ 0x01cc, "nj" },
+	{ 0x01cd, "\\v{A}" },
+	{ 0x01ce, "\\v{a}" },
+	{ 0x01cf, "\\v{I}" },
+	{ 0x01d0, "\\v{\\i}" },
+	{ 0x01d1, "\\v{O}" },
+	{ 0x01d2, "\\v{o}" },
+	{ 0x01d3, "\\v{U}" },
+	{ 0x01d4, "\\v{u}" },
+	{ 0x01e6, "\\v{G}" },
+	{ 0x01e7, "\\v{g}" },
+	{ 0x01e8, "\\v{K}" },
+	{ 0x01e9, "\\v{k}" },
+	{ 0x01f0, "\\v{\\j}" },
+	{ 0x01f1, "DZ" },
+	{ 0x01f2, "Dz" },
+	{ 0x01f3, "dz" },
+	{ 0x01f4, "\\'G" },
+	{ 0x01f5, "\\'g" },
+	{ 0x01fa, "\\'{\\AA}" },
+	{ 0x01fb, "\\'{\\aa}" },
+	{ 0x01fc, "\\'{\\AE}" },
+	{ 0x01fd, "\\'{\\ae}" },
+	{ 0x01fe, "\\'{\\O}" },
+	{ 0x01ff, "\\'{\\o}" },
+	{ 0x0391, "$\\Alpha$" },
+	{ 0x0392, "$\\Beta$" },
+	{ 0x0393, "$\\Gamma$" },
+	{ 0x0394, "$\\Delta$" },
+	{ 0x0395, "$\\Epsilon$" },
+	{ 0x0396, "$\\Zeta$" },
+	{ 0x0397, "$\\Eta$" },
+	{ 0x0398, "$\\Theta$" },
+	{ 0x0399, "$\\Iota$" },
+	{ 0x039a, "$\\Kappa$" },
+	{ 0x039b, "$\\Lambda$" },
+	{ 0x039c, "$\\Mu$" },
+	{ 0x039d, "$\\Nu$" },
+	{ 0x039e, "$\\Xi$" },
+	{ 0x039f, "$\\Omicron$" },
+	{ 0x03a0, "$\\Pi$" },
+	{ 0x03a1, "$\\Rho$" },
+	{ 0x03a3, "$\\Sigma$" },
+	{ 0x03a4, "$\\Tau$" },
+	{ 0x03a5, "$\\Upsilon$" },
+	{ 0x03a6, "$\\Phi$" },
+	{ 0x03a7, "$\\Chi$" },
+	{ 0x03a8, "$\\Psi$" },
+	{ 0x03a9, "$\\Omega$" },
+	{ 0x03b1, "$\\alpha$" },
+	{ 0x03b2, "$\\beta$" },
+	{ 0x03b3, "$\\gamma$" },
+	{ 0x03b4, "$\\delta$" },
+	{ 0x03b5, "$\\epsilon$" },
+	{ 0x03b6, "$\\zeta$" },
+	{ 0x03b7, "$\\eta$" },
+	{ 0x03b8, "$\\theta$" },
+	{ 0x03b9, "$\\iota$" },
+	{ 0x03ba, "$\\kappa$" },
+	{ 0x03bb, "$\\lambda$" },
+	{ 0x03bc, "$\\mu$" },
+	{ 0x03bd, "$\\nu$" },
+	{ 0x03be, "$\\xi$" },
+	{ 0x03bf, "$\\omicron$" },
+	{ 0x03c0, "$\\pi$" },
+	{ 0x03c1, "$\\rho$" },
+	{ 0x03c3, "$\\sigma$" },
+	{ 0x03c4, "$\\tau$" },
+	{ 0x03c5, "$\\upsilon$" },
+	{ 0x03c6, "$\\phi$" },
+	{ 0x03c7, "$\\chi$" },
+	{ 0x03c8, "$\\psi$" },
+	{ 0x03c9, "$\\omega$" },
+	{ 0x2010, "-" },
+	{ 0x2011, "-" },
+	{ 0x2012, "--" },
+	{ 0x2013, "--" },
+	{ 0x2014, "---" },
+	{ 0x2018, "{`}" },
+	{ 0x2019, "'" },
+	{ 0x201a, "\\quotesinglbase{}" },
+	{ 0x201c, "{``}" },
+	{ 0x201d, "''" },
+	{ 0x201e, "\\quotedblbase{}" },
+	{ 0x2020, "\\dag{}" },
+	{ 0x2021, "\\ddag{}" },
+	{ 0x2022, "$\\bullet$" },
+	{ 0x2023, "$\\bullet$" },
+	{ 0x2024, "." },
+	{ 0x2025, ".." },
+	{ 0x2026, "\\ldots{}" },
+	{ 0x2030, "o/oo" },
+	{ 0x2039, "\\guilsinglleft{}" },
+	{ 0x203a, "\\guilsinglright{}" },
+	{ 0x203c, "!!" },
+	{ 0x20ac, "\\euro" },
+	{ 0x2111, "$\\Im$" },
+	{ 0x2118, "$\\wp$" },
+	{ 0x211c, "$\\Re$" },
+	{ 0x2135, "$\\aleph$" },
+	{ 0x2160, "I" },
+	{ 0x2161, "II" },
+	{ 0x2162, "III" },
+	{ 0x2163, "IV" },
+	{ 0x2164, "V" },
+	{ 0x2165, "VI" },
+	{ 0x2166, "VII" },
+	{ 0x2167, "VIII" },
+	{ 0x2168, "IX" },
+	{ 0x2169, "X" },
+	{ 0x216a, "XI" },
+	{ 0x216b, "XII" },
+	{ 0x216c, "L" },
+	{ 0x216d, "C" },
+	{ 0x216e, "D" },
+	{ 0x216f, "M" },
+	{ 0x2170, "i" },
+	{ 0x2171, "ii" },
+	{ 0x2172, "iii" },
+	{ 0x2173, "iv" },
+	{ 0x2174, "v" },
+	{ 0x2175, "vi" },
+	{ 0x2176, "vii" },
+	{ 0x2177, "viii" },
+	{ 0x2178, "ix" },
+	{ 0x2179, "x" },
+	{ 0x217a, "xi" },
+	{ 0x217b, "xiii" },
+	{ 0x217c, "l" },
+	{ 0x217d, "c" },
+	{ 0x217e, "d" },
+	{ 0x217f, "m" },
+	{ 0x2190, "$\\leftarrow$" },
+	{ 0x2191, "$\\uparrow$" },
+	{ 0x2192, "$\\rightarrow$" },
+	{ 0x2193, "$\\downarrow$" },
+	{ 0x21d0, "$\\Leftarrow$" },
+	{ 0x21d1, "$\\Uparrow$" },
+	{ 0x21d2, "$\\Rightarrow$" },
+	{ 0x21d3, "$\\Downarrow$" },
+	{ 0x21d4, "$\\Leftrightarrow$" },
+	{ 0x2200, "$\\forall$" },
+	{ 0x2202, "$\\partial$" },
+	{ 0x2203, "$\\exists$" },
+	{ 0x2205, "$\\emptyset$" },
+	{ 0x2207, "$\\nabla$" },
+	{ 0x2208, "$\\in$" },
+	{ 0x2209, "$\\notin$" },
+	{ 0x220b, "$\\ni$" },
+	{ 0x2212, "$-$" },
+	{ 0x2215, "$/$" },
+	{ 0x221a, "$\\surd$" },
+	{ 0x221d, "$\\propto$" },
+	{ 0x221e, "$\\infty$" },
+	{ 0x2220, "$\\angle$" },
+	{ 0x2227, "$\\land$" },
+	{ 0x2228, "$\\lor$" },
+	{ 0x2229, "$\\cap$" },
+	{ 0x222a, "$\\cup$" },
+	{ 0x223c, "$\\sim$" },
+	{ 0x2248, "$\\approx$" },
+	{ 0x2260, "$\\neq$" },
+	{ 0x2261, "$\\equiv$" },
+	{ 0x2264, "$\\leq$" },
+	{ 0x2265, "$\\geq$" },
+	{ 0x2282, "$\\subset$" },
+	{ 0x2283, "$\\supset$" },
+	{ 0x2284, "$\\notsubset$" },
+	{ 0x2286, "$\\subseteq$" },
+	{ 0x2287, "$\\supseteq$" },
+	{ 0x2295, "$\\oplus$" },
+	{ 0x2297, "$\\otimes$" },
+	{ 0x22a5, "$\\perp$" },
+	{ 0x2660, "$\\spadesuit$" },
+	{ 0x2663, "$\\clubsuit$" },
+	{ 0x2665, "$\\heartsuit$" },
+	{ 0x2666, "$\\diamondsuit$" },
+	{ 0xf8e7, "_" },
+};
+
+static int s_cmpU2LxMapping(const void * a, const void * b)
+{
+	const s_U2LxMapping * e = static_cast<const s_U2LxMapping *>(b);
+	return static_cast<int>(*static_cast<const U16 *>(a))
+		- static_cast<int>(e->code);
+}
 
 static int wvConvertUnicodeToLaTeX(U16 char16,const char*& out)
-	{
+{
 	out = ""; //this is needed
 
-	//DEBUG: printf("%d,%c\n",char16,char16);
-
-	/* 
-	german and scandinavian characters, MV 1.7.2000 
-	See man iso_8859_1
-
- 	This requires the inputencoding latin1 package,
- 	see latin1.def. Chars in range 160...255 are just
-	put through as these are legal iso-8859-1 symbols.
-	(see above)
-	
-	Best way to do it until LaTeX is Unicode enabled 
-	(Omega project).
-	-- MV 4.7.2000 
-	*/
-	
-	switch(char16)
-		{
-		/* Fix up these as math characters: */
-		case 0xb1:
-			printf("$\\pm$");
-			return(1);
-		case 0xb2:
-			printf("$\\mathtwosuperior$");
-			return(1);
-		case 0xb3:
-			printf("$\\maththreesuperior$");
-			return(1);
-		case 0xb5:
-			printf("$\\mu$");
-			return(1);
-		case 0xb9:
-			printf("$\\mathonesuperior$");
-			return(1);
-		case 0xdc:
-			printf("\\ldots{}");
-			return(1);
-		case 37:
-			printf("\\%%");
-			return(1);
-		case 11:
-			printf("\\\\\n");
-			return(1);
-		case 30:
-		case 31:
-		
-		case 12:
-		case 13:
-		case 14:
-		case 7:
-			return(1);
-		case 45:
-			printf("-");
-			return(1);
-		case 34:
-			printf("\"");
-			return(1);
-		case 35:
-			printf("\\#"); /* MV 14.8.2000 */
-			return(1);
-		case 36:
-			printf("\\$"); /* MV 14.8.2000 */
-			return(1);
-		case 38:
-			printf("\\&"); /* MV 1.7.2000 */
-			return(1);
-		case 60:
-			printf("$<$");
-			return(1);
-		case 62:
-			printf("$>$");
-			return(1);
-
-		case 0xF8E7:	
-		/* without this, things should work in theory, but not for me */
-			printf("_");
-			return(1);
-
-	/* Added some new Unicode characters. It's probably difficult
-           to write these characters in Abinova, though ... :(
-           -- 2000-08-11 huftis@bigfoot.com */
-
-		case 0x0100:
-			printf("\\=A"); /* A with macron */
-			return(1);
-		case 0x0101:
-			printf("\\=a");  /* a with macron */
-			return(1);
-		case 0x0102:
-			printf("\\u{A}");  /* A with breve */
-			return(1);
-		case 0x0103:
-			printf("\\u{a}");  /* a with breve */
-			return(1);
-
-		case 0x0106:
-			printf("\\'C");  /* C with acute */
-			return(1);
-		case 0x0107:
-			printf("\\'c");  /* c with acute */
-			return(1);
-		case 0x0108:
-			printf("\\^C");  /* C with circumflex */
-			return(1);
-		case 0x0109:
-			printf("\\^c");  /* c with circumflex */
-			return(1);
-		case 0x010A:
-			printf("\\.C");  /* C with dot above */
-			return(1);
-		case 0x010B:
-			printf("\\.c");  /* c with dot above */
-			return(1);
-		case 0x010C:
-			printf("\\v{C}");  /* C with caron */
-			return(1);
-		case 0x010D:
-			printf("\\v{c}");  /* c with caron */
-			return(1);
-		case 0x010E:
-			printf("\\v{D}");  /* D with caron */
-			return(1);
-		case 0x010F:
-			printf("\\v{d}");  /* d with caron */
-			return(1);
-		case 0x0110:
-			printf("\\DJ{}");  /* D with stroke */
-			return(1);
-		case 0x0111:
-			printf("\\dj{}");  /* d with stroke */
-			return(1);
-		case 0x0112:
-			printf("\\=E");  /* E with macron */
-			return(1);
-		case 0x0113:
-			printf("\\=e");  /* e with macron */
-			return(1);
-		case 0x0114:
-			printf("\\u{E}");  /* E with breve */
-			return(1);
-		case 0x0115:
-			printf("\\u{e}");  /* e with breve */
-			return(1);
-		case 0x0116:
-			printf("\\.E");  /* E with dot above */
-			return(1);
-		case 0x0117:
-			printf("\\.e");  /* e with dot above */
-			return(1);
-
-		case 0x011A:
-			printf("\\v{E}");  /* E with caron */
-			return(1);
-		case 0x011B:
-			printf("\\v{e}");  /* e with caron */
-			return(1);
-		case 0x011C:
-			printf("\\^G");  /* G with circumflex */
-			return(1);
-		case 0x011D:
-			printf("\\^g");  /* g with circumflex */
-			return(1);
-		case 0x011E:
-			printf("\\u{G}");  /* G with breve */
-			return(1);
-		case 0x011F:
-			printf("\\u{g}");  /* g with breve */
-			return(1);
-		case 0x0120:
-			printf("\\.G");  /* G with dot above */
-			return(1);
-		case 0x0121:
-			printf("\\u{g}");  /* g with dot above */
-			return(1);
-		case 0x0122:
-			printf("^H");  /* H with circumflex */
-			return(1);
-		case 0x0123:
-			printf("^h");  /* h with circumflex */
-			return(1);
-
-		case 0x0128:
-			printf("\\~I");  /* I with tilde */
-			return(1);
-		case 0x0129:
-			printf("\\~{\\i}");  /* i with tilde (dotless) */
-			return(1);
-		case 0x012A:
-			printf("\\=I");  /* I with macron */
-			return(1);
-		case 0x012B:
-			printf("\\={\\i}");  /* i with macron (dotless) */
-			return(1);
-		case 0x012C:
-			printf("\\u{I}");  /* I with breve */
-			return(1);
-		case 0x012D:
-			printf("\\u{\\i}");  /* i with breve */
-			return(1);
-
-		case 0x0130:
-			printf("\\.I");  /* I with dot above */
-			return(1);
-		case 0x0131:
-			printf("\\i{}");  /* dotless i */
-			return(1);
-		case 0x0132:
-			printf("IJ");  /* IJ ligature */
-			return(1);
-		case 0x0133:
-			printf("ij");  /* ij ligature  */
-			return(1);
-		case 0x0134:
-			printf("\\^J");  /* J with circumflex (dotless) */
-			return(1);
-		case 0x0135:
-			printf("\\^{\\j}");  /* j with circumflex (dotless) */
-			return(1);
-		case 0x0136:
-			printf("\\c{K}");  /* K with cedilla */
-			return(1);
-		case 0x0137:
-			printf("\\c{k}");  /* k with cedilla */
-			return(1);
-
-		case 0x0138:
-			printf("k");  /* NOTE: Not the correct character (kra), but similar */
-			return(1);
-
-		case 0x0139:
-			printf("\\'L");  /* L with acute */
-			return(1);
-		case 0x013A:
-			printf("\\'l");  /* l with acute  */
-			return(1);
-		case 0x013B:
-			printf("\\c{L}");  /* L with cedilla */
-			return(1);
-		case 0x013C:
-			printf("\\c{l}");  /* l with cedilla */
-			return(1);
-		case 0x013D:
-			printf("\\v{L}");  /* L with caron */
-			return(1);
-		case 0x013E:
-			printf("\\v{l}");  /* l with caron */
-			return(1);
-
-		case 0x0141:
-			printf("\\L{}");  /* L with stroke */
-			return(1);
-		case 0x0142:
-			printf("\\l{}");  /* l with stroke  */
-			return(1);
-		case 0x0143:
-			printf("\\'N");  /* N with acute */
-			return(1);
-		case 0x0144:
-			printf("\\'n");  /* n with acute */
-			return(1);
-		case 0x0145:
-			printf("\\c{N}");  /* N with cedilla */
-			return(1);
-		case 0x0146:
-			printf("\\c{n}");  /* n with cedilla */
-			return(1);
-		case 0x0147:
-			printf("\\v{N}");  /* N with caron */
-			return(1);
-		case 0x0148:
-			printf("\\v{n}");  /* n with caron */
-			return(1);
-		case 0x0149:
-			printf("'n");  /* n preceed with apostroph  */
-			return(1);
-		case 0x014A:
-			printf("\\NG{}");  /* ENG character */
-			return(1);
-		case 0x014B:
-			printf("\\ng{}");  /* eng character */
-			return(1);
-		case 0x014C:
-			printf("\\=O");  /* O with macron */
-			return(1);
-		case 0x014D:
-			printf("\\=o");  /* o with macron */
-			return(1);
-		case 0x014E:
-			printf("\\u{O}");  /* O with breve */
-			return(1);
-		case 0x014F:
-			printf("\\u{o}");  /* o with breve */
-			return(1);
-		case 0x0150:
-			printf("\\H{O}");  /* O with double acute */
-			return(1);
-		case 0x0151:
-			printf("\\H{o}");  /* o with double acute */
-			return(1);
-		case 0x0152:
-			printf("\\OE{}");  /* OE ligature */
-			return(1);
-		case 0x0153:
-			printf("\\oe{}");  /* oe ligature */
-			return(1);
-		case 0x0154:
-			printf("\\'R");  /* R with acute */
-			return(1);
-		case 0x0155:
-			printf("\\'r");  /* r with acute */
-			return(1);
-		case 0x0156:
-			printf("\\c{R}");  /* R with cedilla */
-			return(1);
-		case 0x0157:
-			printf("\\c{r}");  /* r with cedilla */
-			return(1);
-		case 0x0158:
-			printf("\\v{R}");  /* R with caron */
-			return(1);
-		case 0x0159:
-			printf("\\v{r}");  /* r with caron */
-			return(1);
-		case 0x015A:
-			printf("\\'S");  /* S with acute */
-			return(1);
-		case 0x015B:
-			printf("\\'s");  /* s with acute */
-			return(1);
-		case 0x015C:
-			printf("\\^S");  /* S with circumflex */
-			return(1);
-		case 0x015D:
-			printf("\\^s");  /* c with circumflex */
-			return(1);
-		case 0x015E:
-			printf("\\c{S}");  /* S with cedilla */
-			return(1);
-		case 0x015F:
-			printf("\\c{s}");  /* s with cedilla */
-			return(1);
-		case 0x0160:
-			printf("\\v{S}");  /* S with caron */
-			return(1);
-		case 0x0161:
-			printf("\\v{s}");  /* s with caron */
-			return(1);
-		case 0x0162:
-			printf("\\c{T}");  /* T with cedilla */
-			return(1);
-		case 0x0163:
-			printf("\\c{t}");  /* t with cedilla */
-			return(1);
-		case 0x0164:
-			printf("\\v{T}");  /* T with caron */
-			return(1);
-		case 0x0165:
-			printf("\\v{t}");  /* t with caron */
-			return(1);
-
-		case 0x0168:
-			printf("\\~U");  /* U with tilde */
-			return(1);
-		case 0x0169:
-			printf("\\~u");  /* u with tilde */
-			return(1);
-		case 0x016A:
-			printf("\\=U");  /* U with macron */
-			return(1);
-
-		/* Greek (thanks Petr Vanicek!): */
-		case 0x0391:
-			printf("$\\Alpha$");
-			return(1);
-		case 0x0392:
-			printf("$\\Beta$");
-			return(1);
-		case 0x0393:
-			printf("$\\Gamma$");
-			return(1);
-		case 0x0394:
-			printf("$\\Delta$");
-			return(1);
-		case 0x0395:
-			printf("$\\Epsilon$");
-			return(1);
-		case 0x0396:
-			printf("$\\Zeta$");
-			return(1);
-		case 0x0397:
-			printf("$\\Eta$");
-			return(1);
-		case 0x0398:
-			printf("$\\Theta$");
-			return(1);
-		case 0x0399:
-			printf("$\\Iota$");
-			return(1);
-		case 0x039a:
-			printf("$\\Kappa$");
-			return(1);
-		case 0x039b:
-			printf("$\\Lambda$");
-			return(1);
-		case 0x039c:
-			printf("$\\Mu$");
-			return(1);
-		case 0x039d:
-			printf("$\\Nu$");
-			return(1);
-		case 0x039e:
-			printf("$\\Xi$");
-			return(1);
-		case 0x039f:
-			printf("$\\Omicron$");
-			return(1);
-		case 0x03a0:
-			printf("$\\Pi$");
-			return(1);
-		case 0x03a1:
-			printf("$\\Rho$");
-			return(1);
-
-		case 0x03a3:
-			printf("$\\Sigma$");
-			return(1);
-		case 0x03a4:
-			printf("$\\Tau$");
-			return(1);
-		case 0x03a5:
-			printf("$\\Upsilon$");
-			return(1);
-		case 0x03a6:
-			printf("$\\Phi$");
-			return(1);
-		case 0x03a7:
-			printf("$\\Chi$");
-			return(1);
-		case 0x03a8:
-			printf("$\\Psi$");
-			return(1);
-		case 0x03a9:
-			printf("$\\Omega$");
-			return(1);
-
-		/* ...and lower case: */
-
-		case 0x03b1:
-			printf("$\\alpha$");
-			return(1);
-		case 0x03b2:
-			printf("$\\beta$");
-			return(1);
-		case 0x03b3:
-			printf("$\\gamma$");
-			return(1);
-		case 0x03b4:
-			printf("$\\delta$");
-			return(1);
-		case 0x03b5:
-			printf("$\\epsilon$");
-			return(1);
-		case 0x03b6:
-			printf("$\\zeta$");
-			return(1);
-		case 0x03b7:
-			printf("$\\eta$");
-			return(1);
-		case 0x03b8:
-			printf("$\\theta$");
-			return(1);
-		case 0x03b9:
-			printf("$\\iota$");
-			return(1);
-		case 0x03ba:
-			printf("$\\kappa$");
-			return(1);
-		case 0x03bb:
-			printf("$\\lambda$");
-			return(1);
-		case 0x03bc:
-			printf("$\\mu$");
-			return(1);
-		case 0x03bd:
-			printf("$\\nu$");
-			return(1);
-		case 0x03be:
-			printf("$\\xi$");
-			return(1);
-		case 0x03bf:
-			printf("$\\omicron$");
-			return(1);
-		case 0x03c0:
-			printf("$\\pi$");
-			return(1);
-		case 0x03c1:
-			printf("$\\rho$");
-			return(1);
-
-		case 0x03c3:
-			printf("$\\sigma$");
-			return(1);
-		case 0x03c4:
-			printf("$\\tau$");
-			return(1);
-		case 0x03c5:
-			printf("$\\upsilon$");
-			return(1);
-		case 0x03c6:
-			printf("$\\phi$");
-			return(1);
-		case 0x03c7:
-			printf("$\\chi$");
-			return(1);
-		case 0x03c8:
-			printf("$\\psi$");
-			return(1);
-		case 0x03c9:
-			printf("$\\omega$");
-			return(1);
-
-	/* More math, typical inline: */
-		case 0x2111:
-			printf("$\\Im$");
-			return(1);
-		case 0x2118:
-			printf("$\\wp$");   /* Weierstrass p */
-			return(1);
-		case 0x211c:
-			printf("$\\Re$");
-			return(1);
-		case 0x2135:
-			printf("$\\aleph$");
-			return(1);
-
-		case 0x2190:
-			printf("$\\leftarrow$");
-			return(1);
-		case 0x2191:
-			printf("$\\uparrow$");
-			return(1);
-		case 0x2192:
-			printf("$\\rightarrow$");
-			return(1);
-		case 0x2193:
-			printf("$\\downarrow$");
-			return(1);
-		case 0x21d0:
-			printf("$\\Leftarrow$");
-			return(1);
-		case 0x21d1:
-			printf("$\\Uparrow$");
-			return(1);
-		case 0x21d2:
-			printf("$\\Rightarrow$");
-			return(1);
-		case 0x21d3:
-			printf("$\\Downarrow$");
-			return(1);
-		case 0x21d4:
-			printf("$\\Leftrightarrow$");
-			return(1);
-
-		case 0x2200:
-			printf("$\\forall$");
-			return(1);
-		case 0x2202:
-			printf("$\\partial$");
-			return(1);
-		case 0x2203:
-			printf("$\\exists$");
-			return(1);
-		case 0x2205:
-			printf("$\\emptyset$");
-			return(1);
-		case 0x2207:
-			printf("$\\nabla$");
-			return(1);
-		case 0x2208:
-			printf("$\\in$");   /* element of */
-			return(1);
-		case 0x2209:
-			printf("$\\notin$");   /* not an element of */
-			return(1);
-		case 0x220b:
-			printf("$\\ni$");   /* contains as member */
-			return(1);
-		case 0x221a:
-			printf("$\\surd$"); 	/* sq root */
-			return(1);
-		case 0x2212:
-			printf("$-$");		/* minus */
-			return(1);
-		case 0x221d:
-			printf("$\\propto$");
-			return(1);
-		case 0x221e:
-			printf("$\\infty$");
-			return(1);
-		case 0x2220:
-			printf("$\\angle$");
-			return(1);
-		case 0x2227:
-			printf("$\\land$"); /* logical and */
-			return(1);
-		case 0x2228:
-			printf("$\\lor$");   /* logical or */
-			return(1);
-		case 0x2229:
-			printf("$\\cap$"); /* intersection */
-			return(1);
-		case 0x222a:
-			printf("$\\cup$"); /* union */
-			return(1);
-		case 0x223c:
-			printf("$\\sim$"); /* similar to  */
-			return(1);
-		case 0x2248:
-			printf("$\\approx$");
-			return(1);
-		case 0x2261:
-			printf("$\\equiv$");
-			return(1);
-		case 0x2260:
-			printf("$\\neq$");
-			return(1);
-		case 0x2264:
-			printf("$\\leq$");
-			return(1);
-		case 0x2265:
-			printf("$\\geq$");
-			return(1);
-		case 0x2282:
-			printf("$\\subset$");
-			return(1);
-		case 0x2283:
-			printf("$\\supset$");
-			return(1);
-		case 0x2284:
-			printf("$\\notsubset$");
-			return(1);
-		case 0x2286:
-			printf("$\\subseteq$");
-			return(1);
-		case 0x2287:
-			printf("$\\supseteq$");
-			return(1);
-		case 0x2295:
-			printf("$\\oplus$");   /* circled plus */
-			return(1);
-		case 0x2297:
-			printf("$\\otimes$");
-			return(1);
-		case 0x22a5:
-			printf("$\\perp$");	/* perpendicular */
-			return(1);
-
-
-
-
-		case 0x2660:
-			printf("$\\spadesuit$");
-			return(1);
-		case 0x2663:
-			printf("$\\clubsuit$");
-			return(1);
-		case 0x2665:
-			printf("$\\heartsuit$");
-			return(1);
-		case 0x2666:
-			printf("$\\diamondsuit$");
-			return(1);
-
-
-		case 0x01C7:
-			printf("LJ");  /* the LJ letter */
-			return(1);
-		case 0x01C8:
-			printf("Lj");  /* the Lj letter */
-			return(1);
-		case 0x01C9:
-			printf("lj");  /* the lj letter */
-			return(1);
-		case 0x01CA:
-			printf("NJ");  /* the NJ letter */
-			return(1);
-		case 0x01CB:
-			printf("Nj");  /* the Nj letter */
-			return(1);
-		case 0x01CC:
-			printf("nj");  /* the nj letter */
-			return(1);
-		case 0x01CD:
-			printf("\\v{A}");  /* A with caron */
-			return(1);
-		case 0x01CE:
-			printf("\\v{a}");  /* a with caron */
-			return(1);
-		case 0x01CF:
-			printf("\\v{I}");  /* I with caron */
-			return(1);
-		case 0x01D0:
-			printf("\\v{\\i}");  /* i with caron (dotless) */
-			return(1);
-		case 0x01D1:
-			printf("\\v{O}");  /* O with caron */
-			return(1);
-		case 0x01D2:
-			printf("\\v{o}");  /* o with caron */
-			return(1);
-		case 0x01D3:
-			printf("\\v{U}");  /* U with caron */
-			return(1);
-		case 0x01D4:
-			printf("\\v{u}");  /* u with caron */
-			return(1);
-
-		case 0x01E6:
-			printf("\\v{G}");  /* G with caron */
-			return(1);
-		case 0x01E7:
-			printf("\\v{g}");  /* g with caron */
-			return(1);
-		case 0x01E8:
-			printf("\\v{K}");  /* K with caron */
-			return(1);
-		case 0x01E9:
-			printf("\\v{k}");  /* k with caron */
-			return(1);
-
-
-		case 0x01F0:
-			printf("\\v{\\j}");  /* j with caron (dotless) */
-			return(1);
-		case 0x01F1:
-			printf("DZ");  /* the DZ letter */
-			return(1);
-		case 0x01F2:
-			printf("Dz");  /* the Dz letter */
-			return(1);
-		case 0x01F3:
-			printf("dz");  /* the dz letter */
-			return(1);
-		case 0x01F4:
-			printf("\\'G");  /* G with acute */
-			return(1);
-		case 0x01F5:
-			printf("\\'g");  /* g with acute */
-			return(1);
-
-		case 0x01FA:
-			printf("\\'{\\AA}");  /* A-ring with acute */
-			return(1);
-		case 0x01FB:
-			printf("\\'{\\aa}");  /* a-ring with acute */
-			return(1);
-		case 0x01FC:
-			printf("\\'{\\AE}");  /* AE with acute */
-			return(1);
-		case 0x01FD:
-			printf("\\'{\\ae}");  /* AE with acute */
-			return(1);
-		case 0x01FE:
-			printf("\\'{\\O}");  /* O-stroke with acute */
-			return(1);
-		case 0x01FF:
-			printf("\\'{\\o}");  /* O-stroke with acute */
-			return(1);
-
-		case 0x2010:
-			printf("-"); /* hyphen */
-			return(1);
-		case 0x2011:
-			printf("-"); /* non-breaking hyphen (is there a way to get this in LaTeX?) */
-			return(1);
-		case 0x2012:
-			printf("--"); /* figure dash (similar to en-dash) */
-			return(1);
-		case 0x2013:
-			printf("--"); /* EN dash */
-			return(1);
-
-		case 0x016B:
-			printf("\\=u");  /* u with macron */
-			return(1);
-		case 0x016C:
-			printf("\\u{U}");  /* U with breve */
-			return(1);
-		case 0x016D:
-			printf("\\u{u}");  /* u with breve */
-			return(1);
-		case 0x016E:
-			printf("\\r{U}");  /* U with ring above */
-			return(1);
-		case 0x016F:
-			printf("\\r{u}");  /* u with ring above */
-			return(1);
-		case 0x0170:
-			printf("\\H{U}");  /* U with double acute */
-			return(1);
-		case 0x0171:
-			printf("\\H{u}");  /* u with double acute */
-			return(1);
-
-		case 0x0174:
-			printf("\\^W");  /* W with circumflex */
-			return(1);
-		case 0x0175:
-			printf("\\^w");  /* w with circumflex */
-			return(1);
-		case 0x0176:
-			printf("\\^Y");  /* Y with circumflex */
-			return(1);
-		case 0x0177:
-			printf("\\^y");  /* y with circumflex */
-			return(1);
-		case 0x0178:
-			printf("\\\"Y");  /* Y with diaeresis */
-			return(1);
-		case 0x0179:
-			printf("\\'Z");  /* Z with acute */
-			return(1);
-		case 0x017A:
-			printf("\\'z");  /* z with acute */
-			return(1);
-		case 0x017B:
-			printf("\\.Z");  /* Z with dot above */
-			return(1);
-		case 0x017C:
-			printf("\\.z");  /* z with dot above */
-			return(1);
-		case 0x017D:
-			printf("\\v{Z}");  /* Z with caron */
-			return(1);
-		case 0x017E:
-			printf("\\v{z}");  /* z with caron */
-			return(1);
-	/* Some Latin-1 characters as well as some specials */
-		case 0x00EB:
-				printf("\\\"{e}");
-				return(1);
-		case 0x00CB:
-				printf("\\\"{E}");
-				return(1);
-		case 0x00F6:
-				printf("\\\"{o}");
-				return(1);
-		case 0x00E4:
-				printf("\\\"{a}");
-				return(1);
-		case 0x00FC:
-				printf("\\\"{u}");
-				return(1);
-		case 0x00C4:
-				printf("\\\"{A}");
-				return(1);
-		case 0x00D6:
-				printf("\\\"{O}");
-				return(1);
-#if 0
-		case 0x00DC:
-				printf("\\\"{U}");
-				return(1);
-#endif
-		case 0x00DF:
-				printf("\\ss{}");
-				return(1);
-		case 0x00E9: /* e with acute */
-				printf("\\\'{e}");
-				return(1);
-		case 0x00C9: /* E with acute */
-				printf("\\\'{E}");
-				return(1);
-		case 0x00E8: /* e with grave */
-				printf("\\`{e}");
-				return(1);
-		case 0x00C8: /* E with grave */
-				printf("\\`{E}");
-				return(1);
-		case 0x00FD: /* y with acute */
-				printf("\\\'{y}");
-				return(1);
-		case 0x00DD: /* Y with acute */
-				printf("\\\'{Y}");
-				return(1);
-		case 0x00F8: /* o with stroke */
-				printf("{\\o}");
-				return(1);
-		case 0x00D8: /* O with stroke */
-				printf("{\\O}");
-				return(1);
-		case 0x00E0: /* a with grave */
-				printf("\\`{a}");
-				return(1);
-		case 0x00C0: /* A with grave */
-				printf("\\`{A}");
-				return(1);
-		case 0x00E1: /* a with acute */
-				printf("\\\'{a}");
-				return(1);
-		case 0x00ED: /* i with acute */
-				printf("\\\'{i}");
-				return(1);
-		case 0x00FA: /* u with acute */
-				printf("\\\'{u}");
-				return(1);
-		case 0x00F2: /* o with grave */
-				printf("\\`{o}");
-				return(1);
-		case 0x00F3: /* o with acute */
-				printf("\\\'{o}");
-				return(1);
-		case 0x00F1: /* n with tilde */
-				printf("\\~{n}");
-				return(1);
-		case 0x00C1: /* A with acute */
-				printf("\\\'{A}");
-				return(1);
-		case 0x00CD: /* I with acute */
-				printf("\\\'{I}");
-				return(1);
-		case 0x00DA: /* U with acute */
-				printf("\\\'{U}");
-				return(1);
-		case 0x00D3: /* O with acute */
-				printf("\\\'{O}");
-				return(1);
-		case 0x00E7: /* c with cedilla */
-				printf("\\c{c}");
-				return(1);
-		case 0x00C7: /* C with cedilla */
-				printf("\\c{C}");
-				return(1);
-		case 0x00D1: /* N with tilde */
-				printf("\\~{N}");
-				return(1);
-		case 0x00E2: /* a with circumflex */
-			printf("\\^{a}");
-			return (1);
-		case 0x00C2: /* A with circumflex */
-			printf("\\^{A}");
-			return (1);
-		case 0x00EA: /* e with circumflex */
-			printf("\\^{e}");
-			return (1);
-		case 0x00CA: /* E with circumflex */
-			printf("\\^{E}");
-			return (1);
-		case 0x00EE: /* i with circumflex */
-			printf("\\^{i}");
-			return (1);
-		case 0x00CE: /* I with circumflex */
-			printf("\\^{I}");
-			return (1);
-		case 0x00F4: /* o with circumflex */
-			printf("\\^{o}");
-			return (1);
-		case 0x00D4: /* O with circumflex */
-			printf("\\^{O}");
-			return (1);
-		case 0x00FB: /* u with circumflex */
-			printf("\\^{u}");
-			return (1);
-		case 0x00DB: /* U with circumflex */
-			printf("\\^{U}");
-			return (1);
-		case 0x00E3: /* a with tilde */
-			printf("\\~{a}");
-			return (1);
-		case 0x00C3: /* A with tilde */
-			printf("\\~{A}");
-			return (1);
-		case 0x00F5: /* o with tilde */
-			printf("\\~{o}");
-			return (1);
-		case 0x00D5: /* O with tilde */
-			printf("\\~{O}");
-			return (1);
-		case 0x00A1: /* inverted exclamation mark */
-				printf("!`");
-				return(1);
-		case 0x00BF: /* inverted question mark */
-				printf("?`");
-				return(1);
-
-
-	/* Windows specials (MV 4.7.2000). More could be added. 
-	See http://www.hut.fi/u/jkorpela/www/windows-chars.html
-	*/
-
-		case 0x2014:
-			printf("---"); /* em-dash */
-			return(1);
-		case 0x2018:
-			printf("{`}");  /* left single quote, Win */
-			return(1);
-		case 0x2019:
-			printf("'");  /* Right single quote, Win */
-			return(1);
-		case 0x201A:
-			printf("\\quotesinglbase{}");  /* single low 99 quotation mark */
-			return(1);
-		case 0x201C:
-			printf("{``}");  /* inverted double quotation mark */
-			return(1);
-		case 0x201D:
-			printf("''");  /* double q.m. */
-			return(1);
-		case 0x201E:
-			printf("\\quotedblbase{}");  /* double low 99 quotation mark */
-			return(1);
-		case 0x2020:
-			printf("\\dag{}");  /* dagger */
-			return(1);
-		case 0x2021:
-			printf("\\ddag{}");  /* double dagger */
-			return(1);
-		case 0x2022:
-			printf("$\\bullet$");  /* bullet */
-			return(1);
-		case 0x2023:
-			printf("$\\bullet$");  /* NOTE: Not a real triangular bullet */
-			return(1);
-
-		case 0x2024:
-			printf(".");  /* One dot leader (for use in TOCs) */
-			return(1);
-		case 0x2025:
-			printf("..");  /* Two dot leader (for use in TOCs) */
-			return(1);
-		case 0x2026:
-			printf("\\ldots{}"); /* ellipsis */
-			return(1);
-
-		case 0x2039:
-			printf("\\guilsinglleft{}");  /* single left angle quotation mark */
-			return(1);
-		case 0x203A:
-			printf("\\guilsinglright{}"); /* single right angle quotation mark */
-			return(1);
-
-		case 0x203C:
-			printf("!!"); /* double exclamation mark */
-			return(1);
-
-		case 0x2215:
-			printf("$/$");  /* Division slash */
-			return(1);
-
-		case 0x2030:
-			printf("o/oo");
-			return(1);
-
-		case 0x20ac:
-			printf("\\euro");
-                        /* No known implementation ;-)
-
-			TODO
-                        Shouldn't we use the package 'eurofont'?
-                        -- 2000-08-15 huftis@bigfoot.com 
-                        */
-			return(1);
-
-		case 0x2160:
-			printf("I"); /* Roman numeral I */
-			return(1);
-		case 0x2161:
-			printf("II"); /* Roman numeral II */
-			return(1);
-		case 0x2162:
-			printf("III"); /* Roman numeral III */
-			return(1);
-		case 0x2163:
-			printf("IV"); /* Roman numeral IV */
-			return(1);
-		case 0x2164:
-			printf("V"); /* Roman numeral V */
-			return(1);
-		case 0x2165:
-			printf("VI"); /* Roman numeral VI */
-			return(1);
-		case 0x2166:
-			printf("VII"); /* Roman numeral VII */
-			return(1);
-		case 0x2167:
-			printf("VIII"); /* Roman numeral VIII */
-			return(1);
-		case 0x2168:
-			printf("IX"); /* Roman numeral IX */
-			return(1);
-		case 0x2169:
-			printf("X"); /* Roman numeral X */
-			return(1);
-		case 0x216A:
-			printf("XI"); /* Roman numeral XI */
-			return(1);
-		case 0x216B:
-			printf("XII"); /* Roman numeral XII */
-			return(1);
-		case 0x216C:
-			printf("L"); /* Roman numeral L */
-			return(1);
-		case 0x216D:
-			printf("C"); /* Roman numeral C */
-			return(1);
-		case 0x216E:
-			printf("D"); /* Roman numeral D */
-			return(1);
-		case 0x216F:
-			printf("M"); /* Roman numeral M */
-			return(1);
-		case 0x2170:
-			printf("i"); /* Roman numeral i */
-			return(1);
-		case 0x2171:
-			printf("ii"); /* Roman numeral ii */
-			return(1);
-		case 0x2172:
-			printf("iii"); /* Roman numeral iii */
-			return(1);
-		case 0x2173:
-			printf("iv"); /* Roman numeral iv */
-			return(1);
-		case 0x2174:
-			printf("v"); /* Roman numeral v */
-			return(1);
-		case 0x2175:
-			printf("vi"); /* Roman numeral vi */
-			return(1);
-		case 0x2176:
-			printf("vii"); /* Roman numeral vii */
-			return(1);
-		case 0x2177:
-			printf("viii"); /* Roman numeral viii */
-			return(1);
-		case 0x2178:
-			printf("ix"); /* Roman numeral ix */
-			return(1);
-		case 0x2179:
-			printf("x"); /* Roman numeral x */
-			return(1);
-		case 0x217A:
-			printf("xi"); /* Roman numeral xi */
-			return(1);
-		case 0x217B:
-			printf("xiii"); /* Roman numeral xii */
-			return(1);
-		case 0x217C:
-			printf("l"); /* Roman numeral l */
-			return(1);
-		case 0x217D:
-			printf("c"); /* Roman numeral c */
-			return(1);
-		case 0x217E:
-			printf("d"); /* Roman numeral d */
-			return(1);
-		case 0x217F:
-			printf("m"); /* Roman numeral m */
-			return(1);
-
-		}
-	/* Debugging aid: */
-	return(0);
-	}
-#undef printf
+	const s_U2LxMapping * e = static_cast<const s_U2LxMapping *>(
+		bsearch(&char16, s_UnicodeToLaTeX,
+				sizeof(s_UnicodeToLaTeX) / sizeof(s_UnicodeToLaTeX[0]),
+				sizeof(s_UnicodeToLaTeX[0]), &s_cmpU2LxMapping));
+	if (!e)
+		return 0;
+	out = e->repl;
+	return 1;
+}

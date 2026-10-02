@@ -2959,6 +2959,16 @@ below are on `main` but the release has not been cut yet.
   spin on stdin EOF.  Two always-true signed-char comparisons in
   the MathML typesetter were collapsed/fixed so the intended ASCII
   check actually runs.
+- **Complexity-hotspot refactors in the format parsers (MOD05)** —
+  the worst offender, `wvConvertUnicodeToLaTeX`, was a ~1100-line
+  switch whose cases assigned output through a redefined `printf`
+  macro; it is now a 362-entry sorted lookup table served by
+  `bsearch` (verified byte-identical against the old code for every
+  possible input).  The `.doc` importer's `_specCharProc` shrank
+  ~420 lines by moving the deeply-nested Word97 picture/textbox
+  case into its own `_specCharImage08` helper, and the LaTeX
+  importer's `_parseText` gained a `_emitListEnv` helper for list
+  environments, removing the deepest nesting in the importer.
 
 ### GTK4 port (core migration)
 
