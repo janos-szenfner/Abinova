@@ -2660,6 +2660,23 @@ below are on `main` but the release has not been cut yet.
   mutex was held — and the constructor never initialized either —
   replaced with `GRecMutex`, which provides the intended recursive
   semantics directly.
+- **Atomicity / memory-ordering audit (CON03)** — audited the tree
+  for the atomic-bug classes: there are no atomics of any kind
+  (no `std::atomic`, `g_atomic_*`, `__atomic`/`__sync` builtins,
+  `GOnce` or `g_once_init` in `src/`, `thirdparty/` or `test/`), so
+  no wrong `memory_order` or check-then-act-on-atomic defect can
+  exist.  No plain flag is shared with the only real worker thread
+  (the update-check `GTask` exchanges a thread-local result through
+  `g_task_return_pointer`, and the dialog widgets it touches are
+  `g_object_ref`'d before the task starts); the clipboard and
+  drag-and-drop `done`/`abandoned` hand-off flags only ever move on
+  the same main context, so timeout-vs-completion is sequential, not
+  racy.  Manual refcounts (`AD_Document::m_iRefCount`,
+  `fp_ContainerObject::m_iRef`, `XAP_Resource::m_ref_count`, the
+  `GR_*::s_iInstanceCount` counters) are reached on the main thread
+  only.  Signal-context shared state is already POSIX-correct
+  (`volatile sig_atomic_t`, from the CON01 pass).  No changes
+  needed.
 
 ### GTK4 port (core migration)
 
