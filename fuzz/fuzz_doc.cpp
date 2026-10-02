@@ -7,12 +7,13 @@
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
  *
- * libFuzzer target for the native .abw/.abwn importer.
+ * libFuzzer target for the legacy MS Word .doc importer
+ * (ie_imp_MsWord_97.cpp driving the vendored wv parser in
+ * thirdparty/wv-1.2.9 — OLE container, FIB, piece table, sprms).
  *
  * Feeds the input buffer through the IE_Imp sniff + parse entry —
  * IE_Imp::fileTypeForContents() on the raw bytes, then a full
- * PD_Document::readFromFile() pinned to the Abinova document
- * importer (the file type ".abw"/".abwn"/".zabwn" all map to).
+ * PD_Document::readFromFile() pinned to the .doc importer.
  *
  * Build with tools/build-fuzz.sh (clang -fsanitize=fuzzer,address
  * against an instrumented in-tree copy under fuzz-build/).
@@ -20,7 +21,7 @@
 
 #include "fuzz_common.h"
 
-static IEFileType s_abwType = IEFT_Unknown;
+static IEFileType s_docType = IEFT_Unknown;
 
 extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
@@ -30,11 +31,11 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	if (fuzz::initApp())
 		return 1;
 
-	s_abwType = fuzz::fileType(".abw");
+	s_docType = fuzz::fileType(".doc");
 	return 0;
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-	return fuzz::importBuffer(data, size, s_abwType);
+	return fuzz::importBuffer(data, size, s_docType);
 }

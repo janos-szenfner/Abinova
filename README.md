@@ -1902,12 +1902,16 @@ tools/build-fuzz.sh                       # instrumented tree + all fuzz/fuzz_*.
 ASAN_OPTIONS=detect_leaks=0 fuzz-build/fuzz_abw fuzz/corpus/abw -runs=0
 ```
 
-The first harness (`fuzz/fuzz_abw.cpp`) feeds bytes through the
-native `.abw`/`.abwn` sniff + import path. `tools/build-fuzz.sh`
-maintains an instrumented copy of the tree under `fuzz-build/tree`
-(see its header comment for bounded-run usage and why
-`detect_leaks=0` is used for smoke runs). Crash reproducers land in
-the directory given with `-artifact_prefix`.
+Each `fuzz/fuzz_<fmt>.cpp` harness feeds bytes through the
+`IE_Imp::fileTypeForContents()` sniff plus a full
+`PD_Document::readFromFile()` pinned to one importer: `fuzz_abw`
+(native `.abw`/`.abwn`), `fuzz_doc` (legacy Word `.doc` via wv),
+`fuzz_rtf` and `fuzz_wpd` (WordPerfect via libwpd). Seed corpora live
+in `fuzz/corpus/<fmt>/`. `tools/build-fuzz.sh` maintains an
+instrumented copy of the tree under `fuzz-build/tree` (see its
+header comment for bounded-run usage and why `detect_leaks=0` is
+used for smoke runs). Crash reproducers land in the directory given
+with `-artifact_prefix`.
 
 ## Known issues
 

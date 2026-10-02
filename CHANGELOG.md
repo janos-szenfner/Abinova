@@ -3406,6 +3406,15 @@ below are on `main` but the release has not been cut yet.
   headless `AP_UnixApp`; a seed corpus lives in `fuzz/corpus/abw`.
   Crashes, timeouts and OOMs are written as `crash-*`/`timeout-*`/
   `oom-*` reproducer files under the `-artifact_prefix` directory.
+- **Fuzz harnesses for the binary importers** — `fuzz_doc`
+  (legacy Word `.doc` through the vendored wv parser), `fuzz_rtf`
+  and `fuzz_wpd` (WordPerfect through vendored libwpd) join
+  `fuzz_abw`, all sharing the same sniff+`readFromFile` plumbing in
+  the new `fuzz/fuzz_common.h`. Seed corpora live in
+  `fuzz/corpus/{doc,rtf,wpd}` — small in-repo `.doc`/`.rtf`
+  fixtures plus hand-built minimal WP6 `.wpd` files exercising the
+  header, index, single/variable/fixed-length function-group
+  parsers.
 
 ### Resolved root causes worth noting
 
