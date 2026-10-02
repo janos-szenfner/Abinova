@@ -19,6 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
  * 02110-1301 USA.
  */
+#include <algorithm>
+
 #include "ie_exp_HTML_DocumentWriter.h"
 
 IE_Exp_HTML_DocumentWriter::IE_Exp_HTML_DocumentWriter(
@@ -438,7 +440,10 @@ void IE_Exp_HTML_DocumentWriter::insertAnnotations(
     m_pTagWriter->openTag("div");
     m_pTagWriter->addAttribute("class", "annotation-section");
     
-    for(size_t i = 0; i < annotations.size(); i++)
+    /* titles/authors are pushed in lockstep with annotations, but bound
+     * the walk on the smallest so a desync can't throw from at(). */
+    const size_t count = std::min({titles.size(), authors.size(), annotations.size()});
+    for(size_t i = 0; i < count; i++)
     {
         UT_UTF8String title = titles.at(i);
         UT_UTF8String author = authors.at(i);

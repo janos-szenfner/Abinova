@@ -775,10 +775,11 @@ bool GR_Graphics::_PtInPolygon(const UT_Point * pts, UT_uint32 nPoints,
 void GR_Graphics::polygon(const UT_RGBColor& c, const UT_Point *pts,
                           UT_uint32 nPoints)
 {
+    UT_return_if_fail(pts && nPoints >= 2);
     UT_sint32 minX,maxX,minY,maxY,x,y;
     minX = maxX = pts[0].x;
     minY = maxY = pts[0].y;
-    for(UT_uint32 i = 0;i < nPoints - 1;i++){
+    for(UT_uint32 i = 0;i < nPoints;i++){
         minX = UT_MIN(minX,pts[i].x);
         maxX = UT_MAX(maxX,pts[i].x);
         minY = UT_MIN(minY,pts[i].y);

@@ -55,7 +55,7 @@ bool ODi_Abi_Data::addImageDataItem(UT_String& rDataId, const gchar** ppAtts) {
     UT_return_val_if_fail(pHRef,false);
 
     // If we have a string smaller then this we are in trouble. File corrupted?
-    UT_return_val_if_fail((strlen(pHRef) >= 10 /*10 == strlen("Pictures/a")*/), false);
+    UT_return_val_if_fail((strlen(pHRef) >= sizeof("Pictures/a") - 1), false);
 
     UT_Error error = UT_OK;
     UT_ByteBufPtr img_buf(new UT_ByteBuf);
@@ -182,7 +182,7 @@ bool ODi_Abi_Data::addObjectDataItem(UT_String& rDataId, const gchar** ppAtts, i
     UT_return_val_if_fail(pHRef,false);
 
     // If we have a string smaller then this we are in trouble. File corrupted?
-    UT_return_val_if_fail((strlen(pHRef) >= 9 /*9 == strlen("Object a/")*/), false);
+    UT_return_val_if_fail((strlen(pHRef) >= sizeof("Object a/") - 1), false);
 
     UT_Error error = UT_OK;
     GsfInfile* pObjects_dir;

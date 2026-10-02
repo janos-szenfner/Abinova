@@ -2898,6 +2898,29 @@ below are on `main` but the release has not been cut yet.
   whose ownership transfers to the caller, member storage, a
   caller-owned parameter container, or a by-value return.  No
   dangling-return defects found, no changes needed.
+- **Polygon fill bounding box fixed** — `GR_Graphics::polygon()`
+  computed the pixel-fill bounding box over `nPoints - 1` vertices,
+  silently dropping the last vertex, so polygons whose extreme vertex
+  is last were rendered clipped; it also dereferenced `pts[0]` and
+  wrapped the loop bound to ~4 billion when called with zero points.
+  The bounds loop now covers all vertices and the function rejects
+  degenerate input.
+- **Defect-driven C++ modernization (MOD02)** — `NULL`→`nullptr` at
+  the three remaining variadic-argument terminator sites where the
+  integral `NULL` is the wrong type (`g_object_set` ×2 and
+  `gsf_outfile_new_child_full`); `size() - 1` loop bounds rewritten
+  as `i + 1 < size()` in the HTML tag writer so an empty stack can
+  never wrap to ~2⁶⁴; annotation export loops in the HTML and EPUB3
+  writers now bound on the smallest of the three parallel vectors so
+  a desync truncates instead of throwing from `at()`; hand-computed
+  `strlen`-equivalent magic numbers (the ODF `mimetype` length,
+  `Pictures/a` / `Object a/` prefix checks) replaced with compile-time
+  `sizeof(...) - 1` so they can no longer drift from the literals;
+  the dropped-URI whitespace scan rewritten as a `strcspn` byte scan
+  instead of a per-character `substr` allocation loop; and the
+  `NUM_MODELESSID`, `CRC32_NEGL`, `iMbLenMax`, `iResultCount`
+  constants converted to `constexpr` so they can appear in
+  constant expressions and carry a real type.
 
 ### GTK4 port (core migration)
 

@@ -52,7 +52,7 @@ class XAP_Frame;
 class AD_Document;
 class XAP_StringSet;
 
-const UT_uint32 iResultCount = 4;
+constexpr UT_uint32 iResultCount = 4;
 
 class ABI_EXPORT XAP_Dialog_DocComparison : public XAP_Dialog_NonPersistent
 {

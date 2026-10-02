@@ -33,7 +33,7 @@
 #include <string>
 #include <list>
 
-#define NUM_MODELESSID 39
+constexpr UT_sint32 NUM_MODELESSID = 39;
 
 class XAP_DialogFactory;
 class XAP_Dialog_Modeless;

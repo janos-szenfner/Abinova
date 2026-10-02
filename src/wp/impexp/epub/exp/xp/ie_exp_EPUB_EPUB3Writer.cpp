@@ -18,6 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
  * 02110-1301 USA.
  */
+#include <algorithm>
+
 #include "ie_exp_EPUB_EPUB3Writer.h"
 
 IE_Exp_EPUB_EPUB3Writer::IE_Exp_EPUB_EPUB3Writer(IE_Exp_HTML_OutputWriter* 
@@ -197,7 +199,10 @@ void IE_Exp_EPUB_EPUB3Writer::insertAnnotations(
 	m_pTagWriter->openTag("section");
     m_pTagWriter->addAttribute("epub:type", "annotations");
     
-    for(size_t i = 0; i < annotations.size(); i++)
+    /* titles/authors are pushed in lockstep with annotations, but bound
+     * the walk on the smallest so a desync can't throw from at(). */
+    const size_t count = std::min({titles.size(), authors.size(), annotations.size()});
+    for(size_t i = 0; i < count; i++)
     {
         UT_UTF8String title = titles.at(i);
         UT_UTF8String author = authors.at(i);

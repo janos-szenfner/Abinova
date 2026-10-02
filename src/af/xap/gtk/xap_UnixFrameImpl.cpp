@@ -519,17 +519,16 @@ s_dropDispatch(XAP_Frame * pFrame, const char * targetName, int target,
 			{
 
 				UT_UTF8String sUri = uri;
-				UT_uint32 i = 0;
-				if(sUri.length())
 				{
-					for(i=0;i<sUri.length()-1;i++)
+					/* ' ' and '\n' are single bytes in UTF-8, so a byte
+					 * scan on the utf8 string is equivalent to the old
+					 * per-char substr loop (which also missed the last
+					 * char and allocated a string per char). */
+					const char * pBytes = sUri.utf8_str();
+					size_t iCut = strcspn(pBytes, " \n");
+					if (pBytes[iCut] != '\0')
 					{
-						if((sUri.substr(i,1) == "\n") ||
-						   (sUri.substr(i,1) == " ")  )
-						{
-							sUri = sUri.substr(0,i);
-							break;
-						}
+						sUri = sUri.substr(0, iCut);
 					}
 				}
 				UT_DEBUGMSG(("trimmed Uri is (%s) \n",sUri.utf8_str()));

@@ -22,7 +22,7 @@
 
 #include "ut_types.h"
 
-const UT_uint32 CRC32_NEGL = 0xffffffffL;
+constexpr UT_uint32 CRC32_NEGL = 0xffffffffUL;
 #ifdef UT_LITTLE_ENDIAN
 #define CRC32_INDEX(c) (c & 0xff)
 #define CRC32_SHIFTED(c) (c >> 8)

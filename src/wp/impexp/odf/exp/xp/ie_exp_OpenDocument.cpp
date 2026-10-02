@@ -298,7 +298,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 		}
 
 		ODe_gsf_output_write(mimetype,
-				39 /*39 == strlen("application/vnd.oasis.opendocument.text")*/,
+				sizeof("application/vnd.oasis.opendocument.text") - 1,
 				reinterpret_cast<const guint8 *>("application/vnd.oasis.opendocument.text"));
 
 		ODe_gsf_output_close(mimetype);

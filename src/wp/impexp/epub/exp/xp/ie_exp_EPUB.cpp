@@ -95,7 +95,7 @@ UT_Error IE_Exp_EPUB::_writeDocument()
 
     // mimetype must a first file in archive
     UT_GsfOutputPtr mimetype(gsf_outfile_new_child_full(m_root,
-        "mimetype", FALSE, "compression-level", 0, NULL));
+        "mimetype", FALSE, "compression-level", 0, nullptr));
     if (mimetype)
     {
         gsf_output_write(mimetype.get(), strlen(EPUB_MIMETYPE),

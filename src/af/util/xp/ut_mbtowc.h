@@ -10,7 +10,7 @@
 #define MY_MB_LEN_MAX 6
 
 // DO NOT USE MB_LEN_MAX -- on win32 it is only 2 bytes!
-const size_t iMbLenMax = UT_MAX(MY_MB_LEN_MAX, MB_LEN_MAX);
+constexpr size_t iMbLenMax = UT_MAX(MY_MB_LEN_MAX, MB_LEN_MAX);
 
 class ABI_EXPORT UT_UCS2_mbtowc
 {

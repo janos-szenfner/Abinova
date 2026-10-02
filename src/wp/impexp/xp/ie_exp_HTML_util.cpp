@@ -659,7 +659,7 @@ void IE_Exp_HTML_TagWriter::openTag(const std::string& tagName, bool isInline, b
     if (!isInline)
     {
         std::string indent = "";
-        for (size_t i = 0; i < m_tagStack.size() - 1; i++)
+        for (size_t i = 1; i < m_tagStack.size(); i++)
         {
             indent += "    ";
         }
@@ -744,7 +744,7 @@ void IE_Exp_HTML_TagWriter::closeTag()
         if (m_bDataWritten && !m_inlineFlagStack.back())
         {
             std::string indent = "";
-            for (size_t i = 0; i < m_tagStack.size() - 1; i++)
+            for (size_t i = 1; i < m_tagStack.size(); i++)
             {
                 indent += "    ";
             }
