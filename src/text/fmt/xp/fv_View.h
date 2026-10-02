@@ -278,7 +278,7 @@ class ABI_EXPORT FV_View : public AV_View
 	friend class FV_ViewDoubleBuffering;
 	friend class FV_SelectionHandles;
 public:
-	FV_View(XAP_App*, void*, FL_DocLayout*);
+	FV_View(XAP_App*, XAP_Frame*, FL_DocLayout*);
 	virtual ~FV_View();
 
 	virtual inline GR_Graphics*    getGraphics(void) const override { return m_pG; }

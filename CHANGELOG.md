@@ -2537,6 +2537,19 @@ below are on `main` but the release has not been cut yet.
   now guarded and falls back to the existing recovery path.
   A `docx -> rtf -> abinova` round-trip that previously aborted now
   converts cleanly.
+- **Untyped-pointer audit (TS05)** — audited every `void*`/`gpointer`
+  channel in `src/` for type-identity loss (callback user-data,
+  `g_object` data keys, timer instance data, wvWare element props,
+  hash maps and `UT_Vector` payloads; no `std::any`/`std::variant`/
+  Boost equivalents exist in the tree).  The one real defect found —
+  `PD_Document::setDataItemToken` accepted any pointer into a slot
+  that is always an owned `g_strdup`'d MIME-type string, leaking the
+  old value and letting a wrong-type pointer reach `g_free` or be
+  read back as `char*` — is now typed `const char*` and frees the
+  previous token.  The view-to-frame link (`AV_View::m_pParentData`,
+  `getParentData`, `XAP_App::rememberFocussedFrame`) is now a real
+  `XAP_Frame*` instead of `void*`, so passing a non-frame pointer is
+  a compile-time error.
 
 ### GTK4 port (core migration)
 

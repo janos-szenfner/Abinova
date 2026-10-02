@@ -940,9 +940,9 @@ bool XAP_App::getPrefsValueBool(const std::string& key, bool& bValue) const
 	return m_prefs->getPrefsValueBool(key, bValue);
 }
 
-void XAP_App::rememberFocussedFrame( void * pJustFocussedFrame)
+void XAP_App::rememberFocussedFrame( XAP_Frame * pJustFocussedFrame)
 {
-	m_lastFocussedFrame = static_cast<XAP_Frame *>(pJustFocussedFrame);
+	m_lastFocussedFrame = pJustFocussedFrame;
 
 	UT_sint32 i = safefindFrame( m_lastFocussedFrame);
 	if(i < 0 ) 

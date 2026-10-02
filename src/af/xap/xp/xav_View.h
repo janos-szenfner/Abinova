@@ -37,6 +37,7 @@
 class GR_Graphics;
 
 class XAP_App;
+class XAP_Frame;
 
 // TODO shouldn't these classes be xav_ prefixed ??
 
@@ -81,14 +82,14 @@ class ABI_EXPORT AV_View
 	: public XAP_Drawable
 {
 public:
-	AV_View(XAP_App * pApp, void*);
+	AV_View(XAP_App * pApp, XAP_Frame * pParentData);
 	virtual ~AV_View();
 
 	virtual void focusChange(AV_Focus focus)=0;
 	AV_Focus getFocus(){ return m_focus; }
 	void setFocus(AV_Focus focus){ m_focus=focus; }
 
-	void*			getParentData() const;
+	XAP_Frame *		getParentData() const;
 
 	void			setInsertMode(bool bInsert);
 
@@ -177,7 +178,7 @@ public:
 
 protected:
 	XAP_App *			m_pApp;
-	void*				m_pParentData;
+	XAP_Frame *			m_pParentData;
 
 	UT_sint32			m_xScrollOffset;
 	UT_sint32			m_yScrollOffset;

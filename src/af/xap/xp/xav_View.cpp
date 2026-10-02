@@ -27,7 +27,7 @@
 #include "xap_Frame.h"
 #include "xap_App.h"
 
-AV_View::AV_View(XAP_App * pApp, void* pParentData)
+AV_View::AV_View(XAP_App * pApp, XAP_Frame * pParentData)
 :	m_pApp(pApp),
 	m_pParentData(pParentData),
 	m_xScrollOffset(0),
@@ -50,7 +50,7 @@ AV_View::~AV_View()
 	UT_DEBUGMSG(("Deleting view %p \n", static_cast<void*>(this)));
 }
 
-void* AV_View::getParentData() const
+XAP_Frame * AV_View::getParentData() const
 {
 	return m_pParentData;
 }

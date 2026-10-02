@@ -220,7 +220,7 @@ fv_CaretProps::~fv_CaretProps(void)
 #ifdef _MSC_VER	// MSVC++ warns about using 'this' in initializer list.
 #pragma warning(disable: 4355)
 #endif
-FV_View::FV_View(XAP_App * pApp, void* pParentData, FL_DocLayout* pLayout)
+FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 	:	AV_View(pApp, pParentData),
 		m_iNumHorizPages(1), /* This should probably be grabbed from a preference or something */
 		m_autoNumHorizPages(true), /* Same here */

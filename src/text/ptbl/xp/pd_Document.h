@@ -538,10 +538,10 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 												  UT_ConstByteBufPtr & pByteBuf,
                                                   std::string* pMimeType,
                                                   PD_DataItemHandle* ppHandle) const override;
-	bool					setDataItemToken(PD_DataItemHandle pHandle, void* pToken) const;
+	bool					setDataItemToken(PD_DataItemHandle pHandle, const char* pToken) const;
 	bool					getDataItemData(PD_DataItemHandle pHandle,
 											const char ** pszName, UT_ConstByteBufPtr & pByteBuf,
-											const void** ppToken) const;
+											const char** ppToken) const;
 	bool					getDataItemFileExtension(const char *szDataID, std::string &sExt, bool bDot = true) const;
 	bool					enumDataItems(UT_uint32 k,
 										  PD_DataItemHandle* ppHandle, const char ** pszName,

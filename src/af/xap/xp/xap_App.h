@@ -184,7 +184,7 @@ public:
 	virtual void					cacheCurrentSelection(AV_View *) = 0;
 	virtual void				addClipboardFmt (const char * /*szFormat*/) {}
 	virtual void				deleteClipboardFmt (const char * /*szFormat*/) {}
-	void						rememberFocussedFrame(void * pJustFocussedFrame);
+	void						rememberFocussedFrame(XAP_Frame * pJustFocussedFrame);
 	XAP_Frame *					getLastFocussedFrame() const;
 	XAP_Frame *					findValidFrame() const;
 	bool						safeCompare(XAP_Frame * lff, XAP_Frame * f);

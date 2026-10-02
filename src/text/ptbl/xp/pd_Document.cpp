@@ -5215,14 +5215,20 @@ bool PD_Document::getDataItemFileExtension(const char *szDataID, std::string &sE
 
 
 bool PD_Document::setDataItemToken(PD_DataItemHandle pHandle,
-									  void* pToken) const
+									  const char* pToken) const
 {
 	UT_return_val_if_fail (pHandle, false);
+	UT_return_val_if_fail (pToken, false);
 
 	_dataItemPair* pPair = pHandle;
 	UT_return_val_if_fail (pPair, false);
 
-	pPair->pToken = pToken;
+	// the slot always holds an owned g_strdup'd string (the mime type —
+	// see createDataItem); overwrite in place so callers can neither
+	// leak the old value nor stash a non-string pointer that the
+	// mime-type readers and ~PD_Document's FREEP would misinterpret
+	g_free(const_cast<void *>(pPair->pToken));
+	pPair->pToken = g_strdup(pToken);
 
 	return true;
 }
@@ -5230,7 +5236,7 @@ bool PD_Document::setDataItemToken(PD_DataItemHandle pHandle,
 bool PD_Document::getDataItemData(PD_DataItemHandle pHandle,
 									 const char ** pszName,
 									 UT_ConstByteBufPtr & pByteBuf,
-									 const void** ppToken) const
+									 const char** ppToken) const
 {
 	UT_return_val_if_fail (pHandle,false);
 
@@ -5240,7 +5246,7 @@ bool PD_Document::getDataItemData(PD_DataItemHandle pHandle,
 
 	if (ppToken)
 	{
-		*ppToken = pPair->pToken;
+		*ppToken = static_cast<const char *>(pPair->pToken);
 	}
 
 	if (pszName)
