@@ -111,6 +111,15 @@ public:
 	inline const UT_UTF8String & getFirstImageURI() const { return m_firstImageURI; }
 	void setWriterFactory(IE_Exp_HTML_WriterFactory *pWriterFactory);
 
+	/* package (e.g. epub zip) export: writes the index document and
+	 * every chapter/data item as children of the given GsfOutfile
+	 * instead of files next to an output file.  indexName is the
+	 * package-relative name of the main document ("index.xhtml"). */
+	UT_Error			writeToPackage(GsfOutfile *root, const char *indexName);
+	/* package-relative paths of everything written by writeToPackage,
+	 * in creation order — used by the caller to build a manifest */
+	inline const std::vector<std::string> & getPackageFiles() const { return m_packageFiles; }
+
 private:
 	UT_Error            _doOptions ();
 	void _buildStyleTree();
@@ -138,4 +147,8 @@ private:
 	std::map<std::string, bool> m_mathmlFlags;
 	UT_UTF8String m_firstImageURI;
 	IE_Exp_HTML_NavigationHelper *m_pNavigationHelper;
+	// package output root borrowed from the caller (epub); nullptr for
+	// normal file export
+	GsfOutfile *m_pPackageRoot;
+	std::vector<std::string> m_packageFiles;
 };

@@ -103,41 +103,27 @@ UT_Error IE_Exp_EPUB::_writeDocument()
         gsf_output_close(mimetype.get());
     }
 
-    // We need to create temporary directory to which
-    // HTML plugin will export our document
-    m_baseTempDir = UT_go_filename_to_uri(g_get_tmp_dir());
-    m_baseTempDir += G_DIR_SEPARATOR_S;
-
-    // To generate unique directory name we`ll use document UUID
-    m_baseTempDir += getDoc()->getDocUUIDString();
-    // We should delete any previous temporary data for this document to prevent
-    // odd files appearing in the container - remove_recursive because a stale
-    // dir left by an interrupted export is non-empty and plain remove() fails
-    UT_go_file_remove_recursive(m_baseTempDir.c_str(), NULL);
-    UT_go_directory_create(m_baseTempDir.c_str(), NULL);
+    // The HTML exporter writes the content documents straight into the
+    // OEBPS package output — no temporary directory round-trip.
 
     if (writeContainer() != UT_OK)
     {
         UT_DEBUGMSG(("Failed to write container\n"));
-        UT_go_file_remove(m_baseTempDir.c_str(), NULL);
         return UT_ERROR;
     }
     if (writeStructure() != UT_OK)
     {
         UT_DEBUGMSG(("Failed to write document structure\n"));
-        UT_go_file_remove(m_baseTempDir.c_str(), NULL);
         return UT_ERROR;
     }
     if (writeNavigation() != UT_OK)
     {
         UT_DEBUGMSG(("Failed to write navigation\n"));
-        UT_go_file_remove(m_baseTempDir.c_str(), NULL);
         return UT_ERROR;
     }
     if (package() != UT_OK)
     {
         UT_DEBUGMSG(("Failed to package document\n"));
-        UT_go_file_remove(m_baseTempDir.c_str(), NULL);
         return UT_ERROR;
     }
 
@@ -146,8 +132,6 @@ UT_Error IE_Exp_EPUB::_writeDocument()
     g_object_unref(G_OBJECT(m_oebps)); m_oebps = NULL;
     g_object_unref(G_OBJECT(m_root)); m_root = NULL;
 
-    // After doing all job we should delete temporary files
-    UT_go_file_remove(m_baseTempDir.c_str(), NULL);
     return UT_OK;
 }
 
@@ -220,14 +204,6 @@ UT_Error IE_Exp_EPUB::writeStructure()
 
 UT_Error IE_Exp_EPUB::EPUB2_writeStructure()
 {
-    m_oebpsDir = m_baseTempDir + G_DIR_SEPARATOR_S;
-    m_oebpsDir += "OEBPS";
-
-    UT_go_directory_create(m_oebpsDir.c_str(), NULL);
-
-    std::string indexPath = m_oebpsDir + G_DIR_SEPARATOR_S;
-    indexPath += "index.xhtml";
-
     // Exporting document to XHTML using HTML export plugin
 	// We need to setup options for HTML exporter according to current settings of EPUB exporter
 	std::string htmlProps =
@@ -239,7 +215,12 @@ UT_Error IE_Exp_EPUB::EPUB2_writeStructure()
     m_pHmtlExporter = new IE_Exp_HTML(getDoc());
     m_pHmtlExporter->suppressDialog(true);
     m_pHmtlExporter->setProps(htmlProps.c_str());
-    m_pHmtlExporter->writeFile(indexPath.c_str());
+    if (m_pHmtlExporter->writeToPackage(GSF_OUTFILE(m_oebps),
+                                        "index.xhtml") != UT_OK)
+    {
+        UT_DEBUGMSG(("Failed to write content documents\n"));
+        return UT_ERROR;
+    }
 
     m_coverURI = m_pHmtlExporter->getFirstImageURI().utf8_str();
 
@@ -607,17 +588,7 @@ UT_Error IE_Exp_EPUB::EPUB3_writeNavigation()
 
 UT_Error IE_Exp_EPUB::EPUB3_writeStructure()
 {
-    m_oebpsDir = m_baseTempDir + G_DIR_SEPARATOR_S;
-    m_oebpsDir += "OEBPS";
-
-    UT_go_directory_create(m_oebpsDir.c_str(), NULL);
-
-    std::string indexPath = m_oebpsDir + G_DIR_SEPARATOR_S;
-    indexPath += "index.xhtml";
-
-    // Exporting document to XHTML using HTML export plugin 
-    char *szIndexPath = static_cast<char*>( g_malloc(strlen(indexPath.c_str()) + 1));
-    strcpy(szIndexPath, indexPath.c_str());
+    // Exporting document to XHTML using HTML export plugin
     IE_Exp_HTML_WriterFactory *pWriterFactory =
 		new IE_Exp_EPUB_EPUB3WriterFactory(getLanguage());
     m_pHmtlExporter = new IE_Exp_HTML(getDoc());
@@ -630,10 +601,15 @@ UT_Error IE_Exp_EPUB::EPUB3_writeStructure()
 
     m_pHmtlExporter->set_SplitDocument(m_exp_opt.bSplitDocument);
     m_pHmtlExporter->set_MathMLRenderPNG(m_exp_opt.bRenderMathMLToPNG);
-    m_pHmtlExporter->writeFile(szIndexPath);
-    m_coverURI = m_pHmtlExporter->getFirstImageURI().utf8_str();
-    g_free(szIndexPath);
+    UT_Error err = m_pHmtlExporter->writeToPackage(GSF_OUTFILE(m_oebps),
+                                                 "index.xhtml");
     DELETEP(pWriterFactory);
+    if (err != UT_OK)
+    {
+        UT_DEBUGMSG(("Failed to write content documents\n"));
+        return UT_ERROR;
+    }
+    m_coverURI = m_pHmtlExporter->getFirstImageURI().utf8_str();
     return UT_OK;
 }
 
@@ -736,24 +712,20 @@ UT_Error IE_Exp_EPUB::package()
     // </metadata>
     gsf_xml_out_end_element(opfXml);
 
-    // <manifest>
+    // <manifest> — every path the HTML exporter wrote into the package
     gsf_xml_out_start_element(opfXml, "manifest");
-	gchar *basedir = g_filename_from_uri(m_oebpsDir.c_str(),NULL,NULL);
-	UT_ASSERT(basedir);
-	std::string _baseDir = basedir;
-	std::vector<std::string> listing = getFileList(_baseDir);
-	FREEP(basedir);
+    const std::vector<std::string> &listing =
+        m_pHmtlExporter->getPackageFiles();
 
-	for (std::vector<std::string>::iterator i = listing.begin(); i
+	for (std::vector<std::string>::const_iterator i = listing.begin(); i
             != listing.end(); i++)
     {
       std::string idStr = escapeForId(*i);
-      std::string fullItemPath = m_oebpsDir + G_DIR_SEPARATOR_S + *i;
         gsf_xml_out_start_element(opfXml, "item");
         gsf_xml_out_add_cstr(opfXml, "id", idStr.c_str());
         gsf_xml_out_add_cstr(opfXml, "href", (*i).c_str());
         gsf_xml_out_add_cstr(opfXml, "media-type",
-                getMimeType(fullItemPath).c_str());
+                getMimeType(*i).c_str());
         std::string itemProps;
         if (!m_exp_opt.bEpub2 && m_pHmtlExporter->hasMathML((*i)))
         {
@@ -826,107 +798,7 @@ UT_Error IE_Exp_EPUB::package()
     gsf_xml_out_end_element(opfXml);
     g_object_unref(opfXml);
     gsf_output_close(opf.get());
-    return compress();
-}
-
-std::vector<std::string> IE_Exp_EPUB::getFileList(
-						  const std::string &directory)
-{
-  std::vector<std::string> result;
-  std::vector<std::string> dirs;
-
-    dirs.push_back(directory);
-
-    while (dirs.size() > 0)
-    {
-      std::string currentDir = dirs.back();
-        dirs.pop_back();
-        GDir* baseDir = g_dir_open(currentDir.c_str(), 0, NULL);
-        if (!baseDir)
-            continue;
-
-        gchar const *entryName = NULL;
-        while ((entryName = g_dir_read_name(baseDir)) != NULL)
-        {
-            if (entryName[0] == '.')
-            {
-                // Files starting with dot should be skipped - it can be temporary files 
-                // created by gsf
-                continue;
-            }
-	    std::string entryFullPath = currentDir + G_DIR_SEPARATOR_S;
-            entryFullPath += entryName;
-
-            if (g_file_test(entryFullPath.c_str(), G_FILE_TEST_IS_DIR))
-            {
-                dirs.push_back(entryFullPath);
-            }
-            else
-            {
-                result.push_back(
-                        entryFullPath.substr(directory.length() + 1,
-                                entryFullPath.length() - directory.length()));
-            }
-        }
-
-        g_dir_close(baseDir);
-
-    }
-
-    return result;
-}
-
-UT_Error IE_Exp_EPUB::compress()
-{
-
-    GsfInfile* oebpsDir = gsf_infile_stdio_new(
-            UT_go_filename_from_uri(m_oebpsDir.c_str()), NULL);
-
-    if (oebpsDir == NULL)
-    {
-        UT_DEBUGMSG(("RUDYJ: Can`t open temporary OEBPS directory\n"));
-        return UT_ERROR;
-    }
-
-    std::vector<std::string> listing = getFileList(
-            UT_go_filename_from_uri(m_oebpsDir.c_str()));
-    for (std::vector<std::string>::iterator i = listing.begin(); i
-            != listing.end(); i++)
-    {
-        GsfOutput* item = gsf_outfile_new_child(GSF_OUTFILE(m_oebps),
-                (*i).c_str(), FALSE);
-	std::string fullPath = m_oebpsDir + G_DIR_SEPARATOR_S + *i;
-        GsfInput* file = UT_go_file_open(fullPath.c_str(), NULL);
-
-        if (item == NULL || file == NULL)
-        {
-            UT_DEBUGMSG(("RUDYJ: Can`t open file\n"));
-            if (item)
-            {
-                gsf_output_close(item);
-                g_object_unref(item);
-            }
-            if (file)
-                g_object_unref(file);
-            g_object_unref(oebpsDir);
-            return UT_ERROR;
-        }
-
-        gsf_output_seek(item, 0, G_SEEK_SET);
-        gsf_input_seek(file, 0, G_SEEK_SET);
-        gsf_input_copy(file, item);
-        gsf_output_close(item);
-        g_object_unref(item);
-        g_object_unref(file);
-        // Time to delete temporary file
-        UT_go_file_remove(fullPath.c_str(), NULL);
-    }
-
-    g_object_unref(oebpsDir);
-
-    UT_go_file_remove((m_oebpsDir + G_DIR_SEPARATOR_S + "index.xhtml_files").c_str(), NULL);
-    UT_go_file_remove(m_oebpsDir.c_str(), NULL);
-	return UT_OK;
+    return UT_OK;
 }
 
 void IE_Exp_EPUB::closeNTags(GsfXMLOut* xml, int n)

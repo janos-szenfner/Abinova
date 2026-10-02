@@ -99,7 +99,8 @@ IE_Exp_HTML::IE_Exp_HTML(PD_Document * pDocument)
         m_bSuppressDialog(false),
         m_bDefaultWriterFactory(true),
 		m_pWriterFactory(new IE_Exp_HTML_DefaultWriterFactory(pDocument,this->m_exp_opt)),
-        m_suffix("")
+        m_suffix(""),
+		m_pPackageRoot(nullptr)
 {
   
 	// We can't create navigation helper before a
@@ -667,34 +668,78 @@ UT_Error IE_Exp_HTML::_writeDocument(bool /*bClipBoard*/, bool /*bTemplateBody*/
 
 
 
+UT_Error IE_Exp_HTML::writeToPackage(GsfOutfile *root, const char *indexName)
+{
+	UT_return_val_if_fail(root, UT_IE_COULDNOTWRITE);
+	UT_return_val_if_fail(indexName && *indexName, UT_IE_COULDNOTWRITE);
+
+	m_pPackageRoot = root;
+	m_packageFiles.clear();
+
+	/* writeFile(GsfOutput*) derives the logical file name from the
+	 * output's name, and package children are strictly sequential — the
+	 * index entry cannot double as the exporter's own output because it
+	 * would stay open for the whole write while chapters and data items
+	 * need children of their own.  A named in-memory sink carries the
+	 * index name; nothing is ever written to it.  The name has to be a
+	 * URI because getFileName() consumers resolve it through
+	 * UT_go_basename_from_uri(), which returns NULL for bare names. */
+	UT_GsfOutputPtr sink(gsf_output_memory_new());
+	UT_return_val_if_fail(sink.get(), UT_IE_COULDNOTWRITE);
+	std::string nameUri = "package:///";
+	nameUri += indexName;
+	gsf_output_set_name(sink.get(), nameUri.c_str());
+	return writeFile(sink.get());
+}
+
 void IE_Exp_HTML::_createChapter(PD_DocumentRange* range, const std::string &title,
     bool isIndex)
 {
     std::string filename;
-    GsfOutput *output;
+    GsfOutput *output = nullptr;
+    bool bOwnsOutput = false;
     if (isIndex)
     {
-        output = getFp();
 		char* s = getFileName() ? UT_go_basename_from_uri(getFileName()) : nullptr;
         filename = s ? s : "untitled";
 		g_free(s);
+        if (!m_pPackageRoot)
+            output = getFp();
     }
 	else
     {
         filename = ConvertToClean(title.c_str()).utf8_str();
 		filename += m_suffix.utf8_str();
-		char* s = g_path_get_dirname(getFileName());
-		std::string outputUri = s;
-		g_free(s);
-        outputUri += SEPARATOR + filename;
-        output = UT_go_file_create(outputUri.c_str(), nullptr);
+        if (!m_pPackageRoot)
+        {
+            char* s = g_path_get_dirname(getFileName());
+            std::string outputUri = s;
+            g_free(s);
+            outputUri += SEPARATOR + filename;
+            output = UT_go_file_create(outputUri.c_str(), nullptr);
+            bOwnsOutput = (output != nullptr);
+        }
     }
-    IE_Exp_HTML_OutputWriter *pOutputWriter = 
-        new IE_Exp_HTML_FileWriter(output);
+    if (!output && !m_pPackageRoot)
+    {
+        UT_DEBUGMSG(("Cannot open chapter output for %s\n", filename.c_str()));
+        return;
+    }
 
-    IE_Exp_HTML_DataExporter* pDataExporter = 
-        new IE_Exp_HTML_FileExporter(getDoc(), 
-            getFileName() ? getFileName() : "");
+    /* in package mode no sibling child may be open while the listener
+     * saves data items (gsf package children are strictly sequential),
+     * so the chapter text is buffered in memory and flushed to its
+     * package entry at the end of the pass */
+    IE_Exp_HTML_OutputWriter *pOutputWriter = m_pPackageRoot
+        ? static_cast<IE_Exp_HTML_OutputWriter*>(new IE_Exp_HTML_StringWriter())
+        : static_cast<IE_Exp_HTML_OutputWriter*>(new IE_Exp_HTML_FileWriter(output));
+
+    IE_Exp_HTML_DataExporter* pDataExporter = m_pPackageRoot
+        ? static_cast<IE_Exp_HTML_DataExporter*>(new IE_Exp_HTML_PackageExporter(getDoc(),
+            getFileName() ? getFileName() : "", m_pPackageRoot,
+            &m_packageFiles))
+        : static_cast<IE_Exp_HTML_DataExporter*>(new IE_Exp_HTML_FileExporter(getDoc(),
+            getFileName() ? getFileName() : ""));
     
     IE_Exp_HTML_DocumentWriter* pMainListener = 
 		m_pWriterFactory->constructDocumentWriter(pOutputWriter);
@@ -732,15 +777,26 @@ void IE_Exp_HTML::_createChapter(PD_DocumentRange* range, const std::string &tit
     if (m_firstImageURI.empty())
         m_firstImageURI = pListener->getFirstImageURI();
 
+    UT_UTF8String packageBuf;
+    if (m_pPackageRoot)
+        packageBuf = static_cast<IE_Exp_HTML_StringWriter*>(pOutputWriter)->getString();
+
     DELETEP(pHeaderFooterListener);
     DELETEP(pListener);
     DELETEP(pMainListener);
     DELETEP(pDataExporter);
     DELETEP(pOutputWriter);
-    
-    if (!isIndex)
+
+    if (m_pPackageRoot)
+    {
+        IE_Exp_HTML_PackageExporter::writeItem(m_pPackageRoot, filename,
+            reinterpret_cast<const guint8*>(packageBuf.utf8_str()),
+            packageBuf.byteLength(), &m_packageFiles);
+    }
+    else if (bOwnsOutput)
     {
         gsf_output_close(output);
+        g_object_unref(output);
     }
 }
 

@@ -1780,6 +1780,11 @@ below are on `main` but the release has not been cut yet.
   parsed straight from the zip stream and images/stylesheets resolve
   to archive members on demand instead of the whole book being
   extracted to a temp directory first.
+- **EPUB export no longer touches the disk either** — the exporter
+  used to write all content documents, images and stylesheets to a
+  temp directory and re-read them into the zip; they now stream
+  straight into the package entries, so an export creates no staging
+  files at all.
 - **Paste path hardened** — pasting at the very end of a document or
   into an empty document could crash when no block layout existed yet
   at the insertion point; the cell-size adjustment is now guarded.

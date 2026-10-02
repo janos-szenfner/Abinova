@@ -148,6 +148,42 @@ private:
 };
 
 /**
+ * Stores chapter resources (images, stylesheets, rendered math) into a
+ * package output tree (a GsfOutfile, e.g. the OEBPS dir of an epub zip)
+ * instead of sibling files on disk.  The paths handed back are the same
+ * relative "<index>_files/..." names the file exporter returns, so the
+ * generated markup and the package manifest stay identical.
+ *
+ * gsf package children are strictly sequential — a child cannot be
+ * created while a sibling is still open — so items must only be written
+ * while no document child is open (chapter text goes through an
+ * in-memory writer first, which is what makes that safe).
+ */
+class ABI_EXPORT IE_Exp_HTML_PackageExporter : public IE_Exp_HTML_DataExporter
+{
+public:
+    IE_Exp_HTML_PackageExporter(PD_Document* pDocument,
+            const UT_UTF8String &indexName,
+            GsfOutfile *packageRoot,
+            std::vector<std::string> *writtenFiles);
+
+    virtual UT_UTF8String saveData(const gchar *szDataId, const gchar* extension) override;
+    virtual UT_UTF8String saveData(const UT_UTF8String &name,
+        const UT_UTF8String &data) override;
+
+    /* writes one item as a package child; already-written paths are
+     * skipped so a repeated data id or colliding chapter name cannot
+     * produce a duplicate package entry */
+    static bool writeItem(GsfOutfile *packageRoot,
+        const std::string &relPath, const guint8 *data, gsize len,
+        std::vector<std::string> *writtenFiles);
+
+private:
+    GsfOutfile *m_packageRoot;                  // not owned
+    std::vector<std::string> *m_written;        // shared per package, not owned
+};
+
+/**
  * Utility class that allows write character data or UTF8 strings
  */
 class ABI_EXPORT IE_Exp_HTML_OutputWriter

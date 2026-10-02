@@ -58,7 +58,6 @@ private:
     UT_Error writeNavigation();
     UT_Error writeContainer();
     UT_Error package();
-    UT_Error compress();
 
     // Methods for EPUB 2.0.1 document generation
     UT_Error EPUB2_writeStructure();
@@ -76,13 +75,10 @@ private:
     UT_Error doOptions();
     void registerDialogs();
 
-    static std::vector<std::string> getFileList(const std::string &directory);
     static void closeNTags(GsfXMLOut* xml, int n);
     static std::string escapeForId(const std::string & src);
     static std::string getMimeType(const std::string &uri);
 
-    std::string m_baseTempDir;
-    std::string m_oebpsDir;
     GsfOutfile* m_root;
     GsfOutput* m_oebps;
     IE_Exp_HTML *m_pHmtlExporter;

@@ -466,6 +466,86 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const gchar *szDataId,
     return m_fileDirectory + SEPARATOR + filename;
 }
 
+IE_Exp_HTML_PackageExporter::IE_Exp_HTML_PackageExporter(
+    PD_Document* pDocument, const UT_UTF8String &indexName,
+    GsfOutfile *packageRoot, std::vector<std::string> *writtenFiles):
+    IE_Exp_HTML_DataExporter(pDocument, indexName),
+    m_packageRoot(packageRoot),
+    m_written(writtenFiles)
+{
+}
+
+bool IE_Exp_HTML_PackageExporter::writeItem(GsfOutfile *packageRoot,
+    const std::string &relPath, const guint8 *data, gsize len,
+    std::vector<std::string> *writtenFiles)
+{
+    if (std::find(writtenFiles->begin(), writtenFiles->end(), relPath)
+        != writtenFiles->end())
+    {
+        return true;
+    }
+
+    GsfOutput *child = gsf_outfile_new_child(packageRoot,
+        relPath.c_str(), FALSE);
+    if (!child)
+    {
+        UT_DEBUGMSG(("Cannot create package item %s\n", relPath.c_str()));
+        return false;
+    }
+    if (len)
+    {
+        gsf_output_write(child, len, data);
+    }
+    gsf_output_close(child);
+    g_object_unref(child);
+    writtenFiles->push_back(relPath);
+    return true;
+}
+
+UT_UTF8String IE_Exp_HTML_PackageExporter::saveData(const gchar *szDataId,
+                                                    const gchar* extension)
+{
+    // szDataId is document-controlled - it must stay a plain basename
+    // or a hostile name would land outside the _files directory
+    UT_UTF8String filename = UT_sanitizeFileName(szDataId).c_str();
+
+    if (extension != nullptr)
+    {
+        filename += extension;
+    }
+
+    UT_ConstByteBufPtr pByteBuf;
+    if (!m_pDocument->getDataItemDataByName(szDataId, pByteBuf,
+                                            nullptr, nullptr))
+    {
+        UT_ASSERT("No data item with specified dataid found\n");
+        return "";
+    }
+
+    UT_UTF8String relPath = m_fileDirectory + SEPARATOR + filename;
+    if (!writeItem(m_packageRoot, relPath.utf8_str(),
+                   pByteBuf->getPointer(0), pByteBuf->getLength(),
+                   m_written))
+    {
+        return "";
+    }
+    return relPath;
+}
+
+UT_UTF8String IE_Exp_HTML_PackageExporter::saveData(
+    const UT_UTF8String &name, const UT_UTF8String &data)
+{
+    UT_UTF8String relPath = m_fileDirectory
+        + SEPARATOR + UT_sanitizeFileName(name.utf8_str()).c_str();
+    if (!writeItem(m_packageRoot, relPath.utf8_str(),
+                   reinterpret_cast<const guint8*>(data.utf8_str()),
+                   data.byteLength(), m_written))
+    {
+        return "";
+    }
+    return relPath;
+}
+
 UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const UT_UTF8String &name,
     const UT_UTF8String &data)
 {
