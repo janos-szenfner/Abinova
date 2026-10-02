@@ -87,6 +87,67 @@ bool fb_ColumnBreaker::_displayAnnotations(void)
 }
 
 /*!
+ * Keep footnote/annotation containers on the same page as the
+ * container that references them: every note container listed in the
+ * vectors is moved to pPage if it isn't there already.
+ */
+void fb_ColumnBreaker::_reparentNotesToPage(fp_Page * pPage,
+	UT_GenericVector<fp_FootnoteContainer*> & vecFootnotes,
+	UT_GenericVector<fp_AnnotationContainer*> & vecAnnotations) const
+{
+	UT_ASSERT(pPage);
+	if(pPage == nullptr)
+	{
+		return;
+	}
+	UT_sint32 i = 0;
+	for(i = 0; i < vecFootnotes.getItemCount(); i++)
+	{
+		fp_FootnoteContainer * pFC = vecFootnotes.getNthItem(i);
+		if(pFC != nullptr)
+		{
+			fp_Page * myPage = pFC->getPage();
+			xxx_UT_DEBUGMSG(("Footnote %x is on Page %x \n",pFC,myPage));
+			if(myPage != pPage)
+			{
+				xxx_UT_DEBUGMSG((" Moving anchor from %x to %x \n",myPage,pPage));
+				if(myPage == nullptr)
+				{
+					pPage->insertFootnoteContainer(pFC);
+				}
+				else
+				{
+					myPage->removeFootnoteContainer(pFC);
+					pPage->insertFootnoteContainer(pFC);
+				}
+			}
+		}
+	}
+	for(i = 0; i < vecAnnotations.getItemCount(); i++)
+	{
+		fp_AnnotationContainer * pAC = vecAnnotations.getNthItem(i);
+		if(pAC != nullptr)
+		{
+			fp_Page * myPage = pAC->getPage();
+			UT_DEBUGMSG(("Annotation %p is on Page %p \n", static_cast<void*>(pAC), static_cast<void*>(myPage)));
+			if(myPage != pPage)
+			{
+				xxx_UT_DEBUGMSG((" Moving anchor from %x to %x \n",myPage,pPage));
+				if(myPage == nullptr)
+				{
+					pPage->insertAnnotationContainer(pAC);
+				}
+				else
+				{
+					myPage->removeAnnotationContainer(pAC);
+					pPage->insertAnnotationContainer(pAC);
+				}
+			}
+		}
+	}
+}
+
+/*!
  * Returns nullptr if no rebreak is required.
  * Otherwise returns a pointer to the page requiring the rebreak.
 */
@@ -1011,73 +1072,19 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 			{
 				fp_Line * pCurLine = static_cast<fp_Line *>(pCurContainer);
 				xxx_UT_DEBUGMSG(("About to call containerFootnoteReferenced \n"));
+				// OK get a vector of the footnote/annotation containers
+				// in this line, then keep them on this line's page.
+				UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
+				UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
 				if(pCurLine->containsFootnoteReference())
 				{
-					// OK get a vector of the footnote containers in this line.
-					UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
 					pCurLine->getFootnoteContainers(&vecFootnotes);
-				
-					// Now loop through all these and check they're on this
-					// page. If not add them.
-					fp_Page * pCurPage = pCurColumn->getPage();
-					UT_ASSERT(pCurPage);
-					UT_sint32 i =0;
-					for(i=0; i< vecFootnotes.getItemCount();i++)
-					{
-						fp_FootnoteContainer * pFC = vecFootnotes.getNthItem(i);
-						if(pFC != nullptr)
-						{
-							fp_Page * myPage = pFC->getPage();
-							xxx_UT_DEBUGMSG(("Footnote %x is on Page %x \n",pFC,myPage));
-							if(myPage != pCurPage)
-							{
-								if(myPage == nullptr)
-								{
-									pCurPage->insertFootnoteContainer(pFC);
-								}
-								else
-								{
-									myPage->removeFootnoteContainer(pFC);
-									pCurPage->insertFootnoteContainer(pFC);
-								}
-							}
-						}
-					}
-
 				}
 				if(pCurLine->containsAnnotations() && _displayAnnotations())
 				{
-					// OK get a vector of the footnote containers in this line.
-					UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
 					pCurLine->getAnnotationContainers(&vecAnnotations);
-				
-					// Now loop through all these and check they're on this
-					// page. If not add them.
-					fp_Page * pCurPage = pCurColumn->getPage();
-					UT_ASSERT(pCurPage);
-					UT_sint32 i =0;
-					for(i=0; i< vecAnnotations.getItemCount();i++)
-					{
-						fp_AnnotationContainer * pAC = vecAnnotations.getNthItem(i);
-						if(pAC != nullptr)
-						{
-							fp_Page * myPage = pAC->getPage();
-							UT_DEBUGMSG(("Annotation %p is on Page %p \n", static_cast<void*>(pAC), static_cast<void*>(myPage)));
-							if(myPage != pCurPage)
-							{
-								if(myPage == nullptr)
-								{
-									pCurPage->insertAnnotationContainer(pAC);
-								}
-								else
-								{
-									myPage->removeAnnotationContainer(pAC);
-									pCurPage->insertAnnotationContainer(pAC);
-								}
-							}
-						}
-					}
 				}
+				_reparentNotesToPage(pCurColumn->getPage(), vecFootnotes, vecAnnotations);
 			}
 //
 // Do the same for footnotes inside broken tables
@@ -1091,72 +1098,19 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 				}
 				if(pCurTable->isThisBroken())
 				{
+					// Keep the footnote/annotation containers referenced
+					// by the broken table on this table's page.
+					UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
+					UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
 					if(pCurTable->containsFootnoteReference())
 					{
-						// OK get a vector of the footnote containers in this line.
-						UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
 						pCurTable->getFootnoteContainers(&vecFootnotes);
-						
-					// Now loop through all these and check they're on this
-					// page. If not add them.
-						fp_Page * pCurPage = pCurColumn->getPage();
-						UT_ASSERT(pCurPage);
-						UT_sint32 i =0;
-						for(i=0; i< vecFootnotes.getItemCount();i++)
-						{
-							xxx_UT_DEBUGMSG(("Found reference %d in broken table %x \n",i,pCurTable));
-							fp_FootnoteContainer * pFC = vecFootnotes.getNthItem(i);
-							UT_nonnull_or_continue(pFC);
-							fp_Page * myPage = pFC->getPage();
-							xxx_UT_DEBUGMSG(("Footnote %x is on Page %x \n",pFC,myPage));
-							if(myPage != pCurPage)
-							{
-								xxx_UT_DEBUGMSG((" Moving anchor from %x to %x \n",myPage,pCurPage));
-								if(myPage == nullptr)
-								{
-									pCurPage->insertFootnoteContainer(pFC);
-								}
-								else
-								{
-									myPage->removeFootnoteContainer(pFC);
-									pCurPage->insertFootnoteContainer(pFC);
-								}
-							}
-						}
 					}
-					if(pCurTable->containsAnnotations()  && _displayAnnotations())
+					if(pCurTable->containsAnnotations() && _displayAnnotations())
 					{
-						// OK get a vector of the footnote containers in this line.
-						UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
 						pCurTable->getAnnotationContainers(&vecAnnotations);
-						
-					// Now loop through all these and check they're on this
-					// page. If not add them.
-						fp_Page * pCurPage = pCurColumn->getPage();
-						UT_ASSERT(pCurPage);
-						UT_sint32 i =0;
-						for(i=0; i< vecAnnotations.getItemCount();i++)
-						{
-							xxx_UT_DEBUGMSG(("Found reference %d in broken table %x \n",i,pCurTable));
-							fp_AnnotationContainer * pAC = vecAnnotations.getNthItem(i);
-							UT_nonnull_or_continue(pAC);
-							fp_Page * myPage = pAC->getPage();
-							xxx_UT_DEBUGMSG(("Annotation %x is on Page %x \n",pAC,myPage));
-							if(myPage != pCurPage)
-							{
-								xxx_UT_DEBUGMSG((" Moving anchor from %x to %x \n",myPage,pCurPage));
-								if(myPage == nullptr)
-								{
-									pCurPage->insertAnnotationContainer(pAC);
-								}
-								else
-								{
-									myPage->removeAnnotationContainer(pAC);
-									pCurPage->insertAnnotationContainer(pAC);
-								}
-							}
-						}
 					}
+					_reparentNotesToPage(pCurColumn->getPage(), vecFootnotes, vecAnnotations);
 				}
 			}
 //

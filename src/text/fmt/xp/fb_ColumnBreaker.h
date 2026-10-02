@@ -24,12 +24,15 @@
 #define COLUMNBREAKER_H
 
 #include "ut_types.h"
+#include "ut_vector.h"
 
 
 class fp_Container;
 class fl_DocSectionLayout;
 class fp_Page;
 class fl_BlockLayout;
+class fp_FootnoteContainer;
+class fp_AnnotationContainer;
 
 class ABI_EXPORT fb_ColumnBreaker
 {
@@ -48,6 +51,9 @@ private:
 
 	fp_Container * _getNext(fp_Container * pCon);
 	bool           _displayAnnotations(void);
+	void           _reparentNotesToPage(fp_Page * pPage,
+	                                    UT_GenericVector<fp_FootnoteContainer*> & vecFootnotes,
+	                                    UT_GenericVector<fp_AnnotationContainer*> & vecAnnotations) const;
 	fp_Page *             m_pStartPage;
 	bool                  m_bStartFromStart;
 	bool                  m_bReBreak;

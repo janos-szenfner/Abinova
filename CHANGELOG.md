@@ -1790,6 +1790,12 @@ below are on `main` but the release has not been cut yet.
   tested for a table twice. A TOC sitting at the top of a column
   could therefore be left as a stale pointer after the bump, risking
   duplicated or misplaced contents; the check now covers both.
+- **Footnote/annotation page anchoring deduplicated** — the
+  page-breaking code kept footnotes and comments on the same page as
+  the text that references them via two near-identical ~70-line
+  copies (one for text lines, one for tables that break across
+  pages). Both now share a single helper, so the behavior can no
+  longer drift between the two paths.
 - **Empty-stack access hardening** — a C++ Core Guidelines
   bounds/lifetime audit found parser and piece-table paths that call
   `std::stack::top()`/`vector::back()` without checking the container
