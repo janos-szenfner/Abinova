@@ -177,7 +177,9 @@ FL_DocLayout::FL_DocLayout(PD_Document* doc, GR_Graphics* pG)
 	m_pDoc->disableListUpdates();
 
 	strncpy(m_szCurrentTransparentColor,
-			static_cast<const char *>(XAP_PREF_DEFAULT_ColorForTransparent), 9);
+			static_cast<const char *>(XAP_PREF_DEFAULT_ColorForTransparent),
+			sizeof(m_szCurrentTransparentColor) - 1);
+	m_szCurrentTransparentColor[sizeof(m_szCurrentTransparentColor) - 1] = 0;
 	m_vecFootnotes.clear();
 	m_vecAnnotations.clear();
 	m_vecEndnotes.clear();
@@ -3025,7 +3027,9 @@ void FL_DocLayout::updateColor()
 //
 // Save the new preference color
 //
-		strncpy(m_szCurrentTransparentColor, transparentColor.c_str(), 9);
+		strncpy(m_szCurrentTransparentColor, transparentColor.c_str(),
+				sizeof(m_szCurrentTransparentColor) - 1);
+		m_szCurrentTransparentColor[sizeof(m_szCurrentTransparentColor) - 1] = 0;
 	}
 //
 // Now loop through the document and update the Background color

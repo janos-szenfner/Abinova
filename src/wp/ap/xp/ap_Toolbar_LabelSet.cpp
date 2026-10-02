@@ -33,7 +33,7 @@
 EV_Toolbar_LabelSet * AP_CreateToolbarLabelSet(const char * szLanguage_)
 {
 	char buf[300];
-	strcpy(buf,szLanguage_ ? szLanguage_ : "");
+	snprintf(buf,sizeof(buf),"%s",szLanguage_ ? szLanguage_ : "");
 	char* szLanguage = buf;
 
 	/* remove encoding part from locale name */

@@ -359,14 +359,14 @@ void XAP_UnixApp::_setAbiSuiteLibDir()
 		buf = static_cast<gchar *>(g_malloc(len+1));
 		strcpy(buf,sz);
 		char * p = buf;
-		if ( (p[0]=='"') && (p[len-1]=='"') )
+		if ( (len > 1) && (p[0]=='"') && (p[len-1]=='"') )
 		{
 			// trim leading and trailing DQUOTES
 			p[len-1]=0;
 			p++;
 			len -= 2;
 		}
-		if (p[len-1]=='/')				// trim trailing slash
+		if ( (len > 0) && (p[len-1]=='/') )	// trim trailing slash
 			p[len-1] = 0;
 		XAP_App::_setAbiSuiteLibDir(p);
 		g_free(buf);

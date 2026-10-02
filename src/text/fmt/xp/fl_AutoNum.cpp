@@ -94,8 +94,8 @@ fl_AutoNum::fl_AutoNum(	UT_uint32 id,
 		m_pParentItem(nullptr)
 {
 	// Set in Block???
-	memset(m_pszDelim, 0, 80);
-	memset(m_pszDecimal, 0, 80);
+	memset(m_pszDelim, 0, sizeof(m_pszDelim));
+	memset(m_pszDecimal, 0, sizeof(m_pszDecimal));
 	UT_ASSERT(m_pDoc);
 	if (lDelim)
 		strncpy( m_pszDelim, lDelim, 80);
@@ -353,8 +353,19 @@ void    fl_AutoNum::findAndSetParentItem(void)
  * depth is the level of recursion
  * pLayout is a pointer to the Layout item containing the current list item
  */
+/* Append one UCS4 char to a label buffer, keeping room for the NUL
+ * terminator. Silently truncates when the buffer is full.
+ */
+static void s_appendLabelChar(UT_UCS4Char labelStr[], UT_uint32 * insPoint,
+							  UT_uint32 maxlen, UT_UCS4Char ch)
+{
+	if (*insPoint + 1 < maxlen)
+		labelStr[(*insPoint)++] = ch;
+}
+
 void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
-								  UT_uint32 depth, const pf_Frag_Strux* pLayout) const
+								  UT_uint32 depth, const pf_Frag_Strux* pLayout,
+								  UT_uint32 maxlen) const
 {
 	// Keep these arrays the same length to prevent overflows; see Bug 10580
 	char p[100], leftDelim[100], rightDelim[100];
@@ -410,13 +421,13 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 	fl_AutoNumPtr pParentForLabel = m_pParent.lock();
 	if(pParentForLabel != nullptr  && m_List_Type < BULLETED_LIST)
 	{
-		pParentForLabel->_getLabelstr( labelStr, insPoint, depth+1,getParentItem());
+		pParentForLabel->_getLabelstr( labelStr, insPoint, depth+1,getParentItem(), maxlen);
 		if(*insPoint != 0)
 		{
 			psz = strlen(m_pszDecimal);
 			for(i=0; i<=psz;i++)
 			{
-				labelStr[(*insPoint)++] = CONV_TO_UCS m_pszDecimal[i];
+				s_appendLabelChar(labelStr, insPoint, maxlen, CONV_TO_UCS m_pszDecimal[i]);
 			}
 			(*insPoint)--;
 		}
@@ -430,7 +441,13 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		(*insPoint) = 0;
 		return;
 	}
-	place += m_iStartValue;
+	// document start-values can reach INT32_MAX; keep the sum in range
+	UT_sint64 lplace = static_cast<UT_sint64>(place) + m_iStartValue;
+	if (lplace > 0x3FFFFFFF)
+		lplace = 0x3FFFFFFF;
+	else if (lplace < -0x3FFFFFFF)
+		lplace = -0x3FFFFFFF;
+	place = static_cast<UT_sint32>(lplace);
 
 	//	if (depth == 0 )
 	if(IS_NUMBERED_LIST_TYPE(m_List_Type))
@@ -442,30 +459,30 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		{
 			UT_UCS4Char ch = g_utf8_get_char_validated(pSrc,pLim-pSrc);
 			if ((static_cast<signed>(ch)) < 0) ch=UCS_REPLACECHAR;
-			labelStr[(*insPoint)++] = ch;
+			s_appendLabelChar(labelStr, insPoint, maxlen, ch);
 			pSrc = g_utf8_next_char(pSrc);
 		}
 	}
 	switch( m_List_Type)
 	{
 	case NUMBERED_LIST:
-		sprintf(p,"%i",place);
+		snprintf(p,sizeof(p),"%i",place);
 		psz = strlen( p);
 		for(i=0; i<psz; i++)
 		{
-			labelStr[(*insPoint)++] =  CONV_TO_UCS p[i];
+			s_appendLabelChar(labelStr, insPoint, maxlen, CONV_TO_UCS p[i]);
 		}
 		break;
 
 	case UPPERCASE_LIST:
 	{
 		char * val = dec2ascii(place - 1, 65);
-		sprintf(p,"%s",val);
+		snprintf(p,sizeof(p),"%s",val);
 		FREEP(val);
 		psz = strlen( p);
 		for(i=0; i<psz; i++)
 		{
-			labelStr[(*insPoint)++] =  CONV_TO_UCS p[i];
+			s_appendLabelChar(labelStr, insPoint, maxlen, CONV_TO_UCS p[i]);
 		}
 		break;
 	}
@@ -473,12 +490,12 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 	case LOWERCASE_LIST:
 	{
 		char * val = dec2ascii(place - 1, 97);
-		sprintf(p,"%s",val);
+		snprintf(p,sizeof(p),"%s",val);
 		FREEP(val);
 		psz = strlen( p);
 		for(i=0; i<psz; i++)
 		{
-			labelStr[(*insPoint)++] =  CONV_TO_UCS p[i];
+			s_appendLabelChar(labelStr, insPoint, maxlen, CONV_TO_UCS p[i]);
 		}
 		break;
 	}
@@ -486,12 +503,12 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 	case UPPERROMAN_LIST:
 	{
 		char * val = dec2roman(place,false);
-		sprintf(p,"%s",val);
+		snprintf(p,sizeof(p),"%s",val);
 		FREEP(val);
 		psz = strlen( p);
 		for(i=0; i<psz; i++)
 		{
-			labelStr[(*insPoint)++] =  CONV_TO_UCS p[i];
+			s_appendLabelChar(labelStr, insPoint, maxlen, CONV_TO_UCS p[i]);
 		}
 		break;
 	}
@@ -499,82 +516,82 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 	case LOWERROMAN_LIST:
 	{
 		char * val = dec2roman(place,true);
-		sprintf(p,"%s",val);
+		snprintf(p,sizeof(p),"%s",val);
 		FREEP(val);
 		psz = strlen( p);
 		for(i=0; i<psz; i++)
 		{
-			labelStr[(*insPoint)++] =  CONV_TO_UCS p[i];
+			s_appendLabelChar(labelStr, insPoint, maxlen, CONV_TO_UCS p[i]);
 		}
 		break;
 	}
 
 	case ARABICNUMBERED_LIST:
-		sprintf(p,"%i",place);
+		snprintf(p,sizeof(p),"%i",place);
 		psz = strlen( p);
 		for(i=0; i<psz; i++)
 		{
-			labelStr[(*insPoint)++] =  (CONV_TO_UCS p[i]) + 0x0660 - (CONV_TO_UCS '0');
+			s_appendLabelChar(labelStr, insPoint, maxlen, (CONV_TO_UCS p[i]) + 0x0660 - (CONV_TO_UCS '0'));
 		}
 		break;
 
 	case HEBREW_LIST:
-		dec2hebrew(labelStr,insPoint,place);
+		dec2hebrew(labelStr,insPoint,place,maxlen);
 		break;
 
 	case BULLETED_LIST:
-		labelStr[(*insPoint)++] =  0x2022;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x2022);
 		break;
 
 	case DASHED_LIST:
-		labelStr[(*insPoint)++] =  0x002D;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x002D);
 		break;
 
 	case SQUARE_LIST:
-		labelStr[(*insPoint)++] =  0x25A0;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x25A0);
 		break;
 
 	case TRIANGLE_LIST:
-		labelStr[(*insPoint)++] =  0x25B2;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x25B2);
 		break;
 
 	case DIAMOND_LIST:
-		labelStr[(*insPoint)++] =  0x2666;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x2666);
 		break;
 
 	case STAR_LIST:
-		labelStr[(*insPoint)++] =  0x2733;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x2733);
 		break;
 
 	case IMPLIES_LIST:
-		labelStr[(*insPoint)++] =  0x21D2;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x21D2);
 		break;
 
 	case TICK_LIST:
-		labelStr[(*insPoint)++] =  0x2713;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x2713);
 		break;
 
 	case BOX_LIST:
-		labelStr[(*insPoint)++] =  0x2752;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x2752);
 		break;
 
 	case HAND_LIST:
-		labelStr[(*insPoint)++] =  0x261E;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x261E);
 		break;
 
 	case HEART_LIST:
-		labelStr[(*insPoint)++] =  0x2665;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x2665);
 		break;
 
 	case ARROWHEAD_LIST:
-		labelStr[(*insPoint)++] =  0x27A3;
+		s_appendLabelChar(labelStr, insPoint, maxlen, 0x27A3);
 		break;
 
 	default:
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		break;
 	}
-	
+
 	if( m_List_Type < BULLETED_LIST &&
 	    (g_ascii_strncasecmp(m_pszDecimal,rightDelim,4) != 0 || depth == 0) )
 	{
@@ -585,7 +602,7 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		{
 			UT_UCS4Char ch = g_utf8_get_char_validated(pSrc,pLim-pSrc);
 			if ((static_cast<signed>(ch)) < 0) ch=UCS_REPLACECHAR;
-			labelStr[(*insPoint)++] = ch;
+			s_appendLabelChar(labelStr, insPoint, maxlen, ch);
 			pSrc = g_utf8_next_char(pSrc);
 		}
 	}
@@ -598,7 +615,7 @@ const UT_UCS4Char * fl_AutoNum::getLabel(const pf_Frag_Strux* pItem)  const
 	static UT_UCS4Char label[100];
 	UT_uint32 insPoint = 0;
 	UT_uint32 depth = 0;
-	_getLabelstr( label, &insPoint, depth , pItem);
+	_getLabelstr( label, &insPoint, depth , pItem, G_N_ELEMENTS(label));
 	if(insPoint == 0 )
 	{
 		return static_cast<const UT_UCS4Char *>(nullptr);
@@ -645,7 +662,8 @@ const gchar * fl_AutoNum::getDecimal() const
 
 void fl_AutoNum::setDecimal(const gchar * lDecimal)
 {
-	strncpy( m_pszDecimal, lDecimal, 80);
+	strncpy( m_pszDecimal, lDecimal, sizeof(m_pszDecimal) - 1);
+	m_pszDecimal[sizeof(m_pszDecimal) - 1] = 0;
 	m_bDirty = true;
 }
 
@@ -1192,6 +1210,14 @@ char *  fl_AutoNum::dec2roman(UT_sint32 value, bool lower)
 {
 	UT_String roman;
 
+	/* A document-provided list value can be huge; without a cap the
+	 * 'M' loop below builds a multi-MB string which the callers then
+	 * copy into fixed buffers. 4999 is the largest number with a
+	 * canonical roman form.
+	 */
+	if (value > 4999)
+		value = 4999;
+
 	while( value >= 1000 )
 	{
 		roman += "M";
@@ -1284,6 +1310,10 @@ char * fl_AutoNum::dec2ascii(UT_sint32 value, UT_uint32 offset)
 	ascii[0] = '\0';
 	ndx = abs(value % 26);
 	count = abs(value / 26);
+	/* the Word-style "aaaa..." repetition for large values is bounded
+	 * by our buffer */
+	if (count > sizeof(ascii) - 2)
+		count = sizeof(ascii) - 2;
 
 	// For now, we do this like Word. A preference would be nice.
 	for (i = 0; i <= count; i++)
@@ -1295,7 +1325,7 @@ char * fl_AutoNum::dec2ascii(UT_sint32 value, UT_uint32 offset)
 	return g_strdup(ascii);
 }
 
-void fl_AutoNum::dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sint32 value)
+void fl_AutoNum::dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sint32 value, UT_uint32 maxlen)
 {
 	UT_UCS4Char gHebrewDigit[22] =
 	{
@@ -1314,7 +1344,7 @@ void fl_AutoNum::dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sin
 		UT_sint32 n3 = value % 1000;
 
 		if(outputSep)
-			labelStr[(*insPoint)++] = 0x0020; // output thousand seperator
+			s_appendLabelChar(labelStr, insPoint, maxlen, 0x0020); // output thousand seperator
 		outputSep = ( n3 > 0); // request to output thousand seperator next time.
 
 		// Process digit for 100 - 900
@@ -1323,7 +1353,7 @@ void fl_AutoNum::dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sin
 			if( n3 >= n1)
 			{
 				n3 -= n1;
-				labelStr[(*insPoint)++] = gHebrewDigit[(n1/100)-1+18];
+				s_appendLabelChar(labelStr, insPoint, maxlen, gHebrewDigit[(n1/100)-1+18]);
 			} else {
 				n1 -= 100;
 			} // if
@@ -1346,13 +1376,13 @@ void fl_AutoNum::dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sin
 			} // if
 
 			n3 -= n2;
-			labelStr[(*insPoint)++] = digit;
+			s_appendLabelChar(labelStr, insPoint, maxlen, digit);
 		} // if
 
 		// Process digit for 1 - 9
 		if ( n3 > 0)
 		{
-			labelStr[(*insPoint)++] = gHebrewDigit[n3-1];
+			s_appendLabelChar(labelStr, insPoint, maxlen, gHebrewDigit[n3-1]);
 		} // if
 		value /= 1000;
 	} while (value >= 1);

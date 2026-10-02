@@ -189,46 +189,46 @@ const char * UT_formatDimensionString(UT_Dimension dim, double value, const char
 		// let them enter (via the TopRuler), so let's
 		// set the precision so that we get nice roundoff.
 		// TODO we may need to improve this later.
-		sprintf(bufFormat,"%%%sfin",((szPrecision && *szPrecision) ? szPrecision : ".4"));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sfin",((szPrecision && *szPrecision) ? szPrecision : ".4"));
 		break;
 
 	case DIM_CM:
-		sprintf(bufFormat,"%%%sfcm",((szPrecision && *szPrecision) ? szPrecision : ".2"));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sfcm",((szPrecision && *szPrecision) ? szPrecision : ".2"));
 		break;
 
 	case DIM_MM:
-		sprintf(bufFormat,"%%%sfmm",((szPrecision && *szPrecision) ? szPrecision : ".1"));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sfmm",((szPrecision && *szPrecision) ? szPrecision : ".1"));
 		break;
 
 	case DIM_PI:
-		sprintf(bufFormat,"%%%sfpi",((szPrecision && *szPrecision) ? szPrecision : ".0"));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sfpi",((szPrecision && *szPrecision) ? szPrecision : ".0"));
 		break;
 
 	case DIM_PT:
-		sprintf(bufFormat,"%%%sfpt",((szPrecision && *szPrecision) ? szPrecision : ".0"));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sfpt",((szPrecision && *szPrecision) ? szPrecision : ".0"));
 		break;
 
 	case DIM_PX:
-	  sprintf(bufFormat,"%%%sfpx",((szPrecision && *szPrecision) ? szPrecision : ".0"));
+	  snprintf(bufFormat,sizeof(bufFormat),"%%%sfpx",((szPrecision && *szPrecision) ? szPrecision : ".0"));
 		break;
 
  	case DIM_none:
-		sprintf(bufFormat,"%%%sf",((szPrecision && *szPrecision) ? szPrecision : ""));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sf",((szPrecision && *szPrecision) ? szPrecision : ""));
 		break;
 
 	case DIM_PERCENT:
-		sprintf(bufFormat,"%%%sf%%%%",((szPrecision && *szPrecision) ? szPrecision : ""));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sf%%%%",((szPrecision && *szPrecision) ? szPrecision : ""));
 		break;
 
 	default:
 		UT_ASSERT(UT_NOT_IMPLEMENTED);
-		sprintf(bufFormat,"%%%sf",((szPrecision && *szPrecision) ? szPrecision : ""));
+		snprintf(bufFormat,sizeof(bufFormat),"%%%sf",((szPrecision && *szPrecision) ? szPrecision : ""));
 		break;
 	}
 
 	{
 		UT_LocaleTransactor t(LC_NUMERIC, "C");
-		sprintf(buf,bufFormat,value);
+		snprintf(buf,sizeof(buf),bufFormat,value);
 	}
 
 	return buf;
@@ -408,11 +408,11 @@ const char * UT_convertToDimensionlessString(double value, const char * szPrecis
 	static char buf[100];
 
 	char bufFormat[100];
-	sprintf(bufFormat,"%%%sf",((szPrecision && *szPrecision) ? szPrecision : ""));
+	snprintf(bufFormat,sizeof(bufFormat),"%%%sf",((szPrecision && *szPrecision) ? szPrecision : ""));
 
 	{
 		UT_LocaleTransactor t(LC_NUMERIC, "C");
-		sprintf(buf,bufFormat,value);
+		snprintf(buf,sizeof(buf),bufFormat,value);
 	}
 
 	return buf;
@@ -522,7 +522,7 @@ const char * UT_formatDimensionedValue(double value,
 
 	const char * szValue = UT_convertToDimensionlessString(value,szPrecision);
 
-	sprintf(buf,"%s%s",szValue,szUnits);
+	snprintf(buf,sizeof(buf),"%s%s",szValue,szUnits);
 
 	return buf;
 }

@@ -162,7 +162,7 @@ const char ** EV_Menu::getLabelName(XAP_App * pApp,
 
 			const char * string = pEEM->getShortcutFor(pEM);
 			if (string && *string)
-				strcpy(accelbuf, string);
+				snprintf(accelbuf, sizeof(accelbuf), "%s", string);
 			else
 				// zero it out for this round
 				*accelbuf = 0;

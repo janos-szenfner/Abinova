@@ -51,7 +51,8 @@ UT_UCS4Char UT_AdobeEncoding::adobeToUcs(const char * str) const
 	if(!strncmp(str,"uni",3) && isxdigit(*(str+3)) && isxdigit(*(str+4)) && isxdigit(*(str+5)) && isxdigit(*(str+6)))
 	{
 		char buff[7] = "0x";
-		strcpy(buff + 2, str + 3);
+		memcpy(buff + 2, str + 3, 4); // exactly the 4 hex digits we validated
+		buff[6] = '\0';
 		UT_uint32 i;
 		sscanf(buff,"%x",&i);
 		//printf("%x ", i);

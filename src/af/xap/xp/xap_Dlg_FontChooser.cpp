@@ -317,7 +317,7 @@ void XAP_Dialog_FontChooser::setFontDecoration(bool bUnderline, bool bOverline, 
 		decors += "bottomline ";
 	if(!bUnderline && !bStrikeOut && !bOverline && !bTopline && !bBottomline)
 		decors = "none";
-	sprintf(s,"%s",decors.c_str());
+	snprintf(s,sizeof(s),"%s",decors.c_str());
 	addOrReplaceVecProp("text-decoration",static_cast<const gchar *>( s));
 }
 

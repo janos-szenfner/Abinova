@@ -551,8 +551,7 @@ void  XAP_UnixEncodingManager::initialize()
 					if (!strncmp(cs+1,"ISO8859",strlen("ISO8859")))
 					{
 						char buf[40];
-						strcpy(buf,"ISO-");
-						strcat(buf,cs+1+3);
+						snprintf(buf,sizeof(buf),"ISO-%s",cs+1+3);
 						NativeNonUnicodeEncodingName = buf;
 					}
 					xxx_UT_DEBUGMSG(("NativeNonUnicodeEncodingName (2) %s\n", NativeNonUnicodeEncodingName));

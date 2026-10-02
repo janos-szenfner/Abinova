@@ -3253,7 +3253,8 @@ bool IE_Imp_RTF::ReadKeyword(unsigned char* pKeyword, UT_sint32* pParam, bool* p
 		SkipBackChar(ch);
 	}
 
-	strcpy(g_dbgLastKeyword, reinterpret_cast<const char *>(savedKeyword));
+	snprintf(g_dbgLastKeyword, sizeof(g_dbgLastKeyword), "%s",
+			 reinterpret_cast<const char *>(savedKeyword));
 	g_dbgLastParam = *pParam;
 	xxx_UT_DEBUGMSG(("Valid Keyword %s Here \n",savedKeyword));
 	return true;

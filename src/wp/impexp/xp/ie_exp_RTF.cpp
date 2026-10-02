@@ -1632,8 +1632,8 @@ void IE_Exp_RTF::_write_parafmt(const PP_AttrProp * pSpanAP, const PP_AttrProp *
 		///
 		/// extract text before and after numbering symbol
 		///
-		static gchar p[80],leftDelim[80],rightDelim[80];
-		sprintf(p, "%s",pAuto->getDelim());
+		static gchar p[100],leftDelim[100],rightDelim[100];
+		snprintf(p, sizeof(p), "%s",pAuto->getDelim());
 		UT_uint32 rTmp;
 
 		UT_uint32 i = 0;

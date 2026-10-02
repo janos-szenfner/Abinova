@@ -172,7 +172,7 @@ public:
 	bool						isIDSomeWhere(UT_uint32 ID) const;
 	static char *				dec2roman(UT_sint32 value, bool lower);
 	static char *				dec2ascii(UT_sint32 value, UT_uint32 offset);
-	static void					dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sint32 value);
+	static void					dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sint32 value, UT_uint32 maxlen);
 	void                        getAttributes(std::vector<std::string>&v,
 											  bool bEscapeXML) const;
 	PD_Document *				getDoc(void) const
@@ -185,7 +185,8 @@ protected:
 	void						_getLabelstr(	UT_UCS4Char labelStr[],
 												UT_uint32 * insPoint,
 												UT_uint32 depth,
-												const pf_Frag_Strux* pLayout) const;
+												const pf_Frag_Strux* pLayout,
+												UT_uint32 maxlen) const;
 	bool						_updateItems(UT_sint32 start, const pf_Frag_Strux* notMe);
 	UT_uint32					_getLevelValue(const fl_AutoNumConstPtr & pAutoNum) const;
 

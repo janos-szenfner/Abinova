@@ -128,7 +128,9 @@ void AP_UnixDialog_Options::s_real_color_changed(GdkRGBA & gdkcolor, AP_UnixDial
 
 	UT_RGBColor * rgbcolor = UT_UnixGdkRGBAToRGBColor(gdkcolor);
 	UT_HashColor hash_color;
-    strncpy ( dlg->m_CurrentTransparentColor, hash_color.setColor(*rgbcolor), 9 );
+    strncpy ( dlg->m_CurrentTransparentColor, hash_color.setColor(*rgbcolor),
+			  sizeof(dlg->m_CurrentTransparentColor) - 1 );
+	dlg->m_CurrentTransparentColor[sizeof(dlg->m_CurrentTransparentColor) - 1] = 0;
 	
     UT_DEBUGMSG ( ( "Changing Color [%s]\n", hash_color.c_str() ) );
 	delete rgbcolor;
@@ -196,7 +198,8 @@ void AP_UnixDialog_Options::event_ChooseTransparentColor ( void )
     while (!abiRunModalDialog(GTK_DIALOG(dlg), m_pFrame, this,
                                           GTK_RESPONSE_OK, FALSE)) {
         // Answer was 0, so reset color to default
-        strncpy(m_CurrentTransparentColor, "ffffff", 9);
+        strncpy(m_CurrentTransparentColor, "ffffff", sizeof(m_CurrentTransparentColor) - 1);
+		m_CurrentTransparentColor[sizeof(m_CurrentTransparentColor) - 1] = 0;
 
         UT_parseColor (m_CurrentTransparentColor, c);
         gcolor = UT_UnixRGBColorToGdkRGBA(c);

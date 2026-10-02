@@ -2704,6 +2704,29 @@ below are on `main` but the release has not been cut yet.
   completes — degrading to "Could not check for updates." — and the
   completion callback's string assembly is guarded the same way
   while still releasing the UI refs.
+- **Unbounded-copy / unsafe C-string audit (SEC01)** — swept `src/`
+  and the bundled `wv` parser for `strcpy`/`strcat`/`sprintf`/
+  `memcpy`/`strncpy` fed by untrusted sizes.  The worst findings
+  were in list-label generation: a document-controlled
+  `start-value` near `INT32_MAX` made `dec2ascii` write `value/26`
+  repeated letters past its 30-byte stack buffer and made
+  `dec2roman` build a multi-megabyte string that was `sprintf`'d
+  into a 100-byte buffer, and the recursive `_getLabelstr`/
+  `dec2hebrew` appended into a fixed 100-element label with no
+  bound at all.  All label writes are now bounded (new `maxlen`
+  parameter + guarded appends, roman numerals capped at 4999, and
+  the position+start-value sum clamped to avoid signed overflow).
+  Also fixed: a `strcpy` of a tar member name whose 100-byte field
+  is not guaranteed NUL-terminated (untgz path), a
+  `strcpy(buff+2, str+3)` over-read in the Adobe uniXXXX glyph-name
+  decoder, an RTF-export `sprintf` of an 81-byte list delimiter
+  into an 80-byte static buffer, several `strncpy` sites that
+  could leave their destination unterminated (transparent-color
+  strings, menu label-set language, columns-dialog units), and an
+  out-of-bounds `p[len-1]` read when `ABINOVA_DATADIR` is empty or
+  a lone quote.  A dozen further `sprintf`/`strcpy`/`strcat` calls
+  on fixed buffers were converted to bounded `snprintf` as
+  defensive hardening.
 
 ### GTK4 port (core migration)
 

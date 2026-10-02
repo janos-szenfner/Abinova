@@ -151,7 +151,10 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 			}
 
 			// tartime = static_cast<time_t>(getoct(buffer.header.mtime,12));
-			strcpy(fname, buffer.header.name);
+			/* tar name field is 100 bytes and not guaranteed
+			 * NUL-terminated when the name fills it exactly */
+			memcpy(fname, buffer.header.name, sizeof(buffer.header.name));
+			fname[sizeof(buffer.header.name)] = '\0';
 			strippath(fname);
 	  
 			if ((buffer.header.typeflag == '\0')	||	// [A]REGTYPE, ie regular files

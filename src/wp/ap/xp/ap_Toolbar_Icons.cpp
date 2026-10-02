@@ -201,7 +201,7 @@ bool XAP_Toolbar_Icons::_findIconNameForID(const char * szID, const char ** pNam
 	{
 		//	Format: ICONNAME_LANGCODE where LANGCODE code can be _XX (_yi) or _XXXA (_caES)
 		char szBaseID[300];
-		strcpy(szBaseID,szID);
+		snprintf(szBaseID,sizeof(szBaseID),"%s",szID);
 		char *pLast = strrchr(szBaseID, '_');
 
 		if (pLast)

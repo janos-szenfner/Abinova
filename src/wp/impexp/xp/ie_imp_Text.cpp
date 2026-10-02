@@ -936,7 +936,7 @@ bool IE_Imp_Text::_doEncodingDialog(const char *szEncoding)
 		s = pDialog->getEncoding();
 		UT_return_val_if_fail (s, false);
 
-		strcpy(szEnc,s);
+		snprintf(szEnc,sizeof(szEnc),"%s",s);
 		_setEncoding(static_cast<const char *>(szEnc));
 		getDoc()->setEncodingName(szEnc);
 	}
