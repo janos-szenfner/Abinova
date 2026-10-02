@@ -1769,6 +1769,16 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Empty-stack access hardening** — a C++ Core Guidelines
+  bounds/lifetime audit found parser and piece-table paths that call
+  `std::stack::top()`/`vector::back()` without checking the container
+  is non-empty. The RTF paste-table handlers (`\abiendtable`,
+  `\abiendcell`, `\abicellprops` in clipboard/paste streams without a
+  matching `\abitableprops`), the `.abw` RDF-anchor end tag, the
+  XHTML `</ol>`/`</ul>`/`</dl>` list-close handler, and the
+  delete-span machinery's delayed-strux loops (unbalanced
+  table/footnote/frame structures) all now bail out cleanly instead
+  of invoking undefined behaviour.
 - **MHTML import works again** — the rewritten `UT_MHTStream` parser
   was never opened, so every `.mht` file failed to import. The
   importer now opens the stream (rewinding the input and reading it

@@ -7740,7 +7740,8 @@ bool IE_Imp_RTF::ApplyParagraphAttributes(bool bDontInsert)
 		}
 		else if(bUseInsertNotAppend())
 		{
-			ABI_Paste_Table * pPaste = m_pasteTableStack.top();
+			ABI_Paste_Table * pPaste = m_pasteTableStack.empty()
+				? nullptr : m_pasteTableStack.top();
 			if(pPaste != nullptr)
 			{
 				if(!pPaste->m_bHasPastedCellStrux && pPaste->m_bHasPastedTableStrux)
@@ -10264,6 +10265,10 @@ bool IE_Imp_RTF::HandleAbiTable(void)
 
 bool IE_Imp_RTF::HandleAbiEndTable(void)
 {
+	if (m_pasteTableStack.empty())
+	{
+		return false;
+	}
 	ABI_Paste_Table * pPaste = m_pasteTableStack.top();
 	if(pPaste == nullptr)
 	{
@@ -10335,6 +10340,10 @@ bool IE_Imp_RTF::markPasteBlock(void)
 	{
 		return false;
 	}
+	if (m_pasteTableStack.empty())
+	{
+		return false;
+	}
 	ABI_Paste_Table * pPaste = m_pasteTableStack.top();
 	if(pPaste == nullptr)
 	{
@@ -10369,6 +10378,10 @@ bool IE_Imp_RTF::isBlockNeededForPasteTable(void)
 
 bool IE_Imp_RTF::HandleAbiEndCell(void)
 {
+	if (m_pasteTableStack.empty())
+	{
+		return false;
+	}
 	ABI_Paste_Table * pPaste = m_pasteTableStack.top();
 	if(pPaste == nullptr)
 	{
@@ -10407,6 +10420,10 @@ bool IE_Imp_RTF::HandleAbiCell(void)
 			return false;
 	}
 
+	if (m_pasteTableStack.empty())
+	{
+		return false;
+	}
 	ABI_Paste_Table * pPaste = m_pasteTableStack.top();
 	if(pPaste == nullptr)
 	{

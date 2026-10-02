@@ -2436,7 +2436,7 @@ bool pt_PieceTable::_deleteComplexSpan(PT_DocPosition & origPos1,
 					bResult = _deleteStruxWithNotify(myPos2, pfs,
 													  &pfNewEnd,
 													  &fragOffsetNewEnd);
-					while(bResult && myTable > 0)
+					while(bResult && myTable > 0 && !stDelayStruxDelete.empty())
 					{
 						pfs = stDelayStruxDelete.top();
 						stDelayStruxDelete.pop();
@@ -2488,7 +2488,7 @@ bool pt_PieceTable::_deleteComplexSpan(PT_DocPosition & origPos1,
 // deleted first) and for
 // undo where we want the Footnote Strux inserted first.
 //
-				while(bResult && iFootnoteCount > 0)
+				while(bResult && iFootnoteCount > 0 && !stDelayStruxDelete.empty())
 				{
 					pfs = stDelayStruxDelete.top();
 					stDelayStruxDelete.pop();
@@ -2553,7 +2553,7 @@ bool pt_PieceTable::_deleteComplexSpan(PT_DocPosition & origPos1,
 // deleted first) and for
 // undo where we want the Frame Strux inserted first.
 //
-				while(bResult && !isFrame)
+				while(bResult && !isFrame && !stDelayStruxDelete.empty())
 				{
 					pfs = stDelayStruxDelete.top();
 					stDelayStruxDelete.pop();

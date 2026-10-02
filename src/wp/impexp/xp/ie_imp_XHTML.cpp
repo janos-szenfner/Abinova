@@ -1838,8 +1838,10 @@ void IE_Imp_XHTML::endElement(const gchar *name)
 	case TT_OL:
 	case TT_UL:
 	case TT_DL:
-		m_iListID = m_utsParents.top();
-		m_utsParents.pop();
+		if (!m_utsParents.empty()) {
+			m_iListID = m_utsParents.top();
+			m_utsParents.pop();
+		}
 
 		if(m_utsParents.empty()) {
 			m_listType = L_NONE;

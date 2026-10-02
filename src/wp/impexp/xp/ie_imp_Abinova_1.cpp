@@ -1305,8 +1305,12 @@ void IE_Imp_Abinova_1::endElement(const gchar *name)
 
 	case TT_TEXTMETA:						// not a container, so we don't pop stack
     {
-        std::string xmlid = xmlidStackForTextMeta.back();
-        xmlidStackForTextMeta.pop_back();
+        std::string xmlid;
+        if (!xmlidStackForTextMeta.empty())
+        {
+            xmlid = xmlidStackForTextMeta.back();
+            xmlidStackForTextMeta.pop_back();
+        }
 
 		UT_ASSERT_HARMLESS(m_lenCharDataSeen==0);
 		X_VerifyParseState(_PS_Block);
