@@ -36,6 +36,7 @@
 #include "ut_string_class.h"
 #include "ut_files.h"
 #include "ut_go_file.h"
+#include "ut_debugmsg.h"
 
 std::string XAP_UnixAppImpl::localizeHelpUrl(const char * pathBefore,
 											const char * pathAfter,
@@ -317,6 +318,7 @@ static void abi_update_check_done(GObject * /*source*/, GAsyncResult * res,
 	{
 		/* the std::string assembly above can throw; an exception
 		 * escaping this main-context callback would terminate() */
+		UT_DEBUGMSG(("abi_update_check_done: exception while assembling update text\n"));
 	}
 
 	g_object_unref(ui->dialog);

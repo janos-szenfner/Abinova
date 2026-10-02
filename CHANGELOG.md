@@ -2851,6 +2851,18 @@ below are on `main` but the release has not been cut yet.
   (`class FileException {}` — no base class, no members, no
   virtuals), so nothing can be sliced; they were left untouched to
   avoid upstream diff churn.  No changes needed.
+- **Swallowed-exception audit (EX03)** — classified every `catch`
+  body in `src/` (30 sites) and `thirdparty/` (83 sites): nearly all
+  are deliberate `bad_alloc`→`nullptr` translations whose fallback is
+  checked downstream, and the destructor/`noexcept` guards added in
+  EX01 already log.  Three sites hid real failures with no trace and
+  now emit `UT_DEBUGMSG`: `AP_App::saveRecoveryFiles` ran inside the
+  `SIGSEGV` handler and a throwing `backup()` silently skipped that
+  frame's recovery file; the update-check completion callback in
+  `xap_UnixAppImpl` swallowed exceptions untraced; and
+  `OXML_Element_Text::setText` could drop a text run from DOCX export
+  without a word.  Behaviour is unchanged — the fixes add logging
+  only.
 
 ### GTK4 port (core migration)
 

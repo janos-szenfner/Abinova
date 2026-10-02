@@ -27,6 +27,7 @@
 // Abinova includes
 #include "ut_types.h"
 #include "ut_string.h"
+#include "ut_debugmsg.h"
 #include "pd_Document.h"
 
 OXML_Element_Text::OXML_Element_Text() :
@@ -55,6 +56,7 @@ void OXML_Element_Text::setText(const gchar * text, int /*length*/)
 		std::string str(text);
 		m_pString = new UT_UCS4String(str);
 	} catch(...) {
+		UT_DEBUGMSG(("OXML_Element_Text::setText: allocation failed, run text dropped\n"));
 		m_pString = nullptr;
 	}
 }

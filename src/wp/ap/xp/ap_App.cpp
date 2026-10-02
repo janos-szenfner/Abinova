@@ -30,6 +30,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#include "ut_debugmsg.h"
 #include "ev_EditMethod.h"
 #include "ap_Features.h"
 #include "ap_App.h"
@@ -236,7 +237,7 @@ void AP_App::saveRecoveryFiles()
 			}
 		}
 		catch(...) {
-			// just continue
+			UT_DEBUGMSG(("saveRecoveryFiles: backup() threw for frame %d, its recovery file was not written\n", i));
 		}
 	}
 }
