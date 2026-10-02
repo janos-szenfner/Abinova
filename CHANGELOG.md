@@ -2842,6 +2842,15 @@ below are on `main` but the release has not been cut yet.
   the autosave `.info` name with glib instead of `std::string`
   concatenation.  There are no user-declared move operations in the
   tree, so the missing-`noexcept` leg was vacuous.
+- **Catch-by-value audit (EX02)** — inventoried every `catch` clause
+  in `src/`, `thirdparty/` and `test/` (114 sites): `src/` has zero
+  typed catches — all 80 handlers are `catch(...)`, and the only
+  typed-catch machinery (`UT_CATCH(x)` → `catch(x)`) has no call
+  sites.  The 30 by-value catches that do exist are in vendored
+  libwpd/libwps and catch empty standalone exception structs
+  (`class FileException {}` — no base class, no members, no
+  virtuals), so nothing can be sliced; they were left untouched to
+  avoid upstream diff churn.  No changes needed.
 
 ### GTK4 port (core migration)
 
