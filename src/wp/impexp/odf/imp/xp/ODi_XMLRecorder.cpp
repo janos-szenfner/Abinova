@@ -107,13 +107,29 @@ void ODi_XMLRecorder::clear() {
 
 
 /**
- * 
+ * Copy constructor. The implicit one shallow-copied m_XMLCalls, leaving two
+ * recorders owning the same XMLCall objects (double-free).
+ */
+ODi_XMLRecorder::ODi_XMLRecorder(const ODi_XMLRecorder& rXMLRecorder) {
+    *this = rXMLRecorder;
+}
+
+
+/**
+ * Deep-copies the recorded calls by replaying them into this recorder.
  */
 ODi_XMLRecorder& ODi_XMLRecorder::operator=(const ODi_XMLRecorder& rXMLRecorder) {
     UT_uint32 count, i;
     const ODi_XMLRecorder::StartElementCall* pStartCall = nullptr;
     const ODi_XMLRecorder::EndElementCall* pEndCall = nullptr;
     const ODi_XMLRecorder::CharDataCall* pCharDataCall = nullptr;
+
+    if (this == &rXMLRecorder) {
+        return *this;
+    }
+
+    // assignment replaces the recorded calls, it does not append to them
+    clear();
 
     count = rXMLRecorder.getCallCount();
     for (i=0; i<count; i++) {

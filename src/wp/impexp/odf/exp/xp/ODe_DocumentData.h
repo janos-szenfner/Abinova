@@ -42,6 +42,8 @@ class ODe_DocumentData {
 public:
 
     ODe_DocumentData(PD_Document* pAbiDoc);
+    ODe_DocumentData(const ODe_DocumentData&) = delete;
+    ODe_DocumentData& operator=(const ODe_DocumentData&) = delete;
     virtual ~ODe_DocumentData();
 
     bool init();

@@ -79,6 +79,25 @@ ODe_Style_Style::ODe_Style_Style() :
 
 
 /**
+ * Copy constructor. The implicit one shallow-copied the m_p*Props pointers,
+ * leaving two owners of the same blocks (double-free).
+ */
+ODe_Style_Style::ODe_Style_Style(const ODe_Style_Style& rStyle) :
+    ODe_Style_Style()
+{
+    m_defaultStyle = rStyle.m_defaultStyle;
+    m_name = rStyle.m_name;
+    m_family = rStyle.m_family;
+    m_parentStyleName = rStyle.m_parentStyleName;
+    m_nextStyleName = rStyle.m_nextStyleName;
+    m_masterPageName = rStyle.m_masterPageName;
+    m_listStyleName = rStyle.m_listStyleName;
+    // operator= deep-copies the owned *Props blocks
+    *this = rStyle;
+}
+
+
+/**
  * Destructor
  */
 ODe_Style_Style::~ODe_Style_Style() {
@@ -1610,6 +1629,7 @@ ODe_Style_Style::ParagraphProps& ODe_Style_Style::ParagraphProps::operator=(
     m_rightSpace = rParagraphProps.m_rightSpace;
     m_topSpace = rParagraphProps.m_topSpace;
     m_defaultTabInterval = rParagraphProps.m_defaultTabInterval;
+    m_defaultStyle = rParagraphProps.m_defaultStyle;
     m_tabStops = rParagraphProps.m_tabStops;
     return *this;
 }
@@ -2053,6 +2073,7 @@ ODe_Style_Style::ColumnProps& ODe_Style_Style::ColumnProps::operator=(
                                             const ColumnProps& rColumnProps) {
                                                 
     m_columnWidth = rColumnProps.m_columnWidth;
+    m_RelColumnWidth = rColumnProps.m_RelColumnWidth;
     return *this;
 }
 
@@ -2315,6 +2336,7 @@ ODe_Style_Style::CellProps& ODe_Style_Style::CellProps::operator=(
     m_bottomThickness = rCellProps.m_bottomThickness;
     m_bottomColor = rCellProps.m_bottomColor;
     m_backgroundColor = rCellProps.m_backgroundColor;
+    m_backgroundImage = rCellProps.m_backgroundImage;
     m_verticalAlign = rCellProps.m_verticalAlign;
     
     return *this;

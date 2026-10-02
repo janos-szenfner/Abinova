@@ -43,6 +43,7 @@ class ODe_Style_Style {
 public:
 
     ODe_Style_Style();
+    ODe_Style_Style(const ODe_Style_Style& rStyle);
     virtual ~ODe_Style_Style();
 
     // Write the <style:style> element.

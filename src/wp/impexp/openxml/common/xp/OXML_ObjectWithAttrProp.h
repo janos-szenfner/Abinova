@@ -33,6 +33,10 @@ class IE_Exp_OpenXML;
 class OXML_ObjectWithAttrProp {
 public:
 	OXML_ObjectWithAttrProp();
+	// owns m_pAttributes; elements are managed by pointer in the doc tree —
+	// a shallow copy would double-free
+	OXML_ObjectWithAttrProp(const OXML_ObjectWithAttrProp&) = delete;
+	OXML_ObjectWithAttrProp& operator=(const OXML_ObjectWithAttrProp&) = delete;
 	virtual ~OXML_ObjectWithAttrProp();
 
 	UT_Error setAttribute(const gchar * szName, const gchar * szValue);

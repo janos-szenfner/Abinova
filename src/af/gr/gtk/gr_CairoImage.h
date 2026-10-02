@@ -37,6 +37,9 @@ class GR_RSVGVectorImage : public GR_CairoVectorImage {
  public:
 
   GR_RSVGVectorImage(const char* name);
+  // owns cairo/Rsvg handles + a raster image — a shallow copy would double-free
+  GR_RSVGVectorImage(const GR_RSVGVectorImage&) = delete;
+  GR_RSVGVectorImage& operator=(const GR_RSVGVectorImage&) = delete;
   virtual ~GR_RSVGVectorImage();
 
   virtual bool convertToBuffer(UT_ConstByteBufPtr & ppBB) const override;

@@ -27,6 +27,8 @@ class HunspellWrap
 {
   public:
   HunspellWrap(void);
+  HunspellWrap(const HunspellWrap&) = delete;
+  HunspellWrap& operator=(const HunspellWrap&) = delete;
   virtual ~HunspellWrap(void);
   bool parseSentence(PieceOfText * pT);
   bool clear(void);

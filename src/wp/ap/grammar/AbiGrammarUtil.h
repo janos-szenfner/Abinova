@@ -39,6 +39,8 @@ class PieceOfText
 {
  public:
   PieceOfText(void);
+  PieceOfText(const PieceOfText&) = delete;
+  PieceOfText& operator=(const PieceOfText&) = delete;
   virtual ~PieceOfText(void);
   UT_sint32 iInLow;
   UT_sint32 iInHigh;

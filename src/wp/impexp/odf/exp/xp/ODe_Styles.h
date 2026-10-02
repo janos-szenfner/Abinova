@@ -47,6 +47,8 @@ class ODe_Styles {
 public:
 
     ODe_Styles(PD_Document* pAbiDoc);
+    ODe_Styles(const ODe_Styles&) = delete;
+    ODe_Styles& operator=(const ODe_Styles&) = delete;
 
     ~ODe_Styles();
 

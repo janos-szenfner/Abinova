@@ -2584,6 +2584,25 @@ below are on `main` but the release has not been cut yet.
   own destructor while the override still resolves.  No
   pure-virtual-call abort paths exist; all other flagged sites
   dispatch to implementations the calling class itself provides.
+- **Rule-of-3/5 copy-semantics audit (OO04)** — swept the tree for
+  classes that own raw resources (delete/free/unref in the
+  destructor) while relying on implicit copy operations.  Two real
+  violations fixed: `ODe_Style_Style` and `ODi_XMLRecorder` declared
+  deep-copying `operator=`s but no copy constructor, so the implicit
+  copy ctor shallow-copied owned `m_p*Props`/`m_XMLCalls` pointers —
+  a guaranteed double-free on any copy-initialisation; both now have
+  proper copy constructors.  `ODi_XMLRecorder::operator=` also
+  self-assignment-guards and clears existing calls instead of
+  appending, and three `ODe_Style_Style` property `operator=`s no
+  longer drop members (`ParagraphProps::m_defaultStyle`,
+  `ColumnProps::m_RelColumnWidth`, `CellProps::m_backgroundImage`).
+  Copy operations are now `= delete`d on the remaining owners where a
+  copy is a latent bug: the `FV_ViewDoubleBuffering` scope guard
+  (which also left `m_pPainter` uninitialised), grammar-checker
+  `PieceOfText`/`Abi_GrammarCheck`/`HunspellWrap`, ODF style stores
+  `ODi_Style_Style_Family`/`ODe_Styles`/`ODe_DocumentData`, MHTML
+  `UT_Multipart`, SVG `GR_RSVGVectorImage`, and the OXML element base
+  `OXML_ObjectWithAttrProp` (covers the whole element hierarchy).
 
 ### GTK4 port (core migration)
 

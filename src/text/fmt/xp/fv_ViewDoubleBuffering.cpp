@@ -30,7 +30,8 @@
 //#define DEACTIVATE_FV_VIEW_DOUBLE_BUFFERING 1
 
 FV_ViewDoubleBuffering::FV_ViewDoubleBuffering(FV_View *pView, bool suspendDirectDrawing, bool callDrawOnlyAtTheEnd)
-	: m_pView(pView),
+	: m_pPainter(nullptr),
+	  m_pView(pView),
 	  m_bCallDrawOnlyAtTheEnd(callDrawOnlyAtTheEnd),
 	  m_bSuspendDirectDrawing(suspendDirectDrawing)
 {

@@ -29,6 +29,10 @@ class FV_ViewDoubleBuffering
 
 public:
 	FV_ViewDoubleBuffering(FV_View *pView, bool suspendDirectDrawing, bool callDrawOnlyAtTheEnd);
+	// scope-guard: owns m_pPainter and is registered with the view; copying
+	// would double-unregister/double-free
+	FV_ViewDoubleBuffering(const FV_ViewDoubleBuffering&) = delete;
+	FV_ViewDoubleBuffering& operator=(const FV_ViewDoubleBuffering&) = delete;
 	~FV_ViewDoubleBuffering();
 
 	void beginDoubleBuffering();

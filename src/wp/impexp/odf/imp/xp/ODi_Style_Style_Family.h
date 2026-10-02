@@ -48,6 +48,8 @@ class ODi_Style_Style_Family {
 public:
 
     ODi_Style_Style_Family() : m_pDefaultStyle(nullptr) {}
+    ODi_Style_Style_Family(const ODi_Style_Style_Family&) = delete;
+    ODi_Style_Style_Family& operator=(const ODi_Style_Style_Family&) = delete;
     virtual ~ODi_Style_Style_Family();
 
     ODi_Style_Style* addStyle(const gchar** ppAtts,

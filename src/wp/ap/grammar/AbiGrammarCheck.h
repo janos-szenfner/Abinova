@@ -32,6 +32,8 @@ class Abi_GrammarCheck
 {
  public:
   Abi_GrammarCheck(void);
+  Abi_GrammarCheck(const Abi_GrammarCheck&) = delete;
+  Abi_GrammarCheck& operator=(const Abi_GrammarCheck&) = delete;
   virtual ~Abi_GrammarCheck(void);
   bool   CheckBlock(fl_BlockLayout * pB);
   bool   GetEnglishText(fl_BlockLayout * pB);

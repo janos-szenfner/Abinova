@@ -36,6 +36,8 @@ class ODi_XMLRecorder {
 
 public:
 
+    ODi_XMLRecorder() = default;
+    ODi_XMLRecorder(const ODi_XMLRecorder& rXMLRecorder);
     ~ODi_XMLRecorder();
 
     void startElement (const gchar* pName, const gchar** ppAtts);
@@ -53,6 +55,8 @@ public:
     class XMLCall {
         public:
         XMLCall(XMLCallType type) : m_type(type) {}
+        XMLCall(const XMLCall&) = delete;
+        XMLCall& operator=(const XMLCall&) = delete;
         virtual ~XMLCall() {}
 
         XMLCallType getType() const {return m_type;}

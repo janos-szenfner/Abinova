@@ -54,6 +54,8 @@ class UT_Multipart
 
 public:
 	UT_Multipart ();
+	UT_Multipart (const UT_Multipart &) = delete;
+	UT_Multipart & operator= (const UT_Multipart &) = delete;
 
 	~UT_Multipart ();
 
