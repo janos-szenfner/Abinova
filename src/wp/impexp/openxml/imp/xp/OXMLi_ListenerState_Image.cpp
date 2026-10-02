@@ -238,7 +238,9 @@ static void _setWrapMode(const OXML_SharedElement & elem, const char * mode)
 		cur && !strcmp(cur, "below-text"))
 		return;
 	if (elem->setProperty("wrap-mode", mode) != UT_OK)
+	{
 		UT_DEBUGMSG(("OpenXML importer image wrap-mode property can't be set\n"));
+	}
 }
 
 OXMLi_ListenerState_Image::OXMLi_ListenerState_Image()

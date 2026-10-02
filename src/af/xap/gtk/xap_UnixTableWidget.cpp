@@ -198,7 +198,7 @@ abi_table_get_max_size (const AbiTable* abi_table, guint* rows, guint* cols)
 }
 
 static void
-on_drawing_area_event (GtkDrawingArea *area, cairo_t *cr, int /*w*/, int /*h*/, gpointer user_data)
+on_drawing_area_event (GtkDrawingArea */*area*/, cairo_t *cr, int /*w*/, int /*h*/, gpointer user_data)
 {
 	AbiTable* table = static_cast<AbiTable*>(user_data);
 

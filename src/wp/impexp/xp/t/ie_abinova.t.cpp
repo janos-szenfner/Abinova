@@ -69,7 +69,7 @@ static bool export_mem(PD_Document * doc, std::vector<unsigned char> & out)
 			long sz = ftell(fp);
 			fseek(fp, 0, SEEK_SET);
 			out.resize(sz);
-			fread(out.data(), 1, sz, fp);
+			ok = fread(out.data(), 1, sz, fp) == static_cast<size_t>(sz);
 			fclose(fp);
 		} else {
 			ok = false;

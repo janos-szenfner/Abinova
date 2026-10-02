@@ -302,7 +302,7 @@ size_t UT_iconv( UT_iconv_t cd, const char **inbuf,
   if ( !UT_iconv_isValid ( cd ) )
     return static_cast<size_t>(-1);
 
-  return g_iconv(const_cast<GIConv>(static_cast<const GIConv>(static_cast<const GIConv>(cd))), const_cast<char **>(inbuf), inbytesleft, outbuf, outbytesleft);
+  return g_iconv(static_cast<GIConv>(cd), const_cast<char **>(inbuf), inbytesleft, outbuf, outbytesleft);
 }
 
 int  UT_iconv_close( UT_iconv_t cd )

@@ -35,7 +35,7 @@ ruler_style_context_changed (GObject* /*w*/, GParamSpec* /*pspec*/,
     ruler->_ruler_style_context_changed();
 }
 
-AP_UnixRuler::AP_UnixRuler(XAP_Frame* pFrame)
+AP_UnixRuler::AP_UnixRuler(XAP_Frame* /*pFrame*/)
     : m_wRuler(nullptr)
     , m_iBackgroundRedrawID(0)
 {

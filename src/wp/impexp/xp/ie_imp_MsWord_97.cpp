@@ -780,25 +780,6 @@ s_fieldFontForList (UT_uint32 iType, wvParseStruct * ps, const CHP * achp)
 	return "Times New Roman";
 }
 
-#if 0
-
-// MS Word uses the langauge codes as explicit overrides when treating
-// weak characters; this function translates language id to the
-// overrided direction
-static bool s_isLanguageRTL(short unsigned int lid)
-{
-	const char * s = wvLIDToLangConverter (lid);
-	UT_Language l;
-	return (UTLANG_RTL == l.getOrderFromProperty(s));
-}
-
-static FootnoteType s_convertNoteType(UT_uint32 t)
-{
-	return 	FOOTNOTE_TYPE_NUMERIC;
-}
-
-#endif
-
 /****************************************************************************/
 /****************************************************************************/
 
@@ -1117,19 +1098,7 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
   return password;
 }
 
-#if 0
-static void _errorMessage (XAP_Frame * pFrame, int id)
-{
-  UT_return_if_fail(pFrame);
 
-  const XAP_StringSet * pSS = XAP_App::getApp ()->getStringSet ();
-
-  const char * text = pSS->getValue (id, pFrame->getApp()->getDefaultEncoding()).c_str();
-
-  pFrame->showMessageBox (text, XAP_Dialog_MessageBox::b_O,
-						  XAP_Dialog_MessageBox::a_OK);
-}
-#endif
 
 static const struct {
   const char * metadata_key;
@@ -2053,13 +2022,13 @@ int IE_Imp_MsWord_97::_charProc (wvParseStruct *ps, U16 eachchar, U8 chartype, U
 
 /*! fetch a simple (non-complex) property from an OfficeArtRGFOPTE
  *  (MS-ODRAW 2.2.7); the table is terminated by a zero pid */
-static bool s_getOPTProp (const FOPTE * fopte, U32 pid, U32 & val)
+static bool s_getOPTProp (const FOPTE * fopte, U32 propid, U32 & val)
 {
 	if(!fopte)
 		return false;
 	for(const FOPTE * f = fopte; f->pid; ++f)
 	{
-		if(f->pid == pid && !f->fComplex)
+		if(f->pid == propid && !f->fComplex)
 		{
 			val = f->op;
 			return true;
@@ -3291,45 +3260,6 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * ps, UT_uint32 /*tag*/,
 			}
 
 			k = i;
-#if 0
-			// For now this code is going to be disabled, since a
-			// present AW sections cannot share headers, and this type
-			// of a header needs to be replaced by a physical copy of
-			// the previous meaningul header
-			if(m_pHeaders[i].len == 0)
-			{
-				// this is the case where the section is to use the
-				// header of a previous section -- scroll back until
-				// we find one
-				k -= 6;
-				bool bContinue = false;
-				
-				while(k > 5)
-				{
-					if(m_pHeaders[k].len == 2)
-					{
-						// found empty header 
-						bContinue = true;
-						break;
-					}
-					else if(m_pHeaders[k].len == 0)
-					{
-						// try one section ahead
-						k -= 6;
-					}
-					else
-					{
-						// found a meaningful header
-						break;
-					}
-				}
-
-				if(bContinue || k < 6)
-				{
-					continue;
-				}
-			}
-#endif
 			switch(m_pHeaders[k].type)
 			{
 				case HF_HeaderEven:
@@ -3431,20 +3361,6 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * ps, UT_uint32 /*tag*/,
 int IE_Imp_MsWord_97::_endSect (wvParseStruct * /* ps */ , UT_uint32  /* tag */ ,
 								void * /* prop */, int /* dirty */ )
 {
-#if 0
-	// if we're at the end of a section, we need to check for a section mark
-	// at the end of our character stream and remove it (to prevent page breaks
-	// between sections)
-
-	// this does not work -- if we are at the end of a section we have
-	// already flushed the buffer in _endPara()
-	if (m_pTextRun.size() &&
-		m_pTextRun[m_pTextRun.size()-1] == UCS_FF)
-	  {
-		m_pTextRun[m_pTextRun.size()-1] = 0;
-	  }
-#endif
-
 	// we never appended a paragraph inside of this section. we're naughty. correct that here.
 	if (!m_bInPara  && !m_bInTextboxes && !m_bInAnnotations)
 		_appendStrux(PTX_Block, PP_NOPROPS);
@@ -3511,16 +3427,6 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 				break;
 			}
 		}
-	}
-	bool bInHdrFtr = false;
-	if((ps->currentcp+1 >= m_iHeadersStart) && (ps->currentcp < m_iHeadersEnd))
-	{
-		bInHdrFtr = true;
-	}
-	bool bInTextboxes = false;
-	if((ps->currentcp+1 >= m_iTextboxesStart) && (ps->currentcp < m_iTextboxesEnd))
-	{
-		bInTextboxes = true;
 	}
 	// at the end of each f/enote is a superflous paragraph marker
 	// which we do not want imported
@@ -7564,10 +7470,10 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 			UT_uint32 pos = sectOff + dictOff + 4;
 			for(UT_uint32 k = 0; k < nEnt && pos + 8 <= sz; k++)
 			{
-				UT_uint32 pid = s_propRd32(&buf[pos]);
+				UT_uint32 propid = s_propRd32(&buf[pos]);
 				UT_uint32 len = s_propRd32(&buf[pos + 4]);
 				pos += 8;
-				bool uni = (pid & 0x80000000) != 0;
+				bool uni = (propid & 0x80000000) != 0;
 				UT_uint32 nbytes = uni ? len * 2 : len;
 				if(nbytes > sz - pos)
 					break;
@@ -7588,15 +7494,15 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 				}
 				pos += (nbytes + 3) & ~3u;
 				if(sName == "_PID_HLINKS")
-					hlinksPid = pid & 0x7fffffff;
+					hlinksPid = propid & 0x7fffffff;
 				else if(sName == "_PID_LINKBASE")
-					linkBasePid = pid & 0x7fffffff;
+					linkBasePid = propid & 0x7fffffff;
 			}
 		}
 
-		auto propOffset = [&](UT_uint32 pid) -> UT_uint32 {
+		auto propOffset = [&](UT_uint32 propid) -> UT_uint32 {
 			for(UT_uint32 i = 0; i < cProps; i++)
-				if(s_propRd32(&buf[sectOff + 8 + i * 8]) == pid)
+				if(s_propRd32(&buf[sectOff + 8 + i * 8]) == propid)
 					return s_propRd32(&buf[sectOff + 8 + i * 8 + 4]);
 			return 0;
 		};
@@ -8618,14 +8524,14 @@ bool IE_Imp_MsWord_97::_insertAnnotationStart(msAnnotation * a)
 	UT_return_val_if_fail(a, false);
 	this->_flush();
 
-	std::string pid = UT_std_string_sprintf("%u", a->pid);
+	std::string pidStr = UT_std_string_sprintf("%u", a->pid);
 	const PP_PropertyVector attribsA = {
-		"annotation", pid
+		"annotation", pidStr
 	};
 	_appendObject(PTO_Annotation, attribsA);
 
 	PP_PropertyVector attribsS = {
-		"annotation-id", pid
+		"annotation-id", pidStr
 	};
 	// ';' and ':' are the prop-list separators in the serialized form
 	std::string props;

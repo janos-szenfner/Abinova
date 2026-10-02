@@ -281,11 +281,7 @@ struct MLatexParser {
 	MNode *charAtom(char c) {
 		MNode *a = new MNode(MNode::ATOM);
 		char buf[8];
-		if (c < 0x80) {
-			buf[0] = c; buf[1] = 0;
-		} else {
-			buf[0] = c; buf[1] = 0; /* raw byte; latex input is utf-8 so copy through */
-		}
+		buf[0] = c; buf[1] = 0; /* raw byte; latex input is utf-8 so copy through */
 		a->t = buf;
 		if (isalpha(static_cast<unsigned char>(c))) a->fl |= MF_ITALIC;
 		a->fl |= style;
@@ -796,7 +792,8 @@ struct MMLParser {
 			    !strcmp(text(e).c_str(), "inf") || !strcmp(text(e).c_str(), "max") ||
 			    !strcmp(text(e).c_str(), "min"))
 				a->fl |= MF_UPRIGHT | MF_BIGOP | MF_LIMITS;
-			else if (t.size() > 1 && isalpha(static_cast<unsigned char>(t[0])) && t[0] < 0x80)
+			else if (t.size() > 1 && static_cast<unsigned char>(t[0]) < 0x80 &&
+			         isalpha(static_cast<unsigned char>(t[0])))
 				a->fl |= MF_UPRIGHT | MF_INNER;
 			return a;
 		}
@@ -1854,7 +1851,7 @@ static void s_ser(MNode *n, std::string &o)
 	case MNode::SPACE:
 		if (!n->k.empty()) s_serKids(n, o);
 		else {
-			char b[64];
+			char b[384];
 			snprintf(b, sizeof b, "<mspace width=\"%.2fem\"/>", n->aux / 100.0);
 			o += b;
 		}

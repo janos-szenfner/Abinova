@@ -44,7 +44,6 @@ libutil_la_SOURCES = \
 	xp/ut_Encoding.cpp \
 	xp/ut_Encoding.h \
 	xp/ut_endian.h \
-	xp/ut_exception.h \
 	xp/ut_export.h \
 	xp/ut_go_file.cpp \
 	xp/ut_go_file.h \

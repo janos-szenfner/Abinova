@@ -71,9 +71,7 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev
 	else
 	{
 		// TODO decide something better to do here....
-		guint ev_button = 0;
-		ev_button = gdk_button_event_get_button(e);
-		UT_DEBUGMSG(("EV_UnixMouse::mouseUp: unknown button %d\n", ev_button));
+		UT_DEBUGMSG(("EV_UnixMouse::mouseUp: unknown button %d\n", gdk_button_event_get_button(e)));
 		return;
 	}
 

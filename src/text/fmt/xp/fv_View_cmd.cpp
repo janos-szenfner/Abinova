@@ -7082,7 +7082,7 @@ UT_sint32 FV_View::getTocLevel(void) const
  */
 void FV_View::setTocLevel(UT_sint32 iLevel)
 {
-	char szBuf[8];
+	char szBuf[32];
 	snprintf(szBuf, sizeof(szBuf), "%d", iLevel);
 	PP_PropertyVector props = {
 		"toc-level", szBuf

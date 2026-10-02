@@ -1377,15 +1377,7 @@ bool IE_Imp_RTF::HandleObject()
 	int nested = 1;           // nesting level	
 	RTF_KEYWORD_ID keywordID;
 	int beginResult = 0;     // carries the nesting level where the result is found
-	enum: uint8_t {
-		OBJ_TYPE_NONE,
-		OBJ_TYPE_RTF,
-		OBJ_TYPE_PICT,
-		OBJ_TYPE_BMP,
-		OBJ_TYPE_TXT,
-		OBJ_TYPE_HTML
-	} objectType = OBJ_TYPE_NONE;
-		
+
 	do
 	{
 		tokenType = NextToken (keyword, &parameter, &paramUsed, MAX_KEYWORD_LEN,false);
@@ -1402,19 +1394,10 @@ bool IE_Imp_RTF::HandleObject()
 			switch (keywordID)
 			{
 			case RTF_KW_rsltrtf:
-				objectType = OBJ_TYPE_RTF;
-				break;
 			case RTF_KW_rsltpict:
-				objectType = OBJ_TYPE_PICT;
-				break;
 			case RTF_KW_rsltbmp:
-				objectType = OBJ_TYPE_BMP;
-				break;
-			case RTF_KW_rslttxt: 
-				objectType = OBJ_TYPE_TXT;
-				break;
+			case RTF_KW_rslttxt:
 			case RTF_KW_rslthtml:
-				objectType = OBJ_TYPE_HTML;
 				break;
 			case RTF_KW_result:
 				// handle a paragraph.

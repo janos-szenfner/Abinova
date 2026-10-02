@@ -75,11 +75,6 @@ static const char * s_safeMenuLabelFormat(const char * szFormat)
 
 #define ABIWORD_VIEW  	FV_View * pView = static_cast<FV_View *>(pAV_View)
 
-static char *s_escapeMenuString(char *p_str)
-{
-	return g_strdup(p_str);
-}
-
 /*****************************************************************/
 /*****************************************************************/
 

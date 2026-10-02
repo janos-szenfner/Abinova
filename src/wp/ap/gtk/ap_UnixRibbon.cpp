@@ -3010,48 +3010,6 @@ static void _glyph_revauto(cairo_t * cr, double w, double h)
 	cairo_stroke(cr);
 }
 
-static void _glyph_revnew(cairo_t * cr, double w, double h)
-{
-	/* revision lines plus a green plus - start a new revision level */
-	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
-	cairo_set_line_width(cr, 1.0);
-	for (int i = 0; i < 3; ++i)
-	{
-		cairo_move_to(cr, w * 0.10, h * (0.16 + i * 0.20));
-		cairo_line_to(cr, w * 0.62, h * (0.16 + i * 0.20));
-	}
-	cairo_stroke(cr);
-	cairo_set_source_rgb(cr, 0.15, 0.65, 0.30);
-	cairo_set_line_width(cr, 2.0);
-	double cx = w * 0.72, cy = h * 0.60, s = w * 0.16;
-	cairo_move_to(cr, cx - s, cy);
-	cairo_line_to(cr, cx + s, cy);
-	cairo_move_to(cr, cx, cy - s);
-	cairo_line_to(cr, cx, cy + s);
-	cairo_stroke(cr);
-}
-
-static void _glyph_revpurge(cairo_t * cr, double w, double h)
-{
-	/* revision lines crossed by a red X - purge the history */
-	cairo_set_source_rgb(cr, 0.55, 0.6, 0.7);
-	cairo_set_line_width(cr, 1.0);
-	for (int i = 0; i < 3; ++i)
-	{
-		cairo_move_to(cr, w * 0.10, h * (0.16 + i * 0.20));
-		cairo_line_to(cr, w * 0.62, h * (0.16 + i * 0.20));
-	}
-	cairo_stroke(cr);
-	cairo_set_source_rgb(cr, 0.80, 0.20, 0.20);
-	cairo_set_line_width(cr, 2.0);
-	double cx = w * 0.72, cy = h * 0.60, s = w * 0.15;
-	cairo_move_to(cr, cx - s, cy - s);
-	cairo_line_to(cr, cx + s, cy + s);
-	cairo_move_to(cr, cx + s, cy - s);
-	cairo_line_to(cr, cx - s, cy + s);
-	cairo_stroke(cr);
-}
-
 static void _glyph_markup(cairo_t * cr, double w, double h)
 {
 	/* page lines plus the left-margin change bar of Simple Markup */
@@ -4127,7 +4085,7 @@ static void _overlay_orient_arrow(cairo_t * cr, double w, double h)
 	cairo_fill(cr);
 }
 
-static void _overlay_size_arrows(cairo_t * cr, double w, double h)
+static void _overlay_size_arrows(cairo_t * cr, double /*w*/, double h)
 {
 	/* vertical double-arrow left of the page */
 	cairo_set_source_rgb(cr, 0.2, 0.45, 0.9);
@@ -4160,7 +4118,7 @@ static void _overlay_break_dash(cairo_t * cr, double w, double h)
 	cairo_fill(cr);
 }
 
-static void _overlay_hyphen(cairo_t * cr, double w, double h)
+static void _overlay_hyphen(cairo_t * cr, double /*w*/, double h)
 {
 	/* "a-" over "bc" letterforms */
 	cairo_set_source_rgb(cr, 0.35, 0.35, 0.4);
@@ -5356,7 +5314,7 @@ static UT_Dimension _ruler_units()
 static std::string _fmt_dim(double inches, UT_Dimension u)
 {
 	double v = UT_convertInchesToDimension(inches, u);
-	char buf[128];
+	char buf[384];
 	snprintf(buf, sizeof(buf), "%.2f %s", v, UT_dimensionName(u));
 	return buf;
 }
@@ -10060,7 +10018,7 @@ gboolean AP_UnixRibbon::_s_spin_apply(gpointer data)
 		return G_SOURCE_REMOVE;
 
 	double v = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spin));
-	char buf[128];
+	char buf[384];
 	if (c->prop)
 		snprintf(buf, sizeof(buf), "%s:%.2f%s", c->prop, v,
 				 UT_dimensionName(c->unit));

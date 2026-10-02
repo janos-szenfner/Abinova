@@ -929,6 +929,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 
 	int failLine;
 	failLine = 0;
+	UT_UNUSED(failLine);
 	UT_DEBUGMSG(("startElement: %s, parseState: %u, listType: %u\n", name, m_parseState, m_listType));
 	UT_ASSERT(m_error == 0);
 	X_EatIfAlreadyError();				// xml parser keeps running until buffer consumed
@@ -1776,6 +1777,7 @@ X_Fail:
 void IE_Imp_XHTML::endElement(const gchar *name)
 {
 	int failLine = 0;
+	UT_UNUSED(failLine);
 	UT_uint32 uid;
 
 	UT_DEBUGMSG(("endElement: %s, parseState: %u, listType: %u\n", name, m_parseState, m_listType));
@@ -2107,6 +2109,7 @@ void IE_Imp_XHTML::charData (const gchar * buffer, int length)
 	}
 
 	int failLine = 0;
+	UT_UNUSED(failLine);
 
 	// bool bResetState = (m_parseState != _PS_Block);
 

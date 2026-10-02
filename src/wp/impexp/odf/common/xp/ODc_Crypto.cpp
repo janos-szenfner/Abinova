@@ -307,11 +307,11 @@ static bool odRandomBytes(unsigned char* buf, gsize len)
     int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
     if (fd >= 0)
     {
-        gsize done = 0;
+        gsize got = 0;
         bool ok = true;
-        while (done < len)
+        while (got < len)
         {
-            ssize_t n = read(fd, buf + done, len - done);
+            ssize_t n = read(fd, buf + got, len - got);
             if (n <= 0)
             {
                 if (n < 0 && errno == EINTR)
@@ -319,7 +319,7 @@ static bool odRandomBytes(unsigned char* buf, gsize len)
                 ok = false;
                 break;
             }
-            done += static_cast<gsize>(n);
+            got += static_cast<gsize>(n);
         }
         close(fd);
         if (ok)

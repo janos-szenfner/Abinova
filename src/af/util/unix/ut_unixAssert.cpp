@@ -73,7 +73,8 @@ int UT_UnixAssertMsg(const char * szMsg, const char * szFile, int iLine)
 		char buf[10];
 		memset(buf,0,10);
 
-		fgets(buf,10,stdin);
+		if (!fgets(buf,10,stdin))
+			return 1;					// EOF (no stdin): continue
 
 		switch (buf[0])
 		{

@@ -72,14 +72,15 @@ static std::string s_dmlColor(const std::string & name,
 			 bi = atts->find("A:b");
 		if (ri == atts->end() || gi == atts->end() || bi == atts->end())
 			return "";
+		auto chan = [](const std::string & s) -> unsigned char {
+			double v = UT_convertDimensionless(s.c_str()) * 255.0 / 100000.0 + 0.5;
+			if (v < 0.0) return 0;
+			if (v > 255.0) return 255;
+			return static_cast<unsigned char>(v);
+		};
 		char buf[8];
 		snprintf(buf, sizeof(buf), "%02X%02X%02X",
-				 static_cast<int>((UT_convertDimensionless(ri->second.c_str()) *
-					   255.0 / 100000.0 + 0.5)),
-				 static_cast<int>((UT_convertDimensionless(gi->second.c_str()) *
-					   255.0 / 100000.0 + 0.5)),
-				 static_cast<int>((UT_convertDimensionless(bi->second.c_str()) *
-					   255.0 / 100000.0 + 0.5)));
+				 chan(ri->second), chan(gi->second), chan(bi->second));
 		return buf;
 	}
 	if (name == "A:sysClr")
@@ -157,7 +158,7 @@ static std::string s_transformColor(const std::string & hex,
 	int r = 0, g = 0, b = 0;
 	if (sscanf(hex.c_str(), "%02x%02x%02x", &r, &g, &b) != 3)
 		return hex;
-	auto xf = [&](int c) -> int {
+	auto xf = [&](int c) -> unsigned char {
 		double v = c;
 		if (shade >= 0.0)
 			v *= shade;              /* darken toward black */
@@ -168,7 +169,7 @@ static std::string s_transformColor(const std::string & hex,
 			v = v * alpha + 255.0 * (1.0 - alpha); /* over white */
 		if (v < 0.0) v = 0.0;
 		if (v > 255.0) v = 255.0;
-		return static_cast<int>((v + 0.5));
+		return static_cast<unsigned char>(v + 0.5);
 	};
 	char buf[8];
 	snprintf(buf, sizeof(buf), "%02X%02X%02X", xf(r), xf(g), xf(b));

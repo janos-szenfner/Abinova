@@ -85,7 +85,7 @@ XAP_Frame* AP_App::openFile(const char* uri, const char* file)
  * \return False if an unknown command line option was used, true
  * otherwise.  
  */
-bool AP_App::openCmdLineFiles(const AP_Args * args)
+bool AP_App::openCmdLineFiles(const AP_Args * /*args*/)
 {
 	int kWindowsOpened = 0;
 	const char *file = nullptr;
@@ -102,7 +102,7 @@ bool AP_App::openCmdLineFiles(const AP_Args * args)
 		char * uri = nullptr;
 
 		uri = UT_go_shell_arg_to_uri (file);
-		XAP_Frame* pFrame = openFile(uri);
+		openFile(uri);
 		g_free(uri);
 
 		kWindowsOpened++;

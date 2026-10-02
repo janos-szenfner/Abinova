@@ -95,7 +95,7 @@ void AP_Dialog_InsertTable::saveLastUsed(void) const
 						 static_cast<int>(m_numCols));
 	pScheme->setValueInt("InsertTableLastColType",
 						 static_cast<int>(m_columnType));
-	char buf[32];
+	char buf[384];
 	UT_LocaleTransactor t(LC_NUMERIC, "C");
 	snprintf(buf, sizeof(buf), "%.2fin",
 			 UT_convertDimToInches(m_columnWidth, m_dim));

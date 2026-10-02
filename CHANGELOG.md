@@ -2938,6 +2938,27 @@ below are on `main` but the release has not been cut yet.
   never stored (image/graphic insert, math objects, drag-copy,
   clipboard range export); the math-snapshot manager no longer marks
   a snapshot written when the store failed.
+- **Dead-code and unused-entity sweep (MOD04)** — removed the
+  never-included `ut_exception.h` exception-shim header (the
+  `UT_TRY`/`UT_CATCH`/`UT_THROW` macro layer had zero users), dead
+  `#if 0` blocks and write-only bookkeeping in the `.doc` importer,
+  a constant-false `else if (0)` branch in the RTF importer, a
+  write-only `\rslt*` type enum in the RTF object reader, an
+  unread TOC-heading flag in the HTML exporter, and several
+  provably-dead helpers (unused ribbon glyph renderers, an orphan
+  script-name dialog helper).  The `-Wunused`/warning triage also
+  surfaced real latent defects, now fixed: an `inline` declaration
+  on `IE_Exp_HTML_DocumentWriter::_handleStyleAndId` whose
+  definition lives in another translation unit (an ODR violation),
+  `%02X`/`%.2f`/`%d` format buffers that could silently truncate
+  their output (table-style color mixing, DOCX `scrgbClr`
+  conversion, MathML `mspace` width, margin/spin-box formatting,
+  the insert-table column-width preference, TOC level), a
+  dictionary parser `fread` that ignored short reads mid-UTF-8
+  sequence, and an interactive assert prompt `fgets` that could
+  spin on stdin EOF.  Two always-true signed-char comparisons in
+  the MathML typesetter were collapsed/fixed so the intended ASCII
+  check actually runs.
 
 ### GTK4 port (core migration)
 

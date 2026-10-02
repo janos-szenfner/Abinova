@@ -11807,16 +11807,6 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 					attribs.push_back(PT_BASEDON_ATTRIBUTE_NAME);
 					attribs.push_back("");
 				}
-				else if(0)
-				{
-					// TODO: Why is this code here? It left over from before the BasedOn array
-					const std::string & val = m_styleTable[parameter];
-					if (!val.empty())
-					{
-						attribs.push_back(PT_BASEDON_ATTRIBUTE_NAME);
-						attribs.push_back(val);
-					}
-				}
 			}
 			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "snext") == 0)
 			{

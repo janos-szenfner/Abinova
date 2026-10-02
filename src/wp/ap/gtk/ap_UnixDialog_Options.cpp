@@ -152,6 +152,7 @@ void AP_UnixDialog_Options::s_color_changed ( GtkColorChooser *csel,
 {
     AP_UnixDialog_Options * dlg = static_cast<AP_UnixDialog_Options *> ( data );
     UT_ASSERT ( csel && dlg );
+    UT_UNUSED(csel);
 
     UT_DEBUGMSG(("s_color_changed\n"));
     s_real_color_changed(*color, dlg);

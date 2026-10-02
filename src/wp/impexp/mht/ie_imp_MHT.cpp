@@ -804,8 +804,12 @@ UT_Multipart * IE_Imp_MHT::importMultipart (UT_MHTStream & stream)
 		{
 			std::string body;
 			if (stream.nextBody (body) && !body.empty())
+			{
 				if (!part->append (body.data(), static_cast<UT_uint32>(body.size())))
+				{
 					UT_DEBUGMSG(("Multipart HTML: importMultipart: failed to decode part body!\n"));
+				}
+			}
 		}
 	return part;
 }

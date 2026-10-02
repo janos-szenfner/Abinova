@@ -1151,6 +1151,7 @@ gboolean XAP_UnixFrameImpl::_fe::key_release_event(GtkEventControllerKey * c,
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
 	GdkEvent * e = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(c));
+	UT_UNUSED(keyval);
 
 	// Let IM handle the event first.
 	if (e && pUnixFrameImpl->getIMContext() && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {
@@ -1339,7 +1340,6 @@ void XAP_UnixFrameImpl::_fe::vScrollChanged(GtkAdjustment * w, gpointer /*data*/
 		pUnixFrameImpl->m_iPendingScrollAmount = iAmount;
 		return;
 	}
-	XAP_Frame* pFrame = pUnixFrameImpl->getFrame();
 	AV_View * pView = pUnixFrameImpl->_viewForScrollAdj(w);
 	_ViewScroll * pVS = new  _ViewScroll(pUnixFrameImpl,pView,iAmount);
 	pUnixFrameImpl->m_iPendingScrollAmount = iAmount;

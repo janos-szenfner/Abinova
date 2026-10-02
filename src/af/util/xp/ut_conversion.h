@@ -23,7 +23,6 @@
 #define UT_CONVERSION_H
 
 #include "pp_AttrProp.h"
-class PP_Revision;
 
 #include <string>
 #include <sstream>
@@ -56,30 +55,7 @@ static std::string tostr( T v )
 }
 
 
-template < typename T >
-T UT_getAttributeTyped( const PP_AttrProp *pAP,
-                        const gchar* name,
-                        T def )
-{
-    const gchar * pAttrValue = nullptr;
-    if( pAP->getAttribute( name, pAttrValue ))
-    {
-        return toType<T>( pAttrValue );
-    }
-    return def;
-}
-template < typename T >
-T UT_getAttributeTyped( const PP_Revision* pAP,
-                        const gchar* name,
-                        T def )
-{
-    const gchar * pAttrValue = nullptr;
-    if( pAP->getAttribute( name, pAttrValue ))
-    {
-        return toType<T>( pAttrValue );
-    }
-    return def;
-}
+
 
 
 

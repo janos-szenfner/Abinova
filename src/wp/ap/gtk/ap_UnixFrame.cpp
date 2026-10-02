@@ -555,7 +555,8 @@ void AP_UnixFrame::toggleRuler(bool bRulerOn)
 
 void AP_UnixFrame::toggleBar(UT_uint32 iBarNb, bool bBarOn)
 {
-	UT_DEBUGMSG(("AP_UnixFrame::toggleBar %d, %d\n", iBarNb, bBarOn));	
+	UT_UNUSED(bBarOn);
+	UT_DEBUGMSG(("AP_UnixFrame::toggleBar %d, %d\n", iBarNb, bBarOn));
 
 	AP_FrameData *pFrameData = static_cast<AP_FrameData *> (getFrameData());
 	UT_ASSERT(pFrameData);

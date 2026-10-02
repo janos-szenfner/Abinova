@@ -1028,6 +1028,7 @@ void ODi_Style_Style::defineAbiStyle(PD_Document* pDocument) {
 
     ok = pDocument->appendStyle(pAttr);
     UT_ASSERT_HARMLESS(ok);
+    UT_UNUSED(ok);
 }
 
 

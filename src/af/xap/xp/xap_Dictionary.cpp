@@ -192,7 +192,8 @@ bool XAP_Dictionary::_parseUTF8(void)
 
 			len = g_utf8_next_char(buf) - buf;
 			if (len > 1) {
-				fread (buf + 1, len - 1, sizeof (gchar), m_fp);
+				if (fread (buf + 1, len - 1, sizeof (gchar), m_fp) != 1)
+					break;
 			}
 			UT_UCS4Char uc = g_utf8_get_char(buf);
 			X_ReturnIfFail(gbBlock.ins(gbBlock.getLength(),reinterpret_cast<UT_GrowBufElement*>(&uc),1));

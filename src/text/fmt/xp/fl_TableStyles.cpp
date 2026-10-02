@@ -154,11 +154,15 @@ static std::string fv_mix(const std::string & hex, double with255, double pct)
 	unsigned r = fv_hexChan(hex, 0);
 	unsigned g = fv_hexChan(hex, 2);
 	unsigned b = fv_hexChan(hex, 4);
+	auto chan = [with255, pct](unsigned c) -> unsigned char {
+		double v = c + (with255 - c) * pct + 0.5;
+		if (v < 0.0) return 0;
+		if (v > 255.0) return 255;
+		return static_cast<unsigned char>(v);
+	};
 	char buf[8];
 	std::snprintf(buf, sizeof(buf), "%02X%02X%02X",
-				  static_cast<unsigned>(r + (with255 - r) * pct + 0.5),
-				  static_cast<unsigned>(g + (with255 - g) * pct + 0.5),
-				  static_cast<unsigned>(b + (with255 - b) * pct + 0.5));
+				  chan(r), chan(g), chan(b));
 	return buf;
 }
 
@@ -175,17 +179,6 @@ std::string FV_tableStyleShade(const std::string & hex, double pct)
 /* ================================================================
  * the style table
  * ================================================================ */
-
-/* Office accent palette (accent1..accent6) */
-static const char * const s_accents[] = {
-	"4472C4",	/* Accent 1 blue   */
-	"ED7D31",	/* Accent 2 orange */
-	"A5A5A5",	/* Accent 3 gray   */
-	"FFC000",	/* Accent 4 gold   */
-	"5B9BD5",	/* Accent 5 steel  */
-	"70AD47"	/* Accent 6 green  */
-};
-static const int s_nAccents = 6;
 
 static std::string fv_border(const char * side, const char * style,
 							 const std::string & color, const char * thick)
@@ -216,11 +209,6 @@ static std::string fv_border4(const char * style,
 		r += fv_border(s, style, color, thick);
 	}
 	return r;
-}
-
-static std::string fv_bg(const std::string & color)
-{
-	return std::string("background-color:") + color;
 }
 
 static void fv_setPart(FV_TableStyle & st, FV_TableStylePart p,

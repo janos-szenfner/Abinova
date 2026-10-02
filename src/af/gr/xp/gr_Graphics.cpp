@@ -345,8 +345,7 @@ void GR_Graphics::endDoubleBuffering(bool token)
 	UT_ASSERT(m_DCSwitchManagementStack.size() > 0);
 	if (m_DCSwitchManagementStack.empty()) return;
 
-	UT_sint32 topMostSwitch = m_DCSwitchManagementStack.top();
-	UT_ASSERT(topMostSwitch == static_cast<UT_sint32>(SWITCHED_TO_BUFFER));
+	UT_ASSERT(m_DCSwitchManagementStack.top() == static_cast<UT_sint32>(SWITCHED_TO_BUFFER));
 
 	_DeviceContext_SwitchToScreen();
 	m_DCSwitchManagementStack.pop();
@@ -370,8 +369,7 @@ void GR_Graphics::resumeDrawing(bool token)
 	UT_ASSERT(m_DCSwitchManagementStack.size() > 0);
 	if (m_DCSwitchManagementStack.empty()) return;
 
-	UT_sint32 topMostSwitch = m_DCSwitchManagementStack.top();
-	UT_ASSERT(topMostSwitch == static_cast<UT_sint32>(DRAWING_SUSPENDED));
+	UT_ASSERT(m_DCSwitchManagementStack.top() == static_cast<UT_sint32>(DRAWING_SUSPENDED));
 
 	// take action only if the caller has the good token
 	_DeviceContext_ResumeDrawing();
