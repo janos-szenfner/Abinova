@@ -29,7 +29,7 @@ class s_Abinova_1_Listener;
 
 // The exporter/writer for Abinova file format version 1.
 
-class ABI_EXPORT IE_Exp_Abinova_1_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_Abinova_1_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 

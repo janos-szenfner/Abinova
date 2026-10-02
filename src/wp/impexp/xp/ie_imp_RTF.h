@@ -574,7 +574,7 @@ private:
 
 // The importer/reader for Rich Text Format files
 
-class ABI_EXPORT IE_Imp_RTF_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_RTF_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 

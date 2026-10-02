@@ -73,7 +73,7 @@ private:
 	UT_ConstByteBufPtr  m_pPngBB;			// pBB Converted to PNG File
 };
 
-class ABI_EXPORT IE_ImpGraphicGdkPixbuf_Sniffer : public IE_ImpGraphicSniffer
+class ABI_EXPORT IE_ImpGraphicGdkPixbuf_Sniffer final : public IE_ImpGraphicSniffer
 {
 public:
 	IE_ImpGraphicGdkPixbuf_Sniffer();

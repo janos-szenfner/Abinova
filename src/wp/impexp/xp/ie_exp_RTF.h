@@ -47,7 +47,7 @@ class _rtf_font_info;
 
 // The exporter/writer for RTF file format (based upon spec version 1.5).
 
-class ABI_EXPORT IE_Exp_RTF_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_RTF_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 
@@ -69,7 +69,7 @@ public:
  * this is for exporting to RTF understood by attic software
  * like WordPad and probably Word6.0.
  */
-class ABI_EXPORT IE_Exp_RTF_attic_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_RTF_attic_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 
@@ -87,7 +87,7 @@ public:
 
 // hack for "msword" export
 
-class ABI_EXPORT IE_Exp_MsWord_Hack_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_MsWord_Hack_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 

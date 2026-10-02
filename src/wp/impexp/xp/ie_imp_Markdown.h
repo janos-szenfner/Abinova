@@ -92,7 +92,7 @@ private:
 	std::string				m_fileName;
 };
 
-class ABI_EXPORT IE_Imp_Markdown_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_Markdown_Sniffer final : public IE_ImpSniffer
 {
 public:
 	IE_Imp_Markdown_Sniffer();

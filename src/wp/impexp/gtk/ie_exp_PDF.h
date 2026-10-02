@@ -23,7 +23,7 @@
 
 #include "ie_exp.h"
 
-class ABI_EXPORT IE_Exp_PS_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_PS_Sniffer final : public IE_ExpSniffer
 {
   friend class IE_Exp;
 
@@ -41,7 +41,7 @@ public:
 				      IE_Exp ** ppie) override;
 };
 
-class ABI_EXPORT IE_Exp_SVG_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_SVG_Sniffer final : public IE_ExpSniffer
 {
   friend class IE_Exp;
 
@@ -59,7 +59,7 @@ public:
 				      IE_Exp ** ppie) override;
 };
 
-class ABI_EXPORT IE_Exp_PDF_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_PDF_Sniffer final : public IE_ExpSniffer
 {
   friend class IE_Exp;
 

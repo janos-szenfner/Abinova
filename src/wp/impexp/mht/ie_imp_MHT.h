@@ -102,7 +102,7 @@ private:
 
 class UT_MHTStream;
 
-class IE_Imp_MHT_Sniffer : public IE_ImpSniffer
+class IE_Imp_MHT_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 
@@ -110,17 +110,17 @@ public:
 	IE_Imp_MHT_Sniffer ();
 	~IE_Imp_MHT_Sniffer () { }
 
-	virtual const IE_SuffixConfidence * getSuffixConfidence ();
+	virtual const IE_SuffixConfidence * getSuffixConfidence () override;
 
-	virtual const IE_MimeConfidence * getMimeConfidence ();
+	virtual const IE_MimeConfidence * getMimeConfidence () override;
 
 	using IE_ImpSniffer::recognizeContents;
 
-	UT_Confidence_t recognizeContents (const char * szBuf, UT_uint32 iNumbytes);
+	UT_Confidence_t recognizeContents (const char * szBuf, UT_uint32 iNumbytes) override;
 
-	bool getDlgLabels (const char ** szDesc, const char ** szSuffixList, IEFileType * ft);
+	bool getDlgLabels (const char ** szDesc, const char ** szSuffixList, IEFileType * ft) override;
 
-	UT_Error constructImporter (PD_Document * pDocument, IE_Imp ** ppie);
+	UT_Error constructImporter (PD_Document * pDocument, IE_Imp ** ppie) override;
 };
 
 class IE_Imp_MHT : public IE_Imp_XHTML

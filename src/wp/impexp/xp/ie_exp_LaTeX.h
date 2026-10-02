@@ -29,7 +29,7 @@ class s_LaTeX_Listener;
 
 // The exporter/writer for LaTeX
 
-class IE_Exp_LaTeX_Sniffer : public IE_ExpSniffer
+class IE_Exp_LaTeX_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 

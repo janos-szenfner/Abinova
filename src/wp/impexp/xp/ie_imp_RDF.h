@@ -53,7 +53,7 @@ class ABI_EXPORT IE_Imp_RDF_Sniffer : public IE_ImpSniffer
 };
 
 
-class ABI_EXPORT IE_Imp_RDF_Calendar_Sniffer : public IE_Imp_RDF_Sniffer
+class ABI_EXPORT IE_Imp_RDF_Calendar_Sniffer final : public IE_Imp_RDF_Sniffer
 {
   public:
 	IE_Imp_RDF_Calendar_Sniffer();

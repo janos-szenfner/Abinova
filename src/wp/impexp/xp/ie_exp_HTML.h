@@ -58,7 +58,7 @@ class IE_Exp_HTML;
 
 
 // The exporter/writer for HTML
-class ABI_EXPORT IE_Exp_HTML_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_HTML_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 

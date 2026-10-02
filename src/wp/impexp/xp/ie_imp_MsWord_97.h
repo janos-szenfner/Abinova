@@ -221,7 +221,7 @@ public:
 //
 // The Sniffer/Manager/Creator Class for DOC
 //
-class ABI_EXPORT IE_Imp_MsWord_97_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_MsWord_97_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 

@@ -85,7 +85,7 @@ private:
 
 // The importer/reader for Plain Text Files.
 
-class ABI_EXPORT IE_Imp_Text_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_Text_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 	friend class IE_Imp_Text;
@@ -119,7 +119,7 @@ protected:
 
 // The importer/reader for Plain Text Files with selectable encoding.
 
-class ABI_EXPORT IE_Imp_EncodedText_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_EncodedText_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 	friend class IE_Imp_Text;

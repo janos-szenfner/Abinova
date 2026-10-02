@@ -23,7 +23,7 @@
 
 #include "ie_imp_XHTML.h"
 
-class IE_Imp_Tidy_Sniffer : public IE_ImpSniffer
+class IE_Imp_Tidy_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 

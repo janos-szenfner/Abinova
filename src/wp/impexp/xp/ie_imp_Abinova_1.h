@@ -37,7 +37,7 @@ class PD_Document;
 
 // The importer/reader for Abinova file format version 1.
 
-class ABI_EXPORT IE_Imp_Abinova_1_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_Abinova_1_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 

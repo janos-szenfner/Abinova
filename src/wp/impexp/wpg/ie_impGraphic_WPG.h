@@ -27,7 +27,7 @@ ABI_W_NO_SUGGEST_OVERRIDE
 ABI_W_POP
 #include "ie_impGraphic_SVG.h"
 
-class IE_Imp_WordPerfectGraphics_Sniffer : public IE_ImpGraphicSniffer
+class IE_Imp_WordPerfectGraphics_Sniffer final : public IE_ImpGraphicSniffer
 {
 	friend class IE_Imp;
 	friend class IE_Imp_WordPerfectGraphics;

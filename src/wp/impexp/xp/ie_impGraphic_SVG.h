@@ -25,7 +25,7 @@
 
 #include "ie_impGraphic.h"
 
-class ABI_EXPORT IE_ImpGraphicSVG_Sniffer : public IE_ImpGraphicSniffer
+class ABI_EXPORT IE_ImpGraphicSVG_Sniffer final : public IE_ImpGraphicSniffer
 {
  public:
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;

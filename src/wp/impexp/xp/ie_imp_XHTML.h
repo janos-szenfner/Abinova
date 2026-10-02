@@ -59,7 +59,7 @@ class IE_Imp_TableHelperStack;
 
 // The importer/reader for XHTML 1.0
 
-class ABI_EXPORT IE_Imp_XHTML_Sniffer : public IE_ImpSniffer
+class ABI_EXPORT IE_Imp_XHTML_Sniffer final : public IE_ImpSniffer
 {
 	friend class IE_Imp;
 

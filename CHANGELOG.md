@@ -2623,6 +2623,14 @@ below are on `main` but the release has not been cut yet.
   chains, `createSpecialChangeRecord`, RDF `contains`/`add`, and
   friends).  Also repaired a clean-rebuild break where C++ casts had
   landed in the C-only Blowfish header.
+- **Override/final audit (OO06)** — a full-tree `-Wsuggest-override`
+  sweep found the codebase already `override`-clean except five
+  MHTML sniffer methods, which are now marked.  All 37 leaf
+  importer/exporter/graphic `*_Sniffer` classes are now declared
+  `final` (they are factory-registered leaves never meant to be
+  subclassed; `IE_Imp_RDF_Sniffer` itself stays non-final because
+  `IE_Imp_RDF_Calendar_Sniffer` derives from it).  Signature drift in
+  these classes will now fail the build instead of silently hiding.
 
 ### GTK4 port (core migration)
 

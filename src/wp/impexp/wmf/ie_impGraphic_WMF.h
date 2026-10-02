@@ -28,7 +28,7 @@
 
 #include "ie_impGraphic.h"
 
-class IE_ImpGraphicWMF_Sniffer : public IE_ImpGraphicSniffer
+class IE_ImpGraphicWMF_Sniffer final : public IE_ImpGraphicSniffer
 {
  public:
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;

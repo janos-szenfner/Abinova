@@ -77,7 +77,7 @@ private:
     int m_iOutlineHash;
 };
 
-class IE_Imp_WordPerfect_Sniffer : public IE_ImpSniffer
+class IE_Imp_WordPerfect_Sniffer final : public IE_ImpSniffer
 {
     friend class IE_Imp;
     friend class IE_Imp_WordPerfect;
@@ -233,7 +233,7 @@ private:
 
 #ifdef HAVE_LIBWPS
 
-class IE_Imp_MSWorks_Sniffer : public IE_ImpSniffer
+class IE_Imp_MSWorks_Sniffer final : public IE_ImpSniffer
 {
     friend class IE_Imp;
     friend class IE_Imp_MSWorks;

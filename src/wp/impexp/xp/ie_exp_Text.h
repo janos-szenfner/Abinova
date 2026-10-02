@@ -30,7 +30,7 @@ class Text_Listener;
 
 // The exporter/writer for Plain Text Files.
 
-class ABI_EXPORT IE_Exp_Text_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_Text_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 
@@ -50,7 +50,7 @@ public:
 
 // The exporter/writer for Plain Text Files with selectable encoding.
 
-class ABI_EXPORT IE_Exp_EncodedText_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_EncodedText_Sniffer final : public IE_ExpSniffer
 {
 	friend class IE_Exp;
 

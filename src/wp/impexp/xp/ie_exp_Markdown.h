@@ -43,7 +43,7 @@ protected:
 	UT_Error m_error;
 };
 
-class ABI_EXPORT IE_Exp_Markdown_Sniffer : public IE_ExpSniffer
+class ABI_EXPORT IE_Exp_Markdown_Sniffer final : public IE_ExpSniffer
 {
 public:
 	IE_Exp_Markdown_Sniffer();

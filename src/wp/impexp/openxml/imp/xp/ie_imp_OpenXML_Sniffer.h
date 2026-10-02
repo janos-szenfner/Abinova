@@ -26,7 +26,7 @@
 
 #include "ie_imp.h"
 
-class IE_Imp_OpenXML_Sniffer : public IE_ImpSniffer
+class IE_Imp_OpenXML_Sniffer final : public IE_ImpSniffer
 {
 public:
   IE_Imp_OpenXML_Sniffer () ;

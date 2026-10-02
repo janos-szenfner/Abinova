@@ -25,7 +25,7 @@
 #include  <ie_exp.h>
 #include "ie_exp_EPUB.h"
 
-class IE_Exp_EPUB_Sniffer: public IE_ExpSniffer
+class IE_Exp_EPUB_Sniffer final: public IE_ExpSniffer
 {
 public:
     IE_Exp_EPUB_Sniffer();
