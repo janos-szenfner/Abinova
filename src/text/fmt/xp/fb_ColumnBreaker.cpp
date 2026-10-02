@@ -1244,7 +1244,7 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 			{
 				xxx_UT_DEBUGMSG(("Start of bump loop pNextColumn %x \n",pNextColumn));
 				bool isTOCTABLE = false;
-				if(pOuterContainer && ((pOuterContainer->getContainerType() == FP_CONTAINER_TABLE) || (pOuterContainer->getContainerType() == FP_CONTAINER_TABLE)))
+				if(pOuterContainer && ((pOuterContainer->getContainerType() == FP_CONTAINER_TABLE) || (pOuterContainer->getContainerType() == FP_CONTAINER_TOC)))
 				        isTOCTABLE= true;
 				pCurColumn->bumpContainers(pLastContainerToKeep);
 

@@ -1784,6 +1784,12 @@ below are on `main` but the release has not been cut yet.
   could spin forever if it never produced a container — it now gives
   up after a bounded number of attempts and continues on the last
   available page.
+- **Column-bump TOC handling** — the loop that pushes content down the
+  columns while paginating tracked whether the container being laid
+  out was "a table or a table of contents", but a copy-paste slip
+  tested for a table twice. A TOC sitting at the top of a column
+  could therefore be left as a stale pointer after the bump, risking
+  duplicated or misplaced contents; the check now covers both.
 - **Empty-stack access hardening** — a C++ Core Guidelines
   bounds/lifetime audit found parser and piece-table paths that call
   `std::stack::top()`/`vector::back()` without checking the container
