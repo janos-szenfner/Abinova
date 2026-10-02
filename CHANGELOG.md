@@ -2863,6 +2863,19 @@ below are on `main` but the release has not been cut yet.
   `OXML_Element_Text::setText` could drop a text run from DOCX export
   without a word.  Behaviour is unchanged — the fixes add logging
   only.
+- **Missing-return audit (EX04)** — swept every translation unit for
+  non-void functions that can fall off the end (using their return
+  value is undefined behaviour).  A full rebuild under the existing
+  `-Wextra` flag set (which enables `-Wreturn-type`) reports zero
+  warnings across all ~650 compiled TUs, and the vendored `wv` C
+  parser — built without that warning — passes an explicit
+  `-Wreturn-type` syntax check over all 92 sources, as do the `.c`
+  files under `src/` and every test driver.  Compiler blind spots
+  were audited by hand: all `_WIN32`/`__APPLE__`-gated code paths
+  return correctly, both `DEBUG`-gated variants of
+  `fp_Line::assertLineListIntegrity` return, the three
+  `noreturn`-declared functions genuinely never return, and nothing
+  suppresses the warning.  No defects found, no changes needed.
 
 ### GTK4 port (core migration)
 
