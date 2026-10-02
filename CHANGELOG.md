@@ -3098,6 +3098,15 @@ below are on `main` but the release has not been cut yet.
   remaining hotspots found all ownership paths correct.  The only
   residual is ~3 KB of fontconfig/pango/gio startup caches,
   identical on every run and outside the document code.
+- **Web Layout now reflows immediately on entry** — switching View to
+  Web Layout used to keep the stale print pagination until the window
+  was resized or the zoom changed; entering the mode now derives the
+  window-width page geometry up front and re-paginates, exactly like
+  the resize/zoom paths do.  The derivation is shared by all three
+  callers and now also refreshes the cached page dimensions, so
+  resizing the window or changing the document page size in Web
+  Layout updates the layout correctly instead of leaving pages at
+  the old width.
 
 ### GTK4 port (core migration)
 

@@ -2356,8 +2356,16 @@ bool FL_DocLayout::setDocViewPageSize(const PP_AttrProp * pAP)
        }
        bool b = m_docViewPageSize.Set(pProps);
        _setDocPageDimensions();
-       if(pView && (pView->getViewMode() != VIEW_WEB))
+       if(pView)
        {
+	    if(pView->getViewMode() == VIEW_WEB)
+	    {
+		 // In web layout the view page width tracks the window, not
+		 // the document page size; re-derive it from the new
+		 // document size, then rebuild so the new geometry takes
+		 // effect (the early return used to leave stale layout).
+		 syncWebPageSizeToWindow();
+	    }
 	    rebuildFromHere(m_pFirstSection);
        }
        if(pFrame)
@@ -2854,6 +2862,7 @@ void FL_DocLayout::updateOnViewModeChange()
 	// force margin properties lookup
 	fl_SectionLayout* pSL = m_pFirstSection;
 	m_docViewPageSize = getDocument()->m_docPageSize;
+	_setDocPageDimensions();
 	UT_DebugOnly<UT_Dimension> orig_ut = DIM_IN;
 	orig_ut = m_docViewPageSize.getDims();
 	UT_DEBUGMSG(("updateOnViewModeChange - docViewPageSize width %f \n",m_docViewPageSize.Width(orig_ut)));
@@ -2865,6 +2874,47 @@ void FL_DocLayout::updateOnViewModeChange()
 	
 	// rebuild
 	formatAll();
+}
+
+/*!
+ * Re-derive the VIEW_WEB view page size from the current window width.
+ * In web layout the page is as wide as the window (scaled by the
+ * current zoom) so that text reflows to fill it; the height stays the
+ * document's page height.  This is the derivation the frame resize and
+ * zoom paths perform — kept here so view-mode entry, window resizes,
+ * zoom changes and document page-size changes can not drift apart.
+ */
+void FL_DocLayout::syncWebPageSizeToWindow()
+{
+	FV_View * pView = getView();
+	if(!pView || !m_pDoc || !m_pG)
+	{
+		return;
+	}
+	UT_uint32 iZoom = m_pG->getZoomPercentage();
+	UT_uint32 iAdjustZoom = pView->calculateZoomPercentForPageWidth();
+	if((iZoom == 0) || (iAdjustZoom == 0))
+	{
+		return;
+	}
+	UT_Dimension orig_ut = m_docViewPageSize.getDims();
+	double orig_width = m_pDoc->m_docPageSize.Width(orig_ut);
+	double orig_height = m_pDoc->m_docPageSize.Height(orig_ut);
+	double rat = static_cast<double>(iAdjustZoom)/static_cast<double>(iZoom);
+	double new_width = orig_width*rat;
+	UT_DEBUGMSG(("syncWebPageSizeToWindow old width %f new width %f old height %f \n",orig_width,new_width,orig_height));
+	bool isPortrait = m_docViewPageSize.isPortrait();
+	m_docViewPageSize.Set(new_width,orig_height,orig_ut);
+	m_docViewPageSize.Set(fp_PageSize::psCustom,orig_ut);
+	if(isPortrait)
+	{
+		m_docViewPageSize.setPortrait();
+	}
+	else
+	{
+		m_docViewPageSize.setLandscape();
+	}
+	_setDocPageDimensions();
 }
 
 

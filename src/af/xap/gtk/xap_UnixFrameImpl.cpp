@@ -976,27 +976,8 @@ gint XAP_UnixFrameImpl::_fe::do_ZoomUpdate(gpointer /* XAP_UnixFrameImpl * */ p)
 		if((pView->getViewMode() == VIEW_WEB) && (abs(iNewWidth -prevWidth) > 2) && (prevWidth > 10) && (iNewWidth > 10))
 		{
 			pView->setWindowSize(iNewWidth, iNewHeight);
-			UT_sint32 iAdjustZoom = pView->calculateZoomPercentForPageWidth();
 			FL_DocLayout * pLayout = pView->getLayout();
-			PD_Document * pDoc = pLayout->getDocument();
-			UT_Dimension orig_ut = DIM_IN;
-			orig_ut = pLayout->m_docViewPageSize.getDims();
-			double orig_width = pDoc->m_docPageSize.Width(orig_ut);
-			double orig_height = pDoc->m_docPageSize.Height(orig_ut);
-			double rat = static_cast<double>(iAdjustZoom)/static_cast<double>(pView->getGraphics()->getZoomPercentage()) ;
-			double new_width = orig_width*rat;
-			UT_DEBUGMSG(("VIEW_WEB old width %f new width %f old height %f \n",orig_width,new_width,orig_height));
-			bool isPortrait = pLayout->m_docViewPageSize.isPortrait();
-			pLayout->m_docViewPageSize.Set(new_width,orig_height,orig_ut);
-			pLayout->m_docViewPageSize.Set(fp_PageSize::psCustom,orig_ut);
-			if(isPortrait)
-			{
-				pLayout->m_docViewPageSize.setPortrait();
-			}
-			else
-			{
-				pLayout->m_docViewPageSize.setLandscape();
-			}
+			pLayout->syncWebPageSizeToWindow();
 			pView->rebuildLayout();
 			pView->updateScreen(false);
 			//

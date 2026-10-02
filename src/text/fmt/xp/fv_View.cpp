@@ -10354,8 +10354,21 @@ void FV_View::setViewMode (ViewMode vm)
 	UT_return_if_fail( m_pLayout );
 	UT_DEBUGMSG(("View mode set calling updateviewonmodechange \n"));
 	m_pLayout->updateOnViewModeChange();
-	if(bPrevWeb)
+	if(bPrevWeb || (vm == VIEW_WEB))
 	{
+		if(vm == VIEW_WEB)
+		{
+			//
+			// Entering web mode: the view page width tracks the
+			// window width, so derive it from the window now and
+			// re-paginate like the resize/zoom paths do — a plain
+			// updateColumnX would leave print pagination in place.
+			// (updateOnViewModeChange just reset the view size to
+			// the document size, so re-derive even for a
+			// WEB -> WEB re-entry.)
+			//
+			m_pLayout->syncWebPageSizeToWindow();
+		}
 		rebuildLayout();
 		m_pLayout->formatAll();
 		_generalUpdate();
