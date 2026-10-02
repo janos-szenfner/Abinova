@@ -145,6 +145,62 @@ static GsfInput* s_childByPath(GsfInfile* zip, const std::string& path)
     return cur;
 }
 
+/* Resolves a chapter-relative href to a zip member stream. hrefs are
+ * relative IRIs (OPF 2.0.1): percent-decode, join against the
+ * chapter's directory, normalize, then open the member. Anything that
+ * is not a plain relative path (scheme, root-absolute, fragment-only)
+ * or that escapes the archive resolves to nothing.
+ */
+class EPUB_ResourceProvider: public IE_Imp_XHTML_ResourceProvider
+{
+public:
+    EPUB_ResourceProvider(GsfInfile* epub, const std::string& baseDir) :
+        m_epub(epub),
+        m_baseDir(baseDir)
+    {
+    }
+
+    virtual GsfInput* openResource(const char* href) override
+    {
+        if (href == NULL || *href == 0)
+        {
+            return NULL;
+        }
+        std::string h(href);
+        /* fragment and query never name members */
+        size_t frag = h.find_first_of("#?");
+        if (frag != std::string::npos)
+        {
+            h.resize(frag);
+        }
+        if (h.empty() || h.find(':') != std::string::npos || h[0] == '/'
+                || h[0] == '\\')
+        {
+            return NULL;
+        }
+
+        std::string joined = m_baseDir.empty() ? s_percentDecode(h)
+                : m_baseDir + "/" + s_percentDecode(h);
+        std::string zipPath;
+        if (!s_normalizePath(joined, zipPath) || zipPath.empty())
+        {
+            return NULL;
+        }
+
+        GsfInput* input = s_childByPath(m_epub, zipPath);
+        if (input != NULL)
+        {
+            /* zip children share the infile's inflate state */
+            gsf_input_seek(input, 0, G_SEEK_SET);
+        }
+        return input;
+    }
+
+private:
+    GsfInfile* m_epub;
+    std::string m_baseDir;
+};
+
 IE_Imp_EPUB::IE_Imp_EPUB(PD_Document* pDocument) :
     IE_Imp(pDocument),
     m_epub(NULL)
@@ -154,15 +210,6 @@ IE_Imp_EPUB::IE_Imp_EPUB(PD_Document* pDocument) :
 
 IE_Imp_EPUB::~IE_Imp_EPUB()
 {
-    /* uncompress() extracts every manifest item under a per-document
-     * tmpdir - nothing else removes it, so without this the tree would
-     * leak on disk on every import and every epub clipboard paste
-     */
-    if (!m_tmpDir.empty())
-    {
-        UT_go_file_remove_recursive(m_tmpDir.c_str(), NULL);
-        m_tmpDir.clear();
-    }
     if (m_epub != NULL)
     {
         g_object_unref(G_OBJECT(m_epub));
@@ -219,13 +266,6 @@ UT_Error IE_Imp_EPUB::_loadFile(GsfInput* input)
     if (readPackage() != UT_OK)
     {
         UT_DEBUGMSG(("Failed to read package information\n"));
-        return UT_ERROR;
-    }
-
-    UT_DEBUGMSG(("Uncompressing OPS data\n"));
-    if (uncompress() != UT_OK)
-    {
-        UT_DEBUGMSG(("Failed to uncompress data\n"));
         return UT_ERROR;
     }
 
@@ -383,76 +423,6 @@ UT_Error IE_Imp_EPUB::readPackage()
     return UT_OK;
 }
 
-UT_Error IE_Imp_EPUB::uncompress()
-{
-    gchar* tmpUri = UT_go_filename_to_uri(g_get_tmp_dir());
-    m_tmpDir = tmpUri;
-    g_free(tmpUri);
-    m_tmpDir += G_DIR_SEPARATOR_S;
-    m_tmpDir += getDoc()->getDocUUIDString();
-
-    if (!UT_go_directory_create(m_tmpDir.c_str(), NULL))
-    {
-        UT_DEBUGMSG(("Can`t create temporary directory\n"));
-        return UT_ERROR;
-    }
-
-    for (std::map<std::string, std::string>::iterator i =
-            m_manifestItems.begin(); i != m_manifestItems.end(); i++)
-    {
-        /* href is a URI relative to the OPF location (OPF 2.0.1/3.x
-         * manifest). Decode escapes, join with the OPF directory and
-         * resolve ".." lexically against it.
-         */
-        std::string joined = m_opsDir.empty() ? s_percentDecode(i->second)
-                : m_opsDir + "/" + s_percentDecode(i->second);
-        std::string zipPath;
-        if (!s_normalizePath(joined, zipPath))
-        {
-            UT_DEBUGMSG(("Href %s escapes the archive - skipped\n",
-                    i->second.c_str()));
-            continue;
-        }
-        if (zipPath.empty())
-        {
-            continue;
-        }
-
-        GsfInput* itemInput = s_childByPath(m_epub, zipPath);
-
-        if (itemInput == NULL)
-        {
-            UT_DEBUGMSG(("Manifest item %s not in archive - skipped\n",
-                    zipPath.c_str()));
-            continue;
-        }
-
-        std::string itemUri = m_tmpDir + G_DIR_SEPARATOR_S + zipPath;
-        gchar *itemFileName = UT_go_filename_from_uri(itemUri.c_str());
-        GsfOutput* itemOutput = itemFileName ?
-                createFileByPath(itemFileName) : NULL;
-        g_free(itemFileName);
-
-        if (itemOutput == NULL)
-        {
-            UT_DEBUGMSG(("Can`t create temp file for %s - skipped\n",
-                    zipPath.c_str()));
-            g_object_unref(G_OBJECT(itemInput));
-            continue;
-        }
-
-        gsf_input_seek(itemInput, 0, G_SEEK_SET);
-        gsf_input_copy(itemInput, itemOutput);
-        gsf_output_close(itemOutput);
-        g_object_unref(G_OBJECT(itemInput));
-        g_object_unref(G_OBJECT(itemOutput));
-
-        m_extractedItems.insert(make_pair(i->first, itemUri));
-    }
-
-    return UT_OK;
-}
-
 UT_Error IE_Imp_EPUB::readStructure()
 {
     /* the document already has a loading piece table (built by
@@ -470,27 +440,63 @@ UT_Error IE_Imp_EPUB::readStructure()
          * skip it and keep importing the rest of the book.
          */
         std::map<std::string, std::string>::iterator iter =
-                m_extractedItems.find(*i);
+                m_manifestItems.find(*i);
 
-        if (iter == m_extractedItems.end())
+        if (iter == m_manifestItems.end())
         {
             UT_DEBUGMSG(("Spine item %s not found - skipped\n", (*i).c_str()));
             continue;
         }
 
-        std::string itemPath = iter->second;
+        /* manifest href is a URI relative to the OPF location;
+         * decode escapes, join with the OPF directory and resolve
+         * ".." lexically against it
+         */
+        std::string joined = m_opsDir.empty() ? s_percentDecode(iter->second)
+                : m_opsDir + "/" + s_percentDecode(iter->second);
+        std::string zipPath;
+        if (!s_normalizePath(joined, zipPath) || zipPath.empty())
+        {
+            UT_DEBUGMSG(("Href %s escapes the archive - skipped\n",
+                    iter->second.c_str()));
+            continue;
+        }
+
+        GsfInput* itemInput = s_childByPath(m_epub, zipPath);
+        if (itemInput == NULL)
+        {
+            UT_DEBUGMSG(("Spine item %s (%s) not in archive - skipped\n",
+                    (*i).c_str(), zipPath.c_str()));
+            continue;
+        }
+        gsf_input_seek(itemInput, 0, G_SEEK_SET);
 
         PD_Document *currentDoc = new PD_Document();
         /* importFile() builds the piece table itself; calling
          * createRawDocument() first would orphan it
          */
-        const char *suffix = strrchr(itemPath.c_str(), '.');
+        const char *suffix = strrchr(zipPath.c_str(), '.');
         XAP_App::getApp()->getPrefs()->setIgnoreNextRecent();
-        if (currentDoc->importFile(itemPath.c_str(),
-                IE_Imp::fileTypeForSuffix(suffix), true, false, NULL) != UT_OK)
+
+        /* the chapter's <img>/<link> hrefs resolve to zip members
+         * relative to the chapter's own directory
+         */
+        size_t slash = zipPath.find_last_of('/');
+        EPUB_ResourceProvider provider(m_epub,
+                slash == std::string::npos ? std::string()
+                                           : zipPath.substr(0, slash));
+        IE_Imp_XHTML::setResourceProvider(&provider);
+
+        UT_Error err = currentDoc->importFile(itemInput,
+                IE_Imp::fileTypeForSuffix(suffix), true, false, NULL);
+
+        IE_Imp_XHTML::setResourceProvider(nullptr);
+        g_object_unref(G_OBJECT(itemInput));
+
+        if (err != UT_OK)
         {
-            UT_DEBUGMSG(("Failed to import file %s - skipped\n",
-                    itemPath.c_str()));
+            UT_DEBUGMSG(("Failed to import %s - skipped\n",
+                    zipPath.c_str()));
             UNREFP(currentDoc);
             continue;
         }
@@ -533,37 +539,6 @@ UT_Error IE_Imp_EPUB::readStructure()
     }
 
     return UT_OK;
-}
-
-GsfOutput* IE_Imp_EPUB::createFileByPath(const char* path)
-{
-    /* Create each missing parent directory (UT_go_directory_create is
-     * not recursive), then the file itself. Returns NULL when the
-     * file already exists - extraction tmpdirs are per-document so a
-     * collision means two manifest hrefs normalized to the same path.
-     */
-    std::string p(path);
-    for (size_t slash = p.find('/'); slash != std::string::npos; slash =
-            p.find('/', slash + 1))
-    {
-        std::string dir = p.substr(0, slash);
-        if (dir.empty())
-        {
-            continue;
-        }
-        gchar* uri = UT_go_filename_to_uri(dir.c_str());
-        if (!UT_go_file_exists(uri))
-        {
-            UT_go_directory_create(uri, NULL);
-        }
-        g_free(uri);
-    }
-
-    gchar* uri = UT_go_filename_to_uri(path);
-    GsfOutput* output = UT_go_file_exists(uri) ?
-        NULL : UT_go_file_create(uri, NULL);
-    g_free(uri);
-    return output;
 }
 
 /* Decide whether the element that opened the document matches the

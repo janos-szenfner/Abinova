@@ -67,6 +67,16 @@ static UT_UTF8String s_parseCSStyle (const UT_UTF8String & style, UT_uint32 css_
 static void s_css_parse_rules (const std::string & css,
 		std::vector<std::pair<std::string, std::string> > & rules);
 
+/* Container-provided resource hook (EPUB chapters) - set for the
+ * duration of an importFile call, nullptr otherwise
+ */
+static IE_Imp_XHTML_ResourceProvider * s_resourceProvider = nullptr;
+
+void IE_Imp_XHTML::setResourceProvider (IE_Imp_XHTML_ResourceProvider * pProvider)
+{
+	s_resourceProvider = pProvider;
+}
+
 /* is TOKEN among the whitespace-separated values of an epub:type
  * attribute?
  */
@@ -2182,6 +2192,25 @@ FG_ConstGraphicPtr IE_Imp_XHTML::importImage (const gchar * szSrc)
 {
 	const char * szFile = static_cast<const char *>(szSrc);
 
+	if (s_resourceProvider)
+		{
+			/* the provider resolves the href inside its container and
+			 * is required to stay local-only */
+			GsfInput * input = s_resourceProvider->openResource (szFile);
+			if (input == nullptr)
+				return nullptr;
+
+			FG_ConstGraphicPtr pfg;
+			UT_Error err = IE_ImpGraphic::loadGraphic (input, IEGFT_Unknown, pfg);
+			g_object_unref (input);
+			if (err != UT_OK || !pfg)
+				{
+					UT_DEBUGMSG(("unable to import image\n"));
+					return nullptr;
+				}
+			return pfg;
+		}
+
 	char * relative_file = UT_go_url_resolve_relative(m_szFileName, szFile);
 	if(!relative_file)
 		return nullptr;
@@ -2482,24 +2511,33 @@ std::string IE_Imp_XHTML::cascadeStyle (const gchar * name,
  */
 void IE_Imp_XHTML::loadStyleSheet (const char * href)
 {
-	if ((m_szFileName == nullptr) || (href == nullptr) || (*href == 0))
+	if ((href == nullptr) || (*href == 0))
 		{
 			return;
 		}
-	char * resolved = UT_go_url_resolve_relative (m_szFileName, href);
-	if (resolved == nullptr)
+
+	GsfInput * input = nullptr;
+	if (s_resourceProvider)
 		{
-			return;
+			input = s_resourceProvider->openResource (href);
 		}
-	if (!UT_go_url_is_local (resolved))
+	else if (m_szFileName != nullptr)
 		{
-			/* never fetch remote stylesheets at import time */
-			UT_DEBUGMSG(("skipping remote stylesheet %s\n", resolved));
+			char * resolved = UT_go_url_resolve_relative (m_szFileName, href);
+			if (resolved == nullptr)
+				{
+					return;
+				}
+			if (!UT_go_url_is_local (resolved))
+				{
+					/* never fetch remote stylesheets at import time */
+					UT_DEBUGMSG(("skipping remote stylesheet %s\n", resolved));
+					g_free (resolved);
+					return;
+				}
+			input = UT_go_file_open (resolved, nullptr);
 			g_free (resolved);
-			return;
 		}
-	GsfInput * input = UT_go_file_open (resolved, nullptr);
-	g_free (resolved);
 	if (input == nullptr)
 		{
 			UT_DEBUGMSG(("unable to open stylesheet %s\n", href));

@@ -1776,6 +1776,10 @@ below are on `main` but the release has not been cut yet.
   the whole tree when it finishes. EPUB export's "clear stale staging
   dir" step now actually removes stale trees left by interrupted
   exports instead of silently failing on the non-empty directory.
+- **EPUB import no longer touches the disk at all** — chapters are
+  parsed straight from the zip stream and images/stylesheets resolve
+  to archive members on demand instead of the whole book being
+  extracted to a temp directory first.
 - **Paste path hardened** — pasting at the very end of a document or
   into an empty document could crash when no block layout existed yet
   at the insertion point; the cell-size adjustment is now guarded.

@@ -58,21 +58,16 @@ protected:
 private:
     GsfInfile* m_epub;
     std::string m_rootfilePath;
-    std::string m_tmpDir;
     std::string m_opsDir;
     std::vector<std::string> m_spine;
     std::map<std::string, std::string> m_manifestItems;
-    /* manifest id -> extracted file URI inside m_tmpDir */
-    std::map<std::string, std::string> m_extractedItems;
     /* dc:* metadata captured from the OPF package document -
      * PD_META_KEY_* -> text */
     std::map<std::string, std::string> m_metaProps;
 
     UT_Error readMetadata();
     UT_Error readPackage();
-    UT_Error uncompress();
     UT_Error readStructure();
-    static GsfOutput* createFileByPath(const char* path);
 };
 
 /*

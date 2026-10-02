@@ -57,6 +57,25 @@
 class PD_Document;
 class IE_Imp_TableHelperStack;
 
+/* Resolves document-relative resources (<img src>, <link
+ * rel=stylesheet href>) for XHTML that lives inside a container
+ * rather than on the filesystem (EPUB chapters). The importer is
+ * constructed inside IE_Imp::loadFile/PD_Document::importFile so the
+ * provider is installed class-wide for the duration of that call
+ * only - imports run synchronously on the main thread.
+ */
+class ABI_EXPORT IE_Imp_XHTML_ResourceProvider
+{
+public:
+	virtual ~IE_Imp_XHTML_ResourceProvider () {}
+
+	/* href as written in the document; return a new-referenced
+	 * GsfInput for the resource, or nullptr when it cannot be
+	 * resolved. Implementations must never fetch remote URIs.
+	 */
+	virtual GsfInput * openResource (const char * href) = 0;
+};
+
 // The importer/reader for XHTML 1.0
 
 class ABI_EXPORT IE_Imp_XHTML_Sniffer final : public IE_ImpSniffer
@@ -105,6 +124,8 @@ public:
 	virtual bool appendSpan(const UT_UCS4Char * p, UT_uint32 length) override;
 	virtual bool  appendObject(PTObjectType pto, const PP_PropertyVector & attributes,
 							   const PP_PropertyVector & props = PP_NOPROPS) override;
+
+	static void setResourceProvider (IE_Imp_XHTML_ResourceProvider * pProvider);
 
 	/* EPUB3 note support: _loadFile's capture pass indexes the inner
 	 * markup of every element carrying epub:type="footnote|rearnote|
