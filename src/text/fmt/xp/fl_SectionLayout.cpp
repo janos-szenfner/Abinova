@@ -1546,7 +1546,7 @@ fp_Container* fl_DocSectionLayout::getNewContainer(const fp_Container* pFirstCon
 		//
 		bool bColAlready = false;
 		UT_sint32 iCol = 0;
-		for(iCol =0; pTmpPage->countColumnLeaders(); iCol++)
+		for(iCol =0; iCol < pTmpPage->countColumnLeaders(); iCol++)
 		{
 		    if(pTmpPage->getNthColumnLeader(iCol)->getDocSectionLayout() == this)
 		    {
@@ -1559,7 +1559,6 @@ fp_Container* fl_DocSectionLayout::getNewContainer(const fp_Container* pFirstCon
 //
 		pageHeight = pTmpPage->getFilledHeight(prevContainer);
 		UT_sint32 avail =  pTmpPage->getAvailableHeight();
-		UT_sint32 newHeight = pageHeight+ 3*iNextCtrHeight;
 
 		if(pFirstContainer != nullptr)
 		{
@@ -1573,6 +1572,7 @@ fp_Container* fl_DocSectionLayout::getNewContainer(const fp_Container* pFirstCon
 		{
 			iNextCtrHeight =12*14; // approximately one average line
 		}
+		UT_sint32 newHeight = pageHeight+ 3*iNextCtrHeight;
 		xxx_UT_DEBUGMSG(("SEVIOR: Pageheight =%d nextlineheight =%d newheight = %d availableheight =%d linepos %d \n",pageHeight,iNextCtrHeight,newHeight,avail));
 		if( (newHeight  >= avail) || (pFirstContainer == nullptr) || bColAlready)
 		{
@@ -1613,14 +1613,32 @@ fp_Container* fl_DocSectionLayout::getNewContainer(const fp_Container* pFirstCon
 		if (pPrevSL)
 		{
 			fp_Column * pPrevCol = static_cast<fp_Column *>(pPrevSL->getLastContainer());
-			while(pPrevCol == nullptr)
+			UT_sint32 iTries = 0;
+			while(pPrevCol == nullptr && iTries < 10)
 			{
 				UT_DEBUGMSG(("BUG! BUG! Prev section has no last container! Attempting to fix this \n"));
 				pPrevSL->format();
 				pPrevCol = static_cast<fp_Column *>(pPrevSL->getLastContainer());
+				iTries++;
 			}
-			pPage = pPrevCol->getPage();
-			pAfterColumn = pPage->getNthColumnLeader(pPage->countColumnLeaders()-1);
+			if (pPrevCol)
+			{
+				pPage = pPrevCol->getPage();
+				pAfterColumn = pPage->getNthColumnLeader(pPage->countColumnLeaders()-1);
+			}
+			else
+			{
+				// The previous section still produced no columns
+				// after repeated formatting attempts. Rather than
+				// spinning forever, continue this section on the
+				// last available page (or a fresh one).
+				UT_DEBUGMSG(("BUG! BUG! Prev section still has no containers after %d tries - giving up\n", iTries));
+				pPage = m_pLayout->getLastPage();
+				if (pPage == nullptr)
+				{
+					pPage = m_pLayout->addNewPage(this,true);
+				}
+			}
 		}
 		else
 		{

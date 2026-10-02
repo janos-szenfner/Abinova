@@ -1769,6 +1769,15 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **New-page placement fixes** — the section-layout code that decides
+  where a new column/page begins had three defects: the page-fit check
+  ignored the incoming container's height (the fit term was computed
+  before the height was known), the "does this page already have our
+  columns" scan could run past the end of the page's column-leader
+  list and crash, and the fallback that reformats the previous section
+  could spin forever if it never produced a container — it now gives
+  up after a bounded number of attempts and continues on the last
+  available page.
 - **Empty-stack access hardening** — a C++ Core Guidelines
   bounds/lifetime audit found parser and piece-table paths that call
   `std::stack::top()`/`vector::back()` without checking the container
