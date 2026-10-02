@@ -3475,6 +3475,24 @@ below are on `main` but the release has not been cut yet.
   A per-picture stream leak in the importer was closed along the
   way.
 
+- **Embedded OLE objects in `.doc` are no longer dropped** — an
+  `EMBED` field whose `sprmCPicLocation`/`sprmCFOle2` marker names an
+  `ObjectPool/_<id>` storage now falls back to the object's stored
+  presentation when the field result produced no picture: `\003PRINT`
+  (MFPF header + WMF), `\003EPRINT` (EMF), then an image payload
+  wrapped in `\001Ole10Native` (package objects), and finally a gray
+  placeholder box so the object stays visible. Picture chars (0x01 /
+  0x08) inside a field *result* now reach the image handlers instead
+  of being buffered as field text — they carry the object's on-screen
+  presentation — and an emitted field-result picture suppresses the
+  ObjectPool fallback so nothing is inserted twice. The bare U+0001
+  OLE marker also tries the object storage when no PICF parses.
+- **WMF pictures actually render** — the libwmf importer now
+  rasterizes through its GD/PNG backend instead of converting to SVG:
+  the resulting `FG_GraphicVector` images painted blank in our cairo
+  renderers, while PNG output renders everywhere (embedded `.doc`
+  metafiles and standalone `.wmf` imports alike).
+
 ### Resolved root causes worth noting
 
 - **"double free or corruption" after ODF export** — was a stale

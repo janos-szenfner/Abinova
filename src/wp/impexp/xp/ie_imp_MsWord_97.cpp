@@ -389,6 +389,13 @@ struct field
 	// _PID_HLINKS dwApp values (MS-DOC 2.4.7)
 	UT_sint32   iFldStory;
 	UT_sint32   iFldIndex;
+	// ObjectPool storage id captured from the field separator's CHP
+	// (sprmCFOle2 + sprmCPicLocation on U+0014, MS-DOC 2.9.105);
+	// -1 when this field does not host an OLE object
+	UT_sint32   fcOleObject;
+	// set when a picture was emitted inside this field's result, i.e.
+	// the OLE object's on-screen presentation already landed
+	bool        bOleResultImage;
 };
 
 
@@ -2127,7 +2134,15 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 		{
 			if (achp->fOle2)
 			{
-				UT_DEBUGMSG(("Field has an associated embedded OLE object\n"));
+				/* MS-DOC sprmCPicLocation on U+0014 with fOle2: the
+				 * operand names the object's ObjectPool storage
+				 * ("_<decimal>"). The field result usually carries
+				 * the on-screen picture; the storage is consulted at
+				 * field end only when nothing rendered. */
+				UT_DEBUGMSG(("Field has an associated embedded OLE object (id %d)\n",
+							 achp->fcPic_fcObj_lTagObj));
+				if (!m_stackField.empty())
+					m_stackField.top()->fcOleObject = achp->fcPic_fcObj_lTagObj;
 			}
 			ps->fieldmiddle = 1;
 			this->_fieldProc (ps, eachchar, 0, 0x400);
@@ -2150,8 +2165,15 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 	 * not. this catches special characters in a field
 	 */
 	if (ps->fieldstate) {
-		if (this->_fieldProc(ps, eachchar, 0, 0x400))
-			return 0;
+		/* except picture chars in a field *result* (after the
+		 * separator) - those carry the on-screen presentation of
+		 * e.g. an EMBED field's OLE object and are real content,
+		 * not field machinery */
+		if ((eachchar != 0x01 && eachchar != 0x08) || !ps->fieldmiddle)
+		{
+			if (this->_fieldProc(ps, eachchar, 0, 0x400))
+				return 0;
+		}
 	}
 
 	//
@@ -2162,82 +2184,88 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 	{
 	case 0x01: // Older ( < Word97) image, currently not handled very well
 	{
-		if (achp->fOle2) {
-			UT_DEBUGMSG(("embedded OLE2 component. currently unsupported"));
-			return 0;
-		}
-
 #ifdef SUPPORTS_OLD_IMAGES
 		UT_DEBUGMSG(("Pre W97 Image format.\n"));
 		// sprmCPicLocation points at a PICF in the Data stream;
 		// reject offsets that can't possibly hold one. fcPic is
 		// S32: check < 0 explicitly so a negative offset can't
 		// wrap huge against the unsigned stream size.
+		bool bPicHandled = false;
 		if (ps->data == nullptr || achp->fcPic_fcObj_lTagObj < 0 ||
 			static_cast<U32>(achp->fcPic_fcObj_lTagObj) >= wvStream_size(ps->data))
 		{
 			UT_DEBUGMSG(("Bogus fcPic %d\n", achp->fcPic_fcObj_lTagObj));
-			return 0;
-		}
-		pos = wvStream_tell(ps->data);
-		wvStream_goto(ps->data, achp->fcPic_fcObj_lTagObj);
-
-		if (1 == wvGetPICF(wvQuerySupported(&ps->fib, nullptr), &picf,
-						   ps->data) && nullptr != picf.rgb)
-		{
-			fil = picf.rgb;
-			FOPTE * shapeprops = nullptr;
-
-			if (wv0x01(&blip, fil, wvStream_size(fil), ps->data,
-					   &shapeprops))
-			{
-				/* legacy PICF crops come straight from the
-				 * header; in Word8 those fields are reserved
-				 * and the inline shape's OPT cropFrom* props
-				 * (16.16 fractions of the source image,
-				 * MS-ODRAW 2.3.18) carry the real crop --
-				 * scale them against the pre-crop goal size */
-				long cropt = picf.dyaCropTop;
-				long cropb = picf.dyaCropBottom;
-				long cropl = picf.dxaCropLeft;
-				long cropr = picf.dxaCropRight;
-				U32 v = 0;
-				if (s_getOPTProp(shapeprops, cropFromTop, v))
-					cropt = static_cast<long>(
-						picf.dyaGoal * static_cast<S32>(v) / 65536.0);
-				if (s_getOPTProp(shapeprops, cropFromBottom, v))
-					cropb = static_cast<long>(
-						picf.dyaGoal * static_cast<S32>(v) / 65536.0);
-				if (s_getOPTProp(shapeprops, cropFromLeft, v))
-					cropl = static_cast<long>(
-						picf.dxaGoal * static_cast<S32>(v) / 65536.0);
-				if (s_getOPTProp(shapeprops, cropFromRight, v))
-					cropr = static_cast<long>(
-						picf.dxaGoal * static_cast<S32>(v) / 65536.0);
-				this->_handleImage(&blip, picf.mx * picf.dxaGoal / 1000, picf.my * picf.dyaGoal / 1000, cropt, cropb, cropl, cropr);
-			}
-			else
-			{
-				UT_DEBUGMSG(("Dom: no graphic data\n"));
-			}
-
-			wvReleaseFOPTEArray(&shapeprops);
-			wvStream_close(fil);
-			wvStream_goto(ps->data, pos);
-
-			return 0;
 		}
 		else
 		{
-			UT_DEBUGMSG(("Couldn't import graphic!\n"));
-			wvStream_goto(ps->data, pos);
-			return 0;
+			pos = wvStream_tell(ps->data);
+			wvStream_goto(ps->data, achp->fcPic_fcObj_lTagObj);
+
+			if (1 == wvGetPICF(wvQuerySupported(&ps->fib, nullptr), &picf,
+							   ps->data) && nullptr != picf.rgb)
+			{
+				fil = picf.rgb;
+				FOPTE * shapeprops = nullptr;
+
+				if (wv0x01(&blip, fil, wvStream_size(fil), ps->data,
+						   &shapeprops))
+				{
+					/* legacy PICF crops come straight from the
+					 * header; in Word8 those fields are reserved
+					 * and the inline shape's OPT cropFrom* props
+					 * (16.16 fractions of the source image,
+					 * MS-ODRAW 2.3.18) carry the real crop --
+					 * scale them against the pre-crop goal size */
+					long cropt = picf.dyaCropTop;
+					long cropb = picf.dyaCropBottom;
+					long cropl = picf.dxaCropLeft;
+					long cropr = picf.dxaCropRight;
+					U32 v = 0;
+					if (s_getOPTProp(shapeprops, cropFromTop, v))
+						cropt = static_cast<long>(
+							picf.dyaGoal * static_cast<S32>(v) / 65536.0);
+					if (s_getOPTProp(shapeprops, cropFromBottom, v))
+						cropb = static_cast<long>(
+							picf.dyaGoal * static_cast<S32>(v) / 65536.0);
+					if (s_getOPTProp(shapeprops, cropFromLeft, v))
+						cropl = static_cast<long>(
+							picf.dxaGoal * static_cast<S32>(v) / 65536.0);
+					if (s_getOPTProp(shapeprops, cropFromRight, v))
+						cropr = static_cast<long>(
+							picf.dxaGoal * static_cast<S32>(v) / 65536.0);
+					this->_handleImage(&blip, picf.mx * picf.dxaGoal / 1000, picf.my * picf.dyaGoal / 1000, cropt, cropb, cropl, cropr);
+					bPicHandled = true;
+				}
+				else
+				{
+					UT_DEBUGMSG(("Dom: no graphic data\n"));
+				}
+
+				wvReleaseFOPTEArray(&shapeprops);
+				wvStream_close(fil);
+				wvStream_goto(ps->data, pos);
+			}
+			else
+			{
+				UT_DEBUGMSG(("Couldn't import graphic!\n"));
+				wvStream_goto(ps->data, pos);
+			}
 		}
+
+		/* fOle2 on a U+0001 char: per MS-DOC sprmCPicLocation the
+		 * operand is still a PICF position (handled above), but
+		 * some writers also use this char as the OLE object marker
+		 * with the operand naming the ObjectPool storage; when no
+		 * picture parsed, try the object storage as a fallback */
+		if (!bPicHandled && achp->fOle2)
+			_handleOLE2Object(ps, achp->fcPic_fcObj_lTagObj);
+		return 0;
 #else
+		if (achp->fOle2)
+			UT_DEBUGMSG(("embedded OLE2 component. currently unsupported"));
 		UT_DEBUGMSG(("DOM: 0x01 graphics support is disabled at the moment\n"));
 		return 0;
 #endif
-		break;
 	}
 	case 0x08: // Word 97, 2000, XP image
 		return _specCharImage08 (ps);
@@ -4304,6 +4332,8 @@ int IE_Imp_MsWord_97::_fieldProc (wvParseStruct *ps, U16 eachchar,
 		f->type = F_OTHER;
 		f->iFldStory = -1;
 		f->iFldIndex = -1;
+		f->fcOleObject = -1;
+		f->bOleResultImage = false;
 		if(ps)
 			_fldIndexAtCp(ps->currentcp, &f->iFldStory, &f->iFldIndex);
 		m_stackField.push(f);
@@ -4370,6 +4400,12 @@ int IE_Imp_MsWord_97::_fieldProc (wvParseStruct *ps, U16 eachchar,
 		f = m_stackField.top();
 		m_stackField.pop();
 		UT_return_val_if_fail(f,0);
+		/* the separator of an OLE-object field named an ObjectPool
+		 * storage but the field result produced no picture: fall
+		 * back to the object's stored presentation (or a
+		 * placeholder) so the object is not silently dropped */
+		if (f->fcOleObject >= 0 && !f->bOleResultImage)
+			_handleOLE2Object (ps, f->fcOleObject);
 		delete f;
 	}
 	return iRet;
@@ -5127,13 +5163,6 @@ static IEGraphicFileType s_determineIEGFT ( Blip * b )
 
 UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long cropt, long cropb, long cropl, long cropr)
 {
-	FG_ConstGraphicPtr pFG;
-	UT_Error error		= UT_OK;
-	UT_ConstByteBufPtr buf;
-
-	std::string propBuffer;
-	std::string propsName;
-
 	// suck the data into the ByteBuffer
 
 	MSWord_ImageType imgType = s_determineImageType ( b );
@@ -5178,7 +5207,7 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 			UT_DEBUGMSG(("Could not uncompress image\n"));
 			DELETEPV(uncompr);
 			DELETEPV(data);
-			goto Cleanup;
+			return UT_ERROR;
 		}
 		pictData->append(reinterpret_cast<const UT_Byte*>(uncompr), uncomprLen);
 		DELETEPV(uncompr);
@@ -5190,10 +5219,26 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 
 	delete [] data;
 
-	if(!pictData->getPointer(0))
-		error =  UT_ERROR;
-	else
-		error = IE_ImpGraphic::loadGraphic (pictData, iegft, pFG);
+	return _insertImageBuffer(pictData, iegft, width, height,
+							  cropt, cropb, cropl, cropr);
+}
+
+
+/*! convert an image byte buffer through the registered graphic
+ *  importers and append it as an inline PTO_Image with a data item.
+ *  Shared by the escher/PICF picture path and the OLE2 object
+ *  presentation fallback. */
+UT_Error IE_Imp_MsWord_97::_insertImageBuffer (const UT_ConstByteBufPtr & pictData, IEGraphicFileType iegft,
+											   long width, long height, long cropt, long cropb,
+											   long cropl, long cropr)
+{
+	FG_ConstGraphicPtr pFG;
+	UT_ConstByteBufPtr buf;
+
+	if (!pictData || !pictData->getPointer(0))
+		return UT_ERROR;
+
+	UT_Error error = IE_ImpGraphic::loadGraphic (pictData, iegft, pFG);
 
 	if ((error != UT_OK) || !pFG)
 	{
@@ -5222,6 +5267,7 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 	// This next bit of code will set up our properties based on the image attributes
 	//
 
+	std::string propBuffer;
 	{
 		UT_LocaleTransactor t(LC_NUMERIC, "C");
 		propBuffer = UT_std_string_sprintf("width:%fin; height:%fin; cropt:%fin; cropb:%fin; cropl:%fin; cropr:%fin",
@@ -5233,7 +5279,7 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 						  static_cast<double>(cropr) / static_cast<double>(1440));
 	}
 
-	propsName = UT_std_string_sprintf("%d", getDoc()->getUID(UT_UniqueId::Image));
+	std::string propsName = UT_std_string_sprintf("%d", getDoc()->getUID(UT_UniqueId::Image));
 
 	if (!_ensureInBlock())
 	{
@@ -5260,9 +5306,12 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 		return UT_ERROR;
 	}
 
-Cleanup:
+	/* an image emitted inside a field result is the OLE object's
+	 * on-screen presentation - the ObjectPool fallback is not needed */
+	if (!m_stackField.empty())
+		m_stackField.top()->bOleResultImage = true;
 
-	return error;
+	return UT_OK;
 }
 
 
@@ -5366,9 +5415,192 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
 	  return UT_ERROR;
 	}
 
+  /* an image emitted inside a field result is the OLE object's
+   * on-screen presentation - the ObjectPool fallback is not needed */
+  if (!m_stackField.empty())
+	  m_stackField.top()->bOleResultImage = true;
+
  Cleanup:
 
   return error;
+}
+
+/****************************************************************************/
+
+/*! read a whole child stream of an OLE storage into a ByteBuf,
+ *  skipping 'skip' leading bytes. Returns a null ptr when the stream
+ *  is absent, unreadable or only holds the skipped header. */
+static UT_ByteBufPtr s_readObjStream (GsfInfile * store, const char * name,
+									  gsize skip)
+{
+	GsfInput * s = gsf_infile_child_by_name (store, name);
+	if (!s)
+		return nullptr;
+
+	UT_ByteBufPtr bb;
+	gsf_off_t len = gsf_input_size (s); /* signed, -1 on error */
+	if (len > static_cast<gsf_off_t> (skip)
+		&& len <= static_cast<gsf_off_t> (UT_MAX_ARCHIVE_MEMBER_SIZE))
+	{
+		const guint8 * data = gsf_input_read (s, len, nullptr);
+		if (data)
+		{
+			bb.reset (new UT_ByteBuf);
+			bb->append (data + skip, static_cast<UT_uint32> (len - skip));
+		}
+	}
+	g_object_unref (s);
+	return bb;
+}
+
+/*! extract the file payload of an Ole10Native stream (MS-OLEDS 2.2.5):
+ *  DWORD size, WORD reserved(2), ANSI label\0, ANSI filename\0,
+ *  DWORD reserved, DWORD reserved, DWORD dataLen, data[dataLen]. */
+static bool s_extractOle10Native (const UT_ByteBufPtr & in,
+								  UT_ConstByteBufPtr & out)
+{
+	out.reset ();
+	if (!in)
+		return false;
+
+	const UT_Byte * d = in->getPointer (0);
+	UT_uint32 len = in->getLength ();
+	if (!d || len < 8)
+		return false;
+
+	UT_uint32 off = 6;			// size + reserved
+	// two NUL-terminated ANSI strings
+	for (int s = 0; s < 2; s++)
+	{
+		const UT_Byte * nul = static_cast<const UT_Byte *>
+			(memchr (d + off, 0, len - off));
+		if (!nul)
+			return false;
+		off = static_cast<UT_uint32> (nul - d) + 1;
+	}
+	if (len - off < 12)
+		return false;
+
+	UT_uint32 dataLen =
+		static_cast<UT_uint32> (d[off + 8])
+		| (static_cast<UT_uint32> (d[off + 9]) << 8)
+		| (static_cast<UT_uint32> (d[off + 10]) << 16)
+		| (static_cast<UT_uint32> (d[off + 11]) << 24);
+	off += 12;
+	if (dataLen > len - off)
+		dataLen = len - off;
+	if (!dataLen)
+		return false;
+
+	UT_ByteBufPtr bb (new UT_ByteBuf);
+	bb->append (d + off, dataLen);
+	out = std::move (bb);
+	return true;
+}
+
+/* painted when an OLE object exposes nothing we can render: gray box,
+ * dark border, diagonal cross (96x64 PNG) */
+static const UT_Byte s_olePlaceholderPNG[] = {
+0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x00,0x00,0x00,0x0d,0x49,0x48,0x44,0x52,
+0x00,0x00,0x00,0x60,0x00,0x00,0x00,0x40,0x08,0x02,0x00,0x00,0x00,0x6a,0x56,0xe5,
+0x59,0x00,0x00,0x01,0x85,0x49,0x44,0x41,0x54,0x78,0xda,0xed,0x9c,0x59,0x0e,0xc3,
+0x30,0x0c,0x04,0xfd,0xff,0x9f,0xde,0x44,0x14,0xc7,0x53,0x2a,0x22,0x38,0x21,0x51,
+0x36,0x51,0x4a,0x7b,0x0d,0x52,0xbc,0x10,0xe3,0x48,0x8a,0x6c,0x4b,0x4e,0xa4,0x04,
+0xa0,0x26,0x45,0xa1,0x34,0x33,0x53,0x45,0x51,0x64,0xd4,0xa8,0xa2,0xf0,0xe1,0x43,
+0x19,0x4d,0xa9,0xcd,0xf4,0x65,0xbb,0x7d,0x7f,0x92,0x7a,0x2a,0xcb,0xd6,0xaf,0xda,
+0xa9,0xbc,0xbd,0x7b,0xf4,0xf4,0xa8,0xcf,0x4f,0xd6,0x66,0xf4,0x7f,0xae,0xcf,0x7f,
+0x7e,0x42,0x8d,0xcf,0x9f,0x9f,0xab,0xe6,0x77,0x9f,0x3b,0xea,0xcb,0x58,0x9e,0x7e,
+0xf4,0xe3,0x47,0xbd,0x0e,0x0e,0x7c,0xf6,0x9c,0x9d,0x8d,0x2d,0x74,0x68,0x31,0x99,
+0xcc,0xcd,0xcd,0x2f,0xd5,0xa5,0x56,0xfd,0x2b,0x50,0x84,0x68,0xa9,0x28,0xd9,0xda,
+0x2d,0x38,0x23,0x0a,0x6b,0x2b,0x0b,0xee,0x1f,0x8d,0xeb,0x1b,0x62,0xbc,0x5e,0x5f,
+0xde,0xbe,0x1d,0xac,0x0d,0x4c,0x42,0x5f,0x33,0x48,0x77,0xda,0x76,0x74,0x5e,0x23,
+0xfb,0x73,0x03,0x62,0x99,0x81,0x68,0xd5,0x0d,0xba,0xba,0x7a,0xaf,0xd4,0xf5,0xf5,
+0x4d,0x0b,0x0f,0xee,0xdf,0xdd,0x9f,0x9e,0x8e,0xa6,0x6f,0x34,0x3a,0x27,0xb6,0xcf,
+0x68,0x70,0xbf,0x01,0x9b,0x4d,0xdf,0x8e,0x0f,0x56,0x6d,0xad,0x2e,0x8b,0x39,0x2e,
+0xa5,0x8f,0xf9,0x05,0x83,0xec,0xbc,0xe7,0x28,0x9c,0x27,0x97,0x37,0x45,0x1a,0x99,
+0x6d,0x39,0xf3,0x56,0x87,0x35,0x70,0x52,0xdd,0xa9,0x55,0x15,0x2a,0x05,0xf9,0xb6,
+0xd1,0xa9,0x4e,0x54,0x17,0x63,0xad,0x13,0xb5,0x1a,0x15,0x6d,0x96,0x63,0x77,0x74,
+0x64,0x5c,0x3f,0x1e,0x7c,0x29,0x4d,0x53,0x3e,0xde,0xf5,0x52,0x3c,0xcd,0x60,0xac,
+0xf9,0x8a,0x73,0xd1,0x8d,0xb8,0x77,0x5c,0x32,0x24,0x8e,0x89,0x4d,0x74,0x53,0x68,
+0xfb,0x4e,0x2a,0x7f,0x5d,0xb2,0xd6,0x22,0x35,0x1e,0x92,0x12,0xf9,0xac,0xbe,0x74,
+0x68,0x70,0x8f,0xb3,0x5f,0x93,0x5d,0x3f,0x5c,0xbd,0xbd,0x65,0xba,0xb9,0xae,0x2c,
+0xba,0x61,0x3b,0x5e,0xb9,0x7a,0xa1,0x47,0xbf,0x8d,0x6d,0x84,0x13,0x33,0xca,0x95,
+0x0d,0xca,0xf0,0x52,0xd0,0xea,0x6e,0x69,0x9f,0xdd,0x0e,0xd5,0x85,0x74,0xf0,0x40,
+0xdd,0xbd,0x8f,0x0a,0x1b,0x9d,0xf0,0x1f,0x00,0x00,0x00,0x00,0x49,0x45,0x4e,0x44,
+0xae,0x42,0x60,0x82
+};
+
+/*! MS-DOC 2.1.4: an embedded OLE object lives in an ObjectPool storage
+ *  named "_<objId>". The on-screen presentation normally comes from the
+ *  field result's picture; when the result has none this is the
+ *  fallback: try the stored presentation streams (\003EPRINT = EMF,
+ *  \003PRINT = MFPF header + WMF), then an image payload wrapped in
+ *  \001Ole10Native (package objects), and finally emit a placeholder
+ *  image so the object is not silently dropped. */
+UT_Error IE_Imp_MsWord_97::_handleOLE2Object (wvParseStruct * ps,
+											  UT_sint32 objId)
+{
+	if (!ps->ole_file || !GSF_IS_INFILE (ps->ole_file) || objId < 0)
+		return UT_ERROR;
+
+	GsfInput * pool = gsf_infile_child_by_name (GSF_INFILE (ps->ole_file),
+												"ObjectPool");
+	if (!pool)
+		return UT_ERROR;
+
+	char storename[48];
+	snprintf (storename, sizeof (storename), "_%d", objId);
+	GsfInput * store = gsf_infile_child_by_name (GSF_INFILE (pool), storename);
+	g_object_unref (pool);
+	if (!store)
+		return UT_ERROR;
+	if (!GSF_IS_INFILE (store))
+	{
+		g_object_unref (store);
+		return UT_ERROR;
+	}
+
+	UT_Error err = UT_ERROR;
+	GsfInfile * dir = GSF_INFILE (store);
+
+	/* \003PRINT is an 8-byte MFPF header followed by a WMF */
+	UT_ByteBufPtr bb = s_readObjStream (dir, "\003PRINT", 8);
+	if (bb)
+		err = _insertImageBuffer (bb, IEGFT_WMF, 0, 0, 0, 0, 0, 0);
+
+	/* \003EPRINT is a raw EMF; content-sniffed since no importer
+	 * claims the .emf suffix (fails cleanly when unusable) */
+	if (err != UT_OK)
+	{
+		bb = s_readObjStream (dir, "\003EPRINT", 0);
+		if (bb)
+			err = _insertImageBuffer (bb, IEGFT_Unknown, 0, 0, 0, 0, 0, 0);
+	}
+
+	/* \001Ole10Native wraps the raw embedded file (MS-OLEDS 2.2.5);
+	 * image payloads are directly renderable */
+	if (err != UT_OK)
+	{
+		bb = s_readObjStream (dir, "\001Ole10Native", 0);
+		if (bb)
+		{
+			UT_ConstByteBufPtr native;
+			if (s_extractOle10Native (bb, native))
+				err = _insertImageBuffer (native, IEGFT_Unknown, 0, 0, 0, 0, 0, 0);
+		}
+	}
+
+	/* graceful placeholder - the object is preserved as a visible
+	 * marker rather than vanishing from the document */
+	if (err != UT_OK)
+	{
+		UT_ByteBufPtr ph (new UT_ByteBuf);
+		ph->append (s_olePlaceholderPNG, sizeof (s_olePlaceholderPNG));
+		err = _insertImageBuffer (ph, IEGFT_PNG, 1440, 960, 0, 0, 0, 0);
+	}
+
+	g_object_unref (store);
+	return err;
 }
 
 /****************************************************************************/

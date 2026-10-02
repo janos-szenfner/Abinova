@@ -295,6 +295,10 @@ private:
 	bool	   _insertBookmark(bookmark * bm);
 	UT_Error   _handleImage (Blip *, long width, long height, long cropt, long cropb, long cropl, long cropr);
 	UT_Error   _handlePositionedImage (Blip *, UT_String & sImageName);
+	UT_Error   _insertImageBuffer (const UT_ConstByteBufPtr & pictData, IEGraphicFileType iegft,
+								   long width, long height, long cropt, long cropb,
+								   long cropl, long cropr);
+	UT_Error   _handleOLE2Object (wvParseStruct * ps, UT_sint32 objId);
 	int		   _specCharImage08 (wvParseStruct *ps);
 	bool	   _handleCommandField (char *command);
 	bool	   _handleFieldEnd (char * command, UT_uint32 iPos);

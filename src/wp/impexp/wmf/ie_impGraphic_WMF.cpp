@@ -102,9 +102,10 @@ UT_Error IE_ImpGraphic_WMF::importGraphic(const UT_ConstByteBufPtr & pBBwmf,
 	pfg.reset();
 	UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Begin -\n"));
 
+	/* the libwmf SVG path produces FG_GraphicVector images our cairo
+	 * renderers cannot yet paint (blank output); rasterize through
+	 * libwmf's GD backend instead so embedded metafiles are visible */
 	bool importAsPNG = true;
-
-	importAsPNG = false;
 
 	if (importAsPNG) {
 
