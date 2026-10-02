@@ -2172,7 +2172,7 @@ bool FV_View::_ensureInsertionPointOnScreen()
 	bool bRet = false;
 	if (m_yPoint < 0)
 	{
-		cmdScroll(AV_SCROLLCMD_LINEUP, (UT_uint32) (-(m_yPoint)));
+		cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_uint32>( (-(m_yPoint))));
 		bRet = true;
 	}
 	else if ((static_cast<UT_uint32>(m_yPoint + m_iPointHeight)) >= (static_cast<UT_uint32>(getWindowHeight())))
@@ -2186,7 +2186,7 @@ bool FV_View::_ensureInsertionPointOnScreen()
 	*/
 	if (m_xPoint < 0)
 	{
-		cmdScroll(AV_SCROLLCMD_LINELEFT, (UT_uint32) (-(m_xPoint) + getPageViewLeftMargin()/2));
+		cmdScroll(AV_SCROLLCMD_LINELEFT, static_cast<UT_uint32>( (-(m_xPoint) + getPageViewLeftMargin()/2)));
 		bRet = true;
 	}
 	else if ((static_cast<UT_uint32>(m_xPoint)) >= (static_cast<UT_uint32>(getWindowWidth())))
@@ -2554,7 +2554,7 @@ void FV_View::_actuallyScroll(UT_Worker * pWorker)
 
 			if (xPos < 0)
 			{
-				pView->cmdScroll(AV_SCROLLCMD_LINELEFT, (UT_uint32) (-(xPos)));
+				pView->cmdScroll(AV_SCROLLCMD_LINELEFT, static_cast<UT_uint32>( (-(xPos))));
 			}
 			else if ((static_cast<UT_uint32>(xPos)) >= (static_cast<UT_uint32>(pView->getWindowWidth())))
 			{
@@ -2609,7 +2609,7 @@ fp_Page* FV_View::_getPageForXY(UT_sint32 xPos, UT_sint32 yPos, UT_sint32& xClic
 	yClick = yPos + m_yScrollOffset - getPageViewTopMargin();
 	fp_Page* pPage = m_pLayout->getFirstPage();
 	
-	if (xClick <= (signed)getWidthPagesInRow(pPage))  //So we can't select the next row by clicking outside 
+	if (xClick <= static_cast<signed>(getWidthPagesInRow(pPage)))  //So we can't select the next row by clicking outside 
 	{
 		while (pPage) //First, find the row the page is in
 		{
@@ -2699,7 +2699,7 @@ FV_View::_computeFindPrefix(const UT_UCS4Char* pFind)
 {
 	UT_uint32 m = UT_UCS4_strlen(pFind);
 	UT_uint32 k = 0, q = 1;
-	UT_uint32 *pPrefix = (UT_uint32*) UT_calloc(m + 1, sizeof(UT_uint32));
+	UT_uint32 *pPrefix = static_cast<UT_uint32*>( UT_calloc(m + 1, sizeof(UT_uint32)));
 	UT_return_val_if_fail(pPrefix, nullptr);
 
 	pPrefix[0] = 0; // Must be this regardless of the string
@@ -2738,12 +2738,12 @@ static inline UT_UCS4Char s_smartQuoteToPlain(UT_UCS4Char currentChar)
 		case 0x201A:     //single low 9 quotation
 		case 0x201B:     //single reverse comma quotation
 		case UCS_LQUOTE:
-		case UCS_RQUOTE: return (UT_UCS4Char) '\'';
+		case UCS_RQUOTE: return static_cast<UT_UCS4Char>( '\'');
 
 		case 0x201E:     //double low 9 quotation
 		case 0x201F:     //double reverse comma quotation
 		case UCS_LDBLQUOTE:
-		case UCS_RDBLQUOTE: return (UT_UCS4Char) '\"';
+		case UCS_RDBLQUOTE: return static_cast<UT_UCS4Char>( '\"');
 
 		default: return currentChar;
 	}
@@ -2776,7 +2776,7 @@ FV_View::_findNext(UT_uint32* pPrefix,
 
 	// Clone the search string, converting it to lowercase is search
 	// should ignore case.
-	UT_UCS4Char* pFindStr = (UT_UCS4Char*) UT_calloc(m, sizeof(UT_UCS4Char));
+	UT_UCS4Char* pFindStr = static_cast<UT_UCS4Char*>( UT_calloc(m, sizeof(UT_UCS4Char)));
 	UT_return_val_if_fail(pFindStr,false);
 
 	UT_uint32 j;
@@ -2879,7 +2879,7 @@ FV_View::_findPrev(UT_uint32* /*pPrefix*/,
 
 	// Clone the search string, converting it to lowercase is search
 	// should ignore case.
-	UT_UCS4Char* pFindStr = (UT_UCS4Char*) UT_calloc(m, sizeof(UT_UCS4Char));
+	UT_UCS4Char* pFindStr = static_cast<UT_UCS4Char*>( UT_calloc(m, sizeof(UT_UCS4Char)));
 	UT_return_val_if_fail(pFindStr,false);
 
 	UT_uint32 j;
@@ -3028,7 +3028,7 @@ FV_View::_findGetNextBlockBuffer(fl_BlockLayout** pBlock,
 
 	if (!(*pBlock)->getBlockBuf(&pBuffer))
 	{
-		UT_DEBUGMSG(("Block %p has no associated buffer.\n", (void*)*pBlock));
+		UT_DEBUGMSG(("Block %p has no associated buffer.\n", static_cast<void*>(*pBlock)));
 		UT_ASSERT(0);
 	}
 
@@ -3074,7 +3074,7 @@ FV_View::_findGetNextBlockBuffer(fl_BlockLayout** pBlock,
 					
 					if (!newBlock->getBlockBuf(&pBuffer))
 					{
-						UT_DEBUGMSG(("Block %p (a ->next block) has no buffer.\n", (void*)newBlock));
+						UT_DEBUGMSG(("Block %p (a ->next block) has no buffer.\n", static_cast<void*>(newBlock)));
 						UT_ASSERT(0);
 					}
 
@@ -3114,7 +3114,7 @@ FV_View::_findGetNextBlockBuffer(fl_BlockLayout** pBlock,
 			newOffset = 0;
 			if (!newBlock->getBlockBuf(&pBuffer))
 			{
-				UT_DEBUGMSG(("Block %p (a ->next block) has no buffer.\n", (void*)newBlock));
+				UT_DEBUGMSG(("Block %p (a ->next block) has no buffer.\n", static_cast<void*>(newBlock)));
 				UT_ASSERT(0);
 			}
 
@@ -3196,7 +3196,7 @@ FV_View::_findGetPrevBlockBuffer(fl_BlockLayout** pBlock,
 
 	if (!(*pBlock)->getBlockBuf(&pBuffer))
 	{
-		UT_DEBUGMSG(("Block %p has no associated buffer.\n", (void*)*pBlock));
+		UT_DEBUGMSG(("Block %p has no associated buffer.\n", static_cast<void*>(*pBlock)));
 		// I gather we better return ???
 		UT_ASSERT_HARMLESS(0);
 		return nullptr;
@@ -3232,7 +3232,7 @@ FV_View::_findGetPrevBlockBuffer(fl_BlockLayout** pBlock,
 		blockStart = 0;
 		if (!newBlock->getBlockBuf(&pBuffer))
 		{
-			UT_DEBUGMSG(("Block %p (a ->prev block) has no buffer.\n", (void*)newBlock));
+			UT_DEBUGMSG(("Block %p (a ->prev block) has no buffer.\n", static_cast<void*>(newBlock)));
 			UT_ASSERT_HARMLESS(0);
 			return nullptr;
 		}
@@ -3284,7 +3284,7 @@ FV_View::_findGetPrevBlockBuffer(fl_BlockLayout** pBlock,
 	UT_UCS4Char* bufferSegment = nullptr;
 
 	// remember, the caller gets to g_free this memory
-	bufferSegment = (UT_UCS4Char*)UT_calloc(bufferLength + 1, sizeof(UT_UCS4Char));
+	bufferSegment = static_cast<UT_UCS4Char*>(UT_calloc(bufferLength + 1, sizeof(UT_UCS4Char)));
 	UT_return_val_if_fail(bufferSegment, nullptr);
 
 	memmove(bufferSegment, pBuffer.getPointer(blockStart),
@@ -3406,8 +3406,8 @@ FV_View::_findReplaceReverse(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool
 		// start position so that we stop at the right spot.
 		if (m_wrappedEnd && !bDoneEntireDocument)
 		{
-			m_startPosition += (long) UT_UCS4_strlen(m_sReplace);
-			m_startPosition -= (long) UT_UCS4_strlen(m_sFind);
+			m_startPosition += static_cast<long>( UT_UCS4_strlen(m_sReplace));
+			m_startPosition -= static_cast<long>( UT_UCS4_strlen(m_sFind));
 		}
 
 		UT_ASSERT(m_startPosition >= 2);
@@ -3478,8 +3478,8 @@ FV_View::_findReplace(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool bNoUpd
 		// start position so that we stop at the right spot.
 		if (m_wrappedEnd && !bDoneEntireDocument)
 		{
-			m_startPosition += (long) UT_UCS4_strlen(m_sReplace);
-			m_startPosition -= (long) UT_UCS4_strlen(m_sFind);
+			m_startPosition += static_cast<long>( UT_UCS4_strlen(m_sReplace));
+			m_startPosition -= static_cast<long>( UT_UCS4_strlen(m_sFind));
 		}
 
 		UT_ASSERT(m_startPosition >= 2);
@@ -4394,7 +4394,7 @@ void FV_View::_fixInsertionPointCoords(fv_CaretProps * pCP) const
 		{
 			UT_sint32 negY  = -pCP->m_yPoint;
 			yoff = negY + 1;
-			if(negY > (UT_sint32)pCP->m_iPointHeight)
+			if(negY > static_cast<UT_sint32>(pCP->m_iPointHeight))
 			{
 				pCP->m_iPointHeight = 0;
 				yoff = 0;
@@ -4478,7 +4478,7 @@ void FV_View::_fixInsertionPointCoords(bool bIgnoreAll)
 		{
 			UT_sint32 negY  = -m_yPoint;
 			yoff = negY + 1;
-			if(negY > (UT_sint32)m_iPointHeight)
+			if(negY > static_cast<UT_sint32>(m_iPointHeight))
 			{
 				m_iPointHeight = 0;
 				yoff = 0;
@@ -5660,7 +5660,7 @@ UT_Error FV_View::_deleteXMLID( const std::string& xmlid, bool bSignal, PT_DocPo
 	}
 	
 	fp_HyperlinkRun* r = _getHyperlinkInRange( range.first, range.first );
-	UT_DEBUGMSG(("_deleteXMLID() xmlid:%s r:%p\n", xmlid.c_str(), (void*)r));
+	UT_DEBUGMSG(("_deleteXMLID() xmlid:%s r:%p\n", xmlid.c_str(), static_cast<void*>(r)));
 	if( !r )
  	{
 		return UT_ERROR;
@@ -6081,7 +6081,7 @@ void FV_View::_removeThisHdrFtr(fl_HdrFtrSectionLayout * pHdrFtr)
 	{
 		return;
 	}
-	UT_DEBUGMSG(("view_protected: Removing HdrFtr %p \n", (void*)pHdrFtr));
+	UT_DEBUGMSG(("view_protected: Removing HdrFtr %p \n", static_cast<void*>(pHdrFtr)));
 //
 // Need this to remove the HdrFtr attributes in the section strux.
 //

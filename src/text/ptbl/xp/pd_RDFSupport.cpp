@@ -150,9 +150,9 @@ convertNativeToRedlandModel(
 
 
             librdf_node* rsubject =  librdf_new_node_from_uri_string(
-                world, (unsigned char *)subject.toString().c_str() );
+                world, static_cast<unsigned char *>(subject.toString().c_str() ));
             librdf_node* rpredicate = librdf_new_node_from_uri_string(
-                world, (unsigned char *)predicate.toString().c_str() );
+                world, static_cast<unsigned char *>(predicate.toString().c_str() ));
             librdf_node* robject = nullptr;
             if( object.isLiteral() )
             {
@@ -163,13 +163,13 @@ convertNativeToRedlandModel(
                 {
                     datatype_uri = librdf_new_uri(
                         world,
-                        (const unsigned char*)object.getXSDType().c_str() );
+                        static_cast<const unsigned char*>(object.getXSDType().c_str() ));
                 }
 
                 const char *xml_language = nullptr;
                 robject =  librdf_new_node_from_typed_literal(
                     world,
-                    (unsigned char *)object.toString().c_str(),
+                    static_cast<unsigned char *>(object.toString().c_str()),
                     xml_language, datatype_uri );
 
                 if(datatype_uri)
@@ -182,7 +182,7 @@ convertNativeToRedlandModel(
             else
             {
                 robject = librdf_new_node_from_uri_string(
-                    world, (unsigned char *)object.toString().c_str() );
+                    world, static_cast<unsigned char *>(object.toString().c_str() ));
             }
 
             UT_DEBUGMSG(("writeRDF() st:%d pt:%d ot:%d isuri:%d islit:%d s:%s p:%s o:%s\n",
@@ -250,7 +250,7 @@ void dumpModelToTest( RDFArguments& args )
     unsigned char* data = librdf_serializer_serialize_model_to_counted_string
         ( serializer, base_uri, model, &data_sz  );
     UT_DEBUGMSG(("writeRDF() serializer:%p data_sz:%d\n",
-                 serializer, (int)data_sz ));
+                 serializer, static_cast<int>(data_sz )));
 
     if( !data )
     {
@@ -263,7 +263,7 @@ void dumpModelToTest( RDFArguments& args )
 std::string toString( librdf_uri *node )
 {
     unsigned char* z = librdf_uri_as_string( node );
-    std::string ret = (const char*)z;
+    std::string ret = static_cast<const char*>(z);
     // For this redland as_string() function, we do not free z.
     return ret;
 }
@@ -278,11 +278,11 @@ std::string toString( librdf_node *node )
     {
         case LIBRDF_NODE_TYPE_BLANK:
             z = librdf_node_get_blank_identifier( node );
-            s = (const char*)z;
+            s = static_cast<const char*>(z);
             return s;
         case  LIBRDF_NODE_TYPE_LITERAL:
             z = librdf_node_get_literal_value( node );
-            s = (const char*)z;
+            s = static_cast<const char*>(z);
             return s;
         case LIBRDF_NODE_TYPE_RESOURCE:
             return toString( librdf_node_get_uri(node) );
@@ -292,7 +292,7 @@ std::string toString( librdf_node *node )
 
     // fallback
     z = librdf_node_to_string( node );
-    std::string ret = (const char*)z;
+    std::string ret = static_cast<const char*>(z);
     free(z);
     return ret;
 }
@@ -332,7 +332,7 @@ toRDFXML( const std::list< PD_RDFModelHandle >& ml )
     // malloc() and handed back to us to take care of.
     unsigned char* data = librdf_serializer_serialize_model_to_counted_string
         ( serializer, base_uri, model, &data_sz  );
-    UT_DEBUGMSG(("writeRDF() serializer:%p data_sz:%lu\n", serializer, (long unsigned)data_sz ));
+    UT_DEBUGMSG(("writeRDF() serializer:%p data_sz:%lu\n", serializer, static_cast<long unsigned>(data_sz )));
 
     if( !data )
     {
@@ -343,7 +343,7 @@ toRDFXML( const std::list< PD_RDFModelHandle >& ml )
     }
 
     std::stringstream ss;
-    ss.write( (const char*)data, data_sz );
+    ss.write( static_cast<const char*>(data), data_sz );
     free(data);
     librdf_free_serializer(serializer);
 
@@ -399,9 +399,9 @@ toRDFXML( const std::list< PD_RDFModelHandle >& ml )
         ns = uri.substr(0, pos + 1);
         local = uri.substr(pos + 1);
         auto ncNameChar = [](char c) {
-            return isalnum((unsigned char)c) || c == '_' || c == '-' || c == '.';
+            return isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.';
         };
-        if (!(isalpha((unsigned char)local[0]) || local[0] == '_'))
+        if (!(isalpha(static_cast<unsigned char>(local[0])) || local[0] == '_'))
             return false;
         for (char c : local)
             if (!ncNameChar(c))
@@ -578,21 +578,21 @@ loadRDFXML( PD_DocumentRDFMutationHandle m, const std::string& rdfxml, const std
     // Note that although the API docs say you can use nullptr for base_uri
     // you will likely find it an error to try to call that way.
     librdf_uri* base_uri = librdf_new_uri( args.world,
-                                           (const unsigned char*)bUri.c_str() );
+                                           static_cast<const unsigned char*>(bUri.c_str() ));
     if( !base_uri )
     {
         UT_DEBUGMSG(("Failed to create a base URI to parse RDF into model. baseuri:%s rdfxml.sz:%lu\n",
-                     bUri.c_str(), (long unsigned)rdfxml.size() ));
+                     bUri.c_str(), static_cast<long unsigned>(rdfxml.size() )));
         return UT_ERROR;
     }
 
     UT_DEBUGMSG(("loadRDFXML() baseuri:%s RDF/XML:::%s:::\n", bUri.c_str(), rdfxml.c_str() ));
     if( librdf_parser_parse_string_into_model( args.parser,
-                                               (const unsigned char*)rdfxml.c_str(),
+                                               static_cast<const unsigned char*>(rdfxml.c_str()),
                                                base_uri, args.model ))
     {
         UT_DEBUGMSG(("Failed to parse RDF into model. stream:%s rdfxml.sz:%lu\n",
-                     bUri.c_str(), (long unsigned)rdfxml.size() ));
+                     bUri.c_str(), static_cast<long unsigned>(rdfxml.size() )));
         librdf_free_uri( base_uri );
         return UT_ERROR;
     }

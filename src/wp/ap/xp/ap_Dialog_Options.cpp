@@ -89,7 +89,7 @@ void AP_Dialog_Options::_storeWindowData(void)
 
 	AP_FrameData *pFrameData = nullptr;
 	if(m_pFrame) {
-		pFrameData = (AP_FrameData *)m_pFrame->getFrameData();
+		pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
 		UT_return_if_fail (pFrameData);
 	}
 
@@ -169,21 +169,21 @@ void AP_Dialog_Options::_storeWindowData(void)
 	}
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save ruler units value
-	pPrefsScheme->setValue((gchar*)AP_PREF_KEY_RulerUnits,
-				   (gchar*)UT_dimensionName( _gatherViewRulerUnits()) );
+	pPrefsScheme->setValue(static_cast<gchar*>(AP_PREF_KEY_RulerUnits),
+				   const_cast<gchar*>(reinterpret_cast<const gchar*>(UT_dimensionName( _gatherViewRulerUnits()) )));
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save default file format (a suffix like ".abw")
 	{
 		UT_String stFormat;
 		_gatherDefaultSaveFormat(stFormat);
-		pPrefsScheme->setValue((gchar*)AP_PREF_KEY_DefaultSaveFormat,
-					   (gchar*)stFormat.c_str());
+		pPrefsScheme->setValue(static_cast<gchar*>(AP_PREF_KEY_DefaultSaveFormat),
+					   const_cast<gchar*>(reinterpret_cast<const gchar*>(stFormat.c_str())));
 	}
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save screen color
-	pPrefsScheme->setValue((gchar*)XAP_PREF_KEY_ColorForTransparent,
+	pPrefsScheme->setValue(static_cast<gchar*>(XAP_PREF_KEY_ColorForTransparent),
 				   _gatherColorForTransparent() );
 
 
@@ -194,8 +194,8 @@ void AP_Dialog_Options::_storeWindowData(void)
 	// TODO: change to snprintf
 	gchar szBuffer[40];
 	sprintf( szBuffer, "%i", _gatherNotebookPageNum() );
-	pPrefsScheme->setValue((gchar*)AP_PREF_KEY_OptionsTabNumber,
-				   (gchar*)szBuffer );
+	pPrefsScheme->setValue(static_cast<gchar*>(AP_PREF_KEY_OptionsTabNumber),
+				   static_cast<gchar*>(szBuffer ));
 
 	// allow the prefListeners to receive their calls
 	pPrefs->endBlockChange();
@@ -218,7 +218,7 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 
 	AP_FrameData *pFrameData = nullptr;
 	if(m_pFrame) {
-		pFrameData = (AP_FrameData *)m_pFrame->getFrameData();
+		pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
 		UT_return_if_fail (pFrameData);
 	}
 
@@ -242,12 +242,12 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
             
         case id_LIST_VIEW_OUTER_QUOTE_STYLE:
-			pPrefsScheme->setValueInt ((gchar*)XAP_PREF_KEY_OuterQuoteStyle,
+			pPrefsScheme->setValueInt (static_cast<gchar*>(XAP_PREF_KEY_OuterQuoteStyle),
 						_gatherOuterQuoteStyle());
 			break;
             
         case id_LIST_VIEW_INNER_QUOTE_STYLE:
-			pPrefsScheme->setValueInt ((gchar*)XAP_PREF_KEY_InnerQuoteStyle,
+			pPrefsScheme->setValueInt (static_cast<gchar*>(XAP_PREF_KEY_InnerQuoteStyle),
 						_gatherInnerQuoteStyle());
 			break;
 
@@ -277,8 +277,8 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
 
 		case id_LIST_VIEW_RULER_UNITS:
-			pPrefsScheme->setValue ((gchar*)AP_PREF_KEY_RulerUnits,
-						(gchar*)UT_dimensionName (_gatherViewRulerUnits()));
+			pPrefsScheme->setValue (static_cast<gchar*>(AP_PREF_KEY_RulerUnits),
+						const_cast<gchar*>(reinterpret_cast<const gchar*>(UT_dimensionName (_gatherViewRulerUnits()))));
 			break;
 
 		case id_CHECK_VIEW_CURSOR_BLINK:
@@ -290,7 +290,7 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
 
 		case id_PUSH_CHOOSE_COLOR_FOR_TRANSPARENT:
-			pPrefsScheme->setValue ((gchar*)XAP_PREF_KEY_ColorForTransparent,
+			pPrefsScheme->setValue (static_cast<gchar*>(XAP_PREF_KEY_ColorForTransparent),
 						_gatherColorForTransparent());
 			break;
 
@@ -321,8 +321,8 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 		case id_NOTEBOOK:
 			gchar szBuffer[40];
 			sprintf( szBuffer, "%i", _gatherNotebookPageNum() );
-			pPrefsScheme->setValue ((gchar*)AP_PREF_KEY_OptionsTabNumber,
-						(gchar*)szBuffer );
+			pPrefsScheme->setValue (static_cast<gchar*>(AP_PREF_KEY_OptionsTabNumber),
+						static_cast<gchar*>(szBuffer ));
 			break;
 
 		// Ignore window controls/special buttons
@@ -361,7 +361,7 @@ void AP_Dialog_Options::_setColorForTransparent(const gchar *
 
 const gchar * AP_Dialog_Options::_gatherColorForTransparent(void)
 {
-	return (const gchar *) m_CurrentTransparentColor;
+	return static_cast<const gchar *>( m_CurrentTransparentColor);
 }
 
 void AP_Dialog_Options::_eventSave(void)
@@ -511,13 +511,13 @@ void AP_Dialog_Options::_getUnitMenuContent(const XAP_StringSet *pSS, UnitMenuCo
 {
     std::string s;
     pSS->getValueUTF8 ( XAP_STRING_ID_DLG_Unit_inch, s );
-	content.push_back(std::make_pair(s, (int)DIM_IN));
+	content.push_back(std::make_pair(s, static_cast<int>(DIM_IN)));
     pSS->getValueUTF8 ( XAP_STRING_ID_DLG_Unit_cm, s );
-	content.push_back(std::make_pair(s, (int)DIM_CM));
+	content.push_back(std::make_pair(s, static_cast<int>(DIM_CM)));
     pSS->getValueUTF8 ( XAP_STRING_ID_DLG_Unit_points, s );
-	content.push_back(std::make_pair(s, (int)DIM_PT));
+	content.push_back(std::make_pair(s, static_cast<int>(DIM_PT)));
     pSS->getValueUTF8 ( XAP_STRING_ID_DLG_Unit_pica, s );
-	content.push_back(std::make_pair(s, (int)DIM_PI));
+	content.push_back(std::make_pair(s, static_cast<int>(DIM_PI)));
 }
 
 

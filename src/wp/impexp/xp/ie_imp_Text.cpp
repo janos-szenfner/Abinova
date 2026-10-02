@@ -218,7 +218,7 @@ bool IE_Imp_Text::_insertBlock()
 	{
 		pf_Frag * pf = getDoc()->getPieceTable()->getFragments().getLast();
 		UT_return_val_if_fail( pf->getType() == pf_Frag::PFT_Strux, false);
-		m_pBlock = (pf_Frag_Strux *) pf;
+		m_pBlock = static_cast<pf_Frag_Strux *>( pf);
 		UT_return_val_if_fail( m_pBlock->getStruxType() == PTX_Block, false);
 	}
 	else
@@ -245,7 +245,7 @@ bool IE_Imp_Text::_insertBlock()
 bool IE_Imp_Text::_insertSpan(UT_GrowBuf &b)
 {
 	UT_uint32 iLength = b.getLength();
-	const UT_UCS4Char * pData = (const UT_UCS4Char *)b.getPointer(0);
+	const UT_UCS4Char * pData = reinterpret_cast<const UT_UCS4Char *>(b.getPointer(0));
 
 	// handle block direction if needed ...
 	if(pData && m_bBlockDirectionPending)
@@ -724,7 +724,7 @@ UT_Error IE_Imp_Text::_recognizeEncoding(GsfInput * fp)
 	UT_sint32 iNumbytes;
 
 	iNumbytes = UT_MIN(4096, gsf_input_remaining(fp));
-	gsf_input_read(fp, iNumbytes, (guint8 *)szBuf);
+	gsf_input_read(fp, iNumbytes, reinterpret_cast<guint8 *>(szBuf));
 	gsf_input_seek(fp, 0, G_SEEK_SET);
 
 	return _recognizeEncoding(szBuf, iNumbytes);
@@ -790,7 +790,7 @@ UT_Error IE_Imp_Text::_writeHeader(GsfInput * /* fp */)
 
 	pf_Frag * pf = getDoc()->getPieceTable()->getFragments().getLast();
 	UT_return_val_if_fail( pf->getType() == pf_Frag::PFT_Strux, UT_ERROR);
-	m_pBlock = (pf_Frag_Strux *) pf;
+	m_pBlock = static_cast<pf_Frag_Strux *>( pf);
 	UT_return_val_if_fail( m_pBlock->getStruxType() == PTX_Block, UT_ERROR );
 
 	return UT_OK;

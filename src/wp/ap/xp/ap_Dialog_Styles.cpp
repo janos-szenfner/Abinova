@@ -206,12 +206,12 @@ const gchar * AP_Dialog_Styles::getVecVal(const UT_Vector *v, const gchar * szPr
 	const gchar * pszV = nullptr;
 	for(j= 0; j<i ;j=j+2)
 	{
-		pszV = (const gchar *) v->getNthItem(j);
+		pszV = static_cast<const gchar *>( v->getNthItem(j));
 		if( (pszV != nullptr) && (strcmp( pszV,szProp) == 0))
 			break;
 	}
 	if( j < i )
-		return  (const gchar *) v->getNthItem(j+1);
+		return  static_cast<const gchar *>( v->getNthItem(j+1));
 	else
 		return nullptr;
 }
@@ -227,10 +227,10 @@ void AP_Dialog_Styles::ModifyLang(void)
 	XAP_Dialog_Id id = XAP_DIALOG_ID_LANGUAGE;
 
 	XAP_DialogFactory * pDialogFactory
-		= (XAP_DialogFactory *) getFrame()->getDialogFactory();
+		= static_cast<XAP_DialogFactory *>( getFrame()->getDialogFactory());
 
 	XAP_Dialog_Language * pDialog
-		= (XAP_Dialog_Language *)(pDialogFactory->requestDialog(id));
+		= static_cast<XAP_Dialog_Language *>((pDialogFactory->requestDialog(id)));
 	UT_return_if_fail (pDialog);
 
 	PP_PropertyVector props_in;
@@ -267,10 +267,10 @@ void AP_Dialog_Styles::ModifyFont(void)
 	XAP_Dialog_Id id = XAP_DIALOG_ID_FONT;
 
 	XAP_DialogFactory * pDialogFactory
-		= (XAP_DialogFactory *) getFrame()->getDialogFactory();
+		= static_cast<XAP_DialogFactory *>( getFrame()->getDialogFactory());
 
 	XAP_Dialog_FontChooser * pDialog
-		= (XAP_Dialog_FontChooser *)(pDialogFactory->requestDialog(id));
+		= static_cast<XAP_Dialog_FontChooser *>((pDialogFactory->requestDialog(id)));
 	UT_return_if_fail (pDialog);
 
 	// stuff the GR_Graphics into the dialog so that it
@@ -306,7 +306,7 @@ void AP_Dialog_Styles::ModifyFont(void)
 	const UT_RGBColor * bgCol = getView()->getCurrentPage()->getFillType().getColor();
 	sprintf(background, "%02x%02x%02x",bgCol->m_red,
 			bgCol->m_grn,bgCol->m_blu);
-	pDialog->setBackGroundColor( (const gchar *) background);
+	pDialog->setBackGroundColor( static_cast<const gchar *>( background));
 
 	// these behave a little differently since they are
 	// probably just check boxes and we don't have to
@@ -446,14 +446,14 @@ void AP_Dialog_Styles::ModifyLists(void)
 //
 
  	XAP_DialogFactory * pDialogFactory
-  		= (XAP_DialogFactory *) getFrame()->getDialogFactory();
+  		= static_cast<XAP_DialogFactory *>( getFrame()->getDialogFactory());
 
 //
 // Use this method so that we can have modeless Lists dialog and this
 // modal version simultaneously
 //
 	AP_Dialog_Lists * pDialog
-		= (AP_Dialog_Lists *)(pDialogFactory->justMakeTheDialog((XAP_Dialog_Id)AP_DIALOG_ID_LISTS));
+		= static_cast<AP_Dialog_Lists *>((pDialogFactory->justMakeTheDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_LISTS))));
 
 	UT_return_if_fail (pDialog);
 
@@ -580,10 +580,10 @@ void AP_Dialog_Styles::ModifyLists(void)
 void AP_Dialog_Styles::ModifyParagraph(void)
 {
 	XAP_DialogFactory * pDialogFactory
-		= (XAP_DialogFactory *)(getFrame()->getDialogFactory());
+		= static_cast<XAP_DialogFactory *>((getFrame()->getDialogFactory()));
 
 	AP_Dialog_Paragraph * pDialog
-		= (AP_Dialog_Paragraph *)(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_PARAGRAPH));
+		= static_cast<AP_Dialog_Paragraph *>((pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_PARAGRAPH))));
 	UT_return_if_fail (pDialog);
 
 	const static gchar * paraFields[] = {"text-align", "text-indent", "margin-left", "margin-right", "margin-top", "margin-bottom", "line-height","tabstops","start-value","list-delim", "list-decimal","list-style","field-font","field-color", "keep-together","keep-with-next","orphans","widows","dom-dir"};
@@ -864,8 +864,8 @@ void AP_Dialog_Styles::_createCharPreviewFromGC(GR_Graphics * gc,
 // Text for the Preview
 //
 	static UT_UCS4Char szString[60];
-	UT_UCS4_strcpy_utf8_char( (UT_UCS4Char *) szString, pSS->getValue(AP_STRING_ID_DLG_Styles_LBL_TxtMsg));
-	m_pCharPreview->setDrawString((const UT_UCS4Char *) szString);
+	UT_UCS4_strcpy_utf8_char( static_cast<UT_UCS4Char *>( szString), pSS->getValue(AP_STRING_ID_DLG_Styles_LBL_TxtMsg));
+	m_pCharPreview->setDrawString(static_cast<const UT_UCS4Char *>( szString));
 //
 // set our Vector of Character Properties into the preview class.
 //
@@ -930,11 +930,11 @@ void AP_Dialog_Styles::_populateAbiPreview(bool isNew)
 	static UT_UCS4Char sz3[4];
 	static UT_UCS4Char szSpace[4];
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
-	UT_UCS4_strcpy_utf8_char( (UT_UCS4Char *) szString, pSS->getValue(AP_STRING_ID_DLG_Styles_LBL_TxtMsg));
-	UT_UCS4_strcpy_char( (UT_UCS4Char *) sz1, " 1");
-	UT_UCS4_strcpy_char( (UT_UCS4Char *) sz2, " 2");
-	UT_UCS4_strcpy_char( (UT_UCS4Char *) sz3, " 3");
-	UT_UCS4_strcpy_char( (UT_UCS4Char *) szSpace, "  ");
+	UT_UCS4_strcpy_utf8_char( static_cast<UT_UCS4Char *>( szString), pSS->getValue(AP_STRING_ID_DLG_Styles_LBL_TxtMsg));
+	UT_UCS4_strcpy_char( static_cast<UT_UCS4Char *>( sz1), " 1");
+	UT_UCS4_strcpy_char( static_cast<UT_UCS4Char *>( sz2), " 2");
+	UT_UCS4_strcpy_char( static_cast<UT_UCS4Char *>( sz3), " 3");
+	UT_UCS4_strcpy_char( static_cast<UT_UCS4Char *>( szSpace), "  ");
 	UT_uint32 len =UT_UCS4_strlen(szString);
 	UT_uint32 len1 =UT_UCS4_strlen(sz1);
 	UT_uint32 lenSpace =UT_UCS4_strlen(szSpace);
@@ -957,10 +957,10 @@ void AP_Dialog_Styles::_populateAbiPreview(bool isNew)
 	UT_uint32 i=0;
 	for(i=0;i<15;i++)
 	{
-		getLView()->cmdCharInsert((UT_UCS4Char *) szString,len);
-		getLView()->cmdCharInsert((UT_UCS4Char *) szSpace,lenSpace);
+		getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( szString),len);
+		getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( szSpace),lenSpace);
 	}
-	getLView()->cmdCharInsert((UT_UCS4Char *) sz1,len1);
+	getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( sz1),len1);
 
 	static std::string Grey;
 	static std::string szFGColor;
@@ -1063,10 +1063,10 @@ void AP_Dialog_Styles::_populateAbiPreview(bool isNew)
 
 	for(i=0; i<8; i++)
 	{
-		getLView()->cmdCharInsert((UT_UCS4Char *) szString,len);
-		getLView()->cmdCharInsert((UT_UCS4Char *) szSpace,lenSpace);
+		getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( szString),len);
+		getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( szSpace),lenSpace);
 	}
-	getLView()->cmdCharInsert((UT_UCS4Char *) sz2,len1);
+	getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( sz2),len1);
 //
 // Third Paragraph
 //
@@ -1075,10 +1075,10 @@ void AP_Dialog_Styles::_populateAbiPreview(bool isNew)
 	getLView()->setCharFormat(GreyCol);
 	for(i=0; i<15; i++)
 	{
-		getLView()->cmdCharInsert((UT_UCS4Char *) szString,len);
-		getLView()->cmdCharInsert((UT_UCS4Char *) szSpace,lenSpace);
+		getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( szString),len);
+		getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( szSpace),lenSpace);
 	}
-	getLView()->cmdCharInsert((UT_UCS4Char *) sz3,len1);
+	getLView()->cmdCharInsert(static_cast<UT_UCS4Char *>( sz3),len1);
 }
 
 /*!
@@ -1123,13 +1123,13 @@ void AP_Dialog_Styles::event_paraPreviewUpdated (const gchar * pageLeftMargin,
 
 	if (firstLineIndent) {
 
-		sz = (const char *)firstLineIndent;
+		sz = static_cast<const char *>(firstLineIndent);
 
-		if (UT_convertDimensionless(sz) > (double) 0)
+		if (UT_convertDimensionless(sz) > static_cast<double>( 0))
 		{
 			tIndent = AP_Dialog_Paragraph::indent_FIRSTLINE;
 		}
-		else if (UT_convertDimensionless(sz) < (double) 0)
+		else if (UT_convertDimensionless(sz) < static_cast<double>( 0))
 		{
 			tIndent = AP_Dialog_Paragraph::indent_HANGING;
 		}
@@ -1139,7 +1139,7 @@ void AP_Dialog_Styles::event_paraPreviewUpdated (const gchar * pageLeftMargin,
 	if (lineSpacing) {
 
 		sLineSpacing = lineSpacing;
-		sz = (const char *)lineSpacing;
+		sz = static_cast<const char *>(lineSpacing);
 
 		pPlusFound = strrchr(sz, '+');
 		if (pPlusFound && *(pPlusFound + 1) == 0) {
@@ -1246,11 +1246,11 @@ void AP_Dialog_Styles::_populatePreviews(bool isModify)
 			else
 			{
 				paraValues[i] = szValue;
-				m_curStyleDesc += (const char *)szName;
+				m_curStyleDesc += static_cast<const char *>(szName);
 				m_curStyleDesc += ":";
 
 				if (szValue && *szValue)
-				    m_curStyleDesc += (const char *)szValue;
+				    m_curStyleDesc += static_cast<const char *>(szValue);
 				m_curStyleDesc += "; ";
 			}
 		}
@@ -1275,10 +1275,10 @@ void AP_Dialog_Styles::_populatePreviews(bool isModify)
 			}
 			else
 			{
-				m_curStyleDesc += (const char *)szName;
+				m_curStyleDesc += static_cast<const char *>(szName);
 				m_curStyleDesc += ":";
 				if(szValue && *szValue)
-				    m_curStyleDesc += (const char *)szValue;
+				    m_curStyleDesc += static_cast<const char *>(szValue);
 				m_curStyleDesc += "; ";
 			}
 //
@@ -1305,10 +1305,10 @@ void AP_Dialog_Styles::_populatePreviews(bool isModify)
 				event_paraPreviewUpdated(
 					PP_getAttribute("page-margin-left", props_in).c_str(),
 					PP_getAttribute("page-margin-right", props_in).c_str(),
-					(const gchar *)paraValues[0], (const gchar *)paraValues[1],
-					(const gchar *)paraValues[2], (const gchar *)paraValues[3],
-					(const gchar *)paraValues[4], (const gchar *)paraValues[5],
-					(const gchar *)paraValues[6]);
+					static_cast<const gchar *>(paraValues[0]), static_cast<const gchar *>(paraValues[1]),
+					static_cast<const gchar *>(paraValues[2]), static_cast<const gchar *>(paraValues[3]),
+					static_cast<const gchar *>(paraValues[4]), static_cast<const gchar *>(paraValues[5]),
+					static_cast<const gchar *>(paraValues[6]));
 			if(!isModify)
 				event_charPreviewUpdated();
 		}

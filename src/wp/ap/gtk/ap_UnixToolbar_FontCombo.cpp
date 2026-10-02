@@ -52,7 +52,7 @@ AP_UnixToolbar_FontCombo::AP_UnixToolbar_FontCombo(EV_Toolbar * pToolbar,
 	: EV_Toolbar_Control(pToolbar/*,id*/)
 {
 	UT_DEBUG_ONLY_ARG(id);
-	UT_ASSERT(id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT);
+	UT_ASSERT(id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_FONT));
 	m_nPixels = 150;
 
 	m_nLimit = GR_CairoGraphics::getAllFontCount();

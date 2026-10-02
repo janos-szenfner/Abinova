@@ -765,12 +765,12 @@ void AP_UnixDialog_Document::_readWidgets()
 		GTK_SPIN_BUTTON(m_wSpinGutter)));
 	setGutterPosition(_dropdown_index(GTK_DROP_DOWN(m_wGutterPos)) == 1
 					  ? GUTTER_TOP : GUTTER_LEFT);
-	setMultiplePages((tMultiPage)_dropdown_index(
-		GTK_DROP_DOWN(m_wMultiPage)));
-	setApplyTo((tApplyTo)_dropdown_index(GTK_DROP_DOWN(m_wApplyTo)));
-	setSectionStart((tSectionStart)_dropdown_index(
-		GTK_DROP_DOWN(m_wSectionStart)));
-	setVerticalAlign((tVAlign)_dropdown_index(GTK_DROP_DOWN(m_wVAlign)));
+	setMultiplePages(static_cast<tMultiPage>(_dropdown_index(
+		GTK_DROP_DOWN(m_wMultiPage))));
+	setApplyTo(static_cast<tApplyTo>(_dropdown_index(GTK_DROP_DOWN(m_wApplyTo))));
+	setSectionStart(static_cast<tSectionStart>(_dropdown_index(
+		GTK_DROP_DOWN(m_wSectionStart))));
+	setVerticalAlign(static_cast<tVAlign>(_dropdown_index(GTK_DROP_DOWN(m_wVAlign))));
 	setDifferentOddEven(gtk_check_button_get_active(
 		GTK_CHECK_BUTTON(m_wOddEven)));
 	setDifferentFirstPage(gtk_check_button_get_active(

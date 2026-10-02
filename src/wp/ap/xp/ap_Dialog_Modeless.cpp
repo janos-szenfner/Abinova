@@ -114,7 +114,7 @@ void  AP_Dialog_Modeless::setActiveFrame(XAP_Frame * /*pFrame*/)
 bool AP_Dialog_Modeless::setView(FV_View * /*view*/)
 {
 	if (getActiveFrame())
-		m_pView = (FV_View *) getActiveFrame()->getCurrentView();
+		m_pView = static_cast<FV_View *>( getActiveFrame()->getCurrentView());
 	else
 		m_pView = nullptr;
 	return true;
@@ -125,7 +125,7 @@ FV_View * AP_Dialog_Modeless::getView(void) const
 	XAP_Frame * pFrame = getActiveFrame();
 
 	if (pFrame)
-		return (FV_View *) pFrame->getCurrentView();
+		return static_cast<FV_View *>( pFrame->getCurrentView());
 	else
 		return nullptr;
 }

@@ -381,7 +381,7 @@ bool XAP_App::addListener(AV_Listener * pListener,
 	UT_sint32 k;
 
 	// see if we can recycle a cell in the vector.
-	UT_DEBUGMSG(("Asked to register pListener %p \n", (void*)pListener));
+	UT_DEBUGMSG(("Asked to register pListener %p \n", static_cast<void*>(pListener)));
 	
 	for (k=0; k<kLimit; k++)
 		if (m_vecPluginListeners.getNthItem(k) == nullptr)
@@ -412,7 +412,7 @@ bool XAP_App::addListener(AV_Listener * pListener,
  */
 bool XAP_App::removeListener(AV_ListenerId listenerId)
 {
-	if (listenerId == (AV_ListenerId) -1)
+	if (listenerId == static_cast<AV_ListenerId>( -1))
 		return false;
 	
 	if (m_vecPluginListeners.getNthItem(listenerId)) {
@@ -1205,9 +1205,9 @@ void XAP_App::enumerateFrames(UT_Vector & v) const
 		XAP_Frame * pF = getFrame(i);
 		if(pF)
 		{
-			if (v.findItem((void*)pF) < 0)
+			if (v.findItem(static_cast<void*>(pF)) < 0)
 			{
-				v.addItem((void*)pF);
+				v.addItem(static_cast<void*>(pF));
 			}
 		}
 	}
@@ -1220,7 +1220,7 @@ XAP_App::getDocuments( const AD_Document * pExclude ) const
     enumerateDocuments( t, pExclude );
     std::list< AD_Document* > ret;
     for( int i=0; i < t.size(); ++i )
-        ret.push_back( (AD_Document*)t[i] );
+        ret.push_back( const_cast<AD_Document*>(static_cast<const AD_Document*>(t[i] )));
     return ret;
 }
 
@@ -1250,11 +1250,11 @@ void XAP_App::enumerateDocuments(UT_Vector & v, const AD_Document * pExclude) co
 
 			if(pD && pD != pExclude)
 			{
-				iIndx = v.findItem((void*)pD);
+				iIndx = v.findItem(static_cast<void*>(pD));
 
 				if(iIndx < 0)
 				{
-					v.addItem((void*)pD);
+					v.addItem(static_cast<void*>(pD));
 				}
 			}
 		}
@@ -1563,7 +1563,7 @@ bool XAP_App::retrieveState()
 			return false;
 		
 		// Open a complete but blank frame, then load the document into it
-		errorCode = pFrame->loadDocument((const char *)nullptr, 0 /*IEFT_Unknown*/);
+		errorCode = pFrame->loadDocument(static_cast<const char *>(nullptr), 0 /*IEFT_Unknown*/);
 
 		bRet &= (errorCode == UT_OK);
 		

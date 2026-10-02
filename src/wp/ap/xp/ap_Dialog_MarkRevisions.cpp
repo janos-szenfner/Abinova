@@ -80,7 +80,7 @@ char * AP_Dialog_MarkRevisions::getRadio1Label()
 	const char * pLabel = m_pSS->getValue(AP_STRING_ID_DLG_MarkRevisions_Check1Label);
 
 	UT_return_val_if_fail(pLabel,nullptr);
-	char * pBuff = (char*)UT_calloc(strlen(pLabel) + 35, sizeof(char));
+	char * pBuff = static_cast<char*>(UT_calloc(strlen(pLabel) + 35, sizeof(char)));
 
 	
 	sprintf(pBuff, pLabel, m_pRev->getId());
@@ -114,7 +114,7 @@ char * AP_Dialog_MarkRevisions::getComment1(bool utf8)
 		UT_UCS4Char *pStr2 = nullptr;
 		UT_uint32 iLen = UT_UCS4_strlen(pC);
 
-		pStr2  = (UT_UCS4Char *)UT_calloc( iLen + 1, sizeof(UT_UCS4Char));
+		pStr2  = static_cast<UT_UCS4Char *>(UT_calloc( iLen + 1, sizeof(UT_UCS4Char)));
 		UT_return_val_if_fail(pStr2,nullptr);
 		bFree = true;
 
@@ -130,13 +130,13 @@ char * AP_Dialog_MarkRevisions::getComment1(bool utf8)
 	if (utf8)
 	{
 		UT_UTF8String comment(pC);
-		pComment = (char *)UT_calloc(comment.byteLength() + 1, sizeof(char));
+		pComment = static_cast<char *>(UT_calloc(comment.byteLength() + 1, sizeof(char)));
 		UT_return_val_if_fail(pComment,nullptr);
 		pComment = strcpy(pComment, comment.utf8_str());
 	}
 	else
 	{
-		pComment = (char *)UT_calloc(UT_UCS4_strlen(pC) + 1, sizeof(char));
+		pComment = static_cast<char *>(UT_calloc(UT_UCS4_strlen(pC) + 1, sizeof(char)));
 		UT_return_val_if_fail(pComment,nullptr);
 		UT_UCS4_strcpy_to_char(pComment,pC);
 	}

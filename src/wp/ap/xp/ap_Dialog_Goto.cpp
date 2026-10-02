@@ -181,14 +181,14 @@ AP_Dialog_Goto::getRDF()
 // --------------------------- Setup Functions -----------------------------
 bool AP_Dialog_Goto::setView(FV_View * /*view*/)
 {
-	m_pView =  (FV_View *) getActiveFrame()->getCurrentView();
+	m_pView =  static_cast<FV_View *>( getActiveFrame()->getCurrentView());
 	return true;
 }
 
 FV_View * AP_Dialog_Goto::getView(void) const
 {
 	XAP_Frame * pFrame =  getActiveFrame();
-	return  (FV_View *) pFrame->getCurrentView();
+	return  static_cast<FV_View *>( pFrame->getCurrentView());
 }
 
 UT_sint32 AP_Dialog_Goto::getExistingBookmarksCount() const

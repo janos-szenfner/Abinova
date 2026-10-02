@@ -297,7 +297,7 @@ void IE_Exp_RTF::exportHdrFtr(const char * pszHdrFtr , const char * pszHdrFtrID,
 #endif
 	m_pListenerWriteDoc->_setTabEaten(false);
 
-	pf_Frag_Strux* hdrStrux = getDoc()->findHdrFtrStrux((const gchar *)pszHdrFtr, (const gchar *)pszHdrFtrID);
+	pf_Frag_Strux* hdrStrux = getDoc()->findHdrFtrStrux(static_cast<const gchar *>(pszHdrFtr), static_cast<const gchar *>(pszHdrFtrID));
 
 	if(hdrStrux == nullptr)
 	{
@@ -382,7 +382,7 @@ void s_RTF_Listener::_handleDataItems(void)
 			for (j=0; j<jLimit; j+=72)
 			{
 				jSize = UT_MIN(72,(jLimit-j));
-				m_pie->write((const char *)bb64.getPointer(j),jSize);
+				m_pie->write(static_cast<const char *>(bb64.getPointer(j)),jSize);
 				m_pie->write("\n");
 			}
 			m_pie->write("</d>\n");
@@ -408,7 +408,7 @@ UT_sint32 IE_Exp_RTF::_findColor(const char * szColor) const
 
 	for (k=0; k<kLimit; k++)
 	{
-		const char * sz = (const char *)m_vecColors.getNthItem(k);
+		const char * sz = static_cast<const char *>(m_vecColors.getNthItem(k));
 		if (g_ascii_strcasecmp(sz,szColor) == 0)
 			return k;
 	}
@@ -534,7 +534,7 @@ void IE_Exp_RTF::_rtf_keyword_ifnotdefault_twips(const char * szKey, const char 
 
 	// convert dimensioned value into twips (twentieths of a point) (aka 720 twips/inch)
 	double dbl = UT_convertToPoints(szValue);
-	UT_sint32 d = (UT_sint32)(dbl * 20.0);
+	UT_sint32 d = static_cast<UT_sint32>((dbl * 20.0));
 
 	if (d == defaultValue)
 		return;
@@ -613,7 +613,7 @@ void IE_Exp_RTF::_rtf_chardata(const char * pbuf, UT_uint32 buflen)
 		if (*current & 0x80) {  // check for non-ASCII value
 			UT_UCS4Char wc;
 			size_t insz, sz;
-			char * dest = (char*)(&wc);
+			char * dest = reinterpret_cast<char*>((&wc));
 			insz = buflen - count;
 			sz = sizeof(wc);
 			UT_iconv(m_conv, &current, &insz, &dest, &sz);
@@ -759,7 +759,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		/*UT_uint32 charsetcode =*/ XAP_EncodingManager::get_instance()->getWinCharsetCode();
 		for (k=0; k<kLimit; k++)
 		{
-			const _rtf_font_info * pk = (const _rtf_font_info *)m_vecFonts.getNthItem(k);
+			const _rtf_font_info * pk = static_cast<const _rtf_font_info *>(m_vecFonts.getNthItem(k));
 			_rtf_nl();
 			_rtf_open_brace();
 			_rtf_keyword("f", k);								// font index number
@@ -792,7 +792,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		_rtf_keyword("colortbl");
 		for (k=0; k<kLimit; k++)
 		{
-			const char * szColor = (const char *)m_vecColors.getNthItem(k);
+			const char * szColor = static_cast<const char *>(m_vecColors.getNthItem(k));
 			UT_RGBColor localColor;
 			UT_parseColor(szColor,localColor);
 			_rtf_nl();
@@ -820,7 +820,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 	const gchar * pszFootnoteType = nullptr;
 	const PP_AttrProp* pDocAP = getDoc()->getAttrProp();
 	UT_return_val_if_fail (pDocAP, false);
-	pDocAP->getProperty("document-footnote-type", (const gchar *&)pszFootnoteType);
+	pDocAP->getProperty("document-footnote-type", static_cast<const gchar *&>(pszFootnoteType));
 	if (pszFootnoteType == nullptr)
 	{
 		_rtf_keyword("ftnnar");			// Numeric Footnotes
@@ -891,7 +891,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 	}
 
 	const gchar * pszEndnoteType = nullptr;
-	pDocAP->getProperty("document-endnote-type", (const gchar *&)pszEndnoteType);
+	pDocAP->getProperty("document-endnote-type", static_cast<const gchar *&>(pszEndnoteType));
 	if (pszEndnoteType == nullptr)
 	{
 		_rtf_keyword("aftnnar");			// Numeric Endnotes
@@ -962,7 +962,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 	}
 
 	const gchar * pszTmp = nullptr;
-	pDocAP->getProperty("document-footnote-initial", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-footnote-initial", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		_rtf_keyword("ftnstart",atoi(pszTmp));			// First footnote
@@ -972,7 +972,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		_rtf_keyword("ftnstart",1);			// First footnote
 	}
 
-	pDocAP->getProperty("document-footnote-restart-section", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-footnote-restart-section", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -981,7 +981,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		}
 	}
 
-	pDocAP->getProperty("document-footnote-restart-page", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-footnote-restart-page", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -990,12 +990,12 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		}
 	}
 
-	pDocAP->getProperty("document-endnote-initial", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-initial", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		_rtf_keyword("aftnstart", atoi(pszTmp)); // initial endnote value
 	}
-	pDocAP->getProperty("document-endnote-restart-section", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-restart-section", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -1004,7 +1004,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		}
 	}
 
-	pDocAP->getProperty("document-endnote-place-endsection", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-place-endsection", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -1013,7 +1013,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		}
 	}
 
-	pDocAP->getProperty("document-endnote-place-enddoc", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-place-enddoc", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -1118,7 +1118,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
             std::set< std::string > xmlids;
             rdf->addRelevantIDsForRange( xmlids, getDocRange() );
             UT_DEBUGMSG(("MIQ: RTF export creating restricted RDF model xmlids.sz:%lu\n", 
-						 (unsigned long)xmlids.size()));
+						 static_cast<unsigned long>(xmlids.size())));
             PD_RDFModelHandle subm = rdf->createRestrictedModelForXMLIDs( xmlids );
             std::string rdfxml = toRDFXML( subm );
             _rtf_chardata( s_escapeXMLString(rdfxml) );
@@ -1165,7 +1165,7 @@ void IE_Exp_RTF::_write_prop_ifnotdefault(const PD_Style * pStyle,
 					  const char * szRTFName)
 {
 	const gchar * sz = nullptr;
-	if (pStyle->getProperty((const gchar *)szPropName, sz)) {
+	if (pStyle->getProperty(static_cast<const gchar *>(szPropName), sz)) {
 		_rtf_keyword_ifnotdefault_twips(szRTFName, sz, 0);
 	}
 }
@@ -1178,7 +1178,7 @@ void IE_Exp_RTF::_write_prop_ifyes(const PD_Style * pStyle,
 				   const char * szRTFName)
 {
     const gchar * sz = nullptr;
-    if (pStyle->getProperty((const gchar *)szPropName, sz) && strcmp(sz, "yes") == 0) {
+    if (pStyle->getProperty(static_cast<const gchar *>(szPropName), sz) && strcmp(sz, "yes") == 0) {
 	    _rtf_keyword(szRTFName);
     }
 }
@@ -1204,8 +1204,8 @@ public:
 
 static int compare_tabs(const void* p1, const void* p2)
 {
-	_t ** ppTab1 = (_t **) p1;
-	_t ** ppTab2 = (_t **) p2;
+	_t ** ppTab1 = const_cast<_t **>(static_cast<const _t * const*>( p1));
+	_t ** ppTab2 = const_cast<_t **>(static_cast<const _t * const*>( p2));
 
 	if ((*ppTab1)->m_iTabPosition < (*ppTab2)->m_iTabPosition)
 		return -1;
@@ -1272,7 +1272,7 @@ void IE_Exp_RTF::_write_tabdef(const char * szTabStops)
 			pszPosition[k] = 0;
 			// convert position into twips
 			double dbl = UT_convertToPoints(pszPosition);
-			UT_sint32 d = (UT_sint32)(dbl * 20.0);
+			UT_sint32 d = static_cast<UT_sint32>((dbl * 20.0));
 
 			_t * p_t = new _t(szTL,szTT,szTK,d);
 			vecTabs.addItem(p_t);
@@ -1297,7 +1297,7 @@ void IE_Exp_RTF::_write_tabdef(const char * szTabStops)
 		UT_uint32 kLimit = vecTabs.getItemCount();
 		for (k=0; k<kLimit; k++)
 		{
-			_t * p_t = (_t *)vecTabs.getNthItem(k);
+			_t * p_t = const_cast<_t *>(static_cast<const _t*>(vecTabs.getNthItem(k)));
 			// write <tabkind>
 			UT_nonnull_or_continue(p_t);
 			if (p_t->m_szTabKindKeyword && *p_t->m_szTabKindKeyword)
@@ -1765,19 +1765,19 @@ void IE_Exp_RTF::_write_parafmt(const PP_AttrProp * pSpanAP, const PP_AttrProp *
 		        const char * pPlusFound = strrchr(szLineHeight, '+');
 		        if (pPlusFound && *(pPlusFound + 1) == 0)             //  "+" means "at least" line spacing
 			{
-				UT_sint32 dSpacing = (UT_sint32)(f * 20.0);
+				UT_sint32 dSpacing = static_cast<UT_sint32>((f * 20.0));
 				_rtf_keyword("sl",dSpacing);
 				_rtf_keyword("slmult",0);
 			}
 			else if (UT_hasDimensionComponent(szLineHeight)) //  use exact line spacing
 			{
-			        UT_sint32 dSpacing = (UT_sint32)(f * 20.0);
+			        UT_sint32 dSpacing = static_cast<UT_sint32>((f * 20.0));
 			        _rtf_keyword("sl",-dSpacing);
 			        _rtf_keyword("slmult",0);
 		        }
 			else // multiple line spacing
 			{
-			        UT_sint32 dSpacing = (UT_sint32)(f * 240.0);
+			        UT_sint32 dSpacing = static_cast<UT_sint32>((f * 240.0));
 			        _rtf_keyword("sl",dSpacing);
 			        _rtf_keyword("slmult",1);
 		        }
@@ -1921,7 +1921,7 @@ void IE_Exp_RTF::_write_charfmt(const s_RTF_AttrPropAdapter & apa)
 	UT_sint32 ndxColor = -1;
 	if(szColor)
 	{
-		ndxColor = _findColor((char*)szColor);
+		ndxColor = _findColor(const_cast<char*>(szColor));
 		if( ndxColor == -1)
 		{
 			return;
@@ -1936,7 +1936,7 @@ void IE_Exp_RTF::_write_charfmt(const s_RTF_AttrPropAdapter & apa)
 
 	if (szColor && g_ascii_strcasecmp (szColor, "transparent") != 0)
 	{
-		ndxColor = _findColor((char*)szColor);
+		ndxColor = _findColor(const_cast<char*>(szColor));
 		UT_ASSERT_HARMLESS(ndxColor != -1);
 		if (ndxColor != 1) // white background, the default
 		{
@@ -1958,7 +1958,7 @@ void IE_Exp_RTF::_write_charfmt(const s_RTF_AttrPropAdapter & apa)
 
 	const gchar * szFontSize = _getStyleProp(pADStyle,&apa,"font-size");
 	double dbl = UT_convertToPoints(szFontSize);
-	UT_sint32 d = (UT_sint32)(dbl*2.0);
+	UT_sint32 d = static_cast<UT_sint32>((dbl*2.0));
 
 	// if (d != 24) - always write this out
 	if(szFontSize != nullptr)
@@ -2145,7 +2145,7 @@ void IE_Exp_RTF::_output_revision(const s_RTF_AttrPropAdapter & apa, bool bPara,
 			// We need to output this in little endian order, I think, since win32 is
 			// inherently LE
 			char Dttm[4];
-			const char * pDttm = (const char *) & iDttm;
+			const char * pDttm = static_cast<const char *>( & iDttm);
 			
 #ifdef UT_LITTLE_ENDIAN
 			Dttm[0] = *pDttm;
@@ -2169,7 +2169,7 @@ void IE_Exp_RTF::_output_revision(const s_RTF_AttrPropAdapter & apa, bool bPara,
 				else
 				{
 					UT_String s2;
-					_rtf_nonascii_hex2((UT_sint32)Dttm[i], s2);
+					_rtf_nonascii_hex2(static_cast<UT_sint32>(Dttm[i]), s2);
 					s += s2.c_str();
 				}
 			}
@@ -2266,7 +2266,7 @@ void IE_Exp_RTF::_write_style_fmt(const PD_Style * pStyle)
     _write_prop_ifyes(pStyle, "keep-with-next", "keepn");
 
     const gchar * sz = nullptr;
-    if (pStyle->getProperty((const gchar *)"text-align", sz))
+    if (pStyle->getProperty(static_cast<const gchar *>("text-align"), sz))
 	{
 		if (strcmp(sz, "left") == 0)
 		{
@@ -2291,13 +2291,13 @@ void IE_Exp_RTF::_write_style_fmt(const PD_Style * pStyle)
     }
 
     const gchar * szLineHeight = nullptr;
-    if (pStyle->getProperty((const gchar *) "line-height", szLineHeight)
+    if (pStyle->getProperty(static_cast<const gchar *>( "line-height"), szLineHeight)
 		&& strcmp(szLineHeight,"1.0") != 0)
 	{
 		double f = UT_convertDimensionless(szLineHeight);
 		if (f != 0.0)
 		{
-			UT_sint32 dSpacing = (UT_sint32)(f * 240.0);
+			UT_sint32 dSpacing = static_cast<UT_sint32>((f * 240.0));
 			_rtf_keyword("sl",dSpacing);
 			_rtf_keyword("slmult",1);
 		}
@@ -2312,7 +2312,7 @@ void IE_Exp_RTF::_write_style_fmt(const PD_Style * pStyle)
     // apoctl
 
     // tabdef
-    if (pStyle->getProperty((const gchar *) "tabstops", sz)) _write_tabdef(sz);
+    if (pStyle->getProperty(static_cast<const gchar *>( "tabstops"), sz)) _write_tabdef(sz);
 
 
     // shading
@@ -2384,7 +2384,7 @@ void IE_Exp_RTF::_selectStyles()
 			//
 			// Add this style to the hash
 			//
-			NumberedStyle * pns = (NumberedStyle *) m_hashStyles.pick(szName);
+			NumberedStyle * pns = static_cast<NumberedStyle *>( m_hashStyles.pick(szName));
 			if(pns == nullptr)
 			{
 				m_hashStyles.insert(szName, new NumberedStyle(pStyle, ++nStyleNumber));
@@ -2434,7 +2434,7 @@ UT_uint32 IE_Exp_RTF::_getStyleNumber(const gchar * szStyle)
 	{
 		szStyle = "Normal";
 	}
-	NumberedStyle * pns = (NumberedStyle*)m_hashStyles.pick(szStyle);
+	NumberedStyle * pns = static_cast<NumberedStyle*>(m_hashStyles.pick(szStyle));
 	UT_ASSERT_HARMLESS(pns);
 	if(pns != nullptr )
 	{
@@ -2442,7 +2442,7 @@ UT_uint32 IE_Exp_RTF::_getStyleNumber(const gchar * szStyle)
 	}
 	else
 	{
-		pns = (NumberedStyle*)m_hashStyles.pick("Normal");
+		pns = static_cast<NumberedStyle*>(m_hashStyles.pick("Normal"));
 		return pns->n;
 	}
 }
@@ -2805,7 +2805,7 @@ void IE_Exp_RTF::_output_LevelText(const fl_AutoNumConstPtr & pAuto, UT_uint32 i
 	else
 	{
 		_rtf_keyword("'01");
-		std::string sBullet = UT_std_string_sprintf("\\u%d",(UT_sint32) bulletsym);
+		std::string sBullet = UT_std_string_sprintf("\\u%d",static_cast<UT_sint32>( bulletsym));
 		write(sBullet.c_str());
 		write(" ;");
 		_rtf_close_brace();
@@ -2835,7 +2835,7 @@ void IE_Exp_RTF::_generate_level_Text(const fl_AutoNumConstPtr & pAuto, UT_Strin
 		_get_LeftRight_Side(LeftSide,RightSide);
 		xxx_UT_DEBUGMSG(("SEVIOR: Top - leftside = %s rightside = %s \n",LeftSide.c_str(),RightSide.c_str()));
 		UT_String place;
-		UT_uint32 locPlace = (UT_uint32) LeftSide.size();
+		UT_uint32 locPlace = static_cast<UT_uint32>( LeftSide.size());
 		_rtf_nonascii_hex2(locPlace+1,place);
 		LevelNumbers = place;
 		ifoundLevel = 1;
@@ -2935,8 +2935,8 @@ void IE_Exp_RTF::_get_LeftRight_Side(UT_String & LeftSide, UT_String & RightSide
 	xxx_UT_DEBUGMSG(("SEVIOR: Substring = %s Total is %s \n",psz,LeftSide.c_str()));
 	if(psz != nullptr)
 	{
-		UT_uint32 index = (UT_uint32) (psz - LeftSide.c_str());
-		UT_uint32 len = (UT_uint32) strlen(LeftSide.c_str());
+		UT_uint32 index = static_cast<UT_uint32>( (psz - LeftSide.c_str()));
+		UT_uint32 len = static_cast<UT_uint32>( strlen(LeftSide.c_str()));
 		xxx_UT_DEBUGMSG(("SEVIOR: index = %d len =%d \n",index,len));
 		if(index+2 < len)
 		{
@@ -3064,14 +3064,14 @@ void IE_Exp_RTF::_output_ListRTF(const fl_AutoNumConstPtr & pAuto, UT_uint32 iLe
 	if(pAuto == nullptr)
 	{
 		float marg = LIST_DEFAULT_INDENT;
-		float indent =  (float)LIST_DEFAULT_INDENT_LABEL;
+		float indent =  static_cast<float>(LIST_DEFAULT_INDENT_LABEL);
 		UT_String smarg;
 		UT_String sindent;
-		marg = (((float) iLevel) +1.0f) * marg;
+		marg = ((static_cast<float>( iLevel)) +1.0f) * marg;
 		UT_String_sprintf(smarg,"%fin",marg);
 		UT_String_sprintf(sindent,"%fin",indent);
-		_rtf_keyword_ifnotdefault_twips("li",(char*)smarg.c_str(),0);
-		_rtf_keyword_ifnotdefault_twips("fi",(char*)sindent.c_str(),0);
+		_rtf_keyword_ifnotdefault_twips("li",const_cast<char*>(smarg.c_str()),0);
+		_rtf_keyword_ifnotdefault_twips("fi",const_cast<char*>(sindent.c_str()),0);
 	}
 //
 // Output the indents and alignments. Use the first sdh to get these.
@@ -3090,12 +3090,12 @@ void IE_Exp_RTF::_output_ListRTF(const fl_AutoNumConstPtr & pAuto, UT_uint32 iLe
 			bool bres = getDoc()->getPropertyFromStrux(sdh,true,PD_MAX_REVISION,"text-indent",&szIndent);
 			if(bres)
 			{
-				_rtf_keyword_ifnotdefault_twips("fi",(char*)szIndent,0);
+				_rtf_keyword_ifnotdefault_twips("fi",const_cast<char*>(szIndent),0);
 			}
 			bres = getDoc()->getPropertyFromStrux(sdh,true,PD_MAX_REVISION,"margin-left",&szAlign);
 			if(bres)
 			{
-				_rtf_keyword_ifnotdefault_twips("li",(char*)szAlign,0);
+				_rtf_keyword_ifnotdefault_twips("li",const_cast<char*>(szAlign),0);
 			}
 		}
 	}
@@ -3181,7 +3181,7 @@ UT_sint32 IE_Exp_RTF::_findFont(const _rtf_font_info * pfi) const
 
 	for (k=0; k<kLimit; k++)
 	{
-		const _rtf_font_info * pk = (const _rtf_font_info *)m_vecFonts.getNthItem(k);
+		const _rtf_font_info * pk = static_cast<const _rtf_font_info *>(m_vecFonts.getNthItem(k));
 		if (pk->_is_same(*pfi))
 			return k;
 	}
@@ -3248,7 +3248,7 @@ bool IE_Exp_RTF::s_escapeString(UT_UTF8String &sOutStr,
 			bRetVal = true;
 			// RTF is limited to +-32K ints, therefore negative numbers
 			// are needed to represent some unicode chars.
-			signed short tmp = (signed short) ((unsigned short) sInStr[i]);
+			signed short tmp = static_cast<signed short>( (static_cast<unsigned short>( sInStr[i])));
 			// Append a \uXXXXX sequence.
 			sOutStr += UT_UTF8String_sprintf("\\u%d",tmp);
 			// Append alternative chars.
@@ -3296,7 +3296,7 @@ std::string IE_Exp_RTF::s_escapeString( const std::string& inStr, UT_uint32 iAlt
 {
     UT_UTF8String sOutStr;
     /*bool ret =*/ s_escapeString( sOutStr, inStr.c_str(), inStr.length(), iAltChars );
-    return (std::string)sOutStr.utf8_str();
+    return static_cast<std::string>(sOutStr.utf8_str());
 }
 
 
@@ -3349,9 +3349,9 @@ bool _rtf_font_info::init(const s_RTF_AttrPropAdapter & apa, bool bDoFieldFont)
 	GR_Font::FontFamilyEnum ff;
 	GR_Font::FontPitchEnum fp;
 	bool tt;
-	GR_Font::s_getGenericFontProperties((char*)szName, &ff, &fp, &tt);
+	GR_Font::s_getGenericFontProperties(const_cast<char*>(szName), &ff, &fp, &tt);
 
-	if ((ff >= 0) && (ff < (int32_t)G_N_ELEMENTS(t_ff)))
+	if ((ff >= 0) && (ff < static_cast<int32_t>(G_N_ELEMENTS(t_ff))))
 		szFamily = t_ff[ff];
 	else
 		szFamily = t_ff[GR_Font::FF_Unknown];
@@ -3383,7 +3383,7 @@ bool _rtf_font_info::init(const char * szFontName)
     bool tt;
     GR_Font::s_getGenericFontProperties(m_szName.c_str(), &ff, &fp, &tt);
 
-    if ((ff >= 0) && (ff < (int)G_N_ELEMENTS(t_ff)))
+    if ((ff >= 0) && (ff < static_cast<int>(G_N_ELEMENTS(t_ff))))
 		szFamily = t_ff[ff];
     else
 		szFamily = t_ff[GR_Font::FF_Unknown];
@@ -3457,7 +3457,7 @@ ie_exp_RTF_MsWord97ListMulti::ie_exp_RTF_MsWord97ListMulti(const fl_AutoNumConst
 	{
 		m_vLevels[i] = nullptr;
 	}
-	addLevel(0, (ie_exp_RTF_MsWord97List *) this);
+	addLevel(0, static_cast<ie_exp_RTF_MsWord97List *>( this));
 }
 
 
@@ -3491,12 +3491,12 @@ void ie_exp_RTF_MsWord97ListMulti::addLevel(UT_uint32 iLevel, ie_exp_RTF_MsWord9
 	if(m_vLevels[iLevel] == nullptr)
 	{
 		UT_Vector * pVecList97 = new UT_Vector;
-		pVecList97->addItem((void *) pList97);
+		pVecList97->addItem(static_cast<void *>( pList97));
 		m_vLevels[iLevel] = pVecList97;
 	}
 	else
 	{
-		m_vLevels[iLevel]->addItem((void *) pList97);
+		m_vLevels[iLevel]->addItem(static_cast<void *>( pList97));
 	}
 }
 
@@ -3547,7 +3547,7 @@ UT_uint32 ie_exp_RTF_MsWord97ListMulti::getMatchingID(UT_uint32 listID) const
 	{
 		for(j=0; m_vLevels[i] && (j < m_vLevels[i]->getItemCount()) && !bFound; j++)
 		{
-			pList97 = (ie_exp_RTF_MsWord97List *) m_vLevels[i]->getNthItem(j);
+			pList97 = const_cast<ie_exp_RTF_MsWord97List *>(static_cast<const ie_exp_RTF_MsWord97List*>( m_vLevels[i]->getNthItem(j)));
 			if(j==0)
 			{
 				firstID = pList97->getID();

@@ -45,8 +45,8 @@ EV_Toolbar_LabelSet * AP_CreateToolbarLabelSet(const char * szLanguage_)
 
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 	
-	EV_Toolbar_LabelSet * pLabelSet = new EV_Toolbar_LabelSet(szLanguage, (XAP_Toolbar_Id)AP_TOOLBAR_ID__BOGUS1__, (XAP_Toolbar_Id)AP_TOOLBAR_ID__BOGUS2__);
-	pLabelSet->setLabel((XAP_Toolbar_Id)0 /*AP_TOOLBAR_ID_BOGUS1__*/, nullptr, "NoIcon", nullptr, nullptr);
+	EV_Toolbar_LabelSet * pLabelSet = new EV_Toolbar_LabelSet(szLanguage, static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID__BOGUS1__), static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID__BOGUS2__));
+	pLabelSet->setLabel(static_cast<XAP_Toolbar_Id>(0 /*AP_TOOLBAR_ID_BOGUS1__*/), nullptr, "NoIcon", nullptr, nullptr);
 
 	UT_String iconname;
 	
@@ -54,7 +54,7 @@ EV_Toolbar_LabelSet * AP_CreateToolbarLabelSet(const char * szLanguage_)
 		iconname = #id; \
 		iconname += "_"; \
 		iconname += szLanguage; \
-		pLabelSet->setLabel((XAP_Toolbar_Id)(AP_TOOLBAR_ID_##id), \
+		pLabelSet->setLabel(static_cast<XAP_Toolbar_Id>((AP_TOOLBAR_ID_##id)), \
 								pSS->getValue(AP_STRING_ID_TOOLBAR_LABEL_##id), \
 								iconname.c_str(), \
 								pSS->getValue(AP_STRING_ID_TOOLBAR_TOOLTIP_##id), \

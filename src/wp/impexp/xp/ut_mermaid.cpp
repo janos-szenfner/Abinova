@@ -526,7 +526,7 @@ bool mm_renderFlow(const std::vector<std::string> & stmts,
 	std::vector<int> layer(nodes.size(), 0), indeg(nodes.size(), 0);
 	for (auto & e : edges) indeg[e.to]++;
 	std::vector<int> order;
-	for (size_t i = 0; i < nodes.size(); ++i) order.push_back((int)i);
+	for (size_t i = 0; i < nodes.size(); ++i) order.push_back(static_cast<int>(i));
 	/* simple longest-path: iterate until stable (N <= small) */
 	for (size_t pass = 0; pass < nodes.size() + 1; ++pass)
 	{
@@ -540,7 +540,7 @@ bool mm_renderFlow(const std::vector<std::string> & stmts,
 	std::map<int, std::vector<int> > levels;
 	for (size_t i = 0; i < nodes.size(); ++i)
 	{
-		levels[layer[i]].push_back((int)i);
+		levels[layer[i]].push_back(static_cast<int>(i));
 		maxLayer = std::max(maxLayer, layer[i]);
 	}
 
@@ -572,7 +572,7 @@ bool mm_renderFlow(const std::vector<std::string> & stmts,
 	W += margin * 2; H += margin * 2;
 
 	MM_Canvas c;
-	if (!c.begin((int)ceil(W), (int)ceil(H))) return false;
+	if (!c.begin(static_cast<int>(ceil(W)), static_cast<int>(ceil(H)))) return false;
 
 	/* place nodes */
 	double crossPos = margin;
@@ -669,9 +669,9 @@ bool mm_renderSequence(const std::vector<std::string> & lines,
 	{
 		auto it = pidx.find(s);
 		if (it != pidx.end()) return it->second;
-		pidx[s] = (int)parts.size();
+		pidx[s] = static_cast<int>(parts.size());
 		parts.push_back(s);
-		return (int)parts.size() - 1;
+		return static_cast<int>(parts.size() )- 1;
 	};
 
 	for (auto & l0 : lines)
@@ -690,7 +690,7 @@ bool mm_renderSequence(const std::vector<std::string> & lines,
 		if (mm_starts(l, "note ") || mm_starts(l, "Note "))
 		{
 			/* "note right of X: text" / "note over X,Y: text" */
-			Note nt; nt.atMsg = (int)msgs.size(); nt.which = -1; nt.side = 1;
+			Note nt; nt.atMsg = static_cast<int>(msgs.size()); nt.which = -1; nt.side = 1;
 			std::string r = mm_trim(l.substr(4));
 			size_t colon = r.find(':');
 			std::string head = colon == std::string::npos ? r : r.substr(0, colon);
@@ -778,7 +778,7 @@ bool mm_renderSequence(const std::vector<std::string> & lines,
 	double H = TOP + ROW * (msgs.size() + notes.size()) + 40;
 
 	MM_Canvas c;
-	if (!c.begin((int)ceil(W), (int)ceil(H))) return false;
+	if (!c.begin(static_cast<int>(ceil(W)), static_cast<int>(ceil(H)))) return false;
 
 	/* participants */
 	for (size_t i = 0; i < parts.size(); ++i)
@@ -795,7 +795,7 @@ bool mm_renderSequence(const std::vector<std::string> & lines,
 	for (size_t mi = 0; mi < msgs.size(); ++mi)
 	{
 		/* notes that precede this message */
-		while (noteIx < notes.size() && notes[noteIx].atMsg == (int)mi)
+		while (noteIx < notes.size() && notes[noteIx].atMsg == static_cast<int>(mi))
 		{
 			const Note & nt = notes[noteIx];
 			double cx = px[nt.which] + pw[nt.which] / 2;
@@ -850,17 +850,17 @@ static long mm_days(int y, unsigned m, unsigned d)
 {
 	y -= m <= 2;
 	const long era = (y >= 0 ? y : y - 399) / 400;
-	const unsigned yoe = (unsigned)(y - era * 400);
+	const unsigned yoe = static_cast<unsigned>((y - era * 400));
 	const unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
 	const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-	return era * 146097 + (long)doe - 719468;
+	return era * 146097 + static_cast<long>(doe )- 719468;
 }
 
 static bool mm_parseDate(const std::string & s, long & days)
 {
 	int y, m, d;
 	if (sscanf(s.c_str(), "%d-%d-%d", &y, &m, &d) != 3) return false;
-	days = mm_days(y, (unsigned)m, (unsigned)d);
+	days = mm_days(y, static_cast<unsigned>(m), static_cast<unsigned>(d));
 	return true;
 }
 
@@ -975,7 +975,7 @@ bool mm_renderGantt(const std::vector<std::string> & lines,
 	double H = TOPH + RH * tasks.size() + 24;
 
 	MM_Canvas c;
-	if (!c.begin((int)ceil(W), (int)ceil(H))) return false;
+	if (!c.begin(static_cast<int>(ceil(W)), static_cast<int>(ceil(H)))) return false;
 
 	if (!title.empty())
 		c.text(W / 2, 10, title, FS + 3, 0.5, false);
@@ -988,9 +988,9 @@ bool mm_renderGantt(const std::vector<std::string> & lines,
 		/* civil from days */
 		long z = dd + 719468;
 		long era = (z >= 0 ? z : z - 146096) / 146097;
-		unsigned doe = (unsigned)(z - era * 146097);
+		unsigned doe = static_cast<unsigned>((z - era * 146097));
 		unsigned yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;
-		long yy = (long)yoe + era * 400;
+		long yy = static_cast<long>(yoe )+ era * 400;
 		unsigned doy = doe - (365*yoe + yoe/4 - yoe/100);
 		unsigned mp = (5*doy + 2)/153;
 		unsigned dd2 = doy - (153*mp+2)/5 + 1;
@@ -999,7 +999,7 @@ bool mm_renderGantt(const std::vector<std::string> & lines,
 		char buf[40];
 		snprintf(buf, sizeof(buf), "%04d-%02u-%02u",
 				 static_cast<int>(yy), mm2, dd2);
-		double x = LBL_W + (double)(dd - d0) / (d1 - d0) * chartW;
+		double x = LBL_W + static_cast<double>((dd - d0) )/ (d1 - d0) * chartW;
 		c.text(std::min(x, W - 50), top - 14, buf, FS - 1);
 		c.line(x, top - 4, x, H - 14, true, 0.6, 0.8, 0.8, 0.8);
 	}
@@ -1018,8 +1018,8 @@ bool mm_renderGantt(const std::vector<std::string> & lines,
 		else
 		{
 			c.text(LBL_W - 8, y + RH / 2, t.name, FS - 1, 1.0, true);
-			double bx = LBL_W + (double)(t.start - d0) / (d1 - d0) * chartW;
-			double bw = std::max(6.0, (double)t.dur / (d1 - d0) * chartW);
+			double bx = LBL_W + static_cast<double>((t.start - d0) )/ (d1 - d0) * chartW;
+			double bw = std::max(6.0, static_cast<double>(t.dur )/ (d1 - d0) * chartW);
 			const double * col = s_palette[(row * 3) % s_paletteN];
 			c.rect(bx, y + 5, bw, RH - 10, 3, col[0], col[1], col[2]);
 		}
@@ -1052,9 +1052,9 @@ bool mm_renderClass(const std::vector<std::string> & lines,
 		auto it = cidx.find(n);
 		if (it != cidx.end()) return it->second;
 		Cls c; c.name = n;
-		cidx[n] = (int)classes.size();
+		cidx[n] = static_cast<int>(classes.size());
 		classes.push_back(c);
-		return (int)classes.size() - 1;
+		return static_cast<int>(classes.size() )- 1;
 	};
 
 	Cls * open = nullptr;
@@ -1141,7 +1141,7 @@ bool mm_renderClass(const std::vector<std::string> & lines,
 	double H = y + maxRowH + 24;
 
 	MM_Canvas c;
-	if (!c.begin((int)ceil(W), (int)ceil(H))) return false;
+	if (!c.begin(static_cast<int>(ceil(W)), static_cast<int>(ceil(H)))) return false;
 
 	for (auto & r : rels)
 	{
@@ -1232,7 +1232,7 @@ bool mm_renderPie(const std::vector<std::string> & lines,
 	double H = std::max(2 * R + 50.0, 60.0 + slices.size() * 22);
 
 	MM_Canvas c;
-	if (!c.begin((int)ceil(W), (int)ceil(H))) return false;
+	if (!c.begin(static_cast<int>(ceil(W)), static_cast<int>(ceil(H)))) return false;
 
 	if (!title.empty())
 		c.text(W / 2, 14, title, FS + 3, 0.5, false);
@@ -1288,7 +1288,7 @@ bool UT_Mermaid::renderToPNG(const std::string & source, UT_ByteBuf & out)
 	}
 	if (first.empty()) return false;
 
-	std::vector<std::string> body(lines.begin() + (long)k + 1, lines.end());
+	std::vector<std::string> body(lines.begin() + static_cast<long>(k )+ 1, lines.end());
 
 	if (mm_starts(first, "graph") || mm_starts(first, "flowchart"))
 	{

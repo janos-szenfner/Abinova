@@ -73,7 +73,7 @@ T UT_getAttributeTyped( const PP_Revision* pAP,
                         const gchar* name,
                         T def )
 {
-    return UT_getAttributeTyped( (const PP_AttrProp*)pAP, name, def );
+    return UT_getAttributeTyped( reinterpret_cast<const PP_AttrProp*>(pAP), name, def );
 }
 
 

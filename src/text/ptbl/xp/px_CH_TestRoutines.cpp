@@ -44,8 +44,8 @@ px_ChangeHistory::__dump(FILE * fp) const
 {
 	// dump the change record history
 	
-	fprintf(fp," ChangeHistory: undo pos %d\n",(int)m_undoPosition);
-	fprintf(fp," ChangeHistory: save pos %d\n",(int)m_savePosition);
+	fprintf(fp," ChangeHistory: undo pos %d\n",static_cast<int>(m_undoPosition));
+	fprintf(fp," ChangeHistory: save pos %d\n",static_cast<int>(m_savePosition));
 	fprintf(fp," ChangeHistory: Change records:\n");
 
 	UT_uint32 kLimit = m_vecChangeRecords.getItemCount();
@@ -53,7 +53,7 @@ px_ChangeHistory::__dump(FILE * fp) const
 	for (k = 0; k < kLimit; k++)
 	{
 		PX_ChangeRecord* pcrTemp = 
-			(PX_ChangeRecord *) m_vecChangeRecords.getNthItem(k);
+			static_cast<PX_ChangeRecord *>( m_vecChangeRecords.getNthItem(k));
 		pcrTemp->__dump(fp);
 	}
 }

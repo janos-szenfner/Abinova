@@ -220,7 +220,7 @@ void AP_UnixDialog_FormatFootnotes::event_MenuStyleFootnoteChange(GtkWidget * wi
 	GtkTreeModel *store = gtk_combo_box_get_model(combo);
 	int value;
 	gtk_tree_model_get(store, &iter, 1, &value, -1);
-	setFootnoteType((FootnoteType)value);
+	setFootnoteType(static_cast<FootnoteType>(value));
 	refreshVals();
 }
 
@@ -233,7 +233,7 @@ void AP_UnixDialog_FormatFootnotes::event_MenuStyleEndnoteChange(GtkWidget * wid
 	GtkTreeModel *store = gtk_combo_box_get_model(combo);
 	int value;
 	gtk_tree_model_get(store, &iter, 1, &value, -1);
-	setEndnoteType((FootnoteType)value);
+	setEndnoteType(static_cast<FootnoteType>(value));
 	refreshVals();
 }
 
@@ -326,10 +326,10 @@ void  AP_UnixDialog_FormatFootnotes::refreshVals(void)
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wEndnotesRestartOnSection), static_cast<gboolean>(getRestartEndnoteOnSection()));
 
 	XAP_comboBoxSetActiveFromIntCol(m_wFootnotesStyleMenu, 1, 
-									(int)getFootnoteType());
+									static_cast<int>(getFootnoteType()));
 
 	XAP_comboBoxSetActiveFromIntCol(m_wEndnotesStyleMenu, 1, 
-									(int)getEndnoteType());
+									static_cast<int>(getEndnoteType()));
 }
 
 void AP_UnixDialog_FormatFootnotes::event_Cancel(void)

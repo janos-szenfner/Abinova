@@ -101,7 +101,7 @@ AP_TopRuler::AP_TopRuler(XAP_Frame * pFrame)
 	m_draggingCell = 0;
 	m_lidTopRuler = 0;
 	m_bIsHidden = false;
-	UT_DEBUGMSG(("Created TopRuler %p \n", (void*)this));
+	UT_DEBUGMSG(("Created TopRuler %p \n", static_cast<void*>(this)));
 }
 
 AP_TopRuler::~AP_TopRuler(void)
@@ -119,7 +119,7 @@ AP_TopRuler::~AP_TopRuler(void)
 	if(!m_bIsHidden)
 	{
 
-	  UT_DEBUGMSG(("AP_TopRuler::~AP_TopRuler (this=%p scroll=%p)\n", (void*)this, (void*)m_pScrollObj));
+	  UT_DEBUGMSG(("AP_TopRuler::~AP_TopRuler (this=%p scroll=%p)\n", static_cast<void*>(this), static_cast<void*>(m_pScrollObj)));
 
 		DELETEP(m_pScrollObj);
 		DELETEP(m_pAutoScrollTimer);
@@ -131,7 +131,7 @@ AP_TopRuler::~AP_TopRuler(void)
 	}
 	m_pView = nullptr;
 	m_pG = nullptr;
-	UT_DEBUGMSG(("Deleting TopRuler %p \n", (void*)this));
+	UT_DEBUGMSG(("Deleting TopRuler %p \n", static_cast<void*>(this)));
 }
 
 /*****************************************************************/
@@ -165,7 +165,7 @@ void AP_TopRuler::setViewHidden(AV_View *pView)
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		return;
 	}
-	UT_DEBUGMSG(("setViewHidden View is set to %p \n", (void*)pView));
+	UT_DEBUGMSG(("setViewHidden View is set to %p \n", static_cast<void*>(pView)));
 	m_pView = pView;
 	m_bIsHidden = true;
 }
@@ -208,7 +208,7 @@ void AP_TopRuler::setView(AV_View * pView)
 	  // from column to column.
 	  
 	     m_pView->addListener(static_cast<AV_Listener *>(this),&m_lidTopRuler);
-	     UT_DEBUGMSG(("Ruler attached as view listener %p \n", (void*)&m_lidTopRuler));
+	     UT_DEBUGMSG(("Ruler attached as view listener %p \n", static_cast<void*>(&m_lidTopRuler)));
 	}
 }
 
@@ -323,7 +323,7 @@ void AP_TopRuler::_scrollFuncX(void * pData, UT_sint32 xoff, UT_sint32 xlimit)
 	// static callback referenced by an AV_ScrollObj() for the ruler
 	UT_return_if_fail (pData);
 
-	AP_TopRuler * pTopRuler = (AP_TopRuler *)(pData);
+	AP_TopRuler * pTopRuler = static_cast<AP_TopRuler *>((pData));
 
 	// let non-static member function do all the work.
 
@@ -887,7 +887,7 @@ UT_uint32 AP_TopRuler::getTabToggleAreaWidth() const
 		xFixed = pG->tlu(s_iFixedWidth);
 
 #ifdef EMBEDDED_TARGET
-    xFixed = (UT_sint32) ((float)xFixed * 0.1);
+    xFixed = static_cast<UT_sint32>( (static_cast<float>(xFixed )* 0.1));
 #endif
 
 	
@@ -3688,14 +3688,14 @@ void AP_TopRuler::mouseMotion(EV_EditModifierState /*ems*/, UT_sint32 x, UT_sint
 
 			if(m_draggingWhat == DW_COLUMNGAP)
 			{
-				UT_sint32 xAbsLowerLimit = xAbsMidPoint + tick.snapPixelToGrid((UT_sint32)(tick.dragDelta/tick.tickUnitScale));
+				UT_sint32 xAbsLowerLimit = xAbsMidPoint + tick.snapPixelToGrid(static_cast<UT_sint32>((tick.dragDelta/tick.tickUnitScale)));
 				if (static_cast<UT_sint32>(x) < xAbsLowerLimit)
 					x = static_cast<UT_uint32>(xAbsLowerLimit);
 				xrel = static_cast<UT_sint32>(x) - xAbsRight2;
 			}
 			else
 			{
-				UT_sint32 xAbsUpperLimit = xAbsMidPoint - tick.snapPixelToGrid((UT_sint32)(tick.dragDelta/tick.tickUnitScale));
+				UT_sint32 xAbsUpperLimit = xAbsMidPoint - tick.snapPixelToGrid(static_cast<UT_sint32>((tick.dragDelta/tick.tickUnitScale)));
 				if (static_cast<UT_sint32>(x) > xAbsUpperLimit)
 					x = static_cast<UT_uint32>(xAbsUpperLimit);
 				xrel = xAbsRightGap - static_cast<UT_sint32>(x);

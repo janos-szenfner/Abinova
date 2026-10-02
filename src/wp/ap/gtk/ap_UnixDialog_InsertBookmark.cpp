@@ -104,7 +104,7 @@ void AP_UnixDialog_InsertBookmark::event_OK(void)
 	const gchar *mark = XAP_gtk_entry_get_text(GTK_EDITABLE(entry));
 	if(mark && *mark)
 	{
-		xxx_UT_DEBUGMSG(("InsertBookmark: OK pressed, first char 0x%x\n", (UT_uint32)*mark));
+		xxx_UT_DEBUGMSG(("InsertBookmark: OK pressed, first char 0x%x\n", static_cast<UT_uint32>(*mark)));
 		setAnswer(AP_Dialog_InsertBookmark::a_OK);
 		setBookmark(mark);
 	}

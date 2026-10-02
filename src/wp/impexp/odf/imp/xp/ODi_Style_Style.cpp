@@ -267,7 +267,7 @@ void ODi_Style_Style::_parse_style_paragraphProperties(const gchar** ppProps) {
 
             sscanf(pVal, "%d%%", &spacing);
             m_lineHeight = UT_std_string_sprintf ("%f",
-                                              (double)spacing/100.);
+                                              static_cast<double>(spacing)/100.);
         } else {
             m_lineHeight.assign(pVal);
         }

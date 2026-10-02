@@ -557,7 +557,7 @@ fl_Squiggles::textDeleted(UT_sint32 iOffset, UT_sint32 iLength)
 	xxx_UT_DEBUGMSG(("fl_Squiggles::textDeleted(%d, %d)\n",
 					 iOffset, iLength));
 
-	UT_sint32 chg = -(UT_sint32)iLength;
+	UT_sint32 chg = -static_cast<UT_sint32>(iLength);
 
 	UT_sint32 iFirst, iLast;
 	if (findRange(iOffset, iOffset+iLength, iFirst, iLast))
@@ -674,7 +674,7 @@ fl_Squiggles::split(UT_sint32 iOffset, fl_BlockLayout* pNewBL)
 	xxx_UT_DEBUGMSG(("fl_Squiggles::split(%d, %p)\n", iOffset, pNewBL));
 
 	// When inserting block break, squiggles move in opposite direction
-	UT_sint32 chg = -(UT_sint32)iOffset;
+	UT_sint32 chg = -static_cast<UT_sint32>(iOffset);
 
 	// Check pending word - this is necessary to avoid forgetting
 	// words after an undo operation (which undos a block
@@ -929,11 +929,11 @@ fl_Squiggles::recheckIgnoredWords(const UT_UCS4Char* pBlockText)
 
 	bool bUpdate = false;
 
-	UT_sint32 iSquiggles = (UT_sint32) _getCount();
+	UT_sint32 iSquiggles = static_cast<UT_sint32>( _getCount());
 	UT_sint32 i;
 	for (i = iSquiggles-1; i >= 0; i--)
 	{
-		const fl_PartOfBlockPtr& pPOB = getNth((UT_uint32) i);
+		const fl_PartOfBlockPtr& pPOB = getNth(static_cast<UT_uint32>( i));
 
 		if (m_pOwner->_doCheckWord(pPOB, pBlockText, false))
 		{
@@ -943,7 +943,7 @@ fl_Squiggles::recheckIgnoredWords(const UT_UCS4Char* pBlockText)
 		else
 		{
 			// Word not squiggled, remove from squiggle list
-			_deleteNth((UT_uint32) i);
+			_deleteNth(static_cast<UT_uint32>( i));
 		}
 	}
 

@@ -69,7 +69,7 @@ _fv_text_handle_draw_cb (GtkDrawingArea *area,
                          gint            height,
                          gpointer        user_data)
 {
-  FvTextHandlePosition pos = (FvTextHandlePosition)GPOINTER_TO_INT (user_data);
+  FvTextHandlePosition pos = static_cast<FvTextHandlePosition>(GPOINTER_TO_INT (user_data));
   GtkWidget *widget = GTK_WIDGET (area);
   GdkRGBA color;
 
@@ -166,8 +166,8 @@ _fv_text_handle_emit_at_pointer (FvTextHandle         *handle,
     return;
 
   g_signal_emit (handle, signals[HANDLE_DRAGGED], 0, pos,
-                 (gint) (ox + handle_widget->adj_x),
-                 (gint) (oy + handle_widget->adj_y));
+                 static_cast<gint>( (ox + handle_widget->adj_x)),
+                 static_cast<gint>( (oy + handle_widget->adj_y)));
 }
 
 static void
@@ -273,7 +273,7 @@ _fv_text_handle_create_widget (FvTextHandle         *handle,
 
   gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (widget),
                                   _fv_text_handle_draw_cb,
-                                  GINT_TO_POINTER ((int) pos),
+                                  GINT_TO_POINTER (static_cast<int>( pos)),
                                   nullptr);
 
   gesture = gtk_gesture_drag_new ();
@@ -358,7 +358,7 @@ _fv_text_handle_class_init (FvTextHandleClass *klass)
 static void
 _fv_text_handle_init (FvTextHandle *handle)
 {
-  handle->priv = (FvTextHandlePrivate *)_fv_text_handle_get_instance_private (handle);
+  handle->priv = static_cast<FvTextHandlePrivate *>(_fv_text_handle_get_instance_private (handle));
 }
 
 FvTextHandle *
@@ -369,7 +369,7 @@ _fv_text_handle_new (GtkWidget *overlay)
 
   g_return_val_if_fail (GTK_IS_OVERLAY (overlay), nullptr);
 
-  handle = (FvTextHandle *) g_object_new (FV_TYPE_TEXT_HANDLE, nullptr);
+  handle = static_cast<FvTextHandle *>( g_object_new (FV_TYPE_TEXT_HANDLE, nullptr));
   priv = handle->priv;
   priv->overlay = GTK_WIDGET (g_object_ref (overlay));
 
@@ -441,7 +441,7 @@ _fv_text_handle_get_mode (FvTextHandle *handle)
 {
   g_return_val_if_fail (FV_IS_TEXT_HANDLE (handle), FV_TEXT_HANDLE_MODE_NONE);
 
-  return (FvTextHandleMode)handle->priv->mode;
+  return static_cast<FvTextHandleMode>(handle->priv->mode);
 }
 
 void
@@ -456,8 +456,8 @@ _fv_text_handle_set_position (FvTextHandle         *handle,
   g_return_if_fail (rect != nullptr);
 
   priv = handle->priv;
-  pos = (FvTextHandlePosition) CLAMP ((int) pos, FV_TEXT_HANDLE_POSITION_CURSOR,
-                                      FV_TEXT_HANDLE_POSITION_SELECTION_START);
+  pos = static_cast<FvTextHandlePosition>( CLAMP (static_cast<int>( pos), FV_TEXT_HANDLE_POSITION_CURSOR,
+                                      FV_TEXT_HANDLE_POSITION_SELECTION_START));
   handle_widget = &priv->windows[pos];
 
   if (priv->mode == FV_TEXT_HANDLE_MODE_NONE ||
@@ -481,8 +481,8 @@ _fv_text_handle_set_visible (FvTextHandle         *handle,
   g_return_if_fail (FV_IS_TEXT_HANDLE (handle));
 
   priv = handle->priv;
-  pos = (FvTextHandlePosition) CLAMP ((int) pos, FV_TEXT_HANDLE_POSITION_CURSOR,
-                                      FV_TEXT_HANDLE_POSITION_SELECTION_START);
+  pos = static_cast<FvTextHandlePosition>( CLAMP (static_cast<int>( pos), FV_TEXT_HANDLE_POSITION_CURSOR,
+                                      FV_TEXT_HANDLE_POSITION_SELECTION_START));
 
   if (priv->windows[pos].dragged)
     return;
@@ -500,8 +500,8 @@ _fv_text_handle_get_is_dragged (FvTextHandle         *handle,
   g_return_val_if_fail (FV_IS_TEXT_HANDLE (handle), FALSE);
 
   priv = handle->priv;
-  pos = (FvTextHandlePosition) CLAMP ((int) pos, FV_TEXT_HANDLE_POSITION_CURSOR,
-                                      FV_TEXT_HANDLE_POSITION_SELECTION_START);
+  pos = static_cast<FvTextHandlePosition>( CLAMP (static_cast<int>( pos), FV_TEXT_HANDLE_POSITION_CURSOR,
+                                      FV_TEXT_HANDLE_POSITION_SELECTION_START));
 
   return priv->windows[pos].dragged;
 }

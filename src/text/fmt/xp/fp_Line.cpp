@@ -716,14 +716,14 @@ bool fp_Line::assertLineListIntegrity(void)
 		width += pRunLine->getWidth();
 		if(pRunLine != pRunBlock)
 		{
-			UT_DEBUGMSG(("Whoops! bug in Line at run %d %p offset %d Type %d \n", k, (void*)pRunLine, pRunLine->getBlockOffset(), pRunLine->getType()));
+			UT_DEBUGMSG(("Whoops! bug in Line at run %d %p offset %d Type %d \n", k, static_cast<void*>(pRunLine), pRunLine->getBlockOffset(), pRunLine->getType()));
 			pRunLine->printText();
 			UT_sint32 i =0;
 			for(i=0;i<getNumRunsInLine();i++)
 			{
 				fp_Run *pRun = getRunFromIndex(i);
 				pRun->printText();
-				UT_DEBUGMSG(("Line run %d is %p \n", i, (void*)pRun));
+				UT_DEBUGMSG(("Line run %d is %p \n", i, static_cast<void*>(pRun)));
 			}
 			UT_ASSERT(pRunLine == pRunBlock);
 		}
@@ -813,7 +813,7 @@ void fp_Line::genOverlapRects(UT_Rect & recLeft,UT_Rect & recRight)
 		recRight.width =  pNext->getX() - (getX() + getMaxWidth());
 		if(recRight.width < 0)
 		  {
-		    UT_DEBUGMSG(("Line %p Same Prev RecRight width -ve!! %d \n", (void*)this, recRight.width));
+		    UT_DEBUGMSG(("Line %p Same Prev RecRight width -ve!! %d \n", static_cast<void*>(this), recRight.width));
 		  }
 	}
 	else
@@ -822,7 +822,7 @@ void fp_Line::genOverlapRects(UT_Rect & recLeft,UT_Rect & recRight)
 		recRight.width = iMaxWidth +xdiff - recRight.left;
 		if(recRight.width < 0)
 		  {
-		    UT_DEBUGMSG(("Line %p Not Same RecRight width -ve!! %d \n", (void*)this, recRight.width));
+		    UT_DEBUGMSG(("Line %p Not Same RecRight width -ve!! %d \n", static_cast<void*>(this), recRight.width));
 		  }
 	}
 //	UT_ASSERT(recLeft.width >= 0);
@@ -2128,7 +2128,7 @@ void fp_Line::clearScreenFromRunToEnd(fp_Run * ppRun)
 		UT_sint32 k = m_vecRuns.findItem(ppRun);
 		if(k>=0)
 		{
-			UT_sint32 runIndex = _getRunVisIndx((UT_uint32)k);
+			UT_sint32 runIndex = _getRunVisIndx(static_cast<UT_uint32>(k));
 			_doClearScreenFromRunToEnd(runIndex);
 		}
 	}
@@ -2151,7 +2151,7 @@ void fp_Line::clearScreenFromRunToEnd(UT_uint32 runIndex)
 		return;
 	}
 
-	_doClearScreenFromRunToEnd((UT_sint32)runIndex);
+	_doClearScreenFromRunToEnd(static_cast<UT_sint32>(runIndex));
 }
 
 
@@ -3273,7 +3273,7 @@ void fp_Line::layout(void)
 	{
 		xxx_UT_DEBUGMSG(("fp_Line::layout (0x%x): clearling line from indx %d\n",
 						 this, iIndxToEraseFrom));
-		clearScreenFromRunToEnd((UT_uint32)iIndxToEraseFrom);
+		clearScreenFromRunToEnd(static_cast<UT_uint32>(iIndxToEraseFrom));
 	}
 	else
 	{

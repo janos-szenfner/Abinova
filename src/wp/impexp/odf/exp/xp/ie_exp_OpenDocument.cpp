@@ -90,7 +90,7 @@ GsfOutput* IE_Exp_OpenDocument::_openFile(const char *szFilename)
       char *filename = UT_go_filename_from_uri (szFilename);
       if (filename) 
 	{
-	  output = (GsfOutput*)gsf_outfile_stdio_new (filename, nullptr);
+	  output = reinterpret_cast<GsfOutput*>(gsf_outfile_stdio_new (filename, nullptr));
 	  g_free (filename);
 	}
     }
@@ -137,7 +137,7 @@ UT_Error IE_Exp_OpenDocument::copyToBuffer(PD_DocumentRange * pDocRange, const U
 
         if( !xmlids.empty() )
         {
-            UT_DEBUGMSG(("MIQ: ODF export creating restricted RDF model xmlids.sz:%ld \n",(long)xmlids.size()));
+            UT_DEBUGMSG(("MIQ: ODF export creating restricted RDF model xmlids.sz:%ld \n",static_cast<long>(xmlids.size())));
             PD_RDFModelHandle subm = inrdf->createRestrictedModelForXMLIDs( xmlids );
             PD_DocumentRDFMutationHandle m = outrdf->createMutation();
             m->add( subm );
@@ -208,7 +208,7 @@ UT_Error IE_Exp_OpenDocument::copyToBuffer(PD_DocumentRange * pDocRange, const U
 	gsf_off_t size = gsf_input_size(fData.get());
 	const UT_Byte * pData = size > 0
 	    ? gsf_input_read(fData.get(), size, nullptr) : nullptr;
-	UT_DEBUGMSG(("Writing %d bytes to clipboard \n", (UT_sint32)size));
+	UT_DEBUGMSG(("Writing %d bytes to clipboard \n", static_cast<UT_sint32>(size)));
 	if (pData)
 	    bufODT->append( pData, size);
     }
@@ -279,7 +279,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 	// like "45.56mm" instead of "45,56mm".
 	UT_LocaleTransactor numericLocale (LC_NUMERIC, "C");
 	{
-		GsfOutput * mimetype = gsf_outfile_new_child_full (m_odt, "mimetype", FALSE, "compression-level", 0, (void*)0);
+		GsfOutput * mimetype = gsf_outfile_new_child_full (m_odt, "mimetype", FALSE, "compression-level", 0, static_cast<void*>(0));
 		if (!mimetype)
 		{
 			ODe_gsf_output_close(GSF_OUTPUT(m_odt));
@@ -288,7 +288,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 
 		ODe_gsf_output_write(mimetype,
 				39 /*39 == strlen("application/vnd.oasis.opendocument.text")*/,
-				(const guint8 *)"application/vnd.oasis.opendocument.text");
+				reinterpret_cast<const guint8 *>("application/vnd.oasis.opendocument.text"));
 
 		ODe_gsf_output_close(mimetype);
     }
@@ -584,7 +584,7 @@ UT_Error IE_Exp_OpenDocument::_encryptPackage(GsfOutput* pPlainPackage,
         else
         {
             GsfOutput* dst = gsf_outfile_new_child_full(
-                outZip, "mimetype", FALSE, "compression-level", 0, (void*)0);
+                outZip, "mimetype", FALSE, "compression-level", 0, static_cast<void*>(0));
             gsf_off_t s = gsf_input_size(src);
             const guint8* d = gsf_input_read(src, s, nullptr);
             if (dst && d)
@@ -631,7 +631,7 @@ UT_Error IE_Exp_OpenDocument::_encryptPackage(GsfOutput* pPlainPackage,
         cryptoInfo[path] = info;
 
         GsfOutput* dst = gsf_outfile_new_child_full(
-            outZip, path.c_str(), FALSE, "compression-level", 0, (void*)0);
+            outZip, path.c_str(), FALSE, "compression-level", 0, static_cast<void*>(0));
         if (!dst)
         {
             g_free(enc);

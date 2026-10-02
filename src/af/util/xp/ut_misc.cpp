@@ -349,7 +349,7 @@ UT_UniqueId::UT_UniqueId()
 {
 	memset(m_iID,0,sizeof(m_iID));
 
-	UT_uint32 i = (UT_uint32) List;
+	UT_uint32 i = static_cast<UT_uint32>( List);
 	m_iID[i] = AUTO_LIST_RESERVED;
 }
 
@@ -361,7 +361,7 @@ UT_UniqueId::UT_UniqueId()
 UT_uint32 UT_UniqueId::getUID(idType t)
 {
 	UT_return_val_if_fail(t < _Last, UT_UID_INVALID);
-	UT_uint32 i = (UT_uint32)t;
+	UT_uint32 i = static_cast<UT_uint32>(t);
 	UT_uint32 r = m_iID[i]++;
 	return r;
 }
@@ -379,7 +379,7 @@ bool UT_UniqueId::setMinId(idType t, UT_uint32 iMin)
 	// we really want some space left to generate future id's
 	UT_return_val_if_fail(iMin < UINT_MAX - 1000, false);
 	
-	UT_uint32 i = (UT_uint32) t;
+	UT_uint32 i = static_cast<UT_uint32>( t);
 
 	if(m_iID[i] > iMin)
 		return false;
@@ -399,7 +399,7 @@ bool UT_UniqueId::isIdUnique(idType t, UT_uint32 iId) const
 	// we really want some space left to generate future id's
 	UT_return_val_if_fail(iId < UINT_MAX - 1000, false);
 	
-	UT_uint32 i = (UT_uint32) t;
+	UT_uint32 i = static_cast<UT_uint32>( t);
 
 	if(m_iID[i] > iId)
 		return false;
@@ -458,7 +458,7 @@ const gchar ** UT_splitPropsToArray(gchar * pProps)
 
 		char * semi = nullptr;
 		const char * p = pProps;
- 		while((semi = (char *) strchr(p, ';')))
+ 		while((semi = const_cast<char *>( strchr(p, ';'))))
 		{
 			*semi = 0;
 			p = semi + 1;
@@ -479,7 +479,7 @@ const gchar ** UT_splitPropsToArray(gchar * pProps)
 			if(pProps[i] == 0)
 			{
 				pPropsArray[j++] = pStart;
-				char * colon = (char *)  strchr(pStart, ':');
+				char * colon = const_cast<char *>(  strchr(pStart, ':'));
 				UT_return_val_if_fail( colon,nullptr );
 				*colon = 0;
 				pPropsArray[j++] = colon + 1;
@@ -517,7 +517,7 @@ UT_uint64 UT_hash64(const char * p, UT_uint32 bytelen)
 
 	UT_return_val_if_fail( bytelen, MYZERO );
 	
-	UT_uint64 h = (UT_uint64)*p;
+	UT_uint64 h = static_cast<UT_uint64>(*p);
 	
 	for (UT_uint32 i = 1; i < bytelen; ++i, ++p)
 	{
@@ -538,7 +538,7 @@ UT_uint32 UT_hash32(const char * p, UT_uint32 bytelen)
 
 	UT_return_val_if_fail( bytelen, 0 );
 
-	UT_uint32 h = (UT_uint32)*p;
+	UT_uint32 h = static_cast<UT_uint32>(*p);
 	
 	for (UT_uint32 i = 1; i < bytelen; ++i, ++p)
 	{

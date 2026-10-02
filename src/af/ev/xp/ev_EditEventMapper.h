@@ -131,10 +131,10 @@
 #include "ev_EditMethod.h"
 
 typedef UT_uint32 EV_EditEventMapperResult;
-#define EV_EEMR_BOGUS_START		((EV_EditEventMapperResult) 1) /* start of unknown event sequence */
-#define EV_EEMR_BOGUS_CONT		((EV_EditEventMapperResult) 2) /* unknown continuation event sequence */
-#define EV_EEMR_INCOMPLETE		((EV_EditEventMapperResult) 3) /* accumulating valid prefix */
-#define EV_EEMR_COMPLETE		((EV_EditEventMapperResult) 4) /* complete sequence */
+#define EV_EEMR_BOGUS_START		(static_cast<EV_EditEventMapperResult>( 1)) /* start of unknown event sequence */
+#define EV_EEMR_BOGUS_CONT		(static_cast<EV_EditEventMapperResult>( 2)) /* unknown continuation event sequence */
+#define EV_EEMR_INCOMPLETE		(static_cast<EV_EditEventMapperResult>( 3)) /* accumulating valid prefix */
+#define EV_EEMR_COMPLETE		(static_cast<EV_EditEventMapperResult>( 4)) /* complete sequence */
 
 /****************************************************************/
 

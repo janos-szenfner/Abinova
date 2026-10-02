@@ -129,7 +129,7 @@ bool pt_PieceTable::dumpDoc(
 	}
         
         UT_DEBUGMSG(("dumpDoc() %s pos:%d frag:%p len:%d frag type:%d extra:%s\n",
-                     fragTypeStr.c_str(), pos, (void*)pf, pf->getLength(), pf->getType(), extra.c_str()));
+                     fragTypeStr.c_str(), pos, static_cast<void*>(pf), pf->getLength(), pf->getType(), extra.c_str()));
             
         if( pf->getType() == pf_Frag::PFT_Object )
         {
@@ -614,7 +614,7 @@ pf_Frag* pt_PieceTable::getEndOfBlock( PT_DocPosition currentpos, PT_DocPosition
             break;
         }
 
-        UT_DEBUGMSG(("ODTCT: getEndOfBlock() pos:%d frag:%p len:%d frag type:%d\n", pos, (void*)pf, pf->getLength(), pf->getType()));
+        UT_DEBUGMSG(("ODTCT: getEndOfBlock() pos:%d frag:%p len:%d frag type:%d\n", pos, static_cast<void*>(pf), pf->getLength(), pf->getType()));
 
         if( pf->getType() == pf_Frag::PFT_EndOfDoc )
         {
@@ -1053,7 +1053,7 @@ bool pt_PieceTable::deleteSpan(PT_DocPosition dpos1,
 							if(pf_Frag::PFT_Strux != pf->getType())
 								continue;
 
-							pf_Frag_Strux * pfs = (pf_Frag_Strux*) pf;
+							pf_Frag_Strux * pfs = static_cast<pf_Frag_Strux*>( pf);
 							PTStruxType eStrux2Type = pfs->getStruxType();
 
 							if(eStrux2Type == PTX_SectionTable)
@@ -1307,7 +1307,7 @@ bool pt_PieceTable::_fixHdrFtrReferences(const gchar * pszHdrType, const gchar *
 					PP_PropertyVector pAttrs = {
 						pszHdrType, pszMyHdrId2
 					};
-					bRet &= _fmtChangeStruxWithNotify(PTC_RemoveFmt, (pf_Frag_Strux*)pFrag,
+					bRet &= _fmtChangeStruxWithNotify(PTC_RemoveFmt, const_cast<pf_Frag_Strux*>(static_cast<const pf_Frag_Strux*>(pFrag)),
 													  pAttrs, PP_NOPROPS, false);
 				}
 			}
@@ -1372,7 +1372,7 @@ bool pt_PieceTable::_fixHdrFtrReferences(const gchar * pszHdrType, const gchar *
 					PP_PropertyVector pAttrs = {
 						"revision", Revisions.getXMLstring()
 					};
-					bRet &= _fmtChangeStruxWithNotify(PTC_SetFmt, (pf_Frag_Strux*)pFrag,
+					bRet &= _fmtChangeStruxWithNotify(PTC_SetFmt, const_cast<pf_Frag_Strux*>(static_cast<const pf_Frag_Strux*>(pFrag)),
 													  pAttrs, PP_NOPROPS, false);
 				}
 			}
@@ -2059,7 +2059,7 @@ pt_PieceTable::_deleteComplexSpanHAR( pf_Frag_Object *pO,
                                       UT_uint32& fragOffsetNewEnd,
                                       const char* startAttrCSTR )
 {
-    UT_DEBUGMSG(("_deleteComplexSpanHAR() pO:%p\n", (void*)pO));
+    UT_DEBUGMSG(("_deleteComplexSpanHAR() pO:%p\n", static_cast<void*>(pO)));
     
     PTObjectType objType = pO->getObjectType();
     bool bFoundStrux2;
@@ -2139,7 +2139,7 @@ pt_PieceTable::_deleteComplexSpanHAR( pf_Frag_Object *pO,
         pF = pO->getNext();
         while(pF)
         {
-            UT_DEBUGMSG(("_deleteComplexSpanHAR() loop pF:%p\n", (void*)pF));
+            UT_DEBUGMSG(("_deleteComplexSpanHAR() loop pF:%p\n", static_cast<void*>(pF)));
             if(pF->getType() == pf_Frag::PFT_Object)
             {
                 pf_Frag_Object *pOb = static_cast<pf_Frag_Object*>(pF);
@@ -2227,7 +2227,7 @@ bool pt_PieceTable::_deleteComplexSpan(PT_DocPosition & origPos1,
 
 	bool bFound = getFragsFromPositions(dpos1,dpos2,&pf_First,&fragOffset_First,&pf_End,&fragOffset_End);
 	UT_return_val_if_fail (bFound, false);
-	UT_DEBUGMSG(("deleteComplex span dpos1 %d dpos2 %d pf_First %p pf_First pos %d \n", dpos1, dpos2, (void*)pf_First, pf_First->getPos()));
+	UT_DEBUGMSG(("deleteComplex span dpos1 %d dpos2 %d pf_First %p pf_First pos %d \n", dpos1, dpos2, static_cast<void*>(pf_First), pf_First->getPos()));
 	pf_Frag_Strux * pfsFirstBlock = nullptr;
 	if ((pf_First !=pf_End) && (pf_First->getType() == pf_Frag::PFT_Strux))
 	{

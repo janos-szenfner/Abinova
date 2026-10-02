@@ -146,9 +146,9 @@ void AP_Preview_Paragraph_Block::setText(const UT_UCS4Char * text)
 #define DIMENSION_INCH_SCALE_FACTOR	36
 
 #define STORE_CONVERTED(m, v) \
-            if (v) m = (UT_uint32) (UT_convertToInches(v) * (double) DIMENSION_INCH_SCALE_FACTOR);
+            if (v) m = static_cast<UT_uint32>( (UT_convertToInches(v) * static_cast<double>( DIMENSION_INCH_SCALE_FACTOR)));
 
-#define SCALE_TO_PIXELS(s) ((UT_uint32) (UT_convertToInches(s) * (double) DIMENSION_INCH_SCALE_FACTOR))
+#define SCALE_TO_PIXELS(s) (static_cast<UT_uint32>( (UT_convertToInches(s) * static_cast<double>( DIMENSION_INCH_SCALE_FACTOR))))
 
 void AP_Preview_Paragraph_Block::setFormat(const gchar * pageLeftMargin,
 										   const gchar * pageRightMargin,
@@ -228,7 +228,7 @@ void AP_Preview_Paragraph_Block::setFormat(const gchar * pageLeftMargin,
 			m_lineSpacing = 0;
 			break;
 		case AP_Dialog_Paragraph::spacing_ONEANDHALF:
-			m_lineSpacing = (UT_uint32) ((double) m_fontHeight * (double) 0.5);
+			m_lineSpacing = static_cast<UT_uint32>( (static_cast<double>( m_fontHeight )* static_cast<double>( 0.5)));
 			break;
 		case AP_Dialog_Paragraph::spacing_DOUBLE:
 			m_lineSpacing = m_fontHeight;
@@ -251,8 +251,8 @@ void AP_Preview_Paragraph_Block::setFormat(const gchar * pageLeftMargin,
 			m_lineSpacing = m_gc->tlu(SCALE_TO_PIXELS(lineSpacing));
 			break;
 		case AP_Dialog_Paragraph::spacing_MULTIPLE:
-			m_lineSpacing = (UT_uint32) ((double) m_fontHeight
-										 * (UT_convertDimensionless(lineSpacing) - (double) 1));
+			m_lineSpacing = static_cast<UT_uint32>( (static_cast<double>( m_fontHeight
+										 )* (UT_convertDimensionless(lineSpacing) - static_cast<double>( 1))));
 			break;
 		}
 	}
@@ -306,15 +306,15 @@ AP_Preview_Paragraph::AP_Preview_Paragraph(GR_Graphics * gc,
 #if 0
 		m_activeBlock->setFormat(nullptr,
 									nullptr,
-									(AP_Dialog_Paragraph::tAlignState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT),
+									static_cast<AP_Dialog_Paragraph::tAlignState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT)),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_SPECIAL_INDENT),
-									(AP_Dialog_Paragraph::tIndentState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_INDENT),
+									static_cast<AP_Dialog_Paragraph::tIndentState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_INDENT)),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_LEFT_INDENT),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_RIGHT_INDENT),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_BEFORE_SPACING),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_AFTER_SPACING),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_SPECIAL_SPACING),
-									(AP_Dialog_Paragraph::tSpacingState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_SPACING));
+									static_cast<AP_Dialog_Paragraph::tSpacingState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_SPACING)));
 #endif
 	}
 
@@ -429,7 +429,7 @@ AP_Preview_Paragraph::AP_Preview_Paragraph(GR_Graphics * gc,
 														 m_fontHeight);
 		m_previousBlock->setFormat(dlg->m_pageLeftMargin.c_str(),
 								   dlg->m_pageRightMargin.c_str(),
-									(AP_Dialog_Paragraph::tAlignState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT),
+									static_cast<AP_Dialog_Paragraph::tAlignState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT)),
 									nullptr,
 									AP_Dialog_Paragraph::indent_NONE,
 									nullptr,nullptr,nullptr,nullptr,nullptr,
@@ -445,15 +445,15 @@ AP_Preview_Paragraph::AP_Preview_Paragraph(GR_Graphics * gc,
 		// read these from the dialog's members
 		m_activeBlock->setFormat(dlg->m_pageLeftMargin.c_str(),
 								 dlg->m_pageRightMargin.c_str(),
-									(AP_Dialog_Paragraph::tAlignState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT),
+									static_cast<AP_Dialog_Paragraph::tAlignState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT)),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_SPECIAL_INDENT),
-									(AP_Dialog_Paragraph::tIndentState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_INDENT),
+									static_cast<AP_Dialog_Paragraph::tIndentState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_INDENT)),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_LEFT_INDENT),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_RIGHT_INDENT),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_BEFORE_SPACING),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_AFTER_SPACING),
 									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_SPECIAL_SPACING),
-									(AP_Dialog_Paragraph::tSpacingState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_SPACING));
+									static_cast<AP_Dialog_Paragraph::tSpacingState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_SPACING)));
 
 		if(dlg->_getCheckItemValue(AP_Dialog_Paragraph::id_CHECK_DOMDIRECTION) == AP_Dialog_Paragraph::check_TRUE)
 			m_dir = UT_BIDI_RTL;
@@ -467,7 +467,7 @@ AP_Preview_Paragraph::AP_Preview_Paragraph(GR_Graphics * gc,
 														  m_fontHeight);
 		m_followingBlock->setFormat(dlg->m_pageLeftMargin.c_str(),
 									dlg->m_pageRightMargin.c_str(),
-									(AP_Dialog_Paragraph::tAlignState) dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT),
+									static_cast<AP_Dialog_Paragraph::tAlignState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT)),
 									nullptr,
 									AP_Dialog_Paragraph::indent_NONE,
 									nullptr,nullptr,nullptr,nullptr,nullptr,
@@ -694,7 +694,7 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 	// NOTE : we don't evaluate space widths in the while() condition so we don't
 	// NOTE : wrap on one (which would be silly)
 	while ((i < totalWords) &&
-		   (pixelsForThisLine + widths->getNthItem(i) <= (UT_uint32)maxPixelsForThisLine))
+		   (pixelsForThisLine + widths->getNthItem(i) <= static_cast<UT_uint32>(maxPixelsForThisLine)))
 	{
 		pixelsForThisLine += widths->getNthItem(i) + spaceCharWidth;
 		i++;
@@ -735,8 +735,8 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 	case AP_Dialog_Paragraph::align_JUSTIFIED:
 		if(i < totalWords)
 		{
-			spaceCharWidth += (UT_sint32)((double)(maxPixelsForThisLine - pixelsForThisLine) /
-														(i - startWithWord) * 256);
+			spaceCharWidth += static_cast<UT_sint32>((static_cast<double>((maxPixelsForThisLine - pixelsForThisLine) )/
+														(i - startWithWord) * 256));
 		}
 		break;
 	default:
@@ -762,7 +762,7 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 		// with the overall pargraph direction will be in wrong order, but that is not a big deal
 		s = words->getNthItem(k);
 		size = s.size() + 1;
-		pBuf = (UT_UCS4Char *)UT_calloc(size, sizeof(UT_UCS4Char));
+		pBuf = static_cast<UT_UCS4Char *>(UT_calloc(size, sizeof(UT_UCS4Char)));
 		memset(pBuf, 0, size * sizeof(UT_UCS4Char));
 
 		UT_bidiReorderString(s.ucs4_str(), s.size(), m_dir, pBuf);

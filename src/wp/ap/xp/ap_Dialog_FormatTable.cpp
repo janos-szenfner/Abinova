@@ -177,8 +177,8 @@ void AP_Dialog_FormatTable::askForGraphicPathName(void)
 
 	const char ** szDescList = static_cast<const char **>(UT_calloc(filterCount + 1, sizeof(char *)));
 	const char ** szSuffixList = static_cast<const char **>(UT_calloc(filterCount + 1, sizeof(char *)));
-	IEGraphicFileType * nTypeList = (IEGraphicFileType *)
-		 UT_calloc(filterCount + 1,	sizeof(IEGraphicFileType));
+	IEGraphicFileType * nTypeList = static_cast<IEGraphicFileType *>(
+		 UT_calloc(filterCount + 1,	sizeof(IEGraphicFileType)));
 	UT_uint32 k = 0;
 
 	while (IE_ImpGraphic::enumerateDlgLabels(k, &szDescList[k], &szSuffixList[k], &nTypeList[k]))

@@ -51,7 +51,7 @@
 
 // only became "public" in pango 1.20. see http://bugzilla.gnome.org/show_bug.cgi?id=472303
 #ifndef PANGO_GLYPH_EMPTY
-#define PANGO_GLYPH_EMPTY ((PangoGlyph)0x0FFFFFFF)
+#define PANGO_GLYPH_EMPTY (static_cast<PangoGlyph>(0x0FFFFFFF))
 #endif
 
 #if !PANGO_VERSION_CHECK(1,22,0)
@@ -188,7 +188,7 @@ class GR_CairoPangoItem: public GR_Item
   public:
 	virtual ~GR_CairoPangoItem(){ if (m_pi) {pango_item_free(m_pi);}};
 	
-	virtual GR_ScriptType getType() const override {return (GR_ScriptType)m_iType;}
+	virtual GR_ScriptType getType() const override {return static_cast<GR_ScriptType>(m_iType);}
 	
 	virtual GR_Item *     makeCopy() const override
 	    {
@@ -213,7 +213,7 @@ GR_CairoPangoItem::GR_CairoPangoItem(PangoItem *pi):
 	// items, so we will hash the pointers to the two text engines
 	if(!pi)
 	{
-		m_iType = (UT_uint32)GRScriptType_Void;
+		m_iType = static_cast<UT_uint32>(GRScriptType_Void);
 	}
 	else
 	{
@@ -222,10 +222,10 @@ GR_CairoPangoItem::GR_CairoPangoItem(PangoItem *pi):
 		// engines
 		
 		void * b[2];
-		b[0] = (void*)pi->analysis.shape_engine;
-		b[1] = (void*)pi->analysis.lang_engine;
+		b[0] = static_cast<void*>(pi->analysis.shape_engine);
+		b[1] = static_cast<void*>(pi->analysis.lang_engine);
 
-		m_iType = UT_hash32((const char *) &b, 2 * sizeof(void*));
+		m_iType = UT_hash32(reinterpret_cast<const char *>( &b), 2 * sizeof(void*));
 	}
 }
 
@@ -338,7 +338,7 @@ bool GR_PangoRenderInfo::getUTF8Text()
 UT_uint32 GR_CairoGraphics::getDefaultDeviceResolution()
 {
 	PangoFontMap * pFontMap = pango_cairo_font_map_get_default();
-	return (UT_uint32) pango_cairo_font_map_get_resolution(PANGO_CAIRO_FONT_MAP(pFontMap));
+	return static_cast<UT_uint32>( pango_cairo_font_map_get_resolution(PANGO_CAIRO_FONT_MAP(pFontMap)));
 	// The default font map must not be freed.
 }
 
@@ -435,7 +435,7 @@ void GR_CairoGraphics::_initPango()
 	m_pLayoutContext = pango_font_map_create_context(PANGO_FONT_MAP(m_pLayoutFontMap));
 
 	UT_DEBUGMSG(("Created LayoutFontMap %p Layout Context %p resolution %d device resolution %d \n", 
-                 (void*)m_pLayoutFontMap,	(void*)m_pLayoutContext, getResolution(),
+                 static_cast<void*>(m_pLayoutFontMap),	static_cast<void*>(m_pLayoutContext), getResolution(),
 				 m_iDeviceResolution));
 }
 
@@ -617,7 +617,7 @@ bool GR_CairoGraphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 	
 	PangoAttrList *pAttrList = pango_attr_list_new();
 	PangoAttrIterator *pIter = pango_attr_list_get_iterator (pAttrList);
-	const GR_PangoFont * pFont = (const GR_PangoFont *) I.getFont();
+	const GR_PangoFont * pFont = static_cast<const GR_PangoFont *>( I.getFont());
 
 	if (pFont)
 	{
@@ -659,7 +659,7 @@ bool GR_CairoGraphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 	for(i = 0; i < iItemCount; ++i)
 	{
 		xxx_UT_DEBUGMSG(("itemize: creating item %d\n", i));
-		PangoItem *pItem = (PangoItem *)g_list_nth(gItems, i)->data;
+		PangoItem *pItem = static_cast<PangoItem *>(g_list_nth(gItems, i)->data);
 		GR_CairoPangoItem * pI = new GR_CairoPangoItem(pItem);
 
 #if 0 //def DEBUG
@@ -771,7 +771,7 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 		UT_return_val_if_fail(ri->getType() == GRRI_CAIRO_PANGO, false);
 	}
 
-	GR_PangoRenderInfo * RI = (GR_PangoRenderInfo *)ri;
+	GR_PangoRenderInfo * RI = static_cast<GR_PangoRenderInfo *>(ri);
 
 	// need this so that isSymbol() and isDingbat() are correct
 	setFont(si.m_pFont);
@@ -899,7 +899,7 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 
 	if(pfs) 
 	{
-		g_object_unref((GObject*)pfs);
+		g_object_unref(reinterpret_cast<GObject*>(pfs));
 		pfs = nullptr;
 	}
 	if (pFontSubst)
@@ -911,7 +911,7 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 		if (pItem->m_pi->analysis.font)
 			g_object_unref (G_OBJECT (pItem->m_pi->analysis.font));
 		
-		pItem->m_pi->analysis.font = (PangoFont*)pFontSubst;
+		pItem->m_pi->analysis.font = static_cast<PangoFont*>(pFontSubst);
 	}
 	
 	RI->m_iCharCount = si.m_iLength;
@@ -946,8 +946,8 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 	if (PANGO_IS_FONT(pPangoFontOrig))
 	{
 		pfd = pango_font_describe (pPangoFontOrig);
-		double dSize = (double)PANGO_SCALE * pFont->getPointSize();
-		pango_font_description_set_size (pfd, (gint)dSize);
+		double dSize = static_cast<double>(PANGO_SCALE )* pFont->getPointSize();
+		pango_font_description_set_size (pfd, static_cast<gint>(dSize));
 
 #if 0 //def DEBUG
 		char * s = pango_font_description_to_string (pfd);
@@ -1042,7 +1042,7 @@ UT_sint32 GR_CairoGraphics::getTextWidth(GR_RenderInfo & ri)
 {
 	xxx_UT_DEBUGMSG(("GR_CairoGraphics::getTextWidth\n"));
 	UT_return_val_if_fail(ri.getType() == GRRI_CAIRO_PANGO, 0);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 	const GR_CairoPangoItem * pItem =
 		static_cast<const GR_CairoPangoItem *>(RI.m_pItem);
 
@@ -1187,7 +1187,7 @@ void GR_CairoGraphics::prepareToRenderChars(GR_RenderInfo & ri)
 	// the only thing we need to do here is to make sure that the glyph metrics
 	// are calculated to a correct zoom level.
 	UT_return_if_fail(ri.getType() == GRRI_CAIRO_PANGO);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 
 	if(RI.m_iZoom != getZoomPercentage())
 	{
@@ -1214,7 +1214,7 @@ PangoFont *  GR_CairoGraphics::_adjustedPangoFont (const GR_PangoFont * pFont, P
 	 * our own font to fix this.
 	 */
 	PangoFontDescription * pfd = pango_font_describe (pf);
-	UT_sint32 dSize = (gint)(pFont->getPointSize() * (double)PANGO_SCALE * (double)getZoomPercentage() / 100.0);
+	UT_sint32 dSize = static_cast<gint>((pFont->getPointSize() * static_cast<double>(PANGO_SCALE )* static_cast<double>(getZoomPercentage() )/ 100.0));
 	pango_font_description_set_size (pfd, dSize);
 
 	// Check if we have already cached a font with this description and size
@@ -1257,7 +1257,7 @@ PangoFont *  GR_CairoGraphics::_adjustedLayoutPangoFont (const GR_PangoFont * pF
 	 * our own font to fix this.
 	 */
 	PangoFontDescription * pfd = pango_font_describe (pf);
-	UT_sint32 dSize = (gint)(pFont->getPointSize()*(double)PANGO_SCALE);
+	UT_sint32 dSize = static_cast<gint>((pFont->getPointSize()*static_cast<double>(PANGO_SCALE)));
 	pango_font_description_set_size (pfd, dSize);
 
 	// Check if we have already cached a font with this description and size
@@ -1289,7 +1289,7 @@ void GR_CairoGraphics::renderChars(GR_RenderInfo & ri)
 	if (m_cr == nullptr)
 		return;
 	UT_return_if_fail(ri.getType() == GRRI_CAIRO_PANGO);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 	const GR_PangoFont * pFont = static_cast<const GR_PangoFont *>(RI.m_pFont);
 	const GR_CairoPangoItem * pItem =
 		static_cast<const GR_CairoPangoItem *>(RI.m_pItem);
@@ -1316,7 +1316,7 @@ void GR_CairoGraphics::renderChars(GR_RenderInfo & ri)
 
 	// TODO -- test here for the endpoint as well
 	if(RI.m_iOffset == 0 &&
-	   (RI.m_iLength == (UT_sint32)RI.m_iCharCount || !RI.m_iCharCount))
+	   (RI.m_iLength == static_cast<UT_sint32>(RI.m_iCharCount )|| !RI.m_iCharCount))
 	{
 		xxx_UT_DEBUGMSG(("Doing Cairo Render now.\n")); 
 		cairo_save(m_cr);
@@ -1393,7 +1393,7 @@ void GR_CairoGraphics::renderChars(GR_RenderInfo & ri)
 
 		// count downwards for RTL text, so we include the full character clusters
 		i = RI.m_iVisDir == UT_BIDI_RTL ? RI.m_pScaledGlyphs->num_glyphs - 1 : 0;
-		while(i < (UT_uint32)RI.m_pScaledGlyphs->num_glyphs)
+		while(i < static_cast<UT_uint32>(RI.m_pScaledGlyphs->num_glyphs))
 		{
 			xxx_UT_DEBUGMSG(("RI.m_pScaledGlyphs->log_clusters[%d] == %d\n", i, RI.m_pScaledGlyphs->log_clusters[i]));
 			if(iGlyphsStart < 0 && RI.m_pScaledGlyphs->log_clusters[i] == iOffsetStart)
@@ -1653,7 +1653,7 @@ void GR_CairoGraphics::_scaleJustification(GR_PangoRenderInfo & RI)
 void GR_CairoGraphics::measureRenderedCharWidths(GR_RenderInfo & ri)
 {
 	UT_return_if_fail(ri.getType() == GRRI_CAIRO_PANGO);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 
 	_scaleCharacterMetrics(RI);
 
@@ -1708,7 +1708,7 @@ bool GR_CairoGraphics::canBreak(GR_RenderInfo & ri, UT_sint32 &iNext,
 	UT_return_val_if_fail(ri.getType() == GRRI_CAIRO_PANGO &&
 						  ri.m_iOffset < ri.m_iLength, false);
 	
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 	iNext = -1;
 
 	if(!RI.s_pLogAttrs || RI.s_pOwnerLogAttrs != &ri)
@@ -1723,7 +1723,7 @@ bool GR_CairoGraphics::canBreak(GR_RenderInfo & ri, UT_sint32 &iNext,
 		// the caller wants to know if break can occur on the (logically) right
 		// edge of the given character
 		
-		if(ri.m_iOffset + 1 >= (UT_sint32)RI.s_iStaticSize)
+		if(ri.m_iOffset + 1 >= static_cast<UT_sint32>(RI.s_iStaticSize))
 		{
 			// we are quering past what have data for
 			return false;
@@ -1768,7 +1768,7 @@ bool GR_CairoGraphics::needsSpecialCaretPositioning(GR_RenderInfo &ri)
 	// We should really some fancy pango function to determine if 
 	// we have a complex script with combining chars
 	//
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 	if(RI.m_pText == nullptr)
 		return false;
 
@@ -1796,7 +1796,7 @@ UT_uint32 GR_CairoGraphics::adjustCaretPosition(GR_RenderInfo & ri,
 													bool bForward)
 {
 	UT_return_val_if_fail(ri.getType() == GRRI_CAIRO_PANGO, 0);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 	
 	if(!RI.s_pLogAttrs || RI.s_pOwnerLogAttrs != &ri)
 		_scriptBreak(RI);
@@ -1819,9 +1819,9 @@ UT_uint32 GR_CairoGraphics::adjustCaretPosition(GR_RenderInfo & ri,
 void GR_CairoGraphics::adjustDeletePosition(GR_RenderInfo & ri)
 {
 	UT_return_if_fail(ri.getType() == GRRI_CAIRO_PANGO);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 
-	if(ri.m_iOffset + ri.m_iLength >= (UT_sint32)RI.m_iCharCount)
+	if(ri.m_iOffset + ri.m_iLength >= static_cast<UT_sint32>(RI.m_iCharCount))
 		return;
 	
 	if(!RI.s_pLogAttrs || RI.s_pOwnerLogAttrs != &ri)
@@ -1833,7 +1833,7 @@ void GR_CairoGraphics::adjustDeletePosition(GR_RenderInfo & ri)
 	// base character is included in the deletion
 	
 	// get the offset of the character that follows the deleted segment
-	UT_sint32 iNextOffset = (UT_sint32)ri.m_iOffset + ri.m_iLength;
+	UT_sint32 iNextOffset = static_cast<UT_sint32>(ri.m_iOffset )+ ri.m_iLength;
 
 	if(RI.s_pLogAttrs[iNextOffset].is_cursor_position)
 	{
@@ -1857,7 +1857,7 @@ void GR_CairoGraphics::adjustDeletePosition(GR_RenderInfo & ri)
 		// the entire cluster
 		iNextOffset = iOffset + 1;
 		
-		while(iNextOffset < (UT_sint32)RI.s_iStaticSize - 1 // -1 because iLogBuffSize is char count +1
+		while(iNextOffset < static_cast<UT_sint32>(RI.s_iStaticSize )- 1 // -1 because iLogBuffSize is char count +1
 			  && !RI.s_pLogAttrs[iNextOffset].is_cursor_position)
 			iNextOffset++;
 
@@ -1879,7 +1879,7 @@ UT_sint32 GR_CairoGraphics::resetJustification(GR_RenderInfo & ri,
 												   bool bPermanent)
 {
 	UT_return_val_if_fail(ri.getType() == GRRI_CAIRO_PANGO, 0);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
 
 	if(!RI.m_pJustify)
 		return 0;
@@ -1969,7 +1969,7 @@ These are determined in fp_TextRun using calculations in layout units
 void GR_CairoGraphics::justify(GR_RenderInfo & ri)
 {
 	UT_return_if_fail(ri.getType() == GRRI_CAIRO_PANGO);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &) ri;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>( ri);
 	if(!RI.m_iJustificationPoints || !RI.m_iJustificationAmount ||
 	   !RI.m_pGlyphs)
 		return;
@@ -2159,7 +2159,7 @@ UT_uint32 GR_CairoGraphics::XYToPosition(const GR_RenderInfo & ri, UT_sint32 x,
 	 * pass the end of it.
 	 */
 	pango_glyph_string_x_to_index(RI.m_pGlyphs,
-								  (char*)pUtf8, // do not like this ...
+								  const_cast<char*>(pUtf8), // do not like this ...
 								  len,
 								  &(pItem->m_pi->analysis), 
 								  x_pos,
@@ -2189,8 +2189,8 @@ void GR_CairoGraphics::positionToXY(const GR_RenderInfo & ri,
 										UT_sint32& /*height*/, bool& /*bDirection*/) const
 {
 	UT_return_if_fail(ri.getType() == GRRI_CAIRO_PANGO);
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &) ri;
-	GR_CairoPangoItem * pItem = (GR_CairoPangoItem *)RI.m_pItem;
+	GR_PangoRenderInfo & RI = const_cast<GR_PangoRenderInfo &>(reinterpret_cast<const GR_PangoRenderInfo &>( ri));
+	GR_CairoPangoItem * pItem = const_cast<GR_CairoPangoItem *>(static_cast<const GR_CairoPangoItem*>(RI.m_pItem));
   
 	if(!pItem)
 		return;
@@ -2252,7 +2252,7 @@ void GR_CairoGraphics::positionToXY(const GR_RenderInfo & ri,
 		iByteOffset = pOffset - pUtf8;
 	
 	pango_glyph_string_index_to_x (RI.m_pGlyphs,
-								   (char*)pUtf8, // do not like this ...
+								   const_cast<char*>(pUtf8), // do not like this ...
 								   utf8.byteLength(),
 								   &(pItem->m_pi->analysis), 
 								   iByteOffset,
@@ -2281,10 +2281,10 @@ void GR_CairoGraphics::_showGlyphString(PangoFont * pf,
 
 	PangoRectangle ink;
 	pango_glyph_string_extents(gs, pf, &ink, nullptr);
-	double ix = ink.x / (double)PANGO_SCALE;
-	double iy = ink.y / (double)PANGO_SCALE;
-	double iw = ink.width / (double)PANGO_SCALE;
-	double ih = ink.height / (double)PANGO_SCALE;
+	double ix = ink.x / static_cast<double>(PANGO_SCALE);
+	double iy = ink.y / static_cast<double>(PANGO_SCALE);
+	double iw = ink.width / static_cast<double>(PANGO_SCALE);
+	double ih = ink.height / static_cast<double>(PANGO_SCALE);
 	if (iw <= 0) iw = 1;
 	if (ih <= 0) ih = 1;
 	const double pts = m_iDeviceResolution / 72.0;
@@ -2435,7 +2435,7 @@ void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 	
 	for(int i = 0; i < iItemCount; ++i)
 	{
-		PangoItem *pItem = (PangoItem *)g_list_nth(pItems, i)->data;
+		PangoItem *pItem = static_cast<PangoItem *>(g_list_nth(pItems, i)->data);
 
 		if(!pItem)
 		{
@@ -2466,7 +2466,7 @@ void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 			bClear_pf = true;
 		}
 		g_object_unref(pItem->analysis.font);
-		pItem->analysis.font = (PangoFont*)g_object_ref((GObject*)pf);
+		pItem->analysis.font = reinterpret_cast<PangoFont*>(g_object_ref(reinterpret_cast<GObject*>(pf)));
 
 		pango_shape(utf8.utf8_str()+ pItem->offset,
 					pItem->length,
@@ -2514,7 +2514,7 @@ void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 	_pango_item_list_free(pItems);
 	if(pfs)
 	{
-		g_object_unref((GObject*)pfs);
+		g_object_unref(reinterpret_cast<GObject*>(pfs));
 		pfs = nullptr;
 	}
 	if (bClear_pf)
@@ -2576,7 +2576,7 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 
 	while (l)
 	{
-		PangoItem *pItem = (PangoItem*)l->data;
+		PangoItem *pItem = static_cast<PangoItem*>(l->data);
 
 		if(!pItem)
 		{
@@ -2606,7 +2606,7 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 
 		// the PangoItem has to take ownership of that.
 		g_object_unref(pItem->analysis.font);
-		pItem->analysis.font = (PangoFont*)g_object_ref((GObject*)pf);
+		pItem->analysis.font = reinterpret_cast<PangoFont*>(g_object_ref(reinterpret_cast<GObject*>(pf)));
 
 		pango_shape(utf8.utf8_str()+ pItem->offset,
 					pItem->length,
@@ -2631,7 +2631,7 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 		}
 
 		pango_glyph_string_extents(pGstring, pf, nullptr, &LR);
-		iWidth += (UT_uint32)(((double) LR.width + (double)LR.x)/PANGO_SCALE);
+		iWidth += static_cast<UT_uint32>(((static_cast<double>( LR.width )+ static_cast<double>(LR.x))/PANGO_SCALE));
 		UT_uint32 h = LR.height/PANGO_SCALE;
 		xxx_UT_DEBUGMSG(("measure string iWidth %d height %d \n",iWidth,h));
 		if (height && *height < h)
@@ -2705,7 +2705,7 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 		/* This is a bit weird, possibly a Pango bug, but it is better
 		 * to set any dangling widths to 0 than leave them at randomn values
 		 */
-		while (iOffset < (UT_uint32)iLength)
+		while (iOffset < static_cast<UT_uint32>(iLength))
 		{
 			pWidths[iOffset++] = 0;
 		}
@@ -2720,7 +2720,7 @@ cleanup:
 	_pango_item_list_free(pItems);
 	if(pfs)
 	{
-		g_object_unref((GObject*)pfs);
+		g_object_unref(reinterpret_cast<GObject*>(pfs));
 		pfs = nullptr;
 	}
 	if (bClear_pf)
@@ -2946,26 +2946,26 @@ const char* GR_Graphics::findNearestFont(const char* pszFontFamily,
 		const FieldMap *fm;
 
 		pango_font_description_set_family(d, pszFontFamily);
-		pango_font_description_set_size(d, (int)((double)PANGO_SCALE * UT_convertToPoints(pszFontSize)));
+		pango_font_description_set_size(d, static_cast<int>((static_cast<double>(PANGO_SCALE )* UT_convertToPoints(pszFontSize))));
 
 		if ((fm = find_field(style_map, G_N_ELEMENTS(style_map), pszFontStyle)) != nullptr)
 			{
-				pango_font_description_set_style(d, (PangoStyle)fm->value);				
+				pango_font_description_set_style(d, static_cast<PangoStyle>(fm->value));				
 			}
 
 		if ((fm = find_field(variant_map, G_N_ELEMENTS(variant_map), pszFontVariant)) != nullptr)
 			{
-				pango_font_description_set_variant(d, (PangoVariant)fm->value);				
+				pango_font_description_set_variant(d, static_cast<PangoVariant>(fm->value));				
 			}
 
 		if ((fm = find_field(weight_map, G_N_ELEMENTS(weight_map), pszFontWeight)) != nullptr)
 			{
-				pango_font_description_set_weight(d, (PangoWeight)fm->value);				
+				pango_font_description_set_weight(d, static_cast<PangoWeight>(fm->value));				
 			}
 
 		if ((fm = find_field(stretch_map, G_N_ELEMENTS(stretch_map), pszFontStretch)) != nullptr)
 			{
-				pango_font_description_set_stretch(d, (PangoStretch)fm->value);				
+				pango_font_description_set_stretch(d, static_cast<PangoStretch>(fm->value));				
 			}
 
 		PangoFontMap *fontmap = pango_cairo_font_map_get_default();
@@ -3080,7 +3080,7 @@ void GR_CairoGraphics::getCoverage(UT_NumberVector& coverage)
 	if(!pc)
 		return;
 
-	MyPangoCoverage * mpc = (MyPangoCoverage*) pc;
+	MyPangoCoverage * mpc = reinterpret_cast<MyPangoCoverage*>( pc);
 	UT_uint32 iMaxChar = mpc->n_blocks * 256;
 
 	xxx_UT_DEBUGMSG(("GR_CairoGraphics::getCoverage: iMaxChar %d\n", iMaxChar));
@@ -3494,10 +3494,10 @@ inline int GR_CairoGraphics::ptdu(int p) const
 */
 inline int GR_CairoGraphics::ptlu(int p) const
 {
-	double d = (double)p * (double) getResolution() * 100.0 /
-		((double)getDeviceResolution()*(double)getZoomPercentage()*(double) PANGO_SCALE) + .5;
+	double d = static_cast<double>(p )* static_cast<double>( getResolution() )* 100.0 /
+		(static_cast<double>(getDeviceResolution())*static_cast<double>(getZoomPercentage())*static_cast<double>( PANGO_SCALE)) + .5;
 
-	return (int) d;
+	return static_cast<int>( d);
 }
 
 
@@ -3506,9 +3506,9 @@ inline int GR_CairoGraphics::ptlu(int p) const
 */
 inline int GR_CairoGraphics::ptlunz(int p) const
 {
-	double d = ((double)p / ((double) PANGO_SCALE)) + .5; //getDeviceResolution
+	double d = (static_cast<double>(p )/ (static_cast<double>( PANGO_SCALE))) + .5; //getDeviceResolution
 
-	return (int) d;
+	return static_cast<int>( d);
 }
 
 /*!
@@ -3516,11 +3516,11 @@ inline int GR_CairoGraphics::ptlunz(int p) const
 */
 inline int GR_CairoGraphics::ltpu(int l) const
 {
-	double d = (double)l *
-		(double)getDeviceResolution() * (double)PANGO_SCALE * (double)getZoomPercentage()/
-		(100.0 * (double) getResolution()) + .5; 
+	double d = static_cast<double>(l )*
+		static_cast<double>(getDeviceResolution() )* static_cast<double>(PANGO_SCALE )* static_cast<double>(getZoomPercentage())/
+		(100.0 * static_cast<double>( getResolution())) + .5; 
 	
-	return (int) d;
+	return static_cast<int>( d);
 }
 
 
@@ -3529,9 +3529,9 @@ inline int GR_CairoGraphics::ltpu(int l) const
 */
 inline int GR_CairoGraphics::ltpunz(int l) const
 {
-	double d = (double)l * PANGO_SCALE  + .5; //getDeviceResolution()
+	double d = static_cast<double>(l )* PANGO_SCALE  + .5; //getDeviceResolution()
 	
-	return (int) d;
+	return static_cast<int>( d);
 }
 	
 
@@ -3543,8 +3543,8 @@ inline int GR_CairoGraphics::ltpunz(int l) const
 */
 inline int GR_CairoGraphics::pftlu(int pf) const
 {
-	double d = (double)pf * 2000.0 / ((double)getZoomPercentage() * (double)PANGO_SCALE);
-	return (int) d;
+	double d = static_cast<double>(pf )* 2000.0 / (static_cast<double>(getZoomPercentage() )* static_cast<double>(PANGO_SCALE));
+	return static_cast<int>( d);
 }
 
 void GR_CairoGraphics::fillRect(GR_Color3D c, UT_Rect &r)
@@ -3749,7 +3749,7 @@ GR_PangoFont::GR_PangoFont(const char * pDesc, double dSize,
 	m_sDesc = pDesc;
 	setLanguage(pLang);
 	reloadFont(pG);
-	UT_DEBUGMSG(("Created UnixPangOFont %p \n", (void*)this));
+	UT_DEBUGMSG(("Created UnixPangOFont %p \n", static_cast<void*>(this)));
 }
 
 GR_PangoFont::~GR_PangoFont()
@@ -3798,7 +3798,7 @@ void GR_PangoFont::reloadFont(GR_CairoGraphics * pG)
  	std::string sDev;
 	if(!m_bGuiFont && pG->queryProperties(GR_Graphics::DGP_SCREEN))
  	{
- 		sDev = UT_std_string_sprintf("%s %f", m_sDesc.c_str(), m_dPointSize * (double)m_iZoom / 100.0);
+ 		sDev = UT_std_string_sprintf("%s %f", m_sDesc.c_str(), m_dPointSize * static_cast<double>(m_iZoom )/ 100.0);
  		sLay = UT_std_string_sprintf("%s %f", m_sLayoutDesc.c_str(), m_dPointSize);
  	}
 	else
@@ -3842,8 +3842,8 @@ void GR_PangoFont::reloadFont(GR_CairoGraphics * pG)
 	UT_return_if_fail( pfm);
 
 	// pango_metrics_ functions return in points * PANGO_SCALE (points * 1024)
- 	m_iAscent = (UT_uint32) pango_font_metrics_get_ascent(pfm)/PANGO_SCALE;
- 	m_iDescent = (UT_uint32) pango_font_metrics_get_descent(pfm)/PANGO_SCALE;
+ 	m_iAscent = static_cast<UT_uint32>( pango_font_metrics_get_ascent(pfm))/PANGO_SCALE;
+ 	m_iDescent = static_cast<UT_uint32>( pango_font_metrics_get_descent(pfm))/PANGO_SCALE;
 	UT_DEBUGMSG(("metrics asc %d desc %d\n", m_iAscent, m_iDescent));
 
  	xxx_UT_DEBUGMSG(("Layout Font Ascent %d point size %f zoom %d \n",m_iAscent, m_dPointSize, m_iZoom));
@@ -3901,7 +3901,7 @@ bool GR_PangoFont::doesGlyphExist(UT_UCS4Char g) const
 
 static double fontPoints2float(double dSize, UT_sint32 iFontPoints)
 {
-	return dSize * ((double)iFontPoints / PANGO_SCALE) * 1.44/20.; // Last 20 is points to inches
+	return dSize * (static_cast<double>(iFontPoints )/ PANGO_SCALE) * 1.44/20.; // Last 20 is points to inches
 }
 
 static PangoGlyph getGlyphForChar(UT_UCS4Char g,
@@ -3921,7 +3921,7 @@ static PangoGlyph getGlyphForChar(UT_UCS4Char g,
 	
 	for(int i = 0; i < iItemCount; ++i)
 	{
-		PangoItem *pItem = (PangoItem *)g_list_nth(pItems, i)->data;
+		PangoItem *pItem = static_cast<PangoItem *>(g_list_nth(pItems, i)->data);
 
 		if(!pItem)
 		{
@@ -3933,7 +3933,7 @@ static PangoGlyph getGlyphForChar(UT_UCS4Char g,
 		}
 
 		g_object_unref(pItem->analysis.font);
-		pItem->analysis.font = (PangoFont*)g_object_ref((GObject*)pf);
+		pItem->analysis.font = reinterpret_cast<PangoFont*>(g_object_ref(reinterpret_cast<GObject*>(pf)));
 
 		pango_shape(utf8.utf8_str()+ pItem->offset,
 					pItem->length,
@@ -3959,8 +3959,8 @@ bool GR_PangoFont::glyphBox(UT_UCS4Char g, UT_Rect & rec, GR_Graphics * pG)
 	PangoRectangle ink_rect;
 	pango_font_get_glyph_extents(m_pLayoutF, iGlyphIndx, &ink_rect, nullptr);
 
-	double dSize = resRatio *(double)pG->getResolution() /
-								  (double)pG->getDeviceResolution();
+	double dSize = resRatio *static_cast<double>(pG->getResolution() )/
+								  static_cast<double>(pG->getDeviceResolution());
 
 	rec.left   = static_cast<UT_sint32>(0.5 + fontPoints2float(dSize, ink_rect.x));
 	
@@ -3971,7 +3971,7 @@ bool GR_PangoFont::glyphBox(UT_UCS4Char g, UT_Rect & rec, GR_Graphics * pG)
 	rec.height = static_cast<UT_sint32>(0.5 + fontPoints2float(dSize, ink_rect.height));
 
 	UT_DEBUGMSG(("GlyphBox: %c [l:%d, w:%d, t:%d, h:%d\n",
-				 (char)g, rec.left,rec.width,rec.top,rec.height));
+				 static_cast<char>(g), rec.left,rec.width,rec.top,rec.height));
 
 	return true;
 }
@@ -3991,9 +3991,9 @@ const char* GR_PangoFont::getFamily() const
 
 bool GR_PangoRenderInfo::canAppend(GR_RenderInfo &ri) const
 {
-	GR_PangoRenderInfo & RI = (GR_PangoRenderInfo &)ri;
-	GR_CairoPangoItem * pItem1 = (GR_CairoPangoItem *)m_pItem;
-	GR_CairoPangoItem * pItem2 = (GR_CairoPangoItem *)RI.m_pItem;
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
+	GR_CairoPangoItem * pItem1 = const_cast<GR_CairoPangoItem *>(static_cast<const GR_CairoPangoItem*>(m_pItem));
+	GR_CairoPangoItem * pItem2 = const_cast<GR_CairoPangoItem *>(static_cast<const GR_CairoPangoItem*>(RI.m_pItem));
 
 	/* Do not merger runs that have not been shapped yet */
 	if (!pItem1 || !pItem2)

@@ -168,7 +168,7 @@ class ABI_EXPORT AP_RDFSemanticItemGTKInjected : public ParentClass
     {
         // Create and populate and editor with the current data,
         // then update the Rdf from that editor.
-        GtkWidget* objectEditor = (GtkWidget*)this->createEditor();
+        GtkWidget* objectEditor = static_cast<GtkWidget*>(this->createEditor());
         this->updateFromEditorData( m );
         xap_gtk_container_remove (gtk_widget_get_parent(objectEditor), objectEditor);
 

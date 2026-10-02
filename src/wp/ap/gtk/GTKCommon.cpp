@@ -233,14 +233,14 @@ void setEntry( GtkEntry* w, double v )
 static
 void collect_cb_fe( GtkTreeModel * /*model*/, GtkTreePath * /*path*/, GtkTreeIter * iter, gpointer udata)
 {
-    list_gtktreeiter_t* x = (list_gtktreeiter_t*)udata;
+    list_gtktreeiter_t* x = static_cast<list_gtktreeiter_t*>(udata);
     x->push_back( *iter );
 }
 
 static
 gboolean collectall_cb_fe( GtkTreeModel * /*model*/, GtkTreePath * /*path*/, GtkTreeIter *iter, gpointer udata)
 {
-    list_gtktreeiter_t* x = (list_gtktreeiter_t*)udata;
+    list_gtktreeiter_t* x = static_cast<list_gtktreeiter_t*>(udata);
     x->push_back( *iter );
     return 0;
 }

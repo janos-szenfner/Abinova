@@ -74,12 +74,12 @@ static std::string s_dmlColor(const std::string & name,
 			return "";
 		char buf[8];
 		snprintf(buf, sizeof(buf), "%02X%02X%02X",
-				 (int)(UT_convertDimensionless(ri->second.c_str()) *
-					   255.0 / 100000.0 + 0.5),
-				 (int)(UT_convertDimensionless(gi->second.c_str()) *
-					   255.0 / 100000.0 + 0.5),
-				 (int)(UT_convertDimensionless(bi->second.c_str()) *
-					   255.0 / 100000.0 + 0.5));
+				 static_cast<int>((UT_convertDimensionless(ri->second.c_str()) *
+					   255.0 / 100000.0 + 0.5)),
+				 static_cast<int>((UT_convertDimensionless(gi->second.c_str()) *
+					   255.0 / 100000.0 + 0.5)),
+				 static_cast<int>((UT_convertDimensionless(bi->second.c_str()) *
+					   255.0 / 100000.0 + 0.5)));
 		return buf;
 	}
 	if (name == "A:sysClr")
@@ -168,7 +168,7 @@ static std::string s_transformColor(const std::string & hex,
 			v = v * alpha + 255.0 * (1.0 - alpha); /* over white */
 		if (v < 0.0) v = 0.0;
 		if (v > 255.0) v = 255.0;
-		return (int)(v + 0.5);
+		return static_cast<int>((v + 0.5));
 	};
 	char buf[8];
 	snprintf(buf, sizeof(buf), "%02X%02X%02X", xf(r), xf(g), xf(b));

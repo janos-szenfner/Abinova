@@ -53,7 +53,7 @@ AP_RDFEventGTK::createEditor()
     setEntry( w_dtstart,  m_dtstart );
     setEntry( w_dtend,    m_dtend );
 
-    g_object_unref((GObject*)builder);
+    g_object_unref(reinterpret_cast<GObject*>(builder));
     
     return m_mainWidget;
 }

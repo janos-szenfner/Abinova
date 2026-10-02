@@ -73,7 +73,7 @@ void pt_VarSet::setPieceTableState(PTState pts)
 bool pt_VarSet::appendBuf(const UT_UCS4Char * pBuf, UT_uint32 length, PT_BufIndex * pbi)
 {
 	UT_uint32 bufOffset = m_buffer[m_currentVarSet].getLength();
-	if (m_buffer[m_currentVarSet].ins(bufOffset,(UT_GrowBufElement*)pBuf,length))
+	if (m_buffer[m_currentVarSet].ins(bufOffset,const_cast<UT_GrowBufElement*>(reinterpret_cast<const UT_GrowBufElement*>(pBuf)),length))
 	{
 		*pbi = _makeBufIndex(m_currentVarSet,bufOffset);
 		return true;
@@ -87,7 +87,7 @@ bool pt_VarSet::overwriteBuf(UT_UCS4Char * pBuf, UT_uint32 length, PT_BufIndex *
 {
 	if (m_buffer[_varsetFromBufIndex(*pbi)]
         .overwrite(_subscriptFromBufIndex(*pbi),
-                   (UT_GrowBufElement*)pBuf,
+                   reinterpret_cast<UT_GrowBufElement*>(pBuf),
                    length))
 	{
 		return true;

@@ -45,7 +45,7 @@ bool convertMathMLtoLaTeX(const UT_UTF8String & sMathML, UT_UTF8String & sLaTeX)
 	UT_UTF8String path(XAP_App::getApp()->getAbiSuiteLibDir());
 	path += "/xsltml/mmltex.xsl";
 
-	cur = xsltParseStylesheetFile((const xmlChar *)path.utf8_str());
+	cur = xsltParseStylesheetFile(reinterpret_cast<const xmlChar *>(path.utf8_str()));
 	if (!cur)
 	{
             UT_DEBUGMSG(("convertMathMLtoLaTeX: Parsing stylesheet failed\n"));
@@ -53,7 +53,7 @@ bool convertMathMLtoLaTeX(const UT_UTF8String & sMathML, UT_UTF8String & sLaTeX)
 	}
     }
 
-    doc = xmlParseDoc((const xmlChar*)sMathML.utf8_str());
+    doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(sMathML.utf8_str()));
     if (!doc)
     {
         xxx_UT_DEBUGMSG(("convertMathMLtoLaTeX: Parsing MathML document failed\n"));
@@ -75,7 +75,7 @@ bool convertMathMLtoLaTeX(const UT_UTF8String & sMathML, UT_UTF8String & sLaTeX)
 	return false;
     }
     
-    sLaTeX.assign((const char*)pLatex, len);
+    sLaTeX.assign(reinterpret_cast<const char*>(pLatex), len);
 	
     g_free(pLatex);
     xmlFreeDoc(res);
@@ -146,7 +146,7 @@ bool convertOMMLtoMathML(const std::string & pOMML, std::string & pMathML)
         // the omml_xslt folder from openxml plugin to debug/release,
         // after the gsoc2012math branch is merged with trunk
 
-        cur2 = xsltParseStylesheetFile((const xmlChar *)path.c_str());
+        cur2 = xsltParseStylesheetFile(reinterpret_cast<const xmlChar *>(path.c_str()));
         if(!cur2)
         {
             UT_DEBUGMSG(("convertOMMLtoMathML : Parsing stylesheet failed\n"));
@@ -155,7 +155,7 @@ bool convertOMMLtoMathML(const std::string & pOMML, std::string & pMathML)
 
     }
 
-    doc = xmlParseDoc((const xmlChar*)pOMML.c_str());
+    doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(pOMML.c_str()));
     if(!doc)
     {
         xxx_UT_DEBUGMSG(("convertOMMLtoMathML : Parsing OMML document failed\n"));
@@ -177,7 +177,7 @@ bool convertOMMLtoMathML(const std::string & pOMML, std::string & pMathML)
         return false;
     }
 
-    pMathML.assign((const char*)qMathML, len);
+    pMathML.assign(reinterpret_cast<const char*>(qMathML), len);
     
     if(strncmp(pMathML.c_str(),"<?xml version=\"1.0\"?>\n",22) == 0)
     {
@@ -216,7 +216,7 @@ bool convertMathMLtoOMML(const std::string & rMathML, std::string & rOMML)
         // the omml_xslt folder from openxml plugin to debug/release,
         // after the gsoc2012math branch is merged with trunk
 
-        cur3 = xsltParseStylesheetFile((const xmlChar *)path.c_str());
+        cur3 = xsltParseStylesheetFile(reinterpret_cast<const xmlChar *>(path.c_str()));
         if(!cur3)
         {
             UT_DEBUGMSG(("convertMathMLtoOMML : Parsing stylesheet failed\n"));
@@ -224,7 +224,7 @@ bool convertMathMLtoOMML(const std::string & rMathML, std::string & rOMML)
         }
     }
 
-    doc = xmlParseDoc((const xmlChar*)rMathML.c_str());
+    doc = xmlParseDoc(reinterpret_cast<const xmlChar*>(rMathML.c_str()));
     if(!doc)
     {
         xxx_UT_DEBUGMSG(("convertMathMLtoOMML : Parsing MathML document failed\n"));
@@ -246,7 +246,7 @@ bool convertMathMLtoOMML(const std::string & rMathML, std::string & rOMML)
         return false;
     }
 
-    rOMML.assign((const char*)sOMML, len);
+    rOMML.assign(reinterpret_cast<const char*>(sOMML), len);
 
     if(strncmp(rOMML.c_str(),"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",39) == 0)
     {

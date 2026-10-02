@@ -55,7 +55,7 @@ AP_RDFContactGTK::createEditor()
     setEntry( w_phone, m_phone );
     setEntry( w_jabberID, m_jabberID );
 
-    g_object_unref((GObject*)builder);
+    g_object_unref(reinterpret_cast<GObject*>(builder));
     
     return m_mainWidget;
 }

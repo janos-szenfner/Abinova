@@ -65,7 +65,7 @@ void XAP_Dialog_MessageBox::setMessage(XAP_String_Id id, ...)
 	std::string s;
 	pSS->getValue(id, getApp()->getDefaultEncoding(),s);
 
-	m_message = UT_std_string_vprintf(m_message, (const char*)s.c_str(), args);
+	m_message = UT_std_string_vprintf(m_message, static_cast<const char*>(s.c_str()), args);
 
 	va_end(args);
 }
@@ -95,7 +95,7 @@ void XAP_Dialog_MessageBox::setSecondaryMessage(XAP_String_Id id, ...)
 	std::string s;
 	pSS->getValue(id, getApp()->getDefaultEncoding(),s);
 	m_secondaryMessage = UT_std_string_vprintf(m_secondaryMessage,
-						   (const char*)s.c_str(), args);
+						   static_cast<const char*>(s.c_str()), args);
 
 	va_end(args);
 }

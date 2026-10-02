@@ -223,7 +223,7 @@ UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwm
 	read_info.len = pBBwmf->getLength();
 	read_info.pos = 0;
 
-	err = wmf_bbuf_input (API,AbiWord_WMF_read,AbiWord_WMF_seek,AbiWord_WMF_tell,(void *) &read_info);
+	err = wmf_bbuf_input (API,AbiWord_WMF_read,AbiWord_WMF_seek,AbiWord_WMF_tell,static_cast<void *>( &read_info));
 	if (err != wmf_E_None) {
 		UT_DEBUGMSG(("IE_ImpGraphic_WMF::convertGraphic Bad input set\n"));
 		goto ErrorHandler;
@@ -243,14 +243,14 @@ UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwm
 
 	ddata->out = wmf_stream_create(API, nullptr);
 
-	ddata->Description = (char *)Default_Description;
+	ddata->Description = const_cast<char *>(Default_Description);
 
 	ddata->bbox = bbox;
 
 	wmf_display_size (API,&disp_width,&disp_height,72,72);
 
-	wmf_width  = (float) disp_width;
-	wmf_height = (float) disp_height;
+	wmf_width  = static_cast<float>( disp_width);
+	wmf_height = static_cast<float>( disp_height);
 
 	if ((wmf_width <= 0) || (wmf_height <= 0))
 	{	fputs ("Bad image size - but this error shouldn't occur...\n",stderr);
@@ -259,22 +259,22 @@ UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwm
 		return UT_ERROR;
 	}
 
-	if ((wmf_width  > (float) max_width )
-	 || (wmf_height > (float) max_height))
+	if ((wmf_width  > static_cast<float>( max_width ))
+	 || (wmf_height > static_cast<float>( max_height)))
 	{	if (max_flags == 0) max_flags = WMF2SVG_MAXPECT;
 	}
 
 	if (max_flags == WMF2SVG_MAXPECT) /* scale the image */
 	{	ratio_wmf = wmf_height / wmf_width;
-		ratio_bounds = (float) max_height / (float) max_width;
+		ratio_bounds = static_cast<float>( max_height )/ static_cast<float>( max_width);
 
 		if (ratio_wmf > ratio_bounds)
 		{	ddata->height = max_height;
-			ddata->width  = (unsigned int) ((float) ddata->height / ratio_wmf);
+			ddata->width  = static_cast<unsigned int>( (static_cast<float>( ddata->height )/ ratio_wmf));
 		}
 		else
 		{	ddata->width  = max_width;
-			ddata->height = (unsigned int) ((float) ddata->width  * ratio_wmf);
+			ddata->height = static_cast<unsigned int>( (static_cast<float>( ddata->width  )* ratio_wmf));
 		}
 	}
 	else if (max_flags == WMF2SVG_MAXSIZE) /* bizarre option, really */
@@ -282,8 +282,8 @@ UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwm
 		ddata->height = max_height;
 	}
 	else
-	{	ddata->width  = (unsigned int) ceil ((double) wmf_width );
-		ddata->height = (unsigned int) ceil ((double) wmf_height);
+	{	ddata->width  = static_cast<unsigned int>( ceil (static_cast<double>( wmf_width )));
+		ddata->height = static_cast<unsigned int>( ceil (static_cast<double>( wmf_height)));
 	}
 
 	ddata->flags |= WMF_SVG_INLINE_IMAGES;
@@ -300,7 +300,7 @@ UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwm
 	if (status == 0) 
 	{
 		UT_ByteBufPtr bb(new UT_ByteBuf);
-		bb->append((const UT_Byte*)stream, (UT_uint32)stream_len);
+		bb->append(reinterpret_cast<const UT_Byte*>(stream), static_cast<UT_uint32>(stream_len));
 		pBB = std::move(bb);
 		wmf_free(API, stream);
 		wmf_api_destroy (API);
@@ -372,7 +372,7 @@ UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,
 	read_info.len = pBBwmf->getLength();
 	read_info.pos = 0;
 
-	err = wmf_bbuf_input (API,AbiWord_WMF_read,AbiWord_WMF_seek,AbiWord_WMF_tell,(void *) &read_info);
+	err = wmf_bbuf_input (API,AbiWord_WMF_read,AbiWord_WMF_seek,AbiWord_WMF_tell,static_cast<void *>( &read_info));
 	if (err != wmf_E_None) {
 		UT_DEBUGMSG(("IE_ImpGraphic_WMF::convertGraphic Bad input set\n"));
 		wmf_api_destroy(API);
@@ -398,8 +398,8 @@ UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,
 		return UT_ERROR;
 	}
 
-	ddata->width  = (unsigned int) width;
-	ddata->height = (unsigned int) height;
+	ddata->width  = static_cast<unsigned int>( width);
+	ddata->height = static_cast<unsigned int>( height);
 
 	if ((ddata->width == 0) || (ddata->height == 0)) {
 		UT_DEBUGMSG(("IE_ImpGraphic_WMF::convertGraphic Size error (1)\n"));
@@ -413,15 +413,15 @@ UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,
 
 	if ((ddata->width >= max_width) || (ddata->height >= max_height)) {
 		float ratio_wmf = height / width;
-		float ratio_bounds = (float) max_height / (float) max_width;
+		float ratio_bounds = static_cast<float>( max_height )/ static_cast<float>( max_width);
 
 		if (ratio_wmf > ratio_bounds) {
 			ddata->height = max_height;
-			ddata->width  = (unsigned int) ((float) ddata->height / ratio_wmf);
+			ddata->width  = static_cast<unsigned int>( (static_cast<float>( ddata->height )/ ratio_wmf));
 		}
 		else {
 			ddata->width  = max_width;
-			ddata->height = (unsigned int) ((float) ddata->width  * ratio_wmf);
+			ddata->height = static_cast<unsigned int>( (static_cast<float>( ddata->width  )* ratio_wmf));
 		}
 	}
 #endif
@@ -447,7 +447,7 @@ UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,
 
 	ddata->flags |= WMF_GD_OUTPUT_MEMORY | WMF_GD_OWN_BUFFER;
 
-	ddata->sink.context = (void *) &write_info;
+	ddata->sink.context = static_cast<void *>( &write_info);
 	ddata->sink.function = AbiWord_WMF_function;
 
 	err = wmf_play(API,0,&bbox);
@@ -470,7 +470,7 @@ UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,
 // returns unsigned char cast to int, or EOF
 static int AbiWord_WMF_read (void * context)
 {
-	bbuf_read_info * info = (bbuf_read_info *) context;
+	bbuf_read_info * info = static_cast<bbuf_read_info *>( context);
 
 	const UT_Byte* pByte = nullptr;
 
@@ -481,15 +481,15 @@ static int AbiWord_WMF_read (void * context)
 
 	info->pos++;
 
-	return (int) ((unsigned char) *pByte);
+	return static_cast<int>( (static_cast<unsigned char>( *pByte)));
 }
 
 // returns (-1) on error, else 0
 static int AbiWord_WMF_seek (void * context,long pos)
 {
-	bbuf_read_info * info = (bbuf_read_info *) context;
+	bbuf_read_info * info = static_cast<bbuf_read_info *>( context);
 
-	info->pos = (UT_uint32) pos;
+	info->pos = static_cast<UT_uint32>( pos);
 
 	return 0;
 }
@@ -497,21 +497,21 @@ static int AbiWord_WMF_seek (void * context,long pos)
 // returns (-1) on error, else pos
 static long AbiWord_WMF_tell (void * context)
 {
-	bbuf_read_info * info = (bbuf_read_info *) context;
+	bbuf_read_info * info = static_cast<bbuf_read_info *>( context);
 
-	return (long) info->pos;
+	return static_cast<long>( info->pos);
 }
 
 static int AbiWord_WMF_function (void * context,char * buffer,int length)
 {
-	bbuf_write_info * info = (bbuf_write_info *) context;
+	bbuf_write_info * info = static_cast<bbuf_write_info *>( context);
 
 	UT_Byte a_byte;
 
 	int i = 0;
 
 	while (i < length) {
-		a_byte = (UT_Byte) ((unsigned char) buffer[i]); // why char I know not...
+		a_byte = static_cast<UT_Byte>( (static_cast<unsigned char>( buffer[i]))); // why char I know not...
 		if (!info->pByteBuf->append(&a_byte,1))
 			break;
 		i++;

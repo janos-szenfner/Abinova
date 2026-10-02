@@ -308,7 +308,7 @@ public:									// we create...
 			return;
 		}
 
-		if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE) {
+		if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
 			// no updates of the font size while the entry is being edited
 			GtkWidget *entry;
 			entry = gtk_combo_box_get_child (GTK_COMBO_BOX(combo));
@@ -361,7 +361,7 @@ public:									// we create...
 			}
 		}
 
-		if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT) {
+		if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_FONT)) {
 			const gchar *font;
 			font = XAP_EncodingManager::fontsizes_mapping.lookupByTarget(buffer);
 			if (font) {
@@ -370,7 +370,7 @@ public:									// we create...
 			}
 		}
 
-		if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+		if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 			text = pt_PieceTable::s_getUnlocalisedStyleName(buffer);
 		else
 			text = buffer;
@@ -712,11 +712,11 @@ bool EV_UnixToolbar::synthesize(void)
 			case EV_TBIT_PushButton:
 			{
 				UT_ASSERT(g_ascii_strcasecmp(pLabel->getIconName(),"NoIcon")!=0);
-				if(pAction->getToolbarId() != (XAP_Toolbar_Id)AP_TOOLBAR_ID_INSERT_TABLE)
+				if(pAction->getToolbarId() != static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_INSERT_TABLE))
 				{
 					wd->m_widget = toolbar_append_button(GTK_BOX(m_wToolbar), pLabel->getIconName(),
 														  szToolTip,
-														  (GCallback) _wd::s_callback, (gpointer) wd, 
+														  reinterpret_cast<GCallback>( _wd::s_callback), static_cast<gpointer>( wd), 
 														  &(wd->m_handlerId));
 				}
 				else
@@ -757,7 +757,7 @@ bool EV_UnixToolbar::synthesize(void)
 					gboolean bShow = TRUE;
 					wd->m_widget = toolbar_append_toggle(GTK_BOX(m_wToolbar), pLabel->getIconName(),
 														  szToolTip,
-														  (GCallback) _wd::s_callback, (gpointer) wd, 
+														  reinterpret_cast<GCallback>( _wd::s_callback), static_cast<gpointer>( wd), 
 														  bShow, &(wd->m_handlerId));
 				}
 				break;
@@ -774,7 +774,7 @@ bool EV_UnixToolbar::synthesize(void)
 				UT_ASSERT(pControl);
 
 				GtkWidget *combo = nullptr;
-				if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE) {
+				if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
 					combo = gtk_combo_box_text_new_with_entry();
 					GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo)));
 					gtk_widget_set_can_focus (GTK_WIDGET(entry), TRUE);
@@ -782,21 +782,21 @@ bool EV_UnixToolbar::synthesize(void)
 					gtk_editable_set_max_width_chars (GTK_EDITABLE(entry), 6);
 					g_signal_connect (G_OBJECT (entry), "insert-text", G_CALLBACK (_wd::s_insert_text_cb), nullptr);
 					GtkEventController *focusController = gtk_event_controller_focus_new();
-					g_signal_connect (G_OBJECT (focusController), "leave", G_CALLBACK (_wd::s_focus_out_event_cb), (gpointer) wd);
+					g_signal_connect (G_OBJECT (focusController), "leave", G_CALLBACK (_wd::s_focus_out_event_cb), static_cast<gpointer>( wd));
 					gtk_widget_add_controller (GTK_WIDGET (entry), focusController);
 					GtkEventController *keyController = gtk_event_controller_key_new();
-					g_signal_connect (G_OBJECT (keyController), "key-pressed", G_CALLBACK (_wd::s_key_press_event_cb), (gpointer) wd);
+					g_signal_connect (G_OBJECT (keyController), "key-pressed", G_CALLBACK (_wd::s_key_press_event_cb), static_cast<gpointer>( wd));
 					gtk_widget_add_controller (GTK_WIDGET (entry), keyController);
 				}
-				else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT) {
+				else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_FONT)) {
 					combo = abi_font_combo_new ();
 					gtk_widget_set_name (combo, "AbiFontCombo");
 				}
-				else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_ZOOM) {
+				else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_ZOOM)) {
 					combo = gtk_combo_box_text_new();
 					gtk_widget_set_name (combo, "AbiZoomCombo");
 				}
-				else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE) {
+				else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE)) {
 					combo = gtk_combo_box_text_new();
 					gtk_widget_set_name (combo, "AbiStyleCombo");
 				}
@@ -826,7 +826,7 @@ bool EV_UnixToolbar::synthesize(void)
 						for (gint m=0; m < items; m++) {
 							const char * sz = v->getNthItem(m);
 							std::string sLoc;
-							if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+							if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 							{
 								pt_PieceTable::s_getLocalisedStyleName(sz, sLoc);
 								sz = sLoc.c_str();
@@ -990,7 +990,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 				EV_Toolbar_ItemState tis = pAction->getToolbarItemState(pView,&szState);
 
                 if( tis & EV_TIS_Hidden )
-                    tis = (EV_Toolbar_ItemState)(tis | EV_TIS_Gray);
+                    tis = static_cast<EV_Toolbar_ItemState>((tis | EV_TIS_Gray));
                 
 				switch (pAction->getItemType())
 				{
@@ -1038,7 +1038,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					UT_nonnull_or_return(wd, false);
 					UT_nonnull_or_return(wd->m_widget, false);
 
-					GtkComboBox * combo = (GtkComboBox*)wd->m_widget; /* font combo is a GtkBox wrapper, not GtkComboBox */
+					GtkComboBox * combo = reinterpret_cast<GtkComboBox*>(wd->m_widget); /* font combo is a GtkBox wrapper, not GtkComboBox */
 					UT_ASSERT(combo);
 					// Disable/enable toolbar combo
 					gtk_widget_set_sensitive(GTK_WIDGET(combo), !bGrayed);
@@ -1052,7 +1052,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 						else
 							gtk_combo_box_set_active (combo, -1);
 					}
-					else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE) {
+					else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
 						const char * fsz = XAP_EncodingManager::fontsizes_mapping.lookupBySource(szState);
 						gboolean ret = FALSE;
 						if (fsz) {
@@ -1063,7 +1063,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 											   szState);
 						}
 					}
-					else if (wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE) {
+					else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE)) {
 #define BUILTIN_INDEX "builtin-index"
 						pt_PieceTable::s_getLocalisedStyleName(szState, sLoc);
 						szState = sLoc.c_str();
@@ -1089,7 +1089,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					}
 					else {
 						gboolean ret = combo_box_set_active_text(combo, szState, wd->m_handlerId);
-						if (!ret && wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_ZOOM) {
+						if (!ret && wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_ZOOM)) {
 							// zoom set via dialog/keys (e.g. 125%) is not in
 							// the static list; append it so the combo
 							// reflects the real zoom (Debian #1010880)
@@ -1177,14 +1177,14 @@ bool EV_UnixToolbar::repopulateStyles(void)
 	UT_uint32 count = m_pToolbarLayout->getLayoutItemCount();
 	UT_uint32 i =0;
 	EV_Toolbar_LayoutItem * pLayoutItem = nullptr;
-	XAP_Toolbar_Id id = (XAP_Toolbar_Id)0;
+	XAP_Toolbar_Id id = static_cast<XAP_Toolbar_Id>(0);
 	_wd * wd = nullptr;
 	for(i=0; i < count; i++)
 	{
 		pLayoutItem = m_pToolbarLayout->getLayoutItem(i);
 		id = pLayoutItem->getToolbarId();
 		wd = m_vecToolbarWidgets.getNthItem(i);
-		if(id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+		if(id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 			break;
 	}
 	if(i>=count || !wd)
@@ -1192,14 +1192,14 @@ bool EV_UnixToolbar::repopulateStyles(void)
 //
 // GOT IT!
 //
-	UT_ASSERT(wd->m_id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE);
+	UT_ASSERT(wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE));
 	XAP_Toolbar_ControlFactory * pFactory = m_pUnixApp->getControlFactory();
 	UT_return_val_if_fail(pFactory, false);
 	EV_Toolbar_Control * pControl = pFactory->getControl(this, id);
 	AP_UnixToolbar_StyleCombo * pStyleC = static_cast<AP_UnixToolbar_StyleCombo *>(pControl);
 	UT_return_val_if_fail(pStyleC, false);
 	pStyleC->repopulate();
-	GtkComboBox * combo = (GtkComboBox*)wd->m_widget; /* font combo is a GtkBox wrapper, not GtkComboBox */
+	GtkComboBox * combo = reinterpret_cast<GtkComboBox*>(wd->m_widget); /* font combo is a GtkBox wrapper, not GtkComboBox */
 	GtkTreeModel *model = gtk_combo_box_get_model(combo);
 //
 // Now the combo box has to be refilled from this

@@ -273,7 +273,7 @@ UT_sint32 UT_GenericVector<T>::insertItemAt(const T p, UT_sint32 ndx)
 	// bump the elements -> thataway up to the ndxth position
 	memmove(&m_pEntries[ndx+1], &m_pEntries[ndx], (m_iCount - ndx) * sizeof(T));
 
-	m_pEntries[ndx] = (T)p;
+	m_pEntries[ndx] = static_cast<T>(p);
 	++m_iCount;
 
 	return 0;
@@ -300,7 +300,7 @@ UT_sint32 UT_GenericVector<T>::addItem(const T p)
 		}
 	}
 
-	m_pEntries[m_iCount++] = (T)p;  /*** bad, cast away const so we can build again ***/
+	m_pEntries[m_iCount++] = static_cast<T>(p);  /*** bad, cast away const so we can build again ***/
 
 	return 0;
 }

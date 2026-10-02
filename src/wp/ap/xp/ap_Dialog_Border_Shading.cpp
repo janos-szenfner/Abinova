@@ -96,7 +96,7 @@ AP_Dialog_Border_Shading::AP_Dialog_Border_Shading(XAP_DialogFactory * pDlgFacto
 		m_dShadingOffset[j] = UT_convertToInches(sShadingOffset[j]);
 	}
 
-	guint border_style_id = (guint)PP_PropertyMap::linestyle_none - 1;
+	guint border_style_id = static_cast<guint>(PP_PropertyMap::linestyle_none )- 1;
 	m_sDefaultStyle = UT_std_string_sprintf("%d", border_style_id);
 }
 

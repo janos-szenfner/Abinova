@@ -441,7 +441,7 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		while (pSrc < pLim)
 		{
 			UT_UCS4Char ch = g_utf8_get_char_validated(pSrc,pLim-pSrc);
-			if (((signed)ch) < 0) ch=UCS_REPLACECHAR;
+			if ((static_cast<signed>(ch)) < 0) ch=UCS_REPLACECHAR;
 			labelStr[(*insPoint)++] = ch;
 			pSrc = g_utf8_next_char(pSrc);
 		}
@@ -584,7 +584,7 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		while (pSrc < pLim)
 		{
 			UT_UCS4Char ch = g_utf8_get_char_validated(pSrc,pLim-pSrc);
-			if (((signed)ch) < 0) ch=UCS_REPLACECHAR;
+			if ((static_cast<signed>(ch)) < 0) ch=UCS_REPLACECHAR;
 			labelStr[(*insPoint)++] = ch;
 			pSrc = g_utf8_next_char(pSrc);
 		}
@@ -1267,7 +1267,7 @@ char *  fl_AutoNum::dec2roman(UT_sint32 value, bool lower)
 		while (--len >= 0)
 		{
 			UT_sint32 r = static_cast<UT_sint32>(roman[len]);
-			if( (r >= (UT_sint32) 'A') && (r <= (UT_sint32) 'Z'))
+			if( (r >= static_cast<UT_sint32>( 'A')) && (r <= static_cast<UT_sint32>( 'Z')))
 				r = r + 32;
 			rmn[len] = static_cast<char>(r);
 		}

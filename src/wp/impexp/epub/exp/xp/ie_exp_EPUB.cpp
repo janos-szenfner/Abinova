@@ -99,7 +99,7 @@ UT_Error IE_Exp_EPUB::_writeDocument()
     if (mimetype)
     {
         gsf_output_write(mimetype.get(), strlen(EPUB_MIMETYPE),
-                (const guint8*) EPUB_MIMETYPE);
+                reinterpret_cast<const guint8*>( EPUB_MIMETYPE));
         gsf_output_close(mimetype.get());
     }
 
@@ -615,7 +615,7 @@ UT_Error IE_Exp_EPUB::EPUB3_writeStructure()
     indexPath += "index.xhtml";
 
     // Exporting document to XHTML using HTML export plugin 
-    char *szIndexPath = (char*) g_malloc(strlen(indexPath.c_str()) + 1);
+    char *szIndexPath = static_cast<char*>( g_malloc(strlen(indexPath.c_str()) + 1));
     strcpy(szIndexPath, indexPath.c_str());
     IE_Exp_HTML_WriterFactory *pWriterFactory =
 		new IE_Exp_EPUB_EPUB3WriterFactory(getLanguage());

@@ -149,7 +149,7 @@ GR_Graphics *   GR_UnixCairoGraphics::graphicsAllocator(GR_AllocInfo& info)
 	xxx_UT_DEBUGMSG(("GR_CairoGraphics::graphicsAllocator\n"));
 
 //	UT_return_val_if_fail(!info.isPrinterGraphics(), nullptr);
-	GR_UnixCairoAllocInfo &AI = (GR_UnixCairoAllocInfo&)info;
+	GR_UnixCairoAllocInfo &AI = static_cast<GR_UnixCairoAllocInfo&>(info);
 
 	return new GR_UnixCairoGraphics(AI.m_win);
 }

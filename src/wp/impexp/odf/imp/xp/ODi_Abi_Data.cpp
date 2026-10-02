@@ -88,7 +88,7 @@ bool ODi_Abi_Data::addImageDataItem(UT_String& rDataId, const gchar** ppAtts) {
 		.insert(m_href_to_id.begin(),
 			href_id_map_t::value_type(pHRef, 
 						  rDataId.c_str()));
-    UT_ASSERT((href_id_map_t::iterator)iter != m_href_to_id.end());
+    UT_ASSERT(static_cast<href_id_map_t::iterator>(iter )!= m_href_to_id.end());
 
     _splitDirectoryAndFileName(pHRef, dirName, fileName);
 
@@ -214,7 +214,7 @@ bool ODi_Abi_Data::addObjectDataItem(UT_String& rDataId, const gchar** ppAtts, i
 		.insert(m_href_to_id.begin(),
 			href_id_map_t::value_type(pHRef, 
 						  rDataId.c_str()));
-    UT_ASSERT((href_id_map_t::iterator)iter != m_href_to_id.end());
+    UT_ASSERT(static_cast<href_id_map_t::iterator>(iter )!= m_href_to_id.end());
 
     _splitDirectoryAndFileName(pHRef, dirName, fileName);
 
@@ -250,7 +250,7 @@ bool ODi_Abi_Data::addObjectDataItem(UT_String& rDataId, const gchar** ppAtts, i
     // for math from odt generated in MS Word
     static const char math_ms[] = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<mml:math";
      
-    if (((object_buf->getLength () > strlen (math_header)) && (strncmp ((const char*)object_buf->getPointer (0), math_header, strlen (math_header)) != 0)) && ((object_buf->getLength () > strlen (math_header_old)) && (strncmp ((const char*)object_buf->getPointer (0), math_header_old, strlen (math_header_old)) != 0)) && ((object_buf->getLength () > strlen (math_ms)) && (strncmp ((const char*)object_buf->getPointer (0), math_ms, strlen (math_ms)) != 0)))
+    if (((object_buf->getLength () > strlen (math_header)) && (strncmp (static_cast<const char*>(object_buf->getPointer (0)), math_header, strlen (math_header)) != 0)) && ((object_buf->getLength () > strlen (math_header_old)) && (strncmp (static_cast<const char*>(object_buf->getPointer (0)), math_header_old, strlen (math_header_old)) != 0)) && ((object_buf->getLength () > strlen (math_ms)) && (strncmp (static_cast<const char*>(object_buf->getPointer (0)), math_ms, strlen (math_ms)) != 0)))
     {
     	delete object_buf;
         return false;
@@ -271,7 +271,7 @@ bool ODi_Abi_Data::addObjectDataItem(UT_String& rDataId, const gchar** ppAtts, i
     //
 
     UT_ByteBufPtr latexBuf(new UT_ByteBuf);
-    UT_UTF8String PbMathml = (const char*)(object_buf->getPointer(0));
+    UT_UTF8String PbMathml = reinterpret_cast<const char*>((object_buf->getPointer(0)));
     UT_UTF8String PbLatex,Pbitex;
 	
     if (!m_pAbiDocument->createDataItem(rDataId.c_str(), false, object_buf,"application/mathml+xml", nullptr))
@@ -322,7 +322,7 @@ UT_Error ODi_Abi_Data::_loadStream (GsfInfile* oo,
                 g_object_unref (G_OBJECT (input));
                 return UT_ERROR;
             }
-            buf->append((const UT_Byte *)data, len);
+            buf->append(static_cast<const UT_Byte *>(data), len);
         }
     }
   

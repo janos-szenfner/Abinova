@@ -237,7 +237,7 @@ void ODi_Frame_ListenerState::endElement (const gchar* pName,
      	    lID.append((sID.substr(9,sID.size()-8)).c_str());
 			
       	    UT_ByteBufPtr latexBuf(new UT_ByteBuf);
-   	    UT_UTF8String PMathml = (const char*)(m_pMathBB->getPointer(0));
+   	    UT_UTF8String PMathml = reinterpret_cast<const char*>((m_pMathBB->getPointer(0)));
 	    UT_UTF8String PLatex,Pitex;
 
 	    m_pAbiDocument->createDataItem(sID.c_str(), false, m_pMathBB, "", nullptr);
@@ -511,7 +511,7 @@ void ODi_Frame_ListenerState::_drawObject (const gchar** ppAtts,
             "dataid", dataId.c_str(),
             "latexid", extraID
         };
-        if (!m_pAbiDocument->appendObject ((PTObjectType)pto_Type, attribs)) {
+        if (!m_pAbiDocument->appendObject (static_cast<PTObjectType>(pto_Type), attribs)) {
             UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
         }
         

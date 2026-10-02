@@ -112,7 +112,7 @@ void AP_Dialog_EpubExportOptions::saveDefaults()
                                       m_exp_opt->iSplitLevel);
     }
    
-    const gchar * szValue = (const gchar *) pref.utf8_str();
+    const gchar * szValue = static_cast<const gchar *>( pref.utf8_str());
 
     pPScheme->setValue(EPUB_EXPORT_SCHEME_NAME, szValue);
 }

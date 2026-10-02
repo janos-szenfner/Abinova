@@ -104,7 +104,7 @@ void fp_DirectionMarkerRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 		pG->setFont(pFont);
 	}
 
-	UT_UCS4Char cM = m_iMarker == UCS_LRM ? (UT_UCS4Char)'>' : (UT_UCS4Char)'<';
+	UT_UCS4Char cM = m_iMarker == UCS_LRM ? static_cast<UT_UCS4Char>('>' ): static_cast<UT_UCS4Char>('<');
 	m_iDrawWidth  = pG->measureString(&cM, 0, 1, nullptr);
 	xxx_UT_DEBUGMSG(("fp_DirectionMarkerRun::lookupProperties: width %d\n", getWidth()));
 }
@@ -263,7 +263,7 @@ void fp_DirectionMarkerRun::_draw(dg_DrawArgs* pDA)
 	// if we currently have a 0 width, i.e., we draw in response to the
 	// showPara being turned on, then we obtain the new width, and then
 	// tell the line to redo its layout and redraw instead of drawing ourselves
-	UT_UCS4Char cM = m_iMarker == UCS_LRM ? (UT_UCS4Char)'>' : (UT_UCS4Char)'<';
+	UT_UCS4Char cM = m_iMarker == UCS_LRM ? static_cast<UT_UCS4Char>('>' ): static_cast<UT_UCS4Char>('<');
 	m_iDrawWidth  = getGraphics()->measureString(&cM, 0, 1, nullptr);
 
 	_setHeight(getGraphics()->getFontHeight());

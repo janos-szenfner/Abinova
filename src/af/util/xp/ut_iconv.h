@@ -25,7 +25,7 @@
 
 typedef void * UT_iconv_t;
 
-#define UT_ICONV_INVALID ((UT_iconv_t)(-1))
+#define UT_ICONV_INVALID (reinterpret_cast<UT_iconv_t>((-1)))
 
 #ifdef __cplusplus
 

@@ -225,7 +225,7 @@ bool UT_ensureValidXML(std::string & str)
 
         bytesInSequence++;
         if (bytesInSequence == bytesExpectedInSequence) { // final byte in multi-byte sequence
-          for(UT_sint32 i = k - bytesInSequence + 1; i <= (UT_sint32)k; i++) {
+          for(UT_sint32 i = k - bytesInSequence + 1; i <= static_cast<UT_sint32>(k); i++) {
             s += p[i];
           }
 
@@ -1733,7 +1733,7 @@ bool UT_bidiReorderString(const UT_UCS4Char * pStrIn, UT_uint32 len, UT_BidiChar
 		UT_uint32 i;
 		for(i = 0; i < len; ++i)
 		{
-			pFBDC[i] = (FriBidiChar) pStrIn[i];
+			pFBDC[i] = static_cast<FriBidiChar>( pStrIn[i]);
 		}
 
 		pFBDC[i] = 0;
@@ -1742,7 +1742,7 @@ bool UT_bidiReorderString(const UT_UCS4Char * pStrIn, UT_uint32 len, UT_BidiChar
 
 		for(i = 0; i < len; ++i)
 		{
-			pStrOut[i] = (UT_UCS4Char) pFBDC2[i];
+			pStrOut[i] = static_cast<UT_UCS4Char>( pFBDC2[i]);
 		}
 
 		pStrOut[i] = 0;
@@ -1751,7 +1751,7 @@ bool UT_bidiReorderString(const UT_UCS4Char * pStrIn, UT_uint32 len, UT_BidiChar
 	}
 	else
 	{
-		return (0 != fribidi_log2vis ((FriBidiChar *)pStrIn, len, &baseDir, (FriBidiChar*)pStrOut, nullptr, nullptr, nullptr));
+		return (0 != fribidi_log2vis (const_cast<FriBidiChar *>(reinterpret_cast<const FriBidiChar*>(pStrIn)), len, &baseDir, const_cast<FriBidiChar*>(pStrOut), nullptr, nullptr, nullptr));
 	}
 	
 #else
@@ -1771,8 +1771,8 @@ bool UT_bidiMapLog2Vis(const UT_UCS4Char * pStrIn, UT_uint32 len, UT_BidiCharTyp
 #ifndef NO_BIDI_SUPPORT
 	// if this assert fails, we have a serious problem ...
 	UT_ASSERT_HARMLESS( sizeof(UT_UCS4Char) == sizeof(FriBidiChar) );
-	return (0 != fribidi_log2vis ((FriBidiChar *)pStrIn, len, &baseDir,
-								  nullptr, (FriBidiStrIndex*)pL2V, (FriBidiStrIndex*)pV2L, (FriBidiLevel*)pEmbed));
+	return (0 != fribidi_log2vis (const_cast<FriBidiChar *>(reinterpret_cast<const FriBidiChar*>(pStrIn)), len, &baseDir,
+								  nullptr, reinterpret_cast<FriBidiStrIndex*>(pL2V), reinterpret_cast<FriBidiStrIndex*>(pV2L), reinterpret_cast<FriBidiLevel*>(pEmbed)));
 #else
 	UT_return_val_if_fail( pL2V && pV2L && pEmbed, false );
 	for(UT_uint32 i = 0; i < len; ++i)
@@ -1789,7 +1789,7 @@ bool UT_bidiMapLog2Vis(const UT_UCS4Char * pStrIn, UT_uint32 len, UT_BidiCharTyp
 bool UT_bidiGetMirrorChar(UT_UCS4Char c, UT_UCS4Char &mc)
 {
 #ifndef NO_BIDI_SUPPORT
-	return (0 != fribidi_get_mirror_char(c, (FriBidiChar*)&mc));
+	return (0 != fribidi_get_mirror_char(c, static_cast<FriBidiChar*>(&mc)));
 #else
 	return false;
 #endif

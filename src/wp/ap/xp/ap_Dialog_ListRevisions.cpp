@@ -161,13 +161,13 @@ char * AP_Dialog_ListRevisions::getNthItemText(UT_uint32 n, bool utf8) const
 			UT_UCS4Char * pStr2 = nullptr;
 			UT_uint32 iLen = UT_UCS4_strlen(pC);
 
-			pStr2  = (UT_UCS4Char *)UT_calloc( iLen + 1, sizeof(UT_UCS4Char));
+			pStr2  = static_cast<UT_UCS4Char *>(UT_calloc( iLen + 1, sizeof(UT_UCS4Char)));
 			UT_return_val_if_fail(pStr2,nullptr);
 			bFree = true;
 
 			UT_BidiCharType iDomDir = UT_bidiGetCharType(pC[0]);
 			UT_bidiReorderString(pC, iLen, iDomDir, pStr2);
-			pC = (const UT_UCS4Char *) pStr2;
+			pC = static_cast<const UT_UCS4Char *>( pStr2);
 
 		}
 
@@ -176,13 +176,13 @@ char * AP_Dialog_ListRevisions::getNthItemText(UT_uint32 n, bool utf8) const
 		if (utf8)
 		{
 			UT_UTF8String comment(pC);
-			pComment = (char *)UT_calloc(comment.byteLength() + 1, sizeof(char));
+			pComment = static_cast<char *>(UT_calloc(comment.byteLength() + 1, sizeof(char)));
 			UT_return_val_if_fail(pComment,nullptr);
 			pComment = strcpy(pComment, comment.utf8_str());
 		}
 		else
 		{
-			pComment = (char *)UT_calloc(UT_UCS4_strlen(pC) + 1, sizeof(char));
+			pComment = static_cast<char *>(UT_calloc(UT_UCS4_strlen(pC) + 1, sizeof(char)));
 			UT_return_val_if_fail(pComment,nullptr);
 			UT_UCS4_strcpy_to_char(pComment,pC);
 		}

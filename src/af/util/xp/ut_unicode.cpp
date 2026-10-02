@@ -67,7 +67,7 @@ UT_UCS4Char UT_Unicode::UTF8_to_UCS4 (const char *& buffer, size_t & length)
 
 	UT_UCS4Char ucs4 = g_utf8_get_char_validated (buffer, length);
 
-	if ((UT_sint32)ucs4 == -1 || (UT_sint32)ucs4 == -2)
+	if (static_cast<UT_sint32>(ucs4 )== -1 || static_cast<UT_sint32>(ucs4 )== -2)
 		return 0;
 
 	const char * p = g_utf8_next_char (buffer);

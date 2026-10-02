@@ -97,7 +97,7 @@ void __dump_sq(void)
 	if (FL_DocLayout::m_pDocLayout->isPendingWordForSpell())
 	{
 		fl_PartOfBlock* pPOB = FL_DocLayout::m_pDocLayout->getPendingWordForSpell();
-		fprintf(stdout, "Pending word: %p [%d:%d]\n", (void*)pPOB,
+		fprintf(stdout, "Pending word: %p [%d:%d]\n", static_cast<void*>(pPOB),
 				pPOB->getOffset(), pPOB->getOffset()+pPOB->getPTLength());
 	}
 	else
@@ -105,12 +105,12 @@ void __dump_sq(void)
 		fprintf(stdout, "No pending word.\n");
 	}
 #endif
-	fprintf(stdout,"FL_DocLayout::__dump(%p) sections:\n",(void*)FL_DocLayout::m_pDocLayout);
+	fprintf(stdout,"FL_DocLayout::__dump(%p) sections:\n",static_cast<void*>(FL_DocLayout::m_pDocLayout));
 	for (fl_SectionLayout * psl=FL_DocLayout::m_pDocLayout->getFirstSection(); (psl); psl=static_cast<fl_SectionLayout *>(psl->getNext()))
 	{
-		fprintf(stdout,"Section: %p [type %d]\n",(void*)psl,psl->getType());
+		fprintf(stdout,"Section: %p [type %d]\n",static_cast<void*>(psl),psl->getType());
 #ifdef ENABLE_SPELL
-		for (fl_BlockLayout * pBL=(fl_BlockLayout *) psl->getFirstLayout(); (pBL); pBL= (fl_BlockLayout *) pBL->getNext())
+		for (fl_BlockLayout * pBL=static_cast<fl_BlockLayout *>( psl->getFirstLayout()); (pBL); pBL= static_cast<fl_BlockLayout *>( pBL->getNext()))
 			pBL->getSpellSquiggles()->__dump(stdout);
 #endif
 	}
@@ -125,15 +125,15 @@ void FL_DocLayout::__dump(FILE * fp) const
 	int count = m_vecPages.getItemCount();
 
 	fprintf(fp,"FL_DocLayout::__dump(%p) contains %d pages.\n", 
-			(void*)this, m_vecPages.getItemCount());
+			static_cast<void*>(this), m_vecPages.getItemCount());
 	for (int i=0; i<count; i++)
 	{
-		fp_Page* p = (fp_Page*) m_vecPages.getNthItem(i);
+		fp_Page* p = static_cast<fp_Page*>( m_vecPages.getNthItem(i));
 		p->__dump(fp);
 	}
 
-	fprintf(fp,"FL_DocLayout::__dump(%p) sections:\n",(void*)this);
-	for (fl_SectionLayout * psl= (fl_SectionLayout *) getFirstSection(); (psl); psl= (fl_SectionLayout *) psl->getNext())
+	fprintf(fp,"FL_DocLayout::__dump(%p) sections:\n",static_cast<void*>(this));
+	for (fl_SectionLayout * psl= static_cast<fl_SectionLayout *>( getFirstSection()); (psl); psl= static_cast<fl_SectionLayout *>( psl->getNext()))
 	{
 		psl->__dump(fp);
 	}
@@ -145,8 +145,8 @@ void FL_DocLayout::__dump(FILE * fp) const
 */
 void fl_SectionLayout::__dump(FILE * fp) const
 {
-	fprintf(fp,"Section: %p [type %d]\n",(void*)this,getType());
-	for (fl_BlockLayout * pBL=(fl_BlockLayout *) getFirstLayout(); (pBL); pBL= (fl_BlockLayout *) pBL->getNext())
+	fprintf(fp,"Section: %p [type %d]\n",static_cast<void*>(this),getType());
+	for (fl_BlockLayout * pBL=static_cast<fl_BlockLayout *>( getFirstLayout()); (pBL); pBL= static_cast<fl_BlockLayout *>( pBL->getNext()))
 		pBL->__dump(fp);
 }
 
@@ -157,8 +157,8 @@ void fl_SectionLayout::__dump(FILE * fp) const
 */
 void fl_ContainerLayout::__dump(FILE * fp) const
 {
-	fprintf(fp,"ContainerLayout: %p [Containertype %d]\n",(void*)this,getContainerType());
-	for (fl_ContainerLayout * pBL=(fl_ContainerLayout *) getFirstLayout(); (pBL); pBL= (fl_ContainerLayout *) pBL->getNext())
+	fprintf(fp,"ContainerLayout: %p [Containertype %d]\n",static_cast<void*>(this),getContainerType());
+	for (fl_ContainerLayout * pBL=static_cast<fl_ContainerLayout *>( getFirstLayout()); (pBL); pBL= static_cast<fl_ContainerLayout *>( pBL->getNext()))
 		pBL->__dump(fp);
 }
 
@@ -169,8 +169,8 @@ void fl_ContainerLayout::__dump(FILE * fp) const
 */
 void fl_CellLayout::__dump(FILE * fp) const
 {
-	fprintf(fp,"CellLayout: %p [Containertype %d]\n",(void*)this,getContainerType());
-	for (fl_ContainerLayout * pBL=(fl_ContainerLayout *) getFirstLayout(); (pBL); pBL= (fl_ContainerLayout *) pBL->getNext())
+	fprintf(fp,"CellLayout: %p [Containertype %d]\n",static_cast<void*>(this),getContainerType());
+	for (fl_ContainerLayout * pBL=static_cast<fl_ContainerLayout *>( getFirstLayout()); (pBL); pBL= static_cast<fl_ContainerLayout *>( pBL->getNext()))
 		pBL->__dump(fp);
 }
 
@@ -181,8 +181,8 @@ void fl_CellLayout::__dump(FILE * fp) const
 */
 void fl_TableLayout::__dump(FILE * fp) const
 {
-	fprintf(fp,"TableLayout: %p [Containertype %d]\n",(void*)this,getContainerType());
-	for (fl_ContainerLayout * pBL=(fl_ContainerLayout *) getFirstLayout(); (pBL); pBL= (fl_BlockLayout *) pBL->getNext())
+	fprintf(fp,"TableLayout: %p [Containertype %d]\n",static_cast<void*>(this),getContainerType());
+	for (fl_ContainerLayout * pBL=static_cast<fl_ContainerLayout *>( getFirstLayout()); (pBL); pBL= static_cast<fl_BlockLayout *>( pBL->getNext()))
 		pBL->__dump(fp);
 }
 
@@ -195,16 +195,16 @@ void fl_TableLayout::__dump(FILE * fp) const
 */
 void fl_BlockLayout::__dump(FILE * fp) const
 {
-	fprintf(fp,"  Block: %p [sdh %p]\n",(void*)this,(void*)getStruxDocHandle());
-	fp_Container* pContainer = (fp_Container*)-1;
+	fprintf(fp,"  Block: %p [sdh %p]\n",static_cast<void*>(this),static_cast<void*>(getStruxDocHandle()));
+	fp_Container* pContainer = static_cast<fp_Container*>(-1);
 	fp_Run* pRun;
 	fp_Line* pLine;
 
 	// Get last line of previous block and its container.
-	fl_BlockLayout* pPrev = (fl_BlockLayout *) getPrev();
+	fl_BlockLayout* pPrev = static_cast<fl_BlockLayout *>( getPrev());
 	if (pPrev)
 	{
-		pLine = (fp_Line *) pPrev->getLastContainer();
+		pLine = static_cast<fp_Line *>( pPrev->getLastContainer());
 		if (pLine)
 		{
 			pContainer = pLine->getContainer();
@@ -212,7 +212,7 @@ void fl_BlockLayout::__dump(FILE * fp) const
 	}
 
 	pRun = m_pFirstRun;
-	pLine = (fp_Line*)-1;
+	pLine = static_cast<fp_Line*>(-1);
 	for (; (pRun); pRun=pRun->getNextRun())
 	{
 		if (pRun->getLine() != pLine)
@@ -244,7 +244,7 @@ void fl_BlockLayout::__dump(FILE * fp) const
 
 void fl_Squiggles::__dump(FILE * fp) const
 {
-	fprintf(fp," Squiggles: %p\n",(void*)this);
+	fprintf(fp," Squiggles: %p\n",static_cast<void*>(this));
 
 	UT_sint32 iSquiggles = _getCount();
 	fl_PartOfBlock* pPOB;

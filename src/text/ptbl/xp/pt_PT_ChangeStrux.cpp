@@ -348,7 +348,7 @@ bool pt_PieceTable::_realChangeStruxForLists(pf_Frag_Strux* sdh,
 											 const char * pszParentID,
 											 bool bRevisionDelete)
 {
-	pf_Frag_Strux * pfs = (pf_Frag_Strux *) sdh;
+	pf_Frag_Strux * pfs = static_cast<pf_Frag_Strux *>( sdh);
 	PTStruxType pts = pfs->getStruxType();
 
 	const char * attributes[3] = {PT_PARENTID_ATTRIBUTE_NAME,pszParentID,nullptr};

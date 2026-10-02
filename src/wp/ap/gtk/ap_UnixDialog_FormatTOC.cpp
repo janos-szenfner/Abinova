@@ -661,24 +661,24 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 		_setHasHeadingSensitivity(FALSE);
 	}
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-has-heading");
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-has-heading")));
 	g_signal_connect(G_OBJECT(pW),
 					 "toggled",
 					 G_CALLBACK(s_HasHeading_changed),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 	
 	sVal = getTOCPropVal("toc-heading");
 	pW = _getWidget("edHeadingText");
 	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-heading");
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-heading")));
 
 
 	sVal = getTOCPropVal("toc-heading-style");
 	pW = _getWidget("lbCurrentHeadingStyle");
 	pt_PieceTable::s_getLocalisedStyleName(sVal.c_str(), sLoc);
 	gtk_label_set_text(GTK_LABEL(pW), sLoc.c_str());
-	g_object_set_data(G_OBJECT(_getWidget("lbChangeHeadingStyle")),"display-widget",(gpointer)pW);
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-heading-style");
+	g_object_set_data(G_OBJECT(_getWidget("lbChangeHeadingStyle")),"display-widget",static_cast<gpointer>(pW));
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-heading-style")));
 
 
 	FV_View * pView = static_cast<FV_View *>(getActiveFrame()->getCurrentView());
@@ -687,8 +687,8 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	pW= _getWidget("wDispStyle");
 	pt_PieceTable::s_getLocalisedStyleName(sVal.c_str(), sLoc);
 	gtk_label_set_text(GTK_LABEL(pW), sLoc.c_str());
-	g_object_set_data(G_OBJECT(_getWidget("wChangeDisp")),"display-widget",(gpointer)pW);
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-dest-style");
+	g_object_set_data(G_OBJECT(_getWidget("wChangeDisp")),"display-widget",static_cast<gpointer>(pW));
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-dest-style")));
 
 
 	sVal = getTOCPropVal("toc-has-label",getMainLevel());
@@ -701,21 +701,21 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	{
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 	}
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-has-label");
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-has-label")));
 	g_signal_connect(G_OBJECT(pW),
 					 "toggled",
 					 G_CALLBACK(s_HasLabel_changed),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 
 	sVal = getTOCPropVal("toc-label-after",getDetailsLevel());
 	pW = _getWidget("edTextAfter");
 	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-label-after");
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-label-after")));
 
 	sVal = getTOCPropVal("toc-label-before",getDetailsLevel());
 	pW = _getWidget("edTextBefore");
 	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-label-before");
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-label-before")));
 
 	sVal = getTOCPropVal("toc-label-inherits",getDetailsLevel());
 	pW = _getWidget("cbInherit");
@@ -727,18 +727,18 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	{
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(pW),FALSE);
 	}
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-label-inherits");
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-label-inherits")));
 	g_signal_connect(G_OBJECT(pW),
 					 "toggled",
 					 G_CALLBACK(s_check_changedDetails),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 
 
 	sVal = getTOCPropVal("toc-label-start",getDetailsLevel());
 	pW = _getWidget("wStartEntry");
 	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON (_getWidget("wStartSpin")),
-                                             (gdouble) m_iStartValue );
+                                             static_cast<gdouble>( m_iStartValue ));
 	g_signal_connect(G_OBJECT(_getWidget("wStartSpin")),
 							  "value-changed",
 							  G_CALLBACK(s_StartAt_changed),
@@ -748,7 +748,7 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	pW = _getWidget("wIndentEntry");
 	XAP_gtk_entry_set_text(GTK_EDITABLE(pW),sVal.c_str());
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON (_getWidget("wIndentSpin")),
-                                             (gdouble) m_iIndentValue );
+                                             static_cast<gdouble>( m_iIndentValue ));
 	g_signal_connect(G_OBJECT(_getWidget("wIndentSpin")),
 							  "value-changed",
 							  G_CALLBACK(s_Indent_changed),
@@ -769,8 +769,8 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	pW = _getWidget("wFillStyle");
 	pt_PieceTable::s_getLocalisedStyleName(sVal.c_str(), sLoc);
 	gtk_label_set_text(GTK_LABEL(pW), sLoc.c_str());
-	g_object_set_data(G_OBJECT(_getWidget("wChangeFill")),"display-widget",(gpointer)pW);
-	g_object_set_data(G_OBJECT(pW),"toc-prop",(gpointer) "toc-source-style");
+	g_object_set_data(G_OBJECT(_getWidget("wChangeFill")),"display-widget",static_cast<gpointer>(pW));
+	g_object_set_data(G_OBJECT(pW),"toc-prop",const_cast<gpointer>(static_cast<const void *>( "toc-source-style")));
 
 	sVal = getTOCPropVal("toc-tab-leader",getDetailsLevel());
 	pW = _getWidget("wTabLeaderChoose");
@@ -814,51 +814,51 @@ void  AP_UnixDialog_FormatTOC::_connectSignals(void)
 	g_signal_connect(G_OBJECT(m_windowMain),
 			   "close-request",
 			   G_CALLBACK(s_destroy_clicked),
-			   (gpointer) this);
+			   static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("lbChangeHeadingStyle")),
 					  "clicked",
 					  G_CALLBACK(s_set_style),
-					  (gpointer) this);
+					  static_cast<gpointer>( this));
 
 	g_signal_connect(G_OBJECT(_getWidget("wChangeFill")),
 					 "clicked",
 					 G_CALLBACK(s_set_style),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wChangeDisp")),
 					 "clicked",
 					 G_CALLBACK(s_set_style),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 
 	g_signal_connect(G_OBJECT(_getWidget("wLevelOption")),
 					 "changed",
 					 G_CALLBACK(s_MainLevel_changed),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wDetailsLevel")),
 					 "changed",
 					 G_CALLBACK(s_DetailsLevel_changed),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wLabelChoose")),
 					 "changed",
 					 G_CALLBACK(s_NumType_changed),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wPageNumberingChoose")),
 					 "changed",
 					 G_CALLBACK(s_NumType_changed),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wTabLeaderChoose")),
 					 "changed",
 					 G_CALLBACK(s_TabLeader_changed),
-					 (gpointer) this);
+					 static_cast<gpointer>( this));
 	{
 		GtkWidget *w = _getWidget("edTextBefore");
 		GtkEventController *focus = gtk_event_controller_focus_new();
-		g_signal_connect(focus, "leave", G_CALLBACK(s_Text_changed), (gpointer) this);
+		g_signal_connect(focus, "leave", G_CALLBACK(s_Text_changed), static_cast<gpointer>( this));
 		gtk_widget_add_controller(w, focus);
 	}
 	{
 		GtkWidget *w = _getWidget("edTextAfter");
 		GtkEventController *focus = gtk_event_controller_focus_new();
-		g_signal_connect(focus, "leave", G_CALLBACK(s_Text_changed), (gpointer) this);
+		g_signal_connect(focus, "leave", G_CALLBACK(s_Text_changed), static_cast<gpointer>( this));
 		gtk_widget_add_controller(w, focus);
 	}
 }

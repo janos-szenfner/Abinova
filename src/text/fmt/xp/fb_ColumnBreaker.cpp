@@ -1061,7 +1061,7 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 						if(pAC != nullptr)
 						{
 							fp_Page * myPage = pAC->getPage();
-							UT_DEBUGMSG(("Annotation %p is on Page %p \n", (void*)pAC, (void*)myPage));
+							UT_DEBUGMSG(("Annotation %p is on Page %p \n", static_cast<void*>(pAC), static_cast<void*>(myPage)));
 							if(myPage != pCurPage)
 							{
 								if(myPage == nullptr)
@@ -1183,8 +1183,8 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 				if((pLastContainerToKeep!=nullptr) && (_getNext(pCurContainer) == nullptr))
 				{
 					UT_DEBUGMSG(("Non null LastContainerToKeep yet next container is nullptr!!!!!!!!!!!! \n"));
-					UT_DEBUGMSG((" CurContainer %p type %d \n", (void*)pCurContainer,pCurContainer->getContainerType()));
-					UT_DEBUGMSG((" FirstContainer to keep %p Last container to keep %p \n", (void*)pTab, (void*)pLastContainerToKeep));
+					UT_DEBUGMSG((" CurContainer %p type %d \n", static_cast<void*>(pCurContainer),pCurContainer->getContainerType()));
+					UT_DEBUGMSG((" FirstContainer to keep %p Last container to keep %p \n", static_cast<void*>(pTab), static_cast<void*>(pLastContainerToKeep)));
 					UT_DEBUGMSG(("Try to recover.... \n"));
 					//	UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 					pLastContainerToKeep = nullptr;

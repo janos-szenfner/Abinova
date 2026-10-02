@@ -163,12 +163,12 @@ bool AP_Dialog_Paragraph::setDialogData(const PP_PropertyVector & pProps)
 			// NOTE : valid.
 
 			double f = UT_convertDimensionless(sz.c_str());
-			if (f > (double) 0)
+			if (f > static_cast<double>( 0))
 			{
 				// if text-indent is greater than margin-left, we have a "first line" case
 				_setMenuItemValue(id_MENU_SPECIAL_INDENT, indent_FIRSTLINE, op_INIT);
 			}
-			else if (f < (double) 0)
+			else if (f < static_cast<double>( 0))
 			{
 				// if text-indent is less than margin-left, we have a "hanging" case
 				_setMenuItemValue(id_MENU_SPECIAL_INDENT, indent_HANGING, op_INIT);
@@ -211,11 +211,11 @@ bool AP_Dialog_Paragraph::setDialogData(const PP_PropertyVector & pProps)
 				if(UT_hasDimensionComponent(sz.c_str()))
 					_setMenuItemValue(id_MENU_SPECIAL_SPACING, spacing_EXACTLY, op_INIT);
 					//see Bug 10086 for fabs() usage
-				else if((sz == "1.0") || (fabs(UT_convertDimensionless(sz.c_str()) - (double) 1.0) < 1.0e-7))
+				else if((sz == "1.0") || (fabs(UT_convertDimensionless(sz.c_str()) - static_cast<double>( 1.0)) < 1.0e-7))
 					_setMenuItemValue(id_MENU_SPECIAL_SPACING, spacing_SINGLE, op_INIT);
-				else if((sz == "1.5") || (fabs(UT_convertDimensionless(sz.c_str()) - (double) 1.5) < 1.0e-7))
+				else if((sz == "1.5") || (fabs(UT_convertDimensionless(sz.c_str()) - static_cast<double>( 1.5)) < 1.0e-7))
 					_setMenuItemValue(id_MENU_SPECIAL_SPACING, spacing_ONEANDHALF, op_INIT);
-				else if((sz == "2.0") || (fabs(UT_convertDimensionless(sz.c_str()) - (double) 2.0) < 1.0e-7))
+				else if((sz == "2.0") || (fabs(UT_convertDimensionless(sz.c_str()) - static_cast<double>( 2.0)) < 1.0e-7))
 					_setMenuItemValue(id_MENU_SPECIAL_SPACING, spacing_DOUBLE, op_INIT);
 				else
 					_setMenuItemValue(id_MENU_SPECIAL_SPACING, spacing_MULTIPLE, op_INIT);
@@ -387,7 +387,7 @@ bool AP_Dialog_Paragraph::getDialogData(PP_PropertyVector & pProps)
 	{
 		pProps.push_back("text-indent");
 
-		tIndentState i = (tIndentState) _getMenuItemValue(id_MENU_SPECIAL_INDENT);
+		tIndentState i = static_cast<tIndentState>( _getMenuItemValue(id_MENU_SPECIAL_INDENT));
 
 		if (i == indent_NONE)
 			pProps.push_back(UT_convertInchesToDimensionString(m_dim, 0));
@@ -405,7 +405,7 @@ bool AP_Dialog_Paragraph::getDialogData(PP_PropertyVector & pProps)
 			val = UT_convertDimToInches(val, dim);
 
 			// flip sign
-			val = val * (double) -1;
+			val = val * static_cast<double>( -1);
 
 			// store the reconstructed
 			pProps.push_back(UT_convertInchesToDimensionString(dim, val));
@@ -569,7 +569,7 @@ void AP_Dialog_Paragraph::_createPreviewFromGC(GR_Graphics * gc,
 	FL_DocLayout * dl = view->getLayout();
 	UT_return_if_fail (dl);
 
-	fl_BlockLayout * bl = dl->findBlockAtPosition((PT_DocPosition) view->getPoint());
+	fl_BlockLayout * bl = dl->findBlockAtPosition(static_cast<PT_DocPosition>( view->getPoint()));
 	UT_return_if_fail (bl);
 
 	const char *pfont = nullptr;
@@ -591,7 +591,7 @@ void AP_Dialog_Paragraph::_createPreviewFromGC(GR_Graphics * gc,
 	if (hadMem && gb.getLength() > 0)
 	{
 		gb.truncate(NUM_CHARS_FOR_SAMPLE);
-		UT_UCS4_cloneString(&tmp, (UT_UCS4Char *) gb.getPointer(0));
+		UT_UCS4_cloneString(&tmp, reinterpret_cast<UT_UCS4Char *>( gb.getPointer(0)));
 	}
 	else
 	{
@@ -915,7 +915,7 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 					leftPageMargin)
 		{
 			_setSpinItemValue(id_SPIN_LEFT_INDENT,
-									(const gchar *)UT_formatDimensionString(m_dim, -leftPageMargin),
+									static_cast<const gchar *>(UT_formatDimensionString(m_dim, -leftPageMargin)),
 									op_SYNC);
 		}
 
@@ -924,7 +924,7 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 						UT_convertInchesToDimension(m_iMaxWidth, m_dim) - rightIndent)
   		{
   			_setSpinItemValue(id_SPIN_LEFT_INDENT,
-  									(const gchar *)UT_convertInchesToDimensionString(m_dim, m_iMaxWidth - rightIndent),
+  									static_cast<const gchar *>(UT_convertInchesToDimensionString(m_dim, m_iMaxWidth - rightIndent)),
   									op_SYNC);
   		}
 	}
@@ -941,7 +941,7 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 					rightPageMargin)
 		{
 			_setSpinItemValue(id_SPIN_RIGHT_INDENT,
-									(const gchar *)UT_formatDimensionString(m_dim, -rightPageMargin),
+									static_cast<const gchar *>(UT_formatDimensionString(m_dim, -rightPageMargin)),
 									op_SYNC);
 		}
 
@@ -950,7 +950,7 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 						UT_convertInchesToDimension(m_iMaxWidth, m_dim) - leftIndent)
   		{
   			_setSpinItemValue(id_SPIN_RIGHT_INDENT,
-  									(const gchar *)UT_convertInchesToDimensionString(m_dim, m_iMaxWidth - leftIndent),
+  									static_cast<const gchar *>(UT_convertInchesToDimensionString(m_dim, m_iMaxWidth - leftIndent)),
   									op_SYNC);
   		}
 	}
@@ -1044,7 +1044,7 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 		if(-effectiveLeftMargin > leftPageMargin)
 		{
 			_setSpinItemValue(id_SPIN_SPECIAL_INDENT,
-									(const gchar *)UT_formatDimensionString(m_dim, -leftPageMargin),
+									static_cast<const gchar *>(UT_formatDimensionString(m_dim, -leftPageMargin)),
 									op_SYNC);
 		} 
 
@@ -1052,7 +1052,7 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 			UT_convertInchesToDimension(m_iMaxWidth, m_dim) - rightIndent)
   		{
   			_setSpinItemValue(id_SPIN_SPECIAL_INDENT,
-  									(const gchar *)UT_convertInchesToDimensionString(m_dim, m_iMaxWidth - rightIndent),
+  									static_cast<const gchar *>(UT_convertInchesToDimensionString(m_dim, m_iMaxWidth - rightIndent)),
   									op_SYNC);
   		}
 	}
@@ -1126,15 +1126,15 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 
 	m_paragraphPreview->setFormat(m_pageLeftMargin.c_str(),
 									m_pageRightMargin.c_str(),
-									(AP_Dialog_Paragraph::tAlignState) _getMenuItemValue(id_MENU_ALIGNMENT),
+									static_cast<AP_Dialog_Paragraph::tAlignState>( _getMenuItemValue(id_MENU_ALIGNMENT)),
 									_getSpinItemValue(id_SPIN_SPECIAL_INDENT),
-									(AP_Dialog_Paragraph::tIndentState) _getMenuItemValue(id_MENU_SPECIAL_INDENT),
+									static_cast<AP_Dialog_Paragraph::tIndentState>( _getMenuItemValue(id_MENU_SPECIAL_INDENT)),
 									_getSpinItemValue(id_SPIN_LEFT_INDENT),
 									_getSpinItemValue(id_SPIN_RIGHT_INDENT),
 									_getSpinItemValue(id_SPIN_BEFORE_SPACING),
 									_getSpinItemValue(id_SPIN_AFTER_SPACING),
 									_getSpinItemValue(id_SPIN_SPECIAL_SPACING),
-									(AP_Dialog_Paragraph::tSpacingState) _getMenuItemValue(id_MENU_SPECIAL_SPACING),
+									static_cast<AP_Dialog_Paragraph::tSpacingState>( _getMenuItemValue(id_MENU_SPECIAL_SPACING)),
 								  iDir);
 
 	m_paragraphPreview->queueDraw();

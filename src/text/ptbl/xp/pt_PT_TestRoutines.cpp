@@ -57,7 +57,7 @@ UT_TestStatus pt_PieceTable::__test_VerifyCoalescedFrags(FILE * fp) const
 										  pft2->getBufIndex())))
 			{
 				fprintf(fp,"__test_VerifyCoalescedFrags: uncoalesced frags found: p1[%p] len[%ld] p2[%p]\n",
-						(void*)pft1,(long)pft1->getLength(),(void*)pft2);
+						static_cast<void*>(pft1),static_cast<long>(pft1->getLength()),static_cast<void*>(pft2));
 				pft1->__dump(fp);
 				pft2->__dump(fp);
 				status = UT_Test_Fail;
@@ -73,7 +73,7 @@ void pt_PieceTable::__dump(FILE * fp) const
 {
 	// dump the piece table.
 	
-	fprintf(fp,"  PieceTable: State %d\n",(int)m_pts);
+	fprintf(fp,"  PieceTable: State %d\n",static_cast<int>(m_pts));
 	fprintf(fp,"  PieceTable: Fragments:\n");
 
 	m_fragments.__dump(fp);

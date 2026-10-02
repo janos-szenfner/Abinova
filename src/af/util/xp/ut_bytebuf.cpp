@@ -300,7 +300,7 @@ bool UT_ByteBuf::writeToURI(const char* pszURI) const
 	if (!fp)
 	  return false;
 
-	gboolean res = gsf_output_write(fp, m_iSize, (guint8*)m_pBuf);
+	gboolean res = gsf_output_write(fp, m_iSize, static_cast<guint8*>(m_pBuf));
 
 	gsf_output_close(fp);
 	g_object_unref(G_OBJECT(fp));

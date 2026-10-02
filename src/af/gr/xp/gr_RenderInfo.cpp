@@ -129,7 +129,7 @@ GR_XPRenderInfo::~GR_XPRenderInfo()
 */
 bool GR_XPRenderInfo::append(GR_RenderInfo &ri, bool bReverse)
 {
-	GR_XPRenderInfo & RI = (GR_XPRenderInfo &) ri;
+	GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>( ri);
 	
 	if((m_iBufferSize <= m_iLength + RI.m_iLength) || (bReverse && (m_iLength > RI.m_iLength)))
 	{
@@ -145,16 +145,16 @@ bool GR_XPRenderInfo::append(GR_RenderInfo &ri, bool bReverse)
 			UT_UCS4_strncpy(pSB, RI.m_pChars, RI.m_iLength);
 			UT_UCS4_strncpy(pSB + RI.m_iLength, m_pChars, m_iLength);
 			
-			UT_UCS4_strncpy((UT_UCS4Char*)pWB, (UT_UCS4Char*)RI.m_pWidths, RI.m_iLength);
-			UT_UCS4_strncpy((UT_UCS4Char*)pWB + RI.m_iLength, (UT_UCS4Char*)m_pWidths, m_iLength);
+			UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pWB), reinterpret_cast<UT_UCS4Char*>(RI.m_pWidths), RI.m_iLength);
+			UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pWB )+ RI.m_iLength, reinterpret_cast<UT_UCS4Char*>(m_pWidths), m_iLength);
 		}
 		else
 		{
 			UT_UCS4_strncpy(pSB,m_pChars, m_iLength);
 			UT_UCS4_strncpy(pSB + m_iLength, RI.m_pChars, RI.m_iLength);
 
-			UT_UCS4_strncpy((UT_UCS4Char*)pWB,(UT_UCS4Char*)m_pWidths, m_iLength);
-			UT_UCS4_strncpy((UT_UCS4Char*)pWB + m_iLength, (UT_UCS4Char*)RI.m_pWidths, RI.m_iLength);
+			UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pWB),reinterpret_cast<UT_UCS4Char*>(m_pWidths), m_iLength);
+			UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pWB )+ m_iLength, reinterpret_cast<UT_UCS4Char*>(RI.m_pWidths), RI.m_iLength);
 		}
 
 		*(pSB + m_iLength + RI.m_iLength) = 0;
@@ -175,18 +175,18 @@ bool GR_XPRenderInfo::append(GR_RenderInfo &ri, bool bReverse)
 			UT_UCS4_strncpy(m_pChars + RI.m_iLength, m_pChars, m_iLength);
 			UT_UCS4_strncpy(m_pChars, RI.m_pChars, RI.m_iLength);
 			
-			UT_UCS4_strncpy((UT_UCS4Char*)m_pWidths + RI.m_iLength,
-							(UT_UCS4Char*)m_pWidths, m_iLength);
+			UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(m_pWidths )+ RI.m_iLength,
+							reinterpret_cast<UT_UCS4Char*>(m_pWidths), m_iLength);
 			
-			UT_UCS4_strncpy((UT_UCS4Char*)m_pWidths,
-							(UT_UCS4Char*)RI.m_pWidths, RI.m_iLength);
+			UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(m_pWidths),
+							reinterpret_cast<UT_UCS4Char*>(RI.m_pWidths), RI.m_iLength);
 		}
 		else
 		{
 			UT_UCS4_strncpy(m_pChars + m_iLength, RI.m_pChars, RI.m_iLength);
 			
-			UT_UCS4_strncpy((UT_UCS4Char*)m_pWidths + m_iLength,
-							(UT_UCS4Char*)RI.m_pWidths, RI.m_iLength);
+			UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(m_pWidths )+ m_iLength,
+							reinterpret_cast<UT_UCS4Char*>(RI.m_pWidths), RI.m_iLength);
 		}
 		*(m_pChars + m_iLength + RI.m_iLength) = 0;
 	}
@@ -228,7 +228,7 @@ bool  GR_XPRenderInfo::split (GR_RenderInfo *&pri, bool bReverse)
 	pri->m_pItem = m_pItem->makeCopy();
 	UT_return_val_if_fail(pri->m_pItem,false);
 	
-	GR_XPRenderInfo * pRI = (GR_XPRenderInfo *)pri;
+	GR_XPRenderInfo * pRI = static_cast<GR_XPRenderInfo *>(pri);
 	
 	UT_uint32 iPart2Len = m_iLength - m_iOffset;
 	UT_uint32 iPart1Len = m_iLength - iPart2Len;
@@ -261,18 +261,18 @@ bool  GR_XPRenderInfo::split (GR_RenderInfo *&pri, bool bReverse)
 		UT_UCS4_strncpy(pSB, m_pChars + pRI->m_iLength, m_iLength);
 		UT_UCS4_strncpy(pRI->m_pChars, m_pChars, pRI->m_iLength);
 		
-		UT_UCS4_strncpy((UT_UCS4Char*)pWB, (UT_UCS4Char*)m_pWidths + pRI->m_iLength, m_iLength);
-		UT_UCS4_strncpy((UT_UCS4Char*)pRI->m_pWidths,
-						(UT_UCS4Char*)m_pWidths, pRI->m_iLength);
+		UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pWB), reinterpret_cast<UT_UCS4Char*>(m_pWidths )+ pRI->m_iLength, m_iLength);
+		UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pRI->m_pWidths),
+						reinterpret_cast<UT_UCS4Char*>(m_pWidths), pRI->m_iLength);
 	}
 	else
 	{
 		UT_UCS4_strncpy(pSB, m_pChars, m_iLength);
 		UT_UCS4_strncpy(pRI->m_pChars, m_pChars + m_iLength, pRI->m_iLength);
 
-		UT_UCS4_strncpy((UT_UCS4Char*)pWB,(UT_UCS4Char*)m_pWidths, m_iLength);
-		UT_UCS4_strncpy((UT_UCS4Char*)pRI->m_pWidths,
-						(UT_UCS4Char*)m_pWidths + m_iLength, pRI->m_iLength);
+		UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pWB),reinterpret_cast<UT_UCS4Char*>(m_pWidths), m_iLength);
+		UT_UCS4_strncpy(reinterpret_cast<UT_UCS4Char*>(pRI->m_pWidths),
+						reinterpret_cast<UT_UCS4Char*>(m_pWidths )+ m_iLength, pRI->m_iLength);
 	}
 
 	pSB[m_iLength] = 0;
@@ -350,7 +350,7 @@ bool GR_XPRenderInfo::cut(UT_uint32 offset, UT_uint32 iLen, bool /*bReverse*/)
 {
 	UT_return_val_if_fail(m_pText, false);
 	// ascertain the state of the buffer and our shaping requirenments ...
-	bool bRefresh = (((UT_uint32)m_eState & (UT_uint32)m_eShapingResult ) != 0);
+	bool bRefresh = ((static_cast<UT_uint32>(m_eState )& static_cast<UT_uint32>(m_eShapingResult )) != 0);
 	UT_sint32 ioffset = static_cast<UT_sint32>(offset);
 	UT_sint32 jLen = static_cast<UT_sint32>(iLen);
 
@@ -386,13 +386,13 @@ bool GR_XPRenderInfo::cut(UT_uint32 offset, UT_uint32 iLen, bool /*bReverse*/)
 		UT_UCS4_strncpy(d, s, iLenToCopy);
 		m_pChars[m_iLength - iLen] = 0;
 
-		d = (UT_UCS4Char *) m_pWidths+ioffset;
-		s = (UT_UCS4Char *) m_pWidths+ioffset+jLen;
+		d = reinterpret_cast<UT_UCS4Char *>( m_pWidths)+ioffset;
+		s = reinterpret_cast<UT_UCS4Char *>( m_pWidths)+ioffset+jLen;
 
 		if(m_iVisDir == UT_BIDI_RTL)
 		{
-			d = (UT_UCS4Char *) m_pWidths + (m_iLength - (ioffset + jLen));
-			s = (UT_UCS4Char *) m_pWidths + (m_iLength - ioffset);
+			d = reinterpret_cast<UT_UCS4Char *>( m_pWidths )+ (m_iLength - (ioffset + jLen));
+			s = reinterpret_cast<UT_UCS4Char *>( m_pWidths )+ (m_iLength - ioffset);
 		}
 
 		UT_UCS4_strncpy(d, s, iLenToCopy);
@@ -449,7 +449,7 @@ void GR_XPRenderInfo::_stripLigaturePlaceHolders()
 	// m and iSplitOffset are in logical coordinaces, m being index
 	// into pWidths, and iSplitOffset a value comparable to pOffset
 	// values (also in logical order)
-	UT_sint32 len = (UT_sint32) m_iLength;
+	UT_sint32 len = static_cast<UT_sint32>( m_iLength);
 	bool bReverse = false;
 
 	if(m_iVisDir == UT_BIDI_RTL)
@@ -507,7 +507,7 @@ void GR_XPRenderInfo::_calculateCharAdvances()
 				UT_sint32 iCumAdvance = 0;
 
 				UT_sint32 m = n+1;
-				while(m < (UT_sint32)m_iLength && s_pWidthBuff[m] < 0)
+				while(m < static_cast<UT_sint32>(m_iLength )&& s_pWidthBuff[m] < 0)
 					m++;
 
 				if(m >= m_iLength)

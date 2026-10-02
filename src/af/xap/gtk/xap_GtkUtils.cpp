@@ -207,7 +207,7 @@ static void s_popover_map_cb(GtkWidget * pop, gpointer)
    * popover must go away instead of hovering above the other app */
   g_signal_connect_object(root, "notify::is-active",
                           G_CALLBACK(s_popover_root_active_cb),
-                          pop, (GConnectFlags)0);
+                          pop, static_cast<GConnectFlags>(0));
   /* install the outside-press watcher on idle: the press that opened
    * the popover is still being dispatched right now, and a controller
    * added mid-sequence sees a phantom (0,0) press */

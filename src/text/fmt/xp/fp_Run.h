@@ -183,7 +183,7 @@ public:
 	void				insertIntoRunListBeforeThis(fp_Run& newRun);
 	void				insertIntoRunListAfterThis(fp_Run& newRun);
 	fd_Field*			getField(void) const { return m_pField; }
-	bool				isField(void) const { return (bool) (m_pField != nullptr); }
+	bool				isField(void) const { return static_cast<bool>( (m_pField != nullptr)); }
 	void				unlinkFromRunList();
 
 	const UT_RGBColor 	getFGColor(void) const;
@@ -210,8 +210,8 @@ public:
 	                        {m_eRefreshDrawBuffer = GRSR_Unknown;}
 	void				orDrawBufferDirty(GRShapingResult eR)
                         {
-							m_eRefreshDrawBuffer = (GRShapingResult)((UT_uint32)m_eRefreshDrawBuffer
-																	 |(UT_uint32)eR);
+							m_eRefreshDrawBuffer = static_cast<GRShapingResult>((static_cast<UT_uint32>(m_eRefreshDrawBuffer
+																	 )|static_cast<UT_uint32>(eR)));
 }
 	bool                isPrinting(void) const
 	{ return m_bPrinting;}

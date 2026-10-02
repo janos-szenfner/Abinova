@@ -331,7 +331,7 @@ bool AP_Dialog_Spell::makeWordVisible(void)
    // Always clear selection before making a new one
    m_pView->cmdUnselectSelection();
 
-   m_pView->moveInsPtTo( (PT_DocPosition) (m_pCurrBlock->getPosition() + m_iWordOffset) );
+   m_pView->moveInsPtTo( static_cast<PT_DocPosition>( (m_pCurrBlock->getPosition() + m_iWordOffset) ));
    m_pView->extSelHorizontal(true, static_cast<UT_uint32>(m_iWordLength));
    m_pView->updateScreen(true);
    
@@ -365,7 +365,7 @@ bool AP_Dialog_Spell::inChangeAll(void)
 		return false;
 	else {
 		makeWordVisible();
-		bool bRes = changeWordWith( (UT_UCS4Char*) (ent) ); 
+		bool bRes = changeWordWith( const_cast<UT_UCS4Char*>( (ent) )); 
 		return bRes;
 	}
 }

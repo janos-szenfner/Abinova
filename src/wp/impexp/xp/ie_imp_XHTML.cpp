@@ -787,7 +787,7 @@ UT_Error IE_Imp_XHTML::_loadFile(GsfInput * input)
 			{
 				char buf[1024];
 
-				gsf_input_read (input, std::min(size, static_cast<gsf_off_t>(sizeof(buf))), (guint8*)buf);
+				gsf_input_read (input, std::min(size, static_cast<gsf_off_t>(sizeof(buf))), reinterpret_cast<guint8*>(buf));
 				
 				is_xml = recognizeXHTML (buf, std::min(size, static_cast<gsf_off_t>(sizeof(buf))));
 			}
@@ -850,7 +850,7 @@ bool IE_Imp_XHTML::pasteFromBuffer(PD_DocumentRange * pDocRange,
 	newDoc->createRawDocument();
 	UT_XML * newXML;
 
-	if (recognizeXHTML ((const char *)pData, lenData))
+	if (recognizeXHTML (reinterpret_cast<const char *>(pData), lenData))
 		newXML = new UT_XML;
 	else
 		newXML = new UT_HTML (szEncoding);
@@ -1262,7 +1262,7 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 			std::string szListID, szParentID, szLevel, szMarginLeft;
 			szListID = UT_std_string_sprintf("%u", thisID);
 			szParentID = UT_std_string_sprintf("%u", parentID);
-			szLevel = UT_std_string_sprintf("%lu", (unsigned long)m_utsParents.size());
+			szLevel = UT_std_string_sprintf("%lu", static_cast<unsigned long>(m_utsParents.size()));
 
 			{
 				UT_LocaleTransactor t(LC_NUMERIC, "C");
@@ -2702,7 +2702,7 @@ bool IE_Imp_XHTML::insertNoteRef (const s_NoteBody & note)
 
 bool IE_Imp_XHTML::appendStrux(PTStruxType pts, const PP_PropertyVector & attributes)
 {
-	UT_DEBUGMSG(("XHTML Import - appendStruxStrux type %d document %p \n", pts, (void*)getDoc()));
+	UT_DEBUGMSG(("XHTML Import - appendStruxStrux type %d document %p \n", pts, static_cast<void*>(getDoc())));
 	if(pts == PTX_Section)
 	{
 		m_bFirstBlock = false;
@@ -2962,7 +2962,7 @@ static unsigned char s_rgb_number (float f, bool bIsPercent)
 
 	if (f > 254.5) return 0xff;
 
-	return (unsigned char) ((int) (f + 0.5));
+	return static_cast<unsigned char>( (static_cast<int>( (f + 0.5))));
 }
 
 static void s_props_append (UT_UTF8String & props, UT_uint32 css_mask,

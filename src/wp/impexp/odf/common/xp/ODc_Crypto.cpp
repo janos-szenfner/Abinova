@@ -81,7 +81,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 	sha1_buffer(&password[0], password.size(), sha1_password);
 
 	// create a PBKDF2 key from the sha1 sum
-	int k = pbkdf2_sha1 ((const char*)sha1_password, PASSWORD_HASH_LEN, (const char*)salt, salt_length, iter_count, key, PBKDF2_KEYLEN);
+	int k = pbkdf2_sha1 (reinterpret_cast<const char*>(sha1_password), PASSWORD_HASH_LEN, reinterpret_cast<const char*>(salt), salt_length, iter_count, key, PBKDF2_KEYLEN);
 	if (k != 0)
 		return UT_ERROR;
 
@@ -94,7 +94,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 	if (!content)
 		return UT_ERROR;
 
-	unsigned char* content_decrypted = (unsigned char*)g_malloc(content_size);
+	unsigned char* content_decrypted = static_cast<unsigned char*>(g_malloc(content_size));
     
 	// perform the actual decryption
 #ifdef HAVE_GCRYPT
@@ -126,7 +126,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
     memcpy(ivec_copy, ivec, ivec_length > 8 ? 8 : ivec_length);
 
     BF_KEY bf_key;
-    BF_set_key(&bf_key, PBKDF2_KEYLEN, (const unsigned char*)key);
+    BF_set_key(&bf_key, PBKDF2_KEYLEN, reinterpret_cast<const unsigned char*>(key));
     BF_cfb64_encrypt(content, content_decrypted, content_size,
                      &bf_key, ivec_copy, &num, BF_DECRYPT);
 
@@ -151,7 +151,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 	                            : (content_size > G_MAXUINT / 2 - 65536
 	                               ? static_cast<size_t>(G_MAXUINT)
 	                               : content_size * 2 + 65536);
-	unsigned char* decrypted = (unsigned char*)g_malloc(cap);
+	unsigned char* decrypted = static_cast<unsigned char*>(g_malloc(cap));
 	zs.avail_in = static_cast<uInt>(content_size);
 	zs.next_in = content_decrypted;
 	zs.next_out = decrypted;
@@ -180,7 +180,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
 				return UT_ERROR;
 			}
 			cap *= 2;
-			decrypted = (unsigned char*)g_realloc(decrypted, cap);
+			decrypted = static_cast<unsigned char*>(g_realloc(decrypted, cap));
 			zs.next_out = decrypted + used;
 			zs.avail_out = static_cast<uInt>(cap - used);
 			continue;
@@ -249,14 +249,14 @@ static void odRandomBytes(unsigned char* buf, gsize len)
                 continue;
             break;
         }
-        done += (gsize)n;
+        done += static_cast<gsize>(n);
     }
     if (done == len)
         return;
     // fall through to the weaker source on failure
 #endif
     for (gsize i = 0; i < len; i++)
-        buf[i] = (unsigned char)g_random_int_range(0, 256);
+        buf[i] = static_cast<unsigned char>(g_random_int_range(0, 256));
 }
 
 /**
@@ -293,8 +293,8 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     unsigned char sha1_password[PASSWORD_HASH_LEN];
     char key[PBKDF2_KEYLEN];
     sha1_buffer(&password[0], password.size(), sha1_password);
-    int k = pbkdf2_sha1((const char*)sha1_password, PASSWORD_HASH_LEN,
-                        (const char*)salt, sizeof(salt), iter_count,
+    int k = pbkdf2_sha1(reinterpret_cast<const char*>(sha1_password), PASSWORD_HASH_LEN,
+                        reinterpret_cast<const char*>(salt), sizeof(salt), iter_count,
                         key, PBKDF2_KEYLEN);
     if (k != 0)
         return UT_ERROR;
@@ -303,7 +303,7 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     {
         unsigned char digest[PASSWORD_HASH_LEN];
         gsize n = plaintextSize < 1024 ? plaintextSize : 1024;
-        sha1_buffer((const char*)plaintext, n, digest);
+        sha1_buffer(reinterpret_cast<const char*>(plaintext), n, digest);
         gchar* b64 = g_base64_encode(digest, sizeof(digest));
         cryptInfoOut.m_checksum = b64;
         g_free(b64);
@@ -319,7 +319,7 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
         return UT_ERROR;
 
     uLongf compBound = deflateBound(&zs, plaintextSize);
-    unsigned char* compressed = (unsigned char*)g_malloc(compBound);
+    unsigned char* compressed = static_cast<unsigned char*>(g_malloc(compBound));
     zs.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(plaintext));
     zs.avail_in = plaintextSize;
     zs.next_out = compressed;
@@ -336,7 +336,7 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
     deflateEnd(&zs);
 
     // encrypt the compressed stream
-    unsigned char* out = (unsigned char*)g_malloc(compSize);
+    unsigned char* out = static_cast<unsigned char*>(g_malloc(compSize));
 
 #ifdef HAVE_GCRYPT
     gcry_cipher_hd_t h;
@@ -362,7 +362,7 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
         unsigned char ivec_copy[8];
         memcpy(ivec_copy, ivec, sizeof(ivec_copy));
         BF_KEY bf_key;
-        BF_set_key(&bf_key, PBKDF2_KEYLEN, (const unsigned char*)key);
+        BF_set_key(&bf_key, PBKDF2_KEYLEN, reinterpret_cast<const unsigned char*>(key));
         BF_cfb64_encrypt(compressed, out, compSize,
                          &bf_key, ivec_copy, &num, BF_ENCRYPT);
     }

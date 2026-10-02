@@ -43,7 +43,7 @@ AP_UnixToolbar_ZoomCombo::AP_UnixToolbar_ZoomCombo(EV_Toolbar * pToolbar,
 	: EV_Toolbar_Control(pToolbar/*,id*/)
 {
 	UT_DEBUG_ONLY_ARG(id);
-	UT_ASSERT(id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_ZOOM);
+	UT_ASSERT(id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_ZOOM));
 
 	m_nPixels = 80;		// TODO: do a better calculation
 	m_nLimit = 9;

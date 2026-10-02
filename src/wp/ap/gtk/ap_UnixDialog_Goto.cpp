@@ -281,7 +281,7 @@ AP_UnixDialog_Goto::onPageChanged ()
 {
 	UT_DEBUGMSG (("ROB: onPageChanged () maxpage='%d'\n", m_DocCount.page));
 	m_JumpTarget = AP_JUMPTARGET_PAGE;
-	UT_uint32 page = (UT_uint32)gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbPage));
+	UT_uint32 page = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbPage)));
 	if (page > m_DocCount.page) {
 		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPage), 1);
 	}
@@ -296,7 +296,7 @@ AP_UnixDialog_Goto::onLineChanged ()
 {
 	UT_DEBUGMSG (("ROB: onLineChanged () maxline='%d'\n", m_DocCount.line));
 	m_JumpTarget = AP_JUMPTARGET_LINE;
-	UT_uint32 line = (UT_uint32)gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbLine));
+	UT_uint32 line = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbLine)));
 	if (line > m_DocCount.line) {
 		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbLine), 1);
 	}
@@ -378,7 +378,7 @@ AP_UnixDialog_Goto::onPrevClicked ()
 	UT_uint32 num = 0;
 	switch (m_JumpTarget) {
 		case AP_JUMPTARGET_PAGE:
-			num = (UT_uint32)gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbPage));
+			num = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbPage)));
 			if (num == 1)
 				num = m_DocCount.page;
 			else
@@ -386,7 +386,7 @@ AP_UnixDialog_Goto::onPrevClicked ()
 			gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPage), num);
 			break;
 		case AP_JUMPTARGET_LINE:
-			num = (UT_uint32)gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbLine));
+			num = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbLine)));
 			if (num == 1)
 				num = m_DocCount.line;
 			else
@@ -422,12 +422,12 @@ AP_UnixDialog_Goto::onNextClicked ()
 	UT_uint32 num = 0;
 	switch (m_JumpTarget) {
 		case AP_JUMPTARGET_PAGE:
-			num = (UT_uint32)gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbPage));
+			num = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbPage)));
 			num++;
 			gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPage), num);
 			break;
 		case AP_JUMPTARGET_LINE:
-			num = (UT_uint32)gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbLine));
+			num = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbLine)));
 			num++;
 			gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbLine), num);
 			break;
@@ -739,7 +739,7 @@ AP_UnixDialog_Goto::updateXMLIDList( GtkWidget* w )
         GtkTreeIter iter;
         std::set< std::string > xmlids;
         rdf->getAllIDs( xmlids );
-        UT_DEBUGMSG (("MIQ: xmlids.sz:%lu\n", (long unsigned)xmlids.size() ));
+        UT_DEBUGMSG (("MIQ: xmlids.sz:%lu\n", static_cast<long unsigned>(xmlids.size() )));
 
         for( std::set< std::string >::iterator xiter = xmlids.begin();
              xiter != xmlids.end(); ++xiter )

@@ -50,7 +50,7 @@ void ap_usb_TextListener::notify()
 {
 	UT_ASSERT(m_pLabel);
 
-	AP_StatusBarField_TextInfo * textInfo = ((AP_StatusBarField_TextInfo *)m_pStatusBarField);
+	AP_StatusBarField_TextInfo * textInfo = (static_cast<AP_StatusBarField_TextInfo *>(m_pStatusBarField));
 
 	gtk_label_set_label(GTK_LABEL(m_pLabel), textInfo->getBuf().c_str());
 
@@ -89,7 +89,7 @@ void ap_usb_ProgressListener::notify()
 {
 	UT_ASSERT(m_wProgress);
 
-	AP_StatusBarField_ProgressBar * pProgress = ((AP_StatusBarField_ProgressBar *)m_pStatusBarField);
+	AP_StatusBarField_ProgressBar * pProgress = (static_cast<AP_StatusBarField_ProgressBar *>(m_pStatusBarField));
 	if(pProgress->isDefinate())
         {
 	    double fraction = pProgress->getFraction();
@@ -109,8 +109,8 @@ static void s_zoom_value_changed(GtkRange * range, AP_UnixStatusBar * sb);
 void AP_UnixStatusBar::applyZoom(UT_sint32 iZoom)
 {
 	UT_return_if_fail(getFrame());
-	iZoom = UT_MAX(iZoom, (UT_sint32)XAP_DLG_ZOOM_MINIMUM_ZOOM);
-	iZoom = UT_MIN(iZoom, (UT_sint32)XAP_DLG_ZOOM_MAXIMUM_ZOOM);
+	iZoom = UT_MAX(iZoom, static_cast<UT_sint32>(XAP_DLG_ZOOM_MINIMUM_ZOOM));
+	iZoom = UT_MIN(iZoom, static_cast<UT_sint32>(XAP_DLG_ZOOM_MAXIMUM_ZOOM));
 	AP_Frame * pFrame = static_cast<AP_Frame*>(getFrame());
 	pFrame->setZoomType(XAP_Frame::z_PERCENT);
 	pFrame->quickZoom(iZoom);
@@ -224,7 +224,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 	gtk_widget_show(m_wStatusBar);
 
 	for (UT_sint32 k=0; k<getFields()->getItemCount(); k++) {
-		AP_StatusBarField * pf = (AP_StatusBarField *)m_vecFields.getNthItem(k);
+		AP_StatusBarField * pf = static_cast<AP_StatusBarField *>(m_vecFields.getNthItem(k));
 		UT_nonnull_or_continue(pf); // we should NOT have null elements
 
 		// set up a frame for status bar elements so they look like status bar elements, 
@@ -239,7 +239,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 			gtk_widget_set_margin_bottom(pStatusBarElementLabel, 3);
 			gtk_widget_set_margin_start(pStatusBarElementLabel, 3);
 			gtk_widget_set_margin_end(pStatusBarElementLabel, 3);
-			pf->setListener((AP_StatusBarFieldListener *)(new ap_usb_TextListener(pf_TextInfo, pStatusBarElementLabel)));
+			pf->setListener(static_cast<AP_StatusBarFieldListener *>((new ap_usb_TextListener(pf_TextInfo, pStatusBarElementLabel))));
 			xap_gtk_container_add (pStatusBarElement, pStatusBarElementLabel);
 
 			// align
@@ -278,7 +278,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 
 			gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR(pProgress),0.0);
 			gtk_widget_show(pProgress);
-			pf->setListener((AP_StatusBarFieldListener *)(new ap_usb_ProgressListener(pf, pProgress)));
+			pf->setListener(static_cast<AP_StatusBarFieldListener *>((new ap_usb_ProgressListener(pf, pProgress))));
 			m_wProgressFrame = pStatusBarElement;
 
 		}

@@ -200,16 +200,16 @@ static struct AbiStockMapping {
   { ABIWORD_ALIGN_RIGHT,			AP_MENU_ID_ALIGN_RIGHT,			"format-justify-right" },
   { ABIWORD_ALIGN_JUSTIFY,			AP_MENU_ID_ALIGN_JUSTIFY,		"format-justify-fill" },
 
-  { ABIWORD_UNINDENT,				(_Ap_Menu_Id)0,					"format-indent-less" },
-  { ABIWORD_INDENT,					(_Ap_Menu_Id)0,					"format-indent-more" },
-  { "abinova-sort-para",			(_Ap_Menu_Id)0,					"view-sort-ascending" },
+  { ABIWORD_UNINDENT,				static_cast<_Ap_Menu_Id>(0),					"format-indent-less" },
+  { ABIWORD_INDENT,					static_cast<_Ap_Menu_Id>(0),					"format-indent-more" },
+  { "abinova-sort-para",			static_cast<_Ap_Menu_Id>(0),					"view-sort-ascending" },
   { "abinova-fmt-borders",			AP_MENU_ID_FMT_BORDERS,			"tb_fmt_borders" },
 
   { ABIWORD_FMT_STRIKE,				AP_MENU_ID_FMT_STRIKE,			"format-text-strikethrough" },
   { ABIWORD_FMT_CLEARFMT,			AP_MENU_ID_FMT_CLEARFMT,		"edit-clear-all-symbolic" },
   { ABIWORD_FMT_FONT,				AP_MENU_ID_FMT_FONT,			"preferences-desktop-font" },
   { ABIWORD_EDIT_SELECTALL,			AP_MENU_ID_EDIT_SELECTALL,		"edit-select-all" },
-  { ABIWORD_VIEW_FULL_SCREEN,       (_Ap_Menu_Id)0,                 "view-fullscreen" },
+  { ABIWORD_VIEW_FULL_SCREEN,       static_cast<_Ap_Menu_Id>(0),                 "view-fullscreen" },
   { "abinova-view-fullscreen",		AP_MENU_ID_VIEW_FULLSCREEN,		"view-fullscreen" },
   { "abinova-window-new",			AP_MENU_ID_WINDOW_NEW,			"window-new" },
   { "abinova-page-color",			AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR,	"preferences-color-symbolic" },
@@ -217,7 +217,7 @@ static struct AbiStockMapping {
   { "abinova-selection-pane",		AP_MENU_ID_LAYOUT_SELPANE,				"sidebar-show-symbolic" },
   { "abinova-tools-options",		AP_MENU_ID_TOOLS_OPTIONS,				"preferences-system-symbolic" },
   { "abinova-rdf-editor",			AP_MENU_ID_RDF_EDITOR,					"accessories-text-editor-symbolic" },
-  { nullptr, 					(_Ap_Menu_Id)0,					nullptr }
+  { nullptr, 					static_cast<_Ap_Menu_Id>(0),					nullptr }
 };
 
 /*!
@@ -332,7 +332,7 @@ abi_stock_from_menu_id (XAP_Menu_Id menu_id)
 {
 	gint i = 0;
 	while (stock_mapping[i].abi_stock_id) {
-		if (stock_mapping[i].menu_id == (_Ap_Menu_Id)menu_id) {
+		if (stock_mapping[i].menu_id == static_cast<_Ap_Menu_Id>(menu_id)) {
 			return stock_mapping[i].gtk_stock_id;
 		}
 		i++;

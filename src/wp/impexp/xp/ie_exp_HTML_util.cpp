@@ -113,7 +113,7 @@ UT_UTF8String s_string_to_url (const UT_String & str)
 			default:
 				break;
 		}
-		unsigned char u = (unsigned char) *ptr;
+		unsigned char u = static_cast<unsigned char>( *ptr);
 		if (!isalnum (static_cast<int>(u)) && !isValidPunctuation)
 		{
 			buf[1] = hex[(u >> 4) & 0x0f];
@@ -122,7 +122,7 @@ UT_UTF8String s_string_to_url (const UT_String & str)
 		}
 		else
 		{
-			buf[2] = (char) *ptr;
+			buf[2] = static_cast<char>( *ptr);
 			url += (buf + 2);
 		}
 		ptr++;
@@ -203,7 +203,7 @@ void s_removeWhiteSpace (const char * text, std::string & utf8str,
 		const char * ptr = text;
 		while (*ptr)
 		{
-			if (isspace ((int) ((unsigned char) *ptr)))
+			if (isspace (static_cast<int>( (static_cast<unsigned char>( *ptr)))))
 			{
 				buf[0] = '_';
 			}
@@ -304,7 +304,7 @@ UT_UTF8String getStyleSizeString(const gchar * szWidth, double widthPercentage,
 		props += "width:";
 		if (bUseScale)
 		{
-			UT_sint32 iPercent = (UT_sint32)(widthPercentage + 0.5);
+			UT_sint32 iPercent = static_cast<UT_sint32>((widthPercentage + 0.5));
 			props += UT_UTF8String_sprintf("%d%%", iPercent);
 		}
 		else
@@ -450,7 +450,7 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const gchar *szDataId,
     
     UT_UTF8String contents;
     encodeDataBase64(szDataId, contents, false);
-    UT_DEBUGMSG(("%lu", (long unsigned)contents.length()));
+    UT_DEBUGMSG(("%lu", static_cast<long unsigned>(contents.length())));
     m_buffer += contents;
     // encoded lines carry no trailing EOL — terminate the body so the next
     // delimiter (or the closing delimiter) starts on its own line
@@ -651,7 +651,7 @@ void IE_Exp_HTML_TagWriter::openTag(const std::string& tagName, bool isInline, b
     }
     m_buffer += "<" + tagName;
     
-    UT_DEBUGMSG(("Opened tag: %s Depth: %ld\n", tagName.c_str(), (long)m_tagStack.size())); 
+    UT_DEBUGMSG(("Opened tag: %s Depth: %ld\n", tagName.c_str(), static_cast<long>(m_tagStack.size()))); 
 }
 
 void IE_Exp_HTML_TagWriter::addAttribute(const std::string& name, const std::string& value)

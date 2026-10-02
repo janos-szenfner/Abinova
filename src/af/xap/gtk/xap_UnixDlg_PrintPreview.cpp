@@ -266,8 +266,8 @@ void XAP_UnixDialog_PrintPreview::_drawFunc(GtkDrawingArea * /*area*/,
 		clipBot = cy2;
 	}
 
-	gint first = (gint) MAX(0, floor((clipTop - PREVIEW_GAP) / pitch));
-	gint last = (gint) MIN(m_iPages - 1, ceil((clipBot - PREVIEW_GAP) / pitch));
+	gint first = static_cast<gint>( MAX(0, floor((clipTop - PREVIEW_GAP) / pitch)));
+	gint last = static_cast<gint>( MIN(m_iPages - 1, ceil((clipBot - PREVIEW_GAP) / pitch)));
 
 	for (gint i = first; i <= last; ++i)
 	{
@@ -336,14 +336,14 @@ void XAP_UnixDialog_PrintPreview::_updatePageLabel(void)
 void XAP_UnixDialog_PrintPreview::_updateZoomLabel(void)
 {
 	gchar buf[16];
-	g_snprintf(buf, sizeof(buf), "%d%%", (int) floor(m_dZoom / PREVIEW_DPI_100 * 100.0 + 0.5));
+	g_snprintf(buf, sizeof(buf), "%d%%", static_cast<int>( floor(m_dZoom / PREVIEW_DPI_100 * 100.0 + 0.5)));
 	gtk_label_set_text(m_pZoomLabel, buf);
 
 	/* Recompute the scrollable content size. */
 	if (m_iPages > 0)
 	{
-		gint cw = (gint) ceil(m_iPageW_tdu * m_dZoom / UT_LAYOUT_RESOLUTION) + 2 * PREVIEW_GAP;
-		gint ch = (gint) ceil(_pagePitch() * m_iPages + PREVIEW_GAP);
+		gint cw = static_cast<gint>( ceil(m_iPageW_tdu * m_dZoom / UT_LAYOUT_RESOLUTION) )+ 2 * PREVIEW_GAP;
+		gint ch = static_cast<gint>( ceil(_pagePitch() * m_iPages + PREVIEW_GAP));
 		gtk_drawing_area_set_content_width(m_pArea, cw);
 		gtk_drawing_area_set_content_height(m_pArea, ch);
 		gtk_widget_queue_draw(GTK_WIDGET(m_pArea));
@@ -362,8 +362,8 @@ void XAP_UnixDialog_PrintPreview::_fitZoom(void)
 	if (availH < 32)
 		availH = 32;
 
-	gdouble pageW_in = m_iPageW_tdu / (gdouble) UT_LAYOUT_RESOLUTION;
-	gdouble pageH_in = m_iPageH_tdu / (gdouble) UT_LAYOUT_RESOLUTION;
+	gdouble pageW_in = m_iPageW_tdu / static_cast<gdouble>( UT_LAYOUT_RESOLUTION);
+	gdouble pageH_in = m_iPageH_tdu / static_cast<gdouble>( UT_LAYOUT_RESOLUTION);
 
 	gdouble zoom = availW / pageW_in;
 	if (m_pFitPage && gtk_toggle_button_get_active(m_pFitPage))
@@ -392,7 +392,7 @@ gint XAP_UnixDialog_PrintPreview::_pageFromScroll(void) const
 		return 0;
 	gdouble v = gtk_adjustment_get_value(m_pVAdj)
 		+ gtk_adjustment_get_page_size(m_pVAdj) * 0.25;
-	return CLAMP((gint) floor(v / _pagePitch()), 0, m_iPages - 1);
+	return CLAMP(static_cast<gint>( floor(v / _pagePitch())), 0, m_iPages - 1);
 }
 
 /*****************************************************************/
@@ -420,7 +420,7 @@ void XAP_UnixDialog_PrintPreview::_s_zoom(GtkWidget * w, gpointer data)
 {
 	XAP_UnixDialog_PrintPreview * self =
 		static_cast<XAP_UnixDialog_PrintPreview *>(data);
-	gdouble pct = (gdouble) GPOINTER_TO_INT(g_object_get_data(G_OBJECT(w), "zoom-pct"));
+	gdouble pct = static_cast<gdouble>( GPOINTER_TO_INT(g_object_get_data(G_OBJECT(w), "zoom-pct")));
 	gdouble keep = self->m_iPage * self->_pagePitch()
 		- (self->m_pVAdj ? gtk_adjustment_get_value(self->m_pVAdj) : 0);
 

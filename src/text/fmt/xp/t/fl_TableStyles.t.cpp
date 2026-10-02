@@ -40,7 +40,7 @@ static bool propIs(const std::string & props,
 	for (size_t i = 0; i + 1 < kv.size(); i += 2)
 		if (kv[i] == key && kv[i + 1] == value)
 			return true;
-	(void)needle;
+	static_cast<void>(needle);
 	return false;
 }
 

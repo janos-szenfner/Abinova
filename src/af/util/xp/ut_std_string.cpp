@@ -54,7 +54,7 @@ std::string UT_escapeXML(const std::string &s)
   }
 
   gsize slice_size = s.size() + incr + 1;
-  char * dest = (char *)g_slice_alloc(slice_size);
+  char * dest = static_cast<char *>(g_slice_alloc(slice_size));
   char * current = dest;
   
   ptr = s.c_str();
@@ -119,7 +119,7 @@ std::string UT_escapeURL(const std::string &s)
     std::string rs;
     xmlChar * uri = xmlURIEscape(BAD_CAST s.c_str());
     if(uri) {
-        rs = (const char*)uri;
+        rs = reinterpret_cast<const char*>(uri);
         xmlFree(uri);
     }
     return rs;

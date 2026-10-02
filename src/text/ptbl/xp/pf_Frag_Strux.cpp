@@ -42,7 +42,7 @@ bool pf_Frag_Strux::_isContentEqual(const pf_Frag &f2) const
 	if(!pf_Frag::_isContentEqual(f2))
 		return false;
 
-	if(m_struxType != ((const pf_Frag_Strux &)(f2)).getStruxType())
+	if(m_struxType != (static_cast<const pf_Frag_Strux &>((f2))).getStruxType())
 		return false;
 
 	return true;
@@ -113,7 +113,7 @@ bool pf_Frag_Strux::isMatchingType(const pf_Frag * pf) const
 	if(pf->getType() != pf_Frag::PFT_Strux)
 		return false;
 
-	const pf_Frag_Strux * pfs = (const pf_Frag_Strux*)pf;
+	const pf_Frag_Strux * pfs = static_cast<const pf_Frag_Strux*>(pf);
 
 	return isMatchingType(pfs->getStruxType());
 }

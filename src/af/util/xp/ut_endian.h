@@ -131,8 +131,8 @@
 #define LE2BE16(x,y)                                  \
 char * lb1;                                           \
 UT_UCSChar tucs;                                      \
-tucs = * ((UT_UCSChar *)(x)); lb1 = (char*) (&tucs);  \
-*((char*)(y)) = *(lb1+1); *(((char*)(y)+1)) = *lb1;
+tucs = * (static_cast<UT_UCSChar *>((x))); lb1 = static_cast<char*>( (&tucs));  \
+*(static_cast<char*>((y))) = *(lb1+1); *((static_cast<char*>((y)+1))) = *lb1;
 #else
 #define LE2BE16(x,y)
 #endif

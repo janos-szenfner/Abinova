@@ -70,7 +70,7 @@ typedef intptr_t        UT_sintptr;
 #endif
 
 /** use to mark variable as unused */
-#define UT_UNUSED(x) (void)(x);
+#define UT_UNUSED(x) static_cast<void>((x));
 
 /** use to mark an argument as used in debug only
  *  otherwise equivalent to UT_UNUSED.
@@ -79,7 +79,7 @@ typedef intptr_t        UT_sintptr;
 #ifdef DEBUG
 #define UT_DEBUG_ONLY_ARG(x)
 #else
-#define UT_DEBUG_ONLY_ARG(x) (void)(x);
+#define UT_DEBUG_ONLY_ARG(x) static_cast<void>((x));
 #endif
 
 /*!
@@ -126,32 +126,32 @@ typedef UT_uint8 UT_Confidence_t;
 	I am the person that has worked the most with them.
 */
 typedef	UT_sint32		UT_Error;
-#define	UT_OK			((UT_Error) 0)
-#define	UT_ERROR            	((UT_Error) -1) 	/* VERY generic */
-#define UT_OUTOFMEM		((UT_Error) -100)
-#define UT_SAVE_WRITEERROR      ((UT_Error) -201)
-#define UT_SAVE_NAMEERROR       ((UT_Error) -202)
-#define UT_SAVE_EXPORTERROR     ((UT_Error) -203)
-#define UT_EXTENSIONERROR       ((UT_Error) -204)
-#define UT_SAVE_CANCELLED       ((UT_Error) -205)
-#define UT_SAVE_OTHERERROR      ((UT_Error) -200) 	/* This should eventually dissapear. */
-#define UT_IE_FILENOTFOUND      ((UT_Error) -301)
-#define UT_IE_NOMEMORY          ((UT_Error) -302)
-#define UT_IE_UNKNOWNTYPE       ((UT_Error) -303)
-#define UT_IE_BOGUSDOCUMENT     ((UT_Error) -304)
-#define UT_IE_COULDNOTOPEN      ((UT_Error) -305)
-#define UT_IE_COULDNOTWRITE     ((UT_Error) -306)
-#define UT_IE_FAKETYPE          ((UT_Error) -307)
-#define UT_INVALIDFILENAME      ((UT_Error) -308)
-#define UT_NOPIECETABLE         ((UT_Error) -309)
-#define UT_IE_ADDLISTENERERROR  ((UT_Error) -310)
-#define UT_IE_UNSUPTYPE         ((UT_Error) -311)
-#define UT_IE_PROTECTED         ((UT_Error) -312)       // (pass) protected doc
-#define UT_IE_SKIPINVALID       ((UT_Error) -313)       // (pass) protected doc
-#define UT_IE_IMPORTERROR       ((UT_Error) -300) 	/* The general case */
-#define UT_IE_IMPSTYLEUNSUPPORTED  ((UT_Error) -314)
-#define UT_IE_XMLNOANGLEBRACKET    ((UT_Error) -360)
-#define UT_IE_TRY_RECOVER          ((UT_Error) -350)    // try recovering the document. ie, we have
+#define	UT_OK			(static_cast<UT_Error>( 0))
+#define	UT_ERROR            	(static_cast<UT_Error>( -1)) 	/* VERY generic */
+#define UT_OUTOFMEM		(static_cast<UT_Error>( -100))
+#define UT_SAVE_WRITEERROR      (static_cast<UT_Error>( -201))
+#define UT_SAVE_NAMEERROR       (static_cast<UT_Error>( -202))
+#define UT_SAVE_EXPORTERROR     (static_cast<UT_Error>( -203))
+#define UT_EXTENSIONERROR       (static_cast<UT_Error>( -204))
+#define UT_SAVE_CANCELLED       (static_cast<UT_Error>( -205))
+#define UT_SAVE_OTHERERROR      (static_cast<UT_Error>( -200)) 	/* This should eventually dissapear. */
+#define UT_IE_FILENOTFOUND      (static_cast<UT_Error>( -301))
+#define UT_IE_NOMEMORY          (static_cast<UT_Error>( -302))
+#define UT_IE_UNKNOWNTYPE       (static_cast<UT_Error>( -303))
+#define UT_IE_BOGUSDOCUMENT     (static_cast<UT_Error>( -304))
+#define UT_IE_COULDNOTOPEN      (static_cast<UT_Error>( -305))
+#define UT_IE_COULDNOTWRITE     (static_cast<UT_Error>( -306))
+#define UT_IE_FAKETYPE          (static_cast<UT_Error>( -307))
+#define UT_INVALIDFILENAME      (static_cast<UT_Error>( -308))
+#define UT_NOPIECETABLE         (static_cast<UT_Error>( -309))
+#define UT_IE_ADDLISTENERERROR  (static_cast<UT_Error>( -310))
+#define UT_IE_UNSUPTYPE         (static_cast<UT_Error>( -311))
+#define UT_IE_PROTECTED         (static_cast<UT_Error>( -312))       // (pass) protected doc
+#define UT_IE_SKIPINVALID       (static_cast<UT_Error>( -313))       // (pass) protected doc
+#define UT_IE_IMPORTERROR       (static_cast<UT_Error>( -300)) 	/* The general case */
+#define UT_IE_IMPSTYLEUNSUPPORTED  (static_cast<UT_Error>( -314))
+#define UT_IE_XMLNOANGLEBRACKET    (static_cast<UT_Error>( -360))
+#define UT_IE_TRY_RECOVER          (static_cast<UT_Error>( -350))    // try recovering the document. ie, we have
                                                         // imported something
 
 #define UT_IS_IE_SUCCESS(x) (((x) == UT_OK) || ((x) == UT_IE_TRY_RECOVER))
@@ -180,22 +180,22 @@ ABI_EXPORT void * UT_calloc ( UT_uint32 nmemb, UT_uint32 size );
 /* When objects (fields, etc) must be represented in unicode, use the
    BELL code and let UT_isWordDelimiter recognize it as a word
    character. See bug 223.  */
-#define UCS_ABI_OBJECT	((UT_UCS4Char)0x0007)
+#define UCS_ABI_OBJECT	(static_cast<UT_UCS4Char>(0x0007))
 
-#define UCS_TAB			((UT_UCS4Char)0x0009)
-#define UCS_LF			((UT_UCS4Char)0x000a)
-#define UCS_VTAB		((UT_UCS4Char)0x000b)
-#define UCS_FF			((UT_UCS4Char)0x000c)
-#define UCS_CR			((UT_UCS4Char)0x000d)
-#define UCS_SPACE		((UT_UCS4Char)0x0020)
-#define UCS_NBSP		((UT_UCS4Char)0x00a0)
-#define UCS_PILCROW		((UT_UCS4Char)0x00b6)
-#define UCS_LINESEP		((UT_UCS4Char)0x2028)			/* Unicode line separator */
-#define UCS_PARASEP		((UT_UCS4Char)0x2029)			/* Unicode paragraph separator */
-#define UCS_BOM			((UT_UCS4Char)0xFEFF)			/* Byte order mark */
-#define UCS_REPLACECHAR	((UT_UCS4Char)0xFFFD)
-#define UCS_HYPHEN      ((UT_UCS4Char)0x2010)
-#define UCS_MINUS       ((UT_UCS4Char)0x2d)
+#define UCS_TAB			(static_cast<UT_UCS4Char>(0x0009))
+#define UCS_LF			(static_cast<UT_UCS4Char>(0x000a))
+#define UCS_VTAB		(static_cast<UT_UCS4Char>(0x000b))
+#define UCS_FF			(static_cast<UT_UCS4Char>(0x000c))
+#define UCS_CR			(static_cast<UT_UCS4Char>(0x000d))
+#define UCS_SPACE		(static_cast<UT_UCS4Char>(0x0020))
+#define UCS_NBSP		(static_cast<UT_UCS4Char>(0x00a0))
+#define UCS_PILCROW		(static_cast<UT_UCS4Char>(0x00b6))
+#define UCS_LINESEP		(static_cast<UT_UCS4Char>(0x2028))			/* Unicode line separator */
+#define UCS_PARASEP		(static_cast<UT_UCS4Char>(0x2029))			/* Unicode paragraph separator */
+#define UCS_BOM			(static_cast<UT_UCS4Char>(0xFEFF))			/* Byte order mark */
+#define UCS_REPLACECHAR	(static_cast<UT_UCS4Char>(0xFFFD))
+#define UCS_HYPHEN      (static_cast<UT_UCS4Char>(0x2010))
+#define UCS_MINUS       (static_cast<UT_UCS4Char>(0x2d))
 
 /* Note: the following are our interpretations, not Unicode's */
 /* Note: use Unicode Private Use Area 0xE000 - 0xF8FF         */
@@ -205,41 +205,41 @@ ABI_EXPORT void * UT_calloc ( UT_uint32 nmemb, UT_uint32 size );
 /* Note: special values are added.  We need to watch out for  */
 /* Note: them during import                                   */
 #define UCS_ABICONTROL_START	(UCS_FIELDSTART)
-#define UCS_FIELDSTART		((UT_UCS4Char)0xF850)
-#define UCS_FIELDEND		((UT_UCS4Char)0xF851)
-#define UCS_BOOKMARKSTART	((UT_UCS4Char)0xF852)
-#define UCS_BOOKMARKEND		((UT_UCS4Char)0xF853)
-#define UCS_LIGATURE_PLACEHOLDER ((UT_UCS4Char)0xF854)
+#define UCS_FIELDSTART		(static_cast<UT_UCS4Char>(0xF850))
+#define UCS_FIELDEND		(static_cast<UT_UCS4Char>(0xF851))
+#define UCS_BOOKMARKSTART	(static_cast<UT_UCS4Char>(0xF852))
+#define UCS_BOOKMARKEND		(static_cast<UT_UCS4Char>(0xF853))
+#define UCS_LIGATURE_PLACEHOLDER (static_cast<UT_UCS4Char>(0xF854))
 #define UCS_ABICONTROL_END	(UCS_LIGATURE_PLACEHOLDER)
 
 
 #if 1 /* try to use the unicode values for special chars */
-#define UCS_EN_SPACE		((UT_UCS4Char)0x2002)
-#define UCS_EM_SPACE		((UT_UCS4Char)0x2003)
-#define UCS_EN_DASH		((UT_UCS4Char)0x2013)
-#define UCS_EM_DASH		((UT_UCS4Char)0x2014)
-#define UCS_BULLET		((UT_UCS4Char)0x2022)
+#define UCS_EN_SPACE		(static_cast<UT_UCS4Char>(0x2002))
+#define UCS_EM_SPACE		(static_cast<UT_UCS4Char>(0x2003))
+#define UCS_EN_DASH		(static_cast<UT_UCS4Char>(0x2013))
+#define UCS_EM_DASH		(static_cast<UT_UCS4Char>(0x2014))
+#define UCS_BULLET		(static_cast<UT_UCS4Char>(0x2022))
 /* TODO Quote marks need to be localized - not hard-coded */
-#define UCS_LQUOTE		((UT_UCS4Char)0x2018)
-#define UCS_RQUOTE		((UT_UCS4Char)0x2019)
-#define UCS_LDBLQUOTE		((UT_UCS4Char)0x201c)
-#define UCS_RDBLQUOTE		((UT_UCS4Char)0x201d)
+#define UCS_LQUOTE		(static_cast<UT_UCS4Char>(0x2018))
+#define UCS_RQUOTE		(static_cast<UT_UCS4Char>(0x2019))
+#define UCS_LDBLQUOTE		(static_cast<UT_UCS4Char>(0x201c))
+#define UCS_RDBLQUOTE		(static_cast<UT_UCS4Char>(0x201d))
 
 /* Note: the following is our interpretation, not Unicode's */
-#define UCS_UNKPUNK 		((UT_UCS4Char)0xFFFF)  /* "unknown punctuation" used with UT_isWordDelimiter() */
+#define UCS_UNKPUNK 		(static_cast<UT_UCS4Char>(0xFFFF))  /* "unknown punctuation" used with UT_isWordDelimiter() */
 
 #else /* see bug 512 */
 
-#define UCS_EN_SPACE		((UT_UCS4Char)0x0020)
-#define UCS_EM_SPACE		((UT_UCS4Char)0x0020)
-#define UCS_EN_DASH		((UT_UCS4Char)0x002d)
-#define UCS_EM_DASH		((UT_UCS4Char)0x002d)
-#define UCS_BULLET		((UT_UCS4Char)0x0095)
-#define UCS_LQUOTE		((UT_UCS4Char)0x0027)
-#define UCS_RQUOTE		((UT_UCS4Char)0x0027)
-#define UCS_LDBLQUOTE		((UT_UCS4Char)0x0022)
-#define UCS_RDBLQUOTE		((UT_UCS4Char)0x0022)
-#define UCS_UNKPUNK 		((UT_UCS4Char)0x00FF)
+#define UCS_EN_SPACE		(static_cast<UT_UCS4Char>(0x0020))
+#define UCS_EM_SPACE		(static_cast<UT_UCS4Char>(0x0020))
+#define UCS_EN_DASH		(static_cast<UT_UCS4Char>(0x002d))
+#define UCS_EM_DASH		(static_cast<UT_UCS4Char>(0x002d))
+#define UCS_BULLET		(static_cast<UT_UCS4Char>(0x0095))
+#define UCS_LQUOTE		(static_cast<UT_UCS4Char>(0x0027))
+#define UCS_RQUOTE		(static_cast<UT_UCS4Char>(0x0027))
+#define UCS_LDBLQUOTE		(static_cast<UT_UCS4Char>(0x0022))
+#define UCS_RDBLQUOTE		(static_cast<UT_UCS4Char>(0x0022))
+#define UCS_UNKPUNK 		(static_cast<UT_UCS4Char>(0x00FF))
 
 #endif
 
@@ -256,7 +256,7 @@ ABI_EXPORT void * UT_calloc ( UT_uint32 nmemb, UT_uint32 size );
 ** Some useful macros that we use throughout
 */
 
-#define FREEP(p)		do { if (p) { g_free((void *)p); (p)=nullptr; } } while (0)
+#define FREEP(p)		do { if (p) { g_free(const_cast<void *>(static_cast<const void *>(p))); (p)=nullptr; } } while (0)
 #define DELETEP(p)		do { if (p) { delete(p); (p)=nullptr; } } while (0)
 #define DELETEPV(pa)	do { if (pa) { delete [] (pa); (pa)=nullptr; } } while (0)
 #define REPLACEP(p,q)		do { if (p) delete p; p = q; } while (0)

@@ -91,7 +91,7 @@ AP_LeftRuler::AP_LeftRuler(XAP_Frame * pFrame)
 	// install top_ruler_prefs_listener as this lister for this func
 	XAP_App::getApp()->getPrefs()->addListener( AP_LeftRuler::_prefsListener, static_cast<void *>(this) );
 	m_lidLeftRuler = 9999999;
-	UT_DEBUGMSG(("Created LeftRuler %p lid is %d \n", (void*)this, m_lidLeftRuler));
+	UT_DEBUGMSG(("Created LeftRuler %p lid is %d \n", static_cast<void*>(this), m_lidLeftRuler));
 }
 
 AP_LeftRuler::~AP_LeftRuler(void)
@@ -99,7 +99,7 @@ AP_LeftRuler::~AP_LeftRuler(void)
 	if(m_pView) 
 	{
 		// don't receive anymore scroll messages
-	  UT_DEBUGMSG(("Remove scroll listener %p \n", (void*)m_pScrollObj));
+	  UT_DEBUGMSG(("Remove scroll listener %p \n", static_cast<void*>(m_pScrollObj)));
 		m_pView->removeScrollListener(m_pScrollObj);
 
 		// no more view messages
@@ -113,9 +113,9 @@ AP_LeftRuler::~AP_LeftRuler(void)
 	}
 	// no more prefs 
 	XAP_App::getApp()->getPrefs()->removeListener( AP_LeftRuler::_prefsListener, static_cast<void *>(this) );
-	UT_DEBUGMSG(("Deleted LeftRuler %p \n", (void*)this));
+	UT_DEBUGMSG(("Deleted LeftRuler %p \n", static_cast<void*>(this)));
 	m_lidLeftRuler = 0;
-	UT_DEBUGMSG(("AP_LeftRuler::~AP_LeftRuler (this=%p scroll=%p)\n", (void*)this, (void*)m_pScrollObj));
+	UT_DEBUGMSG(("AP_LeftRuler::~AP_LeftRuler (this=%p scroll=%p)\n", static_cast<void*>(this), static_cast<void*>(m_pScrollObj)));
 
 	DELETEP(m_pScrollObj);
 	DELETEP(m_lfi);
@@ -845,7 +845,7 @@ UT_sint32 AP_LeftRuler::setTableLineDrag(PT_DocPosition pos, UT_sint32 & iFixed,
 				m_draggingCenter = rCell.top + pG->tlu(2);
 				m_draggingDocPos = pos;
 				xxx_UT_DEBUGMSG(("leftRuler: Drag cell %d draggingCenter %d \n",i,m_draggingCenter));
-				return (UT_sint32)(m_iWidth/2);
+				return static_cast<UT_sint32>((m_iWidth/2));
 			}
 		}
 	}
@@ -967,7 +967,7 @@ void AP_LeftRuler::mouseMotion(EV_EditModifierState ems, UT_sint32 x, UT_sint32 
 	}		
 	m_bEventIgnored = false;
 
-	UT_DEBUGMSG(("mouseMotion: [ems 0x%08x][x %d][y %d]\n",(int)ems,x,y));
+	UT_DEBUGMSG(("mouseMotion: [ems 0x%08x][x %d][y %d]\n",static_cast<int>(ems),x,y));
 	ap_RulerTicks tick(pG,m_dim);
 
 	// if they drag vertically off the ruler, we ignore the whole thing.
@@ -1023,7 +1023,7 @@ void AP_LeftRuler::mouseMotion(EV_EditModifierState ems, UT_sint32 x, UT_sint32 
 		if (m_draggingCenter < yAbsTop)
 			m_draggingCenter = yAbsTop;
 
-		if (m_draggingCenter > (UT_sint32)(yAbsTop + m_infoCache.m_yPageSize))
+		if (m_draggingCenter > static_cast<UT_sint32>((yAbsTop + m_infoCache.m_yPageSize)))
 			m_draggingCenter = yAbsTop + m_infoCache.m_yPageSize;
 
 		UT_sint32 effectiveSize;
@@ -1124,7 +1124,7 @@ void AP_LeftRuler::mouseMotion(EV_EditModifierState ems, UT_sint32 x, UT_sint32 
 			if (m_draggingCenter < yAbsTop)
 				m_draggingCenter = yAbsTop;
 
-			if (m_draggingCenter > (UT_sint32)(yAbsTop + m_infoCache.m_yPageSize))
+			if (m_draggingCenter > static_cast<UT_sint32>((yAbsTop + m_infoCache.m_yPageSize)))
 				m_draggingCenter = yAbsTop + m_infoCache.m_yPageSize;
 			_xorGuide();
 			if(m_pG)
@@ -1263,7 +1263,7 @@ void AP_LeftRuler::_scrollFuncY(void * pData, UT_sint32 yoff, UT_sint32 ylimit)
 	// static callback referenced by an AV_ScrollObj() for the ruler
 	UT_ASSERT(pData);
 
-	AP_LeftRuler * pLeftRuler = (AP_LeftRuler *)(pData);
+	AP_LeftRuler * pLeftRuler = static_cast<AP_LeftRuler *>((pData));
 
 	// let non-static member function do all the work.
 
@@ -1764,7 +1764,7 @@ void AP_LeftRuler::drawImmediateLU(const UT_Rect *clip)
 	}
 
 	// first draw the top margin
-	for (k=1; ((UT_sint32)(k*tick.tickUnit/tick.tickUnitScale) < lfi->m_yTopMargin); k++)
+	for (k=1; (static_cast<UT_sint32>((k*tick.tickUnit/tick.tickUnitScale) )< lfi->m_yTopMargin); k++)
 	{
 		y = yOrigin + lfi->m_yTopMargin - k*tick.tickUnit/tick.tickUnitScale - m_yScrollOffset;
 		if (y >= 0)

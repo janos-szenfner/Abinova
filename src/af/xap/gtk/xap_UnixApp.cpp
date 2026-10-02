@@ -151,7 +151,7 @@ XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
 		{
 			GR_CairoNullGraphicsAllocInfo ai;
 			nullgraphics =
-				(CairoNull_Graphics*) XAP_App::getApp()->newGraphics((UT_uint32)GRID_CAIRO_NULL, ai);
+				static_cast<CairoNull_Graphics*>( XAP_App::getApp()->newGraphics(static_cast<UT_uint32>(GRID_CAIRO_NULL), ai));
 
 			delete nullgraphics;
 			nullgraphics = nullptr;
@@ -356,7 +356,7 @@ void XAP_UnixApp::_setAbiSuiteLibDir()
 	if (sz && *sz)
 	{
 		int len = strlen(sz);
-		buf = (gchar *)g_malloc(len+1);
+		buf = static_cast<gchar *>(g_malloc(len+1));
 		strcpy(buf,sz);
 		char * p = buf;
 		if ( (p[0]=='"') && (p[len-1]=='"') )

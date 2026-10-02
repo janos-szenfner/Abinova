@@ -221,7 +221,7 @@ static void s_border_properties (const gchar * border_color, const gchar * borde
 	line.m_t_thickness = PP_PropertyMap::thickness_type (border_width);
 	if (line.m_t_thickness == PP_PropertyMap::thickness_length)
 		{
-			if (UT_determineDimension (border_width, (UT_Dimension)-1) == DIM_PX)
+			if (UT_determineDimension (border_width, static_cast<UT_Dimension>(-1)) == DIM_PX)
 				{
 					double thickness = UT_LAYOUT_RESOLUTION * UT_convertDimensionless (border_width);
 					line.m_thickness = static_cast<UT_sint32>(thickness / UT_PAPER_UNITS_PER_INCH);
@@ -1582,7 +1582,7 @@ void s_RTF_ListenerWriteDoc::_outputData(const UT_UCS4Char * data, UT_uint32 len
 		case '{':
 		case '}':
 			sBuf += '\\';
-			sBuf += (char)*pData++;
+			sBuf += static_cast<char>(*pData++);
 			break;
 
 		case UCS_LF:					// LF -- representing a Forced-Line-Break
@@ -1685,8 +1685,8 @@ void s_RTF_ListenerWriteDoc::_outputData(const UT_UCS4Char * data, UT_uint32 len
 
 					UT_UCS4Char lc = XAP_EncodingManager::get_instance()->try_UToWindows(*pData);
 					m_pie->_rtf_keyword("uc",lc && lc<256 ? 1 : 0);
-					unsigned short ui = ((unsigned short)(*pData));	// RTF is limited to +/-32K ints
-					signed short si = *((signed short *)(&ui));		// so we need to write negative
+					unsigned short ui = (static_cast<unsigned short>((*pData)));	// RTF is limited to +/-32K ints
+					signed short si = *(reinterpret_cast<signed short *>((&ui)));		// so we need to write negative
 					m_pie->_rtf_keyword("u",si);					// numbers for large unicode values.
 					if (lc && lc <256)
 						m_pie->_rtf_nonascii_hex2(lc);
@@ -1706,7 +1706,7 @@ void s_RTF_ListenerWriteDoc::_outputData(const UT_UCS4Char * data, UT_uint32 len
 				}
 				else
 				{
-					sBuf += (char)*pData++;
+					sBuf += static_cast<char>(*pData++);
 				}
 			} else {
 				/*
@@ -1735,8 +1735,8 @@ void s_RTF_ListenerWriteDoc::_outputData(const UT_UCS4Char * data, UT_uint32 len
 					// TODO polluting the global context w/r/t \uc.
 
 					m_pie->_rtf_keyword("uc",0);
-					unsigned short ui = ((unsigned short)(*pData));	// RTF is limited to +/-32K ints
-					signed short si = *((signed short *)(&ui));		// so we need to write negative
+					unsigned short ui = (static_cast<unsigned short>((*pData)));	// RTF is limited to +/-32K ints
+					signed short si = *(reinterpret_cast<signed short *>((&ui)));		// so we need to write negative
 					m_pie->_rtf_keyword("u",si);					// numbers for large unicode values.
 				}
 				else
@@ -1833,7 +1833,7 @@ s_RTF_ListenerWriteDoc::s_RTF_ListenerWriteDoc(PD_Document * pDocument,
 
 s_RTF_ListenerWriteDoc::~s_RTF_ListenerWriteDoc()
 {
-	UT_DEBUGMSG(("~s_RTF_ListenerWriteDoc() rdfstack.sz:%lu\n" , (long unsigned)m_rdfAnchorStack.size() ));
+	UT_DEBUGMSG(("~s_RTF_ListenerWriteDoc() rdfstack.sz:%lu\n" , static_cast<long unsigned>(m_rdfAnchorStack.size() )));
 
 	_closeSpan();
 
@@ -1896,7 +1896,7 @@ bool s_RTF_ListenerWriteDoc::populate(fl_ContainerLayout* /*sfh*/,
 					{
 						if (pf1->getType() == pf_Frag::PFT_Strux)
 						{
-							m_apiThisBlock = ((pf_Frag_Strux*)pf1)->getIndexAP();
+							m_apiThisBlock = (static_cast<pf_Frag_Strux*>(pf1))->getIndexAP();
 							break;
 						}
 						pf1 = pf1->getPrev();
@@ -1947,7 +1947,7 @@ bool s_RTF_ListenerWriteDoc::populate(fl_ContainerLayout* /*sfh*/,
 				return true;
 			case PTO_Hyperlink:
 			{
-				UT_DEBUGMSG(("PTO_Hyperlink pcro:%p\n", (void*)pcro));
+				UT_DEBUGMSG(("PTO_Hyperlink pcro:%p\n", static_cast<void*>(pcro)));
 				_closeSpan ();
 				const PP_AttrProp * pAP = nullptr;
 				m_pDocument->getAttrProp(api,&pAP);
@@ -3686,7 +3686,7 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 		cellLeftPos = UT_convertToInches(szColumnLeftPos);
 	}
 	UT_sint32 iLeftTwips = 0;
-	iLeftTwips =  (UT_sint32) (cellLeftPos*1440.0);
+	iLeftTwips =  static_cast<UT_sint32>( (cellLeftPos*1440.0));
 	m_pie->_rtf_keyword("trleft",iLeftTwips);
 	UT_GenericVector<fl_ColProps *> vecColProps;
 	vecColProps.clear();
@@ -3841,7 +3841,7 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 		}
 		thisX += cellpos;
 		UT_sint32 iCellTwips = 0;
-		iCellTwips = (UT_sint32) (thisX*1440.0);
+		iCellTwips = static_cast<UT_sint32>( (thisX*1440.0));
 		m_pie->_rtf_keyword("cellx",iCellTwips);
 	}
 	if(vecColProps.getItemCount() > 0)
@@ -4221,7 +4221,7 @@ void s_RTF_ListenerWriteDoc::_fillTableProps(PT_AttrPropIndex api, std::string &
 		UT_std_string_setProperty(sTableProps, sProp, sPropVal);
 	}
 	sProp = "table-sdh";
-	sPropVal = UT_std_string_sprintf("%p", (void*)m_Table.getTableStrux());
+	sPropVal = UT_std_string_sprintf("%p", static_cast<void*>(m_Table.getTableStrux()));
 	UT_std_string_setProperty(sTableProps, sProp, sPropVal);
 	if(sTableProps.size() == 0)
 	{
@@ -4539,7 +4539,7 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 			const char* pszAuthor;
 			const char* pszTitle;
 			const char *pszDate;
-			if(!pAnnotationAP || !pAnnotationAP->getProperty("annotation-author", (const char *&)pszAuthor))
+			if(!pAnnotationAP || !pAnnotationAP->getProperty("annotation-author", static_cast<const char *&>(pszAuthor)))
 			{
 			    pszAuthor = "n/a";
 			}
@@ -4548,7 +4548,7 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 			    pszAuthor = "n/a";
 			}
 			m_sAnnAuthor = pszAuthor;
-			if(!pAnnotationAP || !pAnnotationAP->getProperty("annotation-title", (const char *&)pszTitle))
+			if(!pAnnotationAP || !pAnnotationAP->getProperty("annotation-title", static_cast<const char *&>(pszTitle)))
 			{
 			    pszTitle = "n/a";
 			}
@@ -4557,7 +4557,7 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 			    pszTitle = "n/a";
 			}
 			m_sAnnTitle = pszTitle;
-			if(!pAnnotationAP || !pAnnotationAP->getProperty("annotation-date", (const char *&)pszDate))
+			if(!pAnnotationAP || !pAnnotationAP->getProperty("annotation-date", static_cast<const char *&>(pszDate)))
 			{
 			    pszDate = "n/a";
 			}
@@ -5131,7 +5131,7 @@ void s_RTF_ListenerWriteDoc::_writeBookmark(const PX_ChangeRecord_Object * pcro)
 
 void s_RTF_ListenerWriteDoc::_writeRDFAnchor(const PX_ChangeRecord_Object * pcro)
 {
-	UT_DEBUGMSG(("_writeRDFAnchor() pcro:%p\n", (void*)pcro));
+	UT_DEBUGMSG(("_writeRDFAnchor() pcro:%p\n", static_cast<void*>(pcro)));
 	
 	PT_AttrPropIndex api = pcro->getIndexAP();
 	const PP_AttrProp * pAP = nullptr;

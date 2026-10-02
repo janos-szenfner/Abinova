@@ -185,14 +185,14 @@ const char * AbiWordperfectInputStream::subStreamName(unsigned id)
 
 	if (m_ole)
 		{
-			if ((int)id >= gsf_infile_num_children(m_ole))
+			if (static_cast<int>(id )>= gsf_infile_num_children(m_ole))
 			{
 				return nullptr;
 			}
 			std::map<unsigned, std::string>::iterator i = m_substreams.lower_bound(id);
 			if (i == m_substreams.end() || m_substreams.key_comp()(id, i->first))
 				{
-					std::string name = gsf_infile_name_by_index(m_ole, (int)id);
+					std::string name = gsf_infile_name_by_index(m_ole, static_cast<int>(id));
 					i = m_substreams.insert(i, std::map<unsigned, std::string>::value_type(id, name));
 				}
 			return i->second.c_str();
@@ -257,7 +257,7 @@ librevenge::RVNGInputStream * AbiWordperfectInputStream::getSubStreamById(unsign
 
 	if (m_ole)
 		{
-			GsfInput *document = gsf_infile_child_by_index(m_ole, (int)id);
+			GsfInput *document = gsf_infile_child_by_index(m_ole, static_cast<int>(id));
 			if (document) 
 				{
 					documentStream = new AbiWordperfectInputStream(document);
@@ -412,7 +412,7 @@ UT_Error IE_Imp_WordPerfect::_loadFile(GsfInput * input)
 
 	if (error != libwpd::WPD_OK)
 	{
-		UT_DEBUGMSG(("AbiWordPerfect: ERROR: %i!\n", (int)error));
+		UT_DEBUGMSG(("AbiWordPerfect: ERROR: %i!\n", static_cast<int>(error)));
 		return UT_IE_IMPORTERROR;
 	}
 
@@ -571,7 +571,7 @@ void IE_Imp_WordPerfect::openParagraph(const librevenge::RVNGPropertyList &propL
 	
 	UT_String tmpBuffer;
 	UT_String_sprintf(tmpBuffer, "; margin-top:%dpt; margin-bottom:%dpt; margin-left:%.4fin; margin-right:%.4fin; text-indent:%.4fin; line-height:%.4f",
-		(int)(m_topMargin*72), (int)(m_bottomMargin*72), m_leftMarginOffset, m_rightMarginOffset, m_textIndent, lineSpacing);
+		static_cast<int>((m_topMargin*72)), static_cast<int>((m_bottomMargin*72)), m_leftMarginOffset, m_rightMarginOffset, m_textIndent, lineSpacing);
 	propBuffer += tmpBuffer;
 	
 	const librevenge::RVNGPropertyListVector *tabStops = propList.child("style:tab-stops");
@@ -1235,7 +1235,7 @@ UT_Error IE_Imp_WordPerfect::_updateDocumentOrderedListDefinition(ABI_ListDefini
 												 getDoc(), nullptr);
 		} else {
 			UT_UTF8String sNumberingString;
-			UT_UTF8String sNumber("%L", (size_t)0);
+			UT_UTF8String sNumber("%L", static_cast<size_t>(0));
 
 			sNumberingString += sTextBeforeNumber;
 			sNumberingString += sNumber;
@@ -1310,7 +1310,7 @@ protected:
 
 		if (error != libwps::WPS_OK)
 			{
-				UT_DEBUGMSG(("AbiMSWorks: ERROR: %i!\n", (int)error));
+				UT_DEBUGMSG(("AbiMSWorks: ERROR: %i!\n", static_cast<int>(error)));
 				return UT_IE_IMPORTERROR;
 			}
 		

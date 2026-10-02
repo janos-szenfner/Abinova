@@ -61,11 +61,11 @@ std::string tostr( librdf_node* n )
 
     if( librdf_uri* u = librdf_node_get_uri( n ))
     {
-        std::string s = (const char*)librdf_uri_as_string( u );
+        std::string s = static_cast<const char*>(librdf_uri_as_string( u ));
         return s;
     }
     
-    std::string s = (const char*)librdf_node_to_string( n );
+    std::string s = static_cast<const char*>(librdf_node_to_string( n ));
     return s;
 }
 
@@ -74,9 +74,9 @@ librdf_statement* toRedland( const PD_RDFStatement& st )
     librdf_world* w = getWorld();
     librdf_statement* ret = librdf_new_statement_from_nodes(
         w,
-        librdf_new_node_from_uri_string( w, (const unsigned char*)st.getSubject().toString().c_str() ),
-        librdf_new_node_from_uri_string( w, (const unsigned char*)st.getPredicate().toString().c_str() ),
-        librdf_new_node_from_uri_string( w, (const unsigned char*)st.getObject().toString().c_str() )
+        librdf_new_node_from_uri_string( w, static_cast<const unsigned char*>(st.getSubject().toString().c_str() )),
+        librdf_new_node_from_uri_string( w, static_cast<const unsigned char*>(st.getPredicate().toString().c_str() )),
+        librdf_new_node_from_uri_string( w, static_cast<const unsigned char*>(st.getObject().toString().c_str() ))
         );
     return ret;
 }
@@ -126,7 +126,7 @@ struct abiwordContext
             return nullptr;
         }
         
-        abiwordContext* ret = (abiwordContext*)librdf_storage_get_instance(storage);
+        abiwordContext* ret = static_cast<abiwordContext*>(librdf_storage_get_instance(storage));
         return ret;
     }
     
@@ -477,14 +477,14 @@ abiword_storage_find_statements_with_context( librdf_storage* storage,
     sc->setup( librdf_storage_get_world(storage) );
     
     librdf_stream* stream = librdf_new_stream( librdf_storage_get_world(storage),
-                                               (void*)sc,
+                                               static_cast<void*>(sc),
                                                &abiword_storage_find_statements_end_of_stream,
                                                &abiword_storage_find_statements_next_statement,
                                                &abiword_storage_find_statements_get_statement,
                                                &abiword_storage_find_statements_finished);
     if(!stream)
     {
-        abiword_storage_find_statements_finished((void*)sc);
+        abiword_storage_find_statements_finished(static_cast<void*>(sc));
         return nullptr;
     }
     
@@ -697,7 +697,7 @@ PD_RDFQuery::executeQuery( const std::string& sparql_query_string )
     librdf_uri*   base_uri = nullptr;
     librdf_query* query = librdf_new_query( getWorld(),
                                             "sparql", nullptr,
-                                            (unsigned char*)sparql_query_string.c_str(),
+                                            static_cast<unsigned char*>(sparql_query_string.c_str()),
                                             base_uri );
     librdf_query_results* results = librdf_query_execute( query, rdfmodel );
     if( !results )
@@ -721,7 +721,7 @@ PD_RDFQuery::executeQuery( const std::string& sparql_query_string )
             continue;
         xxx_UT_DEBUGMSG(("have query result, bc: %d\n", bc));
         
-        values = (librdf_node**)calloc( bc+1, sizeof(librdf_node*));
+        values = static_cast<librdf_node**>(calloc( bc+1, sizeof(librdf_node*)));
         if( !librdf_query_results_get_bindings( results, &names, values ) )
         {
             const char * name  = names[0];

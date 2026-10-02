@@ -250,7 +250,7 @@ void AP_UnixDialog_Border_Shading::runModeless(XAP_Frame * pFrame)
 	DELETEP (m_pPreviewWidget);
 	GR_UnixCairoAllocInfo ai(m_wPreviewArea);
 	m_pPreviewWidget =
-	    (GR_UnixCairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+	    static_cast<GR_UnixCairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	// Todo: we need a good widget to query with a probable
 	// Todo: non-white (i.e. gray, or a similar bgcolor as our parent widget)
@@ -275,10 +275,10 @@ void AP_UnixDialog_Border_Shading::setSensitivity(bool /* bSens */)
 {
 //	UT_DEBUGMSG(("========================= Set the sensitivity \n"));
 
-	gtk_toggle_button_set_active((GtkToggleButton*)m_wLineLeft, getLeftToggled() ? TRUE: FALSE);
-	gtk_toggle_button_set_active((GtkToggleButton*)m_wLineRight, getRightToggled() ? TRUE: FALSE);
-	gtk_toggle_button_set_active((GtkToggleButton*)m_wLineTop, getTopToggled() ? TRUE: FALSE);
-	gtk_toggle_button_set_active((GtkToggleButton*)m_wLineBottom, getBottomToggled() ? TRUE: FALSE);
+	gtk_toggle_button_set_active(reinterpret_cast<GtkToggleButton*>(m_wLineLeft), getLeftToggled() ? TRUE: FALSE);
+	gtk_toggle_button_set_active(reinterpret_cast<GtkToggleButton*>(m_wLineRight), getRightToggled() ? TRUE: FALSE);
+	gtk_toggle_button_set_active(reinterpret_cast<GtkToggleButton*>(m_wLineTop), getTopToggled() ? TRUE: FALSE);
+	gtk_toggle_button_set_active(reinterpret_cast<GtkToggleButton*>(m_wLineBottom), getBottomToggled() ? TRUE: FALSE);
 
 	gboolean bEnable = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wShadingEnable)); 
 	gtk_widget_set_sensitive(m_wShadingColorButton, bEnable);

@@ -2504,6 +2504,19 @@ below are on `main` but the release has not been cut yet.
     imports or rejects gracefully (previously crashed), valgrind
     quiet, `src/wp/test` suite PASS, `.doc`/`.rtf`/`.odt`/`.docx`
     corpus converts to PDF.
+- **C-style casts modernized tree-wide (TS03)** — ~2,800 C-style
+  casts across the `src/` tree were replaced with the correct
+  `static_cast`/`reinterpret_cast`/`const_cast` forms, so conversions
+  that used to silently accept anything are now checked by the
+  compiler (pointer puns, pointer↔integer and byte-buffer aliasing are
+  explicit `reinterpret_cast`; numeric/enum/class-hierarchy
+  conversions are `static_cast`; `const` is only dropped where the
+  code genuinely needs it).  The sweep exposed 13 places where a
+  `(gpointer)` cast silently discarded pointee `const` on string
+  literals and hash keys (TOC dialog widget data, style-combo names,
+  ribbon tab keys, `ut_hash` value cleanup) — those now spell out the
+  `const` drop as `const_cast<gpointer>(static_cast<const void
+  *>(...))` instead of hiding it.
 
 ### GTK4 port (core migration)
 

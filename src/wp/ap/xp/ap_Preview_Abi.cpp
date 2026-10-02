@@ -40,7 +40,7 @@
 
 #define DIMENSION_INCH_SCALE_FACTOR	36
 
-#define PIXELS_TO_INCH(p) (double) ((double) p / (double) DIMENSION_INCH_SCALE_FACTOR)
+#define PIXELS_TO_INCH(p) (double) (static_cast<double>( p )/ static_cast<double>( DIMENSION_INCH_SCALE_FACTOR))
 
 /*!
  * This class gives the full power of the abi formatter to any Graphics Context
@@ -110,17 +110,17 @@ AP_Preview_Abi::AP_Preview_Abi(GR_Graphics * gc, UT_uint32 iWidth,
 //
 	case PREVIEW_ZOOMED:
 		m_pDocument->m_docPageSize.Set(curWidth,curHeight,DIM_IN);
-		previewWidth = ((double) gc->tlu(iWidth))/((double) gc->getResolution());
+		previewWidth = (static_cast<double>( gc->tlu(iWidth)))/(static_cast<double>( gc->getResolution()));
 		tmp = 100.0 * previewWidth/curWidth;
-		iZoom = (UT_uint32) tmp;
+		iZoom = static_cast<UT_uint32>( tmp);
 		gc->setZoomPercentage(iZoom);
 		break;
 //
 // In this case we set the page size to fit inside the gc window
 //
 	case PREVIEW_ADJUSTED_PAGE:
-		width = (double) gc->tlu(iWidth)/((double) gc->getResolution());
-		height = (double) gc->tlu(iHeight)/((double) gc->getResolution()) ;
+		width = static_cast<double>( gc->tlu(iWidth))/(static_cast<double>( gc->getResolution()));
+		height = static_cast<double>( gc->tlu(iHeight))/(static_cast<double>( gc->getResolution())) ;
 		m_pDocument->m_docPageSize.Set(width,height,DIM_IN);
 		break;
 //
@@ -136,9 +136,9 @@ AP_Preview_Abi::AP_Preview_Abi(GR_Graphics * gc, UT_uint32 iWidth,
 //
 	case PREVIEW_ZOOMED_SCROLL:
 		m_pDocument->m_docPageSize.Set(curWidth,curHeight,DIM_IN);
-		previewWidth = (double) iWidth/((double) gc->getResolution());
+		previewWidth = static_cast<double>( iWidth)/(static_cast<double>( gc->getResolution()));
 		tmp = 100.0 * previewWidth/curWidth;
-		iZoom = (UT_uint32) tmp;
+		iZoom = static_cast<UT_uint32>( tmp);
 		gc->setZoomPercentage(iZoom);
 
 		break;
@@ -147,8 +147,8 @@ AP_Preview_Abi::AP_Preview_Abi(GR_Graphics * gc, UT_uint32 iWidth,
 // bar
 //
 	case PREVIEW_ADJUSTED_PAGE_SCROLL:
-		width = (double) iWidth/((double) gc->getResolution());
-		height = (double) iHeight/((double) gc->getResolution()) ;
+		width = static_cast<double>( iWidth)/(static_cast<double>( gc->getResolution()));
+		height = static_cast<double>( iHeight)/(static_cast<double>( gc->getResolution())) ;
 		m_pDocument->m_docPageSize.Set(width,height,DIM_IN);
 		break;
 //

@@ -114,7 +114,7 @@ static inline char xdec(const char *s)
 
 void XX_inplaceDecode(const char *s)
 {
-	char *d=(char*)s;
+	char *d=static_cast<char*>(s);
 	while (*s) {
 		if (*s=='%' && s[1] && s[2]) {
 			*d++=xdec(s+1);

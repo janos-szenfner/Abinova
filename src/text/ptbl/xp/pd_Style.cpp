@@ -282,7 +282,7 @@ PD_Style * PD_Style::getFollowedBy(void) const
 
 	if (getAttribute(PT_FOLLOWEDBY_ATTRIBUTE_NAME, szStyle))
 		if (szStyle && szStyle[0])
-			m_pPT->getStyle((char*)szStyle, &m_pFollowedBy);
+			m_pPT->getStyle(const_cast<char*>(reinterpret_cast<const char*>(szStyle)), &m_pFollowedBy);
 
 	// NOTE: we silently fail if style is referenced, but not defined
 

@@ -541,7 +541,7 @@ pf_Fragments::erase(Iterator it)
 	{
 		auto node = it.getNode();
 		UT_nonnull_or_return(node, );
-		UT_DEBUGMSG(("Invalid frag %p in erase \n", (void*)node->item));
+		UT_DEBUGMSG(("Invalid frag %p in erase \n", static_cast<void*>(node->item)));
 		return;
 	}
 	Node* pNode = it.getNode();
@@ -655,7 +655,7 @@ pf_Fragments::fixSize(Iterator it)
 	if (pn->parent->left == pn->parent->right && pn->parent->item)
 	{
 		pn = pn->parent;
-		delta = - (int) pn->item->getLeftTreeLength();
+		delta = - static_cast<int>( pn->item->getLeftTreeLength());
 		pn->item->setLeftTreeLength(0);
 	}
 
@@ -813,7 +813,7 @@ void pf_Fragments::verifyDoc(void) const
       UT_DEBUGMSG(("Correcting Error. New LeftTreeLength set to %d \n",iCalcLeft));
       pf->setLeftTreeLength(iCalcLeft);
     }
-    UT_DEBUGMSG(("frag %d pointer %p pos %d leftLength %d length %d PT Pos %d \n", count, (void*)pf, pos, pf->getLeftTreeLength(), pf->getLength(), pf->getPos()));
+    UT_DEBUGMSG(("frag %d pointer %p pos %d leftLength %d length %d PT Pos %d \n", count, static_cast<void*>(pf), pos, pf->getLeftTreeLength(), pf->getLength(), pf->getPos()));
     UT_ASSERT(pos == pf->getPos());
     count++;
     pos += pf->getLength();
@@ -821,7 +821,7 @@ void pf_Fragments::verifyDoc(void) const
   }
   UT_ASSERT(pf && (pf->getType() ==  pf_Frag::PFT_EndOfDoc));
   UT_ASSERT(pf && (pf->getNext() == nullptr));
-  UT_DEBUGMSG(("Last Frag is %p Type is %d pos is %d \n", (void*)getLast(), getLast() ? getLast()->getType() : -1, getLast() ? getLast()->getPos() : 0));
+  UT_DEBUGMSG(("Last Frag is %p Type is %d pos is %d \n", static_cast<void*>(getLast()), getLast() ? getLast()->getType() : -1, getLast() ? getLast()->getPos() : 0));
 }
 
 /**
@@ -875,7 +875,7 @@ pf_Fragments::documentPosition(const Iterator it) const
 void
 pf_Fragments::changeSize(int delta)
 {
-	UT_ASSERT(delta < 0 ? ((int) m_nDocumentSize >= -delta) : true);
+	UT_ASSERT(delta < 0 ? (static_cast<int>( m_nDocumentSize )>= -delta) : true);
 
 	m_nDocumentSize += delta;
 }

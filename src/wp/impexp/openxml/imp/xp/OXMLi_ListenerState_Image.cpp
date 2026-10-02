@@ -77,7 +77,7 @@ static unsigned char s_fxByte(double v)
 {
 	if (v < 0.0)   return 0;
 	if (v > 255.0) return 255;
-	return (unsigned char)(v + 0.5);
+	return static_cast<unsigned char>((v + 0.5));
 }
 
 static std::string s_hslToHex(double h, double s, double l)

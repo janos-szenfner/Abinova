@@ -106,7 +106,7 @@ FL_DocLayout::FL_DocLayout(PD_Document* doc, GR_Graphics* pG)
     m_pG(pG),
     m_pDoc(doc),
     m_pView(nullptr),
-    m_lid((PL_ListenerId)-1),
+    m_lid(static_cast<PL_ListenerId>(-1)),
     m_pFirstSection(nullptr),
     m_pLastSection(nullptr),
 	m_toSpellCheckHead(nullptr),
@@ -186,7 +186,7 @@ FL_DocLayout::FL_DocLayout(PD_Document* doc, GR_Graphics* pG)
 
 FL_DocLayout::~FL_DocLayout()
 {
-        UT_DEBUGMSG(("Deleting DocLayout %p DocListener %p lid %d\n", (void*)this, (void*)m_pDocListener, m_lid));
+        UT_DEBUGMSG(("Deleting DocLayout %p DocListener %p lid %d\n", static_cast<void*>(this), static_cast<void*>(m_pDocListener), m_lid));
 
 	m_bDeletingLayout = true;
 
@@ -464,15 +464,15 @@ void FL_DocLayout::_lookupProperties(void)
 	const gchar * pszFootnoteType = nullptr;
 	const PP_AttrProp* pDocAP = getDocument()->getAttrProp();
 	UT_return_if_fail(pDocAP);
-	pDocAP->getProperty("document-footnote-type", (const gchar *&)pszFootnoteType);
+	pDocAP->getProperty("document-footnote-type", static_cast<const gchar *&>(pszFootnoteType));
 	m_FootnoteType = FootnoteTypeFromString(pszFootnoteType);
 
 	const gchar * pszEndnoteType = nullptr;
-	pDocAP->getProperty("document-endnote-type", (const gchar *&)pszEndnoteType);
+	pDocAP->getProperty("document-endnote-type", static_cast<const gchar *&>(pszEndnoteType));
 	m_EndnoteType = FootnoteTypeFromString(pszEndnoteType);
 
 	const gchar * pszTmp = nullptr;
-	pDocAP->getProperty("document-footnote-initial", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-footnote-initial", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		m_iFootnoteVal =  atoi(pszTmp);
@@ -482,7 +482,7 @@ void FL_DocLayout::_lookupProperties(void)
 		m_iFootnoteVal = 1;
 	}
 
-	pDocAP->getProperty("document-footnote-restart-section", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-footnote-restart-section", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -499,7 +499,7 @@ void FL_DocLayout::_lookupProperties(void)
 		m_bRestartFootSection = false;
 	}
 
-	pDocAP->getProperty("document-footnote-restart-page", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-footnote-restart-page", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -516,7 +516,7 @@ void FL_DocLayout::_lookupProperties(void)
 		m_bRestartFootPage = false;
 	}
 
-	pDocAP->getProperty("document-endnote-initial", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-initial", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		m_iEndnoteVal =  atoi(pszTmp);
@@ -526,7 +526,7 @@ void FL_DocLayout::_lookupProperties(void)
 		m_iEndnoteVal = 1;
 	}
 
-	pDocAP->getProperty("document-endnote-restart-section", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-restart-section", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -543,7 +543,7 @@ void FL_DocLayout::_lookupProperties(void)
 		m_bRestartEndSection = false;
 	}
 
-	pDocAP->getProperty("document-endnote-place-endsection", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-place-endsection", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -560,7 +560,7 @@ void FL_DocLayout::_lookupProperties(void)
 		m_bPlaceAtDocEnd = false;
 	}
 
-	pDocAP->getProperty("document-endnote-place-enddoc", (const gchar *&)pszTmp);
+	pDocAP->getProperty("document-endnote-place-enddoc", static_cast<const gchar *&>(pszTmp));
 	if(pszTmp && pszTmp[0])
 	{
 		if(strcmp(pszTmp,"1") == 0)
@@ -660,7 +660,7 @@ void FL_DocLayout::fillLayouts(void)
 	m_pDocListener->setHoldTableLayout(false);
 	m_pDoc->addListener(static_cast<PL_Listener *>(m_pDocListener),&m_lid);
 	m_pDoc->setDontImmediatelyLayout(false);
-	UT_ASSERT(m_lid != (PL_ListenerId)-1);
+	UT_ASSERT(m_lid != static_cast<PL_ListenerId>(-1));
 	GR_Graphics * pG = getGraphics();
 	formatAll(); // Do we keep this or not?
 	m_bFinishedInitialCheck = false;
@@ -997,7 +997,7 @@ bool FL_DocLayout::AnchoredObjectHelper(double x, double y, UT_sint32 iPage, UT_
 	fl_BlockLayout * pPrevBL = pBL;
 	while(pBL && ((pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_ENDNOTE) || (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_FOOTNOTE) || (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_TOC)|| (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_FRAME)))
 	{
-	    UT_DEBUGMSG(("Skipping Block %p \n", (void*)pBL));
+	    UT_DEBUGMSG(("Skipping Block %p \n", static_cast<void*>(pBL)));
 	    pPrevBL = pBL;
 	    pBL = pBL->getPrevBlockInDocument();
 	}
@@ -2743,7 +2743,7 @@ fl_BlockLayout* FL_DocLayout::findBlockAtPositionReverse(PT_DocPosition pos) con
 
 	if (bRes)
 	{
-		fl_Layout * pL = (fl_Layout *)sfh;
+		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		if(!pL)
 			return nullptr;
 
@@ -2779,13 +2779,13 @@ fl_BlockLayout* FL_DocLayout::findBlockAtPositionReverse(PT_DocPosition pos) con
 //
 			if(!pShadow->getHdrFtrSectionLayout()->isPointInHere(pos))
 			{
-				fl_HdrFtrSectionLayout * pHF = (fl_HdrFtrSectionLayout *) pBL->getSectionLayout();
+				fl_HdrFtrSectionLayout * pHF = static_cast<fl_HdrFtrSectionLayout *>( pBL->getSectionLayout());
 				if(pHF->isPointInHere(pos))
 				{
 					pShadow = pHF->getFirstShadow();
 					pView->clearHdrFtrEdit();
 					pView->setHdrFtrEdit(pShadow);
-					pBL = (fl_BlockLayout *) pShadow->findBlockAtPosition(pos);
+					pBL = static_cast<fl_BlockLayout *>( pShadow->findBlockAtPosition(pos));
 					return pBL;
 				}
 				// Ok, we're really confused now, point is nowhere to be found.
@@ -2799,11 +2799,11 @@ fl_BlockLayout* FL_DocLayout::findBlockAtPositionReverse(PT_DocPosition pos) con
 		}
 		else
 		{
-			pShadow = ((fl_HdrFtrSectionLayout *) pBL->getSectionLayout())->getFirstShadow();
+			pShadow = (static_cast<fl_HdrFtrSectionLayout *>( pBL->getSectionLayout()))->getFirstShadow();
 		}
 		fl_BlockLayout * ppBL = nullptr;
 		if(pShadow != nullptr)
-			ppBL = (fl_BlockLayout *) pShadow->findMatchingContainer(pBL);
+			ppBL = static_cast<fl_BlockLayout *>( pShadow->findMatchingContainer(pBL));
 		else
 		{
 			if(!isLayoutFilling())
@@ -2900,7 +2900,7 @@ void FL_DocLayout::formatAll()
 
 void FL_DocLayout::rebuildFromHere( fl_DocSectionLayout * pFirstDSL)
 {
-  UT_DEBUGMSG(("Rebuilding DocLAyout %p doc %p \n", (void*)this, (void*)m_pDoc));
+  UT_DEBUGMSG(("Rebuilding DocLAyout %p doc %p \n", static_cast<void*>(this), static_cast<void*>(m_pDoc)));
 	UT_ASSERT(m_pDoc);
 	if(isLayoutFilling())
 	{
@@ -2921,7 +2921,7 @@ void FL_DocLayout::rebuildFromHere( fl_DocSectionLayout * pFirstDSL)
 	fl_DocSectionLayout * pDSL = pStart;
 	// add page view dimensions
 #if 1
-	UT_DEBUGMSG(("SEVIOR: Rebuild from section %p \n", (void*)pFirstDSL));
+	UT_DEBUGMSG(("SEVIOR: Rebuild from section %p \n", static_cast<void*>(pFirstDSL)));
 	for(UT_sint32 k=0; k< m_vecPages.getItemCount(); k++)
 	{
 		fp_Page * pPage = m_vecPages.getNthItem(k);
@@ -2954,7 +2954,7 @@ void FL_DocLayout::rebuildFromHere( fl_DocSectionLayout * pFirstDSL)
 	pDSL= pStart;
 	while (pDSL)
 	{
-		UT_DEBUGMSG(("SEVIOR: Building section %p \n", (void*)pDSL));
+		UT_DEBUGMSG(("SEVIOR: Building section %p \n", static_cast<void*>(pDSL)));
 		pDSL->updateDocSection();
 		pDSL->clearRebuild();
 		pDSL = pDSL->getNextDocSection();
@@ -4592,7 +4592,7 @@ void FL_DocLayout::considerSmartQuoteCandidateAt(fl_BlockLayout *block, UT_uint3
 	// something other than '?' if '?' ever shows up as UT_isSmartQuotableCharacter()
 	UT_UCS4Char c = '?';
 	if (pgb.getLength() > offset) c = *pgb.getPointer(offset);
-	UT_DEBUGMSG(("FL_DocLayout::considerSmartQuoteCandidateAt(%p, %d)  |%c|\n", (void*)block, offset, c));
+	UT_DEBUGMSG(("FL_DocLayout::considerSmartQuoteCandidateAt(%p, %d)  |%c|\n", static_cast<void*>(block), offset, c));
 
 	//  there are some operations that leave a dangling pending
 	//  smart quote, so just double check before plunging onward

@@ -173,8 +173,8 @@ bool IE_Imp_EPUB::pasteFromBuffer(PD_DocumentRange* pDocRange,
     // Turn pData into something that can be imported by the open documenb
     // importer.
     //
-    GsfInput * pInStream = gsf_input_memory_new((const guint8 *) pData,
-            (gsf_off_t) lenData, FALSE);
+    GsfInput * pInStream = gsf_input_memory_new(static_cast<const guint8 *>( pData),
+            static_cast<gsf_off_t>( lenData), FALSE);
     pEPUBImp->loadFile(newDoc, pInStream);
     g_object_unref(G_OBJECT(pInStream));
 
@@ -282,7 +282,7 @@ UT_Error IE_Imp_EPUB::readMetadata()
         return UT_ERROR;
     }
     /* the returned buffer is owned by the input - copy before unref */
-    std::string metaXml((const char*) metaData, metaSize);
+    std::string metaXml(reinterpret_cast<const char*>( metaData), metaSize);
     g_object_unref(G_OBJECT(meta));
 
     UT_XML metaParser;
@@ -341,7 +341,7 @@ UT_Error IE_Imp_EPUB::readPackage()
     std::string opfXml;
     if (opfData != NULL)
     {
-        opfXml.assign((const char*) opfData, opfSize);
+        opfXml.assign(reinterpret_cast<const char*>( opfData), opfSize);
     }
     g_object_unref(G_OBJECT(opf));
 

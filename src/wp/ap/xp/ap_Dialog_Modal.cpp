@@ -66,7 +66,7 @@ FV_View*
 AP_Dialog_Modal::getView() const
 {
     XAP_Frame * pFrame = m_pApp->getLastFocussedFrame();
-	if(pFrame == (XAP_Frame *) nullptr)
+	if(pFrame == static_cast<XAP_Frame *>( nullptr))
 	{
 		pFrame = m_pApp->getFrame(0);
 	}
@@ -74,7 +74,7 @@ AP_Dialog_Modal::getView() const
     if( !pFrame )
         return nullptr;
 
-    FV_View* pView = (FV_View *)pFrame->getCurrentView();
+    FV_View* pView = static_cast<FV_View *>(pFrame->getCurrentView());
     return pView;
 }
 

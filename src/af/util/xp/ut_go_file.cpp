@@ -146,13 +146,13 @@ gsf_output_proxy_new (GsfOutput * sink)
 	g_return_val_if_fail (sink != nullptr, nullptr);
 	g_return_val_if_fail (GSF_IS_OUTPUT (sink), nullptr);
 
-	return (GsfOutput *)g_object_new (GSF_OUTPUT_PROXY_TYPE, "sink", sink, (void *)nullptr);
+	return static_cast<GsfOutput *>(g_object_new (GSF_OUTPUT_PROXY_TYPE, "sink", sink, static_cast<void *>(nullptr)));
 }
 
 static gboolean
 gsf_output_proxy_close (GsfOutput *object)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 
 	if(gsf_output_close (proxy->memory_output))
 		{
@@ -172,7 +172,7 @@ gsf_output_proxy_close (GsfOutput *object)
 static void
 gsf_output_proxy_finalize (GObject *object)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 	
 	g_object_unref (proxy->memory_output);
 	g_object_unref (proxy->sink);
@@ -185,7 +185,7 @@ gsf_output_proxy_seek (GsfOutput *object,
 		       gsf_off_t offset,
 		       GSeekType whence)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 
 	return gsf_output_seek (proxy->memory_output, offset, whence);
 }
@@ -196,7 +196,7 @@ gsf_output_proxy_write (GsfOutput *object,
 			size_t num_bytes,
 			guint8 const *buffer)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 	
 	return gsf_output_write (proxy->memory_output, num_bytes, buffer);
 }
@@ -207,7 +207,7 @@ static gsf_off_t gsf_output_proxy_vprintf (GsfOutput *object,
 static gsf_off_t
 gsf_output_proxy_vprintf (GsfOutput *object, char const *format, va_list args)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 
 	return gsf_output_vprintf (proxy->memory_output, format, args);
 }
@@ -218,7 +218,7 @@ gsf_output_proxy_get_property (GObject     *object,
 			       GValue      *value,
 			       GParamSpec  *pspec)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 
 	switch (property_id) {
 	case PROP_SINK:
@@ -246,11 +246,11 @@ gsf_output_proxy_set_property (GObject      *object,
 			       GValue const *value,
 			       GParamSpec   *pspec)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 
 	switch (property_id) {
 	case PROP_SINK:
-		gsf_output_proxy_set_sink (proxy, (GsfOutput *)g_value_get_object (value));
+		gsf_output_proxy_set_sink (proxy, static_cast<GsfOutput *>(g_value_get_object (value)));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -261,7 +261,7 @@ gsf_output_proxy_set_property (GObject      *object,
 static void
 gsf_output_proxy_init (GObject *object, gpointer)
 {
-	GsfOutputProxy *proxy = (GsfOutputProxy *)object;
+	GsfOutputProxy *proxy = reinterpret_cast<GsfOutputProxy *>(object);
 
 	proxy->memory_output = gsf_output_memory_new ();
 	proxy->sink = nullptr;
@@ -286,9 +286,9 @@ gsf_output_proxy_class_init (GObjectClass *gobject_class, gpointer)
 		 g_param_spec_object ("sink", "Sink",
 				      "Where the converted data is written.",
 				      GSF_OUTPUT_TYPE,
-				      (GParamFlags)(GSF_PARAM_STATIC |
+				      static_cast<GParamFlags>((GSF_PARAM_STATIC |
 						    G_PARAM_READWRITE |
-						    G_PARAM_CONSTRUCT_ONLY)));
+						    G_PARAM_CONSTRUCT_ONLY))));
 
 	parent_class = GSF_OUTPUT_CLASS (g_type_class_peek_parent (gobject_class));
 }
@@ -656,7 +656,7 @@ make_full_uri_from_relative (const char *base_uri, const char *uri)
 	 * (such as help:)
 	 */
 
-	mutable_base_uri = (char *)g_malloc(strlen(base_uri)+2);
+	mutable_base_uri = static_cast<char *>(g_malloc(strlen(base_uri)+2));
 	strcpy (mutable_base_uri, base_uri);
 		
 	uri_current = mutable_uri = g_strdup (uri);
@@ -1008,7 +1008,7 @@ is_fd_uri (const char *uri, int *fd)
 		return FALSE;
 
 	if (fd != nullptr)
-		*fd = (int)ul;
+		*fd = static_cast<int>(ul);
 	return TRUE;
 }
 
@@ -1415,7 +1415,7 @@ fallback_open_uri(const gchar* url, GError** err)
 				if (nullptr != (tmp = strstr (argv[i], "%1"))) {
 					*tmp = '\0';
 					tmp = g_strconcat (argv[i],
-						(clean_url != nullptr) ? (char const *)clean_url : url,
+						(clean_url != nullptr) ? static_cast<char const *>(clean_url ): url,
 						tmp+2, nullptr);
 					g_free (argv[i]);
 					argv[i] = tmp;

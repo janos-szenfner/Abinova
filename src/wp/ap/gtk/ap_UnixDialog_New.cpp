@@ -150,22 +150,22 @@ void AP_UnixDialog_New::event_ToggleOpenExisting ()
 	XAP_Dialog_Id id = XAP_DIALOG_ID_FILE_OPEN;
 
 	XAP_DialogFactory * pDialogFactory
-		= (XAP_DialogFactory *) m_pFrame->getDialogFactory();
+		= static_cast<XAP_DialogFactory *>( m_pFrame->getDialogFactory());
 
 	XAP_Dialog_FileOpenSaveAs * pDialog
-		= (XAP_Dialog_FileOpenSaveAs *)(pDialogFactory->requestDialog(id));
+		= static_cast<XAP_Dialog_FileOpenSaveAs *>((pDialogFactory->requestDialog(id)));
 	UT_ASSERT(pDialog);
 
 	pDialog->setCurrentPathname("");
 	pDialog->setSuggestFilename(false);
 
 	UT_uint32 filterCount = IE_Imp::getImporterCount();
-	const char ** szDescList = (const char **) UT_calloc(filterCount + 1,
-													  sizeof(char *));
-	const char ** szSuffixList = (const char **) UT_calloc(filterCount + 1,
-														sizeof(char *));
-	IEFileType * nTypeList = (IEFileType *) UT_calloc(filterCount + 1,
-												   sizeof(IEFileType));
+	const char ** szDescList = static_cast<const char **>( UT_calloc(filterCount + 1,
+													  sizeof(char *)));
+	const char ** szSuffixList = static_cast<const char **>( UT_calloc(filterCount + 1,
+														sizeof(char *)));
+	IEFileType * nTypeList = static_cast<IEFileType *>( UT_calloc(filterCount + 1,
+												   sizeof(IEFileType)));
 	UT_uint32 k = 0;
 
 	while (IE_Imp::enumerateDlgLabels(k, &szDescList[k], 
@@ -173,7 +173,7 @@ void AP_UnixDialog_New::event_ToggleOpenExisting ()
 			k++;
 
 	pDialog->setFileTypeList(szDescList, szSuffixList, 
-							 (const UT_sint32 *) nTypeList);
+							 static_cast<const UT_sint32 *>( nTypeList));
 
 	pDialog->setDefaultFileType(IE_Imp::fileTypeForSuffix(".abwn"));
 
@@ -321,7 +321,7 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 							 renderer,
 							 "text", 
 							 0,
-							 (gchar*)nullptr);
+							 static_cast<gchar*>(nullptr));
 	gtk_tree_view_append_column( GTK_TREE_VIEW(m_choicesList), column);
 
 	std::string templateList[2];
@@ -397,17 +397,17 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 	g_signal_connect (G_OBJECT(m_buttonFilename), 
 					  "clicked",
 					  G_CALLBACK(s_choose_clicked), 
-					  (gpointer)this);
+					  static_cast<gpointer>(this));
 
 	g_signal_connect (G_OBJECT(m_radioNew),
 					"toggled",
 					G_CALLBACK(s_radiobutton_clicked),
-					(gpointer)this);
+					static_cast<gpointer>(this));
 
 	g_signal_connect (G_OBJECT(m_radioExisting),
 					"toggled",
 					G_CALLBACK(s_radiobutton_clicked),
-					(gpointer)this);
+					static_cast<gpointer>(this));
 
 	g_object_unref(G_OBJECT(builder));
 

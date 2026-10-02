@@ -372,7 +372,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			const gchar * font = attrMatches(NS_W_KEY, "font", rqst->ppAtts);
 			const gchar * chAttr = attrMatches(NS_W_KEY, "char", rqst->ppAtts);
 			if (chAttr && *chAttr) {
-				UT_UCS4Char ucs = (UT_UCS4Char)strtoul(chAttr, nullptr, 16);
+				UT_UCS4Char ucs = static_cast<UT_UCS4Char>(strtoul(chAttr, nullptr, 16));
 				if (ucs >= 0xF020 && ucs <= 0xF0FE)
 					ucs -= 0xF000; //strip PUA marker used by some writers
 				if (font && !strcmp(font, "Symbol"))

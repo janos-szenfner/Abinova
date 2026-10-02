@@ -579,5 +579,5 @@ void  AP_UnixDialog_Stylist::_connectSignals(void)
 	g_signal_connect(G_OBJECT(m_windowMain),
 			   "close-request",
 			   G_CALLBACK(s_destroy_clicked),
-			   (gpointer) this);
+			   static_cast<gpointer>( this));
 }

@@ -832,7 +832,7 @@ UT_Error PD_Document::_importFile(GsfInput * input, int ieft,
 
 		if(pAP->getAttribute("xid-max", pA))
 		{
-			UT_uint32 i = (UT_uint32)atoi(pA);
+			UT_uint32 i = static_cast<UT_uint32>(atoi(pA));
 			m_pPieceTable->setXIDThreshold(i);
 		}
 	}
@@ -1657,7 +1657,7 @@ bool PD_Document::repairDoc(void)
 	for(i=0; i< m_vecSuspectFrags.getItemCount(); i++)
 	{
 		pf = m_vecSuspectFrags.getNthItem(i);
-		UT_DEBUGMSG(("Suspect frag %d pointer %p \n", i, (void*)pf));
+		UT_DEBUGMSG(("Suspect frag %d pointer %p \n", i, static_cast<void*>(pf)));
 		if(pf->getType() == pf_Frag::PFT_Strux)
 		{
 			pfs = static_cast<pf_Frag_Strux *>(pf);
@@ -2040,7 +2040,7 @@ bool PD_Document::_pruneSectionAPI(pf_Frag_Strux * pfs,const char * szHType, UT_
  */
 bool PD_Document::_removeHdrFtr(pf_Frag_Strux * pfs)
 {
-	UT_DEBUGMSG(("Removing HdrFtr %p \n", (void*)pfs));
+	UT_DEBUGMSG(("Removing HdrFtr %p \n", static_cast<void*>(pfs)));
 	pf_Frag * pf = nullptr;
 	pf_Frag * pfNext = nullptr;
 	pfNext = pfs->getNext();
@@ -3428,15 +3428,15 @@ void  PD_Document::miniDump(const pf_Frag_Strux* sdh, UT_sint32 nstruxes) const
 			szStrux = "Other Strux";
 		if(i< nstruxes)
 		{
-			UT_DEBUGMSG(("MiniDump Before Frag %p Type %s \n", (void*)pfs, szStrux));
+			UT_DEBUGMSG(("MiniDump Before Frag %p Type %s \n", static_cast<void*>(pfs), szStrux));
 		}
 		else if(i > nstruxes)
 		{
-			UT_DEBUGMSG(("MiniDump After Frag %p Type %s \n", (void*)pfs, szStrux));
+			UT_DEBUGMSG(("MiniDump After Frag %p Type %s \n", static_cast<void*>(pfs), szStrux));
 		}
 		if(pfs == static_cast<const pf_Frag_Strux *>(sdh))
 		{
-			UT_DEBUGMSG(("MiniDump Actual Frag %p Type %s \n", (void*)pfs, szStrux));
+			UT_DEBUGMSG(("MiniDump Actual Frag %p Type %s \n", static_cast<void*>(pfs), szStrux));
 		}
 		const char * szLeft=nullptr;
 		const char * szRight=nullptr;
@@ -3453,7 +3453,7 @@ void  PD_Document::miniDump(const pf_Frag_Strux* sdh, UT_sint32 nstruxes) const
 		pf = pf->getNext();
 		while(pf && pf->getType() != pf_Frag::PFT_Strux)
 		{
-			UT_DEBUGMSG(("MiniDump: Other Frag %p of Type %d \n", (void*)pf, pf->getType()));
+			UT_DEBUGMSG(("MiniDump: Other Frag %p of Type %d \n", static_cast<void*>(pf), pf->getType()));
 			pf = pf->getNext();
 		}
 		if(pf)
@@ -4116,7 +4116,7 @@ std::list<AV_View*> PD_Document::getAllViews() const
     getAllViews( &t );
     std::list<AV_View*> ret;
     for( int i=0; i < t.size(); ++i )
-        ret.push_back( (AV_View*)t[i] );
+        ret.push_back( static_cast<AV_View*>(t[i] ));
     return ret;
 }
 
@@ -4342,7 +4342,7 @@ static void s_BindHandles(pf_Frag_Strux* sdhNew,
 	UT_return_if_fail (sfhNew);
 
 	pf_Frag_Strux * pfsNew = sdhNew;
-	UT_DEBUGMSG(("Set Format handle number %d of strux %p to format %p \n",lid, (void*)pfsNew, (void*)sfhNew));
+	UT_DEBUGMSG(("Set Format handle number %d of strux %p to format %p \n",lid, static_cast<void*>(pfsNew), static_cast<void*>(sfhNew)));
 	pfsNew->setFmtHandle(lid,sfhNew);
 }
 
@@ -4731,8 +4731,8 @@ bool PD_Document::getSpanAttrProp(const pf_Frag_Strux* sdh, UT_uint32 offset, bo
  */
 PTStruxType PD_Document::getStruxType(const pf_Frag_Strux* pfs) const
 {
-	UT_return_val_if_fail(pfs, (PTStruxType)0 );
-	UT_return_val_if_fail(pfs->getType() == pf_Frag::PFT_Strux, (PTStruxType)0);
+	UT_return_val_if_fail(pfs, static_cast<PTStruxType>(0 ));
+	UT_return_val_if_fail(pfs->getType() == pf_Frag::PFT_Strux, static_cast<PTStruxType>(0));
 	return pfs->getStruxType();
 }
 
@@ -4746,7 +4746,7 @@ bool PD_Document::hasMath(void) const
 	{
 		if(pf->getType() == pf_Frag::PFT_Object)
 		{
-			pf_Frag_Object * po = (pf_Frag_Object*) pf;
+			pf_Frag_Object * po = static_cast<pf_Frag_Object*>( pf);
 			if(po->getObjectType() == PTO_Math)
 			{
 				return true;
@@ -5149,13 +5149,13 @@ bool PD_Document::getDataItemDataByName(const char * szName,
 	}
 
 	_dataItemPair* pPair = iter->second;
-	UT_DEBUGMSG(("Found data item name %s buf %p\n", szName, (void*)pPair->pBuf.get()));
+	UT_DEBUGMSG(("Found data item name %s buf %p\n", szName, static_cast<void*>(pPair->pBuf.get())));
 
 	pByteBuf = pPair->pBuf;
 
 	if (pMimeType)
 	{
-		*pMimeType = (const char *)pPair->pToken;
+		*pMimeType = static_cast<const char *>(pPair->pToken);
 	}
 
 	if (ppHandle)
@@ -5282,7 +5282,7 @@ bool PD_Document::enumDataItems(UT_uint32 k,
 
 	if (pMimeType)
 	{
-		*pMimeType = (const char *)pPair->pToken;
+		*pMimeType = static_cast<const char *>(pPair->pToken);
 	}
 
 	if (pszName)
@@ -5757,7 +5757,7 @@ bool   PD_Document::updateDocForStyleChange(const gchar * szStyle,
 //
 				if(pszStyleName != nullptr && strcmp(pszStyleName,szStyle)==0)
 				{
-					UT_uint32 blockoffset = (UT_uint32) (pos - posLastStrux -1);
+					UT_uint32 blockoffset = static_cast<UT_uint32>( (pos - posLastStrux -1));
 					PX_ChangeRecord_SpanChange * pcr = new PX_ChangeRecord_SpanChange(PX_ChangeRecord::PXT_ChangeSpan,
 																					  pos,indexAP,indexAP,
 																					  m_pPieceTable->getVarSet().getBufIndex(pft->getBufIndex(),0) ,
@@ -6538,10 +6538,10 @@ bool PD_Document::_exportInitVisDirection(PT_DocPosition pos)
 
 	for(UT_uint32 i = 0; i < count; i++)
 	{
-		PL_Listener * pL = (PL_Listener *) m_vecListeners.getNthItem(i);
+		PL_Listener * pL = static_cast<PL_Listener *>( m_vecListeners.getNthItem(i));
 		if(pL && pL->getType() == PTL_DocLayout)
 		{
-			pDocListener = (fl_DocListener*) pL;
+			pDocListener = static_cast<fl_DocListener*>( pL);
 			break;
 		}
 	}
@@ -6591,7 +6591,7 @@ bool PD_Document::_exportFindVisDirectionRunAtPos(PT_DocPosition pos)
 			if(iOffset2 < 0)
 				break;
 			
-			pRunResult = pBL->findRunAtOffset((UT_uint32)iOffset2);
+			pRunResult = pBL->findRunAtOffset(static_cast<UT_uint32>(iOffset2));
 
 			if(pRunResult)
 				break;
@@ -6834,7 +6834,7 @@ pf_Frag * PD_Document::findFragOfType(pf_Frag::PFType type, UT_sint32 iSubtype, 
 				case pf_Frag::PFT_Object:
 					{
 						const pf_Frag_Object * pfo = static_cast<const pf_Frag_Object*>(pf);
-						if((UT_sint32)pfo->getObjectType() != iSubtype)
+						if(static_cast<UT_sint32>(pfo->getObjectType() )!= iSubtype)
 							bBreak = false;
 					}
 					break;
@@ -6842,7 +6842,7 @@ pf_Frag * PD_Document::findFragOfType(pf_Frag::PFType type, UT_sint32 iSubtype, 
 				case pf_Frag::PFT_Strux:
 					{
 						const pf_Frag_Strux * pfs = static_cast<const pf_Frag_Strux*>(pf);
-						if((UT_sint32)pfs->getStruxType() != iSubtype)
+						if(static_cast<UT_sint32>(pfs->getStruxType() )!= iSubtype)
 							bBreak = false;
 					}
 					break;
@@ -6893,7 +6893,7 @@ bool PD_Document::areDocumentStylesheetsEqual(const AD_Document &D) const
 	if(D.getType() != ADDOCUMENT_ABIWORD)
 		return false;
 
-	PD_Document &d = (PD_Document &)D;
+	PD_Document &d = const_cast<PD_Document &>(reinterpret_cast<const PD_Document &>(D));
 	UT_return_val_if_fail(m_pPieceTable || d.m_pPieceTable, false);
 
 	const std::map<std::string,PD_Style*> & hS1 = m_pPieceTable->getAllStyles();
@@ -6988,7 +6988,7 @@ bool PD_Document::_acceptRejectRevision(bool bReject, UT_uint32 iStart, UT_uint3
 	   (   (bReject &&  (iRevType == PP_REVISION_ADDITION_AND_FMT || iRevType == PP_REVISION_ADDITION))
 		|| (!bReject && (iRevType == PP_REVISION_DELETION))))
 	{
-		pf_Frag_Strux * pfs = (pf_Frag_Strux*)pf;
+		pf_Frag_Strux * pfs = static_cast<pf_Frag_Strux*>(pf);
 		PTStruxType pst = PTX_Block;
 		
 		switch(pfs->getStruxType())
@@ -7021,7 +7021,7 @@ bool PD_Document::_acceptRejectRevision(bool bReject, UT_uint32 iStart, UT_uint3
 				iEndDelete += pf2->getLength();
 				if(pf2->getType() == pf_Frag::PFT_Strux)
 				{
-					pf_Frag_Strux * pfs2 = (pf_Frag_Strux*)pf2;
+					pf_Frag_Strux * pfs2 = static_cast<pf_Frag_Strux*>(pf2);
 					if(pfs2->getStruxType() == pst)
 						break;
 				}
@@ -7982,7 +7982,7 @@ bool PD_Document::areDocumentContentsEqual(const AD_Document &D, UT_uint32 &pos)
 	if(D.getType() != ADDOCUMENT_ABIWORD)
 		return false;
 	
-	PD_Document &d = (PD_Document &)D;
+	PD_Document &d = const_cast<PD_Document &>(reinterpret_cast<const PD_Document &>(D));
 	UT_return_val_if_fail(m_pPieceTable || d.m_pPieceTable, false);
 		
 	// test the docs for length
@@ -8126,7 +8126,7 @@ bool PD_Document::areDocumentFormatsEqual(const AD_Document &D, UT_uint32 &pos) 
 	if(D.getType() != ADDOCUMENT_ABIWORD)
 		return false;
 	
-	PD_Document &d = (PD_Document &)D;
+	PD_Document &d = const_cast<PD_Document &>(reinterpret_cast<const PD_Document &>(D));
 	UT_return_val_if_fail(m_pPieceTable || d.m_pPieceTable, false);
 		
 	//  scroll through the documents comparing fmt
@@ -8386,7 +8386,7 @@ UT_uint32 PD_Document::getFragXIDforVersion(const pf_Frag * pf, UT_uint32 iVersi
 	if(!v)
 	{
 		// if there is no version record for this version, find the nearest lower version
-		for(UT_sint32 i = (UT_sint32)iVersion - 1; i > 0; --i)
+		for(UT_sint32 i = static_cast<UT_sint32>(iVersion )- 1; i > 0; --i)
 		{
 			v = findHistoryRecord(i);
 			if(v)
@@ -8488,7 +8488,7 @@ PD_XMLIDCreator::rebuildCache()
         }
     }
 
-	UT_DEBUGMSG(("PD_XMLIDCreator::rebuildCache() cache.sz:%lu \n", (long unsigned)m_cache.size() ));
+	UT_DEBUGMSG(("PD_XMLIDCreator::rebuildCache() cache.sz:%lu \n", static_cast<long unsigned>(m_cache.size() )));
     
 }
 

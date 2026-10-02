@@ -71,7 +71,7 @@ public:
 	virtual bool		signal(UT_uint32 iSignal) override;
 	virtual PLListenerType getType() const override {return PTL_DocLayout;}
 
-	const FL_DocLayout* getLayout() const {return (const FL_DocLayout*) m_pLayout;}
+	const FL_DocLayout* getLayout() const {return static_cast<const FL_DocLayout*>( m_pLayout);}
 
 private:
 	fl_ContainerLayout *   popContainerLayout(void);

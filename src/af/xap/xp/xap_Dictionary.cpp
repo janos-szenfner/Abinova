@@ -253,7 +253,7 @@ void XAP_Dictionary::_outputUTF8(const UT_UCS4Char * data, UT_uint32 length)
 		}
 		else
 		{
-			buf += (char)*pData++;
+			buf += static_cast<char>(*pData++);
 		}
 	}
 

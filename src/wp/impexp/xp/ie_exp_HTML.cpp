@@ -164,7 +164,7 @@ UT_Error IE_Exp_HTML::copyToBuffer(PD_DocumentRange * pDocRange,UT_ByteBuf *  bu
 
         if( !xmlids.empty() )
         {
-            UT_DEBUGMSG(("HTML export creating restricted RDF model xmlids.sz:%ld \n",(long)xmlids.size()));
+            UT_DEBUGMSG(("HTML export creating restricted RDF model xmlids.sz:%ld \n",static_cast<long>(xmlids.size())));
             PD_RDFModelHandle subm = inrdf->createRestrictedModelForXMLIDs( xmlids );
             PD_DocumentRDFMutationHandle m = outrdf->createMutation();
             m->add( subm );
@@ -454,10 +454,10 @@ UT_Error IE_Exp_HTML::_writeDocument()
     {
         UT_sint32 iLen = atoi(prop.c_str());
         if (iLen != 0)
-            m_exp_opt.iCompact = (UT_uint32) iLen;
+            m_exp_opt.iCompact = static_cast<UT_uint32>( iLen);
         else
         {
-            m_exp_opt.iCompact = (UT_uint32) UT_parseBool(prop.c_str(), (bool)m_exp_opt.iCompact);
+            m_exp_opt.iCompact = static_cast<UT_uint32>( UT_parseBool(prop.c_str(), static_cast<bool>(m_exp_opt.iCompact)));
             if (m_exp_opt.iCompact)
                 m_exp_opt.iCompact = MAX_LINE_LEN;
         }

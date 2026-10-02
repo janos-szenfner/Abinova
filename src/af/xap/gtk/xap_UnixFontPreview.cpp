@@ -46,7 +46,7 @@ XAP_UnixFontPreview::XAP_UnixFontPreview(XAP_Frame * pFrame, GtkWidget * attachT
 
 	XAP_App *pApp = XAP_App::getApp();
 	GR_UnixCairoAllocInfo ai(GTK_WIDGET(m_pDrawingArea));
-	m_gc = (GR_CairoGraphics*) pApp->newGraphics(ai);
+	m_gc = static_cast<GR_CairoGraphics*>( pApp->newGraphics(ai));
 
 	_createFontPreviewFromGC(m_gc, m_width, m_height);
 }

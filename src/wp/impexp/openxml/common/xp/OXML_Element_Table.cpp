@@ -378,14 +378,14 @@ void OXML_Element_Table::addRow(OXML_Element_Row* row)
 
 std::string OXML_Element_Table::getColumnWidth(int colIndex) const
 {
-	if((colIndex < 0) || (colIndex >= (int)columnWidth.size()))
+	if((colIndex < 0) || (colIndex >= static_cast<int>(columnWidth.size())))
 		return "0in"; 
 	return columnWidth.at(colIndex);
 }
 
 std::string OXML_Element_Table::getRowHeight(int rowIndex) const
 {
-	if((rowIndex < 0) || (rowIndex >= (int)rowHeight.size()))
+	if((rowIndex < 0) || (rowIndex >= static_cast<int>(rowHeight.size())))
 		return "0in"; 
 	return rowHeight.at(rowIndex);
 }

@@ -19,28 +19,28 @@
         l1 = l2 = 0;                                 \
         switch (n) {                                 \
         case 8:                                      \
-            l2 = ((unsigned long)(*(--(c))));        \
+            l2 = (static_cast<unsigned long>((*(--(c)))));        \
         /* fall through */                           \
         case 7:                                      \
-            l2 |= ((unsigned long)(*(--(c)))) << 8;  \
+            l2 |= (static_cast<unsigned long>((*(--(c))))) << 8;  \
         /* fall through */                           \
         case 6:                                      \
-            l2 |= ((unsigned long)(*(--(c)))) << 16; \
+            l2 |= (static_cast<unsigned long>((*(--(c))))) << 16; \
         /* fall through */                           \
         case 5:                                      \
-            l2 |= ((unsigned long)(*(--(c)))) << 24; \
+            l2 |= (static_cast<unsigned long>((*(--(c))))) << 24; \
         /* fall through */                           \
         case 4:                                      \
-            l1 = ((unsigned long)(*(--(c))));        \
+            l1 = (static_cast<unsigned long>((*(--(c)))));        \
         /* fall through */                           \
         case 3:                                      \
-            l1 |= ((unsigned long)(*(--(c)))) << 8;  \
+            l1 |= (static_cast<unsigned long>((*(--(c))))) << 8;  \
         /* fall through */                           \
         case 2:                                      \
-            l1 |= ((unsigned long)(*(--(c)))) << 16; \
+            l1 |= (static_cast<unsigned long>((*(--(c))))) << 16; \
         /* fall through */                           \
         case 1:                                      \
-            l1 |= ((unsigned long)(*(--(c)))) << 24; \
+            l1 |= (static_cast<unsigned long>((*(--(c))))) << 24; \
         }                                            \
     }
 
@@ -50,42 +50,42 @@
         c += n;                                              \
         switch (n) {                                         \
         case 8:                                              \
-            *(--(c)) = (unsigned char)(((l2)) & 0xff);       \
+            *(--(c)) = static_cast<unsigned char>((((l2)) & 0xff));       \
         /* fall through */                                   \
         case 7:                                              \
-            *(--(c)) = (unsigned char)(((l2) >> 8) & 0xff);  \
+            *(--(c)) = static_cast<unsigned char>((((l2) >> 8) & 0xff));  \
         /* fall through */                                   \
         case 6:                                              \
-            *(--(c)) = (unsigned char)(((l2) >> 16) & 0xff); \
+            *(--(c)) = static_cast<unsigned char>((((l2) >> 16) & 0xff)); \
         /* fall through */                                   \
         case 5:                                              \
-            *(--(c)) = (unsigned char)(((l2) >> 24) & 0xff); \
+            *(--(c)) = static_cast<unsigned char>((((l2) >> 24) & 0xff)); \
         /* fall through */                                   \
         case 4:                                              \
-            *(--(c)) = (unsigned char)(((l1)) & 0xff);       \
+            *(--(c)) = static_cast<unsigned char>((((l1)) & 0xff));       \
         /* fall through */                                   \
         case 3:                                              \
-            *(--(c)) = (unsigned char)(((l1) >> 8) & 0xff);  \
+            *(--(c)) = static_cast<unsigned char>((((l1) >> 8) & 0xff));  \
         /* fall through */                                   \
         case 2:                                              \
-            *(--(c)) = (unsigned char)(((l1) >> 16) & 0xff); \
+            *(--(c)) = static_cast<unsigned char>((((l1) >> 16) & 0xff)); \
         /* fall through */                                   \
         case 1:                                              \
-            *(--(c)) = (unsigned char)(((l1) >> 24) & 0xff); \
+            *(--(c)) = static_cast<unsigned char>((((l1) >> 24) & 0xff)); \
         }                                                    \
     }
 
 #undef n2l
-#define n2l(c, l) (l = ((unsigned long)(*((c)++))) << 24L, \
-    l |= ((unsigned long)(*((c)++))) << 16L,               \
-    l |= ((unsigned long)(*((c)++))) << 8L,                \
-    l |= ((unsigned long)(*((c)++))))
+#define n2l(c, l) (l = (static_cast<unsigned long>((*((c)++)))) << 24L, \
+    l |= (static_cast<unsigned long>((*((c)++)))) << 16L,               \
+    l |= (static_cast<unsigned long>((*((c)++)))) << 8L,                \
+    l |= (static_cast<unsigned long>((*((c)++)))))
 
 #undef l2n
-#define l2n(l, c) (*((c)++) = (unsigned char)(((l) >> 24L) & 0xff), \
-    *((c)++) = (unsigned char)(((l) >> 16L) & 0xff),                \
-    *((c)++) = (unsigned char)(((l) >> 8L) & 0xff),                 \
-    *((c)++) = (unsigned char)(((l)) & 0xff))
+#define l2n(l, c) (*((c)++) = static_cast<unsigned char>((((l) >> 24L) & 0xff)), \
+    *((c)++) = static_cast<unsigned char>((((l) >> 16L) & 0xff)),                \
+    *((c)++) = static_cast<unsigned char>((((l) >> 8L) & 0xff)),                 \
+    *((c)++) = static_cast<unsigned char>((((l)) & 0xff)))
 
 /*
  * This is actually a big endian algorithm, the most significant byte is used

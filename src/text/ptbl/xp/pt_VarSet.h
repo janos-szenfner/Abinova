@@ -37,7 +37,7 @@ public:
 	void					setPieceTableState(PTState pts);
 	bool					appendBuf(const UT_UCS4Char * pBuf, UT_uint32 length, PT_BufIndex * pbi);
 	bool					storeAP(const PP_PropertyVector & vecAttributes, PT_AttrPropIndex * papi);
-	inline const UT_UCS4Char *getPointer(PT_BufIndex bi) const {  return (UT_UCS4Char *)m_buffer[_varsetFromBufIndex(bi)].getPointer(_subscriptFromBufIndex(bi)); }
+	inline const UT_UCS4Char *getPointer(PT_BufIndex bi) const {  return reinterpret_cast<UT_UCS4Char *>(m_buffer[_varsetFromBufIndex(bi)].getPointer(_subscriptFromBufIndex(bi))); }
 	inline PT_BufIndex		getBufIndex(PT_BufIndex bi, UT_uint32 offset) const
 	{     return _makeBufIndex(_varsetFromBufIndex(bi),
 	                           _subscriptFromBufIndex(bi)+offset);

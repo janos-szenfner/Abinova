@@ -274,7 +274,7 @@ void XAP_Dialog_Image::setWidthAndHeight(double wh, bool iswidth)
 */
 void XAP_Dialog_Image::setWidth(UT_sint32 iWidth)
 {
-	setWidth( ((double) iWidth)/72.0, false );
+	setWidth( (static_cast<double>( iWidth))/72.0, false );
 }	
 
 void XAP_Dialog_Image::setWrapping(WRAPPING_TYPE iWrap)
@@ -294,7 +294,7 @@ void XAP_Dialog_Image::setPositionTo(POSITION_TO iPos)
 */
 void XAP_Dialog_Image::setHeight(UT_sint32 iHeight)
 {
-	setHeight( ((double) iHeight)/72.0, false );
+	setHeight( (static_cast<double>( iHeight))/72.0, false );
 }	
 
 /*!
@@ -305,7 +305,7 @@ void XAP_Dialog_Image::setHeight(UT_sint32 iHeight)
 void XAP_Dialog_Image::_convertToPreferredUnits(const char *sz, UT_String & pRet)
 {
 	UT_Dimension PreferedUnits = getPreferedUnits();
-	pRet = (const gchar *) UT_reformatDimensionString(PreferedUnits,sz);
+	pRet = static_cast<const gchar *>( UT_reformatDimensionString(PreferedUnits,sz));
 }
 
 /*!

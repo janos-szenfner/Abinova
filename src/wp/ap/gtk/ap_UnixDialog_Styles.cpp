@@ -290,7 +290,7 @@ void AP_UnixDialog_Styles::runModal(XAP_Frame * pFrame)
 	{
 		GR_UnixCairoAllocInfo ai(m_wParaPreviewArea);
 		m_pParaPreviewWidget =
-		    (GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+		    static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 	}
 
 	// let the widget materialize
@@ -309,7 +309,7 @@ void AP_UnixDialog_Styles::runModal(XAP_Frame * pFrame)
 	{
 		GR_UnixCairoAllocInfo ai(m_wCharPreviewArea);
 		m_pCharPreviewWidget =
-		    (GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+		    static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 	}
 
 	// let the widget materialize
@@ -466,7 +466,7 @@ void AP_UnixDialog_Styles::event_SelectionChanged(GtkTreeSelection * selection)
 	}
 	m_selectedStyle = item ? gtk_tree_path_copy(item) : nullptr;
 
-	g_list_free_full (list, (GDestroyNotify) gtk_tree_path_free);
+	g_list_free_full (list, reinterpret_cast<GDestroyNotify>( gtk_tree_path_free));
 
 	// refresh the previews
 	_populatePreviews(false);
@@ -565,17 +565,17 @@ void AP_UnixDialog_Styles::_connectSignals(void) const
 	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList1)),
 			  "toggled",
 			  G_CALLBACK(s_typeslist_changed),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 
 	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList2)),
 			  "toggled",
 			  G_CALLBACK(s_typeslist_changed),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 
 	g_signal_connect (G_OBJECT(GTK_CHECK_BUTTON(m_rbList3)),
 			  "toggled",
 			  G_CALLBACK(s_typeslist_changed),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 	
 	/*
 	g_signal_connect (G_OBJECT(GTK_COMBO(m_cbList)->entry), 
@@ -588,28 +588,28 @@ void AP_UnixDialog_Styles::_connectSignals(void) const
 	g_signal_connect (G_OBJECT(m_btNew),
 			  "clicked",
 			  G_CALLBACK(s_newbtn_clicked),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 	
 	g_signal_connect (G_OBJECT(m_btModify),
 			  "clicked",
 			  G_CALLBACK(s_modifybtn_clicked),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 	
 	g_signal_connect (G_OBJECT(m_btDelete),
 			  "clicked",
 			  G_CALLBACK(s_deletebtn_clicked),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 	
 	// dialog buttons
 	g_signal_connect (G_OBJECT(m_btApply),
 			  "clicked",
 			  G_CALLBACK(s_applybtn_clicked),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 
 	g_signal_connect (G_OBJECT(m_btClose),
 			  "clicked",
 			  G_CALLBACK(s_closebtn_clicked),
-			  (void*)reinterpret_cast<gconstpointer>(this));
+			  const_cast<void*>(reinterpret_cast<gconstpointer>(this)));
 }
 
 void AP_UnixDialog_Styles::_populateCList(void)
@@ -690,7 +690,7 @@ void AP_UnixDialog_Styles::_populateCList(void)
 	}
 	
 	// selection "changed" doesn't fire here, so hack manually
-	s_tvStyles_selection_changed (selection, (gpointer)(this));
+	s_tvStyles_selection_changed (selection, static_cast<gpointer>((this)));
 }
 
 void AP_UnixDialog_Styles::_populateWindowData(void)
@@ -1280,7 +1280,7 @@ void  AP_UnixDialog_Styles::modifyRunModal(void)
 	DELETEP (m_pAbiPreviewWidget);
 	GR_UnixCairoAllocInfo ai(m_wModifyDrawingArea);
 	m_pAbiPreviewWidget =
-	    (GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+	    static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	// let the widget materialize
 

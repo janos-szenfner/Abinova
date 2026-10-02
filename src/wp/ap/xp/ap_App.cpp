@@ -70,7 +70,7 @@ XAP_Frame* AP_App::openFile(const char* uri, const char* file)
 
 		// Because of the incremental loader, we should not crash anymore;
 		// I've got other things to do now though.
-		pFrame->loadDocument((const char *)nullptr, IEFT_Unknown);
+		pFrame->loadDocument(static_cast<const char *>(nullptr), IEFT_Unknown);
 		pFrame->raise();
 
 		errorMsgBadFile (pFrame, file ? file : uri, error);
@@ -92,7 +92,7 @@ bool AP_App::openCmdLineFiles(const AP_Args * args)
 	if (AP_Args::m_sFiles == nullptr) {
 		// no files to open, this is ok
 		XAP_Frame * pFrame = newFrame();
-		pFrame->loadDocument((const char *)nullptr, IEFT_Unknown);
+		pFrame->loadDocument(static_cast<const char *>(nullptr), IEFT_Unknown);
 		return true;
 	}
 
@@ -112,7 +112,7 @@ bool AP_App::openCmdLineFiles(const AP_Args * args)
 		// no documents specified or openable, open an untitled one
 		
 		XAP_Frame * pFrame = newFrame();
-		pFrame->loadDocument((const char *)nullptr, IEFT_Unknown);
+		pFrame->loadDocument(static_cast<const char *>(nullptr), IEFT_Unknown);
 	}
 
 	return true;
@@ -201,7 +201,7 @@ void AP_App::recoverAutosavedDocs()
 		}
 		else {
 			// give the frame an empty document so it isn't left unusable
-			f->loadDocument((const char *)nullptr, IEFT_Unknown);
+			f->loadDocument(static_cast<const char *>(nullptr), IEFT_Unknown);
 		}
 	}
 

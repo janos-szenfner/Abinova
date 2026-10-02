@@ -183,7 +183,7 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (this->icon_view), 0);
 	gtk_icon_view_set_columns (GTK_ICON_VIEW (this->icon_view), -1);
 	gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll), this->icon_view);
-	g_signal_connect (this->icon_view, "item-activated", G_CALLBACK (item_activated), (gpointer) this);
+	g_signal_connect (this->icon_view, "item-activated", G_CALLBACK (item_activated), static_cast<gpointer>( this));
 	gtk_icon_view_set_model (GTK_ICON_VIEW (this->icon_view),
 							 GTK_TREE_MODEL (this->store));
 	g_object_unref (G_OBJECT (this->store));
@@ -210,7 +210,7 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 			g_free (exe);
 		}
 	}
-	fill_idle_id = g_idle_add ((GSourceFunc) fill_store, this);
+	fill_idle_id = g_idle_add (reinterpret_cast<GSourceFunc>( fill_store), this);
 
 	switch (abiRunModalDialog(GTK_DIALOG(this->dlg), pFrame, this, GTK_RESPONSE_CANCEL, false)) {
 	case GTK_RESPONSE_OK:
@@ -220,7 +220,7 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 			gchar *graphicUri = nullptr;
 			GtkTreePath *treePath;
 			GtkTreeIter  iter;
-			treePath = (GtkTreePath *) list->data;
+			treePath = static_cast<GtkTreePath *>( list->data);
 			gtk_tree_model_get_iter (GTK_TREE_MODEL (this->store), &iter, treePath);
 			gtk_tree_model_get (GTK_TREE_MODEL (this->store), &iter, COL_PATH, &graphic, -1);
 			if (graphic) {
@@ -234,7 +234,7 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 			else {
 				setAnswer (XAP_Dialog_ClipArt::a_CANCEL);
 			}
-			g_list_foreach (list, (GFunc)_free_path, nullptr);
+			g_list_foreach (list, reinterpret_cast<GFunc>(_free_path), nullptr);
 			g_list_free (list);
 		}
 		break;

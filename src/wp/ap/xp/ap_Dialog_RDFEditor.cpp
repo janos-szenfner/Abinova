@@ -201,7 +201,7 @@ AP_Dialog_RDFEditor::createStatement()
     addStatement( st );
     setSelection( st );
     statusIsTripleCount();
-    UT_DEBUGMSG(("createStatement() end model.sz:%d\n", (int)model->size() ));
+    UT_DEBUGMSG(("createStatement() end model.sz:%d\n", static_cast<int>(model->size() )));
 }
 
 void

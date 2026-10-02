@@ -70,7 +70,7 @@ struct _it
 	UT_uint32					m_sizeofVariable;
 };
 
-#define DefineToolbarIcon(name)		{ #name, (const char **) name, sizeof(name)/sizeof(name[0]) },
+#define DefineToolbarIcon(name)		{ #name, static_cast<const char **>( name), sizeof(name)/sizeof(name[0]) },
 
 static struct _it s_itTable[] =
 {
@@ -377,7 +377,7 @@ void AP_UnixDialog_Columns::event_Toggle( UT_uint32 icolumns)
 		// DOM: TODO: rewrite me
 		XAP_GtkSignalBlocker b(G_OBJECT(m_wSpin),
 						   m_spinHandlerID);
-		gtk_spin_button_set_value( GTK_SPIN_BUTTON(m_wSpin), (gfloat) icolumns);
+		gtk_spin_button_set_value( GTK_SPIN_BUTTON(m_wSpin), static_cast<gfloat>( icolumns));
 	}
 	switch (icolumns)
 	{
@@ -468,7 +468,7 @@ void AP_UnixDialog_Columns::event_previewDraw(cairo_t *cr, int width, int height
 		DELETEP (m_pPreviewWidget);
 		GR_UnixCairoAllocInfo ai(m_wpreviewArea);
 		m_pPreviewWidget =
-			(GR_UnixCairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+			static_cast<GR_UnixCairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 		m_pPreviewWidget->init3dColors(m_wpreviewArea);
 		_createPreviewFromGC(m_pPreviewWidget, width, height);
 	}
@@ -617,7 +617,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 
 	g_object_ref (wPreviewArea);
 	g_object_set_data_full (G_OBJECT (windowColumns), "wPreviewArea", wPreviewArea,
-							(GDestroyNotify) g_object_unref);
+							reinterpret_cast<GDestroyNotify>( g_object_unref));
 	gtk_widget_set_margin_start(wPreviewArea, 18);
 	gtk_widget_show(wPreviewArea);
 	gtk_grid_attach(GTK_GRID(grid), wPreviewArea, 3, 1, 2, 4);
@@ -650,7 +650,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	gtk_widget_set_margin_top(SpinLabel, 12);
 	gtk_grid_attach(GTK_GRID(grid), SpinLabel, 0, 7, 2, 1);
 
-	SpinAdj = (GtkAdjustment *) gtk_adjustment_new( 1.0, 1.0, 20., 1.0,10.0,0.0);
+	SpinAdj = static_cast<GtkAdjustment *>( gtk_adjustment_new( 1.0, 1.0, 20., 1.0,10.0,0.0));
 	Spinbutton = gtk_spin_button_new( SpinAdj, 1.0,0);
 	gtk_widget_show(Spinbutton);
 	gtk_widget_set_margin_top(Spinbutton, 12);
@@ -669,7 +669,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	gtk_widget_show(SpinLabelAfter);
 	gtk_grid_attach(GTK_GRID(grid), SpinLabelAfter, 0, 8, 2, 1);
 
-	GtkAdjustment * SpinAfterAdj = (GtkAdjustment*)gtk_adjustment_new( 1, -1000, 1000, 1, 1, 10);
+	GtkAdjustment * SpinAfterAdj = static_cast<GtkAdjustment*>(gtk_adjustment_new( 1, -1000, 1000, 1, 1, 10));
 	GtkWidget * SpinAfter = gtk_entry_new();
 	gtk_widget_show (SpinAfter);
 	gtk_grid_attach(GTK_GRID(grid), SpinAfter, 2, 8, 2, 1);
@@ -691,7 +691,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	gtk_widget_show(SpinLabelColumnSize);
 	gtk_grid_attach(GTK_GRID(grid), SpinLabelColumnSize, 0, 9, 2, 1);
 
-	GtkAdjustment * SpinSizeAdj = (GtkAdjustment*)gtk_adjustment_new( 1,-2000, 2000, 1, 1, 10);
+	GtkAdjustment * SpinSizeAdj = static_cast<GtkAdjustment*>(gtk_adjustment_new( 1,-2000, 2000, 1, 1, 10));
 	GtkWidget * SpinSize = gtk_entry_new();
 	gtk_widget_show (SpinSize);
 	gtk_grid_attach(GTK_GRID(grid), SpinSize, 2, 9, 2, 1);
@@ -714,11 +714,11 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	m_wSpaceAfterSpin = SpinAfter_dum;
 	m_wSpaceAfterEntry = SpinAfter;
 	m_oSpaceAfter_adj =  SpinAfterAdj;
-	m_iSpaceAfter = (UT_sint32) gtk_adjustment_get_value(SpinAfterAdj);
+	m_iSpaceAfter = static_cast<UT_sint32>( gtk_adjustment_get_value(SpinAfterAdj));
 	m_wMaxColumnHeightSpin = SpinSize_dum;
 	m_wMaxColumnHeightEntry = SpinSize;
 	m_oSpinSize_adj = SpinSizeAdj;
-	m_iSizeHeight = (UT_sint32) gtk_adjustment_get_value(SpinSizeAdj);
+	m_iSizeHeight = static_cast<UT_sint32>( gtk_adjustment_get_value(SpinSizeAdj));
 }
 
 void AP_UnixDialog_Columns::_connectsignals(void)

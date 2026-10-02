@@ -39,8 +39,8 @@ static bool is_utf8_encoding;
 
 static int s_compareQ(const void * a, const void * b)                           
 {                                                                               
-	const gchar ** A = (const gchar **)(a);                                              
-	const gchar ** B = (const gchar **)(b);
+	const gchar ** A = const_cast<const gchar **>(static_cast<const gchar * const*>((a)));                                              
+	const gchar ** B = const_cast<const gchar **>(static_cast<const gchar * const*>((b)));
 	
 	if (is_utf8_encoding)
 		return g_utf8_collate(*A,*B);

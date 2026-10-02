@@ -698,7 +698,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	gtk_dialog_add_buttons(GTK_DIALOG(m_dialog),
 						   cancel.c_str(), GTK_RESPONSE_CANCEL,
 						   convertMnemonics(validate).c_str(), GTK_RESPONSE_ACCEPT,
-						   (gchar*)nullptr);
+						   static_cast<gchar*>(nullptr));
 	gtk_dialog_set_default_response(GTK_DIALOG(m_dialog), GTK_RESPONSE_ACCEPT);
 	gtk_window_set_default_size(GTK_WINDOW(m_dialog), 700, 500);
 
@@ -848,10 +848,10 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	// add list items
 	if (m_szSuffixes)
 	{
-		UT_ASSERT(g_strv_length((gchar **) m_szSuffixes) == g_strv_length((gchar **) m_szDescriptions));
+		UT_ASSERT(g_strv_length(static_cast<gchar **>( m_szSuffixes)) == g_strv_length(static_cast<gchar **>( m_szDescriptions)));
 		
 		// measure one list, they should all be the same length
-		UT_uint32 end = g_strv_length((gchar **) m_szDescriptions);
+		UT_uint32 end = g_strv_length(const_cast<gchar **>(reinterpret_cast<const gchar * const*>( m_szDescriptions)));
 	  
 		for (UT_uint32 i = 0; i < end; i++)
 		{
@@ -1025,7 +1025,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 			if (!g_path_is_absolute (m_szInitialPathname)) { // DAL: todo: is this correct?
 				gchar *dir = g_get_current_dir ();
 				gchar *file = m_szInitialPathname;
-				gchar *filename = g_build_filename (dir, file, (gchar *)nullptr);
+				gchar *filename = g_build_filename (dir, file, static_cast<gchar *>(nullptr));
 				m_szInitialPathname = UT_go_filename_to_uri(filename);
 				g_free(filename);
 				g_free (dir);
@@ -1124,7 +1124,7 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	// attach and clear the area immediately
 	GR_UnixCairoAllocInfo ai(m_preview);
 	GR_CairoGraphics* pGr =
-		(GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+		static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	const gchar * file_name = xap_gtk_file_chooser_get_uri(m_FC);
 	
@@ -1182,7 +1182,7 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	const gsf_off_t inputSize = gsf_input_size(input);
 	UT_uint32 iNumbytes = (inputSize > 0)
 		? static_cast<UT_uint32>(UT_MIN(inputSize, static_cast<gsf_off_t>(4096))) : 0;
-	gsf_input_read(input, iNumbytes, (guint8 *)(Buf));
+	gsf_input_read(input, iNumbytes, reinterpret_cast<guint8 *>((Buf)));
 	Buf[iNumbytes] = '\0';
 
 	IEGraphicFileType ief = IE_ImpGraphic::fileTypeForContents(Buf,4096);
@@ -1197,7 +1197,7 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	if (!input)
 		goto Cleanup;
 	size_t num_bytes = gsf_input_size(input);
-	UT_Byte * bytes = (UT_Byte *) gsf_input_read(input, num_bytes,nullptr );
+	UT_Byte * bytes = const_cast<UT_Byte *>(reinterpret_cast<const UT_Byte*>( gsf_input_read(input, num_bytes,nullptr )));
 	if(bytes == nullptr)
 	{
 		    painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);

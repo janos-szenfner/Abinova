@@ -42,7 +42,7 @@
 
 static void s_toggled (GtkWidget * radio, AP_Dialog_ToggleCase * dlg)
 {
-  ToggleCase tc = (ToggleCase) GPOINTER_TO_INT (g_object_get_data (G_OBJECT(radio), "user_data"));
+  ToggleCase tc = static_cast<ToggleCase>( GPOINTER_TO_INT (g_object_get_data (G_OBJECT(radio), "user_data")));
   dlg->setCase (tc);
 }
 
@@ -150,13 +150,13 @@ void AP_UnixDialog_ToggleCase::_constructWindowContents (GtkWidget *vbox1)
   g_object_set_data (G_OBJECT(toggleCase), "user_data", GINT_TO_POINTER(CASE_TOGGLE));
 
   g_signal_connect (G_OBJECT(sentenceCase), "toggled",
-		      G_CALLBACK(s_toggled), (gpointer)this);
+		      G_CALLBACK(s_toggled), static_cast<gpointer>(this));
   g_signal_connect (G_OBJECT(lowerCase), "toggled",
-		      G_CALLBACK(s_toggled), (gpointer)this);
+		      G_CALLBACK(s_toggled), static_cast<gpointer>(this));
   g_signal_connect (G_OBJECT(upperCase), "toggled",
-		      G_CALLBACK(s_toggled), (gpointer)this);
+		      G_CALLBACK(s_toggled), static_cast<gpointer>(this));
   g_signal_connect (G_OBJECT(firstUpperCase), "toggled",
-		      G_CALLBACK(s_toggled), (gpointer)this);
+		      G_CALLBACK(s_toggled), static_cast<gpointer>(this));
   g_signal_connect (G_OBJECT(toggleCase), "toggled",
-		      G_CALLBACK(s_toggled), (gpointer)this);
+		      G_CALLBACK(s_toggled), static_cast<gpointer>(this));
 }

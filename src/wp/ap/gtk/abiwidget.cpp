@@ -226,7 +226,7 @@ g_cclosure_user_marshal_VOID__INT_INT_INT (GClosure     *closure,
 	                                                gint         arg_3,
 	                                                gpointer     data2);
 	GMarshalFunc_VOID__INT_INT_INT callback;
-	GCClosure *cc = (GCClosure*) closure;
+	GCClosure *cc = reinterpret_cast<GCClosure*>( closure);
 	gpointer data1, data2;
 
 	UT_return_if_fail (n_param_values == 4);
@@ -241,7 +241,7 @@ g_cclosure_user_marshal_VOID__INT_INT_INT (GClosure     *closure,
 	    data1 = g_value_peek_pointer (param_values + 0);
 	    data2 = closure->data;
 	}
-	callback = (GMarshalFunc_VOID__INT_INT_INT) (marshal_data ? marshal_data : cc->callback);
+	callback = reinterpret_cast<GMarshalFunc_VOID__INT_INT_INT>( (marshal_data ? marshal_data : cc->callback));
 
 	callback (data1,
 	        g_marshal_value_peek_int (param_values + 1),
@@ -545,7 +545,7 @@ class Stateful_ViewListener : public AV_Listener
 public:
 	Stateful_ViewListener(AV_View * pView)
 		: m_pView(static_cast<FV_View *>(pView)),
-		m_lid((AV_ListenerId)-1)
+		m_lid(static_cast<AV_ListenerId>(-1))
 	{
 		init();
 		
@@ -566,10 +566,10 @@ public:
 
 	void unbind(void)
 	{
-		if (m_lid != (AV_ListenerId)-1)
+		if (m_lid != static_cast<AV_ListenerId>(-1))
 			m_pView->removeListener(m_lid);
 
-		m_lid = (AV_ListenerId)-1;
+		m_lid = static_cast<AV_ListenerId>(-1);
 	}
 
 	virtual bool notify(AV_View * pView, const AV_ChangeMask mask) override
@@ -894,36 +894,36 @@ public:
 		: Stateful_ViewListener(pView), m_pWidget(pWidget)
 	{
 	}
-	virtual void bold(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_BOLD], 0, (gboolean)value);}
-	virtual void italic(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_ITALIC], 0, (gboolean)value);}
-	virtual void underline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_UNDERLINE], 0, (gboolean)value);}
-	virtual void overline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_OVERLINE], 0, (gboolean)value);}
-	virtual void line_through(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_LINE_THROUGH], 0, (gboolean)value);}
-	virtual void topline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_TOPLINE], 0, (gboolean)value);}
-	virtual void bottomline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_BOTTOMLINE], 0, (gboolean)value);}
-	virtual void subscript(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_SUBSCRIPT], 0, (gboolean)value);}
-	virtual void superscript(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_SUPERSCRIPT], 0, (gboolean)value);}
-	virtual void color(UT_RGBColor value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_COLOR], 0, (int)value.m_red, (int)value.m_grn, (int)value.m_blu);}
+	virtual void bold(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_BOLD], 0, static_cast<gboolean>(value));}
+	virtual void italic(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_ITALIC], 0, static_cast<gboolean>(value));}
+	virtual void underline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_UNDERLINE], 0, static_cast<gboolean>(value));}
+	virtual void overline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_OVERLINE], 0, static_cast<gboolean>(value));}
+	virtual void line_through(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_LINE_THROUGH], 0, static_cast<gboolean>(value));}
+	virtual void topline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_TOPLINE], 0, static_cast<gboolean>(value));}
+	virtual void bottomline(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_BOTTOMLINE], 0, static_cast<gboolean>(value));}
+	virtual void subscript(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_SUBSCRIPT], 0, static_cast<gboolean>(value));}
+	virtual void superscript(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_SUPERSCRIPT], 0, static_cast<gboolean>(value));}
+	virtual void color(UT_RGBColor value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_COLOR], 0, static_cast<int>(value.m_red), static_cast<int>(value.m_grn), static_cast<int>(value.m_blu));}
 	virtual void font_size(double value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_FONT_SIZE], 0, value);}
 	virtual void font_family(const char * value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_FONT_FAMILY], 0, value);}
 	virtual void changed(void) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CHANGED], 0);}
-	virtual void can_undo(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CAN_UNDO], 0, (gboolean)value);}
-	virtual void can_redo(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CAN_REDO], 0, (gboolean)value);}
-	virtual void is_dirty(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_IS_DIRTY], 0, (gboolean)value);}
-	virtual void leftAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_LEFT_ALIGN], 0, (gboolean)value);}
-	virtual void rightAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_RIGHT_ALIGN], 0, (gboolean)value);}
-	virtual void centerAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CENTER_ALIGN], 0, (gboolean)value);}
-	virtual void justifyAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_JUSTIFY_ALIGN], 0, (gboolean)value);}
+	virtual void can_undo(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CAN_UNDO], 0, static_cast<gboolean>(value));}
+	virtual void can_redo(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CAN_REDO], 0, static_cast<gboolean>(value));}
+	virtual void is_dirty(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_IS_DIRTY], 0, static_cast<gboolean>(value));}
+	virtual void leftAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_LEFT_ALIGN], 0, static_cast<gboolean>(value));}
+	virtual void rightAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_RIGHT_ALIGN], 0, static_cast<gboolean>(value));}
+	virtual void centerAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CENTER_ALIGN], 0, static_cast<gboolean>(value));}
+	virtual void justifyAlign(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_JUSTIFY_ALIGN], 0, static_cast<gboolean>(value));}
 	virtual void styleName(const char * value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_STYLE_NAME], 0, value);}
-	virtual void textSelected(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_TEXT_SELECTED], 0, (gboolean)value);}
-	virtual void imageSelected(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_IMAGE_SELECTED], 0, (gboolean)value);}
-	virtual void selectionCleared(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_SELECTION_CLEARED], 0, (gboolean)value);}
-	virtual void enterSelection(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_ENTER_SELECTION], 0, (gboolean)value);}
-	virtual void leaveSelection(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_LEAVE_SELECTION], 0, (gboolean)value);}
-	virtual void tableState(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_TABLE_STATE], 0, (gboolean)value);}
-	virtual void pageCount(guint32 value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_PAGE_COUNT], 0, (guint32)value);}
-	virtual void currentPage(guint32 value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CURRENT_PAGE], 0, (guint32)value);}
-	virtual void zoomPercentage(gint32 value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_ZOOM_PERCENTAGE], 0, (gint32)value);}
+	virtual void textSelected(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_TEXT_SELECTED], 0, static_cast<gboolean>(value));}
+	virtual void imageSelected(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_IMAGE_SELECTED], 0, static_cast<gboolean>(value));}
+	virtual void selectionCleared(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_SELECTION_CLEARED], 0, static_cast<gboolean>(value));}
+	virtual void enterSelection(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_ENTER_SELECTION], 0, static_cast<gboolean>(value));}
+	virtual void leaveSelection(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_LEAVE_SELECTION], 0, static_cast<gboolean>(value));}
+	virtual void tableState(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_TABLE_STATE], 0, static_cast<gboolean>(value));}
+	virtual void pageCount(guint32 value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_PAGE_COUNT], 0, static_cast<guint32>(value));}
+	virtual void currentPage(guint32 value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_CURRENT_PAGE], 0, static_cast<guint32>(value));}
+	virtual void zoomPercentage(gint32 value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_ZOOM_PERCENTAGE], 0, static_cast<gint32>(value));}
 
 private:
 	AbiWidget *         m_pWidget;
@@ -932,7 +932,7 @@ private:
 static void _abi_widget_unbindListener(AbiWidget *widget)
 {
 	// Unbind the listener from the view
-	AbiPrivData * private_data = (AbiPrivData *)widget->priv;
+	AbiPrivData * private_data = static_cast<AbiPrivData *>(widget->priv);
 	AbiWidget_ViewListener * pListener = private_data->m_pViewListener;
 	if (!pListener)
 		return;
@@ -943,7 +943,7 @@ static void _abi_widget_unbindListener(AbiWidget *widget)
 static void _abi_widget_releaseListener(AbiWidget *widget)
 {
 	// remove a FV_View listener from the widget. see _abi_widget_bindListenerToView() for more details.
-	AbiPrivData * private_data = (AbiPrivData *)widget->priv;
+	AbiPrivData * private_data = static_cast<AbiPrivData *>(widget->priv);
 	if (!private_data->m_pViewListener)
 		return;
 	
@@ -957,7 +957,7 @@ static bool _abi_widget_bindListenerToView(AbiWidget *widget, AV_View * pView)
 	
 	// hook up a FV_View listener to the widget. This will let the widget
 	// fire GObject signals when things in the view change
-	AbiPrivData * private_data = (AbiPrivData *)widget->priv;
+	AbiPrivData * private_data = static_cast<AbiPrivData *>(widget->priv);
 	_abi_widget_releaseListener(widget);
 	
 	private_data->m_pViewListener = new AbiWidget_ViewListener(widget, pView);
@@ -1206,7 +1206,7 @@ _abi_widget_set_show_margin(AbiWidget * abi, gboolean bShowMargin)
 	if (!abi->priv->m_bMappedToScreen)
 		return true;
 	
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) abi->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( abi->priv->m_pFrame);
 	UT_return_val_if_fail(pFrame, false);
 
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
@@ -1266,7 +1266,7 @@ abi_widget_set_word_selections(AbiWidget * abi, gboolean gb)
 	{
 		return gb;
 	}
-	AP_Frame * pFrame = (AP_Frame *) abi->priv->m_pFrame;
+	AP_Frame * pFrame = static_cast<AP_Frame *>( abi->priv->m_pFrame);
 	if(pFrame == nullptr)
 		return gb;
 	pFrame->setDoWordSelections(b);
@@ -1443,7 +1443,7 @@ abi_widget_get_selection(AbiWidget * w, const gchar * extension_or_mimetype, gin
 extern "C" gboolean
 abi_widget_get_mouse_pos(AbiWidget * w, gint32 * x, gint32 * y)
 {
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) w->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( w->priv->m_pFrame);
 	if(pFrame == nullptr)
 		return FALSE;
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
@@ -1475,7 +1475,7 @@ abi_widget_render_page_to_image(AbiWidget *abi, int iPage)
 		return nullptr;
 	}
 	iPage--;
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) abi->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( abi->priv->m_pFrame);
 	if(pFrame == nullptr)
 		return nullptr;
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
@@ -1560,7 +1560,7 @@ abi_widget_set_style(AbiWidget * w, gchar * szName)
 	
 	UT_return_val_if_fail ( szName, false );
 	
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) w->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( w->priv->m_pFrame);
 	UT_return_val_if_fail(pFrame, false);
 
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
@@ -1575,7 +1575,7 @@ abi_widget_set_style(AbiWidget * w, gchar * szName)
 extern "C" void
 abi_widget_toggle_rulers(AbiWidget * abi, gboolean visible)
 {
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) abi->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( abi->priv->m_pFrame);
 	if(pFrame != nullptr)
 	    pFrame->toggleRuler(visible);
 }
@@ -1583,7 +1583,7 @@ abi_widget_toggle_rulers(AbiWidget * abi, gboolean visible)
 extern "C" gboolean
 abi_widget_insert_table(AbiWidget * abi, gint32 rows, gint32 cols)
 {
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) abi->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( abi->priv->m_pFrame);
 	if(pFrame == nullptr)
 		return FALSE;
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
@@ -1598,7 +1598,7 @@ abi_widget_insert_image(AbiWidget * w, char* szFile, gboolean positioned)
 	UT_return_val_if_fail ( IS_ABI_WIDGET(w), FALSE );
 	UT_return_val_if_fail ( w->priv->m_pFrame, FALSE );		
 	
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) w->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( w->priv->m_pFrame);
 	UT_return_val_if_fail(pFrame, false);
 
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
@@ -1740,7 +1740,7 @@ abi_widget_load_file_from_gsf(AbiWidget * w, GsfInput * input)
 	UT_return_val_if_fail(w->priv->m_bMappedToScreen, false);
 	UT_return_val_if_fail(w->priv->m_pFrame, FALSE);
 
-	AP_UnixFrame * pFrame = (AP_UnixFrame *) w->priv->m_pFrame;
+	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( w->priv->m_pFrame);
 	
 	bool res = false;
 	s_StartStopLoadingCursor( true, pFrame);
@@ -1760,7 +1760,7 @@ abi_widget_load_file_from_memory(AbiWidget * w, const gchar * extension_or_mimet
 	UT_return_val_if_fail(w && w->priv, false);
     UT_return_val_if_fail(buf && length > 0, false);
 	
-	UT_GsfInputPtr source(gsf_input_memory_new((guint8 *)buf, length, false));
+	UT_GsfInputPtr source(gsf_input_memory_new(const_cast<guint8 *>(reinterpret_cast<const guint8*>(buf)), length, false));
 	UT_return_val_if_fail(source, false);
 
 	IEFileType ieft = s_abi_widget_get_file_type(extension_or_mimetype, buf, length, true);
@@ -1883,7 +1883,7 @@ static void abi_widget_get_prop (GObject  *object,
 	{
 	    case UNLINK_AFTER_LOAD:
 		{
-			g_value_set_boolean(arg,(gboolean) abi->priv->m_bUnlinkFileAfterLoad);
+			g_value_set_boolean(arg,static_cast<gboolean>( abi->priv->m_bUnlinkFileAfterLoad));
 			break;
 		}
 	    case CONTENT:
@@ -2038,7 +2038,7 @@ abi_widget_init (AbiWidget * abi, gpointer)
 	// we can show stuff on screen once mapped: use the pango graphics class
 	g_signal_connect_after(G_OBJECT(abi), "map",
 			       G_CALLBACK (s_abi_widget_map_cb),
-			       (gpointer) abi);
+			       static_cast<gpointer>( abi));
 }
 
 static void
@@ -2154,12 +2154,12 @@ abi_widget_class_init (AbiWidgetClass *abi_class, gpointer)
 	GObjectClass * gobject_class;
 	GtkWidgetClass * widget_class;
 
-	gobject_class = (GObjectClass *)abi_class;
-	widget_class = (GtkWidgetClass *)abi_class;
+	gobject_class = reinterpret_cast<GObjectClass *>(abi_class);
+	widget_class = reinterpret_cast<GtkWidgetClass *>(abi_class);
 
 	// set our parent class
-	parent_class = (GtkWidgetClass *)
-		g_type_class_ref (gtk_widget_get_type());
+	parent_class = static_cast<GtkWidgetClass *>(
+		g_type_class_ref (gtk_widget_get_type()));
 	
 	// set our custom destroy method
 	gobject_class->dispose = abi_widget_destroy_gtk;
@@ -2286,14 +2286,14 @@ abi_widget_class_init (AbiWidgetClass *abi_class, gpointer)
 														  nullptr,
 														  nullptr,
 														  FALSE,
-														  (GParamFlags) G_PARAM_READWRITE));
+														  static_cast<GParamFlags>( G_PARAM_READWRITE)));
 	g_object_class_install_property (gobject_class,
 									 UNLINK_AFTER_LOAD,
 									 g_param_spec_boolean("unlink-after-load",
 														  nullptr,
 														  nullptr,
 														  FALSE,
-														  (GParamFlags) G_PARAM_READWRITE));
+														  static_cast<GParamFlags>( G_PARAM_READWRITE)));
 	g_object_class_install_property(gobject_class,
 								  VIEWPARA,
 								  g_param_spec_boolean("view-para",
@@ -2408,17 +2408,17 @@ abi_widget_get_type (void)
 			sizeof (AbiWidgetClass),
 			nullptr,
 			nullptr,
-			(GClassInitFunc)abi_widget_class_init,
+			reinterpret_cast<GClassInitFunc>(abi_widget_class_init),
 			nullptr,
 			nullptr,
 			sizeof(AbiWidget),
 			0,
-			(GInstanceInitFunc)abi_widget_init,
+			reinterpret_cast<GInstanceInitFunc>(abi_widget_init),
                         nullptr
 		};
 
 		abi_type = g_type_register_static (gtk_widget_get_type (), "AbiWidget",
-								   &info, (GTypeFlags)0);
+								   &info, static_cast<GTypeFlags>(0));
 	}
 	
 	return abi_type;
@@ -2695,12 +2695,12 @@ abi_widget_set_current_page(AbiWidget * w, guint32 curpage)
 	FL_DocLayout* pLayout = pView->getLayout();
 	UT_return_if_fail( pLayout );
 	
-	UT_return_if_fail( curpage <= (guint32)pLayout->countPages() );	// page are not zero-based, so <= in stead of <
+	UT_return_if_fail( curpage <= static_cast<guint32>(pLayout->countPages() ));	// page are not zero-based, so <= in stead of <
 
 	UT_DEBUGMSG(("Telling the view to jump to page %u!\n", curpage));
 	
 	UT_UCS4String pageUCS4Str( UT_UTF8String_sprintf( "%u", curpage ).utf8_str(), 0 );
-	pView->gotoTarget( AP_JUMPTARGET_PAGE, (UT_UCS4Char*) pageUCS4Str.ucs4_str() );
+	pView->gotoTarget( AP_JUMPTARGET_PAGE, const_cast<UT_UCS4Char*>( pageUCS4Str.ucs4_str() ));
 }
 
 extern "C" guint32

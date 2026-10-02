@@ -354,14 +354,14 @@ AP_UnixDialog_Spell::_updateWindow (void)
 	p = m_pWordIterator->getPreWord(iLength);
 	if (0 < iLength)
 	{
-		gchar * preword = (gchar*) _convertToMB(p, iLength);
+		gchar * preword = static_cast<gchar*>( _convertToMB(p, iLength));
 		gtk_text_buffer_set_text(buffer, preword, -1);
 		FREEP(preword);
 	}
 
 	// insert misspelled word (red + bold tag)
 	p = m_pWordIterator->getCurrentWord(iLength);
-	gchar * word = (gchar*) _convertToMB(p, iLength);
+	gchar * word = static_cast<gchar*>( _convertToMB(p, iLength));
 	gtk_text_buffer_get_end_iter(buffer, &iter2);
 	gtk_text_buffer_insert_with_tags(buffer, &iter2, word, -1,
 									 m_pMisspellTag, nullptr);
@@ -370,7 +370,7 @@ AP_UnixDialog_Spell::_updateWindow (void)
 	p = m_pWordIterator->getPostWord(iLength);
 	if (0 < iLength)
 	{
-		gchar * postword = (gchar*) _convertToMB(p, iLength);
+		gchar * postword = static_cast<gchar*>( _convertToMB(p, iLength));
 		gtk_text_buffer_get_end_iter(buffer, &iter2);
 		gtk_text_buffer_insert(buffer, &iter2, postword, -1);
 		FREEP(postword);
@@ -416,8 +416,8 @@ AP_UnixDialog_Spell::_updateWindow (void)
 	{
 		for (UT_sint32 i = 0; i < m_Suggestions->getItemCount(); i++)
 		{
-			gchar * suggest = (gchar*) _convertToMB(
-				(UT_UCS4Char*)m_Suggestions->getNthItem(i));
+			gchar * suggest = static_cast<gchar*>( _convertToMB(
+				static_cast<UT_UCS4Char*>(m_Suggestions->getNthItem(i))));
 			GtkWidget * label = gtk_label_new(suggest ? suggest : "");
 			gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 			gtk_widget_set_margin_start(label, 8);
@@ -431,8 +431,8 @@ AP_UnixDialog_Spell::_updateWindow (void)
 				firstRow = GTK_LIST_BOX_ROW(gtk_widget_get_parent(label));
 		}
 
-		gchar * suggest = (gchar*) _convertToMB(
-			(UT_UCS4Char*)m_Suggestions->getNthItem(0));
+		gchar * suggest = static_cast<gchar*>( _convertToMB(
+			static_cast<UT_UCS4Char*>(m_Suggestions->getNthItem(0))));
 		gtk_editable_set_text(GTK_EDITABLE(m_eChange),
 							  suggest ? suggest : "");
 		FREEP(suggest);

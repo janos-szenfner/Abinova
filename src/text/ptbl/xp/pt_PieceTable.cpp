@@ -99,7 +99,7 @@ void pt_PieceTable::setPieceTableState(PTState pts)
  */
 bool pt_PieceTable::deleteStruxNoUpdate(pf_Frag_Strux* pfs)
 {
-	UT_DEBUGMSG(("SEVIOR: deleting strux no update %p \n", (void*)pfs));
+	UT_DEBUGMSG(("SEVIOR: deleting strux no update %p \n", static_cast<void*>(pfs)));
 	pf_Frag * pf = pfs->getNext();
 	if(pf != nullptr && pf->getType() == pf_Frag::PFT_FmtMark)
 	{
@@ -121,7 +121,7 @@ bool pt_PieceTable::deleteStruxNoUpdate(pf_Frag_Strux* pfs)
  */
 bool pt_PieceTable::deleteFragNoUpdate(pf_Frag * pf)
 {
-	UT_DEBUGMSG(("SEVIOR: deleting frag no update %p \n", (void*)pf));
+	UT_DEBUGMSG(("SEVIOR: deleting frag no update %p \n", static_cast<void*>(pf)));
 	if (pf->getType() == pf_Frag::PFT_Strux)
 		_removeFromEmbeddedStruxList(static_cast<pf_Frag_Strux *>(pf));
 	getFragments().unlinkFrag(pf);

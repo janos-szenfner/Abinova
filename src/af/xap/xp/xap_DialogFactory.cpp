@@ -142,7 +142,7 @@ XAP_Dialog * XAP_DialogFactory::justMakeTheDialog(XAP_Dialog_Id id)
 	
 	if(_findDialogInTable(id,&index))
 	{
-	  pDialog = (XAP_Dialog *)((m_vec_dlg_table.getNthItem(index)->m_pfnStaticConstructor)(this,id));
+	  pDialog = static_cast<XAP_Dialog *>(((m_vec_dlg_table.getNthItem(index)->m_pfnStaticConstructor)(this,id)));
 		return pDialog;
 	}
 	return nullptr;
@@ -192,7 +192,7 @@ XAP_Dialog * XAP_DialogFactory::requestDialog(XAP_Dialog_Id id)
 CreateItSimple:
 	{
 		// create a fresh dialog object and return it -- no strings attached.
-		pDialog = (XAP_Dialog *)((dlg->m_pfnStaticConstructor)(this,id));
+		pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
 		if (dlg->m_tabbed) {
 			XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
 			UT_ASSERT(d);
@@ -208,13 +208,13 @@ CreateItPersistent:
 		UT_sint32 indexVec = m_vecDialogIds.findItem(index+1);
 		if (indexVec < 0)				// not present, create new object and add it to vector
 		{
-			pDialog = (XAP_Dialog *)((dlg->m_pfnStaticConstructor)(this,id));
+			pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
 			m_vecDialogIds.addItem(index+1);
 			m_vecDialogs.addItem(pDialog);
 		}
 		else							// already present, reuse this object
 		{
-			pDialog = (XAP_Dialog *)m_vecDialogs.getNthItem(indexVec);
+			pDialog = const_cast<XAP_Dialog *>(static_cast<const XAP_Dialog*>(m_vecDialogs.getNthItem(indexVec)));
 		}
 		if (dlg->m_tabbed) {
 			XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
@@ -224,7 +224,7 @@ CreateItPersistent:
 
 		// let the dialog object know that we are reusing it.
 		
-		XAP_Dialog_Persistent * pDialogPersistent = (XAP_Dialog_Persistent *)pDialog;
+		XAP_Dialog_Persistent * pDialogPersistent = static_cast<XAP_Dialog_Persistent *>(pDialog);
 		pDialogPersistent->useStart();
 		
 		return pDialog;
@@ -284,7 +284,7 @@ FinishedUsingObject:
 	{
 		// let the dialog object know that we are reusing it.
 		
-		XAP_Dialog_Persistent * pDialogPersistent = (XAP_Dialog_Persistent *)pDialog;
+		XAP_Dialog_Persistent * pDialogPersistent = static_cast<XAP_Dialog_Persistent *>(pDialog);
 		pDialogPersistent->useEnd();
 		return;
 	}

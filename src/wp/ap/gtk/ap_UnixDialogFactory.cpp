@@ -32,7 +32,7 @@
 
 static struct XAP_DialogFactory::_dlg_table s_dlg_table[] = {
 
-#define DeclareDialog(id,cls,tabbed)	{ (XAP_Dialog_Id)id, cls::s_getPersistence(), cls::static_constructor, tabbed },
+#define DeclareDialog(id,cls,tabbed)	{ static_cast<XAP_Dialog_Id>(id), cls::s_getPersistence(), cls::static_constructor, tabbed },
 #include "ap_UnixDialog_All.h"
 #undef DeclareDialog
 };

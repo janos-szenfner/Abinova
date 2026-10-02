@@ -56,7 +56,7 @@ po_Bookmark::BookmarkType po_Bookmark::getBookmarkType(void) const
 
 const gchar* po_Bookmark::getName(void) const
 {
-	return (const gchar*) m_pName;
+	return static_cast<const gchar*>( m_pName);
 }
 
 void po_Bookmark::setName(const gchar* szValue)

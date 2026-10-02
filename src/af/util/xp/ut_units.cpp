@@ -303,7 +303,7 @@ double UT_convertToInches(const char* s)
 	if (f == 0.)
 	    return 0.;
 
-	UT_Dimension dim = UT_determineDimension(s, (UT_Dimension)-1);
+	UT_Dimension dim = UT_determineDimension(s, static_cast<UT_Dimension>(-1));
 	result = UT_convertDimToInches (f, dim);
 
 	return result;
@@ -335,7 +335,7 @@ double UT_convertToPoints(const char* s)
 
 	double result = 0.;
 	double f = UT_convertDimensionless(s);
-	UT_Dimension dim = UT_determineDimension(s, (UT_Dimension)-1);
+	UT_Dimension dim = UT_determineDimension(s, static_cast<UT_Dimension>(-1));
 
 	switch(dim)
 	  {

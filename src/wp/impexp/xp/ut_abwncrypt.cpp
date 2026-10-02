@@ -59,7 +59,7 @@ static void ut_hmac_sha256(const unsigned char * key, size_t keyLen,
 	{
 		GChecksum * c = g_checksum_new(G_CHECKSUM_SHA256);
 		gsize l = sizeof(khash);
-		g_checksum_update(c, key, (gssize)keyLen);
+		g_checksum_update(c, key, static_cast<gssize>(keyLen));
 		g_checksum_get_digest(c, khash, &l);
 		g_checksum_free(c);
 		memcpy(k, khash, sizeof(khash));
@@ -72,9 +72,9 @@ static void ut_hmac_sha256(const unsigned char * key, size_t keyLen,
 		pad[i] = k[i] ^ 0x36;
 	g_checksum_update(c, pad, 64);
 	if (m1Len)
-		g_checksum_update(c, m1, (gssize)m1Len);
+		g_checksum_update(c, m1, static_cast<gssize>(m1Len));
 	if (m2Len)
-		g_checksum_update(c, m2, (gssize)m2Len);
+		g_checksum_update(c, m2, static_cast<gssize>(m2Len));
 	gsize l = sizeof(inner);
 	g_checksum_get_digest(c, inner, &l);
 	g_checksum_free(c);
@@ -220,7 +220,7 @@ static bool ut_gcm(bool encrypting,
 			r = e->dec_init(ctx, e->aes_256_gcm(), nullptr, nullptr, nullptr);
 		if (r != 1)
 			break;
-		if (e->ctx_ctrl(ctx, UT_EVP_CTRL_GCM_SET_IVLEN, (int)nonceLen, nullptr) != 1)
+		if (e->ctx_ctrl(ctx, UT_EVP_CTRL_GCM_SET_IVLEN, static_cast<int>(nonceLen), nullptr) != 1)
 			break;
 		if (encrypting)
 			r = e->enc_init(ctx, nullptr, nullptr, key, nonce);
@@ -231,18 +231,18 @@ static bool ut_gcm(bool encrypting,
 		if (aadLen)
 		{
 			if (encrypting)
-				r = e->enc_update(ctx, nullptr, &outl, aad, (int)aadLen);
+				r = e->enc_update(ctx, nullptr, &outl, aad, static_cast<int>(aadLen));
 			else
-				r = e->dec_update(ctx, nullptr, &outl, aad, (int)aadLen);
+				r = e->dec_update(ctx, nullptr, &outl, aad, static_cast<int>(aadLen));
 			if (r != 1)
 				break;
 		}
 		if (inLen)
 		{
 			if (encrypting)
-				r = e->enc_update(ctx, out, &outl, in, (int)inLen);
+				r = e->enc_update(ctx, out, &outl, in, static_cast<int>(inLen));
 			else
-				r = e->dec_update(ctx, out, &outl, in, (int)inLen);
+				r = e->dec_update(ctx, out, &outl, in, static_cast<int>(inLen));
 			if (r != 1)
 				break;
 			out += outl;
@@ -280,7 +280,7 @@ static bool ut_rand_bytes(unsigned char * buf, size_t len)
 		ssize_t r = getrandom(buf + got, len - got, 0);
 		if (r < 0)
 			break;
-		got += (size_t)r;
+		got += static_cast<size_t>(r);
 	}
 	if (got == len)
 		return true;
@@ -297,7 +297,7 @@ static bool ut_rand_bytes(unsigned char * buf, size_t len)
 			close(fd);
 			return false;
 		}
-		got += (size_t)r;
+		got += static_cast<size_t>(r);
 	}
 	close(fd);
 	return true;
@@ -309,16 +309,16 @@ static bool ut_rand_bytes(unsigned char * buf, size_t len)
 
 static void ut_put_u16(std::vector<unsigned char> & v, UT_uint16 x)
 {
-	v.push_back((unsigned char)(x & 0xff));
-	v.push_back((unsigned char)(x >> 8));
+	v.push_back(static_cast<unsigned char>((x & 0xff)));
+	v.push_back(static_cast<unsigned char>((x >> 8)));
 }
 
 static void ut_put_u32(std::vector<unsigned char> & v, UT_uint32 x)
 {
-	v.push_back((unsigned char)(x & 0xff));
-	v.push_back((unsigned char)((x >> 8) & 0xff));
-	v.push_back((unsigned char)((x >> 16) & 0xff));
-	v.push_back((unsigned char)(x >> 24));
+	v.push_back(static_cast<unsigned char>((x & 0xff)));
+	v.push_back(static_cast<unsigned char>(((x >> 8) & 0xff)));
+	v.push_back(static_cast<unsigned char>(((x >> 16) & 0xff)));
+	v.push_back(static_cast<unsigned char>((x >> 24)));
 }
 
 static bool ut_get_u16(const unsigned char * & p, const unsigned char * end,
@@ -326,7 +326,7 @@ static bool ut_get_u16(const unsigned char * & p, const unsigned char * end,
 {
 	if (end - p < 2)
 		return false;
-	out = (UT_uint32)p[0] | ((UT_uint32)p[1] << 8);
+	out = static_cast<UT_uint32>(p[0] )| (static_cast<UT_uint32>(p[1] )<< 8);
 	p += 2;
 	return true;
 }
@@ -336,15 +336,15 @@ static bool ut_get_u32(const unsigned char * & p, const unsigned char * end,
 {
 	if (end - p < 4)
 		return false;
-	out = (UT_uint32)p[0] | ((UT_uint32)p[1] << 8) |
-		  ((UT_uint32)p[2] << 16) | ((UT_uint32)p[3] << 24);
+	out = static_cast<UT_uint32>(p[0] )| (static_cast<UT_uint32>(p[1] )<< 8) |
+		  (static_cast<UT_uint32>(p[2] )<< 16) | (static_cast<UT_uint32>(p[3] )<< 24);
 	p += 4;
 	return true;
 }
 
 bool UT_abwn_isEncrypted(const void * data, size_t len)
 {
-	return data && len >= (size_t)UT_ABWN_MAGIC_LEN &&
+	return data && len >= static_cast<size_t>(UT_ABWN_MAGIC_LEN )&&
 		   0 == memcmp(data, UT_ABWN_MAGIC, UT_ABWN_MAGIC_LEN);
 }
 
@@ -370,7 +370,7 @@ UT_AbwnCrypt UT_abwn_encrypt(const void * plain, size_t plainLen,
 	std::vector<unsigned char> header;
 	header.reserve(32);
 	for (int i = 0; i < UT_ABWN_MAGIC_LEN; i++)
-		header.push_back((unsigned char)UT_ABWN_MAGIC[i]);
+		header.push_back(static_cast<unsigned char>(UT_ABWN_MAGIC[i]));
 	ut_put_u16(header, UT_ABWN_VERSION);
 	ut_put_u16(header, UT_ABWN_KDF_PBKDF2_SHA256);
 	ut_put_u32(header, UT_ABWN_PBKDF2_ITERS);
@@ -423,12 +423,12 @@ UT_AbwnCrypt UT_abwn_decrypt(const void * blob, size_t blobLen,
 		iters == 0 || iters > UT_ABWN_PBKDF2_MAX_ITERS)
 		return UT_AbwnCrypt::Corrupt;
 	if (!ut_get_u16(p, end, saltLen) || saltLen == 0 || saltLen > 64 ||
-		(size_t)(end - p) < saltLen)
+		static_cast<size_t>((end - p) )< saltLen)
 		return UT_AbwnCrypt::Corrupt;
 	const unsigned char * salt = p;
 	p += saltLen;
 	if (!ut_get_u16(p, end, nonceLen) || nonceLen == 0 || nonceLen > 64 ||
-		(size_t)(end - p) < nonceLen)
+		static_cast<size_t>((end - p) )< nonceLen)
 		return UT_AbwnCrypt::Corrupt;
 	const unsigned char * nonce = p;
 	p += nonceLen;
@@ -438,15 +438,15 @@ UT_AbwnCrypt UT_abwn_decrypt(const void * blob, size_t blobLen,
 		return UT_AbwnCrypt::Corrupt;
 
 	// ciphertext + tag
-	if ((size_t)(end - p) < UT_ABWN_TAG_LEN)
+	if (static_cast<size_t>((end - p) )< UT_ABWN_TAG_LEN)
 		return UT_AbwnCrypt::Corrupt;
 	const unsigned char * ciphertext = p;
-	size_t cipherLen = (size_t)(end - p) - UT_ABWN_TAG_LEN;
+	size_t cipherLen = static_cast<size_t>((end - p) )- UT_ABWN_TAG_LEN;
 	unsigned char tag[UT_ABWN_TAG_LEN];
 	memcpy(tag, end - UT_ABWN_TAG_LEN, UT_ABWN_TAG_LEN);
 
 	const unsigned char * aad = static_cast<const unsigned char *>(blob);
-	size_t aadLen = (size_t)(ciphertext - aad);
+	size_t aadLen = static_cast<size_t>((ciphertext - aad));
 
 	unsigned char key[UT_ABWN_KEY_LEN];
 	ut_pbkdf2_sha256(password.c_str(), salt, saltLen, iters, key);

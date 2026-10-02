@@ -2430,7 +2430,7 @@ bool FV_View::cmdAutoFitWindow(void)
 		UT_sint32 iWidth = pCol ? pCol->allocation : UT_convertToLogicalUnits("1.0in");
 		// proportional scale; last column absorbs rounding slack
 		iWidth = (i == iNumCols - 1) ? (iUsable - iUsed)
-			: static_cast<UT_sint32>(iWidth * (double)iUsable / iTotal);
+			: static_cast<UT_sint32>(iWidth * static_cast<double>(iUsable )/ iTotal);
 		iUsed += iWidth;
 		if (iWidth < UT_convertToLogicalUnits("0.05in"))
 		{
@@ -6115,7 +6115,7 @@ bool FV_View::cmdEditAnnotationWithDialog(UT_uint32 aID)
 		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
 	
 	AP_Dialog_Annotation * pDialog
-		= static_cast<AP_Dialog_Annotation *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_ANNOTATION));
+		= static_cast<AP_Dialog_Annotation *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_ANNOTATION)));
 	UT_return_val_if_fail (pDialog, false);
 	
 	// set initial annotation properties
@@ -8085,7 +8085,7 @@ UT_Error FV_View::cmdInsertHeaderPreset(const char * szPreset,
 			szPreset ? szPreset : "(null)", pPreset ? 1 : 0);
 	UT_return_val_if_fail(pPreset, UT_ERROR);
 	fp_Page * pPage = getCurrentPage();
-	fprintf(stderr, "DBG hdrftr page=%p\n", (void*)pPage);
+	fprintf(stderr, "DBG hdrftr page=%p\n", static_cast<void*>(pPage));
 	UT_return_val_if_fail(pPage, UT_ERROR);
 
 	if(!isSelectionEmpty())
@@ -9420,7 +9420,7 @@ UT_Error FV_View::cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_s
 	fl_BlockLayout * pPrevBL = pBL;
 	while(pBL && ((pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_ENDNOTE) || (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_FOOTNOTE) || (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_TOC)|| (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_FRAME)))
 	{
-        UT_DEBUGMSG(("Skipping Block %p \n", (void*)pBL));
+        UT_DEBUGMSG(("Skipping Block %p \n", static_cast<void*>(pBL)));
 		pPrevBL = pBL;
 		pBL = pBL->getPrevBlockInDocument();
 	}
@@ -9549,7 +9549,7 @@ bool FV_View::cmdInsertLatexMath(UT_UTF8String & sLatex,
 bool FV_View::cmdInsertMathML(const char * szUID,PT_DocPosition pos)
 {
 	UT_DebugOnly<PT_DocPosition> posDebug = pos;
-	UT_DEBUGMSG(("Insert Math Object at %d name %s \n",(PT_DocPosition)posDebug,szUID));
+	UT_DEBUGMSG(("Insert Math Object at %d name %s \n",static_cast<PT_DocPosition>(posDebug),szUID));
 
 	PP_PropertyVector atts = {
 		"dataid", szUID
@@ -9968,7 +9968,7 @@ void FV_View::cmdContextIgnoreAll(void)
 	BSI.nextWordForSpellChecking(pBuf, iLength, iBlockPos, iPTLength);
 	
 	// make the change
-	getDictForSelection ()->ignoreWord ((const UT_UCS4Char *)pBuf, (size_t)iLength);
+	getDictForSelection ()->ignoreWord (static_cast<const UT_UCS4Char *>(pBuf), static_cast<size_t>(iLength));
 	{
 		// remove the squiggles, too
 		fl_DocSectionLayout * pSL = m_pLayout->getFirstSection();

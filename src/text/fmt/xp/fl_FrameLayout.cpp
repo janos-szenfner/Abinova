@@ -114,7 +114,7 @@ fl_FrameLayout::fl_FrameLayout(FL_DocLayout* pLayout,
 fl_FrameLayout::~fl_FrameLayout()
 {
 	// NB: be careful about the order of these
-	UT_DEBUGMSG(("Deleting Framelayout %p \n", (void*)this));
+	UT_DEBUGMSG(("Deleting Framelayout %p \n", static_cast<void*>(this)));
 	_purgeLayout();
 	fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(getFirstContainer());
 	while(pFC)
@@ -530,7 +530,7 @@ bool fl_FrameLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * pcrx)
 //
 	collapse();
 	myContainingLayout()->remove(this);
-	UT_DEBUGMSG(("Unlinking frame Layout %p \n", (void*)this));
+	UT_DEBUGMSG(("Unlinking frame Layout %p \n", static_cast<void*>(this)));
 //
 // Remove from the list of frames in the previous block
 //
@@ -540,7 +540,7 @@ bool fl_FrameLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * pcrx)
 	{
 		if(!pCL->removeFrame(this))
 		{
-			UT_DEBUGMSG(("Whoops! Frame not found in container %p\n", (void*)pCL));
+			UT_DEBUGMSG(("Whoops! Frame not found in container %p\n", static_cast<void*>(pCL)));
 			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		}
 	}
@@ -594,7 +594,7 @@ void fl_FrameLayout::_createFrameContainer(void)
 	getAP(pSectionAP);
 	
 	const gchar * pszDataID = nullptr;
-	pSectionAP->getAttribute(PT_STRUX_IMAGE_DATAID, (const gchar *&)pszDataID);
+	pSectionAP->getAttribute(PT_STRUX_IMAGE_DATAID, static_cast<const gchar *&>(pszDataID));
 	DELETEP(m_pImageImage);
 	//
 	// Set the image size from the full width
@@ -1525,7 +1525,7 @@ static void s_border_properties (const gchar * border_color, const gchar * borde
 	line.m_t_thickness = PP_PropertyMap::thickness_type (border_width);
 	if (line.m_t_thickness == PP_PropertyMap::thickness_length)
 		{
-			if (UT_determineDimension (border_width, (UT_Dimension)-1) == DIM_PX)
+			if (UT_determineDimension (border_width, static_cast<UT_Dimension>(-1)) == DIM_PX)
 				{
 					double thickness = UT_LAYOUT_RESOLUTION * UT_convertDimensionless (border_width);
 					line.m_thickness = static_cast<UT_sint32>(thickness / UT_PAPER_UNITS_PER_INCH);

@@ -78,8 +78,8 @@ bool IE_Imp_RTF::keywordSorted = false;
 
 static int kwsortcomparator(const void *v1, const void *v2)
 {
-	return strcmp(((const _rtf_keyword *)v1)->keyword, 
-				  ((const _rtf_keyword *)v2)->keyword);
+	return strcmp((static_cast<const _rtf_keyword *>(v1))->keyword, 
+				  (static_cast<const _rtf_keyword *>(v2))->keyword);
 }
 
 
@@ -174,12 +174,12 @@ IE_Imp_RTF::StandardKeywordParser(IE_Imp_RTFGroupParser *parser)
 			break;
 		}
 		case RTF_TOKEN_OPEN_BRACE:
-			UT_DEBUGMSG(("Nesting %d ++ <%p>\n", parser->nested(), (void*)parser));
+			UT_DEBUGMSG(("Nesting %d ++ <%p>\n", parser->nested(), static_cast<void*>(parser)));
 			parser->tokenOpenBrace(this);
 			break;
 		case RTF_TOKEN_CLOSE_BRACE:
 			parser->tokenCloseBrace(this);
-			UT_DEBUGMSG(("Nesting %d -- <%p>\n", parser->nested(), (void*)parser));
+			UT_DEBUGMSG(("Nesting %d -- <%p>\n", parser->nested(), static_cast<void*>(parser)));
 			// oh oh we catched the last brace from the group
 			if (parser->nested() == 0) {
 				finalBrace = true;
@@ -214,8 +214,8 @@ IE_Imp_RTF::StandardKeywordParser(IE_Imp_RTFGroupParser *parser)
 */
 static int kwcompar(const void * v1, const void* v2)
 {
-	const char *kw = (const char *)v1;
-	const _rtf_keyword *kwelem = (const _rtf_keyword *)v2;
+	const char *kw = static_cast<const char *>(v1);
+	const _rtf_keyword *kwelem = static_cast<const _rtf_keyword *>(v2);
 	return strcmp(kw, kwelem->keyword);
 }
 
@@ -226,10 +226,10 @@ static int kwcompar(const void * v1, const void* v2)
 */
 RTF_KEYWORD_ID IE_Imp_RTF::KeywordToID(const char * keyword)
 {
-	const _rtf_keyword *kwelem  = (_rtf_keyword *)bsearch (keyword, 
+	const _rtf_keyword *kwelem  = static_cast<_rtf_keyword *>(bsearch (keyword, 
 					   rtfKeywords, 
 					   sizeof(rtfKeywords) / sizeof(rtfKeywords[0]),
-					   sizeof(rtfKeywords[0]), &kwcompar);
+					   sizeof(rtfKeywords[0]), &kwcompar));
 	if (kwelem) {
 		return kwelem->id;
 	}

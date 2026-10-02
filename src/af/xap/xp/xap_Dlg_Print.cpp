@@ -227,10 +227,10 @@ bool XAP_Dialog_Print::_getPrintToFilePathname(XAP_Frame * pFrame,
 	XAP_Dialog_Id id = XAP_DIALOG_ID_PRINTTOFILE;
 	
 	XAP_DialogFactory * pDialogFactory
-		= (XAP_DialogFactory *)(pFrame->getDialogFactory());
+		= static_cast<XAP_DialogFactory *>((pFrame->getDialogFactory()));
 
 	XAP_Dialog_FileOpenSaveAs * pDialog
-		= (XAP_Dialog_FileOpenSaveAs *)(pDialogFactory->requestDialog(id));
+		= static_cast<XAP_Dialog_FileOpenSaveAs *>((pDialogFactory->requestDialog(id)));
 	UT_return_val_if_fail(pDialog,false);
 
 	pDialog->setCurrentPathname(szSuggestedName);
@@ -249,19 +249,19 @@ bool XAP_Dialog_Print::_getPrintToFilePathname(XAP_Frame * pFrame,
 
 		UT_uint32 filterCount = 1;
 
-		szDescList = (const char **) UT_calloc(filterCount + 1,
-														  sizeof(char *));
-		szSuffixList = (const char **) UT_calloc(filterCount + 1,
-															sizeof(char *));
+		szDescList = static_cast<const char **>( UT_calloc(filterCount + 1,
+														  sizeof(char *)));
+		szSuffixList = static_cast<const char **>( UT_calloc(filterCount + 1,
+															sizeof(char *)));
 		// HACK : this should be IEFileType
-		nTypeList = (UT_sint32 *) UT_calloc(filterCount + 1,
-													 sizeof(UT_sint32));
+		nTypeList = static_cast<UT_sint32 *>( UT_calloc(filterCount + 1,
+													 sizeof(UT_sint32)));
 
 		szDescList[0] = "PostScript 2.0";
 		szSuffixList[0] = "ps";
 		nTypeList[0] = 0;
 
-		pDialog->setFileTypeList(szDescList, szSuffixList, (const UT_sint32 *) nTypeList);
+		pDialog->setFileTypeList(szDescList, szSuffixList, static_cast<const UT_sint32 *>( nTypeList));
 	}
 
 	pDialog->runModal(pFrame);

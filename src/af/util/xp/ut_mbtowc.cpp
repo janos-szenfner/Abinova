@@ -97,7 +97,7 @@ int UT_UCS2_mbtowc::mbtowc (UT_UCS2Char & wc, char mb)
 	gsize bytes_read = 0;
 	gsize bytes_written = 0;
 	GError* error = nullptr;
-	gchar* out = g_convert_with_iconv(inptr, inlen, (GIConv)cd, &bytes_read, &bytes_written, &error);
+	gchar* out = g_convert_with_iconv(inptr, inlen, static_cast<GIConv>(cd), &bytes_read, &bytes_written, &error);
 	if (out && bytes_written == 2)
 	{
 		memcpy(&wc, out, 2);
@@ -193,7 +193,7 @@ int UT_UCS4_mbtowc::mbtowc (UT_UCS4Char & wc, char mb)
 	gsize bytes_read = 0;
 	gsize bytes_written = 0;
 	GError* error = nullptr;
-	gchar* out = g_convert_with_iconv(inptr, inlen, (GIConv)cd, &bytes_read, &bytes_written, &error);
+	gchar* out = g_convert_with_iconv(inptr, inlen, static_cast<GIConv>(cd), &bytes_read, &bytes_written, &error);
 	if (out && bytes_written == 4)
 	{
 		memcpy(&wc, out, 4);

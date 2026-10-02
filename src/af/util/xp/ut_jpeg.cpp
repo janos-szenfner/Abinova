@@ -199,7 +199,7 @@ bool UT_JPEG_getRGBData(const UT_ConstByteBufPtr & pBB, UT_Byte* pDest,
 
 	/* JSAMPARRAY buffer = */
 	(*cinfo.mem->alloc_sarray)
-			((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+			(reinterpret_cast<j_common_ptr>( &cinfo), JPOOL_IMAGE, row_stride, 1);
 
 	UT_Byte* pCYMK = nullptr;
 	if (cinfo.output_components == 4)
@@ -295,10 +295,10 @@ static void _JPEG_ByteBufSrc (j_decompress_ptr cinfo, const UT_ConstByteBufPtr &
 	 * manager serially with the same JPEG object.  Caveat programmer.
 	 */
 	if (cinfo->src == nullptr) {	/* first time for this JPEG object? */
-		cinfo->src = (jpeg_source_mgr *)
+		cinfo->src = static_cast<jpeg_source_mgr *>(
 			(*cinfo->mem->alloc_small) (reinterpret_cast<j_common_ptr>(cinfo),
 										JPOOL_PERMANENT,
-										sizeof(bytebuf_jpeg_source_mgr));
+										sizeof(bytebuf_jpeg_source_mgr)));
 		// in place construct the object over the existing memory.
 		new(cinfo->src) bytebuf_jpeg_source_mgr;
 	}

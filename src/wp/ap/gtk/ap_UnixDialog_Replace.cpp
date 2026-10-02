@@ -199,7 +199,7 @@ void AP_UnixDialog_Replace::_syncStringsFromWidgets(void)
 	UT_UCS4String findText = _entryText(m_entryFind);
 	setFindString(findText.ucs4_str());
 
-	if (m_id == (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE && m_entryReplace)
+	if (m_id == static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_REPLACE )&& m_entryReplace)
 	{
 		UT_UCS4String replaceText = _entryText(m_entryReplace);
 		setReplaceString(replaceText.ucs4_str());
@@ -330,7 +330,7 @@ static GtkWidget * s_entry_with_history(GtkWidget *& listBoxOut,
 GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 {
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
-	const bool bReplaceMode = (m_id == (XAP_Dialog_Id)AP_DIALOG_ID_REPLACE);
+	const bool bReplaceMode = (m_id == static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_REPLACE));
 
 	ConstructWindowName();
 	m_windowMain = abiDialogNew("find dialog", FALSE);

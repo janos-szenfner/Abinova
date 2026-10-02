@@ -458,7 +458,7 @@ void AP_Columns_preview_drawer::draw(GR_Graphics *gc, UT_Rect &rect, UT_sint32 i
 
 	rect.left += iHalfColumnGap;
 	rect.width -= 2 * iHalfColumnGap;
-	double d_ysize = (double) (y_end - y_start);
+	double d_ysize = static_cast<double>( (y_end - y_start));
 	UT_sint32 iSpace = static_cast<UT_sint32>(SpacePercent* d_ysize);
 	if(iSpace < y_step)
 	  iSpace = y_step;

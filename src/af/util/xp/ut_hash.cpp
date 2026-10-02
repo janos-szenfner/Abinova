@@ -201,7 +201,7 @@ UT_uint32 _Recommended_hash_size(UT_uint32 size)	// Verifies reasonably
 	if (_Hash_magic_numbers[lo] < size)
 		lo++;
 	if (lo >= _Hash_n_magic_numbers) 
-		return (UT_uint32)-1;
+		return static_cast<UT_uint32>(-1);
 	
 	return _Hash_magic_numbers[lo];
 }

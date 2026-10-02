@@ -487,7 +487,7 @@ bool pt_PieceTable::getStyle(const char * szName, PD_Style ** ppStyle) const
 
 size_t pt_PieceTable::getStyleCount (void) const
 {
-  return (size_t) m_hashStyles.size();
+  return static_cast<size_t>( m_hashStyles.size());
 }
 
 #if 0 // currentl unused. suppress warning
@@ -501,8 +501,8 @@ size_t pt_PieceTable::getStyleCount (void) const
 */
 static UT_sint32 compareStyleNames(const void * vS1, const void * vS2)
 {
-	const PD_Style ** pS1 = (const PD_Style **) vS1;
-	const PD_Style ** pS2 = (const PD_Style **) vS2;
+	const PD_Style ** pS1 = static_cast<const PD_Style **>( vS1);
+	const PD_Style ** pS2 = static_cast<const PD_Style **>( vS2);
 	const char * sz1 = (*pS1)->getName();
 	const char * sz2 = (*pS2)->getName();
 	return g_ascii_strcasecmp(sz1, sz2);

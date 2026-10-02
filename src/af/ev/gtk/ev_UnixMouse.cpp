@@ -47,7 +47,7 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev
 	EV_EditMouseOp mop;
 	EV_EditMouseContext emc = 0;
 
-	GdkModifierType ev_state = (GdkModifierType)0;
+	GdkModifierType ev_state = static_cast<GdkModifierType>(0);
 	ev_state = gdk_event_get_modifier_state(e);
 
 	if (ev_state & GDK_SHIFT_MASK)
@@ -125,10 +125,10 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble
 	EV_EditMouseContext emc = 0;
 
 	GdkDevice *device;
-	device = gdk_event_get_device((GdkEvent *) e);
+	device = gdk_event_get_device(static_cast<GdkEvent *>( e));
 	guint ev_button = 0;
 	ev_button = gdk_button_event_get_button(e);
-	GdkModifierType ev_state = (GdkModifierType)0;
+	GdkModifierType ev_state = static_cast<GdkModifierType>(0);
 	ev_state = gdk_event_get_modifier_state(e);
 	if (ev_button == 1)
 		emb = EV_EMB_BUTTON1;
@@ -213,7 +213,7 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e, gdouble ev_x, gdoubl
 	EV_EditMouseOp mop;
 	EV_EditMouseContext emc = 0;
 
-	GdkModifierType ev_state = (GdkModifierType)0;
+	GdkModifierType ev_state = static_cast<GdkModifierType>(0);
 	ev_state = gdk_event_get_modifier_state(e);
 
 	if (ev_state & GDK_SHIFT_MASK)

@@ -151,10 +151,10 @@ EV_EditBindingMap::EV_EditBindingMap(EV_EditMethodContainer * pemc):
 	UT_sint32 i = 0;
 	for (i=0; i<EV_COUNT_EMB; i++)
 	{
-	  m_pebMT[i] = (ev_EB_MouseTable*) nullptr;
+	  m_pebMT[i] = static_cast<ev_EB_MouseTable*>( nullptr);
 	}
-	m_pebNVK = (ev_EB_NVK_Table*) nullptr;
-	m_pebChar = (ev_EB_Char_Table*) nullptr;
+	m_pebNVK = static_cast<ev_EB_NVK_Table*>( nullptr);
+	m_pebChar = static_cast<ev_EB_Char_Table*>( nullptr);
 }
 
 EV_EditBindingMap::~EV_EditBindingMap()
@@ -487,7 +487,7 @@ bool EV_EditBindingMap::setBinding(EV_EditBits eb, EV_EditBinding * peb)
 			UT_uint32 n_ems = EV_EMS_ToNumberNoShift(eb);
 			if (m_pebChar->m_peb[n_evk][n_ems]) 
 			{
-			        UT_DEBUGMSG(("Removing and Deleting previous keybinding %p \n", (void*)m_pebChar->m_peb[n_evk][n_ems]));
+			        UT_DEBUGMSG(("Removing and Deleting previous keybinding %p \n", static_cast<void*>(m_pebChar->m_peb[n_evk][n_ems])));
 				delete m_pebChar->m_peb[n_evk][n_ems];
 			}
 			m_pebChar->m_peb[n_evk][n_ems] = peb;
@@ -636,7 +636,7 @@ const char * EV_EditBindingMap::getShortcutFor(const EV_EditMethod * pEM) const
 	
 	
 	if (!bChar && !bNVK) 
-	  return (const char *) nullptr;
+	  return static_cast<const char *>( nullptr);
 
 	// translate into displayable string
 	static char buf[128];
@@ -668,7 +668,7 @@ const char * EV_EditBindingMap::getShortcutFor(const EV_EditMethod * pEM) const
 	else
 	{
 		// translate NVK
-	  const char * szNVK = (const char *) nullptr;
+	  const char * szNVK = static_cast<const char *>( nullptr);
 
 		// TODO: look these up from table, rather than switch
 		switch(EV_NamedKey(shortcut))

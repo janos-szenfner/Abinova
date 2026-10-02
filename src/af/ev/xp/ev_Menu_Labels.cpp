@@ -98,7 +98,7 @@ bool EV_Menu_LabelSet::setLabel(XAP_Menu_Id id,
 								const char * szStatusMsg)
 {
 	EV_Menu_Label * pTmpLbl = nullptr;
-	XAP_Menu_Id last = (XAP_Menu_Id)(m_first + m_labelTable.size());
+	XAP_Menu_Id last = static_cast<XAP_Menu_Id>((m_first + m_labelTable.size()));
 
 	if (id < m_first || id >= last) {
 		return false;
@@ -115,7 +115,7 @@ bool EV_Menu_LabelSet::setLabel(XAP_Menu_Id id,
 
 EV_Menu_Label* EV_Menu_LabelSet::getLabel(XAP_Menu_Id id) const
 {
-	XAP_Menu_Id last = (XAP_Menu_Id)(m_first + m_labelTable.size());
+	XAP_Menu_Id last = static_cast<XAP_Menu_Id>((m_first + m_labelTable.size()));
 	if (id < m_first || id >= last) {
 		return nullptr;
 	}
@@ -144,7 +144,7 @@ EV_Menu_Label* EV_Menu_LabelSet::getLabel(XAP_Menu_Id id) const
 bool EV_Menu_LabelSet::addLabel(EV_Menu_Label* pLabel)
 {
 	UT_ASSERT(pLabel);
-	XAP_Menu_Id size_table = (XAP_Menu_Id)m_labelTable.size();
+	XAP_Menu_Id size_table = static_cast<XAP_Menu_Id>(m_labelTable.size());
 
 	// the if (...) is here due to
 	// AP_MENU_ID__BOGUS2__, which ocupes an entry in the
@@ -153,7 +153,7 @@ bool EV_Menu_LabelSet::addLabel(EV_Menu_Label* pLabel)
 	if (pLabel->getMenuId() == size_table + m_first - 1)
 	{
 		m_labelTable.pop_back();
-		size_table = (XAP_Menu_Id)m_labelTable.size();
+		size_table = static_cast<XAP_Menu_Id>(m_labelTable.size());
 	}
 //
 // This assert always fires for me 6/6/2202 so I'm commenting it out.

@@ -76,7 +76,7 @@ s_getSuffixInfo (void)
 	// dry run to count entries
 	formatIter = formatList;
 	while (formatIter) {
-		format = (GdkPixbufFormat *) formatIter->data;
+		format = static_cast<GdkPixbufFormat *>( formatIter->data);
 		extensionsIter = extensions = gdk_pixbuf_format_get_extensions (format);
 		while (*extensionsIter) {
 			suffixInfo.count++;
@@ -86,13 +86,13 @@ s_getSuffixInfo (void)
 		formatIter = formatIter->next;
 	}
 
-	suffixInfo.suffixes = (const gchar **) new gchar*[suffixInfo.count + 1];
+	suffixInfo.suffixes = const_cast<const gchar **>( new gchar*[suffixInfo.count + 1]);
 
 	// build list
 	formatIter = formatList;
 	idx = 0;
 	while (formatIter) {
-		format = (GdkPixbufFormat *) formatIter->data;
+		format = static_cast<GdkPixbufFormat *>( formatIter->data);
 		extensionsIter = extensions = gdk_pixbuf_format_get_extensions (format);
 		while (*extensionsIter) {
 			suffixInfo.suffixes[idx] = g_strdup(*extensionsIter);
@@ -493,13 +493,13 @@ format_check (GdkPixbufFormat *info, const guchar *buffer, int size)
 
 	for (pattern = info->signature; pattern->prefix; pattern++) {
 		if (pattern->mask && pattern->mask[0] == '*') {
-			prefix = (guchar *)pattern->prefix + 1;
-			mask = (gchar *)pattern->mask + 1;
+			prefix = reinterpret_cast<guchar *>(pattern->prefix )+ 1;
+			mask = static_cast<gchar *>(pattern->mask )+ 1;
 			anchored = FALSE;
 		}
 		else {
-			prefix = (guchar *)pattern->prefix;
-			mask = (gchar *)pattern->mask;
+			prefix = reinterpret_cast<guchar *>(pattern->prefix);
+			mask = static_cast<gchar *>(pattern->mask);
 			anchored = TRUE;
 		}
 		for (i = 0; i < size; i++) {
@@ -543,7 +543,7 @@ _gdk_pixbuf_get_module (const guchar *buffer, guint size)
 
 	format_ptr = gdk_pixbuf_get_formats ();
 	for (formats = format_ptr; formats; formats = g_slist_next (formats)) {
-		GdkPixbufFormat *info = (GdkPixbufFormat *)formats->data;
+		GdkPixbufFormat *info = static_cast<GdkPixbufFormat *>(formats->data);
 
 #if 0
 		if (info->disabled)
@@ -586,7 +586,7 @@ const IE_MimeConfidence * IE_ImpGraphicGdkPixbuf_Sniffer::getMimeConfidence ()
 	formatIter = formatList;
 	while (formatIter) {
 		gchar **mime_types;
-		format = (GdkPixbufFormat *) formatIter->data;
+		format = static_cast<GdkPixbufFormat *>( formatIter->data);
 		mime_types = gdk_pixbuf_format_get_mime_types (format);
 		gchar **tmp = mime_types;
 		while (*tmp) {
@@ -677,7 +677,7 @@ UT_Confidence_t IE_ImpGraphicGdkPixbuf_Sniffer::recognizeContents(const char * s
 		return UT_CONFIDENCE_PERFECT;
 	}
 
-	if (_gdk_pixbuf_get_module((guchar *)szBuf, iNum))
+	if (_gdk_pixbuf_get_module(const_cast<guchar *>(reinterpret_cast<const guchar*>(szBuf)), iNum))
 		return UT_CONFIDENCE_GOOD;
 	return UT_CONFIDENCE_ZILCH;
 }

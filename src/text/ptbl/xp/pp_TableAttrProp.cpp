@@ -34,8 +34,8 @@
 */
 static UT_sint32 compareAP(const void * vX1, const void * vX2)
 {
-	PP_AttrProp *x1 = *(PP_AttrProp **)(vX1);
-	PP_AttrProp *x2 = *(PP_AttrProp **)(vX2);
+	PP_AttrProp *x1 = *const_cast<PP_AttrProp **>(static_cast<const PP_AttrProp * const*>((vX1)));
+	PP_AttrProp *x2 = *const_cast<PP_AttrProp **>(static_cast<const PP_AttrProp * const*>((vX2)));
 
 	UT_uint32 u1 = x1->getCheckSum();
 	UT_uint32 u2 = x2->getCheckSum();
@@ -56,8 +56,8 @@ static UT_sint32 compareAPBinary(const void * vX1, const void * vX2)
 //
 // vX1 is actually a pointer to a UT_uint32 key value (a checkSum)
 //
-	UT_uint32 u1 = *((UT_uint32*) (vX1));
-	PP_AttrProp *x2 = *(PP_AttrProp **)(vX2);
+	UT_uint32 u1 = *(const_cast<UT_uint32*>(static_cast<const UT_uint32*>( (vX1))));
+	PP_AttrProp *x2 = *const_cast<PP_AttrProp **>(static_cast<const PP_AttrProp * const*>((vX2)));
 	UT_uint32 u2 = x2->getCheckSum();
 
 	if (u1 < u2) return -1;
@@ -185,7 +185,7 @@ bool pp_TableAttrProp::findMatch(const PP_AttrProp * pMatch,
  
  	for (; (k < kLimit); k++)
   	{
- 		PP_AttrProp * pK = (PP_AttrProp *)m_vecTableSorted.getNthItem(k);
+ 		PP_AttrProp * pK = static_cast<PP_AttrProp *>(m_vecTableSorted.getNthItem(k));
  		if (cksum != pK->getCheckSum())
  		{
  			break;
@@ -206,7 +206,7 @@ const PP_AttrProp * pp_TableAttrProp::getAP(UT_sint32 subscript) const
 {
 	UT_sint32 count = m_vecTable.getItemCount();
 	if (subscript < count)
-		return (const PP_AttrProp *)m_vecTable.getNthItem(subscript);
+		return static_cast<const PP_AttrProp *>(m_vecTable.getNthItem(subscript));
 	else
 		return nullptr;
 }

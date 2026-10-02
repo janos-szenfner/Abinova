@@ -38,99 +38,99 @@ void pf_Frag::__dump(FILE * fp) const
 {
 	fprintf(fp,"        %sFragment %p type[%d]\n",
 			((m_type==PFT_EndOfDoc) ? "EOD" : "Unk"),
-			(void*)this,m_type);
+			static_cast<void*>(this),m_type);
 }
 
 void pf_Frag_FmtMark::__dump(FILE * fp) const
 {
-	fprintf(fp,"        FmtMrkFragment %p api[%08lx]\n",(void*)this,(long unsigned int)m_indexAP);
+	fprintf(fp,"        FmtMrkFragment %p api[%08lx]\n",static_cast<void*>(this),static_cast<long unsigned int>(m_indexAP));
 }
 
 void pf_Frag_Strux_Block::__dump(FILE * fp) const
 {
 	fprintf(fp,"      Block %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 
 void pf_Frag_Strux_Section::__dump(FILE * fp) const
 {
 	fprintf(fp,"    Section %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 
 
 void pf_Frag_Strux_SectionHdrFtr::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionHdrFtr %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 
 void pf_Frag_Strux_SectionTable::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionTable %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionCell::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionCell %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionFootnote::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionFootnote %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionAnnotation::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionAnnotation %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndnote::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionEndnote %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionMarginnote::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionMarginnote %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionFrame::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionFrame %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 
 
 void pf_Frag_Strux_SectionEndTable::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionEndTable %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndCell::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionEndCell %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndFootnote::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionEndFootnote %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndAnnotation::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionEndAnnotion %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndMarginnote::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionEndMarginnote %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndFrame::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionEndFrame %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndEndnote::__dump(FILE * fp) const
 {
@@ -141,7 +141,7 @@ void pf_Frag_Strux_SectionEndEndnote::__dump(FILE * fp) const
 void pf_Frag_Strux_SectionTOC::__dump(FILE * fp) const
 {
 	fprintf(fp,"    SectionTOC %p api[%08lx]\n",
-			(void*)this,(long)m_indexAP);
+			static_cast<void*>(this),static_cast<long>(m_indexAP));
 }
 void pf_Frag_Strux_SectionEndTOC::__dump(FILE * fp) const
 {
@@ -165,7 +165,7 @@ void pf_Frag_Text::__dump(FILE * fp) const
 		// note: debugging purposes only.
 		c = (  ((ptr[k] < 20) || (ptr[k] > 0x7f))
 			   ? '@'
-			   : (char)ptr[k]);
+			   : static_cast<char>(ptr[k]));
 		fprintf(fp,"%c",c);
 	}
 	fprintf(fp,"]\n");

@@ -131,9 +131,9 @@ bool  UT_UUID::_parse(const char * in, struct uuid &uuid) const
 
 	// parse it
     uuid.time_low = strtoul(in, nullptr, 16);
-    uuid.time_mid = (UT_uint16)strtoul(in+9, nullptr, 16);
-    uuid.time_high_and_version = (UT_uint16)strtoul(in+14, nullptr, 16);
-    uuid.clock_seq = (UT_uint16)strtoul(in+19, nullptr, 16);
+    uuid.time_mid = static_cast<UT_uint16>(strtoul(in+9, nullptr, 16));
+    uuid.time_high_and_version = static_cast<UT_uint16>(strtoul(in+14, nullptr, 16));
+    uuid.clock_seq = static_cast<UT_uint16>(strtoul(in+19, nullptr, 16));
 
 	cp = in+24;
     buf[2] = 0;
@@ -141,7 +141,7 @@ bool  UT_UUID::_parse(const char * in, struct uuid &uuid) const
 	{
         buf[0] = *cp++;
         buf[1] = *cp++;
-        uuid.node[i] = (unsigned char)strtoul(buf, nullptr, 16);
+        uuid.node[i] = static_cast<unsigned char>(strtoul(buf, nullptr, 16));
     }
 
 	return true;
@@ -267,10 +267,10 @@ time_t UT_UUID::_getTime(const struct uuid & uuid)
     time_t    tRet;
 
     iHigh = uuid.time_mid | ((uuid.time_high_and_version & 0xFFF) << 16);
-    iClockReg = uuid.time_low | ((UT_uint64) iHigh << 32);
+    iClockReg = uuid.time_low | (static_cast<UT_uint64>( iHigh )<< 32);
 
-    iClockReg -= (((UT_uint64) 0x01B21DD2) << 32) + 0x13814000;
-    tRet = (time_t)(iClockReg / 10000000);
+    iClockReg -= ((static_cast<UT_uint64>( 0x01B21DD2)) << 32) + 0x13814000;
+    tRet = static_cast<time_t>((iClockReg / 10000000));
 
     return tRet;
 }
@@ -319,7 +319,7 @@ UT_UUIDVariant UT_UUID::_getVariant(const struct uuid &uuid)
 bool UT_UUID::_getRandomBytes(void *buf, UT_sint32 nbytes) const
 {
     UT_sint32 i;
-    unsigned char *cp = (unsigned char *) buf;
+    unsigned char *cp = static_cast<unsigned char *>( buf);
 
     for (i = 0; i < nbytes; i++)
         *cp++ ^= (UT_rand() >> 7) & 0xFF;
@@ -372,11 +372,11 @@ try_again:
     }
 
     iClockReg = tv.tv_usec*10 + iAdjustment;
-    iClockReg += ((UT_uint64) tv.tv_sec)*10000000;
-    iClockReg += (((UT_uint64) 0x01B21DD2) << 32) + 0x13814000;
+    iClockReg += (static_cast<UT_uint64>( tv.tv_sec))*10000000;
+    iClockReg += ((static_cast<UT_uint64>( 0x01B21DD2)) << 32) + 0x13814000;
 
-    iHigh = (UT_uint32)(iClockReg >> 32);
-    iLow  = (UT_uint32)iClockReg;
+    iHigh = static_cast<UT_uint32>((iClockReg >> 32));
+    iLow  = static_cast<UT_uint32>(iClockReg);
     iSeq  = iClockSeq;
     return true;
 }
@@ -387,7 +387,7 @@ bool UT_UUID::resetTime()
     bool bRet = _getClock(clock_mid, m_uuid.time_low, m_uuid.clock_seq);
 
     m_uuid.clock_seq |= 0x8000;
-    m_uuid.time_mid = (UT_uint16) clock_mid;
+    m_uuid.time_mid = static_cast<UT_uint16>( clock_mid);
     m_uuid.time_high_and_version = (clock_mid >> 16) | 0x1000;
 
     return bRet;
@@ -403,7 +403,7 @@ bool UT_UUID::_makeUUID(uuid &uu)
 	{
 #if 0
 		bool bNoMAC;
-		XAP_App::getApp()->getPrefsValueBool((gchar*)XAP_PREF_KEY_NoMACinUUID,
+		XAP_App::getApp()->getPrefsValueBool(static_cast<gchar*>(XAP_PREF_KEY_NoMACinUUID),
 											 &bNoMAC);
 
         if(bNoMAC || !UT_getEthernetAddress(s_node))
@@ -423,7 +423,7 @@ bool UT_UUID::_makeUUID(uuid &uu)
     bRet &= _getClock(clock_mid, uu.time_low, uu.clock_seq);
 
     uu.clock_seq |= 0x8000;
-    uu.time_mid = (UT_uint16) clock_mid;
+    uu.time_mid = static_cast<UT_uint16>( clock_mid);
     uu.time_high_and_version = (clock_mid >> 16) | 0x1000;
     memcpy(uu.node, s_node, 6);
 
@@ -585,7 +585,7 @@ bool UT_UUID::isNull() const
 	// will treat it as null if not valid ...
 	UT_return_val_if_fail(isValid(),true);
 
-	const unsigned char * c = (const unsigned char *) &(this->m_uuid);
+	const unsigned char * c = reinterpret_cast<const unsigned char *>( &(this->m_uuid));
 
 	for(UT_uint32 i = 0; i < sizeof(m_uuid); ++i, ++c)
 		if(*c != 0)
@@ -616,7 +616,7 @@ UT_uint32 UT_UUID::hash32() const
 	// significantly less collision prone on uuid's generated on the
 	// same machine and close in time
 	static UT_uint32 hval = 0x811c9dc5;
-    unsigned char *bp = (unsigned char *)&m_uuid;
+    unsigned char *bp = static_cast<unsigned char *>(&m_uuid);
 
 	for(UT_uint32 i = 0; i < sizeof(m_uuid); ++i)
 	{
@@ -624,15 +624,15 @@ UT_uint32 UT_UUID::hash32() const
 		hval *= 0x01000193;
 
 		/* xor the bottom with the current octet */
-		hval ^= (UT_uint32)*bp++;
+		hval ^= static_cast<UT_uint32>(*bp++);
     }
 
     /* return our new hash value */
     return hval;
 #else
 	// base on UT_String
-	const unsigned char * p = (const unsigned char *)& m_uuid;
-	UT_uint32 h = (UT_uint32)*p;
+	const unsigned char * p = reinterpret_cast<const unsigned char *>(& m_uuid);
+	UT_uint32 h = static_cast<UT_uint32>(*p);
 	
 	for (UT_uint32 i = 1; i < sizeof(m_uuid); ++i, ++p)
 	{
@@ -652,7 +652,7 @@ UT_uint64 UT_UUID::hash64() const
 #else
 	static UT_uint64 hval = 0xcbf29ce484222325LL; // value FNV1_64_INIT;
 #endif
-    unsigned char *bp = (unsigned char *) &m_uuid;
+    unsigned char *bp = static_cast<unsigned char *>( &m_uuid);
 
     /*
      * FNV-1 hash each octet of the buffer
@@ -666,15 +666,15 @@ UT_uint64 UT_UUID::hash64() const
 		hval *= 0x100000001b3LL;
 #endif
 		/* xor the bottom with the current octet */
-		hval ^= (UT_uint64)*bp++;
+		hval ^= static_cast<UT_uint64>(*bp++);
     }
 
     /* return our new hash value */
     return hval;
 #else
 	// base on UT_String
-	const unsigned char * p = (const unsigned char *)& m_uuid;
-	UT_uint64 h = (UT_uint64)*p;
+	const unsigned char * p = reinterpret_cast<const unsigned char *>(& m_uuid);
+	UT_uint64 h = static_cast<UT_uint64>(*p);
 	
 	for (UT_uint32 i = 1; i < sizeof(m_uuid); ++i, ++p)
 	{
@@ -737,31 +737,31 @@ UT_uint64 UT_UUIDGenerator::getNewUUID64()
 bool UT_UUID::_pack(const uuid &uu, uuid_t &u) const
 {
     UT_uint32   tmp;
-    unsigned char   *out = (unsigned char *)&u;
+    unsigned char   *out = static_cast<unsigned char *>(&u);
 
     tmp = uu.time_low;
-    out[3] = (unsigned char) tmp;
+    out[3] = static_cast<unsigned char>( tmp);
     tmp >>= 8;
-    out[2] = (unsigned char) tmp;
+    out[2] = static_cast<unsigned char>( tmp);
     tmp >>= 8;
-    out[1] = (unsigned char) tmp;
+    out[1] = static_cast<unsigned char>( tmp);
     tmp >>= 8;
-    out[0] = (unsigned char) tmp;
+    out[0] = static_cast<unsigned char>( tmp);
     
     tmp = uu.time_mid;
-    out[5] = (unsigned char) tmp;
+    out[5] = static_cast<unsigned char>( tmp);
     tmp >>= 8;
-    out[4] = (unsigned char) tmp;
+    out[4] = static_cast<unsigned char>( tmp);
 
     tmp = uu.time_high_and_version;
-    out[7] = (unsigned char) tmp;
+    out[7] = static_cast<unsigned char>( tmp);
     tmp >>= 8;
-    out[6] = (unsigned char) tmp;
+    out[6] = static_cast<unsigned char>( tmp);
 
     tmp = uu.clock_seq;
-    out[9] = (unsigned char) tmp;
+    out[9] = static_cast<unsigned char>( tmp);
     tmp >>= 8;
-    out[8] = (unsigned char) tmp;
+    out[8] = static_cast<unsigned char>( tmp);
 
     memcpy(out+10, uu.node, 6);
 
@@ -773,7 +773,7 @@ bool UT_UUID::_pack(const uuid &uu, uuid_t &u) const
 */
 bool UT_UUID::_unpack(const uuid_t &in, uuid &uu) const
 {
-    const unsigned char  *ptr = (const unsigned char*)&in;
+    const unsigned char  *ptr = static_cast<const unsigned char*>(&in);
     UT_uint32       tmp;
 
     tmp = *ptr++;

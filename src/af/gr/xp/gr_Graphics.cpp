@@ -346,7 +346,7 @@ void GR_Graphics::endDoubleBuffering(bool token)
 	if (m_DCSwitchManagementStack.empty()) return;
 
 	UT_sint32 topMostSwitch = m_DCSwitchManagementStack.top();
-	UT_ASSERT(topMostSwitch == (UT_sint32)SWITCHED_TO_BUFFER);
+	UT_ASSERT(topMostSwitch == static_cast<UT_sint32>(SWITCHED_TO_BUFFER));
 
 	_DeviceContext_SwitchToScreen();
 	m_DCSwitchManagementStack.pop();
@@ -371,7 +371,7 @@ void GR_Graphics::resumeDrawing(bool token)
 	if (m_DCSwitchManagementStack.empty()) return;
 
 	UT_sint32 topMostSwitch = m_DCSwitchManagementStack.top();
-	UT_ASSERT(topMostSwitch == (UT_sint32)DRAWING_SUSPENDED);
+	UT_ASSERT(topMostSwitch == static_cast<UT_sint32>(DRAWING_SUSPENDED));
 
 	// take action only if the caller has the good token
 	_DeviceContext_ResumeDrawing();
@@ -561,8 +561,8 @@ double GR_Graphics::tluD(double deviceUnits) const
 
 UT_sint32	GR_Graphics::ftlu(UT_sint32 fontUnits) const
 {
-	UT_sint32 itmp = fontUnits * (UT_sint32)getResolution();
-	return (itmp/ (UT_sint32)getDeviceResolution());
+	UT_sint32 itmp = fontUnits * static_cast<UT_sint32>(getResolution());
+	return (itmp/ static_cast<UT_sint32>(getDeviceResolution()));
 }
 
 double	GR_Graphics::ftluD(double fontUnits) const
@@ -1116,7 +1116,7 @@ bool GR_Graphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& pri)
 		pri->m_pGraphics = this;
 	}
 
-	GR_XPRenderInfo * pRI = (GR_XPRenderInfo *)pri;
+	GR_XPRenderInfo * pRI = static_cast<GR_XPRenderInfo *>(pri);
 
 	const GR_Font *pFont = si.m_pFont;
 	
@@ -1199,14 +1199,14 @@ void GR_Graphics::appendRenderedCharsToBuff(GR_RenderInfo & ri, UT_GrowBuf & buf
 {
 	UT_return_if_fail(ri.getType() == GRRI_XP);
 	
-	GR_XPRenderInfo & RI = (GR_XPRenderInfo &) ri;
+	GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>( ri);
 	buf.append(reinterpret_cast<UT_GrowBufElement *>(RI.m_pChars),RI.m_iLength);
 }
 
 UT_sint32 GR_Graphics::getTextWidth(GR_RenderInfo & ri)
 {
 	UT_return_val_if_fail(ri.getType() == GRRI_XP, 0);
-	GR_XPRenderInfo & RI = (GR_XPRenderInfo &) ri;
+	GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>( ri);
 
 	// NB: the width array is in VISUAL order, but offset is a logical offset
 	bool bReverse = (ri.m_iVisDir == UT_BIDI_RTL);
@@ -1238,7 +1238,7 @@ UT_sint32 GR_Graphics::getTextWidth(GR_RenderInfo & ri)
 void GR_Graphics::measureRenderedCharWidths(GR_RenderInfo & ri) 
 {
 	UT_return_if_fail(ri.getType() == GRRI_XP);
-	GR_XPRenderInfo & RI = (GR_XPRenderInfo &) ri;
+	GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>( ri);
 	UT_return_if_fail(RI.m_pWidths);
 	
 	//bool bReverse = (RI.m_iVisDir == UT_BIDI_RTL);
@@ -1295,7 +1295,7 @@ void GR_Graphics::measureRenderedCharWidths(GR_RenderInfo & ri)
 void GR_Graphics::prepareToRenderChars(GR_RenderInfo & ri)
 {
 	UT_return_if_fail(ri.getType() == GRRI_XP);
-	GR_XPRenderInfo & RI = (GR_XPRenderInfo &)ri;
+	GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>(ri);
 	RI.prepareToRenderChars();
 }
 
@@ -1309,7 +1309,7 @@ void GR_Graphics::prepareToRenderChars(GR_RenderInfo & ri)
 void GR_Graphics::renderChars(GR_RenderInfo & ri)
 {
 	UT_return_if_fail(ri.getType() == GRRI_XP);
-	GR_XPRenderInfo & RI = (GR_XPRenderInfo &)ri;
+	GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>(ri);
 
 	drawChars(RI.s_pCharBuff,RI.m_iOffset,RI.m_iLength,RI.m_xoff,RI.m_yoff,RI.s_pAdvances);
 
@@ -1398,7 +1398,7 @@ bool GR_Graphics::canBreak(GR_RenderInfo & ri, UT_sint32 &iNext, bool bAfter)
 UT_sint32 GR_Graphics::resetJustification(GR_RenderInfo & ri, bool /* bPermanent*/)
 {
 	UT_return_val_if_fail(ri.getType() == GRRI_XP, 0);
-	GR_XPRenderInfo & RI = (GR_XPRenderInfo &)ri;
+	GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>(ri);
 
 	UT_return_val_if_fail(RI.m_pChars && RI.m_pWidths, 0);
 	
@@ -1455,7 +1455,7 @@ UT_sint32 GR_Graphics::countJustificationPoints(const GR_RenderInfo & ri) const
 	UT_sint32 iCount = 0;
 	bool bNonBlank = false;
 
-	for(UT_sint32 i = (UT_sint32)RI.m_iLength-1; i >= 0; --i)
+	for(UT_sint32 i = static_cast<UT_sint32>(RI.m_iLength)-1; i >= 0; --i)
 	{
 		if(RI.m_pChars[i] != UCS_SPACE)
 		{
@@ -1631,7 +1631,7 @@ bool GR_GraphicsFactory::registerClass(GR_Allocator allocator, GR_Descriptor des
 	
 	m_vAllocators.addItem(allocator);
 	m_vDescriptors.addItem(descriptor);
-	m_vClassIds.addItem((UT_sint32)iClassId);
+	m_vClassIds.addItem(static_cast<UT_sint32>(iClassId));
 
 	return true;
 }
@@ -1759,7 +1759,7 @@ GR_Graphics* GR_Graphics::newNullGraphics()
 	// todo: support other platforms when possible
 
 	GR_CairoNullGraphicsAllocInfo ai;
-	return XAP_App::getApp()->newGraphics(GRID_CAIRO_NULL, (GR_AllocInfo&)ai);
+	return XAP_App::getApp()->newGraphics(GRID_CAIRO_NULL, static_cast<GR_AllocInfo&>(ai));
 
 	return nullptr;
 }

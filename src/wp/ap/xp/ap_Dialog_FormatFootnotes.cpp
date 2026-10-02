@@ -47,7 +47,7 @@ AP_Dialog_FormatFootnotes::tAnswer AP_Dialog_FormatFootnotes::getAnswer(void) co
 void  AP_Dialog_FormatFootnotes::setFrame(XAP_Frame * pFrame)
 {
 	m_pFrame = pFrame;
-	m_pView = (FV_View *) pFrame->getCurrentView();
+	m_pView = static_cast<FV_View *>( pFrame->getCurrentView());
 	m_pDocLayout = m_pView->getLayout();
 	m_pDoc = m_pView->getDocument();
 }

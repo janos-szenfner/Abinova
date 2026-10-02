@@ -1196,7 +1196,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             int len = strlen(pValue);
 
             if((len > 1) && (pValue[len - 1] == '+')) {
-               gchar* temp = (gchar*)pValue;
+               gchar* temp = const_cast<gchar*>(pValue);
                temp[len-1] = '\0';
                m_lineHeightAtLeast = UT_UTF8String_sprintf("%fin", UT_convertToDimension(temp, DIM_IN));
                m_lineHeight.clear(); // make sure this is empty
@@ -1475,7 +1475,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
             
             // style:position
             UT_LocaleTransactor t(LC_NUMERIC, "C");
-            double pos = (double)pTabStop->getPosition() / UT_LAYOUT_RESOLUTION;
+            double pos = static_cast<double>(pTabStop->getPosition() )/ UT_LAYOUT_RESOLUTION;
             tabStop.m_position = UT_UTF8String_sprintf("%fin", pos);
 
             // style:leader-style & style:leader-text

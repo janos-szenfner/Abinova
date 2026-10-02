@@ -735,7 +735,7 @@ void FV_FrameEdit::mouseLeftPress(UT_sint32 x, UT_sint32 y)
 	if(!isActive())
 	{
 		setDragType(x,y,true);
-		UT_DEBUGMSG(("Was not active now %d FrameLayout %p \n", getFrameEditMode(), (void*)getFrameLayout()));
+		UT_DEBUGMSG(("Was not active now %d FrameLayout %p \n", getFrameEditMode(), static_cast<void*>(getFrameLayout())));
 		return;
 	}
 //
@@ -898,7 +898,7 @@ bool FV_FrameEdit::getFrameStrings(UT_sint32 x, UT_sint32 y,
 		(pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_SHADOW) ||
 		(pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_HDRFTR)))
 		{
-		    UT_DEBUGMSG(("Skipping Block %p \n", (void*)pBL));
+		    UT_DEBUGMSG(("Skipping Block %p \n", static_cast<void*>(pBL)));
 		    pPrevBL = pBL;
 		    pBL = pBL->getPrevBlockInDocument();
 		}
@@ -1369,7 +1369,7 @@ const char * FV_FrameEdit::getPNGImage(UT_ConstByteBufPtr & pByteBuf)
       m_pFrameLayout->getAP(pSectionAP);
       
       const char * pszDataID = nullptr;
-      pSectionAP->getAttribute(PT_STRUX_IMAGE_DATAID, (const gchar *&)pszDataID);
+      pSectionAP->getAttribute(PT_STRUX_IMAGE_DATAID, static_cast<const gchar *&>(pszDataID));
       if(!pszDataID)
       {
 		pByteBuf.reset();

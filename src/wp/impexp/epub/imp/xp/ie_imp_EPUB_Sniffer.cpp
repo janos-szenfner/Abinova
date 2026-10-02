@@ -73,7 +73,7 @@ UT_Confidence_t IE_Imp_EPUB_Sniffer::recognizeContents(GsfInput * input)
             if (size > 0)
             {
                 UT_DEBUGMSG(("Reading 'mimetype' file contents\n"));
-                gchar* pMime = (gchar*) gsf_input_read(mimetype, size, NULL);
+                gchar* pMime = const_cast<gchar*>(reinterpret_cast<const gchar*>( gsf_input_read(mimetype, size, NULL)));
                 UT_UTF8String mimeStr;
                 if (pMime)
                     mimeStr.append(pMime, size);

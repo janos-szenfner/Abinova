@@ -262,7 +262,7 @@ size_t UT_String_findCh(const UT_String &st, char ch)
   for (size_t i = 0 ; i < st.size(); i++)
     if (st[i] == ch)
       return i;
-  return (size_t)-1;
+  return static_cast<size_t>(-1);
 }
 
 size_t UT_String_findRCh(const UT_String &st, char ch)
@@ -270,7 +270,7 @@ size_t UT_String_findRCh(const UT_String &st, char ch)
   for (size_t i = st.size() ; i > 0; i--)
     if (st[i] == ch)
       return i;
-  return (size_t)-1;
+  return static_cast<size_t>(-1);
 }
 
 UT_String& UT_String_vprintf (UT_String & inStr, const char *format,
@@ -615,7 +615,7 @@ UT_uint32 hashcode(const char *p)
 {
 	// from glib
 	UT_return_val_if_fail(p,0);
-	UT_uint32 h = (UT_uint32)*p;
+	UT_uint32 h = static_cast<UT_uint32>(*p);
 	
 	if (h)
 	{

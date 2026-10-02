@@ -928,7 +928,7 @@ bool UT_Multipart::append_Base64 (const char * buffer, UT_uint32 length)
 			bool bEnd = (c == '=');
 
 			unsigned char u = static_cast<unsigned char>(c);
-			if (isspace ((int) u)) continue;
+			if (isspace (static_cast<int>( u))) continue;
 
 			m_b64buffer[m_b64length++] = c;
 

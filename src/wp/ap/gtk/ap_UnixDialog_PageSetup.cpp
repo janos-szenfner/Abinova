@@ -101,7 +101,7 @@ static void s_Landscape_changed(GtkWidget * w,  AP_UnixDialog_PageSetup *dlg)
 static void s_page_size_changed (GtkWidget * w, AP_UnixDialog_PageSetup *dlg)
 {
 	UT_return_if_fail(w && dlg);
-	fp_PageSize::Predefined pos = (fp_PageSize::Predefined)gtk_combo_box_get_active(GTK_COMBO_BOX(w));
+	fp_PageSize::Predefined pos = static_cast<fp_PageSize::Predefined>(gtk_combo_box_get_active(GTK_COMBO_BOX(w)));
 	dlg->event_PageSizeChanged (pos);
 }
 
@@ -379,7 +379,7 @@ void AP_UnixDialog_PageSetup::event_PageSizeChanged (fp_PageSize::Predefined pd)
   }
   else
   {																	
-	  UT_Dimension dim = (UT_Dimension)XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_optionPageUnits));
+	  UT_Dimension dim = static_cast<UT_Dimension>(XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_optionPageUnits)));
 	  ps.Set(atof(XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryPageWidth))),
 			 atof(XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryPageHeight))),
 			 dim);
@@ -388,7 +388,7 @@ void AP_UnixDialog_PageSetup::event_PageSizeChanged (fp_PageSize::Predefined pd)
 
 void AP_UnixDialog_PageSetup::event_MarginUnitsChanged (void)
 {
-	UT_Dimension mu =  (UT_Dimension)XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_optionMarginUnits));
+	UT_Dimension mu =  static_cast<UT_Dimension>(XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_optionMarginUnits)));
 
 	float top, bottom, left, right, header, footer;
 
@@ -594,7 +594,7 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 	{
 		gtk_list_store_append(pagesize_store, &pagesize_iter);
 		gtk_list_store_set(pagesize_store, &pagesize_iter,
-					0, pSS->getValue(fp_PageSize::PredefinedToLocalName((fp_PageSize::Predefined) i)),
+					0, pSS->getValue(fp_PageSize::PredefinedToLocalName(static_cast<fp_PageSize::Predefined>( i))),
 					1, this,
 					-1);
 	}

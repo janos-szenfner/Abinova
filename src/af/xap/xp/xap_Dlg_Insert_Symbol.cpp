@@ -131,7 +131,7 @@ void XAP_Dialog_Insert_Symbol::_onInsertButton()
 	// get the character to be inserted
 	UT_UCS4Char c = getInsertedSymbol();
 	// get the font of the symbol to be inserted
-	gchar * symfont = (gchar *) getInsertedFont();
+	gchar * symfont = static_cast<gchar *>( getInsertedFont());
 	// do the actual insert
 	_insert(c, const_cast<const gchar*>(symfont));
 }
@@ -176,7 +176,7 @@ void  XAP_Dialog_Insert_Symbol::ConstructWindowName()
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_Insert_SymbolTitle,sTitle);
 
 	UT_XML_cloneNoAmpersands(tmp, sTitle.c_str());
-        BuildWindowName((char *) m_WindowName,(char*)tmp,sizeof(m_WindowName));
+        BuildWindowName(static_cast<char *>( m_WindowName),static_cast<char*>(tmp),sizeof(m_WindowName));
         FREEP(tmp);
 }
 

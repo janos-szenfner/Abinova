@@ -154,8 +154,8 @@ void GR_RSVGVectorImage::reset()
 void GR_RSVGVectorImage::setupScale(UT_sint32 w, UT_sint32 h) {
 	setDisplaySize(w, h);
 	
-	m_scaleX = (double)w / m_size.width;
-	m_scaleY = (double)h / m_size.height;
+	m_scaleX = static_cast<double>(w )/ m_size.width;
+	m_scaleY = static_cast<double>(h )/ m_size.height;
 	
 	m_needsNewSurface = true;
 }
@@ -163,7 +163,7 @@ void GR_RSVGVectorImage::setupScale(UT_sint32 w, UT_sint32 h) {
 void GR_RSVGVectorImage::renderToSurface(cairo_surface_t* surf) {
 	cairo_t* cr = cairo_create(surf);
 	cairo_scale(cr, m_scaleX, m_scaleY);
-	RsvgRectangle rect = { 0, 0, (double)m_size.width, (double)m_size.height };
+	RsvgRectangle rect = { 0, 0, static_cast<double>(m_size.width), static_cast<double>(m_size.height )};
 	rsvg_handle_render_document(m_svg, cr, &rect, nullptr);
 	//
 	// Setup Raster Image too
@@ -178,7 +178,7 @@ void GR_RSVGVectorImage::renderToSurface(cairo_surface_t* surf) {
 
 void GR_RSVGVectorImage::renderToCairo(cairo_t* cr) {
 	cairo_scale(cr, m_scaleX, m_scaleY);
-	RsvgRectangle rect = { 0, 0, (double)m_size.width, (double)m_size.height };
+	RsvgRectangle rect = { 0, 0, static_cast<double>(m_size.width), static_cast<double>(m_size.height )};
 	rsvg_handle_render_document(m_svg, cr, &rect, nullptr);
 	cairo_new_path(cr);
 }

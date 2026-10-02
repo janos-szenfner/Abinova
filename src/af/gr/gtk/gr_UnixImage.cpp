@@ -66,8 +66,8 @@ void GR_UnixCroppedImage::cairoSetSource(cairo_t *cr)
 	double w, h;
 	w = gdk_pixbuf_get_width(image);
 	h = gdk_pixbuf_get_height(image);
-	double scaleX = (double)getDisplayWidth() / w / (1 - m_CropLeft - m_CropRight);
-	double scaleY = (double)getDisplayHeight() / h / (1 - m_CropTop - m_CropBottom);
+	double scaleX = static_cast<double>(getDisplayWidth() )/ w / (1 - m_CropLeft - m_CropRight);
+	double scaleY = static_cast<double>(getDisplayHeight() )/ h / (1 - m_CropTop - m_CropBottom);
 	cairo_scale(cr, scaleX, scaleY);
 	cairo_rectangle(cr, 0., 0.,
 	                (1 - m_CropLeft - m_CropRight) * w,
@@ -171,10 +171,10 @@ GR_UnixImage *GR_UnixImage::makeSubimage(const std::string & name,
 	}
 	pImage->setDisplaySize (getDisplayWidth(), getDisplayHeight());
 
-	pImage->crop((double)x / (double)getDisplayWidth(),
-	             (double)y / (double)getDisplayHeight(),
-	             1. - ((double)x + width) / getDisplayWidth(),
-	             1. - ((double)y + height) / getDisplayHeight());
+	pImage->crop(static_cast<double>(x )/ static_cast<double>(getDisplayWidth()),
+	             static_cast<double>(y )/ static_cast<double>(getDisplayHeight()),
+	             1. - (static_cast<double>(x )+ width) / getDisplayWidth(),
+	             1. - (static_cast<double>(y )+ height) / getDisplayHeight());
     return pImage;
 }
 
@@ -487,13 +487,13 @@ void GR_UnixImage::applyBlipEffects(const GR_BlipEffects & fx)
 				b = lo_b + (hi_b - lo_b) * t;
 			}
 
-			p[0] = r < 0.0 ? 0 : (r > 255.0 ? 255 : (guchar)(r + 0.5));
-			p[1] = g < 0.0 ? 0 : (g > 255.0 ? 255 : (guchar)(g + 0.5));
-			p[2] = b < 0.0 ? 0 : (b > 255.0 ? 255 : (guchar)(b + 0.5));
+			p[0] = r < 0.0 ? 0 : (r > 255.0 ? 255 : static_cast<guchar>((r + 0.5)));
+			p[1] = g < 0.0 ? 0 : (g > 255.0 ? 255 : static_cast<guchar>((g + 0.5)));
+			p[2] = b < 0.0 ? 0 : (b > 255.0 ? 255 : static_cast<guchar>((b + 0.5)));
 			if (hasAlpha && fx.alphaMod >= 0.0)
 			{
 				double a = p[3] * fx.alphaMod;
-				p[3] = a < 0.0 ? 0 : (a > 255.0 ? 255 : (guchar)(a + 0.5));
+				p[3] = a < 0.0 ? 0 : (a > 255.0 ? 255 : static_cast<guchar>((a + 0.5)));
 			}
 		}
 	}
@@ -502,8 +502,8 @@ void GR_UnixImage::applyBlipEffects(const GR_BlipEffects & fx)
 void GR_UnixImage::cairoSetSource(cairo_t * cr)
 {
 	UT_return_if_fail(m_image);
-	double scaleX = (double)getDisplayWidth() / (double)gdk_pixbuf_get_width (m_image);
-	double scaleY = (double)getDisplayHeight() / (double)gdk_pixbuf_get_height(m_image);
+	double scaleX = static_cast<double>(getDisplayWidth() )/ static_cast<double>(gdk_pixbuf_get_width (m_image));
+	double scaleY = static_cast<double>(getDisplayHeight() )/ static_cast<double>(gdk_pixbuf_get_height(m_image));
 	cairo_scale(cr, scaleX, scaleY);
 	gdk_cairo_set_source_pixbuf(cr, m_image, 0, 0);
 }

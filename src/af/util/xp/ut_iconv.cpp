@@ -173,7 +173,7 @@ static void s_internal_init ()
 			char * optr = reinterpret_cast<char *>(obuf);
 			size_t olen = 2;
 
-			bool success = ((size_t)(-1) != UT_iconv (handle, &iptr, &ilen, &optr, &olen));
+			bool success = (static_cast<size_t>((-1) )!= UT_iconv (handle, &iptr, &ilen, &optr, &olen));
 
 			UT_iconv_close (handle);
 			handle = UT_ICONV_INVALID;
@@ -210,7 +210,7 @@ static void s_internal_init ()
 			char * optr = reinterpret_cast<char *>(&obuf);
 			size_t olen = 4;
 
-			bool success = ((size_t)(-1) != UT_iconv (handle, &iptr, &ilen, &optr, &olen));
+			bool success = (static_cast<size_t>((-1) )!= UT_iconv (handle, &iptr, &ilen, &optr, &olen));
 
 			UT_iconv_close (handle);
 			handle = UT_ICONV_INVALID;
@@ -285,7 +285,7 @@ int UT_iconv_isValid ( UT_iconv_t cd )
 UT_iconv_t  UT_iconv_open( const char* to, const char* from )
 {
   if ( to && from )
-	  return (UT_iconv_t)g_iconv_open(to, from);
+	  return static_cast<UT_iconv_t>(g_iconv_open(to, from));
 
   return UT_ICONV_INVALID;
 }
@@ -300,15 +300,15 @@ size_t UT_iconv( UT_iconv_t cd, const char **inbuf,
   //    while some (newer, conformant ones) do
 
   if ( !UT_iconv_isValid ( cd ) )
-    return (size_t)-1;
+    return static_cast<size_t>(-1);
 
-  return g_iconv((GIConv)cd, (char **)inbuf, inbytesleft, outbuf, outbytesleft);
+  return g_iconv(const_cast<GIConv>(static_cast<const GIConv>(static_cast<const GIConv>(cd))), const_cast<char **>(inbuf), inbytesleft, outbuf, outbytesleft);
 }
 
 int  UT_iconv_close( UT_iconv_t cd )
 {
   if ( UT_iconv_isValid ( cd ) )
-    return g_iconv_close( (GIConv) cd );
+    return g_iconv_close( static_cast<GIConv>( cd ));
 
   return -1;
 }
@@ -367,7 +367,7 @@ char * UT_convert_cd(const char *str,
 		     UT_uint32 *bytes_written_arg)
 {
 	gsize _bytes_read = 0, _bytes_written = 0;
-	char* result = g_convert_with_iconv(str, len, (GIConv)cd, &_bytes_read, &_bytes_written, nullptr);
+	char* result = g_convert_with_iconv(str, len, static_cast<GIConv>(cd), &_bytes_read, &_bytes_written, nullptr);
 
 	if (bytes_read_arg) *bytes_read_arg = _bytes_read;
 	if (bytes_written_arg) *bytes_written_arg = _bytes_written;

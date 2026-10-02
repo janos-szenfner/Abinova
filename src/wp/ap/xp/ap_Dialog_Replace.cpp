@@ -109,7 +109,7 @@ bool AP_Dialog_Replace::setView(AV_View * view)
 	// outline view, etc.
 	UT_return_val_if_fail (view, false);
 
-	m_pFrame = (XAP_Frame *) getActiveFrame();
+	m_pFrame = static_cast<XAP_Frame *>( getActiveFrame());
 	UT_return_val_if_fail (m_pFrame, false);
 	
 	m_pView = static_cast<FV_View *>(getActiveFrame()->getCurrentView());
@@ -137,7 +137,7 @@ void  AP_Dialog_Replace::ConstructWindowName(void)
 	// conditionally set title
 	std::string s;
 	
-	if (m_id == (XAP_Dialog_Id)AP_DIALOG_ID_FIND)
+	if (m_id == static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_FIND))
 	{
 		pSS->getValueUTF8(AP_STRING_ID_DLG_FR_FindTitle,s);
 		UT_XML_cloneNoAmpersands(tmp, s.c_str());
@@ -147,7 +147,7 @@ void  AP_Dialog_Replace::ConstructWindowName(void)
 		pSS->getValueUTF8(AP_STRING_ID_DLG_FR_ReplaceTitle,s);
 		UT_XML_cloneNoAmpersands(tmp, s.c_str());	
 	}
-	BuildWindowName((char *) m_WindowName,(char*)tmp,sizeof(m_WindowName));
+	BuildWindowName(static_cast<char *>( m_WindowName),static_cast<char*>(tmp),sizeof(m_WindowName));
 	FREEP(tmp);
 }
 

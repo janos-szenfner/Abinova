@@ -246,7 +246,7 @@ static char * s_stripDangerousChars(const char *s)
 	if(!s)
 		return nullptr;
 	
-	char * t = (char*) g_try_malloc(strlen(s)+1);
+	char * t = static_cast<char*>( g_try_malloc(strlen(s)+1));
 	UT_return_val_if_fail(t,nullptr);
 	
 	for(j = 0, k = 0; j < strlen(s); )
@@ -641,7 +641,7 @@ s_mapDocToAbiListDelim (const UT_uint16 * pStr, UT_uint32 iLen,
 	if (!pStr)
 		iLen = 0;
 
-	for (i = 0; i < (UT_sint32)iLen; i++)
+	for (i = 0; i < static_cast<UT_sint32>(iLen); i++)
 	{
 		if (pStr[i] <= 8)
 			ph.push_back(i);   /* placeholder: value is the level */
@@ -651,7 +651,7 @@ s_mapDocToAbiListDelim (const UT_uint16 * pStr, UT_uint32 iLen,
 	{
 		/* pure literal text (a bullet glyph, or a static label);
 		   keep it as the delim prefix */
-		for (i = 0; i < (UT_sint32)iLen; i++)
+		for (i = 0; i < static_cast<UT_sint32>(iLen); i++)
 		{
 			UT_UCS4Char c = pStr[i];
 			sPfx.appendUCS4(&c, 1);
@@ -664,7 +664,7 @@ s_mapDocToAbiListDelim (const UT_uint16 * pStr, UT_uint32 iLen,
 	/* our own placeholder: the first one whose value is this level,
 	   falling back to the last placeholder for corrupt level text */
 	UT_sint32 iOwn = -1;
-	for (i = 0; i < (UT_sint32)ph.size(); i++)
+	for (i = 0; i < static_cast<UT_sint32>(ph.size()); i++)
 	{
 		if (pStr[ph[i]] == iLvl)
 		{
@@ -673,11 +673,11 @@ s_mapDocToAbiListDelim (const UT_uint16 * pStr, UT_uint32 iLen,
 		}
 	}
 	if (iOwn < 0)
-		iOwn = (UT_sint32)ph.size() - 1;
+		iOwn = static_cast<UT_sint32>(ph.size() )- 1;
 
 	UT_sint32 ownPos = ph[iOwn];
-	UT_sint32 nextPos = (iOwn + 1 < (UT_sint32)ph.size())
-		? ph[iOwn + 1] : (UT_sint32)iLen;
+	UT_sint32 nextPos = (iOwn + 1 < static_cast<UT_sint32>(ph.size()))
+		? ph[iOwn + 1] : static_cast<UT_sint32>(iLen);
 
 	if (iOwn > 0)
 	{
@@ -1090,7 +1090,7 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
       pFrame->raise ();
 
       XAP_DialogFactory * pDialogFactory
-		  = (XAP_DialogFactory *)(pFrame->getDialogFactory());
+		  = static_cast<XAP_DialogFactory *>((pFrame->getDialogFactory()));
 
       XAP_Dialog_Password * pDlg = static_cast<XAP_Dialog_Password*>(pDialogFactory->requestDialog(XAP_DIALOG_ID_PASSWORD));
       UT_return_val_if_fail(pDlg, password);
@@ -1198,7 +1198,7 @@ cb_print_property (char const *name, GsfDocProp const *prop, DocAndLid * doc)
 {
   GValue const *val = gsf_doc_prop_get_val  (prop);
 
-  if (! VAL_IS_GSF_DOCPROP_VECTOR ((GValue *)val)) {
+  if (! VAL_IS_GSF_DOCPROP_VECTOR (const_cast<GValue *>(static_cast<const GValue*>(val)))) {
 
 	  // just scan over the table. consider optimizing if we really care to.
 	  for(gsize i = 0; i < nr_metadata_names; i++) {
@@ -1222,7 +1222,7 @@ cb_print_property (char const *name, GsfDocProp const *prop, DocAndLid * doc)
 						  
 						  if (encoding && *encoding)
 							  {
-								  tmp = g_convert_with_fallback(contents, -1, (gchar*)"UTF-8", encoding, (gchar*)"?", nullptr, nullptr, nullptr);
+								  tmp = g_convert_with_fallback(contents, -1, static_cast<gchar*>("UTF-8"), encoding, static_cast<gchar*>("?"), nullptr, nullptr, nullptr);
 							  }
 						  else
 							  {
@@ -1277,7 +1277,7 @@ static void print_summary_stream (GsfInfile * msole,
 		dil.doc = doc;
 		dil.lid = lid;
 		gsf_doc_meta_data_foreach (meta_data,
-								   (GHFunc) cb_print_property, &dil);
+								   reinterpret_cast<GHFunc>( cb_print_property), &dil);
     }
 
     g_object_unref (meta_data);
@@ -1401,7 +1401,7 @@ void IE_Imp_MsWord_97::_flush ()
 
   pf_Frag * pF = getDoc()->getLastFrag();
   if (pF && pF->getType() == pf_Frag::PFT_Strux) {
-	  pf_Frag_Strux * pFS = (pf_Frag_Strux*)pF;
+	  pf_Frag_Strux * pFS = static_cast<pf_Frag_Strux*>(pF);
 	  if ((pFS->getStruxType() != PTX_Block) && (pFS->getStruxType() != PTX_EndFootnote) && (pFS->getStruxType() != PTX_EndEndnote) && (pFS->getStruxType() != PTX_EndAnnotation))
 		  m_bInPara = false;
   }
@@ -2299,7 +2299,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 				{
 					for (i = 0; i < item.dgcontainer.no_spcontainer; i++)
 					{
-						if(item.dgcontainer.spcontainer[i].fsp.spid == (U32) fspa->spid)
+						if(item.dgcontainer.spcontainer[i].fsp.spid == static_cast<U32>( fspa->spid))
 						{
 							answer = &item.dgcontainer.spcontainer[i];
 							break;
@@ -2947,8 +2947,8 @@ int IE_Imp_MsWord_97::_beginSect (wvParseStruct * ps, UT_uint32 /*tag*/,
 				double w = PageSize.Width(DIM_IN) * 1440.0;
 				double h = PageSize.Height(DIM_IN) * 1440.0;
 
-				UT_uint32 iPaperW10 = ((UT_uint32) w)/10 + (((UT_uint32) w)%10 >= 5 ? 1 : 0);
-				UT_uint32 iPaperH10 = ((UT_uint32) h)/10 + (((UT_uint32) h)%10 >= 5 ? 1 : 0);
+				UT_uint32 iPaperW10 = (static_cast<UT_uint32>( w))/10 + ((static_cast<UT_uint32>( w))%10 >= 5 ? 1 : 0);
+				UT_uint32 iPaperH10 = (static_cast<UT_uint32>( h))/10 + ((static_cast<UT_uint32>( h))%10 >= 5 ? 1 : 0);
 
 				UT_uint32 iPageW10 = asep->xaPage/10 + (asep->xaPage%10 >= 5 ? 1 : 0);
 				UT_uint32 iPageH10 = asep->yaPage/10 + (asep->yaPage%10 >= 5 ? 1 : 0);
@@ -3764,10 +3764,10 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		// increment splits sibling segments.  The old additive scheme
 		// let e.g. lsid+fmt1+ilvl1+inc1 alias lsid+fmt2+ilvl2+inc2.
 		UT_uint64 myListKey =
-			((UT_uint64)apap->linfo.id << 32)
-			| ((UT_uint64)(apap->ilfo & 0x7ff) << 21)
-			| ((UT_uint64)(apap->ilvl & 0xf) << 17)
-			| ((UT_uint64)(m_iListIdIncrement[apap->ilvl] & 0x1ff) << 8)
+			(static_cast<UT_uint64>(apap->linfo.id )<< 32)
+			| (static_cast<UT_uint64>((apap->ilfo & 0x7ff) )<< 21)
+			| (static_cast<UT_uint64>((apap->ilvl & 0xf) )<< 17)
+			| (static_cast<UT_uint64>((m_iListIdIncrement[apap->ilvl] & 0x1ff) )<< 8)
 			| (apap->linfo.format & 0xff);
 
 		// see if this id is already in our map
@@ -3792,7 +3792,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		UT_uint32 myParentID = 0;
 		for(UT_sint32 n = m_vLists.getItemCount(); n > 0; n--)
 		{
-			ListIdLevelPair * llp = (ListIdLevelPair *)(m_vLists.getNthItem(n - 1));
+			ListIdLevelPair * llp = const_cast<ListIdLevelPair *>(static_cast<const ListIdLevelPair*>((m_vLists.getNthItem(n - 1))));
 			UT_nonnull_or_continue(llp);
 			if(llp->level < apap->ilvl)
 			{
@@ -6536,7 +6536,7 @@ void IE_Imp_MsWord_97::_generateCharProps(UT_String &s, const CHP * achp, wvPars
 	// I have seen a bidi doc that had hpsBidi == 0, and the actual size in hps
 	U16 hps = (achp->fBidi &&  achp->hpsBidi ? achp->hpsBidi : achp->hps);
 	UT_String_sprintf(propBuffer,
-					  "font-size:%dpt;", (int)(hps/2));
+					  "font-size:%dpt;", static_cast<int>((hps/2)));
 	s += propBuffer;
 
 	// font family
@@ -7120,7 +7120,7 @@ void IE_Imp_MsWord_97::_handleStyleSheet(const wvParseStruct *ps)
 		wvParseStruct * PS = const_cast<wvParseStruct *>(ps);
 		
 		CHP achp;
-		wvInitCHPFromIstd(&achp, (U16)i, &(PS->stsh));
+		wvInitCHPFromIstd(&achp, static_cast<U16>(i), &(PS->stsh));
 		_generateCharProps(props,&achp,PS);
 
 		if(props.size())
@@ -7129,7 +7129,7 @@ void IE_Imp_MsWord_97::_handleStyleSheet(const wvParseStruct *ps)
 		}
 		
 		PAP apap;
-		wvInitPAPFromIstd (&apap, (U16)i, &(PS->stsh));
+		wvInitPAPFromIstd (&apap, static_cast<U16>(i), &(PS->stsh));
 		_generateParaProps(props,&apap,PS);
 
 		// remove trailing semicolon
@@ -7661,7 +7661,7 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 	}
 
 	UT_DEBUGMSG(("DOM: %u hyperlink properties, linkbase '%s'\n",
-				 (unsigned)m_vecHyperlinks.size(), m_sLinkBase.c_str()));
+				 static_cast<unsigned>(m_vecHyperlinks.size()), m_sLinkBase.c_str()));
 	goto out;
 fail:
 	m_vecHyperlinks.clear();
@@ -8506,9 +8506,9 @@ void IE_Imp_MsWord_97::_handleAnnotations(const wvParseStruct *ps)
 				// ATNBE: bmc (2) + lTag (4) + lTagOld (4)
 				if(atnbkmk.extradatalen < 6 || !atnbkmk.extradata[j])
 					continue;
-				S32 lTag = (S32) sread_32ubit(atnbkmk.extradata[j] + 2);
+				S32 lTag = static_cast<S32>( sread_32ubit(atnbkmk.extradata[j] + 2));
 				if(lTag == atrd[i].lTagBkmk && j < nbkf &&
-				   bkf[j].ibkl >= 0 && (U32) bkf[j].ibkl < nbkl)
+				   bkf[j].ibkl >= 0 && static_cast<U32>( bkf[j].ibkl )< nbkl)
 				{
 					a.anchor_first = posBKF[j];
 					a.anchor_last  = posBKL[bkf[j].ibkl];
@@ -8525,7 +8525,7 @@ void IE_Imp_MsWord_97::_handleAnnotations(const wvParseStruct *ps)
 			a.anchor_last = a.ref_pos;
 
 		// author name: ATRD.ibst indexes the GrpXstAtnOwners XSTs
-		if(atrd[i].ibst >= 0 && (U32) atrd[i].ibst < owners.nostrings &&
+		if(atrd[i].ibst >= 0 && static_cast<U32>( atrd[i].ibst )< owners.nostrings &&
 		   owners.u16strings && owners.u16strings[atrd[i].ibst])
 		{
 			UT_UTF8String s;
@@ -8959,7 +8959,7 @@ bool IE_Imp_MsWord_97::_findNextFNoteSection()
 	
 
 	m_pNotesEndSection = getDoc()->findFragOfType(pf_Frag::PFT_Strux,
-												  (UT_sint32)PTX_EndFootnote,
+												  static_cast<UT_sint32>(PTX_EndFootnote),
 												  m_pNotesEndSection);
 
 	if(!m_pNotesEndSection)
@@ -9017,7 +9017,7 @@ bool IE_Imp_MsWord_97::_findNextENoteSection()
 	}
 
 	m_pNotesEndSection = getDoc()->findFragOfType(pf_Frag::PFT_Strux,
-												  (UT_sint32)PTX_EndEndnote,
+												  static_cast<UT_sint32>(PTX_EndEndnote),
 												  m_pNotesEndSection);
 
 	if(!m_pNotesEndSection)
@@ -9193,7 +9193,7 @@ bool IE_Imp_MsWord_97::_appendStruxHdrFtr(PTStruxType pts, const PP_PropertyVect
 	bool bRet = true;
 	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.getItemCount(); i++)
 	{
-		pf_Frag * pF = (pf_Frag*) m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i);
+		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i)));
 		UT_return_val_if_fail(pF,false);
 		UT_DEBUGMSG(("Inserting strux of type %d in Dirivative HdrFtr \n",pts));
 
@@ -9222,7 +9222,7 @@ bool IE_Imp_MsWord_97::_appendObjectHdrFtr(PTObjectType pto, const PP_PropertyVe
 
 	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.getItemCount(); i++)
 	{
-		pf_Frag * pF = (pf_Frag*) m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i);
+		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i)));
 		UT_return_val_if_fail(pF,false);
 		if(!m_bInPara)
 		{
@@ -9247,7 +9247,7 @@ bool IE_Imp_MsWord_97::_appendSpanHdrFtr(const UT_UCS4Char * p, UT_uint32 length
 	bool bRet = true;
 	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.getItemCount(); i++)
 	{
-		pf_Frag * pF = (pf_Frag*) m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i);
+		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i)));
 		UT_return_val_if_fail(pF,false);
 		if(!m_bInPara)
 		{
@@ -9454,7 +9454,7 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 						// inserted again when we reach its position
 
 						m_pHeaders[i].bDerivative = true;
-						m_pHeaders[k].d.hdr.addItem((void*)(m_pHeaders+i));
+						m_pHeaders[k].d.hdr.addItem(static_cast<void*>((m_pHeaders+i)));
 					}
 #endif
 				}
@@ -9557,7 +9557,7 @@ bool IE_Imp_MsWord_97::_insertHeaderSection(bool bDoBlockIns)
 		// ...
 		for (UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.hdr.getItemCount(); i++)
 		{
-			header * pH = (header*)m_pHeaders[m_iCurrentHeader].d.hdr.getNthItem(i);
+			header * pH = const_cast<header*>(static_cast<const header*>(m_pHeaders[m_iCurrentHeader].d.hdr.getNthItem(i)));
 			UT_return_val_if_fail(pH, true);
 
 			// skip any unsupported headers (we set the type to
@@ -9603,10 +9603,10 @@ bool IE_Imp_MsWord_97::_insertHeaderSection(bool bDoBlockIns)
 			pf_Frag * pF = getDoc()->getLastFrag();
 			UT_return_val_if_fail(pF && pF->getType() == pf_Frag::PFT_Strux, true);
 
-			pf_Frag_Strux * pFS = (pf_Frag_Strux*)pF;
+			pf_Frag_Strux * pFS = static_cast<pf_Frag_Strux*>(pF);
 			UT_return_val_if_fail(pFS->getStruxType() == PTX_SectionHdrFtr, true);
 
-			m_pHeaders[m_iCurrentHeader].d.frag.addItem((void*)pF);
+			m_pHeaders[m_iCurrentHeader].d.frag.addItem(static_cast<void*>(pF));
 
 			if(bDoBlockIns)
 			{

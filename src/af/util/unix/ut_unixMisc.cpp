@@ -73,23 +73,23 @@ bool UT_getEthernetAddress(UT_EthernetAddress &a)
     memset(buf, 0, sizeof(buf));
     ifc.ifc_len = sizeof(buf);
     ifc.ifc_buf = buf;
-    if (ioctl (sd, SIOCGIFCONF, (char *)&ifc) < 0) {
+    if (ioctl (sd, SIOCGIFCONF, static_cast<char *>(&ifc)) < 0) {
         close(sd);
         return false;
     }
     n = ifc.ifc_len;
     for (i = 0; i < n; i+= ifreq_size(*ifr) ) {
-        ifrp = (struct ifreq *)((char *) ifc.ifc_buf+i);
+        ifrp = static_cast<struct ifreq *>((static_cast<char *>( ifc.ifc_buf)+i));
         strncpy(ifr.ifr_name, ifrp->ifr_name, IFNAMSIZ);
 #ifdef SIOCGIFHWADDR
         if (ioctl(sd, SIOCGIFHWADDR, &ifr) < 0)
             continue;
-        a = (unsigned char *) &ifr.ifr_hwaddr.sa_data;
+        a = static_cast<unsigned char *>( &ifr.ifr_hwaddr.sa_data);
 #else
 #ifdef SIOCGENADDR
         if (ioctl(sd, SIOCGENADDR, &ifr) < 0)
             continue;
-        a = (unsigned char *) ifr.ifr_enaddr;
+        a = static_cast<unsigned char *>( ifr.ifr_enaddr);
 #else
         /*
          * XXX we don't have a way of getting the hardware

@@ -52,7 +52,7 @@ void UT_UUIDGenerator__test(UT_UUIDGenerator* self)
 
       // on similar strings, the glib hash performs much better;
       // let's test it on random strings
-      UT_uint32 * p = (UT_uint32 *)&(self->m_pUUID->m_uuid);
+      UT_uint32 * p = static_cast<UT_uint32 *>(&(self->m_pUUID->m_uuid));
 
       for(UT_uint32 n = 0; n < 4; n++)
         p[n] = UT_rand();
@@ -80,7 +80,7 @@ void UT_UUIDGenerator__test(UT_UUIDGenerator* self)
         UT_DEBUGMSG(("Round %04d: uuid hash() collision (value: %u)\n", k, t1.val));
         UT_uint32 i1 = t1.indx > t2.indx ? t1.indx : t2.indx;
         UT_uint32 i2 = t1.indx < t2.indx ? t1.indx : t2.indx;
-        iDMinH = iDMinH < (UT_uint32)(i1-i2) ? iDMinH : (UT_uint32)i1-i2;
+        iDMinH = iDMinH < static_cast<UT_uint32>((i1-i2) )? iDMinH : static_cast<UT_uint32>(i1)-i2;
         iColH++;
       }
 

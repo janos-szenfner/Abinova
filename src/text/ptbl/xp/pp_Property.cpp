@@ -480,7 +480,7 @@ void PP_resetInitialBiDiValues(const gchar * pszValue)
 		else if ((0 == strcmp(_props[i].m_pszName, "text-align")))
 		{
 			UT_DEBUGMSG(("reseting text-align (%s)\n", pszValue));
-			if(pszValue[0] == (gchar)'r') {
+			if(pszValue[0] == static_cast<gchar>('r')) {
 				_props[i].m_pszInitial = "right";
 			}
 			else {

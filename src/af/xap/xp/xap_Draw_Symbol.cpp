@@ -289,7 +289,7 @@ void XAP_Draw_Symbol::drawImmediate(const UT_Rect *clip)
 
 			if(w != GR_CW_ABSENT)
 			{
-				if ((unsigned) w > tmpw)
+				if (static_cast<unsigned>( w )> tmpw)
 					w = tmpw;
 				x = (pos % 32) * tmpw + (tmpw - w) / 2;
 				y = pos / 32 * tmph;
@@ -417,7 +417,7 @@ void XAP_Draw_Symbol::drawarea(UT_UCS4Char c, UT_UCS4Char p)
 
 	if(w1 != GR_CW_ABSENT)
 	{
-		x = (m_drawareaWidth > (unsigned) w1)? (m_drawareaWidth - w1) / 2: 0;
+		x = (m_drawareaWidth > static_cast<unsigned>( w1))? (m_drawareaWidth - w1) / 2: 0;
 		y = (m_drawareaHeight - h1) / 2;
 		areaPainter.drawChars(&c, 0, 1, x, y);
 	}
@@ -453,7 +453,7 @@ void XAP_Draw_Symbol::drawarea(UT_UCS4Char c, UT_UCS4Char p)
 
 	if(wp != GR_CW_ABSENT)
 	{
-		painter.drawChars(&p, 0, 1, px + ((tmpw > (unsigned) wp)? (tmpw - wp) / 2: 0), py);
+		painter.drawChars(&p, 0, 1, px + ((tmpw > static_cast<unsigned>( wp))? (tmpw - wp) / 2: 0), py);
 	}
 	
 	// Redraw only the white box boundaries
@@ -469,7 +469,7 @@ void XAP_Draw_Symbol::drawarea(UT_UCS4Char c, UT_UCS4Char p)
 	painter.fillRect(colour, cx + m_areagc->tlu(1), cy + m_areagc->tlu(1), tmpw - m_areagc->tlu(1), tmph - m_areagc->tlu(1));
 	if(wc != GR_CW_ABSENT)
 	{
-		painter.drawChars(&c, 0, 1, cx + ((tmpw > (unsigned) wc)? (tmpw - wc) / 2: 0), cy);
+		painter.drawChars(&c, 0, 1, cx + ((tmpw > static_cast<unsigned>( wc))? (tmpw - wc) / 2: 0), cy);
 	}
 }
 

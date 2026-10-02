@@ -111,7 +111,7 @@ UT_UTF8Stringbuf::UCS4Char UT_UTF8Stringbuf::charCode (const char * str)
 
 	if ((*p & 0x80) == 0x00) // plain us-ascii part of latin-1
 	{
-		return (UCS4Char) (*p);
+		return static_cast<UCS4Char>( (*p));
 	}
 
 	UCS4Char ret_code = 0;
@@ -127,7 +127,7 @@ UT_UTF8Stringbuf::UCS4Char UT_UTF8Stringbuf::charCode (const char * str)
 			if (bytesInSequence == 0) break;
 			bytesInSequence++;
 
-			ret_code = (ret_code << 6) | (UCS4Char) (*p & 0x3f);
+			ret_code = (ret_code << 6) | static_cast<UCS4Char>( (*p & 0x3f));
 
 			if (bytesInSequence == bytesExpectedInSequence) break;
 
@@ -143,21 +143,21 @@ UT_UTF8Stringbuf::UCS4Char UT_UTF8Stringbuf::charCode (const char * str)
 		if ((*p & 0xfe) == 0xfc) // lead byte in 6-byte sequence
 		{
 			bytesExpectedInSequence = 6;
-			ret_code = (UCS4Char) (*p & 0x01);
+			ret_code = static_cast<UCS4Char>( (*p & 0x01));
 			p++;
 			continue;
 		}
 		if ((*p & 0xfc) == 0xf8) // lead byte in 5-byte sequence
 		{
 			bytesExpectedInSequence = 5;
-			ret_code = (UCS4Char) (*p & 0x03);
+			ret_code = static_cast<UCS4Char>( (*p & 0x03));
 			p++;
 			continue;
 		}
 		if ((*p & 0xf8) == 0xf0) // lead byte in 4-byte sequence
 		{
 			bytesExpectedInSequence = 4;
-			ret_code = (UCS4Char) (*p & 0x07);
+			ret_code = static_cast<UCS4Char>( (*p & 0x07));
 			p++;
 			continue;
 		}
@@ -167,14 +167,14 @@ UT_UTF8Stringbuf::UCS4Char UT_UTF8Stringbuf::charCode (const char * str)
 		if ((*p & 0xf0) == 0xe0) // lead byte in 3-byte sequence
 		{
 			bytesExpectedInSequence = 3;
-			ret_code = (UCS4Char) (*p & 0x0f);
+			ret_code = static_cast<UCS4Char>( (*p & 0x0f));
 			p++;
 			continue;
 		}
 		if ((*p & 0xe0) == 0xc0) // lead byte in 2-byte sequence
 		{
 			bytesExpectedInSequence = 2;
-			ret_code = (UCS4Char) (*p & 0x1f);
+			ret_code = static_cast<UCS4Char>( (*p & 0x1f));
 			p++;
 			continue;
 		}
@@ -353,7 +353,7 @@ void UT_UTF8Stringbuf::appendUCS2 (const UT_UCS2Char * sz, size_t n /* == 0 => n
 	for (i = 0; (i < n) || (n == 0); i++)
 	{
 		if (sz[i]==0 && n==0) break;
-		int seql = UT_Unicode::UTF8_ByteLength ((UT_UCS4Char)sz[i]);
+		int seql = UT_Unicode::UTF8_ByteLength (static_cast<UT_UCS4Char>(sz[i]));
 		if (seql < 0) 
 			continue; // not UCS-4 !!
 		if (seql == 0) 
@@ -366,12 +366,12 @@ void UT_UTF8Stringbuf::appendUCS2 (const UT_UCS2Char * sz, size_t n /* == 0 => n
 	for (i = 0; (i < n) || (n == 0); i++)
 	{
 		if (sz[i]==0 && n==0) break;
-		int seql = UT_Unicode::UTF8_ByteLength ((UT_UCS4Char)sz[i]);
+		int seql = UT_Unicode::UTF8_ByteLength (static_cast<UT_UCS4Char>(sz[i]));
 		if (seql < 0) 
 			continue; // not UCS-4 !!
 		if (seql == 0) 
 			break; // end-of-string?
-		UT_Unicode::UCS4_to_UTF8 (m_pEnd, bytelength, (UT_UCS4Char)sz[i]);
+		UT_Unicode::UCS4_to_UTF8 (m_pEnd, bytelength, static_cast<UT_UCS4Char>(sz[i]));
 		m_strlen++;
 	}
 	*m_pEnd = 0;
@@ -576,7 +576,7 @@ void UT_UTF8Stringbuf::escapeURL ()
 
 	xmlChar * uri = xmlURIEscape(BAD_CAST m_psz);
 	if(uri) {
-		assign((gchar*)uri);
+		assign(reinterpret_cast<gchar*>(uri));
 		xmlFree(uri);
 	}
 }
@@ -601,7 +601,7 @@ void UT_UTF8Stringbuf::decodeURL()
 	if(!m_psz || !*m_psz)
 		return;
 
-	char * buff = (char*)g_try_malloc(byteLength() + 1);
+	char * buff = static_cast<char*>(g_try_malloc(byteLength() + 1));
 	UT_return_if_fail( buff );
 	buff[0] = 0;
 
@@ -641,14 +641,14 @@ void UT_UTF8Stringbuf::decodeURL()
 					else if ((code & 0xfc) == 0xf8) iCacheNeeded = 5;
 					else if ((code & 0xfe) == 0xfc) iCacheNeeded = 6;
 
-					utf8cache[0] = (char) code;
+					utf8cache[0] = static_cast<char>( code);
 					utf8cache[iCacheNeeded] = 0; // make sure the sequence will be terminated
 					iCachePos++;
 				}
 				else
 				{
 					// append to our cache
-					utf8cache[iCachePos++] = (char) code;
+					utf8cache[iCachePos++] = static_cast<char>( code);
 				}
 
 				if(iCacheNeeded == 0 && (code >= 0x7f && code <= 0xff))
@@ -694,7 +694,7 @@ void UT_UTF8Stringbuf::decodeURL()
 			if(iCacheNeeded > iCachePos)
 			{
 				// we are processing a utf sequence, so just append this byte to our cache
-				utf8cache[iCachePos++] = (char) c;
+				utf8cache[iCachePos++] = static_cast<char>( c);
 			}
 			else
 			{

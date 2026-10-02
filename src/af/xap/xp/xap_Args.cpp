@@ -46,10 +46,10 @@ char *XX_encode(const char *str)
 	for (c=str;*c;c++) {
 		if (*c<0 || *c=='%') l+=2;
 	}
-	result=(char*)g_malloc(l);
+	result=static_cast<char*>(g_malloc(l));
 	for (c=str,d=result; *c; c++) {
 		if (*c<0 || *c=='%') {
-			sprintf(d,"%%%02X",(unsigned char)*c);
+			sprintf(d,"%%%02X",static_cast<unsigned char>(*c));
 			d+=3;
 		} else {
 			*d++=*c;
@@ -98,7 +98,7 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 
 	int count = 10;	// start with 10 and g_try_realloc if necessary
 	int k = 0;
-	char ** argv = (char **)UT_calloc(count,sizeof(char *));
+	char ** argv = static_cast<char **>(UT_calloc(count,sizeof(char *)));
 
 	enum: uint8_t { S_START, S_INTOKEN, S_INDQUOTE, S_INSQUOTE } state;
 	state = S_START;
@@ -130,7 +130,7 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 
 			if (k==count)
 			{
-				char ** tmp = (char **)g_try_realloc(argv,(count+10)*sizeof(char *));
+				char ** tmp = static_cast<char **>(g_try_realloc(argv,(count+10)*sizeof(char *)));
 				if (!tmp)
 					goto done;	/* OOM: keep already-parsed args */
 				argv = tmp;

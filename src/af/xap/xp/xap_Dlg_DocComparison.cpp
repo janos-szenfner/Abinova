@@ -173,7 +173,7 @@ std::string XAP_Dialog_DocComparison::getResultValue(UT_uint32 indx) const
 				s1 += m_pSS->getValue(XAP_STRING_ID_DLG_DocComparison_Diverging);
 
 				tM = localtime(&m_tTimeOfDiff);
-				s = (char*)g_try_malloc(30);
+				s = static_cast<char*>(g_try_malloc(30));
 				strftime(s,30,"%c",tM);
 
 				resultValue = UT_std_string_sprintf(s1.c_str(), m_iVersionOfDiff, s);

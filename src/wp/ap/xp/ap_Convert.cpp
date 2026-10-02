@@ -311,7 +311,7 @@ bool AP_Convert::print(const char * szFile, GR_Graphics * pGraphics, const char 
 
 		for (int pageno = start_page; pageno <= end_page; pageno++)
 		  {
-		    if ((pageno > 0) && (pageno <= (int)pDocLayout->countPages()))
+		    if ((pageno > 0) && (pageno <= static_cast<int>(pDocLayout->countPages())))
 		      pages.insert(pageno);
 		  }
 	      }

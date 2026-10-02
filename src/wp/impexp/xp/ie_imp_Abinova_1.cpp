@@ -237,7 +237,7 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
 		pFrame->raise ();
 
 		XAP_DialogFactory * pDialogFactory
-			= (XAP_DialogFactory *)(pFrame->getDialogFactory());
+			= static_cast<XAP_DialogFactory *>((pFrame->getDialogFactory()));
 
 		XAP_Dialog_Password * pDlg = static_cast<XAP_Dialog_Password*>(pDialogFactory->requestDialog(XAP_DIALOG_ID_PASSWORD));
 		UT_return_val_if_fail(pDlg, password);
@@ -275,11 +275,11 @@ UT_Error IE_Imp_Abinova_1::_loadFile(GsfInput * input)
 	if (num_bytes <= 0)
 		return UT_IE_BOGUSDOCUMENT;
 	const char * bytes = reinterpret_cast<const char *>(
-		gsf_input_read(input, (size_t)num_bytes, nullptr));
+		gsf_input_read(input, static_cast<size_t>(num_bytes), nullptr));
 	if (!bytes)
 		return UT_IE_IMPORTERROR;
 
-	if (!UT_abwn_isEncrypted(bytes, (size_t)num_bytes))
+	if (!UT_abwn_isEncrypted(bytes, static_cast<size_t>(num_bytes)))
 	{
 		gsf_input_seek(input, 0, G_SEEK_SET);
 		return IE_Imp_XML::_loadFile(input);
@@ -296,7 +296,7 @@ UT_Error IE_Imp_Abinova_1::_loadFile(GsfInput * input)
 			return UT_IE_PROTECTED;
 
 		std::vector<unsigned char> plain;
-		switch (UT_abwn_decrypt(bytes, (size_t)num_bytes, pw.utf8_str(), plain))
+		switch (UT_abwn_decrypt(bytes, static_cast<size_t>(num_bytes), pw.utf8_str(), plain))
 		{
 		case UT_AbwnCrypt::Ok:
 		{
@@ -304,7 +304,7 @@ UT_Error IE_Imp_Abinova_1::_loadFile(GsfInput * input)
 			getDoc()->setSavePassword(pw.utf8_str());
 
 			GsfInput * mem = gsf_input_memory_new_clone(
-				plain.data(), (gsf_off_t)plain.size());
+				plain.data(), static_cast<gsf_off_t>(plain.size()));
 			gsf_input_set_name(mem, gsf_input_name(input));
 			/* uncompress takes ownership of mem's reference - the
 			 * plaintext is still gzip-compressed when the doc was
@@ -967,7 +967,7 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 
 			const std::string & s2 = PP_getAttribute("time-started",atts);
 			if(!s2.empty()) {
-				m_currentRevisionTime = (time_t)atoi(s2.c_str());
+				m_currentRevisionTime = static_cast<time_t>(atoi(s2.c_str()));
 			}
 
 			const std::string & s3 = PP_getAttribute("version", atts);
@@ -1031,7 +1031,7 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 		if(!s3.empty())
 		{
 			i = atoi(s3.c_str());
-			getDoc()->setLastSavedTime((time_t)i);
+			getDoc()->setLastSavedTime(static_cast<time_t>(i));
 		}
 		const std::string & s4 = PP_getAttribute("uid", atts);
 		if(!s4.empty())
@@ -1054,7 +1054,7 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 			time_t tStarted = 0;
 			const std::string & s2 = PP_getAttribute("started", atts);
 			if(!s2.empty()) {
-				tStarted = (time_t) atoi(s2.c_str());
+				tStarted = static_cast<time_t>( atoi(s2.c_str()));
 			}
 
 			bool bAuto = false;

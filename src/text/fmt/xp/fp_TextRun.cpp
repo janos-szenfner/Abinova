@@ -77,7 +77,7 @@ static bool s_fxColor(const std::string & s, size_t pos,
 					  UT_RGBColor & col)
 {
 	std::string hex;
-	while (pos < s.size() && isxdigit((unsigned char)s[pos]) &&
+	while (pos < s.size() && isxdigit(static_cast<unsigned char>(s[pos])) &&
 		   hex.size() < 6)
 		hex += s[pos++];
 	if (hex.size() != 6)
@@ -372,11 +372,11 @@ void fp_TextRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	        UT_uint32 reason =  0;
 		if( getBlock()->getDocLayout()->getAutoSpellCheck())
 		{
-		        reason = (UT_uint32) FL_DocLayout::bgcrSpelling;
+		        reason = static_cast<UT_uint32>( FL_DocLayout::bgcrSpelling);
 		}
 		if( getBlock()->getDocLayout()->getAutoGrammarCheck())
 		{
-		        reason = reason | (UT_uint32) FL_DocLayout::bgcrGrammar;
+		        reason = reason | static_cast<UT_uint32>( FL_DocLayout::bgcrGrammar);
 		}
 		getBlock()->getDocLayout()->queueBlockForBackgroundCheck(reason, getBlock());
 #endif
@@ -730,7 +730,7 @@ bool	fp_TextRun::findMaxLeftFitSplitPoint(UT_sint32 iMaxLeftWidth, fp_RunSplitIn
 		bool bCanBreak = false;
 		// GR_Graphics::canBreak can be expensive, so we only call it
 		// when necessary
-		if(!bForce && iNext != (UT_sint32)i)
+		if(!bForce && iNext != static_cast<UT_sint32>(i))
 		{
 			// need to reposition the iterator
 			UT_uint32 iPos = text.getPosition();
@@ -743,7 +743,7 @@ bool	fp_TextRun::findMaxLeftFitSplitPoint(UT_sint32 iMaxLeftWidth, fp_RunSplitIn
 			text.setPosition(iPos);
 		}
 		
-		if (bForce || iNext == (UT_sint32)i || bCanBreak)
+		if (bForce || iNext == static_cast<UT_sint32>(i )|| bCanBreak)
 		   //	&& ((i + offset) != (getBlockOffset() + getLength() - 1))
 		{
 			if (iLeftWidth <= iMaxLeftWidth)
@@ -894,7 +894,7 @@ void fp_TextRun::mapXYToPosition(UT_sint32 x, UT_sint32 y,
 
 	if(m_pRenderInfo->getType() == GRRI_XP)
 	{
-		GR_XPRenderInfo & RI = (GR_XPRenderInfo &) * m_pRenderInfo;
+		GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>( * m_pRenderInfo);
 		
 		if(!RI.m_pWidths)
 			return;
@@ -1026,7 +1026,7 @@ void fp_TextRun::findPointCoords(UT_uint32 iOffset, UT_sint32& x, UT_sint32& y, 
 	
 	if(m_pRenderInfo->getType() == GRRI_XP)
 	{
-		GR_XPRenderInfo & RI = (GR_XPRenderInfo &) * m_pRenderInfo;
+		GR_XPRenderInfo & RI = static_cast<GR_XPRenderInfo &>( * m_pRenderInfo);
 		
 		UT_return_if_fail(RI.m_pWidths);
 		
@@ -1909,7 +1909,7 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 		// ligature with a placeholder which gets striped before the
 		// drawing. As a result, the offsets of the segments we
 		// calculated above need to be adjusted
-		GR_XPRenderInfo * pRI = (GR_XPRenderInfo *) m_pRenderInfo;
+		GR_XPRenderInfo * pRI = static_cast<GR_XPRenderInfo *>( m_pRenderInfo);
 		pRI->m_pSegmentOffset = reinterpret_cast<UT_sint32 *>(&iSegmentOffset[0]);
 		pRI->m_iSegmentCount = iSegmentCount;
 	}
@@ -2238,7 +2238,7 @@ bool fp_TextRun::_refreshDrawBuffer()
 	
 	if(m_pRenderInfo)
 	{
-		bRefresh = ((UT_uint32)eRefresh & (UT_uint32)m_pRenderInfo->m_eShapingResult) != 0;
+		bRefresh = (static_cast<UT_uint32>(eRefresh )& static_cast<UT_uint32>(m_pRenderInfo->m_eShapingResult)) != 0;
 	}
 
 	if(iLen && bRefresh)
@@ -2284,7 +2284,7 @@ bool fp_TextRun::_refreshDrawBuffer()
 		// text
 		if(m_pRenderInfo->getType() == GRRI_XP)
 		{
-			GR_XPRenderInfo * pRI = (GR_XPRenderInfo *) m_pRenderInfo;
+			GR_XPRenderInfo * pRI = static_cast<GR_XPRenderInfo *>( m_pRenderInfo);
 		
 			if((!s_bBidiOS && iVisDir == UT_BIDI_RTL)
 			   || (s_bBidiOS && m_iDirOverride == UT_BIDI_RTL && _getDirection() == UT_BIDI_LTR)

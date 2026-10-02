@@ -62,7 +62,7 @@ PX_ChangeRecord::__dump_type(FILE* fp) const
 		(((m_type >= PXT__FIRST__) && (m_type <= PXT__LAST__)) 
 		 ? s_CRNames[m_type+1] : "????????");
 	
-	fprintf(fp, "  T[%s] api[%08lx] ", szName, (long)m_indexAP);
+	fprintf(fp, "  T[%s] api[%08lx] ", szName, static_cast<long>(m_indexAP));
 }
 
 /*!
@@ -87,7 +87,7 @@ PX_ChangeRecord::__dump_buf(FILE* fp) const
 {
 	__dump_type(fp);
 	fprintf(fp, "b[%08lx,%ld@%08lx]\n", 
-			(long)m_bufIndex, (long)m_length, (long)m_blockOffset);
+			static_cast<long>(m_bufIndex), static_cast<long>(m_length), static_cast<long>(m_blockOffset));
 
 	const UT_UCSChar * ptr = m_pPieceTable->getPointer(m_bufIndex);
 	char c;
@@ -100,7 +100,7 @@ PX_ChangeRecord::__dump_buf(FILE* fp) const
 		// note: debugging purposes only.
 		c = (  ((ptr[k] < 20) || (ptr[k] > 0x7f))
 			   ? '@'
-			   : (char)ptr[k]);
+			   : static_cast<char>(ptr[k]));
 		fprintf(fp,"%c",c);
 	}
 	fprintf(fp,"]\n");
@@ -113,7 +113,7 @@ PX_ChangeRecord_SpanChange::__dump(FILE* fp) const
 	__dump_type(fp);
 
 	fprintf(fp, "b[%08lx,%ld@%08lx]\n",
-			(long) m_bufIndex, (long)m_length, (long)m_blockOffset);
+			static_cast<long>( m_bufIndex), static_cast<long>(m_length), static_cast<long>(m_blockOffset));
 }
 
 void
@@ -122,7 +122,7 @@ PX_ChangeRecord_Span::__dump(FILE* fp) const
 	__dump_type(fp);
 
 	fprintf(fp, "b[%08lx,%ld@%08lx]\n",
-			(long) m_bufIndex, (long)m_length, (long)m_blockOffset);
+			static_cast<long>( m_bufIndex), static_cast<long>(m_length), static_cast<long>(m_blockOffset));
 
 #if 0
 	const UT_UCSChar * ptr = m_pPieceTable->getPointer(m_bufIndex);
@@ -136,7 +136,7 @@ PX_ChangeRecord_Span::__dump(FILE* fp) const
 		// note: debugging purposes only.
 		c = (  ((ptr[k] < 20) || (ptr[k] > 0x7f))
 			   ? '@'
-			   : (char)ptr[k]);
+			   : static_cast<char>(ptr[k]));
 		fprintf(fp,"%c",c);
 	}
 	fprintf(fp,"]\n");

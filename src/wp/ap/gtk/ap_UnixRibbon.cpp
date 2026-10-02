@@ -192,24 +192,24 @@ static const struct {
 	const char *	szLabel;
 } _ribbon_label_overrides[] =
 {
-	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_NORMAL,		"Draft" },
-	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_FULLSCREEN,	"Focus" },
-	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE,	"One Page" },
-	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_RULER,			"Ruler" },
-	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_STATUSBAR,		"Status Bar" },
-	{ (XAP_Menu_Id)AP_MENU_ID_VIEW_SHOWPARA,		"Formatting Marks" },
-	{ (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SELPANE,		"Selection Pane" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_FORMAT,		"Properties" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE,	"Insert Above" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_AFTER,	"Insert Below" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE,"Insert Left" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER,	"Insert Right" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT,	"Repeat Header Rows" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT,	"Convert to Text" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT,		"Auto-fit" },
-	{ (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT,			"Sort" },
-	{ (XAP_Menu_Id)AP_MENU_ID_RDF_EDITOR,			"RDF Settings" },
-	{ (XAP_Menu_Id)0,							nullptr }
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NORMAL),		"Draft" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_FULLSCREEN),	"Focus" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WHOLE),	"One Page" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_RULER),			"Ruler" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_STATUSBAR),		"Status Bar" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_SHOWPARA),		"Formatting Marks" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_SELPANE),		"Selection Pane" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_FORMAT),		"Properties" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE),	"Insert Above" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER),	"Insert Below" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE),"Insert Left" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER),	"Insert Right" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT),	"Repeat Header Rows" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_TABLETOTEXT),	"Convert to Text" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_AUTOFIT),		"Auto-fit" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SORT),			"Sort" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_RDF_EDITOR),			"RDF Settings" },
+	{ static_cast<XAP_Menu_Id>(0),							nullptr }
 };
 
 static const char * _ribbon_menu_label(XAP_Menu_Id id)
@@ -322,12 +322,12 @@ void AP_UnixRibbon::_buildIconMap()
 	if (!m_pTBLabels)
 		return;
 
-	for (UT_uint32 tid = 1; tid < (UT_uint32)AP_TOOLBAR_ID__BOGUS2__; ++tid)
+	for (UT_uint32 tid = 1; tid < static_cast<UT_uint32>(AP_TOOLBAR_ID__BOGUS2__); ++tid)
 	{
 		EV_Toolbar_Action * pTBAction =
-			pTBActions->getAction((XAP_Toolbar_Id)tid);
+			pTBActions->getAction(static_cast<XAP_Toolbar_Id>(tid));
 		EV_Toolbar_Label * pTBLabel =
-			m_pTBLabels->getLabel((XAP_Toolbar_Id)tid);
+			m_pTBLabels->getLabel(static_cast<XAP_Toolbar_Id>(tid));
 		if (!pTBAction || !pTBLabel)
 			continue;
 		const char * szMethod = pTBAction->getMethodName();
@@ -464,7 +464,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			bool bAllLarge = true;
 			for (const AP_RibbonItem * it = group->items;
 				 !(it->kind == AP_RIBBON_ITEM_MENU &&
-				   it->id == (uint16_t)AP_MENU_ID__BOGUS1__); ++it)
+				   it->id == static_cast<uint16_t>(AP_MENU_ID__BOGUS1__)); ++it)
 			{
 				if (it->kind == AP_RIBBON_ITEM_ROWEND)
 				{
@@ -487,7 +487,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			int nCol = 0, nRow = 0;
 			for (const AP_RibbonItem * item = group->items;
 				 !(item->kind == AP_RIBBON_ITEM_MENU &&
-				   item->id == (uint16_t)AP_MENU_ID__BOGUS1__); ++item)
+				   item->id == static_cast<uint16_t>(AP_MENU_ID__BOGUS1__)); ++item)
 			{
 				if (item->kind == AP_RIBBON_ITEM_ROWEND)
 				{
@@ -515,23 +515,23 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				else if (item->flags & AP_RIBBON_FLAG_MENUPOP)
 				{
 					if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
-						w = _makeMenuPopTbButton((XAP_Toolbar_Id)item->id,
+						w = _makeMenuPopTbButton(static_cast<XAP_Toolbar_Id>(item->id),
 												 item->flags);
 					else
-						w = _makeMenuPopButton((XAP_Menu_Id)item->id,
+						w = _makeMenuPopButton(static_cast<XAP_Menu_Id>(item->id),
 											   item->flags);
 				}
 				else if (item->kind == AP_RIBBON_ITEM_TOOLBAR)
-					w = _makeToolbarWidget((XAP_Toolbar_Id)item->id,
+					w = _makeToolbarWidget(static_cast<XAP_Toolbar_Id>(item->id),
 										   item->flags);
 				else
-					w = _makeButton((XAP_Menu_Id)item->id, item->flags);
+					w = _makeButton(static_cast<XAP_Menu_Id>(item->id), item->flags);
 				if (!w)
 					continue;
 				/* FMT_STYLE stays registered for toolbar-state updates
 				 * (gallery highlight + Styles pane) but is not shown */
 				if (item->kind == AP_RIBBON_ITEM_TOOLBAR &&
-					item->id == (uint16_t)AP_TOOLBAR_ID_FMT_STYLE)
+					item->id == static_cast<uint16_t>(AP_TOOLBAR_ID_FMT_STYLE))
 					gtk_widget_set_visible(w, FALSE);
 				bEmpty = false;
 
@@ -541,14 +541,14 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				{
 					GtkWidget * popover;
 					if (item->kind == AP_RIBBON_ITEM_MENU &&
-						item->id == (uint16_t)AP_MENU_ID_EDIT_PASTE)
+						item->id == static_cast<uint16_t>(AP_MENU_ID_EDIT_PASTE))
 						popover = _makePastePopover();
 					else if (item->kind == AP_RIBBON_ITEM_MENU &&
-							 item->id == (uint16_t)AP_MENU_ID_FMT_TOGGLECASE)
+							 item->id == static_cast<uint16_t>(AP_MENU_ID_FMT_TOGGLECASE))
 						popover = _makeChangeCasePopover();
 					else
 						popover = _makeListPopover(
-							(XAP_Toolbar_Id)item->id);
+							static_cast<XAP_Toolbar_Id>(item->id));
 					w = _wrapSplit(w, popover,
 								   (item->flags & AP_RIBBON_FLAG_LARGE) != 0);
 				}
@@ -651,7 +651,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), page);
 		gtk_notebook_append_page(GTK_NOTEBOOK(m_wNotebook), scroll, tabLabel);
 		g_object_set_data(G_OBJECT(scroll), "abi-tab-key",
-						  (gpointer)tab->szTabKey);
+						  const_cast<gpointer>(static_cast<const void *>(tab->szTabKey)));
 
 		if (!strcmp(tab->szTabKey, "home"))
 			gtk_notebook_set_current_page(GTK_NOTEBOOK(m_wNotebook),
@@ -662,7 +662,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		{
 			m_vecContextualPages.addItem(scroll);
 			g_object_set_data(G_OBJECT(scroll), "abi-ctx-key",
-							  (gpointer)tab->szTabKey);
+							  const_cast<gpointer>(static_cast<const void *>(tab->szTabKey)));
 			gtk_widget_set_visible(scroll, FALSE);
 		}
 	}
@@ -1106,7 +1106,7 @@ void AP_UnixRibbon::_tb_combo_apply(GtkComboBox * combo, _TbCtx * ctx)
 		return;
 
 	const char * text = buffer;
-	if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_FONT)
+	if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_FONT))
 	{
 		/* translate the localized size entry back, if it is one */
 		const gchar * font =
@@ -1118,7 +1118,7 @@ void AP_UnixRibbon::_tb_combo_apply(GtkComboBox * combo, _TbCtx * ctx)
 			text = buffer;
 		}
 	}
-	else if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+	else if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 	{
 		text = pt_PieceTable::s_getUnlocalisedStyleName(buffer);
 	}
@@ -1140,7 +1140,7 @@ void AP_UnixRibbon::_s_tb_combo_changed(GtkComboBox * combo, gpointer data)
 	if (ctx->blockSignal || !ctx->widget)
 		return;
 
-	if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE)
+	if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE))
 	{
 		/* no updates of the font size while the entry is being edited */
 		GtkWidget * entry = gtk_combo_box_get_child(combo);
@@ -1267,7 +1267,7 @@ void AP_UnixRibbon::_s_tb_color_custom_clicked(GtkWidget * w, gpointer data)
 
 	/* default to black for font colour, yellow for highlight */
 	GdkRGBA initial = { 0.0, 0.0, 0.0, 1.0 };
-	if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_COLOR_BACK)
+	if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_COLOR_BACK))
 	{
 		initial.red = 1.0;
 		initial.green = 1.0;
@@ -1327,7 +1327,7 @@ void AP_UnixRibbon::_s_tb_color_automatic(GtkWidget * widget, gpointer data)
 	UT_return_if_fail(ctx && ctx->self);
 	_tb_popdown_popover(widget);
 
-	if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_COLOR_BACK)
+	if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_COLOR_BACK))
 	{
 		const UT_UCS4Char transparent[] =
 			{'t','r','a','n','s','p','a','r','e','n','t',0};
@@ -2126,11 +2126,11 @@ GtkWidget * AP_UnixRibbon::_makeListPopover(XAP_Toolbar_Id id)
 {
 	switch (id)
 	{
-	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_BULLETS:
+	case static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_LISTS_BULLETS):
 		return _makeBulletLibraryPopover();
-	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_NUMBERS:
+	case static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_LISTS_NUMBERS):
 		return _makeNumberingLibraryPopover();
-	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_LISTS_DASHED:
+	case static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_LISTS_DASHED):
 		return _makeMultilevelLibraryPopover();
 	default:
 		break;
@@ -2174,185 +2174,185 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	GtkWidget * popover = nullptr;
 	switch (id)
 	{
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_TABLE):
 		popover = _makeTableGridPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_TOGGLECASE):
 		popover = _makeChangeCasePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BORDERS):
 		popover = _makeBordersPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_MARGINS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_MARGINS):
 		popover = _makeMarginsPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ORIENTATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ORIENTATION):
 		popover = _makeOrientationPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SIZE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_SIZE):
 		popover = _makeSizePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_COLUMNS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_COLUMNS):
 		popover = _makeColumnsPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BREAKS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_BREAKS):
 		popover = _makeBreaksPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_LINENUMBERS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_LINENUMBERS):
 		popover = _makeLineNumbersPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_HYPHENATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_HYPHENATION):
 		popover = _makeHyphenationPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_POSITION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_POSITION):
 		popover = _makePositionPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_WRAP:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_WRAP):
 		popover = _makeWrapPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ALIGNOBJECTS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ALIGNOBJECTS):
 		popover = _makeAlignObjPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BRINGFORWARD:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_BRINGFORWARD):
 		popover = _makeZOrderPopover(true);
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SENDBACKWARD:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_SENDBACKWARD):
 		popover = _makeZOrderPopover(false);
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_GROUPOBJECTS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_GROUPOBJECTS):
 		popover = _makeGroupPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ROTATE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ROTATE):
 		popover = _makeRotatePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_COVERPAGE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_COVERPAGE):
 		popover = _makeCoverPagePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PICTURES):
 		popover = _makePicturesPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SHAPES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SHAPES):
 		popover = _makeShapesPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_3DMODELS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_3DMODELS):
 		popover = _make3DModelsPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_MEDIA:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_MEDIA):
 		popover = _makeMediaPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_WORDART:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_WORDART):
 		popover = _makeWordArtPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_EQUATION:
-	case (XAP_Menu_Id)AP_MENU_ID_EDIT_LATEXEQUATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_EQUATION):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_LATEXEQUATION):
 		popover = _makeEquationPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_TEXTBOX):
 		popover = _makeTextBoxPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_OBJECT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_OBJECT):
 		popover = _makeObjectPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_HEADER):
 		popover = _makeHdrFtrPopover(false);
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FOOTER):
 		popover = _makeHdrFtrPopover(true);
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PAGENO):
 		popover = _makePageNumberPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DROPCAP:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DROPCAP):
 		popover = _makeDropCapPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_TOCPOP:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_TOCPOP):
 		popover = _makeTOCGalleryPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_ADDTEXT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_ADDTEXT):
 		popover = _makeAddTextPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_NEXTFN:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_NEXTFN):
 		popover = _makeNextNotePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_CITATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_CITATION):
 		popover = _makeCitationPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_BIBLIOGRAPHY:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_BIBLIOGRAPHY):
 		popover = _makeBibliographyPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_SOURCES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_SOURCES):
 		popover = _makeSourcesPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_CAPTION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_CAPTION):
 		popover = _makeCaptionPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_TOF:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_TOF):
 		popover = _makeTOFPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_XREF:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_XREF):
 		popover = _makeXRefPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKENTRY:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_MARKENTRY):
 		popover = _makeMarkEntryPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKCIT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_MARKCIT):
 		popover = _makeMarkCitPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE):
 		popover = _makeCommentDeletePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW):
 		popover = _makeCommentShowPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELLING_MENUPOP):
 		popover = _makeSpellingPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK):
 		popover = _makeTrackChangesPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY):
 		popover = _makeMarkupPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT):
 		popover = _makeAcceptPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT):
 		popover = _makeRejectPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE):
 		popover = _makeComparePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM):
 		popover = _makeZoomPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_WINDOW_MENUPOP_SWITCH):
 		popover = _makeWindowPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SELECT):
 		popover = _makeTableSelectPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DELETE):
 		popover = _makeTableDeletePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_AUTOFIT):
 		popover = _makeTableAutoFitPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SORT):
 		popover = _makeTableSortPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_TABLETOTEXT):
 		popover = _makeTableToTextPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TEXT_DIRECTION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_TEXT_DIRECTION):
 		popover = _makeTableTextDirPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_CELL_MARGINS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_CELL_MARGINS):
 		popover = _makeCellMarginsPopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_MERGE_CELLS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_MERGE_CELLS):
 		popover = _makeTableMergePopover();
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_CELLS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SPLIT_CELLS):
 		popover = _makeTableSplitPopover();
 		break;
 	default:
@@ -2366,7 +2366,7 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		GtkWidget * mb = _makeLargeMenuButton(id, popover, flags);
 		/* the Display-for-Review button shows the active markup mode
 		 * as its caption, like Word's "All Markup" dropdown */
-		if (id == (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY)
+		if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY))
 		{
 			GtkWidget * box = gtk_menu_button_get_child(
 				GTK_MENU_BUTTON(mb));
@@ -2384,7 +2384,7 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	}
 
 	GtkWidget * mb = gtk_menu_button_new();
-	if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_BORDERS)
+	if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BORDERS))
 	{
 		const gchar * szIcon = abi_stock_from_menu_id(id);
 		if (szIcon && *szIcon)
@@ -2392,7 +2392,7 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_DOWN);
 	}
-	else if (id == (XAP_Menu_Id)AP_MENU_ID_FMT_TOGGLECASE)
+	else if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_TOGGLECASE))
 	{
 		GtkWidget * gl = gtk_label_new(nullptr);
 		gtk_label_set_markup(GTK_LABEL(gl), "Aa");
@@ -4547,114 +4547,114 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 {
 	switch (id)
 	{
-	case (XAP_Menu_Id)AP_MENU_ID_HELP_CHANGELOG:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTNOTE:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ENDNOTE:
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_FOOTNOTES:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOC:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_SHOWNOTES:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATEINDEX:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOA:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTINDEX:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTTOA:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_COVERPAGE:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BLANKPAGE:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGEBREAK:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_FORMAT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_VIEW_GRIDLINES:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DRAW:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ERASE:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_AFTER:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_MERGE_CELLS:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_CELLS:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_TABLE:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_ROWS:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_COLS:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPLEFT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPCENTER:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPRIGHT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERLEFT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTER:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTLEFT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTCENTER:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTRIGHT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TEXT_DIRECTION:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_CELL_MARGINS:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT:
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SHAPES:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ICONS:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_3DMODELS:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SCREENSHOT:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_MEDIA:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HYPERLINK:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BOOKMARK:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_PREV:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_WORDCOUNT:
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_LANGUAGE:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MARK:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PANE:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_WORDART:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DROPCAP:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SIGNATURE:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DATETIME:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FIELD:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_OBJECT:
-	case (XAP_Menu_Id)AP_MENU_ID_EDIT_LATEXEQUATION:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SYMBOL:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_PRINT:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_WEB:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NORMAL:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_100:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WIDTH:
-	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_RULER:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_STATUSBAR:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_GRIDLINES:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NAVPANE:
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_SPLIT:
-	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_ARRANGE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_HELP_CHANGELOG):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FOOTNOTE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_ENDNOTE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_FOOTNOTES):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_UPDATETOC):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_SHOWNOTES):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_UPDATEINDEX):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_UPDATETOA):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_INSERTINDEX):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_INSERTTOA):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_COVERPAGE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_BLANKPAGE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PAGEBREAK):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_TABLE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SELECT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DELETE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_FORMAT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_VIEW_GRIDLINES):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DRAW):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ERASE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_MERGE_CELLS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SPLIT_CELLS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SPLIT_TABLE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_AUTOFIT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DISTRIBUTE_ROWS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DISTRIBUTE_COLS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_TOPLEFT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_TOPCENTER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_TOPRIGHT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_CENTERLEFT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_CENTER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_BOTLEFT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_BOTCENTER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_BOTRIGHT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_TEXT_DIRECTION):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_CELL_MARGINS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SORT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_TABLETOTEXT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PICTURES):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SHAPES):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_ICONS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_3DMODELS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SCREENSHOT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_MEDIA):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_HYPERLINK):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_BOOKMARK):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_PREV):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELLING_MENUPOP):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELL):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_WORDCOUNT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_LANGUAGE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MARK):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_AUTO):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_SHOW):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_PANE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_HEADER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FOOTER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PAGENO):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_TEXTBOX):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_WORDART):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DROPCAP):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SIGNATURE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DATETIME):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FIELD):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_OBJECT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_LATEXEQUATION):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SYMBOL):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_PRINT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_WEB):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NORMAL):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_100):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WHOLE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WIDTH):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_WINDOW_MENUPOP_SWITCH):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_RULER):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_STATUSBAR):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_GRIDLINES):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NAVPANE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_SPLIT):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_WINDOW_ARRANGE):
 		return true;
 	default:
 		return false;
@@ -4669,470 +4669,470 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 
 	switch (id)
 	{
-	case (XAP_Menu_Id)AP_MENU_ID_HELP_CHANGELOG:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_HELP_CHANGELOG):
 		extra = _overlay_changelog;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_MARGINS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_MARGINS):
 		extra = _overlay_margin_corners;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ORIENTATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ORIENTATION):
 		extra = _overlay_orient_arrow;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SIZE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_SIZE):
 		extra = _overlay_size_arrows;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_COLUMNS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_COLUMNS):
 		spec.cols = 2;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BREAKS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_BREAKS):
 		spec.fold = 1;
 		extra = _overlay_break_dash;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_LINENUMBERS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_LINENUMBERS):
 		spec.linenum = true;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_HYPHENATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_HYPHENATION):
 		extra = _overlay_hyphen;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_POSITION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_POSITION):
 		spec.fold = 1;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_WRAP:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_WRAP):
 		spec.cols = 2;
 		extra = _overlay_break_dash;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ALIGNOBJECTS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ALIGNOBJECTS):
 		spec.mr = 0.45;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_BRINGFORWARD:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_BRINGFORWARD):
 		spec.bare = true;
 		extra = _overlay_bring_forward;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_SENDBACKWARD:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_SENDBACKWARD):
 		spec.bare = true;
 		extra = _overlay_send_backward;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_GROUPOBJECTS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_GROUPOBJECTS):
 		extra = _overlay_group;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_LAYOUT_ROTATE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ROTATE):
 		extra = _overlay_rotate;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR):
 		extra = _overlay_color_drop;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE):
 		extra = _overlay_page_image;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_TOCPOP:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_TOCPOP):
 		extra = _overlay_toc;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_ADDTEXT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_ADDTEXT):
 		extra = _overlay_addtext;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_NEXTFN:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTNOTE:
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ENDNOTE:
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_FOOTNOTES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_NEXTFN):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FOOTNOTE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_ENDNOTE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_FOOTNOTES):
 		extra = _overlay_footnote;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_SHOWNOTES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_SHOWNOTES):
 		extra = _overlay_shownotes;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOC:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATEINDEX:
-	case (XAP_Menu_Id)AP_MENU_ID_REF_UPDATETOA:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_UPDATETOC):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_UPDATEINDEX):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_UPDATETOA):
 		extra = _overlay_rotate;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_CITATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_CITATION):
 		extra = _overlay_citation;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_SOURCES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_SOURCES):
 		spec.bare = true;
 		extra = _overlay_sources;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_BIBLIOGRAPHY:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_BIBLIOGRAPHY):
 		spec.bare = true;
 		extra = _overlay_bibliography;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_CAPTION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_CAPTION):
 		extra = _overlay_caption;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_TOF:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_TOF):
 		extra = _overlay_tof;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_XREF:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_XREF):
 		extra = _overlay_xref;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKENTRY:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_MARKENTRY):
 		extra = _overlay_markentry;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTINDEX:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_INSERTINDEX):
 		extra = _overlay_index;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_MARKCIT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_MARKCIT):
 		extra = _overlay_markcit;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_REF_INSERTTOA:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_INSERTTOA):
 		extra = _overlay_toa;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DIRECTIONMARKER_LRM):
 		extra = _overlay_lrm;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DIRECTIONMARKER_RLM):
 		extra = _overlay_rlm;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_COVERPAGE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_COVERPAGE):
 		extra = _overlay_coverband;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BLANKPAGE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_BLANKPAGE):
 		extra = _overlay_blankpage;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGEBREAK:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PAGEBREAK):
 		extra = _overlay_pagebreak_arrow;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_TABLE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_TABLE):
 		spec.bare = true;
 		extra = _glyph_table;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SELECT):
 		spec.bare = true;
 		extra = _glyph_tbl_select;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DELETE):
 		spec.bare = true;
 		extra = _glyph_tbl_delete;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_FORMAT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_FORMAT):
 		spec.bare = true;
 		extra = _glyph_tbl_props;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_VIEW_GRIDLINES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_VIEW_GRIDLINES):
 		spec.bare = true;
 		extra = _glyph_gridlines;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DRAW:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DRAW):
 		spec.bare = true;
 		extra = _glyph_pencil;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ERASE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ERASE):
 		spec.bare = true;
 		extra = _glyph_eraser;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_ROWS_BEFORE):
 		spec.bare = true;
 		extra = _glyph_tbl_insabove;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_ROWS_AFTER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_ROWS_AFTER):
 		spec.bare = true;
 		extra = _glyph_tbl_insbelow;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_COLUMNS_BEFORE):
 		spec.bare = true;
 		extra = _glyph_tbl_insleft;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_COLUMNS_AFTER):
 		spec.bare = true;
 		extra = _glyph_tbl_insright;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_MERGE_CELLS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_MERGE_CELLS):
 		spec.bare = true;
 		extra = _glyph_tbl_merge;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_CELLS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SPLIT_CELLS):
 		spec.bare = true;
 		extra = _glyph_tbl_splitcells;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SPLIT_TABLE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SPLIT_TABLE):
 		spec.bare = true;
 		extra = _glyph_tbl_splittable;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_AUTOFIT):
 		spec.bare = true;
 		extra = _glyph_tbl_autofit;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_ROWS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DISTRIBUTE_ROWS):
 		spec.bare = true;
 		extra = _glyph_tbl_distrib_rows;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_DISTRIBUTE_COLS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DISTRIBUTE_COLS):
 		spec.bare = true;
 		extra = _glyph_tbl_distrib_cols;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPLEFT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_TOPLEFT):
 		spec.bare = true;
 		extra = _glyph_ca_tl;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPCENTER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_TOPCENTER):
 		spec.bare = true;
 		extra = _glyph_ca_tc;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_TOPRIGHT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_TOPRIGHT):
 		spec.bare = true;
 		extra = _glyph_ca_tr;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERLEFT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_CENTERLEFT):
 		spec.bare = true;
 		extra = _glyph_ca_cl;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_CENTER):
 		spec.bare = true;
 		extra = _glyph_ca_cc;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_CENTERRIGHT):
 		spec.bare = true;
 		extra = _glyph_ca_cr;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTLEFT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_BOTLEFT):
 		spec.bare = true;
 		extra = _glyph_ca_bl;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTCENTER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_BOTCENTER):
 		spec.bare = true;
 		extra = _glyph_ca_bc;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_ALIGN_BOTRIGHT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_ALIGN_BOTRIGHT):
 		spec.bare = true;
 		extra = _glyph_ca_br;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TEXT_DIRECTION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_TEXT_DIRECTION):
 		spec.bare = true;
 		extra = _glyph_textdir;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_CELL_MARGINS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_CELL_MARGINS):
 		spec.bare = true;
 		extra = _glyph_cellmargins;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_SORT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SORT):
 		spec.bare = true;
 		extra = _glyph_tbl_sort;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_HEADING_ROWS_REPEAT):
 		spec.bare = true;
 		extra = _glyph_tbl_repeatrows;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TABLE_TABLETOTEXT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_TABLETOTEXT):
 		spec.bare = true;
 		extra = _glyph_tbl_totext;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PICTURES):
 		spec.bare = true;
 		extra = _glyph_picture;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SHAPES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SHAPES):
 		spec.bare = true;
 		extra = _glyph_shapes;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_ICONS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_ICONS):
 		spec.bare = true;
 		extra = _glyph_smiley;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_3DMODELS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_3DMODELS):
 		spec.bare = true;
 		extra = _glyph_cube;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SCREENSHOT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SCREENSHOT):
 		spec.bare = true;
 		extra = _glyph_camera;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_MEDIA:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_MEDIA):
 		spec.bare = true;
 		extra = _glyph_media;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HYPERLINK:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_HYPERLINK):
 		spec.bare = true;
 		extra = _glyph_link;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_BOOKMARK:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_BOOKMARK):
 		spec.bare = true;
 		extra = _glyph_bookmark;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_INSERT):
 		spec.bare = true;
 		extra = _glyph_comment_new;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE):
 		spec.bare = true;
 		extra = _glyph_comment_del;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE):
 		spec.bare = true;
 		extra = _glyph_comment_resolve;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_PREV:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_PREV):
 		spec.bare = true;
 		extra = _glyph_comment_prev;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_NEXT):
 		spec.bare = true;
 		extra = _glyph_comment_next;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY):
 		spec.bare = true;
 		extra = _glyph_comment;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELLING_MENUPOP:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELLING_MENUPOP):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELL):
 		spec.bare = true;
 		extra = _glyph_spell;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_WORDCOUNT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_WORDCOUNT):
 		spec.bare = true;
 		extra = _glyph_wordcount;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_FMT_LANGUAGE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_LANGUAGE):
 		spec.bare = true;
 		extra = _glyph_language;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MARK:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_TRACK):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MARK):
 		spec.bare = true;
 		extra = _glyph_track;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_AUTO):
 		spec.bare = true;
 		extra = _glyph_revauto;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_SHOW):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL):
 		spec.bare = true;
 		extra = _glyph_markup;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION):
 		spec.bare = true;
 		extra = _glyph_accept;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION):
 		spec.bare = true;
 		extra = _glyph_reject;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY):
 		spec.bare = true;
 		extra = _glyph_markup;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_ACCEPT):
 		spec.bare = true;
 		extra = _glyph_accept;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_REJECT):
 		spec.bare = true;
 		extra = _glyph_reject;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PANE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_PANE):
 		spec.bare = true;
 		extra = _glyph_pane;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS:
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE):
 		spec.bare = true;
 		extra = _glyph_compare;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS):
 		spec.bare = true;
 		extra = _glyph_combine;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV):
 		spec.bare = true;
 		extra = _glyph_revprev;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT):
 		spec.bare = true;
 		extra = _glyph_revnext;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_HEADER):
 		extra = _overlay_band_top;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FOOTER):
 		extra = _overlay_band_bot;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_PAGENO:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PAGENO):
 		extra = _overlay_pageno;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_TEXTBOX):
 		spec.bare = true;
 		extra = _glyph_textbox;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_WORDART:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_WORDART):
 		spec.bare = true;
 		extra = _glyph_wordart;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DROPCAP:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DROPCAP):
 		spec.bare = true;
 		extra = _glyph_dropcap;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SIGNATURE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SIGNATURE):
 		spec.bare = true;
 		extra = _glyph_signature;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_DATETIME:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DATETIME):
 		spec.bare = true;
 		extra = _glyph_datetime;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_FIELD:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FIELD):
 		spec.bare = true;
 		extra = _glyph_field;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_OBJECT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_OBJECT):
 		spec.bare = true;
 		extra = _glyph_object;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_EDIT_LATEXEQUATION:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_LATEXEQUATION):
 		spec.bare = true;
 		extra = _glyph_equation;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_INSERT_SYMBOL:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SYMBOL):
 		spec.bare = true;
 		extra = _glyph_omega;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_PRINT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_PRINT):
 		extra = _overlay_margin_corners;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_WEB:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_WEB):
 		extra = _overlay_globe;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NORMAL:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NORMAL):
 		/* plain page = Draft */
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM):
 		spec.bare = true;
 		extra = _glyph_zoom;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_100:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_100):
 		extra = _overlay_zoom100;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WHOLE):
 		/* plain page = One Page */
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WIDTH:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WIDTH):
 		extra = _overlay_pagewidth;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_MENUPOP_SWITCH:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_WINDOW_MENUPOP_SWITCH):
 		spec.bare = true;
 		extra = _glyph_windows;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_RULER:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_RULER):
 		spec.bare = true;
 		extra = _glyph_ruler;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_STATUSBAR:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_STATUSBAR):
 		spec.bare = true;
 		extra = _glyph_statusbar;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_GRIDLINES:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_GRIDLINES):
 		spec.bare = true;
 		extra = _glyph_gridlines;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_NAVPANE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NAVPANE):
 		spec.bare = true;
 		extra = _glyph_navpane;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_VIEW_SPLIT:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_SPLIT):
 		spec.bare = true;
 		extra = _glyph_split;
 		break;
-	case (XAP_Menu_Id)AP_MENU_ID_WINDOW_ARRANGE:
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_WINDOW_ARRANGE):
 		spec.bare = true;
 		extra = _glyph_arrange;
 		break;
@@ -5511,7 +5511,7 @@ GtkWidget * AP_UnixRibbon::_makeSizePopover()
 		std::string disp = szName;
 		int sid = fp_PageSize::PredefinedToLocalName(pd);
 		std::string loc;
-		if (sid && pSS->getValueUTF8((XAP_String_Id)sid, loc) && !loc.empty())
+		if (sid && pSS->getValueUTF8(static_cast<XAP_String_Id>(sid), loc) && !loc.empty())
 			disp = loc;
 		if (landscape)
 			disp += " (Long Edge)";
@@ -6901,7 +6901,7 @@ GtkWidget * AP_UnixRibbon::_makePicturesPopover()
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("This Device…",
 							  "Insert a picture from your computer",
-							  _layout_icon((XAP_Menu_Id)AP_MENU_ID_INSERT_PICTURES, 16, 16),
+							  _layout_icon(static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_PICTURES), 16, 16),
 							  "fileInsertGraphic", nullptr));
 	GtkWidget * online = _presetRow("Online Pictures…",
 								  "Insert a picture from a web address",
@@ -7257,7 +7257,7 @@ static void s_wp_color(const std::string & s, size_t pos,
 					   UT_RGBColor & col)
 {
 	std::string hex;
-	while (pos < s.size() && isxdigit((unsigned char)s[pos]) &&
+	while (pos < s.size() && isxdigit(static_cast<unsigned char>(s[pos])) &&
 		   hex.size() < 6)
 		hex += s[pos++];
 	if (hex.size() == 6)
@@ -7361,7 +7361,7 @@ static GtkWidget * s_wp_preview(const std::string & spec, int w, int h)
 	PangoFontDescription * d = pango_font_description_new();
 	pango_font_description_set_family(d, a.font.c_str());
 	pango_font_description_set_size(d,
-		(gint)(a.sizePt * PANGO_SCALE * 0.85));
+		static_cast<gint>((a.sizePt * PANGO_SCALE * 0.85)));
 	pango_font_description_set_weight(d,
 		a.bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL);
 	pango_font_description_set_style(d,
@@ -7477,7 +7477,7 @@ static GtkWidget * s_wp_preview(const std::string & spec, int w, int h)
 		cairo_image_surface_get_data(sf),
 		cairo_image_surface_get_height(sf) *
 			cairo_image_surface_get_stride(sf),
-		(GDestroyNotify)cairo_surface_destroy, sf);
+		reinterpret_cast<GDestroyNotify>(cairo_surface_destroy), sf);
 	GdkTexture * tex = gdk_memory_texture_new(
 		w, h,
 #ifdef G_LITTLE_ENDIAN
@@ -7554,14 +7554,14 @@ GtkWidget * AP_UnixRibbon::_makeCommentDeletePopover()
 				   _presetRow("Delete Comment",
 							  "Delete the comment at the insertion point",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE),
 								  16, 16),
 							  "delAnnotation", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Delete All Comments",
 							  "Delete every comment in the document",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE),
 								  16, 16),
 							  "delAllAnnotations", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -7733,7 +7733,7 @@ GtkWidget * AP_UnixRibbon::_makeCommentShowPopover()
 							 "toggleDisplayAnnotations", nullptr,
 							 "ann-contextual",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("List",
@@ -7741,7 +7741,7 @@ GtkWidget * AP_UnixRibbon::_makeCommentShowPopover()
 							 "commentsPane", nullptr,
 							 "ann-pane",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_PANE,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_PANE),
 								 16, 16)));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
@@ -7758,7 +7758,7 @@ GtkWidget * AP_UnixRibbon::_makeSpellingPopover()
 				   _presetRow("Spelling\xE2\x80\xA6",
 							  "Check the spelling of the document",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELL),
 								  16, 16),
 							  "dlgSpell", nullptr));
 	gtk_box_append(GTK_BOX(box),
@@ -7767,7 +7767,7 @@ GtkWidget * AP_UnixRibbon::_makeSpellingPopover()
 							 "toggleAutoGrammar", nullptr,
 							 "grammar",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_SPELL,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELL),
 								 16, 16)));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
@@ -7786,7 +7786,7 @@ GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
 							 "toggleMarkRevisions", nullptr,
 							 "track",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MARK,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MARK),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("Auto Revision",
@@ -7794,7 +7794,7 @@ GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
 							 "toggleAutoRevision", nullptr,
 							 "revauto",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_AUTO,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_AUTO),
 								 16, 16)));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
@@ -7815,7 +7815,7 @@ GtkWidget * AP_UnixRibbon::_makeMarkupPopover()
 							 "revisionDisplayMode", "simple",
 							 "mode:simple",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("All Markup",
@@ -7823,7 +7823,7 @@ GtkWidget * AP_UnixRibbon::_makeMarkupPopover()
 							 "revisionDisplayMode", "all",
 							 "mode:all",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("No Markup",
@@ -7831,7 +7831,7 @@ GtkWidget * AP_UnixRibbon::_makeMarkupPopover()
 							 "revisionDisplayMode", "none",
 							 "mode:none",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("Original",
@@ -7839,7 +7839,7 @@ GtkWidget * AP_UnixRibbon::_makeMarkupPopover()
 							 "revisionDisplayMode", "original",
 							 "mode:original",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_DISPLAY),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
 								   GTK_ORIENTATION_HORIZONTAL));
@@ -7847,14 +7847,14 @@ GtkWidget * AP_UnixRibbon::_makeMarkupPopover()
 				   _presetRow("Show Revisions",
 							  "Toggle the inline revision display",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SHOW,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_SHOW),
 								  16, 16),
 							  "toggleShowRevisions", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Compare Revisions\xE2\x80\xA6",
 							  "Pick the revision level shown",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_SET_VIEW_LEVEL),
 								  16, 16),
 							  "revisionSetViewLevel", nullptr));
 	g_signal_connect(popover, "show",
@@ -7873,14 +7873,14 @@ GtkWidget * AP_UnixRibbon::_makeAcceptPopover()
 							  "Accept the revision at the caret and move "
 							  "to the next",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION),
 								  16, 16),
 							  "revisionAcceptNext", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Accept This Change",
 							  "Accept the revision at the caret",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION),
 								  16, 16),
 							  "revisionAccept", nullptr));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
@@ -7889,14 +7889,14 @@ GtkWidget * AP_UnixRibbon::_makeAcceptPopover()
 				   _presetRow("Accept All Changes Shown",
 							  "Accept every revision currently shown",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION),
 								  16, 16),
 							  "revisionAcceptAllShown", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Accept All Changes",
 							  "Accept every revision in the document",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION),
 								  16, 16),
 							  "revisionAcceptAll", nullptr));
 	gtk_box_append(GTK_BOX(box),
@@ -7904,7 +7904,7 @@ GtkWidget * AP_UnixRibbon::_makeAcceptPopover()
 							  "Accept every revision and stop "
 							  "tracking changes",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_ACCEPT_REVISION),
 								  16, 16),
 							  "revisionAcceptAllStopTracking",
 							  nullptr));
@@ -7922,14 +7922,14 @@ GtkWidget * AP_UnixRibbon::_makeRejectPopover()
 							  "Reject the revision at the caret and move "
 							  "to the next",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION),
 								  16, 16),
 							  "revisionRejectNext", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Reject This Change",
 							  "Reject the revision at the caret",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION),
 								  16, 16),
 							  "revisionReject", nullptr));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
@@ -7938,14 +7938,14 @@ GtkWidget * AP_UnixRibbon::_makeRejectPopover()
 				   _presetRow("Reject All Changes Shown",
 							  "Reject every revision currently shown",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION),
 								  16, 16),
 							  "revisionRejectAllShown", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Reject All Changes",
 							  "Reject every revision in the document",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION),
 								  16, 16),
 							  "revisionRejectAll", nullptr));
 	gtk_box_append(GTK_BOX(box),
@@ -7953,7 +7953,7 @@ GtkWidget * AP_UnixRibbon::_makeRejectPopover()
 							  "Reject every revision and stop "
 							  "tracking changes",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_REJECT_REVISION),
 								  16, 16),
 							  "revisionRejectAllStopTracking",
 							  nullptr));
@@ -7970,7 +7970,7 @@ GtkWidget * AP_UnixRibbon::_makeComparePopover()
 				   _presetRow("Compare Documents\xE2\x80\xA6",
 							  "Compare two versions of a document",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS),
 								  16, 16),
 							  "revisionCompareDocuments", nullptr));
 	gtk_box_append(GTK_BOX(box),
@@ -7978,7 +7978,7 @@ GtkWidget * AP_UnixRibbon::_makeComparePopover()
 							  "Combine revisions from another open "
 							  "document into this one",
 							  _layout_icon(
-								  (XAP_Menu_Id)AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS,
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS),
 								  16, 16),
 							  "revisionCombineDocuments", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -8018,13 +8018,13 @@ GtkWidget * AP_UnixRibbon::_makeZoomPopover()
 				   _checkRow("Page Width", "Fit the page width in the window",
 							 "zoomWidth", nullptr, "zoom:width",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WIDTH,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WIDTH),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box),
 				   _checkRow("One Page", "Fit one whole page in the window",
 							 "zoomWhole", nullptr, "zoom:whole",
 							 _layout_icon(
-								 (XAP_Menu_Id)AP_MENU_ID_VIEW_ZOOM_WHOLE,
+								 static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WHOLE),
 								 16, 16)));
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
 								   GTK_ORIENTATION_HORIZONTAL));
@@ -8106,13 +8106,13 @@ GtkWidget * AP_UnixRibbon::_makeTableSelectPopover()
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
 	GtkWidget * w;
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_CELL);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SELECT_CELL));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_COLUMN);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SELECT_COLUMN));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_ROW);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SELECT_ROW));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_SELECT_TABLE);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_SELECT_TABLE));
 	if (w) gtk_box_append(GTK_BOX(box), w);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -8123,13 +8123,13 @@ GtkWidget * AP_UnixRibbon::_makeTableDeletePopover()
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
 	GtkWidget * w;
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_COLUMNS);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DELETE_COLUMNS));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_ROWS);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DELETE_ROWS));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_CELLS);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DELETE_CELLS));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_DELETE_TABLE);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_DELETE_TABLE));
 	if (w) gtk_box_append(GTK_BOX(box), w);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -8140,11 +8140,11 @@ GtkWidget * AP_UnixRibbon::_makeTableAutoFitPopover()
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
 	GtkWidget * w;
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT_CONTENTS);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_AUTOFIT_CONTENTS));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT_WINDOW);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_AUTOFIT_WINDOW));
 	if (w) gtk_box_append(GTK_BOX(box), w);
-	w = _popoverMenuButton((XAP_Menu_Id)AP_MENU_ID_TABLE_AUTOFIT_FIXED);
+	w = _popoverMenuButton(static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_AUTOFIT_FIXED));
 	if (w) gtk_box_append(GTK_BOX(box), w);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -8321,7 +8321,7 @@ GtkWidget * AP_UnixRibbon::_equationPreview(const char * szLatex,
 		cairo_image_surface_get_data(sf),
 		cairo_image_surface_get_height(sf) *
 			cairo_image_surface_get_stride(sf),
-		(GDestroyNotify)cairo_surface_destroy, sf);
+		reinterpret_cast<GDestroyNotify>(cairo_surface_destroy), sf);
 	GdkTexture * tex = gdk_memory_texture_new(
 		w, h,
 #ifdef G_LITTLE_ENDIAN
@@ -8730,7 +8730,7 @@ GtkWidget * AP_UnixRibbon::_makeTextBoxPopover()
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Draw Text Box",
 							  "Draw a horizontal text box",
-							  _layout_icon((XAP_Menu_Id)AP_MENU_ID_INSERT_TEXTBOX, 16, 16),
+							  _layout_icon(static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_TEXTBOX), 16, 16),
 							  "insTextBox", nullptr));
 	{
 		_PageSpec spec = { 0, 0, 0, 0, 1, false, false, 0, true };
@@ -9296,8 +9296,8 @@ GtkWidget * AP_UnixRibbon::_makeHdrFtrPopover(bool bFooter)
 				   _presetRow(bFooter ? "Edit Footer" : "Edit Header",
 							  nullptr,
 							  _layout_icon(bFooter
-								   ? (XAP_Menu_Id)AP_MENU_ID_INSERT_FOOTER
-								   : (XAP_Menu_Id)AP_MENU_ID_INSERT_HEADER,
+								   ? static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_FOOTER
+								   ): static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_HEADER),
 								   16, 16),
 							  bFooter ? "editFooter" : "editHeader",
 							  nullptr));
@@ -10284,13 +10284,13 @@ GtkWidget * AP_UnixRibbon::_makeLineSpacingPopover()
 	gtk_widget_set_margin_end(box, 4);
 
 	GtkWidget * w = _popoverTbButton(
-		(XAP_Toolbar_Id)AP_TOOLBAR_ID_SINGLE_SPACE, "Single");
+		static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_SINGLE_SPACE), "Single");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 	w = _popoverTbButton(
-		(XAP_Toolbar_Id)AP_TOOLBAR_ID_MIDDLE_SPACE, "1.5 Lines");
+		static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_MIDDLE_SPACE), "1.5 Lines");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 	w = _popoverTbButton(
-		(XAP_Toolbar_Id)AP_TOOLBAR_ID_DOUBLE_SPACE, "Double");
+		static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_DOUBLE_SPACE), "Double");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
@@ -10308,11 +10308,11 @@ GtkWidget * AP_UnixRibbon::_makeParaSpacingPopover()
 	gtk_widget_set_margin_end(box, 4);
 
 	GtkWidget * w = _popoverTbButton(
-		(XAP_Toolbar_Id)AP_TOOLBAR_ID_PARA_0BEFORE,
+		static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_PARA_0BEFORE),
 		"No Spacing Above Paragraph");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 	w = _popoverTbButton(
-		(XAP_Toolbar_Id)AP_TOOLBAR_ID_PARA_12BEFORE,
+		static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_PARA_12BEFORE),
 		"12pt Spacing Above Paragraph");
 	if (w) gtk_box_append(GTK_BOX(box), w);
 
@@ -10506,13 +10506,13 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopTbButton(XAP_Toolbar_Id id,
 	GtkWidget * popover = nullptr;
 	switch (id)
 	{
-	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_SINGLE_SPACE:
+	case static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_SINGLE_SPACE):
 		popover = _makeLineSpacingPopover();
 		break;
-	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_PARA_0BEFORE:
+	case static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_PARA_0BEFORE):
 		popover = _makeParaSpacingPopover();
 		break;
-	case (XAP_Toolbar_Id)AP_TOOLBAR_ID_SORT_PARA:
+	case static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_SORT_PARA):
 		popover = _makeSortParaPopover();
 		break;
 	default:
@@ -10990,7 +10990,7 @@ void AP_UnixRibbon::_populateStyleTiles()
 			{
 				for (size_t i = 0; i < G_N_ELEMENTS(s_galleryOrder); ++i)
 					if (s == s_galleryOrder[i])
-						return (int)i;
+						return static_cast<int>(i);
 				return 1000;
 			};
 			int oa = orderOf(a.first), ob = orderOf(b.first);
@@ -11073,7 +11073,7 @@ void AP_UnixRibbon::_s_style_tile_clicked(GtkWidget * w, gpointer data)
 		{
 			UT_UCS4String ucsName(t->styleName);
 			self->_invokeToolbarItem(
-				(XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE,
+				static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE),
 				ucsName.ucs4_str(), ucsName.length());
 			return;
 		}
@@ -11178,12 +11178,12 @@ void AP_UnixRibbon::_refreshToolbarItems()
 			? pAction->getToolbarItemState(pView, &szState)
 			: EV_TIS_Gray;
 		if (tis & EV_TIS_Hidden)
-			tis = (EV_Toolbar_ItemState)(tis | EV_TIS_Gray);
+			tis = static_cast<EV_Toolbar_ItemState>((tis | EV_TIS_Gray));
 
 		bool bGrayed = EV_TIS_ShouldBeGray(tis);
 		gtk_widget_set_sensitive(ctx->widget, !bGrayed);
 		/* FMT_STYLE stays hidden permanently (state-only ctx) */
-		if (ctx->id != (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+		if (ctx->id != static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 			gtk_widget_set_visible(ctx->widget,
 								   !EV_TIS_ShouldBeHidden(tis));
 
@@ -11205,17 +11205,17 @@ void AP_UnixRibbon::_refreshToolbarItems()
 					abi_font_combo_unselect(ABI_FONT_COMBO(ctx->widget));
 				else
 					gtk_combo_box_set_active(GTK_COMBO_BOX(ctx->widget), -1);
-				if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+				if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 					_refreshStyleTiles(nullptr);
 			}
-			else if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE)
+			else if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE))
 			{
 				const char * fsz =
 					XAP_EncodingManager::fontsizes_mapping.lookupBySource(szState);
 				_tb_combo_set_text(GTK_COMBO_BOX(ctx->widget),
 								   fsz ? fsz : szState, ctx);
 			}
-			else if (ctx->id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE)
+			else if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 			{
 				std::string sLoc;
 				pt_PieceTable::s_getLocalisedStyleName(szState, sLoc);

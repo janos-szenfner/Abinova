@@ -435,7 +435,7 @@ bool pf_Frag_Object::_isContentEqual(const pf_Frag &f2) const
 	if(!pf_Frag::_isContentEqual(f2))
 		return false;
 	
-	if(getObjectType() != ((const pf_Frag_Object&)(f2)).getObjectType())
+	if(getObjectType() != (static_cast<const pf_Frag_Object&>((f2))).getObjectType())
 		return false;
 
 	if(m_pField)

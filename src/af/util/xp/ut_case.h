@@ -86,8 +86,8 @@ case_entry2 case_table2[] =
 
 static int s_cmp_case(const void * c1, const void * c2)
 {
-	const UT_UCS4Char * C1 = (const UT_UCS4Char *) c1;
-	const case_entry * C2 = (const case_entry *) c2;
+	const UT_UCS4Char * C1 = static_cast<const UT_UCS4Char *>( c1);
+	const case_entry * C2 = static_cast<const case_entry *>( c2);
 
 	return *C1 - C2->code;
 }
@@ -1461,8 +1461,8 @@ ucs_range whitespace_table[] =
 
 static int s_cmp_digits(const void * c1, const void * c2)
 {
-	const UT_UCS4Char * C1 = (const UT_UCS4Char *) c1;
-	const ucs_range * C2 = (const ucs_range *) c2;
+	const UT_UCS4Char * C1 = static_cast<const UT_UCS4Char *>( c1);
+	const ucs_range * C2 = static_cast<const ucs_range *>( c2);
 
 	if (*C1 > C2->high) return +1;
 	if (*C1 < C2->low)  return -1;

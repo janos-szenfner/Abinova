@@ -41,7 +41,7 @@ bool FV_SelectionHandles::_getPositionCoords(PT_DocPosition pos, UT_sint32& x, U
 
         if (x1 < 0 || y1 < 0 ||
             x1 > m_pView->getWindowWidth() ||
-            y1 > m_pView->getWindowHeight() - (UT_sint32) h)
+            y1 > m_pView->getWindowHeight() - static_cast<UT_sint32>( h))
           visible = false;
 
 	x = m_pView->getGraphics()->tdu(x1);

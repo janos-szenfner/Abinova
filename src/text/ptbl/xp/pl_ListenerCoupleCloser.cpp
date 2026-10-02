@@ -184,7 +184,7 @@ PL_ListenerCoupleCloser::populate(fl_ContainerLayout* /* sfh */,
 {
 	UT_DebugOnly<PT_AttrPropIndex> indexAP = pcr->getIndexAP();
 	UT_DEBUGMSG(("MIQ: PL_ListenerCoupleCloser::Populate() indexAP %d pcr.type:%d \n",
-		     (PT_AttrPropIndex)indexAP, pcr->getType() ));
+		     static_cast<PT_AttrPropIndex>(indexAP), pcr->getType() ));
 	switch (pcr->getType())
 	{
         case PX_ChangeRecord::PXT_InsertSpan:
@@ -264,7 +264,7 @@ PL_ListenerCoupleCloser::populateStruxAfter( pf_Frag_Strux* /*sdh*/,
 {
 	UT_DebugOnly<PT_AttrPropIndex> indexAP = pcr->getIndexAP();
 	UT_DEBUGMSG(("MIQ: PL_ListenerCoupleCloser::PopulateStruxAfter() indexAP %d pcr.type:%d \n",
-		     (PT_AttrPropIndex)indexAP, pcr->getType() ));
+		     static_cast<PT_AttrPropIndex>(indexAP), pcr->getType() ));
     return true;
 }
 
@@ -277,7 +277,7 @@ PL_ListenerCoupleCloser::populateAfter( fl_ContainerLayout* sfh,
 {
 	UT_DebugOnly<PT_AttrPropIndex> indexAP = pcr->getIndexAP();
 	UT_DEBUGMSG(("MIQ: PL_ListenerCoupleCloser::PopulateAfter() indexAP %d pcr.type:%d \n",
-		     (PT_AttrPropIndex)indexAP, pcr->getType() ));
+		     static_cast<PT_AttrPropIndex>(indexAP), pcr->getType() ));
 	switch (pcr->getType())
 	{
         case PX_ChangeRecord::PXT_InsertSpan:
@@ -355,7 +355,7 @@ PL_ListenerCoupleCloser::populateStruxBefore( pf_Frag_Strux* /*sdh*/,
 {
 	UT_DebugOnly<PT_AttrPropIndex> indexAP = pcr->getIndexAP();
 	UT_DEBUGMSG(("MIQ: PL_ListenerCoupleCloser::PopulateStruxBefore() indexAP %d pcr.type:%d \n",
-		     (PT_AttrPropIndex)indexAP, pcr->getType() ));
+		     static_cast<PT_AttrPropIndex>(indexAP), pcr->getType() ));
 
     
     return true;
@@ -381,7 +381,7 @@ PL_ListenerCoupleCloser::populateBefore( fl_ContainerLayout* sfh,
 {
 	UT_DebugOnly<PT_AttrPropIndex> indexAP = pcr->getIndexAP();
 	UT_DEBUGMSG(("MIQ: PL_ListenerCoupleCloser::PopulateBefore() indexAP %d pcr.type:%d \n",
-		     (PT_AttrPropIndex)indexAP, pcr->getType() ));
+		     static_cast<PT_AttrPropIndex>(indexAP), pcr->getType() ));
 	switch (pcr->getType())
 	{
         case PX_ChangeRecord::PXT_InsertSpan:

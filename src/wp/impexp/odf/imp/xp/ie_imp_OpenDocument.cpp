@@ -99,8 +99,8 @@ bool IE_Imp_OpenDocument::pasteFromBuffer(PD_DocumentRange * pDocRange,
     // Turn pData into something that can be imported by the open documenb
     // importer.
     //
-    GsfInput * pInStream =  gsf_input_memory_new((const guint8 *) pData, 
-						 (gsf_off_t) lenData,
+    GsfInput * pInStream =  gsf_input_memory_new(static_cast<const guint8 *>( pData), 
+						 static_cast<gsf_off_t>( lenData),
 						 FALSE);
     pODImp->loadFile(newDoc, pInStream);
     // pInStream deleted after load.
@@ -277,7 +277,7 @@ static UT_UTF8String _getPassword (XAP_Frame * pFrame)
       pFrame->raise ();
 
       XAP_DialogFactory * pDialogFactory
-		  = (XAP_DialogFactory *)(pFrame->getDialogFactory());
+		  = static_cast<XAP_DialogFactory *>((pFrame->getDialogFactory()));
 
       XAP_Dialog_Password * pDlg = static_cast<XAP_Dialog_Password*>(pDialogFactory->requestDialog(XAP_DIALOG_ID_PASSWORD));
       UT_return_val_if_fail(pDlg, password);
@@ -356,7 +356,7 @@ UT_Error IE_Imp_OpenDocument::_handleMimetype ()
     
     if (gsf_input_size (pInput) > 0) {
         mimetype.append(
-            (const char *)gsf_input_read(pInput, gsf_input_size (pInput), nullptr),
+            reinterpret_cast<const char *>(gsf_input_read(pInput, gsf_input_size (pInput), nullptr)),
             gsf_input_size (pInput));
     }
 
@@ -478,7 +478,7 @@ UT_Error IE_Imp_OpenDocument::_handleContentStream ()
 //    ODi_ListenerState* ls = m_pStreamListener->getCurrentState();
     _handleStream (m_pGsfInfile, "content.xml", *m_pStreamListener);
 
-    UT_DEBUGMSG(("rangedAnnotations.sz:%lu\n", (long unsigned)m_pAbiData->m_rangedAnnotationNames.size() ));
+    UT_DEBUGMSG(("rangedAnnotations.sz:%lu\n", static_cast<long unsigned>(m_pAbiData->m_rangedAnnotationNames.size() )));
     
     // if( ODi_ContentStreamAnnotationMatcher_ListenerState* matcher =
     //     dynamic_cast<ODi_ContentStreamAnnotationMatcher_ListenerState*>(ls))
@@ -541,7 +541,7 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
         // smart_ptr to an array an explicitly nul-terminate it.
         std::unique_ptr<char[]> data( new char[sz+1] );
         data[sz] = '\0';
-        if (nullptr == gsf_input_read ( pInput, sz, (guint8*)data.get() ))
+        if (nullptr == gsf_input_read ( pInput, sz, static_cast<guint8*>(data.get() )))
         {
             return UT_ERROR;
         }
@@ -553,7 +553,7 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
         // Note that although the API docs say you can use nullptr for base_uri
         // you will likely find it an error to try to call that way.
         librdf_uri* base_uri = librdf_new_uri( args->world,
-                                               (const unsigned char*)pStream );
+                                               static_cast<const unsigned char*>(pStream ));
         if( !base_uri )
         {
             UT_DEBUGMSG(("Failed to create a base URI to parse RDF into model. stream:%s sz:%d\n",
@@ -563,7 +563,7 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
 
         UT_DEBUGMSG(("_handleRDFStreams() stream:%s RDF/XML:::%s:::\n", pStream, data.get() ));
         if( librdf_parser_parse_string_into_model( args->parser,
-                                                   (const unsigned char*)data.get(),
+                                                   static_cast<const unsigned char*>(data.get()),
                                                    base_uri, args->model ))
         {
             UT_DEBUGMSG(("Failed to parse RDF into model. stream:%s sz:%d\n",
@@ -690,7 +690,7 @@ UT_Error IE_Imp_OpenDocument::_handleRDFStreams ()
 
     librdf_uri* base_uri = nullptr;
     librdf_query* query = librdf_new_query(args.world, "sparql", nullptr,
-                                            (unsigned char*)query_string,
+                                            static_cast<unsigned char*>(query_string),
                                             base_uri );
     librdf_query_results* results = librdf_query_execute( query, model );
 
@@ -876,7 +876,7 @@ UT_Error IE_Imp_OpenDocument::_parseStream (GsfInput* pInput, UT_XML & parser)
                 g_object_unref (G_OBJECT (pInput));
                 return UT_ERROR;
             }
-            ret = parser.parse ((const char *)data, len);
+            ret = parser.parse (reinterpret_cast<const char *>(data), len);
         }
         // if there is an error we think we can recover.
         if(ret != UT_OK) {

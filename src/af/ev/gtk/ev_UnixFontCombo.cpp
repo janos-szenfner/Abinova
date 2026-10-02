@@ -361,17 +361,17 @@ abi_font_combo_get_type (void)
                         sizeof (AbiFontComboClass),
                         nullptr,           /* base_init */
                         nullptr,           /* base_finalize */
-                        (GClassInitFunc) abi_font_combo_class_init,
+                        reinterpret_cast<GClassInitFunc>( abi_font_combo_class_init),
                         nullptr,           /* class_finalize */
                         nullptr,           /* class_data */
                         sizeof (AbiFontCombo),
                         0,              /* n_preallocs */
-                        (GInstanceInitFunc) abi_font_combo_init,
+                        reinterpret_cast<GInstanceInitFunc>( abi_font_combo_init),
 						nullptr
                 };
                 type = g_type_register_static (GTK_TYPE_BOX,
 					       "AbiFontCombo", &info,
-					       (GTypeFlags)0);
+					       static_cast<GTypeFlags>(0));
         }
         return type;
 }
@@ -379,9 +379,9 @@ abi_font_combo_get_type (void)
 GtkWidget *
 abi_font_combo_new (void)
 {
-	AbiFontCombo *self = (AbiFontCombo *) g_object_new (ABI_TYPE_FONT_COMBO,
+	AbiFontCombo *self = static_cast<AbiFontCombo *>( g_object_new (ABI_TYPE_FONT_COMBO,
 													   "orientation", GTK_ORIENTATION_HORIZONTAL,
-													   nullptr);
+													   nullptr));
 	gtk_widget_add_css_class (GTK_WIDGET (self), "linked");
 
 	/* LibreOffice-style font box: an editable entry for typing font

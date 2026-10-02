@@ -639,7 +639,7 @@ bool AP_UnixFrameImpl::isNavPaneVisible() const
 void AP_UnixFrameImpl::toggleNavPane()
 {
 	fprintf(stderr, "NAVDBG toggleNavPane: vis=%d deck=%p paned=%p\n",
-			(int)isNavPaneVisible(), (void*)m_wSideDeck, (void*)m_wDocPaned);
+			static_cast<int>(isNavPaneVisible()), static_cast<void*>(m_wSideDeck), static_cast<void*>(m_wDocPaned));
 	setNavPaneVisible(!isNavPaneVisible());
 }
 

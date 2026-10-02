@@ -303,7 +303,7 @@ IEGraphicFileType IE_ImpGraphic::fileTypeForSuffix(const char * szSuffix)
 	
 IEGraphicFileType IE_ImpGraphic::fileTypeForContents(const char * szBuf, UT_uint32 iNumbytes)
 {
-	GsfInput * input = gsf_input_memory_new ((guint8 *)szBuf, (gsf_off_t)iNumbytes, FALSE);
+	GsfInput * input = gsf_input_memory_new (const_cast<guint8 *>(reinterpret_cast<const guint8*>(szBuf)), static_cast<gsf_off_t>(iNumbytes), FALSE);
 	if (!input)
 		return IEGFT_Unknown;
 
@@ -325,7 +325,7 @@ IEGraphicFileType IE_ImpGraphic::fileTypeForContents(const char * szBuf, UT_uint
 			best_confidence = confidence;
 			for (UT_sint32 a = 0; a < static_cast<int>(nrElements); a++)
 			{
-				if (s->supportsType((IEGraphicFileType) (a+1)))
+				if (s->supportsType(static_cast<IEGraphicFileType>( (a+1))))
 				  {
 				    best = static_cast<IEGraphicFileType>(a+1);
 				    
@@ -430,7 +430,7 @@ UT_Error IE_ImpGraphic::constructImporter(const UT_ConstByteBufPtr & bytes,
 static UT_Confidence_t s_condfidence_heuristic ( UT_Confidence_t content_confidence, 
 						 UT_Confidence_t suffix_confidence )
 {
-  return (UT_Confidence_t) ( (static_cast<double>(content_confidence) * 0.85) + (static_cast<double>(suffix_confidence) * 0.15) ) ;
+  return static_cast<UT_Confidence_t>( ( (static_cast<double>(content_confidence) * 0.85) + (static_cast<double>(suffix_confidence) * 0.15) ) );
 }
 
 UT_Error IE_ImpGraphic::constructImporter(const char * szFilename,
@@ -507,7 +507,7 @@ UT_Error IE_ImpGraphic::constructImporter(GsfInput * input,
 				if ( confidence > CONFIDENCE_THRESHOLD && confidence >= best_confidence )
 					{
 						best_confidence = confidence;
-						ft = (IEGraphicFileType)(k+1);
+						ft = static_cast<IEGraphicFileType>((k+1));
 					}
 			}
     }
@@ -647,7 +647,7 @@ UT_Confidence_t IE_ImpGraphicSniffer::recognizeContents (GsfInput * input)
 	const gsf_off_t inputSize = gsf_input_size(input);
 	UT_uint32 iNumbytes = (inputSize > 0)
 		? static_cast<UT_uint32>(UT_MIN(inputSize, static_cast<gsf_off_t>(4096))) : 0;
-	gsf_input_read(input, iNumbytes, (guint8 *)(szBuf));
+	gsf_input_read(input, iNumbytes, reinterpret_cast<guint8 *>((szBuf)));
 	szBuf[iNumbytes] = '\0';
 
 	return recognizeContents(szBuf, iNumbytes);

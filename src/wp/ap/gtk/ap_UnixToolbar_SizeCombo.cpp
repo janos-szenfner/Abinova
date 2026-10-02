@@ -39,7 +39,7 @@ AP_UnixToolbar_SizeCombo::AP_UnixToolbar_SizeCombo(EV_Toolbar * pToolbar,
 	: EV_Toolbar_Control(pToolbar/*,id*/)
 {
 	UT_DEBUG_ONLY_ARG(id);
-	UT_ASSERT(id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_SIZE);
+	UT_ASSERT(id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE));
 	m_nPixels =60;		// TODO: do a better calculation
 	m_nLimit = 10;    
 }

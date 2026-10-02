@@ -189,13 +189,13 @@ void AP_UnixDialog_Background::_constructWindowContents (GtkWidget * parent)
 		gtk_box_append(GTK_BOX(vbox), hbox);
 		g_signal_connect(G_OBJECT(clearColor), "clicked",
 						G_CALLBACK(s_color_cleared),
-						(gpointer) this);
+						static_cast<gpointer>( this));
 		gtk_widget_set_visible(vbox, TRUE);
 	}
 	g_signal_connect (G_OBJECT(colorsel),
 			  "color-activated",
 			  G_CALLBACK(s_color_changed),
-			  (gpointer) this);
+			  static_cast<gpointer>( this));
 }
 
 void AP_UnixDialog_Background::eventOk (void)

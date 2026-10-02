@@ -92,7 +92,7 @@ UT_Confidence_t IE_Imp_OpenDocument_Sniffer::recognizeContents (GsfInput * input
 			
 			gsf_off_t size = gsf_input_size (pInput);
 			if (size > 0) {
-				const char * p = (const char *)gsf_input_read(pInput, size, nullptr);
+				const char * p = reinterpret_cast<const char *>(gsf_input_read(pInput, size, nullptr));
 				if(p) {
 					mimetype.assign(p, size);
 				}
@@ -127,7 +127,7 @@ UT_Confidence_t IE_Imp_OpenDocument_Sniffer::recognizeContents (GsfInput * input
 			gsf_off_t toRead = size > 8192 ? 8192 : size;
 			const guint8 * p = gsf_input_read (input, toRead, nullptr);
 			if (p) {
-				std::string head ((const char *) p, (size_t) toRead);
+				std::string head (reinterpret_cast<const char *>( p), static_cast<size_t>( toRead));
 				if (head.find ("<office:document") != std::string::npos &&
 					head.find ("opendocument") != std::string::npos) {
 					confidence = UT_CONFIDENCE_GOOD;

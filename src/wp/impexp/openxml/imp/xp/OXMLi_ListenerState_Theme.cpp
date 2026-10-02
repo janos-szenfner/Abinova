@@ -216,7 +216,7 @@ void OXMLi_ListenerState_Theme::startElement (OXMLi_StartElementRequest * rqst)
 			if (blur)
 				m_shdw.blurPt = UT_convertDimensionless(blur) / 12700.0;
 			if (dir)
-				m_shdw.dir = (int)UT_convertDimensionless(dir);
+				m_shdw.dir = static_cast<int>(UT_convertDimensionless(dir));
 			if (rws)
 				m_shdw.rotWithShape =
 					(strcmp(rws, "0") && strcmp(rws, "false"));

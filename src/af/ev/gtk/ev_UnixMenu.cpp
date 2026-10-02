@@ -643,7 +643,7 @@ void EV_UnixMenu::_buildItems(GMenu * pMenuRoot, bool isPopup)
 			// missing action or label; keep rec indexes aligned
 			// with the layout so _refreshMenu() stays in sync
 			UT_DEBUGMSG(("EV_UnixMenu: no action/label for item %u\n",
-						 (unsigned)id));
+						 static_cast<unsigned>(id)));
 			m_vecItemRecs.push_back(_ItemRec());
 			continue;
 		}
@@ -657,7 +657,7 @@ void EV_UnixMenu::_buildItems(GMenu * pMenuRoot, bool isPopup)
 				// getLabelName() fails when the bound edit method is
 				// not registered; skip instead of dereferencing null
 				UT_DEBUGMSG(("EV_UnixMenu: no label name for item %u\n",
-							 (unsigned)id));
+							 static_cast<unsigned>(id)));
 				m_vecItemRecs.push_back(_ItemRec());
 				continue;
 			}

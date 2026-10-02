@@ -478,7 +478,7 @@ UT_Error OXMLi_PackageManager::_parseStream( GsfInput * stream, OXMLi_StreamList
 				g_object_unref (G_OBJECT (stream));
 				return UT_ERROR;
 			}
-			cdata = (const char *)data;
+			cdata = reinterpret_cast<const char *>(data);
 			ret = reader.parse (cdata, len);
 		}
 	}

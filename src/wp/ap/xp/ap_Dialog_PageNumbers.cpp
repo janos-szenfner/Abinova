@@ -144,14 +144,14 @@ void AP_Preview_PageNumbers::drawImmediate(const UT_Rect* clip)
 	switch (m_align)
 	{
 		case AP_Dialog_PageNumbers::id_RALIGN : x = pageRect.left + pageRect.width - (2 * m_gc->measureUnRemappedChar(*m_str)); break;
-		case AP_Dialog_PageNumbers::id_CALIGN : x = pageRect.left + (int)(pageRect.width / 2); break;
+		case AP_Dialog_PageNumbers::id_CALIGN : x = pageRect.left + static_cast<int>((pageRect.width / 2)); break;
 		case AP_Dialog_PageNumbers::id_LALIGN : x = pageRect.left + m_gc->measureUnRemappedChar(*m_str); break;
 	}
 	
 	switch (m_control)
 	{
-		case AP_Dialog_PageNumbers::id_HDR : y = pageRect.top + (int)(iFontHeight / 2); break;
-		case AP_Dialog_PageNumbers::id_FTR : y = pageRect.top + pageRect.height - (int)(1.5 * iFontHeight); break;
+		case AP_Dialog_PageNumbers::id_HDR : y = pageRect.top + static_cast<int>((iFontHeight / 2)); break;
+		case AP_Dialog_PageNumbers::id_FTR : y = pageRect.top + pageRect.height - static_cast<int>((1.5 * iFontHeight)); break;
 	}
 	
 	//m_gc->setColor3D(GR_Graphics::CLR3D_Foreground);

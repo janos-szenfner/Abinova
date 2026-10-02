@@ -585,7 +585,7 @@ bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** format
 			if (s_read_stream_into(stream, m_databuf, nullptr))
 			{
 				*pLen = m_databuf.getLength();
-				*ppData = (void *)(m_databuf.getPointer(0));
+				*ppData = const_cast<void *>(reinterpret_cast<const void*>((m_databuf.getPointer(0))));
 				*pszFormatFound = formatList[i];
 				rval = true;
 				UT_DEBUGMSG(("Found format %s on clipbaord \n",formatList[i]));

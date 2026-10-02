@@ -120,7 +120,7 @@ UT_Error IE_Imp_XML::_loadFile(GsfInput * input)
 			return m_error;
 		}
 	size_t num_bytes = static_cast<size_t>(input_size);
-	char * bytes = (char *)gsf_input_read(input, num_bytes, nullptr);
+	char * bytes = const_cast<char *>(reinterpret_cast<const char*>(gsf_input_read(input, num_bytes, nullptr)));
 	if (num_bytes > 0 && !bytes)
 		{
 			m_error = UT_IE_BOGUSDOCUMENT;
@@ -171,7 +171,7 @@ UT_Error IE_Imp_XML::importFile(const char * data, UT_uint32 length)
 
 UT_Error IE_Imp_XML::importFile(const UT_ByteBuf * data)
 {
-	return importFile((const char *)data->getPointer(0), data->getLength());
+	return importFile(reinterpret_cast<const char *>(data->getPointer(0)), data->getLength());
 }
 
 bool IE_Imp_XML::pasteFromBuffer(PD_DocumentRange * pDocRange, const unsigned char * pData, 
@@ -188,7 +188,7 @@ bool IE_Imp_XML::pasteFromBuffer(PD_DocumentRange * pDocRange, const unsigned ch
 	parser->setListener (this);
 	if (m_pReader) parser->setReader (m_pReader);
 
-	UT_Error err = parser->parse ((const char*)pData, lenData);
+	UT_Error err = parser->parse (reinterpret_cast<const char*>(pData), lenData);
 
 	if ((err != UT_OK) && (err != UT_IE_SKIPINVALID))
 		m_error = UT_IE_BOGUSDOCUMENT;

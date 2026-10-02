@@ -140,14 +140,14 @@ const char * AbiWordPerfectGraphicsInputStream::subStreamName(unsigned id)
 
 	if (m_ole)
 		{
-			if ((int)id >= gsf_infile_num_children(m_ole))
+			if (static_cast<int>(id )>= gsf_infile_num_children(m_ole))
 			{
 				return nullptr;
 			}
 			std::map<unsigned, std::string>::iterator i = m_substreams.lower_bound(id);
 			if (i == m_substreams.end() || m_substreams.key_comp()(id, i->first))
 				{
-					std::string name = gsf_infile_name_by_index(m_ole, (int)id);
+					std::string name = gsf_infile_name_by_index(m_ole, static_cast<int>(id));
 					i = m_substreams.insert(i, std::map<unsigned, std::string>::value_type(id, name));
 				}
 			return i->second.c_str();
@@ -212,7 +212,7 @@ librevenge::RVNGInputStream * AbiWordPerfectGraphicsInputStream::getSubStreamByI
 
 	if (m_ole)
 		{
-			GsfInput *document = gsf_infile_child_by_index(m_ole, (int)id);
+			GsfInput *document = gsf_infile_child_by_index(m_ole, static_cast<int>(id));
 			if (document) 
 				{
 					documentStream = new AbiWordPerfectGraphicsInputStream(document);
@@ -297,7 +297,7 @@ UT_Error IE_Imp_WordPerfectGraphics::importGraphic(GsfInput *input, FG_ConstGrap
 	svgOutput.append(vec[0]);
 	svgOutput.append("\n");
 
-	GsfInput * svgInput = gsf_input_memory_new((const guint8*)svgOutput.cstr(), svgOutput.len(), false);
+	GsfInput * svgInput = gsf_input_memory_new(reinterpret_cast<const guint8*>(svgOutput.cstr()), svgOutput.len(), false);
 	UT_Error result = IE_ImpGraphic::loadGraphic(svgInput, IE_ImpGraphic::fileTypeForSuffix(".svg"), pfg);
 	g_object_unref(svgInput);
 	return result;

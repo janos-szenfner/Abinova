@@ -195,7 +195,7 @@ XAP_Dialog_Modeless::XAP_Dialog_Modeless(XAP_DialogFactory * pDlgFactory, XAP_Di
 	m_pDlgFactory = pDlgFactory;
 	m_id = id;
 	m_pApp = pDlgFactory->getApp();
-        m_pDialog = (XAP_Dialog_Modeless *) this;
+        m_pDialog = static_cast<XAP_Dialog_Modeless *>( this);
 
 	UT_ASSERT_HARMLESS(m_pApp);
 }
@@ -216,8 +216,8 @@ void XAP_Dialog_Modeless::useEnd(void)
 
 void XAP_Dialog_Modeless::modeless_cleanup(void)
 {
-	UT_sint32 sid = (UT_sint32) getDialogId();
-	m_pApp->forgetModelessId( (UT_sint32) sid);
+	UT_sint32 sid = static_cast<UT_sint32>( getDialogId());
+	m_pApp->forgetModelessId( static_cast<UT_sint32>( sid));
 	m_pDlgFactory->releaseDialog(m_pDialog);
     maybeReallowPopupPreviewBubbles();
 }
@@ -225,7 +225,7 @@ void XAP_Dialog_Modeless::modeless_cleanup(void)
 bool XAP_Dialog_Modeless::isRunning(void) const
 {
  
-	UT_sint32 sid = (UT_sint32) getDialogId();
+	UT_sint32 sid = static_cast<UT_sint32>( getDialogId());
 	return m_pApp->isModelessRunning(sid);
 }
 
@@ -234,7 +234,7 @@ XAP_Frame *   XAP_Dialog_Modeless::getActiveFrame(void) const
 	// This function returns the frame currently connected to a modeless dialog
 
 	XAP_Frame * pFrame = m_pApp->getLastFocussedFrame();
-	if(pFrame == (XAP_Frame *) nullptr)
+	if(pFrame == static_cast<XAP_Frame *>( nullptr))
 	{
 		pFrame = m_pApp->getFrame(0);
 	}

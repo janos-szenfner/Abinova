@@ -133,7 +133,7 @@ bool TidyReader::openFile (const char * szFilename)
 	UT_DEBUGMSG(("tidy succeeded!\n"));
 #ifdef DEBUG
 	fputs ("================================================================\n", stderr);
-	fputs ((const char *) m_outbuf.bp, stderr);
+	fputs (static_cast<const char *>( m_outbuf.bp), stderr);
 	fputs ("================================================================\n", stderr);
 #endif
 	m_outbuf.next = 0;
@@ -152,7 +152,7 @@ UT_uint32 TidyReader::readBytes (char * buffer, UT_uint32 length)
 
 	m_outbuf.next += length_copy;
 
-	return (UT_uint32) length_copy;
+	return static_cast<UT_uint32>( length_copy);
 }
 
 void TidyReader::closeFile (void)

@@ -212,7 +212,7 @@ void AP_UnixDialog_Options::event_ChooseTransparentColor ( void )
 //
     abiDestroyWidget ( dlg );
 
-	g_object_unref((GObject*)(builder));
+	g_object_unref(reinterpret_cast<GObject*>((builder)));
 }
 
 void AP_UnixDialog_Options::addPage ( const XAP_NotebookDialog::Page *page )
@@ -813,12 +813,12 @@ void AP_UnixDialog_Options::_setupSmartQuotesCombos(  GtkWidget *optionmenu  )
 	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
 
     UT_UCS4Char wszDisplayString[4];
-	for (size_t i = 0; XAP_EncodingManager::smartQuoteStyles[i].leftQuote != (UT_UCS4Char)0; ++i)
+	for (size_t i = 0; XAP_EncodingManager::smartQuoteStyles[i].leftQuote != static_cast<UT_UCS4Char>(0); ++i)
 	{
 		wszDisplayString[0] = XAP_EncodingManager::smartQuoteStyles[i].leftQuote;
-		wszDisplayString[1] = (gunichar)'O';
+		wszDisplayString[1] = static_cast<gunichar>('O');
 		wszDisplayString[2] = XAP_EncodingManager::smartQuoteStyles[i].rightQuote;
-		wszDisplayString[3] = (gunichar)0;
+		wszDisplayString[3] = static_cast<gunichar>(0);
         gchar* szDisplayStringUTF8 = g_ucs4_to_utf8 ( wszDisplayString, -1, nullptr, nullptr, nullptr );
 		XAP_appendComboBoxTextAndInt(combo, szDisplayStringUTF8, i);
         g_free ( szDisplayStringUTF8 );

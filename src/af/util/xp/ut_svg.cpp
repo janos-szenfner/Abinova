@@ -186,18 +186,18 @@ void UT_svg::startElement (const gchar * name, const gchar ** atts)
 		const gchar **attr = atts;
 		while (*attr && (m_ePM!=pm_recognizeContent))
 		{
-			if (strcmp((const char*)(*attr),"width")==0)
+			if (strcmp(static_cast<const char*>((*attr)),"width")==0)
 			{
 				attr++;
-				_css_length((const char*)(*attr),m_pG,
+				_css_length(static_cast<const char*>((*attr)),m_pG,
 					    &(m_iDisplayWidth),&(m_iLayoutWidth));
 				attr++;
 				continue;
 			}
-			if (strcmp((const char*)(*attr),"height")==0)
+			if (strcmp(static_cast<const char*>((*attr)),"height")==0)
 			{
 				attr++;
-				_css_length((const char*)(*attr),m_pG,
+				_css_length(static_cast<const char*>((*attr)),m_pG,
 					    &(m_iDisplayHeight),&(m_iLayoutHeight));
 				attr++;
 				continue;
@@ -511,7 +511,7 @@ static bool BNF_wsp_star (const char ** pptr) // wsp*
 
   while (*ptr)
     {
-      int ic = (int) *ptr;
+      int ic = static_cast<int>( *ptr);
       if (ic < 0) ic += 0xff;
 
       if (!isspace (ic)) break;
@@ -534,7 +534,7 @@ static bool BNF_comma_wsp (const char ** pptr) // comma-wsp
 
   if (*ptr == 0) return bValid;
 
-  int ic = (int) *ptr;
+  int ic = static_cast<int>( *ptr);
   if (ic < 0) ic += 0xff;
 
   if (isspace (ic))
@@ -606,7 +606,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 		int digit_count = 0;
 		while (*ptr)
 		{
-			int ic = (int) *ptr;
+			int ic = static_cast<int>( *ptr);
 			if (ic < 0) ic += 0xff;
 
 			if (!isdigit (ic)) break;
@@ -622,7 +622,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 				int digit_count2 = 0;
 				while (*ptr)
 				{
-					int ic = (int) *ptr;
+					int ic = static_cast<int>( *ptr);
 					if (ic < 0) ic += 0xff;
 
 					if (!isdigit (ic)) break;
@@ -643,7 +643,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 		int digit_count = 0;
 		while (*ptr)
 		{
-			int ic = (int) *ptr;
+			int ic = static_cast<int>( *ptr);
 			if (ic < 0) ic += 0xff;
 
 			if (!isdigit (ic)) break;
@@ -657,7 +657,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 				ptr++;
 				while (*ptr)
 				{
-					int ic = (int) *ptr;
+					int ic = static_cast<int>( *ptr);
 					if (ic < 0) ic += 0xff;
 
 					if (!isdigit (ic)) break;
@@ -671,7 +671,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 				int digit_count2 = 0;
 				while (*ptr)
 				{
-					int ic = (int) *ptr;
+					int ic = static_cast<int>( *ptr);
 					if (ic < 0) ic += 0xff;
 
 					if (!isdigit (ic)) break;

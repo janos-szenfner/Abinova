@@ -464,7 +464,7 @@ void AP_UnixApp::copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboar
 
 #ifdef DUMP_CLIPBOARD_COPY
             std::ofstream oss("/tmp/abinova-clipboard-copy.odt");
-            oss.write( (const char*)bufODT.getPointer (0), bufODT.getLength () );
+            oss.write( static_cast<const char*>(bufODT.getPointer (0)), bufODT.getLength () );
             oss.close();
 #endif
 		}

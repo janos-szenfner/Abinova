@@ -160,8 +160,8 @@ static void s_FoldCheck_changed(GtkWidget * widget, AP_UnixDialog_Lists * me)
 static void s_typeChanged(GObject * /*w*/, GParamSpec * /*pspec*/,
 						  AP_UnixDialog_Lists * me)
 {
-	gint idx = (gint)gtk_drop_down_get_selected(
-		GTK_DROP_DOWN(me->typeDrop()));
+	gint idx = static_cast<gint>(gtk_drop_down_get_selected(
+		GTK_DROP_DOWN(me->typeDrop())));
 	if (me->dontUpdate())
 		return;
 
@@ -346,14 +346,14 @@ void AP_UnixDialog_Lists::runModal(XAP_Frame * pFrame)
 	// Graphics context for the preview widget
 	GR_UnixCairoAllocInfo ai(m_wPreviewArea);
 	m_pPreviewWidget =
-		(GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+		static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	graphene_rect_t bounds;
 	UT_uint32 w = 0, h = 0;
 	if (gtk_widget_compute_bounds(m_wPreviewArea, m_wPreviewArea, &bounds))
 	{
-		w = (UT_uint32)bounds.size.width;
-		h = (UT_uint32)bounds.size.height;
+		w = static_cast<UT_uint32>(bounds.size.width);
+		h = static_cast<UT_uint32>(bounds.size.height);
 	}
 	if (w == 0 || h == 0)
 	{
@@ -398,14 +398,14 @@ void AP_UnixDialog_Lists::runModeless(XAP_Frame * pFrame)
 	// Graphics context for the preview widget
 	GR_UnixCairoAllocInfo ai(m_wPreviewArea);
 	m_pPreviewWidget =
-		(GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+		static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	graphene_rect_t bounds;
 	UT_uint32 w = 0, h = 0;
 	if (gtk_widget_compute_bounds(m_wPreviewArea, m_wPreviewArea, &bounds))
 	{
-		w = (UT_uint32)bounds.size.width;
-		h = (UT_uint32)bounds.size.height;
+		w = static_cast<UT_uint32>(bounds.size.width);
+		h = static_cast<UT_uint32>(bounds.size.height);
 	}
 	if (w == 0 || h == 0)
 	{
@@ -634,7 +634,7 @@ void AP_UnixDialog_Lists::setListTypeFromWidget(void)
 	if (!m_wStyleDrop || !m_curStyleTypes || m_curStyleTypeCount <= 0)
 		return;
 	guint idx = gtk_drop_down_get_selected(GTK_DROP_DOWN(m_wStyleDrop));
-	if (idx >= (guint)m_curStyleTypeCount)
+	if (idx >= static_cast<guint>(m_curStyleTypeCount))
 		return;
 	setNewListType(m_curStyleTypes[idx]);
 }
@@ -981,7 +981,7 @@ GtkWidget * AP_UnixDialog_Lists::_constructFoldingPage(void)
 	m_vecFoldID.clear();
 
 	GtkWidget * group = nullptr;
-	for (UT_sint32 i = 0; i < (UT_sint32)G_N_ELEMENTS(foldIds); i++)
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(G_N_ELEMENTS(foldIds)); i++)
 	{
 		pSS->getValueUTF8(foldIds[i], s);
 		GtkWidget * wF = abi_radio_button_new_with_label(group,
@@ -990,7 +990,7 @@ GtkWidget * AP_UnixDialog_Lists::_constructFoldingPage(void)
 		g_object_set_data(G_OBJECT(wF), "level", GINT_TO_POINTER(i));
 		gulong ID = g_signal_connect(G_OBJECT(wF), "toggled",
 									 G_CALLBACK(s_FoldCheck_changed),
-									 (gpointer)this);
+									 static_cast<gpointer>(this));
 		gtk_grid_attach(GTK_GRID(grid), wF, 0, i + 1, 1, 1);
 		gtk_widget_set_margin_start(wF, 18);
 		m_vecFoldCheck.addItem(wF);

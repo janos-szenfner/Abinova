@@ -147,7 +147,7 @@ public:
 			for ( T hval1 = hc1.first(); hc1.is_valid(); hval1 = hc1.next() ) {
 				if (hval1) {
 					hc1.make_deleted();
-					g_free((gpointer)(hval1));
+					g_free(const_cast<gpointer>(static_cast<const void *>((hval1))));
 				}
 			}
 		}
@@ -414,9 +414,9 @@ const gchar ** UT_GenericStringMap<T>::list()
 
 		UT_Cursor c(this);
 
-		for (const gchar * value = (gchar*)(c.first ());
+		for (const gchar * value = static_cast<gchar*>((c.first ()));
 			 c.is_valid ();
-			 value = (gchar*)(c.next ()))
+			 value = static_cast<gchar*>((c.next ())))
 		{
 			const char * key = c.key().c_str ();
 

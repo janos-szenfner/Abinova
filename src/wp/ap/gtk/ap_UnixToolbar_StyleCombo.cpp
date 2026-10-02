@@ -39,7 +39,7 @@
 
 int sort_cb(gconstpointer a, gconstpointer b)
 {
-	return strcmp((const gchar*)a, (const gchar*)b);
+	return strcmp(static_cast<const gchar*>(a), static_cast<const gchar*>(b));
 }
 
 EV_Toolbar_Control * AP_UnixToolbar_StyleCombo::static_constructor(EV_Toolbar * pToolbar,
@@ -55,7 +55,7 @@ AP_UnixToolbar_StyleCombo::AP_UnixToolbar_StyleCombo(EV_Toolbar * pToolbar,
 	  m_pDefaultDesc(nullptr)
 {
 	UT_DEBUG_ONLY_ARG(id);
-	UT_ASSERT(id == (XAP_Toolbar_Id)AP_TOOLBAR_ID_FMT_STYLE);
+	UT_ASSERT(id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE));
 
 	m_nPixels = 120;		// TODO: do a better calculation
 	m_nLimit = 15;         // 15 styles before the scroll bar??.
@@ -168,7 +168,7 @@ bool AP_UnixToolbar_StyleCombo::repopulate(void)
 			continue;
 		}
 
-		list = g_slist_prepend (list, (gpointer)pStyle->getName());
+		list = g_slist_prepend (list, const_cast<gpointer>(static_cast<const void *>(pStyle->getName())));
 
 		/* wysiwyg styles are disabled for now 
 		   // also test before enabling
@@ -183,11 +183,11 @@ bool AP_UnixToolbar_StyleCombo::repopulate(void)
 	// but somehow the vector's qsort totally failed for me
 	if (list) 
 	{
-		list = g_slist_sort(list, (GCompareFunc)sort_cb);		
+		list = g_slist_sort(list, reinterpret_cast<GCompareFunc>(sort_cb));		
 		GSList * real_list = list;
 		do 
 		{
-			m_vecContents.addItem((const char *)list->data);
+			m_vecContents.addItem(static_cast<const char *>(list->data));
 
 		} while (nullptr != (list = g_slist_next(list)));
 		g_slist_free(real_list);
@@ -227,7 +227,7 @@ AP_UnixToolbar_StyleCombo::getPangoAttrs (PD_Style *pStyle,
 	}
 
 	if (pStyle->getPropertyExpand ("font-size", value)) {
-		pango_font_description_set_size (desc, (gint)(UT_convertToDimension (value, DIM_PT) * PANGO_SCALE));
+		pango_font_description_set_size (desc, static_cast<gint>((UT_convertToDimension (value, DIM_PT) * PANGO_SCALE)));
 	}
 
 	if (pStyle->getPropertyExpand ("font-style", value)) {

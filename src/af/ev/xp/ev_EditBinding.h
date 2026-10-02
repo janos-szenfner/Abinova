@@ -30,8 +30,8 @@
 #include <vector>
 
 typedef UT_uint32 EV_EditBindingType;
-#define EV_EBT_METHOD			((EV_EditBindingType) 0x1) /* final method */
-#define EV_EBT_PREFIX			((EV_EditBindingType) 0x2) /* prefix state (like ^X in emacs */
+#define EV_EBT_METHOD			(static_cast<EV_EditBindingType>( 0x1)) /* final method */
+#define EV_EBT_PREFIX			(static_cast<EV_EditBindingType>( 0x2)) /* prefix state (like ^X in emacs */
 
 class EV_EditBindingMap;
 

@@ -100,7 +100,7 @@ time_t UT_mTime(const char* path)
         return(buf.st_mtime);
     }
     
-    return((time_t)-1);
+    return(static_cast<time_t>(-1));
 }
 
 /*!

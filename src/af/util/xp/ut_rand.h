@@ -23,5 +23,5 @@
 ABI_EXPORT void UT_srandom (UT_uint32 seed);
 ABI_EXPORT UT_sint32 UT_rand ();
 
-#define UT_RAND_MAX ((UT_sint32)0x7fffffff)
+#define UT_RAND_MAX (static_cast<UT_sint32>(0x7fffffff))
 

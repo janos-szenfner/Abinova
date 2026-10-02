@@ -123,7 +123,7 @@ class ABI_EXPORT UT_UniqueId
 	bool      isIdUnique(idType t, UT_uint32 iId) const;
 
   private:
-	UT_uint32 m_iID[(UT_uint32)_Last];
+	UT_uint32 m_iID[static_cast<UT_uint32>(_Last)];
 };
 
 ABI_EXPORT bool UT_parseBool (const char * param, bool dfl);

@@ -122,20 +122,20 @@ ODi_XMLRecorder& ODi_XMLRecorder::operator=(const ODi_XMLRecorder& rXMLRecorder)
         switch ( call->getType() ) {
 
             case ODi_XMLRecorder::XMLCallType_StartElement:
-                pStartCall = (const ODi_XMLRecorder::StartElementCall*)call;
+                pStartCall = static_cast<const ODi_XMLRecorder::StartElementCall*>(call);
 
                 this->startElement(pStartCall->m_pName,
-                                   (const gchar**) pStartCall->m_ppAtts);
+                                   const_cast<const gchar**>( pStartCall->m_ppAtts));
                 break;
 
             case ODi_XMLRecorder::XMLCallType_EndElement:
-                pEndCall = (const ODi_XMLRecorder::EndElementCall*)call;
+                pEndCall = static_cast<const ODi_XMLRecorder::EndElementCall*>(call);
 
                 this->endElement(pEndCall->m_pName);
                 break;
 
             case ODi_XMLRecorder::XMLCallType_CharData:
-                pCharDataCall = (const ODi_XMLRecorder::CharDataCall*)call;
+                pCharDataCall = static_cast<const ODi_XMLRecorder::CharDataCall*>(call);
 
                 this->charData(pCharDataCall->m_pBuffer, pCharDataCall->m_length);
                 break;

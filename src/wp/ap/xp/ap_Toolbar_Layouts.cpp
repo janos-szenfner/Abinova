@@ -49,8 +49,8 @@
 *****************************************************************/
 
 #define BeginLayout(Name, Label, prefKey)		static struct XAP_Toolbar_Factory_lt s_ltTable_##Name[] = {
-#define ToolbarItem(id)			{ EV_TLF_Normal,		(XAP_Toolbar_Id)(id)					},
-#define Spacer()				{ EV_TLF_Spacer,		(XAP_Toolbar_Id)AP_TOOLBAR_ID__BOGUS1__	},
+#define ToolbarItem(id)			{ EV_TLF_Normal,		static_cast<XAP_Toolbar_Id>((id)					)},
+#define Spacer()				{ EV_TLF_Spacer,		static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID__BOGUS1__	)},
 #define EndLayout()				};
 
 #include "ap_Toolbar_Layouts_All.h"
@@ -538,7 +538,7 @@ bool  XAP_Toolbar_Factory::saveToolbarsInCurrentScheme(void)
 		UT_uint32 NrEntries = pVec->getNrEntries();
 		UT_DEBUGMSG(("SEVIOR: Number of entries in TB %d \n",NrEntries));
 		sprintf(buf,"%d",NrEntries);
-		pScheme->setValue((const gchar *)sTBBase.c_str(),(const gchar *) buf );
+		pScheme->setValue(static_cast<const gchar *>(sTBBase.c_str()),static_cast<const gchar *>( buf ));
 //
 // Loop through this toolbar definition and save it in the preferences
 //		
@@ -555,7 +555,7 @@ bool  XAP_Toolbar_Factory::saveToolbarsInCurrentScheme(void)
 			sprintf(buf,"%d",iLay);
 			sTBBase += buf;
 			sprintf(buf,"%d",curId);
-			pScheme->setValue((const gchar *) sTBBase.c_str(),(const gchar *) buf );
+			pScheme->setValue(static_cast<const gchar *>( sTBBase.c_str()),static_cast<const gchar *>( buf ));
 //
 // Save flags in contructed key
 //
@@ -564,7 +564,7 @@ bool  XAP_Toolbar_Factory::saveToolbarsInCurrentScheme(void)
 			sprintf(buf,"%d",iLay);
 			sTBBase += buf;
 			sprintf(buf,"%d",curFlag);
-			pScheme->setValue((const gchar *) sTBBase.c_str(),(const gchar *) buf );
+			pScheme->setValue(static_cast<const gchar *>( sTBBase.c_str()),static_cast<const gchar *>( buf ));
 		}
 	}
 	return true;
@@ -628,7 +628,7 @@ bool  XAP_Toolbar_Factory::restoreToolbarsFromCurrentScheme(void)
 				if (!pScheme->getValue(sTBBase, sCurId) || sCurId.empty()) {
 					continue;
 				}
-				XAP_Toolbar_Id curId = (XAP_Toolbar_Id) atoi(sCurId.c_str());
+				XAP_Toolbar_Id curId = static_cast<XAP_Toolbar_Id>( atoi(sCurId.c_str()));
 //
 // Here we should check whether the ID exists or not
 // 
@@ -647,7 +647,7 @@ bool  XAP_Toolbar_Factory::restoreToolbarsFromCurrentScheme(void)
 				std::string sCurFlag;
 				pScheme->getValue(sTBBase, sCurFlag);
 				if (!sCurFlag.empty()) {
-					EV_Toolbar_LayoutFlags curFlag = (EV_Toolbar_LayoutFlags) atoi(sCurFlag.c_str());
+					EV_Toolbar_LayoutFlags curFlag = static_cast<EV_Toolbar_LayoutFlags>( atoi(sCurFlag.c_str()));
 //
 // Build element and add it into the Toolbar layout
 //

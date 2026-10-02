@@ -137,7 +137,7 @@ AP_UnixDialog_InsertXMLID::event_OK(void)
     std::string mark = tostr(GTK_EDITABLE(m_combo));
 	if( !mark.empty() )
 	{
-		xxx_UT_DEBUGMSG(("InsertXMLID: OK pressed, first char 0x%x\n", (UT_uint32)mark[0]));
+		xxx_UT_DEBUGMSG(("InsertXMLID: OK pressed, first char 0x%x\n", static_cast<UT_uint32>(mark[0])));
 		setAnswer(AP_Dialog_InsertXMLID::a_OK);
 		setString(mark);
 	}

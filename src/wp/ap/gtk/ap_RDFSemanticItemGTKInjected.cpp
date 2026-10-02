@@ -102,14 +102,14 @@ static const char *getStylesheetName( const ssList_t *ssList, const gchar *trans
 
 void GDestroyNotify_GObjectSemItem(gpointer data)
 {
-    ap_GObjectSemItem* obj = (ap_GObjectSemItem*)data;
+    ap_GObjectSemItem* obj = static_cast<ap_GObjectSemItem*>(data);
     delete obj;
 }
 
 PD_RDFSemanticItemHandle getHandle(GtkDialog* d)
 {
-    ap_GObjectSemItem* data = (ap_GObjectSemItem*)
-        g_object_get_data( G_OBJECT(d), G_OBJECT_SEMITEM );
+    ap_GObjectSemItem* data = static_cast<ap_GObjectSemItem*>(
+        g_object_get_data( G_OBJECT(d), G_OBJECT_SEMITEM ));
     return data->h;
 }
 
@@ -126,13 +126,13 @@ void OnSemItemEdited ( GtkDialog* d, gint /*response_id*/,
 
 void GDestroyNotify_GObjectSemItem_List(gpointer data)
 {
-    ap_GObjectSemItem_List* obj = (ap_GObjectSemItem_List*)data;
+    ap_GObjectSemItem_List* obj = static_cast<ap_GObjectSemItem_List*>(data);
     delete obj;
 }
 PD_RDFSemanticItems getSemItemListHandle(GtkDialog* d)
 {
-    ap_GObjectSemItem_List* data = (ap_GObjectSemItem_List*)
-        g_object_get_data( G_OBJECT(d), G_OBJECT_SEMITEM_LIST );
+    ap_GObjectSemItem_List* data = static_cast<ap_GObjectSemItem_List*>(
+        g_object_get_data( G_OBJECT(d), G_OBJECT_SEMITEM_LIST ));
     return data->cl;
 }
 void OnSemItemListEdited ( GtkDialog* d, gint response_id, 
@@ -317,7 +317,7 @@ OnInsertReferenceBase( GtkWidget* dialog,
 static void OnInsertReference( GtkDialog* d, gint /*response_id*/, gpointer user_data)
 {
     UT_DEBUGMSG(("OnInsertReference()\n"));
-    FV_View* pView = (FV_View*)user_data;
+    FV_View* pView = static_cast<FV_View*>(user_data);
 
     GtkTreeView* tv = GTK_TREE_VIEW( g_object_get_data( G_OBJECT(d), G_OBJECT_TREEVIEW ));
     OnInsertReferenceBase( GTK_WIDGET(d), tv, pView );
@@ -329,7 +329,7 @@ OnInsertReferenceDblClicked( GtkTreeView       * tree,
                              GtkTreeViewColumn * /*col*/,
                              gpointer		    user_data )
 {
-    FV_View* pView = (FV_View*)user_data;
+    FV_View* pView = static_cast<FV_View*>(user_data);
 
     GtkWidget* d = GTK_WIDGET(g_object_get_data( G_OBJECT(tree), G_OBJECT_WINDOW ));
     OnInsertReferenceBase( d, tree, pView );

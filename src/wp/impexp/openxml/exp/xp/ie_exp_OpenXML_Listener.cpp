@@ -355,7 +355,7 @@ bool IE_Exp_OpenXML_Listener::populate(fl_ContainerLayout* /* sfh */, const PX_C
 							return bOK;
 
 						std::string mathml;
-						mathml.assign((const char*)(pByteBuf->getPointer(0)));
+						mathml.assign(reinterpret_cast<const char*>((pByteBuf->getPointer(0))));
 
 						OXML_Element_Math* math = new OXML_Element_Math(getNextId());
 						OXML_SharedElement shared_element_math(static_cast<OXML_Element*>(math));

@@ -309,21 +309,21 @@ void fp_Container::drawLine(const PP_PropertyMap::Line & style,
 									GR_Graphics::LINE_SOLID);
 			return;
 		}
-		const double period = 6.0 * (double)(t > 0 ? t : pGr->tlu(1));
-		const int nSeg = UT_MAX(8, (int)(len / (pGr->tlu(2) > 0 ? pGr->tlu(2) : 2)));
+		const double period = 6.0 * static_cast<double>((t > 0 ? t : pGr->tlu(1)));
+		const int nSeg = UT_MAX(8, static_cast<int>((len / (pGr->tlu(2) > 0 ? pGr->tlu(2) : 2))));
 		UT_sint32 prevPos = 0;
 		double prevOff = 0.0;
 		for (int i = 1; i <= nSeg; ++i)
 		{
 			UT_sint32 pos = len * i / nSeg;
-			double off = amp * sin(2.0 * G_PI * (double)pos / period);
+			double off = amp * sin(2.0 * G_PI * static_cast<double>(pos )/ period);
 			if (bVert)
-				painter.drawLine(left + (UT_sint32)prevOff,
+				painter.drawLine(left + static_cast<UT_sint32>(prevOff),
 								 top + prevPos,
-								 left + (UT_sint32)off, top + pos);
+								 left + static_cast<UT_sint32>(off), top + pos);
 			else
-				painter.drawLine(left + prevPos, top + (UT_sint32)prevOff,
-								 left + pos, top + (UT_sint32)off);
+				painter.drawLine(left + prevPos, top + static_cast<UT_sint32>(prevOff),
+								 left + pos, top + static_cast<UT_sint32>(off));
 			prevPos = pos;
 			prevOff = off;
 		}

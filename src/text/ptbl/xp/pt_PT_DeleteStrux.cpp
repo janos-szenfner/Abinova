@@ -48,63 +48,63 @@ bool pt_PieceTable::_unlinkStrux(pf_Frag_Strux * pfs,
 #if DEBUG
 	if(pfs->getStruxType() == PTX_SectionTable)
 	{
-		UT_DEBUGMSG(("_unlink Strux Table %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux Table %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_SectionCell)
 	{
-		UT_DEBUGMSG(("_unlink Strux Cell %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux Cell %p \n", static_cast<void*>(pfs)));
 	}	
 	else if(pfs->getStruxType() == PTX_EndTable)
 	{
-		UT_DEBUGMSG(("_unlink Strux End Table %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux End Table %p \n", static_cast<void*>(pfs)));
 	}	
 	else if(pfs->getStruxType() == PTX_EndCell)
 	{
-		UT_DEBUGMSG(("_unlink Strux EndCell %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux EndCell %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_SectionFrame)
 	{
-		UT_DEBUGMSG(("_unlink Strux SectionFrame %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux SectionFrame %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_EndFrame)
 	{
-		UT_DEBUGMSG(("_unlink Strux EndFrame %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux EndFrame %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_Block)
 	{
-		UT_DEBUGMSG(("_unlink Strux Block %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux Block %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_Section)
 	{
-		UT_DEBUGMSG(("_unlink Strux Section %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux Section %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_SectionHdrFtr)
 	{
-		UT_DEBUGMSG(("_unlink HdrFtr Strux Section %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink HdrFtr Strux Section %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_SectionFootnote)
 	{
-		UT_DEBUGMSG(("_unlink Strux SectionFootnote %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux SectionFootnote %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_EndFootnote)
 	{
-		UT_DEBUGMSG(("_unlink Strux EndFootnote %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux EndFootnote %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_SectionEndnote)
 	{
-		UT_DEBUGMSG(("_unlink Strux SectionEndnote %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux SectionEndnote %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_EndEndnote)
 	{
-		UT_DEBUGMSG(("_unlink Strux EndEndnote %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux EndEndnote %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_SectionTOC)
 	{
-		UT_DEBUGMSG(("_unlink Strux SectionTOC %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux SectionTOC %p \n", static_cast<void*>(pfs)));
 	}
 	else if(pfs->getStruxType() == PTX_EndTOC)
 	{
-		UT_DEBUGMSG(("_unlink Strux EndTOC %p \n", (void*)pfs));
+		UT_DEBUGMSG(("_unlink Strux EndTOC %p \n", static_cast<void*>(pfs)));
 	}
 //	m_pDocument->miniDump(pfs, 2);
 #endif
@@ -626,7 +626,7 @@ bool pt_PieceTable::_deleteHdrFtrsFromSectionStruxIfPresent(pf_Frag_Strux_Sectio
 					//
 					// Look for a match.
 					//
-						szHeaderV = (const char *) vecHdrFtr.at(i);
+						szHeaderV = static_cast<const char *>( vecHdrFtr.at(i));
 						if(szHeaderV != nullptr && strcmp(szHeaderV,szID) == 0)
 						{
 							bFoundIt = true;
@@ -661,7 +661,7 @@ void pt_PieceTable::_deleteHdrFtrStruxWithNotify( pf_Frag_Strux * pfFragStruxHdr
 	// TODO HdrFtrPos is unused
 	UT_DebugOnly<PT_DocPosition> HdrFtrPos = getFragPosition(pfFrag);
 	std::vector<pf_Frag_Strux*> vecFragStrux;
-	UT_DEBUGMSG(("SEVIOR: Deleting hdrftr Strux Pos = %d \n",(PT_DocPosition)HdrFtrPos));
+	UT_DEBUGMSG(("SEVIOR: Deleting hdrftr Strux Pos = %d \n",static_cast<PT_DocPosition>(HdrFtrPos)));
 //
 // Now find the first Non-strux frag within this hdrftr
 //
@@ -681,7 +681,7 @@ void pt_PieceTable::_deleteHdrFtrStruxWithNotify( pf_Frag_Strux * pfFragStruxHdr
 		}
 		else
 		{
-			UT_DEBUGMSG(("Adding strux %p of type %d at Pos %d to strux vector for delete \n", (void*)pfs, pfs->getStruxType(), pfs->getPos()));
+			UT_DEBUGMSG(("Adding strux %p of type %d at Pos %d to strux vector for delete \n", static_cast<void*>(pfs), pfs->getStruxType(), pfs->getPos()));
 			posLastStrux = pfs->getPos();
 			vecFragStrux.push_back(pfs);
 			pfFrag = pfFrag->getNext();

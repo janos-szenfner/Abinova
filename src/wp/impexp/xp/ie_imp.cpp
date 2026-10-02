@@ -220,7 +220,7 @@ UT_Confidence_t IE_ImpSniffer::recognizeContents (GsfInput * input)
 	const gsf_off_t inputSize = gsf_input_size(input);
 	UT_uint32 iNumbytes = (inputSize > 0)
 		? static_cast<UT_uint32>(UT_MIN(inputSize, static_cast<gsf_off_t>(4096))) : 0;
-	gsf_input_read(input, iNumbytes, (guint8 *)(szBuf));
+	gsf_input_read(input, iNumbytes, reinterpret_cast<guint8 *>((szBuf)));
 	szBuf[iNumbytes] = '\0';
 
 	return recognizeContents(szBuf, iNumbytes);
@@ -417,9 +417,9 @@ IEFileType IE_Imp::fileTypeForContents(const char * szBuf, UT_uint32 iNumbytes)
 		  best_confidence = confidence;
 		  for (UT_sint32 a = 0; a < static_cast<int>(nrElements); a++)
 		    {
-		      if (s->supportsFileType((IEFileType) (a+1)))
+		      if (s->supportsFileType(static_cast<IEFileType>( (a+1))))
 			{
-			  best = (IEFileType) (a+1);
+			  best = static_cast<IEFileType>( (a+1));
 
 			  // short-circuit if we're 100% sure
 			  if ( UT_CONFIDENCE_PERFECT == best_confidence )
@@ -718,7 +718,7 @@ const char * IE_Imp::descriptionForFileType(IEFileType ieft)
 static UT_Confidence_t s_confidence_heuristic ( UT_Confidence_t content_confidence, 
 						 UT_Confidence_t suffix_confidence )
 {
-  return (UT_Confidence_t) ( (static_cast<double>(content_confidence) * 0.85) + (static_cast<double>(suffix_confidence) * 0.15) ) ;
+  return static_cast<UT_Confidence_t>( ( (static_cast<double>(content_confidence) * 0.85) + (static_cast<double>(suffix_confidence) * 0.15) ) );
 }
 
 /*! 
@@ -843,7 +843,7 @@ UT_Error IE_Imp::constructImporter(PD_Document * pDocument,
 			if ( confidence > CONFIDENCE_THRESHOLD && confidence >= best_confidence ) {
 				best_sniffer = s;
 				best_confidence = confidence;
-				ieft = (IEFileType) (k+1);
+				ieft = static_cast<IEFileType>( (k+1));
 
 				// short-circuit when we have perfect confidence for both
 				if (suffix_confidence == UT_CONFIDENCE_PERFECT &&
@@ -879,7 +879,7 @@ UT_Error IE_Imp::constructImporter(PD_Document * pDocument,
 			*ppie = new IE_Imp_GraphicAsDocument(pDocument);
 		   	if (*ppie) {
 			   	// tell the importer where to get the graphic
-			   	((IE_Imp_GraphicAsDocument*)(*ppie))->setGraphicImporter(pIEG);
+			   	(static_cast<IE_Imp_GraphicAsDocument*>((*ppie)))->setGraphicImporter(pIEG);
 			   	return UT_OK;
 			} else {
 			   	delete pIEG;

@@ -51,7 +51,7 @@
 static cairo_status_t
 ie_exp_cairo_write_func (void *closure, const unsigned char *data, unsigned int length)
 {
-	if (!gsf_output_write((GsfOutput*)closure, length, data))
+	if (!gsf_output_write(static_cast<GsfOutput*>(closure), length, data))
 		return CAIRO_STATUS_WRITE_ERROR;
     return CAIRO_STATUS_SUCCESS;
 }
@@ -161,7 +161,7 @@ public:
 	    
 				  for (int pageno = start_page; pageno <= end_page; pageno++)
 					  {
-						  if ((pageno > 0) && (pageno <= (int)pDocLayout->countPages()))
+						  if ((pageno > 0) && (pageno <= static_cast<int>(pDocLayout->countPages())))
 							  pages.insert(pageno);
 					  }
 			  }

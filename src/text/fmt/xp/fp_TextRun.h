@@ -104,8 +104,8 @@ public:
 	void                orShapingRequired(GRShapingResult eR)
 	                      {
 							m_pRenderInfo->m_eShapingResult =
-								(GRShapingResult)((UT_uint32)m_pRenderInfo->m_eShapingResult
-												  | (UT_uint32)eR);
+								static_cast<GRShapingResult>((static_cast<UT_uint32>(m_pRenderInfo->m_eShapingResult
+												  )| static_cast<UT_uint32>(eR)));
 	                      }
 
 	void                itemize(void);

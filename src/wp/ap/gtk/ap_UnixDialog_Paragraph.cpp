@@ -161,14 +161,14 @@ void AP_UnixDialog_Paragraph::runModal(XAP_Frame * pFrame)
 		// make a new Unix GC
 		GR_UnixCairoAllocInfo ai(m_drawingareaPreview);
 		m_unixGraphics =
-		    (GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+		    static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 		// let the widget materialize
 		GtkAllocation allocation;
 		gtk_widget_get_allocation(m_drawingareaPreview, &allocation);
 		_createPreviewFromGC(m_unixGraphics,
-							 (UT_uint32) allocation.width,
-							 (UT_uint32) allocation.height);
+							 static_cast<UT_uint32>( allocation.width),
+							 static_cast<UT_uint32>( allocation.height));
 	}
 
 	// sync all controls once to get started
@@ -200,11 +200,11 @@ void AP_UnixDialog_Paragraph::event_MenuChanged(GtkWidget * widget)
 {
 	UT_ASSERT(widget);
 
-	tControl id = (tControl) GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
-								   WIDGET_MENU_PARENT_ID_TAG));
+	tControl id = static_cast<tControl>( GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
+								   WIDGET_MENU_PARENT_ID_TAG)));
 
-	UT_uint32 value = (UT_uint32) GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
-									WIDGET_MENU_VALUE_TAG));
+	UT_uint32 value = static_cast<UT_uint32>( GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
+									WIDGET_MENU_VALUE_TAG)));
 
 	_setMenuItemValue(id, value);
 }
@@ -214,10 +214,10 @@ void AP_UnixDialog_Paragraph::event_ComboBoxChanged(GtkWidget * widget)
 {
 	UT_ASSERT(widget && GTK_IS_COMBO_BOX(widget));
 
-	tControl id = (tControl) GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
-								   WIDGET_ID_TAG));
+	tControl id = static_cast<tControl>( GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
+								   WIDGET_ID_TAG)));
 
-	UT_uint32 value = (UT_uint32)XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(widget));
+	UT_uint32 value = static_cast<UT_uint32>(XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(widget)));
 
 	_setMenuItemValue(id, value);
 }
@@ -236,16 +236,16 @@ void AP_UnixDialog_Paragraph::event_SpinDecrement(GtkWidget * widget)
 
 void AP_UnixDialog_Paragraph::event_SpinFocusOut(GtkWidget * widget)
 {
-	tControl id = (tControl) GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
-												 WIDGET_ID_TAG));
+	tControl id = static_cast<tControl>( GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
+												 WIDGET_ID_TAG)));
 
 	if (m_bEditChanged)
 	{
 		// this function will massage the contents for proper
 		// formatting for spinbuttons that need it.  for example,
 		// line spacing can't be negative.
-		_setSpinItemValue(id, (const gchar *)
-						  XAP_gtk_entry_get_text(GTK_EDITABLE(widget)));
+		_setSpinItemValue(id, static_cast<const gchar *>(
+						  XAP_gtk_entry_get_text(GTK_EDITABLE(widget))));
 
 		// to ensure the massaged value is reflected back up
 		// to the screen, we repaint from the member variable
@@ -264,8 +264,8 @@ void AP_UnixDialog_Paragraph::event_CheckToggled(GtkWidget * widget)
 {
 	UT_ASSERT(widget);
 
-	tControl id = (tControl) GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
-												 WIDGET_ID_TAG));
+	tControl id = static_cast<tControl>( GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
+												 WIDGET_ID_TAG)));
 
 	gboolean state = gtk_check_button_get_active(
 		GTK_CHECK_BUTTON(widget));
@@ -414,7 +414,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_widget_show (hboxAlignment);
 	listAlignment = GTK_COMBO_BOX(gtk_combo_box_new ());
 	XAP_makeGtkComboBoxText(listAlignment, G_TYPE_INT);
-	g_object_set_data(G_OBJECT(listAlignment), WIDGET_ID_TAG, (gpointer) id_MENU_ALIGNMENT);
+	g_object_set_data(G_OBJECT(listAlignment), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_ALIGNMENT));
 	gtk_widget_show (GTK_WIDGET(listAlignment));
 	gtk_box_append(GTK_BOX(hboxAlignment), GTK_WIDGET(listAlignment));
 	gtk_grid_attach(GTK_GRID(boxSpacing), hboxAlignment, 1, 0, 1, 1);
@@ -434,7 +434,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_DomDirection,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonDomDirection = gtk_check_button_new_with_label(unixstr.c_str());
-	g_object_set_data(G_OBJECT(checkbuttonDomDirection), WIDGET_ID_TAG, (gpointer) id_CHECK_DOMDIRECTION);
+	g_object_set_data(G_OBJECT(checkbuttonDomDirection), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_DOMDIRECTION));
 	gtk_widget_show (checkbuttonDomDirection);
 	gtk_grid_attach(GTK_GRID(boxSpacing), checkbuttonDomDirection, 3, 0, 1, 1);
 
@@ -467,8 +467,8 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	spinbuttonLeft = gtk_entry_new();
 	g_object_ref (spinbuttonLeft);
 	g_object_set_data_full (G_OBJECT (windowMain), "spinbuttonLeft", spinbuttonLeft,
-							  (GDestroyNotify) g_object_unref);
-	g_object_set_data(G_OBJECT(spinbuttonLeft), WIDGET_ID_TAG, (gpointer) id_SPIN_LEFT_INDENT);
+							  reinterpret_cast<GDestroyNotify>( g_object_unref));
+	g_object_set_data(G_OBJECT(spinbuttonLeft), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_LEFT_INDENT));
 	gtk_widget_show (spinbuttonLeft);
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonLeft, 1, 2, 1, 1);
 
@@ -483,7 +483,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelRight, 0, 3, 1, 1);
 
 	spinbuttonRight = gtk_entry_new();
-	g_object_set_data(G_OBJECT(spinbuttonRight), WIDGET_ID_TAG, (gpointer) id_SPIN_RIGHT_INDENT);
+	g_object_set_data(G_OBJECT(spinbuttonRight), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_RIGHT_INDENT));
 	gtk_widget_show (spinbuttonRight);
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonRight, 1, 3, 1, 1);
 
@@ -499,9 +499,9 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 
 	listSpecial = GTK_COMBO_BOX(gtk_combo_box_new ());
 	XAP_makeGtkComboBoxText(listSpecial, G_TYPE_INT);
-	g_object_set_data(G_OBJECT(listSpecial), WIDGET_ID_TAG, (gpointer) id_MENU_SPECIAL_INDENT);
+	g_object_set_data(G_OBJECT(listSpecial), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_SPECIAL_INDENT));
 	gtk_widget_show (GTK_WIDGET(listSpecial));
-	gtk_grid_attach(GTK_GRID(boxSpacing), (GtkWidget*)listSpecial, 2, 3, 1, 1);
+	gtk_grid_attach(GTK_GRID(boxSpacing), reinterpret_cast<GtkWidget*>(listSpecial), 2, 3, 1, 1);
 	XAP_appendComboBoxTextAndInt(listSpecial, " ", 0);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpecialNone,s);
@@ -522,7 +522,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_widget_show (labelBy);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelBy, 2, 3, 1, 1);
 	spinbuttonBy = gtk_entry_new();
-	g_object_set_data(G_OBJECT(spinbuttonBy), WIDGET_ID_TAG, (gpointer) id_SPIN_SPECIAL_INDENT);
+	g_object_set_data(G_OBJECT(spinbuttonBy), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_SPECIAL_INDENT));
 	gtk_widget_show (spinbuttonBy);
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonBy, 3, 3, 1, 1);
 
@@ -551,7 +551,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelBefore, 0, 5, 1, 1);
 
 	spinbuttonBefore = gtk_entry_new();
-	g_object_set_data(G_OBJECT(spinbuttonBefore), WIDGET_ID_TAG, (gpointer) id_SPIN_BEFORE_SPACING);
+	g_object_set_data(G_OBJECT(spinbuttonBefore), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_BEFORE_SPACING));
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonBefore, 1, 5, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelAfter,s);
@@ -564,7 +564,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelAfter, 0, 6, 1, 1);
 
 	spinbuttonAfter = gtk_entry_new();
-	g_object_set_data(G_OBJECT(spinbuttonAfter), WIDGET_ID_TAG, (gpointer) id_SPIN_AFTER_SPACING);
+	g_object_set_data(G_OBJECT(spinbuttonAfter), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_AFTER_SPACING));
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonAfter, 1, 6, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelLineSpacing,s);
@@ -578,7 +578,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 
 	listLineSpacing = GTK_COMBO_BOX(gtk_combo_box_new ());
 	XAP_makeGtkComboBoxText(listLineSpacing, G_TYPE_INT);
-	g_object_set_data(G_OBJECT(listLineSpacing), WIDGET_ID_TAG, (gpointer) id_MENU_SPECIAL_SPACING);
+	g_object_set_data(G_OBJECT(listLineSpacing), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_SPECIAL_SPACING));
 	gtk_grid_attach(GTK_GRID(boxSpacing), GTK_WIDGET(listLineSpacing), 2, 6, 1, 1);
 
 	XAP_appendComboBoxTextAndInt(listLineSpacing, " ", 0); // add an empty menu option to fix bug 594
@@ -606,7 +606,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelAt, 3, 5, 1, 1);
 
 	spinbuttonAt = gtk_entry_new();
-	g_object_set_data(G_OBJECT(spinbuttonAt), WIDGET_ID_TAG, (gpointer) id_SPIN_SPECIAL_SPACING);
+	g_object_set_data(G_OBJECT(spinbuttonAt), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_SPECIAL_SPACING));
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonAt, 3, 6, 1, 1);
 
 	gtk_widget_show (labelSpacing);
@@ -656,28 +656,28 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushWidowOrphanControl,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonWidowOrphan = gtk_check_button_new_with_label(unixstr.c_str());
-	g_object_set_data(G_OBJECT(checkbuttonWidowOrphan), WIDGET_ID_TAG, (gpointer) id_CHECK_WIDOW_ORPHAN);
+	g_object_set_data(G_OBJECT(checkbuttonWidowOrphan), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_WIDOW_ORPHAN));
 	gtk_widget_show (checkbuttonWidowOrphan);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonWidowOrphan, 0, 1, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushKeepWithNext,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonKeepNext = gtk_check_button_new_with_label(unixstr.c_str());
-	g_object_set_data(G_OBJECT(checkbuttonKeepNext), WIDGET_ID_TAG, (gpointer) id_CHECK_KEEP_NEXT);
+	g_object_set_data(G_OBJECT(checkbuttonKeepNext), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_KEEP_NEXT));
 	gtk_widget_show (checkbuttonKeepNext);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonKeepNext, 1, 1, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushKeepLinesTogether,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonKeepLines = gtk_check_button_new_with_label(unixstr.c_str());
-	g_object_set_data(G_OBJECT(checkbuttonKeepLines), WIDGET_ID_TAG, (gpointer) id_CHECK_KEEP_LINES);
+	g_object_set_data(G_OBJECT(checkbuttonKeepLines), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_KEEP_LINES));
 	gtk_widget_show (checkbuttonKeepLines);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonKeepLines, 0, 2, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushPageBreakBefore,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonPageBreak = gtk_check_button_new_with_label(unixstr.c_str());
-	g_object_set_data(G_OBJECT(checkbuttonPageBreak), WIDGET_ID_TAG, (gpointer) id_CHECK_PAGE_BREAK);
+	g_object_set_data(G_OBJECT(checkbuttonPageBreak), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_PAGE_BREAK));
 	gtk_widget_show (checkbuttonPageBreak);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonPageBreak, 1, 2, 1, 1);
 
@@ -689,14 +689,14 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushSuppressLineNumbers,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonSuppress = gtk_check_button_new_with_label(unixstr.c_str());
-	g_object_set_data(G_OBJECT(checkbuttonSuppress), WIDGET_ID_TAG, (gpointer) id_CHECK_SUPPRESS);
+	g_object_set_data(G_OBJECT(checkbuttonSuppress), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_SUPPRESS));
 	gtk_widget_show (checkbuttonSuppress);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonSuppress, 0, 4, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushNoHyphenate,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonHyphenate = gtk_check_button_new_with_label(unixstr.c_str());
-	g_object_set_data(G_OBJECT(checkbuttonHyphenate), WIDGET_ID_TAG, (gpointer) id_CHECK_NO_HYPHENATE);
+	g_object_set_data(G_OBJECT(checkbuttonHyphenate), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_NO_HYPHENATE));
 	gtk_widget_show (checkbuttonHyphenate);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonHyphenate, 0, 5, 1, 1);
 
@@ -775,7 +775,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
         do {												\
 	        g_signal_connect(G_OBJECT(w), "changed",	\
                 G_CALLBACK(s_spin_changed),			\
-                (gpointer) this);							\
+                static_cast<gpointer>( this));							\
         } while (0)
 
 #define CONNECT_SPIN_SIGNAL_FOCUS_OUT(w)			\
@@ -783,7 +783,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	        GtkEventController *foc = gtk_event_controller_focus_new(); \
 	        g_signal_connect(foc, "leave",	\
                 G_CALLBACK(s_spin_focus_out),			\
-                (gpointer) this);							\
+                static_cast<gpointer>( this));							\
 	        gtk_widget_add_controller(GTK_WIDGET(w), foc);	\
         } while (0)
 
@@ -815,24 +815,24 @@ void AP_UnixDialog_Paragraph::_connectCallbackSignals(void)
 
 	// all the checkbuttons
 	g_signal_connect(G_OBJECT(m_checkbuttonWidowOrphan), "toggled",
-					   G_CALLBACK(s_check_toggled), (gpointer) this);
+					   G_CALLBACK(s_check_toggled), static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(m_checkbuttonKeepLines), "toggled",
-					   G_CALLBACK(s_check_toggled), (gpointer) this);
+					   G_CALLBACK(s_check_toggled), static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(m_checkbuttonPageBreak), "toggled",
-					   G_CALLBACK(s_check_toggled), (gpointer) this);
+					   G_CALLBACK(s_check_toggled), static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(m_checkbuttonSuppress), "toggled",
-					   G_CALLBACK(s_check_toggled), (gpointer) this);
+					   G_CALLBACK(s_check_toggled), static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(m_checkbuttonHyphenate), "toggled",
-					   G_CALLBACK(s_check_toggled), (gpointer) this);
+					   G_CALLBACK(s_check_toggled), static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(m_checkbuttonKeepNext), "toggled",
-					   G_CALLBACK(s_check_toggled), (gpointer) this);
+					   G_CALLBACK(s_check_toggled), static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(m_checkbuttonDomDirection), "toggled",
-					   G_CALLBACK(s_check_toggled), (gpointer) this);
+					   G_CALLBACK(s_check_toggled), static_cast<gpointer>( this));
 
 	// the expose event off the preview
 	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_drawingareaPreview),
 							s_preview_draw,
-							(gpointer) this, nullptr);
+							static_cast<gpointer>( this), nullptr);
 }
 
 void AP_UnixDialog_Paragraph::_populateWindowData(void)
@@ -841,41 +841,41 @@ void AP_UnixDialog_Paragraph::_populateWindowData(void)
 	// alignment option menu
 	UT_ASSERT(m_listAlignment);
 	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listAlignment), 1,
-									(gint) _getMenuItemValue(id_MENU_ALIGNMENT));
+									static_cast<gint>( _getMenuItemValue(id_MENU_ALIGNMENT)));
 
 	// indent and paragraph margins
 	UT_ASSERT(m_spinbuttonLeft);
 	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonLeft),
-					   (const gchar *) _getSpinItemValue(id_SPIN_LEFT_INDENT));
+					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_LEFT_INDENT)));
 
 	UT_ASSERT(m_spinbuttonRight);
 	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonRight),
-					   (const gchar *) _getSpinItemValue(id_SPIN_RIGHT_INDENT));
+					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_RIGHT_INDENT)));
 
 	UT_ASSERT(m_spinbuttonBy);
 	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBy),
-					   (const gchar *) _getSpinItemValue(id_SPIN_SPECIAL_INDENT));
+					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_SPECIAL_INDENT)));
 
 	UT_ASSERT(m_listSpecial);
 	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listSpecial), 1,
-								(gint) _getMenuItemValue(id_MENU_SPECIAL_INDENT));
+								static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_INDENT)));
 
 	// spacing
 	UT_ASSERT(m_spinbuttonLeft);
 	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonBefore),
-					   (const gchar *) _getSpinItemValue(id_SPIN_BEFORE_SPACING));
+					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_BEFORE_SPACING)));
 
 	UT_ASSERT(m_spinbuttonRight);
 	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAfter),
-					   (const gchar *) _getSpinItemValue(id_SPIN_AFTER_SPACING));
+					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_AFTER_SPACING)));
 
 	UT_ASSERT(m_spinbuttonAt);
 	XAP_gtk_entry_set_text(GTK_EDITABLE(m_spinbuttonAt),
-					   (const gchar *) _getSpinItemValue(id_SPIN_SPECIAL_SPACING));
+					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_SPECIAL_SPACING)));
 
 	UT_ASSERT(m_listLineSpacing);
 	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listLineSpacing), 1,
-								(gint) _getMenuItemValue(id_MENU_SPECIAL_SPACING));
+								static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_SPACING)));
 
 	// set the check boxes
 	// TODO : handle tri-state boxes !!!
@@ -910,7 +910,7 @@ void AP_UnixDialog_Paragraph::_syncControls(tControl changed, bool bAll /* = fal
 		if (_getMenuItemValue(id_MENU_SPECIAL_INDENT) == indent_FIRSTLINE)
 		{
 			XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listSpecial),1,
-										(gint) _getMenuItemValue(id_MENU_SPECIAL_INDENT));
+										static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_INDENT)));
 		}
 	}
 	if (bAll || (changed == id_MENU_SPECIAL_INDENT))
@@ -939,7 +939,7 @@ void AP_UnixDialog_Paragraph::_syncControls(tControl changed, bool bAll /* = fal
 		if (_getMenuItemValue(id_MENU_SPECIAL_SPACING) == spacing_MULTIPLE)
 		{
 			XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listLineSpacing),1,
-										(gint) _getMenuItemValue(id_MENU_SPECIAL_SPACING));
+										static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_SPACING)));
 		}
 	}
 	if (bAll || (changed == id_MENU_SPECIAL_SPACING))

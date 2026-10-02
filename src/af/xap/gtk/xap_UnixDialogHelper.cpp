@@ -268,7 +268,7 @@ void connectFocusModelessOther(GtkWidget *widget,const XAP_App * pApp,
       g_object_set_data(G_OBJECT(widget), "pApp",
 					  const_cast<void *>(static_cast<const void *>(pApp)));
       g_object_set_data(G_OBJECT(widget), "other-function",
-					  (gpointer) other_function); // leave as C-style cast
+					  static_cast<gpointer>( other_function)); // leave as C-style cast
       abi_attach_focus_controller(widget, G_CALLBACK(focus_in_event_ModelessOther),
                                   G_CALLBACK(focus_out_event_Modeless));
 }

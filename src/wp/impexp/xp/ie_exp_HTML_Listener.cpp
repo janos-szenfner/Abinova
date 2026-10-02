@@ -1207,10 +1207,10 @@ void IE_Exp_HTML_Listener::_openSection(PT_AttrPropIndex api, bool recursiveCall
 	const char* pszBottomMargin = nullptr;
 	if (pAP)
 	{
-		pAP->getProperty("page-margin-left", (const gchar *&)pszLeftMargin);
-		pAP->getProperty("page-margin-right", (const gchar *&)pszRightMargin);
-		pAP->getProperty("page-margin-top", (const gchar *&)pszTopMargin);
-		pAP->getProperty("page-margin-bottom", (const gchar *&)pszBottomMargin);
+		pAP->getProperty("page-margin-left", static_cast<const gchar *&>(pszLeftMargin));
+		pAP->getProperty("page-margin-right", static_cast<const gchar *&>(pszRightMargin));
+		pAP->getProperty("page-margin-top", static_cast<const gchar *&>(pszTopMargin));
+		pAP->getProperty("page-margin-bottom", static_cast<const gchar *&>(pszBottomMargin));
 	}
 	
 	if(pszLeftMargin && pszLeftMargin[0])
@@ -2120,7 +2120,7 @@ void IE_Exp_HTML_Listener::_openCell(PT_AttrPropIndex api, bool recursiveCall)
 	if (styles.size() != 0) styles += ";";
 	if (iBCount[iBMaxIndx] != 3) {
 		for (i = 0; i < 4; ++i) {
-			if ((UT_uint32) i == iBMaxIndx || dB[i] == dB[iBMaxIndx])
+			if (static_cast<UT_uint32>( i )== iBMaxIndx || dB[i] == dB[iBMaxIndx])
 				continue;
 
 			switch (i) {
@@ -2145,7 +2145,7 @@ void IE_Exp_HTML_Listener::_openCell(PT_AttrPropIndex api, bool recursiveCall)
 
 	if (iSCount[iSMaxIndx] != 3) {
 		for (i = 0; i < 4; ++i) {
-			if ((UT_uint32) i == iSMaxIndx || sS[i] == sS[iSMaxIndx])
+			if (static_cast<UT_uint32>( i )== iSMaxIndx || sS[i] == sS[iSMaxIndx])
 				continue;
 
 			switch (i) {
@@ -2170,7 +2170,7 @@ void IE_Exp_HTML_Listener::_openCell(PT_AttrPropIndex api, bool recursiveCall)
 
 	if (iCCount[iCMaxIndx] != 3) {
 		for (i = 0; i < 4; ++i) {
-			if ((UT_uint32) i == iCMaxIndx || sC[i] == sC[iCMaxIndx])
+			if (static_cast<UT_uint32>( i )== iCMaxIndx || sC[i] == sC[iCMaxIndx])
 				continue;
 
 			switch (i) {
@@ -2424,7 +2424,7 @@ void IE_Exp_HTML_Listener::_insertPosImage(PT_AttrPropIndex api)
         return;
 
     const gchar * pszDataID = nullptr;
-    if (pAP->getAttribute(PT_STRUX_IMAGE_DATAID, (const gchar *&) pszDataID) && pszDataID)
+    if (pAP->getAttribute(PT_STRUX_IMAGE_DATAID, static_cast<const gchar *&>( pszDataID)) && pszDataID)
         _handleImage(api, pszDataID, true);
 }
 /**
@@ -3147,12 +3147,12 @@ void IE_Exp_HTML_Listener::_setCellWidthInches()
 	double tot = 0;
 	UT_sint32 i = 0;
 
-	UT_ASSERT_HARMLESS((UT_sint32) m_vecDWidths.size() >= (right - 1));
+	UT_ASSERT_HARMLESS(static_cast<UT_sint32>( m_vecDWidths.size() )>= (right - 1));
 
 	for (i = left; i < right; i++) {
 		// probably covering up some sort of issue
 		// but we assert above, so we'll notice it again
-		if (i < (UT_sint32) m_vecDWidths.size())
+		if (i < static_cast<UT_sint32>( m_vecDWidths.size()))
 			tot += m_vecDWidths.getNthItem(i);
 	}
 	m_dCellWidthInches = tot;

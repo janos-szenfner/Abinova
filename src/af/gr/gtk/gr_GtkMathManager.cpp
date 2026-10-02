@@ -87,7 +87,7 @@ EV_EditMouseContext GR_GtkMathManager::getContextualMenu(void) const
 
 UT_sint32 GR_GtkMathManager::_toLU(double pt) const
 {
-	return (UT_sint32)lrint(pt * UT_LAYOUT_RESOLUTION / 72.0);
+	return static_cast<UT_sint32>(lrint(pt * UT_LAYOUT_RESOLUTION / 72.0));
 }
 
 GR_GtkMathManager::MathItem * GR_GtkMathManager::_item(UT_sint32 uid)
@@ -269,7 +269,7 @@ void GR_GtkMathManager::render(UT_sint32 uid, UT_Rect & rec)
 	/* rec is in layout units; rec.top is the baseline position */
 	double devX = pUGG->tdu(rec.left);
 	double devY = pUGG->tdu(rec.top - _toLU(it->ts.ascent()));
-	double scale = (double)pUGG->tdu(rec.width) / it->ts.width();
+	double scale = static_cast<double>(pUGG->tdu(rec.width) )/ it->ts.width();
 	cairo_translate(cr, devX, devY);
 	cairo_scale(cr, scale, scale);
 	it->ts.render(cr);
@@ -297,7 +297,7 @@ void GR_GtkMathManager::makeSnapShot(UT_sint32 uid, UT_Rect & /*rec*/)
 		return;
 	UT_ByteBufPtr pBuf(new UT_ByteBuf);
 	cairo_surface_t *sf = cairo_svg_surface_create_for_stream(
-		(cairo_write_func_t)s_svgWrite, pBuf.get(), w, h);
+		reinterpret_cast<cairo_write_func_t>(s_svgWrite), pBuf.get(), w, h);
 	cairo_t *cr = cairo_create(sf);
 	it->ts.render(cr);
 	cairo_destroy(cr);
@@ -344,12 +344,12 @@ bool GR_GtkMathManager::convert(UT_uint32 /*iConvType*/,
 	UT_return_val_if_fail(pFrom && pTo, false);
 	if (!pFrom->getLength())
 		return false;
-	std::string sLatex((const char *)pFrom->getPointer(0),
+	std::string sLatex(reinterpret_cast<const char *>(pFrom->getPointer(0)),
 	                   pFrom->getLength());
 	GR_MathTypesetter ts;
 	ts.parseLaTeX(sLatex.c_str());
 	UT_UTF8String sML = ts.toMathML();
-	pTo->ins(0, (const UT_Byte *)sML.utf8_str(), sML.size());
+	pTo->ins(0, reinterpret_cast<const UT_Byte *>(sML.utf8_str()), sML.size());
 	return true;
 }
 

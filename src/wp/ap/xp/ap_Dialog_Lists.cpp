@@ -304,25 +304,25 @@ void AP_Dialog_Lists::Apply(void)
 		if(m_OutProps.getItemCount() > 0)
 			m_OutProps.clear();
 		sprintf(szStart,"%d",m_iStartValue);
-		m_OutProps.addItem((void *) "start-value");
-		m_Output[0] = (gchar *) szStart;
-		m_OutProps.addItem((void *) m_Output[0].c_str());
-		m_OutProps.addItem((void *) "list-style");
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "start-value")));
+		m_Output[0] = static_cast<gchar *>( szStart);
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[0].c_str())));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "list-style")));
 		m_Output[1] = getBlock()->getListStyleString(m_NewListType);
-		m_OutProps.addItem((void *) m_Output[1].c_str());
-		m_OutProps.addItem((void *) "list-delim");
-		m_OutProps.addItem((void *)  m_pszDelim.c_str());
-		m_OutProps.addItem((void *) "list-decimal");
-		m_OutProps.addItem((void *) m_pszDecimal.c_str());
-		m_OutProps.addItem((void *) "field-font");
-		m_OutProps.addItem((void *) m_pszFont.c_str());
-		m_OutProps.addItem((void *) "margin-left");
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[1].c_str())));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "list-delim")));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>(  m_pszDelim.c_str())));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "list-decimal")));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_pszDecimal.c_str())));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "field-font")));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_pszFont.c_str())));
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "margin-left")));
 		m_Output[2] = UT_convertInchesToDimensionString(DIM_IN, m_fAlign, nullptr);
-		m_OutProps.addItem((void *) m_Output[2].c_str());
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[2].c_str())));
 
-		m_OutProps.addItem((void *) "text-indent");
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "text-indent")));
 		m_Output[3] = UT_convertInchesToDimensionString(DIM_IN, m_fIndent, nullptr);
-		m_OutProps.addItem((void *) m_Output[3].c_str());
+		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[3].c_str())));
 		m_Answer = a_OK;
 		return;
 	}
@@ -363,7 +363,7 @@ void AP_Dialog_Lists::Apply(void)
 		getView()->getDocument()->beginUserAtomicGlob();
 		for(i=0;i < count; i++)
 		{
-			fl_BlockLayout * pBlock = (fl_BlockLayout *) vBlock.getNthItem(i);
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
 			UT_nonnull_or_continue(pBlock);
 			if(pBlock->isListItem() == true)
 			{
@@ -396,7 +396,7 @@ void AP_Dialog_Lists::Apply(void)
 		getView()->getDocument()->beginUserAtomicGlob();
 		for(i=0;i < count; i++)
 		{
-			fl_BlockLayout * pBlock2 = (fl_BlockLayout *) vBlock.getNthItem(i);
+			fl_BlockLayout * pBlock2 = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
 			UT_nonnull_or_continue(pBlock2);
 			if(pBlock2->isListItem() == true && m_NewListType == NOT_A_LIST)
 			{
@@ -425,8 +425,8 @@ void AP_Dialog_Lists::Apply(void)
 				}
 				else
 				{
-					fl_BlockLayout * pBlock = (fl_BlockLayout *) vBlock.getNthItem(i);
-					fl_BlockLayout * rBlock = (fl_BlockLayout *) pBlock->getPrev();
+					fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
+					fl_BlockLayout * rBlock = static_cast<fl_BlockLayout *>( pBlock->getPrev());
 					if(rBlock != nullptr)
 					{
 						pBlock->resumeList(rBlock);
@@ -449,7 +449,7 @@ void AP_Dialog_Lists::Apply(void)
 //
 				if(i == 0)
 				{
-					m_fAlign = m_fAlign + (float) LIST_DEFAULT_INDENT;
+					m_fAlign = m_fAlign + static_cast<float>( LIST_DEFAULT_INDENT);
 					pBlock2->StartList(m_NewListType,m_iStartValue,
                                        m_pszDelim.c_str(), m_pszDecimal.c_str(),
                                        m_pszFont.c_str(), m_fAlign, m_fIndent, 
@@ -459,8 +459,8 @@ void AP_Dialog_Lists::Apply(void)
 				}
 				else
 				{
-					fl_BlockLayout * pBlock = (fl_BlockLayout *) vBlock.getNthItem(i);
-					fl_BlockLayout * rBlock = (fl_BlockLayout *) pBlock->getPrev();
+					fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
+					fl_BlockLayout * rBlock = static_cast<fl_BlockLayout *>( pBlock->getPrev());
 					if(rBlock != nullptr)
 					{
 						pBlock->resumeList(rBlock);
@@ -506,7 +506,7 @@ void AP_Dialog_Lists::Apply(void)
 		getView()->getDocument()->beginUserAtomicGlob();
 		for(i=0;i < count; i++)
 		{
-			fl_BlockLayout * pBlock = (fl_BlockLayout *) vBlock.getNthItem(i);
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
 			fl_BlockLayout * rBlock = pBlock->getPreviousListOfSameMargin();
 			if(rBlock != nullptr)
 			{
@@ -560,8 +560,8 @@ void  AP_Dialog_Lists::fillUncustomizedValues(void)
 	}
 
 	m_pszDelim = "%L";
-	m_fAlign =  (float)(LIST_DEFAULT_INDENT * m_iLevel);
-	m_fIndent = (float)-LIST_DEFAULT_INDENT_LABEL;
+	m_fAlign =  static_cast<float>((LIST_DEFAULT_INDENT * m_iLevel));
+	m_fIndent = static_cast<float>(-LIST_DEFAULT_INDENT_LABEL);
 
 	if( m_NewListType == NUMBERED_LIST)
 	{
@@ -684,7 +684,7 @@ void  AP_Dialog_Lists::generateFakeLabels(void)
 		DELETEP(m_pFakeSdh[i]);
 		DELETEP(m_pFakeLayout[i]);
 		m_pFakeSdh[i] = new pf_Frag_Strux_Block(nullptr,0);
-		m_pFakeLayout[i] = new fl_Layout((PTStruxType) 0 , m_pFakeSdh[i] );
+		m_pFakeLayout[i] = new fl_Layout(static_cast<PTStruxType>( 0 ), m_pFakeSdh[i] );
 	}
 	//
 	// Now generate the AutoNum
@@ -746,21 +746,21 @@ void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
 		i = findVecItem(vp,"margin-left");
 		if(i>=0)
 		{
-			m_fAlign = (float)UT_convertToInches(vp->getNthItem(i+1));
+			m_fAlign = static_cast<float>(UT_convertToInches(vp->getNthItem(i+1)));
 		}
 		else
 		{
-			m_fAlign = (float)LIST_DEFAULT_INDENT;
+			m_fAlign = static_cast<float>(LIST_DEFAULT_INDENT);
 		}
 
 		i = findVecItem(vp,"text-indent");
 		if(i >= 0)
 		{
-			m_fIndent = (float)UT_convertToInches(vp->getNthItem(i+1));
+			m_fIndent = static_cast<float>(UT_convertToInches(vp->getNthItem(i+1)));
 		}
 		else
 		{
-			m_fIndent = (float)-LIST_DEFAULT_INDENT_LABEL;
+			m_fIndent = static_cast<float>(-LIST_DEFAULT_INDENT_LABEL);
 		}
 
 		i = findVecItem(vp,"list-delim");
@@ -858,21 +858,21 @@ void AP_Dialog_Lists::fillDialogFromBlock(void)
 		i = findVecItem(vp,"margin-left");
 		if(i>=0)
 		{
-			m_fAlign = (float)UT_convertToInches(vp[i + 1].c_str());
+			m_fAlign = static_cast<float>(UT_convertToInches(vp[i + 1].c_str()));
 		}
 		else
 		{
-			m_fAlign = (float)LIST_DEFAULT_INDENT;
+			m_fAlign = static_cast<float>(LIST_DEFAULT_INDENT);
 		}
 
 		i = findVecItem(vp,"text-indent");
 		if(i >= 0)
 		{
-			m_fIndent = (float)UT_convertToInches(vp[i + 1].c_str());
+			m_fIndent = static_cast<float>(UT_convertToInches(vp[i + 1].c_str()));
 		}
 		else
 		{
-			m_fIndent = (float)-LIST_DEFAULT_INDENT_LABEL;
+			m_fIndent = static_cast<float>(-LIST_DEFAULT_INDENT_LABEL);
 		}
 
 //
@@ -1035,7 +1035,7 @@ UT_sint32  AP_Dialog_Lists::findVecItem(UT_GenericVector<const gchar*> * v, cons
 	const char * pszV = nullptr;
 	for(j= 0; j<i ;j=j+2)
 	{
-		pszV = (char *) v->getNthItem(j);
+		pszV = const_cast<char *>( v->getNthItem(j));
 		if( (pszV != nullptr) && (strcmp( pszV,key) == 0))
 			break;
 	}
@@ -1118,7 +1118,7 @@ void AP_Lists_preview::setData(const gchar * pszFont,float fAlign,float fIndent)
 	}
 	else
 	{
-		m_pFont = m_gc->findFont((char *)pszFont, "normal", "", "normal",
+		m_pFont = m_gc->findFont(const_cast<char *>(reinterpret_cast<const char*>(pszFont)), "normal", "", "normal",
 								 "", "16pt", nullptr);
 	}	
 	UT_ASSERT_HARMLESS(m_pFont);
@@ -1166,7 +1166,7 @@ void AP_Lists_preview::drawImmediate(const UT_Rect* clip)
 	aheight = m_gc->tlu(16);
 	fwidth = static_cast<float>(m_gc->tdu(iWidth));
 
-	z = (float)((fwidth - 2.0*static_cast<float>(m_gc->tdu(xoff))) /pagew);
+	z = static_cast<float>(((fwidth - 2.0*static_cast<float>(m_gc->tdu(xoff))) /pagew));
   UT_sint32 indent = m_gc->tlu(static_cast<UT_sint32>( z*(m_fAlign+m_fIndent)));
 
 	if(indent < 0)
@@ -1206,7 +1206,7 @@ void AP_Lists_preview::drawImmediate(const UT_Rect* clip)
 		maxw++;
 
         // UT_sint32 vspace = (iHeight - 2*yoff -iFont)*i/16;
-	z = (float)((fwidth - 2.0*static_cast<float>(m_gc->tdu(xoff))) /(float)pagew);
+	z = static_cast<float>(((fwidth - 2.0*static_cast<float>(m_gc->tdu(xoff))) /static_cast<float>(pagew)));
 	UT_sint32 ialign = m_gc->tlu(static_cast<UT_sint32>( z*m_fAlign));
 
 	xx = xoff + ialign;

@@ -52,7 +52,7 @@ g_cclosure_user_marshal_VOID__UINT_UINT (GClosure     *closure,
                                                 guint        arg_2,
                                                 gpointer     data2);
   GMarshalFunc_VOID__UINT_UINT callback;
-  GCClosure *cc = (GCClosure*) closure;
+  GCClosure *cc = reinterpret_cast<GCClosure*>( closure);
   gpointer data1, data2;
 
   UT_return_if_fail (n_param_values == 3);
@@ -67,7 +67,7 @@ g_cclosure_user_marshal_VOID__UINT_UINT (GClosure     *closure,
       data1 = g_value_get_pointer (param_values + 0);
       data2 = closure->data;
     }
-  callback = (GMarshalFunc_VOID__UINT_UINT) (marshal_data ? marshal_data : cc->callback);
+  callback = reinterpret_cast<GMarshalFunc_VOID__UINT_UINT>( (marshal_data ? marshal_data : cc->callback));
   UT_DEBUGMSG(("Calling callback marshell data %p cc %p \n",callback,cc));
 
   callback (data1,

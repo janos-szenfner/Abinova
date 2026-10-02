@@ -1130,7 +1130,7 @@ UT_Error IE_Exp_Abinova_1::_writeDocument(void)
 	if (mem)
 	{
 		const guint8 * bytes = gsf_output_memory_get_bytes(GSF_OUTPUT_MEMORY(mem));
-		gsize len = (gsize)gsf_output_size(mem);
+		gsize len = static_cast<gsize>(gsf_output_size(mem));
 		std::vector<unsigned char> envelope;
 		UT_AbwnCrypt r = UT_abwn_encrypt(bytes, len, password, envelope);
 		g_object_unref(mem);
@@ -1229,7 +1229,7 @@ void s_Abinova_1_Listener::_handleLists(void)
 			bWroteOpenListSection = true;
 		}
 		m_pie->startElement("l");
-		for (UT_sint32 i = 0; i < ((UT_sint32)vAttrs.size()) - 1;
+		for (UT_sint32 i = 0; i < (static_cast<UT_sint32>(vAttrs.size())) - 1;
 			 i += 2)
 		{
 			const std::string & s = vAttrs[i];

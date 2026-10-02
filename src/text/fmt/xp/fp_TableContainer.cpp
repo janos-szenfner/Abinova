@@ -2594,8 +2594,8 @@ fp_ContainerObject * fp_CellContainer::VBreakAt(UT_sint32 vpos)
 							pCon = static_cast<fp_Container *>(pTab->VBreakAt(0));
 							fp_TableContainer * pBTab = static_cast<fp_TableContainer *>(pCon);
 							pBTab->setY(iY);
-							UT_DEBUGMSG(("Break Nested table Con %p at 0 y %d height %d \n", (void*)pCon, pCon->getY(), pCon->getHeight()));
-							UT_DEBUGMSG(("Break Nested table Table %p at 0 y %d height %d \n", (void*)pBTab, pBTab->getY(), pBTab->getHeight()));
+							UT_DEBUGMSG(("Break Nested table Con %p at 0 y %d height %d \n", static_cast<void*>(pCon), pCon->getY(), pCon->getHeight()));
+							UT_DEBUGMSG(("Break Nested table Table %p at 0 y %d height %d \n", static_cast<void*>(pBTab), pBTab->getY(), pBTab->getHeight()));
 						}
 					}
 				}
@@ -2619,7 +2619,7 @@ fp_ContainerObject * fp_CellContainer::VBreakAt(UT_sint32 vpos)
 					{
 						pBroke->setY(vpos);
 						static_cast<fp_TableContainer *>(pBroke)->setY(pBroke->getY());
-						UT_DEBUGMSG(("Made broken nested Table %p Y %d height %d \n", (void*)pBroke, pBroke->getY(), pBroke->getHeight()));
+						UT_DEBUGMSG(("Made broken nested Table %p Y %d height %d \n", static_cast<void*>(pBroke), pBroke->getY(), pBroke->getHeight()));
 						UT_ASSERT(pBroke->getContainer() == this);
 					}
 					break;
@@ -3377,7 +3377,7 @@ UT_sint32 fp_TableContainer::getXOfColumn(UT_sint32 col) const
 static UT_sint32 compareCellPosBinary(const void * vX1, const void * vX2)
 {
 	const UT_Point *pt = static_cast<const UT_Point *>(vX1);
-	const fp_ContainerObject *pc = *(fp_ContainerObject **)(vX2);
+	const fp_ContainerObject *pc = *const_cast<fp_ContainerObject **>(static_cast<const fp_ContainerObject * const*>((vX2)));
 	const fp_CellContainer *pCell = static_cast<const fp_CellContainer *>(pc);
 
 	if((pCell->getTopAttach()) <= pt->y && (pCell->getBottomAttach() > pt->y)

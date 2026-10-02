@@ -185,7 +185,7 @@ const gchar * PP_Revision::getPropsString() const
 	if(m_bDirty)
 		_refreshString();
 
-	return (const gchar*) m_sXMLProps.c_str();
+	return static_cast<const gchar*>( m_sXMLProps.c_str());
 }
 
 /*! converts the internal vector of attributes into XML string */
@@ -194,7 +194,7 @@ const gchar * PP_Revision::getAttrsString() const
 	if(m_bDirty)
 		_refreshString();
 
-	return (const gchar*) m_sXMLAttrs.c_str();
+	return static_cast<const gchar*>( m_sXMLAttrs.c_str());
 }
 
 void PP_Revision::_refreshString() const
@@ -280,7 +280,7 @@ std::string PP_Revision::toString() const
 bool PP_Revision::onlyContainsAbiwordChangeTrackingMarkup() const
 {
     UT_DEBUGMSG(("onlyContainsAbiwordChangeTrackingMarkup(top) ac:%ld pc:%ld\n",
-		 (long)getAttributeCount(), (long)getPropertyCount() ));
+		 static_cast<long>(getAttributeCount()), static_cast<long>(getPropertyCount() )));
 
     if( !getAttributeCount() )
         return false;
@@ -384,7 +384,7 @@ PP_RevisionAttr::PP_RevisionAttr(UT_uint32 iId, PP_RevisionType eType,
                                  const PP_PropertyVector & attrs,
                                  const PP_PropertyVector & props)
 {
-	m_vRev.push_back(new PP_Revision((UT_uint32)iId, eType, props, attrs));
+	m_vRev.push_back(new PP_Revision(static_cast<UT_uint32>(iId), eType, props, attrs));
 }
 
 
@@ -432,7 +432,7 @@ void PP_RevisionAttr::_init(const gchar *r)
 	// "+1,-2,!3{font-family: Times New Roman}"
 
 	// first duplicate the string so we can play with it ...
-	char * s = (char*) g_strdup(r);
+	char * s = static_cast<char*>( g_strdup(r));
 	char * end_s = s + strlen(s); // we need to remember where this
 								  // string ends because we cannot use strtok(nullptr,...)
 
@@ -527,7 +527,7 @@ void PP_RevisionAttr::_init(const gchar *r)
 		// now we can retrieve the id
 		iId = atol(t);
 
-		m_vRev.push_back(new PP_Revision((UT_uint32)iId, eType, pProps, pAttrs));
+		m_vRev.push_back(new PP_Revision(static_cast<UT_uint32>(iId), eType, pProps, pAttrs));
 
 	skip_this_token:
 		if(next_s < end_s)
@@ -1036,7 +1036,7 @@ PP_RevisionAttr::addRevision( const PP_Revision* r )
 
     PP_RevisionAttr us( getXMLstring() );
     _clear();
-    std::string tmp = (std::string)us.getXMLstring() + "," + ss.str();
+    std::string tmp = static_cast<std::string>(us.getXMLstring() )+ "," + ss.str();
     setRevision(tmp);
 }
 
@@ -1118,7 +1118,7 @@ void PP_RevisionAttr::mergeAll( const PP_RevisionAttr& ra )
 {
     PP_RevisionAttr us( getXMLstring() );
     _clear();
-    std::string tmp = (std::string)us.getXMLstring() + "," + ra.getXMLstring();
+    std::string tmp = static_cast<std::string>(us.getXMLstring() )+ "," + ra.getXMLstring();
 
     revidx_t oldidx = toIndex( us );
     revidx_t newidx = toIndex( ra );

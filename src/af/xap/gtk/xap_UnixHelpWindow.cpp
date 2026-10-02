@@ -110,7 +110,7 @@ static std::string decodeEntities(const std::string& in)
 			if (cp > 0 && cp < 0x110000)
 			{
 				char ubuf[8] = {0};
-				g_unichar_to_utf8((gunichar)cp, ubuf);
+				g_unichar_to_utf8(static_cast<gunichar>(cp), ubuf);
 				out += ubuf;
 				i = semi;
 				continue;
@@ -662,7 +662,7 @@ static const char * linkAt(GtkTextView * tv, double x, double y)
 {
 	int bx, by;
 	gtk_text_view_window_to_buffer_coords(tv, GTK_TEXT_WINDOW_TEXT,
-										  (int)x, (int)y, &bx, &by);
+										  static_cast<int>(x), static_cast<int>(y), &bx, &by);
 	GtkTextIter iter;
 	gtk_text_view_get_iter_at_location(tv, &iter, bx, by);
 	GSList * tags = gtk_text_iter_get_tags(&iter);

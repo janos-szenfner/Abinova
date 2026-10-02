@@ -278,8 +278,8 @@ s_loadImage (const UT_UTF8String & file, FV_View * pView, XAP_Frame * pF, gint x
 	if(pView && pView->getGraphics())
 		mouseY = pView->getGraphics()->tlu(mouseY);
 #ifdef DEBUG
-	double xInch = (double) mouseX/1440.;
-	double yInch = (double) mouseY/1440.;
+	double xInch = static_cast<double>( mouseX)/1440.;
+	double yInch = static_cast<double>( mouseY)/1440.;
 #endif
 
 	UT_DEBUGMSG(("Insert Image at logical (x,y) %d %d \n",mouseX,mouseY));
@@ -332,7 +332,7 @@ s_loadDocument (const UT_UTF8String & file, XAP_Frame * pFrame)
 			// TODO: in it, so let's go ahead and open an untitled document
 			// TODO: for now.
 			UT_DEBUGMSG(("DOM: couldn't load document %s\n", file.utf8_str()));
-			pNewFrame->loadDocument((const char *)nullptr, 0 /* IEFT_Unknown */);
+			pNewFrame->loadDocument(static_cast<const char *>(nullptr), 0 /* IEFT_Unknown */);
 		}
 }
 
@@ -1131,7 +1131,7 @@ gboolean XAP_UnixFrameImpl::_fe::scroll_notify_event(GtkEventControllerScroll * 
 		GtkNative * native = gtk_widget_get_native(w);
 		if (native)
 		{
-			graphene_point_t pi = GRAPHENE_POINT_INIT((float)sx, (float)sy);
+			graphene_point_t pi = GRAPHENE_POINT_INIT(static_cast<float>(sx), static_cast<float>(sy));
 			graphene_point_t po;
 			if (gtk_widget_compute_point(GTK_WIDGET(native), w, &pi, &po))
 			{
@@ -1744,7 +1744,7 @@ gint XAP_UnixFrameImpl::_imDeleteSurrounding_cb (GtkIMContext * /*slave*/,
 		return TRUE;
 
 	PT_DocPosition insPt = pView->getInsPoint ();
-	if ((gint) insPt + offset < 0)
+	if (static_cast<gint>( insPt )+ offset < 0)
 		return TRUE;
 
 	pView->moveInsPtTo (insPt + offset);

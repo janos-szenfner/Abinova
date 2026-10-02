@@ -243,7 +243,7 @@ struct MLatexParser {
 	bool atCmd(const char *word) {
 		size_t l = strlen(word);
 		return i + l <= n && s[i] == '\\' && strncmp(s + i + 1, word, l) == 0 &&
-		       (i + 1 + l >= n || !isalpha((unsigned char)s[i + 1 + l]));
+		       (i + 1 + l >= n || !isalpha(static_cast<unsigned char>(s[i + 1 + l])));
 	}
 	void eatCmd(const char *word) { i += 1 + strlen(word); }
 
@@ -251,8 +251,8 @@ struct MLatexParser {
 		/* cursor is at '\\' */
 		++i;
 		std::string nm;
-		if (i < n && isalpha((unsigned char)s[i])) {
-			while (i < n && isalpha((unsigned char)s[i])) nm += s[i++];
+		if (i < n && isalpha(static_cast<unsigned char>(s[i]))) {
+			while (i < n && isalpha(static_cast<unsigned char>(s[i]))) nm += s[i++];
 		} else if (i < n) {
 			nm += s[i++];          /* single-char command: \{ \\ \, etc */
 		}
@@ -286,7 +286,7 @@ struct MLatexParser {
 			buf[0] = c; buf[1] = 0; /* raw byte; latex input is utf-8 so copy through */
 		}
 		a->t = buf;
-		if (isalpha((unsigned char)c)) a->fl |= MF_ITALIC;
+		if (isalpha(static_cast<unsigned char>(c))) a->fl |= MF_ITALIC;
 		a->fl |= style;
 		return a;
 	}
@@ -491,7 +491,7 @@ struct MLatexParser {
 			}
 			if (!c) break;
 			MNode *a = new MNode(MNode::ATOM);
-			if (bb && isalpha((unsigned char)c) && _bbChar(c)) {
+			if (bb && isalpha(static_cast<unsigned char>(c)) && _bbChar(c)) {
 				a->t = _bbChar(c);
 			} else {
 				char buf[2] = { c, 0 };
@@ -655,7 +655,7 @@ struct MLatexParser {
 			skipws();
 			char c = peek();
 			if (!c) break;
-			if (stop >= 0 && c == (char)stop) break;
+			if (stop >= 0 && c == static_cast<char>(stop)) break;
 			if (stop == -1 && atCmd("right")) break;
 			if (c == '&' || atCmd("\\") || atCmd("end")) break;   /* matrix context */
 			if (c == '{' ) { ++i; MNode *g = row('}'); if (peek() == '}') ++i;
@@ -696,13 +696,13 @@ struct MMLParser {
 		std::string out;
 		for (xmlNode *c = e->children; c; c = c->next) {
 			if (c->type == XML_TEXT_NODE || c->type == XML_CDATA_SECTION_NODE)
-				out += (const char *)c->content;
+				out += reinterpret_cast<const char *>(c->content);
 		}
 		/* collapse whitespace */
 		std::string r;
 		bool sp = false;
 		for (char ch : out) {
-			if (isspace((unsigned char)ch)) { sp = true; continue; }
+			if (isspace(static_cast<unsigned char>(ch))) { sp = true; continue; }
 			if (sp && !r.empty()) r += ' ';
 			sp = false; r += ch;
 		}
@@ -713,7 +713,7 @@ struct MMLParser {
 		xmlChar *v = xmlGetProp(e, BAD_CAST nm);
 		if (!v) return nullptr;
 		static thread_local std::string s;
-		s = (const char *)v;
+		s = reinterpret_cast<const char *>(v);
 		xmlFree(v);
 		return s.c_str();
 	}
@@ -746,7 +746,7 @@ struct MMLParser {
 
 	MNode *elem(xmlNode *e) {
 		if (!e || e->type != XML_ELEMENT_NODE) return new MNode(MNode::ROW);
-		const char *nm = (const char *)e->name;
+		const char *nm = reinterpret_cast<const char *>(e->name);
 
 		if (!strcmp(nm, "math") || !strcmp(nm, "mrow") ||
 		    !strcmp(nm, "mstyle") || !strcmp(nm, "mpadded") ||
@@ -766,7 +766,7 @@ struct MMLParser {
 		}
 		if (!strcmp(nm, "mi")) {
 			std::string t = text(e);
-			return atom(e, t.size() == 1 || (t.size() >= 2 && (unsigned char)t[0] >= 0x80)
+			return atom(e, t.size() == 1 || (t.size() >= 2 && static_cast<unsigned char>(t[0] )>= 0x80)
 			            ? MF_ITALIC : MF_UPRIGHT);
 		}
 		if (!strcmp(nm, "mn")) return atom(e, MF_UPRIGHT);
@@ -795,7 +795,7 @@ struct MMLParser {
 			    !strcmp(text(e).c_str(), "inf") || !strcmp(text(e).c_str(), "max") ||
 			    !strcmp(text(e).c_str(), "min"))
 				a->fl |= MF_UPRIGHT | MF_BIGOP | MF_LIMITS;
-			else if (t.size() > 1 && isalpha((unsigned char)t[0]) && t[0] < 0x80)
+			else if (t.size() > 1 && isalpha(static_cast<unsigned char>(t[0])) && t[0] < 0x80)
 				a->fl |= MF_UPRIGHT | MF_INNER;
 			return a;
 		}
@@ -919,12 +919,12 @@ struct MMLParser {
 			MNode *m = new MNode(MNode::MATRIX);
 			int ncol = 0;
 			for (xmlNode *r = e->children; r; r = r->next) {
-				if (r->type != XML_ELEMENT_NODE || strcmp((const char *)r->name, "mtr"))
+				if (r->type != XML_ELEMENT_NODE || strcmp(reinterpret_cast<const char *>(r->name), "mtr"))
 					continue;
 				int cur = 0;
 				for (xmlNode *c = r->children; c; c = c->next) {
 					if (c->type != XML_ELEMENT_NODE ||
-					    strcmp((const char *)c->name, "mtd")) continue;
+					    strcmp(reinterpret_cast<const char *>(c->name), "mtd")) continue;
 					MNode *cell = new MNode(MNode::ROW);
 					for (xmlNode *x = c->children; x; x = x->next)
 						if (x->type == XML_ELEMENT_NODE) cell->k.push_back(elem(x));
@@ -942,8 +942,8 @@ struct MMLParser {
 			sp->aux = 30;
 			if (w) {
 				double v = strtod(w, nullptr);
-				if (strstr(w, "em")) sp->aux = (int)(v * 100);
-				else if (strstr(w, "pt")) sp->aux = (int)(v * 100 / 10.0);
+				if (strstr(w, "em")) sp->aux = static_cast<int>((v * 100));
+				else if (strstr(w, "pt")) sp->aux = static_cast<int>((v * 100 / 10.0));
 			}
 			return sp;
 		}
@@ -1010,7 +1010,7 @@ bool GR_MathTypesetter::parseMathML(const char *sz, int len)
 		m_root = new MNode(MNode::ROW);
 		return false;
 	}
-	if (len < 0) len = (int)strlen(sz);
+	if (len < 0) len = static_cast<int>(strlen(sz));
 	xmlDoc *doc = xmlReadMemory(sz, len, "mathml", "UTF-8",
 	                            XML_PARSE_RECOVER | XML_PARSE_NOERROR |
 	                            XML_PARSE_NOWARNING | XML_PARSE_NONET);
@@ -1024,12 +1024,12 @@ bool GR_MathTypesetter::parseMathML(const char *sz, int len)
 	xmlNode *rootEl = xmlDocGetRootElement(doc);
 	if (rootEl) {
 		/* find the <math> element if the root isn't it */
-		if (strcmp((const char *)rootEl->name, "math")) {
+		if (strcmp(reinterpret_cast<const char *>(rootEl->name), "math")) {
 			xmlNode *e = rootEl;
 			rootEl = nullptr;
 			for (xmlNode *c = e->children; c && !rootEl; c = c->next)
 				if (c->type == XML_ELEMENT_NODE &&
-				    !strcmp((const char *)c->name, "math"))
+				    !strcmp(reinterpret_cast<const char *>(c->name), "math"))
 					rootEl = c;
 			if (!rootEl) rootEl = e;
 		}
@@ -1102,7 +1102,7 @@ void GR_MathTypesetter::_measure(MNode *n, double size, unsigned inherit)
 		if (n->t.size() == 0) { n->w = 0; n->a = n->d = 0; break; }
 		bool big = (fl & MF_BIGOP) != 0;
 		double sz = big && m_display ? size * 1.35 : size;
-		n->aux = (int)(sz * 64);          /* remembered for _drawAtom */
+		n->aux = static_cast<int>((sz * 64));          /* remembered for _drawAtom */
 		_atomExtents(n->t.utf8_str(), sz,
 		             (fl & MF_ITALIC) && !(fl & MF_UPRIGHT),
 		             (fl & MF_BOLD) != 0, n->w, n->a, n->d);
@@ -1236,7 +1236,7 @@ void GR_MathTypesetter::_measure(MNode *n, double size, unsigned inherit)
 			n->kx[1] = (W - den->w) / 2;
 			n->ky[1] = n->a - axis + gapD + den->a;
 		}
-		(void)rule;
+		static_cast<void>(rule);
 		break;
 	}
 	case MNode::RADICAL: {
@@ -1307,12 +1307,12 @@ void GR_MathTypesetter::_measure(MNode *n, double size, unsigned inherit)
 	case MNode::MATRIX: {
 		int ncol = n->aux > 0 ? n->aux : 1;
 		size_t cells = n->k.size();
-		int nrow = (int)((cells + ncol - 1) / ncol);
+		int nrow = static_cast<int>(((cells + ncol - 1) / ncol));
 		std::vector<double> colW(ncol, 0), rowA(nrow, 0), rowD(nrow, 0);
 		for (size_t i = 0; i < cells; ++i) {
 			MNode *c = n->k[i];
 			_measure(c, size, fl);
-			int r = (int)i / ncol, cc = (int)i % ncol;
+			int r = static_cast<int>(i )/ ncol, cc = static_cast<int>(i )% ncol;
 			if (c->w > colW[cc]) colW[cc] = c->w;
 			if (c->a > rowA[r]) rowA[r] = c->a;
 			if (c->d > rowD[r]) rowD[r] = c->d;
@@ -1329,7 +1329,7 @@ void GR_MathTypesetter::_measure(MNode *n, double size, unsigned inherit)
 		for (int r = 0; r < nrow; ++r) {
 			double x = 0;
 			for (int cc = 0; cc < ncol; ++cc) {
-				size_t i = (size_t)r * ncol + cc;
+				size_t i = static_cast<size_t>(r )* ncol + cc;
 				if (i < cells) {
 					MNode *c = n->k[i];
 					n->kx[i] = leftAlign ? x : x + (colW[cc] - c->w) / 2;
@@ -1730,8 +1730,8 @@ static void s_ser(MNode *n, std::string &o)
 		s_esc(n->t, e);
 		bool digit = true, alpha = false;
 		for (const char *p = txt; *p; ++p) {
-			if (isalpha((unsigned char)*p) || (unsigned char)*p >= 0x80) alpha = true;
-			if (!isdigit((unsigned char)*p) && *p != '.' && *p != ',') digit = false;
+			if (isalpha(static_cast<unsigned char>(*p)) || static_cast<unsigned char>(*p )>= 0x80) alpha = true;
+			if (!isdigit(static_cast<unsigned char>(*p)) && *p != '.' && *p != ',') digit = false;
 		}
 		if (n->fl & (MF_REL | MF_BIN | MF_OPEN | MF_CLOSE | MF_BIGOP))
 			o += "<mo>" + e + "</mo>";
@@ -1835,7 +1835,7 @@ static void s_ser(MNode *n, std::string &o)
 		for (size_t i = 0; i < n->k.size(); ++i) {
 			if (i % ncol == 0) o += "<mtr>";
 			o += "<mtd>"; s_ser(n->k[i], o); o += "</mtd>";
-			if (i % ncol == (size_t)ncol - 1) o += "</mtr>";
+			if (i % ncol == static_cast<size_t>(ncol )- 1) o += "</mtr>";
 		}
 		if (n->k.size() % ncol) o += "</mtr>";
 		o += "</mtable>";

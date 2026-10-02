@@ -760,7 +760,7 @@ bool FV_View::registerDoubleBufferingObject(FV_ViewDoubleBuffering *obj)
 
 bool FV_View::unregisterDoubleBufferingObject(FV_ViewDoubleBuffering *obj)
 {
-	if((void*)m_pViewDoubleBufferingObject == (void*)obj)
+	if(static_cast<void*>(m_pViewDoubleBufferingObject )== static_cast<void*>(obj))
 	{
 		// you're the top most caller, I will unregister you
 		m_pViewDoubleBufferingObject = nullptr;
@@ -1370,7 +1370,7 @@ void FV_View::convertInLineToPositioned(PT_DocPosition pos, const PP_PropertyVec
 	fl_BlockLayout * pPrevBL = pBL;
 	while(pBL && ((pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_ENDNOTE) || (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_FOOTNOTE) || (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_ANNOTATION) || (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_TOC)|| (pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_FRAME)))
 	{
-		UT_DEBUGMSG(("Skipping Block %p \n", (void*)pBL));
+		UT_DEBUGMSG(("Skipping Block %p \n", static_cast<void*>(pBL)));
 		pPrevBL = pBL;
 		pBL = pBL->getPrevBlockInDocument();
 	}
@@ -2751,7 +2751,7 @@ void FV_View::toggleCase (ToggleCase c)
 						break;
 					}
 					
-					UT_sint32 iDiff = UT_MIN((UT_sint32)pRun->getLength(), iLenToCopy);
+					UT_sint32 iDiff = UT_MIN(static_cast<UT_sint32>(pRun->getLength()), iLenToCopy);
 					iLen += iDiff;
 					iLenToCopy -= iDiff;
 					pPrevTR = static_cast<fp_TextRun*>(pRun);
@@ -6646,8 +6646,8 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 // Handle simple cases of inserting into non-existing header/footers.
 //
 	fp_Page * pCurPage = getCurrentPage();
-	fprintf(stderr, "DBG pageno curpage=%p hf=%d\n", (void*)pCurPage,
-			(int)hfType);
+	fprintf(stderr, "DBG pageno curpage=%p hf=%d\n", static_cast<void*>(pCurPage),
+			static_cast<int>(hfType));
 	UT_return_val_if_fail(pCurPage, false);
 	fl_DocSectionLayout * pDSL = pCurPage->getOwningSection();
 	UT_return_val_if_fail(pDSL, false);
@@ -9382,7 +9382,7 @@ UT_sint32 FV_View::getPageViewLeftMargin(void) const
 	}
 
 #ifdef EMBEDDED_TARGET
-		return (int) (0.2 * fl_PAGEVIEW_MARGIN_X);
+		return static_cast<int>( (0.2 * fl_PAGEVIEW_MARGIN_X));
 #else	
 		return fl_PAGEVIEW_MARGIN_X;
 #endif		
@@ -10340,7 +10340,7 @@ UT_uint32 FV_View::getTabToggleAreaWidth() const
 			return m_pTopRuler->getTabToggleAreaWidth();
 		else
 #ifdef EMBEDDED_TARGET
-			return (UT_uint32) ((float)m_pG->tlu(AP_TopRuler::getFixedWidth()) * 0.1);
+			return static_cast<UT_uint32>( (static_cast<float>(m_pG->tlu(AP_TopRuler::getFixedWidth()) )* 0.1));
 #else
 			return m_pG->tlu(AP_TopRuler::getFixedWidth());
 #endif
@@ -11605,7 +11605,7 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 		{
 			UT_Rect pRec = pLine->getScreenRect().value();
 			UT_DebugOnly<UT_sint32> xPosAdj = xPos - pRec.left;
-			xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (7), xPosAdj %ld\n", (UT_sint32)xPosAdj ));
+			xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (7), xPosAdj %ld\n", static_cast<UT_sint32>(xPosAdj )));
 			xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (7), yPos    %ld\n", yPos ));
 			xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (7), top     %ld\n", pRec.top ));
 			xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (7), bot     %ld\n", pRec.top + pRec.height ));
@@ -14062,7 +14062,7 @@ bool FV_View::selectAnnotation(fl_AnnotationLayout * pAL)
 		PT_DocPosition posStart = getDocument()->getStruxPosition(sdhEnd); 
 		posStart++;
 		fp_Run * pRun = getHyperLinkRun(posStart);
-		UT_DEBUGMSG(("FV_View::selectAnnotation() pRun:%p\n", (void*)pRun));
+		UT_DEBUGMSG(("FV_View::selectAnnotation() pRun:%p\n", static_cast<void*>(pRun)));
 		UT_return_val_if_fail(pRun, false);
 		pRun = pRun->getNextRun();
 		while(pRun && (pRun->getType() != FPRUN_HYPERLINK))
@@ -14929,7 +14929,7 @@ void FV_View::killAnnotationPreview()
 		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
 
 	AP_Preview_Annotation * pPview
-		= static_cast<AP_Preview_Annotation *>(pDialogFactory->requestDialog((XAP_Dialog_Id)AP_DIALOG_ID_ANNOTATION_PREVIEW));
+		= static_cast<AP_Preview_Annotation *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_ANNOTATION_PREVIEW)));
 	UT_nonnull_or_return(pPview, );
     pDialogFactory->releaseDialog(pPview);
 	pPview->destroy();
@@ -16169,7 +16169,7 @@ void FV_View::remeasureCharsWithoutRebuild()
         {
 			if(pRun->getType() == FPRUN_TEXT)
 			{
-				fp_TextRun * pTR = (fp_TextRun*) pRun;
+				fp_TextRun * pTR = static_cast<fp_TextRun*>( pRun);
 				pTR->measureCharWidths();
 			}
 			

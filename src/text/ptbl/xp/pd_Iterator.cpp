@@ -234,7 +234,7 @@ UT_TextIterator & PD_DocIterator::operator +=  (UT_sint32 i)
 {
 	if(m_status == UTIter_OK)
 	{
-		if(i >= -(UT_sint32)m_pos)
+		if(i >= -static_cast<UT_sint32>(m_pos))
 		{
 			m_pos += i;
 			_findFrag();
@@ -252,7 +252,7 @@ UT_TextIterator & PD_DocIterator::operator -=  (UT_sint32 i)
 {
 	if(m_status == UTIter_OK)
 	{
-		if((UT_sint32)m_pos >= i)
+		if(static_cast<UT_sint32>(m_pos )>= i)
 		{
 			m_pos -= i;
 			_findFrag();
@@ -271,7 +271,7 @@ UT_TextIterator & PD_DocIterator::operator -=  (UT_sint32 i)
 */
 UT_UCS4Char PD_DocIterator::operator [](UT_uint32 dpos)
 {
-	m_pos = (PT_DocPosition)dpos;
+	m_pos = static_cast<PT_DocPosition>(dpos);
 	_findFrag();
 
 	return getChar();
@@ -279,7 +279,7 @@ UT_UCS4Char PD_DocIterator::operator [](UT_uint32 dpos)
 
 void PD_DocIterator::setPosition(UT_uint32 dpos)
 {
-	m_pos = (PT_DocPosition)dpos;
+	m_pos = static_cast<PT_DocPosition>(dpos);
 	_findFrag();
 }
 
@@ -540,8 +540,8 @@ bool PD_StruxIterator::_incrementPos(UT_sint32 d)
 	if(m_status == UTIter_OK)
 	{
 		// data starts at pos m_strux_len
-		if(   ((UT_sint32)m_offset + d) >= (UT_sint32)m_strux_len
-		   && (UT_uint32)((UT_sint32)m_offset + d) <= m_max_offset)
+		if(   (static_cast<UT_sint32>(m_offset )+ d) >= static_cast<UT_sint32>(m_strux_len
+		   )&& static_cast<UT_uint32>((static_cast<UT_sint32>(m_offset )+ d) )<= m_max_offset)
 		{
 			m_offset += d;
 			return true;

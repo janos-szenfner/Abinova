@@ -222,7 +222,7 @@ static void s_drawing_area_draw(GtkDrawingArea * /* area */,
 								gpointer data)
 {
 	XAP_UnixDialog_FontChooser * dlg =
-		(XAP_UnixDialog_FontChooser *)data;
+		static_cast<XAP_UnixDialog_FontChooser *>(data);
 	dlg->event_previewDrawImmediate();
 }
 
@@ -1076,7 +1076,7 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	gtk_widget_show ( cf ) ;
 	
 	GR_UnixCairoAllocInfo ai(m_preview);
-	m_gc = (GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+	m_gc = static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 	GtkAllocation alloc;
 
 	gtk_widget_get_allocation(m_preview, &alloc);

@@ -287,10 +287,10 @@ gboolean AP_UnixFrame::_scrollAnimTick(GtkWidget * /*w*/, GdkFrameClock * /*cloc
 	else
 		next = cur + diff * 0.18;	/* ease-out */
 
-	g_signal_handler_block((gpointer)pFrameImpl->m_pVadj,
+	g_signal_handler_block(static_cast<gpointer>(pFrameImpl->m_pVadj),
 						   pFrameImpl->m_iVScrollSignal);
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(pFrameImpl->m_pVadj), next);
-	g_signal_handler_unblock((gpointer)pFrameImpl->m_pVadj,
+	g_signal_handler_unblock(static_cast<gpointer>(pFrameImpl->m_pVadj),
 							 pFrameImpl->m_iVScrollSignal);
 	pView->setYScrollOffset(static_cast<UT_sint32>(next));
 
@@ -359,9 +359,9 @@ void AP_UnixFrame::_scrollFuncY(void * pData, UT_sint32 yoff, UT_sint32 /*yrange
 	// We need to block the signal this will send. The setYScrollOffset method
 	// will do the scroll for us. Otherwise we'll scroll back here later!!
 
-	g_signal_handler_block((gpointer)pFrameImpl->m_pVadj, pFrameImpl->m_iVScrollSignal);
+	g_signal_handler_block(static_cast<gpointer>(pFrameImpl->m_pVadj), pFrameImpl->m_iVScrollSignal);
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(pFrameImpl->m_pVadj),yoffNew);
-	g_signal_handler_unblock((gpointer)pFrameImpl->m_pVadj, pFrameImpl->m_iVScrollSignal);
+	g_signal_handler_unblock(static_cast<gpointer>(pFrameImpl->m_pVadj), pFrameImpl->m_iVScrollSignal);
 
 	pView->setYScrollOffset(static_cast<UT_sint32>(yoffDisc));
 }
@@ -404,9 +404,9 @@ void AP_UnixFrame::_scrollFuncX(void * pData, UT_sint32 xoff, UT_sint32 /*xrange
 	// We need to block the signal this will send. The setHScrollOffset method
 	// will do the scroll for us. Otherwise we'll scroll back here later!!
 	
-	g_signal_handler_block((gpointer)pFrameImpl->m_pHadj, pFrameImpl->m_iHScrollSignal);
+	g_signal_handler_block(static_cast<gpointer>(pFrameImpl->m_pHadj), pFrameImpl->m_iHScrollSignal);
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(pFrameImpl->m_pHadj),xoffDisc);
-	g_signal_handler_unblock((gpointer)pFrameImpl->m_pHadj, pFrameImpl->m_iHScrollSignal);
+	g_signal_handler_unblock(static_cast<gpointer>(pFrameImpl->m_pHadj), pFrameImpl->m_iHScrollSignal);
 
 	// (this is the calculation for dx again, post rounding)
 	// This may not actually be helpful, because we could still lose if the
@@ -586,7 +586,7 @@ bool AP_UnixFrame::_createViewGraphics(GR_Graphics *& pG, UT_uint32 iZoom)
 	UT_ASSERT(pImpl);
 	UT_DEBUGMSG(("Got FrameImpl %p area %p \n",pImpl,pImpl->m_dArea));
 	GR_UnixCairoAllocInfo ai(pImpl->m_dArea);
-	pG = (GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+	pG = static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	GR_UnixCairoGraphics *pUnixGraphics = static_cast<GR_UnixCairoGraphics *>(pG);
 	GtkWidget * w = gtk_entry_new();

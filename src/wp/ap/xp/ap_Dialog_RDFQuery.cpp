@@ -95,7 +95,7 @@ AP_Dialog_RDFQuery::executeQuery( const std::string& sparql )
     for( PD_ResultBindings_t::iterator iter = b.begin();
          iter != iterend; ++iter )
     {
-        UT_DEBUGMSG(("iter.sz: %lu\n", (unsigned long) iter->size()));
+        UT_DEBUGMSG(("iter.sz: %lu\n", static_cast<unsigned long>( iter->size())));
         addBinding( *iter );
     }
 #endif

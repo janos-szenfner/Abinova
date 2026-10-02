@@ -116,5 +116,5 @@ AP_Dialog_Insert_DateTime::tAnswer AP_Dialog_Insert_DateTime::getAnswer(void) co
 
 const char *AP_Dialog_Insert_DateTime::GetDateTimeFormat(void) const
 {
-    return (const char *)InsertDateTimeFmts[m_iFormatIndex];
+    return static_cast<const char *>(InsertDateTimeFmts[m_iFormatIndex]);
 }

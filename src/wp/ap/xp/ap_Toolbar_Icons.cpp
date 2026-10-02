@@ -58,7 +58,7 @@ struct _it
 
 #if XAP_DONT_INLINE_XPM
 #else
-#define DefineToolbarIcon(name)		{ #name, (const char **) name, sizeof(name)/sizeof(name[0]) },
+#define DefineToolbarIcon(name)		{ #name, static_cast<const char **>( name), sizeof(name)/sizeof(name[0]) },
 
 static struct _it s_itTable[] =
 {

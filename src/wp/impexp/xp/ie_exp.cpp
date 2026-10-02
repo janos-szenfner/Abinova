@@ -132,7 +132,7 @@ UT_UTF8String IE_ExpSniffer::getPreferredSuffix()
 
     // semicolon-delimited list of suffixes
     size_t first_suffix_end = UT_String_findCh(suffixes, ';');
-    if(first_suffix_end == (size_t)-1)
+    if(first_suffix_end == static_cast<size_t>(-1))
       first_suffix_end = suffixes.size();
 
     // strip off the '*'
@@ -872,7 +872,7 @@ UT_Error IE_Exp::writeBufferToFile(const UT_ConstByteBufPtr & pByteBuf,
 	GsfOutput * out = UT_go_file_create (path.c_str (), &error);
 	if (out)
 	{
-		gsf_output_write (out, pByteBuf->getLength (), (const guint8*)pByteBuf->getPointer (0));
+		gsf_output_write (out, pByteBuf->getLength (), static_cast<const guint8*>(pByteBuf->getPointer (0)));
 		gsf_output_close (out);
 		g_object_unref (G_OBJECT (out));
 	}

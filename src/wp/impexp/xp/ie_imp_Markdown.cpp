@@ -1336,7 +1336,7 @@ static std::string s_fmtProps(const MDFmt & f)
 static void s_emitSegment(IE_Imp_Markdown * imp, PD_Document * doc,
 						  const std::string & text, const MDFmt & f)
 {
-	(void)doc;
+	static_cast<void>(doc);
 	if (text.empty()) return;
 
 	std::string props = s_fmtProps(f);

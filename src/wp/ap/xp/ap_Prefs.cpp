@@ -135,7 +135,7 @@ bool AP_Prefs::loadBuiltinPrefs(void)
 		}
 		else
 		{
-			xp =  (gchar*)UT_XML_Decode(_t[k].m_szValue);
+			xp =  static_cast<gchar*>(UT_XML_Decode(_t[k].m_szValue));
 		}
 
 		UT_DEBUGMSG(("DEFAULT %s |%s|%s|\n", _t[k].m_szKey, _t[k].m_szValue, xp));

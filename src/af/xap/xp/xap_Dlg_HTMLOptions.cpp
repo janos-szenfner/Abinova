@@ -235,7 +235,7 @@ void XAP_Dialog_HTMLOptions::saveDefaults ()
 		if (pref.byteLength ()) pref += ",";
 		pref += "data:base64";
 	}
-	const gchar * szValue = (const gchar *) pref.utf8_str ();
+	const gchar * szValue = static_cast<const gchar *>( pref.utf8_str ());
 
 	pPScheme->setValue (XAP_PREF_KEY_HTMLExportOptions, szValue);
 }

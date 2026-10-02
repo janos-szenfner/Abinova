@@ -56,13 +56,13 @@ static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 static void s_position_changed (GtkWidget * w, AP_UnixDialog_PageNumbers *dlg)
 {
 	int pos = GPOINTER_TO_INT (g_object_get_data(G_OBJECT (w), "user_data"));
-	dlg->event_HdrFtrChanged((AP_Dialog_PageNumbers::tControl)pos);
+	dlg->event_HdrFtrChanged(static_cast<AP_Dialog_PageNumbers::tControl>(pos));
 }
 
 static void s_alignment_changed (GtkWidget * w, AP_UnixDialog_PageNumbers *dlg)
 {
 	int align = GPOINTER_TO_INT (g_object_get_data(G_OBJECT (w), "user_data"));
-	dlg->event_AlignChanged ((AP_Dialog_PageNumbers::tAlign)align);
+	dlg->event_AlignChanged (static_cast<AP_Dialog_PageNumbers::tAlign>(align));
 }
 
 XAP_Dialog * AP_UnixDialog_PageNumbers::static_constructor(XAP_DialogFactory * pFactory,
@@ -135,7 +135,7 @@ void AP_UnixDialog_PageNumbers::runModal(XAP_Frame * pFrame)
 	// make a new Unix GC
 	GR_UnixCairoAllocInfo ai(m_previewArea);
 	m_unixGraphics =
-	    (GR_UnixCairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+	    static_cast<GR_UnixCairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	// let the widget materialize
 	GtkAllocation allocation;

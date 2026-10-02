@@ -401,7 +401,7 @@ void ODi_StreamListener::_handleStateAction ()
             m_currentAction = ODI_IGNORING;
             
             UT_ASSERT(m_stateAction.getElementLevel() >= -1);
-            UT_ASSERT((int)m_pElementStack->getStackSize() -
+            UT_ASSERT(static_cast<int>(m_pElementStack->getStackSize() )-
                       (m_stateAction.getElementLevel()+1) >= 0);
             
             m_elemenStackSize = m_pElementStack->getStackSize() -
@@ -515,21 +515,21 @@ void ODi_StreamListener::_resumeParsing(ODi_Postpone_ListenerState* pPostponeSta
         UT_nonnull_or_continue(call);
         switch ( call->getType() ) {
             case ODi_XMLRecorder::XMLCallType_StartElement:
-                pStartCall = (ODi_XMLRecorder::StartElementCall*)call;
+                pStartCall = const_cast<ODi_XMLRecorder::StartElementCall*>(static_cast<const ODi_XMLRecorder::StartElementCall*>(call));
 
                 streamListener.startElement(
                                    pStartCall->m_pName,
-                                   (const gchar**) pStartCall->m_ppAtts);
+                                   const_cast<const gchar**>( pStartCall->m_ppAtts));
                 break;
 
             case ODi_XMLRecorder::XMLCallType_EndElement:
-                pEndCall = (ODi_XMLRecorder::EndElementCall*)call;
+                pEndCall = const_cast<ODi_XMLRecorder::EndElementCall*>(static_cast<const ODi_XMLRecorder::EndElementCall*>(call));
 
                 streamListener.endElement(pEndCall->m_pName);
                 break;
 
             case ODi_XMLRecorder::XMLCallType_CharData:
-                pCharDataCall = (ODi_XMLRecorder::CharDataCall*)call;
+                pCharDataCall = const_cast<ODi_XMLRecorder::CharDataCall*>(static_cast<const ODi_XMLRecorder::CharDataCall*>(call));
 
                 streamListener.charData(pCharDataCall->m_pBuffer,
                                          pCharDataCall->m_length);
@@ -562,20 +562,20 @@ void ODi_StreamListener::_playRecordedElement() {
         switch ( call->getType() ) {
             
             case ODi_XMLRecorder::XMLCallType_StartElement:
-                pStartCall = (ODi_XMLRecorder::StartElementCall*)call;
+                pStartCall = const_cast<ODi_XMLRecorder::StartElementCall*>(static_cast<const ODi_XMLRecorder::StartElementCall*>(call));
 
                 this->startElement(pStartCall->m_pName,
-                                   (const gchar**) pStartCall->m_ppAtts);
+                                   const_cast<const gchar**>( pStartCall->m_ppAtts));
                 break;
                 
             case ODi_XMLRecorder::XMLCallType_EndElement:
-                pEndCall = (ODi_XMLRecorder::EndElementCall*)call;
+                pEndCall = const_cast<ODi_XMLRecorder::EndElementCall*>(static_cast<const ODi_XMLRecorder::EndElementCall*>(call));
 
                 this->endElement(pEndCall->m_pName);
                 break;
                 
             case ODi_XMLRecorder::XMLCallType_CharData:
-                pCharDataCall = (ODi_XMLRecorder::CharDataCall*)call;
+                pCharDataCall = const_cast<ODi_XMLRecorder::CharDataCall*>(static_cast<const ODi_XMLRecorder::CharDataCall*>(call));
 
                 this->charData(pCharDataCall->m_pBuffer, pCharDataCall->m_length);
                 break;

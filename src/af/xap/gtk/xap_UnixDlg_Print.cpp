@@ -48,7 +48,7 @@ static void s_Begin_Print(GtkPrintOperation * ,
 						  GtkPrintContext   *context,
 						  gpointer           p)
 {
-	XAP_UnixDialog_Print * pDlg = (XAP_UnixDialog_Print *) p;
+	XAP_UnixDialog_Print * pDlg = static_cast<XAP_UnixDialog_Print *>( p);
 	//
 	// Use context to extract the cairo_t surface for the print.
 	//
@@ -57,7 +57,7 @@ static void s_Begin_Print(GtkPrintOperation * ,
 
 static void s_Print_Page(GtkPrintOperation * , GtkPrintContext *, gint page_nr,gpointer p)
 {
-	XAP_UnixDialog_Print * pDlg = (XAP_UnixDialog_Print *) p;
+	XAP_UnixDialog_Print * pDlg = static_cast<XAP_UnixDialog_Print *>( p);
 	pDlg->PrintPage(page_nr);
 }
 
@@ -134,7 +134,7 @@ void XAP_UnixDialog_Print::BeginPrint(GtkPrintContext   *context)
 	AP_FrameData *pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
 
 	xxx_UT_DEBUGMSG(("Initial Cairo Context %x \n",cr));
-	m_pPrintGraphics = (GR_Graphics *) new GR_CairoPrintGraphics(cr, gr_PRINTRES);
+	m_pPrintGraphics = static_cast<GR_Graphics *>( new GR_CairoPrintGraphics(cr, gr_PRINTRES));
 
 	double ScreenRes = m_pView->getGraphics()->getDeviceResolution();
 	static_cast<GR_CairoPrintGraphics *>(m_pPrintGraphics)
@@ -399,7 +399,7 @@ void XAP_UnixDialog_Print::setupPrint()
 	gtk_print_operation_set_use_full_page (m_pPO, true);
 	m_pDL = m_pView->getLayout();
 	m_iCurrentPage = m_pDL->findPage(m_pView->getCurrentPage());
-	m_iNumberPages = (gint) m_pDL->countPages();
+	m_iNumberPages = static_cast<gint>( m_pDL->countPages());
 	gtk_print_operation_set_current_page(m_pPO,m_iCurrentPage);
 
 	g_signal_connect (m_pPO, "begin_print", G_CALLBACK (s_Begin_Print), this);

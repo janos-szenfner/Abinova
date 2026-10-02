@@ -97,12 +97,12 @@
 *****************************************************************/
 
 #define BeginLayout(Name,Cxt)	static struct _lt s_ltTable_##Name[] = {
-#define MenuItem(id)			{ EV_MLF_Normal,		(XAP_Menu_Id)(id)				 },
-#define BeginSubMenu(id)		{ EV_MLF_BeginSubMenu,	(XAP_Menu_Id)(id)				 },
-#define BeginPopupMenu()		{ EV_MLF_BeginPopupMenu,(XAP_Menu_Id)AP_MENU_ID__BOGUS1__ },
-#define Separator()				{ EV_MLF_Separator,		(XAP_Menu_Id)AP_MENU_ID__BOGUS1__ },
-#define EndSubMenu()			{ EV_MLF_EndSubMenu,	(XAP_Menu_Id)AP_MENU_ID__BOGUS1__ },
-#define EndPopupMenu()			{ EV_MLF_EndPopupMenu,	(XAP_Menu_Id)AP_MENU_ID__BOGUS1__ },
+#define MenuItem(id)			{ EV_MLF_Normal,		static_cast<XAP_Menu_Id>((id)				 )},
+#define BeginSubMenu(id)		{ EV_MLF_BeginSubMenu,	static_cast<XAP_Menu_Id>((id)				 )},
+#define BeginPopupMenu()		{ EV_MLF_BeginPopupMenu,static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS1__ )},
+#define Separator()				{ EV_MLF_Separator,		static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS1__ )},
+#define EndSubMenu()			{ EV_MLF_EndSubMenu,	static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS1__ )},
+#define EndPopupMenu()			{ EV_MLF_EndPopupMenu,	static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS1__ )},
 #define EndLayout()				};
 
 #include "ap_Menu_Layouts_All.h"
@@ -249,13 +249,13 @@ bool  XAP_Menu_Factory::buildMenuLabelSet(const char * szLanguage_)
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 	if( !m_pLabelSet )
 	{
-		m_pLabelSet = new EV_Menu_LabelSet(szLanguage, (XAP_Menu_Id)AP_MENU_ID__BOGUS1__, (XAP_Menu_Id)AP_MENU_ID__BOGUS2__);
+		m_pLabelSet = new EV_Menu_LabelSet(szLanguage, static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS1__), static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS2__));
 		std::string s1, s2;
 		#define menuitem(id)                                                         \
 		{                                                                            \
             pSS->getValueUTF8(AP_STRING_ID_MENU_LABEL_##id, s1);                     \
 			pSS->getValueUTF8(AP_STRING_ID_MENU_STATUSLINE_##id, s2);                \
-			m_pLabelSet->setLabel((XAP_Menu_Id)(AP_MENU_ID_##id), s1.c_str(), s2.c_str() ); \
+			m_pLabelSet->setLabel(static_cast<XAP_Menu_Id>((AP_MENU_ID_##id)), s1.c_str(), s2.c_str() ); \
 	    }
 		#include "ap_Menu_Id_List.h"
 		#undef menuitem
@@ -283,14 +283,14 @@ EV_Menu_LabelSet *  XAP_Menu_Factory::CreateMenuLabelSet(const char * szLanguage
 
 	if( !m_pLabelSet )
 	{
-		m_pLabelSet = new EV_Menu_LabelSet(szLanguage, (XAP_Menu_Id)AP_MENU_ID__BOGUS1__, (XAP_Menu_Id)AP_MENU_ID__BOGUS2__);
+		m_pLabelSet = new EV_Menu_LabelSet(szLanguage, static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS1__), static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS2__));
 
 		std::string s1, s2;
 		#define menuitem(id)                                                          \
 		{                                                                             \
 		    pSS->getValueUTF8(AP_STRING_ID_MENU_LABEL_##id, s1);                      \
 			pSS->getValueUTF8(AP_STRING_ID_MENU_STATUSLINE_##id, s2);                 \
-			m_pLabelSet->setLabel( (XAP_Menu_Id)(AP_MENU_ID_##id), s1.c_str(), s2.c_str() ); \
+			m_pLabelSet->setLabel( static_cast<XAP_Menu_Id>((AP_MENU_ID_##id)), s1.c_str(), s2.c_str() ); \
 		}
 			#include "ap_Menu_Id_List.h"
 		#undef menuitem

@@ -50,7 +50,7 @@ ap_DocView_class_init(GtkWidgetClass *widget_class, gpointer)
 
 	// set our parent class
 //	parent_class = (GtkLayoutClass *) g_type_class_peek_parent (widget_class);
-	(void)widget_class;
+	static_cast<void>(widget_class);
 }
 GSF_CLASS(ApDocView, ap_DocView,
           ap_DocView_class_init, nullptr,

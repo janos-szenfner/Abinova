@@ -130,7 +130,7 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 	{
 		GR_UnixCairoAllocInfo ai(m_SymbolMap);
 		m_unixGraphics =
-			(GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+			static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 	}
 	// let the widget materialize
 	GtkAllocation alloc;
@@ -159,7 +159,7 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
     {
 		GR_UnixCairoAllocInfo ai(m_areaCurrentSym);
 		m_unixarea =
-			(GR_CairoGraphics*) XAP_App::getApp()->newGraphics(ai);
+			static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 	}
 	// let the widget materialize
 	gtk_widget_get_allocation(m_areaCurrentSym, &alloc);

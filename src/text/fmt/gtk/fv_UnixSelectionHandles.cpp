@@ -38,14 +38,14 @@ static void handle_dragged_cb (FvTextHandle         *handle,
 	mode = _fv_text_handle_get_mode (handle);
 
 	if (pos == FV_TEXT_HANDLE_POSITION_SELECTION_START) {
-		handles->updateSelectionStart ((UT_sint32)x, (UT_sint32)y);
+		handles->updateSelectionStart (static_cast<UT_sint32>(x), static_cast<UT_sint32>(y));
         }
 	else {
 		if (mode == FV_TEXT_HANDLE_MODE_SELECTION) {
-			handles->updateSelectionEnd ((UT_sint32)x, (UT_sint32)y);
+			handles->updateSelectionEnd (static_cast<UT_sint32>(x), static_cast<UT_sint32>(y));
                 }
                 else {
-			handles->updateCursor((UT_sint32)x, (UT_sint32)y);
+			handles->updateCursor(static_cast<UT_sint32>(x), static_cast<UT_sint32>(y));
                 }
 	}
 }
@@ -120,10 +120,10 @@ void FV_UnixSelectionHandles::setCursorCoords(UT_sint32 x, UT_sint32 y, UT_uint3
 
 	if (visible)
 	{
-		rect.x = (int)x;
-		rect.y = (int)y;
+		rect.x = static_cast<int>(x);
+		rect.y = static_cast<int>(y);
 		rect.width = 1;
-		rect.height = (int)height;
+		rect.height = static_cast<int>(height);
 		_fv_text_handle_set_position(m_text_handle,
 					     FV_TEXT_HANDLE_POSITION_CURSOR,
 					     &rect);
@@ -148,10 +148,10 @@ void FV_UnixSelectionHandles::setSelectionCoords(UT_sint32 start_x, UT_sint32 st
 
 	if (start_visible)
 	{
-		rect.x = (int)start_x;
-		rect.y = (int)start_y;
+		rect.x = static_cast<int>(start_x);
+		rect.y = static_cast<int>(start_y);
 		rect.width = 1;
-		rect.height = (int)start_height;
+		rect.height = static_cast<int>(start_height);
 		_fv_text_handle_set_position(m_text_handle,
 					     FV_TEXT_HANDLE_POSITION_SELECTION_START,
 					     &rect);
@@ -159,10 +159,10 @@ void FV_UnixSelectionHandles::setSelectionCoords(UT_sint32 start_x, UT_sint32 st
 
 	if (end_visible)
 	{
-		rect.x = (int)end_x;
-		rect.y = (int)end_y;
+		rect.x = static_cast<int>(end_x);
+		rect.y = static_cast<int>(end_y);
 		rect.width = 1;
-		rect.height = (int)end_height;
+		rect.height = static_cast<int>(end_height);
 		_fv_text_handle_set_position(m_text_handle,
 					     FV_TEXT_HANDLE_POSITION_SELECTION_END,
 					     &rect);

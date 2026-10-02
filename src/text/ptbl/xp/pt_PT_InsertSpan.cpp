@@ -474,9 +474,9 @@ bool pt_PieceTable::_realInsertSpan(PT_DocPosition dpos,
 
 			bFoundStrux = _getStruxFromFrag(pf,&pfs);
 			UT_return_val_if_fail (bFoundStrux,false);
-			if(isEndFootnote((pf_Frag *)pfs))
+			if(isEndFootnote(static_cast<pf_Frag *>(pfs)))
 			{
-				bFoundStrux = _getStruxFromFragSkip((pf_Frag *)pfs,&pfs);
+				bFoundStrux = _getStruxFromFragSkip(static_cast<pf_Frag *>(pfs),&pfs);
 			}
 			UT_return_val_if_fail (bFoundStrux, false);
 			xxx_UT_DEBUGMSG(("Got FragStrux at Pos %d \n",pfs->getPos()));

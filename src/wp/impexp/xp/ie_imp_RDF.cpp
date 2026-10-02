@@ -176,7 +176,7 @@ IE_Imp_RDF::pasteFromBuffer( PD_DocumentRange * pDocRange,
 	UT_return_val_if_fail(pDocRange->m_pos1 == pDocRange->m_pos2,false);
 
     std::stringstream ss;
-    ss.write( (const char*)pData, lenData );
+    ss.write( reinterpret_cast<const char*>(pData), lenData );
     UT_DEBUGMSG(("IE_Imp_RDF::pasteFromBuffer() have data:%s\n", ss.str().c_str() ));
 	setClipboard (pDocRange->m_pos1);
 
@@ -278,7 +278,7 @@ static void addCalPropSZ( PD_DocumentRDFMutationHandle m,
     std::string predBase = "http://www.w3.org/2002/12/cal/icaltzd#";
     if( value )
     {
-        addCalProp( m, uuidnode, predend, (std::string)value );
+        addCalProp( m, uuidnode, predend, static_cast<std::string>(value ));
     }
 }
 #endif

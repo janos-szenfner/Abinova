@@ -104,7 +104,7 @@ bool fl_ContainerLayout::_getPropertiesAP(const PP_AttrProp*& pAP)
 	// evaluate "display" property
 	// display property
 	const char* pszDisplay = nullptr;
-	pAP->getProperty("display", (const gchar *&)pszDisplay);
+	pAP->getProperty("display", static_cast<const gchar *&>(pszDisplay));
 	if(isHidden() == FP_VISIBLE && pszDisplay && !strcmp(pszDisplay, "none"))
 	{
 		setVisibility(FP_HIDDEN_TEXT);
@@ -1258,7 +1258,7 @@ bool fl_ContainerLayout::isOnScreen() const
 
 void fl_ContainerLayout::addFrame(fl_FrameLayout * pFrame)
 {
-	UT_DEBUGMSG(("Adding frame %p to list in container %p \n", (void*)pFrame, (void*)this));
+	UT_DEBUGMSG(("Adding frame %p to list in container %p \n", static_cast<void*>(pFrame), static_cast<void*>(this)));
 	UT_sint32 i = m_vecFrames.findItem(pFrame);
 	if(i>= 0)
 	{
@@ -1306,7 +1306,7 @@ fp_FrameContainer * fl_ContainerLayout::getNthFrameContainer(UT_sint32 i) const
 
 bool fl_ContainerLayout::removeFrame(fl_FrameLayout * pFrame)
 {
-	UT_DEBUGMSG(("Remove Frame %p from this container %p \n", (void*)pFrame, (void*)this));
+	UT_DEBUGMSG(("Remove Frame %p from this container %p \n", static_cast<void*>(pFrame), static_cast<void*>(this)));
 	UT_sint32 i = m_vecFrames.findItem(pFrame);
 	if(i >= 0)
 	{

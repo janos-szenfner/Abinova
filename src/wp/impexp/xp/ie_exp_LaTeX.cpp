@@ -937,7 +937,7 @@ void s_LaTeX_Listener::_openSpan(PT_AttrPropIndex api)
 			(0 != strcmp("transparent", pszColor)))
 		    {
 				UT_String szColor;
-				_convertColor(szColor,(const char*)pszColor);
+				_convertColor(szColor,static_cast<const char*>(pszColor));
 				m_pie->write("\\textcolor[rgb]{");
 				m_pie->write(szColor);
 				m_pie->write("}{");
@@ -954,7 +954,7 @@ void s_LaTeX_Listener::_openSpan(PT_AttrPropIndex api)
 		      (0 != strcmp("transparent", pszBgColor)))
 		    {
 		      UT_String szColor;
-		      _convertColor(szColor,(const char*)pszBgColor);
+		      _convertColor(szColor,static_cast<const char*>(pszBgColor));
 		      m_pie->write("\\colorbox[rgb]{");
 		      m_pie->write(szColor);
 		      m_pie->write("}{");

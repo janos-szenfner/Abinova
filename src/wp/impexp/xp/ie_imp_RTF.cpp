@@ -551,7 +551,7 @@ RTF_msword97_listOverride::RTF_msword97_listOverride(IE_Imp_RTF * pie_rtf )
 	// Ideally, the default ID should be 0 which is a reserved ID in
 	// the spec, but OpenOffice uses it, so use -1 instead (which
 	// should be OK: spec sez 1-2000 is valid).
-	: m_RTF_listID((UT_uint32) - 1)
+	: m_RTF_listID(static_cast<UT_uint32>( - 1))
 	, m_OverrideCount(0)
 	, m_pie_rtf(pie_rtf)
 	, m_pList(nullptr)
@@ -1478,8 +1478,8 @@ IE_Imp_RTF::IE_Imp_RTF(PD_Document * pDocument)
 	m_bEndTableOpen(false),
 	m_bInFootnote(false),
 	m_iDepthAtFootnote(0),
-	m_iLastFootnoteId((UT_uint32)pDocument->getUID(UT_UniqueId::Footnote)),
-	m_iLastEndnoteId((UT_uint32)pDocument->getUID(UT_UniqueId::Endnote)),
+	m_iLastFootnoteId(static_cast<UT_uint32>(pDocument->getUID(UT_UniqueId::Footnote))),
+	m_iLastEndnoteId(static_cast<UT_uint32>(pDocument->getUID(UT_UniqueId::Endnote))),
 	m_iHyperlinkOpen(0),
 	m_iRDFAnchorOpen(0),
 	m_bBidiMode(false),
@@ -1516,7 +1516,7 @@ IE_Imp_RTF::IE_Imp_RTF(PD_Document * pDocument)
 	m_bCellActive(false),
 	m_ctMoveID("")
 {
-	UT_DEBUGMSG(("New ie_imp_RTF %p \n", (void*)this));
+	UT_DEBUGMSG(("New ie_imp_RTF %p \n", static_cast<void*>(this)));
 	m_sImageName.clear();
 	if (!IE_Imp_RTF::keywordSorted) {
 		_initialKeywordSort();
@@ -1537,20 +1537,20 @@ IE_Imp_RTF::IE_Imp_RTF(PD_Document * pDocument)
 IE_Imp_RTF::~IE_Imp_RTF()
 {
 	// Empty the state stack
-	UT_DEBUGMSG(("In RTF destructor %p \n", (void*)this));
+	UT_DEBUGMSG(("In RTF destructor %p \n", static_cast<void*>(this)));
 	while (!m_stateStack.empty())
 	{
 		RTFStateStore* pItem = m_stateStack.top();
 		m_stateStack.pop();
-		UT_DEBUGMSG(("Deleting item %p in RTF destructor \n", (void*)pItem));
+		UT_DEBUGMSG(("Deleting item %p in RTF destructor \n", static_cast<void*>(pItem)));
 		// HandleNoteReference pushes &m_FootnoteRefState, a member
 		// subobject - it is never owned by the stack
 		if (pItem != &m_FootnoteRefState)
 			delete pItem;
 	}
-	UT_DEBUGMSG(("Closing pastetable In RTF destructor %p \n", (void*)this));
+	UT_DEBUGMSG(("Closing pastetable In RTF destructor %p \n", static_cast<void*>(this)));
 	closePastedTableIfNeeded();
-	UT_DEBUGMSG(("Deleting fonts In RTF destructor %p \n", (void*)this));
+	UT_DEBUGMSG(("Deleting fonts In RTF destructor %p \n", static_cast<void*>(this)));
 
 	// and the font table (can't use the macro as we allow nullptrs in the vector
 	UT_sint32 size = m_fontTable.size();
@@ -1562,9 +1562,9 @@ IE_Imp_RTF::~IE_Imp_RTF()
 	}
 
 	// and the styleName table.
-	UT_DEBUGMSG(("Deleting styles In RTF destructor %p \n", (void*)this));
+	UT_DEBUGMSG(("Deleting styles In RTF destructor %p \n", static_cast<void*>(this)));
 
-	UT_DEBUGMSG(("Purging In RTF destructor %p \n", (void*)this));
+	UT_DEBUGMSG(("Purging In RTF destructor %p \n", static_cast<void*>(this)));
 	UT_std_vector_purgeall(m_vecAbiListTable);
 	UT_std_vector_purgeall(m_hdrFtrTable);
 	UT_std_vector_purgeall(m_vecWord97Lists);
@@ -1725,7 +1725,7 @@ void IE_Imp_RTF::OpenTable(bool bDontFlush)
 	PT_DocPosition posEnd=0;
 	getDoc()->getBounds(true,posEnd); // clean frags!
 	pf_Frag_Strux* sdh = getDoc()->getLastStruxOfType(PTX_SectionTable);
-	UT_DEBUGMSG(("SEVIOR: Table strux sdh is %p \n", (void*)sdh));
+	UT_DEBUGMSG(("SEVIOR: Table strux sdh is %p \n", static_cast<void*>(sdh)));
 	getTable()->setTableStrux(sdh);
 	getTable()->OpenCell();
 	if(!bDontFlush)
@@ -2095,11 +2095,11 @@ void IE_Imp_RTF::FlushCellProps(void)
 	}
 	if(m_currentRTFState.m_cellProps.m_bVerticalMerged)
 	{
-		UT_DEBUGMSG(("Set merged above to cell %p \n", (void*)getCell()));
+		UT_DEBUGMSG(("Set merged above to cell %p \n", static_cast<void*>(getCell())));
 	}
 	if(m_currentRTFState.m_cellProps.m_bHorizontalMerged)
 	{
-		UT_DEBUGMSG(("Set merged left to cell %p \n", (void*)getCell()));
+		UT_DEBUGMSG(("Set merged left to cell %p \n", static_cast<void*>(getCell())));
 	}
 	getCell()->setMergeAbove( m_currentRTFState.m_cellProps.m_bVerticalMerged );
 	getCell()->setFirstVerticalMerge( m_currentRTFState.m_cellProps.m_bVerticalMergedFirst );
@@ -2201,7 +2201,7 @@ void IE_Imp_RTF::HandleCellX(UT_sint32 cellx)
 	}
 	UT_ASSERT_HARMLESS(cellx>1);
 	getTable()->setCellX(cellx);
-	UT_DEBUGMSG(("set cellx for class %p to %d \n", (void*)getCell(), cellx));
+	UT_DEBUGMSG(("set cellx for class %p to %d \n", static_cast<void*>(getCell()), cellx));
 	getTable()->incCellXOnRow();
 	FlushCellProps();
 	ResetCellAttributes();
@@ -2429,7 +2429,7 @@ void IE_Imp_RTF::HandleAnnotation(void)
 		m_pDelayedFrag = m_pAnnotation->m_pInsertFrag->getNext();
 		if(!m_pDelayedFrag)
 			m_pDelayedFrag = doc->getLastFrag();
-		UT_DEBUGMSG(("Delayed Frag set to %p \n", (void*)m_pDelayedFrag));
+		UT_DEBUGMSG(("Delayed Frag set to %p \n", static_cast<void*>(m_pDelayedFrag)));
 		ann_attrs[2] = PT_PROPS_ATTRIBUTE_NAME;
 		UT_sint32 k = 0;
 		std::string sProperties;
@@ -2480,7 +2480,7 @@ UT_Error IE_Imp_RTF::_parseText()
 	UT_sint32 iRTFStackDepth = m_stateStack.size();
 	UT_DEBUGMSG(("IE_Imp_RTF::_parseText: stack depth %d\n", iRTFStackDepth));
 
-	while (ok  &&  (UT_sint32)m_stateStack.size() >= iRTFStackDepth && ReadCharFromFile(&c))
+	while (ok  &&  static_cast<UT_sint32>(m_stateStack.size() )>= iRTFStackDepth && ReadCharFromFile(&c))
 	{
 		if (m_currentRTFState.m_internalState == RTFStateStore::risBin)
 		{
@@ -2506,7 +2506,7 @@ UT_Error IE_Imp_RTF::_parseText()
 				bool parameterUsed = false;
 				if (ReadKeyword(keyword, &parameter, &parameterUsed, MAX_KEYWORD_LEN))
 				{
-					if(0 == strcmp((const char*)&keyword[0], "ftnalt"))
+					if(0 == strcmp(reinterpret_cast<const char*>(&keyword[0]), "ftnalt"))
 					{
 						UT_DEBUGMSG(("Have Endnote \n"));
 						// we have an end-note
@@ -2660,7 +2660,7 @@ UT_Error IE_Imp_RTF::_isBidiDocument()
 	char * token = nullptr;
 	
 	size_t iBytes = UT_MIN(8192, gsf_input_remaining(m_pImportFile));
-	gsf_input_read(m_pImportFile, iBytes, (guint8*)buff);
+	gsf_input_read(m_pImportFile, iBytes, reinterpret_cast<guint8*>(buff));
 
 	UT_DEBUGMSG(("IE_Imp_RTF::_isBidiDocument: looking for RTL tokens\n"));
 	while (iBytes)
@@ -2681,7 +2681,7 @@ UT_Error IE_Imp_RTF::_isBidiDocument()
 			break;
 		
 		iBytes = UT_MIN(8192, gsf_input_remaining(m_pImportFile));
-		gsf_input_read(m_pImportFile, iBytes, (guint8*)buff);
+		gsf_input_read(m_pImportFile, iBytes, reinterpret_cast<guint8*>(buff));
 	}
 
 	if(token)
@@ -2964,7 +2964,7 @@ bool IE_Imp_RTF::FlushStoredChars(bool forceInsertPara)
 		ok = ApplyCharacterAttributes();
 		m_bCellBlank = false;
 	}
-	if( ok && m_bInFootnote && ((UT_sint32)m_stateStack.size() < m_iDepthAtFootnote))
+	if( ok && m_bInFootnote && (static_cast<UT_sint32>(m_stateStack.size() )< m_iDepthAtFootnote))
 	{
 		if(!bUseInsertNotAppend())
 		{
@@ -2989,7 +2989,7 @@ bool IE_Imp_RTF::FlushStoredChars(bool forceInsertPara)
 		m_iDepthAtFootnote = 0;
 	}
 	xxx_UT_DEBUGMSG(("Annotation level at check %d \n",m_stateStack.size()));
-    if(ok && m_bInAnnotation && m_pAnnotation && ((UT_sint32)m_stateStack.size() < m_pAnnotation->m_iRTFLevel))
+    if(ok && m_bInAnnotation && m_pAnnotation && (static_cast<UT_sint32>(m_stateStack.size() )< m_pAnnotation->m_iRTFLevel))
 		{
 			//
 			// Wind up the annotation
@@ -3253,7 +3253,7 @@ bool IE_Imp_RTF::ReadKeyword(unsigned char* pKeyword, UT_sint32* pParam, bool* p
 		SkipBackChar(ch);
 	}
 
-	strcpy(g_dbgLastKeyword, (const char *)savedKeyword);
+	strcpy(g_dbgLastKeyword, reinterpret_cast<const char *>(savedKeyword));
 	g_dbgLastParam = *pParam;
 	xxx_UT_DEBUGMSG(("Valid Keyword %s Here \n",savedKeyword));
 	return true;
@@ -4319,8 +4319,8 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		ok = ReadCharFromFileWithCRLF(&c);
 		if (ok && ReadKeyword(kwrd, &par, &parUsed, MAX_KEYWORD_LEN))
 		{
-			if(!(0 == strncmp((const char*)&kwrd[0],"rtlch",MAX_KEYWORD_LEN) ||
-				 0 == strncmp((const char*)&kwrd[0],"ltrch",MAX_KEYWORD_LEN)))
+			if(!(0 == strncmp(reinterpret_cast<const char*>(&kwrd[0]),"rtlch",MAX_KEYWORD_LEN) ||
+				 0 == strncmp(reinterpret_cast<const char*>(&kwrd[0]),"ltrch",MAX_KEYWORD_LEN)))
 			{
 				UT_DEBUGMSG(("RTF import: keyword \\%s found where \\ltrch"
 							 " or \\rtlch expected\n", kwrd));
@@ -4437,28 +4437,28 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		return ParseChar(UCS_BULLET);
 	case RTF_KW_brdrt:
 		UT_DEBUGMSG(("Border Top set \n"));
-		m_currentRTFState.m_paraProps.m_iCurBorder = (int) rtfBorderTop;
+		m_currentRTFState.m_paraProps.m_iCurBorder = static_cast<int>( rtfBorderTop);
 		m_currentRTFState.m_paraProps.m_bTopBorder = true;
 		m_bCellActive = false;
 		m_bParaActive = true;
 		return true;
 	case RTF_KW_brdrl:
 		xxx_UT_DEBUGMSG(("Border left set \n"));
-		m_currentRTFState.m_paraProps.m_iCurBorder = (int) rtfBorderLeft;
+		m_currentRTFState.m_paraProps.m_iCurBorder = static_cast<int>( rtfBorderLeft);
 		m_currentRTFState.m_paraProps.m_bLeftBorder = true;
 		m_bCellActive = false;
 		m_bParaActive = true;
 		return true;
 	case RTF_KW_brdrb:
 		xxx_UT_DEBUGMSG(("Border Bot set \n"));
-		m_currentRTFState.m_paraProps.m_iCurBorder = (int) rtfBorderBot;
+		m_currentRTFState.m_paraProps.m_iCurBorder = static_cast<int>( rtfBorderBot);
 		m_currentRTFState.m_paraProps.m_bBotBorder = true;
 		m_bCellActive = false;
 		m_bParaActive = true;
 		return true;
 	case RTF_KW_brdrr:
 		xxx_UT_DEBUGMSG(("Border Right set \n"));
-		m_currentRTFState.m_paraProps.m_iCurBorder = (int) rtfBorderRight;
+		m_currentRTFState.m_paraProps.m_iCurBorder = static_cast<int>( rtfBorderRight);
 		m_currentRTFState.m_paraProps.m_bRightBorder = true;
 		m_bCellActive = false;
 		m_bParaActive = true;
@@ -4488,19 +4488,19 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		}
 		else if(m_bParaActive)
 		{
-			if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderTop)
+			if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderTop))
 			{
 				m_currentRTFState.m_paraProps.m_iTopBorderStyle = 1;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderLeft)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderLeft))
 			{
 				m_currentRTFState.m_paraProps.m_iLeftBorderStyle = 1;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderBot)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderBot))
 			{
 				m_currentRTFState.m_paraProps.m_iBotBorderStyle = 1;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderRight)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderRight))
 			{
 				m_currentRTFState.m_paraProps.m_iRightBorderStyle = 1;
 			}
@@ -4528,19 +4528,19 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		}
 		else if(m_bParaActive)
 		{
-			if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderTop)
+			if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderTop))
 			{
 				m_currentRTFState.m_paraProps.m_iTopBorderStyle = 2;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderLeft)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderLeft))
 			{
 				m_currentRTFState.m_paraProps.m_iLeftBorderStyle = 2;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderBot)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderBot))
 			{
 				m_currentRTFState.m_paraProps.m_iBotBorderStyle = 2;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderRight)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderRight))
 			{
 				m_currentRTFState.m_paraProps.m_iRightBorderStyle = 2;
 			}
@@ -4568,19 +4568,19 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		}
 		else if(m_bParaActive)
 		{
-			if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderTop)
+			if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderTop))
 			{
 				m_currentRTFState.m_paraProps.m_iTopBorderStyle = 3;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderLeft)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderLeft))
 			{
 				m_currentRTFState.m_paraProps.m_iLeftBorderStyle = 3;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderBot)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderBot))
 			{
 				m_currentRTFState.m_paraProps.m_iBotBorderStyle = 3;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderRight)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderRight))
 			{
 				m_currentRTFState.m_paraProps.m_iRightBorderStyle = 3;
 			}
@@ -4616,21 +4616,21 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		}
 		else if(m_bParaActive)
 		{
-			if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderTop)
+			if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderTop))
 			{
-				m_currentRTFState.m_paraProps.m_iTopBorderWidth = (int) param;
+				m_currentRTFState.m_paraProps.m_iTopBorderWidth = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderLeft)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderLeft))
 			{
-				m_currentRTFState.m_paraProps.m_iLeftBorderWidth = (int) param;
+				m_currentRTFState.m_paraProps.m_iLeftBorderWidth = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderBot)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderBot))
 			{
-				m_currentRTFState.m_paraProps.m_iBotBorderWidth = (int) param;
+				m_currentRTFState.m_paraProps.m_iBotBorderWidth = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderRight)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderRight))
 			{
-				m_currentRTFState.m_paraProps.m_iRightBorderWidth = (int) param;
+				m_currentRTFState.m_paraProps.m_iRightBorderWidth = static_cast<int>( param);
 			}
 		}
 		return true;
@@ -4661,21 +4661,21 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		}
 		else if(m_bParaActive)
 		{
-			if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderTop)
+			if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderTop))
 			{
-				m_currentRTFState.m_paraProps.m_iTopBorderCol = (int) param;
+				m_currentRTFState.m_paraProps.m_iTopBorderCol = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderLeft)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderLeft))
 			{
-				m_currentRTFState.m_paraProps.m_iLeftBorderCol = (int) param;
+				m_currentRTFState.m_paraProps.m_iLeftBorderCol = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderBot)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderBot))
 			{
-				m_currentRTFState.m_paraProps.m_iBotBorderCol = (int) param;
+				m_currentRTFState.m_paraProps.m_iBotBorderCol = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderRight)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderRight))
 			{
-				m_currentRTFState.m_paraProps.m_iRightBorderCol = (int) param;
+				m_currentRTFState.m_paraProps.m_iRightBorderCol = static_cast<int>( param);
 			}
 		}
 		return true;
@@ -4683,21 +4683,21 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 	case RTF_KW_brsp:
 		if(m_bParaActive)
 		{
-			if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderTop)
+			if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderTop))
 			{
-				m_currentRTFState.m_paraProps.m_iTopBorderSpacing = (int) param;
+				m_currentRTFState.m_paraProps.m_iTopBorderSpacing = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderLeft)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderLeft))
 			{
-				m_currentRTFState.m_paraProps.m_iLeftBorderSpacing = (int) param;
+				m_currentRTFState.m_paraProps.m_iLeftBorderSpacing = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderBot)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderBot))
 			{
-				m_currentRTFState.m_paraProps.m_iBotBorderSpacing = (int) param;
+				m_currentRTFState.m_paraProps.m_iBotBorderSpacing = static_cast<int>( param);
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderRight)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderRight))
 			{
-				m_currentRTFState.m_paraProps.m_iRightBorderSpacing = (int) param;
+				m_currentRTFState.m_paraProps.m_iRightBorderSpacing = static_cast<int>( param);
 			}
 		}
 		return true;
@@ -4715,22 +4715,22 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		}
 		if(m_bParaActive)
 		{
-			if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderTop)
+			if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderTop))
 			{
 				m_currentRTFState.m_paraProps.m_bTopBorder = false;
 				m_currentRTFState.m_paraProps.m_iTopBorderStyle = 0;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderLeft)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderLeft))
 			{
 				m_currentRTFState.m_paraProps.m_bLeftBorder = false;
 				m_currentRTFState.m_paraProps.m_iLeftBorderStyle = 0;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderBot)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderBot))
 			{
 				m_currentRTFState.m_paraProps.m_bBotBorder = false;
 				m_currentRTFState.m_paraProps.m_iBotBorderStyle = 0;
 			}
-			else if (m_currentRTFState.m_paraProps.m_iCurBorder == (int) rtfBorderRight)
+			else if (m_currentRTFState.m_paraProps.m_iCurBorder == static_cast<int>( rtfBorderRight))
 			{
 				m_currentRTFState.m_paraProps.m_bRightBorder = false;
 				m_currentRTFState.m_paraProps.m_iRightBorderStyle = 0;
@@ -4843,11 +4843,11 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 	break;
 	case RTF_KW_cfpat:
 		m_currentRTFState.m_paraProps.m_iShadingPattern = 1;
-		m_currentRTFState.m_paraProps.m_iShadingForeCol = (int) param;
+		m_currentRTFState.m_paraProps.m_iShadingForeCol = static_cast<int>( param);
 		break;
 	case RTF_KW_cbpat:
 		m_currentRTFState.m_paraProps.m_iShadingPattern = 1;
-		m_currentRTFState.m_paraProps.m_iShadingBackCol = (int) param;
+		m_currentRTFState.m_paraProps.m_iShadingBackCol = static_cast<int>( param);
 		break;
 	case RTF_KW_deff: 
 		if (fParam) {
@@ -5641,20 +5641,20 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		bool bResult;
 		if (param < 0)
 		{
-			unsigned short tmp = (unsigned short) ((signed short) param);
-			param = (UT_sint32) tmp;
+			unsigned short tmp = static_cast<unsigned short>( (static_cast<signed short>( param)));
+			param = static_cast<UT_sint32>( tmp);
 		}
-		if ((unsigned) param >= 0xD800 && (unsigned) param <= 0xDBFF)
+		if (static_cast<unsigned>( param )>= 0xD800 && static_cast<unsigned>( param )<= 0xDBFF)
 		{
-			buf = (UT_UCS4Char) param - 0xD800;
+			buf = static_cast<UT_UCS4Char>( param )- 0xD800;
 			buf <<= 10;
 			buf += 0x10000;
 			m_currentRTFState.m_unicodeInAlternate = m_currentRTFState.m_unicodeAlternateSkipCount;
 			return true;
 		}
-		if ((unsigned) param >= 0xDC00 && (unsigned) param <= 0xDFFF)
+		if (static_cast<unsigned>( param )>= 0xDC00 && static_cast<unsigned>( param )<= 0xDFFF)
 		{
-			buf += (UT_UCS4Char) param;
+			buf += static_cast<UT_UCS4Char>( param);
 			buf -= 0xDC00;
 			bResult = ParseChar(static_cast<UT_UCS4Char>(buf));
 			buf = 0x10000;
@@ -6060,7 +6060,7 @@ bool IE_Imp_RTF::HandleStarKeyword()
 				{
 					//
 					// date of the annotation
-					UT_DEBUGMSG(("Found annotation date %p \n", (void*)m_pAnnotation));
+					UT_DEBUGMSG(("Found annotation date %p \n", static_cast<void*>(m_pAnnotation)));
 					if(nullptr == m_pAnnotation)
 					{
 						UT_DEBUGMSG(("found atndate without annotation"));
@@ -6076,7 +6076,7 @@ bool IE_Imp_RTF::HandleStarKeyword()
 				{
 					//
 					// Annotation content
-					UT_DEBUGMSG(("Found annotation content m_pAnnotation %p \n", (void*)m_pAnnotation));
+					UT_DEBUGMSG(("Found annotation content m_pAnnotation %p \n", static_cast<void*>(m_pAnnotation)));
 					if(m_pAnnotation == nullptr)
 					{
 						UT_DEBUGMSG(("found annotation without annotation"));
@@ -6128,7 +6128,7 @@ void IE_Imp_RTF::StartAnnotation()
 	// Start of Annotated region
 	if(m_pAnnotation == nullptr)
 		m_pAnnotation = new ABI_RTF_Annotation();
-	UT_DEBUGMSG(("created m_pAnnotation %p \n", (void*)m_pAnnotation));
+	UT_DEBUGMSG(("created m_pAnnotation %p \n", static_cast<void*>(m_pAnnotation)));
 	m_pAnnotation->m_iAnnNumber = ABI_RTF_Annotation::newNumber();
 
 	PP_PropertyVector attr = {
@@ -6492,7 +6492,7 @@ bool IE_Imp_RTF::_appendSpan()
 							if(!getDoc()->insertFmtMarkBeforeFrag(m_pDelayedFrag, propsArray)) {
 								return false;
 							}
-							UT_DEBUGMSG(("Appending span before %p \n", (void*)m_pDelayedFrag));
+							UT_DEBUGMSG(("Appending span before %p \n", static_cast<void*>(m_pDelayedFrag)));
 							if(!getDoc()->insertSpanBeforeFrag(m_pDelayedFrag,p, i- iLast)) {
 								return false;
 							}
@@ -7786,7 +7786,7 @@ bool IE_Imp_RTF::ApplyParagraphAttributes(bool bDontInsert)
 				//
 				if(bisListItem)
 				{
-					UT_DEBUGMSG(("SEVIOR: Stopping list at %p \n", (void*)sdh));
+					UT_DEBUGMSG(("SEVIOR: Stopping list at %p \n", static_cast<void*>(sdh)));
 					getDoc()->StopList(sdh);
 				}
 				iLoop--;
@@ -8456,7 +8456,7 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 		// subscript with position. Default is 6.
 		// superscript: see up keyword
 		bool ok;
-		UT_uint32 pos = (UT_uint32) (fParam ? param : 6);
+		UT_uint32 pos = static_cast<UT_uint32>( (fParam ? param : 6));
 		ok = HandleBoolCharacterProp((pos != 0) ? true : false, &(pChars->m_superscript));
 		if (ok)
 		{
@@ -8472,7 +8472,7 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 	}
 	else if (strcmp(reinterpret_cast<char*>(pKeyword), "f") == 0)
 	{
-		UT_uint32 fontNumber = (UT_uint32) (fParam ? param : 0);
+		UT_uint32 fontNumber = static_cast<UT_uint32>( (fParam ? param : 0));
 		RTFFontTableItem* pFont = GetNthTableFont(fontNumber);
 		if (pFont != nullptr && pFont->m_szEncoding)
 			m_mbtowc.setInCharset(pFont->m_szEncoding);
@@ -8668,7 +8668,7 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 		// superscript with position. Default is 6.
 		// subscript: see dn keyword
 		bool ok;
-		UT_uint32 pos = (UT_uint32) (fParam ? param : 6);
+		UT_uint32 pos = static_cast<UT_uint32>( (fParam ? param : 6));
 		pbChars->bm_superscript = true;
 		pChars->m_superscript = (pos != 0) ? true : false ;
 		pbChars->bm_superscript_pos = true;
@@ -8859,12 +8859,12 @@ bool IE_Imp_RTF::ReadRDFTriples()
 {
 	std::string rdfxml = s_unEscapeXMLString();
 	PD_DocumentRDFHandle rdf = getDoc()->getDocumentRDF();
-	UT_DEBUGMSG(("rdf triples before read of rdf tag size:%ld\n", (long)rdf->size() ));
+	UT_DEBUGMSG(("rdf triples before read of rdf tag size:%ld\n", static_cast<long>(rdf->size() )));
 
 	PD_DocumentRDFMutationHandle m = rdf->createMutation();
 	/*UT_Error e = */loadRDFXML( m, rdfxml );
 	m->commit();
-	UT_DEBUGMSG(("rdf triples after read of rdf tag size:%ld\n", (long)rdf->size() ));
+	UT_DEBUGMSG(("rdf triples after read of rdf tag size:%ld\n", static_cast<long>(rdf->size() )));
 	return true;
 }
 
@@ -8977,7 +8977,7 @@ bool IE_Imp_RTF::ReadFontTable()
 	std::stack<SFontTableState *> stateStack;
 	// RTF state pointers.
 	struct SFontTableState *currentState = new SFontTableState;
-	UT_DEBUGMSG(("Made new currentState -1 %p \n", (void*)currentState));
+	UT_DEBUGMSG(("Made new currentState -1 %p \n", static_cast<void*>(currentState)));
 	struct SFontTableState *oldState = nullptr;
 	UT_sint32 i;                         // Generic loop index.
 
@@ -9009,7 +9009,7 @@ bool IE_Imp_RTF::ReadFontTable()
 			stateStack.push(currentState);
 			// ...allocate a new one...
 			currentState = new SFontTableState;
-			UT_DEBUGMSG(("Made new currentState -2 %p \n", (void*)currentState));
+			UT_DEBUGMSG(("Made new currentState -2 %p \n", static_cast<void*>(currentState)));
 			if (!currentState) {
 				UT_DEBUGMSG(("RTF: Out of memory.\n"));
 				goto IEImpRTF_ReadFontTable_ErrorExit;
@@ -9022,7 +9022,7 @@ bool IE_Imp_RTF::ReadFontTable()
 			break;
 		case RTF_TOKEN_CLOSE_BRACE:
 			// Throw away the current state.
-			UT_DEBUGMSG(("Deleting currentState -4 %p \n", (void*)currentState));
+			UT_DEBUGMSG(("Deleting currentState -4 %p \n", static_cast<void*>(currentState)));
 			DELETEP(currentState);
 			// Pop an old state off the stack .
 			if (stateStack.empty())
@@ -9187,8 +9187,8 @@ bool IE_Imp_RTF::ReadFontTable()
 				 */
 				if (parameter < 0)
 				{
-					unsigned short tmp = (unsigned short) ((signed short) parameter);
-					parameter = (UT_sint32) tmp;
+					unsigned short tmp = static_cast<unsigned short>( (static_cast<signed short>( parameter)));
+					parameter = static_cast<UT_sint32>( tmp);
 				}
 				// First flush any data in the buffer to the font name
 				// string, converting to UTF8.
@@ -9231,7 +9231,7 @@ bool IE_Imp_RTF::ReadFontTable()
 			break;
 		} // Token type switch
 	}; // while (we've finished reading the font entry).
-	UT_DEBUGMSG(("Deleting currentState -2 %p \n", (void*)currentState));
+	UT_DEBUGMSG(("Deleting currentState -2 %p \n", static_cast<void*>(currentState)));
 	DELETEP(currentState);
 	return true;
 
@@ -9242,13 +9242,13 @@ bool IE_Imp_RTF::ReadFontTable()
 IEImpRTF_ReadFontTable_ErrorExit:
 	UT_DEBUGMSG(("RTF: ReadFontTable: Freeing memory due to error.\n"));
 	// Delete the current state and everything on the state stack.
-	UT_DEBUGMSG(("Deleting currentState -2 %p \n", (void*)currentState));
+	UT_DEBUGMSG(("Deleting currentState -2 %p \n", static_cast<void*>(currentState)));
 	DELETEP(currentState);
 	while (!stateStack.empty())
 	{
 		currentState = stateStack.top();
 		stateStack.pop();
-		UT_DEBUGMSG(("Deleting currentState -3  %p \n", (void*)currentState));
+		UT_DEBUGMSG(("Deleting currentState -3  %p \n", static_cast<void*>(currentState)));
 		DELETEP(currentState);
 	}
 	return false;
@@ -10152,7 +10152,7 @@ bool IE_Imp_RTF::HandleAbiTable(void)
 				std::string sPasteTableSDH;
 				std::string sProp = "table-sdh";
 				sPasteTableSDH = UT_std_string_getPropVal(sProps,sProp);
-				std::string sThisTableSDH = UT_std_string_sprintf("%p", (void*)sdhTable);
+				std::string sThisTableSDH = UT_std_string_sprintf("%p", const_cast<void*>(reinterpret_cast<const void*>(sdhTable)));
 				UT_DEBUGMSG(("sThisTableSDH %s sPasteTableSDH %s \n",sThisTableSDH.c_str(),sPasteTableSDH.c_str()));
 				bool isRow = (pView->getSelectionMode() == FV_SelectionMode_TableRow);
 				if(!isRow && pView->getSelectionMode() == FV_SelectionMode_NONE)
@@ -11600,7 +11600,7 @@ bool IE_Imp_RTF::pasteFromBuffer(PD_DocumentRange * pDocRange,
 		else
 		{
 			// what kind of strux have we hit ?
-			pf_Frag_Strux * pfs = (pf_Frag_Strux*) pf;
+			pf_Frag_Strux * pfs = static_cast<pf_Frag_Strux*>( pf);
 			switch(pfs->getStruxType())
 			{
 				case PTX_Block:
@@ -11642,7 +11642,7 @@ bool IE_Imp_RTF::pasteFromBuffer(PD_DocumentRange * pDocRange,
 	UT_DEBUGMSG(("Pasting %d bytes of RTF\n",lenData));
 #if 1 //def DEBUG
 	{
-		const char * p = (const char*)pData;
+		const char * p = reinterpret_cast<const char*>(pData);
 		for(UT_uint32 i = 0; i < lenData; i += 50)
 		{
 			if(lenData - i < 50)
@@ -12527,8 +12527,8 @@ bool IE_Imp_RTF::HandlePCData(UT_UTF8String & str)
 		 		 */
 				if (parameter < 0)
 				{
-					unsigned short tmp = (unsigned short) ((signed short) parameter);
-					parameter = (UT_sint32) tmp;
+					unsigned short tmp = static_cast<unsigned short>( (static_cast<signed short>( parameter)));
+					parameter = static_cast<UT_sint32>( tmp);
 				}
 				ch = parameter;
 

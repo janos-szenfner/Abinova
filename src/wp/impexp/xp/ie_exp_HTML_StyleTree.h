@@ -205,7 +205,7 @@ struct StyleListener {
     }
 
     void tagRaw(const std::string& content) {
-        m_sink.append((const UT_Byte*) content.c_str(), content.size());
+        m_sink.append(reinterpret_cast<const UT_Byte*>( content.c_str()), content.size());
     }
 
     void styleIndent() {

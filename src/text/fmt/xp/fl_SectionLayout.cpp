@@ -205,7 +205,7 @@ bool fl_SectionLayout::bl_doclistener_populateSpan(fl_ContainerLayout* pBL, cons
 	if(pBL->getPrev()!= nullptr && pBL->getPrev()->getLastContainer()==nullptr)
 	{
 		UT_DEBUGMSG(("In bl_doclistner_pop no LastLine \n"));
-		UT_DEBUGMSG(("getPrev = %p this = %p \n", (void*)pBL->getPrev(), (void*)pBL));
+		UT_DEBUGMSG(("getPrev = %p this = %p \n", static_cast<void*>(pBL->getPrev()), static_cast<void*>(pBL)));
 		//  UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 	}
 	bool bres = true;
@@ -1218,7 +1218,7 @@ void fl_DocSectionLayout::setHdrFtr(HdrFtrType iType, fl_HdrFtrSectionLayout* pH
 void fl_DocSectionLayout::_HdrFtrChangeCallback(UT_Worker * pWorker)
 {
 	UT_return_if_fail(pWorker);
-	UT_DEBUGMSG(("Doing HdrFtr change callback %p \n", (void*)pWorker));
+	UT_DEBUGMSG(("Doing HdrFtr change callback %p \n", static_cast<void*>(pWorker)));
 	// Get the docSectionLayout
 	fl_DocSectionLayout * pDSL = static_cast<fl_DocSectionLayout *>(pWorker->getInstanceData());
 	UT_return_if_fail(pDSL);
@@ -1505,7 +1505,7 @@ fp_Container* fl_DocSectionLayout::getLastContainer() const
 
 void fl_DocSectionLayout::setFirstContainer(fp_Container * pCon)
 {
-	UT_DEBUGMSG(("docSectionLayout: DocSec %p First container set to %p \n", (void*)this, (void*)pCon));
+	UT_DEBUGMSG(("docSectionLayout: DocSec %p First container set to %p \n", static_cast<void*>(this), static_cast<void*>(pCon)));
 	m_pFirstColumn = static_cast<fp_Column *>(pCon);
 }
 
@@ -2155,7 +2155,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	*/
 
 	const char* pszNumColumns = nullptr;
-	pSectionAP->getProperty("columns", (const gchar *&)pszNumColumns);
+	pSectionAP->getProperty("columns", static_cast<const gchar *&>(pszNumColumns));
 	if (pszNumColumns && pszNumColumns[0])
 	{
 		m_iNumColumns = atoi(pszNumColumns);
@@ -2166,7 +2166,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	}
 
 	const char* pszColumnGap = nullptr;
-	pSectionAP->getProperty("column-gap", (const gchar *&)pszColumnGap);
+	pSectionAP->getProperty("column-gap", static_cast<const gchar *&>(pszColumnGap));
 	if (pszColumnGap && pszColumnGap[0])
 	{
 		m_iColumnGap = UT_convertToLogicalUnits(pszColumnGap);
@@ -2177,7 +2177,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	}
 	UT_ASSERT(m_iColumnGap < 2000000);
 	const char* pszColumnLineBetween = nullptr;
-	pSectionAP->getProperty("column-line", (const gchar *&)pszColumnLineBetween);
+	pSectionAP->getProperty("column-line", static_cast<const gchar *&>(pszColumnLineBetween));
 	if (pszColumnLineBetween && pszColumnLineBetween[0])
 	{
 		m_bColumnLineBetween = (strcmp(pszColumnLineBetween, "on") == 0) ? true : false;
@@ -2215,7 +2215,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	}
 
 	const char* pszSpaceAfter = nullptr;
-	pSectionAP->getProperty("section-space-after", (const gchar *&)pszSpaceAfter);
+	pSectionAP->getProperty("section-space-after", static_cast<const gchar *&>(pszSpaceAfter));
 	if (pszSpaceAfter && pszSpaceAfter[0])
 	{
 		m_iSpaceAfter = UT_convertToLogicalUnits(pszSpaceAfter);
@@ -2226,7 +2226,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	}
 
 	const char* pszRestart = nullptr;
-	pSectionAP->getProperty("section-restart", (const gchar *&)pszRestart);
+	pSectionAP->getProperty("section-restart", static_cast<const gchar *&>(pszRestart));
 	if (pszRestart && pszRestart[0])
 	{
 		m_bRestart = (strcmp(pszRestart,"1")==0);
@@ -2237,7 +2237,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	}
 
 	const char* pszRestartValue = nullptr;
-	pSectionAP->getProperty("section-restart-value", (const gchar *&)pszRestartValue);
+	pSectionAP->getProperty("section-restart-value", static_cast<const gchar *&>(pszRestartValue));
 	if (pszRestartValue && pszRestartValue[0])
 	{
 		m_iRestartValue = atoi(pszRestartValue);
@@ -2254,12 +2254,12 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	const char* pszFooterMargin = nullptr;
 	const char* pszHeaderMargin = nullptr;
 	const char* pszMaxColumnHeight = nullptr;
-	pSectionAP->getProperty("page-margin-left", (const gchar *&)pszLeftMargin);
-	pSectionAP->getProperty("page-margin-top", (const gchar *&)pszTopMargin);
-	pSectionAP->getProperty("page-margin-right", (const gchar *&)pszRightMargin);
-	pSectionAP->getProperty("page-margin-bottom", (const gchar *&)pszBottomMargin);
-	pSectionAP->getProperty("page-margin-footer", (const gchar *&)pszFooterMargin);
-	pSectionAP->getProperty("page-margin-header", (const gchar *&)pszHeaderMargin);
+	pSectionAP->getProperty("page-margin-left", static_cast<const gchar *&>(pszLeftMargin));
+	pSectionAP->getProperty("page-margin-top", static_cast<const gchar *&>(pszTopMargin));
+	pSectionAP->getProperty("page-margin-right", static_cast<const gchar *&>(pszRightMargin));
+	pSectionAP->getProperty("page-margin-bottom", static_cast<const gchar *&>(pszBottomMargin));
+	pSectionAP->getProperty("page-margin-footer", static_cast<const gchar *&>(pszFooterMargin));
+	pSectionAP->getProperty("page-margin-header", static_cast<const gchar *&>(pszHeaderMargin));
 
 
 	std::string rulerUnits;
@@ -2338,7 +2338,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 		m_dHeaderMarginUserUnits = UT_convertDimensionless("0.0in");
 	}
 
-	pSectionAP->getProperty("section-max-column-height", (const gchar *&)pszMaxColumnHeight);
+	pSectionAP->getProperty("section-max-column-height", static_cast<const gchar *&>(pszMaxColumnHeight));
 	if (pszMaxColumnHeight && pszMaxColumnHeight[0])
 	{
 		m_iMaxSectionColumnHeight = UT_convertToLogicalUnits(pszMaxColumnHeight);
@@ -2349,7 +2349,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	}
 
 	const gchar * pszFootnoteLine = nullptr;
-	pSectionAP->getProperty("section-footnote-line-thickness", (const gchar *&)pszFootnoteLine);
+	pSectionAP->getProperty("section-footnote-line-thickness", static_cast<const gchar *&>(pszFootnoteLine));
 	if (pszFootnoteLine && pszFootnoteLine[0])
 	{
 		m_iFootnoteLineThickness = UT_convertToLogicalUnits(pszFootnoteLine);
@@ -2361,7 +2361,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 
 
 	const gchar * pszFootnoteYoff = nullptr;
-	pSectionAP->getProperty("section-footnote-yoff", (const gchar *&)pszFootnoteYoff);
+	pSectionAP->getProperty("section-footnote-yoff", static_cast<const gchar *&>(pszFootnoteYoff));
 	if (pszFootnoteYoff && pszFootnoteYoff[0])
 	{
 		m_iFootnoteYoff = UT_convertToLogicalUnits(pszFootnoteYoff);
@@ -2372,7 +2372,7 @@ void fl_DocSectionLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	}
 
 	const gchar * pszDataID = nullptr;
-	pSectionAP->getAttribute(PT_STRUX_IMAGE_DATAID, (const gchar *&)pszDataID);
+	pSectionAP->getAttribute(PT_STRUX_IMAGE_DATAID, static_cast<const gchar *&>(pszDataID));
 	DELETEP(m_pImageImage);
 	if(pszDataID && *pszDataID)
 	{
@@ -2406,7 +2406,7 @@ void fl_DocSectionLayout::setPaperColor(void)
 	UT_return_if_fail(pSectionAP);
 
 	const char* pszClrPaper = nullptr;
-	pSectionAP->getProperty("background-color", (const gchar *&)pszClrPaper);
+	pSectionAP->getProperty("background-color", static_cast<const gchar *&>(pszClrPaper));
 	FV_View * pView = m_pLayout->getView();
 	if(pszClrPaper && strcmp(pszClrPaper,"transparent") != 0)
 	{
@@ -2588,7 +2588,7 @@ fl_DocSectionLayout* fl_DocSectionLayout::getPrevDocSection(void) const
 
 void fl_DocSectionLayout::collapse(void)
 {
-	UT_DEBUGMSG(("DocSectionLayout: Collapsing all content in %p \n", (void*)this));
+	UT_DEBUGMSG(("DocSectionLayout: Collapsing all content in %p \n", static_cast<void*>(this)));
 	fp_Column* pCol2 = m_pFirstColumn;
 	m_bDoingCollapse = true;
 	while (pCol2)
@@ -2646,7 +2646,7 @@ void fl_DocSectionLayout::collapse(void)
 			{
 				fp_Column * pCol = static_cast<fp_Column *>(pCon->getColumn());
 				UT_DEBUGMSG(("Got and endnote in this section!! \n"));
-				UT_DEBUGMSG(("Remove Endnote con %p from col %p \n", (void*)pCon, (void*)pCol));
+				UT_DEBUGMSG(("Remove Endnote con %p from col %p \n", static_cast<void*>(pCon), static_cast<void*>(pCol)));
 				pCol->removeContainer(pCon);
 			}
 		}
@@ -2687,7 +2687,7 @@ bool fl_DocSectionLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * 
 	UT_ASSERT(pcrx->getStruxType()==PTX_Section);
 	UT_DEBUGMSG(("Doing Section delete \n"));
 	fl_DocSectionLayout* pPrevSL = getPrevDocSection();
-	UT_DEBUGMSG(("Deleting DocSec %p Prev DocSec %p \n", (void*)this, (void*)pPrevSL));
+	UT_DEBUGMSG(("Deleting DocSec %p Prev DocSec %p \n", static_cast<void*>(this), static_cast<void*>(pPrevSL)));
 	if (!pPrevSL)
 	{
 		// TODO shouldn't this just assert?
@@ -3052,7 +3052,7 @@ void fl_DocSectionLayout::deleteOwnedPage(fp_Page* pPage, bool bReallyDeleteIt)
 	{
 		if(m_pLayout->findPage(pPage) > 0)
 		{
-			UT_DEBUGMSG(("fl_DocSec: deleting page %p ReallyDeleteIt %d \n", (void*)pPage, bReallyDeleteIt));
+			UT_DEBUGMSG(("fl_DocSec: deleting page %p ReallyDeleteIt %d \n", static_cast<void*>(pPage), bReallyDeleteIt));
 			m_pLayout->deletePage(pPage,true);
 		}
 		while(pDSL != nullptr)
@@ -3327,7 +3327,7 @@ void fl_HdrFtrSectionLayout::collapseBlock(fl_ContainerLayout *pBlock)
 		UT_nonnull_or_continue(shadow);
 		fl_ContainerLayout * pShadowBL = shadow->findMatchingContainer(pBlock);
 		UT_ASSERT(pShadowBL);
-		UT_DEBUGMSG(("Doing collapseBlock %p \n", (void*)pBlock));
+		UT_DEBUGMSG(("Doing collapseBlock %p \n", static_cast<void*>(pBlock)));
 		if(pShadowBL)
 		{
 #ifdef ENABLE_SPELL
@@ -3510,13 +3510,13 @@ bool fl_HdrFtrSectionLayout::doclistener_deleteStrux(const PX_ChangeRecord * pcr
 
 	if(pcr->getType()==PX_ChangeRecord::PXT_ChangeStrux)
 	{
-		PX_ChangeRecord_StruxChange * pcrxc = (PX_ChangeRecord_StruxChange *) pcr;
+		PX_ChangeRecord_StruxChange * pcrxc = const_cast<PX_ChangeRecord_StruxChange *>(static_cast<const PX_ChangeRecord_StruxChange*>( pcr));
 		UT_UNUSED(pcrxc);
 		UT_ASSERT_HARMLESS( pcrxc->isRevisionDelete() );
 	}
 	else
 	{
-		PX_ChangeRecord_Strux * pcrx = (PX_ChangeRecord_Strux *) pcr;
+		PX_ChangeRecord_Strux * pcrx = const_cast<PX_ChangeRecord_Strux *>(static_cast<const PX_ChangeRecord_Strux*>( pcr));
 		UT_UNUSED(pcrx);
 		UT_ASSERT(pcrx->getStruxType()==PTX_SectionHdrFtr);
 	}
@@ -5710,7 +5710,7 @@ bool fl_ShadowListener::populateStrux(pf_Frag_Strux* sdh,
 		{
 			// append a new BlockLayout to that SectionLayout
 			fl_ContainerLayout*	pTL = m_pShadow->append(sdh, pcr->getIndexAP(),FL_CONTAINER_TABLE);
-			UT_DEBUGMSG(("New Shadow Table %p created and set as current \n", (void*)pTL));
+			UT_DEBUGMSG(("New Shadow Table %p created and set as current \n", static_cast<void*>(pTL)));
 			m_pCurrentTL = static_cast<fl_TableLayout *>(pTL);
 			*psfh = pTL;
 		}
@@ -5726,7 +5726,7 @@ bool fl_ShadowListener::populateStrux(pf_Frag_Strux* sdh,
 
 			// append a new BlockLayout to that SectionLayout
 			fl_ContainerLayout*	pCell = m_pCurrentTL->append(sdh, pcr->getIndexAP(),FL_CONTAINER_CELL);
-			UT_DEBUGMSG(("New Shadow Cell %p created and set as current \n", (void*)pCell));
+			UT_DEBUGMSG(("New Shadow Cell %p created and set as current \n", static_cast<void*>(pCell)));
 			m_pCurrentCell = static_cast<fl_CellLayout *>(pCell);
 			*psfh = m_pCurrentCell;
 		}

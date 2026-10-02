@@ -657,7 +657,7 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		if(pszFntId && *pszFntId)
 		{
 			UT_return_if_fail(m_pSectionLayout->getContainerType() == FL_CONTAINER_FOOTNOTE);
-			fl_FootnoteLayout   * pFL = (fl_FootnoteLayout*) m_pSectionLayout;
+			fl_FootnoteLayout   * pFL = static_cast<fl_FootnoteLayout*>( m_pSectionLayout);
 			fl_DocSectionLayout * pDSL=	 pFL->getDocSectionLayout();
 			UT_return_if_fail(pDSL);
 			
@@ -1760,7 +1760,7 @@ void fl_BlockLayout::updateOffsets(PT_DocPosition posEmbedded, UT_uint32 iEmbedd
 			fp_TextRun * pTRun = static_cast<fp_TextRun *>(pRun);
 			pTRun->printText();
 		}
-		UT_DEBUGMSG(("update offsets!!!!--- Run %p offset %d Type %d \n", (void*)pRun, pRun->getBlockOffset(), pRun->getType()));
+		UT_DEBUGMSG(("update offsets!!!!--- Run %p offset %d Type %d \n", static_cast<void*>(pRun), pRun->getBlockOffset(), pRun->getType()));
 		pRun = pRun->getNextRun();
 	}
 #endif
@@ -4317,15 +4317,15 @@ fp_Container* fl_BlockLayout::getNewContainer(const fp_Container* /* pCon*/)
 				}
 				else if(ppPrev && (ppPrev->getContainerType() == FP_CONTAINER_TABLE))
 				{
-					pContainer = (fp_VerticalContainer *) ppPrev->getContainer();
+					pContainer = static_cast<fp_VerticalContainer *>( ppPrev->getContainer());
 					pPrevLine = nullptr;
-					pPrevTable = (fp_TableContainer*)ppPrev;
+					pPrevTable = static_cast<fp_TableContainer*>(ppPrev);
 				}
 				else if(ppPrev && (ppPrev->getContainerType() == FP_CONTAINER_TOC))
 				{
-					pContainer = (fp_VerticalContainer *) ppPrev->getContainer();
+					pContainer = static_cast<fp_VerticalContainer *>( ppPrev->getContainer());
 					pPrevLine = nullptr;
-					pPrevTOC = (fp_TOCContainer*)ppPrev;
+					pPrevTOC = reinterpret_cast<fp_TOCContainer*>(ppPrev);
 				}
 				else
 				{
@@ -4380,11 +4380,11 @@ fp_Container* fl_BlockLayout::getNewContainer(const fp_Container* /* pCon*/)
 		}
 		else if((pPrevLine==nullptr) &&(nullptr!=pPrevTable))
 		{
-			pContainer->insertContainerAfter((fp_Container *)pLine, (fp_Container *) pPrevTable);
+			pContainer->insertContainerAfter(static_cast<fp_Container *>(pLine), static_cast<fp_Container *>( pPrevTable));
 		}
 		else if((pPrevLine==nullptr) &&(nullptr!=pPrevTOC))
 		{
-			pContainer->insertContainerAfter((fp_Container *)pLine, (fp_Container *) pPrevTOC);
+			pContainer->insertContainerAfter(reinterpret_cast<fp_Container *>(pLine), reinterpret_cast<fp_Container *>( pPrevTOC));
 		}
 		else
 		{
@@ -5771,7 +5771,7 @@ bool	fl_BlockLayout::_doInsertFieldEndRun(PT_BlockOffset blockOffset)
  */
 bool fl_BlockLayout::isLastRunInBlock(fp_Run * pRun) const
 {
-	if(((UT_sint32)pRun->getBlockOffset()+2) == getLength())
+	if((static_cast<UT_sint32>(pRun->getBlockOffset())+2) == getLength())
 	{
 		return true;
 	}
@@ -5793,7 +5793,7 @@ bool	fl_BlockLayout::_doInsertForcedPageBreakRun(PT_BlockOffset blockOffset)
 	if(getPrev()!= nullptr && getPrev()->getLastContainer()==nullptr)
 	{
 		UT_DEBUGMSG(("In fl_BlockLayout::_doInsertForcedPageBreakRun  no LastLine \n"));
-		UT_DEBUGMSG(("getPrev = %p this = %p \n", (void*)getPrev(), (void*)this));
+		UT_DEBUGMSG(("getPrev = %p this = %p \n", static_cast<void*>(getPrev()), static_cast<void*>(this)));
 		//UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 	}
 
@@ -8047,7 +8047,7 @@ bool fl_BlockLayout::doclistener_insertBlock(const PX_ChangeRecord_Strux * pcrx,
 			}
 			if (!pFrame || (pFramePage > pLinePage) || (pFrameY > pLineY) || (pFrameX > pLineX))
 			{
-				UT_DEBUGMSG(("Frame %p associated to block %p (2nd)\n", (void*)pFL, (void*)pNewBL));
+				UT_DEBUGMSG(("Frame %p associated to block %p (2nd)\n", static_cast<void*>(pFL), static_cast<void*>(pNewBL)));
 				removeFrame(pFL);
 				pNewBL->addFrame(pFL);
 				if((pFL->getFramePositionTo() == FL_FRAME_POSITIONED_TO_BLOCK) && 
@@ -8088,7 +8088,7 @@ bool fl_BlockLayout::doclistener_insertBlock(const PX_ChangeRecord_Strux * pcrx,
 			}
 			else
 			{
-				UT_DEBUGMSG(("Frame %p associated to block %p (1st)\n", (void*)pFL, (void*)this));
+				UT_DEBUGMSG(("Frame %p associated to block %p (1st)\n", static_cast<void*>(pFL), static_cast<void*>(this)));
 				//Frame stays in first block. Need to change the PieceTable
 				if(!m_pDoc->isDoingTheDo())
 				{
@@ -8265,7 +8265,7 @@ bool fl_BlockLayout::doclistener_insertSection(const PX_ChangeRecord_Strux * pcr
 	fl_SectionLayout* pSL = nullptr;
 	const gchar* pszNewID = nullptr;
 
-	UT_DEBUGMSG(("Insert section at pos %d sdh of section =%p sdh of block =%p \n",getPosition(true), (void*)sdh, (void*)getStruxDocHandle()));
+	UT_DEBUGMSG(("Insert section at pos %d sdh of section =%p sdh of block =%p \n",getPosition(true), static_cast<void*>(sdh), static_cast<void*>(getStruxDocHandle())));
 
 	switch (iType)
 	{
@@ -8915,7 +8915,7 @@ fl_BlockLayout::findGrammarSquigglesForRun(fp_Run* pRun) const
 			// one.
 			if (iFirst != iLast)
 				iStart = pPOB->getOffset();
-			if(iStart < (UT_sint32)pTextRun->getBlockOffset())
+			if(iStart < static_cast<UT_sint32>(pTextRun->getBlockOffset()))
 				iStart = pTextRun->getBlockOffset();
 			iEnd =	pPOB->getOffset() + pPOB->getPTLength();
 			if (iEnd > runBlockEnd) iEnd = runBlockEnd;
@@ -10398,7 +10398,7 @@ void	fl_BlockLayout::StartList( FL_ListType lType, UT_uint32 start,const gchar *
 	if(bGetPrevAuto)
 	{
 		pAutoNum = m_pDoc->getListByID(id);
-		UT_DEBUGMSG(("SEVIOR: found autonum %p from id %d \n", (void*)pAutoNum.get(), id));
+		UT_DEBUGMSG(("SEVIOR: found autonum %p from id %d \n", static_cast<void*>(pAutoNum.get()), id));
 		if(pAutoNum != nullptr)
 		{
 			m_pAutoNum = pAutoNum;
@@ -10731,9 +10731,9 @@ fl_BlockLayout * fl_BlockLayout::getPreviousList(UT_uint32 id) const
 				pAutoNum = pPrev->getAutoNum()->getParent();
 				while (pAutoNum && !bmatchid)
 				{
-					bmatchid = (bool)
+					bmatchid = static_cast<bool>(
 						(id == pAutoNum->getID()
-						 && pAutoNum->isItem(pPrev->getStruxDocHandle()));
+						 && pAutoNum->isItem(pPrev->getStruxDocHandle())));
 					pAutoNum = pAutoNum->getParent();
 				}
 			}
@@ -11830,7 +11830,7 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 		UT_return_val_if_fail( pRun2, false );
 		bool bRevised = false;
 
-		while(pRun2 && (UT_sint32)pRun2->getBlockOffset() < m_iWordOffset + iWordLength)
+		while(pRun2 && static_cast<UT_sint32>(pRun2->getBlockOffset() )< m_iWordOffset + iWordLength)
 		{
 			if(pRun2->getVisibility() != FP_VISIBLE ||
 			   (pRun2->containsRevisions() && pRun2->getRevisions()->getLastRevision()->getType() == PP_REVISION_DELETION))
@@ -11874,7 +11874,7 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 				UT_GenericVector<_spell_type *> vWordLimits;
 				fp_Run * pRun = m_pBL->findRunAtOffset(m_iWordOffset);
 
-				while(pRun && pRun->getBlockOffset() < (UT_uint32)(m_iWordOffset + iWordLength))
+				while(pRun && pRun->getBlockOffset() < static_cast<UT_uint32>((m_iWordOffset + iWordLength)))
 				{
 					if(pRun->getLength() == 0)
 					{
@@ -11928,7 +11928,7 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 					{
 						for(UT_uint32 j = st->iStart; j < st->iEnd; ++j)
 						{
-							if(m_iWordOffset + iWordLength == (UT_sint32)j)
+							if(m_iWordOffset + iWordLength == static_cast<UT_sint32>(j))
 							{
 								// we are done (past the last char of the word)
 								break;
@@ -12200,7 +12200,7 @@ static void s_border_properties (const char * border_color,
 	line.m_t_thickness = PP_PropertyMap::thickness_type (border_width);
 	if (line.m_t_thickness == PP_PropertyMap::thickness_length)
 	{
-		if (UT_determineDimension (border_width, (UT_Dimension)-1) == DIM_PX)
+		if (UT_determineDimension (border_width, static_cast<UT_Dimension>(-1)) == DIM_PX)
 		{
 			double thickness = UT_LAYOUT_RESOLUTION * UT_convertDimensionless (border_width);
 			line.m_thickness = static_cast<UT_sint32>(thickness / UT_PAPER_UNITS_PER_INCH);

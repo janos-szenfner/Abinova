@@ -67,7 +67,7 @@ bool ODe_RDFWriter::writeRDF( PD_Document* pDoc, GsfOutfile* pODT, PD_RDFModelHa
     }
 
     GsfOutput* oss = gsf_outfile_new_child(GSF_OUTFILE(pODT), "manifest.rdf", FALSE);
-    ODe_gsf_output_write (oss, rdfxml.size(), (const guint8*)rdfxml.data() );
+    ODe_gsf_output_write (oss, rdfxml.size(), reinterpret_cast<const guint8*>(rdfxml.data() ));
     ODe_gsf_output_close(oss);
 
     //

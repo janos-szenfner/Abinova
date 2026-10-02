@@ -57,7 +57,7 @@ bool ev_UnixKeyboard::keyPressEvent(AV_View* pView, GdkEvent* e)
 	EV_EditEventMapperResult result;
 	EV_EditMethod * pEM;
 
-	GdkModifierType ev_state = (GdkModifierType)0;
+	GdkModifierType ev_state = static_cast<GdkModifierType>(0);
 	ev_state = gdk_event_get_modifier_state(e);
 
 	UT_uint32 charData = 0;
@@ -79,13 +79,13 @@ bool ev_UnixKeyboard::keyPressEvent(AV_View* pView, GdkEvent* e)
 			// Gdk does us the favour of working out a translated keyvalue for us,
 			// but with the Ctrl keys, we do not want that -- see bug 9545
 			// Ported to use Gdk instead of Xkb for bug 13766.
-			auto ev_surface = gdk_event_get_surface((GdkEvent*)e);
+			auto ev_surface = gdk_event_get_surface(static_cast<GdkEvent*>(e));
 			GdkDisplay* display = ev_surface ? gdk_surface_get_display(ev_surface)
 										   : gdk_display_get_default();
 			guint keyval;
 			guint ev_keycode = gdk_key_event_get_keycode(e);
 			if (gdk_display_translate_key(display, ev_keycode,
-										  (GdkModifierType)ev_state,
+										  static_cast<GdkModifierType>(ev_state),
 										  gdk_key_event_get_layout(e),
 										  &keyval, nullptr, nullptr, nullptr)) {
 				charData = keyval;

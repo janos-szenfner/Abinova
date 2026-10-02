@@ -35,8 +35,8 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	// This should only be called once by the application.
 	// Everyone should share the set we create.
 
-  EV_Menu_ActionSet * pActionSet = new EV_Menu_ActionSet((XAP_Menu_Id)AP_MENU_ID__BOGUS1__,
-														   (XAP_Menu_Id)AP_MENU_ID__BOGUS2__);
+  EV_Menu_ActionSet * pActionSet = new EV_Menu_ActionSet(static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS1__),
+														   static_cast<XAP_Menu_Id>(AP_MENU_ID__BOGUS2__));
 	UT_return_val_if_fail (pActionSet, nullptr);
 
 	// The following is a list of all menu id's that we define,
@@ -66,7 +66,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	//              (this feature is used by the window list manager.)
 
 #define _s(id,bHoldsSubMenu,bRaisesDialog,bCheckable,bRadio,szMethodName,pfnGetState,pfnGetLabel)	\
-	pActionSet->setAction((XAP_Menu_Id)id,bHoldsSubMenu,bRaisesDialog,bCheckable,bRadio,szMethodName,pfnGetState,pfnGetLabel)
+	pActionSet->setAction(static_cast<XAP_Menu_Id>(id),bHoldsSubMenu,bRaisesDialog,bCheckable,bRadio,szMethodName,pfnGetState,pfnGetLabel)
 
 	//( __id__,          bSub,bDlg,bCheck,bRadio,  szMethodName,       fnGetState,         fnGetLabel)
 

@@ -127,7 +127,7 @@ AP_RDFLocationGTK::createEditor()
     setEntry( w_dlat,     m_dlat );
     setEntry( w_dlong,    m_dlong );
 
-    g_object_unref((GObject*)builder);
+    g_object_unref(reinterpret_cast<GObject*>(builder));
     
     return m_mainWidget;
 }

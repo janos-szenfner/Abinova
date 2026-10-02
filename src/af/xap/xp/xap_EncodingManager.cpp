@@ -212,7 +212,7 @@ UT_uint32 XAP_EncodingManager::approximate(char* out,UT_uint32 max_length,UT_UCS
 UT_UCS4Char XAP_EncodingManager::nativeToU(UT_UCS4Char c) const
 {
     UT_UCS4Char ret = try_nativeToU(c);
-    return ret ? ret : (UT_UCS4Char)fallbackChar(c);	
+    return ret ? ret : static_cast<UT_UCS4Char>(fallbackChar(c));	
 }
 
 UT_UCS4Char XAP_EncodingManager::UToNative(UT_UCS4Char c)  const
@@ -231,14 +231,14 @@ UT_UCS4Char XAP_EncodingManager::UToNative(UT_UCS4Char c)  const
 UT_UCS4Char XAP_EncodingManager::WindowsToU(UT_UCS4Char c) const
 {
     UT_UCS4Char ret = try_WindowsToU(c);
-    return ret ? ret : (UT_UCS4Char)fallbackChar(c);	
+    return ret ? ret : static_cast<UT_UCS4Char>(fallbackChar(c));	
 }
 
 
 UT_UCS4Char XAP_EncodingManager::UToWindows(UT_UCS4Char c)  const
 {
     UT_UCS4Char ret = try_UToWindows(c);
-    return ret && ret<=0xff ? ret : (UT_UCS4Char)fallbackChar(c);	
+    return ret && ret<=0xff ? ret : static_cast<UT_UCS4Char>(fallbackChar(c));	
 }
 
 
@@ -285,7 +285,7 @@ const char* XAP_EncodingManager::strToNative(const char* in, const char* charset
 	size_t donecnt = UT_iconv(iconv_handle, &inptr, &inbytes, &outptr, &outbytes);
 	const char* retstr = in;
 
-	if (donecnt != (size_t) -1 && inbytes == 0)
+	if (donecnt != static_cast<size_t>( -1 )&& inbytes == 0)
 	{
 		retstr = buf;
 		buf[bufsz - outbytes] = '\0';/*for sure*/
@@ -321,7 +321,7 @@ int XAP_EncodingManager::XAP_XML_UnknownEncodingHandler(void* /*encodingHandlerD
 			char* optr = obuf;
 			ibuf[0] = static_cast<unsigned char>(i);
 			size_t donecnt = UT_iconv(iconv_handle,&iptr,&ibuflen,&optr,&obuflen);			
-			if (donecnt!=(size_t)-1 && ibuflen==0) 
+			if (donecnt!=static_cast<size_t>(-1 )&& ibuflen==0) 
 			{
 				unsigned short uval;
 				unsigned short b0 = static_cast<unsigned char>(obuf[swap_stou]);
@@ -395,7 +395,7 @@ static UT_UCS4Char try_CToU(UT_UCS4Char c,UT_iconv_t iconv_handle)
 
 	UT_UCS4Char uval = 0;
 
-	if (donecnt!=(size_t)-1 && ibuflen==0) 
+	if (donecnt!=static_cast<size_t>(-1 )&& ibuflen==0) 
 	{
 		if (XAP_EncodingManager::swap_stou)
 			{
@@ -446,7 +446,7 @@ static UT_UCS4Char try_UToC(UT_UCS4Char c,UT_iconv_t iconv_handle)
 
 	UT_UCS4Char byte = 0;
 
-	if (donecnt!=(size_t)-1 && ibuflen==0) 
+	if (donecnt!=static_cast<size_t>(-1 )&& ibuflen==0) 
 	{
 		if (obuflen != 5) // grr... [TODO: ugh.]
 			{
@@ -805,21 +805,21 @@ const XAP_SmartQuoteStyle XAP_EncodingManager::smartQuoteStyles[] =
 {
 	{ UCS_LDBLQUOTE, UCS_RDBLQUOTE }, // 0 English double quotes
 	{ UCS_LQUOTE, UCS_RQUOTE }, // 1 English single quotes
-	{ ((UT_UCS4Char)0x00ab), ((UT_UCS4Char)0x00bb) }, // 2 French double
-	{ ((UT_UCS4Char)0x00bb), ((UT_UCS4Char)0x00ab) }, // 3 Danish double
-	{ ((UT_UCS4Char)0x00bb), ((UT_UCS4Char)0x00bb) }, // 4
-	{ UCS_LQUOTE, ((UT_UCS4Char)0x201a) }, // 5
+	{ (static_cast<UT_UCS4Char>(0x00ab)), (static_cast<UT_UCS4Char>(0x00bb)) }, // 2 French double
+	{ (static_cast<UT_UCS4Char>(0x00bb)), (static_cast<UT_UCS4Char>(0x00ab)) }, // 3 Danish double
+	{ (static_cast<UT_UCS4Char>(0x00bb)), (static_cast<UT_UCS4Char>(0x00bb)) }, // 4
+	{ UCS_LQUOTE, (static_cast<UT_UCS4Char>(0x201a)) }, // 5
 	{ UCS_RQUOTE, UCS_RQUOTE }, // 6
-	{ ((UT_UCS4Char)0x201a), UCS_LQUOTE }, // 7 German single
-	{ ((UT_UCS4Char)0x201a), UCS_RQUOTE }, // 8
-	{ UCS_LDBLQUOTE, ((UT_UCS4Char)0x201e) }, // 9
+	{ (static_cast<UT_UCS4Char>(0x201a)), UCS_LQUOTE }, // 7 German single
+	{ (static_cast<UT_UCS4Char>(0x201a)), UCS_RQUOTE }, // 8
+	{ UCS_LDBLQUOTE, (static_cast<UT_UCS4Char>(0x201e)) }, // 9
 	{ UCS_RDBLQUOTE, UCS_RDBLQUOTE }, // 10
-	{ ((UT_UCS4Char)0x201e), UCS_RDBLQUOTE }, // 11
-	{ ((UT_UCS4Char)0x201e), UCS_LDBLQUOTE }, // 12 German double
-	{ ((UT_UCS4Char)0x2039), ((UT_UCS4Char)0x203a) }, // 13 French single
-	{ ((UT_UCS4Char)0x203a), ((UT_UCS4Char)0x2039) }, // 14 reverse French single
-	{ ((UT_UCS4Char)0x300c), ((UT_UCS4Char)0x300d) }, // 15 Dark corner bracket
-	{ ((UT_UCS4Char)0x300e), ((UT_UCS4Char)0x300f) }, // 16 White corner bracket
+	{ (static_cast<UT_UCS4Char>(0x201e)), UCS_RDBLQUOTE }, // 11
+	{ (static_cast<UT_UCS4Char>(0x201e)), UCS_LDBLQUOTE }, // 12 German double
+	{ (static_cast<UT_UCS4Char>(0x2039)), (static_cast<UT_UCS4Char>(0x203a)) }, // 13 French single
+	{ (static_cast<UT_UCS4Char>(0x203a)), (static_cast<UT_UCS4Char>(0x2039)) }, // 14 reverse French single
+	{ (static_cast<UT_UCS4Char>(0x300c)), (static_cast<UT_UCS4Char>(0x300d)) }, // 15 Dark corner bracket
+	{ (static_cast<UT_UCS4Char>(0x300e)), (static_cast<UT_UCS4Char>(0x300f)) }, // 16 White corner bracket
 	{ UCS_RDBLQUOTE, UCS_LDBLQUOTE }, // 17 - Same as English, but RTL for Hebrew
 	{ '\"', '\"' }, // 18 - ASCII double quote
 	{ '\'', '\'' }, // 19 - ASCII single quote
@@ -1650,8 +1650,8 @@ const char * xap_encoding_manager_get_language_iso_name(void)
 
 static int s_compare_unichar_cats(const void * pC, const void *puc)
 {
-	UT_UCS4Char c = *((const UT_UCS4Char*)pC);
-	const SCatRange * pUC = (const SCatRange*) puc;
+	UT_UCS4Char c = *(static_cast<const UT_UCS4Char*>(pC));
+	const SCatRange * pUC = static_cast<const SCatRange*>( puc);
 
 	if(c < pUC->start)
 		return -1;
@@ -1667,8 +1667,8 @@ static EUniCat categoriseUniChar(UT_UCS4Char c) {
 	// use linear search for the bottom (western part of the table, and bsearch for the
 	// rest
 
-	SCatRange * pUC = (SCatRange*)bsearch(&c, UniCharCats, G_N_ELEMENTS(UniCharCats), sizeof(SCatRange),
-											  s_compare_unichar_cats);
+	SCatRange * pUC = static_cast<SCatRange*>(bsearch(&c, UniCharCats, G_N_ELEMENTS(UniCharCats), sizeof(SCatRange),
+											  s_compare_unichar_cats));
 
 	if(pUC)
 		cat = pUC->cat;
