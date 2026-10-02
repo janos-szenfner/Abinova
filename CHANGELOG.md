@@ -3107,6 +3107,12 @@ below are on `main` but the release has not been cut yet.
   resizing the window or changing the document page size in Web
   Layout updates the layout correctly instead of leaving pages at
   the old width.
+- **Headless view-mode regression test** — `make check` now covers
+  the Print/Web/Normal layout toggles: a fixture document is laid out
+  on a widget-less cairo graphics, driven through print → web →
+  window-resize reflow → normal → print, asserting the web page
+  tracks the window width, print pagination is restored exactly, and
+  PDF export still works at every step.
 
 ### GTK4 port (core migration)
 
