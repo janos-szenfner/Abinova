@@ -69,7 +69,8 @@ public:
 	virtual const XAP_StringSet *			getStringSet() const override = 0;
 	virtual const char *					getAbiSuiteAppDir() const override = 0;
 	virtual const std::string&					getAbiSuiteAppUIDir() const = 0;
-	virtual void							copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard = true) override = 0;
+	virtual void							copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard = true,
+														AV_View * pSourceView = nullptr) override = 0;
 	virtual void							pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard, bool bHonorFormatting = true) override = 0;
 	virtual bool canPasteFromClipboard() const override = 0;
 	void									migrate(const char *oldName, const char *newName, const char *path) const override;

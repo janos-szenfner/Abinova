@@ -660,7 +660,7 @@ bool FV_View::_MergeCells( PT_DocPosition posDestination,PT_DocPosition posSourc
 // Copy to and from clipboard to populate the destination cell
 //
 		UT_DEBUGMSG(("SEVIOR: Copy to clipboard merging cells \n"));
-		m_pApp->copyToClipboard(&dr_source);
+		m_pApp->copyToClipboard(&dr_source, true, this);
 	}
 //
 // Now delete the source cell. We can use the old source position since it
@@ -5443,9 +5443,19 @@ void FV_View::_doPaste(bool bUseClipboard, bool bHonorFormatting,
 	else
 		m_pApp->pasteFromClipboard(&dr,bUseClipboard,bHonorFormatting);
 	insertParaBreakIfNeededAtPos(getPoint());
-	fl_SectionLayout * pSL = getCurrentBlock()->getSectionLayout();
 	m_pDoc->setDontImmediatelyLayout(false);
-	pSL->checkAndAdjustCellSize();
+	// a paste can leave the insertion point somewhere with no block
+	// layout yet (deferred layout, paste at EOD) - getCurrentBlock()
+	// may legitimately return nullptr here
+	fl_BlockLayout * pBlock = getCurrentBlock();
+	if (pBlock)
+	{
+		fl_SectionLayout * pSL = pBlock->getSectionLayout();
+		if (pSL)
+		{
+			pSL->checkAndAdjustCellSize();
+		}
+	}
 	_generalUpdate();
 
 	_updateInsertionPoint();
@@ -6063,7 +6073,7 @@ void FV_View::_populateThisHdrFtr(fl_HdrFtrSectionLayout * pHdrFtrSrc, fl_HdrFtr
 // Copy to and from clipboard to populate the header/Footer
 //
 	UT_DEBUGMSG(("SEVIOR: Copy to clipboard making header/footer \n"));
-	m_pApp->copyToClipboard(&dr_source);
+	m_pApp->copyToClipboard(&dr_source, true, this);
 	PT_DocPosition posDest = 0;
 	posDest = pHdrFtrDest->getFirstLayout()->getPosition(true);
 	PD_DocumentRange dr_dest(m_pDoc,posDest,posDest);

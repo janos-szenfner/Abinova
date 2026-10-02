@@ -5846,7 +5846,7 @@ void FV_View::cmdCopy(bool bToClipboard)
 
 	PD_DocumentRange dr;
 	getDocumentRangeOfCurrentSelection(&dr);
-	m_pApp->copyToClipboard(&dr, bToClipboard);
+	m_pApp->copyToClipboard(&dr, bToClipboard, this);
 	notifyListeners(AV_CHG_CLIPBOARD);
 }
 

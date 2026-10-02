@@ -1769,6 +1769,18 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Paste path hardened** — pasting at the very end of a document or
+  into an empty document could crash when no block layout existed yet
+  at the insertion point; the cell-size adjustment is now guarded.
+  The paste listener also no longer advances its insertion point when
+  the document rejects an insert, so a failed insert no longer makes
+  all following content land at the wrong offset, and unsupported
+  structure types (e.g. margin notes, which the piece table cannot
+  create) are skipped instead of being inserted blindly — their text
+  still pastes as normal body text. Copying an image-only selection
+  now uses the view that actually holds the selection rather than
+  whichever window was last focussed, so image copies work correctly
+  with multiple windows open.
 - **Page list bookkeeping unified** — the layout engine used to keep
   every page in two structures that had to be updated by hand in
   lockstep (a vector and a prev/next linked list); a missed update

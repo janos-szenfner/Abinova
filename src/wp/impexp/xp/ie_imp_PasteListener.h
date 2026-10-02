@@ -87,6 +87,9 @@ public:
 
 private:
 	PD_Document *     getDoc(void) const;
+	bool              _insertStrux(PTStruxType pts,
+								   const PP_PropertyVector & atts,
+								   const PP_PropertyVector & props);
 	PD_Document *     m_pPasteDocument;
 	PT_DocPosition    m_insPoint;
 	bool              m_bFirstSection;

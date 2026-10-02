@@ -401,8 +401,12 @@ const XAP_StringSet * AP_UnixApp::getStringSet(void) const
   all of the buffers we need and then post them to the
   server (well sorta) all at one time.
   \param pDocRange a range of the document to be copied
+  \param pSourceView the view the copied range was selected in; used
+  to detect an image-only selection. May be nullptr, in which case no
+  image data is offered on the clipboard.
 */
-void AP_UnixApp::copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard)
+void AP_UnixApp::copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard,
+								 AV_View * pSourceView)
 {
 
     UT_ByteBuf bufRTF;
@@ -508,9 +512,9 @@ void AP_UnixApp::copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboar
 
 	{
 		// TODO: we have to make a good way to tell if the current selection is just an image
-		FV_View * pView = nullptr;
-		if(getLastFocussedFrame())
-			pView = static_cast<FV_View*>(getLastFocussedFrame()->getCurrentView());
+		// The selection is owned by the view doing the copy - the last
+		// focussed frame may be an entirely different window/document.
+		FV_View * pView = static_cast<FV_View*>(pSourceView);
 
 		if (pView && !pView->isSelectionEmpty())
 			{
@@ -702,7 +706,15 @@ bool AP_UnixApp::pasteDataToDocRange(PD_DocumentRange * pDocRange,
 		  }
 		  
 		  // at this point, 'bytes' is owned by pFG
-		  FV_View * pView = static_cast<FV_View*>(getLastFocussedFrame ()->getCurrentView());
+		  XAP_Frame * pFrame = getLastFocussedFrame();
+		  FV_View * pView = (pFrame)
+			  ? static_cast<FV_View*>(pFrame->getCurrentView())
+			  : nullptr;
+		  if (!pView)
+		  {
+			  UT_DEBUGMSG(("DOM: no view to paste image into\n"));
+			  goto retry_text;
+		  }
 		  
 		  error = pView->cmdInsertGraphic(pFG);
 		  if (!error)
@@ -959,9 +971,10 @@ bool AP_UnixApp::getCurrentSelection(const char** formatList,
 		if ( AP_UnixClipboard::isImageTag(formatList[j]) )
 		{
 			// TODO: we have to make a good way to tell if the current selection is just an image
-			FV_View * pView = nullptr;
-			if(getLastFocussedFrame())
-				pView = static_cast<FV_View*>(getLastFocussedFrame()->getCurrentView());
+			// serve the image from the view that owns the selection being
+			// fetched (m_pViewSelection is non-null here - checked above),
+			// not whatever frame happens to be focussed
+			FV_View * pView = static_cast<FV_View*>(m_pViewSelection);
 
 			if (pView && !pView->isSelectionEmpty())
 				{

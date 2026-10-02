@@ -82,7 +82,15 @@ bool  IE_Imp_PasteListener::populate(fl_ContainerLayout* /* sfh */,
 		PT_BufIndex bi = pcrs->getBufIndex();
 		const UT_UCS4Char* pChars = 	m_pSourceDoc->getPointer(bi);
 		PP_AttrProp* pfAP = const_cast<PP_AttrProp *>(pAP);
-		m_pPasteDocument->insertSpan(m_insPoint,pChars,len,pfAP);
+		// only advance the insertion point when the span actually
+		// landed, otherwise m_insPoint desyncs from the document and
+		// every later insert writes at the wrong position
+		if (!m_pPasteDocument->insertSpan(m_insPoint,pChars,len,pfAP))
+		{
+			UT_DEBUGMSG(("PasteListener: insertSpan of %u chars failed at pos %u\n",
+						 len, static_cast<unsigned>(m_insPoint)));
+			return false;
+		}
 		m_insPoint += len;
 		return true;
 	}
@@ -90,14 +98,25 @@ bool  IE_Imp_PasteListener::populate(fl_ContainerLayout* /* sfh */,
 	case PX_ChangeRecord::PXT_InsertObject:
 	{
 		const PX_ChangeRecord_Object * pcro = static_cast<const PX_ChangeRecord_Object *>(pcr);
-		m_pPasteDocument->insertObject(m_insPoint,pcro->getObjectType(),atts,props);
+		if (!m_pPasteDocument->insertObject(m_insPoint,pcro->getObjectType(),atts,props))
+		{
+			UT_DEBUGMSG(("PasteListener: insertObject type %d failed at pos %u\n",
+						 static_cast<int>(pcro->getObjectType()),
+						 static_cast<unsigned>(m_insPoint)));
+			return false;
+		}
 		m_insPoint++;
 		return true;
 	}
 
 	case PX_ChangeRecord::PXT_InsertFmtMark:
 	{
-		m_pPasteDocument->changeSpanFmt(PTC_SetExactly,m_insPoint,m_insPoint,atts,props);
+		// a failed format change loses formatting only - keep pasting
+		if (!m_pPasteDocument->changeSpanFmt(PTC_SetExactly,m_insPoint,m_insPoint,atts,props))
+		{
+			UT_DEBUGMSG(("PasteListener: changeSpanFmt failed at pos %u\n",
+						 static_cast<unsigned>(m_insPoint)));
+		}
 		return true;
 	}
 	default:
@@ -174,51 +193,6 @@ bool  IE_Imp_PasteListener::populateStrux(pf_Frag_Strux* sdh,
 		// m_insPoint++;
 		return true;
 	}
-	case PTX_SectionFootnote:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_SectionFootnote,atts,props);
-		m_insPoint++;
-		return true;
-	}
-	case PTX_SectionEndnote:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_SectionEndnote,atts,props);
-		m_insPoint++;
-		return true;
-	}
-
-	case PTX_EndFootnote:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_EndFootnote,atts,props);
-		m_insPoint++;
-		return true;
-	}
-	case PTX_EndEndnote:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_EndEndnote,atts,props);
-		m_insPoint++;
-		return true;
-	}
-	case PTX_SectionTOC:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_SectionTOC,atts,props);
-		m_insPoint++;
-		return true;
-	}
-
-	case PTX_EndTOC:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_EndTOC,atts,props);
-		m_insPoint++;
-		return true;
-	}
-	case PTX_SectionHdrFtr:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_SectionHdrFtr,atts,props);
-		m_insPoint++;
-		return true;
-	}
-
 	case PTX_Block:
 	{
 		if(m_bFirstBlock)
@@ -235,8 +209,10 @@ bool  IE_Imp_PasteListener::populateStrux(pf_Frag_Strux* sdh,
 			}
 			return true;
 		}
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_Block,atts,props);
-		m_insPoint++;
+		if (!_insertStrux(pcrx->getStruxType(),atts,props))
+		{
+			return false;
+		}
 		if (m_bAdoptFirstBlockFmt)
 		{
 			/* insertStrux inherits the previous block's attr/props
@@ -247,51 +223,59 @@ bool  IE_Imp_PasteListener::populateStrux(pf_Frag_Strux* sdh,
 		}
 		return true;
 	}
+
+	// structure types that are safe to splice into the target document:
+	// all are creatable via pt_PieceTable::_createStrux() and arrive as
+	// balanced begin/end pairs from the source walk
+	case PTX_SectionFootnote:
+	case PTX_SectionEndnote:
+	case PTX_SectionHdrFtr:
 	case PTX_SectionTable:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_SectionTable,atts,props);
-		m_insPoint++;
-		return true;
-	}
-	case PTX_SectionFrame:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_SectionFrame,atts,props);
-		m_insPoint++;
-		return true;
-	}
-	case PTX_EndFrame:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_EndFrame,atts,props);
-		m_insPoint++;
-		return true;
-	}
 	case PTX_SectionCell:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_SectionCell,atts,props);
-		m_insPoint++;
-		return true;
-	}
+	case PTX_SectionFrame:
+	case PTX_SectionTOC:
+	case PTX_SectionAnnotation:
+	case PTX_EndFootnote:
+	case PTX_EndEndnote:
 	case PTX_EndTable:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_EndTable,atts,props);
-		m_insPoint++;
-		return true;
-	}
 	case PTX_EndCell:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,PTX_EndCell,atts,props);
-		m_insPoint++;
-		return true;
-	}
+	case PTX_EndFrame:
+	case PTX_EndTOC:
+	case PTX_EndAnnotation:
+		return _insertStrux(pcrx->getStruxType(),atts,props);
+
 	default:
-	{
-		m_pPasteDocument->insertStrux(m_insPoint,pcrx->getStruxType(),atts,props);
-		m_insPoint++;
-		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+		// PTX_SectionMarginnote/PTX_EndMarginnote have no _createStrux
+		// support (insertStrux would always fail) and PTX_StruxDummy is
+		// an internal sentinel - skip unknown struxes instead of
+		// inserting them blindly; their content still pastes as normal
+		// body text
+		UT_DEBUGMSG(("PasteListener: skipping unsupported strux type %d\n",
+					 static_cast<int>(pcrx->getStruxType())));
 		return true;
-	}
 	}
 
+	return true;
+}
+
+/*!
+ * Insert a strux frag at the paste insertion point and advance
+ * m_insPoint only when the insert actually landed - a failed insert
+ * must not move the tracked position or every later insert would be
+ * written at the wrong offset.
+ */
+bool IE_Imp_PasteListener::_insertStrux(PTStruxType pts,
+										const PP_PropertyVector & atts,
+										const PP_PropertyVector & props)
+{
+	if (!m_pPasteDocument->insertStrux(m_insPoint,pts,atts,props))
+	{
+		UT_DEBUGMSG(("PasteListener: insertStrux type %d failed at pos %u\n",
+					 static_cast<int>(pts),
+					 static_cast<unsigned>(m_insPoint)));
+		return false;
+	}
+	m_insPoint++;
 	return true;
 }
 

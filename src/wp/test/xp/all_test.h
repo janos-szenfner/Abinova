@@ -57,3 +57,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_tocstyle.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_pastelistener.t.cpp"
+#undef TFSUITE

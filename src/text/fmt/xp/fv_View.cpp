@@ -2170,7 +2170,7 @@ void FV_View::copyFrame(bool b_keepFrame)
 	PT_DocPosition posLow = pFL->getPosition(true);
 	PT_DocPosition posHigh = posLow + pFL->getLength();
 	PD_DocumentRange dr(m_pDoc,posLow,posHigh);
-	XAP_App::getApp()->copyToClipboard(&dr, true);
+	XAP_App::getApp()->copyToClipboard(&dr, true, this);
 	if (!b_keepFrame)
 	{
 		m_FrameEdit.deleteFrame();

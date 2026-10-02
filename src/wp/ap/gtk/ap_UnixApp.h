@@ -69,7 +69,8 @@ public:
 	virtual const char *			        getAbiSuiteAppDir(void) const override;
 	virtual const std::string&			getAbiSuiteAppUIDir(void) const override;
 
-	virtual void					copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard = true) override;
+	virtual void					copyToClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard = true,
+												AV_View * pSourceView = nullptr) override;
 	virtual void					pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipboard, bool bHonorFormatting = true) override;
 	void							pasteFromClipboardWithFormat(PD_DocumentRange * pDocRange,
 																 const char * szMimeType) override;
