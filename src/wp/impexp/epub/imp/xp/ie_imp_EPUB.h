@@ -96,7 +96,8 @@ public:
 private:
     /* rootfile candidates (full-path, media-type) in document order */
     std::vector<string_pair> m_rootFiles;
-    std::string m_rootFilePath;
+    /* lazily resolved by getRootFilePath() - a cache, hence mutable */
+    mutable std::string m_rootFilePath;
     bool m_rootOk;
     bool m_checkedRoot;
 };

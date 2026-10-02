@@ -9319,6 +9319,10 @@ UT_Error FV_View::cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_s
 //
 
 	const char * dataID = pFG->createDataItem(m_pDoc, s.c_str());
+	if (!dataID)
+	{
+		return UT_ERROR;
+	}
 	std::string sFrameProps;
 	std::string sProp;
 	std::string sVal;
@@ -9485,8 +9489,10 @@ bool FV_View::cmdInsertLatexMath(UT_UTF8String & sLatex,
 	UT_ByteBufPtr latexBuf(new UT_ByteBuf);
 	mathBuf->ins(0, reinterpret_cast<const UT_Byte *>(sMath.utf8_str()), static_cast<UT_uint32>(sMath.size()));
 	latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(sLatex.utf8_str()), static_cast<UT_uint32>(sLatex.size()));
-	m_pDoc->createDataItem(sMathName.utf8_str(), false, mathBuf, "", nullptr);
-	m_pDoc->createDataItem(sLatexName.utf8_str(), false, latexBuf, "", nullptr);
+	if (!m_pDoc->createDataItem(sMathName.utf8_str(), false, mathBuf, "", nullptr))
+		return false;
+	if (!m_pDoc->createDataItem(sLatexName.utf8_str(), false, latexBuf, "", nullptr))
+		return false;
 
 	// OK Insert the MathML Object
 	PP_PropertyVector atts = {

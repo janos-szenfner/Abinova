@@ -150,7 +150,10 @@ bool  IE_Imp_PasteListener::populateStrux(pf_Frag_Strux* sdh,
 			UT_sint32 k = 0;
 			while (m_pSourceDoc->enumDataItems(k, &pHandle, &szName, pBuf, &mimeType))
 			{
-				m_pPasteDocument->createDataItem(szName,false,pBuf,mimeType,&pHandle);
+				if (!m_pPasteDocument->createDataItem(szName,false,pBuf,mimeType,&pHandle))
+				{
+					UT_DEBUGMSG(("createDataItem %s failed\n", szName));
+				}
 				k++;
 			}
 			m_bFirstSection = false;

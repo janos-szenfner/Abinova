@@ -968,7 +968,11 @@ void FV_VisualInlineImage::mouseCopy(UT_sint32 x, UT_sint32 y)
 	//
 	// Make a copy of it and save it under a new name.
 	//
-	getDoc()->createDataItem(sDataID.c_str(), false, pBytes, sMimeType, nullptr);
+	if (!getDoc()->createDataItem(sDataID.c_str(), false, pBytes, sMimeType, nullptr))
+	{
+	  cleanUP();
+	  return;
+	}
 	m_sCopyName = sDataID;
 	m_pView->_resetSelection();
 }

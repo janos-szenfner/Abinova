@@ -75,7 +75,7 @@ public:
 	bool				setLabel(XAP_Menu_Id id,
 								 const char * szMenuLabel,
 								 const char * szStatusMsg);
-	bool				addLabel(EV_Menu_Label *pLabel);
+	bool				addLabel(EV_Menu_Label *pLabel) const;
 	EV_Menu_Label *		getLabel(XAP_Menu_Id id) const;
 	XAP_Menu_Id         getFirst(void) const { return m_first;}
 	const std::string& getLanguage() const;
@@ -85,7 +85,9 @@ public:
         { return m_labelTable; }
 
 private:
-        std::vector<EV_Menu_Label*> m_labelTable;
+        /* getLabel() lazily appends "untranslated" placeholders -
+         * a cache write, hence mutable */
+        mutable std::vector<EV_Menu_Label*> m_labelTable;
 	XAP_Menu_Id			m_first;
 	std::string m_stLanguage;	/* for the convenience of the app only	*/
 };

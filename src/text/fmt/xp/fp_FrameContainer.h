@@ -141,7 +141,7 @@ public:
 	bool                isHidden(void);
 	/* "frame-rotation" property - clockwise degrees, drawn via a
 	 * cairo transform around the frame centre */
-	double              getRotation(void);
+	double              getRotation(void) const;
 	/* "frame-text-direction" property (OOXML wps:bodyPr@vert) -
 	 * clockwise degrees the text stack is rotated inside the box;
 	 * vertical text lays out in a swapped logical space so
@@ -151,9 +151,9 @@ public:
 								PT_DocPosition& pos, bool& bBOL,
 								bool& bEOL, bool &isTOC) override;
 	/* "frame-flip-horiz" / "frame-flip-vert" properties */
-	bool                isFlippedHoriz(void);
-	bool                isFlippedVert(void);
-	bool                isTransformed(void);
+	bool                isFlippedHoriz(void) const;
+	bool                isFlippedVert(void) const;
+	bool                isTransformed(void) const;
 	/* "frame-group" property - shared id linking grouped frames */
 	const char *        getGroupId(void) const;
 	/* bounding box of the (possibly rotated) frame in page coords */

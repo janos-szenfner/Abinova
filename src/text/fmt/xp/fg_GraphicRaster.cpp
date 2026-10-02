@@ -396,7 +396,10 @@ UT_Error FG_GraphicRaster::insertIntoDocument(PD_Document* pDoc, UT_uint32 res,
 	/*
 	  Create the data item
 	*/
-	pDoc->createDataItem(szName, false, m_pbb, getMimeType(), nullptr);
+	if (!pDoc->createDataItem(szName, false, m_pbb, getMimeType(), nullptr))
+	{
+		return UT_ERROR;
+	}
 
 	/*
 	  Insert the object into the document.
@@ -423,7 +426,10 @@ const char *  FG_GraphicRaster::createDataItem(PD_Document *pDoc, const char * s
 	UT_return_val_if_fail(pDoc,nullptr);
 	UT_ASSERT(szName);
 
-	pDoc->createDataItem(szName, false, m_pbb, getMimeType(), nullptr);
+	if (!pDoc->createDataItem(szName, false, m_pbb, getMimeType(), nullptr))
+	{
+		return nullptr;
+	}
 	return szName;
 }
 
@@ -444,7 +450,10 @@ UT_Error FG_GraphicRaster::insertAtStrux(PD_Document* pDoc,
 	/*
 	  Create the data item
 	*/
-	pDoc->createDataItem(szName, false, m_pbb, getMimeType(), nullptr);
+	if (!pDoc->createDataItem(szName, false, m_pbb, getMimeType(), nullptr))
+	{
+		return UT_ERROR;
+	}
 
 	/*
 	  Insert the object into the document.

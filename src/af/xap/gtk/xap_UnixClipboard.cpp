@@ -612,8 +612,7 @@ bool XAP_UnixClipboard::canPaste(T_AllowGet tFrom) const
 			( tFrom == TAG_ClipboardOnly ? m_fakeClipboard
 			  : m_fakePrimaryClipboard );
 		for (const std::string & fmt : m_vecFormat_MimeType)
-			if (const_cast<XAP_FakeClipboard &>(which_clip)
-				.hasFormat(fmt.c_str()))
+			if (which_clip.hasFormat(fmt.c_str()))
 				return true;
 		return false;
 	}

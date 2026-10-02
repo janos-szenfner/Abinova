@@ -2921,6 +2921,23 @@ below are on `main` but the release has not been cut yet.
   `NUM_MODELESSID`, `CRC32_NEGL`, `iMbLenMax`, `iResultCount`
   constants converted to `constexpr` so they can appear in
   constant expressions and carry a real type.
+- **Missing-const/`nodiscard` sweep (MOD03)** — const accessors now
+  actually read `const`: `fp_FrameContainer`'s `getRotation`,
+  `isFlippedHoriz/Vert` and `isTransformed` are const (the last
+  remaining reason `getTextRotation`/`getGroupId`/`getInkBounds`/
+  `unrotatePoint` needed `const_cast` on `this`), as are
+  `GR_UnixCairoGraphics::getWindow` and the `XAP_FakeClipboard`
+  query methods; the table-style helpers take `const FV_View*` /
+  `const PD_Document*`.  The two lazy caches that cast away const —
+  `EV_Menu_LabelSet`'s placeholder-label append and the EPUB
+  container's resolved-rootfile path — now use `mutable` members.
+  `PD_Document::createDataItem`/`replaceDataItem` and
+  `FG_Graphic::createDataItem` are `[[nodiscard]]` and every ignored
+  call site now propagates or logs the failure instead of silently
+  leaving a `dataid` attribute pointing at a data item that was
+  never stored (image/graphic insert, math objects, drag-copy,
+  clipboard range export); the math-snapshot manager no longer marks
+  a snapshot written when the store failed.
 
 ### GTK4 port (core migration)
 

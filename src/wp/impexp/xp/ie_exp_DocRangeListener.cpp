@@ -31,6 +31,7 @@
 #include "px_CR_Strux.h"
 #include "px_CR_StruxChange.h"
 #include "ie_exp_DocRangeListener.h"
+#include "ut_debugmsg.h"
 #include "pd_Style.h"
 #include "ut_string_class.h"
 #include "ut_std_string.h"
@@ -63,7 +64,10 @@ IE_Exp_DocRangeListener::IE_Exp_DocRangeListener(PD_DocumentRange * pDocRange, P
      UT_sint32 k = 0;
      while (m_pSourceDoc->enumDataItems(k, &pHandle, &szName, pBuf, &mimeType))
      {
-          getDoc()->createDataItem(szName,false,pBuf,mimeType,&pHandle);
+          if (!getDoc()->createDataItem(szName,false,pBuf,mimeType,&pHandle))
+          {
+              UT_DEBUGMSG(("createDataItem %s failed\n", szName));
+          }
 	  k++;
      }
   //

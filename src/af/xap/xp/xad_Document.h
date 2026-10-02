@@ -153,12 +153,12 @@ public:
 	UT_Error		        saveAs(const char * szFilename, int ieft, const char * props = nullptr);
 	UT_Error		        saveAs(const char * szFilename, int ieft, bool cpy, const char * props = nullptr);
 	UT_Error		        save(void);
-	virtual bool			createDataItem(const char * szName,
+	[[nodiscard]] virtual bool			createDataItem(const char * szName,
 										   bool bBase64,
 										   const UT_ConstByteBufPtr & pByteBuf,
 										   const std::string & mime_type,
 										   PD_DataItemHandle* ppHandle) = 0;
-	virtual bool            replaceDataItem(const char * szName,
+	[[nodiscard]] virtual bool            replaceDataItem(const char * szName,
 											const UT_ConstByteBufPtr & pByteBuf) = 0;
 	virtual bool			getDataItemDataByName(const char * szName,
 												  UT_ConstByteBufPtr& pByteBuf,

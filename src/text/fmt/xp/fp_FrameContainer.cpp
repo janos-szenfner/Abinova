@@ -166,7 +166,7 @@ bool fp_FrameContainer::isHidden(void)
  * frame centre at draw time - layout and wrapping keep using the
  * unrotated rectangle.
  */
-double fp_FrameContainer::getRotation(void)
+double fp_FrameContainer::getRotation(void) const
 {
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(getSectionLayout());
 	const PP_AttrProp * pAP = nullptr;
@@ -192,9 +192,8 @@ double fp_FrameContainer::getRotation(void)
  */
 int fp_FrameContainer::getTextRotation(void) const
 {
-	fp_FrameContainer * self = const_cast<fp_FrameContainer *>(this);
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(
-		self->getSectionLayout());
+		getSectionLayout());
 	const PP_AttrProp * pAP = nullptr;
 	if (pFL)
 		pFL->getAP(pAP);
@@ -211,7 +210,7 @@ int fp_FrameContainer::getTextRotation(void) const
 	return 0;
 }
 
-static bool s_frameBoolProp(fp_FrameContainer * pFC, const char * szName)
+static bool s_frameBoolProp(const fp_FrameContainer * pFC, const char * szName)
 {
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pFC->getSectionLayout());
 	const PP_AttrProp * pAP = nullptr;
@@ -223,17 +222,17 @@ static bool s_frameBoolProp(fp_FrameContainer * pFC, const char * szName)
 		   strcmp(sz, "false") != 0;
 }
 
-bool fp_FrameContainer::isFlippedHoriz(void)
+bool fp_FrameContainer::isFlippedHoriz(void) const
 {
 	return s_frameBoolProp(this, "frame-flip-horiz");
 }
 
-bool fp_FrameContainer::isFlippedVert(void)
+bool fp_FrameContainer::isFlippedVert(void) const
 {
 	return s_frameBoolProp(this, "frame-flip-vert");
 }
 
-bool fp_FrameContainer::isTransformed(void)
+bool fp_FrameContainer::isTransformed(void) const
 {
 	return getRotation() != 0.0 || isFlippedHoriz() || isFlippedVert();
 }
@@ -246,7 +245,7 @@ bool fp_FrameContainer::isTransformed(void)
 const char * fp_FrameContainer::getGroupId(void) const
 {
 	fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(
-		const_cast<fp_FrameContainer *>(this)->getSectionLayout());
+		getSectionLayout());
 	const PP_AttrProp * pAP = nullptr;
 	if (pFL)
 		pFL->getAP(pAP);
@@ -1990,10 +1989,9 @@ static void s_paintFrameShadow(GR_Graphics * pG,
  */
 void fp_FrameContainer::getInkBounds(UT_Rect & r) const
 {
-	fp_FrameContainer * self = const_cast<fp_FrameContainer *>(this);
-	s_rotatedBounds(self->getFullX(), self->getFullY(),
-					self->getFullWidth(), self->getFullHeight(),
-					self->getRotation(), r);
+	s_rotatedBounds(getFullX(), getFullY(),
+					getFullWidth(), getFullHeight(),
+					getRotation(), r);
 }
 
 /*!
@@ -2002,7 +2000,7 @@ void fp_FrameContainer::getInkBounds(UT_Rect & r) const
  */
 void fp_FrameContainer::unrotatePoint(UT_sint32 & x, UT_sint32 & y) const
 {
-	double deg = const_cast<fp_FrameContainer *>(this)->getRotation();
+	double deg = getRotation();
 	if (deg == 0.0)
 		return;
 	double cx = getFullX() + getFullWidth() / 2.0;

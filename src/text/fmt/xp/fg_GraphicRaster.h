@@ -46,7 +46,7 @@ public:
 	virtual double		getWidth(void) const override;
 	virtual double		getHeight(void) const override;
 	virtual const char * getDataId(void) const override;
-	virtual const char * createDataItem(PD_Document *pDoc, const char * szName) const override;
+	[[nodiscard]] virtual const char * createDataItem(PD_Document *pDoc, const char * szName) const override;
 	virtual GR_Image*	regenerateImage(GR_Graphics* pG) override;
 	virtual GR_Image*	generateImage(GR_Graphics* pG,
 					      const PP_AttrProp * pSpanAP,

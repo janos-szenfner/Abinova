@@ -82,7 +82,7 @@ public:
 	virtual FG_ConstGraphicPtr   clone(void) const = 0;
     // return the buffer behind the image
 	virtual const UT_ConstByteBufPtr & getBuffer() const = 0;
-	virtual const char * createDataItem(PD_Document *pDoc, const char * szName) const = 0;
+	[[nodiscard]] virtual const char * createDataItem(PD_Document *pDoc, const char * szName) const = 0;
 	// Generate an image for display in the specified graphics object
         // Needs to be mutable.
 	virtual GR_Image* generateImage(GR_Graphics* pG,

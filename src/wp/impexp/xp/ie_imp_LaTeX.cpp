@@ -999,8 +999,11 @@ void IE_Imp_LaTeX::_emitImagePublic(const std::string & file)
 	};
 	if (!appendObject(PTO_Image, atts))
 		return;
-	getDoc()->createDataItem(dataid.c_str(), false, pfg->getBuffer(),
-							 pfg->getMimeType(), nullptr);
+	if (!getDoc()->createDataItem(dataid.c_str(), false, pfg->getBuffer(),
+								pfg->getMimeType(), nullptr))
+	{
+		UT_DEBUGMSG(("createDataItem %s failed\n", dataid.c_str()));
+	}
 }
 
 void IE_Imp_LaTeX::_resetLists(void)

@@ -54,7 +54,7 @@ public:
 	void		append(const char_type* sz, size_t n);
 	void		append(const UT_StringImpl<char_type>& rhs);
 
-	void		swap(UT_StringImpl<char_type>& rhs);
+	void		swap(UT_StringImpl<char_type>& rhs) noexcept;
 	void		clear();
 	void        reserve(size_t n);
 
@@ -274,7 +274,7 @@ void UT_StringImpl<char_type>::append(const UT_StringImpl<char_type>& rhs)
 }
 
 template <typename char_type>
-void UT_StringImpl<char_type>::swap(UT_StringImpl<char_type>& rhs)
+void UT_StringImpl<char_type>::swap(UT_StringImpl<char_type>& rhs) noexcept
 {
 	std::swap(m_psz , rhs.m_psz );
 	std::swap(m_pEnd, rhs.m_pEnd);

@@ -240,20 +240,29 @@ void ODi_Frame_ListenerState::endElement (const gchar* pName,
    	    UT_UTF8String PMathml = reinterpret_cast<const char*>((m_pMathBB->getPointer(0)));
 	    UT_UTF8String PLatex,Pitex;
 
-	    m_pAbiDocument->createDataItem(sID.c_str(), false, m_pMathBB, "", nullptr);
+	    if (!m_pAbiDocument->createDataItem(sID.c_str(), false, m_pMathBB, "", nullptr))
+	    {
+		UT_DEBUGMSG(("createDataItem %s failed\n", sID.c_str()));
+	    }
 
 	    if (!m_sPendingLatexSource.empty())
 	    {
 		// ODF round-trip: abiword:latex-source preserved the
 		// equation's own LaTeX - use it verbatim
 		latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(m_sPendingLatexSource.c_str()), static_cast<UT_uint32>(m_sPendingLatexSource.size()));
-		m_pAbiDocument->createDataItem(lID.c_str(), false, latexBuf, "", nullptr);
+		if (!m_pAbiDocument->createDataItem(lID.c_str(), false, latexBuf, "", nullptr))
+		{
+		    UT_DEBUGMSG(("createDataItem %s failed\n", lID.c_str()));
+		}
 	    }
 	    else if(convertMathMLtoLaTeX(PMathml, PLatex) && convertLaTeXtoEqn(PLatex,Pitex))
  	    {
 		// Conversion of MathML to LaTeX and the Equation Form suceeds
 		latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(Pitex.utf8_str()), static_cast<UT_uint32>(Pitex.size()));
-		m_pAbiDocument->createDataItem(lID.c_str(), false, latexBuf, "", nullptr);
+		if (!m_pAbiDocument->createDataItem(lID.c_str(), false, latexBuf, "", nullptr))
+		{
+		    UT_DEBUGMSG(("createDataItem %s failed\n", lID.c_str()));
+		}
     	    }
 
             PP_PropertyVector atts = {

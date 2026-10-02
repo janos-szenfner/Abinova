@@ -35,11 +35,11 @@ public:
 	virtual bool			clearClipboard(void);
 
 	virtual bool			addData(const char* format, const void* pData, UT_sint32 iNumBytes);
-	virtual bool			getClipboardData(const char* format, void ** ppData, UT_uint32 * pLen);
-	virtual bool			hasFormat(const char* format);
+	virtual bool			getClipboardData(const char* format, void ** ppData, UT_uint32 * pLen) const;
+	virtual bool			hasFormat(const char* format) const;
 
 protected:
-	_ClipboardItem*			_findFormatItem(const char*);
+	_ClipboardItem*			_findFormatItem(const char*) const;
 
 	UT_GenericVector<_ClipboardItem*> m_vecData;
 };

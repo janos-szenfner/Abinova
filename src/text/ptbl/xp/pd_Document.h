@@ -528,11 +528,11 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 
 	// data items
 
-	virtual bool			createDataItem(const char * szName, bool bBase64,
+	[[nodiscard]] virtual bool			createDataItem(const char * szName, bool bBase64,
                                            const UT_ConstByteBufPtr & pByteBuf,
 										   const std::string & mime_type,
                                            PD_DataItemHandle* ppHandle) override;
-	virtual bool            replaceDataItem(const char * szName,
+	[[nodiscard]] virtual bool            replaceDataItem(const char * szName,
 											const UT_ConstByteBufPtr & pByteBuf) override;
 	virtual bool			getDataItemDataByName(const char * szName,
 												  UT_ConstByteBufPtr & pByteBuf,

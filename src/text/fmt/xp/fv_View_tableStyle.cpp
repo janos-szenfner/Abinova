@@ -98,7 +98,7 @@ static bool fv_snapshotAP(PD_Document * doc, const pf_Frag_Strux * sdh,
 	return true;
 }
 
-static UT_sint32 fv_attachInt(FV_View * view, PD_Document * doc,
+static UT_sint32 fv_attachInt(const FV_View * view, const PD_Document * doc,
 							  const pf_Frag_Strux * sdh,
 							  const char * att, UT_sint32 dflt)
 {
@@ -118,7 +118,7 @@ static UT_sint32 fv_attachInt(FV_View * view, PD_Document * doc,
  * inside the anchor's table (whole-cell selections sit the anchor on
  * the strux itself), or the first table fully inside the selection
  * range (select-all / drags spanning the whole table) */
-static const pf_Frag_Strux * fv_tableSDH(FV_View * view, PD_Document * doc)
+static const pf_Frag_Strux * fv_tableSDH(const FV_View * view, const PD_Document * doc)
 {
 	const pf_Frag_Strux * tableSDH = nullptr;
 	if (doc->getStruxOfTypeFromPosition(view->getPoint(),
@@ -157,7 +157,7 @@ static const pf_Frag_Strux * fv_tableSDH(FV_View * view, PD_Document * doc)
 	return nullptr;
 }
 
-static bool fv_enumTable(FV_View * view, PD_Document * doc,
+static bool fv_enumTable(const FV_View * view, const PD_Document * doc,
 						 FV_TblCells & out)
 {
 	UT_return_val_if_fail(view && doc, false);
@@ -177,7 +177,7 @@ static bool fv_enumTable(FV_View * view, PD_Document * doc,
 
 	/* collect every cell strux between the table markers; row/col
 	 * come from the *-attach attributes (grid coordinates) */
-	for (pf_Frag * pf = const_cast<pf_Frag_Strux*>(tableSDH)->getNext();
+	for (const pf_Frag * pf = tableSDH->getNext();
 		 pf && pf != endSDH; pf = pf->getNext())
 	{
 		if (pf->getType() != pf_Frag::PFT_Strux)
@@ -191,7 +191,7 @@ static bool fv_enumTable(FV_View * view, PD_Document * doc,
 				doc->getEndTableStruxFromTableStrux(sdh);
 			if (nestEnd)
 			{
-				pf = const_cast<pf_Frag_Strux*>(nestEnd);
+				pf = nestEnd;
 				continue;
 			}
 		}
@@ -514,7 +514,7 @@ bool FV_View::getTablePen(std::string & sStyle, std::string & sThickness,
 std::string FV_View::getTableStyleId() const
 {
 	const pf_Frag_Strux * tableSDH =
-		fv_tableSDH(const_cast<FV_View*>(this), m_pDoc);
+		fv_tableSDH(this, m_pDoc);
 	if (!tableSDH)
 		return "";
 	const gchar * v = nullptr;
@@ -528,7 +528,7 @@ std::string FV_View::getTableStyleId() const
 std::string FV_View::getTableStyleLook() const
 {
 	const pf_Frag_Strux * tableSDH =
-		fv_tableSDH(const_cast<FV_View*>(this), m_pDoc);
+		fv_tableSDH(this, m_pDoc);
 	if (!tableSDH)
 		return "";
 	const gchar * v = nullptr;

@@ -322,12 +322,13 @@ void GR_GtkMathManager::makeSnapShot(UT_sint32 uid, UT_Rect & /*rec*/)
 		    !memcmp(pOld->getPointer(0), pBuf->getPointer(0),
 		            pBuf->getLength()))
 			return;
-		m_pDoc->replaceDataItem(sID.utf8_str(), UT_ConstByteBufPtr(pBuf));
+		if (!m_pDoc->replaceDataItem(sID.utf8_str(), UT_ConstByteBufPtr(pBuf)))
+			it->hasSnap = false;
 	}
 	else {
-		m_pDoc->createDataItem(sID.utf8_str(), false,
-		                       UT_ConstByteBufPtr(pBuf), mime, nullptr);
-		it->hasSnap = true;
+		if (m_pDoc->createDataItem(sID.utf8_str(), false,
+		                           UT_ConstByteBufPtr(pBuf), mime, nullptr))
+			it->hasSnap = true;
 	}
 }
 

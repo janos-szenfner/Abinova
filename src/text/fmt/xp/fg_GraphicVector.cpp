@@ -258,7 +258,10 @@ const char *  FG_GraphicVector::createDataItem(PD_Document *pDoc, const char * s
 {
 	UT_return_val_if_fail(pDoc,nullptr);
 	UT_ASSERT(szName);
-	pDoc->createDataItem(szName, false, m_pbbSVG, getMimeType(), nullptr);
+	if (!pDoc->createDataItem(szName, false, m_pbbSVG, getMimeType(), nullptr))
+	{
+		return nullptr;
+	}
 	return szName;
 }
 
@@ -277,7 +280,10 @@ UT_Error FG_GraphicVector::insertIntoDocument(PD_Document* pDoc, UT_uint32 res,
 	/*
 	  Create the data item
 	*/
-	pDoc->createDataItem(szName, false, m_pbbSVG, getMimeType(), nullptr);
+	if (!pDoc->createDataItem(szName, false, m_pbbSVG, getMimeType(), nullptr))
+	{
+		return UT_ERROR;
+	}
 
 	std::string szProps;
 
@@ -313,7 +319,10 @@ UT_Error FG_GraphicVector::insertAtStrux(PD_Document* pDoc,
 	  Create the data item
 	*/
 	const std::string mimetype = "image/svg+xml";
-	pDoc->createDataItem(szName, false, m_pbbSVG, mimetype, nullptr);
+	if (!pDoc->createDataItem(szName, false, m_pbbSVG, mimetype, nullptr))
+	{
+		return UT_ERROR;
+	}
 
 
 	/*

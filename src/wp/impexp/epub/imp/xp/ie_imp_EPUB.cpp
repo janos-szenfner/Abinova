@@ -625,14 +625,13 @@ const std::string & ContainerListener::getRootFilePath() const
         if (UT_go_utf8_collate_casefold(i->second.c_str(),
                 "application/oebps-package+xml") == 0)
         {
-            const_cast<ContainerListener*>(this)->m_rootFilePath = i->first;
+            m_rootFilePath = i->first;
             return m_rootFilePath;
         }
     }
     if (!m_rootFiles.empty())
     {
-        const_cast<ContainerListener*>(this)->m_rootFilePath =
-                m_rootFiles.begin()->first;
+        m_rootFilePath = m_rootFiles.begin()->first;
     }
     return m_rootFilePath;
 }
