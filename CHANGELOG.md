@@ -2677,6 +2677,17 @@ below are on `main` but the release has not been cut yet.
   only.  Signal-context shared state is already POSIX-correct
   (`volatile sig_atomic_t`, from the CON01 pass).  No changes
   needed.
+- **Volatile-as-sync audit (CON04)** — swept `src/`,
+  `thirdparty/` and `test/` for `volatile` used as a cross-thread
+  flag: none exists.  The only real `volatile` uses are the two
+  signal-handler flags made `volatile sig_atomic_t` in CON01
+  (`s_signal_count` in `AP_UnixApp::catchSignals`, `trap_reached`
+  in `ut_unixAssert.cpp`), which is the correct POSIX idiom —
+  `std::atomic` is not required there and only
+  `std::atomic_flag` is guaranteed signal-safe anyway.  The lone
+  worker thread (update-check `GTask`, CON01–03) shares no
+  mutable state, so there is nothing to migrate.  No changes
+  needed.
 
 ### GTK4 port (core migration)
 
