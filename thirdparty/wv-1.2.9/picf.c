@@ -109,7 +109,40 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 
     i = 0;
 
-    if (apicf->mfp_mm < 90){
+    /* the payload of a Word8 PICFAndOfficeArtData (MS-DOC 2.9.191)
+       is an OfficeArtInlineSpContainer -- a ver==0xF container, an
+       msofbtBSE atom or a bare OfficeArtBlip record.  Pre-Word8
+       metafile/bitmap payloads (usually behind the 0x00090001 "old
+       graphic" header) can appear in Word8 files too, so dispatch on
+       the payload bytes rather than on mfp_mm alone */
+    {
+	U32 remaining = apicf->lcb - apicf->cbHeader;
+	int is_escher = 0;
+
+	/* for MM_SHAPEFILE (0x66) a counted picture name precedes the
+	   OfficeArtInlineSpContainer */
+	if (apicf->mfp_mm == 0x66 && remaining > 0)
+	  {
+	      U32 namelen = read_8ubit (fd);
+	      remaining--;
+	      if (namelen > remaining)
+		  namelen = remaining;
+	      wvStream_offset (fd, namelen);
+	      remaining -= namelen;
+	  }
+
+	if (apicf->mfp_mm >= 90 && remaining >= 8)
+	  {
+	      long savepos = wvStream_tell (fd);
+	      U16 w0 = read_16ubit (fd);
+	      U16 w1 = read_16ubit (fd);
+	      wvStream_goto (fd, savepos);
+	      is_escher =
+		  ((w0 & 0x000F) == 0x000F || w1 == msofbtBSE
+		   || (w1 >= msofbtBlipFirst && w1 <= 0xF117));
+	  }
+
+	if (!is_escher){
 	  MSOFBH bse_pic_amsofbh;
 	  size_t lHeaderSize;
 	  size_t lWordStructsSize;
@@ -126,8 +159,7 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 	  pWordStructs = pHeader = 0;
 
 	  wvTrace (("test\n"));
-	  len = apicf->lcb - apicf->cbHeader;
-	  
+	  len = remaining;
 	  /*lvm007@aha.ru store*/
 	  pos = wvStream_tell (fd);
 
@@ -227,21 +259,10 @@ wvGetPICF (wvVersion ver, PICF * apicf, wvStream * fd)
 	  wvFree(pHeader);
 	}
 	else{
-		U32 remaining = apicf->lcb - apicf->cbHeader;
-		/* for MM_SHAPEFILE (0x66) a counted picture name precedes
-		   the OfficeArtInlineSpContainer */
-		if (apicf->mfp_mm == 0x66 && remaining > 0)
-		{
-			U32 namelen = read_8ubit (fd);
-			remaining--;
-			if (namelen > remaining)
-				namelen = remaining;
-			wvStream_offset (fd, namelen);
-			remaining -= namelen;
-		}
  		size = remaining;
 		p = buf = wvMalloc(size);
 	}
+    }
 
 	for (; i < apicf->lcb - apicf->cbHeader && (U32)(p - buf) < size; i++)
 	  *p++ = read_8ubit (fd);

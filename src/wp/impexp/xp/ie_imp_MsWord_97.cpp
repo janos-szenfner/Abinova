@@ -2161,6 +2161,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 	switch (eachchar)
 	{
 	case 0x01: // Older ( < Word97) image, currently not handled very well
+	{
 		if (achp->fOle2) {
 			UT_DEBUGMSG(("embedded OLE2 component. currently unsupported"));
 			return 0;
@@ -2185,16 +2186,43 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 						   ps->data) && nullptr != picf.rgb)
 		{
 			fil = picf.rgb;
+			FOPTE * shapeprops = nullptr;
 
-			if (wv0x01(&blip, fil, wvStream_size(fil), ps->data))
+			if (wv0x01(&blip, fil, wvStream_size(fil), ps->data,
+					   &shapeprops))
 			{
-				this->_handleImage(&blip, picf.mx * picf.dxaGoal / 1000, picf.my * picf.dyaGoal / 1000, picf.dyaCropTop, picf.dyaCropBottom, picf.dxaCropLeft, picf.dxaCropRight);
+				/* legacy PICF crops come straight from the
+				 * header; in Word8 those fields are reserved
+				 * and the inline shape's OPT cropFrom* props
+				 * (16.16 fractions of the source image,
+				 * MS-ODRAW 2.3.18) carry the real crop --
+				 * scale them against the pre-crop goal size */
+				long cropt = picf.dyaCropTop;
+				long cropb = picf.dyaCropBottom;
+				long cropl = picf.dxaCropLeft;
+				long cropr = picf.dxaCropRight;
+				U32 v = 0;
+				if (s_getOPTProp(shapeprops, cropFromTop, v))
+					cropt = static_cast<long>(
+						picf.dyaGoal * static_cast<S32>(v) / 65536.0);
+				if (s_getOPTProp(shapeprops, cropFromBottom, v))
+					cropb = static_cast<long>(
+						picf.dyaGoal * static_cast<S32>(v) / 65536.0);
+				if (s_getOPTProp(shapeprops, cropFromLeft, v))
+					cropl = static_cast<long>(
+						picf.dxaGoal * static_cast<S32>(v) / 65536.0);
+				if (s_getOPTProp(shapeprops, cropFromRight, v))
+					cropr = static_cast<long>(
+						picf.dxaGoal * static_cast<S32>(v) / 65536.0);
+				this->_handleImage(&blip, picf.mx * picf.dxaGoal / 1000, picf.my * picf.dyaGoal / 1000, cropt, cropb, cropl, cropr);
 			}
 			else
 			{
 				UT_DEBUGMSG(("Dom: no graphic data\n"));
 			}
 
+			wvReleaseFOPTEArray(&shapeprops);
+			wvStream_close(fil);
 			wvStream_goto(ps->data, pos);
 
 			return 0;
@@ -2210,6 +2238,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 		return 0;
 #endif
 		break;
+	}
 	case 0x08: // Word 97, 2000, XP image
 		return _specCharImage08 (ps);
 	}
@@ -2542,6 +2571,37 @@ int IE_Imp_MsWord_97::_specCharImage08 (wvParseStruct *ps)
 					{
 						pszLineStyle = "double";
 						bLineDefined = true;
+					}
+					/* picture crop: cropFrom* are 16.16
+					 * fractions of the source image
+					 * (MS-ODRAW 2.3.18.1-4); the frame
+					 * renders crops via image-src-rect
+					 * "l t r b" in 1000ths of a
+					 * percent */
+					if(bPositionObject)
+					{
+						static const U32 sCropPids[4] = {
+							cropFromLeft, cropFromTop,
+							cropFromRight, cropFromBottom };
+						long crop[4] = {0, 0, 0, 0};
+						bool bCrop = false;
+						for(int c = 0; c < 4; c++)
+						{
+							if(s_getOPTProp(answer->fopte,
+										sCropPids[c], v))
+							{
+								crop[c] = static_cast<long>(
+									static_cast<S32>(v)) * 100000 / 65536;
+								bCrop = true;
+							}
+						}
+						if(bCrop)
+						{
+							sProps += "; image-src-rect:";
+							sProps += UT_std_string_sprintf(
+								"%ld %ld %ld %ld",
+								crop[0], crop[1], crop[2], crop[3]);
+						}
 					}
 				}
 
@@ -5102,6 +5162,7 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 	char *data = new char[size];
 	wvStream_rewind(pwv);
 	wvStream_read(data,size,sizeof(char),pwv);
+	wvStream_close(pwv);
 
 	UT_ByteBufPtr pictData(new UT_ByteBuf);
 	if (decompress)
@@ -5246,6 +5307,7 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
   char *data = new char[size];
   wvStream_rewind(pwv);
   wvStream_read(data,size,sizeof(char),pwv);
+  wvStream_close(pwv);
 
   UT_ByteBufPtr pictData(new UT_ByteBuf);
 

@@ -3459,6 +3459,22 @@ below are on `main` but the release has not been cut yet.
   `doc07_float.doc` layout hang is pinned under
   `fuzz/regress/doc/` until DOC19 fixes it.
 
+- **Legacy pre-Word97 pictures import from `.doc`** — the
+  `SUPPORTS_OLD_IMAGES` path now actually works end to end:
+  `wvGetPICF` dispatches on the payload bytes (an
+  OfficeArtInlineSpContainer/BSE/blip record means the Word8 path,
+  anything else means the pre-97 "old graphic" header + raw
+  bitmap/metafile path) instead of trusting `mfp_mm`, and the
+  vendored wv build gained `MATCHED_TYPE` for little-endian hosts so
+  `write_*ubit` stops emitting byte-swapped headers in the escher
+  wrapper it synthesizes around legacy picture data. Crop and scale
+  are honored too: PICF goal size × mx/my scale and legacy header
+  crops are imported, the inline shape's OfficeArt `cropFrom*`
+  properties are mapped to the image crop attributes, and floating
+  images get `cropFrom*` mapped to the frame's `image-src-rect`.
+  A per-picture stream leak in the importer was closed along the
+  way.
+
 ### Resolved root causes worth noting
 
 - **"double free or corruption" after ODF export** — was a stale

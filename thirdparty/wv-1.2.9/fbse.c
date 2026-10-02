@@ -65,58 +65,74 @@ wvReleaseBlip (Blip * blip)
 }
 
 /*
-  Read one OfficeArtBlip record (header + payload) from fd into blip.
-  Returns bytes consumed.  Unknown record types are skipped so the
-  caller's stream stays aligned; blip->type is msoblipERROR then.
+  Read the payload of one OfficeArtBlip record whose header (amsofbh)
+  has already been consumed from fd.  Returns payload bytes consumed.
+  Unknown record types are skipped so the caller's stream stays
+  aligned; blip->type is msoblipERROR then.
 */
 static U32
-wvGetBlipData (Blip * blip, wvStream * fd)
+wvGetBlipPayload (Blip * blip, MSOFBH * amsofbh, wvStream * fd)
 {
-    MSOFBH amsofbh;
-    U32 count2;
+    U32 count2 = 0;
     U16 type;
 
-    count2 = wvGetMSOFBH (&amsofbh, fd);
     wvTrace (
-	     ("HERE is %x %x (%d)\n", wvStream_tell (fd), amsofbh.fbt,
-	      amsofbh.fbt - msofbtBlipFirst));
-    type = (U16) (amsofbh.fbt - msofbtBlipFirst);
+	     ("HERE is %x %x (%d)\n", wvStream_tell (fd), amsofbh->fbt,
+	      amsofbh->fbt - msofbtBlipFirst));
+    type = (U16) (amsofbh->fbt - msofbtBlipFirst);
     switch (type)
       {
       case msoblipWMF:
       case msoblipEMF:
       case msoblipPICT:
-	  count2 += wvGetMetafile (&blip->blip.metafile, &amsofbh, fd);
+	  count2 += wvGetMetafile (&blip->blip.metafile, amsofbh, fd);
 	  blip->type = type;
 	  break;
       case msoblipJPEG:
       case msoblipPNG:
       case msoblipDIB:
-	  count2 += wvGetBitmap (&blip->blip.bitmap, &amsofbh, fd);
+	  count2 += wvGetBitmap (&blip->blip.bitmap, amsofbh, fd);
 	  blip->type = type;
 	  break;
       default:
 	  /* not a blip we can use (TIFF, client blips, or a misparse):
 	     eat the record so the caller's stream stays aligned */
 	  blip->type = msoblipERROR;
-	  wvStream_offset (fd, amsofbh.cbLength);
-	  count2 += amsofbh.cbLength;
+	  wvStream_offset (fd, amsofbh->cbLength);
+	  count2 += amsofbh->cbLength;
 	  break;
       }
     return (count2);
 }
 
 /*
+  Read one OfficeArtBlip record (header + payload) from fd into blip.
+  Returns bytes consumed.
+*/
+static U32
+wvGetBlipData (Blip * blip, wvStream * fd)
+{
+    MSOFBH amsofbh;
+    U32 count2;
+
+    count2 = wvGetMSOFBH (&amsofbh, fd);
+    count2 += wvGetBlipPayload (blip, &amsofbh, fd);
+    return (count2);
+}
+
+/*
   Read a bare OfficeArtBlip record (0xF018-0xF117) -- the kind stored
   directly in an OfficeArtBStoreContainerFileBlock or in the rgfb of
-  an OfficeArtInlineSpContainer, i.e. without a wrapping FBSE.
+  an OfficeArtInlineSpContainer, i.e. without a wrapping FBSE.  The
+  caller has already consumed the record header; it is passed in via
+  amsofbh so only the payload is read here.
 */
 U32
-wvGetBlipRecord (Blip * blip, wvStream * fd)
+wvGetBlipRecord (Blip * blip, MSOFBH * amsofbh, wvStream * fd)
 {
     memset (&blip->fbse, 0, sizeof (FBSE));
     blip->name = NULL;
-    return wvGetBlipData (blip, fd);
+    return wvGetBlipPayload (blip, amsofbh, fd);
 }
 
 U32

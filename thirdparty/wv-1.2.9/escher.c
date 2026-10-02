@@ -243,8 +243,8 @@ wvGetBstoreContainer (BstoreContainer * item, MSOFBH * msofbh, wvStream * fd,
 			  (Blip *) realloc (item->blip,
 					    sizeof (Blip) * item->no_fbse);
 		      item->blip[item->no_fbse - 1].fbse.cbName = 0;
-		      wvGetBlipRecord (&(item->blip[item->no_fbse - 1]), fd);
-		      /* wvGetBlipData already consumed header+payload */
+		      wvGetBlipRecord (&(item->blip[item->no_fbse - 1]),
+				       &amsofbh, fd);
 		  }
 		else
 		  {
@@ -595,7 +595,8 @@ wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
   recursed into, everything else is skipped in place.
 */
 static int
-wvFindBlipInRegion (Blip * blip, wvStream * fd, U32 len, wvStream * delay)
+wvFindBlipInRegion (Blip * blip, wvStream * fd, U32 len, wvStream * delay,
+		    FOPTE ** shapeprops)
 {
     MSOFBH amsofbh;
     U32 count = 0;
@@ -617,14 +618,22 @@ wvFindBlipInRegion (Blip * blip, wvStream * fd, U32 len, wvStream * delay)
 	  else if (amsofbh.fbt >= msofbtBlipFirst && amsofbh.fbt <= 0xF117)
 	    {
 		wvTrace (("Bare blip at %x\n", wvStream_tell (fd)));
-		count += wvGetBlipRecord (blip, fd);
+		count += wvGetBlipRecord (blip, &amsofbh, fd);
 		ret = 1;
+	    }
+	  else if (amsofbh.fbt == msofbtOPT && shapeprops && !*shapeprops)
+	    {
+		/* the first OPT record in a picture region is the
+		   picture shape's property table: hang on to it so the
+		   caller can read size/crop/geometry props */
+		count += wvGetFOPTEArray (shapeprops, &amsofbh, fd);
 	    }
 	  else if (amsofbh.ver == 0xF)
 	    {
 		/* container: recurse into it */
 		wvTrace (("Container at %x\n", wvStream_tell (fd)));
-		if (wvFindBlipInRegion (blip, fd, amsofbh.cbLength, delay))
+		if (wvFindBlipInRegion (blip, fd, amsofbh.cbLength, delay,
+					shapeprops))
 		    ret = 1;
 	    }
 	  else
@@ -640,12 +649,15 @@ wvFindBlipInRegion (Blip * blip, wvStream * fd, U32 len, wvStream * delay)
 }
 
 int
-wv0x01 (Blip * blip, wvStream * fd, U32 len, wvStream * delay)
+wv0x01 (Blip * blip, wvStream * fd, U32 len, wvStream * delay,
+	FOPTE ** shapeprops)
 {
+    if (shapeprops)
+	*shapeprops = NULL;
     if (fd == NULL)
 	return (0);
 
-    return wvFindBlipInRegion (blip, fd, len, delay);
+    return wvFindBlipInRegion (blip, fd, len, delay, shapeprops);
 }
 
 U32
