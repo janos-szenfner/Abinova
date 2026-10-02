@@ -1872,6 +1872,14 @@ below are on `main` but the release has not been cut yet.
   `Content-ID` regardless of `<>` brackets, whitespace or %-encoding,
   with a `Content-Location` fallback that accepts absolute-vs-relative
   URLs — so a save/reimport round-trip keeps embedded images.
+- **MHTML import uses far less memory** — the importer no longer loads
+  the whole archive into memory: it streams the input with a small
+  read-ahead window, locates part bodies by scanning for delimiter
+  lines, and records each body as a byte range into the input. The
+  HTML part and images are then read and transfer-decoded lazily, only
+  when actually referenced — embedded resources the document never
+  uses are never decoded at all. Peak memory use on a 20 MB archive
+  dropped by about a quarter.
 - **EPUB import hardened** — the importer now percent-decodes and
   normalizes rootfile paths and manifest hrefs (so OPF files at the
   archive root, `%20`-style names and `..`-relative chapters resolve),

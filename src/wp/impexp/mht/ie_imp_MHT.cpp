@@ -213,7 +213,10 @@ class UT_MHTStream
 {
 public:
 	UT_MHTStream () :
-		m_pos(0),
+		m_input(nullptr),
+		m_size(0),
+		m_rdPos(0),
+		m_rdBase(0),
 		m_partHeaderIdx(0),
 		m_multipart(false),
 		m_pendingBoundary(false),
@@ -230,7 +233,7 @@ public:
 
 	bool nextPart ();
 	bool nextHeader (std::string & name, std::string & value);
-	bool nextBody (std::string & body);
+	bool nextBody (gsf_off_t & start, gsf_off_t & len);
 
 private:
 	bool readLine (std::string & out);
@@ -238,8 +241,25 @@ private:
 	void parseHeaders (std::vector<std::pair<std::string,std::string> > & out);
 	static std::string getMIMEParam (const std::string & header, const char * param);
 
-	std::string m_data;
-	size_t m_pos;
+	// raw-input access -----------------------------------------------------
+	// The archive is never slurped into memory: readLine serves header lines
+	// from a small read-ahead window over the input, and part bodies are
+	// located by scanning for delimiter lines (see scanBoundary) and returned
+	// as input byte ranges.
+
+	bool		fillReadBuf ();
+	gsf_off_t	curPos () const { return m_rdBase + static_cast<gsf_off_t>(m_rdPos); }
+	void		rewindTo (gsf_off_t off);
+	gsf_off_t	readAt (gsf_off_t off, char * buf, gsf_off_t len);
+	bool		matchAt (gsf_off_t pos, gsf_off_t & end, bool & closing);
+	bool		scanBoundary (gsf_off_t from, gsf_off_t & dStart, gsf_off_t & dEnd, bool & closing);
+
+	GsfInput *	m_input;	// borrowed — owned by the importer
+	gsf_off_t	m_size;
+
+	std::string	m_rd;			// read-ahead window [m_rdBase, m_rdBase+size)
+	size_t		m_rdPos;		// consumed prefix of m_rd
+	gsf_off_t	m_rdBase;		// absolute input offset of m_rd[0]
 
 	std::vector<std::pair<std::string,std::string> > m_headers;
 	std::vector<std::pair<std::string,std::string> > m_partHeaders;
@@ -252,28 +272,73 @@ private:
 	bool m_pendingClosing;
 };
 
+static const gsf_off_t RD_CHUNK = 8192;
+static const gsf_off_t SCAN_CHUNK = 65536;
+
+/* Unbuffered absolute read: up to len bytes of the input at off.
+ * Returns the byte count actually obtained. Seeks explicitly so it is
+ * safe to interleave with the buffered line reader.
+ */
+gsf_off_t UT_MHTStream::readAt (gsf_off_t off, char * buf, gsf_off_t len)
+{
+	if (off < 0 || off >= m_size || len <= 0) return 0;
+	if (len > m_size - off) len = m_size - off;
+
+	gsf_input_seek (m_input, off, G_SEEK_SET);
+	gsf_off_t got = 0;
+	while (got < len)
+		{
+			gsf_off_t before = gsf_input_remaining (m_input);
+			if (!gsf_input_read (m_input, static_cast<size_t>(len - got),
+								 reinterpret_cast<guint8 *>(buf) + got)) break;
+			gsf_off_t now = gsf_input_remaining (m_input);
+			if (now >= before) break;
+			got += before - now;
+		}
+	return got;
+}
+
+/* Refill the line-reader window with the next RD_CHUNK bytes when it is
+ * fully consumed.
+ */
+bool UT_MHTStream::fillReadBuf ()
+{
+	if (m_rdPos < m_rd.size()) return true;
+
+	gsf_off_t at = curPos ();
+	if (at >= m_size) return false;
+
+	gsf_off_t want = RD_CHUNK;
+	if (want > m_size - at) want = m_size - at;
+
+	m_rd.resize (static_cast<size_t>(want));
+	m_rdPos = 0;
+	gsf_off_t got = readAt (at, &m_rd[0], want);
+	m_rd.resize (static_cast<size_t>(got));
+	m_rdBase = at;
+	return got > 0;
+}
+
+void UT_MHTStream::rewindTo (gsf_off_t off)
+{
+	m_rd.clear ();
+	m_rdPos = 0;
+	m_rdBase = off;
+}
+
 bool UT_MHTStream::open (GsfInput * input)
 {
+	m_input = input;
 	gsf_input_seek (input, 0, G_SEEK_SET);
 
-	gsf_off_t size = gsf_input_remaining (input);
-	if (size <= 0) return false;
-
-	m_data.resize (static_cast<size_t>(size));
-
-	gsf_off_t done = 0;
-	while (done < size &&
-		   gsf_input_read (input, static_cast<size_t>(size - done),
-						   reinterpret_cast<guint8 *>(&m_data[done])))
-		done = size - gsf_input_remaining (input);
-	m_data.resize (static_cast<size_t>(done));
-	if (done == 0)
+	m_size = gsf_input_remaining (input);
+	if (m_size <= 0)
 		{
-			m_data.clear ();
+			m_input = nullptr;
 			return false;
 		}
 
-	m_pos = 0;
+	rewindTo (0);
 	parseHeaders (m_headers);
 
 	for (auto & h : m_headers)
@@ -297,11 +362,14 @@ bool UT_MHTStream::open (GsfInput * input)
 
 void UT_MHTStream::close ()
 {
-	m_data.clear ();
+	m_input = nullptr;
+	m_size = 0;
+	m_rd.clear ();
+	m_rdPos = 0;
+	m_rdBase = 0;
 	m_headers.clear ();
 	m_partHeaders.clear ();
 	m_boundary.clear ();
-	m_pos = 0;
 	m_partHeaderIdx = 0;
 	m_multipart = false;
 	m_pendingBoundary = false;
@@ -311,22 +379,23 @@ void UT_MHTStream::close ()
 bool UT_MHTStream::readLine (std::string & out)
 {
 	out.clear ();
-	if (m_pos >= m_data.size()) return false;
+	while (true)
+		{
+			if (m_rdPos >= m_rd.size() && !fillReadBuf ())
+				return !out.empty();
 
-	size_t start = m_pos;
-	size_t nl = m_data.find ('\n', m_pos);
-	if (nl == std::string::npos)
-		{
-			m_pos = m_data.size();
-			out.assign (m_data, start, m_data.size() - start);
+			size_t nl = m_rd.find ('\n', m_rdPos);
+			if (nl == std::string::npos)
+				{
+					out.append (m_rd, m_rdPos, m_rd.size() - m_rdPos);
+					m_rdPos = m_rd.size();
+					continue;
+				}
+			out.append (m_rd, m_rdPos, nl - m_rdPos);
+			m_rdPos = nl + 1;
+			if (!out.empty() && out.back() == '\r') out.pop_back();
+			return true;
 		}
-	else
-		{
-			out.assign (m_data, start, nl - start);
-			m_pos = nl + 1;
-		}
-	if (!out.empty() && out.back() == '\r') out.pop_back();
-	return true;
 }
 
 bool UT_MHTStream::isBoundaryLine (const std::string & line, bool & closing) const
@@ -353,7 +422,6 @@ void UT_MHTStream::parseHeaders (std::vector<std::pair<std::string,std::string> 
 
 	while (true)
 		{
-			size_t linestart = m_pos;
 			if (!readLine (line)) break;
 			if (line.empty()) break;
 
@@ -361,8 +429,10 @@ void UT_MHTStream::parseHeaders (std::vector<std::pair<std::string,std::string> 
 			if (isBoundaryLine (line, closing))
 				{
 					// a delimiter directly after headers (no blank line):
-					// rewind so nextBody/nextPart can see it
-					m_pos = linestart;
+					// this part has no body — remember the already-consumed
+					// delimiter so nextPart can pick it up
+					m_pendingBoundary = true;
+					m_pendingClosing = closing;
 					break;
 				}
 
@@ -423,6 +493,114 @@ std::string UT_MHTStream::getMIMEParam (const std::string & header, const char *
 	return std::string ();
 }
 
+/* Verify a delimiter line at absolute offset pos: m_boundary followed by an
+ * optional "--" close marker, optional transport-padding WSP, then EOL or
+ * EOF. On success end is the offset just past the line's EOL.
+ */
+bool UT_MHTStream::matchAt (gsf_off_t pos, gsf_off_t & end, bool & closing)
+{
+	closing = false;
+	const gsf_off_t blen = static_cast<gsf_off_t>(m_boundary.size());
+
+	// compare the boundary bytes in bounded slabs (producer-chosen length)
+	char buf[256];
+	gsf_off_t off = 0;
+	while (off < blen)
+		{
+			gsf_off_t n = blen - off;
+			if (n > static_cast<gsf_off_t>(sizeof (buf))) n = sizeof (buf);
+			if (readAt (pos + off, buf, n) != n) return false;
+			if (memcmp (buf, m_boundary.data() + off, static_cast<size_t>(n)) != 0) return false;
+			off += n;
+		}
+
+	gsf_off_t q = pos + blen;
+	char c[2];
+	if (readAt (q, c, 2) == 2 && c[0] == '-' && c[1] == '-')
+		{
+			closing = true;
+			q += 2;
+		}
+	while (true)
+		{
+			if (readAt (q, c, 1) != 1)
+				{
+					end = q; // EOF right after the delimiter
+					return true;
+				}
+			if (c[0] == ' ' || c[0] == '\t')
+				{
+					q++;
+					continue;
+				}
+			if (c[0] == '\r')
+				{
+					q++;
+					if (readAt (q, c, 1) == 1 && c[0] == '\n') q++;
+					end = q;
+					return true;
+				}
+			if (c[0] == '\n')
+				{
+					end = q + 1;
+					return true;
+				}
+			return false;
+		}
+}
+
+/* Scan the input from `from` for the next delimiter line — the boundary
+ * string at a line start (first byte of the archive counts) with a valid
+ * tail per matchAt. Returns true with dStart = offset of the boundary
+ * bytes and dEnd = offset just past the delimiter line's EOL; the '\n'
+ * ending the previous line is left for the caller's body-end computation.
+ */
+bool UT_MHTStream::scanBoundary (gsf_off_t from, gsf_off_t & dStart,
+								 gsf_off_t & dEnd, bool & closing)
+{
+	gsf_off_t base = from;
+	bool candidateNext = (from == 0);
+	if (!candidateNext)
+		{
+			// `from` itself is a line start iff the preceding byte is '\n'
+			char c;
+			candidateNext = (readAt (from - 1, &c, 1) == 1 && c == '\n');
+		}
+
+	std::string chunk (static_cast<size_t>(SCAN_CHUNK), '\0');
+	while (base < m_size)
+		{
+			gsf_off_t want = SCAN_CHUNK;
+			if (want > m_size - base) want = m_size - base;
+
+			gsf_off_t got = readAt (base, &chunk[0], want);
+			if (got <= 0) break;
+
+			const char * d = chunk.data();
+			if (candidateNext && d[0] == m_boundary[0] &&
+				matchAt (base, dEnd, closing))
+				{
+					dStart = base;
+					return true;
+				}
+			for (gsf_off_t i = 0; i < got; i++)
+				{
+					if (d[i] != '\n') continue;
+					gsf_off_t cand = base + i + 1;
+					if (cand >= m_size) break;
+					if (i + 1 < got && d[i + 1] != m_boundary[0]) continue;
+					if (matchAt (cand, dEnd, closing))
+						{
+							dStart = cand;
+							return true;
+						}
+				}
+			candidateNext = (d[got - 1] == '\n');
+			base += got;
+		}
+	return false;
+}
+
 bool UT_MHTStream::nextPart ()
 {
 	if (!m_multipart) return false;
@@ -434,21 +612,13 @@ bool UT_MHTStream::nextPart ()
 		}
 	else
 		{
-			// scan for next boundary line (skips preamble / skipped part bodies)
-			std::string line;
+			// scan for the next delimiter line (skips preamble / skipped
+			// part bodies)
+			gsf_off_t dStart, dEnd;
 			bool closing;
-			bool found = false;
-
-			while (readLine (line))
-				{
-					if (isBoundaryLine (line, closing))
-						{
-							if (closing) return false;
-							found = true;
-							break;
-						}
-				}
-			if (!found) return false;
+			if (!scanBoundary (curPos (), dStart, dEnd, closing)) return false;
+			rewindTo (dEnd);
+			if (closing) return false;
 		}
 	m_partHeaders.clear ();
 	m_partHeaderIdx = 0;
@@ -465,60 +635,45 @@ bool UT_MHTStream::nextHeader (std::string & name, std::string & value)
 	return true;
 }
 
-bool UT_MHTStream::nextBody (std::string & out)
+/* Return the current part's raw (undecoded) body as a byte range into the
+ * archive input — no bytes are copied or held. Consumes the terminating
+ * delimiter.
+ */
+bool UT_MHTStream::nextBody (gsf_off_t & start, gsf_off_t & len)
 {
-	out.clear ();
+	start = -1;
+	len = 0;
 	if (!m_multipart || m_boundary.empty() || m_pendingBoundary) return false;
 
-	size_t start = m_pos;
-	size_t cursor = m_pos;
+	gsf_off_t bodystart = curPos ();
 
-	while (cursor < m_data.size())
+	gsf_off_t dStart, dEnd;
+	bool closing;
+	if (!scanBoundary (bodystart, dStart, dEnd, closing))
 		{
-			// a delimiter is "--boundary" at a line start, followed by an
-			// optional "--" close marker, optional WSP, then EOL/EOF
-			size_t pos = m_data.find (m_boundary, cursor);
-			if (pos == std::string::npos) break;
-			if (pos != 0 && m_data[pos - 1] != '\n')
-				{
-					cursor = pos + 1;
-					continue;
-				}
-
-			size_t rest = pos + m_boundary.size();
-			bool closing = false;
-			if (rest + 1 < m_data.size() && m_data[rest] == '-' && m_data[rest + 1] == '-')
-				{
-					closing = true;
-					rest += 2;
-				}
-			while (rest < m_data.size() && (m_data[rest] == ' ' || m_data[rest] == '\t')) rest++;
-			if (rest < m_data.size() && m_data[rest] != '\r' && m_data[rest] != '\n')
-				{
-					cursor = pos + 1;
-					continue;
-				}
-			size_t lend = rest;
-			if (lend < m_data.size() && m_data[lend] == '\r') lend++;
-			if (lend < m_data.size() && m_data[lend] == '\n') lend++;
-
-			// the CRLF preceding the delimiter belongs to it (RFC 2046 5.1.1)
-			size_t body_end = pos;
-			if (body_end > start && m_data[body_end - 1] == '\n')
-				{
-					body_end--;
-					if (body_end > start && m_data[body_end - 1] == '\r') body_end--;
-				}
-			out.assign (m_data, start, body_end - start);
-			m_pos = lend;
-			m_pendingBoundary = true;
-			m_pendingClosing = closing;
+			// no further boundary — the rest of the archive is the body
+			// (malformed input)
+			start = bodystart;
+			len = m_size - bodystart;
+			rewindTo (m_size);
 			return true;
 		}
 
-	// no further boundary — the rest of the archive is the body (malformed input)
-	out.assign (m_data, start, std::string::npos);
-	m_pos = m_data.size();
+	// the CRLF preceding the delimiter belongs to it (RFC 2046 5.1.1)
+	gsf_off_t bodyEnd = dStart;
+	char c;
+	if (bodyEnd > bodystart && readAt (bodyEnd - 1, &c, 1) == 1 && c == '\n')
+		{
+			bodyEnd--;
+			if (bodyEnd > bodystart && readAt (bodyEnd - 1, &c, 1) == 1 && c == '\r')
+				bodyEnd--;
+		}
+
+	start = bodystart;
+	len = bodyEnd - bodystart;
+	rewindTo (dEnd);
+	m_pendingBoundary = true;
+	m_pendingClosing = closing;
 	return true;
 }
 
@@ -582,6 +737,14 @@ IE_Imp_MHT::~IE_Imp_MHT ()
 UT_Error IE_Imp_MHT::_loadFile (GsfInput * input)
 {
 	UT_MHTStream stream;
+
+	// the input must outlive the part walk — part bodies are read lazily
+	// from it during the XHTML/HTML4 import below
+	if (m_input.get() != input)
+		{
+			g_object_ref (input);
+			m_input.reset (input);
+		}
 
 	if (!stream.open (input))
 		{
@@ -709,7 +872,15 @@ FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 			return 0;
 		}
 
-	const UT_ConstByteBufPtr & pBB = part->getBuffer();
+	UT_Multipart * vol_part = const_cast<UT_Multipart *>(part);
+
+	if (!loadPartBody (vol_part))
+		{
+			UT_DEBUGMSG(("Multipart HTML: importImage: `%s' - image in archive but not (or no longer?) loaded!\n",szSrc));
+			return 0;
+		}
+
+	const UT_ConstByteBufPtr & pBB = vol_part->getBuffer();
 	if (!pBB)
 		{
 			UT_DEBUGMSG(("Multipart HTML: importImage: `%s' - image in archive but not (or no longer?) loaded!\n",szSrc));
@@ -729,8 +900,6 @@ FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 		}
 	if (pieg == 0) return 0;
 
-	UT_Multipart * vol_part = const_cast<UT_Multipart *>(part);
-
 	FG_ConstGraphicPtr pfg;
 	UT_Error import_status = pieg->importGraphic (vol_part->detachBuffer (), pfg);
 	delete pieg;
@@ -746,7 +915,9 @@ FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 
 UT_Error IE_Imp_MHT::importXHTML ()
 {
-	// the document part is already decoded in memory; IE_Imp_XML parses
+	if (!loadPartBody (m_document)) return UT_ERROR;
+
+	// the document part is decoded in memory; IE_Imp_XML parses
 	// buffers directly, so no UT_XML::Reader is needed here
 	const UT_Byte * buffer = m_document->getBuffer()->getPointer (0);
 	UT_uint32 length = m_document->getBuffer()->getLength ();
@@ -757,6 +928,8 @@ UT_Error IE_Imp_MHT::importXHTML ()
 UT_Error IE_Imp_MHT::importHTML4 ()
 {
 	UT_Error e = UT_ERROR;
+
+	if (!loadPartBody (m_document)) return e;
 
 	const UT_Byte * buffer = m_document->getBuffer()->getPointer (0);
 	UT_uint32 length = m_document->getBuffer()->getLength ();
@@ -788,6 +961,49 @@ UT_Error IE_Imp_MHT::importHTML4 ()
 	return e;
 }
 
+/* Materialise a part's recorded body range from the archive input and run
+ * it through the Content-Transfer-Encoding decoder. Called lazily — the
+ * document part before parsing, image parts when importImage resolves
+ * them — so bodies the document never references are never read at all.
+ */
+bool IE_Imp_MHT::loadPartBody (UT_Multipart * part)
+{
+	if (part->isLoaded ()) return true;
+	part->setLoaded ();
+
+	gsf_off_t start = -1, len = 0;
+	if (!part->bodyRange (start, len) || start < 0 || len <= 0) return true;
+	if (m_input.get() == nullptr) return false;
+	if (len > static_cast<gsf_off_t>(UT_MAX_ARCHIVE_MEMBER_SIZE))
+		{
+			UT_DEBUGMSG(("Multipart HTML: part body too large (%lld bytes)!\n",
+						 static_cast<long long>(len)));
+			return false;
+		}
+
+	std::string raw (static_cast<size_t>(len), '\0');
+	gsf_input_seek (m_input.get(), start, G_SEEK_SET);
+	gsf_off_t got = 0;
+	while (got < len)
+		{
+			gsf_off_t before = gsf_input_remaining (m_input.get());
+			if (!gsf_input_read (m_input.get(), static_cast<size_t>(len - got),
+								 reinterpret_cast<guint8 *>(&raw[got]))) break;
+			gsf_off_t now = gsf_input_remaining (m_input.get());
+			if (now >= before) break;
+			got += before - now;
+		}
+	raw.resize (static_cast<size_t>(got));
+	if (got == 0) return true;
+
+	if (!part->append (raw.data(), static_cast<UT_uint32>(got)))
+		{
+			UT_DEBUGMSG(("Multipart HTML: loadPartBody: failed to decode part body!\n"));
+			return false;
+		}
+	return true;
+}
+
 UT_Multipart * IE_Imp_MHT::importMultipart (UT_MHTStream & stream)
 {
 	UT_Multipart * part = new UT_Multipart;
@@ -802,14 +1018,11 @@ UT_Multipart * IE_Imp_MHT::importMultipart (UT_MHTStream & stream)
 
 	if (bLoad)
 		{
-			std::string body;
-			if (stream.nextBody (body) && !body.empty())
-			{
-				if (!part->append (body.data(), static_cast<UT_uint32>(body.size())))
-				{
-					UT_DEBUGMSG(("Multipart HTML: importMultipart: failed to decode part body!\n"));
-				}
-			}
+			// remember where the raw body lives in the input; decoding is
+			// deferred to loadPartBody
+			gsf_off_t start = -1, len = 0;
+			if (stream.nextBody (start, len) && len > 0)
+				part->setBodyRange (start, len);
 		}
 	return part;
 }
@@ -823,7 +1036,10 @@ UT_Multipart::UT_Multipart () :
 	m_encoding(0),
 	m_cte(cte_other),
 	m_ct(ct_other),
-	m_b64length(0)
+	m_b64length(0),
+	m_bodyStart(-1),
+	m_bodyLen(0),
+	m_bLoaded(false)
 {
 	// 
 }
@@ -890,6 +1106,19 @@ bool UT_Multipart::insert (const char * name, const char * value)
 			else m_ct = ct_other;
 		}
 	return true;
+}
+
+void UT_Multipart::setBodyRange (gsf_off_t start, gsf_off_t len)
+{
+	m_bodyStart = start;
+	m_bodyLen = len;
+}
+
+bool UT_Multipart::bodyRange (gsf_off_t & start, gsf_off_t & len) const
+{
+	start = m_bodyStart;
+	len = m_bodyLen;
+	return (m_bodyStart >= 0 && m_bodyLen > 0);
 }
 
 const char * UT_Multipart::lookup (const char * name)
@@ -1028,4 +1257,8 @@ void UT_Multipart::clear ()
 	m_map->clear ();
 
 	if (m_buf) m_buf->truncate (0);
+
+	m_bodyStart = -1;
+	m_bodyLen = 0;
+	m_bLoaded = false;
 }

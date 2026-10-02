@@ -28,6 +28,7 @@
 #include <stdio.h>
 
 #include "ut_string.h"
+#include "ut_raii.h"
 
 #include "ie_imp_XHTML.h"
 
@@ -64,6 +65,15 @@ public:
 
 	bool				append (const char * buffer, UT_uint32 length);
 
+	// A part's body is held only as a byte range into the archive input and
+	// is materialised (and transfer-decoded) lazily by
+	// IE_Imp_MHT::loadPartBody — parts the document never references never
+	// occupy decoded (or even copied) memory.
+	void				setBodyRange (gsf_off_t start, gsf_off_t len);
+	bool				bodyRange (gsf_off_t & start, gsf_off_t & len) const;
+	bool				isLoaded () const { return m_bLoaded; }
+	void				setLoaded () { m_bLoaded = true; }
+
 	UT_ConstByteBufPtr getBuffer() const { return m_buf; }
 	UT_ByteBufPtr && detachBuffer();
 
@@ -98,6 +108,10 @@ private:
 
 	size_t				m_b64length;
 	char				m_b64buffer[80];
+
+	gsf_off_t			m_bodyStart;
+	gsf_off_t			m_bodyLen;
+	bool				m_bLoaded;
 };
 
 class UT_MHTStream;
@@ -139,9 +153,11 @@ private:
 	UT_Error		importHTML4 ();
 
 	UT_Multipart *	importMultipart (UT_MHTStream & stream);
+	bool			loadPartBody (UT_Multipart * part);
 
 	UT_Multipart *	m_document;
 	UT_Vector *		m_parts;
+	UT_GsfInputPtr	m_input;	// archive input — part bodies are ranges into it
 };
 
 #endif /* IE_IMP_MHT_H */
