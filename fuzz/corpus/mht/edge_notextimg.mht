@@ -1,0 +1,10 @@
+MIME-Version: 1.0
+Content-Type: multipart/related; boundary="B2"; type="application/xhtml+xml"
+
+--B2
+Content-Type: application/xhtml+xml;charset="UTF-8"
+
+<html xmlns="http://www.w3.org/1999/xhtml"><body>
+<p>Only text, no images at all.</p>
+</body></html>
+--B2--

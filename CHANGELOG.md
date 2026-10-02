@@ -3430,6 +3430,18 @@ below are on `main` but the release has not been cut yet.
   folds into a null element-stack pointer). Seed corpora live in
   `fuzz/corpus/{odt,docx,mht}`, including a saved zip-bomb
   reproducer.
+- **Fuzz smoke target + crash-reproducer regression wiring** —
+  `make check-fuzz` (`tools/check-fuzz.sh`) replays every built
+  `fuzz_<fmt>` target over its `fuzz/corpus/<fmt>` seeds plus pinned
+  reproducers in `fuzz/regress/<fmt>/`; it is non-failing by default
+  (skips when the instrumented build is absent) and
+  `FUZZ_CHECK_STRICT=1` turns any crash into a failure.
+  `tools/fuzz-add-reproducer.sh <fmt> <artifact>` pins a
+  `crash-*`/`oom-*`/`timeout-*` artifact into the regression corpus
+  and replays it on the spot. Seed corpora gained edge-case inputs
+  (truncated/corrupt/garbage variants) per format, and the known
+  `doc07_float.doc` layout hang is pinned under
+  `fuzz/regress/doc/` until DOC19 fixes it.
 
 ### Resolved root causes worth noting
 

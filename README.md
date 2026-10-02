@@ -1914,6 +1914,20 @@ header comment for bounded-run usage and why `detect_leaks=0` is
 used for smoke runs). Crash reproducers land in the directory given
 with `-artifact_prefix`.
 
+`make check-fuzz` replays every built target over its seed corpus
+plus the pinned reproducers in `fuzz/regress/<fmt>/` — a short,
+non-failing smoke pass that skips cleanly when the instrumented
+build is absent (`FUZZ_CHECK_STRICT=1` makes any crash or
+reproduction fail instead). To pin a fuzzer finding as a permanent
+regression input:
+
+```bash
+tools/fuzz-add-reproducer.sh doc fuzz-build/artifacts/crash-<sha>
+```
+
+which copies the artifact into `fuzz/regress/doc/` and immediately
+replays it to report whether the crash still reproduces.
+
 ## Known issues
 
 - The GTK4 dialog migration is in progress — `.ui` files were

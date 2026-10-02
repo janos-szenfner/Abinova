@@ -10,4 +10,7 @@ EXTRA_DIST = \
 	changelog2html.sh \
 	build-macos.sh \
 	build-windows-msys2.sh \
-	build-gtk-prefix.sh
+	build-gtk-prefix.sh \
+	build-fuzz.sh \
+	check-fuzz.sh \
+	fuzz-add-reproducer.sh

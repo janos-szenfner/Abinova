@@ -51,6 +51,7 @@ EXTRA_DIST = \
 	abinova.keys \
 	libabinova.pc.in \
 	artwork \
+	fuzz \
 	$(xsltml_DATA)
 
 DISTCLEANFILES = \
@@ -58,6 +59,16 @@ DISTCLEANFILES = \
 
 abinova-$(ABINOVA_SERIES).pc: libabinova.pc
 	cp $< $@
+
+# libFuzzer smoke pass: replays every built fuzz/fuzz_<fmt> target over
+# its fuzz/corpus/<fmt> seeds plus pinned reproducers in
+# fuzz/regress/<fmt>.  Non-failing by design (skips cleanly when the
+# instrumented fuzz-build/ tree is absent); FUZZ_CHECK_STRICT=1 makes
+# crashes/reproductions fail.  Build the harnesses with
+# tools/build-fuzz.sh first.
+.PHONY: check-fuzz
+check-fuzz:
+	$(srcdir)/tools/check-fuzz.sh
 
 
 # the Changelog help page is generated from CHANGELOG.md so the
