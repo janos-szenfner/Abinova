@@ -3395,6 +3395,17 @@ below are on `main` but the release has not been cut yet.
   their edit methods (`rdfAnchorExportSemanticItem`,
   `rdfInsertNewContactFromFile`), action entries, label strings and
   the `ap_GetState_RDF_Contact` state function.
+- **Optional libFuzzer/ASan build + first importer harness** —
+  `tools/build-fuzz.sh` maintains a clang
+  `-fsanitize=fuzzer-no-link,address` instrumented copy of the tree
+  under `fuzz-build/tree` (the main tree stays GCC) and builds every
+  `fuzz/fuzz_*.cpp` into a fuzz binary. The first harness,
+  `fuzz/fuzz_abw.cpp`, feeds bytes through the native `.abw`/`.abwn`
+  sniff + import path (`IE_Imp::fileTypeForContents` then
+  `PD_Document::readFromFile` on an in-memory GsfInput) under a
+  headless `AP_UnixApp`; a seed corpus lives in `fuzz/corpus/abw`.
+  Crashes, timeouts and OOMs are written as `crash-*`/`timeout-*`/
+  `oom-*` reproducer files under the `-artifact_prefix` directory.
 
 ### Resolved root causes worth noting
 

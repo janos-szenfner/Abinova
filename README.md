@@ -1892,6 +1892,23 @@ other dependency (libgsf, enchant, hunspell, boost, …) still comes
 from the system. Delete `~/.local/abinova-gtk-dev` to remove the
 sandbox entirely.
 
+### Fuzz targets (clang/libFuzzer + ASan)
+
+An optional, separate clang build exists for fuzzing the file
+importers — the normal build stays on GCC:
+
+```bash
+tools/build-fuzz.sh                       # instrumented tree + all fuzz/fuzz_*.cpp
+ASAN_OPTIONS=detect_leaks=0 fuzz-build/fuzz_abw fuzz/corpus/abw -runs=0
+```
+
+The first harness (`fuzz/fuzz_abw.cpp`) feeds bytes through the
+native `.abw`/`.abwn` sniff + import path. `tools/build-fuzz.sh`
+maintains an instrumented copy of the tree under `fuzz-build/tree`
+(see its header comment for bounded-run usage and why
+`detect_leaks=0` is used for smoke runs). Crash reproducers land in
+the directory given with `-artifact_prefix`.
+
 ## Known issues
 
 - The GTK4 dialog migration is in progress — `.ui` files were

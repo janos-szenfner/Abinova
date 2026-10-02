@@ -106,3 +106,9 @@ src/wp/test/Abinova-test
 # task runner runtime artifacts
 .devin/taskloop.lock
 .devin/taskloop.log
+
+# libFuzzer instrumented build tree + crash artifacts (tools/build-fuzz.sh)
+/fuzz-build/
+crash-*
+oom-*
+timeout-*

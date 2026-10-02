@@ -169,21 +169,20 @@ void AP_Dialog_Options::_storeWindowData(void)
 	}
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save ruler units value
-	pPrefsScheme->setValue(static_cast<gchar*>(AP_PREF_KEY_RulerUnits),
-				   const_cast<gchar*>(reinterpret_cast<const gchar*>(UT_dimensionName( _gatherViewRulerUnits()) )));
+	pPrefsScheme->setValue(AP_PREF_KEY_RulerUnits,
+				   UT_dimensionName( _gatherViewRulerUnits()));
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save default file format (a suffix like ".abw")
 	{
 		UT_String stFormat;
 		_gatherDefaultSaveFormat(stFormat);
-		pPrefsScheme->setValue(static_cast<gchar*>(AP_PREF_KEY_DefaultSaveFormat),
-					   const_cast<gchar*>(reinterpret_cast<const gchar*>(stFormat.c_str())));
+		pPrefsScheme->setValue(AP_PREF_KEY_DefaultSaveFormat, stFormat.c_str());
 	}
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// save screen color
-	pPrefsScheme->setValue(static_cast<gchar*>(XAP_PREF_KEY_ColorForTransparent),
+	pPrefsScheme->setValue(XAP_PREF_KEY_ColorForTransparent,
 				   _gatherColorForTransparent() );
 
 
@@ -194,8 +193,8 @@ void AP_Dialog_Options::_storeWindowData(void)
 	// TODO: change to snprintf
 	gchar szBuffer[40];
 	sprintf( szBuffer, "%i", _gatherNotebookPageNum() );
-	pPrefsScheme->setValue(static_cast<gchar*>(AP_PREF_KEY_OptionsTabNumber),
-				   static_cast<gchar*>(szBuffer ));
+	pPrefsScheme->setValue(AP_PREF_KEY_OptionsTabNumber,
+				   szBuffer );
 
 	// allow the prefListeners to receive their calls
 	pPrefs->endBlockChange();
@@ -242,12 +241,12 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
             
         case id_LIST_VIEW_OUTER_QUOTE_STYLE:
-			pPrefsScheme->setValueInt (static_cast<gchar*>(XAP_PREF_KEY_OuterQuoteStyle),
+			pPrefsScheme->setValueInt (XAP_PREF_KEY_OuterQuoteStyle,
 						_gatherOuterQuoteStyle());
 			break;
             
         case id_LIST_VIEW_INNER_QUOTE_STYLE:
-			pPrefsScheme->setValueInt (static_cast<gchar*>(XAP_PREF_KEY_InnerQuoteStyle),
+			pPrefsScheme->setValueInt (XAP_PREF_KEY_InnerQuoteStyle,
 						_gatherInnerQuoteStyle());
 			break;
 
@@ -277,8 +276,8 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
 
 		case id_LIST_VIEW_RULER_UNITS:
-			pPrefsScheme->setValue (static_cast<gchar*>(AP_PREF_KEY_RulerUnits),
-						const_cast<gchar*>(reinterpret_cast<const gchar*>(UT_dimensionName (_gatherViewRulerUnits()))));
+			pPrefsScheme->setValue (AP_PREF_KEY_RulerUnits,
+						UT_dimensionName (_gatherViewRulerUnits()));
 			break;
 
 		case id_CHECK_VIEW_CURSOR_BLINK:
@@ -290,7 +289,7 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 			break;
 
 		case id_PUSH_CHOOSE_COLOR_FOR_TRANSPARENT:
-			pPrefsScheme->setValue (static_cast<gchar*>(XAP_PREF_KEY_ColorForTransparent),
+			pPrefsScheme->setValue (XAP_PREF_KEY_ColorForTransparent,
 						_gatherColorForTransparent());
 			break;
 
@@ -321,8 +320,8 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 		case id_NOTEBOOK:
 			gchar szBuffer[40];
 			sprintf( szBuffer, "%i", _gatherNotebookPageNum() );
-			pPrefsScheme->setValue (static_cast<gchar*>(AP_PREF_KEY_OptionsTabNumber),
-						static_cast<gchar*>(szBuffer ));
+			pPrefsScheme->setValue (AP_PREF_KEY_OptionsTabNumber,
+						szBuffer );
 			break;
 
 		// Ignore window controls/special buttons

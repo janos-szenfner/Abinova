@@ -454,16 +454,16 @@ wvAssembleListPAP (wvVersion ver, PAP * apap, wvParseStruct * ps,
       }
     if (apap->ilfo > (S32) ps->nolfo)
       {
-	  wvWarning (("ilfo %d exceeds PlfLfo count %d, dropping list\n",
-		      apap->ilfo, ps->nolfo));
+	  wvWarning ("ilfo %d exceeds PlfLfo count %d, dropping list\n",
+		      apap->ilfo, ps->nolfo);
 	  return (0);
       }
 
     /* ilvl selects one of a list's nine levels; clamp garbage */
     if (apap->ilvl > 8)
       {
-	  wvWarning (("list level %d out of range, clamping to 8\n",
-		      apap->ilvl));
+	  wvWarning ("list level %d out of range, clamping to 8\n",
+		      apap->ilvl);
 	  apap->ilvl = 8;
       }
 
@@ -536,8 +536,8 @@ wvAssembleListPAP (wvVersion ver, PAP * apap, wvParseStruct * ps,
 
     if (!myLVL)
       {
-	  wvWarning (("no LVL available for list %d level %d\n",
-		      myListId, apap->ilvl));
+	  wvWarning ("no LVL available for list %d level %d\n",
+		      myListId, apap->ilvl);
 	  return (0);
       }
 

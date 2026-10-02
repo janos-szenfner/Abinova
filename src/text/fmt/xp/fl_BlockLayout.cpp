@@ -5153,7 +5153,7 @@ fl_BlockLayout::_checkMultiWord(UT_sint32 iStart,
 		bool b;
 
 		// possibly auto-replace the squiggled word with a suggestion
-		if (pPrefs->getPrefsValueBool(static_cast<gchar*>(AP_PREF_KEY_SpellAutoReplace), &b))
+		if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellAutoReplace, &b))
 		{
 			if (b && !bIsIgnored)
 			{

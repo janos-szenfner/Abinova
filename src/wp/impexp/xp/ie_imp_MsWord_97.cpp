@@ -1191,7 +1191,7 @@ cb_print_property (char const *name, GsfDocProp const *prop, DocAndLid * doc)
 						  
 						  if (encoding && *encoding)
 							  {
-								  tmp = g_convert_with_fallback(contents, -1, static_cast<gchar*>("UTF-8"), encoding, static_cast<gchar*>("?"), nullptr, nullptr, nullptr);
+								  tmp = g_convert_with_fallback(contents, -1, "UTF-8", encoding, "?", nullptr, nullptr, nullptr);
 							  }
 						  else
 							  {

@@ -6301,7 +6301,7 @@ static bool pView->cmdCharInsert(const UT_UCS4Char * pText, UT_uint32 iLen,
 
 	bool b = false;
 
-	pPrefs->getPrefsValueBool(static_cast<gchar*>(XAP_PREF_KEY_ChangeLanguageWithKeyboard),
+	pPrefs->getPrefsValueBool(XAP_PREF_KEY_ChangeLanguageWithKeyboard,
 							  &b);
 	if(b)
 	{

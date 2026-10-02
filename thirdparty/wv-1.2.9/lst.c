@@ -57,8 +57,8 @@ wvGetLST (LST ** lst, U16 * noofLST, U32 offset, U32 len, wvStream * fd)
        a count that cannot fit the declared region is corrupt */
     if (len > 2 && *noofLST > (len - 2) / cbLSTF)
       {
-	  wvWarning (("PlcfLst count %d exceeds region (%d bytes), "
-		      "clamping\n", *noofLST, len));
+	  wvWarning ("PlcfLst count %d exceeds region (%d bytes), "
+		      "clamping\n", *noofLST, len);
 	  *noofLST = (len - 2) / cbLSTF;
       }
 
