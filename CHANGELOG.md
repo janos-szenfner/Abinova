@@ -1796,6 +1796,12 @@ below are on `main` but the release has not been cut yet.
   copies (one for text lines, one for tables that break across
   pages). Both now share a single helper, so the behavior can no
   longer drift between the two paths.
+- **Forced page/column break detection hardened** — a line reported a
+  forced break only when the break run happened to be its last or
+  second-to-last run, so a break left deeper in the line (after run
+  edits) was silently dropped, and a break ending the *previous* line
+  could be misread as this line's. Break detection now scans every run
+  on the line.
 - **Empty-stack access hardening** — a C++ Core Guidelines
   bounds/lifetime audit found parser and piece-table paths that call
   `std::stack::top()`/`vector::back()` without checking the container

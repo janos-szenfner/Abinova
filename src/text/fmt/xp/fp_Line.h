@@ -35,6 +35,7 @@
 //#include "fmt_Types.h"
 
 class fp_Run;
+enum FP_RUN_TYPE : uint8_t;
 class GR_Graphics;
 class fp_Container;
 class fp_VerticalContainer;
@@ -259,6 +260,7 @@ protected:
 private:
 	void		_splitRunsAtSpaces(void);
 	void        _doClearScreenFromRunToEnd(UT_sint32 runIndex);
+	bool        _containsRunType(FP_RUN_TYPE eType) const;
 
 
 	void  		setAscent(UT_sint32 i) { m_iAscent = i; }

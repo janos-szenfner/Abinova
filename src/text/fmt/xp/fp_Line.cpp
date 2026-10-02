@@ -3872,32 +3872,30 @@ fp_Container*	fp_Line::getPrevContainerInSection(void) const
 
 bool	fp_Line::containsForcedColumnBreak(void) const
 {
-	if(!isEmpty())
-	{
-		fp_Run* pRun = getLastRun();
-		if (pRun->getType() == FPRUN_FORCEDCOLUMNBREAK)
-		{
-			return true;
-		}
-		if(pRun->getPrevRun() && (pRun->getPrevRun()->getType() == FPRUN_FORCEDCOLUMNBREAK))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return _containsRunType(FPRUN_FORCEDCOLUMNBREAK);
 }
 
 bool fp_Line::containsForcedPageBreak(void) const
 {
-	if (!isEmpty())
+	return _containsRunType(FPRUN_FORCEDPAGEBREAK);
+}
+
+/*!
+ * Scan every run on the line for the given type. The line breaker is
+ * supposed to leave forced-break runs line-final (optionally followed
+ * by the end-of-paragraph run), but run edits after breaking can leave
+ * one deeper in the line -- and checking only the tail runs silently
+ * drops the break. It could also false-positive on a break run that
+ * belongs to the previous line (getPrevRun walks the block chain, not
+ * the line). A full scan is the safe interpretation.
+ */
+bool fp_Line::_containsRunType(FP_RUN_TYPE eType) const
+{
+	const UT_sint32 count = m_vecRuns.getItemCount();
+	for (UT_sint32 i = 0; i < count; i++)
 	{
-		fp_Run* pRun = getLastRun();
-		if (pRun->getType() == FPRUN_FORCEDPAGEBREAK)
-		{
-			return true;
-		}
-		if(pRun->getPrevRun() && (pRun->getPrevRun()->getType() == FPRUN_FORCEDPAGEBREAK))
+		fp_Run* pRun = m_vecRuns.getNthItem(static_cast<UT_uint32>(i));
+		if (pRun && (pRun->getType() == eType))
 		{
 			return true;
 		}
