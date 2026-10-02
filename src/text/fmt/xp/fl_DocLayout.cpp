@@ -233,10 +233,6 @@ FL_DocLayout::~FL_DocLayout()
 	while(count >= 0)
 	{
 		fp_Page * pPage = static_cast<fp_Page *>(m_vecPages.getNthItem(count));
-		if(pPage->getPrev())
-		{
-			pPage->getPrev()->setNext(nullptr);
-		}
 		m_vecPages.deleteNthItem(count);
 		delete pPage;
 		count--;
@@ -2479,17 +2475,9 @@ void FL_DocLayout::deletePage(fp_Page* pPage, bool bDontNotify /* default false 
 	UT_sint32 ndx = m_vecPages.findItem(pPage);
 	UT_ASSERT(ndx >= 0);
 
-	if (pPage->getPrev())
-	{
-		pPage->getPrev()->setNext(pPage->getNext());
-	}
-
-	if (pPage->getNext())
-	{
-		pPage->getNext()->setPrev(pPage->getPrev());
-	}
-	pPage->setPrev(nullptr);
-	pPage->setNext(nullptr);
+	// m_vecPages is authoritative for page order; removing the entry
+	// unlinks the page from its neighbours automatically (fp_Page
+	// getPrev()/getNext() derive from this vector).
 	m_vecPages.deleteNthItem(ndx);
 	delete pPage;
 	if(ndx < countPages())
@@ -2508,31 +2496,28 @@ void FL_DocLayout::deletePage(fp_Page* pPage, bool bDontNotify /* default false 
 	}
 }
 
-fp_Page* FL_DocLayout::addNewPage(fl_DocSectionLayout* pOwner, bool bNoUpdate)
+fp_Page* FL_DocLayout::addNewPage(fl_DocSectionLayout* pOwner, bool bNoUpdate,
+				  fp_Page* pBeforePage /* = nullptr */)
 {
-	fp_Page*		pLastPage;
-
-	if (countPages() > 0)
-	{
-		pLastPage = getLastPage();
-	}
-	else
-	{
-		pLastPage = nullptr;
-	}
-
 	fp_Page* pPage = new fp_Page(	this,
 									m_pView,
 									m_docViewPageSize,
 									pOwner);
-	if (pLastPage)
+	// m_vecPages is the single source of truth for page order, so a
+	// mid-document insert is just a vector insert — the neighbours'
+	// prev/next links follow automatically. pBeforePage==nullptr
+	// appends, which is what all current callers want.
+	UT_sint32 ndx = pBeforePage ? m_vecPages.findItem(pBeforePage) : -1;
+	if (ndx >= 0)
 	{
-		UT_ASSERT(pLastPage->getNext() == nullptr);
-
-		pLastPage->setNext(pPage);
+		m_vecPages.insertItemAt(pPage, ndx);
+		// Later pages shifted by one; renumber their frames.
+		setFramePageNumbers(ndx);
 	}
-	pPage->setPrev(pLastPage);
-	m_vecPages.addItem(pPage);
+	else
+	{
+		m_vecPages.addItem(pPage);
+	}
 	pOwner->addOwnedPage(pPage);
 
 	// let the view know that we created a new page,

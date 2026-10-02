@@ -77,8 +77,6 @@ public:
 	UT_sint32			getBottom(void) const;
 	fp_Page*			getNext(void) const;
 	fp_Page*			getPrev(void) const;
-	void				setNext(fp_Page*);
-	void				setPrev(fp_Page*);
 	void                markAllDirty(void) {m_bNeedsRedraw = true;}
 	UT_sint32			getColumnGap(void) const;
 	FL_DocLayout*		getDocLayout() const;
@@ -189,8 +187,6 @@ private:
 
 	FL_DocLayout*		m_pLayout;
 	FV_View*			m_pView;
-	fp_Page*			m_pNext;
-	fp_Page*			m_pPrev;
 
 	fp_PageSize			m_pageSize;
 

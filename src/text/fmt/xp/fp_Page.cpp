@@ -53,8 +53,6 @@ fp_Page::fp_Page(FL_DocLayout* pLayout,
 		 fl_DocSectionLayout* pOwner)
 	:	m_pLayout(pLayout),
 		m_pView(pView),
-		m_pNext(nullptr),
-		m_pPrev(nullptr),
 		m_pageSize(pageSize),
 		m_bNeedsRedraw(true),
 		m_pOwner(pOwner),
@@ -1096,26 +1094,27 @@ void fp_Page::getScreenOffsets(const fp_Container* pContainer, UT_sint32& xoff, 
 	}
 }
 
+// Page order lives solely in FL_DocLayout::m_vecPages; the prev/next
+// links are derived from it so the two can never desync. A page that is
+// not (or no longer) in the layout's list has no neighbours.
 fp_Page* fp_Page::getNext(void) const
 {
-	return m_pNext;
+	UT_sint32 iPage = m_pLayout->findPage(this);
+	if (iPage < 0)
+	{
+		return nullptr;
+	}
+	return m_pLayout->getNthPage(iPage + 1);
 }
 
 fp_Page* fp_Page::getPrev(void) const
 {
-	return m_pPrev;
-}
-
-void fp_Page::setNext(fp_Page* p)
-{
-	m_pNext = p;
-	xxx_UT_DEBUGMSG(("Next PAge set to %x \n",p));
-//	UT_ASSERT(0);
-}
-
-void fp_Page::setPrev(fp_Page* p)
-{
-	m_pPrev = p;
+	UT_sint32 iPage = m_pLayout->findPage(this);
+	if (iPage <= 0)
+	{
+		return nullptr;
+	}
+	return m_pLayout->getNthPage(iPage - 1);
 }
 
 FL_DocLayout* fp_Page::getDocLayout() const

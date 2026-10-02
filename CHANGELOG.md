@@ -1769,6 +1769,12 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Page list bookkeeping unified** — the layout engine used to keep
+  every page in two structures that had to be updated by hand in
+  lockstep (a vector and a prev/next linked list); a missed update
+  could desync page order.  Pages now keep no separate links at all —
+  neighbours are derived from the vector — and new pages can be
+  inserted in the middle of the document instead of only at the end.
 - **New-page placement fixes** — the section-layout code that decides
   where a new column/page begins had three defects: the page-fit check
   ignored the incoming container's height (the fit term was computed
