@@ -23,7 +23,6 @@
 #pragma once
 
 #include <glib.h>
-#include "ut_assert.h"
 
 /*!
  * Unix GThread impl of a mutex class
@@ -34,29 +33,22 @@ public:
 
 	UT_MutexImpl ()
 		{
-			g_mutex_init(&mStaticMutex);
+			g_rec_mutex_init(&mStaticMutex);
 		}
 
 	~UT_MutexImpl ()
 		{
-			g_mutex_clear(&mStaticMutex);
+			g_rec_mutex_clear(&mStaticMutex);
 		}
 
   void lock ()
 		{
-			if (mLocker != g_thread_self()) {
-				g_mutex_lock(&mStaticMutex);
-			}
-			mLocker = g_thread_self();
-			iLockCount++;
+			g_rec_mutex_lock(&mStaticMutex);
 		}
 
   void unlock ()
 		{
-			UT_ASSERT(mLocker == g_thread_self());
-			if (--iLockCount == 0) {
-				g_mutex_unlock(&mStaticMutex) ;
-			}
+			g_rec_mutex_unlock(&mStaticMutex) ;
 		}
 
 private:
@@ -64,9 +56,5 @@ private:
 	UT_MutexImpl(const UT_MutexImpl & other) = delete;
 	UT_MutexImpl & operator=(const UT_MutexImpl & other) = delete;
 
-	GMutex mStaticMutex;
-
-	// Damn it, recursive locking is not guaranteed.
-	GThread *mLocker;
-	int iLockCount;
+	GRecMutex mStaticMutex;
 };

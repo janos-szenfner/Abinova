@@ -2646,6 +2646,20 @@ below are on `main` but the release has not been cut yet.
   async-signal-safe `write()` + `abort()`.  Also fixed a test-build
   break: `ut_uuid.t.cpp` had an invalid `static_cast` across
   unrelated pointer types left over from the cast sweep.
+- **Deadlock / lock-ordering audit (CON02)** — audited every locking
+  primitive in the tree.  There are no live mutex users anywhere:
+  the only `GMutex` lives inside `UT_MutexImpl`, reachable only
+  through `UT_Mutex`, which has zero call sites; no `std::mutex`,
+  condition variable, atomic, `GAsyncQueue`, `g_once`, file-lock or
+  `gdk_threads` path exists in `src/` or `thirdparty/` — so there are
+  no multi-mutex paths and no lock ordering to invert.  The one
+  worker thread (the update-check `GTask`) shares no mutable state
+  and takes no locks, and nothing nests `gtk_main`/`gtk_dialog_run`.
+  Fixed the one defect the audit surfaced: `UT_MutexImpl`'s homegrown
+  recursive-lock emulation read `mLocker`/`iLockCount` before the
+  mutex was held — and the constructor never initialized either —
+  replaced with `GRecMutex`, which provides the intended recursive
+  semantics directly.
 
 ### GTK4 port (core migration)
 
