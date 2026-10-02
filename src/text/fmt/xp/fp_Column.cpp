@@ -2319,9 +2319,10 @@ void fp_ShadowContainer::setPage(fp_Page *pPage)
 
 fl_HdrFtrSectionLayout* fp_ShadowContainer::getHdrFtrSectionLayout(void) const
 {
-	UT_ASSERT(getSectionLayout()->getType() == FL_SECTION_HDRFTR);
+	fl_SectionLayout * pSL = getSectionLayout();
+	UT_ASSERT(pSL && pSL->getType() == FL_SECTION_HDRFTR);
 
-	return static_cast<fl_HdrFtrSectionLayout*>(getSectionLayout());
+	return dynamic_cast<fl_HdrFtrSectionLayout*>(pSL);
 }
 
 
@@ -2540,9 +2541,10 @@ void fp_HdrFtrContainer::layout(void)
  */
 fl_HdrFtrSectionLayout* fp_HdrFtrContainer::getHdrFtrSectionLayout(void) const
 {
-	UT_ASSERT(getSectionLayout()->getType() == FL_SECTION_HDRFTR);
+	fl_SectionLayout * pSL = getSectionLayout();
+	UT_ASSERT(pSL && pSL->getType() == FL_SECTION_HDRFTR);
 
-	return static_cast<fl_HdrFtrSectionLayout*>(getSectionLayout());
+	return dynamic_cast<fl_HdrFtrSectionLayout*>(pSL);
 }
 
 

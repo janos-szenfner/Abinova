@@ -293,7 +293,8 @@ fl_BlockLayout::fl_BlockLayout(pf_Frag_Strux* sdh,
 		}
 	}
 
-	if(!isHdrFtr() || (static_cast<fl_HdrFtrSectionLayout *>(getSectionLayout())->getDocSectionLayout() != nullptr))
+	fl_HdrFtrSectionLayout * pHFSL = dynamic_cast<fl_HdrFtrSectionLayout *>(getSectionLayout());
+	if(!isHdrFtr() || (pHFSL && pHFSL->getDocSectionLayout() != nullptr))
 	{
 		_insertEndOfParagraphRun();
 	}
@@ -8537,8 +8538,13 @@ bool fl_BlockLayout::doclistener_insertSection(const PX_ChangeRecord_Strux * pcr
 		} 
 		if(pBL && pBL->isHdrFtr())
 		{
-			fl_HdrFtrSectionLayout * pHF = static_cast<fl_HdrFtrSectionLayout *>(pBL->getSectionLayout());
-			pHF->collapseBlock(pBL);
+			// isHdrFtr() falls back to m_bIsHdrFtr when the block has no
+			// section layout, so check the downcast for real.
+			fl_HdrFtrSectionLayout * pHF = dynamic_cast<fl_HdrFtrSectionLayout *>(pBL->getSectionLayout());
+			if(pHF)
+			{
+				pHF->collapseBlock(pBL);
+			}
 		}
 		pOldSL->remove(pCL);
 		pSL->add(pCL);

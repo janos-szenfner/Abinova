@@ -3128,6 +3128,19 @@ below are on `main` but the release has not been cut yet.
   them.  A new `make check` regression covers footnote and comment
   insert → delete → undo → redo round-trips (including deleting a
   footnote mid-document) plus PDF export, and runs under valgrind.
+- **Header/footer and section teardown hardened** — removing a header
+  or footer (the ribbon "Remove Header/Footer" path) and merging a
+  section break back used to `delete this` inside the layout's own
+  document-notification callback; both `fl_HdrFtrSectionLayout` and
+  `fl_DocSectionLayout` now queue themselves on `FL_DocLayout` and are
+  destroyed once the change-record dispatch unwinds.  Related
+  hardening: header/footer downcasts guarded only by `isHdrFtr()` now
+  survive a missing section layout, a header/footer never bound to a
+  doc section tears down cleanly, and the header auto-resize worker is
+  detached *before* reformatting so a resize raised during it is not
+  silently dropped.  A new `make check` regression drives
+  insert → edit → remove → undo on headers and footers plus a
+  section-break merge/split round-trip, under valgrind.
 
 ### GTK4 port (core migration)
 

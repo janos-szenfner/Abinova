@@ -471,8 +471,8 @@ bool fl_SectionLayout::bl_doclistener_insertSection(fl_ContainerLayout* pPrevL,
 	}
 	else if(((pPrevL->getContainerType() == FL_CONTAINER_FRAME) ||(pPrevL->getContainerType() == FL_CONTAINER_TABLE)) && (iType == FL_SECTION_HDRFTR))
 	{
-		fl_SectionLayout * pSL = new fl_HdrFtrSectionLayout(FL_HDRFTR_NONE,m_pLayout,nullptr, sdh, pcrx->getIndexAP());
-		fl_HdrFtrSectionLayout * pHFSL = static_cast<fl_HdrFtrSectionLayout *>(pSL);
+		fl_HdrFtrSectionLayout * pHFSL = new fl_HdrFtrSectionLayout(FL_HDRFTR_NONE,m_pLayout,nullptr, sdh, pcrx->getIndexAP());
+		fl_SectionLayout * pSL = pHFSL;
 		m_pLayout->addHdrFtrSection(pHFSL);
 //
 // Need to find the DocSectionLayout associated with this.
@@ -585,8 +585,13 @@ bool fl_SectionLayout::bl_doclistener_insertSection(fl_ContainerLayout* pPrevL,
 			} 
 			if(pBL && pBL->isHdrFtr())
 			{
-				fl_HdrFtrSectionLayout * pHF = static_cast<fl_HdrFtrSectionLayout *>(pBL->getSectionLayout());
-				pHF->collapseBlock(pBL);
+				// isHdrFtr() falls back to m_bIsHdrFtr when the block has no
+				// section layout, so check the downcast for real.
+				fl_HdrFtrSectionLayout * pHF = dynamic_cast<fl_HdrFtrSectionLayout *>(pBL->getSectionLayout());
+				if(pHF)
+				{
+					pHF->collapseBlock(pBL);
+				}
 			}
 			pOldSL->remove(pCL);
 			pSL->add(pCL);
@@ -1243,8 +1248,11 @@ void fl_DocSectionLayout::_HdrFtrChangeCallback(UT_Worker * pWorker)
 // how to avoid horrible slowdowns and crashes.
 //
 		pDSL->m_sHdrFtrChangeProps.clear();
-		pDSL->m_pHdrFtrChangeTimer->stop();
-		DELETEP(pDSL->m_pHdrFtrChangeTimer);
+		if(pDSL->m_pHdrFtrChangeTimer)
+		{
+			pDSL->m_pHdrFtrChangeTimer->stop();
+			DELETEP(pDSL->m_pHdrFtrChangeTimer);
+		}
 		return;
 	}
 	// Don't do anything while a redrawupdate is happening either...
@@ -1257,7 +1265,7 @@ void fl_DocSectionLayout::_HdrFtrChangeCallback(UT_Worker * pWorker)
 	{
 		return;
 	}
-	fl_DocSectionLayout * pPrev = static_cast<fl_DocSectionLayout *>(pDSL->getPrev());
+	fl_DocSectionLayout * pPrev = pDSL->getPrevDocSection();
 	bool bDoit = true;
 	while(pPrev && bDoit)
 	{
@@ -1269,7 +1277,7 @@ void fl_DocSectionLayout::_HdrFtrChangeCallback(UT_Worker * pWorker)
 		{
 			return;
 		}
-		fl_DocSectionLayout * pPPrev = static_cast<fl_DocSectionLayout *>(pDSL->getPrev());
+		fl_DocSectionLayout * pPPrev = pDSL->getPrevDocSection();
 		if(pPPrev != pPrev)
 		{
 			pPrev = pPPrev;
@@ -1304,9 +1312,19 @@ void fl_DocSectionLayout::_HdrFtrChangeCallback(UT_Worker * pWorker)
 	pDoc->changeStruxFmtNoUndo(PTC_AddFmt, sdh, atts, PP_NOPROPS);
 	pDoc->setMarginChangeOnly(false);
 //
-// Stop the resizer and delete and clear it's pointer. It's job is done now.
+// Stop the resizer, delete it and clear the member/props BEFORE the format
+// work below: its job is done now, and a height-change request raised while
+// reformatting must arm a fresh worker with its own props instead of
+// updating state that is about to be discarded on a dead timer.
 //
-	pDSL->m_pHdrFtrChangeTimer->stop();
+	UT_Worker * pDoneTimer = pDSL->m_pHdrFtrChangeTimer;
+	pDSL->m_pHdrFtrChangeTimer = nullptr;
+	if(pDoneTimer)
+	{
+		pDoneTimer->stop();
+		DELETEP(pDoneTimer);
+	}
+	pDSL->m_sHdrFtrChangeProps.clear();
 //
 // update the screen
 //
@@ -1315,7 +1333,6 @@ void fl_DocSectionLayout::_HdrFtrChangeCallback(UT_Worker * pWorker)
 	pDSL->updateLayout(true);
 	pDoc->signalListeners(PD_SIGNAL_UPDATE_LAYOUT);
 	pDoc->notifyPieceTableChangeEnd();
-	pDSL->m_sHdrFtrChangeProps.clear();
 //
 // Put the point at the right point in the header/footer on the right page.
 //
@@ -1333,8 +1350,6 @@ void fl_DocSectionLayout::_HdrFtrChangeCallback(UT_Worker * pWorker)
 	pView->notifyListeners(AV_CHG_MOTION | AV_CHG_HDRFTR );
     pView->setPoint(insPos);
 	pView->ensureInsertionPointOnScreen();
-	DELETEP(pDSL->m_pHdrFtrChangeTimer);
-	pDSL->m_pHdrFtrChangeTimer = nullptr;
 }
 
 /*!
@@ -1435,8 +1450,12 @@ bool fl_DocSectionLayout::setHdrFtrHeightChange(bool bHdrFtr, UT_sint32 newHeigh
 
 	    m_pHdrFtrChangeTimer = UT_WorkerFactory::static_constructor (_HdrFtrChangeCallback, this, inMode, outMode);
 
-	    UT_ASSERT(m_pHdrFtrChangeTimer);
-	    UT_ASSERT(outMode != UT_WorkerFactory::NONE);
+	    if(m_pHdrFtrChangeTimer == nullptr || outMode == UT_WorkerFactory::NONE)
+	    {
+	        UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+	        DELETEP(m_pHdrFtrChangeTimer);
+	        return false;
+	    }
 
 		// If the worker is working on a timer instead of in the idle
 		// time, set the frequency of the checks.
@@ -2802,7 +2821,12 @@ bool fl_DocSectionLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * 
 		pDSL->updateDocSection();
 		pDSL = pDSL->getNextDocSection();
 	}
-	delete this;			// TODO whoa!  this construct is VERY dangerous.
+	// Defer destruction until the change-record dispatch has unwound: the
+	// strux's fmt handle still resolves to this layout for the rest of the
+	// notification, so `delete this` here would leave callers holding a
+	// dangling pointer. fl_DocListener flushes the queue at finish_up and
+	// ~FL_DocLayout backstops entries queued during teardown.
+	m_pLayout->queueLayoutForDeletion(this);
 
 	return true;
 }
@@ -3277,11 +3301,14 @@ fl_HdrFtrSectionLayout::~fl_HdrFtrSectionLayout()
 // Take this section layout out of the linked list
 //
 	m_pLayout->removeHdrFtrSection(static_cast<fl_SectionLayout *>(this));
-	m_pDocSL->removeFromUpdate(this);
+	if(m_pDocSL)
+	{
+		m_pDocSL->removeFromUpdate(this);
 //
 // Null out pointer to this HdrFtrSection in the attached DocLayoutSection
 //
-	m_pDocSL->setHdrFtr(m_iHFType, nullptr);
+		m_pDocSL->setHdrFtr(m_iHFType, nullptr);
+	}
 //
 // Since we're almost certainly removing blocks at the end of the doc, tell the
 // view to remember the current position on the active view.
@@ -3547,8 +3574,18 @@ bool fl_HdrFtrSectionLayout::doclistener_deleteStrux(const PX_ChangeRecord * pcr
 	fl_DocSectionLayout* pPrevSL = m_pDocSL;
 	if (!pPrevSL)
 	{
+		// A HdrFtrSectionLayout that was never bound to a doc section
+		// (inserted without a resolvable "id") has nowhere to donate its
+		// blocks to; just drop them and still tear down cleanly.
 		UT_DEBUGMSG(("no prior SectionLayout"));
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+		collapse();
+		while (getFirstLayout())
+		{
+			remove(getFirstLayout());
+		}
+		m_pLayout->queueLayoutForDeletion(this);
+		return true;
 	}
 //
 // Get rid of all the shadows, all the containers, and all the layout
@@ -3580,12 +3617,13 @@ bool fl_HdrFtrSectionLayout::doclistener_deleteStrux(const PX_ChangeRecord * pcr
 //
 	pPrevSL->format();
 //
-// Finally delete this HdrFtrSectionLayout. This could be done the docListener
-// class but here I'm following the convention for the DocSectionLayout. It
-// works there so I hope it works here. The HdrFtrSection destructor takes care
-// of the details of unlinking the section etc.
+// Finally destroy this HdrFtrSectionLayout. The destructor takes care of
+// the details of unlinking the section etc., but like the DocSectionLayout
+// path it must not run inside this change-record callback: the strux's fmt
+// handle still resolves to this layout while the delete notification is
+// being dispatched. fl_DocListener flushes the queue at finish_up.
 //
-	delete this;
+	m_pLayout->queueLayoutForDeletion(this);
 	return true;
 }
 
@@ -3702,7 +3740,7 @@ bool fl_HdrFtrSectionLayout::isPointInHere(PT_DocPosition pos)
 //
 // OK see if the next hdrftr is ahead of the pos
 //
-	fl_HdrFtrSectionLayout * pHF = static_cast<fl_HdrFtrSectionLayout *>(getNext());
+	fl_HdrFtrSectionLayout * pHF = dynamic_cast<fl_HdrFtrSectionLayout *>(getNext());
 	if(pHF == nullptr)
 	{
 		PT_DocPosition posEOD;
