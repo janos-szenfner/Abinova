@@ -220,7 +220,8 @@ public:
 		m_partHeaderIdx(0),
 		m_multipart(false),
 		m_pendingBoundary(false),
-		m_pendingClosing(false)
+		m_pendingClosing(false),
+		m_pendingLevel(0)
 	{
 		//
 	}
@@ -234,10 +235,11 @@ public:
 	bool nextPart ();
 	bool nextHeader (std::string & name, std::string & value);
 	bool nextBody (gsf_off_t & start, gsf_off_t & len);
+	bool pushNestedBoundary (const char * contentType);
 
 private:
 	bool readLine (std::string & out);
-	bool isBoundaryLine (const std::string & line, bool & closing) const;
+	bool isBoundaryLine (const std::string & line, size_t & lvl, bool & closing) const;
 	void parseHeaders (std::vector<std::pair<std::string,std::string> > & out);
 	static std::string getMIMEParam (const std::string & header, const char * param);
 
@@ -251,8 +253,10 @@ private:
 	gsf_off_t	curPos () const { return m_rdBase + static_cast<gsf_off_t>(m_rdPos); }
 	void		rewindTo (gsf_off_t off);
 	gsf_off_t	readAt (gsf_off_t off, char * buf, gsf_off_t len);
-	bool		matchAt (gsf_off_t pos, gsf_off_t & end, bool & closing);
-	bool		scanBoundary (gsf_off_t from, gsf_off_t & dStart, gsf_off_t & dEnd, bool & closing);
+	bool		matchAt (gsf_off_t pos, size_t lvl, gsf_off_t & end, bool & closing);
+	bool		matchAny (gsf_off_t pos, size_t & lvl, gsf_off_t & end, bool & closing);
+	bool		scanBoundary (gsf_off_t from, gsf_off_t & dStart, gsf_off_t & dEnd,
+							  size_t & lvl, bool & closing);
 
 	GsfInput *	m_input;	// borrowed — owned by the importer
 	gsf_off_t	m_size;
@@ -265,11 +269,14 @@ private:
 	std::vector<std::pair<std::string,std::string> > m_partHeaders;
 	size_t m_partHeaderIdx;
 
-	std::string m_boundary;
+	// delimiter stack ("--"+boundary), outermost first; back() is the
+	// innermost multipart context — nested multipart parts push theirs
+	std::vector<std::string> m_stack;
 	bool m_multipart;
 
 	bool m_pendingBoundary;
 	bool m_pendingClosing;
+	size_t m_pendingLevel;	// stack level the pending delimiter belongs to
 };
 
 static const gsf_off_t RD_CHUNK = 8192;
@@ -351,7 +358,7 @@ bool UT_MHTStream::open (GsfInput * input)
 					std::string b = getMIMEParam (ct, "boundary");
 					if (!b.empty())
 						{
-							m_boundary = "--" + b;
+							m_stack.push_back ("--" + b);
 							m_multipart = true;
 						}
 				}
@@ -369,11 +376,12 @@ void UT_MHTStream::close ()
 	m_rdBase = 0;
 	m_headers.clear ();
 	m_partHeaders.clear ();
-	m_boundary.clear ();
+	m_stack.clear ();
 	m_partHeaderIdx = 0;
 	m_multipart = false;
 	m_pendingBoundary = false;
 	m_pendingClosing = false;
+	m_pendingLevel = 0;
 }
 
 bool UT_MHTStream::readLine (std::string & out)
@@ -398,21 +406,38 @@ bool UT_MHTStream::readLine (std::string & out)
 		}
 }
 
-bool UT_MHTStream::isBoundaryLine (const std::string & line, bool & closing) const
+/* Check `line` against every boundary on the stack. When several levels
+ * could match (a nested boundary string that begins with an ancestor's),
+ * the longest delimiter wins — it is the more specific context.
+ */
+bool UT_MHTStream::isBoundaryLine (const std::string & line, size_t & lvl, bool & closing) const
 {
-	closing = false;
-	if (m_boundary.empty()) return false;
-	if (line.size() < m_boundary.size()) return false;
-	if (line.compare (0, m_boundary.size(), m_boundary) != 0) return false;
+	bool found = false;
+	size_t best = 0;
 
-	const char * rest = line.c_str() + m_boundary.size();
-	if (rest[0] == '-' && rest[1] == '-')
+	for (size_t i = 0; i < m_stack.size(); i++)
 		{
-			closing = true;
-			rest += 2;
+			const std::string & boundary = m_stack[i];
+			if (found && boundary.size() <= best) continue;
+			if (line.size() < boundary.size()) continue;
+			if (line.compare (0, boundary.size(), boundary) != 0) continue;
+
+			bool c = false;
+			const char * rest = line.c_str() + boundary.size();
+			if (rest[0] == '-' && rest[1] == '-')
+				{
+					c = true;
+					rest += 2;
+				}
+			while (*rest == ' ' || *rest == '\t') rest++;
+			if (*rest != '\0') continue;
+
+			lvl = i;
+			closing = c;
+			best = boundary.size();
+			found = true;
 		}
-	while (*rest == ' ' || *rest == '\t') rest++;
-	return *rest == '\0';
+	return found;
 }
 
 void UT_MHTStream::parseHeaders (std::vector<std::pair<std::string,std::string> > & out)
@@ -426,13 +451,15 @@ void UT_MHTStream::parseHeaders (std::vector<std::pair<std::string,std::string> 
 			if (line.empty()) break;
 
 			bool closing = false;
-			if (isBoundaryLine (line, closing))
+			size_t lvl = 0;
+			if (isBoundaryLine (line, lvl, closing))
 				{
 					// a delimiter directly after headers (no blank line):
 					// this part has no body — remember the already-consumed
 					// delimiter so nextPart can pick it up
 					m_pendingBoundary = true;
 					m_pendingClosing = closing;
+					m_pendingLevel = lvl;
 					break;
 				}
 
@@ -493,14 +520,16 @@ std::string UT_MHTStream::getMIMEParam (const std::string & header, const char *
 	return std::string ();
 }
 
-/* Verify a delimiter line at absolute offset pos: m_boundary followed by an
- * optional "--" close marker, optional transport-padding WSP, then EOL or
- * EOF. On success end is the offset just past the line's EOL.
+/* Verify a delimiter line at absolute offset pos against stack level
+ * `lvl`: the boundary string followed by an optional "--" close marker,
+ * optional transport-padding WSP, then EOL or EOF. On success end is the
+ * offset just past the line's EOL.
  */
-bool UT_MHTStream::matchAt (gsf_off_t pos, gsf_off_t & end, bool & closing)
+bool UT_MHTStream::matchAt (gsf_off_t pos, size_t lvl, gsf_off_t & end, bool & closing)
 {
 	closing = false;
-	const gsf_off_t blen = static_cast<gsf_off_t>(m_boundary.size());
+	const std::string & boundary = m_stack[lvl];
+	const gsf_off_t blen = static_cast<gsf_off_t>(boundary.size());
 
 	// compare the boundary bytes in bounded slabs (producer-chosen length)
 	char buf[256];
@@ -510,7 +539,7 @@ bool UT_MHTStream::matchAt (gsf_off_t pos, gsf_off_t & end, bool & closing)
 			gsf_off_t n = blen - off;
 			if (n > static_cast<gsf_off_t>(sizeof (buf))) n = sizeof (buf);
 			if (readAt (pos + off, buf, n) != n) return false;
-			if (memcmp (buf, m_boundary.data() + off, static_cast<size_t>(n)) != 0) return false;
+			if (memcmp (buf, boundary.data() + off, static_cast<size_t>(n)) != 0) return false;
 			off += n;
 		}
 
@@ -549,14 +578,42 @@ bool UT_MHTStream::matchAt (gsf_off_t pos, gsf_off_t & end, bool & closing)
 		}
 }
 
-/* Scan the input from `from` for the next delimiter line — the boundary
- * string at a line start (first byte of the archive counts) with a valid
- * tail per matchAt. Returns true with dStart = offset of the boundary
- * bytes and dEnd = offset just past the delimiter line's EOL; the '\n'
- * ending the previous line is left for the caller's body-end computation.
+/* Try every boundary level at pos; when several match (a nested boundary
+ * string that begins with an ancestor's), the LONGEST delimiter wins —
+ * it is the more specific context. Equal-length matches keep the
+ * outermost level (the parent context governs, per RFC 2046 5.1.1's
+ * encapsulation rule).
+ */
+bool UT_MHTStream::matchAny (gsf_off_t pos, size_t & lvl, gsf_off_t & end, bool & closing)
+{
+	bool found = false;
+	size_t best = 0;
+
+	for (size_t i = 0; i < m_stack.size(); i++)
+		{
+			if (found && m_stack[i].size() <= best) continue;
+			gsf_off_t e = pos;
+			bool c = false;
+			if (!matchAt (pos, i, e, c)) continue;
+			lvl = i;
+			end = e;
+			closing = c;
+			best = m_stack[i].size();
+			found = true;
+		}
+	return found;
+}
+
+/* Scan the input from `from` for the next delimiter line of ANY stacked
+ * boundary — a boundary string at a line start (first byte of the
+ * archive counts) with a valid tail per matchAt. Returns the earliest
+ * match: dStart = offset of the boundary bytes, dEnd = offset just past
+ * the delimiter line's EOL, lvl = the stack level it belongs to; the
+ * '\n' ending the previous line is left for the caller's body-end
+ * computation.
  */
 bool UT_MHTStream::scanBoundary (gsf_off_t from, gsf_off_t & dStart,
-								 gsf_off_t & dEnd, bool & closing)
+								 gsf_off_t & dEnd, size_t & lvl, bool & closing)
 {
 	gsf_off_t base = from;
 	bool candidateNext = (from == 0);
@@ -577,8 +634,9 @@ bool UT_MHTStream::scanBoundary (gsf_off_t from, gsf_off_t & dStart,
 			if (got <= 0) break;
 
 			const char * d = chunk.data();
-			if (candidateNext && d[0] == m_boundary[0] &&
-				matchAt (base, dEnd, closing))
+			// every delimiter starts with "--"
+			if (candidateNext && d[0] == '-' &&
+				matchAny (base, lvl, dEnd, closing))
 				{
 					dStart = base;
 					return true;
@@ -588,8 +646,8 @@ bool UT_MHTStream::scanBoundary (gsf_off_t from, gsf_off_t & dStart,
 					if (d[i] != '\n') continue;
 					gsf_off_t cand = base + i + 1;
 					if (cand >= m_size) break;
-					if (i + 1 < got && d[i + 1] != m_boundary[0]) continue;
-					if (matchAt (cand, dEnd, closing))
+					if (i + 1 < got && d[i + 1] != '-') continue;
+					if (matchAny (cand, lvl, dEnd, closing))
 						{
 							dStart = cand;
 							return true;
@@ -601,29 +659,70 @@ bool UT_MHTStream::scanBoundary (gsf_off_t from, gsf_off_t & dStart,
 	return false;
 }
 
+/* The current part's Content-Type is a multipart/* type — push its
+ * boundary onto the stack so the nextPart walk descends into the nested
+ * part list instead of skipping the whole body as one opaque blob
+ * (Outlook/Word nest multipart/alternative inside multipart/related).
+ * Returns false for non-multipart types and for a missing boundary
+ * parameter (malformed — the body then scans past like any other
+ * unrecognized part).
+ */
+bool UT_MHTStream::pushNestedBoundary (const char * contentType)
+{
+	if (contentType == nullptr) return false;
+	if (strlen (contentType) < 10) return false;
+	if (g_ascii_strncasecmp (contentType, "multipart/", 10) != 0) return false;
+
+	std::string b = getMIMEParam (contentType, "boundary");
+	if (b.empty()) return false;
+
+	m_stack.push_back ("--" + b);
+	return true;
+}
+
 bool UT_MHTStream::nextPart ()
 {
 	if (!m_multipart) return false;
 
-	if (m_pendingBoundary)
+	while (true)
 		{
-			m_pendingBoundary = false;
-			if (m_pendingClosing) return false;
-		}
-	else
-		{
-			// scan for the next delimiter line (skips preamble / skipped
-			// part bodies)
-			gsf_off_t dStart, dEnd;
+			if (m_stack.empty()) return false;
+
 			bool closing;
-			if (!scanBoundary (curPos (), dStart, dEnd, closing)) return false;
-			rewindTo (dEnd);
-			if (closing) return false;
+			size_t lvl;
+
+			if (m_pendingBoundary)
+				{
+					// delimiter already consumed by parseHeaders/nextBody
+					closing = m_pendingClosing;
+					lvl = m_pendingLevel;
+					m_pendingBoundary = false;
+				}
+			else
+				{
+					// scan for the next delimiter line (skips preamble /
+					// skipped part bodies) — any stacked level may match
+					gsf_off_t dStart, dEnd;
+					if (!scanBoundary (curPos (), dStart, dEnd, lvl, closing))
+						return false;
+					rewindTo (dEnd);
+				}
+
+			// the delimiter belongs to context `lvl`; per RFC 2046 it
+			// implicitly closes any deeper nested contexts
+			m_stack.resize (lvl + 1);
+			if (closing)
+				{
+					// this context ended — resume the walk at the parent
+					m_stack.pop_back ();
+					continue;
+				}
+			// separator at level lvl — a new part begins there
+			m_partHeaders.clear ();
+			m_partHeaderIdx = 0;
+			parseHeaders (m_partHeaders);
+			return true;
 		}
-	m_partHeaders.clear ();
-	m_partHeaderIdx = 0;
-	parseHeaders (m_partHeaders);
-	return true;
 }
 
 bool UT_MHTStream::nextHeader (std::string & name, std::string & value)
@@ -643,13 +742,14 @@ bool UT_MHTStream::nextBody (gsf_off_t & start, gsf_off_t & len)
 {
 	start = -1;
 	len = 0;
-	if (!m_multipart || m_boundary.empty() || m_pendingBoundary) return false;
+	if (!m_multipart || m_stack.empty() || m_pendingBoundary) return false;
 
 	gsf_off_t bodystart = curPos ();
 
 	gsf_off_t dStart, dEnd;
+	size_t lvl;
 	bool closing;
-	if (!scanBoundary (bodystart, dStart, dEnd, closing))
+	if (!scanBoundary (bodystart, dStart, dEnd, lvl, closing))
 		{
 			// no further boundary — the rest of the archive is the body
 			// (malformed input)
@@ -674,6 +774,7 @@ bool UT_MHTStream::nextBody (gsf_off_t & start, gsf_off_t & len)
 	rewindTo (dEnd);
 	m_pendingBoundary = true;
 	m_pendingClosing = closing;
+	m_pendingLevel = lvl;
 	return true;
 }
 
@@ -1013,6 +1114,15 @@ UT_Multipart * IE_Imp_MHT::importMultipart (UT_MHTStream & stream)
 
 	while (stream.nextHeader (name, value))
 		part->insert (name.c_str(), value.c_str());
+
+	if (stream.pushNestedBoundary (part->contentType ()))
+		{
+			// multipart/* container — its body is itself a part list which
+			// the nextPart loop now descends into (Outlook/Word nest
+			// multipart/alternative inside multipart/related); the
+			// container has no body of its own to store
+			return part;
+		}
 
 	bool bLoad = (part->isImage () || part->isXHTML () || part->isHTML4 ());
 

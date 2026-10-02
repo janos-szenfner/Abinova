@@ -1880,6 +1880,14 @@ below are on `main` but the release has not been cut yet.
   when actually referenced — embedded resources the document never
   uses are never decoded at all. Peak memory use on a 20 MB archive
   dropped by about a quarter.
+- **MHTML import understands nested multiparts** — real-world `.mht`
+  files produced by Outlook and Word nest `multipart/alternative`
+  (and other `multipart/*` containers) inside the outer
+  `multipart/related` wrapper; the importer used to treat such a
+  container's whole body as one opaque blob, so the HTML document
+  part inside it was never found and the file failed to import at
+  all. The part walk now descends into nested containers, so these
+  archives import their document and images correctly.
 - **EPUB import hardened** — the importer now percent-decodes and
   normalizes rootfile paths and manifest hrefs (so OPF files at the
   archive root, `%20`-style names and `..`-relative chapters resolve),
