@@ -481,6 +481,7 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 //
 		bool isFoot = (pcrx->getStruxType() == PTX_EndFootnote);
 		fl_ContainerLayout * pCL = m_pCurrentSL;
+		UT_return_val_if_fail(pCL, false);
 		m_bFootnoteInProgress = false;
 		m_bEndFootnoteProcessedInBlock = true;
 #if DEBUG
@@ -503,26 +504,39 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 #endif
 		*psfh = static_cast<fl_ContainerLayout*>( pCL);
 		pCL->setEndStruxDocHandle(sdh);
-		m_pCurrentSL = static_cast<fl_SectionLayout *>( static_cast<fl_EmbedLayout *>(m_pCurrentSL)->getDocSectionLayout());
+		fl_EmbedLayout * pELCur = dynamic_cast<fl_EmbedLayout *>(m_pCurrentSL);
+		if(pELCur && pELCur->getDocSectionLayout())
+		{
+			m_pCurrentSL = static_cast<fl_SectionLayout *>(pELCur->getDocSectionLayout());
+		}
 		fl_BlockLayout * pBL = nullptr;
 		if(isFoot)
 		{
-			fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>( pCL);
-			pFL->setFootnoteEndIn();
-			pBL = static_cast<fl_BlockLayout *>( pFL->getFirstLayout());
+			fl_FootnoteLayout * pFL = dynamic_cast<fl_FootnoteLayout *>( pCL);
+			if(pFL)
+			{
+				pFL->setFootnoteEndIn();
+				pBL = dynamic_cast<fl_BlockLayout *>( pFL->getFirstLayout());
+			}
 		}
 		else if(pcrx->getStruxType() == PTX_EndEndnote)
 		{
-			fl_EndnoteLayout * pEL = static_cast<fl_EndnoteLayout *>( pCL);
-			pEL->setFootnoteEndIn();
-			pBL = static_cast<fl_BlockLayout *>( pEL->getFirstLayout());
+			fl_EndnoteLayout * pEL = dynamic_cast<fl_EndnoteLayout *>( pCL);
+			if(pEL)
+			{
+				pEL->setFootnoteEndIn();
+				pBL = dynamic_cast<fl_BlockLayout *>( pEL->getFirstLayout());
+			}
 		}
 		else if(pcrx->getStruxType() == PTX_EndAnnotation
 			|| pcrx->getStruxType() == PTX_EndMarginnote)
 		{
-			fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>( pCL);
-			pAL->setFootnoteEndIn();
-			pBL = static_cast<fl_BlockLayout *>( pAL->getFirstLayout());
+			fl_AnnotationLayout * pAL = dynamic_cast<fl_AnnotationLayout *>( pCL);
+			if(pAL)
+			{
+				pAL->setFootnoteEndIn();
+				pBL = dynamic_cast<fl_BlockLayout *>( pAL->getFirstLayout());
+			}
 		}
 		UT_ASSERT(pBL);
 		if(pBL)
@@ -1157,7 +1171,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		case PTX_SectionFootnote:
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
-			UT_ASSERT(pL->getType() == PTX_SectionFootnote);
+			if(!pL || pL->getType() != PTX_SectionFootnote)
+			{
+				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+				goto finish_up;
+			}
 			fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>( pL);
 			pFL->doclistener_deleteStrux(pcrx);
 			goto finish_up;
@@ -1167,7 +1185,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 			// margin notes use the annotation layout
-			UT_ASSERT(pL->getType() == PTX_SectionAnnotation);
+			if(!pL || pL->getType() != PTX_SectionAnnotation)
+			{
+				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+				goto finish_up;
+			}
 			fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>( pL);
 			pAL->doclistener_deleteStrux(pcrx);
 			goto finish_up;
@@ -1175,7 +1197,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		case PTX_SectionEndnote:
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
-			UT_ASSERT(pL->getType() == PTX_SectionEndnote);
+			if(!pL || pL->getType() != PTX_SectionEndnote)
+			{
+				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+				goto finish_up;
+			}
 			fl_EndnoteLayout * pEL = static_cast<fl_EndnoteLayout *>( pL);
 			pEL->doclistener_deleteStrux(pcrx);
 			goto finish_up;
@@ -1223,7 +1249,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		case PTX_EndFootnote:
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
-			UT_ASSERT(pL->getType() == PTX_SectionFootnote);
+			if(!pL || pL->getType() != PTX_SectionFootnote)
+			{
+				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+				goto finish_up;
+			}
 			fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>(pL);
 			pFL->doclistener_deleteEndEmbed(pcrx);
 
@@ -1233,7 +1263,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		case PTX_EndMarginnote:
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
-			UT_ASSERT(pL->getType() == PTX_SectionAnnotation);
+			if(!pL || pL->getType() != PTX_SectionAnnotation)
+			{
+				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+				goto finish_up;
+			}
 			fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>(pL);
 			pAL->doclistener_deleteEndEmbed(pcrx);
 
@@ -1242,7 +1276,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		case PTX_EndEndnote:
 		{
 			fl_Layout * pL = static_cast<fl_Layout *>(sfh);
-			UT_ASSERT(pL->getType() == PTX_SectionEndnote);
+			if(!pL || pL->getType() != PTX_SectionEndnote)
+			{
+				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+				goto finish_up;
+			}
 			fl_EndnoteLayout * pEL = static_cast<fl_EndnoteLayout *>( pL);
 			pEL->doclistener_deleteEndEmbed(pcrx);
 
@@ -1774,7 +1812,17 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			}
 		}
 	}
-	
+
+	// Destroy layouts that queued themselves for deletion during this
+	// dispatch (fl_EmbedLayout::doclistener_deleteStrux et al.). This is
+	// deliberately done after the dispatch completes rather than via
+	// `delete this` inside the callback, since the strux's fmt handle
+	// still resolves to the layout until the record has unwound.
+	if (m_pLayout)
+	{
+		m_pLayout->deleteQueuedLayouts();
+	}
+
 	return bResult;
 }
 

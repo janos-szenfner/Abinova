@@ -975,7 +975,12 @@ UT_sint32 fp_Page::getAvailableHeightForColumn(const fp_Column * pColumn) const
 		{
 			continue;
 		}
-		fl_DocSectionLayout * pDSLFoot = static_cast<fl_FootnoteLayout*>(pFC->getSectionLayout())->getDocSectionLayout();
+		fl_FootnoteLayout * pFLFoot = dynamic_cast<fl_FootnoteLayout*>(pFC->getSectionLayout());
+		if (!pFLFoot)
+		{
+			continue;
+		}
+		fl_DocSectionLayout * pDSLFoot = pFLFoot->getDocSectionLayout();
 		UT_sint32 k = 0;
 		for (k = 0; k < iLeader; k++)
 		{
@@ -998,7 +1003,12 @@ UT_sint32 fp_Page::getAvailableHeightForColumn(const fp_Column * pColumn) const
 			{
 				continue;
 			}
-			fl_DocSectionLayout * pDSLAnn = static_cast<fl_AnnotationLayout*>(pAC->getSectionLayout())->getDocSectionLayout();
+			fl_AnnotationLayout * pALAnn = dynamic_cast<fl_AnnotationLayout*>(pAC->getSectionLayout());
+			if (!pALAnn)
+			{
+				continue;
+			}
+			fl_DocSectionLayout * pDSLAnn = pALAnn->getDocSectionLayout();
 			UT_sint32 k = 0;
 			for (k = 0; k < iLeader; k++)
 			{
@@ -3408,7 +3418,11 @@ void fp_Page::removeFootnoteContainer(fp_FootnoteContainer * _pFC)
 		for(ndx=0; ndx < static_cast<UT_sint32>(countFootnoteContainers());ndx++)
 		{			
 			fp_FootnoteContainer * pFC = getNthFootnoteContainer(ndx);
-			fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>(pFC->getSectionLayout());
+			fl_FootnoteLayout * pFL = dynamic_cast<fl_FootnoteLayout *>(pFC->getSectionLayout());
+			if (!pFL)
+			{
+				continue;
+			}
 			pFC->clearScreen();
 			pFL->markAllRunsDirty();
 		}
@@ -3507,7 +3521,11 @@ void fp_Page::removeAnnotationContainer(fp_AnnotationContainer * _pAC)
 				for(ndx=0; ndx < static_cast<UT_sint32>(countAnnotationContainers());ndx++)
 				{			
 						fp_AnnotationContainer * pAC = getNthAnnotationContainer(ndx);
-						fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>(pAC->getSectionLayout());
+						fl_AnnotationLayout * pAL = dynamic_cast<fl_AnnotationLayout *>(pAC->getSectionLayout());
+						if (!pAL)
+						{
+							continue;
+						}
 						pAC->clearScreen();
 						pAL->markAllRunsDirty();
 				}

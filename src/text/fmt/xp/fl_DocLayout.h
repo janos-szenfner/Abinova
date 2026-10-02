@@ -80,6 +80,7 @@ class PX_ChangeRecord_StruxChange;
 class fl_FootnoteLayout;
 class fl_AnnotationLayout;
 class fl_EndnoteLayout;
+class fl_ContainerLayout;
 class fp_EndnoteContainer;
 class GR_EmbedManager;
 class fl_FrameLayout;
@@ -296,6 +297,16 @@ public:
 	bool                collapseAnnotations(void);
 
 // --------------------------------------------------------------------
+// Deferred layout destruction
+// A container layout whose strux is deleted must not destroy itself
+// inside its own doc-listener callback (the strux's fmt handle still
+// resolves to it while the notification is being dispatched). It calls
+// queueLayoutForDeletion() and fl_DocListener flushes the queue once
+// the dispatch has unwound.
+	void                queueLayoutForDeletion(fl_ContainerLayout * pCL);
+	void                deleteQueuedLayouts(void);
+
+// --------------------------------------------------------------------
 // RDF Anchor Methods
 	bool                displayRDFAnchors(void) const;
 	void                setDisplayRDFAnchors(bool v);
@@ -473,4 +484,5 @@ private:
         fp_Container *      m_pSavedContainer;
 	fl_BlockLayout *    m_pRebuiltBlockLayout;
 	UT_GenericVector<fp_FrameContainer *> m_vecFramesToBeInserted;
+	UT_GenericVector<fl_ContainerLayout *> m_vecPendingDeleteLayouts;
 };

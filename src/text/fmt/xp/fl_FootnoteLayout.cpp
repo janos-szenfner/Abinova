@@ -136,9 +136,9 @@ UT_uint32 fl_EmbedLayout::getLength(void) const
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		return 0;
 	}
-	UT_ASSERT(bres && sdhEnd);
+	UT_return_val_if_fail(sdhEnd, 0);
 	PT_DocPosition endPos = m_pLayout->getDocument()->getStruxPosition(sdhEnd);
-	UT_uint32 length = static_cast<UT_uint32>(endPos - startPos + 1); 
+	UT_uint32 length = static_cast<UT_uint32>(endPos - startPos + 1);
 	return length;
 }
 
@@ -172,8 +172,11 @@ bool fl_EmbedLayout::bl_doclistener_insertEndEmbed(fl_ContainerLayout*,
 		pView->setPoint(pView->getPoint() +  fl_BLOCK_STRUX_OFFSET);
 	}
 	m_bHasEndFootnote = true;
-	fl_BlockLayout * pBL = static_cast<fl_BlockLayout *>(getFirstLayout());
-	pBL->updateEnclosingBlockIfNeeded();
+	fl_ContainerLayout * pCL = getFirstLayout();
+	if(pCL && pCL->getContainerType() == FL_CONTAINER_BLOCK)
+	{
+		static_cast<fl_BlockLayout *>(pCL)->updateEnclosingBlockIfNeeded();
+	}
 	return true;
 }
 
@@ -292,8 +295,13 @@ void fl_EmbedLayout::updateLayout(bool /*bDoAll*/)
 bool fl_EmbedLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * pcrx)
 {
 	UT_ASSERT(pcrx->getType()==PX_ChangeRecord::PXT_DeleteStrux);
+	UT_return_val_if_fail(m_pLayout, false);
 	// Move cursor to its new position
-	m_pLayout->getView()->setPoint(pcrx->getPosition());
+	FV_View * pView = m_pLayout->getView();
+	if (pView)
+	{
+		pView->setPoint(pcrx->getPosition());
+	}
 //
 // Remove all remaining structures
 //
@@ -312,9 +320,24 @@ bool fl_EmbedLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * pcrx)
 // Fix the offsets for the block
 //
 	m_bHasEndFootnote = false;
-	pEncBlock->updateOffsets(prevPos,0,-getOldSize());
-	getSectionLayout()->remove(this);	
-	delete this;			// TODO whoa!  this construct is VERY dangerous.
+	if(pEncBlock)
+	{
+		pEncBlock->updateOffsets(prevPos,0,-getOldSize());
+	}
+	fl_SectionLayout * pSL = getSectionLayout();
+	if(pSL)
+	{
+		pSL->remove(this);
+	}
+//
+// The layout must not be destroyed inside its own change-record
+// callback: the strux's fmt handle still resolves to this object while
+// the notification is being dispatched, so `delete this` would leave
+// the dispatcher (and any other listeners) holding a dangling pointer.
+// Queue it on the owning DocLayout instead; fl_DocListener destroys it
+// once the dispatch unwinds (FL_DocLayout::deleteQueuedLayouts).
+//
+	m_pLayout->queueLayoutForDeletion(this);
 
 	return true;
 }
@@ -401,6 +424,7 @@ void fl_FootnoteLayout::_createFootnoteContainer(void)
 
 	fp_Container * pCon = pCL->getLastContainer();
 	UT_return_if_fail(pCon);
+	UT_return_if_fail(pCon->getPage());
 	UT_sint32 iWidth = pCon->getPage()->getWidth();
 	iWidth = iWidth - pDSL->getLeftMargin() - pDSL->getRightMargin();
 	pFootnoteContainer->setWidth(iWidth);
@@ -456,9 +480,9 @@ void fl_FootnoteLayout::_insertFootnoteContainer(fp_Container * pNewFC)
 		{
 			pPrevCon = pPrevL->getLastContainer();
 		}
-		pUpCon = pPrevCon->getContainer();
+		pUpCon = pPrevCon ? pPrevCon->getContainer() : nullptr;
 	}
-	else
+	else if(pUPCL)
 	{
 		pUpCon = pUPCL->getLastContainer();
 	}
@@ -466,9 +490,9 @@ void fl_FootnoteLayout::_insertFootnoteContainer(fp_Container * pNewFC)
 	{
 		pPage = pPrevCon->getPage();
 	}
-	else
+	else if(pUpCon)
 	{
-		pPage = pUpCon ? pUpCon->getPage() : nullptr;
+		pPage = pUpCon->getPage();
 	}
 	pNewFC->setContainer(nullptr);
 
@@ -512,7 +536,11 @@ void fl_FootnoteLayout::format(void)
 		}
 		pBL = pBL->getNext();
 	}
-	static_cast<fp_FootnoteContainer *>(getFirstContainer())->layout();
+	fp_FootnoteContainer * pFC = static_cast<fp_FootnoteContainer *>(getFirstContainer());
+	if(pFC)
+	{
+		pFC->layout();
+	}
 	m_bNeedsFormat = false;
 	m_bNeedsReformat = false;
 }
@@ -654,6 +682,7 @@ void fl_AnnotationLayout::_createAnnotationContainer(void)
 
 	fp_Container * pCon = pCL->getLastContainer();
 	UT_return_if_fail(pCon);
+	UT_return_if_fail(pCon->getPage());
 	UT_sint32 iWidth = pCon->getPage()->getWidth();
 	iWidth = iWidth - pDSL->getLeftMargin() - pDSL->getRightMargin();
 	pAnnotationContainer->setWidth(iWidth);
@@ -709,9 +738,9 @@ void fl_AnnotationLayout::_insertAnnotationContainer(fp_Container * pNewAC)
 		{
 			pPrevCon = pPrevL->getLastContainer();
 		}
-		pUpCon = pPrevCon->getContainer();
+		pUpCon = pPrevCon ? pPrevCon->getContainer() : nullptr;
 	}
-	else
+	else if(pUPCL)
 	{
 		pUpCon = pUPCL->getLastContainer();
 	}
@@ -719,7 +748,7 @@ void fl_AnnotationLayout::_insertAnnotationContainer(fp_Container * pNewAC)
 	{
 		pPage = pPrevCon->getPage();
 	}
-	else
+	else if(pUpCon)
 	{
 		pPage = pUpCon->getPage();
 	}
@@ -766,7 +795,11 @@ void fl_AnnotationLayout::format(void)
 		}
 		pBL = pBL->getNext();
 	}
-	static_cast<fp_AnnotationContainer *>(getFirstContainer())->layout();
+	fp_AnnotationContainer * pAC = static_cast<fp_AnnotationContainer *>(getFirstContainer());
+	if(pAC)
+	{
+		pAC->layout();
+	}
 	m_bNeedsFormat = false;
 	m_bNeedsReformat = false;
 }
@@ -969,6 +1002,8 @@ void fl_EndnoteLayout::_createEndnoteContainer(void)
 	setFirstContainer(pEndnoteContainer);
 	setLastContainer(pEndnoteContainer);
 	fl_DocSectionLayout * pDSL = m_pLayout->getDocSecForEndnote(pEndnoteContainer);
+	UT_return_if_fail(pDSL);
+	UT_return_if_fail(m_pLayout->getLastPage());
 	UT_sint32 iWidth = m_pLayout->getLastPage()->getWidth();
 	iWidth = iWidth - pDSL->getLeftMargin() - pDSL->getRightMargin();
 	pEndnoteContainer->setWidth(iWidth);
@@ -1053,18 +1088,26 @@ void fl_EndnoteLayout::format(void)
 		}
 		pBL = pBL->getNext();
 	}
-	static_cast<fp_EndnoteContainer *>(getFirstContainer())->layout();
+	fp_EndnoteContainer * pEC = static_cast<fp_EndnoteContainer *>(getFirstContainer());
+	if(pEC)
+	{
+		pEC->layout();
+	}
 	m_bNeedsFormat = false;
 	m_bNeedsReformat = false;
-	bool bOnPage = (getFirstContainer()->getPage() != nullptr);
+	bool bOnPage = (pEC && pEC->getPage() != nullptr);
 	FV_View * pView = nullptr;
 	if(m_pLayout)
 		pView = m_pLayout->getView();
 	if(bOnPage && pView && !pView->isLayoutFilling())
 	{
-	       getDocSectionLayout()->setNeedsSectionBreak(true,nullptr);
+	       fl_DocSectionLayout * pDSL = getDocSectionLayout();
+	       if(pDSL)
+	       {
+		       pDSL->setNeedsSectionBreak(true,nullptr);
+	       }
 	}
-	UT_ASSERT(getFirstContainer()->getPage());
+	UT_ASSERT(pEC && pEC->getPage());
 }
 
 

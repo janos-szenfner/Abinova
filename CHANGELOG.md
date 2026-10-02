@@ -3113,6 +3113,21 @@ below are on `main` but the release has not been cut yet.
   window-resize reflow → normal → print, asserting the web page
   tracks the window width, print pagination is restored exactly, and
   PDF export still works at every step.
+- **Footnote, endnote and comment teardown hardened** — deleting a
+  footnote (or a comment/endnote) used to destroy its layout object
+  with `delete this` *inside* the document-notification callback,
+  while the deleted strux's format handle — and any other listeners
+  still being notified — could still point at it.  Layout destruction
+  is now deferred onto a queue owned by `FL_DocLayout` and flushed
+  once the change-record dispatch unwinds, so the object stays valid
+  for the whole notification.  Along the way the footnote/annotation/
+  endnote container code stopped trusting assertion-only type checks:
+  the section-layout downcasts are now checked casts, and container
+  creation/insertion/format paths tolerate missing pages, null
+  containers and missing section layouts instead of dereferencing
+  them.  A new `make check` regression covers footnote and comment
+  insert → delete → undo → redo round-trips (including deleting a
+  footnote mid-document) plus PDF export, and runs under valgrind.
 
 ### GTK4 port (core migration)
 

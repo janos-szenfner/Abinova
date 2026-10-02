@@ -77,6 +77,8 @@ void fp_AnnotationRun::_draw(dg_DrawArgs* pDA)
 	  return;
 
 	GR_Graphics * pG = pDA->pG;
+	if(!pG || !getLine() || !getBlock())
+	  return;
 
 	UT_sint32 xoff = 0, yoff = 0;
 	GR_Painter painter(pG);
@@ -159,7 +161,9 @@ void fp_AnnotationRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 									GR_Graphics * pG)
 {
 
+	UT_return_if_fail(getBlock());
 	FL_DocLayout * pLayout = getBlock()->getDocLayout();
+	UT_return_if_fail(pLayout);
 	const GR_Font * pFont = pLayout->findFont(pSpanAP,pBlockAP,pSectionAP,pG);
 	if(pFont == nullptr)
 	{
@@ -184,6 +188,8 @@ void fp_AnnotationRun::_clearScreen(bool /*bFullLineHeightRect*/)
 	  return;
 	//	UT_ASSERT(!isDirty());
 
+	if(!getGraphics() || !getLine())
+	  return;
 	UT_ASSERT(getGraphics()->queryProperties(GR_Graphics::DGP_SCREEN));
 	UT_sint32 xoff = 0, yoff = 0;
 
@@ -297,6 +303,8 @@ bool fp_AnnotationRun::_canContainPoint(void) const
 
 bool fp_AnnotationRun::_setValue(void)
 {
+  if(!getBlock() || !getBlock()->getDocLayout())
+    return false;
   UT_uint32 pos = getBlock()->getDocLayout()->getAnnotationVal(getPID()) + 1;
   UT_String tmp;
   UT_String_sprintf(tmp,"(%d)",pos);

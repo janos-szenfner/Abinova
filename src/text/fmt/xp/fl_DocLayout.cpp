@@ -229,6 +229,10 @@ FL_DocLayout::~FL_DocLayout()
 
 	DELETEP(m_pRedrawUpdateTimer);
 
+	// Backstop for layouts queued for deferred destruction that never
+	// got flushed by fl_DocListener (e.g. teardown mid-notification).
+	deleteQueuedLayouts();
+
 	UT_sint32 count = m_vecPages.getItemCount() -1;
 	while(count >= 0)
 	{
@@ -1504,6 +1508,36 @@ void FL_DocLayout::removeFootnote(fl_FootnoteLayout * pFL)
 		return;
 	}
 	m_vecFootnotes.deleteNthItem(i);
+}
+
+/*!
+ * Mark a container layout for deferred destruction. Used by layouts
+ * (e.g. fl_EmbedLayout) whose strux is deleted while the change record
+ * is being dispatched: the strux's fmt handle still resolves to the
+ * layout for the rest of the dispatch, so the layout must not
+ * `delete this` inside the callback. deleteQueuedLayouts() performs the
+ * actual destruction once the dispatch has unwound.
+ */
+void FL_DocLayout::queueLayoutForDeletion(fl_ContainerLayout * pCL)
+{
+	if(pCL && (m_vecPendingDeleteLayouts.findItem(pCL) < 0))
+	{
+		m_vecPendingDeleteLayouts.addItem(pCL);
+	}
+}
+
+/*!
+ * Destroy all layouts handed to queueLayoutForDeletion(). Safe to call
+ * repeatedly; a no-op when the queue is empty.
+ */
+void FL_DocLayout::deleteQueuedLayouts(void)
+{
+	while(m_vecPendingDeleteLayouts.getItemCount() > 0)
+	{
+		fl_ContainerLayout * pCL = m_vecPendingDeleteLayouts.getNthItem(0);
+		m_vecPendingDeleteLayouts.deleteNthItem(0);
+		delete pCL;
+	}
 }
 
 /*!

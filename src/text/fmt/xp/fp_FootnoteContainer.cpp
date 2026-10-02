@@ -68,7 +68,10 @@ void fp_FootnoteContainer::setPage(fp_Page * pPage)
 	{
 		clearScreen();
 		m_pPage->removeFootnoteContainer(this);
-		getSectionLayout()->markAllRunsDirty();
+		if(getSectionLayout())
+		{
+			getSectionLayout()->markAllRunsDirty();
+		}
 	}
 	m_pPage = pPage;
 	if(pPage)
@@ -86,7 +89,8 @@ void fp_FootnoteContainer::setPage(fp_Page * pPage)
  */
 UT_sint32 fp_FootnoteContainer::getValue(void)
 {
-	fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>(getSectionLayout());
+	fl_FootnoteLayout * pFL = dynamic_cast<fl_FootnoteLayout *>(getSectionLayout());
+	UT_return_val_if_fail(pFL, 0);
 	FL_DocLayout * pDL = pFL->getDocLayout();
 	return pDL->getFootnoteVal(pFL->getFootnotePID());
 }
@@ -148,13 +152,17 @@ void fp_FootnoteContainer::setContainer(fp_Container * pContainer)
 
 fl_DocSectionLayout * fp_FootnoteContainer::getDocSectionLayout(void)
 {
-	fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>(getSectionLayout());
+	fl_FootnoteLayout * pFL = dynamic_cast<fl_FootnoteLayout *>(getSectionLayout());
+	UT_return_val_if_fail(pFL, nullptr);
 	fl_ContainerLayout * pDSL = pFL->myContainingLayout();
 	while(pDSL && pDSL->getContainerType() != FL_CONTAINER_DOCSECTION)
 	{
 		pDSL = pDSL->myContainingLayout();
 	}
-	UT_ASSERT(pDSL && (pDSL->getContainerType() == FL_CONTAINER_DOCSECTION));
+	if(!pDSL)
+	{
+		return nullptr;
+	}
 	return static_cast<fl_DocSectionLayout *>(pDSL);
 }
 
@@ -170,6 +178,7 @@ void fp_FootnoteContainer::draw(dg_DrawArgs* pDA)
 	}
 	UT_sint32 pos = getPage()->findFootnoteContainer(this);
 	fl_DocSectionLayout * pDSL2 = getDocSectionLayout();
+	UT_return_if_fail(pDSL2);
 	UT_sint32 iMaxFootHeight = pDSL2->getActualColumnHeight();
 	iMaxFootHeight -= pDA->pG->tlu(20)*3;
 	xxx_UT_DEBUGMSG(("fp_Footnote:draw: pos %d \n",pos));
@@ -227,7 +236,11 @@ void fp_FootnoteContainer::draw(dg_DrawArgs* pDA)
 fp_Container * fp_FootnoteContainer::getNextContainerInSection() const
 {
 
-	fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(getSectionLayout());
+	fl_ContainerLayout * pCL = getSectionLayout();
+	if(!pCL)
+	{
+		return nullptr;
+	}
 	fl_ContainerLayout * pNext = pCL->getNext();
 	while(pNext && pNext->getContainerType() == FL_CONTAINER_ENDNOTE)
 	{
@@ -244,7 +257,11 @@ fp_Container * fp_FootnoteContainer::getNextContainerInSection() const
 fp_Container * fp_FootnoteContainer::getPrevContainerInSection() const
 {
 
-	fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(getSectionLayout());
+	fl_ContainerLayout * pCL = getSectionLayout();
+	if(!pCL)
+	{
+		return nullptr;
+	}
 	fl_ContainerLayout * pPrev = pCL->getPrev();
 	while(pPrev && pPrev->getContainerType() == FL_CONTAINER_ENDNOTE)
 	{
@@ -263,6 +280,7 @@ void fp_FootnoteContainer::layout(void)
 	UT_sint32 iY = 0, iPrevY = 0;
 	iY= 0;
 	fl_DocSectionLayout * pDSL = getDocSectionLayout();
+	UT_return_if_fail(pDSL);
 	UT_sint32 iMaxFootHeight = 0;
 	iMaxFootHeight = pDSL->getActualColumnHeight();
 	iMaxFootHeight -= getGraphics()->tlu(20)*3;
@@ -281,7 +299,7 @@ void fp_FootnoteContainer::layout(void)
 		{
 			pContainer->clearScreen();
 		}
-			
+
 		pContainer->setY(iY);
 
 		UT_sint32 iContainerHeight = pContainer->getHeight();
@@ -362,7 +380,10 @@ void fp_AnnotationContainer::setPage(fp_Page * pPage)
 	{
 		clearScreen();
 		m_pPage->removeAnnotationContainer(this);
-		getSectionLayout()->markAllRunsDirty();
+		if(getSectionLayout())
+		{
+			getSectionLayout()->markAllRunsDirty();
+		}
 	}
 	m_pPage = pPage;
 	if(pPage)
@@ -380,7 +401,8 @@ void fp_AnnotationContainer::setPage(fp_Page * pPage)
  */
 UT_sint32 fp_AnnotationContainer::getValue(void)
 {
-	fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>(getSectionLayout());
+	fl_AnnotationLayout * pAL = dynamic_cast<fl_AnnotationLayout *>(getSectionLayout());
+	UT_return_val_if_fail(pAL, 0);
 	FL_DocLayout * pDL = pAL->getDocLayout();
 	return pDL->getAnnotationVal(pAL->getAnnotationPID());
 }
@@ -426,7 +448,8 @@ void fp_AnnotationContainer::clearScreen(void)
 	
 UT_uint32 fp_AnnotationContainer::getPID(void)
 {
-        fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>(getSectionLayout());
+        fl_AnnotationLayout * pAL = dynamic_cast<fl_AnnotationLayout *>(getSectionLayout());
+	UT_return_val_if_fail(pAL, 0);
 	return pAL->getAnnotationPID();
 }
 
@@ -446,13 +469,17 @@ void fp_AnnotationContainer::setContainer(fp_Container * pContainer)
 
 fl_DocSectionLayout * fp_AnnotationContainer::getDocSectionLayout(void)
 {
-	fl_AnnotationLayout * pFL = static_cast<fl_AnnotationLayout *>(getSectionLayout());
+	fl_AnnotationLayout * pFL = dynamic_cast<fl_AnnotationLayout *>(getSectionLayout());
+	UT_return_val_if_fail(pFL, nullptr);
 	fl_ContainerLayout * pDSL = pFL->myContainingLayout();
 	while(pDSL && pDSL->getContainerType() != FL_CONTAINER_DOCSECTION)
 	{
 		pDSL = pDSL->myContainingLayout();
 	}
-	UT_ASSERT(pDSL && (pDSL->getContainerType() == FL_CONTAINER_DOCSECTION));
+	if(!pDSL)
+	{
+		return nullptr;
+	}
 	return static_cast<fl_DocSectionLayout *>(pDSL);
 }
 
@@ -466,7 +493,8 @@ void fp_AnnotationContainer::draw(dg_DrawArgs* pDA)
 	{
 		return;
 	}
-	fl_AnnotationLayout * pAL2 = static_cast<fl_AnnotationLayout *>(getSectionLayout());
+	fl_AnnotationLayout * pAL2 = dynamic_cast<fl_AnnotationLayout *>(getSectionLayout());
+	UT_return_if_fail(pAL2);
 	FL_DocLayout * pDL = pAL2->getDocLayout();
 	m_iLabelWidth = 0;
 	if(!pDL->displayAnnotations())
@@ -488,8 +516,8 @@ void fp_AnnotationContainer::draw(dg_DrawArgs* pDA)
 		da.xoff = pDA->xoff + pContainer->getX();
 		if(i == 0)
 		{
-		        fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>(getSectionLayout());
-			fp_AnnotationRun * pAR = pAL->getAnnotationRun();
+		        fl_AnnotationLayout * pAL = dynamic_cast<fl_AnnotationLayout *>(getSectionLayout());
+			fp_AnnotationRun * pAR = pAL ? pAL->getAnnotationRun() : nullptr;
 			if(pAR)
 			{		
 			    m_iLabelWidth = pAR->getWidth();
@@ -512,7 +540,11 @@ void fp_AnnotationContainer::draw(dg_DrawArgs* pDA)
 fp_Container * fp_AnnotationContainer::getNextContainerInSection() const
 {
 
-	fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(getSectionLayout());
+	fl_ContainerLayout * pCL = getSectionLayout();
+	if(!pCL)
+	{
+		return nullptr;
+	}
 	fl_ContainerLayout * pNext = pCL->getNext();
 	while(pNext && pNext->getContainerType() == FL_CONTAINER_ENDNOTE)
 	{
@@ -529,7 +561,11 @@ fp_Container * fp_AnnotationContainer::getNextContainerInSection() const
 fp_Container * fp_AnnotationContainer::getPrevContainerInSection() const
 {
 
-	fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(getSectionLayout());
+	fl_ContainerLayout * pCL = getSectionLayout();
+	if(!pCL)
+	{
+		return nullptr;
+	}
 	fl_ContainerLayout * pPrev = pCL->getPrev();
 	while(pPrev && pPrev->getContainerType() == FL_CONTAINER_ENDNOTE)
 	{
@@ -553,6 +589,7 @@ void fp_AnnotationContainer::layout(void)
 	UT_sint32 iY = 0, iPrevY = 0;
 	iY= 0;
 	fl_DocSectionLayout * pDSL = getDocSectionLayout();
+	UT_return_if_fail(pDSL);
 	UT_sint32 iMaxFootHeight = 0;
 	iMaxFootHeight = pDSL->getActualColumnHeight();
 	iMaxFootHeight -= getGraphics()->tlu(20)*3;
@@ -667,7 +704,8 @@ UT_sint32 fp_EndnoteContainer::getY(void) const
  */
 UT_sint32 fp_EndnoteContainer::getValue(void)
 {
-	fl_EndnoteLayout * pFL = static_cast<fl_EndnoteLayout *>(getSectionLayout());
+	fl_EndnoteLayout * pFL = dynamic_cast<fl_EndnoteLayout *>(getSectionLayout());
+	UT_return_val_if_fail(pFL, 0);
 	FL_DocLayout * pDL = pFL->getDocLayout();
 	return pDL->getEndnoteVal(pFL->getEndnotePID());
 }
@@ -675,8 +713,11 @@ UT_sint32 fp_EndnoteContainer::getValue(void)
 void fp_EndnoteContainer::clearScreen(void)
 {
 	UT_DEBUGMSG(("Clearscreen on Endnote container %p , height = %d \n", static_cast<void*>(this), getHeight()));
-	fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(getSectionLayout());
-	pCL->setNeedsRedraw();
+	fl_ContainerLayout * pCL = getSectionLayout();
+	if(pCL)
+	{
+		pCL->setNeedsRedraw();
+	}
 	if(!m_bOnPage)
 	{
 		return;
@@ -757,10 +798,14 @@ void fp_EndnoteContainer::setContainer(fp_Container * pContainer)
 
 fl_DocSectionLayout * fp_EndnoteContainer::getDocSectionLayout(void)
 {
-	fl_EndnoteLayout * pFL = static_cast<fl_EndnoteLayout *>(getSectionLayout());
-	fl_DocSectionLayout * pDSL = static_cast<fl_DocSectionLayout *>(pFL->myContainingLayout());
-	UT_ASSERT(pDSL && (pDSL->getContainerType() == FL_CONTAINER_DOCSECTION));
-	return pDSL;
+	fl_EndnoteLayout * pFL = dynamic_cast<fl_EndnoteLayout *>(getSectionLayout());
+	UT_return_val_if_fail(pFL, nullptr);
+	fl_ContainerLayout * pCL = pFL->myContainingLayout();
+	if(!pCL || (pCL->getContainerType() != FL_CONTAINER_DOCSECTION))
+	{
+		return nullptr;
+	}
+	return static_cast<fl_DocSectionLayout *>(pCL);
 }
 
 /*!
@@ -878,9 +923,14 @@ void fp_EndnoteContainer::layout(void)
 		return;
 	}
 	setHeight(iNewHeight);
-	fl_EndnoteLayout * pEL = static_cast<fl_EndnoteLayout *>(getSectionLayout());
+	fl_EndnoteLayout * pEL = dynamic_cast<fl_EndnoteLayout *>(getSectionLayout());
+	UT_return_if_fail(pEL);
 	FL_DocLayout * pDL = pEL->getDocLayout();
+	UT_return_if_fail(pDL);
 	fl_DocSectionLayout * pDSL = pDL->getDocSecForEndnote(this);
 	fp_Page * pPage = getPage();
-	pDSL->setNeedsSectionBreak(true,pPage);
+	if(pDSL)
+	{
+		pDSL->setNeedsSectionBreak(true,pPage);
+	}
 }
