@@ -1769,6 +1769,13 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **EPUB import no longer leaks its temp directory** — every `.epub`
+  import (and every EPUB clipboard paste) extracted all manifest items
+  into a per-document folder under the system temp dir that was never
+  deleted, accumulating files on disk forever; the importer now removes
+  the whole tree when it finishes. EPUB export's "clear stale staging
+  dir" step now actually removes stale trees left by interrupted
+  exports instead of silently failing on the non-empty directory.
 - **Paste path hardened** — pasting at the very end of a document or
   into an empty document could crash when no block layout existed yet
   at the insertion point; the cell-size adjustment is now guarded.

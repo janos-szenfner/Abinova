@@ -154,6 +154,15 @@ IE_Imp_EPUB::IE_Imp_EPUB(PD_Document* pDocument) :
 
 IE_Imp_EPUB::~IE_Imp_EPUB()
 {
+    /* uncompress() extracts every manifest item under a per-document
+     * tmpdir - nothing else removes it, so without this the tree would
+     * leak on disk on every import and every epub clipboard paste
+     */
+    if (!m_tmpDir.empty())
+    {
+        UT_go_file_remove_recursive(m_tmpDir.c_str(), NULL);
+        m_tmpDir.clear();
+    }
     if (m_epub != NULL)
     {
         g_object_unref(G_OBJECT(m_epub));

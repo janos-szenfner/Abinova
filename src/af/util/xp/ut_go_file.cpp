@@ -1211,6 +1211,59 @@ UT_go_file_remove (char const *uri, GError ** err)
 	return res;
 }
 
+static gboolean
+remove_tree (GFile *file, GError **err)
+{
+	GFileEnumerator *enumer = g_file_enumerate_children (file,
+		G_FILE_ATTRIBUTE_STANDARD_NAME ","
+		G_FILE_ATTRIBUTE_STANDARD_TYPE,
+		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+		nullptr, nullptr);
+
+	if (enumer != nullptr) {
+		gboolean ok = TRUE;
+		GFileInfo *info;
+		while (ok
+			   && (info = g_file_enumerator_next_file (enumer, nullptr, nullptr)) != nullptr) {
+			GFile *child = g_file_get_child (file,
+				g_file_info_get_name (info));
+			if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY)
+				ok = remove_tree (child, err);
+			else
+				ok = g_file_delete (child, nullptr, err);
+			g_object_unref (G_OBJECT (info));
+			g_object_unref (G_OBJECT (child));
+		}
+		g_object_unref (G_OBJECT (enumer));
+		if (!ok)
+			return FALSE;
+	}
+
+	return g_file_delete (file, nullptr, err);
+}
+
+/**
+ * UT_go_file_remove_recursive:
+ * @uri: uri of a file or directory
+ * @err: (allow-none): #GError
+ *
+ * Deletes @uri; if it names a directory, its children are removed
+ * depth-first first. Unlike UT_go_file_remove(), which only removes
+ * empty directories, this drops a whole tree. The walk stops on the
+ * first failing child; symlinks are deleted, never followed.
+ */
+gboolean
+UT_go_file_remove_recursive (char const *uri, GError ** err)
+{
+	g_return_val_if_fail (uri != nullptr, FALSE);
+
+	GFile *f = g_file_new_for_uri (uri);
+	gboolean res = remove_tree (f, err);
+	g_object_unref (G_OBJECT (f));
+
+	return res;
+}
+
 gboolean
 UT_go_file_exists (char const *uri)
 {

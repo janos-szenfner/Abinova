@@ -74,6 +74,7 @@ ABI_EXPORT GsfInput  *UT_go_file_open		(char const *uri, GError **err);
 ABI_EXPORT GsfOutput *UT_go_file_create	(char const *uri, GError **err);
 
 ABI_EXPORT gboolean UT_go_file_remove (char const *uri, GError **err);
+ABI_EXPORT gboolean UT_go_file_remove_recursive (char const *uri, GError **err);
 
 ABI_EXPORT gboolean UT_go_file_exists (char const *uri);
 

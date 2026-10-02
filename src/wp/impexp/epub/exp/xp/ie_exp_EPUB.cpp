@@ -111,8 +111,9 @@ UT_Error IE_Exp_EPUB::_writeDocument()
     // To generate unique directory name we`ll use document UUID
     m_baseTempDir += getDoc()->getDocUUIDString();
     // We should delete any previous temporary data for this document to prevent
-    // odd files appearing in the container
-    UT_go_file_remove(m_baseTempDir.c_str(), NULL);
+    // odd files appearing in the container - remove_recursive because a stale
+    // dir left by an interrupted export is non-empty and plain remove() fails
+    UT_go_file_remove_recursive(m_baseTempDir.c_str(), NULL);
     UT_go_directory_create(m_baseTempDir.c_str(), NULL);
 
     if (writeContainer() != UT_OK)

@@ -984,6 +984,7 @@ UT_Error PD_Document::importStyles(const char * szFilename, int ieft, bool bDocP
 	if(!pie->supportsLoadStylesOnly())
 	{
 		UT_DEBUGMSG(("PD_Document::importStyles -- import of styles-only not supported\n"));
+		delete pie;
 		return UT_IE_IMPSTYLEUNSUPPORTED;
 	}
 	
