@@ -3055,6 +3055,17 @@ below are on `main` but the release has not been cut yet.
   case into its own `_specCharImage08` helper, and the LaTeX
   importer's `_parseText` gained a `_emitListEnv` helper for list
   environments, removing the deepest nesting in the importer.
+- **`.doc` importer valgrind batch verification (DOC20)** — ran a
+  full memcheck/leak sweep over a 16-file `.doc` corpus (Word97,
+  fields, footnotes, Launchpad bug fixtures, plus corrupt, truncated
+  and encrypted fuzz seeds), one instrumented process per file.
+  Every file reports zero memory errors and zero definite leaks in
+  the wv parser and importer — the earlier hardening (PLCF readers,
+  FKP page caches, string-table release, sibling-PLCF cleanup) holds
+  on this wider corpus, and a manual alloc/early-return audit of the
+  remaining hotspots found all ownership paths correct.  The only
+  residual is ~3 KB of fontconfig/pango/gio startup caches,
+  identical on every run and outside the document code.
 
 ### GTK4 port (core migration)
 
