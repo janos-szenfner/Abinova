@@ -2876,6 +2876,18 @@ below are on `main` but the release has not been cut yet.
   `fp_Line::assertLineListIntegrity` return, the three
   `noreturn`-declared functions genuinely never return, and nothing
   suppresses the warning.  No defects found, no changes needed.
+- **Returned-locals audit (EX05)** — swept `src/` and the vendored
+  `wv` parser for functions returning pointers/references to stack
+  locals or to members of dead temporaries: `return &local`,
+  `return localArray`, `return local.c_str()/utf8_str()/data()/str()`,
+  pointer locals aliasing a local's buffer (`const char* p =
+  s.c_str(); … return p;`), `const T&` returns binding temporaries,
+  member access on rvalues (`f().member`), and by-value range-for
+  loop variables returned out.  Every flagged site resolves to a
+  static buffer (the documented "use quickly" idiom), a heap buffer
+  whose ownership transfers to the caller, member storage, a
+  caller-owned parameter container, or a by-value return.  No
+  dangling-return defects found, no changes needed.
 
 ### GTK4 port (core migration)
 
