@@ -73,31 +73,45 @@ public:
 						 TRI_MODE_TABLE,
 						 TRI_MODE_FRAME };
 
-	AP_LeftRulerInfo(void) : 	m_mode(TRI_MODE_COLUMNS),
-								m_yPageStart(0),
-								m_yPageSize(0),
-								m_yPoint(0),
-								m_yTopMargin(0),
-								m_yBottomMargin(0),
-								m_iNumRows(0),
-								m_iCurrentRow(0),
-								m_iTablePadding(0),
-								m_vecTableRowInfo(nullptr)
+	AP_LeftRulerInfo(void) :	m_vecTableRowInfo(nullptr)
 		{
+			reset();
 		}
 	virtual ~AP_LeftRulerInfo(void)
+		{
+			_deleteTableVecs();
+		}
+
+	/*! Reset to the default-constructed state, releasing owned vectors. */
+	void reset(void)
+		{
+			_deleteTableVecs();
+			m_mode = TRI_MODE_COLUMNS;
+			m_yPageStart = 0;
+			m_yPageSize = 0;
+			m_yPoint = 0;
+			m_yTopMargin = 0;
+			m_yBottomMargin = 0;
+			m_iNumRows = 0;
+			m_iCurrentRow = 0;
+			m_iTablePadding = 0;
+		}
+
+private:
+	void _deleteTableVecs(void)
 		{
 			if(m_vecTableRowInfo)
 			{
 				UT_sint32 count = m_vecTableRowInfo->getItemCount();
-				UT_sint32 i =0;
-				for(i=0; i< count; i++)
+				for(UT_sint32 i = 0; i < count; i++)
 				{
 					delete m_vecTableRowInfo->getNthItem(i);
 				}
 				DELETEP(m_vecTableRowInfo);
 			}
 		}
+
+public:
 
 	Mode					m_mode;
 

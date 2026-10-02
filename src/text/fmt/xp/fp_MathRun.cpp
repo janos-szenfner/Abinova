@@ -153,8 +153,11 @@ void fp_MathRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	getMathManager()->setFont(m_iMathUID,pFont);
 	PD_Document * pDoc = getBlock()->getDocument();
 	auto prop = PP_evalPropertyType("color",pSpanAP,pBlockAP,pSectionAP, Property_type_color, pDoc, true);
-	const PP_PropertyTypeColor *p_color = static_cast<const PP_PropertyTypeColor *>(prop.get());
-	getMathManager()->setColor(m_iMathUID, p_color->getColor());
+	const PP_PropertyTypeColor *p_color = dynamic_cast<const PP_PropertyTypeColor *>(prop.get());
+	if (p_color)
+	{
+		getMathManager()->setColor(m_iMathUID, p_color->getColor());
+	}
 	
 	if(getMathManager()->isDefault())
 	{

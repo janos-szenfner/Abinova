@@ -2166,11 +2166,21 @@ UT_sint32 fp_Column::getMaxHeight(void) const
 
 fl_DocSectionLayout* fp_Column::getDocSectionLayout(void) const
 {
-	UT_ASSERT(getSectionLayout()->getType() == FL_SECTION_DOC ||
-			  getSectionLayout()->getType() == FL_SECTION_HDRFTR ||
-			  getSectionLayout()->getType() == FL_SECTION_ENDNOTE);
+	fl_SectionLayout * pSL = getSectionLayout();
 
-	return static_cast<fl_DocSectionLayout*>(getSectionLayout());
+	UT_ASSERT(pSL);
+	UT_ASSERT(!pSL || pSL->getType() == FL_SECTION_DOC ||
+			  pSL->getType() == FL_SECTION_HDRFTR ||
+			  pSL->getType() == FL_SECTION_ENDNOTE);
+
+	if (!pSL || pSL->getType() != FL_SECTION_DOC)
+	{
+		// HdrFtr/Endnote section layouts are not fl_DocSectionLayout
+		// subclasses, so the downcast below would be invalid for them.
+		return nullptr;
+	}
+
+	return static_cast<fl_DocSectionLayout*>(pSL);
 }
 
 /*!

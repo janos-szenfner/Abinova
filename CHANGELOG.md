@@ -3535,6 +3535,18 @@ below are on `main` but the release has not been cut yet.
   the resulting `FG_GraphicVector` images painted blank in our cairo
   renderers, while PNG output renders everywhere (embedded `.doc`
   metafiles and standalone `.wmf` imports alike).
+- **Page/column bookkeeping and ruler-info paths hardened** — the
+  code that reflows pages for Web/Normal view and feeds the rulers
+  dereferenced page column leaders, footnote/annotation containers and
+  section-layout pointers guarded only by debug asserts (or not at
+  all), so a page in a transient state during relayout could crash the
+  release build. All of those lookups are now null-checked, the
+  top/left ruler info structs reset through a proper `reset()` instead
+  of an in-place destroy-and-placement-new, and typed property lookups
+  use checked casts. Two wrong-index scans were also fixed: the
+  per-page page-break search only ever inspected the first column
+  row, and footnote/annotation height accounting compared the wrong
+  column leader.
 
 ### Resolved root causes worth noting
 

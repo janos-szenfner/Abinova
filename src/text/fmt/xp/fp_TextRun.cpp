@@ -245,9 +245,12 @@ void fp_TextRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	PD_Document * pDoc = getBlock()->getDocument();
 
 	auto prop = PP_evalPropertyType("color",pSpanAP,pBlockAP,pSectionAP, Property_type_color, pDoc, true);
-	const PP_PropertyTypeColor *p_color = static_cast<const PP_PropertyTypeColor *>(prop.get());
+	const PP_PropertyTypeColor *p_color = dynamic_cast<const PP_PropertyTypeColor *>(prop.get());
 	UT_ASSERT(p_color);
-	_setColorFG(p_color->getColor());
+	if (p_color)
+	{
+		_setColorFG(p_color->getColor());
+	}
 
 	const gchar* pszStyle = nullptr;
 	if(pSpanAP && pSpanAP->getAttribute(PT_STYLE_ATTRIBUTE_NAME, pszStyle))

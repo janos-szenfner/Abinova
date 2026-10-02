@@ -70,52 +70,63 @@ public:
 	enum Mode: uint8_t { TRI_MODE_COLUMNS, TRI_MODE_TABLE, TRI_MODE_FRAME };
 
 	AP_TopRulerInfo(void) :
-							m_mode(TRI_MODE_COLUMNS),
-							m_xPaperSize(0),
-							m_xPageViewMargin(0),
-							m_xrPoint(0),
-							m_xrLeftIndent(0),
-							m_xrFirstLineIndent(0),
-							m_xrRightIndent(0),
-							m_xrTabStop(0),
-							m_pfnEnumTabStops(nullptr),
-							m_pVoidEnumTabStopsData(nullptr),
-							m_iTabStops(0),
-							m_iDefaultTabInterval(0),
-							m_pszTabStops(nullptr),
-							m_iCurrentColumn(0),
-							m_iNumColumns(0),
 							m_vecTableColInfo (nullptr),
-							m_vecFullTable(nullptr),
-							m_iTablePadding(0),
-							m_iCells(0),
-							m_iCurCell(0)
+							m_vecFullTable(nullptr)
 		{
 			xxx_UT_DEBUGMSG(("SEVIOR: Creating AP_TopRulerInfo %x \n",this));
+			reset();
+		}
+	virtual ~AP_TopRulerInfo(void)
+		{
+			xxx_UT_DEBUGMSG(("SEVIOR: Deleting AP_TopRulerInfo %x \n",this));
+			_deleteTableVecs();
+		}
 
+	/*! Reset to the default-constructed state, releasing owned vectors. */
+	void reset(void)
+		{
+			_deleteTableVecs();
+			m_mode = TRI_MODE_COLUMNS;
+			m_xPaperSize = 0;
+			m_xPageViewMargin = 0;
+			m_xrPoint = 0;
+			m_xrLeftIndent = 0;
+			m_xrFirstLineIndent = 0;
+			m_xrRightIndent = 0;
+			m_xrTabStop = 0;
+			m_pfnEnumTabStops = nullptr;
+			m_pVoidEnumTabStopsData = nullptr;
+			m_iTabStops = 0;
+			m_iDefaultTabInterval = 0;
+			m_pszTabStops = nullptr;
+			m_iCurrentColumn = 0;
+			m_iNumColumns = 0;
+			m_iTablePadding = 0;
+			m_iCells = 0;
+			m_iCurCell = 0;
 			u.c.m_xaLeftMargin  = 0;
 			u.c.m_xaRightMargin = 0;
 			u.c.m_xColumnGap    = 0;
 			u.c.m_xColumnWidth  = 0;
 		}
-	virtual ~AP_TopRulerInfo(void)
+
+private:
+	void _deleteTableVecs(void)
 		{
-			xxx_UT_DEBUGMSG(("SEVIOR: Deleting AP_TopRulerInfo %x \n",this));
 			if(m_vecTableColInfo)
 			{
 				UT_sint32 count = m_vecTableColInfo->getItemCount();
-				UT_sint32 i =0;
-				for(i=0; i< count; i++)
+				for(UT_sint32 i = 0; i < count; i++)
 				{
 					delete m_vecTableColInfo->getNthItem(i);
 				}
 				delete m_vecTableColInfo;
+				m_vecTableColInfo = nullptr;
 			}
 			if(m_vecFullTable)
 			{
 				UT_sint32 count = m_vecFullTable->getItemCount();
-				UT_sint32 i =0;
-				for(i=0; i< count; i++)
+				for(UT_sint32 i = 0; i < count; i++)
 				{
 					delete m_vecFullTable->getNthItem(i);
 				}
@@ -123,6 +134,8 @@ public:
 				m_vecFullTable = nullptr;
 			}
 		}
+
+public:
 
 	Mode					m_mode;
 	UT_uint32				m_xPaperSize;

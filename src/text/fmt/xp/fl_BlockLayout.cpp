@@ -505,8 +505,11 @@ void fl_BlockLayout::_lookupMarginProperties(const PP_AttrProp* pBlockAP)
 	{
 		const MarginAndIndent_t& mai = rgProps[iRg];
 		auto prop = getPropertyType(mai.szProp,	Property_type_size);
-		// XXX ugly cast. fix this.
-		const PP_PropertyTypeSize* pProp = static_cast<PP_PropertyTypeSize*>(prop.get());
+		const PP_PropertyTypeSize* pProp = dynamic_cast<const PP_PropertyTypeSize*>(prop.get());
+		if (!pProp)
+		{
+			continue;
+		}
 		*mai.pVar	= UT_convertSizeToLayoutUnits(pProp->getValue(), pProp->getDim());
 		xxx_UT_DEBUGMSG(("para prop %s layout size %d \n",mai.szProp,*mai.pVar));
 	}
@@ -742,13 +745,13 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 	}
 	{
 		auto orphans = getPropertyType("orphans", Property_type_int);
-		const PP_PropertyTypeInt *pOrphans = static_cast<const PP_PropertyTypeInt *>(orphans.get());
+		const PP_PropertyTypeInt *pOrphans = dynamic_cast<const PP_PropertyTypeInt *>(orphans.get());
 		UT_ASSERT_HARMLESS(pOrphans);
 		if(pOrphans)
 			m_iOrphansProperty = pOrphans->getValue();
 
 		auto widows = getPropertyType("widows", Property_type_int);
-		const PP_PropertyTypeInt *pWidows = static_cast<const PP_PropertyTypeInt *>(widows.get());
+		const PP_PropertyTypeInt *pWidows = dynamic_cast<const PP_PropertyTypeInt *>(widows.get());
 		UT_ASSERT_HARMLESS(pWidows);
 		if(pWidows)
 			m_iWidowsProperty = pWidows->getValue();
@@ -811,7 +814,11 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 	{
 		const MarginAndIndent_t& mai = rgProps[iRg];
 		auto prop = getPropertyType(mai.szProp, Property_type_size);
-		const PP_PropertyTypeSize * pProp = static_cast<const PP_PropertyTypeSize *>(prop.get());
+		const PP_PropertyTypeSize * pProp = dynamic_cast<const PP_PropertyTypeSize *>(prop.get());
+		if (!pProp)
+		{
+			continue;
+		}
 		*mai.pVar	= UT_convertSizeToLayoutUnits(pProp->getValue(), pProp->getDim());
 		xxx_UT_DEBUGMSG(("para prop %s layout size %d \n",mai.szProp,*mai.pVar));
 	}
@@ -898,9 +905,10 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 #endif
 
 	auto prop = getPropertyType("default-tab-interval", Property_type_size);
-	const PP_PropertyTypeSize * pProp = static_cast<const PP_PropertyTypeSize *>(prop.get());
+	const PP_PropertyTypeSize * pProp = dynamic_cast<const PP_PropertyTypeSize *>(prop.get());
 	// TODO: this should probably change the stored property instead
-	m_iDefaultTabInterval = UT_convertSizeToLayoutUnits(pProp->getValue(), pProp->getDim());
+	if (pProp)
+		m_iDefaultTabInterval = UT_convertSizeToLayoutUnits(pProp->getValue(), pProp->getDim());
 	if (!m_iDefaultTabInterval)
 	{
 		m_iDefaultTabInterval = UT_convertToLogicalUnits("1pt");

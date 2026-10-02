@@ -287,6 +287,10 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 	for(i=0; i < static_cast<UT_sint32>(countColumnLeaders()); i++)
 	{
 		fp_Column * pCol = getNthColumnLeader(i);
+		if(!pCol)
+		{
+			continue;
+		}
 		if(i == 0)
 		{
 			pFirst2 = static_cast<fp_Container *>(pCol->getNthCon(0));
@@ -857,7 +861,7 @@ bool fp_Page::containsPageBreak(void) const
 	UT_sint32 i = 0;
 	for(i=0; i<countColumnLeaders();i++)
 	{
-		pCol = getNthColumnLeader(0);
+		pCol = getNthColumnLeader(i);
 		while(pCol)
 		{
 			if(pCol->containsPageBreak())
@@ -924,7 +928,15 @@ UT_sint32 fp_Page::getAvailableHeightForColumn(const fp_Column * pColumn) const
 {
 	fp_Column * pLeader = pColumn->getLeader();
 	fp_Column * pCurLeader = getNthColumnLeader(0);
+	if (!pCurLeader)
+	{
+		return getHeight();
+	}
 	fl_DocSectionLayout * pDSL = pCurLeader->getDocSectionLayout();
+	if (!pDSL)
+	{
+		return getHeight();
+	}
 	UT_sint32 avail = getHeight() - pDSL->getTopMargin() - pDSL->getBottomMargin();
 	if ((countColumnLeaders() == 1) || (pCurLeader == pLeader))
 	{
@@ -937,7 +949,7 @@ UT_sint32 fp_Page::getAvailableHeightForColumn(const fp_Column * pColumn) const
 	for(i = 0; i < countColumnLeaders(); i++)
 	{
 		pCurLeader = getNthColumnLeader(i);
-		if (pCurLeader == pLeader)
+		if (!pCurLeader || pCurLeader == pLeader)
 		{
 			break;
 		}
@@ -959,11 +971,15 @@ UT_sint32 fp_Page::getAvailableHeightForColumn(const fp_Column * pColumn) const
 	for(i=0; i< static_cast<UT_sint32>(countFootnoteContainers()); i++)
 	{
 		fp_FootnoteContainer * pFC = getNthFootnoteContainer(i);
+		if (!pFC || !pFC->getSectionLayout())
+		{
+			continue;
+		}
 		fl_DocSectionLayout * pDSLFoot = static_cast<fl_FootnoteLayout*>(pFC->getSectionLayout())->getDocSectionLayout();
 		UT_sint32 k = 0;
 		for (k = 0; k < iLeader; k++)
 		{
-			pCurLeader = getNthColumnLeader(i);
+			pCurLeader = getNthColumnLeader(k);
 			if (pCurLeader == nullptr)
 				continue;
 			if (pDSLFoot == pCurLeader->getDocSectionLayout())
@@ -978,11 +994,16 @@ UT_sint32 fp_Page::getAvailableHeightForColumn(const fp_Column * pColumn) const
 		for(i=0; i< static_cast<UT_sint32>(countAnnotationContainers()); i++)
 		{
 			fp_AnnotationContainer * pAC = getNthAnnotationContainer(i);
+			if (!pAC || !pAC->getSectionLayout())
+			{
+				continue;
+			}
 			fl_DocSectionLayout * pDSLAnn = static_cast<fl_AnnotationLayout*>(pAC->getSectionLayout())->getDocSectionLayout();
 			UT_sint32 k = 0;
 			for (k = 0; k < iLeader; k++)
 			{
-				if (pDSLAnn == getNthColumnLeader(i)->getDocSectionLayout())
+				fp_Column * pKLeader = getNthColumnLeader(k);
+				if (pKLeader && pDSLAnn == pKLeader->getDocSectionLayout())
 				{
 					avail -= pAC->getHeight();
 					break;
@@ -1072,7 +1093,15 @@ UT_sint32 fp_Page::getBottom(void) const
 	}
 
 	fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
+	if (!pFirstColumnLeader)
+	{
+		return 0;
+	}
 	fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader->getDocSectionLayout();
+	if (!pFirstSectionLayout)
+	{
+		return 0;
+	}
 	UT_ASSERT(m_pOwner == pFirstSectionLayout);
 
 //	UT_sint32 iTopMargin = pFirstSectionLayout->getTopMargin();
@@ -1132,7 +1161,11 @@ void fp_Page::_drawCropMarks(dg_DrawArgs* pDA)
 		GR_Painter painter(pDA->pG);
 
         fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-        fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
+        fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader ? pFirstColumnLeader->getDocSectionLayout() : nullptr;
+		if (!pFirstSectionLayout)
+		{
+			return;
+		}
 		UT_ASSERT(m_pOwner == pFirstSectionLayout);
 
         UT_sint32 iLeftMargin = pFirstSectionLayout->getLeftMargin();
@@ -1310,13 +1343,18 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	for (i=0; i<count; i++)
 	{
 		fp_FootnoteContainer* pFC = m_vecFootnotes.getNthItem(i);
+		if (!pFC)
+		{
+			continue;
+		}
 		dg_DrawArgs da = *pDA;
 		if(m_pView && (m_pView->getViewMode() != VIEW_PRINT) &&
 		   !pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))
 		{
 			fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-			fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
-			da.yoff -= pFirstSectionLayout->getTopMargin();
+			fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader ? pFirstColumnLeader->getDocSectionLayout() : nullptr;
+			if (pFirstSectionLayout)
+				da.yoff -= pFirstSectionLayout->getTopMargin();
 		}
 		da.xoff += pFC->getX();
 		da.yoff += pFC->getY();
@@ -1330,13 +1368,18 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 			for (i=0; i<count; i++)
 			{
 					fp_AnnotationContainer* pAC = m_vecAnnotations.getNthItem(i);
+					if (!pAC)
+					{
+						continue;
+					}
 					dg_DrawArgs da = *pDA;
 					if(m_pView && (m_pView->getViewMode() != VIEW_PRINT) &&
 					   !pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))
 					{
 							fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-							fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
-							da.yoff -= pFirstSectionLayout->getTopMargin();
+							fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader ? pFirstColumnLeader->getDocSectionLayout() : nullptr;
+							if (pFirstSectionLayout)
+								da.yoff -= pFirstSectionLayout->getTopMargin();
 					}
 					da.xoff += pAC->getX();
 					da.yoff += pAC->getY();
@@ -1549,7 +1592,15 @@ bool fp_Page::breakPage(void)
 	}
 	UT_sint32 iYPrev = 0;
 	fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-	fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
+	if (!pFirstColumnLeader)
+	{
+		return true;
+	}
+	fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader->getDocSectionLayout();
+	if (!pFirstSectionLayout)
+	{
+		return true;
+	}
 	UT_ASSERT(m_pOwner == pFirstSectionLayout);
 	UT_sint32 iTopMargin = pFirstSectionLayout->getTopMargin();
 	UT_sint32 iBottomMargin = pFirstSectionLayout->getBottomMargin();
@@ -1561,7 +1612,9 @@ bool fp_Page::breakPage(void)
 	UT_uint32 iFootnoteHeight = 2*pFirstSectionLayout->getFootnoteLineThickness();
 	for (i = 0; i < countFootnoteContainers(); i++)
 	{
-		iFootnoteHeight += getNthFootnoteContainer(i)->getHeight();
+		fp_FootnoteContainer * pFC = getNthFootnoteContainer(i);
+		if (pFC)
+			iFootnoteHeight += pFC->getHeight();
 	}
 	iY += iFootnoteHeight;
 
@@ -1572,7 +1625,9 @@ bool fp_Page::breakPage(void)
 		    UT_sint32 iAnnotationHeight = 0;
 			for (i = 0; i < countAnnotationContainers(); i++)
 			{
-					iAnnotationHeight += getNthAnnotationContainer(i)->getHeight();
+					fp_AnnotationContainer * pAC = getNthAnnotationContainer(i);
+					if (pAC)
+						iAnnotationHeight += pAC->getHeight();
 			}
 			iY += iAnnotationHeight;
 	}
@@ -1580,6 +1635,10 @@ bool fp_Page::breakPage(void)
 	for (i=0; i<count; i++)
 	{
 		fp_Column* pLeader = getNthColumnLeader(i);
+		if (!pLeader)
+		{
+			continue;
+		}
 		fp_Column* pTmpCol = pLeader;
 		UT_sint32 iMostHeight = 0;
 		iYPrev = iY;
@@ -1590,8 +1649,12 @@ bool fp_Page::breakPage(void)
 		}
 
 		iY += iMostHeight;
-		iY += pLeader->getDocSectionLayout()->getSpaceAfter();
-		iY += pLeader->getDocSectionLayout()->getSpaceAfter();
+		fl_DocSectionLayout * pLeaderDSL = pLeader->getDocSectionLayout();
+		if (pLeaderDSL)
+		{
+			iY += pLeaderDSL->getSpaceAfter();
+			iY += pLeaderDSL->getSpaceAfter();
+		}
 		if (iY >= availHeight)
 		{
 			break;
@@ -1687,12 +1750,13 @@ bool fp_Page::breakPage(void)
 // previous column continues onto the next or even subsequent pages.
 //
 			fp_Page * pPNext = getNext();
-			fl_DocSectionLayout * pPrevDSL = getNthColumnLeader(i-1)->getDocSectionLayout();
+			fp_Column * pPrevLeader = getNthColumnLeader(i-1);
+			fl_DocSectionLayout * pPrevDSL = pPrevLeader ? pPrevLeader->getDocSectionLayout() : nullptr;
 			if(pPNext== nullptr)
 			{
 				return true;
 			}
-			if(pPrevDSL == pPrev->getDocSectionLayout())
+			if(pPrev && pPrevDSL == pPrev->getDocSectionLayout())
 			{
 				return true;
 			}
@@ -1793,7 +1857,10 @@ void fp_Page::updateColumnX()
 	if (count == 0)
 		return;
 
-	UT_ASSERT(m_pOwner == getNthColumnLeader(0)->getDocSectionLayout());
+	fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
+	if (!pFirstColumnLeader || !pFirstColumnLeader->getDocSectionLayout())
+		return;
+	UT_ASSERT(m_pOwner == pFirstColumnLeader->getDocSectionLayout());
 
 
 	UT_sint32 iLeftMargin = 0;
@@ -1802,8 +1869,17 @@ void fp_Page::updateColumnX()
 	for (UT_uint32 i = 0; i < count; i++)
 	{
 		fp_Column* pLeader = getNthColumnLeader(i);
-		UT_ASSERT(pLeader->getContainerType() == FP_CONTAINER_COLUMN);
-		fl_DocSectionLayout* pSL = (pLeader->getDocSectionLayout());
+		if (!pLeader || pLeader->getContainerType() != FP_CONTAINER_COLUMN)
+		{
+			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+			continue;
+		}
+		fl_DocSectionLayout* pSL = pLeader->getDocSectionLayout();
+		if (!pSL)
+		{
+			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+			continue;
+		}
 
 		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
@@ -1872,8 +1948,12 @@ void fp_Page::_reformatColumns(void)
 		return;
 
 	fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
+	if (!pFirstColumnLeader)
+		return;
 	fp_Column * pLastCol = nullptr;
-	fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
+	fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader->getDocSectionLayout();
+	if (!pFirstSectionLayout)
+		return;
 	UT_ASSERT(m_pOwner == pFirstSectionLayout);
 
 
@@ -1890,7 +1970,9 @@ void fp_Page::_reformatColumns(void)
 	UT_uint32 iFootnoteHeight = 2*pFirstSectionLayout->getFootnoteLineThickness();
 	for (i = 0; i < countFootnoteContainers(); i++)
 	{
-		iFootnoteHeight += getNthFootnoteContainer(i)->getHeight();
+		fp_FootnoteContainer * pFC = getNthFootnoteContainer(i);
+		if (pFC)
+			iFootnoteHeight += pFC->getHeight();
 	}
 	UT_uint32 iAnnotationHeight = getAnnotationHeight();
 	for (i = 0; i < count; i++)
@@ -1912,8 +1994,17 @@ void fp_Page::_reformatColumns(void)
 #endif
 
 		fp_Column* pLeader = getNthColumnLeader(i);
-		UT_ASSERT(pLeader->getContainerType() == FP_CONTAINER_COLUMN);
-		fl_DocSectionLayout* pSL = (pLeader->getDocSectionLayout());
+		if (!pLeader || pLeader->getContainerType() != FP_CONTAINER_COLUMN)
+		{
+			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+			continue;
+		}
+		fl_DocSectionLayout* pSL = pLeader->getDocSectionLayout();
+		if (!pSL)
+		{
+			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+			continue;
+		}
 
 		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
@@ -1973,7 +2064,7 @@ void fp_Page::_reformatColumns(void)
 		}
 
 		iY += iMostHeight;
-		iY += pLeader->getDocSectionLayout()->getSpaceAfter();
+		iY += pSL->getSpaceAfter();
 
 	}
 //	UT_ASSERT(i == count);
@@ -2050,7 +2141,9 @@ void fp_Page::clearScreenFootnotes(void)
 	UT_sint32 i =0;
 	for (i = 0; i < countFootnoteContainers(); i++)
 	{
-		getNthFootnoteContainer(i)->clearScreen();
+		fp_FootnoteContainer * pFC = getNthFootnoteContainer(i);
+		if (pFC)
+			pFC->clearScreen();
 	}
 }
 
@@ -2060,7 +2153,9 @@ UT_sint32 fp_Page::getFootnoteHeight(void) const
 	UT_sint32 i = 0;
 	for (i = 0; i < countFootnoteContainers(); i++)
 	{
-		iFootnoteHeight += getNthFootnoteContainer(i)->getHeight();
+		fp_FootnoteContainer * pFC = getNthFootnoteContainer(i);
+		if (pFC)
+			iFootnoteHeight += pFC->getHeight();
 	}
 	return iFootnoteHeight;
 }
@@ -2075,7 +2170,11 @@ void fp_Page::_reformatFootnotes(void)
 		return;
 	}
 	fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-	fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
+	if (!pFirstColumnLeader)
+		return;
+	fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader->getDocSectionLayout();
+	if (!pFirstSectionLayout)
+		return;
 	UT_ASSERT(m_pOwner == pFirstSectionLayout);
 	UT_sint32 iBottomMargin = pFirstSectionLayout->getBottomMargin();
 	UT_uint32 pageHeight = getHeight() - iBottomMargin;
@@ -2084,7 +2183,9 @@ void fp_Page::_reformatFootnotes(void)
 	UT_sint32 i = 0;
 	for (i = 0; i < countFootnoteContainers(); i++)
 	{
-		iFootnoteHeight += getNthFootnoteContainer(i)->getHeight();
+		fp_FootnoteContainer * pFC = getNthFootnoteContainer(i);
+		if (pFC)
+			iFootnoteHeight += pFC->getHeight();
 	}
 
 	pageHeight -= iFootnoteHeight;
@@ -2092,7 +2193,9 @@ void fp_Page::_reformatFootnotes(void)
 	for (i = 0; i < countFootnoteContainers(); i++)
 	{
 		fp_FootnoteContainer * pFC = getNthFootnoteContainer(i);
-		fl_DocSectionLayout* pSL = (getNthColumnLeader(0)->getDocSectionLayout());
+		if (!pFC)
+			continue;
+		fl_DocSectionLayout* pSL = pFirstSectionLayout;
 
 		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
@@ -2101,7 +2204,7 @@ void fp_Page::_reformatFootnotes(void)
 			pFC->setX(pSL->getLeftMargin());
 
 		pFC->setY(pageHeight);
-		pageHeight += getNthFootnoteContainer(i)->getHeight();
+		pageHeight += pFC->getHeight();
 	}
 }
 
@@ -2114,7 +2217,9 @@ void fp_Page::clearScreenAnnotations(void)
 	UT_sint32 i =0;
 	for (i = 0; i < countAnnotationContainers(); i++)
 	{
-		getNthAnnotationContainer(i)->clearScreen();
+		fp_AnnotationContainer * pAC = getNthAnnotationContainer(i);
+		if (pAC)
+			pAC->clearScreen();
 	}
 }
 
@@ -2128,7 +2233,9 @@ UT_sint32 fp_Page::getAnnotationHeight(void) const
 	UT_sint32 i = 0;
 	for (i = 0; i < countAnnotationContainers(); i++)
 	{
-		iAnnotationHeight += getNthAnnotationContainer(i)->getHeight();
+		fp_AnnotationContainer * pAC = getNthAnnotationContainer(i);
+		if (pAC)
+			iAnnotationHeight += pAC->getHeight();
 	}
 	return iAnnotationHeight;
 }
@@ -2145,7 +2252,11 @@ void fp_Page::_reformatAnnotations(void)
 	if(!getDocLayout()->displayAnnotations())
 		return;
 	fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-	fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
+	if (!pFirstColumnLeader)
+		return;
+	fl_DocSectionLayout* pFirstSectionLayout = pFirstColumnLeader->getDocSectionLayout();
+	if (!pFirstSectionLayout)
+		return;
 	UT_ASSERT(m_pOwner == pFirstSectionLayout);
 	UT_sint32 iBottomMargin = pFirstSectionLayout->getBottomMargin();
 	UT_uint32 pageHeight = getHeight() - iBottomMargin;
@@ -2153,7 +2264,9 @@ void fp_Page::_reformatAnnotations(void)
 	UT_sint32 i = 0;
 	for (i = 0; i < countAnnotationContainers(); i++)
 	{
-		iAnnotationHeight += getNthAnnotationContainer(i)->getHeight();
+		fp_AnnotationContainer * pAC = getNthAnnotationContainer(i);
+		if (pAC)
+			iAnnotationHeight += pAC->getHeight();
 	}
 
 	pageHeight -= iAnnotationHeight;
@@ -2161,7 +2274,9 @@ void fp_Page::_reformatAnnotations(void)
 	for (i = 0; i < countAnnotationContainers(); i++)
 	{
 		fp_AnnotationContainer * pAC = getNthAnnotationContainer(i);
-		fl_DocSectionLayout* pSL = (getNthColumnLeader(0)->getDocSectionLayout());
+		if (!pAC)
+			continue;
+		fl_DocSectionLayout* pSL = pFirstSectionLayout;
 
 		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
@@ -2170,7 +2285,7 @@ void fp_Page::_reformatAnnotations(void)
 			pAC->setX(pSL->getLeftMargin());
 
 		pAC->setY(pageHeight);
-		pageHeight += getNthAnnotationContainer(i)->getHeight();
+		pageHeight += pAC->getHeight();
 	}
 }
 
@@ -2225,20 +2340,24 @@ void fp_Page::removeColumnLeader(fp_Column* pLeader)
 // An alternative is to destroy and recreate the page but this will be much nicer
 // if it can be made to work.
 //
-	if(pFirstColumnLeader->getDocSectionLayout() != m_pOwner)
+	if(pFirstColumnLeader && pFirstColumnLeader->getDocSectionLayout() != m_pOwner)
 	{
 //
 // Change ownership of the page. First remove this page from the set owned by
 // the old docSectionLayout.
 //
 		UT_DEBUGMSG(("fp_Page: Remove page %p from DSL %p \n", static_cast<void*>(this), static_cast<void*>(m_pOwner)));
-		m_pOwner->deleteOwnedPage(this,false);
+		if (m_pOwner)
+			m_pOwner->deleteOwnedPage(this,false);
 		fl_DocSectionLayout * pDSLNew = pFirstColumnLeader->getDocSectionLayout();
 //
 // Now add it to the new DSL.
 //
-		pDSLNew->addOwnedPage(this);
-		m_pOwner = pDSLNew;
+		if (pDSLNew)
+		{
+			pDSLNew->addOwnedPage(this);
+			m_pOwner = pDSLNew;
+		}
 	}
 	_reformatColumns();
 }
@@ -2919,11 +3038,15 @@ void fp_Page::clearScreenFrames(void)
 	UT_sint32 i =0;
 	for (i = 0; i < countAboveFrameContainers(); i++)
 	{
-		getNthAboveFrameContainer(i)->clearScreen();
+		fp_FrameContainer * pFC = getNthAboveFrameContainer(i);
+		if (pFC)
+			pFC->clearScreen();
 	}
 	for (i = 0; i < countBelowFrameContainers(); i++)
 	{
-		getNthBelowFrameContainer(i)->clearScreen();
+		fp_FrameContainer * pFC = getNthBelowFrameContainer(i);
+		if (pFC)
+			pFC->clearScreen();
 	}
 }
 

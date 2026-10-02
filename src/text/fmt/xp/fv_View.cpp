@@ -10403,8 +10403,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 	UT_return_if_fail(pSection);
 
 	/* clear pInfo */
-	pInfo->~AP_TopRulerInfo();
-	new(pInfo) AP_TopRulerInfo();
+	pInfo->reset();
 
 	if (pSection->getType() == FL_SECTION_DOC || pSection->getContainerType() == FL_CONTAINER_FOOTNOTE || pSection->getContainerType() == FL_CONTAINER_ANNOTATION || pSection->getContainerType() == FL_CONTAINER_ENDNOTE)
 	{
@@ -10429,7 +10428,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 				return;
 			}
 		}
-		if(!pColumn)
+		if(!pColumn || !pDSL)
 			return;
 		UT_uint32 nCol=0;
 		fp_Column * pNthColumn=pColumn->getLeader();
@@ -10470,17 +10469,20 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 	}
 	else if(isHdrFtrEdit() && (pSection->getContainerType() != FL_CONTAINER_CELL))
 	{
-		fp_Column* pColumn = static_cast<fp_Column*>(pContainer);
-		fl_DocSectionLayout* pDSL = static_cast<fl_DocSectionLayout*>(pSection);
-		pDSL = m_pEditShadow->getHdrFtrSectionLayout()->getDocSectionLayout();
-			
+		fl_HdrFtrSectionLayout * pHFSL = m_pEditShadow ? m_pEditShadow->getHdrFtrSectionLayout() : nullptr;
+		fl_DocSectionLayout* pDSL = pHFSL ? pHFSL->getDocSectionLayout() : nullptr;
+		if (!pDSL)
+		{
+			return;
+		}
+
 		pInfo->m_iCurrentColumn = 0;
 		pInfo->m_iNumColumns = 1;
 
 		if((getViewMode() == VIEW_NORMAL) || (getViewMode() == VIEW_WEB))
 		{
 			pInfo->u.c.m_xaLeftMargin = getNormalModeXOffset();
-			UT_sint32 iExtra = 72; 
+			UT_sint32 iExtra = 72;
 			pInfo->u.c.m_xaRightMargin = iExtra;
 		}
 		else
@@ -10488,9 +10490,9 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 			pInfo->u.c.m_xaLeftMargin = pDSL->getLeftMargin();
 			pInfo->u.c.m_xaRightMargin = pDSL->getRightMargin();
 		}
-		
+
 		pInfo->u.c.m_xColumnGap = pDSL->getColumnGap();
-		pInfo->u.c.m_xColumnWidth = pColumn->getWidth();
+		pInfo->u.c.m_xColumnWidth = pContainer->getWidth();
 		pInfo->m_mode = AP_TopRulerInfo::TRI_MODE_COLUMNS;
 
 		pInfo->m_xrPoint = xCaret - pContainer->getX();
@@ -10502,8 +10504,8 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 	{
 		fp_CellContainer * pCell = static_cast<fp_CellContainer *>(pContainer);
 		fl_DocSectionLayout* pDSL = pSection->getDocSectionLayout();
-		fp_VerticalContainer * pColumn = static_cast<fp_Column *>(pCell->getColumn(pLine));
-		if(pColumn == nullptr)
+		fp_VerticalContainer * pColumn = pCell->getColumn(pLine);
+		if(pColumn == nullptr || pDSL == nullptr)
 		{
 			return;
 		}
@@ -10583,6 +10585,10 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 		pInfo->m_xrRightIndent = pBlock->getRightMargin();
 		pInfo->m_xrFirstLineIndent = pBlock->getTextIndent();
 		fp_TableContainer * pTab = static_cast<fp_TableContainer *>(pCell->getContainer());
+		if (!pTab || pTab->getContainerType() != FP_CONTAINER_TABLE)
+		{
+			return;
+		}
 		fl_TableLayout * pTL = static_cast<fl_TableLayout *>(pTab->getSectionLayout());
 		if (!pTL || !pTL->isInitialLayoutCompleted())
 		{
@@ -10638,7 +10644,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 		UT_sint32 iCum = 0;
 		UT_sint32 ioff_x = 0;
 		fp_Container * pCon = static_cast<fp_Container*>(pTab->getContainer());
-		while(!pCon->isColumnType())
+		while(pCon && !pCon->isColumnType())
 		{
 			ioff_x += pCon->getX();
 			pCon = static_cast<fp_Container *>(pCon->getContainer());
@@ -10653,6 +10659,10 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 		{
 			pCur = pTab->getCellAtRowColumn(0,i);
 			pRC = pTab->getNthCol(i);
+			if(!pRC)
+			{
+				break;
+			}
 			UT_sint32 width = pRC->allocation + pRC->spacing;
 			if(pCur)
 			{
@@ -10752,8 +10762,7 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 	}
 
 	/* clear pInfo */
-	pInfo->~AP_LeftRulerInfo();
-	new(pInfo) AP_LeftRulerInfo();
+	pInfo->reset();
 
 	xxx_UT_DEBUGMSG(("ap_LeftRulerInfo: get Leftruler info \n"));
 
@@ -10851,6 +10860,10 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 			pSection = pPage->getOwningSection();
 			pDSL2 = static_cast<fl_DocSectionLayout*>(pSection);
 		}
+		if(!pSection)
+		{
+			return;
+		}
 		pInfo->m_yPoint = yCaret - pContainer->getY();
 
 		if ((isFootnote || isAnnotation || isEndnote || pContainer->getContainerType() == FP_CONTAINER_COLUMN) && !isHdrFtrEdit())
@@ -10886,6 +10899,10 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 			pInfo->m_yPageStart = static_cast<UT_uint32>(yoff);
 			pInfo->m_yPageSize = pPage->getHeight();
 			pDSL = pPage->getOwningSection();
+			if(pDSL == nullptr)
+			{
+				return;
+			}
 			if(!isInFrame(getPoint()))
 			{
 				pInfo->m_yTopMargin = pDSL->getTopMargin();
@@ -10898,7 +10915,13 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 				getPageYOffset(pPage, yoff);
 				pInfo->m_yPageStart = static_cast<UT_uint32>(yoff);
 				pInfo->m_yPageSize = pPage->getHeight();
-				fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(getFrameLayout()->getFirstContainer());
+				fl_FrameLayout * pFLEdit = getFrameLayout();
+				fp_Container * pFCon = pFLEdit ? pFLEdit->getFirstContainer() : nullptr;
+				if(!pFCon || pFCon->getContainerType() != FP_CONTAINER_FRAME)
+				{
+					return;
+				}
+				fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(pFCon);
 
 				pInfo->m_yTopMargin = pFC->getFullY();
 				UT_ASSERT(pInfo->m_yTopMargin>= 0);
@@ -10907,6 +10930,10 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 			}
 			fp_TableContainer * pTab = static_cast<fp_TableContainer *>(pCell->getContainer());
 			xxx_UT_DEBUGMSG(("In getLeftRulerInfo pCell %x pTab %x \n",pCell,pTab));
+			if(!pTab || pTab->getContainerType() != FP_CONTAINER_TABLE)
+			{
+				return;
+			}
 			UT_sint32 col = pCell->getLeftAttach();
 			UT_sint32 numrows = pTab->getNumRows();
 			UT_sint32 i =0;
@@ -10978,8 +11005,16 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 		}
 		else if(isHdrFtrEdit())
 		{
-			fl_HdrFtrSectionLayout * pHF =	m_pEditShadow->getHdrFtrSectionLayout();
+			fl_HdrFtrSectionLayout * pHF =	m_pEditShadow ? m_pEditShadow->getHdrFtrSectionLayout() : nullptr;
+			if(!pHF)
+			{
+				return;
+			}
 			pDSL2 = pHF->getDocSectionLayout();
+			if(!pDSL2)
+			{
+				return;
+			}
 			UT_sint32 yoff = 0;
 			getPageYOffset(pPage, yoff);
 			pInfo->m_yPageStart = static_cast<UT_uint32>(yoff);
