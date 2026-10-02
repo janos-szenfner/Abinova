@@ -2631,6 +2631,21 @@ below are on `main` but the release has not been cut yet.
   subclassed; `IE_Imp_RDF_Sniffer` itself stays non-final because
   `IE_Imp_RDF_Calendar_Sniffer` derives from it).  Signature drift in
   these classes will now fail the build instead of silently hiding.
+- **Data-race audit (CON01)** — audited every shared mutable
+  global/static reachable from a non-main context.  The application is
+  effectively single-threaded: the only real worker thread is the
+  Help ▸ Check for Updates `GTask`, which correctly confines its work
+  to a thread-local result delivered back on the main context, and
+  every `UT_Worker`/`UT_Timer`/idle path is a GLib main-loop source,
+  not a thread.  The genuine shared-context state lives in signal
+  handlers: the crash handler's nested-crash counter
+  `s_signal_count` was a plain `gint` mutated inside the signal
+  handler — now `volatile sig_atomic_t` as POSIX requires — and the
+  test harness's `SIGALRM` watchdog could deadlock on the stdio lock
+  if the alarm interrupted a `printf`, so it now uses
+  async-signal-safe `write()` + `abort()`.  Also fixed a test-build
+  break: `ut_uuid.t.cpp` had an invalid `static_cast` across
+  unrelated pointer types left over from the cast sweep.
 
 ### GTK4 port (core migration)
 

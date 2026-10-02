@@ -1341,7 +1341,7 @@ bool AP_UnixApp::doWindowlessArgs(const AP_Args *Args, bool & bSuccess)
 	return true;
 }
 
-static gint s_signal_count = 0;
+static volatile sig_atomic_t s_signal_count = 0;
 
 /*!
   This function actually handles signals.  The most commonly recieved

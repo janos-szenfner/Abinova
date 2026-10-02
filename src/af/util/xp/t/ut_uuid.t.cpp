@@ -52,7 +52,7 @@ void UT_UUIDGenerator__test(UT_UUIDGenerator* self)
 
       // on similar strings, the glib hash performs much better;
       // let's test it on random strings
-      UT_uint32 * p = static_cast<UT_uint32 *>(&(self->m_pUUID->m_uuid));
+      UT_uint32 * p = reinterpret_cast<UT_uint32 *>(&(self->m_pUUID->m_uuid));
 
       for(UT_uint32 n = 0; n < 4; n++)
         p[n] = UT_rand();

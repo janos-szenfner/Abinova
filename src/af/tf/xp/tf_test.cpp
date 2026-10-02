@@ -108,8 +108,13 @@ time_t& TF_Test::start_time()
 
 void TF_Test::alarm_handler(int)
 {
-    printf("\n! TF_Test  Current test took longer than %d seconds!  FAILED\n",
-       MAX_TEST_TIME);
+    /* async-signal-safe: printf() can deadlock on the stdio lock if the
+     * alarm interrupts the main thread mid-printf; write() + abort()
+     * are both on the POSIX async-signal-safe list */
+    static const char msg[] =
+        "\n! TF_Test  Current test took longer than 40 seconds!  FAILED\n";
+    ssize_t n = write(STDERR_FILENO, msg, sizeof(msg) - 1);
+    (void)n;
     abort();
 }
 
