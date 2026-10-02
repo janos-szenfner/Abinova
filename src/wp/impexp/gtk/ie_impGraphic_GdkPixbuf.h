@@ -54,6 +54,8 @@ public:
 	IE_ImpGraphic_GdkPixbuf();
 	virtual ~IE_ImpGraphic_GdkPixbuf();
 
+	using IE_ImpGraphic::importGraphic;
+
 	virtual UT_Error importGraphic(const UT_ConstByteBufPtr & pBB, FG_ConstGraphicPtr & pfg) override;
 
 private:
@@ -79,6 +81,8 @@ public:
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override;
+	using IE_ImpGraphicSniffer::recognizeContents;
+
 	virtual UT_Confidence_t recognizeContents(const char * szBuf, UT_uint32 iNum) override;
 	virtual bool getDlgLabels(const char ** pszDesc,
 							  const char ** pszSuffixList,

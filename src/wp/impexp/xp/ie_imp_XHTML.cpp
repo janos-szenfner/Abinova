@@ -2768,7 +2768,8 @@ bool IE_Imp_XHTML::appendSpan(const UT_UCS4Char * p, UT_uint32 length)
 }
 
 
-bool IE_Imp_XHTML::appendObject(PTObjectType pto, const PP_PropertyVector & attributes)
+bool IE_Imp_XHTML::appendObject(PTObjectType pto, const PP_PropertyVector & attributes,
+								const PP_PropertyVector & /*props*/)
 {
 	if(!m_addedPTXSection)
 		{

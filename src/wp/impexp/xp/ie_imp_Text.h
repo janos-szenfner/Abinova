@@ -96,6 +96,7 @@ public:
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override;
+	using IE_ImpSniffer::recognizeContents;
 	virtual UT_Confidence_t recognizeContents (const char * szBuf,
 									UT_uint32 iNumbytes) override;
 	const char * recognizeContentsType (const char * szBuf,
@@ -130,6 +131,7 @@ public:
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override { return nullptr; }
 
+	using IE_ImpSniffer::recognizeContents;
 	virtual UT_Confidence_t recognizeContents (const char * szBuf,
 					    UT_uint32 iNumbytes)  override;
 	virtual bool getDlgLabels (const char ** szDesc,

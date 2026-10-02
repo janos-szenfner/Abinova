@@ -69,6 +69,8 @@ public:
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override;
+	using IE_ImpSniffer::recognizeContents;
+
 	virtual UT_Confidence_t recognizeContents (const char * szBuf,
 									UT_uint32 iNumbytes) override;
 	virtual bool getDlgLabels (const char ** szDesc,
@@ -98,8 +100,11 @@ public:
 
 	virtual bool appendStrux(PTStruxType pts, const PP_PropertyVector & attributes) override;
 	virtual bool appendFmt(const PP_PropertyVector & vecAttributes) override;
+	using IE_Imp::appendSpan;
+
 	virtual bool appendSpan(const UT_UCS4Char * p, UT_uint32 length) override;
-	virtual bool  appendObject(PTObjectType pto, const PP_PropertyVector & attributes);
+	virtual bool  appendObject(PTObjectType pto, const PP_PropertyVector & attributes,
+							   const PP_PropertyVector & props = PP_NOPROPS) override;
 
 	/* EPUB3 note support: _loadFile's capture pass indexes the inner
 	 * markup of every element carrying epub:type="footnote|rearnote|

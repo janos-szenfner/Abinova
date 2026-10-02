@@ -1170,6 +1170,8 @@ public:
         return ret;
     }
     
+    using PD_DocumentRDF::contains;
+
     virtual bool contains( const PD_URI& s, const PD_URI& p, const PD_Object& o ) override
     {
         bool ret = false;
@@ -4688,6 +4690,8 @@ class ABI_EXPORT PD_RDFMutation_XMLIDLimited
         if( !m_committed && !m_rolledback )
             commit();
     }
+
+    using PD_DocumentRDFMutation::add;
 
     virtual bool add( const PD_URI& s, const PD_URI& p, const PD_Object& o ) override
     {

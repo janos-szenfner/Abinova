@@ -3133,7 +3133,7 @@ FL_DocLayout* FV_View::getLayout() const
 	return m_pLayout;
 }
 
-bool FV_View::notifyListeners(const AV_ChangeMask hint)
+bool FV_View::notifyListeners(const AV_ChangeMask hint, void * pPrivateData)
 {
 //
 // No need to update stuff if we're in preview mode
@@ -3161,7 +3161,7 @@ bool FV_View::notifyListeners(const AV_ChangeMask hint)
 	if(mask & m_iFreePass)
 	{
 		m_iFreePass = 0;
-		return AV_View::notifyListeners(mask);
+		return AV_View::notifyListeners(mask, pPrivateData);
 	}
 
 	if (mask & AV_CHG_DO)
@@ -3472,7 +3472,7 @@ bool FV_View::notifyListeners(const AV_ChangeMask hint)
 
 	// base class does the rest
 	xxx_UT_DEBUGMSG(("FV_View: notifyListeners: this %x \n",this));
-	return AV_View::notifyListeners(mask);
+	return AV_View::notifyListeners(mask, pPrivateData);
 }
 
 

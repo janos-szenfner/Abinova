@@ -36,6 +36,7 @@ public:
 
     virtual const IE_MimeConfidence * getMimeConfidence() override;
 
+    using IE_ImpSniffer::recognizeContents;
     virtual UT_Confidence_t recognizeContents(GsfInput * input) override;
 
     virtual UT_Error constructImporter(PD_Document * pDocument, IE_Imp ** ppie) override;

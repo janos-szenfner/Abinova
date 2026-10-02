@@ -301,6 +301,7 @@ public:
 
 	fl_HdrFtrSectionLayout*	getHdrFtrSectionLayout(void) const;
 	virtual void		draw(dg_DrawArgs*) override;
+	virtual void		draw(GR_Graphics*) override {}
 	virtual void		layout(void);
 	virtual void		clearScreen(void) override;
 	void		 		getScreenOffsets(fp_ContainerObject* pContainer, UT_sint32& xoff,

@@ -40,6 +40,7 @@ public:
 	virtual ~AP_UnixFrame(void);
 
 	virtual	XAP_Frame *cloneFrame(void) override;
+	using AP_Frame::initialize;
 	virtual bool	initialize(XAP_FrameMode frameMode = XAP_NormalFrame) override;
 
 	virtual void	setXScrollRange(void) override;

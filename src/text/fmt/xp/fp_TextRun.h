@@ -89,6 +89,8 @@ public:
 	UT_sint32				getStr(UT_UCS4Char * str, UT_uint32 &iMax);
 
 	// applies provided values of direction and override to the run
+	using fp_Run::setDirection;
+
 	void					setDirection(UT_BidiCharType dir, UT_BidiCharType override);
 
 	// the usability of the following function is *very* limited, see the note in cpp file

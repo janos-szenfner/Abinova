@@ -34,6 +34,7 @@ public:
 
 	virtual const IE_MimeConfidence * getMimeConfidence ();
 
+	using IE_ImpSniffer::recognizeContents;
 	virtual UT_Confidence_t recognizeContents (const char * szBuf, UT_uint32 iNumbytes);
 	virtual UT_Confidence_t recognizeSuffix (const char * szSuffix);
 

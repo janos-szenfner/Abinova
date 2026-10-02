@@ -114,6 +114,8 @@ public:
 
 	virtual const IE_MimeConfidence * getMimeConfidence ();
 
+	using IE_ImpSniffer::recognizeContents;
+
 	UT_Confidence_t recognizeContents (const char * szBuf, UT_uint32 iNumbytes);
 
 	bool getDlgLabels (const char ** szDesc, const char ** szSuffixList, IEFileType * ft);

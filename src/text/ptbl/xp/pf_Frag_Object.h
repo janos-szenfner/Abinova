@@ -41,6 +41,7 @@ public:
 	virtual ~pf_Frag_Object();
 
 	PTObjectType			getObjectType(void) const;
+	using pf_Frag::createSpecialChangeRecord;
 	virtual bool			createSpecialChangeRecord(PX_ChangeRecord ** ppcr,
 													  PT_DocPosition dpos,
 													  PT_BlockOffset blockOffset);

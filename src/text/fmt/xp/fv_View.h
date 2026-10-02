@@ -321,7 +321,8 @@ private:
 public:
 	const PP_AttrProp * getAttrPropForPoint() const;
 
-	virtual bool	notifyListeners(const AV_ChangeMask hint);
+	virtual bool	notifyListeners(const AV_ChangeMask hint,
+									void * pPrivateData = nullptr) override;
 
 	virtual bool	canDo(bool bUndo) const override;
 	virtual UT_uint32 undoCount (bool bUndo) const;

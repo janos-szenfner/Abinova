@@ -4785,7 +4785,7 @@ Defun1(cursorIBeam)
 	{
 		pG->setCursor(GR_Graphics::GR_CURSOR_IBEAM);
 	}
-	static_cast<AV_View *>(pView)->notifyListeners(AV_CHG_MOUSEPOS);
+	pView->AV_View::notifyListeners(AV_CHG_MOUSEPOS, nullptr);
 	return true;
 }
 
@@ -18497,7 +18497,7 @@ Defun(btn0VisualText)
 	xxx_UT_DEBUGMSG(("In Visual Text \n"));
 	UT_return_val_if_fail(pView, false);
 	pView->btn0VisualDrag(pCallData->m_xPos,pCallData->m_yPos);
-	static_cast<AV_View *>(pView)->notifyListeners(AV_CHG_MOUSEPOS);
+	pView->AV_View::notifyListeners(AV_CHG_MOUSEPOS, nullptr);
 	return true;
 }
 

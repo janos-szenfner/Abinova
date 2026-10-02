@@ -41,6 +41,7 @@ public:
 protected:
     virtual GsfOutput* _openFile(const char *szFilename) override;
     virtual UT_Error  _writeDocument(void) override;
+    virtual UT_Error copyToBuffer(PD_DocumentRange * pDocRange, UT_ByteBuf * pBuf) override;
     virtual UT_Error copyToBuffer(PD_DocumentRange * pDocRange, const UT_ByteBufPtr & bufODT);
 
 private:

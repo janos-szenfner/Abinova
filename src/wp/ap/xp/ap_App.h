@@ -45,6 +45,7 @@ class ABI_EXPORT AP_App : public XAP_App_BaseClass
 
 	AP_App (const char * szAppName);
 	virtual ~AP_App ();
+	using XAP_App_BaseClass::initialize;
 	virtual bool	initialize(void);
 
 	/* Command line stuff. */

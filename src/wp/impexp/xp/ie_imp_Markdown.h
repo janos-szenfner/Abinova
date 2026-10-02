@@ -98,6 +98,7 @@ public:
 	IE_Imp_Markdown_Sniffer();
 	virtual ~IE_Imp_Markdown_Sniffer();
 
+	using IE_ImpSniffer::recognizeContents;
 	virtual UT_Confidence_t recognizeContents(const char * szBuf,
 											  UT_uint32 iNumbytes) override;
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;

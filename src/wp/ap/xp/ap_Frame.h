@@ -38,6 +38,7 @@ class ABI_EXPORT AP_Frame : public XAP_Frame
     AP_Frame(AP_Frame *pFrame) : XAP_Frame(static_cast<XAP_Frame *>(pFrame)),m_bShowMargin(false){}
 	virtual ~AP_Frame();
 
+	using XAP_Frame::initialize;
 	virtual bool				initialize(XAP_FrameMode frameMode=XAP_NormalFrame) = 0;
 	virtual	XAP_Frame *			buildFrame(XAP_Frame * pFrame) override;
 	virtual UT_Error   			loadDocument(AD_Document* pDoc) override;

@@ -141,6 +141,8 @@ public:
 																	  PL_ListenerId lid,
 																	  fl_ContainerLayout* sfhNew));
 
+	using fl_SectionLayout::bl_doclistener_insertTable;
+
 	virtual bool bl_doclistener_insertTable( const PX_ChangeRecord_Strux * pcrx,
 											   SectionType iType,
 											   pf_Frag_Strux* sdh,

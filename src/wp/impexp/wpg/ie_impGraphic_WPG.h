@@ -37,6 +37,8 @@ public:
 	virtual ~IE_Imp_WordPerfectGraphics_Sniffer();
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
+	using IE_ImpGraphicSniffer::recognizeContents;
+
 	virtual UT_Confidence_t recognizeContents(GsfInput * input) override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override { return nullptr; }
 	virtual bool getDlgLabels(const char ** szDesc,
@@ -48,6 +50,8 @@ public:
 class IE_Imp_WordPerfectGraphics : public IE_ImpGraphic
 {
 public:
+  using IE_ImpGraphic::importGraphic;
+
   virtual UT_Error	importGraphic(GsfInput *input, FG_ConstGraphicPtr& pfg) override;
 };
 

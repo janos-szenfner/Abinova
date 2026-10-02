@@ -111,6 +111,16 @@ void IE_Exp_OpenDocument::setGSFOutput(GsfOutput * pBuf)
  * This method copies the selection defined by pDocRange to ODT format
  * placed in the ByteBuf bufODT
  */
+// Route the base-class raw-buffer entry point to the ODT-aware
+// implementation. Without this override, a copyToBuffer() call through an
+// IE_Exp* would silently dispatch to IE_Exp::copyToBuffer() and skip the
+// ODT-specific range/RDF handling below.
+UT_Error IE_Exp_OpenDocument::copyToBuffer(PD_DocumentRange * pDocRange, UT_ByteBuf * pBuf)
+{
+    UT_return_val_if_fail(pBuf, UT_ERROR);
+    return copyToBuffer(pDocRange, UT_ByteBufPtr(pBuf, [](UT_ByteBuf*){}));
+}
+
 UT_Error IE_Exp_OpenDocument::copyToBuffer(PD_DocumentRange * pDocRange, const UT_ByteBufPtr & bufODT)
 {
     //

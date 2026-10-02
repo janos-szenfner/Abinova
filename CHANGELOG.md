@@ -2604,6 +2604,26 @@ below are on `main` but the release has not been cut yet.
   `UT_Multipart`, SVG `GR_RSVGVectorImage`, and the OXML element base
   `OXML_ObjectWithAttrProp` (covers the whole element hierarchy).
 
+- **Accidental-hiding audit (OO05)** — a tree-wide
+  `-Woverloaded-virtual` sweep (~620 translation units) found ~30
+  places where a derived method hid a base overload instead of
+  overriding it.  Real dispatch bugs fixed:
+  `FV_View::notifyListeners` silently dropped the base's
+  `pPrivateData` argument; `IE_Imp_RTF::supportsLoadStylesOnly` was
+  `const` while the base method is not, so load-styles-only requests
+  for RTF documents were ignored; `IE_Imp_XHTML::appendObject` was
+  missing the base's third `props` parameter;
+  `IE_Exp_OpenDocument::copyToBuffer` only offered the
+  `UT_ByteBufPtr` overload so calls through `IE_Exp*` skipped the
+  ODT-aware path; and the RDF semantic-item editor's
+  `showEditorWindow` hid its base's `const&` virtuals.  The remaining
+  sites were resolved with `using` declarations restoring the base
+  overload sets (graphics `fillRect`/`importGraphic`, sniffer
+  `recognizeContents`, doc-listener insert hooks, `initialize`
+  chains, `createSpecialChangeRecord`, RDF `contains`/`add`, and
+  friends).  Also repaired a clean-rebuild break where C++ casts had
+  landed in the C-only Blowfish header.
+
 ### GTK4 port (core migration)
 
 - **Frontend ported to GTK4** — event controllers replace event

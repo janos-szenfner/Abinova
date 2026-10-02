@@ -33,6 +33,7 @@ class IE_ImpGraphicWMF_Sniffer : public IE_ImpGraphicSniffer
  public:
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override { return nullptr; }
+	using IE_ImpGraphicSniffer::recognizeContents;
 	virtual UT_Confidence_t recognizeContents(const char * szBuf,
 					UT_uint32 iNumbytes) override;
 	virtual bool getDlgLabels(const char ** szDesc,
@@ -44,6 +45,7 @@ class IE_ImpGraphicWMF_Sniffer : public IE_ImpGraphicSniffer
 class IE_ImpGraphic_WMF : public IE_ImpGraphic
 {
 public:
+	using IE_ImpGraphic::importGraphic;
     virtual UT_Error importGraphic(const UT_ConstByteBufPtr & pBB,
                                       FG_ConstGraphicPtr &pfg) override;
 private:

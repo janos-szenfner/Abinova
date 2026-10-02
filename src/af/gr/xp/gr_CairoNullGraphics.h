@@ -65,6 +65,7 @@ public:
 	virtual void setLineWidth(UT_sint32) override;
 	virtual void xorLine(UT_sint32, UT_sint32, UT_sint32, UT_sint32) override;
 	virtual void polyLine(const UT_Point * pts, UT_uint32 nPoints) override;
+	using GR_CairoGraphics::fillRect;
 	virtual void fillRect(const UT_RGBColor& c, UT_sint32 x, UT_sint32 y, UT_sint32 w, UT_sint32 h) override;
 	virtual void invertRect(const UT_Rect*) override;
 	virtual void queueDraw(const UT_Rect* pRect) override;

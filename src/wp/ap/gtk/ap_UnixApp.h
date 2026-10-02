@@ -56,6 +56,7 @@ public:
 	AP_UnixApp(const char * szAppName);
 	virtual ~AP_UnixApp();
 
+	using AP_App::initialize;
 	virtual bool					initialize(bool has_display);
 	virtual XAP_Frame *				newFrame(void) override;
 	virtual bool					forgetFrame(XAP_Frame * pFrame) override;

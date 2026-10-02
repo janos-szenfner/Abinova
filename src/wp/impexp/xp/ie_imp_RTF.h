@@ -584,6 +584,8 @@ public:
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override;
+	using IE_ImpSniffer::recognizeContents;
+
 	virtual UT_Confidence_t recognizeContents (const char * szBuf,
 									UT_uint32 iNumbytes) override;
 	virtual bool getDlgLabels (const char ** szDesc,
@@ -600,7 +602,7 @@ public:
 	IE_Imp_RTF(PD_Document * pDocument);
 	~IE_Imp_RTF();
 
-	virtual bool supportsLoadStylesOnly() const {return true;}
+	virtual bool supportsLoadStylesOnly() override {return true;}
 	virtual bool		pasteFromBuffer(PD_DocumentRange * pDocRange,
 										const unsigned char * pData,
                                         UT_uint32 lenData,

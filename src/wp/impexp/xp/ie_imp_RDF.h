@@ -45,6 +45,7 @@ class ABI_EXPORT IE_Imp_RDF_Sniffer : public IE_ImpSniffer
 	IE_Imp_RDF_Sniffer( const char * name );
 	virtual ~IE_Imp_RDF_Sniffer();
 
+	using IE_ImpSniffer::recognizeContents;
 	virtual UT_Confidence_t recognizeContents(const char * szBuf,
                                                 UT_uint32 iNumbytes) override;
 

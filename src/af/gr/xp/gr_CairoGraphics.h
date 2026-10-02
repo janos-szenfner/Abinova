@@ -246,6 +246,8 @@ public:
 	virtual UT_uint32 getFontDescent(const GR_Font *) override;
 	virtual UT_uint32 getFontHeight(const GR_Font *) override;
 
+	using GR_Graphics::fillRect;
+
 	virtual void fillRect(GR_Color3D c,
 								 UT_sint32 x, UT_sint32 y,
 								 UT_sint32 w, UT_sint32 h) override;

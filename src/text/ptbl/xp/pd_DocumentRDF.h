@@ -1011,6 +1011,8 @@ class ABI_EXPORT PD_DocumentRDF : public PD_RDFModel
     virtual PD_URIList getSubjects( const PD_URI& p, const PD_Object& o ) override;
     virtual PD_URIList getAllSubjects() override;
     virtual POCol      getArcsOut( const PD_URI& s ) override;
+    using PD_RDFModel::contains;
+
     virtual bool       contains( const PD_URI& s, const PD_URI& p, const PD_Object& o ) override;
     virtual bool       contains( const PD_RDFStatement& st ) override;
     virtual long       getTripleCount() override;

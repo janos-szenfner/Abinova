@@ -87,6 +87,7 @@ public:
     virtual ~IE_Imp_WordPerfect_Sniffer();
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
+	using IE_ImpSniffer::recognizeContents;
 	virtual UT_Confidence_t recognizeContents(GsfInput * input) override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override { return nullptr; }
 	virtual bool getDlgLabels(const char ** szDesc,
@@ -242,6 +243,8 @@ public:
     virtual ~IE_Imp_MSWorks_Sniffer();
 
 	virtual const IE_SuffixConfidence * getSuffixConfidence() override;
+    using IE_ImpSniffer::recognizeContents;
+
     virtual UT_Confidence_t recognizeContents(GsfInput * input) override;
 	virtual const IE_MimeConfidence * getMimeConfidence() override { return nullptr; }
     virtual bool getDlgLabels (const char ** szDesc,

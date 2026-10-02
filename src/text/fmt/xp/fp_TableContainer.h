@@ -133,6 +133,8 @@ public:
 	virtual void        setContainer(fp_Container * pContainer) override;
 	virtual void        setWidth(UT_sint32 iWidth) override;
 	virtual void        setHeight(UT_sint32 iHeight) override;
+	using fp_VerticalContainer::_drawBoundaries;
+
 	        void        _drawBoundaries(dg_DrawArgs* pDA, fp_TableContainer *pBroke);
 	virtual bool        isVBreakable(void) override;
 	virtual bool        isHBreakable(void) override {return false;}
@@ -158,6 +160,8 @@ public:
 	UT_sint32           getCellY(fp_Line * pLine) const;
 	UT_sint32           getSpannedHeight(void) const;
 	void                setLineMarkers(void);
+	using fp_VerticalContainer::deleteBrokenAfter;
+
 	void                deleteBrokenTables(bool bClearFirst=true);
 	void                deleteBrokenAfter(bool bClearFirst,UT_sint32 iOldBottom);
 	bool                containsFootnoteReference(const fp_TableContainer * pBroke = nullptr) const;

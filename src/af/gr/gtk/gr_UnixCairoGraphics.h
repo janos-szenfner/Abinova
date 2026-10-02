@@ -91,6 +91,8 @@ public:
 	/** In the UnixCairoGraphics, color3D are mostly invalid. */
 	virtual bool        getColor3D(GR_Color3D name, UT_RGBColor &color) override;
 
+	using GR_CairoGraphics::fillRect;
+
 	virtual void		fillRect(GR_Color3D c,
 								 UT_sint32 x, UT_sint32 y,
 								 UT_sint32 w, UT_sint32 h) override;

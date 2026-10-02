@@ -42,6 +42,7 @@ public:
 					PT_AttrPropIndex indexAP);
 	virtual ~pf_Frag_FmtMark();
 
+	using pf_Frag::createSpecialChangeRecord;
 	virtual bool			createSpecialChangeRecord(PX_ChangeRecord ** ppcr,
 													  PT_DocPosition dpos,
 													  PT_BlockOffset blockOffset) const;

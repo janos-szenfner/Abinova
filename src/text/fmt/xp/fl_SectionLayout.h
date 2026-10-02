@@ -471,6 +471,8 @@ public:
 											void (* pfnBindHandles)(pf_Frag_Strux* sdhNew,
 																	PL_ListenerId lid,
 																	fl_ContainerLayout* sfhNew)) override;
+	using fl_SectionLayout::bl_doclistener_insertSection;
+
 	virtual bool bl_doclistener_insertSection(fl_ContainerLayout*, const PX_ChangeRecord_Strux * pcrx,
 											  pf_Frag_Strux* sdh,
 											  PL_ListenerId lid,
