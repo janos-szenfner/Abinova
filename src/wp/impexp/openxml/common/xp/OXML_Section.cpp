@@ -31,6 +31,7 @@
 
 // Abinova includes
 #include "ut_types.h"
+#include "ut_path.h"
 #include "pd_Document.h"
 #include "pt_Types.h"
 
@@ -324,6 +325,13 @@ UT_Error OXML_Section::serializeHeader(IE_Exp_OpenXML* exporter)
 	if(ret != UT_OK)
 		return UT_OK;
 
+	/* headerId is a document-controlled strux id that lands in r:id
+	 * attributes, .rels targets and the word/header<id>.xml member
+	 * name - sanitize it once so all of them stay safe and
+	 * consistent */
+	const std::string sHeaderId = UT_sanitizeFileName(headerId);
+	headerId = sHeaderId.c_str();
+
 	const gchar* type = "default";
 	//OOXML includes default, first and even.  
 	if(strstr(headerType, "first"))
@@ -379,7 +387,14 @@ UT_Error OXML_Section::serializeFooter(IE_Exp_OpenXML* exporter)
 	ret = getAttribute("id", footerId);
 	if(ret != UT_OK)
 		return UT_OK;
-		
+
+	/* footerId is a document-controlled strux id that lands in r:id
+	 * attributes, .rels targets and the word/footer<id>.xml member
+	 * name - sanitize it once so all of them stay safe and
+	 * consistent */
+	const std::string sFooterId = UT_sanitizeFileName(footerId);
+	footerId = sFooterId.c_str();
+
 	std::string footer("fId");
 	footer += footerId;
 

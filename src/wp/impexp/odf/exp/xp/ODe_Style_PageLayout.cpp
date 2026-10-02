@@ -28,6 +28,7 @@
 #include "ODe_Style_Style.h"
 
 // Abinova includes
+#include "ut_path.h"
 #include "ut_units.h"
 #include "pd_Document.h"
 #include "ut_string_class.h"
@@ -183,7 +184,7 @@ void ODe_Style_PageLayout::fetchAttributesFromAbiSection(const PP_AttrProp* pAP)
 
     ok = pAP->getAttribute("strux-image-dataid", pValue);
     if (ok && pValue != nullptr) {
-        m_backgroundImage = pValue;
+        m_backgroundImage = UT_sanitizeFileName(pValue).c_str();
     }
 }
 

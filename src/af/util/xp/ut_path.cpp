@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 
+#include <glib/gstdio.h>
 
 #include "ut_path.h"
 
@@ -37,20 +38,59 @@ UT_UTF8String UT_go_basename(const char* uri)
 
 std::string UT_createTmpFile(const std::string& prefix, const std::string& extension)
 {
-	const gchar *filename = g_build_filename (g_get_tmp_dir (), prefix.c_str(), nullptr);
-	UT_return_val_if_fail(filename, "");
+	// g_file_open_tmp creates the file O_EXCL under an unpredictable
+	// name - the old UT_rand-based name was guessable and fopen("w+")
+	// follows pre-planted symlinks in the shared tmp dir
+	std::string tmpl = g_get_tmp_dir();
+	tmpl += G_DIR_SEPARATOR;
+	tmpl += prefix;
+	if (!tmpl.empty() && tmpl.back() != '-')
+		tmpl += '-';
+	tmpl += "XXXXXX";
+	tmpl += extension;
 
-	std::string sName = filename;
-	FREEP(filename);
-
-	UT_UTF8String rand = UT_UTF8String_sprintf("%X", UT_rand() * 0xFFFFFF);
-	sName += rand.utf8_str();
-	sName += extension;
-
-	FILE* f = fopen (sName.c_str(), "w+b");
-	if (!f)
+	gchar *filename = nullptr;
+	int fd = g_file_open_tmp(tmpl.c_str(), &filename, nullptr);
+	if (fd == -1)
 		return "";
 
-	fclose(f);
+	g_close(fd, nullptr);
+	std::string sName = filename;
+	g_free(filename);
 	return sName;
+}
+
+std::string UT_sanitizeFileName(const char *name)
+{
+	std::string safe;
+
+	if (name)
+	{
+		for (const char *p = name; *p; ++p)
+		{
+			const unsigned char c = static_cast<unsigned char>(*p);
+			/* Keep ASCII alnum, a few harmless punctuation chars and
+			 * UTF-8 multi-byte sequences; everything else - '/' and
+			 * '\\' (path separators), control bytes (CR/LF header
+			 * injection), quotes and markup chars (XML attribute
+			 * break-out), '%' (URL escapes) and shell-ish metachars -
+			 * becomes an underscore. */
+			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+				|| (c >= '0' && c <= '9') || c >= 0x80
+				|| c == '.' || c == '-' || c == '_' || c == '+'
+				|| c == ' ')
+				safe += static_cast<char>(c);
+			else
+				safe += '_';
+		}
+	}
+
+	// a leading '.' would make the name hidden; ".." would traverse up
+	if (!safe.empty() && safe[0] == '.')
+		safe[0] = '_';
+
+	if (safe.empty())
+		safe = "item";
+
+	return safe;
 }

@@ -27,6 +27,7 @@
 
 #include "ut_types.h"
 #include "ut_misc.h"
+#include "ut_path.h"
 #include "pd_Document.h"
 #include "fg_Graphic.h"
 
@@ -74,7 +75,9 @@ void OXML_Image::setGraphic(FG_ConstGraphicPtr && graphic)
 
 UT_Error OXML_Image::serialize(IE_Exp_OpenXML* exporter)
 {
-	std::string filename = m_id;
+	// m_id is a document-controlled data-item id - sanitize so the
+	// word/media/ zip member name stays flat and quote-free
+	std::string filename = UT_sanitizeFileName(m_id.c_str());
 	std::string mimeType;
 	if(m_graphic) {
 		mimeType = m_graphic->getMimeType();

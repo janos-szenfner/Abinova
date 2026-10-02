@@ -33,6 +33,7 @@
 #include "pp_AttrProp.h"
 #include "pt_Types.h"
 #include "ut_locale.h"
+#include "ut_path.h"
 #include "fl_BlockLayout.h" // for fl_TabStop
 
 // External includes
@@ -2262,7 +2263,7 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     if (ok && pValue != nullptr)
     {
         m_backgroundImage = "Pictures/";
-        m_backgroundImage += pValue;
+        m_backgroundImage += UT_sanitizeFileName(pValue).c_str();
     }
 
     // Vertical alignment

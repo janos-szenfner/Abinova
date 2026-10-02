@@ -28,6 +28,7 @@
 #include "ut_std_string.h"
 #include "ut_types.h"
 #include "ut_string.h"
+#include "ut_path.h"
 #include "pd_Document.h"
 
 OXML_Element_Image::OXML_Element_Image(const std::string & id) : 
@@ -58,10 +59,10 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 		getAttribute("dataid", szValue);
 	}
 
-	std::string sEscValue = UT_escapeXML(szValue);
-
-	std::string filename("");
-	filename += sEscValue;
+	/* szValue is a document-controlled data-item id; sanitize so the
+	 * filename is a flat, quote-free zip member name that matches the
+	 * sanitized name OXML_Image::serialize writes into word/media/ */
+	std::string filename = UT_sanitizeFileName(szValue);
 
 	std::string extension;
 	if(!exporter->getDoc()->getDataItemFileExtension(szValue, extension))

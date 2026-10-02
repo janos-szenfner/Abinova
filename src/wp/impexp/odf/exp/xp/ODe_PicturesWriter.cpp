@@ -26,6 +26,7 @@
  
 // Abiword includes
 #include "ut_bytebuf.h"
+#include "ut_path.h"
 #include "pd_Document.h"
 
 // Class definition include
@@ -65,7 +66,9 @@ bool ODe_PicturesWriter::writePictures(PD_Document* pDoc, GsfOutfile* pODT)
                     return false;
             }
 			pDoc->getDataItemFileExtension(szName, extension, true);
-			fullName = szName + extension;
+			// szName is a document-controlled data-item id - sanitize
+			// so it stays a flat name inside the Pictures/ zip dir
+			fullName = UT_sanitizeFileName(szName) + extension;
             pImg = gsf_outfile_new_child(GSF_OUTFILE(pPicsDir),
                                          fullName.c_str(), FALSE);
             if (pImg == nullptr)

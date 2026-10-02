@@ -54,6 +54,14 @@ ABI_EXPORT UT_UTF8String UT_go_basename(const char* uri);
 // to glib
 ABI_EXPORT std::string UT_createTmpFile(const std::string& prefix, const std::string& extension);
 
+/* Map a document-controlled name (e.g. a data-item id or a strux id)
+ * to a filesystem- and container-safe base name for use when exporting
+ * it as a file name, zip member name, MIME header value or XML
+ * attribute value: path separators, control bytes and quote/markup
+ * characters are replaced, a leading '.' (hidden-file/parent-dir) is
+ * neutralized, and the result is guaranteed non-empty. */
+ABI_EXPORT std::string UT_sanitizeFileName(const char *name);
+
 ABI_EXPORT bool UT_directoryExists(const char* dir);
 
 ABI_EXPORT bool UT_isRegularFile(const char* filename);

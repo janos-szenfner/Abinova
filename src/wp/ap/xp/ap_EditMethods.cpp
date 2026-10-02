@@ -37,6 +37,8 @@
 
 #include <algorithm>
 
+#include <glib/gstdio.h>
+
 #include "xap_Features.h"
 #include "ap_Features.h"
 #include "ap_EditMethods.h"
@@ -12429,13 +12431,28 @@ Defun1(insScreenshot)
 		return false;
 	}
 
-	gchar * tmp = g_build_filename(g_get_tmp_dir(),
-								   "abinova-screenshot.png", nullptr);
-	gchar * cmd = g_strdup_printf("%s -a -f \"%s\"", shot, tmp);
+	// Secure temp file: a predictable name in the shared tmp dir
+	// would be a symlink-attack vector.
+	gchar * tmp = nullptr;
+	int fd = g_file_open_tmp("abinova-screenshot-XXXXXX.png",
+							 &tmp, nullptr);
+	if (fd == -1)
+	{
+		g_free(shot);
+		return false;
+	}
+	g_close(fd, nullptr);
+
+	// argv form: no shell parsing or quoting involved
+	gchar * argv[] = { shot, const_cast<gchar*>("-a"),
+					   const_cast<gchar*>("-f"), tmp, nullptr };
 	gint status = 0;
-	gboolean ok = g_spawn_command_line_sync(cmd, nullptr, nullptr,
-											&status, nullptr);
-	g_free(cmd);
+	gboolean ok = g_spawn_sync(nullptr, argv, nullptr,
+							   static_cast<GSpawnFlags>(
+								   G_SPAWN_STDOUT_TO_DEV_NULL |
+								   G_SPAWN_STDERR_TO_DEV_NULL),
+							   nullptr, nullptr, nullptr, nullptr,
+							   &status, nullptr);
 	g_free(shot);
 
 	bool bOK = ok && status == 0 &&

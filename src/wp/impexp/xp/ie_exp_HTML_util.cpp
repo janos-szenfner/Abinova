@@ -25,6 +25,7 @@
 #include "ie_exp_HTML_util.h"
 #include "ut_std_string.h"
 #include "ut_locale.h"
+#include "ut_path.h"
 
 #define SEPARATOR "/"
 
@@ -367,13 +368,15 @@ UT_UTF8String IE_Exp_HTML_FileExporter::saveData(const gchar *szDataId,
                                                  const gchar* extension)
 {
     _init();
-    UT_UTF8String filename = szDataId;
-    
+    // szDataId is document-controlled - it must stay a plain basename
+    // or a hostile name would write outside m_fileDirectory
+    UT_UTF8String filename = UT_sanitizeFileName(szDataId).c_str();
+
     if (extension != nullptr)
     {
         filename += extension;
     }
-    
+
     UT_ConstByteBufPtr pByteBuf;
     if (!m_pDocument->getDataItemDataByName(szDataId, pByteBuf,
                                             nullptr, nullptr))
@@ -381,10 +384,10 @@ UT_UTF8String IE_Exp_HTML_FileExporter::saveData(const gchar *szDataId,
         UT_ASSERT("No data item with specified dataid found\n");
         return "";
     }
-    
-    pByteBuf->writeToURI((m_baseDirectory + SEPARATOR + m_fileDirectory 
+
+    pByteBuf->writeToURI((m_baseDirectory + SEPARATOR + m_fileDirectory
         + SEPARATOR + filename).utf8_str());
-    
+
     return m_fileDirectory + SEPARATOR + filename;
 }
 
@@ -400,14 +403,16 @@ UT_UTF8String IE_Exp_HTML_FileExporter::saveData(const UT_UTF8String &name,
     {
         return i->second;
     }
-    UT_UTF8String filePath = m_fileDirectory 
-        + SEPARATOR  + name;
-    
-    GsfOutput* output =  
-        UT_go_file_create((m_baseDirectory + SEPARATOR  + 
-        m_fileDirectory + SEPARATOR + name).utf8_str(), 
+    UT_UTF8String filePath = m_fileDirectory
+        + SEPARATOR  + UT_sanitizeFileName(name.utf8_str()).c_str();
+
+    GsfOutput* output =
+        UT_go_file_create((m_baseDirectory + SEPARATOR  +
+        m_fileDirectory + SEPARATOR + UT_sanitizeFileName(name.utf8_str()).c_str()).utf8_str(),
                              nullptr);
-    
+    if (!output)
+        return "";
+
     gsf_output_write(output, data.byteLength(), reinterpret_cast<const guint8*>(data.utf8_str()));
     gsf_output_close(output);
     m_saved[name] = filePath;
@@ -425,16 +430,18 @@ IE_Exp_HTML_MultipartExporter::IE_Exp_HTML_MultipartExporter(
 
 }
 
-UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const gchar *szDataId, 
+UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const gchar *szDataId,
     const gchar* extension)
 {
-    UT_UTF8String filename = szDataId;
-    
+    // szDataId is document-controlled; sanitize so it cannot inject
+    // CR/LF into the Content-Location header or escape the part name
+    UT_UTF8String filename = UT_sanitizeFileName(szDataId).c_str();
+
     if (extension != nullptr)
     {
         filename += extension;
     }
-        
+
     std::string mime;
     UT_ConstByteBufPtr bb;
     m_pDocument->getDataItemDataByName(szDataId, bb, &mime, nullptr);
@@ -464,17 +471,17 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::saveData(const UT_UTF8String &name,
 {
     const gchar *szSuffix = strchr(name.utf8_str(), '.');
     UT_UTF8String mime;
-    
-    if (!g_ascii_strcasecmp(szSuffix, ".css"))
+
+    if (szSuffix && !g_ascii_strcasecmp(szSuffix, ".css"))
     {
         mime = "text/css";
     } else
     {
         mime = "text/plain";
     }
-    
+
     UT_UTF8String filePath = m_fileDirectory
-        + SEPARATOR + name;
+        + SEPARATOR + UT_sanitizeFileName(name.utf8_str()).c_str();
     
     m_buffer += "--";
     m_buffer += MULTIPART_BOUNDARY;
@@ -498,7 +505,17 @@ UT_UTF8String IE_Exp_HTML_MultipartExporter::generateHeader(const UT_UTF8String 
 {
     UT_UTF8String header;
     header = MULTIPART_FIELD("From", "<Saved by Abinova>");
-    header += MULTIPART_FIELD("Subject", m_title.utf8_str());
+    // the title is document metadata - strip CR/LF so it cannot inject
+    // extra MIME headers into the generated .mht
+    {
+        std::string safeTitle = m_title.utf8_str();
+        for (auto &c : safeTitle)
+        {
+            if (c == '\r' || c == '\n')
+                c = ' ';
+        }
+        header += MULTIPART_FIELD("Subject", safeTitle.c_str());
+    }
     
     // RFC 2822 requires English day/month names and the real zone offset
     {

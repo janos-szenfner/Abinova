@@ -33,6 +33,7 @@
 #include "ut_bytebuf.h"
 #include "ut_base64.h"
 #include "ut_Language.h"
+#include "ut_path.h"
 #include "ut_units.h"
 #include "ut_mbtowc.h"
 #include "ut_wctomb.h"
@@ -1922,7 +1923,10 @@ void s_LaTeX_Listener::_handleImage(const PP_AttrProp * pAP)
 
 	gchar *imagedir = UT_go_dirname_from_uri(m_pie->getFileName(), true);
 	
-    std::string filename(szDataID);
+    /* szDataID is document-controlled; sanitize so the emitted
+	 * \includegraphics name stays a flat filename matching the
+	 * sanitized file writeBufferToFile() actually creates */
+    std::string filename = UT_sanitizeFileName(szDataID);
 	filename += extension;
 	
 	/* save the image as imagedir/filename */

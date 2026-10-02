@@ -36,6 +36,7 @@
 #include "ut_assert.h"
 #include "ut_types.h"
 #include "ut_misc.h"
+#include "ut_path.h"
 #include "ut_bytebuf.h"
 #include "ut_vector.h"
 #include "ut_debugmsg.h"
@@ -866,7 +867,9 @@ UT_Error IE_Exp::writeBufferToFile(const UT_ConstByteBufPtr & pByteBuf,
 {
     UT_go_directory_create(imagedir.c_str(), nullptr);
 
-    std::string path = imagedir + "/" + filename;
+    // filename can carry a document-controlled data-item id - keep it
+    // a plain basename so it cannot escape imagedir
+    std::string path = imagedir + "/" + UT_sanitizeFileName(filename.c_str());
 
     GError * error = nullptr;
 	GsfOutput * out = UT_go_file_create (path.c_str (), &error);

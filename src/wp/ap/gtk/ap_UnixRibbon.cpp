@@ -30,6 +30,9 @@
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+#include <glib/gstdio.h>
+
 #include "ap_UnixRibbon.h"
 
 #include "ap_Strings.h"
@@ -6943,9 +6946,29 @@ void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
 
 	if (bOK)
 	{
-		gchar * tmp = g_build_filename(g_get_tmp_dir(),
-									   "abinova-online-pic", nullptr);
-		bOK = g_file_set_contents(tmp, contents, len, nullptr);
+		// Secure temp file: a predictable name in the shared tmp
+		// dir would be a symlink-attack vector, so write to the
+		// exclusively-created descriptor instead.
+		gchar * tmp = nullptr;
+		int fd = g_file_open_tmp("abinova-online-pic-XXXXXX",
+								 &tmp, nullptr);
+		bOK = false;
+		if (fd != -1)
+		{
+			gsize off = 0;
+			bOK = true;
+			while (off < len)
+			{
+				gssize w = write(fd, contents + off, len - off);
+				if (w <= 0)
+				{
+					bOK = false;
+					break;
+				}
+				off += w;
+			}
+			g_close(fd, nullptr);
+		}
 		if (bOK)
 		{
 			FG_ConstGraphicPtr pFG;
@@ -6955,8 +6978,11 @@ void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
 			else
 				bOK = false;
 		}
-		remove(tmp);
-		g_free(tmp);
+		if (tmp)
+		{
+			remove(tmp);
+			g_free(tmp);
+		}
 	}
 	g_free(contents);
 

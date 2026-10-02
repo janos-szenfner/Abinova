@@ -39,6 +39,7 @@
 
 // Abinova includes
 #include "pp_AttrProp.h"
+#include "ut_path.h"
 #include "ut_units.h"
 #include "fl_TOCLayout.h"
 #include "pd_DocumentRDF.h"
@@ -1024,7 +1025,10 @@ void ODe_Text_Listener::insertInlinedImage(const gchar* pImageName,
         ODe_writeAttribute(output, "svg:height", pValue);
     }
     output += "><draw:image xlink:href=\"Pictures/";
-    output += pImageName;
+    // pImageName derives from a document-controlled data-item id -
+    // sanitize so it stays a flat member name and cannot break out of
+    // the xlink:href attribute
+    output += UT_sanitizeFileName(pImageName).c_str();
     output += "\" xlink:type=\"simple\" xlink:show=\"embed\""
               " xlink:actuate=\"onLoad\"/>";
 
@@ -1195,7 +1199,10 @@ void ODe_Text_Listener::insertPositionedImage(const gchar* pImageName,
     }
     
     output += "><draw:image xlink:href=\"Pictures/";
-    output += pImageName;
+    // pImageName derives from a document-controlled data-item id -
+    // sanitize so it stays a flat member name and cannot break out of
+    // the xlink:href attribute
+    output += UT_sanitizeFileName(pImageName).c_str();
     output += "\" xlink:type=\"simple\" xlink:show=\"embed\""
               " xlink:actuate=\"onLoad\"/>";
 

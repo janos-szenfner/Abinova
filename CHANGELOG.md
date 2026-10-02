@@ -2744,6 +2744,26 @@ below are on `main` but the release has not been cut yet.
   `%s`-family calls could later read past (insert-bookmark dialog,
   `wv` style-name copies from `.doc` files).  New unit tests in
   `ut_string.t.cpp` cover the parser.
+- **Injection / path-traversal / unsafe-I/O audit (SEC03)** — a
+  crafted document could steer exports off the intended directory:
+  data-item ids and structure ids embedded in `.abw`/`.abwn` files
+  flowed verbatim into HTML/EPUB/LaTeX output filenames, ODT
+  `Pictures/` members and `manifest.xml` paths, DOCX `word/media/`
+  members and `header<id>.xml`/`footer<id>.xml` names, and MHTML
+  `Content-Location:` headers — so a name like `../../hostile` could
+  write outside the export directory and a name containing quotes or
+  CR/LF could break out of an XML attribute or inject MIME headers.
+  Added `UT_sanitizeFileName()` (`src/af/util/xp/ut_path.cpp`), a
+  shared allowlist mapping document-controlled names to flat,
+  separator/quote/control-character-free base names, applied at every
+  export sink.  Also replaced three predictable names in the shared
+  temp dir with `g_file_open_tmp()` exclusive creation
+  (`UT_createTmpFile`, screenshot capture, online-picture download) —
+  closing symlink-attack windows — and switched the screenshot
+  `gnome-screenshot` invocation from a `g_strdup_printf` command
+  string to argv-form `g_spawn_sync`, removing shell-quoting risk.
+  No `system()`/`popen()`/`exec*()` calls exist in the tree; the EPUB
+  importer and tar extractor were already hardened (E01).
 
 ### GTK4 port (core migration)
 

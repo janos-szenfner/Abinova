@@ -25,6 +25,7 @@
  */
 
 #include "ut_std_string.h"
+#include "ut_path.h"
 #include "pd_Document.h"
 
 #include <set>
@@ -135,17 +136,22 @@ bool ODe_ManifestWriter::writeManifest(PD_Document* pDoc, GsfOutfile* pODT)
                                 
         if (!mimeType.empty()) {
 
-            ensureDirectoryManifest( pDoc, manifest, szName, pathsAlreadyWritten );
+            // szName is a document-controlled data-item id; sanitize
+            // so the manifest path matches the (sanitized) zip member
+            // name and cannot break out of this XML attribute
+            const std::string safeName = UT_sanitizeFileName(szName);
+
+            ensureDirectoryManifest( pDoc, manifest, safeName, pathsAlreadyWritten );
 
             std::string automaticPathPrefix = "Pictures/";
             if( absolutePathMimeTypes.count(mimeType) )
                 automaticPathPrefix = "";
             std::string extension;
-			
+
             pDoc->getDataItemFileExtension(szName, extension, true);
             name = UT_std_string_sprintf(
                 " <manifest:file-entry manifest:media-type=\"%s\" manifest:full-path=\"%s%s%s\"/>\n",
-                mimeType.c_str(), automaticPathPrefix.c_str(), szName, extension.c_str());
+                mimeType.c_str(), automaticPathPrefix.c_str(), safeName.c_str(), extension.c_str());
             
             ODe_gsf_output_write (manifest, name.size(),
                 reinterpret_cast<const guint8 *>(name.c_str()));
