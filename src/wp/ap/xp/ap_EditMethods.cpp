@@ -11181,7 +11181,17 @@ Defun(docProps)
 	}
 	if (props.empty())
 		return false;
-	pDoc->setAttrProp(props);
+	// setAttrProp() only works while loading; mergeAP is what runtime
+	// document property changes need
+	pDoc->setProperties(props);
+	// doc-level layout props (hyphenation, line numbering, ...) require
+	// a full reflow to take visible effect
+	FL_DocLayout * pLayout = pView->getLayout();
+	if (pLayout)
+	{
+		pLayout->updateLayout();
+		pView->updateScreen(false);
+	}
 	return true;
 }
 

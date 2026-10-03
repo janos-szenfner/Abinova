@@ -560,6 +560,11 @@ void fb_LineBreaker::_splitRunAt(fp_Run *pCurrentRun, fp_RunSplitInfo &splitInfo
 	UT_ASSERT(pRunToSplit->getNextRun());
 	UT_ASSERT(pRunToSplit->getNextRun()->getType() == FPRUN_TEXT);
 
+	// when the split landed on an automatic hyphenation point inside
+	// a word, mark the left half so it renders a trailing hyphen and
+	// reserves its advance width; clears any stale marker otherwise
+	pRunToSplit->setLineEndHyphen(splitInfo.bHyphen);
+
 	UT_DebugOnly<fp_TextRun*> pOtherHalfOfSplitRun = static_cast<fp_TextRun*>(pRunToSplit->getNextRun());
 
 	// This assert fires sometimes with the Pango graphics; I believe it is due to

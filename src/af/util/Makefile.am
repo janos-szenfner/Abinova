@@ -53,6 +53,8 @@ libutil_la_SOURCES = \
 	xp/ut_hash.h \
 	xp/ut_html.cpp \
 	xp/ut_html.h \
+	xp/ut_hyphen.cpp \
+	xp/ut_hyphen.h \
 	xp/ut_iconv.cpp \
 	xp/ut_iconv.h \
 	xp/ut_idle.cpp \
@@ -143,6 +145,7 @@ libutil_la_SOURCES += \
 
 EXTRA_DIST = \
 	xp/t/ut_bytebuf.t.cpp \
+	xp/t/ut_hyphen.t.cpp \
 	xp/t/ut_locale.t.cpp \
 	xp/t/ut_misc.t.cpp \
 	xp/t/ut_stack.t.cpp \

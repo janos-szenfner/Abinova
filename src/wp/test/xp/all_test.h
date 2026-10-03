@@ -35,6 +35,8 @@
 #undef TFSUITE
 #include "src/af/util/xp/t/ut_units.t.cpp"
 #undef TFSUITE
+#include "src/af/util/xp/t/ut_hyphen.t.cpp"
+#undef TFSUITE
 #include "src/af/util/xp/t/ut_uuid.t.cpp"
 #undef TFSUITE
 #include "src/af/xap/xp/t/xap_Prefs.t.cpp"

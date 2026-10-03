@@ -56,6 +56,10 @@ struct fp_RunSplitInfo
 	UT_sint32 iLeftWidth;
 	UT_sint32 iRightWidth;
 	UT_sint32 iOffset;
+	/* true when this split sits at an auto-hyphenation point inside a
+	 * word: the left part must render (and reserve room for) a trailing
+	 * discretionary hyphen */
+	bool bHyphen = false;
 };
 
 // TODO The break type is not used. Is it put here looking forward,

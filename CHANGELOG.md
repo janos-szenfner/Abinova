@@ -1835,6 +1835,20 @@ below are on `main` but the release has not been cut yet.
   Count by / From text settings apply. Line numbering imported
   from `.doc`/`.docx` files renders too, and the "not rendered
   yet" notes are gone from the UI.
+- **Automatic hyphenation now works** — Layout > Hyphenation >
+  Automatic used to only store the setting without hyphenating
+  anything. The line-breaker now hyphenates words at line ends
+  using the system's TeX-style hyphenation dictionaries
+  (`hyph_*.dic` files, e.g. `en_US` shipped by the `hyphen`
+  package; the search honors `$ABINOVA_HYPHEN_PATH` and the usual
+  XDG data dirs). A discretionary hyphen is rendered at each
+  automatic break, the hyphenation-zone and consecutive-hyphen
+  limits from imported `.docx` settings are honored, per-paragraph
+  suppression applies, right-to-left text is never hyphenated, and
+  a document whose language has no dictionary simply wraps as
+  before. The stale "stored but not rendered" tooltip is gone,
+  and switching the mode in the popover now reflows the document
+  immediately.
 
 ### Tables (Word-style creation and context menus)
 

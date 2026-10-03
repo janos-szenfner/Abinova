@@ -37,6 +37,12 @@
 #define MAX_SPAN_LEN 250   //initial size for m_pSpanBuff, realocated if needed
 #include "ut_timer.h"
 
+#include <vector>
+
+class UT_HyphenDict;
+class PD_Document;
+class GR_Painter;
+
 class ABI_EXPORT fp_TextRun : public fp_Run
 {
 public:
@@ -132,9 +138,28 @@ public:
 	/* extra per-character advance in layout units (char-spacing prop) */
 	UT_sint32           getLetterSpacing() const { return m_iLetterSpacing; }
 
+	/* auto-hyphenation: this run ends its line at a hyphenation point
+	 * inside a word -- it renders a trailing "-" and its width includes
+	 * the hyphen advance */
+	void                setLineEndHyphen(bool b);
+	bool                hasLineEndHyphen() const { return m_bLineEndHyphen; }
+	UT_sint32           getHyphenWidth() const;
+
 private:
 	GR_ShapingInfo::TextTransform m_TextTransform;
 	UT_sint32           m_iLetterSpacing;
+	bool                m_bLineEndHyphen;
+	mutable UT_sint32   m_iHyphenWidth;
+
+	/* hyphenation break points of this run's text (run char offsets) --
+	 * computed lazily in findMaxLeftFitSplitPoint */
+	bool                _autoHyphenationWanted();
+	void                _computeHyphenBreaks(const UT_HyphenDict & dict,
+											 std::vector<char> & hyphBreaks) const;
+	bool                _consecutiveHyphenLimitOK(PD_Document * pDoc) const;
+	void                _drawLineEndHyphen(GR_Graphics * pG,
+										   GR_Painter & painter,
+										   UT_sint32 xoff, UT_sint32 yTop);
 
 	bool				_refreshDrawBuffer();
 	bool				_addupCharWidths(void);

@@ -49,6 +49,7 @@
 #include "xap_Frame.h"
 #include "ut_debugmsg.h"
 #include "ut_assert.h"
+#include "ut_hyphen.h"
 #include "ut_string.h"
 #include "ut_growbuf.h"
 #include "ut_units.h"
@@ -164,6 +165,8 @@ fp_TextRun::fp_TextRun(fl_BlockLayout* pBL,
 :	fp_Run(pBL,iOffsetFirst, iLen, FPRUN_TEXT),
 	m_TextTransform(GR_ShapingInfo::NONE),
 	m_iLetterSpacing(0),
+	m_bLineEndHyphen(false),
+	m_iHyphenWidth(0),
 	m_fPosition(TEXT_POSITION_NORMAL),
 #ifdef ENABLE_SPELL
 	m_bSpellSquiggled(false),
@@ -679,6 +682,191 @@ bool fp_TextRun::findFirstNonBlankSplitPoint(fp_RunSplitInfo& /*si*/ )
 #endif
 }
 
+/*!
+ * Is automatic hyphenation enabled for this run?
+ *
+ * Switched on by the document property "hyphenation:auto" (the
+ * Layout > Hyphenation popover) or the imported OOXML
+ * "document-auto-hyphenation:1", and suppressed per-paragraph by the
+ * imported OOXML "suppress-auto-hyphens:1".  RTL text is not
+ * hyphenated.
+ */
+bool fp_TextRun::_autoHyphenationWanted()
+{
+	if (getVisDirection() == UT_BIDI_RTL)
+		return false;
+
+	PD_Document * pDoc = getBlock()->getDocLayout()->getDocument();
+	if (!pDoc)
+		return false;
+
+	const PP_AttrProp * pDocAP = pDoc->getAttrProp();
+	bool bAuto = false;
+	if (pDocAP)
+	{
+		const gchar * sz = nullptr;
+		if (pDocAP->getProperty("hyphenation", sz) && sz)
+			bAuto = !strcmp(sz, "auto");
+		if (!bAuto &&
+			pDocAP->getProperty("document-auto-hyphenation", sz) &&
+			sz && !strcmp(sz, "1"))
+			bAuto = true;
+	}
+	if (!bAuto)
+		return false;
+
+	const PP_AttrProp * pBlockAP = nullptr;
+	getBlockAP(pBlockAP);
+	const gchar * szSuppress =
+		PP_evalProperty("suppress-auto-hyphens",
+						nullptr, pBlockAP, nullptr, pDoc, false);
+	if (szSuppress && !strcmp(szSuppress, "1"))
+		return false;
+
+	return true;
+}
+
+/*!
+ * Width of a rendered line-end hyphen in this run's font
+ * (layout units).
+ */
+UT_sint32 fp_TextRun::getHyphenWidth() const
+{
+	if (!m_iHyphenWidth)
+	{
+		GR_Graphics * pG = getGraphics();
+		pG->setFont(_getFont());
+		m_iHyphenWidth = pG->measureUnRemappedChar('-');
+	}
+	return m_iHyphenWidth;
+}
+
+/*!
+ * Mark (or clear) that this run ends a line at an automatic
+ * hyphenation point; a hyphen glyph is rendered past the last
+ * character and its width is folded into the run width.
+ */
+void fp_TextRun::setLineEndHyphen(bool bOn)
+{
+	if (m_bLineEndHyphen == bOn)
+		return;
+	m_bLineEndHyphen = bOn;
+	recalcWidth();
+}
+
+/*!
+ * Compute the intra-word hyphenation candidates for this run.
+ * hyphBreaks (indexed by run char offset) is filled with non-zero
+ * where breaking is legal, the flag position meaning "break before
+ * this character".  The first word char sits at flag 0, so breaks
+ * can only be generated strictly inside words.
+ */
+void fp_TextRun::_computeHyphenBreaks(const UT_HyphenDict & dict,
+									  std::vector<char> & hyphBreaks) const
+{
+	hyphBreaks.assign(getLength(), 0);
+
+	// index base for this run's text within the block iterator:
+	// run char i lives at position iBase + i
+	const UT_sint32 iBase =
+		static_cast<UT_sint32>(getBlockOffset()) + fl_BLOCK_STRUX_OFFSET;
+	PD_StruxIterator text(getBlock()->getStruxDocHandle(), iBase);
+	UT_return_if_fail(text.getStatus() == UTIter_OK);
+
+	const UT_sint32 len = static_cast<UT_sint32>(getLength());
+	for (UT_sint32 i = 0; i < len; ++i)
+	{
+		if (!UT_UCS4_isalpha(text[iBase + i]))
+			continue;
+
+		// a word: expand it to its full extent, possibly reaching
+		// past this run's boundaries (runs are routinely split
+		// mid-word by earlier layout passes)
+		UT_sint32 wStart = iBase + i;
+		while (wStart - 1 >= fl_BLOCK_STRUX_OFFSET &&
+			   UT_UCS4_isalpha(text[wStart - 1]))
+			--wStart;
+		UT_sint32 wEnd = wStart;
+		while (UT_UCS4_isalpha(text[wEnd]))
+			++wEnd;
+		UT_return_if_fail(text.getStatus() == UTIter_OK);
+
+		std::string word;
+		std::vector<UT_uint32> byteOf; // byte offset of each word char
+		for (UT_sint32 p = wStart; p < wEnd; ++p)
+		{
+			UT_UCS4Char c = text[p];
+			byteOf.push_back(static_cast<UT_uint32>(word.size()));
+			UT_UTF8String utf8;
+			utf8.appendUCS4(&c, 1);
+			word += utf8.utf8_str();
+		}
+
+		std::vector<char> breaks;
+		dict.hyphenate(word, breaks);
+		if (breaks.size() == word.size())
+		{
+			// "break before word char k" is the flag after byte
+			// byteOf[k]-1; it maps to a break after run char
+			// (wStart + k - 1 - iBase)
+			for (size_t k = 1; k < byteOf.size(); ++k)
+			{
+				if (!breaks[byteOf[k] - 1])
+					continue;
+				UT_sint32 ri = wStart + static_cast<UT_sint32>(k)
+					- iBase - 1;
+				if (ri >= 0 && ri < len)
+					hyphBreaks[ri] = 1;
+			}
+		}
+		i = wEnd - iBase; // for-loop's ++i moves past the word
+		if (i > len)
+			break;
+	}
+}
+
+/*!
+ * Check the configured consecutive-hyphen limit
+ * (hyphenation-limit / document-consecutive-hyphen-limit) against the
+ * number of preceding lines already ending in an automatic hyphen.
+ */
+bool fp_TextRun::_consecutiveHyphenLimitOK(PD_Document * pDoc) const
+{
+	int iLimit = 0;
+	const PP_AttrProp * pDocAP = pDoc ? pDoc->getAttrProp() : nullptr;
+	if (pDocAP)
+	{
+		const gchar * sz = nullptr;
+		if (pDocAP->getProperty("hyphenation-limit", sz) && sz)
+			iLimit = atoi(sz);
+		else if (pDocAP->getProperty(
+					 "document-consecutive-hyphen-limit", sz) && sz)
+			iLimit = atoi(sz);
+	}
+	if (iLimit <= 0)
+		return true;
+
+	fp_Line * pLine = getLine();
+	fp_Line * pPrev = pLine ? static_cast<fp_Line *>(pLine->getPrev())
+						  : nullptr;
+	int iCount = 0;
+	while (pPrev && iCount < iLimit)
+	{
+		fp_Run * pLast = pPrev->getLastRun();
+		while (pLast && pLast->getType() == FPRUN_ENDOFPARAGRAPH)
+			pLast = pLast->getPrevRun();
+		if (pLast && pLast->getType() == FPRUN_TEXT &&
+			static_cast<fp_TextRun *>(pLast)->hasLineEndHyphen())
+		{
+			++iCount;
+			pPrev = static_cast<fp_Line *>(pPrev->getPrev());
+		}
+		else
+			break;
+	}
+	return iCount < iLimit;
+}
+
 /*
  Determine best split point in Run
  \param iMaxLeftWidth Width to split at
@@ -700,7 +888,42 @@ bool	fp_TextRun::findMaxLeftFitSplitPoint(UT_sint32 iMaxLeftWidth, fp_RunSplitIn
 	UT_sint32 iRightWidth = getWidth();
 
 	si.iOffset = -1;
+	si.bHyphen = false;
 
+	// automatic hyphenation candidates, if enabled and a hyph
+	// dictionary exists for this run's language; hyphBreaks[i] marks
+	// a legal break after the i-th character of the run
+	std::vector<char> hyphBreaks;
+	UT_sint32 iHyphW = 0;
+	UT_sint32 iHyphZone = 360; // default zone .25in
+	PD_Document * pDoc = nullptr;
+	if (_autoHyphenationWanted())
+	{
+		pDoc = getBlock()->getDocLayout()->getDocument();
+		const UT_HyphenDict * pDict =
+			UT_Hyphenator::getDict(getLanguage());
+		if (pDict)
+		{
+			iHyphW = getHyphenWidth();
+			_computeHyphenBreaks(*pDict, hyphBreaks);
+
+			const PP_AttrProp * pDocAP = pDoc->getAttrProp();
+			if (pDocAP)
+			{
+				const gchar * sz = nullptr;
+				if ((pDocAP->getProperty("hyphenation-zone", sz) ||
+					 pDocAP->getProperty("document-hyphenation-zone",
+										 sz)) && sz)
+					iHyphZone = static_cast<UT_sint32>(
+						UT_convertToPoints(sz) * 20.0);
+			}
+		}
+	}
+	fp_RunSplitInfo siHyph;
+	siHyph.iOffset = -1;
+	siHyph.iLeftWidth = 0;
+	siHyph.iRightWidth = 0;
+	siHyph.bHyphen = true;
 	UT_uint32 offset = getBlockOffset();
 
 	PD_StruxIterator text(getBlock()->getStruxDocHandle(),
@@ -791,13 +1014,15 @@ bool	fp_TextRun::findMaxLeftFitSplitPoint(UT_sint32 iMaxLeftWidth, fp_RunSplitIn
 			}
 			xxx_UT_DEBUGMSG(("Candidate Slit point is %d \n",	si.iLeftWidth));
 		}
-		else if(iNext > 0)
+		else if(iNext > 0 && hyphBreaks.empty())
 		{
 			// this is the case when we cannot break at the present
 			// offset, but the graphics let us know what the next
 			// legal break offset is; we just scroll through the
 			// characters in between; i-th char has been processed
-			// already
+			// already.  When hyphenation candidates exist we cannot
+			// fast-forward -- they live between the normal break
+			// positions.
 			UT_uint32 iAdvance = iNext - i - 1;
 			m_pRenderInfo->m_iOffset = i + 1;
 			m_pRenderInfo->m_iLength = iAdvance;
@@ -810,12 +1035,46 @@ bool	fp_TextRun::findMaxLeftFitSplitPoint(UT_sint32 iMaxLeftWidth, fp_RunSplitIn
 			text += iAdvance; 
 			UT_return_val_if_fail(text.getStatus()==UTIter_OK, false);
 		}
-		else if(iNext == -2)
+		else if(iNext == -2 && hyphBreaks.empty())
 		{
 			// this is the case where the graphics let us know that there are no more
-			// breakpoints in this run
+			// breakpoints in this run; when hyphenation candidates exist we still
+			// have to keep scanning -- they sit between the normal breakpoints
 			break;
 		}
+
+		if (!hyphBreaks.empty() && i < hyphBreaks.size() &&
+			hyphBreaks[i] &&
+			iLeftWidth + iHyphW <= iMaxLeftWidth)
+		{
+			siHyph.iLeftWidth = iLeftWidth + iHyphW;
+			siHyph.iRightWidth = iRightWidth - iHyphW;
+			siHyph.iOffset = i + offset;
+		}
+	}
+
+	// an automatic hyphenation point is used when there is no legal
+	// break at all, or when the best legal break leaves more
+	// whitespace than the hyphenation zone; it also has to pack the
+	// line tighter to be worth breaking a word
+	if (!hyphBreaks.empty() && siHyph.iOffset != -1 &&
+		_consecutiveHyphenLimitOK(pDoc))
+	{
+		bool bUse;
+		if (bForce)
+		{
+			// forced split: every position is a candidate, so si lands
+			// mid-word on an arbitrary character -- a real hyphenation
+			// point is strictly better and gets the "-"
+			bUse = true;
+		}
+		else if (si.iOffset == -1 || si.iLeftWidth == getWidth())
+			bUse = true;
+		else
+			bUse = (siHyph.iLeftWidth > si.iLeftWidth) &&
+				((iMaxLeftWidth - si.iLeftWidth) > iHyphZone);
+		if (bUse)
+			si = siHyph;
 	}
 
 	if ((si.iOffset == -1) || (si.iLeftWidth == getWidth()))
@@ -1261,8 +1520,14 @@ void fp_TextRun::mergeWithNext(void)
 	if(getX() > pNext->getX())
 		_setX(pNext->getX());
 
-	// can only adjust width after the justification has been handled
- 	_setWidth(getWidth() + pNext->getWidth());
+	// can only adjust width after the justification has been handled.
+	// the line-end hyphen marker lives on the piece that was split
+	// at the hyphenation point -- after merging that is pNext, so
+	// its flag transfers to the merged run (its width already
+	// contains the hyphen advance); drop only this run's own advance
+	UT_sint32 iHyphAdj = m_bLineEndHyphen ? getHyphenWidth() : 0;
+	m_bLineEndHyphen = pNext->m_bLineEndHyphen;
+ 	_setWidth(getWidth() + pNext->getWidth() - iHyphAdj);
 	_setLength(getLength() + pNext->getLength());
 	DELETEP(m_pRenderInfo);
 	m_pRenderInfo = nullptr;
@@ -1353,8 +1618,11 @@ bool fp_TextRun::split(UT_uint32 iSplitOffset, UT_sint32 iLenSkip)
 	setNextRun(pNew, false);
 
 	// reitemize this run and blow away all the old render info. It has to be
-	// recalculated.
+	// recalculated.  Any previous line-end hyphen marker no longer
+	// applies (the split boundary moved); the line-breaker sets it
+	// anew when the new boundary is a hyphenation point.
 
+	m_bLineEndHyphen = false;
 	setLength(iSplitOffset - getBlockOffset(), false);
 	DELETEP(m_pRenderInfo);
 	itemize();
@@ -1413,7 +1681,9 @@ UT_sint32 fp_TextRun::simpleRecalcWidth(UT_sint32 iLength)
 	m_pRenderInfo->m_iOffset = 0;
 	m_pRenderInfo->m_iLength = getLength();
 	UT_sint32 iWidth = getGraphics()->getTextWidth(*m_pRenderInfo);
-	
+	if(m_bLineEndHyphen)
+		iWidth += getHyphenWidth();
+
 	return iWidth;
 }
 
@@ -1490,9 +1760,11 @@ bool fp_TextRun::_addupCharWidths(void)
 	m_pRenderInfo->m_iOffset = 0;
 	m_pRenderInfo->m_iLength = getLength();
 	m_pRenderInfo->m_pFont = _getFont();
-	
+
 	iWidth = getGraphics()->getTextWidth(*m_pRenderInfo);
-	
+	if(m_bLineEndHyphen)
+		iWidth += getHyphenWidth();
+
 	if(iWidth != getWidth())
 	{
 		_setWidth(iWidth);
@@ -2082,6 +2354,9 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 			iX += iSegmentWidth[iSegment];
 	}
 
+	if (m_bLineEndHyphen)
+		_drawLineEndHyphen(pG, painter, pDA->xoff, yTopOfRun);
+
 	if (bFx)
 		pG->setTextEffects(nullptr);
 
@@ -2103,6 +2378,30 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 		getBlock()->findGrammarSquigglesForRun(this);
 	}
 #endif
+}
+
+/*!
+ * Paint the automatic hyphen at the end of a line-final run whose
+ * split offset was an intra-word hyphenation point.  The glyph is
+ * drawn only (the piece table is not modified); its advance was
+ * already folded into the run width by the line-breaker.
+ *
+ * The flag can survive reflow if the run is no longer the last
+ * visual run on its line -- guard so we never paint a hyphen
+ * mid-line.
+ */
+void fp_TextRun::_drawLineEndHyphen(GR_Graphics * pG,
+									GR_Painter & painter,
+									UT_sint32 xoff, UT_sint32 yTop)
+{
+	fp_Line * pLine = getLine();
+	if (!pLine || pLine->getLastVisRun() != this)
+		return;
+
+	pG->setFont(_getFont());
+	UT_UCS4Char c = '-';
+	painter.drawChars(&c, 0, 1,
+					  xoff + getWidth() - getHyphenWidth(), yTop);
 }
 
 void fp_TextRun::_fillRect(UT_RGBColor& clr,

@@ -5743,8 +5743,6 @@ GtkWidget * AP_UnixRibbon::_makeHyphenationPopover()
 	{
 		GtkWidget * row = _presetRow(m.name, nullptr, nullptr,
 									 "docProps", m.data);
-		gtk_widget_set_tooltip_text(row,
-			"Hyphenation is stored but not rendered yet");
 		gtk_box_append(GTK_BOX(box), row);
 	}
 
