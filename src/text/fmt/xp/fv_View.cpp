@@ -31,6 +31,7 @@
 #include <string.h>
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <glib.h>
 #include "ut_locale.h"
@@ -46,6 +47,7 @@
 #include "ut_units.h"
 #include <math.h>
 #include "ut_std_string.h"
+#include "ut_uuid.h"
 #include "ut_bytebuf.h"
 #include "ut_timer.h"
 #include "ie_imp_RTF.h"
@@ -7112,6 +7114,189 @@ bool FV_View::hasDropCap(void)
 										 getRevisionLevel(),
 										 "frame-drop-cap", &pszMark)
 		&& pszMark && *pszMark;
+}
+
+/*! Insert a Word-style signature line at the insertion point: a
+ * bordered textbox frame marked with signature-* properties holding
+ * the X rule, suggested signer name/title and an optional date line.
+ * The frame properties keep the object identifiable through .abwn
+ * round-trips and let the DOCX exporter map it to o:signatureline. */
+bool FV_View::insertSignatureLine(const FV_SignatureSetup & sig)
+{
+	if(m_pDoc->isDoingTheDo() || isInTable() || isInFrame(getPoint())
+	   || isHdrFtrEdit())
+	{
+		return false;
+	}
+	fl_BlockLayout * pBL = _findBlockAtPosition(getPoint());
+	if(!pBL)
+	{
+		return false;
+	}
+	PT_DocPosition posBlock = pBL->getPosition(true);
+
+	std::string sSigId;
+	UT_UUIDGenerator * pGen = XAP_App::getApp()
+		? XAP_App::getApp()->getUUIDGenerator() : nullptr;
+	if(pGen)
+	{
+		UT_UUIDPtr pUUID(pGen->createUUID());
+		if(pUUID)
+		{
+			std::optional<std::string> sId = pUUID->toString();
+			if(sId)
+			{
+				sSigId = *sId;
+			}
+		}
+	}
+	if(sSigId.empty())
+	{
+		sSigId = UT_std_string_sprintf("signature-%u",
+									   static_cast<UT_uint32>(posBlock));
+	}
+
+	/* props="" serializes as "name:value; name:value" with no escaping,
+	 * so a ';' or a newline in free text would corrupt the property set
+	 * on save/load; fold both to spaces. */
+	auto sanitize = [](const std::string & in) {
+		std::string s = in;
+		for(auto & c : s)
+		{
+			if(c == ';' || c == '\n' || c == '\r')
+			{
+				c = ' ';
+			}
+		}
+		return s;
+	};
+	const std::string sName = sanitize(sig.sSigner);
+	const std::string sTitle = sanitize(sig.sTitle);
+	const std::string sEmail = sanitize(sig.sEmail);
+	const std::string sInstructions = sanitize(sig.sInstructions);
+
+	const PP_PropertyVector frameProps = {
+		"frame-type", "textbox",
+		"wrap-mode", "above-text",
+		"position-to", "block-above-text",
+		"xpos", "0in",
+		"ypos", "0in",
+		"frame-width", "3.5in",
+		"frame-height", "0.85in",
+		"frame-expand-height", "0",
+		"left-style", "solid",
+		"left-thickness", "0.75pt",
+		"left-color", "000000",
+		"right-style", "solid",
+		"right-thickness", "0.75pt",
+		"right-color", "000000",
+		"top-style", "solid",
+		"top-thickness", "0.75pt",
+		"top-color", "000000",
+		"bot-style", "solid",
+		"bot-thickness", "0.75pt",
+		"bot-color", "000000",
+		"bg-style", "0",
+		"tight-wrap", "0",
+		"bounding-space", "0.05in",
+		"signature-line", "1",
+		"signature-id", sSigId.c_str(),
+		"signature-name", sName.c_str(),
+		"signature-title", sTitle.c_str(),
+		"signature-email", sEmail.c_str(),
+		"signature-instructions", sInstructions.c_str(),
+		"signature-allow-comments", sig.bAllowComments ? "1" : "0",
+		"signature-show-date", sig.bShowSignDate ? "1" : "0",
+	};
+	const PP_PropertyVector blockAtts = {
+		PT_STYLE_ATTRIBUTE_NAME, "Normal",
+	};
+	const PP_PropertyVector xLineProps = {
+		"bot-style", "solid",
+		"bot-color", "000000",
+		"bot-thickness", "0.5pt",
+		"margin-bottom", "2pt",
+	};
+
+	/* the layout engine wraps text horizontally around frames and
+	 * reserves no vertical space, so an exact-height empty paragraph
+	 * stands in for the object row — the frame's parent block is the
+	 * block whose strux immediately precedes it, so the frame floats
+	 * over the spacer like Word's inline signature object */
+	const PP_PropertyVector hostProps = {
+		"line-height", "1.05in",
+		"signature-host", "1",
+	};
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+
+	pf_Frag_Strux * pfFrame = nullptr;
+	bool bRet = m_pDoc->insertStrux(posBlock, PTX_Block, blockAtts,
+								   hostProps);
+	PT_DocPosition posCur = posBlock + 1;
+	if(bRet)
+	{
+		bRet = m_pDoc->insertStrux(posCur, PTX_SectionFrame,
+								  PP_NOPROPS, frameProps, &pfFrame);
+	}
+	if(bRet)
+	{
+		posCur++;
+		/* X sign rule, then one paragraph per label — the rule is
+		 * literal underscores so it always renders and exports */
+		const std::string sXLine = "X_______________________";
+		const std::string sDate = "Date: _______________";
+		const struct { const std::string * pText;
+					   const PP_PropertyVector * pProps; } paras[] = {
+			{ &sXLine, &xLineProps },
+			{ &sName, nullptr },
+			{ &sTitle, nullptr },
+			{ sig.bShowSignDate ? &sDate : nullptr, nullptr },
+		};
+		for(const auto & para : paras)
+		{
+			if(!para.pText)
+			{
+				continue;
+			}
+			bRet = m_pDoc->insertStrux(posCur, PTX_Block, blockAtts,
+									   para.pProps ? *para.pProps : PP_NOPROPS);
+			if(!bRet)
+			{
+				break;
+			}
+			posCur++;
+			if(!para.pText->empty())
+			{
+				UT_UCS4String sPara(para.pText->c_str());
+				bRet = m_pDoc->insertSpan(posCur, sPara.ucs4_str(),
+										  sPara.length());
+				if(!bRet)
+				{
+					break;
+				}
+				posCur += sPara.length();
+			}
+		}
+	}
+	if(bRet)
+	{
+		bRet = m_pDoc->insertStrux(posCur, PTX_EndFrame);
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->enableListUpdates();
+	if(bRet)
+	{
+		/* the block after EndFrame holds the caret */
+		_setPoint(posCur + 1);
+		_fixInsertionPointCoords();
+		notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	}
+	return bRet;
 }
 
 

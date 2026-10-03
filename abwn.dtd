@@ -262,7 +262,10 @@
   line-align/cap/compound/custom-dash/dash/join/miter-limit,
   line-start-arrow*/line-end-arrow*, outline-gradient,
   image-src-rect, image-tile, image-fill-rect,
-  image-duotone, image-grayscale, image-lum, image-alpha-mod;
+  image-duotone, image-grayscale, image-lum, image-alpha-mod,
+  signature-line, signature-id, signature-name, signature-title,
+  signature-email, signature-instructions, signature-allow-comments,
+  signature-show-date;
   borders via bot-style/top-style/... .
 -->
 <!ELEMENT frame (p | table | frame | toc)+>

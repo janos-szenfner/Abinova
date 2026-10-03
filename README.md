@@ -506,7 +506,7 @@ labels, like Word's ribbon.
   (gallery of ~85 LibreOffice-style SVG shapes recolored to the
   document accent), **Icons** (searchable docked side panel of
   Lucide icons by category — ISC-licensed,
-  `artwork/lucide-LICENSE.txt`), **3D Models** (FluentUI 3D emoji
+  `artwork/lucide-LICENSE.txt`), **3D Illustrations** (FluentUI 3D emoji
   PNGs, MIT-licensed — `artwork/fluentui-emoji-LICENSE.txt`),
   **Screenshot** (area capture via the XDG Screenshot portal, with
   `gnome-screenshot` as fallback; the button is hidden when neither
@@ -530,7 +530,9 @@ labels, like Word's ribbon.
   `text-gradient` / `text-shadow` / `text-reflection` character
   properties and reset the effects they do not specify), Draw
   Text Box / Draw Vertical Text Box (a real `frame-rotation:90`
-  frame), Signature Line, Drop Cap and an Object popover.
+  frame), Signature Line (a Word-style Signature Setup dialog that
+  inserts a bordered signature-line object, exported to DOCX as an
+  `o:signatureline`), Drop Cap and an Object popover.
 - **Symbols**: **Equation** opens a gallery of ten preset
   formulas typeset live by the built-in math engine plus
   **Insert New Equation…** (LaTeX dialog); also the Symbol

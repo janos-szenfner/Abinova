@@ -330,6 +330,15 @@ static PP_Property _props[] =
 	{"shading-foreground-color", "white",         false, PP_LEVEL_BLOCK},
 	{"shading-pattern",          "0",             false, PP_LEVEL_BLOCK},
 	{ "shape-path",            "",                false, PP_LEVEL_FRAME}, // OOXML a:custGeom normalized path
+	{ "signature-allow-comments","1",             false, PP_LEVEL_FRAME}, // signature line: o:signatureline@allowcomments
+	{ "signature-email",       "",                false, PP_LEVEL_FRAME}, // signature line: suggested signer e-mail
+	{ "signature-host",        "",                false, PP_LEVEL_BLOCK}, // signature line: spacer paragraph under the floating frame
+	{ "signature-id",          "",                false, PP_LEVEL_FRAME}, // signature line: unique object GUID
+	{ "signature-instructions","",                false, PP_LEVEL_FRAME}, // signature line: instructions to the signer
+	{ "signature-line",        "",                false, PP_LEVEL_FRAME}, // marks a signature-line textbox frame
+	{ "signature-name",        "",                false, PP_LEVEL_FRAME}, // signature line: suggested signer name
+	{ "signature-show-date",   "1",               false, PP_LEVEL_FRAME}, // signature line: o:signatureline@showsigndate
+	{ "signature-title",       "",                false, PP_LEVEL_FRAME}, // signature line: suggested signer title
 	{ "snap-to-grid",          "1",               false, PP_LEVEL_BLOCK}, // OOXML w:snapToGrid
 	{ "start-value",           "1",               true,  PP_LEVEL_BLOCK},
 	{ "suppress-auto-hyphens", "0",               false, PP_LEVEL_BLOCK}, // OOXML w:suppressAutoHyphens

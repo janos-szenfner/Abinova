@@ -79,3 +79,5 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_PasteTag.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_SignatureLine.t.cpp"
+#undef TFSUITE

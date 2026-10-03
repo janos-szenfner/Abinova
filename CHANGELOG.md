@@ -1110,15 +1110,22 @@ below are on `main` but the release has not been cut yet.
   LibreOffice-style SVG shapes (Basic, Arrows, Symbols, Stars,
   Callouts, Flowchart) recolored to the document accent at insert;
   Icons opens a searchable docked side panel of Lucide icons grouped
-  by category; 3D Models opens a gallery of FluentUI 3D emoji PNGs;
+  by category; 3D Illustrations opens a gallery of FluentUI 3D emoji
+  PNGs (the gallery inserts flat artwork — the heading no longer
+  claims 3D-model support);
   Screenshot captures a screen area via the XDG desktop portal
   (`gnome-screenshot` fallback) and inserts it; Media links
   video/audio files as `file://` hyperlinks.
 - **Text group additions** — WordArt inserts styled placeholder text
   (Georgia, bold/italic, accent colors) via a preset popover; Draw
   Text Box / Draw Vertical Text Box (vertical uses the frame
-  engine's `frame-rotation:90` property); Signature Line inserts a
-  sign-here rule with Name/Title placeholders; Object opens a
+  engine's `frame-rotation:90` property); Signature Line opens a
+  Word-style Signature Setup dialog (signer name/title/e-mail,
+  signing instructions, allow-comments and show-sign-date options)
+  and inserts a bordered, identifiable signature-line object —
+  an `X___` sign rule over the signer name/title and a Date rule —
+  whose metadata round-trips through `.abwn` and exports to DOCX
+  as an OOXML `o:signatureline` element; Object opens a
   popover (file insert / RDF link).
 - **Hyperlink dialog always available** — Insert > Link no longer
   greys out without a selection; the dialog gained Word's "Text to

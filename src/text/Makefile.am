@@ -264,6 +264,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_FootnoteDelete.t.cpp \
 	fmt/xp/t/fv_HdrFtrDelete.t.cpp \
 	fmt/xp/t/fv_PasteTag.t.cpp \
+	fmt/xp/t/fv_SignatureLine.t.cpp \
 	fmt/xp/t/fv_ViewModes.t.cpp \
 	ptbl/xp/t/pf_Fragments.t.cpp \
 	ptbl/xp/t/pp_PropertyMap.t.cpp \

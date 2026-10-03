@@ -209,6 +209,7 @@ public:
 	UT_Error setNoProof(int target);
 	UT_Error setTextBoxWidth(int target, const gchar* width);
 	UT_Error setTextBoxHeight(int target, const gchar* height);
+	UT_Error setTextBoxSignatureLine(int target, const std::string & xml);
 	/* tracked-change emission (ECMA-376 §17.13.5): startRevision /
 	 * finishRevision wrap run-level content in w:ins / w:del /
 	 * w:moveFrom / w:moveTo or open a w:*Change container; the

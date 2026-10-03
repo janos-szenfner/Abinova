@@ -82,6 +82,7 @@
 #	include "ap_UnixDialog_InsertBookmark.h"
 #	include "ap_UnixDialog_InsertHyperlink.h"
 #	include "ap_UnixDialog_InsertXMLID.h"
+#	include "ap_UnixDialog_SignatureLine.h"
 #   include "ap_UnixDialog_MetaData.h"
 #   include "ap_UnixDialog_MarkRevisions.h"
 #   include "ap_UnixDialog_ListRevisions.h"
@@ -170,6 +171,7 @@
 	DeclareDialog(AP_DIALOG_ID_INSERTBOOKMARK,	AP_UnixDialog_InsertBookmark)
 	DeclareDialog(AP_DIALOG_ID_INSERTHYPERLINK,	AP_UnixDialog_InsertHyperlink)
 	DeclareDialog(AP_DIALOG_ID_INSERTXMLID,     AP_UnixDialog_InsertXMLID)
+	DeclareDialog(AP_DIALOG_ID_SIGNATURE_LINE,  AP_UnixDialog_SignatureLine)
 	DeclareDialog(XAP_DIALOG_ID_IMAGE, 			XAP_UnixDialog_Image)
 	DeclareDialog(AP_DIALOG_ID_METADATA,		AP_UnixDialog_MetaData)
 	DeclareDialog(AP_DIALOG_ID_MARK_REVISIONS,	AP_UnixDialog_MarkRevisions)

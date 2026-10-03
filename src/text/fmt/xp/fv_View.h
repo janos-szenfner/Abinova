@@ -179,6 +179,18 @@ struct FV_BibSource
 
 struct FV_BookmarkSpan;
 
+/* Parameters collected by the Signature Setup dialog and passed to
+ * FV_View::insertSignatureLine. Free-text fields are UTF-8. */
+struct FV_SignatureSetup
+{
+	std::string sSigner;
+	std::string sTitle;
+	std::string sEmail;
+	std::string sInstructions;
+	bool        bAllowComments = true;
+	bool        bShowSignDate  = true;
+};
+
 class ABI_EXPORT fv_PropCache
 {
 public:
@@ -494,6 +506,12 @@ public:
 						  double dDistCm, bool bInMargin);
 	bool	removeDropCap(void);
 	bool	hasDropCap(void);
+	/* Word-style signature line: a marked textbox frame holding the
+	 * X rule, suggested signer name/title and an optional date line.
+	 * The signature-* frame props make the object identifiable (DOCX
+	 * export maps them to o:signatureline) and are the target for a
+	 * later "sign" gesture. */
+	bool	insertSignatureLine(const FV_SignatureSetup & sig);
 
 #ifdef ENABLE_SPELL
 	bool	isTextMisspelled()const ;

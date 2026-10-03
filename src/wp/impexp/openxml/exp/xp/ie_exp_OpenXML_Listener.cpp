@@ -610,6 +610,17 @@ bool IE_Exp_OpenXML_Listener::populateStrux(pf_Frag_Strux* sdh, const PX_ChangeR
 		}
 		case PTX_Block:
 		{
+			// an empty signature-host paragraph only reserves the
+			// row the floating signature frame is drawn over; the
+			// signature line itself is an inline object in DOCX so
+			// the spacer would export as a stray tall paragraph
+			if(bHaveProp && pAP)
+			{
+				const gchar* szSigHost = nullptr;
+				if(pAP->getProperty("signature-host", szSigHost) && szSigHost && strcmp(szSigHost, "1") == 0)
+					return true;
+			}
+
 			paragraph = new OXML_Element_Paragraph(getNextId());
 			OXML_SharedElement shared_paragraph(static_cast<OXML_Element*>(paragraph));
 
@@ -1003,6 +1014,17 @@ bool IE_Exp_OpenXML_Listener::populateStrux(pf_Frag_Strux* sdh, const PX_ChangeR
 
 			if(bInTextbox)
 			{
+				if(!paragraph)
+				{
+					/* a frame anchored before the first block in the
+					 * section (e.g. a signature line at the top of the
+					 * document) has no host paragraph yet — open one */
+					paragraph = new OXML_Element_Paragraph(getNextId());
+					OXML_SharedElement shared_paragraph(static_cast<OXML_Element*>(paragraph));
+					if(!section || section->appendElement(shared_paragraph) != UT_OK)
+						return false;
+				}
+
 				textbox = new OXML_Element_TextBox(getNextId());
 				OXML_SharedElement shared_textbox(static_cast<OXML_Element*>(textbox));
 
@@ -1046,6 +1068,14 @@ bool IE_Exp_OpenXML_Listener::populateStrux(pf_Frag_Strux* sdh, const PX_ChangeR
 
 			if(bInPositionedImage)
 			{
+				if(!paragraph)
+				{
+					paragraph = new OXML_Element_Paragraph(getNextId());
+					OXML_SharedElement shared_paragraph(static_cast<OXML_Element*>(paragraph));
+					if(!section || section->appendElement(shared_paragraph) != UT_OK)
+						return false;
+				}
+
 				OXML_Element_Run* element_run = new OXML_Element_Run(getNextId());
 				OXML_SharedElement shared_element_run(static_cast<OXML_Element*>(element_run));
 

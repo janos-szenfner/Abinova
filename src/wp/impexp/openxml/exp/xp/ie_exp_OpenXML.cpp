@@ -924,6 +924,15 @@ UT_Error IE_Exp_OpenXML::setTextBoxHeight(int target, const gchar* height)
 }
 
 /**
+ * Writes a prebuilt o:signatureline element inside the current v:shape
+ * (signature-line textbox frames only)
+ */
+UT_Error IE_Exp_OpenXML::setTextBoxSignatureLine(int target, const std::string & xml)
+{
+	return writeTargetStream(target, xml.c_str());
+}
+
+/**
  * Writes to the target stream
  */
 UT_Error IE_Exp_OpenXML::writeTargetStream(int target, const char* str)

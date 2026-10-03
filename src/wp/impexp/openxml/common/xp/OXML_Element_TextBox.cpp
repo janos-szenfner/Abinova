@@ -30,9 +30,11 @@
 // Abinova includes
 #include "ut_types.h"
 #include "ut_misc.h"
+#include "ut_std_string.h"
 #include "pd_Document.h"
 
 // External includes
+#include <cstring>
 #include <string>
 
 OXML_Element_TextBox::OXML_Element_TextBox(const std::string & id) : 
@@ -72,6 +74,63 @@ UT_Error OXML_Element_TextBox::serialize(IE_Exp_OpenXML* exporter)
 	err = exporter->finishTextBoxContent(TARGET);
 	if(err != UT_OK)
 		return err;
+
+	/* signature-line frames carry their setup data in signature-*
+	 * properties; map them to an o:signatureline child on the
+	 * v:shape so Word keeps the object as a signature line. */
+	const gchar* szSig = nullptr;
+	if(getProperty("signature-line", szSig) == UT_OK
+	   && szSig && !strcmp(szSig, "1"))
+	{
+		std::string s("<o:signatureline xmlns:o=\"urn:schemas-microsoft-com:office:office\" o:issignatureline=\"t\"");
+		const gchar* v = nullptr;
+		if(getProperty("signature-id", v) == UT_OK && v && *v)
+		{
+			std::string id(v);
+			for(auto & c : id)
+				c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+			s += " v:id=\"{" + id + "}\" o:id=\"{" + id + "}\"";
+		}
+		auto emit = [&](const char* prop, const char* attr) {
+			const gchar* pv = nullptr;
+			if(getProperty(prop, pv) == UT_OK && pv && *pv)
+			{
+				s += " ";
+				s += attr;
+				s += "=\"";
+				s += UT_escapeXML(pv);
+				s += "\"";
+			}
+		};
+		emit("signature-name", "o:suggestedsigner");
+		emit("signature-title", "o:suggestedsigner2");
+		emit("signature-email", "o:suggestedsigneremail");
+		const gchar* pInstr = nullptr;
+		if(getProperty("signature-instructions", pInstr) == UT_OK
+		   && pInstr && *pInstr)
+		{
+			s += " o:signinginstructions=\"" + UT_escapeXML(pInstr)
+				 + "\" o:signinginstructionsset=\"t\"";
+		}
+		const gchar* pFlag = nullptr;
+		if(getProperty("signature-allow-comments", pFlag) == UT_OK && pFlag)
+		{
+			s += " o:allowcomments=\"";
+			s += strcmp(pFlag, "0") ? "t" : "f";
+			s += "\"";
+		}
+		pFlag = nullptr;
+		if(getProperty("signature-show-date", pFlag) == UT_OK && pFlag)
+		{
+			s += " o:showsigndate=\"";
+			s += strcmp(pFlag, "0") ? "t" : "f";
+			s += "\"";
+		}
+		s += "/>";
+		err = exporter->setTextBoxSignatureLine(TARGET, s);
+		if(err != UT_OK)
+			return err;
+	}
 
 	return exporter->finishTextBox(TARGET);
 }

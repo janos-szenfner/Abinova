@@ -96,6 +96,8 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_Replace.cpp \
 	xp/ap_Dialog_Replace.h \
 	xp/ap_Dialog_Spell.h \
+	xp/ap_Dialog_SignatureLine.cpp \
+	xp/ap_Dialog_SignatureLine.h \
 	xp/ap_Dialog_SplitCells.cpp \
 	xp/ap_Dialog_SplitCells.h \
 	xp/ap_Dialog_Stub.h \
@@ -338,6 +340,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_Replace.cpp \
 	gtk/ap_UnixDialog_Replace.h \
 	gtk/ap_UnixDialog_Spell.h \
+	gtk/ap_UnixDialog_SignatureLine.cpp \
+	gtk/ap_UnixDialog_SignatureLine.h \
 	gtk/ap_UnixDialog_SplitCells.cpp \
 	gtk/ap_UnixDialog_SplitCells.h \
 	gtk/ap_UnixDialog_Styles.cpp \

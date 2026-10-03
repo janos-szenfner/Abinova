@@ -114,6 +114,7 @@
 #include "ap_Dialog_HdrFtr.h"
 #include "ap_Dialog_InsertBookmark.h"
 #include "ap_Dialog_InsertHyperlink.h"
+#include "ap_Dialog_SignatureLine.h"
 #include "ap_Dialog_InsertXMLID.h"
 #include "ap_Dialog_MetaData.h"
 #include "ap_Dialog_MarkRevisions.h"
@@ -7704,8 +7705,8 @@ Defun(dropCap)
 	return pView->insertDropCap(iLines, "", 0.0, bMargin);
 }
 
-/* Word's Signature Line: a sign-here rule with Name/Title
- * placeholders under it */
+/* Word's Signature Line: opens the Signature Setup dialog, then
+ * inserts a bordered, identifiable signature-line object. */
 Defun1(insertSignatureLine)
 {
 	CHECK_FRAME;
@@ -7715,27 +7716,27 @@ Defun1(insertSignatureLine)
 		pView->isHdrFtrEdit())
 		return true;
 
-	pView->getDocument()->beginUserAtomicGlob();
-	static const PP_PropertyVector s_block[] = {
-		{ "margin-top", "0.75in", "margin-left", "1.5in",
-		  "margin-right", "1.5in", "bot-style", "solid",
-		  "bot-color", "000000", "bot-thickness", "0.5pt",
-		  "text-align", "center" },
-		{ "margin-left", "1.5in", "margin-right", "1.5in",
-		  "text-align", "center" },
-		{ "margin-left", "1.5in", "margin-right", "1.5in",
-		  "text-align", "center", "margin-bottom", "0.3in" }
-	};
-	static const char * s_text[] = { " ", "Name", "Title" };
-	for (int i = 0; i < 3; i++)
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	AP_Dialog_SignatureLine * pDialog
+		= static_cast<AP_Dialog_SignatureLine *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_SIGNATURE_LINE)));
+	UT_return_val_if_fail(pDialog, false);
+
+	pDialog->runModal(pFrame);
+	bool bOK = (pDialog->getAnswer() == AP_Dialog_SignatureLine::a_OK);
+	FV_SignatureSetup sig = pDialog->getSignatureSetup();
+	pDialogFactory->releaseDialog(pDialog);
+
+	if (bOK)
 	{
-		pView->setBlockFormat(s_block[i]);
-		UT_UCS4String s(s_text[i]);
-		pView->cmdCharInsert(s.ucs4_str(), s.length());
-		if (i < 2)
-			pView->insertParagraphBreak();
+		pView->insertSignatureLine(sig);
 	}
-	pView->getDocument()->endUserAtomicGlob();
 	return true;
 }
 
