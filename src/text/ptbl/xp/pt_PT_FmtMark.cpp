@@ -175,18 +175,17 @@ bool pt_PieceTable::_insertFmtMark(pf_Frag * pf, UT_uint32 fragOffset, PT_AttrPr
 		PT_BufIndex biTail = m_varset.getBufIndex(pft->getBufIndex(),fragOffset);
 		pf_Frag_Text * pftTail = new pf_Frag_Text(this,biTail,lenTail,pft->getIndexAP(),pft->getField());
 		if (!pftTail)
-			goto MemoryError;
-			
+		{
+			DELETEP(pffm);
+			return false;
+		}
+
 		pft->changeLength(fragOffset);
 		m_fragments.insertFrag(pft,pffm);
 		m_fragments.insertFrag(pffm,pftTail);
 	}
 
 	return true;
-
-MemoryError:
-	DELETEP(pffm);
-	return false;
 }
 	
 bool pt_PieceTable::_insertFmtMarkAfterBlockWithNotify(pf_Frag_Strux * pfsBlock,

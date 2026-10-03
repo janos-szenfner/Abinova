@@ -831,23 +831,19 @@ PP_AttrProp * PP_AttrProp::cloneWithElimination(const PP_PropertyVector & attrib
 	{
 		// for each attribute in the old set, add it to the
 		// new set only if it is not present in the given array.
+		bool bSkip = false;
 		for (PP_PropertyVector::const_iterator iter = attributes.begin();
-			 iter != attributes.end(); iter += 2) {
+			 !bSkip && iter != attributes.end(); iter += 2) {
 
 			UT_return_val_if_fail (*iter != PT_PROPS_ATTRIBUTE_NAME, nullptr); // cannot handle PROPS here
-			if (*iter == n) {		// found it, so we don't put it in the result.
-				goto DoNotIncludeAttribute;
-			}
+			bSkip = (*iter == n);	// found it, so we don't put it in the result.
 		}
 
 		// we didn't find it in the given array, add it to the new set.
 
-		if (!papNew->setAttribute(n,v)) {
+		if (!bSkip && !papNew->setAttribute(n,v)) {
 			return nullptr;
 		}
-
-	DoNotIncludeAttribute:
-		;
 	}
 
 	k = 0;
@@ -856,21 +852,17 @@ PP_AttrProp * PP_AttrProp::cloneWithElimination(const PP_PropertyVector & attrib
 		// for each property in the old set, add it to the
 		// new set only if it is not present in the given array.
 
-		for (auto iter = properties.begin(); iter != properties.end();
+		bool bSkip = false;
+		for (auto iter = properties.begin(); !bSkip && iter != properties.end();
 			 iter += 2) {
-			if (*iter == n) {		// found it, so we don't put it in the result.
-				goto DoNotIncludeProperty;
-			}
+			bSkip = (*iter == n);		// found it, so we don't put it in the result.
 		}
 
 		// we didn't find it in the given array, add it to the new set.
 
-		if (!papNew->setProperty(n,v)) {
+		if (!bSkip && !papNew->setProperty(n,v)) {
 			return nullptr;
 		}
-
-	DoNotIncludeProperty:
-		;
 	}
 
 	return papNew.release();
@@ -913,23 +905,21 @@ PP_AttrProp * PP_AttrProp::cloneWithEliminationIfEqual(const PP_PropertyVector &
 		// for each attribute in the old set, add it to the
 		// new set only if it is not present in the given array.
 
-		for (auto iter = attributes.begin(); iter != attributes.end();
+		bool bSkip = false;
+		for (auto iter = attributes.begin(); !bSkip && iter != attributes.end();
 			 iter += 2) {
 			if (*iter != PT_PROPS_ATTRIBUTE_NAME)
-				goto DoNotIncludeAttribute; // cannot handle PROPS here
+				bSkip = true; // cannot handle PROPS here
 			// XXX should it be n and v ?
-			if (*iter == n && *(iter + 1) == n)		// found it, so we don't put it in the result.
-				goto DoNotIncludeAttribute;
+			else if (*iter == n && *(iter + 1) == n)	// found it, so we don't put it in the result.
+				bSkip = true;
 		}
 
 		// we didn't find it in the given array, add it to the new set.
 
-		if (!papNew->setAttribute(n,v)) {
+		if (!bSkip && !papNew->setAttribute(n,v)) {
 			return nullptr;
 		}
-
-	DoNotIncludeAttribute:
-		;
 	}
 
 	k = 0;
@@ -938,22 +928,18 @@ PP_AttrProp * PP_AttrProp::cloneWithEliminationIfEqual(const PP_PropertyVector &
 		// for each property in the old set, add it to the
 		// new set only if it is not present in the given array.
 
-		for (auto iter = properties.begin(); iter != properties.end();
+		bool bSkip = false;
+		for (auto iter = properties.begin(); !bSkip && iter != properties.end();
 			 iter += 2) {
 			// XXX should it be n and v ?
-			if (*iter == n && *(iter + 1) == n) {		// found it, so we don't put it in the result.
-				goto DoNotIncludeProperty;
-			}
+			bSkip = (*iter == n && *(iter + 1) == n);	// found it, so we don't put it in the result.
 		}
 
 		// we didn't find it in the given array, add it to the new set.
 
-		if (!papNew->setProperty(n,v)) {
+		if (!bSkip && !papNew->setProperty(n,v)) {
 			return nullptr;
 		}
-
-	DoNotIncludeProperty:
-		;
 	}
 
 	return papNew.release();

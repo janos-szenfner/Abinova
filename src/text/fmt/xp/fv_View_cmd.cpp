@@ -4627,14 +4627,14 @@ bool FV_View::cmdCharInsert(const UT_UCS4Char * text, UT_uint32 count, bool bFor
 			pBlock = m_pLayout->findBlockAtPosition(getPoint());
 
 			if(!pBlock)
-				goto normal_insert;
-			
+				return _charInsert(text, count, bForce);
+
 			{
 				UT_BidiCharType iDomDir = pBlock->getDominantDirection();
-				
+
 				UT_UCS4Char data[2];
 				data[1] = *text;
-		
+
 				if(pLR->m_eDir == UTLANG_RTL && iDomDir != UT_BIDI_RTL)
 				{
 					data[0] = UCS_RLM;
@@ -4645,7 +4645,7 @@ bool FV_View::cmdCharInsert(const UT_UCS4Char * text, UT_uint32 count, bool bFor
 				}
 				else
 				{
-					goto normal_insert;
+					return _charInsert(text, count, bForce);
 				}
 
 				return _charInsert(&data[0],2,bForce);
@@ -4675,7 +4675,6 @@ bool FV_View::cmdCharInsert(const UT_UCS4Char * text, UT_uint32 count, bool bFor
 		return b;
 	}
 
-normal_insert:
 	return _charInsert(text, count, bForce);
 }
 
@@ -10342,58 +10341,66 @@ bool FV_View::cmdFindRevision(bool bNext, UT_sint32 xPos, UT_sint32 yPos)
 	if(!pRun)
 		return false;
 
+	bool bFound = false;
+
 	if(bNext)
 	{
 		pRun = pRun->getNextRun();
 
-		while(pSL)
+		while(pSL && !bFound)
 		{
-			while(pBL)
+			while(pBL && !bFound)
 			{
 				while(pRun)
 				{
 					if(pRun->containsRevisions() && !pRun->isHidden())
 					{
-						goto move_point;
+						bFound = true;
+						break;
 					}
 
 					pRun = pRun->getNextRun();
 				}
 
-				pBL = pBL->getNextBlockInDocument();
+				if(!bFound)
+					pBL = pBL->getNextBlockInDocument();
 			}
 
-			pSL = pSL->getNextDocSection();
+			if(!bFound)
+				pSL = pSL->getNextDocSection();
 		}
 	}
 	else
 	{
 		pRun = pRun->getPrevRun();
 
-		while(pSL)
+		while(pSL && !bFound)
 		{
-			while(pBL)
+			while(pBL && !bFound)
 			{
 				while(pRun)
 				{
 					if(pRun->containsRevisions() && !pRun->isHidden())
 					{
-						goto move_point;
+						bFound = true;
+						break;
 					}
 
 					pRun = pRun->getPrevRun();
 				}
 
-				pBL = pBL->getPrevBlockInDocument();
+				if(!bFound)
+					pBL = pBL->getPrevBlockInDocument();
 			}
 
-			pSL = pSL->getPrevDocSection();
+			if(!bFound)
+				pSL = pSL->getPrevDocSection();
 		}
 	}
 
-	return false;
-	
- move_point:
+	if(!bFound)
+		return false;
+
 	UT_return_val_if_fail(pRun && pBL, false);
 
 	// we want to span the selection not only over this run, but also

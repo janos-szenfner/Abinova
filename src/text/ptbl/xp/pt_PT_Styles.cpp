@@ -46,7 +46,7 @@
 			PT_PROPS_ATTRIBUTE_NAME, props				\
 			};											\
 		if (!_createBuiltinStyle(name, displayed, a))	\
-			goto Failed;								\
+			return false;								\
 	} while(0)
 
 struct ST_LOCALISED_STYLES
@@ -370,9 +370,6 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 	_s("Footnote",false,"P", "Normal", "Current Settings", "text-position:normal; font-size:10pt;text-indent:-0.2in;margin-left:0.2in");
 
 	return true;
-
-Failed:
-	return false;
 }
 
 bool pt_PieceTable::_createBuiltinStyle(const char * szName, bool bDisplayed, const  PP_PropertyVector & attributes)

@@ -3411,32 +3411,29 @@ void fp_TextRun::updateOnDelete(UT_uint32 offset, UT_uint32 iLenToDelete)
 	PD_StruxIterator text(getBlock()->getStruxDocHandle(),
 						  getBlockOffset() + fl_BLOCK_STRUX_OFFSET);
 
-	if((iLenOrig - iLen) == 0)
+	// when the whole run is deleted there is nothing to update below
+	if((iLenOrig - iLen) != 0)
 	{
-		// this whole run will be deleted ...
-		goto set_length;
-	}
-	xxx_UT_DEBUGMSG(("Doing updateOnDelete %x length of run %d amount to delete %d iLen %d \n",this,getLength(),iLenToDelete,iLen));
-	if(m_pRenderInfo)
-	{
-		m_pRenderInfo->m_iLength = iLenOrig;
-		m_pRenderInfo->m_iVisDir = getVisDirection();
-		m_pRenderInfo->m_eState = _getRefreshDrawBuffer();
-		m_pRenderInfo->m_pText = &text;
-		if(!m_pRenderInfo->cut(offset,iLen))
+		xxx_UT_DEBUGMSG(("Doing updateOnDelete %x length of run %d amount to delete %d iLen %d \n",this,getLength(),iLenToDelete,iLen));
+		if(m_pRenderInfo)
+		{
+			m_pRenderInfo->m_iLength = iLenOrig;
+			m_pRenderInfo->m_iVisDir = getVisDirection();
+			m_pRenderInfo->m_eState = _getRefreshDrawBuffer();
+			m_pRenderInfo->m_pText = &text;
+			if(!m_pRenderInfo->cut(offset,iLen))
+			{
+				// mark draw buffer dirty ...
+				orDrawBufferDirty(GRSR_Unknown);
+			}
+		}
+		if(!m_pRenderInfo)
 		{
 			// mark draw buffer dirty ...
 			orDrawBufferDirty(GRSR_Unknown);
 		}
 	}
-	if(!m_pRenderInfo)
-	{
-		// mark draw buffer dirty ...
-		orDrawBufferDirty(GRSR_Unknown);
-	}
 
-
- set_length:
 	// now set length without marking width and draw buffer dirty
 	setLength(iLenOrig - iLen, false);
 

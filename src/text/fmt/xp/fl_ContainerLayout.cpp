@@ -549,112 +549,116 @@ fl_BlockLayout* fl_ContainerLayout::getNextBlockInDocument(void) const
 	}
 	fl_ContainerLayout * pOld = nullptr;
 	UT_uint32 depth = 0;
-	next_is_null :
-	if(pNext == nullptr)
+	for(;;)
 	{
-		while((pNext == nullptr) && ((pOld != nullptr) || (depth == 0)))
-	    {
-			fl_ContainerLayout * pPrevOld = pOld;
-			if(depth > 0)
-			{
-				pOld = pOld->myContainingLayout();
-			}
-			else
-			{
-				pOld = myContainingLayout();
-			}
-			depth++;
-			if(pOld != nullptr) // HdrFtr's have myContainingLayout == nullptr
-			{
-				pNext = pOld->getNext();
-			}
-			if(pPrevOld == pOld)
-			{
-				pOld = nullptr;
-			}
-		}
-	}
-	while(pNext)
-	{
-		pOld = pNext;
-		if(pNext->getContainerType() == FL_CONTAINER_BLOCK)
-		{
-			return static_cast<fl_BlockLayout *>(pNext);
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_DOCSECTION)
-		{
-			pNext = pNext->getFirstLayout();
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_TABLE)
-		{
-			pNext = pNext->getFirstLayout();
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_FRAME)
-		{
-			if(pNext->getFirstLayout() == nullptr)
-			{
-			     pNext = pNext->getNext();
-			}
-			else
-			{
-			     pNext = pNext->getFirstLayout();
-			}
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_CELL)
-		{
-			pNext = pNext->getFirstLayout();
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_TOC)
-		{
-			pNext = pNext->getNext();
-			if(pNext == nullptr)
-			{
-				goto next_is_null;
-			}
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_FOOTNOTE)
-		{
-			pNext = pNext->getNext();
-			if(pNext == nullptr)
-			{
-				goto next_is_null;
-			}
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_ANNOTATION)
-		{
-			pNext = pNext->getNext();
-			if(pNext == nullptr)
-			{
-				goto next_is_null;
-			}
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_RDFANCHOR)
-		{
-			pNext = pNext->getNext();
-			if(pNext == nullptr)
-			{
-				goto next_is_null;
-			}
-		}
-		else if(pNext->getContainerType() == FL_CONTAINER_ENDNOTE)
-		{
-			pNext = pNext->getNext();
-			if(pNext == nullptr)
-			{
-				goto next_is_null;
-			}
-		}
-		else
-		{
-			pNext = nullptr;
-			break;
-		}
 		if(pNext == nullptr)
 		{
-				goto next_is_null;
+			while((pNext == nullptr) && ((pOld != nullptr) || (depth == 0)))
+			{
+				fl_ContainerLayout * pPrevOld = pOld;
+				if(depth > 0)
+				{
+					pOld = pOld->myContainingLayout();
+				}
+				else
+				{
+					pOld = myContainingLayout();
+				}
+				depth++;
+				if(pOld != nullptr) // HdrFtr's have myContainingLayout == nullptr
+				{
+					pNext = pOld->getNext();
+				}
+				if(pPrevOld == pOld)
+				{
+					pOld = nullptr;
+				}
+			}
+			if(pNext == nullptr)
+			{
+				return nullptr;
+			}
+		}
+		while(pNext)
+		{
+			pOld = pNext;
+			if(pNext->getContainerType() == FL_CONTAINER_BLOCK)
+			{
+				return static_cast<fl_BlockLayout *>(pNext);
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_DOCSECTION)
+			{
+				pNext = pNext->getFirstLayout();
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_TABLE)
+			{
+				pNext = pNext->getFirstLayout();
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_FRAME)
+			{
+				if(pNext->getFirstLayout() == nullptr)
+				{
+				     pNext = pNext->getNext();
+				}
+				else
+				{
+				     pNext = pNext->getFirstLayout();
+				}
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_CELL)
+			{
+				pNext = pNext->getFirstLayout();
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_TOC)
+			{
+				pNext = pNext->getNext();
+				if(pNext == nullptr)
+				{
+					break;
+				}
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_FOOTNOTE)
+			{
+				pNext = pNext->getNext();
+				if(pNext == nullptr)
+				{
+					break;
+				}
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_ANNOTATION)
+			{
+				pNext = pNext->getNext();
+				if(pNext == nullptr)
+				{
+					break;
+				}
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_RDFANCHOR)
+			{
+				pNext = pNext->getNext();
+				if(pNext == nullptr)
+				{
+					break;
+				}
+			}
+			else if(pNext->getContainerType() == FL_CONTAINER_ENDNOTE)
+			{
+				pNext = pNext->getNext();
+				if(pNext == nullptr)
+				{
+					break;
+				}
+			}
+			else
+			{
+				return nullptr;
+			}
+			if(pNext == nullptr)
+			{
+				break;
+			}
 		}
 	}
-	return nullptr;
 }
 
 fl_BlockLayout* fl_ContainerLayout::getPrevBlockInDocument(void) const

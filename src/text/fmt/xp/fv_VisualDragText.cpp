@@ -834,23 +834,23 @@ void FV_VisualDragText::getImageFromSelection(UT_sint32 x, UT_sint32 y)
 	      nExtra++;
 	    }
 	    fp_CellContainer * pCellConLow = m_pView->getCellAtPos(posLow+nExtra);
-	    if(pCellConLow == nullptr)
-	      goto do_broken;
+	    if(pCellConLow != nullptr)
+	    {
 	    fl_CellLayout * pCellLow = static_cast<fl_CellLayout *>(pCellConLow->getSectionLayout());
 	    if(m_pView->getDocument()->isEndTableAtPos(posHigh-1))
 	    {
 		posHigh--;
 	    }
 	    fp_CellContainer * pCellConHigh = m_pView->getCellAtPos(posHigh);
-	    if(pCellConHigh == nullptr)
-	      goto do_broken;
+	    if(pCellConHigh != nullptr)
+	    {
 	    fl_CellLayout * pCellHigh = static_cast<fl_CellLayout *>(pCellConHigh->getSectionLayout());
 	    if((pCellLow->getPosition(true) >= (posLow -1)) &&
 	       ((pCellHigh->getPosition(true) + pCellHigh->getLength()-1) <= (posHigh + 1) ))
 	    {
 	      UT_sint32 numCols = static_cast<fp_TableContainer *>(pCellConLow->getContainer())->getNumCols();
-	      if(((pCellConLow->getLeftAttach() == 0) && 
-		  (pCellConHigh->getRightAttach() == numCols)) || 
+	      if(((pCellConLow->getLeftAttach() == 0) &&
+		  (pCellConHigh->getRightAttach() == numCols)) ||
 		 (pCellConLow->getTopAttach() == pCellConHigh->getTopAttach()))
 	      {
 		//
@@ -894,8 +894,10 @@ void FV_VisualDragText::getImageFromSelection(UT_sint32 x, UT_sint32 y)
 		  bDoBroken = false;
 	      }
 	    }
+	    }
+	    }
 	}
- do_broken:	if(bDoBroken)
+	if(bDoBroken)
 	{
 //
 // low and high are on different rows. First get top, left

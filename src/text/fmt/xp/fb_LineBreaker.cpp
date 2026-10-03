@@ -121,6 +121,7 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 
 			fp_Run* pCurrentRun = m_pFirstRunToKeep;
 			fp_Run* pPreviousRun = nullptr;
+			bool bDoneWithRuns = false;
 
 			while (true)
 			{
@@ -157,13 +158,13 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 						xxx_UT_DEBUGMSG(("Break at 1 Trailing Space %d Wording width %d \n",iTrailingSpace,m_iWorkingLineWidth));
 						UT_ASSERT(pOffendingRun);
 						_splitAtOrBeforeThisRun(pOffendingRun, iTrailingSpace);
-						goto done_with_run_loop;
+						break;
 					}
 					else if(pCurrentRun && (pCurrentRun->getWidth() > 0))
 					{
 						xxx_UT_DEBUGMSG(("Break at 2 Trailing Space %d \n",iTrailingSpace));
 						_splitAtNextNonBlank(pCurrentRun);
-						goto done_with_run_loop;
+						break;
 					}
 				}
 				if(!pCurrentRun)
@@ -182,7 +183,8 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 				               pCurrentRun = pCurrentRun->getNextRun();
 					}
 					m_pLastRunToKeep = pCurrentRun;
-					goto done_with_run_loop;
+					bDoneWithRuns = true;
+					break;
 				}
 				case FPRUN_FORCEDPAGEBREAK:
 				{
@@ -191,17 +193,20 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 				               pCurrentRun = pCurrentRun->getNextRun();
 					}
 					m_pLastRunToKeep = pCurrentRun;
-					goto done_with_run_loop;
+					bDoneWithRuns = true;
+					break;
 				}
 				case FPRUN_FORCEDLINEBREAK:
 				{
 					m_pLastRunToKeep = pCurrentRun;
-					goto done_with_run_loop;
+					bDoneWithRuns = true;
+					break;
 				}
 				case FPRUN_ENDOFPARAGRAPH:
 				{
 					m_pLastRunToKeep = pCurrentRun;
-					goto done_with_run_loop;
+					bDoneWithRuns = true;
+					break;
 				}
 
 				case FPRUN_TAB:
@@ -283,6 +288,9 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 				}
 				} // switch
 
+				if (bDoneWithRuns)
+					break;
+
 				pPreviousRun = pCurrentRun;
 				pCurrentRun = pCurrentRun->getNextRun();
 
@@ -290,7 +298,6 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 
 			} // the run loop
 
-		done_with_run_loop:
 			/*
 			  OK, we've gone through the run loop.	If a run was to
 			  be split, it has already been split.	m_pLastRunToKeep

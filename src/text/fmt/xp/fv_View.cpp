@@ -5025,13 +5025,15 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 	const gchar * pszCurStyle = style;
 	PD_Style * pCurStyle = pStyle;
 	UT_uint32 depth = 0;
+	do
+	{
 	if (bCharStyle)
 	{
 		_clearIfAtFmtMark(getPoint());	// TODO is this correct ?
 		_eraseSelection();
 		UT_DEBUGMSG(("Applying Character style: start %d, end %d\n", posStart, posEnd));
 		bRet = m_pDoc->changeSpanFmt(PTC_AddStyle, posStart, posEnd, attribs, PP_NOPROPS);
-		goto finish_up;
+		break;
 	}
 	else
 	{
@@ -5134,7 +5136,7 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 						fl_BlockLayout * pSubBlock = getBlockFromStrux(subSDH);
 						UT_ASSERT(pSubBlock);
 						if(pSubBlock == nullptr)
-							goto finish_up;
+							break;
 
 						for(i=0; i< vBlock.getItemCount(); i++)
 						{
@@ -5215,7 +5217,7 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 				fl_BlockLayout * pBlock = getBlockFromStrux(sdh);
 				UT_ASSERT(pBlock);
 				if(pBlock == nullptr)
-					goto finish_up;
+					break;
 
 				for(UT_sint32 j = 0; j < vBlock.getItemCount(); ++j)
 				{
@@ -5236,7 +5238,7 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 				fl_BlockLayout * pBlock = getBlockFromStrux(sdh);
 				UT_ASSERT(pBlock);
 				if(pBlock == nullptr)
-					goto finish_up;
+					break;
 				for(UT_sint32 j = 0; j < vBlock.getItemCount(); j++)
 				{
 					pBL = vBlock.getNthItem(j);
@@ -5250,7 +5252,7 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 			}
 		}
 	}
- finish_up:
+	} while (0);
 	setScreenUpdateOnGeneralUpdate( true);
 	// Signal piceTable is stable again
 	UT_DEBUGMSG(("restoring PieceTable state GeneralUpdate %d \n",bDontGeneralUpdate));
@@ -8714,9 +8716,8 @@ bool FV_View::gotoTarget(AP_JumpTarget type, const char *numberString)
 				XAP_App::getApp()->openURL(numberString);
 				return false;
 			}
-			if(m_pDoc->isBookmarkUnique(static_cast<const gchar *>(numberString)))
-				goto book_mark_not_found; //bookmark does not exist
-
+			if(!m_pDoc->isBookmarkUnique(static_cast<const gchar *>(numberString)))
+			{
 			// TODO: Make this work inside tables
 			while(pSL)
 			{
@@ -8754,6 +8755,7 @@ bool FV_View::gotoTarget(AP_JumpTarget type, const char *numberString)
 					break;
 				pSL = static_cast<fl_SectionLayout *>(pSL->getNext());
 			}
+			}
 
 			if(pB[0] && pB[1])
 			{
@@ -8777,8 +8779,6 @@ bool FV_View::gotoTarget(AP_JumpTarget type, const char *numberString)
 
 			}
 			else
-
-book_mark_not_found:
 			{
 				//bookmark not found
 				XAP_Frame * pFrame = static_cast<XAP_Frame *>(getParentData());
@@ -11741,7 +11741,7 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 			xxx_UT_DEBUGMSG(("pos selected \n"));
 		}
 		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (9) text pos %d \n",pos));
-		goto handle_revisions;
+		break;
 
 	case FPRUN_IMAGE:
 		{
@@ -11798,7 +11798,7 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 	case FPRUN_HYPERLINK:
 	case FPRUN_DIRECTIONMARKER:
 		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (10): %d\n", pRun->getType()));
-		goto handle_revisions;
+		break;
 
 	case FPRUN_FIELD:
 		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: (11)\n"));
@@ -11822,7 +11822,6 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 	// should  be last evaluated context, so that other context menus do not get overshadowed when
 	// document history is on; this code is only reached by jump from the above switch (we really
 	// need these values to be orable, so that menus can be combined)
- handle_revisions:	
 	if(pRun->containsRevisions())
 	{
 		m_prevMouseContext = EV_EMC_REVISION;

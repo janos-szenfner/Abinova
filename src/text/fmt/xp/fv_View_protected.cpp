@@ -3207,39 +3207,42 @@ FV_View::_findGetPrevBlockBuffer(fl_BlockLayout** pBlock,
 	{
 		// Then return a fresh new block's buffer
 		newBlock = *pBlock;
-	    get_new_block:	newBlock = newBlock->getPrevBlockInDocument();
-		xxx_UT_DEBUGMSG(("Got prev block %x \n",newBlock));
-		// Are we at the end of the document?
-		if (!newBlock)
+		for (;;)
 		{
-			if(m_wrappedEnd)
+			newBlock = newBlock->getPrevBlockInDocument();
+			xxx_UT_DEBUGMSG(("Got prev block %x \n",newBlock));
+			// Are we at the end of the document?
+			if (!newBlock)
+			{
+				if(m_wrappedEnd)
+					return nullptr;
+
+				// Then wrap (fetch the first block in the doc)
+				PT_DocPosition endOfDoc;
+				getEditableBounds(true, endOfDoc);
+
+				newBlock = m_pLayout->findBlockAtPositionReverse(endOfDoc);
+
+				m_wrappedEnd = true;
+				UT_DEBUGMSG(("Reached start of doc via getPrevBlockinDocument \n"));
+				UT_return_val_if_fail(newBlock, nullptr);
+			}
+
+			// Re-assign the buffer contents for our new block
+			pBuffer.truncate(0);
+			// The offset starts at end of block
+			blockStart = 0;
+			if (!newBlock->getBlockBuf(&pBuffer))
+			{
+				UT_DEBUGMSG(("Block %p (a ->prev block) has no buffer.\n", static_cast<void*>(newBlock)));
+				UT_ASSERT_HARMLESS(0);
 				return nullptr;
-			
-			// Then wrap (fetch the first block in the doc)
-			PT_DocPosition endOfDoc;
-			getEditableBounds(true, endOfDoc);
-
-			newBlock = m_pLayout->findBlockAtPositionReverse(endOfDoc);
-
-			m_wrappedEnd = true;
-			UT_DEBUGMSG(("Reached start of doc via getPrevBlockinDocument \n"));
-			UT_return_val_if_fail(newBlock, nullptr);
-		}
-
-		// Re-assign the buffer contents for our new block
-		pBuffer.truncate(0);
-		// The offset starts at end of block
-		blockStart = 0;
-		if (!newBlock->getBlockBuf(&pBuffer))
-		{
-			UT_DEBUGMSG(("Block %p (a ->prev block) has no buffer.\n", static_cast<void*>(newBlock)));
-			UT_ASSERT_HARMLESS(0);
-			return nullptr;
-		}
-		newOffset = pBuffer.getLength();
-		if(pBuffer.getLength() == 0)
-		{
-			goto get_new_block;
+			}
+			newOffset = pBuffer.getLength();
+			if(pBuffer.getLength() != 0)
+			{
+				break;
+			}
 		}
 		// Good to go with a full buffer for our new block
 	}

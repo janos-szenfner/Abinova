@@ -5567,7 +5567,7 @@ bool fl_ShadowListener::populate(fl_ContainerLayout* sfh,
 
 
 		bResult = static_cast<fl_BlockLayout *>(m_pCurrentBL)->doclistener_populateSpan(pcrs, blockOffset, len);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_InsertObject:
@@ -5586,7 +5586,7 @@ bool fl_ShadowListener::populate(fl_ContainerLayout* sfh,
 
 //			fl_SectionLayout* pBLSL = m_pCurrentBL->getSectionLayout();
 		bResult = static_cast<fl_BlockLayout *>(m_pCurrentBL)->doclistener_populateObject(blockOffset,pcro);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_InsertFmtMark:
@@ -5600,7 +5600,7 @@ bool fl_ShadowListener::populate(fl_ContainerLayout* sfh,
 			UT_ASSERT(m_pCurrentBL == (static_cast<const fl_ContainerLayout *>(pL)));
 		}
 		bResult = static_cast<fl_BlockLayout *>(m_pCurrentBL)->doclistener_insertFmtMark( static_cast<const PX_ChangeRecord_FmtMark *>(pcr));
-		goto finish_up;
+		break;
 	}
 
 	default:
@@ -5616,7 +5616,6 @@ bool fl_ShadowListener::populate(fl_ContainerLayout* sfh,
 		return false;
 	}
 
- finish_up:
 	//
 	// We're not printing
 	//

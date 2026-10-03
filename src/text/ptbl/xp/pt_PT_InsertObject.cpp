@@ -352,7 +352,10 @@ bool pt_PieceTable::_insertObject(pf_Frag * pf,
 		PT_BufIndex biTail = m_varset.getBufIndex(pft->getBufIndex(),fragOffset);
 		pf_Frag_Text * pftTail = new pf_Frag_Text(this,biTail,lenTail,pft->getIndexAP(),pft->getField());
 		if (!pftTail)
-			goto MemoryError;
+		{
+			delete pfo;
+			return false;
+		}
 
 		pft->changeLength(fragOffset);
 		m_fragments.insertFrag(pft,pfo);
@@ -360,9 +363,4 @@ bool pt_PieceTable::_insertObject(pf_Frag * pf,
 	}
 
 	return true;
-
-MemoryError:
-	if (pfo)
-		delete pfo;
-	return false;
 }

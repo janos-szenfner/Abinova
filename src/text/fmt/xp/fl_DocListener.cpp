@@ -168,7 +168,7 @@ bool fl_DocListener::populate(fl_ContainerLayout* sfh,
 			//UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		}
 
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_InsertObject:
@@ -217,7 +217,7 @@ bool fl_DocListener::populate(fl_ContainerLayout* sfh,
 			}
 		}
 #endif
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_InsertFmtMark:
@@ -241,21 +241,20 @@ bool fl_DocListener::populate(fl_ContainerLayout* sfh,
 		}
 		else
 			bResult = pCLSL->bl_doclistener_insertFmtMark(pCL, pcrfm);
-		goto finish_up;
+		break;
 	}
 	default:
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		return false;
 	}
 
- finish_up:
 	if (0 == m_iGlobCounter)
 	{
 #ifndef UPDATE_LAYOUT_ON_SIGNAL
 		m_pLayout->updateLayout();
 #endif
 	}
-	
+
 	return bResult;
 }
 
@@ -976,25 +975,26 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		case PX_ChangeRecord_Glob::PXF_Null:			// not a valid glob type
 			UT_ASSERT(0);
 			bResult = false;
-			goto finish_up;
+			break;
 				
 		case PX_ChangeRecord_Glob::PXF_MultiStepStart:
 			m_iGlobCounter++;
 			bResult = true;
-			goto finish_up;
+			break;
 			
 		case PX_ChangeRecord_Glob::PXF_MultiStepEnd:
 			m_iGlobCounter--;
 			bResult = true;
-			goto finish_up;
+			break;
 				
 		case PX_ChangeRecord_Glob::PXF_UserAtomicStart:	// TODO decide what (if anything) we need
 		case PX_ChangeRecord_Glob::PXF_UserAtomicEnd:	// TODO to do here.
 			bResult = true;
-			goto finish_up;
+			break;
 		}
+		break;
 	}
-			
+
 	case PX_ChangeRecord::PXT_InsertSpan:
 	{
 		const PX_ChangeRecord_Span * pcrs = static_cast<const PX_ChangeRecord_Span *> (pcr);
@@ -1004,7 +1004,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		{
 			m_pDoc->miniDump(pL->getStruxDocHandle(),6);
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		UT_ASSERT(pL->getType() == PTX_Block);
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
@@ -1018,7 +1018,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		{
 			bResult = pCLSL->bl_doclistener_insertSpan(pCL, pcrs);
 		}
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_DeleteSpan:
@@ -1033,7 +1033,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// (e.g. a fmt-mark on a section-level strux at a section
 			// boundary during import); only blocks can receive it
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
@@ -1044,7 +1044,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		}
 		else
 			bResult = pCLSL->bl_doclistener_deleteSpan(pCL, pcrs);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_ChangeSpan:
@@ -1060,7 +1060,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// (e.g. a fmt-mark on a section-level strux at a section
 			// boundary during import); only blocks can receive it
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
@@ -1071,7 +1071,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		}
 		else
 			bResult = pCLSL->bl_doclistener_changeSpan(pCL, pcrsc);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_InsertFmtMark:
@@ -1087,7 +1087,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// (e.g. a fmt-mark on a section-level strux at a section
 			// boundary during import); only blocks can receive it
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
@@ -1098,7 +1098,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		}
 		else
 			bResult = pCLSL->bl_doclistener_insertFmtMark(pCL, pcrfm);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_DeleteFmtMark:
@@ -1110,7 +1110,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// sometimes happens with revisions, not sure if this is a real problem, but
 			// assert anyway
 			UT_ASSERT_HARMLESS( UT_SHOULD_NOT_HAPPEN );
-			goto finish_up;
+			break;
 		}
 		
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
@@ -1121,7 +1121,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// (e.g. a fmt-mark on a section-level strux at a section
 			// boundary during import); only blocks can receive it
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
@@ -1132,7 +1132,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		}
 		else
 			bResult = pCLSL->bl_doclistener_deleteFmtMark(pCL, pcrfm);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_ChangeFmtMark:
@@ -1147,7 +1147,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// (e.g. a fmt-mark on a section-level strux at a section
 			// boundary during import); only blocks can receive it
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
@@ -1158,7 +1158,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		}
 		else
 			bResult = pCLSL->bl_doclistener_changeFmtMark(pCL, pcrfmc);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_DeleteStrux:
@@ -1173,7 +1173,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			UT_ASSERT(pL->getType() == PTX_Section);
 			fl_DocSectionLayout * pSL = static_cast<fl_DocSectionLayout *>(pL);
 			bResult = pSL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_Block:
 		{
@@ -1188,7 +1188,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			}
 			else
 				bResult = pCLSL->bl_doclistener_deleteStrux(pCL, pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionHdrFtr:
 		{
@@ -1200,7 +1200,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 //
 			pSL->doclistener_deleteStrux(pcrx); 
 			m_pLayout->updateLayout();
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionTOC:
 		{
@@ -1208,7 +1208,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			UT_ASSERT(pL->getType() == PTX_SectionTOC);
 			fl_TOCLayout * pFL = static_cast<fl_TOCLayout *>(pL);
 			pFL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionFootnote:
 		{
@@ -1216,11 +1216,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			if(!pL || pL->getType() != PTX_SectionFootnote)
 			{
 				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-				goto finish_up;
+				break;
 			}
 			fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>( pL);
 			pFL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionAnnotation:
 		case PTX_SectionMarginnote:
@@ -1230,11 +1230,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			if(!pL || pL->getType() != PTX_SectionAnnotation)
 			{
 				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-				goto finish_up;
+				break;
 			}
 			fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>( pL);
 			pAL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionEndnote:
 		{
@@ -1242,11 +1242,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			if(!pL || pL->getType() != PTX_SectionEndnote)
 			{
 				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-				goto finish_up;
+				break;
 			}
 			fl_EndnoteLayout * pEL = static_cast<fl_EndnoteLayout *>( pL);
 			pEL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionTable:
 		{
@@ -1254,7 +1254,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			UT_ASSERT(pL->getType() == PTX_SectionTable);
 			fl_TableLayout * pTL = static_cast<fl_TableLayout *>( pL);
 			pTL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionCell:
 		{
@@ -1262,7 +1262,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			UT_ASSERT(pL->getType() == PTX_SectionCell);
 			fl_CellLayout * pCellL = static_cast<fl_CellLayout *>( pL);
 			pCellL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionFrame:
 		{
@@ -1270,23 +1270,23 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			UT_ASSERT(pL->getType() == PTX_SectionFrame);
 			fl_FrameLayout * pFrameL = static_cast<fl_FrameLayout *>( pL);
 			pFrameL->doclistener_deleteStrux(pcrx);
-			goto finish_up;
+			break;
 		}
 		case PTX_EndFrame:
 		{
-			goto finish_up;
+			break;
 		}
 		case PTX_EndTable:
 		{
-			goto finish_up;
+			break;
 		}
 		case PTX_EndCell:
 		{
-			goto finish_up;
+			break;
 		}
 		case PTX_EndTOC:
 		{
-			goto finish_up;
+			break;
 		}
 		case PTX_EndFootnote:
 		{
@@ -1294,12 +1294,12 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			if(!pL || pL->getType() != PTX_SectionFootnote)
 			{
 				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-				goto finish_up;
+				break;
 			}
 			fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>(pL);
 			pFL->doclistener_deleteEndEmbed(pcrx);
 
-			goto finish_up;
+			break;
 		}
 		case PTX_EndAnnotation:
 		case PTX_EndMarginnote:
@@ -1308,12 +1308,12 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			if(!pL || pL->getType() != PTX_SectionAnnotation)
 			{
 				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-				goto finish_up;
+				break;
 			}
 			fl_AnnotationLayout * pAL = static_cast<fl_AnnotationLayout *>(pL);
 			pAL->doclistener_deleteEndEmbed(pcrx);
 
-			goto finish_up;
+			break;
 		}
 		case PTX_EndEndnote:
 		{
@@ -1321,20 +1321,21 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			if(!pL || pL->getType() != PTX_SectionEndnote)
 			{
 				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-				goto finish_up;
+				break;
 			}
 			fl_EndnoteLayout * pEL = static_cast<fl_EndnoteLayout *>( pL);
 			pEL->doclistener_deleteEndEmbed(pcrx);
 
-			goto finish_up;
+			break;
 		}
 		default:
 			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 			bResult = false;
-			goto finish_up;
+			break;
 		}
+		break;
 	}
-					
+
 	case PX_ChangeRecord::PXT_ChangeStrux:
 	{
 		const PX_ChangeRecord_StruxChange * pcrxc = static_cast<const PX_ChangeRecord_StruxChange *> (pcr);
@@ -1415,17 +1416,17 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 				pHeadSL->changeIntoHdrFtrSection(pSL);
 
 				bResult = true;
-				goto finish_up;
+				break;
 			}
 			if(pSL->getType() == FL_SECTION_DOC)
 			{
 				fl_DocSectionLayout * pDSL = static_cast<fl_DocSectionLayout *>( pSL);
 				m_pLayout->changeDocSections(pcrxc,pDSL);
 				bResult = true;
-				goto finish_up;
+				break;
 			}
  			bResult = pSL->doclistener_changeStrux(pcrxc);
-			goto finish_up;
+			break;
 		}
 		
 		case PTX_Block:
@@ -1448,7 +1449,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			}
 			else
 				bResult = pCLSL->bl_doclistener_changeStrux(pCL, pcrxc);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionHdrFtr:
 		{
@@ -1462,7 +1463,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 				//
 				pSL->doclistener_deleteStrux(pcr); 
 				m_pLayout->updateLayout();
-				goto finish_up;
+				break;
 			}
 			
 //
@@ -1521,55 +1522,56 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 				pHFSL->format();
 
 				bResult = true;
-				goto finish_up;
+				break;
 			}
 			UT_DEBUGMSG(("SEVIOR: Unknown change record on a SectionHdrFtr strux \n"));
 			UT_DEBUGMSG(("SEVIOR: Most like we're undoing an Insert HdrFtr. Carry on! \n"));
 			bResult = true;
-			goto finish_up;
+			break;
 		}
         case PTX_SectionTable:
 		{
 			fl_TableLayout * pTL = static_cast<fl_TableLayout *>( pL2);
 			UT_ASSERT(pTL->getContainerType() == FL_CONTAINER_TABLE);
  			bResult = pTL->doclistener_changeStrux(pcrxc);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionCell:
 		{
 			fl_CellLayout * pCL = static_cast<fl_CellLayout *>( pL2);
 			UT_ASSERT(pCL->getContainerType() == FL_CONTAINER_CELL);
 			bResult = pCL->doclistener_changeStrux(pcrxc);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionFrame:
 		{
 			fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>( pL2);
 			UT_ASSERT(pFL->getContainerType() == FL_CONTAINER_FRAME);
 			bResult = pFL->doclistener_changeStrux(pcrxc);
-			goto finish_up;
+			break;
 		}
 		case PTX_SectionTOC:
 		{
 			fl_TOCLayout * pTOCL = static_cast<fl_TOCLayout *>( pL2);
 			UT_ASSERT(pTOCL->getContainerType() == FL_CONTAINER_TOC);
 			bResult = pTOCL->doclistener_changeStrux(pcrxc);
-			goto finish_up;
+			break;
 		}
 		default:
 		{
 			UT_ASSERT(0);
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		}
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_InsertStrux:
 	{
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		bResult = false;
-		goto finish_up;
+		break;
 	}
 	case PX_ChangeRecord::PXT_InsertObject:
 	{
@@ -1583,7 +1585,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// (e.g. a fmt-mark on a section-level strux at a section
 			// boundary during import); only blocks can receive it
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
@@ -1618,7 +1620,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			}
 		}
 		
-		goto finish_up;
+		break;
 	}
 	case PX_ChangeRecord::PXT_DeleteObject:
 	{
@@ -1671,7 +1673,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		if(sBookmark.size())
 			m_pLayout->updateTOCsOnBookmarkChange(sBookmark.utf8_str());
 
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_ChangeObject:
@@ -1686,7 +1688,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// (e.g. a fmt-mark on a section-level strux at a section
 			// boundary during import); only blocks can receive it
 			bResult = false;
-			goto finish_up;
+			break;
 		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
@@ -1697,7 +1699,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		}
 		else
 			bResult = pCLSL->bl_doclistener_changeObject(pCL, pcroc);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_ChangePoint:
@@ -1705,7 +1707,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		FV_View* pView = m_pLayout->getView();
 		if (pView && pView->isActive())
 			pView->_setPoint(pcr->getPosition());
-		goto finish_up;
+		break;
 	}
 	case PX_ChangeRecord::PXT_ListUpdate:
 	{
@@ -1714,7 +1716,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		xxx_UT_DEBUGMSG(("ContainerLayout %x ContainerType %s \n",pCL,pCL->getContainerString()));
 		pCL->listUpdate();
-		goto finish_up;
+		break;
 
 	}
 	case PX_ChangeRecord::PXT_StopList:
@@ -1723,7 +1725,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		UT_ASSERT(pL->getType() == PTX_Block);
 		fl_BlockLayout * pCL = static_cast<fl_BlockLayout *>(pL);
 		pCL->StopListInBlock();
-		goto finish_up;
+		break;
 	}
 	case PX_ChangeRecord::PXT_UpdateField:
 	{
@@ -1733,7 +1735,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		pCL->format();
 		FV_View* pView = m_pLayout->getView();
 		pView->updateScreen(true);
-		goto finish_up;
+		break;
 	}
 	case PX_ChangeRecord::PXT_RemoveList:
 	{
@@ -1745,7 +1747,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		pCL->m_pAutoNum = nullptr;
 		pCL->m_bListItem = false;
 		pCL->m_bStopList = false;
-		goto finish_up;
+		break;
 	}
 	case PX_ChangeRecord::PXT_UpdateLayout:
 	{
@@ -1759,7 +1761,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			pView->notifyListeners(AV_CHG_HDRFTR);
 		}
 
-		goto finish_up;
+		break;
 	}
 #if 0 //###TF
 	case PX_ChangeRecord::PXT_InsertBookmark:
@@ -1778,13 +1780,13 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		//}
 		//else
 		//	bResult = pCLSL->bl_doclistener_insertFmtMark(pCL, pcrfm);
-		goto finish_up;
+		break;
 	}
 #endif
 	case PX_ChangeRecord::PXT_CreateDataItem:
 	{
 	        bResult = true;
-		goto finish_up;
+		break;
 	}	
 	case PX_ChangeRecord::PXT_ChangeDocProp:
 	{
@@ -1797,7 +1799,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		if(!b)
 		{
 		    bResult = false;
-		    goto finish_up;
+		    break;
 		}
 		if(strcmp(szValue,"pagesize") == 0)
 		{
@@ -1821,17 +1823,16 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			}
 			m_pLayout->setNeedsRedraw();
 		}
-		goto finish_up;
+		break;
 	}	
 	default:
 	{
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		bResult = false;
-		goto finish_up;
+		break;
 	}
 	}
 
- finish_up:
 	if (0 == m_iGlobCounter)
 	{
 #ifndef UPDATE_LAYOUT_ON_SIGNAL

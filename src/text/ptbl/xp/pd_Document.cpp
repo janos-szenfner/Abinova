@@ -4005,19 +4005,18 @@ bool PD_Document::addListener(PL_Listener * pListener,
 
 	for (k=0; k<kLimit; k++)
 		if (m_vecListeners.getNthItem(k) == nullptr)
-		{
-			m_vecListeners.setNthItem(k,pListener,nullptr);
-			goto ClaimThisK;
-		}
+			break;
 
-	// otherwise, extend the vector for it.
-
-	if (m_vecListeners.addItem(pListener,&k) != 0)
+	if (k < kLimit)
 	{
+		m_vecListeners.setNthItem(k,pListener,nullptr);
+	}
+	else if (m_vecListeners.addItem(pListener,&k) != 0)
+	{
+		// otherwise, extend the vector for it.
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		return false;				// could not add item to vector
 	}
-  ClaimThisK:
 
 	// propagate the listener to the PieceTable and
 	// let it do its thing.

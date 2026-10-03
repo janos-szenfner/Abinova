@@ -3408,6 +3408,18 @@ below are on `main` but the release has not been cut yet.
   importer's `X_*` check macros return early like the `.abwn`
   importer's already did, and remaining sites became plain
   `if`/`else` or a small lambda.  Import behavior is unchanged.
+- **`goto` control flow removed from layout and piece-table code** —
+  119 jump sites across the layout listeners (`fl_DocListener`,
+  `fl_SectionLayout`, `fl_TOCLayout`, `fl_BlockLayout`,
+  `fl_ContainerLayout`), the line breaker and view layer
+  (`fb_LineBreaker`, `fv_View*`, `fp_TextRun`), and the piece table
+  (`pd_Document`, `pp_AttrProp`, `pt_PT_*`) now use structured
+  control flow: shared post-dispatch epilogues run after `switch`
+  instead of via `goto finish_up`, loop-exit jumps became `break`
+  plus a completion flag where a nested `switch` stood in the way,
+  the backward-restart block traversal became an explicit loop, and
+  `goto`-to-error-cleanup became scoped early returns.  Layout and
+  editing behavior is unchanged.
 
 ### GTK4 port (core migration)
 

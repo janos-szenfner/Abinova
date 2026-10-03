@@ -9304,12 +9304,13 @@ bool fl_BlockLayout::doclistener_changeObject(const PX_ChangeRecord_ObjectChange
 				}
 				pImageRun->lookupProperties();
 
-				goto done;
+				break;
 			}
 			pRun = pRun->getNextRun();
 		}
-
-		return false;
+		if (!pRun)
+			return false;
+		break;
 	}
 	case PTO_Field:
 	{
@@ -9340,12 +9341,13 @@ bool fl_BlockLayout::doclistener_changeObject(const PX_ChangeRecord_ObjectChange
 				}
 				pFieldRun->lookupProperties();
 
-				goto done;
+				break;
 			}
 			pRun = pRun->getNextRun();
 		}
-
-		return false;
+		if (!pRun)
+			return false;
+		break;
 	}
 	case PTO_Math:
 	{
@@ -9376,12 +9378,13 @@ bool fl_BlockLayout::doclistener_changeObject(const PX_ChangeRecord_ObjectChange
 				}
 				pMathRun->lookupProperties();
 
-				goto done;
+				break;
 			}
 			pRun = pRun->getNextRun();
 		}
-
-		return false;
+		if (!pRun)
+			return false;
+		break;
 	}
 
 	case PTO_Embed:
@@ -9414,12 +9417,13 @@ bool fl_BlockLayout::doclistener_changeObject(const PX_ChangeRecord_ObjectChange
 				pEmbedRun->update ();
 				pEmbedRun->lookupProperties();
 
-				goto done;
+				break;
 			}
 			pRun = pRun->getNextRun();
 		}
-
-		return false;
+		if (!pRun)
+			return false;
+		break;
 	}
 
 	default:
@@ -9427,7 +9431,6 @@ bool fl_BlockLayout::doclistener_changeObject(const PX_ChangeRecord_ObjectChange
 		return false;
 	}
 
- done:
 	m_iNeedsReformat = blockOffset;
 	format();
 	_assertRunListIntegrity();

@@ -2344,7 +2344,7 @@ bool fl_TOCListener::populate(fl_ContainerLayout* sfh,
 
 
 		bResult = static_cast<fl_BlockLayout *>(m_pCurrentBL)->doclistener_populateSpan(pcrs, blockOffset, len);
-		goto finish_up;
+		break;
 	}
 
 	case PX_ChangeRecord::PXT_InsertObject:
@@ -2361,14 +2361,13 @@ bool fl_TOCListener::populate(fl_ContainerLayout* sfh,
 
 //			fl_SectionLayout* pBLSL = m_pCurrentBL->getSectionLayout();
 		bResult = static_cast<fl_BlockLayout *>(m_pCurrentBL)->doclistener_populateObject(blockOffset,pcro);
-		goto finish_up;
+		break;
 	}
 	default:
 		UT_DEBUGMSG(("TOCLayout: Unknown Change record = %d \n",pcr->getType()));
 		return true;
 	}
 
- finish_up:
 	return bResult;
 }
 
