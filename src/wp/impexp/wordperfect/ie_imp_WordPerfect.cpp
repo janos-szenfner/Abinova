@@ -526,6 +526,7 @@ IE_Imp_WordPerfect::IE_Imp_WordPerfect(PD_Document * pDocument)
 	m_iCurrentListLevel(0),
 	m_bInCell(false),
 	m_bFrameOpen(false),
+	m_iLinkOpenCount(0),
 	m_pCaptureDoc(nullptr),
 	m_bHdrFtrOpenCount(0),
 	m_savedListLevel(0),
@@ -646,6 +647,10 @@ void IE_Imp_WordPerfect::openPageSpan(const librevenge::RVNGPropertyList &propLi
  * of leaking into the body stream. */
 bool IE_Imp_WordPerfect::appendStrux(PTStruxType pts, const PP_PropertyVector & attributes)
 {
+	// any strux landing inside an open text box makes it non-empty
+	if (!m_textBoxEmpty.empty() && pts != PTX_EndFrame)
+		m_textBoxEmpty.back() = false;
+
 	if (m_bHdrFtrOpenCount)
 	{
 		if (m_pCaptureDoc)
@@ -735,10 +740,13 @@ void IE_Imp_WordPerfect::_openHdrFtr(bool bHeader, const librevenge::RVNGPropert
 	if (m_pCaptureDoc)
 		return;
 
-	const char * occurrence = nullptr;
-	if (propList["librevenge:occurrence"])
-		occurrence = propList["librevenge:occurrence"]->getStr().cstr();
-	bool bEven = (occurrence && strcmp(occurrence, "even") == 0);
+	// getStr() returns by value, so keep the string alive for the
+	// comparison rather than holding onto a dangling cstr()
+	const librevenge::RVNGString occurrence =
+		propList["librevenge:occurrence"]
+		? propList["librevenge:occurrence"]->getStr()
+		: librevenge::RVNGString();
+	bool bEven = (occurrence == "even");
 	const char * type = bHeader ? (bEven ? "header-even" : "header")
 								: (bEven ? "footer-even" : "footer");
 
@@ -1062,6 +1070,152 @@ void IE_Imp_WordPerfect::insertLineBreak()
 	X_CheckDocumentError(appendSpan(&ucs,1));
 }
 
+/* libwpd opens links around box contents (box hypertext data) -- the
+ * open object lands inline and the end object marks wherever the
+ * frame's strux left the flow, so the link keeps its target instead of
+ * being dropped */
+void IE_Imp_WordPerfect::openLink(const librevenge::RVNGPropertyList &propList)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: openLink\n"));
+
+	const librevenge::RVNGProperty * href = propList["xlink:href"];
+	if (!href)
+	{
+		UT_DEBUGMSG(("AbiWordPerfect: openLink with no xlink:href - ignoring\n"));
+		return;
+	}
+	// getStr() returns by value: keep it alive until appendObject is done
+	const librevenge::RVNGString target = href->getStr();
+	if (target.len() == 0)
+	{
+		UT_DEBUGMSG(("AbiWordPerfect: openLink with empty xlink:href - ignoring\n"));
+		return;
+	}
+
+	const PP_PropertyVector atts = {
+		"xlink:href", target.cstr()
+	};
+	X_CheckDocumentError(appendObject(PTO_Hyperlink, atts));
+	m_iLinkOpenCount++;
+}
+
+void IE_Imp_WordPerfect::closeLink()
+{
+	UT_DEBUGMSG(("AbiWordPerfect: closeLink\n"));
+
+	// an end object with no matching open would mark an empty link
+	if (m_iLinkOpenCount <= 0)
+		return;
+	m_iLinkOpenCount--;
+
+	X_CheckDocumentError(appendObject(PTO_Hyperlink, PP_NOPROPS));
+}
+
+void IE_Imp_WordPerfect::insertField(const librevenge::RVNGPropertyList &propList)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: insertField\n"));
+
+	const char * type = nullptr;
+	const librevenge::RVNGProperty * fieldType = propList["librevenge:field-type"];
+	if (fieldType)
+	{
+		// getStr() returns by value: it must outlive the comparisons
+		const librevenge::RVNGString t = fieldType->getStr();
+		if (!strcmp(t.cstr(), "text:page-number"))
+			type = "page_number";
+		else if (!strcmp(t.cstr(), "text:page-count"))
+			type = "page_count";
+		else if (!strcmp(t.cstr(), "text:date-time"))
+			type = "date";
+		else if (!strcmp(t.cstr(), "text:date"))
+			type = "date_ddmmyy";
+		else if (!strcmp(t.cstr(), "text:time"))
+			type = "time";
+	}
+	if (!type)
+	{
+		UT_DEBUGMSG(("AbiWordPerfect: unsupported field type '%s' - dropping\n",
+					 fieldType ? fieldType->getStr().cstr() : "(none)"));
+		return;
+	}
+
+	const PP_PropertyVector fielddef = {
+		"type", type
+	};
+	X_CheckDocumentError(appendObject(PTO_Field, fielddef));
+}
+
+/* WP comments are point-anchored: the anchor start object plus the
+ * shadow section go down together, the body subdocument parses inside
+ * the shadow, and closeComment() closes the shadow then the anchor
+ * (no anchored text in between, so it marks a point). */
+void IE_Imp_WordPerfect::openComment(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: openComment\n"));
+
+	std::string pid = UT_std_string_sprintf("%u", getDoc()->getUID(UT_UniqueId::Annotation));
+	m_commentIds.push_back(pid);
+
+	const PP_PropertyVector attribsA = {
+		"annotation", pid
+	};
+	X_CheckDocumentError(appendObject(PTO_Annotation, attribsA));
+
+	const PP_PropertyVector attribsS = {
+		"annotation-id", pid
+	};
+	X_CheckDocumentError(appendStrux(PTX_SectionAnnotation, attribsS));
+}
+
+void IE_Imp_WordPerfect::closeComment()
+{
+	UT_DEBUGMSG(("AbiWordPerfect: closeComment\n"));
+
+	if (m_commentIds.empty())
+		return;
+	m_commentIds.pop_back();
+
+	X_CheckDocumentError(appendStrux(PTX_EndAnnotation, PP_NOPROPS));
+	X_CheckDocumentError(appendObject(PTO_Annotation, PP_NOPROPS));
+}
+
+/* openFrame() has already stashed the box geometry; the box's own
+ * paragraphs arrive through the normal callbacks until closeTextBox() */
+void IE_Imp_WordPerfect::openTextBox(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: openTextBox\n"));
+
+	double frameW = 0.0, frameH = 0.0;
+	if (m_frameProps["svg:width"])
+		frameW = m_frameProps["svg:width"]->getDouble();
+	if (m_frameProps["svg:height"])
+		frameH = m_frameProps["svg:height"]->getDouble();
+
+	// WP text boxes default to a thin drawn border
+	std::string props = "frame-type:textbox" + _frameProps(frameW, frameH) +
+		"; top-style:solid; bot-style:solid; left-style:solid; right-style:solid";
+
+	const PP_PropertyVector atts = {
+		PT_PROPS_ATTRIBUTE_NAME, props
+	};
+	X_CheckDocumentError(appendStrux(PTX_SectionFrame, atts));
+	m_textBoxEmpty.push_back(true);
+}
+
+void IE_Imp_WordPerfect::closeTextBox()
+{
+	UT_DEBUGMSG(("AbiWordPerfect: closeTextBox\n"));
+
+	// a frame must hold at least one block even when the box's
+	// subdocument produced no content
+	if (!m_textBoxEmpty.empty() && m_textBoxEmpty.back())
+		X_CheckDocumentError(appendStrux(PTX_Block, PP_NOPROPS));
+	if (!m_textBoxEmpty.empty())
+		m_textBoxEmpty.pop_back();
+
+	X_CheckDocumentError(appendStrux(PTX_EndFrame, PP_NOPROPS));
+}
+
 /* libwpd wraps every embedded object (WP3/WP5 pictures, WP6 figure
  * boxes) in a frame carrying the box geometry; the payload follows via
  * insertBinaryObject()/openTextBox(), so the props are stashed for it */
@@ -1075,6 +1229,57 @@ void IE_Imp_WordPerfect::closeFrame()
 {
 	m_frameProps.clear();
 	m_bFrameOpen = false;
+}
+
+/* box geometry stashed by openFrame(), serialized into frame props.
+ * libwpd's "char" anchor is its page-anchoring workaround, so page
+ * boxes key off it plus the vertical relation -- everything else
+ * anchors to its block (the mapping the ODF importer applies to
+ * draw:frame). Shared by insertBinaryObject() and openTextBox(). */
+std::string IE_Imp_WordPerfect::_frameProps(double frameW, double frameH) const
+{
+	std::string props;
+
+	librevenge::RVNGString anchor;
+	if (m_bFrameOpen && m_frameProps["text:anchor-type"])
+		anchor = m_frameProps["text:anchor-type"]->getStr();
+
+	const librevenge::RVNGProperty * verticalRel = m_frameProps["style:vertical-rel"];
+	if (!strcmp(anchor.cstr(), "char") ||
+		(verticalRel &&
+		 (!strcmp(verticalRel->getStr().cstr(), "page") ||
+		  !strcmp(verticalRel->getStr().cstr(), "page-content"))))
+	{
+		props += "; position-to:page-above-text";
+		if (m_frameProps["svg:x"])
+			props += UT_std_string_sprintf("; frame-page-xpos:%.4gin",
+										   m_frameProps["svg:x"]->getDouble());
+		if (m_frameProps["svg:y"])
+			props += UT_std_string_sprintf("; frame-page-ypos:%.4gin",
+										   m_frameProps["svg:y"]->getDouble());
+	}
+	else
+	{
+		props += "; position-to:block-above-text";
+		if (m_frameProps["svg:x"])
+			props += UT_std_string_sprintf("; xpos:%.4gin",
+										   m_frameProps["svg:x"]->getDouble());
+		if (m_frameProps["svg:y"])
+			props += UT_std_string_sprintf("; ypos:%.4gin",
+										   m_frameProps["svg:y"]->getDouble());
+	}
+
+	if (frameW > 0.0)
+		props += UT_std_string_sprintf("; frame-width:%.4gin", frameW);
+	if (frameH > 0.0)
+		props += UT_std_string_sprintf("; frame-height:%.4gin", frameH);
+
+	/* WP3/WP5 boxes can request text wrap; the rest float above */
+	if (m_frameProps["style:wrap"] &&
+		!strcmp(m_frameProps["style:wrap"]->getStr().cstr(), "dynamic"))
+		props += "; wrap-mode:wrapped-both";
+
+	return props;
 }
 
 void IE_Imp_WordPerfect::insertBinaryObject(const librevenge::RVNGPropertyList &propList)
@@ -1163,41 +1368,8 @@ void IE_Imp_WordPerfect::insertBinaryObject(const librevenge::RVNGPropertyList &
 		return;
 	}
 
-	/* a floating box becomes a frame strux; libwpd's "char" anchor is
-	 * its page-anchoring workaround, so page boxes key off it plus the
-	 * vertical relation -- everything else anchors to its block (the
-	 * mapping the ODF importer applies to draw:frame) */
-	std::string props = "frame-type:image";
-	const librevenge::RVNGProperty * verticalRel = m_frameProps["style:vertical-rel"];
-	if (!strcmp(anchor.cstr(), "char") ||
-		(verticalRel &&
-		 (!strcmp(verticalRel->getStr().cstr(), "page") ||
-		  !strcmp(verticalRel->getStr().cstr(), "page-content"))))
-	{
-		props += "; position-to:page-above-text";
-		if (m_frameProps["svg:x"])
-			props += UT_std_string_sprintf("; frame-page-xpos:%.4gin",
-										   m_frameProps["svg:x"]->getDouble());
-		if (m_frameProps["svg:y"])
-			props += UT_std_string_sprintf("; frame-page-ypos:%.4gin",
-										   m_frameProps["svg:y"]->getDouble());
-	}
-	else
-	{
-		props += "; position-to:block-above-text";
-		if (m_frameProps["svg:x"])
-			props += UT_std_string_sprintf("; xpos:%.4gin",
-										   m_frameProps["svg:x"]->getDouble());
-		if (m_frameProps["svg:y"])
-			props += UT_std_string_sprintf("; ypos:%.4gin",
-										   m_frameProps["svg:y"]->getDouble());
-	}
-	props += UT_std_string_sprintf("; frame-width:%.4gin; frame-height:%.4gin",
-								   frameW, frameH);
-	/* WP3/WP5 boxes can request text wrap; the rest float above */
-	if (m_frameProps["style:wrap"] &&
-		!strcmp(m_frameProps["style:wrap"]->getStr().cstr(), "dynamic"))
-		props += "; wrap-mode:wrapped-both";
+	/* a floating box becomes a frame strux */
+	std::string props = "frame-type:image" + _frameProps(frameW, frameH);
 	/* picture boxes get no drawn frame border */
 	props += "; top-style:none; bot-style:none; left-style:none; right-style:none";
 
@@ -1208,6 +1380,43 @@ void IE_Imp_WordPerfect::insertBinaryObject(const librevenge::RVNGPropertyList &
 	X_CheckDocumentError(appendStrux(PTX_SectionFrame, atts));
 	X_CheckDocumentError(appendStrux(PTX_Block, PP_NOPROPS));
 	X_CheckDocumentError(appendStrux(PTX_EndFrame, PP_NOPROPS));
+}
+
+/* drawing shapes inside boxes have no Abinova construct to map to --
+ * log instead of silently dropping */
+void IE_Imp_WordPerfect::drawRectangle(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: drawRectangle unsupported - dropping shape\n"));
+}
+
+void IE_Imp_WordPerfect::drawEllipse(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: drawEllipse unsupported - dropping shape\n"));
+}
+
+void IE_Imp_WordPerfect::drawPolygon(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: drawPolygon unsupported - dropping shape\n"));
+}
+
+void IE_Imp_WordPerfect::drawPolyline(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: drawPolyline unsupported - dropping shape\n"));
+}
+
+void IE_Imp_WordPerfect::drawPath(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: drawPath unsupported - dropping shape\n"));
+}
+
+void IE_Imp_WordPerfect::drawConnector(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: drawConnector unsupported - dropping shape\n"));
+}
+
+void IE_Imp_WordPerfect::insertEquation(const librevenge::RVNGPropertyList & /* propList */)
+{
+	UT_DEBUGMSG(("AbiWordPerfect: insertEquation unsupported - dropping equation\n"));
 }
 
 

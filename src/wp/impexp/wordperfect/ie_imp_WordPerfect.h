@@ -136,14 +136,14 @@ public:
 	virtual void openSpan(const librevenge::RVNGPropertyList &propList) override;
 	virtual void closeSpan() override {}
 
-	virtual void openLink(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void closeLink() override {}
+	virtual void openLink(const librevenge::RVNGPropertyList &propList) override;
+	virtual void closeLink() override;
 
 	virtual void insertTab() override;
 	virtual void insertText(const librevenge::RVNGString &text) override;
 	virtual void insertSpace() override;
 	virtual void insertLineBreak() override;
-	virtual void insertField(const librevenge::RVNGPropertyList & /* propList */) override {}
+	virtual void insertField(const librevenge::RVNGPropertyList &propList) override;
 
 	virtual void openOrderedListLevel(const librevenge::RVNGPropertyList &propList) override;
 	virtual void openUnorderedListLevel(const librevenge::RVNGPropertyList &propList) override;
@@ -156,10 +156,10 @@ public:
 	virtual void closeFootnote() override;
 	virtual void openEndnote(const librevenge::RVNGPropertyList &propList) override;
 	virtual void closeEndnote() override;
-	virtual void openComment(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void closeComment() override {}
-	virtual void openTextBox(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void closeTextBox() override {}
+	virtual void openComment(const librevenge::RVNGPropertyList &propList) override;
+	virtual void closeComment() override;
+	virtual void openTextBox(const librevenge::RVNGPropertyList &propList) override;
+	virtual void closeTextBox() override;
 
 	virtual void openTable(const librevenge::RVNGPropertyList &propList) override;
 	virtual void openTableRow(const librevenge::RVNGPropertyList &propList) override;
@@ -176,15 +176,15 @@ public:
 	virtual void closeGroup() override {}
 
 	virtual void defineGraphicStyle(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void drawRectangle(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void drawEllipse(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void drawPolygon(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void drawPolyline(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void drawPath(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void drawConnector(const librevenge::RVNGPropertyList & /* propList */) override {}
+	virtual void drawRectangle(const librevenge::RVNGPropertyList &propList) override;
+	virtual void drawEllipse(const librevenge::RVNGPropertyList &propList) override;
+	virtual void drawPolygon(const librevenge::RVNGPropertyList &propList) override;
+	virtual void drawPolyline(const librevenge::RVNGPropertyList &propList) override;
+	virtual void drawPath(const librevenge::RVNGPropertyList &propList) override;
+	virtual void drawConnector(const librevenge::RVNGPropertyList &propList) override;
 
 	virtual void insertBinaryObject(const librevenge::RVNGPropertyList &propList) override;
-	virtual void insertEquation(const librevenge::RVNGPropertyList & /* propList */) override {}
+	virtual void insertEquation(const librevenge::RVNGPropertyList &propList) override;
 
 protected:
 	virtual UT_Error _loadFile(GsfInput * input) override;
@@ -228,6 +228,7 @@ protected:
 	void								_closeHdrFtr();
 	void								_bindHdrFtrToSection(WPHdrFtr * hdrFtr, pf_Frag_Strux * pfs);
 	void								_bindPendingHdrFtrs(pf_Frag_Strux * pfs);
+	std::string							_frameProps(double frameW, double frameH) const;
 	PD_Document *						_doc() { return m_pCaptureDoc ? m_pCaptureDoc : getDoc(); }
 private:
     // section props
@@ -257,10 +258,17 @@ private:
     bool								m_bInCell;
 
 	// frame geometry libwpd emits around each embedded object
-	// (WP3/WP5 pictures, WP6 figure boxes); insertBinaryObject()
-	// consumes it when the binary payload arrives
+	// (WP3/WP5 pictures, WP6 figure boxes); insertBinaryObject() and
+	// openTextBox() consume it when the payload arrives
 	librevenge::RVNGPropertyList		m_frameProps;
 	bool								m_bFrameOpen;
+
+	// one entry per open text box: true while no content strux has
+	// been appended inside it yet (an empty frame still needs a
+	// block before its EndFrame)
+	std::vector<bool>					m_textBoxEmpty;
+	int									m_iLinkOpenCount;
+	std::vector<std::string>			m_commentIds;
 
 	std::vector<std::unique_ptr<WPHdrFtr>>	m_hdrFtrs;
 	std::vector<WPHdrFtr *>				m_pendingHdrFtrs;

@@ -3331,6 +3331,16 @@ below are on `main` but the release has not been cut yet.
   for character-anchored graphics or as a positioned image frame —
   honoring the box's size, x/y position, page-vs-paragraph anchoring,
   and text wrap — for floating boxes.
+- **WordPerfect hyperlinks, fields, comments, and text boxes import** —
+  `.wpd` box hyperlinks were dropped (they now become real `xlink:href`
+  hyperlinks wrapping the box's content), page-number/page-count and
+  date/time display fields were dropped (they now insert real fields
+  that evaluate on layout), comments were dropped (they now import as
+  point-anchored annotations with their body text), and text boxes
+  were dropped (they now import as bordered text-box frames honoring
+  the box's geometry and anchoring).  Drawing shapes and equations
+  still have no equivalent — those callbacks now log an explicit
+  debug message instead of silently discarding content.
 
 ### GTK4 port (core migration)
 
