@@ -27,6 +27,7 @@
 // Internal includes
 #include "OXMLi_Types.h"
 #include "OXMLi_PackageManager.h"
+#include "OXMLi_Element_AltChunk.h"
 #include "OXML_Document.h"
 #include "OXML_Element.h"
 #include "OXML_Element_Run.h"
@@ -224,15 +225,19 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "altChunk")) {
 		/* external subdocument reference (html/mht/docx/rtf...) —
-		 * keep the resolved part path + format on an empty paragraph
-		 * so the link survives in .abwn for round-tripping */
-		OXML_Element_Paragraph * para = new OXML_Element_Paragraph("");
+		 * the element grafts the chunk part's content into the piece
+		 * table at addToPT time; the resolved path + format stay on
+		 * the placeholder paragraph as props so the link survives in
+		 * .abwn for round-tripping */
+		OXMLi_Element_AltChunk * para = new OXMLi_Element_AltChunk();
 		const gchar * id = attrMatches(NS_R_KEY, "id", rqst->ppAtts);
 		if (id) {
+			para->setRelId(id);
 			OXMLi_PackageManager * mgr = OXMLi_PackageManager::getInstance();
 			if (mgr) {
-				std::string target = mgr->getPartName(id);
+				std::string target = mgr->getPartPath(id);
 				if (!target.empty()) {
+					para->setPartPath(target);
 					para->setProperty("altchunk-path", target.c_str());
 					std::string::size_type dot = target.rfind('.');
 					para->setProperty("altchunk-format",

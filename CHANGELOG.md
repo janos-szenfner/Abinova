@@ -341,8 +341,9 @@ below are on `main` but the release has not been cut yet.
     `section-break` paragraph property in `.abw`; layout suppresses
     their borders, matching Word's paragraph-border merging.
 - **DOCX schema coverage broadened** — `w:lvlOverride`/`startOverride`
-  (per-numbering-instance list clones), `w:altChunk` (references kept
-  as `altchunk-path`/`altchunk-format` links), `w:comment*` imported
+  (per-numbering-instance list clones), `w:altChunk` (subdocument
+  content grafted, `altchunk-path`/`altchunk-format` kept as
+  round-trip props), `w:comment*` imported
   as real annotations (comment range anchors + comment bodies with
   author/date/initials), `v:group` coordinate-space transforms for
   VML groups, `a:arrowhead`, `a:effectRef`, `a:prstTxWarp`, `a:srcRect`
@@ -362,6 +363,17 @@ below are on `main` but the release has not been cut yet.
   the field and maps `\t`/`\o` instructions back to
   `toc-source-styleN`/`toc-dest-styleN`, so comments and TOCs
   round-trip through `.docx` and `.abwn`.
+- **DOCX `w:altChunk` subdocuments actually imported** — an
+  `altChunk` reference (HTML, MHT, RTF, nested DOCX or plain-text
+  parts embedded in the package, common in generated documents)
+  previously became an empty paragraph holding a dead
+  `altchunk-path`/`altchunk-format` link.  The importer now opens the
+  referenced part through the package manager, runs the matching
+  internal importer on it, and grafts the resulting paragraphs — with
+  character/paragraph formatting and package-resolved images — into
+  the document at the reference point.  The link properties still
+  ride along on the merged paragraph for `.abwn` round-tripping, and
+  unresolvable or unknown chunk types keep the previous placeholder.
 - **DOCX positioned objects rendered properly** —
   - `behindDoc` anchors no longer lose `wrap-mode:below-text` when a
     `wp:wrap*` child follows, so background shapes paint behind text.

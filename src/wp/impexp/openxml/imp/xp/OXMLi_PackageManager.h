@@ -100,6 +100,27 @@ public:
 
 	UT_ConstByteBufPtr parseImageStream(const char * id);
 	std::string getPartName(const char * id);
+	//! Normalized in-package path of the part a relationship id targets
+	/*! (e.g. "word/chunk1.html"), empty when the id does not resolve. */
+	std::string getPartPath(const char * id);
+
+	//! Opens the package part targeted by a main-document relationship id.
+	/*! Returns a new-referenced GsfInput, or nullptr when the id does not
+	 *  resolve inside the package (missing rel or external target). */
+	GsfInput * openPartByRelId(const char * id);
+
+	//! Opens a package member by its normalized '/'-separated zip path.
+	/*! Returns a new-referenced GsfInput or nullptr. */
+	GsfInput * openPartByPath(const std::string & path);
+
+	/* Nested-import guard: a chunk part (w:altChunk) may itself be an
+	 * OpenXML package, and importing it builds its own singleton which
+	 * would clobber the outer document's package state mid-import.
+	 * detachInstance() hands the current instance out of the slot so
+	 * the nested import gets a fresh one; restoreInstance() puts it
+	 * back, destroying whatever the nested import left installed. */
+	static OXMLi_PackageManager* detachInstance();
+	static void restoreInstance(OXMLi_PackageManager* inst);
 
 private:
 	OXMLi_PackageManager();

@@ -342,6 +342,8 @@ openxml/common/xp/OXML_Document.cpp \
 	openxml/exp/xp/ie_exp_OpenXML_Listener.h \
 	openxml/exp/xp/ie_exp_OpenXML_Sniffer.cpp \
 	openxml/exp/xp/ie_exp_OpenXML_Sniffer.h \
+	openxml/imp/xp/OXMLi_Element_AltChunk.cpp \
+	openxml/imp/xp/OXMLi_Element_AltChunk.h \
 	openxml/imp/xp/OXMLi_ListenerState.cpp \
 	openxml/imp/xp/OXMLi_ListenerState.h \
 	openxml/imp/xp/OXMLi_ListenerState_Common.cpp \

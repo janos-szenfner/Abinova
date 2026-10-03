@@ -55,6 +55,14 @@ public:
 	static OXML_Document* getInstance();
 	//! Frees the current document and all its content from memory.
 	static void destroyInstance();
+	/* Nested-import guard: a chunk part (w:altChunk) may itself be an
+	 * OpenXML package, and importing it builds its own OXML_Document
+	 * which would clobber the outer document's data model mid-addToPT.
+	 * detachInstance() hands the current instance out of the slot so
+	 * the nested import gets a fresh one; restoreInstance() puts it
+	 * back, destroying whatever the nested import left installed. */
+	static OXML_Document* detachInstance();
+	static void restoreInstance(OXML_Document* inst);
 	//! Provides a pointer to the last section that was appended (or empty SharedSection if none found).
 	static OXML_SharedSection getCurrentSection();
 

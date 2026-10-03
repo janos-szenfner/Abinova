@@ -63,6 +63,19 @@ void OXMLi_PackageManager::destroyInstance()
 	DELETEP(s_pInst);
 }
 
+OXMLi_PackageManager* OXMLi_PackageManager::detachInstance()
+{
+	OXMLi_PackageManager * inst = s_pInst;
+	s_pInst = nullptr;
+	return inst;
+}
+
+void OXMLi_PackageManager::restoreInstance(OXMLi_PackageManager* inst)
+{
+	destroyInstance();
+	s_pInst = inst;
+}
+
 OXMLi_PackageManager::OXMLi_PackageManager() :
 	m_pPkg(nullptr),
 	m_pDocPart(nullptr)
@@ -536,6 +549,32 @@ UT_ConstByteBufPtr OXMLi_PackageManager::parseImageStream(const char * id)
 	m_parsedParts[part_name] = true;
 
 	return buffer;
+}
+
+std::string OXMLi_PackageManager::getPartPath(const char * id)
+{
+	std::string target = getPartName(id);
+	if (target.empty())
+		return "";
+	if (target[0] == '/')
+		return target.substr(1);        // OPC package-absolute
+	const std::string & dir = _docDir();
+	if (target.compare(0, dir.size(), dir) == 0)
+		return target;                  // already doc-dir prefixed
+	return dir + target;
+}
+
+GsfInput* OXMLi_PackageManager::openPartByRelId(const char * id)
+{
+	UT_return_val_if_fail(id != nullptr, nullptr);
+	GsfInput * parent = _getDocumentStream();
+	UT_return_val_if_fail(parent != nullptr, nullptr);
+	return getChildById(parent, id);
+}
+
+GsfInput* OXMLi_PackageManager::openPartByPath(const std::string & path)
+{
+	return _childByPath(path);
 }
 
 /**

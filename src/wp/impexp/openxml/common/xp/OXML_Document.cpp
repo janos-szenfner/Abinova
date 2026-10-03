@@ -53,6 +53,19 @@ void OXML_Document::destroyInstance()
 	DELETEP(s_docInst);
 }
 
+OXML_Document* OXML_Document::detachInstance()
+{
+	OXML_Document * inst = s_docInst;
+	s_docInst = nullptr;
+	return inst;
+}
+
+void OXML_Document::restoreInstance(OXML_Document* inst)
+{
+	destroyInstance();
+	s_docInst = inst;
+}
+
 OXML_SharedSection OXML_Document::getCurrentSection()
 {
 	UT_return_val_if_fail(s_docInst != nullptr, OXML_SharedSection() );
