@@ -24,6 +24,7 @@
 #include "fv_View.h"
 
 class XAP_UnixFrame;
+typedef struct _AbiRdfTripleRow AbiRdfTripleRow;
 
 class AP_UnixDialog_RDFEditor: public AP_Dialog_RDFEditor
 {
@@ -42,10 +43,10 @@ public:
     void onExecuteClicked();
     void onShowAllClicked();
     void onDelClicked();
-    void onCellEdited( GtkCellRendererText *cell,
-                       gchar *path_string,
-                       gchar *new_text,
-                       int cidx );
+    void commitCellEdit( AbiRdfTripleRow *row,
+                         const char *new_text,
+                         int cidx );
+    void selectRowForCellClick( AbiRdfTripleRow *row, guint modifiers );
     void onImportRDFXML();
     void onExportRDFXML();
     void onCursorChanged();
@@ -77,13 +78,12 @@ private:
 	C_COLUMN_COUNT
     };
 
-    GtkTreeViewColumn* w_cols[C_COLUMN_COUNT];
-
 	GtkWidget *m_wDialog;
 	GtkWidget *m_btClose;
     GtkWidget *m_btShowAll;
-	GtkTreeView*  m_resultsView;
-	GtkTreeStore* m_resultsModel;
+	GtkColumnView*   m_resultsView;
+	GListStore*      m_resultsStore;
+	GtkSortListModel* m_sortModel;
     GtkWidget *m_status;
     GSimpleAction *m_anewtriple;
     GSimpleAction *m_acopytriple;
@@ -93,7 +93,8 @@ private:
     GtkDropDown *m_selectedxmlid;
     GtkWidget   *m_restrictxmlidhidew;
 
-    GtkTreeIter getGIter( PD_RDFStatement st );
-    PD_RDFStatement GIterToStatement( GtkTreeIter* giter );
+    guint findRowPos( const PD_RDFStatement& st );
+    guint rowPosition( AbiRdfTripleRow* row );
+    PD_RDFStatement rowToStatement( AbiRdfTripleRow* row );
 
 };

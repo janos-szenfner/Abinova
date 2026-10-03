@@ -63,22 +63,17 @@ private:
 
     enum: uint16_t
     {
-        C_SUBJ_COLUMN = 0,
-        C_PRED_COLUMN,
-        C_OBJ_COLUMN,
-		C_COLUMN_COUNT,
-        C_COLUMN_ARRAY_SIZE = 1024
+		C_COLUMN_ARRAY_SIZE = 1024
 	};
-
-    GtkTreeViewColumn* w_cols[C_COLUMN_ARRAY_SIZE];
 
 	GtkWidget *m_wDialog;
 	GtkWidget *m_btClose;
     GtkWidget *m_btExecute;
     GtkWidget *m_btShowAll;
     GtkWidget *m_query;
-	GtkTreeView*  m_resultsView;
-	GtkTreeStore* m_resultsModel;
+	GtkColumnView*   m_resultsView;
+	GListStore*      m_resultsStore;
+	GtkSortListModel* m_sortModel;
     GtkWidget *m_status;
 
 };

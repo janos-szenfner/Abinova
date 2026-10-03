@@ -3542,6 +3542,16 @@ below are on `main` but the release has not been cut yet.
   (unlocalized) style name so selection still drives the paragraph/
   character preview panes and the New/Modify/Delete paths exactly as
   before; a newly created style is still scrolled to and selected.
+- **`GtkTreeView` → `GtkListView`/`GtkColumnView`, batch D (RDF
+  dialogs)** — the RDF editor and SPARQL query results now run on a
+  `GtkColumnView` over a `GListStore` of row objects with a
+  `GtkSortListModel` driven by per-column custom sorters and a
+  `GtkMultiSelection`.  RDF editor cells stay editable (edits commit
+  on Enter or focus-out and write through to the document's RDF
+  model, Ctrl/Shift multi-select is preserved), and the SPARQL
+  dialog still rebuilds its result columns per query.  The Insert
+  Reference contact picker uses a `GtkListView` backed by a real
+  `GtkTreeListModel` + `GtkTreeExpander` for its Contacts hierarchy.
 
 ### Performance
 

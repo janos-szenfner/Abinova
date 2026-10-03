@@ -51,6 +51,189 @@
 #include <sstream>
 
 const char* GOBJ_COL_NUM = "GOBJ_COL_NUM";
+static const char RDF_ROW_DATA[] = "rdf-triple-row";
+
+/* One row object per RDF statement for the GtkColumnView model; holds
+ * the three prefixed display strings the editable cells write to. */
+#define ABI_TYPE_RDF_TRIPLE_ROW (abi_rdf_triple_row_get_type())
+G_DECLARE_FINAL_TYPE (AbiRdfTripleRow, abi_rdf_triple_row, ABI, RDF_TRIPLE_ROW, GObject)
+
+struct _AbiRdfTripleRow
+{
+	GObject parent_instance;
+	gchar *subj;
+	gchar *pred;
+	gchar *obj;
+};
+
+G_DEFINE_TYPE (AbiRdfTripleRow, abi_rdf_triple_row, G_TYPE_OBJECT)
+
+static void
+abi_rdf_triple_row_init (AbiRdfTripleRow * /*self*/)
+{
+}
+
+static void
+abi_rdf_triple_row_finalize (GObject *object)
+{
+	AbiRdfTripleRow *row = ABI_RDF_TRIPLE_ROW (object);
+	g_free (row->subj);
+	g_free (row->pred);
+	g_free (row->obj);
+	G_OBJECT_CLASS (abi_rdf_triple_row_parent_class)->finalize (object);
+}
+
+static void
+abi_rdf_triple_row_class_init (AbiRdfTripleRowClass *klass)
+{
+	G_OBJECT_CLASS (klass)->finalize = abi_rdf_triple_row_finalize;
+}
+
+static AbiRdfTripleRow *
+abi_rdf_triple_row_new (const gchar *subj, const gchar *pred,
+						const gchar *obj)
+{
+	AbiRdfTripleRow *row =
+		ABI_RDF_TRIPLE_ROW (g_object_new (ABI_TYPE_RDF_TRIPLE_ROW, nullptr));
+	row->subj = g_strdup (subj);
+	row->pred = g_strdup (pred);
+	row->obj  = g_strdup (obj);
+	return row;
+}
+
+static const char *
+s_row_field (const AbiRdfTripleRow *row, int cidx)
+{
+	switch (cidx)
+	{
+		case 0: return row->subj;
+		case 1: return row->pred;
+		default: return row->obj;
+	}
+}
+
+static void
+s_row_set_field (AbiRdfTripleRow *row, int cidx, const gchar *text)
+{
+	gchar **slot = (cidx == 0) ? &row->subj : (cidx == 1) ? &row->pred : &row->obj;
+	g_free (*slot);
+	*slot = g_strdup (text);
+}
+
+static gint
+s_sort_triples (gconstpointer p1, gconstpointer p2, gpointer data)
+{
+	const AbiRdfTripleRow *a = static_cast<const AbiRdfTripleRow *>(p1);
+	const AbiRdfTripleRow *b = static_cast<const AbiRdfTripleRow *>(p2);
+	int cidx = GPOINTER_TO_INT (data);
+	const gchar *sa = s_row_field (a, cidx);
+	const gchar *sb = s_row_field (b, cidx);
+	return g_utf8_collate (sa ? sa : "", sb ? sb : "");
+}
+
+static void
+s_cell_commit (GtkWidget *text, AP_UnixDialog_RDFEditor *dlg)
+{
+	AbiRdfTripleRow *row = static_cast<AbiRdfTripleRow*>(
+		g_object_get_data (G_OBJECT (text), RDF_ROW_DATA));
+	if (!row)
+		return;
+	int cidx = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (text), GOBJ_COL_NUM));
+	dlg->commitCellEdit (row, gtk_editable_get_text (GTK_EDITABLE (text)), cidx);
+}
+
+static void
+s_cell_activate (GtkText *text, gpointer data)
+{
+	s_cell_commit (GTK_WIDGET (text), static_cast<AP_UnixDialog_RDFEditor*>(data));
+}
+
+static void
+s_cell_pressed (GtkGestureClick *gesture, gint /*n_press*/,
+				gdouble /*x*/, gdouble /*y*/, gpointer data)
+{
+	GtkWidget *text = gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (gesture));
+	AbiRdfTripleRow *row = static_cast<AbiRdfTripleRow*>(
+		g_object_get_data (G_OBJECT (text), RDF_ROW_DATA));
+	if (!row)
+		return;
+	GdkModifierType state = gtk_event_controller_get_current_event_state (
+		GTK_EVENT_CONTROLLER (gesture));
+	static_cast<AP_UnixDialog_RDFEditor*>(data)->selectRowForCellClick (
+		row, static_cast<guint>(state));
+}
+
+static void
+s_cell_focus_left (GtkEventControllerFocus *ctrl, gpointer data)
+{
+	s_cell_commit (gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (ctrl)),
+				   static_cast<AP_UnixDialog_RDFEditor*>(data));
+}
+
+static void
+s_rdf_cell_setup (GtkSignalListItemFactory *factory,
+				  GtkListItem *item,
+				  gpointer data)
+{
+	AP_UnixDialog_RDFEditor *dlg = static_cast<AP_UnixDialog_RDFEditor*>(data);
+	int cidx = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (factory), GOBJ_COL_NUM));
+
+	GtkWidget *text = gtk_text_new ();
+	g_object_set_data (G_OBJECT (text), GOBJ_COL_NUM, GINT_TO_POINTER (cidx));
+	g_signal_connect (text, "activate",
+					  G_CALLBACK (s_cell_activate), dlg);
+
+	GtkEventController *focus = gtk_event_controller_focus_new ();
+	g_signal_connect (focus, "leave",
+					  G_CALLBACK (s_cell_focus_left), dlg);
+	gtk_widget_add_controller (text, focus);
+
+	/* capture-phase click: drive the row's selection state before the
+	 * GtkText claims the press for editing */
+	GtkGesture *click = gtk_gesture_click_new ();
+	gtk_event_controller_set_propagation_phase (
+		GTK_EVENT_CONTROLLER (click), GTK_PHASE_CAPTURE);
+	g_signal_connect (click, "pressed",
+					  G_CALLBACK (s_cell_pressed), dlg);
+	gtk_widget_add_controller (text, GTK_EVENT_CONTROLLER (click));
+
+	gtk_list_item_set_child (item, text);
+}
+
+static void
+s_rdf_cell_bind (GtkSignalListItemFactory *factory,
+				 GtkListItem *item,
+				 gpointer /*data*/)
+{
+	int cidx = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (factory), GOBJ_COL_NUM));
+	GtkWidget *text = GTK_WIDGET (gtk_list_item_get_child (item));
+	AbiRdfTripleRow *row =
+		ABI_RDF_TRIPLE_ROW (gtk_list_item_get_item (item));
+	g_object_set_data (G_OBJECT (text), RDF_ROW_DATA, row);
+	const char *field = row ? s_row_field (row, cidx) : nullptr;
+	gtk_editable_set_text (GTK_EDITABLE (text), field ? field : "");
+}
+
+static void
+s_rdf_cell_unbind (GtkSignalListItemFactory * /*factory*/,
+				   GtkListItem *item,
+				   gpointer /*data*/)
+{
+	GtkWidget *text = GTK_WIDGET (gtk_list_item_get_child (item));
+	if (text)
+		g_object_set_data (G_OBJECT (text), RDF_ROW_DATA, nullptr);
+}
+
+static GtkListItemFactory *
+s_rdf_cell_factory (AP_UnixDialog_RDFEditor *dlg, int cidx)
+{
+	GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
+	g_object_set_data (G_OBJECT (factory), GOBJ_COL_NUM, GINT_TO_POINTER (cidx));
+	g_signal_connect (factory, "setup", G_CALLBACK (s_rdf_cell_setup), dlg);
+	g_signal_connect (factory, "bind", G_CALLBACK (s_rdf_cell_bind), dlg);
+	g_signal_connect (factory, "unbind", G_CALLBACK (s_rdf_cell_unbind), dlg);
+	return factory;
+}
 
 
 void
@@ -75,17 +258,6 @@ static void s_OnXMLIDChanged(GtkWidget * widget, GParamSpec */*pspec*/, AP_UnixD
     std::string xmlid = XAP_dropDownGetSelectedText( GTK_DROP_DOWN( widget ));
    	dlg->setRestrictedXMLID( xmlid );
 }
-
-void cell_edited_cb ( GtkCellRendererText *cell,
-                      gchar *path_string,
-                      gchar *new_text,
-                      gpointer data )
-{
-	AP_UnixDialog_RDFEditor *dlg = static_cast <AP_UnixDialog_RDFEditor *>(data);
-    int cidx = GPOINTER_TO_INT(g_object_get_data( G_OBJECT(cell), GOBJ_COL_NUM ));
-    dlg->onCellEdited( cell, path_string, new_text, cidx );
-}
-
 
 void
 AP_UnixDialog_RDFEditor__onActionDelete(GAction*, GVariant*, gpointer data)
@@ -148,13 +320,13 @@ AP_UnixDialog_RDFEditor__onDeleteWindow ( GtkWidget * /*widget*/,
 	return TRUE;
 }
 
-gboolean
-AP_UnixDialog_RDFEditor__onCursorChanged ( GtkTreeView*,
+void
+AP_UnixDialog_RDFEditor__onCursorChanged ( GtkSelectionModel*,
+                                           guint, guint,
                                            gpointer  data )
 {
 	AP_UnixDialog_RDFEditor *dlg = static_cast <AP_UnixDialog_RDFEditor *>(data);
     dlg->onCursorChanged();
-    return TRUE;
 }
 
 
@@ -179,7 +351,8 @@ AP_UnixDialog_RDFEditor::AP_UnixDialog_RDFEditor( XAP_DialogFactory *pDlgFactory
     , m_btClose(nullptr)
     , m_btShowAll(nullptr)
     , m_resultsView(nullptr)
-    , m_resultsModel(nullptr)
+    , m_resultsStore(nullptr)
+    , m_sortModel(nullptr)
     , m_status(nullptr)
     , m_anewtriple(nullptr)
     , m_acopytriple(nullptr)
@@ -197,6 +370,8 @@ AP_UnixDialog_RDFEditor::AP_UnixDialog_RDFEditor( XAP_DialogFactory *pDlgFactory
 AP_UnixDialog_RDFEditor::~AP_UnixDialog_RDFEditor ()
 {
 	UT_DEBUGMSG (("~AP_UnixDialog_RDFEditor ()\n"));
+	g_clear_object (&m_resultsStore);
+	g_clear_object (&m_sortModel);
 }
 
 
@@ -205,7 +380,8 @@ void
 AP_UnixDialog_RDFEditor::clear()
 {
     AP_Dialog_RDFEditor::clear();
-    gtk_tree_store_clear( m_resultsModel );
+    if (m_resultsStore)
+        g_list_store_remove_all( m_resultsStore );
 }
 
 void
@@ -213,74 +389,83 @@ AP_UnixDialog_RDFEditor::addStatement( const PD_RDFStatement& stc )
 {
     AP_Dialog_RDFEditor::addStatement(stc);
     PD_RDFStatement st = stc.uriToPrefixed( getModel() );
-    
-    GtkTreeStore* m = m_resultsModel;
-    GtkTreeIter iter;
-    gtk_tree_store_append(m, &iter, nullptr);
-    gtk_tree_store_set( m, &iter,
-                        C_SUBJ_COLUMN, st.getSubject().  toString().c_str(),
-                        C_PRED_COLUMN, st.getPredicate().toString().c_str(),
-                        C_OBJ_COLUMN,  st.getObject().   toString().c_str(),
-                        -1 );
+
+    AbiRdfTripleRow *row = abi_rdf_triple_row_new(
+        st.getSubject().  toString().c_str(),
+        st.getPredicate().toString().c_str(),
+        st.getObject().   toString().c_str() );
+    g_list_store_append( m_resultsStore, row );
+    g_object_unref( row );
 }
 
 PD_RDFStatement
-AP_UnixDialog_RDFEditor::GIterToStatement( GtkTreeIter* giter )
+AP_UnixDialog_RDFEditor::rowToStatement( AbiRdfTripleRow* row )
 {
-    gchar* s;
-    gchar* p;
-    gchar* o;
-    gtk_tree_model_get( GTK_TREE_MODEL(m_resultsModel), giter,
-                        C_SUBJ_COLUMN, &s,
-                        C_PRED_COLUMN, &p,
-                        C_OBJ_COLUMN,  &o,
-                        -1 );
-    PD_RDFStatement st( getModel(), PD_URI(s), PD_URI(p), PD_Object(o) );
-    g_free( s );
-    g_free( p );
-    g_free( o );
-    return st;
+    return PD_RDFStatement( getModel(),
+                            PD_URI( row->subj ),
+                            PD_URI( row->pred ),
+                            PD_Object( row->obj ) );
 }
 
-GtkTreeIter
-AP_UnixDialog_RDFEditor::getGIter( PD_RDFStatement st )
+/* position of the row whose statement equals st inside the view's
+ * (possibly sorted) model, or GTK_INVALID_LIST_POSITION */
+guint
+AP_UnixDialog_RDFEditor::findRowPos( const PD_RDFStatement& st )
 {
-    GtkTreeModel* model = GTK_TREE_MODEL( m_resultsModel );
-     
-    GtkTreeIter ret;
-    memset( &ret, 0, sizeof(GtkTreeIter));
-    gtk_tree_model_get_iter_first( model, &ret );
-    for( ; true; )
+    GtkSelectionModel* sel = gtk_column_view_get_model( m_resultsView );
+    GListModel* model = G_LIST_MODEL( sel );
+    guint n = g_list_model_get_n_items( model );
+    for( guint i = 0; i < n; ++i )
     {
-        PD_RDFStatement stg = GIterToStatement( &ret );
-        if( stg == st )
-        {
-            return ret;
-        }
-        
-        if( !gtk_tree_model_iter_next( model, &ret) )
-            break;
+        AbiRdfTripleRow* row =
+            ABI_RDF_TRIPLE_ROW( g_list_model_get_item( model, i ) );
+        bool match = row && (rowToStatement( row ) == st);
+        if( row )
+            g_object_unref( row );
+        if( match )
+            return i;
     }
-    
-    return ret;
+    return GTK_INVALID_LIST_POSITION;
+}
+
+guint
+AP_UnixDialog_RDFEditor::rowPosition( AbiRdfTripleRow* target )
+{
+    GtkSelectionModel* sel = gtk_column_view_get_model( m_resultsView );
+    GListModel* model = G_LIST_MODEL( sel );
+    guint n = g_list_model_get_n_items( model );
+    for( guint i = 0; i < n; ++i )
+    {
+        gpointer item = g_list_model_get_item( model, i );
+        bool match = (item == target);
+        if( item )
+            g_object_unref( item );
+        if( match )
+            return i;
+    }
+    return GTK_INVALID_LIST_POSITION;
 }
 
 
 void
 AP_UnixDialog_RDFEditor::setSelection( const std::list< PD_RDFStatement >& l )
 {
+    GtkSelectionModel* sel = gtk_column_view_get_model( m_resultsView );
     for( std::list< PD_RDFStatement >::const_iterator iter = l.begin();
          iter != l.end(); ++iter )
     {
-        GtkTreeIter giter = getGIter( *iter );
-        selectIter( m_resultsView, &giter );
+        guint pos = findRowPos( *iter );
+        if( pos != GTK_INVALID_LIST_POSITION )
+            gtk_selection_model_select_item( sel, pos, FALSE );
     }
 
     if( !l.empty() )
     {
-        std::list< PD_RDFStatement >::const_iterator iter = l.begin();
-        GtkTreeIter giter = getGIter( *iter );
-        scrollToIter( m_resultsView, &giter );
+        guint pos = findRowPos( l.front() );
+        if( pos != GTK_INVALID_LIST_POSITION )
+            gtk_column_view_scroll_to( m_resultsView, pos, nullptr,
+                                       static_cast<GtkListScrollFlags>(
+                                           GTK_LIST_SCROLL_FOCUS ), nullptr );
     }
 }
 
@@ -328,13 +513,19 @@ AP_UnixDialog_RDFEditor::onShowAllClicked()
 PD_RDFStatement
 AP_UnixDialog_RDFEditor::next( const PD_RDFStatement& st )
 {
-    GtkTreeIter giter = getGIter( st );
-    if( gtk_tree_model_iter_next( GTK_TREE_MODEL(m_resultsModel), &giter ) )
+    guint pos = findRowPos( st );
+    GtkSelectionModel* sel = gtk_column_view_get_model( m_resultsView );
+    GListModel* model = G_LIST_MODEL( sel );
+    if( pos != GTK_INVALID_LIST_POSITION &&
+        pos + 1 < g_list_model_get_n_items( model ) )
     {
-        PD_RDFStatement ret = GIterToStatement( &giter );
+        AbiRdfTripleRow* row =
+            ABI_RDF_TRIPLE_ROW( g_list_model_get_item( model, pos + 1 ) );
+        PD_RDFStatement ret = rowToStatement( row );
+        g_object_unref( row );
         return ret;
     }
-    
+
     // no good old chum
     PD_RDFStatement ret;
     return ret;
@@ -378,22 +569,21 @@ AP_UnixDialog_RDFEditor::onDelClicked()
 
 
 void
-AP_UnixDialog_RDFEditor::onCellEdited( GtkCellRendererText * /*cell*/,
-                                       gchar *path_string,
-                                       gchar *new_text,
-                                       int cidx )
+AP_UnixDialog_RDFEditor::commitCellEdit( AbiRdfTripleRow *row,
+                                         const char *new_text,
+                                         int cidx )
 {
-    xxx_UT_DEBUGMSG(("onCellEdited() nt: %s\n", new_text));
-
-    GtkTreeIter giter;
-    GtkTreeModel* model = GTK_TREE_MODEL( m_resultsModel );
-    GtkTreePath*  path  = gtk_tree_path_new_from_string (path_string);
-    gtk_tree_model_get_iter (model, &giter, path);
+    xxx_UT_DEBUGMSG(("commitCellEdit() nt: %s\n", new_text));
+    if( !row )
+        return;
+    const char* old_text = s_row_field( row, cidx );
+    if( old_text && !strcmp( old_text, new_text ) )
+        return;
 
     PD_URI n( new_text );
     n = n.prefixedToURI( getModel() );
-    
-    PD_RDFStatement oldst = GIterToStatement( &giter );
+
+    PD_RDFStatement oldst = rowToStatement( row );
     PD_RDFStatement newst;
     switch( cidx )
     {
@@ -409,16 +599,59 @@ AP_UnixDialog_RDFEditor::onCellEdited( GtkCellRendererText * /*cell*/,
         default:
             UT_ASSERT_NOT_REACHED();
     }
-    
+
     PD_DocumentRDFMutationHandle m = getModel()->createMutation();
     if( m->add( newst ) )
     {
         m->remove( oldst );
         m->commit();
-        gtk_tree_store_set (GTK_TREE_STORE (model), &giter, cidx, new_text, -1);
+        s_row_set_field( row, cidx, new_text );
     }
-    gtk_tree_path_free (path);
-    
+}
+
+void
+AP_UnixDialog_RDFEditor::selectRowForCellClick( AbiRdfTripleRow *row,
+                                                guint modifiers )
+{
+    if( !row || !m_resultsView )
+        return;
+    guint pos = rowPosition( row );
+    if( pos == GTK_INVALID_LIST_POSITION )
+        return;
+
+    GtkSelectionModel* sel = gtk_column_view_get_model( m_resultsView );
+    if( modifiers & GDK_CONTROL_MASK )
+    {
+        GtkBitset* selected = gtk_selection_model_get_selection( sel );
+        bool wasSelected = gtk_bitset_contains( selected, pos );
+        gtk_bitset_unref( selected );
+        if( wasSelected )
+            gtk_selection_model_unselect_item( sel, pos );
+        else
+            gtk_selection_model_select_item( sel, pos, FALSE );
+    }
+    else if( modifiers & GDK_SHIFT_MASK )
+    {
+        GtkBitset* selected = gtk_selection_model_get_selection( sel );
+        if( gtk_bitset_is_empty( selected ) )
+        {
+            gtk_bitset_unref( selected );
+            gtk_selection_model_select_item( sel, pos, TRUE );
+        }
+        else
+        {
+            guint anchor = gtk_bitset_get_minimum( selected );
+            gtk_bitset_unref( selected );
+            guint lo = MIN( anchor, pos );
+            guint hi = MAX( anchor, pos );
+            gtk_selection_model_select_range( sel, lo, hi - lo + 1, TRUE );
+        }
+    }
+    else
+    {
+        gtk_selection_model_select_item( sel, pos, TRUE );
+    }
+    onCursorChanged();
 }
 
 static std::string tostr( GsfInput* gsf )
@@ -506,7 +739,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
 	m_wDialog = GTK_WIDGET(gtk_builder_get_object(builder, "ap_UnixDialog_RDFEditor"));
 	m_btClose = GTK_WIDGET(gtk_builder_get_object(builder, "btClose"));
     m_btShowAll = GTK_WIDGET(gtk_builder_get_object(builder, "btShowAll"));
-	m_resultsView   = GTK_TREE_VIEW(gtk_builder_get_object(builder, "resultsView"));
+	m_resultsView   = GTK_COLUMN_VIEW(gtk_builder_get_object(builder, "resultsView"));
     m_status        = GTK_WIDGET(gtk_builder_get_object(builder, "status"));
     m_selectedxmlid = GTK_DROP_DOWN(gtk_builder_get_object(builder, "selectedxmlid"));
     m_restrictxmlidhidew = GTK_WIDGET(gtk_builder_get_object(builder, "restrictxmlidhidew"));
@@ -551,56 +784,38 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
     localizeButton(m_btShowAll, pSS, AP_STRING_ID_DLG_RDF_Editor_ShowAll);
     localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbRestrict")), pSS, AP_STRING_ID_DLG_RDF_Editor_Restrict);
 
-    GObject *selection;
-    selection = G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (m_resultsView)));
-    gtk_tree_selection_set_mode (GTK_TREE_SELECTION (selection), GTK_SELECTION_MULTIPLE);
-    gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW (m_resultsView), true );
-
-    GtkTreeStore* m = gtk_tree_store_new( C_COLUMN_COUNT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING );
-    gtk_tree_view_set_model( m_resultsView, GTK_TREE_MODEL( m ) );
-    m_resultsModel = m;
+    /* the GTK4 model-wrapper ctors are transfer-full: ref what we keep */
+    m_resultsStore = g_list_store_new( ABI_TYPE_RDF_TRIPLE_ROW );
+    m_sortModel = gtk_sort_list_model_new(
+        G_LIST_MODEL( g_object_ref( m_resultsStore ) ), nullptr );
+    GtkMultiSelection* selection =
+        gtk_multi_selection_new( G_LIST_MODEL( g_object_ref( m_sortModel ) ) );
+    gtk_column_view_set_model( m_resultsView, GTK_SELECTION_MODEL( selection ) );
+    g_object_unref( selection );
+    /* header clicks drive the per-column sorters */
+    gtk_sort_list_model_set_sorter( m_sortModel,
+                                    gtk_column_view_get_sorter( m_resultsView ) );
 
     int colid = 0;
-    GtkCellRenderer* ren = nullptr;
-
-    colid = C_SUBJ_COLUMN;
-    ren = gtk_cell_renderer_text_new ();
-    g_object_set(ren, "editable", 1, 0, nullptr);
-    g_object_set_data( G_OBJECT(ren), GOBJ_COL_NUM,  GINT_TO_POINTER(colid));
-    g_signal_connect_data( G_OBJECT( ren ), "edited",
-                           G_CALLBACK (cell_edited_cb),
-                           static_cast<gpointer>(this), nullptr, GConnectFlags(0));
-    pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Query_Column_Subject, text);
-    w_cols[ colid ] = gtk_tree_view_column_new_with_attributes( text.c_str(), ren, "text", colid, nullptr);
-    gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), w_cols[ colid ] );
-    gtk_tree_view_column_set_sort_column_id( w_cols[ colid ], colid );
-    gtk_tree_view_column_set_resizable ( w_cols[ colid ], true );
-    
-    colid = C_PRED_COLUMN;
-    ren = gtk_cell_renderer_text_new ();
-    g_object_set(ren, "editable", 1, 0, nullptr );
-    g_object_set_data( G_OBJECT(ren), GOBJ_COL_NUM, GINT_TO_POINTER(colid) );
-    g_signal_connect_data( G_OBJECT( ren ), "edited",
-                           G_CALLBACK (cell_edited_cb),
-                           static_cast<gpointer>(this), nullptr, GConnectFlags(0));
-    pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Query_Column_Predicate, text);
-    w_cols[ colid ] = gtk_tree_view_column_new_with_attributes( text.c_str(), ren, "text", colid, nullptr);
-    gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), w_cols[ colid ] );
-    gtk_tree_view_column_set_sort_column_id( w_cols[ colid ], colid );
-    gtk_tree_view_column_set_resizable ( w_cols[ colid ], true );
-
-    colid = C_OBJ_COLUMN;
-    ren = gtk_cell_renderer_text_new ();
-    g_object_set(ren, "editable", 1, 0, nullptr );
-    g_object_set_data( G_OBJECT(ren), GOBJ_COL_NUM, GINT_TO_POINTER(colid) );
-    g_signal_connect_data( G_OBJECT( ren ), "edited",
-                           G_CALLBACK (cell_edited_cb),
-                           static_cast<gpointer>(this), nullptr, GConnectFlags(0));
-    pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Query_Column_Object, text);
-    w_cols[ colid ] = gtk_tree_view_column_new_with_attributes( text.c_str(), ren, "text", colid, nullptr);
-    gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), w_cols[ colid ] );
-    gtk_tree_view_column_set_sort_column_id( w_cols[ colid ], colid );
-    gtk_tree_view_column_set_resizable ( w_cols[ colid ], true );
+    const XAP_String_Id titles[ C_COLUMN_COUNT ] = {
+        AP_STRING_ID_DLG_RDF_Query_Column_Subject,
+        AP_STRING_ID_DLG_RDF_Query_Column_Predicate,
+        AP_STRING_ID_DLG_RDF_Query_Column_Object
+    };
+    for( colid = 0; colid < C_COLUMN_COUNT; ++colid )
+    {
+        pSS->getValueUTF8( titles[ colid ], text );
+        GtkColumnViewColumn* col = gtk_column_view_column_new(
+            text.c_str(), s_rdf_cell_factory( this, colid ) );
+        GtkSorter* sorter = GTK_SORTER( gtk_custom_sorter_new(
+            s_sort_triples, GINT_TO_POINTER( colid ), nullptr ) );
+        gtk_column_view_column_set_sorter( col, sorter );
+        g_object_unref( sorter );
+        gtk_column_view_column_set_resizable( col, TRUE );
+        gtk_column_view_column_set_expand( col, TRUE );
+        gtk_column_view_append_column( m_resultsView, col );
+        g_object_unref( col );
+    }
 
 
     if( m_hideRestrictionXMLID )
@@ -687,7 +902,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
 					  G_CALLBACK (AP_UnixDialog_RDFEditor__onDialogResponse), static_cast <gpointer>(this));
 	g_signal_connect (m_wDialog, "close-request",
 					  G_CALLBACK (AP_UnixDialog_RDFEditor__onDeleteWindow), static_cast <gpointer>(this));
-	g_signal_connect (m_resultsView, "cursor-changed",
+	g_signal_connect (gtk_column_view_get_model( m_resultsView ), "selection-changed",
 					  G_CALLBACK (AP_UnixDialog_RDFEditor__onCursorChanged), static_cast <gpointer>(this));
 
 #ifndef WITH_REDLAND
@@ -754,37 +969,40 @@ AP_UnixDialog_RDFEditor::destroy ()
 void
 AP_UnixDialog_RDFEditor::removeStatement( const PD_RDFStatement& st )
 {
-    GtkTreeIter giter = getGIter( st );
-    gtk_tree_store_remove( m_resultsModel, &giter );
+    guint pos = findRowPos( st );
+    if( pos == GTK_INVALID_LIST_POSITION )
+        return;
+    GtkSelectionModel* sel = gtk_column_view_get_model( m_resultsView );
+    AbiRdfTripleRow* row = ABI_RDF_TRIPLE_ROW(
+        g_list_model_get_item( G_LIST_MODEL( sel ), pos ) );
+    guint storeidx = 0;
+    if( row && g_list_store_find( m_resultsStore, row, &storeidx ) )
+        g_list_store_remove( m_resultsStore, storeidx );
+    if( row )
+        g_object_unref( row );
 }
 
 std::list< PD_RDFStatement >
 AP_UnixDialog_RDFEditor::getSelection()
 {
     std::list< PD_RDFStatement > ret;
-    GtkTreeModel* model = GTK_TREE_MODEL(m_resultsModel);
-    list_gtktreeiter_t l = getIterList( GTK_WIDGET(m_resultsView), true );
-    for( list_gtktreeiter_t::iterator iter = l.begin(); iter != l.end(); ++iter )
+    if( !m_resultsView )
+        return ret;
+    GtkSelectionModel* sel = gtk_column_view_get_model( m_resultsView );
+    GtkBitset* bitset = gtk_selection_model_get_selection( sel );
+    guint nsel = gtk_bitset_get_size( bitset );
+    for( guint i = 0; i < nsel; ++i )
     {
-        GtkTreeIter giter = *iter;
-        gchar* s;
-        gchar* p;
-        gchar* o;
-        
-        gtk_tree_model_get( model, &giter,
-                            C_SUBJ_COLUMN, &s,
-                            C_PRED_COLUMN, &p,
-                            C_OBJ_COLUMN,  &o,
-                            -1 );
-
-        PD_RDFStatement st( getModel(), PD_URI(s), PD_URI(p), PD_Object(o) );
-        g_free( s );
-        g_free( p );
-        g_free( o );
+        guint pos = gtk_bitset_get_nth( bitset, i );
+        AbiRdfTripleRow* row = ABI_RDF_TRIPLE_ROW(
+            g_list_model_get_item( G_LIST_MODEL( sel ), pos ) );
+        PD_RDFStatement st = rowToStatement( row );
+        g_object_unref( row );
         ret.push_back( st );
         xxx_UT_DEBUGMSG(("getSelection() st: %s\n", st.toString().utf8_str()));
     }
-    
+    gtk_bitset_unref( bitset );
+
     return ret;
 }
 

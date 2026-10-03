@@ -159,7 +159,7 @@ void OnSemItemListEdited ( GtkDialog* d, gint response_id,
 
 static void
 OnSemanticStylesheetsDialogResponse( GtkWidget* dialog,
-                                     GtkTreeView* /*tree*/,
+                                     GtkListView* /*tree*/,
                                      FV_View* /*pView*/)
 {
     abiDestroyWidget(dialog); // TOPLEVEL
@@ -283,20 +283,148 @@ OnSemanticStylesheetsOk_cb (GtkWidget *widget, combo_box_t *box)
 /******************************/
 /******************************/
 
-enum: uint8_t {
-    COLUMN_REFDLG_NAME = 0,
-    NUM_REFDLG_COLUMNS
+/* Row object for the insert-reference GtkTreeListModel: a name plus an
+ * optional child model (only the "Contacts" heading has children). */
+#define ABI_TYPE_RDF_REF_ITEM (abi_rdf_ref_item_get_type())
+G_DECLARE_FINAL_TYPE (AbiRdfRefItem, abi_rdf_ref_item, ABI, RDF_REF_ITEM, GObject)
+
+struct _AbiRdfRefItem
+{
+	GObject parent_instance;
+	gchar *name;
+	GListModel *children;
 };
 
+G_DEFINE_TYPE (AbiRdfRefItem, abi_rdf_ref_item, G_TYPE_OBJECT)
+
 static void
-OnInsertReferenceBase( GtkWidget* dialog,
-                   GtkTreeView* tree,
-                   FV_View* pView )
+abi_rdf_ref_item_init (AbiRdfRefItem * /*self*/)
+{
+}
+
+static void
+abi_rdf_ref_item_finalize (GObject *object)
+{
+	AbiRdfRefItem *item = ABI_RDF_REF_ITEM (object);
+	g_free (item->name);
+	g_clear_object (&item->children);
+	G_OBJECT_CLASS (abi_rdf_ref_item_parent_class)->finalize (object);
+}
+
+static void
+abi_rdf_ref_item_class_init (AbiRdfRefItemClass *klass)
+{
+	G_OBJECT_CLASS (klass)->finalize = abi_rdf_ref_item_finalize;
+}
+
+/* takes over the children reference */
+static AbiRdfRefItem *
+abi_rdf_ref_item_new (const gchar *name, GListModel *children)
+{
+	AbiRdfRefItem *item =
+		ABI_RDF_REF_ITEM (g_object_new (ABI_TYPE_RDF_REF_ITEM, nullptr));
+	item->name = g_strdup (name);
+	item->children = children;
+	return item;
+}
+
+static GListModel *
+s_ref_create_model (gpointer item, gpointer /*data*/)
+{
+	AbiRdfRefItem *it = ABI_RDF_REF_ITEM (item);
+	return it->children ? G_LIST_MODEL (g_object_ref (it->children))
+						: nullptr;
+}
+
+static void
+s_ref_setup (GtkSignalListItemFactory * /*factory*/,
+			 GtkListItem *item,
+			 gpointer /*data*/)
+{
+	GtkWidget *expander = gtk_tree_expander_new ();
+	GtkWidget *label = gtk_label_new (nullptr);
+	gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+	gtk_tree_expander_set_child (GTK_TREE_EXPANDER (expander), label);
+	gtk_list_item_set_child (item, expander);
+}
+
+static void
+s_ref_bind (GtkSignalListItemFactory * /*factory*/,
+			GtkListItem *item,
+			gpointer /*data*/)
+{
+	GtkTreeListRow *row =
+		GTK_TREE_LIST_ROW (gtk_list_item_get_item (item));
+	GtkTreeExpander *expander =
+		GTK_TREE_EXPANDER (gtk_list_item_get_child (item));
+	gtk_tree_expander_set_list_row (expander, row);
+	AbiRdfRefItem *it =
+		ABI_RDF_REF_ITEM (gtk_tree_list_row_get_item (row));
+	gtk_label_set_text (GTK_LABEL (gtk_tree_expander_get_child (expander)),
+						it->name);
+	/* the "Contacts" heading is display-only */
+	gboolean isRef = gtk_tree_list_row_get_depth (row) > 0;
+	gtk_list_item_set_selectable (item, isRef);
+	gtk_list_item_set_activatable (item, isRef);
+	g_object_unref (it);
+}
+
+/* name of the AbiRdfRefItem at flat position pos, or "" */
+static std::string
+s_ref_name_at (GtkListView* tv, guint pos)
+{
+	GtkSelectionModel *sel = gtk_list_view_get_model (tv);
+	GListModel *model =
+		gtk_single_selection_get_model (GTK_SINGLE_SELECTION (sel));
+	GtkTreeListRow *row =
+		GTK_TREE_LIST_ROW (g_list_model_get_item (model, pos));
+	std::string n;
+	if (row)
+	{
+		AbiRdfRefItem *it =
+			ABI_RDF_REF_ITEM (gtk_tree_list_row_get_item (row));
+		if (it)
+		{
+			if (gtk_tree_list_row_get_depth (row) > 0 && it->name)
+				n = it->name;
+			g_object_unref (it);
+		}
+		g_object_unref (row);
+	}
+	return n;
+}
+
+/* name of the selected AbiRdfRefItem, or "" */
+static std::string
+s_ref_selected_name (GtkListView* tv)
+{
+	GtkSelectionModel *sel = gtk_list_view_get_model (tv);
+	gpointer item = gtk_single_selection_get_selected_item (
+		GTK_SINGLE_SELECTION (sel));
+	std::string n;
+	if (item && GTK_IS_TREE_LIST_ROW (item))
+	{
+		AbiRdfRefItem *it = ABI_RDF_REF_ITEM (
+			gtk_tree_list_row_get_item (GTK_TREE_LIST_ROW (item)));
+		if (it)
+		{
+			if (gtk_tree_list_row_get_depth (GTK_TREE_LIST_ROW (item)) > 0 &&
+				it->name)
+				n = it->name;
+			g_object_unref (it);
+		}
+	}
+	return n;
+}
+
+static void
+OnInsertReferenceName( GtkWidget* dialog,
+					   const std::string& n,
+					   FV_View* pView )
 {
     PD_Document* pDoc = pView->getDocument();
     PD_DocumentRDFHandle rdf = pDoc->getDocumentRDF();
 
-    std::string n = getSelectedText( GTK_TREE_VIEW (tree), COLUMN_REFDLG_NAME );
     UT_DEBUGMSG(("clicked on: %s\n", n.c_str() ));
 
     bool found = false;
@@ -321,20 +449,19 @@ static void OnInsertReference( GtkDialog* d, gint /*response_id*/, gpointer user
     UT_DEBUGMSG(("OnInsertReference()\n"));
     FV_View* pView = static_cast<FV_View*>(user_data);
 
-    GtkTreeView* tv = GTK_TREE_VIEW( g_object_get_data( G_OBJECT(d), G_OBJECT_TREEVIEW ));
-    OnInsertReferenceBase( GTK_WIDGET(d), tv, pView );
+    GtkListView* tv = GTK_LIST_VIEW( g_object_get_data( G_OBJECT(d), G_OBJECT_TREEVIEW ));
+    OnInsertReferenceName( GTK_WIDGET(d), s_ref_selected_name( tv ), pView );
 }
 
 static void
-OnInsertReferenceDblClicked( GtkTreeView       * tree,
-                             GtkTreePath       * /*path*/,
-                             GtkTreeViewColumn * /*col*/,
+OnInsertReferenceDblClicked( GtkListView      * tree,
+                             guint              pos,
                              gpointer		    user_data )
 {
     FV_View* pView = static_cast<FV_View*>(user_data);
 
     GtkWidget* d = GTK_WIDGET(g_object_get_data( G_OBJECT(tree), G_OBJECT_WINDOW ));
-    OnInsertReferenceBase( d, tree, pView );
+    OnInsertReferenceName( d, s_ref_name_at( tree, pos ), pView );
 }
 
 
@@ -459,51 +586,71 @@ public:
         PD_Document* pDoc = pView->getDocument();
         PD_DocumentRDFHandle rdf = pDoc->getDocumentRDF();
 
-        {
-            GtkTreeStore *store = gtk_tree_store_new ( NUM_REFDLG_COLUMNS, G_TYPE_STRING );
-            gtk_tree_view_set_model (GTK_TREE_VIEW (tv), GTK_TREE_MODEL (store));
-            g_object_unref (G_OBJECT (store));
-        }
-
-        GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (tv));
-
-        GtkTreeViewColumn *column = nullptr;
-        GtkCellRenderer *renderer = nullptr;
-        renderer = gtk_cell_renderer_text_new ();
-        gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tv),
-                                                     -1, "Name", renderer,
-                                                     "text", COLUMN_REFDLG_NAME,
-                                                     nullptr);
-        column = gtk_tree_view_get_column (GTK_TREE_VIEW (tv), COLUMN_REFDLG_NAME );
-        gtk_tree_view_column_set_sort_column_id (column, COLUMN_REFDLG_NAME );
-
         PD_RDFContacts l = rdf->getContacts();
-        GtkTreeIter giter;
-        GtkTreeIter parentiter;
 
-        if (l.begin() != l.end())
-        {
-            pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_SemanticItemInsert_Column_Refdlg, text);
-            gtk_tree_store_append(GTK_TREE_STORE(model), &parentiter, nullptr);
-            gtk_tree_store_set (GTK_TREE_STORE (model), &parentiter, 
-                                COLUMN_REFDLG_NAME, text.c_str(),
-                                -1);
-        }
-    
+        /* root holds a single "Contacts" heading whose child model
+         * contains one row per contact */
+        GListStore *root = g_list_store_new (ABI_TYPE_RDF_REF_ITEM);
+        GListStore *contacts = g_list_store_new (ABI_TYPE_RDF_REF_ITEM);
         for( PD_RDFContacts::iterator iter = l.begin(); iter != l.end(); ++iter )
         {
             PD_RDFContactHandle c = *iter;
-            gtk_tree_store_append (GTK_TREE_STORE (model), &giter, &parentiter );
-            gtk_tree_store_set (GTK_TREE_STORE (model), &giter, 
-                                COLUMN_REFDLG_NAME, c->name().c_str(),
-                                -1);
-
+            AbiRdfRefItem *it = abi_rdf_ref_item_new (c->name().c_str(),
+                                                    nullptr);
+            g_list_store_append (contacts, it);
+            g_object_unref (it);
         }
-        gtk_tree_view_expand_all(GTK_TREE_VIEW(tv));
+        if (l.begin() != l.end())
+        {
+            pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_SemanticItemInsert_Column_Refdlg, text);
+            AbiRdfRefItem *heading = abi_rdf_ref_item_new (
+                text.c_str(), G_LIST_MODEL (contacts));
+            g_list_store_append (root, heading);
+            g_object_unref (heading);
+        }
+        else
+        {
+            g_object_unref (contacts);
+        }
+
+        /* the GTK4 model-wrapper ctors are transfer-full: ref what we
+         * still use below */
+        GtkTreeListModel *treemodel =
+            gtk_tree_list_model_new (G_LIST_MODEL (g_object_ref (root)),
+                                     FALSE, FALSE,
+                                     s_ref_create_model, nullptr, nullptr);
+        GtkSingleSelection *sel = gtk_single_selection_new (
+            G_LIST_MODEL (g_object_ref (treemodel)));
+        gtk_single_selection_set_autoselect (sel, FALSE);
+        gtk_single_selection_set_can_unselect (sel, FALSE);
+
+        GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
+        g_signal_connect (factory, "setup", G_CALLBACK (s_ref_setup), nullptr);
+        g_signal_connect (factory, "bind", G_CALLBACK (s_ref_bind), nullptr);
+
+        gtk_list_view_set_model (GTK_LIST_VIEW (tv), GTK_SELECTION_MODEL (sel));
+        gtk_list_view_set_factory (GTK_LIST_VIEW (tv), factory);
+        g_object_unref (factory);
+        g_object_unref (sel);
+
+        /* expand the Contacts heading, like the old expand_all */
+        guint n = g_list_model_get_n_items (G_LIST_MODEL (treemodel));
+        for( guint i = 0; i < n; ++i )
+        {
+            GtkTreeListRow *row = GTK_TREE_LIST_ROW (
+                g_list_model_get_item (G_LIST_MODEL (treemodel), i));
+            if( row && gtk_tree_list_row_get_children (row) )
+                gtk_tree_list_row_set_expanded (row, TRUE);
+            if( row )
+                g_object_unref (row);
+        }
+        g_object_unref (treemodel);
+        g_object_unref (root);
+
         g_object_set_data( G_OBJECT(tv),     G_OBJECT_WINDOW,   window );
         g_object_set_data( G_OBJECT(window), G_OBJECT_TREEVIEW, tv );
-    
-        g_signal_connect (GTK_TREE_VIEW (tv), "row-activated",
+
+        g_signal_connect (GTK_LIST_VIEW (tv), "activate",
                           G_CALLBACK (OnInsertReferenceDblClicked), static_cast <gpointer>(pView));
         g_signal_connect (G_OBJECT(window), "response",  G_CALLBACK(OnInsertReference), pView );
         gtk_widget_set_visible(window, TRUE);

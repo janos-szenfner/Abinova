@@ -45,6 +45,109 @@
 #include "ap_Dialog_RDFQuery.h"
 #include "ap_UnixDialog_RDFQuery.h"
 
+#include <vector>
+
+/* One result-binding row for the GtkColumnView model: a flat array of
+ * strings, one per binding column (index = position in the binding
+ * map, columns carry their index in factory data). */
+#define ABI_TYPE_RDF_QUERY_ROW (abi_rdf_query_row_get_type())
+G_DECLARE_FINAL_TYPE (AbiRdfQueryRow, abi_rdf_query_row, ABI, RDF_QUERY_ROW, GObject)
+
+struct _AbiRdfQueryRow
+{
+	GObject parent_instance;
+	gchar **values;   /* nvalues entries */
+	guint nvalues;
+};
+
+G_DEFINE_TYPE (AbiRdfQueryRow, abi_rdf_query_row, G_TYPE_OBJECT)
+
+static void
+abi_rdf_query_row_init (AbiRdfQueryRow * /*self*/)
+{
+}
+
+static void
+abi_rdf_query_row_finalize (GObject *object)
+{
+	AbiRdfQueryRow *row = ABI_RDF_QUERY_ROW (object);
+	g_strfreev (row->values);
+	G_OBJECT_CLASS (abi_rdf_query_row_parent_class)->finalize (object);
+}
+
+static void
+abi_rdf_query_row_class_init (AbiRdfQueryRowClass *klass)
+{
+	G_OBJECT_CLASS (klass)->finalize = abi_rdf_query_row_finalize;
+}
+
+static AbiRdfQueryRow *
+abi_rdf_query_row_new (const std::vector< std::string >& values)
+{
+	AbiRdfQueryRow *row =
+		ABI_RDF_QUERY_ROW (g_object_new (ABI_TYPE_RDF_QUERY_ROW, nullptr));
+	row->nvalues = values.size();
+	row->values = g_new0 (gchar*, row->nvalues + 1);
+	for (guint i = 0; i < row->nvalues; i++)
+		row->values[i] = g_strdup (values[i].c_str());
+	return row;
+}
+
+static void
+s_query_cell_setup (GtkSignalListItemFactory * /*factory*/,
+					GtkListItem *item,
+					gpointer /*data*/)
+{
+	GtkWidget *label = gtk_label_new (nullptr);
+	gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+	gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
+	gtk_list_item_set_child (item, label);
+}
+
+static void
+s_query_cell_bind (GtkSignalListItemFactory *factory,
+				   GtkListItem *item,
+				   gpointer /*data*/)
+{
+	int cidx = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (factory), "colidx"));
+	GtkLabel *label = GTK_LABEL (gtk_list_item_get_child (item));
+	AbiRdfQueryRow *row =
+		ABI_RDF_QUERY_ROW (gtk_list_item_get_item (item));
+	const gchar *text = (row && static_cast<guint>(cidx) < row->nvalues)
+		? row->values[cidx] : "";
+	gtk_label_set_text (label, text);
+}
+
+static gint
+s_sort_bindings (gconstpointer p1, gconstpointer p2, gpointer data)
+{
+	const AbiRdfQueryRow *a = static_cast<const AbiRdfQueryRow *>(p1);
+	const AbiRdfQueryRow *b = static_cast<const AbiRdfQueryRow *>(p2);
+	guint cidx = GPOINTER_TO_UINT (data);
+	const gchar *sa = (a && cidx < a->nvalues) ? a->values[cidx] : "";
+	const gchar *sb = (b && cidx < b->nvalues) ? b->values[cidx] : "";
+	return g_utf8_collate (sa ? sa : "", sb ? sb : "");
+}
+
+static GtkColumnViewColumn *
+s_query_column (const char *title, int cidx)
+{
+	GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
+	g_object_set_data (G_OBJECT (factory), "colidx", GINT_TO_POINTER (cidx));
+	g_signal_connect (factory, "setup", G_CALLBACK (s_query_cell_setup), nullptr);
+	g_signal_connect (factory, "bind", G_CALLBACK (s_query_cell_bind), nullptr);
+
+	/* gtk_column_view_column_new is transfer-full on the factory */
+	GtkColumnViewColumn *col = gtk_column_view_column_new (title, factory);
+	GtkSorter *sorter = GTK_SORTER (gtk_custom_sorter_new (
+		s_sort_bindings, GINT_TO_POINTER (cidx), nullptr));
+	gtk_column_view_column_set_sorter (col, sorter);
+	g_object_unref (sorter);
+	gtk_column_view_column_set_resizable (col, TRUE);
+	gtk_column_view_column_set_expand (col, TRUE);
+	return col;
+}
+
 void
 AP_UnixDialog_RDFQuery__onExecuteClicked ( GtkButton * /*button*/,
                                            gpointer   data )
@@ -115,7 +218,8 @@ AP_UnixDialog_RDFQuery::AP_UnixDialog_RDFQuery(XAP_DialogFactory *pDlgFactory,
     , m_btShowAll(nullptr)
     , m_query(nullptr)
     , m_resultsView(nullptr)
-    , m_resultsModel(nullptr)
+    , m_resultsStore(nullptr)
+    , m_sortModel(nullptr)
     , m_status(nullptr)
 {
 }
@@ -126,8 +230,8 @@ AP_UnixDialog_RDFQuery::AP_UnixDialog_RDFQuery(XAP_DialogFactory *pDlgFactory,
 AP_UnixDialog_RDFQuery::~AP_UnixDialog_RDFQuery ()
 {
 	UT_DEBUGMSG (("~AP_UnixDialog_RDFQuery ()\n"));
-	if (m_resultsModel)
-		g_object_unref (m_resultsModel);
+	g_clear_object (&m_resultsStore);
+	g_clear_object (&m_sortModel);
 }
 
 
@@ -136,7 +240,8 @@ void
 AP_UnixDialog_RDFQuery::clear()
 {
     AP_Dialog_RDFQuery::clear();
-    gtk_tree_store_clear( m_resultsModel );
+    if( m_resultsStore )
+        g_list_store_remove_all( m_resultsStore );
 }
 
 void
@@ -154,40 +259,31 @@ AP_UnixDialog_RDFQuery::setupBindingsView( std::map< std::string, std::string >&
         return;
     }
 
-    GType types[ C_COLUMN_ARRAY_SIZE ];
-    for( int i = b.size() + 1; i >= 0; i-- )
-        types[i] = G_TYPE_STRING;
-    gint n_columns = b.size();
-    
-    
-    GtkTreeStore* m = gtk_tree_store_newv( n_columns, types );
-    gtk_tree_view_set_model( m_resultsView, GTK_TREE_MODEL( m ) );
-    if (m_resultsModel)
-        g_object_unref( m_resultsModel );
-    m_resultsModel = m;
+    /* swap in a fresh row store; the sort/selection chain stays */
+    GListStore* m = g_list_store_new( ABI_TYPE_RDF_QUERY_ROW );
+    gtk_sort_list_model_set_model( m_sortModel, G_LIST_MODEL( m ) );
+    g_clear_object( &m_resultsStore );
+    m_resultsStore = m;
 
-    while( GtkTreeViewColumn* tvc = gtk_tree_view_get_column( GTK_TREE_VIEW( m_resultsView ), 0 ))
+    GListModel* cols = gtk_column_view_get_columns( m_resultsView );
+    while( g_list_model_get_n_items( cols ) )
     {
-        gtk_tree_view_remove_column( GTK_TREE_VIEW( m_resultsView ), tvc );
+        GtkColumnViewColumn* c = GTK_COLUMN_VIEW_COLUMN(
+            g_list_model_get_item( cols, 0 ) );
+        gtk_column_view_remove_column( m_resultsView, c );
+        g_object_unref( c );
     }
-    
 
-    typedef std::list< std::pair< std::string, GtkTreeViewColumn* > > cols_t;
-    cols_t cols;
-    
-    GtkCellRenderer* ren = nullptr;
+    /* column cidx = position of the binding in the (sorted) map;
+     * display order is reordered below */
+    typedef std::list< std::pair< std::string, int > > cols_t;
+    cols_t cols2;
+
     int colid = 0;
     for( std::map< std::string, std::string >::iterator iter = b.begin();
          iter != b.end(); ++iter, ++colid )
     {
-        std::string cname = iter->first;
-        
-        ren = gtk_cell_renderer_text_new ();
-        w_cols[ colid ] = gtk_tree_view_column_new_with_attributes( cname.c_str(), ren, "text", colid, nullptr);
-        gtk_tree_view_column_set_sort_column_id( w_cols[ colid ], colid );
-        gtk_tree_view_column_set_resizable ( w_cols[ colid ], true );
-//        gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), w_cols[ colid ] );
-        cols.push_back( make_pair( cname, w_cols[ colid ] ));
+        cols2.push_back( std::make_pair( iter->first, colid ) );
     }
 
     //
@@ -207,22 +303,24 @@ AP_UnixDialog_RDFQuery::setupBindingsView( std::map< std::string, std::string >&
     {
         std::string cname = *si;
 
-        for( cols_t::iterator ci = cols.begin(); ci!=cols.end(); ++ci )
+        for( cols_t::iterator ci = cols2.begin(); ci!=cols2.end(); ++ci )
         {
             if( ci->first == cname )
             {
-                cols.push_front( make_pair( ci->first, ci->second ));
-                cols.erase( ci );
+                cols2.push_front( *ci );
+                cols2.erase( ci );
                 break;
             }
         }
     }
-    
-    for( cols_t::iterator ci = cols.begin(); ci!=cols.end(); ++ci )
+
+    for( cols_t::iterator ci = cols2.begin(); ci!=cols2.end(); ++ci )
     {
-        gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), ci->second );
+        GtkColumnViewColumn* col = s_query_column( ci->first.c_str(), ci->second );
+        gtk_column_view_append_column( m_resultsView, col );
+        g_object_unref( col );
     }
-    
+
 }
 
 
@@ -235,19 +333,18 @@ AP_UnixDialog_RDFQuery::addBinding( std::map< std::string, std::string >& b )
         return;
     }
     AP_Dialog_RDFQuery::addBinding(b);
-    
-    GtkTreeStore* m = m_resultsModel;
-    GtkTreeIter giter;
-    gtk_tree_store_append(m, &giter, nullptr);
 
-    std::map< std::string, std::string >::iterator iter = b.begin();
-    std::map< std::string, std::string >::iterator  end = b.end();
-    for( int i=0; iter != end; ++iter, ++i )
+    std::vector< std::string > values;
+    for( std::map< std::string, std::string >::iterator iter = b.begin();
+         iter != b.end(); ++iter )
     {
         xxx_UT_DEBUGMSG(("addBinding() iter->second: %d\n", iter->second.c_str()));
-        gtk_tree_store_set( m, &giter, i, uriToPrefixed(iter->second).c_str(), -1 );
+        values.push_back( uriToPrefixed( iter->second ) );
     }
-    
+
+    AbiRdfQueryRow* row = abi_rdf_query_row_new( values );
+    g_list_store_append( m_resultsStore, row );
+    g_object_unref( row );
 }
 
 
@@ -255,8 +352,8 @@ AP_UnixDialog_RDFQuery::addBinding( std::map< std::string, std::string >& b )
 void
 AP_UnixDialog_RDFQuery::onExecuteClicked()
 {
-    UT_DEBUGMSG(("onExecuteClicked() model1:%p\n", m_resultsModel ));
-    UT_DEBUGMSG(("onExecuteClicked() model2:%p\n", gtk_tree_view_get_model( m_resultsView ) ));
+    UT_DEBUGMSG(("onExecuteClicked() store:%p\n", m_resultsStore ));
+    UT_DEBUGMSG(("onExecuteClicked() model2:%p\n", gtk_column_view_get_model( m_resultsView ) ));
 
     std::string q = tostr(GTK_TEXT_VIEW (m_query));
     executeQuery( q );
@@ -304,7 +401,7 @@ AP_UnixDialog_RDFQuery::_constructWindow (XAP_Frame * /*pFrame*/)
 	m_btExecute = GTK_WIDGET(gtk_builder_get_object(builder, "btExecute"));
     m_btShowAll = GTK_WIDGET(gtk_builder_get_object(builder, "btShowAll"));
     m_query     = GTK_WIDGET(gtk_builder_get_object(builder, "query"));
-	m_resultsView  = GTK_TREE_VIEW(gtk_builder_get_object(builder, "resultsView"));
+	m_resultsView  = GTK_COLUMN_VIEW(gtk_builder_get_object(builder, "resultsView"));
     m_status    = GTK_WIDGET(gtk_builder_get_object(builder, "status"));
 
     // localization
@@ -316,43 +413,29 @@ AP_UnixDialog_RDFQuery::_constructWindow (XAP_Frame * /*pFrame*/)
     pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Query_Comment, text);
     gtk_text_buffer_insert(buffer, &iter, text.c_str(), -1);     
 
-    GObject *selection;
-    selection = G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (m_resultsView)));
-    gtk_tree_selection_set_mode (GTK_TREE_SELECTION (selection), GTK_SELECTION_MULTIPLE);
-    gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW (m_resultsView), true );
-    
-    GtkTreeStore* m = gtk_tree_store_new( C_COLUMN_COUNT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING );
-    gtk_tree_view_set_model( m_resultsView, GTK_TREE_MODEL( m ) );
-    if (m_resultsModel)
-        g_object_unref( m_resultsModel );
-    m_resultsModel = m;
+    /* the GTK4 model-wrapper ctors are transfer-full: ref what we keep */
+    m_resultsStore = g_list_store_new( ABI_TYPE_RDF_QUERY_ROW );
+    m_sortModel = gtk_sort_list_model_new(
+        G_LIST_MODEL( g_object_ref( m_resultsStore ) ), nullptr );
+    GtkMultiSelection* selection =
+        gtk_multi_selection_new( G_LIST_MODEL( g_object_ref( m_sortModel ) ) );
+    gtk_column_view_set_model( m_resultsView, GTK_SELECTION_MODEL( selection ) );
+    g_object_unref( selection );
+    gtk_sort_list_model_set_sorter( m_sortModel,
+                                    gtk_column_view_get_sorter( m_resultsView ) );
 
-    int colid = 0;
-    GtkCellRenderer* ren = nullptr;
-
-    colid = C_SUBJ_COLUMN;
-    ren = gtk_cell_renderer_text_new ();
-    pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Query_Column_Subject, text);
-    w_cols[ colid ] = gtk_tree_view_column_new_with_attributes( text.c_str(), ren, "text", colid, nullptr);
-    gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), w_cols[ colid ] );
-    gtk_tree_view_column_set_sort_column_id( w_cols[ colid ], colid );
-    gtk_tree_view_column_set_resizable ( w_cols[ colid ], true );
-    
-    colid = C_PRED_COLUMN;
-    ren = gtk_cell_renderer_text_new ();
-    pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Query_Column_Predicate, text);
-    w_cols[ colid ] = gtk_tree_view_column_new_with_attributes( text.c_str(), ren, "text", colid, nullptr);
-    gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), w_cols[ colid ] );
-    gtk_tree_view_column_set_sort_column_id( w_cols[ colid ], colid );
-    gtk_tree_view_column_set_resizable ( w_cols[ colid ], true );
-
-    colid = C_OBJ_COLUMN;
-    ren = gtk_cell_renderer_text_new ();
-    pSS->getValueUTF8(AP_STRING_ID_DLG_RDF_Query_Column_Object, text);
-    w_cols[ colid ] = gtk_tree_view_column_new_with_attributes( text.c_str(), ren, "text", colid, nullptr);
-    gtk_tree_view_append_column( GTK_TREE_VIEW( m_resultsView ), w_cols[ colid ] );
-    gtk_tree_view_column_set_sort_column_id( w_cols[ colid ], colid );
-    gtk_tree_view_column_set_resizable ( w_cols[ colid ], true );
+    const XAP_String_Id titles[3] = {
+        AP_STRING_ID_DLG_RDF_Query_Column_Subject,
+        AP_STRING_ID_DLG_RDF_Query_Column_Predicate,
+        AP_STRING_ID_DLG_RDF_Query_Column_Object
+    };
+    for( int colid = 0; colid < 3; ++colid )
+    {
+        pSS->getValueUTF8( titles[ colid ], text );
+        GtkColumnViewColumn* col = s_query_column( text.c_str(), colid );
+        gtk_column_view_append_column( m_resultsView, col );
+        g_object_unref( col );
+    }
 
     /////////////
 	/// Signals
