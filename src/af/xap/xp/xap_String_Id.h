@@ -330,6 +330,15 @@ dcl(DLG_Image_PlacePage, "Position relative to its Page")
 dcl(DLG_Image_WrapType, "Type of text wrapping")
 dcl(DLG_Image_SquareWrap, "Square text wrapping")
 dcl(DLG_Image_TightWrap, "Tight text wrapping")
+/* frame/text box variants of the same dialog */
+dcl(DLG_Image_FrameTitle, "Frame Properties")
+dcl(DLG_Image_FrameSize, "Frame Size")
+dcl(DLG_Image_FrameDesc, "Frame Name")
+dcl(DLG_Image_FramePlacement, "Frame Placement")
+dcl(DLG_Image_FrameWrappedNone, "Frame floats above text")
+dcl(DLG_Image_FrameWrappedRight, "Text wrapped to the Right of the Frame")
+dcl(DLG_Image_FrameWrappedLeft, "Text wrapped to the Left of the Frame")
+dcl(DLG_Image_FrameWrappedBoth, "Text wrapped on both sides of the Frame")
 
 /* ListDocuments Dialog */
 dcl(DLG_LISTDOCS_Title,					"Opened Documents")

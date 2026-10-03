@@ -102,6 +102,12 @@ public:
 	  { m_bTightWrap = bTight;}
 	bool isTightWrap(void)
 	  { return m_bTightWrap;}
+	/* text box frames reuse this dialog: inline mode is impossible
+	 * and the title/labels should not say "Image". */
+	void setFormatFrame(bool bFrame)
+	  { m_bFormatFrame = bFrame;}
+	bool isFormatFrame(void) const
+	  { return m_bFormatFrame;}
 	void setTitle(const UT_UTF8String & title) {
 		m_title = title;
 	}
@@ -147,4 +153,5 @@ public:
 	POSITION_TO m_iPositionTo;
 	bool m_bInHdrFtr;
 	bool m_bTightWrap;
+	bool m_bFormatFrame;
 };

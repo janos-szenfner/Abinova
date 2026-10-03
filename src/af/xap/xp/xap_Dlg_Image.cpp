@@ -41,7 +41,8 @@ XAP_Dialog_Image::XAP_Dialog_Image(XAP_DialogFactory * pDlgFactory, XAP_Dialog_I
 	m_iWrappingType(WRAP_INLINE),	
     m_iPositionTo(POSITION_TO_PARAGRAPH),
     m_bInHdrFtr(false),
-    m_bTightWrap(false)
+    m_bTightWrap(false),
+    m_bFormatFrame(false)
 {
 }
 

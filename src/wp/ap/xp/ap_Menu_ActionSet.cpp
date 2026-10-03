@@ -117,6 +117,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_EDIT_DELETEFRAME,		0,0,0,0,	"deleteFrame", nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_DELETEIMAGE,		0,0,0,0,	"deleteFrame", nullptr,nullptr);
 	_s(AP_MENU_ID_FMT_POSIMAGE,		0,1,0,0,	"dlgFmtPosImage", nullptr,nullptr);
+	_s(AP_MENU_ID_FMT_FRAME,		0,1,0,0,	"dlgFmtPosImage", nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_CUTIMAGE,		0,0,0,0,	"cutFrame", nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_COPYIMAGE,		0,0,0,0,	"copyFrame", nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_CUT_FRAME,		0,0,0,0,	"cutFrame", nullptr,nullptr);

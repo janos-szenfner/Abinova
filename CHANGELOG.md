@@ -1909,6 +1909,14 @@ below are on `main` but the release has not been cut yet.
   menu. A click anywhere on the field's rendered value is treated as
   a field hit — previously only the left half of the value resolved
   to `EV_EMC_FIELD`.
+- **Text box context menu parity** — right-clicking a text box now
+  offers "Format Text Box…" at the top of the menu (Word's Format
+  Shape/Text Box entry) above Cut/Copy/Select/Delete. The
+  positioned-object dialog accepts text boxes: invoked on a frame it
+  presents a "Frame Properties" variant — the inapplicable "in line"
+  wrap mode is hidden and the image-specific captions are relabelled —
+  and writes the chosen size, wrap mode, position-to and title/alt
+  text back to the frame strux, which round-trips through `.abwn`.
 - **Word-style popup menu icons** — `EV_UnixMenu::_createMenuItem`
   resolves each popup item's toolbar icon
   (`AP_CreateToolbarLabelSet` + `abi_stock_from_toolbar_id`) and sets

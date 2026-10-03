@@ -561,6 +561,25 @@ GtkWidget * XAP_UnixDialog_Image::_constructWindow ()
 	m_wrbSquareWrap = GTK_WIDGET(gtk_builder_get_object(builder, "rbSquareWrap"));
 	m_wrbTightWrap = GTK_WIDGET(gtk_builder_get_object(builder, "rbTightWrap"));
 
+	/* text box frames reuse this dialog: there is no "in line" mode
+	 * for them and the captions should not talk about images. */
+	if (isFormatFrame())
+	{
+		pSS->getValueUTF8(XAP_STRING_ID_DLG_Image_FrameTitle,s);
+		abiDialogSetTitle(mMainWindow, "%s", s.c_str());
+
+		localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbSize")), pSS, XAP_STRING_ID_DLG_Image_FrameSize);
+		localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbImageDescription")), pSS, XAP_STRING_ID_DLG_Image_FrameDesc);
+		localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbImagePlacement")), pSS, XAP_STRING_ID_DLG_Image_FramePlacement);
+
+		localizeButton(GTK_WIDGET(gtk_builder_get_object(builder, "rbNone")), pSS, XAP_STRING_ID_DLG_Image_FrameWrappedNone);
+		localizeButton(GTK_WIDGET(gtk_builder_get_object(builder, "rbWrappedRight")), pSS, XAP_STRING_ID_DLG_Image_FrameWrappedRight);
+		localizeButton(GTK_WIDGET(gtk_builder_get_object(builder, "rbWrappedLeft")), pSS, XAP_STRING_ID_DLG_Image_FrameWrappedLeft);
+		localizeButton(GTK_WIDGET(gtk_builder_get_object(builder, "rbWrappedBoth")), pSS, XAP_STRING_ID_DLG_Image_FrameWrappedBoth);
+
+		gtk_widget_set_visible(m_wrbInLine, FALSE);
+	}
+
 	pSS->getValueUTF8 (XAP_STRING_ID_DLG_Image_Aspect,s);
 	gtk_check_button_set_label(GTK_CHECK_BUTTON(m_wAspectCheck), s.c_str());
 

@@ -13300,10 +13300,11 @@ Defun1(dlgFmtPosImage)
 			return true;
 		}
 	}
-	if(pPosObj-> getFrameType() < FL_FRAME_WRAPPER_IMAGE)
-	{
-	  return true;
-	}
+	// text boxes share the same positioned-object machinery: the
+	// dialog edits their size/wrap/position too but cannot offer
+	// "in line" mode, so it is told to present the frame variant.
+	const bool bTextBox = (pPosObj->getFrameType() == FL_FRAME_TEXTBOX_TYPE);
+	pDialog->setFormatFrame(bTextBox);
 
 	const PP_AttrProp* pAP = nullptr;
 	pPosObj->getAP(pAP);
@@ -13416,7 +13417,7 @@ Defun1(dlgFmtPosImage)
 		"alt", pDialog->getDescription().utf8_str()
 	};
 
-	if(pDialog->getWrapping() == WRAP_INLINE)
+	if(!bTextBox && pDialog->getWrapping() == WRAP_INLINE)
 	{
 		const PP_PropertyVector properties = {
 			"width", sWidth.c_str(),

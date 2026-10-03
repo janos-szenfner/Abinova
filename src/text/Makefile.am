@@ -262,6 +262,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fl_AutoNum.t.cpp \
 	fmt/xp/t/fl_TableStyles.t.cpp \
 	fmt/xp/t/fv_FieldContext.t.cpp \
+	fmt/xp/t/fv_FrameContext.t.cpp \
 	fmt/xp/t/fv_FootnoteDelete.t.cpp \
 	fmt/xp/t/fv_HdrFtrDelete.t.cpp \
 	fmt/xp/t/fv_HdrFtrDblClick.t.cpp \
