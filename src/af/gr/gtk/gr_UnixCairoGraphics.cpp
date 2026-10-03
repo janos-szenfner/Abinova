@@ -206,8 +206,8 @@ void GR_UnixCairoGraphics::init3dColors(GtkWidget* w)
 	if (m_styleHighlight) {
 		g_object_unref(m_styleHighlight);
 	}
-	m_styleHighlight = XAP_GtkStyle_get_style(nullptr, "GtkTreeView.view"); // "textview.view"
-	gtk_widget_get_color(XAP_GtkStyle_get_widget("GtkTreeView.view", GTK_STATE_FLAG_NORMAL), &rgba1);
+	m_styleHighlight = XAP_GtkStyle_get_style(nullptr, "textview.view");
+	gtk_widget_get_color(XAP_GtkStyle_get_widget("textview.view", GTK_STATE_FLAG_NORMAL), &rgba1);
 	m_3dColors[CLR3D_Highlight] = _convertGdkRGBA(rgba1);
 
 	// guess colours.

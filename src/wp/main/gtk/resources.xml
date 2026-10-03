@@ -186,7 +186,6 @@
     <file alias="xap_UnixDlg_Image.ui">af/xap/gtk/xap_UnixDlg_Image.ui</file>
 
     <file alias="ap_UnixDialog_Goto.ui">wp/ap/gtk/ap_UnixDialog_Goto.ui</file>
-    <file alias="ap_UnixDialog_Spell.ui">wp/ap/gtk/ap_UnixDialog_Spell.ui</file>
     <file alias="ap_UnixDialog_Stylist.ui">wp/ap/gtk/ap_UnixDialog_Stylist.ui</file>
     <file alias="ap_UnixDialog_Replace.ui">wp/ap/gtk/ap_UnixDialog_Replace.ui</file>
     <file alias="ap_UnixDialog_Options_ColorSel.ui">wp/ap/gtk/ap_UnixDialog_Options_ColorSel.ui</file>

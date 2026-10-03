@@ -3552,6 +3552,18 @@ below are on `main` but the release has not been cut yet.
   dialog still rebuilds its result columns per query.  The Insert
   Reference contact picker uses a `GtkListView` backed by a real
   `GtkTreeListModel` + `GtkTreeExpander` for its Contacts hierarchy.
+- **`GtkTreeView` migration complete — dead tree/combo code
+  removed** — with every real list now on GTK4 list widgets, the
+  last `GtkTreeView`-era code went away: the unused `GTKCommon`
+  tree helpers (selection/iteration utilities superseded by the
+  `XAP_single_selection_*` helpers), the dead `GtkComboBox`
+  compatibility shim (only its `GtkDropDown` half remains), an old
+  disabled block in the Font dialog, and a long-unused spell-dialog
+  `.ui` file that still declared a `GtkTreeView`.  Style-donor
+  selectors were renamed from `GtkTreeView.view` to `textview.view`
+  to match the `GtkTextView` donors they have actually mapped to
+  since the GTK4 port.  No `gtk_tree_view_*`, `gtk_list_store_*`,
+  `gtk_combo_box_*` or `gtk_cell_*` calls remain in the source tree.
 
 ### Performance
 

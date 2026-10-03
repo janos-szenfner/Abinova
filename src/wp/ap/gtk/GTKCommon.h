@@ -32,27 +32,12 @@
 std::string tostr( long v );
 std::string tostr( GtkTextView* tv );
 std::string tostr( GtkEditable* e );
-std::string getSelectedText( GtkTreeView* tv, int colnum = 0 );
-UT_uint32   getSelectedUInt( GtkTreeView* tv, int colnum = 0 );
-void selectNext( GtkTreeView* tv );
-void selectPrev( GtkTreeView* tv );
 void append( GtkDropDown* combo, const std::list< std::string >& data );
 std::string tostr( GtkDropDown* combo );
 void setEntry( GtkWidget* w, const std::string& v );
 void setEntry( GtkEntry* w, const std::string& v );
 void setEntry( GtkEntry* w, time_t v );
 void setEntry( GtkEntry* w, double v );
-
-typedef std::list< GtkTreeIter > list_gtktreeiter_t;
-/**
- * Get an STL list of all the selected GtkTreeIter* items in the view
- * if useSelection is false then all of the GtkTreeIter* in the view are returned.
- */
-list_gtktreeiter_t getIterList( GtkWidget* w_treeview, bool useSelection = false );
-
-void clearSelection( GtkTreeView* tv );
-void selectIter( GtkTreeView* tv, GtkTreeIter* iter );
-void scrollToIter( GtkTreeView* tv, GtkTreeIter* iter, int colnum = -1, gboolean start_editing = false );
 
 
 

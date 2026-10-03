@@ -3,7 +3,7 @@
  * from the style context of a real (hidden, unrealized) widget.
  *
  * The selector strings used by callers are legacy GTK3 widget paths
- * like "GtkButton" or "GtkTreeView.view"; we map them to donor widget
+ * like "GtkButton" or "textview.view"; we map them to donor widget
  * types kept alive for the lifetime of the application.
  */
 

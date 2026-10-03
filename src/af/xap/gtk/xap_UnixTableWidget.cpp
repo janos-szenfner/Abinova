@@ -220,9 +220,9 @@ on_drawing_area_event (GtkDrawingArea */*area*/, cairo_t *cr, int /*w*/, int /*h
 	 * once at creation — GTK4 no longer lets us flip a context's state
 	 * mid-draw. */
 	GtkStyleContext* ctxt = gtk_widget_get_style_context(
-		XAP_GtkStyle_get_widget("GtkTreeView.view", GTK_STATE_FLAG_NORMAL));
+		XAP_GtkStyle_get_widget("textview.view", GTK_STATE_FLAG_NORMAL));
 	GtkStyleContext* sel_ctxt = gtk_widget_get_style_context(
-		XAP_GtkStyle_get_widget("GtkTreeView.view", GTK_STATE_FLAG_SELECTED));
+		XAP_GtkStyle_get_widget("textview.view", GTK_STATE_FLAG_SELECTED));
 	for (i = 0; i < table->total_rows; ++i) {
 		for (j = 0; j < table->total_cols; ++j) {
 			GtkStyleContext* cell_ctxt =

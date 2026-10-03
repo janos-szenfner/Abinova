@@ -24,42 +24,9 @@
 #include "ut_vector.h"
 #include <string>
 
-void XAP_makeGtkComboBoxText(GtkComboBox * combo, GType secondaryType);
-void XAP_makeGtkComboBoxText2(GtkComboBox * combo, GType secondaryType,
-							  GType tertiaryType);
-void XAP_populateComboBoxWithIndex(GtkComboBox * combo,
-								   const UT_GenericVector<const char*> & vec);
-
-void XAP_appendComboBoxText(GtkComboBox* combo, const char* text);
-void XAP_appendComboBoxTextAndInt(GtkComboBox * combo, const char * text, int value);
-void XAP_appendComboBoxTextAndString(GtkComboBox * combo, const char * text,
-									 const char * value);
-void XAP_appendComboBoxTextAndStringString(GtkComboBox * combo,
-										   const char * text,
-										   const char * value1,
-										   const char * value2);
-void XAP_appendComboBoxTextAndIntString(GtkComboBox * combo,
-										   const char * text,
-										   int value1,
-										   const char * value2);
-int  XAP_comboBoxGetActiveInt(GtkComboBox * combo);
-std::string XAP_comboBoxGetActiveText(GtkComboBox * combo);
-
-
-
-/** set the active item based on a column value
- * @param combo the combobox
- * @param col the column
- * @param value the value to look for
- * @return true if set, false if not found.
- */
-bool XAP_comboBoxSetActiveFromIntCol(GtkComboBox * combo,
-									 int col, int value);
-
-
 /*
  * GtkDropDown helpers — the non-deprecated replacement for the
- * GtkComboBox helpers above (GtkComboBox is deprecated since GTK 4.10).
+ * old GtkComboBox helpers (GtkComboBox is deprecated since GTK 4.10).
  *
  * A GtkDropDown is fed a GListModel, not a GtkTreeModel, so the model
  * columns are replaced by a small item object carrying the same payload

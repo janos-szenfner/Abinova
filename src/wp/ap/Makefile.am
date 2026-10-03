@@ -454,7 +454,6 @@ EXTRA_DIST = \
 	gtk/pd_RDFEvent.ui \
 	gtk/pd_RDFLocation.ui \
 	gtk/ap_UnixDialog_SemanticStylesheets.ui \
-	gtk/ap_UnixDialog_Spell.ui \
 	xp/ToolbarIcons/menu_about.xpm \
 	xp/ToolbarIcons/menu_add_column.xpm \
 	xp/ToolbarIcons/menu_add_row.xpm \
