@@ -344,7 +344,9 @@ void IE_Imp_XML::charData(const gchar *s, int len)
 							X_CheckError(getDoc()->addRevision(m_currentRevisionId,
 															   buf.ucs4_str(),
 															   m_currentRevisionTime,
-															   m_currentRevisionVersion));
+															   m_currentRevisionVersion,
+															   true,
+															   m_currentRevisionAuthor.c_str()));
 
 							// we need to reset the revision Id in order
 							// to be able to handle the case when there is

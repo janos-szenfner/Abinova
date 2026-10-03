@@ -46,6 +46,7 @@ public:
 	const char *        getColumn1Label() const;
 	const char *        getColumn2Label() const;
 	const char *        getColumn3Label() const;
+	const char *        getColumn4Label() const;
 
 	UT_uint32           getItemCount() const;
 	UT_uint32           getNthItemId(UT_uint32 n) const;
@@ -56,6 +57,7 @@ public:
 
 	const char *        getNthItemTime(UT_uint32 n) const;
     time_t              getNthItemTimeT(UT_uint32 n) const;
+	const char *        getNthItemAuthor(UT_uint32 n) const;
 
 	UT_uint32           getSelectedId() const {return m_iId;}
 

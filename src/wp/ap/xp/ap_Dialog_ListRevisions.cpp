@@ -76,6 +76,12 @@ const char * AP_Dialog_ListRevisions::getColumn3Label() const
 	return m_pSS->getValue(AP_STRING_ID_DLG_ListRevisions_Column3Label);
 }
 
+const char * AP_Dialog_ListRevisions::getColumn4Label() const
+{
+	UT_return_val_if_fail(m_pSS,nullptr);
+	return m_pSS->getValue(AP_STRING_ID_DLG_ListRevisions_Column4Label);
+}
+
 UT_uint32 AP_Dialog_ListRevisions::getItemCount() const
 {
 	UT_return_val_if_fail(m_pDoc,0);
@@ -132,6 +138,17 @@ const char * AP_Dialog_ListRevisions::getNthItemTime(UT_uint32 n) const
 	}
 	
 	return s;
+}
+
+const char * AP_Dialog_ListRevisions::getNthItemAuthor(UT_uint32 n) const
+{
+	UT_return_val_if_fail(m_pDoc, nullptr);
+
+	// the zero entry is the synthetic "all revisions" row — no author
+	if(n == 0)
+		return "";
+
+	return m_pDoc->getRevisions()[n - 1].getAuthor().c_str();
 }
 
 char * AP_Dialog_ListRevisions::getNthItemText(UT_uint32 n, bool utf8) const

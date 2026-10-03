@@ -1498,6 +1498,10 @@ void s_Abinova_1_Listener::_handleRevisions(void)
 		m_pie->addUint("id", rev.getId());
 		m_pie->addLint("time-started", rev.getStartTime());
 		m_pie->addUint("version", rev.getVersion());
+		if (!rev.getAuthor().empty())
+		{
+			m_pie->addString("author", rev.getAuthor());
+		}
 
 		if (rev.getDescription())
 		{

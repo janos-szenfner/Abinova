@@ -1077,11 +1077,18 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		{
 			const AD_Revision& rev = Revs[i];
 
-			s4 = rev.getDescription();
+			if (!rev.getAuthor().empty())
+			{
+				s = rev.getAuthor().c_str();
+			}
+			else
+			{
+				s4 = rev.getDescription();
 
-			// construct author name from our numerical id and comment
-			// (the id guarantees us uniqueness)
-			UT_UTF8String_sprintf(s, "rev %d (%s)", rev.getId(), s4.utf8_str());
+				// construct author name from our numerical id and comment
+				// (the id guarantees us uniqueness)
+				UT_UTF8String_sprintf(s, "rev %d (%s)", rev.getId(), s4.utf8_str());
+			}
 			_rtf_open_brace();
 			_rtf_chardata(s.utf8_str(),s.byteLength());
 			_rtf_semi();

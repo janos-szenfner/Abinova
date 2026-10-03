@@ -104,9 +104,10 @@ UT_uint32 OXMLi_Element_Revision::registerRevision(PD_Document * pDocument,
 {
 	UT_uint32 id = pDocument->getHighestRevisionId() + 1;
 
-	UT_UCS4String ucs4(author);
-	pDocument->addRevision(id, author.empty() ? nullptr : ucs4.ucs4_str(),
-						   _parseRevisionDate(date), 0, false);
+	/* w:author is a display name, not a comment — store it in the
+	 * revision's author field (OOXML ins/del carry no description) */
+	pDocument->addRevision(id, nullptr, _parseRevisionDate(date), 0, false,
+						   author.empty() ? nullptr : author.c_str());
 	return id;
 }
 

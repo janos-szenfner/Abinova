@@ -49,6 +49,7 @@ struct _AbiRevRow
 	GObject parent_instance;
 	guint revid;
 	gchar *comment;
+	gchar *author;
 	gchar *date;
 	gint64 timet;
 };
@@ -65,6 +66,7 @@ abi_rev_row_finalize (GObject *object)
 {
 	AbiRevRow *row = ABI_REV_ROW (object);
 	g_free (row->comment);
+	g_free (row->author);
 	g_free (row->date);
 	G_OBJECT_CLASS (abi_rev_row_parent_class)->finalize (object);
 }
@@ -76,13 +78,14 @@ abi_rev_row_class_init (AbiRevRowClass *klass)
 }
 
 static AbiRevRow *
-abi_rev_row_new (guint revid, const gchar *comment,
+abi_rev_row_new (guint revid, const gchar *comment, const gchar *author,
 				 const gchar *date, gint64 timet)
 {
 	AbiRevRow *row =
 		ABI_REV_ROW (g_object_new (ABI_TYPE_REV_ROW, nullptr));
 	row->revid = revid;
 	row->comment = g_strdup (comment);
+	row->author = g_strdup (author);
 	row->date = g_strdup (date);
 	row->timet = timet;
 	return row;
@@ -107,6 +110,16 @@ s_rev_bind_comment (GtkSignalListItemFactory * /*factory*/,
 	AbiRevRow *row = ABI_REV_ROW (gtk_list_item_get_item (item));
 	gtk_label_set_text (GTK_LABEL (gtk_list_item_get_child (item)),
 						row->comment ? row->comment : "");
+}
+
+static void
+s_rev_bind_author (GtkSignalListItemFactory * /*factory*/,
+				   GtkListItem *item,
+				   gpointer /*data*/)
+{
+	AbiRevRow *row = ABI_REV_ROW (gtk_list_item_get_item (item));
+	gtk_label_set_text (GTK_LABEL (gtk_list_item_get_child (item)),
+						row->author ? row->author : "");
 }
 
 static void
@@ -147,6 +160,15 @@ s_sort_rev_comment (gconstpointer p1, gconstpointer p2, gpointer /*data*/)
 	const AbiRevRow *b = static_cast<const AbiRevRow *>(p2);
 	return g_utf8_collate (a->comment ? a->comment : "",
 						   b->comment ? b->comment : "");
+}
+
+static gint
+s_sort_rev_author (gconstpointer p1, gconstpointer p2, gpointer /*data*/)
+{
+	const AbiRevRow *a = static_cast<const AbiRevRow *>(p1);
+	const AbiRevRow *b = static_cast<const AbiRevRow *>(p2);
+	return g_utf8_collate (a->author ? a->author : "",
+						   b->author ? b->author : "");
 }
 
 static gint
@@ -337,6 +359,17 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
   gtk_column_view_append_column(view, col);
   g_object_unref(col);
 
+  // author column
+  col = gtk_column_view_column_new(getColumn4Label(),
+								   s_rev_factory(s_rev_bind_author));
+  sorter = GTK_SORTER(gtk_custom_sorter_new(s_sort_rev_author,
+											nullptr, nullptr));
+  gtk_column_view_column_set_sorter(col, sorter);
+  g_object_unref(sorter);
+  gtk_column_view_column_set_fixed_width(col, 140);
+  gtk_column_view_append_column(view, col);
+  g_object_unref(col);
+
   // revision date column
   col = gtk_column_view_column_new(getColumn2Label(),
 								   s_rev_factory(s_rev_bind_date));
@@ -381,6 +414,7 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
     gchar * itemtime = g_locale_to_utf8(getNthItemTime(i), -1, nullptr, nullptr, nullptr);
     AbiRevRow *row = abi_rev_row_new(getNthItemId(i),
 									 txt ? txt : "",
+									 getNthItemAuthor(i),
 									 itemtime ? itemtime : "",
 									 getNthItemTimeT(i));
     g_list_store_append(m_store, row);

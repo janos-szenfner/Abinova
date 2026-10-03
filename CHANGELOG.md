@@ -710,6 +710,19 @@ below are on `main` but the release has not been cut yet.
   a corrupt `fcMac`/piece table can no longer drive gigabytes of
   appends. All ten fuzz-found reproducer files now import in
   milliseconds, and the `.doc` corpus converts cleanly.
+- **Per-revision author and timestamp metadata** — the document-level
+  revision table (`AD_Revision`) now carries a dedicated author field
+  alongside its start time instead of overloading the description.
+  Turning on revision marking stamps the current revision id with the
+  `UserName` preference (falling back to the OS account name) and the
+  clock; the List Revisions dialog gains an Author column and a new
+  status-bar field shows "Revision N: author, date" when the caret
+  sits inside revised text. `.abwn` serializes authors as an
+  `author` attribute on each `<r>` element (documented in
+  `abwn.dtd`/`docs/ABWN-FORMAT.md`); DOCX `w:author`/`w:date` and RTF
+  `\revtbl` names now import into real author records, and RTF export
+  writes the actual author names back instead of synthetic
+  `rev <id> (<comment>)` entries.
 
 ### Keyboard shortcuts (Word-compatible default map)
 

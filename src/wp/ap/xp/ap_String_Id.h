@@ -69,6 +69,7 @@ dcl(MSG_Exception, "A fatal error has just occurred. Abinova is going to shutdow
 // Status Bar Messages
 dcl(PageInfoField,				"Page: %d/%d")
 dcl(WordCountField,				"%d words, %d characters")
+dcl(RevisionField,				"Revision %d")
 dcl(LeftMarginStatus,			"Left Margin [%s]")
 dcl(RightMarginStatus,			"Right Margin [%s]")
 dcl(FirstLineIndentStatus,		"First Line Indent [%s]")
@@ -909,6 +910,7 @@ dcl(DLG_ListRevisions_Title, "Select Revision")
 dcl(DLG_ListRevisions_Column1Label, "Revision ID")
 dcl(DLG_ListRevisions_Column2Label, "Date")
 dcl(DLG_ListRevisions_Column3Label, "Comment")
+dcl(DLG_ListRevisions_Column4Label, "Author")
 dcl(DLG_ListRevisions_Label1, "Existing revisions:")
 dcl(DLG_ListRevisions_LevelZero, "(All revisions visible)")
 

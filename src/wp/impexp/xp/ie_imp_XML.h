@@ -176,6 +176,7 @@ protected:
 	UT_uint32       m_currentRevisionId;
 	time_t          m_currentRevisionTime;
 	UT_uint32       m_currentRevisionVersion;
+	std::string     m_currentRevisionAuthor;
 
     // For reading RDF triples
     std::string     m_rdfSubject;

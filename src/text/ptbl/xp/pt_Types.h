@@ -154,6 +154,7 @@ typedef UT_uint32 PL_ListenerId;
 #define PT_REVISION_DESC_ATTRIBUTE_NAME      (static_cast<const gchar *>("revision-desc"))
 #define PT_REVISION_TIME_ATTRIBUTE_NAME      (static_cast<const gchar *>("revision-time"))
 #define PT_REVISION_VERSION_ATTRIBUTE_NAME      (static_cast<const gchar *>("revision-ver"))
+#define PT_REVISION_AUTHOR_ATTRIBUTE_NAME      (static_cast<const gchar *>("revision-author"))
 #define PT_DOCPROP_ATTRIBUTE_NAME      (static_cast<const gchar *>("docprop"))
 #define PT_STRUX_IMAGE_DATAID           (static_cast<const gchar *>("strux-image-dataid"))
 #define PT_XID_ATTRIBUTE_NAME           (static_cast<const gchar *>("xid"))

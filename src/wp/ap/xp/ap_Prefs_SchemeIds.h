@@ -174,6 +174,10 @@
 #define AP_PREF_KEY_LockStyles "LockStyles"
 #define AP_PREF_DEFAULT_LockStyles "0"
 
+/* display name stamped on revisions/comments this user authors;
+ * no builtin default — falls back to the OS account's real name */
+#define AP_PREF_KEY_UserName "UserName"
+
 #define AP_PREF_KEY_ColorForAnnotation1				"ColorAnnotation1"
 #define AP_PREF_DEFAULT_ColorForAnnotation1			"ab04fe"
 #define AP_PREF_KEY_ColorForAnnotation2				"ColorAnnotation2"

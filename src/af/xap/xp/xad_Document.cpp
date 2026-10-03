@@ -43,6 +43,8 @@
 #include "xap_Strings.h"
 #include "xap_Dialog_Id.h"
 
+const std::string AD_Document::m_sEmptyUserName;
+
 #ifdef ENABLE_RESOURCE_MANAGER
 #include "xap_ResourceManager.h"
 #endif
@@ -648,7 +650,8 @@ const AD_Revision * AD_Document::getHighestRevision() const
 
 bool AD_Document::addRevision(UT_uint32 iId,
 							  const UT_UCS4Char * pDesc,
-							  time_t tStart, UT_uint32 iVer,bool bGenCR)
+							  time_t tStart, UT_uint32 iVer,bool bGenCR,
+							  const char * author)
 {
 	for (UT_uint32 i = 0; i < m_vRevisions.size(); i++)
 	{
@@ -657,7 +660,7 @@ bool AD_Document::addRevision(UT_uint32 iId,
 			return false;
 	}
 
-	addRevision(AD_Revision(iId, pDesc, tStart, iVer), bGenCR);
+	addRevision(AD_Revision(iId, pDesc, tStart, iVer, author), bGenCR);
 	m_iRevisionID = iId;
 	return true;
 }
@@ -674,11 +677,12 @@ bool AD_Document::addRevision(AD_Revision&& rev, bool bGenCR)
 	}
 	m_vRevisions.push_back(rev);
 	if (bGenCR) {
-		const char * szAtts[11]={"docprop","revision",
+		const char * szAtts[13]={"docprop","revision",
 							 "revision", sID.c_str(),
 							 "revision-desc", sDesc.utf8_str(),
 							 "revision-time", sTime.c_str(),
-							 "revision-ver", sVer.c_str(), nullptr};
+							 "revision-ver", sVer.c_str(),
+							 "revision-author", rev.getAuthor().c_str(), nullptr};
 		createAndSendDocPropCR(szAtts, nullptr);
 	}
 	forceDirty();
@@ -771,7 +775,8 @@ void AD_Document::setAutoRevisioning(bool b)
 				UT_uint32 iId = getRevisionId() + 1;
 
 				setRevisionId(iId);
-				addRevision(iId, ucs4.ucs4_str(), t, m_iVersion);
+				addRevision(iId, ucs4.ucs4_str(), t, m_iVersion, true,
+							getRevisionUserName().c_str());
 			}
 			else if(getHighestRevisionId() != getRevisionId())
 			{
@@ -782,7 +787,8 @@ void AD_Document::setAutoRevisioning(bool b)
 				UT_UCS4String ucs4(pSS->getValue(XAP_STRING_ID_MSG_AutoRevision));
 
 				UT_uint32 iId = getRevisionId();
-				addRevision(iId, ucs4.ucs4_str(), t, m_iVersion);
+				addRevision(iId, ucs4.ucs4_str(), t, m_iVersion, true,
+							getRevisionUserName().c_str());
 			}
 			
 				
@@ -930,7 +936,8 @@ void AD_Document::_adjustHistoryOnSave()
 
 		UT_uint32 iId = getRevisionId()+1;
 		setRevisionId(iId);
-		addRevision(iId, ucs4.ucs4_str(), time(nullptr), m_iVersion);
+		addRevision(iId, ucs4.ucs4_str(), time(nullptr), m_iVersion, true,
+					getRevisionUserName().c_str());
 	}
 }
 

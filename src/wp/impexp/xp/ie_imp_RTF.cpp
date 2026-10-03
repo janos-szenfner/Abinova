@@ -8909,7 +8909,8 @@ bool IE_Imp_RTF::ReadRevisionTable()
 		if(i == 1 && (!UT_UCS4_strcmp(s.ucs4_str(), u1) || !UT_UCS4_strcmp(s.ucs4_str(), u2)))
 			continue;
 		
-		getDoc()->addRevision(i, s.ucs4_str(), 0, 0);
+		// RTF \revtb entries are author names, not descriptions
+		getDoc()->addRevision(i, nullptr, 0, 0, true, s.utf8_str());
 		++i;
 	}
 

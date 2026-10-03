@@ -233,6 +233,19 @@ PD_Document::PD_Document()
 	}
 }
 
+const std::string & PD_Document::getRevisionUserName() const
+{
+	// an explicit UserName preference wins over the OS account name so a
+	// shared machine can still stamp distinct revision authors
+	static std::string sPrefName;
+	XAP_Prefs * pPrefs = XAP_App::getApp() ? XAP_App::getApp()->getPrefs() : nullptr;
+	if (pPrefs &&
+		pPrefs->getPrefsValue(AP_PREF_KEY_UserName, sPrefName) &&
+		!sPrefName.empty())
+		return sPrefName;
+	return m_sUserName;
+}
+
 PD_Document::~PD_Document()
 {
 	// ideally all connections would have been removed BEFORE
@@ -2413,13 +2426,15 @@ bool PD_Document::changeDocPropeties(const PP_PropertyVector & pAtts, const PP_P
 		const gchar * szDesc=nullptr;
 		const gchar * szTime=nullptr;
 		const gchar * szVersion=nullptr;
+		const gchar * szAuthor=nullptr;
 		AP.getAttribute(PT_REVISION_ATTRIBUTE_NAME,szID);
 		AP.getAttribute(PT_REVISION_DESC_ATTRIBUTE_NAME,szDesc);
 		AP.getAttribute(PT_REVISION_TIME_ATTRIBUTE_NAME,szTime);
 		AP.getAttribute(PT_REVISION_VERSION_ATTRIBUTE_NAME,szVersion);
-		UT_DEBUGMSG(("Received revision ID %s szDesc %s time %s ver %s \n",szID,szDesc,szTime,szVersion));
+		AP.getAttribute(PT_REVISION_AUTHOR_ATTRIBUTE_NAME,szAuthor);
+		UT_DEBUGMSG(("Received revision ID %s szDesc %s time %s ver %s author %s\n",szID,szDesc,szTime,szVersion,szAuthor));
 		UT_uint32 id = atoi(szID);
-		UT_UTF8String sDesc = szDesc; 
+		UT_UTF8String sDesc = szDesc ? szDesc : "";
 		time_t iTime = atoi(szTime);
 		UT_uint32 iVer = atoi(szVersion);
 		UT_UCS4Char * pD = nullptr;
@@ -2427,7 +2442,7 @@ bool PD_Document::changeDocPropeties(const PP_PropertyVector & pAtts, const PP_P
 		pD = new UT_UCS4Char [iLen+1];
 		UT_UCS4_strncpy(pD,sDesc.ucs4_str().ucs4_str(),iLen);
 		pD[iLen] = 0;
-		AD_Document::addRevision(id,pD,iTime,iVer, false);
+		AD_Document::addRevision(id,pD,iTime,iVer, false, szAuthor);
 	}
 	else if(strcmp(szLCValue,"pagesize") == 0)
     {
@@ -8212,6 +8227,17 @@ void PD_Document::setMarkRevisions(bool bMark)
 	{
 		AD_Document::setMarkRevisions(bMark);
 	 	signalListeners(PD_SIGNAL_REVISION_MODE_CHANGED);
+	}
+
+	/* when the user turns marking on interactively, make sure the
+	 * revision id the piece table stamps has a metadata record so the
+	 * change carries author/time; skipped while loading, where the
+	 * revision table arrives from the file itself */
+	if (bMark && !m_bLoading &&
+		getRevisionIndxFromId(getRevisionId()) < 0)
+	{
+		addRevision(getRevisionId(), nullptr, time(nullptr), getDocVersion(),
+					true, getRevisionUserName().c_str());
 	}
 }
 

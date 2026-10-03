@@ -993,6 +993,8 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 			if(!s3.empty()) {
 				m_currentRevisionVersion = atoi(s3.c_str());
 			}
+
+			m_currentRevisionAuthor = PP_getAttribute("author", atts);
 		}
 
 		return;
@@ -1503,7 +1505,8 @@ void IE_Imp_Abinova_1::endElement(const gchar *name)
 			// added to the doc by the xml paraser
 			X_CheckError(getDoc()->addRevision(m_currentRevisionId, nullptr,
 											   m_currentRevisionTime,
-											   m_currentRevisionVersion, true));
+											   m_currentRevisionVersion, true,
+											   m_currentRevisionAuthor.c_str()));
 			m_currentRevisionId = 0;
 		}
 

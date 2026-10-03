@@ -91,13 +91,19 @@ enum AD_HISTORY_STATE: uint8_t
 class ABI_EXPORT AD_Revision
 {
   public:
-	AD_Revision(UT_uint32 iId, const UT_UCS4Char * pDesc, time_t start, UT_uint32 iVer = 0)
-		:m_iId(iId), m_pDescription(pDesc ? pDesc : std::basic_string<UT_UCS4Char>()), m_tStart(start), m_iVersion(iVer){};
+	AD_Revision(UT_uint32 iId, const UT_UCS4Char * pDesc, time_t start, UT_uint32 iVer = 0,
+				const char * author = nullptr)
+		:m_iId(iId), m_pDescription(pDesc ? pDesc : std::basic_string<UT_UCS4Char>()), m_tStart(start),
+		 m_iVersion(iVer), m_sAuthor(author ? author : ""){};
 
 	UT_uint32         getId()const{return m_iId;}
 	const UT_UCS4Char * getDescription() const {
 		return m_pDescription.c_str();
 	}
+
+	// UTF-8 name of the user who authored this revision; "" = unknown
+	const std::string & getAuthor() const {return m_sAuthor;}
+	void              setAuthor(const char * author) {m_sAuthor = author ? author : "";}
 
 	// NB: getStartTime() == 0 should be interpreted as 'unknown'
 	time_t            getStartTime() const {return m_tStart;}
@@ -111,6 +117,7 @@ class ABI_EXPORT AD_Revision
 	std::basic_string<UT_UCS4Char> m_pDescription;
 	time_t        m_tStart;
 	UT_uint32     m_iVersion;
+	std::string   m_sAuthor;
 };
 
 enum AD_DOCUMENT_TYPE: uint8_t
@@ -233,7 +240,8 @@ public:
 	UT_uint64       getNewUUID64() const;
 
 	bool            addRevision(UT_uint32 iId, const UT_UCS4Char * pDesc,
-								time_t tStart, UT_uint32 iVersion, bool bGenCR=true);
+								time_t tStart, UT_uint32 iVersion, bool bGenCR=true,
+								const char * author = nullptr);
 	bool            addRevision(AD_Revision&& pRev, bool bGenCR = true);
 	virtual bool    createAndSendDocPropCR( const gchar ** pAtts, const gchar ** pProps) = 0;
 
@@ -252,6 +260,10 @@ public:
 
 	UT_uint32           findAutoRevisionId(UT_uint32 iVersion) const;
 	UT_uint32           findNearestAutoRevisionId(UT_uint32 iVersion, bool bLesser = true) const;
+
+	// UTF-8 name stamped on revisions created by this user's edits;
+	// the PD_Document override returns the document's user name.
+	virtual const std::string & getRevisionUserName() const {return m_sEmptyUserName;}
 
 	void                toggleMarkRevisions();
 	void                toggleShowRevisions();
@@ -327,6 +339,7 @@ private:
 	bool            m_bAutoRevisioning;
 
 	bool            m_bForcedDirty;
+	static const std::string m_sEmptyUserName;
 
 	UT_UUID *       m_pUUID;
 	UT_UUID *       m_pOrigUUID;

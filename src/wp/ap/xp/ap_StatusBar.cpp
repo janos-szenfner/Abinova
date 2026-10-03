@@ -40,6 +40,8 @@
 #include "ap_Strings.h"
 #include "fl_DocLayout.h"
 #include "fv_View.h"
+#include "pd_Document.h"
+#include "pp_Revision.h"
 #include "xap_EncodingManager.h"
 #include "ut_timer.h"
 
@@ -410,6 +412,80 @@ void ap_sbf_Style::notify(AV_View * pavView, const AV_ChangeMask mask)
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
+class ABI_EXPORT ap_sbf_Revision : public AP_StatusBarField_TextInfo
+{
+public:
+    ap_sbf_Revision(AP_StatusBar * pSB);
+
+    virtual void notify(AV_View * pView, const AV_ChangeMask mask) override;
+};
+
+ap_sbf_Revision::ap_sbf_Revision(AP_StatusBar * pSB)
+    : AP_StatusBarField_TextInfo(pSB)
+{
+    m_fillMethod = REPRESENTATIVE_STRING;
+    m_alignmentMethod = LEFT;
+    m_sRepresentativeString = "Revision 99: MMMMMMMMMMMM 0000-00-00 00:00";
+}
+
+void ap_sbf_Revision::notify(AV_View * pavView, const AV_ChangeMask mask)
+{
+    if (!(mask & AV_CHG_MOTION))
+    {
+        return;
+    }
+    FV_View * pView = static_cast<FV_View *>(pavView);
+    if (!pView)
+    {
+        return;
+    }
+    PD_Document * pDoc = pView->getDocument();
+    std::string sNew;
+    const PP_AttrProp * pSpanAP = nullptr;
+    if (pDoc && pView->getAttributes(&pSpanAP) && pSpanAP)
+    {
+        const gchar * szRev = nullptr;
+        if (pSpanAP->getAttribute("revision", szRev) && szRev && *szRev)
+        {
+            PP_RevisionAttr RA(szRev);
+            const PP_Revision * pR = RA.getLastRevision();
+            UT_sint32 iIndx = pR ? pDoc->getRevisionIndxFromId(pR->getId()) : -1;
+            if (iIndx >= 0 &&
+                static_cast<size_t>(iIndx) < pDoc->getRevisions().size())
+            {
+                const AD_Revision & rev = pDoc->getRevisions()[iIndx];
+                sNew = UT_std_string_sprintf(
+                    XAP_App::getApp()->getStringSet()->getValue(
+                        AP_STRING_ID_RevisionField), rev.getId());
+                if (!rev.getAuthor().empty())
+                {
+                    sNew += ": ";
+                    sNew += rev.getAuthor();
+                }
+                time_t t = rev.getStartTime();
+                if (t)
+                {
+                    char tbuf[40];
+                    strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M",
+                             localtime(&t));
+                    sNew += rev.getAuthor().empty() ? ": " : ", ";
+                    sNew += tbuf;
+                }
+            }
+        }
+    }
+    if (m_sBuf != sNew)
+    {
+        m_sBuf = sNew;
+        if (getListener()) {
+            getListener()->notify();
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+
 // PROGRESSBAR. Implemented for GTK. Needs implementing for Win and OSX
 
 AP_StatusBarField_ProgressBar::AP_StatusBarField_ProgressBar(AP_StatusBar * pSB)
@@ -518,6 +594,7 @@ AP_StatusBar::AP_StatusBar(XAP_Frame * pFrame)
     DclField(ap_sbf_InputMode, pf5);
 		
     DclField(ap_sbf_Language, pf6);
+    DclField(ap_sbf_Revision, pf9);
     // TODO add other fields
 
 #undef DclField

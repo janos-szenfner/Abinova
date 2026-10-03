@@ -968,4 +968,5 @@ private:
 	std::string             m_sUserName;
 public:
 	const std::string &getUserName() const { return m_sUserName; }
+	const std::string &getRevisionUserName() const override;
 };

@@ -23,7 +23,7 @@
    * Colors are RRGGBB hex without '#'.
 -->
 
-<!ELEMENT abinova (metadata?, rdf?, history?, changes?, masterpages?,
+<!ELEMENT abinova (metadata?, rdf?, history?, revisions?, changes?, masterpages?,
                    notes?, styles?, lists?, pagesize?, authors?,
                    section+, data?)>
 <!ATTLIST abinova
@@ -43,6 +43,26 @@
 
 <!ELEMENT rdf ANY>
 <!ELEMENT history ANY>
+
+<!-- revision table: one <r> per document-level revision; the element
+     text is the revision description/comment.  author is the UTF-8
+     display name stamped when the revision was created; time-started
+     is a Unix timestamp. -->
+<!ELEMENT revisions (r*)>
+<!ATTLIST revisions
+	show       CDATA  #IMPLIED
+	mark       CDATA  #IMPLIED
+	show-level CDATA  #IMPLIED
+	auto       CDATA  #IMPLIED
+>
+<!ELEMENT r (#PCDATA)>
+<!ATTLIST r
+	id           CDATA  #REQUIRED
+	time-started CDATA  #IMPLIED
+	version      CDATA  #IMPLIED
+	author       CDATA  #IMPLIED
+>
+
 <!ELEMENT changes ANY>
 <!ELEMENT masterpages ANY>
 <!ELEMENT notes ANY>

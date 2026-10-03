@@ -78,6 +78,7 @@ need to be written unless it differs.
 | `abinova` | root; `version`, `fileformat`, `template`, `xid-max` |
 | `metadata`/`m` | Dublin Core + `abiword.*` keys |
 | `history`, `rdf`, `changes`, `masterpages`, `notes` | pass-through payload blocks |
+| `revisions`/`r` | revision table; `show`/`mark`/`show-level`/`auto` flags on the container, `id`/`time-started`/`version`/`author` on each entry (see below) |
 | `styles`/`s` | named styles (`type="P\|C"`, `basedon`, `followedby`) |
 | `lists`/`l` | list definitions; `id`/`parentid`/`type`/`start-value`/`list-delim`/`list-decimal` are direct attributes, not props |
 | `pagesize` | page geometry |
@@ -100,6 +101,18 @@ need to be written unless it differs.
 | `table`/`cell` | tables; cell spanning via `cell-attach-*` props |
 | `frame` | absolutely-positioned box (textboxes, drawing shapes, pictures) |
 | `data`/`d` | named payloads (base64 when `base64` attr set) |
+
+### Revisions
+
+`<revisions>` holds the document-level revision table. Each `<r>` is
+one revision, keyed by its monotonically increasing `id`; the element
+text is the user-entered description and may be empty. `time-started`
+is a Unix timestamp; `author` is the UTF-8 display name stamped from
+the `UserName` preference (falling back to the OS account name) when
+the revision was created — it is optional so older files load with an
+empty author. Revision metadata lives only here, keyed by id; runs
+marked as revised reference that id via the `revision` attribute and
+do not repeat author/date per fragment.
 
 ## 4. Frames and positioned objects
 
