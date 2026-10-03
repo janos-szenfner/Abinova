@@ -124,8 +124,23 @@ bool UT_SVG_getDimensions(const UT_ConstByteBufPtr & pBB, GR_Graphics* pG,
 
 bool UT_SVG_recognizeContent(const char* szBuf,UT_uint32 iNumbytes)
 {
-  UT_UNUSED(iNumbytes);
-  return (strstr(szBuf, "<svg") != nullptr || strstr(szBuf, "<!DOCTYPE svg") != nullptr);
+	if (!szBuf || !iNumbytes)
+		return false;
+
+	/* A real XML check, not a substring match: run the SAX parse and
+	 * accept the buffer only when its root element is <svg>.  The
+	 * sniffers hand us just the head of the file, so a truncated
+	 * buffer may fail the parse even for genuine SVG — m_bSVG is
+	 * therefore trusted regardless of the parse result.  Binary data
+	 * merely containing the bytes "<svg" never reaches an element
+	 * callback. */
+	UT_svg data(nullptr,UT_svg::pm_recognizeContent);
+
+	UT_XML parser;
+	parser.setListener (&data);
+	parser.parse (szBuf,iNumbytes);
+
+	return data.m_bSVG;
 }
 
 static bool _recognizeContent(const char* buffer,UT_uint32 buflen,UT_svg* data)

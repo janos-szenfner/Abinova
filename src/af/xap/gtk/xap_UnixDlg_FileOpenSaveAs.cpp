@@ -44,6 +44,7 @@
 #include "ut_assert.h"
 #include "xap_UnixDialogHelper.h"
 #include "xap_GtkComboBoxHelpers.h"
+#include "xap_GtkUtils.h"
 #include "xap_Dialog_Id.h"
 #include "xap_Dlg_MessageBox.h"
 #include "xap_UnixDlg_FileOpenSaveAs.h"
@@ -1272,7 +1273,7 @@ GdkPixbuf *  XAP_UnixDialog_FileOpenSaveAs::pixbufForByteBuf (UT_ByteBuf * pBB)
 		GError * err = nullptr;
 		GdkPixbufLoader * ldr = nullptr;
 
-		ldr = gdk_pixbuf_loader_new ();
+		ldr = xap_gtk_pixbuf_loader_new_capped ();
 		if (!ldr)
 			{
 				UT_DEBUGMSG (("GdkPixbuf: couldn't create loader! WTF?\n"));
@@ -1298,6 +1299,10 @@ GdkPixbuf *  XAP_UnixDialog_FileOpenSaveAs::pixbufForByteBuf (UT_ByteBuf * pBB)
 			g_object_ref (G_OBJECT(pixbuf));
 
 		g_object_unref (G_OBJECT(ldr));
+
+		// loaders that ignored the scaled-decode hint deliver the
+		// full-size image — bound it here (consumes our reference)
+		pixbuf = xap_gtk_pixbuf_enforce_limits (pixbuf);
 	}
 
 	return pixbuf;

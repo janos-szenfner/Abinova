@@ -3609,6 +3609,19 @@ below are on `main` but the release has not been cut yet.
   report "no context" instead of showing a menu for the document
   start, and a second context menu requested while one is already
   open is ignored instead of leaking the first popup.
+- **Image import hardened against hostile files** — the SVG sniffer
+  used to hand perfect confidence to any binary containing the four
+  bytes `<svg` in its first 4 KB (and logged "NOT SVG" on a match);
+  it now parses the buffer as XML and accepts it only when the root
+  element is `<svg>`. PNGs were stored after checking only the IHDR
+  header, so truncated or corrupt bodies surfaced as failures at
+  render time; the importer now decodes the entire stream
+  (bounded, row at a time) before accepting it. Images decoded
+  through GdkPixbuf are also bounded: declared dimensions over
+  16384 px or 64 Mi pixels are scaled down via the loader's
+  `size-prepared` hint where the codec supports it, and any
+  still-oversized result is downscaled after load, so a
+  20000x20000 image can no longer allocate unbounded memory.
 
 ### GTK4 port (core migration)
 

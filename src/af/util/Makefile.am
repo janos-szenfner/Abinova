@@ -59,6 +59,7 @@ libutil_la_SOURCES = \
 	xp/ut_iconv.h \
 	xp/ut_idle.cpp \
 	xp/ut_idle.h \
+	xp/ut_image.h \
 	xp/ut_jpeg.cpp \
 	xp/ut_jpeg.h \
 	xp/ut_Language.cpp \

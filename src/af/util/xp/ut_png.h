@@ -23,3 +23,4 @@
 #include "ut_bytebuf.h"
 
 ABI_EXPORT bool UT_PNG_getDimensions(const UT_ConstByteBufPtr& pBB, UT_sint32& iImageWidth, UT_sint32& iImageHeight);
+ABI_EXPORT bool UT_PNG_validate(const UT_ConstByteBufPtr& pBB);

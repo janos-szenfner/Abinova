@@ -47,6 +47,20 @@ void XAP_gtk_widget_set_margin(GtkWidget* w, gint margin);
 /// XWayland, so the dismissal is handled manually.
 GtkWidget* xap_gtk_popover_new(void);
 
+/// Creates a GdkPixbufLoader that bounds the decoded image size to
+/// the sane UT_IMAGE_MAX_* limits: images declared larger are asked
+/// to scale down during the load itself (honored by loaders with
+/// scaled-decode support).  The resulting pixbuf must still be passed
+/// through xap_gtk_pixbuf_enforce_limits() — loaders that ignore the
+/// hint deliver the full-size image.
+GdkPixbufLoader* xap_gtk_pixbuf_loader_new_capped(void);
+
+/// Enforce the sane decoded-image bounds on a loaded pixbuf.
+/// Consumes the caller's reference: returns the same pixbuf when it
+/// is within limits, a new downscaled pixbuf when it is not, or
+/// nullptr when the downscale fails (input already freed).
+GdkPixbuf* xap_gtk_pixbuf_enforce_limits(GdkPixbuf* pixbuf);
+
 /// Convenience to get the entry text. Takes GtkEditable so it works
 /// for GtkSpinButton too (no longer a GtkEntry in GTK4).
 inline

@@ -57,7 +57,7 @@ UT_Confidence_t IE_ImpGraphicSVG_Sniffer::recognizeContents(const char * szBuf, 
   UT_DEBUGMSG(("SVG SNIFF happenning \n"));
   if ( UT_SVG_recognizeContent(szBuf,iNumbytes) )
   {
-    UT_DEBUGMSG(("NOT SVG \n"));
+    UT_DEBUGMSG(("IS SVG \n"));
     return UT_CONFIDENCE_PERFECT;
   }
   return UT_CONFIDENCE_ZILCH;

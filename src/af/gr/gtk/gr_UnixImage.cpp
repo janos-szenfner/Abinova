@@ -25,6 +25,7 @@
 #include "ut_debugmsg.h"
 #include "gr_Graphics.h"
 #include "ut_string_class.h"
+#include "xap_GtkUtils.h"
 #include <gdk-pixbuf/gdk-pixbuf-loader.h>
 
 /* quick implementation of cropped images, thecrop rectangle should go 
@@ -331,7 +332,7 @@ bool GR_UnixImage::convertFromBuffer(const UT_ConstByteBufPtr & pBB,
 
 	
 	GError * err = nullptr;
-	GdkPixbufLoader * ldr = gdk_pixbuf_loader_new ();	
+	GdkPixbufLoader * ldr = xap_gtk_pixbuf_loader_new_capped ();
 
 	if (!ldr)
 	{
@@ -406,7 +407,16 @@ bool GR_UnixImage::convertFromBuffer(const UT_ConstByteBufPtr & pBB,
 	UT_ASSERT(G_OBJECT(m_image)->ref_count == 1);
 
 	UT_ASSERT(G_OBJECT(m_image)->ref_count == 1);
-	
+
+	// loaders that ignored the scaled-decode hint deliver the full-size
+	// image — bound it here (consumes our reference)
+	m_image = xap_gtk_pixbuf_enforce_limits(m_image);
+	if (!m_image)
+	{
+		UT_DEBUGMSG (("GdkPixbuf: image too large to keep!\n"));
+		return false;
+	}
+
 	return true;
 }
 

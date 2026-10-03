@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include "ut_string.h"
+#include "ut_png.h"
 
 #include "ie_impGraphic_PNG.h"
 #include "fg_GraphicRaster.h"
@@ -82,6 +83,13 @@ UT_Error IE_ImpGraphicPNG_Sniffer::constructImporter(IE_ImpGraphic **ppieg)
 UT_Error IE_ImpGraphic_PNG::importGraphic(const UT_ConstByteBufPtr & pBB,
 										  FG_ConstGraphicPtr &pfg)
 {
+	// setRaster_PNG only reads the header — decode the whole stream so
+	// truncated or corrupt bodies are rejected here instead of at
+	// render time.
+	if(!UT_PNG_validate(pBB)) {
+		return UT_IE_FAKETYPE;
+	}
+
 	FG_GraphicRasterPtr pFGR(new FG_GraphicRaster);
 	if(pFGR == nullptr)
 		return UT_IE_NOMEMORY;

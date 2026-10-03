@@ -24,6 +24,8 @@
 #include <gdk/x11/gdkx.h>
 #endif
 
+#include "ut_image.h"
+
 #include "xap_GtkUtils.h"
 
 void XAP_gtk_window_raise(GtkWidget* w)
@@ -215,6 +217,44 @@ static void s_popover_map_cb(GtkWidget * pop, gpointer)
                   s_popover_add_click_ctl_idle,
                   g_object_ref(pop),
                   reinterpret_cast<GDestroyNotify>(g_object_unref));
+}
+
+static void s_pixbuf_cap_prepared_size(GdkPixbufLoader* ldr,
+                                       gint width, gint height,
+                                       gpointer /*user_data*/)
+{
+  if (width <= 0 || height <= 0)
+    return;
+  if (!UT_image_size_exceeds_limits(width, height))
+    return;
+  UT_sint32 cw = width, ch = height;
+  UT_image_size_clamp(cw, ch);
+  gdk_pixbuf_loader_set_size(ldr, cw, ch);
+}
+
+GdkPixbufLoader* xap_gtk_pixbuf_loader_new_capped(void)
+{
+  GdkPixbufLoader * ldr = gdk_pixbuf_loader_new();
+  if (!ldr)
+    return nullptr;
+  g_signal_connect(ldr, "size-prepared",
+                   G_CALLBACK(s_pixbuf_cap_prepared_size), nullptr);
+  return ldr;
+}
+
+GdkPixbuf* xap_gtk_pixbuf_enforce_limits(GdkPixbuf* pixbuf)
+{
+  if (!pixbuf)
+    return nullptr;
+  UT_sint32 w = gdk_pixbuf_get_width(pixbuf);
+  UT_sint32 h = gdk_pixbuf_get_height(pixbuf);
+  if (!UT_image_size_exceeds_limits(w, h))
+    return pixbuf;
+  UT_image_size_clamp(w, h);
+  GdkPixbuf * scaled = gdk_pixbuf_scale_simple(pixbuf, w, h,
+                                               GDK_INTERP_BILINEAR);
+  g_object_unref(G_OBJECT(pixbuf));
+  return scaled;
 }
 
 GtkWidget* xap_gtk_popover_new(void)

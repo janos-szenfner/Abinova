@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 #include "ie_impGraphic_GdkPixbuf.h"
+#include "xap_GtkUtils.h"
 
 //------------------------------------------------------------------------------------
 
@@ -376,14 +377,14 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::pixbufForByteBuf(const UT_ConstByteBufPtr &
 
 	if(bIsXPM)
 	{
-		pixbuf = _loadXPM(pBB);
+		pixbuf = xap_gtk_pixbuf_enforce_limits(_loadXPM(pBB));
 	}
 	else
 	{
 		GError * err = nullptr;
 		GdkPixbufLoader * ldr = nullptr;
 
-		ldr = gdk_pixbuf_loader_new ();
+		ldr = xap_gtk_pixbuf_loader_new_capped ();
 		if (!ldr)
 		{
 			UT_DEBUGMSG (("GdkPixbuf: couldn't create loader! WTF?\n"));
@@ -428,6 +429,10 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::pixbufForByteBuf(const UT_ConstByteBufPtr &
 			g_object_ref (G_OBJECT(pixbuf));
 
 		g_object_unref (G_OBJECT(ldr));
+
+		// loaders that ignored the scaled-decode hint deliver the
+		// full-size image — bound it here (consumes our reference)
+		pixbuf = xap_gtk_pixbuf_enforce_limits (pixbuf);
 	}
 
 	return pixbuf;

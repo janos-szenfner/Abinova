@@ -29,6 +29,7 @@
 #include "ut_assert.h"
 #include "ut_bytebuf.h"
 #include "ut_debugmsg.h"
+#include "ut_image.h"
 
 struct _bb
 {
@@ -118,6 +119,81 @@ bool UT_PNG_getDimensions(const UT_ConstByteBufPtr & pBB, UT_sint32& iImageWidth
 
 	iImageWidth = width;
 	iImageHeight = height;
+
+	return true;
+}
+
+/* Validate a PNG buffer end to end: libpng checks every chunk CRC and
+ * inflates the complete zlib stream, and png_read_end requires a
+ * proper IEND.  Decoding is row-at-a-time into a single reusable row,
+ * so validation uses O(rowbytes) memory regardless of image size.
+ * Buffers whose declared dimensions exceed the sane image limits are
+ * rejected up front.  Import paths must use this — UT_PNG_getDimensions
+ * only reads the header, so truncated or corrupt bodies used to be
+ * stored and only failed at render time. */
+bool UT_PNG_validate(const UT_ConstByteBufPtr & pBB)
+{
+	png_structp png_ptr;
+	png_infop info_ptr;
+
+	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, static_cast<void*>(nullptr),
+									 nullptr, nullptr);
+	if (png_ptr == nullptr)
+	{
+		return false;
+	}
+
+	info_ptr = png_create_info_struct(png_ptr);
+	if (info_ptr == nullptr)
+	{
+		png_destroy_read_struct(&png_ptr, static_cast<png_infopp>(nullptr), static_cast<png_infopp>(nullptr));
+		return false;
+	}
+
+	png_bytep row = nullptr;
+
+	if (setjmp(png_jmpbuf(png_ptr)))
+	{
+		delete[] row;
+		png_destroy_read_struct(&png_ptr, &info_ptr, static_cast<png_infopp>(nullptr));
+		return false;
+	}
+
+	struct _bb myBB;
+	myBB.pBB = pBB;
+	myBB.iCurPos = 0;
+
+	png_set_read_fn(png_ptr, static_cast<void *>(&myBB), _png_read);
+
+	png_read_info(png_ptr, info_ptr);
+
+	png_uint_32 width = 0, height = 0;
+	int bit_depth = 0, color_type = 0, interlace_type = 0;
+	png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
+				 &interlace_type, nullptr, nullptr);
+
+	if (UT_image_size_exceeds_limits(width, height))
+		png_error(png_ptr, "PNG dimensions exceed limits");
+
+	const int passes = png_set_interlace_handling(png_ptr);
+	png_read_update_info(png_ptr, info_ptr);
+
+	const png_size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+	if (rowbytes == 0)
+		png_error(png_ptr, "empty PNG row");
+
+	row = new png_byte[rowbytes];
+
+	for (int pass = 0; pass < passes; ++pass)
+	{
+		for (png_uint_32 y = 0; y < height; ++y)
+			png_read_row(png_ptr, row, nullptr);
+	}
+
+	png_read_end(png_ptr, info_ptr);
+
+	delete[] row;
+	png_destroy_read_struct(&png_ptr, &info_ptr, static_cast<png_infopp>(nullptr));
 
 	return true;
 }
