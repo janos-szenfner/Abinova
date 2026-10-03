@@ -90,7 +90,7 @@ private:
     GSimpleAction *m_adeletetriple;
     GSimpleAction *m_aimportrdfxml;
     GSimpleAction *m_aexportrdfxml;
-    GtkComboBox *m_selectedxmlid;
+    GtkDropDown *m_selectedxmlid;
     GtkWidget   *m_restrictxmlidhidew;
 
     GtkTreeIter getGIter( PD_RDFStatement st );

@@ -96,17 +96,17 @@
                   <layout><property name="column">2</property><property name="row">3</property></layout></object>
                   </child>
                 <child>
-                  <object class="GtkComboBoxText" id="locations">
+                  <object class="GtkDropDown" id="locations">
                     <property name="visible">1</property>
                   <layout><property name="column">1</property><property name="row">2</property></layout></object>
                   </child>
                 <child>
-                  <object class="GtkComboBoxText" id="events">
+                  <object class="GtkDropDown" id="events">
                     <property name="visible">1</property>
                   <layout><property name="column">1</property><property name="row">1</property></layout></object>
                   </child>
                 <child>
-                  <object class="GtkComboBoxText" id="contacts">
+                  <object class="GtkDropDown" id="contacts">
                     <property name="visible">1</property>
                     <property name="hexpand">1</property>
                   <layout><property name="column">1</property><property name="row">0</property></layout></object>

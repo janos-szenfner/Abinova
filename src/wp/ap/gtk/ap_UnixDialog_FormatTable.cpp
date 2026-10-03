@@ -95,7 +95,7 @@ static void s_line_bottom(GtkWidget *widget, gpointer data )
 	dlg->event_previewInvalidate();
 }
 
-static void s_border_thickness(GtkWidget *widget, gpointer data )
+static void s_border_thickness(GtkWidget *widget, GParamSpec */*pspec*/, gpointer data )
 {
 	AP_UnixDialog_FormatTable * dlg = static_cast<AP_UnixDialog_FormatTable *>(data);
 	UT_return_if_fail(widget && dlg);
@@ -110,7 +110,7 @@ static void s_preview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 	dlg->event_previewDraw(cr);
 }
 
-static void s_apply_to_changed(GtkWidget *widget, gpointer data)
+static void s_apply_to_changed(GtkWidget *widget, GParamSpec */*pspec*/, gpointer data)
 {
 	AP_UnixDialog_FormatTable * dlg = reinterpret_cast<AP_UnixDialog_FormatTable *>(data);
 	UT_return_if_fail(widget && dlg);
@@ -302,7 +302,7 @@ void AP_UnixDialog_FormatTable::setBorderThicknessInGUI(const std::string & sThi
 {
 	guint closest = _findClosestThickness(sThick.c_str());
 	XAP_GtkSignalBlocker b(G_OBJECT(m_wBorderThickness),m_iBorderThicknessConnect);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(m_wBorderThickness), closest);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(m_wBorderThickness), closest);
 }
 
 void AP_UnixDialog_FormatTable::setBackgroundColorInGUI(const UT_RGBColor& clr)
@@ -316,7 +316,9 @@ void AP_UnixDialog_FormatTable::event_BorderThicknessChanged(void)
 {
 	if(m_wBorderThickness)
 	{
-		gint history = gtk_combo_box_get_active(GTK_COMBO_BOX(m_wBorderThickness));
+		gint history = static_cast<gint>(gtk_drop_down_get_selected(GTK_DROP_DOWN(m_wBorderThickness)));
+		if (history < 0 || history >= FORMAT_TABLE_NUMTHICKNESS)
+			return;
 		double thickness = m_dThickness[history];
 
 		std::string sThickness;
@@ -334,7 +336,7 @@ void AP_UnixDialog_FormatTable::event_ApplyToChanged(void)
 {
 	if (m_wApplyToMenu)
 	{
-		gint history = gtk_combo_box_get_active(GTK_COMBO_BOX(m_wApplyToMenu));
+		gint history = static_cast<gint>(gtk_drop_down_get_selected(GTK_DROP_DOWN(m_wApplyToMenu)));
 		switch (history)
 		{
 			case 0:
@@ -449,36 +451,36 @@ GtkWidget * AP_UnixDialog_FormatTable::_constructWindow(void)
 // Now the Border Thickness Option menu
 // 
 	m_wBorderThickness = GTK_WIDGET(gtk_builder_get_object(builder, "omBorderThickness"));
-	GtkComboBox* combo = GTK_COMBO_BOX(m_wBorderThickness);
-	XAP_makeGtkComboBoxText(GTK_COMBO_BOX(combo), G_TYPE_NONE);
-	XAP_appendComboBoxText(combo, "1/2 pt");
-	XAP_appendComboBoxText(combo, "3/4 pt");
-	XAP_appendComboBoxText(combo, "1 pt");
-	XAP_appendComboBoxText(combo, "1 1/2 pt");
-	XAP_appendComboBoxText(combo, "2 1/4 pt");
-	XAP_appendComboBoxText(combo, "3 pt");
-	XAP_appendComboBoxText(combo, "4 1/2 pt");
-	XAP_appendComboBoxText(combo, "6 pt");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	GtkDropDown* combo = GTK_DROP_DOWN(m_wBorderThickness);
+	XAP_makeGtkDropDown(combo);
+	XAP_appendDropDownText(combo, "1/2 pt");
+	XAP_appendDropDownText(combo, "3/4 pt");
+	XAP_appendDropDownText(combo, "1 pt");
+	XAP_appendDropDownText(combo, "1 1/2 pt");
+	XAP_appendDropDownText(combo, "2 1/4 pt");
+	XAP_appendDropDownText(combo, "3 pt");
+	XAP_appendDropDownText(combo, "4 1/2 pt");
+	XAP_appendDropDownText(combo, "6 pt");
+	gtk_drop_down_set_selected(combo, 0);
 
 	// add the options to the "Apply to" menu
 	// NOTE: if you change this order, make sure to adjust event_ApplyToChanged as well!
 	// FIXME: PLEASE ADD A "localizeMenuItem" HELPER FUNCTION OR SOMETHING LIKE THAT
 	m_wApplyToMenu = GTK_WIDGET(gtk_builder_get_object(builder, "omApplyTo"));
-	combo = GTK_COMBO_BOX(m_wApplyToMenu);
-	XAP_makeGtkComboBoxText(GTK_COMBO_BOX(combo), G_TYPE_NONE);
-	
+	combo = GTK_DROP_DOWN(m_wApplyToMenu);
+	XAP_makeGtkDropDown(combo);
+
 	std::string s;
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTable_Apply_To_Selection,s);
-	XAP_appendComboBoxText(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTable_Apply_To_Row,s);
-	XAP_appendComboBoxText(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTable_Apply_To_Column,s);
-	XAP_appendComboBoxText(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTable_Apply_To_Table,s);
-	XAP_appendComboBoxText(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	gtk_drop_down_set_selected(combo, 0);
 
 	// add the apply and ok buttons to the dialog
 	m_wCloseButton = GTK_WIDGET(gtk_builder_get_object(builder, "btClose"));
@@ -567,12 +569,12 @@ void AP_UnixDialog_FormatTable::_connectSignals(void)
 							reinterpret_cast<gpointer>(this), nullptr);
 
 	g_signal_connect(G_OBJECT(m_wApplyToMenu),
-							"changed",
+							"notify::selected",
 							G_CALLBACK(s_apply_to_changed),
 							reinterpret_cast<gpointer>(this));
 
 	m_iBorderThicknessConnect = g_signal_connect(G_OBJECT(m_wBorderThickness),
-							"changed",
+							"notify::selected",
 							G_CALLBACK(s_border_thickness),
 							reinterpret_cast<gpointer>(this));
 }

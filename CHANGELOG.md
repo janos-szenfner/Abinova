@@ -3476,6 +3476,20 @@ below are on `main` but the release has not been cut yet.
   dialog helper, frame impl, table/clip-art/file/font-chooser/symbol/
   HTML-options widgets) now use `gtk_widget_set_visible`; identical
   semantics, no behavior change.
+- **`GtkComboBox` → `GtkDropDown` migration, part 1** —
+  `xap_GtkComboBoxHelpers` now ships a `GtkDropDown`-shaped helper API
+  (`XAPDropDownItem` row object carrying the old column payloads,
+  `GListStore` model, `GtkSignalListItemFactory` + property expression
+  for labels, and select-by-int/text/string lookups) alongside the
+  legacy shim, so remaining dialog ports are mechanical.  The file
+  type picker in Open/Save-As, the Border & Shading and Format Table
+  dialogs, Page Setup (page size + both unit selectors), the RDF
+  editor XMLID filter and the Semantic Stylesheets picker were
+  converted; `changed` handlers were rewired to `notify::selected`.
+  The helpers look the selected row up by model position rather than
+  `gtk_drop_down_get_selected_item`, whose reference accounting on
+  GTK 4.14 returns a borrowed pointer (unref'ing it freed live model
+  rows — found and fixed by the headless helper test).
 
 ### Performance
 

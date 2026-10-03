@@ -111,14 +111,8 @@
                               <layout><property name="column">0</property><property name="row">3</property></layout></object>
                               </child>
                             <child>
-                              <object class="GtkComboBox" id="comboPageSize">
+                              <object class="GtkDropDown" id="comboPageSize">
                                 <property name="visible">1</property>
-                                <child>
-                                  <object class="GtkCellRendererText" id="renderer1" />
-                                  <attributes>
-                                    <attribute name="text">0</attribute>
-                                  </attributes>
-                                </child>
                               <layout><property name="column">1</property><property name="row">0</property></layout></object>
                               </child>
                             <child>
@@ -130,7 +124,7 @@
                               <layout><property name="column">1</property><property name="row">2</property></layout></object>
                               </child>
                             <child>
-                              <object class="GtkComboBox" id="optionPageUnits">
+                              <object class="GtkDropDown" id="optionPageUnits">
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                               <layout><property name="column">1</property><property name="row">1</property></layout></object>
@@ -283,7 +277,7 @@
                   <layout><property name="column">0</property><property name="row">0</property></layout></object>
                   </child>
                 <child>
-                  <object class="GtkComboBox" id="optionMarginUnits">
+                  <object class="GtkDropDown" id="optionMarginUnits">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   <layout><property name="column">1</property><property name="row">0</property></layout></object>

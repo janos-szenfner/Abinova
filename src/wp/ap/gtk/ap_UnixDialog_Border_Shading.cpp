@@ -141,14 +141,14 @@ static void s_on_border_color_clicked(GtkGestureClick *g, gint /*n_press*/, gdou
 	return;
 }
 
-static void s_on_border_thickness_clicked(GtkWidget *widget, gpointer data )
+static void s_on_border_thickness_clicked(GtkWidget *widget, GParamSpec */*pspec*/, gpointer data )
 {
 	AP_UnixDialog_Border_Shading * dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
 	UT_return_if_fail(widget && dlg);
 	dlg->event_BorderThicknessChanged();
 }
 
-static void s_on_border_style_clicked(GtkWidget *widget, gpointer data )
+static void s_on_border_style_clicked(GtkWidget *widget, GParamSpec */*pspec*/, gpointer data )
 {
 	AP_UnixDialog_Border_Shading * dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
 	UT_return_if_fail(widget && dlg);
@@ -179,7 +179,7 @@ static void s_on_shading_color_clicked(GtkGestureClick *g, gint /*n_press*/, gdo
 }
 
 
-static void s_on_shading_offset_clicked(GtkWidget *widget, gpointer data )
+static void s_on_shading_offset_clicked(GtkWidget *widget, GParamSpec */*pspec*/, gpointer data )
 {
 	AP_UnixDialog_Border_Shading * dlg = static_cast<AP_UnixDialog_Border_Shading *>(data);
 	UT_return_if_fail(widget && dlg);
@@ -329,7 +329,7 @@ void AP_UnixDialog_Border_Shading::setBorderThicknessInGUI(const std::string & s
 
 	guint closest = _findClosestThickness(sThick.c_str());
 	XAP_GtkSignalBlocker b(G_OBJECT(m_wBorderThickness),m_iBorderThicknessConnect);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(m_wBorderThickness), closest);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(m_wBorderThickness), closest);
 }
 
 void AP_UnixDialog_Border_Shading::setBorderStyleInGUI(const std::string & sStyle)
@@ -342,7 +342,7 @@ void AP_UnixDialog_Border_Shading::setBorderStyleInGUI(const std::string & sStyl
 	if (index >= 0)
 	{
 		XAP_GtkSignalBlocker b(G_OBJECT(m_wBorderStyle),m_iBorderStyleConnect);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(m_wBorderStyle), index);
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(m_wBorderStyle), index);
 	}
 }
 
@@ -379,14 +379,16 @@ void AP_UnixDialog_Border_Shading::setShadingOffsetInGUI(const std::string & sOf
 
 	guint closest = _findClosestOffset(sOffset.c_str());
 	XAP_GtkSignalBlocker b(G_OBJECT(m_wShadingOffset),m_iShadingOffsetConnect);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(m_wShadingOffset), closest);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(m_wShadingOffset), closest);
 }
 
 void AP_UnixDialog_Border_Shading::event_BorderThicknessChanged(void)
 {
 	if(m_wBorderThickness)
 	{
-		gint history = gtk_combo_box_get_active(GTK_COMBO_BOX(m_wBorderThickness));
+		gint history = static_cast<gint>(gtk_drop_down_get_selected(GTK_DROP_DOWN(m_wBorderThickness)));
+		if (history < 0 || history >= BORDER_SHADING_NUMTHICKNESS)
+			return;
 		double thickness = m_dThickness[history];
 
 		std::string sThickness;
@@ -403,7 +405,7 @@ void AP_UnixDialog_Border_Shading::event_BorderStyleChanged(void)
 {
 	if(m_wBorderStyle)
 	{
-		gint index = gtk_combo_box_get_active(GTK_COMBO_BOX(m_wBorderStyle));
+		gint index = static_cast<gint>(gtk_drop_down_get_selected(GTK_DROP_DOWN(m_wBorderStyle)));
 		UT_DEBUGMSG(("border index %d\n", index));
 		if (index >= 0 && index < BORDER_SHADING_NUMOFSTYLES)
 		{
@@ -417,7 +419,9 @@ void AP_UnixDialog_Border_Shading::event_ShadingOffsetChanged(void)
 {
 	if(m_wShadingOffset)
 	{
-		gint history = gtk_combo_box_get_active(GTK_COMBO_BOX(m_wShadingOffset));
+		gint history = static_cast<gint>(gtk_drop_down_get_selected(GTK_DROP_DOWN(m_wShadingOffset)));
+		if (history < 0 || history >= BORDER_SHADING_NUMOFFSETS)
+			return;
 		double offset = m_dShadingOffset[history];
 
 		std::string sOffset;
@@ -531,51 +535,51 @@ GtkWidget * AP_UnixDialog_Border_Shading::_constructWindow(void)
 // Border Thickness Option menu
 // 
 	m_wBorderThickness = GTK_WIDGET(gtk_builder_get_object(builder, "omBorderThickness"));
-	GtkComboBox* combo = GTK_COMBO_BOX(m_wBorderThickness);
-	XAP_makeGtkComboBoxText(combo, G_TYPE_NONE);
-	XAP_appendComboBoxText(combo, "1/2 pt");
-	XAP_appendComboBoxText(combo, "3/4 pt");
-	XAP_appendComboBoxText(combo, "1 pt");
-	XAP_appendComboBoxText(combo, "1 1/2 pt");
-	XAP_appendComboBoxText(combo, "2 1/4 pt");
-	XAP_appendComboBoxText(combo, "3 pt");
-	XAP_appendComboBoxText(combo, "4 1/2 pt");
-	XAP_appendComboBoxText(combo, "6 pt");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	GtkDropDown* combo = GTK_DROP_DOWN(m_wBorderThickness);
+	XAP_makeGtkDropDown(combo);
+	XAP_appendDropDownText(combo, "1/2 pt");
+	XAP_appendDropDownText(combo, "3/4 pt");
+	XAP_appendDropDownText(combo, "1 pt");
+	XAP_appendDropDownText(combo, "1 1/2 pt");
+	XAP_appendDropDownText(combo, "2 1/4 pt");
+	XAP_appendDropDownText(combo, "3 pt");
+	XAP_appendDropDownText(combo, "4 1/2 pt");
+	XAP_appendDropDownText(combo, "6 pt");
+	gtk_drop_down_set_selected(combo, 0);
 
 //
 // Border Style Option menu
 //
 	m_wBorderStyle = GTK_WIDGET(gtk_builder_get_object(builder, "cmbBorderStyle"));
-	GtkComboBox* combo_style = GTK_COMBO_BOX(m_wBorderStyle);
-	XAP_makeGtkComboBoxText(combo_style, G_TYPE_NONE);
-	
+	GtkDropDown* combo_style = GTK_DROP_DOWN(m_wBorderStyle);
+	XAP_makeGtkDropDown(combo_style);
+
 	std::string s;
 	pSS->getValueUTF8(AP_STRING_ID_DLG_BorderShading_Border_Style_None, s);
-	XAP_appendComboBoxText(combo_style, s.c_str());
+	XAP_appendDropDownText(combo_style, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_BorderShading_Border_Style_Solid, s);
-	XAP_appendComboBoxText(combo_style, s.c_str());
+	XAP_appendDropDownText(combo_style, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_BorderShading_Border_Style_Dotted, s);
-	XAP_appendComboBoxText(combo_style, s.c_str());
+	XAP_appendDropDownText(combo_style, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_BorderShading_Border_Style_Dashed, s);
-	XAP_appendComboBoxText(combo_style, s.c_str());
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo_style), 0);
+	XAP_appendDropDownText(combo_style, s.c_str());
+	gtk_drop_down_set_selected(combo_style, 0);
 
 //
 // Shading offset Option menu
 //
 	m_wShadingOffset = GTK_WIDGET(gtk_builder_get_object(builder, "cmbShadingOffset"));
-	GtkComboBox* combo_offset = GTK_COMBO_BOX(m_wShadingOffset);
-	XAP_makeGtkComboBoxText(combo_offset, G_TYPE_NONE);
-	XAP_appendComboBoxText(combo_offset, "1/2 pt");
-	XAP_appendComboBoxText(combo_offset, "3/4 pt");
-	XAP_appendComboBoxText(combo_offset, "1 pt");
-	XAP_appendComboBoxText(combo_offset, "1 1/2 pt");
-	XAP_appendComboBoxText(combo_offset, "2 1/4 pt");
-	XAP_appendComboBoxText(combo_offset, "3 pt");
-	XAP_appendComboBoxText(combo_offset, "4 1/2 pt");
-	XAP_appendComboBoxText(combo_offset, "6 pt");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo_offset), 0);
+	GtkDropDown* combo_offset = GTK_DROP_DOWN(m_wShadingOffset);
+	XAP_makeGtkDropDown(combo_offset);
+	XAP_appendDropDownText(combo_offset, "1/2 pt");
+	XAP_appendDropDownText(combo_offset, "3/4 pt");
+	XAP_appendDropDownText(combo_offset, "1 pt");
+	XAP_appendDropDownText(combo_offset, "1 1/2 pt");
+	XAP_appendDropDownText(combo_offset, "2 1/4 pt");
+	XAP_appendDropDownText(combo_offset, "3 pt");
+	XAP_appendDropDownText(combo_offset, "4 1/2 pt");
+	XAP_appendDropDownText(combo_offset, "6 pt");
+	gtk_drop_down_set_selected(combo_offset, 0);
 
 	// add the apply and ok buttons to the dialog
 	m_wCloseButton = GTK_WIDGET(gtk_builder_get_object(builder, "btClose"));
@@ -652,17 +656,17 @@ void AP_UnixDialog_Border_Shading::_connectSignals(void)
 							reinterpret_cast<gpointer>(this), nullptr);
 
 	m_iShadingOffsetConnect = g_signal_connect(G_OBJECT(m_wShadingOffset),
-											"changed",
+											"notify::selected",
 											G_CALLBACK(s_on_shading_offset_clicked),
 											reinterpret_cast<gpointer>(this));
 
 	m_iBorderThicknessConnect = g_signal_connect(G_OBJECT(m_wBorderThickness),
-												"changed",
+												"notify::selected",
 												G_CALLBACK(s_on_border_thickness_clicked),
 												reinterpret_cast<gpointer>(this));
 
 	m_iBorderStyleConnect = g_signal_connect(G_OBJECT(m_wBorderStyle),
-											"changed",
+											"notify::selected",
 											G_CALLBACK(s_on_border_style_clicked),
 											reinterpret_cast<gpointer>(this));
 

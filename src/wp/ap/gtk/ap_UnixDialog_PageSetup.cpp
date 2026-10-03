@@ -99,20 +99,20 @@ static void s_Landscape_changed(GtkWidget * w,  AP_UnixDialog_PageSetup *dlg)
 	dlg->event_LandscapeChanged();
 }
 
-static void s_page_size_changed (GtkWidget * w, AP_UnixDialog_PageSetup *dlg)
+static void s_page_size_changed (GtkWidget * w, GParamSpec */*pspec*/, AP_UnixDialog_PageSetup *dlg)
 {
 	UT_return_if_fail(w && dlg);
-	fp_PageSize::Predefined pos = static_cast<fp_PageSize::Predefined>(gtk_combo_box_get_active(GTK_COMBO_BOX(w)));
+	fp_PageSize::Predefined pos = static_cast<fp_PageSize::Predefined>(gtk_drop_down_get_selected(GTK_DROP_DOWN(w)));
 	dlg->event_PageSizeChanged (pos);
 }
 
-static void s_page_units_changed (GtkWidget * w, AP_UnixDialog_PageSetup *dlg)
+static void s_page_units_changed (GtkWidget * w, GParamSpec */*pspec*/, AP_UnixDialog_PageSetup *dlg)
 {
 	UT_return_if_fail(w && dlg);
 	dlg->event_PageUnitsChanged ();
 }
 
-static void s_margin_units_changed (GtkWidget * w, AP_UnixDialog_PageSetup *dlg)
+static void s_margin_units_changed (GtkWidget * w, GParamSpec */*pspec*/, AP_UnixDialog_PageSetup *dlg)
 {
 	UT_return_if_fail(w && dlg);
 	dlg->event_MarginUnitsChanged ();
@@ -249,7 +249,7 @@ void AP_UnixDialog_PageSetup::_updatePageSizeList(void)
 						(m_PageSize.getPredefinedName ()));
 
 	XAP_GtkSignalBlocker b(G_OBJECT(m_comboPageSize), m_iComboPageSizeListID);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(m_comboPageSize), page_index);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(m_comboPageSize), page_index);
 }
 
 void AP_UnixDialog_PageSetup::event_OK (void)
@@ -302,8 +302,8 @@ void AP_UnixDialog_PageSetup::event_Cancel (void)
 #define FMT_STRING "%0.2f"
 void AP_UnixDialog_PageSetup::event_PageUnitsChanged (void)
 {
-	UT_Dimension pu = static_cast<UT_Dimension>(XAP_comboBoxGetActiveInt(
-													GTK_COMBO_BOX(m_optionPageUnits)));
+	UT_Dimension pu = static_cast<UT_Dimension>(XAP_dropDownGetSelectedInt(
+													GTK_DROP_DOWN(m_optionPageUnits)));
 
 	double width, height;
 
@@ -350,7 +350,7 @@ void AP_UnixDialog_PageSetup::event_PageSizeChanged (fp_PageSize::Predefined pd)
 	// change the units in the dialog, too.
 	UT_Dimension new_units = ps.getDims();
 	setPageUnits(new_units);
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX (m_optionPageUnits), 1, new_units);
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN (m_optionPageUnits), new_units);
 
 	float w, h;
 
@@ -380,7 +380,7 @@ void AP_UnixDialog_PageSetup::event_PageSizeChanged (fp_PageSize::Predefined pd)
   }
   else
   {																	
-	  UT_Dimension dim = static_cast<UT_Dimension>(XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_optionPageUnits)));
+	  UT_Dimension dim = static_cast<UT_Dimension>(XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(m_optionPageUnits)));
 	  ps.Set(atof(XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryPageWidth))),
 			 atof(XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryPageHeight))),
 			 dim);
@@ -389,7 +389,7 @@ void AP_UnixDialog_PageSetup::event_PageSizeChanged (fp_PageSize::Predefined pd)
 
 void AP_UnixDialog_PageSetup::event_MarginUnitsChanged (void)
 {
-	UT_Dimension mu =  static_cast<UT_Dimension>(XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_optionMarginUnits)));
+	UT_Dimension mu =  static_cast<UT_Dimension>(XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(m_optionMarginUnits)));
 
 	float top, bottom, left, right, header, footer;
 
@@ -484,10 +484,10 @@ void AP_UnixDialog_PageSetup::_connectSignals (void)
  					   static_cast<gpointer>(this));
 
 	g_signal_connect(G_OBJECT(m_optionPageUnits),
-					 "changed",
+					 "notify::selected",
 					 G_CALLBACK(s_page_units_changed), this);
 	g_signal_connect(G_OBJECT(m_optionMarginUnits),
-					 "changed",
+					 "notify::selected",
 					 G_CALLBACK(s_margin_units_changed), this);
 }
 
@@ -594,39 +594,35 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 	/* setup scale number */
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_spinPageScale), static_cast<float>(getPageScale ()));
 
-	// fill the combobox all of our supported page sizes
-	GtkListStore* pagesize_store = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_POINTER);
-	GtkTreeIter pagesize_iter;
+	// fill the dropdown with all of our supported page sizes
+	GtkDropDown *pageSizeDD = GTK_DROP_DOWN(m_comboPageSize);
+	XAP_makeGtkDropDown(pageSizeDD);
 	for (UT_uint32 i = fp_PageSize::_first_predefined_pagesize_; i < fp_PageSize::_last_predefined_pagesize_dont_use_; i++)
 	{
-		gtk_list_store_append(pagesize_store, &pagesize_iter);
-		gtk_list_store_set(pagesize_store, &pagesize_iter,
-					0, pSS->getValue(fp_PageSize::PredefinedToLocalName(static_cast<fp_PageSize::Predefined>( i))),
-					1, this,
-					-1);
+		XAP_appendDropDownText(pageSizeDD,
+					pSS->getValue(fp_PageSize::PredefinedToLocalName(static_cast<fp_PageSize::Predefined>( i))));
 	}
-	gtk_combo_box_set_model(GTK_COMBO_BOX(m_comboPageSize), GTK_TREE_MODEL(pagesize_store));
 	m_iComboPageSizeListID = g_signal_connect(G_OBJECT(m_comboPageSize),
-							"changed",
+							"notify::selected",
 							G_CALLBACK(s_page_size_changed),
 							static_cast<gpointer>(this));
 
 	/* setup page units menu */
-	GtkComboBox *combo = GTK_COMBO_BOX(m_optionPageUnits);
-	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
-	XAP_appendComboBoxTextAndInt(combo, _(XAP, DLG_Unit_inch), DIM_IN);
-	XAP_appendComboBoxTextAndInt(combo, _(XAP, DLG_Unit_cm), DIM_CM);
-	XAP_appendComboBoxTextAndInt(combo, _(XAP, DLG_Unit_mm), DIM_MM);
-	XAP_comboBoxSetActiveFromIntCol(combo, 1, getPageUnits());
+	GtkDropDown *combo = GTK_DROP_DOWN(m_optionPageUnits);
+	XAP_makeGtkDropDown(combo);
+	XAP_appendDropDownTextAndInt(combo, _(XAP, DLG_Unit_inch), DIM_IN);
+	XAP_appendDropDownTextAndInt(combo, _(XAP, DLG_Unit_cm), DIM_CM);
+	XAP_appendDropDownTextAndInt(combo, _(XAP, DLG_Unit_mm), DIM_MM);
+	XAP_dropDownSetSelectedFromInt(combo, getPageUnits());
 
 	/* setup margin units menu */
-	combo = GTK_COMBO_BOX(m_optionMarginUnits);
-	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
-	XAP_appendComboBoxTextAndInt(combo, _(XAP, DLG_Unit_inch), DIM_IN);
-	XAP_appendComboBoxTextAndInt(combo, _(XAP, DLG_Unit_cm), DIM_CM);
-	XAP_appendComboBoxTextAndInt(combo, _(XAP, DLG_Unit_mm), DIM_MM);
+	combo = GTK_DROP_DOWN(m_optionMarginUnits);
+	XAP_makeGtkDropDown(combo);
+	XAP_appendDropDownTextAndInt(combo, _(XAP, DLG_Unit_inch), DIM_IN);
+	XAP_appendDropDownTextAndInt(combo, _(XAP, DLG_Unit_cm), DIM_CM);
+	XAP_appendDropDownTextAndInt(combo, _(XAP, DLG_Unit_mm), DIM_MM);
 	last_margin_unit = getMarginUnits ();
-	XAP_comboBoxSetActiveFromIntCol(combo, 1, last_margin_unit);
+	XAP_dropDownSetSelectedFromInt(combo, last_margin_unit);
 
 	/* add margin image to the margin window */
 	customPreview = gtk_image_new_from_resource("/io/github/janos_szenfner/Abinova/margin_xpm");

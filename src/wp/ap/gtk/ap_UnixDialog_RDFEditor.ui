@@ -73,7 +73,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="selectedxmlid">
+                  <object class="GtkDropDown" id="selectedxmlid">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   <property name="hexpand">1</property><property name="vexpand">1</property></object>

@@ -146,7 +146,7 @@ static void s_preview_draw(GtkDrawingArea * /* area */,
 	}
 }
 
-static void s_filetypechanged(GtkWidget * w, gpointer p)
+static void s_filetypechanged(GtkWidget * w, GParamSpec */*pspec*/, gpointer p)
 {
 	XAP_UnixDialog_FileOpenSaveAs * dlg = static_cast<XAP_UnixDialog_FileOpenSaveAs *>(p);
 	UT_ASSERT(dlg);
@@ -313,7 +313,7 @@ bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
 			// If, however, the user doesn't want suffixes, they don't have to have them.  
 			{
 				//UT_uint32 end = g_strv_length(m_szSuffixes);
-   				UT_sint32 nFileType = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(filetypes_pulldown));
+   				UT_sint32 nFileType = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(filetypes_pulldown));
 	
 				// set to first item, which should probably be auto detect
 				// TODO : "probably" isn't very good.
@@ -491,7 +491,7 @@ void XAP_UnixDialog_FileOpenSaveAs::fileTypeChanged(GtkWidget * w)
 	if (!m_bSave)
 		return;
 
-	UT_sint32 nFileType = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(w));
+	UT_sint32 nFileType = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(w));
 	UT_DEBUGMSG(("File type widget is %p filetype number is %d \n",w,nFileType));
 
 	if (m_wEncryptBox)
@@ -823,7 +823,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 			gtk_widget_set_hexpand(filetypes_label, TRUE);
 
 	// pulldown menu
-	filetypes_pulldown = gtk_combo_box_new();
+	filetypes_pulldown = gtk_drop_down_new(nullptr, nullptr);
 	gtk_widget_set_visible(filetypes_pulldown, TRUE);
 	if (bottom_grid)
 		gtk_grid_attach(GTK_GRID(bottom_grid), filetypes_pulldown, 1, 1, 1, 1);
@@ -834,14 +834,14 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	//
 	// add the filters to the dropdown list
 	//
-	GtkComboBox* combo = GTK_COMBO_BOX(filetypes_pulldown);
-	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
+	GtkDropDown* combo = GTK_DROP_DOWN(filetypes_pulldown);
+	XAP_makeGtkDropDown(combo);
 
 	// Auto-detect is always an option, but a special one, so we use
 	// a pre-defined constant for the type, and don't use the user-supplied
 	// types yet.
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_FOSA_FileTypeAutoDetect,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), XAP_DIALOG_FILEOPENSAVEAS_FILE_TYPE_AUTO);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), XAP_DIALOG_FILEOPENSAVEAS_FILE_TYPE_AUTO);
 
 	UT_sint32 activeItemIndex = -1;
 	
@@ -859,7 +859,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 			if (m_nTypeList[i] == m_nDefaultFileType)
 				activeItemIndex = i;
 			
-			XAP_appendComboBoxTextAndInt(combo, m_szDescriptions[i], m_nTypeList[i]);
+			XAP_appendDropDownTextAndInt(combo, m_szDescriptions[i], m_nTypeList[i]);
 //
 // Attach a callback when it is activated to change the file suffix
 //
@@ -877,17 +877,17 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
         || ( m_id == XAP_DIALOG_ID_FILE_EXPORT && activeItemIndex >= 0 )
         )
 	{
-		gtk_combo_box_set_active(combo, activeItemIndex + 1);
+		gtk_drop_down_set_selected(combo, activeItemIndex + 1);
 	}
 	else if (activeItemIndex >= 0)
 	{
 		/* an explicit file type was requested (e.g. Insert > RTF
 		 * Document…) — preselect it instead of auto-detect */
-		gtk_combo_box_set_active(combo, activeItemIndex + 1);
+		gtk_drop_down_set_selected(combo, activeItemIndex + 1);
 	}
 	else
 	{
-		gtk_combo_box_set_active(combo, 0);
+		gtk_drop_down_set_selected(combo, 0);
 	}
 
 	gtk_box_append(GTK_BOX(main_vbox), pulldown_hbox);
@@ -961,7 +961,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 					 G_CALLBACK(s_fc_key_pressed), m_FC);
 	gtk_widget_add_controller(GTK_WIDGET(m_FC), fc_key);
 
-	g_signal_connect(G_OBJECT(filetypes_pulldown), "changed",
+	g_signal_connect(G_OBJECT(filetypes_pulldown), "notify::selected",
 					 G_CALLBACK(s_filetypechanged),
 					 reinterpret_cast<gpointer>(this));
 
@@ -969,7 +969,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	// was connected; refresh encrypt-option visibility for the default type
 	if (m_wEncryptBox)
 	{
-		UT_sint32 nFileType = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(filetypes_pulldown));
+		UT_sint32 nFileType = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(filetypes_pulldown));
 		bool bShowEncrypt = false;
 		if (nFileType > 0)
 		{
@@ -1091,7 +1091,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 		m_finalPathnameCandidate.clear();
 
 		// what a long ugly line of code
-		m_nFileType = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(filetypes_pulldown));
+		m_nFileType = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(filetypes_pulldown));
 	}
 
 	if (m_dialog != nullptr) {

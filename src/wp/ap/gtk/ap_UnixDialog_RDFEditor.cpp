@@ -67,12 +67,12 @@ AP_UnixDialog_RDFEditor__onActionCopy(GAction*, GVariant*, gpointer data)
 }
 
 
-static void s_OnXMLIDChanged(GtkWidget * widget, AP_UnixDialog_RDFEditor* dlg)
+static void s_OnXMLIDChanged(GtkWidget * widget, GParamSpec */*pspec*/, AP_UnixDialog_RDFEditor* dlg)
 {
 	UT_UNUSED(widget);
 	UT_ASSERT(widget && dlg);
 
-    std::string xmlid = XAP_comboBoxGetActiveText( GTK_COMBO_BOX( widget ));
+    std::string xmlid = XAP_dropDownGetSelectedText( GTK_DROP_DOWN( widget ));
    	dlg->setRestrictedXMLID( xmlid );
 }
 
@@ -508,7 +508,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
     m_btShowAll = GTK_WIDGET(gtk_builder_get_object(builder, "btShowAll"));
 	m_resultsView   = GTK_TREE_VIEW(gtk_builder_get_object(builder, "resultsView"));
     m_status        = GTK_WIDGET(gtk_builder_get_object(builder, "status"));
-    m_selectedxmlid = GTK_COMBO_BOX(gtk_builder_get_object(builder, "selectedxmlid"));
+    m_selectedxmlid = GTK_DROP_DOWN(gtk_builder_get_object(builder, "selectedxmlid"));
     m_restrictxmlidhidew = GTK_WIDGET(gtk_builder_get_object(builder, "restrictxmlidhidew"));
 
     // Create actions
@@ -616,7 +616,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
     }
     else
     {
-        XAP_makeGtkComboBoxText( m_selectedxmlid, G_TYPE_INT );
+        XAP_makeGtkDropDown( m_selectedxmlid );
 
         PT_DocPosition point = getView()->getPoint();
         if( PD_DocumentRDFHandle rdf = getRDF() )
@@ -636,7 +636,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
                 }
                 combinedxmlidss << *iter;
             }
-            XAP_appendComboBoxTextAndInt( m_selectedxmlid, combinedxmlidss.str().c_str(), 0 );
+            XAP_appendDropDownTextAndInt( m_selectedxmlid, combinedxmlidss.str().c_str(), 0 );
             setRestrictedXMLID( combinedxmlidss.str() );
             
             if (combined)
@@ -645,10 +645,10 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
                 for( std::set< std::string >::const_iterator iter = xmlids.begin();
                      iter != xmlids.end(); ++iter, ++idx )
                 {
-                    XAP_appendComboBoxTextAndInt( m_selectedxmlid, iter->c_str(), idx );
+                    XAP_appendDropDownTextAndInt( m_selectedxmlid, iter->c_str(), idx );
                 }
 
-                gtk_combo_box_set_active( m_selectedxmlid, 0 );
+                gtk_drop_down_set_selected( m_selectedxmlid, 0 );
         
                 // std::list< std::string > xmlids;
                 // getRDF()->addRelevantIDsForPosition( xmlids, getView()->getPoint() );
@@ -659,7 +659,7 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
                 // }
                 
                 g_signal_connect(G_OBJECT(m_selectedxmlid),
-                                 "changed",
+                                 "notify::selected",
                                  G_CALLBACK(s_OnXMLIDChanged),
                                  static_cast<gpointer>( this));
             }

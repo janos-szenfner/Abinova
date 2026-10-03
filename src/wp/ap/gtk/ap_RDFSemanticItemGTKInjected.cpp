@@ -244,7 +244,8 @@ ApplySemanticStylesheets( const std::string& semItemClassRestriction,
 static void
 OnSemanticStylesheetsSet_cb (GtkWidget *, combo_box_t *box)
 {
-    const char *t = getStylesheetName(box->ssList, gtk_combo_box_get_active_id(GTK_COMBO_BOX(box->combo_box)));
+    std::string sel = XAP_dropDownGetSelectedText(GTK_DROP_DOWN(box->combo_box));
+    const char *t = getStylesheetName(box->ssList, sel.empty() ? nullptr : sel.c_str());
     std::string ssName = t ? t : box->defaultStylesheet;
 
     UT_DEBUGMSG(("OnSemanticStylesheetsSet_cb() combo:%p\n", box->combo_box));
@@ -264,9 +265,10 @@ OnSemanticStylesheetsOk_cb (GtkWidget *widget, combo_box_t *box)
         const char *t;
         std::string ssName;
 
-        box[i].index = gtk_combo_box_get_active(GTK_COMBO_BOX(box[i].combo_box));
-        
-        t = getStylesheetName(box[i].ssList, gtk_combo_box_get_active_id(GTK_COMBO_BOX(box[i].combo_box)));
+        box[i].index = static_cast<int>(gtk_drop_down_get_selected(GTK_DROP_DOWN(box[i].combo_box)));
+
+        std::string sel = XAP_dropDownGetSelectedText(GTK_DROP_DOWN(box[i].combo_box));
+        t = getStylesheetName(box[i].ssList, sel.empty() ? nullptr : sel.c_str());
         ssName = t ? t : box[i].defaultStylesheet;
 
         UT_DEBUGMSG(("OnSemanticStylesheetsOk_cb() combo:%p\n", box[i].combo_box));
@@ -371,6 +373,9 @@ public:
         combo_box_data[0].combo_box = GTK_WIDGET(gtk_builder_get_object(builder, "contacts"));
         combo_box_data[1].combo_box = GTK_WIDGET(gtk_builder_get_object(builder, "events"));
         combo_box_data[2].combo_box = GTK_WIDGET(gtk_builder_get_object(builder, "locations"));
+        XAP_makeGtkDropDown(GTK_DROP_DOWN(combo_box_data[0].combo_box));
+        XAP_makeGtkDropDown(GTK_DROP_DOWN(combo_box_data[1].combo_box));
+        XAP_makeGtkDropDown(GTK_DROP_DOWN(combo_box_data[2].combo_box));
         GtkWidget*  setContacts  = GTK_WIDGET(gtk_builder_get_object(builder, "setContacts"));
         GtkWidget*  setEvents    = GTK_WIDGET(gtk_builder_get_object(builder, "setEvents"));
         GtkWidget*  setLocations = GTK_WIDGET(gtk_builder_get_object(builder, "setLocations"));
@@ -388,25 +393,25 @@ public:
         localizeButton(setEvents, pSS, AP_STRING_ID_DLG_RDF_SemanticStylesheets_Set);        
         localizeButton(setLocations, pSS, AP_STRING_ID_DLG_RDF_SemanticStylesheets_Set);        
         localizeButton(setAll, pSS, AP_STRING_ID_DLG_RDF_SemanticStylesheets_Set);        
-        // combo boxes
+        // drop-downs
         for (int i = 0; ssListContact[i].stylesheet; i++)
         {
             pSS->getValueUTF8(ssListContact[i].translation_id, text);
-            XAP_appendComboBoxText(GTK_COMBO_BOX(combo_box_data[0].combo_box), text.c_str());
+            XAP_appendDropDownText(GTK_DROP_DOWN(combo_box_data[0].combo_box), text.c_str());
         }
         for (int i = 0; ssListEvent[i].stylesheet; i++)
         {
             pSS->getValueUTF8(ssListEvent[i].translation_id, text);
-            XAP_appendComboBoxText(GTK_COMBO_BOX(combo_box_data[1].combo_box), text.c_str());
+            XAP_appendDropDownText(GTK_DROP_DOWN(combo_box_data[1].combo_box), text.c_str());
         }
         for (int i = 0; ssListLocation[i].stylesheet; i++)
         {
             pSS->getValueUTF8(ssListLocation[i].translation_id, text);
-            XAP_appendComboBoxText(GTK_COMBO_BOX(combo_box_data[2].combo_box), text.c_str());
+            XAP_appendDropDownText(GTK_DROP_DOWN(combo_box_data[2].combo_box), text.c_str());
         }
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box_data[0].combo_box), combo_box_data[0].index); 
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box_data[1].combo_box), combo_box_data[1].index); 
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box_data[2].combo_box), combo_box_data[2].index); 
+        gtk_drop_down_set_selected(GTK_DROP_DOWN(combo_box_data[0].combo_box), combo_box_data[0].index);
+        gtk_drop_down_set_selected(GTK_DROP_DOWN(combo_box_data[1].combo_box), combo_box_data[1].index);
+        gtk_drop_down_set_selected(GTK_DROP_DOWN(combo_box_data[2].combo_box), combo_box_data[2].index);
 
         // set max. text width for explanation
         GtkRequisition requisition;
