@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml-1.0.dtd">
+<abiword version="1.0" file-format="1.1">
+<section>
+<p props="text-align:left">Body text before the positioned image.</p>
+<frame strux-image-dataid="logo.png_0" title="Floating logo" alt="A red square floating in the page" props="frame-type:image; position-to:page-above-text; frame-width:1.5000in; frame-height:1.0000in; frame-page-xpos:3.0000in; frame-page-ypos:2.5000in; xpos:3.0000in; ypos:2.5000in; wrap-mode:above-text"/>
+<p props="text-align:left">Body text after the positioned image.</p>
+</section>
+<data>
+<d name="logo.png_0" mime-type="image/png" base64="yes">
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAICAIAAAB/FOjAAAAAFElEQVR4nGP4z8BAEiJN9agGIhEAJMZ/gd5KfaIAAAAASUVORK5CYII=
+</d>
+</data>
+</abiword>

@@ -1928,6 +1928,15 @@ below are on `main` but the release has not been cut yet.
   round-trips through `.abwn` save/load. Invoked while a positioned
   object is active it hands off to the existing full
   position/wrap/size dialog.
+- **Positioned-object context menu parity** — right-clicking a
+  floating/positioned image now selects the object under the pointer
+  first, so the menu's entries resolve the clicked frame instead of a
+  stale caret position (Save Image previously failed silently unless
+  the object was already selected). The menu gains an "Image
+  Properties…" entry next to the existing format entry — on a
+  positioned object it opens the same full position/wrap/size/title/
+  alt dialog — and the Cut/Copy/Delete Image items now state-gate on
+  an active object instead of being unconditionally enabled.
 - **Word-style popup menu icons** — `EV_UnixMenu::_createMenuItem`
   resolves each popup item's toolbar icon
   (`AP_CreateToolbarLabelSet` + `abi_stock_from_toolbar_id`) and sets

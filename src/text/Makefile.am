@@ -269,6 +269,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_ImageProps.t.cpp \
 	fmt/xp/t/fv_MouseContext.t.cpp \
 	fmt/xp/t/fv_PasteTag.t.cpp \
+	fmt/xp/t/fv_PosObjectContext.t.cpp \
 	fmt/xp/t/fv_SignatureLine.t.cpp \
 	fmt/xp/t/fv_TOCContext.t.cpp \
 	fmt/xp/t/fv_ViewModes.t.cpp \

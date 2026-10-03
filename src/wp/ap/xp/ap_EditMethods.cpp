@@ -5316,6 +5316,12 @@ Defun(contextPosObject)
 	UT_return_val_if_fail (pView, false);
 	XAP_Frame * pFrame = static_cast<XAP_Frame *> (pView->getParentData());
 	UT_return_val_if_fail(pFrame, false);
+	// select the positioned object under the click (activateFrame is a
+	// no-op while a frame is already active) so the menu's state
+	// functions enable and cut/copy/delete/save/properties resolve the
+	// clicked frame rather than whatever the stale point or last mouse
+	// coords happen to touch
+	pView->activateFrame();
 	return s_doContextMenu_no_move(EV_EMC_POSOBJECT,pCallData->m_xPos, pCallData->m_yPos,pView,pFrame);
 }
 

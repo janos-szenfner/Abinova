@@ -115,12 +115,12 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_EDIT_REMOVEHEADER,		0,0,0,0,"removeHeader",ap_GetState_Changes	,					nullptr);
 	_s(AP_MENU_ID_EDIT_REMOVEFOOTER,		0,0,0,0,	"removeFooter",ap_GetState_Changes,					nullptr);
 	_s(AP_MENU_ID_EDIT_DELETEFRAME,		0,0,0,0,	"deleteFrame", nullptr,nullptr);
-	_s(AP_MENU_ID_EDIT_DELETEIMAGE,		0,0,0,0,	"deleteFrame", nullptr,nullptr);
+	_s(AP_MENU_ID_EDIT_DELETEIMAGE,		0,0,0,0,	"deleteFrame", ap_GetState_InImage,nullptr);
 	_s(AP_MENU_ID_FMT_POSIMAGE,		0,1,0,0,	"dlgFmtPosImage", nullptr,nullptr);
 	_s(AP_MENU_ID_FMT_IMGPROPS,		0,1,0,0,	"dlgImageProperties", ap_GetState_InImage,nullptr);
 	_s(AP_MENU_ID_FMT_FRAME,		0,1,0,0,	"dlgFmtPosImage", nullptr,nullptr);
-	_s(AP_MENU_ID_EDIT_CUTIMAGE,		0,0,0,0,	"cutFrame", nullptr,nullptr);
-	_s(AP_MENU_ID_EDIT_COPYIMAGE,		0,0,0,0,	"copyFrame", nullptr,nullptr);
+	_s(AP_MENU_ID_EDIT_CUTIMAGE,		0,0,0,0,	"cutFrame", ap_GetState_InImage,nullptr);
+	_s(AP_MENU_ID_EDIT_COPYIMAGE,		0,0,0,0,	"copyFrame", ap_GetState_InImage,nullptr);
 	_s(AP_MENU_ID_EDIT_CUT_FRAME,		0,0,0,0,	"cutFrame", nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_COPY_FRAME,		0,0,0,0,	"copyFrame",nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_SELECT_FRAME,	0,0,0,0,	"selectFrame",nullptr,nullptr);

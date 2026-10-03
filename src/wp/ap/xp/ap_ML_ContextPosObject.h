@@ -29,6 +29,7 @@ BeginLayout(ContextPosObjectT,EV_EMC_POSOBJECT)
 
 	BeginPopupMenu()
 		MenuItem(AP_MENU_ID_FMT_POSIMAGE)
+		MenuItem(AP_MENU_ID_FMT_IMGPROPS)
 		MenuItem(AP_MENU_ID_FILE_SAVEIMAGE)
 		Separator()
 		MenuItem(AP_MENU_ID_EDIT_CUTIMAGE)
