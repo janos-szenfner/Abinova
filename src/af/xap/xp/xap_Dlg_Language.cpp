@@ -22,6 +22,7 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -37,16 +38,13 @@
 
 static bool is_utf8_encoding;
 
-static int s_compareQ(const void * a, const void * b)                           
-{                                                                               
-	const gchar ** A = const_cast<const gchar **>(static_cast<const gchar * const*>((a)));                                              
-	const gchar ** B = const_cast<const gchar **>(static_cast<const gchar * const*>((b)));
-	
+static bool s_compare(const gchar * A, const gchar * B)
+{
 	if (is_utf8_encoding)
-		return g_utf8_collate(*A,*B);
+		return g_utf8_collate(A,B) < 0;
 	else
-		return g_ascii_strcasecmp(*A,*B);
-}       
+		return g_ascii_strcasecmp(A,B) < 0;
+}
 
 /*****************************************************************/
 
@@ -86,8 +84,8 @@ XAP_Dialog_Language::XAP_Dialog_Language(XAP_DialogFactory * pDlgFactory, XAP_Di
 		}
 	}                                                                       
 
-	// sort the temporary array                                                                                                                      
-	qsort(ppLanguagesTemp, m_iLangCount-nDontSort, sizeof(gchar *), s_compareQ);
+	// sort the temporary array
+	std::sort(ppLanguagesTemp, ppLanguagesTemp + (m_iLangCount-nDontSort), s_compare);
 
 	  
 	// Copy the sorted codes and a ssign each language its code

@@ -28,7 +28,7 @@
 
 
 /*!
- * This static function is used to compare PP_AttrProp's for the qsort method of UT_Vector
+ * This static function is used to compare PP_AttrProp's for the addItemSorted method of UT_Vector
 \param vX1 pointer to a PP_AttrProp value.
 \param vX2 pointer to a second PP_AttrProp value
 */

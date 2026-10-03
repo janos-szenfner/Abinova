@@ -21,6 +21,8 @@
 
 /* This file implements RTF parsing routines */
 
+#include <algorithm>
+
 #include "ut_debugmsg.h"
 
 #include "ie_imp_RTF.h"
@@ -76,19 +78,18 @@ IE_Imp_RTFGroupParser::finalizeParse(void)
 
 bool IE_Imp_RTF::keywordSorted = false;
 
-static int kwsortcomparator(const void *v1, const void *v2)
+static bool kwsortcomparator(const _rtf_keyword & v1, const _rtf_keyword & v2)
 {
-	return strcmp((static_cast<const _rtf_keyword *>(v1))->keyword, 
-				  (static_cast<const _rtf_keyword *>(v2))->keyword);
+	return strcmp(v1.keyword, v2.keyword) < 0;
 }
 
 
 void IE_Imp_RTF::_initialKeywordSort(void)
 {
 	UT_DEBUGMSG(("RTF: initial sorting of keywords..."));
-	qsort (const_cast<_rtf_keyword*>(rtfKeywords), 
-		   sizeof (rtfKeywords) / sizeof(_rtf_keyword) , 
-		   sizeof(_rtf_keyword), &kwsortcomparator);
+	std::sort(rtfKeywords,
+		   rtfKeywords + sizeof(rtfKeywords) / sizeof(_rtf_keyword),
+		   kwsortcomparator);
 	IE_Imp_RTF::keywordSorted = true;
 	UT_DEBUGMSG(("done.\n"));
 }

@@ -48,8 +48,6 @@ ABI_W_POP
 #include "fl_TableLayout.h"
 #include "fp_types.h"
 
-using namespace std;
-
 #define WP6_NUM_LIST_LEVELS 8  // see WP6FileStructure.h
 
 // ABI_ListDefinition: tracks information on the list

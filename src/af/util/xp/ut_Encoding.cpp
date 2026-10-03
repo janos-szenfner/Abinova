@@ -22,6 +22,7 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
 #include <stdlib.h>
 
 #include "ut_iconv.h"
@@ -223,20 +224,9 @@ static enc_entry s_Table[] =
 	{enc_viscii,			nullptr, XAP_STRING_ID_ENC_VIET_VISCII},
 };
 
-static int s_compareQ(const void * a, const void *b)
+static bool s_compare(const enc_entry & A, const enc_entry & B)
 {
-	const enc_entry * A = static_cast<const enc_entry *>(a);
-	const enc_entry * B = static_cast<const enc_entry *>(b);
-
-	if (A->id < B->id) 
-	{
-		return -1;
-	}
-	else if (A->id > B->id) 
-	{
-		return 1;
-	}
-	return 0;
+	return A.id < B.id;
 }
 
 static int s_compareB(const void * l, const void *e)
@@ -301,7 +291,7 @@ UT_Encoding::UT_Encoding()
 		}
 		s_iCount = iOkayIndex;
 
-		qsort(s_Table, s_iCount, sizeof(enc_entry), s_compareQ);
+		std::sort(s_Table, s_Table + s_iCount, s_compare);
 
 		s_Init = false;
 	}

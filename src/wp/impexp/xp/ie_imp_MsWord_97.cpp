@@ -1609,17 +1609,14 @@ void IE_Imp_MsWord_97::_appendChar (UT_UCS4Char ch)
 /****************************************************************************/
 /****************************************************************************/
 
-static int s_cmp_bookmarks_qsort(const void * a, const void * b)
+static bool s_cmp_bookmarks(const bookmark & A, const bookmark & B)
 {
-	const bookmark * A = static_cast<const bookmark *>(a);
-	const bookmark * B = static_cast<const bookmark *>(b);
-
-	if(A->pos != B->pos)
-		return (A->pos - B->pos);
+	if(A.pos != B.pos)
+		return A.pos < B.pos;
 	else
 		// for bookmarks with identical position we want any start bookmarks to be
 		// before end bookmarks.
-		return static_cast<UT_sint32>(B->start) - static_cast<UT_sint32>(A->start);
+		return A.start && !B.start;
 }
 
 
@@ -7461,9 +7458,8 @@ int IE_Imp_MsWord_97::_handleBookmarks(const wvParseStruct *ps)
 		wvFree(posl);
 
 		//now sort the bookmarks by position
-		qsort(static_cast<void*>(m_pBookmarks),
-			  m_iBookmarksCount, sizeof(bookmark),
-			  s_cmp_bookmarks_qsort);
+		std::sort(m_pBookmarks, m_pBookmarks + m_iBookmarksCount,
+			  s_cmp_bookmarks);
 		
 #ifdef DEBUG
 		for(UT_uint32 k = 0; k < m_iBookmarksCount; k++)

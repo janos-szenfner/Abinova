@@ -3377,6 +3377,19 @@ below are on `main` but the release has not been cut yet.
   the box's geometry and anchoring).  Drawing shapes and equations
   still have no equivalent — those callbacks now log an explicit
   debug message instead of silently discarding content.
+- **`qsort` retired in favor of `std::sort`** — every `qsort` call
+  site in `src/` (the `UT_GenericVector::qsort` member plus the raw
+  sorts of the `.doc` bookmark table, language and encoding tables,
+  and the RTF keyword table) now uses `std::sort` with a typed
+  less-than comparator instead of an untyped `void*` function
+  pointer, so comparisons inline instead of bouncing through an
+  indirect call.  `UT_GenericVector` gained a templated `sort()`
+  member for its remaining sorted users (tab-stop vectors, annotation
+  layouts, table cell edges).
+- **`using namespace std;` removed from the WordPerfect importer's
+  public header** — the directive polluted the global namespace of
+  every translation unit including it; the header already qualified
+  all its `std::` names.
 
 ### GTK4 port (core migration)
 

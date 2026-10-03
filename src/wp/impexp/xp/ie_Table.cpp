@@ -1390,15 +1390,13 @@ void ie_imp_table::setNthCellOnThisRow(UT_sint32 iCell)
 }
 
 /*!
- * This static function is used to compare CellX's for the qsort method of UT_Vector
-\param vX1 pointer to a CellX value.
-\param vX2 pointer to a second CellX value
+ * This static function is used to compare CellX's for the sort method of UT_NumberVector
+\param x1 a CellX value.
+\param x2 a second CellX value
 */
-static UT_sint32 compareCellX(const void * vX1, const void * vX2)
+static bool compareCellX(UT_sint32 x1, UT_sint32 x2)
 {
-	UT_sint32 x1 = *static_cast<const UT_sint32 *>(vX1);
-	UT_sint32 x2 = *static_cast<const UT_sint32 *>(vX2);
-	return x1 - x2;
+	return x1 < x2;
 }
 
 
@@ -1419,7 +1417,7 @@ void ie_imp_table::_buildCellXVector(void)
 			m_vecCellX.addItem(cellx);
 		}
 	}
-	m_vecCellX.qsort(compareCellX);
+	m_vecCellX.sort(compareCellX);
 }
 
 /*!

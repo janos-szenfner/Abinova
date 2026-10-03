@@ -327,22 +327,9 @@ fl_TabStop::fl_TabStop()
 	iLeader = FL_LEADER_NONE;
 }
 
-static int compare_tabs(const void* p1, const void* p2)
+static bool compare_tabs(const fl_TabStop * pTab1, const fl_TabStop * pTab2)
 {
-	const fl_TabStop * const * ppTab1 = reinterpret_cast<const fl_TabStop * const *>(p1);
-	const fl_TabStop * const * ppTab2 = reinterpret_cast<const fl_TabStop * const *>(p2);
-
-	if ((*ppTab1)->getPosition() < (*ppTab2)->getPosition())
-	{
-		return -1;
-	}
-
-	if ((*ppTab1)->getPosition() > (*ppTab2)->getPosition())
-	{
-		return 1;
-	}
-
-	return 0;
+	return pTab1->getPosition() < pTab2->getPosition();
 }
 
 void buildTabStops(const char* pszTabStops, UT_GenericVector<fl_TabStop*> &vecTabs)
@@ -448,7 +435,7 @@ void buildTabStops(const char* pszTabStops, UT_GenericVector<fl_TabStop*> &vecTa
 			}
 		}
 
-		vecTabs.qsort(compare_tabs);
+		vecTabs.sort(compare_tabs);
 	}
 }
 

@@ -1209,16 +1209,12 @@ public:
 	UT_sint32		m_iTabPosition;
 };
 
-static int compare_tabs(const void* p1, const void* p2)
+static bool compare_tabs(const void* p1, const void* p2)
 {
-	_t ** ppTab1 = const_cast<_t **>(static_cast<const _t * const*>( p1));
-	_t ** ppTab2 = const_cast<_t **>(static_cast<const _t * const*>( p2));
+	const _t * pTab1 = static_cast<const _t*>(p1);
+	const _t * pTab2 = static_cast<const _t*>(p2);
 
-	if ((*ppTab1)->m_iTabPosition < (*ppTab2)->m_iTabPosition)
-		return -1;
-	if ((*ppTab1)->m_iTabPosition > (*ppTab2)->m_iTabPosition)
-		return 1;
-	return 0;
+	return pTab1->m_iTabPosition < pTab2->m_iTabPosition;
 }
 
 /*!
@@ -1298,7 +1294,7 @@ void IE_Exp_RTF::_write_tabdef(const char * szTabStops)
 		// <tab>    ::= <tabkind>? <tablead>? \tx
 		// <bartab> ::= <tablead>? \tb
 
-		vecTabs.qsort(compare_tabs);
+		vecTabs.sort(compare_tabs);
 
 		UT_uint32 k;
 		UT_uint32 kLimit = vecTabs.getItemCount();

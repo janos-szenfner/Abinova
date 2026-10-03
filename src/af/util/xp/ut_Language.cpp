@@ -17,6 +17,7 @@
  * 02110-1301 USA.
  */
 
+#include <algorithm>
 #include <stdlib.h>
 
 #include "ut_Language.h"
@@ -183,30 +184,28 @@ static UT_LangRecord s_Table[] =
 };
 
 /*!
- Compare function used by qsort()
+ Compare function used by std::sort()
 
  \param a left side of comparison
  \param b right side of comparison
- \return negative, 0, or positive
+ \return true if a orders before b
 
  Special "no proofing" language will always be sorted to the
   top of the list
  */
-static int s_compareQ(const void * a, const void *b)
+static bool s_compare(const UT_LangRecord & A, const UT_LangRecord & B)
 {
-	const UT_LangRecord * A = static_cast<const UT_LangRecord *>(a);
-	const UT_LangRecord * B = static_cast<const UT_LangRecord *>(b);
 #if 0
 	// as long as bsearch is used searching for lang codes this is wrong
-	if (B->m_nID == XAP_STRING_ID_LANG_0)
-		return 1;
-	else if (A->m_nID == XAP_STRING_ID_LANG_0)
-		return -1;
+	if (B.m_nID == XAP_STRING_ID_LANG_0)
+		return false;
+	else if (A.m_nID == XAP_STRING_ID_LANG_0)
+		return true;
 
-	return g_utf8_collate(A->m_szLangName, B->m_szLangName);
+	return g_utf8_collate(A.m_szLangName, B.m_szLangName) < 0;
 #else
 
-	return strcmp(A->m_szLangCode, B->m_szLangCode);
+	return strcmp(A.m_szLangCode, B.m_szLangCode) < 0;
 #endif
 }
 
@@ -253,7 +252,7 @@ void UT_Language_updateLanguageNames()
         s_Table[i].m_szLangName = pSS->getValue(s_Table[i].m_nID);
     }
 
-    qsort(&s_Table[0], G_N_ELEMENTS(s_Table), sizeof(UT_LangRecord), s_compareQ);
+    std::sort(&s_Table[0], &s_Table[G_N_ELEMENTS(s_Table)], s_compare);
 }
 
 

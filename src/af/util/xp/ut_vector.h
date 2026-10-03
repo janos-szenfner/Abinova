@@ -115,7 +115,8 @@ public:
 	UT_sint32   addItemSorted(const T p, int (*compar)(const void *, const void *));
 	void		deleteNthItem(UT_sint32 n);
 	void		clear();
-	void		qsort(int (*compar)(const void *, const void *));
+	template <class Comparer>
+	void		sort(Comparer compar);
 	UT_sint32	binarysearch(const void* key, int (*compar)(const void *, const void *)) const;
 
 	bool		copy(const UT_GenericVector<T> *pVec);
@@ -152,6 +153,7 @@ public:
 
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 
 /*!
     sizehint: expected size of the vector
@@ -417,9 +419,13 @@ UT_sint32 UT_GenericVector<T>::findItem(T p) const
 }
 
 template <class T>
-void UT_GenericVector<T>::qsort(int (*compar)(const void *, const void *))
+template <class Comparer>
+void UT_GenericVector<T>::sort(Comparer compar)
 {
-	::qsort(m_pEntries, m_iCount, sizeof(T), compar);
+	if (m_iCount > 1)
+	{
+		std::sort(m_pEntries, m_pEntries + m_iCount, compar);
+	}
 }
 
 // this binary search finds the earliest element (lowest index)

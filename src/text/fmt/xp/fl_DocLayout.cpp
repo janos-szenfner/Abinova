@@ -1619,13 +1619,9 @@ UT_sint32 FL_DocLayout::getFootnoteVal(UT_uint32 footpid) const
 // Annotation methods
 
 
-static UT_sint32 compareLayouts(const void * ppCL1, const void * ppCL2)
+static bool compareLayouts(fl_AnnotationLayout * pAL1, fl_AnnotationLayout * pAL2)
 {
-  void * v1 = const_cast<void *>(ppCL1);
-  void * v2 = const_cast<void *>(ppCL2);
-  fl_ContainerLayout ** pCL1 = reinterpret_cast<fl_ContainerLayout **>(v1);
-  fl_ContainerLayout ** pCL2 = reinterpret_cast<fl_ContainerLayout **>(v2);
-  return static_cast<UT_sint32>((*pCL1)->getPosition(true)) - static_cast<UT_sint32>((*pCL2)->getPosition(true));
+  return pAL1->getPosition(true) < pAL2->getPosition(true);
 }
 
 /*!
@@ -1671,7 +1667,7 @@ bool  FL_DocLayout::collapseAnnotations(void)
 void FL_DocLayout::addAnnotation(fl_AnnotationLayout * pFL)
 {
 	m_vecAnnotations.addItem(pFL);
-	m_vecAnnotations.qsort(compareLayouts);
+	m_vecAnnotations.sort(compareLayouts);
 	UT_uint32 i = 0;
 	for(i=0; i<countAnnotations();i++)
 	{
@@ -1713,7 +1709,7 @@ void FL_DocLayout::removeAnnotation(fl_AnnotationLayout * pFL)
 	m_vecAnnotations.deleteNthItem(i);
 	if(isLayoutDeleting())
 	  return;
-	m_vecAnnotations.qsort(compareLayouts);
+	m_vecAnnotations.sort(compareLayouts);
 	for(i=0; i<static_cast<UT_sint32>(countAnnotations());i++)
 	{
 	    fl_AnnotationLayout * pAL = getNthAnnotation(i);

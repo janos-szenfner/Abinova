@@ -494,7 +494,7 @@ size_t pt_PieceTable::getStyleCount (void) const
 ///////////////////////////////////////////////////////////////////////
 /*!
  * compareStyleNames this function is used to compare the char * strings names
- * of the styles with the qsort method on UT_Vector.
+ * of the styles with the sort method on UT_Vector.
 \param const void * vS1  - pointer to a PD_Style pointer
 \param const void * vS2  - pointer to a PD_Style pointer
 \returns -ve if sz1 < sz2, 0 if sz1 == sz2, +ve if sz1 > sz2
@@ -524,7 +524,7 @@ bool pt_PieceTable::enumStyles(UT_uint32 k,
 
 	UT_GenericVector<PD_Style*> * vStyle = nullptr;
 	enumStyles(vStyle);
-	//vStyle->qsort(compareStyleNames);
+	//vStyle->sort(compareStyleNames);
 
 	PD_Style * pStyle = vStyle->getNthItem(k);
 	UT_return_val_if_fail (pStyle,false);
