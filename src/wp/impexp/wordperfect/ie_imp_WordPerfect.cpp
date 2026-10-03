@@ -386,8 +386,11 @@ IE_Imp_WordPerfect::IE_Imp_WordPerfect(PD_Document * pDocument)
 	m_headerId(-1),
 	m_footerId(-1),
 	m_nextFreeId(0),
+	m_topMargin(0.0f),
+	m_bottomMargin(0.0f),
 	m_leftMarginOffset(0.0f),
 	m_rightMarginOffset(0.0f),
+	m_textIndent(0.0f),
 	m_pCurrentListDefinition(nullptr),
 	m_bParagraphChanged(false),
 	m_bParagraphInSection(false),
@@ -407,6 +410,9 @@ IE_Imp_WordPerfect::~IE_Imp_WordPerfect()
 
 UT_Error IE_Imp_WordPerfect::_loadFile(GsfInput * input)
 {
+	// the prop sprintf's below format floats; pin the numeric locale for the
+	// whole parse so a comma-decimal locale can't corrupt the props
+	UT_LocaleTransactor lt(LC_NUMERIC, "C");
 	AbiWordperfectInputStream gsfInput(input);
 	libwpd::WPDResult error = libwpd::WPDocument::parse(&gsfInput, static_cast<librevenge::RVNGTextInterface *>(this), nullptr);
 
@@ -791,6 +797,8 @@ void IE_Imp_WordPerfect::openOrderedListLevel(const librevenge::RVNGPropertyList
 		startingNumber = propList["text:start-value"]->getInt();
 	if (propList["librevenge:level"])
 		level = propList["librevenge:level"]->getInt();
+	if (level < 1 || level > WP6_NUM_LIST_LEVELS)
+		level = 1; // level indexes fixed-size arrays below
 	if (propList["style:num-prefix"])
 		textBeforeNumber += propList["style:num-prefix"]->getStr().cstr();
 	if (propList["style:num-suffix"])
@@ -802,24 +810,21 @@ void IE_Imp_WordPerfect::openOrderedListLevel(const librevenge::RVNGPropertyList
 	if (propList["text:min-label-width"])
 		listMinLabelWidth = propList["text:min-label-width"]->getDouble();
 
-	if (!m_pCurrentListDefinition || 
+	if (!m_pCurrentListDefinition ||
 		m_pCurrentListDefinition->getOutlineHash() != listID ||
-		(m_pCurrentListDefinition->getLevelNumber(level) != startingNumber && 
+		(m_pCurrentListDefinition->getLevelNumber(level) != startingNumber &&
 		 level == 1))
 	{
-		if (m_pCurrentListDefinition)
-			delete (m_pCurrentListDefinition);
-
-		m_pCurrentListDefinition = new ABI_ListDefinition(listID);
+		m_pCurrentListDefinition = std::make_unique<ABI_ListDefinition>(listID);
 	}
-	
+
 	if (!m_pCurrentListDefinition->getListID(level))
 	{
 		m_pCurrentListDefinition->setListType(level, listType);
 		m_pCurrentListDefinition->setListID(level, UT_rand());
 		m_pCurrentListDefinition->setListLeftOffset(level, listLeftOffset);
 		m_pCurrentListDefinition->setListMinLabelWidth(level, listMinLabelWidth);
-		_updateDocumentOrderedListDefinition(m_pCurrentListDefinition, level, listType, textBeforeNumber, textAfterNumber, startingNumber);
+		_updateDocumentOrderedListDefinition(m_pCurrentListDefinition.get(), level, listType, textBeforeNumber, textAfterNumber, startingNumber);
 	}
 
 	m_iCurrentListLevel++;
@@ -829,14 +834,14 @@ void IE_Imp_WordPerfect::closeOrderedListLevel()
 {
 	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: closeOrderedListLevel (level: %i)\n", m_iCurrentListLevel));
-	UT_ASSERT(m_iCurrentListLevel > 0); 
-	
+
 	// every time we close a list level, the level above it is normally renumbered to start at "1"
 	// again. this code takes care of that.
-	if (m_iCurrentListLevel < (WP6_NUM_LIST_LEVELS-1))
+	if (m_iCurrentListLevel < (WP6_NUM_LIST_LEVELS-1) && m_iCurrentListLevel >= 0 && m_pCurrentListDefinition)
 		m_pCurrentListDefinition->setLevelNumber(m_iCurrentListLevel + 1, 0);
-	
-	m_iCurrentListLevel--;
+
+	if (m_iCurrentListLevel > 0)
+		m_iCurrentListLevel--;
 }
 
 void IE_Imp_WordPerfect::openUnorderedListLevel(const librevenge::RVNGPropertyList &propList)
@@ -853,6 +858,8 @@ void IE_Imp_WordPerfect::openUnorderedListLevel(const librevenge::RVNGPropertyLi
 		listID = propList["librevenge:id"]->getInt();
 	if (propList["librevenge:level"])
 		level = propList["librevenge:level"]->getInt();
+	if (level < 1 || level > WP6_NUM_LIST_LEVELS)
+		level = 1; // level indexes fixed-size arrays below
 	if (propList["text:space-before"])
 		listLeftOffset = propList["text:space-before"]->getDouble();
 	if (propList["text:min-label-width"])
@@ -860,10 +867,7 @@ void IE_Imp_WordPerfect::openUnorderedListLevel(const librevenge::RVNGPropertyLi
 
 	if (!m_pCurrentListDefinition || m_pCurrentListDefinition->getOutlineHash() != listID)
 	{
-		if (m_pCurrentListDefinition)
-			delete (m_pCurrentListDefinition);
-		
-		m_pCurrentListDefinition = new ABI_ListDefinition(listID);
+		m_pCurrentListDefinition = std::make_unique<ABI_ListDefinition>(listID);
 	}
 
 	if (!m_pCurrentListDefinition->getListID(level))
@@ -871,7 +875,7 @@ void IE_Imp_WordPerfect::openUnorderedListLevel(const librevenge::RVNGPropertyLi
 		m_pCurrentListDefinition->setListID(level, UT_rand());
 		m_pCurrentListDefinition->setListLeftOffset(level, listLeftOffset);
 		m_pCurrentListDefinition->setListMinLabelWidth(level, listMinLabelWidth);
-		_updateDocumentUnorderedListDefinition(m_pCurrentListDefinition, level);
+		_updateDocumentUnorderedListDefinition(m_pCurrentListDefinition.get(), level);
 	}
 
 	m_iCurrentListLevel++;
@@ -881,9 +885,9 @@ void IE_Imp_WordPerfect::closeUnorderedListLevel()
 {
 	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: closeUnorderedListLevel (level: %i)\n", m_iCurrentListLevel));
-	UT_ASSERT(m_iCurrentListLevel > 0); 
-	
-	m_iCurrentListLevel--;
+
+	if (m_iCurrentListLevel > 0)
+		m_iCurrentListLevel--;
 }
 
 // ASSUMPTION: We assume that unordered lists will always pass a number of "0". unpredictable behaviour
@@ -892,8 +896,15 @@ void IE_Imp_WordPerfect::openListElement(const librevenge::RVNGPropertyList &pro
 {
 	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: openListElement\n"));
-	
-	UT_ASSERT(m_pCurrentListDefinition); // FIXME: ABI_LISTS_IMPORT throw an exception back to libwpd, if this fails
+
+	// a malformed doc can emit a list element without an open level;
+	// UT_ASSERT compiles out in release, so guard for real
+	if (!m_pCurrentListDefinition || m_iCurrentListLevel < 1 ||
+		m_iCurrentListLevel > WP6_NUM_LIST_LEVELS)
+	{
+		UT_DEBUGMSG(("AbiWordPerfect: openListElement with no open list level (level: %i) - ignoring\n", m_iCurrentListLevel));
+		return;
+	}
 	
 	// Paragraph properties for our list element
 	UT_String szListID;
@@ -1305,6 +1316,7 @@ public:
 protected:
     virtual UT_Error _loadFile(GsfInput * input) override
 	{
+		UT_LocaleTransactor lt(LC_NUMERIC, "C"); // same prop sprintf's as the wpd path
 		AbiWordperfectInputStream gsfInput(input);
 		libwps::WPSResult error = libwps::WPSDocument::parse(&gsfInput, static_cast<librevenge::RVNGTextInterface *>(this), nullptr, nullptr);
 

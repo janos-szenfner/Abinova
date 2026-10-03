@@ -31,6 +31,7 @@
 #define IE_IMP_WP_H
 
 #include <stdio.h>
+#include <memory>
 #include "ut_compiler.h"
 ABI_W_NO_SUGGEST_OVERRIDE
 #include <librevenge/librevenge.h>
@@ -217,7 +218,7 @@ private:
 
     // state handling that libwpd can't account for
     //UT_StringPtrMap						m_listStylesHash;
-    ABI_ListDefinition *				m_pCurrentListDefinition;
+    std::unique_ptr<ABI_ListDefinition>	m_pCurrentListDefinition;
     bool								m_bParagraphChanged;
     bool								m_bParagraphInSection;
     bool								m_bInSection;

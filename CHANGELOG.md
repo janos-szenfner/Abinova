@@ -3306,6 +3306,16 @@ below are on `main` but the release has not been cut yet.
   could dangle after `pruneForCumulativeResult` and go stale after
   `changeRevisionId`.  A new `make check` suite covers valid and
   malformed strings plus the cache-invalidation paths.
+- **WordPerfect importer hardened** — `.wpd`/`.wps` import leaked the
+  current list definition on every document (it was `new`ed per list
+  and never freed), crashed in release builds when a malformed file
+  emitted a list element with no open list level (a `UT_ASSERT`-only
+  guard compiled out before the dereference — now a real bounds
+  check), and could emit corrupted margin/indent/line-height
+  properties under comma-decimal locales (the float `sprintf`s now run
+  under a `LC_NUMERIC=C` transactor for the whole parse, matching the
+  section-append path).  Three paragraph-margin members are now
+  initialized at construction.
 
 ### GTK4 port (core migration)
 
