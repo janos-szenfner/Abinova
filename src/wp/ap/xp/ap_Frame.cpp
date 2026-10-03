@@ -41,10 +41,6 @@
 
 /*****************************************************************/
 
-#define ENSUREP_C(p)		do { UT_ASSERT_HARMLESS(p); if (!p) goto Cleanup; } while (0)
-
-/*****************************************************************/
-
 void AP_Frame::setZoomPercentage(UT_uint32 iZoom)
 {
 	XAP_Frame::setZoomPercentage(iZoom);
@@ -186,15 +182,25 @@ UT_Error AP_Frame::_loadDocument(const char * szFilename, IEFileType ieft,
 	UT_return_val_if_fail (pNewDoc, UT_ERROR);
 	UT_Error errorCode = UT_OK;
 
+	auto replaceDocument = [&, pNewDoc]() -> UT_Error
+	{
+		XAP_App::getApp()->forgetClones(this);
+		UT_DEBUGMSG(("Doing replace document \n"));
+
+		// NOTE: prior document is discarded in _showDocument()
+		m_pDoc = pNewDoc;
+		return errorCode;
+	};
+
 	if (!szFilename || !*szFilename)
 	{
 		pNewDoc->newDocument();
 		m_iUntitled = _getNextUntitledNumber();
-		goto ReplaceDocument;
+		return replaceDocument();
 	}
 	errorCode = pNewDoc->readFromFile(szFilename, ieft);
 	if (UT_IS_IE_SUCCESS(errorCode))
-		goto ReplaceDocument;
+		return replaceDocument();
 
 	if (createNew)
 	  {
@@ -221,18 +227,10 @@ UT_Error AP_Frame::_loadDocument(const char * szFilename, IEFileType ieft,
 		}
 	  }
 	if (!errorCode)
-	  goto ReplaceDocument;
-	
+		return replaceDocument();
+
 	UT_DEBUGMSG(("ap_Frame: could not open the file [%s]\n",szFilename));
 	UNREFP(pNewDoc);
-	return errorCode;
-
-ReplaceDocument:
-	XAP_App::getApp()->forgetClones(this);
-	UT_DEBUGMSG(("Doing replace document \n"));
-	
-	// NOTE: prior document is discarded in _showDocument()
-	m_pDoc = pNewDoc;
 	return errorCode;
 }
 
@@ -291,29 +289,31 @@ UT_Error AP_Frame::_importDocument(const char * szFilename, int ieft,
 	AD_Document * pNewDoc = new PD_Document();
 	UT_return_val_if_fail (pNewDoc, UT_ERROR);
 
+	auto replaceDocument = [&, pNewDoc]() -> UT_Error
+	{
+		XAP_App::getApp()->forgetClones(this);
+
+		m_iUntitled = _getNextUntitledNumber();
+
+		// NOTE: prior document is discarded in _showDocument()
+		m_pDoc = pNewDoc;
+		return UT_OK;
+	};
+
 	if (!szFilename || !*szFilename)
 	{
 		pNewDoc->newDocument();
-		goto ReplaceDocument;
+		return replaceDocument();
 	}
 	UT_Error errorCode;
 	errorCode = pNewDoc->importFile(szFilename, ieft, markClean);
 	if (!errorCode)
-		goto ReplaceDocument;
+		return replaceDocument();
 
 	UT_DEBUGMSG(("ap_Frame: could not open the file [%s]\n",szFilename));
 
 	UNREFP(pNewDoc);
 	return errorCode;
-
-ReplaceDocument:
-	XAP_App::getApp()->forgetClones(this);
-
-	m_iUntitled = _getNextUntitledNumber();
-
-	// NOTE: prior document is discarded in _showDocument()
-	m_pDoc = pNewDoc;
-	return UT_OK;
 }
 
 XAP_Frame * AP_Frame::buildFrame(XAP_Frame * pF)
@@ -323,28 +323,33 @@ XAP_Frame * AP_Frame::buildFrame(XAP_Frame * pF)
 	XAP_Frame::tZoomType iZoomType = pF->getZoomType();
 	setZoomType(iZoomType);
 	UT_uint32 iZoom = XAP_Frame::getZoomPercentage();
-	ENSUREP_C(pClone);
+
+	// clean up anything we created here on failure
+	auto cleanup = [pClone]() -> XAP_Frame *
+	{
+		if (pClone)
+		{
+			XAP_App::getApp()->forgetFrame(pClone);
+			delete pClone;
+		}
+		return nullptr;
+	};
+
+	UT_ASSERT_HARMLESS(pClone);
+	if (!pClone)
+		return cleanup();
 	if (!pClone->initialize())
-		goto Cleanup;
+		return cleanup();
 
 	// we remember the view of the parent frame ...
 	static_cast<AP_FrameData*>(pClone->m_pData)->m_pRootView = m_pView;
-	
+
 	error = pClone->_showDocument(iZoom);
 	if (error)
-		goto Cleanup;
+		return cleanup();
 
 	pClone->show();
 	return static_cast<XAP_Frame *>(pClone);
-
- Cleanup:
-	// clean up anything we created here
-	if (pClone)
-	{
-		XAP_App::getApp()->forgetFrame(pClone);
-		delete pClone;
-	}
-	return nullptr;
 }
 
 UT_Error AP_Frame::loadDocument(AD_Document* pDoc) {
@@ -639,6 +644,25 @@ UT_Error AP_Frame::_showDocument(UT_uint32 iZoom)
 	AV_ListenerId lid;
 	AV_ListenerId lidScrollbarViewListener;
 
+	// clean up anything we created here on failure
+	auto cleanup = [&]() -> UT_Error
+	{
+		DELETEP(pG);
+		DELETEP(pDocLayout);
+		DELETEP(pView);
+		DELETEP(pViewListener);
+		DELETEP(pScrollObj);
+		DELETEP(pScrollbarViewListener);
+
+		// change back to prior document
+		UNREFP(m_pDoc);
+		setFrameLocked(false);
+		UT_return_val_if_fail(static_cast<AP_FrameData*>(m_pData)->m_pDocLayout, UT_IE_ADDLISTENERERROR);
+		m_pDoc = static_cast<AP_FrameData*>(m_pData)->m_pDocLayout->getDocument();
+		//static_cast<XAP_FrameImpl *>(m_pFrameImpl)->setShowDocLocked(false);
+		return UT_IE_ADDLISTENERERROR;
+	};
+
 	xxx_UT_DEBUGMSG(("_showDocument: Initial m_pView %x \n",m_pView));
 
 	if(iZoom < XAP_DLG_ZOOM_MINIMUM_ZOOM) 
@@ -648,13 +672,17 @@ UT_Error AP_Frame::_showDocument(UT_uint32 iZoom)
 	UT_DEBUGMSG(("!!!!!!!!! _showdOCument: Initial izoom is %d \n",iZoom));
 
 	if (!_createViewGraphics(pG, iZoom))
-		goto Cleanup;
+		return cleanup();
 
 	pDocLayout = new FL_DocLayout(static_cast<PD_Document *>(m_pDoc), pG);
-	ENSUREP_C(pDocLayout);  
+	UT_ASSERT_HARMLESS(pDocLayout);
+	if (!pDocLayout)
+		return cleanup();
 
 	pView = new FV_View(XAP_App::getApp(), this, pDocLayout);
-	ENSUREP_C(pView);
+	UT_ASSERT_HARMLESS(pView);
+	if (!pView)
+		return cleanup();
 	
 	if(getZoomType() == XAP_Frame::z_PAGEWIDTH)
 	{
@@ -672,7 +700,7 @@ UT_Error AP_Frame::_showDocument(UT_uint32 iZoom)
 
 	if (!_createScrollBarListeners(pView, pScrollObj, pViewListener, pScrollbarViewListener,
 				       lid, lidScrollbarViewListener))
-		goto Cleanup;
+		return cleanup();
 	if(getFrameMode() ==XAP_NormalFrame)
 	{
 		_bindToolbars(pView);	
@@ -709,23 +737,6 @@ UT_Error AP_Frame::_showDocument(UT_uint32 iZoom)
 	//static_cast<XAP_FrameImpl *>(m_pFrameImpl)->setShowDocLocked(false);
 	setFrameLocked(false);
 	return UT_OK;
-
-Cleanup:
-	// clean up anything we created here
-	DELETEP(pG);
-	DELETEP(pDocLayout);
-	DELETEP(pView);
-	DELETEP(pViewListener);
-	DELETEP(pScrollObj);
-	DELETEP(pScrollbarViewListener);
-
-	// change back to prior document
-	UNREFP(m_pDoc);
-	setFrameLocked(false);
-	UT_return_val_if_fail(static_cast<AP_FrameData*>(m_pData)->m_pDocLayout, UT_IE_ADDLISTENERERROR);
-	m_pDoc = static_cast<AP_FrameData*>(m_pData)->m_pDocLayout->getDocument();
-	//static_cast<XAP_FrameImpl *>(m_pFrameImpl)->setShowDocLocked(false);
-	return UT_IE_ADDLISTENERERROR;
 }
 
 void AP_Frame::_replaceView(GR_Graphics * pG, FL_DocLayout *pDocLayout,

@@ -480,86 +480,24 @@ UT_uint32 UT_UCS2_strlen(const UT_UCS2Char * string)
 
 UT_UCS2Char * UT_UCS2_strstr(const UT_UCS2Char * phaystack, const UT_UCS2Char * pneedle)
 {
-	const UT_UCS2Char *haystack, *needle;
-	UT_UCS2Char b, c;
+	if (*pneedle == 0)
+		return const_cast<UT_UCS2Char *>(phaystack);
 
-	haystack = phaystack;
-	needle = pneedle;
-
-	b = *needle;
-	if (b != '\0')
-    {
-		haystack--;                               /* possible ANSI violation */
-		do
-        {
-			c = *++haystack;
-			if (c == '\0')
-				goto ret0;
-        }
-		while (c != b);
-
-		c = *++needle;
-		if (c == '\0')
-			goto foundneedle;
-		++needle;
-		goto jin;
-
-		for (;;)
-        {
-			UT_UCS2Char a;
-			const UT_UCS2Char *rhaystack, *rneedle;
-
-			do
-            {
-				a = *++haystack;
-				if (a == '\0')
-					goto ret0;
-				if (a == b)
-					break;
-				a = *++haystack;
-				if (a == '\0')
-					goto ret0;
-			shloop: ; // need a statement here for EGCS 1.1.1 to accept it
-			}
-			while (a != b);
-
-		jin:	a = *++haystack;
-			if (a == '\0')
-				goto ret0;
-
-			if (a != c)
-				goto shloop;
-
-			rhaystack = haystack-- + 1;
-			rneedle = needle;
-			a = *rneedle;
-
-			if (*rhaystack == a)
-				do
-				{
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = *++needle;
-					if (*rhaystack != a)
-						break;
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = *++needle;
-				}
-				while (*rhaystack == a);
-
-			needle = rneedle;             /* took the register-poor approach */
-
-			if (a == '\0')
-				break;
-        }
-    }
- foundneedle:
-	return static_cast<UT_UCS2Char *>(haystack);
- ret0:
-	return 0;
+	for (const UT_UCS2Char *haystack = phaystack; *haystack; ++haystack)
+	{
+		const UT_UCS2Char *h = haystack;
+		const UT_UCS2Char *n = pneedle;
+		while (*n && *h == *n)
+		{
+			++h;
+			++n;
+		}
+		if (*n == 0)
+			return const_cast<UT_UCS2Char *>(haystack);
+		if (*h == 0)
+			break;
+	}
+	return nullptr;
 }
 
 UT_sint32 UT_UCS2_strcmp(const UT_UCS2Char* left, const UT_UCS2Char* right)
@@ -646,86 +584,24 @@ UT_UCS2Char UT_UCS2_tolower(UT_UCS2Char c)
 
 UT_UCS2Char * UT_UCS2_stristr(const UT_UCS2Char * phaystack, const UT_UCS2Char * pneedle)
 {
-	const UT_UCS2Char *haystack, *needle;
-	UT_UCS2Char b, c;
+	if (*pneedle == 0)
+		return const_cast<UT_UCS2Char *>(phaystack);
 
-	haystack = phaystack;
-	needle = pneedle;
-
-	b = UT_UCS2_tolower(*needle);
-	if (b != '\0')
-    {
-		haystack--;                               /* possible ANSI violation */
-		do
-        {
-			c = UT_UCS2_tolower(*++haystack);
-			if (c == '\0')
-				goto ret0;
-        }
-		while (c != b);
-
-		c = UT_UCS2_tolower(*++needle);
-		if (c == '\0')
-			goto foundneedle;
-		++needle;
-		goto jin;
-
-		for (;;)
-        {
-			UT_UCS2Char a;
-			const UT_UCS2Char *rhaystack, *rneedle;
-
-			do
-            {
-				a = UT_UCS2_tolower(*++haystack);
-				if (a == '\0')
-					goto ret0;
-				if (a == b)
-					break;
-				a = UT_UCS2_tolower(*++haystack);
-				if (a == '\0')
-					goto ret0;
-			shloop: ; // need a statement here for EGCS 1.1.1 to accept it
-			}
-			while (a != b);
-
-		jin:	a = UT_UCS2_tolower(*++haystack);
-			if (a == '\0')
-				goto ret0;
-
-			if (a != c)
-				goto shloop;
-
-			rhaystack = haystack-- + 1;
-			rneedle = needle;
-			a = UT_UCS2_tolower(*rneedle);
-
-			if (UT_UCS2_tolower(*rhaystack) == a)
-				do
-				{
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = UT_UCS2_tolower(*++needle);
-					if (UT_UCS2_tolower(*rhaystack) != a)
-						break;
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = UT_UCS2_tolower(*++needle);
-				}
-				while (UT_UCS2_tolower(*rhaystack) == a);
-
-			needle = rneedle;             /* took the register-poor approach */
-
-			if (a == '\0')
-				break;
-        }
-    }
- foundneedle:
-	return static_cast<UT_UCS2Char *>(haystack);
- ret0:
-	return 0;
+	for (const UT_UCS2Char *haystack = phaystack; *haystack; ++haystack)
+	{
+		const UT_UCS2Char *h = haystack;
+		const UT_UCS2Char *n = pneedle;
+		while (*n && UT_UCS2_tolower(*h) == UT_UCS2_tolower(*n))
+		{
+			++h;
+			++n;
+		}
+		if (*n == 0)
+			return const_cast<UT_UCS2Char *>(haystack);
+		if (*h == 0)
+			break;
+	}
+	return nullptr;
 }
 /****************************************************************************/
 
@@ -1064,85 +940,23 @@ UT_UCS4Char * UT_UCS4_strnrev(UT_UCS4Char * src, UT_uint32 n)
 
 UT_UCS4Char * UT_UCS4_strstr(const UT_UCS4Char * phaystack, const UT_UCS4Char * pneedle)
 {
-	const UT_UCS4Char *haystack, *needle;
-	UT_UCS4Char b, c;
+	if (*pneedle == 0)
+		return const_cast<UT_UCS4Char *>(phaystack);
 
-	haystack = static_cast<const UT_UCS4Char *>(phaystack);
-	needle = static_cast<const UT_UCS4Char *>(pneedle);
-
-	b = *needle;
-	if (b != '\0')
-    {
-		haystack--;                               /* possible ANSI violation */
-		do
-        {
-			c = *++haystack;
-			if (c == '\0')
-				goto ret0;
-        }
-		while (c != b);
-
-		c = *++needle;
-		if (c == '\0')
-			goto foundneedle;
-		++needle;
-		goto jin;
-
-		for (;;)
-        {
-			UT_UCS4Char a;
-			const UT_UCS4Char *rhaystack, *rneedle;
-
-			do
-            {
-				a = *++haystack;
-				if (a == '\0')
-					goto ret0;
-				if (a == b)
-					break;
-				a = *++haystack;
-				if (a == '\0')
-					goto ret0;
-			shloop: ; // need a statement here for EGCS 1.1.1 to accept it
-			}
-			while (a != b);
-
-		jin:	a = *++haystack;
-			if (a == '\0')
-				goto ret0;
-
-			if (a != c)
-				goto shloop;
-
-			rhaystack = haystack-- + 1;
-			rneedle = needle;
-			a = *rneedle;
-
-			if (*rhaystack == a)
-				do
-				{
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = *++needle;
-					if (*rhaystack != a)
-						break;
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = *++needle;
-				}
-				while (*rhaystack == a);
-
-			needle = rneedle;             /* took the register-poor approach */
-
-			if (a == '\0')
-				break;
-        }
-    }
- foundneedle:
-	return const_cast<UT_UCS4Char *>(haystack);
- ret0:
+	for (const UT_UCS4Char *haystack = phaystack; *haystack; ++haystack)
+	{
+		const UT_UCS4Char *h = haystack;
+		const UT_UCS4Char *n = pneedle;
+		while (*n && *h == *n)
+		{
+			++h;
+			++n;
+		}
+		if (*n == 0)
+			return const_cast<UT_UCS4Char *>(haystack);
+		if (*h == 0)
+			break;
+	}
 	return nullptr;
 }
 
@@ -1231,85 +1045,23 @@ UT_UCS4Char UT_UCS4_tolower(UT_UCS4Char c)
 
 UT_UCS4Char * UT_UCS4_stristr(const UT_UCS4Char * phaystack, const UT_UCS4Char * pneedle)
 {
-	const UT_UCS4Char *haystack, *needle;
-	UT_UCS4Char b, c;
+	if (*pneedle == 0)
+		return const_cast<UT_UCS4Char *>(phaystack);
 
-	haystack = static_cast<const UT_UCS4Char *>(phaystack);
-	needle = static_cast<const UT_UCS4Char *>(pneedle);
-
-	b = UT_UCS4_tolower(*needle);
-	if (b != '\0')
-    {
-		haystack--;                               /* possible ANSI violation */
-		do
-        {
-			c = UT_UCS4_tolower(*++haystack);
-			if (c == '\0')
-				goto ret0;
-        }
-		while (c != b);
-
-		c = UT_UCS4_tolower(*++needle);
-		if (c == '\0')
-			goto foundneedle;
-		++needle;
-		goto jin;
-
-		for (;;)
-        {
-			UT_UCS4Char a;
-			const UT_UCS4Char *rhaystack, *rneedle;
-
-			do
-            {
-				a = UT_UCS4_tolower(*++haystack);
-				if (a == '\0')
-					goto ret0;
-				if (a == b)
-					break;
-				a = UT_UCS4_tolower(*++haystack);
-				if (a == '\0')
-					goto ret0;
-			shloop: ; // need a statement here for EGCS 1.1.1 to accept it
-			}
-			while (a != b);
-
-		jin:	a = UT_UCS4_tolower(*++haystack);
-			if (a == '\0')
-				goto ret0;
-
-			if (a != c)
-				goto shloop;
-
-			rhaystack = haystack-- + 1;
-			rneedle = needle;
-			a = UT_UCS4_tolower(*rneedle);
-
-			if (UT_UCS4_tolower(*rhaystack) == a)
-				do
-				{
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = UT_UCS4_tolower(*++needle);
-					if (UT_UCS4_tolower(*rhaystack) != a)
-						break;
-					if (a == '\0')
-						goto foundneedle;
-					++rhaystack;
-					a = UT_UCS4_tolower(*++needle);
-				}
-				while (UT_UCS4_tolower(*rhaystack) == a);
-
-			needle = rneedle;             /* took the register-poor approach */
-
-			if (a == '\0')
-				break;
-        }
-    }
- foundneedle:
-	return const_cast<UT_UCS4Char *>(haystack);
- ret0:
+	for (const UT_UCS4Char *haystack = phaystack; *haystack; ++haystack)
+	{
+		const UT_UCS4Char *h = haystack;
+		const UT_UCS4Char *n = pneedle;
+		while (*n && UT_UCS4_tolower(*h) == UT_UCS4_tolower(*n))
+		{
+			++h;
+			++n;
+		}
+		if (*n == 0)
+			return const_cast<UT_UCS4Char *>(haystack);
+		if (*h == 0)
+			break;
+	}
 	return nullptr;
 }
 /****************************************************************************/

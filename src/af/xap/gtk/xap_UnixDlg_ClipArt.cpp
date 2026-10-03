@@ -348,20 +348,19 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 
 	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (this->progress), 0.);
 	_count = 0;
-	name = g_dir_read_name (dir);
-	while (name != nullptr) {
+	while ((name = g_dir_read_name (dir)) != nullptr) {
 
 		gchar *file_path, *display_name;
 
 		/* We ignore hidden files that start with a '.' */
 		if (name[0] == '.') {
-			goto next;
+			continue;
 		}
 
 		file_path = g_build_filename (this->dir_path, name, nullptr);
 		if (g_file_test (file_path, G_FILE_TEST_IS_DIR)) {
 			g_free (file_path);
-			goto next;
+			continue;
 		}
 
 		display_name = g_filename_to_utf8 (name, -1, nullptr, nullptr, nullptr);
@@ -372,7 +371,7 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 			g_error_free (error);
 			g_free (file_path);
 			g_free (display_name);
-			goto next;
+			continue;
 		}
 
 		{
@@ -399,8 +398,6 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 		if (_count % 10 == 0) {
 			g_main_context_iteration(nullptr, false);
 		}
-next:
-		name = g_dir_read_name (dir);
 	}
 	g_dir_close (dir);
 	clipartCount = _count;

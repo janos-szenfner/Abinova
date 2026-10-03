@@ -348,7 +348,7 @@ bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
 							const XAP_StringSet * pSS = m_pApp->getStringSet();
 							pSS->getValueUTF8(XAP_STRING_ID_DLG_FOSA_ExtensionDoesNotMatch, msg);
 							if (pFrame->showMessageBox(msg.c_str(), XAP_Dialog_MessageBox::b_YN, XAP_Dialog_MessageBox::a_NO) != XAP_Dialog_MessageBox::a_YES)
-								goto ContinueLoop;
+								continue;
 						}
 						finalPathname = dialogFilename;
 					}
@@ -393,16 +393,16 @@ bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
 			finalPathnameCopy = finalPathname;
 
 			if (!_checkEncryptionPassword(pFrame))
-				goto ContinueLoop;
+				continue;
 
 			if (UT_go_file_exists(finalPathnameCopy.c_str())) {
 				// we have an existing file, ask to overwrite
 				if (_askOverwrite_YesNo(pFrame, finalPathname.c_str()))	{
 					m_finalPathnameCandidate = finalPathname;
-					goto ReturnTrue;
+					return true;
 				}
-	
-				goto ContinueLoop;
+
+				continue;
 			}
 				
 			// We have a string that may contain a path, and may have a file
@@ -418,21 +418,13 @@ bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
 
 			if (!lastSlash)	{
 				_notifyError_OKOnly(pFrame,XAP_STRING_ID_DLG_InvalidPathname);
-				goto ContinueLoop;
+				continue;
 			}
 
 			m_finalPathnameCandidate = finalPathname;
-			goto ReturnTrue;
-
-		ContinueLoop:
-			finalPathnameCopy.clear();
+			return true;
 		}
 	} /* if m_bSave */
-	
-	/*NOTREACHED*/
-
-ReturnTrue:
-	return true;
 }
 
 // Check the encryption widgets; if the password is acceptable, store it.
@@ -1147,6 +1139,7 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	UT_sint32     scaled_width,scaled_height;
 	UT_sint32     iImageWidth,iImageHeight;
 
+	const auto paint = [&]()
 	{
 	GR_Painter painter(pGr);
 	GtkAllocation alloc;
@@ -1156,17 +1149,17 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	if (!file_name)
 	{
 		painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
-	    goto Cleanup;
+	    return;
 	}
 
 	// are we dealing with a file or directory here?
 	struct stat st;
-	if (!stat (file_name, &st)) 
+	if (!stat (file_name, &st))
 	{
-		if (!S_ISREG(st.st_mode)) 
+		if (!S_ISREG(st.st_mode))
 		{
 			painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
-			goto Cleanup;
+			return;
 		}
 	}
 
@@ -1174,7 +1167,7 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	UT_DEBUGMSG(("file_name %s \n",file_name));
 	input = UT_go_file_open (file_name, nullptr);
 	if (!input)
-		goto Cleanup;
+		return;
 	char Buf[4097] = "";  // 4096+nul ought to be enough
 	// gsf_input_size is a signed gsf_off_t and can be -1 on error;
 	// clamping that through UT_MIN into UT_uint32 would wrap huge and
@@ -1190,19 +1183,19 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	{
 		    painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
 			g_object_unref (G_OBJECT (input));
-			goto Cleanup;
+			return;
 	}
 	g_object_unref (G_OBJECT (input));
 	input = UT_go_file_open (file_name, nullptr);
 	if (!input)
-		goto Cleanup;
+		return;
 	size_t num_bytes = gsf_input_size(input);
 	UT_Byte * bytes = const_cast<UT_Byte *>(reinterpret_cast<const UT_Byte*>( gsf_input_read(input, num_bytes,nullptr )));
 	if(bytes == nullptr)
 	{
 		    painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
 			g_object_unref (G_OBJECT (input));
-			goto Cleanup;
+			return;
 	}
 	UT_ByteBuf * pBB = new UT_ByteBuf();
 	pBB->append(bytes,num_bytes);
@@ -1222,7 +1215,7 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 		//
 		painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
 		// bLoadFailed = true;
-	    goto Cleanup;
+	    return;
 	}
 
 	pImage = new GR_UnixImage(nullptr,pixbuf);
@@ -1244,9 +1237,10 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 					  pGr->tlu(static_cast<int>((alloc.height - scaled_height) / 2)));
 		
 	answer = 1;
-	}
-	
- Cleanup:
+	};
+
+	paint();
+
 	FREEP(file_name);
 	DELETEP(pImage);
 	DELETEP(pGr);

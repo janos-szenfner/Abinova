@@ -631,10 +631,12 @@ bool AP_UnixApp::pasteDataToDocRange(PD_DocumentRange * pDocRange,
 		IEFileType ieft = IE_Imp::fileTypeForMimetype(szFormatFound);
 		UT_DEBUGMSG(("found file type %d\n",ieft));
 		IE_Imp::constructImporter(pDocRange->m_pDoc,ieft,&pImp);
-		if(pImp == nullptr)
-			 goto retry_text;
-		bSuccess = pImp->pasteFromBuffer(pDocRange,pData,iLen);
-		DELETEP(pImp);
+		if(pImp)
+		{
+			bSuccess = pImp->pasteFromBuffer(pDocRange,pData,iLen);
+			DELETEP(pImp);
+		}
+		// no importer: fall through to the plaintext retry below
 	}
     else if (AP_UnixClipboard::isImageTag(szFormatFound))
       {
@@ -644,44 +646,48 @@ bool AP_UnixApp::pasteDataToDocRange(PD_DocumentRange * pDocRange,
 			  IE_Imp * pImp = nullptr;
 			  IEGraphicFileType iegft = IE_Imp::fileTypeForMimetype(szFormatFound);
 			  IE_Imp::constructImporter(pDocRange->m_pDoc,iegft,&pImp);
-			  if(pImp == nullptr)
+			  if(pImp)
 			  {
-					  goto retry_text;
+				  bSuccess = pImp->pasteFromBuffer(pDocRange,pData,iLen);
+				  DELETEP(pImp);
+				  return bSuccess;
 			  }
-			  bSuccess = pImp->pasteFromBuffer(pDocRange,pData,iLen);
-			  DELETEP(pImp);
-			  return bSuccess;
+			  // no importer: fall through to the plaintext retry below
 		  }
+		  else
+		  {
+			  FG_ConstGraphicPtr pFG;
+			  IEGraphicFileType iegft = IEGFT_Unknown;
+			  UT_Error error = UT_OK;
 
-		  FG_ConstGraphicPtr pFG;
-		  IEGraphicFileType iegft = IEGFT_Unknown;
-		  UT_Error error = UT_OK;
-		  
-		  UT_ByteBufPtr bytes(new UT_ByteBuf(iLen));
-		  
-		  bytes->append(pData, iLen);
-		  
-		  error = IE_ImpGraphic::loadGraphic(bytes, iegft, pFG);
-		  if(!pFG || error)
-		  {
-			  UT_DEBUGMSG(("DOM: could not import graphic (%d)\n", error));
-			  goto retry_text;
+			  UT_ByteBufPtr bytes(new UT_ByteBuf(iLen));
+
+			  bytes->append(pData, iLen);
+
+			  error = IE_ImpGraphic::loadGraphic(bytes, iegft, pFG);
+			  if(!pFG || error)
+			  {
+				  UT_DEBUGMSG(("DOM: could not import graphic (%d)\n", error));
+			  }
+			  else
+			  {
+				  // at this point, 'bytes' is owned by pFG
+				  XAP_Frame * pFrame = getLastFocussedFrame();
+				  FV_View * pView = (pFrame)
+					  ? static_cast<FV_View*>(pFrame->getCurrentView())
+					  : nullptr;
+				  if (!pView)
+				  {
+					  UT_DEBUGMSG(("DOM: no view to paste image into\n"));
+				  }
+				  else
+				  {
+					  error = pView->cmdInsertGraphic(pFG);
+					  if (!error)
+						  bSuccess = true;
+				  }
+			  }
 		  }
-		  
-		  // at this point, 'bytes' is owned by pFG
-		  XAP_Frame * pFrame = getLastFocussedFrame();
-		  FV_View * pView = (pFrame)
-			  ? static_cast<FV_View*>(pFrame->getCurrentView())
-			  : nullptr;
-		  if (!pView)
-		  {
-			  UT_DEBUGMSG(("DOM: no view to paste image into\n"));
-			  goto retry_text;
-		  }
-		  
-		  error = pView->cmdInsertGraphic(pFG);
-		  if (!error)
-			  bSuccess = true;
       }
     else // ( AP_UnixClipboard::isTextTag(szFormatFound) )
     {
@@ -689,8 +695,6 @@ bool AP_UnixApp::pasteDataToDocRange(PD_DocumentRange * pDocRange,
 		bSuccess = pImpText->pasteFromBuffer(pDocRange,pData,iLen);
 		DELETEP(pImpText);
     }
-
- retry_text:
 
 	// we failed to paste *anything.* try plaintext as a last-ditch effort
 	const void * pTextData = nullptr;
@@ -916,7 +920,7 @@ bool AP_UnixApp::getCurrentSelection(const char** formatList,
 
 			pExpRtf->copyToBuffer(&dr,&m_selectionByteBuf);
 			DELETEP(pExpRtf);
-			goto ReturnThisBuffer;
+			break;
 		}
 
 		if ( AP_UnixClipboard::isHTMLTag(formatList[j]) )
@@ -928,7 +932,7 @@ bool AP_UnixApp::getCurrentSelection(const char** formatList,
 			pExpHTML->set_HTML4 (!strcmp (formatList[j], "text/html"));
 			pExpHTML->copyToBuffer(&dr,&m_selectionByteBuf);
 			DELETEP(pExpHTML);
-			goto ReturnThisBuffer;
+			break;
 		}
 
 		if ( AP_UnixClipboard::isImageTag(formatList[j]) )
@@ -947,7 +951,7 @@ bool AP_UnixApp::getCurrentSelection(const char** formatList,
 					if (png && png->getLength() > 0)
 						{
 							m_selectionByteBuf.ins (0, png->getPointer (0), png->getLength ());
-							goto ReturnThisBuffer;
+							break;
 						}
 				}
 		}
@@ -960,16 +964,18 @@ bool AP_UnixApp::getCurrentSelection(const char** formatList,
 
 			pExpText->copyToBuffer(&dr,&m_selectionByteBuf);
 			DELETEP(pExpText);
-			goto ReturnThisBuffer;
+			break;
 		}
 
 		// TODO add other formats as necessary
     }
 
-    UT_DEBUGMSG(("Clipboard::getCurrentSelection: cannot create anything in one of requested formats.\n"));
-    return false;
+    if (!formatList[j]) // ran out of formats
+    {
+		UT_DEBUGMSG(("Clipboard::getCurrentSelection: cannot create anything in one of requested formats.\n"));
+		return false;
+    }
 
- ReturnThisBuffer:
     UT_DEBUGMSG(("Clipboard::getCurrentSelection: copying %d bytes in format [%s].\n",
 		 m_selectionByteBuf.getLength(),formatList[j]));
     *ppData = const_cast<void *>(static_cast<const void *>(m_selectionByteBuf.getPointer(0)));

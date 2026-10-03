@@ -104,7 +104,8 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 	state = S_START;
 
 	char * p = m_szBuf;
-	while (*p)
+	bool bDone = false;
+	while (*p && !bDone)
 	{
 		switch (state)
 		{
@@ -132,7 +133,10 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 			{
 				char ** tmp = static_cast<char **>(g_try_realloc(argv,(count+10)*sizeof(char *)));
 				if (!tmp)
-					goto done;	/* OOM: keep already-parsed args */
+				{
+					bDone = true;	/* OOM: keep already-parsed args */
+					break;
+				}
 				argv = tmp;
 				count += 10;
 			}
@@ -174,7 +178,6 @@ XAP_Args::XAP_Args(const char * szCmdLine)
 		}
 	}
 
-done:
 	if (k==0)
 	{
 		FREEP(m_szBuf);

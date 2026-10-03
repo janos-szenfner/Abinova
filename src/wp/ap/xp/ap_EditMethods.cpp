@@ -4244,20 +4244,20 @@ UT_return_val_if_fail(pDialog, false);
 		if(errorCode)
 		{
 			s_CouldNotLoadFileMessage(pFrame, pNewFile, errorCode);
-			goto Cleanup;
 		}
-
-		errorCode = pView->cmdInsertGraphic(pFG);
-		if (errorCode)
+		else
 		{
-			s_CouldNotLoadFileMessage(pFrame, pNewFile, errorCode);
-			goto Cleanup;
+			errorCode = pView->cmdInsertGraphic(pFG);
+			if (errorCode)
+			{
+				s_CouldNotLoadFileMessage(pFrame, pNewFile, errorCode);
+			}
+			else
+			{
+				ret = true;
+			}
 		}
-
-		ret = true; // goes to Cleanup
 	}
-
- Cleanup:
 
 	pDialogFactory->releaseDialog(pDialog);
 	return ret;
@@ -6396,25 +6396,21 @@ Defun(insertClosingParenthesis)
 		UT_return_val_if_fail(pCallData->m_dataLength == 1, false);
 		UT_UCS4Char data[2];
 		data[0] = static_cast<UT_UCS4Char>( *(pCallData->m_pData));
-		
+
 		if(pLR->m_eDir == UTLANG_RTL)
 		{
 			data[1] = UCS_RLM;
+			pView->cmdCharInsert(&data[0],2);
+			return true;
 		}
-		else if(pLR->m_eDir == UTLANG_LTR)
+		if(pLR->m_eDir == UTLANG_LTR)
 		{
 			data[1] = UCS_LRM;
+			pView->cmdCharInsert(&data[0],2);
+			return true;
 		}
-		else
-		{
-			goto normal_insert;
-		}
-
-		pView->cmdCharInsert(&data[0],2);
-		return true;
 	}
 
- normal_insert:	
 	pView->cmdCharInsert(pCallData->m_pData, pCallData->m_dataLength);
 	return true;
 }
@@ -6454,21 +6450,17 @@ Defun(insertOpeningParenthesis)
 		if(pLR->m_eDir == UTLANG_RTL)
 		{
 			data[0] = UCS_RLM;
+			pView->cmdCharInsert(&data[0], 2);
+			return true;
 		}
-		else if(pLR->m_eDir == UTLANG_LTR)
+		if(pLR->m_eDir == UTLANG_LTR)
 		{
 			data[0] = UCS_LRM;
+			pView->cmdCharInsert(&data[0], 2);
+			return true;
 		}
-		else
-		{
-			goto normal_insert;
-		}
-
-		pView->cmdCharInsert(&data[0], 2);
-		return true;
 	}
 
- normal_insert:	
 	pView->cmdCharInsert(pCallData->m_pData, pCallData->m_dataLength);
 	return true;
 }

@@ -342,33 +342,37 @@ bool UT_UUID::_getClock(UT_uint32 &iHigh, UT_uint32 &iLow, UT_uint16 &iSeq) cons
     struct timeval            tv;
     UT_uint64                 iClockReg;
 
-try_again:
-    UT_gettimeofday(&tv);
-    if ((last.tv_sec == 0) && (last.tv_usec == 0))
+    for (;;)
 	{
-        _getRandomBytes(&iClockSeq, sizeof(iClockSeq));
-        iClockSeq &= 0x1FFF;
-        last = tv;
-        last.tv_sec--;
-    }
+        UT_gettimeofday(&tv);
+        if ((last.tv_sec == 0) && (last.tv_usec == 0))
+	    {
+            _getRandomBytes(&iClockSeq, sizeof(iClockSeq));
+            iClockSeq &= 0x1FFF;
+            last = tv;
+            last.tv_sec--;
+        }
 
-	if ((tv.tv_sec < last.tv_sec)
-		|| ((tv.tv_sec == last.tv_sec) && (tv.tv_usec < last.tv_usec)))
-	{
-        iClockSeq = (iClockSeq+1) & 0x1FFF;
-        iAdjustment = 0;
-        last = tv;
-    }
-	else if ((tv.tv_sec == last.tv_sec) && (tv.tv_usec == last.tv_usec))
-	{
-        if (iAdjustment >= MAX_ADJUSTMENT)
-            goto try_again;
-        iAdjustment++;
-    }
-	else
-	{
-        iAdjustment = 0;
-        last = tv;
+	    if ((tv.tv_sec < last.tv_sec)
+		    || ((tv.tv_sec == last.tv_sec) && (tv.tv_usec < last.tv_usec)))
+	    {
+            iClockSeq = (iClockSeq+1) & 0x1FFF;
+            iAdjustment = 0;
+            last = tv;
+        }
+	    else if ((tv.tv_sec == last.tv_sec) && (tv.tv_usec == last.tv_usec))
+	    {
+            if (iAdjustment >= MAX_ADJUSTMENT)
+                continue;
+            iAdjustment++;
+        }
+	    else
+	    {
+            iAdjustment = 0;
+            last = tv;
+        }
+
+        break;
     }
 
     iClockReg = tv.tv_usec*10 + iAdjustment;

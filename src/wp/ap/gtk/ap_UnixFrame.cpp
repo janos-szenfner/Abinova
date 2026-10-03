@@ -61,7 +61,6 @@
 /*****************************************************************/
 
 #define ENSUREP_RF(p)            do { UT_ASSERT(p); if (!p) return false; } while (0)
-#define ENSUREP_C(p)		do { UT_ASSERT(p); if (!p) goto Cleanup; } while (0)
 
 /*****************************************************************/
 #include "ap_UnixApp.h"
@@ -197,17 +196,10 @@ AP_UnixFrame::~AP_UnixFrame()
 XAP_Frame * AP_UnixFrame::cloneFrame()
 {
 	AP_Frame * pClone = new AP_UnixFrame(this);
-	ENSUREP_C(pClone);
+	UT_ASSERT(pClone);
+	if (!pClone)
+		return nullptr;
 	return static_cast<XAP_Frame *>(pClone);
-
- Cleanup:
-	// clean up anything we created here
-	if (pClone)
-	{
-		XAP_App::getApp()->forgetFrame(pClone);
-		delete pClone;
-	}
-	return nullptr;
 }
 
 bool AP_UnixFrame::initialize(XAP_FrameMode frameMode)

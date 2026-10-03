@@ -67,20 +67,18 @@ bool AV_View::addListener(AV_Listener * pListener,
 		if (m_vecListeners.getNthItem(k) == nullptr)
 		{
 			static_cast<void>(m_vecListeners.setNthItem(k,pListener,nullptr));
-			goto ClaimThisK;
+			break;
 		}
 
 	// otherwise, extend the vector for it.
-	
-	if (m_vecListeners.addItem(pListener,&k) != 0)
+
+	if (k == kLimit && m_vecListeners.addItem(pListener,&k) != 0)
 	{
 		return false;				// could not add item to vector
 	}
 
-  ClaimThisK:
-
 	// give our vector index back to the caller as a "Listener Id".
-	
+
 	*pListenerId = k;
 
 	UT_DEBUGMSG(("Adding listener %p type %d id %d \n", static_cast<void*>(pListener), pListener->getType(), k));

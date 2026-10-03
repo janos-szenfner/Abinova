@@ -47,15 +47,6 @@ srandom_r__ (unsigned int seed, struct UT_random_data *buf);
 static int
 random_r__ (struct UT_random_data *buf, UT_sint32 *result);
 
-#if 0
-static int
-setstate_r__ (char *arg_state, struct UT_random_data *buf);
-
-static int
-initstate_r__ (unsigned int seed, char *arg_state, size_t n, 
-	       struct UT_random_data *buf);
-#endif
-
 /* An improved random number generation package.  In addition to the standard
    rand()/srand() like interface, this package also has a special state info
    interface.  The initstate() routine is called with a seed, an array of
@@ -218,20 +209,6 @@ UT_srandom (UT_uint32 seed)
    to the order in which things are done, it is OK to call setstate with the
    same state as the current state
    Returns a pointer to the old state information.  */
-#if 0
-static char *
-setstate__ (char * arg_state)
-{
-  UT_sint32 *ostate;
-
-  ostate = &unsafe_state.state[-1];
-
-  if (setstate_r__ (arg_state, &unsafe_state) < 0)
-    ostate = nullptr;
-
-  return static_cast<char *>(ostate);
-}
-#endif
 
 
 /* If we are using the trivial TYPE_0 R.N.G., just do the old linear
@@ -360,21 +337,6 @@ static UT_sint32 random__ ()
 
 #define	MAX_TYPES	5	/* Max number of types above.  */
 
-struct random_poly_info
-{
-  int seps[MAX_TYPES];
-  int degrees[MAX_TYPES];
-};
-
-#if 0
-static const struct random_poly_info random_poly_info =
-{
-  { SEP_0, SEP_1, SEP_2, SEP_3, SEP_4 },
-  { DEG_0, DEG_1, DEG_2, DEG_3, DEG_4 }
-};
-#endif
-
-
 
 
 /* Initialize the random number generator based on the given seed.  If the
@@ -396,10 +358,10 @@ srandom_r__ (unsigned int seed, struct UT_random_data *buf)
   int kc;
 
   if (buf == nullptr)
-    goto fail;
+    return -1;
   type = buf->rand_type;
   if (static_cast<unsigned int>(type) >= MAX_TYPES)
-    goto fail;
+    return -1;
 
   state = buf->state;
   /* We must make sure the seed is not 0.  Take arbitrarily 1 in this case.  */
@@ -407,7 +369,7 @@ srandom_r__ (unsigned int seed, struct UT_random_data *buf)
     seed = 1;
   state[0] = seed;
   if (type == TYPE_0)
-    goto done;
+    return 0;
 
   dst = state;
   word = seed;
@@ -434,11 +396,7 @@ srandom_r__ (unsigned int seed, struct UT_random_data *buf)
       static_cast<void>(random_r__ (buf, &discard));
     }
 
- done:
   return 0;
-
- fail:
-  return -1;
 }
 
 
@@ -453,58 +411,6 @@ srandom_r__ (unsigned int seed, struct UT_random_data *buf)
    Note: The first thing we do is save the current state, if any, just like
    setstate so that it doesn't matter when initstate is called.
    Returns a pointer to the old state.  */
-#if 0
-static int
-initstate_r__ (unsigned int seed, char *arg_state, size_t n, 
-	       struct UT_random_data *buf)
-{
-  int type;
-  int degree;
-  int separation;
-  UT_sint32 *state;
-
-  if (buf == nullptr)
-    goto fail;
-
-  if (n >= BREAK_3)
-    type = n < BREAK_4 ? TYPE_3 : TYPE_4;
-  else if (n < BREAK_1)
-    {
-      if (n < BREAK_0)
-	{
-	  errno=EINVAL;
-	  goto fail;
-	}
-      type = TYPE_0;
-    }
-  else
-    type = n < BREAK_2 ? TYPE_1 : TYPE_2;
-
-  degree = random_poly_info.degrees[type];
-  separation = random_poly_info.seps[type];
-
-  buf->rand_type = type;
-  buf->rand_sep = separation;
-  buf->rand_deg = degree;
-  state = &(static_cast<UT_sint32 *>(arg_state))[1];	/* First location.  */
-  /* Must set END_PTR before srandom.  */
-  buf->end_ptr = &state[degree];
-
-  buf->state = state;
-
-  srandom_r__ (seed, buf);
-
-  state[-1] = TYPE_0;
-  if (type != TYPE_0)
-    state[-1] = (buf->rptr - state) * MAX_TYPES + type;
-
-  return 0;
-
- fail:
-  errno=EINVAL;
-  return -1;
-}
-#endif
 
 
 /* Restore the state from the given state array.
@@ -515,52 +421,6 @@ initstate_r__ (unsigned int seed, char *arg_state, size_t n,
    to the order in which things are done, it is OK to call setstate with the
    same state as the current state
    Returns a pointer to the old state information.  */
-#if 0
-static int
-setstate_r__ (char *arg_state, struct UT_random_data *buf)
-{
-  UT_sint32 *new_state = 1 + static_cast<UT_sint32 *>(arg_state);
-  int type;
-  int old_type;
-  UT_sint32 *old_state;
-  int degree;
-  int separation;
-
-  if (arg_state == nullptr || buf == nullptr)
-    goto fail;
-
-  old_type = buf->rand_type;
-  old_state = buf->state;
-  if (old_type == TYPE_0)
-    old_state[-1] = TYPE_0;
-  else
-    old_state[-1] = (MAX_TYPES * (buf->rptr - old_state)) + old_type;
-
-  type = new_state[-1] % MAX_TYPES;
-  if (type < TYPE_0 || type > TYPE_4)
-    goto fail;
-
-  buf->rand_deg = degree = random_poly_info.degrees[type];
-  buf->rand_sep = separation = random_poly_info.seps[type];
-  buf->rand_type = type;
-
-  if (type != TYPE_0)
-    {
-      int rear = new_state[-1] / MAX_TYPES;
-      buf->rptr = &new_state[rear];
-      buf->fptr = &new_state[(rear + separation) % degree];
-    }
-  buf->state = new_state;
-  /* Set end_ptr too.  */
-  buf->end_ptr = &new_state[degree];
-
-  return 0;
-
- fail:
-  errno=EINVAL;
-  return -1;
-}
-#endif
 
 
 /* If we are using the trivial TYPE_0 R.N.G., just do the old linear
@@ -580,7 +440,10 @@ random_r__ (struct UT_random_data *buf, UT_sint32 *result)
   UT_sint32 *state;
 
   if (buf == nullptr || result == nullptr)
-    goto fail;
+  {
+    errno=EINVAL;
+    return -1;
+  }
 
   state = buf->state;
 
@@ -617,10 +480,6 @@ random_r__ (struct UT_random_data *buf, UT_sint32 *result)
       buf->rptr = rptr;
     }
   return 0;
-
- fail:
-  errno=EINVAL;
-  return -1;
 }
 
 /* Copyright (C) 1991, 1996 Free Software Foundation, Inc.

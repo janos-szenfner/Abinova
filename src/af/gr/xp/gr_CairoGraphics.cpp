@@ -2573,6 +2573,7 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 	PangoFontset *pfs = nullptr;
 	bool bDoFontSubstitution = false;
 	bool bClear_pf = false;
+	bool bMeasureOk = true;
 
 	while (l)
 	{
@@ -2582,7 +2583,8 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 		{
 			UT_ASSERT(pItem);
 			iWidth = 0;
-			goto cleanup;
+			bMeasureOk = false;
+			break;
 		}
 
 		if (bDoFontSubstitution)
@@ -2700,20 +2702,22 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 		l = l->next;
 	}
 
-	if (pWidths)
+	if (bMeasureOk)
 	{
-		/* This is a bit weird, possibly a Pango bug, but it is better
-		 * to set any dangling widths to 0 than leave them at randomn values
-		 */
-		while (iOffset < static_cast<UT_uint32>(iLength))
+		if (pWidths)
 		{
-			pWidths[iOffset++] = 0;
+			/* This is a bit weird, possibly a Pango bug, but it is better
+			 * to set any dangling widths to 0 than leave them at randomn values
+			 */
+			while (iOffset < static_cast<UT_uint32>(iLength))
+			{
+				pWidths[iOffset++] = 0;
+			}
 		}
+
+		xxx_UT_DEBUGMSG(("Length %d, Offset %d\n", iLength, iOffset));
 	}
-	
-	xxx_UT_DEBUGMSG(("Length %d, Offset %d\n", iLength, iOffset));
-	
-cleanup:
+
 	if(pGstring)
 		pango_glyph_string_free(pGstring);
 

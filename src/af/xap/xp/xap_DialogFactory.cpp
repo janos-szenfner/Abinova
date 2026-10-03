@@ -158,29 +158,77 @@ XAP_Dialog * XAP_DialogFactory::requestDialog(XAP_Dialog_Id id)
 	{
 		dlg = m_vec_dlg_table.getNthItem(index);
 		UT_nonnull_or_return(dlg, nullptr);
+
+		auto createItSimple = [&]() -> XAP_Dialog *
+		{
+			// create a fresh dialog object and return it -- no strings attached.
+			pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
+			if (dlg->m_tabbed) {
+				XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
+				UT_ASSERT(d);
+				addPages(d, id);
+			}
+			return pDialog;
+		};
+
+		auto createItPersistent = [&]() -> XAP_Dialog *
+		{
+			// see if we already have an instance of this object in our vector.
+			// if so, just return it.  otherwise, create a fresh one and remember it.
+			UT_sint32 indexVec = m_vecDialogIds.findItem(index+1);
+			if (indexVec < 0)				// not present, create new object and add it to vector
+			{
+				pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
+				m_vecDialogIds.addItem(index+1);
+				m_vecDialogs.addItem(pDialog);
+			}
+			else							// already present, reuse this object
+			{
+				pDialog = const_cast<XAP_Dialog *>(static_cast<const XAP_Dialog*>(m_vecDialogs.getNthItem(indexVec)));
+			}
+			if (dlg->m_tabbed) {
+				XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
+				UT_ASSERT(d);
+				addPages(d, id);
+			}
+
+			// let the dialog object know that we are reusing it.
+
+			XAP_Dialog_Persistent * pDialogPersistent = static_cast<XAP_Dialog_Persistent *>(pDialog);
+			pDialogPersistent->useStart();
+
+			return pDialog;
+		};
+
+		auto handToAppFactory = [&]() -> XAP_Dialog *
+		{
+			// pass the request to the factory with the appropriate scope.
+			return XAP_App::getApp()->getDialogFactory()->requestDialog(id);
+		};
+
 		switch (dlg->m_type)
 		{
-		case XAP_DLGT_NON_PERSISTENT:	
+		case XAP_DLGT_NON_PERSISTENT:
 			// construct a non-persistent dialog and just return it.
-			goto CreateItSimple;
+			return createItSimple();
 
 		case XAP_DLGT_FRAME_PERSISTENT:	 // if requested frame-persistent dialog
 			if (m_dialogType == XAP_DLGT_FRAME_PERSISTENT)	// from a frame-persistent factory.
-				goto CreateItPersistent;
+				return createItPersistent();
 			break;
-			
+
 		case XAP_DLGT_APP_PERSISTENT:	// if requested app-persistent dialog
 			if (m_dialogType == XAP_DLGT_APP_PERSISTENT)  //   if from a app-persistent factory
-				goto CreateItPersistent;
+				return createItPersistent();
 			if (m_dialogType == XAP_DLGT_FRAME_PERSISTENT)	//   if from a frame-persistent factory,
-				goto HandToAppFactory;	 //     let the app's factory do it....
+				return handToAppFactory();	 //     let the app's factory do it....
 			break;
-			
+
 		case XAP_DLGT_MODELESS:						// if requested app-persistent dialog
 			if (m_dialogType == XAP_DLGT_APP_PERSISTENT)		//   if from a app-persistent factory
-				goto CreateItPersistent;
+				return createItPersistent();
 			if (m_dialogType == XAP_DLGT_FRAME_PERSISTENT)	//   if from a frame-persistent factory,
-				goto HandToAppFactory;						//     let the app's factory do it....
+				return handToAppFactory();						//     let the app's factory do it....
 			break;
 
 		}
@@ -188,54 +236,6 @@ XAP_Dialog * XAP_DialogFactory::requestDialog(XAP_Dialog_Id id)
 
 //	UT_ASSERT_NOT_REACHED();
 	return nullptr;
-
-CreateItSimple:
-	{
-		// create a fresh dialog object and return it -- no strings attached.
-		pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
-		if (dlg->m_tabbed) {
-			XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
-			UT_ASSERT(d);
-			addPages(d, id);
-		}
-		return pDialog;
-	}
-	
-CreateItPersistent:
-	{
-		// see if we already have an instance of this object in our vector.
-		// if so, just return it.  otherwise, create a fresh one and remember it.
-		UT_sint32 indexVec = m_vecDialogIds.findItem(index+1);
-		if (indexVec < 0)				// not present, create new object and add it to vector
-		{
-			pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
-			m_vecDialogIds.addItem(index+1);
-			m_vecDialogs.addItem(pDialog);
-		}
-		else							// already present, reuse this object
-		{
-			pDialog = const_cast<XAP_Dialog *>(static_cast<const XAP_Dialog*>(m_vecDialogs.getNthItem(indexVec)));
-		}
-		if (dlg->m_tabbed) {
-			XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
-			UT_ASSERT(d);
-			addPages(d, id);
-		}
-
-		// let the dialog object know that we are reusing it.
-		
-		XAP_Dialog_Persistent * pDialogPersistent = static_cast<XAP_Dialog_Persistent *>(pDialog);
-		pDialogPersistent->useStart();
-		
-		return pDialog;
-	}
-
-HandToAppFactory:
-	{
-		// pass the request to the factory with the appropriate scope.
-		pDialog = XAP_App::getApp()->getDialogFactory()->requestDialog(id);
-		return pDialog;
-	}
 }
 
 void XAP_DialogFactory::releaseDialog(XAP_Dialog * pDialog)
@@ -251,6 +251,21 @@ void XAP_DialogFactory::releaseDialog(XAP_Dialog * pDialog)
 
 	auto dialog = m_vec_dlg_table.getNthItem(index);
 	UT_nonnull_or_return(dialog, );
+
+	auto finishedUsingObject = [&]()
+	{
+		// let the dialog object know that we are reusing it.
+
+		XAP_Dialog_Persistent * pDialogPersistent = static_cast<XAP_Dialog_Persistent *>(pDialog);
+		pDialogPersistent->useEnd();
+	};
+
+	auto handToAppFactory = [&]()
+	{
+		// pass the request to the factory with the appropriate scope.
+		XAP_App::getApp()->getDialogFactory()->releaseDialog(pDialog);
+	};
+
 	switch (dialog->m_type)
 	{
 	case XAP_DLGT_NON_PERSISTENT:						// for non-persistent dialog objects, we
@@ -259,42 +274,41 @@ void XAP_DialogFactory::releaseDialog(XAP_Dialog * pDialog)
 
 	case XAP_DLGT_FRAME_PERSISTENT:						// if requested frame-persistent dialog
 		if (m_dialogType == XAP_DLGT_FRAME_PERSISTENT)	//   from a frame-persistent factory.
-			goto FinishedUsingObject;					//     we remember it in our vector.
+		{
+			finishedUsingObject();						//     we remember it in our vector.
+			return;
+		}
 		break;
-		
+
 	case XAP_DLGT_APP_PERSISTENT:						// if requested app-persistent dialog
 		if (m_dialogType == XAP_DLGT_APP_PERSISTENT)		//   if from a app-persistent factory
-			goto FinishedUsingObject;					//     we remember it in our vector.
+		{
+			finishedUsingObject();						//     we remember it in our vector.
+			return;
+		}
 		if (m_dialogType == XAP_DLGT_FRAME_PERSISTENT)	//   if from a frame-persistent factory,
-			goto HandToAppFactory;						//     let the app's factory do it....
+		{
+			handToAppFactory();							//     let the app's factory do it....
+			return;
+		}
 		break;
-		
+
 	case XAP_DLGT_MODELESS:						// if requested app-persistent dialog
 		if (m_dialogType == XAP_DLGT_APP_PERSISTENT)		//   if from a app-persistent factory
-			goto FinishedUsingObject;					//     we remember it in our vector.
+		{
+			finishedUsingObject();						//     we remember it in our vector.
+			return;
+		}
 		if (m_dialogType == XAP_DLGT_FRAME_PERSISTENT)	//   if from a frame-persistent factory,
-			goto HandToAppFactory;						//     let the app's factory do it....
+		{
+			handToAppFactory();							//     let the app's factory do it....
+			return;
+		}
 		break;
 	}
 
 	UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 	return;
-
-FinishedUsingObject:
-	{
-		// let the dialog object know that we are reusing it.
-		
-		XAP_Dialog_Persistent * pDialogPersistent = static_cast<XAP_Dialog_Persistent *>(pDialog);
-		pDialogPersistent->useEnd();
-		return;
-	}
-	
-HandToAppFactory:
-	{
-		// pass the request to the factory with the appropriate scope.
-		XAP_App::getApp()->getDialogFactory()->releaseDialog(pDialog);
-		return;
-	}
 }
 
 /*!

@@ -3420,6 +3420,21 @@ below are on `main` but the release has not been cut yet.
   the backward-restart block traversal became an explicit loop, and
   `goto`-to-error-cleanup became scoped early returns.  Layout and
   editing behavior is unchanged.
+- **`goto` control flow removed from the application shell, dialogs
+  and utilities** — the remaining `goto` batch across frame/document
+  loading (`ap_Frame`), clipboard import/export fallback
+  (`ap_UnixApp`), the file-open/save and clip-art dialogs, the
+  dialog-factory persistence paths, the preferences XML parser,
+  command-line argument splitting, UUID clock generation, the
+  trinomial `UT_rand` engine and the Pango text-measurement loop now
+  use early returns, `break`/`continue`, cleanup lambdas and a done
+  flag; the four goto-tangled `UT_UCS2/UCS4_str(i)str` search
+  routines were replaced by straightforward canonical substring
+  searches, and the never-compiled `#if 0` `initstate`/`setstate`
+  code was deleted.  `XAP_Prefs::savePrefsFile` now returns `true`
+  on success (it previously returned `false` unconditionally — the
+  only caller ignores the value).  Application, dialog and
+  conversion behavior is unchanged.
 
 ### GTK4 port (core migration)
 

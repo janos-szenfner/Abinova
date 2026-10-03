@@ -395,21 +395,19 @@ bool XAP_App::addListener(AV_Listener * pListener,
 		if (m_vecPluginListeners.getNthItem(k) == nullptr)
 		{
 			static_cast<void>(m_vecPluginListeners.setNthItem(k,pListener,nullptr));
-			goto ClaimThisK;
+			break;
 		}
 
 	// otherwise, extend the vector for it.
-	
-	if (m_vecPluginListeners.addItem(pListener,&k) != 0)
+
+	if (k == kLimit && m_vecPluginListeners.addItem(pListener,&k) != 0)
 	{
 		UT_DEBUGMSG(("Failed! id %d \n",k));
 		return false;				// could not add item to vector
 	}
 
-  ClaimThisK:
-
 	// give our vector index back to the caller as a "Listener Id".
-	
+
 	*pListenerId = k;
 	return true;
 }

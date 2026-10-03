@@ -566,9 +566,24 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 	}
 	UT_DEBUGMSG(("Looking for %s \n",name));
 	XAP_PrefsScheme * pNewScheme = nullptr; // must be freed
-	
+
 	if (!m_parserState.m_parserStatus)		// eat if already had an error
 		return;
+
+	auto invalidFileError = [&, this]()
+	{
+		m_parserState.m_parserStatus = false;			// cause parser driver to bail
+		DELETEP(pNewScheme);
+	};
+	auto memoryError = [&]()
+	{
+		UT_DEBUGMSG(("Memory error parsing preferences file.\n"));
+		invalidFileError();
+	};
+	auto ignoreThisScheme = [&]()
+	{
+		DELETEP(pNewScheme);
+	};
 
 	xmlToIdMapping * id = nullptr;
 	id = static_cast<xmlToIdMapping *>(bsearch (static_cast<const void*>(name), static_cast<const void*>(s_Tokens),
@@ -672,7 +687,8 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 				if (strcmp(static_cast<const char*>(a[1]),szThisApp) != 0)
 				{
 					UT_DEBUGMSG(("Preferences file does not match this application.\n"));
-					goto InvalidFileError;
+					invalidFileError();
+					return;
 				}
 			}
 			else if (strcmp(static_cast<const char*>(a[0]), "ver") == 0)
@@ -704,7 +720,10 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 			{
 				FREEP(m_parserState.m_szSelectedSchemeName);
 				if (!(m_parserState.m_szSelectedSchemeName = g_strdup(static_cast<const char*>(a[1]))))
-					goto MemoryError;
+				{
+					memoryError();
+					return;
+				}
 			}
 			else if (strcmp(static_cast<const char*>(a[0]), "autosaveprefs") == 0)
 			{
@@ -724,7 +743,8 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 		if (!m_parserState.m_szSelectedSchemeName)
 		{
 			UT_DEBUGMSG(("No scheme selected in <Select...>\n"));
-			goto InvalidFileError;
+			invalidFileError();
+			return;
 		}
 		break;
 		}
@@ -743,7 +763,10 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 		
 		pNewScheme = new XAP_PrefsScheme(this, nullptr);
 		if (!pNewScheme)
-			goto MemoryError;
+		{
+			memoryError();
+			return;
+		}
 		
 		const gchar ** a = atts;
 		while (*a)
@@ -759,13 +782,15 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 				if (strcmp(static_cast<const char*>(a[1]), static_cast<const char*>(szBuiltinSchemeName)) == 0)
 				{
 					UT_DEBUGMSG(("Reserved scheme name [%s] found in file; ignoring.\n",a[1]));
-					goto IgnoreThisScheme;
+					ignoreThisScheme();
+					return;
 				}
 
 				if (getScheme(a[1]))
 				{
 					UT_DEBUGMSG(("Duplicate scheme [%s]; ignoring latter instance.\n",a[1]));
-					goto IgnoreThisScheme;
+					ignoreThisScheme();
+					return;
 				}
 
 				pNewScheme->setSchemeName(a[1]);
@@ -898,16 +923,8 @@ void XAP_Prefs::startElement(const gchar *name, const gchar **atts)
 		}
 	}
 	// successful parse of tag...
-IgnoreThisScheme:
 	DELETEP(pNewScheme);
 	return;								// success
-
-MemoryError:
-	UT_DEBUGMSG(("Memory error parsing preferences file.\n"));
-InvalidFileError:
-	m_parserState.m_parserStatus = false;			// cause parser driver to bail
-	DELETEP(pNewScheme);
-	return;
 }
 
 void XAP_Prefs::endElement(const gchar * /* name */)
@@ -927,7 +944,6 @@ void XAP_Prefs::charData(const gchar * /* s */, int /* len */)
 
 bool XAP_Prefs::loadPrefsFile(void)
 {
-	bool bResult = false;			// assume failure
 	const char * szFilename;
 
 	m_parserState.m_parserStatus = true;
@@ -941,18 +957,24 @@ bool XAP_Prefs::loadPrefsFile(void)
 
 	UT_XML parser;
 
+	auto fail = [this]()
+	{
+		FREEP(m_parserState.m_szSelectedSchemeName);
+		return false;
+	};
+
 	szFilename = getPrefsPathname();
 	if (!szFilename)
 	{
 		UT_DEBUGMSG(("could not get pathname for preferences file.\n"));
-		goto Cleanup;
+		return fail();
 	}
 
 	parser.setListener (this);
 	if ((parser.parse (szFilename) != UT_OK) || (!m_parserState.m_parserStatus))
 	{
 		UT_DEBUGMSG(("Problem reading (Preferences) document\n"));
-		goto Cleanup;
+		return fail();
 	}
 
 	// we succeeded in parsing the file,
@@ -961,12 +983,12 @@ bool XAP_Prefs::loadPrefsFile(void)
 	if (!m_parserState.m_bFoundAbiPreferences)
 	{
 		UT_DEBUGMSG(("Did not find <AbiPreferences...>\n"));
-		goto Cleanup;
+		return fail();
 	}
 	if (!m_parserState.m_bFoundSelect)
 	{
 		UT_DEBUGMSG(("Did not find <Select...>\n"));
-		goto Cleanup;
+		return fail();
 	}
 	if (!m_parserState.m_bFoundRecent)
 	{
@@ -984,30 +1006,34 @@ bool XAP_Prefs::loadPrefsFile(void)
 	{
 		UT_DEBUGMSG(("Selected scheme [%s] not found in preferences file.\n",
 					m_parserState.m_szSelectedSchemeName));
-		goto Cleanup;
+		return fail();
 	}
 
-	bResult = true;
-Cleanup:
 	FREEP(m_parserState.m_szSelectedSchemeName);
 
-	return bResult;
+	return true;
 }
 
 bool XAP_Prefs::savePrefsFile(void)
 {
-	bool bResult = false;			// assume failure
 	const char * szFilename;
 	FILE * fp = nullptr;
 #ifdef _WIN32
 	UT_Win32LocaleString str;
 #endif
 
+	auto fail = [&fp]()
+	{
+		if (fp)
+			fclose(fp);
+		return false;
+	};
+
 	szFilename = getPrefsPathname();
 	if (!szFilename)
 	{
 		UT_DEBUGMSG(("could not get pathname for preferences file.\n"));
-		goto Cleanup;
+		return fail();
 	}
 
 #ifdef _WIN32
@@ -1020,7 +1046,7 @@ bool XAP_Prefs::savePrefsFile(void)
 	if (!fp)
 	{
 		UT_DEBUGMSG(("could not open preferences file [%s].\n",szFilename));
-		goto Cleanup;
+		return fail();
 	}
 
 	// write a comment block as a prolog.
@@ -1246,11 +1272,9 @@ bool XAP_Prefs::savePrefsFile(void)
 	}
 	
 	fprintf(fp,"\n</AbiPreferences>\n");
-	
-Cleanup:
-	if (fp)
-		fclose(fp);
-	return bResult;
+
+	fclose(fp);
+	return true;
 
 }
 
@@ -1303,8 +1327,7 @@ void XAP_Prefs::_startElement_SystemDefaultFile(const gchar *name, const gchar *
 bool XAP_Prefs::loadSystemDefaultPrefsFile(const char * szSystemDefaultPrefsPathname)
 {
 	UT_ASSERT(szSystemDefaultPrefsPathname && *szSystemDefaultPrefsPathname);
-	
-	bool bResult = false;			// assume failure
+
 	m_parserState.m_parserStatus = true;
 
 	m_bLoadSystemDefaultFile = true;
@@ -1314,14 +1337,12 @@ bool XAP_Prefs::loadSystemDefaultPrefsFile(const char * szSystemDefaultPrefsPath
 	if ((parser.parse (szSystemDefaultPrefsPathname) != UT_OK) || (!m_parserState.m_parserStatus))
 	{
 		UT_DEBUGMSG(("Problem reading (System Default Preferences) document\n"));
-		goto Cleanup;
+		return false;
 	}
 
 	// we succeeded in parsing the file,
 
-	bResult = true;
-Cleanup:
-	return bResult;
+	return true;
 }
 
 /*****************************************************************/
