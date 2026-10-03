@@ -158,7 +158,7 @@ bool
 IE_Imp_RTF::StandardKeywordParser(IE_Imp_RTFGroupParser *parser)
 {
 	RTFTokenType tokenType;
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;	
 	RTF_KEYWORD_ID keywordID;
@@ -176,7 +176,7 @@ IE_Imp_RTF::StandardKeywordParser(IE_Imp_RTFGroupParser *parser)
 		case RTF_TOKEN_KEYWORD:
 		{
 			xxx_UT_DEBUGMSG(("IE_Imp_RTF::StandardKeywordParser() %s\n", keyword));
-			keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+			keywordID = KeywordToID(keyword);
 			parser->tokenKeyword(this, keywordID, parameter, paramUsed);
 			break;
 		}

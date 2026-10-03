@@ -2498,12 +2498,12 @@ UT_Error IE_Imp_RTF::_parseText()
 			{
 				// need to see if the keyword is \ftnalt indicating
 				// endnote
-				unsigned char keyword[MAX_KEYWORD_LEN];
+				char keyword[MAX_KEYWORD_LEN];
 				UT_sint32 parameter = 0;
 				bool parameterUsed = false;
 				if (ReadKeyword(keyword, &parameter, &parameterUsed, MAX_KEYWORD_LEN))
 				{
-					if(0 == strcmp(reinterpret_cast<const char*>(&keyword[0]), "ftnalt"))
+					if(0 == strcmp(keyword, "ftnalt"))
 					{
 						UT_DEBUGMSG(("Have Endnote \n"));
 						// we have an end-note
@@ -2847,7 +2847,8 @@ bool IE_Imp_RTF::StartNewSection()
 //
 bool IE_Imp_RTF::AddChar(UT_UCS4Char ch)
 {
-	if(!m_gbBlock.ins(m_gbBlock.getLength(), reinterpret_cast<UT_GrowBufElement*>(&ch), 1))
+	UT_GrowBufElement e = static_cast<UT_GrowBufElement>(ch);
+	if(!m_gbBlock.ins(m_gbBlock.getLength(), &e, 1))
 		return false;
 
 	return true;
@@ -3116,7 +3117,7 @@ bool IE_Imp_RTF::ParseChar(UT_UCS4Char ch,bool no_convert)
 */
 bool IE_Imp_RTF::ParseRTFKeyword()
 {
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool parameterUsed = false;
 	if (ReadKeyword(keyword, &parameter, &parameterUsed, MAX_KEYWORD_LEN))
@@ -3150,16 +3151,16 @@ bool IE_Imp_RTF::ParseRTFKeyword()
   \desc This function parse and read the keyword. It is called if a
   \\ is encountered in the flow. *pKeyword never contains the \\
  */
-bool IE_Imp_RTF::ReadKeyword(unsigned char* pKeyword, UT_sint32* pParam, bool* pParamUsed, UT_uint32 keywordBuffLen)
+bool IE_Imp_RTF::ReadKeyword(char* pKeyword, UT_sint32* pParam, bool* pParamUsed, UT_uint32 keywordBuffLen)
 {
 	bool fNegative = false;
 	*pParam = 0;
 	*pParamUsed = false;
 	*pKeyword = 0;
 	const unsigned int max_param = 256;
-	unsigned char parameter[max_param];
+	char parameter[max_param];
 	unsigned int count = 0;
-	unsigned char * savedKeyword = pKeyword;
+	char * savedKeyword = pKeyword;
 
 	// Read the first character of the control word
 	unsigned char ch;
@@ -3239,7 +3240,7 @@ bool IE_Imp_RTF::ReadKeyword(unsigned char* pKeyword, UT_sint32* pParam, bool* p
 		}
 		parameter[count] = 0;
 		xxx_UT_DEBUGMSG(("parameter %s \n",parameter));
-		*pParam = atol(reinterpret_cast<char*>(&parameter[0]));
+		*pParam = atol(parameter);
 		if (fNegative)
 			*pParam = -*pParam;
 	}
@@ -3251,7 +3252,7 @@ bool IE_Imp_RTF::ReadKeyword(unsigned char* pKeyword, UT_sint32* pParam, bool* p
 	}
 
 	snprintf(g_dbgLastKeyword, sizeof(g_dbgLastKeyword), "%s",
-			 reinterpret_cast<const char *>(savedKeyword));
+			 savedKeyword);
 	g_dbgLastParam = *pParam;
 	xxx_UT_DEBUGMSG(("Valid Keyword %s Here \n",savedKeyword));
 	return true;
@@ -3469,7 +3470,7 @@ bool IE_Imp_RTF::StuffCurrentGroup(UT_ByteBuf & buf)
 bool IE_Imp_RTF::HandleField()
 {
 	RTFTokenType tokenType;
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
 	bool bUseResult = false;  // true if field instruction can not be used
@@ -3497,19 +3498,19 @@ bool IE_Imp_RTF::HandleField()
 	// read the optional attribute for the field.
 	while (tokenType == RTF_TOKEN_KEYWORD)
 	{
-		if (strcmp (reinterpret_cast<char*>(&keyword[0]), "flddirty") == 0)
+		if (strcmp (keyword, "flddirty") == 0)
 		{
 			rtfFieldAttr &= fldAttrDirty;
 		}
-		else if (strcmp (reinterpret_cast<char*>(&keyword[0]), "fldedit") == 0)
+		else if (strcmp (keyword, "fldedit") == 0)
 		{
 			rtfFieldAttr &= fldAttrEdit;
 		}
-		else if (strcmp (reinterpret_cast<char*>(&keyword[0]), "fldlock") == 0)
+		else if (strcmp (keyword, "fldlock") == 0)
 		{
 			rtfFieldAttr &= fldAttrLock;
 		}
-		else if (strcmp (reinterpret_cast<char*>(&keyword[0]), "fldpriv") == 0)
+		else if (strcmp (keyword, "fldpriv") == 0)
 		{
 			rtfFieldAttr &= fldAttrPriv;
 		}
@@ -3545,7 +3546,7 @@ bool IE_Imp_RTF::HandleField()
 				return false;
 				break;
 			case RTF_TOKEN_KEYWORD:
-				if (strcmp(reinterpret_cast<const char *>(&keyword[0]), "*") == 0)
+				if (strcmp(keyword, "*") == 0)
 				{
 					if (gotStarKW)
 					{
@@ -3553,16 +3554,16 @@ bool IE_Imp_RTF::HandleField()
 					}
 					gotStarKW = true;
 				}
-				else if (strcmp(reinterpret_cast<const char *>(&keyword[0]), "fldinst") == 0)
+				else if (strcmp(keyword, "fldinst") == 0)
 				{
 					if (!gotStarKW)
 					{
 						UT_DEBUGMSG (("Ohoh, we were not supposed to get a 'fldinst' without a '*'. Go ahead.\n"));
 					}
 				}
-				else if (strcmp(reinterpret_cast<const char *>(&keyword[0]), "\\") == 0)
+				else if (strcmp(keyword, "\\") == 0)
 				{
-					fldBuf.append (keyword, 1);
+					fldBuf.append (reinterpret_cast<const UT_Byte*>(keyword), 1);
 				}
 				break;
 			case RTF_TOKEN_OPEN_BRACE:
@@ -3575,7 +3576,7 @@ bool IE_Imp_RTF::HandleField()
 				break;
 			case RTF_TOKEN_DATA:
 				// add data to the field
-				fldBuf.append (keyword, 1);
+				fldBuf.append (reinterpret_cast<const UT_Byte*>(keyword), 1);
 				break;
 			default:
 				break;
@@ -3621,7 +3622,7 @@ bool IE_Imp_RTF::HandleField()
 		if (tokenType == RTF_TOKEN_KEYWORD)
 		{
 			// here we expect fldrslt keyword, nothing else
-			if (strcmp (reinterpret_cast<char*>(&keyword[0]), "fldrslt") != 0)
+			if (strcmp (keyword, "fldrslt") != 0)
 			{
 				UT_DEBUGMSG (("RTF: Invalid keyword '%s' in field\n", keyword));
 				// don't return as we simply skip it
@@ -4249,7 +4250,7 @@ bool IE_Imp_RTF::HandleHeaderFooter(RTFHdrFtr::HdrFtrType hftype, UT_uint32 & he
 
 
 // Test the keyword against all the known handlers
-bool IE_Imp_RTF::TranslateKeyword(unsigned char* pKeyword, UT_sint32 param, bool fParam)
+bool IE_Imp_RTF::TranslateKeyword(char* pKeyword, UT_sint32 param, bool fParam)
 {
 	// switch on the first char to reduce the number of string comparisons
 	// NB. all RTF keywords are lowercase.
@@ -4259,7 +4260,7 @@ bool IE_Imp_RTF::TranslateKeyword(unsigned char* pKeyword, UT_sint32 param, bool
 	// that if we are only loading styles, these are ignored
 	// (the docs say these can be scattered among the header tables)
 	xxx_UT_DEBUGMSG(("Translating keyword %s \n",pKeyword));
-	RTF_KEYWORD_ID keywordID = KeywordToID(reinterpret_cast<char *>(pKeyword));
+	RTF_KEYWORD_ID keywordID = KeywordToID(pKeyword);
 	return TranslateKeywordID(keywordID, param, fParam);
 }
 
@@ -4301,7 +4302,7 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 	{
 // this keyword will be immediately followed by either the
 // ltrch or rtlch keyword, which we need to eat up ...
-		unsigned char kwrd[MAX_KEYWORD_LEN];
+		char kwrd[MAX_KEYWORD_LEN];
 		UT_sint32 par = 0;
 		bool parUsed = false;
 		bool ok = true;
@@ -4311,8 +4312,8 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		ok = ReadCharFromFileWithCRLF(&c);
 		if (ok && ReadKeyword(kwrd, &par, &parUsed, MAX_KEYWORD_LEN))
 		{
-			if(!(0 == strncmp(reinterpret_cast<const char*>(&kwrd[0]),"rtlch",MAX_KEYWORD_LEN) ||
-				 0 == strncmp(reinterpret_cast<const char*>(&kwrd[0]),"ltrch",MAX_KEYWORD_LEN)))
+			if(!(0 == strncmp(kwrd,"rtlch",MAX_KEYWORD_LEN) ||
+				 0 == strncmp(kwrd,"ltrch",MAX_KEYWORD_LEN)))
 			{
 				UT_DEBUGMSG(("RTF import: keyword \\%s found where \\ltrch"
 							 " or \\rtlch expected\n", kwrd));
@@ -5713,7 +5714,7 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 
 bool IE_Imp_RTF::HandleStarKeyword() 
 {
-	unsigned char keyword_star[MAX_KEYWORD_LEN];
+	char keyword_star[MAX_KEYWORD_LEN];
 	UT_sint32 parameter_star = 0;
 	bool parameterUsed_star = false;
 	xxx_UT_DEBUGMSG(("RTF Level in HandlStarKeyword %d \n",m_stateStack.size()));	
@@ -5723,14 +5724,14 @@ bool IE_Imp_RTF::HandleStarKeyword()
 	{
 		xxx_UT_DEBUGMSG(("keyword_star %s read after * \n",keyword_star));
 
-		if( strcmp(reinterpret_cast<char*>(keyword_star), "\\")== 0)
+		if( strcmp(keyword_star, "\\")== 0)
 		{
 			if (ReadKeyword(keyword_star, &parameter_star, &parameterUsed_star,
 							MAX_KEYWORD_LEN))
 			{
 
 				xxx_UT_DEBUGMSG(("actual keyword_star %s read after * \n",keyword_star));
-				RTF_KEYWORD_ID keywordID = KeywordToID(reinterpret_cast<char *>(keyword_star));
+				RTF_KEYWORD_ID keywordID = KeywordToID(keyword_star);
 				switch (keywordID) {
 				case RTF_KW_ol:
 					return HandleOverline(parameterUsed_star ?
@@ -5975,7 +5976,7 @@ bool IE_Imp_RTF::HandleStarKeyword()
 //
 				case RTF_KW_abifieldD:
 				{
-					char * pszField = strstr(reinterpret_cast<char *>(keyword_star),"D");
+					char * pszField = strstr(keyword_star,"D");
 					if(!pszField)
 					{
 						break;
@@ -6446,14 +6447,15 @@ bool IE_Imp_RTF::_appendSpan()
 	prop_rtl += "dir-override:rtl";
 	
 	
-	UT_UCS4Char * p;
+	const UT_UCS4Char * p;
+	const UT_UCS4Char * pBuf = reinterpret_cast<const UT_UCS4Char*>(m_gbBlock.getPointer(0));
 	UT_uint32 iLen = m_gbBlock.getLength();
 
 	if(m_bBidiMode)
 	{
 		UT_BidiCharType cType;
 		UT_uint32 iLast = 0;
-		UT_UCS4Char c = *(reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(0)));
+		UT_UCS4Char c = *pBuf;
 	
 		cType = UT_bidiGetCharType(c);
 	
@@ -6461,7 +6463,7 @@ bool IE_Imp_RTF::_appendSpan()
 		{
 			if(i < iLen - 1 )
 			{
-				c = *(reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(i+1)));
+				c = pBuf[i+1];
 				m_iBidiNextType = UT_bidiGetCharType(c);
 			}
 			else
@@ -6478,7 +6480,7 @@ bool IE_Imp_RTF::_appendSpan()
 				{
 					if(i - iLast > 0)
 					{
-						p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+						p = pBuf + iLast;
 						if(m_pDelayedFrag)
 						{
 							if(!getDoc()->insertFmtMarkBeforeFrag(m_pDelayedFrag, propsArray)) {
@@ -6511,7 +6513,7 @@ bool IE_Imp_RTF::_appendSpan()
 				{
 					if(i - iLast > 0)
 					{
-						p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+						p = pBuf + iLast;
 						if(m_pDelayedFrag)
 						{
 							if(!getDoc()->insertFmtMarkBeforeFrag(m_pDelayedFrag, propsArray)) {
@@ -6546,7 +6548,7 @@ bool IE_Imp_RTF::_appendSpan()
 				{
 					if(i - iLast > 0)
 					{
-						p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+						p = pBuf + iLast;
 						if(m_pDelayedFrag)
 						{
 							if(!getDoc()->insertFmtMarkBeforeFrag(m_pDelayedFrag, propsArray)) {
@@ -6586,7 +6588,7 @@ bool IE_Imp_RTF::_appendSpan()
 		// insert what is left over
 		if(iLen - iLast > 0)
 		{
-			p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+			p = pBuf + iLast;
 			if(m_pDelayedFrag)
 			{
 				if(!getDoc()->insertFmtMarkBeforeFrag(m_pDelayedFrag, propsArray))
@@ -6607,7 +6609,7 @@ bool IE_Imp_RTF::_appendSpan()
 	else
 	{
 		// not a bidi doc, just do it the simple way
-		p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(0));
+		p = pBuf;
 		if(m_pDelayedFrag)
 		{
 			if(!getDoc()->insertFmtMarkBeforeFrag(m_pDelayedFrag, propsArray))
@@ -6642,7 +6644,8 @@ bool IE_Imp_RTF::_insertSpan()
 		bRevised ? "revision" : "props", prop_basic
 	};
 
-	UT_UCS4Char * p;
+	const UT_UCS4Char * p;
+	const UT_UCS4Char * pBuf = reinterpret_cast<const UT_UCS4Char*>(m_gbBlock.getPointer(0));
 	UT_uint32 iLen = m_gbBlock.getLength();
 	std::string styleName;
 
@@ -6679,7 +6682,7 @@ bool IE_Imp_RTF::_insertSpan()
 	{
 		UT_BidiCharType cType;
 		UT_uint32 iLast = 0;
-		UT_UCS4Char c = *(reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(0)));
+		UT_UCS4Char c = *pBuf;
 	
 		cType = UT_bidiGetCharType(c);
 	
@@ -6687,7 +6690,7 @@ bool IE_Imp_RTF::_insertSpan()
 		{
 			if(i < iLen - 1 )
 			{
-				c = *(reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(i+1)));
+				c = pBuf[i+1];
 				m_iBidiNextType = UT_bidiGetCharType(c);
 			}
 			else
@@ -6704,7 +6707,7 @@ bool IE_Imp_RTF::_insertSpan()
 				{
 					if(i - iLast > 0)
 					{
-						p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+						p = pBuf + iLast;
 						if(getDoc()->isFrameAtPos(m_dposPaste-1) || getDoc()->isTableAtPos(m_dposPaste-1) || getDoc()->isCellAtPos(m_dposPaste-1))
 						{
 							getDoc()->insertStrux(m_dposPaste,PTX_Block);
@@ -6731,7 +6734,7 @@ bool IE_Imp_RTF::_insertSpan()
 				{
 					if(i - iLast > 0)
 					{
-						p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+						p = pBuf + iLast;
 						if(!getDoc()->insertSpan(m_dposPaste, p ,i - iLast))
 							return false;
 						
@@ -6756,7 +6759,7 @@ bool IE_Imp_RTF::_insertSpan()
 				{
 					if(i - iLast > 0)
 					{
-						p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+						p = pBuf + iLast;
 						if(!getDoc()->insertSpan(m_dposPaste, p ,i - iLast))
 							return false;
 
@@ -6785,7 +6788,7 @@ bool IE_Imp_RTF::_insertSpan()
 		// insert what is left over
 		if(iLen - iLast > 0)
 		{
-			p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(iLast));
+			p = pBuf + iLast;
 			if(!getDoc()->insertSpan(m_dposPaste, p ,iLen - iLast))
 				return false;
 
@@ -6801,7 +6804,7 @@ bool IE_Imp_RTF::_insertSpan()
 	else
 	{
 		// not a bidi doc, just do it the simple way
-		p = reinterpret_cast<UT_UCS4Char*>(m_gbBlock.getPointer(0));
+		p = pBuf;
 		if(getDoc()->isFrameAtPos(m_dposPaste-1) || getDoc()->isTableAtPos(m_dposPaste-1) || getDoc()->isCellAtPos(m_dposPaste-1))
 		{
 			getDoc()->insertStrux(m_dposPaste,PTX_Block);
@@ -8085,7 +8088,7 @@ bool IE_Imp_RTF::ApplySectionAttributes()
  */
 char * IE_Imp_RTF::getCharsInsideBrace(void)
 {
-	unsigned static char keyword[MAX_KEYWORD_LEN];
+	static char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 
 	// OK scan through the text until a closing delimeter is
@@ -8130,7 +8133,7 @@ char * IE_Imp_RTF::getCharsInsideBrace(void)
 		}
 	}
 	keyword[count++] = 0;
-	return reinterpret_cast<char*>(&keyword[0]);
+	return keyword;
 }
 
 
@@ -8140,7 +8143,7 @@ bool IE_Imp_RTF::ReadListTable()
 // Ensure the list tables are empty to start.
 //
 	UT_std_vector_purgeall(m_vecWord97Lists);
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -8164,7 +8167,7 @@ bool IE_Imp_RTF::ReadListTable()
 			{
 				return false;
 			}
-			if (strcmp(reinterpret_cast<char*>(&keyword[0]), "list") == 0)
+			if (strcmp(keyword, "list") == 0)
 			{
 				if(!HandleTableList())
 					return false;
@@ -8194,7 +8197,7 @@ bool IE_Imp_RTF::ReadListTable()
  */
 bool IE_Imp_RTF::HandleTableList(void)
 {
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
     UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -8222,12 +8225,12 @@ bool IE_Imp_RTF::HandleTableList(void)
 			{
 				return false;
 			}
-			if(strcmp(reinterpret_cast<char*>(&keyword[0]),"listlevel") == 0)
+			if(strcmp(keyword,"listlevel") == 0)
 			{
 				HandleListLevel(pList,levelCount);
 				levelCount++;
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"listid") == 0)
+			else if(strcmp(keyword,"listid") == 0)
 			{
 				pList->m_RTF_listID = static_cast<UT_uint32>(parameter);
 			}
@@ -8248,11 +8251,11 @@ bool IE_Imp_RTF::HandleTableList(void)
 			{
 				return false;
 			}
-			if(strcmp(reinterpret_cast<char*>(&keyword[0]),"listtemplateid") == 0)
+			if(strcmp(keyword,"listtemplateid") == 0)
 			{
 				pList->m_RTF_listTemplateID = parameter;
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"listid") == 0)
+			else if(strcmp(keyword,"listid") == 0)
 			{
 				pList->m_RTF_listID = static_cast<UT_uint32>(parameter);
 			}
@@ -8270,7 +8273,7 @@ bool IE_Imp_RTF::HandleTableList(void)
  */
 bool IE_Imp_RTF::HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount  )
 {
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -8300,11 +8303,11 @@ bool IE_Imp_RTF::HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount
 			{
 				return false;
 			}
-			if(strcmp(reinterpret_cast<char*>(&keyword[0]),"levelnumbers") == 0)
+			if(strcmp(keyword,"levelnumbers") == 0)
 			{
 				szLevelNumbers = getCharsInsideBrace();
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"leveltext") == 0)
+			else if(strcmp(keyword,"leveltext") == 0)
 			{
 				szLevelText = getCharsInsideBrace();
 			}
@@ -8323,20 +8326,20 @@ bool IE_Imp_RTF::HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount
 			{
 				return false;
 			}
-			if(strcmp(reinterpret_cast<char*>(&keyword[0]),"levelnfc") == 0) // RTF list Type
+			if(strcmp(keyword,"levelnfc") == 0) // RTF list Type
 			{
 				pLevel->m_RTFListType = static_cast<UT_uint32>(parameter);
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"levelnfcn") == 0)  // Not in my docs
+			else if(strcmp(keyword,"levelnfcn") == 0)  // Not in my docs
 			{
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"leveljc") == 0) // Justification
+			else if(strcmp(keyword,"leveljc") == 0) // Justification
 			{
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"leveljcn") == 0) // Not in my docs
+			else if(strcmp(keyword,"leveljcn") == 0) // Not in my docs
 			{
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"levelfollow") == 0) // Tab following
+			else if(strcmp(keyword,"levelfollow") == 0) // Tab following
 			{
 				switch (parameter)
 				{
@@ -8354,17 +8357,17 @@ bool IE_Imp_RTF::HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount
 					break;
 				}
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"levelstartat") == 0)
+			else if(strcmp(keyword,"levelstartat") == 0)
 			{
 				pLevel->m_levelStartAt = static_cast<UT_uint32>(parameter);
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"levelspace") == 0) // ignore
+			else if(strcmp(keyword,"levelspace") == 0) // ignore
 			{
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"levelindent") == 0) // ignore
+			else if(strcmp(keyword,"levelindent") == 0) // ignore
 			{
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]), "levelnorestart") ==0)
+			else if(strcmp(keyword, "levelnorestart") ==0)
 			{
 				pLevel->m_bRestart = (parameter == 1);
 			}
@@ -8373,7 +8376,7 @@ bool IE_Imp_RTF::HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount
 //
 			else
 			{
-				if(!ParseCharParaProps(static_cast<unsigned char *>(keyword), parameter, paramUsed,
+				if(!ParseCharParaProps(keyword, parameter, paramUsed,
 									   pLevel->m_pCharProps, pLevel->m_pParaProps,
 									   pLevel->m_pbCharProps, pLevel->m_pbParaProps))
 					return false;
@@ -8405,20 +8408,20 @@ bool IE_Imp_RTF::HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount
  * and fills the pointers to the character and paragraph classes.
  * These are used by the list table and stylesheet reader.
  */
-bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
+bool IE_Imp_RTF::ParseCharParaProps( char * pKeyword,
                                      UT_sint32 param, bool fParam,
                                      const std::unique_ptr<RTFProps_CharProps>& pChars,
                                      const std::unique_ptr<RTFProps_ParaProps>& pParas,
                                      const std::unique_ptr<RTFProps_bCharProps>& pbChars,
                                      const std::unique_ptr<RTFProps_bParaProps>& pbParas)
 {
-	if (strcmp(reinterpret_cast<char*>(pKeyword), "b") == 0) // bold
+	if (strcmp(pKeyword, "b") == 0) // bold
 	{
 		pbChars->bm_bold = true;
 		pChars->m_bold = fParam ? false : true;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "cf") == 0) // color
+	else if (strcmp(pKeyword, "cf") == 0) // color
 	{
 		pChars->m_hasColour = true;
 		pbChars->bm_hasColour = true;
@@ -8426,17 +8429,17 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 		pChars->m_colourNumber = static_cast<UT_uint32>(param);
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "cb") == 0) // background color
+	else if (strcmp(pKeyword, "cb") == 0) // background color
 	{
 		pbChars->bm_bgcolourNumber = true;
 		return HandleU32CharacterProp(static_cast<UT_uint32>(param), &(pChars->m_bgcolourNumber));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "deleted") == 0) // deleted
+	else if (strcmp(pKeyword, "deleted") == 0) // deleted
 	{
 		pbChars->bm_deleted = true;
 		return HandleBoolCharacterProp(fParam ? false : true, &(pChars->m_deleted));
 	}
-	else if (strcmp(reinterpret_cast<char *>(pKeyword),"dn") == 0) // subscript with position
+	else if (strcmp(pKeyword,"dn") == 0) // subscript with position
 	{
 		// subscript with position. Default is 6.
 		// superscript: see up keyword
@@ -8450,12 +8453,12 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 		}
 		return ok;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "fs") == 0)
+	else if (strcmp(pKeyword, "fs") == 0)
 	{
 		pbChars->bm_fontSize = true;
 		return HandleFloatCharacterProp ((fParam ? param : 24)*0.5, &(pChars->m_fontSize));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "f") == 0)
+	else if (strcmp(pKeyword, "f") == 0)
 	{
 		UT_uint32 fontNumber = static_cast<UT_uint32>( (fParam ? param : 0));
 		RTFFontTableItem* pFont = GetNthTableFont(fontNumber);
@@ -8465,79 +8468,79 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 		pbChars->bm_fontNumber = true;
 		return HandleU32CharacterProp(fontNumber, &(pChars->m_fontNumber));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "fi") == 0)
+	else if (strcmp(pKeyword, "fi") == 0)
 	{
 		pParas->m_indentFirst = param;
 		pbParas->bm_indentFirst = true;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "i") == 0)
+	else if (strcmp(pKeyword, "i") == 0)
 	{
 		// italic - either on or off depending on the parameter
 		pbChars->bm_italic = true;
 		return HandleBoolCharacterProp((fParam ? false : true), &(pChars->m_italic));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "lang") == 0)
+	else if (strcmp(pKeyword, "lang") == 0)
 	{
 		pChars->m_szLang = wvLIDToLangConverter(static_cast<unsigned short>(param));
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "li") == 0)
+	else if (strcmp(pKeyword, "li") == 0)
 	{
 		pbParas->bm_indentLeft = true;
 		pParas->m_indentLeft = param;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "listtag") == 0)
+	else if (strcmp(pKeyword, "listtag") == 0)
 	{
 		pbChars->bm_listTag = true;
 		pChars->m_listTag = param;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword),"ol") == 0)
+	else if (strcmp(pKeyword,"ol") == 0)
 	{
 		pbChars->bm_overline = true;
 		return HandleBoolCharacterProp((fParam ? (param != 0) : true), &(pChars->m_overline));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "ql") == 0)
+	else if (strcmp(pKeyword, "ql") == 0)
 	{
 		pbParas->bm_justification = true;
 		pParas->m_justification = RTFProps_ParaProps::pjLeft;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "qc") == 0)
+	else if (strcmp(pKeyword, "qc") == 0)
 	{
 		pbParas->bm_justification = true;
 		pParas->m_justification = RTFProps_ParaProps::pjCentre;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "qr") == 0)
+	else if (strcmp(pKeyword, "qr") == 0)
 	{
 		pbParas->bm_justification = true;
 		pParas->m_justification = RTFProps_ParaProps::pjRight;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "qj") == 0)
+	else if (strcmp(pKeyword, "qj") == 0)
 	{
 		pbParas->bm_justification = true;
 		pParas->m_justification = RTFProps_ParaProps::pjFull;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "ri") == 0)
+	else if (strcmp(pKeyword, "ri") == 0)
 	{
 		pbParas->bm_indentRight = true;
 		pParas->m_indentRight = param;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "strike") == 0  ||  strcmp(reinterpret_cast<char*>(pKeyword), "striked") == 0)
+	else if (strcmp(pKeyword, "strike") == 0  ||  strcmp(pKeyword, "striked") == 0)
 	{
 		pbChars->bm_strikeout = true;
 		return HandleBoolCharacterProp((fParam ? (param != 0) : true), &(pChars->m_strikeout));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "sa") == 0)
+	else if (strcmp(pKeyword, "sa") == 0)
 	{
 		pbParas->bm_spaceAfter = true;
 		pParas->m_spaceAfter = param;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "sb") == 0)
+	else if (strcmp(pKeyword, "sb") == 0)
 	{
 		pbParas->bm_spaceBefore = true;
 		pParas->m_spaceBefore = param;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "sl") == 0)
+	else if (strcmp(pKeyword, "sl") == 0)
 	{
 		pbParas->bm_lineSpaceVal = true;
 		if (!fParam  ||  param == 0)
@@ -8549,22 +8552,22 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 			pParas->m_lineSpaceVal = param;
 		}
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "slmult") == 0)
+	else if (strcmp(pKeyword, "slmult") == 0)
 	{
 		pbParas->bm_lineSpaceExact = true;
 		pParas->m_lineSpaceExact = (!fParam  ||  param == 0);   // this means exact or "at least" - which depends on sign of \sl param
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "super") == 0)
+	else if (strcmp(pKeyword, "super") == 0)
 	{
 		pbChars->bm_superscript = true;
 		return HandleBoolCharacterProp((fParam ? false : true), &(pChars->m_superscript));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "sub") == 0)
+	else if (strcmp(pKeyword, "sub") == 0)
 	{
 		pbChars->bm_subscript = true;
 		return HandleBoolCharacterProp((fParam ? false : true), &(pChars->m_subscript));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tx") == 0)
+	else if (strcmp(pKeyword, "tx") == 0)
 	{
 		UT_return_val_if_fail(fParam, false);	// tabstops should have parameters
 		bool bres = AddTabstop(param,
@@ -8576,7 +8579,7 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 		pbParas->bm_curTabLeader = true;
 		return bres;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tb") == 0)
+	else if (strcmp(pKeyword, "tb") == 0)
 	{
 		UT_return_val_if_fail(fParam, false);	// tabstops should have parameters
 
@@ -8588,67 +8591,67 @@ bool IE_Imp_RTF::ParseCharParaProps( unsigned char * pKeyword,
 		pbParas->bm_curTabLeader = true;
 		return bres;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "jclisttab") == 0)
+	else if (strcmp(pKeyword, "jclisttab") == 0)
 	{
 		UT_DEBUGMSG(("SEVIOR: jclisttab found ignore for now \n"));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tqr") == 0)
+	else if (strcmp(pKeyword, "tqr") == 0)
 	{
 		pbParas->bm_curTabType = true;
 		pParas->m_curTabType = FL_TAB_RIGHT;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tqc") == 0)
+	else if (strcmp(pKeyword, "tqc") == 0)
 	{
 		pbParas->bm_curTabType = true;
 		pParas->m_curTabType = FL_TAB_CENTER;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tqdec") == 0)
+	else if (strcmp(pKeyword, "tqdec") == 0)
 	{
 		pbParas->bm_curTabType = true;
 		pParas->m_curTabType = FL_TAB_DECIMAL;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tldot") == 0)
+	else if (strcmp(pKeyword, "tldot") == 0)
 	{
 		pbParas->bm_curTabLeader = true;
 		pParas->m_curTabLeader = FL_LEADER_DOT;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tlhyph") == 0)
+	else if (strcmp(pKeyword, "tlhyph") == 0)
 	{
 		pbParas->bm_curTabLeader = true;
 		pParas->m_curTabLeader = FL_LEADER_HYPHEN;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tlul") == 0)
+	else if (strcmp(pKeyword, "tlul") == 0)
 	{
 		pbParas->bm_curTabLeader = true;
 		pParas->m_curTabLeader = FL_LEADER_UNDERLINE;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "tleq") == 0)
+	else if (strcmp(pKeyword, "tleq") == 0)
 	{
 		pbParas->bm_curTabLeader = true;
 		pParas->m_curTabLeader = FL_LEADER_EQUALSIGN;
 		return true;
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "ul") == 0        ||  strcmp(reinterpret_cast<char*>(pKeyword), "uld") == 0  ||
-			 strcmp(reinterpret_cast<char*>(pKeyword), "uldash") == 0    ||  strcmp(reinterpret_cast<char*>(pKeyword), "uldashd") == 0  ||
-			 strcmp(reinterpret_cast<char*>(pKeyword), "uldashdd") == 0  ||  strcmp(reinterpret_cast<char*>(pKeyword), "uldb") == 0  ||
-			 strcmp(reinterpret_cast<char*>(pKeyword), "ulth") == 0      ||  strcmp(reinterpret_cast<char*>(pKeyword), "ulw") == 0  ||
-			 strcmp(reinterpret_cast<char*>(pKeyword), "ulwave") == 0)
+	else if (strcmp(pKeyword, "ul") == 0        ||  strcmp(pKeyword, "uld") == 0  ||
+			 strcmp(pKeyword, "uldash") == 0    ||  strcmp(pKeyword, "uldashd") == 0  ||
+			 strcmp(pKeyword, "uldashdd") == 0  ||  strcmp(pKeyword, "uldb") == 0  ||
+			 strcmp(pKeyword, "ulth") == 0      ||  strcmp(pKeyword, "ulw") == 0  ||
+			 strcmp(pKeyword, "ulwave") == 0)
 	{
 		pbChars->bm_underline = true;
 		return HandleBoolCharacterProp((fParam ? (param != 0) : true), &(pChars->m_underline));
 	}
-	else if (strcmp(reinterpret_cast<char*>(pKeyword), "ulnone") == 0)
+	else if (strcmp(pKeyword, "ulnone") == 0)
 	{
 		pbChars->bm_underline = true;
 		return HandleBoolCharacterProp(false, &(pChars->m_underline));
 	}
-	else if (strcmp(reinterpret_cast<char *>(pKeyword),"up") == 0)
+	else if (strcmp(pKeyword,"up") == 0)
 	{
 		// superscript with position. Default is 6.
 		// subscript: see dn keyword
@@ -8672,7 +8675,7 @@ bool IE_Imp_RTF::ReadListOverrideTable(void)
 // Ensure the list tables are empty to start.
 //
 	UT_std_vector_purgeall(m_vecWord97ListOverride);
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -8690,7 +8693,7 @@ bool IE_Imp_RTF::ReadListOverrideTable(void)
 			{
 				return false;
 			}
-			if (strcmp(reinterpret_cast<char*>(&keyword[0]), "listoverride") == 0)
+			if (strcmp(keyword, "listoverride") == 0)
 			{
 				if(!HandleTableListOverride())
 				{
@@ -8742,7 +8745,7 @@ IE_Imp_RTF::_getTableListOverride(UT_uint32 id)
 
 bool IE_Imp_RTF::HandleTableListOverride(void)
 {
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -8780,7 +8783,7 @@ bool IE_Imp_RTF::HandleTableListOverride(void)
 			{
 				return false;
 			}
-			if(strcmp(reinterpret_cast<char*>(&keyword[0]),"listid") == 0)
+			if(strcmp(keyword,"listid") == 0)
 			{
 				pLOver->m_RTF_listID = static_cast<UT_uint32>(parameter);
 				if(!pLOver->setList())
@@ -8788,17 +8791,17 @@ bool IE_Imp_RTF::HandleTableListOverride(void)
 					return false;
 				}
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"listoverridecount")==0)
+			else if(strcmp(keyword,"listoverridecount")==0)
 			{
 				xxx_UT_DEBUGMSG(("SEVIOR: Found list listoverride count. Ignore for now\n"));
 			}
-			else if(strcmp(reinterpret_cast<char*>(&keyword[0]),"ls")== 0)
+			else if(strcmp(keyword,"ls")== 0)
 			{
 				pLOver->m_RTF_listID = static_cast<UT_uint32>(parameter);
 			}
 		    else
 			{
-				ParseCharParaProps(reinterpret_cast<unsigned char *>(keyword), parameter,
+				ParseCharParaProps(keyword, parameter,
 								   paramUsed, pLOver->m_pCharProps,
 								   pLOver->m_pParaProps, pLOver->m_pbCharProps,
 								   pLOver->m_pbParaProps);
@@ -8954,7 +8957,7 @@ bool IE_Imp_RTF::ReadFontTable()
 	bool bGotFontIndex = false;          // Did the entry specify a font index?
 	bool bSeenNonWhiteSpaceData = false; // Have we seen non-ws data in the current entry
 	bool bFoundFinalClosingBracket;      // Have we seen the bracket which closes the font table?
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	RTFTokenType tokenType;
 	RTF_KEYWORD_ID keywordID;
 	UT_sint32 parameter = 0;
@@ -9077,12 +9080,12 @@ bool IE_Imp_RTF::ReadFontTable()
 			{
 				// Other data must be one of the font names, so write it to the
 				// current font name pointer.
-				RawDataBuf[currentState->iCurrentInputData]->append(keyword, 1);
+				RawDataBuf[currentState->iCurrentInputData]->append(reinterpret_cast<const UT_Byte*>(keyword), 1);
 				bSeenNonWhiteSpaceData = true;
 			}
 			break;
 		case RTF_TOKEN_KEYWORD:
-			keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+			keywordID = KeywordToID(keyword);
 			// Are we skipping ANSI data after a \uXXXXX?
 			if (currentState->iUniCharsLeftToSkip)
 			{
@@ -9347,7 +9350,7 @@ bool IE_Imp_RTF::ReadColourTable()
 	// Ensure the table is empty before we start
 	UT_return_val_if_fail(m_colourTable.empty(), false);
 
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -9391,7 +9394,7 @@ bool IE_Imp_RTF::ReadColourTable()
 						UT_DEBUGMSG (("ReadKeyword() failed in ReadColourTable()\n"));
 						return false;
 					}
-					if (strcmp(reinterpret_cast<char*>(&keyword[0]), "red") == 0  &&  paramUsed)
+					if (strcmp(keyword, "red") == 0  &&  paramUsed)
 					{
 						if (!hasRed) {
 							red = parameter;
@@ -9401,7 +9404,7 @@ bool IE_Imp_RTF::ReadColourTable()
 							tableError = true;
 						}
 					}
-					else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "green") == 0  &&  paramUsed)
+					else if (strcmp(keyword, "green") == 0  &&  paramUsed)
 					{
 						if (!hasGreen) {
 							green = parameter;
@@ -9411,7 +9414,7 @@ bool IE_Imp_RTF::ReadColourTable()
 							tableError = true;
 						}
 					}
-					else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "blue") == 0  &&  paramUsed)
+					else if (strcmp(keyword, "blue") == 0  &&  paramUsed)
 					{
 						if (!hasBlue) {
 							blue = parameter;
@@ -9470,7 +9473,7 @@ bool IE_Imp_RTF::ReadColourTable()
 
 bool IE_Imp_RTF::HandleLists(_rtfListTable & rtfTable )
 {
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -9498,10 +9501,10 @@ bool IE_Imp_RTF::HandleLists(_rtfListTable & rtfTable )
 				   Any other value has no legal meaning.
 				*/
 				int dest = 0; 
-				if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pntxta") == 0) {
+				if (strcmp(keyword, "pntxta") == 0) {
 					dest = 1;
 				}
-				else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pntxtb") == 0) {
+				else if (strcmp(keyword, "pntxtb") == 0) {
 					dest = 2;
 				} 
 				else {
@@ -9532,12 +9535,12 @@ bool IE_Imp_RTF::HandleLists(_rtfListTable & rtfTable )
 					keyword[count++] = 0;
 					switch (dest) {
 					case 1:
-						strncpy(rtfTable.textafter,reinterpret_cast<char*>(&keyword[0]), sizeof(rtfTable.textafter));
+						strncpy(rtfTable.textafter,keyword, sizeof(rtfTable.textafter));
 						rtfTable.textafter[sizeof(rtfTable.textafter) - 1] = 0;
 						UT_DEBUGMSG(("FOUND pntxta in stream, copied %s to input  \n",keyword));
 						break;
 					case 2:
-						strncpy(rtfTable.textbefore,reinterpret_cast<char*>(&keyword[0]), sizeof(rtfTable.textbefore));
+						strncpy(rtfTable.textbefore,keyword, sizeof(rtfTable.textbefore));
 						rtfTable.textbefore[sizeof(rtfTable.textbefore) - 1] = 0;
 						UT_DEBUGMSG(("FOUND pntxtb in stream,copied %s to input  \n",keyword));
 						break;
@@ -9553,195 +9556,195 @@ bool IE_Imp_RTF::HandleLists(_rtfListTable & rtfTable )
 		}
 		else
 		{
-			if (strcmp(reinterpret_cast<char*>(&keyword[0]), "m_levelStartAt") == 0)
+			if (strcmp(keyword, "m_levelStartAt") == 0)
 			{
 				rtfTable.start_value = static_cast<UT_uint32>(parameter);
 				UT_DEBUGMSG(("FOUND m_levelStartAt in stream \n"));
 			}
-			if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnstart") == 0)
+			if (strcmp(keyword, "pnstart") == 0)
 			{
 				rtfTable.start_value = static_cast<UT_uint32>(parameter);
 				UT_DEBUGMSG(("FOUND pnstart in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnlvl") == 0)
+			else if (strcmp(keyword, "pnlvl") == 0)
 			{
 				rtfTable.level = static_cast<UT_uint32>(parameter);
 				UT_DEBUGMSG(("FOUND pnlvl in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnlvlblt") == 0)
+			else if (strcmp(keyword, "pnlvlblt") == 0)
 			{
 				rtfTable.bullet = true;
 				UT_DEBUGMSG(("FOUND pnlvlblt in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnlvlbody") == 0)
+			else if (strcmp(keyword, "pnlvlbody") == 0)
 			{
 				rtfTable.simple = true;
 				UT_DEBUGMSG(("FOUND pnlvlbody in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnlvlcont") == 0)
+			else if (strcmp(keyword, "pnlvlcont") == 0)
 			{
 				rtfTable.continueList = true;
 				UT_DEBUGMSG(("FOUND pnlvlcont in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnnumonce") == 0)
+			else if (strcmp(keyword, "pnnumonce") == 0)
 			{
 				UT_DEBUGMSG(("FOUND pnnumonce in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnacross") == 0)
+			else if (strcmp(keyword, "pnacross") == 0)
 			{
 				UT_DEBUGMSG(("FOUND pnacross in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnhang") == 0)
+			else if (strcmp(keyword, "pnhang") == 0)
 			{
 				rtfTable.hangingIndent = true;
 				UT_DEBUGMSG(("FOUND pnhang in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pncard") == 0)
+			else if (strcmp(keyword, "pncard") == 0)
 			{
 				rtfTable.type = NUMBERED_LIST;
 				UT_DEBUGMSG(("FOUND pncard in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pndec") == 0)
+			else if (strcmp(keyword, "pndec") == 0)
 			{
 				rtfTable.type = NUMBERED_LIST;
 				UT_DEBUGMSG(("FOUND pndec in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnucltr") == 0)
+			else if (strcmp(keyword, "pnucltr") == 0)
 			{
 				rtfTable.type = UPPERCASE_LIST;
 				UT_DEBUGMSG(("FOUND pnucltr in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnuclrm") == 0)
+			else if (strcmp(keyword, "pnuclrm") == 0)
 			{
 				rtfTable.type = UPPERROMAN_LIST;
 				UT_DEBUGMSG(("FOUND pnucrm in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnlcltr") == 0)
+			else if (strcmp(keyword, "pnlcltr") == 0)
 			{
 				rtfTable.type = LOWERCASE_LIST;
 				UT_DEBUGMSG(("FOUND pnlctr in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnlclrm") == 0)
+			else if (strcmp(keyword, "pnlclrm") == 0)
 			{
 				rtfTable.type = LOWERROMAN_LIST;
 				UT_DEBUGMSG(("FOUND pnlcrm in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnord") == 0)
+			else if (strcmp(keyword, "pnord") == 0)
 			{
 				rtfTable.type = NUMBERED_LIST;
 				UT_DEBUGMSG(("FOUND pnord in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnordt") == 0)
+			else if (strcmp(keyword, "pnordt") == 0)
 			{
 				rtfTable.type = NUMBERED_LIST;
 				UT_DEBUGMSG(("FOUND pnordt in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnb") == 0)
+			else if (strcmp(keyword, "pnb") == 0)
 			{
 				rtfTable.bold = true;
 				UT_DEBUGMSG(("FOUND pnb in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pni") == 0)
+			else if (strcmp(keyword, "pni") == 0)
 			{
 				rtfTable.italic = true;
 				UT_DEBUGMSG(("FOUND pni in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pncaps") == 0)
+			else if (strcmp(keyword, "pncaps") == 0)
 			{
 				rtfTable.caps = true;
 				UT_DEBUGMSG(("FOUND pncaps in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnscaps") == 0)
+			else if (strcmp(keyword, "pnscaps") == 0)
 			{
 				rtfTable.scaps = true;
 				UT_DEBUGMSG(("FOUND pnscaps in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnul") == 0)
+			else if (strcmp(keyword, "pnul") == 0)
 			{
 				rtfTable.underline = true;
 				UT_DEBUGMSG(("FOUND pnul in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnuld") == 0)
+			else if (strcmp(keyword, "pnuld") == 0)
 			{
 				rtfTable.underline = true;
 				UT_DEBUGMSG(("FOUND pnuld in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnuldb") == 0)
+			else if (strcmp(keyword, "pnuldb") == 0)
 			{
 				rtfTable.underline = true;
 				UT_DEBUGMSG(("FOUND pnuldb in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnulnone") == 0)
+			else if (strcmp(keyword, "pnulnone") == 0)
 			{
 				rtfTable.nounderline = true;
 				UT_DEBUGMSG(("FOUND pnulnone in stream \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnulw") == 0)
+			else if (strcmp(keyword, "pnulw") == 0)
 			{
 				 UT_DEBUGMSG(("FOUND pnulw in stream - ignore for now \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnstrike") == 0)
+			else if (strcmp(keyword, "pnstrike") == 0)
 			{
 				rtfTable.strike = true;
 				UT_DEBUGMSG(("FOUND pnstrike in stream  \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pncf") == 0)
+			else if (strcmp(keyword, "pncf") == 0)
 			{
 				rtfTable.forecolor =  static_cast<UT_uint32>(parameter);
 				UT_DEBUGMSG(("FOUND pncf in stream  \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnf") == 0)
+			else if (strcmp(keyword, "pnf") == 0)
 			{
 				rtfTable.font =  static_cast<UT_uint32>(parameter);
 				UT_DEBUGMSG(("FOUND pnf in stream  \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnfs") == 0)
+			else if (strcmp(keyword, "pnfs") == 0)
 			{
 				rtfTable.fontsize =  static_cast<UT_uint32>(parameter);
 				UT_DEBUGMSG(("FOUND pnfs in stream  \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnindent") == 0)
+			else if (strcmp(keyword, "pnindent") == 0)
 			{
 				rtfTable.indent =  static_cast<UT_uint32>(parameter);
 				UT_DEBUGMSG(("FOUND pnindent in stream  \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnsp") == 0)
+			else if (strcmp(keyword, "pnsp") == 0)
 			{
 				UT_DEBUGMSG(("FOUND pnsp in stream  - ignored for now \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnprev") == 0)
+			else if (strcmp(keyword, "pnprev") == 0)
 			{
 				rtfTable.prevlist =  true;
 				UT_DEBUGMSG(("FOUND pnprev in stream  \n"));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnqc") == 0)
+			else if (strcmp(keyword, "pnqc") == 0)
 			{
 				UT_DEBUGMSG(("FOUND pnqc in stream - ignored for now \n"));
 				// centered numbering
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnql") == 0)
+			else if (strcmp(keyword, "pnql") == 0)
 			{
 				UT_DEBUGMSG(("FOUND pnql in stream - ignored for now \n"));
 				// left justified numbering
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnqr") == 0)
+			else if (strcmp(keyword, "pnqr") == 0)
 			{
 				UT_DEBUGMSG(("FOUND pnqr in stream - ignored for now \n"));
 				// right justified numbering
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "ls") == 0)
+			else if (strcmp(keyword, "ls") == 0)
 			{
 				UT_DEBUGMSG(("FOUND ls in stream - override number %d\n",parameter));
 				rtfTable.iWord97Override =  static_cast<UT_uint32>(parameter);
 				// Word 97 list table identifier
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "ilvl") == 0)
+			else if (strcmp(keyword, "ilvl") == 0)
 			{
 				UT_DEBUGMSG(("FOUND ilvl in stream - levelnumber %d\n",parameter));
 				rtfTable.iWord97Level = static_cast<UT_uint32>(_sanitizeListLevel(parameter));
 				// Word 97 list level
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "pnrnot") == 0)
+			else if (strcmp(keyword, "pnrnot") == 0)
 			{
 				UT_DEBUGMSG(("FOUND pnrnot in stream - ignored for now \n"));
 				// Don't know this
@@ -10114,7 +10117,7 @@ bool IE_Imp_RTF::HandleAbiTable(void)
 				std::string sPasteTableSDH;
 				std::string sProp = "table-sdh";
 				sPasteTableSDH = UT_std_string_getPropVal(sProps,sProp);
-				std::string sThisTableSDH = UT_std_string_sprintf("%p", const_cast<void*>(reinterpret_cast<const void*>(sdhTable)));
+				std::string sThisTableSDH = UT_std_string_sprintf("%p", static_cast<const void*>(sdhTable));
 				UT_DEBUGMSG(("sThisTableSDH %s sPasteTableSDH %s \n",sThisTableSDH.c_str(),sPasteTableSDH.c_str()));
 				bool isRow = (pView->getSelectionMode() == FV_SelectionMode_TableRow);
 				if(!isRow && pView->getSelectionMode() == FV_SelectionMode_NONE)
@@ -10626,7 +10629,7 @@ bool IE_Imp_RTF::insertStrux(PTStruxType pts , const PP_PropertyVector & attrs, 
 
 bool IE_Imp_RTF::HandleAbiLists()
 {
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	unsigned char ch;
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
@@ -10648,7 +10651,7 @@ bool IE_Imp_RTF::HandleAbiLists()
 			}
 			else
 			{
-				if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abiliststyle") == 0)
+				if (strcmp(keyword, "abiliststyle") == 0)
 				 {
 			  // OK scan through the text until a closing delimeter is
 			  // found
@@ -10662,10 +10665,10 @@ bool IE_Imp_RTF::HandleAbiLists()
 							 return false;
 					 }
 					 keyword[count++] = 0;
-					 strncpy(m_currentRTFState.m_paraProps.m_pszStyle,reinterpret_cast<char*>(&keyword[0]), sizeof(m_currentRTFState.m_paraProps.m_pszStyle));
+					 strncpy(m_currentRTFState.m_paraProps.m_pszStyle,keyword, sizeof(m_currentRTFState.m_paraProps.m_pszStyle));
 					 m_currentRTFState.m_paraProps.m_pszStyle[sizeof(m_currentRTFState.m_paraProps.m_pszStyle) - 1] = 0;
 				 }
-				 else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abilistdecimal") == 0)
+				 else if (strcmp(keyword, "abilistdecimal") == 0)
 				 {
 			  // OK scan through the text until a closing delimeter is
 			  // found
@@ -10679,10 +10682,10 @@ bool IE_Imp_RTF::HandleAbiLists()
 							 return false;
 					 }
 					 keyword[count++] = 0;
-					 strncpy(m_currentRTFState.m_paraProps.m_pszListDecimal,reinterpret_cast<char*>(&keyword[0]), sizeof(m_currentRTFState.m_paraProps.m_pszListDecimal));
+					 strncpy(m_currentRTFState.m_paraProps.m_pszListDecimal,keyword, sizeof(m_currentRTFState.m_paraProps.m_pszListDecimal));
 					 m_currentRTFState.m_paraProps.m_pszListDecimal[sizeof(m_currentRTFState.m_paraProps.m_pszListDecimal) - 1] = 0;
 				 }
-				 else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abilistdelim") == 0)
+				 else if (strcmp(keyword, "abilistdelim") == 0)
 				 {
 			  // OK scan through the text until a closing delimeter is
 			  // found
@@ -10696,10 +10699,10 @@ bool IE_Imp_RTF::HandleAbiLists()
 							 return false;
 					 }
 					 keyword[count++] = 0;
-					 strncpy(m_currentRTFState.m_paraProps.m_pszListDelim,reinterpret_cast<char*>(&keyword[0]), sizeof(m_currentRTFState.m_paraProps.m_pszListDelim));
+					 strncpy(m_currentRTFState.m_paraProps.m_pszListDelim,keyword, sizeof(m_currentRTFState.m_paraProps.m_pszListDelim));
 					 m_currentRTFState.m_paraProps.m_pszListDelim[sizeof(m_currentRTFState.m_paraProps.m_pszListDelim) - 1] = 0;
 				 }
-				 else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abifieldfont") == 0)
+				 else if (strcmp(keyword, "abifieldfont") == 0)
 				 {
 			  // OK scan through the text until a closing delimeter is
 			  // found
@@ -10713,7 +10716,7 @@ bool IE_Imp_RTF::HandleAbiLists()
 							 return false;
 					 }
 					 keyword[count++] = 0;
-					 strncpy(m_currentRTFState.m_paraProps.m_pszFieldFont,reinterpret_cast<char*>(&keyword[0]), sizeof(m_currentRTFState.m_paraProps.m_pszFieldFont));
+					 strncpy(m_currentRTFState.m_paraProps.m_pszFieldFont,keyword, sizeof(m_currentRTFState.m_paraProps.m_pszFieldFont));
 					 m_currentRTFState.m_paraProps.m_pszFieldFont[sizeof(m_currentRTFState.m_paraProps.m_pszFieldFont) - 1] = 0;
 				 }
 				 else
@@ -10728,21 +10731,21 @@ bool IE_Imp_RTF::HandleAbiLists()
 		}
 		else
 		{
-			if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abistartat") == 0)
+			if (strcmp(keyword, "abistartat") == 0)
 			{
 				m_currentRTFState.m_paraProps.m_startValue= static_cast<UT_uint32>(parameter);
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abilistid") == 0)
+			else if (strcmp(keyword, "abilistid") == 0)
 			{
 				m_currentRTFState.m_paraProps.m_rawID = static_cast<UT_uint32>(parameter);
 				m_currentRTFState.m_paraProps.m_isList = true;
 
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abilistparentid") == 0)
+			else if (strcmp(keyword, "abilistparentid") == 0)
 			{
 				m_currentRTFState.m_paraProps.m_rawParentID = static_cast<UT_uint32>(parameter);
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "abilistlevel") == 0)
+			else if (strcmp(keyword, "abilistlevel") == 0)
 			{
 				m_currentRTFState.m_paraProps.m_level = static_cast<UT_uint32>(parameter);
 			}
@@ -11057,7 +11060,7 @@ bool IE_Imp_RTF::AddTabstop(UT_sint32 stopDist, eTabType tabType, eTabLeader tab
   RTF_TOKEN_KEYWORD
   \note this changes the state of the file
 */
-IE_Imp_RTF::RTFTokenType IE_Imp_RTF::NextToken (unsigned char *pKeyword, UT_sint32* pParam,
+IE_Imp_RTF::RTFTokenType IE_Imp_RTF::NextToken (char *pKeyword, UT_sint32* pParam,
 												bool* pParamUsed, UT_uint32 len, bool bIgnoreWhiteSpace /* = false */ )
 {
 	RTFTokenType tokenType = RTF_TOKEN_NONE;
@@ -11069,7 +11072,7 @@ IE_Imp_RTF::RTFTokenType IE_Imp_RTF::NextToken (unsigned char *pKeyword, UT_sint
 	UT_return_val_if_fail (pParam, RTF_TOKEN_NONE);
 	*pParam = 0;
 	*pParamUsed = false;
-	pKeyword [0] = ' ';
+	unsigned char ch = ' ';
 
 	if(bIgnoreWhiteSpace)
 	{
@@ -11084,9 +11087,9 @@ IE_Imp_RTF::RTFTokenType IE_Imp_RTF::NextToken (unsigned char *pKeyword, UT_sint
 		// OK Sevior put in bool to choose this behaviour for some parts of documents
         // where we can work around this broken behaviour and still import the doc.
 
-		while(pKeyword[0] == ' ')
+		while(ch == ' ')
 		{
-			if (!ReadCharFromFile(pKeyword))
+			if (!ReadCharFromFile(&ch))
 			{
 				tokenType = RTF_TOKEN_ERROR;
 				return tokenType;
@@ -11095,12 +11098,13 @@ IE_Imp_RTF::RTFTokenType IE_Imp_RTF::NextToken (unsigned char *pKeyword, UT_sint
 	}
 	else
 	{
-		if (!ReadCharFromFile(pKeyword))
+		if (!ReadCharFromFile(&ch))
 		{
 			tokenType = RTF_TOKEN_ERROR;
 			return tokenType;
 		}
 	}
+	pKeyword[0] = static_cast<char>(ch);
 
 	switch (*pKeyword)
 	{
@@ -11319,7 +11323,7 @@ void IE_Imp_RTF::_appendHdrFtr ()
 	{
 		header = m_hdrFtrTable[i];
 
-		m_pPasteBuffer = reinterpret_cast<const unsigned char *>(header->m_buf.getPointer (0));
+		m_pPasteBuffer = header->m_buf.getPointer (0);
 		m_lenPasteBuffer = header->m_buf.getLength ();
 		m_pCurrentCharInPasteBuffer = m_pPasteBuffer;
 		m_dposPaste = FV_DOCPOS_EOD;
@@ -11730,7 +11734,7 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 	UT_sint32 styleNumber = 0;
 	while (nesting>0 && status == true)
 	{
-        unsigned char keyword[MAX_KEYWORD_LEN];
+        char keyword[MAX_KEYWORD_LEN];
         UT_sint32 parameter = 0;
 	    bool parameterUsed = false;
 
@@ -11745,13 +11749,13 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 			{
 				return status;
 			}
-			else if (strcmp(reinterpret_cast<const char *>(&keyword[0]), "'") == 0) {
+			else if (strcmp(keyword, "'") == 0) {
 				/* FIXME really hackish. What if we have this in middle of keywords */
 				UT_UCS4Char wc;
 				wc = ReadHexChar();
 				styleName += wc;
 			}
-			else if (strcmp(reinterpret_cast<const char *>(&keyword[0]), "sbasedon") == 0)
+			else if (strcmp(keyword, "sbasedon") == 0)
 			{
 				if ((parameter != styleNumber) &&
 					(parameter != RTF_BASEDON_NONE))
@@ -11767,7 +11771,7 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 					attribs.push_back("");
 				}
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "snext") == 0)
+			else if (strcmp(keyword, "snext") == 0)
 			{
 				if (parameter != styleNumber)
 				{
@@ -11792,21 +11796,21 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 					}
 				}
 			}
-			else if ((strcmp(reinterpret_cast<char*>(&keyword[0]),  "s") == 0) ||
-				     (strcmp(reinterpret_cast<char*>(&keyword[0]), "ds") == 0) ||
-					 (strcmp(reinterpret_cast<char*>(&keyword[0]), "ts") == 0))
+			else if ((strcmp(keyword,  "s") == 0) ||
+				     (strcmp(keyword, "ds") == 0) ||
+					 (strcmp(keyword, "ts") == 0))
 			{
 				styleNumber = parameter;
 				styleType = styleTypeP;
 				xxx_UT_DEBUGMSG(("Stylesheet RTF Found style number %d Paragraph type \n",styleNumber));
 			}
-			if (strcmp(reinterpret_cast<char*>(&keyword[0]), "cs") == 0)
+			if (strcmp(keyword, "cs") == 0)
 			{
 				styleNumber = parameter;
 				styleType = styleTypeC;
 				xxx_UT_DEBUGMSG(("Stylesheet: RTF Found style number %d Character type \n",styleNumber));
 			}
-			else if (strcmp(reinterpret_cast<char*>(&keyword[0]), "*") == 0)
+			else if (strcmp(keyword, "*") == 0)
 			{
 //
 // Get next keyword
@@ -11815,7 +11819,7 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 			}
 			else
 			{
-			    status = ParseCharParaProps(static_cast<unsigned char *>(keyword), parameter, parameterUsed,pChars,pParas,pbChars,pbParas);
+			    status = ParseCharParaProps(keyword, parameter, parameterUsed,pChars,pParas,pbChars,pbParas);
 			}
 			break;
 		case '{':
@@ -12318,7 +12322,7 @@ bool IE_Imp_RTF::HandleInfoMetaData()
 {
 	RTF_KEYWORD_ID keywordID;
 	RTFTokenType tokenType;
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;	
 	int nested = 0;
@@ -12342,7 +12346,7 @@ bool IE_Imp_RTF::HandleInfoMetaData()
 			return false;
 			break;
 		case RTF_TOKEN_KEYWORD:			
-			keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+			keywordID = KeywordToID(keyword);
 			
 			switch(keywordID) {
 			case RTF_KW_title:
@@ -12461,7 +12465,7 @@ bool IE_Imp_RTF::HandlePCData(UT_UTF8String & str)
 {
 	RTF_KEYWORD_ID keywordID;
 	RTFTokenType tokenType;
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;	
 	bool bStop = false;
@@ -12472,7 +12476,7 @@ bool IE_Imp_RTF::HandlePCData(UT_UTF8String & str)
 		tokenType = NextToken (keyword, &parameter, &paramUsed, MAX_KEYWORD_LEN, false);
 		switch (tokenType) {
 		case RTF_TOKEN_KEYWORD:			
-			keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+			keywordID = KeywordToID(keyword);
 			switch(keywordID)
 			{
 			case RTF_KW_QUOTE:
@@ -12524,7 +12528,7 @@ bool IE_Imp_RTF::HandlePCData(UT_UTF8String & str)
 			if (iUniCharsLeftToSkip > 0)
 				iUniCharsLeftToSkip--;
 			else
-				buf->append(keyword, 1);
+				buf->append(reinterpret_cast<const UT_Byte*>(keyword), 1);
 			break;
 		case RTF_TOKEN_ERROR:
 			// force close brace to exit loop
@@ -12562,7 +12566,7 @@ bool IE_Imp_RTF::HandlePCData(UT_UTF8String & str)
 			ParseChar(*sz);
 			sz++;
 		}
-		keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+		keywordID = KeywordToID(keyword);
 		TranslateKeywordID(keywordID, parameter, paramUsed);
 		str.clear();
 	}

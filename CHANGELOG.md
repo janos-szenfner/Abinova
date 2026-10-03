@@ -4048,6 +4048,14 @@ below are on `main` but the release has not been cut yet.
   row, and footnote/annotation height accounting compared the wrong
   column leader.
 
+- **RTF importer buffer types cleaned up** — keyword and parameter
+  buffers in the `.rtf` importer are now declared `char`/`char*`,
+  matching the NUL-terminated control-word strings they hold, instead
+  of `unsigned char` forced through a `reinterpret_cast` at every
+  `strcmp`/`atol`/`strncpy` call site (~160 casts removed; the few
+  remaining ones sit at genuine byte boundaries — gsf reads, byte
+  buffers, UCS-4 span views). Import behavior is unchanged.
+
 ### Resolved root causes worth noting
 
 - **"double free or corruption" after ODF export** — was a stale

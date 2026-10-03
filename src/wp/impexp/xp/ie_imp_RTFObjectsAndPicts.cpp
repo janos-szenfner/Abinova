@@ -386,7 +386,7 @@ bool IE_Imp_RTF::HandlePicture()
 	bool bPictProcessed = false;
 	PictFormat format = picNone;
 
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool parameterUsed = false;
 	RTFProps_ImageProps imageProps;
@@ -410,7 +410,7 @@ bool IE_Imp_RTF::HandlePicture()
 				UT_DEBUGMSG(("Unexpected EOF during RTF import?\n"));
 			}
 			UT_DEBUGMSG(("Doing standard picture stuff with keyword %s \n",keyword));
-			keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+			keywordID = KeywordToID(keyword);
 			UT_ASSERT(RTF_KW_cell  != keywordID);
 			switch (keywordID)
 			{
@@ -1310,7 +1310,7 @@ void IE_Imp_RTF::HandleShapeText(RTFProps_FrameProps & frame)
 void IE_Imp_RTF::HandleShapePict()
 {
 	RTFTokenType tokenType;
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;	
 	int nested = 1;           // nesting level	
@@ -1327,7 +1327,7 @@ void IE_Imp_RTF::HandleShapePict()
 			break;
 		case RTF_TOKEN_KEYWORD:
 		{
-			keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+			keywordID = KeywordToID(keyword);
 			UT_ASSERT(RTF_KW_cell  != keywordID);
 			switch (keywordID)
 			{
@@ -1365,7 +1365,7 @@ void IE_Imp_RTF::HandleShapePict()
 bool IE_Imp_RTF::HandleObject()
 {	
 	RTFTokenType tokenType;
-	unsigned char keyword[MAX_KEYWORD_LEN];
+	char keyword[MAX_KEYWORD_LEN];
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;	
 	int nested = 1;           // nesting level	
@@ -1383,7 +1383,7 @@ bool IE_Imp_RTF::HandleObject()
 			break;
 		case RTF_TOKEN_KEYWORD:
 		{
-			keywordID = KeywordToID(reinterpret_cast<char *>(keyword));
+			keywordID = KeywordToID(keyword);
 			UT_ASSERT(RTF_KW_cell  != keywordID);
 			switch (keywordID)
 			{

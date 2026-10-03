@@ -666,10 +666,10 @@ private:
 	std::string s_unEscapeXMLString();
 	UT_UCS4Char ReadHexChar(void);
 	bool SkipBackChar(unsigned char ch);
-	bool ReadKeyword(unsigned char* pKeyword, UT_sint32* pParam,
+	bool ReadKeyword(char* pKeyword, UT_sint32* pParam,
                      bool* pParamUsed,
 					 UT_uint32 keywordBuffLen);
-	bool TranslateKeyword(unsigned char* pKeyword, UT_sint32 param,
+	bool TranslateKeyword(char* pKeyword, UT_sint32 param,
                           bool fParam);
 public:
 	bool TranslateKeywordID(RTF_KEYWORD_ID keywordID,
@@ -726,7 +726,7 @@ private:
 	bool HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount  );
 	bool HandleTableList(void);
 	char * getCharsInsideBrace(void);
-	bool ParseCharParaProps(unsigned char * pKeyword,
+	bool ParseCharParaProps(char * pKeyword,
                             UT_sint32 param, bool fParam,
                             const std::unique_ptr<RTFProps_CharProps> & pChars,
                             const std::unique_ptr<RTFProps_ParaProps> & pParas,
@@ -858,7 +858,7 @@ private:
 	    RTF_TOKEN_DATA,
 	    RTF_TOKEN_ERROR = -1
 	};
-	RTFTokenType NextToken (unsigned char *pKeyword, UT_sint32* pParam,
+	RTFTokenType NextToken (char *pKeyword, UT_sint32* pParam,
 							bool* pParamUsed, UT_uint32 len,
                             bool bIgnoreWhiteSpace = false);
 
