@@ -33,8 +33,7 @@
 class XAP_UnixFrame;
 
 /*****************************************************************/
-class AP_UnixDialog_Options : public AP_Dialog_Options,
-							  public XAP_NotebookDialog
+class AP_UnixDialog_Options : public AP_Dialog_Options
 {
 public:
 	AP_UnixDialog_Options(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id);
@@ -44,9 +43,6 @@ public:
 
 	static XAP_Dialog *		static_constructor(XAP_DialogFactory *, XAP_Dialog_Id id);
 	void event_ChooseTransparentColor(void);
-
-	// tabbed dialog interface
-	virtual void addPage (const XAP_NotebookDialog::Page *page) override;
 
  protected:
 
@@ -58,11 +54,9 @@ public:
 					    virtual void _set##a(t) override
 
 
- 	SET_GATHER			(NotebookPageNum,		int);
-
-//	// Tabs
-//		// Categories
-//			// Subordinate Controls
+	// visible page, addressed by its stable name (never by index)
+	virtual void _gatherPageName(std::string &stRetVal) override;
+	virtual void _setPageName(const std::string &stName) override;
 
 	// General
 
@@ -97,6 +91,13 @@ public:
 		SET_GATHER (OuterQuoteStyle,	gint);
 		SET_GATHER (InnerQuoteStyle,	gint);
 
+	// Spelling
+
+		SET_GATHER (SpellCheckAuto,     bool);
+		SET_GATHER (SpellCheckCaps,     bool);
+		SET_GATHER (SpellCheckNumbers,  bool);
+		SET_GATHER (SpellCheckInternet, bool);
+
 	// unimplemented UI-wise. We need dummy implementations to satisfy the XP framework, though
 
 	SET_GATHER			(PrefsAutoSave,			bool);
@@ -121,13 +122,9 @@ public:
 	// there are a ton of them in this dialog
 
 	GtkWidget * m_windowMain;
-	GtkWidget * m_notebook;
+	GtkWidget * m_stack;
 	GtkWidget * m_buttonDefaults;
 	GtkWidget * m_buttonClose;
-
-//	// Tabs
-//		// Categories
-//			// Subordinate Controls
 
 	// General
 
@@ -144,8 +141,8 @@ public:
 
 		// General
 
-		GtkWidget *m_checkbuttonAutoSaveFile;
-			GtkWidget *m_tableAutoSaveFile;
+		GtkWidget *m_switchAutoSaveFile;
+			GtkWidget *m_gridAutoSaveFile;
 				GtkWidget *m_textAutoSaveFilePeriod;
 				GtkWidget *m_textAutoSaveFileExt;
 
@@ -153,16 +150,23 @@ public:
 
 		// RTL Text Layout
 
-		GtkWidget * m_checkbuttonOtherDirectionRtl;
+		GtkWidget * m_switchOtherDirectionRtl;
 
 		// Smart Quotes
 
-		GtkWidget *m_checkbuttonSmartQuotes;
-		GtkWidget *m_checkbuttonCustomSmartQuotes;
+		GtkWidget *m_switchSmartQuotes;
+		GtkWidget *m_switchCustomSmartQuotes;
 		GtkWidget *m_omOuterQuoteStyle;
 		GtkWidget *m_omInnerQuoteStyle;
 
-    GtkWidget *m_checkbuttonEnableOverwrite;
+    GtkWidget *m_switchEnableOverwrite;
+
+	// Spelling
+
+		GtkWidget *m_switchSpellCheckAuto;
+		GtkWidget *m_switchSpellCheckCaps;
+		GtkWidget *m_switchSpellCheckNumbers;
+		GtkWidget *m_switchSpellCheckInternet;
 
     		// Dummy
 		bool m_boolEnableSmoothScrolling;
@@ -177,21 +181,16 @@ private:
 	static void s_control_changed	     (GtkWidget *,	   gpointer);
 	static void s_dropdown_changed	     (GtkWidget *,	   GParamSpec *,
 										  gpointer);
-	static void s_apply_clicked	     (GtkWidget *,         gpointer);
+	static void s_switch_changed	     (GObject *,	   GParamSpec *,
+										  gpointer);
 	static void s_defaults_clicked	     (GtkWidget *,         gpointer);
 	static void s_chooseTransparentColor (GtkWidget *,         gpointer);
     static void s_real_color_changed(GdkRGBA & gdkcolor, AP_UnixDialog_Options * dlg);
 	static void s_color_changed	     (GtkColorChooser *, GdkRGBA*, gpointer);
-	static void s_auto_save_toggled	     (GtkCheckButton *,   gpointer);
-	static void s_checkbutton_toggle     (GtkWidget *,	   gpointer);
-	static gint s_menu_item_activate     (GtkWidget *,	   gpointer);
 	void	    _setupSmartQuotesCombos( GtkWidget *optionmenu );
 
 	// callbacks can fire these events
 	virtual void _storeWindowData(void) override;
-
-	GSList	*m_extraPages;
 };
 
 #endif /* AP_UNIXDIALOG_OPTIONS_H */
-

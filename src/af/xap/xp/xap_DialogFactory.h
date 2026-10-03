@@ -64,7 +64,6 @@ public:
 		XAP_Dialog_Id	m_id;
 		XAP_Dialog_Type	m_type;
 		XAP_Dialog *	(*m_pfnStaticConstructor)(XAP_DialogFactory *, XAP_Dialog_Id id);
-		bool			m_tabbed;
 	};
 
 	XAP_DialogFactory(XAP_App * pApp, int nrElem, const struct _dlg_table * pDlgTable, XAP_Frame * pFrame = nullptr);
@@ -79,9 +78,6 @@ public:
 	XAP_Dialog_Id		registerDialog(XAP_Dialog *(*pStaticConstructor)(XAP_DialogFactory *, XAP_Dialog_Id id),XAP_Dialog_Type iDialogType);
 	void				unregisterDialog(XAP_Dialog_Id id);
 
-	bool				registerNotebookPage(XAP_Dialog_Id dialog, const XAP_NotebookDialog::Page * page);
-	bool				unregisterNotebookPage(XAP_Dialog_Id dialog, const XAP_NotebookDialog::Page * page);
-
 protected:
 	bool				_findDialogInTable(XAP_Dialog_Id id, UT_sint32 * pIndex) const ABI_NONNULL(3);
 
@@ -94,7 +90,4 @@ protected:
 	UT_uint32			m_nrElementsDlgTable;
 	std::vector<const _dlg_table *>	m_vec_dlg_table;			/* a Vector of elements */
 	std::vector<_dlg_table *>	m_vecDynamicTable;			/* a Vector of elements */
-
-private:
-	static void addPages(XAP_NotebookDialog* pDialog, XAP_Dialog_Id id);
 };

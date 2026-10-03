@@ -28,12 +28,6 @@
 #include "xap_DialogFactory.h"
 #include "xap_Dialog_Id.h"
 
-// save some typing
-typedef std::multimap<XAP_Dialog_Id, const XAP_NotebookDialog::Page*> NotebookPages;
-typedef NotebookPages::iterator NotebookPagesIter;
-
-static NotebookPages s_mapNotebookPages;
-
 /*****************************************************************/
 
 XAP_DialogFactory::XAP_DialogFactory(XAP_App * pApp, int nrElem, const struct _dlg_table * pDlgTable, XAP_Frame * pFrame)
@@ -106,7 +100,6 @@ XAP_Dialog_Id XAP_DialogFactory::registerDialog(XAP_Dialog *(* pStaticConstructo
 	pDlgTable->m_id = getNextId();
 	pDlgTable->m_type = iDialogType;
 	pDlgTable->m_pfnStaticConstructor = pStaticConstructor;
-	pDlgTable->m_tabbed = FALSE;
 	m_vec_dlg_table.push_back(pDlgTable);
 	m_vecDynamicTable.push_back(pDlgTable);
 	return pDlgTable->m_id;
@@ -164,11 +157,6 @@ XAP_Dialog * XAP_DialogFactory::requestDialog(XAP_Dialog_Id id)
 		{
 			// create a fresh dialog object and return it -- no strings attached.
 			pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
-			if (dlg->m_tabbed) {
-				XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
-				UT_ASSERT(d);
-				addPages(d, id);
-			}
 			return pDialog;
 		};
 
@@ -187,11 +175,6 @@ XAP_Dialog * XAP_DialogFactory::requestDialog(XAP_Dialog_Id id)
 			else							// already present, reuse this object
 			{
 				pDialog = const_cast<XAP_Dialog *>(static_cast<const XAP_Dialog*>(m_vecDialogs[indexVec]));
-			}
-			if (dlg->m_tabbed) {
-				XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
-				UT_ASSERT(d);
-				addPages(d, id);
 			}
 
 			// let the dialog object know that we are reusing it.
@@ -311,57 +294,4 @@ void XAP_DialogFactory::releaseDialog(XAP_Dialog * pDialog)
 
 	UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 	return;
-}
-
-/*!
- * Add a notebook page to a builtin dialog.
- */
-bool XAP_DialogFactory::registerNotebookPage(XAP_Dialog_Id dialog, const XAP_NotebookDialog::Page * page)
-{
-	// check that widget is unique for dialog
-	std::pair<NotebookPagesIter, NotebookPagesIter> bounds = s_mapNotebookPages.equal_range(dialog);
-	while (bounds.first != bounds.second)
-	{
-		if (bounds.first->second == page)
-		{
-			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-			return FALSE;
-		}
-		bounds.first++;
-	}
-
-	s_mapNotebookPages.insert(NotebookPages::value_type(dialog, page));
-	return TRUE;
-}
-
-/*!
- * Remove a previously added page from a dialog.
- */
-bool XAP_DialogFactory::unregisterNotebookPage(XAP_Dialog_Id dialog, const XAP_NotebookDialog::Page * page)
-{
-	std::pair<NotebookPagesIter, NotebookPagesIter> bounds = s_mapNotebookPages.equal_range(dialog);
-	while (bounds.first != bounds.second)
-	{
-		// widget per dialog must be unique, that's made sure in registerNotebookPage.
-		if (bounds.first->second == page)
-		{
-			s_mapNotebookPages.erase(bounds.first);
-			return TRUE;
-		}
-		bounds.first++;
-	}
-	return FALSE;
-}
-
-/*!
- * Add registered pages to the dialog instance.
- */
-void XAP_DialogFactory::addPages(XAP_NotebookDialog* pDialog, XAP_Dialog_Id id)
-{
-	std::pair<NotebookPagesIter, NotebookPagesIter> bounds = s_mapNotebookPages.equal_range(id);
-	while (bounds.first != bounds.second)
-	{
-		pDialog->addPage(bounds.first->second);
-		bounds.first++;
-	}
 }

@@ -187,14 +187,22 @@ void AP_Dialog_Options::_storeWindowData(void)
 
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// spelling
+	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_AutoSpellCheck, _gatherSpellCheckAuto() );
+	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_SpellCheckCaps, _gatherSpellCheckCaps() );
+	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_SpellCheckNumbers, _gatherSpellCheckNumbers() );
+	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_SpellCheckInternet, _gatherSpellCheckInternet() );
+
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// allow XAP_Prefs to notify all the listeners of changes
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	// TODO: change to snprintf
-	gchar szBuffer[40];
-	sprintf( szBuffer, "%i", _gatherNotebookPageNum() );
+	// remember the visible page by its stable name so the dialog can
+	// reopen on it (entry points select pages by name, not index)
+	std::string stPage;
+	_gatherPageName(stPage);
 	pPrefsScheme->setValue(AP_PREF_KEY_OptionsTabNumber,
-				   szBuffer );
+				   stPage.c_str() );
 
 	// allow the prefListeners to receive their calls
 	pPrefs->endBlockChange();
@@ -317,12 +325,34 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 					_gatherDirMarkerAfterClosingParenthesis());
 			break;
 
-		case id_NOTEBOOK:
-			gchar szBuffer[40];
-			sprintf( szBuffer, "%i", _gatherNotebookPageNum() );
-			pPrefsScheme->setValue (AP_PREF_KEY_OptionsTabNumber,
-						szBuffer );
+		case id_CHECK_SPELL_AUTO:
+			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_AutoSpellCheck,
+					_gatherSpellCheckAuto());
 			break;
+
+		case id_CHECK_SPELL_CAPS:
+			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_SpellCheckCaps,
+					_gatherSpellCheckCaps());
+			break;
+
+		case id_CHECK_SPELL_NUMBERS:
+			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_SpellCheckNumbers,
+					_gatherSpellCheckNumbers());
+			break;
+
+		case id_CHECK_SPELL_INTERNET:
+			Save_Pref_Bool (pPrefsScheme, AP_PREF_KEY_SpellCheckInternet,
+					_gatherSpellCheckInternet());
+			break;
+
+		case id_NOTEBOOK:
+		{
+			std::string stPage;
+			_gatherPageName(stPage);
+			pPrefsScheme->setValue (AP_PREF_KEY_OptionsTabNumber,
+						stPage.c_str() );
+			break;
+		}
 
 		// Ignore window controls/special buttons
 		case id_BUTTON_SAVE:
@@ -457,12 +487,29 @@ void AP_Dialog_Options::_populateWindowData(void)
 	}
 
 
-	// ------------ the page tab number
-	int which = getInitialPageNum ();
-	if ((which == -1) && pPrefs->getPrefsValue(AP_PREF_KEY_OptionsTabNumber, buffer)) {
-		_setNotebookPageNum(atoi(buffer.c_str()));
-	} else {
-		_setNotebookPageNum(which);
+	// ------------ spelling
+	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_AutoSpellCheck, b)) {
+		_setSpellCheckAuto(b);
+	}
+	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellCheckCaps, b)) {
+		_setSpellCheckCaps(b);
+	}
+	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellCheckNumbers, b)) {
+		_setSpellCheckNumbers(b);
+	}
+	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellCheckInternet, b)) {
+		_setSpellCheckInternet(b);
+	}
+
+	// ------------ the visible page
+	// entry points request a page by stable name; when none is given
+	// reopen the last-shown page (prefs written before page names
+	// stored the tab index, so legacy numbers map to the new ids)
+	const std::string &which = getInitialPageId ();
+	if (which.empty() && pPrefs->getPrefsValue(AP_PREF_KEY_OptionsTabNumber, buffer)) {
+		_setPageName(_legacyPageName(buffer));
+	} else if (!which.empty()) {
+		_setPageName(which);
 	}
 
 	//------------- other
@@ -548,24 +595,49 @@ void AP_Dialog_Options::_initEnableControls()
 	_initEnableControlsPlatformSpecific();
 }
 
+/*!
+ * Translate a stored OptionsTabNumber value into a page name. Files
+ * written by the tabbed dialog stored the notebook index, so all-digit
+ * values map to the page that held that slot in the old order; anything
+ * else is already a page name and is passed through for _setPageName to
+ * resolve (unknown names fall back to the first page).
+ */
+std::string AP_Dialog_Options::_legacyPageName(const std::string &stStored)
+{
+	static const char * s_legacy[] = {
+		PAGE_ID_INTERFACE,	// 0: old "General" tab
+		PAGE_ID_DOCUMENTS,	// 1
+		PAGE_ID_SMARTQUOTES	// 2
+	};
+
+	if (!stStored.empty() &&
+		stStored.find_first_not_of("0123456789") == std::string::npos)
+	{
+		unsigned long n = strtoul(stStored.c_str(), nullptr, 10);
+		if (n < G_N_ELEMENTS(s_legacy))
+			return s_legacy[n];
+	}
+	return stStored;
+}
+
 void AP_Dialog_Options::_event_SetDefaults(void)
 {
 	XAP_Prefs		*pPrefs;
 	std::string old_name;
-	int currentPage;
 
 	pPrefs = m_pApp->getPrefs();
 	UT_return_if_fail (pPrefs);
 
 	// SetDefaults
-	//	To set the defaults, save the scheme name and notebook page number,
+	//	To set the defaults, save the scheme name and current page,
 	//	re-populate the window with the _builtin_ scheme, then reset the
-	//	scheme name and page number.
+	//	scheme name and page.
 	// If the user hits cancel, then nothing is saved in user_prefs
 
 	old_name = pPrefs->getCurrentScheme()->getSchemeName();
 
-	currentPage = _gatherNotebookPageNum();
+	std::string currentPage;
+	_gatherPageName(currentPage);
 
 	pPrefs->setCurrentScheme("_builtin_");
 
@@ -576,7 +648,7 @@ void AP_Dialog_Options::_event_SetDefaults(void)
 	// TODO set us to "_builtin_" and that's it.  if the user
 	// TODO then changes something, we should create a new
 	// TODO scheme and fill in the new value.  --jeff
-	_setNotebookPageNum( currentPage );
+	_setPageName( currentPage );
 	pPrefs->setCurrentScheme(old_name.c_str());
 }
 

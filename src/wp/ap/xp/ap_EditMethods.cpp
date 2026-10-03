@@ -9445,7 +9445,7 @@ static bool s_doParagraphDlg(FV_View * pView)
 }
 
 
-static bool s_doOptionsDlg(FV_View * pView, int which = -1)
+static bool s_doOptionsDlg(FV_View * pView, const char * which = nullptr)
 {
 	UT_return_val_if_fail(pView, false);
 	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
@@ -9459,10 +9459,10 @@ static bool s_doOptionsDlg(FV_View * pView, int which = -1)
 		= static_cast<XAP_TabbedDialog_NonPersistent *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_OPTIONS)));
 	UT_return_val_if_fail(pDialog, false);
 
-	if ( which != -1 )
-	  pDialog->setInitialPageNum(which);
-	else
-	  pDialog->setInitialPageNum(0);
+	// entry points pick a page by its stable id; with no request the
+	// dialog reopens the last-shown page (or its first page)
+	if ( which )
+	  pDialog->setInitialPageId(which);
 
 	// run the dialog
 	pDialog->runModal(pFrame);
@@ -11512,11 +11512,7 @@ Defun1(dlgSpellPrefs)
 	ABIWORD_VIEW;
 	
 
-    // spelling tab in Windows in the tab num 2
-    // becuase 1, is language selection. For UNIX, it's
-    // tab 2 as well. We should use an enumerator instead
-    // of fixed values. Jordi,
-	return s_doOptionsDlg(pView, 2);
+	return s_doOptionsDlg(pView, AP_Dialog_Options::PAGE_ID_SPELLING);
 }
 #endif
 

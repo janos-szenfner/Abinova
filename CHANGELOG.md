@@ -1795,6 +1795,20 @@ below are on `main` but the release has not been cut yet.
   selection/factory state. All drop-downs are now created with a
   NULL model and every model (a fresh `GtkStringList` per swap)
   goes through `set_model` with consistent ref accounting.
+- **Preferences dialog modernized to `GtkStackSidebar` + `GtkStack`** —
+  the old fixed `GtkNotebook` tabs are replaced by a sidebar with
+  four named pages: Interface, Documents, Smart Quotes, and a new
+  Spelling page that finally exposes the AutoSpellCheck /
+  SpellCheckCaps / SpellCheckNumbers / SpellCheckInternet
+  preferences (the spell-preferences entry point used to jump to a
+  hardcoded "tab 2" that held Smart Quotes). Pages are now
+  addressed by stable ids instead of indexes, the stored
+  `OptionsTabNumber` preference records the page name (legacy
+  numeric values still resolve), and on/off controls are
+  `GtkSwitch`es. The dead plugin-era `XAP_NotebookDialog` /
+  `registerNotebookPage` / `addPage` machinery and the
+  `DeclareDialog` tabbed flag were removed — nothing ever
+  registered an extra page.
 
 ### Tables (Word-style creation and context menus)
 

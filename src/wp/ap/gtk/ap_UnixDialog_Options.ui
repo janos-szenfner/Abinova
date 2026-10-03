@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <interface>
-  <requires lib="gtk+" version="3.20" />
+  <requires lib="gtk" version="4.0" />
   <object class="GtkAdjustment" id="adjustment1">
     <property name="lower">1</property>
     <property name="upper">120</property>
@@ -10,282 +10,502 @@
   </object>
   <object class="GtkDialog" id="ap_UnixDialog_Options">
     <property name="title" translatable="yes">Preferences</property>
-    <property name="resizable">0</property>
     <property name="modal">1</property>
-    
-        <child><object class="GtkBox" id="vbox1">
-          <property name="margin-start">12</property>
-          <property name="margin-end">12</property>
-          <property name="margin-top">12</property>
-          <property name="margin-bottom">12</property>
+    <property name="default-width">560</property>
+    <property name="default-height">420</property>
+    <child>
+      <object class="GtkBox" id="vbox1">
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
         <property name="visible">1</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">6</property>
         <child>
-          <object class="GtkNotebook" id="ntbMain">
+          <object class="GtkBox" id="hbMain">
             <property name="visible">1</property>
-            <property name="can-focus">1</property>
+            <property name="orientation">horizontal</property>
+            <property name="vexpand">1</property>
+            <property name="spacing">6</property>
             <child>
-              <object class="GtkGrid" id="grGeneral">
+              <object class="GtkScrolledWindow" id="scSidebar">
                 <property name="visible">1</property>
-                <property name="row-spacing">6</property>
-                <property name="column-spacing">12</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="propagate-natural-width">1</property>
                 <child>
-                  <object class="GtkLabel" id="lblUserInterface">
+                  <object class="GtkStackSidebar" id="stbPages">
                     <property name="visible">1</property>
-                    <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
-                    <property name="use-markup">1</property>
-                    <property name="xalign">0</property>
-                  <layout><property name="column">0</property><property name="row">0</property><property name="column-span">2</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkLabel" id="lblUnits">
-                    <property name="visible">1</property>
-                    <property name="margin-start">18</property>
-                    <property name="label" translatable="yes">_Units:</property>
-                    <property name="use-underline">1</property>
-                    <property name="xalign">0</property>
-                  <layout><property name="column">0</property><property name="row">1</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkDropDown" id="omUnits">
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                  <layout><property name="column">1</property><property name="row">1</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkButton" id="btnScreenColor">
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                    <property name="margin-start">18</property>
-                    <child>
-                      <object class="GtkBox" id="hbox2">
-                        <property name="visible">1</property>
-                        <property name="spacing">2</property>
-                        <child>
-                          <object class="GtkImage" id="image1">
-                            <property name="visible">1</property>
-                          </object>
-                          </child>
-                        <child>
-                          <object class="GtkLabel" id="lblScreenColor">
-                            <property name="visible">1</property>
-                            <property name="label" translatable="yes">_Select Screen Color</property>
-                            <property name="use-underline">1</property>
-                          </object>
-                          </child>
-                      </object>
-                    </child>
-                  <layout><property name="column">0</property><property name="row">2</property><property name="column-span">2</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkCheckButton" id="btnOverwrite">
-                    <property name="label" translatable="yes">_Enable overwrite mode</property>
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                    <property name="margin-start">18</property>
-                    <property name="use-underline">1</property>
-                  <layout><property name="column">0</property><property name="row">3</property><property name="column-span">2</property></layout></object>
-                  </child>
+                    <property name="stack">stkMain</property>
+                  </object>
+                </child>
               </object>
             </child>
-            <child type="tab">
-              <object class="GtkLabel" id="lblGeneral">
-                <property name="visible">1</property>
-                <property name="label" translatable="yes">General</property>
-              </object>
-              </child>
             <child>
-              <object class="GtkGrid" id="grDocs">
-                <property name="visible">1</property>
-                <property name="row-spacing">6</property>
-                <property name="column-spacing">12</property>
-                <child>
-                  <object class="GtkCheckButton" id="chkAutoSave">
-                    <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                    <property name="use-underline">1</property>
-                  <layout><property name="column">0</property><property name="row">0</property><property name="column-span">3</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkLabel" id="lblRTL">
-                    <property name="visible">1</property>
-                    <property name="margin-top">12</property>
-                    <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
-                    <property name="use-markup">1</property>
-                    <property name="xalign">0</property>
-                  <layout><property name="column">0</property><property name="row">2</property><property name="column-span">3</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkCheckButton" id="chkDefaultToRTL">
-                    <property name="label" translatable="yes">_Default to right-to-left text direction</property>
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                    <property name="margin-start">18</property>
-                    <property name="use-underline">1</property>
-                  <layout><property name="column">0</property><property name="row">3</property><property name="column-span">3</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkLabel" id="lblSaveFormat">
-                    <property name="visible">1</property>
-                    <property name="margin-start">18</property>
-                    <property name="margin-top">12</property>
-                    <property name="label" translatable="yes">_Default file format:</property>
-                    <property name="use-underline">1</property>
-                    <property name="xalign">0</property>
-                  <layout><property name="column">0</property><property name="row">4</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkDropDown" id="omSaveFormat">
-                    <property name="visible">1</property>
-                    <property name="margin-top">12</property>
-                    <property name="can-focus">1</property>
-                  <layout><property name="column">1</property><property name="row">4</property></layout></object>
-                  </child>
-                <child>
-                  <object class="GtkGrid" id="tblAutoSave">
-                    <property name="visible">1</property>
-                    <property name="row-spacing">6</property>
-                    <property name="column-spacing">12</property>
-                    <child>
-                      <object class="GtkLabel" id="lblInterval">
-                        <property name="visible">1</property>
-                        <property name="margin-start">18</property>
-                        <property name="label" translatable="yes">_Interval:</property>
-                        <property name="use-underline">1</property>
-                        <property name="xalign">0</property>
-                      <layout><property name="column">0</property><property name="row">0</property></layout></object>
-                      </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spInterval">
-                        <property name="width-request">75</property>
-                        <property name="visible">1</property>
-                        <property name="can-focus">1</property>
-                        <property name="adjustment">adjustment1</property>
-                        <property name="climb-rate">1</property>
-                        <property name="numeric">1</property>
-                      <layout><property name="column">1</property><property name="row">0</property></layout></object>
-                      </child>
-                    <child>
-                      <object class="GtkLabel" id="lblMinutes">
-                        <property name="visible">1</property>
-                        <property name="label" translatable="yes">minute(s)</property>
-                        <property name="xalign">0</property>
-                      <layout><property name="column">2</property><property name="row">0</property></layout></object>
-                      </child>
-                    <child>
-                      <object class="GtkLabel" id="lblFileExt">
-                        <property name="visible">1</property>
-                        <property name="margin-start">18</property>
-                        <property name="label" translatable="yes">_File extension:</property>
-                        <property name="use-underline">1</property>
-                        <property name="xalign">0</property>
-                      <layout><property name="column">0</property><property name="row">1</property></layout></object>
-                      </child>
-                    <child>
-                      <object class="GtkEntry" id="enFileExt">
-                        <property name="width-request">75</property>
-                        <property name="visible">1</property>
-                        <property name="can-focus">1</property>
-                        <property name="text">.bak~</property>
-                      <layout><property name="column">1</property><property name="row">1</property></layout></object>
-                      </child>
-                  <layout><property name="column">0</property><property name="row">1</property><property name="column-span">3</property></layout></object>
-                  </child>
-              </object>
-              </child>
-            <child type="tab">
-              <object class="GtkLabel" id="lblDocuments">
-                <property name="visible">1</property>
-                <property name="label" translatable="yes">Documents</property>
-              </object>
-              </child>
-            <child>
-              <object class="GtkBox" id="vbox4">
+              <object class="GtkSeparator" id="sepMain">
                 <property name="visible">1</property>
                 <property name="orientation">vertical</property>
-                <property name="spacing">10</property>
-                <child>
-                  <object class="GtkCheckButton" id="chkSmartQuotes">
-                    <property name="label" translatable="yes">Enable smart quotes</property>
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                    <property name="use-underline">1</property>
-                  </object>
-                  </child>
-                <child>
-                  <object class="GtkCheckButton" id="chkCustomQuoteStyle">
-                    <property name="label" translatable="yes">Use custom smart quote style</property>
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                    <property name="use-underline">1</property>
-                  </object>
-                  </child>
-                <child>
-                  <object class="GtkLabel" id="lblOuterQuoteStyle">
-                    <property name="visible">1</property>
-                    <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
-                    <property name="use-markup">1</property>
-                    <property name="xalign">0</property>
-                  </object>
-                  </child>
-                <child>
-                  <object class="GtkDropDown" id="omOuterQuoteStyle">
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                  </object>
-                  </child>
-                <child>
-                  <object class="GtkLabel" id="lblInnerQuoteStyle">
-                    <property name="visible">1</property>
-                    <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
-                    <property name="use-markup">1</property>
-                    <property name="xalign">0</property>
-                  </object>
-                  </child>
-                <child>
-                  <object class="GtkDropDown" id="omInnerQuoteStyle">
-                    <property name="visible">1</property>
-                    <property name="can-focus">1</property>
-                  </object>
-                  </child>
               </object>
-              </child>
-            <child type="tab">
-              <object class="GtkLabel" id="lblSmartQuotes">
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="scStack">
                 <property name="visible">1</property>
-                <property name="label" translatable="yes">Smart Quotes</property>
-              </object>
-              </child>
-          </object>
-          </child>
-              <child>
-          <object class="GtkBox" id="hbbox1">
-                    <property name="halign">end</property>
-                    <property name="spacing">6</property>
+                <property name="hexpand">1</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="propagate-natural-height">1</property>
+                <child>
+                  <object class="GtkStack" id="stkMain">
+                    <property name="visible">1</property>
+                    <property name="hexpand">1</property>
+                    <property name="vexpand">1</property>
+                    <property name="margin-start">12</property>
                     <property name="margin-top">6</property>
-                      <property name="visible">1</property>
-                      <child>
-                        <object class="GtkButton" id="btnDefaults">
-                          <property name="label">_Revert</property>
-                          <property name="use-underline">1</property>
-                          <property name="visible">1</property>
-                          <property name="can-focus">1</property>
-                        </object>
-                        </child>
-                      <child>
-                        <object class="GtkButton" id="btnClose">
-                          <property name="label">_Close</property>
-                          <property name="use-underline">1</property>
-                          <property name="visible">1</property>
-                          <property name="can-focus">1</property>
-                        </object>
-                        </child>
-                    </object>
+                    <property name="margin-bottom">6</property>
+                    <child>
+                      <object class="GtkStackPage" id="pageInterface">
+                        <property name="name">interface</property>
+                        <property name="title" translatable="yes">Interface</property>
+                        <property name="child">
+                          <object class="GtkGrid" id="grInterface">
+                            <property name="visible">1</property>
+                            <property name="valign">start</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel" id="lblUserInterface">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">0</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblUnits">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">_Units:</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDropDown" id="omUnits">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <layout><property name="column">1</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblOverwrite">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">_Enable overwrite mode</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swOverwrite">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <layout><property name="column">1</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="btnScreenColor">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="margin-start">18</property>
+                                <child>
+                                  <object class="GtkBox" id="hbox2">
+                                    <property name="visible">1</property>
+                                    <property name="spacing">2</property>
+                                    <child>
+                                      <object class="GtkImage" id="image1">
+                                        <property name="visible">1</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="lblScreenColor">
+                                        <property name="visible">1</property>
+                                        <property name="label" translatable="yes">_Select Screen Color</property>
+                                        <property name="use-underline">1</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <layout><property name="column">0</property><property name="row">3</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage" id="pageDocuments">
+                        <property name="name">documents</property>
+                        <property name="title" translatable="yes">Documents</property>
+                        <property name="child">
+                          <object class="GtkGrid" id="grDocs">
+                            <property name="visible">1</property>
+                            <property name="valign">start</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel" id="lblAutoSave">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">0</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swAutoSave">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">0</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkGrid" id="tblAutoSave">
+                                <property name="visible">1</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">12</property>
+                                <child>
+                                  <object class="GtkLabel" id="lblInterval">
+                                    <property name="visible">1</property>
+                                    <property name="margin-start">18</property>
+                                    <property name="label" translatable="yes">_Interval:</property>
+                                    <property name="use-underline">1</property>
+                                    <property name="xalign">0</property>
+                                    <layout><property name="column">0</property><property name="row">0</property></layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spInterval">
+                                    <property name="width-request">75</property>
+                                    <property name="visible">1</property>
+                                    <property name="can-focus">1</property>
+                                    <property name="adjustment">adjustment1</property>
+                                    <property name="climb-rate">1</property>
+                                    <property name="numeric">1</property>
+                                    <layout><property name="column">1</property><property name="row">0</property></layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="lblMinutes">
+                                    <property name="visible">1</property>
+                                    <property name="label" translatable="yes">minute(s)</property>
+                                    <property name="xalign">0</property>
+                                    <layout><property name="column">2</property><property name="row">0</property></layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="lblFileExt">
+                                    <property name="visible">1</property>
+                                    <property name="margin-start">18</property>
+                                    <property name="label" translatable="yes">_File extension:</property>
+                                    <property name="use-underline">1</property>
+                                    <property name="xalign">0</property>
+                                    <layout><property name="column">0</property><property name="row">1</property></layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="enFileExt">
+                                    <property name="width-request">75</property>
+                                    <property name="visible">1</property>
+                                    <property name="can-focus">1</property>
+                                    <property name="text">.bak~</property>
+                                    <layout><property name="column">1</property><property name="row">1</property></layout>
+                                  </object>
+                                </child>
+                                <layout><property name="column">0</property><property name="row">1</property><property name="column-span">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSaveFormat">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="margin-top">12</property>
+                                <property name="label" translatable="yes">_Default file format:</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDropDown" id="omSaveFormat">
+                                <property name="visible">1</property>
+                                <property name="margin-top">12</property>
+                                <property name="can-focus">1</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">2</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblRTL">
+                                <property name="visible">1</property>
+                                <property name="margin-top">12</property>
+                                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">3</property><property name="column-span">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblDirectionRtl">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">_Default to right-to-left text direction</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">4</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swDefaultToRTL">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">4</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage" id="pageSmartQuotes">
+                        <property name="name">smartquotes</property>
+                        <property name="title" translatable="yes">Smart Quotes</property>
+                        <property name="child">
+                          <object class="GtkGrid" id="grSmartQuotes">
+                            <property name="visible">1</property>
+                            <property name="valign">start</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel" id="lblSmartQuotesEnable">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">Enable smart quotes</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">0</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSmartQuotes">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">0</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblCustomQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Use custom smart quote style</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swCustomQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblOuterQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-start">36</property>
+                                <property name="margin-top">6</property>
+                                <property name="label" translatable="yes">_Outer (double) quote style:</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDropDown" id="omOuterQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-top">6</property>
+                                <property name="can-focus">1</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblInnerQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-start">36</property>
+                                <property name="label" translatable="yes">_Inner (single) quote style:</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDropDown" id="omInnerQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage" id="pageSpelling">
+                        <property name="name">spelling</property>
+                        <property name="title" translatable="yes">Spelling</property>
+                        <property name="child">
+                          <object class="GtkGrid" id="grSpelling">
+                            <property name="visible">1</property>
+                            <property name="valign">start</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel" id="lblAutoSpell">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">_Check spelling as you type</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">0</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swAutoSpell">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">0</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellCheck">
+                                <property name="visible">1</property>
+                                <property name="margin-top">12</property>
+                                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">1</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellCaps">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Check words in _UPPERCASE</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSpellCaps">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellNumbers">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Check words containing _numbers</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSpellNumbers">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellInternet">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Check _internet and file addresses</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">4</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSpellInternet">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">4</property></layout>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
         </child>
-</object>
-    </child><action-widgets>
+        <child>
+          <object class="GtkBox" id="hbbox1">
+            <property name="halign">end</property>
+            <property name="spacing">6</property>
+            <property name="margin-top">6</property>
+            <property name="visible">1</property>
+            <child>
+              <object class="GtkButton" id="btnDefaults">
+                <property name="label">_Revert</property>
+                <property name="use-underline">1</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btnClose">
+                <property name="label">_Close</property>
+                <property name="use-underline">1</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
       <action-widget response="0">btnDefaults</action-widget>
       <action-widget response="-7">btnClose</action-widget>
     </action-widgets>

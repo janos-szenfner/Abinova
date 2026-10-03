@@ -68,8 +68,7 @@ XAP_Dialog * AP_UnixDialog_Options::static_constructor ( XAP_DialogFactory * pFa
 
 AP_UnixDialog_Options::AP_UnixDialog_Options ( XAP_DialogFactory * pDlgFactory,
         XAP_Dialog_Id id )
-        : AP_Dialog_Options ( pDlgFactory, id ),
-        m_extraPages ( nullptr )
+        : AP_Dialog_Options ( pDlgFactory, id )
 {}
 
 AP_UnixDialog_Options::~AP_UnixDialog_Options ( void )
@@ -97,24 +96,6 @@ void AP_UnixDialog_Options::runModal ( XAP_Frame * pFrame )
         response = abiRunModalDialog ( GTK_DIALOG ( mainWindow ), pFrame,
                                        this, GTK_RESPONSE_CLOSE, FALSE );
     } while ( response != GTK_RESPONSE_CLOSE && response != GTK_RESPONSE_DELETE_EVENT );
-
-    // unhook extra pages
-    GSList *item = m_extraPages;
-    while ( item ) {
-
-        const XAP_NotebookDialog::Page *p = static_cast<const XAP_NotebookDialog::Page*> ( item->data );
-        GtkWidget *page = GTK_WIDGET ( p->widget );
-        gint i;
-
-        i = gtk_notebook_page_num ( GTK_NOTEBOOK ( m_notebook ), page );
-        if ( i > -1 ) {
-            gtk_notebook_remove_page ( GTK_NOTEBOOK ( m_notebook ), i );
-        }
-
-        GSList *tmp = item;
-        item = item->next;
-        g_slist_free_1 ( tmp );
-    }
 
     abiDestroyWidget ( mainWindow );
 }
@@ -219,12 +200,6 @@ void AP_UnixDialog_Options::event_ChooseTransparentColor ( void )
 	g_object_unref(reinterpret_cast<GObject*>((builder)));
 }
 
-void AP_UnixDialog_Options::addPage ( const XAP_NotebookDialog::Page *page )
-{
-    // the page stays owned by the factory
-    m_extraPages = g_slist_prepend ( m_extraPages, ( gpointer ) page );
-}
-
 /*****************************************************************/
 
 void AP_UnixDialog_Options::_setupUnitMenu ( GtkWidget *optionmenu, const XAP_StringSet *pSS )
@@ -252,29 +227,29 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
 
     m_windowMain = WID ( "ap_UnixDialog_Options" );
 
-    m_notebook = WID ( "ntbMain" );
-    GSList *item = m_extraPages;
-    while ( item ) {
+    m_stack = WID ( "stkMain" );
 
-        const XAP_NotebookDialog::Page *p = static_cast<const XAP_NotebookDialog::Page*> ( item->data );
-        GtkWidget *label = gtk_label_new ( p->title );
-        GtkWidget *page = GTK_WIDGET ( p->widget );
-
-        gtk_notebook_append_page ( GTK_NOTEBOOK ( m_notebook ),
-                                   page, label );
-        item = item->next;
-    }
+    // page titles shown by the stack sidebar come from the string set,
+    // not the .ui, so they track the app language
+    std::string stTitle;
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_Interface, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageInterface" ) ),
+                               stTitle.c_str() );
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_Label_Documents, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageDocuments" ) ),
+                               stTitle.c_str() );
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_SmartQuotes, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageSmartQuotes" ) ),
+                               stTitle.c_str() );
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Spell_SpellTitle, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageSpelling" ) ),
+                               stTitle.c_str() );
 
     m_buttonDefaults = WID ( "btnDefaults" );
     m_buttonClose = WID ( "btnClose" );
 
 
-    // General
-
-    tmp = WID ( "lblGeneral" );
-    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_General );
-
-    // User Interface
+    // Interface
 
     tmp = WID ( "lblUserInterface" );
     localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_UI );
@@ -290,22 +265,22 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     tmp = WID ( "lblScreenColor" );
     localizeLabelUnderline ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_ChooseForTransparent );
 
-    m_checkbuttonEnableOverwrite = WID ( "btnOverwrite" );
-    localizeButtonUnderline ( m_checkbuttonEnableOverwrite, pSS,
-                              AP_STRING_ID_DLG_Options_Label_EnableOverwrite );
+    tmp = WID ( "lblOverwrite" );
+    localizeLabelUnderline ( tmp, pSS,
+                             AP_STRING_ID_DLG_Options_Label_EnableOverwrite );
+
+    m_switchEnableOverwrite = WID ( "swOverwrite" );
 
     // Documents
 
-    tmp = WID ( "lblDocuments" );
-    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_Documents );
-
     // Auto Save
 
-    m_checkbuttonAutoSaveFile = WID ( "chkAutoSave" );
-    localizeButtonMarkup ( m_checkbuttonAutoSaveFile, pSS,
-                           AP_STRING_ID_DLG_Options_Label_AutoSaveUnderline );
+    tmp = WID ( "lblAutoSave" );
+    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_AutoSave );
 
-    m_tableAutoSaveFile = WID ( "tblAutoSave" );
+    m_switchAutoSaveFile = WID ( "swAutoSave" );
+
+    m_gridAutoSaveFile = WID ( "tblAutoSave" );
 
     tmp = WID ( "lblInterval" );
     localizeLabelUnderline ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_AutoSaveInterval );
@@ -324,9 +299,11 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     tmp = WID ( "lblRTL" );
     localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_BiDiOptions );
 
-    m_checkbuttonOtherDirectionRtl = WID ( "chkDefaultToRTL" );
-    localizeButtonUnderline ( m_checkbuttonOtherDirectionRtl, pSS,
-                              AP_STRING_ID_DLG_Options_Label_DirectionRtl );
+    tmp = WID ( "lblDirectionRtl" );
+    localizeLabelUnderline ( tmp, pSS,
+                             AP_STRING_ID_DLG_Options_Label_DirectionRtl );
+
+    m_switchOtherDirectionRtl = WID ( "swDefaultToRTL" );
 
     // Default file format - the label is translated directly in the .ui
     m_menuSaveFormat = WID ( "omSaveFormat" );
@@ -334,16 +311,15 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
 
     // Smart Quotes
 
-    tmp = WID ( "lblSmartQuotes" );
-    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_TabLabel_SmartQuotes );
+    tmp = WID ( "lblSmartQuotesEnable" );
+    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SmartQuotes );
 
-    m_checkbuttonSmartQuotes = WID ( "chkSmartQuotes" );
-    localizeButtonUnderline ( m_checkbuttonSmartQuotes, pSS,
-                              AP_STRING_ID_DLG_Options_Label_SmartQuotes );
+    m_switchSmartQuotes = WID ( "swSmartQuotes" );
 
-    m_checkbuttonCustomSmartQuotes = WID ( "chkCustomQuoteStyle" );
-    localizeButtonUnderline ( m_checkbuttonCustomSmartQuotes, pSS,
-                              AP_STRING_ID_DLG_Options_Label_CustomSmartQuotes );
+    tmp = WID ( "lblCustomQuoteStyle" );
+    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_CustomSmartQuotes );
+
+    m_switchCustomSmartQuotes = WID ( "swCustomQuoteStyle" );
 
     tmp = WID ( "lblOuterQuoteStyle" );
     localizeLabelUnderline ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_OuterQuoteStyle );
@@ -357,30 +333,37 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     _setupSmartQuotesCombos(m_omOuterQuoteStyle);
     _setupSmartQuotesCombos(m_omInnerQuoteStyle);
 
+    // Spelling
+
+    tmp = WID ( "lblAutoSpell" );
+    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckAsYouType );
+
+    m_switchSpellCheckAuto = WID ( "swAutoSpell" );
+
+    tmp = WID ( "lblSpellCheck" );
+    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckOptions );
+
+    tmp = WID ( "lblSpellCaps" );
+    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckCaps );
+
+    m_switchSpellCheckCaps = WID ( "swSpellCaps" );
+
+    tmp = WID ( "lblSpellNumbers" );
+    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckNumbers );
+
+    m_switchSpellCheckNumbers = WID ( "swSpellNumbers" );
+
+    tmp = WID ( "lblSpellInternet" );
+    localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckInternet );
+
+    m_switchSpellCheckInternet = WID ( "swSpellInternet" );
+
     //////////////////////////////////////////////////////////////////
 
-
-    // to enable/disable other smart quote widgets
-    g_signal_connect ( G_OBJECT ( m_checkbuttonSmartQuotes ),
-                       "toggled",
-                       G_CALLBACK ( s_checkbutton_toggle ),
-                       static_cast<gpointer> ( this ) );
-
-    // to enable/disable custom smart quote combos and labels
-    g_signal_connect ( G_OBJECT ( m_checkbuttonCustomSmartQuotes ),
-                       "toggled",
-                       G_CALLBACK ( s_checkbutton_toggle ),
-                       static_cast<gpointer> ( this ) );
-
-    // to enable/disable the save
-    g_signal_connect ( G_OBJECT ( m_checkbuttonAutoSaveFile ),
-                       "toggled",
-                       G_CALLBACK ( s_auto_save_toggled ),
-                       static_cast<gpointer> ( this ) );
-
-    // set inital state
-    g_signal_emit_by_name ( G_OBJECT ( m_checkbuttonAutoSaveFile ), "toggled" );
-
+    // start with the autosave sub-grid sensitivity matching the switch
+    gtk_widget_set_sensitive ( m_gridAutoSaveFile,
+                               gtk_switch_get_active (
+                                   GTK_SWITCH ( m_switchAutoSaveFile ) ) );
 
     // to choose another color for the screen
     g_signal_connect ( G_OBJECT ( m_pushbuttonNewTransparentColor ),
@@ -388,7 +371,7 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
                        G_CALLBACK ( s_chooseTransparentColor ),
                        static_cast<gpointer> ( this ) );
 
-    _setNotebookPageNum ( 0 );
+    _setPageName ( PAGE_ID_INTERFACE );
 }
 
 GtkWidget* AP_UnixDialog_Options::_constructWindow ()
@@ -440,6 +423,16 @@ GtkWidget* AP_UnixDialog_Options::_constructWindow ()
                                "changed",
                                G_CALLBACK ( s_control_changed ),
                                static_cast<gpointer> ( this ) );
+        else if ( GTK_IS_SWITCH ( w ) )
+            g_signal_connect ( G_OBJECT ( w ),
+                               "notify::active",
+                               G_CALLBACK ( s_switch_changed ),
+                               static_cast<gpointer> ( this ) );
+        else if ( GTK_IS_STACK ( w ) )
+            g_signal_connect ( G_OBJECT ( w ),
+                               "notify::visible-child-name",
+                               G_CALLBACK ( s_dropdown_changed ),
+                               static_cast<gpointer> ( this ) );
         else if ( GTK_IS_TOGGLE_BUTTON ( w ) )
             g_signal_connect ( G_OBJECT ( w ),
                                "toggled",
@@ -465,24 +458,24 @@ GtkWidget *AP_UnixDialog_Options::_lookupWidget ( tControl id )
             // Smart quotes
 
         case id_CHECK_SMART_QUOTES_ENABLE:
-            return m_checkbuttonSmartQuotes;
+            return m_switchSmartQuotes;
 
         case id_CHECK_CUSTOM_SMART_QUOTES:
-            return m_checkbuttonCustomSmartQuotes;
-            
+            return m_switchCustomSmartQuotes;
+
         case id_LIST_VIEW_OUTER_QUOTE_STYLE:
             return m_omOuterQuoteStyle;
-            
+
         case id_LIST_VIEW_INNER_QUOTE_STYLE:
             return m_omInnerQuoteStyle;
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // other
         case id_CHECK_OTHER_DEFAULT_DIRECTION_RTL:
-            return m_checkbuttonOtherDirectionRtl;
+            return m_switchOtherDirectionRtl;
 
         case id_CHECK_AUTO_SAVE_FILE:
-            return m_checkbuttonAutoSaveFile;
+            return m_switchAutoSaveFile;
 
         case id_TEXT_AUTO_SAVE_FILE_EXT:
             return m_textAutoSaveFileExt;
@@ -499,13 +492,30 @@ GtkWidget *AP_UnixDialog_Options::_lookupWidget ( tControl id )
         case id_PUSH_CHOOSE_COLOR_FOR_TRANSPARENT:
             return  m_pushbuttonNewTransparentColor;
         case id_CHECK_ENABLE_OVERWRITE:
-            return m_checkbuttonEnableOverwrite;
+            return m_switchEnableOverwrite;
+
+            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            // spelling
+        case id_CHECK_SPELL_AUTO:
+            return m_switchSpellCheckAuto;
+
+        case id_CHECK_SPELL_CAPS:
+            return m_switchSpellCheckCaps;
+
+        case id_CHECK_SPELL_NUMBERS:
+            return m_switchSpellCheckNumbers;
+
+        case id_CHECK_SPELL_INTERNET:
+            return m_switchSpellCheckInternet;
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // general
 
         case id_BUTTON_DEFAULTS:
             return m_buttonDefaults;
+
+        case id_NOTEBOOK:
+            return m_stack;
 
             // not implemented
         case id_CHECK_VIEW_SHOW_STATUS_BAR:
@@ -543,13 +553,13 @@ void AP_UnixDialog_Options::_controlEnable ( tControl id, bool value )
 
 #define DEFINE_GET_SET_BOOL(button) \
     bool     AP_UnixDialog_Options::_gather##button(void) {    \
-        UT_ASSERT(m_checkbutton##button && GTK_IS_BUTTON(m_checkbutton##button)); \
-        return gtk_check_button_get_active(        \
-                GTK_CHECK_BUTTON(m_checkbutton##button) ); }   \
+        UT_ASSERT(m_switch##button && GTK_IS_SWITCH(m_switch##button)); \
+        return gtk_switch_get_active(        \
+                GTK_SWITCH(m_switch##button) ); }   \
     void        AP_UnixDialog_Options::_set##button(bool b) { \
-        UT_ASSERT(m_checkbutton##button && GTK_IS_BUTTON(m_checkbutton##button)); \
-        gtk_check_button_set_active (          \
-                                                GTK_CHECK_BUTTON(m_checkbutton##button), b ); }
+        UT_ASSERT(m_switch##button && GTK_IS_SWITCH(m_switch##button)); \
+        gtk_switch_set_active (          \
+                                                GTK_SWITCH(m_switch##button), b ); }
 
 #define DEFINE_GET_SET_TEXT(widget) \
     char *  AP_UnixDialog_Options::_gather##widget() {    \
@@ -570,6 +580,11 @@ DEFINE_GET_SET_BOOL ( OtherDirectionRtl )
 
 DEFINE_GET_SET_BOOL ( AutoSaveFile )
 DEFINE_GET_SET_BOOL ( EnableOverwrite )
+
+DEFINE_GET_SET_BOOL ( SpellCheckAuto )
+DEFINE_GET_SET_BOOL ( SpellCheckCaps )
+DEFINE_GET_SET_BOOL ( SpellCheckNumbers )
+DEFINE_GET_SET_BOOL ( SpellCheckInternet )
 
 // dummy implementations. XP pref backend isn't very smart.
 #define DEFINE_GET_SET_BOOL_DUMMY(Bool)     \
@@ -714,16 +729,22 @@ void AP_UnixDialog_Options::_setInnerQuoteStyle ( gint nIndex )
 #undef DEFINE_GET_SET_BOOL
 
 
-int AP_UnixDialog_Options::_gatherNotebookPageNum ( void )
+void AP_UnixDialog_Options::_gatherPageName ( std::string &stRetVal )
 {
-    UT_ASSERT ( m_notebook && GTK_IS_NOTEBOOK ( m_notebook ) );
-    return gtk_notebook_get_current_page ( GTK_NOTEBOOK ( m_notebook ) );
+    UT_ASSERT ( m_stack && GTK_IS_STACK ( m_stack ) );
+    const char *name = gtk_stack_get_visible_child_name ( GTK_STACK ( m_stack ) );
+    stRetVal = name ? name : "";
 }
 
-void AP_UnixDialog_Options::_setNotebookPageNum ( int pn )
+void AP_UnixDialog_Options::_setPageName ( const std::string &stName )
 {
-    UT_ASSERT ( m_notebook && GTK_IS_NOTEBOOK ( m_notebook ) );
-    gtk_notebook_set_current_page ( GTK_NOTEBOOK ( m_notebook ), pn );
+    UT_ASSERT ( m_stack && GTK_IS_STACK ( m_stack ) );
+    if ( gtk_stack_get_child_by_name ( GTK_STACK ( m_stack ), stName.c_str() ) )
+        gtk_stack_set_visible_child_name ( GTK_STACK ( m_stack ),
+                                           stName.c_str() );
+    else
+        gtk_stack_set_visible_child_name ( GTK_STACK ( m_stack ),
+                                           PAGE_ID_INTERFACE );
 }
 
 /*static*/ void AP_UnixDialog_Options::s_defaults_clicked ( GtkWidget *widget, gpointer data )
@@ -769,27 +790,28 @@ void AP_UnixDialog_Options::_setNotebookPageNum ( int pn )
 }
 
 
-// These functions will allow multiple widgets to tie into the
-// same logic functions (at the AP level) to enable/disable stuff.
-/*static*/ void AP_UnixDialog_Options::s_checkbutton_toggle ( GtkWidget *w, gpointer data )
+// Switch state changes run the XP enable/disable logic (smart quotes
+// combos), keep the autosave sub-grid sensitivity in sync, and store
+// the preference through the generic control-changed path.
+/*static*/ void AP_UnixDialog_Options::s_switch_changed ( GObject *w,
+                                                        GParamSpec * /*pspec*/,
+                                                        gpointer data )
 {
     AP_UnixDialog_Options * dlg = static_cast<AP_UnixDialog_Options *> ( data );
     UT_ASSERT ( dlg );
-    UT_ASSERT ( w && GTK_IS_WIDGET ( w ) );
+    UT_ASSERT ( w && GTK_IS_SWITCH ( w ) );
 
-    int i = GPOINTER_TO_INT ( g_object_get_data ( G_OBJECT ( w ), "tControl" ) );
-    UT_DEBUGMSG ( ( "s_checkbutton_toggle: control id = %d\n", i ) );
+    GtkWidget *widget = GTK_WIDGET ( w );
+    int i = GPOINTER_TO_INT ( g_object_get_data ( G_OBJECT ( widget ), "tControl" ) );
+    UT_DEBUGMSG ( ( "s_switch_changed: control id = %d\n", i ) );
+
     dlg->_enableDisableLogic ( ( AP_Dialog_Options::tControl ) i );
-}
 
-/*static*/ void AP_UnixDialog_Options::s_auto_save_toggled ( GtkCheckButton *togglebutton, gpointer data )
-{
-    AP_UnixDialog_Options * dlg = static_cast<AP_UnixDialog_Options *> ( data );
-    gboolean is_toggled;
-    UT_ASSERT ( dlg );
+    if ( i == AP_Dialog_Options::id_CHECK_AUTO_SAVE_FILE )
+        gtk_widget_set_sensitive ( dlg->m_gridAutoSaveFile,
+                                   gtk_switch_get_active ( GTK_SWITCH ( w ) ) );
 
-    is_toggled = gtk_check_button_get_active ( togglebutton );
-    gtk_widget_set_sensitive ( dlg->m_tableAutoSaveFile, is_toggled );
+    s_control_changed ( widget, data );
 }
 
 

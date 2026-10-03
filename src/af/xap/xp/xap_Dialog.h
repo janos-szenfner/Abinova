@@ -26,6 +26,8 @@
 
 #include <glib.h>
 
+#include <string>
+
 #include "ut_misc.h"
 #include "ut_assert.h"
 
@@ -153,11 +155,12 @@ public:
 	XAP_TabbedDialog_NonPersistent(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id, const char * helpUrl = nullptr );
 	virtual ~XAP_TabbedDialog_NonPersistent(void);
 
-	virtual void			setInitialPageNum 	(int which) { m_pageNum = which; } // support for dialogs with pages (tabs?)
-	virtual int				getInitialPageNum 	() { return m_pageNum; }
+	// entry points select a page by its stable name, never by index
+	virtual void			setInitialPageId	(const std::string &which) { m_pageId = which; }
+	virtual const std::string & getInitialPageId	() const { return m_pageId; }
 
 protected:
-	int		m_pageNum;
+	std::string		m_pageId;
 };
 
 
@@ -240,26 +243,4 @@ public:
 
 protected:
         XAP_Dialog_Modeless *                    m_pDialog;
-};
-
-
-/*!
- * Interface for a tabbed dialog to be extensible by plugins.
- */
-class ABI_EXPORT XAP_NotebookDialog
-{
-public:
-
-	class ABI_EXPORT Page {
-	public:
-		Page() {}
-		Page(const gchar *_title, AbiNativeWidget * _widget);
-		~Page();
-
-		gchar 			* title;
-		AbiNativeWidget * widget;
-	};
-
-	virtual ~XAP_NotebookDialog() {}
-	virtual void addPage (const XAP_NotebookDialog::Page *page) = 0;
 };

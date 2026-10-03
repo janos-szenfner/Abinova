@@ -369,6 +369,7 @@ dcl(DLG_Options_TabLabel_Preferences,	"Preference Schemes")
 dcl(DLG_Options_TabLabel_View,			"View")
 dcl(DLG_Options_TabLabel_Misc,	   "Misc.")
 dcl(DLG_Options_TabLabel_SmartQuotes,   "Smart Quotes")
+dcl(DLG_Options_TabLabel_Interface,   "Interface")
 
 dcl(DLG_Options_Btn_Save,				"Sa&ve")
 dcl(DLG_Options_Btn_Apply,				"Apply")
@@ -423,6 +424,12 @@ dcl(DLG_Options_Label_CheckWhiteForTransparent, "Allow screen colors other than 
 dcl(DLG_Options_Label_ChooseForTransparent, "Choose Screen Color")
 dcl(DLG_Options_Label_ColorChooserLabel,	"Choose screen color for Abinova")
 dcl(DLG_Options_Label_EnableOverwrite,      "&Enable overwrite mode toggle")
+
+dcl(DLG_Options_Label_SpellCheckAsYouType, "Check spelling as you type")
+dcl(DLG_Options_Label_SpellCheckOptions,   "Check spelling")
+dcl(DLG_Options_Label_SpellCheckCaps,      "Check words in UPPERCASE")
+dcl(DLG_Options_Label_SpellCheckNumbers,   "Check words containing numbers")
+dcl(DLG_Options_Label_SpellCheckInternet,  "Check internet and file addresses")
 dcl(DLG_Options_Label_InvalidRangeForAutoSave,	"You should choose a range from 1 to 120 for the auto save frequency")
 dcl(DLG_Options_Prompt_YouMustRestart,	"The new user interface language will take effect the next time that you start the application")
 

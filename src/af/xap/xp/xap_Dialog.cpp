@@ -110,8 +110,7 @@ XAP_Dialog_NonPersistent::~XAP_Dialog_NonPersistent(void)
 /*****************************************************************/
 
 XAP_TabbedDialog_NonPersistent::XAP_TabbedDialog_NonPersistent(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id, const char * helpUrl )
-	: XAP_Dialog_NonPersistent(pDlgFactory,id, helpUrl),
-	  m_pageNum(-1)
+	: XAP_Dialog_NonPersistent(pDlgFactory,id, helpUrl)
 {
 }
 
@@ -282,13 +281,3 @@ XAP_Dialog_Modeless::BuildWindowName(char * pWindowName, const char * pDialogNam
 }
 
 
-XAP_NotebookDialog::Page::Page(const gchar *_title, AbiNativeWidget * _widget) 
-{
-	title = g_strdup(_title);
-	widget = _widget;
-}
-
-XAP_NotebookDialog::Page::~Page() 
-{
-	g_free(title);
-}

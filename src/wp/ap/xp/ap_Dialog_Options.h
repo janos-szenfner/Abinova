@@ -83,7 +83,19 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 				   id_NOTEBOOK,
 				   id_CHECK_LANG_WITH_KEYBOARD,
 				   id_CHECK_DIR_MARKER_AFTER_CLOSING_PARENTHESIS,
+				   id_CHECK_SPELL_AUTO,
+				   id_CHECK_SPELL_CAPS,
+				   id_CHECK_SPELL_NUMBERS,
+				   id_CHECK_SPELL_INTERNET,
 				   id_last };
+
+	// stable page identifiers for the options dialog's stacked pages;
+	// entry points (e.g. dlgSpellPrefs) request a page by name instead
+	// of by fragile tab index
+	static constexpr const char * PAGE_ID_INTERFACE  = "interface";
+	static constexpr const char * PAGE_ID_DOCUMENTS  = "documents";
+	static constexpr const char * PAGE_ID_SMARTQUOTES= "smartquotes";
+	static constexpr const char * PAGE_ID_SPELLING   = "spelling";
 
 	// enum tCheckState: uint8_t { check_FALSE = 0, check_TRUE, check_INDETERMINATE };
 
@@ -99,6 +111,7 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 							 	// needed by instant apply and friends
 
 	void _event_SetDefaults(void);
+	static std::string _legacyPageName(const std::string &stStored);
 
 	//
 	// Screen Color stuff
@@ -164,10 +177,15 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	virtual bool _gatherDirMarkerAfterClosingParenthesis(){return false;}
 	virtual void _setDirMarkerAfterClosingParenthesis(const bool){}
 
-	// so we can save and restore to the same page - must be able to return
-	// the current page and reset it later (i.e., don't use a handle, but a
-	// page index)
-	SET_GATHER			(NotebookPageNum,	int );
+	SET_GATHER			(SpellCheckAuto,	bool);
+	SET_GATHER			(SpellCheckCaps,	bool);
+	SET_GATHER			(SpellCheckNumbers,	bool);
+	SET_GATHER			(SpellCheckInternet,	bool);
+
+	// so we can save and restore to the same page - pages are addressed
+	// by their stable PAGE_ID_* name, never by index
+	virtual void _gatherPageName(std::string &stRetVal) = 0;
+	virtual void _setPageName(const std::string &stName) = 0;
 
 #undef SET_GATHER
  protected:
