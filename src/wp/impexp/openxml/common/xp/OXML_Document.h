@@ -40,6 +40,7 @@
 // External includes
 #include <map>
 #include <string>
+#include <vector>
 
 /* \class OXML_Document
  * This class represents the data model representation of the OpenXML document.
@@ -159,6 +160,24 @@ public:
 		{ auto it = m_tocParagraphs.find(pPara);
 		  return it != m_tocParagraphs.end() ? it->second : ""; }
 
+	/* Unsupported drawing payloads (chart/SmartArt/OLE parts that
+	 * cannot be rendered): the Valid listener records the
+	 * relationship references it swallows inside rejected mc:Choice
+	 * branches so the Image listener can move them onto the imported
+	 * fallback picture — keeps the part link alive for round-trips. */
+	void noteDroppedObjectUri(const std::string & uri)
+		{ m_droppedObjUri = uri; }
+	void noteDroppedObjectRel(const std::string & attr,
+							  const std::string & rid)
+		{ m_droppedObjRels.push_back(attr + "=" + rid); }
+	std::string takeDroppedObjectUri()
+		{ std::string u; u.swap(m_droppedObjUri); return u; }
+	std::vector<std::string> takeDroppedObjectRels()
+		{ std::vector<std::string> r; r.swap(m_droppedObjRels);
+		  return r; }
+	void clearDroppedObject()
+		{ m_droppedObjUri.clear(); m_droppedObjRels.clear(); }
+
 private:
 	static OXML_Document* s_docInst;
 	OXML_Document();
@@ -191,6 +210,9 @@ private:
 	std::map<std::string, std::string> m_docProps;
 
 	std::map<const OXML_Element*, std::string> m_tocParagraphs;
+
+	std::string m_droppedObjUri;
+	std::vector<std::string> m_droppedObjRels;
 
 	std::string m_pageMarginTop;
 	std::string m_pageMarginLeft;

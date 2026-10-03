@@ -50,6 +50,13 @@ private:
 	bool m_isInlineImage;
 	bool m_bSimplePos;
 	int m_grpPicDepth = 0;
+	/* w:object bookkeeping: the o:OLEObject part reference is captured
+	 * while the body is suppressed and lands on the image element the
+	 * embedded v:imagedata preview produced */
+	OXML_SharedElement m_pObjImage;
+	std::string m_objRelId;
+	std::string m_objProgId;
+	std::string m_objType;
 	/* a:blip effect capture — a:duotone holds two color elements whose
 	 * transform children resolve when the color element closes */
 	bool m_bInDuotone = false;

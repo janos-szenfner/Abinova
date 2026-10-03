@@ -112,7 +112,17 @@ UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 		return addChildrenToPT(pDocument);
 	}
 	OXML_SharedImage sImage = doc->getImageById(getId());
-	if(!sImage)
+
+	/* an a:graphicData payload with no importer support (chart,
+	 * SmartArt diagram, OLE object, DrawingML table, ...) produces
+	 * no image — the listener tagged it altcontent-kind so a
+	 * placeholder marker can stand in instead of dropping it */
+	const gchar * szKind = nullptr;
+	const bool bPlaceholder =
+		(getProperty("altcontent-kind", szKind) == UT_OK && szKind
+		 && !sImage);
+
+	if(!sImage && !bPlaceholder)
 	{
 		UT_DEBUGMSG(("SERHAT: Skipping image element in import, since fail occurred in import of image data previously\n"));
 		return addChildrenToPT(pDocument);
@@ -130,7 +140,7 @@ UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 
 	if(!bInline)
 	{
-		ret = setProperty("frame-type", "image");
+		ret = setProperty("frame-type", bPlaceholder ? "textbox" : "image");
 		if(ret != UT_OK)
 			return ret;
 
@@ -150,17 +160,63 @@ UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 		if (getProperty("ypos", szPos) == UT_OK && szPos)
 			setProperty("frame-page-ypos", szPos);
 
-		/* Word pictures don't carry our default frame outline */
-		const gchar * szHas = nullptr;
-		if (getProperty("top-style", szHas) != UT_OK || !szHas)
+		if (bPlaceholder)
 		{
-			setProperty("top-style", "none");
-			setProperty("bot-style", "none");
-			setProperty("left-style", "none");
-			setProperty("right-style", "none");
+			/* a frame needs an anchor even when the drawing carried
+			 * no usable position */
+			if (getProperty("frame-page-xpos", szPos) != UT_OK || !szPos)
+				setProperty("position-to", "column-above-text");
 		}
-		if (getProperty("bg-style", szHas) != UT_OK || !szHas)
-			setProperty("bg-style", "0");
+		else
+		{
+			/* Word pictures don't carry our default frame outline */
+			const gchar * szHas = nullptr;
+			if (getProperty("top-style", szHas) != UT_OK || !szHas)
+			{
+				setProperty("top-style", "none");
+				setProperty("bot-style", "none");
+				setProperty("left-style", "none");
+				setProperty("right-style", "none");
+			}
+			if (getProperty("bg-style", szHas) != UT_OK || !szHas)
+				setProperty("bg-style", "0");
+		}
+	}
+
+	/* no image data but an unsupported payload — emit a visible
+	 * "[kind]" marker where the object should be */
+	if (bPlaceholder)
+	{
+		std::string mark("[");
+		mark += szKind;
+		mark += "]";
+		UT_UCS4String ucs(mark.c_str());
+		if (bInline)
+		{
+			/* keep the object's rel metadata on the marker span so
+			 * a round-trip still knows what part was dropped */
+			if (!pDocument->appendFmt(getAttributesWithProps()))
+				return UT_ERROR;
+			if (!pDocument->appendSpan(ucs.ucs4_str(), ucs.length()))
+				return UT_ERROR;
+			if (!pDocument->appendFmt(PP_NOPROPS))
+				return UT_ERROR;
+			return addChildrenToPT(pDocument);
+		}
+		/* anchored: a bordered frame keeps the drawing's real
+		 * position and size around the marker */
+		const PP_PropertyVector patts = getAttributesWithProps();
+		if (!pDocument->appendStrux(PTX_SectionFrame, patts))
+			return UT_ERROR;
+		if (!pDocument->appendStrux(PTX_Block, PP_NOPROPS))
+			return UT_ERROR;
+		if (!pDocument->appendSpan(ucs.ucs4_str(), ucs.length()))
+			return UT_ERROR;
+		ret = addChildrenToPT(pDocument);
+		if (ret != UT_OK)
+			return ret;
+		return pDocument->appendStrux(PTX_EndFrame, PP_NOPROPS)
+			? UT_OK : UT_ERROR;
 	}
 
 	if(getId().empty())

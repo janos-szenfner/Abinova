@@ -51,11 +51,30 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 	}
 
 	/* mc:Choice inside a branch we already rejected is swallowed with
-	 * the rest of that subtree */
+	 * the rest of that subtree — except its part references: a
+	 * rejected drawing payload (c:chart/@r:id, dgm:relIds/@r:dm, ...)
+	 * carries the only link to the backing part, so record it for the
+	 * fallback representation before dropping the subtree */
 	for (size_t d : m_rejectedChoices)
 	{
 		if (rqst->context->size() > d)
 		{
+			OXML_Document * doc = OXML_Document::getInstance();
+			if (doc)
+			{
+				if (nameMatches(rqst->pName, NS_A_KEY, "graphicData"))
+				{
+					const gchar * uri =
+						attrMatches(NS_A_KEY, "uri", rqst->ppAtts);
+					if (uri)
+						doc->noteDroppedObjectUri(uri);
+				}
+				if (rqst->ppAtts)
+					for (const auto & kv : *rqst->ppAtts)
+						if (kv.first.compare(0, 2, "R:") == 0)
+							doc->noteDroppedObjectRel(kv.first.substr(2),
+													  kv.second);
+			}
 			rqst->valid = true;
 			rqst->handled = true;
 			return;
@@ -4808,7 +4827,15 @@ void OXMLi_ListenerState_Valid::endElement (OXMLi_EndElementRequest * rqst)
 	if (nameMatches(rqst->pName, NS_VE_KEY, "Choice"))
 		m_rejectedChoices.erase(rqst->context->size());
 	else if (nameMatches(rqst->pName, NS_VE_KEY, "AlternateContent"))
+	{
 		m_takenACs.erase(rqst->context->size());
+		/* rels captured inside rejected choices are consumed by the
+		 * fallback while the AC is open — anything left at close is
+		 * stale (no fallback image claimed it) */
+		OXML_Document * doc = OXML_Document::getInstance();
+		if (doc)
+			doc->clearDroppedObject();
+	}
 
 	std::map<std::string, int>::iterator it;
 	it = m_keywordMap.find(rqst->pName);

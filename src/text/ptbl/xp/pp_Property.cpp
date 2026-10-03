@@ -79,6 +79,10 @@ static PP_Property _props[] =
 	{ "adjust-right-ind",      "1",               false, PP_LEVEL_BLOCK}, // OOXML w:adjustRightInd
 	{ "altchunk-format",       "",                false, PP_LEVEL_BLOCK}, // OOXML w:altChunk part extension
 	{ "altchunk-path",         "",                false, PP_LEVEL_BLOCK}, // OOXML w:altChunk resolved part path
+	{ "altcontent-kind",       "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME | PP_LEVEL_CHAR}, // OOXML a:graphicData@uri kind of an unsupported drawing payload
+	{ "altcontent-part",       "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME | PP_LEVEL_CHAR}, // resolved in-package part path of the object's first rel
+	{ "altcontent-rels",       "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME | PP_LEVEL_CHAR}, // "attr=rid" pairs of the object's relationship refs
+	{ "altcontent-uri",        "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME | PP_LEVEL_CHAR}, // raw a:graphicData@uri of the unsupported payload
 	{ "auto-space-de",         "1",               false, PP_LEVEL_BLOCK}, // OOXML w:autoSpaceDE
 	{ "auto-space-dn",         "1",               false, PP_LEVEL_BLOCK}, // OOXML w:autoSpaceDN
 
@@ -246,6 +250,8 @@ static PP_Property _props[] =
 	{ "margin-top",	           "0in",             false, PP_LEVEL_BLOCK}, // zero to be consistent with other WPs
 	{ "mirror-indents",        "0",               false, PP_LEVEL_BLOCK}, // OOXML w:mirrorIndents
 	{ "no-proof",              "0",               true,  PP_LEVEL_CHAR}, // OOXML w:noProof
+	{ "ole-prog-id",           "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME | PP_LEVEL_CHAR}, // OOXML o:OLEObject@ProgID
+	{ "ole-type",              "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME | PP_LEVEL_CHAR}, // OOXML o:OLEObject@Type (Embed/Link)
 
 	{ "orphans",               "2",               false, PP_LEVEL_BLOCK}, // 2 to be consistent with widows & CSS
 	{ "outline-gradient",      "",                false, PP_LEVEL_FRAME}, // OOXML a:ln/a:gradFill serialized gradient

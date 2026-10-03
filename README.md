@@ -273,7 +273,13 @@ all.
   branches were parsed, duplicating textboxes/drawings produced by
   Word 2010+ and LibreOffice. `w:sdt`/`w:sdtContent` content
   controls and `w14`/`w15` extension namespaces were verified to
-  parse correctly.  Tracked-changes containers (`w:ins`, `w:del`,
+  parse correctly.  Drawing payloads with no renderer — charts
+  (`c:chart`), SmartArt/diagrams (`dgm`), OLE objects
+  (`o:OLEObject`) — import their `mc:Fallback` VML/picture preview
+  (and `w:object` previews), keep the backing part's relationship
+  reference as a property for round-trips, and leave a visible
+  `[kind]`/`[ProgID]` marker when no preview exists instead of
+  dropping the object.  Tracked-changes containers (`w:ins`, `w:del`,
   `w:moveFrom`, `w:moveTo`) import as real document revisions —
   insertions/deletions render under All Markup and respond to the
   review tools — rather than flattening into plain text.  Legacy

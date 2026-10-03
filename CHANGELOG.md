@@ -387,6 +387,17 @@ below are on `main` but the release has not been cut yet.
   keep their `w:name` in a `revision-move` attribute so the pairing is
   recoverable.  Empty paragraph-mark/row revision marks inside
   `w:rPr`/`w:trPr` are skipped deliberately.
+- **DOCX unsupported drawings no longer vanish** — charts
+  (`c:chart`), SmartArt/diagrams (`dgm`), OLE objects
+  (`o:OLEObject`) and other `a:graphicData` payloads the importer has
+  no renderer for were silently dropped.  The importer now prefers
+  the `mc:Fallback` VML/picture representation producers embed, keeps
+  the object's relationship references (`altcontent-rels` /
+  `altcontent-part` / `altcontent-uri`, plus `ole-prog-id` /
+  `ole-type` for OLE) on the imported image so `.abwn` round-trips
+  preserve the part link, and — when no preview image exists at all —
+  inserts a visible `[chart]`/`[diagram]`/`[ProgID]` marker (inline,
+  or a bordered frame at the drawing's anchor) instead of nothing.
 - **DOCX positioned objects rendered properly** —
   - `behindDoc` anchors no longer lose `wrap-mode:below-text` when a
     `wp:wrap*` child follows, so background shapes paint behind text.

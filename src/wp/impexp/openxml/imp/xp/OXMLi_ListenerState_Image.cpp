@@ -27,6 +27,7 @@
 // Internal includes
 #include "OXML_Document.h"
 #include "OXML_FontManager.h"
+#include "OXML_Element_Text.h"
 #include "OXMLi_PackageManager.h"
 
 // Abinova includes
@@ -228,6 +229,141 @@ static std::string s_fxXformColor(const std::string & hex,
 	return s_hslToHex(h, s, l);
 }
 
+/* a:graphicData@uri declares the drawing payload kind. Map it to a
+ * short name for payloads the importer cannot render (charts,
+ * SmartArt diagrams, DrawingML tables, OLE objects, ink, ...); "" is
+ * returned for the payloads that have real element handlers —
+ * pictures (pic:pic), wordprocessing shapes (wps:wsp), groups
+ * (wpg:wgp) and canvases (wpc:wpc children still import). */
+static std::string s_altContentKind(const std::string & uri)
+{
+	if (uri.empty())
+		return "";
+	if (uri == "http://schemas.openxmlformats.org/drawingml/2006/picture" ||
+		uri == "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" ||
+		uri == "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" ||
+		uri == "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas")
+		return "";
+	size_t p = uri.rfind('/');
+	std::string tail = (p == std::string::npos) ? uri : uri.substr(p + 1);
+	return tail.empty() ? "object" : tail;
+}
+
+/* harvest "attr=rid" pairs off an element's relationships-namespace
+ * attributes (r:id, r:embed, r:dm, r:lo, r:qs, r:cs, ...) */
+static std::string s_relSpec(std::map<std::string, std::string> * atts,
+							 std::string & firstRid)
+{
+	std::string rels;
+	firstRid.clear();
+	if (!atts)
+		return rels;
+	for (const auto & kv : *atts)
+	{
+		if (kv.first.compare(0, 2, "R:") != 0)
+			continue;
+		if (!rels.empty())
+			rels += " ";
+		rels += kv.first.substr(2);
+		rels += "=";
+		rels += kv.second;
+		if (firstRid.empty())
+			firstRid = kv.second;
+	}
+	/* the payload's main part wins: r:id for charts/OLE, r:dm for
+	 * SmartArt data, r:em for legacy embeddings */
+	static const char * pref[] = { "R:id", "R:dm", "R:em" };
+	for (const char * p : pref)
+	{
+		auto it = atts->find(p);
+		if (it != atts->end())
+		{
+			firstRid = it->second;
+			break;
+		}
+	}
+	return rels;
+}
+
+/* record the object's relationship refs + resolved part path on the
+ * drawing element so the link survives a round-trip even though the
+ * payload itself is not imported */
+static void s_attachPartRefs(const OXML_SharedElement & elem,
+							 const std::string & relSpec,
+							 const std::string & firstRid)
+{
+	if (!elem || relSpec.empty())
+		return;
+	elem->setProperty("altcontent-rels", relSpec.c_str());
+	OXMLi_PackageManager * mgr = OXMLi_PackageManager::getInstance();
+	if (!mgr)
+		return;
+	std::string part = mgr->getPartPath(firstRid.c_str());
+	if (!part.empty())
+		elem->setProperty("altcontent-part", part.c_str());
+}
+
+/* a rejected mc:Choice can carry the object's only reference to its
+ * backing part (c:chart/@r:id, dgm:relIds/@r:dm, o:OLEObject/@r:id).
+ * The Valid listener records those on the document while it swallows
+ * the branch; the first picture imported inside the matching
+ * mc:Fallback claims them so the fallback keeps the part link. */
+static void s_takeDroppedObject(const OXML_SharedElement & elem,
+								const OXMLi_ContextVector * context)
+{
+	if (!elem || !context)
+		return;
+	bool bFallback = false;
+	for (const auto & c : *context)
+		if (c == "VE:Fallback")
+		{
+			bFallback = true;
+			break;
+		}
+	if (!bFallback)
+		return;
+	OXML_Document * doc = OXML_Document::getInstance();
+	if (!doc)
+		return;
+	std::string uri = doc->takeDroppedObjectUri();
+	std::vector<std::string> rels = doc->takeDroppedObjectRels();
+	if (uri.empty() && rels.empty())
+		return;
+	if (!uri.empty())
+	{
+		std::string kind = s_altContentKind(uri);
+		if (!kind.empty())
+			elem->setProperty("altcontent-kind", kind.c_str());
+		elem->setProperty("altcontent-uri", uri.c_str());
+	}
+	std::string spec;
+	for (const auto & r : rels)
+	{
+		if (!spec.empty())
+			spec += " ";
+		spec += r;
+	}
+	/* the main part ref (id/dm/em) resolves altcontent-part */
+	std::string first;
+	static const char * pref[] = { "id=", "dm=", "em=" };
+	for (const char * p : pref)
+	{
+		if (!first.empty())
+			break;
+		size_t pl = strlen(p);
+		for (const auto & r : rels)
+			if (r.compare(0, pl, p) == 0)
+				first = r.substr(pl);
+	}
+	if (first.empty() && !rels.empty())
+	{
+		size_t eq = rels[0].find('=');
+		first = (eq == std::string::npos) ? rels[0]
+										  : rels[0].substr(eq + 1);
+	}
+	s_attachPartRefs(elem, spec, first);
+}
+
 /* wp:wrap* elements set the text-wrap mode, but wp:anchor
  * behindDoc="1" already put the element in the below-text layer —
  * the wrap style must not clobber the layer flag */
@@ -257,19 +393,48 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 {
 	if(nameMatches(rqst->pName, NS_W_KEY, "object"))
 	{
-		// Abiword doesn't support embedded objects, enable this boolean lock when needed
+		/* the object body stays suppressed except its OLE preview
+		 * (v:shape/v:imagedata) and the o:OLEObject part reference —
+		 * the preview image then renders where the object used to
+		 * vanish entirely */
 		m_isEmbeddedObject = true;
+		m_pObjImage.reset();
+		m_objRelId.clear();
+		m_objProgId.clear();
+		m_objType.clear();
 		rqst->handled = true;
 	}
 	if(m_isEmbeddedObject)
 	{
-		return;
+		if (nameMatches(rqst->pName, NS_O_KEY, "OLEObject"))
+		{
+			/* capture the backing-part reference + prog id; it lands
+			 * on the preview image element when w:object closes */
+			const gchar * rid =
+				attrMatches(NS_R_KEY, "id", rqst->ppAtts);
+			if (rid)
+				m_objRelId = rid;
+			const gchar * prog =
+				attrMatches(NS_O_KEY, "ProgID", rqst->ppAtts);
+			if (prog)
+				m_objProgId = prog;
+			const gchar * typ =
+				attrMatches(NS_O_KEY, "Type", rqst->ppAtts);
+			if (typ)
+				m_objType = typ;
+			rqst->handled = true;
+			return;
+		}
+		if (!nameMatches(rqst->pName, NS_V_KEY, "shape") &&
+			!nameMatches(rqst->pName, NS_V_KEY, "imagedata"))
+			return;
 	}
 
 	if(nameMatches(rqst->pName, NS_W_KEY, "drawing"))
 	{
 		OXML_SharedElement imgElem(new OXML_Element_Image(""));
 		rqst->stck->push(imgElem);
+		s_takeDroppedObject(imgElem, rqst->context);
 		rqst->handled = true;
 	}
 	else if(nameMatches(rqst->pName, NS_PIC_KEY, "pic"))
@@ -754,6 +919,43 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		rqst->handled = true;
 	}
+	else if(nameMatches(rqst->pName, NS_A_KEY, "graphicData"))
+	{
+		/* a:graphicData@uri names the drawing payload — mark the
+		 * kinds with no importer support so an unsupported object
+		 * leaves a visible placeholder instead of vanishing */
+		const gchar * uri = attrMatches(NS_A_KEY, "uri", rqst->ppAtts);
+		if (uri && !rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
+		{
+			std::string kind = s_altContentKind(uri);
+			if (!kind.empty())
+			{
+				OXML_SharedElement e = OXMLi_elemTop(rqst->stck);
+				e->setProperty("altcontent-kind", kind.c_str());
+				e->setProperty("altcontent-uri", uri);
+			}
+		}
+		rqst->handled = true;
+	}
+	else if (rqst->context && !rqst->context->empty() &&
+			 OXMLi_contextBack(rqst->context) == "A:graphicData")
+	{
+		/* the graphicData payload root (pic:pic, wps:wsp, c:chart,
+		 * dgm:relIds, o:oleObj, a:tbl, ...) may carry the object's
+		 * relationship refs — keep them on the drawing element. Only
+		 * claimed when a ref was found so handled payloads still
+		 * reach their own listeners */
+		if (!rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
+		{
+			std::string first;
+			std::string rels = s_relSpec(rqst->ppAtts, first);
+			if (!rels.empty())
+			{
+				s_attachPartRefs(OXMLi_elemTop(rqst->stck), rels, first);
+				rqst->handled = true;
+			}
+		}
+	}
 	else if(nameMatches(rqst->pName, NS_V_KEY, "shape"))
 	{
 		const gchar* style = attrMatches(NS_V_KEY, "style", rqst->ppAtts);
@@ -771,6 +973,9 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			std::string imageId(id);
 			OXML_SharedElement imgElem(new OXML_Element_Image(imageId));
 			rqst->stck->push(imgElem);
+			if (m_isEmbeddedObject)
+				m_pObjImage = imgElem;
+			s_takeDroppedObject(imgElem, rqst->context);
 
 			if(!addImage(imageId))
 				return;
@@ -823,13 +1028,60 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 {
 	if(nameMatches(rqst->pName, NS_W_KEY, "object"))
 	{
+		if (m_pObjImage)
+		{
+			/* attach the captured OLE part reference to the preview
+			 * image so it survives the .abwn round-trip */
+			m_pObjImage->setProperty("altcontent-kind", "ole object");
+			if (!m_objProgId.empty())
+				m_pObjImage->setProperty("ole-prog-id",
+										 m_objProgId.c_str());
+			if (!m_objType.empty())
+				m_pObjImage->setProperty("ole-type", m_objType.c_str());
+			if (!m_objRelId.empty())
+				s_attachPartRefs(m_pObjImage, "id=" + m_objRelId,
+								 m_objRelId);
+		}
+		else if (!m_objRelId.empty() || !m_objProgId.empty())
+		{
+			/* OLE object with no preview picture at all — leave a
+			 * visible marker instead of dropping it */
+			OXML_SharedElement parent = OXMLi_elemTop(rqst->stck);
+			if (parent)
+			{
+				std::string mark("[");
+				mark += m_objProgId.empty() ? "ole object"
+											: m_objProgId;
+				mark += "]";
+				OXML_SharedElement txt(
+					new OXML_Element_Text(mark.c_str(), mark.size()));
+				parent->appendElement(txt);
+				/* the run carries the object's identity + part link
+				 * on the marker span for round-trip */
+				parent->setProperty("altcontent-kind", "ole object");
+				if (!m_objProgId.empty())
+					parent->setProperty("ole-prog-id",
+										m_objProgId.c_str());
+				if (!m_objType.empty())
+					parent->setProperty("ole-type", m_objType.c_str());
+				if (!m_objRelId.empty())
+					s_attachPartRefs(parent, "id=" + m_objRelId,
+									 m_objRelId);
+			}
+		}
 		m_isEmbeddedObject = false;
+		m_pObjImage.reset();
+		m_objRelId.clear();
+		m_objProgId.clear();
+		m_objType.clear();
 		rqst->handled = true;
 		return;
 	}
 	if(m_isEmbeddedObject)
 	{
-		return;
+		if (!nameMatches(rqst->pName, NS_V_KEY, "shape") &&
+			!nameMatches(rqst->pName, NS_V_KEY, "imagedata"))
+			return;
 	}
 
 	if(nameMatches(rqst->pName, NS_W_KEY, "drawing") || 
