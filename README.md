@@ -217,6 +217,7 @@ all.
     as real equation objects — the LaTeX source is converted to
     MathML by the built-in typesetter and rendered live; sources
     that fail conversion keep their TeX source as italic text.
+    Export writes equation objects back as `$...$`/`$$...$$`.
   - Mermaid fenced blocks are rendered to a PNG diagram by the
     built-in renderer (`ut_mermaid`) and embedded as an image;
     documents without rendering support keep the source text.

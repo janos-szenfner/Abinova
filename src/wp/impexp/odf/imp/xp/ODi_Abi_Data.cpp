@@ -364,7 +364,7 @@ bool ODi_Abi_Data::addObjectDataItem(UT_String& rDataId, const gchar** ppAtts, i
     {
 
 	// Conversion of MathML to LaTeX and the Equation Form suceeds
-	latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(Pbitex.utf8_str()), static_cast<UT_uint32>(Pbitex.size()));
+	latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(Pbitex.utf8_str()), static_cast<UT_uint32>(Pbitex.byteLength()));
 	if(!m_pAbiDocument->createDataItem(rLatexId.c_str(), false, latexBuf, "", nullptr))
 	{
 	    UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);

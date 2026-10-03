@@ -351,7 +351,7 @@ bool GR_GtkMathManager::convert(UT_uint32 /*iConvType*/,
 	GR_MathTypesetter ts;
 	ts.parseLaTeX(sLatex.c_str());
 	UT_UTF8String sML = ts.toMathML();
-	pTo->ins(0, reinterpret_cast<const UT_Byte *>(sML.utf8_str()), sML.size());
+	pTo->ins(0, reinterpret_cast<const UT_Byte *>(sML.utf8_str()), sML.byteLength());
 	return true;
 }
 

@@ -34,9 +34,11 @@
 #include <vector>
 
 #include "ie_exp_Markdown.h"
+#include "ie_math_convert.h"
 #include "ie_types.h"
 #include "fd_Field.h"
 #include "pd_Document.h"
+#include "ut_bytebuf.h"
 #include "pp_AttrProp.h"
 #include "px_ChangeRecord.h"
 #include "px_CR_Object.h"
@@ -209,9 +211,25 @@ public:
 				return true;
 			}
 
+			case PTO_Math:
+			{
+				const PP_AttrProp * pAP = nullptr;
+				m_pDocument->getAttrProp(api, &pAP);
+				std::string sLatex = _mathLatex(pAP);
+				if (sLatex.empty())
+					return true;
+
+				const gchar * szDisplay = nullptr;
+				bool bDisplay = pAP &&
+					pAP->getProperty("display", szDisplay) &&
+					szDisplay && !strcmp(szDisplay, "block");
+				_output(bDisplay ? "$$" + sLatex + "$$"
+						: "$" + sLatex + "$", false);
+				return true;
+			}
+
 			case PTO_Bookmark:
 			case PTO_Embed:
-			case PTO_Math:
 			case PTO_Annotation:
 			case PTO_RDFAnchor:
 			default:
@@ -583,6 +601,115 @@ private:
 		{
 			if (c == ')' || c == '(' || c == ' ' || c == '\\')
 				out += '\\';
+			out += c;
+		}
+		return out;
+	}
+
+	/*! Fold LaTeX source to a single line: newlines/tabs collapse with
+	 *  other runs of whitespace and the result is trimmed. */
+	static std::string _flattenMath(const std::string & s)
+	{
+		std::string out;
+		out.reserve(s.size());
+		bool bSpace = true;	// leading whitespace suppressed
+		for (char c : s)
+		{
+			if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+			{
+				if (bSpace)
+					continue;
+				bSpace = true;
+				out += ' ';
+				continue;
+			}
+			bSpace = false;
+			out += c;
+		}
+		if (!out.empty() && out.back() == ' ')
+			out.pop_back();
+		return out;
+	}
+
+	/*! Fetch a math object's LaTeX source. The latexid data item holds
+	 *  equation-form LaTeX (importers store it via appendLatexMath /
+	 *  ODF LatexMath items); fall back to converting the MathML stored
+	 *  in the dataid item. The result is made safe for $..$/$$..$$
+	 *  delimiters: single line, existing $...$/\[...\]/$$...$$ wrappers
+	 *  (mmltex emits them) stripped, and a bare '$' escaped to \$ so
+	 *  the inline parser can't terminate early. */
+	std::string _mathLatex(const PP_AttrProp * pAP)
+	{
+		if (!pAP)
+			return "";
+
+		const gchar * szValue = nullptr;
+		std::string sLatex;
+		if (pAP->getAttribute("latexid", szValue) && szValue && *szValue)
+		{
+			UT_ConstByteBufPtr pByteBuf;
+			if (m_pDocument->getDataItemDataByName(szValue, pByteBuf,
+												   nullptr, nullptr) &&
+				pByteBuf && pByteBuf->getLength())
+			{
+				sLatex.assign(reinterpret_cast<const char *>(
+								  pByteBuf->getPointer(0)),
+							  pByteBuf->getLength());
+			}
+		}
+		if (sLatex.empty() &&
+			pAP->getAttribute("dataid", szValue) && szValue && *szValue)
+		{
+			UT_ConstByteBufPtr pByteBuf;
+			if (m_pDocument->getDataItemDataByName(szValue, pByteBuf,
+												   nullptr, nullptr) &&
+				pByteBuf && pByteBuf->getLength())
+			{
+				UT_UTF8String sMathML(
+					reinterpret_cast<const char *>(pByteBuf->getPointer(0)),
+					pByteBuf->getLength());
+				UT_UTF8String sConverted;
+				if (convertMathMLtoLaTeX(sMathML, sConverted))
+					sLatex = sConverted.utf8_str();
+			}
+		}
+
+		std::string t = _flattenMath(sLatex);
+		// strip wrapping math delimiters — we emit our own
+		for (;;)
+		{
+			if (t.size() >= 4 && t.compare(0, 2, "$$") == 0 &&
+				t.compare(t.size() - 2, 2, "$$") == 0)
+				t = _flattenMath(t.substr(2, t.size() - 4));
+			else if (t.size() >= 4 &&
+					 ((t.compare(0, 2, "\\[") == 0 &&
+					   t.compare(t.size() - 2, 2, "\\]") == 0) ||
+					  (t.compare(0, 2, "\\(") == 0 &&
+					   t.compare(t.size() - 2, 2, "\\)") == 0)))
+				t = _flattenMath(t.substr(2, t.size() - 4));
+			else if (t.size() >= 2 && t.front() == '$' && t.back() == '$')
+				t = _flattenMath(t.substr(1, t.size() - 2));
+			else
+				break;
+		}
+		if (t.empty())
+			return "";
+
+		std::string out;
+		out.reserve(t.size());
+		for (char c : t)
+		{
+			if (c == '$')
+			{
+				// escape a bare '$' to \$ — an odd run of preceding
+				// backslashes already escapes it in the source
+				size_t slashes = 0;
+				while (slashes < out.size() &&
+					   out[out.size() - 1 - slashes] == '\\')
+					slashes++;
+				if (!(slashes & 1))
+					out += '\\';
+			}
 			out += c;
 		}
 		return out;

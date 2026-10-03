@@ -91,7 +91,7 @@ UT_Error OXML_Element_Math::addToPT(PD_Document * pDocument)
     if(convertMathMLtoLaTeX(sMathml, sLatex) && convertLaTeXtoEqn(sLatex,sitex))
     {
         // Conversion of MathML to LaTeX and the Equation Form suceeds
-        latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(sitex.utf8_str()), static_cast<UT_uint32>(sitex.size()));
+        latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(sitex.utf8_str()), static_cast<UT_uint32>(sitex.byteLength()));
         if(!pDocument->createDataItem(lID.c_str(), false, latexBuf, "", nullptr))
         {
             UT_DEBUGMSG(("createDataItem %s failed\n", lID.c_str()));

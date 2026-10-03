@@ -4070,6 +4070,11 @@ below are on `main` but the release has not been cut yet.
   through the same shared helper as the Markdown importer, instead
   of centred italic source text. Unconvertible sources keep the
   italic plain-text fallback.
+- **Markdown export preserves equations** — math objects now write
+  back to `.md` as `$…$` (inline) or `$$…$$` (display) LaTeX instead
+  of being dropped; documents without a stored LaTeX source fall
+  back to converting the MathML, so equations round-trip through
+  Markdown.
 
 ### Resolved root causes worth noting
 

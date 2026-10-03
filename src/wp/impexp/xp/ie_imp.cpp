@@ -219,14 +219,14 @@ bool IE_Imp::appendLatexMath(const std::string & tex, bool display)
 
 	UT_ByteBufPtr mathBuf(new UT_ByteBuf);
 	mathBuf->ins(0, reinterpret_cast<const UT_Byte *>(sMathML.utf8_str()),
-				 static_cast<UT_uint32>(sMathML.size()));
+				 static_cast<UT_uint32>(sMathML.byteLength()));
 	if (!getDoc()->createDataItem(mID.c_str(), false, mathBuf,
 								  "application/mathml+xml", nullptr))
 		return false;
 
 	UT_ByteBufPtr latexBuf(new UT_ByteBuf);
 	latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(sEqn.utf8_str()),
-				  static_cast<UT_uint32>(sEqn.size()));
+				  static_cast<UT_uint32>(sEqn.byteLength()));
 	if (!getDoc()->createDataItem(lID.c_str(), false, latexBuf,
 								  "", nullptr))
 		return false;

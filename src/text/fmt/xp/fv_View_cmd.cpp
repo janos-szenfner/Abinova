@@ -9514,8 +9514,8 @@ bool FV_View::cmdInsertLatexMath(UT_UTF8String & sLatex,
 	//
 	UT_ByteBufPtr mathBuf(new UT_ByteBuf);
 	UT_ByteBufPtr latexBuf(new UT_ByteBuf);
-	mathBuf->ins(0, reinterpret_cast<const UT_Byte *>(sMath.utf8_str()), static_cast<UT_uint32>(sMath.size()));
-	latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(sLatex.utf8_str()), static_cast<UT_uint32>(sLatex.size()));
+	mathBuf->ins(0, reinterpret_cast<const UT_Byte *>(sMath.utf8_str()), static_cast<UT_uint32>(sMath.byteLength()));
+	latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(sLatex.utf8_str()), static_cast<UT_uint32>(sLatex.byteLength()));
 	if (!m_pDoc->createDataItem(sMathName.utf8_str(), false, mathBuf, "", nullptr))
 		return false;
 	if (!m_pDoc->createDataItem(sLatexName.utf8_str(), false, latexBuf, "", nullptr))
