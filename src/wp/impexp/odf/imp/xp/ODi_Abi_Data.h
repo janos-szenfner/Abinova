@@ -30,9 +30,33 @@
 
 #include "ut_types.h"
 #include "ut_bytebuf.h"
+#include "ODi_XMLRecorder.h"
 // Abinova classes
 class PD_Document;
 class UT_String;
+
+/**
+ * One <text:changed-region> from the document's <text:tracked-changes>
+ * list.  The region type decides the piece-table revision token
+ * (+id/-id/!id) its body marks produce; deletions additionally carry
+ * their removed content as recorded XML so it can be replayed at the
+ * <text:change> mark position (ODF stores deleted content out-of-line
+ * in the change list, unlike OOXML which keeps it inline).
+ */
+struct ODi_ChangeRegion {
+
+	enum Type {
+		Change_Insertion,
+		Change_Deletion,
+		Change_Format
+	};
+
+	Type          type = Change_Insertion;
+	UT_uint32     revId = 0;
+	// Inner XML of the region's <text:deletion> element (empty for
+	// insertions and format changes).
+	ODi_XMLRecorder deletion;
+};
 
 /**
  * Represents the <data> section of the resulting Abinova document from an
@@ -73,4 +97,8 @@ private:
   public:
     std::set< std::string > m_openAnnotationNames;
     std::set< std::string > m_rangedAnnotationNames;
+
+    // <text:tracked-changes> regions keyed by text:change-id, filled by
+    // the TrackedChanges listener state and consumed by body marks.
+    std::map< std::string, ODi_ChangeRegion > m_changeRegions;
 };

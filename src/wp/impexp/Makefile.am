@@ -281,6 +281,8 @@ libimpexp_la_SOURCES += \
 	odf/imp/xp/ODi_TableOfContent_ListenerState.h \
 	odf/imp/xp/ODi_TextContent_ListenerState.cpp \
 	odf/imp/xp/ODi_TextContent_ListenerState.h \
+	odf/imp/xp/ODi_TrackedChanges_ListenerState.cpp \
+	odf/imp/xp/ODi_TrackedChanges_ListenerState.h \
 	odf/imp/xp/ODi_XMLRecorder.cpp \
 	odf/imp/xp/ODi_XMLRecorder.h
 

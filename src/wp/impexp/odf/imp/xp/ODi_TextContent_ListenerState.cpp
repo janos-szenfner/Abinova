@@ -39,6 +39,7 @@
 #include "ODi_ElementStack.h"
 #include "ODi_TableOfContent_ListenerState.h"
 #include "ODi_Abi_Data.h"
+#include "ODi_XMLRecorder.h"
 #include "ut_growbuf.h"
 #include "pf_Frag.h"
 #include "ie_exp_RTF.h"
@@ -49,6 +50,7 @@
 #include "ut_misc.h"
 #include "pd_Document.h"
 #include "pf_Frag_Strux.h"
+#include "pp_AttrProp.h"
 
 #include <list>
 #include <sstream>
@@ -135,6 +137,10 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
                                           const gchar** ppAtts,
                                           ODi_ListenerStateAction& rAction)
 {
+    // A pending deletion's mark block has fully closed once the
+    // element stack shrinks below the depth recorded at mark time.
+    _checkPendingDeletions();
+
     if (strcmp(pName, "text:section" ) != 0 ) {
         _flushPendingParagraphBreak();
     }
@@ -346,7 +352,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
                 
                 _pushInlineFmt(ppStyAttr);
                 UT_DebugOnly<bool> ok;
-                ok = m_pAbiDocument->appendFmt(m_vecInlineFmt);
+                ok = _emitFmt(m_vecInlineFmt);
                 UT_ASSERT(ok);
                 
             } else {
@@ -498,9 +504,18 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
         m_bAcceptingText = false;
 
     } else if (!strcmp(pName, "text:tracked-changes")){
-		 UT_DEBUGMSG(("Ignoring text:tracked-changes \n"));
-		 rAction.ignoreElement(-1);
-       
+
+        // <text:changed-region> metadata is collected by the
+        // TrackedChanges state into m_rAbiData.m_changeRegions; its
+        // <text:deletion> payloads must never reach the live document.
+        rAction.pushState("TrackedChanges");
+
+	} else if (!strcmp(pName, "text:change-start") ||
+               !strcmp(pName, "text:change-end") ||
+               !strcmp(pName, "text:change")) {
+
+        _handleChangeMark(pName, ppAtts);
+
 	} else if (!strcmp(pName, "style:header") ||
                !strcmp(pName, "style:footer") ||
                !strcmp(pName, "style:header-left") ||
@@ -890,7 +905,7 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
 
             _flush ();
             _popInlineFmt();
-            m_pAbiDocument->appendFmt(m_vecInlineFmt);
+            _emitFmt(m_vecInlineFmt);
 
             const PP_PropertyVector pa = {
                 "name", name
@@ -980,7 +995,9 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
                                                ODi_ListenerStateAction& rAction)
 {
     UT_ASSERT(m_elementParsingLevel >= 0);
-    
+
+    _checkPendingDeletions();
+
     if (!strcmp(pName, "text:table-of-content")) {
         
         m_tablesOfContent.addItem( m_pCurrentTOCParser->getTOCStrux() );
@@ -1003,7 +1020,7 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
         
         _flush ();
         _popInlineFmt();
-        m_pAbiDocument->appendFmt(m_vecInlineFmt);
+        _emitFmt(m_vecInlineFmt);
 
     } else if (!strcmp(pName, "text:meta")) {
 
@@ -1165,7 +1182,7 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
         {
 	    UT_DebugOnly<bool> ok = false;
 //            _pushInlineFmt(ppStyAttr);
-            ok = m_pAbiDocument->appendFmt(m_vecInlineFmt);
+            ok = _emitFmt(m_vecInlineFmt);
             UT_ASSERT(ok);
         }
         m_bAcceptingText = true;
@@ -1915,7 +1932,7 @@ void ODi_TextContent_ListenerState::_startParagraphElement (const gchar* /*pName
                 }
             }
 
-            ok = m_pAbiDocument->appendFmt(ppAtts);
+            ok = _emitFmt(ppAtts);
             UT_ASSERT(ok);
 
         } else {
@@ -2192,4 +2209,402 @@ void ODi_TextContent_ListenerState::_insertAnnotation() {
 
     m_pAbiDocument->appendStrux(PTX_SectionAnnotation, pPropsArray);
     m_bPendingAnnotation = false;
+}
+
+
+/****************************************************************************/
+/* ODF tracked changes (<text:tracked-changes> / body change marks)          */
+/****************************************************************************/
+
+/* Emit an inline fmt mark, folding in the revision tokens of every
+ * change scope currently opened by <text:change-start> (and of the
+ * deletion replay scope).  Fmt marks are ambient, so spans written
+ * between the brackets carry the mark without any code on the
+ * element paths. */
+bool ODi_TextContent_ListenerState::_emitFmt(const PP_PropertyVector & atts)
+{
+    if (m_openChanges.empty())
+        return m_pAbiDocument->appendFmt(atts);
+
+    PP_PropertyVector merged = atts;
+    std::string tokens;
+    for (const auto & e : m_openChanges) {
+        if (!tokens.empty())
+            tokens += ",";
+        tokens += e.first;
+    }
+
+    /* A fmt that already names a revision (e.g. a style prop would
+     * not, but be defensive) keeps it and gains the ambient ones. */
+    for (size_t i = 0; i + 1 < merged.size(); i += 2) {
+        if (merged[i] == "revision") {
+            merged[i+1] += ",";
+            merged[i+1] += tokens;
+            return m_pAbiDocument->appendFmt(merged);
+        }
+    }
+    merged.push_back("revision");
+    merged.push_back(tokens);
+    return m_pAbiDocument->appendFmt(merged);
+}
+
+/* A recorded deletion payload is block-shaped when any top-level
+ * element it contains is not a lone <text:p>/<text:h> wrapper.  ODF
+ * normalizes deleted content for schema validity, so even a deleted
+ * word is stored inside a <text:p>; a single such wrapper is
+ * therefore unwrapped and replayed inline at the mark.  Multiple
+ * top-level elements or real block content (lists, tables, sections)
+ * are replayed as blocks after the mark's own block closes, since a
+ * block strux cannot be emitted mid-paragraph. */
+static bool _isParaWrapperName(const gchar* pName)
+{
+    return !strcmp(pName, "text:p") || !strcmp(pName, "text:h");
+}
+
+void ODi_TextContent_ListenerState::_handleChangeMark(const gchar* pName,
+                                                      const gchar** ppAtts)
+{
+    const gchar* pId = UT_getAttribute("text:change-id", ppAtts);
+    if (!pId || !*pId) {
+        UT_DEBUGMSG(("%s without text:change-id ignored\n", pName));
+        return;
+    }
+
+    std::map< std::string, ODi_ChangeRegion >::iterator it =
+        m_rAbiData.m_changeRegions.find(pId);
+    if (it == m_rAbiData.m_changeRegions.end()) {
+        /* A mark referencing no region is dropped; for an insertion
+         * that still leaves its (live) content untouched. */
+        UT_DEBUGMSG(("%s references unknown change-region %s\n",
+                     pName, pId));
+        return;
+    }
+    ODi_ChangeRegion& region = it->second;
+
+    std::string token;
+    switch (region.type) {
+    case ODi_ChangeRegion::Change_Insertion: token = "+"; break;
+    case ODi_ChangeRegion::Change_Deletion:  token = "-"; break;
+    case ODi_ChangeRegion::Change_Format:    token = "!"; break;
+    }
+    token += UT_std_string_sprintf("%u", region.revId);
+
+    if (!strcmp(pName, "text:change-start")) {
+        _flush();
+        m_openChanges.push_back(
+            std::pair<std::string, std::string>(token, pId));
+        /* Fmt marks are positional: emit one now so content inside
+         * the scope is marked even when no element in it happens to
+         * emit a fmt of its own (e.g. bare text in an unstyled
+         * <text:span>). */
+        _emitFmt(m_vecInlineFmt);
+        return;
+    }
+
+    if (!strcmp(pName, "text:change-end")) {
+        _flush();
+        for (size_t i = m_openChanges.size(); i-- > 0; ) {
+            if (m_openChanges[i].second == pId) {
+                m_openChanges.erase(m_openChanges.begin() + i);
+                /* restore the ambient fmt so the closed scope does
+                 * not bleed into following content */
+                _emitFmt(m_vecInlineFmt);
+                return;
+            }
+        }
+        UT_DEBUGMSG(("text:change-end for unopened region %s\n", pId));
+        return;
+    }
+
+    /* text:change — the point mark.  In ODF the deleted content lives
+     * out-of-line inside <text:deletion>, so the mark is where the
+     * recorded payload is replayed. */
+    if (region.type == ODi_ChangeRegion::Change_Deletion) {
+        _insertDeletion(region, token);
+    } else {
+        /* Point marks for insertions/format changes carry no
+         * payload; insertion text is already live. */
+        UT_DEBUGMSG(("text:change for %s region %s ignored\n",
+                     region.type == ODi_ChangeRegion::Change_Insertion ?
+                     "insertion" : "format-change", pId));
+    }
+}
+
+void ODi_TextContent_ListenerState::_insertDeletion(ODi_ChangeRegion& region,
+                                                    const std::string& token)
+{
+    const ODi_XMLRecorder& rec = region.deletion;
+    const UT_uint32 nCalls = rec.getCallCount();
+
+    UT_sint32 depth = 0;
+    UT_uint32 nElems = 0;
+    UT_uint32 firstElem = nCalls;
+    bool bNonParaElem = false;
+    bool bHasTopText = false;
+
+    for (UT_uint32 i = 0; i < nCalls; i++) {
+        const ODi_XMLRecorder::XMLCall* pCall = rec.getCall(i);
+        switch (pCall->getType()) {
+        case ODi_XMLRecorder::XMLCallType_StartElement: {
+            const ODi_XMLRecorder::StartElementCall* pStart =
+                static_cast<const ODi_XMLRecorder::StartElementCall*>(pCall);
+            if (depth == 0) {
+                nElems++;
+                if (firstElem == nCalls)
+                    firstElem = i;
+                if (!_isParaWrapperName(pStart->m_pName))
+                    bNonParaElem = true;
+            }
+            depth++;
+            break;
+        }
+        case ODi_XMLRecorder::XMLCallType_EndElement:
+            depth--;
+            break;
+        case ODi_XMLRecorder::XMLCallType_CharData: {
+            const ODi_XMLRecorder::CharDataCall* pData =
+                static_cast<const ODi_XMLRecorder::CharDataCall*>(pCall);
+            if (depth == 0) {
+                for (int k = 0; k < pData->m_length; k++) {
+                    if (pData->m_pBuffer[k] > ' ') {
+                        bHasTopText = true;
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+        }
+    }
+
+    if (nElems == 0) {
+        if (bHasTopText) {
+            /* Bare deleted text (some producers skip the paragraph
+             * wrapper entirely). */
+            _insureInBlock(PP_NOPROPS);
+            _flush();
+            m_openChanges.push_back(
+                std::pair<std::string, std::string>(token, ""));
+            _emitFmt(m_vecInlineFmt);
+            _replayRecordedCalls(rec, 0, nCalls);
+            _flush();
+            m_openChanges.pop_back();
+            _emitFmt(m_vecInlineFmt);
+        } else {
+            /* Nothing was stored: a deleted paragraph mark is
+             * expressed as an empty region (or a lone empty
+             * <text:p>); record it as an inert block property the
+             * same way OXML06 does. */
+            _markParagraphMarkRevision(token);
+        }
+        return;
+    }
+
+    if (nElems == 1 && !bNonParaElem) {
+        /* Lone <text:p>/<text:h> wrapper: either deleted inline
+         * content normalized for validity (the common case) or one
+         * whole deleted paragraph.  Find the wrapper's matching end
+         * call. */
+        UT_sint32 innerDepth = 1;
+        UT_uint32 innerEnd = nCalls;
+        for (UT_uint32 i = firstElem + 1; i < nCalls; i++) {
+            const ODi_XMLRecorder::XMLCall* pCall = rec.getCall(i);
+            if (pCall->getType() ==
+                ODi_XMLRecorder::XMLCallType_StartElement)
+                innerDepth++;
+            else if (pCall->getType() ==
+                     ODi_XMLRecorder::XMLCallType_EndElement) {
+                if (--innerDepth == 0) {
+                    innerEnd = i;
+                    break;
+                }
+            }
+        }
+
+        bool bInnerEmpty = true;
+        for (UT_uint32 i = firstElem + 1; i < innerEnd; i++) {
+            const ODi_XMLRecorder::XMLCall* pCall = rec.getCall(i);
+            if (pCall->getType() ==
+                ODi_XMLRecorder::XMLCallType_StartElement) {
+                bInnerEmpty = false;
+                break;
+            }
+            if (pCall->getType() == ODi_XMLRecorder::XMLCallType_CharData) {
+                const ODi_XMLRecorder::CharDataCall* pData =
+                    static_cast<const ODi_XMLRecorder::CharDataCall*>(pCall);
+                for (int k = 0; k < pData->m_length; k++) {
+                    if (pData->m_pBuffer[k] > ' ') {
+                        bInnerEmpty = false;
+                        break;
+                    }
+                }
+                if (!bInnerEmpty)
+                    break;
+            }
+        }
+
+        if (bInnerEmpty) {
+            /* <text:deletion><text:p/></text:deletion>: the deleted
+             * paragraph mark. */
+            _markParagraphMarkRevision(token);
+        } else if (m_bAcceptingText) {
+            /* Deleted inline run — replay the wrapper's content at
+             * the mark.  Positional fidelity beats keeping the
+             * synthetic wrapper, and a single deleted whole
+             * paragraph degrades to its struck text at the mark. */
+            _flush();
+            m_openChanges.push_back(
+                std::pair<std::string, std::string>(token, ""));
+            _emitFmt(m_vecInlineFmt);
+            _replayRecordedCalls(rec, firstElem + 1, innerEnd);
+            _flush();
+            m_openChanges.pop_back();
+            _emitFmt(m_vecInlineFmt);
+        } else {
+            /* The mark sits between blocks: keep the deleted
+             * paragraph intact instead of unwrapping it. */
+            _replayDeletion(region);
+        }
+        return;
+    }
+
+    /* Multiple top-level elements and/or real block content (a
+     * deleted paragraph run, list, table, section or a mix).  When
+     * the mark sits inside a paragraph the payload is replayed once
+     * that paragraph closes — the recorded depth must be the
+     * enclosing block's, not the mark's, or a mark nested inside a
+     * span would flush mid-paragraph and split the host block. */
+    UT_sint32 stackSize = m_rElementStack.getStackSize();
+    UT_sint32 blockDepth = -1;
+    for (UT_sint32 lvl = 0; lvl < stackSize; lvl++) {
+        const char* tag = m_rElementStack.getStartTagName(lvl);
+        if (tag && _isParaWrapperName(tag)) {
+            blockDepth = stackSize - lvl;
+            break;
+        }
+    }
+
+    if (blockDepth > 0) {
+        PendingDeletion d;
+        d.pRegion = &region;
+        d.elementDepth = blockDepth;
+        m_pendingDeletions.push_back(d);
+    } else {
+        _replayDeletion(region);
+    }
+}
+
+/* Replay a recorded deletion as block content under a deletion
+ * revision scope. */
+void ODi_TextContent_ListenerState::_replayDeletion(ODi_ChangeRegion& region)
+{
+    std::string token = "-";
+    token += UT_std_string_sprintf("%u", region.revId);
+
+    m_openChanges.push_back(
+        std::pair<std::string, std::string>(token, ""));
+    _emitFmt(m_vecInlineFmt);
+    _replayRecordedCalls(region.deletion, 0,
+                         region.deletion.getCallCount());
+    _flush();
+    m_openChanges.pop_back();
+    /* restore the ambient fmt so following live content does not
+     * inherit the deletion mark */
+    _emitFmt(m_vecInlineFmt);
+}
+
+/* Feed recorded XML calls back through this listener so deleted
+ * content is built by the same code paths as live content.  Replayed
+ * elements are also pushed onto the element stack so context queries
+ * (list-item parent, note-body presence) see the replayed structure;
+ * actions a handler requests (pushState for tables, postpone for
+ * frames) cannot be honored mid-stream and degrade to inline
+ * flattening. */
+void ODi_TextContent_ListenerState::_replayRecordedCalls(
+        const ODi_XMLRecorder& rec, UT_uint32 firstCall, UT_uint32 lastCall)
+{
+    ODi_ListenerStateAction action;
+
+    for (UT_uint32 i = firstCall; i < lastCall; i++) {
+        const ODi_XMLRecorder::XMLCall* pCall = rec.getCall(i);
+        action.reset();
+
+        switch (pCall->getType()) {
+        case ODi_XMLRecorder::XMLCallType_StartElement: {
+            const ODi_XMLRecorder::StartElementCall* pStart =
+                static_cast<const ODi_XMLRecorder::StartElementCall*>(pCall);
+            startElement(pStart->m_pName,
+                         const_cast<const gchar**>(pStart->m_ppAtts),
+                         action);
+            m_rElementStack.startElement(pStart->m_pName,
+                         const_cast<const gchar**>(pStart->m_ppAtts));
+            break;
+        }
+        case ODi_XMLRecorder::XMLCallType_EndElement: {
+            const ODi_XMLRecorder::EndElementCall* pEnd =
+                static_cast<const ODi_XMLRecorder::EndElementCall*>(pCall);
+            endElement(pEnd->m_pName, action);
+            m_rElementStack.endElement(pEnd->m_pName);
+            break;
+        }
+        case ODi_XMLRecorder::XMLCallType_CharData: {
+            const ODi_XMLRecorder::CharDataCall* pData =
+                static_cast<const ODi_XMLRecorder::CharDataCall*>(pCall);
+            charData(pData->m_pBuffer, pData->m_length);
+            break;
+        }
+        }
+
+        if (action.getAction() != ODi_ListenerStateAction::ACTION_NONE) {
+            UT_DEBUGMSG(("tracked-change replay could not honor an "
+                         "element action\n"));
+        }
+    }
+}
+
+/* A deleted paragraph mark (an empty <text:deletion> payload) is
+ * recorded on the enclosing block as the inert "para-mark-rev"
+ * property, mirroring OXML06's handling of w:pPr/w:rPr/w:del. */
+void ODi_TextContent_ListenerState::_markParagraphMarkRevision(
+        const std::string& token)
+{
+    pf_Frag* pFrag = m_pAbiDocument->getLastFrag();
+    while (pFrag && pFrag->getType() != pf_Frag::PFT_Strux)
+        pFrag = pFrag->getPrev();
+    pf_Frag_Strux* pStrux = static_cast<pf_Frag_Strux*>(pFrag);
+    if (!pStrux) {
+        UT_DEBUGMSG(("deleted paragraph mark with no enclosing "
+                     "block dropped\n"));
+        return;
+    }
+
+    const PP_AttrProp* pAP = nullptr;
+    if (!m_pAbiDocument->getAttrProp(pStrux->getIndexAP(), &pAP) ||
+        !pAP)
+        return;
+
+    const gchar* pOldProps = nullptr;
+    pAP->getAttribute("props", pOldProps);
+    std::string props = pOldProps ? pOldProps : "";
+    if (!props.empty())
+        props += ";";
+    props += "para-mark-rev:";
+    props += token;
+    m_pAbiDocument->changeStruxAttsNoUpdate(pStrux, "props",
+                                            props.c_str());
+}
+
+/* Block deletions anchored inside a paragraph are replayed once the
+ * element stack returns to the depth the mark's enclosing block
+ * opened at — i.e. right after that block closed, which is where a
+ * deleted paragraph belongs. */
+void ODi_TextContent_ListenerState::_checkPendingDeletions()
+{
+    while (!m_pendingDeletions.empty() &&
+           m_rElementStack.getStackSize() <
+               m_pendingDeletions.front().elementDepth) {
+        ODi_ChangeRegion* pRegion = m_pendingDeletions.front().pRegion;
+        m_pendingDeletions.pop_front();
+        _replayDeletion(*pRegion);
+    }
 }

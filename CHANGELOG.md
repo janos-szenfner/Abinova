@@ -62,6 +62,15 @@ below are on `main` but the release has not been cut yet.
   kinds fall back to their `ObjectReplacements` preview image (inline
   or positioned), and positioned formulas import into a real frame
   containing the equation.
+- **ODF tracked changes now import as real revisions** —
+  `text:tracked-changes` used to be dropped wholesale, leaking nothing
+  but losing every edit. Changed regions now register author/date
+  revisions (`office:change-info`), `text:change-start`/`text:change-end`
+  brackets mark inserted and format-changed text `+id`/`!id`, and
+  `text:change` marks replay the out-of-line `text:deletion` payload at
+  the change position as `-id` content — whole deleted paragraphs,
+  lists and runs restore struck-through, and deleted paragraph marks
+  record the `para-mark-rev` property, mirroring the DOCX importer.
 - **Reserved `.abw` schema sections** — `<changes>`
   (change-tracking metadata), `<masterpages>` (page-layout
   templates) and `<notes>` (presentation notes) are now part of the

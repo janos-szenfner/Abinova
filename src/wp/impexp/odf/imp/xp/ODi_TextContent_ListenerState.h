@@ -30,6 +30,7 @@
 #include <set>
 #include <list>
 #include <stack>
+#include <deque>
 
 #include <gsf/gsf.h>
 
@@ -46,6 +47,8 @@ class ODi_Office_Styles;
 class ODi_Style_List;
 class ODi_TableOfContent_ListenerState;
 class ODi_Abi_Data;
+struct ODi_ChangeRegion;
+class ODi_XMLRecorder;
 
 // Abinova classes
 class PD_Document;
@@ -110,6 +113,18 @@ private:
     void _defineAbiTOCHeadingStyles();
     void _flushPendingParagraphBreak();
     void _insertAnnotation(void);
+
+    // ODF tracked changes: the body marks <text:change-start>,
+    // <text:change> and <text:change-end> reference regions parsed by
+    // the TrackedChanges state into m_rAbiData.m_changeRegions.
+    bool _emitFmt(const PP_PropertyVector & atts);
+    void _handleChangeMark(const gchar* pName, const gchar** ppAtts);
+    void _insertDeletion(ODi_ChangeRegion& region, const std::string& token);
+    void _replayDeletion(ODi_ChangeRegion& region);
+    void _replayRecordedCalls(const ODi_XMLRecorder& rec,
+                              UT_uint32 firstCall, UT_uint32 lastCall);
+    void _markParagraphMarkRevision(const std::string& token);
+    void _checkPendingDeletions();
 
     PD_Document* m_pAbiDocument;
     ODi_Office_Styles* m_pStyles;
@@ -214,4 +229,18 @@ private:
     
     UT_uint32 m_columnsCount;
     UT_uint32 m_columnIndex;
+
+    // Tracked-change scopes opened by <text:change-start>: pairs of
+    // (revision token, change id) folded into every emitted fmt mark.
+    std::deque<std::pair<std::string, std::string> > m_openChanges;
+
+    // <text:change> marks inside a paragraph whose referenced deletion
+    // carries block content: replayed once the enclosing block closes
+    // so the recorded elements land after the mark's block.  The
+    // element-stack depth at mark time decides the flush moment.
+    struct PendingDeletion {
+        ODi_ChangeRegion* pRegion;
+        UT_sint32 elementDepth;
+    };
+    std::deque<PendingDeletion> m_pendingDeletions;
 };

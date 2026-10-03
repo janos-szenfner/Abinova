@@ -173,6 +173,12 @@ all.
   - **RDF metadata**: built-in RDF/XML parser (`ODi_RDFParser`) and
     serializer (`toRDFXML`) — no libredland dependency. `manifest.rdf`
     round-trips through open/save.
+  - **Tracked-changes import**: `text:tracked-changes` regions map to
+    real document revisions with author/date from
+    `office:change-info`. `text:change-start`/`text:change-end` ranges
+    mark spans `+id`/`!id`; `text:change` marks replay the deleted
+    content stored in the region's `text:deletion` as `-id` runs.
+    Deleted paragraph marks become the `para-mark-rev` property.
 - **OpenXML fixes**: listener-state fixes for footer tables and
   equations; shared XSLT data restored.
 - No loadable plugins remain — every importer/exporter is
