@@ -22,7 +22,8 @@
  * {\bf ...}-style group forms, itemize/enumerate/description lists,
  * quote/quotation/verse, verbatim/lstlisting, center/flushleft/
  * flushright, tabular, \includegraphics, \footnote, inline and
- * display math (imported as styled text), comments, escaped
+ * display math (imported as real equation objects, styled-text
+ * fallback), comments, escaped
  * specials, quote/dash ligatures and accent commands,
  * \hrule/\newpage.
  */
@@ -462,12 +463,31 @@ static void s_emitInlineRun(IE_Imp_LaTeX * imp, const std::string & text,
 			size_t end = text.find("\\)", i);
 			if (end == std::string::npos) { pending += "\\("; return; }
 			flush();
-			TexFmt mf = fmt; mf.italic = true;
-			s_emitSegment(imp, text.substr(i, end - i), mf);
+			std::string tex = text.substr(i, end - i);
+			if (!imp->emitMathPublic(tex, false))
+			{
+				TexFmt mf = fmt; mf.italic = true;
+				s_emitSegment(imp, tex, mf);
+			}
 			i = end + 2;
 			return;
 		}
 		if (cmd == ")") { return; }
+		if (cmd == "[") // \[ ... \] display math
+		{
+			size_t end = text.find("\\]", i);
+			if (end == std::string::npos) { pending += "\\["; return; }
+			flush();
+			std::string tex = text.substr(i, end - i);
+			if (!imp->emitMathPublic(tex, true))
+			{
+				TexFmt mf = fmt; mf.italic = true;
+				s_emitSegment(imp, tex, mf);
+			}
+			i = end + 2;
+			return;
+		}
+		if (cmd == "]") { return; }
 
 		// accent commands: \' \" \` \^ \~ \= \. \u \v \H \r \k \c \d \b
 		{
@@ -645,8 +665,12 @@ static void s_emitInlineRun(IE_Imp_LaTeX * imp, const std::string & text,
 			if (end != std::string::npos)
 			{
 				flush();
-				TexFmt mf = fmt; mf.italic = true;
-				s_emitSegment(imp, text.substr(i + 2, end - i - 2), mf);
+				std::string tex = text.substr(i + 2, end - i - 2);
+				if (!imp->emitMathPublic(tex, true))
+				{
+					TexFmt mf = fmt; mf.italic = true;
+					s_emitSegment(imp, tex, mf);
+				}
 				i = end + 2;
 				return;
 			}
@@ -660,8 +684,12 @@ static void s_emitInlineRun(IE_Imp_LaTeX * imp, const std::string & text,
 		if (end < n)
 		{
 			flush();
-			TexFmt mf = fmt; mf.italic = true;
-			s_emitSegment(imp, text.substr(i + 1, end - i - 1), mf);
+			std::string tex = text.substr(i + 1, end - i - 1);
+			if (!imp->emitMathPublic(tex, false))
+			{
+				TexFmt mf = fmt; mf.italic = true;
+				s_emitSegment(imp, tex, mf);
+			}
 			i = end + 1;
 			return;
 		}
@@ -970,6 +998,30 @@ void IE_Imp_LaTeX::_emitFootnote(const std::string & text)
 	_emitInline(text);
 	appendStrux(PTX_EndFootnote, PP_NOPROPS);
 	appendFmt(PP_NOPROPS);
+}
+
+/*! Display-math environments: emit a real PTO_Math object inside a
+ *  centred block.  If the LaTeX source can't be converted, keep the
+ *  old behaviour of showing the raw source centred and italic. */
+bool IE_Imp_LaTeX::_emitMathEnv(const std::string & tex)
+{
+	if (tex.empty())
+		return true;
+	const PP_PropertyVector atts = {
+		"style", "Normal",
+		"props", "text-align:centered"
+	};
+	if (!appendStrux(PTX_Block, atts))
+		return false;
+	if (!appendLatexMath(tex, true))
+	{
+		const PP_PropertyVector fatts = {
+			PT_PROPS_ATTRIBUTE_NAME, "font-style:italic"
+		};
+		appendFmt(fatts);
+		appendSpan(tex);
+	}
+	return true;
 }
 
 void IE_Imp_LaTeX::_emitImagePublic(const std::string & file)
@@ -1456,12 +1508,7 @@ void IE_Imp_LaTeX::_parseText(const std::string & text)
 					env == "align*" || env == "math")
 				{
 					flushPara();
-					std::string t = s_trim(contents);
-					if (!t.empty())
-					{
-						_emitParagraph("Normal", "text-align:centered",
-									   "$" + t + "$");
-					}
+					_emitMathEnv(s_trim(contents));
 					i = next;
 					continue;
 				}

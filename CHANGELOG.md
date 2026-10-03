@@ -107,8 +107,8 @@ below are on `main` but the release has not been cut yet.
   document metadata (`dc.title`/`dc.creator`/`dc.date`/`dc.subject`/
   `abiword.keywords`); reference links/images resolve from `[id]: url`
   definitions; `[^id]` footnotes become real Abinova footnote objects;
-  inline `$…$` and fenced `$$…$$`/`math` blocks import as styled math
-  text; `<!-- -->` comments are dropped; `:emoji:` shortcodes convert
+  inline `$…$` and fenced `$$…$$`/`math` blocks import as real
+  equation objects; `<!-- -->` comments are dropped; `:emoji:` shortcodes convert
   to Unicode.
 - **Mermaid diagrams render inline** — fenced `mermaid` blocks are
   drawn to a PNG with a built-in Cairo renderer
@@ -129,8 +129,9 @@ below are on `main` but the release has not been cut yet.
   formatting, itemize/enumerate/description lists (with nesting),
   quote/verse, verbatim/lstlisting, center/flushleft/flushright,
   tabular/array/longtable tables, `\includegraphics`, `\footnote`
-  (real footnote objects), inline and display math (styled text),
-  comments, escapes, accents, ligatures, `\hrule` and page breaks.
+  (real footnote objects), inline and display math (real equation
+  objects), comments, escapes, accents, ligatures, `\hrule` and page
+  breaks.
 - **Self-contained MHTML importer** — the `mht` plugin was rewritten
   around an internal `UT_MHTStream` MIME parser (folded headers,
   multipart boundary, quoted-printable/base64 parts, `cid:` images);
@@ -4062,6 +4063,13 @@ below are on `main` but the release has not been cut yet.
   scripts, sums/integrals, matrices, align environments). Sources
   that fail conversion keep the old centred-italic plain-text
   fallback.
+- **LaTeX math imports as real equations** — `.tex` math
+  environments (`equation`, `displaymath`, `eqnarray`, `align`,
+  `math` and their starred forms), inline `$…$`/`\(…\)` and display
+  `$$…$$`/`\[…\]` math now become real equation objects (PTO_Math)
+  through the same shared helper as the Markdown importer, instead
+  of centred italic source text. Unconvertible sources keep the
+  italic plain-text fallback.
 
 ### Resolved root causes worth noting
 

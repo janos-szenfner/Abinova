@@ -51,6 +51,8 @@ public:
 	void _emitFootnotePublic(const std::string & text)
 		{ _emitFootnote(text); }
 	void _emitImagePublic(const std::string & file);
+	bool emitMathPublic(const std::string & tex, bool display)
+		{ return appendLatexMath(tex, display); }
 
 protected:
 	virtual UT_Error _loadFile(GsfInput * input) override;
@@ -69,6 +71,7 @@ private:
 	bool _emitHR(void);
 	bool _emitPageBreak(void);
 	void _emitFootnote(const std::string & text);
+	bool _emitMathEnv(const std::string & tex);
 	void _resetLists(void);
 
 	std::vector<UT_uint32>	m_listIds;
