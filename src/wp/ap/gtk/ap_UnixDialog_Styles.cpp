@@ -26,6 +26,7 @@
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkComboBoxHelpers.h"
 
 #include "xap_App.h"
 #include "xap_UnixApp.h"
@@ -77,9 +78,7 @@ AP_UnixDialog_Styles::AP_UnixDialog_Styles(XAP_DialogFactory * pDlgFactory,
 	m_wModifyDialog = nullptr;
 	m_wStyleNameEntry = nullptr;
 	m_wBasedOnCombo = nullptr;
-	m_wBasedOnEntry = nullptr;
 	m_wFollowingCombo = nullptr;
-	m_wFollowingEntry = nullptr;
 	m_wStyleTypeCombo = nullptr;
 	m_wStyleTypeEntry = nullptr;
 	m_wLabDescription = nullptr;
@@ -176,7 +175,7 @@ static void s_style_name(GtkWidget * widget, AP_UnixDialog_Styles * me)
 }
 
 
-static void s_basedon(GtkWidget * widget, AP_UnixDialog_Styles * me)
+static void s_basedon(GtkWidget * widget, GParamSpec * /*pspec*/, AP_UnixDialog_Styles * me)
 {
 	UT_UNUSED(widget);
 	UT_ASSERT(widget && me);
@@ -186,7 +185,7 @@ static void s_basedon(GtkWidget * widget, AP_UnixDialog_Styles * me)
 }
 
 
-static void s_followedby(GtkWidget * widget, AP_UnixDialog_Styles * me)
+static void s_followedby(GtkWidget * widget, GParamSpec * /*pspec*/, AP_UnixDialog_Styles * me)
 {
 	UT_UNUSED(widget);
 	UT_ASSERT(widget && me);
@@ -196,13 +195,23 @@ static void s_followedby(GtkWidget * widget, AP_UnixDialog_Styles * me)
 }
 
 
-static void s_styletype(GtkWidget * widget, AP_UnixDialog_Styles * me)
+static void s_styletype_impl(GtkWidget * widget, AP_UnixDialog_Styles * me)
 {
 	UT_UNUSED(widget);
 	UT_ASSERT(widget && me);
 	if(me->isModifySignalBlocked())
 		return;
 	me->event_styleType();
+}
+
+static void s_styletype(GtkWidget * widget, GParamSpec * /*pspec*/, AP_UnixDialog_Styles * me)
+{
+	s_styletype_impl(widget, me);
+}
+
+static void s_styletype_entry(GtkWidget * widget, AP_UnixDialog_Styles * me)
+{
+	s_styletype_impl(widget, me);
 }
 
 static void s_paraPreview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
@@ -231,12 +240,12 @@ static void s_modifyPreview_draw(GtkDrawingArea * /*area*/, cairo_t *cr,
 	me->event_ModifyPreviewDraw(cr);
 }
 
-static void s_modify_format_cb(GtkWidget * widget, 
+static void s_modify_format_cb(GtkWidget * widget, GParamSpec * /*pspec*/,
 			     AP_UnixDialog_Styles * me)
 {
-	gint active = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+	gint active = static_cast<gint>(gtk_drop_down_get_selected(GTK_DROP_DOWN(widget)));
 	if(active) {
-		gtk_combo_box_set_active(GTK_COMBO_BOX(widget), 0);
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(widget), 0);
 	}
 	switch(active) {
 	case 1:
@@ -773,9 +782,7 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	GtkWidget *styleTypeLabel = nullptr;
 	GtkWidget *styleNameEntry = nullptr;
 	GtkWidget *basedOnCombo = nullptr;
-	GtkWidget *basedOnEntry = nullptr;
 	GtkWidget *followingCombo = nullptr;
-	GtkWidget *followingEntry = nullptr;
 	GtkWidget *styleTypeCombo = nullptr;
 	GtkWidget *styleTypeEntry = nullptr;
 	GtkWidget *previewFrame = nullptr;
@@ -785,7 +792,6 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	GtkWidget *checkAddTo = nullptr;
 	GtkWidget *checkAutoUpdate = nullptr;
 	GtkWidget *deletePropCombo = nullptr;
-	GtkWidget *deletePropEntry = nullptr;
 	GtkWidget *deletePropButton = nullptr;
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
 
@@ -849,37 +855,29 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 	gtk_grid_attach (GTK_GRID (comboTable), styleNameEntry, 0, 1, 1, 1);
 	gtk_widget_set_size_request (styleNameEntry, 158, -1);
 
-	basedOnCombo = gtk_combo_box_text_new_with_entry ();
+	basedOnCombo = gtk_drop_down_new (nullptr, nullptr);
+	XAP_makeGtkDropDown(GTK_DROP_DOWN(basedOnCombo));
 	gtk_widget_set_visible(basedOnCombo, TRUE);
 	gtk_grid_attach (GTK_GRID (comboTable), basedOnCombo, 0, 3, 1, 1);
-		
-	basedOnEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(basedOnCombo));
-	gtk_widget_set_visible(basedOnEntry, TRUE);
-	gtk_widget_set_size_request (basedOnEntry, 158, -1);
 
-	followingCombo = gtk_combo_box_text_new_with_entry();
+	followingCombo = gtk_drop_down_new (nullptr, nullptr);
+	XAP_makeGtkDropDown(GTK_DROP_DOWN(followingCombo));
 	gtk_widget_set_visible(followingCombo, TRUE);
 	gtk_grid_attach(GTK_GRID(comboTable), followingCombo, 1, 3, 1, 1);
-
-	followingEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(followingCombo));
-	gtk_widget_set_visible(followingEntry, TRUE);
-	gtk_widget_set_size_request (followingEntry, 158, -1);
 //
 // Cannot modify style type attribute
-//	
+//
 	if(isNew())
 	{
-		styleTypeCombo = gtk_combo_box_text_new_with_entry();
+		styleTypeCombo = gtk_drop_down_new (nullptr, nullptr);
+		XAP_makeGtkDropDown(GTK_DROP_DOWN(styleTypeCombo));
 		gtk_widget_set_visible(styleTypeCombo, TRUE);
 		gtk_grid_attach (GTK_GRID (comboTable), styleTypeCombo, 1, 1, 1, 1);
-
-		styleTypeEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(styleTypeCombo));
-		gtk_widget_set_visible(styleTypeEntry, TRUE);
-		gtk_widget_set_size_request (styleTypeEntry, 158, -1);
 	}
 	else
 	{
 		styleTypeEntry = gtk_entry_new ();
+		gtk_editable_set_editable(GTK_EDITABLE(styleTypeEntry), FALSE);
 		gtk_widget_set_visible(styleTypeEntry, TRUE);
 		gtk_grid_attach (GTK_GRID (comboTable), styleTypeEntry, 1, 1, 1, 1);
 		gtk_widget_set_size_request (styleTypeEntry, 158, -1);
@@ -944,17 +942,12 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 			gtk_widget_set_hexpand(deleteLabel, TRUE);
 			gtk_widget_set_vexpand(deleteLabel, TRUE);
 
-	GtkListStore * store = gtk_list_store_new(1, G_TYPE_STRING);
-	deletePropCombo = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
-	gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(deletePropCombo), 0);
+	deletePropCombo = gtk_drop_down_new (nullptr, nullptr);
+	XAP_makeGtkDropDown(GTK_DROP_DOWN(deletePropCombo));
 	gtk_widget_set_visible(deletePropCombo, TRUE);
 	gtk_box_append(GTK_BOX(deleteRow), deletePropCombo);
 			gtk_widget_set_hexpand(deletePropCombo, TRUE);
 			gtk_widget_set_vexpand(deletePropCombo, TRUE);
-
-	deletePropEntry = gtk_combo_box_get_child(GTK_COMBO_BOX(deletePropCombo));
-	gtk_widget_set_visible(deletePropEntry, TRUE);
-	gtk_widget_set_size_request (deletePropEntry, 158, -1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_RemoveButton,s);
 	deletePropButton = gtk_button_new_with_label(s.c_str());
@@ -988,7 +981,8 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 			gtk_widget_set_hexpand(box, TRUE);
 			gtk_widget_set_vexpand(box, TRUE);
 	gtk_widget_set_visible(box, TRUE);
-	GtkWidget* formatMenu = gtk_combo_box_text_new();
+	GtkWidget* formatMenu = gtk_drop_down_new (nullptr, nullptr);
+	XAP_makeGtkDropDown(GTK_DROP_DOWN(formatMenu));
 	gtk_widget_set_visible(formatMenu, TRUE);
 	gtk_box_append(GTK_BOX(box), formatMenu);
 	_constructFormatList(formatMenu);
@@ -998,15 +992,12 @@ void  AP_UnixDialog_Styles::_constructModifyDialogContents(GtkWidget * container
 //
 	m_wStyleNameEntry = styleNameEntry;
 	m_wBasedOnCombo = basedOnCombo;
-	m_wBasedOnEntry = basedOnEntry;
 	m_wFollowingCombo = followingCombo;
-	m_wFollowingEntry = followingEntry;
 	m_wStyleTypeCombo = styleTypeCombo;
 	m_wStyleTypeEntry = styleTypeEntry;
 	m_wModifyDrawingArea = modifyDrawingArea;
 	m_wLabDescription = DescriptionText;
 	m_wDeletePropCombo = deletePropCombo;
-	m_wDeletePropEntry = deletePropEntry;
 	m_wDeletePropButton = deletePropButton;
 	m_wFormatMenu = formatMenu;
 }
@@ -1042,32 +1033,32 @@ void   AP_UnixDialog_Styles::_constructGnomeModifyButtons()
 
 void  AP_UnixDialog_Styles::_constructFormatList(GtkWidget * FormatCombo)
 {
-	GtkComboBoxText *combo = GTK_COMBO_BOX_TEXT(FormatCombo);
+	GtkDropDown *combo = GTK_DROP_DOWN(FormatCombo);
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
 	std::string s;
-	
+
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyFormat,s);
-	gtk_combo_box_text_append_text(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyParagraph,s);
-	gtk_combo_box_text_append_text(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyFont,s);
-	gtk_combo_box_text_append_text(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyNumbering,s);
-	gtk_combo_box_text_append_text(combo, s.c_str());
+	XAP_appendDropDownText(combo, s.c_str());
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyLanguage,s);
-	gtk_combo_box_text_append_text(combo, s.c_str());
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	XAP_appendDropDownText(combo, s.c_str());
+	gtk_drop_down_set_selected(combo, 0);
 }
 
 
 void AP_UnixDialog_Styles::_connectModifySignals(void)
 {
 	g_signal_connect(G_OBJECT(m_wFormatMenu),
-					   "changed",
+					   "notify::selected",
 					   G_CALLBACK(s_modify_format_cb),
 					   reinterpret_cast<gpointer>(this));
 
@@ -1085,19 +1076,27 @@ void AP_UnixDialog_Styles::_connectModifySignals(void)
 					   G_CALLBACK(s_style_name),
 					   static_cast<gpointer>(this));
 
-	g_signal_connect(G_OBJECT(m_wBasedOnEntry),
-					   "changed",
+	g_signal_connect(G_OBJECT(m_wBasedOnCombo),
+					   "notify::selected",
 					   G_CALLBACK(s_basedon),
 					   static_cast<gpointer>(this));
 
-	g_signal_connect(G_OBJECT(m_wFollowingEntry),
-					   "changed",
+	g_signal_connect(G_OBJECT(m_wFollowingCombo),
+					   "notify::selected",
 					   G_CALLBACK(s_followedby),
 					   static_cast<gpointer>(this));
 
-	g_signal_connect(G_OBJECT(m_wStyleTypeEntry),
-					   "changed",
+	// style type is a GtkDropDown for new styles, a read-only GtkEntry
+	// when modifying an existing one — the two take different signals
+	if (m_wStyleTypeCombo)
+		g_signal_connect(G_OBJECT(m_wStyleTypeCombo),
+					   "notify::selected",
 					   G_CALLBACK(s_styletype),
+					   static_cast<gpointer>(this));
+	else if (m_wStyleTypeEntry)
+		g_signal_connect(G_OBJECT(m_wStyleTypeEntry),
+					   "changed",
+					   G_CALLBACK(s_styletype_entry),
 					   static_cast<gpointer>(this));
 }
 
@@ -1167,27 +1166,26 @@ void AP_UnixDialog_Styles::new_styleName(void)
  */
 void AP_UnixDialog_Styles::event_RemoveProperty(void)
 {
-	const gchar * psz = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wDeletePropEntry));
-	PP_removeAttribute(psz, m_vecAllProps);
+	const std::string prop =
+		XAP_dropDownGetSelectedText(GTK_DROP_DOWN(m_wDeletePropCombo));
+	PP_removeAttribute(prop.c_str(), m_vecAllProps);
 	rebuildDeleteProps();
 	updateCurrentStyle();
 }
 
 void AP_UnixDialog_Styles::rebuildDeleteProps(void)
 {
-	GtkComboBox* delCombo = GTK_COMBO_BOX(m_wDeletePropCombo);
-	GtkListStore *model = GTK_LIST_STORE(gtk_combo_box_get_model(delCombo));
+	GtkDropDown * delCombo = GTK_DROP_DOWN(m_wDeletePropCombo);
+	GListStore *model = G_LIST_STORE(gtk_drop_down_get_model(delCombo));
 
-	gtk_list_store_clear(model);
+	g_list_store_remove_all(model);
 
 	UT_sint32 i= 0;
 	for(auto iter = m_vecAllProps.cbegin(); iter != m_vecAllProps.cend();
 		++iter, ++i) {
 
 		if ((i % 2) == 0) {
-			GtkTreeIter gtkiter;
-			gtk_list_store_append(model, &gtkiter);
-			gtk_list_store_set(model, &gtkiter, 0, iter->c_str(), -1);
+			XAP_appendDropDownText(delCombo, iter->c_str());
 		}
 	}
 }
@@ -1198,7 +1196,9 @@ void AP_UnixDialog_Styles::rebuildDeleteProps(void)
 void AP_UnixDialog_Styles::event_basedOn(void)
 {
 	const XAP_StringSet *pSS = m_pApp->getStringSet();
-	const gchar * psz = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wBasedOnEntry));
+	const std::string sel =
+		XAP_dropDownGetSelectedText(GTK_DROP_DOWN(m_wBasedOnCombo));
+	const gchar * psz = sel.c_str();
 	if (strcmp(psz, pSS->getValue(AP_STRING_ID_DLG_Styles_DefNone)) == 0)
 		psz = "None";
 	else
@@ -1215,7 +1215,9 @@ void AP_UnixDialog_Styles::event_basedOn(void)
 void AP_UnixDialog_Styles::event_followedBy(void)
 {
 	const XAP_StringSet *pSS = m_pApp->getStringSet();
-	const gchar * psz = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wFollowingEntry));
+	const std::string sel =
+		XAP_dropDownGetSelectedText(GTK_DROP_DOWN(m_wFollowingCombo));
+	const gchar * psz = sel.c_str();
 	if (strcmp(psz, pSS->getValue(AP_STRING_ID_DLG_Styles_DefCurrent)) == 0)
 		psz = "Current Settings";
 	else
@@ -1233,7 +1235,10 @@ void AP_UnixDialog_Styles::event_styleType(void)
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
 	std::string s;
 
-	const gchar * psz = XAP_gtk_entry_get_text(GTK_EDITABLE(m_wStyleTypeEntry));
+	const std::string sel = m_wStyleTypeCombo
+		? XAP_dropDownGetSelectedText(GTK_DROP_DOWN(m_wStyleTypeCombo))
+		: std::string(XAP_gtk_entry_get_text(GTK_EDITABLE(m_wStyleTypeEntry)));
+	const gchar * psz = sel.c_str();
 	g_snprintf(static_cast<gchar *>(m_styleType),40,"%s",psz);
 	const gchar * pszSt = "P";
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyCharacter,s);
@@ -1416,12 +1421,15 @@ void  AP_UnixDialog_Styles::setModifyDescription( const char * desc)
 
 
 static void
-setComboContent(GtkComboBoxText * combo, const std::list<std::string> & content)
+setComboContent(GtkDropDown * combo, const std::list<std::string> & content)
 {
-	gtk_combo_box_text_remove_all(combo);
+	GListStore *model =
+		G_LIST_STORE(gtk_drop_down_get_model(combo));
+	if (model)
+		g_list_store_remove_all(model);
 	std::list<std::string>::const_iterator iter(content.begin());
 	for(; iter != content.end(); iter++) {
-		gtk_combo_box_text_append_text(combo, iter->c_str());
+		XAP_appendDropDownText(combo, iter->c_str());
 	}
 }
 
@@ -1525,11 +1533,11 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 //
 // Set the popdown list
 //
-	setComboContent(GTK_COMBO_BOX_TEXT(m_wBasedOnCombo),m_gbasedOnStyles);
-	setComboContent(GTK_COMBO_BOX_TEXT(m_wFollowingCombo),m_gfollowedByStyles);
+	setComboContent(GTK_DROP_DOWN(m_wBasedOnCombo),m_gbasedOnStyles);
+	setComboContent(GTK_DROP_DOWN(m_wFollowingCombo),m_gfollowedByStyles);
 	if(isNew())
 	{
-		setComboContent(GTK_COMBO_BOX_TEXT(m_wStyleTypeCombo),m_gStyleType);
+		setComboContent(GTK_DROP_DOWN(m_wStyleTypeCombo),m_gStyleType);
 	}
 //
 // OK here we set intial values for the basedOn and followedBy
@@ -1541,23 +1549,23 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 		if(pBasedOnStyle != nullptr)
 		{
 			pt_PieceTable::s_getLocalisedStyleName(szBasedOn, sLoc);
-			XAP_gtk_entry_set_text(GTK_EDITABLE(m_wBasedOnEntry), sLoc.c_str());
+			XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_wBasedOnCombo), sLoc.c_str());
 		}
 		else
 		{
 			pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_DefNone,s);
-			XAP_gtk_entry_set_text(GTK_EDITABLE(m_wBasedOnEntry), s.c_str());
+			XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_wBasedOnCombo), s.c_str());
 		}
 
 		if(pFollowedByStyle != nullptr)
 		{
 			pt_PieceTable::s_getLocalisedStyleName(szFollowedBy, sLoc);
-			XAP_gtk_entry_set_text(GTK_EDITABLE(m_wFollowingEntry), sLoc.c_str());
+			XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_wFollowingCombo), sLoc.c_str());
 		}
 		else
 		{
 			pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_DefCurrent,s);
-			XAP_gtk_entry_set_text(GTK_EDITABLE(m_wFollowingEntry), s.c_str());
+			XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_wFollowingCombo), s.c_str());
 		}
 
 		const std::string & sType = PP_getAttribute(PT_TYPE_ATTRIBUTE_NAME, m_vecAllAttribs);
@@ -1578,15 +1586,12 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 // Hardwire defaults for "new"
 //
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_DefNone,s);
-		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wBasedOnEntry), s.c_str());
+		XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_wBasedOnCombo), s.c_str());
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_DefCurrent,s);
-		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wFollowingEntry), s.c_str());
+		XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_wFollowingCombo), s.c_str());
 		pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyParagraph,s);
-		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wStyleTypeEntry),s.c_str());
+		XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_wStyleTypeCombo), s.c_str());
 	}
-	gtk_editable_set_editable(GTK_EDITABLE(m_wFollowingEntry),FALSE );
-	gtk_editable_set_editable(GTK_EDITABLE(m_wBasedOnEntry),FALSE );
-	gtk_editable_set_editable(GTK_EDITABLE(m_wStyleTypeEntry),FALSE );
 //
 // Set these in our attributes vector
 //
@@ -1609,7 +1614,8 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 // Now set the list of properties which can be deleted.
 //
 	rebuildDeleteProps();
-	XAP_gtk_entry_set_text(GTK_EDITABLE(m_wDeletePropEntry),"");
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(m_wDeletePropCombo),
+							   GTK_INVALID_LIST_POSITION);
 	return true;
 }
 

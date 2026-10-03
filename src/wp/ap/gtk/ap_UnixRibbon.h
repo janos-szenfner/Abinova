@@ -290,13 +290,15 @@ private:
 											 const gchar * automatic_label,
 											 _TbCtx * ctx,
 											 const gchar * szMarkup = nullptr);
-	static gchar *		_tb_combo_get_text(GtkComboBox * combo);
-	static void			_tb_combo_apply(GtkComboBox * combo, _TbCtx * ctx);
-	static void			_tb_combo_set_text(GtkComboBox * combo,
+	static gchar *		_tb_combo_get_text(GtkWidget * combo);
+	static void			_tb_combo_apply(GtkWidget * combo, _TbCtx * ctx);
+	static void			_tb_combo_set_text(GtkWidget * combo,
 										   const char * text, _TbCtx * ctx);
 
 	static void			_s_tb_clicked(GtkWidget * w, gpointer data);
-	static void			_s_tb_combo_changed(GtkComboBox * combo, gpointer data);
+	static void			_s_tb_combo_changed(GtkWidget * combo, gpointer data);
+	static void			_s_tb_dropdown_changed(GtkWidget * dd, GParamSpec * pspec,
+											   gpointer data);
 	static gboolean		_s_tb_size_key(GtkEventControllerKey * ctrl,
 									   guint keyval, guint keycode,
 									   GdkModifierType state, gpointer data);

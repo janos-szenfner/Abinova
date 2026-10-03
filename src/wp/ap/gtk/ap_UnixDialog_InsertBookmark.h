@@ -53,7 +53,9 @@ protected:
 
 	GtkWidget * m_windowMain;
 
-	GtkWidget * m_comboBookmark;
+	GtkWidget * m_entryBookmark;
+	GtkWidget * m_listBookmarks;
+	GtkWidget * m_btnBookmarks;
 
 	GtkWidget * m_buttonInsert;
 };

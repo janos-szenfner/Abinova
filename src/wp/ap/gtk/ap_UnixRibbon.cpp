@@ -46,6 +46,7 @@
 #include "xap_Strings.h"
 #include "xap_EncodingManager.h"
 #include "xap_GtkUtils.h"
+#include "xap_GtkComboBoxHelpers.h"
 #include "ev_UnixMenuBar.h"
 #include "ev_UnixFontCombo.h"
 #include "ev_Menu_Labels.h"
@@ -280,12 +281,11 @@ AP_UnixRibbon::~AP_UnixRibbon()
 		if (ctx->widget)
 		{
 			g_signal_handlers_disconnect_by_data(ctx->widget, ctx);
-			GtkWidget * entry =
-				GTK_IS_COMBO_BOX(ctx->widget)
-					? gtk_combo_box_get_child(GTK_COMBO_BOX(ctx->widget))
-					: nullptr;
-			if (entry)
-				g_signal_handlers_disconnect_by_data(entry, ctx);
+			/* the size combo is an entry+drop-down box: its children
+			 * also carry ctx in their signal data */
+			for (GtkWidget * c = gtk_widget_get_first_child(ctx->widget);
+				 c; c = gtk_widget_get_next_sibling(c))
+				g_signal_handlers_disconnect_by_data(c, ctx);
 			g_object_weak_unref(
 				G_OBJECT(ctx->widget),
 				s_widget_weak_notify, &ctx->widget);
@@ -701,7 +701,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 /* context providers do not reach a widget's internal children (the
- * arrow button inside a GtkComboBox, the toggle inside a
+ * arrow button inside a GtkDropDown, the toggle inside a
  * GtkMenuButton) - walk the tree and slim buttons/entries directly */
 static void _slim_widget_tree(GtkWidget * w)
 {
@@ -1072,35 +1072,32 @@ void AP_UnixRibbon::_s_tb_clicked(GtkWidget * w, gpointer data)
 }
 
 
-/* get the combo's active/typed text, like s_combo_apply_changes */
-gchar * AP_UnixRibbon::_tb_combo_get_text(GtkComboBox * combo)
+/* get the combo's selected/typed text, like s_combo_apply_changes */
+gchar * AP_UnixRibbon::_tb_combo_get_text(GtkWidget * combo)
 {
 	if (ABI_IS_FONT_COMBO(combo))
 		return abi_font_combo_get_active_text(ABI_FONT_COMBO(combo));
 
-	if (GTK_IS_COMBO_BOX_TEXT(combo))
+	/* the size combo is an entry + drop-down box; the typed value may
+	 * not be in the list, so the entry is authoritative */
+	GtkWidget * entry = GTK_WIDGET(
+		g_object_get_data(G_OBJECT(combo), "abi-size-entry"));
+	if (entry)
 	{
-		gchar * buffer =
-			gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo));
-		/* combos with an entry (font size) may hold a value that is
-		 * not in the list; the typed value must not be lost */
-		if (!buffer)
-		{
-			GtkWidget * child = gtk_combo_box_get_child(combo);
-			if (child && GTK_IS_EDITABLE(child))
-			{
-				const char * entryText =
-					gtk_editable_get_text(GTK_EDITABLE(child));
-				if (entryText && *entryText)
-					buffer = g_strdup(entryText);
-			}
-		}
-		return buffer;
+		const char * entryText = gtk_editable_get_text(GTK_EDITABLE(entry));
+		return (entryText && *entryText) ? g_strdup(entryText) : nullptr;
+	}
+
+	if (GTK_IS_DROP_DOWN(combo))
+	{
+		std::string sel =
+			XAP_dropDownGetSelectedText(GTK_DROP_DOWN(combo));
+		return sel.empty() ? nullptr : g_strdup(sel.c_str());
 	}
 	return nullptr;
 }
 
-void AP_UnixRibbon::_tb_combo_apply(GtkComboBox * combo, _TbCtx * ctx)
+void AP_UnixRibbon::_tb_combo_apply(GtkWidget * combo, _TbCtx * ctx)
 {
 	UT_return_if_fail(ctx && ctx->self);
 
@@ -1135,7 +1132,7 @@ void AP_UnixRibbon::_tb_combo_apply(GtkComboBox * combo, _TbCtx * ctx)
 	g_free(buffer);
 }
 
-void AP_UnixRibbon::_s_tb_combo_changed(GtkComboBox * combo, gpointer data)
+void AP_UnixRibbon::_s_tb_combo_changed(GtkWidget * combo, gpointer data)
 {
 	_TbCtx * ctx =
 		static_cast<_TbCtx *>(data);
@@ -1146,37 +1143,58 @@ void AP_UnixRibbon::_s_tb_combo_changed(GtkComboBox * combo, gpointer data)
 	if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE))
 	{
 		/* no updates of the font size while the entry is being edited */
-		GtkWidget * entry = gtk_combo_box_get_child(combo);
+		GtkWidget * entry = GTK_WIDGET(
+			g_object_get_data(G_OBJECT(ctx->widget), "abi-size-entry"));
 		if (entry && gtk_widget_has_focus(entry))
 			return;
 	}
 	_tb_combo_apply(combo, ctx);
 }
 
-gboolean AP_UnixRibbon::_s_tb_size_key(GtkEventControllerKey * controller,
+void AP_UnixRibbon::_s_tb_dropdown_changed(GtkWidget * dd,
+										   GParamSpec * /*pspec*/,
+										   gpointer data)
+{
+	_TbCtx * ctx =
+		static_cast<_TbCtx *>(data);
+	UT_return_if_fail(ctx);
+	if (ctx->blockSignal || !ctx->widget)
+		return;
+
+	if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE))
+	{
+		/* mirror the picked size into the entry and apply it, unless
+		 * the user is currently typing there */
+		GtkWidget * entry = GTK_WIDGET(
+			g_object_get_data(G_OBJECT(ctx->widget), "abi-size-entry"));
+		if (entry && gtk_widget_has_focus(entry))
+			return;
+		std::string sel = XAP_dropDownGetSelectedText(GTK_DROP_DOWN(dd));
+		if (entry && !sel.empty())
+			gtk_editable_set_text(GTK_EDITABLE(entry), sel.c_str());
+		_tb_combo_apply(ctx->widget, ctx);
+		return;
+	}
+	_tb_combo_apply(dd, ctx);
+}
+
+gboolean AP_UnixRibbon::_s_tb_size_key(GtkEventControllerKey * /*controller*/,
 							   guint keyval, guint /*keycode*/,
 							   GdkModifierType /*state*/, gpointer data)
 {
 	if (keyval == GDK_KEY_Return)
 	{
-		GtkWidget * widget =
-			gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
-		GtkComboBox * combo = GTK_COMBO_BOX(
-			gtk_widget_get_ancestor(widget, GTK_TYPE_COMBO_BOX));
-		_tb_combo_apply(combo,
-						static_cast<_TbCtx *>(data));
+		_TbCtx * ctx = static_cast<_TbCtx *>(data);
+		_tb_combo_apply(ctx->widget, ctx);
 	}
 	return FALSE;
 }
 
-void AP_UnixRibbon::_s_tb_size_focus_out(GtkEventControllerFocus * controller,
+void AP_UnixRibbon::_s_tb_size_focus_out(GtkEventControllerFocus * /*controller*/,
 								 gpointer data)
 {
-	GtkWidget * widget =
-		gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
-	GtkComboBox * combo = GTK_COMBO_BOX(
-		gtk_widget_get_ancestor(widget, GTK_TYPE_COMBO_BOX));
-	_tb_combo_apply(combo, static_cast<_TbCtx *>(data));
+	_TbCtx * ctx = static_cast<_TbCtx *>(data);
+	_tb_combo_apply(ctx->widget, ctx);
 }
 
 /* only accept numeric input in the font size combo */
@@ -10574,36 +10592,44 @@ GtkWidget * AP_UnixRibbon::_tb_make_combo(_TbCtx * ctx)
 	}
 	case AP_TOOLBAR_ID_FMT_SIZE:
 	{
-		combo = gtk_combo_box_text_new_with_entry();
-		GtkEntry * entry =
-			GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(combo)));
-		gtk_widget_set_can_focus(GTK_WIDGET(entry), TRUE);
+		/* GTK4 has no combo-with-entry: pair a GtkEntry with a
+		 * GtkDropDown for the canned sizes. */
+		combo = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+		GtkWidget * entry = gtk_entry_new();
+		gtk_widget_set_can_focus(entry, TRUE);
 		gtk_editable_set_width_chars(GTK_EDITABLE(entry), 2);
 		gtk_editable_set_max_width_chars(GTK_EDITABLE(entry), 5);
 		gtk_editable_set_alignment(GTK_EDITABLE(entry), 0.5f);
-		/* slim the combo's entry and internal dropdown button to
-		 * match the glyph buttons beside it */
+		gtk_box_append(GTK_BOX(combo), entry);
+		GtkWidget * drop = gtk_drop_down_new(nullptr, nullptr);
+		XAP_makeGtkDropDown(GTK_DROP_DOWN(drop));
+		gtk_box_append(GTK_BOX(combo), drop);
+		g_object_set_data(G_OBJECT(combo), "abi-size-entry", entry);
+		g_object_set_data(G_OBJECT(combo), "abi-size-drop", drop);
+		/* slim the entry and dropdown button to match the glyph
+		 * buttons beside them */
 		_slim_widget_tree(combo);
 		g_signal_connect(G_OBJECT(entry), "insert-text",
 						 G_CALLBACK(_s_tb_size_insert_text), nullptr);
 		GtkEventController * focus = gtk_event_controller_focus_new();
 		g_signal_connect(G_OBJECT(focus), "leave",
 						 G_CALLBACK(_s_tb_size_focus_out), ctx);
-		gtk_widget_add_controller(GTK_WIDGET(entry), focus);
+		gtk_widget_add_controller(entry, focus);
 		GtkEventController * key = gtk_event_controller_key_new();
 		g_signal_connect(G_OBJECT(key), "key-pressed",
 						 G_CALLBACK(_s_tb_size_key), ctx);
-		gtk_widget_add_controller(GTK_WIDGET(entry), key);
+		gtk_widget_add_controller(entry, key);
 
 		int n = XAP_EncodingManager::fontsizes_mapping.size();
 		for (int i = 0; i < n; ++i)
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo),
+			XAP_appendDropDownText(GTK_DROP_DOWN(drop),
 				XAP_EncodingManager::fontsizes_mapping.nth2(i));
 		break;
 	}
 	case AP_TOOLBAR_ID_FMT_STYLE:
 	{
-		combo = gtk_combo_box_text_new();
+		combo = gtk_drop_down_new(nullptr, nullptr);
+		XAP_makeGtkDropDown(GTK_DROP_DOWN(combo));
 		gtk_widget_set_name(combo, "AbiStyleCombo");
 		/* same hardwired list the classic toolbar seeds with; the
 		 * refresh path appends the caret's actual style if missing */
@@ -10616,28 +10642,29 @@ GtkWidget * AP_UnixRibbon::_tb_make_combo(_TbCtx * ctx)
 		{
 			std::string sLoc;
 			pt_PieceTable::s_getLocalisedStyleName(styles[i], sLoc);
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo),
+			XAP_appendDropDownText(GTK_DROP_DOWN(combo),
 										   sLoc.c_str());
 		}
 		break;
 	}
 	case AP_TOOLBAR_ID_ZOOM:
 	{
-		combo = gtk_combo_box_text_new();
+		combo = gtk_drop_down_new(nullptr, nullptr);
+		XAP_makeGtkDropDown(GTK_DROP_DOWN(combo));
 		gtk_widget_set_name(combo, "AbiZoomCombo");
 		static const char * zooms[] =
 			{ "200%", "150%", "100%", "75%", "50%", "25%" };
 		for (size_t i = 0; i < G_N_ELEMENTS(zooms); ++i)
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo),
+			XAP_appendDropDownText(GTK_DROP_DOWN(combo),
 										   zooms[i]);
 		const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 		if (pSS)
 		{
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo),
+			XAP_appendDropDownText(GTK_DROP_DOWN(combo),
 				pSS->getValue(XAP_STRING_ID_TB_Zoom_PageWidth));
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo),
+			XAP_appendDropDownText(GTK_DROP_DOWN(combo),
 				pSS->getValue(XAP_STRING_ID_TB_Zoom_WholePage));
-			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo),
+			XAP_appendDropDownText(GTK_DROP_DOWN(combo),
 				pSS->getValue(XAP_STRING_ID_TB_Zoom_Percent));
 		}
 		break;
@@ -10716,9 +10743,22 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 	case EV_TBIT_ComboBox:
 		w = _tb_make_combo(ctx);
 		if (w)
-			ctx->handlerId = g_signal_connect(w, "changed",
-											  G_CALLBACK(_s_tb_combo_changed),
-											  ctx);
+		{
+			GtkWidget * drop = GTK_WIDGET(
+				g_object_get_data(G_OBJECT(w), "abi-size-drop"));
+			if (ABI_IS_FONT_COMBO(w))
+				ctx->handlerId = g_signal_connect(w, "changed",
+												  G_CALLBACK(_s_tb_combo_changed),
+												  ctx);
+			else if (drop)
+				ctx->handlerId = g_signal_connect(drop, "notify::selected",
+												  G_CALLBACK(_s_tb_dropdown_changed),
+												  ctx);
+			else if (GTK_IS_DROP_DOWN(w))
+				ctx->handlerId = g_signal_connect(w, "notify::selected",
+												  G_CALLBACK(_s_tb_dropdown_changed),
+												  ctx);
+		}
 		break;
 
 	case EV_TBIT_ColorFore:
@@ -11089,10 +11129,10 @@ void AP_UnixRibbon::_refreshStyleTiles(const char * szCurrentStyle)
 }
 
 /*
- * Set the combo's displayed text without firing "changed"
- * (combo_box_set_active_text equivalent for ribbon combos).
+ * Set the combo's displayed text; callers hold ctx->blockSignal so the
+ * selection callbacks stay quiet.
  */
-void AP_UnixRibbon::_tb_combo_set_text(GtkComboBox * combo, const char * text,
+void AP_UnixRibbon::_tb_combo_set_text(GtkWidget * combo, const char * text,
 							   _TbCtx * ctx)
 {
 	if (ABI_IS_FONT_COMBO(combo))
@@ -11102,41 +11142,31 @@ void AP_UnixRibbon::_tb_combo_set_text(GtkComboBox * combo, const char * text,
 		return;
 	}
 
-	GtkTreeModel * model = gtk_combo_box_get_model(combo);
-	if (!model)
-		return;
-	GtkTreeIter iter;
-	gboolean next = gtk_tree_model_get_iter_first(model, &iter);
-	while (next)
+	GtkWidget * entry = GTK_WIDGET(
+		g_object_get_data(G_OBJECT(combo), "abi-size-entry"));
+	if (entry)
 	{
-		gchar * value = nullptr;
-		gtk_tree_model_get(model, &iter, 0, &value, -1);
-		bool bMatch = value && strcmp(text, value) == 0;
-		g_free(value);
-		if (bMatch)
+		/* entry+drop-down pair: select the matching list item if there
+		 * is one and always mirror the real value into the entry -
+		 * appending odd sizes (e.g. a stray 3pt run) would leak them
+		 * into the dropdown list permanently */
+		GtkWidget * drop = GTK_WIDGET(
+			g_object_get_data(G_OBJECT(combo), "abi-size-drop"));
+		if (drop)
+			XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(drop), text);
+		gtk_editable_set_text(GTK_EDITABLE(entry), text);
+		return;
+	}
+
+	if (GTK_IS_DROP_DOWN(combo))
+	{
+		if (!XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(combo), text))
 		{
-			gtk_combo_box_set_active_iter(combo, &iter);
-			return;
+			/* not in the list - append it so the combo shows the real
+			 * value (document styles not in the seed list) */
+			XAP_appendDropDownText(GTK_DROP_DOWN(combo), text);
+			XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(combo), text);
 		}
-		next = gtk_tree_model_iter_next(model, &iter);
-	}
-
-	/* combos with an entry show the real value straight in the
-	 * entry - appending it would leak odd document sizes (e.g. a
-	 * stray 3pt run) into the dropdown list permanently */
-	GtkWidget * child = gtk_combo_box_get_child(combo);
-	if (child && GTK_IS_EDITABLE(child))
-	{
-		gtk_editable_set_text(GTK_EDITABLE(child), text);
-		return;
-	}
-
-	/* not in the list - append it so the combo shows the real value
-	 * (document styles not in the seed list) */
-	if (GTK_IS_COMBO_BOX_TEXT(combo))
-	{
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), text);
-		_tb_combo_set_text(combo, text, ctx);	/* re-run to select it */
 	}
 }
 
@@ -11188,7 +11218,19 @@ void AP_UnixRibbon::_refreshToolbarItems()
 				if (ABI_IS_FONT_COMBO(ctx->widget))
 					abi_font_combo_unselect(ABI_FONT_COMBO(ctx->widget));
 				else
-					gtk_combo_box_set_active(GTK_COMBO_BOX(ctx->widget), -1);
+				{
+					GtkWidget * drop = GTK_IS_DROP_DOWN(ctx->widget)
+						? ctx->widget
+						: GTK_WIDGET(g_object_get_data(
+							  G_OBJECT(ctx->widget), "abi-size-drop"));
+					if (drop)
+						gtk_drop_down_set_selected(GTK_DROP_DOWN(drop),
+												   GTK_INVALID_LIST_POSITION);
+					GtkWidget * entry = GTK_WIDGET(g_object_get_data(
+						G_OBJECT(ctx->widget), "abi-size-entry"));
+					if (entry)
+						gtk_editable_set_text(GTK_EDITABLE(entry), "");
+				}
 				if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 					_refreshStyleTiles(nullptr);
 			}
@@ -11196,14 +11238,14 @@ void AP_UnixRibbon::_refreshToolbarItems()
 			{
 				const char * fsz =
 					XAP_EncodingManager::fontsizes_mapping.lookupBySource(szState);
-				_tb_combo_set_text(GTK_COMBO_BOX(ctx->widget),
+				_tb_combo_set_text(ctx->widget,
 								   fsz ? fsz : szState, ctx);
 			}
 			else if (ctx->id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 			{
 				std::string sLoc;
 				pt_PieceTable::s_getLocalisedStyleName(szState, sLoc);
-				_tb_combo_set_text(GTK_COMBO_BOX(ctx->widget),
+				_tb_combo_set_text(ctx->widget,
 								   sLoc.c_str(), ctx);
 				_refreshStyleTiles(szState);
 			}
@@ -11216,7 +11258,7 @@ void AP_UnixRibbon::_refreshToolbarItems()
 			}
 			else
 			{
-				_tb_combo_set_text(GTK_COMBO_BOX(ctx->widget), szState, ctx);
+				_tb_combo_set_text(ctx->widget, szState, ctx);
 			}
 			break;
 

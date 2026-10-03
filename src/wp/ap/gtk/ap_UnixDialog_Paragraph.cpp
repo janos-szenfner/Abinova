@@ -102,7 +102,8 @@ static void s_spin_changed(GtkWidget * widget,
 	dlg->event_SpinChanged(widget);
 }
 
-static void s_combobox_changed(GtkWidget * widget, AP_UnixDialog_Paragraph * dlg)
+static void s_combobox_changed(GtkWidget * widget, GParamSpec * /*pspec*/,
+							   AP_UnixDialog_Paragraph * dlg)
 {
 	UT_ASSERT(widget && dlg);
 
@@ -212,12 +213,12 @@ void AP_UnixDialog_Paragraph::event_MenuChanged(GtkWidget * widget)
 
 void AP_UnixDialog_Paragraph::event_ComboBoxChanged(GtkWidget * widget)
 {
-	UT_ASSERT(widget && GTK_IS_COMBO_BOX(widget));
+	UT_ASSERT(widget && GTK_IS_DROP_DOWN(widget));
 
 	tControl id = static_cast<tControl>( GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),
 								   WIDGET_ID_TAG)));
 
-	UT_uint32 value = static_cast<UT_uint32>(XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(widget)));
+	UT_uint32 value = static_cast<UT_uint32>(XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(widget)));
 
 	_setMenuItemValue(id, value);
 }
@@ -336,14 +337,14 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	GtkWidget * tabMain;
 	GtkWidget * boxSpacing;
 	GtkWidget * hboxAlignment;
-	GtkComboBox * listAlignment;
+	GtkDropDown * listAlignment;
 	GtkWidget * spinbuttonLeft;
 	GtkWidget * spinbuttonRight;
-	GtkComboBox * listSpecial;
+	GtkDropDown * listSpecial;
 	GtkWidget * spinbuttonBy;
 	GtkWidget * spinbuttonBefore;
 	GtkWidget * spinbuttonAfter;
-	GtkComboBox * listLineSpacing;
+	GtkDropDown * listLineSpacing;
 	GtkWidget * spinbuttonAt;
 	GtkWidget * labelAlignment;
 	GtkWidget * labelBy;
@@ -412,24 +413,24 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 
 	hboxAlignment = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
 	gtk_widget_set_visible(hboxAlignment, TRUE);
-	listAlignment = GTK_COMBO_BOX(gtk_combo_box_new ());
-	XAP_makeGtkComboBoxText(listAlignment, G_TYPE_INT);
+	listAlignment = GTK_DROP_DOWN(gtk_drop_down_new (nullptr, nullptr));
+	XAP_makeGtkDropDown(listAlignment);
 	g_object_set_data(G_OBJECT(listAlignment), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_ALIGNMENT));
 	gtk_widget_set_visible(GTK_WIDGET(listAlignment), TRUE);
 	gtk_box_append(GTK_BOX(hboxAlignment), GTK_WIDGET(listAlignment));
 	gtk_grid_attach(GTK_GRID(boxSpacing), hboxAlignment, 1, 0, 1, 1);
 
-	XAP_appendComboBoxTextAndInt(listAlignment, " ", 0); // add an empty menu option to fix bug 594
+	XAP_appendDropDownTextAndInt(listAlignment, " ", 0); // add an empty menu option to fix bug 594
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_AlignLeft,s);
-	XAP_appendComboBoxTextAndInt(listAlignment, s.c_str(), align_LEFT);
+	XAP_appendDropDownTextAndInt(listAlignment, s.c_str(), align_LEFT);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_AlignCentered,s);
-	XAP_appendComboBoxTextAndInt(listAlignment, s.c_str(), align_CENTERED);
+	XAP_appendDropDownTextAndInt(listAlignment, s.c_str(), align_CENTERED);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_AlignRight,s);
-	XAP_appendComboBoxTextAndInt(listAlignment, s.c_str(), align_RIGHT);
+	XAP_appendDropDownTextAndInt(listAlignment, s.c_str(), align_RIGHT);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_AlignJustified,s);
-	XAP_appendComboBoxTextAndInt(listAlignment, s.c_str(), align_JUSTIFIED);
-	gtk_combo_box_set_active(listAlignment, 0);
+	XAP_appendDropDownTextAndInt(listAlignment, s.c_str(), align_JUSTIFIED);
+	gtk_drop_down_set_selected(listAlignment, 0);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_DomDirection,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
@@ -497,20 +498,20 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_widget_set_visible(labelSpecial, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelSpecial, 2, 2, 1, 1);
 
-	listSpecial = GTK_COMBO_BOX(gtk_combo_box_new ());
-	XAP_makeGtkComboBoxText(listSpecial, G_TYPE_INT);
+	listSpecial = GTK_DROP_DOWN(gtk_drop_down_new (nullptr, nullptr));
+	XAP_makeGtkDropDown(listSpecial);
 	g_object_set_data(G_OBJECT(listSpecial), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_SPECIAL_INDENT));
 	gtk_widget_set_visible(GTK_WIDGET(listSpecial), TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), reinterpret_cast<GtkWidget*>(listSpecial), 2, 3, 1, 1);
-	XAP_appendComboBoxTextAndInt(listSpecial, " ", 0);
+	XAP_appendDropDownTextAndInt(listSpecial, " ", 0);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpecialNone,s);
-	XAP_appendComboBoxTextAndInt(listSpecial, s.c_str(), indent_NONE);
+	XAP_appendDropDownTextAndInt(listSpecial, s.c_str(), indent_NONE);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpecialFirstLine,s);
-	XAP_appendComboBoxTextAndInt(listSpecial, s.c_str(), indent_FIRSTLINE);
+	XAP_appendDropDownTextAndInt(listSpecial, s.c_str(), indent_FIRSTLINE);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpecialHanging,s);
-	XAP_appendComboBoxTextAndInt(listSpecial, s.c_str(),  indent_HANGING);
-	gtk_combo_box_set_active(listSpecial, 0);
+	XAP_appendDropDownTextAndInt(listSpecial, s.c_str(),  indent_HANGING);
+	gtk_drop_down_set_selected(listSpecial, 0);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelBy,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
@@ -576,25 +577,25 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                       nullptr);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelLineSpacing, 2, 5, 1, 1);
 
-	listLineSpacing = GTK_COMBO_BOX(gtk_combo_box_new ());
-	XAP_makeGtkComboBoxText(listLineSpacing, G_TYPE_INT);
+	listLineSpacing = GTK_DROP_DOWN(gtk_drop_down_new (nullptr, nullptr));
+	XAP_makeGtkDropDown(listLineSpacing);
 	g_object_set_data(G_OBJECT(listLineSpacing), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_SPECIAL_SPACING));
 	gtk_grid_attach(GTK_GRID(boxSpacing), GTK_WIDGET(listLineSpacing), 2, 6, 1, 1);
 
-	XAP_appendComboBoxTextAndInt(listLineSpacing, " ", 0); // add an empty menu option to fix bug 594
+	XAP_appendDropDownTextAndInt(listLineSpacing, " ", 0); // add an empty menu option to fix bug 594
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpacingSingle,s);
-	XAP_appendComboBoxTextAndInt(listLineSpacing, s.c_str(), spacing_SINGLE);
+	XAP_appendDropDownTextAndInt(listLineSpacing, s.c_str(), spacing_SINGLE);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpacingHalf,s);
-	XAP_appendComboBoxTextAndInt(listLineSpacing, s.c_str(), spacing_ONEANDHALF);
+	XAP_appendDropDownTextAndInt(listLineSpacing, s.c_str(), spacing_ONEANDHALF);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpacingDouble,s);
-	XAP_appendComboBoxTextAndInt(listLineSpacing, s.c_str(), spacing_DOUBLE);
+	XAP_appendDropDownTextAndInt(listLineSpacing, s.c_str(), spacing_DOUBLE);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpacingAtLeast,s);
-	XAP_appendComboBoxTextAndInt(listLineSpacing, s.c_str(), spacing_ATLEAST);
+	XAP_appendDropDownTextAndInt(listLineSpacing, s.c_str(), spacing_ATLEAST);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpacingExactly,s);
-	XAP_appendComboBoxTextAndInt(listLineSpacing, s.c_str(), spacing_EXACTLY);
+	XAP_appendDropDownTextAndInt(listLineSpacing, s.c_str(), spacing_EXACTLY);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_SpacingMultiple,s);
-	XAP_appendComboBoxTextAndInt(listLineSpacing, s.c_str(), spacing_MULTIPLE);
-	gtk_combo_box_set_active(listLineSpacing, 0);
+	XAP_appendDropDownTextAndInt(listLineSpacing, s.c_str(), spacing_MULTIPLE);
+	gtk_drop_down_set_selected(listLineSpacing, 0);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelAt,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
@@ -806,11 +807,11 @@ void AP_UnixDialog_Paragraph::_connectCallbackSignals(void)
 	CONNECT_SPIN_SIGNAL_FOCUS_OUT(m_spinbuttonAfter);
 	CONNECT_SPIN_SIGNAL_FOCUS_OUT(m_spinbuttonAt);
 
-	g_signal_connect(G_OBJECT(m_listAlignment), "changed",
+	g_signal_connect(G_OBJECT(m_listAlignment), "notify::selected",
 					 G_CALLBACK(s_combobox_changed), this);
-	g_signal_connect(G_OBJECT(m_listSpecial), "changed",
+	g_signal_connect(G_OBJECT(m_listSpecial), "notify::selected",
 					 G_CALLBACK(s_combobox_changed), this);
-	g_signal_connect(G_OBJECT(m_listLineSpacing), "changed",
+	g_signal_connect(G_OBJECT(m_listLineSpacing), "notify::selected",
 					 G_CALLBACK(s_combobox_changed), this);
 
 	// all the checkbuttons
@@ -840,7 +841,7 @@ void AP_UnixDialog_Paragraph::_populateWindowData(void)
 
 	// alignment option menu
 	UT_ASSERT(m_listAlignment);
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listAlignment), 1,
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_listAlignment),
 									static_cast<gint>( _getMenuItemValue(id_MENU_ALIGNMENT)));
 
 	// indent and paragraph margins
@@ -857,7 +858,7 @@ void AP_UnixDialog_Paragraph::_populateWindowData(void)
 					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_SPECIAL_INDENT)));
 
 	UT_ASSERT(m_listSpecial);
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listSpecial), 1,
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_listSpecial),
 								static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_INDENT)));
 
 	// spacing
@@ -874,7 +875,7 @@ void AP_UnixDialog_Paragraph::_populateWindowData(void)
 					   static_cast<const gchar *>( _getSpinItemValue(id_SPIN_SPECIAL_SPACING)));
 
 	UT_ASSERT(m_listLineSpacing);
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listLineSpacing), 1,
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_listLineSpacing),
 								static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_SPACING)));
 
 	// set the check boxes
@@ -909,7 +910,7 @@ void AP_UnixDialog_Paragraph::_syncControls(tControl changed, bool bAll /* = fal
 		// typing in the control can change the associated combo
 		if (_getMenuItemValue(id_MENU_SPECIAL_INDENT) == indent_FIRSTLINE)
 		{
-			XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listSpecial),1,
+			XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_listSpecial),
 										static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_INDENT)));
 		}
 	}
@@ -938,7 +939,7 @@ void AP_UnixDialog_Paragraph::_syncControls(tControl changed, bool bAll /* = fal
 		// typing in the control can change the associated combo
 		if (_getMenuItemValue(id_MENU_SPECIAL_SPACING) == spacing_MULTIPLE)
 		{
-			XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_listLineSpacing),1,
+			XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_listLineSpacing),
 										static_cast<gint>( _getMenuItemValue(id_MENU_SPECIAL_SPACING)));
 		}
 	}

@@ -112,7 +112,7 @@
                   <object class="GtkBox" id="eventbox1">
                     <property name="visible">1</property>
                     <child>
-                      <object class="GtkComboBox" id="wLevelOption">
+                      <object class="GtkDropDown" id="wLevelOption">
                         <property name="visible">1</property>
                         <property name="can-focus">1</property>
                         <property name="margin-start">18</property>
@@ -173,7 +173,7 @@
                 <property name="row-spacing">6</property>
                 <property name="column-spacing">12</property>
                 <child>
-                  <object class="GtkComboBox" id="wDetailsLevel">
+                  <object class="GtkDropDown" id="wDetailsLevel">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   <layout><property name="column">0</property><property name="row">0</property><property name="column-span">3</property></layout></object>
@@ -235,7 +235,7 @@
                   <layout><property name="column">0</property><property name="row">4</property></layout></object>
                   </child>
                 <child>
-                  <object class="GtkComboBox" id="wLabelChoose">
+                  <object class="GtkDropDown" id="wLabelChoose">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   <layout><property name="column">1</property><property name="row">4</property><property name="column-span">2</property></layout></object>
@@ -298,13 +298,13 @@
                   <layout><property name="column">0</property><property name="row">10</property></layout></object>
                   </child>
                 <child>
-                  <object class="GtkComboBox" id="wTabLeaderChoose">
+                  <object class="GtkDropDown" id="wTabLeaderChoose">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                   <layout><property name="column">1</property><property name="row">8</property><property name="column-span">2</property></layout></object>
                   </child>
                 <child>
-                  <object class="GtkComboBox" id="wPageNumberingChoose">
+                  <object class="GtkDropDown" id="wPageNumberingChoose">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
                     <property name="margin-start">18</property>

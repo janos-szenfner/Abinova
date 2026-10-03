@@ -133,7 +133,6 @@ AP_UnixDialog_InsertXMLID::event_OK(void)
 {
 	UT_ASSERT(m_window);
 	// get the bookmark name, if any (return cancel if no name given)
-    //std::string mark = tostr(GTK_COMBO_BOX(m_combo));
     std::string mark = tostr(GTK_EDITABLE(m_combo));
 	if( !mark.empty() )
 	{
@@ -156,7 +155,6 @@ AP_UnixDialog_InsertXMLID::event_Cancel(void)
 void
 AP_UnixDialog_InsertXMLID::event_Delete(void)
 {
-    //setString(tostr(GTK_COMBO_BOX(m_combo)));
     setString(tostr(GTK_EDITABLE(m_combo)));
 	setAnswer(AP_Dialog_InsertXMLID::a_DELETE);
 }
@@ -171,9 +169,7 @@ AP_UnixDialog_InsertXMLID::_setList(void)
 	// 	bookmarks.push_back(getNthExistingBookmark(i));
 	// }
 	
-	// GtkComboBoxText * combo = GTK_COMBO_BOX_TEXT(m_combo);
   //   bookmarks.sort();
-  //   append( combo, bookmarks );
 	
 	// GtkEntry *entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_combo)));
 	// if (getBookmark() && strlen(getBookmark()) > 0)
@@ -204,8 +200,6 @@ AP_UnixDialog_InsertXMLID::_constructWindowContents(GtkWidget * container )
     gtk_widget_set_visible(label1, TRUE);
     gtk_box_append(GTK_BOX(container), label1);
 
-    // m_combo = gtk_combo_box_text_new_with_entry();
-    // doesn't yet work as a combo box!
     m_combo = gtk_entry_new();
     gtk_widget_set_visible(m_combo, TRUE);
     gtk_box_append(GTK_BOX(container), m_combo);

@@ -41,6 +41,7 @@
 // like centering them, measuring them, etc.
 #include "xap_UnixDialogHelper.h"
 #include "xap_GtkUtils.h"
+#include "xap_GtkComboBoxHelpers.h"
 
 #include "xap_App.h"
 #include "xap_UnixApp.h"
@@ -212,8 +213,8 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 	const char* iSelectedFont = iDrawSymbol->getSelectedFont();
 	s_Prev_Font = iSelectedFont;
 	UT_DEBUGMSG(("Selected Font at startup %s \n",iSelectedFont));
-	XAP_gtk_entry_set_text(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))),
-					   iSelectedFont);
+	XAP_dropDownSetSelectedFromText(GTK_DROP_DOWN(m_fontcombo),
+								  iSelectedFont);
 
 	// Show the Previously selected symbol
 
@@ -248,7 +249,9 @@ void XAP_UnixDialog_Insert_Symbol::event_WindowDelete(void)
 
 void XAP_UnixDialog_Insert_Symbol::New_Font(void )
 {
-	const gchar * buffer = XAP_gtk_entry_get_text(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo))));
+	const std::string sel =
+		XAP_dropDownGetSelectedText(GTK_DROP_DOWN(m_fontcombo));
+	const gchar * buffer = sel.c_str();
 
 	XAP_Draw_Symbol * iDrawSymbol = _getCurrentSymbolMap();
 	UT_return_if_fail(iDrawSymbol);
@@ -331,7 +334,8 @@ static gboolean s_destroy_clicked(GtkWindow * /* widget */,
 	return TRUE;
 }
 
-static void s_new_font(GtkWidget * /*widget*/, XAP_UnixDialog_Insert_Symbol * dlg)
+static void s_new_font(GtkWidget * /*widget*/, GParamSpec * /*pspec*/,
+					   XAP_UnixDialog_Insert_Symbol * dlg)
 {
 	dlg->New_Font();
 }
@@ -707,7 +711,8 @@ void XAP_UnixDialog_Insert_Symbol::_getGlistFonts (std::list<std::string> & glFo
 
 GtkWidget *XAP_UnixDialog_Insert_Symbol::_createComboboxWithFonts (void)
 {
-	GtkWidget *fontcombo = gtk_combo_box_text_new_with_entry();
+	GtkWidget *fontcombo = gtk_drop_down_new(nullptr, nullptr);
+	XAP_makeGtkDropDown(GTK_DROP_DOWN(fontcombo));
 	gtk_widget_set_visible(fontcombo, TRUE);
 
 	// ensure we don't override this without freeing...
@@ -716,11 +721,8 @@ GtkWidget *XAP_UnixDialog_Insert_Symbol::_createComboboxWithFonts (void)
 	for(std::list<std::string>::const_iterator iter = m_InsertS_Font_list.begin();
         iter != m_InsertS_Font_list.end(); ++iter)
 	{
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(fontcombo), iter->c_str());
+		XAP_appendDropDownText(GTK_DROP_DOWN(fontcombo), iter->c_str());
 	}
-
-	// Turn off keyboard entry in the font selection box
-	gtk_editable_set_editable(GTK_EDITABLE(gtk_combo_box_get_child(GTK_COMBO_BOX(fontcombo))), FALSE);
 
 	return fontcombo;
 }
@@ -734,11 +736,9 @@ void XAP_UnixDialog_Insert_Symbol::_connectSignals (void)
 					 G_CALLBACK(s_dlg_response),
 					 static_cast<gpointer>(this));
 
-	// Look for "changed" signal on the entry part of the combo box.
-	// Code stolen from ev_UnixGnomeToolbar.cpp
-	GtkEntry * blah = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_fontcombo)));
-	g_signal_connect(G_OBJECT(blah),
-					 "changed",
+	// Look for selection changes on the font drop-down.
+	g_signal_connect(G_OBJECT(m_fontcombo),
+					 "notify::selected",
 					 G_CALLBACK(s_new_font),
 					 static_cast<gpointer>(this));
 

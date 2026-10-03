@@ -60,6 +60,9 @@ AP_UnixDialog_InsertBookmark::AP_UnixDialog_InsertBookmark(XAP_DialogFactory * p
 										 XAP_Dialog_Id id)
 	: AP_Dialog_InsertBookmark(pDlgFactory,id)
 	, m_windowMain(nullptr)
+	, m_entryBookmark(nullptr)
+	, m_listBookmarks(nullptr)
+	, m_btnBookmarks(nullptr)
 	, m_buttonInsert(nullptr)
 {
 }
@@ -99,9 +102,7 @@ void AP_UnixDialog_InsertBookmark::event_OK(void)
 {
 	UT_ASSERT(m_windowMain);
 	// get the bookmark name, if any (return cancel if no name given)
-	GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboBookmark)));
-	UT_ASSERT(entry);
-	const gchar *mark = XAP_gtk_entry_get_text(GTK_EDITABLE(entry));
+	const gchar *mark = XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryBookmark));
 	if(mark && *mark)
 	{
 		xxx_UT_DEBUGMSG(("InsertBookmark: OK pressed, first char 0x%x\n", static_cast<UT_uint32>(*mark)));
@@ -121,9 +122,7 @@ void AP_UnixDialog_InsertBookmark::event_Cancel(void)
 
 void AP_UnixDialog_InsertBookmark::event_Delete(void)
 {
-	GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboBookmark)));
-	UT_ASSERT(entry);
-	const gchar *mark = XAP_gtk_entry_get_text(GTK_EDITABLE(entry));
+	const gchar *mark = XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryBookmark));
 	if (mark && *mark)
 		setBookmark(mark);
 	setAnswer(AP_Dialog_InsertBookmark::a_DELETE);
@@ -136,19 +135,24 @@ void AP_UnixDialog_InsertBookmark::_setList(void)
 	for(UT_sint32 i = 0; i < getExistingBookmarksCount(); i++) {
 		bookmarks.push_back(getNthExistingBookmark(i));
 	}
-	
-	GtkComboBoxText * combo = GTK_COMBO_BOX_TEXT(m_comboBookmark);
 
 	if (bookmarks.size())
 	{
 		bookmarks.sort();
 		std::list<std::string>::iterator iter(bookmarks.begin());
 		for( ; iter != bookmarks.end(); ++iter) {
-			gtk_combo_box_text_append_text(combo, iter->c_str());
+			GtkWidget * label = gtk_label_new(iter->c_str());
+			gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+			GtkWidget * row = gtk_list_box_row_new();
+			gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), label);
+			g_object_set_data(G_OBJECT(row), "abi-target-entry",
+							  m_entryBookmark);
+			gtk_list_box_append(GTK_LIST_BOX(m_listBookmarks), row);
 		}
+		gtk_widget_set_visible(m_btnBookmarks, TRUE);
 	}
-	
-	GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(m_comboBookmark)));
+
+	GtkEntry *entry = GTK_ENTRY(m_entryBookmark);
 	if (getBookmark() && strlen(getBookmark()) > 0)
 	{
 	    XAP_gtk_entry_set_text(GTK_EDITABLE(entry), getBookmark());
@@ -164,6 +168,27 @@ void AP_UnixDialog_InsertBookmark::_setList(void)
 	}
 }
 
+/* A history row is activated: put its text into the entry and close
+ * the popover.  GTK4 has no combo-with-entry; this entry + popover
+ * pair is the modern equivalent. */
+static void s_bookmark_row_activated(GtkListBox * /*box*/, GtkListBoxRow * row,
+									 gpointer /*data*/)
+{
+	GtkWidget * entry = GTK_WIDGET(
+		g_object_get_data(G_OBJECT(row), "abi-target-entry"));
+	GtkWidget * label = gtk_list_box_row_get_child(row);
+	if (!entry || !label)
+		return;
+	gtk_editable_set_text(GTK_EDITABLE(entry),
+						  gtk_label_get_text(GTK_LABEL(label)));
+	gtk_editable_set_position(GTK_EDITABLE(entry), -1);
+
+	GtkWidget * pop = gtk_widget_get_ancestor(GTK_WIDGET(row),
+											  GTK_TYPE_POPOVER);
+	if (pop)
+		gtk_popover_popdown(GTK_POPOVER(pop));
+}
+
 void  AP_UnixDialog_InsertBookmark::_constructWindowContents(GtkWidget * container )
 {
   GtkWidget *label1;
@@ -174,9 +199,31 @@ void  AP_UnixDialog_InsertBookmark::_constructWindowContents(GtkWidget * contain
   gtk_widget_set_visible(label1, TRUE);
   gtk_box_append(GTK_BOX(container), label1);
 
-  m_comboBookmark = gtk_combo_box_text_new_with_entry();
-  gtk_widget_set_visible(m_comboBookmark, TRUE);
-  gtk_box_append(GTK_BOX(container), m_comboBookmark);
+  GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_widget_set_hexpand(box, TRUE);
+
+  m_entryBookmark = gtk_entry_new();
+  gtk_widget_set_hexpand(m_entryBookmark, TRUE);
+  gtk_box_append(GTK_BOX(box), m_entryBookmark);
+
+  GtkWidget * pop = gtk_popover_new();
+  m_listBookmarks = gtk_list_box_new();
+  gtk_list_box_set_selection_mode(GTK_LIST_BOX(m_listBookmarks),
+								  GTK_SELECTION_SINGLE);
+  g_signal_connect(m_listBookmarks, "row-activated",
+				   G_CALLBACK(s_bookmark_row_activated), nullptr);
+  gtk_popover_set_child(GTK_POPOVER(pop), m_listBookmarks);
+
+  m_btnBookmarks = gtk_menu_button_new();
+  gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(m_btnBookmarks),
+								"pan-down-symbolic");
+  gtk_menu_button_set_popover(GTK_MENU_BUTTON(m_btnBookmarks), pop);
+  gtk_widget_add_css_class(m_btnBookmarks, "flat");
+  gtk_widget_set_visible(m_btnBookmarks, FALSE);
+  gtk_box_append(GTK_BOX(box), m_btnBookmarks);
+
+  gtk_widget_set_visible(box, TRUE);
+  gtk_box_append(GTK_BOX(container), box);
 }
 
 GtkWidget*  AP_UnixDialog_InsertBookmark::_constructWindow(void)
@@ -203,7 +250,7 @@ GtkWidget*  AP_UnixDialog_InsertBookmark::_constructWindow(void)
   pSS->getValueUTF8(AP_STRING_ID_DLG_InsertButton, s);
   m_buttonInsert = abiAddButton(GTK_DIALOG(m_windowMain), s, BUTTON_INSERT);
 
-  gtk_widget_grab_focus (m_comboBookmark);
+  gtk_widget_grab_focus (m_entryBookmark);
 
   return m_windowMain;
 }

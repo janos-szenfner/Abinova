@@ -21,6 +21,7 @@
  */
 
 #include "ap_UnixDialog_EpubExportOptions.h"
+#include "xap_GtkComboBoxHelpers.h"
 
 pt2Constructor ap_Dialog_EpubExportOptions_Constructor =
     AP_UnixDialog_EpubExportOptions::static_constructor;
@@ -109,7 +110,8 @@ void AP_UnixDialog_EpubExportOptions::select_SplitLevel()
 {
 	/* combo index 0 is "automatic" (legacy: shallowest level only);
 	 * indices 1..9 map to heading levels 1..9 */
-	int level = gtk_combo_box_get_active (GTK_COMBO_BOX (m_wSplitLevel));
+	int level = static_cast<int> (
+		gtk_drop_down_get_selected (GTK_DROP_DOWN (m_wSplitLevel)));
 	set_SplitLevel (level < 0 ? 0 : level);
 }
 
@@ -138,7 +140,7 @@ void AP_UnixDialog_EpubExportOptions::refreshStates()
 
 	if (m_wSplitLevel)
 	{
-		gtk_combo_box_set_active (GTK_COMBO_BOX (m_wSplitLevel),
+		gtk_drop_down_set_selected (GTK_DROP_DOWN (m_wSplitLevel),
 		                          get_SplitLevel ());
 		gtk_widget_set_sensitive (m_wSplitLevel,
 		                          can_set_SplitLevel () ? TRUE : FALSE);
@@ -184,7 +186,8 @@ static void s_SplitDocument(GtkWidget * /* w */, AP_UnixDialog_EpubExportOptions
 	dlg->toggle_SplitDocument();
 }
 
-static void s_SplitLevel(GtkWidget * /* w */, AP_UnixDialog_EpubExportOptions * dlg)
+static void s_SplitLevel(GtkWidget * /* w */, GParamSpec * /* pspec */,
+						 AP_UnixDialog_EpubExportOptions * dlg)
 {
 	dlg->select_SplitLevel();
 }
@@ -256,19 +259,20 @@ GtkWidget * AP_UnixDialog_EpubExportOptions::_constructWindow ()
 	GtkWidget * hboxSplit = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	GtkWidget * labelSplitLevel = gtk_label_new (SplitLevelLabel);
 	gtk_box_append (GTK_BOX (hboxSplit), labelSplitLevel);
-	m_wSplitLevel = gtk_combo_box_text_new ();
-	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	m_wSplitLevel = gtk_drop_down_new (nullptr, nullptr);
+	XAP_makeGtkDropDown (GTK_DROP_DOWN (m_wSplitLevel));
+	XAP_appendDropDownText (GTK_DROP_DOWN (m_wSplitLevel),
 	                                "Top-level headings only");
-	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	XAP_appendDropDownText (GTK_DROP_DOWN (m_wSplitLevel),
 	                                "Heading 1");
-	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	XAP_appendDropDownText (GTK_DROP_DOWN (m_wSplitLevel),
 	                                "Heading 2");
-	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (m_wSplitLevel),
+	XAP_appendDropDownText (GTK_DROP_DOWN (m_wSplitLevel),
 	                                "Heading 3");
 	gtk_box_append (GTK_BOX (hboxSplit), m_wSplitLevel);
 	XAP_gtk_widget_set_margin(hboxSplit, 5);
 	gtk_box_append (GTK_BOX (vboxMain), hboxSplit);
-	g_signal_connect (G_OBJECT (m_wSplitLevel), "changed",
+	g_signal_connect (G_OBJECT (m_wSplitLevel), "notify::selected",
 	                  G_CALLBACK (s_SplitLevel), static_cast<gpointer> (this));
 
 	m_wRenderMathMlToPng = gtk_check_button_new_with_label (RenderMathMlToPng);

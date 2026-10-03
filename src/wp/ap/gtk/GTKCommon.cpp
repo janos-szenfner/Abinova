@@ -21,6 +21,7 @@
  */
 
 #include "GTKCommon.h"
+#include "xap_GtkComboBoxHelpers.h"
 
 #include "ut_string.h"
 #include "ut_assert.h"
@@ -181,25 +182,18 @@ void selectPrev( GtkTreeView* tv )
 	gtk_tree_selection_select_iter (selection, &last);
 }
 
-void append( GtkComboBoxText* combo, const std::list< std::string >& data )
+void append( GtkDropDown* combo, const std::list< std::string >& data )
 {
     std::list<std::string>::const_iterator iter(data.begin());
     for( ; iter != data.end(); ++iter)
     {
-        gtk_combo_box_text_append_text( combo, iter->c_str() );
+        XAP_appendDropDownText( combo, iter->c_str() );
     }
 }
 
-std::string tostr( GtkComboBox* combo )
+std::string tostr( GtkDropDown* combo )
 {
-    GtkEntry *entry = GTK_ENTRY(gtk_combo_box_get_child(combo));
-	UT_ASSERT(entry);
-	const gchar *s = XAP_gtk_entry_get_text(GTK_EDITABLE(entry));
-	if(s && *s)
-	{
-        return s;
-    }
-    return "";
+    return XAP_dropDownGetSelectedText(combo);
 }
 
 void setEntry( GtkWidget* w, const std::string& v )

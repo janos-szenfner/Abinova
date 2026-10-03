@@ -50,14 +50,10 @@ static gboolean s_destroy_clicked (GtkWidget * /*wid*/, AP_UnixDialog_FormatTOC 
 	return TRUE;
 }
 
-void AP_UnixDialog_FormatTOC::s_NumType_changed(GtkWidget * wid, 
+void AP_UnixDialog_FormatTOC::s_NumType_changed(GtkWidget * wid,
+												GParamSpec * /*pspec*/,
 												AP_UnixDialog_FormatTOC * me )
 {
-
-	GtkTreeIter iter;
-	GtkComboBox * combo = GTK_COMBO_BOX(wid);
-	gtk_combo_box_get_active_iter(combo, &iter);
-	GtkTreeModel *store = gtk_combo_box_get_model(combo);
 	std::string sProp;
 	if(wid == me->m_wLabelChoose) {
 		sProp = "toc-label-type";
@@ -68,47 +64,43 @@ void AP_UnixDialog_FormatTOC::s_NumType_changed(GtkWidget * wid,
 	else {
 		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 	}
-	char * value2;
-	gtk_tree_model_get(store, &iter, 2, &value2, -1);
+	const char * value2 =
+		XAP_dropDownGetSelectedString2(GTK_DROP_DOWN(wid));
 
-	std::string sVal = value2;
+	std::string sVal = value2 ? value2 : "";
 	sProp += UT_std_string_sprintf("%d",me->getDetailsLevel());
 	me->setTOCProperty(sProp,sVal);
-	g_free(value2);
 }
 
 
-static void s_TabLeader_changed(GtkWidget * wid, AP_UnixDialog_FormatTOC * me )
+static void s_TabLeader_changed(GtkWidget * wid, GParamSpec * /*pspec*/,
+								AP_UnixDialog_FormatTOC * me )
 {
+	const char * value1 =
+		XAP_dropDownGetSelectedString(GTK_DROP_DOWN(wid));
+	const char * value2 =
+		XAP_dropDownGetSelectedString2(GTK_DROP_DOWN(wid));
 
-	GtkTreeIter iter;
-	GtkComboBox * combo = GTK_COMBO_BOX(wid);
-	gtk_combo_box_get_active_iter(combo, &iter);
-	GtkTreeModel *store = gtk_combo_box_get_model(combo);
-	char * value1;
-	char * value2;
-	gtk_tree_model_get(store, &iter, 1, &value1, 2, &value2, -1);
-
-	std::string sProp = value1;
-	std::string sVal = value2;
-	g_free(value1);
-	g_free(value2);
+	std::string sProp = value1 ? value1 : "";
+	std::string sVal = value2 ? value2 : "";
 	UT_String sNum =  UT_String_sprintf("%d",me->getDetailsLevel());
 	sProp += sNum.c_str();
 	me->setTOCProperty(sProp,sVal);
 }
 
 
-static void s_MainLevel_changed(GtkWidget * wid, AP_UnixDialog_FormatTOC * me )
+static void s_MainLevel_changed(GtkWidget * wid, GParamSpec * /*pspec*/,
+								AP_UnixDialog_FormatTOC * me )
 {
-	UT_sint32 iLevel = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(wid));
+	UT_sint32 iLevel = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(wid));
 	me->setMainLevel(iLevel);
 }
 
 
-static void s_DetailsLevel_changed(GtkWidget * wid, AP_UnixDialog_FormatTOC * me )
+static void s_DetailsLevel_changed(GtkWidget * wid, GParamSpec * /*pspec*/,
+								   AP_UnixDialog_FormatTOC * me )
 {
-	UT_sint32 iLevel = XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(wid));
+	UT_sint32 iLevel = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(wid));
 	me->setDetailsLevel(iLevel);
 }
 
@@ -344,7 +336,7 @@ void AP_UnixDialog_FormatTOC::runModeless(XAP_Frame * pFrame)
 	_connectSignals();
 	abiSetupModelessDialog(GTK_DIALOG(mainWindow),pFrame,this,GTK_RESPONSE_CLOSE);
 	startUpdater();
-	s_DetailsLevel_changed(_getWidget("wDetailsLevel"), this);
+	s_DetailsLevel_changed(_getWidget("wDetailsLevel"), nullptr, this);
 }
 
 GtkWidget * AP_UnixDialog_FormatTOC::_getWidget(const char * szNameBase, UT_sint32 iLevel)
@@ -486,20 +478,20 @@ void AP_UnixDialog_FormatTOC::setDetailsLevel(UT_sint32 iLevel)
 
 	FV_View * pView = static_cast<FV_View *>(getActiveFrame()->getCurrentView());
 	sVal = getTOCPropVal("toc-label-type",getDetailsLevel());
-	pW = _getWidget("wLabelChoose"); 
-	GtkComboBox *combo = GTK_COMBO_BOX(pW);
+	pW = _getWidget("wLabelChoose");
+	GtkDropDown *combo = GTK_DROP_DOWN(pW);
 	UT_sint32 iHist = static_cast<UT_sint32>(pView->getLayout()->FootnoteTypeFromString(sVal.c_str()));
-	gtk_combo_box_set_active(combo,iHist);
+	gtk_drop_down_set_selected(combo,iHist);
 
 	sVal = getTOCPropVal("toc-page-type",getDetailsLevel());
-	pW = _getWidget("wPageNumberingChoose"); 
-	combo = GTK_COMBO_BOX(pW);
+	pW = _getWidget("wPageNumberingChoose");
+	combo = GTK_DROP_DOWN(pW);
 	iHist = static_cast<UT_sint32>(pView->getLayout()->FootnoteTypeFromString(sVal.c_str()));
-	gtk_combo_box_set_active(combo,iHist);
+	gtk_drop_down_set_selected(combo,iHist);
 
 	sVal = getTOCPropVal("toc-tab-leader",getDetailsLevel());
 	pW = _getWidget("wTabLeaderChoose");
-	combo = GTK_COMBO_BOX(pW);
+	combo = GTK_DROP_DOWN(pW);
 	if(g_ascii_strcasecmp(sVal.c_str(),"none") == 0)
 	{
 		iHist = 0;
@@ -520,7 +512,7 @@ void AP_UnixDialog_FormatTOC::setDetailsLevel(UT_sint32 iLevel)
 	{
 		iHist = 1;
 	}
-	gtk_combo_box_set_active(combo,iHist);
+	gtk_drop_down_set_selected(combo,iHist);
 }
 
 void AP_UnixDialog_FormatTOC::_createLevelItems(void)
@@ -528,33 +520,33 @@ void AP_UnixDialog_FormatTOC::_createLevelItems(void)
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet ();
 	std::string s;
 
-	GtkComboBox *combo;
+	GtkDropDown *combo;
 
-	combo = GTK_COMBO_BOX(_getWidget("wLevelOption"));
-	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
+	combo = GTK_DROP_DOWN(_getWidget("wLevelOption"));
+	XAP_makeGtkDropDown(combo);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level1,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 1);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 1);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level2,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 2);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 2);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level3,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 3);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 3);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level4,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 4);
-	gtk_combo_box_set_active(combo, 0);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 4);
+	gtk_drop_down_set_selected(combo, 0);
 
 //////////////////////////////////////////////////////////////////////////////
 
-	combo = GTK_COMBO_BOX(_getWidget("wDetailsLevel"));
-	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
+	combo = GTK_DROP_DOWN(_getWidget("wDetailsLevel"));
+	XAP_makeGtkDropDown(combo);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level1,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 1);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 1);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level2,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 2);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 2);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level3,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 3);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 3);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatTOC_Level4,s);
-	XAP_appendComboBoxTextAndInt(combo, s.c_str(), 4);
-	gtk_combo_box_set_active(combo, 0);
+	XAP_appendDropDownTextAndInt(combo, s.c_str(), 4);
+	gtk_drop_down_set_selected(combo, 0);
 }
 
 void AP_UnixDialog_FormatTOC::_createLabelTypeItems(void)
@@ -563,14 +555,14 @@ void AP_UnixDialog_FormatTOC::_createLabelTypeItems(void)
 
 //	sProp = new std::string("toc-label-type");
 	m_wLabelChoose = _getWidget("wLabelChoose");
-	GtkComboBox * combo = GTK_COMBO_BOX(m_wLabelChoose);
-	XAP_makeGtkComboBoxText2(combo, G_TYPE_INT, G_TYPE_STRING);
+	GtkDropDown * combo = GTK_DROP_DOWN(m_wLabelChoose);
+	XAP_makeGtkDropDown(combo);
 	const FootnoteTypeDesc* current = vecTypeList;
 	for(; current->n != _FOOTNOTE_TYPE_INVALID; current++)
 	{
 		UT_DEBUGMSG(("Got label %s for prop %s \n",current->label,
 					 current->prop));
-		XAP_appendComboBoxTextAndIntString(combo, current->label, 
+		XAP_appendDropDownTextAndIntString(combo, current->label,
 										   current->n, current->prop);
 	}
 
@@ -578,12 +570,12 @@ void AP_UnixDialog_FormatTOC::_createLabelTypeItems(void)
 //
 //	sProp = new std::string("toc-page-type");
 	m_wPageNumberingChoose = _getWidget("wPageNumberingChoose");
-	combo = GTK_COMBO_BOX(m_wPageNumberingChoose);
-	XAP_makeGtkComboBoxText2(combo, G_TYPE_INT, G_TYPE_STRING);
+	combo = GTK_DROP_DOWN(m_wPageNumberingChoose);
+	XAP_makeGtkDropDown(combo);
 	current = vecTypeList;
 	for(; current->n != _FOOTNOTE_TYPE_INVALID; current++)
 	{
-		XAP_appendComboBoxTextAndIntString(combo, current->label, 
+		XAP_appendDropDownTextAndIntString(combo, current->label,
 										   current->n, current->prop);
 
 	}
@@ -597,14 +589,14 @@ void AP_UnixDialog_FormatTOC::_createTABTypeItems(void)
 	UT_sint32 nTypes = vecLabels->getItemCount();
 	UT_sint32 j = 0;
 	const char *sProp = "toc-tab-leader";
-	GtkComboBox * combo = GTK_COMBO_BOX(_getWidget("wTabLeaderChoose"));
-	XAP_makeGtkComboBoxText2(combo, G_TYPE_STRING, G_TYPE_STRING);
+	GtkDropDown * combo = GTK_DROP_DOWN(_getWidget("wTabLeaderChoose"));
+	XAP_makeGtkDropDown(combo);
 	for(j=0; j< nTypes; j++)
 	{
 		const gchar *sVal = vecProps->getNthItem(j);
 		const gchar * szLab = vecLabels->getNthItem(j);
 		UT_DEBUGMSG(("Got label %s for item %d \n",szLab,j));
-		XAP_appendComboBoxTextAndStringString(combo, szLab, sProp, sVal);
+		XAP_appendDropDownTextAndStringString(combo, szLab, sProp, sVal);
 	}
 }
 
@@ -647,8 +639,8 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	sVal = getTOCPropVal("toc-has-heading");
 
 	GtkWidget * pW;
-	GtkComboBox * combo = GTK_COMBO_BOX(_getWidget("wLevelOption"));
-	gtk_combo_box_set_active(combo, getMainLevel()-1);
+	GtkDropDown * combo = GTK_DROP_DOWN(_getWidget("wLevelOption"));
+	gtk_drop_down_set_selected(combo, getMainLevel()-1);
 
 	pW = _getWidget("cbHasHeading");
 	if(g_ascii_strcasecmp(sVal.c_str(),"1") == 0)
@@ -756,14 +748,14 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	
 
 	sVal = getTOCPropVal("toc-label-type",getDetailsLevel());
-	pW = _getWidget("wLabelChoose"); 
+	pW = _getWidget("wLabelChoose");
 	UT_sint32 iHist = static_cast<UT_sint32>(pView->getLayout()->FootnoteTypeFromString(sVal.c_str()));
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(pW),1,iHist);
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(pW),iHist);
 
 	sVal = getTOCPropVal("toc-page-type",getDetailsLevel());
-	pW = _getWidget("wPageNumberingChoose"); 
+	pW = _getWidget("wPageNumberingChoose");
 	iHist = static_cast<UT_sint32>(pView->getLayout()->FootnoteTypeFromString(sVal.c_str()));
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(pW),1,iHist);
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(pW),iHist);
 
 	sVal = getTOCPropVal("toc-source-style",getMainLevel());
 	pW = _getWidget("wFillStyle");
@@ -794,7 +786,7 @@ void  AP_UnixDialog_FormatTOC::_fillGUI(void)
 	{
 		iHist = 1;
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(pW),iHist);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(pW),iHist);
 }
 
 void  AP_UnixDialog_FormatTOC::_populateWindowData(void)
@@ -830,23 +822,23 @@ void  AP_UnixDialog_FormatTOC::_connectSignals(void)
 					 static_cast<gpointer>( this));
 
 	g_signal_connect(G_OBJECT(_getWidget("wLevelOption")),
-					 "changed",
+					 "notify::selected",
 					 G_CALLBACK(s_MainLevel_changed),
 					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wDetailsLevel")),
-					 "changed",
+					 "notify::selected",
 					 G_CALLBACK(s_DetailsLevel_changed),
 					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wLabelChoose")),
-					 "changed",
+					 "notify::selected",
 					 G_CALLBACK(s_NumType_changed),
 					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wPageNumberingChoose")),
-					 "changed",
+					 "notify::selected",
 					 G_CALLBACK(s_NumType_changed),
 					 static_cast<gpointer>( this));
 	g_signal_connect(G_OBJECT(_getWidget("wTabLeaderChoose")),
-					 "changed",
+					 "notify::selected",
 					 G_CALLBACK(s_TabLeader_changed),
 					 static_cast<gpointer>( this));
 	{

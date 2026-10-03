@@ -84,28 +84,28 @@ AP_UnixDialog_FormatFootnotes::~AP_UnixDialog_FormatFootnotes(void)
 /* Static Callbacks for event handling */
 /****************************************************************/
 
-static void s_menu_item_endnote_style(GtkWidget * widget, AP_UnixDialog_FormatFootnotes * dlg)
+static void s_menu_item_endnote_style(GtkWidget * widget, GParamSpec * /*pspec*/, AP_UnixDialog_FormatFootnotes * dlg)
 {
 	UT_ASSERT(widget && dlg);
 
 	dlg->event_MenuStyleEndnoteChange(widget);
 }
 
-static void s_menu_item_footnote_style(GtkWidget * widget, AP_UnixDialog_FormatFootnotes * dlg)
+static void s_menu_item_footnote_style(GtkWidget * widget, GParamSpec * /*pspec*/, AP_UnixDialog_FormatFootnotes * dlg)
 {
 	UT_ASSERT(widget && dlg);
 
 	dlg->event_MenuStyleFootnoteChange(widget);
 }
 
-static void s_menu_item_footnote_activate(GtkWidget * widget, AP_UnixDialog_FormatFootnotes * dlg)
+static void s_menu_item_footnote_activate(GtkWidget * widget, GParamSpec * /*pspec*/, AP_UnixDialog_FormatFootnotes * dlg)
 {
 	UT_ASSERT(widget && dlg);
 
 	dlg->event_MenuFootnoteChange(widget);
 }
 
-static void s_menu_item_endnote_activate(GtkWidget * widget, AP_UnixDialog_FormatFootnotes * dlg)
+static void s_menu_item_endnote_activate(GtkWidget * widget, GParamSpec * /*pspec*/, AP_UnixDialog_FormatFootnotes * dlg)
 {
 	UT_ASSERT(widget && dlg);
 
@@ -214,12 +214,7 @@ void AP_UnixDialog_FormatFootnotes::event_EndRestartSection(void)
 
 void AP_UnixDialog_FormatFootnotes::event_MenuStyleFootnoteChange(GtkWidget * widget)
 {
-	GtkTreeIter iter;
-	GtkComboBox * combo = GTK_COMBO_BOX(widget);
-	gtk_combo_box_get_active_iter(combo, &iter);
-	GtkTreeModel *store = gtk_combo_box_get_model(combo);
-	int value;
-	gtk_tree_model_get(store, &iter, 1, &value, -1);
+	int value = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(widget));
 	setFootnoteType(static_cast<FootnoteType>(value));
 	refreshVals();
 }
@@ -227,12 +222,7 @@ void AP_UnixDialog_FormatFootnotes::event_MenuStyleFootnoteChange(GtkWidget * wi
 
 void AP_UnixDialog_FormatFootnotes::event_MenuStyleEndnoteChange(GtkWidget * widget)
 {
-	GtkTreeIter iter;
-	GtkComboBox * combo = GTK_COMBO_BOX(widget);
-	gtk_combo_box_get_active_iter(combo, &iter);
-	GtkTreeModel *store = gtk_combo_box_get_model(combo);
-	int value;
-	gtk_tree_model_get(store, &iter, 1, &value, -1);
+	int value = XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(widget));
 	setEndnoteType(static_cast<FootnoteType>(value));
 	refreshVals();
 }
@@ -241,7 +231,7 @@ void AP_UnixDialog_FormatFootnotes::event_MenuStyleEndnoteChange(GtkWidget * wid
 void AP_UnixDialog_FormatFootnotes::event_MenuFootnoteChange(GtkWidget * widget)
 {
 	UT_ASSERT(widget);
-	int idx = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+	int idx = static_cast<int>(gtk_drop_down_get_selected(GTK_DROP_DOWN(widget)));
 	switch(idx) {
 	case 0:
 		setRestartFootnoteOnPage(false);
@@ -268,7 +258,7 @@ void AP_UnixDialog_FormatFootnotes::event_MenuEndnoteChange(GtkWidget * widget)
 {
 	
 	UT_ASSERT(widget);
-	int idx = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+	int idx = static_cast<int>(gtk_drop_down_get_selected(GTK_DROP_DOWN(widget)));
 	switch(idx) {
 	case 0:
 		setPlaceAtDocEnd(true);
@@ -303,32 +293,32 @@ void  AP_UnixDialog_FormatFootnotes::refreshVals(void)
 
 	if(getRestartFootnoteOnSection())
 	{
-		gtk_combo_box_set_active(GTK_COMBO_BOX(m_wFootnoteNumberingMenu),1);
+		gtk_drop_down_set_selected(m_wFootnoteNumberingMenu,1);
 	}
 	else if(getRestartFootnoteOnPage())
 	{
-		gtk_combo_box_set_active(GTK_COMBO_BOX(m_wFootnoteNumberingMenu),2);
+		gtk_drop_down_set_selected(m_wFootnoteNumberingMenu,2);
 	}
 	else
 	{
-		gtk_combo_box_set_active(GTK_COMBO_BOX(m_wFootnoteNumberingMenu),0);
+		gtk_drop_down_set_selected(m_wFootnoteNumberingMenu,0);
 	}
 
 	if(getPlaceAtDocEnd())
 	{
-		gtk_combo_box_set_active(GTK_COMBO_BOX(m_wEndnotesPlaceMenu),0);
+		gtk_drop_down_set_selected(m_wEndnotesPlaceMenu,0);
 	}
 	else if(getPlaceAtSecEnd())
 	{
-		gtk_combo_box_set_active(GTK_COMBO_BOX(m_wEndnotesPlaceMenu),1);
+		gtk_drop_down_set_selected(m_wEndnotesPlaceMenu,1);
 	}
 
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wEndnotesRestartOnSection), static_cast<gboolean>(getRestartEndnoteOnSection()));
 
-	XAP_comboBoxSetActiveFromIntCol(m_wFootnotesStyleMenu, 1, 
+	XAP_dropDownSetSelectedFromInt(m_wFootnotesStyleMenu,
 									static_cast<int>(getFootnoteType()));
 
-	XAP_comboBoxSetActiveFromIntCol(m_wEndnotesStyleMenu, 1, 
+	XAP_dropDownSetSelectedFromInt(m_wEndnotesStyleMenu,
 									static_cast<int>(getEndnoteType()));
 }
 
@@ -343,11 +333,11 @@ void AP_UnixDialog_FormatFootnotes::event_Delete(void)
 }
 
 
-static void _populateCombo(GtkComboBox * combo, const FootnoteTypeDesc * desc_list)
+static void _populateCombo(GtkDropDown * combo, const FootnoteTypeDesc * desc_list)
 {
 	const FootnoteTypeDesc * current = desc_list;
 	for( ; current->n !=  _FOOTNOTE_TYPE_INVALID; current++) {
-		XAP_appendComboBoxTextAndInt(combo, current->label, 
+		XAP_appendDropDownTextAndInt(combo, current->label,
 									 static_cast<int>(current->n));
 	}
 }
@@ -396,44 +386,44 @@ GtkWidget * AP_UnixDialog_FormatFootnotes::_constructWindow(void)
 
 	
 		
-	m_wFootnotesStyleMenu = GTK_COMBO_BOX(gtk_builder_get_object(builder, "omFootnoteStyle"));
+	m_wFootnotesStyleMenu = GTK_DROP_DOWN(gtk_builder_get_object(builder, "omFootnoteStyle"));
 	UT_ASSERT(m_wFootnotesStyleMenu );
-	XAP_makeGtkComboBoxText(m_wFootnotesStyleMenu, G_TYPE_INT);
+	XAP_makeGtkDropDown(m_wFootnotesStyleMenu);
 	_populateCombo(m_wFootnotesStyleMenu, footnoteTypeList);
-	gtk_combo_box_set_active(m_wFootnotesStyleMenu, 0);
+	gtk_drop_down_set_selected(m_wFootnotesStyleMenu, 0);
 
-	m_wEndnotesStyleMenu = GTK_COMBO_BOX(gtk_builder_get_object(builder, "omEndnoteStyle"));
+	m_wEndnotesStyleMenu = GTK_DROP_DOWN(gtk_builder_get_object(builder, "omEndnoteStyle"));
 	UT_ASSERT(m_wEndnotesStyleMenu);
-	XAP_makeGtkComboBoxText(m_wEndnotesStyleMenu, G_TYPE_INT);
+	XAP_makeGtkDropDown(m_wEndnotesStyleMenu);
 	_populateCombo(m_wEndnotesStyleMenu, footnoteTypeList);
-	gtk_combo_box_set_active(m_wEndnotesStyleMenu, 0);
+	gtk_drop_down_set_selected(m_wEndnotesStyleMenu, 0);
 
 //
 // Footnotes number menu
 //
-	m_wFootnoteNumberingMenu = GTK_COMBO_BOX(gtk_builder_get_object(builder, "omNumbering"));
+	m_wFootnoteNumberingMenu = GTK_DROP_DOWN(gtk_builder_get_object(builder, "omNumbering"));
 	UT_ASSERT(m_wFootnoteNumberingMenu );
-	XAP_makeGtkComboBoxText(m_wFootnoteNumberingMenu, G_TYPE_NONE);
+	XAP_makeGtkDropDown(m_wFootnoteNumberingMenu);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatFootnotes_FootRestartNone,s);
-	XAP_appendComboBoxText(m_wFootnoteNumberingMenu, s.c_str());
+	XAP_appendDropDownText(m_wFootnoteNumberingMenu, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatFootnotes_FootRestartSec,s);
-	XAP_appendComboBoxText(m_wFootnoteNumberingMenu, s.c_str());
+	XAP_appendDropDownText(m_wFootnoteNumberingMenu, s.c_str());
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatFootnotes_FootRestartPage,s);
-	XAP_appendComboBoxText(m_wFootnoteNumberingMenu, s.c_str());
+	XAP_appendDropDownText(m_wFootnoteNumberingMenu, s.c_str());
 //	m_wFootnotesRestartOnPage = gtk_menu_item_new_with_label (s.utf8_str());
 
 
 //
 // Endnotes placement menu
 //
-	m_wEndnotesPlaceMenu = GTK_COMBO_BOX(gtk_builder_get_object(builder, "omEndnotePlacement"));
+	m_wEndnotesPlaceMenu = GTK_DROP_DOWN(gtk_builder_get_object(builder, "omEndnotePlacement"));
 	UT_ASSERT(m_wEndnotesPlaceMenu );
-	XAP_makeGtkComboBoxText(m_wEndnotesPlaceMenu, G_TYPE_NONE);
+	XAP_makeGtkDropDown(m_wEndnotesPlaceMenu);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatFootnotes_EndPlaceEndDoc,s);
-	XAP_appendComboBoxText(m_wEndnotesPlaceMenu, s.c_str());
+	XAP_appendDropDownText(m_wEndnotesPlaceMenu, s.c_str());
 	pSS->getValueUTF8(AP_STRING_ID_DLG_FormatFootnotes_EndPlaceEndSec,s);
-	XAP_appendComboBoxText(m_wEndnotesPlaceMenu, s.c_str());
+	XAP_appendDropDownText(m_wEndnotesPlaceMenu, s.c_str());
 
 //
 // Now grab widgets for the remaining controls.
@@ -470,17 +460,17 @@ void AP_UnixDialog_FormatFootnotes::_connectSignals(void)
 											  "changed",
 											  G_CALLBACK(s_EndInitial),
 											  reinterpret_cast<gpointer>(this));
-	m_FootStyleID = g_signal_connect(G_OBJECT(m_wFootnotesStyleMenu), "changed",
+	m_FootStyleID = g_signal_connect(G_OBJECT(m_wFootnotesStyleMenu), "notify::selected",
 									 G_CALLBACK(s_menu_item_footnote_style),
 									 reinterpret_cast<gpointer>(this));
-	m_EndStyleID = g_signal_connect(G_OBJECT(m_wEndnotesStyleMenu), "changed",
+	m_EndStyleID = g_signal_connect(G_OBJECT(m_wEndnotesStyleMenu), "notify::selected",
 									G_CALLBACK(s_menu_item_endnote_style),
 									reinterpret_cast<gpointer>(this));
-	m_FootNumberingID = g_signal_connect(G_OBJECT(m_wFootnoteNumberingMenu), 
-										 "changed",
+	m_FootNumberingID = g_signal_connect(G_OBJECT(m_wFootnoteNumberingMenu),
+										 "notify::selected",
 										 G_CALLBACK(s_menu_item_footnote_activate),
 										 reinterpret_cast<gpointer>(this));
-	m_EndPlaceID = g_signal_connect(G_OBJECT(m_wEndnotesPlaceMenu), "changed",
+	m_EndPlaceID = g_signal_connect(G_OBJECT(m_wEndnotesPlaceMenu), "notify::selected",
 					 G_CALLBACK(s_menu_item_endnote_activate),
 					 reinterpret_cast<gpointer>(this));
 	m_EndRestartSectionID = g_signal_connect(G_OBJECT(m_wEndnotesRestartOnSection ),

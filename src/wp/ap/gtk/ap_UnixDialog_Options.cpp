@@ -229,16 +229,16 @@ void AP_UnixDialog_Options::addPage ( const XAP_NotebookDialog::Page *page )
 
 void AP_UnixDialog_Options::_setupUnitMenu ( GtkWidget *optionmenu, const XAP_StringSet *pSS )
 {
-	GtkComboBox *combo = GTK_COMBO_BOX(optionmenu);
+	GtkDropDown *combo = GTK_DROP_DOWN(optionmenu);
 	UnitMenuContent content;
 	_getUnitMenuContent(pSS, content);
-	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
-	
+	XAP_makeGtkDropDown(combo);
+
 	for(UnitMenuContent::const_iterator iter = content.begin();
 		iter != content.end(); ++iter) {
-		XAP_appendComboBoxTextAndInt(combo, iter->first.c_str(), iter->second);
+		XAP_appendDropDownTextAndInt(combo, iter->first.c_str(), iter->second);
 	}
-	gtk_combo_box_set_active(combo, 0);
+	gtk_drop_down_set_selected(combo, 0);
 }
 
 void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
@@ -430,7 +430,12 @@ GtkWidget* AP_UnixDialog_Options::_constructWindow ()
         UT_ASSERT ( g_object_get_data ( G_OBJECT ( w ), "tControl" ) == nullptr );
 
         g_object_set_data ( G_OBJECT ( w ), "tControl", reinterpret_cast<gpointer> ( i ) );
-        if ( GTK_IS_COMBO_BOX ( w ) || GTK_IS_ENTRY ( w ) )
+        if ( GTK_IS_DROP_DOWN ( w ) )
+            g_signal_connect ( G_OBJECT ( w ),
+                               "notify::selected",
+                               G_CALLBACK ( s_dropdown_changed ),
+                               static_cast<gpointer> ( this ) );
+        else if ( GTK_IS_ENTRY ( w ) )
             g_signal_connect ( G_OBJECT ( w ),
                                "changed",
                                G_CALLBACK ( s_control_changed ),
@@ -617,8 +622,8 @@ void AP_UnixDialog_Options::_setAutoSaveFilePeriod ( const UT_String &stPeriod )
 
 void AP_UnixDialog_Options::_setupSaveFormatMenu ( GtkWidget *optionmenu )
 {
-	GtkComboBox *combo = GTK_COMBO_BOX(optionmenu);
-	XAP_makeGtkComboBoxText(combo, G_TYPE_STRING);
+	GtkDropDown *combo = GTK_DROP_DOWN(optionmenu);
+	XAP_makeGtkDropDown(combo);
 
 	// populate with every registered exporter; the row value is the
 	// first suffix of the type's suffix list, which is what the
@@ -639,69 +644,47 @@ void AP_UnixDialog_Options::_setupSaveFormatMenu ( GtkWidget *optionmenu )
 			suffix = e ? std::string(p, static_cast<size_t>(e - p)) : std::string(p);
 		}
 		if (!suffix.empty() && szDesc)
-			XAP_appendComboBoxTextAndString(combo, szDesc, suffix.c_str());
+			XAP_appendDropDownTextAndString(combo, szDesc, suffix.c_str());
 		k++;
 	}
-	gtk_combo_box_set_active(combo, 0);
+	gtk_drop_down_set_selected(combo, 0);
 }
 
 void AP_UnixDialog_Options::_gatherDefaultSaveFormat ( UT_String &stRetVal )
 {
 	stRetVal.clear();
-	UT_return_if_fail ( m_menuSaveFormat && GTK_IS_COMBO_BOX ( m_menuSaveFormat ) );
-	GtkTreeIter iter;
-	if (gtk_combo_box_get_active_iter(GTK_COMBO_BOX(m_menuSaveFormat), &iter))
-	{
-		GtkTreeModel *store = gtk_combo_box_get_model(GTK_COMBO_BOX(m_menuSaveFormat));
-		gchar * value = nullptr;
-		gtk_tree_model_get(store, &iter, 1, &value, -1);
-		if (value)
-		{
-			stRetVal = value;
-			g_free(value);
-		}
-	}
+	UT_return_if_fail ( m_menuSaveFormat && GTK_IS_DROP_DOWN ( m_menuSaveFormat ) );
+	const char * value =
+		XAP_dropDownGetSelectedString(GTK_DROP_DOWN(m_menuSaveFormat));
+	if (value)
+		stRetVal = value;
 }
 
 void AP_UnixDialog_Options::_setDefaultSaveFormat ( const UT_String &stExt )
 {
-	UT_return_if_fail ( m_menuSaveFormat && GTK_IS_COMBO_BOX ( m_menuSaveFormat ) );
-	GtkTreeModel *store = gtk_combo_box_get_model(GTK_COMBO_BOX(m_menuSaveFormat));
-	GtkTreeIter iter;
-	if (gtk_tree_model_get_iter_first(store, &iter))
-	{
-		do {
-			gchar * value = nullptr;
-			gtk_tree_model_get(store, &iter, 1, &value, -1);
-			bool bMatch = (value != nullptr) && (stExt == value);
-			g_free(value);
-			if (bMatch)
-			{
-				gtk_combo_box_set_active_iter(GTK_COMBO_BOX(m_menuSaveFormat), &iter);
-				return;
-			}
-		} while (gtk_tree_model_iter_next(store, &iter));
-	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(m_menuSaveFormat), 0);
+	UT_return_if_fail ( m_menuSaveFormat && GTK_IS_DROP_DOWN ( m_menuSaveFormat ) );
+	if (!XAP_dropDownSetSelectedFromString(GTK_DROP_DOWN(m_menuSaveFormat),
+										 stExt.c_str()))
+		gtk_drop_down_set_selected(GTK_DROP_DOWN(m_menuSaveFormat), 0);
 }
 
 UT_Dimension AP_UnixDialog_Options::_gatherViewRulerUnits ( void )
 {
-    UT_ASSERT ( m_menuUnits && GTK_IS_COMBO_BOX ( m_menuUnits ) );
-	return ( UT_Dimension ) XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_menuUnits));
+    UT_ASSERT ( m_menuUnits && GTK_IS_DROP_DOWN ( m_menuUnits ) );
+	return ( UT_Dimension ) XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(m_menuUnits));
 }
 
 gint AP_UnixDialog_Options::_gatherOuterQuoteStyle ( void )
 {
-    UT_ASSERT ( m_omOuterQuoteStyle && GTK_IS_COMBO_BOX( m_omOuterQuoteStyle ) );
-	return XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_omOuterQuoteStyle));
+    UT_ASSERT ( m_omOuterQuoteStyle && GTK_IS_DROP_DOWN( m_omOuterQuoteStyle ) );
+	return XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(m_omOuterQuoteStyle));
 }
 
 
 gint AP_UnixDialog_Options::_gatherInnerQuoteStyle ( void )
 {
-    UT_ASSERT ( m_omInnerQuoteStyle && GTK_IS_COMBO_BOX ( m_omInnerQuoteStyle ) );
-	return XAP_comboBoxGetActiveInt(GTK_COMBO_BOX(m_omInnerQuoteStyle));
+    UT_ASSERT ( m_omInnerQuoteStyle && GTK_IS_DROP_DOWN ( m_omInnerQuoteStyle ) );
+	return XAP_dropDownGetSelectedInt(GTK_DROP_DOWN(m_omInnerQuoteStyle));
 }
 
 
@@ -711,20 +694,20 @@ gint AP_UnixDialog_Options::_gatherInnerQuoteStyle ( void )
 
 void AP_UnixDialog_Options::_setViewRulerUnits ( UT_Dimension dim )
 {
-    UT_ASSERT ( m_menuUnits && GTK_COMBO_BOX ( m_menuUnits ) );
+    UT_ASSERT ( m_menuUnits && GTK_IS_DROP_DOWN ( m_menuUnits ) );
 
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_menuUnits), 1, dim);
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_menuUnits), dim);
 }
 void AP_UnixDialog_Options::_setOuterQuoteStyle ( gint nIndex )
 {
-    UT_ASSERT ( m_omOuterQuoteStyle && GTK_COMBO_BOX ( m_omOuterQuoteStyle ) );
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_omOuterQuoteStyle), 1, nIndex);
+    UT_ASSERT ( m_omOuterQuoteStyle && GTK_IS_DROP_DOWN ( m_omOuterQuoteStyle ) );
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_omOuterQuoteStyle), nIndex);
 }
 
 void AP_UnixDialog_Options::_setInnerQuoteStyle ( gint nIndex )
 {
-    UT_ASSERT ( m_omInnerQuoteStyle && GTK_COMBO_BOX ( m_omInnerQuoteStyle ) );
-	XAP_comboBoxSetActiveFromIntCol(GTK_COMBO_BOX(m_omInnerQuoteStyle), 1, nIndex);
+    UT_ASSERT ( m_omInnerQuoteStyle && GTK_IS_DROP_DOWN ( m_omInnerQuoteStyle ) );
+	XAP_dropDownSetSelectedFromInt(GTK_DROP_DOWN(m_omInnerQuoteStyle), nIndex);
 }
 
 
@@ -772,6 +755,11 @@ void AP_UnixDialog_Options::_setNotebookPageNum ( int pn )
     dlg->_storeDataForControl ( static_cast <tControl> ( id ) );
 }
 
+/*static*/ void AP_UnixDialog_Options::s_dropdown_changed ( GtkWidget *widget, GParamSpec * /*pspec*/, gpointer data )
+{
+	s_control_changed ( widget, data );
+}
+
 /*static*/ void AP_UnixDialog_Options::s_chooseTransparentColor ( GtkWidget *widget, gpointer data )
 {
     AP_UnixDialog_Options * dlg = static_cast<AP_UnixDialog_Options *> ( data );
@@ -812,9 +800,9 @@ void AP_UnixDialog_Options::_storeWindowData ( void )
 
 void AP_UnixDialog_Options::_setupSmartQuotesCombos(  GtkWidget *optionmenu  )
 {
-	GtkComboBox * combo = GTK_COMBO_BOX(optionmenu);
+	GtkDropDown * combo = GTK_DROP_DOWN(optionmenu);
 
-	XAP_makeGtkComboBoxText(combo, G_TYPE_INT);
+	XAP_makeGtkDropDown(combo);
 
     UT_UCS4Char wszDisplayString[4];
 	for (size_t i = 0; XAP_EncodingManager::smartQuoteStyles[i].leftQuote != static_cast<UT_UCS4Char>(0); ++i)
@@ -824,8 +812,8 @@ void AP_UnixDialog_Options::_setupSmartQuotesCombos(  GtkWidget *optionmenu  )
 		wszDisplayString[2] = XAP_EncodingManager::smartQuoteStyles[i].rightQuote;
 		wszDisplayString[3] = static_cast<gunichar>(0);
         gchar* szDisplayStringUTF8 = g_ucs4_to_utf8 ( wszDisplayString, -1, nullptr, nullptr, nullptr );
-		XAP_appendComboBoxTextAndInt(combo, szDisplayStringUTF8, i);
+		XAP_appendDropDownTextAndInt(combo, szDisplayStringUTF8, i);
         g_free ( szDisplayStringUTF8 );
 	}
-	gtk_combo_box_set_active(combo, 0);
+	gtk_drop_down_set_selected(combo, 0);
 }

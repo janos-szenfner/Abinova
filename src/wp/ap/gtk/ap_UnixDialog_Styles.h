@@ -156,15 +156,12 @@ protected:
 	GtkWidget *	m_wModifyDialog;
 	GtkWidget *	m_wStyleNameEntry;
 	GtkWidget *	m_wBasedOnCombo;
-	GtkWidget *	m_wBasedOnEntry;
 	GtkWidget * m_wFollowingCombo;
-	GtkWidget *	m_wFollowingEntry;
 	GtkWidget * m_wStyleTypeCombo;
 	GtkWidget *	m_wStyleTypeEntry;
 	GtkWidget *	m_wModifyDrawingArea;
 	GtkWidget *	m_wLabDescription;
 	GtkWidget * m_wDeletePropCombo;
-	GtkWidget * m_wDeletePropEntry;
 	GtkWidget * m_wDeletePropButton;
 	GtkWidget *	m_wModifyOk;
 	GtkWidget *	m_wModifyCancel;

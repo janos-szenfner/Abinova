@@ -60,13 +60,13 @@ private:
 
 	GtkWidget *   m_windowMain;
 	GtkWidget *   m_wButtonApply;
-	GtkComboBox *   m_wFootnotesStyleMenu;
-	GtkComboBox*   m_wFootnoteNumberingMenu;
+	GtkDropDown *   m_wFootnotesStyleMenu;
+	GtkDropDown*   m_wFootnoteNumberingMenu;
 	GtkWidget *   m_wFootnoteSpin;
 	GtkAdjustment *   m_oFootnoteSpinAdj;
 
-	GtkComboBox *   m_wEndnotesStyleMenu;
-	GtkComboBox*   m_wEndnotesPlaceMenu;
+	GtkDropDown *   m_wEndnotesStyleMenu;
+	GtkDropDown*   m_wEndnotesPlaceMenu;
 	GtkWidget *   m_wEndnotesRestartOnSection;
 	GtkWidget *   m_wEndnoteSpin;
 	GtkAdjustment *   m_oEndnoteSpinAdj;

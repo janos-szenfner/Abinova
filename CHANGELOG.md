@@ -3490,6 +3490,19 @@ below are on `main` but the release has not been cut yet.
   `gtk_drop_down_get_selected_item`, whose reference accounting on
   GTK 4.14 returns a borrowed pointer (unref'ing it freed live model
   rows — found and fixed by the headless helper test).
+- **`GtkComboBox` → `GtkDropDown` migration, part 2** — every
+  remaining combo in the GTK front end now uses the `XAP_dropDown*`
+  helpers: the Paragraph, Options, Format Footnotes, Format TOC,
+  Styles and Insert Symbol dialogs, the EPUB-export split-level
+  picker, and the toolbar/ribbon zoom and style selectors.  Widgets
+  that were editable combos-with-entry (the font-size box in both
+  toolbars, the bookmark-name field) became a `GtkEntry` paired with
+  a drop-down or history popover, since GTK4 has no editable-combo
+  equivalent; the custom `AbiFontCombo` already followed that
+  pattern.  Selection payloads and `changed`→`notify::selected`
+  semantics are preserved, so each converted widget selects and
+  persists the same values as before.  No `gtk_combo_box_*` calls
+  remain outside the legacy helper shim.
 
 ### Performance
 

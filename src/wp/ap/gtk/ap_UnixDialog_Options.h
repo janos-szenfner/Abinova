@@ -175,6 +175,8 @@ public:
 private:
 	// Unix call back handlers
 	static void s_control_changed	     (GtkWidget *,	   gpointer);
+	static void s_dropdown_changed	     (GtkWidget *,	   GParamSpec *,
+										  gpointer);
 	static void s_apply_clicked	     (GtkWidget *,         gpointer);
 	static void s_defaults_clicked	     (GtkWidget *,         gpointer);
 	static void s_chooseTransparentColor (GtkWidget *,         gpointer);
