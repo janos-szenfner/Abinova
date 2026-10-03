@@ -251,14 +251,14 @@ void IE_Exp_HTML::_buildStyleTree()
     const PD_Style * p_pds = nullptr;
     const gchar * szStyleName = nullptr;
 
-    UT_GenericVector<PD_Style*> * pStyles = nullptr;
+    std::vector<PD_Style*> * pStyles = nullptr;
     getDoc()->enumStyles(pStyles);
     UT_return_if_fail(pStyles);
     UT_uint32 iStyleCount = getDoc()->getStyleCount();
 
     for (size_t n = 0; n < iStyleCount; n++)
     {
-        p_pds = pStyles->getNthItem(n);
+        p_pds = (*pStyles)[n];
         UT_continue_if_fail(p_pds);
 
         szStyleName = p_pds->getName();

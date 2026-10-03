@@ -3444,6 +3444,17 @@ below are on `main` but the release has not been cut yet.
   leak them.  The matching table-info vectors shared with the top
   and left rulers moved over as well.  Editing, selection, clipboard
   and ruler behavior is unchanged.
+- **Legacy containers modernized in the piece table** — the
+  `UT_GenericVector`/`UT_StringPtrMap` collections in
+  `src/text/ptbl/xp` now use `std::vector`/`std::unordered_set`:
+  document listeners keep their stable sparse/null-slot IDs,
+  undo/redo change records and attribute/property tables are owned
+  by `std::unique_ptr`, and the checksum-sorted AP lookup uses
+  `std::lower_bound`.  The `enumStyles`/`getAllUsedStyles`/
+  `getAllViews` signatures were updated along with their callers in
+  the RTF/HTML/Abinova/ODF exporters and the style dialogs.
+  Document load/save, undo/redo and attribute-map deduplication are
+  unchanged.
 
 ### GTK4 port (core migration)
 

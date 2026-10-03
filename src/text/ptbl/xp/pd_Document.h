@@ -327,7 +327,7 @@ public:
 	{ return m_bShowAuthors;}
 	bool                    isExportAuthorAtts(void) const;
 	void                    setExportAuthorAtts(bool bExport);
-	UT_GenericVector<pp_Author*>& getAuthors()
+	std::vector<std::unique_ptr<pp_Author>>& getAuthors()
 	{ return m_vecAuthors; }
 	UT_sint32               getMyAuthorInt(void) const;
 	void                    setMyAuthorInt(UT_sint32 iAuthor);
@@ -570,7 +570,7 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
     bool                    getPropertyFromStrux(const pf_Frag_Strux* sdh, bool bShowRevisions, UT_uint32 iRevisionLevel,
 											   const char * szProperty, const char ** pszValue) const;
 	// styles
-	void                    getAllUsedStyles(UT_GenericVector<PD_Style*> * pVecStyles) const;
+	void                    getAllUsedStyles(std::vector<PD_Style*> * pVecStyles) const;
 	fl_ContainerLayout*     getNthFmtHandle(const pf_Frag_Strux* sdh, UT_uint32 n) const;
     const char *            getDefaultStyle() const;
 	bool					getStyle(const char * szName, PD_Style ** ppStyle) const;
@@ -579,7 +579,7 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 	size_t                  getStyleCount(void) const;
 	bool					enumStyles(UT_uint32 k,
 									   const char ** pszName, const PD_Style ** ppStyle) const;
-	bool                    enumStyles(UT_GenericVector<PD_Style*> * & pStyles) const;
+	bool                    enumStyles(std::vector<PD_Style*> * & pStyles) const;
 	bool					getStyleProperty(const gchar * szStyleName, const gchar * szPropertyName, const gchar *& szPropertyValue) const;
 	bool					addStyleProperty(const gchar * szStyleName, const gchar * szPropertyName, const gchar * szPropertyValue);
 	bool					addStyleProperties(const gchar * szStyleName, const PP_PropertyVector & pProperties);
@@ -851,7 +851,7 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 	void					setCRNumber(UT_sint32 iCRCounter) { m_iCRCounter = iCRCounter; }
 	UT_sint32               getNextCRNumber(void) const;
     std::list<AV_View*>     getAllViews() const;
-    void                    getAllViews(UT_GenericVector<AV_View *> * vecViews) const;
+    void                    getAllViews(std::vector<AV_View *> * vecViews) const;
 	void                    ignoreSignals(void)
 	{ m_bIgnoreSignals = true;}
 	void                    dontIgnoreSignals(void)
@@ -890,9 +890,9 @@ protected:
 						 bool markClean, bool bImportStylesFirst,
 						 bool bIsImportFile, const char* impProps);
 
-	bool     _removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,UT_GenericVector<pf_Frag_Strux *> * vecHdrFtrs, UT_sint32 i);
-	bool     _pruneSectionAPI(pf_Frag_Strux * pfs,const char * szHType, UT_GenericVector<pf_Frag_Strux *> *vecHdrFtrs);
-	bool     _matchSection(pf_Frag_Strux * pfs, UT_GenericVector<pf_Frag_Strux *> *vecSections) const;
+	bool     _removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,std::vector<pf_Frag_Strux *> * vecHdrFtrs, UT_sint32 i);
+	bool     _pruneSectionAPI(pf_Frag_Strux * pfs,const char * szHType, std::vector<pf_Frag_Strux *> *vecHdrFtrs);
+	bool     _matchSection(pf_Frag_Strux * pfs, std::vector<pf_Frag_Strux *> *vecSections) const;
 	bool     _removeHdrFtr(pf_Frag_Strux * pfs);
 	bool     _checkAndFixTable(pf_Frag_Strux * pfs);
 public:
@@ -911,7 +911,7 @@ private:
 	bool					m_ballowListUpdates;
 	pt_PieceTable *			m_pPieceTable;
     PD_DocumentRDFHandle    m_hDocumentRDF;
-	UT_GenericVector<PL_Listener *> m_vecListeners;
+	std::vector<PL_Listener *> m_vecListeners;
 	std::vector<fl_AutoNumPtr> m_vecLists;
 	std::unordered_map<UT_uint32, fl_AutoNumPtr> m_mapLists;
 	bool                    m_bHasListStopped;
@@ -948,7 +948,7 @@ private:
 	UT_sint32               m_iNewHdrHeight;
 	UT_sint32               m_iNewFtrHeight;
 	bool                    m_bMarginChangeOnly;
-	UT_GenericVector<pf_Frag *> m_vecSuspectFrags;
+	std::vector<pf_Frag *> m_vecSuspectFrags;
 	std::set<const pf_Frag *> m_deletedRepairFrags;
 
 	bool                    m_bVDND;
@@ -958,12 +958,12 @@ private:
 
 	bool					m_bCoalescingMask;
 	bool                    m_bShowAuthors;
-	UT_GenericVector<pp_Author *>  m_vecAuthors;
+	std::vector<std::unique_ptr<pp_Author>>  m_vecAuthors;
 	bool                    m_bExportAuthorAtts;
 	UT_sint32               m_iMyAuthorInt;
 	UT_sint32               m_iLastAuthorInt;
-	UT_GenericVector<ImagePage *> m_pPendingImagePage;
-	UT_GenericVector<TextboxPage *> m_pPendingTextboxPage;
+	std::vector<std::unique_ptr<ImagePage>> m_pPendingImagePage;
+	std::vector<std::unique_ptr<TextboxPage>> m_pPendingTextboxPage;
 	UT_sint32               m_iStruxCount;
 	std::string             m_sUserName;
 public:

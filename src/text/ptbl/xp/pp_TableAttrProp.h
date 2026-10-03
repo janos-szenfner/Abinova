@@ -21,8 +21,10 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "ut_types.h"
-#include "ut_vector.h"
 #include "pt_Types.h"
 #include "pp_AttrProp.h"
 
@@ -55,6 +57,6 @@ public:
 	const PP_AttrProp *		getAP(UT_sint32 subscript) const;
 
 protected:
-	UT_GenericVector<PP_AttrProp *> m_vecTable;
-	UT_GenericVector<PP_AttrProp *>	m_vecTableSorted;
+	std::vector<std::unique_ptr<PP_AttrProp>> m_vecTable;
+	std::vector<PP_AttrProp *>	m_vecTableSorted;
 };

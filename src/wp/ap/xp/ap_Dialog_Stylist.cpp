@@ -247,19 +247,19 @@ void Stylist_tree::buildStyles(PD_Document * pDoc)
 	m_vecAllStyles.clear();
 	UT_VECTOR_PURGEALL(Stylist_row *, m_vecStyleRows);
 	m_vecStyleRows.clear();
-	UT_GenericVector<const PD_Style *> vecStyles;
+	std::vector<const PD_Style *> vecStyles;
 	const PD_Style * pStyle = nullptr;
 	UT_DEBUGMSG(("In Build styles num styles in doc %d \n",numStyles));
 
-	UT_GenericVector<PD_Style*> * pStyles = nullptr;
+	std::vector<PD_Style*> * pStyles = nullptr;
 	pDoc->enumStyles(pStyles);
 	UT_return_if_fail( pStyles );
 
 	for(i=0; i < numStyles; i++)
 	{
-		pStyle = pStyles->getNthItem(i);
+		pStyle = (*pStyles)[i];
 		m_vecAllStyles.addItem(pStyle);
-		vecStyles.addItem(pStyle);
+		vecStyles.push_back(pStyle);
 	}
 
 	delete pStyles;
@@ -276,12 +276,12 @@ void Stylist_tree::buildStyles(PD_Document * pDoc)
 	m_vecStyleRows.addItem(pStyleRow);
 	for(i=0; i< numStyles; i++)
 	{
-		pStyle = vecStyles.getNthItem(i);
+		pStyle = vecStyles[i];
 		if(isHeading(pStyle))
 		{
 			sTmp = pStyle->getName();
 			pStyleRow->addStyle(sTmp);
-			vecStyles.setNthItem(i,nullptr,nullptr);
+			vecStyles[i] = nullptr;
 			UT_DEBUGMSG(("Adding heading style %s \n",sTmp.c_str()));
 		}
 	}
@@ -294,12 +294,12 @@ void Stylist_tree::buildStyles(PD_Document * pDoc)
 	m_vecStyleRows.addItem(pStyleRow);
 	for(i=0; i< numStyles; i++)
 	{
-		pStyle = vecStyles.getNthItem(i);
+		pStyle = vecStyles[i];
 		if(pStyle && isList(pStyle))
 		{
 			sTmp = pStyle->getName();
 			pStyleRow->addStyle(sTmp);
-			vecStyles.setNthItem(i,nullptr,nullptr);
+			vecStyles[i] = nullptr;
 			UT_DEBUGMSG(("Adding List style %s \n",sTmp.c_str()));
 		}
 	}
@@ -312,12 +312,12 @@ void Stylist_tree::buildStyles(PD_Document * pDoc)
 	m_vecStyleRows.addItem(pStyleRow);
 	for(i=0; i< numStyles; i++)
 	{
-		pStyle = vecStyles.getNthItem(i);
+		pStyle = vecStyles[i];
 		if(pStyle && isFootnote(pStyle))
 		{
 			sTmp = pStyle->getName();
 			pStyleRow->addStyle(sTmp);
-			vecStyles.setNthItem(i,nullptr,nullptr);
+			vecStyles[i] = nullptr;
 			UT_DEBUGMSG(("Adding Footnote style %s \n",sTmp.c_str()));
 		}
 	}
@@ -330,12 +330,12 @@ void Stylist_tree::buildStyles(PD_Document * pDoc)
 	UT_sint32 iCount = 0;
 	for(i=0; i< numStyles; i++)
 	{
-		pStyle = vecStyles.getNthItem(i);
+		pStyle = vecStyles[i];
 		if(pStyle && isUser(pStyle))
 		{
 			sTmp = pStyle->getName();
 			pStyleRow->addStyle(sTmp);
-			vecStyles.setNthItem(i,nullptr,nullptr);
+			vecStyles[i] = nullptr;
 			iCount++;
 			UT_DEBUGMSG(("Adding User-defined style %s \n",sTmp.c_str()));
 		}
@@ -357,12 +357,12 @@ void Stylist_tree::buildStyles(PD_Document * pDoc)
 	m_vecStyleRows.addItem(pStyleRow);
 	for(i=0; i< numStyles; i++)
 	{
-		pStyle = vecStyles.getNthItem(i);
+		pStyle = vecStyles[i];
 		if(pStyle)
 		{
 			sTmp = pStyle->getName();
 			pStyleRow->addStyle(sTmp);
-			vecStyles.setNthItem(i,nullptr,nullptr);
+			vecStyles[i] = nullptr;
 			UT_DEBUGMSG(("Adding style %s \n",sTmp.c_str()));
 		}
 	}

@@ -20,6 +20,9 @@
  * 02110-1301 USA.
  */
  
+#include <algorithm>
+#include <vector>
+
 // Class definition include
 #include "ODe_Styles.h"
 
@@ -66,14 +69,14 @@ ODe_Styles::~ODe_Styles() {
 bool ODe_Styles::fetchRegularStyleStyles() {
     
     const PD_Style* pStyle = nullptr;
-    UT_GenericVector<PD_Style*> vecStyles;
+    std::vector<PD_Style*> vecStyles;
     m_pAbiDoc->getAllUsedStyles(&vecStyles);
     const PP_AttrProp* pAP;
     PT_AttrPropIndex api;
-    
-    for (UT_sint32 k=0; k < vecStyles.getItemCount(); k++)
+
+    for (UT_sint32 k=0; k < static_cast<UT_sint32>(vecStyles.size()); k++)
     {
-        pStyle = vecStyles.getNthItem(k);
+        pStyle = vecStyles[k];
 
         api = pStyle->getIndexAP();
         if( !m_pAbiDoc->getAttrProp(api, &pAP) ) {
@@ -88,23 +91,23 @@ bool ODe_Styles::fetchRegularStyleStyles() {
 
 
 
-    UT_GenericVector<PD_Style*>* pStyles = nullptr;
+    std::vector<PD_Style*>* pStyles = nullptr;
     m_pAbiDoc->enumStyles(pStyles);
     if (pStyles == nullptr) {
         return false;
     }
     UT_uint32 iStyleCount = m_pAbiDoc->getStyleCount();
     bool ok = true;
-    
+
     for (UT_uint32 k=0; k < iStyleCount && ok; k++)
     {
-        pStyle = pStyles->getNthItem(k);
+        pStyle = (*pStyles)[k];
         if (pStyle == nullptr) {
             return false;
         }
-        
+
         if (!pStyle->isUserDefined() ||
-            (vecStyles.findItem(const_cast<PD_Style*>(pStyle))) >= 0)
+            (std::find(vecStyles.begin(), vecStyles.end(), const_cast<PD_Style*>(pStyle)) != vecStyles.end()))
             continue;
 
         api = pStyle->getIndexAP();

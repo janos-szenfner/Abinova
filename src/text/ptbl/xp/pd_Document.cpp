@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include <memory>
+#include <unordered_set>
 
 #include "ut_types.h"
 #include "ut_string.h"
@@ -261,9 +262,7 @@ PD_Document::~PD_Document()
 
 	_destroyDataItemData();
 
-	UT_VECTOR_PURGEALL(pp_Author *, m_vecAuthors);
-	UT_VECTOR_PURGEALL(ImagePage *, m_pPendingImagePage);
-	UT_VECTOR_PURGEALL(TextboxPage *, m_pPendingTextboxPage);
+	// m_vecAuthors/m_pPending*Page self-clean via unique_ptr;
 	// we do not purge the contents of m_vecListeners
 	// since these are not owned by us.
 
@@ -341,12 +340,11 @@ bool PD_Document::isMarginChangeOnly(void) const
 
 void PD_Document::removeCaret(const std::string& sCaretID)
 {
-	UT_GenericVector<AV_View *> vecViews;
+	std::vector<AV_View *> vecViews;
 	getAllViews(&vecViews);
-	UT_sint32 i = 0;
-	for(i = 0; i<vecViews.getItemCount(); i++)
+	for(AV_View * pAV : vecViews)
 	{
-		FV_View * pView = static_cast<FV_View *>(vecViews.getNthItem(i));
+		FV_View * pView = static_cast<FV_View *>(pAV);
 		pView->removeCaret(sCaretID);
 	}
 }
@@ -355,36 +353,34 @@ void PD_Document::removeCaret(const std::string& sCaretID)
 
 void PD_Document::addPageReferencedImage(UT_UTF8String & sImageId, UT_sint32 iPage, double xInch, double yInch, const char * pzProps)
 {
-	m_pPendingImagePage.addItem(new ImagePage(sImageId, iPage, xInch, yInch, pzProps));
+	m_pPendingImagePage.emplace_back(new ImagePage(sImageId, iPage, xInch, yInch, pzProps));
 }
 
 void PD_Document::addPageReferencedTextbox(UT_ByteBuf & sContent,UT_sint32 iPage, double xInch, double yInch,const char * pzProps)
 {
-	m_pPendingTextboxPage.addItem(new TextboxPage(iPage, xInch,yInch,pzProps, sContent));
+	m_pPendingTextboxPage.emplace_back(new TextboxPage(iPage, xInch,yInch,pzProps, sContent));
 }
 
 ImagePage * PD_Document::getNthImagePage(UT_sint32 iImagePage) const
 {
-	if(iImagePage < m_pPendingImagePage.getItemCount())
+	if(iImagePage >= 0 && iImagePage < static_cast<UT_sint32>(m_pPendingImagePage.size()))
 	{
-		return m_pPendingImagePage.getNthItem(iImagePage);
+		return m_pPendingImagePage[iImagePage].get();
 	}
 	return nullptr;
 }
 
 TextboxPage * PD_Document::getNthTextboxPage(UT_sint32 iTextboxPage) const
 {
-	if(iTextboxPage < m_pPendingTextboxPage.getItemCount())
+	if(iTextboxPage >= 0 && iTextboxPage < static_cast<UT_sint32>(m_pPendingTextboxPage.size()))
 	{
-		return m_pPendingTextboxPage.getNthItem(iTextboxPage);
+		return m_pPendingTextboxPage[iTextboxPage].get();
 	}
 	return nullptr;
 }
 
 void PD_Document::clearAllPendingObjects(void)
 {
-	UT_VECTOR_PURGEALL(ImagePage *, m_pPendingImagePage);
-	UT_VECTOR_PURGEALL(TextboxPage *, m_pPendingTextboxPage);
 	m_pPendingImagePage.clear();
 	m_pPendingTextboxPage.clear();
 }
@@ -392,19 +388,21 @@ void PD_Document::clearAllPendingObjects(void)
 
 UT_sint32 PD_Document::getNumAuthors() const
 {
-	return m_vecAuthors.getItemCount();
+	return static_cast<UT_sint32>(m_vecAuthors.size());
 }
 
 pp_Author *  PD_Document::getNthAuthor(UT_sint32 i) const
 {
-	return m_vecAuthors.getNthItem(i);
+	if(i < 0 || i >= static_cast<UT_sint32>(m_vecAuthors.size()))
+		return nullptr;
+	return m_vecAuthors[i].get();
 }
 
 pp_Author *  PD_Document::addAuthor(UT_sint32 iAuthor)
 {
 	UT_DEBUGMSG(("creating author with int %d \n",iAuthor));
-	m_vecAuthors.addItem(new pp_Author(iAuthor));
-	return 	m_vecAuthors.getNthItem(m_vecAuthors.getItemCount()-1);
+	m_vecAuthors.emplace_back(new pp_Author(iAuthor));
+	return m_vecAuthors.back().get();
 }
 
 /** private method share by send*AuthorCR()
@@ -466,11 +464,10 @@ UT_sint32 PD_Document::findFirstFreeAuthorInt(void) const
 }
 pp_Author * PD_Document::getAuthorByInt(UT_sint32 i) const
 {
-	UT_sint32 j = 0;
-	for(j=0; j< m_vecAuthors.getItemCount(); j++)
+	for(const auto & pAuthor : m_vecAuthors)
 	{
-		if(m_vecAuthors.getNthItem(j)->getAuthorInt() == i)
-			return m_vecAuthors.getNthItem(j);
+		if(pAuthor->getAuthorInt() == i)
+			return pAuthor.get();
 	}
 	return nullptr;
 }
@@ -544,12 +541,11 @@ void PD_Document::setShowAuthors(bool bAuthors)
 	//
 	if(bChanged)
 	{
-		UT_GenericVector<AV_View *> vecViews;
+		std::vector<AV_View *> vecViews;
 		getAllViews(&vecViews);
-		UT_sint32 i = 0;
-		for(i = 0; i<vecViews.getItemCount(); i++)
+		for(AV_View * pAV : vecViews)
 		{
-			FV_View * pView = static_cast<FV_View *>(vecViews.getNthItem(i));
+			FV_View * pView = static_cast<FV_View *>(pAV);
 			FL_DocLayout * pL = pView->getLayout();
 			pL->refreshRunProperties();
 			pView->updateScreen(false ); // redraw the whole thing
@@ -1021,12 +1017,10 @@ UT_Error PD_Document::importStyles(const char * szFilename, int ieft, bool bDocP
 	// refreshed; in this case if style stamp > element stamp, element
 	// would reformat) Tomas, June 7, 2003
 	
-	UT_GenericVector<PD_Style*> vStyles;
+	std::vector<PD_Style*> vStyles;
 	getAllUsedStyles(&vStyles);
-	for(UT_sint32 i = 0; i < vStyles.getItemCount();i++)
+	for(PD_Style * pStyle : vStyles)
 	{
-		PD_Style * pStyle = vStyles.getNthItem(i);
-
 		if(pStyle)
 			updateDocForStyleChange(pStyle->getName(),!pStyle->isCharStyle());
 	}
@@ -1670,9 +1664,9 @@ bool PD_Document::repairDoc(void)
 
 	checkForSuspect(); // Look at last frag. If it's an endtable we need a block
 	UT_sint32 i = 0;
-	for(i=0; i< m_vecSuspectFrags.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecSuspectFrags.size()); i++)
 	{
-		pf = m_vecSuspectFrags.getNthItem(i);
+		pf = m_vecSuspectFrags[i];
 		UT_DEBUGMSG(("Suspect frag %d pointer %p \n", i, static_cast<void*>(pf)));
 		if(pf->getType() == pf_Frag::PFT_Strux)
 		{
@@ -1738,9 +1732,9 @@ bool PD_Document::repairDoc(void)
 	// Present.
 	// Remove repeated HdrFtr's
 	//
-	UT_GenericVector<pf_Frag_Strux *> vecSections;
-	UT_GenericVector<pf_Frag_Strux *> vecHdrFtrs;
-	UT_GenericVector<pf_Frag_Strux *> vecTables;
+	std::vector<pf_Frag_Strux *> vecSections;
+	std::vector<pf_Frag_Strux *> vecHdrFtrs;
+	std::vector<pf_Frag_Strux *> vecTables;
 	pf = m_pPieceTable->getFragments().getFirst();
 	while(pf)
 	{
@@ -1749,19 +1743,19 @@ bool PD_Document::repairDoc(void)
 			pfs = static_cast<pf_Frag_Strux *>(pf);
 			if(pfs->getStruxType() == PTX_Section)
 			{
-				vecSections.addItem(pfs);
+				vecSections.push_back(pfs);
 			}
 			else if(pfs->getStruxType() == PTX_SectionHdrFtr)
 			{
-				vecHdrFtrs.addItem(pfs);
+				vecHdrFtrs.push_back(pfs);
 			}
 			else if(pfs->getStruxType() == PTX_SectionTable)
 			{
-				vecTables.addItem(pfs);
+				vecTables.push_back(pfs);
 			}
 			else if(pfs->getStruxType() == PTX_EndTable)
 			{
-				vecTables.addItem(pfs);
+				vecTables.push_back(pfs);
 			}
 		}
 		pf = pf->getNext();
@@ -1769,17 +1763,17 @@ bool PD_Document::repairDoc(void)
 	//
 	// Look for bare tables struxes. Delete them if we find one
 	//
-	for(i=0; i< vecTables.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(vecTables.size()); i++)
 	{
-		pfs = vecTables.getNthItem(i);
+		pfs = vecTables[i];
 		bRepaired = bRepaired | _checkAndFixTable(pfs);
 	}
 	//
 	// Fix section matching of HdrFtrs
 	//
-	for(i = 0; i< vecSections.getItemCount(); i++)
+	for(i = 0; i< static_cast<UT_sint32>(vecSections.size()); i++)
 	{
-		pfs = vecSections.getNthItem(i);
+		pfs = vecSections[i];
 		bRepaired = bRepaired | _pruneSectionAPI(pfs,"header",&vecHdrFtrs);
 		bRepaired = bRepaired | _pruneSectionAPI(pfs,"header-even",&vecHdrFtrs);
 		bRepaired = bRepaired | _pruneSectionAPI(pfs,"header-first",&vecHdrFtrs);
@@ -1789,12 +1783,12 @@ bool PD_Document::repairDoc(void)
 		bRepaired = bRepaired | _pruneSectionAPI(pfs,"footer-first",&vecHdrFtrs);
 		bRepaired = bRepaired | _pruneSectionAPI(pfs,"footer-last",&vecHdrFtrs);
 	}
-	for(i = 0; i< vecHdrFtrs.getItemCount(); i++)
+	for(i = 0; i< static_cast<UT_sint32>(vecHdrFtrs.size()); i++)
 	{
-		pfs = vecHdrFtrs.getNthItem(i);
+		pfs = vecHdrFtrs[i];
 		if(m_deletedRepairFrags.count(pfs))
 		{
-			vecHdrFtrs.deleteNthItem(i);
+			vecHdrFtrs.erase(vecHdrFtrs.begin()+i);
 			i--;
 			continue;
 		}
@@ -1805,16 +1799,16 @@ bool PD_Document::repairDoc(void)
 			//
 			_removeHdrFtr(pfs);
 			bRepaired = true;
-			vecHdrFtrs.deleteNthItem(i);
+			vecHdrFtrs.erase(vecHdrFtrs.begin()+i);
 			i--;
 		}
 	}
 	//
 	// Now remove repeated HdrFtr's ie Header/Footers with identical ID's
 	//
-	for(i = 0; i< vecHdrFtrs.getItemCount(); i++)
+	for(i = 0; i< static_cast<UT_sint32>(vecHdrFtrs.size()); i++)
 	{
-		pfs = vecHdrFtrs.getNthItem(i);
+		pfs = vecHdrFtrs[i];
 		if(m_deletedRepairFrags.count(pfs))
 		{
 			continue;
@@ -1827,9 +1821,9 @@ bool PD_Document::repairDoc(void)
 	//
 	// Check that no section is empty. Add block if necessary
 	//
-	for(i = 0; i < vecSections.getItemCount(); i++)
+	for(i = 0; i < static_cast<UT_sint32>(vecSections.size()); i++)
 	{
-		pfs = vecSections.getNthItem(i);
+		pfs = vecSections[i];
 		if(m_deletedRepairFrags.count(pfs))
 		{
 			continue;
@@ -1849,9 +1843,9 @@ bool PD_Document::repairDoc(void)
 		}
 	}
 
-	for(i = 0; i < vecHdrFtrs.getItemCount(); i++)
+	for(i = 0; i < static_cast<UT_sint32>(vecHdrFtrs.size()); i++)
 	{
-		pfs = vecHdrFtrs.getNthItem(i);
+		pfs = vecHdrFtrs[i];
 		if(m_deletedRepairFrags.count(pfs))
 		{
 			continue;
@@ -1907,7 +1901,7 @@ bool PD_Document::repairDoc(void)
  * input strux.
  * If we find a match delete the HdrFtr
  */
-bool PD_Document::_removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,UT_GenericVector<pf_Frag_Strux *> * vecHdrFtrs,UT_sint32 iStart)
+bool PD_Document::_removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,std::vector<pf_Frag_Strux *> * vecHdrFtrs,UT_sint32 iStart)
 {
 	const char * pszMyHdrFtr = nullptr;
 	const char * pszMyID = nullptr;
@@ -1919,9 +1913,9 @@ bool PD_Document::_removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,UT_GenericVector<pf
 	getAttributeFromStrux(pfs, false, 0, "id", &pszMyID);
 	if(pszMyHdrFtr && *pszMyHdrFtr && pszMyID && *pszMyID)
 	{
-		for(i = iStart; i<vecHdrFtrs->getItemCount(); i++)
+		for(i = iStart; i<static_cast<UT_sint32>(vecHdrFtrs->size()); i++)
 		{
-			pfsS = vecHdrFtrs->getNthItem(i);
+			pfsS = (*vecHdrFtrs)[i];
 			if(m_deletedRepairFrags.count(pfsS))
 			{
 				continue;
@@ -1934,7 +1928,7 @@ bool PD_Document::_removeRepeatedHdrFtr(pf_Frag_Strux * pfs ,UT_GenericVector<pf
 				   (strcmp(pszMyID,pszThisID) == 0))
 				{
 					_removeHdrFtr(pfsS);
-					vecHdrFtrs->deleteNthItem(i);
+					vecHdrFtrs->erase(vecHdrFtrs->begin()+i);
 					i--;
 				}
 			}
@@ -2009,7 +2003,7 @@ bool PD_Document::_checkAndFixTable(pf_Frag_Strux * pfs)
  * in the section strux pfs.
  * Return true of a prune happened
  */
-bool PD_Document::_pruneSectionAPI(pf_Frag_Strux * pfs,const char * szHType, UT_GenericVector<pf_Frag_Strux *> *vecHdrFtrs)
+bool PD_Document::_pruneSectionAPI(pf_Frag_Strux * pfs,const char * szHType, std::vector<pf_Frag_Strux *> *vecHdrFtrs)
 {
 	const char * pszHdrFtr = nullptr;
 	const char * pszHFID = nullptr;
@@ -2020,9 +2014,9 @@ bool PD_Document::_pruneSectionAPI(pf_Frag_Strux * pfs,const char * szHType, UT_
 		return false;
 	if(!(*pszID))
 		return false;
-	for(i= 0; i< vecHdrFtrs->getItemCount(); i++)
+	for(i= 0; i< static_cast<UT_sint32>(vecHdrFtrs->size()); i++)
 	{
-		const pf_Frag_Strux * pfsS = vecHdrFtrs->getNthItem(i);
+		const pf_Frag_Strux * pfsS = (*vecHdrFtrs)[i];
 		getAttributeFromStrux(pfsS,false,0,"type",&pszHdrFtr);
 		if(pszHdrFtr && *pszHdrFtr)
 		{
@@ -2089,7 +2083,7 @@ bool PD_Document::_removeHdrFtr(pf_Frag_Strux * pfs)
  * pfs point to a header footer section. This Method returns true if there
  * is a section that has a reference to it's HdrFtr type and id
  */
-bool PD_Document::_matchSection(pf_Frag_Strux * pfs, UT_GenericVector<pf_Frag_Strux *> *vecSections) const
+bool PD_Document::_matchSection(pf_Frag_Strux * pfs, std::vector<pf_Frag_Strux *> *vecSections) const
 {
 	const char * pszHdrFtr = nullptr;
 	const char * pszHFID = nullptr;
@@ -2105,9 +2099,9 @@ bool PD_Document::_matchSection(pf_Frag_Strux * pfs, UT_GenericVector<pf_Frag_St
 		return false;
 	if(!(*pszHFID))
 		return false;
-	for(i= 0; i< vecSections->getItemCount(); i++)
+	for(i= 0; i< static_cast<UT_sint32>(vecSections->size()); i++)
 	{
-		const pf_Frag_Strux * pfsS = vecSections->getNthItem(i);
+		const pf_Frag_Strux * pfsS = (*vecSections)[i];
 		getAttributeFromStrux(pfsS,false,0,pszHdrFtr,&pszID);
 		if(pszID && *pszID)
 		{
@@ -2141,7 +2135,7 @@ bool PD_Document::checkForSuspect(void)
 			//
 			// Append a block!
 			//
-			m_vecSuspectFrags.addItem(pf);
+			m_vecSuspectFrags.push_back(pf);
 			return true;
 		}
 		
@@ -3584,7 +3578,7 @@ pf_Frag_Strux* PD_Document::getCellMutStruxFromRowCol(const pf_Frag_Strux* table
  * styles in the basedon heiracy and the followedby list
  *
  */
-void PD_Document::getAllUsedStyles(UT_GenericVector <PD_Style*>* pVecStyles) const
+void PD_Document::getAllUsedStyles(std::vector <PD_Style*>* pVecStyles) const
 {
 	UT_sint32 i = 0;
 	pf_Frag * currentFrag = m_pPieceTable->getFragments().getFirst();
@@ -3623,20 +3617,20 @@ void PD_Document::getAllUsedStyles(UT_GenericVector <PD_Style*>* pVecStyles) con
 			UT_return_if_fail (pStyle);
 			if(pStyle)
 			{
-				if(pVecStyles->findItem(pStyle) < 0)
-					pVecStyles->addItem(pStyle);
+				if(std::find(pVecStyles->begin(),pVecStyles->end(),pStyle) == pVecStyles->end())
+					pVecStyles->push_back(pStyle);
 				PD_Style * pBasedOn = pStyle->getBasedOn();
 				i = 0;
 				while(pBasedOn != nullptr && i <  pp_BASEDON_DEPTH_LIMIT)
 				{
-					if(pVecStyles->findItem(pBasedOn) < 0)
-						pVecStyles->addItem(pBasedOn);
+					if(std::find(pVecStyles->begin(),pVecStyles->end(),pBasedOn) == pVecStyles->end())
+						pVecStyles->push_back(pBasedOn);
 					i++;
 					pBasedOn = pBasedOn->getBasedOn();
 				}
 				PD_Style * pFollowedBy = pStyle->getFollowedBy();
-				if(pFollowedBy && (pVecStyles->findItem(pFollowedBy) < 0))
-					pVecStyles->addItem(pFollowedBy);
+				if(pFollowedBy && (std::find(pVecStyles->begin(),pVecStyles->end(),pFollowedBy) == pVecStyles->end()))
+					pVecStyles->push_back(pFollowedBy);
 			}
 		}
 //
@@ -3703,7 +3697,7 @@ bool PD_Document::removeStyle(const gchar * pszName)
 // the style or the basedon style or the followed by style. Replace these with
 // "normal"
 //
-	UT_GenericVector<prevStuff *> vFrag;
+	std::vector<std::unique_ptr<prevStuff>> vFrag;
 
 	PT_DocPosition pos = 0;
 	pf_Frag_Strux * pfs = nullptr;
@@ -3757,7 +3751,7 @@ bool PD_Document::removeStyle(const gchar * pszName)
 			pStuff->thisStruxPos = pos;
 			pStuff->fragLength = currentFrag->getLength();
 			pStuff->bChangeIndexAP = true;
-			vFrag.addItem(pStuff);
+			vFrag.emplace_back(pStuff);
 //
 // OK set this frag's indexAP to that of basedon of our deleted style or
 // Normal.
@@ -3799,7 +3793,7 @@ bool PD_Document::removeStyle(const gchar * pszName)
 				pStuff->thisStruxPos = pos;
 				pStuff->fragLength = currentFrag->getLength();
 				pStuff->bChangeIndexAP = false;
-				vFrag.addItem(pStuff);
+				vFrag.emplace_back(pStuff);
 			}
 //
 // Look if followedBy points to our style
@@ -3815,7 +3809,7 @@ bool PD_Document::removeStyle(const gchar * pszName)
 				pStuff->thisStruxPos = pos;
 				pStuff->fragLength = currentFrag->getLength();
 				pStuff->bChangeIndexAP = false;
-				vFrag.addItem(pStuff);
+				vFrag.emplace_back(pStuff);
 			}
 		}
 		pos = pos + currentFrag->getLength();
@@ -3827,14 +3821,14 @@ bool PD_Document::removeStyle(const gchar * pszName)
 //
 	UT_uint32 nstyles = getStyleCount();
 	UT_uint32 i;
-	UT_GenericVector<PD_Style*> * pStyles = nullptr;
+	std::vector<PD_Style*> * pStyles = nullptr;
 	enumStyles(pStyles);
 	UT_return_val_if_fail( pStyles, false );
-	
+
 	for(i=0; i< nstyles;i++)
 	{
 		// enumStyles(i, &szCstyle,&cStyle);
-		PD_Style * pStyle = pStyles->getNthItem(i);
+		PD_Style * pStyle = (*pStyles)[i];
 		UT_return_val_if_fail( pStyle, false );
 		
 		bool bDoBasedOn = false;
@@ -3881,13 +3875,13 @@ bool PD_Document::removeStyle(const gchar * pszName)
 // Alright now we replace all the instances of fragSrux using the style to be
 // deleted.
 //
-	UT_sint32 countChanges = vFrag.getItemCount();
+	UT_sint32 countChanges = static_cast<UT_sint32>(vFrag.size());
 	UT_sint32 j;
 	pf_Frag * pfsLast = nullptr;
 	PX_ChangeRecord * pcr = nullptr;
 	for(j = 0; j<countChanges; j++)
 	{
-		prevStuff * pStuff = static_cast<prevStuff *>(vFrag.getNthItem(j));
+		prevStuff * pStuff = vFrag[j].get();
 		UT_nonnull_or_continue(pStuff);
 		if(pStuff->fragType == pf_Frag::PFT_Strux)
 		{
@@ -3946,10 +3940,7 @@ bool PD_Document::removeStyle(const gchar * pszName)
 //  			delete pcr;
 //  		}
 //  	}
-	if(countChanges > 0)
-	{
-		UT_VECTOR_PURGEALL(prevStuff *,vFrag);
-	}
+	// vFrag self-cleans via unique_ptr
 //
 // Now reformat the entire document
 //
@@ -3998,24 +3989,23 @@ bool PD_Document::tellListenerSubset( PL_Listener* pListener,
 bool PD_Document::addListener(PL_Listener * pListener,
 								 PL_ListenerId * pListenerId)
 {
-	UT_sint32 kLimit = m_vecListeners.getItemCount();
+	UT_sint32 kLimit = static_cast<UT_sint32>(m_vecListeners.size());
 	UT_sint32 k=0;
 
 	// see if we can recycle a cell in the vector.
 
 	for (k=0; k<kLimit; k++)
-		if (m_vecListeners.getNthItem(k) == nullptr)
+		if (m_vecListeners[k] == nullptr)
 			break;
 
 	if (k < kLimit)
 	{
-		m_vecListeners.setNthItem(k,pListener,nullptr);
+		m_vecListeners[k] = pListener;
 	}
-	else if (m_vecListeners.addItem(pListener,&k) != 0)
+	else
 	{
 		// otherwise, extend the vector for it.
-		UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-		return false;				// could not add item to vector
+		m_vecListeners.push_back(pListener);
 	}
 
 	// propagate the listener to the PieceTable and
@@ -4033,7 +4023,10 @@ bool PD_Document::addListener(PL_Listener * pListener,
 bool PD_Document::removeListener(PL_ListenerId listenerId)
 {
 	xxx_UT_DEBUGMSG(("Removing lid %d from document %x \n",listenerId,this));
-	bool res = (m_vecListeners.setNthItem(listenerId,nullptr,nullptr) == 0);
+	if (listenerId >= m_vecListeners.size())
+		m_vecListeners.resize(listenerId + 1, nullptr);
+	m_vecListeners[listenerId] = nullptr;
+	bool res = true;
 
 	// clear out all format handles that this listener has created
 	pf_Frag* pFrag = m_pPieceTable->getFragments().getFirst();
@@ -4066,7 +4059,7 @@ bool PD_Document::signalListeners(UT_uint32 iSignal) const
 			return true;
 	}
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listners (for listeners which have been
@@ -4074,7 +4067,7 @@ bool PD_Document::signalListeners(UT_uint32 iSignal) const
 
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = m_vecListeners.getNthItem(lid);
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			pListener->signal(iSignal);
@@ -4090,10 +4083,10 @@ bool PD_Document::signalListeners(UT_uint32 iSignal) const
 void PD_Document::removeConnections(void)
 {
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = static_cast<PL_Listener *>(m_vecListeners.getNthItem(lid));
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			if(pListener->getType() >= PTL_CollabExport)
@@ -4112,10 +4105,10 @@ void PD_Document::removeConnections(void)
 void PD_Document::changeConnectedDocument(PD_Document * pDoc)
 {
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = static_cast<PL_Listener *>(m_vecListeners.getNthItem(lid));
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			if(pListener->getType() >= PTL_CollabExport )
@@ -4129,11 +4122,11 @@ void PD_Document::changeConnectedDocument(PD_Document * pDoc)
 
 std::list<AV_View*> PD_Document::getAllViews() const
 {
-    UT_GenericVector<AV_View *> t;
+    std::vector<AV_View *> t;
     getAllViews( &t );
     std::list<AV_View*> ret;
-    for( int i=0; i < t.size(); ++i )
-        ret.push_back( static_cast<AV_View*>(t[i] ));
+    for(AV_View * pView : t)
+        ret.push_back( pView );
     return ret;
 }
 
@@ -4141,10 +4134,10 @@ std::list<AV_View*> PD_Document::getAllViews() const
 /*!
  * return a vector of all the views attached to this document.
  */
-void PD_Document::getAllViews(UT_GenericVector<AV_View *> * vecViews) const
+void PD_Document::getAllViews(std::vector<AV_View *> * vecViews) const
 {
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listners (for listeners which have been
@@ -4152,7 +4145,7 @@ void PD_Document::getAllViews(UT_GenericVector<AV_View *> * vecViews) const
 
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = static_cast<PL_Listener *>(m_vecListeners.getNthItem(lid));
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			if(pListener->getType() == PTL_DocLayout)
@@ -4164,7 +4157,7 @@ void PD_Document::getAllViews(UT_GenericVector<AV_View *> * vecViews) const
 						AV_View * pView = pLayout->getView();
 						if(pView != nullptr)
 						 {
-							 vecViews->addItem(pView);
+							 vecViews->push_back(pView);
 						 }
 					}
 				}
@@ -4190,7 +4183,7 @@ bool PD_Document::notifyListeners(const pf_Frag_Strux* pfs, PX_ChangeRecord* pcr
 			pcr->setCRNumber();
 	}
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listners (for listeners which have been
@@ -4198,7 +4191,7 @@ bool PD_Document::notifyListeners(const pf_Frag_Strux* pfs, PX_ChangeRecord* pcr
 
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = static_cast<PL_Listener *>(m_vecListeners.getNthItem(lid));
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			fl_ContainerLayout* sfh = nullptr;
@@ -4226,7 +4219,7 @@ void PD_Document::deferNotifications(void)
 #endif
 
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listeners (for listeners which have been
@@ -4234,7 +4227,7 @@ void PD_Document::deferNotifications(void)
 
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = static_cast<PL_Listener *>(m_vecListeners.getNthItem(lid));
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			pListener->deferNotifications();
@@ -4322,7 +4315,7 @@ void PD_Document::processDeferredNotifications(void)
 #endif
 
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listeners (for listeners which have been
@@ -4330,7 +4323,7 @@ void PD_Document::processDeferredNotifications(void)
 
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = m_vecListeners.getNthItem(lid);
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			pListener->processDeferredNotifications();
@@ -4343,7 +4336,7 @@ void PD_Document::processDeferredNotifications(void)
 
 fl_ContainerLayout* PD_Document::getNthFmtHandle(const pf_Frag_Strux* pfs, UT_uint32 n) const
 {
-	UT_uint32 nListen = m_vecListeners.getItemCount();
+	UT_uint32 nListen = static_cast<UT_uint32>(m_vecListeners.size());
 	if(n >= nListen)
 		return nullptr;
 	PL_ListenerId lid = static_cast<PL_ListenerId>(n);
@@ -4386,7 +4379,7 @@ bool PD_Document::notifyListeners(const pf_Frag_Strux * pfs,
 	}
 
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listeners (for listeners which have been
@@ -4394,7 +4387,7 @@ bool PD_Document::notifyListeners(const pf_Frag_Strux * pfs,
 
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = m_vecListeners.getNthItem(lid);
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			pf_Frag_Strux* sdhNew = static_cast<pf_Frag_Strux*>(pfsNew);
@@ -4421,10 +4414,10 @@ bool PD_Document::notifyListeners(const pf_Frag_Strux * pfs,
 bool PD_Document::isConnected(void) const
 {
 	PL_ListenerId lid;
-	PL_ListenerId lidCount = m_vecListeners.getItemCount();
+	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 	for (lid=0; lid<lidCount; lid++)
 	{
-		PL_Listener * pListener = m_vecListeners.getNthItem(lid);
+		PL_Listener * pListener = m_vecListeners[lid];
 		if (pListener)
 		{
 			if(pListener->getType() >= PTL_CollabExport)
@@ -5395,7 +5388,7 @@ bool PD_Document::enumStyles(UT_uint32 k,
 	return m_pPieceTable->enumStyles(k, pszName, ppStyle);
 }
 
-bool PD_Document::enumStyles(UT_GenericVector<PD_Style*> * & pStyles) const
+bool PD_Document::enumStyles(std::vector<PD_Style*> * & pStyles) const
 {
 	return m_pPieceTable->enumStyles(pStyles);
 }
@@ -6556,12 +6549,12 @@ bool PD_Document::_exportInitVisDirection(PT_DocPosition pos)
 	m_pVDRun = nullptr;
 
 	// find the first DocLayout listener
-	UT_uint32 count = m_vecListeners.getItemCount();
+	UT_uint32 count = static_cast<UT_uint32>(m_vecListeners.size());
 	fl_DocListener* pDocListener = nullptr;
 
 	for(UT_uint32 i = 0; i < count; i++)
 	{
-		PL_Listener * pL = static_cast<PL_Listener *>( m_vecListeners.getNthItem(i));
+		PL_Listener * pL = m_vecListeners[i];
 		if(pL && pL->getType() == PTL_DocLayout)
 		{
 			pDocListener = static_cast<fl_DocListener*>( pL);
@@ -6657,7 +6650,7 @@ bool PD_Document::insertStruxBeforeFrag(const pf_Frag * pF, PTStruxType pts,
 			pf_Frag_Strux * pfs = static_cast<pf_Frag_Strux *>(pPrevFrag);
 			if(pfs->getStruxType() == PTX_SectionCell)
 			{
-				m_vecSuspectFrags.addItem(pPrevFrag);
+				m_vecSuspectFrags.push_back(pPrevFrag);
 			}
 		}
 	}
@@ -6676,7 +6669,7 @@ bool PD_Document::insertSpanBeforeFrag(const pf_Frag * pF, const UT_UCS4Char * p
 			//
 			// Append a block!
 			//
-			m_vecSuspectFrags.addItem(const_cast<pf_Frag*>(pF));
+			m_vecSuspectFrags.push_back(const_cast<pf_Frag*>(pF));
 			return true;
 		}
 	}
@@ -6761,7 +6754,7 @@ bool PD_Document::insertObjectBeforeFrag(const pf_Frag * pF, PTObjectType pto,
 			//
 			// Append a block!
 			//
-			m_vecSuspectFrags.addItem(const_cast<pf_Frag*>(pF));
+			m_vecSuspectFrags.push_back(const_cast<pf_Frag*>(pF));
 			return true;
 		}
 	}
@@ -6782,7 +6775,7 @@ bool PD_Document::insertFmtMarkBeforeFrag(const pf_Frag * pF)
 			//
 			// Append a block!
 			//
-			m_vecSuspectFrags.addItem(const_cast<pf_Frag*>(pF));
+			m_vecSuspectFrags.push_back(const_cast<pf_Frag*>(pF));
 			return true;
 		}
 	}
@@ -6925,7 +6918,7 @@ bool PD_Document::areDocumentStylesheetsEqual(const AD_Document &D) const
 	if(hS1.size() != hS2.size())
 		return false;
 
-	UT_StringPtrMap hFmtMap;
+	std::unordered_set<std::string> hFmtMap;
 
 	for(std::map<std::string,PD_Style*>::const_iterator iter = hS1.begin();
 		iter != hS1.end(); ++iter)
@@ -6956,8 +6949,8 @@ bool PD_Document::areDocumentStylesheetsEqual(const AD_Document &D) const
 
 		// must print all digits to make this unambigous
 		std::string s = UT_std_string_sprintf("%08x%08x", ap1, ap2);
-		bool bAreSame = hFmtMap.contains(s,nullptr);
-		
+		bool bAreSame = hFmtMap.count(s) != 0;
+
 		if(!bAreSame)
 		{
 			if(!pAP1->isEquivalent(pAP2))
@@ -6966,7 +6959,7 @@ bool PD_Document::areDocumentStylesheetsEqual(const AD_Document &D) const
 			}
 			else
 			{
-				hFmtMap.insert(s,nullptr);
+				hFmtMap.insert(s);
 			}
 		}
 	}
@@ -7692,7 +7685,7 @@ void PD_Document::purgeRevisionTable(bool bUnconditional /* = false */)
 	if(!bUnconditional)
 	{
 		UT_String sAPI;
-		UT_StringPtrMap hAPI;
+		std::unordered_set<std::string> hAPI;
 	
 		PD_DocIterator t(*this);
 
@@ -7707,7 +7700,7 @@ void PD_Document::purgeRevisionTable(bool bUnconditional /* = false */)
 
 			UT_String_sprintf(sAPI, "%08x", api);
 
-			if(!hAPI.contains(sAPI, nullptr))
+			if(hAPI.find(sAPI.c_str()) == hAPI.end())
 			{
 				const PP_AttrProp * pAP;
 				UT_return_if_fail(getAttrProp(api, &pAP));
@@ -7720,7 +7713,7 @@ void PD_Document::purgeRevisionTable(bool bUnconditional /* = false */)
 
 				// cache this api so we do not need to do this again if we
 				// come across it
-				hAPI.insert(sAPI,nullptr);
+				hAPI.insert(sAPI.c_str());
 			}
 
 			t += pf->getLength();
@@ -8158,7 +8151,7 @@ bool PD_Document::areDocumentFormatsEqual(const AD_Document &D, UT_uint32 &pos) 
 		
 	// in order to avoid repeated comparions of AP, we will store
 	// record of matching AP's
-	UT_StringPtrMap hFmtMap;
+	std::unordered_set<std::string> hFmtMap;
 	
 	while(t1.getStatus() == UTIter_OK && t2.getStatus() == UTIter_OK)
 	{
@@ -8183,8 +8176,8 @@ bool PD_Document::areDocumentFormatsEqual(const AD_Document &D, UT_uint32 &pos) 
 
 		UT_String s;
 		UT_String_sprintf(s,"%08x%08x", ap1, ap2);
-		bool bAreSame = hFmtMap.contains(s,nullptr);
-		
+		bool bAreSame = hFmtMap.count(s.c_str()) != 0;
+
 		if(!bAreSame)
 		{
 			if(!pAP1->isEquivalent(pAP2))
@@ -8194,7 +8187,7 @@ bool PD_Document::areDocumentFormatsEqual(const AD_Document &D, UT_uint32 &pos) 
 			}
 			else
 			{
-				hFmtMap.insert(s,nullptr);
+				hFmtMap.insert(s.c_str());
 			}
 		}
 		

@@ -1156,12 +1156,12 @@ void s_Abinova_1_Listener::_handleStyles(void)
 	bool bWroteOpenStyleSection = false;
 
 	const PD_Style * pStyle=nullptr;
-	UT_GenericVector<PD_Style *> vecStyles;
+	std::vector<PD_Style *> vecStyles;
 	m_pDocument->getAllUsedStyles(&vecStyles);
 	UT_sint32 k = 0;
-	for (k=0; k < vecStyles.getItemCount(); k++)
+	for (k=0; k < static_cast<UT_sint32>(vecStyles.size()); k++)
 	{
-		pStyle = vecStyles.getNthItem(k);
+		pStyle = vecStyles[k];
 		if (!bWroteOpenStyleSection)
 		{
 			m_pie->startElement("styles");
@@ -1172,17 +1172,17 @@ void s_Abinova_1_Listener::_handleStyles(void)
 		_openTag("s",false,api,0);
 	}
 
-	UT_GenericVector<PD_Style*> * pStyles = nullptr;
+	std::vector<PD_Style*> * pStyles = nullptr;
 	m_pDocument->enumStyles(pStyles);
 	UT_ASSERT_HARMLESS( pStyles );
 	UT_sint32 iStyleCount = m_pDocument->getStyleCount();
-	
+
 	for (k=0; (k < iStyleCount) && pStyles; k++)
 	{
-		pStyle = pStyles->getNthItem(k);
+		pStyle = (*pStyles)[k];
 		UT_continue_if_fail( pStyle );
-		
-		if (!pStyle->isUserDefined() || (vecStyles.findItem(const_cast<PD_Style*>(pStyle))) >= 0)
+
+		if (!pStyle->isUserDefined() || (std::find(vecStyles.begin(), vecStyles.end(), const_cast<PD_Style*>(pStyle)) != vecStyles.end()))
 			continue;
 
 		if (!bWroteOpenStyleSection)

@@ -647,11 +647,11 @@ void AP_UnixDialog_Styles::_populateCList(void)
 	}
 
 	bool highlight = false;
-	UT_GenericVector<PD_Style*> *pStyles = nullptr;
+	std::vector<PD_Style*> *pStyles = nullptr;
 	getDoc()->enumStyles(pStyles);
 	for (UT_uint32 i = 0; i < nStyles; i++)
 	{
-		pStyle = pStyles->getNthItem(i);
+		pStyle = (*pStyles)[i];
 
 		// style has been deleted probably
 		if (!pStyle)
@@ -1512,12 +1512,12 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 //
 // Next make a glists of all styles and attach them to the BasedOn and FollowedBy
 //
-	UT_GenericVector<PD_Style*> * pStyles = nullptr;
+	std::vector<PD_Style*> * pStyles = nullptr;
 	getDoc()->enumStyles(pStyles);
-	UT_sint32 nStyles = pStyles ? pStyles->getItemCount() : 0;
+	UT_sint32 nStyles = pStyles ? static_cast<UT_sint32>(pStyles->size()) : 0;
 	for (UT_sint32 i = 0; i < nStyles; i++)
 	{
-		const PD_Style * pcStyle = pStyles->getNthItem(i);
+		const PD_Style * pcStyle = (*pStyles)[i];
 		UT_nonnull_or_continue(pcStyle);
 		const char * name = pcStyle->getName();
 		std::string sLoc;

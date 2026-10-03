@@ -48,12 +48,11 @@ px_ChangeHistory::__dump(FILE * fp) const
 	fprintf(fp," ChangeHistory: save pos %d\n",static_cast<int>(m_savePosition));
 	fprintf(fp," ChangeHistory: Change records:\n");
 
-	UT_uint32 kLimit = m_vecChangeRecords.getItemCount();
+	UT_uint32 kLimit = static_cast<UT_uint32>(m_vecChangeRecords.size());
 	UT_uint32 k;
 	for (k = 0; k < kLimit; k++)
 	{
-		PX_ChangeRecord* pcrTemp = 
-			static_cast<PX_ChangeRecord *>( m_vecChangeRecords.getNthItem(k));
+		PX_ChangeRecord* pcrTemp = _getCR(static_cast<UT_sint32>(k));
 		pcrTemp->__dump(fp);
 	}
 }

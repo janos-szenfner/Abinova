@@ -101,11 +101,11 @@ bool AP_UnixToolbar_StyleCombo::populate(void)
 	// HYP:  only call this method from shared code? 
 	const PD_Style * pStyle;
 
-	UT_GenericVector<PD_Style*> * pStyles = nullptr;
+	std::vector<PD_Style*> * pStyles = nullptr;
 	pDocument->enumStyles(pStyles);
-	for (UT_uint32 k=0; k < pStyles->getItemCount(); k++)
+	for (UT_uint32 k=0; k < pStyles->size(); k++)
 	{
-		pStyle = pStyles->getNthItem(k);
+		pStyle = (*pStyles)[k];
 		if (pStyle && pStyle->isDisplayed()) {
 			m_vecContents.addItem(pStyle->getName());
 		}
@@ -152,11 +152,11 @@ bool AP_UnixToolbar_StyleCombo::repopulate(void)
 	const PD_Style * pStyle;
 	GSList *list = nullptr;
 
-	UT_GenericVector<PD_Style*> *pStyles = nullptr;
+	std::vector<PD_Style*> *pStyles = nullptr;
 	pDocument->enumStyles(pStyles);
-	for (UT_sint32 k=0; k < pStyles->getItemCount(); k++)
+	for (UT_sint32 k=0; k < static_cast<UT_sint32>(pStyles->size()); k++)
 	{
-		pStyle = pStyles->getNthItem(k);
+		pStyle = (*pStyles)[k];
 
 		if(!pStyle) {
 			continue;

@@ -519,11 +519,11 @@ bool pt_PieceTable::enumStyles(UT_uint32 k,
 	if (k >= kLimit)
 		return false;
 
-	UT_GenericVector<PD_Style*> * vStyle = nullptr;
+	std::vector<PD_Style*> * vStyle = nullptr;
 	enumStyles(vStyle);
 	//vStyle->sort(compareStyleNames);
 
-	PD_Style * pStyle = vStyle->getNthItem(k);
+	PD_Style * pStyle = (*vStyle)[k];
 	UT_return_val_if_fail (pStyle,false);
 
 	if (ppStyle)
@@ -546,13 +546,13 @@ bool pt_PieceTable::enumStyles(UT_uint32 k,
     generate vector of styles
     the caller has to delete pStyle when done ...
 */
-bool pt_PieceTable::enumStyles(UT_GenericVector<PD_Style*> *& pStyles) const
+bool pt_PieceTable::enumStyles(std::vector<PD_Style*> *& pStyles) const
 {
-	pStyles = new UT_GenericVector<PD_Style*>;
+	pStyles = new std::vector<PD_Style*>;
 
 	for(StyleMap::const_iterator iter = m_hashStyles.begin();
 		iter != m_hashStyles.end(); ++iter) {
-		pStyles->addItem(iter->second);
+		pStyles->push_back(iter->second);
 	}
 
 	return true;

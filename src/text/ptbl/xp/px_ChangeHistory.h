@@ -21,6 +21,9 @@
 #ifndef PX_CHANGEHISTORY_H
 #define PX_CHANGEHISTORY_H
 
+#include <memory>
+#include <vector>
+
 #include "ut_types.h"
 #include "px_ChangeRecord.h"
 
@@ -93,8 +96,14 @@ protected:
 	void					_invalidateRedo(void);
 	void					_invalidateHistory(void);
 	void                                    _printHistory(UT_sint32 i) const;
+	PX_ChangeRecord *		_getCR(UT_sint32 ndx) const
+	{
+		if (ndx < 0 || ndx >= static_cast<UT_sint32>(m_vecChangeRecords.size()))
+			return nullptr;
+		return m_vecChangeRecords[ndx].get();
+	}
 
-	UT_GenericVector<PX_ChangeRecord *>		m_vecChangeRecords;
+	std::vector<std::unique_ptr<PX_ChangeRecord>>	m_vecChangeRecords;
 	UT_sint32				m_undoPosition;
 	UT_sint32				m_savePosition;
 	pt_PieceTable *         m_pPT;

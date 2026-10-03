@@ -73,12 +73,12 @@ IE_Exp_DocRangeListener::IE_Exp_DocRangeListener(PD_DocumentRange * pDocRange, P
   //
   // Next export all the styles
   //
-     UT_GenericVector<PD_Style*> VecStyles;
+     std::vector<PD_Style*> VecStyles;
      m_pSourceDoc->getAllUsedStyles(&VecStyles);
      UT_sint32 i = 0;
-     for(i=0; i< VecStyles.getItemCount();i++)
+     for(i=0; i< static_cast<UT_sint32>(VecStyles.size());i++)
      {
-          PD_Style * pStyle = VecStyles.getNthItem(i);
+          PD_Style * pStyle = VecStyles[i];
           PT_AttrPropIndex iAP = pStyle->getIndexAP();
           PP_PropertyVector atts;
           const PP_AttrProp* pAP = nullptr;

@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <list>
 #include <stack>
+#include <vector>
 #include "ut_types.h"
 #include "ut_growbuf.h"
 #include "pt_Types.h"
@@ -362,7 +363,7 @@ public:
 	bool					enumStyles(UT_uint32 k,
 									   const char ** pszName, const PD_Style ** ppStyle) const;
 
-	bool                    enumStyles(UT_GenericVector<PD_Style*> * & pStyles) const;
+	bool                    enumStyles(std::vector<PD_Style*> * & pStyles) const;
 	
 	const std::map<std::string, PD_Style *> & getAllStyles()const {return m_hashStyles;}
 	bool                    isEndFootnote(const pf_Frag * pf) const;

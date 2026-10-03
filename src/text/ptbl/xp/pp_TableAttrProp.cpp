@@ -19,80 +19,53 @@
  */
 
 
+#include <algorithm>
+
 #include "ut_types.h"
 #include "ut_assert.h"
-#include "ut_vector.h"
 #include "ut_string.h"
 #include "pp_AttrProp.h"
 #include "pp_TableAttrProp.h"
 
 
 /*!
- * This static function is used to compare PP_AttrProp's for the addItemSorted method of UT_Vector
-\param vX1 pointer to a PP_AttrProp value.
-\param vX2 pointer to a second PP_AttrProp value
+ * Insert pAP into the checksum-sorted table at the position which keeps
+ * the table ordered by checksum (first slot not less than the new item).
+\param vec the sorted table of non-owning PP_AttrProp pointers
+\param pAP the PP_AttrProp to insert
 */
-static UT_sint32 compareAP(const void * vX1, const void * vX2)
+static void insertSortedAP(std::vector<PP_AttrProp *> & vec, PP_AttrProp * pAP)
 {
-	PP_AttrProp *x1 = *const_cast<PP_AttrProp **>(static_cast<const PP_AttrProp * const*>((vX1)));
-	PP_AttrProp *x2 = *const_cast<PP_AttrProp **>(static_cast<const PP_AttrProp * const*>((vX2)));
-
-	UT_uint32 u1 = x1->getCheckSum();
-	UT_uint32 u2 = x2->getCheckSum();
-
-	if (u1 < u2) return -1;
-	if (u1 > u2) return 1;
-	return 0;
+	UT_uint32 checksum = pAP->getCheckSum();
+	auto it = std::lower_bound(vec.begin(), vec.end(), checksum,
+		[](const PP_AttrProp * pElem, UT_uint32 cs) { return pElem->getCheckSum() < cs; });
+	vec.insert(it, pAP);
 }
 
-/*!
- * This static function is used to compare PP_AttrProp's for the
- * binarysearch method of UT_Vector
-\param vX1 pointer to a PP_AttrProp value.
-\param vX2 pointer to a second PP_AttrProp value
-*/
-static UT_sint32 compareAPBinary(const void * vX1, const void * vX2)
+pp_TableAttrProp::pp_TableAttrProp()
 {
-//
-// vX1 is actually a pointer to a UT_uint32 key value (a checkSum)
-//
-	UT_uint32 u1 = *(const_cast<UT_uint32*>(static_cast<const UT_uint32*>( (vX1))));
-	PP_AttrProp *x2 = *const_cast<PP_AttrProp **>(static_cast<const PP_AttrProp * const*>((vX2)));
-	UT_uint32 u2 = x2->getCheckSum();
-
-	if (u1 < u2) return -1;
-	if (u1 > u2) return 1;
-	return 0;
-}
-
-pp_TableAttrProp::pp_TableAttrProp():
-	m_vecTable(54,4,true), // there seems to be 50+ of these at the moment
-	m_vecTableSorted(54,4,true)
-{
+	m_vecTable.reserve(54); // there seems to be 50+ of these at the moment
+	m_vecTableSorted.reserve(54);
 }
 
 pp_TableAttrProp::~pp_TableAttrProp()
 {
-	UT_VECTOR_PURGEALL(PP_AttrProp *, m_vecTable);
 }
 
 bool pp_TableAttrProp::addAP(PP_AttrProp * pAP,
 								UT_sint32 * pSubscript)
 {
- 	UT_sint32 u;
- 	bool result = (m_vecTable.addItem(pAP,&u) == 0);
- 
- 	if (result)
- 	{
- 		if (pSubscript)
- 		{
- 			*pSubscript = u;
- 		}
- 		pAP->setIndex(u);	//$HACK
- 		result = (m_vecTableSorted.addItemSorted(pAP,compareAP) == 0);
- 	}
- 
- 	return result;
+ 	UT_sint32 u = static_cast<UT_sint32>(m_vecTable.size());
+ 	m_vecTable.emplace_back(pAP);
+
+	if (pSubscript)
+	{
+		*pSubscript = u;
+	}
+	pAP->setIndex(u);	//$HACK
+	insertSortedAP(m_vecTableSorted, pAP);
+
+	return true;
 }
 
 bool pp_TableAttrProp::createAP(UT_sint32 * pSubscript)
@@ -100,12 +73,8 @@ bool pp_TableAttrProp::createAP(UT_sint32 * pSubscript)
 	PP_AttrProp * pNew = new PP_AttrProp();
 	if (!pNew)
 		return false;
- 	UT_sint32 u;
- 	if (m_vecTable.addItem(pNew,&u) != 0)
-	{
-		delete pNew;
-		return false;
-	}
+ 	UT_sint32 u = static_cast<UT_sint32>(m_vecTable.size());
+ 	m_vecTable.emplace_back(pNew);
 
 	pNew->setIndex(u);	//$HACK
 
@@ -117,7 +86,7 @@ bool pp_TableAttrProp::createAP(UT_sint32 * pSubscript)
 	{
 		// create default empty AP
 		pNew->markReadOnly();
-		m_vecTableSorted.addItem(pNew, nullptr);
+		m_vecTableSorted.push_back(pNew);
 	} 
 
 	return true;
@@ -131,14 +100,14 @@ bool pp_TableAttrProp::createAP(const PP_PropertyVector & attributes,
 	if (!createAP(&subscript))
 		return false;
 
-	PP_AttrProp * pAP = m_vecTable.getNthItem(subscript);
+	PP_AttrProp * pAP = m_vecTable[subscript].get();
 	UT_return_val_if_fail (pAP,false);
 	if (!pAP->setAttributes(attributes) || !pAP->setProperties(properties))
 		return false;
 
 	pAP->markReadOnly();
 
-	m_vecTableSorted.addItemSorted(pAP,compareAP);
+	insertSortedAP(m_vecTableSorted, pAP);
 
 	*pSubscript = subscript;
 	return true;
@@ -151,14 +120,14 @@ bool pp_TableAttrProp::createAP(const PP_PropertyVector & pVector,
 	if (!createAP(&subscript))
 		return false;
 
-	PP_AttrProp * pAP = m_vecTable.getNthItem(subscript);
+	PP_AttrProp * pAP = m_vecTable[subscript].get();
 	UT_return_val_if_fail (pAP, false);
 	if (!pAP->setAttributes(pVector))
 		return false;
 
 	pAP->markReadOnly();
 
-	m_vecTableSorted.addItemSorted(pAP,compareAP);
+	insertSortedAP(m_vecTableSorted, pAP);
 
 	*pSubscript = subscript;
 	return true;
@@ -171,25 +140,17 @@ bool pp_TableAttrProp::findMatch(const PP_AttrProp * pMatch,
 	// an exact match for the attributes/properties in pMatch.
 	// set *pSubscript to the subscript of the matching item.
 
-	UT_sint32 kLimit = m_vecTable.getItemCount();
-	UT_sint32 k;
-  
 	UT_uint32 checksum = pMatch->getCheckSum();
- 	k = m_vecTableSorted.binarysearch(reinterpret_cast<void *>(&checksum), compareAPBinary);
- 	UT_uint32 cksum = pMatch->getCheckSum();
- 
- 	if (k == -1)
+	auto it = std::lower_bound(m_vecTableSorted.begin(), m_vecTableSorted.end(), checksum,
+		[](const PP_AttrProp * pElem, UT_uint32 cs) { return pElem->getCheckSum() < cs; });
+
+	for (; it != m_vecTableSorted.end(); ++it)
  	{
- 		k = kLimit;
- 	}
- 
- 	for (; (k < kLimit); k++)
-  	{
- 		PP_AttrProp * pK = static_cast<PP_AttrProp *>(m_vecTableSorted.getNthItem(k));
- 		if (cksum != pK->getCheckSum())
- 		{
- 			break;
- 		}
+		PP_AttrProp * pK = *it;
+		if (checksum != pK->getCheckSum())
+		{
+			break;
+		}
 		if (pMatch->isExactMatch(*pK))
   		{
  			// Need to return an index of the element in the MAIN
@@ -204,10 +165,8 @@ bool pp_TableAttrProp::findMatch(const PP_AttrProp * pMatch,
 	
 const PP_AttrProp * pp_TableAttrProp::getAP(UT_sint32 subscript) const
 {
-	UT_sint32 count = m_vecTable.getItemCount();
-	if (subscript < count)
-		return static_cast<const PP_AttrProp *>(m_vecTable.getNthItem(subscript));
+	if (subscript >= 0 && subscript < static_cast<UT_sint32>(m_vecTable.size()))
+		return m_vecTable[subscript].get();
 	else
 		return nullptr;
 }
-

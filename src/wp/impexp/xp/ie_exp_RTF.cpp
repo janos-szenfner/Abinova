@@ -2362,10 +2362,10 @@ void IE_Exp_RTF::_selectStyles()
     UT_uint32 nStyleNumber = 0;
     const char * szName;
     const PD_Style * pStyle;
-	UT_GenericVector<PD_Style*> vecStyles;
+	std::vector<PD_Style*> vecStyles;
 	getDoc()->getAllUsedStyles(&vecStyles);
 
-	UT_GenericVector<PD_Style*> * pStyles = nullptr;
+	std::vector<PD_Style*> * pStyles = nullptr;
 	getDoc()->enumStyles(pStyles);
 	UT_return_if_fail( pStyles );
 	UT_uint32 iStyleCount = getDoc()->getStyleCount();
@@ -2376,7 +2376,7 @@ void IE_Exp_RTF::_selectStyles()
 		// user-defined styles and used styles. To fix it (and export fewer
 		// styles in general) make this routine recursive to include
 		// parent (basedon) styles as well...
-		pStyle = pStyles->getNthItem(i);
+		pStyle = (*pStyles)[i];
 		UT_return_if_fail( pStyle );
 
 		szName = pStyle->getName();

@@ -21,7 +21,6 @@
 
 
 #include "ut_types.h"
-#include "ut_vector.h"
 #include "px_ChangeRecord.h"
 #include "px_ChangeHistory.h"
 #include "px_CR_Span.h"
@@ -47,7 +46,6 @@ px_ChangeHistory::px_ChangeHistory(pt_PieceTable * pPT)
 
 px_ChangeHistory::~px_ChangeHistory()
 {
-	UT_VECTOR_PURGEALL(PX_ChangeRecord *,m_vecChangeRecords);
 }
 
 // this function is used when restoring an older version of a document
@@ -56,7 +54,6 @@ px_ChangeHistory::~px_ChangeHistory()
 
 void px_ChangeHistory::clearHistory()
 {
-	UT_VECTOR_PURGEALL(PX_ChangeRecord *,m_vecChangeRecords);
 	m_vecChangeRecords.clear();
 	m_undoPosition = 0;
 	m_savePosition = 0;
@@ -68,24 +65,23 @@ void px_ChangeHistory::clearHistory()
 
 void px_ChangeHistory::_invalidateRedo(void)
 {
-	UT_sint32 kLimit = m_vecChangeRecords.getItemCount();
+	UT_sint32 kLimit = static_cast<UT_sint32>(m_vecChangeRecords.size());
 	UT_return_if_fail (m_undoPosition <= kLimit);
 
 	UT_sint32 i = m_undoPosition - m_iAdjustOffset;
 	for (UT_sint32 k = m_undoPosition - m_iAdjustOffset; k < kLimit; k++)
 	{
-		PX_ChangeRecord * pcrTemp = m_vecChangeRecords.getNthItem(i);
+		PX_ChangeRecord * pcrTemp = _getCR(i);
 		if (!pcrTemp)
 			break;
 		if (pcrTemp->isFromThisDoc())
 		{
-		    delete pcrTemp;
-		    m_vecChangeRecords.deleteNthItem(i);
+		    m_vecChangeRecords.erase(m_vecChangeRecords.begin() + i);
 		}
 		else
 		    i++;
 	}
-	m_undoPosition = m_vecChangeRecords.getItemCount();
+	m_undoPosition = static_cast<UT_sint32>(m_vecChangeRecords.size());
 	if (m_savePosition > m_undoPosition)
 		m_savePosition = -1;
 	m_iAdjustOffset = 0;
@@ -115,19 +111,19 @@ bool px_ChangeHistory::addChangeRecord(PX_ChangeRecord * pcr)
 		if(pcr && pcr->isFromThisDoc())
 		{
 			_invalidateRedo();
-			bool bResult = (m_vecChangeRecords.insertItemAt(pcr,m_undoPosition++) == 0);
-			UT_ASSERT_HARMLESS(bResult);
+			m_vecChangeRecords.insert(m_vecChangeRecords.begin() + m_undoPosition++,
+									std::unique_ptr<PX_ChangeRecord>(pcr));
 			xxx_UT_DEBUGMSG(("After Invalidate Undo pos %d savepos %d iAdjust %d \n",m_undoPosition,m_savePosition,m_iAdjustOffset));
 			m_iAdjustOffset = 0;
-			return bResult;
+			return true;
 		}
 		else
 		{
-			m_vecChangeRecords.addItem(pcr);
+			m_vecChangeRecords.emplace_back(pcr);
 			UT_sint32 iPos = m_undoPosition - m_iAdjustOffset;
-			m_undoPosition = m_vecChangeRecords.getItemCount();
+			m_undoPosition = static_cast<UT_sint32>(m_vecChangeRecords.size());
 			m_iAdjustOffset = m_undoPosition - iPos;
-			return true;		
+			return true;
 		}
 	}
 	else
@@ -136,7 +132,7 @@ bool px_ChangeHistory::addChangeRecord(PX_ChangeRecord * pcr)
 // Just save the cr for later deletion with the PT
 //
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-		m_vecChangeRecords.addItem(pcr);
+		m_vecChangeRecords.emplace_back(pcr);
 		return true;
 	}
 }
@@ -193,7 +189,7 @@ bool px_ChangeHistory::getUndo(PX_ChangeRecord ** ppcr, bool bStatic) const
 			return false;
 		}
 		
-		pcr = m_vecChangeRecords.getNthItem(m_undoPosition-m_iAdjustOffset-1-iLoop);
+		pcr = _getCR(m_undoPosition-m_iAdjustOffset-1-iLoop);
 		UT_return_val_if_fail(pcr, false); // just bail out, everything seems wrong
 
 		//
@@ -238,7 +234,7 @@ bool px_ChangeHistory::getUndo(PX_ChangeRecord ** ppcr, bool bStatic) const
 			getCRRange(pcr, low, high);
 			for (UT_sint32 i = 0; i<m_iAdjustOffset;i++)
 			{
-				PX_ChangeRecord *pcrTmp = m_vecChangeRecords.getNthItem(m_undoPosition-i-1);
+				PX_ChangeRecord *pcrTmp = _getCR(m_undoPosition-i-1);
 				if (!pcrTmp)
 					break;
 				if (!pcrTmp->isFromThisDoc())
@@ -292,7 +288,7 @@ bool px_ChangeHistory::getUndo(PX_ChangeRecord ** ppcr, bool bStatic) const
 	    getCRRange(pcr, low, high);
 	    for (UT_sint32 i = m_iAdjustOffset-1; i>=0;i--)
 	    {
-			pcr = m_vecChangeRecords.getNthItem(m_undoPosition-i-1);
+			pcr = _getCR(m_undoPosition-i-1);
 			if (!pcr)
 				break;
 			if (!pcr->isFromThisDoc())
@@ -353,7 +349,7 @@ bool px_ChangeHistory::getNthUndo(PX_ChangeRecord ** ppcr, UT_uint32 undoNdx) co
 		if (static_cast<UT_sint32>(iAdjust - iAdjIdx -1) <= static_cast<UT_sint32>(m_iMinUndo))
 			return false;
 	
-		PX_ChangeRecord * pcr = m_vecChangeRecords.getNthItem(iAdjust-iAdjIdx-1);
+		PX_ChangeRecord * pcr = _getCR(iAdjust-iAdjIdx-1);
 		UT_return_val_if_fail(pcr, false);
 		if(pcr->isFromThisDoc())
 		{
@@ -371,7 +367,7 @@ bool px_ChangeHistory::getNthUndo(PX_ChangeRecord ** ppcr, UT_uint32 undoNdx) co
 
 bool px_ChangeHistory::getRedo(PX_ChangeRecord ** ppcr) const
 {
-	if ((m_iAdjustOffset == 0) && (m_undoPosition >= m_vecChangeRecords.getItemCount()))
+	if ((m_iAdjustOffset == 0) && (m_undoPosition >= static_cast<UT_sint32>(m_vecChangeRecords.size())))
 		return false;
 	
 	if (m_bOverlap)
@@ -380,7 +376,7 @@ bool px_ChangeHistory::getRedo(PX_ChangeRecord ** ppcr) const
 	UT_sint32 iRedoPos = m_undoPosition-m_iAdjustOffset;
 	if(iRedoPos <0)
 		return false;
-	PX_ChangeRecord * pcr = m_vecChangeRecords.getNthItem(iRedoPos);
+	PX_ChangeRecord * pcr = _getCR(iRedoPos);
 	UT_return_val_if_fail(pcr, false);
 
 	// leave records from external documents in place so we can correct
@@ -402,7 +398,7 @@ bool px_ChangeHistory::getRedo(PX_ChangeRecord ** ppcr) const
 	
 	while (pcr && !pcr->isFromThisDoc() && (m_iAdjustOffset > 0))
 	{
-	    pcr = m_vecChangeRecords.getNthItem(iRedoPos);
+	    pcr = _getCR(iRedoPos);
 	    m_iAdjustOffset--;
 		iRedoPos++;
 	    bIncrementAdjust = true;
@@ -419,7 +415,7 @@ bool px_ChangeHistory::getRedo(PX_ChangeRecord ** ppcr) const
 	    UT_sint32 iAdj = 0;
 	    for (UT_sint32 i = m_iAdjustOffset; i >= 1;i--)
 	    {
-			pcr = m_vecChangeRecords.getNthItem(m_undoPosition-i);
+			pcr = _getCR(m_undoPosition-i);
 			if (!pcr)
 				break;
 			if (!pcr->isFromThisDoc())
@@ -477,12 +473,12 @@ bool px_ChangeHistory::didUndo(void)
 	UT_return_val_if_fail(m_undoPosition > 0, false);
 	UT_return_val_if_fail(m_undoPosition - m_iAdjustOffset > m_iMinUndo, false);
 
-	PX_ChangeRecord * pcr = m_vecChangeRecords.getNthItem(m_undoPosition-m_iAdjustOffset-1);
+	PX_ChangeRecord * pcr = _getCR(m_undoPosition-m_iAdjustOffset-1);
 	UT_return_val_if_fail(pcr && pcr->isFromThisDoc(), false);
 
 	if (m_iAdjustOffset == 0)
 		m_undoPosition--;
-	pcr = m_vecChangeRecords.getNthItem(m_undoPosition-m_iAdjustOffset);
+	pcr = _getCR(m_undoPosition-m_iAdjustOffset);
 	if (pcr && !pcr->getPersistance())
 	{
 		UT_return_val_if_fail(m_savePosition > 0,false);
@@ -499,9 +495,9 @@ bool px_ChangeHistory::didRedo(void)
 	    clearHistory();
 	    return false;
 	}
-	if ((m_undoPosition - m_iAdjustOffset) >= m_vecChangeRecords.getItemCount())
+	if ((m_undoPosition - m_iAdjustOffset) >= static_cast<UT_sint32>(m_vecChangeRecords.size()))
 		return false;
-	PX_ChangeRecord * pcr = m_vecChangeRecords.getNthItem(m_undoPosition - m_iAdjustOffset);
+	PX_ChangeRecord * pcr = _getCR(m_undoPosition - m_iAdjustOffset);
 
 	// leave records from external documents in place so we can correct
 
@@ -535,14 +531,14 @@ void px_ChangeHistory::_printHistory(UT_sint32 iPrev) const
 	}
 	else
 	{
-		iStart = m_vecChangeRecords.getItemCount() -1;
+		iStart = static_cast<UT_sint32>(m_vecChangeRecords.size()) -1;
 		iStop = iStart + iPrev;
 	}
 	if(iStop <0)
 		iStop =0;
 	for(i=iStart; i>= iStop;i--)
 	{
-			PX_ChangeRecord * pcr = m_vecChangeRecords.getNthItem(i);
+			PX_ChangeRecord * pcr = _getCR(i);
 			if(i != (m_undoPosition-m_iAdjustOffset-1))
 			{
 					UT_DEBUGMSG((" loc %d pos %d type %d isLocal %d \n",i,pcr->getPosition(),pcr->getType(),pcr->isFromThisDoc()));
@@ -560,7 +556,7 @@ void px_ChangeHistory::coalesceHistory(const PX_ChangeRecord * pcr)
 	// coalesce this record with the current undo record.
 
 	UT_sint32 iAdj = m_iAdjustOffset;
-	PX_ChangeRecord * pcrUndo = m_vecChangeRecords.getNthItem(m_undoPosition-1);
+	PX_ChangeRecord * pcrUndo = _getCR(m_undoPosition-1);
 	UT_return_if_fail (pcrUndo);
 	UT_return_if_fail (pcr->getType() == pcrUndo->getType());
 
