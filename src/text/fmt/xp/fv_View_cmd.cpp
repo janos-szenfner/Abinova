@@ -5565,6 +5565,10 @@ void FV_View::cmdUndo(UT_uint32 count)
 {
 	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
 
+	/* undo changes the doc under an armed paste tag - its stored
+	 * range would go stale, so drop it first */
+	_disarmPasteTag();
+
 	if (!isSelectionEmpty())
 		_clearSelection();
 
@@ -5644,7 +5648,9 @@ void FV_View::cmdUndo(UT_uint32 count)
 void FV_View::cmdRedo(UT_uint32 count)
 {
 	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
-	
+
+	_disarmPasteTag();
+
 	if (!isSelectionEmpty())
 		_clearSelection();
 
@@ -5855,8 +5861,11 @@ void FV_View::cmdPaste(bool bHonorFormatting)
 //
 // Look to see if should paste a table column or row
 //
-	
+
 	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	/* a new paste replaces any armed paste-options tag */
+	_disarmPasteTag();
 
 	if((m_Selection.getPrevSelectionMode() == FV_SelectionMode_TableColumn)
 	   || (m_Selection.getPrevSelectionMode() == 	FV_SelectionMode_TableRow))
@@ -5891,7 +5900,8 @@ void FV_View::cmdPaste(bool bHonorFormatting)
 	m_pDoc->setDoingPaste();
 	setCursorWait();
 	m_pDoc->setDontImmediatelyLayout(true);
-	_doPaste(true, bHonorFormatting);
+	PT_DocPosition posPasteStart = 0;
+	_doPaste(true, bHonorFormatting, nullptr, &posPasteStart);
 	// restore updates and clean up dirty lists
 	m_pDoc->enableListUpdates();
 	m_pDoc->updateDirtyLists();
@@ -5911,13 +5921,23 @@ void FV_View::cmdPaste(bool bHonorFormatting)
 //
 // Do a complete update coz who knows what happened in the paste!
 //
-	
+
 	// force update the screen before leaving the current view
 
 	_fixInsertionPointCoords();
 	_ensureInsertionPointOnScreen();
 	notifyListeners(AV_CHG_ALL);
-	
+
+	// arm the Word-parity paste-options tag for a plain formatted
+	// paste into body text; suppressed inside tables, headers/
+	// footers and frame edits (the task's documented safe option)
+	PT_DocPosition posPasteEnd = getPoint();
+	if (posPasteEnd > posPasteStart &&
+	    !isInTable(posPasteStart) && !isInTable(posPasteEnd - 1) &&
+	    !isHdrFtrEdit() && !m_FrameEdit.isActive())
+	{
+		_armPasteTag(posPasteStart, posPasteEnd);
+	}
 }
 
 /*!
@@ -5927,6 +5947,10 @@ void FV_View::cmdPaste(bool bHonorFormatting)
 void FV_View::cmdPasteAs(const char * szMimeType)
 {
 	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	/* paste-special does not arm the tag (per Word), and a fresh
+	 * one dismisses a tag still armed from an earlier paste */
+	_disarmPasteTag();
 
 	if((m_Selection.getPrevSelectionMode() == FV_SelectionMode_TableColumn)
 	   || (m_Selection.getPrevSelectionMode() == 	FV_SelectionMode_TableRow))
@@ -5966,6 +5990,10 @@ void FV_View::cmdPasteAs(const char * szMimeType)
 
 void FV_View::cmdPasteSelectionAt(UT_sint32 xPos, UT_sint32 yPos)
 {
+	// middle-button selection paste is not a formatted-paste command -
+	// it neither arms nor keeps an armed paste tag
+	_disarmPasteTag();
+
 	// this is intended for the X11 middle mouse paste trick.
 	//
 	// if this view has the selection, we need to remember it

@@ -1003,6 +1003,8 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		if(pL->getType() != PTX_Block)
 		{
 			m_pDoc->miniDump(pL->getStruxDocHandle(),6);
+			bResult = false;
+			goto finish_up;
 		}
 		UT_ASSERT(pL->getType() == PTX_Block);
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
@@ -1025,6 +1027,14 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		UT_ASSERT(pL->getType() == PTX_Block);
+		if(pL->getType() != PTX_Block)
+		{
+			// the fmt handle for the notified strux is not a block
+			// (e.g. a fmt-mark on a section-level strux at a section
+			// boundary during import); only blocks can receive it
+			bResult = false;
+			goto finish_up;
+		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 		if(pCLSL->getType() == FL_SECTION_SHADOW)
@@ -1044,6 +1054,14 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		UT_ASSERT(pL->getType() == PTX_Block);
+		if(pL->getType() != PTX_Block)
+		{
+			// the fmt handle for the notified strux is not a block
+			// (e.g. a fmt-mark on a section-level strux at a section
+			// boundary during import); only blocks can receive it
+			bResult = false;
+			goto finish_up;
+		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 		if(pCLSL->getType() == FL_SECTION_SHADOW)
@@ -1063,6 +1081,14 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		xxx_UT_DEBUGMSG(("DocListener: InsertFmtMark strux type = %d \n",pL->getType()));
 		UT_ASSERT(pL->getType() == PTX_Block);
+		if(pL->getType() != PTX_Block)
+		{
+			// the fmt handle for the notified strux is not a block
+			// (e.g. a fmt-mark on a section-level strux at a section
+			// boundary during import); only blocks can receive it
+			bResult = false;
+			goto finish_up;
+		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 		if(pCLSL->getType() == FL_SECTION_SHADOW)
@@ -1089,6 +1115,14 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		UT_ASSERT(pL->getType() == PTX_Block);
+		if(pL->getType() != PTX_Block)
+		{
+			// the fmt handle for the notified strux is not a block
+			// (e.g. a fmt-mark on a section-level strux at a section
+			// boundary during import); only blocks can receive it
+			bResult = false;
+			goto finish_up;
+		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 		if(pCLSL->getType() == FL_SECTION_SHADOW)
@@ -1107,6 +1141,14 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		UT_ASSERT(pL->getType() == PTX_Block);
+		if(pL->getType() != PTX_Block)
+		{
+			// the fmt handle for the notified strux is not a block
+			// (e.g. a fmt-mark on a section-level strux at a section
+			// boundary during import); only blocks can receive it
+			bResult = false;
+			goto finish_up;
+		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 		if(pCLSL->getType() == FL_SECTION_SHADOW)
@@ -1535,6 +1577,14 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		UT_ASSERT(pL->getType() == PTX_Block);
+		if(pL->getType() != PTX_Block)
+		{
+			// the fmt handle for the notified strux is not a block
+			// (e.g. a fmt-mark on a section-level strux at a section
+			// boundary during import); only blocks can receive it
+			bResult = false;
+			goto finish_up;
+		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 		if(pCLSL->getType() == FL_SECTION_SHADOW)
@@ -1630,6 +1680,14 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 
 		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
 		UT_ASSERT(pL->getType() == PTX_Block);
+		if(pL->getType() != PTX_Block)
+		{
+			// the fmt handle for the notified strux is not a block
+			// (e.g. a fmt-mark on a section-level strux at a section
+			// boundary during import); only blocks can receive it
+			bResult = false;
+			goto finish_up;
+		}
 		fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
 		fl_SectionLayout* pCLSL = pCL->getSectionLayout();
 		if(pCLSL->getType() == FL_SECTION_SHADOW)

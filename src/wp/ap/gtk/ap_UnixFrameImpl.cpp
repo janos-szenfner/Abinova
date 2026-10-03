@@ -579,6 +579,14 @@ void AP_UnixFrameImpl::focusDocument()
 		gtk_widget_grab_focus(m_dArea);
 }
 
+/* opens the ribbon's Paste Special dialog (paste-options smart tag
+ * "Paste Special…" row); a no-op when the ribbon does not exist */
+void AP_UnixFrameImpl::showPasteSpecialDialog()
+{
+	if (m_pRibbon)
+		m_pRibbon->showPasteSpecialDialog();
+}
+
 bool AP_UnixFrameImpl::isCommentsPaneVisible() const
 {
 	const char * cur = m_wSideDeck

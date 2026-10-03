@@ -436,7 +436,12 @@ Text → Table conversion and the Recent Files list were removed.
   Formatting).
 - **Clipboard**: a Word-style **split Paste button** — the icon
   pastes with formatting, the arrow opens "Paste Options:"
-  (**Keep Text Only**, **Paste Special…**). Paste Special lists
+  (**Keep Text Only**, **Paste Special…**). After a paste, a Word-style
+  **"(Ctrl)" paste-options tag** floats at the end of the inserted
+  text — press Ctrl or click it to swap between **Keep Source
+  Formatting**, **Merge Formatting**, **Keep Text Only** and
+  **Paste Special…** as one undo step; it vanishes on the next
+  edit, caret move or scroll. Paste Special lists
   the real clipboard formats: all `image/*` types are grouped as
   one "Picture" entry (best format auto-selected: PNG > SVG >
   JPEG…) and alias duplicates (text/plain vs UTF8_STRING,

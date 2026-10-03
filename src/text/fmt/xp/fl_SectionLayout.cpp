@@ -47,6 +47,7 @@
 #include "fp_Line.h"
 #include "fp_Column.h"
 #include "pd_Document.h"
+#include "pf_Frag_Strux.h"
 #include "pp_AttrProp.h"
 #include "gr_Graphics.h"
 #include "pp_Property.h"
@@ -5013,7 +5014,7 @@ bool fl_HdrFtrSectionLayout::bl_doclistener_insertFmtMark(fl_ContainerLayout* pB
 		auto shadow = pPair->getShadow();
 		UT_nonnull_or_continue(shadow);
 		pShadowBL = shadow->findMatchingContainer(pBL);
-		if(pShadowBL)
+		if(pShadowBL && pShadowBL->getType() == PTX_Block)
 		{
 			bResult = static_cast<fl_BlockLayout *>(pShadowBL)->doclistener_insertFmtMark(pcrfm)
 				&& bResult;
@@ -5023,10 +5024,13 @@ bool fl_HdrFtrSectionLayout::bl_doclistener_insertFmtMark(fl_ContainerLayout* pB
 			bResult = false;
 		}
 	}
-	// Update the overall block too.
+	// Update the overall block too. findMatchingContainer() walks the
+	// nested layout list and can match a non-block layout that shares
+	// the strux handle (e.g. a nested SectionHdrFtr pasted into a
+	// header); only real blocks may receive a fmt-mark run.
 	m_pDoc->allowChangeInsPoint();
 	pBL = findMatchingContainer(pBL);
-	if(pBL)
+	if(pBL && pBL->getType() == PTX_Block)
 	{
 		bResult = static_cast<fl_BlockLayout *>(pBL)->doclistener_insertFmtMark(pcrfm) && bResult;
 	}

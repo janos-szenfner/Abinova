@@ -56,6 +56,7 @@
 #include "fv_UnixFrameEdit.h"
 #include "fv_UnixInlineImage.h"
 #include "fv_UnixSelectionHandles.h"
+#include "fv_UnixPasteTag.h"
 #include "fv_SelectionHandles.h"
 
 #define AUTO_SCROLL_MSECS	100
@@ -277,6 +278,7 @@ class ABI_EXPORT FV_View : public AV_View
     friend class FV_View_BubbleBlocker;
 	friend class FV_ViewDoubleBuffering;
 	friend class FV_SelectionHandles;
+	friend class FV_UnixPasteTag;
 public:
 	FV_View(XAP_App*, XAP_Frame*, FL_DocLayout*);
 	virtual ~FV_View();
@@ -396,6 +398,20 @@ public:
 	virtual void	cmdPaste(bool bHonorFormatting = true) override;
 	void			cmdPasteAs(const char * szMimeType);
 	virtual void	cmdPasteSelectionAt(UT_sint32 xPos, UT_sint32 yPos) override;
+
+	/* paste-options smart tag (the Word "(Ctrl)" button): cmdPaste
+	 * arms it with the pasted range; any edit, caret move, scroll or
+	 * new paste disarms it */
+	enum PasteTagOption : uint8_t {
+		PASTETAG_KEEP_SOURCE,
+		PASTETAG_MERGE,
+		PASTETAG_TEXT_ONLY,
+		PASTETAG_SPECIAL
+	};
+	bool			hasPasteTag(void) const { return m_bPasteTagArmed; }
+	void			dismissPasteTag(void);
+	void			popupPasteTagMenu(void);
+	void			applyPasteTagOption(PasteTagOption opt);
 
 	void            pasteFromLocalTo(PT_DocPosition pos);
 	void            _pasteFromLocalTo(PT_DocPosition pos);
@@ -1175,7 +1191,10 @@ protected:
 	UT_uint32			_getDataCount(UT_uint32 pt1, UT_uint32 pt2) const;
 	bool				_charMotion(bool bForward,UT_uint32 countChars, bool bSkipCannotContainPoint = true);
 	void				_doPaste(bool bUseClipboard, bool bHonorFormatting = true,
-								 const char * szMimeType = nullptr);
+								 const char * szMimeType = nullptr,
+								 PT_DocPosition * pPosStart = nullptr);
+	void				_armPasteTag(PT_DocPosition posStart, PT_DocPosition posEnd);
+	void				_disarmPasteTag(void);
 	void				_clearIfAtFmtMark(PT_DocPosition dpos);
 
 #ifdef ENABLE_SPELL
@@ -1400,6 +1419,10 @@ private:
 	UT_sint32           m_iOldPageCount;
 
 	FV_UnixSelectionHandles m_SelectionHandles;
+	FV_UnixPasteTag      m_PasteTag;
+	bool                 m_bPasteTagArmed;
+	PT_DocPosition       m_posPasteTagStart;
+	PT_DocPosition       m_posPasteTagEnd;
 
 public:
 	bool registerDoubleBufferingObject(FV_ViewDoubleBuffering *obj);

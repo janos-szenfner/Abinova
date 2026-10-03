@@ -291,13 +291,15 @@ bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream
 
 bool XAP_UnixClipboard::assertSelection()
 {
+	GdkClipboard * clippy = clipboardForTarget(TAG_PrimaryOnly);
+	if (!clippy)
+		return false;
 	std::vector<const char *> mimes = s_mime_ptrs(m_vecFormat_MimeType);
 	GdkContentProvider *provider =
 		abi_content_provider_new(this, mimes.data(),
 								 static_cast<guint>(m_vecFormat_MimeType.size()),
 								 true);
-	bool bOk = gdk_clipboard_set_content(clipboardForTarget(TAG_PrimaryOnly),
-										 provider) == TRUE;
+	bool bOk = gdk_clipboard_set_content(clippy, provider) == TRUE;
 	g_object_unref(provider);
 	return bOk;
 }
@@ -322,12 +324,17 @@ bool XAP_UnixClipboard::addData(T_AllowGet tFrom, const char* format, const void
 
 void XAP_UnixClipboard::finishedAddingData(void)
 {
+	/* without a display there is nothing to claim - the fake
+	 * clipboard still serves same-process pastes via getData() */
+	GdkClipboard * clippy = clipboardForTarget(TAG_ClipboardOnly);
+	if (!clippy)
+		return;
 	std::vector<const char *> mimes = s_mime_ptrs(m_vecFormat_MimeType);
 	GdkContentProvider *provider =
 		abi_content_provider_new(this, mimes.data(),
 								 static_cast<guint>(m_vecFormat_MimeType.size()),
 								 false);
-	gdk_clipboard_set_content(clipboardForTarget(TAG_ClipboardOnly), provider);
+	gdk_clipboard_set_content(clippy, provider);
 	g_object_unref(provider);
 }
 
@@ -349,13 +356,17 @@ void XAP_UnixClipboard::clearData(bool bClipboard, bool bPrimary)
 {
 	if (bClipboard)
 	{
-		gdk_clipboard_set_content (clipboardForTarget (TAG_ClipboardOnly), nullptr);
+		GdkClipboard * clippy = clipboardForTarget (TAG_ClipboardOnly);
+		if (clippy)
+			gdk_clipboard_set_content (clippy, nullptr);
 		m_fakeClipboard.clearClipboard();
 	}
 
 	if (bPrimary)
 	{
-		gdk_clipboard_set_content(clipboardForTarget (TAG_PrimaryOnly), nullptr);
+		GdkClipboard * clippy = clipboardForTarget (TAG_PrimaryOnly);
+		if (clippy)
+			gdk_clipboard_set_content(clippy, nullptr);
 		m_fakePrimaryClipboard.clearClipboard();
 	}
 }
@@ -376,7 +387,14 @@ bool XAP_UnixClipboard::getData(T_AllowGet tFrom, const char** formatList,
 		 * the async server round-trip, which can deadlock on a local
 		 * content provider */
 		GdkClipboard * clippy = clipboardForTarget(tFrom);
-		if (clippy && gdk_clipboard_is_local(clippy) &&
+		if (!clippy)
+		{
+			/* no display (headless/test): the fake clipboard is the
+			 * only same-process clipboard there is - serve it */
+			return _getDataFromFakeClipboard(tFrom, formatList, ppData,
+											 pLen, pszFormatFound);
+		}
+		if (gdk_clipboard_is_local(clippy) &&
 			_getDataFromFakeClipboard(tFrom, formatList, ppData, pLen,
 									  pszFormatFound))
 			return true;
@@ -487,12 +505,12 @@ bool XAP_UnixClipboard::getTextData(T_AllowGet tFrom, void ** ppData,
 	*pLen = 0;
 
 	GdkClipboard * clippy = clipboardForTarget (tFrom);
-	if (!clippy)
-		return false;
 
-	/* self-owned clipboard: read the fake clipboard directly, the async
-	 * text read can deadlock against our own content provider */
-	if (gdk_clipboard_is_local(clippy))
+	/* self-owned clipboard - or no display at all, where the fake
+	 * clipboard is the only same-process clipboard there is: read it
+	 * directly, the async text read can deadlock against our own
+	 * content provider */
+	if (!clippy || gdk_clipboard_is_local(clippy))
 	{
 		const char * pszLocal = nullptr;
 		static const char * localTxtList [] = {

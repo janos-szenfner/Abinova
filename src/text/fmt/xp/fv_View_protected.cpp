@@ -4777,7 +4777,7 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		}
 
 		// two pixel drop shadow for pages in print view
-		if(!isPreview() && (getViewMode() == VIEW_PRINT) && !pFrame->isMenuScrollHidden() )
+		if(!isPreview() && (getViewMode() == VIEW_PRINT) && (!pFrame || !pFrame->isMenuScrollHidden()) )
 		{
 			m_pG->setLineProperties(m_pG->tluD(1.0),
 					GR_Graphics::JOIN_MITER,
@@ -4858,6 +4858,10 @@ void FV_View::_setPoint(PT_DocPosition pt, bool bEOL)
 		}		
 	}
 	m_iInsPoint = pt;
+	/* a caret move off the end of the pasted range dismisses the
+	 * paste-options tag (Word parity) */
+	if (m_bPasteTagArmed && pt != m_posPasteTagEnd)
+		_disarmPasteTag();
 	m_Selection.checkSelectAll();
 	m_bInsertAtTablePending = false;
 	m_iPosAtTable = 0;
@@ -5425,7 +5429,7 @@ bool FV_View::_charMotion(bool bForward,UT_uint32 countChars, bool bSkipCannotCo
 
 
 void FV_View::_doPaste(bool bUseClipboard, bool bHonorFormatting,
-					   const char * szMimeType)
+					   const char * szMimeType, PT_DocPosition * pPosStart)
 {
 	// internal portion of paste operation.
 
@@ -5437,6 +5441,10 @@ void FV_View::_doPaste(bool bUseClipboard, bool bHonorFormatting,
 	}
 
 	_clearIfAtFmtMark(getPoint());
+	/* the pasted range starts here, once any replaced selection has
+	 * been deleted; cmdPaste uses it to anchor the options tag */
+	if (pPosStart)
+		*pPosStart = getPoint();
 	PD_DocumentRange dr(m_pDoc,getPoint(),getPoint());
 	if (szMimeType && *szMimeType)
 		m_pApp->pasteFromClipboardWithFormat(&dr, szMimeType);
@@ -6152,6 +6160,10 @@ void FV_View::_cmdEditHdrFtr(HdrFtrType hfType)
 void FV_View::_saveAndNotifyPieceTableChange(void)
 {
 	//UT_DEBUGMSG(("notifying PieceTableChange start [%d]\n", m_iPieceTableState));
+	/* any document edit dismisses an armed paste-options tag; the
+	 * tag re-arms itself at the end of cmdPaste, after this call */
+	if (m_bPasteTagArmed)
+		_disarmPasteTag();
 	if(m_pDoc->isPieceTableChanging())
 		m_iPieceTableState++;
 	m_pDoc->notifyPieceTableChangeStart();
@@ -6497,4 +6509,106 @@ void FV_View::_updateSelectionHandles(void)
 		m_SelectionHandles.setSelection(getSelectionLeftAnchor(),
 										getSelectionRightAnchor());
 	}
+}
+
+
+/*!
+ * Arm/disarm the paste-options smart tag (the Word "(Ctrl)" button
+ * that floats at the end of a pasted range).  cmdPaste arms it with
+ * the pasted range; every caret move, scroll, edit, undo or new paste
+ * disarms it again - matching Word's behaviour.
+ */
+void FV_View::_armPasteTag(PT_DocPosition posStart, PT_DocPosition posEnd)
+{
+	m_posPasteTagStart = posStart;
+	m_posPasteTagEnd = posEnd;
+	m_bPasteTagArmed = true;
+	m_PasteTag.setPosition(posEnd);
+}
+
+void FV_View::_disarmPasteTag(void)
+{
+	if (!m_bPasteTagArmed)
+		return;
+	m_bPasteTagArmed = false;
+	m_PasteTag.hide();
+}
+
+void FV_View::dismissPasteTag(void)
+{
+	_disarmPasteTag();
+}
+
+/* called from the frame's key handler: pressing Ctrl while the tag
+ * is visible opens its dropdown without clicking (Word parity) */
+void FV_View::popupPasteTagMenu(void)
+{
+	if (m_bPasteTagArmed)
+		m_PasteTag.popup();
+}
+
+/*!
+ * Apply a paste-options choice.  KEEP_SOURCE leaves the paste as it
+ * already is; MERGE and TEXT_ONLY replace the pasted range by
+ * re-pasting the clipboard in a different flavour.  Everything runs
+ * inside one user-atomic glob so the whole substitution undoes as a
+ * single step.
+ */
+void FV_View::applyPasteTagOption(PasteTagOption opt)
+{
+	if (!m_bPasteTagArmed)
+		return;
+	if (opt == PASTETAG_SPECIAL)
+	{
+		/* the tag widget opens the dialog itself; nothing doc-side */
+		_disarmPasteTag();
+		return;
+	}
+
+	PT_DocPosition posStart = m_posPasteTagStart;
+	PT_DocPosition posEnd = m_posPasteTagEnd;
+	_disarmPasteTag();
+
+	if (opt == PASTETAG_KEEP_SOURCE)
+		return;		/* the paste already did this */
+
+	/* flavour mapping - a documented approximation of Word's
+	 * options: MERGE pastes the semantic XHTML flavour so structure
+	 * and emphasis survive while style- and block-level formatting
+	 * resolves against the destination document's styles; TEXT_ONLY
+	 * pastes plain text.  Each list falls back until one actually
+	 * produces content. */
+	static const char * const s_mergeMimes[] = {
+		"application/xhtml+xml", "text/html", "text/plain", nullptr };
+	static const char * const s_textMimes[] = {
+		"text/plain", "UTF8_STRING", "TEXT", nullptr };
+	const char * const * mimes =
+		(opt == PASTETAG_MERGE) ? s_mergeMimes : s_textMimes;
+
+	/* skip flavours the source clipboard does not even offer; for
+	 * our own lazy clipboard every registered mime is advertised, so
+	 * getData() gets the final say either way */
+	GdkDisplay * disp = gdk_display_get_default();
+	GdkContentFormats * fmts = disp
+		? gdk_clipboard_get_formats(gdk_display_get_clipboard(disp))
+		: nullptr;
+	auto mimeOffered = [&](const char * m) -> bool {
+		return !fmts || gdk_content_formats_contain_mime_type(fmts, m);
+	};
+
+	m_pDoc->beginUserAtomicGlob();
+	selectRange(posStart, posEnd);
+	for (const char * const * pp = mimes; *pp; ++pp)
+	{
+		if (!mimeOffered(*pp))
+			continue;
+		/* the first call deletes the pasted range and pastes at
+		 * posStart; on a failed fetch nothing is inserted and the
+		 * next flavour pastes at the same collapsed point */
+		cmdPasteAs(*pp);
+		if (getPoint() > posStart)
+			break;
+	}
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_ALL);
 }

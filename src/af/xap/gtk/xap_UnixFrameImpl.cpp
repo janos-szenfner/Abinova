@@ -1176,6 +1176,16 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 	if (pView && e)
 		pUnixKeyboard->keyPressEvent(pView, e);
 
+	/* Word parity: pressing Ctrl while the paste-options tag is
+	 * armed opens its dropdown without a click */
+	if (pView &&
+		(keyval == GDK_KEY_Control_L || keyval == GDK_KEY_Control_R))
+	{
+		FV_View * pFV = static_cast<FV_View*>(pView);
+		if (pFV->hasPasteTag())
+			pFV->popupPasteTagMenu();
+	}
+
 	// claim keys that would take the focus away from the document widget
 	switch (keyval) {
 	case GDK_KEY_Tab:

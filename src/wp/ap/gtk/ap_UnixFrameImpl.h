@@ -85,6 +85,11 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	/* called from the view listener on document changes */
 	void			refreshNavPane();
 
+	/* Paste Special dialog for the paste-options smart tag */
+	bool			hasPasteSpecialDialog() const
+	{ return m_pRibbon != nullptr; }
+	void			showPasteSpecialDialog();
+
  protected:
 	friend class AP_UnixFrame;
 	void _showOrHideStatusbar(void);

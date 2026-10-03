@@ -324,6 +324,10 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		m_bubbleBlockerCount(0),
 		m_iOldPageCount(-1),
 		m_SelectionHandles(this, m_Selection),
+		m_PasteTag(this),
+		m_bPasteTagArmed(false),
+		m_posPasteTagStart(0),
+		m_posPasteTagEnd(0),
 		m_pViewDoubleBufferingObject(nullptr)
 {
 	if(m_pDoc)
@@ -9423,6 +9427,8 @@ void FV_View::setXScrollOffset(UT_sint32 v) ///////////////////////TODO: Fix thi
 
 	m_pG->scroll(dx, 0);
 	m_xScrollOffset = v;
+	if (m_bPasteTagArmed)
+		_disarmPasteTag();
 
 	UT_sint32 x1 = 0;
 	UT_sint32 dx2 = getWindowWidth();
@@ -9459,6 +9465,8 @@ void FV_View::setYScrollOffset(UT_sint32 v)
 
 	m_pG->scroll(0, dy);
 	m_yScrollOffset = v;
+	if (m_bPasteTagArmed)
+		_disarmPasteTag();
 
 	_fixInsertionPointCoords();
 	_updateSelectionHandles();

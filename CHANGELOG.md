@@ -1192,6 +1192,16 @@ below are on `main` but the release has not been cut yet.
   → HTML. The paste runs from an idle callback after the dialog
   closes, avoiding re-entrant clipboard access during modal response
   handling.
+- **Word-style paste-options smart tag** — after a normal formatted
+  paste a small "(Ctrl)" clipboard button floats in the document
+  overlay at the end of the inserted range. Its dropdown offers
+  "Keep Source Formatting", "Merge Formatting" (re-pastes the
+  semantic HTML flavour), "Keep Text Only" and "Paste Special…";
+  choosing an option swaps the pasted range inside a single undo
+  atom. Pressing Ctrl while it is visible opens the dropdown without
+  a click, and it dismisses itself on any edit, caret move, scroll or
+  new paste. It never appears after Paste Special, a selection paste,
+  or inside tables/headers/footers.
 - **LibreOffice-style status bar** — `Page: n/m`, live
   `N words, N characters`, current paragraph style, insert/overwrite
   and input-mode indicators, document language, and a zoom cluster
@@ -1829,6 +1839,20 @@ below are on `main` but the release has not been cut yet.
   now uses the view that actually holds the selection rather than
   whichever window was last focussed, so image copies work correctly
   with multiple windows open.
+- **Header/footer layout dispatch hardened** — piece-table
+  notifications can reach a listener whose fmt handle for the
+  changed strux is a section-level layout rather than a block
+  (e.g. a fmt-mark inserted on a `SectionHdrFtr` strux while
+  pasting header/footer content); `fl_DocListener::change` and the
+  header/footer mirror functions now check the layout type instead
+  of asserting and blindly casting, fixing a crash that aborted the
+  whole edit.
+- **Headless operation hardened** — the clipboard now serves
+  same-process pastes from its fake clipboard when no display
+  clipboard exists (previously headless copies silently produced
+  nothing), frame-less views no longer dereference a missing frame
+  while drawing, and the RTF importer no longer assumes a focussed
+  frame exists when applying its no-lists-in-header/footer rule.
 - **Page list bookkeeping unified** — the layout engine used to keep
   every page in two structures that had to be updated by hand in
   lockstep (a vector and a prev/next linked list); a missed update

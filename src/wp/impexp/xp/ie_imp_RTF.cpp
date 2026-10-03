@@ -7279,7 +7279,8 @@ bool IE_Imp_RTF::ApplyParagraphAttributes(bool bDontInsert)
 		// don't paste lists into hdrftr's
 		//
 		XAP_Frame * pFrame = XAP_App::getApp()->getLastFocussedFrame();
-		FV_View * pView = static_cast<FV_View*>(pFrame->getCurrentView());
+		FV_View * pView = pFrame
+			? static_cast<FV_View*>(pFrame->getCurrentView()) : nullptr;
 		if(pView && pView->isHdrFtrEdit())
 		{
 			bAbiList = false;

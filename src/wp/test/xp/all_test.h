@@ -67,3 +67,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_clipcopy.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_PasteTag.t.cpp"
+#undef TFSUITE

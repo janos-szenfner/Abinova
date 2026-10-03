@@ -63,6 +63,10 @@ public:
 	/* re-sync action states and contextual tab visibility */
 	void			refresh();
 
+	/* opens the Paste Special dialog; also used by the paste-options
+	 * smart tag in the document overlay */
+	void			showPasteSpecialDialog() { _showPasteSpecialDialog(); }
+
 private:
 	GtkWidget *		_makeButton(XAP_Menu_Id id, uint8_t flags);
 	GtkWidget *		_makeToolbarWidget(XAP_Toolbar_Id id, uint8_t flags);
