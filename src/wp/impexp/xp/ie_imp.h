@@ -215,6 +215,12 @@ public:
 		{ return appendFmt(PP_std_copyProps(attributes)); }
 	virtual bool appendFmt(const PP_PropertyVector & pVecAttributes);
 
+	/* shared latex->PTO_Math helper for importers that see raw LaTeX
+	 * math (Markdown $..$/$$..$$, LaTeX math environments); returns
+	 * false when the source could not be converted so the caller can
+	 * fall back to styled plain text */
+	bool appendLatexMath(const std::string & tex, bool display);
+
 	virtual UT_Error _loadFile (GsfInput * input) = 0;
 
 public:

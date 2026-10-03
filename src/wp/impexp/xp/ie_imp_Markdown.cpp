@@ -730,8 +730,6 @@ void IE_Imp_Markdown::_parseDocument(const std::string & utf8)
 		}
 
 		// display math: $$...$$ inline or $$ ... $$ across lines.
-		// Without a MathML engine the LaTeX source is emitted as a
-		// centred italic paragraph.
 		if (s_isMathFence(line))
 		{
 			_resetLists();
@@ -1268,18 +1266,25 @@ bool IE_Imp_Markdown::_emitFootnote(const std::string & text)
 	return true;
 }
 
-/*! Display math: no MathML engine is guaranteed, so emit the LaTeX
- *  source centred and italic - readable and clearly marked. */
+/*! Display math: emit a real PTO_Math object inside a centred block.
+ *  If the LaTeX source can't be converted, keep the old behaviour of
+ *  showing the raw source centred and italic. */
 bool IE_Imp_Markdown::_emitMathBlock(const std::string & tex)
 {
-	PP_PropertyVector atts = {
+	const PP_PropertyVector atts = {
 		"style", "Normal",
-		"props", "text-align:center; font-style:italic"
+		"props", "text-align:center"
 	};
 	if (!appendStrux(PTX_Block, atts))
 		return false;
-	if (!tex.empty())
+	if (!tex.empty() && !appendLatexMath(tex, true))
+	{
+		const PP_PropertyVector fatts = {
+			PT_PROPS_ATTRIBUTE_NAME, "font-style:italic"
+		};
+		appendFmt(fatts);
 		appendSpan(tex);
+	}
 	return true;
 }
 
@@ -1687,7 +1692,8 @@ static void s_emitInlineRec(IE_Imp_Markdown * imp, PD_Document * doc,
 			continue;
 		}
 
-		// inline math $...$ -> italic run of the LaTeX source
+		// inline math $...$ -> PTO_Math object; on conversion failure
+		// fall back to an italic run of the LaTeX source
 		if (c == '$')
 		{
 			std::string tex;
@@ -1695,9 +1701,12 @@ static void s_emitInlineRec(IE_Imp_Markdown * imp, PD_Document * doc,
 			if (len)
 			{
 				flush();
-				MDFmt f = fmt;
-				f.italic = true;
-				s_emitSegment(imp, doc, tex, f);
+				if (!imp->emitInlineMathPublic(tex))
+				{
+					MDFmt f = fmt;
+					f.italic = true;
+					s_emitSegment(imp, doc, tex, f);
+				}
 				i += len;
 				continue;
 			}

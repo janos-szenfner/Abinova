@@ -214,8 +214,9 @@ all.
   - Footnotes (`[^id]` refs + `[^id]: text` definitions) become real
     Abinova footnote objects.
   - Inline `$...$` and fenced `$$...$$`/`math` blocks are imported
-    as styled math text (no MathML renderer — equations keep their
-    TeX source, italicised).
+    as real equation objects — the LaTeX source is converted to
+    MathML by the built-in typesetter and rendered live; sources
+    that fail conversion keep their TeX source as italic text.
   - Mermaid fenced blocks are rendered to a PNG diagram by the
     built-in renderer (`ut_mermaid`) and embedded as an image;
     documents without rendering support keep the source text.

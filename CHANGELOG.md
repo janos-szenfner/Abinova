@@ -4055,6 +4055,13 @@ below are on `main` but the release has not been cut yet.
   `strcmp`/`atol`/`strncpy` call site (~160 casts removed; the few
   remaining ones sit at genuine byte boundaries — gsf reads, byte
   buffers, UCS-4 span views). Import behavior is unchanged.
+- **Markdown math imports as real equations** — inline `$…$` and
+  fenced `$$…$$` blocks now become real equation objects (PTO_Math):
+  the LaTeX source is parsed by the built-in typesetter, stored as
+  MathML + LaTeX data items, and typeset live (fractions, radicals,
+  scripts, sums/integrals, matrices, align environments). Sources
+  that fail conversion keep the old centred-italic plain-text
+  fallback.
 
 ### Resolved root causes worth noting
 

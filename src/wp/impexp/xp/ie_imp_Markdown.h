@@ -51,6 +51,8 @@ public:
 		{ return _emitImage(url, alt, title); }
 	bool emitFootnotePublic(const std::string & text)
 		{ return _emitFootnote(text); }
+	bool emitInlineMathPublic(const std::string & tex)
+		{ return appendLatexMath(tex, false); }
 	bool lookupLinkRef(const std::string & id, std::string & url,
 					   std::string & title) const;
 	bool lookupFootnoteDef(const std::string & id, std::string & text) const;

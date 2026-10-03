@@ -26,6 +26,8 @@
 #include <string>
 #include <vector>
 #include "ut_string.h"
+#include "ut_std_string.h"
+#include "ut_bytebuf.h"
 #include "ut_vector.h"
 #include "ut_assert.h"
 #include "ut_misc.h"
@@ -33,6 +35,8 @@
 #include "ie_imp.h"
 #include "ie_imp_Abinova_1.h"
 #include "ie_imp_GraphicAsDocument.h"
+#include "ie_math_convert.h"
+#include "gr_MathTypesetter.h"
 #include "pd_Document.h"
 #include "pf_Frag_Strux.h"
 
@@ -177,6 +181,62 @@ bool IE_Imp::appendFmt(const PP_PropertyVector & vecAttributes)
 	}
 
 	return bRes;
+}
+
+/*! Shared helper for importers that encounter raw LaTeX math
+ *  (Markdown $..$/$$..$$, LaTeX math environments): normalizes the
+ *  source through convertLaTeXtoEqn, builds the MathML face via the
+ *  built-in typesetter, stores both as data items (MathLatex<n> =
+ *  MathML, LatexMath<n> = equation-form LaTeX — the paired naming
+ *  GR_GtkMathManager's latex fallback and the LaTeX editor dialog
+ *  expect) and appends a PTO_Math object. Returns false when nothing
+ *  usable could be parsed so the caller can fall back to styled
+ *  plain text. */
+bool IE_Imp::appendLatexMath(const std::string & tex, bool display)
+{
+	if (tex.empty())
+		return false;
+
+	UT_UTF8String sEqn;
+	if (!convertLaTeXtoEqn(UT_UTF8String(tex.c_str()), sEqn) ||
+		sEqn.empty())
+		return false;
+
+	GR_MathTypesetter ts;
+	ts.parseLaTeX(sEqn.utf8_str());
+	UT_UTF8String sMathML = ts.toMathML();
+	/* toMathML() on an empty/garbage parse yields a bare mrow body —
+	 * don't mint an equation object that renders as an empty box */
+	static const char s_emptyMathML[] =
+		"<math xmlns=\"http://www.w3.org/1998/Math/MathML\">"
+		"<mrow></mrow></math>";
+	if (sMathML.empty() || !strcmp(sMathML.utf8_str(), s_emptyMathML))
+		return false;
+
+	const UT_uint32 id = getDoc()->getUID(UT_UniqueId::Math);
+	const std::string mID = UT_std_string_sprintf("MathLatex%u", id);
+	const std::string lID = UT_std_string_sprintf("LatexMath%u", id);
+
+	UT_ByteBufPtr mathBuf(new UT_ByteBuf);
+	mathBuf->ins(0, reinterpret_cast<const UT_Byte *>(sMathML.utf8_str()),
+				 static_cast<UT_uint32>(sMathML.size()));
+	if (!getDoc()->createDataItem(mID.c_str(), false, mathBuf,
+								  "application/mathml+xml", nullptr))
+		return false;
+
+	UT_ByteBufPtr latexBuf(new UT_ByteBuf);
+	latexBuf->ins(0, reinterpret_cast<const UT_Byte *>(sEqn.utf8_str()),
+				  static_cast<UT_uint32>(sEqn.size()));
+	if (!getDoc()->createDataItem(lID.c_str(), false, latexBuf,
+								  "", nullptr))
+		return false;
+
+	const PP_PropertyVector atts = {
+		PT_PROPS_ATTRIBUTE_NAME, display ? "display:block" : "display:inline",
+		PT_IMAGE_DATAID, mID,
+		"latexid", lID
+	};
+	return appendObject(PTO_Math, atts);
 }
 
 /*****************************************************************/
