@@ -26,6 +26,7 @@
 
 // Internal includes
 #include "OXML_Element.h"
+#include "OXML_Image.h"
 #include "ie_exp_OpenXML.h"
 
 // Abinova includes
@@ -41,6 +42,11 @@ public:
 
 	virtual UT_Error serialize(IE_Exp_OpenXML* exporter) override;
 	virtual UT_Error addToPT(PD_Document * pDocument) override;
+
+private:
+	UT_Error _addMediaEmbedToPT(PD_Document * pDocument,
+	                            const OXML_SharedImage & poster,
+	                            const gchar * szMediaRid);
 };
 
 #endif //_OXML_ELEMENT_IMAGE_H_

@@ -67,6 +67,7 @@
 #include "xav_Listener.h"
 #include "gr_EmbedManager.h"
 #include "gr_GtkMathManager.h"
+#include "gr_GtkMediaManager.h"
 #include "ut_Script.h"
 
 
@@ -301,6 +302,12 @@ bool XAP_App::initialize(const char * szKeyBindingsKey, const char * szKeyBindin
 	// Register the built-in MathML/LaTeX equation renderer so that
 	// PTO_Math objects work without the removed mathview plugin.
 	registerEmbeddable(new GR_GtkMathManager(nullptr));
+
+	// Embedded media + generic file objects: "media" plays through
+	// GtkMediaFile, "file" opens in the system handler; both render
+	// their stored snapshot-png poster in-line.
+	registerEmbeddable(new GR_GtkMediaManager(nullptr));
+	registerEmbeddable(new GR_GtkMediaManager(nullptr, "file"), "file");
 
 	// create application-wide resources that
 	// are shared by everything.

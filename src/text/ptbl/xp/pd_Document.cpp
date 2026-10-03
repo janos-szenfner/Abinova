@@ -5196,28 +5196,33 @@ bool PD_Document::getDataItemFileExtension(const char *szDataID, std::string &sE
 		if(mimeType.empty())
 			return false;
 
-		if(mimeType == "image/png")
+		static const struct { const char * mime; const char * ext; } map[] = {
+			{"image/png", "png"}, {"image/jpeg", "jpg"},
+			{"image/svg+xml", "svg"}, {"image/gif", "gif"},
+			{"video/mp4", "mp4"}, {"video/mpeg", "mpg"},
+			{"video/quicktime", "mov"}, {"video/x-msvideo", "avi"},
+			{"video/x-matroska", "mkv"}, {"video/webm", "webm"},
+			{"video/x-ms-wmv", "wmv"}, {"video/ogg", "ogv"},
+			{"video/3gpp", "3gp"}, {"video/x-flv", "flv"},
+			{"audio/mpeg", "mp3"}, {"audio/mp4", "m4a"},
+			{"audio/ogg", "ogg"}, {"audio/wav", "wav"},
+			{"audio/x-wav", "wav"}, {"audio/flac", "flac"},
+			{"audio/aac", "aac"}, {"audio/x-ms-wma", "wma"},
+			{"audio/webm", "weba"}, {"audio/midi", "mid"},
+			{"application/pdf", "pdf"}, {"text/plain", "txt"},
+			{"application/zip", "zip"},
+			{"application/octet-stream", "bin"}
+		};
+		for (const auto & e : map)
 		{
-			sExt = (bDot ? "." : "");
-			sExt += "png";
-			return true;
+			if(mimeType == e.mime)
+			{
+				sExt = (bDot ? "." : "");
+				sExt += e.ext;
+				return true;
+			}
 		}
-		if(mimeType == "image/jpeg")
-		{
-			sExt = (bDot ? "." : "");
-			sExt += "jpg";
-			return true;
-		}
-		else if(mimeType ==  "image/svg+xml")
-		{
-			sExt = (bDot ? "." : "");
-			sExt += "svg";
-			return true;	
-		}
-		else
-		{
-			UT_DEBUGMSG(("getDataItemFileExtension(): unhandled/ignored mime type: %s\n", mimeType.c_str()));
-		}
+		UT_DEBUGMSG(("getDataItemFileExtension(): unhandled/ignored mime type: %s\n", mimeType.c_str()));
 	}
 
 	return false;

@@ -173,7 +173,7 @@ ap_bs_Mouse MouseTable[] =
 
 //	Button-1, Embed-context
 //  { context	{ click				doubleclick		drag,		dbldrag,	release,		doublerelease	}},
-	{_CEM _B1,	{ "btn1InlineImage",				"dlgFmtPosImage",				"dragInlineImage",	"",		"releaseInlineImage",	"releaseInlineImage"				}},
+	{_CEM _B1,	{ "btn1InlineImage",				"editEmbed",				"dragInlineImage",	"",		"releaseInlineImage",	"releaseInlineImage"				}},
 	{_CEM _B1 _C,{ "copyInlineImage",	"copyInlineImage",				"dragInlineImage","dragInlineImage",				"releaseInlineImage","releaseInlineImage"	}},
 
 //	Button-1, Math-context

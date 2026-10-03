@@ -514,7 +514,14 @@ labels, like Word's ribbon.
   **Screenshot** (area capture via the XDG Screenshot portal, with
   `gnome-screenshot` as fallback; the button is hidden when neither
   is available).
-- **Media**: video/audio inserted as `file://` links.
+- **Media**: video/audio embeds into the document as playable
+  objects — poster frame with a play badge, played through GTK4
+  `GtkMediaFile`/`GtkVideo`; double-click activates. Media is stored
+  as document data items so it survives `.abwn` and `.docx`
+  round-trips (`word/media/*` + `a:videoFile`/`a:audioFile`/
+  `p14:media` markup, matching Word). Unsupported file types fall
+  back to a `file://` link; the Object popover's "Embedded Object…"
+  embeds any file with system-handler activation.
 - **Links**: the hyperlink dialog always opens; with no
   selection its "Text to display" field creates the link text,
   matching Word.

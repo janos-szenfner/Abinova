@@ -9631,7 +9631,8 @@ bool FV_View::cmdInsertMathML(const char * szUID,PT_DocPosition pos)
  * eg for a GNOME-Office chart we'll have MIME-TYPE "application/chart+xml"
  * and sProps="embed-type: GOChart";
  */
-bool FV_View::cmdInsertEmbed(const UT_ConstByteBufPtr & pBuf, PT_DocPosition pos, const char * szMime, const char * szProps)
+bool FV_View::cmdInsertEmbed(const UT_ConstByteBufPtr & pBuf, PT_DocPosition pos, const char * szMime, const char * szProps,
+							 const UT_ConstByteBufPtr & pSnapshot, const char * szSnapshotMime)
 {
 	std::string sUID = "obj-";
 	UT_UUIDPtr uuid = m_pDoc->getNewUUID();
@@ -9652,6 +9653,17 @@ bool FV_View::cmdInsertEmbed(const UT_ConstByteBufPtr & pBuf, PT_DocPosition pos
 	if(!created)
 	{
 	    return created;
+	}
+	/* poster data item in the embed-manager "snapshot-png-<dataid>"
+	 * slot so the object has something to render before it is ever
+	 * played/edited (and on platforms without a playback backend) */
+	if (pSnapshot && pSnapshot->getLength())
+	{
+		std::string sSnapID = "snapshot-png-";
+		sSnapID += sUID;
+		m_pDoc->createDataItem(sSnapID.c_str(), false, pSnapshot,
+							   (szSnapshotMime && *szSnapshotMime) ?
+							   szSnapshotMime : "image/png", nullptr);
 	}
 	getStyle(&cur_style);
 	if((cur_style != nullptr) && (*cur_style) && (strcmp(cur_style,"None") != 0))

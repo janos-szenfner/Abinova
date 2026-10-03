@@ -30,6 +30,10 @@
 #include "ut_string.h"
 #include "ut_path.h"
 #include "pd_Document.h"
+#include "pp_AttrProp.h"
+#include "OXMLi_PackageManager.h"
+
+#include <gsf/gsf.h>
 
 OXML_Element_Image::OXML_Element_Image(const std::string & id) : 
 	OXML_Element(id, IMG_TAG, IMAGE)
@@ -76,6 +80,63 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 	if(err != UT_OK)
 		return err;
 
+	/* media objects: the payload data item becomes a word/media part
+	 * plus a:videoFile/a:audioFile (and p14:media for Word's playback
+	 * path) inside the picture's pic:nvPr — the poster stays the
+	 * a:blip so every reader still renders the frame */
+	std::string mediaNvPr;
+	const gchar * szMediaDataID = nullptr;
+	if (getProperty("media-dataid", szMediaDataID) == UT_OK &&
+		szMediaDataID && *szMediaDataID)
+	{
+		const gchar * szKind = nullptr;
+		getProperty("media-kind", szKind);
+		bool bVideo = szKind && !strcmp(szKind, "video");
+		bool bAudio = szKind && !strcmp(szKind, "audio");
+		if (bVideo || bAudio)
+		{
+			UT_ConstByteBufPtr pMedia;
+			if (exporter->getDoc()->getDataItemDataByName(
+					szMediaDataID, pMedia, nullptr, nullptr) && pMedia)
+			{
+				std::string mediaFile = UT_sanitizeFileName(szMediaDataID);
+				std::string mExt;
+				if (!exporter->getDoc()->getDataItemFileExtension(
+						szMediaDataID, mExt))
+				{
+					mExt = ".bin";
+					const gchar * szMName = nullptr;
+					if (getProperty("media-name", szMName) == UT_OK && szMName)
+					{
+						const char * dot = strrchr(szMName, '.');
+						if (dot && dot[1])
+							mExt = dot;
+					}
+				}
+				mediaFile += mExt;
+				if (exporter->writeImage(mediaFile.c_str(), pMedia) == UT_OK)
+				{
+					std::string mediaRelId = relId;
+					mediaRelId += "m";
+					std::string p14RelId = relId;
+					p14RelId += "p";
+					exporter->setMediaRelation(mediaFile.c_str(),
+						mediaRelId.c_str(),
+						"http://schemas.openxmlformats.org/officeDocument/2006/relationships/media");
+					exporter->setMediaRelation(mediaFile.c_str(),
+						p14RelId.c_str(),
+						"http://schemas.microsoft.com/office/2007/relationships/media");
+					mediaNvPr = "<pic:nvPr><a:";
+					mediaNvPr += bVideo ? "videoFile" : "audioFile";
+					mediaNvPr += " r:link=\"" + mediaRelId +
+						"\"/><p14:media xmlns:p14=\"http://schemas.microsoft.com/office/powerpoint/2010/main\" r:embed=\"" +
+						p14RelId + "\"/></pic:nvPr>";
+				}
+			}
+		}
+	}
+	const char * szNvPr = mediaNvPr.empty() ? nullptr : mediaNvPr.c_str();
+
 	if(bPositionedImage)
 	{
 		// positioned image
@@ -84,7 +145,7 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 		getProperty("frame-width", width);
 		getProperty("xpos", xpos);
 		getProperty("ypos", ypos);
-		err = exporter->setPositionedImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height, xpos, ypos, wrapMode);
+		err = exporter->setPositionedImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height, xpos, ypos, wrapMode, szNvPr);
 		if(err != UT_OK)
 			return err;
 	}
@@ -93,7 +154,42 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 		// inline image
 		getProperty("height", height);
 		getProperty("width", width);
-		err = exporter->setImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height);
+
+		/* embeds may carry no explicit size — the run falls back to
+		 * the manager's natural size, so do the same here by reading
+		 * the poster PNG's IHDR (96 device px per inch) */
+		std::string wFromSnap, hFromSnap;
+		if ((!width || UT_convertToInches(width) <= 0) &&
+			szValue && *szValue)
+		{
+			UT_ConstByteBufPtr pSnap;
+			if (exporter->getDoc()->getDataItemDataByName(
+					szValue, pSnap, nullptr, nullptr) &&
+				pSnap && pSnap->getLength() >= 24)
+			{
+				const UT_Byte * d = pSnap->getPointer(0);
+				if (d && !memcmp(d, "\x89PNG\r\n\x1a\n", 8))
+				{
+					const UT_Byte * ihdr = d + 16;
+					UT_uint32 pw = (ihdr[0] << 24) | (ihdr[1] << 16) |
+						(ihdr[2] << 8) | ihdr[3];
+					UT_uint32 ph = (ihdr[4] << 24) | (ihdr[5] << 16) |
+						(ihdr[6] << 8) | ihdr[7];
+					if (pw && ph)
+					{
+						wFromSnap = UT_convertToDimensionlessString(pw / 96.0, ".4");
+						wFromSnap += "in";
+						hFromSnap = UT_convertToDimensionlessString(ph / 96.0, ".4");
+						hFromSnap += "in";
+					}
+				}
+			}
+		}
+		if (!width || UT_convertToInches(width) <= 0)
+			width = wFromSnap.empty() ? "1.0in" : wFromSnap.c_str();
+		if (!height || UT_convertToInches(height) <= 0)
+			height = hFromSnap.empty() ? "1.0in" : hFromSnap.c_str();
+		err = exporter->setImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height, szNvPr);
 		if(err != UT_OK)
 			return err;
 	}
@@ -224,6 +320,18 @@ UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 		return addChildrenToPT(pDocument);
 	}
 
+	/* a:videoFile/a:audioFile/p14:media inside pic:nvPr made this
+	 * picture a media object — rebuild it as a playable embed with the
+	 * blip as its poster instead of a plain inline image */
+	{
+		const gchar * szMediaRid = nullptr;
+		if (sImage &&
+			getProperty("media-rid", szMediaRid) == UT_OK && szMediaRid &&
+			*szMediaRid &&
+			_addMediaEmbedToPT(pDocument, sImage, szMediaRid) == UT_OK)
+			return UT_OK;
+	}
+
 	if(bInline)
 	{
 		ret = setAttribute("dataid", getId().c_str());
@@ -259,4 +367,135 @@ UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 			return ret;
 	}
 	return UT_OK;
+}
+
+/* mime guess for a word/media part name — [Content_Types].xml isn't
+ * consulted, the extension is authoritative enough for playback */
+static std::string s_mimeForMediaPart(const std::string & partPath)
+{
+	static const struct { const char * ext; const char * mime; } map[] = {
+		{".mp4", "video/mp4"}, {".m4v", "video/mp4"},
+		{".mov", "video/quicktime"}, {".avi", "video/x-msvideo"},
+		{".mkv", "video/x-matroska"}, {".webm", "video/webm"},
+		{".wmv", "video/x-ms-wmv"}, {".ogv", "video/ogg"},
+		{".mpg", "video/mpeg"}, {".mpeg", "video/mpeg"},
+		{".3gp", "video/3gpp"}, {".flv", "video/x-flv"},
+		{".mp3", "audio/mpeg"}, {".m4a", "audio/mp4"},
+		{".wav", "audio/wav"}, {".ogg", "audio/ogg"},
+		{".oga", "audio/ogg"}, {".flac", "audio/flac"},
+		{".aac", "audio/aac"}, {".wma", "audio/x-ms-wma"},
+		{".weba", "audio/webm"}, {".mid", "audio/midi"}
+	};
+	size_t dot = partPath.rfind('.');
+	if (dot == std::string::npos)
+		return "application/octet-stream";
+	std::string ext = partPath.substr(dot);
+	for (auto & c : ext)
+		c = static_cast<char>(g_ascii_tolower(c));
+	for (const auto & e : map)
+		if (ext == e.ext)
+			return e.mime;
+	return "application/octet-stream";
+}
+
+/*!
+ * The drawing's pic:nvPr referenced a word/media part (a:videoFile,
+ * a:audioFile or p14:media) — import the payload as a piece-table
+ * embedded object: the media bytes become the data item, the picture's
+ * blip becomes its "snapshot-png-" poster, and the object is appended
+ * as a PTO_Embed so the media manager can play it.
+ */
+UT_Error OXML_Element_Image::_addMediaEmbedToPT(
+	PD_Document * pDocument, const OXML_SharedImage & poster,
+	const gchar * szMediaRid)
+{
+	OXMLi_PackageManager * mgr = OXMLi_PackageManager::getInstance();
+	if (!mgr || !szMediaRid || !*szMediaRid)
+		return UT_ERROR;
+	GsfInput * part = mgr->openPartByRelId(szMediaRid);
+	if (!part)
+		return UT_ERROR;
+
+	UT_ByteBufPtr mbuf(new UT_ByteBuf);
+	while (gsf_input_remaining(part) > 0)
+	{
+		gsf_off_t len = gsf_input_remaining(part);
+		const guint8 * d = gsf_input_read(part, len, nullptr);
+		if (!d)
+			break;
+		mbuf->append(d, static_cast<UT_uint32>(len));
+	}
+	g_object_unref(part);
+	if (!mbuf->getLength())
+		return UT_ERROR;
+
+	std::string partPath = mgr->getPartPath(szMediaRid);
+	std::string mime = s_mimeForMediaPart(partPath);
+	std::string dataID = "obj-media-";
+	dataID += szMediaRid;
+
+	if (!pDocument->createDataItem(dataID.c_str(), false, mbuf,
+	                             mime, nullptr))
+		return UT_ERROR;
+
+	/* the blip keeps its own data item for the document; copy it into
+	 * the embed's poster slot so the media manager renders it */
+	if (poster && poster->getBuffer())
+	{
+		std::string snapID = "snapshot-png-";
+		snapID += dataID;
+		std::string snapMime = poster->getMimeType();
+		if (snapMime.empty())
+			snapMime = "image/png";
+		pDocument->createDataItem(snapID.c_str(), false,
+		                        poster->getBuffer(), snapMime, nullptr);
+	}
+
+	/* rebuild the object attrs: keep the picture's real props
+	 * (height/width/title) but drop image attrs and our internal
+	 * media bookkeeping */
+	PP_PropertyVector props = getProperties();
+	PP_PropertyVector keep;
+	for (size_t i = 0; i + 1 < props.size(); i += 2)
+	{
+		const std::string & n = props[i];
+		if (n == "media-rid" || n == "media-dataid" ||
+			n.compare(0, 11, "altcontent-") == 0)
+			continue;
+		keep.push_back(props[i]);
+		keep.push_back(props[i + 1]);
+	}
+	PP_addOrSetAttribute("embed-type", "media", keep);
+	{
+		const gchar * szKind = nullptr;
+		if (getProperty("media-kind", szKind) != UT_OK || !szKind || !*szKind)
+			szKind = "video";
+		PP_addOrSetAttribute("media-kind", szKind, keep);
+	}
+	if (!partPath.empty())
+	{
+		const char * base = UT_basename(partPath.c_str());
+		if (base && *base)
+			PP_addOrSetAttribute("media-name", base, keep);
+	}
+	std::string pstr;
+	for (size_t i = 0; i + 1 < keep.size(); i += 2)
+	{
+		pstr += keep[i];
+		pstr += ":";
+		pstr += keep[i + 1];
+		pstr += ";";
+	}
+	if (!pstr.empty())
+		pstr.resize(pstr.length() - 1);
+
+	PP_PropertyVector atts;
+	atts.push_back("dataid");
+	atts.push_back(dataID);
+	if (!pstr.empty())
+	{
+		atts.push_back("props");
+		atts.push_back(pstr);
+	}
+	return pDocument->appendObject(PTO_Embed, atts) ? UT_OK : UT_ERROR;
 }

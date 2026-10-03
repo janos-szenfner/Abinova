@@ -7220,9 +7220,9 @@ GtkWidget * AP_UnixRibbon::_make3DModelsPopover()
 	return popover;
 }
 
-/* Word's Media dropdown: media objects cannot be embedded, so the
- * "from File" rows insert a file:// link that opens in the system
- * player; the browser rows report unsupported */
+/* Word's Media dropdown: the "from File" rows embed real audio/video
+ * into the document as playable media objects (unsupported types fall
+ * back to a file:// link); the browser rows report unsupported */
 GtkWidget * AP_UnixRibbon::_makeMediaPopover()
 {
 	GtkWidget * box;
@@ -7233,7 +7233,7 @@ GtkWidget * AP_UnixRibbon::_makeMediaPopover()
 							  "notImplemented", "Video Browser"));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Video from File…",
-							  "Insert a link to a video file",
+							  "Embed a playable video in the document",
 							  nullptr, "insMediaFile", "video"));
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
@@ -7242,7 +7242,7 @@ GtkWidget * AP_UnixRibbon::_makeMediaPopover()
 							  "notImplemented", "Audio Browser"));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Audio from File…",
-							  "Insert a link to an audio file",
+							  "Embed playable audio in the document",
 							  nullptr, "insMediaFile", "audio"));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
@@ -8855,8 +8855,9 @@ GtkWidget * AP_UnixRibbon::_makeObjectPopover()
 	GtkWidget * popover = _popover_new_box(&box);
 
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("Object…", nullptr, nullptr,
-							  "notImplemented", "Embedded Object"));
+				   _presetRow("Object…",
+							  "Embed a file into the document",
+							  nullptr, "insEmbeddedObject", nullptr));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Text from File…",
 							  "Insert the contents of a document file",

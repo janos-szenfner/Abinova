@@ -42,6 +42,8 @@
 #include <vector>
 
 #include <glib/gstdio.h>
+#include <gio/gio.h>
+#include <cairo.h>
 
 #include "xap_Features.h"
 #include "ap_Features.h"
@@ -632,6 +634,7 @@ public:
 	static EV_EditMethod_Fn insBreak;
 	static EV_EditMethod_Fn insPageNo;
 	static EV_EditMethod_Fn insMediaFile;
+	static EV_EditMethod_Fn insEmbeddedObject;
 	static EV_EditMethod_Fn insScreenshot;
 	static EV_EditMethod_Fn insVerticalTextBox;
 	static EV_EditMethod_Fn insDateTime;
@@ -1222,6 +1225,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insFile),				0,		""),
 	EV_EditMethod(NF(insFootnote),			0,		""),
 	EV_EditMethod(NF(insMediaFile),		0,		""),
+	EV_EditMethod(NF(insEmbeddedObject),		0,		""),
 	EV_EditMethod(NF(insPageNo),			0,		""),
 	EV_EditMethod(NF(insScreenshot),		0,		""),
 	EV_EditMethod(NF(insSectionBreak),		0,	""),
@@ -12613,10 +12617,164 @@ Defun1(insVerticalTextBox)
 	return true;
 }
 
-/* Media popover "Video/Audio from File": Abinova cannot embed a
- * playable media object, so the file is linked like Word's
- * "Insert > Link to File" - clicking the link opens it in the
- * system's media player */
+/* cairo write_stream sink that appends PNG bytes into a UT_ByteBuf */
+static cairo_status_t s_pngToBuf(void * closure, const unsigned char * data,
+								 unsigned int length)
+{
+	UT_ByteBuf * b = static_cast<UT_ByteBuf *>(closure);
+	return b->append(data, length) ? CAIRO_STATUS_SUCCESS
+								   : CAIRO_STATUS_WRITE_ERROR;
+}
+
+/* Poster card for an embedded object: a dark tile with a kind glyph
+ * (play triangle for video, note for audio, document for files) and
+ * the file name along the bottom. */
+static UT_ByteBufPtr s_makeFilePoster(const char * szName,
+									  const char * szKind)
+{
+	bool bVideo = szKind && !strcmp(szKind, "video");
+	bool bAudio = szKind && !strcmp(szKind, "audio");
+	double w = bVideo ? 320.0 : 300.0;
+	double h = bVideo ? 180.0 : 96.0;
+	cairo_surface_t * sf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+													  static_cast<int>(w),
+													  static_cast<int>(h));
+	cairo_t * cr = cairo_create(sf);
+
+	cairo_set_source_rgb(cr, 0.16, 0.18, 0.22);
+	cairo_paint(cr);
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
+	cairo_rectangle(cr, 1.0, 1.0, w - 2.0, h - 2.0);
+	cairo_stroke(cr);
+
+	double cx = w / 2.0;
+	double cy = h * 0.38;
+	double r = h * 0.22;
+	cairo_arc(cr, cx, cy, r, 0.0, 2.0 * G_PI);
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.18);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	if (bVideo)
+	{
+		double t = r * 0.55;
+		cairo_move_to(cr, cx - t * 0.5, cy - t);
+		cairo_line_to(cr, cx - t * 0.5, cy + t);
+		cairo_line_to(cr, cx + t, cy);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+	}
+	else if (bAudio)
+	{
+		double n = r * 0.45;
+		cairo_arc(cr, cx - n * 0.5, cy + n * 0.55, n * 0.55, 0.0, 2.0 * G_PI);
+		cairo_fill(cr);
+		cairo_rectangle(cr, cx - n * 0.6, cy - n * 1.2, n * 0.22, n * 1.75);
+		cairo_fill(cr);
+		cairo_move_to(cr, cx - n * 0.38, cy - n * 1.2);
+		cairo_line_to(cr, cx + n * 0.9, cy - n * 0.75);
+		cairo_line_to(cr, cx + n * 0.9, cy - n * 0.35);
+		cairo_line_to(cr, cx - n * 0.38, cy - n * 0.8);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+	}
+	else
+	{
+		double dw = r * 0.9, dh = r * 1.1;
+		cairo_rectangle(cr, cx - dw / 2.0, cy - dh / 2.0, dw, dh);
+		cairo_set_line_width(cr, 2.0);
+		cairo_stroke(cr);
+		cairo_move_to(cr, cx + dw * 0.1, cy - dh / 2.0);
+		cairo_line_to(cr, cx + dw * 0.1, cy - dh * 0.18);
+		cairo_line_to(cr, cx + dw / 2.0, cy - dh * 0.18);
+		cairo_stroke(cr);
+	}
+
+	if (szName && *szName)
+	{
+		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+							   CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 11.0);
+		cairo_text_extents_t te;
+		cairo_text_extents(cr, szName, &te);
+		double tx = cx - te.width / 2.0;
+		if (tx < 6.0)
+			tx = 6.0;
+		if (te.width < w - 12.0)
+			cairo_move_to(cr, tx, h - 10.0);
+		else
+			cairo_move_to(cr, 6.0, h - 10.0);
+		cairo_show_text(cr, szName);
+	}
+
+	UT_ByteBufPtr pBuf(new UT_ByteBuf);
+	cairo_surface_write_to_png_stream(sf, s_pngToBuf, pBuf.get());
+	cairo_destroy(cr);
+	cairo_surface_destroy(sf);
+	return pBuf;
+}
+
+/*! Store \a pathName as a piece-table embedded object: the bytes become
+ * a data item, a generated poster becomes the snapshot, and the
+ * embed-type prop dispatches audio/video to the GtkMediaFile player
+ * and everything else to the system handler.
+ * szKind "media" restricts embedding to real audio/video types
+ * (returns false so the caller can fall back to the file:// link);
+ * nullptr embeds any file. */
+static bool s_embedFileInDoc(FV_View * pView, const char * pathName,
+							 const char * szKind)
+{
+	gchar * contents = nullptr;
+	gsize len = 0;
+	if (!g_file_get_contents(pathName, &contents, &len, nullptr))
+		return false;
+
+	const char * base = UT_basename(pathName);
+	gboolean bUncertain = FALSE;
+	gchar * ctype = g_content_type_guess(
+		base, reinterpret_cast<const guchar *>(contents), len, &bUncertain);
+	gchar * mime = ctype ? g_content_type_get_mime_type(ctype) : nullptr;
+	if (!mime)
+		mime = g_strdup("application/octet-stream");
+	bool bAudio = !strncmp(mime, "audio/", 6);
+	bool bVideo = !strncmp(mime, "video/", 6);
+	bool bMediaOnly = szKind && *szKind;
+	if (bMediaOnly && !bAudio && !bVideo)
+	{
+		g_free(ctype);
+		g_free(mime);
+		g_free(contents);
+		return false;
+	}
+	const char * kind = bVideo ? "video" : bAudio ? "audio" : "file";
+
+	UT_ByteBufPtr pBuf(new UT_ByteBuf);
+	pBuf->ins(0, reinterpret_cast<const UT_Byte *>(contents), len);
+	g_free(contents);
+
+	UT_ByteBufPtr pPoster = s_makeFilePoster(base, kind);
+
+	std::string sName(base ? base : "");
+	for (auto & c : sName)
+		if (c == ';' || c == ':')
+			c = ' ';
+	std::string sProps = "embed-type: ";
+	sProps += (bAudio || bVideo) ? "media" : "file";
+	sProps += "; media-kind: ";
+	sProps += kind;
+	sProps += "; media-name: ";
+	sProps += sName;
+
+	bool ok = pView->cmdInsertEmbed(pBuf, pView->getPoint(), mime,
+									sProps.c_str(), pPoster, "image/png");
+	g_free(ctype);
+	g_free(mime);
+	return ok;
+}
+
+/* Media popover "Video/Audio from File": real media types embed into
+ * the document as playable objects; unsupported types keep the old
+ * "Insert > Link to File" behavior — the link opens in the system's
+ * media player */
 Defun1(insMediaFile)
 {
 	CHECK_FRAME;
@@ -12632,21 +12790,47 @@ Defun1(insMediaFile)
 						  nullptr, &pathName, &fType) || !pathName)
 		return false;
 
-	UT_String url("file://");
-	url += pathName;
-	const char * base = strrchr(pathName, '/');
-	base = base ? base + 1 : pathName;
-	/* insert the filename as linked text */
-	UT_UCS4String s(base);
-	pView->cmdCharInsert(s.ucs4_str(), s.length());
-	PT_DocPosition end = pView->getPoint();
-	PT_DocPosition start = end - s.length();
-	pView->cmdSelect(start, end);
-	pView->cmdInsertHyperlink(url.c_str(), base);
-	pView->cmdUnselectSelection();
-	pView->setPoint(end);
+	if (!s_embedFileInDoc(pView, pathName, "media"))
+	{
+		UT_String url("file://");
+		url += pathName;
+		const char * base = strrchr(pathName, '/');
+		base = base ? base + 1 : pathName;
+		/* insert the filename as linked text */
+		UT_UCS4String s(base);
+		pView->cmdCharInsert(s.ucs4_str(), s.length());
+		PT_DocPosition end = pView->getPoint();
+		PT_DocPosition start = end - s.length();
+		pView->cmdSelect(start, end);
+		pView->cmdInsertHyperlink(url.c_str(), base);
+		pView->cmdUnselectSelection();
+		pView->setPoint(end);
+	}
 	FREEP(pathName);
 	return true;
+}
+
+/* Object popover "Embedded Object…": embed any file into the document
+ * as a data item — media plays via GtkMediaFile on activation,
+ * everything else opens in the system handler */
+Defun1(insEmbeddedObject)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	IEFileType fType = IEFT_Unknown;
+	char *pathName = nullptr;
+	if (!s_AskForPathname(pFrame, false, XAP_DIALOG_ID_INSERT_FILE,
+						  nullptr, &pathName, &fType) || !pathName)
+		return false;
+
+	bool ok = s_embedFileInDoc(pView, pathName, nullptr);
+	FREEP(pathName);
+	return ok;
 }
 
 Defun1(insFootnote)

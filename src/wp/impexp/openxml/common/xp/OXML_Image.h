@@ -56,6 +56,16 @@ public:
             return m_id;
         }
 
+	UT_ConstByteBufPtr getBuffer() const
+		{
+			return m_graphic ? m_graphic->getBuffer() : m_data;
+		}
+
+	std::string getMimeType() const
+		{
+			return m_graphic ? m_graphic->getMimeType() : m_mimeType;
+		}
+
 	UT_Error serialize(IE_Exp_OpenXML* exporter);
 	UT_Error addToPT(PD_Document * pDocument);
 

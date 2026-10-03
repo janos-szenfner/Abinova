@@ -937,6 +937,52 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		rqst->handled = true;
 	}
+	else if (nameMatches(rqst->pName, NS_A_KEY, "videoFile") ||
+			 nameMatches(rqst->pName, NS_A_KEY, "audioFile"))
+	{
+		/* DrawingML media inside pic:nvPr — the blip is only the
+		 * poster; remember the media part + kind so addToPT can
+		 * rebuild the picture as a playable embed */
+		const gchar * rid = attrMatches(NS_R_KEY, "link", rqst->ppAtts);
+		if (!rid)
+			rid = attrMatches(NS_R_KEY, "embed", rqst->ppAtts);
+		if (rid && !rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
+		{
+			OXML_SharedElement e = OXMLi_elemTop(rqst->stck);
+			e->setProperty("media-rid", rid);
+			e->setProperty("media-kind",
+						   rqst->pName == "A:videoFile" ? "video" : "audio");
+		}
+		rqst->handled = true;
+	}
+	else if (rqst->context && !rqst->context->empty() &&
+			 OXMLi_contextBack(rqst->context) == "PIC:nvPr" &&
+			 !rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
+	{
+		/* p14:media (or another extension-prefixed media element)
+		 * carries r:embed to the same word/media part — its prefix
+		 * isn't registered so processName passes it through raw */
+		size_t cpos = rqst->pName.rfind(':');
+		std::string local = cpos == std::string::npos ?
+			rqst->pName : rqst->pName.substr(cpos + 1);
+		if (local == "media")
+		{
+			const gchar * rid = attrMatches(NS_R_KEY, "embed", rqst->ppAtts);
+			if (!rid)
+				rid = attrMatches(NS_R_KEY, "link", rqst->ppAtts);
+			if (rid)
+			{
+				OXML_SharedElement e = OXMLi_elemTop(rqst->stck);
+				const gchar * exists = nullptr;
+				if (e->getProperty("media-rid", exists) != UT_OK || !exists)
+				{
+					e->setProperty("media-rid", rid);
+					e->setProperty("media-kind", "video");
+				}
+			}
+			rqst->handled = true;
+		}
+	}
 	else if (rqst->context && !rqst->context->empty() &&
 			 OXMLi_contextBack(rqst->context) == "A:graphicData")
 	{

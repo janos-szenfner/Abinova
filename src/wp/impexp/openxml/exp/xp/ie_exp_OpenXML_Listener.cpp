@@ -384,10 +384,29 @@ bool IE_Exp_OpenXML_Listener::populate(fl_ContainerLayout* /* sfh */, const PX_C
 							return true;
 						}
 
-						if(strcmp(szValue, "GOChart") != 0)
+						bool bMedia = !strcmp(szValue, "media");
+						bool bFile = !strcmp(szValue, "file");
+						if(strcmp(szValue, "GOChart") != 0 && !bMedia && !bFile)
 						{
 							UT_DEBUGMSG(("SERHAT: Embedding without a GOChart\n"));
 							return true;
+						}
+
+						/* generic file embeds may have no poster —
+						 * without one there is no picture to anchor,
+						 * so the object is left out rather than
+						 * writing a dangling image relationship */
+						const gchar* szEmbedDataID = nullptr;
+						if((bMedia || bFile) &&
+						   pAP->getAttribute("dataid", szEmbedDataID) && szEmbedDataID)
+						{
+							std::string snapId = "snapshot-png-";
+							snapId += szEmbedDataID;
+							UT_ConstByteBufPtr pSnapBuf;
+							if(!pdoc->getDataItemDataByName(snapId.c_str(),
+															pSnapBuf, nullptr, nullptr)
+							   || !pSnapBuf)
+								return true;
 						}
 
 						OXML_Element_Run* element_run = new OXML_Element_Run(getNextId());
@@ -431,6 +450,12 @@ bool IE_Exp_OpenXML_Listener::populate(fl_ContainerLayout* /* sfh */, const PX_C
 						if(pImageName)
 						{
 							snapshot += pImageName;
+							/* media embeds keep the payload data id so
+							 * serialize() can attach it to the picture's
+							 * nvPr and a word/media part + relationship */
+							if (bMedia)
+								element_image->setProperty("media-dataid",
+														   pImageName);
 							if(element_image->setAttribute("dataid", snapshot.c_str()) != UT_OK)
 								return false;
 						}

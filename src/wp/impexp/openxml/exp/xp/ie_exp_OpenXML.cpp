@@ -1946,7 +1946,7 @@ UT_Error IE_Exp_OpenXML::setMultilevelType(int target, const char* type)
 /**
  * Sets the inline image
  */
-UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char* filename, const char* width, const char* height)
+UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* szNvPr)
 {
 	std::string str("");
 	std::string h("");
@@ -1977,6 +1977,8 @@ UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char*
 	str += filename;
 	str += "\"/>";
 	str += "<pic:cNvPicPr/>";
+	if (szNvPr && *szNvPr)
+		str += szNvPr;
 	str += "</pic:nvPicPr>";
 	str += "<pic:blipFill>";
 	str += "<a:blip r:embed=\"";
@@ -2008,7 +2010,7 @@ UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char*
 /**
  * Sets the positioned image
  */
-UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* xpos, const char* ypos, const char* wrapMode)
+UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* xpos, const char* ypos, const char* wrapMode, const char* szNvPr)
 {
 	std::string str("");
 	std::string h("");
@@ -2071,6 +2073,8 @@ UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, c
 	str += filename;
 	str += "\"/>";
 	str += "<pic:cNvPicPr/>";
+	if (szNvPr && *szNvPr)
+		str += szNvPr;
 	str += "</pic:nvPicPr>";
 	str += "<pic:blipFill>";
 	str += "<a:blip r:embed=\"";
@@ -2108,6 +2112,24 @@ UT_Error IE_Exp_OpenXML::setImageRelation(const char* filename, const char* id)
 	str += id;
 	str += "\" ";
 	str += "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/image\" ";
+	str += "Target=\"media/";
+	str += filename;
+	str += "\"/>";
+
+	return writeTargetStream(TARGET_DOCUMENT_RELATION, str.c_str());
+}
+
+/**
+ * Sets a media relationship (a:videoFile/a:audioFile/p14:media target)
+ */
+UT_Error IE_Exp_OpenXML::setMediaRelation(const char* filename, const char* id, const char* szRelType)
+{
+	std::string str("<Relationship Id=\"");
+	str += id;
+	str += "\" ";
+	str += "Type=\"";
+	str += szRelType;
+	str += "\" ";
 	str += "Target=\"media/";
 	str += filename;
 	str += "\"/>";
@@ -2673,6 +2695,29 @@ UT_Error IE_Exp_OpenXML::startContentTypes()
 	str += "<Default Extension=\"gif\" ContentType=\"image/gif\"/>";
 	str += "<Default Extension=\"tiff\" ContentType=\"image/tiff\"/>";
 	str += "<Default Extension=\"svg\" ContentType=\"image/svg+xml\"/>";
+	str += "<Default Extension=\"mp3\" ContentType=\"audio/mpeg\"/>";
+	str += "<Default Extension=\"m4a\" ContentType=\"audio/mp4\"/>";
+	str += "<Default Extension=\"wav\" ContentType=\"audio/wav\"/>";
+	str += "<Default Extension=\"ogg\" ContentType=\"audio/ogg\"/>";
+	str += "<Default Extension=\"oga\" ContentType=\"audio/ogg\"/>";
+	str += "<Default Extension=\"flac\" ContentType=\"audio/flac\"/>";
+	str += "<Default Extension=\"aac\" ContentType=\"audio/aac\"/>";
+	str += "<Default Extension=\"wma\" ContentType=\"audio/x-ms-wma\"/>";
+	str += "<Default Extension=\"weba\" ContentType=\"audio/webm\"/>";
+	str += "<Default Extension=\"mid\" ContentType=\"audio/midi\"/>";
+	str += "<Default Extension=\"mp4\" ContentType=\"video/mp4\"/>";
+	str += "<Default Extension=\"m4v\" ContentType=\"video/mp4\"/>";
+	str += "<Default Extension=\"mov\" ContentType=\"video/quicktime\"/>";
+	str += "<Default Extension=\"avi\" ContentType=\"video/x-msvideo\"/>";
+	str += "<Default Extension=\"mkv\" ContentType=\"video/x-matroska\"/>";
+	str += "<Default Extension=\"webm\" ContentType=\"video/webm\"/>";
+	str += "<Default Extension=\"wmv\" ContentType=\"video/x-ms-wmv\"/>";
+	str += "<Default Extension=\"ogv\" ContentType=\"video/ogg\"/>";
+	str += "<Default Extension=\"mpg\" ContentType=\"video/mpeg\"/>";
+	str += "<Default Extension=\"mpeg\" ContentType=\"video/mpeg\"/>";
+	str += "<Default Extension=\"3gp\" ContentType=\"video/3gpp\"/>";
+	str += "<Default Extension=\"flv\" ContentType=\"video/x-flv\"/>";
+	str += "<Default Extension=\"bin\" ContentType=\"application/octet-stream\"/>";
 	str += "<Override PartName=\"/word/document.xml\" ";
 	str += "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>";
 	str += "<Override PartName=\"/word/styles.xml\" ";

@@ -43,6 +43,8 @@ libgr_la_SOURCES += \
 	gtk/gr_CairoPrintGraphics.h \
 	gtk/gr_GtkMathManager.h \
 	gtk/gr_GtkMathManager.cpp \
+	gtk/gr_GtkMediaManager.h \
+	gtk/gr_GtkMediaManager.cpp \
 	gtk/gr_UnixCairoGraphics.h \
 	gtk/gr_UnixCairoGraphics.cpp \
 	gtk/gr_UnixImage.cpp \

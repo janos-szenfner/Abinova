@@ -4185,6 +4185,16 @@ below are on `main` but the release has not been cut yet.
   through the same shared helper as the Markdown importer, instead
   of centred italic source text. Unconvertible sources keep the
   italic plain-text fallback.
+- **Embedded media objects** — inserting video/audio from the Media
+  popover now stores the media stream inside the document as a
+  playable object (poster frame with a play badge; double-click plays
+  through GTK4 `GtkMediaFile`/`GtkVideo`) instead of inserting a
+  `file://` link. Media survives `.abwn` saves and `.docx`
+  round-trips (exported under `word/media/*` with Word-compatible
+  `a:videoFile`/`a:audioFile`/`p14:media` markup and re-imported as
+  media objects). Unsupported file types keep the `file://` link
+  fallback, and the Object popover's "Embedded Object…" embeds any
+  file with system-handler activation.
 - **Markdown export preserves equations** — math objects now write
   back to `.md` as `$…$` (inline) or `$$…$$` (display) LaTeX instead
   of being dropped; documents without a stored LaTeX source fall

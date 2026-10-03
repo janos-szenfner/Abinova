@@ -360,7 +360,8 @@ public:
 	UT_Error		cmdDeleteHyperlink();
 	bool                    cmdInsertMathML(const char * szFileName,
 						PT_DocPosition pos);
-	bool	        cmdInsertEmbed(const UT_ConstByteBufPtr & pBuf,PT_DocPosition pos,const char * szMime,const char * szProps);
+	bool	        cmdInsertEmbed(const UT_ConstByteBufPtr & pBuf,PT_DocPosition pos,const char * szMime,const char * szProps,
+							   const UT_ConstByteBufPtr & pSnapshot = nullptr, const char * szSnapshotMime = nullptr);
 	bool            cmdUpdateEmbed(const UT_ConstByteBufPtr & pBuf, const char * szMime, const char * szProps);
 	bool	        cmdUpdateEmbed(fp_Run * pRun, const UT_ConstByteBufPtr & pBuf, const char * szMime, const char * szProps);
 	bool	        cmdDeleteEmbed(fp_Run * pRun);
