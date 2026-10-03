@@ -358,6 +358,8 @@ openxml/common/xp/OXML_Document.cpp \
 	openxml/imp/xp/OXMLi_ListenerState_Endnote.h \
 	openxml/imp/xp/OXMLi_ListenerState_Field.cpp \
 	openxml/imp/xp/OXMLi_ListenerState_Field.h \
+	openxml/imp/xp/OXMLi_ListenerState_FontTable.cpp \
+	openxml/imp/xp/OXMLi_ListenerState_FontTable.h \
 	openxml/imp/xp/OXMLi_ListenerState_Footnote.cpp \
 	openxml/imp/xp/OXMLi_ListenerState_Footnote.h \
 	openxml/imp/xp/OXMLi_ListenerState_HdrFtr.cpp \

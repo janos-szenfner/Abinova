@@ -32,6 +32,20 @@
 #include <memory>
 #include <string>
 
+/* \struct OXML_FontTableEntry
+ * \brief The substitution metadata declared for one font in the
+ * document's word/fontTable.xml part (ECMA-376 CT_Font).  All fields
+ * are optional in the part; empty strings mean "not declared".
+ */
+struct OXML_FontTableEntry
+{
+	std::string altName;	//!< w:altName -- name to substitute when the font is unavailable
+	std::string panose1;	//!< w:panose1 -- PANOSE-1 classification
+	std::string charset;	//!< w:charset -- ANSI code page id
+	std::string family;		//!< w:family -- auto|decorative|modern|roman|script|swiss
+	std::string pitch;		//!< w:pitch -- default|fixed|variable
+};
+
 /* \class OXML_FontManager
  * \brief This class handles all the font-related activities.
  * OXML_FontManager has two main purposes.  The first is to keep track of mappings
@@ -40,7 +54,7 @@
  * standard format.
  * The second purpose of OXML_FontManager is to analyze a font face name and validate
  * it against the document's FontTable part to ensure that the proper font face is
- * used (this is not yet implemented).
+ * used.
 */
 class OXML_FontManager
 {
@@ -54,12 +68,21 @@ public:
 
 	void mapRangeToScript(OXML_CharRange range, std::string script);
 
+	//! Records one <w:font> declaration from the FontTable part.
+	/*! \param name   value of the element's w:name attribute
+	 *  \param entry  parsed substitution metadata */
+	void addFontTableEntry(const std::string & name,
+						   const OXML_FontTableEntry & entry);
+
 private:
 	std::string m_defaultFont;
 
 	typedef std::map<OXML_CharRange, std::string> OXML_RangeToScriptMap;
 	OXML_RangeToScriptMap m_major_rts;
 	OXML_RangeToScriptMap m_minor_rts;
+
+	//! FontTable declarations keyed by lower-cased font name
+	std::map<std::string, OXML_FontTableEntry> m_fontTable;
 };
 
 typedef std::shared_ptr<OXML_FontManager> OXML_SharedFontManager;

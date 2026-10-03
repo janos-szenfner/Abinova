@@ -302,6 +302,11 @@ all.
     attributes (`ascii`/`asciiTheme`, `hAnsi`/`hAnsiTheme`); a style
     that sets only `w:eastAsia`/`w:cs` (e.g. Verdana for CJK) no
     longer leaks that face onto Latin text — it inherits instead.
+  - `word/fontTable.xml` is parsed for declared font-substitution
+    metadata: when a referenced family is not installed, the entry's
+    `w:altName` is used if it resolves to an installed font (e.g.
+    Droid Serif → Times New Roman).  Export writes a `fontTable.xml`
+    listing the fonts the document uses.
   - `w:contextualSpacing` is honoured: consecutive same-style
     paragraphs (e.g. list items) collapse their inter-paragraph
     margins instead of summing them.

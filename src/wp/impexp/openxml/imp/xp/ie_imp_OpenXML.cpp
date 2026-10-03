@@ -241,6 +241,13 @@ UT_Error IE_Imp_OpenXML::_loadFile (GsfInput * oo_src)
 		UT_DEBUGMSG(("OpenXML import: failed to parse the document theme\n"));
 	}
 
+	// fontTable feeds the font manager's substitution data, so it must
+	// be parsed before styles/document run properties are resolved
+	if (UT_OK != (ret = mgr->parseDocumentFontTable()))
+	{
+		UT_DEBUGMSG(("OpenXML import: failed to parse the document font table\n"));
+	}
+
 	if (UT_OK != (ret = mgr->parseDocumentSettings()))
 	{
 		UT_DEBUGMSG(("OpenXML import: failed to parse the document settings\n"));

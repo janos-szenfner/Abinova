@@ -152,6 +152,20 @@ UT_Error OXMLi_PackageManager::parseDocumentSettings()
 	return parseChildByType(doc, DOCSETTINGS_PART, &listener); 
 }
 
+UT_Error OXMLi_PackageManager::parseDocumentFontTable()
+{
+	GsfInput * doc = _getDocumentStream();
+	UT_return_val_if_fail(doc != nullptr, UT_ERROR);
+	OXMLi_StreamListener listener;
+	listener.setupStates(FONTTABLE_PART);
+	UT_Error err = parseChildByType(doc, FONTTABLE_PART, &listener);
+	//font tables are optional in .docx files
+	if(err != UT_OK){
+		UT_DEBUGMSG(("FRT: OpenXML FontTable Part is not found\n"));
+	}
+	return UT_OK;
+}
+
 UT_Error OXMLi_PackageManager::parseDocumentNumbering()
 {
 	GsfInput * doc = _getDocumentStream();

@@ -537,6 +537,15 @@ below are on `main` but the release has not been cut yet.
   Constantia, Palatino Linotype/Book Antiqua, Franklin Gothic and
   Comic Sans MS now resolve to bundled metric-compatible or
   stylistically closest fonts instead of arbitrary fallbacks.
+- **DOCX `word/fontTable.xml` parsed on import** — the part declares
+  each referenced font's substitution metadata (`w:altName`,
+  `w:panose1`, `w:charset`, `w:family`, `w:pitch`); when a run's font
+  is not installed and the document declares an `w:altName` that is,
+  the run now uses the declared substitute instead of whatever
+  fontconfig happens to pick.  Unknown fonts without a usable
+  `altName` keep their declared name so the bundled
+  `abinova-fonts.conf` aliases still apply.  The exporter also writes
+  a minimal `fontTable.xml` listing the families actually used.
 - **White strip over dark textboxes fixed** — every paragraph was
   treated as shaded because `shading-background-color` has a registry
   default of `white` and `PP_evalProperty()` returns table defaults;

@@ -33,6 +33,7 @@
 #include "OXMLi_ListenerState_HdrFtr.h"
 #include "OXMLi_ListenerState_Theme.h"
 #include "OXMLi_ListenerState_DocSettings.h"
+#include "OXMLi_ListenerState_FontTable.h"
 #include "OXMLi_ListenerState_Numbering.h"
 #include "OXMLi_ListenerState_Table.h"
 #include "OXMLi_ListenerState_Field.h"
@@ -112,6 +113,10 @@ void OXMLi_StreamListener::setupStates(OXML_PartType type, const char * partId)
 		break;
 	case DOCSETTINGS_PART:
 		state = new OXMLi_ListenerState_DocSettings();
+		this->pushState(state);
+		break;
+	case FONTTABLE_PART:
+		state = new OXMLi_ListenerState_FontTable();
 		this->pushState(state);
 		break;
 	case FOOTER_PART: //fall through

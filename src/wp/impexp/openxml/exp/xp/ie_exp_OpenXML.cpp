@@ -232,6 +232,10 @@ UT_Error IE_Exp_OpenXML::finishDocument()
 	if(error != UT_OK)
 		return error;
 
+	error = _writeFontTable();
+	if(error != UT_OK)
+		return error;
+
 	error = finishWordMedia();
 	if(error != UT_OK)
 		return error;
@@ -959,6 +963,10 @@ UT_Error IE_Exp_OpenXML::setFontFamily(int target, const gchar* family)
 {
 	UT_UTF8String sEscFamily = family;
 	sEscFamily.escapeXML();
+
+	//remember it for the fontTable.xml part written in finishDocument
+	if (family && *family)
+		usedFonts.insert(family);
 
 	std::string str("<w:rFonts w:ascii=\"");
 	str += sEscFamily.utf8_str();
@@ -2322,6 +2330,63 @@ UT_Error IE_Exp_OpenXML::finishStyles()
 	if(!gsf_output_close(stylesFile.get()))
 	{
 		UT_DEBUGMSG(("FRT: ERROR, styles.xml file couldn't be closed\n"));
+		return UT_SAVE_EXPORTERROR;
+	}
+	return UT_OK;
+}
+
+/**
+ * Writes word/fontTable.xml listing the font families the document
+ * actually references (collected by setFontFamily), and registers the
+ * part in document.xml.rels + [Content_Types].xml.  Called from
+ * finishDocument while the rels and content-type streams are still
+ * open; the relationship id is deliberately non-numeric so it cannot
+ * collide with the "rId<element id>" ids images and hyperlinks use.
+ */
+UT_Error IE_Exp_OpenXML::_writeFontTable()
+{
+	if(usedFonts.empty() || !wordDir)
+		return UT_OK;
+
+	UT_Error err = writeTargetStream(TARGET_DOCUMENT_RELATION,
+		"<Relationship Id=\"rIdFontTable\" "
+		"Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable\" "
+		"Target=\"fontTable.xml\"/>");
+	if(err != UT_OK)
+		return err;
+
+	err = writeTargetStream(TARGET_CONTENT,
+		"<Override PartName=\"/word/fontTable.xml\" "
+		"ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml\"/>");
+	if(err != UT_OK)
+		return err;
+
+	UT_GsfOutputPtr fontTableFile(
+		gsf_outfile_new_child(wordDir, "fontTable.xml", FALSE));
+	if(!fontTableFile)
+		return UT_SAVE_EXPORTERROR;
+
+	std::string str("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+	str += "<w:fonts xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">";
+	for(const auto & family : usedFonts)
+	{
+		UT_UTF8String sEscFamily = family.c_str();
+		sEscFamily.escapeXML();
+		str += "<w:font w:name=\"";
+		str += sEscFamily.utf8_str();
+		str += "\"/>";
+	}
+	str += "</w:fonts>";
+
+ 	if(!gsf_output_write(fontTableFile.get(), str.size(),
+					 reinterpret_cast<const guint8*>(str.data())))
+	{
+		return UT_SAVE_EXPORTERROR;
+	}
+
+	if(!gsf_output_close(fontTableFile.get()))
+	{
+		UT_DEBUGMSG(("FRT: ERROR, fontTable.xml file couldn't be closed\n"));
 		return UT_SAVE_EXPORTERROR;
 	}
 	return UT_OK;

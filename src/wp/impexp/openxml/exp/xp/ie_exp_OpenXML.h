@@ -39,6 +39,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 
 //target streams
 #define TARGET_DOCUMENT 0
@@ -233,6 +234,7 @@ private:
 	std::map<std::string, GsfOutput*> mediaStreams; // all image filename, stream pairs
 	std::map<std::string, GsfOutput*> headerStreams; //all header id, stream pairs
 	std::map<std::string, GsfOutput*> footerStreams; //all footer id, stream pairs
+	std::set<std::string> usedFonts; //all font families emitted via setFontFamily
 
 	bool isOverline;
 
@@ -263,6 +265,7 @@ private:
 	UT_Error finishEndnotes();
 	UT_Error finishComments();
 	UT_Error writeXmlHeader(GsfOutput* file);
+	UT_Error _writeFontTable();
 
 	const gchar* convertToPoints(const gchar* str);
 	const gchar* convertToTwips(const gchar* str);

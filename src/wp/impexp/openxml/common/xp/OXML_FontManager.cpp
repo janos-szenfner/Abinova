@@ -32,13 +32,59 @@
 #include "ut_assert.h"
 
 // External includes
+#include <set>
 #include <string>
+
+#include <pango/pangocairo.h>
+
+/* Case-folded font name used as a lookup key.  Family matching in
+ * Pango/fontconfig is case-insensitive, and Word treats face names
+ * the same way. */
+static std::string s_fontKey(const std::string & name)
+{
+	std::string key(name);
+	for (auto & c : key)
+		c = g_ascii_tolower(c);
+	return key;
+}
+
+/* The family names the Pango font map can actually render with --
+ * the same set GR_CairoGraphics::getAllFontNames enumerates, so the
+ * substitution decision matches what layout will do (this includes
+ * the bundled fonts added via FcConfigAppFontAddDir at app start). */
+static const std::set<std::string> & s_installedFamilies()
+{
+	static std::set<std::string> families;
+	static bool loaded = false;
+	if (!loaded)
+	{
+		loaded = true;
+		PangoFontMap * fontmap = pango_cairo_font_map_get_default();
+		if (fontmap)
+		{
+			PangoFontFamily ** fams = nullptr;
+			int n = 0;
+			pango_font_map_list_families(fontmap, &fams, &n);
+			for (int i = 0; i < n; i++)
+				families.insert(
+					s_fontKey(pango_font_family_get_name(fams[i])));
+			g_free(fams);
+		}
+	}
+	return families;
+}
+
+static bool s_fontInstalled(const std::string & name)
+{
+	return s_installedFamilies().count(s_fontKey(name)) != 0;
+}
 
 OXML_FontManager::OXML_FontManager() : 
 	m_defaultFont("Times New Roman")
 {
 	m_major_rts.clear();
 	m_minor_rts.clear();
+	m_fontTable.clear();
 }
 
 std::string OXML_FontManager::getValidFont(OXML_FontLevel level, OXML_CharRange range)
@@ -124,14 +170,32 @@ std::string OXML_FontManager::getValidFont(OXML_FontLevel level, OXML_CharRange 
 
 std::string OXML_FontManager::getValidFont(std::string name)
 {
-	//TODO: write this function
-	//Algorithm:
-	// 1) If name is a valid font name, return it
-	// 2) Look up font name in the FontTable (lookup using both font name and altname)
-	// 2a) If there are no matching entries, return default document font
-	// 3) If either font name or altname is a valid font name, return it.
-	// 3a) If neither font name or altname is a valid font name, return a valid substitution based on FontTable data
+	if (name.empty() || s_fontInstalled(name))
+		return name;
+
+	/* The referenced family cannot be rendered on this system.  The
+	 * FontTable part's w:altName is the document's declared substitute
+	 * for exactly this case (ECMA-376 17.8.3.1) -- prefer it when it
+	 * resolves to an installed family.  Otherwise keep the original
+	 * name: the system font matcher (fontconfig, including the bundled
+	 * abinova-fonts.conf metric-compatible aliases) still resolves it
+	 * at layout, and the declared name survives round-trips. */
+	auto it = m_fontTable.find(s_fontKey(name));
+	if (it != m_fontTable.end() &&
+		!it->second.altName.empty() &&
+		s_fontInstalled(it->second.altName))
+	{
+		return it->second.altName;
+	}
 	return name;
+}
+
+void OXML_FontManager::addFontTableEntry(const std::string & name,
+										const OXML_FontTableEntry & entry)
+{
+	if (name.empty())
+		return;
+	m_fontTable[s_fontKey(name)] = entry;
 }
 
 void OXML_FontManager::mapRangeToScript(OXML_CharRange range, std::string script)
