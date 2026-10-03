@@ -28,6 +28,7 @@
 #include "OXMLi_Types.h"
 #include "OXMLi_PackageManager.h"
 #include "OXMLi_Element_AltChunk.h"
+#include "OXMLi_Element_Revision.h"
 #include "OXML_Document.h"
 #include "OXML_Element.h"
 #include "OXML_Element_Run.h"
@@ -252,6 +253,43 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		OXML_SharedElement elem(new OXML_Element_Run(""));
 		rqst->stck->push(elem);
 
+		rqst->handled = true;
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "ins") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "del") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "moveFrom") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "moveTo")) {
+		/* tracked-change container (CT_RunTrackChange). The same
+		 * tags inside w:rPr/w:trPr/w:ctrlPr/w:numPr are empty
+		 * CT_TrackChange marks (deleted paragraph mark, inserted
+		 * table row, ...), which the importer has no element for —
+		 * leave those to the other states. */
+		std::string contextTag = OXMLi_contextBack(rqst->context);
+		if (contextMatches(contextTag, NS_W_KEY, "rPr") ||
+			contextMatches(contextTag, NS_W_KEY, "trPr") ||
+			contextMatches(contextTag, NS_W_KEY, "ctrlPr") ||
+			contextMatches(contextTag, NS_W_KEY, "numPr"))
+		{
+			return;
+		}
+
+		bool deleted = nameMatches(rqst->pName, NS_W_KEY, "del") ||
+					   nameMatches(rqst->pName, NS_W_KEY, "moveFrom");
+		OXMLi_Element_Revision * rev = new OXMLi_Element_Revision(deleted);
+		const gchar * val;
+		if ((val = attrMatches(NS_W_KEY, "author", rqst->ppAtts)))
+			rev->setAuthor(val);
+		if ((val = attrMatches(NS_W_KEY, "date", rqst->ppAtts)))
+			rev->setDate(val);
+		if ((val = attrMatches(NS_W_KEY, "name", rqst->ppAtts)))
+			rev->setMoveName(val);
+		rqst->stck->push(OXML_SharedElement(rev));
+		rqst->handled = true;
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "delText")) {
+		//deleted text inside a w:del run — same payload as w:t
+		OXML_SharedElement elem(new OXML_Element_Text("", 0));
+		rqst->stck->push(elem);
 		rqst->handled = true;
 
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "t")) {
@@ -1591,6 +1629,22 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 		//Run is done, appending it.
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
 
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "ins") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "del") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "moveFrom") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "moveTo")) {
+		/* tracked-change container done — flush it only if this state
+		 * pushed one (the CT_TrackChange marks inside w:rPr etc. are
+		 * left untouched) */
+		OXML_SharedElement top = OXMLi_elemTop(rqst->stck);
+		if (top.get() && top->getTag() == REV_TAG) {
+			UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
+		}
+		rqst->handled = true;
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "delText")) {
+		//Deleted text is done, appending it.
+		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "t")) {
 		if(m_fldChar && m_pageNumberField) // page number is already set with field element correctly.

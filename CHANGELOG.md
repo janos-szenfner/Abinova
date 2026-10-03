@@ -374,6 +374,19 @@ below are on `main` but the release has not been cut yet.
   the document at the reference point.  The link properties still
   ride along on the merged paragraph for `.abwn` round-tripping, and
   unresolvable or unknown chunk types keep the previous placeholder.
+- **DOCX tracked changes imported as real revisions** — `w:ins`,
+  `w:del`, `w:moveFrom` and `w:moveTo` run-level containers were
+  schema-validated but had no handlers, so insertions flattened to
+  plain text and deleted `w:delText` content was dropped silently.
+  They now map onto the piece-table revision model: each container
+  registers an `AD_Revision` record (author from `w:author`, timestamp
+  from `w:date`) and marks its runs/fields/images with `+id`/`-id`
+  revision attributes, so tracked insertions and deletions show in
+  All Markup, disappear correctly in No Markup/Original, and survive
+  `.abwn` round-trips.  Moves degrade to deletion+insertion pairs and
+  keep their `w:name` in a `revision-move` attribute so the pairing is
+  recoverable.  Empty paragraph-mark/row revision marks inside
+  `w:rPr`/`w:trPr` are skipped deliberately.
 - **DOCX positioned objects rendered properly** —
   - `behindDoc` anchors no longer lose `wrap-mode:below-text` when a
     `wp:wrap*` child follows, so background shapes paint behind text.

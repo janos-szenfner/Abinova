@@ -272,10 +272,12 @@ all.
   the entire `mc:Fallback` subtree is suppressed. Previously both
   branches were parsed, duplicating textboxes/drawings produced by
   Word 2010+ and LibreOffice. `w:sdt`/`w:sdtContent` content
-  controls, tracked-changes containers (`w:ins`, `w:del`,
-  `w:moveFrom`, `w:moveTo`) and `w14`/`w15` extension namespaces
-  were verified to parse correctly. Legacy `.doc` continues through
-  bundled `wv-1.2.9`.
+  controls and `w14`/`w15` extension namespaces were verified to
+  parse correctly.  Tracked-changes containers (`w:ins`, `w:del`,
+  `w:moveFrom`, `w:moveTo`) import as real document revisions —
+  insertions/deletions render under All Markup and respond to the
+  review tools — rather than flattening into plain text.  Legacy
+  `.doc` continues through bundled `wv-1.2.9`.
 - **DOCX layout fidelity — multi-page pagination fixes**: a real-world
   CV that rendered on ~3 pages instead of Word's 2 exposed a chain of
   importer bugs, all now fixed:
