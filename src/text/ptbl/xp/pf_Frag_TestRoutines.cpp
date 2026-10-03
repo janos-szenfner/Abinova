@@ -154,7 +154,7 @@ void pf_Frag_Text::__dump(FILE * fp) const
 	fprintf(fp,"        TextFragment %p b[%08lx,%ld] api[%08lx]\n",
 			const_cast<void*>(static_cast<const void*>(this)),static_cast<long>(m_bufIndex),static_cast<long>(m_length),static_cast<long>(m_indexAP));
 
-	const UT_UCSChar * ptr = m_pPieceTable->getPointer(m_bufIndex);
+	const UT_UCS4Char * ptr = m_pPieceTable->getPointer(m_bufIndex);
 	char c;
 	UT_uint32 k;
 

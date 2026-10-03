@@ -1917,9 +1917,10 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 		pRI->m_iSegmentCount = iSegmentCount;
 	}
 
-	// this is needed by the built-in shaping engine
-	// the construction is not very expensive but once that shaper is
-	// deprecated, we might be able to get rid of it
+	// m_pText is consumed by every shaping/measure path
+	// (GR_Graphics::shape/canBreak, GR_CairoGraphics::measureText,
+	// renderChars' UTF-8 conversion), so the iterator is needed
+	// regardless of the RenderInfo type
 	PD_StruxIterator text(getBlock()->getStruxDocHandle(),
 						  getBlockOffset() + fl_BLOCK_STRUX_OFFSET);
 

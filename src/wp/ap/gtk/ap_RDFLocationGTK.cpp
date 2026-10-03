@@ -26,6 +26,12 @@
 
 #ifdef WITH_CHAMPLAIN
 #include "ut_compiler.h"
+/* ABI_W_NO_DEPRECATED is pinned to the champlain headers only: they and
+ * their clutter dependency (ClutterActor, gtk_champlain_embed_*, ...)
+ * trigger -Wdeprecated-declarations under GTK 4.10+, which is not ours
+ * to fix. None of our own deprecated calls may hide inside this block.
+ * (WITH_CHAMPLAIN is off by default and the champlain-gtk stack is
+ * GTK3-era, so this path does not build in the GTK4 port.) */
 ABI_W_NO_DEPRECATED
 #include <champlain/champlain.h>
 #include <champlain-gtk/champlain-gtk.h>

@@ -1176,7 +1176,6 @@ class ABI_EXPORT PD_DocumentRDFMutation
     bool m_rolledback;     ///< Should we rollback
     bool m_committed;      ///< Only commit() once.
     bool m_handlingAbiCollabNotification; ///< If we are handling a remote CR
-    PP_AttrProp* m_pAP;        ///< AP that is changed incrementally (deprecated)
     PP_AttrProp* m_crRemoveAP; ///< Triples to remove during commit()
     PP_AttrProp* m_crAddAP;    ///< Triples to add during commit()
 

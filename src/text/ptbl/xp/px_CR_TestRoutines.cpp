@@ -89,7 +89,7 @@ PX_ChangeRecord::__dump_buf(FILE* fp) const
 	fprintf(fp, "b[%08lx,%ld@%08lx]\n", 
 			static_cast<long>(m_bufIndex), static_cast<long>(m_length), static_cast<long>(m_blockOffset));
 
-	const UT_UCSChar * ptr = m_pPieceTable->getPointer(m_bufIndex);
+	const UT_UCS4Char * ptr = m_pPieceTable->getPointer(m_bufIndex);
 	char c;
 	UT_uint32 k;
 
@@ -125,7 +125,7 @@ PX_ChangeRecord_Span::__dump(FILE* fp) const
 			static_cast<long>( m_bufIndex), static_cast<long>(m_length), static_cast<long>(m_blockOffset));
 
 #if 0
-	const UT_UCSChar * ptr = m_pPieceTable->getPointer(m_bufIndex);
+	const UT_UCS4Char * ptr = m_pPieceTable->getPointer(m_bufIndex);
 	char c;
 	UT_uint32 k;
 

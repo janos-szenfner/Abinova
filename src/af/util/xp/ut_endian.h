@@ -122,7 +122,7 @@
 /*XP macros
 
  convert single UCS character
- x,y are pointers to UT_UCSChar
+ x,y are pointers to UT_UCS4Char
  we will use a temporary variable, so that x and y
  can be the same
 */
@@ -130,8 +130,8 @@
 #ifdef UT_LITTLE_ENDIAN
 #define LE2BE16(x,y)                                  \
 char * lb1;                                           \
-UT_UCSChar tucs;                                      \
-tucs = * (static_cast<UT_UCSChar *>((x))); lb1 = static_cast<char*>( (&tucs));  \
+UT_UCS4Char tucs;                                     \
+tucs = * (static_cast<UT_UCS4Char *>((x))); lb1 = static_cast<char*>( (&tucs));  \
 *(static_cast<char*>((y))) = *(lb1+1); *((static_cast<char*>((y)+1))) = *lb1;
 #else
 #define LE2BE16(x,y)

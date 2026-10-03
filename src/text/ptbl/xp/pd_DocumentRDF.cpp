@@ -5153,9 +5153,7 @@ PD_DocumentRDFMutation::PD_DocumentRDFMutation( PD_DocumentRDF* rdf )
     , m_rolledback(false)
     , m_committed(false)
     , m_handlingAbiCollabNotification( false )
-    , m_pAP(nullptr)
 {
-    m_pAP = m_rdf->getAP()->cloneWithReplacements(PP_NOPROPS, PP_NOPROPS, false);
     m_crRemoveAP = new PP_AttrProp();
     m_crAddAP    = new PP_AttrProp();
 
@@ -5175,8 +5173,6 @@ PD_DocumentRDFMutation::~PD_DocumentRDFMutation()
         }
     }
     
-    if(m_pAP)
-        delete m_pAP;
     if(m_crRemoveAP)
         delete m_crRemoveAP;
     if(m_crAddAP)
@@ -5274,7 +5270,6 @@ PD_DocumentRDFMutation::add( const PD_URI& s, const PD_URI& p, const PD_Object& 
     if( m_rdf->apContains( m_crAddAP, s, p, o ) && !m_rdf->apContains( m_crRemoveAP, s, p, o ))
         return true;
 
-    apAdd( m_pAP, s, p, o );
     apAdd( m_crAddAP, s, p, o );
     return true;
 }
@@ -5289,7 +5284,6 @@ PD_DocumentRDFMutation::add( const PD_URI& s, const PD_URI& p, const PD_Object& 
 void
 PD_DocumentRDFMutation::remove( const PD_URI& s, const PD_URI& p, const PD_Object& o )
 {
-    apRemove( m_pAP, s, p, o );
     apRemove( m_crAddAP, s, p, o );
     apAdd( m_crRemoveAP, s, p, o );    
 }
@@ -5541,8 +5535,6 @@ UT_Error PD_DocumentRDFMutation::commit()
         return UT_OK;
         
     UT_DEBUGMSG(("PD_DocumentRDF::commit(running) rdf:%p\n", static_cast<void*>(m_rdf)));
-    m_pAP->prune();
-    m_pAP->markReadOnly();
     PD_Document*    doc = m_rdf->getDocument();
     pt_PieceTable*   pt = m_rdf->getPieceTable();
     pt_VarSet& m_varset = pt->getVarSet();

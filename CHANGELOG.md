@@ -3564,6 +3564,14 @@ below are on `main` but the release has not been cut yet.
   to match the `GtkTextView` donors they have actually mapped to
   since the GTK4 port.  No `gtk_tree_view_*`, `gtk_list_store_*`,
   `gtk_combo_box_*` or `gtk_cell_*` calls remain in the source tree.
+- **Deprecation residual sweep** — the last `UT_UCSChar` references
+  (test-dump helpers, the `LE2BE16` macro, design docs) moved to
+  `UT_UCS4Char`, so the `[[deprecated]]` typedef now has zero users;
+  the vendored Blowfish crypto dropped the removed-in-C++17
+  `register` keyword; the `ABI_W_NO_DEPRECATED` pragma around the
+  champlain headers is documented as covering their own deprecated
+  decls only; and a write-only "deprecated" incremental AttrProp in
+  the RDF mutation class was removed rather than maintained.
 
 ### Performance
 

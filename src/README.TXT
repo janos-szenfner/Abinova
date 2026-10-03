@@ -307,8 +307,8 @@ the user.
 <pre>
 class PT_PieceTable
 {
-	const UT_UCSChar * m_InitialBuffer;
-	const UT_UCSChar * m_ChangeBuffer;
+	const UT_UCS4Char * m_InitialBuffer;
+	const UT_UCS4Char * m_ChangeBuffer;
 	pt_PieceList * m_pieceList;
 	pt_AttrPropTable m_InitialAttrPropTable;
 	pt_AttrPropTable m_ChangeAttrPropTable;
