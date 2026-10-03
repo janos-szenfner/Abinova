@@ -275,8 +275,82 @@ UT_Error OXML_Section::serializeProperties(IE_Exp_OpenXML* exporter, OXML_Elemen
 	}
 
 	if(marginTop && marginLeft && marginRight && marginBottom)
-	{	
+	{
 		err = exporter->setPageMargins(m_target, marginTop, marginLeft, marginRight, marginBottom);
+		if(err != UT_OK)
+			return err;
+	}
+
+	/* imported w:sectPrChange marks ride the section strux AP as an
+	 * inert attribute (OXML08) — emit inside this sectPr scope */
+	err = serializeChangeMark(exporter);
+	if(err != UT_OK)
+		return err;
+
+	return exporter->finishSectionProperties();
+}
+
+/* CT_SectPr puts sectPrChange last, carrying the previous section
+ * property set as a nested sectPr.  The importer stored the snapshot
+ * as an inert "sectPrChange"="!id{props}{attrs}" attribute on the
+ * section strux; replay the captured props here.  Header/footer
+ * references and page size are relationship/document-level state —
+ * only margins and columns round-trip. */
+UT_Error OXML_Section::serializeChangeMark(IE_Exp_OpenXML* exporter)
+{
+	const gchar* spc = nullptr;
+	UT_uint32 chId = 0;
+	PP_PropertyVector chProps, chAttrs;
+	if(getChangeMark("sectPrChange", spc) != UT_OK ||
+	   !parseChangeMark(spc, chId, chProps, chAttrs))
+		return UT_OK;
+
+	UT_Error err = exporter->startRevision(m_target, "sectPrChange",
+										   chId, nullptr);
+	if(err != UT_OK)
+		return err;
+
+	err = _emitSectPrSnapshot(exporter, chProps);
+	if(err != UT_OK)
+		return err;
+
+	return exporter->finishRevision(m_target, "sectPrChange");
+}
+
+UT_Error OXML_Section::_emitSectPrSnapshot(IE_Exp_OpenXML* exporter,
+										   const PP_PropertyVector & props)
+{
+	UT_Error err = exporter->startSectionProperties();
+	if(err != UT_OK)
+		return err;
+
+	auto prop = [&props](const std::string & name) -> const char*
+	{
+		ASSERT_PV_SIZE(props);
+		for (auto it = props.cbegin(); it != props.cend(); it += 2)
+			if (*it == name)
+				return (it + 1)->c_str();
+		return nullptr;
+	};
+
+	const char* num = prop("columns");
+	if(num)
+	{
+		const char* sep = prop("column-line");
+		err = exporter->setColumns(m_target, num,
+								   (sep && !strcmp(sep, "on")) ? "on" : "off");
+		if(err != UT_OK)
+			return err;
+	}
+
+	const char* marginTop = prop("page-margin-top");
+	const char* marginLeft = prop("page-margin-left");
+	const char* marginRight = prop("page-margin-right");
+	const char* marginBottom = prop("page-margin-bottom");
+	if(marginTop && marginLeft && marginRight && marginBottom)
+	{
+		err = exporter->setPageMargins(m_target, marginTop, marginLeft,
+									   marginRight, marginBottom);
 		if(err != UT_OK)
 			return err;
 	}

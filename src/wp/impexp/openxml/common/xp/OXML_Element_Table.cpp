@@ -23,6 +23,9 @@
 #include "ut_types.h"
 #include "ut_string.h"
 #include "pd_Document.h"
+#include "pt_Types.h"
+#include "pp_Revision.h"
+#include "ie_exp_OpenXML.h"
 #include "OXML_Element_Table.h"
 
 OXML_Element_Table::OXML_Element_Table(const std::string & id)
@@ -65,34 +68,101 @@ UT_Error OXML_Element_Table::serialize(IE_Exp_OpenXML* exporter)
 	return exporter->finishTable();
 }
 
+/* Emits a <w:gridCol> run for a slash-separated column-prop string
+ * ("1.5in/2.0in/").  When bRecord is set the parsed widths are also
+ * pushed onto columnWidth for tcW lookups. */
+UT_Error OXML_Element_Table::_emitGridColumns(IE_Exp_OpenXML* exporter,
+											  const gchar* cols,
+											  bool bRecord)
+{
+	UT_Error err = UT_OK;
+
+	std::string col(cols);
+	std::string token("");
+
+	std::string::size_type prev = -1;
+	std::string::size_type pos = col.find_first_of("/");
+
+	while (pos != std::string::npos)
+	{
+		token = col.substr(prev+1, pos-prev-1);
+		if(bRecord)
+			columnWidth.push_back(token);
+		err = exporter->setGridCol(TARGET_DOCUMENT, token.c_str());
+		if(err != UT_OK)
+			return err;
+		prev = pos;
+		pos = col.find_first_of("/", pos + 1);
+	}
+
+	return UT_OK;
+}
+
 UT_Error OXML_Element_Table::serializeProperties(IE_Exp_OpenXML* exporter)
 {
 	UT_Error err = UT_OK;
 	const gchar* szValue = nullptr;
 
-	if(getProperty("table-column-props", szValue) == UT_OK)
+	const gchar* tgc = nullptr;
+	bool bGridChange = (getChangeMark("tblGridChange", tgc) == UT_OK &&
+						tgc && *tgc);
+	bool bHasCols = getProperty("table-column-props", szValue) == UT_OK;
+
+	if(bHasCols || bGridChange)
 	{
 		err = exporter->startTableGrid(TARGET_DOCUMENT);
 		if(err != UT_OK)
 			return err;
 
-		std::string col(szValue);
-		std::string token("");
-
-		std::string::size_type prev = -1;
-		std::string::size_type pos = col.find_first_of("/");
-		
-		while (pos != std::string::npos) 
+		if(bHasCols)
 		{
-			token = col.substr(prev+1, pos-prev-1);
-			columnWidth.push_back(token);
-			err = exporter->setGridCol(TARGET_DOCUMENT, token.c_str());
+			err = _emitGridColumns(exporter, szValue, true);
 			if(err != UT_OK)
 				return err;
-			prev = pos;	
-			pos = col.find_first_of("/", pos + 1);
 		}
-		
+
+		/* a captured w:tblGridChange rides the table strux AP as an
+		 * inert "tblGridChange"="!id{props}{attrs}" attribute —
+		 * CT_TblGrid places it inside tblGrid carrying the previous
+		 * column set */
+		if(bGridChange)
+		{
+			UT_uint32 chId = 0;
+			PP_PropertyVector chProps, chAttrs;
+			if(parseChangeMark(tgc, chId, chProps, chAttrs))
+			{
+				err = exporter->startRevision(TARGET_DOCUMENT,
+											  "tblGridChange", chId, nullptr);
+				if(err != UT_OK)
+					return err;
+
+				err = exporter->startTableGrid(TARGET_DOCUMENT);
+				if(err != UT_OK)
+					return err;
+
+				ASSERT_PV_SIZE(chProps);
+				for (auto it = chProps.cbegin(); it != chProps.cend(); it += 2)
+				{
+					if (*it == "table-column-props")
+					{
+						err = _emitGridColumns(exporter,
+											   (it + 1)->c_str(), false);
+						if(err != UT_OK)
+							return err;
+					}
+				}
+
+				err = exporter->finishTableGrid(TARGET_DOCUMENT);
+				if(err != UT_OK)
+					return err;
+
+				err = exporter->finishRevision(TARGET_DOCUMENT,
+											   "tblGridChange");
+				if(err != UT_OK)
+					return err;
+			}
+		}
+
 		err = exporter->finishTableGrid(TARGET_DOCUMENT);
 		if(err != UT_OK)
 			return err;
@@ -227,6 +297,33 @@ UT_Error OXML_Element_Table::serializeProperties(IE_Exp_OpenXML* exporter)
 	err = exporter->finishTableBorderProperties(TARGET_DOCUMENT);
 	if(err != UT_OK)
 		return err;
+
+	/* a captured w:tblPrChange rides the table strux AP as an inert
+	 * "tblPrChange"="!id{props}{attrs}" attribute — replay the
+	 * snapshot through a scratch table's tblPr emit (CT_TblPrBase
+	 * puts tblPrChange last) */
+	const gchar* tpc = nullptr;
+	UT_uint32 chId = 0;
+	PP_PropertyVector chProps, chAttrs;
+	if(getChangeMark("tblPrChange", tpc) == UT_OK &&
+	   parseChangeMark(tpc, chId, chProps, chAttrs))
+	{
+		err = exporter->startRevision(TARGET_DOCUMENT, "tblPrChange",
+									  chId, nullptr);
+		if(err != UT_OK)
+			return err;
+
+		OXML_Element_Table oldTbl("");
+		oldTbl.setProperties(chProps);
+		oldTbl.setAttributes(chAttrs);
+		err = oldTbl.serializeProperties(exporter); // <w:tblPr>…</w:tblPr>
+		if(err != UT_OK)
+			return err;
+
+		err = exporter->finishRevision(TARGET_DOCUMENT, "tblPrChange");
+		if(err != UT_OK)
+			return err;
+	}
 
 	return exporter->finishTableProperties(TARGET_DOCUMENT);
 }

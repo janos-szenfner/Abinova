@@ -24,6 +24,9 @@
 #include "ut_std_string.h"
 #include "ut_string.h"
 #include "pd_Document.h"
+#include "pt_Types.h"
+#include "pp_Revision.h"
+#include "ie_exp_OpenXML.h"
 #include "OXML_Element_Cell.h"
 #include "OXML_Element_Row.h"
 
@@ -249,6 +252,139 @@ UT_Error OXML_Element_Cell::serializeProperties(IE_Exp_OpenXML* exporter)
 	if(isVertCont)
 	{
 		err = exporter->setVerticalMerge(TARGET_DOCUMENT, "continue");
+		if(err != UT_OK)
+			return err;
+	}
+
+	/* strux tracked changes recorded on the cell strux AP (OXML08):
+	 *  - "revision"="+id"/"-id" — w:cellIns / w:cellDel (an imported
+	 *    w:trPr w:ins|w:del fans out to the row's cells the same way)
+	 *  - "cellMerge"="!id{}{}" — w:cellMerge
+	 *  - "tcPrChange"="!id{props}{attrs}" — w:tcPrChange snapshot.
+	 * Row-scoped marks (trPrChange, tblPrExChange) have no row strux
+	 * to reconstruct on export, so they stay inert. */
+	const gchar* revTok = nullptr;
+	if(getAttribute(PT_REVISION_ATTRIBUTE_NAME, revTok) == UT_OK &&
+	   revTok && *revTok)
+	{
+		PP_RevisionAttr ra(revTok);
+		const PP_Revision* r = ra.getLastRevision();
+		if(r && (r->getType() == PP_REVISION_ADDITION ||
+				 r->getType() == PP_REVISION_DELETION))
+		{
+			err = exporter->setRevisionMark(
+				TARGET_DOCUMENT,
+				r->getType() == PP_REVISION_DELETION ? "cellDel" : "cellIns",
+				r->getId());
+			if(err != UT_OK)
+				return err;
+		}
+	}
+
+	const gchar* cm = nullptr;
+	UT_uint32 chId = 0;
+	PP_PropertyVector chProps, chAttrs;
+	if(getChangeMark("cellMerge", cm) == UT_OK &&
+	   parseChangeMark(cm, chId, chProps, chAttrs))
+	{
+		err = exporter->setRevisionMark(TARGET_DOCUMENT, "cellMerge", chId);
+		if(err != UT_OK)
+			return err;
+	}
+
+	const gchar* tcp = nullptr;
+	chId = 0;
+	chProps.clear();
+	chAttrs.clear();
+	if(getChangeMark("tcPrChange", tcp) == UT_OK &&
+	   parseChangeMark(tcp, chId, chProps, chAttrs))
+	{
+		err = exporter->startRevision(TARGET_DOCUMENT, "tcPrChange",
+									  chId, nullptr);
+		if(err != UT_OK)
+			return err;
+
+		err = _serializeTcPrSnapshot(exporter, chProps);
+		if(err != UT_OK)
+			return err;
+
+		err = exporter->finishRevision(TARGET_DOCUMENT, "tcPrChange");
+		if(err != UT_OK)
+			return err;
+	}
+
+	return exporter->finishCellProperties(TARGET_DOCUMENT);
+}
+
+/* Emits the <w:tcPr> payload inside a w:tcPrChange — the pre-change
+ * cell property set captured by the importer.  Only shading and
+ * borders are mapped: cell geometry (tcW, gridSpan, vMerge) derives
+ * from the live table model and is not part of the snapshot. */
+UT_Error OXML_Element_Cell::_serializeTcPrSnapshot(
+	IE_Exp_OpenXML* exporter, const PP_PropertyVector & props)
+{
+	UT_Error err = exporter->startCellProperties(TARGET_DOCUMENT);
+	if(err != UT_OK)
+		return err;
+
+	auto prop = [&props](const std::string & name) -> const char*
+	{
+		ASSERT_PV_SIZE(props);
+		for (auto it = props.cbegin(); it != props.cend(); it += 2)
+			if (*it == name)
+				return (it + 1)->c_str();
+		return nullptr;
+	};
+
+	const char* shd = prop("background-color");
+	if(shd)
+	{
+		err = exporter->setBackgroundColor(TARGET_DOCUMENT, shd);
+		if(err != UT_OK)
+			return err;
+	}
+
+	static const struct { const char* tag; const char* style;
+						  const char* color; const char* size; }
+		sides[] = {
+			{ "left",   "left-style",  "left-color",  "left-thickness"  },
+			{ "top",    "top-style",   "top-color",   "top-thickness"   },
+			{ "right",  "right-style", "right-color", "right-thickness" },
+			{ "bottom", "bot-style",   "bot-color",   "bot-thickness"   },
+		};
+
+	bool bAny = false;
+	for (auto & s : sides)
+	{
+		if (prop(s.style) || prop(s.color) || prop(s.size))
+		{
+			bAny = true;
+			break;
+		}
+	}
+
+	if(bAny)
+	{
+		err = exporter->startCellBorderProperties(TARGET_DOCUMENT);
+		if(err != UT_OK)
+			return err;
+
+		for (auto & s : sides)
+		{
+			const char* st = prop(s.style);
+			const char* col = prop(s.color);
+			const char* sz = prop(s.size);
+			if(!st && !col && !sz)
+				continue;
+			err = exporter->setTableBorder(TARGET_DOCUMENT, s.tag,
+										   st ? OXML_BorderStyleForValue(st)
+											  : "single",
+										   col, sz);
+			if(err != UT_OK)
+				return err;
+		}
+
+		err = exporter->finishCellBorderProperties(TARGET_DOCUMENT);
 		if(err != UT_OK)
 			return err;
 	}

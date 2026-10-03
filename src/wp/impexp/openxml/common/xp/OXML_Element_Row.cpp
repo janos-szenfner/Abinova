@@ -47,6 +47,47 @@ UT_Error OXML_Element_Row::serialize(IE_Exp_OpenXML* exporter)
 	if(err != UT_OK)
 		return err;
 
+	/* a w:tblPrExChange recorded on the row fans out onto every
+	 * cell's strux AP (there is no row strux); read it back off the
+	 * first cell that carries it and re-emit inside the row-level
+	 * w:tblPrEx, which CT_Row places before w:trPr */
+	const gchar* pex = nullptr;
+	const OXML_ObjectWithAttrProp* pexSrc = _firstCellWithMark("tblPrExChange", pex);
+	if(pexSrc)
+	{
+		UT_uint32 chId = 0;
+		PP_PropertyVector chProps, chAttrs;
+		if(parseChangeMark(pex, chId, chProps, chAttrs))
+		{
+			err = exporter->startTablePrEx(TARGET);
+			if(err != UT_OK)
+				return err;
+
+			err = exporter->startRevision(TARGET, "tblPrExChange",
+										  chId, nullptr);
+			if(err != UT_OK)
+				return err;
+
+			/* the importer never modeled tblPrEx children, so the
+			 * captured snapshot is an empty property set — the
+			 * pre-change exception block round-trips empty */
+			err = exporter->startTablePrEx(TARGET);
+			if(err != UT_OK)
+				return err;
+			err = exporter->finishTablePrEx(TARGET);
+			if(err != UT_OK)
+				return err;
+
+			err = exporter->finishRevision(TARGET, "tblPrExChange");
+			if(err != UT_OK)
+				return err;
+
+			err = exporter->finishTablePrEx(TARGET);
+			if(err != UT_OK)
+				return err;
+		}
+	}
+
 	err = this->serializeProperties(exporter);
 	if(err != UT_OK)
 		return err;
@@ -129,7 +170,66 @@ UT_Error OXML_Element_Row::serializeProperties(IE_Exp_OpenXML* exporter)
 			return err;
 	}
 
+	/* a captured w:trPrChange fans out to the row's cells the same
+	 * way; CT_TrPrBase places trPrChange last, carrying the
+	 * pre-change trPr snapshot (tblheader is the only row prop the
+	 * importer models) */
+	const gchar* tpc = nullptr;
+	if(_firstCellWithMark("trPrChange", tpc))
+	{
+		UT_uint32 chId = 0;
+		PP_PropertyVector chProps, chAttrs;
+		if(parseChangeMark(tpc, chId, chProps, chAttrs))
+		{
+			err = exporter->startRevision(TARGET, "trPrChange",
+										  chId, nullptr);
+			if(err != UT_OK)
+				return err;
+
+			err = exporter->startRowProperties(TARGET);
+			if(err != UT_OK)
+				return err;
+
+			ASSERT_PV_SIZE(chProps);
+			for (auto it = chProps.cbegin(); it != chProps.cend(); it += 2)
+			{
+				if (*it == "tblheader")
+				{
+					err = exporter->setTableHeader(TARGET,
+												   (it + 1)->c_str());
+					if(err != UT_OK)
+						return err;
+				}
+			}
+
+			err = exporter->finishRowProperties(TARGET);
+			if(err != UT_OK)
+				return err;
+
+			err = exporter->finishRevision(TARGET, "trPrChange");
+			if(err != UT_OK)
+				return err;
+		}
+	}
+
 	return exporter->finishRowProperties(TARGET);
+}
+
+/* Row-level tracked-change marks have no row strux to ride — the
+ * importer fans them out to every cell's AP.  Returns the first
+ * cell still carrying the named "!id{...}" mark, or nullptr. */
+const OXML_ObjectWithAttrProp*
+OXML_Element_Row::_firstCellWithMark(const gchar* name,
+									 const gchar*& value) const
+{
+	value = nullptr;
+	for (auto & c : getChildren())
+	{
+		if (c && c->getChangeMark(name, value) == UT_OK &&
+			value && *value)
+			return c.get();
+	}
+	return nullptr;
 }
 
 UT_Error OXML_Element_Row::addChildrenToPT(PD_Document * pDocument)

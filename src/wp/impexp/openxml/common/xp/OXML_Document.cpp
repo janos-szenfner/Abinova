@@ -552,6 +552,15 @@ UT_Error OXML_Document::serialize(IE_Exp_OpenXML* exporter)
 			return ret;
 	}
 
+	/* a w:sectPrChange on the final (body-level) section */
+	OXML_SharedSection lastSect = getLastSection();
+	if(lastSect)
+	{
+		ret = lastSect->serializeChangeMark(exporter);
+		if(ret != UT_OK)
+			return ret;
+	}
+
 	ret = exporter->finishSectionProperties();
 	if(ret != UT_OK)
 		return ret;

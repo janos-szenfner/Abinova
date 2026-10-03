@@ -30,6 +30,10 @@
 #include "ut_raii.h"
 #include "pd_Document.h"
 
+// External includes
+#include <cstring>
+#include <ctime>
+
 namespace {
 
 /*
@@ -95,7 +99,8 @@ IE_Exp_OpenXML::IE_Exp_OpenXML (PD_Document * pDocument)
 	footnoteStream(nullptr),
 	endnoteStream(nullptr),
 	commentStream(nullptr),
-	isOverline(false)
+	isOverline(false),
+	m_iDelDepth(0)
 {
 }
 
@@ -324,6 +329,11 @@ UT_Error IE_Exp_OpenXML::startText(int target)
 	{
 		return writeTargetStream(target, "<w:fldChar w:fldCharType=\"begin\"/></w:r><w:r><w:instrText xml:space=\"preserve\"> EQ \\x \\to(");
 	}
+	else if(inDeletedScope())
+	{
+		// CT_TrackChange w:del payloads use w:delText, not w:t
+		return writeTargetStream(target, "<w:delText xml:space=\"preserve\">");
+	}
 	else
 	{
 		return writeTargetStream(target, "<w:t xml:space=\"preserve\">");
@@ -384,6 +394,10 @@ UT_Error IE_Exp_OpenXML::finishText(int target)
 	if(isOverline)
 	{
 		return writeTargetStream(target, ") </w:instrText></w:r><w:r><w:fldChar w:fldCharType=\"end\"/>");
+	}
+	else if(inDeletedScope())
+	{
+		return writeTargetStream(target, "</w:delText>");
 	}
 	else
 	{
@@ -448,6 +462,102 @@ UT_Error IE_Exp_OpenXML::startRunProperties(int target)
 UT_Error IE_Exp_OpenXML::finishRunProperties(int target)
 {
 	return writeTargetStream(target, "</w:rPr>");
+}
+
+/* Tracked-change element attributes: w:id is the piece-table
+ * revision id; w:author and w:date come from the document's
+ * AD_Revision record (both are optional in the schema and omitted
+ * when unknown).  w:name links a w:moveFrom/w:moveTo pair. */
+std::string IE_Exp_OpenXML::_revisionTagAttrs(UT_uint32 revId, const gchar* name)
+{
+	std::string s(" w:id=\"");
+	s += UT_std_string_sprintf("%u", revId);
+	s += "\"";
+
+	if(m_pDoc)
+	{
+		UT_sint32 idx = m_pDoc->getRevisionIndxFromId(revId);
+		if(idx >= 0)
+		{
+			const AD_Revision & rev = m_pDoc->getRevisions()[idx];
+
+			if(!rev.getAuthor().empty())
+			{
+				s += " w:author=\"";
+				s += UT_escapeXML(rev.getAuthor());
+				s += "\"";
+			}
+
+			time_t tStart = rev.getStartTime();
+			if(tStart > 0)
+			{
+				struct tm tmv;
+				char buf[32];
+				if(gmtime_r(&tStart, &tmv) &&
+				   strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%SZ", &tmv))
+				{
+					s += " w:date=\"";
+					s += buf;
+					s += "\"";
+				}
+			}
+		}
+	}
+
+	if(name && *name)
+	{
+		s += " w:name=\"";
+		s += UT_escapeXML(name);
+		s += "\"";
+	}
+
+	return s;
+}
+
+UT_Error IE_Exp_OpenXML::_writeRevisionTag(int target, const char* tag,
+										   UT_uint32 revId, const gchar* name,
+										   bool bEmpty)
+{
+	std::string str("<w:");
+	str += tag;
+	str += _revisionTagAttrs(revId, name);
+	str += bEmpty ? "/>" : ">";
+	return writeTargetStream(target, str.c_str());
+}
+
+/**
+ * Opens a tracked-change element (w:ins / w:del / w:moveFrom /
+ * w:moveTo or a w:*Change container) around run-level content
+ */
+UT_Error IE_Exp_OpenXML::startRevision(int target, const char* tag,
+									   UT_uint32 revId, const gchar* name)
+{
+	if(!strcmp(tag, "del") || !strcmp(tag, "moveFrom"))
+		m_iDelDepth++;
+	return _writeRevisionTag(target, tag, revId, name, false);
+}
+
+/**
+ * Closes a tracked-change element opened by startRevision
+ */
+UT_Error IE_Exp_OpenXML::finishRevision(int target, const char* tag)
+{
+	std::string str("</w:");
+	str += tag;
+	str += ">";
+	if(!strcmp(tag, "del") || !strcmp(tag, "moveFrom"))
+		m_iDelDepth--;
+	return writeTargetStream(target, str.c_str());
+}
+
+/**
+ * Emits a self-closing tracked-change mark (w:cellIns, w:cellDel,
+ * w:cellMerge, paragraph-mark w:ins/w:del inside w:pPr/w:rPr, ...)
+ */
+UT_Error IE_Exp_OpenXML::setRevisionMark(int target, const char* tag,
+									   UT_uint32 revId)
+{
+	return _writeRevisionTag(target, tag, revId, nullptr, true);
 }
 
 /**
@@ -1522,6 +1632,35 @@ UT_Error IE_Exp_OpenXML::startRowProperties(int target)
 UT_Error IE_Exp_OpenXML::finishRowProperties(int target)
 {
 	return writeTargetStream(target, "</w:trPr>");
+}
+
+/**
+ * Starts table property exceptions (w:tblPrEx — row-level container
+ * CT_Row places before w:trPr); only emitted to carry a tracked
+ * w:tblPrExChange on export.
+ */
+UT_Error IE_Exp_OpenXML::startTablePrEx(int target)
+{
+	return writeTargetStream(target, "<w:tblPrEx>");
+}
+
+/**
+ * Finishes table property exceptions
+ */
+UT_Error IE_Exp_OpenXML::finishTablePrEx(int target)
+{
+	return writeTargetStream(target, "</w:tblPrEx>");
+}
+
+/**
+ * Emits <w:tblHeader/> — repeat-as-header-row flag; used live and to
+ * replay a captured trPrChange snapshot (val "0"/"false" -> w:val="0").
+ */
+UT_Error IE_Exp_OpenXML::setTableHeader(int target, const gchar* val)
+{
+	if(val && (!strcmp(val, "0") || !strcmp(val, "false") || !strcmp(val, "off")))
+		return writeTargetStream(target, "<w:tblHeader w:val=\"0\"/>");
+	return writeTargetStream(target, "<w:tblHeader/>");
 }
 
 /**
@@ -2907,7 +3046,25 @@ UT_Error IE_Exp_OpenXML::startSettings()
 
 	std::string str("<w:settings xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" ");
 	str += "xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">";
-	
+
+	/* Word turns tracking on for a document via w:trackChanges —
+	 * mirror the piece table's mark-revisions flag so exported
+	 * ins/del markup stays live.  On a docx -> docx round-trip the
+	 * flag instead survives as the "document-track-changes" doc
+	 * property (the importer does not set the marking flag itself),
+	 * so consult both. */
+	bool bTrack = m_pDoc && m_pDoc->isMarkRevisions();
+	if(!bTrack && m_pDoc && m_pDoc->getAttrProp())
+	{
+		const gchar * v = nullptr;
+		if(m_pDoc->getAttrProp()->getProperty("document-track-changes",
+											  v) && v)
+			bTrack = !strcmp(v, "1") || !strcmp(v, "true") ||
+					 !strcmp(v, "on");
+	}
+	if(bTrack)
+		str += "<w:trackChanges/>";
+
 	return writeTargetStream(TARGET_SETTINGS, str.c_str());
 }
 

@@ -33,6 +33,9 @@
 #include "ut_std_string.h"
 #include "pd_Document.h"
 
+// External includes
+#include <cstdlib>
+
 OXML_Element_Paragraph::OXML_Element_Paragraph(const std::string & id) :
 	OXML_Element(id, P_TAG, BLOCK), pageBreak(false),
 	m_paraMarkDeleted(false), m_hasParaMarkChange(false),
@@ -223,9 +226,56 @@ UT_Error OXML_Element_Paragraph::serializeProperties(IE_Exp_OpenXML* exporter)
 		}
 	}
 
+	/* tracked paragraph-mark change (imported w:pPr/w:rPr/w:ins|w:del):
+	 * the piece table stores the registered id as the inert
+	 * "para-mark-rev" property; in DOCX the mark rides inside the
+	 * pPr-level w:rPr, which CT_PPrBase places before sectPr */
+	const gchar* pmRev = nullptr;
+	if(getProperty("para-mark-rev", pmRev) == UT_OK && pmRev &&
+	   (pmRev[0] == '+' || pmRev[0] == '-'))
+	{
+		err = exporter->startRunProperties(TARGET);
+		if(err != UT_OK)
+			return err;
+		err = exporter->setRevisionMark(TARGET,
+										pmRev[0] == '-' ? "del" : "ins",
+										strtoul(pmRev + 1, nullptr, 10));
+		if(err != UT_OK)
+			return err;
+		err = exporter->finishRunProperties(TARGET);
+		if(err != UT_OK)
+			return err;
+	}
+
 	if(m_section)
 	{
 		err = m_section->serializeProperties(exporter, this); // Section properties
+		if(err != UT_OK)
+			return err;
+	}
+
+	/* a captured w:pPrChange snapshot lands on the block strux AP as
+	 * an inert "pPrChange"="!id{props}{attrs}" attribute — replay it
+	 * through a scratch paragraph's pPr emit (CT_PPrBase puts
+	 * pPrChange last, after sectPr) */
+	const gchar* ppc = nullptr;
+	UT_uint32 chId = 0;
+	PP_PropertyVector chProps, chAttrs;
+	if(getChangeMark("pPrChange", ppc) == UT_OK &&
+	   parseChangeMark(ppc, chId, chProps, chAttrs))
+	{
+		err = exporter->startRevision(TARGET, "pPrChange", chId, nullptr);
+		if(err != UT_OK)
+			return err;
+
+		OXML_Element_Paragraph oldPara("");
+		oldPara.setProperties(chProps);
+		oldPara.setAttributes(chAttrs);
+		err = oldPara.serializeProperties(exporter);
+		if(err != UT_OK)
+			return err;
+
+		err = exporter->finishRevision(TARGET, "pPrChange");
 		if(err != UT_OK)
 			return err;
 	}

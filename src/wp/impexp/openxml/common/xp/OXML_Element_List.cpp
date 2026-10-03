@@ -73,6 +73,34 @@ UT_Error OXML_Element_List::serializeProperties(IE_Exp_OpenXML* exporter)
 	if(err != UT_OK)
 		return err;
 
+	/* a w:numberingChange captured on import is parked on the
+	 * paragraph as an inert "numberingChange"="!id{props}{attrs}"
+	 * attribute; CT_NumPr places the change record inside numPr,
+	 * carrying the previous numbering as a nested numPr */
+	const gchar* nch = nullptr;
+	UT_uint32 chId = 0;
+	PP_PropertyVector chProps, chAttrs;
+	if(parent && parent->getChangeMark("numberingChange", nch) == UT_OK &&
+	   parseChangeMark(nch, chId, chProps, chAttrs))
+	{
+		err = exporter->startRevision(TARGET_DOCUMENT, "numberingChange",
+									  chId, nullptr);
+		if(err != UT_OK)
+			return err;
+
+		OXML_Element_Paragraph oldPara("");
+		oldPara.setProperties(chProps);
+		oldPara.setAttributes(chAttrs);
+		OXML_Element_List oldNum("", &oldPara);
+		err = oldNum.serializeProperties(exporter); // <w:numPr>…</w:numPr>
+		if(err != UT_OK)
+			return err;
+
+		err = exporter->finishRevision(TARGET_DOCUMENT, "numberingChange");
+		if(err != UT_OK)
+			return err;
+	}
+
 	return exporter->finishListProperties(TARGET_DOCUMENT);
 }
 

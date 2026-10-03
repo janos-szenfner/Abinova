@@ -85,6 +85,8 @@ public:
 
 private:
 	virtual UT_Error serializeProperties(IE_Exp_OpenXML* exporter);
+	UT_Error _emitGridColumns(IE_Exp_OpenXML* exporter, const gchar* cols,
+							  bool bRecord);
 	std::vector<std::string> columnWidth;
 	std::vector<std::string> rowHeight;
 	std::vector<OXML_Element_Row*> m_rows;

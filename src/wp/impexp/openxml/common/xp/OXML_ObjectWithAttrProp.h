@@ -111,6 +111,22 @@ public:
 	//! building the emitted attr/prop vector.
 	void applyRevisionMarks(PD_Document * pDocument);
 
+	//! Export-side inverse of applyRevisionMarks(): parses an inert
+	//! "!id{props}{attrs}" change record (as materialized above for
+	//! *Change marks, and as written for span-level format changes in
+	//! the "revision" attribute).  Fills revId plus the captured
+	//! pre-change property/attribute vectors.  Returns false when
+	//! szValue is absent or not a well-formed "!" mark.
+	static bool parseChangeMark(const gchar * szValue, UT_uint32 & revId,
+								PP_PropertyVector & props,
+								PP_PropertyVector & attrs);
+
+	//! Fetches the inert "!id{props}{attrs}" mark for the given *Change
+	//! element name (e.g. "rPrChange").  Matches case-insensitively so
+	//! marks survive .abwn round-trips, whose attribute names are
+	//! written lowercased ("rprchange").
+	UT_Error getChangeMark(const gchar * szName, const gchar *& szValue) const;
+
 private:
 	PP_AttrProp* m_pAttributes;
 	std::vector<OXML_StruxRevision> m_revMarks;

@@ -75,6 +75,8 @@ protected:
 
 private:
 	virtual UT_Error serializeProperties(IE_Exp_OpenXML* exporter);
+	const OXML_ObjectWithAttrProp* _firstCellWithMark(const gchar* name,
+													const gchar*& value) const;
 	UT_sint32 numCols;
 	OXML_Element_Table* table;
 	std::vector<OXML_SharedElement_Cell> m_cells;

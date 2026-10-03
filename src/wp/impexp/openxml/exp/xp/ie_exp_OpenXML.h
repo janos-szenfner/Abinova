@@ -121,6 +121,9 @@ public:
 	UT_Error finishRow();
 	UT_Error startRowProperties(int target);
 	UT_Error finishRowProperties(int target);
+	UT_Error startTablePrEx(int target);
+	UT_Error finishTablePrEx(int target);
+	UT_Error setTableHeader(int target, const gchar* val);
 	UT_Error startCell();
 	UT_Error finishCell();
 	UT_Error startTableGrid(int target);
@@ -206,6 +209,16 @@ public:
 	UT_Error setNoProof(int target);
 	UT_Error setTextBoxWidth(int target, const gchar* width);
 	UT_Error setTextBoxHeight(int target, const gchar* height);
+	/* tracked-change emission (ECMA-376 §17.13.5): startRevision /
+	 * finishRevision wrap run-level content in w:ins / w:del /
+	 * w:moveFrom / w:moveTo or open a w:*Change container; the
+	 * self-closing form covers the CT_TrackChange marks (w:cellIns,
+	 * paragraph-mark w:ins, ...).  w:name links move pairs.  Inside a
+	 * w:del scope text payloads serialize as w:delText. */
+	UT_Error startRevision(int target, const char* tag, UT_uint32 revId, const gchar* name);
+	UT_Error finishRevision(int target, const char* tag);
+	UT_Error setRevisionMark(int target, const char* tag, UT_uint32 revId);
+	bool inDeletedScope() const { return m_iDelDepth > 0; }
 	PD_Document* getDoc() {return m_pDoc;};
 
 protected:
@@ -237,6 +250,11 @@ private:
 	std::set<std::string> usedFonts; //all font families emitted via setFontFamily
 
 	bool isOverline;
+	int m_iDelDepth; // open w:del/w:moveFrom scopes (text -> w:delText)
+
+	UT_Error _writeRevisionTag(int target, const char* tag, UT_uint32 revId,
+							   const gchar* name, bool bEmpty);
+	std::string _revisionTagAttrs(UT_uint32 revId, const gchar* name);
 
 	UT_Error startNumbering();
 	UT_Error startStyles();

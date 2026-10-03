@@ -31,6 +31,7 @@
 #include "ie_exp_OpenXML.h"
 #include "pd_Document.h"
 #include "pt_Types.h"
+#include "pp_Revision.h"
 #include "OXMLi_Element_Revision.h"
 
 // External includes
@@ -384,4 +385,54 @@ void OXML_ObjectWithAttrProp::applyRevisionMarks(PD_Document * pDocument)
 		}
 	}
 	m_revMarks.clear();
+}
+
+/* Parse an inert "!id{props}{attrs}" change record — the form
+ * applyRevisionMarks() writes onto strux APs for w:*Change marks, and
+ * the same grammar span-level format changes use inside "revision".
+ * The PP_Revision props/attrs vectors hold the pre-change snapshot in
+ * the usual name:value pairs, ready to be replayed through the
+ * matching element's property serializer on export. */
+bool OXML_ObjectWithAttrProp::parseChangeMark(const gchar * szValue,
+											  UT_uint32 & revId,
+											  PP_PropertyVector & props,
+											  PP_PropertyVector & attrs)
+{
+	revId = 0;
+	if (!szValue || szValue[0] != '!')
+		return false;
+
+	PP_RevisionAttr ra(szValue);
+	if (ra.getRevisionsCount() < 1)
+		return false;
+
+	const PP_Revision * r = ra.getNthRevision(0);
+	if (!r || r->getType() != PP_REVISION_FMT_CHANGE)
+		return false;
+
+	revId = r->getId();
+	props = r->getProperties();
+	attrs = r->getAttributes();
+	return true;
+}
+
+/* Case-insensitive attribute lookup for change marks: the OOXML
+ * importer stores them under their camelCase element names
+ * ("tblGridChange"), but a docx -> abwn -> docx round-trip arrives
+ * with the lowercased .abwn spelling ("tblgridchange"). */
+UT_Error OXML_ObjectWithAttrProp::getChangeMark(const gchar * szName,
+											  const gchar *& szValue) const
+{
+	szValue = nullptr;
+	UT_return_val_if_fail(szName && *szName, UT_ERROR);
+	if(!m_pAttributes)
+		return UT_ERROR;
+
+	const gchar * pN = nullptr;
+	for (size_t i = 0; m_pAttributes->getNthAttribute(static_cast<int>(i), pN, szValue); ++i)
+	{
+		if (pN && !g_ascii_strcasecmp(pN, szName))
+			return (szValue && *szValue) ? UT_OK : UT_ERROR;
+	}
+	return UT_ERROR;
 }

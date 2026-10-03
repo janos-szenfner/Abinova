@@ -101,6 +101,10 @@ public:
 	*/
 	UT_Error serialize(IE_Exp_OpenXML* exporter);
 	UT_Error serializeProperties(IE_Exp_OpenXML* exporter, OXML_Element_Paragraph* pParagraph);
+	//! Emits a w:sectPrChange for an imported section-property change
+	//! mark (inert "sectPrChange"="!id{props}{attrs}" attribute).
+	//! Call while a <w:sectPr> scope is open; a no-op without the mark.
+	UT_Error serializeChangeMark(IE_Exp_OpenXML* exporter);
 	void applyDocumentProperties();
 
 	UT_Error serializeHeader(IE_Exp_OpenXML* exporter);
@@ -146,6 +150,8 @@ private:
 
 	UT_Error _setReferenceIds();
 	std::string _tocPropsFromInstr(OXML_Element* pPara) const;
+	UT_Error _emitSectPrSnapshot(IE_Exp_OpenXML* exporter,
+							   const PP_PropertyVector & props);
 };
 
 

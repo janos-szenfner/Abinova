@@ -286,7 +286,11 @@ all.
   metadata, and tracked paragraph-mark changes are recorded as the
   `para-mark-rev` paragraph property (the break itself stays live).
   Insertions/deletions render under All Markup and respond to the
-  review tools — rather than flattening into plain text.  Legacy
+  review tools — rather than flattening into plain text.  Export
+  writes them back out: `w:ins`/`w:del` (`w:delText` payload),
+  `w:moveFrom`/`w:moveTo` pairs, `w:*Change` property-change records
+  and `w:trackChanges` in `settings.xml`, so a `.docx` round-trip no
+  longer silently accepts all revisions.  Legacy
   `.doc` continues through bundled `wv-1.2.9`.
 - **DOCX layout fidelity — multi-page pagination fixes**: a real-world
   CV that rendered on ~3 pages instead of Word's 2 exposed a chain of

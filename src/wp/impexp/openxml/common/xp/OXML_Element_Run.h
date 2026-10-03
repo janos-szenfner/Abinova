@@ -48,6 +48,9 @@ public:
 
 private:
 	virtual UT_Error serializeProperties(IE_Exp_OpenXML* exporter);
+	const OXML_ObjectWithAttrProp * _revisionSource() const;
+	UT_Error _serializeFormatChanges(IE_Exp_OpenXML* exporter,
+									 const OXML_ObjectWithAttrProp * revSrc);
 };
 
 #endif //_OXML_ELEMENT_RUN_H_

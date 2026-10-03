@@ -88,6 +88,8 @@ public:
 
 private:
 	virtual UT_Error serializeProperties(IE_Exp_OpenXML* exporter);
+	UT_Error _serializeTcPrSnapshot(IE_Exp_OpenXML* exporter,
+									const PP_PropertyVector & props);
 	UT_sint32 m_iLeft, m_iRight, m_iTop, m_iBottom;
 	bool m_startVerticalMerge;
 	bool m_startHorizontalMerge;

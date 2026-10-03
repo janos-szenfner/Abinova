@@ -416,6 +416,22 @@ below are on `main` but the release has not been cut yet.
   `.abwn` round-trips for a future exporter.  `w:cellMerge` has no
   merge-history representation, so it degrades to the same inert
   record while the current merge geometry stays live.
+- **DOCX export now writes tracked changes** — saving a document
+  with marked revisions previously flattened everything to its
+  final state (only the `cp:revision` counter in `core.xml`
+  survived).  The exporter now wraps `+id`/`-id` runs in `w:ins` /
+  `w:del` — `w:moveFrom`/`w:moveTo` when an imported `revision-move`
+  name is still attached — resolving `w:author` and `w:date` from
+  the document revision table, and emits `w:delText` inside
+  deletion scopes so deleted text stays recoverable.  Recorded
+  format and structure changes round-trip as `w:rPrChange`,
+  `w:pPrChange`, `w:numberingChange`, `w:sectPrChange`,
+  `w:tblPrChange`, `w:tblGridChange`, `w:trPrChange`,
+  `w:tblPrExChange` and `w:tcPrChange`, replaying the captured
+  pre-change property snapshot, alongside the self-closing
+  `w:cellIns`/`w:cellDel`/`w:cellMerge`/paragraph-mark marks, and
+  `w:trackChanges` is written to `settings.xml` when revision
+  marking is enabled (or was enabled on the imported file).
 - **DOCX unsupported drawings no longer vanish** — charts
   (`c:chart`), SmartArt/diagrams (`dgm`), OLE objects
   (`o:OLEObject`) and other `a:graphicData` payloads the importer has

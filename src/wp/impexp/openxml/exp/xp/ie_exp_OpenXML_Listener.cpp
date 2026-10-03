@@ -135,6 +135,10 @@ bool IE_Exp_OpenXML_Listener::populate(fl_ContainerLayout* /* sfh */, const PX_C
 					{
 						if(element_text->setAttribute(szName, szValue) != UT_OK)
 							return false;
+						// run-level attrs (revision &c.) describe the
+						// whole w:r — keep them on the run as well
+						if(element_run->setAttribute(szName, szValue) != UT_OK)
+							return false;
 					}
 				}
 			}
