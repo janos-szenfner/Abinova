@@ -495,6 +495,11 @@ private:
 
 	fl_DocSectionLayout*		m_pDocSL;
 	HdrFtrType					m_iHFType;
+	// Authoritative page->shadow map: one pair per live fp_Page this
+	// header/footer shadows onto. The page's side is the fp_ShadowContainer
+	// in fp_Page::m_pHeader/m_pFooter, which points back at this layout —
+	// the two sides stay in step because every detach goes through
+	// deletePage()/collapse() while both objects are still alive.
 	UT_GenericVector<_PageHdrFtrShadowPair*> m_vecPages;
 	fp_Container *              m_pHdrFtrContainer;
 };
@@ -530,9 +535,7 @@ public:
 private:
 	virtual void				_lookupProperties(const PP_AttrProp* pAP) override;
 	virtual void				_lookupMarginProperties(const PP_AttrProp* pAP) override;
-	void						_createContainer(void);
 
-	fp_ShadowContainer*			m_pContainer;
 	fp_Page*					m_pPage;
 	fl_HdrFtrSectionLayout * m_pHdrFtrSL;
 };

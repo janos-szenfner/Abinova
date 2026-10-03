@@ -13542,7 +13542,7 @@ void FV_View::insertHeaderFooter(HdrFtrType hfType)
 	}
 	UT_return_if_fail(pHFCon);
 	pShadow = pHFCon->getShadow();
-	UT_ASSERT(pShadow);
+	UT_return_if_fail(pShadow);
 //
 // Set Header/footer mode and we're done! Easy :-)
 //

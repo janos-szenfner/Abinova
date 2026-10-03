@@ -2981,11 +2981,25 @@ fp_Page::buildHdrFtrContainer(fl_HdrFtrSectionLayout* pHFSL,
 
 	if (*ppHF)
 	{
+		// Another header/footer owns the container in this slot. Evict
+		// it: if its layout still tracks this page, deletePage() frees
+		// the pair, the shadow and this container in one pass.
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-		(*ppHF)->getHdrFtrSectionLayout()->deletePage(this);
-
-		UT_ASSERT_HARMLESS( !*ppHF );
+		fl_HdrFtrSectionLayout * pOldHFSL = (*ppHF)->getHdrFtrSectionLayout();
+		if(pOldHFSL)
+		{
+			pOldHFSL->deletePage(this);
+		}
+		// If the old owner no longer tracks this page, deletePage()
+		// bails early and leaves an orphaned container in the slot —
+		// drop it here instead of leaking it over the new container.
+		if(*ppHF)
+		{
+			delete *ppHF;
+			*ppHF = nullptr;
+		}
 	}
+	UT_ASSERT_HARMLESS( !*ppHF );
 	xxx_UT_DEBUGMSG(("SEVIOR: Building header container. page = %x hdrftr = %x \n",this,pHFSL));
 
 	//
@@ -3021,20 +3035,30 @@ fp_Page::buildHdrFtrContainer(fl_HdrFtrSectionLayout* pHFSL,
 /** Return the first container for pHFSL. */
 fp_ShadowContainer* fp_Page::getHdrFtrContainer(fl_HdrFtrSectionLayout* pHFSL)
 {
-	if (pHFSL->getHFType() < FL_HDRFTR_FOOTER)
+	fp_ShadowContainer ** ppHF = (pHFSL->getHFType() < FL_HDRFTR_FOOTER)
+		? &m_pHeader : &m_pFooter;
+	if (*ppHF && (*ppHF)->getHdrFtrSectionLayout() != pHFSL)
 	{
-		if (m_pHeader)
-			return m_pHeader;
-		else
-			return buildHdrFtrContainer(pHFSL, FL_HDRFTR_HEADER);
+		// The slot holds another layout's container — handing it to a
+		// new shadow would wire the shadow to the wrong owner. Evict it
+		// first (deletePage() clears the slot when the old owner still
+		// tracks this page).
+		fl_HdrFtrSectionLayout * pOldHFSL = (*ppHF)->getHdrFtrSectionLayout();
+		if(pOldHFSL)
+		{
+			pOldHFSL->deletePage(this);
+		}
+		if(*ppHF)
+		{
+			delete *ppHF;
+			*ppHF = nullptr;
+		}
 	}
-	else
-	{
-		if (m_pFooter)
-			return m_pFooter;
-		else
-			return buildHdrFtrContainer(pHFSL, FL_HDRFTR_FOOTER);
-	}
+	if (*ppHF)
+		return *ppHF;
+	return buildHdrFtrContainer(pHFSL,
+			(pHFSL->getHFType() < FL_HDRFTR_FOOTER)
+				? FL_HDRFTR_HEADER : FL_HDRFTR_FOOTER);
 }
 
 // Frame methods

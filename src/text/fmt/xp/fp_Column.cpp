@@ -2207,7 +2207,10 @@ fp_ShadowContainer::fp_ShadowContainer(UT_sint32 iX,
 fp_ShadowContainer::~fp_ShadowContainer()
 {
   xxx_UT_DEBUGMSG(("Delete Shadow Container %x from shadow Layout %x \n",this,getSectionLayout()));
-  getSectionLayout()->setFirstContainer(nullptr);
+  if(getSectionLayout())
+  {
+	getSectionLayout()->setFirstContainer(nullptr);
+  }
 }
 
 
@@ -2283,13 +2286,16 @@ void fp_ShadowContainer::layout(bool bForceLayout)
 	else
 	{
 		fl_HdrFtrSectionLayout * pHFSL = getHdrFtrSectionLayout();
-		fl_DocSectionLayout * pDSL = pHFSL->getDocSectionLayout();
-		bool bHdrFtr = (pHFSL->getHFType() <= FL_HDRFTR_HEADER_LAST);
-		if(iNewHeight > getPage()->getHeight()/3)
+		fl_DocSectionLayout * pDSL = pHFSL ? pHFSL->getDocSectionLayout() : nullptr;
+		if(pDSL)
 		{
-			iNewHeight = getPage()->getHeight()/3;
+			bool bHdrFtr = (pHFSL->getHFType() <= FL_HDRFTR_HEADER_LAST);
+			if(iNewHeight > getPage()->getHeight()/3)
+			{
+				iNewHeight = getPage()->getHeight()/3;
+			}
+			pDSL->setHdrFtrHeightChange(bHdrFtr,iNewHeight+getGraphics()->tlu(3));
 		}
-		pDSL->setHdrFtrHeightChange(bHdrFtr,iNewHeight+getGraphics()->tlu(3));
 		setHeight(getMaxHeight());
 	}
 }
@@ -2301,6 +2307,10 @@ void fp_ShadowContainer::layout(bool bForceLayout)
 fl_HdrFtrShadow * fp_ShadowContainer::getShadow(void)
 {
     fl_HdrFtrSectionLayout* pHdrFtrSL = getHdrFtrSectionLayout();
+	if(pHdrFtrSL == nullptr)
+	{
+		return nullptr;
+	}
 	return  pHdrFtrSL->findShadow( getPage() );
 }
 

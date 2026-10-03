@@ -3141,6 +3141,26 @@ below are on `main` but the release has not been cut yet.
   silently dropped.  A new `make check` regression drives
   insert → edit → remove → undo on headers and footers plus a
   section-break merge/split round-trip, under valgrind.
+- **Header/footer shadow bookkeeping converged on one teardown
+  path** — each page of a header/footer is mirrored by a
+  `fl_HdrFtrShadow` tracked in a page→shadow pair list while the page
+  itself holds the matching `fp_ShadowContainer`; the two sides could
+  drift apart when a page or section died out of order.  The
+  `fl_HdrFtrSectionLayout` destructor ran its own free loop that
+  *double-freed* every pair (a trailing `UT_VECTOR_PURGEALL` ran over
+  pointers the loop had already deleted) and never detached the pages'
+  shadow containers, leaving each surviving page pointing back at a
+  dead layout — a use-after-free on the next page destruction,
+  click-to-position lookup or repaint.  All pair/container teardown
+  now funnels through `deletePage()` (exactly-once per page removal),
+  slot detaches verify the container really belongs to the layout
+  being torn down (a sibling first/even/odd header/footer can own the
+  slot after a rebind), wrong-owner and orphaned slot containers are
+  evicted rather than leaked or handed to a new shadow, and editing a
+  header/footer can't be armed on a missing shadow.  A new regression
+  case churns forced page breaks + a section break + header/footer
+  insert/remove/undo/redo/merge and asserts every page's slots stay in
+  sync, leak-clean.
 
 ### GTK4 port (core migration)
 

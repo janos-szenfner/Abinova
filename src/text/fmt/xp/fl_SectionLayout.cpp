@@ -3287,13 +3287,37 @@ fl_HdrFtrSectionLayout::fl_HdrFtrSectionLayout(HdrFtrType iHFType, FL_DocLayout*
 fl_HdrFtrSectionLayout::~fl_HdrFtrSectionLayout()
 {
 	xxx_UT_DEBUGMSG(("SEVIOR: Deleting HFType =%d \n",m_iHFType));
-	UT_uint32 iCount = m_vecPages.getItemCount();
-	for (UT_uint32 i=0; i<iCount; i++)
+//
+// If the view is still editing one of our shadows, drop the edit state
+// now — the shadows are about to die and a stale m_pEditShadow would
+// dangle.
+//
+	FV_View * pView = m_pLayout->getView();
+	if(pView && pView->isHdrFtrEdit())
 	{
-		_PageHdrFtrShadowPair* pPair = static_cast<_PageHdrFtrShadowPair*>(m_vecPages.getNthItem(i));
-		UT_nonnull_or_continue(pPair);
-		delete pPair->getShadow();
-		delete pPair;
+		fl_HdrFtrShadow * pEdit = pView->getEditShadow();
+		if(pEdit && pEdit->getHdrFtrSectionLayout() == this)
+		{
+			pView->clearHdrFtrEdit();
+		}
+	}
+//
+// Tear down every page/shadow pair exactly once, routing each through
+// deletePage() so a live page's fp_ShadowContainer is detached while
+// this layout is still valid — the container's getSectionLayout()
+// points back at us, so letting a page outlive this teardown would
+// leave it resolving into freed memory. (A previous version freed each
+// pair here and then again via UT_VECTOR_PURGEALL.)
+//
+	while (m_vecPages.getItemCount() > 0)
+	{
+		_PageHdrFtrShadowPair* pPair = static_cast<_PageHdrFtrShadowPair*>(m_vecPages.getNthItem(0));
+		if(!pPair)
+		{
+			m_vecPages.deleteNthItem(0);
+			continue;
+		}
+		deletePage(pPair->getPage());
 	}
 	_purgeLayout();
 	DELETEP(m_pHdrFtrContainer);
@@ -3319,7 +3343,6 @@ fl_HdrFtrSectionLayout::~fl_HdrFtrSectionLayout()
 // 		pView->markSavedPositionAsNeeded();
 // 	}
 //
-	UT_VECTOR_PURGEALL(_PageHdrFtrShadowPair*, m_vecPages);
 }
 
 /*!
@@ -3350,9 +3373,19 @@ void fl_HdrFtrSectionLayout::collapse(void)
 		UT_nonnull_or_continue(pPair);
 		fp_Page * ppPage = pPair->getPage();
 		delete pPair->getShadow();
-		UT_nonnull_or_continue(ppPage);
-		ppPage->removeHdrFtr(getHFType());
 		delete pPair;
+		if(ppPage && getDocLayout()->findPage(ppPage) >= 0)
+		{
+			// Only detach the container when it is really ours — if the
+			// slot was taken over by another header/footer this pair was
+			// already evicted, and removeHdrFtr would kill the wrong
+			// layout's live container.
+			fp_ShadowContainer * pShadowCon = ppPage->getHdrFtrP(getHFType());
+			if(pShadowCon && pShadowCon->getHdrFtrSectionLayout() == this)
+			{
+				ppPage->removeHdrFtr(getHFType());
+			}
+		}
 	}
 	m_vecPages.clear();
 	DELETEP(m_pHdrFtrContainer);
@@ -3432,7 +3465,16 @@ fp_Container* fl_HdrFtrSectionLayout::getLastContainer() const
 fp_Container* fl_HdrFtrSectionLayout::getNewContainer(const fp_Container* /*pFirstContainer*/)
 {
 	DELETEP(m_pHdrFtrContainer);
-	UT_sint32 iWidth = m_pDocSL->getFirstContainer()->getPage()->getWidth(); // why is this different than the next one ?
+	fp_Container * pDocCon = m_pDocSL ? m_pDocSL->getFirstContainer() : nullptr;
+	fp_Page * pPage = pDocCon ? pDocCon->getPage() : nullptr;
+	if(!pPage)
+	{
+		// No doc section container to size from (unbound or collapsed
+		// section) — leave the container null rather than crash.
+		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+		return nullptr;
+	}
+	UT_sint32 iWidth = pPage->getWidth(); // why is this different than the next one ?
 	m_pHdrFtrContainer = static_cast<fp_Container *>(new fp_HdrFtrContainer(iWidth, static_cast<fl_SectionLayout *>(this)));
 	return m_pHdrFtrContainer;
 }
@@ -3665,7 +3707,14 @@ void fl_HdrFtrSectionLayout::addPage(fp_Page* pPage)
 	//
 	if(pOldShadow != nullptr)
 	{
-		pOldShadow->getHdrFtrSectionLayout()->deletePage(pPage);
+		fl_HdrFtrSectionLayout * pOldHFSL = pOldShadow->getHdrFtrSectionLayout();
+		if(pOldHFSL)
+		{
+			pOldHFSL->deletePage(pPage);
+		}
+		// If the old owner's deletePage() bailed early (no pair for this
+		// page) the slot may still hold an orphaned container — drop it
+		// so the new shadow never shares the slot.
 		pPage->removeHdrFtr(m_iHFType);
 	}
 
@@ -3815,7 +3864,15 @@ void fl_HdrFtrSectionLayout::deletePage(fp_Page* pPage)
 	xxx_UT_DEBUGMSG(("Doing deletePage %x \n",pPage));
 	if(getDocLayout()->findPage(ppPage) >= 0)
 	{
-			ppPage->removeHdrFtr(getHFType());
+			// Detach only our own container: if the slot was taken over
+			// by another header/footer (e.g. a first/even/odd swap that
+			// evicted this pair), removeHdrFtr would destroy the wrong
+			// layout's live container.
+			fp_ShadowContainer * pShadowCon = ppPage->getHdrFtrP(getHFType());
+			if(pShadowCon && pShadowCon->getHdrFtrSectionLayout() == this)
+			{
+				ppPage->removeHdrFtr(getHFType());
+			}
 	}
 	delete pPair;
 	m_vecPages.deleteNthItem(iShadow);

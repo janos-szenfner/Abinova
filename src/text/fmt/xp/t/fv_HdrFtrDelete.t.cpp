@@ -31,6 +31,7 @@
 #include "ie_exp.h"
 #include "ie_types.h"
 #include "pf_Frag_Strux.h"
+#include "ut_types.h"
 
 #include <glib.h>
 #include <gsf/gsf-output-stdio.h>
@@ -280,6 +281,136 @@ TFTEST_MAIN("section break merge removes a DocSectionLayout cleanly")
 	hv.view->cmdUndo(1);
 	hv.pumpMainLoop();
 	TFPASS(hv.countDocSections() == iSections);
+
+	TFPASS(hv.exportPdf(tmpPdf.c_str()) == UT_OK);
+	TFPASS(checkHdrFtrPdfFile(tmpPdf.c_str()));
+}
+
+TFTEST_MAIN("page break + section + hdrftr churn keeps shadow pairs in sync")
+{
+	HeadlessHdrFtrView hv;
+	TFPASS(hv.load("/test/wp/footer.abw"));
+	if (!hv.view)
+		return;
+
+	std::string tmpPdf = std::string("/tmp/abn_hdrftrpair_") +
+		std::to_string(::getpid()) + ".pdf";
+
+	/* the fixture shadows a "Page N of M" footer on every page; add a
+	 * header too so both per-page slots carry live containers */
+	hv.view->insertHeaderFooter(FL_HDRFTR_HEADER);
+	hv.pumpMainLoop();
+	TFPASS(hv.pageHasHdrFtr(0, FL_HDRFTR_HEADER));
+	hv.view->clearHdrFtrEdit();
+
+	PT_DocPosition posEnd = 0;
+	hv.doc->getBounds(true, posEnd);
+	TFPASS(posEnd > 4);
+	hv.view->setPoint(posEnd - 1);
+	const UT_sint32 iPages0 = hv.layout->countPages();
+	const UT_sint32 iSections0 = hv.countDocSections();
+
+	/* forced page breaks grow the document — each new page must gain
+	 * exactly one shadow pair and container per hdrftr */
+	const UT_UCS4Char ff = UCS_FF;
+	for (int i = 0; i < 4; i++)
+	{
+		hv.view->cmdCharInsert(&ff, 1);
+	}
+	hv.layout->formatAll();
+	hv.pumpMainLoop();
+	TFPASS(hv.layout->countPages() >= iPages0 + 2);
+	for (int i = 0; i < hv.layout->countPages(); i++)
+	{
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_HEADER));
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_FOOTER));
+	}
+
+	/* a section break mid-doc makes the new DocSectionLayout inherit
+	 * the hdrftrs — its pages get pairs of their own without evicting
+	 * the first section's slot containers */
+	hv.view->setPoint(posEnd / 2);
+	hv.view->insertSectionBreak();
+	hv.pumpMainLoop();
+	hv.layout->formatAll();
+	TFPASS(hv.countDocSections() == iSections0 + 1);
+	for (int i = 0; i < hv.layout->countPages(); i++)
+	{
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_HEADER));
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_FOOTER));
+	}
+
+	/* remove the header for the section holding the point — the slot
+	 * detach must only drop that layout's own containers */
+	hv.view->setPoint(4);
+	hv.view->cmdRemoveHdrFtr(true);
+	hv.pumpMainLoop();
+	TFPASS(!hv.pageHasHdrFtr(0, FL_HDRFTR_HEADER));
+	TFPASS(hv.pageHasHdrFtr(0, FL_HDRFTR_FOOTER));
+
+	hv.view->cmdUndo(1);
+	hv.pumpMainLoop();
+	TFPASS(hv.pageHasHdrFtr(0, FL_HDRFTR_HEADER));
+
+	/* merge the sections back — the dying DocSectionLayout's HdrFtr
+	 * sections are torn down with live page pairs. Operations may log
+	 * more than one undo unit, so drive by state, not unit count. */
+	for (int i = 0; i < 8 && hv.countDocSections() > iSections0; i++)
+	{
+		hv.view->cmdUndo(1);
+		hv.pumpMainLoop();
+	}
+	TFPASS(hv.countDocSections() == iSections0);
+	for (int i = 0; i < hv.layout->countPages(); i++)
+	{
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_HEADER));
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_FOOTER));
+	}
+
+	/* undo the page breaks: ~fp_Page -> deleteOwnedPage -> deletePage
+	 * must drop each pair and its slot container exactly once */
+	for (int i = 0; i < 12 && hv.layout->countPages() > iPages0; i++)
+	{
+		hv.view->cmdUndo(1);
+		hv.pumpMainLoop();
+	}
+	hv.layout->formatAll();
+	TFPASS(hv.layout->countPages() == iPages0);
+	for (int i = 0; i < hv.layout->countPages(); i++)
+	{
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_HEADER));
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_FOOTER));
+	}
+
+	/* redo them — pairs rebuild on the recreated pages */
+	for (int i = 0; i < 12 && hv.layout->countPages() < iPages0 + 2; i++)
+	{
+		hv.view->cmdRedo(1);
+		hv.pumpMainLoop();
+	}
+	hv.layout->formatAll();
+	TFPASS(hv.layout->countPages() >= iPages0 + 2);
+	TFPASS(hv.countDocSections() == iSections0);
+	for (int i = 0; i < hv.layout->countPages(); i++)
+	{
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_HEADER));
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_FOOTER));
+	}
+
+	/* finally remove the footer everywhere and undo that too */
+	hv.view->setPoint(4);
+	hv.view->cmdRemoveHdrFtr(false);
+	hv.pumpMainLoop();
+	for (int i = 0; i < hv.layout->countPages(); i++)
+	{
+		TFPASS(!hv.pageHasHdrFtr(i, FL_HDRFTR_FOOTER));
+	}
+	hv.view->cmdUndo(1);
+	hv.pumpMainLoop();
+	for (int i = 0; i < hv.layout->countPages(); i++)
+	{
+		TFPASS(hv.pageHasHdrFtr(i, FL_HDRFTR_FOOTER));
+	}
 
 	TFPASS(hv.exportPdf(tmpPdf.c_str()) == UT_OK);
 	TFPASS(checkHdrFtrPdfFile(tmpPdf.c_str()));
