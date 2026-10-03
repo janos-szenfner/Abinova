@@ -24,11 +24,39 @@
 #define _OXML_OBJECTWITHATTRPROP_H_
 
 #include <string>
+#include <vector>
 
 #include "pp_AttrProp.h"
 #include "OXML_Types.h"
 
 class IE_Exp_OpenXML;
+class PD_Document;
+
+/* \struct OXML_StruxRevision
+ * \brief Deferred strux-level tracked-change record (ECMA-376
+ * §17.13.5). The piece table can carry a "revision" attribute on
+ * strux attr/prop sets, and the *Change elements (w:pPrChange &c.)
+ * carry the PRE-change property set as a child snapshot.  Neither is
+ * known fully at parse time — the piece-table revision id is only
+ * assigned once a PD_Document is available — so the importer stores
+ * pending marks here and materializes them in applyRevisionMarks().
+ *
+ * Two shapes:
+ *  - name == "revision": emitted as revision="+id"/"-id" on the strux
+ *    AP (w:cellIns / w:cellDel / w:tr w:ins / w:tr w:del fan-out).
+ *  - name == the OOXML element name ("pPrChange", "tblPrChange", ...):
+ *    emitted as an inert attribute "name"="!id{props}{attrs}" where
+ *    the brace groups hold the captured pre-change property and
+ *    attribute sets in the usual name:value; encoding — the change is
+ *    accepted (live props keep the new state) but the old snapshot is
+ *    preserved for a future exporter.
+ */
+struct OXML_StruxRevision {
+	std::string name;
+	bool deletion = false;             // '-' vs '+' for "revision" marks
+	std::string author, date;
+	PP_PropertyVector props, attrs;    // old property snapshot (*Change)
+};
 
 class OXML_ObjectWithAttrProp {
 public:
@@ -67,8 +95,25 @@ public:
 	//! (top/left/bot/right -style/-thickness/-space/-color).
 	UT_Error serializeParagraphBorders(IE_Exp_OpenXML* exporter, int target) const;
 
+	//! Record a w:ins/w:del-class strux mark (emitted as
+	//! revision="+id"/"-id" once a PD_Document registers it).
+	void addRevisionMark(bool deleted, const gchar * author, const gchar * date);
+	//! Record a w:*Change property-change mark; props/attrs hold the
+	//! captured pre-change snapshot.
+	void addChangeMark(const gchar * name, const gchar * author,
+					   const gchar * date, const PP_PropertyVector & props,
+					   const PP_PropertyVector & attrs);
+	//! Copy pending marks verbatim (row marks fan out onto cells).
+	void appendRevisionMarks(const std::vector<OXML_StruxRevision> & marks);
+	const std::vector<OXML_StruxRevision> & getRevisionMarks() const;
+	//! Register pending marks on the document revision table and fold
+	//! them into this object's attributes. Call at addToPT time, before
+	//! building the emitted attr/prop vector.
+	void applyRevisionMarks(PD_Document * pDocument);
+
 private:
 	PP_AttrProp* m_pAttributes;
+	std::vector<OXML_StruxRevision> m_revMarks;
 
 	std::string _generatePropsString() const;
 };

@@ -82,7 +82,8 @@ enum OXML_ElementTag {
 	TXTBX_TAG,
 	MATH_TAG,
 	ANNOT_TAG,
-	REV_TAG
+	REV_TAG,
+	CHANGE_TAG
 };
 
 enum OXML_ElementType {

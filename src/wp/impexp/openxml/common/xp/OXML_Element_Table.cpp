@@ -326,6 +326,10 @@ UT_Error OXML_Element_Table::addToPT(PD_Document * pDocument)
 		}
 	}
 
+	/* strux revision marks (w:tblPrChange / w:tblGridChange snapshots)
+	 * register themselves and land on the table strux AP */
+	applyRevisionMarks(pDocument);
+
 	const PP_PropertyVector atts = getAttributesWithProps();
 	if(!pDocument->appendStrux(PTX_SectionTable, atts))
 		return UT_ERROR;

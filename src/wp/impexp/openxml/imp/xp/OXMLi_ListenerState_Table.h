@@ -43,6 +43,10 @@ private:
 	std::stack<OXML_SharedElement_Table> m_tableStack;
 	std::stack<OXML_Element_Row*> m_rowStack;
 	std::stack<OXML_SharedElement_Cell> m_cellStack;
+	/* open w:tblPrChange/w:tblGridChange/w:trPrChange/
+	 * w:tblPrExChange/w:tcPrChange scopes — inner *Pr subtrees
+	 * collect onto dummy table/row/cell targets */
+	std::vector<OXMLi_ChangeScope> m_changeScopes;
 };
 
 #endif //_OXMLI_LISTENERSTATE_TABLE_H_

@@ -512,6 +512,10 @@ UT_Error OXML_Section::addToPT(PD_Document * pDocument)
 	ret = _setReferenceIds();
 	UT_return_val_if_fail(ret == UT_OK, ret);
 
+	/* a w:sectPrChange snapshot recorded during parse registers
+	 * itself and lands on the section strux AP */
+	applyRevisionMarks(pDocument);
+
 	//Appending section
 	PP_PropertyVector attr = this->getAttributesWithProps();
 	ret = pDocument->appendStrux(PTX_Section, attr) ? UT_OK : UT_ERROR;

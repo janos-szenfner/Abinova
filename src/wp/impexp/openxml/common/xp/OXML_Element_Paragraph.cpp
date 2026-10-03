@@ -273,6 +273,11 @@ UT_Error OXML_Element_Paragraph::addToPT(PD_Document * pDocument)
 
 	_applyParaMarkChange(pDocument);
 
+	/* strux revision marks recorded during parse (w:pPrChange /
+	 * w:numberingChange snapshots) register themselves and land on
+	 * the block strux AP */
+	applyRevisionMarks(pDocument);
+
 	//update list id and parent id here
 	const gchar* pListId = getListId();
 	const gchar* pListLevel = getListLevel();

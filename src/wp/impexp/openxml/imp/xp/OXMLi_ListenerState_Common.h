@@ -53,6 +53,9 @@ private:
 	bool m_tocFirst;
 	std::string m_fieldInstr;
 	std::string m_tocInstr;
+	/* open w:pPrChange/w:rPrChange/w:numberingChange/w:sectPrChange
+	 * scopes — inner *Pr subtrees collect onto dummy targets */
+	std::vector<OXMLi_ChangeScope> m_changeScopes;
 };
 
 #endif //_OXMLI_LISTENERSTATE_COMMON_H_

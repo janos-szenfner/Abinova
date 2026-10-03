@@ -264,6 +264,16 @@ UT_Error OXML_Element_Cell::addToPT(PD_Document * pDocument)
 	if(!startsHorizontalMerge() || !startsVerticalMerge())
 		return UT_OK;
 
+	/* strux revision marks recorded during parse (w:tcPr w:cellIns /
+	 * w:cellDel / w:cellMerge, w:trPr w:ins/del fanned out from the
+	 * row) register themselves and land on the cell strux AP */
+	applyRevisionMarks(pDocument);
+
+	const gchar * revToken = nullptr;
+	bool bDeleted =
+		getAttribute(PT_REVISION_ATTRIBUTE_NAME, revToken) == UT_OK &&
+		revToken && revToken[0] == '-';
+
 	//add props:bot-attach, left-attach, right-attach, top-attach
 	std::string sTop = UT_std_string_sprintf("%d", m_iTop);
 	std::string sBottom = UT_std_string_sprintf("%d", m_iBottom);
@@ -348,7 +358,17 @@ UT_Error OXML_Element_Cell::addToPT(PD_Document * pDocument)
 	if(!pDocument->appendStrux(PTX_SectionCell, cell_props))
 		return UT_ERROR;
 
+	/* a w:cellDel'd (or deleted-row) cell keeps its content as a
+	 * deletion revision so no deleted structure leaks live — mark
+	 * every descendant span, same as the run-level w:del path */
+	if(bDeleted)
+	{
+		const PP_PropertyVector delFmt = { PT_REVISION_ATTRIBUTE_NAME, revToken };
+		pDocument->appendFmt(delFmt);
+	}
 	ret = addChildrenToPT(pDocument);
+	if(bDeleted)
+		pDocument->appendFmt(PP_NOPROPS);
 	if(ret != UT_OK)
 		return ret;
 

@@ -63,14 +63,32 @@ void OXMLi_ListenerState_MainDocument::startElement (OXMLi_StartElementRequest *
 		const gchar* height = attrMatches(NS_W_KEY, "h", rqst->ppAtts);
 		const gchar* orientation = attrMatches(NS_W_KEY, "orient", rqst->ppAtts);
 
-		OXML_Document* doc = OXML_Document::getInstance();
-
 		if(!width || !height)
 		{
 			rqst->handled = true;
 			return;
 		}
-		
+
+		if(OXMLi_inPropChange(rqst->context))
+		{
+			/* inside a w:sectPrChange snapshot this pgSz holds the
+			 * PRE-change page size — capture it on the collecting
+			 * section, never on the live document */
+			OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
+			if(sect.get())
+			{
+				sect->setProperty("page-width",
+								  (std::string(_TwipsToInches(width)) + "in").c_str());
+				sect->setProperty("page-height",
+								  (std::string(_TwipsToInches(height)) + "in").c_str());
+				if(orientation)
+					sect->setProperty("page-orientation", orientation);
+			}
+			rqst->handled = true;
+			return;
+		}
+
+		OXML_Document* doc = OXML_Document::getInstance();
 		doc->setPageWidth(_TwipsToInches(width));
 		doc->setPageHeight(_TwipsToInches(height));
 
@@ -114,8 +132,12 @@ void OXMLi_ListenerState_MainDocument::startElement (OXMLi_StartElementRequest *
 		/* pgMar lives inside a w:sectPr, so it describes the section that
 		 * the sectPr terminates — the current top of the section stack.
 		 * Apply it there; the document-global value only remains as a
-		 * fallback for sections that never specify their own margins. */
-		doc->setPageMargins(top, left, right, bottom);
+		 * fallback for sections that never specify their own margins.
+		 * Inside a w:sectPrChange snapshot the values are PRE-change —
+		 * the collecting dummy section captures them, the document
+		 * global must not be touched. */
+		if (!OXMLi_inPropChange(rqst->context))
+			doc->setPageMargins(top, left, right, bottom);
 		if (!rqst->sect_stck->empty()) {
 			OXMLi_sectTop(rqst->sect_stck)->setPageMargins(top, left, right, bottom);
 		}

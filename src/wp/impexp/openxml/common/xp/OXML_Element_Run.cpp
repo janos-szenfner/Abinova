@@ -205,6 +205,10 @@ UT_Error OXML_Element_Run::addToPT(PD_Document * pDocument)
 
 	UT_Error ret = UT_OK;
 
+	/* a w:rPrChange snapshot recorded during parse lands on the
+	 * run's fmt AP as an inert "rPrChange"="!id{...}" attribute */
+	applyRevisionMarks(pDocument);
+
 	PP_PropertyVector atts = getAttributesWithProps();
 	if (!atts.empty()) {
 		//We open the formatting tag

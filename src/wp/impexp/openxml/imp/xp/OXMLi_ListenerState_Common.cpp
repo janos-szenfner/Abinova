@@ -265,8 +265,8 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		 * CT_TrackChange marks (deleted paragraph mark, inserted
 		 * table row, ...). w:p/w:pPr/w:rPr/w:ins|w:del marks a tracked
 		 * change of the paragraph mark itself and is recorded on the
-		 * paragraph; the remaining strux-level marks (row/cell/
-		 * numbering/format changes) are still unhandled. */
+		 * paragraph; w:trPr/w:ins|w:del marks a tracked row change and
+		 * is recorded on the row element for fan-out to its cells. */
 		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "rPr") ||
 			contextMatches(contextTag, NS_W_KEY, "trPr") ||
@@ -293,6 +293,23 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 						attrMatches(NS_W_KEY, "author", rqst->ppAtts),
 						attrMatches(NS_W_KEY, "date", rqst->ppAtts));
 				}
+				rqst->handled = true;
+			}
+			else if (contextMatches(contextTag, NS_W_KEY, "trPr") &&
+					 (nameMatches(rqst->pName, NS_W_KEY, "ins") ||
+					  nameMatches(rqst->pName, NS_W_KEY, "del")))
+			{
+				/* w:trPr/w:ins|w:del — tracked row insert/delete. The
+				 * piece table has no row strux, so the mark is kept
+				 * on the row element and fanned out to its cells
+				 * (each cell strux gets revision="+id"/"-id") when
+				 * the row closes in the table listener. */
+				OXML_SharedElement row = OXMLi_elemTop(rqst->stck);
+				if (row)
+					row->addRevisionMark(
+						nameMatches(rqst->pName, NS_W_KEY, "del"),
+						attrMatches(NS_W_KEY, "author", rqst->ppAtts),
+						attrMatches(NS_W_KEY, "date", rqst->ppAtts));
 				rqst->handled = true;
 			}
 			return;
@@ -348,9 +365,57 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			OXML_SharedElement dummy(new OXML_Element_Paragraph(""));
 			rqst->stck->push(dummy);
 
-			m_pendingSectBreak = true;
+			if (!OXMLi_inPropChange(rqst->context))
+				m_pendingSectBreak = true;
 			rqst->handled = true;
 		}
+
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "pPrChange") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "rPrChange") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "numberingChange") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "sectPrChange")) {
+		/* strux-level property-change record (ECMA-376 §17.13.5):
+		 * the child *Pr subtree holds the PRE-change property set,
+		 * not the live one — the change itself is shown as accepted.
+		 * Redirect the usual property writes onto collectors (an
+		 * element pushed on the stack for OXMLi_elemTop targets, a
+		 * dummy section for the section stack — an old pPr can even
+		 * carry its own sectPr) and fold the snapshot into an inert
+		 * "<name>"="!id{props}{attrs}" attribute on the target. */
+		std::string contextTag = OXMLi_contextBack(rqst->context);
+		bool bSectPr = nameMatches(rqst->pName, NS_W_KEY, "sectPrChange");
+		bool bOk;
+		if (bSectPr)
+			bOk = contextMatches(contextTag, NS_W_KEY, "sectPr");
+		else if (nameMatches(rqst->pName, NS_W_KEY, "pPrChange"))
+			bOk = contextMatches(contextTag, NS_W_KEY, "pPr");
+		else if (nameMatches(rqst->pName, NS_W_KEY, "rPrChange"))
+			bOk = contextMatches(contextTag, NS_W_KEY, "rPr");
+		else //numberingChange
+			bOk = contextMatches(contextTag, NS_W_KEY, "numPr");
+
+		if (bOk)
+		{
+			OXMLi_ChangeScope scope;
+			scope.name = rqst->pName.substr(strlen(NS_W_KEY) + 1);
+			const gchar * a = attrMatches(NS_W_KEY, "author", rqst->ppAtts);
+			const gchar * d = attrMatches(NS_W_KEY, "date", rqst->ppAtts);
+			if (a) scope.author = a;
+			if (d) scope.date = d;
+			if (bSectPr)
+				scope.sectTarget = OXMLi_sectTop(rqst->sect_stck);
+			else
+				scope.elemTarget = OXMLi_elemTop(rqst->stck);
+			scope.stckDepth = rqst->stck ? rqst->stck->size() : 0;
+			scope.sectDepth = rqst->sect_stck ? rqst->sect_stck->size() : 0;
+			if (rqst->stck)
+				rqst->stck->push(OXML_SharedElement(
+					new OXML_Element("", CHANGE_TAG, SPAN)));
+			if (rqst->sect_stck)
+				rqst->sect_stck->push(OXML_SharedSection(new OXML_Section()));
+			m_changeScopes.push_back(scope);
+		}
+		rqst->handled = true;
 
 /********************************
  ****  PARAGRAPH FORMATTING  ****
@@ -542,8 +607,9 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 	std::string contextTag = OXMLi_contextParent(rqst->context);
 	if (contextMatches(contextTag, NS_W_KEY, "p") ||
 		contextMatches(contextTag, NS_W_KEY, "pPrDefault") ||
-		contextMatches(contextTag, NS_W_KEY, "lvl") ||  
-		contextMatches(contextTag, NS_W_KEY, "style")) { 
+		contextMatches(contextTag, NS_W_KEY, "lvl") ||
+		contextMatches(contextTag, NS_W_KEY, "style") ||
+		contextMatches(contextTag, NS_W_KEY, "pPrChange")) {
 
 		OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
 
@@ -731,7 +797,8 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			(contextMatches(parent, NS_W_KEY, "p") ||
 			 contextMatches(parent, NS_W_KEY, "pPrDefault") ||
 			 contextMatches(parent, NS_W_KEY, "lvl") ||
-			 contextMatches(parent, NS_W_KEY, "style"))) {
+			 contextMatches(parent, NS_W_KEY, "style") ||
+			 contextMatches(parent, NS_W_KEY, "pPrChange"))) {
 
 			OXML_SharedElement para = OXMLi_elemTop(rqst->stck);
 			const gchar * before = attrMatches(NS_W_KEY, "before", rqst->ppAtts);
@@ -761,7 +828,8 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				   (contextMatches(parent, NS_W_KEY, "r") ||
 					contextMatches(parent, NS_W_KEY, "rPrDefault") ||
 					contextMatches(parent, NS_W_KEY, "lvl") ||
-					contextMatches(parent, NS_W_KEY, "style"))) {
+					contextMatches(parent, NS_W_KEY, "style") ||
+					contextMatches(parent, NS_W_KEY, "rPrChange"))) {
 			OXML_SharedElement run = OXMLi_elemTop(rqst->stck);
 			const gchar * val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 			if (val && *val) {
@@ -1001,6 +1069,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			contextMatches(contextTag, NS_W_KEY, "rPrDefault") ||
 			contextMatches(contextTag, NS_W_KEY, "lvl") ||
 			contextMatches(contextTag, NS_W_KEY, "style") ||
+			contextMatches(contextTag, NS_W_KEY, "rPrChange") ||
 			bParaMark) {
 			OXML_SharedElement run = OXMLi_elemTop(rqst->stck);
 
@@ -1710,7 +1779,56 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 
 			rqst->handled = true;
 		}
-	} else if (	nameMatches(rqst->pName, NS_W_KEY, "jc") || 
+	} else if (nameMatches(rqst->pName, NS_W_KEY, "pPrChange") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "rPrChange") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "numberingChange") ||
+			   nameMatches(rqst->pName, NS_W_KEY, "sectPrChange")) {
+		/* close the snapshot scope opened in startElement: pop and
+		 * harvest the collectors, then store the captured old
+		 * property set on the target as an inert
+		 * "<name>"="!id{props}{attrs}" attribute. */
+		if (!m_changeScopes.empty() &&
+			m_changeScopes.back().name ==
+				rqst->pName.substr(strlen(NS_W_KEY) + 1))
+		{
+			OXMLi_ChangeScope sc = m_changeScopes.back();
+			m_changeScopes.pop_back();
+
+			if (rqst->stck)
+			{
+				while (rqst->stck->size() > sc.stckDepth)
+				{
+					OXML_SharedElement e = rqst->stck->top();
+					PP_PropertyVector p = e->getProperties();
+					PP_PropertyVector a = e->getAttributes();
+					sc.props.insert(sc.props.end(), p.begin(), p.end());
+					sc.attrs.insert(sc.attrs.end(), a.begin(), a.end());
+					rqst->stck->pop();
+				}
+			}
+			if (rqst->sect_stck)
+			{
+				while (rqst->sect_stck->size() > sc.sectDepth)
+				{
+					OXML_SharedSection s = rqst->sect_stck->top();
+					PP_PropertyVector p = s->getProperties();
+					PP_PropertyVector a = s->getAttributes();
+					sc.props.insert(sc.props.end(), p.begin(), p.end());
+					sc.attrs.insert(sc.attrs.end(), a.begin(), a.end());
+					rqst->sect_stck->pop();
+				}
+			}
+
+			OXML_ObjectWithAttrProp * t =
+				sc.elemTarget ?
+					static_cast<OXML_ObjectWithAttrProp*>(sc.elemTarget.get()) :
+					static_cast<OXML_ObjectWithAttrProp*>(sc.sectTarget.get());
+			if (t)
+				t->addChangeMark(sc.name.c_str(), sc.author.c_str(),
+								 sc.date.c_str(), sc.props, sc.attrs);
+		}
+		rqst->handled = true;
+	} else if (	nameMatches(rqst->pName, NS_W_KEY, "jc") ||
 				nameMatches(rqst->pName, NS_W_KEY, "ind") ||
 				nameMatches(rqst->pName, NS_W_KEY, "spacing") ) {
 		rqst->handled = true;

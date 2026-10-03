@@ -679,6 +679,103 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		rqst->handled = true;
 	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "cellIns") ||
+			nameMatches(rqst->pName, NS_W_KEY, "cellDel") ||
+			nameMatches(rqst->pName, NS_W_KEY, "cellMerge"))
+	{
+		/* w:tcPr tracked cell marks (ECMA-376 §17.13.5.4-6).
+		 * cellIns/cellDel become revision="+id"/"-id" on the cell
+		 * strux at addToPT (cellDel additionally marks the cell's
+		 * content deleted so a deleted cell can't leak live runs).
+		 * w:cellMerge has no merge-history representation — it is
+		 * kept as an inert "cellMerge" record on the cell strux and
+		 * the current merge geometry stays live. */
+		if(!rqst->context->empty() &&
+			contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "tcPr") &&
+			!m_cellStack.empty())
+		{
+			auto cell = m_cellStack.top();
+			const gchar * a = attrMatches(NS_W_KEY, "author", rqst->ppAtts);
+			const gchar * d = attrMatches(NS_W_KEY, "date", rqst->ppAtts);
+			if(nameMatches(rqst->pName, NS_W_KEY, "cellDel"))
+				cell->addRevisionMark(true, a, d);
+			else if(nameMatches(rqst->pName, NS_W_KEY, "cellIns"))
+				cell->addRevisionMark(false, a, d);
+			else
+				cell->addChangeMark("cellMerge", a, d, PP_NOPROPS, PP_NOPROPS);
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblPrChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblGridChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "trPrChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblPrExChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tcPrChange"))
+	{
+		/* table strux-level property-change records: the child *Pr
+		 * subtree holds the PRE-change property set. Redirect the
+		 * property writes onto collectors — an element pushed on the
+		 * element stack plus a dummy on the aux stack the inner *Pr
+		 * addresses — and fold the snapshot into an inert
+		 * "<name>"="!id{props}{attrs}" attribute on the target. */
+		std::string contextTag = OXMLi_contextBack(rqst->context);
+		bool bOk = false;
+		bool bTable = false, bCell = false;
+		if(nameMatches(rqst->pName, NS_W_KEY, "tblPrChange"))
+		{
+			bOk = contextMatches(contextTag, NS_W_KEY, "tblPr");
+			bTable = true;
+		}
+		else if(nameMatches(rqst->pName, NS_W_KEY, "tblGridChange"))
+		{
+			bOk = contextMatches(contextTag, NS_W_KEY, "tblGrid");
+			bTable = true;
+		}
+		else if(nameMatches(rqst->pName, NS_W_KEY, "trPrChange"))
+		{
+			bOk = contextMatches(contextTag, NS_W_KEY, "trPr");
+			bTable = true; //w:trHeight writes the table's row-heights
+		}
+		else if(nameMatches(rqst->pName, NS_W_KEY, "tblPrExChange"))
+		{
+			bOk = contextMatches(contextTag, NS_W_KEY, "tblPrEx");
+			bTable = true;
+		}
+		else //tcPrChange
+		{
+			bOk = contextMatches(contextTag, NS_W_KEY, "tcPr");
+			bCell = true;
+		}
+
+		if(bOk)
+		{
+			OXMLi_ChangeScope scope;
+			scope.name = rqst->pName.substr(strlen(NS_W_KEY) + 1);
+			const gchar * a = attrMatches(NS_W_KEY, "author", rqst->ppAtts);
+			const gchar * d = attrMatches(NS_W_KEY, "date", rqst->ppAtts);
+			if(a) scope.author = a;
+			if(d) scope.date = d;
+			scope.elemTarget = OXMLi_elemTop(rqst->stck);
+			scope.stckDepth = rqst->stck ? rqst->stck->size() : 0;
+			scope.sectDepth = rqst->sect_stck ? rqst->sect_stck->size() : 0;
+			scope.tblDepth = m_tableStack.size();
+			scope.rowDepth = m_rowStack.size();
+			scope.cellDepth = m_cellStack.size();
+			if(rqst->stck)
+				rqst->stck->push(OXML_SharedElement(
+					new OXML_Element("", CHANGE_TAG, SPAN)));
+			if(rqst->sect_stck)
+				rqst->sect_stck->push(OXML_SharedSection(new OXML_Section()));
+			if(bTable)
+				m_tableStack.push(OXML_SharedElement_Table(
+					new OXML_Element_Table("")));
+			if(bCell)
+				m_cellStack.push(OXML_SharedElement_Cell(
+					new OXML_Element_Cell("", nullptr, -1, -1, -1, -1)));
+			m_changeScopes.push_back(scope);
+		}
+		rqst->handled = true;
+	}
 	//TODO: more coming here
 }
 
@@ -728,6 +825,18 @@ void OXMLi_ListenerState_Table::endElement (OXMLi_EndElementRequest * rqst)
 			for(auto c : cells)
 				if(c)
 					c->setProperty("header-row", "1");
+		}
+
+		/* strux revision marks recorded on the row (w:trPr w:ins/del,
+		 * w:trPrChange, w:tblPrExChange) have no row strux to land on —
+		 * fan them out to the row's cells so each cell strux carries
+		 * the mark */
+		if(!row->getRevisionMarks().empty())
+		{
+			OXML_ElementVector cells = row->getChildren();
+			for(auto c : cells)
+				if(c)
+					c->appendRevisionMarks(row->getRevisionMarks());
 		}
 
 		OXML_SharedElement table = OXMLi_elemTop(rqst->stck);
@@ -815,15 +924,32 @@ void OXMLi_ListenerState_Table::endElement (OXMLi_EndElementRequest * rqst)
 	{
 		if(!rqst->context->empty() && !contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "tbl") && !m_tableStack.empty())
 		{
-			m_tableStack.pop(); //pop the dummy table
+			//pop the dummy table — inside a w:tblPrChange scope it
+			//holds the captured pre-change snapshot
+			if(!m_changeScopes.empty())
+			{
+				PP_PropertyVector p = m_tableStack.top()->getProperties();
+				PP_PropertyVector a = m_tableStack.top()->getAttributes();
+				m_changeScopes.back().props.insert(
+					m_changeScopes.back().props.end(), p.begin(), p.end());
+				m_changeScopes.back().attrs.insert(
+					m_changeScopes.back().attrs.end(), a.begin(), a.end());
+			}
+			m_tableStack.pop();
 		}
 		rqst->handled = true;
 	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "trPr"))
 	{
-		if(!rqst->context->empty() && !contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "tr") && !m_rowStack.empty())
+		/* pop the styles-context dummy row — but NOT inside a
+		 * w:trPrChange scope, where the stack top is still the real
+		 * row (trPrChange collects on the element stack instead) */
+		if(!rqst->context->empty() &&
+			!contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "tr") &&
+			!contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "trPrChange") &&
+			!m_rowStack.empty())
 		{
-			m_rowStack.pop(); //pop the dummy row
+			m_rowStack.pop();
 		}
 		rqst->handled = true;
 	}
@@ -831,8 +957,90 @@ void OXMLi_ListenerState_Table::endElement (OXMLi_EndElementRequest * rqst)
 	{
 		if(!rqst->context->empty() && !contextMatches(OXMLi_contextBack(rqst->context), NS_W_KEY, "tc") && !m_cellStack.empty())
 		{
-			m_cellStack.pop(); //pop the dummy cell
+			//pop the dummy cell — inside a w:tcPrChange scope it holds
+			//the captured pre-change snapshot
+			if(!m_changeScopes.empty())
+			{
+				PP_PropertyVector p = m_cellStack.top()->getProperties();
+				PP_PropertyVector a = m_cellStack.top()->getAttributes();
+				m_changeScopes.back().props.insert(
+					m_changeScopes.back().props.end(), p.begin(), p.end());
+				m_changeScopes.back().attrs.insert(
+					m_changeScopes.back().attrs.end(), a.begin(), a.end());
+			}
+			m_cellStack.pop();
 		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "tblPrChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblGridChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "trPrChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tblPrExChange") ||
+			nameMatches(rqst->pName, NS_W_KEY, "tcPrChange"))
+	{
+		/* close the snapshot scope opened in startElement: drain the
+		 * collectors pushed above the recorded depths (aux-stack
+		 * dummies may already have been folded in by the inner *Pr
+		 * endElements) and store the captured old property set on the
+		 * target as an inert "<name>"="!id{props}{attrs}" attribute. */
+		if(!m_changeScopes.empty() &&
+			m_changeScopes.back().name ==
+				rqst->pName.substr(strlen(NS_W_KEY) + 1))
+		{
+			OXMLi_ChangeScope sc = m_changeScopes.back();
+			m_changeScopes.pop_back();
+
+			if(rqst->stck)
+				while(rqst->stck->size() > sc.stckDepth)
+				{
+					OXML_SharedElement e = rqst->stck->top();
+					PP_PropertyVector p = e->getProperties();
+					PP_PropertyVector a = e->getAttributes();
+					sc.props.insert(sc.props.end(), p.begin(), p.end());
+					sc.attrs.insert(sc.attrs.end(), a.begin(), a.end());
+					rqst->stck->pop();
+				}
+			if(rqst->sect_stck)
+				while(rqst->sect_stck->size() > sc.sectDepth)
+				{
+					OXML_SharedSection s = rqst->sect_stck->top();
+					PP_PropertyVector p = s->getProperties();
+					PP_PropertyVector a = s->getAttributes();
+					sc.props.insert(sc.props.end(), p.begin(), p.end());
+					sc.attrs.insert(sc.attrs.end(), a.begin(), a.end());
+					rqst->sect_stck->pop();
+				}
+			while(m_tableStack.size() > sc.tblDepth)
+			{
+				PP_PropertyVector p = m_tableStack.top()->getProperties();
+				PP_PropertyVector a = m_tableStack.top()->getAttributes();
+				sc.props.insert(sc.props.end(), p.begin(), p.end());
+				sc.attrs.insert(sc.attrs.end(), a.begin(), a.end());
+				m_tableStack.pop();
+			}
+			while(m_cellStack.size() > sc.cellDepth)
+			{
+				PP_PropertyVector p = m_cellStack.top()->getProperties();
+				PP_PropertyVector a = m_cellStack.top()->getAttributes();
+				sc.props.insert(sc.props.end(), p.begin(), p.end());
+				sc.attrs.insert(sc.attrs.end(), a.begin(), a.end());
+				m_cellStack.pop();
+			}
+
+			OXML_ObjectWithAttrProp * t =
+				sc.elemTarget ?
+					static_cast<OXML_ObjectWithAttrProp*>(sc.elemTarget.get()) :
+					static_cast<OXML_ObjectWithAttrProp*>(sc.sectTarget.get());
+			if(t)
+				t->addChangeMark(sc.name.c_str(), sc.author.c_str(),
+								 sc.date.c_str(), sc.props, sc.attrs);
+		}
+		rqst->handled = true;
+	}
+	else if(nameMatches(rqst->pName, NS_W_KEY, "cellIns") ||
+			nameMatches(rqst->pName, NS_W_KEY, "cellDel") ||
+			nameMatches(rqst->pName, NS_W_KEY, "cellMerge"))
+	{
 		rqst->handled = true;
 	}
 	else if(nameMatches(rqst->pName, NS_W_KEY, "shd"))

@@ -73,6 +73,46 @@ OXMLi_elemTop (OXMLi_ElementStack * stck)
 	return (stck && !stck->empty ()) ? stck->top () : OXML_SharedElement();
 }
 
+/* True while the request sits inside a strux-level property-change
+ * snapshot — a w:*Change element (w:pPrChange, w:rPrChange,
+ * w:sectPrChange, w:tblPrChange, w:trPrChange, w:tcPrChange,
+ * w:tblPrExChange, w:tblGridChange, w:numberingChange; ECMA-376
+ * §17.13.5). The *Pr subtree inside holds the PRE-change property
+ * set, so handlers that write straight to document/section/table
+ * state must consult this before touching live structures: the
+ * change handlers push collectors that capture the snapshot instead. */
+static inline bool
+OXMLi_inPropChange (const OXMLi_ContextVector * ctx)
+{
+	if (!ctx)
+		return false;
+	static const std::string suffix = "Change";
+	for (auto & e : *ctx)
+		if (e.size () > suffix.size () + 2 &&
+			e.compare (0, 2, "W:") == 0 &&
+			e.compare (e.size () - suffix.size (), suffix.size (), suffix) == 0)
+			return true;
+	return false;
+}
+
+/* Book-keeping for one open w:*Change scope. The listener redirects
+ * property writes inside the scope onto collectors (element stack
+ * top, section stack top, table aux stacks) and, at the closing tag,
+ * folds everything that landed on them into a strux revision record
+ * on the target. Depths are recorded AFTER the collectors are pushed
+ * so closing pops exactly what the scope added. */
+struct OXMLi_ChangeScope
+{
+	std::string name;                 // bare name, e.g. "W:pPrChange" minus "W:"
+	std::string author, date;
+	OXML_SharedElement elemTarget;    // element that receives the record
+	OXML_SharedSection sectTarget;    // ...or the section (sectPrChange)
+	PP_PropertyVector props, attrs;   // captured pre-change snapshot
+	size_t stckDepth = 0;
+	size_t sectDepth = 0;
+	size_t tblDepth = 0, rowDepth = 0, cellDepth = 0;
+};
+
 struct OXMLi_StartElementRequest
 {
 	std::string pName;

@@ -397,6 +397,25 @@ below are on `main` but the release has not been cut yet.
   `+id`/`-id` token is stored as the `para-mark-rev` paragraph
   property — the break stays live (no strux-level revision mark
   exists) but the metadata survives `.abwn` round-trips.
+- **DOCX strux-level tracked changes imported** — `w:cellIns`,
+  `w:cellDel`, tracked row `w:ins`/`w:del`, and the `w:*Change`
+  property-change records (`w:pPrChange`, `w:rPrChange`,
+  `w:numberingChange`, `w:sectPrChange`, `w:tblPrChange`,
+  `w:tblGridChange`, `w:trPrChange`, `w:tblPrExChange`,
+  `w:tcPrChange`, `w:cellMerge`) were schema-valid but dropped, so
+  tracked table restructuring leaked deleted cells/rows as live
+  content.  Cell and row insertions/deletions now register real
+  `AD_Revision` records and land as `revision="+id"`/`"-id"` on the
+  cell strux (row marks fan out to cells — there is no row strux),
+  and a deleted cell's content is wrapped in the deletion revision
+  so no deleted structure leaks live.  Property-change records
+  keep the pre-change property set as an inert
+  `"name"="!id{old-props}{old-attrs}"` attribute on the section,
+  block, table or cell strux — the new formatting stays live (the
+  change displays as accepted) and the old snapshot survives
+  `.abwn` round-trips for a future exporter.  `w:cellMerge` has no
+  merge-history representation, so it degrades to the same inert
+  record while the current merge geometry stays live.
 - **DOCX unsupported drawings no longer vanish** — charts
   (`c:chart`), SmartArt/diagrams (`dgm`), OLE objects
   (`o:OLEObject`) and other `a:graphicData` payloads the importer has

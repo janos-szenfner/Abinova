@@ -27,7 +27,11 @@
 // Abinova includes
 #include "ut_units.h"
 #include "ut_string.h"
+#include "ut_std_string.h"
 #include "ie_exp_OpenXML.h"
+#include "pd_Document.h"
+#include "pt_Types.h"
+#include "OXMLi_Element_Revision.h"
 
 // External includes
 #include <cstring>
@@ -286,4 +290,98 @@ UT_Error OXML_ObjectWithAttrProp::serializeParagraphBorders(IE_Exp_OpenXML* expo
 
 	pBdr = "<w:pBdr>" + pBdr + "</w:pBdr>";
 	return exporter->setParagraphBorders(target, pBdr.c_str());
+}
+
+void OXML_ObjectWithAttrProp::addRevisionMark(bool deleted,
+											  const gchar * author,
+											  const gchar * date)
+{
+	OXML_StruxRevision m;
+	m.name = PT_REVISION_ATTRIBUTE_NAME;
+	m.deletion = deleted;
+	if (author) m.author = author;
+	if (date) m.date = date;
+	m_revMarks.push_back(m);
+}
+
+void OXML_ObjectWithAttrProp::addChangeMark(const gchar * name,
+											const gchar * author,
+											const gchar * date,
+											const PP_PropertyVector & props,
+											const PP_PropertyVector & attrs)
+{
+	if (!name || !*name)
+		return;
+	OXML_StruxRevision m;
+	m.name = name;
+	if (author) m.author = author;
+	if (date) m.date = date;
+	m.props = props;
+	m.attrs = attrs;
+	m_revMarks.push_back(m);
+}
+
+void OXML_ObjectWithAttrProp::appendRevisionMarks(
+	const std::vector<OXML_StruxRevision> & marks)
+{
+	m_revMarks.insert(m_revMarks.end(), marks.begin(), marks.end());
+}
+
+const std::vector<OXML_StruxRevision> &
+OXML_ObjectWithAttrProp::getRevisionMarks() const
+{
+	return m_revMarks;
+}
+
+/* name:value;name:value — the encoding PP_Revision uses inside the
+ * brace groups of a "!id" revision token. */
+static std::string _pvToChangeString(const PP_PropertyVector & v)
+{
+	std::string s;
+	ASSERT_PV_SIZE(v);
+	for (auto it = v.cbegin(); it != v.cend(); it += 2)
+	{
+		s += *it;
+		s += ':';
+		s += *(it + 1);
+		s += ';';
+	}
+	if (!s.empty())
+		s.resize(s.length() - 1);
+	return s;
+}
+
+/* Register each pending strux revision mark on the document revision
+ * table and fold it into this object's attributes:
+ *  - "revision" marks become revision="+id"/"-id" on the strux AP;
+ *  - *Change marks become "name"="!id{oldProps}{oldAttrs}", an inert
+ *    record mirroring the span-level revision-attr grammar.
+ * Safe to call repeatedly — marks are consumed. */
+void OXML_ObjectWithAttrProp::applyRevisionMarks(PD_Document * pDocument)
+{
+	if (m_revMarks.empty() || !pDocument)
+		return;
+	for (auto & m : m_revMarks)
+	{
+		UT_uint32 id = OXMLi_Element_Revision::registerRevision(
+			pDocument, m.author, m.date);
+		if (m.name == PT_REVISION_ATTRIBUTE_NAME)
+		{
+			std::string tok = m.deletion ? "-" : "+";
+			tok += UT_std_string_sprintf("%u", id);
+			setAttribute(PT_REVISION_ATTRIBUTE_NAME, tok.c_str());
+		}
+		else
+		{
+			std::string tok = "!";
+			tok += UT_std_string_sprintf("%u", id);
+			tok += '{';
+			tok += _pvToChangeString(m.props);
+			tok += "}{";
+			tok += _pvToChangeString(m.attrs);
+			tok += '}';
+			setAttribute(m.name.c_str(), tok.c_str());
+		}
+	}
+	m_revMarks.clear();
 }
