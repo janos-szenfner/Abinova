@@ -156,6 +156,15 @@ below are on `main` but the release has not been cut yet.
   system libwmf when present.
 - **`rsvg` plugin removed** — redundant: the core SVG importer and
   the GdkPixbuf loader already cover `.svg` natively.
+- **Modern image formats via gdk-pixbuf** — Insert ▸ Pictures (and
+  opening an image file directly) supports every raster format the
+  system's gdk-pixbuf loaders provide, including WebP, HEIC/HEIF and
+  AVIF (`libpixbufloader-heif`, backed by libheif — covers iPhone
+  photos), BMP, GIF, ICO, TIFF, TGA, XPM and WMF; JPEG XL (`.jxl`)
+  works when the libjxl gdk-pixbuf loader is installed. The
+  dialog's supported-types list now names the formats actually
+  present instead of a generic label, and images are decoded to
+  PNG/SVG at import so saved documents stay portable.
 - **No loadable plugins remain** — every importer/exporter is
   registered centrally in `ie_impexp_Register.cpp`; the plugin
   configure list is empty.

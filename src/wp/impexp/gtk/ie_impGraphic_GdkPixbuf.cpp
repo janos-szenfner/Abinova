@@ -53,6 +53,8 @@ static void _write_png( png_structp png_ptr,
 
 struct SuffixInfo {
 	const gchar **suffixes;
+	const gchar **mimes;	/* primary mime type of the format owning
+							 * each suffix, parallel to suffixes[] */
 	gint		  count;
 };
 
@@ -62,7 +64,7 @@ struct SuffixInfo {
 static const SuffixInfo *
 s_getSuffixInfo (void)
 {
-	static SuffixInfo	suffixInfo = { nullptr, 0 };
+	static SuffixInfo	suffixInfo = { nullptr, nullptr, 0 };
 	static gboolean 	isInitialized = FALSE;
 
 	if (isInitialized) {
@@ -91,19 +93,34 @@ s_getSuffixInfo (void)
 	}
 
 	suffixInfo.suffixes = const_cast<const gchar **>( new gchar*[suffixInfo.count + 1]);
+	suffixInfo.mimes = const_cast<const gchar **>( new gchar*[suffixInfo.count + 1]);
 
 	// build list
 	formatIter = formatList;
 	idx = 0;
 	while (formatIter) {
 		format = static_cast<GdkPixbufFormat *>( formatIter->data);
+		gchar **mimes = gdk_pixbuf_format_get_mime_types (format);
+		const gchar *primaryMime = (mimes && mimes[0]) ? mimes[0] : "";
 		extensionsIter = extensions = gdk_pixbuf_format_get_extensions (format);
 		while (*extensionsIter) {
 			suffixInfo.suffixes[idx] = g_strdup(*extensionsIter);
+			// a format can declare several mime types (heif loader:
+			// image/heif + image/heic + image/avif); pick the one that
+			// names this extension, else the format's primary mime
+			const gchar *mime = primaryMime;
+			for (gchar **m = mimes; m && *m; m++) {
+				if (strstr(*m, *extensionsIter)) {
+					mime = *m;
+					break;
+				}
+			}
+			suffixInfo.mimes[idx] = g_strdup(mime);
 			idx++;
 			extensionsIter++;
 		}
 		g_strfreev(extensions);
+		g_strfreev(mimes);
 		tmp = formatIter;
 		formatIter = formatIter->next;
 		g_slist_free_1 (tmp);
@@ -111,6 +128,7 @@ s_getSuffixInfo (void)
 
 	// null-terminator
 	suffixInfo.suffixes[idx] = nullptr;
+	suffixInfo.mimes[idx] = nullptr;
 	isInitialized = TRUE;
 	return &suffixInfo;
 }
@@ -690,6 +708,44 @@ UT_Confidence_t IE_ImpGraphicGdkPixbuf_Sniffer::recognizeContents(const char * s
 	return UT_CONFIDENCE_ZILCH;
 }
 
+/*!
+ * Build a human-readable description naming every image format the
+ * system's gdk-pixbuf loaders provide, so the dialog's supported-types
+ * display reflects the formats that can really be imported on this
+ * machine rather than a hardcoded list.
+ */
+static const gchar *
+s_getFormatsDescription (void)
+{
+	static gchar *desc = nullptr;
+	if (desc) {
+		return desc;
+	}
+
+	GString *names = g_string_new (nullptr);
+	GSList *formatIter = gdk_pixbuf_get_formats ();
+	while (formatIter) {
+		GdkPixbufFormat *format = static_cast<GdkPixbufFormat *>(formatIter->data);
+		gchar *name = gdk_pixbuf_format_get_name (format);
+		if (name) {
+			gchar *upper = g_ascii_strup (name, -1);
+			if (names->len)
+				g_string_append (names, ", ");
+			g_string_append (names, upper);
+			g_free (upper);
+			g_free (name);
+		}
+		GSList *tmp = formatIter;
+		formatIter = formatIter->next;
+		g_slist_free_1 (tmp);
+	}
+
+	desc = g_strdup_printf ("All supported image formats (%s)",
+							names->len ? names->str : "none");
+	g_string_free (names, TRUE);
+	return desc;
+}
+
 bool IE_ImpGraphicGdkPixbuf_Sniffer::getDlgLabels(const char ** pszDesc,
 						  const char ** pszSuffixList,
 						  IEGraphicFileType * ft)
@@ -702,7 +758,8 @@ bool IE_ImpGraphicGdkPixbuf_Sniffer::getDlgLabels(const char ** pszDesc,
 		gchar		 	*tmp = nullptr;
 		while (*suffixIter) {
 			tmp = suffixString;
-			suffixString = g_strdup_printf ("%s*.%s;", suffixString, *suffixIter);
+			suffixString = g_strdup_printf ("%s*.%s;", suffixString ? suffixString : "",
+											*suffixIter);
 			if (tmp) {
 				g_free (tmp);
 			}
@@ -713,10 +770,25 @@ bool IE_ImpGraphicGdkPixbuf_Sniffer::getDlgLabels(const char ** pszDesc,
 		if (suffixString && *suffixString)
 			suffixString[g_utf8_strlen(suffixString,-1)-1] = '\0';
 	}
-	*pszDesc = "All platform supported image formats";
+	*pszDesc = s_getFormatsDescription ();
 	*pszSuffixList = suffixString;
 	*ft = getType ();
 	return true;
+}
+
+const char * IE_ImpGraphicGdkPixbuf_Sniffer::mimeTypeForSuffix(const char * suffix)
+{
+	if (!suffix || !(*suffix))
+		return nullptr;
+	if (suffix[0] == '.')
+		suffix++;
+
+	const SuffixInfo *suffixInfo = s_getSuffixInfo ();
+	for (gsize i = 0; i < static_cast<gsize>(suffixInfo->count); i++) {
+		if (0 == g_ascii_strcasecmp (suffix, suffixInfo->suffixes[i]))
+			return suffixInfo->mimes[i];
+	}
+	return nullptr;
 }
 
 UT_Error IE_ImpGraphicGdkPixbuf_Sniffer::constructImporter(IE_ImpGraphic **ppieg)

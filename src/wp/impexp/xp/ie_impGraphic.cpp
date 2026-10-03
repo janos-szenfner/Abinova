@@ -164,6 +164,17 @@ const std::vector<std::string> & IE_ImpGraphic::getSupportedSuffixes()
 }
 
 /*!
+ * Map a suffix to the sniffer's mime type for it.  Sniffers whose
+ * suffix table does not pair suffixes with mime types inherit the
+ * first-entry default.
+ */
+const char * IE_ImpGraphicSniffer::mimeTypeForSuffix(const char * /*suffix*/)
+{
+	const IE_MimeConfidence *mc = getMimeConfidence();
+	return mc ? mc->mimetype.c_str() : nullptr;
+}
+
+/*!
  * Map mime type to a suffix. Returns nullptr if not found.
  */
 const char * IE_ImpGraphic::getMimeTypeForSuffix(const char * suffix)
@@ -182,13 +193,7 @@ const char * IE_ImpGraphic::getMimeTypeForSuffix(const char * suffix)
 		sc = sniffer->getSuffixConfidence();
 		while (sc && !sc->suffix.empty()) {
 			if (0 == g_ascii_strcasecmp(suffix, sc->suffix.c_str())) {
-				const IE_MimeConfidence *mc = sniffer->getMimeConfidence();
-				if (mc) {
-					return mc->mimetype.c_str();
-				}
-				else {
-					return nullptr;
-				}
+				return sniffer->mimeTypeForSuffix(suffix);
 			}
 			sc++;
 		}

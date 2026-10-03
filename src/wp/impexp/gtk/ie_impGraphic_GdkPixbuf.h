@@ -87,6 +87,7 @@ public:
 	virtual bool getDlgLabels(const char ** pszDesc,
 							  const char ** pszSuffixList,
 							  IEGraphicFileType * ft) override;
+	virtual const char * mimeTypeForSuffix(const char * suffix) override;
 	virtual UT_Error constructImporter(IE_ImpGraphic **ppieg) override;
 };
 

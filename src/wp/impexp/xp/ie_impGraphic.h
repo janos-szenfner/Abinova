@@ -58,6 +58,7 @@ public:
 	virtual bool getDlgLabels (const char ** szDesc,
 				   const char ** szSuffixList,
 				   IEGraphicFileType * ft) = 0;
+	virtual const char * mimeTypeForSuffix (const char * suffix);
 	virtual UT_Error constructImporter (IE_ImpGraphic ** ppieg) = 0;
 
  protected:

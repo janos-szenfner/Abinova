@@ -361,6 +361,18 @@ all.
     wrapping, anchoring and `spAutoFit` growth follow the rotated
     axes, and the `frame-text-direction` property round-trips
     through `.abwn`.
+- **Image insertion supports modern formats**: beyond the native PNG,
+  JPEG and SVG importers, every raster format the system's
+  gdk-pixbuf loaders provide can be inserted (or opened directly as
+  a document). On a typical desktop that includes WebP
+  (`libpixbufloader-webp`), HEIC/HEIF and AVIF from iPhone photos
+  and modern cameras (`libpixbufloader-heif`, backed by libheif),
+  BMP, GIF, ICO, TIFF, TGA, XPM and WMF; JPEG XL (`.jxl`) works once
+  the libjxl gdk-pixbuf loader package is installed. The Insert
+  Picture type list is generated from the loaders actually present
+  — whatever the list shows can really be imported — and images are
+  decoded to PNG/SVG at insert time, so saved documents stay
+  portable.
 - **Grammar checker switched to Hunspell** (now built-in): the checker no
   longer uses link-grammar. A vendored `hunspell-1.7.4` is built in
   `thirdparty/` and the sentence walker now flags each
