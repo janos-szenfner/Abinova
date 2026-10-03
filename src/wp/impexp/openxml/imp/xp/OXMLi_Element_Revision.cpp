@@ -83,17 +83,56 @@ UT_Error OXMLi_Element_Revision::addToPT(PD_Document * pDocument)
 	return ret;
 }
 
-/* One document revision per tracked-change element.  Fresh ids are
- * allocated densely here rather than trusting w:id (which can be any
- * integer) because explodeRevisions() walks revision ids 1..max on
- * every revised fragment. */
+/* Two tracked-change elements describe the same logical change when
+ * they share direction, author, date and move name — Word emits a run
+ * of such siblings for a single editing burst (w:id is per-element,
+ * so it cannot group them). */
+bool OXMLi_Element_Revision::_sameChange(const OXMLi_Element_Revision & other) const
+{
+	return m_deleted == other.m_deleted &&
+		m_author == other.m_author &&
+		m_date == other.m_date &&
+		m_moveName == other.m_moveName;
+}
+
+/* Fresh ids are allocated densely here rather than trusting w:id
+ * (which can be any integer) because explodeRevisions() walks
+ * revision ids 1..max on every revised fragment. */
+UT_uint32 OXMLi_Element_Revision::registerRevision(PD_Document * pDocument,
+												   const std::string & author,
+												   const std::string & date)
+{
+	UT_uint32 id = pDocument->getHighestRevisionId() + 1;
+
+	UT_UCS4String ucs4(author);
+	pDocument->addRevision(id, author.empty() ? nullptr : ucs4.ucs4_str(),
+						   _parseRevisionDate(date), 0, false);
+	return id;
+}
+
+/* One document revision per logical change: when the immediately
+ * preceding sibling element is an already-registered tracked change
+ * with the same signature, this element reuses its revision id so the
+ * burst collapses into a single AD_Revision record (the same grouping
+ * ie_imp_RTF gets by trusting the file's own revision ids).  Sibling
+ * order in the tree is document order, and addToPT walks it in order,
+ * so a registered previous sibling is fully registered by now. */
 void OXMLi_Element_Revision::_register(PD_Document * pDocument)
 {
-	m_id = pDocument->getHighestRevisionId() + 1;
+	OXML_Element * prev = getPrevSibling();
+	if (prev && prev->getTag() == REV_TAG)
+	{
+		OXMLi_Element_Revision * prevRev =
+			static_cast<OXMLi_Element_Revision*>(prev);
+		if (prevRev->m_registered && _sameChange(*prevRev))
+		{
+			m_id = prevRev->m_id;
+			m_registered = true;
+			return;
+		}
+	}
 
-	UT_UCS4String author(m_author);
-	pDocument->addRevision(m_id, m_author.empty() ? nullptr : author.ucs4_str(),
-						   _parseRevisionDate(m_date), 0, false);
+	m_id = registerRevision(pDocument, m_author, m_date);
 	m_registered = true;
 }
 
@@ -155,6 +194,8 @@ void OXMLi_Element_Revision::_markDescendants(OXML_Element * elem, const std::st
 		child->setAttribute("revision", val.c_str());
 		if (!m_moveName.empty())
 			child->setAttribute("revision-move", m_moveName.c_str());
+		if (!m_moveId.empty())
+			child->setAttribute("revision-move-id", m_moveId.c_str());
 
 		_markDescendants(child, token);
 	}

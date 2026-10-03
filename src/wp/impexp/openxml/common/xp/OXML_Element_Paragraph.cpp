@@ -24,13 +24,19 @@
 // Class definition include
 #include "OXML_Element_Paragraph.h"
 
+// Internal includes
+#include "OXMLi_Element_Revision.h"
+
 // Abinova includes
 #include "ut_types.h"
 #include "ut_string.h"
+#include "ut_std_string.h"
 #include "pd_Document.h"
 
-OXML_Element_Paragraph::OXML_Element_Paragraph(const std::string & id) : 
-	OXML_Element(id, P_TAG, BLOCK), pageBreak(false), m_section(nullptr)
+OXML_Element_Paragraph::OXML_Element_Paragraph(const std::string & id) :
+	OXML_Element(id, P_TAG, BLOCK), pageBreak(false),
+	m_paraMarkDeleted(false), m_hasParaMarkChange(false),
+	m_paraMarkAuthor(), m_paraMarkDate(), m_section(nullptr)
 {
 }
 
@@ -228,12 +234,44 @@ UT_Error OXML_Element_Paragraph::serializeProperties(IE_Exp_OpenXML* exporter)
 }
 
 
+void OXML_Element_Paragraph::setParaMarkChange(bool deleted,
+											   const gchar * author,
+											   const gchar * date)
+{
+	m_hasParaMarkChange = true;
+	m_paraMarkDeleted = deleted;
+	m_paraMarkAuthor = author ? author : "";
+	m_paraMarkDate = date ? date : "";
+}
+
+/* w:pPr/w:rPr/w:ins|w:del marks a tracked insertion/deletion of this
+ * paragraph's mark.  There is no strux-break revision mark in the
+ * piece table, so the change degrades to a recorded-but-live break:
+ * register it on the document revision table (author/date preserved)
+ * and store the "+id"/"-id" token as the inert "para-mark-rev" block
+ * property, which round-trips through .abwn for a future exporter. */
+void OXML_Element_Paragraph::_applyParaMarkChange(PD_Document * pDocument)
+{
+	if (!m_hasParaMarkChange)
+		return;
+	m_hasParaMarkChange = false;
+
+	UT_uint32 id = OXMLi_Element_Revision::registerRevision(
+		pDocument, m_paraMarkAuthor, m_paraMarkDate);
+
+	std::string token = m_paraMarkDeleted ? "-" : "+";
+	token += UT_std_string_sprintf("%d", id);
+	setProperty("para-mark-rev", token.c_str());
+}
+
 UT_Error OXML_Element_Paragraph::addToPT(PD_Document * pDocument)
 {
 	UT_Error ret = UT_OK;
 
 	if (pDocument == nullptr)
 		return UT_ERROR;
+
+	_applyParaMarkChange(pDocument);
 
 	//update list id and parent id here
 	const gchar* pListId = getListId();

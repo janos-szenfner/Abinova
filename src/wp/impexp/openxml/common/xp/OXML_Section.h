@@ -78,7 +78,21 @@ public:
 
 	OXML_SharedElement getElement(const std::string & id);
 	UT_Error appendElement(OXML_SharedElement obj);
-	inline void setChildren(OXML_ElementVector c) { m_children = c; }
+	inline void setChildren(OXML_ElementVector c)
+	{
+		// adopt the children and re-link their prev-sibling chain
+		m_children = std::move(c);
+		OXML_Element * prev = nullptr;
+		for (OXML_ElementVector::iterator it = m_children.begin();
+			 it != m_children.end(); ++it)
+		{
+			if (it->get())
+			{
+				(*it)->setPrevSibling(prev);
+				prev = it->get();
+			}
+		}
+	}
 	UT_Error clearChildren();
 
 	//! Writes the OpenXML section and all its content to a file on disk.

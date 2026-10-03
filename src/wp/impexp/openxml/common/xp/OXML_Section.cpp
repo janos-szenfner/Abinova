@@ -102,6 +102,8 @@ UT_Error OXML_Section::appendElement(OXML_SharedElement obj)
 {
 	UT_return_val_if_fail(obj.get() != nullptr, UT_ERROR);
 
+	obj->setPrevSibling(m_children.empty() ? nullptr : m_children.back().get());
+
 	try {
 		m_children.push_back(obj);
 	} catch(...) {

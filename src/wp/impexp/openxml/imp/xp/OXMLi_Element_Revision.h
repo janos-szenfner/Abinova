@@ -45,8 +45,8 @@
  * than being flattened away, so it renders struck-through while
  * revisions are shown and disappears in the final view; w:moveFrom /
  * w:moveTo degrade to the matching deletion/insertion and keep the
- * move's w:name in a "revision-move" attribute so a later exporter can
- * re-pair them.
+ * move's w:name + w:id in "revision-move" / "revision-move-id"
+ * attributes so a later exporter can re-pair them.
  *
  * Nested scopes are registered in two passes (insertions first, then
  * deletions) so that a deletion wrapping or wrapped by an insertion
@@ -66,14 +66,23 @@ public:
 	void setDate(const std::string & date) { m_date = date; }
 	//! w:name linking a moveFrom/moveTo pair
 	void setMoveName(const std::string & name) { m_moveName = name; }
+	//! w:id of a moveFrom/moveTo element
+	void setMoveId(const std::string & id) { m_moveId = id; }
 
 	virtual UT_Error addToPT(PD_Document * pDocument) override;
+
+	//! Allocate a fresh dense piece-table revision id and record
+	//! author + date on the document revision table.
+	static UT_uint32 registerRevision(PD_Document * pDocument,
+									  const std::string & author,
+									  const std::string & date);
 
 private:
 	void _registerScope(PD_Document * pDocument);
 	void _registerTree(OXML_Element * elem, PD_Document * pDocument, bool deleted);
 	void _register(PD_Document * pDocument);
 	void _markDescendants(OXML_Element * elem, const std::string & token);
+	bool _sameChange(const OXMLi_Element_Revision & other) const;
 
 	bool m_deleted;
 	bool m_registered;
@@ -81,6 +90,7 @@ private:
 	std::string m_author;
 	std::string m_date;
 	std::string m_moveName;
+	std::string m_moveId;
 };
 
 #endif //_OXMLI_ELEMENT_REVISION_H_

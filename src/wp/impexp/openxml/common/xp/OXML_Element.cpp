@@ -38,12 +38,13 @@
 #include <string>
 #include <cstdio>
 
-OXML_Element::OXML_Element(const std::string & id, OXML_ElementTag tag, OXML_ElementType type) : 
+OXML_Element::OXML_Element(const std::string & id, OXML_ElementTag tag, OXML_ElementType type) :
 	OXML_ObjectWithAttrProp(),
-	TARGET(0), 
-	m_id(id), 
-	m_tag(tag), 
-	m_type(type)
+	TARGET(0),
+	m_id(id),
+	m_tag(tag),
+	m_type(type),
+	m_prevSibling(nullptr)
 {
 }
 
@@ -67,6 +68,8 @@ OXML_SharedElement OXML_Element::getElement(const std::string & id) const
 UT_Error OXML_Element::appendElement(const OXML_SharedElement & obj)
 {
 	UT_return_val_if_fail(obj.get() != nullptr, UT_ERROR);
+
+	obj->setPrevSibling(m_children.empty() ? nullptr : m_children.back().get());
 
 	try {
 		m_children.push_back(obj);

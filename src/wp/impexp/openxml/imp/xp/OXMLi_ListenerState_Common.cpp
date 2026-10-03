@@ -31,6 +31,7 @@
 #include "OXMLi_Element_Revision.h"
 #include "OXML_Document.h"
 #include "OXML_Element.h"
+#include "OXML_Element_Paragraph.h"
 #include "OXML_Element_Run.h"
 #include "OXML_Element_Text.h"
 #include "OXML_Element_Field.h"
@@ -262,14 +263,38 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		/* tracked-change container (CT_RunTrackChange). The same
 		 * tags inside w:rPr/w:trPr/w:ctrlPr/w:numPr are empty
 		 * CT_TrackChange marks (deleted paragraph mark, inserted
-		 * table row, ...), which the importer has no element for —
-		 * leave those to the other states. */
+		 * table row, ...). w:p/w:pPr/w:rPr/w:ins|w:del marks a tracked
+		 * change of the paragraph mark itself and is recorded on the
+		 * paragraph; the remaining strux-level marks (row/cell/
+		 * numbering/format changes) are still unhandled. */
 		std::string contextTag = OXMLi_contextBack(rqst->context);
 		if (contextMatches(contextTag, NS_W_KEY, "rPr") ||
 			contextMatches(contextTag, NS_W_KEY, "trPr") ||
 			contextMatches(contextTag, NS_W_KEY, "ctrlPr") ||
 			contextMatches(contextTag, NS_W_KEY, "numPr"))
 		{
+			if (contextMatches(contextTag, NS_W_KEY, "rPr") &&
+				rqst->context->size() >= 3 &&
+				contextMatches(OXMLi_contextParent(rqst->context), NS_W_KEY, "pPr") &&
+				contextMatches(rqst->context->at(rqst->context->size() - 3), NS_W_KEY, "p") &&
+				(nameMatches(rqst->pName, NS_W_KEY, "ins") ||
+				 nameMatches(rqst->pName, NS_W_KEY, "del")))
+			{
+				/* pPr and rPr push no element, so the paragraph is
+				 * still on top of the stack; the mark is consumed at
+				 * the paragraph's addToPT (strux-level mark — see
+				 * OXML_Element_Paragraph::setParaMarkChange) */
+				OXML_SharedElement top = OXMLi_elemTop(rqst->stck);
+				OXML_Element_Paragraph * para =
+					dynamic_cast<OXML_Element_Paragraph*>(top.get());
+				if (para) {
+					para->setParaMarkChange(
+						nameMatches(rqst->pName, NS_W_KEY, "del"),
+						attrMatches(NS_W_KEY, "author", rqst->ppAtts),
+						attrMatches(NS_W_KEY, "date", rqst->ppAtts));
+				}
+				rqst->handled = true;
+			}
 			return;
 		}
 
@@ -283,6 +308,10 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			rev->setDate(val);
 		if ((val = attrMatches(NS_W_KEY, "name", rqst->ppAtts)))
 			rev->setMoveName(val);
+		if ((val = attrMatches(NS_W_KEY, "id", rqst->ppAtts)) &&
+			(nameMatches(rqst->pName, NS_W_KEY, "moveFrom") ||
+			 nameMatches(rqst->pName, NS_W_KEY, "moveTo")))
+			rev->setMoveId(val);
 		rqst->stck->push(OXML_SharedElement(rev));
 		rqst->handled = true;
 

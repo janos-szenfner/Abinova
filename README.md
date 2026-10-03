@@ -281,7 +281,11 @@ all.
   `[kind]`/`[ProgID]` marker when no preview exists instead of
   dropping the object.  Tracked-changes containers (`w:ins`, `w:del`,
   `w:moveFrom`, `w:moveTo`) import as real document revisions —
-  insertions/deletions render under All Markup and respond to the
+  consecutive same-author/same-date runs collapse into one revision,
+  moves degrade to deletion+insertion pairs that keep their pairing
+  metadata, and tracked paragraph-mark changes are recorded as the
+  `para-mark-rev` paragraph property (the break itself stays live).
+  Insertions/deletions render under All Markup and respond to the
   review tools — rather than flattening into plain text.  Legacy
   `.doc` continues through bundled `wv-1.2.9`.
 - **DOCX layout fidelity — multi-page pagination fixes**: a real-world

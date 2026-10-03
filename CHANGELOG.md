@@ -387,6 +387,16 @@ below are on `main` but the release has not been cut yet.
   keep their `w:name` in a `revision-move` attribute so the pairing is
   recoverable.  Empty paragraph-mark/row revision marks inside
   `w:rPr`/`w:trPr` are skipped deliberately.
+- **DOCX tracked-changes edge cases handled** — consecutive
+  same-author/same-date `w:ins`/`w:del`/`w:moveFrom`/`w:moveTo`
+  siblings now collapse into one revision record (Word's `w:id` is
+  per-run, so a single editing burst no longer shatters into many
+  revisions); move pairs additionally keep their `w:id` in a
+  `revision-move-id` attribute; and tracked paragraph-mark changes
+  (`w:pPr`/`w:rPr`/`w:ins`|`w:del`) register a real revision whose
+  `+id`/`-id` token is stored as the `para-mark-rev` paragraph
+  property — the break stays live (no strux-level revision mark
+  exists) but the metadata survives `.abwn` round-trips.
 - **DOCX unsupported drawings no longer vanish** — charts
   (`c:chart`), SmartArt/diagrams (`dgm`), OLE objects
   (`o:OLEObject`) and other `a:graphicData` payloads the importer has

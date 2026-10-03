@@ -48,9 +48,22 @@ public:
 	virtual bool isNumberedList();
 	virtual void setSection(OXML_Section* section);
 
+	//! Record a tracked insertion/deletion of this paragraph's mark
+	//! (w:p/w:pPr/w:rPr/w:ins|w:del).  The piece-table revision grammar
+	//! cannot mark a strux break — a bare "+id"/"-id" on the block AP
+	//! would hide the whole paragraph via explodeRevisions — so
+	//! addToPT registers the change and records it as the inert block
+	//! property "para-mark-rev" while the break stays live.
+	void setParaMarkChange(bool deleted, const gchar * author, const gchar * date);
+
 private:
 	virtual UT_Error serializeProperties(IE_Exp_OpenXML* exporter);
+	void _applyParaMarkChange(PD_Document * pDocument);
 	bool pageBreak;
+	bool m_paraMarkDeleted;
+	bool m_hasParaMarkChange;
+	std::string m_paraMarkAuthor;
+	std::string m_paraMarkDate;
 	OXML_Section* m_section;
 };
 

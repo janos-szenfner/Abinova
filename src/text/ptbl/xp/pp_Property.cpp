@@ -292,6 +292,7 @@ static PP_Property _props[] =
 	{ "page-margin-left",	   "1in",             false, PP_LEVEL_SECT},
 	{ "page-margin-right",     "1in",             false, PP_LEVEL_SECT},
 	{ "page-margin-top",       "1in",             false, PP_LEVEL_SECT},
+	{ "para-mark-rev",         "",                false, PP_LEVEL_BLOCK}, // tracked w:ins/w:del of the paragraph mark ("+id"/"-id" token, recorded-only)
 	{ "position-to",           "block-above-text",false, PP_LEVEL_FRAME},
 	{ "right-attach",          "",                false, PP_LEVEL_TABLE},
 	{ "right-color",           "000000",          false, PP_LEVEL_TABLE},

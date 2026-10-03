@@ -76,6 +76,12 @@ public:
 	inline const OXML_ElementVector & getChildren() const { return m_children; }
 	UT_Error clearChildren();
 
+	//! the element appended immediately before this one by the same
+	//! owner (an OXML_Element or an OXML_Section), nullptr when this is
+	//! the first child or when the owner did not link siblings
+	inline OXML_Element * getPrevSibling() const { return m_prevSibling; }
+	inline void setPrevSibling(OXML_Element * prev) { m_prevSibling = prev; }
+
 	//! Writes the OpenXML element to a file on disk.
 	/*! This method is used during the export process.
 	 *  WARNING: If you derive OXML_Element, you should probably override this method.
@@ -116,6 +122,8 @@ private:
 	OXML_ElementTag m_tag;
 	OXML_ElementType m_type;
 	OXML_ElementVector m_children;
+	// non-owning: the sibling's lifetime is the owner's child vector
+	OXML_Element * m_prevSibling;
 
 };
 
