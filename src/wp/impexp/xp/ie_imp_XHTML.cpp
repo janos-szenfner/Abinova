@@ -408,18 +408,18 @@ static struct xmlToIdMapping s_Tokens[] =
 #define X_VerifyParseState(ps)	do {  if (!(X_TestParseState(ps)))      \
 				{  m_error = UT_IE_BOGUSDOCUMENT;	\
                                    UT_DEBUGMSG(("DOM: unhandled tag: %d (ps: %d)\n", tokenIndex, ps)); \
-				   failLine = __LINE__; goto X_Fail; } } while (0)
+				   return; } } while (0)
 
 #define X_CheckDocument(b)		do {  if (!(b))	\
 					{  m_error = UT_IE_BOGUSDOCUMENT;	\
-					failLine = __LINE__; goto X_Fail; } } while (0)
+					return; } } while (0)
 
 #define X_CheckError(v)			do {  if (!(v))	\
 					  {  m_error = UT_ERROR; \
 					     UT_DEBUGMSG(("JOHN: X_CheckError\n")); \
-					failLine = __LINE__; goto X_Fail; } } while (0)
+					return; } } while (0)
 
-#define	X_EatIfAlreadyError()	do {  if (m_error) { failLine = __LINE__; goto X_Fail; } } while (0)
+#define	X_EatIfAlreadyError()	do {  if (m_error) return; } while (0)
 
 /*****************************************************************/
 /*****************************************************************/
@@ -937,9 +937,6 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 {
 	const PP_PropertyVector atts = PP_cloneAndDecodeAttributes (attributes);
 
-	int failLine;
-	failLine = 0;
-	UT_UNUSED(failLine);
 	UT_DEBUGMSG(("startElement: %s, parseState: %u, listType: %u\n", name, m_parseState, m_listType));
 	UT_ASSERT(m_error == 0);
 	X_EatIfAlreadyError();				// xml parser keeps running until buffer consumed
@@ -1535,7 +1532,6 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 						utf8val += "; ";
 					utf8val += "height:";
 					utf8val += tmp;
-					goto got_string;
 				}
 #endif
 			}
@@ -1561,9 +1557,6 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 
 			utf8val = tmp;
 		}
-#if 0
-		got_string:
-#endif
 		std::string dataid = UT_std_string_sprintf ("image%u", static_cast<unsigned int>(m_iNewImage++));
 
 		const PP_PropertyVector api_atts = {
@@ -1778,16 +1771,10 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 
 		return;
 	}
-	UT_ASSERT(m_error == 0);
-
-X_Fail:
-	return;
 }
 
 void IE_Imp_XHTML::endElement(const gchar *name)
 {
-	int failLine = 0;
-	UT_UNUSED(failLine);
 	UT_uint32 uid;
 
 	UT_DEBUGMSG(("endElement: %s, parseState: %u, listType: %u\n", name, m_parseState, m_listType));
@@ -2061,9 +2048,6 @@ void IE_Imp_XHTML::endElement(const gchar *name)
 		return;
 	}
 	return;
-X_Fail:
-	UT_DEBUGMSG (("X_Fail at %d\n", failLine));
-	return;
 }
 
 void IE_Imp_XHTML::charData (const gchar * buffer, int length)
@@ -2118,9 +2102,6 @@ void IE_Imp_XHTML::charData (const gchar * buffer, int length)
 		if ((buf.size () == 1) && (buf[0] == UCS_SPACE)) return;
 	}
 
-	int failLine = 0;
-	UT_UNUSED(failLine);
-
 	// bool bResetState = (m_parseState != _PS_Block);
 
 	X_CheckError(requireBlock ());
@@ -2130,10 +2111,6 @@ void IE_Imp_XHTML::charData (const gchar * buffer, int length)
 
 	// if (bResetState) m_parseState = _PS_Sec;
 
-	return;
-
-X_Fail:
-	UT_DEBUGMSG (("X_Fail at %d\n", failLine));
 	return;
 }
 

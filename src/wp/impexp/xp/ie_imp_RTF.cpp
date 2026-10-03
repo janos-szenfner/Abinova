@@ -35,6 +35,8 @@
 #include <stddef.h>
 #include <ctype.h>
 #include <math.h>
+#include <memory>
+#include <stack>
 
 #include "fl_TableLayout.h"
 #include "ut_locale.h"
@@ -8955,19 +8957,21 @@ bool IE_Imp_RTF::ReadFontTable()
 	UT_sint32 parameter = 0;
 	bool paramUsed = false;
 	UT_Byte ch;
-	std::stack<SFontTableState *> stateStack;
-	// RTF state pointers.
-	struct SFontTableState *currentState = new SFontTableState;
-	UT_DEBUGMSG(("Made new currentState -1 %p \n", static_cast<void*>(currentState)));
+	// RTF states are owned by the unique_ptrs below: currentState holds
+	// the live state, stateStack the suspended group states. An early
+	// error return destroys both, so no manual drain is needed.
+	std::stack<std::unique_ptr<SFontTableState>> stateStack;
+	std::unique_ptr<SFontTableState> currentState(new SFontTableState);
+	UT_DEBUGMSG(("Made new currentState -1 %p \n", static_cast<void*>(currentState.get())));
 	struct SFontTableState *oldState = nullptr;
 	UT_sint32 i;                         // Generic loop index.
 
 	// Initialise the current state.
-	currentState->iCurrentInputData = SFontTableState::MainFontName; 
+	currentState->iCurrentInputData = SFontTableState::MainFontName;
 	currentState->iUniSkipCount = m_currentRTFState.m_unicodeAlternateSkipCount;
 	currentState->iUniCharsLeftToSkip = 0;
 	currentState->bSeenStar = false;
-	
+
 	bFoundFinalClosingBracket = false;
 	while (!bFoundFinalClosingBracket)
 	{
@@ -8985,16 +8989,12 @@ bool IE_Imp_RTF::ReadFontTable()
 			// sequence. Thus, we reset iUniCharsLeftToSkip here.
 			currentState->iUniCharsLeftToSkip = 0;
 			// Keep a pointer to the current state.
-			oldState = currentState;
+			oldState = currentState.get();
 			// Push the current state onto the stack...
-			stateStack.push(currentState);
+			stateStack.push(std::move(currentState));
 			// ...allocate a new one...
-			currentState = new SFontTableState;
-			UT_DEBUGMSG(("Made new currentState -2 %p \n", static_cast<void*>(currentState)));
-			if (!currentState) {
-				UT_DEBUGMSG(("RTF: Out of memory.\n"));
-				goto IEImpRTF_ReadFontTable_ErrorExit;
-			}
+			currentState.reset(new SFontTableState);
+			UT_DEBUGMSG(("Made new currentState -2 %p \n", static_cast<void*>(currentState.get())));
 			// ...and initialise it as a copy of the old one.
 			currentState->iCurrentInputData = oldState->iCurrentInputData;
 			currentState->iUniSkipCount = oldState->iUniSkipCount;
@@ -9003,8 +9003,8 @@ bool IE_Imp_RTF::ReadFontTable()
 			break;
 		case RTF_TOKEN_CLOSE_BRACE:
 			// Throw away the current state.
-			UT_DEBUGMSG(("Deleting currentState -4 %p \n", static_cast<void*>(currentState)));
-			DELETEP(currentState);
+			UT_DEBUGMSG(("Deleting currentState -4 %p \n", static_cast<void*>(currentState.get())));
+			currentState.reset();
 			// Pop an old state off the stack .
 			if (stateStack.empty())
 			{
@@ -9013,9 +9013,8 @@ bool IE_Imp_RTF::ReadFontTable()
 				bFoundFinalClosingBracket = true;
 				// Put the closing brace back onto the input stream.
 				SkipBackChar('}');
-				currentState = nullptr;
 			} else {
-				currentState = stateStack.top();
+				currentState = std::move(stateStack.top());
 				stateStack.pop();
 			}
 			break;
@@ -9032,7 +9031,7 @@ bool IE_Imp_RTF::ReadFontTable()
 				// Check that at the very least we got a font index.
 				if (!bGotFontIndex) {
 					UT_DEBUGMSG(("RTF: Font table didn't specify a font index.\n"));
-					goto IEImpRTF_ReadFontTable_ErrorExit;
+					return false;
 				}
 				// Flush any data in the buffers to the font name and panose
 				// strings, converting to UTF8.
@@ -9060,10 +9059,10 @@ bool IE_Imp_RTF::ReadFontTable()
 					sFontNamesAndPanose[SFontTableState::Panose] = "";
 				}
 				// Register the font.
-				if (!RegisterFont(fontFamily, pitch, fontIndex, charSet, 
-				                  codepage, sFontNamesAndPanose)         ) 
+				if (!RegisterFont(fontFamily, pitch, fontIndex, charSet,
+				                  codepage, sFontNamesAndPanose)         )
 				{
-					goto IEImpRTF_ReadFontTable_ErrorExit;
+					return false;
 				}
 				// Reset both font names/panose.
 				for (i=SFontTableState::MainFontName; i<=SFontTableState::Panose; i++)
@@ -9130,16 +9129,16 @@ bool IE_Imp_RTF::ReadFontTable()
 				// If this is a duplicate font index then it is highly likely
 				// that the font table is corrupt. For example, a missing
 				// semi-colon causes this.
-				if (bGotFontIndex) 
+				if (bGotFontIndex)
 				{
 					UT_DEBUGMSG(("RTF: Invalid duplicate font index in font table.\n"));
-					goto IEImpRTF_ReadFontTable_ErrorExit;
+					return false;
 				}
 				bGotFontIndex = true;
 				if (parameter < 0 || parameter > 0xFFFF)
 				{
 					UT_DEBUGMSG(("RTF: font index %d out of range.\n", parameter));
-					goto IEImpRTF_ReadFontTable_ErrorExit;
+					return false;
 				}
 				fontIndex = static_cast<UT_uint16>(parameter);
 				break;
@@ -9194,45 +9193,25 @@ bool IE_Imp_RTF::ReadFontTable()
 				// If this group contained a \* command then we should skip to
 				// the end of this group. Otherwise, we just ignore this unknown
 				// command.
-				if (currentState->bSeenStar) 
+				if (currentState->bSeenStar)
 				{
 					if (!SkipCurrentGroup(/*Consume last brace =*/false))
-						goto IEImpRTF_ReadFontTable_ErrorExit;
+						return false;
 				}
 				break;
 			} // Keyword switch
 			break; // End of tokenType == RTF_TOKEN_KEYWORD case statement.
 		case RTF_TOKEN_NONE:
 			UT_DEBUGMSG(("RTF: Premature end of file reading font table.\n"));
-			goto IEImpRTF_ReadFontTable_ErrorExit;
+			return false;
 		case RTF_TOKEN_ERROR:
 			UT_DEBUGMSG(("RTF: Error reading token from file.\n"));
-			goto IEImpRTF_ReadFontTable_ErrorExit;
+			return false;
 		default:
 			break;
 		} // Token type switch
 	}; // while (we've finished reading the font entry).
-	UT_DEBUGMSG(("Deleting currentState -2 %p \n", static_cast<void*>(currentState)));
-	DELETEP(currentState);
 	return true;
-
-/*
-  Gotos are evil. However, so are memory leaks and code duplication. Exceptions
-  might be a neater solution, but apparently they're not portable.
-*/
-IEImpRTF_ReadFontTable_ErrorExit:
-	UT_DEBUGMSG(("RTF: ReadFontTable: Freeing memory due to error.\n"));
-	// Delete the current state and everything on the state stack.
-	UT_DEBUGMSG(("Deleting currentState -2 %p \n", static_cast<void*>(currentState)));
-	DELETEP(currentState);
-	while (!stateStack.empty())
-	{
-		currentState = stateStack.top();
-		stateStack.pop();
-		UT_DEBUGMSG(("Deleting currentState -3  %p \n", static_cast<void*>(currentState)));
-		DELETEP(currentState);
-	}
-	return false;
 }
 
 
@@ -9564,9 +9543,8 @@ bool IE_Imp_RTF::HandleLists(_rtfListTable & rtfTable )
 					}
 				}
 			}
-			goto nextChar;
 		}
-		if(!ReadKeyword(keyword, &parameter, &paramUsed, MAX_KEYWORD_LEN))
+		else if(!ReadKeyword(keyword, &parameter, &paramUsed, MAX_KEYWORD_LEN))
 		{
 		        return false;
 		}
@@ -9769,9 +9747,9 @@ bool IE_Imp_RTF::HandleLists(_rtfListTable & rtfTable )
 			{
 				UT_DEBUGMSG(("Unknown keyword %s found in List stream  \n",keyword));
 			}
-         nextChar:	if (!ReadCharFromFile(&ch))
-			         return false;
 		}
+		if (!ReadCharFromFile(&ch))
+			return false;
 	}
 	// Put the '}' back into the input stream
 	return SkipBackChar(ch);
@@ -10740,9 +10718,8 @@ bool IE_Imp_RTF::HandleAbiLists()
 					 UT_DEBUGMSG(("Unknown keyword %s found in List stream  \n",keyword));
 				 }
 			}
-			goto nextChar;
 		}
-		if(!ReadKeyword(keyword, &parameter, &paramUsed, MAX_KEYWORD_LEN))
+		else if(!ReadKeyword(keyword, &parameter, &paramUsed, MAX_KEYWORD_LEN))
 		{
 			return false;
 		}
@@ -10771,8 +10748,8 @@ bool IE_Imp_RTF::HandleAbiLists()
 				UT_DEBUGMSG(("Unknown keyword %s found in List stream  \n",keyword));
 			}
 		}
-	nextChar:	if (!ReadCharFromFile(&ch))
-		return false;
+		if (!ReadCharFromFile(&ch))
+			return false;
 	}
 
 	//

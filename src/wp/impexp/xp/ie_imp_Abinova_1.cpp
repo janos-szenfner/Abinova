@@ -485,6 +485,16 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 	   tokenIndex != TT_STYLESECTION && tokenIndex != TT_STYLE && tokenIndex != TT_DOCUMENT)
 		return;
 
+	// shared tail for the reserved-section item tags (TT_CHANGE,
+	// TT_MASTERPAGE, TT_NOTE): stash the element's name/atts and switch
+	// into _PS_ReservedItem so charData/endElement collect its text
+	const auto reserveItem = [this, name, &atts]() {
+		m_sReservedItemName = name;
+		m_vecReservedAtts = atts;
+		m_sReservedText.clear();
+		m_parseState = _PS_ReservedItem;
+	};
+
 	switch (tokenIndex)
 	{
 	case TT_DOCUMENT:
@@ -858,23 +868,19 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 		X_VerifyParseState(_PS_ChangeSec);
 		m_reservedSecState = _PS_ChangeSec;
 		m_sReservedSection = "changes";
-		goto reservedItem;
+		reserveItem();
+		return;
 	case TT_MASTERPAGE:
 		X_VerifyParseState(_PS_MasterSec);
 		m_reservedSecState = _PS_MasterSec;
 		m_sReservedSection = "masterpages";
-		goto reservedItem;
+		reserveItem();
+		return;
 	case TT_NOTE:
 		X_VerifyParseState(_PS_NoteSec);
 		m_reservedSecState = _PS_NoteSec;
 		m_sReservedSection = "notes";
-		goto reservedItem;
-
-	reservedItem:
-		m_sReservedItemName = name;
-		m_vecReservedAtts = atts;
-		m_sReservedText.clear();
-		m_parseState = _PS_ReservedItem;
+		reserveItem();
 		return;
 
 	case TT_DATAITEM:

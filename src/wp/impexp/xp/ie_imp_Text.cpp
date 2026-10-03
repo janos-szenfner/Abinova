@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <memory>
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -610,8 +611,6 @@ bool IE_Imp_EncodedText_Sniffer::getDlgLabels(const char ** pszDesc,
 /*****************************************************************/
 /*****************************************************************/
 
-#define X_CleanupIfError(error,exp)	do { if (((error)=(exp)) != UT_OK) goto Cleanup; } while (0)
-
 /*
   Import data from a plain text file
  \param szFilename Name of file to import
@@ -620,8 +619,8 @@ bool IE_Imp_EncodedText_Sniffer::getDlgLabels(const char ** pszDesc,
 */
 UT_Error IE_Imp_Text::_loadFile(GsfInput * fp)
 {
-	ImportStream *pStream = nullptr;
-	UT_Error error;
+	std::unique_ptr<ImportStream> pStream;
+	UT_Error error = UT_ERROR;
 
 	// First we try to determine the encoding.
 	if (_recognizeEncoding(fp) == UT_OK)
@@ -630,20 +629,17 @@ UT_Error IE_Imp_Text::_loadFile(GsfInput * fp)
 	// Call encoding dialog
 	if (!m_bIsEncoded || m_bExplicitlySetEncoding || _doEncodingDialog(m_szEncoding))
 	{
-		X_CleanupIfError(error,_constructStream(pStream,fp));
-		X_CleanupIfError(error,_writeHeader(fp));
-		X_CleanupIfError(error,_parseStream(pStream));
-		error = UT_OK;
+		ImportStream *pRawStream = nullptr;
+		error = _constructStream(pRawStream,fp);
+		pStream.reset(pRawStream);
+		if (error == UT_OK)
+			error = _writeHeader(fp);
+		if (error == UT_OK)
+			error = _parseStream(pStream.get());
 	}
-	else
-		error = UT_ERROR;
 
-Cleanup:
-	delete pStream;
 	return error;
 }
-
-#undef X_CleanupIfError
 
 /*****************************************************************/
 /*****************************************************************/

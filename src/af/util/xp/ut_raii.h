@@ -43,6 +43,7 @@
  * UT_GsfInputPtr      - GsfInput*        -> g_object_unref
  * UT_GsfOutputPtr     - GsfOutput*       -> gsf_output_close + g_object_unref
  * UT_GObjPtr<T>       - any GObject      -> g_object_unref
+ * UT_GFreePtr<T>      - g_free'd buffer  -> g_free
  * UT_CairoPtr         - cairo_t*         -> cairo_destroy
  * UT_CairoSurfacePtr  - cairo_surface_t* -> cairo_surface_destroy
  * UT_ScopedFD         - int fd           -> close
@@ -88,6 +89,15 @@ struct UT_gdir_close
 	}
 };
 
+struct UT_gfree
+{
+	void operator()(gpointer p) const noexcept
+	{
+		if (p)
+			g_free(p);
+	}
+};
+
 struct UT_cairo_destroy
 {
 	void operator()(cairo_t * p) const noexcept
@@ -117,6 +127,11 @@ typedef std::unique_ptr<cairo_surface_t,
 /* generic GObject-derived handle (GdkPixbuf, GsfInfile, ...) */
 template <typename T>
 using UT_GObjPtr = std::unique_ptr<T, UT_gobj_unref>;
+
+/* generic g_free'd buffer (g_malloc/g_strdup results and other
+ * buffers the codebase already releases with FREEP/g_free) */
+template <typename T>
+using UT_GFreePtr = std::unique_ptr<T, UT_gfree>;
 
 struct UT_secure_wipe
 {

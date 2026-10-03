@@ -37,6 +37,7 @@
 #include "ut_string.h"
 #include "ut_std_string.h"
 #include "ut_bytebuf.h"
+#include "ut_raii.h"
 #include "ut_units.h"
 #include "ut_math.h"
 #include "ut_assert.h"
@@ -4578,6 +4579,7 @@ bool IE_Imp_MsWord_97::_isTOCsupported(field *f)
 	
 	bool bRet = true;
 	char * command = wvWideStrToMB (f->command);
+	UT_GFreePtr<char> commandOwner(command);
 	UT_DEBUGMSG(("IE_Imp_MsWord_97::_isTOCsupported: command %s\n", command ? command : ""));
 
 	char * params = nullptr;
@@ -4588,8 +4590,7 @@ bool IE_Imp_MsWord_97::_isTOCsupported(field *f)
 		// command is "<0x13>TOC ..."; anything shorter has no usable params
 		if(!command || strlen(command) < 5)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 		params = command + 5;
 	}
@@ -4597,12 +4598,11 @@ bool IE_Imp_MsWord_97::_isTOCsupported(field *f)
 	{
 		if(!command || strlen(command) < 4)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 		params = command + 4;
 	}
-	
+
 	// we only support the heading based TOC for now
 	t = strstr(params, "\\o");
 
@@ -4612,11 +4612,8 @@ bool IE_Imp_MsWord_97::_isTOCsupported(field *f)
 	if(!t)
 	{
 		bRet = false;
-		goto finish;
 	}
 
- finish:
-	FREEP(command);
 	return bRet;
 }
 
@@ -4642,6 +4639,7 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 	const gchar * attrs [3] = {"props", nullptr, nullptr};
 
 	char * command = wvWideStrToMB (f->command);
+	UT_GFreePtr<char> commandOwner(command);
 	UT_DEBUGMSG(("IE_Imp_MsWord_97::_insertTOC: command %s\n", command ? command : ""));
 
 	char * params = nullptr;
@@ -4650,8 +4648,7 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 	{
 		if(!command || strlen(command) < 5)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 		params = command + 5;
 	}
@@ -4659,15 +4656,13 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 	{
 		if(!command || strlen(command) < 4)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 		params = command + 4;
 	}
 	else
 	{
-		bRet = false;
-		goto finish;
+		return false;
 	}
 
 	if((t = strstr(params, "\\p")))
@@ -4701,8 +4696,7 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 			t2 = strchr(t1, '\"');
 			if(!t2)
 			{
-				bRet = false;
-				goto finish;
+				return false;
 			}
 
 			char c = *t2;
@@ -4723,11 +4717,10 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 		bSupported = true;
 		
 		t = strchr(t, '\"');
-	
+
 		if(!t)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 
 		t++;
@@ -4736,19 +4729,17 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 
 		if(!i1)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 
 		t1 = strchr(t, '-');
 		t2 = strchr(t, '\"');
 
 		t = UT_MIN(t1, t2);
-	
+
 		if(!t)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 
 		i2 = 0;
@@ -4765,8 +4756,7 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 	
 		if(!i2)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 		// now create our TOC attr/props
 		//
@@ -4823,15 +4813,13 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 		t1 = strchr(t, '\"');
 		if(!t1)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 
 		char * end = strchr(t1+1, '\"');
 		if(!end)
 		{
-			bRet = false;
-			goto finish;
+			return false;
 		}
 
 		while(t1 && t1 < end)
@@ -4840,8 +4828,7 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 			t2 = strchr(t1, ',');
 			if(!t2)
 			{
-				bRet = false;
-				goto finish;
+				return false;
 			}
 
 			*t2 = 0;
@@ -4885,8 +4872,7 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 
 	if(!bSupported)
 	{
-		bRet = false;
-		goto finish;
+		return false;
 	}
 
 	// remove trailing semicolon (screws up property parser)
@@ -4910,8 +4896,6 @@ bool IE_Imp_MsWord_97::_insertTOC(field *f)
 	_appendStrux(PTX_SectionTOC, PP_std_copyProps(attrs));
 	_appendStrux(PTX_EndTOC, PP_NOPROPS);
 
- finish:
-	FREEP(command);
 	return bRet;
 }
 
@@ -5359,7 +5343,7 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
     {
         UT_DEBUGMSG(("Could not uncompress image\n"));
         DELETEPV(uncompr);
-        goto Cleanup;
+        return error;
     }
     pictData->append(reinterpret_cast<const UT_Byte*>(uncompr), uncomprLen);
     DELETEPV(uncompr);
@@ -5404,8 +5388,6 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
    * on-screen presentation - the ObjectPool fallback is not needed */
   if (!m_stackField.empty())
 	  m_stackField.top()->bOleResultImage = true;
-
- Cleanup:
 
   return error;
 }
@@ -7714,9 +7696,13 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 	if(!buf)
 		return;
 
+	// parse the property set; a false result marks it malformed and the
+	// harvested hyperlink state is dropped below (buf is released on
+	// every path)
+	auto parseProps = [&]() -> bool {
 	// property set header (MS-OLEPS 2.20)
 	if(sz < 48 || s_propRd16(buf) != 0xFFFE)
-		goto fail;
+		return false;
 	{
 		// locate the user-defined section (FMTID
 		// {D5CDD505-2E9C-101B-9397-08002B2CF9AE})
@@ -7736,11 +7722,11 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 			}
 		}
 		if(!sectOff || sectOff + 8 > sz)
-			goto fail;
+			return false;
 
 		UT_uint32 cProps = s_propRd32(&buf[sectOff + 4]);
 		if(cProps > (sz - sectOff - 8) / 8)
-			goto fail;
+			return false;
 
 		UT_uint32 dictOff = 0, hlinksPid = 0, linkBasePid = 0;
 		for(UT_uint32 i = 0; i < cProps; i++)
@@ -7749,7 +7735,7 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 				dictOff = s_propRd32(&buf[sectOff + 8 + i * 8 + 4]);
 		}
 		if(!dictOff || sectOff + dictOff + 4 > sz)
-			goto fail;
+			return false;
 
 		// the Dictionary property maps property names to propIds
 		{
@@ -7807,21 +7793,21 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 
 		// _PID_HLINKS: VT_BLOB TypedPropertyValue wrapping VecVtHyperlink
 		if(!hlinksPid)
-			goto fail;
+			return false;
 		{
 			UT_uint32 off = propOffset(hlinksPid);
 			if(!off || sectOff + off + 12 > sz)
-				goto fail;
+				return false;
 			UT_uint32 p = sectOff + off;
 			if(s_propRd16(&buf[p]) != 0x0041)	// VT_BLOB
-				goto fail;
+				return false;
 			UT_uint32 cbData = s_propRd32(&buf[p + 4]);
 			p += 8;
 			if(cbData > sz - p)
 				cbData = sz - p;
 			UT_uint32 blobEnd = p + cbData;
 			if(p + 4 > blobEnd)
-				goto fail;
+				return false;
 			// VecVtHyperlink: cElements counts the 6 values of each
 			// VtHyperlink (dwHash, dwApp, dwOfficeArt, dwInfo, hlink1,
 			// hlink2)
@@ -7834,7 +7820,7 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 				for(int v = 0; v < 4; v++)
 				{
 					if(s_propRd16(&buf[p]) != 0x0003)
-						goto fail;
+						return false;
 					p += 8;
 				}
 				hl.dwApp       = s_propRd32(&buf[p - 20]);
@@ -7842,10 +7828,10 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 				hl.dwInfo      = s_propRd32(&buf[p - 4]);
 				UT_uint32 next;
 				if(!s_propReadString(buf, blobEnd, p, &next, hl.target))
-					goto fail;
+					return false;
 				p = next;
 				if(!s_propReadString(buf, blobEnd, p, &next, hl.location))
-					goto fail;
+					return false;
 				p = next;
 				hl.used = false;
 				m_vecHyperlinks.push_back(hl);
@@ -7855,11 +7841,14 @@ void IE_Imp_MsWord_97::_parseHyperlinkProps(const wvParseStruct *ps)
 
 	UT_DEBUGMSG(("DOM: %u hyperlink properties, linkbase '%s'\n",
 				 static_cast<unsigned>(m_vecHyperlinks.size()), m_sLinkBase.c_str()));
-	goto out;
-fail:
-	m_vecHyperlinks.clear();
-	m_sLinkBase.clear();
-out:
+	return true;
+	};
+
+	if(!parseProps())
+	{
+		m_vecHyperlinks.clear();
+		m_sLinkBase.clear();
+	}
 	delete [] buf;
 }
 
@@ -8242,29 +8231,18 @@ bool IE_Imp_MsWord_97::_insertNoteIfAppropriate(UT_uint32 iDocPosition, UT_UCS4C
 	
 	bool res = false;
 	//now search for position iDocPosition in our footnnote list;
-	if(!m_pFootnotes || m_iFootnotesCount == 0 || m_iNextFNote >= m_iFootnotesCount)
-	{
-		goto endnotes;
-	}
-
-	if(m_pFootnotes[m_iNextFNote].ref_pos == iDocPosition)
+	if(m_pFootnotes && m_iFootnotesCount != 0 && m_iNextFNote < m_iFootnotesCount
+	   && m_pFootnotes[m_iNextFNote].ref_pos == iDocPosition)
 	{
 		res |= _insertFootnote(m_pFootnotes + m_iNextFNote++,c);
 	}
-	
- endnotes:
-	if(!m_pEndnotes || m_iEndnotesCount == 0 || m_iNextENote >= m_iEndnotesCount)
-	{
-		goto finish;
-	}
-	
-	if(m_pEndnotes[m_iNextENote].ref_pos == iDocPosition)
+
+	if(m_pEndnotes && m_iEndnotesCount != 0 && m_iNextENote < m_iEndnotesCount
+	   && m_pEndnotes[m_iNextENote].ref_pos == iDocPosition)
 	{
 		res |= _insertEndnote(m_pEndnotes + m_iNextENote++,c);
 	}
-	
-	
- finish:	
+
 	return res;
 }
 

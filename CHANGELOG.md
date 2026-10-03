@@ -3397,6 +3397,17 @@ below are on `main` but the release has not been cut yet.
   instead of `UT_rand()`, so two generated IDs can never repeat; the
   random values could previously collide and mismatch footnote
   references or list structures.
+- **`goto`-driven error paths replaced in the document importers** —
+  the RTF, MS Word `.doc`, plain-text, XHTML, `.abw`/`.abwn` and WMF
+  importers routed failures through `goto`-to-cleanup jumps that made
+  resource ownership hard to follow and hostile to future
+  exception-safety work.  All 46 sites now use structured flow: the
+  RTF font-table reader's group-state stack and the `.doc` field
+  parser's scratch buffers are owned by `std::unique_ptr` (via a new
+  `UT_GFreePtr` helper) so early returns can't leak them, the XHTML
+  importer's `X_*` check macros return early like the `.abwn`
+  importer's already did, and remaining sites became plain
+  `if`/`else` or a small lambda.  Import behavior is unchanged.
 
 ### GTK4 port (core migration)
 

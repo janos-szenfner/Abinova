@@ -227,15 +227,17 @@ UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwm
 	err = wmf_bbuf_input (API,AbiWord_WMF_read,AbiWord_WMF_seek,AbiWord_WMF_tell,static_cast<void *>( &read_info));
 	if (err != wmf_E_None) {
 		UT_DEBUGMSG(("IE_ImpGraphic_WMF::convertGraphic Bad input set\n"));
-		goto ErrorHandler;
+		wmf_api_destroy (API);
+		return UT_ERROR;
 	}
 
 	err = wmf_scan (API,0,&(bbox));
 	status = explicit_wmf_error ("wmf_scan",err);
 
 	if (status)
-	{	
-		goto ErrorHandler;
+	{
+		wmf_api_destroy (API);
+		return UT_ERROR;
 	}
 
 /* Okay, got this far, everything seems cool.
@@ -308,10 +310,9 @@ UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwm
 		return UT_OK;
 	}
 
-ErrorHandler:
-	if(API) 
+	if(API)
 	{
-		if(stream) 
+		if(stream)
 		{
 			wmf_free(API, stream);
 		}

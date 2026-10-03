@@ -84,7 +84,6 @@ bool IE_Imp_RTF::LoadPictData(PictFormat format, const char * image_name,
 {
 	// first, we load the actual data into a buffer
 	bool ok;
-	bool retval = true;
 
 	const UT_uint16 chars_per_byte = 2;
 	const UT_uint16 BITS_PER_BYTE = 8;
@@ -99,21 +98,19 @@ bool IE_Imp_RTF::LoadPictData(PictFormat format, const char * image_name,
 
 	if (!isBinary) {
 		if (!ReadCharFromFile(&ch)) {
-			retval = false;
-			goto cleanup;
+			return false;
 		}
 
 		while (ch != '}')
 		{
 			int digit;
-			
+
 			if (!hexVal(ch, digit)) {
-				retval = false;
-				goto cleanup;
+				return false;
 			}
-			
+
 			pic_byte = (pic_byte << bits_per_char) + digit;
-			
+
 			// if we have a complete byte, we put it in the buffer
 			if (--chLeft == 0)
 			{
@@ -121,10 +118,9 @@ bool IE_Imp_RTF::LoadPictData(PictFormat format, const char * image_name,
 				chLeft = chars_per_byte;
 				pic_byte = 0;
 			}
-			
+
 			if (!ReadCharFromFile(&ch)) {
-				retval = false;
-				goto cleanup;
+				return false;
 			}
 		}
 	} else {
@@ -132,8 +128,7 @@ bool IE_Imp_RTF::LoadPictData(PictFormat format, const char * image_name,
 		UT_DEBUGMSG(("Loading binary data image of %ld bytes\n", binaryLen));
 		for (long i = 0; i < binaryLen; i++) {
 			if (!ReadCharFromFileWithCRLF(&ch)) {
-				retval = false;
-				goto cleanup;
+				return false;
 			}
 			pictData->append(&ch, 1);
 		}
@@ -168,8 +163,7 @@ bool IE_Imp_RTF::LoadPictData(PictFormat format, const char * image_name,
 		UT_DEBUGMSG (("no translator found: %d\n", error));
 	}
 
- cleanup:
-	return retval;
+	return true;
 }
 
 
