@@ -21,6 +21,7 @@
  */
 
 #include <sstream>
+#include <string_view>
 
 #include "pp_Revision.h"
 #include "pp_AttrProp.h"
@@ -30,92 +31,70 @@
 #include "ut_misc.h"
 #include "ut_std_map.h"
 
+namespace {
+
+// bounded strtok-equivalent over a string_view: skips leading
+// delimiter characters (consecutive delimiters collapse, exactly like
+// strtok), returns the next token, and advances `rem` past the
+// delimiter that terminated it. An empty return means no token
+// remains — identical to strtok returning nullptr.
+std::string_view s_nextToken(std::string_view & rem, char delim)
+{
+	const size_t start = rem.find_first_not_of(delim);
+	if (start == std::string_view::npos)
+	{
+		rem = {};
+		return {};
+	}
+	rem.remove_prefix(start);
+	const size_t end = rem.find(delim);
+	const std::string_view tok = rem.substr(0, end);
+	rem = (end == std::string_view::npos) ? std::string_view{} : rem.substr(end + 1);
+	return tok;
+}
+
+} // anonymous namespace
+
 PP_Revision::PP_Revision(UT_uint32 Id, PP_RevisionType eType, const gchar * props, const gchar * attrs):
 	m_iID(Id), m_eType(eType), m_bDirty(true)
 {
-	if(!props && !attrs)
-		return;
+	if (props)
+		_parsePairs(props, true);
+	if (attrs)
+		_parsePairs(attrs, false);
+}
 
-	const char * empty = "";
-	
-	if(props)
+/*! parses the "name:value;name:value" pair strings carried inside a
+    revision token. Semantics match the historical strtok loop: name
+    terminates at the first ':' (so ';' may appear in a name), value
+    terminates at the next ';' (so ':' may appear in a value), and an
+    absent or "-/-" value means the pair is present but empty.
+*/
+void PP_Revision::_parsePairs(std::string_view s, bool isProps)
+{
+	std::string_view rem = s;
+	std::string_view n = s_nextToken(rem, ':');
+
+	while (!n.empty())
 	{
-		char * pProps = g_strdup(props);
-		UT_return_if_fail (pProps);
+		// skip over spaces ...
+		while (!n.empty() && n.front() == ' ')
+			n.remove_prefix(1);
 
-		char * p = strtok(pProps, ":");
+		std::string_view v = s_nextToken(rem, ';');
 
-		while(p)
-		{
-			char * n = p;
+		// no value means the property is being removed ...
+		if (v == "-/-")
+			v = {};
 
-			// skip over spaces ...
-			while(n && *n == ' ')
-				++n;
-			
-			p = strtok(nullptr, ";");
+		const std::string name(n);
+		const std::string value(v);
+		if (isProps)
+			setProperty(name, value);
+		else
+			setAttribute(name.c_str(), value.c_str());
 
-			// if we have no p, that means the property is being removed ...
-			const char * v = p ? p : empty;
-			if(! strcmp(v, "-/-"))
-				v = empty;
-		
-			if(n)
-			{
-				setProperty(n,v);
-				p = strtok(nullptr,":");
-			}
-			else
-			{
-				// malformed property
-				UT_DEBUGMSG(("PP_Revision::PP_Revision: malformed props string [%s]\n", props));
-				// if we have not reached the end, we will keep trying ...
-				if(p)
-					p = strtok(nullptr,":");
-			}
-		}
-
-		FREEP(pProps);
-	}
-
-	if(attrs)
-	{
-		char * pAttrs = g_strdup(attrs);
-
-		UT_ASSERT_HARMLESS(pAttrs);
-		if(!pAttrs)
-		{
-			UT_DEBUGMSG(("PP_Revision::PP_Revision: out of memory\n"));
-			return;
-		}
-
-		char * p = strtok(pAttrs, ":");
-
-		while(p)
-		{
-			char * n = p;
-			p = strtok(nullptr, ";");
-
-			const char * v = p ? p : empty;
-			if(! strcmp(v, "-/-"))
-				v = empty;
-			
-			if(n)
-			{
-				setAttribute(n,v);
-				p = strtok(nullptr,":");
-			}
-			else
-			{
-				// malformed property
-				UT_DEBUGMSG(("PP_Revision::PP_Revision: malformed props string [%s]\n", props));
-				// if we have not reached the end, we will keep trying ...
-				if(p)
-					p = strtok(nullptr,":");
-			}
-		}
-
-		FREEP(pAttrs);
+		n = s_nextToken(rem, ':');
 	}
 }
 
@@ -373,8 +352,7 @@ bool PP_Revision::operator == (const PP_Revision &op2) const
 
 /*! create class instance from an XML attribute string
  */
-PP_RevisionAttr::PP_RevisionAttr(const gchar * r):
-	m_pLastRevision(nullptr)
+PP_RevisionAttr::PP_RevisionAttr(const gchar * r)
 {
 	_init(r);
 }
@@ -384,20 +362,17 @@ PP_RevisionAttr::PP_RevisionAttr(UT_uint32 iId, PP_RevisionType eType,
                                  const PP_PropertyVector & attrs,
                                  const PP_PropertyVector & props)
 {
-	m_vRev.push_back(new PP_Revision(static_cast<UT_uint32>(iId), eType, props, attrs));
+	m_vRev.push_back(std::make_unique<PP_Revision>(static_cast<UT_uint32>(iId), eType, props, attrs));
 }
 
 
-PP_RevisionAttr::~PP_RevisionAttr()
-{
-	_clear();
-}
+PP_RevisionAttr::~PP_RevisionAttr() = default;
 
 /*! initialize instance with XML attribute string
  */
 void PP_RevisionAttr::setRevision(const gchar * r)
 {
-	_clear();
+	m_vRev.clear();
 	_init(r);
 }
 
@@ -408,15 +383,14 @@ PP_RevisionAttr::setRevision(const std::string&  r)
 }
 
 
-/*! destroys all internal data */
-void PP_RevisionAttr::_clear()
+/*! marks all derived state stale; every mutator must call this so the
+    XML string cache and the last-revision index cache are recomputed
+    on next use — a missed call returns stale data, not garbage.
+*/
+void PP_RevisionAttr::_markDirty()
 {
-	for (size_t i = 0; i < m_vRev.size(); i++) {
-		delete m_vRev.at(i);
-	}
-	m_vRev.clear();
 	m_bDirty = true;
-	m_pLastRevision = nullptr;
+	m_bLastRevisionDirty = true;
 }
 
 
@@ -430,116 +404,138 @@ void PP_RevisionAttr::_init(const gchar *r)
 
 	// the string we are parsing looks like
 	// "+1,-2,!3{font-family: Times New Roman}"
+	//
+	// tokens are comma separated; each is:
+	//   [+]n[{props}[{attrs}]]   addition (optionally with fmt payload)
+	//   -n                      deletion (never carries a payload)
+	//   !n{props}[{attrs}]      format change
+	// malformed tokens are skipped, never folded into id 0.
 
-	// first duplicate the string so we can play with it ...
-	char * s = static_cast<char*>( g_strdup(r));
-	char * end_s = s + strlen(s); // we need to remember where this
-								  // string ends because we cannot use strtok(nullptr,...)
+	std::string_view rem(r);
+	std::string_view t = s_nextToken(rem, ',');
 
-	UT_sint32 iId;
-	PP_RevisionType eType;
-	gchar * pProps, * pAttrs,
-		     * cl_brace = nullptr, * op_brace = nullptr,
-		     * cl_brace2 = nullptr;
-
-	char * t = strtok(s,",");
-
-	// we have to remember the end of this token for future calls to
-	// strtok since strtok is also used in the PP_Revision class and
-	// it screws us up, so we have to start always with explicit
-	// string
-	char * next_s = s;
-
-	while(t)
+	while(!t.empty())
 	{
-		next_s = next_s + strlen(t) + 1; // 1 for the token separator
+		PP_RevisionType eType;
 
-		if(*t == '!')
+		if(t.front() == '!')
 		{
 			eType = PP_REVISION_FMT_CHANGE;
-			t++;
+			t.remove_prefix(1);
 		}
-		else if(*t == '-')
+		else if(t.front() == '-')
 		{
 			eType = PP_REVISION_DELETION;
-			t++; // so we do not need to deal with sign later
+			t.remove_prefix(1);
 		}
-
-		else
-			eType = PP_REVISION_ADDITION; // this value is only
-										  // temporary because this
-										  // could equally be addition
-										  // + format
-
-		cl_brace = strchr(t, '}');
-		op_brace = strchr(t, '{');
-
-		if(!cl_brace || !op_brace)
+		else if(t.front() == '+')
 		{
-			// no props
+			eType = PP_REVISION_ADDITION;
+			t.remove_prefix(1);
+		}
+		else
+			eType = PP_REVISION_ADDITION;
+
+		const size_t op_brace = t.find('{');
+		const size_t cl_brace = t.find('}');
+		const bool   has_braces = (op_brace != std::string_view::npos)
+		                       && (cl_brace != std::string_view::npos)
+		                       && (cl_brace > op_brace);
+
+		std::string_view props;
+		std::string_view attrs;
+		std::string_view id_text;
+
+		if(!has_braces)
+		{
+			// bare id token; a lone or misordered brace makes the
+			// whole token malformed
 			if(eType == PP_REVISION_FMT_CHANGE)
 			{
 				// malformed token, move onto the next one
-				UT_DEBUGMSG(("PP_RevisionAttr::_init: invalid ! token [%s]\n",t));
-				goto skip_this_token;
+				UT_DEBUGMSG(("PP_RevisionAttr::_init: invalid ! token [%.*s]\n", (int)t.size(), t.data()));
+				t = s_nextToken(rem, ',');
+				continue;
 			}
-			pProps = nullptr;
-			pAttrs = nullptr;
+			if(op_brace != std::string_view::npos || cl_brace != std::string_view::npos)
+			{
+				UT_DEBUGMSG(("PP_RevisionAttr::_init: malformed braces in token [%.*s]\n", (int)t.size(), t.data()));
+				t = s_nextToken(rem, ',');
+				continue;
+			}
+			id_text = t;
 		}
 		else
 		{
-			// OK this is a case where we have some props, i.e., it
-			// must be either fmt change or addition
+			// props payload present — this must be a fmt change or
+			// an addition; a deletion never carries props
 			if(eType == PP_REVISION_DELETION)
 			{
 				// malformed token, move onto the next one
-				UT_DEBUGMSG(("PP_RevisionAttr::_init: invalid - token [%s]\n",t));
-				goto skip_this_token;
+				UT_DEBUGMSG(("PP_RevisionAttr::_init: invalid - token [%.*s]\n", (int)t.size(), t.data()));
+				t = s_nextToken(rem, ',');
+				continue;
 			}
 
-			// insert null as needed to be able to parse the id and props
-			*op_brace = 0;
-			*cl_brace = 0;
-			pProps = op_brace+1;
+			id_text = t.substr(0, op_brace);
+			props   = t.substr(op_brace + 1, cl_brace - op_brace - 1);
 
-			// now see if the props are followed by attributes
-			if(*(cl_brace + 1) == '{')
+			// props may be followed by exactly one {attrs} group that
+			// must consume the rest of the token
+			const std::string_view rest = t.substr(cl_brace + 1);
+			if(!rest.empty())
 			{
-				cl_brace2 = strchr(cl_brace + 2,'}');
-				if(cl_brace2)
+				if(rest.front() == '{')
 				{
-					pAttrs = cl_brace + 2;
-					*cl_brace2 = 0;
+					const size_t cl2 = rest.find('}');
+					if(cl2 != std::string_view::npos && cl2 == rest.size() - 1)
+						attrs = rest.substr(1, cl2 - 1);
 				}
-				else
+				if(attrs.empty() && !(rest.size() == 2 && rest == "{}"))
 				{
-					UT_DEBUGMSG(( "PP_RevisionAttr::_init: invalid token - [%s]\n", t ));
-					pAttrs = nullptr;
+					UT_DEBUGMSG(( "PP_RevisionAttr::_init: malformed attrs group in token [%.*s]\n", (int)t.size(), t.data() ));
+					t = s_nextToken(rem, ',');
+					continue;
 				}
 			}
-			else
-				pAttrs = nullptr;
 
 			if(eType == PP_REVISION_ADDITION)
 				eType = PP_REVISION_ADDITION_AND_FMT;
 		}
 
-		// now we can retrieve the id
-		iId = atol(t);
+		// the id must be a plain decimal number — garbage ids used to
+		// collapse to 0 via atol and silently merge revisions
+		UT_uint32 iId = 0;
+		bool      ok  = !id_text.empty();
+		for(const char c : id_text)
+		{
+			const UT_uint32 d = static_cast<UT_uint32>(c - '0');
+			if(c < '0' || c > '9' || iId > (0xFFFFFFFFU - d) / 10U)
+			{
+				ok = false;
+				break;
+			}
+			iId = iId * 10U + d;
+		}
+		if(!ok)
+		{
+			UT_DEBUGMSG(("PP_RevisionAttr::_init: malformed revision id [%.*s]\n", (int)id_text.size(), id_text.data()));
+			t = s_nextToken(rem, ',');
+			continue;
+		}
 
-		m_vRev.push_back(new PP_Revision(static_cast<UT_uint32>(iId), eType, pProps, pAttrs));
+		const std::string props_s(props);
+		const std::string attrs_s(attrs);
+		m_vRev.push_back(std::make_unique<PP_Revision>(iId, eType,
+		                                             has_braces ? props_s.c_str() : nullptr,
+		                                             has_braces ? attrs_s.c_str() : nullptr));
 
-	skip_this_token:
-		if(next_s < end_s)
-			t = strtok(next_s,",");
-		else
-			t = nullptr;
+		t = s_nextToken(rem, ',');
 	}
 
-	FREEP(s);
 	m_bDirty = true;
 	m_iSuperfluous = 0;
-	m_pLastRevision = nullptr;
+	m_bLastRevisionDirty = true;
 }
 
 /*!
@@ -549,11 +545,11 @@ void PP_RevisionAttr::_init(const gchar *r)
 bool PP_RevisionAttr::changeRevisionType(UT_uint32 iId, PP_RevisionType eType)
 {
 	for (size_t i = 0; i < m_vRev.size(); i++) {
-		PP_Revision* r = m_vRev.at(i);
+		PP_Revision* r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 		if (iId == r->getId()) {
 			r->setType(eType);
-			m_bDirty = true;
+			_markDirty();
 			return true;
 		}
 	}
@@ -566,11 +562,11 @@ bool PP_RevisionAttr::changeRevisionId(UT_uint32 iOldId, UT_uint32 iNewId)
 	UT_return_val_if_fail(iNewId >= iOldId, false);
 
 	for (size_t i = 0; i < m_vRev.size(); i++) {
-		PP_Revision* r = m_vRev.at(i);
+		PP_Revision* r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 		if (iOldId == r->getId()) {
 			r->setId(iNewId);
-			m_bDirty = true;
+			_markDirty();
 			return true;
 		}
 	}
@@ -591,10 +587,10 @@ void PP_RevisionAttr::pruneForCumulativeResult(PD_Document * pDoc)
 		return;
 	}
 
-    m_bDirty = true;
+	_markDirty();
 
 	for (size_t i = m_vRev.size() - 1; i != 0; --i) {
-		const PP_Revision* r = m_vRev.at(i);
+		const PP_Revision* r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 		if (!bDelete && r->getType() == PP_REVISION_DELETION) {
 			bDelete = true;
@@ -611,11 +607,11 @@ void PP_RevisionAttr::pruneForCumulativeResult(PD_Document * pDoc)
 		return;
 	}
 
-	PP_Revision* r0 = m_vRev.at(0);
+	PP_Revision* r0 = m_vRev.at(0).get();
 	UT_nonnull_or_return(r0, );
 
 	for (size_t i = 1; i < m_vRev.size(); ++i) {
-		const PP_Revision* r = m_vRev.at(i);
+		const PP_Revision* r = m_vRev.at(i).get();
 		UT_nonnull_or_return(r, );
 		r0->setProperties(r->getProperties());
 		r0->setAttributes(r->getAttributes());
@@ -681,7 +677,7 @@ const PP_Revision*  PP_RevisionAttr::getGreatestLesserOrEqualRevision(UT_uint32 
 	UT_uint32 m_id = 0xFFFF;
 
 	for (size_t i = 0; i < m_vRev.size(); i++) {
-		const PP_Revision* t = m_vRev.at(i);
+		const PP_Revision* t = m_vRev.at(i).get();
 		UT_uint32 t_id = t->getId();
 
 		// the special case speedup - if we hit our id, then we can return immediately
@@ -740,7 +736,7 @@ const PP_Revision* PP_RevisionAttr::getLowestGreaterOrEqualRevision(UT_uint32 id
 
 	for(size_t i = 0; i < m_vRev.size(); i++)
 	{
-		const PP_Revision * t = m_vRev.at(i);
+		const PP_Revision * t = m_vRev.at(i).get();
 		UT_nonnull_or_continue(t);
 		UT_uint32 t_id = t->getId();
 
@@ -763,31 +759,32 @@ const PP_Revision* PP_RevisionAttr::getLowestGreaterOrEqualRevision(UT_uint32 id
  */
 const PP_Revision* PP_RevisionAttr::getLastRevision() const
 {
-	// since this is rather involved, we will cache the result and
-	// use the cache if it is uptodate
-	if(m_pLastRevision)
-		return m_pLastRevision;
+	// cache the index of the highest-id revision; invalidated
+	// centrally by _markDirty so a mutation can't leave a stale or
+	// dangling entry behind
+	if(!m_bLastRevisionDirty)
+		return m_iLastRevision >= 0 ? m_vRev.at(m_iLastRevision).get() : nullptr;
 
-	//const PP_Revision * r = nullptr;
+	m_iLastRevision = -1;
 	UT_uint32 r_id = 0;
 
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		const PP_Revision* t = m_vRev.at(i);
+		const PP_Revision* t = m_vRev.at(i).get();
 		UT_nonnull_or_continue(t);
 		UT_uint32 t_id = t->getId();
 
 		if(t_id > r_id)
 		{
 			r_id = t_id;
-			m_pLastRevision = t;
+			m_iLastRevision = static_cast<int>(i);
 		}
 	}
 
-	// UT_ASSERT_HARMLESS( m_pLastRevision );
+	m_bLastRevisionDirty = false;
 	// it is legal for this to be nullptr -- it happens when the revision was pruned for
 	// cumulative effect and the last revision was a deletion.
-	return m_pLastRevision;
+	return m_iLastRevision >= 0 ? m_vRev.at(m_iLastRevision).get() : nullptr;
 }
 
 
@@ -796,7 +793,7 @@ UT_uint32 PP_RevisionAttr::getHighestId() const
     UT_uint32 ret = 0;
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		const PP_Revision * t = m_vRev.at(i);
+		const PP_Revision * t = m_vRev.at(i).get();
 		UT_nonnull_or_continue(t);
         ret = std::max( ret, t->getId() );
     }
@@ -815,7 +812,7 @@ const PP_Revision * PP_RevisionAttr::getRevisionWithId(UT_uint32 iId, UT_uint32 
 
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		const PP_Revision * t = m_vRev.at(i);
+		const PP_Revision * t = m_vRev.at(i).get();
 		UT_nonnull_or_continue(t);
 		UT_uint32 t_id = t->getId();
 
@@ -879,7 +876,7 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType,
 {
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		PP_Revision * r = m_vRev.at(i);
+		PP_Revision * r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 		UT_uint32 r_id = r->getId();
 		PP_RevisionType r_type = r->getType();
@@ -905,13 +902,11 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType,
 				// id, so if queried later we can work out if this
 				// whole fragment should in fact go
 
-				delete r;
 				m_vRev.erase(m_vRev.begin() + i);
 
 				m_iSuperfluous = iId;
 
-				PP_Revision * pRevision = new PP_Revision(iId, eType, nullptr, nullptr);
-				m_vRev.push_back(pRevision);
+				m_vRev.push_back(std::make_unique<PP_Revision>(iId, eType, nullptr, nullptr));
 			}
 			else if((eType == PP_REVISION_ADDITION) && (r_type == PP_REVISION_DELETION))
 			{
@@ -923,7 +918,6 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType,
 				// the case we need to reset m_iSuperfluous, since
 				// this fragment can no more be superfluous
 
-				delete r;
 				m_vRev.erase(m_vRev.begin() + i);
 
 				if(m_iSuperfluous == iId)
@@ -940,11 +934,9 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType,
 				// the new, since the original action did not result
 				// in inserting new text
 
-				delete r;
 				m_vRev.erase(m_vRev.begin() + i);
 
-				PP_Revision * pRevision = new PP_Revision(iId, eType, nullptr, nullptr);
-				m_vRev.push_back(pRevision);
+				m_vRev.push_back(std::make_unique<PP_Revision>(iId, eType, nullptr, nullptr));
 			}
 			else if((eType == PP_REVISION_FMT_CHANGE) && (r_type == PP_REVISION_DELETION))
 			{
@@ -952,11 +944,9 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType,
 				// but now he just wants a format change, in this case
 				// we just replace the old revision with the new
 
-				delete r;
 				m_vRev.erase(m_vRev.begin() + i);
 
-				PP_Revision * pRevision = new PP_Revision(iId, eType, pProps, pAttrs);
-				m_vRev.push_back(pRevision);
+				m_vRev.push_back(std::make_unique<PP_Revision>(iId, eType, pProps, pAttrs));
 			}
 			else if((eType == PP_REVISION_FMT_CHANGE) && (r_type == PP_REVISION_ADDITION))
 			{
@@ -975,8 +965,7 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType,
 				r->setAttributes(pAttrs);
 			}
 
-			m_bDirty = true;
-			m_pLastRevision = nullptr;
+			_markDirty();
 			return;
 		}
 		else //(eType == r_type)
@@ -989,18 +978,14 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType,
 			r->setProperties(pProps);
 			r->setAttributes(pAttrs);
 			
-			m_bDirty = true;
-			m_pLastRevision = nullptr;
+			_markDirty();
 			return;
 		}
 	}
 
 	// if we got here then the item is not in our vector so add it
-	PP_Revision * pRevision = new PP_Revision(iId, eType, pProps, pAttrs);
-
-	m_vRev.push_back(pRevision);
-	m_bDirty = true;
-	m_pLastRevision = nullptr;
+	m_vRev.push_back(std::make_unique<PP_Revision>(iId, eType, pProps, pAttrs));
+	_markDirty();
 }
 
 
@@ -1035,7 +1020,7 @@ PP_RevisionAttr::addRevision( const PP_Revision* r )
     }
 
     PP_RevisionAttr us( getXMLstring() );
-    _clear();
+    m_vRev.clear();
     std::string tmp = static_cast<std::string>(us.getXMLstring() )+ "," + ss.str();
     setRevision(tmp);
 }
@@ -1062,7 +1047,7 @@ void PP_RevisionAttr::mergeAttrIfNotAlreadyThere( UT_uint32 iId,
 {
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		const PP_Revision * tr = m_vRev.at(i);
+		const PP_Revision * tr = m_vRev.at(i).get();
 		UT_nonnull_or_continue(tr);
 		UT_uint32 tid = tr->getId();
 
@@ -1117,7 +1102,7 @@ static std::string mergeAPStrings( const std::string& a, const std::string& b )
 void PP_RevisionAttr::mergeAll( const PP_RevisionAttr& ra )
 {
     PP_RevisionAttr us( getXMLstring() );
-    _clear();
+    m_vRev.clear();
     std::string tmp = static_cast<std::string>(us.getXMLstring() )+ "," + ra.getXMLstring();
 
     revidx_t oldidx = toIndex( us );
@@ -1234,15 +1219,13 @@ void PP_RevisionAttr::removeRevisionIdWithType(UT_uint32 iId, PP_RevisionType eT
 {
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		PP_Revision * r = m_vRev.at(i);
+		PP_Revision * r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 
 		if((iId == r->getId()) && (eType == r->getType()))
 		{
-			delete r;
 			m_vRev.erase(m_vRev.begin() + i);
-			m_bDirty = true;
-			m_pLastRevision = nullptr;
+			_markDirty();
 			return;
 		}
 	}
@@ -1255,15 +1238,13 @@ void PP_RevisionAttr::removeRevisionIdTypeless(UT_uint32 iId)
 {
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		PP_Revision * r = m_vRev.at(i);
+		PP_Revision * r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 
 		if(iId == r->getId())
 		{
-			delete r;
 			m_vRev.erase(m_vRev.begin() + i);
-			m_bDirty = true;
-			m_pLastRevision = nullptr;
+			_markDirty();
 			return;
 		}
 	}
@@ -1275,14 +1256,12 @@ void PP_RevisionAttr::removeRevision(const PP_Revision * pRev)
 {
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		PP_Revision * r = m_vRev.at(i);
+		PP_Revision * r = m_vRev.at(i).get();
 
 		if(r == pRev)
 		{
-			delete r;
 			m_vRev.erase(m_vRev.begin() + i);
-			m_bDirty = true;
-			m_pLastRevision = nullptr;
+			_markDirty();
 			return;
 		}
 	}
@@ -1296,19 +1275,17 @@ void PP_RevisionAttr::removeAllLesserOrEqualIds(UT_uint32 iId)
 {
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		PP_Revision * r = m_vRev.at(i);
+		PP_Revision * r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 
 		if(iId >= r->getId())
 		{
-			delete r;
 			m_vRev.erase(m_vRev.begin() + i);
 			--i; // the vector just shrunk
 		}
 	}
 
-	m_bDirty = true;
-	m_pLastRevision = nullptr;
+	_markDirty();
 }
 
 /*! removes all IDs from the attribute whose value is higher or
@@ -1318,19 +1295,17 @@ void PP_RevisionAttr::removeAllHigherOrEqualIds(UT_uint32 iId)
 {
 	for (size_t i = 0; i < m_vRev.size(); i++)
 	{
-		PP_Revision * r = m_vRev.at(i);
+		PP_Revision * r = m_vRev.at(i).get();
 		UT_nonnull_or_continue(r);
 
 		if(iId <= r->getId())
 		{
-			delete r;
 			m_vRev.erase(m_vRev.begin() + i);
 			--i; // the vector just shrunk
 		}
 	}
 
-	m_bDirty = true;
-	m_pLastRevision = nullptr;
+	_markDirty();
 }
 
 
@@ -1344,7 +1319,7 @@ void PP_RevisionAttr::_refreshString() const
 
 	for (size_t i = 0; i < iCount; i++)
 	{
-		const PP_Revision * r = m_vRev.at(i);
+		const PP_Revision * r = m_vRev.at(i).get();
 
         if( !m_sXMLstring.empty() )
             m_sXMLstring += ",";
@@ -1435,7 +1410,7 @@ bool PP_RevisionAttr::isFragmentSuperfluous() const
 	// the fragment is superfluous if the superfluous flag is set
 	// and the fragment belongs only to a single revision level
 	if (m_iSuperfluous != 0 && m_vRev.size() == 1) {
-		auto rev = m_vRev.at(0);
+		auto rev = m_vRev.at(0).get();
 		UT_nonnull_or_return(rev, false);
 		UT_return_val_if_fail (rev->getId() == m_iSuperfluous,false);
 		return true;
@@ -1447,10 +1422,10 @@ bool PP_RevisionAttr::isFragmentSuperfluous() const
 bool PP_RevisionAttr::operator== (const PP_RevisionAttr &op2) const
 {
 	for (size_t i = 0; i < m_vRev.size(); i++) {
-		const PP_Revision * r1 = m_vRev.at(i);
+		const PP_Revision * r1 = m_vRev.at(i).get();
 
 		for (size_t j = 0; j < op2.m_vRev.size(); j++) {
-			const PP_Revision * r2 = op2.m_vRev.at(j);
+			const PP_Revision * r2 = op2.m_vRev.at(j).get();
 
 			if(!(*r1 == *r2))
 				return false;
@@ -1489,7 +1464,7 @@ bool PP_RevisionAttr::hasProperty(UT_uint32 iId, const gchar * pName, const gcha
 bool PP_RevisionAttr::hasProperty(const gchar * pName, const gchar * &pValue) const
 {
 	const PP_Revision * r = getLastRevision();
-	return r->getProperty(pName, pValue);
+	return r && r->getProperty(pName, pValue);
 }
 
 /*! returns the type of cumulative revision up to iId represented by this attribute
@@ -1513,7 +1488,7 @@ PP_RevisionType PP_RevisionAttr::getType(UT_uint32 iId) const
 PP_RevisionType PP_RevisionAttr::getType() const
 {
 	const PP_Revision * r = getLastRevision();
-	return r->getType();
+	return r ? r->getType() : PP_REVISION_FMT_CHANGE;
 }
 
 

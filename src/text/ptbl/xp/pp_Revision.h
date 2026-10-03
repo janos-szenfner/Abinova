@@ -21,7 +21,10 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include "ut_types.h"
 #include "pp_AttrProp.h"
@@ -88,6 +91,7 @@ class ABI_EXPORT PP_Revision: public PP_AttrProp
   private:
 	void             _refreshString() const;
 	bool             _handleNestedRevAttr();
+	void             _parsePairs(std::string_view s, bool isProps);
 
 	UT_uint32        m_iID;
 	PP_RevisionType  m_eType;
@@ -135,7 +139,8 @@ class ABI_EXPORT PP_RevisionAttr
 {
   public:
 	PP_RevisionAttr()
-		: m_sXMLstring(), m_bDirty(true), m_iSuperfluous(0), m_pLastRevision(nullptr)
+		: m_sXMLstring(), m_bDirty(true), m_iSuperfluous(0),
+		  m_iLastRevision(-1), m_bLastRevisionDirty(true)
 		{}
 	PP_RevisionAttr(const gchar * r);
 	PP_RevisionAttr(const std::string & r)
@@ -181,7 +186,7 @@ class ABI_EXPORT PP_RevisionAttr
     bool                  empty() const
 	{ return m_vRev.empty(); }
 	const PP_Revision*   getNthRevision(UT_uint32 n) const
-	{ return m_vRev.at(n); }
+	{ return m_vRev.at(n).get(); }
 
 	void                  pruneForCumulativeResult(PD_Document * pDoc);
 
@@ -217,15 +222,18 @@ class ABI_EXPORT PP_RevisionAttr
 
   private:
 	void _init(const gchar *r);
-	void _clear();
 	void _refreshString() const;
+	void _markDirty();
 
-	std::vector<PP_Revision*>    m_vRev;
+	std::vector<std::unique_ptr<PP_Revision>>    m_vRev;
 	// these next 2 are a cache, hence mutable
 	mutable std::string         m_sXMLstring;
 	mutable bool                m_bDirty; // indicates whether m_sXMLstring corresponds
 						          // to current state of the instance
 	UT_uint32           m_iSuperfluous;
-	// also a cache
-	mutable const PP_Revision * m_pLastRevision;
+	// index cache for getLastRevision: >=0 is a valid index into
+	// m_vRev, -1 means there is no last revision; only meaningful
+	// while !m_bLastRevisionDirty
+	mutable int                 m_iLastRevision;
+	mutable bool                m_bLastRevisionDirty;
 };

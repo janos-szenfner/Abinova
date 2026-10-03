@@ -3288,6 +3288,24 @@ below are on `main` but the release has not been cut yet.
   case churns forced page breaks + a section break + header/footer
   insert/remove/undo/redo/merge and asserts every page's slots stay in
   sync, leak-clean.
+- **Revision-attribute parser hardened** — the `revision="+1,-2,
+  !3{props}{attrs}"` attribute parser was a 2002-era `strtok` loop
+  running on document-fed strings: revision ids were read with
+  `atol()` so a garbage token silently collapsed to id 0 and merged
+  with real revisions, and a `}{` misordered brace pair produced
+  garbage property strings instead of a rejected token.  The parser
+  now uses a bounded `std::string_view` tokenizer (removing the
+  reentrancy hazard between the attribute scan and the per-revision
+  props scan), requires ids to be plain decimals within `UT_uint32`
+  range, requires closing braces strictly after opening braces and a
+  single `{attrs}` group consuming the token end, and skips malformed
+  tokens rather than folding them in.  `PP_RevisionAttr`'s revision
+  list now holds `std::unique_ptr` (fixing a real leak in
+  `pruneForCumulativeResult`), and the last-revision lookup cache is
+  an index invalidated through one helper — the old raw-pointer cache
+  could dangle after `pruneForCumulativeResult` and go stale after
+  `changeRevisionId`.  A new `make check` suite covers valid and
+  malformed strings plus the cache-invalidation paths.
 
 ### GTK4 port (core migration)
 
