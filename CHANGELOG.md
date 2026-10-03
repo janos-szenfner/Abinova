@@ -3534,6 +3534,14 @@ below are on `main` but the release has not been cut yet.
   buttons wrap the bookmark and RDF-link selections exactly like the
   old list navigation.  Page Setup's page-size list was already a
   `GtkDropDown` and is unchanged.
+- **`GtkTreeView` → `GtkListView`, batch C (Styles dialog)** — the
+  Create and Modify Styles dialog's style list now runs on
+  `GListStore` + `GtkSingleSelection` + `GtkSignalListItemFactory`,
+  sorted by localized style name through a `GtkSortListModel` with a
+  collation-aware `GtkStringSorter`.  Each row keeps the original
+  (unlocalized) style name so selection still drives the paragraph/
+  character preview panes and the New/Modify/Delete paths exactly as
+  before; a newly created style is still scrolled to and selected.
 
 ### Performance
 

@@ -27,6 +27,7 @@
 #include "ut_debugmsg.h"
 #include "xap_UnixDialogHelper.h"
 #include "xap_GtkComboBoxHelpers.h"
+#include "xap_GtkListHelpers.h"
 
 #include "xap_App.h"
 #include "xap_UnixApp.h"
@@ -56,7 +57,7 @@ XAP_Dialog * AP_UnixDialog_Styles::static_constructor(XAP_DialogFactory * pFacto
 
 AP_UnixDialog_Styles::AP_UnixDialog_Styles(XAP_DialogFactory * pDlgFactory,
 										 XAP_Dialog_Id id)
-  : AP_Dialog_Styles(pDlgFactory,id), m_selectedStyle(nullptr), m_whichType(AP_UnixDialog_Styles::USED_STYLES)
+  : AP_Dialog_Styles(pDlgFactory,id), m_selStyles(nullptr), m_whichType(AP_UnixDialog_Styles::USED_STYLES)
 {
 	m_windowMain = nullptr;
 
@@ -96,22 +97,20 @@ AP_UnixDialog_Styles::AP_UnixDialog_Styles(XAP_DialogFactory * pDlgFactory,
 
 AP_UnixDialog_Styles::~AP_UnixDialog_Styles(void)
 {
-	if (m_selectedStyle) {
-		gtk_tree_path_free(m_selectedStyle);
-	}
 	DELETEP (m_pParaPreviewWidget);
 	DELETEP (m_pCharPreviewWidget);
 	DELETEP (m_pAbiPreviewWidget);
+	g_clear_object(&m_listStyles);
 }
 
 /*****************************************************************/
 
 static void
-s_tvStyles_selection_changed (GtkTreeSelection *selection,
+s_tvStyles_selection_changed (GObject * /*obj*/, GParamSpec * /*pspec*/,
 		gpointer d)
 {
 	AP_UnixDialog_Styles * dlg = static_cast <AP_UnixDialog_Styles *>(d);
-	dlg->event_SelectionChanged(selection);
+	dlg->event_SelectionChanged();
 }
 
 static void
@@ -340,8 +339,8 @@ void AP_UnixDialog_Styles::runModal(XAP_Frame * pFrame)
 							s_charPreview_draw,
 							reinterpret_cast<gpointer>(this), nullptr);
 
-	// connect the select_row signal to the clist
-	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection(GTK_TREE_VIEW(m_tvStyles))), "changed",
+	// connect the select_row signal to the style list
+	g_signal_connect (G_OBJECT (m_selStyles), "notify::selected",
 			  G_CALLBACK (s_tvStyles_selection_changed), reinterpret_cast<gpointer>(this));
 
 	// main loop for the dialog
@@ -415,23 +414,17 @@ void AP_UnixDialog_Styles::event_charPreviewDraw(cairo_t *cr)
 
 void AP_UnixDialog_Styles::event_DeleteClicked(void)
 {
-	if (m_selectedStyle)
+	const char * szSel = getCurrentStyle();
+	if (szSel && *szSel)
     {
 		m_sNewStyleName = "";
-		gchar * style = nullptr;
+		// copy — the doc/model churn below re-enters getCurrentStyle()
+		// which reuses a static buffer
+		const std::string style(szSel);
 
-		GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(m_tvStyles));
-		GtkTreeIter iter;
-		gtk_tree_model_get_iter(model, &iter, m_selectedStyle);
-		gtk_tree_model_get(model, &iter, 1, &style, -1);
+		UT_DEBUGMSG(("DOM: attempting to delete style %s\n", style.c_str()));
 
-		if (!style)
-			return; // ok, nothing's selected. that's fine
-
-		UT_DEBUGMSG(("DOM: attempting to delete style %s\n", style));
-
-		bool removed = getDoc()->removeStyle(style); // actually remove the style
-		g_free(style);
+		bool removed = getDoc()->removeStyle(style.c_str()); // actually remove the style
 
 		if (!removed)
 		{
@@ -463,21 +456,10 @@ void AP_UnixDialog_Styles::event_NewClicked(void)
 	}
 }
 
-void AP_UnixDialog_Styles::event_SelectionChanged(GtkTreeSelection * selection)
+void AP_UnixDialog_Styles::event_SelectionChanged(void)
 {
-	GtkTreeView *tree = gtk_tree_selection_get_tree_view(selection);
-	GtkTreeModel *model = gtk_tree_view_get_model(tree);
-	GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
-
-	GtkTreePath *item = reinterpret_cast<GtkTreePath *>(g_list_nth_data(list, 0));
-	if (m_selectedStyle) {
-		gtk_tree_path_free(m_selectedStyle);
-	}
-	m_selectedStyle = item ? gtk_tree_path_copy(item) : nullptr;
-
-	g_list_free_full (list, reinterpret_cast<GDestroyNotify>( gtk_tree_path_free));
-
-	// refresh the previews
+	// refresh the previews — the current style is read live off the
+	// selection model via getCurrentStyle()
 	_populatePreviews(false);
 }
 
@@ -521,9 +503,8 @@ GtkWidget * AP_UnixDialog_Styles::_constructWindow(void)
 	// list of styles goes in the top left
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbStyles")), pSS, AP_STRING_ID_DLG_Styles_Available);
 	
-	// treeview
+	// listview
 	m_tvStyles = GTK_WIDGET(gtk_builder_get_object(builder, "tvStyles"));
-	gtk_tree_selection_set_mode (gtk_tree_view_get_selection (GTK_TREE_VIEW (m_tvStyles)), GTK_SELECTION_SINGLE);
 
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbList")), pSS, AP_STRING_ID_DLG_Styles_List);
 
@@ -628,26 +609,43 @@ void AP_UnixDialog_Styles::_populateCList(void)
 
 	size_t nStyles = getDoc()->getStyleCount();
 	xxx_UT_DEBUGMSG(("DOM: we have %d styles\n", nStyles));
-	
+
 	if (m_listStyles == nullptr) {
-		m_listStyles = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
-		GtkTreeModel *sort = gtk_tree_model_sort_new_with_model (GTK_TREE_MODEL (m_listStyles));
-		gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (sort), 0, GTK_SORT_ASCENDING);
-		gtk_tree_view_set_model (GTK_TREE_VIEW(m_tvStyles), sort);
-		g_object_unref (G_OBJECT (sort));
-		g_object_unref (G_OBJECT (m_listStyles));
+		m_listStyles = XAP_list_store_new();
+		/* the GTK3 code wrapped the store in a GtkTreeModelSort ordered
+		 * by the localized name — do the same via GtkSortListModel +
+		 * a collation-aware GtkStringSorter on the "text" property */
+		GtkSorter *sorter = GTK_SORTER(gtk_string_sorter_new(
+			gtk_property_expression_new(XAP_TYPE_DROP_DOWN_ITEM,
+										nullptr, "text")));
+		/* gtk_sort_list_model_new() consumes the model ref it is given,
+		 * so hand it an extra ref and keep m_listStyles as our own
+		 * reference for later repopulation via g_list_store_remove_all()
+		 * + append */
+		GtkSortListModel *sort =
+			gtk_sort_list_model_new(G_LIST_MODEL(g_object_ref(m_listStyles)),
+									sorter);
+		g_object_unref(sorter);
+
+		GtkSingleSelection *sel = gtk_single_selection_new(nullptr);
+		/* match the old GtkTreeSelection defaults — the model must
+		 * attach after autoselect is off or the ctor grabs row 0 */
+		gtk_single_selection_set_autoselect(sel, FALSE);
+		gtk_single_selection_set_can_unselect(sel, TRUE);
+		gtk_single_selection_set_model(sel, G_LIST_MODEL(sort));
+		gtk_list_view_set_model(GTK_LIST_VIEW(m_tvStyles),
+								GTK_SELECTION_MODEL(sel));
+		m_selStyles = sel;
+		g_object_unref(sort);
+		g_object_unref(sel);
+
+		GtkListItemFactory *factory = XAP_list_item_text_factory();
+		gtk_list_view_set_factory(GTK_LIST_VIEW(m_tvStyles), factory);
+		g_object_unref(factory);
 	} else {
-		gtk_list_store_clear (m_listStyles);
-	}
-	
-	GtkTreeViewColumn *column = gtk_tree_view_get_column (GTK_TREE_VIEW(m_tvStyles), 0);
-	if (!column) 
-	{
-		column = gtk_tree_view_column_new_with_attributes ("Style", gtk_cell_renderer_text_new (), "text", 0, nullptr);
-		gtk_tree_view_append_column(GTK_TREE_VIEW(m_tvStyles), column);
+		g_list_store_remove_all(m_listStyles);
 	}
 
-	GtkTreeIter iter, pHighlightIter;
 	bool highlight = false;
 	UT_GenericVector<PD_Style*> *pStyles = nullptr;
 	getDoc()->enumStyles(pStyles);
@@ -669,37 +667,57 @@ void AP_UnixDialog_Styles::_populateCList(void)
 			(m_whichType == USER_STYLES && pStyle->isUserDefined()) ||
 			(m_sNewStyleName == sLoc)) /* show newly created style anyways */
 		{
-			gtk_list_store_append(m_listStyles, &iter);
-			gtk_list_store_set(m_listStyles, &iter, 0, sLoc.c_str(),
-					   1, org_name, -1);
+			/* localized name displayed, original name kept in string1
+			 * for getCurrentStyle()/delete lookups */
+			XAP_list_store_append_text_and_string(m_listStyles,
+												  sLoc.c_str(), org_name);
 
-			if (m_sNewStyleName == sLoc) {
-				pHighlightIter = iter;
+			if (m_sNewStyleName == sLoc)
 				highlight = true;
-			}
 		}
 	}
 	DELETEP(pStyles);
 
-	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(m_tvStyles));
-	if (highlight) {
-		// select new/modified
-		GtkTreeModel *sort = gtk_tree_view_get_model(GTK_TREE_VIEW(m_tvStyles));
-		gtk_tree_model_sort_convert_child_iter_to_iter(GTK_TREE_MODEL_SORT(sort), &iter, &pHighlightIter);
-		gtk_tree_selection_select_iter(selection, &iter);
-		GtkTreePath *path = gtk_tree_model_get_path(sort, &iter); 
-		gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(m_tvStyles), path, nullptr, FALSE, 0, 0);
-		gtk_tree_path_free(path);
+	GListModel *sort = m_selStyles
+		? gtk_single_selection_get_model(m_selStyles) : nullptr;
+	const guint nRows = sort ? g_list_model_get_n_items(sort) : 0;
+	guint pos = GTK_INVALID_LIST_POSITION;
+	if (highlight)
+	{
+		// select new/modified — positions in the sorted model differ
+		// from append order, so look the row up by its display name
+		for (guint i = 0; i < nRows; i++)
+		{
+			XAPDropDownItem *item = XAP_DROP_DOWN_ITEM(
+				g_list_model_get_item(sort, i));
+			const bool match =
+				item && m_sNewStyleName == xap_drop_down_item_get_text(item);
+			g_object_unref(item);
+			if (match)
+			{
+				pos = i;
+				break;
+			}
+		}
 	}
-	else {
+	if (pos == GTK_INVALID_LIST_POSITION && nRows > 0)
+	{
 		// select first
-		GtkTreePath *path = gtk_tree_path_new_from_string("0");
-		gtk_tree_selection_select_path(selection, path);
-		gtk_tree_path_free(path);
+		pos = 0;
 	}
-	
-	// selection "changed" doesn't fire here, so hack manually
-	s_tvStyles_selection_changed (selection, static_cast<gpointer>((this)));
+	if (pos != GTK_INVALID_LIST_POSITION)
+	{
+		gtk_single_selection_set_selected(m_selStyles, pos);
+		gtk_list_view_scroll_to(GTK_LIST_VIEW(m_tvStyles), pos,
+								static_cast<GtkListScrollFlags>(
+									GTK_LIST_SCROLL_FOCUS |
+									GTK_LIST_SCROLL_SELECT),
+								nullptr);
+	}
+
+	// selection "notify::selected" doesn't fire here while the signal
+	// isn't connected yet (first populate), so refresh manually
+	event_SelectionChanged();
 }
 
 void AP_UnixDialog_Styles::_populateWindowData(void)
@@ -720,21 +738,17 @@ const char * AP_UnixDialog_Styles::getCurrentStyle (void) const
 
 	UT_ASSERT(m_tvStyles);
 
-	if (!m_selectedStyle)
+	gpointer p = XAP_single_selection_get_item(m_selStyles);
+	if (!p)
 		return nullptr;
 
-	gchar * style = nullptr;
-
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(m_tvStyles));
-	GtkTreeIter iter;
-	gtk_tree_model_get_iter(model, &iter, m_selectedStyle);
-	gtk_tree_model_get(model, &iter, 1, &style, -1);
+	const char * style =
+		xap_drop_down_item_get_string1(XAP_DROP_DOWN_ITEM(p));
 
 	if (!style)
 		return nullptr;
 
 	sStyleBuf = style;
-	g_free(style);
 	return sStyleBuf.c_str();
 }
 
