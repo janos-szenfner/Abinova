@@ -67,6 +67,10 @@
 
 #include "ie_imp_WordPerfect.h"
 #include "ie_impexp_WordPerfect.h"
+#include "ie_impGraphic.h"
+#include "fg_Graphic.h"
+#include "ut_base64.h"
+#include "ut_bytebuf.h"
 
 // Stream class
 
@@ -521,6 +525,7 @@ IE_Imp_WordPerfect::IE_Imp_WordPerfect(PD_Document * pDocument)
 	m_bRequireBlock(false),
 	m_iCurrentListLevel(0),
 	m_bInCell(false),
+	m_bFrameOpen(false),
 	m_pCaptureDoc(nullptr),
 	m_bHdrFtrOpenCount(0),
 	m_savedListLevel(0),
@@ -1055,6 +1060,154 @@ void IE_Imp_WordPerfect::insertLineBreak()
 
 	UT_UCS4Char ucs = UCS_LF;
 	X_CheckDocumentError(appendSpan(&ucs,1));
+}
+
+/* libwpd wraps every embedded object (WP3/WP5 pictures, WP6 figure
+ * boxes) in a frame carrying the box geometry; the payload follows via
+ * insertBinaryObject()/openTextBox(), so the props are stashed for it */
+void IE_Imp_WordPerfect::openFrame(const librevenge::RVNGPropertyList &propList)
+{
+	m_frameProps = propList;
+	m_bFrameOpen = true;
+}
+
+void IE_Imp_WordPerfect::closeFrame()
+{
+	m_frameProps.clear();
+	m_bFrameOpen = false;
+}
+
+void IE_Imp_WordPerfect::insertBinaryObject(const librevenge::RVNGPropertyList &propList)
+{
+	const librevenge::RVNGProperty * binaryProp = propList["office:binary-data"];
+	if (!binaryProp)
+		return;
+
+	/* RVNGProperty only exposes the binary payload as base64 text;
+	 * decode it back to the raw image bytes (the same path the ODF
+	 * importer uses for flat <office:binary-data>) */
+	const librevenge::RVNGString base64 = binaryProp->getStr();
+	UT_ByteBufPtr encoded(new UT_ByteBuf);
+	encoded->ins(0, reinterpret_cast<const UT_Byte *>(base64.cstr()), base64.len());
+	UT_ByteBufPtr imgBuf(new UT_ByteBuf);
+	if (!UT_Base64Decode(imgBuf, encoded) || imgBuf->getLength() == 0)
+		return;
+
+	IE_ImpGraphic * pieg = nullptr;
+	if (IE_ImpGraphic::constructImporter(imgBuf, IEGFT_Unknown, &pieg) != UT_OK || !pieg)
+	{
+		UT_DEBUGMSG(("AbiWordPerfect: no graphic importer for embedded object\n"));
+		return;
+	}
+	FG_ConstGraphicPtr pfg;
+	UT_Error status = pieg->importGraphic(imgBuf, pfg);
+	delete pieg;
+	if (status != UT_OK || !pfg || !pfg->getBuffer())
+	{
+		UT_DEBUGMSG(("AbiWordPerfect: embedded graphic import failed\n"));
+		return;
+	}
+
+	/* the box geometry comes from the openFrame() around the object;
+	 * absent that, fall back to the image's natural size (raster
+	 * graphics report pixels, vectors already report inches) */
+	double frameW = 0.0, frameH = 0.0;
+	if (m_frameProps["svg:width"])
+		frameW = m_frameProps["svg:width"]->getDouble();
+	if (m_frameProps["svg:height"])
+		frameH = m_frameProps["svg:height"]->getDouble();
+	if (frameW <= 0.0 || frameH <= 0.0)
+	{
+		double w = pfg->getWidth(), h = pfg->getHeight();
+		if (pfg->getType() == FGT_Raster)
+		{
+			w /= 96.0;
+			h /= 96.0;
+		}
+		if (frameW <= 0.0)
+			frameW = w;
+		if (frameH <= 0.0)
+			frameH = h;
+	}
+	if (frameW <= 0.0 || frameH <= 0.0)
+	{
+		UT_DEBUGMSG(("AbiWordPerfect: embedded graphic has no usable size\n"));
+		return;
+	}
+
+	/* the data item must live in the real document even while a
+	 * header/footer capture diverts the object frag into the scratch
+	 * document -- the replayed object resolves its dataid there */
+	const std::string dataid =
+		UT_std_string_sprintf("%u", getDoc()->getUID(UT_UniqueId::Image));
+	if (!getDoc()->createDataItem(dataid.c_str(), false, pfg->getBuffer(),
+								  pfg->getMimeType(), nullptr))
+		return;
+
+	librevenge::RVNGString anchor;
+	if (m_bFrameOpen && m_frameProps["text:anchor-type"])
+		anchor = m_frameProps["text:anchor-type"]->getStr();
+
+	/* positioned frames cannot live inside the header/footer capture
+	 * document (only flat content replays from it), so those images
+	 * are inlined like the ODF importer does inside hdrftrs */
+	if (!m_bFrameOpen || m_bHdrFtrOpenCount || !strcmp(anchor.cstr(), "as-char"))
+	{
+		std::string props =
+			UT_std_string_sprintf("width:%.4gin; height:%.4gin", frameW, frameH);
+		const PP_PropertyVector atts = {
+			"dataid", dataid,
+			PT_PROPS_ATTRIBUTE_NAME, props
+		};
+		X_CheckDocumentError(appendObject(PTO_Image, atts));
+		return;
+	}
+
+	/* a floating box becomes a frame strux; libwpd's "char" anchor is
+	 * its page-anchoring workaround, so page boxes key off it plus the
+	 * vertical relation -- everything else anchors to its block (the
+	 * mapping the ODF importer applies to draw:frame) */
+	std::string props = "frame-type:image";
+	const librevenge::RVNGProperty * verticalRel = m_frameProps["style:vertical-rel"];
+	if (!strcmp(anchor.cstr(), "char") ||
+		(verticalRel &&
+		 (!strcmp(verticalRel->getStr().cstr(), "page") ||
+		  !strcmp(verticalRel->getStr().cstr(), "page-content"))))
+	{
+		props += "; position-to:page-above-text";
+		if (m_frameProps["svg:x"])
+			props += UT_std_string_sprintf("; frame-page-xpos:%.4gin",
+										   m_frameProps["svg:x"]->getDouble());
+		if (m_frameProps["svg:y"])
+			props += UT_std_string_sprintf("; frame-page-ypos:%.4gin",
+										   m_frameProps["svg:y"]->getDouble());
+	}
+	else
+	{
+		props += "; position-to:block-above-text";
+		if (m_frameProps["svg:x"])
+			props += UT_std_string_sprintf("; xpos:%.4gin",
+										   m_frameProps["svg:x"]->getDouble());
+		if (m_frameProps["svg:y"])
+			props += UT_std_string_sprintf("; ypos:%.4gin",
+										   m_frameProps["svg:y"]->getDouble());
+	}
+	props += UT_std_string_sprintf("; frame-width:%.4gin; frame-height:%.4gin",
+								   frameW, frameH);
+	/* WP3/WP5 boxes can request text wrap; the rest float above */
+	if (m_frameProps["style:wrap"] &&
+		!strcmp(m_frameProps["style:wrap"]->getStr().cstr(), "dynamic"))
+		props += "; wrap-mode:wrapped-both";
+	/* picture boxes get no drawn frame border */
+	props += "; top-style:none; bot-style:none; left-style:none; right-style:none";
+
+	const PP_PropertyVector atts = {
+		PT_STRUX_IMAGE_DATAID, dataid,
+		PT_PROPS_ATTRIBUTE_NAME, props
+	};
+	X_CheckDocumentError(appendStrux(PTX_SectionFrame, atts));
+	X_CheckDocumentError(appendStrux(PTX_Block, PP_NOPROPS));
+	X_CheckDocumentError(appendStrux(PTX_EndFrame, PP_NOPROPS));
 }
 
 

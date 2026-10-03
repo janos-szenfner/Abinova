@@ -3323,6 +3323,14 @@ below are on `main` but the release has not been cut yet.
   so header/footer text, formatting, tables, and even footnotes inside
   headers come through — including odd/even variants — and survive
   `.abwn` round-trips.
+- **WordPerfect embedded images import** — `.wpd` figure boxes and
+  inline pictures were silently dropped (the `insertBinaryObject`
+  callback was a no-op).  The importer now decodes the
+  `office:binary-data` payload, sniffs the format through the generic
+  graphic importer (PNG, JPEG, WPG, …), and inserts the image inline
+  for character-anchored graphics or as a positioned image frame —
+  honoring the box's size, x/y position, page-vs-paragraph anchoring,
+  and text wrap — for floating boxes.
 
 ### GTK4 port (core migration)
 

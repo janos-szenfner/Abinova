@@ -169,8 +169,8 @@ public:
 	virtual void insertCoveredTableCell(const librevenge::RVNGPropertyList & /* propList */) override {}
 	virtual void closeTable() override;
 
-	virtual void openFrame(const librevenge::RVNGPropertyList & /* propList */) override {}
-	virtual void closeFrame() override {}
+	virtual void openFrame(const librevenge::RVNGPropertyList &propList) override;
+	virtual void closeFrame() override;
 
 	virtual void openGroup(const librevenge::RVNGPropertyList & /* propList */) override {}
 	virtual void closeGroup() override {}
@@ -183,7 +183,7 @@ public:
 	virtual void drawPath(const librevenge::RVNGPropertyList & /* propList */) override {}
 	virtual void drawConnector(const librevenge::RVNGPropertyList & /* propList */) override {}
 
-	virtual void insertBinaryObject(const librevenge::RVNGPropertyList & /* propList */) override {}
+	virtual void insertBinaryObject(const librevenge::RVNGPropertyList &propList) override;
 	virtual void insertEquation(const librevenge::RVNGPropertyList & /* propList */) override {}
 
 protected:
@@ -255,6 +255,12 @@ private:
 
     int							        m_iCurrentListLevel;
     bool								m_bInCell;
+
+	// frame geometry libwpd emits around each embedded object
+	// (WP3/WP5 pictures, WP6 figure boxes); insertBinaryObject()
+	// consumes it when the binary payload arrives
+	librevenge::RVNGPropertyList		m_frameProps;
+	bool								m_bFrameOpen;
 
 	std::vector<std::unique_ptr<WPHdrFtr>>	m_hdrFtrs;
 	std::vector<WPHdrFtr *>				m_pendingHdrFtrs;
