@@ -142,6 +142,14 @@ public:
 	virtual UT_Error        cmdSaveAs(const char * szFilename, int ieft, bool cpy) = 0;
 
 	virtual EV_EditMouseContext getMouseContext(UT_sint32 xPos, UT_sint32 yPos) = 0;
+
+	/*! Called before the bound edit method runs for an unmodified
+	 *  button-1 double-click; lets a view claim the click for
+	 *  region-edit toggling (FV_View uses it to enter/leave
+	 *  header/footer edit mode — Word parity).  xPos/yPos are in
+	 *  logical units.  Return true if the click was consumed. */
+	virtual bool	cmdDoubleClick(UT_sint32 /*xPos*/, UT_sint32 /*yPos*/) { return false; }
+
 	virtual bool 	isSelectionEmpty(void) const = 0;
 
 	virtual void	cmdCopy(bool bToClipboard = true) = 0;

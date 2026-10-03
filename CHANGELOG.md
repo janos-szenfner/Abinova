@@ -1809,6 +1809,14 @@ below are on `main` but the release has not been cut yet.
   `registerNotebookPage` / `addPage` machinery and the
   `DeclareDialog` tabbed flag were removed — nothing ever
   registered an extra page.
+- **Double-click enters/leaves header-footer editing (Word parity)** —
+  in Page view, double-clicking inside a page's header or footer
+  margin area now opens that region for editing directly, and
+  double-clicking back in the body returns to normal editing; a
+  double-click inside the region already being edited keeps its
+  usual word-select meaning. A plain click inside an inactive
+  header/footer area no longer enters edit mode — it warps the
+  caret to the nearest body text instead, matching Word.
 
 ### Tables (Word-style creation and context menus)
 

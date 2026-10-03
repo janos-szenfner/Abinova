@@ -59,6 +59,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_HdrFtrDelete.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_HdrFtrDblClick.t.cpp"
+#undef TFSUITE
 #include "src/wp/ap/xp/t/ap_KeyBindings.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ut_abwncrypt.t.cpp"

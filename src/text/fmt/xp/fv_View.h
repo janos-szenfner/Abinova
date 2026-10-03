@@ -429,6 +429,7 @@ public:
 	void                getMousePos(UT_sint32 * x, UT_sint32 * y);
 
 	virtual EV_EditMouseContext getMouseContext(UT_sint32 xPos, UT_sint32 yPos) override;
+	virtual bool	cmdDoubleClick(UT_sint32 xPos, UT_sint32 yPos) override;
 	EV_EditMouseContext _getMouseContext(UT_sint32 xPos, UT_sint32 yPos);
 	virtual EV_EditMouseContext getInsertionPointContext(UT_sint32 * pxPos, UT_sint32 * pyPos);
 	void                setPrevMouseContext(EV_EditMouseContext  emc)

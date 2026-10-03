@@ -172,6 +172,17 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble
 	m_clickState = mop;					// remember which type of click
 	m_contextState = emc;				// remember context of click
 
+	/* A plain button-1 double-click may toggle an edit region: the view
+	 * gets first refusal before the bound method runs (FV_View enters
+	 * or leaves header/footer editing on a double-click in a page's
+	 * header/footer margin area — Word parity). */
+	if (mop == EV_EMO_DOUBLECLICK && emb == EV_EMB_BUTTON1 && state == 0 &&
+		pView->cmdDoubleClick(static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
+							  static_cast<UT_sint32>(pView->getGraphics()->tluD(y))))
+	{
+		return;
+	}
+
 	result = m_pEEM->Mouse(emc|mop|emb|state, &pEM);
 
 	switch (result)

@@ -9246,6 +9246,59 @@ void FV_View::insertSymbol(UT_UCS4Char c, const gchar * symfont)
 }
 
 
+/*!
+ * Let the view claim a double-click before its bound edit method runs.
+ * Word parity: a double-click inside a page's header/footer shadow
+ * region enters (or switches to) that shadow's edit context, while a
+ * double-click in the body leaves header/footer editing.  Returns true
+ * when the click was consumed by the mode switch.
+ */
+bool FV_View::cmdDoubleClick(UT_sint32 xPos, UT_sint32 yPos)
+{
+	// shadow hdrftr regions only exist in the paged (print) view
+	if (getViewMode() != VIEW_PRINT || getPoint() == 0)
+		return false;
+
+	UT_sint32 xClick = 0, yClick = 0;
+	fp_Page* pPage = _getPageForXY(xPos, yPos, xClick, yClick);
+	if (!pPage)
+		return false;
+
+	PT_DocPosition pos = 0, posEnd = 0;
+	bool bBOL = false;
+	bool bEOL = false;
+	bool isTOC = false;
+	fl_HdrFtrShadow* pShadow = nullptr;
+	pPage->mapXYToPosition(xClick, yClick, pos, bBOL, bEOL, isTOC, true, &pShadow);
+	getEditableBounds(true, posEnd, true);
+
+	if (!pShadow || pos <= posEnd)
+	{
+		// double-click in the body leaves header/footer editing; the
+		// bound action then proceeds against the body as usual
+		if (isHdrFtrEdit())
+			clearHdrFtrEdit();
+		return false;
+	}
+	if (isHdrFtrEdit() && pShadow == m_pEditShadow)
+		return false;	// a double-click inside the region already being
+					// edited keeps its normal meaning (word select)
+
+	if (!isSelectionEmpty())
+		_clearSelection();
+	if (pos != getPoint())
+		_clearIfAtFmtMark(getPoint());
+	setHdrFtrEdit(pShadow);
+	m_FrameEdit.setMode(FV_FrameEdit_NOT_ACTIVE);
+	m_InlineImage.setMode(FV_InlineDrag_NOT_ACTIVE);
+	_setPoint(pos, bEOL);
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	setCursorToContext();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_HDRFTR);
+	return true;
+}
+
 void FV_View::warpInsPtToXY(UT_sint32 xPos, UT_sint32 yPos, bool bClick = false)
 {
 	/*
@@ -9269,20 +9322,37 @@ void FV_View::warpInsPtToXY(UT_sint32 xPos, UT_sint32 yPos, bool bClick = false)
 		getEditableBounds(true,posEnd,true);
 		if((pos > posEnd) && (pShadow != nullptr))
 		{
-			if (pos != getPoint())
-				_clearIfAtFmtMark(getPoint());
-			setHdrFtrEdit(pShadow);
-			bClick = true;
+			if(isHdrFtrEdit())
+			{
+				if (pos != getPoint())
+					_clearIfAtFmtMark(getPoint());
+				setHdrFtrEdit(pShadow);
+				bClick = true;
+			}
+			else
+			{
+				/* A single click in a header/footer shadow region does
+				 * not enter hdrftr edit — that is the double-click path
+				 * (cmdDoubleClick, Word parity).  Re-resolve without the
+				 * hdrftr lookup so the caret lands on the nearest
+				 * editable body text instead. */
+				pPage->mapXYToPosition(xClick, yClick, pos, bBOL, bEOL, isTOC);
+				pShadow = nullptr;
+				bClick = false;
+				if(pos > posEnd)
+					pos = posEnd;
+			}
 		}
 		else if((pos > posEnd) && (pShadow == nullptr))
 		{
 			bClick = false;
 			pos = posEnd;
 		}
-		else if(pos <= posEnd) 
+		else if(pos <= posEnd)
 		{
 			bClick = false;
-			clearHdrFtrEdit();
+			if(isHdrFtrEdit())
+				clearHdrFtrEdit();
 		}
 	}
 	if ((pos != getPoint()) && !bClick)
