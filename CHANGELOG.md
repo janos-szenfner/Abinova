@@ -1826,6 +1826,15 @@ below are on `main` but the release has not been cut yet.
   math now clamps the column divisor, bails cleanly on a stale
   info cache, bounds the convergence loop, and every table-cell
   lookup is bounds-checked including the right-edge marker.
+- **Line numbers are now rendered in the margin** — Layout >
+  Line Numbers used to store the settings on the section without
+  drawing anything. The layout engine now draws running line
+  numbers beside each column: Continuous, Restart-each-page, and
+  Restart-each-section modes are honored, paragraphs marked
+  Suppress are skipped without renumbering, and the Start at /
+  Count by / From text settings apply. Line numbering imported
+  from `.doc`/`.docx` files renders too, and the "not rendered
+  yet" notes are gone from the UI.
 
 ### Tables (Word-style creation and context menus)
 

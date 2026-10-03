@@ -1216,6 +1216,283 @@ void fp_Page::_drawCropMarks(dg_DrawArgs* pDA)
     }
 }
 
+// ------------------------------------------------------------------
+// Line numbering ("line-numbering" / "section-ln-*" section props)
+// ------------------------------------------------------------------
+
+namespace {
+
+enum FP_LineNumberMode : UT_uint8
+{
+	FP_LINENUM_OFF = 0,
+	FP_LINENUM_CONTINUOUS,
+	FP_LINENUM_PAGE,
+	FP_LINENUM_SECTION
+};
+
+struct FP_LineNumbering
+{
+	FP_LineNumberMode mode     = FP_LINENUM_OFF;
+	UT_sint32         start    = 1;   // number assigned to the first counted line
+	UT_uint32         countBy  = 1;   // show every Nth number
+	UT_sint32         distance = 0;   // LU gap between number and column; <=0 = auto
+	bool              bRTL     = false;
+};
+
+/*!
+ * Fills ln from a DocSectionLayout's properties. Both the ribbon
+ * property family (line-numbering/-start/-count-by/-distance) and the
+ * imported OOXML family (section-ln-restart/-start/-count-by/-distance)
+ * are honoured. Returns true only when numbering is switched on.
+ */
+bool _getLineNumbering(fl_DocSectionLayout * pDSL, FP_LineNumbering & ln)
+{
+	const PP_AttrProp * pAP = nullptr;
+	if (!pDSL)
+		return false;
+	pDSL->getAP(pAP);
+	if (!pAP)
+		return false;
+
+	const gchar * szMode = nullptr;
+	pAP->getProperty("line-numbering", szMode);
+	if (!szMode || !*szMode)
+		pAP->getProperty("section-ln-restart", szMode);
+	if (!szMode || !*szMode)
+		return false;
+	if (!strcmp(szMode, "continuous"))
+		ln.mode = FP_LINENUM_CONTINUOUS;
+	else if (!strcmp(szMode, "page") || !strcmp(szMode, "newPage"))
+		ln.mode = FP_LINENUM_PAGE;
+	else if (!strcmp(szMode, "section") || !strcmp(szMode, "newSection"))
+		ln.mode = FP_LINENUM_SECTION;
+	else
+		return false;   // "none" or unrecognised
+
+	const gchar * sz = nullptr;
+	if (pAP->getProperty("line-number-start", sz) ||
+	    pAP->getProperty("section-ln-start", sz))
+		ln.start = UT_MAX(atoi(sz), 0);
+	sz = nullptr;
+	if (pAP->getProperty("line-number-count-by", sz) ||
+	    pAP->getProperty("section-ln-count-by", sz))
+		ln.countBy = static_cast<UT_uint32>(UT_MAX(atoi(sz), 1));
+	sz = nullptr;
+	if (pAP->getProperty("line-number-distance", sz))
+		ln.distance = UT_convertToLogicalUnits(sz);
+	else if (pAP->getProperty("section-ln-distance", sz))
+		ln.distance = atoi(sz);   // stored as raw twips (= LU)
+	ln.bRTL = (pDSL->getColumnOrder() == 1);
+	return true;
+}
+
+/*!
+ * The column that precedes pCol in reading order. fp_Container's
+ * next/prev chain already links a section's columns across pages, so
+ * it handles same-section predecessors; only the first column of a
+ * section has no prev link, and for that we fall back to the page's
+ * leader list (this page, then earlier pages) to cross section
+ * boundaries. Returns nullptr at the start of the document.
+ */
+fp_Column * _prevColumnInDocOrder(fp_Column * pCol)
+{
+	if (fp_Column * pPrev = static_cast<fp_Column *>(pCol->getPrev()))
+		return pPrev;
+
+	fp_Page * pPage = pCol->getPage();
+	while (pPage)
+	{
+		const UT_sint32 n = pPage->countColumnLeaders();
+		UT_sint32 iTake = n - 1;
+		if (pPage == pCol->getPage())
+		{
+			iTake = -1;
+			for (UT_sint32 i = 0; i < n; i++)
+			{
+				if (pPage->getNthColumnLeader(i) == pCol)
+				{
+					iTake = i - 1;
+					break;
+				}
+			}
+		}
+		if (iTake >= 0)
+		{
+			fp_Column * pLast = pPage->getNthColumnLeader(iTake);
+			while (pLast->getFollower())
+				pLast = pLast->getFollower();
+			return pLast;
+		}
+		pPage = pPage->getPrev();
+	}
+	return nullptr;
+}
+
+/*!
+ * Whether pLine belongs to a block carrying suppress-line-numbers:1.
+ */
+bool _isLineNumberSuppressed(const fp_Line * pLine)
+{
+	fl_BlockLayout * pBlock = pLine->getBlock();
+	const char * szSuppress = pBlock ?
+		pBlock->getProperty("suppress-line-numbers") : nullptr;
+	return szSuppress && szSuppress[0] == '1';
+}
+
+/*!
+ * Counts the column's body-text lines whose block does not carry
+ * suppress-line-numbers (fp_Line children only; footnote, endnote,
+ * TOC and frame containers are not counted).
+ */
+UT_uint32 _countedLines(const fp_Column * pCol)
+{
+	UT_uint32 count = 0;
+	const UT_uint32 iConCount = pCol->countCons();
+	for (UT_uint32 i = 0; i < iConCount; i++)
+	{
+		const fp_Container * pContainer =
+			static_cast<const fp_Container *>(pCol->getNthCon(i));
+		if (pContainer->getContainerType() != FP_CONTAINER_LINE)
+			continue;
+		if (!_isLineNumberSuppressed(static_cast<const fp_Line *>(pContainer)))
+			count++;
+	}
+	return count;
+}
+
+/*!
+ * Number assigned to the first counted line of pCol. Walks backwards
+ * through columns, skipping unnumbered sections, until a numbered
+ * column whose numbering run continues into pCol is found; otherwise
+ * the section's restart value is used. Results are cached on each
+ * column for the current FL_DocLayout line-numbering epoch.
+ */
+UT_uint32 _columnStartNumber(fp_Column * pCol, const FP_LineNumbering & ln)
+{
+	FL_DocLayout * pDL = pCol->getPage()->getDocLayout();
+	const UT_uint32 epoch = pDL->getLineNumberEpoch();
+	if (pCol->getLineNumEpoch() == epoch)
+		return pCol->getLineNumStart();
+
+	UT_uint32 start = static_cast<UT_uint32>(UT_MAX(ln.start, 0));
+	fp_Column * pPrev = _prevColumnInDocOrder(pCol);
+	while (pPrev)
+	{
+		FP_LineNumbering prevLn;
+		if (_getLineNumbering(pPrev->getDocSectionLayout(), prevLn))
+		{
+			bool bContinue;
+			if (ln.mode == FP_LINENUM_CONTINUOUS)
+				bContinue = true;
+			else if (ln.mode == FP_LINENUM_PAGE)
+				bContinue = (pPrev->getPage() == pCol->getPage());
+			else   // FP_LINENUM_SECTION
+				bContinue = (pPrev->getDocSectionLayout() ==
+							 pCol->getDocSectionLayout());
+			if (bContinue)
+				start = _columnStartNumber(pPrev, prevLn) +
+					pPrev->getLineNumCounted();
+			break;
+		}
+		pPrev = _prevColumnInDocOrder(pPrev);
+	}
+	pCol->setLineNumCache(epoch, start, _countedLines(pCol));
+	return start;
+}
+
+} // anonymous namespace
+
+/*!
+ * Draws running line numbers in the margin beside each numbered
+ * column. Called after the column pass so numbers sit in the margin /
+ * column gap. Numbers the physical lines of each fp_Column in reading
+ * order, honouring the continuous/page/section restart modes and the
+ * block-level suppress-line-numbers property.
+ */
+void fp_Page::_drawLineNumbers(dg_DrawArgs* pDA)
+{
+	if (m_pView && (m_pView->getViewMode() != VIEW_PRINT) &&
+		!pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))
+		return;
+
+	GR_Painter painter(pDA->pG);
+	pDA->pG->setColor(UT_RGBColor(0, 0, 0));
+
+	const UT_sint32 count =
+		static_cast<UT_sint32>(m_vecColumnLeaders.size());
+	for (UT_sint32 i = 0; i < count; i++)
+	{
+		for (fp_Column * pCol = m_vecColumnLeaders[i]; pCol;
+			 pCol = pCol->getFollower())
+		{
+			fl_DocSectionLayout * pDSL = pCol->getDocSectionLayout();
+			FP_LineNumbering ln;
+			if (!_getLineNumbering(pDSL, ln))
+				continue;
+
+			const PP_AttrProp * pSectionAP = nullptr;
+			pDSL->getAP(pSectionAP);
+			const GR_Font * pFont =
+				m_pLayout->findFont(nullptr, nullptr, pSectionAP, pDA->pG);
+			if (!pFont)
+				continue;
+			pDA->pG->setFont(pFont);
+			const UT_sint32 iAscent = pDA->pG->getFontAscent();
+
+			// Word's default gap between a number and its line is
+			// "auto", roughly one space.
+			const UT_sint32 iDist = (ln.distance > 0) ?
+				ln.distance : UT_convertToLogicalUnits("0.1in");
+
+			const UT_sint32 iColX = pDA->xoff + pCol->getX();
+			const UT_sint32 iColY = pDA->yoff + pCol->getY(pDA->pG);
+			UT_uint32 iNum = _columnStartNumber(pCol, ln);
+
+			const UT_uint32 iConCount = pCol->countCons();
+			for (UT_uint32 c = 0; c < iConCount; c++)
+			{
+				const fp_Container * pContainer =
+					static_cast<const fp_Container *>(pCol->getNthCon(c));
+				if (pContainer->getContainerType() != FP_CONTAINER_LINE)
+					continue;
+				const fp_Line * pLine =
+					static_cast<const fp_Line *>(pContainer);
+				if (pLine->getY() == INITIAL_OFFSET ||
+					_isLineNumberSuppressed(pLine))
+					continue;
+				const UT_uint32 iThis = iNum++;
+				if (iThis == 0 || (iThis % ln.countBy) != 0)
+					continue;
+
+				char szNum[24];
+				snprintf(szNum, sizeof(szNum), "%u", iThis);
+				UT_UCS4Char pBuf[24];
+				UT_UCS4Char * pStr = pBuf;
+				for (const char * s = szNum; *s &&
+						 pStr < pBuf + sizeof(pBuf) / sizeof(pBuf[0]) - 1; s++)
+					*pStr++ = static_cast<UT_UCS4Char>(*s);
+				*pStr = 0;
+				const UT_uint32 iLen = pStr - pBuf;
+
+				int iCharWidths[24];
+				pDA->pG->measureString(pBuf, 0, iLen, iCharWidths);
+				UT_sint32 iNumW = 0;
+				for (UT_uint32 k = 0; k < iLen; k++)
+					iNumW += iCharWidths[k];
+
+				const UT_sint32 iY = iColY + pLine->getY() +
+					pLine->getAscent() - iAscent;
+				UT_sint32 iX;
+				if (ln.bRTL)
+					iX = iColX + pCol->getWidth() + iDist;
+				else
+					iX = iColX - iDist - iNumW;
+				painter.drawChars(pBuf, 0, iLen, iX, iY, iCharWidths);
+			}
+		}
+	}
+}
+
 void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 {
 //
@@ -1329,6 +1606,8 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 			pCol = pNextCol;
 		}
 	}
+
+	_drawLineNumbers(pDA);
 
 	// draw the page's headers and footers
     if(m_pView->getViewMode() == VIEW_PRINT  || pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))

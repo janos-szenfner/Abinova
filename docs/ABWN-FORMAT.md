@@ -336,6 +336,10 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `header-even` | `*(empty)*` | no |
 | `header-first` | `*(empty)*` | no |
 | `header-last` | `*(empty)*` | no |
+| `line-number-count-by` | `1` | no |
+| `line-number-distance` | `0in` | no |
+| `line-number-start` | `1` | no |
+| `line-numbering` | `none` | no |
 | `page-border-art` | `*(empty)*` | no |
 | `page-border-bottom` | `none` | no |
 | `page-border-bottom-art` | `*(empty)*` | no |

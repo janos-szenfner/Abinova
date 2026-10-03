@@ -123,6 +123,12 @@ public:
 	void setGraphics(GR_Graphics * pG);
 	UT_uint32           getGraphicTick(void) const { return m_iGraphicTick;}
 	void                incrementGraphicTick(void) { m_iGraphicTick++;}
+
+	// Line-numbering epoch: bumped on every document mutation and
+	// repagination so fp_Page's per-column line-number cache is
+	// recomputed once after each layout-affecting change.
+	UT_uint32           getLineNumberEpoch(void) const { return m_iLineNumberEpoch;}
+	void                bumpLineNumberEpoch(void) { m_iLineNumberEpoch++;}
 	inline PD_Document*	getDocument(void) const { return m_pDoc; }
 #ifdef ENABLE_SPELL
 	inline const fl_BlockLayout* getPendingBlockForSpell(void) const { return m_pPendingBlockForSpell; };
@@ -470,6 +476,7 @@ private:
 	bool                m_bPlaceAtDocEnd;
 	bool                m_bPlaceAtSecEnd;
 	UT_uint32           m_iGraphicTick;
+	UT_uint32           m_iLineNumberEpoch;
 	std::vector<fl_TOCLayout *> m_vecTOC;
 	PT_DocPosition      m_iDocSize;
 	UT_sint32           m_iFilled;

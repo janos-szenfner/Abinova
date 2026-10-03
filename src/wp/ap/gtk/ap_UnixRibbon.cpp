@@ -5677,9 +5677,9 @@ GtkWidget * AP_UnixRibbon::_makeBreaksPopover()
 	return popover;
 }
 
-/* Line Numbers dropdown - settings are stored on the section and
- * round-trip in the document; the layout engine does not render
- * numbers yet */
+/* Line Numbers dropdown - settings are stored on the section, drawn
+ * in the margin by the layout engine, and round-trip in the
+ * document */
 GtkWidget * AP_UnixRibbon::_makeLineNumbersPopover()
 {
 	GtkWidget * box;
@@ -5711,8 +5711,6 @@ GtkWidget * AP_UnixRibbon::_makeLineNumbersPopover()
 			? std::string("\xE2\x9C\x93 ") + m.name : m.name;
 		GtkWidget * row = _presetRow(nm.c_str(), nullptr, nullptr,
 									 "sectProps", m.data);
-		gtk_widget_set_tooltip_text(row,
-			"Line numbering is stored but not rendered yet");
 		gtk_box_append(GTK_BOX(box), row);
 	}
 	/* paragraph-level suppression */

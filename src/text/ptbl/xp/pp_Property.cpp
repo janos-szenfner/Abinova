@@ -236,6 +236,10 @@ static PP_Property _props[] =
 	{ "line-height",           "1.0",             false, PP_LEVEL_BLOCK},
 	{ "line-join",             "miter",           false, PP_LEVEL_FRAME}, // OOXML a:ln join: round/bevel/miter
 	{ "line-miter-limit",      "8",               false, PP_LEVEL_FRAME}, // OOXML a:miter@lim as a ratio
+	{ "line-number-count-by",  "1",               false, PP_LEVEL_SECT},
+	{ "line-number-distance",  "0in",             false, PP_LEVEL_SECT},
+	{ "line-number-start",     "1",               false, PP_LEVEL_SECT},
+	{ "line-numbering",        "none",            false, PP_LEVEL_SECT},
 	{ "line-start-arrow",      "none",            false, PP_LEVEL_FRAME}, // OOXML a:headEnd@type
 	{ "line-start-arrow-len",  "med",             false, PP_LEVEL_FRAME}, // OOXML a:headEnd@len
 	{ "line-start-arrow-w",    "med",             false, PP_LEVEL_FRAME}, // OOXML a:headEnd@w

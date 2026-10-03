@@ -1765,7 +1765,10 @@ void fp_VerticalContainer::bumpContainers(fp_ContainerObject* pLastContainerToKe
 fp_Column::fp_Column(fl_SectionLayout* pSectionLayout) : fp_VerticalContainer(FP_CONTAINER_COLUMN, pSectionLayout),
   m_pLeader(nullptr),
   m_pFollower(nullptr),
-  m_pPage(nullptr)
+  m_pPage(nullptr),
+  m_iLineNumEpoch(0),
+  m_iLineNumStart(0),
+  m_iLineNumCounted(0)
 {
 }
 

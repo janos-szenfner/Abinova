@@ -959,7 +959,11 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 							const PX_ChangeRecord * pcr)
 {
 	UT_return_val_if_fail( sfh, false );
-	
+
+	// Any piece-table change may shift lines between columns/pages or
+	// alter numbering properties; invalidate cached line numbers.
+	m_pLayout->bumpLineNumberEpoch();
+
 	bool bResult = false;
 	AV_ChangeMask chgMask = AV_CHG_NONE;
 

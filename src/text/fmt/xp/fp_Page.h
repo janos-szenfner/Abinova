@@ -178,6 +178,7 @@ public:
 	void                updateColumnX();
 	void				_reformatColumns(void);
 protected:
+	void				_drawLineNumbers(dg_DrawArgs* pDA);
     void                _drawCropMarks(dg_DrawArgs*);
 	void				_reformat(void);
 	void				_reformatFootnotes(void);

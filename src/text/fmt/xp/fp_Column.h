@@ -225,6 +225,20 @@ public:
 	void			setFollower(fp_Column* p) { m_pFollower = p; }
 	fp_Column*	getLeader(void) const  { return m_pLeader; }
 	fp_Column*	getFollower(void) const 		{ return m_pFollower; }
+
+	// Cache for the line-numbering paint. Valid only while
+	// m_iLineNumEpoch equals FL_DocLayout::getLineNumberEpoch();
+	// populated lazily by fp_Page::_drawLineNumbers().
+	UT_uint32       getLineNumEpoch(void) const { return m_iLineNumEpoch; }
+	UT_uint32       getLineNumStart(void) const { return m_iLineNumStart; }
+	UT_uint32       getLineNumCounted(void) const { return m_iLineNumCounted; }
+	void            setLineNumCache(UT_uint32 iEpoch, UT_uint32 iStart,
+									UT_uint32 iCounted)
+	{
+		m_iLineNumEpoch = iEpoch;
+		m_iLineNumStart = iStart;
+		m_iLineNumCounted = iCounted;
+	}
 	bool            containsPageBreak(void) const;
 	/*!
 	  Get page container is located on
@@ -259,6 +273,9 @@ private:
 	fp_Column*				m_pLeader;
 	fp_Column*				m_pFollower;
 	fp_Page*				m_pPage;
+	UT_uint32               m_iLineNumEpoch;
+	UT_uint32               m_iLineNumStart;
+	UT_uint32               m_iLineNumCounted;
 };
 
 class ABI_EXPORT fp_ShadowContainer : public fp_VerticalContainer

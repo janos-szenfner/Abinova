@@ -261,6 +261,8 @@ UT_sint32 fb_ColumnBreaker::breakSection()
   fp_Page * pStartPage = m_pStartPage;
   m_pDocSec->setNeedsSectionBreak(false,m_pStartPage);
   FL_DocLayout * pDL =  m_pDocSec->getDocLayout();
+  // Reflow can move lines between columns; invalidate line numbers.
+  pDL->bumpLineNumberEpoch();
   m_bStartFromStart = true;
   UT_sint32 iPage = pDL->findPage(pStartPage);  
   if(iPage < 0)

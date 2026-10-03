@@ -137,8 +137,6 @@ static void _s_linenum_ok(GtkDialog * dlg, gint resp, gpointer data)
 	gtk_window_destroy(GTK_WINDOW(dlg));
 }
 
-/* Note: the layout engine does not render line numbers yet - the
- * settings are stored on the section and round-trip in .abw files */
 void ap_showLineNumbersDialog(GtkWindow * parent, FV_View * pView)
 {
 	GtkWidget * dlg = gtk_dialog_new();
@@ -207,13 +205,6 @@ void ap_showLineNumbersDialog(GtkWindow * parent, FV_View * pView)
 	gtk_box_append(GTK_BOX(vb), c->page);
 	gtk_box_append(GTK_BOX(vb), c->sect);
 	gtk_box_append(GTK_BOX(box), f);
-
-	GtkWidget * note = gtk_label_new(
-		"Line numbers are stored in the document but are not "
-		"rendered yet.");
-	gtk_widget_add_css_class(note, "dim-label");
-	gtk_widget_set_halign(note, GTK_ALIGN_START);
-	gtk_box_append(GTK_BOX(box), note);
 
 	/* reflect stored state */
 	PP_PropertyVector props;
