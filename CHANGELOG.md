@@ -1917,6 +1917,17 @@ below are on `main` but the release has not been cut yet.
   wrap mode is hidden and the image-specific captions are relabelled —
   and writes the chosen size, wrap mode, position-to and title/alt
   text back to the frame strux, which round-trips through `.abwn`.
+- **Image Properties dialog** — the image right-click menu now opens
+  with "Image P&roperties…" (Word's Format Picture entry). For inline
+  images it presents the shared image dialog in a new inline mode that
+  collapses the wrapping/placement tab down to width/height with
+  aspect-ratio lock, title and alternative text — so accessibility
+  metadata can finally be edited, not just stored. The apply path
+  selects the image object and writes size plus `title`/`alt`
+  attributes through the normal span-format channel, which
+  round-trips through `.abwn` save/load. Invoked while a positioned
+  object is active it hands off to the existing full
+  position/wrap/size dialog.
 - **Word-style popup menu icons** — `EV_UnixMenu::_createMenuItem`
   resolves each popup item's toolbar icon
   (`AP_CreateToolbarLabelSet` + `abi_stock_from_toolbar_id`) and sets

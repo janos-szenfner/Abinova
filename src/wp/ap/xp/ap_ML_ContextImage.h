@@ -28,6 +28,7 @@
 BeginLayout(ContextImageT,EV_EMC_IMAGE)
 
 	BeginPopupMenu()
+		MenuItem(AP_MENU_ID_FMT_IMGPROPS)
 		MenuItem(AP_MENU_ID_FMT_SETPOSIMAGE)
 		MenuItem(AP_MENU_ID_FILE_SAVEIMAGE)
 		Separator()

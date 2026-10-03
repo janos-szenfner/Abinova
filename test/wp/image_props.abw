@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml-1.0.dtd">
+<abiword version="1.0" file-format="1.1">
+<section>
+<p props="text-align:left">Text before <image dataid="logo.png_0" title="AbiSource logo" alt="A red square logo" props="height:0.50in; width:0.50in"/> and after.</p>
+</section>
+<data>
+<d name="logo.png_0" mime-type="image/png" base64="yes">
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAICAIAAAB/FOjAAAAAFElEQVR4nGP4z8BAEiJN9agGIhEAJMZ/gd5KfaIAAAAASUVORK5CYII=
+</d>
+</data>
+</abiword>

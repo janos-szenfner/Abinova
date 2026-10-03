@@ -662,6 +662,7 @@ public:
 	static EV_EditMethod_Fn dlgBorders;
 	static EV_EditMethod_Fn dlgColumns;
 	static EV_EditMethod_Fn dlgFmtPosImage;
+	static EV_EditMethod_Fn dlgImageProperties;
 	static EV_EditMethod_Fn setPosImage;
 	static EV_EditMethod_Fn dlgHdrFtr;
 	static EV_EditMethod_Fn style;
@@ -1078,6 +1079,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dlgColorPickerFore),	0,	""),
 	EV_EditMethod(NF(dlgColumns),			0,	""),
 	EV_EditMethod(NF(dlgFmtPosImage), 		0, ""),
+	EV_EditMethod(NF(dlgImageProperties), 	0, ""),
 	EV_EditMethod(NF(dlgFont),				0,	""),
 	EV_EditMethod(NF(dlgHdrFtr),			0,	""),
 	EV_EditMethod(NF(dlgLanguage),			0,	""),
@@ -13702,6 +13704,157 @@ Defun1(dlgFmtPosImage)
 	  //
 	  pView->setFrameFormat(attribs,properties,pCloseBL);
 	}
+	return true;
+}
+
+/*!
+ * Return the image run covering document position pos, or nullptr.
+ */
+static fp_Run * s_imageRunAt(FV_View * pView, PT_DocPosition pos)
+{
+	fl_BlockLayout * pBlock = pView->getBlockAtPosition(pos);
+	if(!pBlock)
+	{
+		return nullptr;
+	}
+	UT_sint32 x1,x2,y1,y2,iHeight;
+	bool bEOL = false;
+	bool bDir = false;
+	fp_Run * pRun = pBlock->findPointCoords(pos,bEOL,x1,y1,x2,y2,iHeight,bDir);
+	if(pRun && pRun->getType() == FPRUN_IMAGE)
+	{
+		return pRun;
+	}
+	return nullptr;
+}
+
+/*!
+ * Image Properties for inline images: size (with aspect lock),
+ * title and alternative text - the controls the positioned-object
+ * dialog hides behind its wrapping tab. An active positioned
+ * object is handed to dlgFmtPosImage, which edits the same fields
+ * plus wrap/placement.
+ */
+Defun(dlgImageProperties)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	UT_return_val_if_fail(pView, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	// an active positioned object gets the full position/size dialog
+	if(pView->getFrameEdit()->isActive() && pView->getFrameLayout())
+	{
+		return dlgFmtPosImage(pAV_View, pCallData);
+	}
+
+	// the context menu selects the image before popping; without a
+	// selection look for an image run at the point or just before it
+	const fp_Run * pRun = nullptr;
+	PT_DocPosition pos = pView->getSelectedImage(nullptr,&pRun);
+	if(!pos || !pRun)
+	{
+		pRun = s_imageRunAt(pView,pView->getPoint());
+		if(!pRun && (pView->getPoint() > 0))
+		{
+			pRun = s_imageRunAt(pView,pView->getPoint() - 1);
+		}
+		if(!pRun)
+		{
+			return false;
+		}
+		pos = pRun->getBlock()->getPosition() + pRun->getBlockOffset();
+	}
+	fp_ImageRun * pImageRun = static_cast<fp_ImageRun *>(const_cast<fp_Run *>(pRun));
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	XAP_Dialog_Image * pDialog
+		= static_cast<XAP_Dialog_Image *>(pDialogFactory->requestDialog(XAP_DIALOG_ID_IMAGE));
+	UT_return_val_if_fail(pDialog, false);
+	pDialog->setFormatInline(true);
+	pDialog->setInHdrFtr(false);
+	pDialog->setWrapping(WRAP_INLINE);
+
+	std::string rulerUnits;
+	UT_Dimension dim = DIM_IN;
+	if (XAP_App::getApp()->getPrefsValue(AP_PREF_KEY_RulerUnits, rulerUnits)) {
+		dim = UT_determineDimension(rulerUnits.c_str());
+	}
+	pDialog->setPreferedUnits(dim);
+
+	UT_sint32 iColWidth = 0;
+	UT_sint32 iColHeight = 0;
+	fl_BlockLayout * pBL = pRun->getBlock();
+	if(pBL && pBL->getDocSectionLayout())
+	{
+		iColWidth = pBL->getDocSectionLayout()->getActualColumnWidth();
+		iColHeight = pBL->getDocSectionLayout()->getActualColumnHeight();
+	}
+	if(iColWidth <= 0)
+	{
+		iColWidth = 6*UT_LAYOUT_RESOLUTION;
+	}
+	if(iColHeight <= 0)
+	{
+		iColHeight = 9*UT_LAYOUT_RESOLUTION;
+	}
+	pDialog->setMaxWidth (iColWidth*72.0/UT_LAYOUT_RESOLUTION); // units are 1/72 of an inch
+	pDialog->setMaxHeight (iColHeight*72.0/UT_LAYOUT_RESOLUTION);
+
+	const PP_AttrProp * pAP = pImageRun->getSpanAP();
+	const gchar * szTitle = nullptr;
+	const gchar * szDescription = nullptr;
+	if(pAP)
+	{
+		pAP->getAttribute("title",szTitle);
+		pAP->getAttribute("alt",szDescription);
+	}
+	pDialog->setTitle(szTitle ? szTitle : "");
+	pDialog->setDescription(szDescription ? szDescription : "");
+
+	const gchar * pszWidth = nullptr;
+	const gchar * pszHeight = nullptr;
+	std::string sRunWidth;
+	std::string sRunHeight;
+	if(!pAP || !pAP->getProperty("width",pszWidth))
+	{
+		sRunWidth = UT_formatDimensionedValue(static_cast<double>(pRun->getWidth())/UT_LAYOUT_RESOLUTION,"in",nullptr);
+		pszWidth = sRunWidth.c_str();
+	}
+	if(!pAP || !pAP->getProperty("height",pszHeight))
+	{
+		sRunHeight = UT_formatDimensionedValue(static_cast<double>(pRun->getHeight())/UT_LAYOUT_RESOLUTION,"in",nullptr);
+		pszHeight = sRunHeight.c_str();
+	}
+	pDialog->setWidth( UT_reformatDimensionString(dim,pszWidth));
+	pDialog->setHeight( UT_reformatDimensionString(dim,pszHeight));
+
+	pDialog->runModal(pFrame);
+	if(pDialog->getAnswer() != XAP_Dialog_Image::a_OK)
+	{
+		return true;
+	}
+
+	// select the object then push the new size + metadata through the
+	// span format path - the same write path the positioned dialog
+	// uses for its inline conversion
+	pView->cmdSelect(pos,pos+1);
+	const PP_PropertyVector properties = {
+		"width", pDialog->getWidthString(),
+		"height", pDialog->getHeightString()
+	};
+	const PP_PropertyVector attribs = {
+		"title", pDialog->getTitle().utf8_str(),
+		"alt", pDialog->getDescription().utf8_str()
+	};
+	pView->setCharFormat(properties, attribs);
+	pView->updateScreen(true);
 	return true;
 }
 

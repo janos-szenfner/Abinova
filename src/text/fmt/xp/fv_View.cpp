@@ -3603,8 +3603,10 @@ PT_DocPosition FV_View::getSelectedImage(const char **dataId, const fp_Run **pIm
 	if (dataId != nullptr) {
 		*dataId = nullptr;
 	}
-	pImRun = nullptr;
-	
+	if (pImRun != nullptr) {
+		*pImRun = nullptr;
+	}
+
 	return 0;
 }
 

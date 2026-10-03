@@ -108,6 +108,12 @@ public:
 	  { m_bFormatFrame = bFrame;}
 	bool isFormatFrame(void) const
 	  { return m_bFormatFrame;}
+	/* inline images reuse this dialog too: they have no wrapping or
+	 * placement to edit, only size and title/description. */
+	void setFormatInline(bool bInline)
+	  { m_bFormatInline = bInline;}
+	bool isFormatInline(void) const
+	  { return m_bFormatInline;}
 	void setTitle(const UT_UTF8String & title) {
 		m_title = title;
 	}
@@ -154,4 +160,5 @@ public:
 	bool m_bInHdrFtr;
 	bool m_bTightWrap;
 	bool m_bFormatFrame;
+	bool m_bFormatInline;
 };

@@ -71,6 +71,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_FrameContext.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_ImageProps.t.cpp"
+#undef TFSUITE
 #include "src/wp/ap/xp/t/ap_KeyBindings.t.cpp"
 #undef TFSUITE
 #include "src/wp/ap/xp/t/ap_TopRuler.t.cpp"

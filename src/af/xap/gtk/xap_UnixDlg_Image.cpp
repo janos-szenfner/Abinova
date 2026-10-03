@@ -121,6 +121,14 @@ void XAP_UnixDialog_Image::event_Ok ()
 	setAnswer(XAP_Dialog_Image::a_OK);
 	setTitle (XAP_gtk_entry_get_text(GTK_EDITABLE(m_wTitleEntry)));
 	setDescription (XAP_gtk_entry_get_text(GTK_EDITABLE(m_wDescriptionEntry)));
+	if(isFormatInline())
+	{
+		/* inline images have no wrap/placement controls */
+		setWrapping(WRAP_INLINE);
+		setPositionTo(POSITION_TO_PARAGRAPH);
+		setTightWrap(false);
+		return;
+	}
 	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(m_wrbInLine)))
 	{
 		setWrapping(WRAP_INLINE);
@@ -394,9 +402,12 @@ void XAP_UnixDialog_Image::runModal(XAP_Frame * pFrame)
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wAspectCheck), FALSE);
 	}	  
 	
-	setWrappingGUI();
-	setPositionToGUI();
-	wrappingChanged();
+	if(!isFormatInline())
+	{
+		setWrappingGUI();
+		setPositionToGUI();
+		wrappingChanged();
+	}
 
 	switch ( abiRunModalDialog ( GTK_DIALOG(cf), pFrame, this, BUTTON_CANCEL, false ) )
     {
@@ -578,6 +589,16 @@ GtkWidget * XAP_UnixDialog_Image::_constructWindow ()
 		localizeButton(GTK_WIDGET(gtk_builder_get_object(builder, "rbWrappedBoth")), pSS, XAP_STRING_ID_DLG_Image_FrameWrappedBoth);
 
 		gtk_widget_set_visible(m_wrbInLine, FALSE);
+	}
+
+	/* inline images have no wrapping or placement: collapse the
+	 * notebook to the size + description controls only. */
+	if (isFormatInline())
+	{
+		GtkWidget * nb = GTK_WIDGET(gtk_builder_get_object(builder, "notebook1"));
+		GtkWidget * wrap = GTK_WIDGET(gtk_builder_get_object(builder, "grWrapping"));
+		gtk_widget_set_visible(wrap, FALSE);
+		gtk_notebook_set_show_tabs(GTK_NOTEBOOK(nb), FALSE);
 	}
 
 	pSS->getValueUTF8 (XAP_STRING_ID_DLG_Image_Aspect,s);
