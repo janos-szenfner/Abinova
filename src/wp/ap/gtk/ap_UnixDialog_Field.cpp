@@ -29,6 +29,7 @@
 // like centering them, measuring them, etc.
 #include "xap_UnixDialogHelper.h"
 #include "xap_GtkUtils.h"
+#include "xap_GtkListHelpers.h"
 
 #include "xap_App.h"
 #include "xap_UnixApp.h"
@@ -61,6 +62,10 @@ AP_UnixDialog_Field::AP_UnixDialog_Field(XAP_DialogFactory * pDlgFactory,
 	m_listTypes = nullptr;
 	m_listFields = nullptr;
 	m_entryParam = nullptr;
+	m_selTypes = nullptr;
+	m_selFields = nullptr;
+	m_cursorChangedHandlerId = 0;
+	m_rowActivatedHandlerId = 0;
 }
 
 AP_UnixDialog_Field::~AP_UnixDialog_Field(void)
@@ -69,16 +74,15 @@ AP_UnixDialog_Field::~AP_UnixDialog_Field(void)
 
 /*****************************************************************/
 
-static void s_types_clicked(GtkTreeView *treeview,
+static void s_types_changed(GObject * /*obj*/, GParamSpec * /*pspec*/,
                             AP_UnixDialog_Field * dlg)
 {
-	UT_ASSERT(treeview && dlg);
-	dlg->types_changed(treeview);
+	UT_ASSERT(dlg);
+	dlg->types_changed();
 }
 
-void AP_UnixDialog_Field::s_field_dblclicked(GtkTreeView * /*treeview*/,
-											 GtkTreePath * /*arg1*/,
-											 GtkTreeViewColumn * /*arg2*/,
+void AP_UnixDialog_Field::s_field_dblclicked(GtkListView * /*listview*/,
+											 guint /*position*/,
 											 AP_UnixDialog_Field * me)
 {
 	gtk_dialog_response (GTK_DIALOG(me->m_windowMain), CUSTOM_RESPONSE_INSERT);
@@ -110,7 +114,7 @@ void AP_UnixDialog_Field::runModal(XAP_Frame * pFrame)
 
         // We need to disconnect handler or answer will reset to "Cancel" during
         // destruction
-        g_signal_handler_disconnect(G_OBJECT(m_listTypes), m_cursorChangedHandlerId);
+        g_signal_handler_disconnect(G_OBJECT(m_selTypes), m_cursorChangedHandlerId);
         g_signal_handler_disconnect(G_OBJECT(m_listFields), m_rowActivatedHandlerId);
 	abiDestroyWidget ( m_windowMain ) ;
 }
@@ -118,71 +122,44 @@ void AP_UnixDialog_Field::runModal(XAP_Frame * pFrame)
 void AP_UnixDialog_Field::event_Insert(void)
 {
 	UT_ASSERT(m_windowMain && m_listTypes && m_listFields);
-	
+
 	// find item selected in the Types list box, save it to m_iTypeIndex
 
-	GtkTreeSelection * selection;
-	GtkTreeIter iter;
-	GtkTreeModel * model;
-
-	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_listTypes) );
-
-	// if there is no selection, or the selection's data (GtkListItem widget)
-	// is empty, return cancel.  GTK can make this happen.
-	if ( !selection || 
-		 !gtk_tree_selection_get_selected (selection, &model, &iter)
-	   )
+	// if there is no selection return cancel.  GTK can make this happen.
+	int typeIndex = XAP_single_selection_get_int(m_selTypes);
+	if (typeIndex < 0)
 	{
 		m_answer = AP_Dialog_Field::a_CANCEL;
 		return;
 	}
+	m_iTypeIndex = typeIndex;
 
-	// get the ID of the selected Type
-	gtk_tree_model_get (model, &iter, 1, &m_iTypeIndex, -1);
-
-	
 	// find item selected in the Field list box, save it to m_iFormatIndex
-
-	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_listFields) );
-
-	// if there is no selection, or the selection's data (GtkListItem widget)
-	// is empty, return cancel.  GTK can make this happen.
-	if ( !selection || 
-		 !gtk_tree_selection_get_selected (selection, &model, &iter)
-	   )
+	int formatIndex = XAP_single_selection_get_int(m_selFields);
+	if (formatIndex < 0)
 	{
 		m_answer = AP_Dialog_Field::a_CANCEL;
 		return;
 	}
+	m_iFormatIndex = formatIndex;
 
-	// get the ID of the selected Type
-	gtk_tree_model_get (model, &iter, 1, &m_iFormatIndex, -1);
-	
-	setParameter(XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryParam)));	
+	setParameter(XAP_gtk_entry_get_text(GTK_EDITABLE(m_entryParam)));
 	m_answer = AP_Dialog_Field::a_OK;
 }
 
 
-void AP_UnixDialog_Field::types_changed(GtkTreeView *treeview)
+void AP_UnixDialog_Field::types_changed(void)
 {
-	GtkTreeSelection * selection;
-	GtkTreeIter iter;
-	GtkTreeModel * model;
-
-	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(treeview) );
-
-	// if there is no selection, or the selection's data (GtkListItem widget)
-	// is empty, return cancel.  GTK can make this happen.
-	if ( !selection || 
-		 !gtk_tree_selection_get_selected (selection, &model, &iter)
-	   )
+	// if there is no selection return.  GTK can make this happen.
+	int typeIndex = XAP_single_selection_get_int(m_selTypes);
+	if (typeIndex < 0)
 	{
 		m_answer = AP_Dialog_Field::a_CANCEL;
 		return;
-	}	
+	}
 
 	// Update m_iTypeIndex with the row number
-	gtk_tree_model_get (model, &iter, 1, &m_iTypeIndex, -1);	
+	m_iTypeIndex = typeIndex;
 
 	// Update the fields list with this new Type
 	setFieldsList();
@@ -190,63 +167,41 @@ void AP_UnixDialog_Field::types_changed(GtkTreeView *treeview)
 
 void AP_UnixDialog_Field::setTypesList(void)
 {
-	UT_ASSERT(m_listTypes);
-	
+	UT_ASSERT(m_listTypes && m_selTypes);
+
 	UT_sint32 i;
-	
-	GtkListStore *model;
-	GtkTreeIter iter;
-	
-	model = gtk_list_store_new (2, 
-							    G_TYPE_STRING,
-								G_TYPE_INT
-	                            );
-	
+
+	GListStore *model = G_LIST_STORE(
+		gtk_single_selection_get_model(m_selTypes));
+	g_list_store_remove_all(model);
+
  	// build a list of all items
     for (i = 0; fp_FieldTypes[i].m_Desc != nullptr; i++)
 	{
 		// Add a new row to the model
-		gtk_list_store_append (model, &iter);
-		gtk_list_store_set (model, &iter,
-					  		0, fp_FieldTypes[i].m_Desc,
-							1, i,
-					  		-1);
+		XAP_list_store_append_text_and_int(model, fp_FieldTypes[i].m_Desc, i);
 	}
-	
-	gtk_tree_view_set_model( GTK_TREE_VIEW(m_listTypes), reinterpret_cast<GtkTreeModel *>(model));
 
-	g_object_unref (model);	
-	
 	// now select first item in box
  	gtk_widget_grab_focus (m_listTypes);
 
-	GtkTreeSelection* selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_listTypes) );
-	if (selection)
-	  {
-	    GtkTreePath * path = gtk_tree_path_new_first ();
-	    gtk_tree_selection_select_path (selection, path);
-	    gtk_tree_path_free (path);
-	  }
+	gtk_single_selection_set_selected(m_selTypes, 0);
 
 	m_iTypeIndex = 0;
 }
 
 void AP_UnixDialog_Field::setFieldsList(void)
 {
-	UT_ASSERT(m_listFields);
-	
+	UT_ASSERT(m_listFields && m_selFields);
+
 	fp_FieldTypesEnum FType = fp_FieldTypes[m_iTypeIndex].m_Type;
-	
+
 	UT_sint32 i;
-	
-	GtkListStore *model;
-	GtkTreeIter iter;
-	
-	model = gtk_list_store_new (2, 
-							    G_TYPE_STRING,
-								G_TYPE_INT
-	                            );
-	
+
+	GListStore *model = G_LIST_STORE(
+		gtk_single_selection_get_model(m_selFields));
+	g_list_store_remove_all(model);
+
  	// build a list of all items
     for (i = 0; fp_FieldFmts[i].m_Tag != nullptr; i++)
 	{
@@ -254,24 +209,16 @@ void AP_UnixDialog_Field::setFieldsList(void)
 		   (fp_FieldFmts[i].m_Num != FPFIELD_endnote_ref) &&
 		   (fp_FieldFmts[i].m_Num != FPFIELD_footnote_anch) &&
 		   (fp_FieldFmts[i].m_Num != FPFIELD_footnote_ref))
-		{ 
+		{
 
 			if (fp_FieldFmts[i].m_Type == FType)
 			{
 				// Add a new row to the model
-				gtk_list_store_append (model, &iter);
-				gtk_list_store_set (model, &iter,
-									0, fp_FieldFmts[i].m_Desc,
-									1, i,
-									-1);
+				XAP_list_store_append_text_and_int(model, fp_FieldFmts[i].m_Desc, i);
 			}
 		}
 	}
-	
-	gtk_tree_view_set_model( GTK_TREE_VIEW(m_listFields), reinterpret_cast<GtkTreeModel *>(model));
 
-	g_object_unref (model);
-		
 	// now select first item in box
  	gtk_widget_grab_focus (m_listFields);
 }
@@ -284,8 +231,6 @@ GtkWidget * AP_UnixDialog_Field::_constructWindow(void)
 {
 	GtkWidget * window;
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
-	GtkCellRenderer *renderer;
-	GtkTreeViewColumn *column;
 
 	GtkBuilder * builder = newDialogBuilderFromResource("ap_UnixDialog_Field.ui");
 	
@@ -296,9 +241,15 @@ GtkWidget * AP_UnixDialog_Field::_constructWindow(void)
 	m_listFields = GTK_WIDGET(gtk_builder_get_object(builder, "tvFields"));
 	m_entryParam = GTK_WIDGET(gtk_builder_get_object(builder, "edExtraParameters"));
 	
-	// set the single selection mode for the TreeViews
-    gtk_tree_selection_set_mode (gtk_tree_view_get_selection (GTK_TREE_VIEW (m_listTypes)), GTK_SELECTION_SINGLE);	
-    gtk_tree_selection_set_mode (gtk_tree_view_get_selection (GTK_TREE_VIEW (m_listFields)), GTK_SELECTION_SINGLE);	
+	GListStore *typesStore = XAP_list_store_new();
+	m_selTypes =
+		XAP_list_view_set_model(GTK_LIST_VIEW(m_listTypes), typesStore);
+	g_object_unref(typesStore);
+
+	GListStore *fieldsStore = XAP_list_store_new();
+	m_selFields =
+		XAP_list_view_set_model(GTK_LIST_VIEW(m_listFields), fieldsStore);
+	g_object_unref(fieldsStore);
 
 	// set the dialog title
 	std::string s;
@@ -312,33 +263,15 @@ GtkWidget * AP_UnixDialog_Field::_constructWindow(void)
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbExtraParameters")), pSS, AP_STRING_ID_DLG_Field_Parameters);
 	localizeButtonUnderline(GTK_WIDGET(gtk_builder_get_object(builder, "btInsert")), pSS, AP_STRING_ID_DLG_InsertButton);
 
-	// add a column to our TreeViews
+	// refill the fields list when the selected type changes
 
-	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("Format",
-							 renderer,
-							 "text", 
-							 0,
-							 nullptr);
-	gtk_tree_view_append_column( GTK_TREE_VIEW(m_listTypes), column);
-
-	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("Format",
-							 renderer,
-							 "text", 
-							 0,
-							 nullptr);
-	gtk_tree_view_append_column( GTK_TREE_VIEW(m_listFields), column);	
-
-	// connect a clicked signal to the column
-
-	m_cursorChangedHandlerId = g_signal_connect_after(G_OBJECT(m_listTypes),
-						   "cursor-changed",
-						   G_CALLBACK(s_types_clicked),
+	m_cursorChangedHandlerId = g_signal_connect_after(G_OBJECT(m_selTypes),
+						   "notify::selected",
+						   G_CALLBACK(s_types_changed),
 						   static_cast<gpointer>(this));
 
 	m_rowActivatedHandlerId = g_signal_connect_after(G_OBJECT(m_listFields),
-						   "row-activated",
+						   "activate",
 						   G_CALLBACK(s_field_dblclicked),
 						   static_cast<gpointer>(this));
 

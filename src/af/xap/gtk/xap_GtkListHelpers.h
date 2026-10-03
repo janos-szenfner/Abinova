@@ -132,3 +132,12 @@ const char * XAP_single_selection_get_text(GtkSingleSelection * sel);
 
 /// Select the first row whose int payload equals value.
 bool XAP_single_selection_select_int(GtkSingleSelection * sel, int value);
+
+/// Move the selection one row forward/back with wrap-around — the
+/// semantics of the old selectNext/selectPrev tree-view helpers:
+/// next past the last row wraps to the first (and picks the first
+/// when nothing is selected), prev before the first row wraps to the
+/// last (and picks the last when nothing is selected).  No-op on an
+/// empty model.
+void XAP_single_selection_select_next(GtkSingleSelection * sel);
+void XAP_single_selection_select_prev(GtkSingleSelection * sel);

@@ -42,9 +42,8 @@ public:
 
 protected:
 
-	static void s_date_dblclicked(GtkTreeView *treeview,
-								  GtkTreePath *arg1,
-								  GtkTreeViewColumn *arg2,
+	static void s_date_dblclicked(GtkListView *listview,
+								  guint position,
 								  AP_UnixDialog_Insert_DateTime * me);
 
 	// private construction functions
@@ -54,8 +53,8 @@ protected:
 	// pointers to widgets we need to query/set
 	GtkWidget * m_windowMain;
 
-	// group of radio buttons for easy traversal
 	GtkWidget * m_tvFormats;
+	GtkSingleSelection * m_selFormats;
 };
 
 #endif /* AP_UNIXDIALOG_INSERT_DATETIME_H */

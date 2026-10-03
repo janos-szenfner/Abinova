@@ -63,20 +63,6 @@ protected:
 
 private:
 
-    enum: uint8_t {
-		COLUMN_NAME = 0,  /* currently only one column
-		COLUMN_PAGE,
-		COLUMN_NUMBER,  */
-		NUM_COLUMNS
-	};
-    enum: uint8_t {
-        COLUMN_ANNO_ID = 0,
-        COLUMN_ANNO_TITLE,
-        COLUMN_ANNO_AUTHOR,
-		NUM_ANNO_COLUMNS
-    };
-
-
 	void  _selectPrevBookmark 		 (void);
 	void  _selectNextBookmark 		 (void);
     std::string _getSelectedBookmarkLabel();
@@ -100,13 +86,18 @@ private:
     GtkWidget *m_lvAnno;
 	GtkWidget *m_btClose;
 
+	GtkSingleSelection *m_selBookmarks;
+	GtkSingleSelection *m_selXMLIDs;
+	GtkSingleSelection *m_selAnno;
+	GListStore *m_storeAnno;
+
 	guint m_iPageConnect;
 	guint m_iLineConnect;
 	AP_JumpTarget m_JumpTarget;
 	FV_DocCount   m_DocCount;
 
     void setupXMLIDList( GtkWidget* w );
-    void updateXMLIDList( GtkWidget* w );
+    void updateXMLIDList( void );
     void setupAnnotationList( GtkWidget* w );
-    void updateAnnotationList( GtkWidget* w );
+    void updateAnnotationList( void );
 };

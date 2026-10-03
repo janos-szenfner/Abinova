@@ -28,6 +28,7 @@
 // This header defines some functions for Unix dialogs,
 // like centering them, measuring them, etc.
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkListHelpers.h"
 
 #include "xap_App.h"
 #include "xap_UnixApp.h"
@@ -58,6 +59,7 @@ AP_UnixDialog_Insert_DateTime::AP_UnixDialog_Insert_DateTime(XAP_DialogFactory *
 {
 	m_windowMain = nullptr;
 	m_tvFormats = nullptr;
+	m_selFormats = nullptr;
 }
 
 AP_UnixDialog_Insert_DateTime::~AP_UnixDialog_Insert_DateTime(void)
@@ -92,9 +94,8 @@ void AP_UnixDialog_Insert_DateTime::runModal(XAP_Frame * pFrame)
 	abiDestroyWidget ( m_windowMain ) ;
 }
 
-void AP_UnixDialog_Insert_DateTime::s_date_dblclicked(GtkTreeView * /*treeview*/,
-													  GtkTreePath * /*arg1*/,
-													  GtkTreeViewColumn * /*arg2*/,
+void AP_UnixDialog_Insert_DateTime::s_date_dblclicked(GtkListView * /*listview*/,
+													  guint /*position*/,
 													  AP_UnixDialog_Insert_DateTime * me)
 {
 	gtk_dialog_response (GTK_DIALOG(me->m_windowMain), CUSTOM_RESPONSE_INSERT);
@@ -104,45 +105,37 @@ void AP_UnixDialog_Insert_DateTime::event_Insert(void)
 {
 	UT_ASSERT(m_windowMain && m_tvFormats);
 
-	GtkTreeSelection * selection;
-	GtkTreeIter iter;
-	GtkTreeModel * model;
-
-	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_tvFormats) );
-
-	// if there is no selection, or the selection's data (GtkListItem widget)
-	// is empty, return cancel.  GTK can make this happen.
-	if ( !selection || 
-		 !gtk_tree_selection_get_selected (selection, &model, &iter)
-	   )
+	// if there is no selection return cancel.  GTK can make this happen.
+	int formatIndex = XAP_single_selection_get_int(m_selFormats);
+	if (formatIndex < 0)
 	{
 		m_answer = AP_Dialog_Insert_DateTime::a_CANCEL;
 		return;
 	}
 
-	// get the ID of the selected DataTime format	
-	gtk_tree_model_get (model, &iter, 1, &m_iFormatIndex, -1);
+	// the ID of the selected DateTime format
+	m_iFormatIndex = formatIndex;
 	m_answer = AP_Dialog_Insert_DateTime::a_OK;
 }
 
 /*****************************************************************/
 GtkWidget * AP_UnixDialog_Insert_DateTime::_constructWindow(void)
 {
-	GtkWidget * window;	
+	GtkWidget * window;
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
-	GtkCellRenderer *renderer;
-	GtkTreeViewColumn *column;	
-	
+
 	GtkBuilder * builder = newDialogBuilderFromResource("ap_UnixDialog_Insert_DateTime.ui");
-	
+
 	// Update our member variables with the important widgets that 
 	// might need to be queried or altered later
 	window = GTK_WIDGET(gtk_builder_get_object(builder, "ap_UnixDialog_Insert_DateTime"));
 	m_tvFormats = GTK_WIDGET(gtk_builder_get_object(builder, "tvFormats"));
 
-	// set the single selection mode for the TreeView
-    gtk_tree_selection_set_mode (gtk_tree_view_get_selection (GTK_TREE_VIEW (m_tvFormats)), GTK_SELECTION_SINGLE);		
-	
+	GListStore *store = XAP_list_store_new();
+	m_selFormats =
+		XAP_list_view_set_model(GTK_LIST_VIEW(m_tvFormats), store);
+	g_object_unref(store);
+
 	// set the dialog title
 	std::string s;
 	pSS->getValueUTF8(AP_STRING_ID_DLG_DateTime_DateTimeTitle,s);
@@ -158,17 +151,8 @@ GtkWidget * AP_UnixDialog_Insert_DateTime::_constructWindow(void)
 	localizeLabelMarkup(GTK_WIDGET(gtk_builder_get_object(builder, "lbAvailableFormats")), pSS, AP_STRING_ID_DLG_DateTime_AvailableFormats);
 	localizeButtonUnderline(GTK_WIDGET(gtk_builder_get_object(builder, "btInsert")), pSS, AP_STRING_ID_DLG_InsertButton);
 	
-	// add a column to our TreeView
-	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("Format",
-							 renderer,
-							 "text", 
-							 0,
-							 nullptr);
-	gtk_tree_view_append_column( GTK_TREE_VIEW(m_tvFormats), column);	
-
 	g_signal_connect_after(G_OBJECT(m_tvFormats),
-						   "row-activated",
+						   "activate",
 						   G_CALLBACK(s_date_dblclicked),
 						   static_cast<gpointer>(this));
 	
@@ -186,22 +170,18 @@ void AP_UnixDialog_Insert_DateTime::_populateWindowData(void)
 	// NOTE : you'll want to use to populate your list
 
 	UT_sint32 i;
-	
+
 	// this constant comes from ap_Dialog_Insert_DateTime.h
     char szCurrentDateTime[CURRENT_DATE_TIME_SIZE];
-	
+
     time_t tim = time(nullptr);
-	
+
     struct tm *pTime = localtime(&tim);
-	
-	GtkListStore *model;
-	GtkTreeIter iter;
-	
-	model = gtk_list_store_new (2, 
-							    G_TYPE_STRING,
-								G_TYPE_INT
-	                            );
-	
+
+	GListStore *model = G_LIST_STORE(
+		gtk_single_selection_get_model(m_selFormats));
+	g_list_store_remove_all(model);
+
  	// build a list of all items
     for (i = 0; InsertDateTimeFmts[i] != nullptr; i++)
 	{
@@ -213,19 +193,11 @@ void AP_UnixDialog_Insert_DateTime::_populateWindowData(void)
 		utf = g_locale_to_utf8(szCurrentDateTime, -1, &bytes_read, &bytes_written, nullptr);
 		if (utf) {
 			// Add a new row to the model
-			gtk_list_store_append (model, &iter);
-			gtk_list_store_set (model, &iter,
-								0, utf,
-								1, i,
-								-1);
+			XAP_list_store_append_text_and_int(model, utf, i);
 		}
 		g_free(utf);
 	}
-	
-	gtk_tree_view_set_model( GTK_TREE_VIEW(m_tvFormats), reinterpret_cast<GtkTreeModel *>(model));
-	
-	g_object_unref (model);
-	
+
 	// now select first item in box
  	gtk_widget_grab_focus (m_tvFormats);
 }

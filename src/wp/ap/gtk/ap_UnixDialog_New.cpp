@@ -34,6 +34,7 @@
 // This header defines some functions for Unix dialogs,
 // like centering them, measuring them, etc.
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkListHelpers.h"
 
 #include "xap_App.h"
 #include "xap_UnixApp.h"
@@ -100,25 +101,14 @@ void AP_UnixDialog_New::event_Ok ()
 	}
 	else if (gtk_check_button_get_active(GTK_CHECK_BUTTON(m_radioNew)))
 	{
-		GtkTreeSelection * selection;
-		GtkTreeIter iter;
-		GtkTreeModel * model;
-
-		selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_choicesList) );
-
-		// if there is no selection, or the selection's data (GtkListItem widget)
-		// is empty, return cancel.  GTK can make this happen.
-		if ( !selection ||
-			 !gtk_tree_selection_get_selected (selection, &model, &iter)
-			)
+		// if there is no selection fall back to a new document.
+		// GTK can make this happen.
+		int mRow = XAP_single_selection_get_int(m_selChoices);
+		if (mRow < 0)
 		{
 		    // fall back
 		    setOpenType(AP_Dialog_New::open_New);
 		} else {
-			// get the ID of the selected Type
-			int mRow;
-			gtk_tree_model_get (model, &iter, 1, &mRow, -1);
-
 			const auto& tmpl = mTemplates[mRow] ;
 			if (!tmpl.empty())
 			{
@@ -276,17 +266,15 @@ static std::list<std::string> awt_only (const std::string& path) {
 /*************************************************************************/
 /*************************************************************************/
 
-static void s_template_clicked(GtkTreeView *treeview,
+static void s_template_clicked(GObject * /*obj*/, GParamSpec * /*pspec*/,
 							   AP_UnixDialog_New * dlg)
 {
-	UT_DEBUG_ONLY_ARG(treeview);
-	UT_ASSERT(treeview && dlg);
+	UT_ASSERT(dlg);
 	dlg->event_ListClicked();
 }
 
-void AP_UnixDialog_New::s_template_dblclicked(GtkTreeView * /*treeview*/,
-											  GtkTreePath * /*arg1*/,
-											  GtkTreeViewColumn * /*arg2*/,
+void AP_UnixDialog_New::s_template_dblclicked(GtkListView * /*listview*/,
+											  guint /*position*/,
 											  AP_UnixDialog_New * me)
 {
 	me->event_ListClicked();
@@ -296,9 +284,7 @@ void AP_UnixDialog_New::s_template_dblclicked(GtkTreeView * /*treeview*/,
 GtkWidget * AP_UnixDialog_New::_constructWindow ()
 {
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
-	GtkCellRenderer *renderer;
-	GtkTreeViewColumn *column;
-	
+
 	// load the dialog from the UI file
 	GtkBuilder* builder = newDialogBuilderFromResource("ap_UnixDialog_New.ui");
 	
@@ -316,13 +302,10 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 	localizeButton(m_radioNew, pSS, AP_STRING_ID_DLG_NEW_Create);
 	localizeButton(m_radioExisting, pSS, AP_STRING_ID_DLG_NEW_Open);
 
-	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("Format",
-							 renderer,
-							 "text", 
-							 0,
-							 static_cast<gchar*>(nullptr));
-	gtk_tree_view_append_column( GTK_TREE_VIEW(m_choicesList), column);
+	GListStore *model = XAP_list_store_new();
+	m_selChoices =
+		XAP_list_view_set_model(GTK_LIST_VIEW(m_choicesList), model);
+	g_object_unref(model);
 
 	std::string templateList[2];
 	std::string templateDir;
@@ -337,14 +320,6 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 	templateDir += "/templates/";
 	templateList[1] = templateDir;
 
-	GtkListStore *model;
-	GtkTreeIter iter;
-
-	model = gtk_list_store_new (2,
-							    G_TYPE_STRING,
-								G_TYPE_INT
-	                            );
-
 	for (unsigned int i = 0; i < G_N_ELEMENTS(templateList); i++) {
 		templateDir = templateList[i];
 		auto list = awt_only(templateDir);
@@ -354,18 +329,12 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 			mTemplates.emplace_back(myTemplate);
 
 			// Add a new row to the model
-			gtk_list_store_append (model, &iter);
-			gtk_list_store_set (model, &iter,
-								0, UT_basename(myTemplate.c_str()),
-								1, mTemplates.size()-1,
-								-1);
+			XAP_list_store_append_text_and_int(model,
+											   UT_basename(myTemplate.c_str()),
+											   mTemplates.size()-1);
 			list.pop_front();
 		}
 	}
-
-	gtk_tree_view_set_model(GTK_TREE_VIEW(m_choicesList), GTK_TREE_MODEL(model));
-
-	g_object_unref (model);
 
 
 	if (getOpenType() == open_Existing)
@@ -383,13 +352,13 @@ GtkWidget * AP_UnixDialog_New::_constructWindow ()
 	event_RadioButtonSensitivity ();
 
 
-	g_signal_connect_after(G_OBJECT(m_choicesList),
-						   "cursor-changed",
+	g_signal_connect_after(G_OBJECT(m_selChoices),
+						   "notify::selected",
 						   G_CALLBACK(s_template_clicked),
 						   static_cast<gpointer>(this));
 
 	g_signal_connect_after(G_OBJECT(m_choicesList),
-						   "row-activated",
+						   "activate",
 						   G_CALLBACK(s_template_dblclicked),
 						   static_cast<gpointer>(this));
 

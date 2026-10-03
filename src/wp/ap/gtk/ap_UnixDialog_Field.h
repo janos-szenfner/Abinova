@@ -38,7 +38,7 @@ pFactory , XAP_Dialog_Id id);
 	virtual void runModal(XAP_Frame * pFrame) override;
 
 	void event_Insert(void);
-	void types_changed(GtkTreeView *treeview);
+	void types_changed(void);
 	void setTypesList(void);
 	void setFieldsList(void);
 
@@ -46,9 +46,8 @@ protected:
 	virtual GtkWidget *		_constructWindow(void);
 	void					_populateCatogries(void);
 
-	static void s_field_dblclicked(GtkTreeView *treeview,
-								   GtkTreePath *arg1,
-								   GtkTreeViewColumn *arg2,
+	static void s_field_dblclicked(GtkListView *listview,
+								   guint position,
 								   AP_UnixDialog_Field * me);
 
 	GtkWidget * m_windowMain;
@@ -56,9 +55,12 @@ protected:
 	GtkWidget * m_listTypes;
 	GtkWidget * m_listFields;
 	GtkWidget * m_entryParam;
-        
+
+	GtkSingleSelection * m_selTypes;
+	GtkSingleSelection * m_selFields;
+
         gulong m_cursorChangedHandlerId;
-        gulong m_rowActivatedHandlerId;   
+        gulong m_rowActivatedHandlerId;
 
 };
 

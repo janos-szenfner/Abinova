@@ -36,13 +36,9 @@
                 <property name="hexpand">1</property>
                 <property name="vexpand">1</property>
                 <child>
-                  <object class="GtkTreeView" id="tvFormats">
+                  <object class="GtkListView" id="tvFormats">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="headers-visible">0</property>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection1" />
-                    </child>
                   </object>
                 </child>
               <layout><property name="column">0</property><property name="row">1</property></layout></object>

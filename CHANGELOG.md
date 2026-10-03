@@ -3526,6 +3526,14 @@ below are on `main` but the release has not been cut yet.
   `GdkPaintable` on GTK4.  Double-click/Enter still activates a row;
   the Language dialog keeps its no-proofing, auto-detect and
   make-default behaviours.
+- **`GtkTreeView` → `GtkListView`/`GtkColumnView`, batch B (wp/ap
+  dialogs)** — the Go to, New (templates), Insert Field and Insert
+  Date & Time dialogs now run on `GListStore` + `GtkSingleSelection`
+  like batch A.  Go to's annotation tab is a real `GtkColumnView`
+  with sortable ID/Title/Author columns, and its Back/Forward
+  buttons wrap the bookmark and RDF-link selections exactly like the
+  old list navigation.  Page Setup's page-size list was already a
+  `GtkDropDown` and is unchanged.
 
 ### Performance
 

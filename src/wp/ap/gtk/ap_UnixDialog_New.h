@@ -52,9 +52,8 @@ private:
 
 	GtkWidget * _constructWindow ();
 
-	static void s_template_dblclicked(GtkTreeView *treeview,
-									  GtkTreePath *arg1,
-									  GtkTreeViewColumn *arg2,
+	static void s_template_dblclicked(GtkListView *listview,
+									  guint position,
 									  AP_UnixDialog_New * me);
 
 	/* private ... */
@@ -66,6 +65,7 @@ private:
 	GtkWidget * m_radioNew;
 	GtkWidget * m_radioExisting;
 	GtkWidget * m_choicesList;
+	GtkSingleSelection * m_selChoices;
 
 	std::vector<std::string> mTemplates;
 };

@@ -206,3 +206,29 @@ bool XAP_single_selection_select_int(GtkSingleSelection * sel, int value)
 	}
 	return false;
 }
+
+void XAP_single_selection_select_next(GtkSingleSelection * sel)
+{
+	GListModel *model =
+		sel ? gtk_single_selection_get_model(sel) : nullptr;
+	guint n = model ? g_list_model_get_n_items(model) : 0;
+	if (!sel || n == 0)
+		return;
+	guint pos = gtk_single_selection_get_selected(sel);
+	pos = (pos == GTK_INVALID_LIST_POSITION || pos + 1 >= n)
+		? 0 : pos + 1;
+	gtk_single_selection_set_selected(sel, pos);
+}
+
+void XAP_single_selection_select_prev(GtkSingleSelection * sel)
+{
+	GListModel *model =
+		sel ? gtk_single_selection_get_model(sel) : nullptr;
+	guint n = model ? g_list_model_get_n_items(model) : 0;
+	if (!sel || n == 0)
+		return;
+	guint pos = gtk_single_selection_get_selected(sel);
+	pos = (pos == GTK_INVALID_LIST_POSITION || pos == 0)
+		? n - 1 : pos - 1;
+	gtk_single_selection_set_selected(sel, pos);
+}

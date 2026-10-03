@@ -94,14 +94,9 @@
                         <property name="visible">1</property>
                         <property name="can-focus">1</property>
                         <child>
-                          <object class="GtkTreeView" id="lvBookmarks">
+                          <object class="GtkListView" id="lvBookmarks">
                             <property name="visible">1</property>
                             <property name="can-focus">1</property>
-                            <property name="headers-visible">0</property>
-                            <property name="reorderable">1</property>
-                            <child internal-child="selection">
-                              <object class="GtkTreeSelection" id="treeview-selection1" />
-                            </child>
                           </object>
                         </child>
                       <property name="hexpand">1</property><property name="vexpand">1</property></object>
@@ -115,14 +110,9 @@
                   </object>
                   </child>
                 <child>
-                  <object class="GtkTreeView" id="lvXMLIDs">
+                  <object class="GtkListView" id="lvXMLIDs">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <property name="headers-visible">0</property>
-                    <property name="reorderable">1</property>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection2" />
-                    </child>
                   </object>
                   </child>
                 <child type="tab">
@@ -132,12 +122,9 @@
                   </object>
                   </child>
                 <child>
-                  <object class="GtkTreeView" id="lvAnno">
+                  <object class="GtkColumnView" id="lvAnno">
                     <property name="visible">1</property>
                     <property name="can-focus">1</property>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection4" />
-                    </child>
                   </object>
                   </child>
                 <child type="tab">

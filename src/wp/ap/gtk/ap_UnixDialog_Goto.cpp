@@ -41,6 +41,7 @@
 #include "ap_Dialog_Id.h"
 #include "ap_Dialog_Goto.h"
 #include "ap_UnixDialog_Goto.h"
+#include "xap_GtkListHelpers.h"
 
 #include "GTKCommon.h"
 
@@ -131,30 +132,27 @@ AP_UnixDialog_Goto__onLineChanged (GtkSpinButton * /*spinbutton*/,
 }
 
 /*!
-* Event dispatcher for treeview "bookmarks".
+* Event dispatcher for listview "bookmarks".
 */
 void
-AP_UnixDialog_Goto__onBookmarkDblClicked (GtkTreeView       * /*tree*/,
-										  GtkTreePath       * /*path*/,
-										  GtkTreeViewColumn * /*col*/,
+AP_UnixDialog_Goto__onBookmarkDblClicked (GtkListView       * /*view*/,
+										  guint               /*position*/,
 										  gpointer		    data)
 {
 	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
 	dlg->onBookmarkDblClicked ();
 }
 void
-AP_UnixDialog_Goto__onXMLIDDblClicked (GtkTreeView       * /*tree*/,
-                                       GtkTreePath       * /*path*/,
-                                       GtkTreeViewColumn * /*col*/,
+AP_UnixDialog_Goto__onXMLIDDblClicked (GtkListView       * /*view*/,
+                                       guint               /*position*/,
                                        gpointer		    data)
 {
 	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
 	dlg->onXMLIDDblClicked ();
 }
 void
-AP_UnixDialog_Goto__onAnnoDblClicked (GtkTreeView       * /*tree*/,
-                                      GtkTreePath       * /*path*/,
-                                      GtkTreeViewColumn * /*col*/,
+AP_UnixDialog_Goto__onAnnoDblClicked (GtkColumnView     * /*view*/,
+                                      guint               /*position*/,
                                       gpointer		    data)
 {
 	AP_UnixDialog_Goto *dlg = static_cast <AP_UnixDialog_Goto *>(data);
@@ -257,6 +255,10 @@ AP_UnixDialog_Goto::AP_UnixDialog_Goto(XAP_DialogFactory *pDlgFactory,
 	  m_lvXMLIDs(nullptr),
 	  m_lvAnno(nullptr),
 	  m_btClose(nullptr),
+	  m_selBookmarks(nullptr),
+	  m_selXMLIDs(nullptr),
+	  m_selAnno(nullptr),
+	  m_storeAnno(nullptr),
 	  m_iPageConnect(0),
 	  m_iLineConnect(0),
 	  m_JumpTarget(AP_JUMPTARGET_BOOKMARK)
@@ -397,10 +399,10 @@ AP_UnixDialog_Goto::onPrevClicked ()
 			_selectPrevBookmark ();
 			break;
 		case AP_JUMPTARGET_XMLID:
-            selectPrev(GTK_TREE_VIEW (m_lvXMLIDs));
+            XAP_single_selection_select_prev(m_selXMLIDs);
 			break;
 		case AP_JUMPTARGET_ANNOTATION:
-            selectPrev(GTK_TREE_VIEW (m_lvAnno));
+            XAP_single_selection_select_prev(m_selAnno);
 			break;
 		default:
 			UT_DEBUGMSG (("ROB: AP_UnixDialog_Goto::onPrevClicked () no jump target\n"));
@@ -435,10 +437,10 @@ AP_UnixDialog_Goto::onNextClicked ()
 			_selectNextBookmark ();
 			break;
 		case AP_JUMPTARGET_XMLID:
-            selectNext(GTK_TREE_VIEW (m_lvXMLIDs));
+            XAP_single_selection_select_next(m_selXMLIDs);
 			break;
 		case AP_JUMPTARGET_ANNOTATION:
-            selectNext(GTK_TREE_VIEW (m_lvAnno));
+            XAP_single_selection_select_next(m_selAnno);
 			break;
 		default:
 			UT_DEBUGMSG (("ROB: AP_UnixDialog_Goto::onNextClicked () no jump target\n"));
@@ -490,43 +492,124 @@ void AP_UnixDialog_Goto::updatePosition (void)
 void
 AP_UnixDialog_Goto::setupXMLIDList( GtkWidget* w )
 {
-	// Liststore and -view
-	GtkListStore *store = gtk_list_store_new ( NUM_COLUMNS, G_TYPE_STRING );
-	gtk_tree_view_set_model (GTK_TREE_VIEW (w), GTK_TREE_MODEL (store));
-	g_object_unref (G_OBJECT (store));
-
-	// Column Bookmark
-	GtkCellRenderer *renderer = nullptr;
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (w),
-												-1, "Name", renderer,
-												"text", COLUMN_NAME,
-												nullptr);
-	GtkTreeViewColumn *column = gtk_tree_view_get_column (GTK_TREE_VIEW (w), 0);
-	gtk_tree_view_column_set_sort_column_id (column, COLUMN_NAME);
+	GListStore *store = XAP_list_store_new();
+	m_selXMLIDs =
+		XAP_list_view_set_model(GTK_LIST_VIEW(w), store);
+	g_object_unref(store);
 
 	{
 		GtkEventController *foc = gtk_event_controller_focus_new();
 		g_signal_connect (foc, "enter",
 						  G_CALLBACK (AP_UnixDialog_Goto__onFocusXMLIDs), static_cast <gpointer>(this));
 		gtk_widget_add_controller (w, foc);
-	} 
-	g_signal_connect (GTK_TREE_VIEW (w), "row-activated", 
+	}
+	g_signal_connect (w, "activate",
 					  G_CALLBACK (AP_UnixDialog_Goto__onXMLIDDblClicked), static_cast <gpointer>(this));
 }
 
 
+/* Annotation column cells — XAPDropDownItem rows carry the annotation
+ * index in int, the title in string1 and the author in string2. */
+
+static void s_anno_label_setup(GtkSignalListItemFactory * /*factory*/,
+							   GtkListItem * item, gpointer /*data*/)
+{
+	GtkWidget *label = gtk_label_new(nullptr);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+	gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
+	gtk_widget_set_halign(label, GTK_ALIGN_START);
+	gtk_list_item_set_child(item, label);
+}
+
+static void s_anno_bind_id(GtkSignalListItemFactory * /*factory*/,
+						   GtkListItem * item, gpointer /*data*/)
+{
+	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	gpointer row = gtk_list_item_get_item(item);
+	char buf[16];
+	if (row)
+		g_snprintf(buf, sizeof(buf), "%d",
+				   xap_drop_down_item_get_int(XAP_DROP_DOWN_ITEM(row)));
+	gtk_label_set_text(label, row ? buf : nullptr);
+}
+
+static void s_anno_bind_title(GtkSignalListItemFactory * /*factory*/,
+							  GtkListItem * item, gpointer /*data*/)
+{
+	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	gpointer row = gtk_list_item_get_item(item);
+	gtk_label_set_text(label,
+					   row ? xap_drop_down_item_get_string1(
+						   XAP_DROP_DOWN_ITEM(row)) : nullptr);
+}
+
+static void s_anno_bind_author(GtkSignalListItemFactory * /*factory*/,
+							   GtkListItem * item, gpointer /*data*/)
+{
+	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	gpointer row = gtk_list_item_get_item(item);
+	gtk_label_set_text(label,
+					   row ? xap_drop_down_item_get_string2(
+						   XAP_DROP_DOWN_ITEM(row)) : nullptr);
+}
+
+static GtkListItemFactory * s_anno_factory(GCallback bind)
+{
+	GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
+	g_signal_connect(factory, "setup", G_CALLBACK(s_anno_label_setup),
+					 nullptr);
+	g_signal_connect(factory, "bind", bind, nullptr);
+	return factory;
+}
+
+static int s_anno_sort_id(gconstpointer a, gconstpointer b,
+						  gpointer /*data*/)
+{
+	int x = xap_drop_down_item_get_int(
+		XAP_DROP_DOWN_ITEM(const_cast<gpointer>(a)));
+	int y = xap_drop_down_item_get_int(
+		XAP_DROP_DOWN_ITEM(const_cast<gpointer>(b)));
+	return (x > y) - (x < y);
+}
+
+static int s_anno_sort_title(gconstpointer a, gconstpointer b,
+							 gpointer /*data*/)
+{
+	return g_strcmp0(
+		xap_drop_down_item_get_string1(
+			XAP_DROP_DOWN_ITEM(const_cast<gpointer>(a))),
+		xap_drop_down_item_get_string1(
+			XAP_DROP_DOWN_ITEM(const_cast<gpointer>(b))));
+}
+
+static int s_anno_sort_author(gconstpointer a, gconstpointer b,
+							  gpointer /*data*/)
+{
+	return g_strcmp0(
+		xap_drop_down_item_get_string2(
+			XAP_DROP_DOWN_ITEM(const_cast<gpointer>(a))),
+		xap_drop_down_item_get_string2(
+			XAP_DROP_DOWN_ITEM(const_cast<gpointer>(b))));
+}
+
+static void s_anno_append_column(GtkColumnView * view, const char * title,
+								 GCallback bind,
+								 GtkSorter * sorter)
+{
+	GtkColumnViewColumn *col =
+		gtk_column_view_column_new(title, s_anno_factory(bind));
+	if (sorter) {
+		gtk_column_view_column_set_sorter(col, sorter);
+		g_object_unref(sorter);
+	}
+	gtk_column_view_append_column(view, col);
+	g_object_unref(col);
+}
+
 void
 AP_UnixDialog_Goto::setupAnnotationList( GtkWidget* w )
 {
-	GtkTreeViewColumn *column = nullptr;
-	GtkCellRenderer *renderer = nullptr;
-	// Liststore and -view
-	GtkListStore *store = gtk_list_store_new ( NUM_ANNO_COLUMNS,
-                                               G_TYPE_INT,
-                                               G_TYPE_STRING, G_TYPE_STRING );
-	gtk_tree_view_set_model (GTK_TREE_VIEW (w), GTK_TREE_MODEL (store));
-	g_object_unref (G_OBJECT (store));
+	GtkColumnView *view = GTK_COLUMN_VIEW(w);
 
 	// localization
 	const XAP_StringSet * pSS = m_pApp->getStringSet ();
@@ -535,40 +618,42 @@ AP_UnixDialog_Goto::setupAnnotationList( GtkWidget* w )
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Goto_Column_Title, title);
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Goto_Column_Author, author);
 
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (w),
-												-1, id.c_str(), renderer,
-												"text", COLUMN_ANNO_ID,
-												nullptr);
-	column = gtk_tree_view_get_column (GTK_TREE_VIEW (w), COLUMN_ANNO_ID );
-	gtk_tree_view_column_set_sort_column_id (column, COLUMN_ANNO_ID );
+	m_storeAnno = XAP_list_store_new();
+	GtkSortListModel *sort =
+		gtk_sort_list_model_new(G_LIST_MODEL(g_object_ref(m_storeAnno)),
+								nullptr);
+	GtkSingleSelection *sel =
+		gtk_single_selection_new(G_LIST_MODEL(sort));
+	gtk_single_selection_set_autoselect(sel, FALSE);
+	gtk_single_selection_set_can_unselect(sel, TRUE);
+	gtk_column_view_set_model(view, GTK_SELECTION_MODEL(sel));
+	g_object_unref(sel);
+	m_selAnno = GTK_SINGLE_SELECTION(gtk_column_view_get_model(view));
 
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (w),
-												-1, title.c_str(), renderer,
-												"text", COLUMN_ANNO_TITLE,
-												nullptr);
-	column = gtk_tree_view_get_column (GTK_TREE_VIEW (w), COLUMN_ANNO_TITLE );
-	gtk_tree_view_column_set_sort_column_id (column, COLUMN_ANNO_TITLE );
+	s_anno_append_column(view, id.c_str(),
+						 G_CALLBACK(s_anno_bind_id),
+						 GTK_SORTER(gtk_custom_sorter_new(s_anno_sort_id,
+														nullptr, nullptr)));
+	s_anno_append_column(view, title.c_str(),
+						 G_CALLBACK(s_anno_bind_title),
+						 GTK_SORTER(gtk_custom_sorter_new(s_anno_sort_title,
+														nullptr, nullptr)));
+	s_anno_append_column(view, author.c_str(),
+						 G_CALLBACK(s_anno_bind_author),
+						 GTK_SORTER(gtk_custom_sorter_new(s_anno_sort_author,
+														nullptr, nullptr)));
 
+	// clicking a column header sorts on that column's sorter
+	gtk_sort_list_model_set_sorter(sort,
+								   gtk_column_view_get_sorter(view));
 
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (w),
-												-1, author.c_str(), renderer,
-												"text", COLUMN_ANNO_AUTHOR,
-												nullptr);
-	column = gtk_tree_view_get_column (GTK_TREE_VIEW (w), COLUMN_ANNO_AUTHOR );
-	gtk_tree_view_column_set_sort_column_id (column, COLUMN_ANNO_AUTHOR );
-    
-
-    
 	{
 		GtkEventController *foc = gtk_event_controller_focus_new();
 		g_signal_connect (foc, "enter",
 						  G_CALLBACK (AP_UnixDialog_Goto__onFocusAnno), static_cast <gpointer>(this));
 		gtk_widget_add_controller (w, foc);
-	} 
-	g_signal_connect (GTK_TREE_VIEW (w), "row-activated", 
+	}
+	g_signal_connect (w, "activate",
 					  G_CALLBACK (AP_UnixDialog_Goto__onAnnoDblClicked), static_cast <gpointer>(this));
 }
 
@@ -622,21 +707,12 @@ AP_UnixDialog_Goto::_constructWindow (XAP_Frame * /*pFrame*/)
 
     setupXMLIDList( m_lvXMLIDs );
     setupAnnotationList( m_lvAnno );
-    
-	// Liststore and -view
-	GtkListStore *store = gtk_list_store_new (NUM_COLUMNS, G_TYPE_STRING);
-	gtk_tree_view_set_model (GTK_TREE_VIEW (m_lvBookmarks), GTK_TREE_MODEL (store));
-	g_object_unref (G_OBJECT (store));
 
-	// Column Bookmark
-	GtkCellRenderer *renderer = nullptr;
-	renderer = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (m_lvBookmarks),
-												-1, "Name", renderer,
-												"text", COLUMN_NAME,
-												nullptr);
-	GtkTreeViewColumn *column = gtk_tree_view_get_column (GTK_TREE_VIEW (m_lvBookmarks), 0);
-	gtk_tree_view_column_set_sort_column_id (column, COLUMN_NAME);
+	// bookmarks ListView
+	GListStore *bmStore = XAP_list_store_new();
+	m_selBookmarks =
+		XAP_list_view_set_model(GTK_LIST_VIEW(m_lvBookmarks), bmStore);
+	g_object_unref(bmStore);
 
 	// Signals
 	g_signal_connect (GTK_NOTEBOOK (m_nbNotebook), "switch-page", 
@@ -665,7 +741,7 @@ AP_UnixDialog_Goto::_constructWindow (XAP_Frame * /*pFrame*/)
 						  G_CALLBACK (AP_UnixDialog_Goto__onFocusBookmarks), static_cast <gpointer>(this));
 		gtk_widget_add_controller (m_lvBookmarks, foc);
 	} 
-	g_signal_connect (GTK_TREE_VIEW (m_lvBookmarks), "row-activated", 
+	g_signal_connect (m_lvBookmarks, "activate",
 					  G_CALLBACK (AP_UnixDialog_Goto__onBookmarkDblClicked), static_cast <gpointer>(this));
 
 	g_signal_connect (GTK_BUTTON (m_btJump), "clicked", 
@@ -697,46 +773,33 @@ AP_UnixDialog_Goto::_updateWindow ()
 	// position: pages and lines
 	updatePosition();
 
-	// bookmarks, detaching model for faster updates
-	GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (m_lvBookmarks));
-	g_object_ref (G_OBJECT (model));
-	gtk_tree_view_set_model (GTK_TREE_VIEW (m_lvBookmarks), nullptr);
-	gtk_list_store_clear (GTK_LIST_STORE (model));
+	// bookmarks
+	GListStore *bmModel = G_LIST_STORE(
+		gtk_single_selection_get_model(m_selBookmarks));
+	g_list_store_remove_all(bmModel);
 
-	GtkTreeIter iter;
 	UT_uint32 numBookmarks = getExistingBookmarksCount();
 	for (UT_uint32 i = 0; i < numBookmarks; i++) {
-
-		gtk_list_store_append (GTK_LIST_STORE (model), &iter);
 		const std::string & name = getNthExistingBookmark(i);
 		UT_DEBUGMSG (("    ROB: '%s'\n", name.c_str()));
-		gtk_list_store_set (GTK_LIST_STORE (model), &iter, 
-							COLUMN_NAME, name.c_str(), /* 
-							COLUMN_PAGE, "0", 
-							COLUMN_NUMBER, 0, */
-							-1);
+		XAP_list_store_append_text(bmModel, name.c_str());
 	}
-	gtk_tree_view_set_model (GTK_TREE_VIEW (m_lvBookmarks), model);
-	g_object_unref (G_OBJECT (model));
 
-    updateXMLIDList( m_lvXMLIDs );
-    updateAnnotationList( m_lvAnno );
+    updateXMLIDList();
+    updateAnnotationList();
 	updateDocCount ();
 }
 
 
 void
-AP_UnixDialog_Goto::updateXMLIDList( GtkWidget* w )
+AP_UnixDialog_Goto::updateXMLIDList( void )
 {
-	// detaching model for faster updates
-	GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (w));
-	g_object_ref (G_OBJECT (model));
-	gtk_tree_view_set_model (GTK_TREE_VIEW (w), nullptr);
-	gtk_list_store_clear (GTK_LIST_STORE (model));
+	GListStore *model = G_LIST_STORE(
+		gtk_single_selection_get_model(m_selXMLIDs));
+	g_list_store_remove_all(model);
 
     if( PD_DocumentRDFHandle rdf = getRDF() )
     {
-        GtkTreeIter iter;
         std::set< std::string > xmlids;
         rdf->getAllIDs( xmlids );
         UT_DEBUGMSG (("MIQ: xmlids.sz:%lu\n", static_cast<long unsigned>(xmlids.size() )));
@@ -744,50 +807,34 @@ AP_UnixDialog_Goto::updateXMLIDList( GtkWidget* w )
         for( std::set< std::string >::iterator xiter = xmlids.begin();
              xiter != xmlids.end(); ++xiter )
         {
-            gtk_list_store_append (GTK_LIST_STORE (model), &iter);
             std::string name = *xiter;
             UT_DEBUGMSG (("    MIQ: '%s'\n", name.c_str()));
-            gtk_list_store_set (GTK_LIST_STORE (model), &iter, 
-                                COLUMN_NAME, name.c_str(), -1);
+            XAP_list_store_append_text(model, name.c_str());
         }
     }
-    
-	gtk_tree_view_set_model (GTK_TREE_VIEW (w), model);
-	g_object_unref (G_OBJECT (model));
-    
 }
 
 
 void
-AP_UnixDialog_Goto::updateAnnotationList( GtkWidget* w )
+AP_UnixDialog_Goto::updateAnnotationList( void )
 {
-	// detaching model for faster updates
-	GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (w));
-	g_object_ref (G_OBJECT (model));
-	gtk_tree_view_set_model (GTK_TREE_VIEW (w), nullptr);
-	gtk_list_store_clear (GTK_LIST_STORE (model));
+	g_list_store_remove_all(m_storeAnno);
 
-    GtkTreeIter iter;
     FV_View* pView = getView();
 	UT_uint32 max = pView->countAnnotations();
     for( UT_uint32 i=0; i<max; ++i )
     {
-        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
         std::string name   = tostr(i);
         std::string title  = pView->getAnnotationTitle(i);
         std::string author = pView->getAnnotationAuthor(i);
-        
+
         UT_DEBUGMSG (("    MIQ: '%s'\n", name.c_str()));
-        gtk_list_store_set (GTK_LIST_STORE (model), &iter, 
-                            COLUMN_ANNO_ID,     i,
-                            COLUMN_ANNO_TITLE,  title.c_str(),
-                            COLUMN_ANNO_AUTHOR, author.c_str(),
-                            -1);
+        XAPDropDownItem *item =
+			xap_drop_down_item_new(name.c_str(), i,
+								   title.c_str(), author.c_str());
+        g_list_store_append(m_storeAnno, item);
+        g_object_unref(item);
     }
-    
-	gtk_tree_view_set_model (GTK_TREE_VIEW (w), model);
-	g_object_unref (G_OBJECT (model));
-    
 }
 
 
@@ -834,6 +881,10 @@ AP_UnixDialog_Goto::destroy ()
 		// callbacks emitted during teardown don't touch dead objects
 		m_sbPage = nullptr;
 		m_sbLine = nullptr;
+		m_selBookmarks = nullptr;
+		m_selXMLIDs = nullptr;
+		m_selAnno = nullptr;
+		m_storeAnno = nullptr;
 		abiDestroyWidget(m_wDialog); // TOPLEVEL
 		m_wDialog = nullptr;
 	}
@@ -848,7 +899,7 @@ void
 AP_UnixDialog_Goto::_selectPrevBookmark () 
 {
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Goto::_selectPrevBookmark ()\n"));
-    selectPrev(GTK_TREE_VIEW (m_lvBookmarks));
+    XAP_single_selection_select_prev(m_selBookmarks);
 }
 
 /**
@@ -860,7 +911,7 @@ void
 AP_UnixDialog_Goto::_selectNextBookmark () 
 {
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Goto::_selectNextBookmark ()\n"));
-    selectNext(GTK_TREE_VIEW (m_lvBookmarks));
+    XAP_single_selection_select_next(m_selBookmarks);
 }
 
 
@@ -871,7 +922,11 @@ std::string
 AP_UnixDialog_Goto::_getSelectedBookmarkLabel () 
 {
 	UT_DEBUGMSG (("ROB: AP_UnixDialog_Goto::_getSelectedBookmarkLabel ()\n"));
-    std::string ret = getSelectedText( GTK_TREE_VIEW (m_lvBookmarks), COLUMN_NAME );
+    std::string ret;
+    const char *text = XAP_single_selection_get_text(m_selBookmarks);
+    if (text) {
+        ret = text;
+    }
 	return ret;
 }
 
@@ -879,7 +934,11 @@ std::string
 AP_UnixDialog_Goto::_getSelectedXMLIDLabel()
 {
 	UT_DEBUGMSG (("MIQ: AP_UnixDialog_Goto::_getSelectedXMLIDLabel ()\n"));
-    std::string ret = getSelectedText( GTK_TREE_VIEW (m_lvXMLIDs), COLUMN_NAME );
+    std::string ret;
+    const char *text = XAP_single_selection_get_text(m_selXMLIDs);
+    if (text) {
+        ret = text;
+    }
 	return ret;
 }
 
@@ -887,7 +946,11 @@ std::string
 AP_UnixDialog_Goto::_getSelectedAnnotationLabel()
 {
 	UT_DEBUGMSG (("MIQ: AP_UnixDialog_Goto::_getSelectedAnnotationLabel ()\n"));
-    std::string ret = tostr(getSelectedUInt( GTK_TREE_VIEW (m_lvAnno), COLUMN_ANNO_ID ));
+    std::string ret;
+    int id = XAP_single_selection_get_int(m_selAnno);
+    if (id >= 0) {
+        ret = tostr(id);
+    }
 	return ret;
 }
 
