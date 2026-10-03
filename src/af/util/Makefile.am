@@ -81,6 +81,8 @@ libutil_la_SOURCES = \
 	xp/ut_raii.h \
 	xp/ut_rand.cpp \
 	xp/ut_rand.h \
+	xp/ut_screenshot.cpp \
+	xp/ut_screenshot.h \
 	xp/ut_Script.cpp \
 	xp/ut_Script.h \
 	xp/ut_std_algo.h \

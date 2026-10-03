@@ -1111,8 +1111,9 @@ below are on `main` but the release has not been cut yet.
   Callouts, Flowchart) recolored to the document accent at insert;
   Icons opens a searchable docked side panel of Lucide icons grouped
   by category; 3D Models opens a gallery of FluentUI 3D emoji PNGs;
-  Screenshot captures a screen area via `gnome-screenshot` and
-  inserts it; Media links video/audio files as `file://` hyperlinks.
+  Screenshot captures a screen area via the XDG desktop portal
+  (`gnome-screenshot` fallback) and inserts it; Media links
+  video/audio files as `file://` hyperlinks.
 - **Text group additions** — WordArt inserts styled placeholder text
   (Georgia, bold/italic, accent colors) via a preset popover; Draw
   Text Box / Draw Vertical Text Box (vertical uses the frame
@@ -2230,6 +2231,15 @@ below are on `main` but the release has not been cut yet.
   Bug" point at `github.com/janos-szenfner/Abinova` instead of the
   old GNOME GitLab project; the About dialog lists Janos Szenfner
   and links the fork's repository.
+- **Screenshot via the XDG portal** — Insert ▸ Screenshot now uses
+  the `org.freedesktop.portal.Screenshot` interface (GNOME/KDE,
+  Wayland and X11), keeps `gnome-screenshot` as fallback, and hides
+  the button when no capture mechanism exists.
+- **Check for Updates robustness** — the GitHub request moved to
+  HTTP/1.0 (a chunked 1.1 response could split `tag_name` across
+  chunk boundaries), version-tag digits saturate instead of
+  overflowing, a missing GLib TLS backend (glib-networking) is
+  detected up front, and the failure dialog now names the cause.
 - **Same-application clipboard deadlock** — `gdk_clipboard_read_async`
   deadlocked when Abinova itself owned the clipboard (the async read
   calls back into our own `AbiContentProvider` on the main thread and

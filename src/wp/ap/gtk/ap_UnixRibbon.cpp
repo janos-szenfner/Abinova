@@ -39,6 +39,7 @@
 #include "ap_Strings.h"
 #include "ut_vector.h"
 #include "ut_debugmsg.h"
+#include "ut_screenshot.h"
 #include "ut_string.h"
 #include "ut_string_class.h"
 #include "xap_App.h"
@@ -536,6 +537,12 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				 * (gallery highlight + Styles pane) but is not shown */
 				if (item->kind == AP_RIBBON_ITEM_TOOLBAR &&
 					item->id == static_cast<uint16_t>(AP_TOOLBAR_ID_FMT_STYLE))
+					gtk_widget_set_visible(w, FALSE);
+				/* Screenshot only shows when a capture mechanism
+				 * exists (XDG portal or gnome-screenshot) */
+				if (item->kind == AP_RIBBON_ITEM_MENU &&
+					item->id == static_cast<uint16_t>(AP_MENU_ID_INSERT_SCREENSHOT) &&
+					!UT_screenshot_available())
 					gtk_widget_set_visible(w, FALSE);
 				bEmpty = false;
 

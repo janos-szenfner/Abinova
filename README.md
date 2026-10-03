@@ -508,7 +508,9 @@ labels, like Word's ribbon.
   Lucide icons by category — ISC-licensed,
   `artwork/lucide-LICENSE.txt`), **3D Models** (FluentUI 3D emoji
   PNGs, MIT-licensed — `artwork/fluentui-emoji-LICENSE.txt`),
-  **Screenshot** (area capture via `gnome-screenshot`).
+  **Screenshot** (area capture via the XDG Screenshot portal, with
+  `gnome-screenshot` as fallback; the button is hidden when neither
+  is available).
 - **Media**: video/audio inserted as `file://` links.
 - **Links**: the hyperlink dialog always opens; with no
   selection its "Text to display" field creates the link text,
@@ -673,7 +675,8 @@ labels, like Word's ribbon.
 - Large icon buttons including **Check for Updates** — queries
   the GitHub releases/tags API in a background thread and
   reports in a symmetric in-app dialog with a download link when
-  a newer version exists.
+  a newer version exists; on failure the dialog names the cause
+  (no TLS backend, unreachable server, or HTTP error).
 
 #### Contextual tabs
 

@@ -31,10 +31,10 @@
 
 #include "xap_UnixAppImpl.h"
 #include "xap_UnixHelpWindow.h"
+#include "xap_UpdateCheck.h"
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
 #include "ut_string_class.h"
-#include "ut_files.h"
 #include "ut_go_file.h"
 #include "ut_debugmsg.h"
 
@@ -77,9 +77,6 @@ void XAP_UnixAppImpl::openHelpWindow(XAP_Frame * pFrame, const char * page,
 
 bool XAP_UnixAppImpl::openURL(const char * url)
 {
-	// Need this to make AbiGimp Load!!!!!
-	if (progExists("foo")) {}
-
 	GError * err = nullptr;
 	err = UT_go_url_show (url);
 	if (err) {
@@ -95,14 +92,6 @@ bool XAP_UnixAppImpl::openURL(const char * url)
 namespace
 {
 
-struct AbiUpdateInfo
-{
-	bool		fetched = false;	/* server answered with a version */
-	bool		newer = false;		/* and it is newer than this build */
-	std::string	version;
-	std::string	url;
-};
-
 /* widgets we touch when the background check finishes; all ref'd */
 struct AbiUpdateUI
 {
@@ -111,166 +100,15 @@ struct AbiUpdateUI
 	GtkWidget *	link;
 };
 
-/* blocking HTTPS GET; true when the server gave a 2xx response (body
- * may still be empty, e.g. an empty JSON list), false on any
- * transport or HTTP error */
-static bool abi_https_get(const char * host, const char * path,
-						  std::string& bodyOut)
-{
-	bodyOut.clear();
-	GError * err = nullptr;
-	GSocketClient * client = g_socket_client_new();
-	g_socket_client_set_tls(client, TRUE);
-	g_socket_client_set_timeout(client, 15);
-
-	GSocketConnection * conn = g_socket_client_connect_to_host(
-		client, host, 443, nullptr, &err);
-	g_object_unref(client);
-	if (!conn)
-	{
-		g_clear_error(&err);
-		return false;
-	}
-
-	std::string req = "GET ";
-	req += path;
-	req += " HTTP/1.1\r\nHost: ";
-	req += host;
-	req += "\r\nUser-Agent: abinova-update-check\r\n"
-		   "Accept: application/vnd.github+json\r\n"
-		   "Connection: close\r\n\r\n";
-
-	GOutputStream * out = g_io_stream_get_output_stream(G_IO_STREAM(conn));
-	GInputStream * in = g_io_stream_get_input_stream(G_IO_STREAM(conn));
-	bool ok = g_output_stream_write_all(out, req.data(), req.size(),
-										nullptr, nullptr, &err) == TRUE;
-	g_clear_error(&err);
-	if (ok)
-	{
-		std::string resp;
-		char buf[4096];
-		for (;;)
-		{
-			gssize n = g_input_stream_read(in, buf, sizeof(buf),
-										   nullptr, &err);
-			if (n <= 0)
-				break;
-			resp.append(buf, n);
-		}
-		g_clear_error(&err);
-
-		size_t sp = resp.find(' ');
-		int status = (sp == std::string::npos)
-			? 0 : atoi(resp.c_str() + sp + 1);
-		size_t bodyPos = resp.find("\r\n\r\n");
-		ok = status >= 200 && status < 300 &&
-			bodyPos != std::string::npos;
-		if (ok)
-			bodyOut = resp.substr(bodyPos + 4);
-	}
-	g_io_stream_close(G_IO_STREAM(conn), nullptr, nullptr);
-	g_object_unref(conn);
-	return ok;
-}
-
-/* minimal "key":"value" extraction - good enough for tag names/URLs */
-static std::string abi_json_string(const std::string& json,
-								   const char * key)
-{
-	std::string k = "\"";
-	k += key;
-	k += "\"";
-	size_t p = json.find(k);
-	if (p == std::string::npos)
-		return std::string();
-	p = json.find(':', p + k.size());
-	if (p == std::string::npos)
-		return std::string();
-	p = json.find('"', p + 1);
-	if (p == std::string::npos)
-		return std::string();
-	size_t e = json.find('"', p + 1);
-	if (e == std::string::npos)
-		return std::string();
-	return json.substr(p + 1, e - p - 1);
-}
-
-/* parse "v4.0.0"-style tags into numeric components */
-static bool abi_parse_version(const std::string& tag, int out[3])
-{
-	const char * p = tag.c_str();
-	while (*p && !g_ascii_isdigit(*p))
-		++p;
-	out[0] = out[1] = out[2] = 0;
-	int n = 0;
-	while (*p && n < 3)
-	{
-		if (!g_ascii_isdigit(*p))
-			break;
-		while (g_ascii_isdigit(*p))
-		{
-			out[n] = out[n] * 10 + (*p - '0');
-			++p;
-		}
-		++n;
-		if (*p == '.')
-			++p;
-	}
-	return n > 0;
-}
-
 static void abi_update_check_thread(GTask * task, gpointer /*source*/,
 									gpointer /*data*/,
 									GCancellable * /*cancellable*/)
 {
-	std::unique_ptr<AbiUpdateInfo> info;
+	std::unique_ptr<XAP_UpdateInfo> info;
 	try
 	{
-		info.reset(new AbiUpdateInfo);
-
-		/* newest published release first... */
-		std::string body;
-		bool answered = abi_https_get(
-			"api.github.com",
-			"/repos/janos-szenfner/Abinova/releases/latest", body);
-		if (answered)
-		{
-			info->version = abi_json_string(body, "tag_name");
-			info->url = abi_json_string(body, "html_url");
-		}
-
-		/* ...otherwise fall back to the newest git tag */
-		if (info->version.empty())
-		{
-			body.clear();
-			if (abi_https_get("api.github.com",
-							  "/repos/janos-szenfner/Abinova/tags", body))
-			{
-				answered = true;
-				info->version = abi_json_string(body, "name");
-			}
-		}
-
-		/* the check itself succeeded if the server answered at all, even
-		 * when the repo simply has no releases/tags yet */
-		info->fetched = answered;
-		if (info->fetched)
-		{
-			int cur[3], lat[3];
-			if (abi_parse_version(PACKAGE_VERSION, cur) &&
-				abi_parse_version(info->version, lat))
-			{
-				info->newer = lat[0] > cur[0] ||
-					(lat[0] == cur[0] && lat[1] > cur[1]) ||
-					(lat[0] == cur[0] && lat[1] == cur[1] && lat[2] > cur[2]);
-			}
-			if (info->url.empty())
-			{
-				info->url =
-					"https://github.com/janos-szenfner/Abinova/releases/tag/" +
-					info->version;
-			}
-		}
+		info.reset(new XAP_UpdateInfo);
+		XAP_updateCheckQuery(*info, PACKAGE_VERSION);
 	}
 	catch (...)
 	{
@@ -281,14 +119,14 @@ static void abi_update_check_thread(GTask * task, gpointer /*source*/,
 		info.reset();
 	}
 	g_task_return_pointer(task, info.release(),
-		+[](gpointer p) { delete static_cast<AbiUpdateInfo *>(p); });
+		+[](gpointer p) { delete static_cast<XAP_UpdateInfo *>(p); });
 }
 
 static void abi_update_check_done(GObject * /*source*/, GAsyncResult * res,
 								  gpointer data)
 {
 	AbiUpdateUI * ui = static_cast<AbiUpdateUI *>(data);
-	AbiUpdateInfo * info = static_cast<AbiUpdateInfo *>(
+	XAP_UpdateInfo * info = static_cast<XAP_UpdateInfo *>(
 		g_task_propagate_pointer(G_TASK(res), nullptr));
 
 	try
@@ -309,9 +147,14 @@ static void abi_update_check_done(GObject * /*source*/, GAsyncResult * res,
 		}
 		else
 		{
-			gtk_label_set_text(GTK_LABEL(ui->label),
-							   "Could not check for updates.\n"
-							   "Please try again later.");
+			/* name the cause when we know it (no TLS backend vs
+			 * unreachable server vs HTTP error) */
+			std::string text = "Could not check for updates.\n";
+			if (info && !info->errorDetail.empty())
+				text += info->errorDetail;
+			else
+				text += "Please try again later.";
+			gtk_label_set_text(GTK_LABEL(ui->label), text.c_str());
 		}
 	}
 	catch (...)

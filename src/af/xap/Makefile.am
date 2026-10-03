@@ -108,6 +108,8 @@ libxap_la_SOURCES = \
 	xp/xap_Toolbar_LabelSet.h \
 	xp/xap_Toolbar_Layouts.h \
 	xp/xap_Types.h \
+	xp/xap_UpdateCheck.cpp \
+	xp/xap_UpdateCheck.h \
 	xp/xap_ViewListener.cpp \
 	xp/xap_ViewListener.h \
 	xp/xap_Widget.h \
@@ -215,7 +217,7 @@ libxap_la_SOURCES += \
 
 
 EXTRA_DIST = \
-	xp/xap_Prefs.t.cpp \
+	xp/t/xap_Prefs.t.cpp \
 	gtk/xap_UnixWidget.t.cpp \
 	gtk/xap_UnixDlg_Encoding.ui \
 	gtk/xap_UnixDlg_Image.ui \

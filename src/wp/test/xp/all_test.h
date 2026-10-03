@@ -39,6 +39,8 @@
 #undef TFSUITE
 #include "src/af/xap/xp/t/xap_Prefs.t.cpp"
 #undef TFSUITE
+#include "src/af/xap/xp/t/xap_UpdateCheck.t.cpp"
+#undef TFSUITE
 #include "src/text/ptbl/xp/t/pf_Fragments.t.cpp"
 #undef TFSUITE
 #include "src/text/ptbl/xp/t/pt_PieceTable.t.cpp"

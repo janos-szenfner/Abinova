@@ -42,6 +42,9 @@ bool XAP_AppImpl::openHelpURL(const char * url)
 
 void XAP_AppImpl::checkForUpdates(XAP_Frame * /*pFrame*/)
 {
+	/* platforms without a real check fall back to the releases page;
+	 * XAP_updateCheckQuery() in xap_UpdateCheck.cpp is the portable
+	 * (GIO-only) query a platform override can drive in a worker */
 	openURL("https://github.com/janos-szenfner/Abinova/releases");
 }
 

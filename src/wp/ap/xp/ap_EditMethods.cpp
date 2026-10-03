@@ -161,6 +161,7 @@
 #include "ut_timer.h"
 #include "ut_Script.h"
 #include "ut_path.h"
+#include "ut_screenshot.h"
 #include "gr_Painter.h"
 #include "fp_FootnoteContainer.h"
 
@@ -12406,8 +12407,9 @@ Defun1(insFile)
 	return false;
 }
 
-/* Insert tab "Screenshot": captures an area of the screen with
- * gnome-screenshot and inserts the PNG at the point */
+/* Insert tab "Screenshot": captures an area of the screen — the XDG
+ * Screenshot portal where it exists (GNOME/KDE, Wayland and X11),
+ * gnome-screenshot as fallback — and inserts the PNG at the point */
 Defun1(insScreenshot)
 {
 	CHECK_FRAME;
@@ -12417,56 +12419,32 @@ Defun1(insScreenshot)
 	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pAV_View->getParentData());
 	UT_return_val_if_fail(pFrame, false);
 
-	gchar * shot = g_find_program_in_path("gnome-screenshot");
-	if (!shot)
+	std::string shotPath;
+	UT_ScreenshotResult shotRes = UT_screenshot_capture_area(shotPath);
+	if (shotRes == UT_SCREENSHOT_UNAVAILABLE)
 	{
 		pFrame->showMessageBox(
-			"Screenshot capture needs the gnome-screenshot tool, "
-			"which was not found on this system.",
+			"Screenshot capture needs a desktop portal or the "
+			"gnome-screenshot tool, neither of which is available "
+			"on this system.",
 			XAP_Dialog_MessageBox::b_O, XAP_Dialog_MessageBox::a_OK);
 		return false;
 	}
+	if (shotRes != UT_SCREENSHOT_OK)
+		return false;	// user dismissed the capture UI
 
-	// Secure temp file: a predictable name in the shared tmp dir
-	// would be a symlink-attack vector.
-	gchar * tmp = nullptr;
-	int fd = g_file_open_tmp("abinova-screenshot-XXXXXX.png",
-							 &tmp, nullptr);
-	if (fd == -1)
+	bool bOK = true;
+	FG_ConstGraphicPtr pFG;
+	UT_Error errorCode = IE_ImpGraphic::loadGraphic(shotPath.c_str(),
+												  IEGFT_PNG, pFG);
+	if (errorCode == UT_OK && pFG)
+		errorCode = pView->cmdInsertGraphic(pFG);
+	if (errorCode != UT_OK)
 	{
-		g_free(shot);
-		return false;
+		s_CouldNotLoadFileMessage(pFrame, shotPath.c_str(), errorCode);
+		bOK = false;
 	}
-	g_close(fd, nullptr);
-
-	// argv form: no shell parsing or quoting involved
-	gchar * argv[] = { shot, const_cast<gchar*>("-a"),
-					   const_cast<gchar*>("-f"), tmp, nullptr };
-	gint status = 0;
-	gboolean ok = g_spawn_sync(nullptr, argv, nullptr,
-							   static_cast<GSpawnFlags>(
-								   G_SPAWN_STDOUT_TO_DEV_NULL |
-								   G_SPAWN_STDERR_TO_DEV_NULL),
-							   nullptr, nullptr, nullptr, nullptr,
-							   &status, nullptr);
-	g_free(shot);
-
-	bool bOK = ok && status == 0 &&
-		g_file_test(tmp, G_FILE_TEST_IS_REGULAR);
-	if (bOK)
-	{
-		FG_ConstGraphicPtr pFG;
-		UT_Error errorCode = IE_ImpGraphic::loadGraphic(tmp, IEGFT_PNG, pFG);
-		if (errorCode == UT_OK && pFG)
-			errorCode = pView->cmdInsertGraphic(pFG);
-		if (errorCode != UT_OK)
-		{
-			s_CouldNotLoadFileMessage(pFrame, tmp, errorCode);
-			bOK = false;
-		}
-	}
-	remove(tmp);
-	g_free(tmp);
+	remove(shotPath.c_str());
 	return bOK;
 }
 
