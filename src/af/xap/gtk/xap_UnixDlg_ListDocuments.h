@@ -21,6 +21,8 @@
 #ifndef XAP_UNIXDIALOG_LISTDOCUMENTS_H
 #define XAP_UNIXDIALOG_LISTDOCUMENTS_H
 
+#include <gtk/gtk.h>
+
 #include "xap_Dlg_ListDocuments.h"
 
 class XAP_Frame;
@@ -43,12 +45,12 @@ private:
 	void event_Cancel(void);
 	GtkWidget * _constructWindow(void);
 	void _populateWindowData(void);
-	static void s_list_dblclicked(GtkTreeView *treeview,
-				  GtkTreePath *arg1,
-				  GtkTreeViewColumn *arg2,
+	static void s_list_activated(GtkListView *listview,
+				  guint position,
 				  XAP_UnixDialog_ListDocuments * me);
 
 	GtkWidget *m_listWindows;
+	GtkSingleSelection *m_selDocs;
 	GtkWidget *m_windowMain;
 };
 

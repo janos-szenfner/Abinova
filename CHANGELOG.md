@@ -3503,6 +3503,19 @@ below are on `main` but the release has not been cut yet.
   semantics are preserved, so each converted widget selects and
   persists the same values as before.  No `gtk_combo_box_*` calls
   remain outside the legacy helper shim.
+- **`GtkTreeView` → `GtkListView`/`GtkColumnView` migration,
+  groundwork** — new `xap_GtkListHelpers` API provides the shared
+  building blocks for the deprecated `GtkTreeView`/`GtkListStore`/
+  `GtkCellRenderer` stack: `GListStore` row stores over the reusable
+  `XAPDropDownItem` row object (text + int + two string payloads), a
+  default text-cell `GtkSignalListItemFactory`, single-selection model
+  wiring with TreeView-identical semantics (no autoselect,
+  unselectable), selected-item accessors, and a `GtkColumnView`
+  text-column helper with optional header sorting.  The Open
+  Documents/Compare dialog (`xap_UnixDlg_ListDocuments`) is the
+  reference port — it lists and activates document rows identically,
+  with the pattern documented in the helper header for the remaining
+  dialog batches.
 
 ### Performance
 

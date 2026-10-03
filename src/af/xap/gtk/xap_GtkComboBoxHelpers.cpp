@@ -220,10 +220,10 @@ static void xap_drop_down_item_init(XAPDropDownItem * /*item*/)
 {
 }
 
-static XAPDropDownItem * s_drop_down_item_new(const char * text,
-											  int int_value,
-											  const char * str_value1,
-											  const char * str_value2)
+XAPDropDownItem * xap_drop_down_item_new(const char * text,
+										 int int_value,
+										 const char * str_value1,
+										 const char * str_value2)
 {
 	XAPDropDownItem *item =
 		XAP_DROP_DOWN_ITEM(g_object_new(XAP_TYPE_DROP_DOWN_ITEM, nullptr));
@@ -297,7 +297,7 @@ static void s_drop_down_append(GtkDropDown * dd, const char * text,
 		G_LIST_STORE(gtk_drop_down_get_model(dd));
 	UT_return_if_fail(store && G_IS_LIST_STORE(store));
 	XAPDropDownItem *item =
-		s_drop_down_item_new(text, int_value, str_value1, str_value2);
+		xap_drop_down_item_new(text, int_value, str_value1, str_value2);
 	g_list_store_append(store, item);
 	g_object_unref(item);
 }

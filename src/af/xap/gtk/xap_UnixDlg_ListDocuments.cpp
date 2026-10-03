@@ -37,6 +37,7 @@
 #include "xap_Strings.h"
 #include "xap_Dialog_Id.h"
 #include "xap_Dlg_ListDocuments.h"
+#include "xap_GtkListHelpers.h"
 #include "xap_UnixDlg_ListDocuments.h"
 
 #define CUSTOM_RESPONSE_VIEW 1
@@ -54,6 +55,7 @@ XAP_UnixDialog_ListDocuments::XAP_UnixDialog_ListDocuments(XAP_DialogFactory * p
 										 XAP_Dialog_Id id)
 	: XAP_Dialog_ListDocuments(pDlgFactory,id),
 		m_listWindows(nullptr),
+		m_selDocs(nullptr),
 		m_windowMain(nullptr)
 {
 }
@@ -62,9 +64,8 @@ XAP_UnixDialog_ListDocuments::~XAP_UnixDialog_ListDocuments(void)
 {
 }
 
-void XAP_UnixDialog_ListDocuments::s_list_dblclicked(GtkTreeView * /*treeview*/,
-													 GtkTreePath * /*arg1*/,
-													 GtkTreeViewColumn * /*arg2*/,
+void XAP_UnixDialog_ListDocuments::s_list_activated(GtkListView * /*listview*/,
+													 guint /*position*/,
 													 XAP_UnixDialog_ListDocuments * me)
 {
 	gtk_dialog_response (GTK_DIALOG(me->m_windowMain), CUSTOM_RESPONSE_VIEW);
@@ -92,24 +93,9 @@ void XAP_UnixDialog_ListDocuments::runModal(XAP_Frame * pFrame)
 
 void XAP_UnixDialog_ListDocuments::event_View(void)
 {
-	GtkTreeSelection * selection;
-	GtkTreeIter iter;
-	GtkTreeModel * model;
+	// no selection means nothing to view — GTK can make this happen
+	int row = XAP_single_selection_get_int(m_selDocs);
 
-	gint row = 0;
-
-	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_listWindows) );
-
-	// if there is no selection, or the selection's data (GtkListItem widget)
-	// is empty, return cancel.  GTK can make this happen.
-	if ( !selection || 
-		 !gtk_tree_selection_get_selected (selection, &model, &iter)
-	   )
-		return;
-	
-	// get the ID of the selected Type
-	gtk_tree_model_get (model, &iter, 1, &row, -1);
-	  
 	if (row >= 0) {
 		_setSelDocumentIndx(static_cast<UT_uint32>(row));
 	}
@@ -123,17 +109,15 @@ void XAP_UnixDialog_ListDocuments::event_Cancel(void)
 
 GtkWidget * XAP_UnixDialog_ListDocuments::_constructWindow(void)
 {
-	GtkCellRenderer *renderer;
-	GtkTreeViewColumn *column;
 	GtkWidget *w;
-	
+
 	// load the dialog from the UI file
 	GtkBuilder* builder = newDialogBuilderFromResource("xap_UnixDlg_ListDocuments.ui");
-	
-	// Update our member variables with the important widgets that 
+
+	// Update our member variables with the important widgets that
 	// might need to be queried or altered later
 	m_windowMain = GTK_WIDGET(gtk_builder_get_object(builder, "xap_UnixDlg_ListDocuments"));
-	m_listWindows = GTK_WIDGET(gtk_builder_get_object(builder, "tvAvailableDocuments"));
+	m_listWindows = GTK_WIDGET(gtk_builder_get_object(builder, "lvAvailableDocuments"));
 
 	gtk_window_set_title (GTK_WINDOW(m_windowMain), _getTitle());
 	w = GTK_WIDGET(gtk_builder_get_object(builder, "lbAvailableDocuments"));
@@ -141,23 +125,12 @@ GtkWidget * XAP_UnixDialog_ListDocuments::_constructWindow(void)
 	w = GTK_WIDGET(gtk_builder_get_object(builder, "btView"));
 	gtk_button_set_label(GTK_BUTTON(w), _getOKButtonText());
 
-	// add a column to our TreeViews
-
-	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("Format",
-													   renderer,
-													   "text", 
-													   0,
-													   nullptr);
-	gtk_tree_view_append_column( GTK_TREE_VIEW(m_listWindows), column);
-	
-	// connect a dbl-clicked signal to the column
-	
+	// dbl-click / Enter activates the View button
 	g_signal_connect_after(G_OBJECT(m_listWindows),
-						   "row-activated",
-						   G_CALLBACK(s_list_dblclicked),
+						   "activate",
+						   G_CALLBACK(s_list_activated),
 						   static_cast<gpointer>(this));
-  
+
 	g_object_unref(G_OBJECT(builder));
 
 	return m_windowMain;
@@ -165,31 +138,21 @@ GtkWidget * XAP_UnixDialog_ListDocuments::_constructWindow(void)
 
 void XAP_UnixDialog_ListDocuments::_populateWindowData(void)
 {
-	GtkListStore *model;
-	GtkTreeIter iter;
-	
-	model = gtk_list_store_new (2, 
-							    G_TYPE_STRING,
-								G_TYPE_INT);
-	
+	GListStore *model = XAP_list_store_new();
+
 	for (UT_sint32 i = 0; i < _getDocumentCount(); i++)
     {
 		const char *s = _getNthDocumentName(i);
 		if (!s || !*s)
 			s = "Untitled"; // unsaved documents have no filename
-		// Add a new row to the model
-		gtk_list_store_append (model, &iter);
-		
-		gtk_list_store_set (model, &iter,
-							0, s,
-							1, i,
-							-1);
-    } 
-	
-	gtk_tree_view_set_model(GTK_TREE_VIEW(m_listWindows), reinterpret_cast<GtkTreeModel *>(model));
-	
-	g_object_unref (model);	
-	
+		XAP_list_store_append_text_and_int(model, s, i);
+    }
+
+	m_selDocs =
+		XAP_list_view_set_model(GTK_LIST_VIEW(m_listWindows), model);
+
+	g_object_unref (model);
+
 	// now select first item in box
  	gtk_widget_grab_focus (m_listWindows);
 }

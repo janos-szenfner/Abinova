@@ -141,6 +141,8 @@ libxap_la_SOURCES += \
 	gtk/xap_GtkSignalBlocker.h \
 	gtk/xap_GtkComboBoxHelpers.h \
 	gtk/xap_GtkComboBoxHelpers.cpp \
+	gtk/xap_GtkListHelpers.h \
+	gtk/xap_GtkListHelpers.cpp \
 	gtk/xap_GtkStyle.h \
 	gtk/xap_GtkStyle.cpp \
 	gtk/xap_EmbeddedFeatures.h \

@@ -71,6 +71,14 @@ bool XAP_comboBoxSetActiveFromIntCol(GtkComboBox * combo,
 G_DECLARE_FINAL_TYPE(XAPDropDownItem, xap_drop_down_item,
 					 XAP, DROP_DOWN_ITEM, GObject)
 
+/** create a standalone row item — XAPDropDownItem doubles as the
+ * generic GListModel row for GtkListView/GtkColumnView stores too
+ * (see xap_GtkListHelpers.h) */
+XAPDropDownItem * xap_drop_down_item_new(const char * text,
+										 int int_value,
+										 const char * str_value1,
+										 const char * str_value2);
+
 const char * xap_drop_down_item_get_text(XAPDropDownItem * item);
 int          xap_drop_down_item_get_int(XAPDropDownItem * item);
 const char * xap_drop_down_item_get_string1(XAPDropDownItem * item);
