@@ -397,9 +397,9 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	gtk_frame_set_child(GTK_FRAME(m_wSunkenBox), m_grid);
 
 	// (scrollbars are shown, only if needed, by _setScrollRange)
-	gtk_widget_show(m_dArea);
-	gtk_widget_show(m_innergrid);
-	gtk_widget_show(m_grid);
+	gtk_widget_set_visible(m_dArea, TRUE);
+	gtk_widget_set_visible(m_innergrid, TRUE);
+	gtk_widget_set_visible(m_grid, TRUE);
 
 	/* wrap the document area in a GtkPaned so the side deck can be
 	 * docked on the right (LibreOffice-style); hidden until a pane
@@ -1390,9 +1390,9 @@ void AP_UnixFrameImpl::_hideMenuScroll(bool bHideMenuScroll)
   if(bHideMenuScroll)
   {
     if (m_wRibbon)
-      gtk_widget_hide(m_wRibbon);
+      gtk_widget_set_visible(m_wRibbon, FALSE);
     UT_DEBUGMSG(("Hiding scrollbar \n"));
-    gtk_widget_hide(m_vScroll);
+    gtk_widget_set_visible(m_vScroll, FALSE);
   }
   else
   {
@@ -1413,7 +1413,7 @@ void AP_UnixFrameImpl::_createWindow()
 {
 	_createTopLevelWindow();
 	
-	gtk_widget_show(getTopLevelWindow());
+	gtk_widget_set_visible(getTopLevelWindow(), TRUE);
 
 	if(getFrame()->getFrameMode() == XAP_NormalFrame)
 	{
@@ -1469,11 +1469,11 @@ void AP_UnixFrameImpl::_setScrollRange(apufi_ScrollType scrollType, int iValue, 
 //
  	if ((m_hScroll == wScrollWidget) && ((fUpperLimit <= fSize) ||(  tZoom == XAP_Frame::z_PAGEWIDTH) || (tZoom == XAP_Frame::z_WHOLEPAGE)))
 	{
- 		gtk_widget_hide(wScrollWidget);
+ 		gtk_widget_set_visible(wScrollWidget, FALSE);
 	}
  	else if((wScrollWidget != m_vScroll) || !getFrame()->isMenuScrollHidden())
 	{
- 		gtk_widget_show(wScrollWidget);
+ 		gtk_widget_set_visible(wScrollWidget, TRUE);
 	}
 }
 

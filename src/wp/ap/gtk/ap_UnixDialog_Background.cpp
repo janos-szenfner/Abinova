@@ -143,13 +143,13 @@ void AP_UnixDialog_Background::_constructWindowContents (GtkWidget * parent)
 	GtkWidget *colorsel;
 
 	GtkWidget * vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-	gtk_widget_show (vbox);
+	gtk_widget_set_visible(vbox, TRUE);
 	XAP_gtk_widget_set_margin(vbox, 5);
 	xap_gtk_container_add (parent, vbox);
 
 	colorsel = gtk_color_chooser_widget_new();
 	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(colorsel), false);
-	gtk_widget_show (colorsel);
+	gtk_widget_set_visible(colorsel, TRUE);
 	xap_gtk_container_add (vbox, colorsel);
 
 	const gchar *  pszC = getColor();

@@ -3467,6 +3467,10 @@ below are on `main` but the release has not been cut yet.
   now renders cells through `.view` style donors, so the chosen rows ×
   columns highlight in the theme accent and the unselected grid shows
   again too.
+- **GTK 4.10 show/hide deprecation swept (wp side)** — all 202
+  `gtk_widget_show`/`gtk_widget_hide` calls in `src/wp/ap/gtk`
+  (dialogs, status bar, ruler, frame impl, annotation preview) now use
+  `gtk_widget_set_visible`; identical semantics, no behavior change.
 
 ### Performance
 

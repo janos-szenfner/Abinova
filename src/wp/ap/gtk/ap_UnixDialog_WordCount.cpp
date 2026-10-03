@@ -92,7 +92,7 @@ void AP_UnixDialog_WordCount::runModeless(XAP_Frame * pFrame)
 
 	abiSetupModelessDialog(GTK_DIALOG(m_windowMain), pFrame, this, 
 						   GTK_RESPONSE_CLOSE);
-	gtk_widget_show(m_windowMain);
+	gtk_widget_set_visible(m_windowMain, TRUE);
 
 	// Now construct the timer for auto-updating
 	m_pAutoUpdateWC = UT_Timer::static_constructor(autoupdateWC,this);

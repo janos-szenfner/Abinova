@@ -122,7 +122,7 @@ bool label_button_with_abi_pixmap( GtkWidget * button, const char * szIconName, 
 	GtkWidget * wpixmap = gtk_image_new_from_resource(name.c_str());
 	if (!wpixmap)
 		return false;
-	gtk_widget_show(wpixmap);
+	gtk_widget_set_visible(wpixmap, TRUE);
 	xxx_UT_DEBUGMSG(("SEVIOR: Adding pixmap to button now \n"));
 	/* GTK4: real child relationship so the image unparents cleanly
 	 * at dialog teardown (set_parent alone leaves finalize noise) */
@@ -257,7 +257,7 @@ void AP_UnixDialog_Columns::runModal(XAP_Frame * pFrame)
 		parentWindow = gtk_widget_get_parent(parentWindow);
 	gtk_window_set_transient_for(GTK_WINDOW(mainWindow), GTK_WINDOW(parentWindow));
 	// ***show*** before creating gc's
-	gtk_widget_show ( mainWindow ) ;
+	gtk_widget_set_visible( mainWindow , TRUE) ;
 
 	// Populate the window's data items
 	_populateWindowData();
@@ -534,18 +534,18 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	             "margin-start", 5,
 	             "margin-end", 5,
 	             nullptr);
-	gtk_widget_show (grid);
+	gtk_widget_set_visible(grid, TRUE);
 	gtk_box_append(GTK_BOX(windowColumns), grid);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Column_Number,s);
 	s = "<b>" + s + "</b>";
 	lbColFrame = gtk_label_new(nullptr);
 	gtk_label_set_markup(GTK_LABEL(lbColFrame), s.c_str());
-	gtk_widget_show(lbColFrame);
+	gtk_widget_set_visible(lbColFrame, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), lbColFrame, 0, 0, 2, 1);
 
 	wToggleOne = gtk_toggle_button_new();
-	gtk_widget_show(wToggleOne );
+	gtk_widget_set_visible(wToggleOne , TRUE);
 	label_button_with_abi_pixmap(wToggleOne, "tb_1column_xpm", 24);
 	gtk_widget_set_receives_default(wToggleOne, true);
 	gtk_widget_set_margin_start(wToggleOne, 18);
@@ -554,11 +554,11 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	wLabelOne = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wLabelOne),
                                     "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show(wLabelOne );
+	gtk_widget_set_visible(wLabelOne , TRUE);
 	gtk_grid_attach(GTK_GRID(grid), wLabelOne, 1, 1, 1, 1);
 
 	wToggleTwo = gtk_toggle_button_new ();
-	gtk_widget_show(wToggleTwo);
+	gtk_widget_set_visible(wToggleTwo, TRUE);
 	label_button_with_abi_pixmap(wToggleTwo, "tb_2column_xpm", 24);
 	gtk_widget_set_receives_default(wToggleTwo, true);
 	gtk_widget_set_margin_start(wToggleTwo, 18);
@@ -568,11 +568,11 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	wLabelTwo = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wLabelTwo),
                                    "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show(wLabelTwo );
+	gtk_widget_set_visible(wLabelTwo , TRUE);
 	gtk_grid_attach(GTK_GRID(grid), wLabelTwo, 1, 2, 1, 1);
 
 	wToggleThree = gtk_toggle_button_new ();
-	gtk_widget_show(wToggleThree);
+	gtk_widget_set_visible(wToggleThree, TRUE);
 	label_button_with_abi_pixmap(wToggleThree, "tb_3column_xpm", 24);
 	gtk_widget_set_receives_default(wToggleThree, true);
 	gtk_widget_set_margin_start(wToggleThree, 18);
@@ -583,14 +583,14 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	wLabelThree = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wLabelThree),
                                    "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show(wLabelThree);
+	gtk_widget_set_visible(wLabelThree, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), wLabelThree, 1, 3, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Column_Preview,s);
 	s = "<b>" + s + "</b>";
 	lbPrevFrame = gtk_label_new(nullptr);
 	gtk_label_set_markup(GTK_LABEL(lbPrevFrame), s.c_str());
-	gtk_widget_show(lbPrevFrame);
+	gtk_widget_set_visible(lbPrevFrame, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), lbPrevFrame, 3, 0, 2, 1);
 
 	double width = getPageWidth();
@@ -619,7 +619,7 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	g_object_set_data_full (G_OBJECT (windowColumns), "wPreviewArea", wPreviewArea,
 							reinterpret_cast<GDestroyNotify>( g_object_unref));
 	gtk_widget_set_margin_start(wPreviewArea, 18);
-	gtk_widget_show(wPreviewArea);
+	gtk_widget_set_visible(wPreviewArea, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), wPreviewArea, 3, 1, 2, 4);
 //////////////////////////////////////////////////////
 // Line Between
@@ -628,12 +628,12 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Column_Line_Between,s);
 	wLineBtween = gtk_check_button_new_with_label (s.c_str());
 	gtk_widget_set_margin_top(wLineBtween, 12);
-	gtk_widget_show(wLineBtween);
+	gtk_widget_set_visible(wLineBtween, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), wLineBtween, 0, 5, 5, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Column_RtlOrder,s);
 	GtkWidget * checkOrder = gtk_check_button_new_with_label (s.c_str());
-	gtk_widget_show (checkOrder);
+	gtk_widget_set_visible(checkOrder, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), checkOrder, 0, 6, 5, 1);
 	gtk_check_button_set_active ( GTK_CHECK_BUTTON(checkOrder), getColumnOrder() );
 	m_checkOrder = checkOrder;
@@ -646,13 +646,13 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
 	SpinLabel = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(SpinLabel),
                                     "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show(SpinLabel);
+	gtk_widget_set_visible(SpinLabel, TRUE);
 	gtk_widget_set_margin_top(SpinLabel, 12);
 	gtk_grid_attach(GTK_GRID(grid), SpinLabel, 0, 7, 2, 1);
 
 	SpinAdj = static_cast<GtkAdjustment *>( gtk_adjustment_new( 1.0, 1.0, 20., 1.0,10.0,0.0));
 	Spinbutton = gtk_spin_button_new( SpinAdj, 1.0,0);
-	gtk_widget_show(Spinbutton);
+	gtk_widget_set_visible(Spinbutton, TRUE);
 	gtk_widget_set_margin_top(Spinbutton, 12);
 	gtk_grid_attach(GTK_GRID(grid), Spinbutton, 2, 7, 2, 1);
 
@@ -666,16 +666,16 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
                                                      "xalign", 0.0,
                                                      "yalign", 0.5,
                                                      nullptr);
-	gtk_widget_show(SpinLabelAfter);
+	gtk_widget_set_visible(SpinLabelAfter, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), SpinLabelAfter, 0, 8, 2, 1);
 
 	GtkAdjustment * SpinAfterAdj = static_cast<GtkAdjustment*>(gtk_adjustment_new( 1, -1000, 1000, 1, 1, 10));
 	GtkWidget * SpinAfter = gtk_entry_new();
-	gtk_widget_show (SpinAfter);
+	gtk_widget_set_visible(SpinAfter, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), SpinAfter, 2, 8, 2, 1);
 	
 	GtkWidget * SpinAfter_dum = gtk_spin_button_new( GTK_ADJUSTMENT(SpinAfterAdj), 1.0,0);
-	gtk_widget_show(SpinAfter_dum);
+	gtk_widget_set_visible(SpinAfter_dum, TRUE);
 	gtk_widget_set_size_request(SpinAfter_dum,14,-1);
 	gtk_grid_attach(GTK_GRID(grid), SpinAfter_dum, 4, 8, 1, 1);
 	
@@ -688,16 +688,16 @@ void AP_UnixDialog_Columns::_constructWindowContents(GtkWidget * windowColumns)
                            "label", s.c_str(),
                            "xalign", 0.0, "yalign", 0.5,
                            nullptr);
-	gtk_widget_show(SpinLabelColumnSize);
+	gtk_widget_set_visible(SpinLabelColumnSize, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), SpinLabelColumnSize, 0, 9, 2, 1);
 
 	GtkAdjustment * SpinSizeAdj = static_cast<GtkAdjustment*>(gtk_adjustment_new( 1,-2000, 2000, 1, 1, 10));
 	GtkWidget * SpinSize = gtk_entry_new();
-	gtk_widget_show (SpinSize);
+	gtk_widget_set_visible(SpinSize, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), SpinSize, 2, 9, 2, 1);
 
 	GtkWidget * SpinSize_dum = gtk_spin_button_new( GTK_ADJUSTMENT(SpinSizeAdj), 1.0,0);
-	gtk_widget_show(SpinSize_dum);
+	gtk_widget_set_visible(SpinSize_dum, TRUE);
 	gtk_widget_set_size_request(SpinSize_dum,14,-1);
 	gtk_grid_attach(GTK_GRID(grid), SpinSize_dum, 4, 9, 1, 1);
 

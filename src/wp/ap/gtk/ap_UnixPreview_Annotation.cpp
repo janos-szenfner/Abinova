@@ -63,7 +63,7 @@ void AP_UnixPreview_Annotation::runModeless(XAP_Frame * pFrame)
 
 	_createAnnotationPreviewFromGC(m_gc, m_width, m_height);
 	m_gc->setZoomPercentage(100);
-	gtk_widget_show(m_pDrawingArea);
+	gtk_widget_set_visible(m_pDrawingArea, TRUE);
 }
 
 void AP_UnixPreview_Annotation::activate(void)
@@ -94,7 +94,7 @@ void  AP_UnixPreview_Annotation::_constructWindow(void)
 	m_pPreviewWindow = xap_gtk_popover_new();
 	gtk_widget_set_size_request(m_pPreviewWindow, m_width, m_height);
 	m_pDrawingArea = gtk_drawing_area_new();
-	gtk_widget_show(GTK_WIDGET(m_pDrawingArea));
+	gtk_widget_set_visible(GTK_WIDGET(m_pDrawingArea), TRUE);
 	gtk_popover_set_child(GTK_POPOVER(m_pPreviewWindow), m_pDrawingArea);
 	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_pDrawingArea),
 								   s_preview_draw, this, nullptr);

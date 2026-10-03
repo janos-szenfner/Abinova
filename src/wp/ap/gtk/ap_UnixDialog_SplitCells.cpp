@@ -240,7 +240,7 @@ GtkWidget * AP_UnixDialog_SplitCells::_constructWindowContents(void)
 	GtkWidget *wContents;
 
 	wContents = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-	gtk_widget_show (wContents);
+	gtk_widget_set_visible(wContents, TRUE);
 	GtkWidget *frame1;
 	GtkWidget *grid1;
 	GtkWidget *wlSplitLeft;
@@ -259,11 +259,11 @@ GtkWidget * AP_UnixDialog_SplitCells::_constructWindowContents(void)
 	std::string s;
 	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_Frame,s);
 	frame1 = gtk_frame_new (nullptr);
-	gtk_widget_show (frame1);
+	gtk_widget_set_visible(frame1, TRUE);
 	xap_gtk_container_add (wContents, frame1);
 	XAP_gtk_widget_set_margin(frame1, 3);
 	grid1 = gtk_grid_new ();
-	gtk_widget_show (grid1);
+	gtk_widget_set_visible(grid1, TRUE);
 	xap_gtk_container_add (frame1, grid1);
 	g_object_set (G_OBJECT (grid1),
 	              "row-spacing", 6,
@@ -274,78 +274,78 @@ GtkWidget * AP_UnixDialog_SplitCells::_constructWindowContents(void)
 	wlSplitLeft = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wlSplitLeft),
                                       "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show (wlSplitLeft);
+	gtk_widget_set_visible(wlSplitLeft, TRUE);
 	gtk_grid_attach (GTK_GRID (grid1), wlSplitLeft, 0, 0, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_HoriMid,s);
 	wlSplitHoriMid = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wlSplitHoriMid),
                                          "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show (wlSplitHoriMid);
+	gtk_widget_set_visible(wlSplitHoriMid, TRUE);
 	gtk_grid_attach (GTK_GRID (grid1), wlSplitHoriMid, 0, 1, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_Right,s);
 	wlSplitRight = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wlSplitRight),
 								   "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show (wlSplitRight);
+	gtk_widget_set_visible(wlSplitRight, TRUE);
 	gtk_grid_attach (GTK_GRID (grid1), wlSplitRight, 0, 2, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_Above,s);
 	wlSplitAbove = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wlSplitAbove),
                                        "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show (wlSplitAbove);
+	gtk_widget_set_visible(wlSplitAbove, TRUE);
 	gtk_grid_attach (GTK_GRID (grid1), wlSplitAbove, 0, 3, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_VertMid,s);
 	wlSplitVertMid = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wlSplitVertMid),
                                         "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show (wlSplitVertMid);
+	gtk_widget_set_visible(wlSplitVertMid, TRUE);
 	gtk_grid_attach (GTK_GRID (grid1), wlSplitVertMid, 0, 4, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_Below,s);
 	wlSplitBelow = gtk_label_new(s.c_str());
 	g_object_set(G_OBJECT(wlSplitBelow),
                                        "xalign", 0.0, "yalign", 0.5, nullptr);
-	gtk_widget_show (wlSplitBelow);
+	gtk_widget_set_visible(wlSplitBelow, TRUE);
 	gtk_grid_attach (GTK_GRID (grid1), wlSplitBelow, 0, 5, 1, 1);
 
 	wSplitLeft = gtk_button_new();
-	gtk_widget_show (wSplitLeft);
+	gtk_widget_set_visible(wSplitLeft, TRUE);
 	label_button_with_abi_pixmap(wSplitLeft, "tb_SplitLeft_xpm", 50);
 
 	gtk_grid_attach (GTK_GRID (grid1), wSplitLeft, 1, 0, 1, 1);
 
 	wSplitHoriMid = gtk_button_new();
-	gtk_widget_show (wSplitHoriMid);
+	gtk_widget_set_visible(wSplitHoriMid, TRUE);
 	label_button_with_abi_pixmap(wSplitHoriMid, "tb_SplitHoriMid_xpm", 50);
 
 	gtk_grid_attach (GTK_GRID (grid1), wSplitHoriMid, 1, 1, 1, 1);
 
 
 	wSplitRight = gtk_button_new();
-	gtk_widget_show (wSplitRight);
+	gtk_widget_set_visible(wSplitRight, TRUE);
 	label_button_with_abi_pixmap(wSplitRight, "tb_SplitRight_xpm", 50);
 	gtk_grid_attach (GTK_GRID (grid1), wSplitRight, 1, 2, 1, 1);
 
 	wSplitAbove = gtk_button_new();
-	gtk_widget_show (wSplitAbove);
+	gtk_widget_set_visible(wSplitAbove, TRUE);
 	label_button_with_abi_pixmap(wSplitAbove, "tb_SplitAbove_xpm", 50);
 
 	gtk_grid_attach (GTK_GRID (grid1), wSplitAbove, 1, 3, 1, 1);
 
 
 	wSplitVertMid = gtk_button_new();
-	gtk_widget_show (wSplitVertMid);
+	gtk_widget_set_visible(wSplitVertMid, TRUE);
 	label_button_with_abi_pixmap(wSplitVertMid, "tb_SplitVertMid_xpm", 50);
 
 	gtk_grid_attach (GTK_GRID (grid1), wSplitVertMid, 1, 4, 1, 1);
 
 
 	wSplitBelow = gtk_button_new();
-	gtk_widget_show (wSplitBelow);
+	gtk_widget_set_visible(wSplitBelow, TRUE);
 	label_button_with_abi_pixmap(wSplitBelow, "tb_SplitBelow_xpm", 50);
 
 	gtk_grid_attach (GTK_GRID (grid1), wSplitBelow, 1, 5, 1, 1);

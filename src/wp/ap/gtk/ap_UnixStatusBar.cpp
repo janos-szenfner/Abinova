@@ -205,12 +205,12 @@ void AP_UnixStatusBar::setView(AV_View * pView)
 
 void AP_UnixStatusBar::showProgressBar(void)
 {
-  gtk_widget_show(m_wProgressFrame);
+  gtk_widget_set_visible(m_wProgressFrame, TRUE);
 }
 
 void AP_UnixStatusBar::hideProgressBar(void)
 {
-  gtk_widget_hide(m_wProgressFrame);
+  gtk_widget_set_visible(m_wProgressFrame, FALSE);
 }
 
 // FIXME: we need more sanity checking here to make sure everything allocates correctly
@@ -221,7 +221,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 	// probably should make this into an event box (if we want the user to be able to interact with the status bar)
 	m_wStatusBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-	gtk_widget_show(m_wStatusBar);
+	gtk_widget_set_visible(m_wStatusBar, TRUE);
 
 	for (UT_sint32 k=0; k<getFields()->getItemCount(); k++) {
 		AP_StatusBarField * pf = static_cast<AP_StatusBarField *>(m_vecFields.getNthItem(k));
@@ -262,7 +262,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 			}
 
 			gtk_label_set_label(GTK_LABEL(pStatusBarElementLabel), ""); 
-			gtk_widget_show(pStatusBarElementLabel);
+			gtk_widget_set_visible(pStatusBarElementLabel, TRUE);
 		}
 		else if(pf->getFillMethod() == 	PROGRESS_BAR)
 		{
@@ -277,7 +277,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 			gtk_progress_bar_set_pulse_step (GTK_PROGRESS_BAR(pProgress),0.01);
 
 			gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR(pProgress),0.0);
-			gtk_widget_show(pProgress);
+			gtk_widget_set_visible(pProgress, TRUE);
 			pf->setListener(static_cast<AP_StatusBarFieldListener *>((new ap_usb_ProgressListener(pf, pProgress))));
 			m_wProgressFrame = pStatusBarElement;
 
@@ -287,7 +287,7 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 		        UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 		}
 
-		gtk_widget_show(pStatusBarElement);
+		gtk_widget_set_visible(pStatusBarElement, TRUE);
 	}
 
 	// LibreOffice/MS-Word-style zoom control pinned to the right end of
@@ -363,11 +363,11 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 	
 void AP_UnixStatusBar::show(void)
 {
-	gtk_widget_show (m_wStatusBar);
+	gtk_widget_set_visible(m_wStatusBar, TRUE);
 }
 
 void AP_UnixStatusBar::hide(void)
 {
-	gtk_widget_hide (m_wStatusBar);
+	gtk_widget_set_visible(m_wStatusBar, FALSE);
 	m_pFrame->queue_resize();
 }

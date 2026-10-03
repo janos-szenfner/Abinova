@@ -151,7 +151,7 @@ void AP_UnixDialog_Paragraph::runModal(XAP_Frame * pFrame)
 	}
 
 	// Show the top level dialog,
-	gtk_widget_show(mainWindow);
+	gtk_widget_set_visible(mainWindow, TRUE);
 
 	// *** this is how we add the gc ***
 	{
@@ -376,16 +376,16 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	std::string unixstr;
 
 	vboxContents = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-	gtk_widget_show (vboxContents);
+	gtk_widget_set_visible(vboxContents, TRUE);
 
 	tabMain = gtk_notebook_new ();
-	gtk_widget_show (tabMain);
+	gtk_widget_set_visible(tabMain, TRUE);
 	gtk_box_append(GTK_BOX(vboxContents), tabMain);
 
 
 	// "Indents and Spacing" page
 	boxSpacing = gtk_grid_new();
-	gtk_widget_show(boxSpacing);
+	gtk_widget_set_visible(boxSpacing, TRUE);
 	g_object_set(G_OBJECT(boxSpacing),
 	             "row-spacing", 6,
 	             "column-spacing", 12,
@@ -396,7 +396,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_TabLabelIndentsAndSpacing,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	labelIndents = gtk_label_new(unixstr.c_str());
-	gtk_widget_show (labelIndents);
+	gtk_widget_set_visible(labelIndents, TRUE);
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (tabMain), boxSpacing, labelIndents);
 
@@ -407,15 +407,15 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                          "xalign", 1.0, "yalign", 0.5,
                                          "justify", GTK_JUSTIFY_RIGHT,
                                          nullptr);
-	gtk_widget_show (labelAlignment);
+	gtk_widget_set_visible(labelAlignment, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelAlignment, 0, 0, 1, 1);
 
 	hboxAlignment = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_widget_show (hboxAlignment);
+	gtk_widget_set_visible(hboxAlignment, TRUE);
 	listAlignment = GTK_COMBO_BOX(gtk_combo_box_new ());
 	XAP_makeGtkComboBoxText(listAlignment, G_TYPE_INT);
 	g_object_set_data(G_OBJECT(listAlignment), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_ALIGNMENT));
-	gtk_widget_show (GTK_WIDGET(listAlignment));
+	gtk_widget_set_visible(GTK_WIDGET(listAlignment), TRUE);
 	gtk_box_append(GTK_BOX(hboxAlignment), GTK_WIDGET(listAlignment));
 	gtk_grid_attach(GTK_GRID(boxSpacing), hboxAlignment, 1, 0, 1, 1);
 
@@ -435,11 +435,11 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonDomDirection = gtk_check_button_new_with_label(unixstr.c_str());
 	g_object_set_data(G_OBJECT(checkbuttonDomDirection), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_DOMDIRECTION));
-	gtk_widget_show (checkbuttonDomDirection);
+	gtk_widget_set_visible(checkbuttonDomDirection, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), checkbuttonDomDirection, 3, 0, 1, 1);
 
 	hboxIndentation = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_widget_show (hboxIndentation);
+	gtk_widget_set_visible(hboxIndentation, TRUE);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelIndentation,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
@@ -449,7 +449,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                            "justify", GTK_JUSTIFY_LEFT,
                                            "margin-start", 0, "margin-end", 0, "margin-top", 3, "margin-bottom", 3,
                                            nullptr);
-	gtk_widget_show (labelIndentation);
+	gtk_widget_set_visible(labelIndentation, TRUE);
 	gtk_box_append(GTK_BOX(hboxIndentation), labelIndentation);
 
 	gtk_grid_attach(GTK_GRID(boxSpacing), hboxIndentation, 0, 1, 4, 1);
@@ -461,7 +461,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                     "xalign", 1.0, "yalign", 0.5,
                                     "justify", GTK_JUSTIFY_RIGHT,
                                     nullptr);
-	gtk_widget_show (labelLeft);
+	gtk_widget_set_visible(labelLeft, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelLeft, 0, 2, 1, 1);
 
 	spinbuttonLeft = gtk_entry_new();
@@ -469,7 +469,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	g_object_set_data_full (G_OBJECT (windowMain), "spinbuttonLeft", spinbuttonLeft,
 							  reinterpret_cast<GDestroyNotify>( g_object_unref));
 	g_object_set_data(G_OBJECT(spinbuttonLeft), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_LEFT_INDENT));
-	gtk_widget_show (spinbuttonLeft);
+	gtk_widget_set_visible(spinbuttonLeft, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonLeft, 1, 2, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelRight,s);
@@ -479,12 +479,12 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                     "xalign", 1.0, "yalign", 0.5,
                                     "justify", GTK_JUSTIFY_RIGHT,
                                     nullptr);
-	gtk_widget_show (labelRight);
+	gtk_widget_set_visible(labelRight, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelRight, 0, 3, 1, 1);
 
 	spinbuttonRight = gtk_entry_new();
 	g_object_set_data(G_OBJECT(spinbuttonRight), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_RIGHT_INDENT));
-	gtk_widget_show (spinbuttonRight);
+	gtk_widget_set_visible(spinbuttonRight, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonRight, 1, 3, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelSpecial,s);
@@ -494,13 +494,13 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                        "xalign", 0.0, "yalign", 0.5,
                                        "justify", GTK_JUSTIFY_LEFT,
                                        nullptr);
-	gtk_widget_show (labelSpecial);
+	gtk_widget_set_visible(labelSpecial, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelSpecial, 2, 2, 1, 1);
 
 	listSpecial = GTK_COMBO_BOX(gtk_combo_box_new ());
 	XAP_makeGtkComboBoxText(listSpecial, G_TYPE_INT);
 	g_object_set_data(G_OBJECT(listSpecial), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_MENU_SPECIAL_INDENT));
-	gtk_widget_show (GTK_WIDGET(listSpecial));
+	gtk_widget_set_visible(GTK_WIDGET(listSpecial), TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), reinterpret_cast<GtkWidget*>(listSpecial), 2, 3, 1, 1);
 	XAP_appendComboBoxTextAndInt(listSpecial, " ", 0);
 
@@ -519,15 +519,15 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 				  "xalign", 0.0, "yalign", 0.5,
 				  "justify", GTK_JUSTIFY_LEFT,
 				  nullptr);
-	gtk_widget_show (labelBy);
+	gtk_widget_set_visible(labelBy, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), labelBy, 2, 3, 1, 1);
 	spinbuttonBy = gtk_entry_new();
 	g_object_set_data(G_OBJECT(spinbuttonBy), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_SPECIAL_INDENT));
-	gtk_widget_show (spinbuttonBy);
+	gtk_widget_set_visible(spinbuttonBy, TRUE);
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonBy, 3, 3, 1, 1);
 
 	hboxSpacing = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_widget_show (hboxSpacing);
+	gtk_widget_set_visible(hboxSpacing, TRUE);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelSpacing,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
@@ -609,19 +609,19 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	g_object_set_data(G_OBJECT(spinbuttonAt), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_SPIN_SPECIAL_SPACING));
 	gtk_grid_attach(GTK_GRID(boxSpacing), spinbuttonAt, 3, 6, 1, 1);
 
-	gtk_widget_show (labelSpacing);
-	gtk_widget_show (labelBefore);
-	gtk_widget_show (spinbuttonBefore);
-	gtk_widget_show (labelAfter);
-	gtk_widget_show (spinbuttonAfter);
-	gtk_widget_show (labelLineSpacing);
-	gtk_widget_show (GTK_WIDGET(listLineSpacing));
-	gtk_widget_show (labelAt);
-	gtk_widget_show (spinbuttonAt);
+	gtk_widget_set_visible(labelSpacing, TRUE);
+	gtk_widget_set_visible(labelBefore, TRUE);
+	gtk_widget_set_visible(spinbuttonBefore, TRUE);
+	gtk_widget_set_visible(labelAfter, TRUE);
+	gtk_widget_set_visible(spinbuttonAfter, TRUE);
+	gtk_widget_set_visible(labelLineSpacing, TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(listLineSpacing), TRUE);
+	gtk_widget_set_visible(labelAt, TRUE);
+	gtk_widget_set_visible(spinbuttonAt, TRUE);
 
 	// The "Line and Page Breaks" page
 	boxBreaks = gtk_grid_new();
-	gtk_widget_show (boxBreaks);
+	gtk_widget_set_visible(boxBreaks, TRUE);
 	g_object_set(G_OBJECT(boxBreaks),
 	             "row-spacing", 6,
 	             "column-spacing", 12,
@@ -631,14 +631,14 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_TabLabelLineAndPageBreaks,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	labelBreaks = gtk_label_new(unixstr.c_str());
-	gtk_widget_show (labelBreaks);
+	gtk_widget_set_visible(labelBreaks, TRUE);
 
 	gtk_notebook_append_page (GTK_NOTEBOOK (tabMain), boxBreaks, labelBreaks);
 
 
 	// Pagination headline
 	hboxPagination = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_widget_show (hboxPagination);
+	gtk_widget_set_visible(hboxPagination, TRUE);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelPagination,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
@@ -646,7 +646,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	g_object_set(G_OBJECT(labelPagination),
                                           "margin-start", 0, "margin-end", 0, "margin-top", 3, "margin-bottom", 3,
                                           nullptr);
-	gtk_widget_show (labelPagination);
+	gtk_widget_set_visible(labelPagination, TRUE);
 	gtk_box_append(GTK_BOX(hboxPagination), labelPagination);
 
 	gtk_grid_attach(GTK_GRID(boxBreaks), hboxPagination, 0, 0, 2, 1);
@@ -657,47 +657,47 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonWidowOrphan = gtk_check_button_new_with_label(unixstr.c_str());
 	g_object_set_data(G_OBJECT(checkbuttonWidowOrphan), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_WIDOW_ORPHAN));
-	gtk_widget_show (checkbuttonWidowOrphan);
+	gtk_widget_set_visible(checkbuttonWidowOrphan, TRUE);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonWidowOrphan, 0, 1, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushKeepWithNext,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonKeepNext = gtk_check_button_new_with_label(unixstr.c_str());
 	g_object_set_data(G_OBJECT(checkbuttonKeepNext), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_KEEP_NEXT));
-	gtk_widget_show (checkbuttonKeepNext);
+	gtk_widget_set_visible(checkbuttonKeepNext, TRUE);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonKeepNext, 1, 1, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushKeepLinesTogether,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonKeepLines = gtk_check_button_new_with_label(unixstr.c_str());
 	g_object_set_data(G_OBJECT(checkbuttonKeepLines), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_KEEP_LINES));
-	gtk_widget_show (checkbuttonKeepLines);
+	gtk_widget_set_visible(checkbuttonKeepLines, TRUE);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonKeepLines, 0, 2, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushPageBreakBefore,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonPageBreak = gtk_check_button_new_with_label(unixstr.c_str());
 	g_object_set_data(G_OBJECT(checkbuttonPageBreak), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_PAGE_BREAK));
-	gtk_widget_show (checkbuttonPageBreak);
+	gtk_widget_set_visible(checkbuttonPageBreak, TRUE);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonPageBreak, 1, 2, 1, 1);
 
 
 	hseparator6 = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
-	gtk_widget_show (hseparator6);
+	gtk_widget_set_visible(hseparator6, TRUE);
 	gtk_grid_attach(GTK_GRID(boxBreaks), hseparator6, 0, 3, 2, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushSuppressLineNumbers,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonSuppress = gtk_check_button_new_with_label(unixstr.c_str());
 	g_object_set_data(G_OBJECT(checkbuttonSuppress), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_SUPPRESS));
-	gtk_widget_show (checkbuttonSuppress);
+	gtk_widget_set_visible(checkbuttonSuppress, TRUE);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonSuppress, 0, 4, 1, 1);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_PushNoHyphenate,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
 	checkbuttonHyphenate = gtk_check_button_new_with_label(unixstr.c_str());
 	g_object_set_data(G_OBJECT(checkbuttonHyphenate), WIDGET_ID_TAG, reinterpret_cast<gpointer>( id_CHECK_NO_HYPHENATE));
-	gtk_widget_show (checkbuttonHyphenate);
+	gtk_widget_set_visible(checkbuttonHyphenate, TRUE);
 	gtk_grid_attach(GTK_GRID(boxBreaks), checkbuttonHyphenate, 0, 5, 1, 1);
 
 	// End of notebook. Next comes the preview area.
@@ -708,7 +708,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	GtkWidget * drawingareaPreview;
 
 	hboxPreview = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_widget_show (hboxPreview);
+	gtk_widget_set_visible(hboxPreview, TRUE);
 
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Para_LabelPreview,s);
 	unixstr = UT_XML_cloneNoAmpersands(s);
@@ -718,7 +718,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
                                        "xalign", 0.0, "yalign", 0.5,
                                        "margin-start", 0, "margin-end", 0, "margin-top", 8, "margin-bottom", 8,
                                        nullptr);
-	gtk_widget_show (labelPreview);
+	gtk_widget_set_visible(labelPreview, TRUE);
 	gtk_box_append(GTK_BOX(hboxPreview), labelPreview);
 
 	gtk_box_append(GTK_BOX(vboxContents), hboxPreview);
@@ -727,10 +727,10 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 
 
 	hboxPreviewFrame = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_widget_show (hboxPreviewFrame);
+	gtk_widget_set_visible(hboxPreviewFrame, TRUE);
 
 	framePreview = gtk_frame_new (nullptr);
-	gtk_widget_show (framePreview);
+	gtk_widget_set_visible(framePreview, TRUE);
 
 	gtk_box_append(GTK_BOX(hboxPreviewFrame), framePreview);
 			gtk_widget_set_hexpand(framePreview, TRUE);
@@ -738,7 +738,7 @@ GtkWidget * AP_UnixDialog_Paragraph::_constructWindowContents(GtkWidget *windowM
 	gtk_box_append(GTK_BOX(vboxContents), hboxPreviewFrame);
 	gtk_widget_set_size_request (framePreview, 400, 150);
 	drawingareaPreview = gtk_drawing_area_new();
-	gtk_widget_show (drawingareaPreview);
+	gtk_widget_set_visible(drawingareaPreview, TRUE);
 	xap_gtk_container_add (framePreview, drawingareaPreview);
 
 	// Update member variables with the important widgets that

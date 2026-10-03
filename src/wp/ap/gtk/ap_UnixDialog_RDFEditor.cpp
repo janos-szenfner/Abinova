@@ -298,8 +298,8 @@ AP_UnixDialog_RDFEditor::hideRestrictionXMLID( bool v )
     if( v )
     {
         UT_DEBUGMSG(("AP_UnixDialog_RDFEditor, no restriction HIDING! w:%p\n", m_restrictxmlidhidew ));
-        gtk_widget_hide( m_restrictxmlidhidew );
-        gtk_widget_hide( GTK_WIDGET(m_selectedxmlid) );
+        gtk_widget_set_visible( m_restrictxmlidhidew , FALSE);
+        gtk_widget_set_visible( GTK_WIDGET(m_selectedxmlid) , FALSE);
     }
     else
     {
@@ -610,8 +610,8 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
         {
             xap_gtk_container_remove (w,  m_restrictxmlidhidew );
         }
-//        gtk_widget_hide( m_restrictxmlidhidew );
-//        gtk_widget_hide( GTK_WIDGET(m_selectedxmlid) );
+//        gtk_widget_set_visible( m_restrictxmlidhidew , FALSE);
+//        gtk_widget_set_visible( GTK_WIDGET(m_selectedxmlid) , FALSE);
         setRestrictedXMLID( "" );
     }
     else

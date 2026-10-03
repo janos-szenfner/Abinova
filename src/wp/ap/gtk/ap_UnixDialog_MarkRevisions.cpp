@@ -97,7 +97,7 @@ GtkWidget * AP_UnixDialog_MarkRevisions::constructWindow ()
   dialog1 = abiDialogNew ( "mark revisions", TRUE, s.c_str());
 
   dialog_vbox1 = gtk_dialog_get_content_area(GTK_DIALOG (dialog1));
-  gtk_widget_show (dialog_vbox1);
+  gtk_widget_set_visible(dialog_vbox1, TRUE);
 
   constructWindowContents ( dialog_vbox1 ) ;
 
@@ -122,7 +122,7 @@ void AP_UnixDialog_MarkRevisions::constructWindowContents ( GtkWidget * containe
    GtkWidget *entry1;
    
    vbox1 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-   gtk_widget_show (vbox1);
+   gtk_widget_set_visible(vbox1, TRUE);
    gtk_box_append(GTK_BOX(container), vbox1);
 			gtk_widget_set_hexpand(vbox1, TRUE);
 			gtk_widget_set_vexpand(vbox1, TRUE);
@@ -134,17 +134,17 @@ void AP_UnixDialog_MarkRevisions::constructWindowContents ( GtkWidget * containe
 		 {
 			 radiobutton1 = abi_radio_button_new_with_label(vbox1_group, getRadio1Label());
 			 vbox1_group = radiobutton1;
-			 gtk_widget_show (radiobutton1);
+			 gtk_widget_set_visible(radiobutton1, TRUE);
 			 gtk_box_append(GTK_BOX(vbox1), radiobutton1);
 			 lbl1 = gtk_label_new(getComment1(true));
-			 gtk_widget_show (lbl1);
+			 gtk_widget_set_visible(lbl1, TRUE);
 			 gtk_box_append(GTK_BOX(vbox1), lbl1);
 		 }
 		 radiobutton2 = abi_radio_button_new_with_label(vbox1_group, getRadio2Label());
 		 vbox1_group = radiobutton2;
 		 
 		 if (isRev ())
-			 gtk_widget_show (radiobutton2);
+			 gtk_widget_set_visible(radiobutton2, TRUE);
 		 
 		 gtk_box_append(GTK_BOX(vbox1), radiobutton2);
 		 
@@ -156,11 +156,11 @@ void AP_UnixDialog_MarkRevisions::constructWindowContents ( GtkWidget * containe
      }
    
    lbl2 = gtk_label_new (getComment2Label());
-   gtk_widget_show (lbl2);
+   gtk_widget_set_visible(lbl2, TRUE);
    gtk_box_append(GTK_BOX(vbox1), lbl2);
    
    entry1 = gtk_entry_new();
-   gtk_widget_show (entry1);
+   gtk_widget_set_visible(entry1, TRUE);
    gtk_box_append(GTK_BOX(vbox1), entry1);
    
    mEntryLbl = lbl2 ;

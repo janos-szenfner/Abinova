@@ -205,7 +205,7 @@ void AP_UnixDialog_PageSetup::event_LandscapeChanged(void)
 	} else {
 		customPreview = gtk_image_new_from_resource("/io/github/janos_szenfner/Abinova/orient_vertical_xpm");
 	}
-	gtk_widget_show(customPreview);
+	gtk_widget_set_visible(customPreview, TRUE);
 	gtk_box_prepend(GTK_BOX(m_PageHbox), customPreview);
 }
 
@@ -630,7 +630,7 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 
 	/* add margin image to the margin window */
 	customPreview = gtk_image_new_from_resource("/io/github/janos_szenfner/Abinova/margin_xpm");
-	gtk_widget_show (customPreview);
+	gtk_widget_set_visible(customPreview, TRUE);
 	gtk_grid_attach (GTK_GRID (m_MarginHbox), customPreview, 2, 0, 1, 8);
 
 	/* add correct page XPM image to the page window */
@@ -643,7 +643,7 @@ GtkWidget * AP_UnixDialog_PageSetup::_constructWindow (void)
 
 		customPreview = gtk_image_new_from_resource("/io/github/janos_szenfner/Abinova/orient_horizontal_xpm");
 	}
-	gtk_widget_show(customPreview);
+	gtk_widget_set_visible(customPreview, TRUE);
 	gtk_box_prepend(GTK_BOX(m_PageHbox), customPreview);
 
 	std::string s;

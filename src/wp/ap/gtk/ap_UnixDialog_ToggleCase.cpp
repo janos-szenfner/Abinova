@@ -89,7 +89,7 @@ GtkWidget * AP_UnixDialog_ToggleCase::_constructWindow (void)
   GtkWidget * windowMain = abiDialogNew("toggle case dialog", TRUE, s.c_str());
 
   GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-  gtk_widget_show(vbox);
+  gtk_widget_set_visible(vbox, TRUE);
   XAP_gtk_widget_set_margin(vbox, 12);
   xap_gtk_container_add (gtk_dialog_get_content_area(GTK_DIALOG(windowMain)), vbox);
   _constructWindowContents(vbox);
@@ -116,31 +116,31 @@ void AP_UnixDialog_ToggleCase::_constructWindowContents (GtkWidget *vbox1)
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_SentenceCase,s);
   sentenceCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
   vbox1_group = sentenceCase;
-  gtk_widget_show (sentenceCase);
+  gtk_widget_set_visible(sentenceCase, TRUE);
   gtk_box_append(GTK_BOX(vbox1), sentenceCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_LowerCase,s);
   lowerCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
   vbox1_group = lowerCase;
-  gtk_widget_show (lowerCase);
+  gtk_widget_set_visible(lowerCase, TRUE);
   gtk_box_append(GTK_BOX(vbox1), lowerCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_UpperCase,s);
   upperCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
   vbox1_group = upperCase;
-  gtk_widget_show (upperCase);
+  gtk_widget_set_visible(upperCase, TRUE);
   gtk_box_append(GTK_BOX(vbox1), upperCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_FirstUpperCase,s);
   firstUpperCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
   vbox1_group = firstUpperCase;
-  gtk_widget_show (firstUpperCase);
+  gtk_widget_set_visible(firstUpperCase, TRUE);
   gtk_box_append(GTK_BOX(vbox1), firstUpperCase);
 
   pSS->getValueUTF8(AP_STRING_ID_DLG_ToggleCase_ToggleCase,s);
   toggleCase = abi_radio_button_new_with_label(vbox1_group,s.c_str());
   vbox1_group = toggleCase;
-  gtk_widget_show (toggleCase);
+  gtk_widget_set_visible(toggleCase, TRUE);
   gtk_box_append(GTK_BOX(vbox1), toggleCase);
 
   g_object_set_data (G_OBJECT(sentenceCase), "user_data", GINT_TO_POINTER(CASE_SENTENCE));

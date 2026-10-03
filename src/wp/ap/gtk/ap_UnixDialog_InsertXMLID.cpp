@@ -201,13 +201,13 @@ AP_UnixDialog_InsertXMLID::_constructWindowContents(GtkWidget * container )
     std::string s;
     pSS->getValueUTF8(msgid,s);
     label1 = gtk_label_new (s.c_str());
-    gtk_widget_show (label1);
+    gtk_widget_set_visible(label1, TRUE);
     gtk_box_append(GTK_BOX(container), label1);
 
     // m_combo = gtk_combo_box_text_new_with_entry();
     // doesn't yet work as a combo box!
     m_combo = gtk_entry_new();
-    gtk_widget_show (m_combo);
+    gtk_widget_set_visible(m_combo, TRUE);
     gtk_box_append(GTK_BOX(container), m_combo);
 
     // GtkEntry *entry = GTK_ENTRY(gtk_bin_get_child(GTK_BIN(m_combo)));
@@ -234,7 +234,7 @@ AP_UnixDialog_InsertXMLID::_constructWindow(void)
     m_window = abiDialogNew("insert RDF link dialog", TRUE, s.c_str());
   
     vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-    gtk_widget_show (vbox);
+    gtk_widget_set_visible(vbox, TRUE);
     xap_gtk_container_add (gtk_dialog_get_content_area(GTK_DIALOG (m_window)), vbox);
     XAP_gtk_widget_set_margin(vbox, 5);
 

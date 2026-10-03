@@ -418,7 +418,7 @@ void AP_UnixDialog_Document::runModal(XAP_Frame * pFrame)
 	gtk_window_set_transient_for(GTK_WINDOW(mainWindow),
 								 GTK_WINDOW(parentWindow));
 	gtk_window_set_modal(GTK_WINDOW(mainWindow), TRUE);
-	gtk_widget_show(mainWindow);
+	gtk_widget_set_visible(mainWindow, TRUE);
 
 	gint resp = abiRunModalDialog(GTK_DIALOG(mainWindow), pFrame, this,
 								GTK_RESPONSE_CANCEL, true);

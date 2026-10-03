@@ -89,7 +89,7 @@ void AP_UnixDialog_Latex::runModeless(XAP_Frame * pFrame)
 
 	abiSetupModelessDialog(GTK_DIALOG(m_windowMain), pFrame, this, 
 						   GTK_RESPONSE_CLOSE);
-	gtk_widget_show(m_windowMain);
+	gtk_widget_set_visible(m_windowMain, TRUE);
 }
 
 

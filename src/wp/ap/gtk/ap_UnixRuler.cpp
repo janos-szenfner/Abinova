@@ -70,7 +70,7 @@ GtkWidget* AP_UnixRuler::_createWidget(gint w, gint h)
     m_wRuler = gtk_drawing_area_new();
 
     g_object_set_data(G_OBJECT(m_wRuler), "user_data", this);
-    gtk_widget_show(m_wRuler);
+    gtk_widget_set_visible(m_wRuler, TRUE);
     gtk_widget_set_size_request(m_wRuler, w, h);
 
     g_signal_connect_swapped(G_OBJECT(m_wRuler), "realize",

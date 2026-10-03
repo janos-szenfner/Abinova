@@ -289,7 +289,7 @@ GtkWidget * AP_UnixDialog_ListRevisions::constructWindow ()
   gtk_window_set_default_size ( GTK_WINDOW(ap_UnixDialog_ListRevisions), 800, 450 ) ;
 
   vbDialog = gtk_dialog_get_content_area(GTK_DIALOG(ap_UnixDialog_ListRevisions));
-  gtk_widget_show (vbDialog);
+  gtk_widget_set_visible(vbDialog, TRUE);
   XAP_gtk_widget_set_margin(vbDialog, 5);
 
   constructWindowContents ( vbDialog ) ;
@@ -310,7 +310,7 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
   GtkWidget *clExistingRevisions;
 
   vbContent = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-  gtk_widget_show (vbContent);
+  gtk_widget_set_visible(vbContent, TRUE);
   xap_gtk_container_add (vbDialog, vbContent);
   XAP_gtk_widget_set_margin(vbContent, 5);
 
@@ -322,11 +322,11 @@ void AP_UnixDialog_ListRevisions::constructWindowContents ( GtkWidget * vbDialog
                                         "use-markup", TRUE,
                                         "xalign", 0.0, "yalign", 0.5,
                                         nullptr);
-  gtk_widget_show (lbExistingRevisions);
+  gtk_widget_set_visible(lbExistingRevisions, TRUE);
   gtk_box_append(GTK_BOX(vbContent), lbExistingRevisions);
 
   swExistingRevisions = gtk_scrolled_window_new();
-  gtk_widget_show (swExistingRevisions);
+  gtk_widget_set_visible(swExistingRevisions, TRUE);
   xap_gtk_container_add (vbContent, swExistingRevisions);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (swExistingRevisions), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 

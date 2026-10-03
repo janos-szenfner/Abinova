@@ -582,7 +582,7 @@ void AP_UnixFrame::toggleStatusBar(bool bStatusBarOn)
 bool AP_UnixFrame::_createViewGraphics(GR_Graphics *& pG, UT_uint32 iZoom)
 {
 	//WL: experimentally hiding this
-	//gtk_widget_show(static_cast<AP_UnixFrameImpl *>(m_pFrameImpl)->m_dArea);
+	//gtk_widget_set_visible(static_cast<AP_UnixFrameImpl *>(m_pFrameImpl)->m_dArea, TRUE);
 	AP_UnixFrameImpl * pImpl = static_cast<AP_UnixFrameImpl *>(getFrameImpl());
 	UT_ASSERT(pImpl);
 	UT_DEBUGMSG(("Got FrameImpl %p area %p \n",pImpl,pImpl->m_dArea));
