@@ -188,7 +188,7 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 							 GTK_TREE_MODEL (this->store));
 	g_object_unref (G_OBJECT (this->store));
 
-	gtk_widget_show (this->dlg);
+	gtk_widget_set_visible(this->dlg, TRUE);
 
 	/* Dom says we just use that dir for now and hope for someone to build an openclipart client */
 	this->dir_path = getInitialDir ();
@@ -328,7 +328,7 @@ next:
 	g_dir_close (dir);
 	clipartCount = _count;
 
-	gtk_widget_hide (this->progress);
+	gtk_widget_set_visible(this->progress, FALSE);
 
 	return TRUE;
 }

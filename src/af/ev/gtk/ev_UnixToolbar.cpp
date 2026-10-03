@@ -148,7 +148,7 @@ toolbar_append_separator (GtkBox *toolbar)
 	gtk_widget_set_margin_start(item, TOOLBAR_HSPACING);
 	gtk_widget_set_margin_end(item, TOOLBAR_HSPACING);
 	gtk_box_append(toolbar, item);
-	gtk_widget_show(item);
+	gtk_widget_set_visible(item, TRUE);
 }
 
 /*!
@@ -732,7 +732,7 @@ bool EV_UnixToolbar::synthesize(void)
 					pSS->getValueUTF8(XAP_STRING_ID_DLG_Cancel,sCancel);
 
 					abi_table_set_labels(ABITABLE_WIDGET(abi_table),sTable.c_str(),sCancel.c_str());
-					gtk_widget_show(abi_table);
+					gtk_widget_set_visible(abi_table, TRUE);
 					UT_DEBUGMSG(("SEVIOR: Made insert table widget \n"));
 					wd->m_handlerId = g_signal_connect(abi_table, "selected",
 													   G_CALLBACK (_wd::s_new_table),
@@ -842,7 +842,7 @@ bool EV_UnixToolbar::synthesize(void)
 				// combo eat all free space in the toolbar box.
 				gtk_widget_set_hexpand(combo, FALSE);
 				gtk_widget_set_valign(combo, GTK_ALIGN_CENTER);
-				gtk_widget_show(combo);
+				gtk_widget_set_visible(combo, TRUE);
 				toolbar_append_item(GTK_BOX(m_wToolbar), combo,
 									szToolTip, TRUE);
 				wd->m_widget = combo;
@@ -922,7 +922,7 @@ bool EV_UnixToolbar::synthesize(void)
 	GtkBox * wBox = _getContainer();
 
 	// show the complete thing
-	gtk_widget_show(m_wToolbar);
+	gtk_widget_set_visible(m_wToolbar, TRUE);
 
 	// put it in the vbox
 	gtk_box_append(wBox, m_wToolbar);
@@ -1151,7 +1151,7 @@ XAP_Frame * EV_UnixToolbar::getFrame(void)
 void EV_UnixToolbar::show(void)
 {
 	if (m_wToolbar) {
-		gtk_widget_show (m_wToolbar);
+		gtk_widget_set_visible(m_wToolbar, TRUE);
 	}
 }
 
@@ -1159,7 +1159,7 @@ void EV_UnixToolbar::hide(void)
 {
 
 	if (m_wToolbar) {
-		gtk_widget_hide (m_wToolbar);
+		gtk_widget_set_visible(m_wToolbar, FALSE);
 	}
 	EV_Toolbar::hide();
 }

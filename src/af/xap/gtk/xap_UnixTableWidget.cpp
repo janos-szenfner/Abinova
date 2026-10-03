@@ -497,7 +497,7 @@ abi_table_init (AbiTable* table, gpointer)
 
 	table->icon = gtk_image_new_from_resource("/io/github/janos_szenfner/Abinova/24x24/actions/tb_insert_table.png");
 
-	gtk_widget_show(table->icon);
+	gtk_widget_set_visible(table->icon, TRUE);
 	gtk_box_append(GTK_BOX(table->button_box), table->icon);
 	UT_DEBUGMSG(("abi-table icon loaded %p !\n",table->icon));
 

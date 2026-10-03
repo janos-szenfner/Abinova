@@ -479,7 +479,7 @@ void abiSetupModalDialog(GtkDialog * dialog, XAP_Frame *pFrame, XAP_Dialog * pDl
 	sAddHelpButton (GTK_DIALOG (popup), pDlg);
 
 	// show the window
-	gtk_widget_show (GTK_WIDGET (popup));
+	gtk_widget_set_visible(GTK_WIDGET (popup), TRUE);
 }
 
 /*
@@ -634,7 +634,7 @@ void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDl
     pDlg->maybeClosePopupPreviewBubbles();
         
 	// show the window
-	gtk_widget_show ( GTK_WIDGET(me) ) ;
+	gtk_widget_set_visible(GTK_WIDGET(me), TRUE);
 }
 
 /*!
@@ -959,7 +959,7 @@ void messageBoxOK(const char * message)
 
 	gtk_window_set_title(GTK_WINDOW(msg), "Abinova");
 
-	gtk_widget_show ( msg ) ;
+	gtk_widget_set_visible(msg, TRUE);
 	abiRunModalDialog(GTK_DIALOG(msg), true);
 }
 

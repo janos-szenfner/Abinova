@@ -782,7 +782,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	if (m_id == XAP_DIALOG_ID_INSERT_PICTURE)
 	{
 		GtkWidget * preview = gtk_drawing_area_new();
-		gtk_widget_show (preview);
+		gtk_widget_set_visible(preview, TRUE);
 		m_preview = preview;
 		gtk_widget_set_size_request (preview, PREVIEW_WIDTH, PREVIEW_HEIGHT);
 		
@@ -806,7 +806,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	// hbox for our pulldown menu (GTK does its pulldown this way */
 	GtkWidget * pulldown_hbox = bottom_grid
 		? bottom_grid : gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
-	gtk_widget_show(pulldown_hbox);
+	gtk_widget_set_visible(pulldown_hbox, TRUE);
 
 	// pulldown label (with_mnemonic: convertMnemonics() produced "_"
 	// accelerators, which a plain label would render literally)
@@ -824,7 +824,7 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 
 	// pulldown menu
 	filetypes_pulldown = gtk_combo_box_new();
-	gtk_widget_show(filetypes_pulldown);
+	gtk_widget_set_visible(filetypes_pulldown, TRUE);
 	if (bottom_grid)
 		gtk_grid_attach(GTK_GRID(bottom_grid), filetypes_pulldown, 1, 1, 1, 1);
 	else

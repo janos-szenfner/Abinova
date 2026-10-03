@@ -206,7 +206,7 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 	_setScrolledWindow ();
 
 	// Show the top level dialog
-	gtk_widget_show(mainWindow);
+	gtk_widget_set_visible(mainWindow, TRUE);
 
 	// Put the current font in the entry box
 	const char* iSelectedFont = iDrawSymbol->getSelectedFont();
@@ -573,7 +573,7 @@ void XAP_UnixDialog_Insert_Symbol::SymbolMap_clicked(gint n_press, gdouble x, gd
 GtkWidget *XAP_UnixDialog_Insert_Symbol::_previewNew (int w, int h)
 {
 	GtkWidget *pre = gtk_drawing_area_new();
-	gtk_widget_show (pre);
+	gtk_widget_set_visible(pre, TRUE);
 	gtk_widget_set_size_request (pre, w, h);
 	return pre;
 }
@@ -612,7 +612,7 @@ GtkWidget * XAP_UnixDialog_Insert_Symbol::_constructWindow(void)
 	GtkWidget * vbox1 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	GtkWidget * vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	GtkWidget * hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
-	gtk_widget_show (hbox);
+	gtk_widget_set_visible(hbox, TRUE);
 	gtk_box_append(GTK_BOX(hbox), vbox1);
 	gtk_box_append(GTK_BOX(hbox), vbox2);
 			gtk_widget_set_hexpand(vbox2, TRUE);
@@ -629,7 +629,7 @@ GtkWidget * XAP_UnixDialog_Insert_Symbol::_constructWindow(void)
 	// TODO: 32 * x (19) = 608, 7 * y (21) = 147  FIXME!
 	//
 	GtkWidget * hbox1 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
-	gtk_widget_show (hbox1);
+	gtk_widget_set_visible(hbox1, TRUE);
 	gtk_box_append(GTK_BOX(tmp), hbox1);
 			gtk_widget_set_hexpand(hbox1, TRUE);
 			gtk_widget_set_vexpand(hbox1, TRUE);
@@ -643,7 +643,7 @@ GtkWidget * XAP_UnixDialog_Insert_Symbol::_constructWindow(void)
 
 	m_vadjust = GTK_ADJUSTMENT (gtk_adjustment_new (0, 0, 7, 0, 0, 7));
 	GtkWidget *vscroll = gtk_scrollbar_new (GTK_ORIENTATION_VERTICAL, m_vadjust);
-	gtk_widget_show (vscroll);
+	gtk_widget_set_visible(vscroll, TRUE);
 	gtk_box_append(GTK_BOX(hbox1), vscroll);
 
 	m_areaCurrentSym = _previewNew (60, 45);
@@ -708,7 +708,7 @@ void XAP_UnixDialog_Insert_Symbol::_getGlistFonts (std::list<std::string> & glFo
 GtkWidget *XAP_UnixDialog_Insert_Symbol::_createComboboxWithFonts (void)
 {
 	GtkWidget *fontcombo = gtk_combo_box_text_new_with_entry();
-	gtk_widget_show(fontcombo);
+	gtk_widget_set_visible(fontcombo, TRUE);
 
 	// ensure we don't override this without freeing...
     m_InsertS_Font_list.clear();

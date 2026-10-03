@@ -52,10 +52,10 @@ bool XAP_UnixWidget::getState(void)
 void XAP_UnixWidget::setVisible(bool visible)
 {
 	if (visible) {
-		gtk_widget_show(m_widget);
+		gtk_widget_set_visible(m_widget, TRUE);
 	}
 	else {
-		gtk_widget_hide(m_widget);
+		gtk_widget_set_visible(m_widget, FALSE);
 	}
 }
 /** get the widget visible state */

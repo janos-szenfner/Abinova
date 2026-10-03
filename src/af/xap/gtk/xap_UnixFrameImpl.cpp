@@ -1544,7 +1544,7 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 	// the status bar).
 	m_wSunkenBox = _createDocumentWindow();
 	gtk_box_append(GTK_BOX(m_wVBox), m_wSunkenBox);
-	gtk_widget_show(m_wSunkenBox);
+	gtk_widget_set_visible(m_wSunkenBox, TRUE);
 
 	// Create statusLet the app-specific frame code create the status bar
 	// if it wants to.  we will put it below the document
@@ -1559,11 +1559,11 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 
 	if (m_wStatusBar)
 	{
-		gtk_widget_show(m_wStatusBar);
+		gtk_widget_set_visible(m_wStatusBar, TRUE);
 		gtk_box_append(GTK_BOX(m_wVBox), m_wStatusBar);
 	}
 
-	gtk_widget_show(m_wVBox);
+	gtk_widget_set_visible(m_wVBox, TRUE);
 
 	// set the icon
 	if(m_iFrameMode == XAP_NormalFrame)
@@ -1959,7 +1959,7 @@ bool XAP_UnixFrameImpl::_raise()
 bool XAP_UnixFrameImpl::_show()
 {
 	if(m_wTopLevelWindow) {
-		gtk_widget_show(m_wTopLevelWindow);
+		gtk_widget_set_visible(m_wTopLevelWindow, TRUE);
 	}
 
 	return true;

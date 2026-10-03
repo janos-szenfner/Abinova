@@ -3471,6 +3471,11 @@ below are on `main` but the release has not been cut yet.
   `gtk_widget_show`/`gtk_widget_hide` calls in `src/wp/ap/gtk`
   (dialogs, status bar, ruler, frame impl, annotation preview) now use
   `gtk_widget_set_visible`; identical semantics, no behavior change.
+- **GTK 4.10 show/hide deprecation swept (af side)** — all 67
+  `gtk_widget_show`/`gtk_widget_hide` calls in `src/af` (toolbar,
+  dialog helper, frame impl, table/clip-art/file/font-chooser/symbol/
+  HTML-options widgets) now use `gtk_widget_set_visible`; identical
+  semantics, no behavior change.
 
 ### Performance
 
