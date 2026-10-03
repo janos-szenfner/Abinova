@@ -40,6 +40,7 @@
 #include "ut_misc.h"
 #include "ut_units.h"
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkListHelpers.h"
 #include "xap_UnixDlg_FontChooser.h"
 #include "xap_UnixApp.h"
 #include "xap_Frame.h"
@@ -63,66 +64,98 @@
 		OPACITY
 	};
 
-//
-// List store model , used as model for GtkTreeView
-	enum: uint8_t {
-		TEXT_COLUMN,
-		N_COLUMNS
-	};
-
-static gint searchTreeView(GtkTreeView* tv, const char * compareText)
+static gint searchListModel(GListModel* model, const char * compareText)
 {
-       GtkTreeModel* model;
-       GtkTreeIter iter;
-       char* text;
-
-       UT_ASSERT(tv);
+       UT_ASSERT(model);
 
        // if text is null, it's not found
-       if (!compareText)
+       if (!model || !compareText)
                return -1;
 
-       model = gtk_tree_view_get_model(GTK_TREE_VIEW(tv));
-       if (! gtk_tree_model_get_iter_first(model, &iter) )
-		return -1;
-
-       gint i = 0;
-       do {
-           gtk_tree_model_get(model, &iter, TEXT_COLUMN, &text, -1);
-           if (!g_ascii_strcasecmp(text, compareText)) {
-               g_free(text);
+       guint n = g_list_model_get_n_items(model);
+       for (guint i = 0; i < n; i++)
+       {
+           XAPDropDownItem *row =
+               XAP_DROP_DOWN_ITEM(g_list_model_get_item(model, i));
+           const char *text =
+               row ? xap_drop_down_item_get_text(row) : nullptr;
+           bool match = text && !g_ascii_strcasecmp(text, compareText);
+           if (row)
+               g_object_unref(row);
+           if (match)
                return i;
-           }
-           i++;
-           g_free(text);
-       } while(gtk_tree_model_iter_next (model, &iter));
+       }
 
        return -1;
 }
 
-//
-// Create GtkTreeView that is similar to a CList
-// ie single text column, with no header
-GtkWidget* createFontTabTreeView() 
+// font-list cell: the family name drawn in its own font
+static void s_font_item_setup(GtkSignalListItemFactory * /*factory*/,
+							  GtkListItem * item, gpointer /*data*/)
 {
-	GtkWidget* treeView;
-	GtkListStore* listStore;
-	GtkTreeViewColumn* column;
-	GtkCellRenderer* renderer;
+	GtkWidget *label = gtk_label_new(nullptr);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+	gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
+	gtk_widget_set_halign(label, GTK_ALIGN_START);
+	gtk_list_item_set_child(item, label);
+}
 
-	treeView = gtk_tree_view_new();
-	listStore = gtk_list_store_new(N_COLUMNS, G_TYPE_STRING);
-	gtk_tree_view_set_model(GTK_TREE_VIEW(treeView), GTK_TREE_MODEL(listStore));
+static void s_font_item_bind(GtkSignalListItemFactory * /*factory*/,
+							 GtkListItem * item, gpointer /*data*/)
+{
+	GtkLabel *label = GTK_LABEL(gtk_list_item_get_child(item));
+	gpointer row = gtk_list_item_get_item(item);
+	const char *family =
+		row ? xap_drop_down_item_get_text(XAP_DROP_DOWN_ITEM(row))
+			: nullptr;
+	gtk_label_set_text(label, family ? family : "");
+	if (family && *family) {
+		PangoAttrList *attrs = pango_attr_list_new();
+		pango_attr_list_insert(attrs, pango_attr_family_new(family));
+		gtk_label_set_attributes(label, attrs);
+		pango_attr_list_unref(attrs);
+	} else {
+		gtk_label_set_attributes(label, nullptr);
+	}
+}
+
+//
+// Create GtkListView that is similar to a CList
+// ie single text column, with no header
+static GtkWidget* createFontTabListView(bool fontPreview,
+										GtkSingleSelection **selOut)
+{
+	GListStore* listStore = XAP_list_store_new();
+	GtkSingleSelection *sel = gtk_single_selection_new(nullptr);
+	gtk_single_selection_set_autoselect(sel, FALSE);
+	gtk_single_selection_set_can_unselect(sel, TRUE);
+	gtk_single_selection_set_model(sel, G_LIST_MODEL(listStore));
 	g_object_unref(G_OBJECT(listStore));
-	column = gtk_tree_view_column_new();
-	renderer = gtk_cell_renderer_text_new();
-	gtk_tree_view_column_pack_start(column, renderer, TRUE);
-	gtk_tree_view_column_set_attributes(column, renderer, "text", TEXT_COLUMN, nullptr);
-	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(treeView), column);
-	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(treeView), FALSE);
 
-	return treeView;
+	GtkListItemFactory *factory;
+	if (fontPreview) {
+		factory = gtk_signal_list_item_factory_new();
+		g_signal_connect(factory, "setup", G_CALLBACK(s_font_item_setup),
+						 nullptr);
+		g_signal_connect(factory, "bind", G_CALLBACK(s_font_item_bind),
+						 nullptr);
+	} else {
+		factory = XAP_list_item_text_factory();
+	}
+
+	/* Build an empty view and attach model/factory via the setters:
+	 * passing a late-bound GtkSingleSelection into gtk_list_view_new()
+	 * corrupts the view's factory property on GTK 4.14. */
+	GtkWidget* view = gtk_list_view_new(nullptr, nullptr);
+	gtk_list_view_set_model(GTK_LIST_VIEW(view), GTK_SELECTION_MODEL(sel));
+	gtk_list_view_set_factory(GTK_LIST_VIEW(view), factory);
+	g_object_unref(G_OBJECT(sel));
+	g_object_unref(G_OBJECT(factory));
+
+	if (selOut)
+		*selOut = GTK_SINGLE_SELECTION(
+			gtk_list_view_get_model(GTK_LIST_VIEW(view)));
+	return view;
 }
 
 
@@ -141,6 +174,9 @@ XAP_UnixDialog_FontChooser::XAP_UnixDialog_FontChooser(XAP_DialogFactory * pDlgF
 	m_fontList = nullptr;
 	m_styleList = nullptr;
 	m_sizeList = nullptr;
+	m_selFonts = nullptr;
+	m_selStyles = nullptr;
+	m_selSizes = nullptr;
 	m_checkStrikeOut = nullptr;
 	m_checkUnderline = nullptr;
 	m_checkOverline = nullptr;
@@ -190,7 +226,9 @@ static gint s_bgcolor_update(GtkWidget * /* widget */,
 	return FALSE;
 }
 
-static void s_select_row_font(GtkTreeSelection * /* widget */, XAP_UnixDialog_FontChooser * dlg)
+static void s_select_row_font(GtkSelectionModel * /* model */,
+							  guint /* position */, guint /* n_items */,
+							  XAP_UnixDialog_FontChooser * dlg)
 {
 	UT_return_if_fail(dlg);
     // update the row number and show the changed preview
@@ -199,7 +237,9 @@ static void s_select_row_font(GtkTreeSelection * /* widget */, XAP_UnixDialog_Fo
 }
 
 
-static void s_select_row_style(GtkTreeSelection * /* widget */, XAP_UnixDialog_FontChooser * dlg)
+static void s_select_row_style(GtkSelectionModel * /* model */,
+							   guint /* position */, guint /* n_items */,
+							   XAP_UnixDialog_FontChooser * dlg)
 {
 	UT_return_if_fail(dlg);
 
@@ -207,7 +247,9 @@ static void s_select_row_style(GtkTreeSelection * /* widget */, XAP_UnixDialog_F
 	dlg->styleRowChanged();
 }
 
-static void s_select_row_size(GtkTreeSelection * /* widget */, XAP_UnixDialog_FontChooser * dlg)
+static void s_select_row_size(GtkSelectionModel * /* model */,
+							  guint /* position */, guint /* n_items */,
+							  XAP_UnixDialog_FontChooser * dlg)
 {
 	UT_return_if_fail(dlg);
 
@@ -378,18 +420,11 @@ void XAP_UnixDialog_FontChooser::textTransformChanged(void)
 void XAP_UnixDialog_FontChooser::fontRowChanged(void)
 {
 	static char szFontFamily[60];
-	GtkTreeSelection *selection;
-	GtkTreeModel *model;
-	GtkTreeIter iter;
-	gchar *text;
 
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(m_fontList));
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(m_fontList));
-	if ( gtk_tree_selection_get_selected (selection, &model, &iter) )
+	const char *text = XAP_single_selection_get_text(m_selFonts);
+	if (text)
 	{
-		gtk_tree_model_get(model, &iter, TEXT_COLUMN, &text, -1);
-		g_snprintf(szFontFamily, 50, "%s",text);
-		g_free(text), text = nullptr;
+		g_snprintf(szFontFamily, 50, "%s", text);
 		addOrReplaceVecProp("font-family",static_cast<gchar*>(szFontFamily));
 	}
 
@@ -398,18 +433,10 @@ void XAP_UnixDialog_FontChooser::fontRowChanged(void)
 
 void XAP_UnixDialog_FontChooser::styleRowChanged(void)
 {
-	GtkTreeSelection* selection;
-	GtkTreeModel* model;
-	GtkTreeIter iter;
-	gint rowNumber;
-	GtkTreePath* path;
-
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(m_styleList));
-	if ( gtk_tree_selection_get_selected (selection, &model, &iter) )
+	guint pos = gtk_single_selection_get_selected(m_selStyles);
+	if (pos != GTK_INVALID_LIST_POSITION)
 	{
-		path = gtk_tree_model_get_path(model, &iter);
-		rowNumber = gtk_tree_path_get_indices(path)[0];
-		gtk_tree_path_free(path);
+		gint rowNumber = static_cast<gint>(pos);
 
 		// perhaps these attributes really should be smashed
 		// into bitfields.  :)
@@ -446,19 +473,12 @@ void XAP_UnixDialog_FontChooser::sizeRowChanged(void)
 {
 	// used similarly to convert between text and numeric arguments
 	static char szFontSize[50];
-	GtkTreeSelection* selection;
-	GtkTreeModel* model;
-	GtkTreeIter iter;
-	gchar* text;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(m_sizeList));
-	if ( gtk_tree_selection_get_selected (selection, &model, &iter) )
+	const char *text = XAP_single_selection_get_text(m_selSizes);
+	if (text)
 	{
-		gtk_tree_model_get(model, &iter, TEXT_COLUMN, &text, -1);
-		UT_ASSERT(text);
 		g_snprintf(szFontSize, 50, "%spt",
 				   static_cast<const gchar *>(XAP_EncodingManager::fontsizes_mapping.lookupByTarget(text)));
-		g_free(text), text = nullptr;
 		addOrReplaceVecProp("font-size",static_cast<gchar *>(szFontSize));
 	}
 	updatePreview();
@@ -520,7 +540,6 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindow(void)
 // the Windows layout, with some changes for color selector
 GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 {
-	GtkTreeSelection *selection;
 	GtkWidget *vboxMain;
 	GtkWidget *notebookMain;
 	GtkWidget *labelFont;
@@ -593,10 +612,16 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 
 	scrolledwindow1 = gtk_scrolled_window_new();
 	gtk_widget_set_visible(scrolledwindow1, TRUE);
+	gtk_widget_set_hexpand(scrolledwindow1, TRUE);
+	gtk_widget_set_vexpand(scrolledwindow1, TRUE);
 	gtk_grid_attach(GTK_GRID(grid1), scrolledwindow1, 0, 1, 1, 3);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow1), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 
-	listFonts = createFontTabTreeView();
+	listFonts = createFontTabListView(true, &m_selFonts);
+	/* GtkScrolledWindow ignores min-content-width under
+	 * GTK_POLICY_NEVER, and a bare GtkListView requests ~46px —
+	 * far too narrow for family names. */
+	gtk_widget_set_size_request(listFonts, 160, -1);
 	gtk_widget_set_visible(listFonts, TRUE);
 	xap_gtk_container_add (scrolledwindow1, listFonts);
 
@@ -608,10 +633,12 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 
 	scrolledwindow2 = gtk_scrolled_window_new();
 	gtk_widget_set_visible(scrolledwindow2, TRUE);
+	gtk_widget_set_hexpand(scrolledwindow2, TRUE);
+	gtk_widget_set_vexpand(scrolledwindow2, TRUE);
 	gtk_grid_attach(GTK_GRID(grid1), scrolledwindow2, 1, 1, 1, 1);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow2), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
-	listStyles = createFontTabTreeView();
+	listStyles = createFontTabListView(false, &m_selStyles);
 	gtk_widget_set_name (listStyles, "listStyles");
 	gtk_widget_set_visible(listStyles, TRUE);
 	xap_gtk_container_add (scrolledwindow2, listStyles);
@@ -624,10 +651,12 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 
 	scrolledwindow3 = gtk_scrolled_window_new();
 	gtk_widget_set_visible(scrolledwindow3, TRUE);
+	gtk_widget_set_hexpand(scrolledwindow3, TRUE);
+	gtk_widget_set_vexpand(scrolledwindow3, TRUE);
 	gtk_grid_attach(GTK_GRID(grid1), scrolledwindow3, 2, 1, 1, 1);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow3), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 
-	listSizes = createFontTabTreeView();
+	listSizes = createFontTabListView(false, &m_selSizes);
 	gtk_widget_set_visible(listSizes, TRUE);
 	xap_gtk_container_add (scrolledwindow3, listSizes);
 
@@ -808,26 +837,20 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 					   G_CALLBACK(s_transparency_toggled),
 					   static_cast<gpointer>(this));
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(listFonts));
-	g_signal_connect(G_OBJECT(selection),
-					   "changed",
+	g_signal_connect(G_OBJECT(m_selFonts),
+					   "selection-changed",
 					   G_CALLBACK(s_select_row_font),
 					   static_cast<gpointer>(this));
-	selection = nullptr;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(listStyles));
-	g_signal_connect(G_OBJECT(selection),
-					   "changed",
+	g_signal_connect(G_OBJECT(m_selStyles),
+					   "selection-changed",
 					   G_CALLBACK(s_select_row_style),
 					   static_cast<gpointer>(this));
-	selection = nullptr;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(listSizes));
-	g_signal_connect(G_OBJECT(selection),
-					   "changed",
+	g_signal_connect(G_OBJECT(m_selSizes),
+					   "selection-changed",
 					   G_CALLBACK(s_select_row_size),
 					   static_cast<gpointer>(this));
-	selection = nullptr;
 
 	// This is a catch-all color selector callback which catches any
 	// real-time updating of the color so we can refresh our preview
@@ -862,38 +885,33 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 
 	
 	const gchar * text;
-	GtkTreeModel* model;
-	GtkTreeIter iter;
 
 	// update the styles list
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(m_styleList));
-	gtk_list_store_clear(GTK_LIST_STORE(model));
-	
-	text = pSS->getValue(XAP_STRING_ID_DLG_UFS_StyleRegular); 
-	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, TEXT_COLUMN, text, -1);
+	GListStore *styleStore =
+		G_LIST_STORE(gtk_single_selection_get_model(m_selStyles));
+	g_list_store_remove_all(styleStore);
+
+	text = pSS->getValue(XAP_STRING_ID_DLG_UFS_StyleRegular);
+	XAP_list_store_append_text(styleStore, text);
 	text = pSS->getValue(XAP_STRING_ID_DLG_UFS_StyleItalic);
-	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, TEXT_COLUMN, text, -1);
+	XAP_list_store_append_text(styleStore, text);
 	text = pSS->getValue(XAP_STRING_ID_DLG_UFS_StyleBold);
-	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, TEXT_COLUMN, text, -1);
-	text = pSS->getValue(XAP_STRING_ID_DLG_UFS_StyleBoldItalic);  
-	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, TEXT_COLUMN, text, -1);
+	XAP_list_store_append_text(styleStore, text);
+	text = pSS->getValue(XAP_STRING_ID_DLG_UFS_StyleBoldItalic);
+	XAP_list_store_append_text(styleStore, text);
 
 
 
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(m_sizeList));
-	gtk_list_store_clear(GTK_LIST_STORE(model));
+	GListStore *sizeStore =
+		G_LIST_STORE(gtk_single_selection_get_model(m_selSizes));
+	g_list_store_remove_all(sizeStore);
 	// TODO perhaps populate the list based on the selected font/style?
 	{
 		int sz = XAP_EncodingManager::fontsizes_mapping.size();
 		for (int i = 0; i < sz; ++i)
 		{
 			text = XAP_EncodingManager::fontsizes_mapping.nth2(i);
-			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-			gtk_list_store_set(GTK_LIST_STORE(model), &iter, TEXT_COLUMN, text, -1);
+			XAP_list_store_append_text(sizeStore, text);
 	    }
 	}
 
@@ -916,11 +934,9 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	// to sort out dupes
     std::set<std::string> fontSet;
 
-	GtkTreeModel* model;
-	GtkTreeIter iter;
-
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(m_fontList));
-	gtk_list_store_clear(GTK_LIST_STORE(model));
+	GListStore *fontStore =
+		G_LIST_STORE(gtk_single_selection_get_model(m_selFonts));
+	g_list_store_remove_all(fontStore);
 
 	GR_GraphicsFactory * pGF = XAP_App::getApp()->getGraphicsFactory();
 	if(!pGF)
@@ -929,20 +945,17 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	}
 
 	const std::vector<std::string> & names = GR_CairoGraphics::getAllFontNames();
-	
+
 	for (std::vector<std::string>::const_iterator  i = names.begin();
 		 i != names.end(); ++i)
 	{
 		const std::string & fName = *i;
-			
+
 		if (fontSet.find(fName) == fontSet.end())
 		{
             fontSet.insert(fName);
 
-		    gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-		    gtk_list_store_set(GTK_LIST_STORE(model), &iter, TEXT_COLUMN, 
-                               fName.c_str(), -1);
-		    
+		    XAP_list_store_append_text(fontStore, fName.c_str());
 		  }
 	}
 
@@ -950,14 +963,16 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	gint foundAt = 0;
 
 	const std::string sFontFamily = getVal("font-family");
-	foundAt = searchTreeView(GTK_TREE_VIEW(m_fontList), sFontFamily.c_str());
+	foundAt = searchListModel(G_LIST_MODEL(fontStore), sFontFamily.c_str());
 
 	// select and scroll to font name
 	if (foundAt >= 0) {
-		GtkTreePath* path = gtk_tree_path_new_from_indices(foundAt, -1);
-		gtk_tree_view_set_cursor(GTK_TREE_VIEW(m_fontList), path, nullptr, FALSE);
-		gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(m_fontList), path, nullptr, TRUE, 0.5 , 0.0);
-		gtk_tree_path_free(path);
+		gtk_list_view_scroll_to(GTK_LIST_VIEW(m_fontList),
+								static_cast<guint>(foundAt),
+								static_cast<GtkListScrollFlags>(
+									GTK_LIST_SCROLL_SELECT |
+									GTK_LIST_SCROLL_FOCUS),
+								nullptr);
 	}
 
 	// this is pretty messy
@@ -988,22 +1003,27 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 
 	// select and scroll to style name
 	if (st != LIST_STYLE_NONE) {
-		GtkTreePath* path = gtk_tree_path_new_from_indices(st, -1);
-		gtk_tree_view_set_cursor(GTK_TREE_VIEW(m_styleList), path, nullptr, FALSE);
-		gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(m_styleList), path, nullptr, TRUE, 0.5 , 0.0);
-		gtk_tree_path_free(path);
+		gtk_list_view_scroll_to(GTK_LIST_VIEW(m_styleList),
+								static_cast<guint>(st),
+								static_cast<GtkListScrollFlags>(
+									GTK_LIST_SCROLL_SELECT |
+									GTK_LIST_SCROLL_FOCUS),
+								nullptr);
 	}
 
 	g_snprintf(sizeString, sizeof(sizeString), "%s", std_size_string(UT_convertToPoints(getVal("font-size").c_str())));
-	foundAt = searchTreeView(GTK_TREE_VIEW(m_sizeList), 
-				 XAP_EncodingManager::fontsizes_mapping.lookupBySource(sizeString));
+	foundAt = searchListModel(
+		gtk_single_selection_get_model(m_selSizes),
+		XAP_EncodingManager::fontsizes_mapping.lookupBySource(sizeString));
 
 	// select and scroll to size name
 	if (foundAt >= 0) {
-		GtkTreePath* path = gtk_tree_path_new_from_indices(foundAt, -1);
-		gtk_tree_view_set_cursor(GTK_TREE_VIEW(m_sizeList), path, nullptr, FALSE);
-		gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(m_sizeList), path, nullptr, TRUE, 0.5 , 0.0);
-		gtk_tree_path_free(path);	
+		gtk_list_view_scroll_to(GTK_LIST_VIEW(m_sizeList),
+								static_cast<guint>(foundAt),
+								static_cast<GtkListScrollFlags>(
+									GTK_LIST_SCROLL_SELECT |
+									GTK_LIST_SCROLL_FOCUS),
+								nullptr);
 	}
 
 	// Set color in the color selector
@@ -1066,7 +1086,9 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	// moment it becomes visible, and warns about windows mapped
 	// without a transient parent
 	{
-		XAP_UnixFrameImpl * pImpl = static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl());
+		XAP_UnixFrameImpl * pImpl =
+			pFrame ? static_cast<XAP_UnixFrameImpl *>(pFrame->getFrameImpl())
+				   : nullptr;
 		GtkWidget * parentWindow = pImpl ? pImpl->getTopLevelWindow() : nullptr;
 		if (GTK_IS_WINDOW(parentWindow))
 			gtk_window_set_transient_for(GTK_WINDOW(cf), GTK_WINDOW(parentWindow));

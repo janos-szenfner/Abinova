@@ -49,8 +49,8 @@ protected:
 	const gchar 	*dir_path;
 	GtkWidget		*dlg;
 	GtkWidget 		*progress;
-	GtkWidget		*icon_view;
-	GtkListStore 	*store;
+	GtkWidget		*grid_view;
+	GListStore	 	*store;
 	int				 count;
 	guint			 fill_idle_id;
 };

@@ -28,6 +28,7 @@
 #include "ut_debugmsg.h"
 #include "ut_string.h"
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkListHelpers.h"
 #include "xap_UnixDlg_Language.h"
 #include "xap_UnixApp.h"
 #include "xap_Frame.h"
@@ -44,7 +45,8 @@ XAP_UnixDialog_Language::XAP_UnixDialog_Language(XAP_DialogFactory * pDlgFactory
 						 XAP_Dialog_Id id)
   : XAP_Dialog_Language(pDlgFactory,id), m_pLanguageList ( nullptr ),
 	m_lbDefaultLanguage(nullptr), m_cbDefaultLanguage(nullptr),
-	m_cbNoProof(nullptr), m_cbAutoDetect(nullptr), m_windowMain(nullptr)
+	m_cbNoProof(nullptr), m_cbAutoDetect(nullptr), m_windowMain(nullptr),
+	m_selLanguages(nullptr)
 {
 }
 
@@ -57,9 +59,9 @@ void XAP_UnixDialog_Language::s_noProof_toggled(GtkToggleButton * t,
 	me->setNoProofing(b);
 	gtk_widget_set_sensitive(me->m_pLanguageList, !b);
 	gtk_widget_set_sensitive(me->m_cbAutoDetect, !b);
-	if (b)
-		gtk_tree_selection_unselect_all(
-			gtk_tree_view_get_selection(GTK_TREE_VIEW(me->m_pLanguageList)));
+	if (b && me->m_selLanguages)
+		gtk_selection_model_unselect_all(
+			GTK_SELECTION_MODEL(me->m_selLanguages));
 }
 
 /* "Detect language automatically": score the sample text against the
@@ -90,24 +92,18 @@ void XAP_UnixDialog_Language::s_autoDetect_toggled(GtkToggleButton * t,
 	{
 		if (!g_ascii_strcasecmp(szName, me->m_ppLanguages[i]))
 		{
-			GtkTreePath * path = gtk_tree_path_new();
-			gtk_tree_path_append_index(path, i);
-			gtk_tree_view_set_cursor(GTK_TREE_VIEW(me->m_pLanguageList),
-									 path,
-									 gtk_tree_view_get_column(
-										 GTK_TREE_VIEW(me->m_pLanguageList), 0),
-									 FALSE);
-			gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(me->m_pLanguageList),
-										 path, nullptr, TRUE, 0.5, 0.0);
-			gtk_tree_path_free(path);
+			gtk_list_view_scroll_to(
+				GTK_LIST_VIEW(me->m_pLanguageList), i,
+				static_cast<GtkListScrollFlags>(
+					GTK_LIST_SCROLL_SELECT | GTK_LIST_SCROLL_FOCUS),
+				nullptr);
 			break;
 		}
 	}
 }
 
-void XAP_UnixDialog_Language::s_lang_dblclicked(GtkTreeView * /*treeview*/,
-												GtkTreePath * /*arg1*/,
-												GtkTreeViewColumn * /*arg2*/,
+void XAP_UnixDialog_Language::s_lang_dblclicked(GtkListView * /*listview*/,
+												guint /*position*/,
 												XAP_UnixDialog_Language * me)
 {
 	gtk_dialog_response (GTK_DIALOG(me->m_windowMain), GTK_RESPONSE_OK);
@@ -119,12 +115,6 @@ XAP_UnixDialog_Language::~XAP_UnixDialog_Language(void)
 
 void XAP_UnixDialog_Language::event_setLang()
 {
-	GtkTreeSelection * selection;
-	GtkTreeIter iter;
-	GtkTreeModel * model;
-
-	gint row = 0;
-
 	// "Do not check spelling or grammar" applies -none-, which is
 	// always the first (unsorted) row of the language list
 	if (getNoProofing())
@@ -136,36 +126,24 @@ void XAP_UnixDialog_Language::event_setLang()
 		return;
 	}
 
-	selection = gtk_tree_view_get_selection( GTK_TREE_VIEW(m_pLanguageList) );
-
-	// if there is no selection, or the selection's data (GtkListItem widget)
-	// is empty, return cancel.  GTK can make this happen.
-	if ( !selection || 
-		 !gtk_tree_selection_get_selected (selection, &model, &iter)
-	   )
+	// if there is no selection return cancel.  GTK can make this happen.
+	int row = XAP_single_selection_get_int(m_selLanguages);
+	if (row < 0)
 	{
 		m_answer = XAP_Dialog_Language::a_CANCEL;
 		return;
 	}
 
-	// get the ID of the selected Type
-	gtk_tree_model_get (model, &iter, 1, &row, -1);
-  
-	if (row >= 0) {
-	  if (!m_pLanguage || g_ascii_strcasecmp(m_pLanguage, m_ppLanguages[row]))
-	    {
-	      _setLanguage(m_ppLanguages[row]);
-	      m_bChangedLanguage = true;
-		  m_answer = XAP_Dialog_Language::a_OK;
+	if (!m_pLanguage || g_ascii_strcasecmp(m_pLanguage, m_ppLanguages[row]))
+	{
+		_setLanguage(m_ppLanguages[row]);
+		m_bChangedLanguage = true;
+		m_answer = XAP_Dialog_Language::a_OK;
 
-		  bool b = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_cbDefaultLanguage));
-		  setMakeDocumentDefault(b);
-	    }
-	  else {
-		  m_answer = XAP_Dialog_Language::a_CANCEL;
-	  }
-	} else {
-		UT_ASSERT_NOT_REACHED();
+		bool b = gtk_check_button_get_active(GTK_CHECK_BUTTON(m_cbDefaultLanguage));
+		setMakeDocumentDefault(b);
+	}
+	else {
 		m_answer = XAP_Dialog_Language::a_CANCEL;
 	}
 }
@@ -173,15 +151,13 @@ void XAP_UnixDialog_Language::event_setLang()
 GtkWidget * XAP_UnixDialog_Language::constructWindow(void)
 {
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
-	GtkCellRenderer *renderer;
-	GtkTreeViewColumn *column;
-	
+
 	GtkBuilder * builder = newDialogBuilderFromResource("xap_UnixDlg_Language.ui");
 
-	// Update our member variables with the important widgets that 
+	// Update our member variables with the important widgets that
 	// might need to be queried or altered later
 	m_windowMain = GTK_WIDGET(gtk_builder_get_object(builder, "xap_UnixDlg_Language"));
-	m_pLanguageList = GTK_WIDGET(gtk_builder_get_object(builder, "tvAvailableLanguages"));
+	m_pLanguageList = GTK_WIDGET(gtk_builder_get_object(builder, "lvAvailableLanguages"));
 	m_lbDefaultLanguage = GTK_WIDGET(gtk_builder_get_object(builder, "lbDefaultLanguage"));
 	m_cbDefaultLanguage = GTK_WIDGET(gtk_builder_get_object(builder, "cbDefaultLanguage"));
 	m_cbNoProof = GTK_WIDGET(gtk_builder_get_object(builder, "cbNoProof"));
@@ -208,16 +184,6 @@ GtkWidget * XAP_UnixDialog_Language::constructWindow(void)
 	g_signal_connect(m_cbAutoDetect, "toggled",
 					 G_CALLBACK(s_autoDetect_toggled), this);
 
-	// add a column to our TreeViews
-
-	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("Format",
-													   renderer,
-													   "text", 
-													   0,
-													   nullptr);
-	gtk_tree_view_append_column( GTK_TREE_VIEW(m_pLanguageList), column);
-	  
 	g_object_unref(G_OBJECT(builder));
 
 	return m_windowMain;
@@ -225,31 +191,19 @@ GtkWidget * XAP_UnixDialog_Language::constructWindow(void)
 
 void XAP_UnixDialog_Language::_populateWindowData()
 {
-	GtkListStore *model;
-	GtkTreeIter iter;
-	
-	model = gtk_list_store_new (2, 
-							    G_TYPE_STRING,
-								G_TYPE_INT);
-	
+	GListStore *model = XAP_list_store_new();
+
 	for (UT_uint32 i = 0; i < m_iLangCount; i++)
-	{		
-		// Add a new row to the model
-		gtk_list_store_append (model, &iter);
-		
-		gtk_list_store_set (model, &iter,
-							0, m_ppLanguages[i],
-							1, i,
-							-1);
+	{
+		XAP_list_store_append_text_and_int(model, m_ppLanguages[i], i);
 	}
-	
-	gtk_tree_view_set_model(GTK_TREE_VIEW(m_pLanguageList), reinterpret_cast<GtkTreeModel *>(model));
-	
-	g_object_unref (model);	
-	
+
+	m_selLanguages =
+		XAP_list_view_set_model(GTK_LIST_VIEW(m_pLanguageList), model);
+
 	// now select first item in box
  	gtk_widget_grab_focus (m_pLanguageList);
-	
+
 	if (m_pLanguage) {
 		gint foundAt = -1;
 		for (UT_uint32 i = 0; i < m_iLangCount; i++)
@@ -258,23 +212,20 @@ void XAP_UnixDialog_Language::_populateWindowData()
 				foundAt = i;
 				break;
 			}
-		}  
-		
+		}
+
 		if (foundAt != -1) {
-			GtkTreePath* path = gtk_tree_path_new ();
-			gtk_tree_path_append_index (path, foundAt);
-			
-			gtk_tree_view_set_cursor(GTK_TREE_VIEW(m_pLanguageList),
-									 path, 
-									 gtk_tree_view_get_column (GTK_TREE_VIEW(m_pLanguageList), 0), 
-									 FALSE);
-			gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(m_pLanguageList),
-						     path, nullptr, TRUE, 0.5, 0.0);
+			gtk_list_view_scroll_to(
+				GTK_LIST_VIEW(m_pLanguageList),
+				static_cast<guint>(foundAt),
+				static_cast<GtkListScrollFlags>(
+					GTK_LIST_SCROLL_SELECT | GTK_LIST_SCROLL_FOCUS),
+				nullptr);
 			gtk_widget_grab_focus (m_pLanguageList);
-			
-			gtk_tree_path_free (path);
 		}
 	}
+
+	g_object_unref (model);
 }
 
 void XAP_UnixDialog_Language::runModal(XAP_Frame * pFrame)
@@ -284,10 +235,10 @@ void XAP_UnixDialog_Language::runModal(XAP_Frame * pFrame)
   UT_return_if_fail(cf);	
 	
   _populateWindowData();
-  
-  // connect a dbl-clicked signal to the column
+
+  // dbl-click / Enter activates the Apply button
   g_signal_connect_after(G_OBJECT(m_pLanguageList),
-						   "row-activated",
+						   "activate",
 						   G_CALLBACK(s_lang_dblclicked),
 						   static_cast<gpointer>(this));
 

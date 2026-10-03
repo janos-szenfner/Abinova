@@ -46,9 +46,8 @@ public:
 	void event_Ok (void);
 	void event_Cancel (void);
 
-	static void s_encoding_dblclicked(GtkTreeView *treeview,
-									  GtkTreePath *arg1,
-									  GtkTreeViewColumn *arg2,
+	static void s_encoding_dblclicked(GtkListView *listview,
+									  guint position,
 									  XAP_UnixDialog_Encoding * me);
 
 	GtkWidget     * _constructWindow(void);
@@ -56,6 +55,7 @@ public:
 
 	GtkWidget * m_windowMain;
 	GtkWidget * m_listEncodings;
+	GtkSingleSelection * m_selEncodings;
 };
 #endif /* XAP_UNIXDIALOG_ENCODING_H */
 

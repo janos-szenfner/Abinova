@@ -46,9 +46,8 @@ private:
 
 	void _populateWindowData();
 
-	static void s_lang_dblclicked(GtkTreeView *treeview,
-								  GtkTreePath *arg1,
-								  GtkTreeViewColumn *arg2,
+	static void s_lang_dblclicked(GtkListView *listview,
+								  guint position,
 								  XAP_UnixDialog_Language * me);
 
 	GtkWidget *             constructWindow();
@@ -58,6 +57,7 @@ private:
 	GtkWidget * 			m_cbNoProof;
 	GtkWidget * 			m_cbAutoDetect;
 	GtkWidget *             m_windowMain;
+	GtkSingleSelection *	m_selLanguages;
 
 	static void s_noProof_toggled(GtkToggleButton * t,
 								  XAP_UnixDialog_Language * me);

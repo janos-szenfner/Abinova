@@ -62,6 +62,9 @@ public:
 	GtkWidget * 			m_fontList;
 	GtkWidget * 			m_styleList;
 	GtkWidget * 			m_sizeList;
+	GtkSingleSelection *	m_selFonts;
+	GtkSingleSelection *	m_selStyles;
+	GtkSingleSelection *	m_selSizes;
 	GtkWidget * 			m_checkStrikeOut;
 	GtkWidget *				m_checkUnderline;
 	GtkWidget *				m_checkOverline;

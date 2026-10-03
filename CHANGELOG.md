@@ -3516,6 +3516,16 @@ below are on `main` but the release has not been cut yet.
   reference port — it lists and activates document rows identically,
   with the pattern documented in the helper header for the remaining
   dialog batches.
+- **`GtkTreeView` → `GtkListView`/`GtkGridView`, batch A (af/xap
+  dialogs)** — the Font dialog's font/style/size lists, the Encoding,
+  Set Language and More Windows list dialogs, and the Clip Art picker
+  all run on `GListStore` + `GtkSingleSelection` +
+  `GtkSignalListItemFactory` now.  The font list draws each family
+  name in its own font (the old font-preview cell renderer), and Clip
+  Art previews render via `GdkTexture` because `GdkPixbuf` is not a
+  `GdkPaintable` on GTK4.  Double-click/Enter still activates a row;
+  the Language dialog keeps its no-proofing, auto-detect and
+  make-default behaviours.
 
 ### Performance
 

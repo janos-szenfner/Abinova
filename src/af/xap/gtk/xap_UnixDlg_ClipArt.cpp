@@ -39,29 +39,102 @@
 #include "xap_Dlg_ClipArt.h"
 #include "xap_UnixDlg_ClipArt.h"
 
-enum: uint8_t {
-  COL_PATH,
-  COL_DISPLAY_NAME,
-  COL_PIXBUF,
-  NUM_COLS
+/* One row object per clipart file for the GtkGridView model. */
+#define ABI_TYPE_CLIPART_ITEM (abi_clipart_item_get_type())
+G_DECLARE_FINAL_TYPE (AbiClipartItem, abi_clipart_item,
+					  ABI, CLIPART_ITEM, GObject)
+
+struct _AbiClipartItem
+{
+	GObject parent_instance;
+	gchar *path;
+	gchar *name;
+	GdkTexture *texture;
 };
+
+G_DEFINE_TYPE (AbiClipartItem, abi_clipart_item, G_TYPE_OBJECT)
+
+static void
+abi_clipart_item_init (AbiClipartItem * /*self*/)
+{
+}
+
+static void
+abi_clipart_item_finalize (GObject *object)
+{
+	AbiClipartItem *row = ABI_CLIPART_ITEM (object);
+	g_free (row->path);
+	g_free (row->name);
+	g_clear_object (&row->texture);
+	G_OBJECT_CLASS (abi_clipart_item_parent_class)->finalize (object);
+}
+
+static void
+abi_clipart_item_class_init (AbiClipartItemClass *klass)
+{
+	G_OBJECT_CLASS (klass)->finalize = abi_clipart_item_finalize;
+}
+
+static AbiClipartItem *
+abi_clipart_item_new (const gchar *path, const gchar *name,
+					  GdkPixbuf *pixbuf)
+{
+	AbiClipartItem *row =
+		ABI_CLIPART_ITEM (g_object_new (ABI_TYPE_CLIPART_ITEM, nullptr));
+	row->path = g_strdup (path);
+	row->name = g_strdup (name);
+	/* GdkPixbuf is not a GdkPaintable in GTK4 — go through a texture. */
+	row->texture = pixbuf ? gdk_texture_new_for_pixbuf (pixbuf) : nullptr;
+	return row;
+}
+
+static void
+s_clipart_setup (GtkSignalListItemFactory * /*factory*/,
+				 GtkListItem *item,
+				 gpointer /*data*/)
+{
+	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+	XAP_gtk_widget_set_margin (box, 6);
+
+	GtkWidget *image = gtk_image_new ();
+	gtk_image_set_pixel_size (GTK_IMAGE (image), 48);
+	gtk_box_append (GTK_BOX (box), image);
+
+	GtkWidget *label = gtk_label_new (nullptr);
+	gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
+	gtk_label_set_max_width_chars (GTK_LABEL (label), 16);
+	gtk_label_set_lines (GTK_LABEL (label), 2);
+	gtk_box_append (GTK_BOX (box), label);
+
+	gtk_list_item_set_child (item, box);
+}
+
+static void
+s_clipart_bind (GtkSignalListItemFactory * /*factory*/,
+				GtkListItem *item,
+				gpointer /*data*/)
+{
+	GtkWidget *box = gtk_list_item_get_child (item);
+	GtkWidget *image = gtk_widget_get_first_child (box);
+	GtkWidget *label = gtk_widget_get_next_sibling (image);
+	AbiClipartItem *row =
+		ABI_CLIPART_ITEM (gtk_list_item_get_item (item));
+
+	gtk_image_set_from_paintable (GTK_IMAGE (image),
+		row && row->texture ? GDK_PAINTABLE (row->texture) : nullptr);
+	gtk_label_set_text (GTK_LABEL (label),
+						row && row->name ? row->name : "");
+}
 
 static gint clipartCount = 0;
 
 /**
  * Create list store for the icon view.
  */
-static GtkListStore *
+static GListStore *
 create_store ()
 {
-	GtkListStore *store;
-
-	store = gtk_list_store_new (NUM_COLS,
-								G_TYPE_STRING, 
-								G_TYPE_STRING, 
-								GDK_TYPE_PIXBUF);
-
-	return store;
+	return g_list_store_new (ABI_TYPE_CLIPART_ITEM);
 }
 
 /**
@@ -91,8 +164,8 @@ fill_store (XAP_UnixDialog_ClipArt *self)
  * Clipart clicked handler.
  */
 static void
-item_activated (GtkIconView 			* /*icon_view*/,
-				GtkTreePath 			* /*tree_path*/,
+item_activated (GtkGridView 			* /*grid_view*/,
+				guint					 /*position*/,
 				XAP_UnixDialog_ClipArt 	*self)
 {
 	self->onItemActivated();
@@ -125,22 +198,16 @@ XAP_UnixDialog_ClipArt::~XAP_UnixDialog_ClipArt()
 	}
 	this->dir_path = nullptr;
 	this->progress = nullptr;
-	this->icon_view = nullptr;
+	this->grid_view = nullptr;
 	this->store = nullptr;
 }
 
-static
-void _free_path(GtkTreePath *path, gpointer)
-{
-    gtk_tree_path_free(path);
-}
 /**
  *
  */
 void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 {
 	GtkWidget	*scroll;
-	GList 		*list;
 	GError		*error;
 
 	std::string s;
@@ -176,16 +243,27 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 
 	this->store = create_store ();
 
-	this->icon_view = gtk_icon_view_new ();
-	gtk_icon_view_set_text_column (GTK_ICON_VIEW (this->icon_view), COL_DISPLAY_NAME);
-	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (this->icon_view), COL_PIXBUF);
-	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (this->icon_view), 0);
-	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (this->icon_view), 0);
-	gtk_icon_view_set_columns (GTK_ICON_VIEW (this->icon_view), -1);
-	gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll), this->icon_view);
-	g_signal_connect (this->icon_view, "item-activated", G_CALLBACK (item_activated), static_cast<gpointer>( this));
-	gtk_icon_view_set_model (GTK_ICON_VIEW (this->icon_view),
-							 GTK_TREE_MODEL (this->store));
+	GtkSingleSelection *sel = gtk_single_selection_new (nullptr);
+	gtk_single_selection_set_autoselect (sel, FALSE);
+	gtk_single_selection_set_can_unselect (sel, TRUE);
+	gtk_single_selection_set_model (sel, G_LIST_MODEL (this->store));
+
+	GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
+	g_signal_connect (factory, "setup", G_CALLBACK (s_clipart_setup), nullptr);
+	g_signal_connect (factory, "bind", G_CALLBACK (s_clipart_bind), nullptr);
+
+	/* Build an empty view and attach model/factory via the setters:
+	 * passing a late-bound GtkSingleSelection into gtk_grid_view_new()
+	 * corrupts the view's factory property on GTK 4.14. */
+	this->grid_view = gtk_grid_view_new (nullptr, nullptr);
+	gtk_grid_view_set_model (GTK_GRID_VIEW (this->grid_view),
+							 GTK_SELECTION_MODEL (sel));
+	gtk_grid_view_set_factory (GTK_GRID_VIEW (this->grid_view), factory);
+	gtk_grid_view_set_single_click_activate (GTK_GRID_VIEW (this->grid_view), FALSE);
+	g_object_unref (sel);
+	g_object_unref (factory);
+	gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll), this->grid_view);
+	g_signal_connect (this->grid_view, "activate", G_CALLBACK (item_activated), static_cast<gpointer>( this));
 	g_object_unref (G_OBJECT (this->store));
 
 	gtk_widget_set_visible(this->dlg, TRUE);
@@ -214,30 +292,30 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 
 	switch (abiRunModalDialog(GTK_DIALOG(this->dlg), pFrame, this, GTK_RESPONSE_CANCEL, false)) {
 	case GTK_RESPONSE_OK:
-		list = gtk_icon_view_get_selected_items (GTK_ICON_VIEW (this->icon_view));
-		if (list && list->data) {
-			gchar *graphic = nullptr;
-			gchar *graphicUri = nullptr;
-			GtkTreePath *treePath;
-			GtkTreeIter  iter;
-			treePath = static_cast<GtkTreePath *>( list->data);
-			gtk_tree_model_get_iter (GTK_TREE_MODEL (this->store), &iter, treePath);
-			gtk_tree_model_get (GTK_TREE_MODEL (this->store), &iter, COL_PATH, &graphic, -1);
-			if (graphic) {
-				error = nullptr;
-				graphicUri = g_filename_to_uri (graphic, nullptr, &error);
-				setGraphicName (graphicUri);
-				g_free (graphic);
-				g_free (graphicUri);
-				setAnswer (XAP_Dialog_ClipArt::a_OK);
-			}
-			else {
-				setAnswer (XAP_Dialog_ClipArt::a_CANCEL);
-			}
-			g_list_foreach (list, reinterpret_cast<GFunc>(_free_path), nullptr);
-			g_list_free (list);
+	{
+		GtkSelectionModel *model =
+			gtk_grid_view_get_model (GTK_GRID_VIEW (this->grid_view));
+		guint pos = gtk_single_selection_get_selected (
+			GTK_SINGLE_SELECTION (model));
+		AbiClipartItem *item = nullptr;
+		if (pos != GTK_INVALID_LIST_POSITION) {
+			item = ABI_CLIPART_ITEM (g_list_model_get_item (
+				gtk_single_selection_get_model (
+					GTK_SINGLE_SELECTION (model)), pos));
 		}
+		if (item && item->path) {
+			error = nullptr;
+			gchar *graphicUri = g_filename_to_uri (item->path, nullptr, &error);
+			setGraphicName (graphicUri);
+			g_free (graphicUri);
+			setAnswer (XAP_Dialog_ClipArt::a_OK);
+		}
+		else {
+			setAnswer (XAP_Dialog_ClipArt::a_CANCEL);
+		}
+		g_clear_object (&item);
 		break;
+	}
 	default:
 		break;
 	}
@@ -254,7 +332,6 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 	const gchar *name;
 	GdkPixbuf	*pixbuf;
 	GError		*error;
-	GtkTreeIter  iter;
 	gint		 _count;
 
 	if (!g_file_test (this->dir_path, G_FILE_TEST_IS_DIR)) {
@@ -298,12 +375,12 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 			goto next;
 		}
 
-		gtk_list_store_append (this->store, &iter);
-		gtk_list_store_set (this->store, &iter,
-							COL_PATH, file_path,
-							COL_DISPLAY_NAME, display_name,
-							COL_PIXBUF, pixbuf,
-							-1);
+		{
+			AbiClipartItem *item =
+				abi_clipart_item_new (file_path, display_name, pixbuf);
+			g_list_store_append (this->store, item);
+			g_object_unref (item);
+		}
 		g_free(file_path);
 		file_path = nullptr;
 		g_free(display_name);

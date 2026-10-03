@@ -41,9 +41,8 @@ private:
 	void			event_View(void);
 	void			event_Cancel(void);
 
-	static void s_list_dblclicked(GtkTreeView *treeview,
-								  GtkTreePath *arg1,
-								  GtkTreeViewColumn *arg2,
+	static void s_list_dblclicked(GtkListView *listview,
+								  guint position,
 								  XAP_UnixDialog_WindowMore * me);
 
 	GtkWidget * _constructWindow(void);
@@ -51,6 +50,7 @@ private:
 
 	GtkWidget * m_windowMain;
 	GtkWidget * m_listWindows;
+	GtkSingleSelection * m_selDocs;
 };
 
 #endif /* XAP_UNIXDIALOG_WINDOWMORE_H */
