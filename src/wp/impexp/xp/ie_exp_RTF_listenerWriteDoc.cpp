@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "ut_rand.h"
 #include "ut_locale.h"
 #include "ut_debugmsg.h"
 #include "ut_string.h"
@@ -60,7 +59,6 @@
 #include "fl_Layout.h"
 #include "fl_TableLayout.h"
 #include "fl_FrameLayout.h"
-#include "ut_rand.h"
 #include "ut_svg.h"
 
 #include "xap_EncodingManager.h"
@@ -1211,7 +1209,7 @@ void s_RTF_ListenerWriteDoc::_openFrame(PT_AttrPropIndex apiFrame)
 	UT_sint32 iBot = iYpos + iHeight;
 	m_pie->_rtf_keyword("shpbottom",iBot);
 	m_pie->_rtf_keyword("shpright",iRight);
-	UT_uint32 lid = UT_rand();
+	UT_uint32 lid = m_pie->getDoc()->getUID(UT_UniqueId::Embed);
 	m_pie->_rtf_keyword("shplid",lid);
 
 

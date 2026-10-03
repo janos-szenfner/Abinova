@@ -46,7 +46,6 @@
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
 #include "ut_math.h" // for rint (font size)
-#include "ut_rand.h"
 #include "ut_locale.h"
 
 #include "xap_Frame.h"
@@ -1460,7 +1459,7 @@ void IE_Imp_WordPerfect::openOrderedListLevel(const librevenge::RVNGPropertyList
 	if (!m_pCurrentListDefinition->getListID(level))
 	{
 		m_pCurrentListDefinition->setListType(level, listType);
-		m_pCurrentListDefinition->setListID(level, UT_rand());
+		m_pCurrentListDefinition->setListID(level, getDoc()->getUID(UT_UniqueId::List));
 		m_pCurrentListDefinition->setListLeftOffset(level, listLeftOffset);
 		m_pCurrentListDefinition->setListMinLabelWidth(level, listMinLabelWidth);
 		_updateDocumentOrderedListDefinition(m_pCurrentListDefinition.get(), level, listType, textBeforeNumber, textAfterNumber, startingNumber);
@@ -1509,7 +1508,7 @@ void IE_Imp_WordPerfect::openUnorderedListLevel(const librevenge::RVNGPropertyLi
 
 	if (!m_pCurrentListDefinition->getListID(level))
 	{
-		m_pCurrentListDefinition->setListID(level, UT_rand());
+		m_pCurrentListDefinition->setListID(level, getDoc()->getUID(UT_UniqueId::List));
 		m_pCurrentListDefinition->setListLeftOffset(level, listLeftOffset);
 		m_pCurrentListDefinition->setListMinLabelWidth(level, listMinLabelWidth);
 		_updateDocumentUnorderedListDefinition(m_pCurrentListDefinition.get(), level);
@@ -1631,7 +1630,7 @@ void IE_Imp_WordPerfect::openFootnote(const librevenge::RVNGPropertyList & /*pro
 		m_bInSection = true;
 	}
 
-	std::string footnoteId = UT_std_string_sprintf("%i", UT_rand());
+	std::string footnoteId = UT_std_string_sprintf("%u", getDoc()->getUID(UT_UniqueId::Footnote));
 
 	PP_PropertyVector propsArray = {
 		"type",	"footnote_ref",
@@ -1659,7 +1658,7 @@ void IE_Imp_WordPerfect::closeFootnote()
 
 void IE_Imp_WordPerfect::openEndnote(const librevenge::RVNGPropertyList & /*propList*/)
 {
-	std::string endnoteId = UT_std_string_sprintf("%i", UT_rand());
+	std::string endnoteId = UT_std_string_sprintf("%u", getDoc()->getUID(UT_UniqueId::Endnote));
 
 	PP_PropertyVector propsArray = {
 		"type",	"endnote_ref",

@@ -60,7 +60,6 @@
 #include "fg_GraphicRaster.h"
 #include "fg_GraphicVector.h"
 #include "ut_bytebuf.h"
-#include "ut_rand.h"
 #include "pd_Style.h"
 #include "fv_View.h"
 #include "fl_AutoLists.h"
@@ -198,15 +197,8 @@ bool	IE_Imp_RTF_Sniffer::getDlgLabels(const char ** pszDesc,
 RTF_msword97_level::RTF_msword97_level(RTF_msword97_list * pmsword97List, UT_uint32 level)
 {
 	m_levelStartAt = 1;
-#if 0
-	m_AbiLevelID = UT_rand();
-	while(m_AbiLevelID < 10000)
-		m_AbiLevelID = UT_rand();
-#else
-	//m_AbiLevelID = m_sLastAssignedLevelID++;
 	UT_return_if_fail(pmsword97List);
 	m_AbiLevelID = pmsword97List->m_pie_rtf->getDoc()->getUID(UT_UniqueId::List);
-#endif
 	m_pMSWord97_list = pmsword97List;
 	m_localLevel = level;
 	m_bStartNewList = false;
@@ -4202,12 +4194,6 @@ bool IE_Imp_RTF::HandleHeaderFooter(RTFHdrFtr::HdrFtrType hftype, UT_uint32 & he
 	header = new RTFHdrFtr ();
 	header->m_type = hftype;
 	UT_uint32 id = getDoc()->getUID(UT_UniqueId::HeaderFtr);
-#if 0
-	while(id < 10000)
-	{
-		id  = UT_rand();
-	}
-#endif
 	header->m_id = id;
 
 	m_hdrFtrTable.push_back(header);
@@ -8296,16 +8282,7 @@ bool IE_Imp_RTF::HandleListLevel(RTF_msword97_list * pList, UT_uint32 levelCount
 	pLevel->m_pbCharProps = std::unique_ptr<RTFProps_bCharProps>(new RTFProps_bCharProps);
 	delete pList->m_RTF_level[levelCount];
 	pList->m_RTF_level[levelCount] = pLevel;
-#if 0 // Sevior use this!! The other method can lead to inccorect results upon
-	// import. If we export RTF list ID starting at 10000 they might clash
-    // with these later.
-	pLevel->m_AbiLevelID = UT_rand();
-	while(pLevel->m_AbiLevelID < 10000)
-		pLevel->m_AbiLevelID = UT_rand();
-#else
-	//pLevel->m_AbiLevelID = pLevel->m_sLastAssignedLevelID++;
 	pLevel->m_AbiLevelID = getDoc()->getUID(UT_UniqueId::List);
-#endif
 	while(nesting > 0)
 	{
 		if (!ReadCharFromFile(&ch))

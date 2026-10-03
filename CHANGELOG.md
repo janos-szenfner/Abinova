@@ -3390,6 +3390,13 @@ below are on `main` but the release has not been cut yet.
   public header** — the directive polluted the global namespace of
   every translation unit including it; the header already qualified
   all its `std::` names.
+- **Document IDs can no longer collide** — list IDs and
+  footnote/endnote IDs created while importing WordPerfect documents,
+  and shape IDs (`\shplid`) written during RTF export, now come from
+  the document's monotonic unique-ID counter (`PD_Document::getUID`)
+  instead of `UT_rand()`, so two generated IDs can never repeat; the
+  random values could previously collide and mismatch footnote
+  references or list structures.
 
 ### GTK4 port (core migration)
 

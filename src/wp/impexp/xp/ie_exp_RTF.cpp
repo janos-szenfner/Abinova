@@ -45,7 +45,6 @@
 #include "px_CR_Strux.h"
 #include "pd_Style.h"
 #include "gr_Graphics.h"
-#include "ut_rand.h"
 #include "ut_std_string.h"
 #include "pl_ListenerCoupleCloser.h"
 
@@ -2733,16 +2732,8 @@ void IE_Exp_RTF::_output_MultiLevelRTF(const ie_exp_RTF_MsWord97ListMulti& pMult
 {
 	_rtf_open_brace();
 	_rtf_keyword("list");
-#if 0
-	UT_uint32 tempID = UT_rand();
-	while(tempID < 10000)
-	{
-		tempID = UT_rand();
-	}
-#else
 	UT_uint32 tempID = getDoc()->getUID(UT_UniqueId::List);
-#endif
-	
+
 	_rtf_keyword("listtemplateid",tempID);
 	UT_uint32 i = 0;
 	fl_AutoNumConstPtr pAuto;
@@ -3117,15 +3108,7 @@ void IE_Exp_RTF::_output_SimpleListRTF(const ie_exp_RTF_MsWord97ListSimple& pSim
 {
 	_rtf_open_brace();
 	_rtf_keyword("list");
-#if 0
-	UT_uint32 tempID = UT_rand();
-	while(tempID < 10000)
-	{
-		tempID = UT_rand();
-	}
-#else
 	UT_uint32 tempID = getDoc()->getUID(UT_UniqueId::List);
-#endif
 	_rtf_keyword("listtemplateid",tempID);
 	_rtf_keyword("listsimple");
 	fl_AutoNumConstPtr pAuto = pSimple.getAuto();
