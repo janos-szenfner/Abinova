@@ -32,7 +32,8 @@ ODe_AuxiliaryData::ODe_AuxiliaryData() :
     m_pTOCContents(nullptr),
     m_tableCount(0),
     m_frameCount(0),
-    m_noteCount(0)
+    m_noteCount(0),
+    m_nextChangeId(0)
 {
 }
 

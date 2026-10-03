@@ -119,6 +119,9 @@ public:
     virtual void insertInlinedImage(const gchar* pImageName,
                                     const PP_AttrProp* pAP) override;
 
+    virtual void insertChangeMark(const UT_UTF8String& rMarkup) override;
+    virtual void setChangeCapture(GsfOutput* pStream) override;
+
     virtual void insertPositionedImage(const gchar* pImageName,
                                     const PP_AttrProp* pAP);
     void setOpenedODNote(bool b)
@@ -152,6 +155,14 @@ private:
 
     // Content of the current paragraph.
     GsfOutput* m_pParagraphContent;
+
+    /* While a deletion change-scope is open, paragraph content is
+     * captured here instead of the live output so it can be stored as
+     * the changed-region's <text:deletion> payload. */
+    GsfOutput* m_pChangeCapture;
+    GsfOutput* _contentSink() {
+        return m_pChangeCapture ? m_pChangeCapture : m_pParagraphContent;
+    }
 
     // The number of currently nested <text:list> tags
     // (meaning the current list level).

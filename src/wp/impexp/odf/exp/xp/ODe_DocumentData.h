@@ -58,7 +58,8 @@ public:
     bool doPostListeningWork();
 
     bool writeStylesXML(GsfOutfile* pOdt) const;
-    bool writeContentXML(GsfOutfile* pOdt);
+    bool writeContentXML(GsfOutfile* pOdt,
+                         const class ODe_AuxiliaryData& rAuxData);
 
     // <office:automatic-styles> for <office:document-styles>
     ODe_AutomaticStyles m_stylesAutoStyles;

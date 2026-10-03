@@ -179,6 +179,12 @@ all.
     mark spans `+id`/`!id`; `text:change` marks replay the deleted
     content stored in the region's `text:deletion` as `-id` runs.
     Deleted paragraph marks become the `para-mark-rev` property.
+  - **Tracked-changes export**: `.odt` saves emit a real
+    `<text:tracked-changes>` table — insertion/format-change regions
+    bracket the changed runs, deletions store their removed content in
+    the region payload, and every region records author/date via
+    `office:change-info`, so edits survive a round trip instead of
+    being flattened.
 - **OpenXML fixes**: listener-state fixes for footer tables and
   equations; shared XSLT data restored.
 - No loadable plugins remain — every importer/exporter is

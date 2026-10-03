@@ -37,6 +37,9 @@ class ODe_ListenerAction;
 class PP_AttrProp;
 class UT_UTF8String;
 
+// libgsf (matches gsf's own forward declaration)
+typedef struct _GsfOutput GsfOutput;
+
 /**
  *
  */
@@ -100,6 +103,15 @@ public:
 
     virtual void insertInlinedImage(const gchar* /*pImageName*/,
                                     const PP_AttrProp* /*pAP*/) {}
+
+    /* Tracked-change support: insertChangeMark() emits a raw
+     * positional mark (<text:change-start/>, <text:change/>,
+     * <text:change-end/>) at the current content position, and
+     * setChangeCapture() redirects content output to an alternate
+     * stream while a deletion region's payload is recorded.  Impls
+     * that do not emit paragraph content may ignore both. */
+    virtual void insertChangeMark(const UT_UTF8String& /*rMarkup*/) {}
+    virtual void setChangeCapture(GsfOutput* /*pStream*/) {}
 
 protected:
 

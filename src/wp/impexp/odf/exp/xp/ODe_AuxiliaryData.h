@@ -63,6 +63,23 @@ private:
 
 
 /**
+ * One <text:changed-region> record collected while walking the piece
+ * table.  @id is the emitted text:id, @revId the piece-table revision
+ * id (author/date are resolved from the document's AD_Revision at
+ * serialization time) and @payload holds the inline markup recorded
+ * for a deletion region.
+ */
+struct ODe_ChangeRegion {
+    enum Type { Type_Insertion, Type_Deletion, Type_FormatChange };
+
+    UT_UTF8String id;
+    Type          type;
+    UT_uint32     revId;
+    UT_UTF8String payload;
+};
+
+
+/**
  * Auxiliary data used and shared by all listener implementations.
  */
 class ODe_AuxiliaryData {
@@ -93,6 +110,11 @@ public:
     // Any RDF that is generated during the save that should be stored into the
     // ODT file and then thrown away.
     PD_RDFModelHandle m_additionalRDF;
+
+    // Tracked-change regions collected during the main content pass;
+    // serialized as <text:tracked-changes> by writeContentXML().
+    std::vector<ODe_ChangeRegion> m_changeRegions;
+    UT_uint32 m_nextChangeId;
 };
 
 #endif /*ODE_AUXILIARYDATA_H_*/

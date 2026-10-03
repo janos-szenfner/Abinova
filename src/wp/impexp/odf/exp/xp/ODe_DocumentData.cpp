@@ -23,12 +23,16 @@
 // Class definition include
 #include "ODe_Common.h"
 #include "ODe_DocumentData.h"
+#include "ODe_AuxiliaryData.h"
 #include "ODe_ListLevelStyle.h"
 #include "ODe_Style_List.h"
 #include "ODe_Style_MasterPage.h"
 #include "ODe_Style_PageLayout.h"
 #include "ODe_Style_Style.h"
 #include "ut_misc.h"
+#include "pd_Document.h"
+
+#include <ctime>
 
 /**
  * Constructor
@@ -283,7 +287,45 @@ bool ODe_DocumentData::writeStylesXML(GsfOutfile* pOdt) const {
 /**
  * 
  */
-bool ODe_DocumentData::writeContentXML(GsfOutfile* pOdt) {
+/* <office:change-info> shared by every region type: dc:creator /
+ * dc:date come from the revision's AD_Revision record and are
+ * omitted when unknown. */
+static void _writeChangeInfo(GsfOutput* pStream, PD_Document* pDoc,
+                             UT_uint32 revId) {
+    UT_UTF8String output = "<office:change-info>";
+
+    if (pDoc) {
+        UT_sint32 idx = pDoc->getRevisionIndxFromId(revId);
+        if (idx >= 0) {
+            const AD_Revision& rev = pDoc->getRevisions()[idx];
+
+            if (!rev.getAuthor().empty()) {
+                output += "<dc:creator>";
+                output += UT_UTF8String(rev.getAuthor().c_str()).escapeXML();
+                output += "</dc:creator>";
+            }
+
+            time_t tStart = rev.getStartTime();
+            if (tStart > 0) {
+                struct tm tmv;
+                char buf[32];
+                if (gmtime_r(&tStart, &tmv) &&
+                    strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%S", &tmv)) {
+                    output += "<dc:date>";
+                    output += buf;
+                    output += "</dc:date>";
+                }
+            }
+        }
+    }
+
+    output += "</office:change-info>";
+    ODe_writeUTF8String(pStream, output);
+}
+
+
+bool ODe_DocumentData::writeContentXML(GsfOutfile* pOdt,
+                                       const ODe_AuxiliaryData& rAuxData) {
     GsfOutput* pContentStream;
     
     pContentStream = gsf_outfile_new_child (pOdt, "content.xml", FALSE);
@@ -325,7 +367,71 @@ bool ODe_DocumentData::writeContentXML(GsfOutfile* pOdt) {
     
     ODe_writeUTF8String(pContentStream, " <office:body>\n"
                                         "  <office:text>\n");
-       
+
+    // <text:tracked-changes> must precede the body content it marks.
+    if (!rAuxData.m_changeRegions.empty()) {
+        bool bTrack = m_pAbiDoc && m_pAbiDoc->isMarkRevisions();
+        if (!bTrack && m_pAbiDoc && m_pAbiDoc->getAttrProp()) {
+            /* odt -> odt round-trip: the flag survives as the
+             * "document-track-changes" doc property. */
+            const gchar* pValue = nullptr;
+            if (m_pAbiDoc->getAttrProp()->getProperty(
+                        "document-track-changes", pValue) && pValue)
+                bTrack = !strcmp(pValue, "1") || !strcmp(pValue, "true") ||
+                         !strcmp(pValue, "on");
+        }
+
+        ODe_writeUTF8String(pContentStream,
+            UT_UTF8String_sprintf(
+                "  <text:tracked-changes text:track-changes=\"%s\">\n",
+                bTrack ? "true" : "false"));
+
+        for (const ODe_ChangeRegion& region : rAuxData.m_changeRegions) {
+            UT_UTF8String output;
+            UT_UTF8String_sprintf(output,
+                "   <text:changed-region text:id=\"%s\">\n",
+                region.id.utf8_str());
+            ODe_writeUTF8String(pContentStream, output);
+
+            switch (region.type) {
+            case ODe_ChangeRegion::Type_Deletion:
+                ODe_writeUTF8String(pContentStream,
+                                    "    <text:deletion>");
+                _writeChangeInfo(pContentStream, m_pAbiDoc, region.revId);
+                if (region.payload.empty())
+                    ODe_writeUTF8String(pContentStream, "<text:p/>");
+                else {
+                    ODe_writeUTF8String(pContentStream, "<text:p>");
+                    ODe_writeUTF8String(pContentStream, region.payload);
+                    ODe_writeUTF8String(pContentStream, "</text:p>");
+                }
+                ODe_writeUTF8String(pContentStream,
+                                    "</text:deletion>\n");
+                break;
+            case ODe_ChangeRegion::Type_Insertion:
+                ODe_writeUTF8String(pContentStream,
+                                    "    <text:insertion>");
+                _writeChangeInfo(pContentStream, m_pAbiDoc, region.revId);
+                ODe_writeUTF8String(pContentStream,
+                                    "</text:insertion>\n");
+                break;
+            case ODe_ChangeRegion::Type_FormatChange:
+                ODe_writeUTF8String(pContentStream,
+                                    "    <text:format-change>");
+                _writeChangeInfo(pContentStream, m_pAbiDoc, region.revId);
+                ODe_writeUTF8String(pContentStream,
+                                    "</text:format-change>\n");
+                break;
+            }
+
+            ODe_writeUTF8String(pContentStream,
+                                "   </text:changed-region>\n");
+        }
+
+        ODe_writeUTF8String(pContentStream,
+                            "  </text:tracked-changes>\n");
+    }
+
     ODe_gsf_output_write(pContentStream, gsf_output_size (m_pOfficeTextTemp),
 			 gsf_output_memory_get_bytes (GSF_OUTPUT_MEMORY (m_pOfficeTextTemp)));
     

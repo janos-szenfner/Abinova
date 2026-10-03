@@ -29,11 +29,16 @@
 
 // Internal includes
 #include "ODe_AbiDocListenerImpl.h"
+#include "ODe_AuxiliaryData.h"
+#include "ODe_Common.h"
 #include "ODe_Main_Listener.h"
 
 // Abiword includes
 #include "pd_Document.h"
 #include "pd_DocumentRDF.h"
+#include "pp_AttrProp.h"
+#include "pp_Revision.h"
+#include "pt_Types.h"
 #include "px_ChangeRecord.h"
 #include "px_CR_Span.h"
 #include "px_CR_Strux.h"
@@ -41,6 +46,8 @@
 #include "ut_mbtowc.h"
 #include "ut_locale.h"
 
+#include <cstdlib>
+#include <cstring>
 #include <sstream>
 
 /**
@@ -51,7 +58,8 @@
  */
 ODe_AbiDocListener::ODe_AbiDocListener (PD_Document* pDocument,
                                         ODe_AbiDocListenerImpl* pListenerImpl,
-                                        bool deleteWhenPop)
+                                        bool deleteWhenPop,
+                                        ODe_AuxiliaryData* pAuxData)
     : PL_Listener (),
       m_pCurrentField(nullptr),
       m_apiLastSpan(0),
@@ -67,7 +75,9 @@ ODe_AbiDocListener::ODe_AbiDocListener (PD_Document* pDocument,
       m_iInCell(0),
       m_pDocument(pDocument),
       m_pCurrentImpl(pListenerImpl),
-      m_deleteCurrentWhenPop(deleteWhenPop)
+      m_deleteCurrentWhenPop(deleteWhenPop),
+      m_pAuxData(pAuxData),
+      m_apiBlockRevisionsParsed(0)
 {
     UT_ASSERT_HARMLESS(pListenerImpl != nullptr);
 }
@@ -119,6 +129,8 @@ bool ODe_AbiDocListener::populate(fl_ContainerLayout* /*sfh*/,
                 static_cast<const PX_ChangeRecord_Object *> (pcr);
                 
             PT_AttrPropIndex api = pcr->getIndexAP();
+            if (m_pAuxData)
+                _updateChangeScopes(api);
             switch (pcro->getObjectType())
             {
             case PTO_Image:
@@ -581,6 +593,9 @@ void ODe_AbiDocListener::_openSpan(PT_AttrPropIndex api) {
         _closeSpan();
     }
 
+    if (m_pAuxData)
+        _updateChangeScopes(api);
+
     if (!api)               // don't write tag for empty A/P
         return;
 
@@ -612,6 +627,166 @@ void ODe_AbiDocListener::_closeSpan(void) {
 
 
 /**
+ * Allocate a fresh <text:changed-region> record and return its index
+ * in m_pAuxData->m_changeRegions.
+ */
+UT_uint32 ODe_AbiDocListener::_mintChangeRegion(UT_uint8 type,
+                                                UT_uint32 revId) {
+    ODe_ChangeRegion region;
+    region.type = static_cast<ODe_ChangeRegion::Type>(type);
+    region.revId = revId;
+    UT_UTF8String_sprintf(region.id, "chg%u", ++m_pAuxData->m_nextChangeId);
+    m_pAuxData->m_changeRegions.push_back(region);
+    return m_pAuxData->m_changeRegions.size() - 1;
+}
+
+
+/**
+ * Open the change scope for the given revision token, emitting the
+ * positional mark that starts it.  Deletion scopes additionally
+ * redirect the impl's content output into the region's payload
+ * stream, so deleted text is captured rather than written live.
+ */
+void ODe_AbiDocListener::_pushChangeScope(UT_uint8 type, UT_uint32 revId) {
+    UT_UTF8String mark;
+    UT_uint32 regionIdx;
+    GsfOutput* pCapture = nullptr;
+
+    if (type == PP_REVISION_DELETION) {
+        /* Each contiguous deleted run is its own changed-region: the
+         * out-of-line payload belongs to one specific range and must
+         * not be shared by marks at other positions. */
+        regionIdx = _mintChangeRegion(ODe_ChangeRegion::Type_Deletion,
+                                      revId);
+        UT_UTF8String_sprintf(mark, "<text:change text:change-id=\"%s\"/>",
+                              m_pAuxData->m_changeRegions[regionIdx].id.utf8_str());
+        m_pCurrentImpl->insertChangeMark(mark);
+        pCapture = gsf_output_memory_new();
+        m_pCurrentImpl->setChangeCapture(pCapture);
+    } else {
+        ODe_ChangeRegion::Type t =
+            (type == PP_REVISION_ADDITION) ? ODe_ChangeRegion::Type_Insertion
+                                         : ODe_ChangeRegion::Type_FormatChange;
+        UT_uint64 key = (static_cast<UT_uint64>(t) << 32) | revId;
+        auto it = m_changeScopeRegions.find(key);
+        if (it != m_changeScopeRegions.end()) {
+            regionIdx = it->second;
+        } else {
+            regionIdx = _mintChangeRegion(t, revId);
+            m_changeScopeRegions[key] = regionIdx;
+        }
+        UT_UTF8String_sprintf(mark,
+                              "<text:change-start text:change-id=\"%s\"/>",
+                              m_pAuxData->m_changeRegions[regionIdx].id.utf8_str());
+        m_pCurrentImpl->insertChangeMark(mark);
+    }
+
+    m_openChangeScopes.push_back(_ChangeScope(type, revId, regionIdx,
+                                              pCapture));
+}
+
+
+/**
+ * Close the innermost open change scope, emitting its terminating
+ * mark (or, for deletions, finishing the payload capture).
+ */
+void ODe_AbiDocListener::_popChangeScope() {
+    _ChangeScope scope = m_openChangeScopes.back();
+    m_openChangeScopes.pop_back();
+
+    if (scope.type == PP_REVISION_DELETION) {
+        if (scope.capture) {
+            ODe_ChangeRegion& region =
+                m_pAuxData->m_changeRegions[scope.region];
+            region.payload.assign(reinterpret_cast<const char*>(
+                    gsf_output_memory_get_bytes(
+                        GSF_OUTPUT_MEMORY(scope.capture))),
+                gsf_output_size(scope.capture));
+            ODe_gsf_output_close(scope.capture);
+        }
+        _restoreChangeCapture();
+    } else {
+        UT_UTF8String mark;
+        UT_UTF8String_sprintf(mark, "<text:change-end text:change-id=\"%s\"/>",
+                              m_pAuxData->m_changeRegions[scope.region].id.utf8_str());
+        m_pCurrentImpl->insertChangeMark(mark);
+    }
+}
+
+
+/**
+ * Point the impl's content output at the innermost still-open
+ * deletion scope's payload stream (or back at the live content when
+ * none remains).
+ */
+void ODe_AbiDocListener::_restoreChangeCapture() {
+    for (size_t i = m_openChangeScopes.size(); i-- > 0; ) {
+        if (m_openChangeScopes[i].capture) {
+            m_pCurrentImpl->setChangeCapture(m_openChangeScopes[i].capture);
+            return;
+        }
+    }
+    m_pCurrentImpl->setChangeCapture(nullptr);
+}
+
+
+/**
+ * Close every still-open change scope, without forgetting their
+ * regions — a continuing scope is reopened in the next block under
+ * the same changed-region id.
+ */
+void ODe_AbiDocListener::_closeChangeScopes() {
+    while (!m_openChangeScopes.empty())
+        _popChangeScope();
+}
+
+
+/**
+ * Diff the revision marks of the fragment at @api (merged over the
+ * enclosing block's own marks) against the currently open change
+ * scopes, emitting marks and minting regions as needed.  Scopes nest:
+ * a token list "+1,!2" opens an insertion containing a format change.
+ */
+void ODe_AbiDocListener::_updateChangeScopes(PT_AttrPropIndex api) {
+    std::vector<_RevToken> desired = m_blockRevisions;
+
+    if (api) {
+        const PP_AttrProp* pAP = nullptr;
+        if (m_pDocument->getAttrProp(api, &pAP) && pAP) {
+            const gchar* pValue = nullptr;
+            if (pAP->getAttribute(PT_REVISION_ATTRIBUTE_NAME, pValue) &&
+                pValue && *pValue)
+            {
+                PP_RevisionAttr ra(pValue);
+                for (UT_uint32 i = 0; i < ra.getRevisionsCount(); i++) {
+                    const PP_Revision* pRev = ra.getNthRevision(i);
+                    if (!pRev)
+                        continue;
+                    UT_uint8 t = pRev->getType();
+                    if (t == PP_REVISION_ADDITION_AND_FMT)
+                        t = PP_REVISION_ADDITION;
+                    desired.push_back(_RevToken(t, pRev->getId()));
+                }
+            }
+        }
+    }
+
+    size_t common = 0;
+    while (common < m_openChangeScopes.size() && common < desired.size() &&
+           m_openChangeScopes[common].type == desired[common].type &&
+           m_openChangeScopes[common].revId == desired[common].revId) {
+        common++;
+    }
+
+    while (m_openChangeScopes.size() > common)
+        _popChangeScope();
+
+    for (; common < desired.size(); common++)
+        _pushChangeScope(desired[common].type, desired[common].revId);
+}
+
+
+/**
  * 
  */
 void ODe_AbiDocListener::_openBlock(PT_AttrPropIndex api) {
@@ -623,6 +798,59 @@ void ODe_AbiDocListener::_openBlock(PT_AttrPropIndex api) {
     ok = m_pDocument->getAttrProp (api, &pAP);
     if (!ok) {
         pAP = nullptr;
+    }
+
+    /* openBlock may re-enter after a listener impl is pushed — parse
+     * the block's revision info only once per block. */
+    if (m_pAuxData && api != m_apiBlockRevisionsParsed) {
+        m_apiBlockRevisionsParsed = api;
+        m_blockRevisions.clear();
+        m_pendingParaMarkChange.clear();
+        if (pAP) {
+            /* A block-level "revision" attribute (e.g. a wholly
+             * inserted paragraph) is treated as an outer scope shared
+             * by all of the block's spans. */
+            const gchar* pValue = nullptr;
+            if (pAP->getAttribute(PT_REVISION_ATTRIBUTE_NAME, pValue) &&
+                pValue && *pValue)
+            {
+                PP_RevisionAttr ra(pValue);
+                for (UT_uint32 i = 0; i < ra.getRevisionsCount(); i++) {
+                    const PP_Revision* pRev = ra.getNthRevision(i);
+                    if (!pRev)
+                        continue;
+                    UT_uint8 t = pRev->getType();
+                    if (t == PP_REVISION_ADDITION_AND_FMT)
+                        t = PP_REVISION_ADDITION;
+                    m_blockRevisions.push_back(_RevToken(t, pRev->getId()));
+                }
+            }
+
+            /* A deleted/inserted paragraph mark survives as the
+             * inert "para-mark-rev" block property ("-id"/"+id");
+             * the matching <text:change> point mark is emitted when
+             * this block's paragraph content ends. */
+            if (pAP->getProperty("para-mark-rev", pValue) &&
+                pValue && *pValue) {
+                const char* p = pValue;
+                char sign = *p;
+                UT_uint32 revId = atoi(p + 1);
+                UT_uint8 t;
+                if (revId && (sign == '+' || sign == '-' ||
+                              sign == '!')) {
+                    if (sign == '+')
+                        t = ODe_ChangeRegion::Type_Insertion;
+                    else if (sign == '-')
+                        t = ODe_ChangeRegion::Type_Deletion;
+                    else
+                        t = ODe_ChangeRegion::Type_FormatChange;
+
+                    UT_uint32 region = _mintChangeRegion(t, revId);
+                    m_pendingParaMarkChange =
+                        m_pAuxData->m_changeRegions[region].id;
+                }
+            }
+        }
     }
 
     m_listenerImplAction.reset();
@@ -648,6 +876,25 @@ void ODe_AbiDocListener::_openBlock(PT_AttrPropIndex api) {
 void ODe_AbiDocListener::_closeBlock() {
     if (m_bInBlock) {
         m_bInBlock = false;
+        if (m_pAuxData) {
+            /* ODF change marks cannot cross a paragraph boundary:
+             * close open scopes so their <text:change-end> lands
+             * before the paragraph's end tag, then record a pending
+             * paragraph-mark deletion/insertion.  A scope continuing
+             * into the next block reopens with the same region id
+             * (multi-range changed-regions are legal ODF). */
+            _closeChangeScopes();
+            if (!m_pendingParaMarkChange.empty()) {
+                UT_UTF8String mark;
+                UT_UTF8String_sprintf(mark,
+                    "<text:change text:change-id=\"%s\"/>",
+                    m_pendingParaMarkChange.utf8_str());
+                m_pCurrentImpl->insertChangeMark(mark);
+                m_pendingParaMarkChange.clear();
+            }
+            m_blockRevisions.clear();
+            m_apiBlockRevisionsParsed = 0;
+        }
         m_pCurrentImpl->closeBlock();
     }
 }

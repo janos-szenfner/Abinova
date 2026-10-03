@@ -380,8 +380,11 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
     }
 
     pAbiDocListenerImpl = new ODe_Main_Listener(docData, auxData);
+    // auxData is passed so tracked-change marks are translated into
+    // ODF changed-regions; the earlier structural passes leave it out.
     pAbiDocListener = new ODe_AbiDocListener(getDoc(),
-                                             pAbiDocListenerImpl, false);
+                                             pAbiDocListenerImpl, false,
+                                             &auxData);
 
 	if (!getDoc()->tellListener(static_cast<PL_Listener *>(pAbiDocListener)))
 	{
@@ -422,7 +425,7 @@ UT_Error IE_Exp_OpenDocument::_writeDocument(void)
 		ODe_gsf_output_close(GSF_OUTPUT(m_odt));
 		return UT_ERROR;
 	}
-	if (!docData.writeContentXML(m_odt))
+	if (!docData.writeContentXML(m_odt, auxData))
 	{
 		ODe_gsf_output_close(GSF_OUTPUT(m_odt));
 		return UT_ERROR;

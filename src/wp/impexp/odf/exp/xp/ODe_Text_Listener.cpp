@@ -71,6 +71,7 @@ ODe_Text_Listener::ODe_Text_Listener(ODe_Styles& rStyles,
                         m_openedODNote(false),
                         m_bIgoreFirstTab(false),
                         m_pParagraphContent(nullptr),
+                        m_pChangeCapture(nullptr),
                         m_currentListLevel(0),
                         m_pCurrentListStyle(nullptr),
                         m_pendingColumnBreak(false),
@@ -115,6 +116,7 @@ ODe_Text_Listener::ODe_Text_Listener(ODe_Styles& rStyles,
                         m_openedODNote(false),
 			m_bIgoreFirstTab(false),
                         m_pParagraphContent(nullptr),
+                        m_pChangeCapture(nullptr),
                         m_currentListLevel(0),
                         m_pCurrentListStyle(nullptr),
                         m_pendingColumnBreak(false),
@@ -230,7 +232,7 @@ void ODe_Text_Listener::openSpan(const PP_AttrProp* pAP) {
         UT_UTF8String_sprintf(output, "<text:span text:style-name=\"%s\">",
                               ODe_Style_Style::convertStyleToNCName(styleName).escapeXML().utf8_str());
                               
-        ODe_writeUTF8String(m_pParagraphContent, output);
+        ODe_writeUTF8String(_contentSink(), output);
         m_openedODSpan = true;
     }
 }
@@ -241,9 +243,29 @@ void ODe_Text_Listener::openSpan(const PP_AttrProp* pAP) {
  */
 void ODe_Text_Listener::closeSpan() {
     if (m_openedODSpan) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:span>");
+        ODe_writeUTF8String(_contentSink(), "</text:span>");
         m_openedODSpan = false;
     }
+}
+
+
+/**
+ * Emit a positional tracked-change mark (<text:change-start/>,
+ * <text:change/>, <text:change-end/>) at the current content
+ * position — into the live paragraph or, while capturing, into the
+ * deletion payload.
+ */
+void ODe_Text_Listener::insertChangeMark(const UT_UTF8String& rMarkup) {
+    ODe_writeUTF8String(_contentSink(), rMarkup);
+}
+
+
+/**
+ * Redirect paragraph content output while a deletion's payload is
+ * recorded, or restore the live sink when pStream is nullptr.
+ */
+void ODe_Text_Listener::setChangeCapture(GsfOutput* pStream) {
+    m_pChangeCapture = pStream;
 }
 
 
@@ -314,31 +336,31 @@ void ODe_Text_Listener::openField(const fd_Field* field, const UT_UTF8String& fi
     if(!strcmp(fieldType.utf8_str(),"list_label")) {
         return;  // don't do anything with list labels
     } else if(!strcmp(fieldType.utf8_str(),"page_number")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:page-number>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:page-number>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"page_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:page-count>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:page-count>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"meta_creator")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:author-name>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:author-name>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"meta_title")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:title>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:title>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"meta_description")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:description>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:description>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"meta_subject")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:subject>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:subject>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"meta_keywords")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:keywords>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:keywords>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"char_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:character-count>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:character-count>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"word_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:word-count>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:word-count>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"para_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:paragraph-count>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:paragraph-count>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"file_name")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:file-name>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:file-name>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"time")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:time>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:time>%s",escape.utf8_str()));
     } else if(!strcmp(fieldType.utf8_str(),"date")) {
-        ODe_writeUTF8String(m_pParagraphContent, UT_UTF8String_sprintf("<text:date>%s",escape.utf8_str()));
+        ODe_writeUTF8String(_contentSink(), UT_UTF8String_sprintf("<text:date>%s",escape.utf8_str()));
     } else {
         UT_DEBUGMSG(("openField(): Unhandled field in the ODT exporter: %s\n", fieldType.utf8_str()));
     }
@@ -354,31 +376,31 @@ void ODe_Text_Listener::closeField(const UT_UTF8String& fieldType) {
     if(!strcmp(fieldType.utf8_str(),"list_label")) {
         return;  // don't do anything with list labels
     } else if(!strcmp(fieldType.utf8_str(),"page_number")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:page-number>");
+        ODe_writeUTF8String(_contentSink(), "</text:page-number>");
     } else if(!strcmp(fieldType.utf8_str(),"page_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:page-count>");
+        ODe_writeUTF8String(_contentSink(), "</text:page-count>");
     } else if(!strcmp(fieldType.utf8_str(),"meta_creator")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:author-name>");
+        ODe_writeUTF8String(_contentSink(), "</text:author-name>");
     } else if(!strcmp(fieldType.utf8_str(),"meta_title")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:title>");
+        ODe_writeUTF8String(_contentSink(), "</text:title>");
     } else if(!strcmp(fieldType.utf8_str(),"meta_description")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:description>");
+        ODe_writeUTF8String(_contentSink(), "</text:description>");
     } else if(!strcmp(fieldType.utf8_str(),"meta_subject")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:subject>");
+        ODe_writeUTF8String(_contentSink(), "</text:subject>");
     } else if(!strcmp(fieldType.utf8_str(),"meta_keywords")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:keywords>");
+        ODe_writeUTF8String(_contentSink(), "</text:keywords>");
     } else if(!strcmp(fieldType.utf8_str(),"char_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:character-count>");
+        ODe_writeUTF8String(_contentSink(), "</text:character-count>");
     } else if(!strcmp(fieldType.utf8_str(),"word_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:word-count>");
+        ODe_writeUTF8String(_contentSink(), "</text:word-count>");
     } else if(!strcmp(fieldType.utf8_str(),"para_count")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:paragraph-count>");
+        ODe_writeUTF8String(_contentSink(), "</text:paragraph-count>");
     } else if(!strcmp(fieldType.utf8_str(),"file_name")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:file-name>");
+        ODe_writeUTF8String(_contentSink(), "</text:file-name>");
     } else if(!strcmp(fieldType.utf8_str(),"time")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:time>");
+        ODe_writeUTF8String(_contentSink(), "</text:time>");
     } else if(!strcmp(fieldType.utf8_str(),"date")) {
-        ODe_writeUTF8String(m_pParagraphContent, "</text:date>");
+        ODe_writeUTF8String(_contentSink(), "</text:date>");
     } else {
         UT_DEBUGMSG(("closeField(): Unhandled field in the ODT exporter: %s\n", fieldType.utf8_str()));
     }
@@ -395,7 +417,7 @@ void ODe_Text_Listener::openFootnote(const PP_AttrProp* /*pAP*/,
     
     pNoteListener = new ODe_Note_Listener(m_rStyles,
                                           m_rAutomatiStyles,
-                                          m_pParagraphContent,
+                                          _contentSink(),
                                           m_rAuxiliaryData,
                                           m_spacesOffset);
     
@@ -429,7 +451,7 @@ void ODe_Text_Listener::openEndnote(const PP_AttrProp* /*pAP*/,
     
     pNoteListener = new ODe_Note_Listener(m_rStyles,
                                           m_rAutomatiStyles,
-                                          m_pParagraphContent,
+                                          _contentSink(),
                                           m_rAuxiliaryData,
                                           m_spacesOffset);
     
@@ -531,7 +553,7 @@ void ODe_Text_Listener::openAnnotation(const PP_AttrProp* pAP, const std::string
     }
 
 
-    ODe_writeUTF8String(m_pParagraphContent, output);
+    ODe_writeUTF8String(_contentSink(), output);
 }
 
 /**
@@ -540,14 +562,14 @@ void ODe_Text_Listener::openAnnotation(const PP_AttrProp* pAP, const std::string
 void ODe_Text_Listener::closeAnnotation( const std::string& /*name*/ )
 {
     UT_UTF8String output = "</office:annotation>";
-    ODe_writeUTF8String(m_pParagraphContent, output);
+    ODe_writeUTF8String(_contentSink(), output);
 }
 
 void ODe_Text_Listener::endAnnotation( const std::string& name )
 {
     std::stringstream ss;
     ss << "<office:annotation-end  office:name=\"" << name << "\"/>";
-    ODe_write( m_pParagraphContent, ss );
+    ODe_write( _contentSink(), ss );
 }
 
 
@@ -776,7 +798,7 @@ void ODe_Text_Listener::openBookmark(const PP_AttrProp* pAP) {
                 }
 
                 output+=" />";
-                ODe_writeUTF8String(m_pParagraphContent, output);
+                ODe_writeUTF8String(_contentSink(), output);
             }
         }
     }
@@ -799,7 +821,7 @@ void ODe_Text_Listener::closeBookmark(const PP_AttrProp* pAP) {
             if(escape.length()) {
                 output+= escape;
                 output+="\"/>";
-                ODe_writeUTF8String(m_pParagraphContent, output);
+                ODe_writeUTF8String(_contentSink(), output);
             }
         }
     }
@@ -819,7 +841,7 @@ void ODe_Text_Listener::closeBookmark(UT_UTF8String &sBookmarkName) {
     if(escape.length()) {
         output+= escape;
         output+="\"/>";
-        ODe_writeUTF8String(m_pParagraphContent, output);
+        ODe_writeUTF8String(_contentSink(), output);
     }
 }
 
@@ -852,7 +874,7 @@ void ODe_Text_Listener::openHyperlink(const PP_AttrProp* pAP) {
             output+="xlink:href=\"";
             output+=uri;
             output+="\">";
-            ODe_writeUTF8String(m_pParagraphContent, output);
+            ODe_writeUTF8String(_contentSink(), output);
         }
     }
 }
@@ -862,7 +884,7 @@ void ODe_Text_Listener::openHyperlink(const PP_AttrProp* pAP) {
  */
 void ODe_Text_Listener::closeHyperlink() {
     UT_UTF8String output = "</text:a>";
-    ODe_writeUTF8String(m_pParagraphContent, output);
+    ODe_writeUTF8String(_contentSink(), output);
 }
 
 void ODe_Text_Listener::openRDFAnchor(const PP_AttrProp* pAP)
@@ -878,7 +900,7 @@ void ODe_Text_Listener::openRDFAnchor(const PP_AttrProp* pAP)
     output+= escape;
     output+="\" ";
     output+=" >";
-    ODe_writeUTF8String(m_pParagraphContent, output);
+    ODe_writeUTF8String(_contentSink(), output);
 }
 
 
@@ -886,7 +908,7 @@ void ODe_Text_Listener::closeRDFAnchor(const PP_AttrProp* pAP)
 {
     RDFAnchor a(pAP);
     UT_UTF8String output = "</text:meta>";
-    ODe_writeUTF8String(m_pParagraphContent, output);
+    ODe_writeUTF8String(_contentSink(), output);
 }
 
 /**
@@ -895,7 +917,7 @@ void ODe_Text_Listener::closeRDFAnchor(const PP_AttrProp* pAP)
 void ODe_Text_Listener::insertText(const UT_UTF8String& rText) {
 	if (rText.length() == 0)
 		return;
-    ODe_writeUTF8String(m_pParagraphContent, rText);
+    ODe_writeUTF8String(_contentSink(), rText);
     m_isFirstCharOnParagraph = false;
 }
 
@@ -924,7 +946,7 @@ void ODe_Text_Listener::closeSection(ODe_ListenerAction& rAction) {
  *
  */
 void ODe_Text_Listener::insertLineBreak() {
-    ODe_writeUTF8String(m_pParagraphContent, "<text:line-break/>");
+    ODe_writeUTF8String(_contentSink(), "<text:line-break/>");
 }
 
 
@@ -932,6 +954,11 @@ void ODe_Text_Listener::insertLineBreak() {
  *
  */
 void ODe_Text_Listener::insertColumnBreak() {
+    if (m_pChangeCapture) {
+        /* a break inside deleted text belongs to the payload */
+        ODe_writeUTF8String(m_pChangeCapture, "<text:line-break/>");
+        return;
+    }
     _closeODList();
     m_pendingColumnBreak = true;
     if (!m_isFirstCharOnParagraph){
@@ -944,6 +971,10 @@ void ODe_Text_Listener::insertColumnBreak() {
  *
  */
 void ODe_Text_Listener::insertPageBreak() {
+    if (m_pChangeCapture) {
+        ODe_writeUTF8String(m_pChangeCapture, "<text:line-break/>");
+        return;
+    }
     _closeODList();
     m_pendingPageBreak = true;
     if (!m_isFirstCharOnParagraph){
@@ -962,7 +993,7 @@ void ODe_Text_Listener::insertTabChar() {
     
   if (!m_bIgoreFirstTab && (!m_isFirstCharOnParagraph || (m_currentListLevel == 0)))
     {
-      ODe_writeUTF8String(m_pParagraphContent, "<text:tab/>");
+      ODe_writeUTF8String(_contentSink(), "<text:tab/>");
     }
 
     m_isFirstCharOnParagraph = false;
@@ -1057,7 +1088,7 @@ void ODe_Text_Listener::insertInlinedImage(const gchar* pImageName,
 
     output += "</draw:frame>";
 
-    ODe_writeUTF8String(m_pParagraphContent, output);
+    ODe_writeUTF8String(_contentSink(), output);
 }
 
 
@@ -1231,7 +1262,7 @@ void ODe_Text_Listener::insertPositionedImage(const gchar* pImageName,
 
     output += "</draw:frame></text:p>";
     
-    ODe_writeUTF8String(m_pParagraphContent, output);
+    ODe_writeUTF8String(_contentSink(), output);
 }
 
 

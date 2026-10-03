@@ -32,14 +32,24 @@
 #include "ut_vector.h"
 #include "ut_string_class.h"
 
+// Standard includes
+#include <map>
+#include <string>
+#include <vector>
+
 // Internal classes
 class ODe_AbiDocListenerImpl;
+class ODe_AuxiliaryData;
 class ODe_DocumentData;
 
 // Abinova classes
 class PD_Document;
+class PP_AttrProp;
 class fd_Field;
 class PX_ChangeRecord_Object;
+
+// libgsf (matches gsf's own forward declaration)
+typedef struct _GsfOutput GsfOutput;
 
 /**
  * Handles the mess involved in PL_Listener event handling translating then
@@ -51,7 +61,8 @@ public:
 
     ODe_AbiDocListener(PD_Document* pDocument,
                        ODe_AbiDocListenerImpl* pListenerImpl,
-                       bool deleteWhenPop);
+                       bool deleteWhenPop,
+                       ODe_AuxiliaryData* pAuxData = nullptr);
 
     virtual ~ODe_AbiDocListener();
 
@@ -126,6 +137,18 @@ private:
 
     void _insertMath(PT_AttrPropIndex api);
 
+    // Tracked-change export: piece-table revision marks become
+    // <text:change-start>/<text:change>/<text:change-end> marks in the
+    // content stream plus <text:changed-region> records held in
+    // m_pAuxData.  Deleted content is captured into the region's
+    // payload rather than written to the live text.
+    void _updateChangeScopes(PT_AttrPropIndex api);
+    void _pushChangeScope(UT_uint8 type, UT_uint32 revId);
+    void _popChangeScope();
+    void _closeChangeScopes();
+    void _restoreChangeCapture();
+    UT_uint32 _mintChangeRegion(UT_uint8 type, UT_uint32 revId);
+
     void _outputData(const UT_UCS4Char* pData, UT_uint32 length);
     void _appendSpaces(UT_UTF8String* sBuf, UT_uint32 count);
 
@@ -190,4 +213,40 @@ private:
     bool m_deleteCurrentWhenPop;
 
     ODe_ListenerAction m_listenerImplAction;
+
+    ////
+    // Tracked-change export state (active only when m_pAuxData set,
+    // i.e. during the main content pass).
+
+    class _RevToken {
+    public:
+        _RevToken() : type(0), revId(0) {}
+        _RevToken(UT_uint8 t, UT_uint32 id) : type(t), revId(id) {}
+        UT_uint8  type;
+        UT_uint32 revId;
+        bool operator==(const _RevToken& o) const {
+            return type == o.type && revId == o.revId;
+        }
+    };
+
+    class _ChangeScope {
+    public:
+        _ChangeScope() : type(0), revId(0), region(0), capture(nullptr) {}
+        _ChangeScope(UT_uint8 t, UT_uint32 id, UT_uint32 r,
+                     GsfOutput* c) : type(t), revId(id), region(r),
+                                     capture(c) {}
+        UT_uint8   type;
+        UT_uint32  revId;
+        UT_uint32  region;     // index into m_pAuxData->m_changeRegions
+        GsfOutput* capture;    // payload stream for deletion scopes
+    };
+
+    ODe_AuxiliaryData* m_pAuxData;
+    std::vector<_ChangeScope> m_openChangeScopes;
+    std::vector<_RevToken> m_blockRevisions;
+    // (type << 32) | revId -> region index, for insertion/format scopes
+    // which may legitimately mark several disjoint ranges.
+    std::map<UT_uint64, UT_uint32> m_changeScopeRegions;
+    UT_UTF8String m_pendingParaMarkChange;
+    PT_AttrPropIndex m_apiBlockRevisionsParsed;
 };

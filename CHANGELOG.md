@@ -71,6 +71,25 @@ below are on `main` but the release has not been cut yet.
   the change position as `-id` content — whole deleted paragraphs,
   lists and runs restore struck-through, and deleted paragraph marks
   record the `para-mark-rev` property, mirroring the DOCX importer.
+- **ODF export now writes real tracked changes** — piece-table
+  revision marks used to be flattened on `.odt` save. The exporter
+  now emits a `<text:tracked-changes>` table first in `<office:text>`:
+  `<text:insertion>` and `<text:format-change>` regions bracket the
+  changed runs with `text:change-start`/`text:change-end`, each
+  deletion becomes a `<text:deletion>` region whose removed content is
+  captured into the region payload behind a `text:change` point mark,
+  and a tracked paragraph mark (`para-mark-rev`) emits its own region
+  — all with author/date from `AD_Revision` via `office:change-info`.
+  ODF → Abinova → ODF round-trips now preserve the full change table.
+  The importer also stops silently dropping the remaining
+  content-stream elements: non-TOC indexes (`text:alphabetical-index`,
+  `illustration-index`, `user-index`, `table-index`, `object-index`,
+  `text:bibliography`) import their generated bodies as plain text,
+  `office:forms`/`form:*` controls are skipped with a debug message,
+  inline marks (`bibliography-mark`, `reference-mark`, `sequence`,
+  `page-ref`, `bookmark-ref`, …) keep their rendered text, insertion
+  point marks map to `para-mark-rev`, and anything still unhandled
+  logs a `UT_DEBUGMSG` instead of vanishing.
 - **Reserved `.abw` schema sections** — `<changes>`
   (change-tracking metadata), `<masterpages>` (page-layout
   templates) and `<notes>` (presentation notes) are now part of the

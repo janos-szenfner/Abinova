@@ -319,6 +319,43 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
 
         rAction.pushState(m_pCurrentTOCParser, false);
 
+    } else if (!strcmp(pName, "text:table-index") ||
+               !strcmp(pName, "text:illustration-index") ||
+               !strcmp(pName, "text:object-index") ||
+               !strcmp(pName, "text:user-index") ||
+               !strcmp(pName, "text:alphabetical-index") ||
+               !strcmp(pName, "text:bibliography")) {
+
+        /* Non-TOC indexes have no Abinova construct that could
+         * regenerate them, so they are imported transparently: the
+         * pre-generated <text:index-body> paragraphs flow through the
+         * normal text handlers, while the *-index-source rules are
+         * dropped. */
+        UT_DEBUGMSG(("%s: importing generated index body as plain "
+                     "text; index generation rules dropped\n", pName));
+
+    } else if (!strcmp(pName, "office:forms")) {
+
+        /* Interactive form controls (form:form, form:text, ...) have
+         * no Abinova construct; children carry no paragraph text and
+         * fall through harmlessly. */
+        UT_DEBUGMSG(("office:forms dropped: form controls are not "
+                     "supported\n"));
+
+    } else if (!strcmp(pName, "text:bibliography-mark") ||
+               !strcmp(pName, "text:reference-mark") ||
+               !strcmp(pName, "text:bookmark-ref") ||
+               !strcmp(pName, "text:sequence") ||
+               !strcmp(pName, "text:sequence-ref") ||
+               !strcmp(pName, "text:page-ref") ||
+               !strcmp(pName, "text:bibliography-configuration") ||
+               !strcmp(pName, "text:alphabetical-index-auto-mark-file") ||
+               !strcmp(pName, "text:dde-connection-decl")) {
+
+        /* Fields and decl elements whose rendered text (if any) is
+         * imported as plain content — they have no live Abinova field
+         * type.  Decl-only elements simply contain no text. */
+
     } else if (!strcmp(pName, "text:span")) {
         // Write all text that is between the last element tag and this
         // <text:span>
@@ -977,9 +1014,27 @@ void ODi_TextContent_ListenerState::startElement (const gchar* pName,
             m_bAcceptingText = false;
         }
 
+    } else if (!strncmp(pName, "text:", 5) &&
+               (strstr(pName, "index-source") ||
+                strstr(pName, "index-body") ||
+                strstr(pName, "index-title") ||
+                strstr(pName, "index-entry") ||
+                strstr(pName, "index-bibliography"))) {
+
+        /* Scaffolding inside the transparent (non-TOC) index types
+         * handled above: the generated index-body content flows
+         * through the normal text handlers, while source/entry rules
+         * carry no rendered text and are dropped. */
+
     } else if (!strcmp(pName, "text:soft-page-break")){
         // soft page breaks are NOT manual page breaks, we must ignore them,
         // see http://bugzilla.abisource.com/show_bug.cgi?id=13661
+
+    } else {
+        /* Coverage gap: log rather than silently drop so missing
+         * content-stream elements are visible when debugging. */
+        UT_DEBUGMSG(("startElement: unhandled element %s ignored\n",
+                     pName));
     }
     
     m_elementParsingLevel++;
@@ -2288,6 +2343,13 @@ void ODi_TextContent_ListenerState::_handleChangeMark(const gchar* pName,
     case ODi_ChangeRegion::Change_Format:    token = "!"; break;
     }
     token += UT_std_string_sprintf("%u", region.revId);
+    if (region.type == ODi_ChangeRegion::Change_Format) {
+        /* The ODF change-info records only author/date — the original
+         * prop delta is unrecoverable — but the piece-table grammar
+         * requires a brace group on '!' tokens, so emit an empty one
+         * rather than a bare id that PP_RevisionAttr would drop. */
+        token += "{}";
+    }
 
     if (!strcmp(pName, "text:change-start")) {
         _flush();
@@ -2321,12 +2383,15 @@ void ODi_TextContent_ListenerState::_handleChangeMark(const gchar* pName,
      * recorded payload is replayed. */
     if (region.type == ODi_ChangeRegion::Change_Deletion) {
         _insertDeletion(region, token);
+    } else if (region.type == ODi_ChangeRegion::Change_Insertion) {
+        /* A point mark for an insertion region carries no payload:
+         * it is how ODF records a tracked paragraph-mark insertion,
+         * so keep it as the same inert block property OXML06 uses
+         * for w:pPr/w:rPr/w:ins. */
+        _markParagraphMarkRevision(token);
     } else {
-        /* Point marks for insertions/format changes carry no
-         * payload; insertion text is already live. */
-        UT_DEBUGMSG(("text:change for %s region %s ignored\n",
-                     region.type == ODi_ChangeRegion::Change_Insertion ?
-                     "insertion" : "format-change", pId));
+        UT_DEBUGMSG(("text:change for format-change region %s "
+                     "ignored\n", pId));
     }
 }
 
