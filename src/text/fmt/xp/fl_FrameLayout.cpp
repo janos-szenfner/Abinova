@@ -403,8 +403,8 @@ bool fl_FrameLayout::doclistener_changeStrux(const PX_ChangeRecord_StruxChange *
 {
 	UT_ASSERT(pcrxc->getType()==PX_ChangeRecord::PXT_ChangeStrux);
 	fp_FrameContainer * pFrameC = static_cast<fp_FrameContainer *>(getFirstContainer());
-	UT_GenericVector<fl_ContainerLayout *> AllLayouts;
-	AllLayouts.clear();
+	std::vector<fl_ContainerLayout *> AllLayouts;
+	
 	fp_Page * pPage = nullptr;
 	UT_sint32 i = 0;
 	if(pFrameC)
@@ -413,9 +413,9 @@ bool fl_FrameLayout::doclistener_changeStrux(const PX_ChangeRecord_StruxChange *
 		if (pPage)
 		{
 			pPage->getAllLayouts(AllLayouts);
-			for(i=0; i< AllLayouts.getItemCount();i++)
+			for(i=0; i< static_cast<UT_sint32>(AllLayouts.size());i++)
 			{
-				fl_ContainerLayout * pCL = AllLayouts.getNthItem(i);
+				fl_ContainerLayout * pCL = AllLayouts[i];
 				pCL->collapse();
 			}
 		}
@@ -424,9 +424,9 @@ bool fl_FrameLayout::doclistener_changeStrux(const PX_ChangeRecord_StruxChange *
 	collapse();
 	lookupProperties();
 	format();
-	for(i=0; i< AllLayouts.getItemCount();i++)
+	for(i=0; i< static_cast<UT_sint32>(AllLayouts.size());i++)
 	{
-	    fl_ContainerLayout * pCL = AllLayouts.getNthItem(i);
+	    fl_ContainerLayout * pCL = AllLayouts[i];
 	    pCL->format();
 	    xxx_UT_DEBUGMSG(("Format block %x \n",pBL));
 	    pCL->markAllRunsDirty();

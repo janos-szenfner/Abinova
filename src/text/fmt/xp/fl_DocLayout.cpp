@@ -26,6 +26,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm>
+#include <memory>
 
 #include "ut_types.h"
 #include "ut_sleep.h"
@@ -233,13 +235,9 @@ FL_DocLayout::~FL_DocLayout()
 	// got flushed by fl_DocListener (e.g. teardown mid-notification).
 	deleteQueuedLayouts();
 
-	UT_sint32 count = m_vecPages.getItemCount() -1;
-	while(count >= 0)
+	while(!m_vecPages.empty())
 	{
-		fp_Page * pPage = static_cast<fp_Page *>(m_vecPages.getNthItem(count));
-		m_vecPages.deleteNthItem(count);
-		delete pPage;
-		count--;
+		m_vecPages.pop_back();
 	}
 
 	while (m_pFirstSection)
@@ -796,7 +794,7 @@ void FL_DocLayout::fillLayouts(void)
 
 	// Frame related tasks
 
-	if (m_vecFramesToBeInserted.getItemCount() > 0)
+	if (static_cast<UT_sint32>(m_vecFramesToBeInserted.size()) > 0)
 	{
 		// There is a mismatch between the new layout and the saved file.
 		// The requested page for some frames does not exists.
@@ -804,12 +802,12 @@ void FL_DocLayout::fillLayouts(void)
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		fp_FrameContainer * pFrame = nullptr;
 		UT_sint32 k = 0;
-		UT_sint32 kmax = m_vecFramesToBeInserted.getItemCount();
+		UT_sint32 kmax = static_cast<UT_sint32>(m_vecFramesToBeInserted.size());
 		fp_Page * pPage = getLastPage();
 		for (k = 0; k < kmax; k++)
 		{
-			pFrame = m_vecFramesToBeInserted.getNthItem(0);
-			m_vecFramesToBeInserted.deleteNthItem(0);
+			pFrame = m_vecFramesToBeInserted[0];
+			m_vecFramesToBeInserted.erase(m_vecFramesToBeInserted.begin() + 0);
 			pPage->insertFrameContainer(pFrame);
 		}		
 	}
@@ -969,9 +967,9 @@ bool FL_DocLayout::AnchoredObjectHelper(double x, double y, UT_sint32 iPage, UT_
 {
 	UT_UTF8String sVal,sProp;
 	iPage = iPage -1; // Start from page 1
-	if(iPage>=m_vecPages.getItemCount())
-	    iPage = m_vecPages.getItemCount()-1;
-	pPage = m_vecPages.getNthItem(iPage);
+	if(iPage>=static_cast<UT_sint32>(m_vecPages.size()))
+	    iPage = static_cast<UT_sint32>(m_vecPages.size())-1;
+	pPage = m_vecPages[iPage].get();
 	if(pPage == nullptr)
 	{
 	    return false;
@@ -1276,7 +1274,7 @@ fl_FrameLayout * FL_DocLayout:: relocateFrame(fl_FrameLayout * pFL, fl_BlockLayo
 
 bool FL_DocLayout::addFramesToBeInserted(fp_FrameContainer * pFrame)
 {
-	m_vecFramesToBeInserted.addItem(pFrame);
+	m_vecFramesToBeInserted.push_back(pFrame);
 	return true;
 }
 
@@ -1286,12 +1284,13 @@ bool FL_DocLayout::addFramesToBeInserted(fp_FrameContainer * pFrame)
 
 bool FL_DocLayout::removeFramesToBeInserted(fp_FrameContainer * pFrame)
 {
-	UT_sint32 i = m_vecFramesToBeInserted.findItem(pFrame);
-	if(i < 0)
+	auto it = std::find(m_vecFramesToBeInserted.begin(),
+						m_vecFramesToBeInserted.end(), pFrame);
+	if(it == m_vecFramesToBeInserted.end())
 	{
 		return false;
 	}
-	m_vecFramesToBeInserted.deleteNthItem(i);
+	m_vecFramesToBeInserted.erase(it);
 	return true;
 }
 
@@ -1303,7 +1302,7 @@ bool FL_DocLayout::removeFramesToBeInserted(fp_FrameContainer * pFrame)
 
 fp_FrameContainer * FL_DocLayout::findFramesToBeInserted(fp_Page * pPage) const
 {
-	UT_sint32 count = m_vecFramesToBeInserted.getItemCount();
+	UT_sint32 count = static_cast<UT_sint32>(m_vecFramesToBeInserted.size());
 	if (count == 0)
 	{
 		return nullptr;
@@ -1314,7 +1313,7 @@ fp_FrameContainer * FL_DocLayout::findFramesToBeInserted(fp_Page * pPage) const
 	fp_FrameContainer * pFrame = nullptr;
 	for (k = 0;k < count;k++)
 	{
-		pFrame = m_vecFramesToBeInserted.getNthItem(k);
+		pFrame = m_vecFramesToBeInserted[k];
 		UT_nonnull_or_continue(pFrame);
 		if (pFrame->getPreferedPageNo() == iPage)
 		{
@@ -1471,14 +1470,14 @@ void FL_DocLayout::getStringFromFootnoteVal(UT_String & sVal, UT_sint32 iVal, Fo
  */
 UT_uint32 FL_DocLayout::countFootnotes(void) const
 {
-	return m_vecFootnotes.getItemCount();
+	return static_cast<UT_sint32>(m_vecFootnotes.size());
 }
 /*!
  * Add a footnote layout to the vector remembering them.
  */
 void FL_DocLayout::addFootnote(fl_FootnoteLayout * pFL)
 {
-	m_vecFootnotes.addItem(pFL);
+	m_vecFootnotes.push_back(pFL);
 }
 
 /*!
@@ -1487,13 +1486,13 @@ void FL_DocLayout::addFootnote(fl_FootnoteLayout * pFL)
 fl_FootnoteLayout * FL_DocLayout::getNthFootnote(UT_sint32 i) const
 {
 	UT_ASSERT(i>=0);
-	if(i >= m_vecFootnotes.getItemCount())
+	if(i >= static_cast<UT_sint32>(m_vecFootnotes.size()))
 	{
 		return nullptr;
 	}
 	else
 	{
-		return m_vecFootnotes.getNthItem(i);
+		return m_vecFootnotes[i];
 	}
 }
 
@@ -1502,12 +1501,12 @@ fl_FootnoteLayout * FL_DocLayout::getNthFootnote(UT_sint32 i) const
  */
 void FL_DocLayout::removeFootnote(fl_FootnoteLayout * pFL)
 {
-	UT_sint32 i = m_vecFootnotes.findItem(pFL);
-	if(i< 0)
+	auto it = std::find(m_vecFootnotes.begin(), m_vecFootnotes.end(), pFL);
+	if(it == m_vecFootnotes.end())
 	{
 		return;
 	}
-	m_vecFootnotes.deleteNthItem(i);
+	m_vecFootnotes.erase(it);
 }
 
 /*!
@@ -1520,9 +1519,11 @@ void FL_DocLayout::removeFootnote(fl_FootnoteLayout * pFL)
  */
 void FL_DocLayout::queueLayoutForDeletion(fl_ContainerLayout * pCL)
 {
-	if(pCL && (m_vecPendingDeleteLayouts.findItem(pCL) < 0))
+	if(pCL && (std::find(m_vecPendingDeleteLayouts.begin(),
+						 m_vecPendingDeleteLayouts.end(), pCL)
+			   == m_vecPendingDeleteLayouts.end()))
 	{
-		m_vecPendingDeleteLayouts.addItem(pCL);
+		m_vecPendingDeleteLayouts.push_back(pCL);
 	}
 }
 
@@ -1532,10 +1533,10 @@ void FL_DocLayout::queueLayoutForDeletion(fl_ContainerLayout * pCL)
  */
 void FL_DocLayout::deleteQueuedLayouts(void)
 {
-	while(m_vecPendingDeleteLayouts.getItemCount() > 0)
+	while(!m_vecPendingDeleteLayouts.empty())
 	{
-		fl_ContainerLayout * pCL = m_vecPendingDeleteLayouts.getNthItem(0);
-		m_vecPendingDeleteLayouts.deleteNthItem(0);
+		fl_ContainerLayout * pCL = m_vecPendingDeleteLayouts[0];
+		m_vecPendingDeleteLayouts.erase(m_vecPendingDeleteLayouts.begin());
 		delete pCL;
 	}
 }
@@ -1548,7 +1549,7 @@ fl_FootnoteLayout * FL_DocLayout::findFootnoteLayout(UT_uint32 footpid) const
 	UT_sint32 i = 0;
 	fl_FootnoteLayout * pTarget = nullptr;
 	fl_FootnoteLayout * pFL = nullptr;
-	for(i=0; i<m_vecFootnotes.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(m_vecFootnotes.size()); i++)
 	{
 		pFL = getNthFootnote(i);
 		if(pFL->getFootnotePID() == footpid)
@@ -1582,7 +1583,7 @@ UT_sint32 FL_DocLayout::getFootnoteVal(UT_uint32 footpid) const
 	{
 		pPageTarget = pCon->getPage();
 	}
-	for(i=0; i<m_vecFootnotes.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(m_vecFootnotes.size()); i++)
 	{
 		pFL = getNthFootnote(i);
 		if(!m_bRestartFootSection && !m_bRestartFootPage)
@@ -1629,7 +1630,7 @@ static bool compareLayouts(fl_AnnotationLayout * pAL1, fl_AnnotationLayout * pAL
  */
 UT_uint32 FL_DocLayout::countAnnotations(void) const
 {
-	return m_vecAnnotations.getItemCount();
+	return static_cast<UT_sint32>(m_vecAnnotations.size());
 }
 
 /*!
@@ -1666,8 +1667,8 @@ bool  FL_DocLayout::collapseAnnotations(void)
  */
 void FL_DocLayout::addAnnotation(fl_AnnotationLayout * pFL)
 {
-	m_vecAnnotations.addItem(pFL);
-	m_vecAnnotations.sort(compareLayouts);
+	m_vecAnnotations.push_back(pFL);
+	std::sort(m_vecAnnotations.begin(), m_vecAnnotations.end(), compareLayouts);
 	UT_uint32 i = 0;
 	for(i=0; i<countAnnotations();i++)
 	{
@@ -1686,13 +1687,13 @@ void FL_DocLayout::addAnnotation(fl_AnnotationLayout * pFL)
 fl_AnnotationLayout * FL_DocLayout::getNthAnnotation(UT_sint32 i) const
 {
 	UT_ASSERT(i>=0);
-	if(i >= m_vecAnnotations.getItemCount())
+	if(i >= static_cast<UT_sint32>(m_vecAnnotations.size()))
 	{
 		return nullptr;
 	}
 	else
 	{
-		return m_vecAnnotations.getNthItem(i);
+		return m_vecAnnotations[i];
 	}
 }
 
@@ -1701,15 +1702,17 @@ fl_AnnotationLayout * FL_DocLayout::getNthAnnotation(UT_sint32 i) const
  */
 void FL_DocLayout::removeAnnotation(fl_AnnotationLayout * pFL)
 {
-	UT_sint32 i = m_vecAnnotations.findItem(pFL);
+	auto itA = std::find(m_vecAnnotations.begin(), m_vecAnnotations.end(), pFL);
+	UT_sint32 i = itA == m_vecAnnotations.end()
+		? -1 : static_cast<UT_sint32>(itA - m_vecAnnotations.begin());
 	if(i< 0)
 	{
 		return;
 	}
-	m_vecAnnotations.deleteNthItem(i);
+	m_vecAnnotations.erase(m_vecAnnotations.begin() + i);
 	if(isLayoutDeleting())
 	  return;
-	m_vecAnnotations.sort(compareLayouts);
+	std::sort(m_vecAnnotations.begin(), m_vecAnnotations.end(), compareLayouts);
 	for(i=0; i<static_cast<UT_sint32>(countAnnotations());i++)
 	{
 	    fl_AnnotationLayout * pAL = getNthAnnotation(i);
@@ -1729,7 +1732,7 @@ fl_AnnotationLayout * FL_DocLayout::findAnnotationLayout(UT_uint32 annpid) const
 	UT_sint32 i = 0;
 	fl_AnnotationLayout * pTarget = nullptr;
 	fl_AnnotationLayout * pFL = nullptr;
-	for(i=0; i<m_vecAnnotations.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(m_vecAnnotations.size()); i++)
 	{
 		pFL = getNthAnnotation(i);
 		if(pFL->getAnnotationPID() == annpid)
@@ -1750,7 +1753,7 @@ UT_sint32 FL_DocLayout::getAnnotationVal(UT_uint32 annpid) const
 	UT_sint32 i =0;
 	UT_sint32 pos = 0;
 	fl_AnnotationLayout * pAL = nullptr;
-	for(i=0; i<m_vecAnnotations.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(m_vecAnnotations.size()); i++)
 	{
 		pAL = getNthAnnotation(i);
 		if(pAL->getAnnotationPID() == annpid)
@@ -1922,14 +1925,14 @@ void FL_DocLayout::insertEndnoteContainer(fp_EndnoteContainer * pECon)
  */
 UT_uint32 FL_DocLayout::countEndnotes(void) const
 {
-	return m_vecEndnotes.getItemCount();
+	return static_cast<UT_sint32>(m_vecEndnotes.size());
 }
 /*!
  * Add a footnote layout to the vector remembering them.
  */
 void FL_DocLayout::addEndnote(fl_EndnoteLayout * pFL)
 {
-	m_vecEndnotes.addItem(pFL);
+	m_vecEndnotes.push_back(pFL);
 }
 
 /*!
@@ -1938,13 +1941,13 @@ void FL_DocLayout::addEndnote(fl_EndnoteLayout * pFL)
 fl_EndnoteLayout * FL_DocLayout::getNthEndnote(UT_sint32 i) const
 {
 	UT_ASSERT(i>=0);
-	if(i >= m_vecEndnotes.getItemCount())
+	if(i >= static_cast<UT_sint32>(m_vecEndnotes.size()))
 	{
 		return nullptr;
 	}
 	else
 	{
-		return m_vecEndnotes.getNthItem(i);
+		return m_vecEndnotes[i];
 	}
 }
 
@@ -1953,12 +1956,14 @@ fl_EndnoteLayout * FL_DocLayout::getNthEndnote(UT_sint32 i) const
  */
 void FL_DocLayout::removeEndnote(fl_EndnoteLayout * pFL)
 {
-	UT_sint32 i = m_vecEndnotes.findItem(pFL);
+	auto itE = std::find(m_vecEndnotes.begin(), m_vecEndnotes.end(), pFL);
+	UT_sint32 i = itE == m_vecEndnotes.end()
+		? -1 : static_cast<UT_sint32>(itE - m_vecEndnotes.begin());
 	if(i< 0)
 	{
 		return;
 	}
-	m_vecEndnotes.deleteNthItem(i);
+	m_vecEndnotes.erase(m_vecEndnotes.begin() + i);
 }
 
 /*!
@@ -1969,7 +1974,7 @@ fl_EndnoteLayout * FL_DocLayout::findEndnoteLayout(UT_uint32 footpid) const
 	UT_sint32 i = 0;
 	fl_EndnoteLayout * pTarget = nullptr;
 	fl_EndnoteLayout * pFL = nullptr;
-	for(i=0; i<m_vecEndnotes.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(m_vecEndnotes.size()); i++)
 	{
 		pFL = getNthEndnote(i);
 		if(pFL->getEndnotePID() == footpid)
@@ -1997,7 +2002,7 @@ UT_sint32 FL_DocLayout::getEndnoteVal(UT_uint32 footpid) const
 	}
 	PT_DocPosition posTarget = pTarget->getDocPosition();
 	fl_DocSectionLayout * pDocSecTarget = pTarget->getDocSectionLayout();
-	for(i=0; i<m_vecEndnotes.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(m_vecEndnotes.size()); i++)
 	{
 		pFL = getNthEndnote(i);
 		if(!m_bRestartEndSection)
@@ -2027,7 +2032,7 @@ UT_sint32 FL_DocLayout::getEndnoteVal(UT_uint32 footpid) const
 
 UT_sint32 FL_DocLayout::getNumTOCs(void) const
 {
-	return m_vecTOC.getItemCount();
+	return static_cast<UT_sint32>(m_vecTOC.size());
 }
 
 fl_TOCLayout * FL_DocLayout::getNthTOC(UT_sint32 i) const
@@ -2036,7 +2041,7 @@ fl_TOCLayout * FL_DocLayout::getNthTOC(UT_sint32 i) const
 	{
 		return nullptr;
 	}
-	return m_vecTOC.getNthItem(i);
+	return m_vecTOC[i];
 }
 
 void FL_DocLayout::recalculateTOCFields(void)
@@ -2160,7 +2165,7 @@ bool FL_DocLayout::isBlockInTOC(fl_BlockLayout * pBlock) const
  * Return false if no matching block were found.
  * true otherwise
  */
-bool FL_DocLayout::getMatchingBlocksFromTOCs(fl_BlockLayout * pBlock, UT_GenericVector<fl_BlockLayout*>* pVecBlocks) const
+bool FL_DocLayout::getMatchingBlocksFromTOCs(fl_BlockLayout * pBlock, std::vector<fl_BlockLayout*>* pVecBlocks) const
 {
 	UT_sint32 count = getNumTOCs();
 	if(count == 0)
@@ -2174,15 +2179,15 @@ bool FL_DocLayout::getMatchingBlocksFromTOCs(fl_BlockLayout * pBlock, UT_Generic
 		if(pTOC->isBlockInTOC(pBlock))
 		{
 			fl_BlockLayout * pMatch = pTOC->getMatchingBlock(pBlock);
-			pVecBlocks->addItem(pMatch);
+			pVecBlocks->push_back(pMatch);
 		}
 	}
-	return (pVecBlocks->getItemCount() > 0);
+	return !pVecBlocks->empty();
 }
 	
 bool FL_DocLayout::addTOC(fl_TOCLayout * pTOC)
 {
-	m_vecTOC.addItem(pTOC);
+	m_vecTOC.push_back(pTOC);
 	return true;
 }
 
@@ -2193,12 +2198,14 @@ bool FL_DocLayout::removeTOC(fl_TOCLayout * pTOC)
 	{
 		return false;
 	}
-	UT_sint32 i = m_vecTOC.findItem(pTOC);
+	auto itT = std::find(m_vecTOC.begin(), m_vecTOC.end(), pTOC);
+	UT_sint32 i = itT == m_vecTOC.end()
+		? -1 : static_cast<UT_sint32>(itT - m_vecTOC.begin());
 	if(i < 0)
 	{
 		return false;
 	}
-	m_vecTOC.deleteNthItem(i);
+	m_vecTOC.erase(m_vecTOC.begin() + i);
 	return true;
 }
 
@@ -2236,7 +2243,7 @@ UT_sint32 FL_DocLayout::getHeight() const
 {
 	UT_sint32 iHeight = 0;
 	FV_View * pView = getView(); // add page view dimensions
-	UT_uint32 count = m_vecPages.getItemCount();
+	UT_uint32 count = static_cast<UT_sint32>(m_vecPages.size());
 	UT_uint32 numRows = count / pView->getNumHorizPages();
 	if (count > (pView->getNumHorizPages() * numRows))
 	{
@@ -2277,11 +2284,11 @@ UT_sint32 FL_DocLayout::getHeight() const
 UT_sint32 FL_DocLayout::getWidth() const
 {
 	UT_sint32 iWidth = 0;
-	int count = m_vecPages.getItemCount();
+	int count = static_cast<UT_sint32>(m_vecPages.size());
 
 	for (int i=0; i<count; i++)
 	{
-		fp_Page* p = m_vecPages.getNthItem(i);
+		fp_Page* p = m_vecPages[i].get();
 
 		// we layout pages vertically, so this is max, not sum
 		if (iWidth < p->getWidth())
@@ -2465,59 +2472,74 @@ void FL_DocLayout::changeDocSections(const PX_ChangeRecord_StruxChange * pcrx, f
 
 UT_sint32 FL_DocLayout::countPages() const
 {
-	return m_vecPages.getItemCount();
+	return static_cast<UT_sint32>(m_vecPages.size());
 }
 
 UT_sint32 FL_DocLayout::findPage(const fp_Page * pPage) const
 {
-	UT_sint32 count = m_vecPages.getItemCount();
+	UT_sint32 count = static_cast<UT_sint32>(m_vecPages.size());
 	if(count < 1)
 	{
 		return -1;
 	}
-	// Ugly. Problem: findItem expect a non-const
-	// maybe when we use std::vector instead.
-	return m_vecPages.findItem(const_cast<fp_Page*>(pPage));
+	auto it = std::find_if(m_vecPages.begin(), m_vecPages.end(),
+						   [pPage](const std::unique_ptr<fp_Page>& p) {
+							   return p.get() == pPage;
+						   });
+	return it == m_vecPages.end()
+		? -1 : static_cast<UT_sint32>(it - m_vecPages.begin());
 }
 
 fp_Page* FL_DocLayout::getNthPage(int n) const
 {
-	UT_ASSERT(m_vecPages.getItemCount() > 0);
-	if(n >= m_vecPages.getItemCount())
+	UT_ASSERT(static_cast<UT_sint32>(m_vecPages.size()) > 0);
+	if(n >= static_cast<UT_sint32>(m_vecPages.size()))
 	  return nullptr;
-	return m_vecPages.getNthItem(n);
+	return m_vecPages[n].get();
 }
 
 fp_Page* FL_DocLayout::getFirstPage() const
 {
-	if (m_vecPages.getItemCount() == 0)
+	if (static_cast<UT_sint32>(m_vecPages.size()) == 0)
 	{
 		return nullptr;
 	}
 
-	return m_vecPages.getNthItem(0);
+	return m_vecPages[0].get();
 }
 
 fp_Page* FL_DocLayout::getLastPage() const
 {
-	if (m_vecPages.getItemCount() == 0)
+	if (static_cast<UT_sint32>(m_vecPages.size()) == 0)
 	{
 		return nullptr;
 	}
 
-	return m_vecPages.getNthItem(m_vecPages.getItemCount()-1);
+	return m_vecPages[m_vecPages.size() - 1].get();
 }
 
 void FL_DocLayout::deletePage(fp_Page* pPage, bool bDontNotify /* default false */)
 {
-	UT_sint32 ndx = m_vecPages.findItem(pPage);
+	auto itPage = std::find_if(m_vecPages.begin(), m_vecPages.end(),
+							   [pPage](const std::unique_ptr<fp_Page>& p) {
+								   return p.get() == pPage;
+							   });
+	UT_sint32 ndx = itPage == m_vecPages.end()
+		? -1 : static_cast<UT_sint32>(itPage - m_vecPages.begin());
 	UT_ASSERT(ndx >= 0);
 
 	// m_vecPages is authoritative for page order; removing the entry
 	// unlinks the page from its neighbours automatically (fp_Page
-	// getPrev()/getNext() derive from this vector).
-	m_vecPages.deleteNthItem(ndx);
-	delete pPage;
+	// getPrev()/getNext() derive from this vector). The unique_ptr
+	// frees the page.
+	if(itPage != m_vecPages.end())
+	{
+		m_vecPages.erase(itPage);
+	}
+	else
+	{
+		delete pPage;
+	}
 	if(ndx < countPages())
 	{
 	    setFramePageNumbers(ndx);
@@ -2545,16 +2567,27 @@ fp_Page* FL_DocLayout::addNewPage(fl_DocSectionLayout* pOwner, bool bNoUpdate,
 	// mid-document insert is just a vector insert — the neighbours'
 	// prev/next links follow automatically. pBeforePage==nullptr
 	// appends, which is what all current callers want.
-	UT_sint32 ndx = pBeforePage ? m_vecPages.findItem(pBeforePage) : -1;
+	UT_sint32 ndx = -1;
+	if (pBeforePage)
+	{
+		auto itBefore = std::find_if(m_vecPages.begin(), m_vecPages.end(),
+									 [pBeforePage](const std::unique_ptr<fp_Page>& p) {
+										 return p.get() == pBeforePage;
+									 });
+		if (itBefore != m_vecPages.end())
+		{
+			ndx = static_cast<UT_sint32>(itBefore - m_vecPages.begin());
+		}
+	}
 	if (ndx >= 0)
 	{
-		m_vecPages.insertItemAt(pPage, ndx);
+		m_vecPages.emplace(m_vecPages.begin() + ndx, pPage);
 		// Later pages shifted by one; renumber their frames.
 		setFramePageNumbers(ndx);
 	}
 	else
 	{
-		m_vecPages.addItem(pPage);
+		m_vecPages.emplace_back(pPage);
 	}
 	pOwner->addOwnedPage(pPage);
 
@@ -2874,10 +2907,10 @@ void FL_DocLayout::deleteEmptyPages( bool bDontNotify /* default false */)
 {
 	int i;
 
-	int iCountPages = m_vecPages.getItemCount();
+	int iCountPages = static_cast<UT_sint32>(m_vecPages.size());
 	for (i=iCountPages - 1; i>=0; i--)
 	{
-		fp_Page* p = m_vecPages.getNthItem(i);
+		fp_Page* p = m_vecPages[i].get();
 		UT_ASSERT_HARMLESS(p);
 		if (p && p->isEmpty())
 		{
@@ -3002,9 +3035,9 @@ void FL_DocLayout::rebuildFromHere( fl_DocSectionLayout * pFirstDSL)
 	// add page view dimensions
 #if 1
 	UT_DEBUGMSG(("SEVIOR: Rebuild from section %p \n", static_cast<void*>(pFirstDSL)));
-	for(UT_sint32 k=0; k< m_vecPages.getItemCount(); k++)
+	for(UT_sint32 k=0; k< static_cast<UT_sint32>(m_vecPages.size()); k++)
 	{
-		fp_Page * pPage = m_vecPages.getNthItem(k);
+		fp_Page * pPage = m_vecPages[k].get();
 		UT_nonnull_or_continue(pPage);
 		if(pPage->getOwningSection() == pFirstDSL)
 		{
@@ -3120,9 +3153,9 @@ void FL_DocLayout::updateColor()
 	}
 	fp_Page * pPage = nullptr;
 	UT_sint32 i =0;
-	for(i=0; i<m_vecPages.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(m_vecPages.size()); i++)
 	{
-		pPage = m_vecPages.getNthItem(i);
+		pPage = m_vecPages[i].get();
 		pPage->getFillType().setTransColor(m_szCurrentTransparentColor);
 		pPage->getFillType().markTransparentForPrint();
 	}
@@ -3586,7 +3619,7 @@ void FL_DocLayout::queueAll(UT_uint32 iReason)
 		// We will place the block that contains the ins point and its immediate neigbours
 		// at the top of the queue, this will make the check look faster to the user
 		FV_View * pView = getView();
-		UT_GenericVector<fl_BlockLayout*> vBL;
+		std::vector<fl_BlockLayout*> vBL;
 		const UT_sint32 iLimit = 5;
 		
 		fl_BlockLayout * pCurBL = pView->getBlockAtPosition(pView->getPoint());
@@ -3598,13 +3631,13 @@ void FL_DocLayout::queueAll(UT_uint32 iReason)
 			UT_sint32 i = 0;
 			for(i = 0; i < iLimit/2 + iLimit%2 && pBL; ++i, pBL = pBL->getPrevBlockInDocument())
 			{
-				vBL.addItem(pBL);
+				vBL.push_back(pBL);
 			}
 
 			pBL = pCurBL->getNextBlockInDocument();
 			for(i = iLimit/2 + iLimit%2; i < iLimit && pBL; ++i, pBL = pBL->getNextBlockInDocument())
 			{
-				vBL.addItem(pBL);
+				vBL.push_back(pBL);
 			}
 		}
 		
@@ -3615,7 +3648,8 @@ void FL_DocLayout::queueAll(UT_uint32 iReason)
 			// for now, destructively recheck the whole thing
 			if(b->getContainerType() == FL_CONTAINER_BLOCK)
 			{
-				bool bHead = (vBL.findItem(static_cast<fl_BlockLayout *>(b)) >= 0);
+				bool bHead = (std::find(vBL.begin(), vBL.end(),
+										static_cast<fl_BlockLayout *>(b)) != vBL.end());
 				queueBlockForBackgroundCheck(iReason, static_cast<fl_BlockLayout *>(b), bHead);
 				b = static_cast<fl_BlockLayout *>(b)->getNextBlockInDocument();
 			}

@@ -53,13 +53,84 @@ FV_Selection::FV_Selection (FV_View * pView)
 	m_vecSelRTFBuffers.clear();
 }
 
+FV_Selection::FV_Selection (const FV_Selection & other)
+	: m_pView (other.m_pView),
+	  m_iSelectionMode(other.m_iSelectionMode),
+	  m_iPrevSelectionMode(other.m_iPrevSelectionMode),
+	  m_iSelectAnchor(other.m_iSelectAnchor),
+	  m_iSelectLeftAnchor(other.m_iSelectLeftAnchor),
+	  m_iSelectRightAnchor(other.m_iSelectRightAnchor),
+	  m_pTableOfSelectedColumn(other.m_pTableOfSelectedColumn),
+	  m_pSelectedTOC(other.m_pSelectedTOC),
+	  m_bSelectAll(other.m_bSelectAll)
+{
+	m_vecSelRanges.reserve(other.m_vecSelRanges.size());
+	for(const auto & pRange : other.m_vecSelRanges)
+	{
+		m_vecSelRanges.emplace_back(pRange ? new PD_DocumentRange(*pRange) : nullptr);
+	}
+	m_vecSelRTFBuffers.reserve(other.m_vecSelRTFBuffers.size());
+	for(const auto & pBuf : other.m_vecSelRTFBuffers)
+	{
+		UT_ByteBuf * pCopy = new UT_ByteBuf;
+		if(pBuf && pBuf->getLength() > 0)
+		{
+			pCopy->append(pBuf->getPointer(0),pBuf->getLength());
+		}
+		m_vecSelRTFBuffers.emplace_back(pCopy);
+	}
+	m_vecSelCellProps.reserve(other.m_vecSelCellProps.size());
+	for(const auto & pProps : other.m_vecSelCellProps)
+	{
+		m_vecSelCellProps.emplace_back(pProps ? new FV_SelectionCellProps(*pProps) : nullptr);
+	}
+}
+
+FV_Selection & FV_Selection::operator= (const FV_Selection & other)
+{
+	if(this == &other)
+	{
+		return *this;
+	}
+	m_pView = other.m_pView;
+	m_iSelectionMode = other.m_iSelectionMode;
+	m_iPrevSelectionMode = other.m_iPrevSelectionMode;
+	m_iSelectAnchor = other.m_iSelectAnchor;
+	m_iSelectLeftAnchor = other.m_iSelectLeftAnchor;
+	m_iSelectRightAnchor = other.m_iSelectRightAnchor;
+	m_pTableOfSelectedColumn = other.m_pTableOfSelectedColumn;
+	m_pSelectedTOC = other.m_pSelectedTOC;
+	m_bSelectAll = other.m_bSelectAll;
+	m_vecSelRanges.clear();
+	m_vecSelRanges.reserve(other.m_vecSelRanges.size());
+	for(const auto & pRange : other.m_vecSelRanges)
+	{
+		m_vecSelRanges.emplace_back(pRange ? new PD_DocumentRange(*pRange) : nullptr);
+	}
+	m_vecSelRTFBuffers.clear();
+	m_vecSelRTFBuffers.reserve(other.m_vecSelRTFBuffers.size());
+	for(const auto & pBuf : other.m_vecSelRTFBuffers)
+	{
+		UT_ByteBuf * pCopy = new UT_ByteBuf;
+		if(pBuf && pBuf->getLength() > 0)
+		{
+			pCopy->append(pBuf->getPointer(0),pBuf->getLength());
+		}
+		m_vecSelRTFBuffers.emplace_back(pCopy);
+	}
+	m_vecSelCellProps.clear();
+	m_vecSelCellProps.reserve(other.m_vecSelCellProps.size());
+	for(const auto & pProps : other.m_vecSelCellProps)
+	{
+		m_vecSelCellProps.emplace_back(pProps ? new FV_SelectionCellProps(*pProps) : nullptr);
+	}
+	return *this;
+}
+
 FV_Selection::~FV_Selection()
 {
 	m_pTableOfSelectedColumn = nullptr;
 	m_pSelectedTOC = nullptr;
-	UT_VECTOR_PURGEALL(PD_DocumentRange *,m_vecSelRanges);
-	UT_VECTOR_PURGEALL(UT_ByteBuf  *,m_vecSelRTFBuffers);
-	UT_VECTOR_PURGEALL(FV_SelectionCellProps *,m_vecSelCellProps);
 }
 
 void  FV_Selection::checkSelectAll(void)
@@ -113,9 +184,6 @@ void FV_Selection::setMode(FV_SelectionMode iSelMode)
 	if(m_iSelectionMode != FV_SelectionMode_NONE)
 	{
 		m_pTableOfSelectedColumn = nullptr;
-		UT_VECTOR_PURGEALL(PD_DocumentRange *,m_vecSelRanges);
-		UT_VECTOR_PURGEALL(UT_ByteBuf  *,m_vecSelRTFBuffers);
-		UT_VECTOR_PURGEALL(FV_SelectionCellProps *,m_vecSelCellProps);
 		m_vecSelRanges.clear();
 		m_vecSelRTFBuffers.clear();
 		m_vecSelCellProps.clear();
@@ -191,7 +259,7 @@ void FV_Selection::pasteRowOrCol(void)
 //
 				continue;
 			}
-			UT_ByteBuf * pBuf = m_vecSelRTFBuffers.getNthItem(i);
+			UT_ByteBuf * pBuf = m_vecSelRTFBuffers[i].get();
 			const unsigned char * pData = pBuf->getPointer(0);
 			UT_uint32 iLen = pBuf->getLength();
 			DocRange.m_pos1 = posCell;
@@ -242,11 +310,11 @@ FL_DocLayout * FV_Selection::getLayout(void) const
 
 PT_DocPosition FV_Selection::getSelectionAnchor(void) const
 {
-	if((m_iSelectionMode < FV_SelectionMode_Multiple) ||  (m_vecSelRanges.getItemCount() == 0))
+	if((m_iSelectionMode < FV_SelectionMode_Multiple) ||  m_vecSelRanges.empty())
 	{
 		return m_iSelectAnchor;
 	}
-	PD_DocumentRange * pDocRange = m_vecSelRanges.getNthItem(0);
+	PD_DocumentRange * pDocRange = m_vecSelRanges[0].get();
 	UT_nonnull_or_return(pDocRange, 0);
 	return pDocRange->m_pos1;
 }
@@ -275,11 +343,11 @@ void FV_Selection::setSelectionAnchor(PT_DocPosition pos)
 
 PT_DocPosition FV_Selection::getSelectionLeftAnchor(void) const
 {
-	if((m_iSelectionMode < FV_SelectionMode_Multiple) || (m_vecSelRanges.getItemCount() == 0))
+	if((m_iSelectionMode < FV_SelectionMode_Multiple) || m_vecSelRanges.empty())
 	{
 		return m_iSelectLeftAnchor;
 	}
-	PD_DocumentRange * pDocRange = m_vecSelRanges.getNthItem(0);
+	PD_DocumentRange * pDocRange = m_vecSelRanges[0].get();
 	UT_nonnull_or_return(pDocRange, 0);
 	return pDocRange->m_pos1;
 }
@@ -300,11 +368,11 @@ void FV_Selection::setSelectionLeftAnchor(PT_DocPosition pos)
 
 PT_DocPosition FV_Selection::getSelectionRightAnchor(void) const
 {
-	if((m_iSelectionMode < FV_SelectionMode_Multiple) || (m_vecSelRanges.getItemCount() == 0) )
+	if((m_iSelectionMode < FV_SelectionMode_Multiple) || m_vecSelRanges.empty() )
 	{
 		return m_iSelectRightAnchor;
 	}
-	PD_DocumentRange * pDocRange = m_vecSelRanges.getNthItem(0);
+	PD_DocumentRange * pDocRange = m_vecSelRanges[0].get();
 	UT_nonnull_or_return(pDocRange, 0);
 	return pDocRange->m_pos2;
 }
@@ -345,9 +413,9 @@ bool FV_Selection::isPosSelected(PT_DocPosition pos) const
 		return ((pos >= posLow) && (pos <=posHigh));
 	}
 	UT_sint32 i =0;
-	for(i=0; i < m_vecSelRanges.getItemCount(); i++)
+	for(i=0; i < static_cast<UT_sint32>(m_vecSelRanges.size()); i++)
 	{
-		PD_DocumentRange * pDocRange = m_vecSelRanges.getNthItem(i);
+		PD_DocumentRange * pDocRange = m_vecSelRanges[i].get();
 		UT_nonnull_or_continue(pDocRange);
 		xxx_UT_DEBUGMSG(("Looking at pos %d low %d high %d \n",pos, pDocRange->m_pos1,pDocRange->m_pos2 ));
 		if ((pos >= pDocRange->m_pos1) && (pos <= pDocRange->m_pos2+1))
@@ -402,7 +470,7 @@ void FV_Selection::addCellToSelection(fl_CellLayout * pCell)
 	PT_DocPosition posHigh = getDoc()->getStruxPosition(sdhEnd) -1;
 	UT_ASSERT(bres && sdhEnd);
 	PD_DocumentRange * pDocRange = new PD_DocumentRange(getDoc(),posLow,posHigh);
-	m_vecSelRanges.addItem(pDocRange);
+	m_vecSelRanges.emplace_back(pDocRange);
 	IE_Exp_RTF * pExpRtf = new IE_Exp_RTF(pDocRange->m_pDoc);
 	UT_ByteBuf * pByteBuf = new UT_ByteBuf;
     if (pExpRtf)
@@ -420,7 +488,7 @@ void FV_Selection::addCellToSelection(fl_CellLayout * pCell)
 		}
 		DELETEP(pExpRtf);
     }
-	m_vecSelRTFBuffers.addItem(pByteBuf);
+	m_vecSelRTFBuffers.emplace_back(pByteBuf);
 	FV_SelectionCellProps * pCellProps = new FV_SelectionCellProps;
 	UT_sint32 iLeft,iRight,iTop,iBot;
 	m_pView->getCellParams(posLow,&iLeft,&iRight,&iTop,&iBot);
@@ -429,7 +497,7 @@ void FV_Selection::addCellToSelection(fl_CellLayout * pCell)
 	pCellProps->m_iRight = iRight;
 	pCellProps->m_iTop = iTop;
 	pCellProps->m_iBot = iBot;
-	m_vecSelCellProps.addItem(pCellProps);
+	m_vecSelCellProps.emplace_back(pCellProps);
 	setSelectAll(false);
 }
 
@@ -438,11 +506,11 @@ void FV_Selection::addCellToSelection(fl_CellLayout * pCell)
  */
 PD_DocumentRange * FV_Selection::getNthSelection(UT_sint32 i) const
 {
-	if(i >= getNumSelections())
+	if(i < 0 || i >= getNumSelections())
 	{
 		return nullptr;
 	}
-	PD_DocumentRange * pDocRange = m_vecSelRanges.getNthItem(i);
+	PD_DocumentRange * pDocRange = m_vecSelRanges[i].get();
 	return pDocRange;
 }
 
@@ -451,5 +519,5 @@ PD_DocumentRange * FV_Selection::getNthSelection(UT_sint32 i) const
  */
 UT_sint32 FV_Selection::getNumSelections(void) const
 {
-	return m_vecSelRanges.getItemCount();
+	return static_cast<UT_sint32>(m_vecSelRanges.size());
 }

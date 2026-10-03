@@ -108,7 +108,7 @@ enum eTabLeader: uint8_t {
 
 class SpellChecker;
 class fl_TabStop;
-ABI_EXPORT void buildTabStops(const char* pszTabStops, UT_GenericVector<fl_TabStop*> &m_vecTabs);
+ABI_EXPORT void buildTabStops(const char* pszTabStops, std::vector<std::unique_ptr<fl_TabStop>> &m_vecTabs);
 
 class ABI_EXPORT fl_BlockLayout : public fl_ContainerLayout
 {
@@ -290,7 +290,7 @@ public:
 	void    setUpdatableField(bool bValue) { m_bHasUpdatableField = bValue;}
 	inline UT_sint32 getDefaultTabInterval(void) const { return m_iDefaultTabInterval; }
 	inline UT_sint32 getTabsCount(void) const {
-		return m_vecTabs.getItemCount();
+		return static_cast<UT_sint32>(m_vecTabs.size());
 	}
 
 	bool doclistener_populateSpan(const PX_ChangeRecord_Span * pcrs, PT_BlockOffset blockOffset, UT_uint32 len);
@@ -511,7 +511,6 @@ protected:
 	void					_purgeEndOfParagraphRun(void);
 	void					_breakLineAfterRun(fp_Run* /*pRun*/);
 
-	static void 			_prefsListener(XAP_Prefs *pPrefs, UT_StringPtrMap * /*phChanges*/, void * data);
 
 	void					_createListLabel(void);
 	void					_deleteListLabel(void);
@@ -529,7 +528,7 @@ protected:
 	fp_Run* 				m_pFirstRun;
 	fl_SectionLayout*		m_pSectionLayout;
 
-	UT_GenericVector<fl_TabStop*>	m_vecTabs;
+	std::vector<std::unique_ptr<fl_TabStop>>	m_vecTabs;
 	UT_sint32				m_iDefaultTabInterval;
 	// read-only caches of the underlying properties
 	UT_uint32				m_iOrphansProperty;

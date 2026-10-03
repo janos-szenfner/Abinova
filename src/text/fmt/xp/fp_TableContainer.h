@@ -165,9 +165,9 @@ public:
 	void                deleteBrokenTables(bool bClearFirst=true);
 	void                deleteBrokenAfter(bool bClearFirst,UT_sint32 iOldBottom);
 	bool                containsFootnoteReference(const fp_TableContainer * pBroke = nullptr) const;
-	bool                getFootnoteContainers(UT_GenericVector<fp_FootnoteContainer*>* pvecFoots, const fp_TableContainer * pBroke = nullptr) const;
+	bool                getFootnoteContainers(std::vector<fp_FootnoteContainer*>* pvecFoots, const fp_TableContainer * pBroke = nullptr) const;
 	bool                containsAnnotations(const fp_TableContainer * pBroke = nullptr) const;
-	bool                getAnnotationContainers(UT_GenericVector<fp_AnnotationContainer*>* pvecAnns, const fp_TableContainer * pBroke = nullptr) const;
+	bool                getAnnotationContainers(std::vector<fp_AnnotationContainer*>* pvecAnns, const fp_TableContainer * pBroke = nullptr) const;
 	void                getLeftTopOffsets(UT_sint32 & xoff, UT_sint32 & yoff) const;
    UT_sint32           getLeftAttach(void) const
 		{ return m_iLeftAttach;}
@@ -385,9 +385,9 @@ public:
 	fp_Column *         getBrokenColumn(void) const;
 	void                drawLines();
 	bool                containsFootnoteReference(void) const;
-	bool                getFootnoteContainers(UT_GenericVector<fp_FootnoteContainer*>* pvecFoots) const;
+	bool                getFootnoteContainers(std::vector<fp_FootnoteContainer*>* pvecFoots) const;
 	bool                containsAnnotations(void) const;
-	bool                getAnnotationContainers(UT_GenericVector<fp_AnnotationContainer*>* pvecAnns) const;
+	bool                getAnnotationContainers(std::vector<fp_AnnotationContainer*>* pvecAnns) const;
     virtual void        clearScreen(void) override;
 	virtual bool        isVBreakable(void) override;
 	virtual bool        isHBreakable(void) override {return false;}

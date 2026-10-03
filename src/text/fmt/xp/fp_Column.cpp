@@ -1936,7 +1936,7 @@ void fp_Column::layout(void)
 	_setMaxContainerHeight(0);
 	UT_sint32 iY = 0, iPrevY2 = 0;
 	UT_sint32 iContainerMarginAfter = 0;
-	UT_GenericVector<fl_BlockLayout *> vecBlocks;
+	std::vector<fl_BlockLayout *> vecBlocks;
 	fp_Line * pLastLine = nullptr;
 	fp_Container *pContainer = nullptr;
 	fp_Container *pPrevContainer = nullptr;
@@ -2029,16 +2029,16 @@ void fp_Column::layout(void)
 		{
 			pLastLine = static_cast<fp_Line *>(pContainer);
 			iHeight = pLastLine->getHeight();
-			UT_sint32 count = vecBlocks.getItemCount();
+			UT_sint32 count = static_cast<UT_sint32>(vecBlocks.size());
 			if(count == 0)
 			{
-				vecBlocks.addItem(pLastLine->getBlock());
+				vecBlocks.push_back(pLastLine->getBlock());
 			}
 			else
 			{
-				if(vecBlocks.getNthItem(count-1) != pLastLine->getBlock())
+				if(vecBlocks[count-1] != pLastLine->getBlock())
 				{
-					vecBlocks.addItem(pLastLine->getBlock());
+					vecBlocks.push_back(pLastLine->getBlock());
 				}
 			}
 		}
@@ -2116,10 +2116,10 @@ void fp_Column::layout(void)
 //
 // Set the frames on the page
 //
-	UT_sint32 count = vecBlocks.getItemCount();
+	UT_sint32 count = static_cast<UT_sint32>(vecBlocks.size());
 	for(i=0; i < count; i++)
 	{
-		fl_BlockLayout * pBlock = vecBlocks.getNthItem(i);
+		fl_BlockLayout * pBlock = vecBlocks[i];
 		UT_nonnull_or_continue(pBlock);
 		if(i < count -1)
 		{

@@ -26,6 +26,8 @@
 #endif
 
 #include <stdlib.h>
+#include <algorithm>
+#include <memory>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -222,17 +224,17 @@ void FV_View::_clearSelection(bool bRedraw)
 	else
 	{
 		UT_sint32 i = 0;
-		UT_GenericVector<PD_DocumentRange *> vecRanges;
+		std::vector<std::unique_ptr<PD_DocumentRange>> vecRanges;
 
 		for(i=0; i<m_Selection.getNumSelections();i++)
 		{
 			PD_DocumentRange * pTmp =m_Selection.getNthSelection(i);
 			PD_DocumentRange * pTmp2 = new PD_DocumentRange(m_pDoc,pTmp->m_pos1,pTmp->m_pos2);
-			vecRanges.addItem(pTmp2);
+			vecRanges.emplace_back(pTmp2);
 		}
-		for(i=0; i< vecRanges.getItemCount();i++)
+		for(i=0; i< static_cast<UT_sint32>(vecRanges.size());i++)
 		{
-			PD_DocumentRange * pDocR = vecRanges.getNthItem(i);
+			PD_DocumentRange * pDocR = vecRanges[i].get();
 			if(pDocR)
 			{
 				iPos1 = pDocR->m_pos1;
@@ -247,9 +249,9 @@ void FV_View::_clearSelection(bool bRedraw)
 			}
 		}
 		_resetSelection();
-		for(i=0; i< vecRanges.getItemCount();i++)
+		for(i=0; i< static_cast<UT_sint32>(vecRanges.size());i++)
 		{
-			PD_DocumentRange * pDocR = vecRanges.getNthItem(i);
+			PD_DocumentRange * pDocR = vecRanges[i].get();
 			if(pDocR)
 			{
 				iPos1 = pDocR->m_pos1;
@@ -262,7 +264,7 @@ void FV_View::_clearSelection(bool bRedraw)
 					_drawBetweenPositions(iPos1, iPos2);
 			}
 		}
-		UT_VECTOR_PURGEALL(PD_DocumentRange *,vecRanges);
+		vecRanges.clear();
 	}
 	_resetSelection();
 	m_iLowDrawPoint = 0;
@@ -1450,7 +1452,7 @@ void FV_View::_insertSectionBreak(void)
 	//
 	// Duplicate previous header/footers for this section.
 	//
-	UT_GenericVector<fl_HdrFtrSectionLayout *> vecPrevHdrFtr;
+	std::vector<fl_HdrFtrSectionLayout *> vecPrevHdrFtr;
 	pPrevDSL->getVecOfHdrFtrs( &vecPrevHdrFtr);
 	UT_sint32 i =0;
 	const PP_PropertyVector block_props = {
@@ -1459,9 +1461,9 @@ void FV_View::_insertSectionBreak(void)
 	HdrFtrType hfType;
 	fl_HdrFtrSectionLayout * pHdrFtrSrc = nullptr;
 	fl_HdrFtrSectionLayout * pHdrFtrDest = nullptr;
-	for(i=0; i< vecPrevHdrFtr.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(vecPrevHdrFtr.size()); i++)
 	{
-		  pHdrFtrSrc = vecPrevHdrFtr.getNthItem(i);
+		  pHdrFtrSrc = vecPrevHdrFtr[i];
 		  hfType = pHdrFtrSrc->getHFType();
 		  insertHeaderFooter(block_props, hfType, pCurDSL); // cursor is now in the header/footer
 		  if(hfType == FL_HDRFTR_HEADER)
@@ -3728,8 +3730,9 @@ private:
 	fp_TableContainer * m_pBrokenTable;
 	fp_Line * m_pLine;
 	friend class FV_View;
+	friend struct std::default_delete<CellLine>;
 	friend bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1,
-													  PT_DocPosition iPos2, 
+													  PT_DocPosition iPos2,
 													  bool bClear, bool bFullLineHeight);
 };
 
@@ -3761,8 +3764,8 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 	UT_sint32 xoff2;
 	UT_sint32 yoff2;
 	UT_uint32 uheight;
-	UT_GenericVector<CellLine *> vecTables;
-	UT_GenericVector<fp_Page *>vecPages;
+	std::vector<std::unique_ptr<CellLine>> vecTables;
+	std::vector<fp_Page *>vecPages;
 //
 // This fixes a bug from insert file, when the view we copy from is selected
 // If don't bail out now we get all kinds of crazy dirty on the screen.
@@ -3809,7 +3812,7 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 		fp_Line * pLine = pCurRun->getLine();
 		if(pLine == nullptr || (pLine->getContainer()->getPage()== nullptr))
 		{
-			UT_VECTOR_PURGEALL(CellLine *, vecTables);
+			vecTables.clear();
 			return true;
 		}
 		PT_DocPosition curpos = pBlock2->getPosition() + pCurRun->getBlockOffset();
@@ -3842,11 +3845,11 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 					pCellLine->m_pLine = pLine;
 					pCellLine->m_pBrokenTable = pTab;
 					xxx_UT_DEBUGMSG(("cellLine %x cell %x Table %x Line %x \n",pCellLine,pCellLine->m_pCell,pCellLine->m_pBrokenTable,pCellLine->m_pLine));
-					vecTables.addItem(pCellLine);
+					vecTables.emplace_back(pCellLine);
 					fp_Page * pPage = pTab->getPage();
-					if((pPage != nullptr) && (vecPages.findItem(pPage) <0))
+					if((pPage != nullptr) && (std::find(vecPages.begin(), vecPages.end(), pPage) == vecPages.end()))
 					{
-						vecPages.addItem(pPage);
+						vecPages.push_back(pPage);
 					}
 				}
 			}
@@ -3893,9 +3896,9 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 					if(pCurRun->getLine() != nullptr)
 					{
 						fp_Page * pPage = pCurRun->getLine()->getPage();
-						if((pPage != nullptr) && (vecPages.findItem(pPage) <0))
+						if((pPage != nullptr) && (std::find(vecPages.begin(), vecPages.end(), pPage) == vecPages.end()))
 						{
-							vecPages.addItem(pPage);
+							vecPages.push_back(pPage);
 						}
 					}
 				}
@@ -3906,7 +3909,7 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 		{
 			if(pLine == nullptr || (pLine->getContainer()->getPage()== nullptr))
 			{
-				UT_VECTOR_PURGEALL(CellLine *, vecTables);
+				vecTables.clear();
 				return true;
 			}
 			pLine->getScreenOffsets(pCurRun, xoff2, yoff2);
@@ -3935,9 +3938,9 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 				pCurRun->clearSelectionMode();
 			}
 			fp_Page * pPage = pLine->getPage();
-			if((pPage != nullptr) && (vecPages.findItem(pPage) <0))
+			if((pPage != nullptr) && (std::find(vecPages.begin(), vecPages.end(), pPage) == vecPages.end()))
 			{
-				vecPages.addItem(pPage);
+				vecPages.push_back(pPage);
 			}
 		}
 
@@ -3965,11 +3968,11 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 //
 // Now redraw the lines in any table encountered.
 //
-	xxx_UT_DEBUGMSG(("Drawing lines in tables %d \n",vecTables.getItemCount()));
+	xxx_UT_DEBUGMSG(("Drawing lines in tables %d \n",static_cast<UT_sint32>(vecTables.size())));
 	UT_sint32 i =0;
-	for(i=0; i< vecTables.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(vecTables.size()); i++)
 	{
- 		CellLine * pCellLine = vecTables.getNthItem(i);
+ 		CellLine * pCellLine = vecTables[i].get();
 		UT_nonnull_or_continue(pCellLine);
 		UT_nonnull_or_continue(pCellLine->m_pCell);
 		bool bLineDrawn = pCellLine->m_pCell->drawLines(pCellLine->m_pBrokenTable,getGraphics(),true);
@@ -3979,9 +3982,9 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 			pCellLine->m_pCell->drawLinesAdjacent();
 		}
 	}
-	for(i=0; i< vecPages.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(vecPages.size()); i++)
 	{
-		fp_Page * pPage = vecPages.getNthItem(i);
+		fp_Page * pPage = vecPages[i];
 		UT_sint32 xoff,yoff;
 		getPageScreenOffsets(pPage,xoff, yoff);
 		dg_DrawArgs da;
@@ -3991,7 +3994,7 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 		da.bDirtyRunsOnly = true;
 		pPage->redrawDamagedFrames(&da);
 	}
-	UT_VECTOR_PURGEALL(CellLine *, vecTables);
+	vecTables.clear();
 	xxx_UT_DEBUGMSG(("Finished Drawing lines in tables \n"));
 	m_pG->flush();
 	_generalUpdate();

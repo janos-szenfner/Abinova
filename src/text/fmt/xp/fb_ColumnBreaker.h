@@ -23,6 +23,8 @@
 #ifndef COLUMNBREAKER_H
 #define COLUMNBREAKER_H
 
+#include <vector>
+
 #include "ut_types.h"
 #include "ut_vector.h"
 
@@ -52,8 +54,8 @@ private:
 	fp_Container * _getNext(fp_Container * pCon);
 	bool           _displayAnnotations(void);
 	void           _reparentNotesToPage(fp_Page * pPage,
-	                                    UT_GenericVector<fp_FootnoteContainer*> & vecFootnotes,
-	                                    UT_GenericVector<fp_AnnotationContainer*> & vecAnnotations) const;
+	                                    std::vector<fp_FootnoteContainer*> & vecFootnotes,
+	                                    std::vector<fp_AnnotationContainer*> & vecAnnotations) const;
 	fp_Page *             m_pStartPage;
 	bool                  m_bStartFromStart;
 	fl_DocSectionLayout * m_pDocSec;

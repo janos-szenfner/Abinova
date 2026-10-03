@@ -129,8 +129,8 @@ fl_TableLayout::~fl_TableLayout()
 
 	setFirstContainer(nullptr);
 	setLastContainer(nullptr);
-	UT_VECTOR_PURGEALL(fl_ColProps *, m_vecColProps);
-	UT_VECTOR_PURGEALL(fl_RowProps *, m_vecRowProps);
+	m_vecColProps.clear();
+	m_vecRowProps.clear();
 }
 
 /*!
@@ -1405,7 +1405,6 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
    characters. But we'll cross that bridge later.
 */
 		xxx_UT_DEBUGMSG(("Processing Column width string %s \n",pszColumnProps));
-		UT_VECTOR_PURGEALL(fl_ColProps *,m_vecColProps);
 		m_vecColProps.clear();
 		UT_String sProps = pszColumnProps;
 		UT_sint32 sizes = sProps.size();
@@ -1421,7 +1420,7 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 				fl_ColProps * pColP = new fl_ColProps;
 				pColP->m_iColWidth = UT_convertToLogicalUnits(sSub.c_str());
 				pColP->m_dColRelWidth = 0.0;
-				m_vecColProps.addItem(pColP);
+				m_vecColProps.emplace_back(pColP);
 				xxx_UT_DEBUGMSG(("SEVIOR: width char %s width layout %d \n",sSub.c_str(),pColP->m_iColWidth));
 			}
 			else
@@ -1436,7 +1435,6 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
  	}
 	else
 	{
-		UT_VECTOR_PURGEALL(fl_ColProps *,m_vecColProps);
 		m_vecColProps.clear();
 	}
 
@@ -1464,7 +1462,6 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 
 */
 		xxx_UT_DEBUGMSG(("Processing Column width string %s \n",pszRelColumnProps));
-		UT_VECTOR_PURGEALL(fl_ColProps *,m_vecColProps);
 		m_vecColProps.clear();
 		UT_String sProps = pszRelColumnProps;
 		UT_sint32 sizes = sProps.size();
@@ -1482,7 +1479,7 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 				pColP = new fl_ColProps;
 				pColP->m_iColWidth = 0;
 				pColP->m_dColRelWidth = UT_convertDimensionless(sSub.c_str());
-				m_vecColProps.addItem(pColP);
+				m_vecColProps.emplace_back(pColP);
 				xxx_UT_DEBUGMSG(("SEVIOR: width char %s width layout %f \n",sSub.c_str(),pColP->m_dColRelWidth));
 				tot += pColP->m_dColRelWidth;
 			}
@@ -1498,9 +1495,9 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 		//
 		// Now set the actual column width from the relative width
 		//
-		for(i=0; i<	m_vecColProps.getItemCount();i++)
+		for(i=0; i<	static_cast<UT_sint32>(m_vecColProps.size());i++)
 		{
-			pColP = m_vecColProps.getNthItem(i);
+			pColP = m_vecColProps[i].get();
 			UT_nonnull_or_continue(pColP);
 			pColP->m_iColWidth = static_cast<double>(m_iTableWidth)*pColP->m_dColRelWidth/tot;
 		}
@@ -1584,19 +1581,19 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 				UT_String sSub = sProps.substr(i,(j-i));
 				i = j + 1;
 				bool bNew = false;
-				if(iProp >= m_vecRowProps.getItemCount())
+				if(iProp >= static_cast<UT_sint32>(m_vecRowProps.size()))
 				{
 					bNew = true;
 					pRowP = new fl_RowProps;
 				}
 				else
 				{
-					pRowP = m_vecRowProps.getNthItem(iProp);
+					pRowP = m_vecRowProps[iProp].get();
 				}
 				pRowP->m_iRowHeight = UT_convertToLogicalUnits(sSub.c_str());
 				if(bNew)
 				{
-					m_vecRowProps.addItem(pRowP);
+					m_vecRowProps.emplace_back(pRowP);
 				}
 				xxx_UT_DEBUGMSG(("SEVIOR: width char %s width layout %d \n",sSub.c_str(),pRowP->m_iRowHeight));
 				iProp++;
@@ -1612,9 +1609,9 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	else
 	{
 		UT_sint32 i = 0;
-		for(i=0; i< m_vecRowProps.getItemCount(); i++)
+		for(i=0; i< static_cast<UT_sint32>(m_vecRowProps.size()); i++)
 		{
-			fl_RowProps * pRowP = m_vecRowProps.getNthItem(i);
+			fl_RowProps * pRowP = m_vecRowProps[i].get();
 			UT_nonnull_or_continue(pRowP);
 			pRowP->m_iRowHeight = 0;
 		}
@@ -2375,7 +2372,7 @@ void fl_CellLayout::format(void)
 			getDocSectionLayout()->setNeedsSectionBreak(true,pPrevP);
 		}
 	}
-	m_bNeedsReformat = (m_vecFormatLayout.getItemCount() > 0);
+	m_bNeedsReformat = !m_vecFormatLayout.empty();
 	checkAndAdjustCellSize();
 	m_bDoingFormat = false;
 }
@@ -2784,15 +2781,15 @@ void fl_CellLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 	s_background_properties (pszBgStyle, pszBgColor, pszBackgroundColor, m_background);
 	if(pTL)
 	{
-		const UT_GenericVector<fl_ColProps*> * pVecCols = pTL->getVecColProps();
-		const UT_GenericVector<fl_RowProps*> * pVecRows = pTL->getVecRowProps();
-		if(pVecCols->getItemCount() > 0)
+		const std::vector<std::unique_ptr<fl_ColProps>> * pVecCols = pTL->getVecColProps();
+		const std::vector<std::unique_ptr<fl_RowProps>> * pVecRows = pTL->getVecRowProps();
+		if(!pVecCols->empty())
 		{
 			UT_sint32 i = 0;
-			UT_sint32 cellW = 0; 
-			for(i=getLeftAttach(); i<getRightAttach() && i<pVecCols->getItemCount();i++)
+			UT_sint32 cellW = 0;
+			for(i=getLeftAttach(); i<getRightAttach() && i<static_cast<UT_sint32>(pVecCols->size());i++)
 			{
-				fl_ColProps* pCol = pVecCols->getNthItem(i);
+				fl_ColProps* pCol = (*pVecCols)[i].get();
 				UT_nonnull_or_continue(pCol);
 				cellW += pCol->m_iColWidth;
 			}
@@ -2802,13 +2799,13 @@ void fl_CellLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 		{
 			m_iCellWidth = 0;
 		}
-		if(pVecRows->getItemCount() > 0)
+		if(!pVecRows->empty())
 		{
 			UT_sint32 i = 0;
-			UT_sint32 cellH = 0; 
-			for(i=getTopAttach(); i<getBottomAttach() && i<pVecRows->getItemCount();i++)
+			UT_sint32 cellH = 0;
+			for(i=getTopAttach(); i<getBottomAttach() && i<static_cast<UT_sint32>(pVecRows->size());i++)
 			{
-				fl_RowProps* pRow = pVecRows->getNthItem(i);
+				fl_RowProps* pRow = (*pVecRows)[i].get();
 				UT_nonnull_or_continue(pRow);
 				cellH += pRow->m_iRowHeight;
 			}

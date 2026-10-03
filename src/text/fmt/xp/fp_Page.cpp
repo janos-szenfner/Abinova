@@ -24,6 +24,8 @@
 #include <string.h>
 
 #include "ut_types.h"
+#include <algorithm>
+#include <memory>
 #include "ut_misc.h"
 
 #include "fp_Page.h"
@@ -134,7 +136,7 @@ fg_FillType & fp_Page::getFillType(void)
 
 bool fp_Page::isEmpty(void) const
 {
-	if((m_vecColumnLeaders.getItemCount() == 0) && (m_vecFootnotes.getItemCount() == 0) && (m_vecAnnotations.getItemCount() == 0) && (m_vecAboveFrames.getItemCount() == 0) && (m_vecBelowFrames.getItemCount() == 0))
+	if((static_cast<UT_sint32>(m_vecColumnLeaders.size()) == 0) && (static_cast<UT_sint32>(m_vecFootnotes.size()) == 0) && (static_cast<UT_sint32>(m_vecAnnotations.size()) == 0) && (static_cast<UT_sint32>(m_vecAboveFrames.size()) == 0) && (static_cast<UT_sint32>(m_vecBelowFrames.size()) == 0))
 	{
 		return true;
 	}
@@ -164,15 +166,15 @@ void fp_Page::setPageNumberInFrames(void)
 /*!
  * Fill a vector with all the layouts referenced from this page.
  */
-void fp_Page::getAllLayouts(UT_GenericVector<fl_ContainerLayout *> & AllLayouts) const
+void fp_Page::getAllLayouts(std::vector<fl_ContainerLayout *> & AllLayouts) const
 {
 	fp_Column * pCol = nullptr;
 	UT_sint32 i = 0;
 	fl_ContainerLayout * pPrevCL = nullptr;
 	fl_ContainerLayout * pCurCL = nullptr;
-	for(i= 0; i< m_vecColumnLeaders.getItemCount(); i++)
+	for(i= 0; i< static_cast<UT_sint32>(m_vecColumnLeaders.size()); i++)
 	{
-		pCol = m_vecColumnLeaders.getNthItem(i);
+		pCol = m_vecColumnLeaders[i];
 		while(pCol)
 		{
 			UT_sint32 j= 0;
@@ -186,7 +188,7 @@ void fp_Page::getAllLayouts(UT_GenericVector<fl_ContainerLayout *> & AllLayouts)
 					if(pCurCL != pPrevCL)
 					{
 						pPrevCL = pCurCL;
-						AllLayouts.addItem(pPrevCL);
+						AllLayouts.push_back(pPrevCL);
 					}
 				}
 				if(pCon->getContainerType() == FP_CONTAINER_TABLE)
@@ -195,7 +197,7 @@ void fp_Page::getAllLayouts(UT_GenericVector<fl_ContainerLayout *> & AllLayouts)
 					if(pCurCL != pPrevCL)
 					{
 						pPrevCL = pCurCL;
-						AllLayouts.addItem(pPrevCL);
+						AllLayouts.push_back(pPrevCL);
 					}
 				}
 
@@ -369,8 +371,8 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 		}
 	}
 	bool bFormatAllWrapped = ((nWrapped > 0) && (nWrappedObjs == 0));
-	UT_GenericVector<_BL *> vecBL;
-	vecBL.clear();
+	std::vector<std::unique_ptr<_BL>> vecBL;
+	
 	for(i=0; i < static_cast<UT_sint32>(countColumnLeaders()); i++)
 	{
 		fp_Column * pCol2 = getNthColumnLeader(i);
@@ -400,7 +402,7 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 //
 						UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 						UT_DEBUGMSG(("-ve width here!!!! %p left %d right %d \n", static_cast<void*>(pLine), recLeft.width, recRight.width));
-						UT_VECTOR_PURGEALL(_BL *, vecBL);
+						vecBL.clear();
 						fl_BlockLayout * pBL = pLine->getBlock();
 						fl_BlockLayout * pFirst = pBL;
 						fp_Column * pCol = static_cast<fp_Column *>(pLine->getColumn());
@@ -423,8 +425,8 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 						}
 						fp_Column * pFirstCol = static_cast<fp_Column *>(pFirst->getFirstContainer()->getColumn());
 						pBL = pFirst;
-						UT_GenericVector<fl_BlockLayout *> vecCollapse;
-						vecCollapse.addItem(pBL);
+						std::vector<fl_BlockLayout *> vecCollapse;
+						vecCollapse.push_back(pBL);
 						bLoop = true;
 						while(bLoop)
 						{
@@ -433,7 +435,7 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 								if(pBL->getFirstContainer() && (pBL->getFirstContainer()->getColumn() == pCol))
 								{
 									bLoop = true;
-									vecCollapse.addItem(pBL);
+									vecCollapse.push_back(pBL);
 								}
 								pBL = static_cast<fl_BlockLayout *>(pBL->getNext());
 							}
@@ -443,9 +445,9 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 							}
 						}
 						UT_sint32 k = 0;
-						for(k=0; k<vecCollapse.getItemCount();k++)
+						for(k=0; k<static_cast<UT_sint32>(vecCollapse.size());k++)
 						{
-							pBL = vecCollapse.getNthItem(k);
+							pBL = vecCollapse[k];
 							pBL->collapse();
 							pBL->format();
 						}
@@ -453,7 +455,7 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 						fp_Container * pNewFirstCon = static_cast<fp_Container *>(pNextCol->getNthCon(0));
 						if(!pNewFirstCon)
 						{
-							pBL = vecCollapse.getNthItem(0);
+							pBL = vecCollapse[0];
 							UT_nonnull_or_return(pBL, nullptr);
 							auto firstRun = pBL->getFirstRun();
 							UT_nonnull_or_return(firstRun, nullptr);
@@ -516,9 +518,9 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 							fl_BlockLayout * pBL = pLine->getBlock();
 							bool bPrev = false;
 							UT_sint32 k = 0;
-							for(k=0; k<vecBL.getItemCount(); k++)
+							for(k=0; k<static_cast<UT_sint32>(vecBL.size()); k++)
 							{
-								_BL * ppBL = vecBL.getNthItem(k);
+								_BL * ppBL = vecBL[k].get();
 								UT_nonnull_or_continue(ppBL);
 								if(ppBL->m_pBL == pBL)
 								{
@@ -528,7 +530,7 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 							if(!bPrev)
 							{
 								_BL * pBLine = new _BL(pBL,pLine);
-								vecBL.addItem(pBLine);
+								vecBL.emplace_back(pBLine);
 							}
 							k =j;
 							while(pLine && pLine->getBlock() == pBL)
@@ -645,9 +647,9 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 							fl_BlockLayout * pBL = pLine->getBlock();
 							bool bPrev = false;
 							UT_sint32 k = 0;
-							for(k=0; k<vecBL.getItemCount(); k++)
+							for(k=0; k<static_cast<UT_sint32>(vecBL.size()); k++)
 							{
-								_BL * ppBL = vecBL.getNthItem(k);
+								_BL * ppBL = vecBL[k].get();
 								UT_nonnull_or_continue(ppBL);
 								if(ppBL->m_pBL == pBL)
 								{
@@ -657,7 +659,7 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 							if(!bPrev)
 							{
 								_BL * pBLine = new _BL(pBL,pLine);
-								vecBL.addItem(pBLine);
+								vecBL.emplace_back(pBLine);
 							}
 							k =j;
 							while(pLine && pLine->getBlock() == pBL)
@@ -687,16 +689,16 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 			pCol2 = static_cast<fp_Column *>(pCol2->getFollower());
 		}
 	}
-	if(vecBL.getItemCount() == 0)
+	if(static_cast<UT_sint32>(vecBL.size()) == 0)
 	{
 		return nullptr;
 	}
-	_BL * pBLine = vecBL.getNthItem(0);
+	_BL * pBLine = vecBL[0].get();
 	UT_nonnull_or_return(pBLine, nullptr)
 	pFirstBL = pBLine->m_pBL;
-	for(i=0; i<vecBL.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(vecBL.size()); i++)
 	{
-		pBLine = vecBL.getNthItem(i);
+		pBLine = vecBL[i].get();
 		UT_nonnull_or_continue(pBLine);
 		xxx_UT_DEBUGMSG((" Doing line %x \n",pBLine->m_pL));
 #if DEBUG
@@ -708,7 +710,7 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 		xxx_UT_DEBUGMSG(("Do regular rebreak \n"));
 		pBLine->m_pBL->formatWrappedFromHere(pBLine->m_pL,this);
 	}
-	UT_VECTOR_PURGEALL(_BL *, vecBL);
+	vecBL.clear();
 	fp_Container * pNewFirstCon = nullptr;
 	if(pFirstBL)
 	{
@@ -1042,10 +1044,10 @@ UT_sint32 fp_Page::getFilledHeight(fp_Container * prevContainer) const
 	{
 		prevColumn = static_cast<fp_Column *>(prevContainer->getContainer());
 	}
-	for(i=0; !bstop && (i<  m_vecColumnLeaders.getItemCount()); i++)
+	for(i=0; !bstop && (i<  static_cast<UT_sint32>(m_vecColumnLeaders.size())); i++)
 	{
 		maxHeight = 0;
-		pColumn = m_vecColumnLeaders.getNthItem(i);
+		pColumn = m_vecColumnLeaders[i];
 		totalHeight += pColumn->getDocSectionLayout()->getSpaceAfter();
 		while(pColumn != nullptr)
 		{
@@ -1252,10 +1254,10 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	UT_sint32 count = 0;
 
 	// draw Below Frames
-	count = m_vecBelowFrames.getItemCount();
+	count = static_cast<UT_sint32>(m_vecBelowFrames.size());
 	for (i=0; i<count; i++)
 	{
-		fp_FrameContainer* pFC = m_vecBelowFrames.getNthItem(i);
+		fp_FrameContainer* pFC = m_vecBelowFrames[i];
 		if(pFC->isHidden())
 			continue;
 		UT_Rect r;
@@ -1273,10 +1275,10 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	//
 	// Handle Tight wrapped frames
 	//
-	count = m_vecAboveFrames.getItemCount();
+	count = static_cast<UT_sint32>(m_vecAboveFrames.size());
 	for (i=0; i<count; i++)
 	{
-		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
+		fp_FrameContainer* pFC = m_vecAboveFrames[i];
 		UT_nonnull_or_continue(pFC);
 		if(!pFC->isTightWrapped() || pFC->isHidden())
 			continue;
@@ -1295,13 +1297,13 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 
 
 	// draw each column on the page
-	count = m_vecColumnLeaders.getItemCount();
+	count = static_cast<UT_sint32>(m_vecColumnLeaders.size());
 
 	GR_Painter painter(pDA->pG);
 
 	for (i=0; i<count; i++)
 	{
-		fp_Column* pCol = m_vecColumnLeaders.getNthItem(i);
+		fp_Column* pCol = m_vecColumnLeaders[i];
 		while (pCol)
 		{
 			dg_DrawArgs da = *pDA;
@@ -1349,10 +1351,10 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	}
 
 	// draw footnotes
-	count = m_vecFootnotes.getItemCount();
+	count = static_cast<UT_sint32>(m_vecFootnotes.size());
 	for (i=0; i<count; i++)
 	{
-		fp_FootnoteContainer* pFC = m_vecFootnotes.getNthItem(i);
+		fp_FootnoteContainer* pFC = m_vecFootnotes[i];
 		if (!pFC)
 		{
 			continue;
@@ -1374,10 +1376,10 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	// draw annotations
 	if(getDocLayout()->displayAnnotations())
 	{
-			count = m_vecAnnotations.getItemCount();
+			count = static_cast<UT_sint32>(m_vecAnnotations.size());
 			for (i=0; i<count; i++)
 			{
-					fp_AnnotationContainer* pAC = m_vecAnnotations.getNthItem(i);
+					fp_AnnotationContainer* pAC = m_vecAnnotations[i];
 					if (!pAC)
 					{
 						continue;
@@ -1398,10 +1400,10 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	}
 
 	// draw Above Frames
-	count = m_vecAboveFrames.getItemCount();
+	count = static_cast<UT_sint32>(m_vecAboveFrames.size());
 	for (i=0; i<count; i++)
 	{
-		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
+		fp_FrameContainer* pFC = m_vecAboveFrames[i];
 		UT_nonnull_or_continue(pFC);
 		if(pFC->isTightWrapped() || pFC->isHidden())
 			continue;
@@ -1474,11 +1476,11 @@ bool   fp_Page::intersectsDamagedRect(fp_ContainerObject * pObj) const
 void   fp_Page::redrawDamagedFrames(dg_DrawArgs* pDA)
 {
 	// draw Frames
-	UT_sint32 count = m_vecAboveFrames.getItemCount();
+	UT_sint32 count = static_cast<UT_sint32>(m_vecAboveFrames.size());
 	UT_sint32 i = 0;
 	for (i=0; i<count; i++)
 	{
-		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
+		fp_FrameContainer* pFC = m_vecAboveFrames[i];
 		if(pFC->isHidden())
 			continue;
 		UT_Rect r;
@@ -1517,14 +1519,14 @@ bool fp_Page::needsRedraw(void) const
 
 UT_sint32 fp_Page::countColumnLeaders(void) const
 {
-	return m_vecColumnLeaders.getItemCount();
+	return static_cast<UT_sint32>(m_vecColumnLeaders.size());
 }
 
 fp_Column* fp_Page::getNthColumnLeader(UT_sint32 n) const
 {
-	if(n >= m_vecColumnLeaders.getItemCount())
+	if(n < 0 || n >= static_cast<UT_sint32>(m_vecColumnLeaders.size()))
 		return nullptr;
-	return m_vecColumnLeaders.getNthItem(n);
+	return m_vecColumnLeaders[n];
 }
 
 
@@ -2172,7 +2174,7 @@ UT_sint32 fp_Page::getFootnoteHeight(void) const
 
 void fp_Page::_reformatFootnotes(void)
 {
-	if(m_vecColumnLeaders.getItemCount() == 0)
+	if(static_cast<UT_sint32>(m_vecColumnLeaders.size()) == 0)
 	{
 //
 // Page is being deleted.
@@ -2252,7 +2254,7 @@ UT_sint32 fp_Page::getAnnotationHeight(void) const
 
 void fp_Page::_reformatAnnotations(void)
 {
-	if(m_vecColumnLeaders.getItemCount() == 0)
+	if(static_cast<UT_sint32>(m_vecColumnLeaders.size()) == 0)
 	{
 //
 // Page is being deleted.
@@ -2307,11 +2309,14 @@ void fp_Page::_reformatAnnotations(void)
 */
 void fp_Page::removeColumnLeader(fp_Column* pLeader)
 {
-	UT_sint32 ndx = m_vecColumnLeaders.findItem(pLeader);
-	UT_ASSERT(ndx >= 0);
+	auto itL = std::find(m_vecColumnLeaders.begin(), m_vecColumnLeaders.end(), pLeader);
+	UT_ASSERT(itL != m_vecColumnLeaders.end());
 
 	// Delete leader from list
-	m_vecColumnLeaders.deleteNthItem(ndx);
+	if(itL != m_vecColumnLeaders.end())
+	{
+		m_vecColumnLeaders.erase(itL);
+	}
 
 	// Urgh! Changes to the document (logical content) cause graphics
 	// updates at various times when the physical representation is
@@ -2385,13 +2390,16 @@ bool fp_Page::insertColumnLeader(fp_Column* pLeader, fp_Column* pAfter)
 	UT_ASSERT(pLeader);
 	if (pAfter)
 	{
-		UT_sint32 ndx = m_vecColumnLeaders.findItem(pAfter);
-		UT_ASSERT(ndx >= 0);
-		m_vecColumnLeaders.insertItemAt(pLeader, ndx+1);
+		auto itAfter = std::find(m_vecColumnLeaders.begin(), m_vecColumnLeaders.end(), pAfter);
+		UT_ASSERT(itAfter != m_vecColumnLeaders.end());
+		// A missing pAfter inserts at the front, matching the old
+		// insertItemAt(ndx+1 == 0) release-build behavior.
+		m_vecColumnLeaders.insert(itAfter == m_vecColumnLeaders.end()
+								  ? m_vecColumnLeaders.begin() : itAfter + 1, pLeader);
 	}
 	else
 	{
-		m_vecColumnLeaders.insertItemAt(pLeader, 0);
+		m_vecColumnLeaders.insert(m_vecColumnLeaders.begin(), pLeader);
 
 		// Update owner and reformat
 
@@ -2480,7 +2488,8 @@ void fp_Page::columnHeightChanged(fp_Column* pCol)
 {
 	xxx_UT_DEBUGMSG(("SEVIOR: Column height changed \n"));
 	UT_UNUSED(pCol);
-	UT_ASSERT(m_vecColumnLeaders.findItem(pCol->getLeader()) >= 0);
+	UT_ASSERT(std::find(m_vecColumnLeaders.begin(), m_vecColumnLeaders.end(),
+						pCol->getLeader()) != m_vecColumnLeaders.end());
 	if(breakPage())
 	{
 		_reformat();
@@ -2602,7 +2611,7 @@ void fp_Page::mapXYToPosition(UT_sint32 x, UT_sint32 y, PT_DocPosition& pos, boo
  */
 void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPosition& pos, bool& bBOL, bool& bEOL, bool &isTOC, bool bUseHdrFtr, fl_HdrFtrShadow ** pShadow ) const
 {
-	UT_sint32 count = m_vecColumnLeaders.getItemCount();
+	UT_sint32 count = static_cast<UT_sint32>(m_vecColumnLeaders.size());
 	UT_uint32 iMinDist = 0xffffffff;
 	fp_VerticalContainer * pMinDist = nullptr;
 	fp_Column* pColumn = nullptr;
@@ -2785,7 +2794,7 @@ void fp_Page::mapXYToPosition(bool bNotFrames,UT_sint32 x, UT_sint32 y, PT_DocPo
 //
 	for (i=0; i<count; i++)
 	{
-		pLeader = m_vecColumnLeaders.getNthItem(i);
+		pLeader = m_vecColumnLeaders[i];
 
 		pColumn = pLeader;
 		iMinXDist = 0xffffffff;
@@ -3094,11 +3103,11 @@ void fp_Page::markDirtyOverlappingRuns(fp_FrameContainer * pFrameC)
 	UT_Rect pMyFrameRect = result.value();
 	// check each column for redraw
 
-	UT_sint32 count = m_vecColumnLeaders.getItemCount();
+	UT_sint32 count = static_cast<UT_sint32>(m_vecColumnLeaders.size());
 	UT_sint32 i = 0;
 	for (i=0; i<count; i++)
 	{
-		fp_Column* pCol = m_vecColumnLeaders.getNthItem(i);
+		fp_Column* pCol = m_vecColumnLeaders[i];
 		while (pCol)
 		{
 			pCol->markDirtyOverlappingRuns(pMyFrameRect);
@@ -3120,10 +3129,10 @@ void fp_Page::markDirtyOverlappingRuns(fp_FrameContainer * pFrameC)
 
 	// Now Footnotes
 
-	count = m_vecFootnotes.getItemCount();
+	count = static_cast<UT_sint32>(m_vecFootnotes.size());
 	for (i=0; i<count; i++)
 	{
-		fp_FootnoteContainer* pFC = m_vecFootnotes.getNthItem(i);
+		fp_FootnoteContainer* pFC = m_vecFootnotes[i];
 		pFC->markDirtyOverlappingRuns(pMyFrameRect);
 	}
 
@@ -3131,20 +3140,20 @@ void fp_Page::markDirtyOverlappingRuns(fp_FrameContainer * pFrameC)
 	// Now Annotations
 	if(getDocLayout()->displayAnnotations())
 	{
-			count = m_vecAnnotations.getItemCount();
+			count = static_cast<UT_sint32>(m_vecAnnotations.size());
 			for (i=0; i<count; i++)
 			{
-					fp_AnnotationContainer* pAC = m_vecAnnotations.getNthItem(i);
+					fp_AnnotationContainer* pAC = m_vecAnnotations[i];
 					pAC->markDirtyOverlappingRuns(pMyFrameRect);
 			}
 	}
 
 	// Now Frames
 
-	count = m_vecAboveFrames.getItemCount();
+	count = static_cast<UT_sint32>(m_vecAboveFrames.size());
 	for (i=0; i<count; i++)
 	{
-		fp_FrameContainer* pFC = m_vecAboveFrames.getNthItem(i);
+		fp_FrameContainer* pFC = m_vecAboveFrames[i];
 		if(pFC != pFrameC)
 		{
 			pFC->markDirtyOverlappingRuns(pMyFrameRect);
@@ -3152,10 +3161,10 @@ void fp_Page::markDirtyOverlappingRuns(fp_FrameContainer * pFrameC)
 	}
 
 
-	count = m_vecBelowFrames.getItemCount();
+	count = static_cast<UT_sint32>(m_vecBelowFrames.size());
 	for (i=0; i<count; i++)
 	{
-		fp_FrameContainer* pFC = m_vecBelowFrames.getNthItem(i);
+		fp_FrameContainer* pFC = m_vecBelowFrames[i];
 		if(pFC != pFrameC)
 		{
 			pFC->markDirtyOverlappingRuns(pMyFrameRect);
@@ -3166,53 +3175,57 @@ void fp_Page::markDirtyOverlappingRuns(fp_FrameContainer * pFrameC)
 
 UT_sint32 fp_Page::countAboveFrameContainers(void) const
 {
-        return m_vecAboveFrames.getItemCount();
+        return static_cast<UT_sint32>(m_vecAboveFrames.size());
 }
 
 
 UT_sint32 fp_Page::countBelowFrameContainers(void) const
 {
-        return m_vecBelowFrames.getItemCount();
+        return static_cast<UT_sint32>(m_vecBelowFrames.size());
 }
 
 UT_sint32 fp_Page::findFrameContainer(fp_FrameContainer * pFC) const
 {
-        UT_sint32 i; 
         if(pFC->isAbove())
 	{
-	  i = m_vecAboveFrames.findItem(pFC);
-	  return i;
-
+	  auto it = std::find(m_vecAboveFrames.begin(), m_vecAboveFrames.end(), pFC);
+	  return it == m_vecAboveFrames.end()
+		  ? -1 : static_cast<UT_sint32>(it - m_vecAboveFrames.begin());
 	}
-        i = m_vecBelowFrames.findItem(pFC);
-	return i;
+        auto it = std::find(m_vecBelowFrames.begin(), m_vecBelowFrames.end(), pFC);
+	return it == m_vecBelowFrames.end()
+		? -1 : static_cast<UT_sint32>(it - m_vecBelowFrames.begin());
 }
 
-fp_FrameContainer* fp_Page::getNthAboveFrameContainer(UT_sint32 n) const 
+fp_FrameContainer* fp_Page::getNthAboveFrameContainer(UT_sint32 n) const
 {
-	return m_vecAboveFrames.getNthItem(n);
-} 
+	if(n < 0 || n >= static_cast<UT_sint32>(m_vecAboveFrames.size()))
+		return nullptr;
+	return m_vecAboveFrames[n];
+}
 
 
-fp_FrameContainer* fp_Page::getNthBelowFrameContainer(UT_sint32 n) const 
+fp_FrameContainer* fp_Page::getNthBelowFrameContainer(UT_sint32 n) const
 {
-	return m_vecBelowFrames.getNthItem(n);
-} 
+	if(n < 0 || n >= static_cast<UT_sint32>(m_vecBelowFrames.size()))
+		return nullptr;
+	return m_vecBelowFrames[n];
+}
 
 bool fp_Page::insertFrameContainer(fp_FrameContainer * pFC)
 {
 	/* keep each layer sorted by the frame's stack-order property;
 	 * equal ranks keep insertion (document) order, so a frame
 	 * added without a rank lands on top like before */
-	UT_GenericVector<fp_FrameContainer *> & vec =
+	std::vector<fp_FrameContainer *> & vec =
 		pFC->isAbove() ? m_vecAboveFrames : m_vecBelowFrames;
 	double order = pFC->getStackOrder();
-	UT_sint32 i = vec.getItemCount();
-	while (i > 0 && vec.getNthItem(i-1)->getStackOrder() > order)
+	UT_sint32 i = static_cast<UT_sint32>(vec.size());
+	while (i > 0 && vec[i-1]->getStackOrder() > order)
 	{
 		--i;
 	}
-	vec.insertItemAt(pFC, i);
+	vec.insert(vec.begin() + i, pFC);
 	if(pFC)
 	{
 		pFC->setPage(this);
@@ -3230,10 +3243,12 @@ bool fp_Page::insertFrameContainer(fp_FrameContainer * pFC)
  */
 UT_sint32 fp_Page::restackFrameContainer(fp_FrameContainer * pFC, int iDir)
 {
-	UT_GenericVector<fp_FrameContainer *> & vec =
+	std::vector<fp_FrameContainer *> & vec =
 		pFC->isAbove() ? m_vecAboveFrames : m_vecBelowFrames;
-	UT_sint32 i = vec.findItem(pFC);
-	UT_sint32 n = vec.getItemCount();
+	auto itFC = std::find(vec.begin(), vec.end(), pFC);
+	UT_sint32 i = itFC == vec.end()
+		? -1 : static_cast<UT_sint32>(itFC - vec.begin());
+	UT_sint32 n = static_cast<UT_sint32>(vec.size());
 	if (i < 0 || n < 2)
 	{
 		return -1;
@@ -3241,26 +3256,26 @@ UT_sint32 fp_Page::restackFrameContainer(fp_FrameContainer * pFC, int iDir)
 	/* grouped frames move in the Z-order as one block - collect this
 	 * frame's group-mates within the same page layer */
 	const char * szGroup = pFC->getGroupId();
-	UT_GenericVector<fp_FrameContainer *> members;
+	std::vector<fp_FrameContainer *> members;
 	if (szGroup && *szGroup)
 	{
 		for (UT_sint32 k = 0; k < n; k++)
 		{
-			fp_FrameContainer * pM = vec.getNthItem(k);
+			fp_FrameContainer * pM = vec[k];
 			const char * szM = pM ? pM->getGroupId() : nullptr;
 			if (szM && strcmp(szM, szGroup) == 0)
-				members.addItem(pM);
+				members.push_back(pM);
 		}
 	}
-	if (members.getItemCount() < 2)
+	if (members.size() < 2)
 	{
 		UT_sint32 j = (iDir > 1) ? n - 1 : (iDir < -1) ? 0 : i + iDir;
 		if (j == i || j < 0 || j >= n)
 		{
 			return -1;
 		}
-		vec.deleteNthItem(i);
-		vec.insertItemAt(pFC, j);
+		vec.erase(vec.begin() + i);
+		vec.insert(vec.begin() + j, pFC);
 		markDirtyOverlappingRuns(pFC);
 		_reformat();
 		return j;
@@ -3268,49 +3283,59 @@ UT_sint32 fp_Page::restackFrameContainer(fp_FrameContainer * pFC, int iDir)
 
 	/* make the members a contiguous block anchored at the current
 	 * top member, preserving their relative order */
-	UT_sint32 k = members.getItemCount();
+	UT_sint32 k = static_cast<UT_sint32>(members.size());
 	UT_sint32 iTop = -1;
 	for (UT_sint32 m = 0; m < k; m++)
 	{
-		UT_sint32 idx = vec.findItem(members.getNthItem(m));
+		auto itM = std::find(vec.begin(), vec.end(), members[m]);
+		UT_sint32 idx = itM == vec.end()
+			? -1 : static_cast<UT_sint32>(itM - vec.begin());
 		if (idx > iTop)
 			iTop = idx;
 	}
 	for (UT_sint32 m = 0; m < k; m++)
 	{
-		vec.deleteNthItem(vec.findItem(members.getNthItem(m)));
+		auto itM = std::find(vec.begin(), vec.end(), members[m]);
+		if (itM != vec.end())
+			vec.erase(itM);
 	}
 	UT_sint32 blockStart = iTop + 1 - k;
 	for (UT_sint32 m = 0; m < k; m++)
 	{
-		vec.insertItemAt(members.getNthItem(m), blockStart + m);
+		vec.insert(vec.begin() + blockStart + m, members[m]);
 	}
 	UT_sint32 blockEnd = blockStart + k - 1;
 	if (iDir > 1)
 	{
 		/* bring to front - whole block on top */
 		for (UT_sint32 m = 0; m < k; m++)
-			vec.deleteNthItem(blockStart);
+		{
+			if (blockStart < static_cast<UT_sint32>(vec.size()))
+				vec.erase(vec.begin() + blockStart);
+		}
 		for (UT_sint32 m = 0; m < k; m++)
-			vec.addItem(members.getNthItem(m));
+			vec.push_back(members[m]);
 	}
 	else if (iDir < -1)
 	{
 		/* send to back - whole block at the bottom */
 		for (UT_sint32 m = 0; m < k; m++)
-			vec.deleteNthItem(blockStart);
+		{
+			if (blockStart < static_cast<UT_sint32>(vec.size()))
+				vec.erase(vec.begin() + blockStart);
+		}
 		for (UT_sint32 m = 0; m < k; m++)
-			vec.insertItemAt(members.getNthItem(m), m);
+			vec.insert(vec.begin() + m, members[m]);
 	}
 	else if (iDir > 0)
 	{
 		/* one step forward - the neighbour above the block drops
 		 * below it */
-		if (blockEnd < static_cast<UT_sint32>(vec.getItemCount()) - 1)
+		if (blockEnd < static_cast<UT_sint32>(vec.size()) - 1)
 		{
-			fp_FrameContainer * pUp = vec.getNthItem(blockEnd + 1);
-			vec.deleteNthItem(blockEnd + 1);
-			vec.insertItemAt(pUp, blockStart);
+			fp_FrameContainer * pUp = vec[blockEnd + 1];
+			vec.erase(vec.begin() + blockEnd + 1);
+			vec.insert(vec.begin() + blockStart, pUp);
 		}
 	}
 	else if (iDir < 0)
@@ -3319,15 +3344,17 @@ UT_sint32 fp_Page::restackFrameContainer(fp_FrameContainer * pFC, int iDir)
 		 * above it */
 		if (blockStart > 0)
 		{
-			fp_FrameContainer * pDown = vec.getNthItem(blockStart - 1);
-			vec.deleteNthItem(blockStart - 1);
-			vec.insertItemAt(pDown, blockEnd);
+			fp_FrameContainer * pDown = vec[blockStart - 1];
+			vec.erase(vec.begin() + blockStart - 1);
+			vec.insert(vec.begin() + blockEnd, pDown);
 		}
 	}
 	/* iDir == 0 just compacts the group (group creation) */
 	markDirtyOverlappingRuns(pFC);
 	_reformat();
-	return vec.findItem(pFC);
+	auto itRet = std::find(vec.begin(), vec.end(), pFC);
+	return itRet == vec.end()
+		? -1 : static_cast<UT_sint32>(itRet - vec.begin());
 }
 
 void fp_Page::removeFrameContainer(fp_FrameContainer * _pFC)
@@ -3338,18 +3365,22 @@ void fp_Page::removeFrameContainer(fp_FrameContainer * _pFC)
 	bool isAbove = false;
 	if(_pFC->isAbove())
 	{
-	    ndx = m_vecAboveFrames.findItem(_pFC);
-	    isAbove = true;
+		auto it = std::find(m_vecAboveFrames.begin(), m_vecAboveFrames.end(), _pFC);
+		ndx = it == m_vecAboveFrames.end()
+			? -1 : static_cast<UT_sint32>(it - m_vecAboveFrames.begin());
+		isAbove = true;
 	}
 	else
 	{
-	    ndx = m_vecBelowFrames.findItem(_pFC);
+		auto it = std::find(m_vecBelowFrames.begin(), m_vecBelowFrames.end(), _pFC);
+		ndx = it == m_vecBelowFrames.end()
+			? -1 : static_cast<UT_sint32>(it - m_vecBelowFrames.begin());
 	}
 	if(ndx>=0)
 	{
 	        if(isAbove)
 		{
-		        m_vecAboveFrames.deleteNthItem(ndx);
+		        m_vecAboveFrames.erase(m_vecAboveFrames.begin() + ndx);
 			for(ndx=0; ndx < static_cast<UT_sint32>(countAboveFrameContainers());ndx++)
 			{			
 			    fp_FrameContainer * pFC = getNthAboveFrameContainer(ndx);
@@ -3360,7 +3391,7 @@ void fp_Page::removeFrameContainer(fp_FrameContainer * _pFC)
 		}
 		else
 		{
-		        m_vecBelowFrames.deleteNthItem(ndx);
+		        m_vecBelowFrames.erase(m_vecBelowFrames.begin() + ndx);
 			for(ndx=0; ndx < static_cast<UT_sint32>(countAboveFrameContainers());ndx++)
 			{			
 			    fp_FrameContainer * pFC = getNthAboveFrameContainer(ndx);
@@ -3379,19 +3410,22 @@ void fp_Page::removeFrameContainer(fp_FrameContainer * _pFC)
 
 UT_sint32 fp_Page::countFootnoteContainers(void) const
 {
-	return m_vecFootnotes.getItemCount();
+	return static_cast<UT_sint32>(m_vecFootnotes.size());
 }
 
 UT_sint32 fp_Page::findFootnoteContainer(fp_FootnoteContainer * pFC) const
 {
-	UT_sint32 i = m_vecFootnotes.findItem(pFC);
-	return i;
+	auto it = std::find(m_vecFootnotes.begin(), m_vecFootnotes.end(), pFC);
+	return it == m_vecFootnotes.end()
+		? -1 : static_cast<UT_sint32>(it - m_vecFootnotes.begin());
 }
 
-fp_FootnoteContainer* fp_Page::getNthFootnoteContainer(UT_sint32 n) const 
+fp_FootnoteContainer* fp_Page::getNthFootnoteContainer(UT_sint32 n) const
 {
-	return m_vecFootnotes.getNthItem(n);
-} 
+	if(n < 0 || n >= static_cast<UT_sint32>(m_vecFootnotes.size()))
+		return nullptr;
+	return m_vecFootnotes[n];
+}
 
 bool fp_Page::insertFootnoteContainer(fp_FootnoteContainer * pFC)
 {
@@ -3404,9 +3438,9 @@ bool fp_Page::insertFootnoteContainer(fp_FootnoteContainer * pFC)
 	UT_uint32 loc =0;
 	UT_sint32 fVal = pFC->getValue();
 	fp_FootnoteContainer * pFTemp = nullptr;
-	for(i=0; i< m_vecFootnotes.getItemCount();i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecFootnotes.size());i++)
 	{
-		pFTemp = m_vecFootnotes.getNthItem(i);
+		pFTemp = m_vecFootnotes[i];
 		if(fVal < pFTemp->getValue())
 		{
 			loc = i;
@@ -3415,15 +3449,15 @@ bool fp_Page::insertFootnoteContainer(fp_FootnoteContainer * pFC)
 	}
 	if(pFTemp == nullptr)
 	{
-		m_vecFootnotes.addItem(pFC);
+		m_vecFootnotes.push_back(pFC);
 	}
-	else if( i>= m_vecFootnotes.getItemCount())
+	else if( i>= static_cast<UT_sint32>(m_vecFootnotes.size()))
 	{
-		m_vecFootnotes.addItem(pFC);
+		m_vecFootnotes.push_back(pFC);
 	}
 	else
 	{
-		m_vecFootnotes.insertItemAt(pFC, loc);
+		m_vecFootnotes.insert(m_vecFootnotes.begin() + (loc), pFC);
 	}
 	if(pFC)
 	{
@@ -3435,10 +3469,12 @@ bool fp_Page::insertFootnoteContainer(fp_FootnoteContainer * pFC)
 
 void fp_Page::removeFootnoteContainer(fp_FootnoteContainer * _pFC)
 {
-	UT_sint32 ndx = m_vecFootnotes.findItem(_pFC);
+	auto itF = std::find(m_vecFootnotes.begin(), m_vecFootnotes.end(), _pFC);
+	UT_sint32 ndx = itF == m_vecFootnotes.end()
+		? -1 : static_cast<UT_sint32>(itF - m_vecFootnotes.begin());
 	if(ndx>=0)
 	{
-		m_vecFootnotes.deleteNthItem(ndx);
+		m_vecFootnotes.erase(itF);
 		for(ndx=0; ndx < static_cast<UT_sint32>(countFootnoteContainers());ndx++)
 		{			
 			fp_FootnoteContainer * pFC = getNthFootnoteContainer(ndx);
@@ -3462,19 +3498,22 @@ void fp_Page::removeFootnoteContainer(fp_FootnoteContainer * _pFC)
 
 UT_sint32 fp_Page::countAnnotationContainers(void) const
 {
-	return m_vecAnnotations.getItemCount();
+	return static_cast<UT_sint32>(m_vecAnnotations.size());
 }
 
 UT_sint32 fp_Page::findAnnotationContainer(fp_AnnotationContainer * pAC) const
 {
-	UT_sint32 i = m_vecAnnotations.findItem(pAC);
-	return i;
+	auto it = std::find(m_vecAnnotations.begin(), m_vecAnnotations.end(), pAC);
+	return it == m_vecAnnotations.end()
+		? -1 : static_cast<UT_sint32>(it - m_vecAnnotations.begin());
 }
 
-fp_AnnotationContainer* fp_Page::getNthAnnotationContainer(UT_sint32 n) const 
+fp_AnnotationContainer* fp_Page::getNthAnnotationContainer(UT_sint32 n) const
 {
-	return m_vecAnnotations.getNthItem(n);
-} 
+	if(n < 0 || n >= static_cast<UT_sint32>(m_vecAnnotations.size()))
+		return nullptr;
+	return m_vecAnnotations[n];
+}
 
 UT_sint32 fp_Page::getAnnotationPos(UT_uint32 pid) const
 {
@@ -3502,9 +3541,9 @@ bool fp_Page::insertAnnotationContainer(fp_AnnotationContainer * pAC)
 	UT_uint32 loc =0;
 	UT_sint32 fVal = pAC->getValue();
 	fp_AnnotationContainer * pFTemp = nullptr;
-	for(i=0; i< m_vecAnnotations.getItemCount();i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecAnnotations.size());i++)
 	{
-		pFTemp = m_vecAnnotations.getNthItem(i);
+		pFTemp = m_vecAnnotations[i];
 		if(fVal < pFTemp->getValue())
 		{
 			loc = i;
@@ -3513,15 +3552,15 @@ bool fp_Page::insertAnnotationContainer(fp_AnnotationContainer * pAC)
 	}
 	if(pFTemp == nullptr)
 	{
-		m_vecAnnotations.addItem(pAC);
+		m_vecAnnotations.push_back(pAC);
 	}
-	else if( i>= m_vecAnnotations.getItemCount())
+	else if( i>= static_cast<UT_sint32>(m_vecAnnotations.size()))
 	{
-		m_vecAnnotations.addItem(pAC);
+		m_vecAnnotations.push_back(pAC);
 	}
 	else
 	{
-		m_vecAnnotations.insertItemAt(pAC, loc);
+		m_vecAnnotations.insert(m_vecAnnotations.begin() + (loc), pAC);
 	}
 	if(pAC)
 	{
@@ -3536,10 +3575,12 @@ bool fp_Page::insertAnnotationContainer(fp_AnnotationContainer * pAC)
 
 void fp_Page::removeAnnotationContainer(fp_AnnotationContainer * _pAC)
 {
-	UT_sint32 ndx = m_vecAnnotations.findItem(_pAC);
+	auto itA = std::find(m_vecAnnotations.begin(), m_vecAnnotations.end(), _pAC);
+	UT_sint32 ndx = itA == m_vecAnnotations.end()
+		? -1 : static_cast<UT_sint32>(itA - m_vecAnnotations.begin());
 	if(ndx>=0)
 	{
-		m_vecAnnotations.deleteNthItem(ndx);
+		m_vecAnnotations.erase(itA);
 		if(getDocLayout()->displayAnnotations())
 		{
 				for(ndx=0; ndx < static_cast<UT_sint32>(countAnnotationContainers());ndx++)

@@ -95,13 +95,13 @@ void fp_FrameContainer::setPage(fp_Page * pPage)
 		m_pPage->removeFrameContainer(this);
 		getSectionLayout()->markAllRunsDirty();
 		
-		UT_GenericVector<fl_ContainerLayout *> AllLayouts;
-		AllLayouts.clear();
+		std::vector<fl_ContainerLayout *> AllLayouts;
+		
 		m_pPage->getAllLayouts(AllLayouts);
 		UT_sint32 i = 0;
-		for(i=0; i<AllLayouts.getItemCount(); i++)
+		for(i=0; i<static_cast<UT_sint32>(AllLayouts.size()); i++)
 		{
-		      fl_ContainerLayout * pCL = AllLayouts.getNthItem(i);
+		      fl_ContainerLayout * pCL = AllLayouts[i];
 		      pCL->collapse();
 		      pCL->format();
 	        }

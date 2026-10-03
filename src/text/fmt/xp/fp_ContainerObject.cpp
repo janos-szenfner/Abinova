@@ -23,6 +23,8 @@
 #include <string.h>
 #include <math.h>
 
+#include <algorithm>
+
 #include "fp_ContainerObject.h"
 #include "fl_SectionLayout.h"
 #include "fl_DocLayout.h"
@@ -383,12 +385,28 @@ void fp_Container::clearBrokenContainers(void)
 }
 
 
-UT_uint32 fp_Container::binarysearchCons(const void* key, int (*compar)(const 
+UT_uint32 fp_Container::binarysearchCons(const void* key, int (*compar)(const
 void *, const void *)) const
 {
-	UT_uint32 u = m_vecContainers.binarysearch(key, compar);
-
-	return u;
+	// earliest element matching the key (UT_GenericVector::binarysearch
+	// semantics): compar(key, &element) > 0 means probe too low
+	UT_sint32 high = static_cast<UT_sint32>(m_vecContainers.size());
+	UT_sint32 low = -1;
+	while (high - low > 1)
+	{
+		UT_sint32 probe = (high + low) / 2;
+		int res = (*compar)(key, &m_vecContainers[probe]);
+		if (0 < res)
+			low = probe;
+		else
+			high = probe;
+	}
+	if ((high == static_cast<UT_sint32>(m_vecContainers.size()))
+		|| (0 != (*compar)(key, &m_vecContainers[high])))
+	{
+		return static_cast<UT_uint32>(-1);
+	}
+	return static_cast<UT_uint32>(high);
 }
 
 /*!
@@ -481,7 +499,7 @@ void fp_Container::insertConAt(fp_ContainerObject * pCon, UT_sint32 i)
 		UT_ASSERT(pLine->getBlock() != nullptr);
 		if(countCons() > 0)
 		{
-			fp_ContainerObject * pNext = 	m_vecContainers.getNthItem(i);
+			fp_ContainerObject * pNext = 	m_vecContainers[i];
 			if(pNext && pNext->getContainerType() == FP_CONTAINER_LINE)
 			{
 				fl_BlockLayout * pBL = pLine->getBlock();
@@ -493,7 +511,7 @@ void fp_Container::insertConAt(fp_ContainerObject * pCon, UT_sint32 i)
 	}
 #endif
         UT_ASSERT(pCon != this);
-	m_vecContainers.insertItemAt(pCon,i);
+	m_vecContainers.insert(m_vecContainers.begin() + i, pCon);
 	pCon->ref();
 }
 
@@ -507,7 +525,7 @@ void fp_Container::addCon(fp_ContainerObject * pCon)
 		UT_sint32 i = countCons();
 		if(i>0)
 		{
-			fp_ContainerObject * pPrev = 	m_vecContainers.getNthItem(i-1);
+			fp_ContainerObject * pPrev = 	m_vecContainers[i-1];
 			if(pPrev && pPrev->getContainerType() == FP_CONTAINER_LINE)
 			{
 				fl_BlockLayout * pBL = pLine->getBlock();
@@ -518,31 +536,33 @@ void fp_Container::addCon(fp_ContainerObject * pCon)
 	}
 #endif
         UT_ASSERT(pCon != this);
-	m_vecContainers.addItem(pCon);
+	m_vecContainers.push_back(pCon);
 	pCon->ref();
 }
 
 fp_ContainerObject *  fp_Container:: getNthCon(UT_sint32 i) const
 {
-	if(countCons() == 0) {
+	if(i < 0 || i >= countCons()) {
 		return nullptr;
 	}
-	return m_vecContainers.getNthItem(i);
+	return m_vecContainers[i];
 }
 
 UT_sint32  fp_Container::countCons(void) const
 {
-	return m_vecContainers.getItemCount();
+	return static_cast<UT_sint32>(m_vecContainers.size());
 }
 
 UT_sint32  fp_Container::findCon(fp_ContainerObject * pCon) const
 {
-	return m_vecContainers.findItem(pCon);
+	auto it = std::find(m_vecContainers.begin(), m_vecContainers.end(), pCon);
+	return it == m_vecContainers.end()
+		? -1 : static_cast<UT_sint32>(it - m_vecContainers.begin());
 }
 
 bool  fp_Container::isEmpty(void) const
 {
-	return m_vecContainers.getItemCount() == 0;
+	return m_vecContainers.empty();
 }
 
 bool fp_Container::getPageRelativeOffsets(UT_Rect &r) const
@@ -605,7 +625,7 @@ void fp_Container::justRemoveNthCon(UT_sint32 i)
 {
         fp_ContainerObject * pCon = getNthCon(i);
 	pCon->unref();
-	m_vecContainers.deleteNthItem(i);
+	m_vecContainers.erase(m_vecContainers.begin() + i);
 }
 
 void  fp_Container::deleteNthCon(UT_sint32 i)
@@ -616,7 +636,7 @@ void  fp_Container::deleteNthCon(UT_sint32 i)
 		pCon->setContainer(nullptr);
 	}
 	pCon->unref();
-	m_vecContainers.deleteNthItem(i);
+	m_vecContainers.erase(m_vecContainers.begin() + i);
 	xxx_UT_DEBUGMSG(("AFter deleting item %d in %x there are %d cons left \n",i,this,countCons()));
 }
 

@@ -122,13 +122,13 @@ void __dump_sq(void)
 */
 void FL_DocLayout::__dump(FILE * fp) const
 {
-	int count = m_vecPages.getItemCount();
+	int count = static_cast<int>(m_vecPages.size());
 
-	fprintf(fp,"FL_DocLayout::__dump(%p) contains %d pages.\n", 
-			static_cast<void*>(this), m_vecPages.getItemCount());
+	fprintf(fp,"FL_DocLayout::__dump(%p) contains %d pages.\n",
+			static_cast<void*>(this), static_cast<int>(m_vecPages.size()));
 	for (int i=0; i<count; i++)
 	{
-		fp_Page* p = static_cast<fp_Page*>( m_vecPages.getNthItem(i));
+		fp_Page* p = m_vecPages[i].get();
 		p->__dump(fp);
 	}
 

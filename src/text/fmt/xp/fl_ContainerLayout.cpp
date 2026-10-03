@@ -26,6 +26,8 @@
 #include "ut_string.h"
 
 #include "ap_Prefs.h"
+#include <algorithm>
+#include <memory>
 #include "fl_ContainerLayout.h"
 #include "fl_FootnoteLayout.h"
 #include "fl_SectionLayout.h"
@@ -1263,14 +1265,13 @@ bool fl_ContainerLayout::isOnScreen() const
 void fl_ContainerLayout::addFrame(fl_FrameLayout * pFrame)
 {
 	UT_DEBUGMSG(("Adding frame %p to list in container %p \n", static_cast<void*>(pFrame), static_cast<void*>(this)));
-	UT_sint32 i = m_vecFrames.findItem(pFrame);
-	if(i>= 0)
+	if(std::find(m_vecFrames.begin(), m_vecFrames.end(), pFrame) != m_vecFrames.end())
 	{
 		UT_DEBUGMSG(("Adding already existing frame \n"));
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		return;
 	}
-	m_vecFrames.addItem(pFrame);
+	m_vecFrames.push_back(pFrame);
 	if (!pFrame->getParentContainer())
 	{
 		pFrame->setParentContainer(this);
@@ -1283,26 +1284,26 @@ void fl_ContainerLayout::addFrame(fl_FrameLayout * pFrame)
 
 UT_sint32 fl_ContainerLayout::getNumFrames(void) const
 {
-	return m_vecFrames.getItemCount();
+	return static_cast<UT_sint32>(m_vecFrames.size());
 }
 
 fl_FrameLayout * fl_ContainerLayout::getNthFrameLayout(UT_sint32 i) const
 {
-	if(i> getNumFrames())
+	if(i < 0 || i >= getNumFrames())
 	{
 		return nullptr;
 	}
-	return m_vecFrames.getNthItem(i);
+	return m_vecFrames[i];
 }
 
 
 fp_FrameContainer * fl_ContainerLayout::getNthFrameContainer(UT_sint32 i) const
 {
-	if(i> getNumFrames())
+	if(i < 0 || i >= getNumFrames())
 	{
 		return nullptr;
 	}
-	fl_FrameLayout * pFrame= m_vecFrames.getNthItem(i);
+	fl_FrameLayout * pFrame= m_vecFrames[i];
 	UT_nonnull_or_return(pFrame, nullptr);
 	fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(pFrame->getFirstContainer());
 	return pFC;
@@ -1311,10 +1312,10 @@ fp_FrameContainer * fl_ContainerLayout::getNthFrameContainer(UT_sint32 i) const
 bool fl_ContainerLayout::removeFrame(fl_FrameLayout * pFrame)
 {
 	UT_DEBUGMSG(("Remove Frame %p from this container %p \n", static_cast<void*>(pFrame), static_cast<void*>(this)));
-	UT_sint32 i = m_vecFrames.findItem(pFrame);
-	if(i >= 0)
+	auto itF = std::find(m_vecFrames.begin(), m_vecFrames.end(), pFrame);
+	if(itF != m_vecFrames.end())
 	{
-		m_vecFrames.deleteNthItem(i);
+		m_vecFrames.erase(itF);
 		if (pFrame->getParentContainer() == this)
 		{
 			pFrame->setParentContainer(nullptr);

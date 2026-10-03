@@ -156,13 +156,14 @@ public:
 	bool                validate(void);
 	FV_View*			getView(void) const;
 	UT_sint32           getNumWrapped(void) const
-		{ return m_vecWrappedLines.getItemCount();}
+		{ return static_cast<UT_sint32>(m_vecWrappedLines.size());}
 	void                addWrappedLine(fp_Line * pLine)
-		{ m_vecWrappedLines.addItem(pLine);}
+		{ m_vecWrappedLines.push_back(pLine);}
 	void                clearWrappedLines(void)
 		{ m_vecWrappedLines.clear();}
 	fp_Line *           getNthWrappedLine(UT_sint32 i) const
-		{ return m_vecWrappedLines.getNthItem(i);}
+		{ return (i >= 0 && i < static_cast<UT_sint32>(m_vecWrappedLines.size()))
+				? m_vecWrappedLines[i] : nullptr;}
 	/* Virtual functions for vertical breakable containers*/
 	virtual fp_Container * getFirstBrokenContainer() const {UT_ASSERT(0);return nullptr;}
 	virtual UT_sint32      getLastWantedVBreak(void) const {return 0;}
@@ -210,7 +211,7 @@ private:
 	 */
 	bool					m_bIntentionallyEmpty;
 	UT_sint32               m_imaxContainerHeight;
-    UT_GenericVector<fp_Line *> m_vecWrappedLines;
+    std::vector<fp_Line *> m_vecWrappedLines;
 };
 
 class ABI_EXPORT fp_Column : public fp_VerticalContainer

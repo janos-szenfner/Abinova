@@ -1752,7 +1752,7 @@ bool fp_CellContainer::containsFootnoteReference(const fp_TableContainer * pBrok
  * This method returns a vector of all the footnote layouts in the segment of the cell 
  within a broke table pBroke
  */
-bool fp_CellContainer::getFootnoteContainers(UT_GenericVector<fp_FootnoteContainer*>* pVecFoots,
+bool fp_CellContainer::getFootnoteContainers(std::vector<fp_FootnoteContainer*>* pVecFoots,
 											 const fp_TableContainer * pBroke) const
 {
 	bool bWholeCell = (!pBroke || ((getY() >= pBroke->getYBreak()) && 
@@ -1767,15 +1767,15 @@ bool fp_CellContainer::getFootnoteContainers(UT_GenericVector<fp_FootnoteContain
 			if(pCon->getContainerType() == FP_CONTAINER_LINE)
 			{
 				fp_Line * pLine = static_cast<fp_Line *>(pCon);
-				UT_GenericVector<fp_FootnoteContainer*> vecFC;
+				std::vector<fp_FootnoteContainer*> vecFC;
 				pLine->getFootnoteContainers(&vecFC);
-				if (vecFC.getItemCount() > 0)
+				if (static_cast<UT_sint32>(vecFC.size()) > 0)
 				{
 					bFound = true;
 					UT_sint32 i = 0;
-					for(i = 0; i < vecFC.getItemCount();i++)
+					for(i = 0; i < static_cast<UT_sint32>(vecFC.size());i++)
 					{
-						pVecFoots->addItem(vecFC.getNthItem(i));
+						pVecFoots->push_back(vecFC[i]);
 					}
 				}
 			}
@@ -1785,12 +1785,12 @@ bool fp_CellContainer::getFootnoteContainers(UT_GenericVector<fp_FootnoteContain
 				if(pTab->containsFootnoteReference())
 				{
 					bFound = true;
-					UT_GenericVector<fp_FootnoteContainer*> vecFC;
+					std::vector<fp_FootnoteContainer*> vecFC;
 					pTab->getFootnoteContainers(&vecFC);
 					UT_sint32 i = 0;
-					for(i = 0; i < vecFC.getItemCount();i++)
+					for(i = 0; i < static_cast<UT_sint32>(vecFC.size());i++)
 					{
-						pVecFoots->addItem(vecFC.getNthItem(i));
+						pVecFoots->push_back(vecFC[i]);
 					}
 				}
 			}
@@ -1865,7 +1865,7 @@ bool fp_CellContainer::containsAnnotations(const fp_TableContainer * pBroke) con
  * This method returns a vector of all the annotation layouts in the segment of the cell 
  within a broke table pBroke
  */
-bool fp_CellContainer::getAnnotationContainers(UT_GenericVector<fp_AnnotationContainer*>* pVecAnns,
+bool fp_CellContainer::getAnnotationContainers(std::vector<fp_AnnotationContainer*>* pVecAnns,
 											 const fp_TableContainer * pBroke) const
 {
 	bool bWholeCell = (!pBroke || ((getY() >= pBroke->getYBreak()) && 
@@ -1880,15 +1880,15 @@ bool fp_CellContainer::getAnnotationContainers(UT_GenericVector<fp_AnnotationCon
 			if(pCon->getContainerType() == FP_CONTAINER_LINE)
 			{
 				fp_Line * pLine = static_cast<fp_Line *>(pCon);
-				UT_GenericVector<fp_AnnotationContainer*> vecAC;
+				std::vector<fp_AnnotationContainer*> vecAC;
 				pLine->getAnnotationContainers(&vecAC);
-				if (vecAC.getItemCount() > 0)
+				if (static_cast<UT_sint32>(vecAC.size()) > 0)
 				{
 					bFound = true;
 					UT_sint32 i = 0;
-					for(i = 0; i < vecAC.getItemCount();i++)
+					for(i = 0; i < static_cast<UT_sint32>(vecAC.size());i++)
 					{
-						pVecAnns->addItem(vecAC.getNthItem(i));
+						pVecAnns->push_back(vecAC[i]);
 					}
 				}
 			}
@@ -1898,12 +1898,12 @@ bool fp_CellContainer::getAnnotationContainers(UT_GenericVector<fp_AnnotationCon
 				if(pTab->containsAnnotations())
 				{
 					bFound = true;
-					UT_GenericVector<fp_AnnotationContainer*> vecAC;
+					std::vector<fp_AnnotationContainer*> vecAC;
 					pTab->getAnnotationContainers(&vecAC);
 					UT_sint32 i = 0;
-					for(i = 0; i < vecAC.getItemCount();i++)
+					for(i = 0; i < static_cast<UT_sint32>(vecAC.size());i++)
 					{
-						pVecAnns->addItem(vecAC.getNthItem(i));
+						pVecAnns->push_back(vecAC[i]);
 					}
 				}
 			}
@@ -3470,8 +3470,8 @@ UT_sint32 fp_TableContainer::getRowHeight(UT_sint32 iRow, UT_sint32 iMeasHeight)
 {
 	fl_TableLayout * pTL = static_cast<fl_TableLayout *>(getSectionLayout());
 	UT_return_val_if_fail(pTL, 0);
-	const  UT_GenericVector<fl_RowProps*>* pVecRow = pTL->getVecRowProps();
-	if(pVecRow->getItemCount() < (iRow + 1))
+	const  std::vector<std::unique_ptr<fl_RowProps>>* pVecRow = pTL->getVecRowProps();
+	if(static_cast<UT_sint32>(pVecRow->size()) < (iRow + 1))
 	{
 		if(m_iRowHeight == 0)
 		{
@@ -3494,7 +3494,7 @@ UT_sint32 fp_TableContainer::getRowHeight(UT_sint32 iRow, UT_sint32 iMeasHeight)
 		}
 		return iMeasHeight;
 	}
-	fl_RowProps * pRowProps = pVecRow->getNthItem(iRow);
+	fl_RowProps * pRowProps = (*pVecRow)[iRow].get();
 	UT_nonnull_or_return(pRowProps, 0);
 	UT_sint32 iRowHeight = pRowProps->m_iRowHeight;
 	FL_RowHeightType rowType = pRowProps->m_iRowHeightType;
@@ -4387,12 +4387,12 @@ UT_sint32 fp_TableContainer::sumFootnoteHeight(void) const
 	fl_TableLayout * pTL = static_cast<fl_TableLayout *>(getSectionLayout());
 	if (pTL->containsFootnoteLayouts())
 	{
-		UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
+		std::vector<fp_FootnoteContainer*> vecFootnotes;
 		getFootnoteContainers(&vecFootnotes);
 		UT_sint32 i = 0;
-		for(i = 0; i < vecFootnotes.getItemCount(); i++)
+		for(i = 0; i < static_cast<UT_sint32>(vecFootnotes.size()); i++)
 		{
-			fp_FootnoteContainer * pFC = vecFootnotes.getNthItem(i);
+			fp_FootnoteContainer * pFC = vecFootnotes[i];
 			UT_nonnull_or_continue(pFC);
 			iSum += pFC->getHeight();
 		}
@@ -4401,12 +4401,12 @@ UT_sint32 fp_TableContainer::sumFootnoteHeight(void) const
 
 	if (pTL->getDocLayout()->displayAnnotations() && pTL->containsAnnotationLayouts())
 	{
-		UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
+		std::vector<fp_AnnotationContainer*> vecAnnotations;
 		getAnnotationContainers(&vecAnnotations);
 		UT_sint32 i = 0;
-		for(i = 0; i < vecAnnotations.getItemCount(); i++)
+		for(i = 0; i < static_cast<UT_sint32>(vecAnnotations.size()); i++)
 		{
-			fp_AnnotationContainer * pAC = vecAnnotations.getNthItem(i);
+			fp_AnnotationContainer * pAC = vecAnnotations[i];
 			UT_nonnull_or_continue(pAC);
 			iSum += pAC->getHeight();
 		}
@@ -5148,7 +5148,7 @@ bool fp_TableContainer::containsFootnoteReference(void) const
 /*!
  * This method returns a vector of all the footnote object in the broken table
  */
-bool fp_TableContainer::getFootnoteContainers(UT_GenericVector<fp_FootnoteContainer*>* pVecFoots) const
+bool fp_TableContainer::getFootnoteContainers(std::vector<fp_FootnoteContainer*>* pVecFoots) const
 {
 	fp_CellContainer * pCell = getFirstBrokenCell(false);
 	bool bFound = false;
@@ -5204,7 +5204,7 @@ bool fp_TableContainer::containsAnnotations(void) const
 /*!
  * This method returns a vector of all the annotation object in the broken table
  */
-bool fp_TableContainer::getAnnotationContainers(UT_GenericVector<fp_AnnotationContainer*>* pVecAnns) const
+bool fp_TableContainer::getAnnotationContainers(std::vector<fp_AnnotationContainer*>* pVecAnns) const
 {
 	fp_CellContainer * pCell = getFirstBrokenCell(false);
 	bool bFound = false;
@@ -5866,12 +5866,12 @@ void  fp_TableContainer::_size_allocate_pass2(void)
 	UT_sint32 row, col;
 	fp_Allocation allocation;
 	fl_TableLayout * pTL = static_cast<fl_TableLayout *>(getSectionLayout());
-	const UT_GenericVector<fl_ColProps*> * pVecColProps = pTL->getVecColProps();
-	if(pVecColProps->getItemCount() > 0)
+	const std::vector<std::unique_ptr<fl_ColProps>> * pVecColProps = pTL->getVecColProps();
+	if(!pVecColProps->empty())
 	{
-		for (col = 0; (col < pVecColProps->getItemCount()) && (col <getNumCols()); col++)
+		for (col = 0; (col < static_cast<UT_sint32>(pVecColProps->size())) && (col <getNumCols()); col++)
 		{
-			fl_ColProps * pColProp = pVecColProps->getNthItem(col);
+			fl_ColProps * pColProp = (*pVecColProps)[col].get();
 			getNthCol(col)->allocation = pColProp->m_iColWidth - getNthCol(col)->spacing;
 			if(col == (getNumCols() - 1) )
 			{
@@ -5990,8 +5990,8 @@ void fp_TableContainer::sizeRequest(fp_Requisition * pRequisition)
   pRequisition->height = 0;
   bool bDefinedColWidth = false;
   fl_TableLayout * pTL = static_cast<fl_TableLayout *>(getSectionLayout());
-  const UT_GenericVector<fl_ColProps *> * pVecColProps = pTL->getVecColProps();
-  if(pVecColProps->getItemCount() > 0)
+  const std::vector<std::unique_ptr<fl_ColProps>> * pVecColProps = pTL->getVecColProps();
+  if(!pVecColProps->empty())
   {
 	  bDefinedColWidth = true;
   }
@@ -6004,9 +6004,9 @@ void fp_TableContainer::sizeRequest(fp_Requisition * pRequisition)
   m_iCols = m_vecColumns.size();
   for (col = 0; col < m_iCols; col++)
   {
-	  if(bDefinedColWidth && (col < pVecColProps->getItemCount()) )
+	  if(bDefinedColWidth && (col < static_cast<UT_sint32>(pVecColProps->size())) )
 	  {
-		  fl_ColProps * pColProp = pVecColProps->getNthItem(col);
+		  fl_ColProps * pColProp = (*pVecColProps)[col].get();
 		  UT_nonnull_or_continue(pColProp);
 		  getNthCol(col)->requisition = pColProp->m_iColWidth;
 	  }

@@ -22,6 +22,8 @@
 #define PAGE_H
 
 #include <stdio.h>
+#include <memory>
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "pt_Types.h"
@@ -167,7 +169,7 @@ public:
 		{ return m_pLastMappedTOC;}
 	fg_FillType &       getFillType(void);
 	const fg_FillType & getFillType(void) const;
-	void                getAllLayouts(UT_GenericVector<fl_ContainerLayout *> & AllLayouts) const;
+	void                getAllLayouts(std::vector<fl_ContainerLayout *> & AllLayouts) const;
 
 #ifdef FMT_TEST
 	void				__dump(FILE * fp) const;
@@ -192,18 +194,18 @@ private:
 
 	bool				m_bNeedsRedraw;
 
-	UT_GenericVector<fp_Column *> m_vecColumnLeaders;
+	std::vector<fp_Column *> m_vecColumnLeaders;
 
 	fl_DocSectionLayout*	m_pOwner;
 
 	fp_ShadowContainer* m_pFooter;
 	fp_ShadowContainer* m_pHeader;
 
-	UT_GenericVector<fp_FootnoteContainer *> m_vecFootnotes;
-	UT_GenericVector<fp_AnnotationContainer *> m_vecAnnotations;
+	std::vector<fp_FootnoteContainer *> m_vecFootnotes;
+	std::vector<fp_AnnotationContainer *> m_vecAnnotations;
 	fg_FillType         m_FillType;
-	UT_GenericVector<fp_FrameContainer *> m_vecAboveFrames;
-	UT_GenericVector<fp_FrameContainer *> m_vecBelowFrames;
+	std::vector<fp_FrameContainer *> m_vecAboveFrames;
+	std::vector<fp_FrameContainer *> m_vecBelowFrames;
 	fl_TOCLayout *      m_pLastMappedTOC;
 
 	UT_Rect             m_rDamageRect;

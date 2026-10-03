@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "pt_Types.h"
 #include "ut_vector.h"
 #include "ut_string_class.h"
@@ -62,6 +65,8 @@ public:
 };
 
 	FV_Selection(FV_View * pView);
+	FV_Selection(const FV_Selection & other);
+	FV_Selection &         operator=(const FV_Selection & other);
 	~FV_Selection();
 	PD_Document *         getDoc(void) const;
 	FL_DocLayout *        getLayout(void) const;
@@ -102,8 +107,8 @@ private:
 	PT_DocPosition        m_iSelectRightAnchor;
 	fl_TableLayout *      m_pTableOfSelectedColumn;
 	fl_TOCLayout  *       m_pSelectedTOC;
-	UT_GenericVector<PD_DocumentRange *> m_vecSelRanges;
-	UT_GenericVector<UT_ByteBuf*> m_vecSelRTFBuffers;
-	UT_GenericVector<FV_SelectionCellProps*> m_vecSelCellProps;
+	std::vector<std::unique_ptr<PD_DocumentRange>> m_vecSelRanges;
+	std::vector<std::unique_ptr<UT_ByteBuf>> m_vecSelRTFBuffers;
+	std::vector<std::unique_ptr<FV_SelectionCellProps>> m_vecSelCellProps;
 	bool                  m_bSelectAll;
 };

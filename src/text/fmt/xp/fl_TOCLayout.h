@@ -122,9 +122,9 @@ public:
 	PT_DocPosition           getDocPosition(void) const;
 	UT_uint32                getLength(void) const;
     fl_BlockLayout  *        findMatchingBlock(const fl_BlockLayout * pBlock) const;
-	UT_sint32                isInVector(const fl_BlockLayout * pBlock, const UT_GenericVector<TOCEntry *>& pVecBlocks) const;
+	UT_sint32                isInVector(const fl_BlockLayout * pBlock, const std::vector<std::unique_ptr<TOCEntry>>& pVecBlocks) const;
 	UT_uint32                getTOCPID(void) const { return m_iTOCPID;}
-	bool                     isTOCEmpty() const {return (m_vecEntries.getItemCount() == 0);}
+	bool                     isTOCEmpty() const {return m_vecEntries.empty();}
 	bool                     isStyleInTOC(const UT_UTF8String & sStyle) const;
 	bool                     isBlockInTOC(fl_BlockLayout * pBlock) const;
 	bool                     addBlock(fl_BlockLayout * pBlock, bool bVerifyRange = true);
@@ -191,7 +191,7 @@ private:
 	eTabLeader               m_iTabLeader2;
 	eTabLeader               m_iTabLeader3;
 	eTabLeader               m_iTabLeader4;
-	UT_GenericVector<TOCEntry *> m_vecEntries;
+	std::vector<std::unique_ptr<TOCEntry>> m_vecEntries;
 	UT_sint32                m_iCurrentLevel;
 	UT_UTF8String            m_sTOCHeading;
 	bool                     m_bTOCHeading;
@@ -223,7 +223,7 @@ private:
 	UT_sint32                m_iStartAt4;
 	bool                     m_bMissingBookmark;
 	bool                     m_bFalseBookmarkEstimate;
-	UT_NumberVector          m_vecBookmarkPositions;
+	std::vector<UT_sint32>   m_vecBookmarkPositions;
 };
 
 

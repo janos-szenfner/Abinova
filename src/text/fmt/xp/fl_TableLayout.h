@@ -24,6 +24,9 @@
 #include <stdio.h>
 #endif
 
+#include <memory>
+#include <vector>
+
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "pt_Types.h"
@@ -192,9 +195,9 @@ UT_sint32                    getBottomOffset(void) const;
 	UT_sint32                getRowSpacing(void) const;
 	UT_sint32                getLeftColPos(void) const
 		{ return m_iLeftColPos;}
-	const UT_GenericVector<fl_ColProps*> * getVecColProps(void) const
+	const std::vector<std::unique_ptr<fl_ColProps>> * getVecColProps(void) const
 		{ return &m_vecColProps;}
-	const UT_GenericVector<fl_RowProps*> * getVecRowProps(void) const
+	const std::vector<std::unique_ptr<fl_RowProps>> * getVecRowProps(void) const
 		{ return &m_vecRowProps;}
 
 	const PP_PropertyMap::Background & getBackground () const { return m_background; }
@@ -256,8 +259,8 @@ private:
 	UT_sint32              m_iRowSpacing;
 	UT_sint32              m_iLeftColPos;
 	bool                   m_bRecursiveFormat;
-	UT_GenericVector<fl_ColProps *> m_vecColProps;
-	UT_GenericVector<fl_RowProps *> m_vecRowProps;
+	std::vector<std::unique_ptr<fl_ColProps>> m_vecColProps;
+	std::vector<std::unique_ptr<fl_RowProps>> m_vecRowProps;
 	FL_RowHeightType       m_iRowHeightType;
 	UT_sint32              m_iRowHeight;
 

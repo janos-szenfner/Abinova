@@ -27,6 +27,8 @@
 #include "ut_string.h"
 #include "xap_App.h"
 #include "ap_Strings.h"
+#include <algorithm>
+#include <memory>
 #include "ap_Prefs.h"
 #include "fl_SectionLayout.h"
 #include "fl_TableLayout.h"
@@ -447,11 +449,11 @@ bool fl_TOCLayout::addBlock(fl_BlockLayout * pBlock, bool bVerifyRange)
 			if(!m_pLayout->isLayoutFilling())
 				m_vecBookmarkPositions.clear();
 			
-			if(m_vecBookmarkPositions.getItemCount() < 2)
+			if(static_cast<UT_sint32>(m_vecBookmarkPositions.size()) < 2)
 			{
-				if(m_vecBookmarkPositions.getItemCount() == 1)
+				if(static_cast<UT_sint32>(m_vecBookmarkPositions.size()) == 1)
 				{
-					pos1  = m_vecBookmarkPositions.getNthItem(0);
+					pos1  = m_vecBookmarkPositions[0];
 
 					if(m_bMissingBookmark)
 					{
@@ -507,19 +509,19 @@ bool fl_TOCLayout::addBlock(fl_BlockLayout * pBlock, bool bVerifyRange)
 					pBL = pBL->getNextBlockInDocument();
 				}
 
-				if(!pB[0] && !m_vecBookmarkPositions.getItemCount() && m_pLayout->isLayoutFilling())
+				if(!pB[0] && !static_cast<UT_sint32>(m_vecBookmarkPositions.size()) && m_pLayout->isLayoutFilling())
 				{
 					// we will assume that the bookmark is still to come and that it is immediately
 					// after the strux, but we need to make note that we made that assumption ...
 					m_bMissingBookmark = true;
 					pos1 = pBlock->getPosition(false); // position immediately after the strux
-					m_vecBookmarkPositions.addItem(pos1);
+					m_vecBookmarkPositions.push_back(pos1);
 				}
-				else if(!pB[0] && m_vecBookmarkPositions.getItemCount())
+				else if(!pB[0] && static_cast<UT_sint32>(m_vecBookmarkPositions.size()))
 				{
 					// this is the case where we already knew the position and set it earlier
 					// do nothing
-					UT_ASSERT_HARMLESS( m_pLayout->isLayoutFilling() && m_vecBookmarkPositions.getItemCount() == 1 );
+					UT_ASSERT_HARMLESS( m_pLayout->isLayoutFilling() && static_cast<UT_sint32>(m_vecBookmarkPositions.size()) == 1 );
 				}
 				else if(!pB[0] && !m_pLayout->isLayoutFilling())
 				{
@@ -532,15 +534,15 @@ bool fl_TOCLayout::addBlock(fl_BlockLayout * pBlock, bool bVerifyRange)
 					pos1 = pB[0]->getBookmarkedDocPosition(false);
 					PT_DocPosition posOld = 0;
 					
-					if(m_vecBookmarkPositions.getItemCount())
+					if(static_cast<UT_sint32>(m_vecBookmarkPositions.size()))
 					{
 						// this is the case where we guessed the pos1
-						posOld = m_vecBookmarkPositions.getNthItem(0);
+						posOld = m_vecBookmarkPositions[0];
 						m_vecBookmarkPositions.clear();
 					}
 					
 					if(m_pLayout->isLayoutFilling())
-						m_vecBookmarkPositions.addItem(pos1);
+						m_vecBookmarkPositions.push_back(pos1);
 
 					m_bMissingBookmark = false; // this is the real thing
 					
@@ -570,22 +572,22 @@ bool fl_TOCLayout::addBlock(fl_BlockLayout * pBlock, bool bVerifyRange)
 
 					if(m_pLayout->isLayoutFilling())
 					{
-						if(m_vecBookmarkPositions.getItemCount() != 1)
+						if(static_cast<UT_sint32>(m_vecBookmarkPositions.size()) != 1)
 						{
 							UT_ASSERT_HARMLESS( UT_SHOULD_NOT_HAPPEN );
 							m_vecBookmarkPositions.clear();
-							m_vecBookmarkPositions.addItem(0);
+							m_vecBookmarkPositions.push_back(0);
 						}
 
-						m_vecBookmarkPositions.addItem(pos2);
+						m_vecBookmarkPositions.push_back(pos2);
 					}
 				}
 			}
 			else
 			{
-				UT_ASSERT_HARMLESS(m_vecBookmarkPositions.getItemCount() == 2 && m_pLayout->isLayoutFilling());
-				pos1 = m_vecBookmarkPositions.getNthItem(0);
-				pos2 = m_vecBookmarkPositions.getNthItem(1);
+				UT_ASSERT_HARMLESS(static_cast<UT_sint32>(m_vecBookmarkPositions.size()) == 2 && m_pLayout->isLayoutFilling());
+				pos1 = m_vecBookmarkPositions[0];
+				pos2 = m_vecBookmarkPositions[1];
 			}
 			
 			
@@ -694,15 +696,15 @@ void fl_TOCLayout::_createAndFillTOCEntry(PT_DocPosition posStart, PT_DocPositio
 	TOCEntry *pNewEntry = createNewEntry(pNewBlock);
 	if(iAllBlocks == 0)
 	{
-		m_vecEntries.insertItemAt(pNewEntry,0);
+		m_vecEntries.emplace(m_vecEntries.begin(), pNewEntry);
 	}
-	else if (iAllBlocks < m_vecEntries.getItemCount())
+	else if (iAllBlocks < static_cast<UT_sint32>(m_vecEntries.size()))
 	{
-		m_vecEntries.insertItemAt(pNewEntry,iAllBlocks);
+		m_vecEntries.emplace(m_vecEntries.begin() + iAllBlocks, pNewEntry);
 	}
 	else
 	{
-		m_vecEntries.addItem(pNewEntry);
+		m_vecEntries.emplace_back(pNewEntry);
 	}
 	
 	_calculateLabels();
@@ -743,9 +745,9 @@ void fl_TOCLayout::_addBlockInVec(fl_BlockLayout * pBlock, UT_UTF8String & sStyl
 	UT_sint32 i = 0;
 	bool bFound = false;
 	
-	for(i=0; i< m_vecEntries.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecEntries.size()); i++)
 	{
-		pEntry = m_vecEntries.getNthItem(i);
+		pEntry = m_vecEntries[i].get();
 		UT_nonnull_or_continue(pEntry);
 		pPrevBL = pEntry->getBlock();
 
@@ -761,7 +763,7 @@ void fl_TOCLayout::_addBlockInVec(fl_BlockLayout * pBlock, UT_UTF8String & sStyl
 	{
 		if(i > 0)
 		{
-			pEntry =  m_vecEntries.getNthItem(i-1);
+			pEntry =  m_vecEntries[i-1].get();
 			UT_nonnull_or_return(pEntry,);
 			pPrevBL =  pEntry->getBlock();
 		}
@@ -797,7 +799,7 @@ void fl_TOCLayout::_addBlockInVec(fl_BlockLayout * pBlock, UT_UTF8String & sStyl
 			UT_sint32 iNewLevel = pEntry->getLevel();
 			if(i > 1)
 			{
-				pEntry =  m_vecEntries.getNthItem(i-2);
+				pEntry =  m_vecEntries[i-2].get();
 				pPrevBL2 =  pEntry->getBlock();
 			}
 
@@ -840,14 +842,14 @@ void fl_TOCLayout::_addBlockInVec(fl_BlockLayout * pBlock, UT_UTF8String & sStyl
 }
 
 UT_sint32 fl_TOCLayout::isInVector(const fl_BlockLayout * pBlock,
-								   const UT_GenericVector<TOCEntry *>& pVecEntries) const
+								   const std::vector<std::unique_ptr<TOCEntry>>& pVecEntries) const
 {
 	const TOCEntry * pThisEntry = nullptr;
 	const fl_BlockLayout * pThisBL = nullptr;
-	for (UT_sint32 i = 0; i < pVecEntries.getItemCount(); i++)
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(pVecEntries.size()); i++)
 	{
 
-		pThisEntry = pVecEntries.getNthItem(i);
+		pThisEntry = pVecEntries[i].get();
 		UT_nonnull_or_continue(pThisEntry);
 		pThisBL = pThisEntry->getBlock();
 		UT_nonnull_or_continue(pThisBL);
@@ -891,9 +893,9 @@ fl_BlockLayout * fl_TOCLayout::findMatchingBlock(const fl_BlockLayout * pBlock) 
 	fl_BlockLayout * pThisBL = nullptr;
 	UT_sint32 i = 0;
 	bool bFound = false;
-	for(i=0; i< m_vecEntries.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecEntries.size()); i++)
 	{
-		pThisEntry = m_vecEntries.getNthItem(i);
+		pThisEntry = m_vecEntries[i].get();
 		UT_nonnull_or_continue(pThisEntry);
 		pThisBL = pThisEntry->getBlock();
 		UT_nonnull_or_continue(pThisBL);
@@ -922,9 +924,9 @@ void fl_TOCLayout::_removeBlockInVec(fl_BlockLayout * pBlock, bool /*bDontRecurs
 	fl_BlockLayout * pThisBL = nullptr;
 	UT_sint32 i = 0;
 	bool bFound = false;
-	for(i=0; i< m_vecEntries.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecEntries.size()); i++)
 	{
-		pThisEntry = m_vecEntries.getNthItem(i);
+		pThisEntry = m_vecEntries[i].get();
 		UT_nonnull_or_continue(pThisEntry);
 		pThisBL = pThisEntry->getBlock();
 		if(pThisBL->getStruxDocHandle() == pBlock->getStruxDocHandle())
@@ -970,13 +972,25 @@ void fl_TOCLayout::_removeBlockInVec(fl_BlockLayout * pBlock, bool /*bDontRecurs
 //
 // Remove entry
 //
-	UT_sint32 k = m_vecEntries.findItem(pThisEntry);
+	auto itE = std::find_if(m_vecEntries.begin(), m_vecEntries.end(),
+							[pThisEntry](const std::unique_ptr<TOCEntry>& e) {
+								return e.get() == pThisEntry;
+							});
+	UT_sint32 k = itE == m_vecEntries.end()
+		? -1 : static_cast<UT_sint32>(itE - m_vecEntries.begin());
 	i = k-1;
 	UT_ASSERT(k >= 0);
 	while(k >= 0)
 	{
-		m_vecEntries.deleteNthItem(k);
-		k = m_vecEntries.findItem(pThisEntry);
+		// release keeps the old delete-after-erase ordering below.
+		m_vecEntries[k].release();
+		m_vecEntries.erase(m_vecEntries.begin() + k);
+		itE = std::find_if(m_vecEntries.begin(), m_vecEntries.end(),
+						   [pThisEntry](const std::unique_ptr<TOCEntry>& e) {
+							   return e.get() == pThisEntry;
+						   });
+		k = itE == m_vecEntries.end()
+			? -1 : static_cast<UT_sint32>(itE - m_vecEntries.begin());
 		UT_ASSERT(k== -1);
 	}
 
@@ -1020,12 +1034,12 @@ void fl_TOCLayout::_calculateLabels(void) const
 	TOCEntry * pPrevEntry = nullptr;
 	std::stack<TOCEntry*> stEntry;
 	stEntry.push(nullptr);
-	UT_sint32 iCount = m_vecEntries.getItemCount();
+	UT_sint32 iCount = static_cast<UT_sint32>(m_vecEntries.size());
 	if(iCount == 0)
 	{
 		return;
 	}
-	pThisEntry = m_vecEntries.getNthItem(0);
+	pThisEntry = m_vecEntries[0].get();
 	stEntry.push(pThisEntry);
 	for(i=0; i<	iCount; i++)
 	{
@@ -1036,7 +1050,7 @@ void fl_TOCLayout::_calculateLabels(void) const
 			pPrevEntry = pThisEntry;
 			continue;
 		}
-		pThisEntry = m_vecEntries.getNthItem(i);
+		pThisEntry = m_vecEntries[i].get();
 		UT_nonnull_or_continue(pThisEntry);
 		UT_ASSERT(pThisEntry->getLevel() >= 0);
 		if(pThisEntry->getLevel() == pPrevEntry->getLevel())
@@ -1162,10 +1176,10 @@ bool fl_TOCLayout::isBlockInTOC(fl_BlockLayout * pBlock) const
 	const TOCEntry * pEntry = nullptr;
 	const pf_Frag_Strux* sdh = pBlock->getStruxDocHandle();
 	UT_sint32 i = 0;
-	for(i=0; i< m_vecEntries.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecEntries.size()); i++)
 	{
 
-		pEntry = m_vecEntries.getNthItem(i);
+		pEntry = m_vecEntries[i].get();
 		UT_nonnull_or_continue(pEntry);
 		fl_BlockLayout *pBL = pEntry->getBlock();
 		UT_nonnull_or_continue(pBL);
@@ -1186,10 +1200,10 @@ UT_UTF8String & fl_TOCLayout::getTOCListLabel(fl_BlockLayout * pBlock) const
 	pf_Frag_Strux* sdh = pBlock->getStruxDocHandle();
 	UT_sint32 i = 0;
 	bool bFound = false;
-	for(i=0; i< m_vecEntries.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecEntries.size()); i++)
 	{
 
-		pEntry = m_vecEntries.getNthItem(i);
+		pEntry = m_vecEntries[i].get();
 		UT_nonnull_or_continue(pEntry);
 		fl_BlockLayout *pBL = pEntry->getBlock();
 		UT_nonnull_or_continue(pBL);
@@ -1392,7 +1406,7 @@ void fl_TOCLayout::_purgeLayout(void)
 		delete pCL;
 		pCL = pNext;
 	}
-	UT_VECTOR_PURGEALL(TOCEntry *, m_vecEntries);
+	m_vecEntries.clear();
 	m_vecEntries.clear();
 	m_bDoingPurge = false;
 	setFirstLayout(nullptr);

@@ -1445,13 +1445,13 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
     else
     {
         // use a convenience function from fl_BlockLayout to parse the tabstops property
-        UT_GenericVector<fl_TabStop*> tabStops;
+        std::vector<std::unique_ptr<fl_TabStop>> tabStops;
         buildTabStops(pValue, tabStops);
 
         // convert the tabstops to a format we can write out
-        for (UT_sint32 i = 0; i < tabStops.size(); i++)
+        for (size_t i = 0; i < tabStops.size(); i++)
         {
-            fl_TabStop* pTabStop = tabStops[i];
+            fl_TabStop* pTabStop = tabStops[i].get();
             UT_continue_if_fail(pTabStop);
 
             TabStop tabStop;
@@ -1523,10 +1523,8 @@ fetchAttributesFromAbiProps(const PP_AttrProp& rAP) {
                     break;
             }
             m_tabStops.push_back(tabStop);
-
-            DELETEP(pTabStop);
         }
-        
+
         tabStops.clear();
     }
 }

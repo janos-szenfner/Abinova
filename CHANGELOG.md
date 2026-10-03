@@ -3455,6 +3455,15 @@ below are on `main` but the release has not been cut yet.
   the RTF/HTML/Abinova/ODF exporters and the style dialogs.
   Document load/save, undo/redo and attribute-map deduplication are
   unchanged.
+- **Legacy containers modernized in the layout engine** — the
+  remaining `UT_GenericVector` collections in `src/text/fmt/xp`
+  (section/container layout lists, document-layout page/note/TOC
+  registries, line runs, table row/column properties, selection
+  ranges, TOC entries and header/footer shadow pages) now use
+  `std::vector`, with owned elements held by `std::unique_ptr` so
+  teardown is automatic and page/section iteration order is
+  preserved.  Pagination, tables, sections, headers/footers and
+  text selection behavior is unchanged.
 
 ### GTK4 port (core migration)
 

@@ -24,6 +24,8 @@
 #endif
 
 #include <stdio.h>
+#include <memory>
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "ut_hash.h"
@@ -319,7 +321,7 @@ public:
 	bool                addOrRemoveBlockFromTOC(fl_BlockLayout * pBlock);
 	bool                removeBlockFromTOC(fl_BlockLayout * pBlock);
 	bool                isBlockInTOC(fl_BlockLayout * pBlock) const;
-	bool                getMatchingBlocksFromTOCs(fl_BlockLayout * pBlock,  UT_GenericVector<fl_BlockLayout*>* pVecBlock) const;
+	bool                getMatchingBlocksFromTOCs(fl_BlockLayout * pBlock,  std::vector<fl_BlockLayout*>* pVecBlock) const;
 	bool                addTOC(fl_TOCLayout * pTOC);
 	bool                removeTOC(fl_TOCLayout * pTOC);
 	void                recalculateTOCFields(void);
@@ -421,7 +423,7 @@ private:
 	fl_DocListener*		m_pDocListener;
 	PL_ListenerId		m_lid;
 
-	UT_GenericVector<fp_Page *> m_vecPages;
+	std::vector<std::unique_ptr<fp_Page>> m_vecPages;
 	fl_DocSectionLayout*m_pFirstSection;
 	fl_DocSectionLayout*m_pLastSection;
 
@@ -453,9 +455,9 @@ private:
 	UT_uint32           m_iRedrawCount;
 	UT_sint32           m_iPageWidth;
 	UT_sint32           m_iPageHeight;
-	UT_GenericVector<fl_FootnoteLayout *> m_vecFootnotes;
-	UT_GenericVector<fl_AnnotationLayout *> m_vecAnnotations;
-	UT_GenericVector<fl_EndnoteLayout *> m_vecEndnotes;
+	std::vector<fl_FootnoteLayout *> m_vecFootnotes;
+	std::vector<fl_AnnotationLayout *> m_vecAnnotations;
+	std::vector<fl_EndnoteLayout *> m_vecEndnotes;
 	FootnoteType        m_FootnoteType;
 	UT_sint32           m_iFootnoteVal;
 	bool                m_bRestartFootSection;
@@ -466,7 +468,7 @@ private:
 	bool                m_bPlaceAtDocEnd;
 	bool                m_bPlaceAtSecEnd;
 	UT_uint32           m_iGraphicTick;
-	UT_GenericVector<fl_TOCLayout *> m_vecTOC;
+	std::vector<fl_TOCLayout *> m_vecTOC;
 	PT_DocPosition      m_iDocSize;
 	UT_sint32           m_iFilled;
 	bool                m_bSpellCheckInProgress;
@@ -483,6 +485,6 @@ private:
 	bool                m_bDisplayRDFAnchors;
         fp_Container *      m_pSavedContainer;
 	fl_BlockLayout *    m_pRebuiltBlockLayout;
-	UT_GenericVector<fp_FrameContainer *> m_vecFramesToBeInserted;
-	UT_GenericVector<fl_ContainerLayout *> m_vecPendingDeleteLayouts;
+	std::vector<fp_FrameContainer *> m_vecFramesToBeInserted;
+	std::vector<fl_ContainerLayout *> m_vecPendingDeleteLayouts;
 };

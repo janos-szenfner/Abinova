@@ -24,7 +24,9 @@
 #include <stdio.h>
 #endif
 
+#include <memory>
 #include <string>
+#include <vector>
 
 enum SectionType: uint8_t
 {
@@ -207,7 +209,7 @@ protected:
 	UT_uint32           m_iGraphicTick;
 	UT_sint32           m_iDocImageWidth;
 	UT_sint32           m_iDocImageHeight;
-	UT_GenericVector<fl_ContainerLayout *> m_vecFormatLayout;
+	std::vector<fl_ContainerLayout *> m_vecFormatLayout;
 };
 
 class ABI_EXPORT fl_DocSectionLayout : public fl_SectionLayout
@@ -308,7 +310,7 @@ public:
     bool                needsReFormat(void) const { return m_bNeedsFormat;}
 	bool                isThisPageValid(HdrFtrType hfType, fp_Page * pThisPage) const;
 	bool                isFirstPageValid(void) const;
-	void                getVecOfHdrFtrs(UT_GenericVector<fl_HdrFtrSectionLayout *> * vecHdrFtr) const;
+	void                getVecOfHdrFtrs(std::vector<fl_HdrFtrSectionLayout *> * vecHdrFtr) const;
 	void                formatAllHdrFtr(void);
 	void                doMarginChangeOnly(void);
 	void                checkAndRemovePages(void);
@@ -500,7 +502,7 @@ private:
 	// in fp_Page::m_pHeader/m_pFooter, which points back at this layout —
 	// the two sides stay in step because every detach goes through
 	// deletePage()/collapse() while both objects are still alive.
-	UT_GenericVector<_PageHdrFtrShadowPair*> m_vecPages;
+	std::vector<std::unique_ptr<_PageHdrFtrShadowPair>> m_vecPages;
 	fp_Container *              m_pHdrFtrContainer;
 };
 

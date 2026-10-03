@@ -23,6 +23,7 @@
 
 #ifdef FMT_TEST
 #include <stdio.h>
+#include <vector>
 #endif
 
 #include "ut_misc.h"
@@ -94,7 +95,7 @@ public:
 	UT_sint32		getMaxWidth(void) const ;
 	UT_sint32		getAscent(void) const;
 	UT_sint32		getDescent(void) const;
-	UT_sint32               getNumRunsInLine(void) const {return m_vecRuns.getItemCount();}
+	UT_sint32               getNumRunsInLine(void) const {return static_cast<UT_sint32>(m_vecRuns.size());}
 	UT_sint32		getColumnGap(void) const;
 	virtual void	        setAssignedScreenHeight(UT_sint32) override;
 	bool                        assertLineListIntegrity(void);
@@ -127,18 +128,18 @@ public:
 	bool		containsForcedColumnBreak(void) const;
 	bool		containsForcedPageBreak(void) const;
 	bool        containsFootnoteReference(void);
-	bool        getFootnoteContainers(UT_GenericVector<fp_FootnoteContainer *>* pvecFoots);
+	bool        getFootnoteContainers(std::vector<fp_FootnoteContainer *>* pvecFoots);
 	bool        containsAnnotations(void);
-	bool        getAnnotationContainers(UT_GenericVector<fp_AnnotationContainer *>* pvecAnnotations);
+	bool        getAnnotationContainers(std::vector<fp_AnnotationContainer *>* pvecAnnotations);
 	void 		addRun(fp_Run*);
 	void		insertRunAfter(fp_Run* pRun1, fp_Run* pRun2);
 	void		insertRunBefore(fp_Run* pNewRun, fp_Run* pBefore);
 	void        insertRun(fp_Run*);
     bool     removeRun(fp_Run*, bool bTellTheRunAboutIt=true);
 
-	inline	bool		isEmpty(void) const				{ return ((m_vecRuns.getItemCount()) == 0); }
-	inline	int 		countRuns(void) const			{ return m_vecRuns.getItemCount(); }
-	inline	fp_Run*     getFirstRun(void) const			{ if(countRuns() > 0)  return (static_cast<fp_Run*>( m_vecRuns.getFirstItem())); else return nullptr; }
+	inline	bool		isEmpty(void) const				{ return m_vecRuns.empty(); }
+	inline	int 		countRuns(void) const			{ return static_cast<int>(m_vecRuns.size()); }
+	inline	fp_Run*     getFirstRun(void) const			{ if(countRuns() > 0)  return m_vecRuns.front(); else return nullptr; }
 	fp_Run*     getLastRun(void) const ;
 	fp_Run*     getLastTextRun(void) const ;
 
@@ -284,7 +285,7 @@ private:
 
 	UT_sint32		m_iX;
 	UT_sint32		m_iY;
-	UT_GenericVector<fp_Run *>	m_vecRuns;
+	std::vector<fp_Run *>	m_vecRuns;
 
 	bool			m_bNeedsRedraw;
 	//bool			m_bRedoLayout;

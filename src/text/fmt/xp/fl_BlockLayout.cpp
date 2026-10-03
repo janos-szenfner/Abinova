@@ -26,6 +26,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm>
+#include <memory>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
@@ -327,15 +329,14 @@ fl_TabStop::fl_TabStop()
 	iLeader = FL_LEADER_NONE;
 }
 
-static bool compare_tabs(const fl_TabStop * pTab1, const fl_TabStop * pTab2)
+static bool compare_tabs(const std::unique_ptr<fl_TabStop> & pTab1, const std::unique_ptr<fl_TabStop> & pTab2)
 {
 	return pTab1->getPosition() < pTab2->getPosition();
 }
 
-void buildTabStops(const char* pszTabStops, UT_GenericVector<fl_TabStop*> &vecTabs)
+void buildTabStops(const char* pszTabStops, std::vector<std::unique_ptr<fl_TabStop>> &vecTabs)
 {
 	// no matter what, clear prior tabstops
-	UT_VECTOR_PURGEALL(fl_TabStop *, vecTabs);
 	vecTabs.clear();
 
 	if (pszTabStops && pszTabStops[0])
@@ -421,7 +422,7 @@ void buildTabStops(const char* pszTabStops, UT_GenericVector<fl_TabStop*> &vecTa
 			pTabStop->setLeader(iLeader);
 			pTabStop->setOffset(pStart - pszTabStops);
 
-			vecTabs.addItem(pTabStop);
+			vecTabs.emplace_back(pTabStop);
 
 			pStart = pEnd;
 			if (*pStart)
@@ -435,7 +436,7 @@ void buildTabStops(const char* pszTabStops, UT_GenericVector<fl_TabStop*> &vecTa
 			}
 		}
 
-		vecTabs.sort(compare_tabs);
+		std::sort(vecTabs.begin(), vecTabs.end(), compare_tabs);
 	}
 }
 
@@ -1441,7 +1442,7 @@ fl_BlockLayout::~fl_BlockLayout()
 	DELETEP(m_pGrammarSquiggles);
 #endif
 	purgeLayout();
-	UT_VECTOR_PURGEALL(fl_TabStop *, m_vecTabs);
+	m_vecTabs.clear();
 	DELETEP(m_pAlignment);
 	//	if (m_pAutoNum)
 //		{
@@ -1926,7 +1927,7 @@ fl_DocSectionLayout * fl_BlockLayout::getDocSectionLayout(void) const
 fp_Line * fl_BlockLayout::findLineWithFootnotePID(UT_uint32 pid) const
 {
 	fp_Line * pLine = static_cast<fp_Line *>(getFirstContainer());
-	UT_GenericVector<fp_FootnoteContainer *> vecFoots;
+	std::vector<fp_FootnoteContainer *> vecFoots;
 	bool bFound = false;
 	while(pLine && !bFound)
 	{
@@ -1934,9 +1935,9 @@ fp_Line * fl_BlockLayout::findLineWithFootnotePID(UT_uint32 pid) const
 		if(pLine->getFootnoteContainers(&vecFoots))
 		{
 			UT_sint32 i = 0;
-			for(i=0; i< vecFoots.getItemCount(); i++)
+			for(i=0; i< static_cast<UT_sint32>(vecFoots.size()); i++)
 			{
-				fp_FootnoteContainer * pFC = vecFoots.getNthItem(i);
+				fp_FootnoteContainer * pFC = vecFoots[i];
 				UT_nonnull_or_continue(pFC);
 				fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>(pFC->getSectionLayout());
 				UT_nonnull_or_continue(pFL);
@@ -3903,7 +3904,7 @@ void fl_BlockLayout::format()
 	//
 	// Save old line widths
 	//
-	UT_GenericVector<UT_sint32> vecOldLineWidths;
+	std::vector<UT_sint32> vecOldLineWidths;
 	xxx_UT_DEBUGMSG(("formatBlock 3: pPage %x \n",pPrevP));
 	if (m_pFirstRun)
 	{
@@ -3937,7 +3938,7 @@ void fl_BlockLayout::format()
 				pOldLine = pRun->getLine();
 				if(pOldLine)
 				{
-					vecOldLineWidths.addItem(pOldLine->getWidth());
+					vecOldLineWidths.push_back(pOldLine->getWidth());
 				}
 			}
 			if(pRun->getLine())
@@ -4045,9 +4046,9 @@ void fl_BlockLayout::format()
 		//
 		fp_Line * pLine =  static_cast<fp_Line *>(getFirstContainer());
 		UT_sint32 iCurLine = 0;
-		while(pLine && (pLine->getContainerType() == FP_CONTAINER_LINE) && (vecOldLineWidths.getItemCount() > 0))
+		while(pLine && (pLine->getContainerType() == FP_CONTAINER_LINE) && !vecOldLineWidths.empty())
 		{
-			UT_sint32 iOldWidth = vecOldLineWidths.getNthItem(iCurLine);
+			UT_sint32 iOldWidth = vecOldLineWidths[iCurLine];
 			pLine->calculateWidthOfLine();
 			if(iOldWidth != pLine->getWidth())
 			{
@@ -4055,7 +4056,7 @@ void fl_BlockLayout::format()
 			}
 			pLine = static_cast<fp_Line *>(pLine->getNext());
 			iCurLine++;
-			if(iCurLine >= vecOldLineWidths.getItemCount())
+			if(iCurLine >= static_cast<UT_sint32>(vecOldLineWidths.size()))
 				break;
 		}
 	}
@@ -6759,12 +6760,12 @@ bool fl_BlockLayout::doclistener_insertSpan(const PX_ChangeRecord_Span * pcrs)
 	//
 	if(!isNotTOCable() && !m_bIsTOC && m_bStyleInTOC)
 	{
-		UT_GenericVector<fl_BlockLayout *> vecBlocksInTOCs;
+		std::vector<fl_BlockLayout *> vecBlocksInTOCs;
 		if(m_pLayout->getMatchingBlocksFromTOCs(this, &vecBlocksInTOCs))
 		{
-			for(UT_sint32 j=0; j<vecBlocksInTOCs.getItemCount();j++)
+			for(UT_sint32 j=0; j<static_cast<UT_sint32>(vecBlocksInTOCs.size());j++)
 			{
-				fl_BlockLayout * pBL = vecBlocksInTOCs.getNthItem(j);
+				fl_BlockLayout * pBL = vecBlocksInTOCs[j];
 				pBL->doclistener_insertSpan(pcrs);
 			}
 		}
@@ -7174,13 +7175,13 @@ bool fl_BlockLayout::doclistener_deleteSpan(const PX_ChangeRecord_Span * pcrs)
 	//
 	if(!isNotTOCable() && !m_bIsTOC && m_bStyleInTOC)
 	{
-		UT_GenericVector<fl_BlockLayout *> vecBlocksInTOCs;
+		std::vector<fl_BlockLayout *> vecBlocksInTOCs;
 		if( m_pLayout->getMatchingBlocksFromTOCs(this, &vecBlocksInTOCs))
 		{
 			UT_sint32 i = 0;
-			for(i=0; i<vecBlocksInTOCs.getItemCount();i++)
+			for(i=0; i<static_cast<UT_sint32>(vecBlocksInTOCs.size());i++)
 			{
-				fl_BlockLayout * pBL = vecBlocksInTOCs.getNthItem(i);
+				fl_BlockLayout * pBL = vecBlocksInTOCs[i];
 				pBL->doclistener_deleteSpan(pcrs);
 			}
 		}
@@ -7211,8 +7212,7 @@ bool fl_BlockLayout::doclistener_changeSpan(const PX_ChangeRecord_SpanChange * p
 	PT_BlockOffset blockOffset = pcrsc->getBlockOffset();
 	UT_uint32 len = pcrsc->getLength();
 	UT_ASSERT(len > 0);
-	UT_GenericVector<fp_Line *> vecLines;
-	vecLines.clear();
+	std::vector<fp_Line *> vecLines;
 	// First look for the first run inside the span
 	fp_Run* pRun = m_pFirstRun;
 	fp_Run* pPrevRun = nullptr;
@@ -7292,9 +7292,9 @@ bool fl_BlockLayout::doclistener_changeSpan(const PX_ChangeRecord_SpanChange * p
 		}
 		// TODO: do we need to call lookupProperties for other run types.
 		fp_Line * pLine = pRun->getLine();
-		if((pLine!= nullptr) && (vecLines.findItem(pLine) < 0))
+		if((pLine!= nullptr) && (std::find(vecLines.begin(), vecLines.end(), pLine) == vecLines.end()))
 		{
-			vecLines.addItem(pLine);
+			vecLines.push_back(pLine);
 		}
 		pRun = pRun->getNextRun();
 	}
@@ -7302,9 +7302,9 @@ bool fl_BlockLayout::doclistener_changeSpan(const PX_ChangeRecord_SpanChange * p
 	// maybe able to remove this once the rest of bug 5240 is fixed.
 	//
 	UT_sint32 i =0;
-   	for(i=0; i< vecLines.getItemCount(); i++)
+   	for(i=0; i< static_cast<UT_sint32>(vecLines.size()); i++)
 	{
-		fp_Line * pLine = vecLines.getNthItem(i);
+		fp_Line * pLine = vecLines[i];
 		pLine->clearScreen();
 	}
 	m_iNeedsReformat = blockOffset;
@@ -9117,13 +9117,13 @@ bool fl_BlockLayout::doclistener_insertObject(const PX_ChangeRecord_Object * pcr
 	//
 	if(!isNotTOCable() && !m_bIsTOC && m_bStyleInTOC)
 	{
-		UT_GenericVector<fl_BlockLayout *> vecBlocksInTOCs;
+		std::vector<fl_BlockLayout *> vecBlocksInTOCs;
 		if(m_pLayout->getMatchingBlocksFromTOCs(this, &vecBlocksInTOCs))
 		{
 			UT_sint32 i = 0;
-			for(i=0; i<vecBlocksInTOCs.getItemCount();i++)
+			for(i=0; i<static_cast<UT_sint32>(vecBlocksInTOCs.size());i++)
 			{
-				fl_BlockLayout * pBL = vecBlocksInTOCs.getNthItem(i);
+				fl_BlockLayout * pBL = vecBlocksInTOCs[i];
 				pBL->doclistener_insertObject(pcro);
 			}
 		}
@@ -9244,13 +9244,13 @@ bool fl_BlockLayout::doclistener_deleteObject(const PX_ChangeRecord_Object * pcr
 	//
 	if(!isNotTOCable() && !m_bIsTOC && m_bStyleInTOC && m_pLayout)
 	{
-		UT_GenericVector<fl_BlockLayout *> vecBlocksInTOCs;
+		std::vector<fl_BlockLayout *> vecBlocksInTOCs;
 		if( m_pLayout->getMatchingBlocksFromTOCs(this, &vecBlocksInTOCs))
 		{
 			UT_sint32 i = 0;
-			for(i=0; i<vecBlocksInTOCs.getItemCount();i++)
+			for(i=0; i<static_cast<UT_sint32>(vecBlocksInTOCs.size());i++)
 			{
-				fl_BlockLayout * pBL = vecBlocksInTOCs.getNthItem(i);
+				fl_BlockLayout * pBL = vecBlocksInTOCs[i];
 				pBL->doclistener_deleteObject(pcro);
 			}
 		}
@@ -9533,7 +9533,7 @@ bool	fl_BlockLayout::findNextTabStop( UT_sint32 iStartX, UT_sint32 iMaxX, UT_sin
 	UT_ASSERT(iStartX >= iMinLeft);
 #endif
 	
-	UT_uint32 iCountTabs = m_vecTabs.getItemCount();
+	UT_uint32 iCountTabs = static_cast<UT_uint32>(m_vecTabs.size());
 	UT_uint32 i;
 	if(isContainedByTOC())
     {
@@ -9543,7 +9543,7 @@ bool	fl_BlockLayout::findNextTabStop( UT_sint32 iStartX, UT_sint32 iMaxX, UT_sin
 
 	for (i=0; i<iCountTabs; i++)
 	{
-		fl_TabStop* pTab = m_vecTabs.getNthItem(i);
+		fl_TabStop* pTab = m_vecTabs[i].get();
 		UT_continue_if_fail(pTab);
 
 		if (pTab->getPosition() > iMaxX)
@@ -9644,14 +9644,14 @@ bool	fl_BlockLayout::findPrevTabStop( UT_sint32 iStartX, UT_sint32 iMaxX, UT_sin
 	UT_ASSERT(iStartX >= iMinLeft);
 #endif
 
-	UT_uint32 iCountTabs = m_vecTabs.getItemCount();
+	UT_uint32 iCountTabs = static_cast<UT_uint32>(m_vecTabs.size());
 	UT_uint32 i;
 
 	iLeader = FL_LEADER_NONE;
 
 	for (i=0; i<iCountTabs; i++)
 	{
-		fl_TabStop* pTab = static_cast<fl_TabStop*>(m_vecTabs.getNthItem(i));
+		fl_TabStop* pTab = m_vecTabs[i].get();
 		UT_continue_if_fail(pTab);
 
 		if (pTab->getPosition() > iMaxX)
@@ -9661,7 +9661,7 @@ bool	fl_BlockLayout::findPrevTabStop( UT_sint32 iStartX, UT_sint32 iMaxX, UT_sin
 
 		if (pTab->getPosition() > iStartX)
 		{
-			pTab = static_cast<fl_TabStop*>(m_vecTabs.getNthItem(i>0?i-1:0));
+			pTab = m_vecTabs[i>0?i-1:0].get();
 			UT_continue_if_fail(pTab);
 
 			if(m_iDomDirection == UT_BIDI_RTL)
@@ -9704,7 +9704,7 @@ bool	fl_BlockLayout::findPrevTabStop( UT_sint32 iStartX, UT_sint32 iMaxX, UT_sin
 	if(iCountTabs > 0 && i == iCountTabs)
 	{
 			xxx_UT_DEBUGMSG(("found tabstop indx=%d\n", iCountTabs - 1));
-			fl_TabStop* pTab = static_cast<fl_TabStop*>(m_vecTabs.getNthItem(iCountTabs - 1));
+			fl_TabStop* pTab = m_vecTabs[iCountTabs - 1].get();
 			UT_return_val_if_fail(pTab,false);
 
 			iPosition = pTab->getPosition();
@@ -9761,11 +9761,11 @@ bool fl_BlockLayout::s_EnumTabStops( void * myThis, UT_uint32 k, fl_TabStop *pTa
 
 	const fl_BlockLayout * pBL = static_cast<const fl_BlockLayout*>(myThis);
 
-	UT_uint32 iCountTabs = pBL->m_vecTabs.getItemCount();
+	UT_uint32 iCountTabs = static_cast<UT_uint32>(pBL->m_vecTabs.size());
 	if (k >= iCountTabs)
 		return false;
 
-	fl_TabStop * pTab = static_cast<fl_TabStop *>(pBL->m_vecTabs.getNthItem(k));
+	fl_TabStop * pTab = pBL->m_vecTabs[k].get();
 	UT_nonnull_or_return(pTab, false);
 
 	*pTabInfo = *pTab;
@@ -11883,7 +11883,7 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 				// we need to deal with revision
 				// if the word is contained in multiple runs and some of these are deleted through
 				// revisions and visible, the revised text should be disregarded
-				UT_GenericVector<_spell_type *> vWordLimits;
+				std::vector<std::unique_ptr<_spell_type>> vWordLimits;
 				fp_Run * pRun = m_pBL->findRunAtOffset(m_iWordOffset);
 
 				while(pRun && pRun->getBlockOffset() < static_cast<UT_uint32>((m_iWordOffset + iWordLength)))
@@ -11906,8 +11906,8 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 			
 					_spell_type * st2 = nullptr;
 			
-					if(vWordLimits.getItemCount())
-						st2 = vWordLimits.getLastItem();
+					if(!vWordLimits.empty())
+						st2 = vWordLimits.back().get();
 			
 					if(st2 && st2->bIgnore == bIgnore)
 					{
@@ -11923,7 +11923,7 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 						st->iStart = pRun->getBlockOffset() - m_iWordOffset;
 						st->iEnd = st->iStart + iMaxLen;
 
-						vWordLimits.addItem(st);
+						vWordLimits.emplace_back(st);
 					}
 
 					pRun = pRun->getNextRun();
@@ -11931,9 +11931,9 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 
 				UT_UCS4Char * p = m_pMutatedString;
 		
-				for(UT_sint32 i = 0; i < vWordLimits.getItemCount(); ++i)
+				for(UT_sint32 i = 0; i < static_cast<UT_sint32>(vWordLimits.size()); ++i)
 				{
-					_spell_type * st = vWordLimits.getNthItem(i);
+					_spell_type * st = vWordLimits[i].get();
 					UT_return_val_if_fail( st, false );
 
 					if(!st->bIgnore)
@@ -11963,7 +11963,7 @@ fl_BlockSpellIterator::nextWordForSpellChecking(const UT_UCS4Char*& pWord, UT_si
 					}
 				}
 		
-				UT_VECTOR_PURGEALL(_spell_type*, vWordLimits);
+				vWordLimits.clear();
 			}
 		}
 

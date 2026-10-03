@@ -51,6 +51,7 @@
 #endif
 
 #include <optional>
+#include <vector>
 
 #include "ut_misc.h"
 #include "ut_types.h"
@@ -315,7 +316,7 @@ private:
 	fp_Container*          m_pContainer;
 	fp_ContainerObject *   m_pNext;
 	fp_ContainerObject *   m_pPrev;
-	UT_GenericVector<fp_ContainerObject *> m_vecContainers;
+	std::vector<fp_ContainerObject *> m_vecContainers;
 	fp_Container *         m_pMyBrokenContainer;
 	UT_uint32              m_cBrokenContainers;
     fg_FillType            m_FillType;

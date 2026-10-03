@@ -91,8 +91,8 @@ bool fb_ColumnBreaker::_displayAnnotations(void)
  * vectors is moved to pPage if it isn't there already.
  */
 void fb_ColumnBreaker::_reparentNotesToPage(fp_Page * pPage,
-	UT_GenericVector<fp_FootnoteContainer*> & vecFootnotes,
-	UT_GenericVector<fp_AnnotationContainer*> & vecAnnotations) const
+	std::vector<fp_FootnoteContainer*> & vecFootnotes,
+	std::vector<fp_AnnotationContainer*> & vecAnnotations) const
 {
 	UT_ASSERT(pPage);
 	if(pPage == nullptr)
@@ -100,9 +100,9 @@ void fb_ColumnBreaker::_reparentNotesToPage(fp_Page * pPage,
 		return;
 	}
 	UT_sint32 i = 0;
-	for(i = 0; i < vecFootnotes.getItemCount(); i++)
+	for(i = 0; i < static_cast<UT_sint32>(vecFootnotes.size()); i++)
 	{
-		fp_FootnoteContainer * pFC = vecFootnotes.getNthItem(i);
+		fp_FootnoteContainer * pFC = vecFootnotes[i];
 		if(pFC != nullptr)
 		{
 			fp_Page * myPage = pFC->getPage();
@@ -122,9 +122,9 @@ void fb_ColumnBreaker::_reparentNotesToPage(fp_Page * pPage,
 			}
 		}
 	}
-	for(i = 0; i < vecAnnotations.getItemCount(); i++)
+	for(i = 0; i < static_cast<UT_sint32>(vecAnnotations.size()); i++)
 	{
-		fp_AnnotationContainer * pAC = vecAnnotations.getNthItem(i);
+		fp_AnnotationContainer * pAC = vecAnnotations[i];
 		if(pAC != nullptr)
 		{
 			fp_Page * myPage = pAC->getPage();
@@ -377,15 +377,15 @@ void fb_ColumnBreaker::_balanceLastColumnRow(void)
 		return;		// single-column row
 
 	// collect the row: the leader plus its followers on this page
-	UT_GenericVector<fp_Column*> vecRow;
+	std::vector<fp_Column*> vecRow;
 	for (fp_Column * pCol = pLeader; pCol; pCol = pCol->getFollower())
 	{
 		if ((pCol->getPage() != pPage) ||
 			(pCol->getDocSectionLayout() != m_pDocSec))
 			return;	// inconsistent row - leave the layout as is
-		vecRow.addItem(pCol);
+		vecRow.push_back(pCol);
 	}
-	UT_sint32 iCols = vecRow.getItemCount();
+	UT_sint32 iCols = static_cast<UT_sint32>(vecRow.size());
 	if (iCols < 2)
 		return;
 
@@ -394,7 +394,7 @@ void fb_ColumnBreaker::_balanceLastColumnRow(void)
 	UT_sint32 iTotal = 0;
 	for (UT_sint32 i = 0; i < iCols; ++i)
 	{
-		fp_Column * pCol = vecRow.getNthItem(i);
+		fp_Column * pCol = vecRow[i];
 		if (pCol->containsPageBreak())
 			return;
 		for (UT_sint32 k = 0; k < pCol->countCons(); ++k)
@@ -422,7 +422,7 @@ void fb_ColumnBreaker::_balanceLastColumnRow(void)
 	bool bBumped = false;
 	for (UT_sint32 i = 0; i < iCols - 1; ++i)
 	{
-		fp_Column * pCol = vecRow.getNthItem(i);
+		fp_Column * pCol = vecRow[i];
 		UT_sint32 iAcc = 0;
 		fp_ContainerObject * pKeep = nullptr;
 		for (UT_sint32 k = 0; k < pCol->countCons(); ++k)
@@ -443,7 +443,7 @@ void fb_ColumnBreaker::_balanceLastColumnRow(void)
 		return;
 
 	for (UT_sint32 i = 0; i < iCols; ++i)
-		vecRow.getNthItem(i)->layout();
+		vecRow[i]->layout();
 	// reposition the column rows below on this page
 	pPage->_reformatColumns();
 }
@@ -722,13 +722,13 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 				if (pCurLine->containsFootnoteReference())
 				{
 					// OK get a vector of the footnote containers in this line.
-					UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
+					std::vector<fp_FootnoteContainer*> vecFootnotes;
 					pCurLine->getFootnoteContainers(&vecFootnotes);
 					// Now loop through all these and add them to the height.
 					UT_sint32 i = 0;
-					for(i = 0; i < vecFootnotes.getItemCount(); i++)
+					for(i = 0; i < static_cast<UT_sint32>(vecFootnotes.size()); i++)
 					{
-						fp_FootnoteContainer * pFC = vecFootnotes.getNthItem(i);
+						fp_FootnoteContainer * pFC = vecFootnotes[i];
 						if (pFC)
 						{
 							iTheseFootnotes += pFC->getHeight();
@@ -738,13 +738,13 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 				if(_displayAnnotations() && pCurLine->containsAnnotations())
 				{
 					// OK get a vector of the Annotation containers in this line.		
-					UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
+					std::vector<fp_AnnotationContainer*> vecAnnotations;
 					pCurLine->getAnnotationContainers(&vecAnnotations);
 					// Now loop through all these and add them to the height.
 					UT_sint32 i = 0;
-					for(i = 0; i < vecAnnotations.getItemCount(); i++)
+					for(i = 0; i < static_cast<UT_sint32>(vecAnnotations.size()); i++)
 					{
-						fp_AnnotationContainer * pAC = vecAnnotations.getNthItem(i);
+						fp_AnnotationContainer * pAC = vecAnnotations[i];
 						if (pAC)
 						{
 							UT_ASSERT(pAC->getHeight() < iMaxSecCol);
@@ -1150,8 +1150,8 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 				xxx_UT_DEBUGMSG(("About to call containerFootnoteReferenced \n"));
 				// OK get a vector of the footnote/annotation containers
 				// in this line, then keep them on this line's page.
-				UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
-				UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
+				std::vector<fp_FootnoteContainer*> vecFootnotes;
+				std::vector<fp_AnnotationContainer*> vecAnnotations;
 				if(pCurLine->containsFootnoteReference())
 				{
 					pCurLine->getFootnoteContainers(&vecFootnotes);
@@ -1176,8 +1176,8 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 				{
 					// Keep the footnote/annotation containers referenced
 					// by the broken table on this table's page.
-					UT_GenericVector<fp_FootnoteContainer*> vecFootnotes;
-					UT_GenericVector<fp_AnnotationContainer*> vecAnnotations;
+					std::vector<fp_FootnoteContainer*> vecFootnotes;
+					std::vector<fp_AnnotationContainer*> vecAnnotations;
 					if(pCurTable->containsFootnoteReference())
 					{
 						pCurTable->getFootnoteContainers(&vecFootnotes);
