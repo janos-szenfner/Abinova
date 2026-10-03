@@ -3316,6 +3316,13 @@ below are on `main` but the release has not been cut yet.
   under a `LC_NUMERIC=C` transactor for the whole parse, matching the
   section-append path).  Three paragraph-margin members are now
   initialized at construction.
+- **WordPerfect header/footer import** — `.wpd` headers and footers
+  were silently discarded on import (every content callback
+  early-returned behind a 20-year-old "swallow" hack).  The importer now
+  captures header/footer content and emits real header/footer sections,
+  so header/footer text, formatting, tables, and even footnotes inside
+  headers come through — including odd/even variants — and survive
+  `.abwn` round-trips.
 
 ### GTK4 port (core migration)
 

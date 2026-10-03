@@ -32,6 +32,8 @@
 
 #include <stdio.h>
 #include <memory>
+#include <string>
+#include <vector>
 #include "ut_compiler.h"
 ABI_W_NO_SUGGEST_OVERRIDE
 #include <librevenge/librevenge.h>
@@ -116,7 +118,7 @@ public:
 
 	virtual void definePageStyle(const librevenge::RVNGPropertyList &) override {}
 	virtual void openPageSpan(const librevenge::RVNGPropertyList &propList) override;
-	virtual void closePageSpan() override {}
+	virtual void closePageSpan() override;
 	virtual void openHeader(const librevenge::RVNGPropertyList &propList) override;
 	virtual void closeHeader() override;
 	virtual void openFooter(const librevenge::RVNGPropertyList &propList) override;
@@ -186,6 +188,14 @@ public:
 
 protected:
 	virtual UT_Error _loadFile(GsfInput * input) override;
+	using IE_Imp::appendObject;
+	using IE_Imp::appendSpan;
+	using IE_Imp::appendFmt;
+	virtual bool appendStrux(PTStruxType pts, const PP_PropertyVector & attributes) override;
+	virtual bool appendSpan(const UT_UCS4Char * p, UT_uint32 length) override;
+	virtual bool appendObject(PTObjectType pto, const PP_PropertyVector & attribs,
+							  const PP_PropertyVector & props = PP_NOPROPS) override;
+	virtual bool appendFmt(const PP_PropertyVector & pVecAttributes) override;
     UT_Error							_appendSection(int numColumns, const float, const float);
 //    UT_Error							_appendSpan(const guint32 textAttributeBits, const char *fontName, const float fontSize, UT_uint32 listTag = 0);
     UT_Error                            _appendListSpan(UT_uint32 listTag);
@@ -198,6 +208,27 @@ protected:
 												     int iStartingNumber);
     UT_Error							_updateDocumentUnorderedListDefinition(ABI_ListDefinition *pListDefinition,
 												       int level);
+	/* Header/footer bodies are delivered by libwpd while the page span's
+	 * body section does not exist yet, but a PTX_SectionHdrFtr must follow
+	 * the body section that references it (populate resolves the id
+	 * forwards). The content is therefore captured into a scratch
+	 * document and replayed at endDocument(), once per section it was
+	 * bound to (one id per section, since an id may only be referenced
+	 * once). */
+	struct WPHdrFtr
+	{
+		WPHdrFtr() : doc(nullptr) {}
+		~WPHdrFtr() { UNREFP(doc); }
+		std::string type; // "header"/"header-even"/"footer"/"footer-even"
+		std::vector<std::string> ids;
+		PD_Document * doc; // scratch capture document, refcounted
+	};
+
+	void								_openHdrFtr(bool bHeader, const librevenge::RVNGPropertyList &propList);
+	void								_closeHdrFtr();
+	void								_bindHdrFtrToSection(WPHdrFtr * hdrFtr, pf_Frag_Strux * pfs);
+	void								_bindPendingHdrFtrs(pf_Frag_Strux * pfs);
+	PD_Document *						_doc() { return m_pCaptureDoc ? m_pCaptureDoc : getDoc(); }
 private:
     // section props
     float								m_leftPageMargin;
@@ -205,9 +236,6 @@ private:
     float								m_leftSectionMargin;
     float								m_rightSectionMargin;
     int									m_sectionColumnsCount;
-	UT_sint8							m_headerId; // -1 means no header
-	UT_sint8							m_footerId; // -1 means no footer
-	UT_uint32							m_nextFreeId;
 
 	// paragraph props
     float								m_topMargin;
@@ -228,8 +256,17 @@ private:
     int							        m_iCurrentListLevel;
     bool								m_bInCell;
 
-	// HACK HACK HACK
+	std::vector<std::unique_ptr<WPHdrFtr>>	m_hdrFtrs;
+	std::vector<WPHdrFtr *>				m_pendingHdrFtrs;
+	PD_Document *						m_pCaptureDoc;
 	int									m_bHdrFtrOpenCount;
+
+	// importer state saved while a header/footer is being captured
+	std::unique_ptr<ABI_ListDefinition>	m_savedListDefinition;
+	int									m_savedListLevel;
+	bool								m_savedInSection;
+	bool								m_savedRequireBlock;
+	bool								m_savedInCell;
 };
 
 #ifdef HAVE_LIBWPS

@@ -54,6 +54,13 @@
 
 #include "pd_Document.h"
 #include "pt_Types.h"
+#include "pl_Listener.h"
+#include "pp_AttrProp.h"
+#include "pf_Frag_Strux.h"
+#include "px_ChangeRecord.h"
+#include "px_CR_Span.h"
+#include "px_CR_Object.h"
+#include "px_CR_Strux.h"
 
 #include "fl_AutoLists.h"
 #include "fl_AutoNum.h"
@@ -318,6 +325,124 @@ void ABI_ListDefinition::setListType(const int level, const char type)
 
 #define X_CheckDocumentError(v) if (!v) { UT_DEBUGMSG(("X_CheckDocumentError: %d\n", __LINE__)); }
 
+namespace {
+
+/* serialize an attrprop's attributes and properties into one flat
+ * attribute vector (the "props" pseudo-attribute holds the property
+ * string) so they can be replayed through appendStrux/appendFmt */
+void s_attsWithProps(const PP_AttrProp * pAP, PP_PropertyVector & out)
+{
+	out = pAP->getAttributes();
+	const PP_PropertyVector & props = pAP->getProperties();
+	if (props.empty())
+		return;
+
+	std::string s;
+	for (PP_PropertyVector::const_iterator i = props.begin(); i != props.end(); i += 2)
+	{
+		if (!s.empty())
+			s += ";";
+		s += *i;
+		s += ':';
+		s += *(i + 1);
+	}
+	out.push_back(PT_PROPS_ATTRIBUTE_NAME);
+	out.push_back(s);
+}
+
+/* Walks a captured header/footer scratch document via tellListener()
+ * and replays its fragments into the destination with the append*()
+ * calls importers use -- the destination is still PTS_Loading at that
+ * point, so insertSpan()/insertStrux() would refuse to run. Plain
+ * PTX_Section struxes in the capture (the seed section) are skipped:
+ * everything else lands inside the PTX_SectionHdrFtr the caller has
+ * just appended. */
+class WP_HdrFtrReplayListener : public PL_Listener
+{
+public:
+	WP_HdrFtrReplayListener(PD_Document * pDest, PD_Document * pSrc)
+		: m_pDest(pDest),
+		  m_pSrc(pSrc)
+	{
+	}
+
+	virtual bool populate(fl_ContainerLayout * /*sfh*/,
+						  const PX_ChangeRecord * pcr) override
+	{
+		const PP_AttrProp * pAP = nullptr;
+		PP_PropertyVector atts;
+		if (m_pSrc->getAttrProp(pcr->getIndexAP(), &pAP) && pAP)
+			s_attsWithProps(pAP, atts);
+
+		switch (pcr->getType())
+		{
+		case PX_ChangeRecord::PXT_InsertSpan:
+		{
+			const PX_ChangeRecord_Span * pcrs =
+					static_cast<const PX_ChangeRecord_Span *>(pcr);
+			const UT_UCS4Char * pChars = m_pSrc->getPointer(pcrs->getBufIndex());
+			if (!pChars)
+				return false;
+			return m_pDest->appendFmt(atts)
+					&& m_pDest->appendSpan(pChars, pcrs->getLength());
+		}
+		case PX_ChangeRecord::PXT_InsertObject:
+			return m_pDest->appendObject(
+					static_cast<const PX_ChangeRecord_Object *>(pcr)->getObjectType(),
+					pAP ? pAP->getAttributes() : PP_PropertyVector());
+		case PX_ChangeRecord::PXT_InsertFmtMark:
+			return m_pDest->appendFmtMark();
+		default:
+			return true;
+		}
+	}
+
+	virtual bool populateStrux(pf_Frag_Strux * /*sdh*/,
+							   const PX_ChangeRecord * pcr,
+							   fl_ContainerLayout ** /*psfh*/) override
+	{
+		const PX_ChangeRecord_Strux * pcrx =
+				static_cast<const PX_ChangeRecord_Strux *>(pcr);
+		if (pcrx->getStruxType() == PTX_Section)
+			return true; // capture seed/nesting guard - never replayed
+
+		const PP_AttrProp * pAP = nullptr;
+		PP_PropertyVector atts;
+		if (m_pSrc->getAttrProp(pcr->getIndexAP(), &pAP) && pAP)
+			s_attsWithProps(pAP, atts);
+
+		return m_pDest->appendStrux(pcrx->getStruxType(), atts);
+	}
+
+	virtual bool change(fl_ContainerLayout * /*sfh*/,
+						const PX_ChangeRecord * /*pcr*/) override
+	{
+		return true;
+	}
+
+	virtual bool insertStrux(fl_ContainerLayout * /*sfh*/,
+							 const PX_ChangeRecord * /*pcr*/,
+							 pf_Frag_Strux * /*sdhNew*/,
+							 PL_ListenerId /*lid*/,
+							 void (* /*pfnBindHandles*/)(pf_Frag_Strux *,
+									PL_ListenerId,
+									fl_ContainerLayout *)) override
+	{
+		return true;
+	}
+
+	virtual bool signal(UT_uint32 /*iSignal*/) override
+	{
+		return true;
+	}
+
+private:
+	PD_Document * m_pDest;
+	PD_Document * m_pSrc;
+};
+
+} // anonymous namespace
+
 IE_Imp_WordPerfect_Sniffer::IE_Imp_WordPerfect_Sniffer()
 	: IE_ImpSniffer(IE_MIMETYPE_WP_6)
 {
@@ -383,9 +508,6 @@ IE_Imp_WordPerfect::IE_Imp_WordPerfect(PD_Document * pDocument)
 	m_leftSectionMargin(0.0f),
 	m_rightSectionMargin(0.0f),
 	m_sectionColumnsCount(0),
-	m_headerId(-1),
-	m_footerId(-1),
-	m_nextFreeId(0),
 	m_topMargin(0.0f),
 	m_bottomMargin(0.0f),
 	m_leftMarginOffset(0.0f),
@@ -399,7 +521,12 @@ IE_Imp_WordPerfect::IE_Imp_WordPerfect(PD_Document * pDocument)
 	m_bRequireBlock(false),
 	m_iCurrentListLevel(0),
 	m_bInCell(false),
-	m_bHdrFtrOpenCount(0)
+	m_pCaptureDoc(nullptr),
+	m_bHdrFtrOpenCount(0),
+	m_savedListLevel(0),
+	m_savedInSection(false),
+	m_savedRequireBlock(false),
+	m_savedInCell(false)
 {
 }
 
@@ -457,11 +584,37 @@ void IE_Imp_WordPerfect::startDocument(const librevenge::RVNGPropertyList & /* p
 void IE_Imp_WordPerfect::endDocument()
 {
 	UT_DEBUGMSG(("AbiWordPerfect: endDocument\n"));
+
+	/* flush hdrftrs of a trailing page span that never got a section,
+	 * then emit one PTX_SectionHdrFtr per bound id (a hdrftr id may
+	 * only be referenced by a single section, so each bound section
+	 * got its own id and needs its own strux copy) */
+	closePageSpan();
+	for (auto & hdrFtr : m_hdrFtrs)
+	{
+		for (const std::string & id : hdrFtr->ids)
+		{
+			const PP_PropertyVector attribs = {
+				"type", hdrFtr->type,
+				"id", id,
+				"listid", "0",
+				"parentid", "0"
+			};
+			X_CheckDocumentError(getDoc()->appendStrux(PTX_SectionHdrFtr, attribs));
+
+			WP_HdrFtrReplayListener listener(getDoc(), hdrFtr->doc);
+			if (!hdrFtr->doc->tellListener(static_cast<PL_Listener *>(&listener)))
+			{
+				UT_DEBUGMSG(("AbiWordPerfect: hdrftr replay failed for id %s\n", id.c_str()));
+			}
+		}
+	}
+	m_hdrFtrs.clear();
 }
 
 void IE_Imp_WordPerfect::openPageSpan(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
+	if (m_bHdrFtrOpenCount) return; // page spans cannot nest in a header/footer
 	UT_DEBUGMSG(("AbiWordPerfect: openPageSpan\n"));
 	
 	float marginLeft = 1.0f, marginRight = 1.0f;
@@ -480,63 +633,193 @@ void IE_Imp_WordPerfect::openPageSpan(const librevenge::RVNGPropertyList &propLi
 		
 }
 
-void IE_Imp_WordPerfect::openHeader(const librevenge::RVNGPropertyList & /*propList*/)
+/* While a header/footer subdocument is being parsed the append* calls
+ * are diverted into a scratch document; it is replayed into a real
+ * PTX_SectionHdrFtr at endDocument() (the hdrftr strux must come after
+ * the body section that references it, which does not exist yet here).
+ * If the capture could not be created the content is swallowed instead
+ * of leaking into the body stream. */
+bool IE_Imp_WordPerfect::appendStrux(PTStruxType pts, const PP_PropertyVector & attributes)
+{
+	if (m_bHdrFtrOpenCount)
+	{
+		if (m_pCaptureDoc)
+			return m_pCaptureDoc->appendStrux(pts, attributes);
+		return true;
+	}
+	return IE_Imp::appendStrux(pts, attributes);
+}
+
+bool IE_Imp_WordPerfect::appendSpan(const UT_UCS4Char * p, UT_uint32 length)
+{
+	if (m_bHdrFtrOpenCount)
+	{
+		if (m_pCaptureDoc)
+			return m_pCaptureDoc->appendSpan(p, length);
+		return true;
+	}
+	return IE_Imp::appendSpan(p, length);
+}
+
+bool IE_Imp_WordPerfect::appendObject(PTObjectType pto, const PP_PropertyVector & attribs,
+									  const PP_PropertyVector & /*props*/)
+{
+	if (m_bHdrFtrOpenCount)
+	{
+		if (m_pCaptureDoc)
+			return m_pCaptureDoc->appendObject(pto, attribs);
+		return true;
+	}
+	return IE_Imp::appendObject(pto, attribs, PP_NOPROPS);
+}
+
+bool IE_Imp_WordPerfect::appendFmt(const PP_PropertyVector & pVecAttributes)
+{
+	if (m_bHdrFtrOpenCount)
+	{
+		if (m_pCaptureDoc)
+			return m_pCaptureDoc->appendFmt(pVecAttributes);
+		return true;
+	}
+	return IE_Imp::appendFmt(pVecAttributes);
+}
+
+void IE_Imp_WordPerfect::closePageSpan()
+{
+	/* hdrftrs of a span that never produced a body section have no
+	 * section of their own to render on; bind them to the current
+	 * (previous span's) section rather than leaking the reference into
+	 * the next span's first section */
+	pf_Frag_Strux * pfs = getDoc()->getLastSectionMutableStrux();
+	for (auto * hdrFtr : m_pendingHdrFtrs)
+	{
+		if (!hdrFtr->ids.empty())
+			continue;
+		if (!pfs)
+		{
+			// degenerate document with no body section yet -- give the
+			// hdrftrs a section to hang on so repairDoc() doesn't drop them
+			X_CheckDocumentError(getDoc()->appendStrux(PTX_Section, PP_NOPROPS, &pfs));
+			X_CheckDocumentError(getDoc()->appendStrux(PTX_Block, PP_NOPROPS));
+			m_bInSection = true;
+			m_bRequireBlock = true;
+		}
+		if (!pfs)
+			break;
+		_bindHdrFtrToSection(hdrFtr, pfs);
+	}
+	m_pendingHdrFtrs.clear();
+}
+
+/* give this hdrftr a fresh id and reference it from pfs's attribute
+ * named after the hdrftr type ("header", "footer-even", ...) */
+void IE_Imp_WordPerfect::_bindHdrFtrToSection(WPHdrFtr * hdrFtr, pf_Frag_Strux * pfs)
+{
+	std::string id = UT_std_string_sprintf("%u", getDoc()->getUID(UT_UniqueId::HeaderFtr));
+	X_CheckDocumentError(getDoc()->changeStruxAttsNoUpdate(pfs, hdrFtr->type.c_str(), id.c_str()));
+	hdrFtr->ids.push_back(id);
+}
+
+void IE_Imp_WordPerfect::_openHdrFtr(bool bHeader, const librevenge::RVNGPropertyList &propList)
 {
 	m_bHdrFtrOpenCount++;
-	
-	/*
-	TODO: THIS CODE IS NOT!!!! USEFULL! - DON'T TOUCH IT - MARCM
-	UT_String propBuffer;
 
-	switch (headerFooterType)
+	/* headers/footers cannot nest: if libwpd fires one inside another
+	 * (it shouldn't), let its content flow into the open capture rather
+	 * than starting a second one */
+	if (m_pCaptureDoc)
+		return;
+
+	const char * occurrence = nullptr;
+	if (propList["librevenge:occurrence"])
+		occurrence = propList["librevenge:occurrence"]->getStr().cstr();
+	bool bEven = (occurrence && strcmp(occurrence, "even") == 0);
+	const char * type = bHeader ? (bEven ? "header-even" : "header")
+								: (bEven ? "footer-even" : "footer");
+
+	PD_Document * capture = new PD_Document();
+	if (!capture || capture->createRawDocument() != UT_OK)
 	{
-		case HEADER:
-			m_headerId = m_nextFreeId;
-			UT_String_sprintf(propBuffer,"id:%d; listid:0; parentid=0; type=header", m_headerId);
-			break;
-		case FOOTER:
-			m_footerId = m_nextFreeId;
-			UT_String_sprintf(propBuffer,"id:%d; listid:0; parentid=0; type=footer", m_footerId);
-			break;
-		default:
-			UT_ASSERT(SHOULD_NOT_HAPPEN);
-			break;
+		UNREFP(capture);
+		UT_DEBUGMSG(("AbiWordPerfect: could not create hdrftr capture document\n"));
+		return;
 	}
+	// seed a section so captured content has somewhere to live; the
+	// replay listener never replays PTX_Section
+	capture->appendStrux(PTX_Section, PP_NOPROPS);
 
-	const gchar* propsArray[3];
-	propsArray[0] = "props";
-	propsArray[1] = propBuffer.c_str();
-	propsArray[2] = nullptr;
+	std::unique_ptr<WPHdrFtr> hdrFtr(new WPHdrFtr);
+	hdrFtr->type = type;
+	hdrFtr->doc = capture; // ctor refcount of 1, released in ~WPHdrFtr
 
-    X_CheckDocumentError(appendStrux(PTX_Section, propsArray));
-	m_bInSection = true;
-	m_bSectionChanged = false;*/
+	// save importer state that libwpd will drive while parsing the
+	// subdocument so the enclosing document's parse state survives
+	m_savedListDefinition = std::move(m_pCurrentListDefinition);
+	m_savedListLevel = m_iCurrentListLevel;
+	m_savedInSection = m_bInSection;
+	m_savedRequireBlock = m_bRequireBlock;
+	m_savedInCell = m_bInCell;
+	m_iCurrentListLevel = 0;
+	m_bInCell = false;
+	m_bInSection = true;   // the capture doc's seed section
+	m_bRequireBlock = true;
+
+	m_pCaptureDoc = capture;
+	m_pendingHdrFtrs.push_back(hdrFtr.get());
+	m_hdrFtrs.push_back(std::move(hdrFtr));
+}
+
+void IE_Imp_WordPerfect::_closeHdrFtr()
+{
+	if (m_bHdrFtrOpenCount > 0)
+		m_bHdrFtrOpenCount--;
+	if (m_bHdrFtrOpenCount)
+		return; // still inside an outer hdrftr
+
+	if (m_pCaptureDoc)
+	{
+		m_pCaptureDoc = nullptr;
+
+		m_pCurrentListDefinition = std::move(m_savedListDefinition);
+		m_iCurrentListLevel = m_savedListLevel;
+		m_bInSection = m_savedInSection;
+		m_bRequireBlock = m_savedRequireBlock;
+		m_bInCell = m_savedInCell;
+	}
+}
+
+void IE_Imp_WordPerfect::openHeader(const librevenge::RVNGPropertyList &propList)
+{
+	_openHdrFtr(true, propList);
 }
 
 void IE_Imp_WordPerfect::closeHeader()
 {
-	m_bHdrFtrOpenCount--;
-	/*
-	TODO: THIS CODE IS NOT!!!! USEFULL! - DON'T TOUCH IT - MARCM
-	m_nextFreeId++;
-	*/
+	_closeHdrFtr();
 }
 
-void IE_Imp_WordPerfect::openFooter(const librevenge::RVNGPropertyList & /*propList*/)
+void IE_Imp_WordPerfect::openFooter(const librevenge::RVNGPropertyList &propList)
 {
-	m_bHdrFtrOpenCount++;
-	// see above comments re: openHeader
+	_openHdrFtr(false, propList);
 }
 
 void IE_Imp_WordPerfect::closeFooter()
 {
-	m_bHdrFtrOpenCount--;
-	// see above comments re: closeHeader
+	_closeHdrFtr();
+}
+
+/* Each section of a page span shares the span's headers and footers.
+ * Since one hdrftr id may only be referenced by a single section, every
+ * bound section gets a fresh id; each is replayed as its own
+ * PTX_SectionHdrFtr at endDocument(). */
+void IE_Imp_WordPerfect::_bindPendingHdrFtrs(pf_Frag_Strux * pfs)
+{
+	for (auto * hdrFtr : m_pendingHdrFtrs)
+		_bindHdrFtrToSection(hdrFtr, pfs);
 }
 
 void IE_Imp_WordPerfect::openParagraph(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: openParagraph()\n"));
 	// for now, we always append these options
 	float marginTop = 0.0f, marginBottom = 0.0f;
@@ -647,7 +930,6 @@ void IE_Imp_WordPerfect::openParagraph(const librevenge::RVNGPropertyList &propL
 
 void IE_Imp_WordPerfect::openSpan(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: Appending current text properties\n"));
 	
 	const gchar* pProps = "props";
@@ -718,7 +1000,7 @@ void IE_Imp_WordPerfect::openSpan(const librevenge::RVNGPropertyList &propList)
 
 void IE_Imp_WordPerfect::openSection(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
+	if (m_bHdrFtrOpenCount) return; // body sections cannot nest in a header/footer
 	UT_DEBUGMSG(("AbiWordPerfect: openSection\n"));
 
 	float marginLeft = 0.0f, marginRight = 0.0f;
@@ -743,7 +1025,6 @@ void IE_Imp_WordPerfect::openSection(const librevenge::RVNGPropertyList &propLis
 
 void IE_Imp_WordPerfect::insertTab()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: insertTab\n"));
 
 	UT_UCS4Char ucs = UCS_TAB;
@@ -752,7 +1033,6 @@ void IE_Imp_WordPerfect::insertTab()
 
 void IE_Imp_WordPerfect::insertText(const librevenge::RVNGString &text)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	if (text.len())
 	{
 		UT_DEBUGMSG(("AbiWordPerfect: insertText\n"));
@@ -763,7 +1043,6 @@ void IE_Imp_WordPerfect::insertText(const librevenge::RVNGString &text)
 
 void IE_Imp_WordPerfect::insertSpace()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: insertSpace\n"));
 
 	UT_UCS4Char ucs = UCS_SPACE;
@@ -772,7 +1051,6 @@ void IE_Imp_WordPerfect::insertSpace()
 
 void IE_Imp_WordPerfect::insertLineBreak()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: insertLineBreak\n"));
 
 	UT_UCS4Char ucs = UCS_LF;
@@ -782,7 +1060,6 @@ void IE_Imp_WordPerfect::insertLineBreak()
 
 void IE_Imp_WordPerfect::openOrderedListLevel(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: openOrderedListLevel\n"));
 	
 	int listID = 0, startingNumber = 0, level = 1;
@@ -832,7 +1109,6 @@ void IE_Imp_WordPerfect::openOrderedListLevel(const librevenge::RVNGPropertyList
 
 void IE_Imp_WordPerfect::closeOrderedListLevel()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: closeOrderedListLevel (level: %i)\n", m_iCurrentListLevel));
 
 	// every time we close a list level, the level above it is normally renumbered to start at "1"
@@ -846,7 +1122,6 @@ void IE_Imp_WordPerfect::closeOrderedListLevel()
 
 void IE_Imp_WordPerfect::openUnorderedListLevel(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: openUNorderedListLevel\n"));
 	
 	int listID = 0, level = 1;
@@ -883,7 +1158,6 @@ void IE_Imp_WordPerfect::openUnorderedListLevel(const librevenge::RVNGPropertyLi
 
 void IE_Imp_WordPerfect::closeUnorderedListLevel()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: closeUnorderedListLevel (level: %i)\n", m_iCurrentListLevel));
 
 	if (m_iCurrentListLevel > 0)
@@ -894,7 +1168,6 @@ void IE_Imp_WordPerfect::closeUnorderedListLevel()
 // may result otherwise
 void IE_Imp_WordPerfect::openListElement(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: openListElement\n"));
 
 	// a malformed doc can emit a list element without an open level;
@@ -972,7 +1245,7 @@ void IE_Imp_WordPerfect::openListElement(const librevenge::RVNGPropertyList &pro
 	m_bRequireBlock = false;
 
 	// hang text off of a list label
-	getDoc()->appendFmtMark();
+	_doc()->appendFmtMark();
 	UT_DEBUGMSG(("WordPerfect: LISTS - Appended a list tag def'n (character props)\n"));
 
 	// append a list field label
@@ -989,9 +1262,7 @@ void IE_Imp_WordPerfect::openListElement(const librevenge::RVNGPropertyList &pro
 
 void IE_Imp_WordPerfect::openFootnote(const librevenge::RVNGPropertyList & /*propList*/)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
-
-	if (!m_bInSection)
+	if (!m_bInSection && !m_bHdrFtrOpenCount)
 	{
 		X_CheckDocumentError(appendStrux(PTX_Section, PP_NOPROPS));
 		X_CheckDocumentError(appendStrux(PTX_Block,PP_NOPROPS));
@@ -1021,13 +1292,11 @@ void IE_Imp_WordPerfect::openFootnote(const librevenge::RVNGPropertyList & /*pro
 
 void IE_Imp_WordPerfect::closeFootnote()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	X_CheckDocumentError(appendStrux(PTX_EndFootnote,PP_NOPROPS));
 }
 
 void IE_Imp_WordPerfect::openEndnote(const librevenge::RVNGPropertyList & /*propList*/)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	std::string endnoteId = UT_std_string_sprintf("%i", UT_rand());
 
 	PP_PropertyVector propsArray = {
@@ -1050,13 +1319,11 @@ void IE_Imp_WordPerfect::openEndnote(const librevenge::RVNGPropertyList & /*prop
 
 void IE_Imp_WordPerfect::closeEndnote()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	X_CheckDocumentError(appendStrux(PTX_EndEndnote, PP_NOPROPS));
 }
 
 void IE_Imp_WordPerfect::openTable(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	// TODO: handle 'marginLeftOffset' and 'marginRightOffset'
 	UT_DEBUGMSG(("AbiWordPerfect: openTable\n"));
 	
@@ -1101,7 +1368,6 @@ void IE_Imp_WordPerfect::openTable(const librevenge::RVNGPropertyList &propList)
 
 void IE_Imp_WordPerfect::openTableRow(const librevenge::RVNGPropertyList & /*propList*/)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: openRow\n"));
 	if (m_bInCell)
 	{
@@ -1113,7 +1379,6 @@ void IE_Imp_WordPerfect::openTableRow(const librevenge::RVNGPropertyList & /*pro
 
 void IE_Imp_WordPerfect::openTableCell(const librevenge::RVNGPropertyList &propList)
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	int col =0,  row = 0, colSpan = 0, rowSpan = 0;
 	if (propList["librevenge:column"])
 		col = propList["librevenge:column"]->getInt();
@@ -1176,7 +1441,6 @@ void IE_Imp_WordPerfect::openTableCell(const librevenge::RVNGPropertyList &propL
 
 void IE_Imp_WordPerfect::closeTable()
 {
-	if (m_bHdrFtrOpenCount) return; // HACK
 	UT_DEBUGMSG(("AbiWordPerfect: Closing table\n"));
 	
 	if (m_bInCell)
@@ -1209,7 +1473,14 @@ UT_Error IE_Imp_WordPerfect::_appendSection(int numColumns, const float marginLe
 	const PP_PropertyVector propsArray = {
 		"props", myProps.c_str()
 	};
-	X_CheckDocumentError(appendStrux(PTX_Section, propsArray));
+	pf_Frag_Strux * pfs = nullptr;
+	X_CheckDocumentError(getDoc()->appendStrux(PTX_Section, propsArray, &pfs));
+
+	// the page span's headers/footers apply to every section the span
+	// produces; each binding gets a fresh id since an id may only be
+	// referenced once
+	if (pfs)
+		_bindPendingHdrFtrs(pfs);
 
 	m_bInSection = true;
 	m_bRequireBlock = true;
