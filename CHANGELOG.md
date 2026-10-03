@@ -1817,6 +1817,15 @@ below are on `main` but the release has not been cut yet.
   usual word-select meaning. A plain click inside an inactive
   header/footer area no longer enters edit mode — it warps the
   caret to the nearest body text instead, matching Word.
+- **Top-ruler drag crash fixes** — dragging a page margin or a table
+  cell marker on the horizontal ruler could crash or misbehave when
+  the ruler's cached layout info was stale (e.g. while the document
+  was still reformatting): the margin drag divided by a column count
+  of zero, the right-margin clamp loop could spin forever, and cell
+  markers indexed the table-cell arrays without bounds checks. Drag
+  math now clamps the column divisor, bails cleanly on a stale
+  info cache, bounds the convergence loop, and every table-cell
+  lookup is bounds-checked including the right-edge marker.
 
 ### Tables (Word-style creation and context menus)
 

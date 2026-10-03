@@ -169,6 +169,22 @@ public:
 	UT_sint32               m_iTablePadding;
 	UT_sint32               m_iCells;
 	UT_sint32               m_iCurCell;
+
+	/* Bounds-checked accessors for the cell vectors. They are only
+	 * filled once the table layout completed, so a TRI_MODE_TABLE info
+	 * can legally carry null or empty vectors — and an info that
+	 * FV_View::getTopRulerInfo could not populate (piece table busy)
+	 * always does. Every index site must go through these. */
+	UT_sint32 tableCellInfoCount(void) const
+		{ return m_vecTableColInfo ? static_cast<UT_sint32>(m_vecTableColInfo->size()) : 0; }
+	UT_sint32 fullTableCellInfoCount(void) const
+		{ return m_vecFullTable ? static_cast<UT_sint32>(m_vecFullTable->size()) : 0; }
+	const AP_TopRulerTableInfo * tableCellInfo(UT_sint32 i) const
+		{ return (i >= 0 && i < tableCellInfoCount())
+				 ? (*m_vecTableColInfo)[i] : nullptr; }
+	const AP_TopRulerTableInfo * fullTableCellInfo(UT_sint32 i) const
+		{ return (i >= 0 && i < fullTableCellInfoCount())
+				 ? (*m_vecFullTable)[i] : nullptr; }
 	union _u {
 
 		struct _c {
@@ -238,6 +254,36 @@ public:
 	UT_uint32       getTabToggleAreaWidth() const;
 
 	static UT_uint32 getFixedWidth(){return s_iFixedWidth;}
+
+	/* Margin/column drag arithmetic, extracted as pure functions of the
+	 * info cache so it is unit-testable without a widget (no GR_Graphics,
+	 * no XAP_Frame needed). numColumnsForDrag is the divisor used to
+	 * spread a margin move evenly over the columns: a stale
+	 * AP_TopRulerInfo — FV_View::getTopRulerInfo bailed before populating
+	 * it, e.g. while the piece table was changing — reports 0 columns
+	 * and must never reach a division (SIGFPE). */
+	static UT_sint32	numColumnsForDrag(const AP_TopRulerInfo * pInfo);
+	static UT_sint32	columnWidthAfterMarginMove(UT_sint32 xColumnWidth,
+												   UT_sint32 deltaMargin,
+												   UT_sint32 iNumColumns);
+	/* Left-margin drag clamp: how far the drag x must move back (>= 0)
+	 * so the margin change leaves every column at least minColumnWidth
+	 * after the left/first-line indent reservation. */
+	static UT_sint32	leftMarginDragAdjust(const AP_TopRulerInfo * pInfo,
+											 UT_sint32 deltaLeftMargin,
+											 UT_sint32 iFirstIndentL,
+											 UT_sint32 minColumnWidth);
+	/* Right-margin drag clamp: advance x until the margin change leaves
+	 * every column >= minColumnWidth after reserving the indent shifts.
+	 * Outputs the resulting margin values; bounded loop — the closed
+	 * form step provably converges in <= 2 passes. */
+	static UT_sint32	rightMarginDragX(UT_sint32 x, UT_sint32 xAbsRight,
+										 const AP_TopRulerInfo * pInfo,
+										 UT_sint32 minColumnWidth,
+										 UT_sint32 iRightShift,
+										 UT_sint32 iLeftShift,
+										 UT_sint32 & newMarginOut,
+										 UT_sint32 & deltaRightMarginOut);
 
 protected:
 	/* implement XAP_CustomWidgetLU::drawImmediateLU */

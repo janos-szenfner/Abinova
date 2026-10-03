@@ -10379,6 +10379,9 @@ void FV_View::getTopRulerInfo(AP_TopRulerInfo * pInfo)
 {
 	if(getPoint() == 0)
 	{
+		/* reset so callers see a defined empty info (0 columns,
+		 * null cell vectors) rather than stale geometry */
+		pInfo->reset();
 		m_iFreePass = AV_CHG_COLUMN | AV_CHG_FMTSECTION | AV_CHG_FMTBLOCK | AV_CHG_HDRFTR;
 		return;
 	}
@@ -10460,6 +10463,13 @@ void FV_View::setViewMode (ViewMode vm)
 
 void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 {
+	/* clear pInfo up front: every early return below (piece table
+	 * changing, no run/line/container/section at the position) then
+	 * yields a defined empty info instead of leaving the caller's
+	 * cache stale. Drag code treats m_iNumColumns == 0 as "no valid
+	 * ruler info" and skips the drag. */
+	pInfo->reset();
+
 	if(m_pDoc->isPieceTableChanging())
 	{
 		m_iFreePass = AV_CHG_COLUMN | AV_CHG_FMTSECTION | AV_CHG_FMTBLOCK | AV_CHG_HDRFTR;
@@ -10485,9 +10495,6 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 
 	fl_SectionLayout * pSection = pContainer->getSectionLayout();
 	UT_return_if_fail(pSection);
-
-	/* clear pInfo */
-	pInfo->reset();
 
 	if (pSection->getType() == FL_SECTION_DOC || pSection->getContainerType() == FL_CONTAINER_FOOTNOTE || pSection->getContainerType() == FL_CONTAINER_ANNOTATION || pSection->getContainerType() == FL_CONTAINER_ENDNOTE)
 	{
@@ -10828,6 +10835,7 @@ void FV_View::getLeftRulerInfo(AP_LeftRulerInfo * pInfo)
 //
 	if(getPoint()== 0)
 	{
+		pInfo->reset();
 		m_iFreePass = AV_CHG_COLUMN | AV_CHG_FMTSECTION | AV_CHG_FMTBLOCK | AV_CHG_HDRFTR;
 		return;
 	}
@@ -10839,14 +10847,15 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 //
 // Clear out the old table info
 //
+	/* clear pInfo up front so the early return below yields a
+	 * defined empty info instead of a stale cache */
+	pInfo->reset();
+
 	if(m_pDoc->isPieceTableChanging())
 	{
 		m_iFreePass = AV_CHG_COLUMN | AV_CHG_FMTSECTION | AV_CHG_FMTBLOCK | AV_CHG_HDRFTR;
 		return;
 	}
-
-	/* clear pInfo */
-	pInfo->reset();
 
 	xxx_UT_DEBUGMSG(("ap_LeftRulerInfo: get Leftruler info \n"));
 
