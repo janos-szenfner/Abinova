@@ -1362,10 +1362,10 @@ bool FV_View::cmdMergeCells(PT_DocPosition posSource, PT_DocPosition posDestinat
 			UT_sint32 origRight = dRight;
 			const pf_Frag_Strux* sdhCell = nullptr;
 			PT_DocPosition posCell = 0;
-			UT_GenericVector<const pf_Frag_Strux*> vecCells;
+			std::vector<const pf_Frag_Strux*> vecCells;
 			posCell = findCellPosAt(posTable, dTop, dLeft)+1;
 			m_pDoc->getStruxOfTypeFromPosition(posCell,PTX_SectionCell,&sdhCell);
-			vecCells.addItem(sdhCell);
+			vecCells.push_back(sdhCell);
 			getCellParams(posCell,&dLeft,&dRight,&dTop,&dBot);
 			dRight -= diff;
 			_changeCellTo(posTable,dTop,dLeft,dLeft,dRight,dTop,dBot); 
@@ -1376,7 +1376,7 @@ bool FV_View::cmdMergeCells(PT_DocPosition posSource, PT_DocPosition posDestinat
 				{
 					posCell = findCellPosAt(posTable, row, col)+1;
 					m_pDoc->getStruxOfTypeFromPosition(posCell,PTX_SectionCell,&sdhCell);
-					if((sdhCell==nullptr) || (vecCells.findItem(sdhCell) >= 0))
+					if((sdhCell==nullptr) || (std::find(vecCells.begin(), vecCells.end(), sdhCell) != vecCells.end()))
 					{
 						continue;
 					}
@@ -1394,7 +1394,7 @@ bool FV_View::cmdMergeCells(PT_DocPosition posSource, PT_DocPosition posDestinat
 					}
 					if(bDoIt)
 					{
-						vecCells.addItem(sdhCell);
+						vecCells.push_back(sdhCell);
 						_changeCellTo(posTable,row,col,dLeft,dRight,dTop,dBot); 
 					}
 				}
@@ -1924,8 +1924,8 @@ bool FV_View::cmdSplitTable(void)
 	};
 
 	std::vector<SavedCell> saved;
-	UT_GenericVector<const pf_Frag_Strux*> seen;
-	UT_GenericVector<const pf_Frag_Strux*> spanners;
+	std::vector<const pf_Frag_Strux*> seen;
+	std::vector<const pf_Frag_Strux*> spanners;
 	for (UT_sint32 r = iTop; r < numRows; ++r)
 	{
 		for (UT_sint32 c = 0; c < numCols; ++c)
@@ -1933,11 +1933,11 @@ bool FV_View::cmdSplitTable(void)
 			const pf_Frag_Strux* cell = m_pDoc->getCellStruxFromRowCol(
 				tableSDH, isShowRevisions(), getRevisionLevel(), r, c);
 			if (!cell || cell->getStruxType() != PTX_SectionCell ||
-				seen.findItem(cell) >= 0)
+				std::find(seen.begin(), seen.end(), cell) != seen.end())
 			{
 				continue;
 			}
-			seen.addItem(cell);
+			seen.push_back(cell);
 
 			// a cell spanning the split boundary stays in the first
 			// table; its bottom edge is clamped to the split row later
@@ -1946,7 +1946,7 @@ bool FV_View::cmdSplitTable(void)
 						  &cL, &cR, &cT, &cB);
 			if (cT < iTop)
 			{
-				spanners.addItem(cell);
+				spanners.push_back(cell);
 				continue;
 			}
 
@@ -2029,17 +2029,17 @@ bool FV_View::cmdSplitTable(void)
 	// clamp the bottom edge of cells spanning the split so they stay
 	// entirely inside the first table
 	m_pDoc->setDontImmediatelyLayout(true);
-	const bool bBumped = spanners.getItemCount() > 0;
+	const bool bBumped = !spanners.empty();
 	if (bBumped)
 	{
 		_changeCellParams(posTable, tableSDH);
 		const PP_PropertyVector clampProps = {
 			"bot-attach", UT_std_string_sprintf("%d", iTop)
 		};
-		for (UT_sint32 k = 0; k < spanners.getItemCount(); ++k)
+		for (UT_sint32 k = 0; k < static_cast<UT_sint32>(spanners.size()); ++k)
 		{
 			PT_DocPosition posCell =
-				m_pDoc->getStruxPosition(spanners.getNthItem(k)) + 1;
+				m_pDoc->getStruxPosition(spanners[k]) + 1;
 			m_pDoc->changeStruxFmt(PTC_AddFmt, posCell, posCell,
 								   PP_NOPROPS, clampProps, PTX_SectionCell);
 		}
@@ -2168,7 +2168,7 @@ bool FV_View::cmdTableCellAlign(UT_sint32 iVert, const char * szAlign)
 	}
 
 	// collect the unique cells covered by the selection (or the caret cell)
-	UT_GenericVector<const pf_Frag_Strux*> vCells;
+	std::vector<const pf_Frag_Strux*> vCells;
 	PT_DocPosition posStart = getPoint();
 	PT_DocPosition posEnd = posStart;
 	if (!isSelectionEmpty())
@@ -2188,25 +2188,25 @@ bool FV_View::cmdTableCellAlign(UT_sint32 iVert, const char * szAlign)
 		const pf_Frag_Strux* cellSDH = nullptr;
 		if (m_pDoc->getStruxOfTypeFromPosition(posStart, PTX_SectionCell, &cellSDH) && cellSDH)
 		{
-			vCells.addItem(cellSDH);
+			vCells.push_back(cellSDH);
 		}
 	}
 	else
 	{
-		UT_GenericVector<fl_BlockLayout*> vBlock;
+		std::vector<fl_BlockLayout*> vBlock;
 		getBlocksInSelection(&vBlock);
-		for (UT_sint32 i = 0; i < vBlock.getItemCount(); ++i)
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vBlock.size()); ++i)
 		{
 			const pf_Frag_Strux* cellSDH = nullptr;
-			PT_DocPosition pos = vBlock.getNthItem(i)->getPosition(true);
+			PT_DocPosition pos = vBlock[i]->getPosition(true);
 			if (m_pDoc->getStruxOfTypeFromPosition(pos, PTX_SectionCell, &cellSDH) &&
-				cellSDH && vCells.findItem(cellSDH) < 0)
+				cellSDH && std::find(vCells.begin(), vCells.end(), cellSDH) == vCells.end())
 			{
-				vCells.addItem(cellSDH);
+				vCells.push_back(cellSDH);
 			}
 		}
 	}
-	UT_return_val_if_fail(vCells.getItemCount() > 0, false);
+	UT_return_val_if_fail(!vCells.empty(), false);
 
 	/* vertical alignment goes through the proven Format-Table path:
 	 * it bumps the table's change index so the cached row/column
@@ -2226,9 +2226,9 @@ bool FV_View::cmdTableCellAlign(UT_sint32 iVert, const char * szAlign)
 		"text-align", szAlign
 	};
 
-	for (UT_sint32 i = 0; i < vCells.getItemCount(); ++i)
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vCells.size()); ++i)
 	{
-		const pf_Frag_Strux* cellSDH = vCells.getNthItem(i);
+		const pf_Frag_Strux* cellSDH = vCells[i];
 
 		// every block inside the cell gets the horizontal alignment
 		const pf_Frag_Strux* endSDH = m_pDoc->getEndCellStruxFromCellStrux(cellSDH);
@@ -2275,7 +2275,7 @@ bool FV_View::cmdCellTextDirection(const char * szDir)
 		return false;
 	}
 
-	UT_GenericVector<const pf_Frag_Strux*> vCells;
+	std::vector<const pf_Frag_Strux*> vCells;
 	PT_DocPosition posStart = getPoint();
 	PT_DocPosition posEnd = posStart;
 	if (!isSelectionEmpty())
@@ -2295,25 +2295,25 @@ bool FV_View::cmdCellTextDirection(const char * szDir)
 		const pf_Frag_Strux* cellSDH = nullptr;
 		if (m_pDoc->getStruxOfTypeFromPosition(posStart, PTX_SectionCell, &cellSDH) && cellSDH)
 		{
-			vCells.addItem(cellSDH);
+			vCells.push_back(cellSDH);
 		}
 	}
 	else
 	{
-		UT_GenericVector<fl_BlockLayout*> vBlock;
+		std::vector<fl_BlockLayout*> vBlock;
 		getBlocksInSelection(&vBlock);
-		for (UT_sint32 i = 0; i < vBlock.getItemCount(); ++i)
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vBlock.size()); ++i)
 		{
 			const pf_Frag_Strux* cellSDH = nullptr;
-			PT_DocPosition pos = vBlock.getNthItem(i)->getPosition(true);
+			PT_DocPosition pos = vBlock[i]->getPosition(true);
 			if (m_pDoc->getStruxOfTypeFromPosition(pos, PTX_SectionCell, &cellSDH) &&
-				cellSDH && vCells.findItem(cellSDH) < 0)
+				cellSDH && std::find(vCells.begin(), vCells.end(), cellSDH) == vCells.end())
 			{
-				vCells.addItem(cellSDH);
+				vCells.push_back(cellSDH);
 			}
 		}
 	}
-	UT_return_val_if_fail(vCells.getItemCount() > 0, false);
+	UT_return_val_if_fail(!vCells.empty(), false);
 
 	_saveAndNotifyPieceTableChange();
 	m_pDoc->disableListUpdates();
@@ -2325,9 +2325,9 @@ bool FV_View::cmdCellTextDirection(const char * szDir)
 	};
 	const UT_BidiCharType iNewDir =
 		!strcmp(szDir, "rtl") ? UT_BIDI_RTL : UT_BIDI_LTR;
-	for (UT_sint32 i = 0; i < vCells.getItemCount(); ++i)
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vCells.size()); ++i)
 	{
-		const pf_Frag_Strux* cellSDH = vCells.getNthItem(i);
+		const pf_Frag_Strux* cellSDH = vCells[i];
 		const pf_Frag_Strux* endSDH = m_pDoc->getEndCellStruxFromCellStrux(cellSDH);
 		for (pf_Frag* pf = const_cast<pf_Frag_Strux*>(cellSDH)->getNext();
 			 pf && pf != endSDH; pf = pf->getNext())
@@ -3080,16 +3080,16 @@ bool FV_View::cmdToggleRepeatHeader(void)
 	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
 	_changeCellParams(posTable, tableSDH);
 
-	UT_GenericVector<const pf_Frag_Strux*> done;
+	std::vector<const pf_Frag_Strux*> done;
 	for (UT_sint32 i = 0; i < numCols; ++i)
 	{
 		const pf_Frag_Strux* cell = m_pDoc->getCellStruxFromRowCol(
 			tableSDH, isShowRevisions(), getRevisionLevel(), iTop, i);
-		if (!cell || done.findItem(cell) >= 0)
+		if (!cell || std::find(done.begin(), done.end(), cell) != done.end())
 		{
 			continue;
 		}
-		done.addItem(cell);
+		done.push_back(cell);
 		PT_DocPosition posCell = m_pDoc->getStruxPosition(cell) + 1;
 		if (bOn)
 		{
@@ -10490,9 +10490,9 @@ bool FV_View::cmdSortParagraphs(bool bAscending)
 	UT_return_val_if_fail(getSelectionMode() == FV_SelectionMode_Single,
 						  false);
 
-	UT_GenericVector<fl_BlockLayout *> vecBlocks;
+	std::vector<fl_BlockLayout *> vecBlocks;
 	getBlocksInSelection(&vecBlocks);
-	UT_sint32 nBlocks = vecBlocks.getItemCount();
+	UT_sint32 nBlocks = static_cast<UT_sint32>(vecBlocks.size());
 	UT_return_val_if_fail(nBlocks >= 2, false);
 
 	/* collect each block's text in document order */
@@ -10500,7 +10500,7 @@ bool FV_View::cmdSortParagraphs(bool bAscending)
 	origText.reserve(nBlocks);
 	for (UT_sint32 i = 0; i < nBlocks; ++i)
 	{
-		fl_BlockLayout * pBL = vecBlocks.getNthItem(i);
+		fl_BlockLayout * pBL = vecBlocks[i];
 		if (!pBL || pBL->getContainerType() != FL_CONTAINER_BLOCK)
 			return false;
 		PT_DocPosition pos = pBL->getPosition(true);
@@ -10531,7 +10531,7 @@ bool FV_View::cmdSortParagraphs(bool bAscending)
 		if (!UT_UCS4_strcmp(sorted[i].ucs4_str(),
 							origText[i].ucs4_str()))
 			continue;
-		fl_BlockLayout * pBL = vecBlocks.getNthItem(i);
+		fl_BlockLayout * pBL = vecBlocks[i];
 		/* getPosition(true) is the block strux frag position and
 		 * getLength() counts it too - the text lives at pos+1 and
 		 * is len-1 characters long.  Never touch the strux frag or
@@ -10595,9 +10595,9 @@ bool FV_View::cmdParaBorder(const char * szWhich)
 		return true;
 	}
 
-	UT_GenericVector<fl_BlockLayout *> vBlock;
+	std::vector<fl_BlockLayout *> vBlock;
 	getBlocksInSelection(&vBlock);
-	UT_sint32 nBlocks = vBlock.getItemCount();
+	UT_sint32 nBlocks = static_cast<UT_sint32>(vBlock.size());
 	UT_return_val_if_fail(nBlocks > 0, false);
 
 	bool on[4] = {false, false, false, false};	/* top bot left right */
@@ -10630,7 +10630,7 @@ bool FV_View::cmdParaBorder(const char * szWhich)
 	};
 	for (UT_sint32 i = 0; i < iLastBlock; ++i)
 	{
-		fl_BlockLayout * pBL = vBlock.getNthItem(i);
+		fl_BlockLayout * pBL = vBlock[i];
 		UT_nonnull_or_continue(pBL);
 		PT_DocPosition pos = pBL->getPosition();
 		PP_PropertyVector props;
@@ -10653,7 +10653,7 @@ bool FV_View::cmdParaBorder(const char * szWhich)
 	{
 		for (UT_sint32 i = 0; i < nBlocks; ++i)
 		{
-			fl_BlockLayout * pBL = vBlock.getNthItem(i);
+			fl_BlockLayout * pBL = vBlock[i];
 			UT_nonnull_or_continue(pBL);
 			PT_DocPosition pos = pBL->getPosition();
 			const PP_PropertyVector props = {

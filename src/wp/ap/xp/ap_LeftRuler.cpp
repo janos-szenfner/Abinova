@@ -705,25 +705,25 @@ void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton
 // Fill the heights string Now
 //
 			UT_sint32 i =0;
-			xxx_UT_DEBUGMSG(("Cell height set to %f for row %d  number item %d \n",dNewHeight,m_draggingCell,m_infoCache.m_vecTableRowInfo->getItemCount()));
+			xxx_UT_DEBUGMSG(("Cell height set to %f for row %d  number item %d \n",dNewHeight,m_draggingCell,static_cast<UT_sint32>(m_infoCache.m_vecTableRowInfo->size())));
 			const AP_LeftRulerTableInfo * pTInfo =  nullptr;
-			pTInfo = m_infoCache.m_vecTableRowInfo->getNthItem(0);
+			pTInfo = (*m_infoCache.m_vecTableRowInfo)[0];
 			fp_TableContainer * pTab = static_cast<fp_TableContainer *>(pTInfo->m_pCell->getContainer());
 			fp_CellContainer * pCell = nullptr;
 			posPrev =pTab->getYOfRow(0);
-			for(i=1;i<=m_infoCache.m_vecTableRowInfo->getItemCount();i++)
+			for(i=1;i<=static_cast<UT_sint32>(m_infoCache.m_vecTableRowInfo->size());i++)
 			{
-				bool bLast = (m_infoCache.m_vecTableRowInfo->getItemCount() == i);
+				bool bLast = (static_cast<UT_sint32>(m_infoCache.m_vecTableRowInfo->size()) == i);
 				UT_sint32 iCurPos = 0;
 				if(!bLast)
 				{
-					pTInfo = m_infoCache.m_vecTableRowInfo->getNthItem(i);
+					pTInfo = (*m_infoCache.m_vecTableRowInfo)[i];
 					pCell = pTInfo->m_pCell;
 					iCurPos = pTab->getYOfRow(pCell->getTopAttach());
 				}
 				else
 				{
-					pTInfo = m_infoCache.m_vecTableRowInfo->getNthItem(i-1);
+					pTInfo = (*m_infoCache.m_vecTableRowInfo)[i-1];
 					pCell = pTInfo->m_pCell;
 					iCurPos = pTab->getYOfRow(pCell->getBottomAttach());
 				}
@@ -1426,11 +1426,11 @@ void AP_LeftRuler::_getCellMarkerRects(const AP_LeftRulerInfo * pInfo, UT_sint32
 
 	if(iCell < pInfo->m_iNumRows)
 	{
-		pLInfo = pInfo->m_vecTableRowInfo->getNthItem(iCell);
+		pLInfo = (*pInfo->m_vecTableRowInfo)[iCell];
 	}
 	else
 	{
-		pLInfo = pInfo->m_vecTableRowInfo->getNthItem(pInfo->m_iNumRows -1);
+		pLInfo = (*pInfo->m_vecTableRowInfo)[pInfo->m_iNumRows -1];
 	}
 
 //	UT_sint32 yOrigin = pInfo->m_yPageStart + pInfo->m_yTopMargin - m_yScrollOffset;
@@ -1515,15 +1515,15 @@ void AP_LeftRuler::_getCellMarkerRects(const AP_LeftRulerInfo * pInfo, UT_sint32
 	} 
 	else
 	{
-		UT_sint32 imax = pInfo->m_vecTableRowInfo->getItemCount();
+		UT_sint32 imax = static_cast<UT_sint32>(pInfo->m_vecTableRowInfo->size());
 		AP_LeftRulerTableInfo * pKInfo = nullptr;
 		if(iCell - 1 < imax)
 		{
-			pKInfo = pInfo->m_vecTableRowInfo->getNthItem(iCell-1);
+			pKInfo = (*pInfo->m_vecTableRowInfo)[iCell-1];
 		}
 		else
 		{
-			pKInfo = pInfo->m_vecTableRowInfo->getNthItem(imax-1);
+			pKInfo = (*pInfo->m_vecTableRowInfo)[imax-1];
 		}
 		bottomSpacing = pKInfo->m_iBotSpacing;
 	}
@@ -1574,11 +1574,11 @@ void AP_LeftRuler::_drawCellProperties(const AP_LeftRulerInfo * pInfo)
 	if(pBroke == nullptr)
 	{
 	  AP_LeftRulerTableInfo * pTInfo =  nullptr;
-	  if (pInfo->m_vecTableRowInfo->getItemCount() == 0)
+	  if (pInfo->m_vecTableRowInfo->empty())
 	  {
 	      return;
 	  }
-	  pTInfo = pInfo->m_vecTableRowInfo->getNthItem(0);
+	  pTInfo = (*pInfo->m_vecTableRowInfo)[0];
 	  UT_return_if_fail(pTInfo);
 	  fp_CellContainer * pCell = pTInfo->m_pCell;
 	  fp_Container * pHdr = pCell->getContainer();

@@ -29,6 +29,9 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <algorithm>
+#include <memory>
+#include <vector>
 #include <glib.h>
 #include "ut_locale.h"
 #include "pf_Frag.h"
@@ -702,7 +705,6 @@ FV_View::~FV_View()
 	FREEP(m_sReplace);
 
 	DELETEP(m_pLocalBuf);
-	UT_VECTOR_PURGEALL(fv_CaretProps *,m_vecCarets);
 }
 
 bool FV_View::isActive(void) const
@@ -781,14 +783,14 @@ void FV_View:: fixInsertionPointCoords(void)
 void FV_View::updateCarets(PT_DocPosition docPos, UT_sint32 iLen)
 {
 	fv_CaretProps * pCaretProps = nullptr;
-	UT_sint32 iCount = m_vecCarets.getItemCount();
+	size_t iCount = m_vecCarets.size();
 	std::string sUUID = m_pDoc->getMyUUIDString();
 	bool bLocal = (sUUID == m_sDocUUID);
-	UT_sint32 i = 0;
+	size_t i = 0;
 	bool bFoundID = false;
 	for(i=0; i<iCount;i++)
 	{
-			pCaretProps = m_vecCarets.getNthItem(i);
+			pCaretProps = m_vecCarets[i].get();
 			pCaretProps->m_pCaret->resetBlinkTimeout();
 			if((pCaretProps->m_sCaretID == sUUID) && (iLen > 0))
 			{
@@ -815,9 +817,9 @@ void FV_View::updateCarets(PT_DocPosition docPos, UT_sint32 iLen)
 
 void FV_View::removeCaret(const std::string& sUUID)
 {
-	for (UT_sint32 i = 0; i < m_vecCarets.getItemCount(); i++)
+	for (size_t i = 0; i < m_vecCarets.size(); i++)
 	{
-		fv_CaretProps* pCaretProps = m_vecCarets.getNthItem(i);
+		fv_CaretProps* pCaretProps = m_vecCarets[i].get();
 		UT_continue_if_fail(pCaretProps);
 
 		if (pCaretProps->m_sCaretID == sUUID)
@@ -825,8 +827,7 @@ void FV_View::removeCaret(const std::string& sUUID)
 			pCaretProps->m_pCaret->disable(false);
 			m_pG->removeCaret(pCaretProps->m_sCaretID);
 			removeListener(pCaretProps->m_ListenerID);
-			DELETEP(pCaretProps);
-			m_vecCarets.deleteNthItem(i);
+			m_vecCarets.erase(m_vecCarets.begin() + i);
 			break;
 		}
 	}
@@ -843,18 +844,19 @@ void FV_View::addCaret(PT_DocPosition docPos,UT_sint32 iAuthorId)
 	// Check we're not adding a duplicated caret
 	//
 	fv_CaretProps* pCaretProps = nullptr;
-	UT_sint32 iCount = m_vecCarets.getItemCount();
-	for (UT_sint32 i = 0; i < iCount; i++)
+	size_t iCount = m_vecCarets.size();
+	for (size_t i = 0; i < iCount; i++)
 	{
-		pCaretProps = m_vecCarets.getNthItem(i);
+		pCaretProps = m_vecCarets[i].get();
 		if(pCaretProps->m_sCaretID == m_pDoc->getMyUUIDString())
 		{
 			return;
 		}
 	}
-	pCaretProps = new fv_CaretProps(this,docPos);
-	m_vecCarets.addItem(pCaretProps);
-	UT_DEBUGMSG((" add caret num %d id %d position %d \n", m_vecCarets.getItemCount(), iAuthorId, docPos));
+	auto pNewCaret = std::make_unique<fv_CaretProps>(this,docPos);
+	pCaretProps = pNewCaret.get();
+	m_vecCarets.push_back(std::move(pNewCaret));
+	UT_DEBUGMSG((" add caret num %d id %d position %d \n", static_cast<int>(m_vecCarets.size()), iAuthorId, docPos));
 	pCaretProps->m_sCaretID = m_pDoc->getMyUUIDString();
 	pCaretProps->m_pCaret = m_pG->createCaret(pCaretProps->m_sCaretID );
 	UT_DEBUGMSG(("m_sCaretID %s OrigDocID %s \n", pCaretProps->m_sCaretID.c_str(), m_sDocUUID.c_str()));
@@ -1197,10 +1199,10 @@ void FV_View::setFrameFormat(const PP_PropertyVector & properties)
  */
 bool FV_View::convertPositionedToInLine(fl_FrameLayout * pFrame)
 {
-	UT_GenericVector<fl_BlockLayout *> vecBlocks;
+	std::vector<fl_BlockLayout *> vecBlocks;
 	fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(pFrame->getFirstContainer());
 	pFC->getBlocksAroundFrame(vecBlocks);
-	if(vecBlocks.getItemCount() == 0)
+	if(vecBlocks.empty())
 	{
 		fp_Page * pPage = pFC->getPage();
 		fp_Column * pCol = pPage->getNthColumnLeader(0);
@@ -1215,10 +1217,10 @@ bool FV_View::convertPositionedToInLine(fl_FrameLayout * pFrame)
 			fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pCon->getSectionLayout());
 			pB = pCL->getNextBlockInDocument();
 		}
-		vecBlocks.addItem(pB);
+		vecBlocks.push_back(pB);
 	}
 	UT_sint32 iBlk = 0;
-	fl_BlockLayout * pBL = vecBlocks.getNthItem(iBlk);
+	fl_BlockLayout * pBL = vecBlocks[iBlk];
 	fp_Line * pLine = static_cast<fp_Line *>(pBL->getFirstContainer());
 	bool bLoop = true;
 	while((pLine != nullptr) && bLoop)
@@ -1235,16 +1237,16 @@ bool FV_View::convertPositionedToInLine(fl_FrameLayout * pFrame)
 			if(pLine == nullptr)
 			{
 				iBlk++;
-				if(iBlk < vecBlocks.getItemCount())
+				if(iBlk < static_cast<UT_sint32>(vecBlocks.size()))
 				{
-					pBL = vecBlocks.getNthItem(iBlk);
+					pBL = vecBlocks[iBlk];
 					pLine = static_cast<fp_Line *>(pBL->getFirstContainer());
 				}
 			}
 	}
 	if(pLine == nullptr)
 	{
-		pBL = vecBlocks.getNthItem(vecBlocks.getItemCount()-1);
+		pBL = vecBlocks[static_cast<UT_sint32>(vecBlocks.size())-1];
 		pLine = static_cast<fp_Line *>(pBL->getLastContainer());
 		if(pLine == nullptr)
 			return false;
@@ -1666,23 +1668,23 @@ void FV_View::_renumberFrameLayer(fp_Page * pPage, bool bAbove)
 	}
 	UT_sint32 n = bAbove ? pPage->countAboveFrameContainers()
 						 : pPage->countBelowFrameContainers();
-	UT_GenericVector<fl_FrameLayout *> vecFL;
+	std::vector<fl_FrameLayout *> vecFL;
 	for (UT_sint32 i = 0; i < n; i++)
 	{
 		fp_FrameContainer * pFC = bAbove
 			? pPage->getNthAboveFrameContainer(i)
 			: pPage->getNthBelowFrameContainer(i);
 		if (pFC && pFC->getSectionLayout())
-			vecFL.addItem(static_cast<fl_FrameLayout *>(
+			vecFL.push_back(static_cast<fl_FrameLayout *>(
 							  pFC->getSectionLayout()));
 	}
 	_saveAndNotifyPieceTableChange();
 	m_pDoc->beginUserAtomicGlob();
-	for (UT_sint32 i = 0; i < vecFL.getItemCount(); i++)
+	for (size_t i = 0; i < vecFL.size(); i++)
 	{
 		char buf[16];
-		snprintf(buf, sizeof(buf), "%d", i);
-		_writeFrameProp(vecFL.getNthItem(i), "frame-stack-order", buf);
+		snprintf(buf, sizeof(buf), "%d", static_cast<int>(i));
+		_writeFrameProp(vecFL[i], "frame-stack-order", buf);
 	}
 	m_pDoc->endUserAtomicGlob();
 	_restorePieceTableState();
@@ -1714,9 +1716,9 @@ bool FV_View::rotateFrame(fl_FrameLayout * pFL, double dDegrees)
 {
 	if (!pFL)
 		return false;
-	UT_GenericVector<fl_FrameLayout *> members;
+	std::vector<fl_FrameLayout *> members;
 	getGroupMembers(pFL, members);
-	if (members.getItemCount() == 0)
+	if (members.empty())
 	{
 		const char * sz = s_framePropStr(pFL, "frame-rotation");
 		double cur = sz ? g_ascii_strtod(sz, nullptr) : 0.0;
@@ -1725,7 +1727,7 @@ bool FV_View::rotateFrame(fl_FrameLayout * pFL, double dDegrees)
 			deg += 360.0;
 		return setFrameRotation(pFL, deg);
 	}
-	members.addItem(pFL);
+	members.push_back(pFL);
 	_groupTransform(members, dDegrees, false, false);
 	return true;
 }
@@ -1754,9 +1756,9 @@ bool FV_View::flipFrame(fl_FrameLayout * pFL, bool bHorizontal)
 {
 	if (!pFL)
 		return false;
-	UT_GenericVector<fl_FrameLayout *> members;
+	std::vector<fl_FrameLayout *> members;
 	getGroupMembers(pFL, members);
-	if (members.getItemCount() == 0)
+	if (members.empty())
 	{
 		const char * szName = bHorizontal ? "frame-flip-horiz"
 										  : "frame-flip-vert";
@@ -1764,7 +1766,7 @@ bool FV_View::flipFrame(fl_FrameLayout * pFL, bool bHorizontal)
 		bool bOn = sz && strcmp(sz, "0") != 0 && strcmp(sz, "false") != 0;
 		return setFrameProp(pFL, szName, bOn ? "0" : "1");
 	}
-	members.addItem(pFL);
+	members.push_back(pFL);
 	_groupTransform(members, 0.0, bHorizontal, !bHorizontal);
 	return true;
 }
@@ -1793,14 +1795,14 @@ static bool s_framePageBox(fl_FrameLayout * pFL,
  * group bounding-box centre, then the member's own rotation/flip prop
  * is updated.  One undoable glob for the whole group.
  */
-void FV_View::_groupTransform(UT_GenericVector<fl_FrameLayout *> & members,
+void FV_View::_groupTransform(std::vector<fl_FrameLayout *> & members,
 							  double dDegrees, bool bFlipH, bool bFlipV)
 {
 	double bx0 = 1e30, by0 = 1e30, bx1 = -1e30, by1 = -1e30;
-	for (UT_sint32 i = 0; i < members.getItemCount(); i++)
+	for (fl_FrameLayout * pM : members)
 	{
 		double x, y, w, h;
-		if (s_framePageBox(members.getNthItem(i), x, y, w, h))
+		if (s_framePageBox(pM, x, y, w, h))
 		{
 			bx0 = UT_MIN(bx0, x); by0 = UT_MIN(by0, y);
 			bx1 = UT_MAX(bx1, x + w); by1 = UT_MAX(by1, y + h);
@@ -1814,9 +1816,8 @@ void FV_View::_groupTransform(UT_GenericVector<fl_FrameLayout *> & members,
 
 	_saveAndNotifyPieceTableChange();
 	m_pDoc->beginUserAtomicGlob();
-	for (UT_sint32 i = 0; i < members.getItemCount(); i++)
+	for (fl_FrameLayout * pM : members)
 	{
-		fl_FrameLayout * pM = members.getNthItem(i);
 		double x, y, w, h;
 		if (!s_framePageBox(pM, x, y, w, h))
 			continue;
@@ -1863,22 +1864,21 @@ void FV_View::_groupTransform(UT_GenericVector<fl_FrameLayout *> & members,
  * Every frame sharing pFL's frame-group id, excluding pFL itself.
  */
 void FV_View::getGroupMembers(fl_FrameLayout * pFL,
-							  UT_GenericVector<fl_FrameLayout *> & vec) const
+							  std::vector<fl_FrameLayout *> & vec) const
 {
 	const char * sz = s_framePropStr(pFL, "frame-group");
 	UT_String gid = sz ? sz : "";
 	if (gid.empty())
 		return;
-	UT_GenericVector<fl_FrameLayout *> all;
+	std::vector<fl_FrameLayout *> all;
 	getFrameLayouts(all);
-	for (UT_sint32 i = 0; i < all.getItemCount(); i++)
+	for (fl_FrameLayout * pM : all)
 	{
-		fl_FrameLayout * pM = all.getNthItem(i);
 		if (pM == pFL)
 			continue;
 		const char * szM = s_framePropStr(pM, "frame-group");
 		if (szM && gid == szM)
-			vec.addItem(pM);
+			vec.push_back(pM);
 	}
 }
 
@@ -1888,26 +1888,24 @@ void FV_View::getGroupMembers(fl_FrameLayout * pFL,
  * id is written the members are compacted into one contiguous Z-order
  * block so the group occupies a single logical stacking slot.
  */
-bool FV_View::groupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel)
+bool FV_View::groupFrames(std::vector<fl_FrameLayout *> & vecSel)
 {
-	UT_GenericVector<fl_FrameLayout *> sel;
-	for (UT_sint32 i = 0; i < vecSel.getItemCount(); i++)
+	std::vector<fl_FrameLayout *> sel;
+	for (fl_FrameLayout * pFL : vecSel)
 	{
-		fl_FrameLayout * pFL = vecSel.getItemCount() > i
-			? vecSel.getNthItem(i) : nullptr;
-		if (pFL && sel.findItem(pFL) < 0)
-			sel.addItem(pFL);
+		if (pFL && std::find(sel.begin(), sel.end(), pFL) == sel.end())
+			sel.push_back(pFL);
 	}
-	if (sel.getItemCount() < 2)
+	if (sel.size() < 2)
 		return false;
 
 	/* next free group id: g1, g2, ... */
-	UT_GenericVector<fl_FrameLayout *> all;
+	std::vector<fl_FrameLayout *> all;
 	getFrameLayouts(all);
 	int maxId = 0;
-	for (UT_sint32 i = 0; i < all.getItemCount(); i++)
+	for (fl_FrameLayout * pFL : all)
 	{
-		const char * sz = s_framePropStr(all.getNthItem(i), "frame-group");
+		const char * sz = s_framePropStr(pFL, "frame-group");
 		if (sz)
 		{
 			int id = 0;
@@ -1920,16 +1918,15 @@ bool FV_View::groupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel)
 
 	_saveAndNotifyPieceTableChange();
 	m_pDoc->beginUserAtomicGlob();
-	for (UT_sint32 i = 0; i < sel.getItemCount(); i++)
-		_writeFrameProp(sel.getNthItem(i), "frame-group", gid);
+	for (fl_FrameLayout * pFL : sel)
+		_writeFrameProp(pFL, "frame-group", gid);
 	m_pDoc->endUserAtomicGlob();
 	_restorePieceTableState();
 
 	/* compact the members into one Z-order block per page layer */
-	UT_GenericVector<fp_Page *> pages;
-	for (UT_sint32 i = 0; i < sel.getItemCount(); i++)
+	std::vector<fp_Page *> pages;
+	for (fl_FrameLayout * pFL : sel)
 	{
-		fl_FrameLayout * pFL = sel.getNthItem(i);
 		fp_FrameContainer * pFC = pFL ? static_cast<fp_FrameContainer *>(
 			pFL->getFirstContainer()) : nullptr;
 		if (!pFC || !pFC->getPage())
@@ -1945,12 +1942,12 @@ bool FV_View::groupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel)
 }
 
 /*! Removes the group id from every frame in vecSel - Word's Ungroup. */
-bool FV_View::ungroupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel)
+bool FV_View::ungroupFrames(std::vector<fl_FrameLayout *> & vecSel)
 {
 	bool bAny = false;
-	for (UT_sint32 i = 0; i < vecSel.getItemCount(); i++)
+	for (fl_FrameLayout * pFL : vecSel)
 	{
-		if (s_framePropStr(vecSel.getNthItem(i), "frame-group"))
+		if (s_framePropStr(pFL, "frame-group"))
 		{
 			bAny = true;
 			break;
@@ -1960,8 +1957,8 @@ bool FV_View::ungroupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel)
 		return false;
 	_saveAndNotifyPieceTableChange();
 	m_pDoc->beginUserAtomicGlob();
-	for (UT_sint32 i = 0; i < vecSel.getItemCount(); i++)
-		_writeFrameProp(vecSel.getNthItem(i), "frame-group", "");
+	for (fl_FrameLayout * pFL : vecSel)
+		_writeFrameProp(pFL, "frame-group", "");
 	m_pDoc->endUserAtomicGlob();
 	_restorePieceTableState();
 	_generalUpdate();
@@ -1980,12 +1977,12 @@ bool FV_View::shiftFrameGroup(fl_FrameLayout * pMoved,
 {
 	if (!pMoved || (dXin == 0.0 && dYin == 0.0))
 		return false;
-	UT_GenericVector<fl_FrameLayout *> members;
+	std::vector<fl_FrameLayout *> members;
 	getGroupMembers(pMoved, members);
-	if (members.getItemCount() == 0)
+	if (members.empty())
 		return false;
-	for (UT_sint32 i = 0; i < members.getItemCount(); i++)
-		_shiftFrame(members.getNthItem(i), dXin, dYin);
+	for (fl_FrameLayout * pM : members)
+		_shiftFrame(pM, dXin, dYin);
 	return true;
 }
 
@@ -2038,40 +2035,44 @@ void FV_View::toggleGroupSel(fl_FrameLayout * pFL, bool bOn)
 		return;
 	if (bOn)
 	{
-		if (m_vecGroupSel.findItem(pFL) < 0)
-			m_vecGroupSel.addItem(pFL);
+		if (std::find(m_vecGroupSel.begin(), m_vecGroupSel.end(), pFL)
+			== m_vecGroupSel.end())
+			m_vecGroupSel.push_back(pFL);
 	}
 	else
 	{
-		UT_sint32 i = m_vecGroupSel.findItem(pFL);
-		if (i >= 0)
-			m_vecGroupSel.deleteNthItem(i);
+		auto it = std::find(m_vecGroupSel.begin(), m_vecGroupSel.end(), pFL);
+		if (it != m_vecGroupSel.end())
+			m_vecGroupSel.erase(it);
 	}
 }
 
 bool FV_View::isInGroupSel(fl_FrameLayout * pFL) const
 {
-	return pFL && m_vecGroupSel.findItem(pFL) >= 0;
+	return pFL && std::find(m_vecGroupSel.begin(), m_vecGroupSel.end(), pFL)
+		!= m_vecGroupSel.end();
 }
 
 UT_sint32 FV_View::groupSelCount(void)
 {
 	/* prune entries whose frame no longer exists */
-	UT_GenericVector<fl_FrameLayout *> all;
+	std::vector<fl_FrameLayout *> all;
 	getFrameLayouts(all);
-	for (UT_sint32 i = m_vecGroupSel.getItemCount() - 1; i >= 0; i--)
+	for (UT_sint32 i = static_cast<UT_sint32>(m_vecGroupSel.size()) - 1;
+		 i >= 0; i--)
 	{
-		if (all.findItem(m_vecGroupSel.getNthItem(i)) < 0)
-			m_vecGroupSel.deleteNthItem(i);
+		if (std::find(all.begin(), all.end(), m_vecGroupSel[i])
+			== all.end())
+			m_vecGroupSel.erase(m_vecGroupSel.begin() + i);
 	}
-	return m_vecGroupSel.getItemCount();
+	return static_cast<UT_sint32>(m_vecGroupSel.size());
 }
 
-void FV_View::getGroupSel(UT_GenericVector<fl_FrameLayout *> & vec)
+void FV_View::getGroupSel(std::vector<fl_FrameLayout *> & vec)
 {
 	groupSelCount();
-	for (UT_sint32 i = 0; i < m_vecGroupSel.getItemCount(); i++)
-		vec.addItem(m_vecGroupSel.getNthItem(i));
+	for (fl_FrameLayout * pFL : m_vecGroupSel)
+		vec.push_back(pFL);
 }
 
 void FV_View::clearGroupSel(void)
@@ -2085,7 +2086,7 @@ void FV_View::clearGroupSel(void)
  * pane's object list.  Frames hosted by blocks are found by walking
  * the block chain; each block's m_vecFrames holds the frames
  * anchored to it. */
-void FV_View::getFrameLayouts(UT_GenericVector<fl_FrameLayout *> & vec) const
+void FV_View::getFrameLayouts(std::vector<fl_FrameLayout *> & vec) const
 {
 	fl_DocSectionLayout * pSec = getLayout()
 		? getLayout()->getFirstSection() : nullptr;
@@ -2095,8 +2096,8 @@ void FV_View::getFrameLayouts(UT_GenericVector<fl_FrameLayout *> & vec) const
 		for (UT_sint32 i = 0; i < pBL->getNumFrames(); ++i)
 		{
 			fl_FrameLayout * pFL = pBL->getNthFrameLayout(i);
-			if (pFL && vec.findItem(pFL) < 0)
-				vec.addItem(pFL);
+			if (pFL && std::find(vec.begin(), vec.end(), pFL) == vec.end())
+				vec.push_back(pFL);
 		}
 		pBL = pBL->getNextBlockInDocument();
 	}
@@ -3553,9 +3554,9 @@ PT_DocPosition FV_View::getSelectedImage(const char **dataId, const fp_Run **pIm
 		PT_DocPosition pos = m_Selection.getSelectionAnchor();
 		fp_Run* pRun = nullptr;
 
-		UT_GenericVector<fl_BlockLayout *> vBlock;
+		std::vector<fl_BlockLayout *> vBlock;
 		getBlocksInSelection( &vBlock);
-		UT_uint32 count = vBlock.getItemCount();
+		UT_uint32 count = static_cast<UT_sint32>(vBlock.size());
 		fl_BlockLayout * pBlock = nullptr;
 		for(UT_uint32 i=0; (i< count); i++)
 		{
@@ -3574,7 +3575,7 @@ PT_DocPosition FV_View::getSelectedImage(const char **dataId, const fp_Run **pIm
 			}
 			else
 			{
-				pBlock = vBlock.getNthItem(i);
+				pBlock = vBlock[i];
 				UT_nonnull_or_continue(pBlock);
 				pRun = pBlock->getFirstRun();
 			}
@@ -3617,9 +3618,9 @@ fp_Run *FV_View::getSelectedObject() const
 		PT_DocPosition pos = m_Selection.getSelectionAnchor();
 		fp_Run* pRun = nullptr;
 
-		UT_GenericVector<fl_BlockLayout *> vBlock;
+		std::vector<fl_BlockLayout *> vBlock;
 		getBlocksInSelection( &vBlock);
-		UT_uint32 count = vBlock.getItemCount();
+		UT_uint32 count = static_cast<UT_sint32>(vBlock.size());
 		fl_BlockLayout * pBlock = nullptr;
 		for(UT_uint32 i=0; (i< count); i++)
 		{
@@ -3638,7 +3639,7 @@ fp_Run *FV_View::getSelectedObject() const
 			}
 			else
 			{
-				pBlock = vBlock.getNthItem(i);
+				pBlock = vBlock[i];
 				UT_nonnull_or_continue(pBlock);
 				pRun = pBlock->getFirstRun();
 			}
@@ -4079,7 +4080,7 @@ void FV_View::processSelectedBlocks(FL_ListType listType,
 	// Signal PieceTable Change
 	_saveAndNotifyPieceTableChange();
 
-	UT_GenericVector<fl_BlockLayout *> vBlock;
+	std::vector<fl_BlockLayout *> vBlock;
 	getBlocksInSelection( &vBlock);
 
 	PT_DocPosition posStart = getPoint();
@@ -4107,31 +4108,31 @@ void FV_View::processSelectedBlocks(FL_ListType listType,
 
 	char margin_left [] = "margin-left";
 	char margin_right[] = "margin-right";
-	UT_GenericVector<fl_BlockLayout *> vListBlocks;
-	UT_GenericVector<fl_BlockLayout *> vNoListBlocks;
+	std::vector<fl_BlockLayout *> vListBlocks;
+	std::vector<fl_BlockLayout *> vNoListBlocks;
 
-	for(i=0; i< vBlock.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(vBlock.size()); i++)
 	{
-		fl_BlockLayout * pBlock =  vBlock.getNthItem(i);
+		fl_BlockLayout * pBlock =  vBlock[i];
 		UT_nonnull_or_continue(pBlock);
 		if(pBlock->isListItem())
 		{
-			vListBlocks.addItem(pBlock);
+			vListBlocks.push_back(pBlock);
 			diff -= 2;
 		}
 		else
 		{
-			vNoListBlocks.addItem(pBlock);
+			vNoListBlocks.push_back(pBlock);
 			diff += 2;
 		}
 	}
 //
 // Have to stop lists in reverse order so undo works!
 //
-	for(i = vListBlocks.getItemCount() -1; i>=0; i--)
+	for(i = static_cast<UT_sint32>(vListBlocks.size()) -1; i>=0; i--)
 	{
 		UT_DEBUGMSG(("SEVIOR: Processing block %d \n",i));
-		fl_BlockLayout * pBlock =  vListBlocks.getNthItem(i);
+		fl_BlockLayout * pBlock =  vListBlocks[i];
 		PT_DocPosition posBlock = pBlock->getPosition();
 
 		if (bRetypeExisting)
@@ -4204,10 +4205,10 @@ void FV_View::processSelectedBlocks(FL_ListType listType,
 //
 // Have to start lists in order so undo works!
 //
-	for(i=0; i<vNoListBlocks.getItemCount(); i++)
+	for(i=0; i<static_cast<UT_sint32>(vNoListBlocks.size()); i++)
 	{
-		UT_DEBUGMSG(("Doing Block %d of %d \n",i,vNoListBlocks.getItemCount()));
-		fl_BlockLayout * pBlock = vNoListBlocks.getNthItem(i);
+		UT_DEBUGMSG(("Doing Block %d of %d \n",i,static_cast<UT_sint32>(vNoListBlocks.size())));
+		fl_BlockLayout * pBlock = vNoListBlocks[i];
 		fl_BlockLayout * pPrev = static_cast<fl_BlockLayout *>(pBlock->getPrev());
 		while(pPrev && (pPrev->getContainerType() != FL_CONTAINER_BLOCK))
 		{
@@ -4295,9 +4296,9 @@ bool FV_View::cmdApplyListType(FL_ListType listType,
 {
 	UT_return_val_if_fail(listType != NOT_A_LIST, false);
 
-	UT_GenericVector<fl_BlockLayout *> vBlock;
+	std::vector<fl_BlockLayout *> vBlock;
 	getBlocksInSelection(&vBlock);
-	UT_return_val_if_fail(vBlock.getItemCount() > 0, false);
+	UT_return_val_if_fail(!vBlock.empty(), false);
 
 	/* retype existing list items, start lists on the rest */
 	processSelectedBlocks(listType, true);
@@ -4308,9 +4309,9 @@ bool FV_View::cmdApplyListType(FL_ListType listType,
 	{
 		m_pDoc->beginUserAtomicGlob();
 		m_pDoc->disableListUpdates();
-		for (UT_sint32 i = 0; i < vBlock.getItemCount(); ++i)
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vBlock.size()); ++i)
 		{
-			fl_BlockLayout * pBlock = vBlock.getNthItem(i);
+			fl_BlockLayout * pBlock = vBlock[i];
 			UT_nonnull_or_continue(pBlock);
 			if (!pBlock->isListItem())
 				continue;
@@ -4351,9 +4352,9 @@ bool FV_View::cmdRemoveListFormat()
 {
 	_saveAndNotifyPieceTableChange();
 
-	UT_GenericVector<fl_BlockLayout *> vBlock;
+	std::vector<fl_BlockLayout *> vBlock;
 	getBlocksInSelection(&vBlock);
-	UT_return_val_if_fail(vBlock.getItemCount() > 0, false);
+	UT_return_val_if_fail(!vBlock.empty(), false);
 
 	if (!isSelectionEmpty())
 		_clearSelection();
@@ -4386,9 +4387,9 @@ bool FV_View::cmdRemoveListFormat()
 	for (int pass = 0; pass < 4; ++pass)
 	{
 		bool bRemovedThisPass = false;
-		for (UT_sint32 i = vBlock.getItemCount() - 1; i >= 0; --i)
+		for (UT_sint32 i = static_cast<UT_sint32>(vBlock.size()) - 1; i >= 0; --i)
 		{
-			fl_BlockLayout * pBlock = vBlock.getNthItem(i);
+			fl_BlockLayout * pBlock = vBlock[i];
 			UT_nonnull_or_continue(pBlock);
 			if (!pBlock->isListItem())
 				continue;
@@ -4432,7 +4433,7 @@ bool FV_View::cmdRemoveListFormat()
  */
 UT_sint32 FV_View::getNumColumnsInSelection(void) const
 {
-	UT_GenericVector<fl_BlockLayout *> vecBlocks;
+	std::vector<fl_BlockLayout *> vecBlocks;
 	getBlocksInSelection(&vecBlocks);
 	UT_sint32 i =0;
 	UT_sint32 iNumCols = 0;
@@ -4440,9 +4441,9 @@ UT_sint32 FV_View::getNumColumnsInSelection(void) const
 	fl_BlockLayout * pBlock = nullptr;
 	fl_CellLayout * pCell = nullptr;
 	fp_CellContainer * pCellCon = nullptr;
-	for(i=0; i< vecBlocks.getItemCount();i++)
+	for(i=0; i< static_cast<UT_sint32>(vecBlocks.size());i++)
 	{
-		pBlock = vecBlocks.getNthItem(i);
+		pBlock = vecBlocks[i];
 		if(pBlock->myContainingLayout()->getContainerType() != FL_CONTAINER_CELL)
 		{
 			return 0;
@@ -4468,7 +4469,7 @@ UT_sint32 FV_View::getNumColumnsInSelection(void) const
  */
 UT_sint32 FV_View::getNumRowsInSelection(void) const
 {
-	UT_GenericVector<fl_BlockLayout *> vecBlocks;
+	std::vector<fl_BlockLayout *> vecBlocks;
 	getBlocksInSelection(&vecBlocks);
 	UT_sint32 i =0;
 	UT_sint32 iNumRows = 0;
@@ -4489,9 +4490,9 @@ UT_sint32 FV_View::getNumRowsInSelection(void) const
 			startpos = m_Selection.getSelectionAnchor();
 		}
 	}
-	for(i=0; i< vecBlocks.getItemCount();i++)
+	for(i=0; i< static_cast<UT_sint32>(vecBlocks.size());i++)
 	{
-		pBlock = vecBlocks.getNthItem(i);
+		pBlock = vecBlocks[i];
 		if((getNumSelections() == 0) && ((pBlock->getPosition() + pBlock->getLength() - 1) <= startpos))
 		{
 			if((startpos == endpos) && ((pBlock->getPosition()  <= startpos)))
@@ -4539,13 +4540,13 @@ UT_sint32 FV_View::getNumRowsInSelection(void) const
  * of the block.
  */
 
-void FV_View::getBlocksInSelection( UT_GenericVector<fl_BlockLayout*>* vBlock, bool bAllBlocks) const
+void FV_View::getBlocksInSelection( std::vector<fl_BlockLayout*>* vBlock, bool bAllBlocks) const
 {
 	PT_DocPosition startpos = getPoint();
 	PT_DocPosition endpos = startpos;
 	if(isSelectionEmpty())
 	{
-		vBlock->addItem(getCurrentBlock());
+		vBlock->push_back(getCurrentBlock());
 		return;
 	}
 	if (m_Selection.getSelectionAnchor() > startpos)
@@ -4592,7 +4593,7 @@ void FV_View::getBlocksInSelection( UT_GenericVector<fl_BlockLayout*>* vBlock, b
 			{
 				if (bAllBlocks || pBlock->getPosition(true) < endpos - 1)
 				{
-					vBlock->addItem(pBlock);
+					vBlock->push_back(pBlock);
 				}
 			}
 			pBlock = static_cast<fl_BlockLayout *>(pBlock->getNextBlockInDocument());
@@ -4943,7 +4944,7 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 // Glob piecetable changes together.
 //
 	m_pDoc->beginUserAtomicGlob();
-	UT_GenericVector<fl_BlockLayout *> vBlock;
+	std::vector<fl_BlockLayout *> vBlock;
 	getBlocksInSelection( &vBlock);
 	setScreenUpdateOnGeneralUpdate( false);
 	bool bCharStyle = pStyle->isCharStyle();
@@ -4964,9 +4965,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 //
 		UT_sint32 i;
 
-		for(i=0; i< vBlock.getItemCount(); i++)
+		for(i=0; i< static_cast<UT_sint32>(vBlock.size()); i++)
 		{
-			pBL = vBlock.getNthItem(i);
+			pBL = vBlock[i];
 			curPos = pBL->getPosition();
 			if(pBL->isListItem())
 			{
@@ -5000,9 +5001,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 	{
 		UT_sint32 i;
 
-		for(i=0; i< vBlock.getItemCount(); i++)
+		for(i=0; i< static_cast<UT_sint32>(vBlock.size()); i++)
 		{
-			pBL = vBlock.getNthItem(i);
+			pBL = vBlock[i];
 			curPos = pBL->getPosition();
 			if(pBL->isListItem())
 			{
@@ -5068,9 +5069,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 	if(bisListStyle && !bHasNumberedHeading)
 	{
 		UT_sint32 i;
-		for(i=0; i< vBlock.getItemCount(); i++)
+		for(i=0; i< static_cast<UT_sint32>(vBlock.size()); i++)
 		{
-			pBL = vBlock.getNthItem(i);
+			pBL = vBlock[i];
 			curPos = pBL->getPosition();
 			if(i == 0)
 				pBL->StartList(style);
@@ -5090,7 +5091,7 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 //
 	else if(bHasNumberedHeading)
 	{
-		fl_BlockLayout*  currBlock = vBlock.getNthItem(0);
+		fl_BlockLayout*  currBlock = vBlock[0];
 		PT_DocPosition pos = currBlock->getPosition(true) -1;
 		const pf_Frag_Strux* curSdh = currBlock->getStruxDocHandle();
 		if(pos < 2 )
@@ -5138,9 +5139,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 						if(pSubBlock == nullptr)
 							break;
 
-						for(i=0; i< vBlock.getItemCount(); i++)
+						for(i=0; i< static_cast<UT_sint32>(vBlock.size()); i++)
 						{
-							pBL = vBlock.getNthItem(i);
+							pBL = vBlock[i];
 							pBL->prependList(pSubBlock);
 						}
 					}
@@ -5152,9 +5153,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 //
 					else
 					{
-						for(i=0; i< vBlock.getItemCount(); i++)
+						for(i=0; i< static_cast<UT_sint32>(vBlock.size()); i++)
 						{
-							pBL = vBlock.getNthItem(i);
+							pBL = vBlock[i];
 							if(i == 0)
 								pBL->StartList(style,prevSDH);
 							else
@@ -5181,7 +5182,7 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 //
 // Start looking from the block following and skip through to end of Doc.
 //
-				fl_BlockLayout * pNext = vBlock.getLastItem();
+				fl_BlockLayout * pNext = vBlock.back();
 				pNext = static_cast<fl_BlockLayout *>(pNext->getNext());
 				if(pNext)
 				{
@@ -5194,9 +5195,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 //
 			if(sdh == nullptr || (sdh == curSdh))
 			{
-				for(UT_sint32 i=0; i< vBlock.getItemCount(); i++)
+				for(UT_sint32 i=0; i< static_cast<UT_sint32>(vBlock.size()); i++)
 				{
-					pBL = vBlock.getNthItem(i);
+					pBL = vBlock[i];
 					if(i == 0)
 						pBL->StartList(style);
 					else
@@ -5219,9 +5220,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 				if(pBlock == nullptr)
 					break;
 
-				for(UT_sint32 j = 0; j < vBlock.getItemCount(); ++j)
+				for(UT_sint32 j = 0; j < static_cast<UT_sint32>(vBlock.size()); ++j)
 				{
-					pBL = vBlock.getNthItem(j);
+					pBL = vBlock[j];
 					if(j == 0)
 						pBL->resumeList(pBlock);
 					else if(pBL->getPrev())
@@ -5239,9 +5240,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 				UT_ASSERT(pBlock);
 				if(pBlock == nullptr)
 					break;
-				for(UT_sint32 j = 0; j < vBlock.getItemCount(); j++)
+				for(UT_sint32 j = 0; j < static_cast<UT_sint32>(vBlock.size()); j++)
 				{
-					pBL = vBlock.getNthItem(j);
+					pBL = vBlock[j];
 					if (j == 0)
 						pBL->prependList(pBlock);
 					else if(pBL->getPrev())
@@ -5991,7 +5992,7 @@ bool FV_View::getCharFormat(PP_PropertyVector & props, bool bExpandStyles, PT_Do
 	const PP_AttrProp * pSpanAP = nullptr;
 	const PP_AttrProp * pBlockAP = nullptr;
 	const PP_AttrProp * pSectionAP = nullptr; // TODO do we care about section-level inheritance
-	UT_GenericVector<_fmtPair *> v;
+	std::vector<std::unique_ptr<_fmtPair>> v;
 	UT_uint32 i;
 	_fmtPair * f;
 
@@ -6116,7 +6117,7 @@ bool FV_View::getCharFormat(PP_PropertyVector & props, bool bExpandStyles, PT_Do
 		{
 			f = new _fmtPair(PP_getNthPropertyName(n),pSpanAP,pBlockAP,pSectionAP,m_pDoc,bExpandStyles);
 			if(f->m_val != nullptr)
-				v.addItem(f);
+				v.emplace_back(f);
 			else
 				delete f;
 		}
@@ -6177,26 +6178,25 @@ bool FV_View::getCharFormat(PP_PropertyVector & props, bool bExpandStyles, PT_Do
 
 			if (bCheck)
 			{
-				i = v.getItemCount();
+				i = static_cast<UT_sint32>(v.size());
 
 				while (i > 0)
 				{
-					f = v.getNthItem(i-1);
+					f = v[i-1].get();
 
 					const gchar * value = PP_evalProperty(f->m_prop,pSpanAP,pBlockAP,pSectionAP,m_pDoc,bExpandStyles);
 
 					// prune anything that doesn't match
 					if (value && strcmp(f->m_val, value))
 					{
-						DELETEP(f);
-						v.deleteNthItem(i-1);
+						v.erase(v.begin() + (i-1));
 					}
 
 					i--;
 				}
 
 				// when vector is empty, stop looking
-				if (0 == v.getItemCount())
+				if (v.empty())
 				{
 					pRun = nullptr;
 					break;
@@ -6206,10 +6206,10 @@ bool FV_View::getCharFormat(PP_PropertyVector & props, bool bExpandStyles, PT_Do
 	}
 
 	// 3. export whatever's left
-	i = v.getItemCount();
+	i = static_cast<UT_sint32>(v.size());
 	while (i > 0)
 	{
-		f = v.getNthItem(i-1);
+		f = v[i-1].get();
 		i--;
 		UT_nonnull_or_continue(f);
 
@@ -6218,7 +6218,6 @@ bool FV_View::getCharFormat(PP_PropertyVector & props, bool bExpandStyles, PT_Do
 
 	}
 
-	UT_VECTOR_PURGEALL(_fmtPair *,v);
 
 	m_CharProps.fillProps(props);
 	return true;
@@ -6231,7 +6230,7 @@ bool FV_View::getCharFormat(PP_PropertyVector & props, bool bExpandStyles, PT_Do
    \param	v Pointer to Vector of all the blocks found
 */
 
-void FV_View::getAllBlocksInList(UT_GenericVector<fl_BlockLayout *> * v) const
+void FV_View::getAllBlocksInList(std::vector<fl_BlockLayout *> * v) const
 {
 	//
 	// get all the blocks in the list
@@ -6241,7 +6240,7 @@ void FV_View::getAllBlocksInList(UT_GenericVector<fl_BlockLayout *> * v) const
 	if(!pAuto)
 	{
 		pBlock = getCurrentBlock();
-		v->addItem(pBlock);
+		v->push_back(pBlock);
 		return;
 	}
 	pf_Frag_Strux* pFirstSdh = pAuto->getFirstItem();
@@ -6262,7 +6261,7 @@ void FV_View::getAllBlocksInList(UT_GenericVector<fl_BlockLayout *> * v) const
 			foundFirst = true;
 		}
 		if(foundFirst == true && (pBlock->getContainerType() == FL_CONTAINER_BLOCK))
-			v->addItem(pBlock);
+			v->push_back(pBlock);
 		if(pBlock->getStruxDocHandle() == pLastSdh)
 			foundLast = true;
 		pBlock = static_cast<fl_BlockLayout *>(pBlock->getNextBlockInDocument());
@@ -6287,7 +6286,7 @@ bool FV_View::setBlockIndents(bool doLists, double indentChange, double page_siz
 	//
 	// indentChange is the increment to the current alignment.
 	//
-	UT_GenericVector<fl_BlockLayout *> v;
+	std::vector<fl_BlockLayout *> v;
 	UT_String szAlign;
 	UT_String szIndent;
 	double fIndent;
@@ -6315,9 +6314,9 @@ bool FV_View::setBlockIndents(bool doLists, double indentChange, double page_siz
 	};
 
 	const gchar * indent;
-	for(i = 0; i<v.getItemCount();i++)
+	for(i = 0; i<static_cast<UT_sint32>(v.size());i++)
 	{
-		pBlock = v.getNthItem(i);
+		pBlock = v[i];
 		UT_nonnull_or_continue(pBlock);
 		if(pBlock->getDominantDirection() == UT_BIDI_RTL) {
 			indent = "margin-right";
@@ -6486,13 +6485,13 @@ bool FV_View::setBlockFormat(const PP_PropertyVector & properties)
 	    && tstart == tend)
 	{
 		bRet = false;
-		UT_GenericVector<fl_BlockLayout*> vBlock;
+		std::vector<fl_BlockLayout*> vBlock;
 		getBlocksInSelection(&vBlock);
 		fl_ContainerLayout * pCL = nullptr;
 		UT_sint32 i =0;
-		for(i=0; i<vBlock.getItemCount();i++)
+		for(i=0; i<static_cast<UT_sint32>(vBlock.size());i++)
 		{
-			fl_BlockLayout * pBL = vBlock.getNthItem(i);
+			fl_BlockLayout * pBL = vBlock[i];
 			pCL = pBL->myContainingLayout();
 			if(pCL->getContainerType() == FL_CONTAINER_CELL)
 			{
@@ -6564,11 +6563,11 @@ bool FV_View::resetBlockFormat()
 	    && tstart == tend)
 	{
 		bRet = false;
-		UT_GenericVector<fl_BlockLayout*> vBlock;
+		std::vector<fl_BlockLayout*> vBlock;
 		getBlocksInSelection(&vBlock);
-		for(UT_sint32 i=0; i<vBlock.getItemCount();i++)
+		for(UT_sint32 i=0; i<static_cast<UT_sint32>(vBlock.size());i++)
 		{
-			fl_BlockLayout * pBL = vBlock.getNthItem(i);
+			fl_BlockLayout * pBL = vBlock[i];
 			if(pBL->myContainingLayout()->getContainerType() == FL_CONTAINER_CELL)
 			{
 				PT_DocPosition pos = pBL->getPosition();
@@ -7127,7 +7126,7 @@ void FV_View::changeListStyle(const fl_AutoNumPtr & pAuto,
 {
 	UT_sint32 i=0;
 	gchar pszStart[80], pszAlign[21], pszIndent[21];
-	UT_GenericVector<pf_Frag_Strux*> vb;
+	std::vector<pf_Frag_Strux*> vb;
 	pf_Frag_Strux* sdh2 = pAuto->getNthBlock(i);
 	m_pDoc->beginUserAtomicGlob();
 
@@ -7143,13 +7142,13 @@ void FV_View::changeListStyle(const fl_AutoNumPtr & pAuto,
 		sdh2 = pAuto->getNthBlock(i);
 		while(sdh2 != nullptr)
 		{
-			vb.addItem(sdh2);
+			vb.push_back(sdh2);
 			i++;
 			sdh2 = pAuto->getNthBlock(i);
 		}
-		for(i=0; i< vb.getItemCount(); ++i)
+		for(i=0; i< static_cast<UT_sint32>(vb.size()); ++i)
 		{
-			pf_Frag_Strux* sdh = vb.getNthItem(i);
+			pf_Frag_Strux* sdh = vb[i];
 			m_pDoc->listUpdate(sdh);
 			m_pDoc->StopList(sdh);
 		}
@@ -7236,7 +7235,7 @@ bool FV_View::getSectionFormat(PP_PropertyVector & props) const
 {
 	const PP_AttrProp * pBlockAP = nullptr;
 	const PP_AttrProp * pSectionAP = nullptr;
-	UT_GenericVector<_fmtPair *> v;
+	std::vector<std::unique_ptr<_fmtPair>> v;
 	UT_uint32 i;
 	_fmtPair * f;
 
@@ -7289,7 +7288,7 @@ bool FV_View::getSectionFormat(PP_PropertyVector & props) const
 		{
 			f = new _fmtPair(PP_getNthPropertyName(n),nullptr,pBlockAP,pSectionAP,m_pDoc,false);
 			if(f->m_val != nullptr)
-				v.addItem(f);
+				v.emplace_back(f);
 			else
 				delete f;
 		}
@@ -7302,7 +7301,6 @@ bool FV_View::getSectionFormat(PP_PropertyVector & props) const
 		UT_ASSERT_HARMLESS( pBlockEnd );
 		if(!pBlockEnd)
 		{
-			UT_VECTOR_PURGEALL(_fmtPair *,v);
 			return false;
 		}
 		
@@ -7327,31 +7325,29 @@ bool FV_View::getSectionFormat(PP_PropertyVector & props) const
 
 			if (bCheck)
 			{
-				i = v.getItemCount();
+				i = static_cast<UT_sint32>(v.size());
 
 				while (i > 0)
 				{
-					f = v.getNthItem(i-1);
+					f = v[i-1].get();
 
 					const gchar * value = PP_evalProperty(f->m_prop,nullptr,pBlockAP,pSectionAP,m_pDoc,false);
 
 					// prune anything that doesn't match
 					if(f->m_val == nullptr  || value == nullptr)
 					{
-						DELETEP(f);
-						v.deleteNthItem(i-1);
+						v.erase(v.begin() + (i-1));
 					}
 					else if (strcmp(f->m_val, value))
 					{
-						DELETEP(f);
-						v.deleteNthItem(i-1);
+						v.erase(v.begin() + (i-1));
 					}
 
 					i--;
 				}
 
 				// when vector is empty, stop looking
-				if (0 == v.getItemCount())
+				if (v.empty())
 				{
 					pSection = nullptr;
 					break;
@@ -7363,17 +7359,16 @@ bool FV_View::getSectionFormat(PP_PropertyVector & props) const
 	// 3. export whatever's left
 	props.clear();
 
-	i = v.getItemCount();
+	i = static_cast<UT_sint32>(v.size());
 	while (i > 0)
 	{
-		f = v.getNthItem(i-1);
+		f = v[i-1].get();
 		i--;
 		UT_nonnull_or_continue(f);
 
 		props.push_back(f->m_prop);
 		props.push_back(f->m_val);
 	}
-	UT_VECTOR_PURGEALL(_fmtPair *,v);
 
 	m_SecProps.fillProps(props);
 	b = m_SecProps.isValid();
@@ -7448,7 +7443,7 @@ bool FV_View::getBlockFormat(PP_PropertyVector & props,bool bExpandStyles) const
 	}
 
 	// currently there are 69 block level properties
-	UT_GenericVector<_fmtPair *> v(69,4,true);
+	std::vector<std::unique_ptr<_fmtPair>> v;
 	UT_sint32 i;
 	_fmtPair * f = nullptr;
 
@@ -7499,7 +7494,7 @@ bool FV_View::getBlockFormat(PP_PropertyVector & props,bool bExpandStyles) const
 		{
 			f = new _fmtPair(PP_getNthPropertyName(n),nullptr,pBlockAP,pSectionAP,m_pDoc,bExpandStyles);
 			if(f->m_val != nullptr)
-				v.addItem(f);
+				v.emplace_back(f);
 			else
 				delete f;
 		}
@@ -7529,11 +7524,11 @@ bool FV_View::getBlockFormat(PP_PropertyVector & props,bool bExpandStyles) const
 
 			if (bCheck)
 			{
-				i = v.getItemCount();
+				i = static_cast<UT_sint32>(v.size());
 
 				while (i > 0)
 				{
-					f = v.getNthItem(i-1);
+					f = v[i-1].get();
 
 					const gchar * value = PP_evalProperty(f->m_prop,nullptr,pBlockAP,pSectionAP,m_pDoc,bExpandStyles);
 					UT_ASSERT(value);
@@ -7541,15 +7536,14 @@ bool FV_View::getBlockFormat(PP_PropertyVector & props,bool bExpandStyles) const
 					// prune anything that doesn't match
 					if (strcmp(f->m_val, value))
 					{
-						DELETEP(f);
-						v.deleteNthItem(i-1);
+						v.erase(v.begin() + (i-1));
 					}
 
 					i--;
 				}
 
 				// when vector is empty, stop looking
-				if (0 == v.getItemCount())
+				if (v.empty())
 				{
 					pBlock = nullptr;
 					break;
@@ -7559,17 +7553,16 @@ bool FV_View::getBlockFormat(PP_PropertyVector & props,bool bExpandStyles) const
 	}
 
 	// 3. export whatever's left
-	i = v.getItemCount();
+	i = static_cast<UT_sint32>(v.size());
 	while (i > 0)
 	{
-		f = v.getNthItem(i-1);
+		f = v[i-1].get();
 		i--;
 		UT_nonnull_or_continue(f);
 
 		props.push_back(f->m_prop);
 		props.push_back(f->m_val);
 	}
-	UT_VECTOR_PURGEALL(_fmtPair *,v);
 
 	m_BlockProps.fillProps(props);
 
@@ -9944,14 +9937,14 @@ bool FV_View::setCellFormat(const PP_PropertyVector & properties, FormatTable ap
 				posEnd = posEndTable -1;
 			}
 			// Do the actual change
-			UT_GenericVector<fl_BlockLayout*> vBlock;
+			std::vector<fl_BlockLayout*> vBlock;
 			getBlocksInSelection(&vBlock);
 			fl_ContainerLayout * pCL = nullptr;
 			fl_CellLayout * pCell = nullptr;
 			UT_sint32 i =0;
-			for(i=0; i<vBlock.getItemCount();i++)
+			for(i=0; i<static_cast<UT_sint32>(vBlock.size());i++)
 			{
-				fl_BlockLayout * pBL = vBlock.getNthItem(i);
+				fl_BlockLayout * pBL = vBlock[i];
 				pCL = pBL->myContainingLayout();
 				if(pCL->getContainerType() == FL_CONTAINER_CELL)
 				{
@@ -10622,7 +10615,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 		UT_sint32 i =0;
 		fp_CellContainer * pCur = nullptr;
 		UT_sint32 iCellCount = 0;
-		pInfo->m_vecTableColInfo = new UT_GenericVector<AP_TopRulerTableInfo*>();
+		pInfo->m_vecTableColInfo = new std::vector<AP_TopRulerTableInfo*>();
 		while( i < numcols)
 		{
 			pCur = pTab->getCellAtRowColumn(row,i);
@@ -10646,7 +10639,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 				pTInfo->m_iLeftSpacing = (pCur->getX() - pCur->getLeftPos());
 				pTInfo->m_iRightSpacing = ( pCur->getRightPos() - pCur->getX()
 											- pCur->getWidth());
-				pInfo->m_vecTableColInfo->addItem(pTInfo);
+				pInfo->m_vecTableColInfo->push_back(pTInfo);
 				xxx_UT_DEBUGMSG(("TableColInfo RightPos %d LeftPos %d \n", pTInfo->m_iRightCellPos,pTInfo->m_iLeftCellPos));
 				i = pCur->getRightAttach();
 				iCellCount++;
@@ -10656,11 +10649,11 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 				i = numcols + 1;
 			}
 		}
-		pInfo->m_iCells = pInfo->m_vecTableColInfo->getItemCount();
+		pInfo->m_iCells = static_cast<UT_sint32>(pInfo->m_vecTableColInfo->size());
 //
 // Now fill the full vector including merged cells.
 //
-		pInfo->m_vecFullTable = new UT_GenericVector<AP_TopRulerTableInfo *>();
+		pInfo->m_vecFullTable = new std::vector<AP_TopRulerTableInfo *>();
 		fp_TableRowColumn * pRC = nullptr;
 		UT_sint32 iCum = 0;
 		UT_sint32 ioff_x = 0;
@@ -10699,7 +10692,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 					pTInfo->m_iRightCellPos -= pTInfo->m_iRightSpacing;
 					xxx_UT_DEBUGMSG(("FullTable RightPos %d Spacing %d \n", pTInfo->m_iRightCellPos,pTInfo->m_iRightSpacing));
 				}
-				pInfo->m_vecFullTable->addItem(pTInfo);
+				pInfo->m_vecFullTable->push_back(pTInfo);
 				xxx_UT_DEBUGMSG(("FullTable RightPos %d LeftPos %d \n", pTInfo->m_iRightCellPos,pTInfo->m_iLeftCellPos));
 			}
 			iCum += width;
@@ -10959,7 +10952,7 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 			UT_sint32 numrows = pTab->getNumRows();
 			UT_sint32 i =0;
 			fp_CellContainer * pCur = nullptr;
-			pInfo->m_vecTableRowInfo = new UT_GenericVector<AP_LeftRulerTableInfo*>();
+			pInfo->m_vecTableRowInfo = new std::vector<AP_LeftRulerTableInfo*>();
 			pCur = pTab->getCellAtRowColumn(0,col);
 			fp_CellContainer * pPrev = pCur;	
 			while( i < numrows)
@@ -10992,7 +10985,7 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 					pLInfo->m_iBotCellPos = pCur->getStopY();
 					pLInfo->m_iTopSpacing = pCur->getY() - pCur->getStartY();
 					pLInfo->m_iBotSpacing = pCur->getStopY() - (pCur->getY() + pCur->getHeight());
-					pInfo->m_vecTableRowInfo->addItem(pLInfo);
+					pInfo->m_vecTableRowInfo->push_back(pLInfo);
 					i = pCur->getBottomAttach();
 				}
 				else
@@ -11001,7 +10994,7 @@ void FV_View::getLeftRulerInfo(PT_DocPosition pos, AP_LeftRulerInfo * pInfo)
 					i = numrows + 1;
 				}
 			}
-			pInfo->m_iNumRows = pInfo->m_vecTableRowInfo->getItemCount();
+			pInfo->m_iNumRows = static_cast<UT_sint32>(pInfo->m_vecTableRowInfo->size());
 		}
 		else if(pContainer->getContainerType() == FP_CONTAINER_FRAME)
 		{
@@ -14417,7 +14410,7 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 		}
 		setPoint(getPoint()-1);
 	}
-	UT_GenericVector<fl_BlockLayout*>  vBlocks;
+	std::vector<fl_BlockLayout*>  vBlocks;
 
 	PT_DocPosition posStart = getPoint();
 	PT_DocPosition posEnd = posStart;
@@ -14500,21 +14493,21 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 	PT_DocPosition posAnnStart;
 	PT_DocPosition posAnnEnd;
 	getBlocksInSelection(&vBlocks);
-	if(vBlocks.getItemCount() > 1)
+	if(static_cast<UT_sint32>(vBlocks.size()) > 1)
 	{
 		fl_BlockLayout * pBMax = nullptr;
 		UT_sint32 iMaxSize = 0;
 		UT_sint32 j = 0;
-		for(j=0; j<vBlocks.getItemCount(); j++)
+		for(j=0; j<static_cast<UT_sint32>(vBlocks.size()); j++)
 		{
 			UT_sint32 iBSize = 0;
-			fl_BlockLayout * pB = vBlocks.getNthItem(j);
+			fl_BlockLayout * pB = vBlocks[j];
 			iBSize = pB->getLength();
 			if(j == 0)
 			{
 				iBSize = iBSize - (posStart - pB->getPosition(true));
 			}
-			else if(j == (vBlocks.getItemCount() - 1))
+			else if(j == (static_cast<UT_sint32>(vBlocks.size()) - 1))
 			{
 				iBSize = posEnd - pB->getPosition(true);
 			}
@@ -14525,7 +14518,7 @@ bool FV_View::insertAnnotation(UT_sint32 iAnnotation,
 			}
 		}
 		if (!pBMax)
-			pBMax = vBlocks.getNthItem(0);
+			pBMax = vBlocks[0];
 		posAnnStart = pBMax->getPosition();
 		posAnnEnd = pBMax->getPosition(true) + pBMax->getLength();
 		if(posAnnStart < posStart)
@@ -15370,7 +15363,7 @@ bool FV_View::_convertNotes(bool bDoFootnotes, bool bDoEndnotes)
 {
 	UT_return_val_if_fail(m_pLayout && m_pDoc, false);
 
-	UT_GenericVector<FV_NoteConvRec *> notes;
+	std::vector<std::unique_ptr<FV_NoteConvRec>> notes;
 
 	/* Collect the position range and RTF content of every note to be
 	 * converted before touching the piece table, since edits shift
@@ -15439,11 +15432,11 @@ bool FV_View::_convertNotes(bool bDoFootnotes, bool bDoEndnotes)
 					delete pBuf;
 				}
 			}
-			notes.addItem(pRec);
+			notes.emplace_back(pRec);
 		}
 	}
 
-	if (notes.getItemCount() == 0)
+	if (notes.empty())
 	{
 		return false;
 	}
@@ -15452,24 +15445,24 @@ bool FV_View::_convertNotes(bool bDoFootnotes, bool bDoEndnotes)
 	 * collected in separate passes, so the vector is not ordered when
 	 * both kinds are converted (swap); editing last-to-first keeps
 	 * every remaining recorded position valid */
-	for (UT_sint32 i = 1; i < notes.getItemCount(); i++)
+	for (UT_sint32 i = 1; i < static_cast<UT_sint32>(notes.size()); i++)
 	{
-		FV_NoteConvRec * pCur = notes.getNthItem(i);
+		std::unique_ptr<FV_NoteConvRec> pCur = std::move(notes[i]);
 		UT_sint32 j = i - 1;
-		while (j >= 0 && notes.getNthItem(j)->delStart < pCur->delStart)
+		while (j >= 0 && notes[j]->delStart < pCur->delStart)
 		{
-			notes.setNthItem(j + 1, notes.getNthItem(j), nullptr);
+			notes[j + 1] = std::move(notes[j]);
 			j--;
 		}
-		notes.setNthItem(j + 1, pCur, nullptr);
+		notes[j + 1] = std::move(pCur);
 	}
 
 	/* convert last-to-first so earlier positions stay valid */
 	_saveAndNotifyPieceTableChange();
 	m_pDoc->beginUserAtomicGlob();
-	for (UT_sint32 i = notes.getItemCount() - 1; i >= 0; i--)
+	for (UT_sint32 i = static_cast<UT_sint32>(notes.size()) - 1; i >= 0; i--)
 	{
-		FV_NoteConvRec * pRec = notes.getNthItem(i);
+		FV_NoteConvRec * pRec = notes[i].get();
 		if (pRec == nullptr)
 		{
 			continue;
@@ -15492,7 +15485,6 @@ bool FV_View::_convertNotes(bool bDoFootnotes, bool bDoEndnotes)
 								   pRec->rtf->getLength());
 		}
 		delete pRec->rtf;
-		delete pRec;
 	}
 	m_pDoc->endUserAtomicGlob();
 	_restorePieceTableState();

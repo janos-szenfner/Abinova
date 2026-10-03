@@ -2300,7 +2300,7 @@ fl_DocSectionLayout * fp_FrameContainer::getDocSectionLayout(void) const
  * Fill the supplied vector with a list of the blocks whose lines are affected
  * by the Frame.
  */ 
-void fp_FrameContainer::getBlocksAroundFrame(UT_GenericVector<fl_BlockLayout *> & vecBlocks)
+void fp_FrameContainer::getBlocksAroundFrame(std::vector<fl_BlockLayout *> & vecBlocks)
 {
   fp_Page * pPage = getPage();
   if(pPage == nullptr)
@@ -2342,7 +2342,7 @@ void fp_FrameContainer::getBlocksAroundFrame(UT_GenericVector<fl_BlockLayout *> 
                       if(pCurLine->getBlock() != pCurBlock)
                       {
                           pCurBlock = pCurLine->getBlock();
-                          vecBlocks.addItem(pCurBlock);
+                          vecBlocks.push_back(pCurBlock);
                           xxx_UT_DEBUGMSG(("Add Block %x to vector \n",pCurBlock));
                       }
                   }
@@ -2351,7 +2351,7 @@ void fp_FrameContainer::getBlocksAroundFrame(UT_GenericVector<fl_BlockLayout *> 
           pCol = pCol->getFollower();
       }
   }
-  if(vecBlocks.getItemCount() == 0)
+  if(vecBlocks.empty())
   {
       pCol = pPage->getNthColumnLeader(0);
       fp_Container * pCon = pCol->getFirstContainer();
@@ -2366,7 +2366,7 @@ void fp_FrameContainer::getBlocksAroundFrame(UT_GenericVector<fl_BlockLayout *> 
           pB = pCL->getNextBlockInDocument();
       }
       if(pB != nullptr)
-          vecBlocks.addItem(pB);
+          vecBlocks.push_back(pB);
   }
 
 }

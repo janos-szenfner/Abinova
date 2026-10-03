@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <vector>
 
 #include "ut_types.h"
 #include "ut_string.h"
@@ -515,12 +516,10 @@ bool fl_FrameLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * pcrx)
 	}
 #endif
 	fp_FrameContainer * pFrameC = static_cast<fp_FrameContainer *>(getFirstContainer());
-	UT_GenericVector<fl_BlockLayout *> vecBlocks;
+	std::vector<fl_BlockLayout *> vecBlocks;
 	pFrameC->getBlocksAroundFrame(vecBlocks);
-	UT_sint32 i = 0;
-	for(i=0; i< vecBlocks.getItemCount();i++)
+	for (fl_BlockLayout * pBL : vecBlocks)
 	{
-	  fl_BlockLayout * pBL = vecBlocks.getNthItem(i);
 	  pBL->collapse();
 	  xxx_UT_DEBUGMSG(("Collapse block %x \n",pBL));
 	}
@@ -535,7 +534,6 @@ bool fl_FrameLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * pcrx)
 // Remove from the list of frames in the previous block
 //
 	fl_ContainerLayout * pCL = getParentContainer();
-	fl_BlockLayout * pBL = nullptr;
 	if(pCL)
 	{
 		if(!pCL->removeFrame(this))
@@ -544,11 +542,10 @@ bool fl_FrameLayout::doclistener_deleteStrux(const PX_ChangeRecord_Strux * pcrx)
 			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 		}
 	}
-	for(i=0; i< vecBlocks.getItemCount();i++)
+	for (fl_BlockLayout * pB : vecBlocks)
 	{
-	  pBL = vecBlocks.getNthItem(i);
-	  pBL->format();
-	  xxx_UT_DEBUGMSG(("Format block %p\n",pBL));
+	  pB->format();
+	  xxx_UT_DEBUGMSG(("Format block %p\n",pB));
 	}
 
 	delete this;			// TODO whoa!  this construct is VERY dangerous.

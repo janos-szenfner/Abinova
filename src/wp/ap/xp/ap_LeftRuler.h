@@ -26,6 +26,8 @@
 // Class for dealing with the horizontal ruler at the top of
 // a document window.
 
+#include <vector>
+
 #include "ut_types.h"
 #include "ut_misc.h"
 #include "ut_units.h"
@@ -102,10 +104,9 @@ private:
 		{
 			if(m_vecTableRowInfo)
 			{
-				UT_sint32 count = m_vecTableRowInfo->getItemCount();
-				for(UT_sint32 i = 0; i < count; i++)
+				for (AP_LeftRulerTableInfo * p : *m_vecTableRowInfo)
 				{
-					delete m_vecTableRowInfo->getNthItem(i);
+					delete p;
 				}
 				DELETEP(m_vecTableRowInfo);
 			}
@@ -128,7 +129,7 @@ public:
 	UT_sint32               m_iNumRows;
 	UT_sint32               m_iCurrentRow;
 	UT_sint32               m_iTablePadding;
-	UT_GenericVector<AP_LeftRulerTableInfo *> * m_vecTableRowInfo;
+	std::vector<AP_LeftRulerTableInfo *> * m_vecTableRowInfo;
 };
 
 /*****************************************************************/

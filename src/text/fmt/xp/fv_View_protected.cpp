@@ -4369,11 +4369,11 @@ void FV_View::_findPositionCoords(PT_DocPosition pos,
 void FV_View::_fixAllInsertionPointCoords() const
 {
 	fv_CaretProps * pCaretProps = nullptr;
-	UT_sint32 iCount = m_vecCarets.getItemCount();
+	UT_sint32 iCount = static_cast<UT_sint32>(m_vecCarets.size());
 	UT_sint32 i = 0;
 	for(i=0; i<iCount;i++)
 	{
-			pCaretProps = m_vecCarets.getNthItem(i);
+			pCaretProps = m_vecCarets[i].get();
 			_fixInsertionPointCoords(pCaretProps);
 	}
 }

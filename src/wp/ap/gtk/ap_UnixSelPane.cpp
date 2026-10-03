@@ -67,9 +67,9 @@ bool AP_UnixSelPane::_isLive(fl_FrameLayout * pFL)
 		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
 	if (!pView || !pFL)
 		return false;
-	UT_GenericVector<fl_FrameLayout *> vec;
+	std::vector<fl_FrameLayout *> vec;
 	pView->getFrameLayouts(vec);
-	return vec.findItem(pFL) >= 0;
+	return std::find(vec.begin(), vec.end(), pFL) != vec.end();
 }
 
 struct _ObjRow
@@ -149,19 +149,19 @@ void AP_UnixSelPane::rebuildList()
 				GTK_LIST_BOX(m_wList), 0)))
 		gtk_list_box_remove(GTK_LIST_BOX(m_wList), GTK_WIDGET(old));
 
-	UT_GenericVector<fl_FrameLayout *> vec;
+	std::vector<fl_FrameLayout *> vec;
 	pView->getFrameLayouts(vec);
 
 	m_lastFrames.clear();
-	m_lastFrames.reserve(vec.getItemCount());
-	for (UT_sint32 i = 0; i < vec.getItemCount(); ++i)
-		m_lastFrames.push_back(vec.getNthItem(i));
+	m_lastFrames.reserve(vec.size());
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vec.size()); ++i)
+		m_lastFrames.push_back(vec[i]);
 
 	std::vector<_ObjRow> rows;
-	rows.reserve(vec.getItemCount());
-	for (UT_sint32 i = 0; i < vec.getItemCount(); ++i)
+	rows.reserve(vec.size());
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vec.size()); ++i)
 	{
-		fl_FrameLayout * pFL = vec.getNthItem(i);
+		fl_FrameLayout * pFL = vec[i];
 		fp_FrameContainer * pFC =
 			static_cast<fp_FrameContainer *>(pFL->getFirstContainer());
 		_ObjRow r;
@@ -175,8 +175,8 @@ void AP_UnixSelPane::rebuildList()
 	/* per-type numbering for the fallback names, done in document
 	 * order so numbering matches how the objects appear in the file */
 	std::vector<fl_FrameLayout *> docOrder;
-	for (UT_sint32 i = 0; i < vec.getItemCount(); ++i)
-		docOrder.push_back(vec.getNthItem(i));
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vec.size()); ++i)
+		docOrder.push_back(vec[i]);
 	std::sort(docOrder.begin(), docOrder.end(),
 			  [](fl_FrameLayout * a, fl_FrameLayout * b)
 			  { return a->getPosition(true) < b->getPosition(true); });
@@ -297,14 +297,14 @@ void AP_UnixSelPane::refresh()
 		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
 	if (!m_wList || !pView)
 		return;
-	UT_GenericVector<fl_FrameLayout *> vec;
+	std::vector<fl_FrameLayout *> vec;
 	pView->getFrameLayouts(vec);
-	if (vec.getItemCount() ==
+	if (static_cast<UT_sint32>(vec.size()) ==
 		static_cast<UT_sint32>(m_lastFrames.size()))
 	{
 		bool bSame = true;
-		for (UT_sint32 i = 0; i < vec.getItemCount(); ++i)
-			bSame &= (vec.getNthItem(i) == m_lastFrames[i]);
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vec.size()); ++i)
+			bSame &= (vec[i] == m_lastFrames[i]);
 		if (bSame)
 			return;
 	}
@@ -402,7 +402,7 @@ void AP_UnixSelPane::_group()
 		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
 	if (!pView)
 		return;
-	UT_GenericVector<fl_FrameLayout *> sel;
+	std::vector<fl_FrameLayout *> sel;
 	pView->getGroupSel(sel);
 	if (pView->groupFrames(sel))
 		pView->clearGroupSel();
@@ -417,11 +417,11 @@ void AP_UnixSelPane::_ungroup()
 		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
 	if (!pView)
 		return;
-	UT_GenericVector<fl_FrameLayout *> sel;
+	std::vector<fl_FrameLayout *> sel;
 	pView->getGroupSel(sel);
 	fl_FrameLayout * pCur = pView->getFrameLayout();
-	if (pCur && sel.findItem(pCur) < 0)
-		sel.addItem(pCur);
+	if (pCur && std::find(sel.begin(), sel.end(), pCur) == sel.end())
+		sel.push_back(pCur);
 	pView->ungroupFrames(sel);
 	rebuildList();
 }

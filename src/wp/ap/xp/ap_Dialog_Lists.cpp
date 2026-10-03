@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 
 #include "ap_Features.h"
 
@@ -333,10 +334,10 @@ void AP_Dialog_Lists::Apply(void)
  * This piece of code changes the list style at the current point to the
  * Style requested by the user.
  */
-	UT_GenericVector<fl_BlockLayout*> vBlock;
+	std::vector<fl_BlockLayout*> vBlock;
 	UT_uint32 i = 0;
 	getView()->getBlocksInSelection(&vBlock);
-	UT_uint32 count = vBlock.getItemCount();
+	UT_uint32 count = static_cast<UT_uint32>(vBlock.size());
 	getView()->cmdUnselectSelection();
 	if(m_bApplyToCurrent == true && m_isListAtPoint == true &&  m_NewListType != NOT_A_LIST)
 	{
@@ -363,7 +364,7 @@ void AP_Dialog_Lists::Apply(void)
 		getView()->getDocument()->beginUserAtomicGlob();
 		for(i=0;i < count; i++)
 		{
-			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
+			fl_BlockLayout * pBlock = vBlock[i];
 			UT_nonnull_or_continue(pBlock);
 			if(pBlock->isListItem() == true)
 			{
@@ -396,7 +397,7 @@ void AP_Dialog_Lists::Apply(void)
 		getView()->getDocument()->beginUserAtomicGlob();
 		for(i=0;i < count; i++)
 		{
-			fl_BlockLayout * pBlock2 = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
+			fl_BlockLayout * pBlock2 = vBlock[i];
 			UT_nonnull_or_continue(pBlock2);
 			if(pBlock2->isListItem() == true && m_NewListType == NOT_A_LIST)
 			{
@@ -425,7 +426,7 @@ void AP_Dialog_Lists::Apply(void)
 				}
 				else
 				{
-					fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
+					fl_BlockLayout * pBlock = vBlock[i];
 					fl_BlockLayout * rBlock = static_cast<fl_BlockLayout *>( pBlock->getPrev());
 					if(rBlock != nullptr)
 					{
@@ -459,7 +460,7 @@ void AP_Dialog_Lists::Apply(void)
 				}
 				else
 				{
-					fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
+					fl_BlockLayout * pBlock = vBlock[i];
 					fl_BlockLayout * rBlock = static_cast<fl_BlockLayout *>( pBlock->getPrev());
 					if(rBlock != nullptr)
 					{
@@ -506,7 +507,7 @@ void AP_Dialog_Lists::Apply(void)
 		getView()->getDocument()->beginUserAtomicGlob();
 		for(i=0;i < count; i++)
 		{
-			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>( vBlock.getNthItem(i));
+			fl_BlockLayout * pBlock = vBlock[i];
 			fl_BlockLayout * rBlock = pBlock->getPreviousListOfSameMargin();
 			if(rBlock != nullptr)
 			{

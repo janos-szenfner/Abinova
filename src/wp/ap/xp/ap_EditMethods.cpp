@@ -36,6 +36,7 @@
 #include <time.h>
 
 #include <algorithm>
+#include <vector>
 
 #include <glib/gstdio.h>
 
@@ -18205,9 +18206,9 @@ Defun1(frameGroup)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	UT_GenericVector<fl_FrameLayout *> sel;
+	std::vector<fl_FrameLayout *> sel;
 	pView->getGroupSel(sel);
-	if (sel.getItemCount() < 2)
+	if (sel.size() < 2)
 	{
 		XAP_Frame * pFrame =
 			static_cast<XAP_Frame *>(pAV_View->getParentData());
@@ -18229,11 +18230,11 @@ Defun1(frameUngroup)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	UT_GenericVector<fl_FrameLayout *> sel;
+	std::vector<fl_FrameLayout *> sel;
 	pView->getGroupSel(sel);
 	fl_FrameLayout * pCur = pView->getFrameLayout();
-	if (pCur && sel.findItem(pCur) < 0)
-		sel.addItem(pCur);
+	if (pCur && std::find(sel.begin(), sel.end(), pCur) == sel.end())
+		sel.push_back(pCur);
 	return pView->ungroupFrames(sel);
 }
 

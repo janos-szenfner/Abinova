@@ -505,10 +505,10 @@ public:
 							 const char * szDecimal,
 							 const char * szDelim);
 	bool	cmdRemoveListFormat();
-	void	getBlocksInSelection(UT_GenericVector<fl_BlockLayout*> * vBlock, bool bAllBlocks = true) const;
+	void	getBlocksInSelection(std::vector<fl_BlockLayout*> * vBlock, bool bAllBlocks = true) const;
 	UT_sint32 getNumColumnsInSelection(void) const;
 	UT_sint32 getNumRowsInSelection(void) const;
-	void	getAllBlocksInList(UT_GenericVector<fl_BlockLayout *> * vBlock) const;
+	void	getAllBlocksInList(std::vector<fl_BlockLayout *> * vBlock) const;
 	bool	isPointBeforeListLabel(void) const;
 	bool	isCurrentListBlockEmpty(void) const;
 	bool	cmdStartList(const gchar * style);
@@ -668,7 +668,7 @@ public:
 	bool            frameSetTextLayer(bool bAboveText);
 	/* Selection pane support: object enumeration, programmatic
 	 * frame selection and targeted undoable property writes */
-	void            getFrameLayouts(UT_GenericVector<fl_FrameLayout *> & vec) const;
+	void            getFrameLayouts(std::vector<fl_FrameLayout *> & vec) const;
 	bool            selectFrameObject(fl_FrameLayout * pFL);
 	bool            setFrameProp(fl_FrameLayout * pFL,
 								 const char * szName, const char * szVal);
@@ -682,9 +682,9 @@ public:
 	bool            setFrameRotation(fl_FrameLayout * pFL, double degrees);
 	bool            flipFrame(fl_FrameLayout * pFL, bool bHorizontal);
 	void            getGroupMembers(fl_FrameLayout * pFL,
-									UT_GenericVector<fl_FrameLayout *> & vec) const;
-	bool            groupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel);
-	bool            ungroupFrames(UT_GenericVector<fl_FrameLayout *> & vecSel);
+									std::vector<fl_FrameLayout *> & vec) const;
+	bool            groupFrames(std::vector<fl_FrameLayout *> & vecSel);
+	bool            ungroupFrames(std::vector<fl_FrameLayout *> & vecSel);
 	/* shifts every group-mate of pMoved by the same delta (inches) -
 	 * group drag; caller must be inside an undo glob */
 	bool            shiftFrameGroup(fl_FrameLayout * pMoved,
@@ -695,7 +695,7 @@ public:
 	void            toggleGroupSel(fl_FrameLayout * pFL, bool bOn);
 	bool            isInGroupSel(fl_FrameLayout * pFL) const;
 	UT_sint32       groupSelCount(void);
-	void            getGroupSel(UT_GenericVector<fl_FrameLayout *> & vec);
+	void            getGroupSel(std::vector<fl_FrameLayout *> & vec);
 	void            clearGroupSel(void);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_sint32 mouseX, UT_sint32 mouseY);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG);
@@ -1238,7 +1238,7 @@ protected:
 	void                _renumberFrameLayer(fp_Page * pPage, bool bAbove);
 	bool                _shiftFrame(fl_FrameLayout * pFL,
 									double dXin, double dYin);
-	void                _groupTransform(UT_GenericVector<fl_FrameLayout *> & members,
+	void                _groupTransform(std::vector<fl_FrameLayout *> & members,
 										double dDegrees,
 										bool bFlipH, bool bFlipV);
 
@@ -1406,8 +1406,8 @@ private:
 	FV_UnixVisualInlineImage  m_InlineImage;
 	bool                m_bInsertAtTablePending;
 	PT_DocPosition      m_iPosAtTable;
-	UT_GenericVector<fv_CaretProps *> m_vecCarets;
-	UT_GenericVector<fl_FrameLayout *> m_vecGroupSel;
+	std::vector<std::unique_ptr<fv_CaretProps>> m_vecCarets;
+	std::vector<fl_FrameLayout *> m_vecGroupSel;
 	std::string       m_sDocUUID;
 	bool				m_bBorderPainter = false;
 	bool				m_bBorderSampler = false;

@@ -3435,6 +3435,15 @@ below are on `main` but the release has not been cut yet.
   on success (it previously returned `false` unconditionally — the
   only caller ignores the value).  Application, dialog and
   conversion behavior is unchanged.
+- **Legacy containers modernized in the view layer** — the
+  `UT_GenericVector` collections in `fv_View.{h,cpp,cmd}` (block and
+  frame lists behind selections, lists, formatting, frame grouping
+  and the multi-caret machinery) now use `std::vector`, with the
+  owned elements (caret properties, format-diff pairs, note
+  conversion records) held by `std::unique_ptr` so early exits can't
+  leak them.  The matching table-info vectors shared with the top
+  and left rulers moved over as well.  Editing, selection, clipboard
+  and ruler behavior is unchanged.
 
 ### GTK4 port (core migration)
 

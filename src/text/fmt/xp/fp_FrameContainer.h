@@ -27,6 +27,8 @@
 #include <stdio.h>
 #endif
 
+#include <vector>
+
 #include "ut_misc.h"
 #include "ut_types.h"
 #include "ut_vector.h"
@@ -88,7 +90,7 @@ public:
 	UT_sint32           getYPad(void) const { return m_iYpadTop;}
 	void                setPage(fp_Page * pPage);
 	fl_DocSectionLayout * getDocSectionLayout(void) const;
-	void                getBlocksAroundFrame(UT_GenericVector<fl_BlockLayout *> & vecBlocks);
+	void                getBlocksAroundFrame(std::vector<fl_BlockLayout *> & vecBlocks);
 	PP_PropertyMap::Background getBackground () const;
 	void                setPreferedPageNo(UT_sint32 i);
 	UT_sint32           getPreferedPageNo(void)
