@@ -446,6 +446,9 @@ are separated by a visible 1 px rule.
 
 - New / Open / Save / Print / Export as large icon buttons,
   plus a Word-style **Document Properties** dialog.
+- **Recent Files** dropdown in the Document group: the most
+  recently used documents (persisted across sessions), each row
+  reopening the file; a Clear Recent Files row empties the list.
 - **Settings** group: **Preferences** (the full Options dialog)
   and **RDF Settings** (the RDF editor), relocated from the
   classic Tools/RDF menus.
@@ -453,8 +456,8 @@ are separated by a visible 1 px rule.
 Classic-menu features that had no ribbon home were pruned by
 design: Web Preview, Mail Merge, the Tabs dialog, the Format
 Frame/Image menu entries, the Direction submenu, the Stylist menu
-entry, document History, Revisions → New/Purge, Scripts,
-Text → Table conversion and the Recent Files list were removed.
+entry, document History, Revisions → New/Purge, Scripts and
+Text → Table conversion were removed.
 
 #### Home tab
 

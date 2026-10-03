@@ -161,6 +161,7 @@ static struct AbiStockMapping {
   { ABIWORD_FILE_NEW,				AP_MENU_ID_FILE_NEW,			"document-new" },
   { "abinova-file-new-template",	AP_MENU_ID_FILE_NEW_USING_TEMPLATE,	"x-office-document-template" },
   { ABIWORD_FILE_OPEN,				AP_MENU_ID_FILE_OPEN,			"document-open" },
+  { "abinova-file-recent",			AP_MENU_ID_FILE_RECENT,			"document-open-recent" },
   { ABIWORD_FILE_SAVE,				AP_MENU_ID_FILE_SAVE,			"document-save" },
   { ABIWORD_FILE_SAVEAS,			AP_MENU_ID_FILE_SAVEAS,			"document-save-as" },
   { ABIWORD_FILE_PRINT,				AP_MENU_ID_FILE_PRINT,			"document-print" },

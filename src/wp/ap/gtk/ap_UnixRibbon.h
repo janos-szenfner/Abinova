@@ -200,6 +200,11 @@ private:
 	const char *	_markupModeName() const;
 	void			_refreshCheckRows(GtkWidget * popover);
 	static void		_s_popover_check_show(GtkPopover * w, gpointer data);
+	/* File tab */
+	GtkWidget *		_makeRecentFilesPopover();
+	void			_populateRecentList(GtkWidget * box);
+	static void		_s_popover_recent_show(GtkPopover * w, gpointer data);
+	static void		_s_recent_clear_clicked(GtkWidget * w, gpointer data);
 	/* View tab */
 	GtkWidget *		_makeZoomPopover();
 	GtkWidget *		_makeWindowPopover();

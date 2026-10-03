@@ -522,6 +522,7 @@ public:
 	static EV_EditMethod_Fn fileNewUsingTemplate;
     static EV_EditMethod_Fn fileRevert;
 	static EV_EditMethod_Fn fileOpen;
+	static EV_EditMethod_Fn openRecent;
 	static EV_EditMethod_Fn fileSave;
 	static EV_EditMethod_Fn fileSaveAs;
 	static EV_EditMethod_Fn fileSaveImage;
@@ -1304,6 +1305,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(noteSwap),				0,	""),
 
 	// o
+	EV_EditMethod(NF(openRecent),				_A_,	""),
 	EV_EditMethod(NF(openTemplate), 0, ""),
 
 	// p
@@ -2867,6 +2869,51 @@ Defun1(fileOpen)
 	UT_Error error = ::fileOpen(pFrame, pNewFile, ieft);
 
 	g_free(pNewFile);
+	return E2B(error);
+}
+
+/* Recent Files popover rows call us with the MRU path in pCallData.
+ * Stored entries are URIs once the profile has round-tripped through
+ * disk, plain paths when freshly added - normalize to a URI so
+ * findFrame dedup and _updateTitle always see the canonical form */
+Defun(openRecent)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	/* callers feed us through EV_EditMethodCallData's char* ctor, which
+	 * widens each UTF-8 byte to a UCS4 codepoint - narrow back to bytes
+	 * to recover the original string (utf8_str() would mojibake it).
+	 * If real UCS4 data ever arrives, fall back to decoding it. */
+	bool bWidenedBytes = true;
+	for (UT_uint32 k = 0; k < pCallData->m_dataLength; ++k)
+		if (pCallData->m_pData[k] > 0xFF) { bWidenedBytes = false; break; }
+	UT_String sPath;
+	UT_UCS4String sUcs4;
+	if (bWidenedBytes)
+	{
+		for (UT_uint32 k = 0; k < pCallData->m_dataLength; ++k)
+			sPath += static_cast<char>(pCallData->m_pData[k]);
+	}
+	else
+	{
+		sUcs4 = UT_UCS4String(pCallData->m_pData, pCallData->m_dataLength);
+		sPath = sUcs4.utf8_str();
+	}
+	const char * szStored = sPath.c_str();
+	UT_return_val_if_fail(szStored && *szStored, false);
+
+	char * szOwned = UT_go_path_is_uri(szStored)
+		? nullptr : UT_go_filename_to_uri(szStored);
+	const char * szPath = szOwned ? szOwned : szStored;
+
+	XAP_Frame * pFrame = nullptr;
+	if (pAV_View) {
+		pFrame = static_cast<XAP_Frame *> (pAV_View->getParentData());
+		UT_return_val_if_fail (pFrame, false);
+	}
+
+	UT_Error error = ::fileOpen(pFrame, szPath, IEFT_Unknown);
+	g_free(szOwned);
 	return E2B(error);
 }
 

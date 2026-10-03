@@ -42,6 +42,7 @@
 #include "ut_screenshot.h"
 #include "ut_string.h"
 #include "ut_string_class.h"
+#include "ut_go_file.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
@@ -1594,8 +1595,6 @@ void AP_UnixRibbon::_s_popover_em_clicked(GtkWidget * w, gpointer data)
 		g_object_get_data(G_OBJECT(w), "abi-em-data"));
 	UT_return_if_fail(self && szMethod);
 	_tb_popdown_popover(w);
-	fprintf(stderr, "DBG emclick method=%s data=%s\n",
-			szMethod, szData ? szData : "");
 	self->_invokeEditMethod(szMethod, szData);
 	/* pen rows change the table pen; re-sync the combo previews */
 	if (!strcmp(szMethod, "tablePen"))
@@ -2203,6 +2202,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	GtkWidget * popover = nullptr;
 	switch (id)
 	{
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FILE_RECENT):
+		popover = _makeRecentFilesPopover();
+		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TABLE_INSERT_TABLE):
 		popover = _makeTableGridPopover();
 		break;
@@ -5094,6 +5096,10 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WIDTH):
 		extra = _overlay_pagewidth;
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FILE_RECENT):
+		/* page glyph + clock badge = recent */
+		extra = _overlay_changelog;
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_WINDOW_MENUPOP_SWITCH):
 		spec.bare = true;
@@ -7988,6 +7994,98 @@ GtkWidget * AP_UnixRibbon::_makeComparePopover()
 								  16, 16),
 							  "revisionCombineDocuments", nullptr));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* --------------------------------------------------------------- File --- */
+
+/* Recent Files: one row per MRU entry, rebuilt on every show so the
+ * list tracks documents opened/saved since the last popup (same
+ * repopulate-on-show pattern as Switch Windows) */
+void AP_UnixRibbon::_populateRecentList(GtkWidget * box)
+{
+	GtkWidget * child;
+	while ((child = gtk_widget_get_first_child(box)) != nullptr)
+		gtk_box_remove(GTK_BOX(box), child);
+
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_if_fail(pApp);
+	XAP_Prefs * pPrefs = pApp->getPrefs();
+	UT_return_if_fail(pPrefs);
+
+	UT_uint32 n = pPrefs->getRecentCount();
+	if (n == 0)
+	{
+		GtkWidget * w = _popoverEmButton("No recent documents",
+										   nullptr, nullptr);
+		gtk_widget_set_sensitive(w, FALSE);
+		gtk_box_append(GTK_BOX(box), w);
+		return;
+	}
+	for (UT_uint32 k = 1; k <= n; ++k)
+	{
+		const char * szStored = pPrefs->getRecent(k);
+		if (!szStored || !*szStored)
+			continue;
+		/* stored entries are file:// URIs once the profile has
+		 * round-tripped through disk, plain paths before that */
+		const bool bIsUri = UT_go_path_is_uri(szStored);
+		gchar * szBase = bIsUri ? UT_go_basename_from_uri(szStored)
+								: g_path_get_basename(szStored);
+		gchar * szFull = bIsUri ? UT_go_filename_from_uri(szStored)
+								: g_strdup(szStored);
+		GtkWidget * w = _popoverEmButton(szBase, "document-open-recent",
+										   "openRecent", szStored);
+		/* basename is the label; the full path rides the tooltip */
+		gtk_widget_set_tooltip_text(w,
+									szFull ? szFull : szStored);
+		gtk_box_append(GTK_BOX(box), w);
+		g_free(szBase);
+		g_free(szFull);
+	}
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * w = _popoverEmButton("Clear Recent Files",
+									   "edit-clear-symbolic",
+									   nullptr, nullptr);
+	gtk_widget_set_tooltip_text(w,
+								"Remove every entry from the recent files list");
+	/* _popoverEmButton with no edit method leaves the stock
+	 * _s_popover_em_clicked handler inert - the real action is here */
+	g_signal_connect(w, "clicked",
+					 G_CALLBACK(_s_recent_clear_clicked), this);
+	gtk_box_append(GTK_BOX(box), w);
+}
+
+void AP_UnixRibbon::_s_popover_recent_show(GtkPopover * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * box = gtk_popover_get_child(w);
+	if (box)
+		self->_populateRecentList(box);
+}
+
+void AP_UnixRibbon::_s_recent_clear_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	XAP_App * pApp = XAP_App::getApp();
+	XAP_Prefs * pPrefs = pApp ? pApp->getPrefs() : nullptr;
+	if (!pPrefs)
+		return;
+	pPrefs->clearRecent();
+	pPrefs->savePrefsFile();
+}
+
+GtkWidget * AP_UnixRibbon::_makeRecentFilesPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	_populateRecentList(box);
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_recent_show), this);
 	return popover;
 }
 

@@ -996,6 +996,14 @@ below are on `main` but the release has not been cut yet.
   To); Insert split into Pages/Tables/Illustrations/Links/Text/
   Symbols/Fields; new References tab (Table of Contents, Footnotes);
   Layout: Page Setup/Page Columns/Page Background.
+- **Recent Files on the File tab** — the File ribbon's Document
+  group now has a "Recent Files" dropdown listing the most recently
+  used documents (basename as the row label, full path as the
+  tooltip), backed by the existing MRU preferences so entries
+  persist across sessions. Picking an entry opens it through the
+  normal open path (existing windows are reused, an empty untitled
+  window is replaced); a "Clear Recent Files" row empties the list,
+  and a disabled "No recent documents" row is shown when empty.
 - **References tab redesigned to match Word** — primary commands now
   render as large icon-over-caption buttons (Table of Contents,
   Footnote, Endnote, Insert Citation, Insert Caption, Insert Table of

@@ -163,6 +163,7 @@ public:
 	const char* getRecent(UT_uint32 k) const;		// one-based
 	void addRecent(const char * szRecent);
 	void removeRecent(UT_uint32 k);			// one-based
+	void clearRecent(void)					{ m_vecRecent.clear(); }
 	void                    setIgnoreNextRecent(void)
 		{ m_bIgnoreThisOne = true;}
 	bool                    isIgnoreRecent(void)
