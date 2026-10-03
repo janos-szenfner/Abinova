@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml-1.0.dtd">
+<abiword version="1.0" file-format="1.1">
+<section>
+<p style="Heading 1">Chapter One</p>
+<p>Body text before the table of contents.</p>
+<toc props="toc-has-heading:0; toc-source-style1:Heading 1; toc-dest-style1:Contents 1">
+<p props="toc-dest-style:1">Chapter One&#9;1</p>
+<p props="toc-dest-style:1">Chapter Two&#9;1</p>
+</toc>
+<p>Body text after the table of contents.</p>
+</section>
+</abiword>

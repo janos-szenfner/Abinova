@@ -1894,6 +1894,12 @@ below are on `main` but the release has not been cut yet.
   `EV_EMC_TABLE` for clicks in cells (also covers the cell-border
   hit-contexts) and `contextText` re-checks the position so stale
   context can't misroute the menu.
+- **TOC context menu parity** — right-clicking a table of contents
+  now offers "Update Table" (regenerates the TOC from the current
+  headings) alongside "Table of Contents…" (Format dialog), matching
+  Word's Update Field / Edit TOC pair. Right-click also selects the
+  TOC under the pointer first, so both entries act on the clicked
+  TOC even when the caret sits elsewhere in the document.
 - **Word-style popup menu icons** — `EV_UnixMenu::_createMenuItem`
   resolves each popup item's toolbar icon
   (`AP_CreateToolbarLabelSet` + `abi_stock_from_toolbar_id`) and sets

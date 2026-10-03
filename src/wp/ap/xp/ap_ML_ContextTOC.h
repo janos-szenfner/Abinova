@@ -27,6 +27,7 @@
 BeginLayout(ContextTOC,EV_EMC_TOC)
 
 	BeginPopupMenu()
+		MenuItem(AP_MENU_ID_REF_UPDATETOC)
 		MenuItem(AP_MENU_ID_FMT_TABLEOFCONTENTS)
 	EndPopupMenu()
 

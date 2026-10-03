@@ -5194,6 +5194,9 @@ Defun(contextTOC)
 	UT_return_val_if_fail (pView, false);
 	XAP_Frame * pFrame = static_cast<XAP_Frame *> (pView->getParentData());
 	UT_return_val_if_fail(pFrame, false);
+	// select the TOC under the click so Update/Format act on it (the
+	// menu state functions key off the TOC selection/insertion point)
+	pView->cmdSelectTOC(pCallData->m_xPos, pCallData->m_yPos);
 	return s_doContextMenu_no_move(EV_EMC_TOC,pCallData->m_xPos, pCallData->m_yPos,pView,pFrame);
 }
 
