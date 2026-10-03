@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -88,6 +89,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+noinst_PROGRAMS = wvblip$(EXEEXT)
 subdir = thirdparty
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_append_compile_flags.m4 \
@@ -108,6 +110,7 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+PROGRAMS = $(noinst_PROGRAMS)
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libhunspell_la_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
@@ -462,6 +465,13 @@ libwv_la_OBJECTS = $(am_libwv_la_OBJECTS)
 libwv_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libwv_la_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_wvblip_OBJECTS = wv-1.2.9/wvblip-wvblip.$(OBJEXT)
+wvblip_OBJECTS = $(am_wvblip_OBJECTS)
+am__DEPENDENCIES_1 =
+wvblip_DEPENDENCIES = libwv.la $(am__DEPENDENCIES_1)
+wvblip_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(wvblip_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -848,7 +858,8 @@ am__depfiles_remade = hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affen
 	wv-1.2.9/$(DEPDIR)/libwv_la-wvHtmlEngine.Plo \
 	wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo \
 	wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo \
-	wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo
+	wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo \
+	wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -888,10 +899,10 @@ am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = $(libhunspell_la_SOURCES) $(librevenge_la_SOURCES) \
 	$(libwpd_la_SOURCES) $(libwpg_la_SOURCES) $(libwps_la_SOURCES) \
-	$(libwv_la_SOURCES)
+	$(libwv_la_SOURCES) $(wvblip_SOURCES)
 DIST_SOURCES = $(libhunspell_la_SOURCES) $(librevenge_la_SOURCES) \
 	$(libwpd_la_SOURCES) $(libwpg_la_SOURCES) $(libwps_la_SOURCES) \
-	$(libwv_la_SOURCES)
+	$(libwv_la_SOURCES) $(wvblip_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -1486,6 +1497,10 @@ libwv_la_SOURCES = \
 
 libwv_la_CPPFLAGS = -I$(srcdir)/wv-1.2.9 $(DEPS_CFLAGS)
 libwv_la_CFLAGS = -fPIC -DHAVE_CONFIG_H
+wvblip_SOURCES = wv-1.2.9/wvblip.c
+wvblip_CPPFLAGS = -I$(srcdir)/wv-1.2.9 $(DEPS_CFLAGS)
+wvblip_CFLAGS = -DHAVE_CONFIG_H
+wvblip_LDADD = libwv.la $(DEPS_LIBS)
 libhunspell_la_SOURCES = \
 	hunspell-1.7.4/src/hunspell/affentry.cxx \
 	hunspell-1.7.4/src/hunspell/affentry.hxx \
@@ -1555,6 +1570,15 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+
+clean-noinstPROGRAMS:
+	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
+	echo " rm -f" $$list; \
+	rm -f $$list || exit $$?; \
+	test -n "$(EXEEXT)" || exit 0; \
+	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
+	echo " rm -f" $$list; \
+	rm -f $$list
 
 clean-noinstLTLIBRARIES:
 	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
@@ -2644,6 +2668,12 @@ wv-1.2.9/libwv_la-xst.lo: wv-1.2.9/$(am__dirstamp) \
 
 libwv.la: $(libwv_la_OBJECTS) $(libwv_la_DEPENDENCIES) $(EXTRA_libwv_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libwv_la_LINK)  $(libwv_la_OBJECTS) $(libwv_la_LIBADD) $(LIBS)
+wv-1.2.9/wvblip-wvblip.$(OBJEXT): wv-1.2.9/$(am__dirstamp) \
+	wv-1.2.9/$(DEPDIR)/$(am__dirstamp)
+
+wvblip$(EXEEXT): $(wvblip_OBJECTS) $(wvblip_DEPENDENCIES) $(EXTRA_wvblip_DEPENDENCIES) 
+	@rm -f wvblip$(EXEEXT)
+	$(AM_V_CCLD)$(wvblip_LINK) $(wvblip_OBJECTS) $(wvblip_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -3035,6 +3065,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -3709,6 +3740,20 @@ wv-1.2.9/libwv_la-xst.lo: wv-1.2.9/xst.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/xst.c' object='wv-1.2.9/libwv_la-xst.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libwv_la_CPPFLAGS) $(CPPFLAGS) $(libwv_la_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/libwv_la-xst.lo `test -f 'wv-1.2.9/xst.c' || echo '$(srcdir)/'`wv-1.2.9/xst.c
+
+wv-1.2.9/wvblip-wvblip.o: wv-1.2.9/wvblip.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wvblip_CPPFLAGS) $(CPPFLAGS) $(wvblip_CFLAGS) $(CFLAGS) -MT wv-1.2.9/wvblip-wvblip.o -MD -MP -MF wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Tpo -c -o wv-1.2.9/wvblip-wvblip.o `test -f 'wv-1.2.9/wvblip.c' || echo '$(srcdir)/'`wv-1.2.9/wvblip.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Tpo wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/wvblip.c' object='wv-1.2.9/wvblip-wvblip.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wvblip_CPPFLAGS) $(CPPFLAGS) $(wvblip_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/wvblip-wvblip.o `test -f 'wv-1.2.9/wvblip.c' || echo '$(srcdir)/'`wv-1.2.9/wvblip.c
+
+wv-1.2.9/wvblip-wvblip.obj: wv-1.2.9/wvblip.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wvblip_CPPFLAGS) $(CPPFLAGS) $(wvblip_CFLAGS) $(CFLAGS) -MT wv-1.2.9/wvblip-wvblip.obj -MD -MP -MF wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Tpo -c -o wv-1.2.9/wvblip-wvblip.obj `if test -f 'wv-1.2.9/wvblip.c'; then $(CYGPATH_W) 'wv-1.2.9/wvblip.c'; else $(CYGPATH_W) '$(srcdir)/wv-1.2.9/wvblip.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Tpo wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wv-1.2.9/wvblip.c' object='wv-1.2.9/wvblip-wvblip.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(wvblip_CPPFLAGS) $(CPPFLAGS) $(wvblip_CFLAGS) $(CFLAGS) -c -o wv-1.2.9/wvblip-wvblip.obj `if test -f 'wv-1.2.9/wvblip.c'; then $(CYGPATH_W) 'wv-1.2.9/wvblip.c'; else $(CYGPATH_W) '$(srcdir)/wv-1.2.9/wvblip.c'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -5816,7 +5861,7 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(PROGRAMS) $(LTLIBRARIES)
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -5863,7 +5908,7 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
-	mostlyclean-am
+	clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 		-rm -f hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affentry.Plo
@@ -6238,6 +6283,7 @@ distclean: distclean-am
 	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo
 	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo
 	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -6655,6 +6701,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvTextEngine.Plo
 	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-wvparse.Plo
 	-rm -f wv-1.2.9/$(DEPDIR)/libwv_la-xst.Plo
+	-rm -f wv-1.2.9/$(DEPDIR)/wvblip-wvblip.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -6677,17 +6724,17 @@ uninstall-am:
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-am clean \
 	clean-generic clean-libtool clean-noinstLTLIBRARIES \
-	cscopelist-am ctags ctags-am distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am
+	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am
 
 .PRECIOUS: Makefile
 

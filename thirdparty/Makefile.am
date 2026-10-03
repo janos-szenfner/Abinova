@@ -401,6 +401,15 @@ libwv_la_SOURCES = \
 libwv_la_CPPFLAGS = -I$(srcdir)/wv-1.2.9 $(DEPS_CFLAGS)
 libwv_la_CFLAGS = -fPIC -DHAVE_CONFIG_H
 
+# small debug/test tool: dump the OfficeArt blip store (or an
+# inline PICF picture) of a .doc -- exercises the wv blip
+# extraction API (wvGetDocEscher/wvGetStoreBlip/wvExtractBlipData)
+noinst_PROGRAMS = wvblip
+wvblip_SOURCES = wv-1.2.9/wvblip.c
+wvblip_CPPFLAGS = -I$(srcdir)/wv-1.2.9 $(DEPS_CFLAGS)
+wvblip_CFLAGS = -DHAVE_CONFIG_H
+wvblip_LDADD = libwv.la $(DEPS_LIBS)
+
 EXTRA_DIST += wv-1.2.9/config.h
 
 ## Vendored hunspell 1.7.4 spell-checking engine for the grammar

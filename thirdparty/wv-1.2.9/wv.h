@@ -3925,6 +3925,38 @@ returns the same as wvOLEDecode with the addition that
 		      wvStream * delay);
     void wvInitEscher (escherstruct * item);
     void wvReleaseEscher (escherstruct * item);
+
+    /* AbiWord: document-level helpers over the escher parse.
+
+       wvGetDocEscher reads the document's whole OfficeArtDggInfo
+       (drawing layer group container incl. the blip store) out of
+       the table stream per the FIB, using the document's Data
+       stream as the delay stream for deferred blips.
+
+       wvGetStoreBlipCount / wvGetStoreBlip enumerate the blip
+       store: shape-property pib values (FOPTE pid 0x104) are
+       1-based indexes into it.  wvGetStoreBlip MOVES the blip's
+       m_pvBits stream into the caller's copy, so the returned
+       Blip is its sole owner; wvReleaseBlip()s it when done.
+
+       wvFindBlipBySPID resolves a shape's spid to the blip its
+       pib property references on an already-parsed escherstruct
+       (wv0x08 is the parse-per-call convenience wrapper).
+
+       wvExtractBlipData pulls a Blip's image bytes into a fresh
+       wvMalloc'd buffer, reports the byte count and the
+       MSOBLIPTYPE in *len/*type, and consumes the blip's
+       m_pvBits stream (closed + cleared, so a second call
+       fails).  Raster blips yield the stored PNG/JPEG/DIB file
+       bytes; metafile blips yield the still-compressed bits when
+       MetaFileBlip.m_fCompression says msocompressionDeflate. */
+    void wvGetDocEscher (wvParseStruct * ps, escherstruct * item);
+    U32 wvGetStoreBlipCount (const escherstruct * item);
+    int wvGetStoreBlip (escherstruct * item, U32 pib, Blip * blip);
+    int wvFindBlipBySPID (escherstruct * item, S32 spid, Blip * blip);
+    int wvExtractBlipData (Blip * blip, U8 ** data, U32 * len,
+			   U16 * type);
+
     void wvStrToUpper (char *str);
     int decompress (FILE * inputfile, FILE * outputfile, U32 inlen, U32 outlen);
 

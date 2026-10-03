@@ -543,22 +543,68 @@ wvGetFDGG (FDGG * afdgg, wvStream * fd)
 }
 
 
-int
-wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
+void
+wvGetDocEscher (wvParseStruct * ps, escherstruct * item)
 {
-    int ret = 0;
-    U32 i;
-    escherstruct item;
-    FSPContainer *answer = NULL;
-    wvTrace (("spid is %x\n", spid));
     /* the OfficeArt delay stream for Word documents is the Data
        stream, not the main stream */
-    wvGetEscher (&item, ps->fib.fcDggInfo, ps->fib.lcbDggInfo, ps->tablefd,
+    wvGetEscher (item, ps->fib.fcDggInfo, ps->fib.lcbDggInfo, ps->tablefd,
 		 ps->data);
+}
 
-    for (i = 0; i < item.dgcontainer.no_spgrcontainer; i++)
+U32
+wvGetStoreBlipCount (const escherstruct * item)
+{
+    if (!item)
+	return (0);
+    return (item->dggcontainer.bstorecontainer.no_fbse);
+}
+
+int
+wvGetStoreBlip (escherstruct * item, U32 pib, Blip * blip)
+{
+    Blip *src;
+    BstoreContainer *store;
+
+    if (!item || !blip || pib < 1)
+	return (0);
+    store = &item->dggcontainer.bstorecontainer;
+    if (pib > store->no_fbse)
+	return (0);
+    src = &store->blip[pib - 1];
+    wvCopyBlip (blip, src);
+    /* wvCopyBlip only shares the payload stream; MOVE it into the
+       copy instead so the returned Blip is its sole owner and the
+       store slot can be released independently */
+    switch (blip->type)
       {
-	  answer = wvFindSPID (&(item.dgcontainer.spgrcontainer[i]), spid);
+      case msoblipJPEG:
+      case msoblipPNG:
+      case msoblipDIB:
+	  src->blip.bitmap.m_pvBits = NULL;
+	  break;
+      case msoblipWMF:
+      case msoblipEMF:
+      case msoblipPICT:
+	  src->blip.metafile.m_pvBits = NULL;
+	  break;
+      }
+    return (1);
+}
+
+int
+wvFindBlipBySPID (escherstruct * item, S32 spid, Blip * blip)
+{
+    U32 i;
+    FSPContainer *answer = NULL;
+
+    if (!item || !blip)
+	return (0);
+    wvTrace (("spid is %x\n", spid));
+
+    for (i = 0; i < item->dgcontainer.no_spgrcontainer; i++)
+      {
+	  answer = wvFindSPID (&(item->dgcontainer.spgrcontainer[i]), spid);
 	  if (answer)
 	      break;
       }
@@ -579,32 +625,29 @@ wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
 				answer->fopte[i].op));
 		      wvTrace (
 			       ("no blips is %d\n",
-				item.dggcontainer.bstorecontainer.no_fbse));
-		      if (item.dggcontainer.bstorecontainer.no_fbse)
-			  wvTrace (
-			       ("type is %d (number is %d\n",
-				item.dggcontainer.bstorecontainer.blip[item.
-								       dggcontainer.
-								       bstorecontainer.
-								       no_fbse -
-								       1].type,
-				item.dggcontainer.bstorecontainer.no_fbse));
-		      if (answer->fopte[i].op >= 1 && answer->fopte[i].op <=
-			  item.dggcontainer.bstorecontainer.no_fbse)
+				item->dggcontainer.bstorecontainer.no_fbse));
+		      if (wvGetStoreBlip (item, answer->fopte[i].op, blip))
 			{
 			    wvTrace (("Copied Blip\n"));
-			    wvCopyBlip (blip,
-					&(item.dggcontainer.bstorecontainer.
-					  blip[answer->fopte[i].op - 1]));
 			    wvTrace (("type is %d\n", blip->type));
-			    ret = 1;
-			    break;
+			    return (1);
 			}
 		  }
 		i++;
 	    }
       }
     wvTrace (("spid is %x\n", spid));
+    return (0);
+}
+
+int
+wv0x08 (Blip * blip, S32 spid, wvParseStruct * ps)
+{
+    int ret;
+    escherstruct item;
+
+    wvGetDocEscher (ps, &item);
+    ret = wvFindBlipBySPID (&item, spid, blip);
     wvReleaseEscher (&item);
     return (ret);
 }

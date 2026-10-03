@@ -62,6 +62,81 @@ void
 wvReleaseBlip (Blip * blip)
 {
     wvFree (blip->name);
+    /* a Blip owns its m_pvBits stream: wvGetStoreBlip steals it
+       into the caller's copy so ownership is never shared, and
+       wvExtractBlipData clears it after consumption -- what is
+       left here is genuinely owned.  ERROR/UNKNOWN slots never
+       had their union written, so only touch it for the types
+       that carry an m_pvBits.  wvStream_close tolerates NULL. */
+    switch (blip->type)
+      {
+      case msoblipJPEG:
+      case msoblipPNG:
+      case msoblipDIB:
+	  wvStream_close (blip->blip.bitmap.m_pvBits);
+	  blip->blip.bitmap.m_pvBits = NULL;
+	  break;
+      case msoblipWMF:
+      case msoblipEMF:
+      case msoblipPICT:
+	  wvStream_close (blip->blip.metafile.m_pvBits);
+	  blip->blip.metafile.m_pvBits = NULL;
+	  break;
+      }
+}
+
+/*
+  AbiWord: pull the image bytes out of a parsed Blip into a fresh
+  wvMalloc'd buffer.  The blip's m_pvBits stream is consumed:
+  closed and cleared, so a second call reports failure and
+  wvReleaseBlip no longer touches it.  Returns 1 and sets *data
+  (caller wvFree()s), *len and *type on success.  Metafile blips
+  that were stored compressed keep their compressed bytes here --
+  check MetaFileBlip.m_fCompression before extracting if the
+  uncompressed form is needed.
+*/
+int
+wvExtractBlipData (Blip * blip, U8 ** data, U32 * len, U16 * type)
+{
+    wvStream *bits = NULL;
+
+    if (!blip || !data || !len || !type)
+	return (0);
+    *data = NULL;
+    *len = 0;
+    *type = blip->type;
+    switch (blip->type)
+      {
+      case msoblipJPEG:
+      case msoblipPNG:
+      case msoblipDIB:
+	  bits = blip->blip.bitmap.m_pvBits;
+	  blip->blip.bitmap.m_pvBits = NULL;
+	  break;
+      case msoblipWMF:
+      case msoblipEMF:
+      case msoblipPICT:
+	  bits = blip->blip.metafile.m_pvBits;
+	  blip->blip.metafile.m_pvBits = NULL;
+	  break;
+      default:
+	  return (0);
+      }
+    if (!bits)
+	return (0);
+
+    *len = wvStream_size (bits);
+    *data = (U8 *) wvMalloc (*len ? *len : 1);
+    if (!*data)
+      {
+	  *len = 0;
+	  wvStream_close (bits);
+	  return (0);
+      }
+    wvStream_rewind (bits);
+    wvStream_read (*data, 1, *len, bits);
+    wvStream_close (bits);
+    return (1);
 }
 
 /*

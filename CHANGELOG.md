@@ -3622,6 +3622,16 @@ below are on `main` but the release has not been cut yet.
   the resulting `FG_GraphicVector` images painted blank in our cairo
   renderers, while PNG output renders everywhere (embedded `.doc`
   metafiles and standalone `.wmf` imports alike).
+- **`.doc` image bytes extractable via a clean wv API** — vendored
+  `wv-1.2.9` gains `wvGetDocEscher`/`wvGetStoreBlip`/
+  `wvFindBlipBySPID`/`wvExtractBlipData` helpers over the OfficeArt
+  blip store (FBSE-embedded, `foDelay`-deferred and bare
+  `OfficeArtBlip` slots), with the blip payload stream's ownership
+  made explicit (`wvReleaseBlip` now frees it — store slots used to
+  leak one stream per blip per parse). A new `wvblip` debug tool in
+  `thirdparty/` lists or dumps the pictures in a `.doc`, and
+  `tools/mkdoc07.py` generates the synthetic picture fixtures used
+  to verify it.
 - **Page/column bookkeeping and ruler-info paths hardened** — the
   code that reflows pages for Web/Normal view and feeds the rulers
   dereferenced page column leaders, footnote/annotation containers and
