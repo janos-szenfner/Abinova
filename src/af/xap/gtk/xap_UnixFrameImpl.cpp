@@ -1990,7 +1990,13 @@ bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char *
 	XAP_Frame*	pFrame = getFrame();
 	bool bResult = true;
 
-	UT_ASSERT_HARMLESS(!m_pUnixPopup);
+	if(m_pUnixPopup)
+	{
+		// a context menu is already up inside the nested g_main_loop_run
+		// below; overwriting the member here would leak the first popup
+		// and orphan its menu model.
+		return false;
+	}
 
 	// WL_REFACTOR: we DON'T want to do this
 	m_pUnixPopup = new EV_UnixMenuPopup(static_cast<XAP_UnixApp*>(XAP_App::getApp()),

@@ -11582,6 +11582,16 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 	}
 	UT_sint32 ires = 40;
 	pPage->mapXYToPosition(xClick, yClick, pos, bBOL, bEOL,isTOC, true);
+	if(pos == 0)
+	{
+		// a stale or malformed layout can leave pos unset when no
+		// container claims the click; feeding 0 to _findPositionCoords
+		// resolves to the document start and would produce a context
+		// menu for the wrong location.
+		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: click mapped to no doc position\n"));
+		m_prevMouseContext = EV_EMC_UNKNOWN;
+		return EV_EMC_UNKNOWN;
+	}
 	fl_BlockLayout* pBlock;
 	fp_Run* pRun;
 	_findPositionCoords(pos, bEOL, xPoint, yPoint, xPoint2, yPoint2, iPointHeight, bDirection, &pBlock, &pRun);
@@ -11596,56 +11606,83 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 // has no content.
 //
 		xxx_UT_DEBUGMSG(("In Frame \n"));
+		fl_FrameLayout * pFL = nullptr;
 		if(m_pDoc->isFrameAtPos(pos))
 		{
 			fl_ContainerLayout* psfh = nullptr;
-			m_pDoc->getStruxOfTypeFromPosition(m_pLayout->getLID(),pos+1,
-											   PTX_SectionFrame, &psfh);
-			fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(psfh);
-			UT_ASSERT(pFL->getContainerType() == FL_CONTAINER_FRAME);
-			if(pFL->getFrameType() >= FL_FRAME_WRAPPER_IMAGE)
+			if(m_pDoc->getStruxOfTypeFromPosition(m_pLayout->getLID(),pos+1,
+											   PTX_SectionFrame, &psfh)
+			   && psfh
+			   && psfh->getContainerType() == FL_CONTAINER_FRAME)
 			{
-				m_prevMouseContext = EV_EMC_POSOBJECT;
-				xxx_UT_DEBUGMSG(("Over positioned object \n"));
-				return EV_EMC_POSOBJECT;
+				pFL = static_cast<fl_FrameLayout *>(psfh);
+				if(pFL->getFrameType() >= FL_FRAME_WRAPPER_IMAGE)
+				{
+					m_prevMouseContext = EV_EMC_POSOBJECT;
+					xxx_UT_DEBUGMSG(("Over positioned object \n"));
+					return EV_EMC_POSOBJECT;
+				}
 			}
 		}
- 
+		if(!pFL && pBlock)
+		{
+			// the strux lookup can fail mid-load before the frame strux
+			// has a handle for this listener; fall back to walking the
+			// clicked block's containing layouts (the same walk
+			// isInFrame uses) so a block nested in a table or cell
+			// inside the frame still resolves the real frame layout
+			// instead of a wrong-type cast.
+			fl_ContainerLayout * pCL = pBlock->myContainingLayout();
+			while(pCL
+				  && (pCL->getContainerType() != FL_CONTAINER_FRAME)
+				  && (pCL->getContainerType() != FL_CONTAINER_DOCSECTION))
+			{
+				pCL = pCL->myContainingLayout();
+			}
+			if(pCL && (pCL->getContainerType() == FL_CONTAINER_FRAME))
+			{
+				pFL = static_cast<fl_FrameLayout *>(pCL);
+			}
+		}
+
 		//TODO: this needs fixing for multipage, I think?
 		//
 		// OK find the coordinates of the frame.
 		//
-		UT_sint32 xPage,yPage;
-		getPageScreenOffsets(pPage,xPage,yPage);
-		fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pBlock->myContainingLayout());
-		fp_FrameContainer * pFCon = static_cast<fp_FrameContainer *>(pFL->getFirstContainer());
-		UT_sint32 iLeft = xPage + pFCon->getFullX();
-		UT_sint32 iRight = xPage + pFCon->getFullX() + pFCon->getFullWidth();
-		UT_sint32 iTop = yPage + pFCon->getFullY();
-		UT_sint32 iBot = yPage + pFCon->getFullY() + pFCon->getFullHeight();
-		bool bLeft = (iLeft - xPos < ires) && (xPos - iLeft < ires);
-		bool bRight = (iRight - xPos < ires) && (xPos - iRight < ires);
-		bool bTop = (iTop - yPos < ires) && (yPos - iTop < ires);
-		bool bBot = (iBot - yPos < ires) && (yPos - iBot < ires);
-		bool bX = (iLeft - ires < xPos) && (xPos < iRight + ires);
-		bool bY = (iTop - ires < yPos) && (iBot + ires > yPos);
-		if( (bLeft || bRight) && bY)
+		fp_FrameContainer * pFCon = pFL
+			? static_cast<fp_FrameContainer *>(pFL->getFirstContainer()) : nullptr;
+		if(pFCon && (pFCon->getContainerType() == FP_CONTAINER_FRAME))
 		{
+			UT_sint32 xPage,yPage;
+			getPageScreenOffsets(pPage,xPage,yPage);
+			UT_sint32 iLeft = xPage + pFCon->getFullX();
+			UT_sint32 iRight = xPage + pFCon->getFullX() + pFCon->getFullWidth();
+			UT_sint32 iTop = yPage + pFCon->getFullY();
+			UT_sint32 iBot = yPage + pFCon->getFullY() + pFCon->getFullHeight();
+			bool bLeft = (iLeft - xPos < ires) && (xPos - iLeft < ires);
+			bool bRight = (iRight - xPos < ires) && (xPos - iRight < ires);
+			bool bTop = (iTop - yPos < ires) && (yPos - iTop < ires);
+			bool bBot = (iBot - yPos < ires) && (yPos - iBot < ires);
+			bool bX = (iLeft - ires < xPos) && (xPos < iRight + ires);
+			bool bY = (iTop - ires < yPos) && (iBot + ires > yPos);
+			if( (bLeft || bRight) && bY)
+			{
 // TODO put in some code to indicate which control of the frame is being
 // dragged. Maybe reuse topRuler stuff???
 //
-			xxx_UT_DEBUGMSG(("getContext: Found left frame line \n"));
-			m_prevMouseContext = EV_EMC_FRAME;
-			return EV_EMC_FRAME;
-		}
-		if( (bTop || bBot) && bX)
-		{
+				xxx_UT_DEBUGMSG(("getContext: Found left frame line \n"));
+				m_prevMouseContext = EV_EMC_FRAME;
+				return EV_EMC_FRAME;
+			}
+			if( (bTop || bBot) && bX)
+			{
 // TODO put in some code to indicate which control of the frame is being
 // dragged. Maybe reuse topRuler stuff???
 //
-			xxx_UT_DEBUGMSG(("getContext: Found left frame line \n"));
-			m_prevMouseContext = EV_EMC_FRAME;
-			return EV_EMC_FRAME;
+				xxx_UT_DEBUGMSG(("getContext: Found left frame line \n"));
+				m_prevMouseContext = EV_EMC_FRAME;
+				return EV_EMC_FRAME;
+			}
 		}
 
 	}	

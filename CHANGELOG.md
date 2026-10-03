@@ -3553,6 +3553,19 @@ below are on `main` but the release has not been cut yet.
   maps) now use `std::vector`/`std::map`, completing the codebase's
   container sweep.  File-format registries, table import, spell
   check and ODT/RTF export behave identically.
+- **Right-click context lookup hardened** — a right-click whose
+  document position resolved inside a frame used to cast whatever
+  layout contained the clicked block to a frame layout and
+  dereference its first frame container unconditionally, so a click
+  inside a table nested in a frame read the wrong geometry and a
+  half-loaded frame with no containers could crash; the lookup now
+  type-checks the layout, walks the containing-layout chain up to
+  the real frame layout when the strux lookup misses (mid-load),
+  and only touches verified frame containers.  Clicks that map to
+  no document position (stale layouts, off-page coordinates) now
+  report "no context" instead of showing a menu for the document
+  start, and a second context menu requested while one is already
+  open is ignored instead of leaking the first popup.
 
 ### GTK4 port (core migration)
 

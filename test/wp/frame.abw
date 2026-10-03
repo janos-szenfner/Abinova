@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<abiword version="0.99.2" xml:space="preserve">
+<section>
+<p>Body text before the frames.</p>
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:2.0000in; frame-height:1.0000in; frame-page-xpos:1.0000in; frame-page-ypos:1.0000in; xpos:1.0000in; ypos:1.0000in; wrap-mode:above-text; xpad:0.1000in; xpad-left:0.1000in; xpad-right:0.1000in; ypad:0.0500in; ypad-top:0.0500in; ypad-bottom:0.0500in; background-color:DDDDDD; frame-text-direction:horz; text-warp:textNoShape">
+<p>Text inside the first textbox frame.</p>
+</frame>
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:3.0000in; frame-height:1.5000in; frame-page-xpos:4.0000in; frame-page-ypos:5.0000in; xpos:4.0000in; ypos:5.0000in; wrap-mode:above-text; xpad:0.1000in; xpad-left:0.1000in; xpad-right:0.1000in; ypad:0.0500in; ypad-top:0.0500in; ypad-bottom:0.0500in; background-color:EEEEEE; frame-text-direction:horz; text-warp:textNoShape">
+<table xid="1">
+<cell xid="2" props="bot-attach:1; left-attach:0; right-attach:1; top-attach:0">
+<p>Nested table cell one.</p>
+</cell>
+<cell xid="3" props="bot-attach:1; left-attach:1; right-attach:2; top-attach:0">
+<p>Nested table cell two.</p>
+</cell>
+<cell xid="4" props="bot-attach:2; left-attach:0; right-attach:1; top-attach:1">
+<p>Nested table cell three.</p>
+</cell>
+<cell xid="5" props="bot-attach:2; left-attach:1; right-attach:2; top-attach:1">
+<p>Nested table cell four.</p>
+</cell>
+</table>
+</frame>
+<p>Body text after the frames.</p>
+</section>
+</abiword>
