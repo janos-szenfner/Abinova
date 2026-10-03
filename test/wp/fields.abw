@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml-1.0.dtd">
+<abiword version="1.0" file-format="1.1">
+<section>
+<p props="text-align:left">The current time is <field type="time"/>.</p>
+<p>This is page <field type="page_number"/> of <field type="page_count"/>.</p>
+</section>
+</abiword>

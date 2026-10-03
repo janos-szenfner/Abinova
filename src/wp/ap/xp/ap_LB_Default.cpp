@@ -228,6 +228,8 @@ ap_bs_Mouse MouseTable[] =
 
 	{_CV _B3,	{ "contextRevision",  "",  "",	"", "",	 ""  }},
 
+	{_CF _B3,	{ "contextField",     "",  "",	"", "",	 ""  }},
+
 //  Button-4, Mouse wheel (3 lines up)... yes, a hack.
 	{_CU _B4,	{ "scrollWheelMouseUp",		"scrollWheelMouseUp",			"",		"",			"",			""				}},
 	{_CU _B4 _C,{ "zoomIn",		            "zoomIn",           			"",		"",			"",			""				}},

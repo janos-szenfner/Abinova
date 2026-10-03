@@ -1,5 +1,5 @@
-/* AbiWord
- * Copyright (C) 1998 AbiSource, Inc.
+/* Abinova
+ * Copyright (C) 2026 Abinova contributors
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,7 +17,6 @@
  * 02110-1301 USA.
  */
 
-
 /*****************************************************************
 ******************************************************************
 ** IT IS IMPORTANT THAT THIS FILE ALLOW ITSELF TO BE INCLUDED
@@ -25,32 +24,16 @@
 ******************************************************************
 *****************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+BeginLayout(ContextField,EV_EMC_FIELD)
 
-// Include each menu layout that we want to build.
+	BeginPopupMenu()
+		MenuItem(AP_MENU_ID_EDIT_UPDATEFIELD)
+		MenuItem(AP_MENU_ID_EDIT_FIELD)
+		Separator()
+		MenuItem(AP_MENU_ID_EDIT_CUT)
+		MenuItem(AP_MENU_ID_EDIT_COPY)
+		MenuItem(AP_MENU_ID_EDIT_PASTE)
+		MenuItem(AP_MENU_ID_EDIT_PASTE_SPECIAL)
+	EndPopupMenu()
 
-/* The ribbon is the only chrome — there is no classic menubar.
- * A stub "Main" layout is kept so EV_UnixMenuBar can still own the
- * shared label set and action group that the ribbon and the
- * context popups draw from. */
-BeginLayout(Main,0)
 EndLayout()
-
-#include "ap_ML_ContextText.h"
-#include "ap_ML_ContextTable.h"
-
-#ifdef ENABLE_SPELL
-#include "ap_ML_ContextSquiggle.h"
-#endif
-
-#include "ap_ML_ContextHyperlink.h"
-#include "ap_ML_ContextImage.h"
-#include "ap_ML_ContextPosObject.h"
-#include "ap_ML_ContextRevision.h"
-#include "ap_ML_ContextFrame.h"
-#include "ap_ML_ContextEmbed.h"
-#include "ap_ML_ContextTOC.h"
-#include "ap_ML_ContextField.h"
-#include "ap_ML_ContextEquation.h"

@@ -90,6 +90,8 @@ menuitem(EDIT_CUTEMBED)
 menuitem(EDIT_COPYEMBED)
 menuitem(EDIT_DELETEEMBED)
 menuitem(EDIT_LATEXEQUATION)
+menuitem(EDIT_UPDATEFIELD)
+menuitem(EDIT_FIELD)
 
 menuitem(VIEW)
 menuitem(VIEW_TOOLBARS)

@@ -75,6 +75,7 @@ class fl_TOCLayout;
 class fp_PageSize;
 class fp_Page;
 class fp_Run;
+class fp_FieldRun;
 class fp_HyperlinkRun;
 class fp_CellContainer;
 
@@ -354,6 +355,8 @@ public:
 	UT_Error		cmdDeleteXMLID(const std::string& name);
 
 	fp_Run *        getHyperLinkRun(PT_DocPosition pos);
+	fp_FieldRun *   getFieldRun(PT_DocPosition pos);
+	bool			cmdUpdateField(void);
 	UT_Error		cmdDeleteHyperlink();
 	bool                    cmdInsertMathML(const char * szFileName,
 						PT_DocPosition pos);

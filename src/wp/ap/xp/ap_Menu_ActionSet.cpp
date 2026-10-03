@@ -125,6 +125,8 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_EDIT_CUTEMBED,	0,0,0,0,	"cut",nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_COPYEMBED,	0,0,0,0,	"copy",nullptr,nullptr);
 	_s(AP_MENU_ID_EDIT_DELETEEMBED,	0,0,0,0,	"delLeft",nullptr,nullptr);
+	_s(AP_MENU_ID_EDIT_UPDATEFIELD,	0,0,0,0,	"updateField",		ap_GetState_FieldOK,		nullptr);
+	_s(AP_MENU_ID_EDIT_FIELD,		0,1,0,0,	"editField",		ap_GetState_FieldOK,		nullptr);
 
 	_s(AP_MENU_ID_VIEW,				1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_VIEW_NORMAL, 0,0,0,1, "viewNormalLayout", ap_GetState_View, nullptr);

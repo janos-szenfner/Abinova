@@ -259,6 +259,7 @@ public:
 	static EV_EditMethod_Fn contextMenu;
 	static EV_EditMethod_Fn contextRevision;
 	static EV_EditMethod_Fn contextTOC;
+	static EV_EditMethod_Fn contextField;
 	static EV_EditMethod_Fn contextText;
 #ifdef ENABLE_SPELL
 	static EV_EditMethod_Fn contextMisspellText;
@@ -287,6 +288,7 @@ public:
 	static EV_EditMethod_Fn editLatexAtPos;
 	static EV_EditMethod_Fn editLatexEquation;
 	static EV_EditMethod_Fn editEmbed;
+	static EV_EditMethod_Fn editField;
 	static EV_EditMethod_Fn equationInsertSymbol;
 	static EV_EditMethod_Fn toggleEquationDisplay;
 
@@ -634,6 +636,7 @@ public:
 	static EV_EditMethod_Fn insVerticalTextBox;
 	static EV_EditMethod_Fn insDateTime;
 	static EV_EditMethod_Fn insField;
+	static EV_EditMethod_Fn updateField;
 	static EV_EditMethod_Fn insTextBox;
 	static EV_EditMethod_Fn insSymbol;
 	static EV_EditMethod_Fn insFile;
@@ -998,6 +1001,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(colorForeTB), _D_, ""),
 	EV_EditMethod(NF(commentsPane),			0,		""),
 	EV_EditMethod(NF(contextEmbedLayout), 		0,	""),
+	EV_EditMethod(NF(contextField),		0,	""),
 	EV_EditMethod(NF(contextFrame), 		0,	""),
 	EV_EditMethod(NF(contextHyperlink), 		0,	""),
 	EV_EditMethod(NF(contextImage), 0, ""),
@@ -1113,6 +1117,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	EV_EditMethod(NF(editAnnotation),		0,	""),
 	EV_EditMethod(NF(editEmbed),			0,	""),
+	EV_EditMethod(NF(editField),			0,	""),
 	EV_EditMethod(NF(editFooter),			0,	""),
 	EV_EditMethod(NF(editHeader),			0,	""),
 	EV_EditMethod(NF(editLatexAtPos),		0,	""),
@@ -1544,6 +1549,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	// u
 	EV_EditMethod(NF(undo), 				0,	""),
+	EV_EditMethod(NF(updateField),			0,	""),
 
 	// v
 	EV_EditMethod(NF(viCmd_5e),		0,	""), //^ 
@@ -5198,6 +5204,16 @@ Defun(contextTOC)
 	// menu state functions key off the TOC selection/insertion point)
 	pView->cmdSelectTOC(pCallData->m_xPos, pCallData->m_yPos);
 	return s_doContextMenu_no_move(EV_EMC_TOC,pCallData->m_xPos, pCallData->m_yPos,pView,pFrame);
+}
+
+Defun(contextField)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> (pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	return s_doContextMenu(EV_EMC_FIELD,pCallData->m_xPos, pCallData->m_yPos,pView,pFrame);
 }
 
 
@@ -12398,6 +12414,62 @@ Defun1(insField)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	return s_doField(pView);
+}
+
+Defun1(updateField)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, false);
+	return pView->cmdUpdateField();
+}
+
+Defun1(editField)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	// locate the field at the insertion point so the dialog result
+	// replaces it rather than inserting a second field
+	fp_FieldRun * pRun = pView->getFieldRun(pView->getPoint());
+	UT_return_val_if_fail (pRun, false);
+	fl_BlockLayout * pBlock = pRun->getBlock();
+	UT_return_val_if_fail (pBlock, false);
+	PT_DocPosition posField = pBlock->getPosition() + pRun->getBlockOffset();
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	AP_Dialog_Field * pDialog
+		= static_cast<AP_Dialog_Field *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_FIELD)));
+	UT_return_val_if_fail(pDialog, false);
+	pDialog->runModal(pFrame);
+
+	if (pDialog->getAnswer() == AP_Dialog_Field::a_OK)
+	{
+		pView->getDocument()->beginUserAtomicGlob();
+		pView->cmdSelect(posField, posField + 1);
+		pView->cmdCharDelete(true, 1);
+		const gchar * pParam = pDialog->getParameter();
+		if(pParam) {
+			PP_PropertyVector pAttr = {
+				"param", pParam
+			};
+			pView->cmdInsertField(pDialog->GetFieldFormat(), pAttr);
+		}
+		else
+			pView->cmdInsertField(pDialog->GetFieldFormat());
+		pView->getDocument()->endUserAtomicGlob();
+	}
+
+	pDialogFactory->releaseDialog(pDialog);
+
+	return true;
 }
 
 

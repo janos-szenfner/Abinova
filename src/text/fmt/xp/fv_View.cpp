@@ -11468,6 +11468,67 @@ fp_Run * FV_View::getHyperLinkRun(PT_DocPosition pos)
 	return nullptr;
 }
 
+/*!
+ * Locate the field run at the given document position. The insertion
+ * point can sit before or after the (single character) field object,
+ * so the neighbouring runs are probed too, like getHyperLinkRun does.
+ */
+fp_FieldRun * FV_View::getFieldRun(PT_DocPosition pos)
+{
+	fl_BlockLayout* pBlock =_findBlockAtPosition(pos);
+	fp_Run* pRun = nullptr;
+
+	if(pBlock)
+	{
+		UT_uint32 blockOffset = pos - pBlock->getPosition();
+		pRun = pBlock->findRunAtOffset(blockOffset);
+	}
+	// a field object is a single character, so only accept a
+	// neighbouring field when pos is the point immediately before or
+	// after it — not just anywhere in an adjacent text run
+	if( pRun && pRun->getType() != FPRUN_FIELD )
+	{
+		fp_Run * pNeighbour = nullptr;
+		if( pRun->getPrevRun() && pRun->getPrevRun()->getType() == FPRUN_FIELD &&
+			pos <= pBlock->getPosition() + pRun->getPrevRun()->getBlockOffset() + 1 )
+		{
+			pNeighbour = pRun->getPrevRun();
+		}
+		else if( pRun->getNextRun() && pRun->getNextRun()->getType() == FPRUN_FIELD &&
+				 pos >= pBlock->getPosition() + pRun->getNextRun()->getBlockOffset() )
+		{
+			pNeighbour = pRun->getNextRun();
+		}
+		pRun = pNeighbour;
+	}
+	if( pRun && pRun->getType() == FPRUN_FIELD )
+	{
+		return static_cast<fp_FieldRun *>(pRun);
+	}
+	return nullptr;
+}
+
+/*!
+ * Re-evaluate the field at the insertion point (Word's "Update Field")
+ * and repaint/reformat the block when the new value changes layout.
+ */
+bool FV_View::cmdUpdateField(void)
+{
+	fp_FieldRun * pRun = getFieldRun(getPoint());
+	UT_return_val_if_fail (pRun, false);
+	fl_BlockLayout * pBlock = pRun->getBlock();
+	UT_return_val_if_fail (pBlock, false);
+
+	const bool bSizeChanged = pRun->calculateValue();
+	if(bSizeChanged)
+	{
+		pBlock->format();
+	}
+	pBlock->redrawUpdate();
+	_generalUpdate();
+	return true;
+}
+
 EV_EditMouseContext FV_View::getLastMouseContext(void)
 {
 	return m_prevMouseContext;
@@ -11856,6 +11917,30 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: () pRun.r  %ld\n", pRun->getX() + pRun->getWidth() ));
 		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: () pRun.t  %ld\n", pRun->getType() ));
 		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: () pRun.hl %p\n",  pRun->getHyperlink() ));
+	}
+
+	//
+	// A field object is a single document character whose run draws
+	// its computed value, so a click anywhere on the value can map to
+	// the position just past the object. When that happens the run at
+	// pos is the one after the field — adopt the previous run instead
+	// if it is a field and the click really lands inside its extent.
+	//
+	if( pRun && pRun->getType() != FPRUN_FIELD &&
+		pRun->getPrevRun() && pRun->getPrevRun()->getType() == FPRUN_FIELD &&
+		pos == pBlock->getPosition() + pRun->getPrevRun()->getBlockOffset() + 1 )
+	{
+		fp_Run * pFieldRun = pRun->getPrevRun();
+		if( fp_Line * pLine = pFieldRun->getLine() )
+		{
+			UT_Rect pRec = pLine->getScreenRect().value();
+			UT_sint32 xPosAdj = xPos - pRec.left;
+			if( pFieldRun->getX() <= xPosAdj &&
+				xPosAdj < (pFieldRun->getX() + pFieldRun->getWidth()) )
+			{
+				pRun = pFieldRun;
+			}
+		}
 	}
 
 	//

@@ -161,6 +161,7 @@ libap_la_SOURCES = \
 	xp/ap_Menu_Layouts.cpp \
 	xp/ap_ML_ContextEmbed.h \
 	xp/ap_ML_ContextEquation.h \
+	xp/ap_ML_ContextField.h \
 	xp/ap_ML_ContextFrame.h \
 	xp/ap_ML_ContextHyperlink.h \
 	xp/ap_ML_ContextImage.h \

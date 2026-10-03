@@ -567,6 +567,18 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_HyperlinkOK)
 	return HyperLinkOK(pView);
 }
 
+Defun_EV_GetMenuItemState_Fn(ap_GetState_FieldOK)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW ;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if(pView->getFieldRun(pView->getPoint()) != nullptr)
+	{
+		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
 Defun_EV_GetMenuItemState_Fn(ap_GetState_RDF_Query)
 {
 	UT_UNUSED(id);

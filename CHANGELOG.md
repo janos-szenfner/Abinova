@@ -1900,6 +1900,15 @@ below are on `main` but the release has not been cut yet.
   Word's Update Field / Edit TOC pair. Right-click also selects the
   TOC under the pointer first, so both entries act on the clicked
   TOC even when the caret sits elsewhere in the document.
+- **Field context menu** — right-clicking a field (page number,
+  date/time, mail-merge, etc.) now opens a dedicated `ContextField`
+  menu with "Update Field" (re-evaluates the field's value in place,
+  like Word's F9), "Edit Field…" (reopens the Insert Field dialog
+  and replaces the field with the chosen one) and the standard
+  Cut/Copy/Paste block, instead of falling through to the plain text
+  menu. A click anywhere on the field's rendered value is treated as
+  a field hit — previously only the left half of the value resolved
+  to `EV_EMC_FIELD`.
 - **Word-style popup menu icons** — `EV_UnixMenu::_createMenuItem`
   resolves each popup item's toolbar icon
   (`AP_CreateToolbarLabelSet` + `abi_stock_from_toolbar_id`) and sets
