@@ -3632,6 +3632,16 @@ below are on `main` but the release has not been cut yet.
   `thirdparty/` lists or dumps the pictures in a `.doc`, and
   `tools/mkdoc07.py` generates the synthetic picture fixtures used
   to verify it.
+- **Floating pictures in Word 97+ `.doc` render** — an
+  `OfficeArtBlip` PNG/JPEG anchored by an `FSPA` (the U+0008
+  embedded-object marker) now flows through the image pipeline into
+  a positioned `frame-type:image` frame at the anchor's recorded
+  size and page/paragraph coordinates, instead of importing as
+  invisible text. Blip payload ownership in the importer was
+  hardened at the same time: both the legacy PICF path and the
+  floating path now extract bytes through `wvExtractBlipData`
+  (which consumes the stream) and release the `Blip` afterward, so
+  no stream pointer is left dangling and blip names no longer leak.
 - **Page/column bookkeeping and ruler-info paths hardened** — the
   code that reflows pages for Web/Normal view and feeds the rulers
   dereferenced page column leaders, footnote/annotation containers and

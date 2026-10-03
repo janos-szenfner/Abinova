@@ -2078,7 +2078,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 	}
 	
 #ifdef SUPPORTS_OLD_IMAGES
-	Blip blip;
+	Blip blip = {}; /* zeroed so wvReleaseBlip() is safe on failure paths */
 	long pos;
 	wvStream *fil;
 	PICF picf;
@@ -2240,6 +2240,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
 				{
 					UT_DEBUGMSG(("Dom: no graphic data\n"));
 				}
+				wvReleaseBlip(&blip);
 
 				wvReleaseFOPTEArray(&shapeprops);
 				wvStream_close(fil);
@@ -2279,7 +2280,7 @@ int IE_Imp_MsWord_97::_specCharProc (wvParseStruct *ps, U16 eachchar, CHP *achp)
  * textbox frame. Returns 1 when a frame strux was emitted. */
 int IE_Imp_MsWord_97::_specCharImage08 (wvParseStruct *ps)
 {
-	Blip blip;
+	Blip blip = {}; /* zeroed so wvReleaseBlip() is safe on failure paths */
 	FSPA * fspa;
 
 	if (wvQuerySupported(&ps->fib, nullptr) >= WORD8) // sanity check
@@ -2315,6 +2316,7 @@ int IE_Imp_MsWord_97::_specCharImage08 (wvParseStruct *ps)
 				if(UT_OK == this->_handlePositionedImage(&blip, sImageName))
 				   bPositionObject = true;
 			}
+			wvReleaseBlip(&blip);
 			bool isTextBox = false;
 			UT_uint32 i;
 			escherstruct item;
@@ -5168,30 +5170,24 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 	MSWord_ImageType imgType = s_determineImageType ( b );
 	IEGraphicFileType iegft = s_determineIEGFT( b );
 
-	wvStream *pwv;
-	bool decompress = false;
-
-	if ( imgType == MSWord_RasterImage )
-	{
-		pwv = b->blip.bitmap.m_pvBits;
-
-	}
-	else if ( imgType == MSWord_VectorImage )
-	{
-		pwv = b->blip.metafile.m_pvBits;
-		decompress = (b->blip.metafile.m_fCompression == msocompressionDeflate);
-	}
-	else
+	if ( imgType == MSWord_UnknownImage )
 	{
 		UT_DEBUGMSG(("UNKNOWN IMAGE TYPE!!"));
 		return UT_ERROR;
 	}
+	bool decompress = ( imgType == MSWord_VectorImage ) &&
+		(b->blip.metafile.m_fCompression == msocompressionDeflate);
 
-	size_t size = wvStream_size (pwv);
-	char *data = new char[size];
-	wvStream_rewind(pwv);
-	wvStream_read(data,size,sizeof(char),pwv);
-	wvStream_close(pwv);
+	/* pull the payload out of the blip stream; wvExtractBlipData
+	 * consumes m_pvBits so wvReleaseBlip() stays safe afterwards */
+	U8 * data = nullptr;
+	U32 size = 0;
+	U16 wvbliptype = 0;
+	if (!wvExtractBlipData (b, &data, &size, &wvbliptype))
+	{
+		UT_DEBUGMSG(("Could not extract blip data\n"));
+		return UT_ERROR;
+	}
 
 	UT_ByteBufPtr pictData(new UT_ByteBuf);
 	if (decompress)
@@ -5201,12 +5197,12 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 		comprLen = size;
 		uncomprLen = b->blip.metafile.m_cb;
 		Bytef *uncompr = new Bytef[uncomprLen];
-		int err = uncompress (uncompr, &uncomprLen, reinterpret_cast<const unsigned char *>(data), comprLen);
+		int err = uncompress (uncompr, &uncomprLen, data, comprLen);
+		wvFree (data);
 		if (err != Z_OK)
 		{
 			UT_DEBUGMSG(("Could not uncompress image\n"));
 			DELETEPV(uncompr);
-			DELETEPV(data);
 			return UT_ERROR;
 		}
 		pictData->append(reinterpret_cast<const UT_Byte*>(uncompr), uncomprLen);
@@ -5214,10 +5210,9 @@ UT_Error IE_Imp_MsWord_97::_handleImage (Blip * b, long width, long height, long
 	}
 	else
 	{
-		pictData->append(reinterpret_cast<const UT_Byte*>(data), size);
+		pictData->append(data, size);
+		wvFree (data);
 	}
-
-	delete [] data;
 
 	return _insertImageBuffer(pictData, iegft, width, height,
 							  cropt, cropb, cropl, cropr);
@@ -5332,31 +5327,25 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
   // suck the data into the ByteBuffer
 
   MSWord_ImageType imgType = s_determineImageType ( b );
+  bool decompress = ( imgType == MSWord_VectorImage ) &&
+	  (b->blip.metafile.m_fCompression == msocompressionDeflate);
 
-  wvStream *pwv;
-  bool decompress = false;
-
-  if ( imgType == MSWord_RasterImage )
-	{
-	  pwv = b->blip.bitmap.m_pvBits;
-
-	}
-  else if ( imgType == MSWord_VectorImage )
-	{
-	  pwv = b->blip.metafile.m_pvBits;
-	  decompress = (b->blip.metafile.m_fCompression == msocompressionDeflate);
-	}
-  else
+  if ( imgType == MSWord_UnknownImage )
 	{
 	  UT_DEBUGMSG(("UNKNOWN IMAGE TYPE!!"));
 	  return UT_ERROR;
 	}
 
-  size_t size = wvStream_size (pwv);
-  char *data = new char[size];
-  wvStream_rewind(pwv);
-  wvStream_read(data,size,sizeof(char),pwv);
-  wvStream_close(pwv);
+  /* pull the payload out of the blip stream; wvExtractBlipData
+   * consumes m_pvBits so wvReleaseBlip() stays safe afterwards */
+  U8 * data = nullptr;
+  U32 size = 0;
+  U16 wvbliptype = 0;
+  if (!wvExtractBlipData (b, &data, &size, &wvbliptype))
+	{
+	  UT_DEBUGMSG(("Could not extract blip data\n"));
+	  return UT_ERROR;
+	}
 
   UT_ByteBufPtr pictData(new UT_ByteBuf);
 
@@ -5367,12 +5356,12 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
     comprLen = size;
     uncomprLen = b->blip.metafile.m_cb;
     Bytef *uncompr = new Bytef[uncomprLen];
-    int err = uncompress (uncompr, &uncomprLen, reinterpret_cast<const unsigned char *>(data), comprLen);
+    int err = uncompress (uncompr, &uncomprLen, data, comprLen);
+    wvFree (data);
     if (err != Z_OK)
     {
         UT_DEBUGMSG(("Could not uncompress image\n"));
         DELETEPV(uncompr);
-        DELETEPV(data);
         goto Cleanup;
     }
     pictData->append(reinterpret_cast<const UT_Byte*>(uncompr), uncomprLen);
@@ -5380,10 +5369,9 @@ UT_Error IE_Imp_MsWord_97::_handlePositionedImage (Blip * b, UT_String & sImageN
   }
   else
   {
-    pictData->append(reinterpret_cast<const UT_Byte*>(data), size);
+    pictData->append(data, size);
+    wvFree (data);
   }
-
-  delete [] data;
 
   if(!pictData->getPointer(0))
 	  error =  UT_ERROR;

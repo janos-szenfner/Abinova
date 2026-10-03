@@ -315,9 +315,11 @@ dg_children = (rec(0, 1, 0xF008, struct.pack('<II', 2, 0x1000))
                + rec(0xF, 1, 0xF003,
                      spcontainer(
                          rec(0, 0, 0xF009, bytes(16)),  # spgr rc
-                         sp_rec(0x0400, 0x5, 0x0A))     # group shape
+                         sp_rec(0x0400, 0x5, 0x0A01))   # group shape
+                                                        # (fPatriarch|fHaveAnchor|fHaveSpt)
                      + spcontainer(
-                         sp_rec(0x0401, 0x4B, 0x0A),    # picture frame
+                         sp_rec(0x0401, 0x4B, 0x0A00),  # picture frame
+                                                        # (fHaveAnchor|fHaveSpt)
                          rec(0, 1, 0xF00B,
                              fopte(0x104, 1, 1)))))    # pib=1, fBid
 dgcont = rec(0xF, 1, 0xF002, dg_children)
