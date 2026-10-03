@@ -22,8 +22,11 @@
 
 #include <stdio.h>
 
+#include <map>
+#include <string>
+#include <vector>
+
 #include "ut_types.h"
-#include "ut_hash.h"
 
 /*
 	A simple custom dictionary class, which allows the user to add words
@@ -41,7 +44,7 @@ public:
 	bool				load(void);
 	bool				save(void);
 	UT_uint32                       countCommonChars(UT_UCS4Char * pszHaystack, UT_UCS4Char *pszNeedle);
-	void                            suggestWord(UT_GenericVector<UT_UCS4Char *> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 len);
+	void                            suggestWord(std::vector<UT_UCS4Char *> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 len);
 	bool                            addWord(const char * pWord);
 	bool				addWord(const UT_UCS4Char * pWord, UT_uint32 len);
 	bool				isWord(const UT_UCS4Char * pWord, UT_uint32 len) const;
@@ -59,7 +62,7 @@ protected:
 	char *		m_szFilename;
 
 	bool				m_bDirty;
-	UT_GenericStringMap<UT_UCS4Char *>	    m_hashWords;
+	std::map<std::string, UT_UCS4Char *>	    m_hashWords;
 
 private:
 	FILE *				m_fp;

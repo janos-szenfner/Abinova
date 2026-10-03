@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <vector>
 #include "xap_LoadBindings.h"
 #include "ev_EditBits.h"
 #include "ut_vector.h"
@@ -118,5 +119,5 @@ public:
 
 	const char * getNextInCycle(const char * szCurrent) const;
  private:
-	UT_GenericVector<c_lb *>         m_vecBindings;
+	std::vector<c_lb *>         m_vecBindings;
 };

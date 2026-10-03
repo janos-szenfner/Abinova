@@ -19,6 +19,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <utility>
 #include "config.h"
 
 #include <climits>
@@ -271,10 +272,10 @@ AP_UnixRibbon::~AP_UnixRibbon()
 		g_source_remove(m_iStyleBtnIdle);
 	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
 	DELETEP(m_pTBLabels);
-	UT_VECTOR_PURGEALL(_SpinField *, m_vecSpins);
-	for (UT_sint32 i = 0; i < m_vecTbCtx.getItemCount(); ++i)
+	for (_SpinField * _utv_p : m_vecSpins) { if (_utv_p) delete(_utv_p); };
+	for (UT_sint32 i = 0; i < m_vecTbCtx.size(); ++i)
 	{
-		_TbCtx * ctx = m_vecTbCtx.getNthItem(i);
+		_TbCtx * ctx = m_vecTbCtx[i];
 		/* ctx is signal callback data on its widget; if the widget
 		 * outlives us, detach every handler that points back at the
 		 * freed ctx and drop the weak reference */
@@ -293,9 +294,9 @@ AP_UnixRibbon::~AP_UnixRibbon()
 		delete ctx;
 	}
 	m_vecTbCtx.clear();
-	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
+	for (UT_sint32 i = 0; i < m_vecStyleTiles.size(); ++i)
 	{
-		_StyleTile * t = m_vecStyleTiles.getNthItem(i);
+		_StyleTile * t = m_vecStyleTiles[i];
 		g_free(t->styleName);
 		delete t;
 	}
@@ -663,7 +664,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 
 		if (tab->bContextual)
 		{
-			m_vecContextualPages.addItem(scroll);
+			m_vecContextualPages.push_back(scroll);
 			g_object_set_data(G_OBJECT(scroll), "abi-ctx-key",
 							  const_cast<gpointer>(static_cast<const void *>(tab->szTabKey)));
 			gtk_widget_set_visible(scroll, FALSE);
@@ -10227,14 +10228,14 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 				   gtk_label_new(unit == DIM_PT ? "pt" : UT_dimensionName(unit)));
 
 	_SpinField * f = new _SpinField{ spin, prop, spinId };
-	m_vecSpins.addItem(f);
+	m_vecSpins.push_back(f);
 	return row;
 }
 
 /* sync the indent/spacing spins with the block under the caret */
 void AP_UnixRibbon::_refreshSpinFields()
 {
-	if (m_vecSpins.getItemCount() == 0)
+	if (m_vecSpins.size() == 0)
 		return;
 	FV_View * pView = static_cast<FV_View *>(
 		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
@@ -10248,9 +10249,9 @@ void AP_UnixRibbon::_refreshSpinFields()
 		DIM_IN, dCellH, dCellW);
 
 	m_bSpinUpdating = true;
-	for (UT_sint32 i = 0; i < m_vecSpins.getItemCount(); ++i)
+	for (UT_sint32 i = 0; i < m_vecSpins.size(); ++i)
 	{
-		_SpinField * f = m_vecSpins.getNthItem(i);
+		_SpinField * f = m_vecSpins[i];
 		_SpinCtx * c = static_cast<_SpinCtx *>(
 			g_object_get_data(G_OBJECT(f->spin), "spin-ctx"));
 		double v = 0.0;
@@ -10808,7 +10809,7 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 	/* weak: nulls ctx->widget when the widget is finalized, so refresh
 	 * skips items whose widget already died during frame teardown */
 	g_object_weak_ref(G_OBJECT(w), s_widget_weak_notify, &ctx->widget);
-	m_vecTbCtx.addItem(ctx);
+	m_vecTbCtx.push_back(ctx);
 	return w;
 }
 
@@ -10824,9 +10825,9 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 {
 	/* a menu rebuild recreates this widget; drop the stale tile
 	 * records, whose widgets belong to the previous instance */
-	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
+	for (UT_sint32 i = 0; i < m_vecStyleTiles.size(); ++i)
 	{
-		_StyleTile * t = m_vecStyleTiles.getNthItem(i);
+		_StyleTile * t = m_vecStyleTiles[i];
 		g_free(t->styleName);
 		delete t;
 	}
@@ -10947,7 +10948,7 @@ void AP_UnixRibbon::_updateStyleScrollButtons(AP_UnixRibbon * self)
 	double lower = gtk_adjustment_get_lower(hadj);
 	double upper = gtk_adjustment_get_upper(hadj);
 	double page = gtk_adjustment_get_page_size(hadj);
-	bool bTiles = self->m_vecStyleTiles.getItemCount() > 0;
+	bool bTiles = self->m_vecStyleTiles.size() > 0;
 	gtk_widget_set_visible(self->m_wStylePrev,
 						   bTiles && value > lower + 0.5);
 	gtk_widget_set_visible(self->m_wStyleNext,
@@ -10969,7 +10970,7 @@ void AP_UnixRibbon::_s_styles_pane_clicked(GtkWidget * /*w*/,
  * constructed before the frame's view/document exist */
 void AP_UnixRibbon::_populateStyleTiles()
 {
-	if (m_vecStyleTiles.getItemCount() > 0 || !m_wStyleBox)
+	if (m_vecStyleTiles.size() > 0 || !m_wStyleBox)
 		return;
 
 	FV_View * pView = m_pFrame
@@ -11070,7 +11071,7 @@ void AP_UnixRibbon::_populateStyleTiles()
 			_StyleTile * t = new _StyleTile;
 			t->widget = tile;
 			t->styleName = g_strdup(szName);
-			m_vecStyleTiles.addItem(t);
+			m_vecStyleTiles.push_back(t);
 
 			g_signal_connect(tile, "clicked",
 							 G_CALLBACK(_s_style_tile_clicked), this);
@@ -11090,9 +11091,9 @@ void AP_UnixRibbon::_s_style_tile_clicked(GtkWidget * w, gpointer data)
 	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
 	UT_return_if_fail(self);
 
-	for (UT_sint32 i = 0; i < self->m_vecStyleTiles.getItemCount(); ++i)
+	for (UT_sint32 i = 0; i < self->m_vecStyleTiles.size(); ++i)
 	{
-		_StyleTile * t = self->m_vecStyleTiles.getNthItem(i);
+		_StyleTile * t = self->m_vecStyleTiles[i];
 		if (t->widget == w)
 		{
 			UT_UCS4String ucsName(t->styleName);
@@ -11107,9 +11108,9 @@ void AP_UnixRibbon::_s_style_tile_clicked(GtkWidget * w, gpointer data)
 /* mark the gallery tile that matches the caret's current style */
 void AP_UnixRibbon::_refreshStyleTiles(const char * szCurrentStyle)
 {
-	for (UT_sint32 i = 0; i < m_vecStyleTiles.getItemCount(); ++i)
+	for (UT_sint32 i = 0; i < m_vecStyleTiles.size(); ++i)
 	{
-		_StyleTile * t = m_vecStyleTiles.getNthItem(i);
+		_StyleTile * t = m_vecStyleTiles[i];
 		bool bCur = szCurrentStyle && t->styleName &&
 			strcmp(t->styleName, szCurrentStyle) == 0;
 		if (bCur)
@@ -11179,10 +11180,10 @@ void AP_UnixRibbon::_refreshToolbarItems()
 
 	AV_View * pView = m_pFrame ? m_pFrame->getCurrentView() : nullptr;
 
-	UT_sint32 count = m_vecTbCtx.getItemCount();
+	UT_sint32 count = m_vecTbCtx.size();
 	for (UT_sint32 i = 0; i < count; ++i)
 	{
-		_TbCtx * ctx = m_vecTbCtx.getNthItem(i);
+		_TbCtx * ctx = m_vecTbCtx[i];
 		EV_Toolbar_Action * pAction = pTBActions->getAction(ctx->id);
 		if (!pAction || !ctx->widget)
 			continue;
@@ -11365,10 +11366,10 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		 _selectionTouchesTable(view));
 	bool bInMath = view && view->isInMath();
 
-	UT_sint32 count = m_vecContextualPages.getItemCount();
+	UT_sint32 count = m_vecContextualPages.size();
 	for (UT_sint32 i = 0; i < count; ++i)
 	{
-		GtkWidget * page = m_vecContextualPages.getNthItem(i);
+		GtkWidget * page = m_vecContextualPages[i];
 		const char * key = static_cast<const char *>(
 			g_object_get_data(G_OBJECT(page), "abi-ctx-key"));
 		bool vis = bInTable;

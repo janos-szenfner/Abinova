@@ -223,7 +223,7 @@ IE_TOCHelper::IE_TOCHelper(PD_Document * pDoc)
 
 IE_TOCHelper::~IE_TOCHelper()
 {
-  UT_VECTOR_PURGEALL(UT_UTF8String *, mTOCStrings);
+  for (UT_UTF8String * _utv_p : mTOCStrings) { if (_utv_p) delete(_utv_p); };
 }
 
 bool IE_TOCHelper::hasTOC() const
@@ -298,7 +298,7 @@ UT_UTF8String IE_TOCHelper::getNthTOCEntry(int nth, int * out_level) const
   if (out_level != nullptr)
     *out_level = mTOCLevels[nth];
 
-  return *mTOCStrings.getNthItem(nth);
+  return *mTOCStrings[nth];
 }
 
 bool IE_TOCHelper::getNthTOCEntryPos(int nth, PT_DocPosition &pos) const

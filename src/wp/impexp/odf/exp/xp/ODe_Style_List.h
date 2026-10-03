@@ -22,10 +22,12 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
+#include <string>
 
 // Abinova includes
-#include "ut_hash.h"
+#include <vector>
 #include "ut_string_class.h"
 
 // Internal classes
@@ -33,6 +35,7 @@ class ODe_ListLevelStyle;
 
 // Abinova classes
 class PP_AttrProp;
+typedef struct _GsfOutput GsfOutput;
 
 /**
  * Represents a <text:list-style> element.
@@ -51,8 +54,13 @@ public:
     void setLevelStyle(UT_uint8 level, const PP_AttrProp& rBlockAP);
     const ODe_ListLevelStyle* getLevelStyle(UT_uint8 level) const;
 
-	std::unique_ptr<UT_GenericVector<ODe_ListLevelStyle*>> getListLevelStyles() {
-        return m_levelStyles.enumerate();
+	std::unique_ptr<std::vector<ODe_ListLevelStyle*>> getListLevelStyles() const {
+        auto pVec = std::make_unique<std::vector<ODe_ListLevelStyle*>>();
+        pVec->reserve(m_levelStyles.size());
+        for (const auto& kv : m_levelStyles) {
+            pVec->push_back(kv.second);
+        }
+        return pVec;
     }
 
 private:
@@ -62,5 +70,5 @@ private:
     // text:consecutive-numbering attribute
     //bool m_bConsecutiveNumbering;
 
-    UT_GenericStringMap<ODe_ListLevelStyle*> m_levelStyles;
+    std::map<std::string, ODe_ListLevelStyle*> m_levelStyles;
 };

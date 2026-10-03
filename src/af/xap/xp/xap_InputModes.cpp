@@ -34,10 +34,10 @@ XAP_InputModes::XAP_InputModes(void)
 
 XAP_InputModes::~XAP_InputModes(void)
 {
-	UT_ASSERT(m_vecEventMaps.getItemCount() == m_vecNames.getItemCount());
+	UT_ASSERT(m_vecEventMaps.size() == m_vecNames.size());
 
-	UT_VECTOR_PURGEALL(EV_EditEventMapper *, m_vecEventMaps);
-	UT_VECTOR_FREEALL(char *, m_vecNames);
+	for (EV_EditEventMapper * _utv_p : m_vecEventMaps) { if (_utv_p) delete(_utv_p); };
+	for (char * _utv_p : m_vecNames) { if (_utv_p) g_free(_utv_p); };
 }
 
 bool XAP_InputModes::createInputMode(const char * szName,
@@ -55,24 +55,19 @@ bool XAP_InputModes::createInputMode(const char * szName,
 	pEEM = new EV_EditEventMapper(pBindingMap);
 	UT_ASSERT(pEEM);
 
-	bool b1;
-	b1 = (m_vecEventMaps.addItem(pEEM) == 0);
-	bool b2;
-	b2 = (m_vecNames.addItem(szDup) == 0);
-	UT_ASSERT(b1 && b2);
-	UT_UNUSED(b1);
-	UT_UNUSED(b2);
+	m_vecEventMaps.push_back(pEEM);
+	m_vecNames.push_back(szDup);
 
 	return true;
 }
 
 bool XAP_InputModes::setCurrentMap(const char * szName)
 {
-	UT_uint32 kLimit = m_vecNames.getItemCount();
+	UT_uint32 kLimit = m_vecNames.size();
 	UT_uint32 k;
 
 	for (k=0; k<kLimit; k++)
-		if (g_ascii_strcasecmp(szName, m_vecNames.getNthItem(k)) == 0)
+		if (g_ascii_strcasecmp(szName, m_vecNames[k]) == 0)
 		{
 			m_indexCurrentEventMap = k;
 			return true;
@@ -83,22 +78,22 @@ bool XAP_InputModes::setCurrentMap(const char * szName)
 
 EV_EditEventMapper * XAP_InputModes::getCurrentMap(void) const
 {
-	return m_vecEventMaps.getNthItem(m_indexCurrentEventMap);
+	return m_vecEventMaps[m_indexCurrentEventMap];
 }
 
 const char * XAP_InputModes::getCurrentMapName(void) const
 {
-	return m_vecNames.getNthItem(m_indexCurrentEventMap);
+	return m_vecNames[m_indexCurrentEventMap];
 }
 
 EV_EditEventMapper * XAP_InputModes::getMapByName(const char * szName) const
 {
-	UT_uint32 kLimit = m_vecNames.getItemCount();
+	UT_uint32 kLimit = m_vecNames.size();
 	UT_uint32 k;
 
 	for (k=0; k<kLimit; k++)
-		if (g_ascii_strcasecmp(szName, m_vecNames.getNthItem(k)) == 0)
-			return m_vecEventMaps.getNthItem(k);
+		if (g_ascii_strcasecmp(szName, m_vecNames[k]) == 0)
+			return m_vecEventMaps[k];
 
 	return nullptr;
 }

@@ -23,6 +23,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
+#include <vector>
 #include "config.h"
 #endif
 
@@ -3202,7 +3204,7 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 			     props[1] = sColWidths.c_str();
 			     if(pTL->getTableRelWidth()>1.0e-6)
 			     {
-			          UT_GenericVector<UT_sint32> vecRelWidths;
+			          std::vector<UT_sint32> vecRelWidths;
 				  UT_String sProps = sColWidths.c_str();;
 				  UT_sint32 sizes = sProps.size();
 				  i = 0;
@@ -3216,7 +3218,7 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 					UT_String sSub = sProps.substr(i,(j-i));
 					i = j + 1;
 					UT_sint32 width = UT_convertToLogicalUnits(sSub.c_str());
-					vecRelWidths.addItem(width);
+					vecRelWidths.push_back(width);
 					tot += width;
 				    }
 				    else
@@ -3243,9 +3245,9 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 				  props.push_back("table-rel-width");
 				  props.push_back(srelTab.c_str());
 				  sRelWidths.clear();;
-				  for(i=0;i<vecRelWidths.getItemCount();i++)
+				  for(i=0;i<vecRelWidths.size();i++)
 				  {
-				      UT_String_sprintf(sVal,"%d",vecRelWidths.getNthItem(i));
+				      UT_String_sprintf(sVal,"%d",vecRelWidths[i]);
 				      sRelWidths += sVal;
 				      sRelWidths += "*/";
 				  }

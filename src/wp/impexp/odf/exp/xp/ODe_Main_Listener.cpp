@@ -87,7 +87,7 @@ void ODe_Main_Listener::openSection(const PP_AttrProp* pAP,
 
             ODe_Style_PageLayout* pPageLayout = m_rDocumentData.m_stylesAutoStyles.getPageLayout("Standard");
             pPageLayout->fetchAttributesFromAbiSection(pAP);
-            pMPStyle = m_rDocumentData.m_masterStyles.pick("Standard");
+            pMPStyle = m_rDocumentData.m_masterStyles.at("Standard");
             pMPStyle->fetchAttributesFromAbiSection(pAP);
             UT_DEBUGMSG(("Got PageLayout %p AutoStyles %p \n",pPageLayout,&m_rDocumentData.m_stylesAutoStyles));
             m_isFirstSection = false;
@@ -109,7 +109,7 @@ void ODe_Main_Listener::openSection(const PP_AttrProp* pAP,
                 pPageLayout->fetchAttributesFromAbiSection(pAP);
                 pMPStyle->setPageLayoutName(pPageLayout->getName());
 
-                m_rDocumentData.m_masterStyles.insert(styleName.utf8_str(),pMPStyle);
+                m_rDocumentData.m_masterStyles.emplace(styleName.utf8_str(),pMPStyle);
                 pendingMasterPageStyleChange = true;
                 masterPageStyleName = styleName;
             }
@@ -128,7 +128,7 @@ void ODe_Main_Listener::openSection(const PP_AttrProp* pAP,
         // Without this, '!strcmp(pId, pValue)' fails in _isHeaderFooterSection()
         // below, which ultimately leads to a crash due to an uninitialized
         // FILE* being passed to fwrite() (see bug 9798 for a sample).
-        pMPStyle = m_rDocumentData.m_masterStyles.pick("Standard");
+        pMPStyle = m_rDocumentData.m_masterStyles.at("Standard");
         pMPStyle->fetchAttributesFromAbiSection(pAP);
     }
     
@@ -221,14 +221,9 @@ void ODe_Main_Listener::_openHeaderFooterSection(
     const gchar* pValue;
     const gchar* pId = nullptr;
     bool ok;
-    UT_uint32 count, i;
     const ODe_Style_MasterPage* pMPageStyle;
     GsfOutput* pTextOutput = nullptr;
-    
-    auto pMasterPageVector = m_rDocumentData.m_masterStyles.enumerate();
-    count = pMasterPageVector->getItemCount();
 
-    
     ok = pAP->getAttribute("id", pValue);
     if (ok && pValue != nullptr) {
         pId = pValue;
@@ -245,46 +240,50 @@ void ODe_Main_Listener::_openHeaderFooterSection(
 
     ok = false;
     if (!strcmp("header", pValue)) {
-        
-        for (i=0; i<count && !ok; i++) {
-            pMPageStyle = (*pMasterPageVector)[i];
+
+        for (const auto& kv : m_rDocumentData.m_masterStyles) {
+            pMPageStyle = kv.second;
             pValue = pMPageStyle->getAbiHeaderId().utf8_str();
             if (!strcmp(pId, pValue)) {
                 ok = true; // found it. get out of this "for" loop
                 pTextOutput =  pMPageStyle->getHeaderContentTempFile();
+                break;
             }
         }
-        
+
     } else if (!strcmp("header-even", pValue)) {
-        
-        for (i=0; i<count && !ok; i++) {
-            pMPageStyle = (*pMasterPageVector)[i];
+
+        for (const auto& kv : m_rDocumentData.m_masterStyles) {
+            pMPageStyle = kv.second;
             pValue = pMPageStyle->getAbiHeaderEvenId().utf8_str();
             if (!strcmp(pId, pValue)) {
                 ok = true; // found it. get out of this "for" loop
                 pTextOutput =  pMPageStyle->getHeaderEvenContentTempFile();
+                break;
             }
         }
 
     } else if (!strcmp("footer", pValue)) {
-        
-        for (i=0; i<count && !ok; i++) {
-            pMPageStyle = (*pMasterPageVector)[i];
+
+        for (const auto& kv : m_rDocumentData.m_masterStyles) {
+            pMPageStyle = kv.second;
             pValue = pMPageStyle->getAbiFooterId().utf8_str();
             if (!strcmp(pId, pValue)) {
                 ok = true; // found it. get out of this "for" loop
                 pTextOutput = pMPageStyle->getFooterContentTempFile();
+                break;
             }
         }
 
     } else if (!strcmp("footer-even", pValue)) {
-        
-        for (i=0; i<count && !ok; i++) {
-            pMPageStyle = (*pMasterPageVector)[i];
+
+        for (const auto& kv : m_rDocumentData.m_masterStyles) {
+            pMPageStyle = kv.second;
             pValue = pMPageStyle->getAbiFooterEvenId().utf8_str();
             if (!strcmp(pId, pValue)) {
                 ok = true; // found it. get out of this "for" loop
                 pTextOutput = pMPageStyle->getFooterEvenContentTempFile();
+                break;
             }
         }
     }

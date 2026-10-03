@@ -20,12 +20,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <utility>
+#include <vector>
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
 #include "ut_string.h"
 #include "ut_growbuf.h"
-#include "ut_hash.h"
-#include "ut_vector.h"
 #include "ut_string_class.h"
 
 #include "xap_Dictionary.h"
@@ -45,7 +45,6 @@
 /*****************************************************************/
 
 XAP_Dictionary::XAP_Dictionary(const char * szFilename)
-	: m_hashWords(29)
 {
 	UT_ASSERT(szFilename && *szFilename);
 	m_szFilename = g_strdup(szFilename);
@@ -61,16 +60,10 @@ XAP_Dictionary::~XAP_Dictionary()
 
 	FREEP(m_szFilename);
 
-  	//UT_HASH_PURGEDATA(UT_UCS4Char *, (&m_hashWords), g_free);
-	m_hashWords.freeData();
-#if 0
-	UT_StringPtrMap::UT_Cursor _hc1(&m_hashWords);
-	for (UT_UCS4Char * _hval1 = const_cast<UT_UCS4Char *>(reinterpret_cast<const UT_UCS4Char *>(_hc1.first())); _hc1.is_valid(); _hval1 = const_cast<UT_UCS4Char *>(reinterpret_cast<const UT_UCS4Char *>(_hc1.next())) )
-	{ 
-		if (_hval1)
-			g_free (_hval1);
+  	for (auto & entry : m_hashWords)
+	{
+		g_free(entry.second);
 	}
-#endif
 }
 
 const char * XAP_Dictionary::getShortName(void) const
@@ -133,7 +126,7 @@ void XAP_Dictionary::_abortFile(void)
 
 bool XAP_Dictionary::load(void)
 {
-	UT_ASSERT(m_hashWords.size() == 0);
+	UT_ASSERT(m_hashWords.empty());
 
 	if (!_openFile("r"))
 		return false;
@@ -220,14 +213,9 @@ bool XAP_Dictionary::save(void)
 	if (!_openFile("w"))
 		return false;
 
-	auto pVec = m_hashWords.enumerate();
-	UT_ASSERT(pVec);
-
-	UT_uint32 size = pVec->size();
-
-	for (UT_uint32 i = 0; i < size; i++)
+	for (auto & entry : m_hashWords)
 	{
-		UT_UCS4Char * pWord = pVec->getNthItem(i);
+		UT_UCS4Char * pWord = entry.second;
 		_outputUTF8(pWord, UT_UCS4_strlen(pWord));
 		_writeBytes(reinterpret_cast<const UT_Byte *>("\n"));
 	}
@@ -306,7 +294,7 @@ bool XAP_Dictionary::addWord(const UT_UCS4Char * pWord, UT_uint32 len)
 	FREEP(ucs_dup);
 
 #endif
-	if(!m_hashWords.insert(key2,copy))
+	if(!m_hashWords.insert(std::make_pair(key2, copy)).second)
 		FREEP(copy);
 	
 	FREEP(key);
@@ -339,15 +327,9 @@ bool XAP_Dictionary::addWord(const char * word)
 \returns UT_Vector * pVecSuggestions this a vector of suggestions.
 The returner is responsible for deleting these words. 
 */
-void XAP_Dictionary::suggestWord(UT_GenericVector<UT_UCS4Char *> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 len)
+void XAP_Dictionary::suggestWord(std::vector<UT_UCS4Char *> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 len)
 {
-  //
-  // Get the words in the local dictionary
-  //
-  auto pVec = m_hashWords.enumerate();
-  UT_ASSERT(pVec);
   UT_uint32 i=0;
-  UT_uint32 count = pVec->getItemCount();
   //
   // Turn our word into a NUL teminated string
   //
@@ -361,9 +343,9 @@ void XAP_Dictionary::suggestWord(UT_GenericVector<UT_UCS4Char *> * pVecSuggestio
   // Loop over all the words in our custom doctionary and add them to the 
   //the suggestions if they're possibilities.
   //
-  for(i=0; i< count; i++)
+  for (auto & entry : m_hashWords)
   {
-    UT_UCS4Char * pszDict = pVec->getNthItem(i);
+    UT_UCS4Char * pszDict = entry.second;
     UT_UCS4Char * pszReturn = nullptr;
     float lenDict = static_cast<float>(UT_UCS4_strlen(pszDict));
     UT_uint32 wordInDict = countCommonChars(pszDict,pszWord);
@@ -375,7 +357,7 @@ void XAP_Dictionary::suggestWord(UT_GenericVector<UT_UCS4Char *> * pVecSuggestio
     if((frac1 > 0.8) && (frac2 > 0.8))
     {
 	  UT_UCS4_cloneString(&pszReturn, pszDict);
-	  pVecSuggestions->addItem(pszReturn);
+	  pVecSuggestions->push_back(pszReturn);
     }
   }
   FREEP(pszWord);
@@ -423,7 +405,7 @@ bool XAP_Dictionary::isWord(const UT_UCS4Char * pWord, UT_uint32 len) const
 	}
 	key[i] = 0;
 	char * key2 = g_strdup(key);
-	bool contains = m_hashWords.contains (key2, nullptr);
+	bool contains = m_hashWords.find(key2) != m_hashWords.end();
 	FREEP(key);
 	FREEP(key2);
 	return contains;

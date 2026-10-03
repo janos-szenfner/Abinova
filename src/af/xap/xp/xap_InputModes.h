@@ -18,6 +18,7 @@
  * 02110-1301 USA.
  */
 
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 
@@ -40,8 +41,8 @@ public:
 	EV_EditEventMapper *			getMapByName(const char * szName) const;
 
 protected:
-	UT_GenericVector<EV_EditEventMapper *>	m_vecEventMaps; /* EV_EditEventMapper * */
-	UT_GenericVector<char*>			m_vecNames;		/* const char * */
+	std::vector<EV_EditEventMapper *>	m_vecEventMaps; /* EV_EditEventMapper * */
+	std::vector<char*>			m_vecNames;		/* const char * */
 
 	UT_uint32						m_indexCurrentEventMap;
 };

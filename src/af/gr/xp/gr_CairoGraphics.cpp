@@ -21,6 +21,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <algorithm>
+#include <vector>
 #include "config.h"
 #endif
 
@@ -3073,7 +3075,7 @@ struct _MyPangoCoverage
 
 typedef _MyPangoCoverage MyPangoCoverage;
 
-void GR_CairoGraphics::getCoverage(UT_NumberVector& coverage)
+void GR_CairoGraphics::getCoverage(std::vector<UT_sint32>& coverage)
 {
 	coverage.clear();
 

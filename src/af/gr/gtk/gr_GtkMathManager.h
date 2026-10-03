@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "gr_EmbedManager.h"
 #include "gr_MathTypesetter.h"
 #include "ut_string_class.h"
@@ -84,6 +86,6 @@ private:
 	MathItem *          _item(UT_sint32 uid);
 	void                _relayout(MathItem *it);
 	UT_sint32           _toLU(double pt) const;
-	UT_GenericVector<MathItem *> m_items;
+	std::vector<MathItem *> m_items;
 	AD_Document *       m_pDoc;
 };

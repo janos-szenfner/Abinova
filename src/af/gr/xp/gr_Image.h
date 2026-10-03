@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include "ut_types.h"
 #include "ut_bytebuf.h"
 #include "ut_string_class.h"
@@ -95,7 +96,7 @@ public:
 	UT_sint32 GetOffsetFromRight(GR_Graphics * pG, UT_sint32 pad, UT_sint32 yTop, UT_sint32 height);
 
 	bool isOutLinePresent(void) const
-	  { return (m_vecOutLine.getItemCount() > 0);}
+	  { return (m_vecOutLine.size() > 0);}
    	enum GRType: uint8_t {
 	   GRT_Unknown,
 	   GRT_Raster,
@@ -120,7 +121,7 @@ private:
    	std::string 		m_szName;
 	UT_sint32			m_iDisplayWidth;
 	UT_sint32			m_iDisplayHeight;
-	UT_GenericVector<GR_Image_Point *> m_vecOutLine;
+	std::vector<GR_Image_Point *> m_vecOutLine;
 };
 
 class ABI_EXPORT GR_RasterImage : public GR_Image

@@ -21,6 +21,9 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <set>
+#include <string>
+#include <vector>
 #include "config.h"
 #endif
 
@@ -87,15 +90,15 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Toolbar)
 	UT_ASSERT_HARMLESS(id <= static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_TB_4));
 
 	UT_sint32 ndx = (id - AP_MENU_ID_VIEW_TB_1);
-	const UT_GenericVector<UT_UTF8String*> & vec = pApp->getToolbarFactory()->getToolbarNames();
+	const std::vector<UT_UTF8String*> & vec = pApp->getToolbarFactory()->getToolbarNames();
 
 
-	if (ndx < vec.getItemCount())
+	if (ndx < vec.size())
 	{
 		const char * szFormat = pLabel->getMenuLabel();
 		static char buf[128];
 
-		const char * szRecent = vec.getNthItem(ndx)->utf8_str();
+		const char * szRecent = vec[ndx]->utf8_str();
 
 		snprintf(buf,sizeof(buf),s_safeMenuLabelFormat(szFormat),szRecent);
 		return buf;

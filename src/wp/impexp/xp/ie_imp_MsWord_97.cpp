@@ -27,6 +27,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
 #include "ut_locale.h"
 
 #include <zlib.h>
@@ -974,10 +978,10 @@ IE_Imp_MsWord_97::~IE_Imp_MsWord_97()
 		delete [] m_pBookmarks;
 	}
 
-	UT_VECTOR_PURGEALL(ListIdLevelPair *, m_vLists);
-	UT_VECTOR_PURGEALL(emObject *, m_vecEmObjects);
-	UT_VECTOR_PURGEALL(textboxPos *, m_vecTextboxPos);
-	UT_VECTOR_PURGEALL(MsTableCtx *, m_vecTableCtx);
+	for (ListIdLevelPair * _utv_p : m_vLists) { if (_utv_p) delete(_utv_p); };
+	for (emObject * _utv_p : m_vecEmObjects) { if (_utv_p) delete(_utv_p); };
+	for (textboxPos * _utv_p : m_vecTextboxPos) { if (_utv_p) delete(_utv_p); };
+	for (MsTableCtx * _utv_p : m_vecTableCtx) { if (_utv_p) delete(_utv_p); };
 
 	DELETEPV(m_pTextboxes);
 	DELETEPV(m_pFootnotes);
@@ -1390,12 +1394,12 @@ void IE_Imp_MsWord_97::_flush ()
 	  _appendStrux(PTX_Block, PP_NOPROPS);
 	  m_bInPara = true;
 	  emObject * pObject = nullptr;
-	  if(m_vecEmObjects.getItemCount() > 0)
+	  if(m_vecEmObjects.size() > 0)
 	  {
 		  UT_sint32 i =0;
-		  for(i=0;i< m_vecEmObjects.getItemCount(); i++)
+		  for(i=0;i< m_vecEmObjects.size(); i++)
 		  {
-			  pObject = m_vecEmObjects.getNthItem(i);
+			  pObject = m_vecEmObjects[i];
 			  UT_nonnull_or_continue(pObject);
 			  if(pObject->objType == PTO_Bookmark)
 			  {
@@ -1835,7 +1839,7 @@ bool IE_Imp_MsWord_97::_insertBookmark(bookmark * bm)
 		pObject->props1 = propsArray[1];
 		pObject->objType = PTO_Bookmark;
 		pObject->props2 = propsArray[3];
-		m_vecEmObjects.addItem(pObject);
+		m_vecEmObjects.push_back(pObject);
 	}
 	else
 	{
@@ -2710,7 +2714,7 @@ int IE_Imp_MsWord_97::_specCharImage08 (wvParseStruct *ps)
 				  getDoc()->getBounds(true,posEnd); // clean frags!
 
 				  pPos->endFrame = getDoc()->getLastFrag();
-				  m_vecTextboxPos.addItem(pPos);
+				  m_vecTextboxPos.push_back(pPos);
 				}
 				wvReleaseEscher (&item);
 				return true;
@@ -3570,7 +3574,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 
 	  /* a paragraph at a shallower depth (or outside any table) closes
 	     every deeper table still open */
-	  while (static_cast<int>(m_vecTableCtx.getItemCount()) > tblDepth)
+	  while (static_cast<int>(m_vecTableCtx.size()) > tblDepth)
 	  {
 		  _table_pop_level(ps, apap);
 	  }
@@ -3582,7 +3586,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		  _handleHeadersText(ps->currentcp +1, false);
 		  _handleTextboxesText(ps->currentcp+1, 0);
 
-		  while (static_cast<int>(m_vecTableCtx.getItemCount()) < tblDepth)
+		  while (static_cast<int>(m_vecTableCtx.size()) < tblDepth)
 		  {
 			  _table_push_level(ps);
 		  }
@@ -3625,7 +3629,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 	       collect the row heights in document order */
 	    if (apap->fTtp || apap->fInnerTtp)
 	    {
-		ctx->vecRowHeights.addItem(apap->ptap.dyaRowHeight);
+		ctx->vecRowHeights.push_back(apap->ptap.dyaRowHeight);
 	    }
 
 	    /* merge-covered cells carry no rendered content (MS-DOC
@@ -3709,7 +3713,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 			for(UT_uint32 i = 0; i < 9; i++)
 				m_iListIdIncrement[i] = 0;
 
-			UT_VECTOR_PURGEALL(ListIdLevelPair *, m_vLists);
+			for (ListIdLevelPair * _utv_p : m_vLists) { if (_utv_p) delete(_utv_p); };
 			m_vLists.clear();
 		}
 
@@ -3793,9 +3797,9 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		// we will search backward our list vector for the first entry
 		// that has a lower level than we and that will be our parent
 		UT_uint32 myParentID = 0;
-		for(UT_sint32 n = m_vLists.getItemCount(); n > 0; n--)
+		for(UT_sint32 n = m_vLists.size(); n > 0; n--)
 		{
-			ListIdLevelPair * llp = const_cast<ListIdLevelPair *>(static_cast<const ListIdLevelPair*>((m_vLists.getNthItem(n - 1))));
+			ListIdLevelPair * llp = m_vLists[n - 1];
 			UT_nonnull_or_continue(llp);
 			if(llp->level < apap->ilvl)
 			{
@@ -3862,7 +3866,7 @@ int IE_Imp_MsWord_97::_beginPara (wvParseStruct *ps, UT_uint32 /*tag*/,
 		ListIdLevelPair * llp = new ListIdLevelPair;
 		llp->listId = iAWListId;
 		llp->level = apap->ilvl;
-		m_vLists.addItem(static_cast<void*>(llp));
+		m_vLists.push_back(llp);
 
 		getDoc()->appendList(list_atts);
 		UT_DEBUGMSG(("DOM: appended a list\n"));
@@ -4015,7 +4019,7 @@ int IE_Imp_MsWord_97::_endPara (wvParseStruct * /*ps*/, UT_uint32 /*tag*/,
 	{
 		MsTableCtx * ctx = _curTableCtx();
 		const int depth =
-			static_cast<int>(m_vecTableCtx.getItemCount());
+			static_cast<int>(m_vecTableCtx.size());
 		if (ctx && depth > 1 &&
 			(apap->fInnerTableCell || apap->fInnerTtp || apap->fTtp))
 		{
@@ -5607,7 +5611,7 @@ static int docProc (wvParseStruct *ps, wvTag tag)
 
 MsTableCtx::~MsTableCtx(void)
 {
-	UT_VECTOR_PURGEALL(MsColSpan *, vecColumnWidths);
+	for (MsColSpan * _utv_p : vecColumnWidths) { if (_utv_p) delete(_utv_p); };
 	delete pTapLast;
 }
 
@@ -5634,10 +5638,10 @@ void IE_Imp_MsWord_97::_table_open (MsTableCtx * ctx)
 
 MsTableCtx * IE_Imp_MsWord_97::_curTableCtx () const
 {
-	UT_sint32 iCount = static_cast<UT_sint32>(m_vecTableCtx.getItemCount());
+	UT_sint32 iCount = static_cast<UT_sint32>(m_vecTableCtx.size());
 	if (iCount < 1)
 		return nullptr;
-	return m_vecTableCtx.getNthItem(iCount - 1);
+	return m_vecTableCtx[iCount - 1];
 }
 
 //--------------------------------------------------------------------------/
@@ -5654,7 +5658,7 @@ void IE_Imp_MsWord_97::_table_push_level (const wvParseStruct * ps)
 	}
 
 	MsTableCtx * ctx = new MsTableCtx;
-	m_vecTableCtx.addItem(ctx);
+	m_vecTableCtx.push_back(ctx);
 	m_bInTable = true;
 	_table_open(ctx);
 
@@ -5662,7 +5666,7 @@ void IE_Imp_MsWord_97::_table_push_level (const wvParseStruct * ps)
 	if (ps->cellbounds)
 	{
 		for (UT_sint32 i = 0; i < ps->nocellbounds; i++)
-			ctx->vecColumnPositions.addItem(ps->cellbounds[i]);
+			ctx->vecColumnPositions.push_back(ps->cellbounds[i]);
 	}
 }
 
@@ -5681,7 +5685,7 @@ void IE_Imp_MsWord_97::_table_pop_level (const wvParseStruct * ps,
 	m_vecTableCtx.pop_back();
 	delete ctx;
 
-	m_bInTable = (m_vecTableCtx.getItemCount() > 0);
+	m_bInTable = (m_vecTableCtx.size() > 0);
 }
 
 //--------------------------------------------------------------------------/
@@ -5690,13 +5694,13 @@ void IE_Imp_MsWord_97::_table_pop_level (const wvParseStruct * ps,
 /*!
  * Exand a vector with zeros to make room for a new value
  */
-void IE_Imp_MsWord_97::setNumberVector(UT_NumberVector & vec, UT_sint32 i, UT_sint32 val)
+void IE_Imp_MsWord_97::setNumberVector(std::vector<UT_sint32> & vec, UT_sint32 i, UT_sint32 val)
 {
 	while(i > static_cast<UT_sint32>(vec.size() +1))
 	{
-		vec.addItem(0);
+		vec.push_back(0);
 	}
-	vec.addItem(val); // we are sure that it will be appened at index i
+	vec.push_back(val); // we are sure that it will be appened at index i
 }
 
 /*!
@@ -5707,7 +5711,7 @@ void IE_Imp_MsWord_97::setNumberVector(UT_NumberVector & vec, UT_sint32 i, UT_si
  * some cases you can get a table with no row fully partitioned into 
  * individual cells.
  */
-bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & colWidths)
+bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, std::vector<UT_sint32> & colWidths)
 {
 
 // OK handle the easy cases first and find the maximum value of iRight
@@ -5718,7 +5722,7 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & c
 	UT_sint32 iSize = static_cast<UT_sint32>(ctx->vecColumnWidths.size());
 	for(i=0; i< iSize;i++)
 	{
-		MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(ctx->vecColumnWidths.getNthItem(i));
+		MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(ctx->vecColumnWidths[i]);
 		UT_nonnull_or_continue(pSpan);
 		iLeft = pSpan->iLeft;
 		iRight = pSpan->iRight;
@@ -5758,7 +5762,7 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & c
 	{
 		for(i=0; i<static_cast<UT_sint32>(ctx->vecColumnWidths.size()); i++)
 		{
-			MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(ctx->vecColumnWidths.getNthItem(i));
+			MsColSpan * pSpan = reinterpret_cast<MsColSpan *>(ctx->vecColumnWidths[i]);
 			UT_nonnull_or_continue(pSpan);
 			iLeft = pSpan->iLeft;
 			iRight = pSpan->iRight;
@@ -5781,7 +5785,7 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & c
 						pNewSpan->iLeft = iLeft+1;
 						pNewSpan->iRight = iRight;
 						pNewSpan->width = pSpan->width - colWidths[iLeft];
-						ctx->vecColumnWidths.addItem(pNewSpan);
+						ctx->vecColumnWidths.push_back(pNewSpan);
 					}
 				}
 				else if(colWidths[iRight - 1] > 0)
@@ -5792,7 +5796,7 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & c
 						pNewSpan->iLeft = iLeft;
 						pNewSpan->iRight = iRight-1;
 						pNewSpan->width = pSpan->width - colWidths[iRight-1];
-						ctx->vecColumnWidths.addItem(pNewSpan);
+						ctx->vecColumnWidths.push_back(pNewSpan);
 					}
 				}
 //
@@ -5804,7 +5808,7 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & c
 					UT_sint32 k =0;
 					for(k=0; k<static_cast<UT_sint32>(ctx->vecColumnWidths.size()); k++)
 					{
-						MsColSpan * pMulSpan = ctx->vecColumnWidths.getNthItem(i);
+						MsColSpan * pMulSpan = ctx->vecColumnWidths[i];
 						UT_nonnull_or_continue(pMulSpan);
 						UT_sint32 iMulLeft = pMulSpan->iLeft;
 						UT_sint32 iMulRight = pMulSpan->iRight;
@@ -5820,7 +5824,7 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & c
 								pNewSpan->iLeft = iMulRight+1;
 								pNewSpan->iRight = iRight;
 								pNewSpan->width = pSpan->width - pMulSpan->width;
-								ctx->vecColumnWidths.addItem(pNewSpan);
+								ctx->vecColumnWidths.push_back(pNewSpan);
 							}
 
 						}
@@ -5835,7 +5839,7 @@ bool IE_Imp_MsWord_97::_build_ColumnWidths(MsTableCtx * ctx, UT_NumberVector & c
 								pNewSpan->iLeft = iLeft;
 								pNewSpan->iRight = iMulLeft;
 								pNewSpan->width = pSpan->width - pMulSpan->width;
-								ctx->vecColumnWidths.addItem(pNewSpan);
+								ctx->vecColumnWidths.push_back(pNewSpan);
 							}							
 						}
 					}
@@ -5858,7 +5862,7 @@ bool IE_Imp_MsWord_97::findMatchSpan(MsTableCtx * ctx, UT_sint32 iLeft,UT_sint32
 	UT_sint32 i =0;
 	for(i=0; i< static_cast<UT_sint32>(ctx->vecColumnWidths.size());i++)
 	{
-		MsColSpan * pSpan = ctx->vecColumnWidths.getNthItem(i);
+		MsColSpan * pSpan = ctx->vecColumnWidths[i];
 		UT_nonnull_or_continue(pSpan);
 		if(pSpan->iLeft == iLeft && pSpan->iRight == iRight)
 		{
@@ -5871,7 +5875,7 @@ bool IE_Imp_MsWord_97::findMatchSpan(MsTableCtx * ctx, UT_sint32 iLeft,UT_sint32
 /*!
  * Returns false if any element in the vector is non-zero
  */
-bool IE_Imp_MsWord_97::_isVectorFull(UT_NumberVector & vec)
+bool IE_Imp_MsWord_97::_isVectorFull(std::vector<UT_sint32> & vec)
 {
 	UT_sint32 i = 0;
 	for(i=0;i< vec.size() ; i++)
@@ -5898,7 +5902,7 @@ void IE_Imp_MsWord_97::_table_close (const wvParseStruct * /*ps*/,
   if (ctx->vecColumnWidths.size() > 0)
   {
 	  // build column width properties string
-	  UT_NumberVector colWidths;
+	  std::vector<UT_sint32> colWidths;
 //
 // Some tables maybe too complicated for my simple algorithim to work out
 //
@@ -5909,7 +5913,7 @@ void IE_Imp_MsWord_97::_table_close (const wvParseStruct * /*ps*/,
 		  {
 			  UT_String_sprintf(propBuffer,"%s/",
 							UT_convertInchesToDimensionString(m_dim,
-															  (static_cast<double>(colWidths.getNthItem(i)))/1440.0));
+															  (static_cast<double>(colWidths[i]))/1440.0));
 
 			  props += propBuffer;
 		  }
@@ -5950,15 +5954,15 @@ void IE_Imp_MsWord_97::_table_close (const wvParseStruct * /*ps*/,
   /* row heights collected at each row mark; 0 means auto.  Word's
 	 dyaRowHeight is negative for exact heights, positive for
 	 at-least, so track the dominant type for table-row-height-type */
-  if (ctx->vecRowHeights.getItemCount() > 0)
+  if (ctx->vecRowHeights.size() > 0)
   {
 	  bool bAnyAtLeast = false;
 	  bool bAnyExact = false;
 	  propBuffer.clear();
 	  for (UT_sint32 i = 0;
-		   i < static_cast<UT_sint32>(ctx->vecRowHeights.getItemCount()); i++)
+		   i < static_cast<UT_sint32>(ctx->vecRowHeights.size()); i++)
 	  {
-		  UT_sint32 h = ctx->vecRowHeights.getNthItem(i);
+		  UT_sint32 h = ctx->vecRowHeights[i];
 		  if (h < 0)
 		  {
 			  bAnyExact = true;
@@ -6299,7 +6303,7 @@ void IE_Imp_MsWord_97::_cell_open (MsTableCtx * ctx,
 		  pSpan->iRight = iRight;
 		  pSpan->width = width;
 		  xxx_UT_DEBUGMSG(("MsImport iLeft %d  iRight %d width  %d \n",iLeft,iRight,width));
-		  ctx->vecColumnWidths.addItem(pSpan);
+		  ctx->vecColumnWidths.push_back(pSpan);
 	  }
   }
 
@@ -9157,9 +9161,9 @@ bool IE_Imp_MsWord_97::_findNextTextboxSection()
 	/* the FTXBXS lid is the spid of the shape whose frame was
 	 * emitted when its anchor was reached in the main story */
 	const UT_uint32 iLid = m_pTextboxes[m_iNextTextbox].lid;
-	for(UT_sint32 i = 0; i < m_vecTextboxPos.getItemCount(); i++)
+	for(UT_sint32 i = 0; i < m_vecTextboxPos.size(); i++)
 	{
-		textboxPos * pPos = m_vecTextboxPos.getNthItem(i);
+		textboxPos * pPos = m_vecTextboxPos[i];
 		if(pPos && pPos->lid == iLid && pPos->endFrame)
 		{
 			m_pTextboxEndSection = pPos->endFrame;
@@ -9363,9 +9367,9 @@ bool IE_Imp_MsWord_97::_appendStruxHdrFtr(PTStruxType pts, const PP_PropertyVect
 	UT_DEBUGMSG(("Inserting strux of type %d in HdrFtr %d\n",pts,m_iCurrentHeader));
 	UT_ASSERT(m_bInSect);
 	bool bRet = true;
-	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.getItemCount(); i++)
+	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.size(); i++)
 	{
-		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i)));
+		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag[i]));
 		UT_return_val_if_fail(pF,false);
 		UT_DEBUGMSG(("Inserting strux of type %d in Dirivative HdrFtr \n",pts));
 
@@ -9392,9 +9396,9 @@ bool IE_Imp_MsWord_97::_appendObjectHdrFtr(PTObjectType pto, const PP_PropertyVe
 
 	bool bRet = true;
 
-	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.getItemCount(); i++)
+	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.size(); i++)
 	{
-		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i)));
+		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag[i]));
 		UT_return_val_if_fail(pF,false);
 		if(!m_bInPara)
 		{
@@ -9417,9 +9421,9 @@ bool IE_Imp_MsWord_97::_appendSpanHdrFtr(const UT_UCS4Char * p, UT_uint32 length
 	UT_return_val_if_fail(m_iCurrentHeader < m_iHeadersCount,false);
 
 	bool bRet = true;
-	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.getItemCount(); i++)
+	for(UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.frag.size(); i++)
 	{
-		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag.getNthItem(i)));
+		pf_Frag * pF = const_cast<pf_Frag*>(static_cast<const pf_Frag*>( m_pHeaders[m_iCurrentHeader].d.frag[i]));
 		UT_return_val_if_fail(pF,false);
 		if(!m_bInPara)
 		{
@@ -9626,7 +9630,7 @@ void IE_Imp_MsWord_97::_handleHeaders(const wvParseStruct *ps)
 						// inserted again when we reach its position
 
 						m_pHeaders[i].bDerivative = true;
-						m_pHeaders[k].d.hdr.addItem(static_cast<void*>((m_pHeaders+i)));
+						m_pHeaders[k].d.hdr.push_back(m_pHeaders+i);
 					}
 #endif
 				}
@@ -9727,9 +9731,9 @@ bool IE_Imp_MsWord_97::_insertHeaderSection(bool bDoBlockIns)
 
 		// now we insert the same for any derivative headers
 		// ...
-		for (UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.hdr.getItemCount(); i++)
+		for (UT_sint32 i = 0; i < m_pHeaders[m_iCurrentHeader].d.hdr.size(); i++)
 		{
-			header * pH = const_cast<header*>(static_cast<const header*>(m_pHeaders[m_iCurrentHeader].d.hdr.getNthItem(i)));
+			header * pH = const_cast<header*>(static_cast<const header*>(m_pHeaders[m_iCurrentHeader].d.hdr[i]));
 			UT_return_val_if_fail(pH, true);
 
 			// skip any unsupported headers (we set the type to
@@ -9778,7 +9782,7 @@ bool IE_Imp_MsWord_97::_insertHeaderSection(bool bDoBlockIns)
 			pf_Frag_Strux * pFS = static_cast<pf_Frag_Strux*>(pF);
 			UT_return_val_if_fail(pFS->getStruxType() == PTX_SectionHdrFtr, true);
 
-			m_pHeaders[m_iCurrentHeader].d.frag.addItem(static_cast<void*>(pF));
+			m_pHeaders[m_iCurrentHeader].d.frag.push_back(pF);
 
 			if(bDoBlockIns)
 			{

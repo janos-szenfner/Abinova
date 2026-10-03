@@ -22,6 +22,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
+#include <utility>
 #include "config.h"
 #endif
 
@@ -4714,7 +4716,7 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		adjustedRight = adjustedLeft + iPageWidth;
 
 		xxx_UT_DEBUGMSG(("Drawing page adjustedTop = %i, Bottom = %i, Left = %i, Right = %i\n", adjustedTop, adjustedBottom, adjustedLeft, adjustedRight));
-		xxx_UT_DEBUGMSG(("--Entered _draw loop:\n  iPageNumber = %i, vecitemcount = %i\n  iRow = %i, iCol = %i\n  iPageWidth = %i, iPageHeight = %i\n  getPageViewTopMargin() = %i, m_yScrollOffset = %i\n", iPageNumber, vecPagesOnScreen.getItemCount(), iRow, iCol, iPageWidth, iPageHeight, getPageViewTopMargin(), m_yScrollOffset));
+		xxx_UT_DEBUGMSG(("--Entered _draw loop:\n  iPageNumber = %i, vecitemcount = %i\n  iRow = %i, iCol = %i\n  iPageWidth = %i, iPageHeight = %i\n  getPageViewTopMargin() = %i, m_yScrollOffset = %i\n", iPageNumber, vecPagesOnScreen.size(), iRow, iCol, iPageWidth, iPageHeight, getPageViewTopMargin(), m_yScrollOffset));
 
 		xxx_UT_DEBUGMSG(("drawing page E: iPageHeight=%d curY=%d nPos=%d getWindowHeight()=%d y=%d h=%d\n", iPageHeight,curY,m_yScrollOffset,getWindowHeight(),y,height));
 
@@ -5814,7 +5816,7 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 	// clean up
 	static fl_BlockLayout * s_pLastBL = nullptr;
 	static fl_PartOfBlockPtr s_pLastPOB;
-	static const UT_GenericVector<UT_UCS4Char*>* s_pvCachedSuggestions = nullptr;
+	static const std::vector<UT_UCS4Char*>* s_pvCachedSuggestions = nullptr;
 
 	// can we use the cached suggestions?
 	if (pBL != s_pLastBL || pPOB != s_pLastPOB)
@@ -5823,9 +5825,8 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 		if (s_pvCachedSuggestions)
 		{
 			// clean up
-			for (UT_sint32 i = 0; i < s_pvCachedSuggestions->getItemCount(); i++)
+			for (const UT_UCS4Char * sug : *s_pvCachedSuggestions)
 			{
-				const UT_UCS4Char * sug = s_pvCachedSuggestions->getNthItem(i);
 				FREEP(sug);
 			}
 
@@ -5888,10 +5889,7 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 		// lookup suggestions
 
 		// create an empty vector
-		UT_GenericVector<UT_UCS4Char*>* pvFreshSuggestions = nullptr;
-		UT_ASSERT(!pvFreshSuggestions);
-
-		pvFreshSuggestions = new UT_GenericVector<UT_UCS4Char*>();
+		std::vector<UT_UCS4Char*>* pvFreshSuggestions = new std::vector<UT_UCS4Char*>();
 		UT_ASSERT(pvFreshSuggestions);
 
 		if (checker && (checker->checkWord(stMisspelledWord.ucs4_str(), iLength) == SpellChecker::LOOKUP_FAILED))
@@ -5904,7 +5902,7 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 			{
 				UT_UCS4Char *sug = vEngineSuggestions.at(i);
 				UT_ASSERT(sug);
-				pvFreshSuggestions->addItem(sug);
+				pvFreshSuggestions->push_back(sug);
 			}
 
 			// add suggestions from user's Abinova file
@@ -5919,10 +5917,10 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 
 	// return the indexed suggestion from the cache
 	if (s_pvCachedSuggestions &&
-		(s_pvCachedSuggestions->getItemCount()) &&
-		( ndx <= s_pvCachedSuggestions->getItemCount()))
+		(!s_pvCachedSuggestions->empty()) &&
+		( ndx <= static_cast<UT_uint32>(s_pvCachedSuggestions->size())))
 	{
-		UT_UCS4_cloneString(&szSuggest, s_pvCachedSuggestions->getNthItem(ndx-1));
+		UT_UCS4_cloneString(&szSuggest, (*s_pvCachedSuggestions)[ndx-1]);
 	}
 
 	return szSuggest;

@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include <vector>
 #include "ut_types.h"
 
 typedef UT_sint32 UT_ScriptIdType;
@@ -115,6 +116,6 @@ private:
 	static UT_ScriptLibrary * m_pInstance;
 	friend void __dummy_method_dont_use(void);
 
-	UT_GenericVector<UT_ScriptSniffer *>* mSniffers;
+	std::vector<UT_ScriptSniffer *>* mSniffers;
 	std::string m_stErrMsg;
 };

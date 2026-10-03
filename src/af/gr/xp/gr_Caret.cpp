@@ -24,6 +24,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
 #include "config.h"
 #endif
 
@@ -144,7 +145,7 @@ GR_Caret::GR_Caret(GR_Graphics * pG, const std::string& sId)
 		(s_blink_timeout, this, UT_WorkerFactory::TIMER, outMode));
 	m_blinkTimeout->set(_getCursorBlinkTimeout());
 
-	m_iCaretNumber = pG->m_vecCarets.getItemCount() + 1;
+	m_iCaretNumber = pG->m_vecCarets.size() + 1;
 
 	setBlink (false);
 }

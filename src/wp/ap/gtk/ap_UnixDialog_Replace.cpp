@@ -24,6 +24,8 @@
 
 #include <stdlib.h>
 
+#include <string>
+#include <vector>
 #include "ut_string.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -512,15 +514,15 @@ void AP_UnixDialog_Replace::_updateLists()
 		_updateList(GTK_LIST_BOX(m_historyReplace), m_entryReplace,
 					&m_replaceList);
 	gtk_widget_set_visible(m_menuBtnFind,
-						   m_findList.getItemCount() > 0);
+						   m_findList.size() > 0);
 	if (m_menuBtnReplace)
 		gtk_widget_set_visible(m_menuBtnReplace,
-							   m_replaceList.getItemCount() > 0);
+							   m_replaceList.size() > 0);
 }
 
 void AP_UnixDialog_Replace::_updateList(GtkListBox* history,
 										GtkWidget * entry,
-										UT_GenericVector<UT_UCS4Char*>* list)
+										std::vector<UT_UCS4Char*>* list)
 {
 	if (!history || !list)
 		return;
@@ -534,9 +536,9 @@ void AP_UnixDialog_Replace::_updateList(GtkListBox* history,
 		gtk_list_box_remove(history, child);
 	}
 
-	for (UT_sint32 i = 0; i < list->getItemCount(); i++)
+	for (UT_sint32 i = 0; i < list->size(); i++)
 	{
-		UT_UCS4Char * item = list->getNthItem(i);
+		UT_UCS4Char * item = (*list)[i];
 		if (!item)
 			continue;
 		UT_UCS4String ucs4s(item);

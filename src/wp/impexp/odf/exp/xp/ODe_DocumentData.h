@@ -71,7 +71,7 @@ public:
     ODe_Styles m_styles;
 
     // <office:master-styles> (master page styles)
-    UT_GenericStringMap<ODe_Style_MasterPage*> m_masterStyles;
+    std::map<std::string, ODe_Style_MasterPage*> m_masterStyles;
 
     ODe_FontFaceDecls m_stylesXMLFontDecls;
     ODe_FontFaceDecls m_contentXMLFontDecls;

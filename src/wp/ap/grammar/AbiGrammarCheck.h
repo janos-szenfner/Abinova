@@ -20,6 +20,7 @@
 
 #ifndef __Abi_GrammarCheck_h__
 #define __Abi_GrammarCheck_h__
+#include <vector>
 #include "ut_string_class.h"
 #include "ut_types.h"
 #include "ut_vector.h"
@@ -40,7 +41,7 @@ class Abi_GrammarCheck
   bool   isSentenceBlank(const char * szSent);
  private:
   HunspellWrap *  m_GrammarWrap;
-  UT_GenericVector<PieceOfText *> m_vecSentences;
+  std::vector<PieceOfText *> m_vecSentences;
 };
 
 #endif // __Abi_GrammarCheck_h__

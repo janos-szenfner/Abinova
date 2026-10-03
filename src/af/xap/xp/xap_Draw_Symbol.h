@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "ut_types.h"
 #include "ut_misc.h"
 
@@ -79,6 +81,6 @@ protected:
 
 private:
 
-	UT_NumberVector				m_vCharSet;
+	std::vector<UT_sint32>				m_vCharSet;
 	std::string				m_stFont;
 };

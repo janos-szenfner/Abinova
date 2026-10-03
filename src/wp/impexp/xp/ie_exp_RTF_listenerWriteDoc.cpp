@@ -30,6 +30,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <list>
+#include <string>
+#include <vector>
 #include "ut_locale.h"
 #include "ut_debugmsg.h"
 #include "ut_string.h"
@@ -3688,7 +3691,7 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 	UT_sint32 iLeftTwips = 0;
 	iLeftTwips =  static_cast<UT_sint32>( (cellLeftPos*1440.0));
 	m_pie->_rtf_keyword("trleft",iLeftTwips);
-	UT_GenericVector<fl_ColProps *> vecColProps;
+	std::vector<fl_ColProps *> vecColProps;
 	vecColProps.clear();
 	if(szColumnProps && *szColumnProps)
 	{
@@ -3706,7 +3709,7 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 				i = j + 1;
 				fl_ColProps * pColP = new fl_ColProps;
 				pColP->m_iColWidth = static_cast<UT_sint32>(colWidth);
-				vecColProps.addItem(pColP);
+				vecColProps.push_back(pColP);
 			}
 		}
 	}
@@ -3822,11 +3825,11 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 //
 		double thisX = 0.0;
 		UT_sint32 j =0;
-		if(vecColProps.getItemCount() > 0)
+		if(vecColProps.size() > 0)
 		{
-			for(j= 0; (j< m_Table.getRight()) && (j < vecColProps.getItemCount()); j++)
+			for(j= 0; (j< m_Table.getRight()) && (j < vecColProps.size()); j++)
 			{
-				fl_ColProps * pColP = vecColProps.getNthItem(j);
+				fl_ColProps * pColP = vecColProps[j];
 				UT_nonnull_or_continue(pColP);
 				double bigWidth = static_cast<double>(pColP->m_iColWidth);
 				thisX += bigWidth/10000.0;
@@ -3844,9 +3847,9 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 		iCellTwips = static_cast<UT_sint32>( (thisX*1440.0));
 		m_pie->_rtf_keyword("cellx",iCellTwips);
 	}
-	if(vecColProps.getItemCount() > 0)
+	if(vecColProps.size() > 0)
 	{
-		UT_VECTOR_PURGEALL(fl_ColProps *,vecColProps);
+		for (fl_ColProps * _utv_p : vecColProps) { if (_utv_p) delete(_utv_p); };
 	}
 	m_Table.setCellRowCol(row,col);
 }

@@ -3464,6 +3464,15 @@ below are on `main` but the release has not been cut yet.
   teardown is automatic and page/section iteration order is
   preserved.  Pagination, tables, sections, headers/footers and
   text selection behavior is unchanged.
+- **Legacy containers modernized in importers/exporters and the
+  application framework** — the last `UT_Vector`/`UT_GenericVector`/
+  `UT_StringPtrMap`/`UT_GenericStringMap` uses across `src/af` and
+  `src/wp` (importer/exporter sniffer registries, table import,
+  edit-method/menu/toolbar registries, dialog factories, spell
+  checking, MHTML multipart parsing and the ODF exporter's style
+  maps) now use `std::vector`/`std::map`, completing the codebase's
+  container sweep.  File-format registries, table import, spell
+  check and ODT/RTF export behave identically.
 
 ### GTK4 port (core migration)
 

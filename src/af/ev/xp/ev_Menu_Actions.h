@@ -37,9 +37,10 @@
 *****************************************************************
 ****************************************************************/
 
+#include <vector>
+
 #include "ut_types.h"
 #include "xap_Types.h"
-#include "ut_vector.h"
 #include "ut_string_class.h"
 
 class XAP_App;
@@ -146,6 +147,6 @@ public:
 	const EV_Menu_Action *	getAction(XAP_Menu_Id id) const;
 
 private:
-	UT_GenericVector<EV_Menu_Action *>	m_actionTable;
+	std::vector<EV_Menu_Action *>	m_actionTable;
 	XAP_Menu_Id			m_first;
 };

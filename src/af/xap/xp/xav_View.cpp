@@ -58,23 +58,24 @@ XAP_Frame * AV_View::getParentData() const
 bool AV_View::addListener(AV_Listener * pListener, 
 							 AV_ListenerId * pListenerId)
 {
-	UT_sint32 kLimit = m_vecListeners.getItemCount();
+	UT_sint32 kLimit = m_vecListeners.size();
 	UT_sint32 k;
 
 	// see if we can recycle a cell in the vector.
 	
 	for (k=0; k<kLimit; k++)
-		if (m_vecListeners.getNthItem(k) == nullptr)
+		if (m_vecListeners[k] == nullptr)
 		{
-			static_cast<void>(m_vecListeners.setNthItem(k,pListener,nullptr));
+			m_vecListeners[k] = pListener;
 			break;
 		}
 
 	// otherwise, extend the vector for it.
 
-	if (k == kLimit && m_vecListeners.addItem(pListener,&k) != 0)
+	if (k == kLimit)
 	{
-		return false;				// could not add item to vector
+		k = static_cast<UT_sint32>(m_vecListeners.size());
+		m_vecListeners.push_back(pListener);
 	}
 
 	// give our vector index back to the caller as a "Listener Id".
@@ -89,8 +90,12 @@ bool AV_View::removeListener(AV_ListenerId listenerId)
 {
 	if (listenerId == static_cast<AV_ListenerId>( -1))
 		return false;
-		
-	return (m_vecListeners.setNthItem(listenerId,nullptr,nullptr) == 0);
+
+	if (listenerId >= static_cast<AV_ListenerId>(m_vecListeners.size()))
+		return false;
+
+	m_vecListeners[listenerId] = nullptr;
+	return true;
 }
 
 bool AV_View::notifyListeners(const AV_ChangeMask hint, void * pPrivateData)
@@ -133,7 +138,7 @@ bool AV_View::notifyListeners(const AV_ChangeMask hint, void * pPrivateData)
 	// notify listeners of a change.
 		
 	AV_ListenerId lid;
-	AV_ListenerId lidCount = m_vecListeners.getItemCount();
+	AV_ListenerId lidCount = m_vecListeners.size();
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listners (for listeners which have been
@@ -141,7 +146,7 @@ bool AV_View::notifyListeners(const AV_ChangeMask hint, void * pPrivateData)
 	bool bIsLayoutFilling = isLayoutFilling();
 	for (lid=0; lid<lidCount; lid++)
 	{
-		AV_Listener * pListener = static_cast<AV_Listener *>(m_vecListeners.getNthItem(lid));
+		AV_Listener * pListener = static_cast<AV_Listener *>(m_vecListeners[lid]);
 		if(pListener && (!bIsLayoutFilling
 						 || (pListener->getType()== AV_LISTENER_STATUSBAR)
 						 || (pListener->getType()== AV_LISTENER_SCROLLBAR)))
@@ -188,11 +193,11 @@ void AV_View::setWindowSize(UT_sint32 width, UT_sint32 height)
 
 void AV_View::addScrollListener(AV_ScrollObj* pObj)
 {
-	UT_sint32 count = m_scrollListeners.getItemCount();
+	UT_sint32 count = m_scrollListeners.size();
 
 	for (UT_sint32 i = count-1; i >=0; i--)
 	{
-	     AV_ScrollObj* obj = m_scrollListeners.getNthItem(i);
+	     AV_ScrollObj* obj = m_scrollListeners[i];
 
 	     if (obj == pObj)
 	     {
@@ -202,21 +207,21 @@ void AV_View::addScrollListener(AV_ScrollObj* pObj)
 	     }
 
 	}
-	m_scrollListeners.addItem(pObj);
+	m_scrollListeners.push_back(pObj);
 }
 
 void AV_View::removeScrollListener(AV_ScrollObj* pObj)
 {
-	UT_sint32 count = m_scrollListeners.getItemCount();
+	UT_sint32 count = m_scrollListeners.size();
 
 	for (UT_sint32 i = count-1; i >=0; i--)
 	{
-		AV_ScrollObj* obj = m_scrollListeners.getNthItem(i);
+		AV_ScrollObj* obj = m_scrollListeners[i];
 
 		if (obj == pObj)
 		{
 		  UT_DEBUGMSG(("Removing scroll listener %p in av_view %p \n", static_cast<void*>(obj), static_cast<void*>(this)));
-			m_scrollListeners.deleteNthItem(i);
+			m_scrollListeners.erase(m_scrollListeners.begin() + i);
 		}
 	}
 }
@@ -227,11 +232,11 @@ void AV_View::sendVerticalScrollEvent(UT_sint32 yoff, UT_sint32 ylimit)
 {
 	if(getWindowHeight() < getGraphics()->tlu(20))
 		return;
-	UT_sint32 count = m_scrollListeners.getItemCount();
+	UT_sint32 count = m_scrollListeners.size();
 
 	for (UT_sint32 i = 0; i < count; i++)
 	{
-		AV_ScrollObj* pObj = m_scrollListeners.getNthItem(i);
+		AV_ScrollObj* pObj = m_scrollListeners[i];
 		UT_nonnull_or_continue(pObj);
 		pObj->m_pfnY(pObj->m_pData, yoff, ylimit);
 	}
@@ -244,11 +249,11 @@ void AV_View::sendHorizontalScrollEvent(UT_sint32 xoff, UT_sint32 xlimit)
 	if(getWindowHeight() < getGraphics()->tlu(20))
 		return;
 
-	UT_sint32 count = m_scrollListeners.getItemCount();
+	UT_sint32 count = m_scrollListeners.size();
 
 	for (UT_sint32 i = 0; i < count; i++)
 	{
-		AV_ScrollObj* pObj = m_scrollListeners.getNthItem(i);
+		AV_ScrollObj* pObj = m_scrollListeners[i];
 		UT_nonnull_or_continue(pObj);
 		pObj->m_pfnX(pObj->m_pData, xoff, xlimit);
 	}

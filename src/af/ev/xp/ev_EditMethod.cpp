@@ -21,7 +21,11 @@
  
 #include <string.h>
 #include <stdlib.h>
+#include <algorithm>
 
+#include <map>
+#include <string>
+#include <utility>
 #include "ev_EditMethod.h"
 #include "ut_assert.h"
 #include "ut_vector.h"
@@ -174,15 +178,15 @@ EV_EditMethodContainer::EV_EditMethodContainer(UT_uint32 cStatic,EV_EditMethod a
 
 EV_EditMethodContainer::~EV_EditMethodContainer()
 {
-	UT_VECTOR_PURGEALL(EV_EditMethod *, m_vecDynamicEditMethods);
+	for (EV_EditMethod * _utv_p : m_vecDynamicEditMethods) { if (_utv_p) delete(_utv_p); };
 }
 
 bool EV_EditMethodContainer::addEditMethod(EV_EditMethod * pem)
 {
 	UT_ASSERT(pem);
 
-	int error = m_vecDynamicEditMethods.addItem(pem);
-	return (error == 0);
+	m_vecDynamicEditMethods.push_back(pem);
+	return true;
 }
 
 bool EV_EditMethodContainer::removeEditMethod(EV_EditMethod * pem)
@@ -190,16 +194,17 @@ bool EV_EditMethodContainer::removeEditMethod(EV_EditMethod * pem)
 	UT_ASSERT(pem);
 	xxx_UT_DEBUGMSG(("Bsearch for name \n"));
 
-	UT_sint32 pos = m_vecDynamicEditMethods.findItem ( pem ) ;
+	auto it = std::find(m_vecDynamicEditMethods.begin(), m_vecDynamicEditMethods.end(), pem);
 
-	if ( pos >= 0 )
-	    m_vecDynamicEditMethods.deleteNthItem(pos);
-	return (pos >= 0) ;
+	if ( it == m_vecDynamicEditMethods.end() )
+	    return false;
+	m_vecDynamicEditMethods.erase(it);
+	return true;
 }
 
 UT_uint32 EV_EditMethodContainer::countEditMethods()
 {
-	return m_countStatic + m_vecDynamicEditMethods.getItemCount();
+	return m_countStatic + m_vecDynamicEditMethods.size();
 }
 
 EV_EditMethod * EV_EditMethodContainer::getNthEditMethod(UT_uint32 ndx)
@@ -207,7 +212,7 @@ EV_EditMethod * EV_EditMethodContainer::getNthEditMethod(UT_uint32 ndx)
 	if (ndx < m_countStatic)
 		return &m_arrayStaticEditMethods[ndx];
 	else
-		return m_vecDynamicEditMethods.getNthItem(ndx-m_countStatic);
+		return m_vecDynamicEditMethods[ndx-m_countStatic];
 }
 
 // for use in a binary search of an EV_EditMethod array
@@ -255,11 +260,11 @@ EV_EditMethod * EV_EditMethodContainer::findEditMethodByName(const char * szName
 
 	UT_uint32 k, kLast;
 	xxx_UT_DEBUGMSG(("Linear search for it \n"));
-	kLast = m_vecDynamicEditMethods.getItemCount();
+	kLast = m_vecDynamicEditMethods.size();
 	for (k=0; k<kLast; k++)
 	{
 		xxx_UT_DEBUGMSG(("Looking at method %d \n",k));
-		EV_EditMethod * pem = m_vecDynamicEditMethods.getNthItem(k);
+		EV_EditMethod * pem = m_vecDynamicEditMethods[k];
 		if(pem == nullptr)
 			continue;
 		if(pem->getName() == nullptr)

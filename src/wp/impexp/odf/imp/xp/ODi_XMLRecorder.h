@@ -24,6 +24,7 @@
 #define _ODI_XMLRECORDER_H_
 
 // Abinova includes
+#include <vector>
 #include "ut_vector.h"
 
 
@@ -106,12 +107,12 @@ public:
     };
 
     const XMLCall* getCall(UT_sint32 index) const {return m_XMLCalls[index];}
-    UT_uint32 getCallCount() const {return m_XMLCalls.getItemCount(); }
+    UT_uint32 getCallCount() const {return m_XMLCalls.size(); }
 
     void clear();
 private:
 
-    UT_GenericVector<XMLCall*> m_XMLCalls;
+    std::vector<XMLCall*> m_XMLCalls;
 
 };
 

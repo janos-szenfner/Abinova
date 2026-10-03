@@ -55,9 +55,9 @@ Abi_GrammarCheck::~Abi_GrammarCheck(void)
 {
   delete m_GrammarWrap;
   UT_sint32 i =0;
-  for(i= 0; i< m_vecSentences.getItemCount();i++)
+  for(i= 0; i< m_vecSentences.size();i++)
   {
-    PieceOfText * pPT = m_vecSentences.getNthItem(i);
+    PieceOfText * pPT = m_vecSentences[i];
     delete pPT;
   }
   m_vecSentences.clear();
@@ -79,9 +79,9 @@ bool Abi_GrammarCheck::CheckBlock(fl_BlockLayout * pB)
     return true;
   }
   pB->getGrammarSquiggles()->deleteAll();
-  if(m_vecSentences.getItemCount() == 1)
+  if(m_vecSentences.size() == 1)
   {
-    PieceOfText * pTxt = m_vecSentences.getNthItem(0);
+    PieceOfText * pTxt = m_vecSentences[0];
     UT_nonnull_or_return(pTxt, false);
     pTxt->countWords();
     if(!pTxt->bHasStop && pTxt->nWords <8) // Likely a heading
@@ -94,9 +94,9 @@ bool Abi_GrammarCheck::CheckBlock(fl_BlockLayout * pB)
     }
 
   }
-  for(UT_sint32 j=0; j< m_vecSentences.getItemCount(); j++)
+  for(UT_sint32 j=0; j< m_vecSentences.size(); j++)
   {
-    PieceOfText * pTxt = m_vecSentences.getNthItem(j);
+    PieceOfText * pTxt = m_vecSentences[j];
     //    printf("Original Sentence Low %d High %d |%s|\n",pTxt->iInLow,pTxt->iInHigh,pTxt->sText.utf8_str());
     
     if(isSentenceBlank(pTxt->sText.utf8_str()))
@@ -119,10 +119,10 @@ bool Abi_GrammarCheck::CheckBlock(fl_BlockLayout * pB)
       // Insert the Part Of Block Into the GrammarSquiggles
       //
       UT_sint32 i = 0;
-      for(i=0; i< pTxt->m_vecGrammarErrors.getItemCount();i++)
+      for(i=0; i< pTxt->m_vecGrammarErrors.size();i++)
       {
-	//	printf("i=  %d no errors %d \n",i,pTxt->m_vecGrammarErrors.getItemCount());
-	AbiGrammarError * pErr = pTxt->m_vecGrammarErrors.getNthItem(i);
+	//	printf("i=  %d no errors %d \n",i,pTxt->m_vecGrammarErrors.size());
+	AbiGrammarError * pErr = pTxt->m_vecGrammarErrors[i];
 	fl_PartOfBlockPtr pPOB(new fl_PartOfBlock(pErr->m_iErrLow, (pErr->m_iErrHigh- pErr->m_iErrLow +1)));
 	pB->getGrammarSquiggles()->add(pPOB);
       }
@@ -140,9 +140,9 @@ bool Abi_GrammarCheck::GetEnglishText(fl_BlockLayout * pB)
 {
   fp_Run * pRun = pB->getFirstRun();
   UT_sint32 i =0;
-  for(i= 0; i< m_vecSentences.getItemCount();i++)
+  for(i= 0; i< m_vecSentences.size();i++)
   {
-    PieceOfText * pPT = m_vecSentences.getNthItem(i);
+    PieceOfText * pPT = m_vecSentences[i];
     delete pPT;
   }
   m_vecSentences.clear();
@@ -218,7 +218,7 @@ bool Abi_GrammarCheck::GetEnglishText(fl_BlockLayout * pB)
   UT_uint32 iCurStart = 0;
   UT_GrowBufElement * pUCS4 = Text.getPointer(0);
   PieceOfText * pCurSent = new PieceOfText();
-  m_vecSentences.addItem(pCurSent);
+  m_vecSentences.push_back(pCurSent);
   pCurSent->iInLow = iCurStart;
   char cCur[2];
   cCur[1] = 0;
@@ -232,7 +232,7 @@ bool Abi_GrammarCheck::GetEnglishText(fl_BlockLayout * pB)
     {
       pCurSent->iInHigh = iCurText-1;
       pCurSent = new PieceOfText();
-      m_vecSentences.addItem(pCurSent);
+      m_vecSentences.push_back(pCurSent);
       pCurSent->iInLow = iCurText;
     }
     else if(iCurText == iTotLen)

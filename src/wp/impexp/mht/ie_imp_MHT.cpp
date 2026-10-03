@@ -823,16 +823,14 @@ bool IE_Imp_MHT_Sniffer::getDlgLabels (const char ** pszDesc, const char ** pszS
 
 IE_Imp_MHT::IE_Imp_MHT (PD_Document * pDocument) :
 	IE_Imp_XHTML(pDocument),
-	m_document(0),
-	m_parts(new UT_Vector)
+	m_document(0)
 {
-	// 
+	//
 }
 
 IE_Imp_MHT::~IE_Imp_MHT ()
 {
-	UT_VECTOR_PURGEALL(UT_Multipart *,(*m_parts));
-	DELETEP(m_parts);
+	for (UT_Multipart * _utv_p : m_parts) { if (_utv_p) delete(_utv_p); };
 }
 
 UT_Error IE_Imp_MHT::_loadFile (GsfInput * input)
@@ -893,13 +891,7 @@ UT_Error IE_Imp_MHT::_loadFile (GsfInput * input)
 								}
 							m_document = part;
 						}
-					if (m_parts->addItem (part) < 0)
-						{
-							UT_DEBUGMSG(("Multipart HTML: error appending part!\n"));
-							DELETEP(part);
-							import_status = UT_OUTOFMEM;
-							break;
-						}
+					m_parts.push_back (part);
 				}
 		}
 	stream.close ();
@@ -934,10 +926,10 @@ FG_ConstGraphicPtr IE_Imp_MHT::importImage(const gchar * szSrc)
 
 	const UT_Multipart * part = 0;
 
-	UT_uint32 count = m_parts->getItemCount ();
+	UT_uint32 count = static_cast<UT_uint32>(m_parts.size ());
 	for (UT_uint32 i = 0; i < count; i++)
 		{
-			const UT_Multipart * ptr = static_cast<const UT_Multipart *>((*m_parts)[i]);
+			const UT_Multipart * ptr = m_parts[i];
 			if (!ptr->isImage ()) continue;
 
 			if (bContentID && ptr->contentID ())
@@ -1138,7 +1130,6 @@ UT_Multipart * IE_Imp_MHT::importMultipart (UT_MHTStream & stream)
 }
 
 UT_Multipart::UT_Multipart () :
-	m_map(new UT_StringPtrMap),
 	m_buf(new UT_ByteBuf),
 	m_location(0),
 	m_id(0),
@@ -1157,8 +1148,6 @@ UT_Multipart::UT_Multipart () :
 UT_Multipart::~UT_Multipart ()
 {
 	clear ();
-
-	DELETEP(m_map);
 }
 
 bool UT_Multipart::insert (const char * name, const char * value)
@@ -1169,7 +1158,7 @@ bool UT_Multipart::insert (const char * name, const char * value)
 	char * new_value = g_strdup (value);
 	if (new_value == 0) return false;
 
-	if (!m_map->insert (name, new_value))
+	if (!m_map.emplace (name, new_value).second)
 		{
 			FREEP(new_value);
 			return false;
@@ -1236,8 +1225,8 @@ const char * UT_Multipart::lookup (const char * name)
 	if ( name == 0) return 0;
 	if (*name == 0) return 0;
 
-	const void * vptr = m_map->pick (name);
-	return reinterpret_cast<const char *>(vptr);
+	auto it = m_map.find (name);
+	return (it == m_map.end ()) ? nullptr : it->second;
 }
 
 /* Append the raw (undecoded) body of a part; bytes are decoded per the
@@ -1363,8 +1352,9 @@ UT_ByteBufPtr && UT_Multipart::detachBuffer ()
 void UT_Multipart::clear ()
 {
 	// values are g_strdup'd - must go through g_free, not C++ delete
-	m_map->freeData();
-	m_map->clear ();
+	for (auto & pair : m_map)
+		g_free (pair.second);
+	m_map.clear ();
 
 	if (m_buf) m_buf->truncate (0);
 

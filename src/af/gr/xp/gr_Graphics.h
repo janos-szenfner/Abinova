@@ -28,6 +28,9 @@
 #include <optional>
 #include <stack>
 
+#include <map>
+#include <string>
+#include <vector>
 #include "xap_Features.h"
 
 #include "ut_types.h"
@@ -351,7 +354,7 @@ class ABI_EXPORT GR_GraphicsFactory
 	GR_GraphicsFactory(){};
 	virtual ~GR_GraphicsFactory(){};
 
-	UT_uint32     getClassCount() const {return m_vClassIds.getItemCount();}
+	UT_uint32     getClassCount() const {return m_vClassIds.size();}
 
 	bool          registerClass(GR_Allocator, GR_Descriptor, UT_uint32 iClassId);
 	UT_uint32     registerPluginClass(GR_Allocator, GR_Descriptor);
@@ -373,9 +376,9 @@ class ABI_EXPORT GR_GraphicsFactory
 
 
   private:
-	UT_GenericVector<GR_Allocator>       m_vAllocators;
-	UT_GenericVector<GR_Descriptor>       m_vDescriptors;
-	UT_NumberVector m_vClassIds;
+	std::vector<GR_Allocator>       m_vAllocators;
+	std::vector<GR_Descriptor>       m_vDescriptors;
+	std::vector<UT_sint32> m_vClassIds;
 
 	UT_uint32       m_iDefaultScreen;
 	UT_uint32       m_iDefaultPrinter;
@@ -408,7 +411,7 @@ class ABI_EXPORT AllCarets
  public:
 	AllCarets(GR_Graphics * pG,
 			  GR_Caret ** pCaret,
-			  UT_GenericVector<GR_Caret *>* vecCarets  );
+			  std::vector<GR_Caret *>* vecCarets  );
 	virtual ~AllCarets(){}
 	GR_Caret *  getBaseCaret(void);
 	void	    enable(void);
@@ -428,7 +431,7 @@ class ABI_EXPORT AllCarets
  private:
 	GR_Graphics * m_pG;
 	GR_Caret **    m_pLocalCaret;
-	UT_GenericVector<GR_Caret *>* m_vecCarets;
+	std::vector<GR_Caret *>* m_vecCarets;
 };
 
 
@@ -487,7 +490,7 @@ class ABI_EXPORT GR_Graphics
 									UT_GrowBufElement* pWidths, UT_uint32 *height = nullptr);
 
 	virtual UT_sint32 measureUnRemappedChar(const UT_UCS4Char c, UT_uint32 * height = nullptr) = 0;
-	virtual void getCoverage(UT_NumberVector& coverage) = 0;
+	virtual void getCoverage(std::vector<UT_sint32>& coverage) = 0;
 
 	/* GR_Font versions of the above -- TODO: should I add drawChar* methods too? */
 	virtual UT_uint32 getFontAscent(const GR_Font *)  = 0;
@@ -983,7 +986,7 @@ class ABI_EXPORT GR_Graphics
 	static UT_VersionInfo   s_Version;
 	static UT_uint32        s_iInstanceCount;
 	static UT_UCS4Char      s_cDefaultGlyph;
-	UT_GenericVector<GR_Caret *>  m_vecCarets;
+	std::vector<GR_Caret *>  m_vecCarets;
 	AllCarets               m_AllCarets;
 	bool                    m_bAntiAliasAlways;
 };

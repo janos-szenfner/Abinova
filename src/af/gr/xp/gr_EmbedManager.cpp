@@ -114,9 +114,9 @@ GR_EmbedManager::GR_EmbedManager(GR_Graphics* pG)
 GR_EmbedManager::~GR_EmbedManager()
 { 
   UT_sint32 i = 0;
-  for(i=0; i<m_vecSnapshots.getItemCount(); i++)
+  for(i=0; i<m_vecSnapshots.size(); i++)
     {
-      GR_EmbedView * pEView = m_vecSnapshots.getNthItem(i);
+      GR_EmbedView * pEView = m_vecSnapshots[i];
       DELETEP(pEView);
     }
 }
@@ -138,9 +138,9 @@ void GR_EmbedManager::setGraphics(GR_Graphics * pG)
   if(isDefault())
   {
     UT_sint32 i =0;
-    for(i=0; i< m_vecSnapshots.getItemCount(); i++)
+    for(i=0; i< m_vecSnapshots.size(); i++)
       {
-	GR_EmbedView * pEView = m_vecSnapshots.getNthItem(i);
+	GR_EmbedView * pEView = m_vecSnapshots[i];
 	UT_nonnull_or_continue(pEView);
 
 	DELETEP(pEView->m_pPreview);
@@ -224,8 +224,8 @@ void GR_EmbedManager::setDefaultFontSize(UT_sint32, UT_sint32 )
 UT_sint32 GR_EmbedManager::makeEmbedView(AD_Document * pDoc, UT_uint32  api, const char * szDataID)
 {
   GR_EmbedView * pEmV= new GR_EmbedView(pDoc,api);
-  m_vecSnapshots.addItem(pEmV);
-  UT_sint32 iNew = m_vecSnapshots.getItemCount()-1;
+  m_vecSnapshots.push_back(pEmV);
+  UT_sint32 iNew = m_vecSnapshots.size()-1;
   pEmV->m_sDataID = szDataID;
   pEmV->getSnapShots();
   pEmV->m_iZoom = getGraphics()->getZoomPercentage();
@@ -252,7 +252,7 @@ UT_sint32 GR_EmbedManager::makeEmbedView(AD_Document * pDoc, UT_uint32  api, con
  */
 void GR_EmbedManager::makeSnapShot(UT_sint32 uid, UT_Rect & /*rec*/)
 {
-  if((m_vecSnapshots.getItemCount() == 0) || (uid >= m_vecSnapshots.getItemCount()))
+  if((m_vecSnapshots.size() == 0) || (uid >= m_vecSnapshots.size()))
     {
       UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
       return;
@@ -292,13 +292,13 @@ bool GR_EmbedManager::modify(UT_sint32 /*uid*/)
  */
 bool GR_EmbedManager::changeAPI(UT_sint32 uid, UT_uint32 /*api*/)
 {
-  if((m_vecSnapshots.getItemCount() == 0) || (uid >= m_vecSnapshots.getItemCount()))
+  if((m_vecSnapshots.size() == 0) || (uid >= m_vecSnapshots.size()))
     {
       UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
       return false;
     }
 
-  GR_EmbedView * pEView = m_vecSnapshots.getNthItem(uid);
+  GR_EmbedView * pEView = m_vecSnapshots[uid];
   UT_nonnull_or_return(pEView, false);
 
   DELETEP(pEView->m_pPreview);
@@ -339,7 +339,7 @@ void GR_EmbedManager::loadEmbedData(UT_sint32 )
  */
 UT_sint32 GR_EmbedManager::getWidth(UT_sint32 uid)
 {
-  GR_EmbedView * pEView = m_vecSnapshots.getNthItem(uid);
+  GR_EmbedView * pEView = m_vecSnapshots[uid];
   UT_nonnull_or_return(pEView, 0);
   if( pEView->m_bHasPNGSnapshot)
   {
@@ -360,7 +360,7 @@ UT_sint32 GR_EmbedManager::getAscent(UT_sint32 uid)
 {
   // FIXME work out a way to write this into the document.
 
-  GR_EmbedView * pEView = m_vecSnapshots.getNthItem(uid);
+  GR_EmbedView * pEView = m_vecSnapshots[uid];
   UT_nonnull_or_return(pEView, 0);
   if( pEView->m_bHasPNGSnapshot)
   {
@@ -401,12 +401,12 @@ void GR_EmbedManager::setColor(UT_sint32 , const UT_RGBColor & )
  */
 void GR_EmbedManager::render(UT_sint32 uid ,UT_Rect & rec )
 {
-  if((m_vecSnapshots.getItemCount() == 0) || (uid >= m_vecSnapshots.getItemCount()))
+  if((m_vecSnapshots.size() == 0) || (uid >= m_vecSnapshots.size()))
     {
       UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
       return;
     }
-  GR_EmbedView * pEView = m_vecSnapshots.getNthItem(uid);
+  GR_EmbedView * pEView = m_vecSnapshots[uid];
   UT_nonnull_or_return(pEView, );
   if(pEView->m_iZoom != getGraphics()->getZoomPercentage())
   {
@@ -470,13 +470,13 @@ void GR_EmbedManager::render(UT_sint32 uid ,UT_Rect & rec )
  */
 void GR_EmbedManager::releaseEmbedView(UT_sint32 uid)
 {
-  if((m_vecSnapshots.getItemCount() == 0) || (uid >= m_vecSnapshots.getItemCount()))
+  if((m_vecSnapshots.size() == 0) || (uid >= m_vecSnapshots.size()))
     {
       return;
     }
-  GR_EmbedView * pEView = m_vecSnapshots.getNthItem(uid);
+  GR_EmbedView * pEView = m_vecSnapshots[uid];
   DELETEP(pEView);
-  m_vecSnapshots.setNthItem(uid,nullptr,nullptr);
+  m_vecSnapshots[uid] = nullptr;
 }
 
 /*!

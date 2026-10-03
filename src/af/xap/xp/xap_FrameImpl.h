@@ -23,8 +23,10 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "ut_types.h"
-#include "ut_vector.h"
 #include "gr_Graphics.h"
 
 #define MAX_TITLE_LENGTH 256
@@ -53,7 +55,7 @@ class ABI_EXPORT XAP_FrameImpl
 public:
 	XAP_Frame*	getFrame() { return m_pFrame; };	/* needed for Obj-C access */
 	virtual XAP_FrameImpl * createInstance(XAP_Frame *pFrame) = 0;
-	const UT_GenericVector<EV_Toolbar*> & _getToolbars() const
+	const std::vector<EV_Toolbar*> & _getToolbars() const
 					{ return m_vecToolbars; };
 
 	virtual void                notifyViewChanged(AV_View * pView); // default dows nothing
@@ -127,10 +129,10 @@ protected:
 	UT_uint32 m_ViewAutoUpdaterID;
 	UT_Timer * m_ViewAutoUpdater;
 
-	UT_Vector m_vecToolbarLayoutNames;
+	std::vector<std::string> m_vecToolbarLayoutNames;
 	const char * m_szToolbarLabelSetName;	/* language for toolbars */
 	const char * m_szToolbarAppearance;
-	UT_GenericVector<EV_Toolbar*> m_vecToolbars;
+	std::vector<EV_Toolbar*> m_vecToolbars;
 
 	const char * m_szMenuLayoutName;
 	const char * m_szMenuLabelSetName;		/* language for menus */

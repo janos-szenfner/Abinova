@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "xap_Frame.h"
 #include "xap_Dialog.h"
 #include "xav_View.h"
@@ -162,12 +164,13 @@ private:
 		inline void changed (bool c) { m_bChanged = c; }
 	};
 
-	UT_GenericVector<sControlData *> m_vecProperties; // properties stored as a vector
+	std::vector<sControlData *> m_vecProperties; // properties stored as a vector
 
 	void					_addPropertyItem (tControl index, const sControlData & control_data);
 	inline sControlData *	_getPropertyItem (tControl index) const
 	{
-		return m_vecProperties.getNthItem (static_cast<UT_uint32>(index));
+		return (static_cast<size_t>(index) < m_vecProperties.size())
+			? m_vecProperties[static_cast<UT_uint32>(index)] : nullptr;
 	}
 
 	// which dimension system we're using as "native" for this document

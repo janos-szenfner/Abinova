@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 
@@ -41,5 +42,5 @@ public:
 protected:
 	_ClipboardItem*			_findFormatItem(const char*) const;
 
-	UT_GenericVector<_ClipboardItem*> m_vecData;
+	std::vector<_ClipboardItem*> m_vecData;
 };

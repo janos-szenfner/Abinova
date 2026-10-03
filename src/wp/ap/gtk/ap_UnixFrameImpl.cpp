@@ -141,7 +141,7 @@ XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
 
 void AP_UnixFrameImpl::_bindToolbars(AV_View * pView)
 {
-	int nrToolbars = m_vecToolbarLayoutNames.getItemCount();
+	int nrToolbars = m_vecToolbarLayoutNames.size();
 	for (int k = 0; k < nrToolbars; k++)
 	{
 		// TODO Toolbars are a frame-level item, but a view-listener is
@@ -152,7 +152,7 @@ void AP_UnixFrameImpl::_bindToolbars(AV_View * pView)
 		// TODO in the frame (think splitter windows), we will need to have
 		// TODO a loop like this to help change the focus when the current
 		// TODO view changes.		
-		EV_UnixToolbar * pUnixToolbar = reinterpret_cast<EV_UnixToolbar *>(m_vecToolbars.getNthItem(k));
+		EV_UnixToolbar * pUnixToolbar = reinterpret_cast<EV_UnixToolbar *>(m_vecToolbars[k]);
 		pUnixToolbar->bindListenerToView(pView);
 	}	
 }
@@ -165,13 +165,13 @@ void AP_UnixFrameImpl::_showOrHideToolbars()
 {
 	XAP_Frame* pFrame = getFrame();
 	bool *bShowBar = static_cast<AP_FrameData*>(pFrame->getFrameData())->m_bShowBar;
-	UT_uint32 cnt = m_vecToolbarLayoutNames.getItemCount();
+	UT_uint32 cnt = m_vecToolbarLayoutNames.size();
 
 	for (UT_uint32 i = 0; i < cnt; i++)
 	{
 		// TODO: The two next lines are here to bind the EV_Toolbar to the
 		// AP_FrameData, but their correct place are next to the toolbar creation (JCA)
-		EV_UnixToolbar * pUnixToolbar = static_cast<EV_UnixToolbar *> (m_vecToolbars.getNthItem(i));
+		EV_UnixToolbar * pUnixToolbar = static_cast<EV_UnixToolbar *> (m_vecToolbars[i]);
 		static_cast<AP_FrameData*> (pFrame->getFrameData())->m_pToolbar[i] = pUnixToolbar;
 		static_cast<AP_UnixFrame *>(pFrame)->toggleBar(i, bShowBar[i]);
 	}
@@ -187,11 +187,11 @@ void AP_UnixFrameImpl::_showOrHideToolbars()
  */
 void AP_UnixFrameImpl::_refillToolbarsInFrameData()
 {
-	UT_uint32 cnt = m_vecToolbarLayoutNames.getItemCount();
+	UT_uint32 cnt = m_vecToolbarLayoutNames.size();
 
 	for (UT_uint32 i = 0; i < cnt; i++)
 	{
-		EV_UnixToolbar * pUnixToolbar = static_cast<EV_UnixToolbar *> (m_vecToolbars.getNthItem(i));
+		EV_UnixToolbar * pUnixToolbar = static_cast<EV_UnixToolbar *> (m_vecToolbars[i]);
 		static_cast<AP_FrameData*>(getFrame()->getFrameData())->m_pToolbar[i] = pUnixToolbar;
 	}
 }
@@ -1374,11 +1374,11 @@ void AP_UnixFrameImpl::_applyUIMode()
 
 	// the ribbon replaces the classic icon bars permanently.
 	// m_vecToolbars may still be empty during window construction.
-	UT_uint32 nrBars = m_vecToolbars.getItemCount();
+	UT_uint32 nrBars = m_vecToolbars.size();
 	for (UT_uint32 i = 0; i < nrBars && i < 4; ++i)
 	{
 		EV_Toolbar * pToolbar =
-			static_cast<EV_Toolbar *>(m_vecToolbars.getNthItem(i));
+			static_cast<EV_Toolbar *>(m_vecToolbars[i]);
 		if (pToolbar)
 			pToolbar->hide();
 	}

@@ -19,6 +19,8 @@
  * 02110-1301 USA.
  */
 
+#include <string>
+#include <vector>
 #include "ap_Features.h"
 
 #include "ut_types.h"
@@ -54,36 +56,35 @@
 	class ABI_EXPORT _vectt
 	{
 	public:
-		_vectt(_tt * orig):
-			m_Vec_lt(orig->m_nrEntries, 4, true)
+		_vectt(_tt * orig)
 			{
 				m_name = orig->m_name;
 		        m_emc = orig->m_emc;
-				m_Vec_lt.clear();
+				m_Vec_lt.reserve(orig->m_nrEntries);
 				UT_uint32 k = 0;
 				for(k = 0; k < orig->m_nrEntries; k++)
 				{
 					_lt * plt = new _lt;
 					*plt = orig->m_lt[k];
-					m_Vec_lt.addItem(plt);
+					m_Vec_lt.push_back(plt);
 				}
 			};
 		~_vectt()
 			{
-				UT_VECTOR_PURGEALL(_lt *,m_Vec_lt);
+				for (_lt * _utv_p : m_Vec_lt) { if (_utv_p) delete(_utv_p); };
 			};
 		UT_uint32 getNrEntries(void)
 			{
-				return m_Vec_lt.getItemCount();
+				return m_Vec_lt.size();
 			};
 		_lt * getNth_lt(UT_uint32 n)
 			{
-				return m_Vec_lt.getNthItem(n);
+				return m_Vec_lt[n];
 			};
 		const char *				m_name;
 		EV_EditMouseContext			m_emc;
 	private:
-		UT_GenericVector<_lt*>		m_Vec_lt;
+		std::vector<_lt*>		m_Vec_lt;
 	};
 
 
@@ -172,13 +173,13 @@ XAP_Menu_Factory::XAP_Menu_Factory(XAP_App * pApp) :
 	for (k=0; k<G_N_ELEMENTS(s_ttTable); k++)
 	{
 		_vectt * pVectt = new _vectt(&s_ttTable[k]);
-		m_vecTT.addItem(pVectt);
+		m_vecTT.push_back(pVectt);
 	}
 }
 
 XAP_Menu_Factory::~XAP_Menu_Factory()
 {
-    UT_VECTOR_SPARSEPURGEALL(_vectt *,m_vecTT);
+    for (_vectt * _utv_p : m_vecTT) { if (_utv_p) delete(_utv_p); };
 	DELETEP(m_pLabelSet);
 }
 
@@ -186,9 +187,9 @@ EV_Menu_Layout * XAP_Menu_Factory::CreateMenuLayout(const char * szName)
 {
 	UT_return_val_if_fail (szName && *szName, nullptr);		// no defaults
 
-	for (UT_sint32 k=0; k< m_vecTT.getItemCount(); k++)
+	for (UT_sint32 k=0; k< m_vecTT.size(); k++)
 	{
-		_vectt * pVectt = m_vecTT.getNthItem(k);
+		_vectt * pVectt = m_vecTT[k];
 		if (pVectt == nullptr)
 			continue;
 		if (g_ascii_strcasecmp(szName,pVectt->m_name)==0)
@@ -214,9 +215,9 @@ EV_Menu_Layout * XAP_Menu_Factory::CreateMenuLayout(const char * szName)
 const char * XAP_Menu_Factory::FindContextMenu(EV_EditMouseContext emc)
 {
 
-	for (UT_sint32 k=0; k< m_vecTT.getItemCount(); k++)
+	for (UT_sint32 k=0; k< m_vecTT.size(); k++)
 	{
-		_vectt * pVectt = m_vecTT.getNthItem(k);
+		_vectt * pVectt = m_vecTT[k];
 		if (pVectt == nullptr)
 			continue;
 		UT_DEBUGMSG(("Look menu %s id %x requested %x  \n",pVectt->m_name,pVectt->m_emc,emc));

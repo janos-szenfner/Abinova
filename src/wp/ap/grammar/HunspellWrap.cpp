@@ -171,7 +171,7 @@ bool HunspellWrap::parseSentence(PieceOfText * pT)
       pErr->m_iErrHigh = pT->iInLow + static_cast<UT_sint32>(start + len) - 1;
       pErr->m_iWordNum = iWord;
       pErr->m_sErrorDesc = "misspelled word";
-      pT->m_vecGrammarErrors.addItem(pErr);
+      pT->m_vecGrammarErrors.push_back(pErr);
     }
   }
 

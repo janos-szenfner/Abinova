@@ -22,6 +22,7 @@
 
 #include <vector>
 
+#include <string>
 #include "ut_types.h"
 #include "xap_Frame.h"
 #include "xap_Dialog.h"
@@ -68,8 +69,8 @@ public:
 	bool             isFootnote(const PD_Style * pStyle,UT_sint32 iDepth=10) const;
 	bool             isUser(const PD_Style *pStyle) const;
 private:
-	UT_GenericVector<const PD_Style *>    m_vecAllStyles;
-	UT_GenericVector<Stylist_row *> m_vecStyleRows;
+	std::vector<const PD_Style *>    m_vecAllStyles;
+	std::vector<Stylist_row *> m_vecStyleRows;
 };
 
 

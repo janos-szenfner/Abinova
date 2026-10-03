@@ -25,6 +25,10 @@
  */
 
 // Class definition include
+#include <algorithm>
+#include <map>
+#include <string>
+#include <utility>
 #include "ODi_TextContent_ListenerState.h"
 
 // Internal includes
@@ -120,9 +124,9 @@ ODi_TextContent_ListenerState::ODi_TextContent_ListenerState (
  */
 ODi_TextContent_ListenerState::~ODi_TextContent_ListenerState() 
 {
-    if (m_tablesOfContentProps.getItemCount() > 0) {
+    if (m_tablesOfContentProps.size() > 0) {
         UT_DEBUGMSG(("ERROR ODti: table of content props not empty\n"));
-        UT_VECTOR_PURGEALL(std::string*, m_tablesOfContentProps);
+        for (std::string* _utv_p : m_tablesOfContentProps) { if (_utv_p) delete(_utv_p); };
     }
 }
 
@@ -1055,8 +1059,8 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
 
     if (!strcmp(pName, "text:table-of-content")) {
         
-        m_tablesOfContent.addItem( m_pCurrentTOCParser->getTOCStrux() );
-        m_tablesOfContentProps.addItem( new std::string(m_pCurrentTOCParser->getProps().utf8_str()) );
+        m_tablesOfContent.push_back( m_pCurrentTOCParser->getTOCStrux() );
+        m_tablesOfContentProps.push_back( new std::string(m_pCurrentTOCParser->getProps().utf8_str()) );
         DELETEP(m_pCurrentTOCParser);
         
     } else if (!strcmp(pName, "text:section" )) {
@@ -1128,7 +1132,7 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
         // So, let's define the heading styles on all Abi TOCs (<toc> struxs).
         _defineAbiTOCHeadingStyles();
         
-        UT_VECTOR_PURGEALL(std::string*, m_tablesOfContentProps);
+        for (std::string* _utv_p : m_tablesOfContentProps) { if (_utv_p) delete(_utv_p); };
         m_tablesOfContentProps.clear();        
         
         // We can now bring up the postponed parsing (headers/footers and
@@ -2122,7 +2126,7 @@ void ODi_TextContent_ListenerState::_defineAbiTOCHeadingStyles() {
     std::string props;
     std::string styleName;
     
-    count = m_tablesOfContent.getItemCount();
+    count = m_tablesOfContent.size();
     for (i=0; i<count; i++) {
         pTOCStrux = m_tablesOfContent[i];
         props = *(m_tablesOfContentProps[i]);

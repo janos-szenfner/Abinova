@@ -19,6 +19,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <vector>
 #include "config.h"
 #endif
 
@@ -184,9 +185,6 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
 /***********************************************************************/
 /***********************************************************************/
 
-// some arbitrary number for how many language buckets to have by default
-#define NBUCKETS 3
-
 /*!
  * Protected constructor
  *
@@ -194,7 +192,7 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
  * and destroying instances of the ISpellChecker class
  */
 /* private */ SpellManager::SpellManager ()
-  : m_map (NBUCKETS), m_lastDict(nullptr), m_nLoadedDicts(0)
+  : m_lastDict(nullptr), m_nLoadedDicts(0)
 {
 	m_missingHashs += "-none-";
 }
@@ -204,13 +202,9 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
  */
 SpellManager::~SpellManager ()
 {
-	/* walk the map directly rather than enumerate(): enumerate()
-	 * allocates a vector, and a destructor must not let an exception
-	 * escape (-> std::terminate) */
-	UT_StringPtrMap::UT_Cursor _hc1(&m_map);
-	for (const void* pVal = _hc1.first(); _hc1.is_valid(); pVal = _hc1.next())
+	for (auto & pair : m_map)
 	{
-		delete static_cast<const SpellCheckerClass *>(pVal);
+		delete static_cast<const SpellCheckerClass *>(pair.second);
 	}
 }
 
@@ -243,12 +237,13 @@ SpellManager::requestDictionary (const char * szLang)
 	if (strstr(m_missingHashs.c_str(), szLang))
 		return nullptr;
 
-	// first look up the entry in the hashtable
-	if (m_map.contains(szLang, nullptr))
+	// first look up the entry in the map
+	auto itDict = m_map.find(szLang);
+	if (itDict != m_map.end())
 	{
-		return static_cast<SpellCheckerClass *>(const_cast<void *>(m_map.pick (szLang)));
+		return static_cast<SpellCheckerClass *>(itDict->second);
 	}
-	
+
 	// not found, so insert it
 	checker = new SpellCheckerClass ();
 
@@ -256,7 +251,7 @@ SpellManager::requestDictionary (const char * szLang)
 
 	if (checker->requestDictionary (szLang))
     {
-		m_map.insert (szLang, static_cast<void *>(checker));
+		m_map[szLang] = checker;
 		m_lastDict = checker;
 		m_nLoadedDicts++;
 		checker->setDictionaryFound(true);

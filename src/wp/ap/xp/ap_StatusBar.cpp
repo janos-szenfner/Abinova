@@ -577,7 +577,7 @@ AP_StatusBar::AP_StatusBar(XAP_Frame * pFrame)
 #define DclField(type,var)								\
 		type * var = new type(this);					\
 		UT_return_if_fail ((var));								\
-		m_vecFields.addItem((var));						\
+		m_vecFields.push_back((var));						\
 		
     DclField(ap_sbf_PageInfo, pf1);
     DclField(ap_sbf_StatusMessage, pf2);
@@ -602,7 +602,7 @@ AP_StatusBar::AP_StatusBar(XAP_Frame * pFrame)
 
 AP_StatusBar::~AP_StatusBar(void)
 {
-    UT_VECTOR_PURGEALL(AP_StatusBarField *, m_vecFields);
+    for (AP_StatusBarField * _utv_p : m_vecFields) { if (_utv_p) delete(_utv_p); };
 }
 
 XAP_Frame * AP_StatusBar::getFrame(void) const
@@ -660,11 +660,11 @@ bool AP_StatusBar::notify(AV_View * pView, const AV_ChangeMask mask)
 
     // Let each field on the status bar update itself accordingly.
     UT_ASSERT_HARMLESS(pView==m_pView);
-    UT_uint32 kLimit = m_vecFields.getItemCount();
+    UT_uint32 kLimit = m_vecFields.size();
     UT_uint32 k;
 
     for (k = 0; k < kLimit; k++) {
-        AP_StatusBarField * pf = static_cast<AP_StatusBarField *>(m_vecFields.getNthItem(k));
+        AP_StatusBarField * pf = static_cast<AP_StatusBarField *>(m_vecFields[k]);
         if(pf) {
             pf->notify(pView,mask);
         }

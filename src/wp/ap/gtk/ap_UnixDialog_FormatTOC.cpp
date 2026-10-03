@@ -25,6 +25,8 @@
 
 #include <gtk/gtk.h>
 
+#include <string>
+#include <vector>
 #include "ut_string.h"
 #include "ut_std_string.h"
 #include "ut_assert.h"
@@ -584,17 +586,17 @@ void AP_UnixDialog_FormatTOC::_createLabelTypeItems(void)
 
 void AP_UnixDialog_FormatTOC::_createTABTypeItems(void)
 {
-	const UT_GenericVector<const gchar*> * vecLabels = getVecTABLeadersLabel();
-	const UT_GenericVector<const gchar*> * vecProps = getVecTABLeadersProp();
-	UT_sint32 nTypes = vecLabels->getItemCount();
+	const std::vector<const gchar*> * vecLabels = getVecTABLeadersLabel();
+	const std::vector<const gchar*> * vecProps = getVecTABLeadersProp();
+	UT_sint32 nTypes = vecLabels->size();
 	UT_sint32 j = 0;
 	const char *sProp = "toc-tab-leader";
 	GtkDropDown * combo = GTK_DROP_DOWN(_getWidget("wTabLeaderChoose"));
 	XAP_makeGtkDropDown(combo);
 	for(j=0; j< nTypes; j++)
 	{
-		const gchar *sVal = vecProps->getNthItem(j);
-		const gchar * szLab = vecLabels->getNthItem(j);
+		const gchar *sVal = (*vecProps)[j];
+		const gchar * szLab = (*vecLabels)[j];
 		UT_DEBUGMSG(("Got label %s for item %d \n",szLab,j));
 		XAP_appendDropDownTextAndStringString(combo, szLab, sProp, sVal);
 	}

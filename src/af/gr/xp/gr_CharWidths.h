@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 
@@ -74,5 +75,5 @@ private:
 	struct Array256 { UT_sint32 aCW[256]; };
 
 	Array256		m_aLatin1;		// for speed, we don't use vector
-	UT_GenericVector<Array256*>	m_vecHiByte;	// sparse vector<Array256 *>[hibyte]
+	std::vector<Array256*>	m_vecHiByte;	// sparse vector<Array256 *>[hibyte]
 };

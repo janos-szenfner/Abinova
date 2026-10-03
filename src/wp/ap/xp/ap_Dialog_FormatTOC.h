@@ -20,6 +20,8 @@
 #ifndef AP_DIALOG_FORMATTOC_H
 #define AP_DIALOG_FORMATTOC_H
 
+#include <string>
+#include <vector>
 #include "ut_types.h"
 #include "xap_Frame.h"
 #include "xap_Dialog.h"
@@ -61,9 +63,9 @@ public:
 	std::string     getTOCPropVal(const std::string & sProp) const;
 	std::string     getTOCPropVal(const char * szProp) const;
 	std::string     getTOCPropVal(const char * szProp,UT_sint32 i) const;
-	const UT_GenericVector<const gchar*> *       getVecTABLeadersLabel(void)
+	const std::vector<const gchar*> *       getVecTABLeadersLabel(void)
 		{ return & m_vecTABLeadersLabel;}
-	const UT_GenericVector<const gchar*> *       getVecTABLeadersProp(void)
+	const std::vector<const gchar*> *       getVecTABLeadersProp(void)
 		{ return & m_vecTABLeadersProp;}
 	void              incrementStartAt(UT_sint32 iLevel, bool bInc);
     double            getIncrement(const char * sz);
@@ -84,8 +86,8 @@ private:
 	const PP_AttrProp *   m_pAP;
 	bool                  m_bTOCFilled;
 	std::string           m_sTOCProps;
-	UT_GenericVector<const gchar*> m_vecTABLeadersLabel;
-	UT_GenericVector<const gchar*> m_vecTABLeadersProp;
+	std::vector<const gchar*> m_vecTABLeadersLabel;
+	std::vector<const gchar*> m_vecTABLeadersProp;
 	UT_sint32   m_iMainLevel;
 	UT_sint32   m_iDetailsLevel;
 };

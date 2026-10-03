@@ -24,6 +24,7 @@
 #define _ODI_ELEMENTSTACK_H_
 
 // Abinova includes
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 
@@ -114,7 +115,7 @@ public:
 
 private:
 
-    UT_GenericVector <ODi_StartTag*>* m_pStartTags;
+    std::vector<ODi_StartTag*>* m_pStartTags;
     UT_sint32 m_stackSize;
 };
 

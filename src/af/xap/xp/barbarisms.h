@@ -21,8 +21,10 @@
 
 #include <vector>
 
+#include <map>
+
+#include <string>
 #include "ut_xml.h"
-#include "ut_hash.h"
 
 #include "ut_string_class.h"
 
@@ -51,8 +53,8 @@ private:
 	bool suggestExactWord(const UT_UCS4Char *word32, size_t length,
                               std::vector<UT_UCS4Char*>& vecsugg);
 
-	UT_GenericStringMap<UT_GenericVector<UT_UCS4Char *>*>	m_map;
-	UT_GenericVector<UT_UCS4Char *>*		m_pCurVector;
+	std::map<std::string, std::vector<UT_UCS4Char *>*>	m_map;
+	std::vector<UT_UCS4Char *>*		m_pCurVector;
 
 	std::string m_sLang;
 };

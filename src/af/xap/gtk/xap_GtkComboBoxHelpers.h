@@ -21,6 +21,7 @@
 
 #include <gtk/gtk.h>
 
+#include <vector>
 #include "ut_vector.h"
 #include <string>
 
@@ -56,7 +57,7 @@ const char * xap_drop_down_item_get_string2(XAPDropDownItem * item);
 void XAP_makeGtkDropDown(GtkDropDown * dd);
 
 void XAP_populateDropDownWithIndex(GtkDropDown * dd,
-								   const UT_GenericVector<const char*> & vec);
+								   const std::vector<const char*> & vec);
 
 void XAP_appendDropDownText(GtkDropDown * dd, const char * text);
 void XAP_appendDropDownTextAndInt(GtkDropDown * dd, const char * text,

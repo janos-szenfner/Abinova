@@ -42,10 +42,10 @@
 #endif
 
 #include <map>
+#include <vector>
 
 #include "ut_types.h"
 #include "ut_misc.h"
-#include "ut_vector.h"
 
 #include "xap_Dialog.h"
 #include "xap_Types.h"
@@ -88,12 +88,12 @@ protected:
 	XAP_App *			m_pApp;
 	XAP_Frame *			m_pFrame;
 	XAP_Dialog_Type		m_dialogType;
-	UT_Vector			m_vecDialogs;
-	UT_NumberVector		m_vecDialogIds;
+	std::vector<XAP_Dialog *>	m_vecDialogs;
+	std::vector<UT_sint32>		m_vecDialogIds;
 
 	UT_uint32			m_nrElementsDlgTable;
-	UT_GenericVector<const _dlg_table *>	m_vec_dlg_table;			/* a Vector of elements */
-	UT_GenericVector<_dlg_table *>	m_vecDynamicTable;			/* a Vector of elements */
+	std::vector<const _dlg_table *>	m_vec_dlg_table;			/* a Vector of elements */
+	std::vector<_dlg_table *>	m_vecDynamicTable;			/* a Vector of elements */
 
 private:
 	static void addPages(XAP_NotebookDialog* pDialog, XAP_Dialog_Id id);

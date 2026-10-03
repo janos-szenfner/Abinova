@@ -23,6 +23,10 @@
 
 #include <stdlib.h>
 #include <string>
+#include <algorithm>
+#include <set>
+#include <utility>
+#include <vector>
 #include "ut_string.h"
 #include "ut_bytebuf.h"
 #include "ut_base64.h"
@@ -92,8 +96,8 @@ IE_Exp_RTF::IE_Exp_RTF(PD_Document * pDocument,bool atticFormat)
 
 IE_Exp_RTF::~IE_Exp_RTF()
 {
-	UT_VECTOR_FREEALL(char *,m_vecColors);
-	UT_VECTOR_PURGEALL(_rtf_font_info *,m_vecFonts);
+	for (char * _utv_p : m_vecColors) { if (_utv_p) g_free(_utv_p); };
+	for (_rtf_font_info * _utv_p : m_vecFonts) { if (_utv_p) delete(_utv_p); };
 	_clearStyles();
 	if (UT_iconv_isValid(m_conv))
 	{
@@ -403,11 +407,11 @@ UT_sint32 IE_Exp_RTF::_findColor(const char * szColor) const
 		return 0;						// black
 
 	UT_uint32 k;
-	UT_uint32 kLimit = m_vecColors.getItemCount();
+	UT_uint32 kLimit = m_vecColors.size();
 
 	for (k=0; k<kLimit; k++)
 	{
-		const char * sz = static_cast<const char *>(m_vecColors.getNthItem(k));
+		const char * sz = static_cast<const char *>(m_vecColors[k]);
 		if (g_ascii_strcasecmp(sz,szColor) == 0)
 			return k;
 	}
@@ -421,7 +425,7 @@ void IE_Exp_RTF::_addColor(const char * szColor)
 
 	char * sz = g_strdup(szColor);
 	if (sz)
-		m_vecColors.addItem(sz);
+		m_vecColors.push_back(sz);
 	return;
 }
 
@@ -747,7 +751,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 
 	// write the "font table"....
 
-	kLimit = m_vecFonts.getItemCount();
+	kLimit = m_vecFonts.size();
 	// don't write a font table group if we don't have any font to write.
 	// see bug 1383
 	if (kLimit > 0)
@@ -758,7 +762,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		/*UT_uint32 charsetcode =*/ XAP_EncodingManager::get_instance()->getWinCharsetCode();
 		for (k=0; k<kLimit; k++)
 		{
-			const _rtf_font_info * pk = static_cast<const _rtf_font_info *>(m_vecFonts.getNthItem(k));
+			const _rtf_font_info * pk = static_cast<const _rtf_font_info *>(m_vecFonts[k]);
 			_rtf_nl();
 			_rtf_open_brace();
 			_rtf_keyword("f", k);								// font index number
@@ -783,7 +787,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 
 	// TODO write the "file table" if necessary...
 
-	kLimit = m_vecColors.getItemCount();
+	kLimit = m_vecColors.size();
 	if (kLimit > 0)
 	{
 		_rtf_nl();
@@ -791,7 +795,7 @@ bool IE_Exp_RTF::_write_rtf_header(void)
 		_rtf_keyword("colortbl");
 		for (k=0; k<kLimit; k++)
 		{
-			const char * szColor = static_cast<const char *>(m_vecColors.getNthItem(k));
+			const char * szColor = static_cast<const char *>(m_vecColors[k]);
 			UT_RGBColor localColor;
 			UT_parseColor(szColor,localColor);
 			_rtf_nl();
@@ -1227,7 +1231,7 @@ void IE_Exp_RTF::_write_tabdef(const char * szTabStops)
 		// TODO the following parser was copied from abi/src/text/fmt/xp/fl_BlockLayout.cpp
 		// TODO we should extract both of them and share the code.
 
-		UT_Vector vecTabs;
+		std::vector<_t*> vecTabs;
 
 		const char* pStart = szTabStops;
 		while (*pStart)
@@ -1277,7 +1281,7 @@ void IE_Exp_RTF::_write_tabdef(const char * szTabStops)
 			UT_sint32 d = static_cast<UT_sint32>((dbl * 20.0));
 
 			_t * p_t = new _t(szTL,szTT,szTK,d);
-			vecTabs.addItem(p_t);
+			vecTabs.push_back(p_t);
 
 			pStart = pEnd;
 			if (*pStart)
@@ -1293,13 +1297,13 @@ void IE_Exp_RTF::_write_tabdef(const char * szTabStops)
 		// <tab>    ::= <tabkind>? <tablead>? \tx
 		// <bartab> ::= <tablead>? \tb
 
-		vecTabs.sort(compare_tabs);
+		std::sort(vecTabs.begin(), vecTabs.end(), compare_tabs);
 
 		UT_uint32 k;
-		UT_uint32 kLimit = vecTabs.getItemCount();
+		UT_uint32 kLimit = vecTabs.size();
 		for (k=0; k<kLimit; k++)
 		{
-			_t * p_t = const_cast<_t *>(static_cast<const _t*>(vecTabs.getNthItem(k)));
+			_t * p_t = vecTabs[k];
 			// write <tabkind>
 			UT_nonnull_or_continue(p_t);
 			if (p_t->m_szTabKindKeyword && *p_t->m_szTabKindKeyword)
@@ -2341,7 +2345,9 @@ struct NumberedStyle
  */
 void IE_Exp_RTF::_clearStyles()
 {
-	m_hashStyles.purgeData();
+	for (auto& kv : m_hashStyles)
+		delete kv.second;
+	m_hashStyles.clear();
 }
 
 #ifdef _MSC_VER	// MSVC++ warns about 'e' : unreferenced local variable
@@ -2386,10 +2392,13 @@ void IE_Exp_RTF::_selectStyles()
 			//
 			// Add this style to the hash
 			//
-			NumberedStyle * pns = static_cast<NumberedStyle *>( m_hashStyles.pick(szName));
+			NumberedStyle * pns = nullptr;
+			auto sit = m_hashStyles.find(szName);
+			if (sit != m_hashStyles.end())
+				pns = sit->second;
 			if(pns == nullptr)
 			{
-				m_hashStyles.insert(szName, new NumberedStyle(pStyle, ++nStyleNumber));
+				m_hashStyles.emplace(szName, new NumberedStyle(pStyle, ++nStyleNumber));
 				{
 					_rtf_font_info fi;
 
@@ -2436,7 +2445,10 @@ UT_uint32 IE_Exp_RTF::_getStyleNumber(const gchar * szStyle)
 	{
 		szStyle = "Normal";
 	}
-	NumberedStyle * pns = static_cast<NumberedStyle*>(m_hashStyles.pick(szStyle));
+	NumberedStyle * pns = nullptr;
+	auto sit = m_hashStyles.find(szStyle);
+	if (sit != m_hashStyles.end())
+		pns = sit->second;
 	UT_ASSERT_HARMLESS(pns);
 	if(pns != nullptr )
 	{
@@ -2444,8 +2456,7 @@ UT_uint32 IE_Exp_RTF::_getStyleNumber(const gchar * szStyle)
 	}
 	else
 	{
-		pns = static_cast<NumberedStyle*>(m_hashStyles.pick("Normal"));
-		return pns->n;
+		return m_hashStyles.at("Normal")->n;
 	}
 }
 
@@ -2461,10 +2472,9 @@ void IE_Exp_RTF::_write_stylesheets(void)
     _rtf_open_brace();
     _rtf_keyword("stylesheet");
 
-    UT_GenericStringMap<NumberedStyle*>::UT_Cursor hc(&m_hashStyles);
-    const NumberedStyle * pns;
-    for (pns = hc.first(); hc.is_valid(); pns = hc.next())
+    for (const auto& kv : m_hashStyles)
 	{
+		const NumberedStyle * pns = kv.second;
 		const PD_Style * pStyle = pns->pStyle;
 		_rtf_nl();
 		_rtf_open_brace();
@@ -3163,11 +3173,11 @@ UT_sint32 IE_Exp_RTF::_findFont(const _rtf_font_info * pfi) const
 	UT_return_val_if_fail(pfi, -1);
 
 	UT_uint32 k;
-	UT_uint32 kLimit = m_vecFonts.getItemCount();
+	UT_uint32 kLimit = m_vecFonts.size();
 
 	for (k=0; k<kLimit; k++)
 	{
-		const _rtf_font_info * pk = static_cast<const _rtf_font_info *>(m_vecFonts.getNthItem(k));
+		const _rtf_font_info * pk = static_cast<const _rtf_font_info *>(m_vecFonts[k]);
 		if (pk->_is_same(*pfi))
 			return k;
 	}
@@ -3200,7 +3210,7 @@ void IE_Exp_RTF::_addFont(const _rtf_font_info * pfi)
 	_rtf_font_info * pNew = new _rtf_font_info (*pfi);
 	
 	if (pNew)
-		m_vecFonts.addItem(pNew);
+		m_vecFonts.push_back(pNew);
 }
 
 /*
@@ -3455,8 +3465,8 @@ ie_exp_RTF_MsWord97ListMulti::~ie_exp_RTF_MsWord97ListMulti(void)
 	{
 		if(m_vLevels[i] != nullptr)
 		{
-			UT_Vector * pV = m_vLevels[i];
-			UT_VECTOR_PURGEALL(ie_exp_RTF_MsWord97List *, (*pV));
+			std::vector<ie_exp_RTF_MsWord97List*> * pV = m_vLevels[i];
+			for (ie_exp_RTF_MsWord97List * _utv_p : (*pV)) { if (_utv_p) delete(_utv_p); };
 			delete pV;
 			m_vLevels[i]  = nullptr;
 		}
@@ -3476,13 +3486,13 @@ void ie_exp_RTF_MsWord97ListMulti::addLevel(UT_uint32 iLevel, ie_exp_RTF_MsWord9
 	}
 	if(m_vLevels[iLevel] == nullptr)
 	{
-		UT_Vector * pVecList97 = new UT_Vector;
-		pVecList97->addItem(static_cast<void *>( pList97));
+		std::vector<ie_exp_RTF_MsWord97List*> * pVecList97 = new std::vector<ie_exp_RTF_MsWord97List*>;
+		pVecList97->push_back(pList97);
 		m_vLevels[iLevel] = pVecList97;
 	}
 	else
 	{
-		m_vLevels[iLevel]->addItem(static_cast<void *>( pList97));
+		m_vLevels[iLevel]->push_back(pList97);
 	}
 }
 
@@ -3501,10 +3511,10 @@ ie_exp_RTF_MsWord97List * ie_exp_RTF_MsWord97ListMulti::getListAtLevel(UT_uint32
 	{
 		return nullptr;
 	}
-	UT_uint32 icount = m_vLevels[iLevel]->getItemCount();
+	UT_uint32 icount = m_vLevels[iLevel]->size();
 	if(icount > nthList)
 	{
-		ie_exp_RTF_MsWord97List * pList97 = (ie_exp_RTF_MsWord97List * ) m_vLevels[iLevel]->getNthItem(nthList);
+		ie_exp_RTF_MsWord97List * pList97 = (*m_vLevels[iLevel])[nthList];
 		return pList97;
 	}
 	else
@@ -3531,9 +3541,9 @@ UT_uint32 ie_exp_RTF_MsWord97ListMulti::getMatchingID(UT_uint32 listID) const
 	UT_uint32 firstID = 0;
 	for(i=0; (i < 8) && !bFound; i++)
 	{
-		for(j=0; m_vLevels[i] && (j < m_vLevels[i]->getItemCount()) && !bFound; j++)
+		for(j=0; m_vLevels[i] && (j < m_vLevels[i]->size()) && !bFound; j++)
 		{
-			pList97 = const_cast<ie_exp_RTF_MsWord97List *>(static_cast<const ie_exp_RTF_MsWord97List*>( m_vLevels[i]->getNthItem(j)));
+			pList97 = (*m_vLevels[i])[j];
 			if(j==0)
 			{
 				firstID = pList97->getID();

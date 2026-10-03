@@ -28,6 +28,7 @@
 #include <string.h>
 #include <memory>
 
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 
@@ -77,8 +78,8 @@ public:
 	 */
 	const gchar ** list ();
 
-	std::unique_ptr<UT_GenericVector<T>> enumerate(bool strip_null_values = true) const;
-	std::unique_ptr<UT_GenericVector<const UT_String*>> keys(bool strip_null_values = true) const;
+	std::unique_ptr<std::vector<T>> enumerate(bool strip_null_values = true) const;
+	std::unique_ptr<std::vector<const UT_String*>> keys(bool strip_null_values = true) const;
 
 	// getting the # keys
 	inline size_t size() const { return n_keys; }
@@ -569,13 +570,14 @@ void UT_GenericStringMap<T>::set(const UT_String& key, T value)
 }
 
 /*!
- * Return a UT_Vector of elements in the HashTable that you must
+ * Return a vector of elements in the HashTable that you must
  * Later g_free with a call to delete
  */
 template <class T>
-std::unique_ptr<UT_GenericVector<T>> UT_GenericStringMap<T>::enumerate (bool strip_null_values) const
+std::unique_ptr<std::vector<T>> UT_GenericStringMap<T>::enumerate (bool strip_null_values) const
 {
-	auto pVec = std::make_unique<UT_GenericVector<T>>(size());
+	auto pVec = std::make_unique<std::vector<T>>();
+	pVec->reserve(size());
 
 	UT_Cursor cursor(this);
 
@@ -587,7 +589,7 @@ std::unique_ptr<UT_GenericVector<T>> UT_GenericStringMap<T>::enumerate (bool str
 		// behavior
 		if (!strip_null_values || val)
 		{
-			pVec->addItem (val);
+			pVec->push_back (val);
 		}
 	}
 
@@ -595,13 +597,13 @@ std::unique_ptr<UT_GenericVector<T>> UT_GenericStringMap<T>::enumerate (bool str
 }
 
 /*!
- * Return a UT_Vector of pointers to our UT_String keys in the Hashtable
- * You must FREEP the UT_Vector* but not the keys
+ * Return a vector of pointers to our UT_String keys in the Hashtable
  */
 template <class T>
-std::unique_ptr<UT_GenericVector<const UT_String*>> UT_GenericStringMap<T>::keys (bool strip_null_values) const
+std::unique_ptr<std::vector<const UT_String*>> UT_GenericStringMap<T>::keys (bool strip_null_values) const
 {
-	auto pVec = std::make_unique<UT_GenericVector<const UT_String*>>(size());
+	auto pVec = std::make_unique<std::vector<const UT_String*>>();
+	pVec->reserve(size());
 
 	UT_Cursor cursor(this);
 
@@ -613,7 +615,7 @@ std::unique_ptr<UT_GenericVector<const UT_String*>> UT_GenericStringMap<T>::keys
 		// behavior
 		if (!strip_null_values || val)
 		{
-			pVec->addItem (&cursor.key());
+			pVec->push_back (&cursor.key());
 		}
 	}
 

@@ -102,8 +102,8 @@ AP_Dialog_Spell::~AP_Dialog_Spell(void)
 
 	DELETEP(m_pPreserver);
 
-	m_pChangeAll->freeData();
-//	UT_HASH_PURGEDATA(UT_UCS4Char*,m_pChangeAll, g_free);
+	for (auto& kv : *m_pChangeAll)
+		g_free(kv.second);
 	DELETEP(m_pChangeAll);
 	DELETEP(m_pIgnoreAll);
 	DELETEP(m_pWordIterator);
@@ -115,9 +115,9 @@ void AP_Dialog_Spell::_purgeSuggestions(void)
 {
 	if (!m_Suggestions) return;
 
-	for (UT_sint32 i = 0; i < m_Suggestions->getItemCount(); i++)
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(m_Suggestions->size()); i++)
 	{
-		UT_UCS4Char * sug = m_Suggestions->getNthItem(i);
+		UT_UCS4Char * sug = (*m_Suggestions)[i];
 		if (sug)
 			g_free(sug);
 	}
@@ -163,8 +163,8 @@ void AP_Dialog_Spell::runModal(XAP_Frame * pFrame)
 
    m_pWordIterator = new fl_BlockSpellIterator(m_pCurrBlock, 0);
    
-   m_pChangeAll = new UT_GenericStringMap<UT_UCS4Char*>(7); // is 7 buckets adequate? too much?
-   m_pIgnoreAll = new UT_GenericStringMap<UT_UCS4Char*>(7);
+   m_pChangeAll = new std::map<std::string, UT_UCS4Char*>;
+   m_pIgnoreAll = new std::map<std::string, UT_UCS4Char*>;
 
    m_bSkipWord = false;
 }
@@ -247,7 +247,7 @@ bool AP_Dialog_Spell::nextMisspelledWord(void)
 					// create an empty vector
 					UT_ASSERT_HARMLESS(!m_Suggestions);
 
-					m_Suggestions = new UT_GenericVector<UT_UCS4Char*>();
+					m_Suggestions = new std::vector<UT_UCS4Char*>();
 					UT_return_val_if_fail (m_Suggestions, false);
 
 					// get suggestions from spelling engine
@@ -261,7 +261,7 @@ bool AP_Dialog_Spell::nextMisspelledWord(void)
 						{
 							UT_UCS4Char *sug = vEngineSuggestions.at(i);
 							UT_return_val_if_fail (sug, false);
-							m_Suggestions->addItem(sug);
+							m_Suggestions->push_back(sug);
 						}
 					}
 				   // add suggestions from user's Abinova file
@@ -358,7 +358,10 @@ bool AP_Dialog_Spell::inChangeAll(void)
 	UT_return_val_if_fail (bufferUnicode, false);
 	char * bufferNormal = static_cast<char *>(UT_calloc(iLength + 1, sizeof(char)));
 	UT_UCS4_strncpy_to_char(bufferNormal, bufferUnicode, iLength);
-	const UT_UCS4Char * ent = m_pChangeAll->pick(bufferNormal);
+	const UT_UCS4Char * ent = nullptr;
+	auto it = m_pChangeAll->find(bufferNormal);
+	if (it != m_pChangeAll->end())
+		ent = it->second;
 	FREEP(bufferNormal);
 
 	if (ent == nullptr)
@@ -382,7 +385,9 @@ bool AP_Dialog_Spell::addChangeAll(const UT_UCS4Char * newword)
    UT_UCS4Char * newword2 = static_cast<UT_UCS4Char*>(UT_calloc(UT_UCS4_strlen(newword) + 1, sizeof(UT_UCS4Char)));
    UT_UCS4_strcpy(newword2, newword);
    
-   m_pChangeAll->insert(bufferNormal, newword2);
+   auto inserted = m_pChangeAll->emplace(bufferNormal, newword2);
+   if (!inserted.second)
+	   g_free(newword2);
 
    FREEP(bufferNormal);
    

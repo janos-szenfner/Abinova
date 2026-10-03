@@ -103,8 +103,8 @@ const char * AP_BindingSet::getNextInCycle(const char * szCurrent) const
 	int kMatch = -1;
 	UT_sint32 k;
 
-	for (k=0; k<m_vecBindings.getItemCount(); k++) {
-		auto binding = m_vecBindings.getNthItem(k);
+	for (k=0; k<m_vecBindings.size(); k++) {
+		auto binding = m_vecBindings[k];
 		UT_nonnull_or_continue(binding);
 
 		if (g_ascii_strcasecmp(binding->m_name,szCurrent) == 0)
@@ -116,14 +116,14 @@ const char * AP_BindingSet::getNextInCycle(const char * szCurrent) const
 	if (kMatch == -1)
 		return nullptr;
 
-	for (k=kMatch+1; k<m_vecBindings.getItemCount(); k++) {
-		auto binding = m_vecBindings.getNthItem(k);
+	for (k=kMatch+1; k<m_vecBindings.size(); k++) {
+		auto binding = m_vecBindings[k];
 		UT_nonnull_or_continue(binding);
 		if (binding->m_bCanCycle)
 			return binding->m_name;
 	}
 	for (k=0; k<kMatch; k++) {
-		auto binding = m_vecBindings.getNthItem(k);
+		auto binding = m_vecBindings[k];
 		UT_nonnull_or_continue(binding);
 		if (binding->m_bCanCycle)
 			return binding->m_name;
@@ -144,38 +144,38 @@ AP_BindingSet::AP_BindingSet(EV_EditMethodContainer * pemc)
 
 AP_BindingSet::~AP_BindingSet(void)
 {
-        UT_VECTOR_PURGEALL(c_lb *, m_vecBindings);
+        for (c_lb * _utv_p : m_vecBindings) { if (_utv_p) delete(_utv_p); };
 }
 
 void AP_BindingSet::loadBuiltin(void)
 {
 
-  m_vecBindings.addItem(new c_lb(true,	"default",			ap_LoadBindings_Default,			nullptr)); // stock Abinova bindings
+  m_vecBindings.push_back(new c_lb(true,	"default",			ap_LoadBindings_Default,			nullptr)); // stock Abinova bindings
 #ifdef ENABLE_EMACS_KEYBINDING
-  m_vecBindings.addItem(new c_lb(true,  "emacs",			ap_LoadBindings_Emacs, 				nullptr)); // emacs key bindings
-  m_vecBindings.addItem(new c_lb(false, "emacsctrlx",		ap_LoadBindings_EmacsCtrlX,			nullptr)); // emacs ctrl-x key bindings
+  m_vecBindings.push_back(new c_lb(true,  "emacs",			ap_LoadBindings_Emacs, 				nullptr)); // emacs key bindings
+  m_vecBindings.push_back(new c_lb(false, "emacsctrlx",		ap_LoadBindings_EmacsCtrlX,			nullptr)); // emacs ctrl-x key bindings
 #endif
 #ifdef ENABLE_VI_KEYBINDING
-  m_vecBindings.addItem(new c_lb(true,  "viEdit",			ap_LoadBindings_viEdit,				nullptr)); // vi Edit-Mode bindings
-  m_vecBindings.addItem(new c_lb(false, "viEdit_colon",		ap_LoadBindings_viEdit_colon,		nullptr)); // vi Edit-Mode :-prefix key bindings
-  m_vecBindings.addItem(new c_lb(false, "viEdit_c",			ap_LoadBindings_viEdit_c,			nullptr)); // vi Edit-Mode c-prefix key bindings
-  m_vecBindings.addItem(new c_lb(false, "viEdit_d",			ap_LoadBindings_viEdit_d,			nullptr)); // vi Edit-Mode d-prefix key bindings
-  m_vecBindings.addItem(new c_lb(false, "viEdit_y",			ap_LoadBindings_viEdit_y,			nullptr)); // vi Edit-Mode y-prefix key bindings
-  m_vecBindings.addItem(new c_lb(false, "viEdit_r",			ap_LoadBindings_viEdit_r,			nullptr)); // vi Edit-Mode r-prefix key bindings
-  m_vecBindings.addItem(new c_lb(false, "viInput",			ap_LoadBindings_viInput,			nullptr)); // vi Input-Mode bindings
+  m_vecBindings.push_back(new c_lb(true,  "viEdit",			ap_LoadBindings_viEdit,				nullptr)); // vi Edit-Mode bindings
+  m_vecBindings.push_back(new c_lb(false, "viEdit_colon",		ap_LoadBindings_viEdit_colon,		nullptr)); // vi Edit-Mode :-prefix key bindings
+  m_vecBindings.push_back(new c_lb(false, "viEdit_c",			ap_LoadBindings_viEdit_c,			nullptr)); // vi Edit-Mode c-prefix key bindings
+  m_vecBindings.push_back(new c_lb(false, "viEdit_d",			ap_LoadBindings_viEdit_d,			nullptr)); // vi Edit-Mode d-prefix key bindings
+  m_vecBindings.push_back(new c_lb(false, "viEdit_y",			ap_LoadBindings_viEdit_y,			nullptr)); // vi Edit-Mode y-prefix key bindings
+  m_vecBindings.push_back(new c_lb(false, "viEdit_r",			ap_LoadBindings_viEdit_r,			nullptr)); // vi Edit-Mode r-prefix key bindings
+  m_vecBindings.push_back(new c_lb(false, "viInput",			ap_LoadBindings_viInput,			nullptr)); // vi Input-Mode bindings
 #endif  
-  m_vecBindings.addItem(new c_lb(false, "deadabovedot",		ap_LoadBindings_DeadAbovedot,		nullptr)); // subordinate maps for 'dead'
-  m_vecBindings.addItem(new c_lb(false, "deadacute",		ap_LoadBindings_DeadAcute,			nullptr)); // key prefixes.
-  m_vecBindings.addItem(new c_lb(false, "deadbreve",		ap_LoadBindings_DeadBreve,			nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deadcaron",		ap_LoadBindings_DeadCaron,			nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deadcedilla",		ap_LoadBindings_DeadCedilla,		nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deadcircumflex",	ap_LoadBindings_DeadCircumflex,		nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deaddiaeresis",	ap_LoadBindings_DeadDiaeresis,		nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deaddoubleacute",	ap_LoadBindings_DeadDoubleacute,	nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deadgrave",		ap_LoadBindings_DeadGrave,			nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deadmacron",		ap_LoadBindings_DeadMacron,			nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deadogonek",		ap_LoadBindings_DeadOgonek,			nullptr));
-  m_vecBindings.addItem(new c_lb(false, "deadtilde",		ap_LoadBindings_DeadTilde,			nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadabovedot",		ap_LoadBindings_DeadAbovedot,		nullptr)); // subordinate maps for 'dead'
+  m_vecBindings.push_back(new c_lb(false, "deadacute",		ap_LoadBindings_DeadAcute,			nullptr)); // key prefixes.
+  m_vecBindings.push_back(new c_lb(false, "deadbreve",		ap_LoadBindings_DeadBreve,			nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadcaron",		ap_LoadBindings_DeadCaron,			nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadcedilla",		ap_LoadBindings_DeadCedilla,		nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadcircumflex",	ap_LoadBindings_DeadCircumflex,		nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deaddiaeresis",	ap_LoadBindings_DeadDiaeresis,		nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deaddoubleacute",	ap_LoadBindings_DeadDoubleacute,	nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadgrave",		ap_LoadBindings_DeadGrave,			nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadmacron",		ap_LoadBindings_DeadMacron,			nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadogonek",		ap_LoadBindings_DeadOgonek,			nullptr));
+  m_vecBindings.push_back(new c_lb(false, "deadtilde",		ap_LoadBindings_DeadTilde,			nullptr));
 }
 
 EV_EditBindingMap * AP_BindingSet::getMap(const char * szName)
@@ -187,8 +187,8 @@ EV_EditBindingMap * AP_BindingSet::getMap(const char * szName)
 	// NOTE: the returned map should be treated as 'const' since
 	// NOTE: it is shared by all windows.
 
-  for (UT_sint32 k=0; k< m_vecBindings.getItemCount(); k++) {
-	  auto binding = m_vecBindings.getNthItem(k);
+  for (UT_sint32 k=0; k< m_vecBindings.size(); k++) {
+	  auto binding = m_vecBindings[k];
 	  UT_nonnull_or_continue(binding);
 	  if (g_ascii_strcasecmp(szName, binding->m_name) == 0) {
 			// we now share maps.  any given map is loaded exactly once.
@@ -212,7 +212,7 @@ EV_EditBindingMap * AP_BindingSet::getMap(const char * szName)
 EV_EditBindingMap * AP_BindingSet::createMap(const char * szName)
 {
   c_lb * pc_lb = new c_lb(false,szName,nullptr,nullptr);
-  m_vecBindings.addItem(pc_lb);
+  m_vecBindings.push_back(pc_lb);
   pc_lb->m_pebm = new EV_EditBindingMap(m_pemc);
   return pc_lb->m_pebm;
 }

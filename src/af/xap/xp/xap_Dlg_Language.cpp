@@ -19,6 +19,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
+#include <vector>
 #include "config.h"
 #endif
 
@@ -155,18 +157,16 @@ bool XAP_Dialog_Language::getChangedLangProperty(const gchar ** pszLangProp) con
 
 /*
 	Creates a vector with a list of support languages for spell checking
-
-	You must to g_free the allocated memory
 */
-UT_Vector* XAP_Dialog_Language::getAvailableDictionaries()
+std::vector<std::string> XAP_Dialog_Language::getAvailableDictionaries()
 {
+	std::vector<std::string> vecRslt;
 #ifdef ENABLE_SPELL
 	// The enchant backend has no static mapping table, so probe every
 	// code in the language table.  The first hit comes from
 	// requestDictionary() (which caches hits/misses); once we hold a
 	// checker, doesDictionaryExist() probes the rest without loading
 	// each dictionary.
-	UT_Vector* vecRslt = new UT_Vector();
 	SpellChecker * probe = nullptr;
 
 	for (UT_uint32 iItem = 0; iItem < m_iLangCount; ++iItem)
@@ -179,13 +179,10 @@ UT_Vector* XAP_Dialog_Language::getAvailableDictionaries()
 			probe = SpellManager::instance().requestDictionary(code);
 
 		if (probe ? probe->doesDictionaryExist(code) : false)
-			vecRslt->addItem(g_strdup(code));
+			vecRslt.push_back(code);
 	}
-
-	return vecRslt;
-#else
-	return nullptr;
 #endif
+	return vecRslt;
 }
 
 /*!
@@ -205,17 +202,14 @@ const gchar * XAP_Dialog_Language::detectLanguage()
 	if (!pText || !*pText)
 		return nullptr;
 
-	UT_Vector * dicts = getAvailableDictionaries();
-	if (!dicts)
-		return nullptr;
+	std::vector<std::string> dicts = getAvailableDictionaries();
 
 	double bestScore = 0.0;
 	std::string bestCode;
 
-	for (UT_sint32 d = 0; d < dicts->size(); ++d)
+	for (const std::string & dictCode : dicts)
 	{
-		const char * code =
-			static_cast<const char *>(dicts->getNthItem(d));
+		const char * code = dictCode.c_str();
 		if (!code || !*code || !strcmp(code, "-none-"))
 			continue;
 		SpellChecker * checker =
@@ -251,10 +245,6 @@ const gchar * XAP_Dialog_Language::detectLanguage()
 			}
 		}
 	}
-
-	for (UT_sint32 d = 0; d < dicts->size(); ++d)
-		g_free(const_cast<void *>(dicts->getNthItem(d)));
-	delete dicts;
 
 	if (bestCode.empty() || bestScore < 0.30)
 		return nullptr;

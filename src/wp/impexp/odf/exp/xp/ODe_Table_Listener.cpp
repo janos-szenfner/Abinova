@@ -22,6 +22,8 @@
  */
  
 // Class definition include
+#include <string>
+#include <vector>
 #include "ODe_Table_Listener.h"
 
 // Internal includes
@@ -65,9 +67,9 @@ ODe_Table_Listener::ODe_Table_Listener(ODe_Styles& rStyles,
 ODe_Table_Listener::~ODe_Table_Listener() {
     DELETEPV(m_pColumns);
     DELETEPV(m_pRows);
-    UT_VECTOR_PURGEALL(ODe_Table_Cell*, m_cells);
-    UT_VECTOR_PURGEALL(UT_UTF8String*, columnStyleNames);
-    UT_VECTOR_PURGEALL(UT_UTF8String*, rowStyleNames);
+    for (ODe_Table_Cell* _utv_p : m_cells) { if (_utv_p) delete(_utv_p); };
+    for (UT_UTF8String* _utv_p : columnStyleNames) { if (_utv_p) delete(_utv_p); };
+    for (UT_UTF8String* _utv_p : rowStyleNames) { if (_utv_p) delete(_utv_p); };
 }
 
 
@@ -82,7 +84,7 @@ void ODe_Table_Listener::openTable(const PP_AttrProp* pAP,
     ODe_Style_Style* pStyle;
     std::string buffer;
     UT_UTF8String styleName;
-    UT_GenericVector< ODe_Style_Style*> vecStyles;
+    std::vector< ODe_Style_Style*> vecStyles;
     m_rAuxiliaryData.m_tableCount++;
     UT_UTF8String_sprintf(m_tableName, "Table%u", m_rAuxiliaryData.m_tableCount);
 
@@ -121,14 +123,14 @@ void ODe_Table_Listener::openTable(const PP_AttrProp* pAP,
                                           m_tableName.utf8_str(), curColProp);
                                           
                     pStyle = m_rAutomatiStyles.addTableColumnStyle(styleName);
-		    vecStyles.addItem(pStyle);
+		    vecStyles.push_back(pStyle);
                     pStyle->setColumnWidth(buffer.c_str());
 
-                    columnStyleNames.addItem(new UT_UTF8String(styleName));
+                    columnStyleNames.push_back(new UT_UTF8String(styleName));
                     
                     buffer.clear();
                 } else {
-                    columnStyleNames.addItem(new UT_UTF8String(""));
+                    columnStyleNames.push_back(new UT_UTF8String(""));
                 }
             } else {
                 buffer += *pVar;
@@ -156,7 +158,7 @@ void ODe_Table_Listener::openTable(const PP_AttrProp* pAP,
                                      "further values.\n"));
                         break;
                     }
-                    pStyle = vecStyles.getNthItem(cnt);
+                    pStyle = vecStyles[cnt];
 		    cnt++;
                     if (pStyle)
                         pStyle->setRelColumnWidth(buffer.c_str());
@@ -193,11 +195,11 @@ void ODe_Table_Listener::openTable(const PP_AttrProp* pAP,
 					//  heights; the property name is unfortunate.
                     pStyle->setMinRowHeight(buffer.c_str());
                     
-                    rowStyleNames.addItem(new UT_UTF8String(styleName));
+                    rowStyleNames.push_back(new UT_UTF8String(styleName));
 
                     buffer.clear(); // Clear the buffer.
                 } else {
-                    rowStyleNames.addItem(new UT_UTF8String(""));
+                    rowStyleNames.push_back(new UT_UTF8String(""));
                 }
             } else {
                 buffer += *pVar;
@@ -263,7 +265,7 @@ void ODe_Table_Listener::openCell(const PP_AttrProp* pAP,
              
     // Create the table cell.
     pCell = new ODe_Table_Cell();
-    m_cells.addItem(pCell);
+    m_cells.push_back(pCell);
                                       
     pCell->loadAbiProps(pAP);
 
@@ -338,7 +340,7 @@ void ODe_Table_Listener::_buildTable() {
     // Create the columns
     m_pColumns = new ODe_Table_Column[m_numColumns];
 
-    for (i=0; (i<m_numColumns) && (i<columnStyleNames.getItemCount()); i++) {
+    for (i=0; (i<m_numColumns) && (i<columnStyleNames.size()); i++) {
         if (columnStyleNames[i]) {
             m_pColumns[i].m_styleName = *(columnStyleNames[i]);
         }
@@ -349,7 +351,7 @@ void ODe_Table_Listener::_buildTable() {
     m_pRows = new ODe_Table_Row[m_numRows];
 
 
-    for (i=0; (i<m_numRows) && (i<rowStyleNames.getItemCount()); i++) {
+    for (i=0; (i<m_numRows) && (i<rowStyleNames.size()); i++) {
         if (rowStyleNames[i]) {
             m_pRows[i].m_styleName = *(rowStyleNames[i]);
         }
@@ -367,8 +369,8 @@ void ODe_Table_Listener::_buildTable() {
     }
     
     // Position cells in table
-    for (i=0; i<m_cells.getItemCount(); i++) {
-        pCell = m_cells.getNthItem(i);
+    for (i=0; i<m_cells.size(); i++) {
+        pCell = m_cells[i];
 
         UT_continue_if_fail(pCell)
         UT_continue_if_fail(pCell->m_topAttach < m_numRows);

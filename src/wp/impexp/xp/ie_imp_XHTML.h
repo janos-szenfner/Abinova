@@ -170,8 +170,8 @@ private:
 
 	UT_uint16	m_iPreCount;
 
-	UT_Vector	m_divClasses;
-	UT_GenericVector<UT_UTF8String *>	m_divStyles;
+	std::vector<const char*>	m_divClasses;
+	std::vector<UT_UTF8String *>	m_divStyles;
 	bool        bInTable(void);
 	bool        m_bFirstBlock;
 	bool		m_bInMath;

@@ -36,35 +36,21 @@
  * Destructor
  */
 ODe_AutomaticStyles::~ODe_AutomaticStyles() {
-    auto pStyleVector = m_textStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
+    for (auto* pMap : {&m_textStyles, &m_paragraphStyles, &m_sectionStyles,
+                       &m_tableStyles, &m_tableColumnStyles, &m_tableRowStyles,
+                       &m_tableCellStyles, &m_graphicStyles}) {
+        for (auto& kv : *pMap) {
+            delete kv.second;
+        }
+    }
 
-    pStyleVector = m_paragraphStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
+    for (auto& kv : m_pageLayouts) {
+        delete kv.second;
+    }
 
-    pStyleVector = m_sectionStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
-
-    pStyleVector = m_tableStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
-
-    pStyleVector = m_tableColumnStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
-
-    pStyleVector = m_tableRowStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
-
-    pStyleVector = m_tableCellStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
-
-    pStyleVector = m_graphicStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_Style*, (*pStyleVector));
-
-    auto pPageLayoutVector = m_pageLayouts.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_PageLayout*, (*pPageLayoutVector));
-
-    auto pListStyleVector = m_listStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_Style_List*, (*pListStyleVector));
+    for (auto& kv : m_listStyles) {
+        delete kv.second;
+    }
 }
 
 
@@ -112,7 +98,7 @@ ODe_Style_Style* ODe_AutomaticStyles::addTableStyle(
     pStyle->setStyleName(rStyleName);
     pStyle->setFamily("table");
     
-    m_tableStyles.insert(rStyleName.utf8_str(), pStyle);
+    m_tableStyles.emplace(rStyleName.utf8_str(), pStyle);
     
     return pStyle;
 }
@@ -130,7 +116,7 @@ ODe_Style_Style* ODe_AutomaticStyles::addTableColumnStyle(
     pStyle->setStyleName(rStyleName);
     pStyle->setFamily("table-column");
     
-    m_tableColumnStyles.insert(rStyleName.utf8_str(), pStyle);
+    m_tableColumnStyles.emplace(rStyleName.utf8_str(), pStyle);
     
     return pStyle;
 }
@@ -148,7 +134,7 @@ ODe_Style_Style* ODe_AutomaticStyles::addTableRowStyle(
     pStyle->setStyleName(rStyleName);
     pStyle->setFamily("table-row");
     
-    m_tableRowStyles.insert(rStyleName.utf8_str(), pStyle);
+    m_tableRowStyles.emplace(rStyleName.utf8_str(), pStyle);
     
     return pStyle;
 }
@@ -165,7 +151,7 @@ ODe_Style_Style* ODe_AutomaticStyles::addTableCellStyle(
     pStyle->setStyleName(rStyleName);
     pStyle->setFamily("table-cell");
     
-    m_tableCellStyles.insert(rStyleName.utf8_str(), pStyle);
+    m_tableCellStyles.emplace(rStyleName.utf8_str(), pStyle);
     
     return pStyle;
 }
@@ -183,7 +169,7 @@ ODe_Style_PageLayout* ODe_AutomaticStyles::addPageLayout() {
     pStyle = new ODe_Style_PageLayout();
     pStyle->setName(styleName);
     
-    m_pageLayouts.insert(styleName.utf8_str(), pStyle);
+    m_pageLayouts.emplace(styleName.utf8_str(), pStyle);
     
     return pStyle;
 }
@@ -201,7 +187,7 @@ ODe_Style_List* ODe_AutomaticStyles::addListStyle() {
     pStyle = new ODe_Style_List();
     pStyle->setName(styleName);
     
-    m_listStyles.insert(styleName.utf8_str(), pStyle);
+    m_listStyles.emplace(styleName.utf8_str(), pStyle);
     
     return pStyle;
 }
@@ -211,7 +197,7 @@ ODe_Style_List* ODe_AutomaticStyles::addListStyle() {
  * 
  */
 void ODe_AutomaticStyles::addPageLayout(ODe_Style_PageLayout*& pPageLayout) {
-    m_pageLayouts.insert(pPageLayout->getName(), pPageLayout);
+    m_pageLayouts.emplace(pPageLayout->getName(), pPageLayout);
 }
 
 
@@ -219,19 +205,16 @@ void ODe_AutomaticStyles::addPageLayout(ODe_Style_PageLayout*& pPageLayout) {
  * Writes <office:automatic-styles> element.
  */
 void ODe_AutomaticStyles::write(GsfOutput* pContentStream) const {
-    UT_uint32 i, count;
     UT_UTF8String spacesOffset = "  ";
 
     ODe_writeUTF8String(pContentStream, " <office:automatic-styles>\n");
-    
+
 #define ODE_WRITE_STYLES(styleMap) \
-    {auto pStyleVector = styleMap.enumerate(); \
-    count = pStyleVector->getItemCount(); \
-    for (i=0; i<count; i++) { \
-        (*pStyleVector)[i]->write(pContentStream, spacesOffset); \
+    {for (const auto& kv : styleMap) { \
+        kv.second->write(pContentStream, spacesOffset); \
     }}
 
-    
+
     ODE_WRITE_STYLES (m_textStyles);
     ODE_WRITE_STYLES (m_paragraphStyles);
     ODE_WRITE_STYLES (m_sectionStyles);
@@ -240,19 +223,15 @@ void ODe_AutomaticStyles::write(GsfOutput* pContentStream) const {
     ODE_WRITE_STYLES (m_tableRowStyles);
     ODE_WRITE_STYLES (m_tableCellStyles);
     ODE_WRITE_STYLES (m_graphicStyles);
-    
+
 #undef ODE_WRITE_STYLES
- 
-    auto pPageLayoutVector = m_pageLayouts.enumerate();
-    count = pPageLayoutVector->getItemCount();
-    for (i=0; i<count; i++) {
-        (*pPageLayoutVector)[i]->write(pContentStream, spacesOffset);
+
+    for (const auto& kv : m_pageLayouts) {
+        kv.second->write(pContentStream, spacesOffset);
     }
-    
-    auto pListStyleVector = m_listStyles.enumerate();
-    count = pListStyleVector->getItemCount();
-    for (i=0; i<count; i++) {
-        (*pListStyleVector)[i]->write(pContentStream, spacesOffset);
+
+    for (const auto& kv : m_listStyles) {
+        kv.second->write(pContentStream, spacesOffset);
     }
 
     ODe_writeUTF8String(pContentStream, " </office:automatic-styles>\n");
@@ -271,34 +250,30 @@ void ODe_AutomaticStyles::write(GsfOutput* pContentStream) const {
  * to the one that you sent to be stored. The one that was passed is deleted.
  */
 void ODe_AutomaticStyles::_storeStyle(ODe_Style_Style*& rpStyle,
-                     UT_GenericStringMap<ODe_Style_Style*>& rStyles,
+                     std::map<std::string, ODe_Style_Style*>& rStyles,
                      const char* pNamingPrefix) {
 
-    ODe_Style_Style* pStyle;
-    bool isDuplicated;
-    UT_uint32 i, count;
-    
-    auto pStyleVector = rStyles.enumerate();
-    count = pStyleVector->getItemCount();
-    
-    for (i=0, isDuplicated=false; i<count && isDuplicated==false; i++) {
-        
-        pStyle = pStyleVector->getNthItem(i);
+    bool isDuplicated = false;
+
+    for (const auto& kv : rStyles) {
+
+        ODe_Style_Style* pStyle = kv.second;
         if ( pStyle->isEquivalentTo(*rpStyle) ) {
             isDuplicated = true; // exit the loop
             delete rpStyle; // We don't want a duplicated style.
             rpStyle = pStyle;
+            break;
         }
     }
-    
-    
+
+
     if (!isDuplicated) {
         // Let's name and store this style.
         UT_UTF8String styleName;
-   
-        UT_UTF8String_sprintf(styleName, "%s%d", pNamingPrefix, count+1);
-        
+
+        UT_UTF8String_sprintf(styleName, "%s%d", pNamingPrefix, rStyles.size() + 1);
+
         rpStyle->setStyleName(styleName);
-        rStyles.insert(styleName.utf8_str(), rpStyle);
+        rStyles.emplace(styleName.utf8_str(), rpStyle);
     }
 }

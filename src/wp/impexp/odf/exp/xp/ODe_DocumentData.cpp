@@ -49,12 +49,8 @@ ODe_DocumentData::ODe_DocumentData(PD_Document* pAbiDoc) :
  * Destructor
  */
 ODe_DocumentData::~ODe_DocumentData() {
-    UT_uint32 count, i;
-
-    auto pMasterPageVector = m_masterStyles.enumerate();
-    count = pMasterPageVector->getItemCount();
-    for (i=0; i<count; i++) {
-        delete (*pMasterPageVector)[i];
+    for (auto& kv : m_masterStyles) {
+        delete kv.second;
     }
 
     if (m_pOfficeTextTemp != nullptr) {
@@ -92,7 +88,7 @@ bool ODe_DocumentData::doPreListeningWork() {
     // Create the "Standard" master page style
     ODe_Style_MasterPage* pMPStyle;
     pMPStyle = new ODe_Style_MasterPage("Standard", "Standard");
-    m_masterStyles.insert("Standard", pMPStyle);
+    m_masterStyles.emplace("Standard", pMPStyle);
     
     
     m_pOfficeTextTemp = gsf_output_memory_new();
@@ -115,25 +111,25 @@ bool ODe_DocumentData::doPostListeningWork() {
     // Build the <office:font-face-decls> element for the Styles XML file.
 
     auto pStylesVector = m_stylesAutoStyles.getParagraphStyles();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         m_stylesXMLFontDecls.addFont( (*pStylesVector)[i]->getFontName() );
     }
 
     pStylesVector = m_stylesAutoStyles.getTextStyles();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         m_stylesXMLFontDecls.addFont( (*pStylesVector)[i]->getFontName() );
     }
 
     pStylesVector = m_styles.getParagraphStylesEnumeration();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         m_stylesXMLFontDecls.addFont( (*pStylesVector)[i]->getFontName() );
     }
 
     pStylesVector = m_styles.getTextStylesEnumeration();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         m_stylesXMLFontDecls.addFont( (*pStylesVector)[i]->getFontName() );
     }
@@ -142,22 +138,22 @@ bool ODe_DocumentData::doPostListeningWork() {
     // Build the <office:font-face-decls> element for the Content XML file.
 
     pStylesVector = m_contentAutoStyles.getParagraphStyles();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         m_stylesXMLFontDecls.addFont( (*pStylesVector)[i]->getFontName() );
     }
 
     pStylesVector = m_contentAutoStyles.getTextStyles();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         m_contentXMLFontDecls.addFont( (*pStylesVector)[i]->getFontName() );
     }
 
     auto pListStyles = m_contentAutoStyles.getListStyles();
-    count = pListStyles->getItemCount();
+    count = pListStyles->size();
     for (i=0; i<count; i++) {
-        auto pListLevelStyles = pListStyles->getNthItem(i)->getListLevelStyles();
-        count2 = pListLevelStyles->getItemCount();
+        auto pListLevelStyles = (*pListStyles)[i]->getListLevelStyles();
+        count2 = pListLevelStyles->size();
         for (j=0; j<count2; j++) {
             m_contentXMLFontDecls.addFont((*pListLevelStyles)[j]->getFontName());
         }
@@ -169,19 +165,19 @@ bool ODe_DocumentData::doPostListeningWork() {
     // property in any of the automatic or normal styles.
     // 
     pStylesVector = m_contentAutoStyles.getParagraphStyles();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         handleDefaultTabInterval((*pStylesVector)[i]);
     }
 
     pStylesVector = m_stylesAutoStyles.getTextStyles();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         handleDefaultTabInterval((*pStylesVector)[i]);
     }
 
     pStylesVector = m_styles.getParagraphStylesEnumeration();
-    count = pStylesVector->getItemCount();
+    count = pStylesVector->size();
     for (i=0; i<count; i++) {
         handleDefaultTabInterval((*pStylesVector)[i]);
     }
@@ -264,15 +260,13 @@ bool ODe_DocumentData::writeStylesXML(GsfOutfile* pOdt) const {
     
     ODe_writeUTF8String(pStylesStream, " <office:master-styles>\n");
 
-    auto pMasterPageVector = m_masterStyles.enumerate();
-    count = pMasterPageVector->getItemCount();
-    for (i=0; i<count; i++) {
-        ok = (*pMasterPageVector)[i]->write(pStylesStream);
-        
+    for (const auto& kv : m_masterStyles) {
+        ok = kv.second->write(pStylesStream);
+
         if (!ok) {
             return false;
         }
-    }    
+    }
     
     ODe_writeUTF8String(pStylesStream, " </office:master-styles>\n");
     

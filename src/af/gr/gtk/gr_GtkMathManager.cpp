@@ -20,6 +20,7 @@
  * 02110-1301 USA.
  */
 
+#include <string>
 #include "gr_GtkMathManager.h"
 #include "gr_CairoGraphics.h"
 #include "xad_Document.h"
@@ -41,8 +42,8 @@ GR_GtkMathManager::GR_GtkMathManager(GR_Graphics * pG)
 
 GR_GtkMathManager::~GR_GtkMathManager()
 {
-	for (UT_sint32 i = 0; i < m_items.getItemCount(); ++i)
-		delete m_items.getNthItem(i);
+	for (UT_sint32 i = 0; i < m_items.size(); ++i)
+		delete m_items[i];
 }
 
 GR_EmbedManager * GR_GtkMathManager::create(GR_Graphics * pG)
@@ -92,9 +93,9 @@ UT_sint32 GR_GtkMathManager::_toLU(double pt) const
 
 GR_GtkMathManager::MathItem * GR_GtkMathManager::_item(UT_sint32 uid)
 {
-	if (uid < 0 || uid >= m_items.getItemCount())
+	if (uid < 0 || uid >= m_items.size())
 		return nullptr;
-	return m_items.getNthItem(uid);
+	return m_items[uid];
 }
 
 UT_sint32 GR_GtkMathManager::makeEmbedView(AD_Document * pDoc, UT_uint32 api,
@@ -106,7 +107,7 @@ UT_sint32 GR_GtkMathManager::makeEmbedView(AD_Document * pDoc, UT_uint32 api,
 	if (szDataID)
 		it->dataID = szDataID;
 	m_pDoc = pDoc;
-	m_items.addItem(it);
+	m_items.push_back(it);
 	return uid;
 }
 
@@ -115,7 +116,7 @@ void GR_GtkMathManager::releaseEmbedView(UT_sint32 uid)
 	MathItem *it = _item(uid);
 	if (it) {
 		delete it;
-		m_items.setNthItem(uid, nullptr, nullptr);
+		m_items[uid] = nullptr;
 	}
 	GR_EmbedManager::releaseEmbedView(uid);
 }

@@ -21,6 +21,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
+#include <vector>
 #include "config.h"
 #endif
 
@@ -112,7 +114,7 @@ XAP_Toolbar_Factory_vec::XAP_Toolbar_Factory_vec(XAP_Toolbar_Factory_tt * orig)
 		XAP_Toolbar_Factory_lt * plt = new XAP_Toolbar_Factory_lt;
 		plt->m_flags = orig->m_lt[i].m_flags;
 		plt->m_id = orig->m_lt[i].m_id;
-		m_Vec_lt.addItem(plt);
+		m_Vec_lt.push_back(plt);
 	}
 }
 
@@ -128,19 +130,19 @@ XAP_Toolbar_Factory_vec::XAP_Toolbar_Factory_vec(EV_Toolbar_Layout * orig)
 		XAP_Toolbar_Factory_lt * plt = new XAP_Toolbar_Factory_lt;
 		plt->m_flags = orig->getLayoutItem(i)->getToolbarLayoutFlags();
 		plt->m_id = orig->getLayoutItem(i)->getToolbarId();
-		m_Vec_lt.addItem(plt);
+		m_Vec_lt.push_back(plt);
 	}
 }
 
 XAP_Toolbar_Factory_vec::~XAP_Toolbar_Factory_vec(void)
 {
-	UT_VECTOR_PURGEALL(XAP_Toolbar_Factory_lt *,m_Vec_lt);
+	for (XAP_Toolbar_Factory_lt * _utv_p : m_Vec_lt) { if (_utv_p) delete(_utv_p); };
 }
 
 
 UT_uint32 XAP_Toolbar_Factory_vec::getNrEntries(void) const
 {
-	return m_Vec_lt.getItemCount();
+	return m_Vec_lt.size();
 }
 
 /*!
@@ -149,12 +151,12 @@ UT_uint32 XAP_Toolbar_Factory_vec::getNrEntries(void) const
  */
 void XAP_Toolbar_Factory_vec::add_lt(XAP_Toolbar_Factory_lt * plt)
 {
-	m_Vec_lt.addItem(plt);
+	m_Vec_lt.push_back(plt);
 }
 
 XAP_Toolbar_Factory_lt * XAP_Toolbar_Factory_vec::getNth_lt(UT_uint32 i) const
 {
-	XAP_Toolbar_Factory_lt * plt = m_Vec_lt.getNthItem(i);
+	XAP_Toolbar_Factory_lt * plt = m_Vec_lt[i];
 	return plt;
 }
 
@@ -164,13 +166,13 @@ void XAP_Toolbar_Factory_vec::insertItemBefore(XAP_Toolbar_Factory_lt * p,
 {
 	UT_sint32 i = 0;
 	bool bFound = false;
-	for(i=0; !bFound && (i< m_Vec_lt.getItemCount()); i++)
+	for(i=0; !bFound && (i< m_Vec_lt.size()); i++)
 	{
-		XAP_Toolbar_Factory_lt * plt = m_Vec_lt.getNthItem(i);
+		XAP_Toolbar_Factory_lt * plt = m_Vec_lt[i];
 		UT_nonnull_or_continue(plt);
 		if(plt->m_id == id)
 		{
-			m_Vec_lt.insertItemAt(p,i);
+			m_Vec_lt.insert(m_Vec_lt.begin() + i, p);
 			bFound = true;
 			break;
 		}
@@ -184,19 +186,19 @@ void XAP_Toolbar_Factory_vec::insertItemAfter(XAP_Toolbar_Factory_lt * p,
 {
 	UT_sint32 i = 0;
 	bool bFound = false;
-	for(i=0; !bFound && (i< m_Vec_lt.getItemCount()); i++)
+	for(i=0; !bFound && (i< m_Vec_lt.size()); i++)
 	{
-		XAP_Toolbar_Factory_lt * plt = m_Vec_lt.getNthItem(i);
+		XAP_Toolbar_Factory_lt * plt = m_Vec_lt[i];
 		UT_nonnull_or_continue(plt);
 		if(plt->m_id == id)
 		{
-			if((i+1) == m_Vec_lt.getItemCount())
+			if((i+1) == m_Vec_lt.size())
 			{
-				m_Vec_lt.addItem(p);
+				m_Vec_lt.push_back(p);
 			}
 			else
 			{
-				m_Vec_lt.insertItemAt(p,i+1);
+				m_Vec_lt.insert(m_Vec_lt.begin() + i + 1, p);
 			}
 			bFound = true;
 			break;
@@ -207,20 +209,20 @@ void XAP_Toolbar_Factory_vec::insertItemAfter(XAP_Toolbar_Factory_lt * p,
 
 void XAP_Toolbar_Factory_vec::insertLastItem(XAP_Toolbar_Factory_lt * p)
 {
-	m_Vec_lt.addItem(p);
+	m_Vec_lt.push_back(p);
 }
 
 bool XAP_Toolbar_Factory_vec::removeToolbarId(XAP_Toolbar_Id id)
 {
 	UT_sint32 i = 0;
 	bool bFound = false;
-	for(i=0; !bFound && (i< m_Vec_lt.getItemCount()); i++)
+	for(i=0; !bFound && (i< m_Vec_lt.size()); i++)
 	{
-		XAP_Toolbar_Factory_lt * plt = m_Vec_lt.getNthItem(i);
+		XAP_Toolbar_Factory_lt * plt = m_Vec_lt[i];
 		UT_nonnull_or_continue(plt);
 		if(plt->m_id == id)
 		{
-			m_Vec_lt.deleteNthItem(i);
+			m_Vec_lt.erase(m_Vec_lt.begin() + i);
 			bFound = true;
 			DELETEP(plt);
 			break;
@@ -258,15 +260,15 @@ XAP_Toolbar_Factory::XAP_Toolbar_Factory(XAP_App * pApp)
 	for(i=0; i < count; i++)
 	{
 		XAP_Toolbar_Factory_vec * pVec = new XAP_Toolbar_Factory_vec(&s_ttTable[i]);
-		m_vecTT.addItem(pVec);
+		m_vecTT.push_back(pVec);
 	}
 }
 
 
 XAP_Toolbar_Factory::~XAP_Toolbar_Factory(void)
 {
-	UT_VECTOR_PURGEALL(XAP_Toolbar_Factory_vec *,m_vecTT);
-	UT_VECTOR_PURGEALL(UT_UTF8String*, m_tbNames);
+	for (XAP_Toolbar_Factory_vec * _utv_p : m_vecTT) { if (_utv_p) delete(_utv_p); };
+	for (UT_UTF8String* _utv_p : m_tbNames) { if (_utv_p) delete(_utv_p); };
 }
 
 /*!
@@ -274,25 +276,25 @@ XAP_Toolbar_Factory::~XAP_Toolbar_Factory(void)
 	
 	\note return value should NOT be copied.... because UT_Vector doesn't like copy for now.
  */
-const UT_GenericVector<UT_UTF8String*> &
+const std::vector<UT_UTF8String*> &
 XAP_Toolbar_Factory::getToolbarNames(void)
 {
 	const XAP_StringSet * pSS = m_pApp->getStringSet();
 	UT_uint32 i;
-	UT_uint32 count = m_vecTT.getItemCount();
+	UT_uint32 count = m_vecTT.size();
 	
 	//here we can introduce a serious optimization by checking 
 	//that we don't have a already set m_tbNames....
 	//for now we just clear and restart.
-	UT_VECTOR_PURGEALL(UT_UTF8String*, m_tbNames);
+	for (UT_UTF8String* _utv_p : m_tbNames) { if (_utv_p) delete(_utv_p); };
 	m_tbNames.clear();
 	for (i = 0; i < count; i++) {
-		XAP_Toolbar_Factory_vec * pVec = m_vecTT.getNthItem(i);
+		XAP_Toolbar_Factory_vec * pVec = m_vecTT[i];
 		XAP_String_Id label =  pVec->getLabelStringID();
 		std::string s;
 		pSS->getValueUTF8(label,s);
 		UT_UTF8String * str = new UT_UTF8String(s);
-		m_tbNames.addItem(str);
+		m_tbNames.push_back(str);
 	}
 	return m_tbNames;
 }
@@ -302,7 +304,7 @@ XAP_Toolbar_Factory::getToolbarNames(void)
  */
 UT_uint32	XAP_Toolbar_Factory::countToolbars(void) const
 {
-	return m_vecTT.getItemCount();
+	return m_vecTT.size();
 }
 
 /*!
@@ -311,21 +313,21 @@ UT_uint32	XAP_Toolbar_Factory::countToolbars(void) const
 const
 gchar* XAP_Toolbar_Factory::prefKeyForToolbar(UT_uint32 t) const
 {
-	XAP_Toolbar_Factory_vec * pVec = m_vecTT.getNthItem(t);
+	XAP_Toolbar_Factory_vec * pVec = m_vecTT[t];
 	return pVec->getPrefKey();
 }
 
 
 EV_Toolbar_Layout * XAP_Toolbar_Factory::CreateToolbarLayout(const char * szName)
 {
-	UT_uint32 count = m_vecTT.getItemCount();  // NO toolabrs
+	UT_uint32 count = m_vecTT.size();  // NO toolabrs
 	UT_uint32 i = 0;
 	bool bFound = false;
 	EV_Toolbar_Layout * pLayout = nullptr;
 
 	for (i=0; !bFound && (i < count); i++)
 	{
-		XAP_Toolbar_Factory_vec * pVec = m_vecTT.getNthItem(i);
+		XAP_Toolbar_Factory_vec * pVec = m_vecTT[i];
 		const char * szCurName =  pVec->getToolbarName();
 		if (g_ascii_strcasecmp(szName,szCurName)==0)
 		{
@@ -367,13 +369,13 @@ void XAP_Toolbar_Factory::restoreToolbarLayout(EV_Toolbar_Layout *pTB)
 {
 	UT_return_if_fail (pTB);
 	UT_String strName = pTB->getName();
-	UT_uint32 count = m_vecTT.getItemCount();  // NO toolabrs
+	UT_uint32 count = m_vecTT.size();  // NO toolabrs
 	UT_uint32 i = 0;
 	bool bFound = false;
 	XAP_Toolbar_Factory_vec * pVec = nullptr;
 	for (i=0; !bFound && (i < count); i++)
 	{
-		pVec = m_vecTT.getNthItem(i);
+		pVec = m_vecTT[i];
 		const char * szCurName =  pVec->getToolbarName();
 		if (g_ascii_strcasecmp(strName.c_str(),szCurName)==0)
 		{
@@ -384,7 +386,10 @@ void XAP_Toolbar_Factory::restoreToolbarLayout(EV_Toolbar_Layout *pTB)
 	UT_ASSERT_HARMLESS(bFound);
 	DELETEP(pVec);
 	pVec = new XAP_Toolbar_Factory_vec(pTB);
-	m_vecTT.setNthItem(i, pVec, nullptr);
+	if (i < m_vecTT.size())
+		m_vecTT[i] = pVec;
+	else
+		m_vecTT.push_back(pVec);
 }
 
 
@@ -395,13 +400,13 @@ bool  XAP_Toolbar_Factory::addIconBefore(const char * szName,
 								   XAP_Toolbar_Id newId, 
 								   XAP_Toolbar_Id beforeId)
 {
-	UT_uint32 count = m_vecTT.getItemCount();  // NO toolabrs
+	UT_uint32 count = m_vecTT.size();  // NO toolabrs
 	UT_uint32 i = 0;
 	bool bFound = false;
 	XAP_Toolbar_Factory_vec * pVec = nullptr;
 	for (i=0; !bFound && (i < count); i++)
 	{
-		pVec = m_vecTT.getNthItem(i);
+		pVec = m_vecTT[i];
 		const char * szCurName =  pVec->getToolbarName();
 		if (g_ascii_strcasecmp(szName,szCurName)==0)
 		{
@@ -427,13 +432,13 @@ bool  XAP_Toolbar_Factory::addIconBefore(const char * szName,
 bool  XAP_Toolbar_Factory::addIconAtEnd(const char * szName,
 								   XAP_Toolbar_Id newId )
 {
-	UT_uint32 count = m_vecTT.getItemCount();  // NO toolabrs
+	UT_uint32 count = m_vecTT.size();  // NO toolabrs
 	UT_uint32 i = 0;
 	bool bFound = false;
 	XAP_Toolbar_Factory_vec * pVec = nullptr;
 	for (i=0; !bFound && (i < count); i++)
 	{
-		pVec = m_vecTT.getNthItem(i);
+		pVec = m_vecTT[i];
 		const char * szCurName =  pVec->getToolbarName();
 		if (g_ascii_strcasecmp(szName,szCurName)==0)
 		{
@@ -458,13 +463,13 @@ bool  XAP_Toolbar_Factory::addIconAfter(const char * szName,
 								   XAP_Toolbar_Id newId, 
 								   XAP_Toolbar_Id afterId)
 {
-	UT_uint32 count = m_vecTT.getItemCount();  // NO toolabrs
+	UT_uint32 count = m_vecTT.size();  // NO toolabrs
 	UT_uint32 i = 0;
 	bool bFound = false;
 	XAP_Toolbar_Factory_vec * pVec = nullptr;
 	for (i=0; !bFound && (i < count); i++)
 	{
-		pVec = m_vecTT.getNthItem(i);
+		pVec = m_vecTT[i];
 		const char * szCurName =  pVec->getToolbarName();
 		if (g_ascii_strcasecmp(szName,szCurName)==0)
 		{
@@ -488,13 +493,13 @@ bool  XAP_Toolbar_Factory::addIconAfter(const char * szName,
 bool  XAP_Toolbar_Factory::removeIcon(const char * szName,
 									  XAP_Toolbar_Id nukeId)
 {
-	UT_uint32 count = m_vecTT.getItemCount();  // NO toolabrs
+	UT_uint32 count = m_vecTT.size();  // NO toolabrs
 	UT_uint32 i = 0;
 	bool bFound = false;
 	XAP_Toolbar_Factory_vec * pVec = nullptr;
 	for (i=0; !bFound && (i < count); i++)
 	{
-		pVec = m_vecTT.getNthItem(i);
+		pVec = m_vecTT[i];
 		const char * szCurName =  pVec->getToolbarName();
 		if (g_ascii_strcasecmp(szName,szCurName)==0)
 		{
@@ -524,12 +529,12 @@ bool  XAP_Toolbar_Factory::saveToolbarsInCurrentScheme(void)
 	XAP_PrefsScheme *pScheme = pPrefs->getCurrentScheme(true);
 	char buf[100];
 	XAP_Toolbar_Factory_vec * pVec = nullptr;
-	UT_uint32 numTB = m_vecTT.getItemCount();  // NO toolabrs
+	UT_uint32 numTB = m_vecTT.size();  // NO toolabrs
 	UT_uint32 iTB,iLay;
 	for(iTB=0; iTB< numTB;iTB++)
 	{
 		UT_String sTBBase = XAP_PREF_KEY_ToolbarNumEntries;
-		pVec = m_vecTT.getNthItem(iTB);
+		pVec = m_vecTT[iTB];
 		const char * szCurName =  pVec->getToolbarName();
 //
 // Save Number of entries in contructed key
@@ -583,7 +588,7 @@ bool  XAP_Toolbar_Factory::restoreToolbarsFromCurrentScheme(void)
 //
 // First delete the current layouts.
 //
-	UT_VECTOR_PURGEALL(XAP_Toolbar_Factory_vec *,m_vecTT);
+	for (XAP_Toolbar_Factory_vec * _utv_p : m_vecTT) { if (_utv_p) delete(_utv_p); };
 	m_vecTT.clear();
 //
 // Get the current scheme
@@ -610,7 +615,7 @@ bool  XAP_Toolbar_Factory::restoreToolbarsFromCurrentScheme(void)
 		pScheme->getValue(sTBBase, nrEntries);
 		if(!nrEntries.empty()) {
 			pVec = new XAP_Toolbar_Factory_vec(szCurName);
-			m_vecTT.addItem(pVec);
+			m_vecTT.push_back(pVec);
 			NrEntries = atoi(nrEntries.c_str());
 //
 // Loop through this toolbar definition and restore it from the preferences
@@ -664,7 +669,7 @@ bool  XAP_Toolbar_Factory::restoreToolbarsFromCurrentScheme(void)
 		else
 		{
 			pVec = new XAP_Toolbar_Factory_vec(&s_ttTable[iTB]);
-			m_vecTT.addItem(pVec);
+			m_vecTT.push_back(pVec);
 		}
 	}
 	return true;

@@ -36,9 +36,9 @@
  * Destructor
  */
 ODe_Style_List::~ODe_Style_List() {
-    auto pVector = m_levelStyles.enumerate();
-    UT_VECTOR_PURGEALL(ODe_ListLevelStyle*, (*pVector));
-
+    for (auto& kv : m_levelStyles) {
+        delete kv.second;
+    }
     m_levelStyles.clear();
 }
 
@@ -61,10 +61,8 @@ bool ODe_Style_List::write(GsfOutput* pODT,
     subElementSpacesOffset = rSpacesOffset;
     subElementSpacesOffset += " ";
     
-    auto pVector = m_levelStyles.enumerate();
-    count = pVector->getItemCount();
-    for (i=0; i<count; i++) {
-        ok = (*pVector)[i]->write(pODT, subElementSpacesOffset);
+    for (const auto& kv : m_levelStyles) {
+        ok = kv.second->write(pODT, subElementSpacesOffset);
         if (!ok) {
             return false;
         }
@@ -84,13 +82,16 @@ bool ODe_Style_List::write(GsfOutput* pODT,
 void ODe_Style_List::setLevelStyle(UT_uint8 level, const PP_AttrProp& rBlockAP) {
     
     UT_UTF8String levelString;
-    ODe_ListLevelStyle* pLevelStyle;
+    ODe_ListLevelStyle* pLevelStyle = nullptr;
     const gchar* pValue = nullptr;
     bool ok;
-    
+
     UT_UTF8String_sprintf(levelString, "%u", level);
-    
-    pLevelStyle = m_levelStyles.pick(levelString.utf8_str());
+
+    auto it = m_levelStyles.find(levelString.utf8_str());
+    if (it != m_levelStyles.end()) {
+        pLevelStyle = it->second;
+    }
     
     if (pLevelStyle != nullptr) {
         // This level style aws already set. There's nothing to be done.
@@ -131,7 +132,7 @@ void ODe_Style_List::setLevelStyle(UT_uint8 level, const PP_AttrProp& rBlockAP) 
     }
 
 
-    m_levelStyles.insert(levelString.utf8_str(), pLevelStyle);
+    m_levelStyles.emplace(levelString.utf8_str(), pLevelStyle);
     pLevelStyle->fetchAttributesFromAbiBlock(rBlockAP);
 }
 
@@ -144,5 +145,6 @@ const ODe_ListLevelStyle* ODe_Style_List::getLevelStyle(UT_uint8 level) const {
     
     UT_UTF8String_sprintf(levelString, "%u", level);
     
-    return m_levelStyles.pick(levelString.utf8_str());
+    auto it = m_levelStyles.find(levelString.utf8_str());
+    return it != m_levelStyles.end() ? it->second : nullptr;
 }

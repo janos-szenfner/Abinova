@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <string>
+#include <vector>
 #include "ap_Features.h"
 
 #include "ut_assert.h"
@@ -61,15 +63,15 @@ AP_Dialog_Replace::~AP_Dialog_Replace(void)
 	
 	// clean up memory
 	UT_sint32 i;
-	for (i=0; i<m_findList.getItemCount(); i++) 
+	for (i=0; i<m_findList.size(); i++) 
 	{
-		UT_UCS4Char* string = static_cast<UT_UCS4Char*>(m_findList.getNthItem(i));
+		UT_UCS4Char* string = static_cast<UT_UCS4Char*>(m_findList[i]);
 		if (string) 
 			FREEP(string);
 	}
-	for (i=0; i<m_replaceList.getItemCount(); i++) 
+	for (i=0; i<m_replaceList.size(); i++) 
 	{
-		UT_UCS4Char* string = static_cast<UT_UCS4Char*>(m_replaceList.getNthItem(i));
+		UT_UCS4Char* string = static_cast<UT_UCS4Char*>(m_replaceList[i]);
 		if (string) 
 			FREEP(string);
 	}
@@ -392,7 +394,7 @@ void AP_Dialog_Replace::_messageFinishedReplace(UT_uint32 numReplaced)
 	getActiveFrame()->showMessageBox(message);
 }
 
-bool AP_Dialog_Replace::_manageList(UT_GenericVector<UT_UCS4Char*>* list, UT_UCS4Char* string)
+bool AP_Dialog_Replace::_manageList(std::vector<UT_UCS4Char*>* list, UT_UCS4Char* string)
 {
 	UT_UCS4String us(string);
 	UT_sint32 i = 0;
@@ -401,9 +403,9 @@ bool AP_Dialog_Replace::_manageList(UT_GenericVector<UT_UCS4Char*>* list, UT_UCS
 	UT_DEBUGMSG(("FODDEX: AP_Dialog_Replace::_manageList: called\n"));
 
 	// check if the current string is already in the list
-	for (i=0; i<list->getItemCount(); i++) 
+	for (i=0; i<list->size(); i++) 
 	{
-		if (!UT_UCS4_strcmp(string, list->getNthItem(i)))
+		if (!UT_UCS4_strcmp(string, (*list)[i]))
 		{
 			found = true;
 			break;
@@ -416,17 +418,17 @@ bool AP_Dialog_Replace::_manageList(UT_GenericVector<UT_UCS4Char*>* list, UT_UCS
 		if (!found)
 		{
 			// if not present, just add it to the internal list
-			list->insertItemAt(clone, 0);
+			list->insert(list->begin(), clone);
 			UT_DEBUGMSG(("FODDEX: adding '%s' to list\n", us.utf8_str()));
 			return true;
 		} else {
 			// g_free the old string
-			UT_UCS4Char* temp = static_cast<UT_UCS4Char*>(list->getNthItem(i));
+			UT_UCS4Char* temp = static_cast<UT_UCS4Char*>((*list)[i]);
 			if (temp) FREEP(temp);
 			// remove the reference from the list
-			list->deleteNthItem(i);
+			list->erase(list->begin() + i);
 			// add it again to the top of the list
-			list->insertItemAt(clone, 0);
+			list->insert(list->begin(), clone);
 		}
 	} else {
 		UT_DEBUGMSG(("FODDEX: warning, failed to clone UCS4 string: '%s'\n", us.utf8_str()));

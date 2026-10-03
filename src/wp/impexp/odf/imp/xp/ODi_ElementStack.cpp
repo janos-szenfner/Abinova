@@ -21,6 +21,7 @@
  */
  
 // Class definition include
+#include <vector>
 #include "ODi_ElementStack.h"
  
 // Internal includes
@@ -46,7 +47,7 @@ ODi_ElementStack::ODi_ElementStack() :
 ODi_ElementStack::~ODi_ElementStack() {
 
     if (m_pStartTags) {
-        UT_VECTOR_PURGEALL(ODi_StartTag*, (*m_pStartTags));
+        for (ODi_StartTag* _utv_p : (*m_pStartTags)) { if (_utv_p) delete(_utv_p); };
     }
     DELETEP(m_pStartTags);
 }
@@ -62,15 +63,15 @@ void ODi_ElementStack::startElement (const gchar* pName,
     ODi_StartTag* pStartTag = nullptr;
 
     if (!m_pStartTags) {
-        m_pStartTags = new UT_GenericVector <ODi_StartTag*> (10, 10);
+        m_pStartTags = new std::vector<ODi_StartTag*> ();
     }
 
-    if (m_stackSize == m_pStartTags->getItemCount()) { 
+    if (m_stackSize == m_pStartTags->size()) { 
         
         pStartTag = new ODi_StartTag();
         m_pStartTags->push_back(pStartTag);
         
-    } else if (m_stackSize < m_pStartTags->getItemCount()) {
+    } else if (m_stackSize < m_pStartTags->size()) {
         
         pStartTag = (*m_pStartTags)[m_stackSize];
         

@@ -59,7 +59,7 @@ bool AP_UnixToolbar_SizeCombo::populate(void)
 	    // populate the vector	
 	    int sz = XAP_EncodingManager::fontsizes_mapping.size();
 	    for(int i=0;i<sz;++i) {
-		m_vecContents.addItem(static_cast<const char *>(XAP_EncodingManager::fontsizes_mapping.nth2(i)));
+		m_vecContents.push_back(static_cast<const char *>(XAP_EncodingManager::fontsizes_mapping.nth2(i)));
 	    };
 	}
 	// TODO: may want to populate this based on current font instead?

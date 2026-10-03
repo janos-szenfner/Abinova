@@ -24,6 +24,8 @@
 #define ODE_AUXILIARYDATA_H_
 
 // Abinova includes
+#include <map>
+#include <vector>
 #include "ut_vector.h"
 #include "ut_string_class.h"
 
@@ -57,8 +59,8 @@ public:
     void addStyleName(const gchar* pStyleName, UT_uint8 outlineLevel);
 
 private:
-    UT_GenericVector<UT_UTF8String*> m_styleNames;
-    UT_GenericVector<UT_uint8> m_outlineLevels;
+    std::vector<UT_UTF8String*> m_styleNames;
+    std::vector<UT_uint8> m_outlineLevels;
 };
 
 

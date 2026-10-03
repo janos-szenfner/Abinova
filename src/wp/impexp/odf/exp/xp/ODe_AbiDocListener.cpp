@@ -25,6 +25,8 @@
  
  
 // Class definition include
+#include <string>
+#include <vector>
 #include "ODe_AbiDocListener.h"
 
 // Internal includes
@@ -87,7 +89,7 @@ ODe_AbiDocListener::ODe_AbiDocListener (PD_Document* pDocument,
  * Destructor
  */
 ODe_AbiDocListener::~ODe_AbiDocListener() {
-    UT_ASSERT(m_implStack.getItemCount() == 0);
+    UT_ASSERT(m_implStack.size() == 0);
     if (m_deleteCurrentWhenPop) {
         DELETEP(m_pCurrentImpl);
     }
@@ -1849,9 +1851,9 @@ void ODe_AbiDocListener::_handleListenerImplAction() {
                 m_pCurrentImpl = nullptr;
             }
 
-            if (m_implStack.getItemCount() > 0) {
+            if (m_implStack.size() > 0) {
                 StackCell stackCell;
-                stackCell = m_implStack.getLastItem();            
+                stackCell = m_implStack.back();
                 m_pCurrentImpl = stackCell.m_pListenerImpl;
                 m_deleteCurrentWhenPop = stackCell.m_deleteWhenPop;
                 

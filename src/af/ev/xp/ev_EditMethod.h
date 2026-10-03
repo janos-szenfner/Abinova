@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "ut_string_class.h"
@@ -151,7 +153,7 @@ public:
 protected:
 	UT_uint32			m_countStatic;
 	EV_EditMethod *		m_arrayStaticEditMethods;		// not malloced
-	UT_GenericVector<EV_EditMethod *>	m_vecDynamicEditMethods;
+	std::vector<EV_EditMethod *>	m_vecDynamicEditMethods;
 };
 
 /*****************************************************************/

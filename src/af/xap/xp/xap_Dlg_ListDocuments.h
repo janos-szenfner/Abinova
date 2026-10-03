@@ -19,9 +19,10 @@
 
 #pragma once
 
+#include <vector>
+
 #include "xap_Dialog.h"
 #include "ut_assert.h"
-#include "ut_vector.h"
 
 class AD_Document;
 
@@ -75,7 +76,7 @@ class ABI_EXPORT XAP_Dialog_ListDocuments : public XAP_Dialog_NonPersistent
 
   protected:
 	void                       _setAnswer(XAP_Dialog_ListDocuments::tAnswer a){m_answer=a;}
-	UT_sint32                  _getDocumentCount() {return m_vDocs.getItemCount();}
+	UT_sint32                  _getDocumentCount() {return static_cast<UT_sint32>(m_vDocs.size());}
 	const char *               _getNthDocumentName(UT_sint32 n) const;
 
 	void                       _setSelDocumentIndx(UT_sint32 i);
@@ -91,6 +92,6 @@ class ABI_EXPORT XAP_Dialog_ListDocuments : public XAP_Dialog_NonPersistent
 	XAP_Dialog_ListDocuments::tAnswer m_answer;
 
 	UT_sint32						  m_ndxSelDoc;
-	UT_Vector                         m_vDocs;
+	std::vector<AD_Document*>         m_vDocs;
 	bool                              m_bIncludeActiveDoc;
 };

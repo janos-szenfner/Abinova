@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "ut_worker.h"
@@ -58,7 +59,7 @@ public:
 
 protected:
 	UT_Timer();		// should only be called from static_constructor()
-	static UT_GenericVector<UT_Timer*> & _getVecTimers ();
+	static std::vector<UT_Timer*> & _getVecTimers ();
 
  private:
 	UT_uint32 m_iIdentifier;

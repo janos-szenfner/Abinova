@@ -19,6 +19,8 @@
  * 02110-1301 USA.
  */
 
+#include <string>
+#include <vector>
 #include "ie_impGraphic.h"
 
 #include "ut_assert.h"
@@ -36,17 +38,15 @@
 /*****************************************************************/
 /*****************************************************************/
 
-static UT_GenericVector<IE_ImpGraphicSniffer*> 	IE_IMP_GraphicSniffers (6);
+static std::vector<IE_ImpGraphicSniffer*> 	IE_IMP_GraphicSniffers;
 static std::vector<std::string> 		IE_IMP_GraphicMimeTypes;
 static std::vector<std::string> 		IE_IMP_GraphicMimeClasses;
 static std::vector<std::string> 		IE_IMP_GraphicSuffixes;
 
 void IE_ImpGraphic::registerImporter (IE_ImpGraphicSniffer * s)
 {
-	UT_sint32 ndx = 0;
-	UT_Error err = IE_IMP_GraphicSniffers.addItem (s, &ndx);
-
-	UT_return_if_fail(err == UT_OK);
+	UT_sint32 ndx = IE_IMP_GraphicSniffers.size();
+	IE_IMP_GraphicSniffers.push_back (s);
 
 	s->setType(ndx+1);
 }
@@ -55,7 +55,7 @@ void IE_ImpGraphic::unregisterImporter (IE_ImpGraphicSniffer * s)
 {
 	UT_uint32 ndx = s->getType(); // 1:1 mapping
 
-	IE_IMP_GraphicSniffers.deleteNthItem (ndx-1);
+	IE_IMP_GraphicSniffers.erase(IE_IMP_GraphicSniffers.begin() + (ndx-1));
 
 	// Refactor the indexes
 	IE_ImpGraphicSniffer * pSniffer = nullptr;
@@ -63,7 +63,7 @@ void IE_ImpGraphic::unregisterImporter (IE_ImpGraphicSniffer * s)
 	UT_uint32 i     = 0;
 	for( i = ndx-1; i < size; i++)
 	{
-		pSniffer = IE_IMP_GraphicSniffers.getNthItem(i);
+		pSniffer = IE_IMP_GraphicSniffers[i];
 		if (pSniffer)
         	pSniffer->setType(i+1);
 	}
@@ -80,7 +80,7 @@ void IE_ImpGraphic::unregisterAllImporters ()
 
 	for (UT_uint32 i = 0; i < size; i++)
 	{
-		pSniffer = IE_IMP_GraphicSniffers.getNthItem(i);
+		pSniffer = IE_IMP_GraphicSniffers[i];
 		DELETEP(pSniffer);
 	}
 
@@ -98,7 +98,7 @@ const std::vector<std::string> & IE_ImpGraphic::getSupportedMimeTypes()
 
 	const IE_MimeConfidence *mc;
 	for (UT_sint32 i = 0; i < IE_IMP_GraphicSniffers.size(); i++) {
-		auto sniffer = IE_IMP_GraphicSniffers.getNthItem(i);
+		auto sniffer = IE_IMP_GraphicSniffers[i];
 		UT_nonnull_or_continue(sniffer);
 		mc = sniffer->getMimeConfidence();
 		while (mc && mc->match) {
@@ -124,7 +124,7 @@ const std::vector<std::string> & IE_ImpGraphic::getSupportedMimeClasses()
 
 	const IE_MimeConfidence *mc;
 	for (UT_sint32 i = 0; i < IE_IMP_GraphicSniffers.size(); i++) {
-		auto sniffer = IE_IMP_GraphicSniffers.getNthItem(i);
+		auto sniffer = IE_IMP_GraphicSniffers[i];
 		UT_nonnull_or_continue(sniffer);
 		mc = sniffer->getMimeConfidence();
 		while (mc && mc->match) {
@@ -150,7 +150,7 @@ const std::vector<std::string> & IE_ImpGraphic::getSupportedSuffixes()
 
 	const IE_SuffixConfidence *sc;
 	for (UT_sint32 i = 0; i < IE_IMP_GraphicSniffers.size(); i++) {
-		auto sniffer = IE_IMP_GraphicSniffers.getNthItem(i);
+		auto sniffer = IE_IMP_GraphicSniffers[i];
 		UT_nonnull_or_continue(sniffer);
 		sc = sniffer->getSuffixConfidence();
 		while (sc && !sc->suffix.empty()) {
@@ -177,7 +177,7 @@ const char * IE_ImpGraphic::getMimeTypeForSuffix(const char * suffix)
 
 	const IE_SuffixConfidence *sc;
 	for (UT_sint32 i = 0; i < IE_IMP_GraphicSniffers.size(); i++) {
-		IE_ImpGraphicSniffer *sniffer = IE_IMP_GraphicSniffers.getNthItem(i);
+		IE_ImpGraphicSniffer *sniffer = IE_IMP_GraphicSniffers[i];
 		UT_nonnull_or_continue(sniffer);
 		sc = sniffer->getSuffixConfidence();
 		while (sc && !sc->suffix.empty()) {
@@ -215,7 +215,7 @@ IEGraphicFileType IE_ImpGraphic::fileTypeForMimetype(const char * szMimetype)
 
 	for (UT_uint32 k=0; k < nrElements; k++)
 	{
-		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers.getNthItem(k);
+		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers[k];
 		UT_nonnull_or_continue(s);
 
 		const IE_MimeConfidence * mc = s->getMimeConfidence();
@@ -266,7 +266,7 @@ IEGraphicFileType IE_ImpGraphic::fileTypeForSuffix(const char * szSuffix)
 
 	for (UT_uint32 k=0; k < nrElements; k++)
 	{
-		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers.getNthItem(k);
+		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers[k];
 		UT_nonnull_or_continue(s);
 
 		const IE_SuffixConfidence * sc = s->getSuffixConfidence();
@@ -317,7 +317,7 @@ IEGraphicFileType IE_ImpGraphic::fileTypeForContents(const char * szBuf, UT_uint
 
 	for (UT_uint32 k=0; k < nrElements; k++)
 	{
-		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers.getNthItem (k);
+		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers[k];
 		UT_nonnull_or_continue(s);
 		UT_Confidence_t confidence = s->recognizeContents(input);
 		if ((confidence > 0) && ((IEGFT_Unknown == best) || (confidence >= best_confidence)))
@@ -353,7 +353,7 @@ bool IE_ImpGraphic::enumerateDlgLabels(UT_uint32 ndx,
 	UT_uint32 nrElements = getImporterCount();
 	if (ndx < nrElements)
 	{
-		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers.getNthItem (ndx);
+		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers[ndx];
 		UT_nonnull_or_return(s, false);
 		return s->getDlgLabels(pszDesc,pszSuffixList,ft);
 	}
@@ -382,7 +382,7 @@ UT_Error IE_ImpGraphic::constructImporterWithDescription(const char * szDesc, IE
 
 		IEGraphicFileType ft = 0;
 
-		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers.getNthItem(i);
+		IE_ImpGraphicSniffer * s = IE_IMP_GraphicSniffers[i];
 
 		if (s->getDlgLabels(&szDescription, &szSuffixList, &ft))
 			if (szDescription)

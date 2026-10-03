@@ -20,6 +20,7 @@
 
 #ifndef __Abi_GrammarUtil_h__
 #define __Abi_GrammarUtil_h__
+#include <vector>
 #include "ut_string_class.h"
 #include "ut_types.h"
 #include "ut_vector.h"
@@ -49,7 +50,7 @@ class PieceOfText
   UT_UTF8String sText;
   bool      m_bGrammarChecked;
   bool      m_bGrammarOK;
-  UT_GenericVector<AbiGrammarError *> m_vecGrammarErrors;
+  std::vector<AbiGrammarError *> m_vecGrammarErrors;
   UT_UTF8String m_sSuggestion;
   UT_sint32 countWords(void);
 };

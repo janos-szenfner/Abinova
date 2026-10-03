@@ -93,7 +93,7 @@ protected:
 
     UT_uint32			m_iInlineStart;
 
-	UT_GenericStringMap<UT_UTF8String *> *	m_refMap;
+	std::map<std::string, UT_UTF8String *> *	m_refMap;
 	bool                m_bAutoRevisioning;
 	bool                m_bInMath;
 	bool                m_bInEmbed;

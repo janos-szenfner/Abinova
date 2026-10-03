@@ -18,30 +18,31 @@
  */
  
 
+#include <vector>
 #include "ut_timer.h"
 #include "ut_assert.h"
 
 // declare static member
-static UT_GenericVector<UT_Timer*> static_vecTimers;
+static std::vector<UT_Timer*> static_vecTimers;
 
 UT_Timer::UT_Timer()
 	: m_iIdentifier(0)
 {
-	static_vecTimers.addItem(this);
+	static_vecTimers.push_back(this);
 }
 
 UT_Timer::~UT_Timer()
 {
-	UT_sint32 ndx = static_vecTimers.findItem(this);
-	UT_ASSERT(ndx >= 0);
+	auto ndx = std::find(static_vecTimers.begin(), static_vecTimers.end(), this);
+	UT_ASSERT(ndx != static_vecTimers.end());
 
-	if (ndx >= 0)
+	if (ndx != static_vecTimers.end())
 	{
-		static_vecTimers.deleteNthItem(ndx);
+		static_vecTimers.erase(ndx);
 	}
 }
 
-UT_GenericVector<UT_Timer*> & UT_Timer::_getVecTimers ()
+std::vector<UT_Timer*> & UT_Timer::_getVecTimers ()
 { 
 	return static_vecTimers;
 }
@@ -68,10 +69,10 @@ void UT_Timer::setCallback(UT_WorkerCallback pCallback)
 
 UT_Timer* UT_Timer::findTimer(UT_uint32 iIdentifier)
 {
-	int count = static_vecTimers.getItemCount();
+	int count = static_vecTimers.size();
 	for (int i=0; i<count; i++)
 	{
-		UT_Timer* pTimer = static_vecTimers.getNthItem(i);
+		UT_Timer* pTimer = static_vecTimers[i];
 		if (!pTimer)
 			continue;
 

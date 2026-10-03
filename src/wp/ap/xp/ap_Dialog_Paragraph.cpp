@@ -24,6 +24,7 @@
 #include <string.h>
 #include <math.h>
 
+#include <string>
 #include "ap_Features.h"
 
 #include "ut_assert.h"
@@ -94,7 +95,7 @@ AP_Dialog_Paragraph::~AP_Dialog_Paragraph(void)
 {
 	DELETEP(m_paragraphPreview);
 
-	UT_VECTOR_PURGEALL(sControlData *, m_vecProperties);
+	for (sControlData * _utv_p : m_vecProperties) { if (_utv_p) delete(_utv_p); };
 }
 
 bool AP_Dialog_Paragraph::setDialogData(const PP_PropertyVector & pProps)
@@ -619,7 +620,7 @@ void AP_Dialog_Paragraph::_createPreviewFromGC(GR_Graphics * gc,
 void AP_Dialog_Paragraph::_setMenuItemValue(tControl item, UT_sint32 value,
 											tOperation op /* = op_UICHANGE */)
 {
-	UT_return_if_fail (item <= m_vecProperties.getItemCount());
+	UT_return_if_fail (item <= m_vecProperties.size());
 
 	sControlData * pItem = _getPropertyItem (item);
 	UT_return_if_fail (pItem);
@@ -637,7 +638,7 @@ void AP_Dialog_Paragraph::_setMenuItemValue(tControl item, UT_sint32 value,
 
 UT_sint32 AP_Dialog_Paragraph::_getMenuItemValue(tControl item)
 {
-	UT_return_val_if_fail (item <= m_vecProperties.getItemCount(), 0);
+	UT_return_val_if_fail (item <= m_vecProperties.size(), 0);
 
 	sControlData * pItem = _getPropertyItem (item);
 	UT_return_val_if_fail (pItem, 0);
@@ -650,7 +651,7 @@ UT_sint32 AP_Dialog_Paragraph::_getMenuItemValue(tControl item)
 void AP_Dialog_Paragraph::_setCheckItemValue(tControl item, tCheckState value,
 											tOperation op /* = op_UICHANGE */)
 {
-	UT_return_if_fail (item <= m_vecProperties.getItemCount());
+	UT_return_if_fail (item <= m_vecProperties.size());
 
 	sControlData * pItem = _getPropertyItem (item);
 	UT_return_if_fail (pItem);
@@ -667,7 +668,7 @@ void AP_Dialog_Paragraph::_setCheckItemValue(tControl item, tCheckState value,
 
 AP_Dialog_Paragraph::tCheckState AP_Dialog_Paragraph::_getCheckItemValue(tControl item)
 {
-	UT_return_val_if_fail (item <= m_vecProperties.getItemCount(), check_INDETERMINATE);
+	UT_return_val_if_fail (item <= m_vecProperties.size(), check_INDETERMINATE);
 
 	sControlData * pItem = _getPropertyItem (item);
 	UT_return_val_if_fail (pItem, check_INDETERMINATE);
@@ -700,7 +701,7 @@ const gchar * AP_Dialog_Paragraph::_makeAbsolute(const gchar * value)
 void AP_Dialog_Paragraph::_setSpinItemValue(tControl item, const gchar * value,
 											tOperation op /* = op_UICHANGE */)
 {
-	UT_return_if_fail (item <= m_vecProperties.getItemCount() && value);
+	UT_return_if_fail (item <= m_vecProperties.size() && value);
 
 	sControlData * pItem = _getPropertyItem (item);
 	UT_return_if_fail (pItem);
@@ -753,7 +754,7 @@ void AP_Dialog_Paragraph::_setSpinItemValue(tControl item, const gchar * value,
 
 const gchar * AP_Dialog_Paragraph::_getSpinItemValue(tControl item)
 {
-	UT_return_val_if_fail (item <= m_vecProperties.getItemCount(), nullptr);
+	UT_return_val_if_fail (item <= m_vecProperties.size(), nullptr);
 
 	sControlData * pItem = _getPropertyItem (item);
 	UT_return_val_if_fail (pItem, nullptr);
@@ -1142,7 +1143,7 @@ void AP_Dialog_Paragraph::_syncControls(tControl changed, bool /*bAll  = false *
 
 bool AP_Dialog_Paragraph::_wasChanged(tControl item)
 {
-	UT_return_val_if_fail (item <= m_vecProperties.getItemCount(), false);
+	UT_return_val_if_fail (item <= m_vecProperties.size(), false);
 
 	sControlData * pItem = _getPropertyItem (item);
 	UT_return_val_if_fail (pItem, false);
@@ -1164,7 +1165,9 @@ void AP_Dialog_Paragraph::_addPropertyItem (tControl index, const sControlData &
 		}
 	UT_return_if_fail (pDataCopy);
 
-	m_vecProperties.setNthItem (static_cast<UT_uint32>(index), pDataCopy, nullptr);
+	if (m_vecProperties.size() <= static_cast<size_t>(index))
+		m_vecProperties.resize (static_cast<size_t>(index) + 1);
+	m_vecProperties[static_cast<UT_uint32>(index)] = pDataCopy;
 }
 
 AP_Dialog_Paragraph::sControlData::sControlData (UT_sint32 data) :

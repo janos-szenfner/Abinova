@@ -62,18 +62,18 @@ bool AP_UnixToolbar_ZoomCombo::populate(void)
 	m_vecContents.clear();
 
 	// populate the vector
-	m_vecContents.addItem("200%");
-	m_vecContents.addItem("150%");
-	m_vecContents.addItem("100%");
-	m_vecContents.addItem("75%");
-	m_vecContents.addItem("50%");
-	m_vecContents.addItem("25%");
+	m_vecContents.push_back("200%");
+	m_vecContents.push_back("150%");
+	m_vecContents.push_back("100%");
+	m_vecContents.push_back("75%");
+	m_vecContents.push_back("50%");
+	m_vecContents.push_back("25%");
 
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 	
-	m_vecContents.addItem(pSS->getValue(XAP_STRING_ID_TB_Zoom_PageWidth));
-	m_vecContents.addItem(pSS->getValue(XAP_STRING_ID_TB_Zoom_WholePage));
-	m_vecContents.addItem(pSS->getValue(XAP_STRING_ID_TB_Zoom_Percent));
+	m_vecContents.push_back(pSS->getValue(XAP_STRING_ID_TB_Zoom_PageWidth));
+	m_vecContents.push_back(pSS->getValue(XAP_STRING_ID_TB_Zoom_WholePage));
+	m_vecContents.push_back(pSS->getValue(XAP_STRING_ID_TB_Zoom_Percent));
 
 	return true;
 }

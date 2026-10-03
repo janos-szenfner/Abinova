@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <vector>
 #include "xap_Frame.h"
 #include "xap_Dialog.h"
 #include "fv_View.h"
@@ -104,11 +105,11 @@ public:
 	char						m_WindowName[100];
 
 	// save a list of find a replace texts
-	UT_GenericVector<UT_UCS4Char*>	m_findList;
-	UT_GenericVector<UT_UCS4Char*>	m_replaceList;
+	std::vector<UT_UCS4Char*>	m_findList;
+	std::vector<UT_UCS4Char*>	m_replaceList;
 	virtual void				_updateLists() = 0; // must be implemented in non-xp code
 
  private:
 	// returns true when the internal list was changed
-	bool						_manageList(UT_GenericVector<UT_UCS4Char*>* list, UT_UCS4Char* string);
+	bool						_manageList(std::vector<UT_UCS4Char*>* list, UT_UCS4Char* string);
 };

@@ -207,7 +207,7 @@ private:
         ODe_AbiDocListenerImpl* m_pListenerImpl;
     };
 
-    UT_GenericVector <ODe_AbiDocListener::StackCell> m_implStack;
+    std::vector<ODe_AbiDocListener::StackCell> m_implStack;
 
     ODe_AbiDocListenerImpl* m_pCurrentImpl;
     bool m_deleteCurrentWhenPop;

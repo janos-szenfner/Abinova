@@ -49,6 +49,7 @@ class PD_Document;
 class pf_Frag;
 
 struct field;
+struct ListIdLevelPair;
 
 struct bookmark
 {
@@ -164,8 +165,8 @@ struct header
 
 	struct _d
 	{
-		UT_Vector hdr;
-		UT_Vector frag;
+		std::vector<header*> hdr;
+		std::vector<pf_Frag*> frag;
 	}d;
 };
 
@@ -210,10 +211,10 @@ public:
 	UT_sint32   iLeft;
 	UT_sint32   iRight;
 	UT_sint32   iLeftCellPos;
-	UT_NumberVector	vecColumnSpansForCurrentRow;	// horizontal cell spans
-	UT_GenericVector<MsColSpan *>	vecColumnWidths;
-	UT_NumberVector vecColumnPositions;
-	UT_NumberVector vecRowHeights;	// per-row dyaRowHeight, twips
+	std::vector<UT_sint32>	vecColumnSpansForCurrentRow;	// horizontal cell spans
+	std::vector<MsColSpan *>	vecColumnWidths;
+	std::vector<UT_sint32> vecColumnPositions;
+	std::vector<UT_sint32> vecRowHeights;	// per-row dyaRowHeight, twips
 	TAP *		pTapLast;			// most recent row TAP
 	pf_Frag_Strux * pTableSdH;		// this table's strux
 };
@@ -352,9 +353,9 @@ private:
 	bool        _handleHeadersText(UT_uint32 iPos, bool bDoBlockIns);
 	bool        _insertHeaderSection(bool bDoBlockIns);
 	bool        _build_ColumnWidths(MsTableCtx * ctx,
-									UT_NumberVector & colWidths);
-	bool        _isVectorFull(UT_NumberVector & vec);
-	void        setNumberVector(UT_NumberVector & vec, UT_sint32 i, UT_sint32 val);
+									std::vector<UT_sint32> & colWidths);
+	bool        _isVectorFull(std::vector<UT_sint32> & vec);
+	void        setNumberVector(std::vector<UT_sint32> & vec, UT_sint32 i, UT_sint32 val);
 	bool        findMatchSpan(MsTableCtx * ctx,
 							  UT_sint32 iLeft, UT_sint32 iRight);
 	bool        _ignorePosition(UT_uint32 pos);
@@ -407,14 +408,14 @@ private:
 	// coordinate systems that frames use
 	double     m_dSectMarginLeft;
 	double     m_dSectMarginTop;
-	UT_Vector  m_vLists;
+	std::vector<ListIdLevelPair*>  m_vLists;
 	UT_uint32  m_iListIdIncrement[9];
 	UT_uint32  m_iMSWordListId;
 
 	bool m_bEncounteredRevision;
 	bool		m_bInTable;						// are we in a table ?
-	UT_GenericVector<MsTableCtx *>	m_vecTableCtx;	// open tables, deepest last
-	UT_GenericVector<emObject*>   m_vecEmObjects;               // Objects between cell
+	std::vector<MsTableCtx *>	m_vecTableCtx;	// open tables, deepest last
+	std::vector<emObject*>   m_vecEmObjects;               // Objects between cell
 										  // struxes
 	UT_String   m_charProps;
 	UT_String   m_charRevs;
@@ -467,7 +468,7 @@ private:
 	bool         m_bTOCsupported;
 	bool         m_bInTextboxes;
 	pf_Frag *    m_pTextboxEndSection;
-	UT_GenericVector<textboxPos *> m_vecTextboxPos;
+	std::vector<textboxPos *> m_vecTextboxPos;
 	UT_uint32    m_iLastAppendedHeader;
 
 	UT_uint32    m_iBmCursor;   // cursor into sorted m_pBookmarks

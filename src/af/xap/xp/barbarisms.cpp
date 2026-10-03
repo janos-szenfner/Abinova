@@ -18,10 +18,11 @@
  */
 
 #include <string.h>
+#include <string>
+#include <vector>
 #include "ut_misc.h"
 #include "barbarisms.h"
 #include "ut_debugmsg.h"
-#include "ut_hash.h"
 #include "ut_string.h"
 #include "ut_unicode.h"
 #include "ut_string_class.h"
@@ -34,18 +35,17 @@ BarbarismChecker::BarbarismChecker()
 
 BarbarismChecker::~BarbarismChecker()
 {	  
-	UT_GenericStringMap<UT_GenericVector<UT_UCS4Char *>*>::UT_Cursor _hc1(&m_map);		
-
-    for (UT_GenericVector<UT_UCS4Char *>* pVec = _hc1.first(); _hc1.is_valid(); pVec = _hc1.next() ) 
-	{ 
-		if (pVec)									
+	for (auto & pair : m_map)
+	{
+		std::vector<UT_UCS4Char *>* pVec = pair.second;
+		if (pVec)
 		{
-			for (UT_sint32 i=0; i < pVec->getItemCount(); i++)
-				delete pVec->getNthItem(i);
-				
-			delete pVec;			
+			for (UT_sint32 i=0; i < pVec->size(); i++)
+				delete (*pVec)[i];
+
+			delete pVec;
 		}
-	} 	
+	}
 }
 
 
@@ -94,7 +94,7 @@ bool BarbarismChecker::checkWord(const UT_UCS4Char * word32, size_t length)
 
 	// TODO: capitalization issues
 
-	bool bResult = (m_map.pick(stUTF8.utf8_str()) != nullptr);
+	bool bResult = (m_map.find(stUTF8.utf8_str()) != m_map.end());
 
 	return bResult;
 }
@@ -115,18 +115,21 @@ bool BarbarismChecker::suggestExactWord(const UT_UCS4Char *word32, size_t length
 
 	pUTF8 = stUTF8.utf8_str();
 
-	UT_GenericVector<UT_UCS4Char *>* vec = m_map.pick(pUTF8);
+	auto itVec = m_map.find(pUTF8);
+	if (itVec == m_map.end())
+		return false;
+	std::vector<UT_UCS4Char *>* vec = itVec->second;
 	if (!vec)
 		return false;
 
-	const UT_uint32 nItems = vec->getItemCount();
+	const UT_uint32 nItems = vec->size();
 
 	if (!nItems)
 		return false;
 
 	for (UT_uint32 iItem = nItems; iItem; --iItem)
 	{
-		pWord = vec->getNthItem(iItem - 1);
+		pWord = (*vec)[iItem - 1];
 		nSize = sizeof(UT_UCS4Char) * (UT_UCS4_strlen(pWord) + 1);
 		suggest32 = static_cast<UT_UCS4Char*>(g_try_malloc(nSize));
 		memcpy (suggest32, pWord, nSize);
@@ -239,8 +242,8 @@ void BarbarismChecker::startElement(const gchar *name, const gchar **atts)
 		const char * word = UT_getAttribute ("word", atts);
 		if (word != nullptr)
 		{
-			m_pCurVector = new UT_GenericVector<UT_UCS4Char *>();
-			m_map.insert (word, m_pCurVector);
+			m_pCurVector = new std::vector<UT_UCS4Char *>();
+			m_map[word] = m_pCurVector;
 		}
 		else
 			m_pCurVector = nullptr;
@@ -275,7 +278,7 @@ void BarbarismChecker::startElement(const gchar *name, const gchar **atts)
 			// insert suggestions at beginning
 			// this preserves the order in the xml file
 			// and puts them ahead of the regular suggestions
-			m_pCurVector->insertItemAt(word32, 0);
+			m_pCurVector->insert(m_pCurVector->begin(), word32);
 		}
 	}
 }

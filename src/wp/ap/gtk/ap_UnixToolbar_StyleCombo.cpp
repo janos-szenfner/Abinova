@@ -20,6 +20,10 @@
  * 02110-1301 USA.
  */
 
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
 #include "ap_Features.h"
 
 #include "ut_assert.h"
@@ -81,12 +85,12 @@ bool AP_UnixToolbar_StyleCombo::populate(void)
 	// HACK: for now, just hardwire it
 	// NB if you change the case of the labels, it will stop working
 	// unless you also change all the places where the style appears!
-	m_vecContents.addItem("Normal");
-	m_vecContents.addItem("Heading 1");
-	m_vecContents.addItem("Heading 2");
-	m_vecContents.addItem("Heading 3");
-	m_vecContents.addItem("Plain Text");
-	m_vecContents.addItem("Block Text");
+	m_vecContents.push_back("Normal");
+	m_vecContents.push_back("Heading 1");
+	m_vecContents.push_back("Heading 2");
+	m_vecContents.push_back("Heading 3");
+	m_vecContents.push_back("Plain Text");
+	m_vecContents.push_back("Block Text");
 #else
 
 	AD_Document * pAD_Doc = m_pFrame->getCurrentDoc();
@@ -107,7 +111,7 @@ bool AP_UnixToolbar_StyleCombo::populate(void)
 	{
 		pStyle = (*pStyles)[k];
 		if (pStyle && pStyle->isDisplayed()) {
-			m_vecContents.addItem(pStyle->getName());
+			m_vecContents.push_back(pStyle->getName());
 		}
 	}
 	DELETEP(pStyles);
@@ -187,7 +191,7 @@ bool AP_UnixToolbar_StyleCombo::repopulate(void)
 		GSList * real_list = list;
 		do 
 		{
-			m_vecContents.addItem(static_cast<const char *>(list->data));
+			m_vecContents.push_back(static_cast<const char *>(list->data));
 
 		} while (nullptr != (list = g_slist_next(list)));
 		g_slist_free(real_list);

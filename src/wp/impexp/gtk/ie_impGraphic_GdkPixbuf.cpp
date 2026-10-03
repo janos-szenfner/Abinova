@@ -27,6 +27,9 @@
  */
 
 #define GDK_PIXBUF_ENABLE_BACKEND
+#include <string>
+#include <utility>
+#include <vector>
 #include "ie_impGraphic_GdkPixbuf.h"
 
 //------------------------------------------------------------------------------------
@@ -265,7 +268,7 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 	GdkPixbuf * pixbuf = nullptr;
 	const char * pBC = reinterpret_cast<const char *>(pBB->getPointer(0));
 
-	UT_GenericVector<char*> vecStr;
+	std::vector<char*> vecStr;
 	UT_sint32 k =0;
 	UT_sint32 iBase =0;
 
@@ -300,7 +303,7 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 		*(sz+i) = *(pBC+iBase+i);
 	}
 	*(sz+i) = 0;
-	vecStr.addItem(sz);
+	vecStr.push_back(sz);
 
 	//
 	// Now loop through all the lines until we get to "}" outside the
@@ -334,23 +337,23 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 				*(sz+i) = *(pBC+iBase+i);
 			}
 			*(sz +i) = 0;
-			vecStr.addItem(sz);
+			vecStr.push_back(sz);
 		}
 	}
 
 	if(k >= length)
 	{
-		for(i=0; i< vecStr.getItemCount(); i++)
+		for(i=0; i< vecStr.size(); i++)
 		{
-			char * psz = vecStr.getNthItem(i);
+			char * psz = vecStr[i];
 			FREEP(psz);
 		}
 		return nullptr;
 	}
 
-	const char ** pszStr = static_cast<const char **>(UT_calloc(vecStr.getItemCount(),sizeof(char *)));
-	for(i=0; i< vecStr.getItemCount(); i++)
-		pszStr[i] = vecStr.getNthItem(i);
+	const char ** pszStr = static_cast<const char **>(UT_calloc(vecStr.size(),sizeof(char *)));
+	for(i=0; i< vecStr.size(); i++)
+		pszStr[i] = vecStr[i];
 	pixbuf = gdk_pixbuf_new_from_xpm_data(pszStr);
 	FREEP(pszStr);
 	return pixbuf;

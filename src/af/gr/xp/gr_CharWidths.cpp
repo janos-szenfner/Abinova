@@ -27,13 +27,13 @@ GR_CharWidths::GR_CharWidths(void)
 
 GR_CharWidths::~GR_CharWidths(void)
 {
-	UT_VECTOR_SPARSEPURGEALL(Array256*, m_vecHiByte);
+	for (Array256* _utv_p : m_vecHiByte) { if (_utv_p) delete(_utv_p); };
 }
 
 void GR_CharWidths::zeroWidths(void)
 {
 	memset(m_aLatin1.aCW,GR_UNKNOWN_BYTE,sizeof(m_aLatin1.aCW));
-	UT_VECTOR_SPARSEPURGEALL(Array256*, m_vecHiByte);
+	for (Array256* _utv_p : m_vecHiByte) { if (_utv_p) delete(_utv_p); };
 	m_vecHiByte.clear();
 }
 
@@ -54,8 +54,8 @@ void GR_CharWidths::setWidth(UT_UCS4Char cIndex, UT_sint32 width)
 	}
 
 	Array256 * pA = nullptr;
-	if (m_vecHiByte.getItemCount() > hi)
-		pA = m_vecHiByte.getNthItem(hi);
+	if (m_vecHiByte.size() > hi)
+		pA = m_vecHiByte[hi];
 	if (!pA)
 	{
 		pA = new Array256;
@@ -64,7 +64,9 @@ void GR_CharWidths::setWidth(UT_UCS4Char cIndex, UT_sint32 width)
 		memset(pA,GR_UNKNOWN_BYTE,sizeof(Array256));
 	}
 
-	m_vecHiByte.setNthItem(hi,pA,nullptr);
+	if (m_vecHiByte.size() <= hi)
+		m_vecHiByte.resize(hi + 1);
+	m_vecHiByte[hi] = pA;
 	pA->aCW[lo] = width;
 	return;
 }
@@ -81,9 +83,9 @@ UT_sint32 GR_CharWidths::getWidth(UT_UCS4Char cIndex) const
 	if (!hi)
 		return m_aLatin1.aCW[lo];
 
-	if (m_vecHiByte.getItemCount() > hi)
+	if (m_vecHiByte.size() > hi)
 	{
-		Array256 * pA = m_vecHiByte.getNthItem(hi);
+		Array256 * pA = m_vecHiByte[hi];
 		if (pA)
 			return pA->aCW[lo];
 	}

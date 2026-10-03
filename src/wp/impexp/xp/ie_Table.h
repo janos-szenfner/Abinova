@@ -24,6 +24,7 @@
 
 #include <stack>
 #include <string>
+#include <vector>
 
 #include "pd_Document.h"
 #include "pt_Types.h"
@@ -237,9 +238,9 @@ class ABI_EXPORT ie_imp_table
 	UT_sint32           getCellXOnRow(void) const { return m_iCellXOnRow;}
 	void                incPosOnRow(void) { m_iPosOnRow++;}
 	void                incCellXOnRow(void) { m_iCellXOnRow++;}
-	bool                getVecOfCellsOnRow(UT_sint32 row, UT_GenericVector<ie_imp_cell*> * pVec) const;
+	bool                getVecOfCellsOnRow(UT_sint32 row, std::vector<ie_imp_cell*> * pVec) const;
 	bool                removeRow(UT_sint32 row);
-	void                appendRow(UT_GenericVector<ie_imp_cell*>* pVecRowOfCells);
+	void                appendRow(std::vector<ie_imp_cell*>* pVecRowOfCells);
 	static bool                doCellXMatch(UT_sint32 iCellX1, UT_sint32 iCellX2,bool bIsLast = false);
  private:
 	void                _buildCellXVector(void);
@@ -254,9 +255,9 @@ class ABI_EXPORT ie_imp_table
 	bool                m_bTableUsed;
 	UT_sint32           m_iPosOnRow;
 	UT_sint32           m_iCellXOnRow;
-	UT_GenericVector<ie_imp_cell*> m_vecCells;
-	UT_NumberVector           m_vecCellX;
-	UT_NumberVector           m_vecSavedX;
+	std::vector<ie_imp_cell*> m_vecCells;
+	std::vector<UT_sint32>    m_vecCellX;
+	std::vector<UT_sint32>    m_vecSavedX;
 };
 
 class ABI_EXPORT ie_imp_table_control
@@ -340,9 +341,9 @@ public:
 	bool	           InlineFormat (const PP_PropertyVector & attributes);
 
 	bool	           Object (PTObjectType pto, const PP_PropertyVector & attributes);
-    void               padAllRowsWithCells(UT_GenericVector<CellHelper *> & vecCells,UT_sint32 extra);
-	void               padRowWithCells(UT_GenericVector<CellHelper *> & vecCells,UT_sint32 row, UT_sint32 extra);
-	CellHelper *       getCellAtRowCol(UT_GenericVector<CellHelper *> & vecCells, UT_sint32 row, UT_sint32 col) const;
+    void               padAllRowsWithCells(std::vector<CellHelper *> & vecCells,UT_sint32 extra);
+	void               padRowWithCells(std::vector<CellHelper *> & vecCells,UT_sint32 row, UT_sint32 extra);
+	CellHelper *       getCellAtRowCol(std::vector<CellHelper *> & vecCells, UT_sint32 row, UT_sint32 col) const;
     bool               setCaptionOn(void);
 	bool               setCaptionOff(void);
 	bool               tdEnd(void) const;
@@ -385,9 +386,9 @@ private:
 	UT_sint32			m_col_next;
 	UT_sint32			m_row_next;
 
-	UT_GenericVector<CellHelper *>	m_thead;
-	UT_GenericVector<CellHelper *>	m_tfoot;
-	UT_GenericVector<CellHelper *>	m_tbody;
+	std::vector<CellHelper *>	m_thead;
+	std::vector<CellHelper *>	m_tfoot;
+	std::vector<CellHelper *>	m_tbody;
 
 	CellHelper *		m_current;
 	TableZone			m_tzone;

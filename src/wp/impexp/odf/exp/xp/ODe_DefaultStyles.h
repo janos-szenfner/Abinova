@@ -26,6 +26,7 @@
 #include <string>
 
 // Abinova includes
+#include <vector>
 #include "ut_hash.h"
 
 class ODe_Style_Style;
@@ -36,7 +37,7 @@ class ODe_Style_Style;
 class ODe_DefaultStyles {
 public:
 
-	std::unique_ptr<UT_GenericVector<ODe_Style_Style*>> enumerate() const;
+	std::unique_ptr<std::vector<ODe_Style_Style*>> enumerate() const;
     ODe_Style_Style* getStyle(std::string family);
     void storeStyle(std::string family, ODe_Style_Style* pStyle);
 

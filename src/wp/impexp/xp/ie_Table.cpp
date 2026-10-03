@@ -39,7 +39,10 @@ current table via ie_Table::get* methods.
 #include <stdlib.h>
 #include <time.h>
 #include <locale.h>
+#include <algorithm>
 
+#include <string>
+#include <vector>
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
 #include "ut_string.h"
@@ -913,7 +916,8 @@ ie_imp_table::~ie_imp_table(void)
 	{
 		_removeAllStruxes();
 	}
-	UT_VECTOR_PURGEALL(ie_imp_cell *,m_vecCells);
+	for (ie_imp_cell * pCell : m_vecCells)
+		delete pCell;
 }
 
 /*!
@@ -923,12 +927,12 @@ UT_sint32 ie_imp_table::OpenCell(void)
 {
 	ie_imp_cell * pNewCell = new ie_imp_cell(this, m_pDoc,m_pCurImpCell,m_iRowCounter);
 	m_pCurImpCell = pNewCell;
-	m_vecCells.addItem(pNewCell);
+	m_vecCells.push_back(pNewCell);
 	UT_sint32 count =0;
-	UT_sint32 i = m_vecCells.getItemCount() - 1;
+	UT_sint32 i = static_cast<UT_sint32>(m_vecCells.size()) - 1;
 	while((pNewCell->getRow() == m_iRowCounter) && (i>= 0))
 	{
-		pNewCell = m_vecCells.getNthItem(i);
+		pNewCell = m_vecCells[i];
 		UT_nonnull_or_break(pNewCell);
 		if(pNewCell->getRow() == m_iRowCounter)
 		{
@@ -944,15 +948,15 @@ UT_sint32 ie_imp_table::OpenCell(void)
  * Returns a vector of pointers to cells on the requested row.
  * pVec should be empty initially.
  */
-bool ie_imp_table::getVecOfCellsOnRow(UT_sint32 row, UT_GenericVector<ie_imp_cell*> * pVec) const
+bool ie_imp_table::getVecOfCellsOnRow(UT_sint32 row, std::vector<ie_imp_cell*> * pVec) const
 {
 	UT_sint32 i = 0;
 	ie_imp_cell * pCell = nullptr;
 	bool bFound = false;
 	UT_sint32 iFound = 0;
-	for(i=0; !bFound && (i < m_vecCells.getItemCount()); i++)
+	for(i=0; !bFound && (i < static_cast<UT_sint32>(m_vecCells.size())); i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		if(pCell->getRow() == row)
 		{
@@ -965,9 +969,9 @@ bool ie_imp_table::getVecOfCellsOnRow(UT_sint32 row, UT_GenericVector<ie_imp_cel
 		return bFound;
 	}
 	bool bEnd = false;
-	for(i=iFound; !bEnd && (i<m_vecCells.getItemCount()); i++)
+	for(i=iFound; !bEnd && (i<static_cast<UT_sint32>(m_vecCells.size())); i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		if(pCell->getRow() != row)
 		{
@@ -975,7 +979,7 @@ bool ie_imp_table::getVecOfCellsOnRow(UT_sint32 row, UT_GenericVector<ie_imp_cel
 		}
 		else
 		{
-			pVec->addItem(pCell);
+			pVec->push_back(pCell);
 			xxx_UT_DEBUGMSG(("SEVIOR: Adding cell %d with cellx %d to row vec \n",i-iFound,pCell->getCellX()));
 		}
 	}
@@ -1024,14 +1028,14 @@ UT_sint32 ie_imp_table::NewRow(void)
 	{
 		ie_imp_cell * pCell = getNthCellOnRow(0);
 		ie_imp_cell * pPrevCell = nullptr;
-		UT_GenericVector<ie_imp_cell*> vecPrev;
-		UT_GenericVector<ie_imp_cell*> vecCur;
+		std::vector<ie_imp_cell*> vecPrev;
+		std::vector<ie_imp_cell*> vecCur;
 		vecPrev.clear();
 		vecCur.clear();
 		getVecOfCellsOnRow(m_iRowCounter-1, &vecPrev);
 		getVecOfCellsOnRow(m_iRowCounter, &vecCur);
-		UT_sint32 szPrevRow = vecPrev.getItemCount();
-		UT_sint32 szCurRow = vecCur.getItemCount();
+		UT_sint32 szPrevRow = static_cast<UT_sint32>(vecPrev.size());
+		UT_sint32 szCurRow = static_cast<UT_sint32>(vecCur.size());
 //
 // Look if this row is just a copy of the previous. We decide this if there
 // are no values of cellX set.
@@ -1039,7 +1043,7 @@ UT_sint32 ie_imp_table::NewRow(void)
 		UT_sint32 i =0;
 		for(i=0; i < szCurRow; i++)
 		{
-			pCell = vecCur.getNthItem(i);
+			pCell = vecCur[i];
 			if(pCell->getCellX() == -1)
 			{
 				if(i >= szPrevRow)
@@ -1052,7 +1056,7 @@ UT_sint32 ie_imp_table::NewRow(void)
 				}
 				else
 				{
-					pPrevCell = vecPrev.getNthItem(i);
+					pPrevCell = vecPrev[i];
 					pCell->copyCell(pPrevCell);
 				}
 			}
@@ -1064,14 +1068,14 @@ UT_sint32 ie_imp_table::NewRow(void)
 		UT_sint32 iMatch = 0;
 		for(i=0; i < szCurRow; i++)
 		{
-			pCell = vecCur.getNthItem(i);
+			pCell = vecCur[i];
 			UT_sint32 curX = pCell->getCellX();
 			UT_DEBUGMSG(("Cur cell %d cellx %d \n",i,curX));
 			bool bMatch = false;
 			UT_sint32 j = 0;
-			for(j=0; !bMatch && (j < m_vecCellX.getItemCount()); j++)
+			for(j=0; !bMatch && (j < static_cast<UT_sint32>(m_vecCellX.size())); j++)
 			{
-				UT_sint32 prevX = m_vecCellX.getNthItem(j);
+				UT_sint32 prevX = m_vecCellX[j];
 				UT_DEBUGMSG(("Prev cell %d cellx %d \n",j,prevX));
 				bool bLast = ((j-1) == szCurRow);
 				bMatch =  doCellXMatch(prevX,curX,bLast);
@@ -1122,9 +1126,9 @@ void ie_imp_table::setCellRowNthCell(UT_sint32 row, UT_sint32 col)
 	ie_imp_cell * pCell = nullptr;
 	UT_sint32 ColCount = 0;
 	bool bFound = false;
-	for(i=0; !bFound && (i < m_vecCells.getItemCount()); i++)
+	for(i=0; !bFound && (i < static_cast<UT_sint32>(m_vecCells.size())); i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		if(pCell->getRow() == row)
 		{
@@ -1221,9 +1225,9 @@ void ie_imp_table::writeTablePropsInDoc(void)
 //
 		std::string sColWidth;
 		sColWidth.clear();
-		for(i=0; i< m_vecCellX.getItemCount(); i++)
+		for(i=0; i< static_cast<UT_sint32>(m_vecCellX.size()); i++)
 		{
-			UT_sint32 iCellx = m_vecCellX.getNthItem(i);
+			UT_sint32 iCellx = m_vecCellX[i];
 			xxx_UT_DEBUGMSG(("final cellx import cellx %d iPrev %x \n",iCellx,iPrev));
 			UT_sint32 iDiffCellx = iCellx - iPrev;
 			double dCellx = static_cast<double>(iDiffCellx)/1440.0 -dColSpace;
@@ -1248,9 +1252,9 @@ void ie_imp_table::writeAllCellPropsInDoc(void)
 #if DEBUG
 	ie_imp_cell * pOldCell = nullptr;
 #endif
-	for(i=0; i< m_vecCells.getItemCount();i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecCells.size());i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		if(!pCell->isMergedAbove() && !pCell->isMergedRight() && !pCell->isMergedLeft())
 		{
@@ -1390,7 +1394,7 @@ void ie_imp_table::setNthCellOnThisRow(UT_sint32 iCell)
 }
 
 /*!
- * This static function is used to compare CellX's for the sort method of UT_NumberVector
+ * This static function is used to compare CellX's for the sort method of m_vecCellX
 \param x1 a CellX value.
 \param x2 a second CellX value
 */
@@ -1408,16 +1412,16 @@ void ie_imp_table::_buildCellXVector(void)
 	m_vecCellX.clear();
 	UT_sint32 i =0;
 	ie_imp_cell * pCell = nullptr;
-	for(i=0; i< m_vecCells.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecCells.size()); i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_sint32 cellx = pCell->getCellX();
-		if(m_vecCellX.findItem(cellx) < 0)
+		if(std::find(m_vecCellX.begin(), m_vecCellX.end(), cellx) == m_vecCellX.end())
 		{
-			m_vecCellX.addItem(cellx);
+			m_vecCellX.push_back(cellx);
 		}
 	}
-	m_vecCellX.sort(compareCellX);
+	std::sort(m_vecCellX.begin(), m_vecCellX.end(), compareCellX);
 }
 
 /*!
@@ -1430,9 +1434,9 @@ UT_sint32 ie_imp_table::getColNumber(ie_imp_cell * pImpCell) const
 	bool bFound = false;
 	UT_sint32 iFound = 0;
 	UT_sint32 iSub = 0;
-	for(i=0; !bFound && (i< m_vecCellX.getItemCount()); i++)
+	for(i=0; !bFound && (i< static_cast<UT_sint32>(m_vecCellX.size())); i++)
 	{
-		UT_sint32 icellx = m_vecCellX.getNthItem(i);
+		UT_sint32 icellx = m_vecCellX[i];
 		if(icellx == -1)
 		{
 			iSub++;
@@ -1456,9 +1460,9 @@ ie_imp_cell *  ie_imp_table::getCellAtRowColX(UT_sint32 iRow,UT_sint32 cellX) co
 	UT_sint32 i = 0;
 	ie_imp_cell * pCell = nullptr;
 	bool bfound = false;
-	for(i=0; i< m_vecCells.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecCells.size()); i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_sint32 icellx = pCell->getCellX();
 		if(doCellXMatch(icellx,cellX) && (pCell->getRow() == iRow))
 		{
@@ -1499,10 +1503,10 @@ void ie_imp_table::buildTableStructure(void)
 	UT_sint32 iTop=0;
 	UT_sint32 iBot=0;
 
-	for(i=0; i< m_vecCells.getItemCount(); i++)
+	for(i=0; i< static_cast<UT_sint32>(m_vecCells.size()); i++)
 	{
 		bool bSkipThis = false;
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		//cellx = pCell->getCellX();
 		if(i==0 || (pCell->getRow() > curRow))
 		{
@@ -1590,9 +1594,9 @@ UT_sint32  ie_imp_table::getNumRows(void) const
 	UT_sint32 numrows = 0;
 	UT_sint32 i =0;
 	ie_imp_cell * pCell = nullptr;
-	for(i= m_vecCells.getItemCount() -1; i >=0 ; i--)
+	for(i= static_cast<UT_sint32>(m_vecCells.size()) -1; i >=0 ; i--)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		if(pCell->getRow() > numrows)
 		{
@@ -1620,9 +1624,9 @@ void ie_imp_table::deleteRow(UT_sint32 row)
 	ie_imp_cell * pCell = nullptr;
 	UT_DEBUGMSG(("Deleting row %d \n",row));
 	m_iPosOnRow = 0;
-	for(i= m_vecCells.getItemCount() -1; i>=0; i--)
+	for(i= static_cast<UT_sint32>(m_vecCells.size()) -1; i>=0; i--)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		UT_DEBUGMSG(("Look at Cell %d row %d cellx %d \n",i,pCell->getRow(),pCell->getCellX()));
 		if(pCell->getRow() == row)
@@ -1652,10 +1656,10 @@ void ie_imp_table::deleteRow(UT_sint32 row)
 				}
 			}
 			delete pCell;
-			m_vecCells.deleteNthItem(i);
+			m_vecCells.erase(m_vecCells.begin() + i);
 		}
 	}
-	if( 0 == m_vecCells.getItemCount())
+	if(m_vecCells.empty())
 	{
 		m_bTableUsed = false;
 	}
@@ -1713,14 +1717,14 @@ void ie_imp_table::removeExtraneousCells(void)
 {
 	UT_sint32 i =0;
 	ie_imp_cell * pCell = nullptr;
-	for(i= m_vecCells.getItemCount() -1; i >=0 ; i--)
+	for(i= static_cast<UT_sint32>(m_vecCells.size()) -1; i >=0 ; i--)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		if(pCell->getCellX() == -1 && (pCell->getCellStrux() != nullptr))
 		{
 			m_pDoc->deleteStruxNoUpdate(pCell->getCellStrux());
 			delete pCell;
-			m_vecCells.deleteNthItem(i);
+			m_vecCells.erase(m_vecCells.begin() + i);
 		}
 	}
 }
@@ -1734,9 +1738,9 @@ void ie_imp_table::_removeAllStruxes(void)
 {
 	UT_sint32 i =0;
 	ie_imp_cell * pCell = nullptr;
-	for(i= m_vecCells.getItemCount() -1; i >=0 ; i--)
+	for(i= static_cast<UT_sint32>(m_vecCells.size()) -1; i >=0 ; i--)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		if(pCell->getCellStrux())
 		{
 			UT_DEBUGMSG(("SEVIOR: Removing cell strux %p from PT \n", static_cast<void*>(pCell->getCellStrux()))); 
@@ -1760,9 +1764,9 @@ bool ie_imp_table::removeRow(UT_sint32 row)
 	UT_sint32 iFound =0;
 	bool bFound = false;
 	ie_imp_cell * pCell = nullptr;
-	for(i=0; !bFound &&  (i< m_vecCells.getItemCount()); i++)
+	for(i=0; !bFound &&  (i< static_cast<UT_sint32>(m_vecCells.size())); i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		bFound = (pCell->getRow() == row);
 		iFound = i;
@@ -1772,13 +1776,13 @@ bool ie_imp_table::removeRow(UT_sint32 row)
 		return false;
 	}
 	i = iFound;
-	while(pCell != nullptr && i < m_vecCells.getItemCount())
+	while(pCell != nullptr && i < static_cast<UT_sint32>(m_vecCells.size()))
 	{
 		xxx_UT_DEBUGMSG(("SEVIOR: Removing cell %p from row %d \n",pCell,row));
-		m_vecCells.deleteNthItem(i);
-		if(i<m_vecCells.getItemCount())
+		m_vecCells.erase(m_vecCells.begin() + i);
+		if(i<static_cast<UT_sint32>(m_vecCells.size()))
 		{
-			pCell = m_vecCells.getNthItem(i);
+			pCell = m_vecCells[i];
 			UT_nonnull_or_continue(pCell);
 			if(pCell->getRow() != row)
 			{
@@ -1793,7 +1797,7 @@ bool ie_imp_table::removeRow(UT_sint32 row)
  * Append the row of cells given by the vector pVecRowOfCells to the current
  * table, adjusting hte table pointer and row in the cell classes
  */
-void ie_imp_table::appendRow(UT_GenericVector<ie_imp_cell*>* pVecRowOfCells)
+void ie_imp_table::appendRow(std::vector<ie_imp_cell*>* pVecRowOfCells)
 {
 	UT_sint32 iNew =0;
 	if(m_iRowCounter > 0)
@@ -1801,15 +1805,12 @@ void ie_imp_table::appendRow(UT_GenericVector<ie_imp_cell*>* pVecRowOfCells)
 		m_iRowCounter++;
 		iNew = m_iRowCounter;
 	}
-	UT_sint32 i =0;
-	ie_imp_cell * pCell = nullptr;
-	for(i=0; i <pVecRowOfCells->getItemCount(); i++)
+	for (ie_imp_cell * pCell : *pVecRowOfCells)
 	{
-		pCell = pVecRowOfCells->getNthItem(i);
 		UT_nonnull_or_continue(pCell);
 		pCell->setImpTable(this);
 		pCell->setRow(iNew);
-		m_vecCells.addItem(pCell);
+		m_vecCells.push_back(pCell);
 	}
 }
 
@@ -1824,9 +1825,9 @@ ie_imp_cell * ie_imp_table::getNthCellOnRow(UT_sint32 iCell) const
 	UT_sint32 iCellOnRow =0;
 	UT_sint32 i=0;
 	bool bFound = false;
-	for(i=0; !bFound &&  (i< m_vecCells.getItemCount()); i++)
+	for(i=0; !bFound &&  (i< static_cast<UT_sint32>(m_vecCells.size())); i++)
 	{
-		pCell = m_vecCells.getNthItem(i);
+		pCell = m_vecCells[i];
 		UT_nonnull_or_continue(pCell);
 		if(pCell->getRow() == m_iRowCounter)
 		{
@@ -1934,8 +1935,7 @@ bool ie_imp_table_control::NewRow(void)
 // to the previous. So slice off this row, close the table and open a new 
 // table with this row as the first row.
 //
-	UT_GenericVector<ie_imp_cell*> vecRow;
-	vecRow.clear();
+	std::vector<ie_imp_cell*> vecRow;
 	UT_sint32 row = getTable()->getRow();
     UT_ASSERT_HARMLESS(row>0);
 	bool bres = true;
@@ -1944,7 +1944,7 @@ bool ie_imp_table_control::NewRow(void)
 	{
 		return bres;
 	}
-	UT_DEBUGMSG(("Number of cells on row %d \n",vecRow.getItemCount()));
+	UT_DEBUGMSG(("Number of cells on row %d \n",static_cast<int>(vecRow.size())));
 	//	UT_ASSERT(0);
 //
 // Got last row, now remove it.
@@ -1958,9 +1958,9 @@ bool ie_imp_table_control::NewRow(void)
 	ie_imp_cell * pCell = nullptr;
 	bool bFound = false;
 	bool bAuto = false;
-	for(i=0; i < vecRow.getItemCount() && !bFound;i++)
+	for(i=0; i < static_cast<UT_sint32>(vecRow.size()) && !bFound;i++)
 	{
-		pCell = vecRow.getNthItem(i);
+		pCell = vecRow[i];
 		if(pCell->getCellStrux())
 		{
 			bFound = true;
@@ -2055,18 +2055,12 @@ IE_Imp_TableHelper::IE_Imp_TableHelper (PD_Document * pDocument, pf_Frag_Strux *
 
 IE_Imp_TableHelper::~IE_Imp_TableHelper ()
 {
-	if(m_thead.getItemCount() > 0)
-	{
-		UT_VECTOR_PURGEALL(CellHelper *, m_thead);
-	}
-	if(m_tfoot.getItemCount() > 0)
-	{
-		UT_VECTOR_PURGEALL(CellHelper *, m_tfoot);
-	}
-	if(m_tbody.getItemCount() > 0)
-	{
-		UT_VECTOR_PURGEALL(CellHelper *, m_tbody);
-	}
+	for (CellHelper * pCell : m_thead)
+		delete pCell;
+	for (CellHelper * pCell : m_tfoot)
+		delete pCell;
+	for (CellHelper * pCell : m_tbody)
+		delete pCell;
 }
 
 bool IE_Imp_TableHelper::tableStart (void)
@@ -2256,17 +2250,17 @@ bool IE_Imp_TableHelper::trEnd ()
 	return true;
 }
 
-void IE_Imp_TableHelper::padAllRowsWithCells(UT_GenericVector<CellHelper *> & vecCells,UT_sint32 extra)
+void IE_Imp_TableHelper::padAllRowsWithCells(std::vector<CellHelper *> & vecCells,UT_sint32 extra)
 {
 	UT_sint32 LastRow = 0;
-	if(vecCells.getItemCount() == 0)
+	if(vecCells.empty())
 		{
 			return;
 		}
-	CellHelper * pCell = vecCells.getNthItem(0);
+	CellHelper * pCell = vecCells[0];
 	UT_nonnull_or_return(pCell,);
 	UT_sint32 FirstRow = pCell->m_top;
-	pCell = static_cast<CellHelper *>(vecCells.getNthItem(vecCells.getItemCount()-1));
+	pCell = vecCells.back();
 	UT_nonnull_or_return(pCell,);
 	LastRow = pCell->m_top;
 	UT_sint32 i = 0;
@@ -2280,14 +2274,14 @@ void IE_Imp_TableHelper::padAllRowsWithCells(UT_GenericVector<CellHelper *> & ve
  * Pad out the supplied row with the requested number of cells at the end of 
  * the vector.
  */
-void IE_Imp_TableHelper::padRowWithCells(UT_GenericVector<CellHelper *>& vecCells,UT_sint32 row, UT_sint32 extra)
+void IE_Imp_TableHelper::padRowWithCells(std::vector<CellHelper *>& vecCells,UT_sint32 row, UT_sint32 extra)
 {
 	CellHelper * pCell = nullptr;
 	UT_sint32 i =0;
 	bool bFoundRow = false;
-	for(i= vecCells.getItemCount()-1; i>=0;i--)
+	for(i= static_cast<UT_sint32>(vecCells.size())-1; i>=0;i--)
 		{
-			pCell = vecCells.getNthItem(i);
+			pCell = vecCells[i];
 			UT_nonnull_or_continue(pCell);
 			if(pCell->m_top == row)
 				{
@@ -2329,13 +2323,13 @@ void IE_Imp_TableHelper::padRowWithCells(UT_GenericVector<CellHelper *>& vecCell
  * Get a cellHelper at the specified row and column. Return nullptr if none found.
  * Optimized to find or not find cells near the end of the specifed vector.
  */
-CellHelper * IE_Imp_TableHelper::getCellAtRowCol(UT_GenericVector<CellHelper *> & vecCells, UT_sint32 row, UT_sint32 col) const
+CellHelper * IE_Imp_TableHelper::getCellAtRowCol(std::vector<CellHelper *> & vecCells, UT_sint32 row, UT_sint32 col) const
 {
 	CellHelper * pCell = nullptr;
 	UT_sint32 i =0;
-	for(i=vecCells.getItemCount()-1; i>=0;i--)
+	for(i=static_cast<UT_sint32>(vecCells.size())-1; i>=0;i--)
 		{
-			pCell = vecCells.getNthItem(i);
+			pCell = vecCells[i];
 			UT_nonnull_or_continue(pCell);
 			if((pCell->m_left <= col) && (pCell->m_right > col) && (pCell->m_top == row))
 				{
@@ -2388,7 +2382,7 @@ bool IE_Imp_TableHelper::tdEnd(void) const
 	m_current->m_bottom = m_row_next+rowspan;
 	m_current->m_sCellProps = "";
 	m_current->m_tzone = m_tzone;
-	UT_GenericVector<CellHelper *>* pVecCells = nullptr;
+	std::vector<CellHelper *>* pVecCells = nullptr;
 	pCell = nullptr;
 	if(true)
 		{
@@ -2460,21 +2454,21 @@ bool IE_Imp_TableHelper::tdEnd(void) const
 		}
 	if(pPrev == nullptr)
 		{
-			pVecCells->addItem(m_current);
+			pVecCells->push_back(m_current);
 			return true;
 		}
-	UT_sint32 iPrev = pVecCells->findItem(pPrev);
-	if(iPrev < 0)
+	auto itPrev = std::find(pVecCells->begin(), pVecCells->end(), pPrev);
+	if(itPrev == pVecCells->end())
 		{
-			pVecCells->addItem(m_current);
+			pVecCells->push_back(m_current);
 			return false;
 		}
-	if(iPrev == pVecCells->getItemCount())
+	if(itPrev + 1 == pVecCells->end())
 		{
-			pVecCells->addItem(m_current);
+			pVecCells->push_back(m_current);
 			return true;
 		}
-	pVecCells->insertItemAt(m_current, iPrev+1);
+	pVecCells->insert(itPrev + 1, m_current);
 	return true;
 }
 

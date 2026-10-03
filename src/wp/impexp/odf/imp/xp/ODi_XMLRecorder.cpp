@@ -60,7 +60,7 @@ void ODi_XMLRecorder::startElement (const gchar* pName,
         strcpy(pCall->m_ppAtts[i], ppAtts[i]);
     }
 
-    m_XMLCalls.addItem(pCall);
+    m_XMLCalls.push_back(pCall);
 }
 
 
@@ -76,7 +76,7 @@ void ODi_XMLRecorder::endElement (const gchar* pName) {
     pCall->m_pName = new gchar[strlen(pName)+1];
     strcpy(pCall->m_pName, pName);
     
-    m_XMLCalls.addItem(pCall);
+    m_XMLCalls.push_back(pCall);
 }
 
 
@@ -93,7 +93,7 @@ void ODi_XMLRecorder::charData (const gchar* pBuffer, int length) {
     
     pCall->m_length = length;
     
-    m_XMLCalls.addItem(pCall);
+    m_XMLCalls.push_back(pCall);
 }
 
 
@@ -101,7 +101,7 @@ void ODi_XMLRecorder::charData (const gchar* pBuffer, int length) {
  *
  */
 void ODi_XMLRecorder::clear() {
-    UT_VECTOR_PURGEALL(XMLCall*, m_XMLCalls);
+    for (XMLCall* _utv_p : m_XMLCalls) { if (_utv_p) delete(_utv_p); };
     m_XMLCalls.clear();
 }
 

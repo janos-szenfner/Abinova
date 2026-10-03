@@ -1,6 +1,7 @@
 #ifndef IE_TOC_H
 #define IE_TOC_H
 
+#include <vector>
 #include "ut_string_class.h"
 #include "ut_vector.h"
 #include "pt_Types.h"
@@ -40,11 +41,11 @@ class ABI_EXPORT IE_TOCHelper
   IE_TOCHelper& operator=(const IE_TOCHelper & rhs);
 
   // storage
-  UT_GenericVector<UT_UTF8String *> mTOCStrings;
-  UT_GenericVector<int> mTOCLevels;
+  std::vector<UT_UTF8String *> mTOCStrings;
+  std::vector<int> mTOCLevels;
   // By adding this vector we making it possible to get ranges of every
   // section of a document by using TOCHelper
-  UT_GenericVector<PT_DocPosition> mTOCPositions;
+  std::vector<PT_DocPosition> mTOCPositions;
 
   bool mHasTOC;
   bool mDocHasTOC;

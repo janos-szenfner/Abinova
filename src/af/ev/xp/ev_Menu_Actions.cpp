@@ -126,16 +126,11 @@ EV_Menu_ActionSet::EV_Menu_ActionSet(XAP_Menu_Id first, XAP_Menu_Id last)
 	: m_actionTable(last - first + 1),
 	  m_first(first)
 {
-	size_t nb_items = last - first + 1;
-	size_t i;
-	
-	for (i = 0; i < nb_items; ++i)
-		m_actionTable.addItem(nullptr);
 }
 
 EV_Menu_ActionSet::~EV_Menu_ActionSet()
 {
-	UT_VECTOR_SPARSEPURGEALL(EV_Menu_Action *, m_actionTable);
+	for (EV_Menu_Action * _utv_p : m_actionTable) { if (_utv_p) delete(_utv_p); };
 }
 
 bool EV_Menu_ActionSet::setAction(XAP_Menu_Id id,
@@ -156,16 +151,17 @@ bool EV_Menu_ActionSet::setAction(XAP_Menu_Id id,
 	UT_uint32 index = (id - m_first);
 	EV_Menu_Action *pAction = new EV_Menu_Action(id, bHoldsSubMenu, bRaisesDialog, bCheckable, bRadio,
 												 szMethodName, pfnGetState, pfnGetLabel, stScriptName);
-	UT_uint32 error = m_actionTable.setNthItem(index, pAction, &pTmpAction);
+	pTmpAction = m_actionTable[index];
+	m_actionTable[index] = pAction;
 
 	DELETEP(pTmpAction);
-	return (error == 0);
+	return true;
 }
 
 const EV_Menu_Action * EV_Menu_ActionSet::getAction(XAP_Menu_Id id) const
 {
 	xxx_UT_DEBUGMSG(("JCA: EV_Menu_ActionSet::getAction(%d) m_first = [%d], size_table = [%d]\n", id, m_first, m_actionTable.size()));
-	if ((id < m_first) || (id > m_first + static_cast<UT_sint32>(m_actionTable.size())))
+	if ((id < m_first) || (id >= m_first + static_cast<UT_sint32>(m_actionTable.size())))
 		return nullptr;
 
 	UT_uint32 index = (id - m_first);
@@ -187,6 +183,9 @@ bool EV_Menu_ActionSet::addAction(EV_Menu_Action *pAction)
 			|| pAction->getMenuId() > static_cast<UT_sint32>(size_table) + m_first)
 		UT_DEBUGMSG(("WARNING: Weird menu id.\n"));
 #endif
-	m_actionTable.insertItemAt(pAction, pAction->getMenuId() - m_first);
-	return (size_table + 1 == m_actionTable.size());
+	UT_sint32 pos = pAction->getMenuId() - m_first;
+	if (pos < 0 || pos > size_table)
+		return false;
+	m_actionTable.insert(m_actionTable.begin() + pos, pAction);
+	return (size_table + 1 == static_cast<UT_sint32>(m_actionTable.size()));
 }

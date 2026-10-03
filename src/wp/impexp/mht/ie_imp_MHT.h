@@ -27,15 +27,16 @@
 
 #include <stdio.h>
 
+#include <map>
+#include <string>
+#include <vector>
+
 #include "ut_string.h"
 #include "ut_raii.h"
 
 #include "ie_imp_XHTML.h"
 
 #define IE_MIMETYPE_RELATED			"multipart/related"
-
-//class UT_StringPtrMap;
-//class UT_Vector;
 
 class UT_Multipart
 {
@@ -95,7 +96,7 @@ private:
 	bool				append_Base64 (const char * buffer, UT_uint32 length);
 	bool				append_Quoted (const char * buffer, UT_uint32 length);
 
-	UT_StringPtrMap *	m_map;
+	std::map<std::string, char *>	m_map;
 	UT_ByteBufPtr		m_buf;
 
 	const char *		m_location;
@@ -156,7 +157,7 @@ private:
 	bool			loadPartBody (UT_Multipart * part);
 
 	UT_Multipart *	m_document;
-	UT_Vector *		m_parts;
+	std::vector<UT_Multipart *>	m_parts;
 	UT_GsfInputPtr	m_input;	// archive input — part bodies are ranges into it
 };
 

@@ -35,6 +35,8 @@
 #include <gsf/gsf.h>
 
 // Internal includes
+#include <utility>
+#include <vector>
 #include "../../common/xp/ODc_util.h"
 #include "ODi_ListenerState.h"
 
@@ -178,8 +180,8 @@ private:
      * correctly.
      */
     // It's weird, but a document may actually have several TOCs.
-    UT_GenericVector<pf_Frag_Strux*> m_tablesOfContent;
-    UT_GenericVector<std::string*> m_tablesOfContentProps;
+    std::vector<pf_Frag_Strux*> m_tablesOfContent;
+    std::vector<std::string*> m_tablesOfContentProps;
     // Maps a heading level with its style name
     // e.g.: "1" -> "Heading_20_1"
     std::map<std::string, std::string> m_headingStyles;

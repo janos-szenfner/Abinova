@@ -24,6 +24,7 @@
 #include <vector>
 
 // Class definition include
+#include <memory>
 #include "ODe_Styles.h"
 
 // Internal includes
@@ -47,18 +48,12 @@ ODe_Styles::ODe_Styles(PD_Document* pAbiDoc)
  * Destructor
  */
 ODe_Styles::~ODe_Styles() {
-    UT_uint32 i, count;
-
-    auto pStyleVector = m_textStyles.enumerate();
-    count = pStyleVector->getItemCount();
-    for (i=0; i<count; i++) {
-        delete (*pStyleVector)[i];
+    for (auto& kv : m_textStyles) {
+        delete kv.second;
     }
 
-    pStyleVector = m_paragraphStyles.enumerate();
-    count = pStyleVector->getItemCount();
-    for (i=0; i<count; i++) {
-        delete (*pStyleVector)[i];
+    for (auto& kv : m_paragraphStyles) {
+        delete kv.second;
     }
 }
 
@@ -127,7 +122,7 @@ bool ODe_Styles::fetchRegularStyleStyles() {
 
 void ODe_Styles::addGraphicsStyle(ODe_Style_Style* pStyle)
 {
-    m_graphicStyles.insert(pStyle->getName().utf8_str(), pStyle);
+    m_graphicStyles.emplace(pStyle->getName().utf8_str(), pStyle);
 }
 
 /**
@@ -173,13 +168,13 @@ bool ODe_Styles::_addStyle(const PP_AttrProp* pAP) {
         
         pStyle = new ODe_Style_Style();
         pStyle->setFamily("paragraph");
-        m_paragraphStyles.insert(pName, pStyle);
+        m_paragraphStyles.emplace(pName, pStyle);
         
     } else if( !strcmp(pType, "C") ) {
         
         pStyle = new ODe_Style_Style();
         pStyle->setFamily("text");
-        m_textStyles.insert(pName, pStyle);
+        m_textStyles.emplace(pName, pStyle);
         
     } else {
         return false;
@@ -200,9 +195,9 @@ bool ODe_Styles::write(GsfOutput* pODT) const {
     output.clear();
 
     UT_return_val_if_fail(_writeStyles(pODT, m_defaultStyles.enumerate()), false);
-	UT_return_val_if_fail(_writeStyles(pODT, m_textStyles.enumerate()), false);
-	UT_return_val_if_fail(_writeStyles(pODT, m_paragraphStyles.enumerate()), false);
-	UT_return_val_if_fail(_writeStyles(pODT, m_graphicStyles.enumerate()), false);
+	UT_return_val_if_fail(_writeStyles(pODT, _mapValues(m_textStyles)), false);
+	UT_return_val_if_fail(_writeStyles(pODT, _mapValues(m_paragraphStyles)), false);
+	UT_return_val_if_fail(_writeStyles(pODT, _mapValues(m_graphicStyles)), false);
     
     output += " </office:styles>\n";
     ODe_writeUTF8String(pODT, output);
@@ -211,9 +206,9 @@ bool ODe_Styles::write(GsfOutput* pODT) const {
     return true;
 }
 
-bool ODe_Styles::_writeStyles(GsfOutput* pODT, const std::unique_ptr<UT_GenericVector<ODe_Style_Style*>>& pStyleVector) const
+bool ODe_Styles::_writeStyles(GsfOutput* pODT, const std::unique_ptr<std::vector<ODe_Style_Style*>>& pStyleVector) const
 {
-    for (UT_sint32 i = 0; i < pStyleVector->getItemCount(); i++) {
+    for (UT_sint32 i = 0; i < pStyleVector->size(); i++) {
         ODe_Style_Style* pStyle = (*pStyleVector)[i];
         if (!pStyle->write(pODT, "  "))
             return false;

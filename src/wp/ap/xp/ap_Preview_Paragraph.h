@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <vector>
 #include "ut_misc.h"
 #include "ut_types.h"
 #include "ut_vector.h"
@@ -81,8 +82,8 @@ class ABI_EXPORT AP_Preview_Paragraph_Block
 	// when a string is set, we break it into words for
 	// easy layout, and store the word content (UT_UCS4Char *)
 	// and its measured length in pixels (UT_uint32)
-	UT_GenericVector<UT_UCS4Char *> m_words;
-	UT_NumberVector m_widths;
+	std::vector<UT_UCS4Char *> m_words;
+	std::vector<UT_sint32> m_widths;
 };
 
 class ABI_EXPORT AP_Preview_Paragraph : public XAP_Preview
@@ -131,8 +132,8 @@ class ABI_EXPORT AP_Preview_Paragraph : public XAP_Preview
 	virtual void 	_drawPageBackground(void);
 	virtual void	_drawPageBorder(void);
 	virtual void 	_appendBlock(AP_Preview_Paragraph_Block * block);
-	virtual UT_uint32 _appendLine(UT_GenericVector<UT_UCS4Char *> * words,
-								  UT_NumberVector * widths,
+	virtual UT_uint32 _appendLine(std::vector<UT_UCS4Char *> * words,
+								  std::vector<UT_sint32> * widths,
 								  UT_uint32 startWithWord,
 								  UT_uint32 left,
 								  UT_uint32 right,

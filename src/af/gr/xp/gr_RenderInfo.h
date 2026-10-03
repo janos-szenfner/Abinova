@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "gr_Graphics.h"
@@ -132,24 +133,24 @@ class ABI_EXPORT GR_Itemization
 										 // items, they get passed on
 										 // to the runs
 
-	UT_sint32       getItemCount() const {return m_vOffsets.getItemCount();}
-	UT_sint32       getNthOffset(UT_sint32 i) const {return m_vOffsets.getNthItem(i);}
+	UT_sint32       getItemCount() const {return m_vOffsets.size();}
+	UT_sint32       getNthOffset(UT_sint32 i) const {return m_vOffsets[i];}
 	GR_ScriptType   getNthType(UT_sint32 i) const
-	                   {return m_vItems.getNthItem(i)->getType();}
+	                   {return m_vItems[i]->getType();}
 
 	UT_uint32       getNthLength(UT_sint32 i)
 	                   {
-						  UT_return_val_if_fail(i < m_vOffsets.getItemCount()-1, 0);
-						  return m_vOffsets.getNthItem(i+1) - m_vOffsets.getNthItem(i);
+						  UT_return_val_if_fail(i < m_vOffsets.size()-1, 0);
+						  return m_vOffsets[i+1] - m_vOffsets[i];
 					   }
 
-	GR_Item *       getNthItem(UT_sint32 i) const {return m_vItems.getNthItem(i);}
+	GR_Item *       getNthItem(UT_sint32 i) const {return m_vItems[i];}
 
 	void            addItem(UT_sint32 offset, GR_Item *item)
-	                    { m_vOffsets.addItem(offset); m_vItems.addItem(item);}
+	                    { m_vOffsets.push_back(offset); m_vItems.push_back(item);}
 
 	void            insertItem(UT_sint32 indx, UT_sint32 offset, GR_Item *item)
-	                    { m_vOffsets.insertItemAt(offset, indx); m_vItems.insertItemAt(item,indx);}
+	                    { m_vOffsets.insert(m_vOffsets.begin()+indx, offset); m_vItems.insert(m_vItems.begin()+indx, item);}
 
 	void            clear();
 
@@ -169,8 +170,8 @@ class ABI_EXPORT GR_Itemization
 	const GR_Font * getFont()const {return m_pFont;}
 
   private:
-	UT_NumberVector m_vOffsets;
-	UT_GenericVector<GR_Item*>  m_vItems;
+	std::vector<UT_sint32> m_vOffsets;
+	std::vector<GR_Item*>  m_vItems;
 
 	UT_uint32       m_iEmbedingLevel;
 	UT_BidiCharType m_iDirOverride;

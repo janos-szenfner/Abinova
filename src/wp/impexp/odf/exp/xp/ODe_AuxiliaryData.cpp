@@ -46,7 +46,7 @@ ODe_AuxiliaryData::~ODe_AuxiliaryData() {
  * 
  */
 ODe_HeadingStyles::~ODe_HeadingStyles() {
-    UT_VECTOR_PURGEALL(UT_UTF8String*, m_styleNames);
+    for (UT_UTF8String* _utv_p : m_styleNames) { if (_utv_p) delete(_utv_p); };
 }
 
 
@@ -59,9 +59,9 @@ UT_uint8 ODe_HeadingStyles::getHeadingOutlineLevel(
     UT_sint32 i;
     UT_uint8 outlineLevel = 0;
     
-    UT_ASSERT(m_styleNames.getItemCount() == m_outlineLevels.getItemCount());
+    UT_ASSERT(m_styleNames.size() == m_outlineLevels.size());
     
-    for (i=0; i<m_styleNames.getItemCount() && outlineLevel==0; i++) {
+    for (i=0; i<m_styleNames.size() && outlineLevel==0; i++) {
         
         if (*(m_styleNames[i]) == rStyleName) {
             outlineLevel = m_outlineLevels[i];
@@ -78,6 +78,6 @@ UT_uint8 ODe_HeadingStyles::getHeadingOutlineLevel(
 void ODe_HeadingStyles::addStyleName(const gchar* pStyleName,
                                     UT_uint8 outlineLevel) {
 
-    m_styleNames.addItem(new UT_UTF8String(pStyleName));
-    m_outlineLevels.addItem(outlineLevel);
+    m_styleNames.push_back(new UT_UTF8String(pStyleName));
+    m_outlineLevels.push_back(outlineLevel);
 }

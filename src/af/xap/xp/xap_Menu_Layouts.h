@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <vector>
 #include "ev_Menu_Layouts.h"
 /* #include "ev_Menu_Labels.h" */
 #include "ev_EditBits.h"
@@ -44,7 +45,7 @@ public:
 
 private:
 
-  UT_GenericVector<_vectt *> m_vecTT;
+  std::vector<_vectt *> m_vecTT;
   XAP_App * m_pApp;
   EV_Menu_LabelSet * m_pLabelSet;
 };

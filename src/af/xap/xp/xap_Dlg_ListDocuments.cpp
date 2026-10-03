@@ -72,7 +72,7 @@ AD_Document * XAP_Dialog_ListDocuments::getDocument(void) const
 
 	if (m_pApp && (m_ndxSelDoc >= 0))
 	{
-		return const_cast<AD_Document *>(static_cast<const AD_Document*>(m_vDocs.getNthItem(m_ndxSelDoc)));
+		return m_vDocs[m_ndxSelDoc];
 	}
 
 	return nullptr;
@@ -80,16 +80,16 @@ AD_Document * XAP_Dialog_ListDocuments::getDocument(void) const
 
 void XAP_Dialog_ListDocuments::_setSelDocumentIndx(UT_sint32 i)
 {
-	UT_return_if_fail(i <= m_vDocs.getItemCount());
+	UT_return_if_fail(i <= static_cast<UT_sint32>(m_vDocs.size()));
 	m_ndxSelDoc = i;
 }
 
 const char * XAP_Dialog_ListDocuments::_getNthDocumentName(UT_sint32 n) const
 {
-	if(n >= m_vDocs.getItemCount())
+	if(n >= static_cast<UT_sint32>(m_vDocs.size()))
 		return nullptr;
 
-	const AD_Document * pDoc = static_cast<const AD_Document *>(m_vDocs.getNthItem(n));
+	const AD_Document * pDoc = m_vDocs[n];
 
 	if(!pDoc)
 		return nullptr;

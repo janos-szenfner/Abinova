@@ -21,6 +21,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
 #include "config.h"
 #endif
 
@@ -68,10 +69,10 @@ XAP_FrameImpl::~XAP_FrameImpl(void)
 	FREEP(m_szMenuLayoutName);
 	FREEP(m_szMenuLabelSetName);
 
-	UT_VECTOR_FREEALL(char *,m_vecToolbarLayoutNames);	
+	m_vecToolbarLayoutNames.clear();
 	FREEP(m_szToolbarLabelSetName);
 	FREEP(m_szToolbarAppearance);
-	UT_VECTOR_PURGEALL(EV_Toolbar *, m_vecToolbars);
+	for (EV_Toolbar * _utv_p : m_vecToolbars) { if (_utv_p) delete(_utv_p); };
 }
 
 void XAP_FrameImpl::notifyViewChanged(AV_View * )

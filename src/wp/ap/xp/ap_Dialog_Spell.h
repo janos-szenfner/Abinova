@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <map>
+#include <string>
+#include <vector>
 #include "xap_Frame.h"
 #include "xap_Dialog.h"
 #include "fv_View.h"
@@ -72,9 +75,9 @@ class ABI_EXPORT AP_Dialog_Spell : public XAP_Dialog_NonPersistent
    // true if we're checking just a selction rather than entire doc
    bool m_bIsSelection;
 
-   // change/ignore all hash tables
-   UT_GenericStringMap<UT_UCS4Char*> * m_pChangeAll;
-   UT_GenericStringMap<UT_UCS4Char*> * m_pIgnoreAll;
+   // change/ignore all maps (values are g_malloc'd UT_UCS4Char*)
+   std::map<std::string, UT_UCS4Char*> * m_pChangeAll;
+   std::map<std::string, UT_UCS4Char*> * m_pIgnoreAll;
 
    // these variables keep track of the current
    // location/state of the search through the
@@ -104,7 +107,7 @@ class ABI_EXPORT AP_Dialog_Spell : public XAP_Dialog_NonPersistent
 
    // current suggested corrections to the
    // most recently misspelled word
-   UT_GenericVector<UT_UCS4Char*> * m_Suggestions;
+   std::vector<UT_UCS4Char*> * m_Suggestions;
 
    bool	m_bCancelled;
    short m_iSelectedRow;

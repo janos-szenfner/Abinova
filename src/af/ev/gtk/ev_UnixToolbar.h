@@ -23,6 +23,7 @@
 #pragma once
 
 #include <gtk/gtk.h>
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "xap_Types.h"
@@ -73,5 +74,5 @@ public:
 
 	GtkWidget *						m_wToolbar;
 	GtkSizeGroup *					m_wVSizeGroup;
-	UT_GenericVector<_wd*>			m_vecToolbarWidgets;
+	std::vector<_wd*>			m_vecToolbarWidgets;
 };

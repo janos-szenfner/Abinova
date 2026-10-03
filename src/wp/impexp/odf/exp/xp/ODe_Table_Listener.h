@@ -24,6 +24,7 @@
 #define ODE_TABLE_LISTENER_H_
 
 // Internal includes
+#include <vector>
 #include "ODe_AbiDocListenerImpl.h"
 #include "ODe_Common.h"
 #include "ODe_Style_Style.h"
@@ -140,7 +141,7 @@ private:
     ODe_Table_Row* m_pRows;
     UT_sint32 m_numRows;
 
-    UT_GenericVector<ODe_Table_Cell*> m_cells;
+    std::vector<ODe_Table_Cell*> m_cells;
 
     GsfOutput* m_pTextOutput;
 	ODe_Styles& m_rStyles;
@@ -155,8 +156,8 @@ private:
     // <table> element), but OpenDocument doesn't.
     // So I have to propagate this properties into every cell of this table.
     ODe_Style_Style m_tableWideCellStyle;
-    UT_GenericVector<UT_UTF8String*> columnStyleNames;
-    UT_GenericVector<UT_UTF8String*> rowStyleNames;
+    std::vector<UT_UTF8String*> columnStyleNames;
+    std::vector<UT_UTF8String*> rowStyleNames;
 };
 
 #endif /*ODE_TABLE_LISTENER_H_*/

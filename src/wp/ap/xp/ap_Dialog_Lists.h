@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include <vector>
 #include "xap_Frame.h"
 #include "xap_Dialog.h"
 #include "ap_Dialog_Modeless.h"
@@ -93,13 +94,13 @@ public:
 	void						StopList(void);
 	void						Apply(void);
 	void						fillDialogFromBlock(void);
-	void						fillDialogFromVector(UT_GenericVector<const gchar*> * inVec);
+	void						fillDialogFromVector(std::vector<const gchar*> * inVec);
 	void						PopulateDialogData(void);
 	void						fillFakeLabels(void);
 	bool						isLastOnLevel(void);
 	gchar *					getListStyleString( UT_uint32 iListType);
 	UT_uint32					decodeListType(char * listformat);
-	UT_sint32					findVecItem(UT_GenericVector<const gchar*> * v, const char * key);
+	UT_sint32					findVecItem(std::vector<const gchar*> * v, const char * key);
         /// XXX this should be moved out of here.
 	static UT_sint32				findVecItem(const PP_PropertyVector & v, const char * key);
 	void						fillUncustomizedValues(void);
@@ -108,7 +109,7 @@ public:
 	fl_AutoNumPtr				getAutoNum(void) const;
 	fl_BlockLayout *			getBlock(void) const;
 	UT_uint32					getTick(void);
-	const UT_Vector *			getOutProps(void) const { return &m_OutProps;}
+	const PP_PropertyVector &	getOutProps(void) const { return m_OutProps;}
 	void						setTick(UT_uint32 iTick);
 	bool						isDirty(void) const {return m_bDirty;}
 	void						setDirty(void) {m_bDirty = true;}
@@ -238,7 +239,7 @@ private:
 	bool					m_bDirty;
 	bool					m_bIsModal;
 	UT_sint32               m_iCurrentLevel;
-	UT_Vector				m_OutProps;
+	PP_PropertyVector			m_OutProps;
 	UT_String				m_Output[5];
 	bool                                    m_bFoldingLevelChanged;
 };

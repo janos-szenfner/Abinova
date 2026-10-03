@@ -20,6 +20,8 @@
  * 02110-1301 USA.
  */
 
+#include <string>
+#include <vector>
 #include "ut_types.h"
 #include "ap_Frame.h"
 #include "xap_App.h"
@@ -354,7 +356,7 @@ XAP_Frame * AP_Frame::buildFrame(XAP_Frame * pF)
 
 UT_Error AP_Frame::loadDocument(AD_Document* pDoc) {
 	bool bUpdateClones;
-	UT_GenericVector<XAP_Frame*> vClones;
+	std::vector<XAP_Frame*> vClones;
 	XAP_App * pApp = XAP_App::getApp();
 	UT_sint32 j = 0;
 	if(pApp->findFrame(this) < 0)
@@ -366,9 +368,9 @@ UT_Error AP_Frame::loadDocument(AD_Document* pDoc) {
 	{
 		pApp->getClones(&vClones, this);
 	}
-	for(j=0; j<vClones.getItemCount();j++)
+	for(j=0; j<static_cast<UT_sint32>(vClones.size());j++)
 	{
-		AP_Frame * pFrame = static_cast<AP_Frame *>(vClones.getNthItem(j));
+		AP_Frame * pFrame = static_cast<AP_Frame *>(vClones[j]);
 		if(pApp->findFrame(pFrame) < 0)
 		{
 			pFrame->_replaceDocument(pDoc);
@@ -381,7 +383,7 @@ UT_Error AP_Frame::loadDocument(AD_Document* pDoc) {
 UT_Error AP_Frame::loadDocument(GsfInput * input, int ieft)
 {
 	bool bUpdateClones;
-	UT_GenericVector<XAP_Frame*> vClones;
+	std::vector<XAP_Frame*> vClones;
 	XAP_App * pApp = XAP_App::getApp();
 	UT_sint32 j = 0;
 	if(pApp->findFrame(this) < 0)
@@ -393,9 +395,9 @@ UT_Error AP_Frame::loadDocument(GsfInput * input, int ieft)
 	{
 		pApp->getClones(&vClones, this);
 	}
-	for(j=0; j<vClones.getItemCount();j++)
+	for(j=0; j<static_cast<UT_sint32>(vClones.size());j++)
 	{
-		XAP_Frame * pFrame = vClones.getNthItem(j);
+		XAP_Frame * pFrame = vClones[j];
 		if(pApp->findFrame(pFrame) < 0)
 		{
 			pApp->rememberFrame(pFrame,this);
@@ -420,9 +422,9 @@ UT_Error AP_Frame::loadDocument(GsfInput * input, int ieft)
 	}
 	if (bUpdateClones)
 	{
-		for (UT_sint32 i = 0; i < vClones.getItemCount(); i++)
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vClones.size()); i++)
 		{
-			AP_Frame * pFrame = static_cast<AP_Frame*>(vClones.getNthItem(i));
+			AP_Frame * pFrame = static_cast<AP_Frame*>(vClones[i]);
 			if(pFrame != this)
 			{
 				pFrame->_replaceDocument(m_pDoc);
@@ -436,7 +438,7 @@ UT_Error AP_Frame::loadDocument(GsfInput * input, int ieft)
 UT_Error AP_Frame::loadDocument(const char * szFilename, int ieft, bool createNew)
 {
 	bool bUpdateClones;
-	UT_GenericVector<XAP_Frame*> vClones;
+	std::vector<XAP_Frame*> vClones;
 	XAP_App * pApp = XAP_App::getApp();
 	UT_sint32 j = 0;
 	if(pApp->findFrame(this) < 0)
@@ -448,9 +450,9 @@ UT_Error AP_Frame::loadDocument(const char * szFilename, int ieft, bool createNe
 	{
 		pApp->getClones(&vClones, this);
 	}
-	for(j=0; j<vClones.getItemCount();j++)
+	for(j=0; j<static_cast<UT_sint32>(vClones.size());j++)
 	{
-		XAP_Frame * pFrame = vClones.getNthItem(j);
+		XAP_Frame * pFrame = vClones[j];
 		if(pApp->findFrame(pFrame) < 0)
 		{
 			pApp->rememberFrame(pFrame,this);
@@ -475,9 +477,9 @@ UT_Error AP_Frame::loadDocument(const char * szFilename, int ieft, bool createNe
 	}
 	if (bUpdateClones)
 	{
-		for (UT_sint32 i = 0; i < vClones.getItemCount(); i++)
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vClones.size()); i++)
 		{
-			AP_Frame * pFrame = static_cast<AP_Frame*>(vClones.getNthItem(i));
+			AP_Frame * pFrame = static_cast<AP_Frame*>(vClones[i]);
 			if(pFrame != this)
 			{
 				pFrame->_replaceDocument(m_pDoc);
@@ -501,7 +503,7 @@ UT_Error AP_Frame::loadDocument(const char * szFilename, int ieft)
 UT_Error AP_Frame::importDocument(const char * szFilename, int ieft, bool markClean)
 {
 	bool bUpdateClones;
-	UT_GenericVector<XAP_Frame*> vClones;
+	std::vector<XAP_Frame*> vClones;
 	XAP_App * pApp = XAP_App::getApp();
 
 	bUpdateClones = (getViewNumber() > 0);
@@ -518,9 +520,9 @@ UT_Error AP_Frame::importDocument(const char * szFilename, int ieft, bool markCl
 
 	if (bUpdateClones)
 	{
-		for (UT_sint32 i = 0; i < vClones.getItemCount(); i++)
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vClones.size()); i++)
 		{
-			AP_Frame * pFrame = static_cast<AP_Frame *>(vClones.getNthItem(i));
+			AP_Frame * pFrame = static_cast<AP_Frame *>(vClones[i]);
 			if(pFrame != this)
 			{
 				pFrame->_replaceDocument(m_pDoc);
@@ -547,7 +549,7 @@ UT_Error AP_Frame::importDocument(const char * szFilename, int ieft, bool markCl
  */
 UT_uint32 AP_Frame::getNewZoom(XAP_Frame::tZoomType * tZoom)
 {
-	UT_GenericVector<XAP_Frame*> vecClones;
+	std::vector<XAP_Frame*> vecClones;
 	XAP_Frame *pF = nullptr;
 	XAP_App * pApp = XAP_App::getApp();
 	UT_return_val_if_fail (pApp, 0);
@@ -581,9 +583,9 @@ UT_uint32 AP_Frame::getNewZoom(XAP_Frame::tZoomType * tZoom)
 		XAP_App::getApp()->getClones(&vecClones,this);
 		UT_sint32 i =0;
 		bool bMatch = false;
-		for (i=0; !bMatch && (i< vecClones.getItemCount()); i++)
+		for (i=0; !bMatch && (i< static_cast<UT_sint32>(vecClones.size())); i++)
 		{
-			pF = static_cast<XAP_Frame *>(vecClones.getNthItem(i));
+			pF = vecClones[i];
 			bMatch = (pF == pLastFrame);
 		}
 		if(bMatch)

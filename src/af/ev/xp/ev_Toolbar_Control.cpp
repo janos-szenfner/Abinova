@@ -18,6 +18,7 @@
  */
 
 
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "ev_Toolbar_Control.h"
@@ -26,13 +27,13 @@
 
 /*****************************************************************/
 
-EV_Toolbar_Control::EV_Toolbar_Control(EV_Toolbar * pToolbar):
+EV_Toolbar_Control::EV_Toolbar_Control(EV_Toolbar * pToolbar)
+	: m_vecContents()
+{
 	// trying to set some reasonalbe defaults here -- controls can contain many items, and
 	// there are not many instances of them -- we start with reasonably small number, but
-	// will allow it to grow fast until quite a large size (see ut_vector.h for meaning of
-	// the constructor parameters).
-	m_vecContents(1024,32)
-{
+	// will allow it to grow fast until quite a large size.
+	m_vecContents.reserve(32);
 	UT_ASSERT(pToolbar);
 
 	m_pToolbar = pToolbar;
@@ -47,14 +48,14 @@ EV_Toolbar_Control::~EV_Toolbar_Control(void)
 {
 }
 
-const UT_GenericVector<const char*> * EV_Toolbar_Control::getContents(void) const
+const std::vector<const char*> * EV_Toolbar_Control::getContents(void) const
 {
 	return &m_vecContents;
 }
 
 const char * EV_Toolbar_Control::getNthItem(UT_uint32 n) const
 {
-	return m_vecContents.getNthItem(n);
+	return m_vecContents[n];
 }
 
 UT_uint32 EV_Toolbar_Control::getPixelWidth(void) const

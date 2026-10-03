@@ -21,6 +21,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
 #include "config.h"
 #endif
 
@@ -207,7 +208,7 @@ void AP_App::recoverAutosavedDocs()
 	}
 
 	if (recovered > 0) {
-		XAP_Frame *f = m_vecFrames.getItemCount() ? m_vecFrames.getNthItem(0) : nullptr;
+		XAP_Frame *f = m_vecFrames.empty() ? nullptr : m_vecFrames[0];
 		if (f) {
 			XAP_Dialog_MessageBox *dlg = f->createMessageBox(
 				AP_STRING_ID_MSG_RecoveredDocuments,
@@ -223,7 +224,7 @@ void AP_App::saveRecoveryFiles()
 {
 	IEFileType abiType = IE_Imp::fileTypeForSuffix(".abwn");
 
-	for(UT_sint32 i = 0; i < m_vecFrames.getItemCount(); i++) {
+	for(UT_sint32 i = 0; i < static_cast<UT_sint32>(m_vecFrames.size()); i++) {
 		XAP_Frame * curFrame = m_vecFrames[i];
 		if(!curFrame) {
 			continue;

@@ -24,10 +24,13 @@
 #define ODE_FONTFACEDECLS_H_
 
 // Abinova includes
-#include "ut_hash.h"
+#include <map>
+#include <string>
+#include "ut_string_class.h"
 
 // Abinova classes
 class UT_UTF8String;
+typedef struct _GsfOutput GsfOutput;
 
 /**
  * This class represents a <office:font-face-decls> element.
@@ -44,7 +47,7 @@ public:
 
 private:
 
-    UT_GenericStringMap<UT_UTF8String*> m_fontDecls;
+    std::map<std::string, UT_UTF8String*> m_fontDecls;
 };
 
 #endif /*ODE_FONTFACEDECLS_H_*/

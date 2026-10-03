@@ -22,10 +22,13 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
+#include <string>
 
 // Abinova includes
-#include "ut_hash.h"
+#include <vector>
+#include "ut_string_class.h"
 
 // Internal includes
 #include "ODe_DefaultStyles.h"
@@ -39,6 +42,7 @@ class ODe_Style_PageLayout;
 class PD_Document;
 class PP_AttrProp;
 class PD_Style;
+typedef struct _GsfOutput GsfOutput;
 
 /**
  * This class stores all normal and automatic styles.
@@ -63,20 +67,21 @@ public:
         return m_defaultStyles;
     }
 
-	std::unique_ptr<UT_GenericVector<ODe_Style_Style*>> getParagraphStylesEnumeration() {
-        return m_paragraphStyles.enumerate();
+	std::unique_ptr<std::vector<ODe_Style_Style*>> getParagraphStylesEnumeration() const {
+        return _mapValues(m_paragraphStyles);
     }
 
-    std::unique_ptr<UT_GenericVector<ODe_Style_Style*>> getTextStylesEnumeration() {
-        return m_textStyles.enumerate();
+    std::unique_ptr<std::vector<ODe_Style_Style*>> getTextStylesEnumeration() const {
+        return _mapValues(m_textStyles);
     }
 
-    std::unique_ptr<UT_GenericVector<ODe_Style_Style*>> getGraphicStylesEnumeration() {
-        return m_graphicStyles.enumerate();
+    std::unique_ptr<std::vector<ODe_Style_Style*>> getGraphicStylesEnumeration() const {
+        return _mapValues(m_graphicStyles);
     }
 
 	ODe_Style_Style* getGraphicsStyle(const gchar* name) {
-        return m_graphicStyles.pick(name);
+        auto it = m_graphicStyles.find(name);
+        return it != m_graphicStyles.end() ? it->second : nullptr;
 	}
 
 	void addGraphicsStyle(ODe_Style_Style* pStyle);
@@ -85,11 +90,22 @@ public:
 
 private:
     bool _addStyle(const PP_AttrProp* pAP);
-    bool _writeStyles(GsfOutput* pODT, const std::unique_ptr<UT_GenericVector<ODe_Style_Style*>>& pStyleVector) const;
+    bool _writeStyles(GsfOutput* pODT, const std::unique_ptr<std::vector<ODe_Style_Style*>>& pStyleVector) const;
+
+    template <typename T>
+    static std::unique_ptr<std::vector<T>> _mapValues(
+            const std::map<std::string, T>& rMap) {
+        auto pVec = std::make_unique<std::vector<T>>();
+        pVec->reserve(rMap.size());
+        for (const auto& kv : rMap) {
+            pVec->push_back(kv.second);
+        }
+        return pVec;
+    }
 
 	PD_Document* m_pAbiDoc;
     ODe_DefaultStyles m_defaultStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_textStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_paragraphStyles;
-	UT_GenericStringMap<ODe_Style_Style*> m_graphicStyles;
+    std::map<std::string, ODe_Style_Style*> m_textStyles;
+    std::map<std::string, ODe_Style_Style*> m_paragraphStyles;
+	std::map<std::string, ODe_Style_Style*> m_graphicStyles;
 };

@@ -25,6 +25,8 @@
 // Class for dealing with the status bar at the bottom of
 // the frame.
 
+#include <string>
+#include <vector>
 #include "ut_types.h"
 #include "ut_misc.h"
 #include "ut_units.h"
@@ -91,14 +93,14 @@ public:
     virtual AV_ListenerType getType(void) const override { return AV_LISTENER_STATUSBAR;}
 
 
-    UT_GenericVector<AP_StatusBarField*> *             getFields() { return &m_vecFields; }
+    std::vector<AP_StatusBarField*> *             getFields() { return &m_vecFields; }
 protected:
 
     XAP_Frame *			m_pFrame;
     AV_View *			m_pView;
 
     bool			m_bInitFields;
-    UT_GenericVector<AP_StatusBarField*> m_vecFields;			/* vector of 'ap_sb_Field *' */
+    std::vector<AP_StatusBarField*> m_vecFields;			/* vector of 'ap_sb_Field *' */
     void *			m_pStatusMessageField;	/* actually 'AP_StatusBarField_StatusMessage *' */
     AP_StatusBarField_ProgressBar * m_pStatusProgressField;
     std::string		m_sStatusMessage;

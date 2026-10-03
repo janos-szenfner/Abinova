@@ -20,17 +20,22 @@
  */
 
 // Class definition include
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 #include "ODe_DefaultStyles.h"
 
 // Interal includes
 #include "ODe_Style_Style.h"
 
-std::unique_ptr<UT_GenericVector<ODe_Style_Style*>> ODe_DefaultStyles::enumerate() const {
-    auto pVec = std::make_unique<UT_GenericVector<ODe_Style_Style*>>(m_styles.size());
-    
+std::unique_ptr<std::vector<ODe_Style_Style*>> ODe_DefaultStyles::enumerate() const {
+    auto pVec = std::make_unique<std::vector<ODe_Style_Style*>>();
+    pVec->reserve(m_styles.size());
+
     std::map<std::string, ODe_Style_Style*>::const_iterator pos = m_styles.begin();
     for (; pos != m_styles.end(); pos++) {
-        pVec->addItem((*pos).second);
+        pVec->push_back((*pos).second);
     }
 
     return pVec;

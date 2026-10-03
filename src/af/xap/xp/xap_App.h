@@ -24,7 +24,6 @@
 #pragma once
 
 #include "ut_types.h"
-#include "ut_vector.h"
 #include "ut_Language.h"
 #include "ut_string_class.h"
 #include "xap_AppImpl.h"
@@ -32,6 +31,7 @@
 #include <map>
 #include <string>
 #include <list>
+#include <vector>
 
 constexpr UT_sint32 NUM_MODELESSID = 39;
 
@@ -123,7 +123,7 @@ public:
 	virtual bool					rememberFrame(XAP_Frame* pFrame, XAP_Frame* pCloneOf = nullptr);
 	virtual bool					forgetFrame(XAP_Frame * pFrame);
 	virtual bool					forgetClones(XAP_Frame * pFrame);
-	virtual bool					getClones(UT_GenericVector<XAP_Frame*> *pvClonesCopy, XAP_Frame * pFrame);
+	virtual bool					getClones(std::vector<XAP_Frame*> *pvClonesCopy, XAP_Frame * pFrame);
 	virtual XAP_Frame *				newFrame() = 0;
 	virtual void					reallyExit() = 0;
 
@@ -135,9 +135,9 @@ public:
 	UT_sint32					findFrame(XAP_Frame * pFrame) const;
 	UT_sint32					findFrame(const char * szFilename) const;
 
-	void						enumerateFrames(UT_Vector & v) const;
+	void						enumerateFrames(std::vector<XAP_Frame*> & v) const;
     std::list< AD_Document* >   getDocuments(const AD_Document * pExclude = nullptr) const;
-	void						enumerateDocuments(UT_Vector & v, const AD_Document * pExclude) const;
+	void						enumerateDocuments(std::vector<AD_Document*> & v, const AD_Document * pExclude) const;
 	const char *					getApplicationTitleForTitleBar() const;
 	const char *					getApplicationName() const;
 	const char *					getApplicationDisplayName() const;
@@ -157,7 +157,7 @@ public:
 	// only used in ispell builds because aspell doesn't suck...
 	bool						addWordToDict(const UT_UCS4Char * pWord, UT_uint32 len);
 	bool						isWordInDict(const UT_UCS4Char * pWord, UT_uint32 len) const;
-	void						suggestWord(UT_GenericVector<UT_UCS4Char*> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 lenWord);
+	void						suggestWord(std::vector<UT_UCS4Char*> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 lenWord);
     XAP_Prefs *						getPrefs() const;
 	bool getPrefsValue(const std::string& key, std::string& value) const;
 	bool getPrefsValueBool(const std::string& key, bool& pbValue) const;
@@ -305,8 +305,8 @@ protected:
 	XAP_Dictionary *				m_pDict;
 	XAP_Prefs *					m_prefs;		/* populated in AP_<platform>App::initialize() */
 
-	UT_GenericVector<XAP_Frame*>			m_vecFrames;
-	typedef std::map<std::string, UT_GenericVector<XAP_Frame*>*> CloneMap;
+	std::vector<XAP_Frame*>			m_vecFrames;
+	typedef std::map<std::string, std::vector<XAP_Frame*>> CloneMap;
 	CloneMap	m_hashClones;
 	XAP_Frame *					m_lastFocussedFrame;
 	XAP_Menu_Factory *              	        m_pMenuFactory;
@@ -340,6 +340,6 @@ private:
 	void _fundamentalAsserts() const;
 #endif
 	XAP_AppImpl* m_pImpl;
-	UT_GenericVector<AV_Listener *>			m_vecPluginListeners;
+	std::vector<AV_Listener *>			m_vecPluginListeners;
 	UT_ScriptLibrary *             m_pScriptLibrary;
 };

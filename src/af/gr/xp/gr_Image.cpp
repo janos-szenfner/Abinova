@@ -19,6 +19,7 @@
 
 #include <string.h>
 
+#include <string>
 #include "gr_Image.h"
 #include "ut_bytebuf.h"
 #include "ut_svg.h"
@@ -110,10 +111,10 @@ UT_sint32 GR_Image::GetOffsetFromLeft(GR_Graphics * pG, UT_sint32 pad, UT_sint32
   double ddTop = static_cast<double>(diTop);
   double ddHeight = static_cast<double>(diHeight);
   GR_Image_Point * pPoint = nullptr;
-  UT_uint32 nPts = m_vecOutLine.getItemCount()/2;
+  UT_uint32 nPts = m_vecOutLine.size()/2;
   for(i=0; i < nPts;i++)
   {
-    pPoint = m_vecOutLine.getNthItem(i);
+    pPoint = m_vecOutLine[i];
     UT_nonnull_or_continue(pPoint);
     if((pPoint->m_iY >= diTop) && (pPoint->m_iY <= (yTop + diHeight)))
     {
@@ -194,10 +195,10 @@ UT_sint32 GR_Image::GetOffsetFromRight(GR_Graphics * pG, UT_sint32 pad, UT_sint3
   double ddTop = static_cast<double>(diTop);
   double ddHeight = static_cast<double>(diHeight);
   GR_Image_Point * pPoint = nullptr;
-  UT_sint32 nPts = m_vecOutLine.getItemCount()/2;
-  for(i=nPts; i < m_vecOutLine.getItemCount();i++)
+  UT_sint32 nPts = m_vecOutLine.size()/2;
+  for(i=nPts; i < m_vecOutLine.size();i++)
   {
-    pPoint = m_vecOutLine.getNthItem(i);
+    pPoint = m_vecOutLine[i];
     UT_nonnull_or_continue(pPoint);
     if((pPoint->m_iY >= diTop) && (pPoint->m_iY <= (diTop + diHeight)))
     {
@@ -272,7 +273,7 @@ void GR_Image::GenerateOutline(void)
       GR_Image_Point * pXY = new GR_Image_Point();
       pXY->m_iX = j;
       pXY->m_iY = i;
-      m_vecOutLine.addItem(pXY);
+      m_vecOutLine.push_back(pXY);
     }
   }
   //
@@ -292,7 +293,7 @@ void GR_Image::GenerateOutline(void)
       GR_Image_Point * pXY = new GR_Image_Point();
       pXY->m_iX = j;
       pXY->m_iY = i;
-      m_vecOutLine.addItem(pXY);
+      m_vecOutLine.push_back(pXY);
     }
   }
 }
@@ -302,7 +303,7 @@ void GR_Image::GenerateOutline(void)
  */
 void GR_Image::DestroyOutline(void)
 {
-  UT_VECTOR_PURGEALL(GR_Image_Point *, m_vecOutLine);
+  for (GR_Image_Point * _utv_p : m_vecOutLine) { if (_utv_p) delete(_utv_p); };
 }
 
 void GR_Image::setName ( const UT_String & name )

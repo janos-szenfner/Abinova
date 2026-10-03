@@ -23,6 +23,7 @@
 #pragma once
 
 #ifdef HAVE_CONFIG_H
+#include <string>
 #include "config.h"
 #endif
 
@@ -276,7 +277,7 @@ public:
 							   const char* pszFontSize,
 							   const char* pszLang) override;
 
-	virtual void getCoverage(UT_NumberVector& coverage) override;
+	virtual void getCoverage(std::vector<UT_sint32>& coverage) override;
 	virtual void setLineWidth(UT_sint32) override;
 	virtual void setClipRect(const UT_Rect* pRect) override;
 	virtual UT_uint32 getDeviceResolution(void) const override;

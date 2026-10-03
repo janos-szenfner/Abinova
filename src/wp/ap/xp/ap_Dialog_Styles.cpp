@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <string>
+#include <vector>
 #include "ap_Features.h"
 
 #include "ut_assert.h"
@@ -197,23 +199,17 @@ void AP_Dialog_Styles::fillVecWithProps(const gchar * szStyle, bool bReplaceAttr
  * vecProp(n)   :   vecProp(n+1)
  * "attribute"   :   "value"
  */
-const gchar * AP_Dialog_Styles::getVecVal(const UT_Vector *v, const gchar * szProp) const
+const gchar * AP_Dialog_Styles::getVecVal(const PP_PropertyVector & v, const gchar * szProp) const
 {
-	UT_sint32 i = v->getItemCount();
+	size_t i = v.size();
 	if(i <= 0)
 		return nullptr;
-	UT_sint32 j;
-	const gchar * pszV = nullptr;
-	for(j= 0; j<i ;j=j+2)
+	for(size_t j= 0; j+1<i ;j=j+2)
 	{
-		pszV = static_cast<const gchar *>( v->getNthItem(j));
-		if( (pszV != nullptr) && (strcmp( pszV,szProp) == 0))
-			break;
+		if( strcmp( v[j].c_str(),szProp) == 0)
+			return v[j+1].c_str();
 	}
-	if( j < i )
-		return  static_cast<const gchar *>( v->getNthItem(j+1));
-	else
-		return nullptr;
+	return nullptr;
 }
 
 /*!
@@ -439,7 +435,7 @@ void AP_Dialog_Styles::ModifyFont(void)
 void AP_Dialog_Styles::ModifyLists(void)
 {
 	UT_DEBUGMSG(("DOM: Doing stuff in Modify Lists \n"));
-	UT_GenericVector<const gchar*> vp;
+	std::vector<const gchar*> vp;
 
 //
 // Fire up a Modal version of Lists dialog
@@ -470,45 +466,45 @@ void AP_Dialog_Styles::ModifyLists(void)
 
 	if(!sListStyle.empty())
 	{
-		vp.addItem("list-style");
-		vp.addItem(sListStyle.c_str());
+		vp.push_back("list-style");
+		vp.push_back(sListStyle.c_str());
 	}
 	if(!sFieldFont.empty())
 	{
-		vp.addItem("field-font");
-		vp.addItem(sFieldFont.c_str());
+		vp.push_back("field-font");
+		vp.push_back(sFieldFont.c_str());
 	}
 	if(!sStartValue.empty())
 	{
-		vp.addItem("start-value");
-		vp.addItem(sStartValue.c_str());
+		vp.push_back("start-value");
+		vp.push_back(sStartValue.c_str());
 	}
 	if(!sListDelim.empty())
 	{
-		vp.addItem("list-delim");
-		vp.addItem(sListDelim.c_str());
+		vp.push_back("list-delim");
+		vp.push_back(sListDelim.c_str());
 	}
 	if(!sMarginLeft.empty())
 	{
-		vp.addItem("margin-left");
-		vp.addItem(sMarginLeft.c_str());
+		vp.push_back("margin-left");
+		vp.push_back(sMarginLeft.c_str());
 	}
 	// TODO: Why is field-font here twice?
 	if(!sFieldFont.empty())
 	{
-		vp.addItem("field-font");
-		vp.addItem(sFieldFont.c_str());
+		vp.push_back("field-font");
+		vp.push_back(sFieldFont.c_str());
 	}
 
 	if(!sListDecimal.empty())
 	{
-		vp.addItem("list-decimal");
-		vp.addItem(sListDecimal.c_str());
+		vp.push_back("list-decimal");
+		vp.push_back(sListDecimal.c_str());
 	}
 	if(!sTextIndent.empty())
 	{
-		vp.addItem("text-indent");
-		vp.addItem(sTextIndent.c_str());
+		vp.push_back("text-indent");
+		vp.push_back(sTextIndent.c_str());
 	}
 	pDialog->fillDialogFromVector(&vp);
 //
@@ -522,7 +518,7 @@ void AP_Dialog_Styles::ModifyLists(void)
 // Extract the properties
 //
 		UT_DEBUGMSG(("SEVIOR: Lists data should be changed. \n"));
-		const UT_Vector * vo = pDialog->getOutProps();
+		const PP_PropertyVector & vo = pDialog->getOutProps();
 		if(getVecVal(vo,"list-style"))
 		{
 			m_ListProps[0] = getVecVal(vo,"list-style");

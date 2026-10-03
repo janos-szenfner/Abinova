@@ -23,6 +23,7 @@
 #include <string.h>
 #include <vector>
 
+#include <string>
 #include "ap_Features.h"
 
 #include "ut_assert.h"
@@ -302,28 +303,28 @@ void AP_Dialog_Lists::Apply(void)
 // Fill out output vector with gchar * strings to be accessed via the calling
 // function.
 //
-		if(m_OutProps.getItemCount() > 0)
+		if(m_OutProps.size() > 0)
 			m_OutProps.clear();
 		sprintf(szStart,"%d",m_iStartValue);
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "start-value")));
+		m_OutProps.push_back("start-value");
 		m_Output[0] = static_cast<gchar *>( szStart);
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[0].c_str())));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "list-style")));
+		m_OutProps.push_back(m_Output[0].c_str());
+		m_OutProps.push_back("list-style");
 		m_Output[1] = getBlock()->getListStyleString(m_NewListType);
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[1].c_str())));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "list-delim")));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>(  m_pszDelim.c_str())));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "list-decimal")));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_pszDecimal.c_str())));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "field-font")));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_pszFont.c_str())));
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "margin-left")));
+		m_OutProps.push_back(m_Output[1].c_str());
+		m_OutProps.push_back("list-delim");
+		m_OutProps.push_back(m_pszDelim.c_str());
+		m_OutProps.push_back("list-decimal");
+		m_OutProps.push_back(m_pszDecimal.c_str());
+		m_OutProps.push_back("field-font");
+		m_OutProps.push_back(m_pszFont.c_str());
+		m_OutProps.push_back("margin-left");
 		m_Output[2] = UT_convertInchesToDimensionString(DIM_IN, m_fAlign, nullptr);
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[2].c_str())));
+		m_OutProps.push_back(m_Output[2].c_str());
 
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( "text-indent")));
+		m_OutProps.push_back("text-indent");
 		m_Output[3] = UT_convertInchesToDimensionString(DIM_IN, m_fIndent, nullptr);
-		m_OutProps.addItem(const_cast<void *>(reinterpret_cast<const void*>( m_Output[3].c_str())));
+		m_OutProps.push_back(m_Output[3].c_str());
 		m_Answer = a_OK;
 		return;
 	}
@@ -729,15 +730,15 @@ UT_UCS4Char * AP_Dialog_Lists::getListLabel(UT_sint32 itemNo)
  * Fill our variables from this vector.
  * This is used by the Modal dialog and is filled from the styles dialog.
  */
-void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
+void AP_Dialog_Lists::fillDialogFromVector( std::vector<const gchar*> * vp)
 {
 	UT_sint32 i;
-	if(vp->getItemCount() > 0)
+	if(vp->size() > 0)
 	{
 		i = findVecItem(vp,"start-value");
 		if(i >= 0)
 		{
-			m_iStartValue = atoi(vp->getNthItem(i+1));
+			m_iStartValue = atoi((*vp)[i+1]);
 		}
 		else
 		{
@@ -747,7 +748,7 @@ void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
 		i = findVecItem(vp,"margin-left");
 		if(i>=0)
 		{
-			m_fAlign = static_cast<float>(UT_convertToInches(vp->getNthItem(i+1)));
+			m_fAlign = static_cast<float>(UT_convertToInches((*vp)[i+1]));
 		}
 		else
 		{
@@ -757,7 +758,7 @@ void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
 		i = findVecItem(vp,"text-indent");
 		if(i >= 0)
 		{
-			m_fIndent = static_cast<float>(UT_convertToInches(vp->getNthItem(i+1)));
+			m_fIndent = static_cast<float>(UT_convertToInches((*vp)[i+1]));
 		}
 		else
 		{
@@ -767,7 +768,7 @@ void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
 		i = findVecItem(vp,"list-delim");
 		if( i>= 0)
 		{
-			m_pszDelim = vp->getNthItem(i+1);
+			m_pszDelim = (*vp)[i+1];
 		}
 		else
 		{
@@ -776,7 +777,7 @@ void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
 		i = findVecItem(vp,"list-decimal");
 		if( i>= 0)
 		{
-			m_pszDecimal = vp->getNthItem(i+1);
+			m_pszDecimal = (*vp)[i+1];
 		}
 		else
 		{
@@ -786,7 +787,7 @@ void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
 		i = findVecItem(vp,"field-font");
 		if( i>= 0)
 		{
-			m_pszFont = vp->getNthItem(i+1);
+			m_pszFont = (*vp)[i+1];
 		}
 		else
 		{
@@ -795,7 +796,7 @@ void AP_Dialog_Lists::fillDialogFromVector( UT_GenericVector<const gchar*> * vp)
 		i = findVecItem(vp,"list-style");
 		if( i>= 0)
 		{
-			m_DocListType = getBlock()->getListTypeFromStyle(vp->getNthItem(i+1));
+			m_DocListType = getBlock()->getListTypeFromStyle((*vp)[i+1]);
 			m_NewListType = m_DocListType;
 		}
 		else
@@ -942,7 +943,7 @@ void AP_Dialog_Lists::fillDialogFromBlock(void)
 //  		i = findVecItem(&a,PT_STYLE_ATTRIBUTE_NAME);
 //  		if( i>= 0)
 //  		{
-//  			m_DocListType = getBlock()->getListTypeFromStyle( (const gchar *) va.getNthItem(i+1));
+//  			m_DocListType = getBlock()->getListTypeFromStyle( (const gchar *) va[i+1]);
 //  		}
 //  		else
 //  		{
@@ -1027,16 +1028,16 @@ UT_uint32 AP_Dialog_Lists::getID(void)
  * This method returns the index to the value corresponding to the
  * key in this props vector
  */
-UT_sint32  AP_Dialog_Lists::findVecItem(UT_GenericVector<const gchar*> * v, const char * key)
+UT_sint32  AP_Dialog_Lists::findVecItem(std::vector<const gchar*> * v, const char * key)
 {
-	UT_sint32 i = v->getItemCount();
+	UT_sint32 i = v->size();
 	if(i < 0)
 		return i;
 	UT_sint32 j;
 	const char * pszV = nullptr;
 	for(j= 0; j<i ;j=j+2)
 	{
-		pszV = const_cast<char *>( v->getNthItem(j));
+		pszV = const_cast<char *>( (*v)[j]);
 		if( (pszV != nullptr) && (strcmp( pszV,key) == 0))
 			break;
 	}

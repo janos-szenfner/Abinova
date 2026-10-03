@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <string>
 #include "ie_exp.h"
 #include "ut_vector.h"
 #include "ut_hash.h"
@@ -29,6 +30,7 @@
 #include "fl_AutoLists.h"
 #include "fl_AutoNum.h"
 
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -207,17 +209,17 @@ protected:
     static std::string s_escapeXMLString( const std::string& inStr );
 
 	s_RTF_ListenerWriteDoc *	m_pListenerWriteDoc;
-	UT_Vector					m_vecColors;			/* vector of "const char * szColor" */
-	UT_Vector					m_vecFonts;				/* vector of struct _font */
+	std::vector<char*>			m_vecColors;			/* vector of "const char * szColor" */
+	std::vector<_rtf_font_info*>	m_vecFonts;				/* vector of struct _font */
 	bool						m_bNeedUnicodeText;		/* doc has unicode chars */
 	UT_sint32					m_braceLevel;			/* nesting depth of {} braces */
 	bool						m_bLastWasKeyword;		/* just wrote a keyword, so need space before text data */
 	bool						m_atticFormat; 		/* whether to use unicode for all characters >0xff or convert to native windows encoding*/
-	UT_GenericStringMap<NumberedStyle*> m_hashStyles;
+	std::map<std::string, NumberedStyle*> m_hashStyles;
 	/* Hash containing styles to be exported. The key is the
 	   Abinova style name. The value is a NumberedStyle object
 	   (see the cpp file). */
-	/* MsWord97ListMulti owns raw UT_Vector* levels and registers `this`
+	/* MsWord97ListMulti owns raw std::vector* levels and registers `this`
 	 * inside them, so it must not be copied/moved — hold it by
 	 * unique_ptr to keep a stable address. */
 	std::vector<std::unique_ptr<ie_exp_RTF_MsWord97ListMulti>> m_vecMultiLevel;
@@ -287,7 +289,7 @@ class ABI_EXPORT ie_exp_RTF_MsWord97ListMulti : public ie_exp_RTF_MsWord97List
 	ie_exp_RTF_MsWord97List * getListAtLevel(UT_uint32 iLevel, UT_uint32 nthList) const;
 	UT_uint32 getMatchingID(UT_uint32 listID) const;
  private:
-	UT_Vector * m_vLevels[9];
+	std::vector<ie_exp_RTF_MsWord97List*> * m_vLevels[9];
 };
 
 class ABI_EXPORT ie_exp_RTF_ListOveride

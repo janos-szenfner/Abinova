@@ -18,6 +18,8 @@
  * 02110-1301 USA.
  */
 
+#include <string>
+#include <vector>
 #include "xap_GtkComboBoxHelpers.h"
 
 
@@ -167,9 +169,9 @@ static void s_drop_down_append(GtkDropDown * dd, const char * text,
 }
 
 void XAP_populateDropDownWithIndex(GtkDropDown * dd,
-								   const UT_GenericVector<const char*> & vec)
+								   const std::vector<const char*> & vec)
 {
-	for(UT_sint32 i = 0; i < vec.getItemCount(); i++) {
+	for(UT_sint32 i = 0; i < vec.size(); i++) {
 		XAP_appendDropDownTextAndInt(dd, vec[i], i);
 	}
 }

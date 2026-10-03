@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string>
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -244,9 +245,7 @@ bool XAP_Frame::initialize(const char * /*szKeyBindingsKey*/, const char * /*szK
 		UT_ASSERT(szTemp);
 		for (char * p=strtok(szTemp," "); (p); p=strtok(nullptr," "))
 		{
-			char * szTempName;
-			szTempName = g_strdup(p);
-			m_pFrameImpl->m_vecToolbarLayoutNames.addItem(szTempName);
+			m_pFrameImpl->m_vecToolbarLayoutNames.push_back(p);
 		}
 		g_free(szTemp);
 	}
@@ -639,9 +638,9 @@ UT_uint32 XAP_Frame::getZoomPercentage(void)
 
 EV_Toolbar *  XAP_Frame::getToolbar(UT_sint32 ibar)
 {
-	if(ibar >= m_pFrameImpl->m_vecToolbars.getItemCount())
+	if(ibar >= m_pFrameImpl->m_vecToolbars.size())
 		return nullptr;
-	return m_pFrameImpl->m_vecToolbars.getNthItem(ibar);
+	return m_pFrameImpl->m_vecToolbars[ibar];
 }
 
 bool XAP_Frame::repopulateCombos(void)
@@ -664,17 +663,17 @@ bool XAP_Frame::repopulateCombos(void)
 void XAP_FrameImpl::_createToolbars(void)
 {
 	bool bResult;
-	UT_sint32 nrToolbars = m_vecToolbarLayoutNames.getItemCount();
+	UT_sint32 nrToolbars = m_vecToolbarLayoutNames.size();
 	for (UT_sint32 k=0; k < nrToolbars; k++)
 	{
 		EV_Toolbar * pToolbar = m_pFrame->_newToolbar(m_pFrame,
-							      reinterpret_cast<const char *>(m_vecToolbarLayoutNames.getNthItem(k)),
+							      m_vecToolbarLayoutNames[k].c_str(),
 							      reinterpret_cast<const char *>(m_szToolbarLabelSetName));
 		UT_continue_if_fail(pToolbar);
 		bResult = pToolbar->synthesize();
 		UT_ASSERT(bResult);
 		
-		m_vecToolbars.addItem(pToolbar);
+		m_vecToolbars.push_back(pToolbar);
 	}
 	UT_UNUSED(bResult); // TODO deal with the result
 }
@@ -683,7 +682,7 @@ UT_sint32 XAP_Frame::findToolbarNr(EV_Toolbar * pTB)
 {
 	UT_sint32 i = 0;
 	bool bFound =  false;
-	for(i =0; !bFound && (i < m_pFrameImpl->m_vecToolbars.getItemCount()); i++)
+	for(i =0; !bFound && (i < m_pFrameImpl->m_vecToolbars.size()); i++)
 	{
 		EV_Toolbar * pTmp = getToolbar(i);
 		if(pTmp == pTB)
@@ -1020,7 +1019,7 @@ void XAP_Frame::updateZoom(void)
  */
 void XAP_Frame::rebuildAllToolbars(void)
 {
-	UT_uint32 count = m_pFrameImpl->m_vecToolbars.getItemCount();
+	UT_uint32 count = m_pFrameImpl->m_vecToolbars.size();
 	UT_uint32 i =0;
 	for(i=0; i< count; i++)
 	{

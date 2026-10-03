@@ -24,6 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
 #include "ut_locale.h"
 
 #include "ut_assert.h"
@@ -316,7 +320,7 @@ IE_Imp_XHTML::~IE_Imp_XHTML()
 #ifdef USE_IE_IMP_TABLEHELPER
 	DELETEP(m_TableHelperStack);
 #endif
-	UT_VECTOR_PURGEALL(UT_UTF8String *,m_divStyles);
+	for (UT_UTF8String * _utv_p : m_divStyles) { if (_utv_p) delete(_utv_p); };
 }
 
 // to get lists to work:
@@ -1015,9 +1019,9 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 			/* <div> elements can specify block-level styles; concatenate and stack...
 			 */
 			UT_UTF8String * prev = nullptr;
-			if (m_divStyles.getItemCount ())
+			if (!m_divStyles.empty ())
 				{
-					prev = m_divStyles.getLastItem ();
+					prev = m_divStyles.back ();
 				}
 			UT_UTF8String * style = nullptr;
 			if (prev)
@@ -1824,10 +1828,10 @@ void IE_Imp_XHTML::endElement(const gchar *name)
 
 			m_divClasses.pop_back ();
 
-			if (m_divStyles.getItemCount ())
+			if (!m_divStyles.empty ())
 				{
 					UT_UTF8String * prev = nullptr;
-					prev = m_divStyles.getLastItem ();
+					prev = m_divStyles.back ();
 					DELETEP(prev);
 				}
 			m_divStyles.pop_back ();
@@ -2570,8 +2574,8 @@ bool IE_Imp_XHTML::newBlock (const char * style_name, const char * css_style, co
 
 
 	UT_UTF8String * div_style = nullptr;
-	if (m_divStyles.getItemCount ())
-		div_style = m_divStyles.getLastItem ();
+	if (!m_divStyles.empty ())
+		div_style = m_divStyles.back ();
 
 	UT_UTF8String style;
 	if (div_style)
@@ -2843,7 +2847,7 @@ bool IE_Imp_XHTML::bInTable(void)
 bool IE_Imp_XHTML::childOfSection ()
 {
 	bool bChild = false;
-	UT_uint32 count = m_divClasses.getItemCount ();
+	UT_uint32 count = m_divClasses.size ();
 
 	for (UT_uint32 i = 0; i < count; i++)
 		if (m_divClasses[i])

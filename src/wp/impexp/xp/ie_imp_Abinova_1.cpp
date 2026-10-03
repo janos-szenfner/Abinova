@@ -203,7 +203,8 @@ IE_Imp_Abinova_1::~IE_Imp_Abinova_1()
 	
   if (m_refMap)
   {
-	  m_refMap->purgeData();
+	  for (auto& kv : *m_refMap)
+		  delete kv.second;
 	  delete m_refMap;
 	  m_refMap = nullptr;
   }
@@ -216,7 +217,7 @@ IE_Imp_Abinova_1::IE_Imp_Abinova_1(PD_Document * pDocument)
 	m_bDocHasLists(false), 
 	m_bDocHasPageSize(false),
 	m_iInlineStart(0), 
-	m_refMap(new UT_GenericStringMap<UT_UTF8String*>),
+	m_refMap(new std::map<std::string, UT_UTF8String*>),
 	m_bAutoRevisioning(false),
 	m_bInMath(false),
 	m_bInEmbed(false),
@@ -1687,20 +1688,22 @@ bool IE_Imp_Abinova_1::_handleImage(const gchar ** atts)
 
 			new_id = &re_id;
 		}
-	else if ((new_id = m_refMap->pick (old_id)) == 0)
+	else if (m_refMap->find(old_id) == m_refMap->end())
 		{
 			/* first occurence of this href/dataid; add to map
 			 */
 			UT_UTF8String * ri_id = new UT_UTF8String(RM.new_id());
 			if (ri_id)
 				{
-					m_refMap->insert (old_id, ri_id);
-					if ((new_id = m_refMap->pick (old_id)) == 0)
-						{
-							delete ri_id;
-						}
+					auto inserted = m_refMap->emplace(old_id, ri_id);
+					if (inserted.second)
+						new_id = ri_id;
+					else
+						delete ri_id;
 				}
 		}
+	else
+		new_id = m_refMap->at(old_id);
 	if (new_id == 0) return false; // hmm
 
 	/* it is necessary to reference a resource before you can set URL or data
@@ -1856,7 +1859,10 @@ bool IE_Imp_Abinova_1::_handleResource (const gchar ** atts, bool isResource)
 
 			/* map dataid to new resource ID
 			 */
-			const UT_UTF8String * new_id = m_refMap->pick (r_id);
+			const UT_UTF8String * new_id = nullptr;
+			auto rit = m_refMap->find(r_id);
+			if (rit != m_refMap->end())
+				new_id = rit->second;
 			if (new_id == 0) return false;
 
 			XAP_InternalResource * ri = dynamic_cast<XAP_InternalResource *>(RM.resource (new_id->utf8_str (), true));

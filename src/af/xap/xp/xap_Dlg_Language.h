@@ -27,14 +27,13 @@
 #include "ut_types.h"
 
 #include <string>
+#include <vector>
 
 #include "xap_Dialog.h"
 
 #ifdef ENABLE_SPELL
 #include "spell_manager.h"
 #endif
-
-#include "ut_vector.h"
 
 class UT_Language;
 class UT_UTF8String;
@@ -77,7 +76,7 @@ public:
 	XAP_Dialog_Language::tAnswer	getAnswer(void) const;
 
 	inline bool getSpellCheck(void) const {return m_bSpellCheck;}
-	UT_Vector* 						getAvailableDictionaries();
+	std::vector<std::string>		getAvailableDictionaries();
 
 	/* "Do not check spelling or grammar" maps to the -none- language */
 	void                            setNoProofing(bool b) {m_bNoProof = b;}

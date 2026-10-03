@@ -511,7 +511,7 @@ EV_UnixToolbar::EV_UnixToolbar(XAP_UnixApp 	*pUnixApp,
 
 EV_UnixToolbar::~EV_UnixToolbar(void)
 {
-	UT_VECTOR_PURGEALL(_wd *,m_vecToolbarWidgets);
+	for (_wd * _utv_p : m_vecToolbarWidgets) { if (_utv_p) delete(_utv_p); };
 	if(m_wVSizeGroup) {
 		g_object_unref(m_wVSizeGroup);
 	}
@@ -830,20 +830,20 @@ bool EV_UnixToolbar::synthesize(void)
 				// populate it
 				if (pControl) {
 					pControl->populate();
-					const UT_GenericVector<const char*> * v = pControl->getContents();
+					const std::vector<const char*> * v = pControl->getContents();
 					UT_ASSERT(v);
-					gint items = v->getItemCount();
+					gint items = v->size();
 					if (ABI_IS_FONT_COMBO (combo)) {
 						const gchar **fonts = g_new0 (const gchar *, items + 1);
 						for (gint m=0; m < items; m++) {
-							fonts[m] = v->getNthItem(m);
+							fonts[m] = (*v)[m];
 						}						
 						abi_font_combo_set_fonts (ABI_FONT_COMBO (combo), fonts);
 						g_free (fonts); fonts = nullptr;
 					}
 					else {
 						for (gint m=0; m < items; m++) {
-							const char * sz = v->getNthItem(m);
+							const char * sz = (*v)[m];
 							std::string sLoc;
 							if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 							{
@@ -916,7 +916,7 @@ bool EV_UnixToolbar::synthesize(void)
 				break;
 			}
 		// add item after bindings to catch widget returned to us
-			m_vecToolbarWidgets.addItem(wd);
+			m_vecToolbarWidgets.push_back(wd);
 		}
 		break;
 			
@@ -927,7 +927,7 @@ bool EV_UnixToolbar::synthesize(void)
 			// vector.
 			_wd * wd = new _wd(this,id);
 			UT_ASSERT(wd);
-			m_vecToolbarWidgets.addItem(wd);
+			m_vecToolbarWidgets.push_back(wd);
 
 			toolbar_append_separator(GTK_BOX(m_wToolbar));
 			break;
@@ -1017,7 +1017,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 				{
 					bool bGrayed = EV_TIS_ShouldBeGray(tis);
 
-					_wd * wd = m_vecToolbarWidgets.getNthItem(k);
+					_wd * wd = m_vecToolbarWidgets[k];
 					if (!wd || !wd->m_widget)
 						continue;
 					gtk_widget_set_sensitive(wd->m_widget, !bGrayed);     					
@@ -1031,7 +1031,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					bool bGrayed = EV_TIS_ShouldBeGray(tis);
 					bool bToggled = EV_TIS_ShouldBeToggled(tis);
 
-					_wd * wd = m_vecToolbarWidgets.getNthItem(k);
+					_wd * wd = m_vecToolbarWidgets[k];
 					if (!wd || !wd->m_widget)
 						continue;
 					// Block the signal, throw the toggle event
@@ -1052,7 +1052,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 				case EV_TBIT_ComboBox:
 				{
 					bool bGrayed = EV_TIS_ShouldBeGray(tis);
-					_wd * wd = m_vecToolbarWidgets.getNthItem(k);
+					_wd * wd = m_vecToolbarWidgets[k];
 
 					UT_nonnull_or_return(wd, false);
 					UT_nonnull_or_return(wd->m_widget, false);
@@ -1143,7 +1143,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
                 {
 					bool bGrayed = EV_TIS_ShouldBeGray(tis);
 					
-					_wd * wd = m_vecToolbarWidgets.getNthItem(k);
+					_wd * wd = m_vecToolbarWidgets[k];
 					if (!wd || !wd->m_widget)
 						continue;
 					gtk_widget_set_sensitive(GTK_WIDGET(wd->m_widget), !bGrayed);   // Disable/enable toolbar item
@@ -1220,7 +1220,7 @@ bool EV_UnixToolbar::repopulateStyles(void)
 	{
 		pLayoutItem = m_pToolbarLayout->getLayoutItem(i);
 		id = pLayoutItem->getToolbarId();
-		wd = m_vecToolbarWidgets.getNthItem(i);
+		wd = m_vecToolbarWidgets[i];
 		if(id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 			break;
 	}
@@ -1240,7 +1240,7 @@ bool EV_UnixToolbar::repopulateStyles(void)
 //
 // Now the combo box has to be refilled from this
 //
-	const UT_GenericVector<const char*> * v = pControl->getContents();
+	const std::vector<const char*> * v = pControl->getContents();
 	UT_ASSERT(v);
 //
 // Try this....
@@ -1253,12 +1253,12 @@ bool EV_UnixToolbar::repopulateStyles(void)
 //
 // Localise and sort the style names, then refill the drop-down.
 //
-	gint items = v->getItemCount();
+	gint items = v->size();
 	std::vector<std::string> sorted;
 	sorted.reserve (items);
 	for (gint m=0; m < items; m++) {
 		std::string sLoc;
-		const char * sz = v->getNthItem(m);
+		const char * sz = (*v)[m];
 		pt_PieceTable::s_getLocalisedStyleName(sz, sLoc);
 		sorted.push_back (sLoc);
 	}

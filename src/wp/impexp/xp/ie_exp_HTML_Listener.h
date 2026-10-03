@@ -322,7 +322,7 @@ private:
     IE_Exp_HTML_ListenerImpl *m_pCurrentImpl;
     ie_Table m_tableHelper;
 
-    UT_GenericVector<ListInfo> m_listInfoStack;
+    std::vector<ListInfo> m_listInfoStack;
     std::vector<UT_UTF8String> m_endnotes;
     std::vector<UT_UTF8String> m_footnotes;
     std::vector<UT_UTF8String> m_annotationTitles;
@@ -351,6 +351,6 @@ private:
     double m_dSecTopMarginInches;
     double m_dSecBottomMarginInches;
     double m_dCellWidthInches;
-    UT_GenericVector<double> m_vecDWidths;
+    std::vector<double> m_vecDWidths;
     bool m_bHasMathMl;
 };

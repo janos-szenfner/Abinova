@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
+#include <vector>
 #include "ut_string.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -528,12 +530,12 @@ void AP_UnixDialog_Lists::setFoldLevelInGUI(void)
  */
 void AP_UnixDialog_Lists::setFoldLevel(UT_sint32 iLevel, bool bSet)
 {
-	UT_sint32 count = m_vecFoldCheck.getItemCount();
+	UT_sint32 count = m_vecFoldCheck.size();
 	if (iLevel < 0 || iLevel >= count)
 		return;
 
-	GtkWidget * wF = m_vecFoldCheck.getNthItem(iLevel);
-	UT_uint32 ID = m_vecFoldID.getNthItem(iLevel);
+	GtkWidget * wF = m_vecFoldCheck[iLevel];
+	UT_uint32 ID = m_vecFoldID[iLevel];
 	if (!wF)
 		return;
 
@@ -995,8 +997,8 @@ GtkWidget * AP_UnixDialog_Lists::_constructFoldingPage(void)
 									 static_cast<gpointer>(this));
 		gtk_grid_attach(GTK_GRID(grid), wF, 0, i + 1, 1, 1);
 		gtk_widget_set_margin_start(wF, 18);
-		m_vecFoldCheck.addItem(wF);
-		m_vecFoldID.addItem(ID);
+		m_vecFoldCheck.push_back(wF);
+		m_vecFoldID.push_back(ID);
 	}
 
 	return grid;

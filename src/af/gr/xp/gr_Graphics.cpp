@@ -22,6 +22,10 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 #include "config.h"
 #endif
 
@@ -133,7 +137,7 @@ GR_CharWidths* GR_Font::newFontWidths(void) const
 
 AllCarets::AllCarets(GR_Graphics * pG,
 					 GR_Caret ** pCaret,
-					 UT_GenericVector<GR_Caret *>* vecCarets  ):
+					 std::vector<GR_Caret *>* vecCarets  ):
 	m_pG(pG),
 	m_pLocalCaret(pCaret),
 	m_vecCarets(vecCarets)
@@ -148,9 +152,9 @@ void	    AllCarets::enable(void)
 {
 	if(*m_pLocalCaret)
 		(*m_pLocalCaret)->enable();
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		m_vecCarets->getNthItem(i)->enable();
+		(*m_vecCarets)[i]->enable();
 	}
 			
 }
@@ -159,9 +163,9 @@ void    AllCarets::JustErase(UT_sint32 xPoint,UT_sint32 yPoint)
 {
 	if((*m_pLocalCaret))
 		(*m_pLocalCaret)->JustErase(xPoint,yPoint);
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		m_vecCarets->getNthItem(i)->JustErase(xPoint,yPoint);
+		(*m_vecCarets)[i]->JustErase(xPoint,yPoint);
 	}
 }
 
@@ -170,9 +174,9 @@ void		AllCarets::disable(bool bNoMulti)
 {
 	if((*m_pLocalCaret))
 		(*m_pLocalCaret)->disable(bNoMulti);
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		m_vecCarets->getNthItem(i)->disable(bNoMulti);
+		(*m_vecCarets)[i]->disable(bNoMulti);
 	}
 }
 
@@ -180,9 +184,9 @@ void		AllCarets::setBlink(bool bBlink)
 {
 	if((*m_pLocalCaret))
 		(*m_pLocalCaret)->setBlink(bBlink);
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		m_vecCarets->getNthItem(i)->setBlink(bBlink);;
+		(*m_vecCarets)[i]->setBlink(bBlink);;
 	}
 }
 
@@ -192,9 +196,9 @@ bool AllCarets::doBlinkIfNeeded(void)
 	if((*m_pLocalCaret))
 	{
 		bBlinked = (*m_pLocalCaret)->doBlinkIfNeeded();
-		for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+		for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 		{
-			m_vecCarets->getNthItem(i)->forceDraw();
+			(*m_vecCarets)[i]->forceDraw();
 		}
 	}
 	return bBlinked;
@@ -204,9 +208,9 @@ void        AllCarets::setWindowSize(UT_uint32 width, UT_uint32 height)
 {
 	if((*m_pLocalCaret))
 		(*m_pLocalCaret)->setWindowSize(width, height);
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		m_vecCarets->getNthItem(i)->setWindowSize(width, height);
+		(*m_vecCarets)[i]->setWindowSize(width, height);
 	}
 }
 
@@ -223,9 +227,9 @@ void		AllCarets::setCoords(UT_sint32 x, UT_sint32 y, UT_uint32 h,
 {
 	if((*m_pLocalCaret))
 		(*m_pLocalCaret)->setCoords(x, y, h, x2, y2, h2, bPointDirection, pClr);
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		m_vecCarets->getNthItem(i)->setCoords(x, y, h, x2, y2, h2, bPointDirection, pClr);
+		(*m_vecCarets)[i]->setCoords(x, y, h, x2, y2, h2, bPointDirection, pClr);
 	}
 }
 
@@ -233,9 +237,9 @@ void		AllCarets::setInsertMode (bool mode)
 {
 	if((*m_pLocalCaret))
 		(*m_pLocalCaret)->setInsertMode(mode);
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		auto caret = m_vecCarets->getNthItem(i);
+		auto caret = (*m_vecCarets)[i];
 		UT_nonnull_or_continue(caret);
 		caret->setInsertMode(mode);
 	}
@@ -245,9 +249,9 @@ void		AllCarets::forceDraw(void)
 {
 	if((*m_pLocalCaret))
 		(*m_pLocalCaret)->forceDraw();
-	for(UT_sint32 i =0; i< m_vecCarets->getItemCount();i++)
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
 	{
-		m_vecCarets->getNthItem(i)->forceDraw();
+		(*m_vecCarets)[i]->forceDraw();
 	}
 }
 
@@ -321,9 +325,9 @@ GR_Graphics::~GR_Graphics()
 	xxx_UT_DEBUGMSG(("Deleting graphics class %x \n",this));
 	DELETEP(m_pCaret);
 	UT_sint32 i = 0;
-	for(i=0; i< m_vecCarets.getItemCount();i++)
+	for(i=0; i< m_vecCarets.size();i++)
 	{
-		GR_Caret * pCaret = m_vecCarets.getNthItem(i);
+		GR_Caret * pCaret = m_vecCarets[i];
 		DELETEP(pCaret);
 	}
 }
@@ -385,19 +389,19 @@ void GR_Graphics::_destroyFonts ()
 
 GR_Caret * GR_Graphics::getNthCaret(UT_sint32 i) const
 {
-	if (i>= m_vecCarets.getItemCount())
+	if (i>= m_vecCarets.size())
 		return nullptr;
-	return m_vecCarets.getNthItem(i);
+	return m_vecCarets[i];
 }
 
 GR_Caret * GR_Graphics::getCaret(const std::string& sID) const
 {
 	UT_sint32 i= 0;
-	for(i=0; i<m_vecCarets.getItemCount();i++)
+	for(i=0; i<m_vecCarets.size();i++)
 	{
-		if(m_vecCarets.getNthItem(i)->getID() == sID)
+		if(m_vecCarets[i]->getID() == sID)
 		{
-			return m_vecCarets.getNthItem(i);
+			return m_vecCarets[i];
 		}
 	}
 	return nullptr;
@@ -421,19 +425,19 @@ void GR_Graphics::enableAllCarets()
 GR_Caret * GR_Graphics::createCaret(const std::string& sID)
 {
 	GR_Caret * pCaret = new GR_Caret(this,sID);
-	m_vecCarets.addItem(pCaret);
+	m_vecCarets.push_back(pCaret);
 	return pCaret;
 }
 
 void GR_Graphics::removeCaret(const std::string& sID)
 {
-	for(UT_sint32 i = 0; i < m_vecCarets.getItemCount(); i++)
+	for(UT_sint32 i = 0; i < m_vecCarets.size(); i++)
 	{
-		GR_Caret* pC = m_vecCarets.getNthItem(i);
+		GR_Caret* pC = m_vecCarets[i];
 		if (pC->getID() == sID)
 		{			
 			DELETEP(pC);
-			m_vecCarets.deleteNthItem(i);
+			m_vecCarets.erase(m_vecCarets.begin() + i);
 		}
 	}
 }
@@ -1616,21 +1620,27 @@ void GR_Graphics::adjustDeletePosition(GR_RenderInfo & )
    register itself twice, once with its predefined id and once as the
    default class.
 */
+static UT_sint32 s_classIdIndex(const std::vector<UT_sint32> & v, UT_uint32 iClassId)
+{
+	auto it = std::find(v.begin(), v.end(), static_cast<UT_sint32>(iClassId));
+	return (it == v.end()) ? -1 : static_cast<UT_sint32>(it - v.begin());
+}
+
 bool GR_GraphicsFactory::registerClass(GR_Allocator allocator, GR_Descriptor descriptor,
 									   UT_uint32 iClassId)
 {
 	UT_return_val_if_fail(allocator && descriptor && iClassId > GRID_LAST_DEFAULT, false);
-	
-	UT_sint32 indx = m_vClassIds.findItem(iClassId);
+
+	UT_sint32 indx = s_classIdIndex(m_vClassIds, iClassId);
 
 	if(indx >= 0)
 	{
 		return false;
 	}
 	
-	m_vAllocators.addItem(allocator);
-	m_vDescriptors.addItem(descriptor);
-	m_vClassIds.addItem(static_cast<UT_sint32>(iClassId));
+	m_vAllocators.push_back(allocator);
+	m_vDescriptors.push_back(descriptor);
+	m_vClassIds.push_back(static_cast<UT_sint32>(iClassId));
 
 	return true;
 }
@@ -1679,14 +1689,14 @@ bool GR_GraphicsFactory::unregisterClass(UT_uint32 iClassId)
 	// rogue plugin will pay attention to the return value
 	UT_return_val_if_fail(iClassId == m_iDefaultScreen || iClassId == m_iDefaultPrinter, false);
 	
-	UT_sint32 indx = m_vClassIds.findItem(iClassId);
+	UT_sint32 indx = s_classIdIndex(m_vClassIds, iClassId);
 
 	if(indx < 0)
 		return false;
 
-	m_vClassIds.deleteNthItem(indx);
-	m_vAllocators.deleteNthItem(indx);
-	m_vDescriptors.deleteNthItem(indx);
+	m_vClassIds.erase(m_vClassIds.begin() + indx);
+	m_vAllocators.erase(m_vAllocators.begin() + indx);
+	m_vDescriptors.erase(m_vDescriptors.begin() + indx);
 
 	return true;
 }
@@ -1703,12 +1713,12 @@ GR_Graphics * GR_GraphicsFactory::newGraphics(UT_uint32 iClassId, GR_AllocInfo &
 	if(iClassId == GRID_DEFAULT_PRINT)
 		iClassId = m_iDefaultPrinter;
 	
-	UT_sint32 indx = m_vClassIds.findItem(iClassId);
+	UT_sint32 indx = s_classIdIndex(m_vClassIds, iClassId);
 
 	if(indx < 0)
 		return nullptr;
 
-	GR_Allocator alloc = m_vAllocators.getNthItem(indx);
+	GR_Allocator alloc = m_vAllocators[indx];
 				
 	if(!alloc)
 		return nullptr;
@@ -1724,12 +1734,12 @@ const char *  GR_GraphicsFactory::getClassDescription(UT_uint32 iClassId) const
 	if(iClassId == GRID_DEFAULT_PRINT)
 		iClassId = m_iDefaultPrinter;
 
-	UT_sint32 indx = m_vClassIds.findItem(iClassId);
+	UT_sint32 indx = s_classIdIndex(m_vClassIds, iClassId);
 
 	if(indx < 0)
 		return nullptr;
 					
-	GR_Descriptor descr = m_vDescriptors.getNthItem(indx);
+	GR_Descriptor descr = m_vDescriptors[indx];
 				
 	if(!descr)
 		return nullptr;
@@ -1739,7 +1749,7 @@ const char *  GR_GraphicsFactory::getClassDescription(UT_uint32 iClassId) const
 
 bool GR_GraphicsFactory::isRegistered(UT_uint32 iClassId) const
 {
-	UT_sint32 indx = m_vClassIds.findItem(iClassId);
+	UT_sint32 indx = s_classIdIndex(m_vClassIds, iClassId);
 
 	if(indx < 0)
 		return false;

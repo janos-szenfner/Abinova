@@ -22,6 +22,9 @@
  */
 
 #ifdef HAVE_CONFIG_H
+#include <set>
+#include <string>
+#include <utility>
 #include "config.h"
 #endif
 
@@ -13566,13 +13569,12 @@ UT_return_val_if_fail(pDialog, false);	if(pView->isHdrFtrEdit())
 	//
 	// Get all clones of this frame and set styles combo box
 	//
-	UT_GenericVector<XAP_Frame*> vClones;
+	std::vector<XAP_Frame*> vClones;
 	if(pFrame->getViewNumber() > 0)
 	{
 		pApp->getClones(&vClones,pFrame);
-		for (UT_sint32 i = 0; i < vClones.getItemCount(); i++)
+		for (XAP_Frame * f : vClones)
 		{
-			XAP_Frame * f = vClones.getNthItem(i);
 			f->repopulateCombos();
 		}
 	}

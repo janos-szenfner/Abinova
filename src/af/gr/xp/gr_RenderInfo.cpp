@@ -30,7 +30,7 @@ void GR_Itemization::clear()
 {
 	m_vOffsets.clear();
 
-	UT_VECTOR_PURGEALL(GR_Item *, m_vItems);
+	for (GR_Item * _utv_p : m_vItems) { if (_utv_p) delete(_utv_p); };
 	m_vItems.clear();
 } 
 

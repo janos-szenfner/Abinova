@@ -19,12 +19,13 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
 #include <vector>
 
+#include <string>
 #include "ut_types.h"
 #include "ut_string_class.h"
-#include "ut_hash.h"
 #include "barbarisms.h"
 
 // forward declaration
@@ -126,7 +127,7 @@ private:
 	SpellManager & operator=(const SpellManager& other) = delete;
 
 
-	UT_StringPtrMap m_map;
+	std::map<std::string, SpellChecker *> m_map;
 	std::string m_missingHashs;
 	SpellChecker * m_lastDict;
 	UT_uint32 m_nLoadedDicts;

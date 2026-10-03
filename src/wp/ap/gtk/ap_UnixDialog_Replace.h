@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <vector>
 #include "xap_UnixDialog.h"
 #include "ap_Dialog_Replace.h"
 
@@ -80,7 +81,7 @@ private:
 	void		_syncStringsFromWidgets(void);
 	void		_updateSensitivity(void);
 	void		_updateList(GtkListBox* history, GtkWidget * entry,
-							UT_GenericVector<UT_UCS4Char*>* list);
+							std::vector<UT_UCS4Char*>* list);
 
 	// pointers to widgets we need to query/set
 	GtkWidget *	m_buttonFindNext;

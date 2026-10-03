@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <string>
+#include <vector>
 #include "ap_Features.h"
 
 #include "ut_debugmsg.h"
@@ -83,9 +85,9 @@ AP_Preview_Paragraph_Block::~AP_Preview_Paragraph_Block()
 	// word.  All the pointers in the vector point
 	// to different offsets of one piece of memory allocated
 	// all at once.
-	if (m_words.getItemCount() > 0)
+	if (m_words.size() > 0)
 	{
-		UT_UCS4Char * word = m_words.getNthItem(0);
+		UT_UCS4Char * word = m_words[0];
 		FREEP(word);
 	}
 }
@@ -96,9 +98,9 @@ void AP_Preview_Paragraph_Block::setText(const UT_UCS4Char * text)
 
 	// clear the words vector by freeing ONLY the first
 	// word (see the destructor for notes)
-	if (m_words.getItemCount() > 0)
+	if (m_words.size() > 0)
 	{
-		UT_UCS4Char * word = m_words.getNthItem(0);
+		UT_UCS4Char * word = m_words[0];
 		FREEP(word);
 		m_words.clear();
 	}
@@ -121,10 +123,10 @@ void AP_Preview_Paragraph_Block::setText(const UT_UCS4Char * text)
 			*i = 0;
 
 			// add clone item
-			m_words.addItem(clone);
+			m_words.push_back(clone);
 
 			// measure clone item
-			m_widths.addItem(m_gc->measureString(clone, 0, UT_UCS4_strlen(clone), nullptr));
+			m_widths.push_back(m_gc->measureString(clone, 0, UT_UCS4_strlen(clone), nullptr));
 
 			// advance clone pointer for new word
 			clone = i + 1;
@@ -133,9 +135,9 @@ void AP_Preview_Paragraph_Block::setText(const UT_UCS4Char * text)
 	}
 
 	// add last word
-	m_words.addItem(clone);
+	m_words.push_back(clone);
 	// measure last word
-	m_widths.addItem(m_gc->measureString(clone, 0, UT_UCS4_strlen(clone), nullptr));
+	m_widths.push_back(m_gc->measureString(clone, 0, UT_UCS4_strlen(clone), nullptr));
 }
 
 // ignores nullptr parameters, otherwise scales dimensioned strings into
@@ -586,7 +588,7 @@ void AP_Preview_Paragraph::_appendBlock(AP_Preview_Paragraph_Block * block)
 	UT_uint32 ypost = 0;
 
 	UT_sint32 wordCounter = 0;
-	UT_sint32 wordCount = block->m_words.getItemCount();
+	UT_sint32 wordCount = block->m_words.size();
 
 	m_gc->setColor(block->m_clr);
 
@@ -661,8 +663,8 @@ void AP_Preview_Paragraph::_appendBlock(AP_Preview_Paragraph_Block * block)
 }
 
 // returns number of words it plotted
-UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * words,
-											UT_NumberVector * widths,
+UT_uint32 AP_Preview_Paragraph::_appendLine(std::vector<UT_UCS4Char*> * words,
+											std::vector<UT_sint32> * widths,
 											UT_uint32 startWithWord,
 											UT_uint32 left,
 											UT_uint32 right,
@@ -676,7 +678,7 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 	UT_sint32 spaceCharWidth = m_gc->tlu(3);
 
 	UT_uint32 i = 0;
-	UT_uint32 totalWords = words->getItemCount();
+	UT_uint32 totalWords = words->size();
 
 	UT_uint32 pixelsForThisLine = 0;
 
@@ -694,9 +696,9 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 	// NOTE : we don't evaluate space widths in the while() condition so we don't
 	// NOTE : wrap on one (which would be silly)
 	while ((i < totalWords) &&
-		   (pixelsForThisLine + widths->getNthItem(i) <= static_cast<UT_uint32>(maxPixelsForThisLine)))
+		   (pixelsForThisLine + (*widths)[i] <= static_cast<UT_uint32>(maxPixelsForThisLine)))
 	{
-		pixelsForThisLine += widths->getNthItem(i) + spaceCharWidth;
+		pixelsForThisLine += (*widths)[i] + spaceCharWidth;
 		i++;
 	}
 
@@ -704,7 +706,7 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 	{
 		// HACK: Make sure we have at least one word. (no longer true, because of above)
 
-		pixelsForThisLine += widths->getNthItem(i) + spaceCharWidth;
+		pixelsForThisLine += (*widths)[i] + spaceCharWidth;
 		i++;
 	}
 
@@ -760,7 +762,7 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 	{
 		// this will not produce correct results in true bidi text, since the words that are inconsistend
 		// with the overall pargraph direction will be in wrong order, but that is not a big deal
-		s = words->getNthItem(k);
+		s = (*words)[k];
 		size = s.size() + 1;
 		pBuf = static_cast<UT_UCS4Char *>(UT_calloc(size, sizeof(UT_UCS4Char)));
 		memset(pBuf, 0, size * sizeof(UT_UCS4Char));
@@ -768,12 +770,12 @@ UT_uint32 AP_Preview_Paragraph::_appendLine(UT_GenericVector<UT_UCS4Char*> * wor
 		UT_bidiReorderString(s.ucs4_str(), s.size(), m_dir, pBuf);
 
 		if(m_dir == UT_BIDI_RTL)
-		    willDrawAt -= ((widths->getNthItem(k)) << 8) + spaceCharWidth;
+		    willDrawAt -= (((*widths)[k]) << 8) + spaceCharWidth;
 
 		painter.drawChars(pBuf, 0, s.size(), willDrawAt >> 8, y);
 
 		if(m_dir == UT_BIDI_LTR)
-		    willDrawAt += ((widths->getNthItem(k)) << 8) + spaceCharWidth;
+		    willDrawAt += (((*widths)[k]) << 8) + spaceCharWidth;
 
 		FREEP(pBuf);
 	}

@@ -23,6 +23,8 @@
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 
+#include <string>
+#include <vector>
 #include "ap_Features.h"
 
 #include "ut_assert.h"
@@ -90,7 +92,7 @@ bool AP_UnixToolbar_FontCombo::populate(void)
 		for (UT_sint32 j = 0; j < m_vecContents.size(); j++)
 		{
 			// sort out dups
-			const char * str = m_vecContents.getNthItem(j);
+			const char * str = m_vecContents[j];
 			if (str && (fName == str))
 			{
 				foundAt = j;
@@ -99,7 +101,7 @@ bool AP_UnixToolbar_FontCombo::populate(void)
 		}
 
 		if (foundAt == -1)
-			m_vecContents.addItem(fName.c_str());
+			m_vecContents.push_back(fName.c_str());
 	}
 	
 	return true;

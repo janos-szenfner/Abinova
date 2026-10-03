@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "ut_string_class.h"
 #include "ut_vector.h"
 
@@ -68,7 +70,7 @@ private:
   std::string m_name;
   XAP_String_Id m_label;
   const gchar*			m_prefKey;
-  UT_GenericVector<XAP_Toolbar_Factory_lt *> m_Vec_lt;
+  std::vector<XAP_Toolbar_Factory_lt *> m_Vec_lt;
 };
 
 class ABI_EXPORT XAP_Toolbar_Factory
@@ -92,11 +94,11 @@ public:
 									XAP_Toolbar_Id nukeId);
     bool             saveToolbarsInCurrentScheme(void);
     bool             restoreToolbarsFromCurrentScheme(void);
-	const UT_GenericVector<UT_UTF8String*> & 	getToolbarNames(void);
+	const std::vector<UT_UTF8String*> & 	getToolbarNames(void);
 	UT_uint32			countToolbars(void) const;
 	const gchar*		prefKeyForToolbar(UT_uint32 t) const;
 private:
-  UT_GenericVector<XAP_Toolbar_Factory_vec*> m_vecTT;
+  std::vector<XAP_Toolbar_Factory_vec*> m_vecTT;
   XAP_App * m_pApp;
-  UT_GenericVector<UT_UTF8String*> m_tbNames;
+  std::vector<UT_UTF8String*> m_tbNames;
 };

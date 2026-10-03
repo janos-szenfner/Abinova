@@ -19,6 +19,7 @@
  * 02110-1301 USA.
  */
 
+#include <utility>
 #include "ut_debugmsg.h"
 #include "ut_types.h"
 #include "ut_vector.h"
@@ -46,7 +47,7 @@ XAP_DialogFactory::XAP_DialogFactory(XAP_App * pApp, int nrElem, const struct _d
 	
 	for (i = 0; i < nrElem; i++)
 	{
-		m_vec_dlg_table.addItem(&pDlgTable[i]);
+		m_vec_dlg_table.push_back(&pDlgTable[i]);
 	}
 	
 #ifdef DEBUG
@@ -67,17 +68,17 @@ XAP_DialogFactory::XAP_DialogFactory(XAP_App * pApp, int nrElem, const struct _d
 
 XAP_DialogFactory::~XAP_DialogFactory(void)
 {
-	UT_VECTOR_PURGEALL(XAP_Dialog *, m_vecDialogs);
-	UT_VECTOR_PURGEALL( _dlg_table *, m_vecDynamicTable);
+	for (XAP_Dialog * _utv_p : m_vecDialogs) { if (_utv_p) delete(_utv_p); };
+	for (_dlg_table * _utv_p : m_vecDynamicTable) { if (_utv_p) delete(_utv_p); };
 }
 
 bool XAP_DialogFactory::_findDialogInTable(XAP_Dialog_Id id, UT_sint32 * pIndex) const
 {
 	// search the table and return the index of the entry with this id.
 
-	for (UT_sint32 k=0; k < m_vec_dlg_table.getItemCount(); k++)
+	for (UT_sint32 k=0; k < m_vec_dlg_table.size(); k++)
 	{
-		auto dialog = m_vec_dlg_table.getNthItem(k);
+		auto dialog = m_vec_dlg_table[k];
 		UT_nonnull_or_continue(dialog);
 		if (dialog->m_id == id)
 		{
@@ -92,8 +93,8 @@ bool XAP_DialogFactory::_findDialogInTable(XAP_Dialog_Id id, UT_sint32 * pIndex)
 
 XAP_Dialog_Id XAP_DialogFactory::getNextId(void) const
 {
-	UT_sint32 i = m_vec_dlg_table.getItemCount()-1;
-	auto dialog = m_vec_dlg_table.getNthItem(i);
+	UT_sint32 i = m_vec_dlg_table.size()-1;
+	auto dialog = m_vec_dlg_table[i];
 	UT_nonnull_or_return(dialog, XAP_DIALOG_ID__FIRST__);
 	UT_sint32 id = static_cast<UT_sint32>(dialog->m_id);
 	return static_cast<XAP_Dialog_Id>(id+1);
@@ -106,20 +107,20 @@ XAP_Dialog_Id XAP_DialogFactory::registerDialog(XAP_Dialog *(* pStaticConstructo
 	pDlgTable->m_type = iDialogType;
 	pDlgTable->m_pfnStaticConstructor = pStaticConstructor;
 	pDlgTable->m_tabbed = FALSE;
-	m_vec_dlg_table.addItem(pDlgTable);
-	m_vecDynamicTable.addItem(pDlgTable);
+	m_vec_dlg_table.push_back(pDlgTable);
+	m_vecDynamicTable.push_back(pDlgTable);
 	return pDlgTable->m_id;
 }
 
 void XAP_DialogFactory::unregisterDialog(XAP_Dialog_Id id)
 {
-	for (UT_sint32 i = 0; i < m_vecDialogs.getItemCount(); i++)
+	for (UT_sint32 i = 0; i < m_vecDialogs.size(); i++)
 	{
-		const XAP_Dialog * pDialog = reinterpret_cast<const XAP_Dialog *>(m_vecDialogs.getNthItem(i));
+		const XAP_Dialog * pDialog = reinterpret_cast<const XAP_Dialog *>(m_vecDialogs[i]);
 		if(pDialog && pDialog->getDialogId() == id)
 		{
-			m_vecDialogs.deleteNthItem(i);
-			m_vecDialogIds.deleteNthItem(i);
+			m_vecDialogs.erase(m_vecDialogs.begin() + i);
+			m_vecDialogIds.erase(m_vecDialogIds.begin() + i);
 			delete pDialog;
 			return;
 		}
@@ -142,7 +143,7 @@ XAP_Dialog * XAP_DialogFactory::justMakeTheDialog(XAP_Dialog_Id id)
 	
 	if(_findDialogInTable(id,&index))
 	{
-	  pDialog = static_cast<XAP_Dialog *>(((m_vec_dlg_table.getNthItem(index)->m_pfnStaticConstructor)(this,id)));
+	  pDialog = static_cast<XAP_Dialog *>(((m_vec_dlg_table[index]->m_pfnStaticConstructor)(this,id)));
 		return pDialog;
 	}
 	return nullptr;
@@ -156,7 +157,7 @@ XAP_Dialog * XAP_DialogFactory::requestDialog(XAP_Dialog_Id id)
 	
 	if(_findDialogInTable(id, &index))
 	{
-		dlg = m_vec_dlg_table.getNthItem(index);
+		dlg = m_vec_dlg_table[index];
 		UT_nonnull_or_return(dlg, nullptr);
 
 		auto createItSimple = [&]() -> XAP_Dialog *
@@ -175,16 +176,17 @@ XAP_Dialog * XAP_DialogFactory::requestDialog(XAP_Dialog_Id id)
 		{
 			// see if we already have an instance of this object in our vector.
 			// if so, just return it.  otherwise, create a fresh one and remember it.
-			UT_sint32 indexVec = m_vecDialogIds.findItem(index+1);
+			auto itId = std::find(m_vecDialogIds.begin(), m_vecDialogIds.end(), index+1);
+			UT_sint32 indexVec = (itId == m_vecDialogIds.end()) ? -1 : static_cast<UT_sint32>(itId - m_vecDialogIds.begin());
 			if (indexVec < 0)				// not present, create new object and add it to vector
 			{
 				pDialog = static_cast<XAP_Dialog *>(((dlg->m_pfnStaticConstructor)(this,id)));
-				m_vecDialogIds.addItem(index+1);
-				m_vecDialogs.addItem(pDialog);
+				m_vecDialogIds.push_back(index+1);
+				m_vecDialogs.push_back(pDialog);
 			}
 			else							// already present, reuse this object
 			{
-				pDialog = const_cast<XAP_Dialog *>(static_cast<const XAP_Dialog*>(m_vecDialogs.getNthItem(indexVec)));
+				pDialog = const_cast<XAP_Dialog *>(static_cast<const XAP_Dialog*>(m_vecDialogs[indexVec]));
 			}
 			if (dlg->m_tabbed) {
 				XAP_NotebookDialog * d = dynamic_cast<XAP_NotebookDialog *>(pDialog);
@@ -249,7 +251,7 @@ void XAP_DialogFactory::releaseDialog(XAP_Dialog * pDialog)
 	UT_sint32 index = 0;
 	_findDialogInTable(id,&index);
 
-	auto dialog = m_vec_dlg_table.getNthItem(index);
+	auto dialog = m_vec_dlg_table[index];
 	UT_nonnull_or_return(dialog, );
 
 	auto finishedUsingObject = [&]()

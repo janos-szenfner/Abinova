@@ -20,6 +20,8 @@
 #pragma once
 
 #ifdef HAVE_CONFIG_H
+#include <map>
+#include <string>
 #include "config.h"
 #endif
 
@@ -367,7 +369,7 @@ public:
 	// New List Guts
 	inline fl_AutoNumPtr 	getListByID(UT_uint32 id) const;
 	inline fl_AutoNumPtr	getNthList(UT_uint32 i) const; // { return m_vecLists[i]; }
-	inline UT_uint32	getListsCount(void) const; // { return m_vecLists.getItemCount(); }
+	inline UT_uint32	getListsCount(void) const; // { return m_vecLists.size(); }
 	inline void		addList(const fl_AutoNumPtr & pAutoNum);
 	bool            isLayoutDeleting(void) const {return m_bDeletingLayout;}
 	UT_uint32       getRedrawCount() const {return m_iRedrawCount;}
@@ -428,7 +430,7 @@ private:
 	fl_DocSectionLayout*m_pLastSection;
 
 	// spell check stuff
-	// UT_GenericVector<fl_BlockLayout *> m_vecUncheckedBlocks;
+	// std::vector<fl_BlockLayout *> m_vecUncheckedBlocks;
 	fl_BlockLayout      *m_toSpellCheckHead;
 	fl_BlockLayout      *m_toSpellCheckTail;
 	const fl_BlockLayout*		m_pPendingBlockForSpell;	// if nullptr, then ignore m_pPendingWordForSpell

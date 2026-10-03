@@ -147,6 +147,6 @@ class AP_UnixDialog_Lists
 
 	UT_sint32  m_iPageLists;
 	UT_sint32  m_iPageFold;
-	UT_GenericVector<GtkWidget*>  m_vecFoldCheck;
-	UT_NumberVector  m_vecFoldID;
+	std::vector<GtkWidget*>  m_vecFoldCheck;
+	std::vector<UT_sint32>  m_vecFoldID;
 };

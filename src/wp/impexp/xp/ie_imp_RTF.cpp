@@ -26,6 +26,9 @@
 /* RTF importer by Peter Arnold <petera@intrinsica.co.uk> */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
+#include <utility>
+#include <vector>
 #include "config.h"
 #endif
 
@@ -1970,24 +1973,24 @@ void IE_Imp_RTF::HandleCell(void)
 	UT_DEBUGMSG(("Handle Cell \n"));
 	if(m_bRowJustPassed && m_bDoCloseTable && (getTable()!= nullptr))
 	{
-		UT_GenericVector<ie_imp_cell *> vecOldCells;
-		UT_GenericVector<ie_imp_cell *> vecCopyCells;
+		std::vector<ie_imp_cell *> vecOldCells;
+		std::vector<ie_imp_cell *> vecCopyCells;
 		UT_sint32 row = getTable()->getRow();
 		getTable()->getVecOfCellsOnRow(row-1, &vecOldCells);
 		UT_sint32 i =0;
-		for(i=0; i< vecOldCells.getItemCount();i++)
+		for(i=0; i< vecOldCells.size();i++)
 		{
-			ie_imp_cell * pCell = vecOldCells.getNthItem(i);
+			ie_imp_cell * pCell = vecOldCells[i];
 			ie_imp_cell * pNewCell = new ie_imp_cell(nullptr,nullptr,nullptr,0);
 			pNewCell->copyCell(pCell);
-			vecCopyCells.addItem(pNewCell);
+			vecCopyCells.push_back(pNewCell);
 		}
-		UT_ASSERT_HARMLESS(vecOldCells.getItemCount() > 0);
+		UT_ASSERT_HARMLESS(vecOldCells.size() > 0);
 		CloseTable();
 		OpenTable(true);
-		for(i=0; i< vecCopyCells.getItemCount();i++)
+		for(i=0; i< vecCopyCells.size();i++)
 		{
-			ie_imp_cell * pCopyCell = vecCopyCells.getNthItem(i);
+			ie_imp_cell * pCopyCell = vecCopyCells[i];
 			if(i>0)
 			{
 //
@@ -1999,7 +2002,7 @@ void IE_Imp_RTF::HandleCell(void)
 			pCell->copyCell(pCopyCell);
 			xxx_UT_DEBUGMSG(("Got Cell number %d CellX %d \n",i,pCell->getCellX()));
 		}
-		UT_VECTOR_PURGEALL(ie_imp_cell *, vecCopyCells);
+		for (ie_imp_cell * _utv_p : vecCopyCells) { if (_utv_p) delete(_utv_p); };
 	}
 	m_bRowJustPassed = false;
 	m_bCellHandled = true;
@@ -11716,7 +11719,7 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 	UT_sint32 BasedOn[2000]; // 2000 styles. I know this should be a Vector.
 	UT_sint32 FollowedBy[2000]; // 2000 styles. I know this should be a Vector.
 	UT_sint32 styleCount = 0;
-	UT_GenericVector<UT_GenericVector<const gchar*>*> vecStyles;
+	std::vector<std::vector<const gchar*>*> vecStyles;
 	std::unique_ptr<RTFProps_ParaProps> pParas(new RTFProps_ParaProps);
 	std::unique_ptr<RTFProps_CharProps> pChars(new RTFProps_CharProps);
 	std::unique_ptr<RTFProps_bParaProps> pbParas(new RTFProps_bParaProps);
@@ -11879,19 +11882,19 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 // OK now we clone this and save it so we can set basedon's and followedby's
 //
 			size_t i = 0;
-			UT_GenericVector<const gchar*>* pVecAttr = new UT_GenericVector<const gchar*>();
+			std::vector<const gchar*>* pVecAttr = new std::vector<const gchar*>();
 			for( i= 0; i< attribs.size(); i++)
 			{
 				if(!attribs[i].empty())
 				{
-					pVecAttr->addItem(g_strdup(attribs[i].c_str()));
+					pVecAttr->push_back(g_strdup(attribs[i].c_str()));
 				}
 				else
 				{
-					pVecAttr->addItem(nullptr);
+					pVecAttr->push_back(nullptr);
 				}
 			}
-			vecStyles.addItem(pVecAttr);
+			vecStyles.push_back(pVecAttr);
 
 			// Reset
 			styleCount++;
@@ -11909,22 +11912,22 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 //
 // Now we loop through them all and write them into our document.
 //
-	UT_sint32 count = vecStyles.getItemCount();
+	UT_sint32 count = vecStyles.size();
 	UT_sint32 i = 0;
 	for(i=0; i< count; i++)
 	{
 		// Reset
 		attribs.clear();
-		UT_GenericVector<const gchar*> * pCurStyleVec = vecStyles.getNthItem(i);
+		std::vector<const gchar*> * pCurStyleVec = vecStyles[i];
 		UT_nonnull_or_continue(pCurStyleVec);
-		UT_sint32 nAtts = pCurStyleVec->getItemCount();
+		UT_sint32 nAtts = pCurStyleVec->size();
 		UT_sint32 j = 0;
 		const char * szName = nullptr;
 
 		while(j < nAtts)
 		{
-			const char * szAtt = pCurStyleVec->getNthItem(j++);
-			const char * szValue = pCurStyleVec->getNthItem(j++);
+			const char * szAtt = (*pCurStyleVec)[j++];
+			const char * szValue = (*pCurStyleVec)[j++];
 
 			if (!szAtt) {
 				UT_WARNINGMSG(("Attribute name is nullptr. Skipping.\n"));
@@ -12011,7 +12014,7 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 //
 		for(j=0; j< nAtts; j++)
 		{
-			const gchar * sz = pCurStyleVec->getNthItem(j);
+			const gchar * sz = (*pCurStyleVec)[j];
 			if(sz != nullptr)
 			{
 				// MUST NOT USED delete[] on strings allocated by g_try_malloc/UT_calloc !!!

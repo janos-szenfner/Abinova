@@ -21,6 +21,7 @@
 
 #include <gtk/gtk.h>
 
+#include <string>
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -223,8 +224,8 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 
 	gtk_widget_set_visible(m_wStatusBar, TRUE);
 
-	for (UT_sint32 k=0; k<getFields()->getItemCount(); k++) {
-		AP_StatusBarField * pf = static_cast<AP_StatusBarField *>(m_vecFields.getNthItem(k));
+	for (UT_sint32 k=0; k<getFields()->size(); k++) {
+		AP_StatusBarField * pf = static_cast<AP_StatusBarField *>(m_vecFields[k]);
 		UT_nonnull_or_continue(pf); // we should NOT have null elements
 
 		// set up a frame for status bar elements so they look like status bar elements, 

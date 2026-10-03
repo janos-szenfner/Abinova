@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <vector>
 #include "ut_string_class.h"
 #include "ut_types.h"
 #include "ut_vector.h"
@@ -99,5 +100,5 @@ public:
 
 private:
     GR_Graphics *               m_pG;
-    UT_GenericVector<GR_EmbedView *>   m_vecSnapshots;
+    std::vector<GR_EmbedView *>   m_vecSnapshots;
 };

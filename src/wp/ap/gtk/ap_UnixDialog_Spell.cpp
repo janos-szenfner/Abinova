@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
 #include "ut_string.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -396,7 +397,7 @@ AP_UnixDialog_Spell::_updateWindow (void)
 
 	GtkListBoxRow * firstRow = nullptr;
 
-	if (!m_Suggestions || m_Suggestions->getItemCount() == 0)
+	if (!m_Suggestions || m_Suggestions->size() == 0)
 	{
 		const XAP_StringSet * pSS = m_pApp->getStringSet();
 		std::string s;
@@ -414,10 +415,10 @@ AP_UnixDialog_Spell::_updateWindow (void)
 	}
 	else
 	{
-		for (UT_sint32 i = 0; i < m_Suggestions->getItemCount(); i++)
+		for (UT_sint32 i = 0; i < m_Suggestions->size(); i++)
 		{
 			gchar * suggest = static_cast<gchar*>( _convertToMB(
-				static_cast<UT_UCS4Char*>(m_Suggestions->getNthItem(i))));
+				static_cast<UT_UCS4Char*>((*m_Suggestions)[i])));
 			GtkWidget * label = gtk_label_new(suggest ? suggest : "");
 			gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 			gtk_widget_set_margin_start(label, 8);
@@ -432,7 +433,7 @@ AP_UnixDialog_Spell::_updateWindow (void)
 		}
 
 		gchar * suggest = static_cast<gchar*>( _convertToMB(
-			static_cast<UT_UCS4Char*>(m_Suggestions->getNthItem(0))));
+			static_cast<UT_UCS4Char*>((*m_Suggestions)[0])));
 		gtk_editable_set_text(GTK_EDITABLE(m_eChange),
 							  suggest ? suggest : "");
 		FREEP(suggest);
@@ -506,7 +507,7 @@ AP_UnixDialog_Spell::onAddClicked ()
 void
 AP_UnixDialog_Spell::onSuggestionSelected ()
 {
-	if (m_bUiUpdating || !m_Suggestions || !m_Suggestions->getItemCount())
+	if (m_bUiUpdating || !m_Suggestions || !m_Suggestions->size())
 		return;
 
 	GtkListBoxRow * row =

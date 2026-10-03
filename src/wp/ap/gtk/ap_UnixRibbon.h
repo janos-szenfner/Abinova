@@ -23,6 +23,8 @@
 
 #include <gtk/gtk.h>
 
+#include <string>
+#include <vector>
 #include "ut_types.h"
 #include "ut_vector.h"
 #include "xap_Types.h"
@@ -332,7 +334,7 @@ private:
 	static void			_s_paste_special_response(GtkDialog * dlg,
 												  gint resp, gpointer data);
 
-	UT_GenericVector<_TbCtx*>	m_vecTbCtx;
+	std::vector<_TbCtx*>	m_vecTbCtx;
 
 	/* style-gallery tiles: widget -> unlocalised style name it applies */
 	struct _StyleTile
@@ -340,7 +342,7 @@ private:
 		GtkWidget *	widget;
 		char *		styleName;
 	};
-	UT_GenericVector<_StyleTile*>	m_vecStyleTiles;
+	std::vector<_StyleTile*>	m_vecStyleTiles;
 	GtkWidget *			m_wStyleBox;
 	GtkWidget *			m_wStyleScroll;
 	GtkWidget *			m_wStylePrev;
@@ -354,7 +356,7 @@ private:
 	bool				m_bRefreshing = false;
 	bool				m_bRefreshAgain = false;
 	EV_Toolbar_LabelSet *	m_pTBLabels;
-	UT_GenericVector<GtkWidget*>	m_vecContextualPages;
+	std::vector<GtkWidget*>	m_vecContextualPages;
 
 	/* Table Design tab widgets */
 	GtkWidget *			m_wTblOptChecks[6] = { nullptr, nullptr, nullptr,
@@ -385,7 +387,7 @@ private:
 							 * the table cell-size spins */
 		int			spinId;	/* AP_RIBBON_SPIN_* */
 	};
-	UT_GenericVector<_SpinField*>	m_vecSpins;
+	std::vector<_SpinField*>	m_vecSpins;
 	bool				m_bSpinUpdating;
 };
 

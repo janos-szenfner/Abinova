@@ -27,6 +27,7 @@
   */
 
 #ifdef HAVE_CONFIG_H
+#include <string>
 #include "config.h"
 #endif
 
@@ -1918,8 +1919,8 @@ void XAP_UnixFrameImpl::_rebuildToolbar(UT_uint32 ibar)
 {
 	XAP_Frame*	pFrame = getFrame();
 	// Destroy the old toolbar
-	EV_Toolbar * pToolbar = static_cast<EV_Toolbar *>(m_vecToolbars.getNthItem(ibar));
-	const char * szTBName = reinterpret_cast<const char *>(m_vecToolbarLayoutNames.getNthItem(ibar));
+	EV_Toolbar * pToolbar = static_cast<EV_Toolbar *>(m_vecToolbars[ibar]);
+	const char * szTBName = m_vecToolbarLayoutNames[ibar].c_str();
 	EV_UnixToolbar * pUTB = static_cast<EV_UnixToolbar *>(pToolbar);
 	UT_return_if_fail(pUTB);
 	UT_sint32 oldpos = pUTB->destroy();
@@ -1934,7 +1935,7 @@ void XAP_UnixFrameImpl::_rebuildToolbar(UT_uint32 ibar)
 	pToolbar = _newToolbar(pFrame, szTBName,
 			       static_cast<const char *>(m_szToolbarLabelSetName));
 	static_cast<EV_UnixToolbar *>(pToolbar)->rebuildToolbar(oldpos);
-	m_vecToolbars.setNthItem(ibar, pToolbar, nullptr);
+	m_vecToolbars[ibar] = pToolbar;
 	// Refill the framedata pointers
 
 	pFrame->refillToolbarsInFrameData();

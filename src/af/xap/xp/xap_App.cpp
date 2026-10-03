@@ -26,10 +26,15 @@
 #include <string.h>
 #include <time.h>
 #include <memory>
+#include <algorithm>
 
 #include <glib.h>
 #include <gsf/gsf.h>
 
+#include <list>
+#include <map>
+#include <string>
+#include <vector>
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_path.h"
@@ -146,7 +151,10 @@ XAP_App::~XAP_App()
 	}
 
 	// run thru and destroy all frames on our window list.
-	UT_VECTOR_PURGEALL(XAP_Frame *, m_vecFrames);
+	for (XAP_Frame * pFrame : m_vecFrames)
+	{
+		delete pFrame;
+	}
 	// when can have nullptr pointers....
 
 	FREEP(m_szAbiSuiteLibDir);
@@ -385,25 +393,24 @@ bool XAP_App::initialize(const char * szKeyBindingsKey, const char * szKeyBindin
 bool XAP_App::addListener(AV_Listener * pListener, 
 							 AV_ListenerId * pListenerId)
 {
-	UT_sint32 kLimit = m_vecPluginListeners.getItemCount();
+	UT_sint32 kLimit = m_vecPluginListeners.size();
 	UT_sint32 k;
 
 	// see if we can recycle a cell in the vector.
 	UT_DEBUGMSG(("Asked to register pListener %p \n", static_cast<void*>(pListener)));
-	
+
 	for (k=0; k<kLimit; k++)
-		if (m_vecPluginListeners.getNthItem(k) == nullptr)
+		if (m_vecPluginListeners[k] == nullptr)
 		{
-			static_cast<void>(m_vecPluginListeners.setNthItem(k,pListener,nullptr));
+			m_vecPluginListeners[k] = pListener;
 			break;
 		}
 
 	// otherwise, extend the vector for it.
 
-	if (k == kLimit && m_vecPluginListeners.addItem(pListener,&k) != 0)
+	if (k == kLimit)
 	{
-		UT_DEBUGMSG(("Failed! id %d \n",k));
-		return false;				// could not add item to vector
+		m_vecPluginListeners.push_back(pListener);
 	}
 
 	// give our vector index back to the caller as a "Listener Id".
@@ -421,8 +428,8 @@ bool XAP_App::removeListener(AV_ListenerId listenerId)
 	if (listenerId == static_cast<AV_ListenerId>( -1))
 		return false;
 	
-	if (m_vecPluginListeners.getNthItem(listenerId)) {
-		m_vecPluginListeners.deleteNthItem(listenerId);
+	if (listenerId < m_vecPluginListeners.size() && m_vecPluginListeners[listenerId]) {
+		m_vecPluginListeners.erase(m_vecPluginListeners.begin() + listenerId);
 		return true;
 	}
 	return false;
@@ -463,7 +470,7 @@ bool XAP_App::notifyListeners(AV_View * pView, const AV_ChangeMask hint, void * 
 	// notify listeners of a change.
 		
 	AV_ListenerId lid;
-	AV_ListenerId lidCount = m_vecPluginListeners.getItemCount();
+	AV_ListenerId lidCount = m_vecPluginListeners.size();
 
 	// for each listener in our vector, we send a notification.
 	// we step over null listners (for listeners which have been
@@ -471,7 +478,7 @@ bool XAP_App::notifyListeners(AV_View * pView, const AV_ChangeMask hint, void * 
 
 	for (lid=0; lid<lidCount; lid++)
 	{
-		AV_Listener * pListener = static_cast<AV_Listener *>(m_vecPluginListeners.getNthItem(lid));
+		AV_Listener * pListener = m_vecPluginListeners[lid];
 		UT_nonnull_or_continue(pListener);
 		if(pListener->getType()!= AV_LISTENER_PLUGIN_EXTRA )
 		{
@@ -563,7 +570,7 @@ bool XAP_App::rememberFrame(XAP_Frame * pFrame, XAP_Frame * pCloneOf)
 	UT_ASSERT(pFrame);
 
 	// add this frame to our window list
-	m_vecFrames.addItem(pFrame);
+	m_vecFrames.push_back(pFrame);
 
 	if(! m_lastFocussedFrame)
 	    rememberFocussedFrame(pFrame);
@@ -572,47 +579,19 @@ bool XAP_App::rememberFrame(XAP_Frame * pFrame, XAP_Frame * pCloneOf)
 	if (pCloneOf)
 	{
 		// locate vector of this frame's clones
-		CloneMap::const_iterator iter = m_hashClones.find(pCloneOf->getViewKey());
-		
-		UT_GenericVector<XAP_Frame*> * pvClones = nullptr;
+		std::vector<XAP_Frame*> & vClones = m_hashClones[pCloneOf->getViewKey()];
 
-		if (iter != m_hashClones.end())
+		if (vClones.empty())
 		{
-			UT_GenericVector<XAP_Frame*> * pEntry = iter->second;
-
-			// hash table entry already exists
-			pvClones = pEntry;
-
-			if (!pvClones)
-			{
-				// nothing there, so create a new one
-				pvClones = new UT_GenericVector<XAP_Frame*>();
-				UT_return_val_if_fail(pvClones,false);
-
-				pvClones->addItem(pCloneOf);
-
-				// reuse this slot
-				m_hashClones[pCloneOf->getViewKey()] = pvClones;
-			}
-		}
-		else
-		{
-			// create a new one
-			pvClones = new UT_GenericVector<XAP_Frame*>();
-			UT_return_val_if_fail(pvClones,false);
-
-			pvClones->addItem(pCloneOf);
-
-			// add it to the hash table
-			m_hashClones.insert(std::make_pair(pCloneOf->getViewKey(), pvClones));
+			vClones.push_back(pCloneOf);
 		}
 
-		pvClones->addItem(pFrame);
+		vClones.push_back(pFrame);
 
 		// notify all clones of their new view numbers
-		for (UT_sint32 j=0; j<pvClones->getItemCount(); j++)
+		for (UT_sint32 j=0; j<static_cast<UT_sint32>(vClones.size()); j++)
 		{
-			XAP_Frame * f = pvClones->getNthItem(j);
+			XAP_Frame * f = vClones[j];
 			UT_continue_if_fail(f);
 
 			f->setViewNumber(j+1);
@@ -642,32 +621,31 @@ bool XAP_App::forgetFrame(XAP_Frame * pFrame)
 	if (pFrame->getViewNumber() > 0)
 	{
 		// locate vector of this frame's clones
-		CloneMap::const_iterator iter = m_hashClones.find(pFrame->getViewKey());
+		CloneMap::iterator iter = m_hashClones.find(pFrame->getViewKey());
 		UT_ASSERT(iter != m_hashClones.end());
 
 		if (iter != m_hashClones.end())
 		{
-			UT_GenericVector<XAP_Frame*> * pvClones = iter->second;
-			UT_return_val_if_fail(pvClones,false);
+			std::vector<XAP_Frame*> & vClones = iter->second;
 
 			// remove this frame from the vector
-			UT_sint32 i = pvClones->findItem(pFrame);
-			UT_ASSERT(i >= 0);
+			auto itFrame = std::find(vClones.begin(), vClones.end(), pFrame);
+			UT_ASSERT(itFrame != vClones.end());
 
-			if (i >= 0)
+			if (itFrame != vClones.end())
 			{
-				pvClones->deleteNthItem(i);
+				vClones.erase(itFrame);
 			}
 
 			// see how many clones are left
-			UT_uint32 count = pvClones->getItemCount();
+			size_t count = vClones.size();
 			UT_ASSERT(count > 0);
 			XAP_Frame * f = nullptr;
 
 			if (count == 1)
 			{
 				// remaining clone is now a singleton
-				f = pvClones->getNthItem(count-1);
+				f = vClones[count-1];
 				UT_return_val_if_fail(f,false);
 
 				f->setViewNumber(0);
@@ -675,14 +653,13 @@ bool XAP_App::forgetFrame(XAP_Frame * pFrame)
 
 				// remove this entry from hashtable
 				m_hashClones.erase(f->getViewKey());
-				delete pvClones;
 			}
 			else
 			{
 				// notify remaining clones of their new view numbers
 				for (UT_uint32 j=0; j<count; j++)
 				{
-					f = static_cast<XAP_Frame *>(pvClones->getNthItem(j));
+					f = vClones[j];
 					UT_continue_if_fail(f);
 
 					f->setViewNumber(j+1);
@@ -693,12 +670,12 @@ bool XAP_App::forgetFrame(XAP_Frame * pFrame)
 	}
 
 	// remove this frame from our window list
-	UT_sint32 ndx = m_vecFrames.findItem(pFrame);
-	UT_ASSERT_HARMLESS(ndx >= 0);
+	auto itF = std::find(m_vecFrames.begin(), m_vecFrames.end(), pFrame);
+	UT_ASSERT_HARMLESS(itF != m_vecFrames.end());
 
-	if (ndx >= 0)
+	if (itF != m_vecFrames.end())
 	{
-		m_vecFrames.deleteNthItem(ndx);
+		m_vecFrames.erase(itF);
 		notifyFrameCountChange();
 	}
 
@@ -718,19 +695,18 @@ bool XAP_App::forgetClones(XAP_Frame * pFrame)
 		return forgetFrame(pFrame);
 	}
 
-	UT_GenericVector<XAP_Frame*> vClones;
+	std::vector<XAP_Frame*> vClones;
 	getClones(&vClones, pFrame);
-	
-	for (UT_sint32 i = 0; i < vClones.getItemCount(); i++)
+
+	for (XAP_Frame * f : vClones)
 	{
-		XAP_Frame * f = static_cast<XAP_Frame *>(vClones.getNthItem(i));
 		forgetFrame(f);
 	}
 
 	return true;
 }
 
-bool XAP_App::getClones(UT_GenericVector<XAP_Frame*> *pvClonesCopy, XAP_Frame * pFrame)
+bool XAP_App::getClones(std::vector<XAP_Frame*> *pvClonesCopy, XAP_Frame * pFrame)
 {
 	UT_ASSERT(pvClonesCopy);
 	UT_return_val_if_fail(pFrame,false);
@@ -738,13 +714,13 @@ bool XAP_App::getClones(UT_GenericVector<XAP_Frame*> *pvClonesCopy, XAP_Frame * 
 
 	// locate vector of this frame's clones
 	CloneMap::const_iterator iter = m_hashClones.find(pFrame->getViewKey());
-	UT_GenericVector<XAP_Frame*> * pvClones = nullptr;
-	if (iter != m_hashClones.end()) {
-		pvClones = iter->second;
+	if (iter == m_hashClones.end()) {
+		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+		return false;
 	}
-	UT_ASSERT(pvClones);
 
-	return pvClonesCopy->copy(pvClones);
+	*pvClonesCopy = iter->second;
+	return true;
 }
 
 bool XAP_App::updateClones(XAP_Frame * pFrame)
@@ -758,16 +734,14 @@ bool XAP_App::updateClones(XAP_Frame * pFrame)
 
 	if (iter != m_hashClones.end())
 	{
-		UT_GenericVector<XAP_Frame*>* pvClones = iter->second;
-		UT_return_val_if_fail(pvClones,false);
+		const std::vector<XAP_Frame*> & vClones = iter->second;
+		UT_return_val_if_fail(!vClones.empty(),false);
 
-		UT_uint32 count = pvClones->getItemCount();
-		UT_ASSERT(count > 0);
 		XAP_Frame * f = nullptr;
 
-		for (UT_uint32 j=0; j<count; j++)
+		for (UT_uint32 j=0; j<vClones.size(); j++)
 		{
-			f = pvClones->getNthItem(j);
+			f = vClones[j];
 			UT_continue_if_fail(f);
 
 			f->updateTitle();
@@ -784,16 +758,16 @@ void XAP_App::notifyFrameCountChange() // default is empty method
 
 UT_sint32 XAP_App::getFrameCount() const
 {
-	return m_vecFrames.getItemCount();
+	return m_vecFrames.size();
 }
 
 XAP_Frame * XAP_App::getFrame(UT_sint32 ndx) const
 {
 	XAP_Frame * pFrame = nullptr;
-	
-	if (ndx < m_vecFrames.getItemCount())
+
+	if (ndx >= 0 && ndx < static_cast<UT_sint32>(m_vecFrames.size()))
 	{
-		pFrame = m_vecFrames.getNthItem(ndx);
+		pFrame = m_vecFrames[ndx];
 		UT_ASSERT(pFrame);
 	}
 	return pFrame;
@@ -801,7 +775,8 @@ XAP_Frame * XAP_App::getFrame(UT_sint32 ndx) const
 	
 UT_sint32 XAP_App::findFrame(XAP_Frame * pFrame) const
 {
-	return m_vecFrames.findItem(pFrame);
+	auto it = std::find(m_vecFrames.begin(), m_vecFrames.end(), pFrame);
+	return (it != m_vecFrames.end()) ? static_cast<UT_sint32>(it - m_vecFrames.begin()) : -1;
 }
 	
 UT_sint32 XAP_App::findFrame(const char * szFilename) const
@@ -915,7 +890,7 @@ bool XAP_App::isWordInDict(const UT_UCS4Char * pWord, UT_uint32 len) const
 /*!
  * Look up the custom dictionary for suggested words
  */
-void XAP_App::suggestWord(UT_GenericVector<UT_UCS4Char*> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 lenWord)
+void XAP_App::suggestWord(std::vector<UT_UCS4Char*> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 lenWord)
 {
 	if(m_pDict)
 	{
@@ -961,11 +936,11 @@ void XAP_App::rememberFocussedFrame( XAP_Frame * pJustFocussedFrame)
 UT_sint32 XAP_App::safefindFrame( XAP_Frame * f) const
 {
 	size_t ff = reinterpret_cast<size_t>(f);
-	UT_sint32 num_frames = m_vecFrames.getItemCount();
+	UT_sint32 num_frames = m_vecFrames.size();
 	UT_sint32 i;
 	for( i = 0; i< num_frames; i++)
 	{
-		size_t lf = reinterpret_cast<size_t>( m_vecFrames.getNthItem(i));
+		size_t lf = reinterpret_cast<size_t>( m_vecFrames[i]);
 		if( lf == ff) break;
 	}
 	if( i == num_frames ) i = -1;
@@ -1204,16 +1179,16 @@ void XAP_App::setKbdLanguage(const char * pszLang)
 	}
 }
 
-void XAP_App::enumerateFrames(UT_Vector & v) const
+void XAP_App::enumerateFrames(std::vector<XAP_Frame*> & v) const
 {
 	for(UT_sint32 i = 0; i < getFrameCount(); ++i)
 	{
 		XAP_Frame * pF = getFrame(i);
 		if(pF)
 		{
-			if (v.findItem(static_cast<void*>(pF)) < 0)
+			if (std::find(v.begin(), v.end(), pF) == v.end())
 			{
-				v.addItem(static_cast<void*>(pF));
+				v.push_back(pF);
 			}
 		}
 	}
@@ -1222,12 +1197,9 @@ void XAP_App::enumerateFrames(UT_Vector & v) const
 std::list< AD_Document* >
 XAP_App::getDocuments( const AD_Document * pExclude ) const
 {
-    UT_Vector t;
+    std::vector<AD_Document*> t;
     enumerateDocuments( t, pExclude );
-    std::list< AD_Document* > ret;
-    for( int i=0; i < t.size(); ++i )
-        ret.push_back( const_cast<AD_Document*>(static_cast<const AD_Document*>(t[i] )));
-    return ret;
+    return std::list< AD_Document* >(t.begin(), t.end());
 }
 
 
@@ -1235,17 +1207,15 @@ XAP_App::getDocuments( const AD_Document * pExclude ) const
     Enumerates currently open document associated with the
     application, excluding document pointed to by pExclude
 
-    \param v: UT_Vector into which to store the document pointers
+    \param v: std::vector into which to store the document pointers
     
     \para pExclude: pointer to a document to exclude from enumeration,
                     can be nullptr (e.g., if this function is called from
                     inside a document, it might be desirable to
                     exclude that document)
 */
-void XAP_App::enumerateDocuments(UT_Vector & v, const AD_Document * pExclude) const
+void XAP_App::enumerateDocuments(std::vector<AD_Document*> & v, const AD_Document * pExclude) const
 {
-	UT_sint32 iIndx;
-
 	for(UT_sint32 i = 0; i < getFrameCount(); ++i)
 	{
 		XAP_Frame * pF = getFrame(i);
@@ -1256,11 +1226,9 @@ void XAP_App::enumerateDocuments(UT_Vector & v, const AD_Document * pExclude) co
 
 			if(pD && pD != pExclude)
 			{
-				iIndx = v.findItem(static_cast<void*>(pD));
-
-				if(iIndx < 0)
+				if(std::find(v.begin(), v.end(), pD) == v.end())
 				{
-					v.addItem(static_cast<void*>(pD));
+					v.push_back(pD);
 				}
 			}
 		}
@@ -1414,7 +1382,7 @@ bool XAP_App::saveState(bool bQuit)
 	UT_sint32 i;
 	UT_sint32 j;
 	
-	for(i = 0, j = 0; i < m_vecFrames.getItemCount(); ++i, ++j)
+	for(i = 0, j = 0; i < static_cast<UT_sint32>(m_vecFrames.size()); ++i, ++j)
 	{
 		XAP_Frame * pFrame = nullptr;
 
@@ -1549,11 +1517,11 @@ bool XAP_App::retrieveState()
 
 	// we should only be restoring state with no docs already
 	// opened
-	UT_return_val_if_fail(m_vecFrames.getItemCount() <= 1, false);
+	UT_return_val_if_fail(m_vecFrames.size() <= 1, false);
 	XAP_Frame * pFrame = nullptr;
 
-	if(m_vecFrames.getItemCount())
-		pFrame = m_vecFrames.getNthItem(0);
+	if(!m_vecFrames.empty())
+		pFrame = m_vecFrames[0];
 
 	// if there is a frame, it should be one with unmodified untitled document
 	UT_return_val_if_fail( !pFrame || (!pFrame->getFilename() && !pFrame->isDirty()), false );
@@ -1621,7 +1589,7 @@ bool XAP_App::retrieveState()
 	}
 
 	// set focus to the first frame
-	pFrame = m_vecFrames.getNthItem(0);
+	pFrame = m_vecFrames.empty() ? nullptr : m_vecFrames[0];
 	UT_return_val_if_fail( pFrame, false );
 
 	AV_View* pView = pFrame->getCurrentView();

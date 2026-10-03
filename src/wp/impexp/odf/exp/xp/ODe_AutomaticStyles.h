@@ -23,15 +23,21 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
+#include <string>
 
 // Abinova includes
-#include "ut_hash.h"
+#include <vector>
+#include "ut_string_class.h"
 
 // Internal classes
 class ODe_Style_Style;
 class ODe_Style_PageLayout;
 class ODe_Style_List;
+
+// Abinova classes
+typedef struct _GsfOutput GsfOutput;
 
 /**
  * Represents a <office:automatic-styles> element.
@@ -57,27 +63,29 @@ public:
     void addPageLayout(ODe_Style_PageLayout*& pPageLayout);
 
     ODe_Style_PageLayout* getPageLayout(const gchar* pName) {
-        return m_pageLayouts.pick(pName);
+        auto it = m_pageLayouts.find(pName);
+        return it != m_pageLayouts.end() ? it->second : nullptr;
     };
 
     ODe_Style_PageLayout* getMasterPage(const gchar* pName) {
-        return m_pageLayouts.pick(pName);
+        auto it = m_pageLayouts.find(pName);
+        return it != m_pageLayouts.end() ? it->second : nullptr;
     };
 
 	UT_uint32 getSectionStylesCount() const {
         return m_sectionStyles.size();
     }
 
-    std::unique_ptr<UT_GenericVector<ODe_Style_Style*>> getParagraphStyles() {
-        return m_paragraphStyles.enumerate();
+    std::unique_ptr<std::vector<ODe_Style_Style*>> getParagraphStyles() const {
+        return _mapValues(m_paragraphStyles);
     }
 
-    std::unique_ptr<UT_GenericVector<ODe_Style_Style*>> getTextStyles() {
-        return m_textStyles.enumerate();
+    std::unique_ptr<std::vector<ODe_Style_Style*>> getTextStyles() const {
+        return _mapValues(m_textStyles);
     }
 
-    std::unique_ptr<UT_GenericVector<ODe_Style_List*>> getListStyles() {
-        return m_listStyles.enumerate();
+    std::unique_ptr<std::vector<ODe_Style_List*>> getListStyles() const {
+        return _mapValues(m_listStyles);
     }
 
     // Writes <office:automatic-styles> element.
@@ -85,17 +93,28 @@ public:
 
 private:
     void _storeStyle(ODe_Style_Style*& rpStyle,
-                     UT_GenericStringMap<ODe_Style_Style*>& rStyles,
+                     std::map<std::string, ODe_Style_Style*>& rStyles,
                      const char* pNamingPrefix);
 
-    UT_GenericStringMap<ODe_Style_Style*> m_textStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_paragraphStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_sectionStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_tableStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_tableColumnStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_tableRowStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_tableCellStyles;
-    UT_GenericStringMap<ODe_Style_Style*> m_graphicStyles;
-    UT_GenericStringMap<ODe_Style_PageLayout*> m_pageLayouts;
-    UT_GenericStringMap<ODe_Style_List*> m_listStyles;
+    template <typename T>
+    static std::unique_ptr<std::vector<T>> _mapValues(
+            const std::map<std::string, T>& rMap) {
+        auto pVec = std::make_unique<std::vector<T>>();
+        pVec->reserve(rMap.size());
+        for (const auto& kv : rMap) {
+            pVec->push_back(kv.second);
+        }
+        return pVec;
+    }
+
+    std::map<std::string, ODe_Style_Style*> m_textStyles;
+    std::map<std::string, ODe_Style_Style*> m_paragraphStyles;
+    std::map<std::string, ODe_Style_Style*> m_sectionStyles;
+    std::map<std::string, ODe_Style_Style*> m_tableStyles;
+    std::map<std::string, ODe_Style_Style*> m_tableColumnStyles;
+    std::map<std::string, ODe_Style_Style*> m_tableRowStyles;
+    std::map<std::string, ODe_Style_Style*> m_tableCellStyles;
+    std::map<std::string, ODe_Style_Style*> m_graphicStyles;
+    std::map<std::string, ODe_Style_PageLayout*> m_pageLayouts;
+    std::map<std::string, ODe_Style_List*> m_listStyles;
 };

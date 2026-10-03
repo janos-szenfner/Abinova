@@ -24,6 +24,7 @@
  * so even if it's commented out in-file that's still a lot of work for
  * the preprocessor to do...
  */
+#include <vector>
 #include "ut_types.h"
 #include "ut_misc.h"
 #include "ut_vector.h"
@@ -187,8 +188,8 @@ protected:
 	bool				m_bInsertMode;
 	bool				m_VisualSelectionActive;
 
-	UT_GenericVector<AV_ScrollObj*>	m_scrollListeners;
-	UT_GenericVector<AV_Listener*>	m_vecListeners;
+	std::vector<AV_ScrollObj*>	m_scrollListeners;
+	std::vector<AV_Listener*>	m_vecListeners;
 
 private:
 	AV_View(const AV_View&) = delete;

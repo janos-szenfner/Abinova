@@ -31,12 +31,8 @@
  * Destructor
  */
 ODe_FontFaceDecls::~ODe_FontFaceDecls() {
-    UT_uint32 i, count;
-
-    auto pVector = m_fontDecls.enumerate();
-    count = pVector->getItemCount();
-    for (i=0; i<count; i++) {
-        delete (*pVector)[i];
+    for (auto& kv : m_fontDecls) {
+        delete kv.second;
     }
 }
 
@@ -46,12 +42,10 @@ ODe_FontFaceDecls::~ODe_FontFaceDecls() {
  */
 void ODe_FontFaceDecls::addFont(const UT_UTF8String& rFontName) {
     
-    UT_UTF8String* pFontDecl = nullptr;
-    
     if ( !rFontName.empty() &&
-         !m_fontDecls.contains(rFontName.utf8_str(), pFontDecl) ) {
+         m_fontDecls.find(rFontName.utf8_str()) == m_fontDecls.end() ) {
         
-        pFontDecl = new UT_UTF8String();
+        UT_UTF8String* pFontDecl = new UT_UTF8String();
         UT_UTF8String_sprintf(*pFontDecl,
             "  <style:font-face style:name=\"%s\" svg:font-family=\"%s\"/>\n",
             rFontName.utf8_str(),
@@ -60,7 +54,7 @@ void ODe_FontFaceDecls::addFont(const UT_UTF8String& rFontName) {
         // TODO: Do something useful here instead of just this name-family
         //       mapping.
         
-        m_fontDecls.insert(rFontName.utf8_str(), pFontDecl);
+        m_fontDecls.emplace(rFontName.utf8_str(), pFontDecl);
     }
 }
 
@@ -69,21 +63,16 @@ void ODe_FontFaceDecls::addFont(const UT_UTF8String& rFontName) {
  * Write the <office:font-face-decls> element.
  */
 bool ODe_FontFaceDecls::write(GsfOutput* pODT) const {
-    UT_uint32 i, count;
+    if (!m_fontDecls.empty()) {
 
-    auto pVector = m_fontDecls.enumerate();
-    count = pVector->getItemCount();
-    
-    if (count > 0) {
-    
         ODe_writeUTF8String(pODT, " <office:font-face-decls>\n");
-    
-        for (i=0; i<count; i++) {
-            ODe_writeUTF8String(pODT, *((*pVector)[i]));
+
+        for (const auto& kv : m_fontDecls) {
+            ODe_writeUTF8String(pODT, *kv.second);
         }
-        
+
         ODe_writeUTF8String(pODT, " </office:font-face-decls>\n");
-    
+
     } else {
         ODe_writeUTF8String(pODT, " <office:font-face-decls/>\n");
     }

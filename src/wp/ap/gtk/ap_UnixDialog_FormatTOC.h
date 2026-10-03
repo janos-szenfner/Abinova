@@ -74,9 +74,6 @@ private:
 	GtkWidget * m_wLabelChoose;
 	GtkWidget * m_wPageNumberingChoose;
 	GtkBuilder * m_pBuilder;
-	UT_Vector   m_vecChangeStyleBtns;
-	UT_Vector   m_vecStyleEntries;
-	UT_Vector   m_vecTextTypes;
 	UT_sint32   m_iIndentValue;
 	UT_sint32   m_iStartValue;
 	static void s_NumType_changed(GtkWidget * wid, GParamSpec * pspec,

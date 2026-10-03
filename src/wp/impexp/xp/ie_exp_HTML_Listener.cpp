@@ -24,6 +24,8 @@
 * 02110-1301 USA.
 */
 
+#include <string>
+#include <vector>
 #include "ie_exp_HTML_Listener.h"
 #include "ie_exp_HTML_util.h"
 #include "ie_exp_HTML.h"
@@ -3147,7 +3149,7 @@ void IE_Exp_HTML_Listener::_setCellWidthInches()
 		// probably covering up some sort of issue
 		// but we assert above, so we'll notice it again
 		if (i < static_cast<UT_sint32>( m_vecDWidths.size()))
-			tot += m_vecDWidths.getNthItem(i);
+			tot += m_vecDWidths[i];
 	}
 	m_dCellWidthInches = tot;
 
@@ -3163,7 +3165,7 @@ void IE_Exp_HTML_Listener::_fillColWidthsVector()
 	//
 	const char * pszColumnProps = m_tableHelper.getTableProp("table-column-props");
 	UT_DEBUGMSG(("Number columns in table %d \n",m_tableHelper.getNumCols ()));
-	if(m_vecDWidths.getItemCount() > 0)
+	if(m_vecDWidths.size() > 0)
 	{
 		m_vecDWidths.clear();
 	}
@@ -3203,7 +3205,7 @@ void IE_Exp_HTML_Listener::_fillColWidthsVector()
 			{
 				UT_String sSub = sProps.substr(i,(j-i));
 				i = j + 1;
-				m_vecDWidths.addItem(UT_convertToInches(sSub.c_str()));
+				m_vecDWidths.push_back(UT_convertToInches(sSub.c_str()));
 			}
 		}
 	}
@@ -3219,7 +3221,7 @@ void IE_Exp_HTML_Listener::_fillColWidthsVector()
 		UT_sint32 i = 0;
 		for(i =0; i< nCols; i++)
 		{
-			m_vecDWidths.addItem(colWidth);
+			m_vecDWidths.push_back(colWidth);
 		}
 	}
 }
