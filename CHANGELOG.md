@@ -54,6 +54,14 @@ below are on `main` but the release has not been cut yet.
   `<draw:object>` (self-declared `xmlns:abiword`); the importer
   restores them verbatim, so the original source survives
   `.abw`→`.odt`→`.abw` instead of being re-derived from MathML.
+- **ODF embedded objects no longer misread as equations** — the ODF
+  importer used to claim every `draw:object` subdocument stream as
+  MathML, so embedded charts, spreadsheets and other objects became
+  broken math items. The stream is now verified to actually be a
+  `<math>` subdocument before a math object is created; other object
+  kinds fall back to their `ObjectReplacements` preview image (inline
+  or positioned), and positioned formulas import into a real frame
+  containing the equation.
 - **Reserved `.abw` schema sections** — `<changes>`
   (change-tracking metadata), `<masterpages>` (page-layout
   templates) and `<notes>` (presentation notes) are now part of the

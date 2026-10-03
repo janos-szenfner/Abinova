@@ -103,6 +103,11 @@ private:
 
 	bool m_bInlineImagePending;
 	bool m_bPositionedImagePending;
+
+	// set once the frame's draw:object produced real content (a MathML
+	// equation): a sibling <draw:image> is then only the
+	// ObjectReplacements preview and must not import as a second image
+	bool m_bSkipObjectPreview;
 	std::string m_sAltTitle;
 	bool m_bInAltTitle;
 	std::string m_sAltDesc;

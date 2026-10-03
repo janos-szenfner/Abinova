@@ -59,6 +59,7 @@ ODi_Frame_ListenerState::ODi_Frame_ListenerState(PD_Document* pDocument,
 		m_bPositionedImagePending(false),
 		m_bInAltTitle(false),
 		m_bInAltDesc(false),
+		m_bSkipObjectPreview(false),
 		m_bInBinaryData(false)
 {
     if (m_rElementStack.hasElement("office:document-content")) {
@@ -237,7 +238,8 @@ void ODi_Frame_ListenerState::endElement (const gchar* pName,
      	    lID.append((sID.substr(9,sID.size()-8)).c_str());
 			
       	    UT_ByteBufPtr latexBuf(new UT_ByteBuf);
-   	    UT_UTF8String PMathml = reinterpret_cast<const char*>((m_pMathBB->getPointer(0)));
+	    UT_UTF8String PMathml(reinterpret_cast<const char*>(m_pMathBB->getPointer(0)),
+	                          m_pMathBB->getLength());
 	    UT_UTF8String PLatex,Pitex;
 
 	    if (!m_pAbiDocument->createDataItem(sID.c_str(), false, m_pMathBB, "", nullptr))
@@ -276,6 +278,8 @@ void ODi_Frame_ListenerState::endElement (const gchar* pName,
 	    }
             m_pAbiDocument->appendObject(PTO_Math, atts);
 
+	    // a sibling <draw:image> is only the preview of this equation
+	    m_bSkipObjectPreview = true;
 	    m_sPendingLatexSource.clear();
 	    m_sPendingDisplay.clear();
             m_pMathBB.reset();
@@ -314,7 +318,14 @@ void ODi_Frame_ListenerState::_drawImage (const gchar** ppAtts,
 {
     const gchar* pChar;
     UT_String dataId; // id of the data item that contains the image.
- 
+
+	if (m_bSkipObjectPreview) {
+		// the frame's draw:object already produced real content (a
+		// MathML equation) - this <draw:image> is only its
+		// ObjectReplacements preview, not a second image
+		return;
+	}
+
 	UT_return_if_fail(!m_bInlineImagePending && !m_bPositionedImagePending);
     
     //
@@ -463,58 +474,59 @@ void ODi_Frame_ListenerState::_drawObject (const gchar** ppAtts,
 {
     const gchar* pChar = nullptr;
     UT_String dataId; // id of the data item that contains the object.
-    
-    
+
+
     //
     // Adds a reference to the added data item according to anchor mode, etc.
     //
-   
+
     pChar = m_rElementStack.getStartTagAttribute(0, "draw:style-name");
     UT_ASSERT(pChar);
-    
+
     UT_DebugOnly<const ODi_Style_Style*> pGraphicStyle;
     pGraphicStyle = m_pStyles->getGraphicStyle(pChar, m_bOnContentStream);
     UT_ASSERT(pGraphicStyle);
-    
+
     pChar = m_rElementStack.getStartTagAttribute(0, "text:anchor-type");
     UT_ASSERT_HARMLESS(pChar);
-    
+
+    int pto_Type = -1;
+    if (!m_rAbiData.addObjectDataItem(dataId, ppAtts, pto_Type)) {
+        // Not a MathML subdocument (chart, spreadsheet, OLE payload,
+        // flat-doc inline content or unreadable stream). Emit nothing:
+        // a sibling <draw:image> carries the ObjectReplacements
+        // preview and _drawImage will import it like any other image.
+        // In flat documents a following <math:math> child still goes
+        // through the m_bInMath path on its own.
+        return;
+    }
+
+    std::string extraID;
+    std::string objectID;
+    objectID = (dataId.substr(9,dataId.length()-8)).c_str();
+    extraID.assign("LatexMath");
+    extraID.append(objectID.c_str());
+
     if ( pChar && (!strcmp(pChar, "as-char") ||
          !strcmp(pChar, "char"))) {
         // In-line wrapping.
         // No frames are used on Abinova for in-line wrapping.
         // It uses a <image> tag right in the paragraph text.
-        
+
         m_inlinedImage = true;
-        
+
         const gchar* pWidth;
         const gchar* pHeight;
-        
-	int pto_Type;
 
-        if(!m_rAbiData.addObjectDataItem(dataId, ppAtts, pto_Type)) {
-            UT_DEBUGMSG(("ODT import: no suitable object importer found\n"));
-            return;
-        }
-		 
-
-	std::string extraID;
-	std::string objectID;
-	objectID = (dataId.substr(9,dataId.length()-8)).c_str();
-	extraID.assign("LatexMath");
-	extraID.append(objectID.c_str());
-
-	   
-        
         pWidth = m_rElementStack.getStartTagAttribute(0, "svg:width");
         UT_ASSERT(pWidth);
-        
+
         pHeight = m_rElementStack.getStartTagAttribute(0, "svg:height");
-        UT_ASSERT(pHeight);  
-        
+        UT_ASSERT(pHeight);
+
         std::string propsBuffer =
             UT_std_string_sprintf("width:%s; height:%s", pWidth, pHeight);
-        
+
         PP_PropertyVector attribs = {
             "props", propsBuffer,
             "dataid", dataId.c_str(),
@@ -523,39 +535,59 @@ void ODi_Frame_ListenerState::_drawObject (const gchar** ppAtts,
         if (!m_pAbiDocument->appendObject (static_cast<PTObjectType>(pto_Type), attribs)) {
             UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
         }
-        
+
     } else {
-        // We define a frame with the image in it.
-        
+        // Positioned math object: emit a real frame whose sole
+        // paragraph holds the equation (frame-type:image would need
+        // an image dataid; a MathML data item isn't one).
+
         if (m_rElementStack.hasElement("draw:text-box")) {
             // Abinova can't have nested frames (a framed image inside a textbox).
             // Abort mission!
             rAction.ignoreElement();
             return;
         }
-        
-        std::string props = "frame-type:image";
+
+        std::string props = "frame-type:textbox";
         if(!_getFrameProperties(props, ppAtts)) {
             return;
         }
-        
+
         // Avoid having frame border lines.
         props += "; bot-style:none; left-style:none;"
                  " right-style:none; top-style:none";
-        
-        int pto_Type;
-        if(!m_rAbiData.addObjectDataItem(dataId, ppAtts, pto_Type)) {
-            UT_DEBUGMSG(("ODT import: no suitable object importer found\n"));
+
+        const PP_PropertyVector frameAtts = {
+            "props", props
+        };
+        if(!m_pAbiDocument->appendStrux(PTX_SectionFrame, frameAtts)) {
+            UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
             return;
         }
-        
-		m_mPendingImgProps["strux-image-dataid"] = dataId.c_str();
-		m_mPendingImgProps["props"] = props.c_str();
-        
-		// don't write the image out yet as we might get more properties, for
-		// example alt descriptions from the <svg:desc> tag
-		m_bPositionedImagePending = true;
+        m_iFrameDepth++;
+
+        if(!m_pAbiDocument->appendStrux(PTX_Block, PP_NOPROPS)) {
+            UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+            return;
+        }
+
+        PP_PropertyVector atts = {
+            "dataid", dataId.c_str(),
+            "latexid", extraID
+        };
+        if (!m_pAbiDocument->appendObject (static_cast<PTObjectType>(pto_Type), atts)) {
+            UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+        }
     }
+
+    // The object resolved to real math - any sibling <draw:image> is
+    // only the ObjectReplacements preview and must not become a
+    // second image. This also covers a producer that wrote the
+    // preview before the object.
+    m_bSkipObjectPreview = true;
+    m_bInlineImagePending = false;
+    m_bPositionedImagePending = false;
+    m_mPendingImgProps.clear();
 
 }
 
