@@ -1131,8 +1131,8 @@ below are on `main` but the release has not been cut yet.
   PNGs (the gallery inserts flat artwork — the heading no longer
   claims 3D-model support);
   Screenshot captures a screen area via the XDG desktop portal
-  (`gnome-screenshot` fallback) and inserts it; Media links
-  video/audio files as `file://` hyperlinks.
+  (`gnome-screenshot` fallback) and inserts it; Media embeds
+  video/audio files as playable media objects.
 - **Text group additions** — WordArt inserts styled placeholder text
   (Georgia, bold/italic, accent colors) via a preset popover; Draw
   Text Box / Draw Vertical Text Box (vertical uses the frame
@@ -4419,6 +4419,10 @@ below are on `main` but the release has not been cut yet.
   media objects). Unsupported file types keep the `file://` link
   fallback, and the Object popover's "Embedded Object…" embeds any
   file with system-handler activation.
+- **Media dropdown "Browser" rows work** — the Media popover's
+  "Video Browser…" and "Audio Browser…" entries previously did
+  nothing; they now open the file picker and embed the chosen media
+  the same way "from File" does.
 - **Markdown export preserves equations** — math objects now write
   back to `.md` as `$…$` (inline) or `$$…$$` (display) LaTeX instead
   of being dropped; documents without a stored LaTeX source fall

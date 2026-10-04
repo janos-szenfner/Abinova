@@ -12548,12 +12548,20 @@ static UT_ByteBufPtr s_makeFilePoster(const char * szName,
 static bool s_embedFileInDoc(FV_View * pView, const char * pathName,
 							 const char * szKind)
 {
+	/* the file dialog hands back a URI (file:///…); g_file_get_contents
+	 * needs a local path */
+	char * local = UT_go_filename_from_uri(pathName);
+	const char * fsPath = local ? local : pathName;
+
 	gchar * contents = nullptr;
 	gsize len = 0;
-	if (!g_file_get_contents(pathName, &contents, &len, nullptr))
+	if (!g_file_get_contents(fsPath, &contents, &len, nullptr))
+	{
+		g_free(local);
 		return false;
+	}
 
-	const char * base = UT_basename(pathName);
+	const char * base = UT_basename(fsPath);
 	gboolean bUncertain = FALSE;
 	gchar * ctype = g_content_type_guess(
 		base, reinterpret_cast<const guchar *>(contents), len, &bUncertain);
@@ -12568,6 +12576,7 @@ static bool s_embedFileInDoc(FV_View * pView, const char * pathName,
 		g_free(ctype);
 		g_free(mime);
 		g_free(contents);
+		g_free(local);
 		return false;
 	}
 	const char * kind = bVideo ? "video" : bAudio ? "audio" : "file";
@@ -12593,6 +12602,7 @@ static bool s_embedFileInDoc(FV_View * pView, const char * pathName,
 									sProps.c_str(), pPoster, "image/png");
 	g_free(ctype);
 	g_free(mime);
+	g_free(local);
 	return ok;
 }
 
@@ -12617,9 +12627,11 @@ Defun1(insMediaFile)
 
 	if (!s_embedFileInDoc(pView, pathName, "media"))
 	{
-		// g_filename_to_uri handles drive letters and escaping;
-		// the raw "file://" concat produced invalid URIs on Windows
-		gchar * uri = g_filename_to_uri(pathName, nullptr, nullptr);
+		// pathName is already a URI from the file dialog;
+		// g_filename_to_uri handles the plain-path fallback
+		gchar * uri = UT_go_path_is_uri(pathName)
+			? g_strdup(pathName)
+			: g_filename_to_uri(pathName, nullptr, nullptr);
 		const char * base = UT_basename(pathName);
 		/* insert the filename as linked text */
 		UT_UCS4String s(base);
