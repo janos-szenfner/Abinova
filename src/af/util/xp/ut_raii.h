@@ -26,9 +26,9 @@
 #include <cstdio>
 #include <memory>
 #include <string>
-#include <unistd.h>
 
 #include <glib-object.h>
+#include <glib/gstdio.h>
 #include <gsf/gsf.h>
 #include <cairo.h>
 
@@ -167,7 +167,7 @@ public:
 	void reset(int fd = -1) noexcept
 	{
 		if (m_fd >= 0)
-			::close(m_fd);
+			g_close(m_fd, nullptr);
 		m_fd = fd;
 	}
 	explicit operator bool() const noexcept { return m_fd >= 0; }

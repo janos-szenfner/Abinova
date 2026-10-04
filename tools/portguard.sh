@@ -18,7 +18,6 @@
 # POSIX usage is allowed by design in the portability seam and test
 # tooling (exempt):
 #   src/af/util/xp/ut_go_file.cpp   — the UT_go_* file helper impl
-#   src/af/util/xp/ut_raii.h        — UT_ScopedFD wraps ::close
 #   src/af/tf/**                    — the TF test framework
 #   */t/**, *.t.cpp, src/wp/test    — tests
 #
@@ -74,7 +73,7 @@ xp_dirs=$(find "$SRCDIR/src" -type d -name xp \
 xp_files=$(find $xp_dirs -maxdepth 1 -type f \
 	\( -name '*.cpp' -o -name '*.c' -o -name '*.h' -o -name '*.hpp' \) \
 	| grep -vE '/t/|\.t\.cpp' \
-	| grep -vE 'src/af/util/xp/ut_go_file\.cpp|src/af/util/xp/ut_raii\.h|src/af/tf/')
+	| grep -vE 'src/af/util/xp/ut_go_file\.cpp|src/af/tf/')
 
 current_file=$(mktemp)
 trap 'rm -f "$current_file" "$bas_file"' EXIT

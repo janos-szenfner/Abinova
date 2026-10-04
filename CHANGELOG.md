@@ -4535,6 +4535,13 @@ below are on `main` but the release has not been cut yet.
   like `firefox -new-tab` or `firefox:chromium`. ShellExecute remains
   as a Windows fallback and now reports failures instead of always
   claiming success.
+- **Remaining POSIX-ism sweep in shared headers** — `ut_raii.h` no
+  longer includes `unistd.h` (`UT_ScopedFD` closes through GLib's
+  `g_close()`, which maps to `_close` on Windows), the MSVC `ssize_t`
+  typedef in `enchant_checker.h` is now pointer-sized (`intptr_t`;
+  the old `long` was 32-bit on Win64, wrong for enchant's `ssize_t`
+  API), and a leftover `off_t` in the RDF debug path became
+  `std::streamoff`. No `/tmp` literals remain in shipped code.
 
 ### Resolved root causes worth noting
 

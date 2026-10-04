@@ -422,7 +422,7 @@ static std::string readLengthPrefixedString( std::istream& iss )
 #if DEBUG
     if( DEBUG_LOWLEVEL_IO )
     {
-        off_t loc = iss.tellg();
+        std::streamoff loc = iss.tellg();
         UT_DEBUGMSG(("PD_DocumentRDF::readLengthPrefixedString() len:%d loc:%ld\n", 
 					 len, static_cast<long>(loc)));
     }

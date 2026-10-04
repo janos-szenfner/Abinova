@@ -23,7 +23,10 @@
 
 #include "spell_manager.h"
 #ifdef _MSC_VER
-typedef long ssize_t;
+// MSVC has no ssize_t; enchant.h's API needs it declared first.
+// intptr_t is pointer-sized like ssize_t (a bare long is 32-bit on Win64).
+#include <cstdint>
+typedef std::intptr_t ssize_t;
 #endif
 #include <enchant.h>
 
