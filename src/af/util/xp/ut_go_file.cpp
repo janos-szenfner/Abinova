@@ -1297,11 +1297,15 @@ UT_go_file_atomic_temp_name (const gchar *final_path)
  * never destroy the previously saved document. On POSIX this is a
  * rename(2) that keeps the old file's permission bits and fsync()s
  * both the file and its directory so the swap survives a power loss;
- * @tmp_path is unlinked if the rename fails. On platforms without
- * POSIX rename semantics the staged contents replace the target via
- * g_file_set_contents() - weaker (the fallback is not crash-atomic
- * on every backend), but the target is never truncated in place by
- * callers writing to it directly. @tmp_path is consumed either way.
+ * @tmp_path is unlinked if the rename fails. On Windows the swap is a
+ * MoveFileExW(MOVEFILE_REPLACE_EXISTING) - rename()/_wrename() refuse
+ * to replace an existing destination there - restoring the old file's
+ * attributes and flushing the result via _commit() (Windows has no
+ * directory fsync). On platforms without either, the staged contents
+ * replace the target via g_file_set_contents() - weaker (the fallback
+ * is not crash-atomic on every backend), but the target is never
+ * truncated in place by callers writing to it directly. @tmp_path is
+ * consumed either way.
  *
  * Returns: TRUE if @final_path now holds the staged contents.
  */
@@ -1313,11 +1317,64 @@ UT_go_file_atomic_replace (const gchar *tmp_path,
 	g_return_val_if_fail (tmp_path != nullptr, FALSE);
 	g_return_val_if_fail (final_path != nullptr, FALSE);
 
-#if defined(G_OS_WIN32) || defined(UT_GO_NO_POSIX)
+#if defined(G_OS_WIN32)
+	/* GLib encodes local filenames as UTF-8; the W APIs want UTF-16 */
+	gunichar2 *wtmp = g_utf8_to_utf16 (tmp_path, -1, nullptr, nullptr, err);
+	gunichar2 *wfinal = wtmp
+		? g_utf8_to_utf16 (final_path, -1, nullptr, nullptr, err)
+		: nullptr;
+	if (!wfinal) {
+		g_free (wtmp);
+		(void)g_remove (tmp_path);
+		return FALSE;
+	}
+
+	/* keep the old file's attributes, like the POSIX branch's
+	 * chmod(st_mode); a read-only target would reject the replace, so
+	 * the bit is dropped before the move and the full set restored
+	 * afterwards */
+	DWORD attrs = GetFileAttributesW (reinterpret_cast<LPCWSTR> (wfinal));
+	const bool bHadOld = (attrs != INVALID_FILE_ATTRIBUTES);
+	if (bHadOld && (attrs & FILE_ATTRIBUTE_READONLY) != 0)
+		(void)SetFileAttributesW (reinterpret_cast<LPCWSTR> (wfinal),
+								  attrs & ~FILE_ATTRIBUTE_READONLY);
+
+	if (!MoveFileExW (reinterpret_cast<LPCWSTR> (wtmp),
+					  reinterpret_cast<LPCWSTR> (wfinal),
+					  MOVEFILE_REPLACE_EXISTING)) {
+		DWORD dwErr = GetLastError ();
+		gchar *emsg = g_win32_error_message (dwErr);
+		if (bHadOld && (attrs & FILE_ATTRIBUTE_READONLY) != 0)
+			(void)SetFileAttributesW (reinterpret_cast<LPCWSTR> (wfinal),
+									  attrs);
+		g_free (wtmp);
+		g_free (wfinal);
+		(void)g_remove (tmp_path);
+		g_set_error (err, G_IO_ERROR,
+					 g_io_error_from_win32_error (dwErr),
+					 "cannot replace '%s': %s", final_path, emsg);
+		g_free (emsg);
+		return FALSE;
+	}
+
+	if (bHadOld)
+		(void)SetFileAttributesW (reinterpret_cast<LPCWSTR> (wfinal), attrs);
+
+	/* _commit() is the CRT flush-to-disk analogue of fsync(); there is
+	 * no O_CLOEXEC to emulate and directories cannot be synced */
+	int fd = _wopen (reinterpret_cast<const wchar_t *> (wfinal),
+					 _O_RDONLY | _O_BINARY);
+	if (fd >= 0) {
+		(void)_commit (fd);
+		_close (fd);
+	}
+	g_free (wtmp);
+	g_free (wfinal);
+	return TRUE;
+#elif defined(UT_GO_NO_POSIX)
 	/* No POSIX rename/fsync semantics: replace the target with the
 	 * staged contents in one shot. g_file_set_contents() itself
-	 * stages through a temp file where the platform allows.
-	 * PORT02 swaps in a real MoveFileEx() implementation for _WIN32. */
+	 * stages through a temp file where the platform allows. */
 	gchar *contents = nullptr;
 	gsize length = 0;
 	if (!g_file_get_contents (tmp_path, &contents, &length, err)) {

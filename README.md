@@ -986,7 +986,9 @@ checksums; nothing else is vendored.
 ### Atomic save
 
 All filename-based saves (`IE_Exp::writeFile`) now write to a
-`<name>.part` sibling and `rename()` it into place:
+`<name>.part` sibling and `rename()` it into place (on Windows the
+swap is `MoveFileEx(MOVEFILE_REPLACE_EXISTING)`, which MSVC `rename()`
+cannot do):
 
 - a crashed/failed/rejected export can never destroy the previous
   version on disk;

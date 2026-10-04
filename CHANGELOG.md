@@ -4496,6 +4496,13 @@ below are on `main` but the release has not been cut yet.
   and a `g_file_set_contents()` fallback for non-POSIX platforms.
   Linux behavior is unchanged; the split unblocks the Windows
   (MoveFileEx) and macOS port work.
+- **Atomic save on Windows** — `UT_go_file_atomic_replace` now has a
+  real `_WIN32` implementation: `MoveFileExW` with
+  `MOVEFILE_REPLACE_EXISTING` performs the overwrite swap that MSVC
+  `rename()` refuses, the previous file's attributes are preserved
+  (the read-only bit is dropped for the move and restored after), and
+  the result is flushed to disk via `_commit()`. Windows builds no
+  longer fall back to the non-atomic `g_file_set_contents()` path.
 
 ### Resolved root causes worth noting
 
