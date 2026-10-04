@@ -70,6 +70,20 @@ abinova-$(ABINOVA_SERIES).pc: libabinova.pc
 check-fuzz:
 	$(srcdir)/tools/check-fuzz.sh
 
+# gcov/lcov report over the existing `make check` run.  Requires the
+# tree to be configured with --enable-coverage; captures .gcda counters
+# into coverage.info and renders coverage-html/ via the vendored lcov in
+# tools/lcov/ (perl + gcov only, no system lcov needed).
+.PHONY: coverage
+if ENABLE_COVERAGE
+coverage:
+	$(srcdir)/tools/coverage.sh $(abs_top_builddir)
+else
+coverage:
+	@echo "coverage requires configuring with --enable-coverage" >&2
+	@exit 1
+endif
+
 
 # the Changelog help page is generated from CHANGELOG.md so the
 # in-app viewer never drifts out of sync with the repository file

@@ -2004,6 +2004,26 @@ tools/fuzz-add-reproducer.sh doc fuzz-build/artifacts/crash-<sha>
 which copies the artifact into `fuzz/regress/doc/` and immediately
 replays it to report whether the crash still reproduces.
 
+### Code coverage (gcov/lcov)
+
+Configure the tree with `--enable-coverage` to compile `src/` with
+gcov instrumentation, then exercise the code and capture the counters:
+
+```bash
+./autogen.sh --enable-coverage && make -j$(nproc)
+make check
+make coverage
+```
+
+`make coverage` runs `tools/coverage.sh`, which uses the lcov 1.16
+copy vendored in `tools/lcov/` — the host only needs `perl` and
+`gcov`, no distro lcov package. It writes the standard lcov tracefile
+`coverage.info`, a filtered HTML report under `coverage-html/`, and a
+console `coverage-summary.txt`. The report excludes system headers,
+vendored `thirdparty/` code, the `fuzz-build/` scratch tree, test
+drivers and generated sources. All coverage artifacts are gitignored;
+reconfiguring without `--enable-coverage` returns to a normal build.
+
 ## Known issues
 
 - The GTK4 dialog migration is in progress — `.ui` files were

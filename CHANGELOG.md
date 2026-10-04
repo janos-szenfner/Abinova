@@ -4150,6 +4150,19 @@ below are on `main` but the release has not been cut yet.
   (truncated/corrupt/garbage variants) per format, and the known
   `doc07_float.doc` layout hang is pinned under
   `fuzz/regress/doc/` until DOC19 fixes it.
+- **Code coverage tooling (`--enable-coverage` + `make coverage`)** —
+  configuring with `--enable-coverage` compiles the `src/` tree with
+  gcov instrumentation (`--coverage` on the AF/TEXT/IMPEXP/WP
+  `CPPFLAGS` chain and the link flags, `-O0` for accurate line
+  attribution). After exercising the code (`make check`), the new
+  `make coverage` target captures the counters with the vendored
+  lcov 1.16 in `tools/lcov/` (perl + gcov only — no system lcov
+  needed), filters the report down to first-party sources, renders an
+  HTML report to `coverage-html/` and writes the standard lcov
+  tracefile `coverage.info` plus a one-screen
+  `coverage-summary.txt`. All coverage artifacts are gitignored.
+  Baseline measured on this tree: 21.0% lines / 28.3% functions from
+  `make check` alone.
 
 - **Legacy pre-Word97 pictures import from `.doc`** — the
   `SUPPORTS_OLD_IMAGES` path now actually works end to end:

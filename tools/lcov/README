@@ -1,0 +1,17 @@
+Vendored copy of lcov 1.16 (https://github.com/linux-test-project/lcov),
+release tarball https://github.com/linux-test-project/lcov/releases/download/v1.16/lcov-1.16.tar.gz
+
+lcov is GPL-2.0-or-later (see COPYING in this directory).
+
+Only the bin/ scripts needed by `make coverage` are vendored:
+  lcov      - coverage data capture/summary/remove frontend
+  geninfo   - .gcda/.gcno -> .info converter (called by lcov --capture)
+  genhtml   - .info -> HTML report
+  genpng    - source-frame image renderer (only used with genhtml --frames,
+              which we do not use; it requires the perl GD module)
+  gendesc   - description support for genhtml
+  lcovrc    - upstream default configuration file (reference)
+
+The scripts are self-contained Perl and run in place; the host only needs
+perl (core modules) and gcov.  Vendor 1.16 rather than 2.x because 2.x
+requires non-core CPAN modules (Capture::Tiny, DateTime, ...).

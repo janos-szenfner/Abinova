@@ -13,4 +13,13 @@ EXTRA_DIST = \
 	build-gtk-prefix.sh \
 	build-fuzz.sh \
 	check-fuzz.sh \
-	fuzz-add-reproducer.sh
+	fuzz-add-reproducer.sh \
+	coverage.sh \
+	lcov/README \
+	lcov/COPYING \
+	lcov/lcovrc \
+	lcov/lcov \
+	lcov/geninfo \
+	lcov/genhtml \
+	lcov/genpng \
+	lcov/gendesc

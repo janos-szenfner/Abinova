@@ -441,6 +441,38 @@ AS_IF([test "x$with_sanitizer" != "xno"],[
         AC_LANG_POP
 ])
 
+dnl ***********************************************************************
+dnl gcov coverage instrumentation for `make coverage`
+dnl ***********************************************************************
+AC_ARG_ENABLE([coverage],
+	[AS_HELP_STRING([--enable-coverage], [compile with gcov coverage instrumentation (for `make coverage`)])],
+[
+	if test "$enableval" = "yes"; then
+		abi_cv_coverage="yes"
+	fi
+], [
+	abi_cv_coverage="no"
+])
+
+COVERAGE_CFLAGS=
+COVERAGE_LDFLAGS=
+if test "$abi_cv_coverage" = "yes"; then
+	AX_CHECK_COMPILE_FLAG([--coverage], [],
+		[AC_MSG_ERROR([--coverage is not supported by this compiler])])
+	dnl --coverage must reach both compile (via AF_CPPFLAGS below, which
+	dnl propagates to TEXT/IMPEXP/WP) and link lines; -O0 keeps the line
+	dnl attribution meaningful and belongs in CFLAGS so it wins over the
+	dnl AC_PROG_CC/CXX default -O2.
+	COVERAGE_CFLAGS="--coverage"
+	COVERAGE_LDFLAGS="--coverage"
+	CFLAGS="$CFLAGS -O0 --coverage"
+	CXXFLAGS="$CXXFLAGS -O0 --coverage"
+	LDFLAGS="$LDFLAGS --coverage"
+fi
+AC_SUBST([COVERAGE_CFLAGS])
+AC_SUBST([COVERAGE_LDFLAGS])
+AM_CONDITIONAL([ENABLE_COVERAGE], [test "$abi_cv_coverage" = "yes"])
+
 dnl ***************************************************************
 dnl Excessive warnings
 dnl ***************************************************************
@@ -572,7 +604,8 @@ for f in $(echo $BASE_CPPFLAGS_); do BASE_CPPFLAGS="$BASE_CPPFLAGS $f"; done
 AC_SUBST([BASE_CPPFLAGS])
 
 AF_CPPFLAGS_='
-  ${BASE_CPPFLAGS} 
+  ${BASE_CPPFLAGS}
+  ${COVERAGE_CFLAGS}
   -I${top_srcdir}/src/af/ev/${TOOLKIT} 
   -I${top_srcdir}/src/af/ev/xp 
   -I${top_srcdir}/src/af/gr/${TOOLKIT} 
@@ -925,6 +958,7 @@ Configuration:
   platform              ${PLATFORM} (embedded: $abi_cv_embedded_platform)
   toolkit               ${TOOLKIT}
   debug                 ${abi_cv_debug}
+  coverage              ${abi_cv_coverage}
 
 Optional features:
   printing              ${abi_cv_print}

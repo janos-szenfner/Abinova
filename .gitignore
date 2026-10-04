@@ -112,3 +112,11 @@ src/wp/test/Abinova-test
 crash-*
 oom-*
 timeout-*
+
+# gcov/lcov coverage artifacts (tools/coverage.sh, --enable-coverage)
+*.gcno
+*.gcda
+/coverage.raw.info
+/coverage.info
+/coverage-summary.txt
+/coverage-html/
