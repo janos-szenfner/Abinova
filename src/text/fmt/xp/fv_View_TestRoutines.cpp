@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <glib/gstdio.h>
 #include "ut_test.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
@@ -40,21 +41,21 @@ void FV_View::Test_Dump(void)
 	
 #if defined(PT_TEST)
 	sprintf(buf,"dump.ptbl.%d",x);
-	FILE * fpDumpPTbl = fopen(buf,"w");
+	FILE * fpDumpPTbl = g_fopen(buf,"w");
 	m_pDoc->__dump(fpDumpPTbl);
 	fclose(fpDumpPTbl);
 #endif
 
 #if defined(FMT_TEST)
 	sprintf(buf,"dump.fmt.%d",x);
-	FILE * fpDumpFmt = fopen(buf,"w");
+	FILE * fpDumpFmt = g_fopen(buf,"w");
 	m_pLayout->__dump(fpDumpFmt);
 	fclose(fpDumpFmt);
 #endif
 
 #if defined(UT_TEST)
 	sprintf(buf,"dump.ut.%d",x);
-	FILE * fpDumpUt = fopen(buf,"w");
+	FILE * fpDumpUt = g_fopen(buf,"w");
 	UT_Test(fpDumpUt);
 	fclose(fpDumpUt);
 #endif

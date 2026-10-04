@@ -5,6 +5,7 @@
 #include <ctype.h>
 
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include "xap_UnixEncodingManager.h"
 #include "ut_debugmsg.h"
@@ -86,7 +87,7 @@ read_aliases (const char *file)
     alias_table = g_hash_table_new (g_str_hash, g_str_equal);
     prepped_table = 1;
     }
-  fp = fopen (file,"r");
+  fp = g_fopen (file,"r");
   if (!fp)
     return;
   while (fgets (buf,256,fp))

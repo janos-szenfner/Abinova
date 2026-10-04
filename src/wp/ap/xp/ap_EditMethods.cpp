@@ -12402,7 +12402,7 @@ Defun1(insScreenshot)
 		s_CouldNotLoadFileMessage(pFrame, shotPath.c_str(), errorCode);
 		bOK = false;
 	}
-	remove(shotPath.c_str());
+	g_remove(shotPath.c_str());
 	return bOK;
 }
 
@@ -12617,19 +12617,20 @@ Defun1(insMediaFile)
 
 	if (!s_embedFileInDoc(pView, pathName, "media"))
 	{
-		UT_String url("file://");
-		url += pathName;
-		const char * base = strrchr(pathName, '/');
-		base = base ? base + 1 : pathName;
+		// g_filename_to_uri handles drive letters and escaping;
+		// the raw "file://" concat produced invalid URIs on Windows
+		gchar * uri = g_filename_to_uri(pathName, nullptr, nullptr);
+		const char * base = UT_basename(pathName);
 		/* insert the filename as linked text */
 		UT_UCS4String s(base);
 		pView->cmdCharInsert(s.ucs4_str(), s.length());
 		PT_DocPosition end = pView->getPoint();
 		PT_DocPosition start = end - s.length();
 		pView->cmdSelect(start, end);
-		pView->cmdInsertHyperlink(url.c_str(), base);
+		pView->cmdInsertHyperlink(uri ? uri : pathName, base);
 		pView->cmdUnselectSelection();
 		pView->setPoint(end);
+		g_free(uri);
 	}
 	FREEP(pathName);
 	return true;

@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <glib/gstdio.h>
+
 #include "ut_assert.h"
 #include "ut_types.h"
 #include "ut_bytebuf.h"
@@ -250,7 +252,7 @@ bool UT_ByteBuf::insertFromFile(UT_uint32 iPosition, const char* pszFileName)
 {
 	UT_ASSERT(pszFileName && pszFileName[0]);
 	
-	FILE* fp = fopen(pszFileName, "rb");
+	FILE* fp = g_fopen(pszFileName, "rb");
 	if (!fp)
 	{
 		return false;
@@ -272,9 +274,11 @@ bool UT_ByteBuf::writeToFile(const char* pszFileName) const
 {
 	UT_ASSERT(pszFileName && pszFileName[0]);
 	
-	if (!strncmp (pszFileName, "file://", 7))
-		pszFileName += 7;
-	FILE* fp = fopen(pszFileName, "wb");
+	char * fn = g_filename_from_uri(pszFileName, nullptr, nullptr);
+	if (fn)
+		pszFileName = fn;
+	FILE* fp = g_fopen(pszFileName, "wb");
+	g_free(fn);
 	if (!fp)
 	{
 		return false;

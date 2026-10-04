@@ -576,6 +576,16 @@ case "$host_os" in
   darwin*|mingw*|msys*|cygwin*|windows*) ;;
   *) abi_x11_pkg='x11' ;;
 esac
+
+dnl PORT09: pin the Windows API target floor to Windows 10 so the headers
+dnl never silently select legacy fallbacks (mingw-w64 otherwise defaults
+dnl to whatever its own CRT headers were configured with).
+case "$host_os" in
+  mingw*|msys*|cygwin*|windows*)
+    DEPS_CFLAGS="$DEPS_CFLAGS -D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00"
+    ;;
+esac
+
 deps_pkgs="$deps_pkgs $gtk_pkgs $abi_x11_pkg"
 
 PKG_CHECK_MODULES(DEPS,[$deps_pkgs])

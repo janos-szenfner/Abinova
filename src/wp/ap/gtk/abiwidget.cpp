@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include <glib/gi18n.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1720,7 +1721,7 @@ abi_widget_load_file(AbiWidget * w, const gchar * pszFile, const gchar * extensi
 
 	if (w->priv->m_bUnlinkFileAfterLoad)
 	{
-		remove(pszFile);
+		g_remove(pszFile);
 		w->priv->m_bUnlinkFileAfterLoad = false;
 	}
 

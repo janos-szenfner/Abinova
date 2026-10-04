@@ -27,6 +27,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <glib/gstdio.h>
+
 /*!	This function takes a char* representing a path to a file and returns
 	the pointer to the string which represents the base portion of the path.
 	
@@ -39,7 +41,8 @@ const char* UT_basename(const char* path)
 	size_t len = strlen(path);
 	const char* str = &path[len];
 
-	while(len > 0 && path[len-1] != '/')
+	// G_IS_DIR_SEPARATOR covers both '\\' and '/' on Windows
+	while(len > 0 && !G_IS_DIR_SEPARATOR(path[len-1]))
 		str = &path[--len];
 
 	return str;
@@ -52,37 +55,37 @@ const char* UT_basename(const char* path)
 
 bool UT_directoryExists(const char* dir)
 {
-    struct stat buf;
-    
-    if (stat(dir, &buf) != -1)
+    GStatBuf buf;
+
+    if (g_stat(dir, &buf) != -1)
     {
 		return S_ISDIR (buf.st_mode);
     }
-    
+
     return false;
 }
 
 bool UT_isRegularFile(const char* filename)
 {
-    struct stat buf;
-    
-    if (stat(filename, &buf) != -1)
+    GStatBuf buf;
+
+    if (g_stat(filename, &buf) != -1)
     {
 		return S_ISREG (buf.st_mode);
     }
-    
+
     return false;
 }
 
 size_t UT_fileSize(const char * filename)
 {
-    struct stat buf;
-    
-    if (stat(filename, &buf) != -1)
+    GStatBuf buf;
+
+    if (g_stat(filename, &buf) != -1)
     {
 		return buf.st_size;
     }
-    
+
     return 0;
 }
 
@@ -93,13 +96,13 @@ size_t UT_fileSize(const char * filename)
 */
 time_t UT_mTime(const char* path)
 {
-    struct stat buf;
-    
-    if (stat(path, &buf) != -1)
+    GStatBuf buf;
+
+    if (g_stat(path, &buf) != -1)
     {
         return(buf.st_mtime);
     }
-    
+
     return(static_cast<time_t>(-1));
 }
 
@@ -116,7 +119,12 @@ bool UT_legalizeFileName(std::string &filename)
 	char *ptr = tmp;
 
 	while (*ptr) {
-		if (*ptr == '/') {
+		if (G_IS_DIR_SEPARATOR(*ptr)
+#ifdef G_OS_WIN32
+			// ':' '*' '?' '"' '<' '>' '|' are illegal in Windows filenames
+			|| strchr(":*?\"<>|", *ptr)
+#endif
+			) {
 			*ptr = '-';
 			bRet = true;
 		}

@@ -111,9 +111,5 @@ ABI_EXPORT void _UT_OutputMessage(const char *s, ...) ABI_PRINTF_FORMAT(1,2);
 /*
  * Similar to UT_DEBUGMSG, except exists even in production (non-debug) builds
  */
-#ifdef _WIN32
-ABI_EXPORT void _UT_WarningMessage(const char *s, ...);
-#else
 #define _UT_WarningMessage _UT_OutputMessage
-#endif
 #define UT_WARNINGMSG(M) _UT_WarningMessage M

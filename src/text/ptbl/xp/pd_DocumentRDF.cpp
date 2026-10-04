@@ -38,6 +38,8 @@
 
 #include <iterator>
 
+#include <glib/gstdio.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -1741,7 +1743,14 @@ void
 PD_RDFSemanticItem::importFromFile( const std::string& filename_const )
 {
     std::string filename = getImportFromFileName( filename_const, getImportTypes() );
-    std::ifstream iss( filename.c_str() );
+    // std::ifstream cannot open UTF-8 filenames on Windows; read through
+    // glib which does the UTF-8 -> UTF-16 conversion there
+    gchar * data = nullptr;
+    gsize len = 0;
+    std::istringstream iss(
+        g_file_get_contents( filename.c_str(), &data, &len, nullptr )
+            ? std::string( data, len ) : std::string() );
+    g_free( data );
     importFromData( iss, m_rdf );
 }
 
@@ -2118,10 +2127,7 @@ PD_RDFEvent::exportToFile( const std::string& filename_const ) const
         icalcomponent_set_dtend( c,       icaltime_from_timet_with_zone( m_dtend, 0, nullptr ) );
 
         char* data = icalcomponent_as_ical_string( c );
-        std::ofstream oss( filename.c_str() );
-        oss.write( data, strlen(data) );
-        oss.flush();
-        oss.close();
+        g_file_set_contents( filename.c_str(), data, strlen(data), nullptr );
     }
 #endif 
     
@@ -2241,7 +2247,8 @@ PD_RDFLocation::exportToFile( const std::string& filename_const ) const
     UT_DEBUGMSG(( "Saving KML to file:%s\n", filename.c_str() ));
 
 
-    std::ofstream xmlss( filename.c_str() );
+    // std::ofstream cannot open UTF-8 filenames on Windows; write via glib
+    std::ostringstream xmlss;
     xmlss << "<?xml version=\"1.0\" encoding=\"UTF-8\"?> \n"
         << "<kml xmlns=\"http://www.opengis.net/kml/2.2\" > \n"
         << " \n"
@@ -2253,8 +2260,7 @@ PD_RDFLocation::exportToFile( const std::string& filename_const ) const
         << "  </LookAt> \n"
         << "</Placemark> \n"
         << "</kml>\n";
-    xmlss.flush();
-    xmlss.close();
+    g_file_set_contents( filename.c_str(), xmlss.str().c_str(), -1, nullptr );
 }
 
 std::set< std::string >

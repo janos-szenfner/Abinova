@@ -31,48 +31,9 @@
 
 // TODO move these declarations into platform directories.
 
-#if (defined (WIN32) || defined (_WIN32) || defined (_WIN64))
-// The 'cool' win32 assert, at least with VC6, corrups memory (probably calling sprintf on
-// a static buffer without checking bounds), so we implement our own assert dialog, which
-// is even cooler. TF
-
-#include "ut_types.h"
-
-#ifdef NDEBUG
-#  define UT_ASSERT(x)
-#else
-// This function is implemented in ut_Win32Misc.cpp. It is not declared in any header file (it is
-// only to be referenced from here and we want to reduce the files we include here to a
-// bare minimum for performance reasons, as this file gets included from pretty much
-// everywhere).
-extern int ABI_EXPORT UT_Win32ThrowAssert(const char * pCondition, const char * pFile, int iLine, int iCount);
-
-// We want to track the number of times we have been through this assert and have the
-// option of disabling this assert for the rest of the session; we use the __iCount and
-// __bOnceOnly vars for this (this adds a few bytes to the code and footprint, but on
-// large scale of things, this is quite negligible for the debug build).
-#define UT_ASSERT(x)                                                        \
-{                                                                           \
-	static bool __bOnceOnly = false;                                        \
-	static long __iCount = 0;                                               \
-	if(!__bOnceOnly && !(x))                                                \
-	{                                                                       \
-		__iCount++;                                                         \
-		int __iRet = UT_Win32ThrowAssert(#x,__FILE__, __LINE__, __iCount);  \
-        if(__iRet == 0)                                                     \
-		{                                                                   \
-		   G_BREAKPOINT();                                                  \
-		}                                                                   \
-		else if(__iRet < 0)                                                 \
-		{                                                                   \
-			__bOnceOnly = true;                                             \
-		}                                                                   \
-	}                                                                       \
-}
-
-#endif // ifdef NDEBUG
-
-#else
+// The Win32 assert-dialog variant lived in the deleted Win32 backend
+// (ut_Win32Misc.cpp); the Unix UT_UnixAssertMsg() below is built on every
+// remaining platform, so it is used on Windows too.
 
 // A Unix variant, possibly Gnome.
 
@@ -104,8 +65,6 @@ extern int ABI_EXPORT UT_Win32ThrowAssert(const char * pCondition, const char * 
             } \
 		}
 #	endif
-
-#endif
 
 
 /*!

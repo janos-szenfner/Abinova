@@ -328,7 +328,11 @@ UT_go_path_is_uri (const char * path)
 
 gboolean UT_go_path_is_path (const char * path)
 {
-	return (strstr (path, G_DIR_SEPARATOR_S) != nullptr);
+	// G_IS_DIR_SEPARATOR covers both '/' and '\\' on Windows
+	for (const char *p = path; *p; ++p)
+		if (G_IS_DIR_SEPARATOR (*p))
+			return TRUE;
+	return FALSE;
 }
 
 /*
@@ -1207,7 +1211,7 @@ UT_go_file_remove (char const *uri, GError ** err)
 
 	filename = UT_go_filename_from_uri (uri);
 	if (filename) {
-		int result = remove (filename);
+		int result = g_remove (filename);
 		g_free (filename);
 		return (result == 0);
 	}

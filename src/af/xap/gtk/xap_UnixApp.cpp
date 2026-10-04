@@ -293,8 +293,13 @@ void XAP_UnixApp::migrate(const char *oldName,
     if (path && newName && oldName && (*oldName == '/')) {
 
         const char* end = strrchr(path, '/');
+#ifdef G_OS_WIN32
+        const char* endBS = strrchr(path, '\\');
+        if (endBS && (!end || endBS > end))
+            end = endBS;
+#endif
         if (!end) {
-            UT_WARNINGMSG(("invalid path '%s', '/' not found", path));
+            UT_WARNINGMSG(("invalid path '%s', directory separator not found", path));
             return;
         }
 
@@ -315,22 +320,10 @@ const char * XAP_UnixApp::getUserPrivateDirectory() const
 
     if (private_dir.empty()) {
         const char * szAbiDir = "abinova";
-        const char * szCfgDir = ".config";
 
-        const char * szXDG = getenv("XDG_CONFIG_HOME");
-        if (!szXDG || !*szXDG) {
-            const char * szHome = getenv("HOME");
-            if (!szHome || !*szHome)
-                szHome = "./";
-
-            private_dir = szHome;
-            if (szHome[strlen(szHome)-1] != '/') {
-                private_dir.push_back('/');
-            }
-            private_dir += szCfgDir;
-        } else {
-            private_dir = szXDG;
-        }
+        // g_get_user_config_dir() honours XDG_CONFIG_HOME / ~/.config on
+        // POSIX and returns the Roaming profile dir on Windows.
+        private_dir = g_get_user_config_dir();
 
         private_dir += '/';
         private_dir += szAbiDir;
@@ -366,7 +359,8 @@ void XAP_UnixApp::_setAbiSuiteLibDir()
 			p++;
 			len -= 2;
 		}
-		if ( (len > 0) && (p[len-1]=='/') )	// trim trailing slash
+		// trim trailing separator ('\\' matters on Windows too)
+		if ( (len > 0) && G_IS_DIR_SEPARATOR(p[len-1]) )
 			p[len-1] = 0;
 		XAP_App::_setAbiSuiteLibDir(p);
 		g_free(buf);

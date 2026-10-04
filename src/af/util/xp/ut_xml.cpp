@@ -23,9 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef _WIN32
-#include <windows.h>
-#endif
+
+#include <glib/gstdio.h>
 
 #include <string>
 
@@ -48,15 +47,9 @@ DefaultReader::~DefaultReader ()
 
 bool DefaultReader::openFile (const char * szFilename)
 {
-#ifdef _WIN32
-	WCHAR wFilename[MAX_PATH];
-	MultiByteToWideChar(CP_UTF8,0,szFilename,-1,wFilename,MAX_PATH);
+	// g_fopen() maps UTF-8 to the wide APIs on Windows.
 	if (in) fclose (in);
-	in = _wfopen (wFilename, L"r");
-#else
-	if (in) fclose (in);
-	in = fopen (szFilename, "r");
-#endif
+	in = g_fopen (szFilename, "r");
 	return (in != nullptr);
 }
 

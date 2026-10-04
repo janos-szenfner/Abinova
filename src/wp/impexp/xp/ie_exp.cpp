@@ -33,6 +33,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <glib/gstdio.h>
+
 #include "ut_assert.h"
 #include "ut_types.h"
 #include "ut_misc.h"
@@ -58,7 +60,7 @@ static void s_remove_output_file(const std::string &name)
 	if (UT_go_file_remove(name.c_str(), nullptr))
 		return;
 	if (G_IS_DIR_SEPARATOR(name[0]))
-		(void)::remove(name.c_str());
+		(void)g_remove(name.c_str());
 }
 
 /*****************************************************************/

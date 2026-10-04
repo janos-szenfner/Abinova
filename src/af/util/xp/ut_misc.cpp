@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <algorithm>
 #include <glib.h>
 
 #include "ut_string_class.h"
@@ -138,7 +139,10 @@ std::string UT_pathSuffix(std::string path)
 		return "";
 
 	bool isUri = UT_go_path_is_uri(path.c_str());
-	bool isFilename = isUri ? false : path.find_last_of(G_DIR_SEPARATOR) == std::string::npos;
+	// G_IS_DIR_SEPARATOR covers both '/' and '\\' on Windows
+	bool isFilename = isUri ? false :
+		std::none_of(path.begin(), path.end(),
+					 [](char c) { return G_IS_DIR_SEPARATOR(c); });
 	
 	// If 'path' is no URI but also not a filename, then it must be a
 	// local path. If so, then we can convert it into a proper URI

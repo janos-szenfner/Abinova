@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <glib/gstdio.h>
+
 #include <utility>
 #include <vector>
 #include "ut_assert.h"
@@ -81,7 +83,7 @@ bool XAP_Dictionary::_openFile(const char * mode)
 
 	// TODO add code to make a backup of the original file, if it exists.
 	
-	m_fp = fopen(m_szFilename,mode);
+	m_fp = g_fopen(m_szFilename,mode);
 	return (m_fp != nullptr);
 }
 

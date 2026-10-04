@@ -47,6 +47,7 @@
 #include <execinfo.h>
 #endif
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include "ut_compiler.h"
 
@@ -526,10 +527,8 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
     if (bFoundOne)
     {
         char * clipsPath = g_build_filename(g_get_tmp_dir(), "clips", nullptr);
-        std::ofstream oss(clipsPath);
+        g_file_set_contents(clipsPath, static_cast<const char*>(pData), iLen, nullptr);
         g_free(clipsPath);
-        oss.write( static_cast<const char*>(pData), iLen );
-        oss.close();
     }
 #endif
 
@@ -1156,7 +1155,7 @@ int AP_UnixApp::main(const char * szAppName, int argc, char ** argv)
 #ifdef LOGFILE
 		UT_String sLogFile = pMyUnixApp->getUserPrivateDirectory();
 		sLogFile += "abiLogFile";
-		logfile = fopen(sLogFile.c_str(),"a+");
+		logfile = g_fopen(sLogFile.c_str(),"a+");
 		fprintf(logfile,"About to do gtk_set_locale \n");
 		fprintf(logfile,"New logfile \n");
 #endif

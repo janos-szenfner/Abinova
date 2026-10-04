@@ -29,14 +29,13 @@
 
 #include <vector>
 
+#include <glib/gstdio.h>
+
 #include "ut_debugmsg.h"
 #include "ut_growbuf.h"
 #include "ut_std_string.h"
 #include "ut_std_vector.h"
 #include "ut_string_class.h"
-#ifdef _WIN32
-#include <ut_Win32LocaleString.h>
-#endif
 #include "ut_go_file.h"
 #include "xap_Prefs.h"
 #include "xap_App.h"
@@ -1018,9 +1017,6 @@ bool XAP_Prefs::savePrefsFile(void)
 {
 	const char * szFilename;
 	FILE * fp = nullptr;
-#ifdef _WIN32
-	UT_Win32LocaleString str;
-#endif
 
 	auto fail = [&fp]()
 	{
@@ -1036,13 +1032,8 @@ bool XAP_Prefs::savePrefsFile(void)
 		return fail();
 	}
 
-#ifdef _WIN32
-	// TODO: something more elegant
-	str.fromUTF8(szFilename);
-	fp = _wfopen(str.c_str(), L"w");
-#else
-	fp = fopen(szFilename, "w");
-#endif
+	// g_fopen() maps UTF-8 to the wide APIs on Windows.
+	fp = g_fopen(szFilename, "w");
 	if (!fp)
 	{
 		UT_DEBUGMSG(("could not open preferences file [%s].\n",szFilename));

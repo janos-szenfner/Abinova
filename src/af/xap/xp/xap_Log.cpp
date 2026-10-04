@@ -1,5 +1,6 @@
 #include "xap_Log.h"
 #include <stdio.h>
+#include <glib/gstdio.h>
 #include "ut_string_class.h"
 #include "ut_string.h"
 #include "xav_View.h"
@@ -21,7 +22,7 @@ static XAP_LogDestructor g_pLogDestructor;
 
 XAP_Log::XAP_Log(const std::string &logfile)
 {
-	m_pOutput = fopen(logfile.c_str(), "w");
+	m_pOutput = g_fopen(logfile.c_str(), "w");
 	if (m_pOutput != nullptr)
 	{
 		fprintf(m_pOutput, "<?xml version=\"1.0\"?>\n");

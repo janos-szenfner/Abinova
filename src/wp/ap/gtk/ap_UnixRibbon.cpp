@@ -6995,7 +6995,7 @@ void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
 		}
 		if (tmp)
 		{
-			remove(tmp);
+			g_remove(tmp);
 			g_free(tmp);
 		}
 	}

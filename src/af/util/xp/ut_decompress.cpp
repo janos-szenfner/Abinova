@@ -17,9 +17,14 @@
  * 02110-1301 USA.
  */
 
+#include <fcntl.h>
 #include <glib/gstdio.h>
 #include "zlib.h"
 #include "stdio.h"
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 #include "ut_string_class.h"
 #include "ut_string.h"
@@ -117,8 +122,14 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 	if (retBuf)
 		FREEP(*retBuf);
 
-	if ((tarball = gzopen(szFName, "rb")) == nullptr)
+	// gzopen() does not handle UTF-8 pathnames on Windows; open the
+	// descriptor through g_open() (which does) and hand it to zlib.
+	int fd = g_open(szFName, O_RDONLY | O_BINARY);
+	tarball = (fd >= 0) ? gzdopen(fd, "rb") : nullptr;
+	if (tarball == nullptr)
 	{
+		if (fd >= 0)
+			g_close(fd, nullptr);
 		UT_DEBUGMSG(("untgz: Error while opening downloaded dictionary archive"));
 		return 1;
 	}
@@ -181,7 +192,7 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 						outfilename = szDestPath;
 						outfilename += "/";
 						outfilename += fname;
-						outfile.reset(fopen(outfilename.c_str(), "wb"));
+						outfile.reset(g_fopen(outfilename.c_str(), "wb"));
 						if (!outfile) {
 							UT_DEBUGMSG(("untgz: Unable to save %s", outfilename.c_str()));
 							}

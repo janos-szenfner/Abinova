@@ -20,6 +20,8 @@
 
 #include <stdio.h>
 
+#include <glib/gstdio.h>
+
 #include <vector>
 #include "ut_Script.h"
 #include "ut_string.h"
@@ -260,7 +262,7 @@ UT_Error UT_ScriptLibrary::constructScript(const char * szFilename,
 		int iNumbytes;
 		FILE *f;
 		// we must open in binary mode for UCS-2 compatibility
-		if ( ( f = fopen( szFilename, "rb" ) ) != static_cast<FILE *>(0) )
+		if ( ( f = g_fopen( szFilename, "rb" ) ) != static_cast<FILE *>(0) )
 		{
 			iNumbytes = fread(szBuf, 1, sizeof(szBuf), f);
 			fclose(f);

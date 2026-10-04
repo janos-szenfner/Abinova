@@ -32,6 +32,7 @@
 #endif
 
 #include <gtk/gtk.h>
+#include <glib/gstdio.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -442,7 +443,7 @@ bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
 			// if another stat of that dir passes.
 
 			if (!finalPathnameCopy.empty()) {
-				lastSlash = finalPathnameCopy.find_last_of('/');
+				lastSlash = finalPathnameCopy.find_last_of(G_DIR_SEPARATOR_S "/");
 			} else {
 				lastSlash = 0;
 			}
@@ -1176,8 +1177,8 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	}
 
 	// are we dealing with a file or directory here?
-	struct stat st;
-	if (!stat (file_name, &st))
+	GStatBuf st;
+	if (!g_stat (file_name, &st))
 	{
 		if (!S_ISREG(st.st_mode))
 		{

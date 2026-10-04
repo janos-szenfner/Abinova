@@ -25,6 +25,8 @@
 #include <mutex>
 #include <string>
 #include <string_view>
+
+#include <glib/gstdio.h>
 #include <unordered_map>
 
 #include "ut_debugmsg.h"
@@ -85,7 +87,7 @@ bool s_parsePattern(std::string_view line,
 
 std::unique_ptr<UT_HyphenDict> UT_HyphenDict::load(const char * szPath)
 {
-	FILE * fp = fopen(szPath, "rb");
+	FILE * fp = g_fopen(szPath, "rb");
 	if (!fp)
 		return nullptr;
 
@@ -258,55 +260,61 @@ namespace {
 
 void s_candidateDirs(std::vector<std::string> & dirs)
 {
-	/* explicit override, colon-separated (used by tests + packagers) */
+	/* explicit override (used by tests + packagers); separated by the
+	   platform search-path separator (':' POSIX, ';' Windows) */
 	const char * env = getenv("ABINOVA_HYPHEN_PATH");
 	if (env && *env)
 	{
-		std::string e(env);
-		size_t pos = 0;
-		while (pos <= e.size())
-		{
-			size_t colon = e.find(':', pos);
-			dirs.push_back(e.substr(pos,
-				colon == std::string::npos ? std::string::npos
-										 : colon - pos));
-			if (colon == std::string::npos)
-				break;
-			pos = colon + 1;
-		}
+		gchar ** paths = g_strsplit(env, G_SEARCHPATH_SEPARATOR_S, -1);
+		for (gchar ** pp = paths; pp && *pp; pp++)
+			dirs.push_back(*pp);
+		g_strfreev(paths);
 		return;
 	}
 
-	const char * xdgHome = getenv("XDG_DATA_HOME");
-	if (xdgHome && *xdgHome)
+#ifdef G_OS_WIN32
+	/* mirror the hunspell dictionary search dirs: hyph_*.dic files ship
+	   in the same locations on Windows */
+	const char * appdata = getenv("APPDATA");
+	if (appdata && *appdata)
 	{
-		dirs.push_back(std::string(xdgHome) + "/hyphen");
+		dirs.push_back(std::string(appdata) + "/hunspell");
+		dirs.push_back(std::string(appdata) + "/hyphen");
 	}
-	else
+	const char * localappdata = getenv("LOCALAPPDATA");
+	if (localappdata && *localappdata)
 	{
-		const char * home = getenv("HOME");
-		if (home && *home)
-			dirs.push_back(std::string(home) + "/.local/share/hyphen");
+		dirs.push_back(std::string(localappdata) + "/hunspell");
+		dirs.push_back(std::string(localappdata) + "/hyphen");
+	}
+	gchar * installDir = g_win32_get_package_installation_directory_of_module(nullptr);
+	if (installDir)
+	{
+		dirs.push_back(std::string(installDir) + "/hunspell");
+		dirs.push_back(std::string(installDir) + "/hyphen");
+		dirs.push_back(std::string(installDir) + "/share/hunspell");
+		dirs.push_back(std::string(installDir) + "/share/hyphen");
+		g_free(installDir);
+	}
+#else
+	/* g_get_user_data_dir() honours XDG_DATA_HOME and falls back to
+	   ~/.local/share; g_get_system_data_dirs() honours XDG_DATA_DIRS
+	   with the /usr/local/share:/usr/share default */
+	dirs.push_back(std::string(g_get_user_data_dir()) + "/hyphen");
+
+	for (const gchar * const * pp = g_get_system_data_dirs(); pp && *pp; pp++)
+	{
+		dirs.push_back(std::string(*pp) + "/hyphen");
+		dirs.push_back(std::string(*pp) + "/hunspell");
 	}
 
-	const char * xdgDirs = getenv("XDG_DATA_DIRS");
-	std::string dd = (xdgDirs && *xdgDirs)
-		? xdgDirs : "/usr/local/share:/usr/share";
-	size_t pos = 0;
-	while (pos <= dd.size())
-	{
-		size_t colon = dd.find(':', pos);
-		std::string d = dd.substr(pos,
-			colon == std::string::npos ? std::string::npos : colon - pos);
-		if (!d.empty())
-		{
-			dirs.push_back(d + "/hyphen");
-			dirs.push_back(d + "/hunspell");
-		}
-		if (colon == std::string::npos)
-			break;
-		pos = colon + 1;
-	}
+#ifdef __APPLE__
+	const gchar * home = g_get_home_dir();
+	if (home)
+		dirs.push_back(std::string(home) + "/Library/Spelling");
+	dirs.push_back("/Library/Spelling");
+#endif
+#endif
 }
 
 } // anonymous namespace

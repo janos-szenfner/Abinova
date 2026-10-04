@@ -23,12 +23,37 @@
 #include "config.h"
 #endif
 
+#include <glib.h>
+#ifdef G_OS_WIN32
+#include <windows.h>
+#endif
+
 #include "ut_debugmsg.h"
 #include "ap_UnixApp.h"
 
 int main(int argc, char ** argv)
 {
 	UT_Debug_Init();
+#ifdef G_OS_WIN32
+	/* abinova.exe stays a console-subsystem binary: --to=pdf and friends
+	   must keep working from cmd.exe, PowerShell and mintty alike (a
+	   GUI-subsystem exe cannot print there, and cmd would not wait for
+	   it). The price is that Windows allocates a console when the exe is
+	   launched without one (Explorer, mintty); if the console was created
+	   solely for this process, free it so no stray console window stays
+	   behind. Piped/redirected stdio is unaffected. */
+	DWORD consoleProcs[2];
+	if (GetConsoleProcessList(consoleProcs, 2) == 1)
+		FreeConsole();
+
+	/* argv from the C runtime is in the ANSI codepage; GLib's copy is
+	   UTF-8, so non-ASCII filenames on the command line survive. */
+	gchar ** utf8argv = g_win32_get_command_line();
+	argc = g_strv_length(utf8argv);
+	int ret = AP_UnixApp::main(PACKAGE_NAME, argc, utf8argv);
+	g_strfreev(utf8argv);
+	return ret;
+#endif
 	return AP_UnixApp::main(PACKAGE_NAME, argc, argv);
 }
 

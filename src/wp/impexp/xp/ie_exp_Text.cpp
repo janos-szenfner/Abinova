@@ -233,8 +233,9 @@ UT_Error IE_Exp_Text::_writeDocument(void)
 	if (getDocRange())
 	{
 #ifdef _WIN32
-		if (UT_IsWinNT())
-			_setEncoding(XAP_EncodingManager::get_instance()->getNativeUnicodeEncodingName());
+		// every supported Windows is NT-based; the old UT_IsWinNT() check
+		// (which lived in the deleted Win32 backend) was always true there
+		_setEncoding(XAP_EncodingManager::get_instance()->getNativeUnicodeEncodingName());
 #endif
 	}
 

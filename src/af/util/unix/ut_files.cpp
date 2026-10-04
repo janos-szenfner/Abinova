@@ -23,6 +23,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <glib/gstdio.h>
+
 #include "ut_files.h"
 #include "ut_debugmsg.h"
 #include "ut_types.h"
@@ -63,9 +65,9 @@ bool progExists(const char* progName)
 */
 bool UT_createDirectoryIfNecessary(const char * szDir, bool publicdir)
 {
-    struct stat statbuf;
+    GStatBuf statbuf;
 
-    if (stat(szDir,&statbuf) == 0)		// if it exists
+    if (g_stat(szDir,&statbuf) == 0)	// if it exists
     {
 		if (S_ISDIR(statbuf.st_mode))	// and is a directory
 			return true;
@@ -78,13 +80,19 @@ bool UT_createDirectoryIfNecessary(const char * szDir, bool publicdir)
 #endif
 
 	bool success = true;
+#ifdef G_OS_WIN32
+    if (g_mkdir (szDir, 0))	// mode is ignored on Windows
+#else
     mode_t old_mask = umask (0);
-    if (mkdir (szDir, publicdir ? 0775 : 0700))
+    if (g_mkdir (szDir, publicdir ? 0775 : 0700))
+#endif
 	{
 		UT_DEBUGMSG(("Could not create Directory [%s].\n", szDir));
 		success = false;
 	}
+#ifndef G_OS_WIN32
 	umask (old_mask);
+#endif
 	return success;
 }
 
