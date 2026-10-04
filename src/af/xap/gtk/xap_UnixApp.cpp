@@ -46,6 +46,7 @@
 #include <fontconfig/fontconfig.h>
 
 #include "ut_debugmsg.h"
+#include "ut_go_file.h"
 #include "ut_path.h"
 #include "ut_string.h"
 #include "ut_uuid.h"
@@ -381,7 +382,7 @@ void XAP_UnixApp::_setAbiSuiteLibDir()
 		artdir += "/artwork";
 		if (g_access(artdir.c_str(), F_OK) != 0)
 		{
-			gchar * exe = g_file_read_link("/proc/self/exe", nullptr);
+			gchar * exe = UT_go_self_exe_path();
 			if (exe)
 			{
 				gchar * dir = g_path_get_dirname(exe);

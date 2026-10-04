@@ -64,6 +64,12 @@
 #if defined(__linux__) || defined(__GLIBC__)
 #include <sys/random.h>
 #endif
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 #endif
 
 #include <errno.h>
@@ -1524,6 +1530,73 @@ UT_go_random_bytes (guchar *buf, gsize len)
 		got += static_cast<gsize>(n);
 	}
 	return TRUE;
+#endif
+}
+
+/**
+ * UT_go_self_exe_path:
+ *
+ * Returns the absolute path of the running executable: /proc/self/exe
+ * on Linux (and any other POSIX system where procfs is mounted),
+ * _NSGetExecutablePath(3) on macOS, sysctl(KERN_PROC_PATHNAME) on
+ * FreeBSD/DragonFly (with /proc/self/exe as fallback when procfs
+ * happens to be mounted). Used to locate source-tree resources
+ * (artwork/, clipart) when running uninstalled.
+ *
+ * Returns: a newly-allocated UTF-8 path (free with g_free), or NULL
+ * when the platform cannot report it — callers must tolerate NULL.
+ */
+gchar *
+UT_go_self_exe_path (void)
+{
+#if defined(G_OS_WIN32)
+	/* PORT11: GetModuleFileNameW + UTF-16 -> UTF-8 conversion. */
+	return nullptr;
+#elif defined(__APPLE__)
+	{
+		/* _NSGetExecutablePath may return a path containing symlinks
+		 * and ".." segments; resolve it so the callers' dirname walks
+		 * behave like the /proc/self/exe result. */
+		guint32 size = 0;
+		_NSGetExecutablePath (nullptr, &size);
+		if (size == 0)
+			return nullptr;
+		gchar *buf = g_new (gchar, size);
+		if (_NSGetExecutablePath (buf, &size) != 0)
+		{
+			g_free (buf);
+			return nullptr;
+		}
+		gchar *resolved = realpath (buf, nullptr);
+		g_free (buf);
+		if (!resolved)
+			return nullptr;
+		gchar *out = g_strdup (resolved);
+		free (resolved);
+		return out;
+	}
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
+	{
+		/* KERN_PROC_PATHNAME works without procfs; procfs mounts are
+		 * optional on FreeBSD so it is the better primary source. */
+		int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+		size_t size = 0;
+		if (sysctl (mib, 4, nullptr, &size, nullptr, 0) != 0 || size == 0)
+			return g_file_read_link ("/proc/self/exe", nullptr);
+		gchar *buf = g_new (gchar, size);
+		if (sysctl (mib, 4, buf, &size, nullptr, 0) != 0 || size == 0)
+		{
+			g_free (buf);
+			return g_file_read_link ("/proc/self/exe", nullptr);
+		}
+		buf[size - 1] = '\0';
+		return buf;
+	}
+#else
+	/* Linux always mounts procfs; on other POSIX systems (NetBSD,
+	 * OpenBSD, Solaris) it is optional — NULL simply disables the
+	 * build-tree discovery fallback. */
+	return g_file_read_link ("/proc/self/exe", nullptr);
 #endif
 }
 

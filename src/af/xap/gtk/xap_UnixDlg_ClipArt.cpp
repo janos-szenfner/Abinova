@@ -25,6 +25,7 @@
 #include <time.h>
 
 #include "ut_string.h"
+#include "ut_go_file.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
 
@@ -276,7 +277,7 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 		// Running uninstalled: try the clipart dir from the source
 		// tree, relative to the executable (src/abiword ->
 		// ../user/wp/clipart).
-		gchar * exe = g_file_read_link ("/proc/self/exe", nullptr);
+		gchar * exe = UT_go_self_exe_path ();
 		if (exe) {
 			gchar * exe_dir = g_path_get_dirname (exe);
 			gchar * clip = g_build_filename (exe_dir, "..", "user", "wp", "clipart", nullptr);

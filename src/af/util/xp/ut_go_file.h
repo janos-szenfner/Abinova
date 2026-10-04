@@ -84,6 +84,8 @@ ABI_EXPORT void		 UT_go_file_atomic_abort   (const gchar *tmp_path);
 
 ABI_EXPORT gboolean UT_go_random_bytes (guchar *buf, gsize len);
 
+ABI_EXPORT gchar	*UT_go_self_exe_path	(void);
+
 ABI_EXPORT gboolean UT_go_file_exists (char const *uri);
 
 ABI_EXPORT UT_GOFilePermissions *UT_go_get_file_permissions (char const *uri);

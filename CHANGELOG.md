@@ -4566,6 +4566,14 @@ below are on `main` but the release has not been cut yet.
   fixing document revision timestamps on Win64 and post-2038 on all
   platforms. No page-size or unaligned-access defects found; no
   functional change on x86-64 Linux.
+- **Executable self-discovery is portable** — locating the running
+  binary (used to find the `artwork/` galleries and the clipart
+  directory when running uninstalled) no longer reads Linux-only
+  `/proc/self/exe` directly. The new `UT_go_self_exe_path()` helper
+  uses `_NSGetExecutablePath` on macOS, `sysctl(KERN_PROC_PATHNAME)`
+  on FreeBSD/DragonFly (which works without procfs), and keeps
+  `/proc/self/exe` on Linux and other POSIX systems. No functional
+  change on Linux.
 
 ### Resolved root causes worth noting
 
