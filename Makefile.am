@@ -84,6 +84,22 @@ coverage:
 	@exit 1
 endif
 
+# Coverage ratchet (COV10): `make check-coverage` runs the whole test
+# suite in the instrumented build, captures the report, and fails if
+# total first-party line coverage regresses below the 50% floor
+# (tools/coverage-gate.sh; COVERAGE_MIN_PCT overrides).  Requires
+# --enable-coverage like `make coverage`.
+.PHONY: check-coverage
+if ENABLE_COVERAGE
+check-coverage: check
+	$(srcdir)/tools/coverage.sh $(abs_top_builddir)
+	$(srcdir)/tools/coverage-gate.sh $(abs_top_builddir)/coverage.info
+else
+check-coverage:
+	@echo "check-coverage requires configuring with --enable-coverage" >&2
+	@exit 1
+endif
+
 # AddressSanitizer + UndefinedBehaviorSanitizer gate: tools/check-san.sh
 # keeps a separate instrumented copy of the tree under san-build/ (the
 # same scratch-tree pattern as fuzz-build/) configured

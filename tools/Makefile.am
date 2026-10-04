@@ -21,6 +21,7 @@ EXTRA_DIST = \
 	fuzz-add-reproducer.sh \
 	coverage.sh \
 	coverage-dirs.sh \
+	coverage-gate.sh \
 	portguard.sh \
 	portguard-baseline.txt \
 	lcov/README \

@@ -4471,6 +4471,14 @@ below are on `main` but the release has not been cut yet.
   `AP_Convert` headless file conversion, and `AP_Preview_Abi`
   construction/drawing across the non-scroll preview modes.
   `wp/ap/xp` line coverage rose from ~25% to ~47%.
+- **Coverage ratchet (`make check-coverage`)** — the new
+  `check-coverage` target runs the whole `make check` suite in an
+  `--enable-coverage` build, regenerates the lcov report, and fails
+  when total first-party line coverage regresses below the 50% floor
+  enforced by `tools/coverage-gate.sh` (`COVERAGE_MIN_PCT` overrides
+  the floor). The `ap_KeyBindings` test suite now also loads the
+  emacs and vi compatibility key maps plus their operator-prefixed
+  sub-maps, pinning representative bindings and the dead-key tables.
 
 ### Resolved root causes worth noting
 

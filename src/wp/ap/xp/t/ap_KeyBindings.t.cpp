@@ -188,3 +188,132 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectNVK(EV_NVK_F11, 0, "viewFullScreen"));
 	TFPASS(expectChar(',', EV_EMS_CONTROL, "dlgOptions"));      /* Cmd+, */
 }
+
+namespace {
+
+/* resolve a character keypress to a prefix sub-map (Ctrl+X, vi 'd'
+ * operator, ...) and return it for further lookup */
+static EV_EditBindingMap * expectPrefix(UT_uint32 c, EV_EditModifierState ems)
+{
+	EV_EditBinding * b =
+		s_pMap->findEditBinding(EV_EKP_PRESS | c | ems);
+	if (!b || b->getType() != EV_EBT_PREFIX)
+		return nullptr;
+	return b->getMap();
+}
+
+}
+
+/* the emacs and vi compatibility maps ship enabled
+ * (ENABLE_EMACS_KEYBINDING / ENABLE_VI_KEYBINDING) but nothing loaded
+ * them in tests — load each ap_LB_* table through AP_BindingSet and
+ * pin a representative binding per map plus the prefix-map chains. */
+TFTEST_MAIN("ap_KeyBindings alt maps")
+{
+	EV_EditMethodContainer * pemc = AP_GetEditMethods();
+	TFPASS(pemc != nullptr);
+
+	AP_BindingSet bs(pemc);
+
+	/* ---- emacs ---- */
+	s_pMap = bs.getMap("emacs");
+	TFPASS(s_pMap != nullptr);
+	TFPASS(expectChar('a', EV_EMS_CONTROL, "warpInsPtBOL"));
+	TFPASS(expectChar('e', EV_EMS_CONTROL, "warpInsPtEOL"));
+	TFPASS(expectChar('a', 0, "insertData"));      /* plain key self-inserts */
+	TFPASS(expectChar('1', EV_EMS_CONTROL, "singleSpace"));
+
+	/* Ctrl+X is a prefix into the emacsctrlx sub-map */
+	{
+		EV_EditBindingMap * sub = expectPrefix('x', EV_EMS_CONTROL);
+		TFPASS(sub != nullptr);
+		if (sub)
+		{
+			EV_EditBindingMap * outer = s_pMap;
+			s_pMap = sub;
+			TFPASS(expectChar('s', EV_EMS_CONTROL, "fileSave"));
+			TFPASS(expectChar('c', EV_EMS_CONTROL, "querySaveAndExit"));
+			TFPASS(expectChar('u', 0, "undo"));
+			TFPASS(expectChar('k', 0, "closeWindow"));
+			s_pMap = outer;
+		}
+	}
+
+	/* ---- vi edit mode ---- */
+	s_pMap = bs.getMap("viEdit");
+	TFPASS(s_pMap != nullptr);
+	TFPASS(expectChar('h', 0, "warpInsPtLeft"));
+	TFPASS(expectChar('j', 0, "warpInsPtNextLine"));
+	TFPASS(expectChar('k', 0, "warpInsPtPrevLine"));
+	TFPASS(expectChar('l', 0, "warpInsPtRight"));
+	TFPASS(expectChar('w', 0, "warpInsPtEOW"));
+	TFPASS(expectChar('b', 0, "warpInsPtBOW"));
+	TFPASS(expectChar('0', 0, "warpInsPtBOL"));
+	TFPASS(expectChar('$', 0, "warpInsPtEOL"));
+	TFPASS(expectChar('G', 0, "warpInsPtEOD"));
+	TFPASS(expectChar('/', 0, "find"));
+
+	/* vi operator prefixes chain into their own sub-maps */
+	{
+		EV_EditBindingMap * outer = s_pMap;
+		EV_EditBindingMap * sub;
+
+		sub = expectPrefix('d', 0);                /* 'd' delete operator */
+		TFPASS(sub != nullptr);
+		if (sub)
+		{
+			s_pMap = sub;
+			TFPASS(expectChar('d', 0, "viCmd_dd"));
+			TFPASS(expectChar('w', 0, "viCmd_dw"));
+			TFPASS(expectChar('$', 0, "viCmd_d24"));
+			s_pMap = outer;
+		}
+
+		sub = expectPrefix('y', 0);                /* 'y' yank operator */
+		TFPASS(sub != nullptr);
+		if (sub)
+		{
+			s_pMap = sub;
+			TFPASS(expectChar('y', 0, "viCmd_yy"));
+			TFPASS(expectChar('w', 0, "viCmd_yw"));
+			s_pMap = outer;
+		}
+
+		sub = expectPrefix(':', 0);                /* ':' colon commands */
+		TFPASS(sub != nullptr);
+		if (sub)
+		{
+			s_pMap = sub;
+			TFPASS(expectChar('w', 0, "fileSave"));
+			TFPASS(expectChar('q', 0, "closeWindow"));
+			TFPASS(expectChar('e', 0, "fileOpen"));
+			s_pMap = outer;
+		}
+
+		sub = expectPrefix('r', 0);                /* 'r' replace-char */
+		TFPASS(sub != nullptr);
+		if (sub)
+		{
+			s_pMap = sub;
+			TFPASS(expectChar('a', 0, "replaceChar"));
+			s_pMap = outer;
+		}
+	}
+
+	/* ---- vi input mode ---- */
+	s_pMap = bs.getMap("viInput");
+	TFPASS(s_pMap != nullptr);
+	TFPASS(expectNVK(EV_NVK_ESCAPE, 0, "setEditVI")); /* Esc -> edit mode */
+	TFPASS(expectNVK(EV_NVK_LEFT, 0, "warpInsPtLeft"));
+	TFPASS(expectNVK(EV_NVK_RETURN, 0, "insertParagraphBreak"));
+
+	/* ---- dead-key sub-maps (loaded lazily via getMap) ---- */
+	static const char * const deadMaps[] = {
+		"deadabovedot", "deadacute", "deadbreve", "deadcaron",
+		"deadcedilla", "deadcircumflex", "deaddiaeresis",
+		"deaddoubleacute", "deadgrave", "deadmacron", "deadogonek",
+		"deadtilde"
+	};
+	for (size_t i = 0; i < G_N_ELEMENTS(deadMaps); i++)
+		TFPASS(bs.getMap(deadMaps[i]) != nullptr);
+}
