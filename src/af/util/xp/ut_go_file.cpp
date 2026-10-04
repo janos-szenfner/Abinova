@@ -1540,8 +1540,9 @@ UT_go_random_bytes (guchar *buf, gsize len)
  * on Linux (and any other POSIX system where procfs is mounted),
  * _NSGetExecutablePath(3) on macOS, sysctl(KERN_PROC_PATHNAME) on
  * FreeBSD/DragonFly (with /proc/self/exe as fallback when procfs
- * happens to be mounted). Used to locate source-tree resources
- * (artwork/, clipart) when running uninstalled.
+ * happens to be mounted), GetModuleFileNameW on Windows. Used to
+ * locate source-tree resources (artwork/, clipart) when running
+ * uninstalled.
  *
  * Returns: a newly-allocated UTF-8 path (free with g_free), or NULL
  * when the platform cannot report it — callers must tolerate NULL.
@@ -1550,8 +1551,38 @@ gchar *
 UT_go_self_exe_path (void)
 {
 #if defined(G_OS_WIN32)
-	/* PORT11: GetModuleFileNameW + UTF-16 -> UTF-8 conversion. */
-	return nullptr;
+	{
+		/* GetModuleFileNameW(NULL, ...) reports the process image
+		 * path regardless of argv[0]. Unlike the POSIX branches the
+		 * result is not symlink-resolved, which is fine: callers
+		 * only dirname-walk it. A return of nSize means the output
+		 * was truncated, so grow the buffer from MAX_PATH until the
+		 * (possibly long-path-enabled) name fits. */
+		DWORD size = MAX_PATH;
+		for (;;)
+		{
+			gunichar2 *wbuf = g_new (gunichar2, size);
+			DWORD len = GetModuleFileNameW (nullptr,
+							reinterpret_cast<LPWSTR> (wbuf),
+							size);
+			if (len == 0)
+			{
+				g_free (wbuf);
+				return nullptr;
+			}
+			if (len < size)
+			{
+				gchar *out = g_utf16_to_utf8 (wbuf, len,
+							      nullptr, nullptr, nullptr);
+				g_free (wbuf);
+				return out;
+			}
+			g_free (wbuf);
+			if (size >= 32768)
+				return nullptr;
+			size *= 2;
+		}
+	}
 #elif defined(__APPLE__)
 	{
 		/* _NSGetExecutablePath may return a path containing symlinks

@@ -4607,10 +4607,10 @@ below are on `main` but the release has not been cut yet.
   binary (used to find the `artwork/` galleries and the clipart
   directory when running uninstalled) no longer reads Linux-only
   `/proc/self/exe` directly. The new `UT_go_self_exe_path()` helper
-  uses `_NSGetExecutablePath` on macOS, `sysctl(KERN_PROC_PATHNAME)`
-  on FreeBSD/DragonFly (which works without procfs), and keeps
-  `/proc/self/exe` on Linux and other POSIX systems. No functional
-  change on Linux.
+  uses `GetModuleFileNameW` on Windows, `_NSGetExecutablePath` on
+  macOS, `sysctl(KERN_PROC_PATHNAME)` on FreeBSD/DragonFly (which
+  works without procfs), and keeps `/proc/self/exe` on Linux and
+  other POSIX systems. No functional change on Linux.
 
 ### Resolved root causes worth noting
 
