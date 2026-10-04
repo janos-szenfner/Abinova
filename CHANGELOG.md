@@ -3485,6 +3485,20 @@ below are on `main` but the release has not been cut yet.
   could dangle after `pruneForCumulativeResult` and go stale after
   `changeRevisionId`.  A new `make check` suite covers valid and
   malformed strings plus the cache-invalidation paths.
+- **Piece-table revision marks now regression-tested** — a new
+  `make check` suite (`pd_Revision.t.cpp`, ~110 assertions) exercises
+  the document-level tracked-changes machinery end to end:
+  `AD_Revision` id/author/timestamp/version records and the
+  auto-revision lookup helpers; `+n` addition, `-n` deletion and
+  `!n{props}` format-change marks stamped on text fragments (and
+  `+n` on a block strux) while marking is enabled; the
+  revision-aware attribute resolution that decides whether marked
+  content is hidden or shown at each revision level and under
+  "show revisions" mode; and the accept/reject paths — single-mark
+  accept and reject for each mark type plus `acceptAllRevisions` and
+  `rejectAllHigherRevisions`, asserting both the resulting document
+  text and that the marks themselves are consumed.  Any dropped or
+  malformed mark fails the suite.
 - **WordPerfect importer hardened** — `.wpd`/`.wps` import leaked the
   current list definition on every document (it was `new`ed per list
   and never freed), crashed in release builds when a malformed file
