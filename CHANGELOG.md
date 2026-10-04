@@ -4310,6 +4310,15 @@ below are on `main` but the release has not been cut yet.
   `free`/`delete[]` allocator mismatches on document buffers, a
   dangling broken-cell cache in split table containers, and a
   use-after-free of a fragment whose format change could recreate it.
+- **Valgrind corpus gate (`make check-valgrind`)** —
+  `tools/check-valgrind.sh` converts a bounded corpus — one
+  representative fixture per importer (abw/doc/odt/docx/wpd/tex/md/
+  rtf/mht/txt) — to PDF on the normal build under
+  `valgrind --leak-check=full --errors-for-leak-kinds=definite`, so any
+  memcheck error or definite leak fails the leg; `tools/valgrind.supp`
+  holds the suppressions for leaks owned by third-party startup code
+  (gio module singletons, fontconfig/expat/cairo caches). Opt-in, and
+  it skips cleanly when valgrind or the built binary is absent.
 - **Code coverage tooling (`--enable-coverage` + `make coverage`)** —
   configuring with `--enable-coverage` compiles the `src/` tree with
   gcov instrumentation (`--coverage` on the AF/TEXT/IMPEXP/WP
