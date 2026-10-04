@@ -4503,6 +4503,16 @@ below are on `main` but the release has not been cut yet.
   (the read-only bit is dropped for the move and restored after), and
   the result is flushed to disk via `_commit()`. Windows builds no
   longer fall back to the non-atomic `g_file_set_contents()` path.
+- **Portable OS entropy for encrypted documents** — both crypto
+  consumers (`.abwn` AES-GCM salt/nonce, ODF salt/IV) now draw random
+  bytes through a shared `UT_go_random_bytes()` helper that picks the
+  right OS source per platform: `BCryptGenRandom` (CNG) on Windows,
+  `arc4random_buf` on macOS and the BSDs, `getrandom(2)` on
+  Linux/glibc, and `/dev/urandom` on other POSIX systems. There is
+  still deliberately no PRNG fallback — if no OS entropy source is
+  available, encryption fails rather than emit a predictable key.
+  Document encryption previously could not work at all on
+  macOS/Windows builds.
 
 ### Resolved root causes worth noting
 

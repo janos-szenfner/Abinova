@@ -20,14 +20,12 @@
 
 #include "ut_abwncrypt.h"
 #include "ut_debugmsg.h"
+#include "ut_go_file.h"
 #include "ut_misc.h"
 
 #include <glib.h>
 #include <dlfcn.h>
 #include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/random.h>
 
 #define UT_ABWN_MAGIC "ABWNCRP1"
 #define UT_ABWN_MAGIC_LEN 8
@@ -270,41 +268,6 @@ static bool ut_gcm(bool encrypting,
 }
 
 /*****************************************************************/
-/* random bytes                                                   */
-/*****************************************************************/
-
-static bool ut_rand_bytes(unsigned char * buf, size_t len)
-{
-	size_t got = 0;
-	while (got < len)
-	{
-		ssize_t r = getrandom(buf + got, len - got, 0);
-		if (r < 0)
-			break;
-		got += static_cast<size_t>(r);
-	}
-	if (got == len)
-		return true;
-
-	int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
-	if (fd < 0)
-		return false;
-	got = 0;
-	while (got < len)
-	{
-		ssize_t r = read(fd, buf + got, len - got);
-		if (r <= 0)
-		{
-			close(fd);
-			return false;
-		}
-		got += static_cast<size_t>(r);
-	}
-	close(fd);
-	return true;
-}
-
-/*****************************************************************/
 /* envelope helpers                                               */
 /*****************************************************************/
 
@@ -362,8 +325,8 @@ UT_AbwnCrypt UT_abwn_encrypt(const void * plain, size_t plainLen,
 	unsigned char salt[UT_ABWN_SALT_LEN];
 	unsigned char nonce[UT_ABWN_NONCE_LEN];
 	unsigned char key[UT_ABWN_KEY_LEN];
-	if (!ut_rand_bytes(salt, sizeof(salt)) ||
-		!ut_rand_bytes(nonce, sizeof(nonce)))
+	if (!UT_go_random_bytes(salt, sizeof(salt)) ||
+		!UT_go_random_bytes(nonce, sizeof(nonce)))
 		return UT_AbwnCrypt::Unavailable;
 	ut_pbkdf2_sha256(password.c_str(), salt, sizeof(salt),
 					 UT_ABWN_PBKDF2_ITERS, key);

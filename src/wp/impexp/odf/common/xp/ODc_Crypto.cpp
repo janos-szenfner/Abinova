@@ -19,15 +19,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-
-#if defined(__linux__) || defined(__GLIBC__)
-#include <sys/random.h>
-#endif
-#ifndef _WIN32
-#include <fcntl.h>
-#include <unistd.h>
-#endif
 
 #include <zlib.h>
 #include <glib.h>
@@ -39,6 +30,7 @@
 
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
+#include "ut_go_file.h"
 #include "ut_misc.h"
 #include "ODc_Crypto.h"
 
@@ -282,51 +274,11 @@ UT_Error ODc_Crypto::decrypt(GsfInput* pStream, const ODc_CryptoInfo& cryptInfo,
  * then fail rather than emit ciphertext with a predictable salt/IV.
  * Never fall back to a non-crypto PRNG (a g_random_int fallback here
  * used to produce guessable salts on exactly the builds that needed
- * it most). Windows has no path yet - see PORT03 for the CNG side.
+ * it most). The per-platform sources live in UT_go_random_bytes().
  */
 static bool odRandomBytes(unsigned char* buf, gsize len)
 {
-#if defined(__linux__) || defined(__GLIBC__)
-    gsize done = 0;
-    while (done < len)
-    {
-        ssize_t n = getrandom(buf + done, len - done, 0);
-        if (n < 0)
-        {
-            if (errno == EINTR)
-                continue;
-            break;
-        }
-        done += static_cast<gsize>(n);
-    }
-    if (done == len)
-        return true;
-#endif
-#ifndef _WIN32
-    // /dev/urandom covers non-glibc POSIX (old kernels, BSDs, macOS)
-    int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
-    if (fd >= 0)
-    {
-        gsize got = 0;
-        bool ok = true;
-        while (got < len)
-        {
-            ssize_t n = read(fd, buf + got, len - got);
-            if (n <= 0)
-            {
-                if (n < 0 && errno == EINTR)
-                    continue;
-                ok = false;
-                break;
-            }
-            got += static_cast<gsize>(n);
-        }
-        close(fd);
-        if (ok)
-            return true;
-    }
-#endif
-    return false;
+    return UT_go_random_bytes(buf, len) == TRUE;
 }
 
 /**

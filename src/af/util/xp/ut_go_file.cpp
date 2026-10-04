@@ -45,6 +45,7 @@
 #include <shellapi.h>
 #include <io.h>
 #include <fcntl.h>
+#include <bcrypt.h>
 #endif
 
 #include <string>
@@ -60,6 +61,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#if defined(__linux__) || defined(__GLIBC__)
+#include <sys/random.h>
+#endif
 #endif
 
 #include <errno.h>
@@ -1433,6 +1437,90 @@ UT_go_file_atomic_abort (const gchar *tmp_path)
 {
 	if (tmp_path)
 		(void)g_remove (tmp_path);
+}
+
+/**
+ * UT_go_random_bytes:
+ * @buf: destination buffer
+ * @len: number of bytes to fill
+ *
+ * Fills @buf with cryptographically-suitable random bytes from the OS
+ * entropy source: BCryptGenRandom(BCRYPT_USE_SYSTEM_PREFERRED_RNG) on
+ * Windows (bcrypt.lib at link time), arc4random_buf(3) on macOS and
+ * the BSDs, getrandom(2) on Linux/glibc with /dev/urandom as the
+ * fallback there and on every other POSIX system. There is
+ * deliberately no PRNG fallback: callers must fail rather than emit a
+ * predictable salt/IV/key.
+ *
+ * Returns: TRUE on success, FALSE when no OS entropy source was
+ * available.
+ */
+gboolean
+UT_go_random_bytes (guchar *buf, gsize len)
+{
+	g_return_val_if_fail (buf != nullptr || len == 0, FALSE);
+	if (len == 0)
+		return TRUE;
+
+#if defined(G_OS_WIN32)
+	/* CNG's system-preferred RNG, Vista+; no handle to open. */
+	while (len > 0)
+	{
+		ULONG chunk = len > 0xffffffffUL ? 0xffffffffUL
+										 : static_cast<ULONG>(len);
+		if (BCryptGenRandom (nullptr, buf, chunk,
+							 BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0)
+			return FALSE;
+		buf += chunk;
+		len -= chunk;
+	}
+	return TRUE;
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
+	  defined(__OpenBSD__) || defined(__DragonFly__)
+	/* arc4random_buf(3) cannot fail and has no per-call byte limit
+	 * (getentropy(2) caps each call at 256 bytes). Declared in
+	 * <stdlib.h>. */
+	arc4random_buf (buf, len);
+	return TRUE;
+#else
+#if defined(__linux__) || defined(__GLIBC__)
+	{
+		/* getrandom(2) needs no fd; ENOSYS (ancient kernel) falls
+		 * through to the urandom read below. */
+		gsize got = 0;
+		while (got < len)
+		{
+			gssize n = getrandom (buf + got, len - got, 0);
+			if (n < 0)
+			{
+				if (errno == EINTR)
+					continue;
+				break;
+			}
+			got += static_cast<gsize>(n);
+		}
+		if (got == len)
+			return TRUE;
+	}
+#endif
+	int fd = ::open ("/dev/urandom", O_RDONLY | O_CLOEXEC);
+	if (fd < 0)
+		return FALSE;
+	UT_ScopedFD fdg (fd);
+	gsize got = 0;
+	while (got < len)
+	{
+		gssize n = ::read (fd, buf + got, len - got);
+		if (n <= 0)
+		{
+			if (n < 0 && errno == EINTR)
+				continue;
+			return FALSE;
+		}
+		got += static_cast<gsize>(n);
+	}
+	return TRUE;
+#endif
 }
 
 gboolean
