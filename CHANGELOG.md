@@ -1143,7 +1143,7 @@ below are on `main` but the release has not been cut yet.
   an `X___` sign rule over the signer name/title and a Date rule —
   whose metadata round-trips through `.abwn` and exports to DOCX
   as an OOXML `o:signatureline` element; Object opens a
-  popover (file insert / RDF link).
+  popover (Embedded Object / Text from File / RDF Link).
 - **Hyperlink dialog always available** — Insert > Link no longer
   greys out without a selection; the dialog gained Word's "Text to
   display" field (prefilled from the selection) and with no
@@ -4423,6 +4423,14 @@ below are on `main` but the release has not been cut yet.
   "Video Browser…" and "Audio Browser…" entries previously did
   nothing; they now open the file picker and embed the chosen media
   the same way "from File" does.
+- **Object > "Embedded Object…" row actually works** — the row was
+  wired but dead: `insEmbeddedObject` sat out of alphabetical order
+  in the binary-searched edit-method table, so the lookup always
+  missed and the button silently did nothing. The table is fully
+  sorted again (the same misplacement was hiding `dlgFont` behind
+  `dlgImageProperties`); the row now opens a file picker, embeds
+  any file as a document data item with an icon poster, and
+  double-click opens it in the system handler.
 - **Markdown export preserves equations** — math objects now write
   back to `.md` as `$…$` (inline) or `$$…$$` (display) LaTeX instead
   of being dropped; documents without a stored LaTeX source fall
