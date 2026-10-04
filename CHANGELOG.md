@@ -4234,8 +4234,13 @@ below are on `main` but the release has not been cut yet.
   HTML report to `coverage-html/` and writes the standard lcov
   tracefile `coverage.info` plus a one-screen
   `coverage-summary.txt`. All coverage artifacts are gitignored.
-  Baseline measured on this tree: 21.0% lines / 28.3% functions from
-  `make check` alone.
+  `make coverage` also prints a per-directory breakdown
+  (`tools/coverage-dirs.sh`, written to `coverage-dirs.txt`) covering
+  `af/{util,xap,ev,gr,tf}`, `text/{fmt,ptbl}`, `wp/impexp` and
+  `wp/ap/{xp,gtk,grammar}` with per-subdirectory rows, and
+  `tools/coverage-dirs.sh coverage.info --worklog .devin/WORKLOG.md`
+  records a dated baseline table. Baseline measured on this tree:
+  45.2% lines / 54.4% functions from `make check` alone.
 
 - **Legacy pre-Word97 pictures import from `.doc`** — the
   `SUPPORTS_OLD_IMAGES` path now actually works end to end:

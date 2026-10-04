@@ -134,4 +134,5 @@ timeout-*
 /coverage.raw.info
 /coverage.info
 /coverage-summary.txt
+/coverage-dirs.txt
 /coverage-html/

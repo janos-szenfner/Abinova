@@ -59,3 +59,9 @@ outdir=coverage-html
 	--ignore-errors source
 
 "$LCOV" --summary "$info" --rc lcov_branch_coverage=0 | tee coverage-summary.txt
+
+# Per-directory breakdown (COV01): the COV task targets each cite a
+# directory, so emit an aggregate row per bucket.  Record the table
+# into .devin/WORKLOG.md explicitly with:
+#   tools/coverage-dirs.sh coverage.info --worklog .devin/WORKLOG.md
+"$tooldir/coverage-dirs.sh" "$info" | tee coverage-dirs.txt

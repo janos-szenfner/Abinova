@@ -20,6 +20,7 @@ EXTRA_DIST = \
 	valgrind.supp \
 	fuzz-add-reproducer.sh \
 	coverage.sh \
+	coverage-dirs.sh \
 	portguard.sh \
 	portguard-baseline.txt \
 	lcov/README \

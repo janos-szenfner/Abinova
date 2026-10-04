@@ -223,3 +223,43 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
 - 2026-10-04 TST05: af/util + container semantics backfill — new tests ut_hash/ut_growbuf/ut_bijection/ut_raii/ut_path/ut_encoding/ut_xml.t.cpp + extended ut_vector/ut_misc.t.cpp pin OOB-null, sparse-slot, ownership, shallow-copy, cursor, insert/delete-bounds and misc quirks (hash last-byte-ignored, map nullptr zombie, libxml2 SAX1 attr re-escape, UT_Cursor no-reverse); fixed latent bugs the pins caught: insertItemAt(count+1) heap-corrupting memmove, copy() inverted return, UT_Bijection::nth* nullptr deref on empty, UT_splitPropsToArray trailing-';' -> nullptr (+ pProps[-1] read), UT_createTmpFile passing full path to g_file_open_tmp (basename-only API) so tmp files were never created; removed dead ut_stack.t.cpp + stale UT_Stack fwd decl — verified: make -j2 rc=0, make check PASS 3946 tests 0 failures, Gettysburg.abw -> pdf rc=0
 - 2026-10-04 TST07: math round-trip regression suite — new src/wp/impexp/xp/t/ie_math.t.cpp (6 tests) wired into all_test.h + test/wp/tst07/math_envs.tex fixture: .tex equation env + displaymath/\[..\]/eqnarray*/\(..\) and .md $..$/$$..$$ must import as real PTO_Math objects (asserts <math> object type and zero raw-latex leakage into doc text — fails on the old centered-text fallback), md export re-emits dollar-delimited latex, and md->abwn->md / tex->abwn->md full round-trips keep every object; object counting via latexid= (abwn attr order is not stable across reimport) — verified: make -j2 clean, make check PASS 3999 tests 0 failures (49 new asserts)
 - 2026-10-04 TST08: GTK dialog smoke + portability guard — new check_PROGRAM dialog-smoke (unix/dialog_smoke.cpp) walks the XAP_DialogFactory table (new getDialogTableSize/getDialogTableEntry accessors), loads BillOfRights.abw into a real frame, wires view/doc context per dialog class (setView/setDoc/setDocument/setHTMLOptions mirroring edit methods), and fails on GTK/GLib criticals; dlgswrap.sh runs each of the 71 registered dialogs in its own process under timeout on xvfb-run-or-live-display (skips w/o either) with an explicit XFAIL list (id 1018 Styles teardown-only unref critical, GTK4.14 model dispose); portwrap.sh runs new tools/portguard.sh asserting zero /tmp literals in shipped code + no new unistd-only API calls in xp dirs beyond tools/portguard-baseline.txt; fixed bugs the smoke exposed: GTK4 file-chooser selection-changed via embedded GtkSelectionModel, ClipArt null dir_path + self-rescheduling fill idle, Options GtkStackPage mis-cast, Background removed xalign prop, Styles notify::selected teardown disconnect, plus /tmp literals -> g_get_tmp_dir in ie_imp_RTF/ap_UnixApp and dead unistd.h in ap_EditMethods — verified: make -j2 clean, make check 4/4 PASS (70/71 dialogs clean, 1 xfail), portguard fails on reintroduced /tmp literal
+- 2026-10-04 coverage baseline (`make check` under `--enable-coverage`; tools/coverage-dirs.sh):
+
+  | Directory | Lines hit | Lines found | Coverage |
+  |-----------|-----------|-------------|----------|
+  | af/util | 4308 | 7593 | 56.7% |
+  |   af/util/unix | 89 | 179 | 49.7% |
+  |   af/util/xp | 4219 | 7414 | 56.9% |
+  | af/xap | 6795 | 13759 | 49.4% |
+  |   af/xap/gtk | 3773 | 7306 | 51.6% |
+  |   af/xap/xp | 3022 | 6453 | 46.8% |
+  | af/ev | 1135 | 2902 | 39.1% |
+  |   af/ev/gtk | 684 | 1781 | 38.4% |
+  |   af/ev/xp | 451 | 1121 | 40.2% |
+  | af/gr | 3452 | 6499 | 53.1% |
+  |   af/gr/gtk | 459 | 1153 | 39.8% |
+  |   af/gr/xp | 2993 | 5346 | 56.0% |
+  | af/tf | 122 | 147 | 83.0% |
+  |   af/tf/xp | 122 | 147 | 83.0% |
+  | text/fmt | 24077 | 55304 | 43.5% |
+  |   text/fmt/gtk | 127 | 577 | 22.0% |
+  |   text/fmt/xp | 23950 | 54727 | 43.8% |
+  | text/ptbl | 7740 | 15045 | 51.4% |
+  |   text/ptbl/xp | 7740 | 15045 | 51.4% |
+  | wp/impexp | 31495 | 65563 | 48.0% |
+  |   wp/impexp/epub | 26 | 1259 | 2.1% |
+  |   wp/impexp/gtk | 221 | 498 | 44.4% |
+  |   wp/impexp/mht | 482 | 674 | 71.5% |
+  |   wp/impexp/odf | 6693 | 11443 | 58.5% |
+  |   wp/impexp/openxml | 7980 | 17960 | 44.4% |
+  |   wp/impexp/wmf | 5 | 213 | 2.3% |
+  |   wp/impexp/wordperfect | 532 | 1065 | 50.0% |
+  |   wp/impexp/wpg | 42 | 143 | 29.4% |
+  |   wp/impexp/xp | 15514 | 32308 | 48.0% |
+  | wp/ap/xp | 6045 | 23462 | 25.8% |
+  | wp/ap/gtk | 11533 | 23411 | 49.3% |
+  | wp/ap/grammar | 38 | 269 | 14.1% |
+  | (other) | 3 | 27 | 11.1% |
+  | TOTAL | 96743 | 213981 | 45.2% |
+
+- 2026-10-04 COV01: per-directory coverage ratchet — new tools/coverage-dirs.sh aggregates the lcov tracefile into per-bucket rows (task dirs + af/tf + wp/ap/grammar + per-subdir subrows) emitted by `make coverage` and written to coverage-dirs.txt; --worklog records the dated baseline above; fixed awk `>`-as-redirection and locale-decimal footguns — verified: make coverage rc=0, table totals match lcov 96743/213981 (45.2%), make check 4/4 PASS
