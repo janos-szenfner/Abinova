@@ -1521,23 +1521,6 @@ void IE_Imp_XHTML::startElement(const gchar *name,
 			if ((width > 0) && (height > 0))
 	   		{
 				UT_DEBUGMSG(("missing width or height; reverting to image defaults\n"));
-#if 0
-				if (strstr(utf8val.utf8_str(), "width") != nullptr)
-				{
-					float rat = height/width;
-					float fwidth = UT_convertToInches(szWidth.c_str());
-					height = rat*fwidth;
-					std::string tmp;
-					{
-						UT_LocaleTransactor t(LC_NUMERIC, "C");
-						tmp = UT_std_string_sprintf ("%gin", height);
-					}
-					if (utf8val.byteLength ())
-						utf8val += "; ";
-					utf8val += "height:";
-					utf8val += tmp;
-				}
-#endif
 			}
 			else
 			{
@@ -2057,12 +2040,6 @@ void IE_Imp_XHTML::endElement(const gchar *name)
 void IE_Imp_XHTML::charData (const gchar * buffer, int length)
 {
 #if DEBUG
-#if 0
-
-	UT_UTF8String sBuf;
-	sBuf.append(buffer,length);
-	UT_DEBUGMSG(("IE_Imp_XHTML::charData Text | %s | \n",sBuf.utf8_str()));
-#endif
 #endif
 	if(m_bInMath)
 	{

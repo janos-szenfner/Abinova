@@ -479,18 +479,6 @@ bool pt_PieceTable::_realChangeSpanFmt(PTChangeFmt ptc,
 	UT_return_val_if_fail (bFound, false);
 	bool bSkipFootnote = _checkSkipFootnote(dpos1,dpos2,pf_End);
 
-#if 0
-	{
-		pf_Frag * pf1, * pf2;
-		PT_BlockOffset fo1, fo2;
-
-		bool bFound1 = getFragFromPosition(dpos1,&pf1,&fo1);
-		bool bFound2 = getFragFromPosition(dpos2,&pf2,&fo2);
-		UT_return_val_if_fail (bFound1 && bFound2, false);
-		UT_return_val_if_fail ((pf1==pf_First) && (fragOffset_First==fo1), false);
-		UT_return_val_if_fail ((pf2==pf_End) && (fragOffset_End==fo2), false);
-	}
-#endif
 
 	// see if the amount of text to be changed is completely
 	// contained within a single fragment.  if so, we have a

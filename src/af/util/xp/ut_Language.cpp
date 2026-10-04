@@ -195,18 +195,8 @@ static UT_LangRecord s_Table[] =
  */
 static bool s_compare(const UT_LangRecord & A, const UT_LangRecord & B)
 {
-#if 0
-	// as long as bsearch is used searching for lang codes this is wrong
-	if (B.m_nID == XAP_STRING_ID_LANG_0)
-		return false;
-	else if (A.m_nID == XAP_STRING_ID_LANG_0)
-		return true;
-
-	return g_utf8_collate(A.m_szLangName, B.m_szLangName) < 0;
-#else
 
 	return strcmp(A.m_szLangCode, B.m_szLangCode) < 0;
-#endif
 }
 
 /*!
@@ -221,20 +211,8 @@ static int s_compareB(const void * l, const void *e)
 	const gchar * L   = static_cast<const gchar *>(l);
 	const UT_LangRecord * E = static_cast<const UT_LangRecord *>(e);
 
-#if 0
-	// as long as bsearch is used searching for lang codes this is wrong
-	if (E->m_nID == XAP_STRING_ID_LANG_0)
-		return 1;
-	else if (L == s_Table[0].m_szLangName)
-		return -1;
-	else if (strcmp(L, s_Table[0].m_szLangName) == 0)
-		return -1;
-
-	return g_utf8_collate(L, E->m_szLangName);
-#else
 	// make the comparison case insensitive to cope with buggy systems 
 	return g_ascii_strcasecmp(L, E->m_szLangCode);
-#endif
 }
 
 /*!

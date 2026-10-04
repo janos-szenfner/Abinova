@@ -780,58 +780,6 @@ void fl_TOCLayout::_addBlockInVec(fl_BlockLayout * pBlock, UT_UTF8String & sStyl
 	{
 		pPrevBL = static_cast<fl_BlockLayout *>(getFirstLayout());
 	}
-#if 0
-	else if(!m_pLayout->isLayoutFilling())
-	{
-		// we have to redo the previous TOC block, if we have stolen some of its contents (i.e., if
-		// the new block was inserted into a heading block) -- we need to see if the new block comes
-		// immediately after the old block represented by pPrevBL
-		PT_DocPosition posStart2 = pPrevBL->getPosition(true);
-		PT_DocPosition posEnd2   = posStart2 + static_cast<PT_DocPosition>(pPrevBL->getLength());
-		PT_DocPosition posStart  = pBlock->getPosition(true);
-		UT_DEBUGMSG(("Prev. affected block is %d long \n",pPrevBL->getLength()));
-
-		if(posEnd2 == posStart)
-		{
-			fl_BlockLayout * pPrevBL2 = nullptr;
-			UT_return_if_fail( pEntry && iAllBlocks > 0 );
-			UT_UTF8String sDispStyle = pEntry->getDispStyle();
-			UT_sint32 iNewLevel = pEntry->getLevel();
-			if(i > 1)
-			{
-				pEntry =  m_vecEntries[i-2].get();
-				pPrevBL2 =  pEntry->getBlock();
-			}
-
-			// now get rid of the old TOC block (this locates the shaddow to be removed by shd, so
-			// it works whether passed the shaddow block or the main doc block)
-
-			_removeBlockInVec(pPrevBL, true);
-			pPrevBL = nullptr;
-
-			UT_sint32 iOldLevel = m_iCurrentLevel;
-			m_iCurrentLevel = iNewLevel;
-			_createAndFillTOCEntry(posStart2, posEnd2, pPrevBL2, sDispStyle.utf8_str(), iAllBlocks - 1);
-			m_iCurrentLevel = iOldLevel;
-			
-			// we do not have to notify the orignal block that it is shaddowed, it knows already,
-			// but we need to obtain the new pPrevBL for further processing
-
-			if(pPrevBL2)
-			{
-				pPrevBL = static_cast<fl_BlockLayout *>(pPrevBL2->getNext());
-			}
-			else
-			{
-				pPrevBL = static_cast<fl_BlockLayout *>(getFirstLayout());
-				if(pPrevBL && pPrevBL->getNext())
-				{
-					pPrevBL = static_cast<fl_BlockLayout *>(pPrevBL->getNext());
-				}
-			}
-		}
-	}
-#endif
 	PT_DocPosition posStart = pBlock->getPosition(true);
 	PT_DocPosition posEnd = posStart + static_cast<PT_DocPosition>(pBlock->getLength());
 

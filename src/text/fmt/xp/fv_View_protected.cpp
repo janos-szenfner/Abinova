@@ -2218,11 +2218,6 @@ void FV_View::_updateInsertionPoint()
 
 void FV_View::_moveInsPtNextPrevPage(bool bNext)
 {
-#if 0
-	UT_sint32 xPoint;
-	UT_sint32 yPoint;
-	UT_sint32 iPointHeight;
-#endif
 
 	fp_Page* pOldPage = _getCurrentPage();
 
@@ -4010,126 +4005,6 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 bool FV_View::_clearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition iPos2, bool bFullLineHeightRect)
 {
 	return _drawOrClearBetweenPositions(iPos1, iPos2, true,bFullLineHeightRect);
-#if 0
-	xxx_UT_DEBUGMSG(("FV_View::_clearBetweenPositions called\n"));
-	if (iPos1 >= iPos2)
-	{
-		return true;
-	}
-	fp_Run* pRun1;
-	fp_Run* pRun2;
-	UT_uint32 uheight;
-
-	_fixInsertionPointCoords();
-	{
-		UT_sint32 x;
-		UT_sint32 y;
-		UT_sint32 x2;
-		UT_sint32 y2;
-		bool bDirection;
-		fl_BlockLayout* pBlock1;
-		fl_BlockLayout* pBlock2;
-
-		/*
-		  we don't really care about the coords.  We're calling these
-		  to get the Run pointer
-		*/
-		_findPositionCoords(iPos1, false, x, y, x2, y2, uheight, bDirection, &pBlock1, &pRun1);
-		_findPositionCoords(iPos2, false, x, y, x2, y2, uheight, bDirection, &pBlock2, &pRun2);
-	}
-
-	if (!pRun1 && !pRun2)
-	{
-		// no formatting info for either block, so just bail
-		// this can happen during spell, when we're trying to invalidate
-		// a new squiggle before the block has been formatted
-		return false;
-	}
-
-	// HACK: In certain editing cases only one of these is nullptr, which
-	//		 makes locating runs to clear more difficult.  For now, I'm
-	//		 playing it safe and trying to just handle these cases here.
-	//		 The real solution may be to just bail if *either* is nullptr,
-	//		 but I'm not sure.
-	//
-	//		 If you're interested in investigating this alternative
-	//		 approach, play with the following asserts.
-
-//	UT_ASSERT(pRun1 && pRun2);
-	UT_ASSERT(pRun2);
-
-	bool bDone = false;
-	fp_Run* pCurRun = (pRun1 ? pRun1 : pRun2);
-
-
-	while (!bDone)
-	{
-		if (pCurRun == pRun2)
-		{
-			bDone = true;
-		}
-
-		fl_BlockLayout* pBlock = pCurRun->getBlock();
-		UT_ASSERT(pBlock);
-//
-// Look to see if the Block is in a table.
-//
-		fl_ContainerLayout * pCL = pBlock->myContainingLayout();
-		if(pCL->getContainerType() == FL_CONTAINER_CELL)
-		{
-			fp_CellContainer * pCell = static_cast<fp_CellContainer *>(pCL->getFirstContainer());
-			if(pCell->isSelected())
-			{
-				pCell->clearSelection();
-				pCell->clearScreen();
-			
-				fl_BlockLayout * pBlock = nullptr;
-				fl_ContainerLayout * pLastCL = pCL->getFirstLayout();
-				while(pLastCL->getNext())
-				{
-					pLastCL = pLastCL->getNext();
-				}
-				while(pLastCL->getContainerType() != FL_CONTAINER_BLOCK)
-				{
-					pLastCL = pLastCL->getFirstLayout();
-				}
-				pBlock = static_cast<fl_BlockLayout *>(pLastCL);
-				pBlock = pBlock->getNextBlockInDocument();
-				if(pBlock)
-				{
-					pCurRun = pBlock->getFirstRun();
-					continue;
-				}
-				pCurRun = nullptr;
-				bDone = true;
-				continue;
-			}
-		}
-		pCurRun->clearScreen(bFullLineHeightRect);
-		if (pCurRun->getNextRun())
-		{
-			pCurRun = pCurRun->getNextRun();
-		}
-		else
-		{
-			fl_BlockLayout* pNextBlock;
-
-			fl_BlockLayout* pBlock = pCurRun->getBlock();
-			UT_ASSERT(pBlock);
-
-			pNextBlock = pBlock->getNextBlockInDocument();
-			if (pNextBlock)
-			{
-				pCurRun = pNextBlock->getFirstRun();
-			}
-			else
-				bDone = true;
-			// otherwise we get fun
-			// infinte loops
-		}
-	}
-	return true;
-#endif
 }
 
 void FV_View::_findPositionCoords(PT_DocPosition pos,
@@ -5055,16 +4930,6 @@ bool FV_View::_charMotion(bool bForward,UT_uint32 countChars, bool bSkipCannotCo
 		}
 
 		
-#if 0
-		while(pRun != nullptr &&  pRun->isField() && m_iInsPoint <= posEOD)
-		{
-			_setPoint(m_iInsPoint+1);
-			if(m_iInsPoint <= posEOD)
-			{
-				_findPositionCoords(m_iInsPoint, false, x, y, x2,y2,uheight, bDirection, &pBlock, &pRun);
-			}
-		}
-#endif
     }
 	else
 	{
@@ -5157,15 +5022,6 @@ bool FV_View::_charMotion(bool bForward,UT_uint32 countChars, bool bSkipCannotCo
 		}
 
 		
-#if 0
-// Needed for piecetable fields - we don't have these in 1.0
-
-		while(pRun != nullptr && pRun->isField() && m_iInsPoint >= posBOD)
-		{
-			_setPoint(m_iInsPoint-1);
-			_findPositionCoords(m_iInsPoint-1, false, x, y, x2,y2,uheight, bDirection, &pBlock, &pRun);
-		}
-#endif
 		// if the run which declared itself for our position is end of paragraph run,
 		// we need to ensure that the position is just before the run, not after it
 		// (fixes bug 1120)

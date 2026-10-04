@@ -89,7 +89,6 @@ UT_sint32 GR_Font::getCharWidthFromCache (UT_UCS4Char c) const
 	// need to instantiate the cache into a static member of
 	// GR_Graphics so that the plugin could get to it without calling
 	// the static getCharWidthCache()
-#ifndef ABI_GRAPHICS_PLUGIN_NO_WIDTHS
 	// first of all, handle 0-width spaces ...
 	if(c == 0xFEFF || c == 0x200B || c == UCS_LIGATURE_PLACEHOLDER)
 		return 0;
@@ -106,9 +105,6 @@ UT_sint32 GR_Font::getCharWidthFromCache (UT_UCS4Char c) const
 	}
 
 	return iWidth;
-#else
-	UT_return_val_if_fail(UT_NOT_IMPLEMENTED,0);
-#endif
 }
 
 bool GR_Font::doesGlyphExist(UT_UCS4Char g) const
@@ -128,11 +124,7 @@ bool GR_Font::doesGlyphExist(UT_UCS4Char g) const
  */
 GR_CharWidths* GR_Font::newFontWidths(void) const
 {
-#ifndef ABI_GRAPHICS_PLUGIN_NO_WIDTHS
 	return new GR_CharWidths();
-#else
-	return nullptr;
-#endif
 }
 
 AllCarets::AllCarets(GR_Graphics * pG,
@@ -848,7 +840,6 @@ void GR_Graphics::xorRect(const UT_Rect& r)
     implementation, or call the default implementation first and then
     further divide the results into items with same shaping needs
  */
-#ifndef ABI_GRAPHICS_PLUGIN
 bool GR_Graphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 {
 	UT_return_val_if_fail(text.getStatus() == UTIter_OK, false);
@@ -867,32 +858,6 @@ bool GR_Graphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 		UT_return_val_if_fail(text.getStatus() == UTIter_OK, false);
 
 		iType = UT_bidiGetCharType(c);
-#if 0
-		// this branch of code breaks at all direction bounaries
-		// it is disabled because doing that causes bug 8099
-		iCurOffset = iLastOffset = text.getPosition();
-		++text;
-		
-		// this loop will cover a single homogenous item
-		while(text.getStatus() == UTIter_OK)
-		{
-			iPrevType = iType;
-
-			c = text.getChar();
-			UT_return_val_if_fail(text.getStatus() == UTIter_OK, false);
-
-			// remember the offset
-			iLastOffset = text.getPosition();
-			
-			iType = UT_bidiGetCharType(c);
-			if(iType != iPrevType)
-			{
-				break;
-			}
-
-			++text;
-		}
-#else
 		//we have to break the text into chunks that each will go into a
 		//separate run in a manner that will ensure that the text will
 		//be correctly processed later. The most obvious way is to
@@ -929,23 +894,6 @@ bool GR_Graphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 				// potential direction boundary see if we can ignore
 				// it
 				bool bIgnore = false;
-#if 0
-				// this assumption is not true; for instance in the
-				// sequence ") " the parenthesis and the space can
-				// resolve to different directions
-				// 
-				// I am leaving it here so that I do not add it one
-				// day again (Tomas, Apr 10, 2003)
-				
-				if(UT_BIDI_IS_NEUTRAL(iPrevType) && UT_BIDI_IS_NEUTRAL(iType))
-				{
-					// two neutral characters in a row will have the same
-					// direction
-					xxx_UT_DEBUGMSG(("GR_Graphics::itemize: ntrl->ntrl (c=0x%04x)\n",c));
-					bIgnore = true;
-				}
-				else
-#endif
 				if(UT_BIDI_IS_STRONG(iPrevType) && UT_BIDI_IS_NEUTRAL(iType))
 				{
 					// we can ignore a neutral character following a
@@ -1005,7 +953,6 @@ bool GR_Graphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 			}
 			
 		}
-#endif
 		
 		I.addItem(iCurOffset - iPosStart, new GR_XPItem(GRScriptType_Undefined));
 	}
@@ -1577,7 +1524,6 @@ void GR_Graphics::adjustDeletePosition(GR_RenderInfo & )
 	return;
 }
 
-#endif // #ifndef ABI_GRAPHICS_PLUGIN
 
 ///////////////////////////////////////////////////////////////////////////////
 //

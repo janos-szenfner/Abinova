@@ -129,20 +129,6 @@ class ABI_EXPORT UT_UniqueId
 ABI_EXPORT bool UT_parseBool (const char * param, bool dfl);
 
 
-#if 0
-/*
-   if your platform does not define timeval, turn on the following definitions
-*/
-#include <time.h>
-
-typedef signed long suseconds_t;
-
-struct timeval
-{
-	time_t           tv_sec;
-	suseconds_t      tv_usec;
-};
-#endif
 
 /*!
     UT_gettimeofday() fills in the timeval structure with current

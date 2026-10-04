@@ -99,9 +99,6 @@
 #       include "xap_UnixDlg_Print.h"
 #       include "xap_UnixDlg_PrintPreview.h"
 #   endif
-#if 0
-#	include "ap_UnixDialog_Download_File.h"
-#endif
 
 #include "ap_UnixDialog_RDFQuery.h"
 #include "ap_UnixDialog_RDFEditor.h"

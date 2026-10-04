@@ -754,10 +754,6 @@ void AP_UnixDialog_Options::_setPageName ( const std::string &stName )
     UT_ASSERT ( widget && dlg );
     dlg->_event_SetDefaults();
 
-#if 0
-    // repopulate controls
-    dlg->_populateWindowData();
-#endif
 }
 
 /*static*/ void AP_UnixDialog_Options::s_control_changed ( GtkWidget *widget, gpointer data )

@@ -1859,45 +1859,6 @@ void fp_Line::_doClearScreenFromRunToEnd(UT_sint32 runIndex)
 	// paragraph we are deleting to the _left_ (Tomas, Oct 25, 2003)
 	UT_BidiCharType iDomDirection = m_pBlock->getDominantDirection();
 
-#if 0
-	UT_sint32 i;
-	if(iDomDirection == UT_BIDI_LTR)
-	{
-		for(i = runIndex; i < count; i++)
-		{
-			pRun = m_vecRuns[_getRunLogIndx(i)];
-
-			if(pRun->isDirty())
-			{
-				if(runIndex < count-1)
-				{
-					runIndex++;
-				}
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
-	else
-	{
-		for(i = runIndex; i>=0; i--)
-		{
-			pRun = m_vecRuns[_getRunLogIndx(i)];
-
-			if(pRun->isDirty() && runIndex > 0)
-			{
-				runIndex--;
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
-	
-#endif
 	// if we have a valid index to clear from, let's do it ...
 
 	if(runIndex < count)
@@ -2276,14 +2237,6 @@ void fp_Line::draw(GR_Graphics* pG)
 //
 // Check if this is in a cell, if so redraw the lines around it.
 //
-#if 0
-	fp_Container * pCon = getContainer();
-	if(pCon->getContainerType() == FP_CONTAINER_CELL)
-	{
-		fp_CellContainer * pCell = static_cast<fp_CellContainer *>(pCon);
-		pCell->drawLinesAdjacent();
-	}
-#endif
 	if(getBlock() && getBlock()->hasBorders())
 	     drawBorders(pG);
 }
@@ -2396,14 +2349,6 @@ void fp_Line::draw(dg_DrawArgs* pDA)
 //
 // Check if this is in a cell, if so redraw the lines around it.
 //
-#if 0
-	fp_Container * pCon = getContainer();
-	if(pCon->getContainerType() == FP_CONTAINER_CELL)
-	{
-		fp_CellContainer * pCell = static_cast<fp_CellContainer *>(pCon);
-		pCell->drawLinesAdjacent();
-	}
-#endif
 	if(getBlock() && getBlock()->hasBorders())
 	        drawBorders(pDA->pG);
 
@@ -2991,74 +2936,6 @@ void fp_Line::layout(void)
 	bool bLineErased		= false;
 	UT_sint32 iIndxToEraseFrom = -1;
 
-#if 0 //def DEBUG
-
-	//some extra but lengthy debug stuff
-	char *al;
-	char left[] = "left";
-	char right[]= "right";
-	char cent[] = "center";
-	char just[] = "justified";
-
-	switch (eAlignment)
-	{
-		case FB_ALIGNMENT_LEFT:
-			al = left;
-			break;
-
-		case FB_ALIGNMENT_RIGHT:
-			al = right;
-			break;
-
-		case FB_ALIGNMENT_CENTER:
-			al = cent;
-			break;
-
-		case FB_ALIGNMENT_JUSTIFY:
-			al = just;
-			break;
-
-		default:
-			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-	}
-
-	char *d;
-	char fwd[] = "forward";
-	char bck[] = "backward";
-
-	if(eWorkingDirection == WORK_FORWARD)
-		d = fwd;
-	else
-		d = bck;
-
-	char *t;
-	char next[] = "next";
-	char prev[] = "prev";
-	char fxd[] = "fixed width";
-
-	switch (eUseTabStop)
-	{
-		case USE_NEXT_TABSTOP:
-			t = next;
-			break;
-		case USE_PREV_TABSTOP:
-			t = prev;
-			break;
-		case USE_FIXED_TABWIDTH:
-			t = fxd;
-			break;
-		default:
-			UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-	}
-
-	UT_DEBUGMSG(("fp_Line::layout(), this = 0x%x\n"
-				 "		 alignment [%s], working direction [%s], using tabstops [%s]\n"
-				 "		 iStartX	= %d, \n"
-				 "		 iCountRuns = %d\n",
-				 this, al, d, t, iStartX, iCountRuns
-	));
-
-#endif //end of the debug stuff
 
 
 	// now we work our way through the runs on this line
@@ -3176,29 +3053,6 @@ void fp_Line::layout(void)
 				// now we need to shift the x-coordinances to reflect the new widths
 				// of the spaces
 				UT_sint32 k;
-#if 0
-				// if we are working backwards, we have to
-				// ignore trailing spaces on the line ...
-				if(eWorkingDirection == WORK_BACKWARD)
-				{
-					// work from first visual run to the right ...
-					for (k = 0; k < iCountRuns; k++)
-					{
-						fp_Run* pRun = static_cast<fp_Run*>(m_vecRuns[_getRunLogIndx(k)]);
-						UT_ASSERT(pRun);
-					
-						if(!pRun->doesContainNonBlankData())
-						{
-							iStartX += pRun->getWidth();
-						}
-						else
-						{
-							iStartX += pRun->findTrailingSpaceDistance();
-							break;
-						}
-					}
-				}
-#endif
 				for (k = 0; k < iCountRuns; k++)
 				{
 					UT_uint32 iK = (eWorkingDirection == WORK_FORWARD) ? k : iCountRuns - k - 1;
@@ -4134,13 +3988,6 @@ void fp_Line::justify(UT_sint32 iAmount)
 		// too much, since it is unlikely that there is going to be a justified line with
 		// no spaces on it
 
-#if 0
-		// to avoid spliting the runs at spaces, saving memory and
-		// processing time, we now improved fp_TextRun::_draw(), so
-		// that it is able to skip over spaces
-
-		_splitRunsAtSpaces();
-#endif
 		
 		UT_uint32 iSpaceCount = countJustificationPoints();
 		xxx_UT_DEBUGMSG(("fp_Line::distributeJustificationAmongstSpaces: iSpaceCount %d\n", iSpaceCount));
@@ -4292,14 +4139,6 @@ UT_sint32 fp_Line::_createMapOfRuns()
 		if(!count)
 			return UT_OK;  // do not even try to map a line with no runs
 
-#if 0
-		if(count == 1)	 //if there is just one run, then make sure that it maps on itself and return
-		{
-			s_pMapOfRunsL2V[0] = 0;
-			s_pMapOfRunsV2L[0] = 0;
-			return UT_OK;
-		}
-#endif
 		if (count >= s_iMapOfRunsSize) //the MapOfRuns member is too small, reallocate
 		{
 			delete[] s_pMapOfRunsL2V;

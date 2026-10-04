@@ -91,10 +91,6 @@ libxap_la_SOURCES = \
 	xp/xap_Preview.h \
 	xp/xap_Preview_Zoom.cpp \
 	xp/xap_Preview_Zoom.h \
-	xp/xap_Resource.cpp \
-	xp/xap_Resource.h \
-	xp/xap_ResourceManager.cpp \
-	xp/xap_ResourceManager.h \
 	xp/xap_Scrollbar_ViewListener.cpp \
 	xp/xap_Scrollbar_ViewListener.h \
 	xp/xap_StatusBar.h \
@@ -139,7 +135,6 @@ AM_CPPFLAGS += \
 libxap_la_SOURCES += \
 	gtk/xap_GtkUtils.h \
 	gtk/xap_GtkUtils.cpp \
-	gtk/xap_GtkObjectHolder.h \
 	gtk/xap_GtkSignalBlocker.h \
 	gtk/xap_GtkComboBoxHelpers.h \
 	gtk/xap_GtkComboBoxHelpers.cpp \

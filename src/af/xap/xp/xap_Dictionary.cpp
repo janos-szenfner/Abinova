@@ -284,16 +284,6 @@ bool XAP_Dictionary::addWord(const UT_UCS4Char * pWord, UT_uint32 len)
 //
 	char * key2 = g_strdup(key);
 	copy[i] = 0;
-#if 0
-//
-// Useful debugging code
-//
-	char * ucs_dup = static_cast<char *>(UT_calloc(2*len+1, sizeof(char)));
-	UT_UCS4_strcpy_to_char( ucs_dup, copy);
-	UT_DEBUGMSG(("Inserting word %s with key %s into hash \n",ucs_dup,key));
-	FREEP(ucs_dup);
-
-#endif
 	if(!m_hashWords.insert(std::make_pair(key2, copy)).second)
 		FREEP(copy);
 	

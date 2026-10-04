@@ -131,11 +131,7 @@
 #include "pd_DocumentRDF.h"
 #include "pl_ListenerCoupleCloser.h"
 
-#ifdef GTK_WIN_POS_CENTER_ALWAYS
-#define WIN_POS GTK_WIN_POS_CENTER_ALWAYS
-#else
 #define WIN_POS GTK_WIN_POS_CENTER
-#endif
 
 #include "ie_impGraphic.h"
 #include "ut_math.h"
@@ -1307,9 +1303,6 @@ bool AP_UnixApp::doWindowlessArgs(const AP_Args *Args, bool & bSuccess)
 
 		if (Args->m_sFiles[0])
 	    {
-#if 0 // work out how to do this witg pixbuf graphics class later
-
-#endif
 			return true;
 	    }
 		else
@@ -1364,12 +1357,6 @@ void AP_UnixApp::catchSignals(int /*sig_num*/)
 	fclose(logfile);
 #endif
 
-#if 0
-	while(1)
-	{
-		UT_usleep(10000);
-	}
-#endif
 
     saveRecoveryFiles();
 

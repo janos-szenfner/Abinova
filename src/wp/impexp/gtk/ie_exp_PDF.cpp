@@ -36,9 +36,6 @@
 #include <cairo-pdf.h>
 #include <cairo-ps.h>
 
-#if 0
-#include <cairo-svg.h>
-#endif
 
 #include <glib/gstdio.h>
 

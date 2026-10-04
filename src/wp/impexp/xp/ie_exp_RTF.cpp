@@ -293,11 +293,6 @@ void IE_Exp_RTF::exportHdrFtr(const char * pszHdrFtr , const char * pszHdrFtrID,
 
 // First find the header/footer section and id in the document.
 	m_pListenerWriteDoc->_closeSpan();
-#if 0 //#TF
-	m_pListenerWriteDoc->_closeBlock();
-	m_pListenerWriteDoc->_closeSpan();
-	m_pListenerWriteDoc->_closeSection();
-#endif
 	m_pListenerWriteDoc->_setTabEaten(false);
 
 	pf_Frag_Strux* hdrStrux = getDoc()->findHdrFtrStrux(static_cast<const gchar *>(pszHdrFtr), static_cast<const gchar *>(pszHdrFtrID));
@@ -341,9 +336,6 @@ void IE_Exp_RTF::exportHdrFtr(const char * pszHdrFtr , const char * pszHdrFtrID,
 // Now pump out the contents of the HdrFtr
 //
 	getDoc()->tellListenerSubset(static_cast<PL_Listener *>(m_pListenerWriteDoc),pExportHdrFtr);
-#if 0 //#TF
-	_rtf_keyword("par");
-#endif
 	delete pExportHdrFtr;
 	_rtf_close_brace();
 }
@@ -351,53 +343,6 @@ void IE_Exp_RTF::exportHdrFtr(const char * pszHdrFtr , const char * pszHdrFtrID,
 
 /*****************************************************************/
 /*****************************************************************/
-#if 0
-
-void s_RTF_Listener::_handleDataItems(void)
-{
-	bool bWroteOpenDataSection = false;
-
-	const char * szName;
-	const UT_ByteBuf * pByteBuf;
-
-	UT_ByteBuf bb64(1024);
-
-	for (UT_uint32 k=0; (m_pDocument->enumDataItems(k,nullptr,&szName,&pByteBuf,nullptr)); k++)
-	{
-		if (!bWroteOpenDataSection)
-		{
-			m_pie->write("<data>\n");
-			bWroteOpenDataSection = true;
-		}
-
-		if (UT_Base64Encode(&bb64, pByteBuf))
-		{
-			m_pie->write("<d name=\"");
-			m_pie->write(szName);
-			m_pie->write("\">\n");
-
-			// break up the Base64 blob as a series lines
-			// like MIME does.
-
-			UT_uint32 jLimit = bb64.getLength();
-			UT_uint32 jSize;
-			UT_uint32 j;
-			for (j=0; j<jLimit; j+=72)
-			{
-				jSize = UT_MIN(72,(jLimit-j));
-				m_pie->write(static_cast<const char *>(bb64.getPointer(j)),jSize);
-				m_pie->write("\n");
-			}
-			m_pie->write("</d>\n");
-		}
-	}
-
-	if (bWroteOpenDataSection)
-		m_pie->write("</data>\n");
-
-	return;
-}
-#endif
 /*****************************************************************/
 /*****************************************************************/
 
@@ -1559,18 +1504,6 @@ void IE_Exp_RTF::_write_parafmt(const PP_AttrProp * pSpanAP, const PP_AttrProp *
 	// -- I am really not sure what the rationale for the char props output here was, so
 	// if commenting this out creates some other problem, please let me know. Tomas, Sep
 	// 2, 2004
-#if 0 //#TF
-	if(id != 0)
-	{
-		const PP_AttrProp * pSpanAP = nullptr;
-		const PP_AttrProp * pBlockAP = nullptr;
-		const PP_AttrProp * pSectionAP = nullptr;
-
-		getDoc()->getAttrProp(m_apiThisSection,&pSectionAP);
-		getDoc()->getAttrProp(m_apiThisBlock,&pBlockAP);
-		_write_charfmt(s_RTF_AttrPropAdapter_AP(pSpanAP, pBlockAP, pSectionAP, getDoc()));
-	}
-#endif
 	///
 	/// OK if there is list info in this paragraph we encase it inside
 	/// the {\*\abilist..} extension
@@ -1910,18 +1843,6 @@ void IE_Exp_RTF::_write_charfmt(const s_RTF_AttrPropAdapter & apa)
 	//const gchar * szStyle = apa.getAttribute(PT_STYLE_ATTRIBUTE_NAME);
 	//UT_sint32 iStyle = -1;
 	s_RTF_AttrPropAdapter_Style * pADStyle = nullptr;
-#if 0
-	if(szStyle != nullptr)
-	{
-		PD_Style * pStyle = nullptr;
-		iStyle = static_cast<UT_sint32>(_getStyleNumber(szStyle));
-		getDoc()->getStyle(szStyle,&pStyle);
-		pADStyle = new s_RTF_AttrPropAdapter_Style(pStyle);
-//
-// OK now we have to make sure all these character props aren't in the style
-//
-	}
-#endif
 	const gchar * szColor = _getStyleProp(pADStyle,&apa,"color");
 
 	UT_sint32 ndxColor = -1;
@@ -2142,44 +2063,6 @@ void IE_Exp_RTF::_output_revision(const s_RTF_AttrPropAdapter & apa, bool bPara,
 			UT_uint32 iDttm = pT->tm_min | (pT->tm_hour << 6) | (pT->tm_mday << 11) | ((pT->tm_mon + 1) << 16)
 				| (pT->tm_year << 20) | (pT->tm_wday << 29);
 
-#if 0
-			// according to the docs, we are supposed to emit each of the four bytes of
-			// the dttm int as an ascii char, and if > 127 convert to hex; however, Word
-			// emits this as a normal int and so will we -- the code below is disabled
-			// 
-			// Now that we have the int, we need to convert the 4 bytes to ascii string.
-			// We need to output this in little endian order, I think, since win32 is
-			// inherently LE
-			char Dttm[4];
-			const char * pDttm = static_cast<const char *>( & iDttm);
-			
-#ifdef UT_LITTLE_ENDIAN
-			Dttm[0] = *pDttm;
-			Dttm[1] = *(pDttm + 1);
-			Dttm[2] = *(pDttm + 2);
-			Dttm[3] = *(pDttm + 3);
-#else
-			Dttm[3] = *pDttm;
-			Dttm[2] = *(pDttm + 1);
-			Dttm[1] = *(pDttm + 2);
-			Dttm[0] = *(pDttm + 3);
-#endif
-			UT_UTF8String s;
-
-			for(UT_uint32 j = 0; j < 4; j++)
-			{
-				if(Dttm[i] <= 127)
-				{
-					s += Dttm[i];
-				}
-				else
-				{
-					UT_String s2;
-					_rtf_nonascii_hex2(static_cast<UT_sint32>(Dttm[i]), s2);
-					s += s2.c_str();
-				}
-			}
-#endif
 			if(iIndx < 0)
 			{
 				UT_ASSERT_HARMLESS( UT_SHOULD_NOT_HAPPEN );

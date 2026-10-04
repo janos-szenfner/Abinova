@@ -375,17 +375,7 @@ private:
 	//UT_uint32			m_iImageCount;
 	UT_uint32			m_nSections;
 	bool				m_bSetPageSize;
-#if 0
-	UT_UCS2Char m_command [FLD_SIZE];
-	UT_UCS2Char m_argument [FLD_SIZE];
-	UT_UCS2Char *m_fieldWhich;
-	UT_sint32	m_fieldI;
-	char *		m_fieldC;
-	UT_sint32	m_fieldRet;
-	UT_sint32	m_fieldDepth;
-#else
 	std::stack<field*>    m_stackField;
-#endif
 	//char *	  m_fieldA;
 	bool	   m_bIsLower;
 

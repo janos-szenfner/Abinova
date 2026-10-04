@@ -407,13 +407,6 @@ bool UT_UUID::_makeUUID(uuid &uu)
 
     if(!s_bInitDone)
 	{
-#if 0
-		bool bNoMAC;
-		XAP_App::getApp()->getPrefsValueBool(static_cast<gchar*>(XAP_PREF_KEY_NoMACinUUID),
-											 &bNoMAC);
-
-        if(bNoMAC || !UT_getEthernetAddress(s_node))
-#endif
 		{
             bRet &= _getRandomBytes(s_node, 6);
             /*
@@ -608,28 +601,6 @@ void UT_UUID::clear()
 */
 UT_uint32 UT_UUID::hash32() const
 {
-#if 0
-    // 32 bit Fowler/Noll/Vo hash on a buffer I have run extensive
-	// tests using the FNV and the other algorithm in the #else branch
-	// (based on UT_String) and the latter turns out to be slightly
-	// less collision prone on randomly generated uuid's but
-	// significantly less collision prone on uuid's generated on the
-	// same machine and close in time
-	static UT_uint32 hval = 0x811c9dc5;
-    unsigned char *bp = static_cast<unsigned char *>(&m_uuid);
-
-	for(UT_uint32 i = 0; i < sizeof(m_uuid); ++i)
-	{
-		/* multiply by the 32 bit FNV magic prime mod 2^32 */
-		hval *= 0x01000193;
-
-		/* xor the bottom with the current octet */
-		hval ^= static_cast<UT_uint32>(*bp++);
-    }
-
-    /* return our new hash value */
-    return hval;
-#else
 	// base on UT_String
 	const unsigned char * p = reinterpret_cast<const unsigned char *>(& m_uuid);
 	UT_uint32 h = static_cast<UT_uint32>(*p);
@@ -640,38 +611,10 @@ UT_uint32 UT_UUID::hash32() const
 	}
 
 	return h;
-#endif
 }
 
 UT_uint64 UT_UUID::hash64() const
 {
-#if 0
-	// see comments in hash32()
-#if defined(_WIN32) && !defined(__GNUC__)	
-	static UT_uint64 hval = 0xcbf29ce484222325; // value FNV1_64_INIT;
-#else
-	static UT_uint64 hval = 0xcbf29ce484222325LL; // value FNV1_64_INIT;
-#endif
-    unsigned char *bp = static_cast<unsigned char *>( &m_uuid);
-
-    /*
-     * FNV-1 hash each octet of the buffer
-     */
-	for(UT_uint32 i = 0; i < sizeof(m_uuid); ++i)
-	{
-		/* multiply by the 64 bit FNV magic prime mod 2^64 */
-#if defined(_WIN32) && !defined(__GNUC__)	
-		hval *= 0x100000001b3;
-#else
-		hval *= 0x100000001b3LL;
-#endif
-		/* xor the bottom with the current octet */
-		hval ^= static_cast<UT_uint64>(*bp++);
-    }
-
-    /* return our new hash value */
-    return hval;
-#else
 	// base on UT_String
 	const unsigned char * p = reinterpret_cast<const unsigned char *>(& m_uuid);
 	UT_uint64 h = static_cast<UT_uint64>(*p);
@@ -682,7 +625,6 @@ UT_uint64 UT_UUID::hash64() const
 	}
 
 	return h;
-#endif
 }
 
 
@@ -723,79 +665,3 @@ UT_uint64 UT_UUIDGenerator::getNewUUID64()
 
 
 
-#if 0
-/*
-    Due to portability problems I removed the various functions
-    operating on uuid_t. However, I suspect a day will come someone
-    will decide we need those after all, so I leave here the code for
-    _pack() and _unpack()
-*/
-
-/*!
-   pack UUID from the internal struct to uuid_t
-*/
-bool UT_UUID::_pack(const uuid &uu, uuid_t &u) const
-{
-    UT_uint32   tmp;
-    unsigned char   *out = static_cast<unsigned char *>(&u);
-
-    tmp = uu.time_low;
-    out[3] = static_cast<unsigned char>( tmp);
-    tmp >>= 8;
-    out[2] = static_cast<unsigned char>( tmp);
-    tmp >>= 8;
-    out[1] = static_cast<unsigned char>( tmp);
-    tmp >>= 8;
-    out[0] = static_cast<unsigned char>( tmp);
-    
-    tmp = uu.time_mid;
-    out[5] = static_cast<unsigned char>( tmp);
-    tmp >>= 8;
-    out[4] = static_cast<unsigned char>( tmp);
-
-    tmp = uu.time_high_and_version;
-    out[7] = static_cast<unsigned char>( tmp);
-    tmp >>= 8;
-    out[6] = static_cast<unsigned char>( tmp);
-
-    tmp = uu.clock_seq;
-    out[9] = static_cast<unsigned char>( tmp);
-    tmp >>= 8;
-    out[8] = static_cast<unsigned char>( tmp);
-
-    memcpy(out+10, uu.node, 6);
-
-	return true;
-}
-
-/*!
-    Unpack uuid_t into the internal uuid struct
-*/
-bool UT_UUID::_unpack(const uuid_t &in, uuid &uu) const
-{
-    const unsigned char  *ptr = static_cast<const unsigned char*>(&in);
-    UT_uint32       tmp;
-
-    tmp = *ptr++;
-    tmp = (tmp << 8) | *ptr++;
-    tmp = (tmp << 8) | *ptr++;
-    tmp = (tmp << 8) | *ptr++;
-    uu.time_low = tmp;
-
-    tmp = *ptr++;
-    tmp = (tmp << 8) | *ptr++;
-    uu.time_mid = tmp;
-
-    tmp = *ptr++;
-    tmp = (tmp << 8) | *ptr++;
-    uu.time_high_and_version = tmp;
-
-    tmp = *ptr++;
-    tmp = (tmp << 8) | *ptr++;
-    uu.clock_seq = tmp;
-
-    memcpy(uu.node, ptr, 6);
-
-    return true;
-}
-#endif

@@ -1475,17 +1475,6 @@ void IE_Exp_HTML_Listener::_openTable(PT_AttrPropIndex api, bool recursiveCall)
 		border_default = UT_formatDimensionString(DIM_PT, dPT, ".2");
 	}
 
-#if 0
-	const gchar * pszLeftOffset = nullptr;
-	const gchar * pszTopOffset = nullptr;
-	const gchar * pszRightOffset = nullptr;
-	const gchar * pszBottomOffset = nullptr;
-
-	pSectionAP->getProperty ("cell-margin-left",   pszLeftOffset);
-	pSectionAP->getProperty ("cell-margin-top",    pszTopOffset);
-	pSectionAP->getProperty ("cell-margin-right",  pszRightOffset);
-	pSectionAP->getProperty ("cell-margin-bottom", pszBottomOffset);
-#endif
 	const char * pszWidth = m_tableHelper.getTableProp ("width");
 	if (m_bAbsUnits) {
 		if (pszWidth) {

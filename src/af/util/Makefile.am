@@ -72,8 +72,6 @@ libutil_la_SOURCES = \
 	xp/ut_mbtowc.h \
 	xp/ut_misc.cpp \
 	xp/ut_misc.h \
-	xp/ut_mutex.cpp \
-	xp/ut_mutex.h \
 	xp/ut_null.h \
 	xp/ut_OverstrikingChars.cpp \
 	xp/ut_OverstrikingChars.h \
@@ -130,7 +128,6 @@ libutil_la_SOURCES += \
 	unix/ut_debugmsg.cpp \
 	unix/ut_files.cpp \
 	unix/ut_files.h \
-	unix/ut_mutexImpl.h \
 	unix/ut_path.cpp \
 	unix/ut_sleep.h \
 	unix/ut_unixAssert.cpp \
@@ -164,7 +161,6 @@ EXTRA_DIST = \
 	xp/t/ut_math.t.cpp \
 	xp/t/ut_mbtowc.t.cpp \
 	xp/t/ut_misc.t.cpp \
-	xp/t/ut_mutex.t.cpp \
 	xp/t/ut_OverstrikingChars.t.cpp \
 	xp/t/ut_path.t.cpp \
 	xp/t/ut_raii.t.cpp \

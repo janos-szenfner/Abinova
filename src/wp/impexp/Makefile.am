@@ -414,7 +414,6 @@ EXTRA_DIST = \
 
 # EPUB importer/exporter, formerly a plugin
 libimpexp_la_SOURCES += \
-	epub/common/xp/ie_impexp_EPUB.h \
 	epub/dialogs/gtk/ap_UnixDialog_EpubExportOptions.cpp \
 	epub/dialogs/gtk/ap_UnixDialog_EpubExportOptions.h \
 	epub/dialogs/xp/ap_Dialog_EpubExportOptions.cpp \

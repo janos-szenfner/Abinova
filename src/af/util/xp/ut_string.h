@@ -90,36 +90,6 @@ ABI_EXPORT bool  UT_isSmartQuotedCharacter(UT_UCS4Char c);
 //
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef ENABLE_UCS2_STRINGS
-
-#define UT_UCS2_isdigit(x)	(((x) >= '0') && ((x) <= '9'))  // TODO: make UNICODE-wise
-
-/*these are unicode-safe*/
-ABI_EXPORT bool  UT_UCS2_isupper(UT_UCS2Char c);
-ABI_EXPORT bool  UT_UCS2_islower(UT_UCS2Char c);
-ABI_EXPORT bool  UT_UCS2_isalpha(UT_UCS2Char c);
-ABI_EXPORT bool	 UT_UCS2_isSentenceSeparator(UT_UCS2Char c);
-#define UT_UCS2_isalnum(x)	(UT_UCS2_isalpha(x) || UT_UCS2_isdigit(x)) // HACK: not UNICODE-safe
-ABI_EXPORT bool UT_UCS2_isspace(UT_UCS2Char c);
-#define UT_UCS2_ispunct(x)   ((!UT_UCS2_isspace(x)  &&  !UT_UCS2_isalnum(x)  &&  (x)>' '))  // HACK: not UNICODE safe
-
-// the naming convention has deviated from the above.  it's kind
-// of a mutant libc/C++ naming convention.
-ABI_EXPORT UT_UCS2Char * 	 UT_UCS2_strstr(const UT_UCS2Char * phaystack, const UT_UCS2Char * pneedle);
-ABI_EXPORT UT_sint32 		 UT_UCS2_strcmp(const UT_UCS2Char* left, const UT_UCS2Char* right);
-ABI_EXPORT UT_UCS2Char * 	 UT_UCS2_stristr(const UT_UCS2Char * phaystack, const UT_UCS2Char * pneedle);
-ABI_EXPORT UT_UCS2Char * 	 UT_UCS2_strcpy(UT_UCS2Char * dest, const UT_UCS2Char * src);
-ABI_EXPORT UT_UCS2Char * 	 UT_UCS2_strcpy_char(UT_UCS2Char * dest, const char * src);
-ABI_EXPORT char *			 UT_UCS2_strcpy_to_char(char * dest, const UT_UCS2Char * src);
-ABI_EXPORT bool			 UT_UCS2_cloneString(UT_UCS2Char ** dest, const UT_UCS2Char * src);
-ABI_EXPORT bool			 UT_UCS2_cloneString_char(UT_UCS2Char ** dest, const char * src);
-ABI_EXPORT UT_UCS2Char *     UT_UCS2_strncpy(UT_UCS2Char * dest, const UT_UCS2Char * src, UT_uint32 n);
-ABI_EXPORT UT_UCS2Char *     UT_UCS2_strnrev(UT_UCS2Char * dest, UT_uint32 n);
-
-ABI_EXPORT UT_UCS2Char		 UT_UCS2_tolower(UT_UCS2Char c);
-ABI_EXPORT UT_UCS2Char       UT_UCS2_toupper(UT_UCS2Char c);
-
-#endif
 
 // Don't ifdef this one out since MSWord importer uses it
 

@@ -55,16 +55,10 @@
 	Therefore cannot use constants for these three, since those are stored in
 	read-only segment.
 */
-#ifndef BIDI_RTL_DOMINANT
 	gchar def_dom_dir[]="ltr";
 	gchar default_direction[]="ltr";
 	gchar text_align[]="left\0";		//the '\0' is needed so that we can copy
 										//the word 'right' here
-#else
-	gchar def_dom_dir[]="rtl";
-	gchar default_direction[]="rtl";
-	gchar text_align[]="right";
-#endif
 
 // KEEP THIS ALPHABETICALLY ORDERED UNDER PENALTY OF DEATH!
 

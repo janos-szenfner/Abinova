@@ -24,7 +24,6 @@
 
 #include "xad_Document.h"
 #include "xap_App.h"
-#include "xap_ResourceManager.h"
 #include "ut_uuid.h"
 
 #define TFSUITE "core.af.xap.addoc"

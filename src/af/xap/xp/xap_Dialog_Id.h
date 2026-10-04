@@ -70,14 +70,7 @@ enum XAP_Dialog_Id: uint16_t
 #ifdef HAVE_GNOME_DIRECT_PRINT
 	XAP_DIALOG_ID_PRINT_DIRECTLY,
 #else
-#if 0
-	// CANNOT DO THIS !!!
-	// enums are sequential, so this makes everything that comes after
-	// this start again from _ID_PRINT
-	XAP_DIALOG_ID_PRINT_DIRECTLY = XAP_DIALOG_ID_PRINT,
-#else
 #define XAP_DIALOG_ID_PRINT_DIRECTLY XAP_DIALOG_ID_PRINT
-#endif
 #endif
 	XAP_DIALOG_ID_LISTDOCUMENTS,
 	XAP_DIALOG_ID_COMPAREDOCUMENTS,

@@ -664,19 +664,6 @@ bool GR_CairoGraphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 		PangoItem *pItem = static_cast<PangoItem *>(g_list_nth(gItems, i)->data);
 		GR_CairoPangoItem * pI = new GR_CairoPangoItem(pItem);
 
-#if 0 //def DEBUG
-		PangoFont * pf = pI->m_pi->analysis.font;
-		PangoFontDescription * pfd = pango_font_describe (pf);
-		char * pfds = pango_font_description_to_string (pfd);
-		
-		PangoLanguage * lang = pI->m_pi->analysis.language;
-
-		UT_DEBUGMSG(("@@@@ ===== Item [%s] [%s] =====\n",
-					 pfds, pango_language_to_string(lang)));
-		
-		pango_font_description_free (pfd);
-		g_free (pfds);
-#endif
 		
 		I.addItem(iOffset, pI);
 		iOffset += pItem->num_chars;
@@ -951,11 +938,6 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 		double dSize = static_cast<double>(PANGO_SCALE )* pFont->getPointSize();
 		pango_font_description_set_size (pfd, static_cast<gint>(dSize));
 
-#if 0 //def DEBUG
-		char * s = pango_font_description_to_string (pfd);
-		UT_DEBUGMSG(("@@@@ ===== Shaping with font [%s]\n", s));
-		g_free (s);
-#endif
 	}
 	else
 	{

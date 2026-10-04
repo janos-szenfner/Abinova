@@ -1567,17 +1567,6 @@ void IE_Imp_WordPerfect::openListElement(const librevenge::RVNGPropertyList &pro
 	UT_String_sprintf(tempBuffer,"list-style:%i;", m_pCurrentListDefinition->getListType(m_iCurrentListLevel));
 	propBuffer += tempBuffer;
 
-#if 0
-	// FIXME: writing the list delimiter is kind of tricky and silly (because wordperfect wants to define
-	// it within the document, while abi wants to (sensibly probably) define it in the list definition)
-	// (we reset it each time but only for numbered lists)
-	if (listDefinition->isLevelNumbered(m_iCurrentListLevel)) 
-	{  
-		UT_DEBUGMSG(("WordPerfect: Appending this list delim: %s\n", m_rightListDelim.c_str()));
-		listDefinition->setListRightDelimText(m_iCurrentListLevel, m_rightListDelim.c_str());
-		X_CheckWordPerfectError(_updateDocumentListDefinition(listDefinition, m_iCurrentListLevel));
-	}
-#endif
 
 	if (m_pCurrentListDefinition->getListType(m_iCurrentListLevel) == BULLETED_LIST)
 		UT_String_sprintf(tempBuffer, "field-font:Symbol; ");

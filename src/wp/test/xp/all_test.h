@@ -79,8 +79,6 @@
 #undef TFSUITE
 #include "src/af/util/xp/t/ut_math.t.cpp"
 #undef TFSUITE
-#include "src/af/util/xp/t/ut_mutex.t.cpp"
-#undef TFSUITE
 #include "src/af/util/xp/t/ut_OverstrikingChars.t.cpp"
 #undef TFSUITE
 #include "src/af/util/xp/t/ut_stringbuf.t.cpp"
@@ -96,8 +94,6 @@
 #include "src/af/xap/xp/t/xap_UpdateCheck.t.cpp"
 #undef TFSUITE
 #include "src/af/xap/xp/t/xap_EncodingManager.t.cpp"
-#undef TFSUITE
-#include "src/af/xap/xp/t/xap_Resource.t.cpp"
 #undef TFSUITE
 #include "src/af/xap/xp/t/xap_Misc.t.cpp"
 #undef TFSUITE

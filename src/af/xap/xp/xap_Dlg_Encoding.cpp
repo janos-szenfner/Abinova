@@ -30,15 +30,6 @@
 
 /*****************************************************************/
 
-#if 0
-static int s_compareQ(const void * a, const void * b)
-{
-	const gchar ** A = static_cast<const gchar **>(a);
-	const gchar ** B = static_cast<const gchar **>(b);
-
-	return strcmp(*A,*B);
-}
-#endif
 
 XAP_Dialog_Encoding::XAP_Dialog_Encoding(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
 	: XAP_Dialog_NonPersistent(pDlgFactory,id)

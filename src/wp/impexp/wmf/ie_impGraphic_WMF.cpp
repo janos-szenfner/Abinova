@@ -335,10 +335,6 @@ UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,
 
 	unsigned long flags;
 
-#if 0 // the code that uses these two variables is in an if 0 block below
-	unsigned int max_width  = 500;
-	unsigned int max_height = 500;
-#endif
 
 	unsigned int width, height;
 
@@ -409,24 +405,6 @@ UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,
 		return UT_ERROR;
 	}
 
-#if 0
-	// not sure if this branch is needed any more after the recent changes
-	// done by FJF and myself inside of libWMF for better size detection - DAL
-
-	if ((ddata->width >= max_width) || (ddata->height >= max_height)) {
-		float ratio_wmf = height / width;
-		float ratio_bounds = static_cast<float>( max_height )/ static_cast<float>( max_width);
-
-		if (ratio_wmf > ratio_bounds) {
-			ddata->height = max_height;
-			ddata->width  = static_cast<unsigned int>( (static_cast<float>( ddata->height )/ ratio_wmf));
-		}
-		else {
-			ddata->width  = max_width;
-			ddata->height = static_cast<unsigned int>( (static_cast<float>( ddata->width  )* ratio_wmf));
-		}
-	}
-#endif
 
 	if ((ddata->width == 0) || (ddata->height == 0)) {
 		UT_DEBUGMSG(("IE_ImpGraphic_WMF::convertGraphic Size error (1)\n"));

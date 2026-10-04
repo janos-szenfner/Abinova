@@ -46,11 +46,7 @@
 #include "ut_vector.h"
 #include "ut_TextIterator.h"
 
-#ifdef ABI_GRAPHICS_PLUGIN
-#define VIRTUAL_SFX = 0
-#else
 #define VIRTUAL_SFX
-#endif
 
 class UT_RGBColor;
 class XAP_PrefsScheme;
@@ -450,12 +446,6 @@ class ABI_EXPORT GR_Graphics
 	virtual UT_uint32 getClassId() = 0;
 
 	virtual GR_Capability getCapability() {UT_ASSERT_HARMLESS(UT_NOT_IMPLEMENTED); return GRCAP_UNKNOWN;}
-#if 0
-	// the following two static functions have to be implemented by all
-	// derrived classes and registered with GR_GraphicsFactory
-	static const char *    graphicsDescriptor(void){UT_ASSERT_HARMLESS(UT_NOT_IMPLEMENTED); return "???";}
-	static GR_Graphics *   graphicsAllocator(GR_AllocInfo&){UT_ASSERT_HARMLESS(UT_NOT_IMPLEMENTED); return nullptr;}
-#endif
 
 	AllCarets *	allCarets();
 	void		disableAllCarets();

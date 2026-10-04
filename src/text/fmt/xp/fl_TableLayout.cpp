@@ -1247,10 +1247,6 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 		// TODO: PX, and PERCENT
 		// let them fall through to the default now
 		// and we don't use them anyway
-#if 0
-	case DIM_PX:
-	case DIM_PERCENT:
-#endif
 	case DIM_none:
 	default:
 		defaultOffset = "0.0in";	// TODO: what to do with this. was 0.01in
@@ -1698,62 +1694,6 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 void fl_TableLayout::_lookupMarginProperties(const PP_AttrProp* pSectionAP)
 {
 	UT_return_if_fail( pSectionAP );
-#if 0 // I think these are relative to the position of the table, so we do not need to
-	  // bother with them
-	const char* pszLeftOffset = nullptr;
-	const char* pszTopOffset = nullptr;
-	const char* pszRightOffset = nullptr;
-	const char* pszBottomOffset = nullptr;
-	pSectionAP->getProperty("table-margin-left", static_cast<const gchar *&>(pszLeftOffset));
-	pSectionAP->getProperty("table-margin-top", static_cast<const gchar *&>(pszTopOffset));
-	pSectionAP->getProperty("table-margin-right", static_cast<const gchar *&>(pszRightOffset));
-	pSectionAP->getProperty("table-margin-bottom", static_cast<const gchar *&>(pszBottomOffset));
-
-	UT_String defaultOffset("0.01in");	// TODO: what to do with this. was 0.01in
-	if(pszLeftOffset && pszLeftOffset[0])
-	{
-		m_iLeftOffset = UT_convertToLogicalUnits(pszLeftOffset);
-		m_dLeftOffsetUserUnits = UT_convertDimensionless(pszLeftOffset);
-	}
-	else
-	{
-		m_iLeftOffset = UT_convertToLogicalUnits(defaultOffset.c_str());
-		m_dLeftOffsetUserUnits = UT_convertDimensionless(defaultOffset.c_str());
-	}
-
-	if(pszTopOffset && pszTopOffset[0])
-	{
-		m_iTopOffset = UT_convertToLogicalUnits(pszTopOffset);
-		m_dTopOffsetUserUnits = UT_convertDimensionless(pszTopOffset);
-	}
-	else
-	{
-		m_iTopOffset = UT_convertToLogicalUnits(defaultOffset.c_str());
-		m_dTopOffsetUserUnits = UT_convertDimensionless(defaultOffset.c_str());
-	}
-
-	if(pszRightOffset && pszRightOffset[0])
-	{
-		m_iRightOffset = UT_convertToLogicalUnits(pszRightOffset);
-		m_dRightOffsetUserUnits = UT_convertDimensionless(pszRightOffset);
-	}
-	else
-	{
-		m_iRightOffset = UT_convertToLogicalUnits(defaultOffset.c_str());
-		m_dRightOffsetUserUnits = UT_convertDimensionless(defaultOffset.c_str());
-	}
-
-	if(pszBottomOffset && pszBottomOffset[0])
-	{
-		m_iBottomOffset = UT_convertToLogicalUnits(pszBottomOffset);
-		m_dBottomOffsetUserUnits = UT_convertDimensionless(pszBottomOffset);
-	}
-	else
-	{
-		m_iBottomOffset = UT_convertToLogicalUnits(defaultOffset.c_str());
-		m_dBottomOffsetUserUnits = UT_convertDimensionless(defaultOffset.c_str());
-	}
-#endif
 
 //
 // Positioned columns controls
@@ -2606,10 +2546,6 @@ void fl_CellLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 		// TODO: PX, and PERCENT
 		// let them fall through to the default now
 		// and we don't use them anyway
-#if 0
-	case DIM_PX:
-	case DIM_PERCENT:
-#endif
 	case DIM_none:
 	default:
 		defaultOffset = "0.0in";	// TODO: what to do with this. was 0.05in

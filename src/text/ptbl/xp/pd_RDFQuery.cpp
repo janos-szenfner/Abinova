@@ -82,16 +82,6 @@ librdf_statement* toRedland( const PD_RDFStatement& st )
 }
 
 
-#if 0
-static std::string tostr( librdf_statement* statement )
-{
-    std::stringstream ss;
-    ss << "  subj:" << tostr( librdf_statement_get_subject( statement ) ) << std::endl;
-    ss << "  pred:" << tostr( librdf_statement_get_predicate( statement ) ) << std::endl;
-    ss << "   obj:" << tostr( librdf_statement_get_object( statement ) ) << std::endl;
-    return ss.str();
-}
-#endif
 
 
 /********************************************************************************/

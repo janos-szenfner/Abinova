@@ -850,18 +850,6 @@ GtkWidget * XAP_UnixDialog_FontChooser::constructWindowContents(GtkWidget *)
 	gtk_widget_set_can_focus(listStyles, true);
 	gtk_widget_set_can_focus(listSizes, true);
 
-#if 0 // Deprecated in 3.24
-	// Make the tab focus list more sensible
-	// font -> syle -> size -> other options ...
-	GList* focusList = nullptr;
-
-	focusList = g_list_append(focusList, scrolledwindow1);
-	focusList = g_list_append(focusList, scrolledwindow2);
-	focusList = g_list_append(focusList, scrolledwindow3);
-	focusList = g_list_append(focusList, grEffectRows);
-	gtk_container_set_focus_chain(GTK_CONTAINER(grid1), focusList);
-	g_list_free(focusList);
-#endif
 	gtk_widget_grab_focus(scrolledwindow1);
 
 	

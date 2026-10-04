@@ -502,14 +502,6 @@ UT_sint32 UT_paperUnitsFromInches(double dInches)
 	return static_cast<UT_sint32>(dInches * dResolution);
 }
 
-UT_sint32 UT_layoutUnitsFromPaperUnits(UT_sint32 iPaperUnits)
-{
-	// convert number in paper units (see above) into
-	// "layout" units.
-
-	return (UT_LAYOUT_RESOLUTION * iPaperUnits / UT_PAPER_UNITS_PER_INCH);
-}
-
 const char * UT_formatDimensionedValue(double value,
 									   const char * szUnits,
 									   const char * szPrecision)

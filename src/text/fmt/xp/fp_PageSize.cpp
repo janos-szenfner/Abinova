@@ -201,10 +201,6 @@ UT_UTF8String fp_PageSize::getDefaultPageMargin(UT_Dimension dim)
 		// TODO: PX, and PERCENT
 		// let them fall through to the default now
 		// and we don't use them anyway
-#if 0
-	case DIM_PX:
-	case DIM_PERCENT:
-#endif
 	case DIM_none:
 	default:
 		return "1.0in";	// TODO: what to do with this.

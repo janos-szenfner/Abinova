@@ -50,29 +50,6 @@ HH:mm
 HH:mm:ss
 */
 
-#if 0
-#error TF CHANGE: The # key is not POSIX/ANSI
-const char *InsertDateTimeFmts[] = {
-    "%#m/%#d/%y",
-	"%A, %B %d, %Y",
-	"%B %#d, %Y",
-	"%#m/%#d/%Y",
-	"%Y-%m-%d",
-	"%#d-%b-%y",
-    "%#m.%#d.%y",
-	"%b. %#d, %y",
-	"%#d %B, %Y",
-	"%B, %Y",
-	"%b-%y",
-	"%#m/%#d/%y %#I:%M %p",
-    "%#m/%#d/%y %#I:%M:%S %p",
-	"%#I:%M %p",
-	"%#I:%M:%S %p",
-	"%H:%M",
-	"%H:%M:%S",
-	nullptr
-};
-#else
 const char *InsertDateTimeFmts[] = {
 	"%Y-%m-%d",
 	"%m/%d/%Y",
@@ -100,7 +77,6 @@ const char *InsertDateTimeFmts[] = {
 	"%d.%m.%Y %H:%M:%S",
 	nullptr
 };
-#endif
 
 AP_Dialog_Insert_DateTime::AP_Dialog_Insert_DateTime(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
   : XAP_Dialog_NonPersistent(pDlgFactory,id, "interface/dialogdateandtime")

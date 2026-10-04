@@ -5480,12 +5480,6 @@ void FV_View::cmdHyperlinkJump(UT_sint32 xPos, UT_sint32 yPos)
 	pRun->getPrevRun();
 
 	UT_return_if_fail(pRun);
-#if 0
-	if(pRun->getType()== FPRUN_FMTMARK || pRun->getType()== FPRUN_HYPERLINK || pRun->getType()== FPRUN_BOOKMARK)
-		pRun  = pRun->getNextRun();
-
-	UT_ASSERT(pRun);
-#endif
 	fp_HyperlinkRun * pH = pRun->getHyperlink();
 
 	UT_return_if_fail(pH);

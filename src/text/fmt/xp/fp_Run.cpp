@@ -889,18 +889,6 @@ void fp_Run::setNextRun(fp_Run* p, bool bRefresh)
 		
 		//m_bRecalcWidth |= bRefresh; -- will be taken care of when
 		//buffer is recalculated
-#if 0
-		// we do not do ligatures across run boundaries any more,
-		// Tomas, Nov 15, 2003
-		// because we support 2-char ligatures, the change of next
-		// can also influence the run ahead of us
-		// we will just mark it
-		if(m_pPrev && bRefresh)
-		{
-			m_pPrev->markDrawBufferDirty();
-			m_pPrev->markWidthDirty();
-		}
-#endif
 		m_pNext = p;
 	}
 }
@@ -915,18 +903,6 @@ void fp_Run::setPrevRun(fp_Run* p, bool bRefresh)
 		
 		// m_bRecalcWidth |= bRefresh;  -- will be taken care of when
 		// buffer is recacluated
-#if 0
-		// we do not do ligatures across run boundaries any more,
-		// Tomas, Nov 15, 2003
-		// because we support 2-char ligatures, the change of prev
-		// can also influence the run that follows us
-		// we will just mark it
-		if(m_pNext && bRefresh)
-		{
-			m_pNext->markDrawBufferDirty();
-			m_pNext->markWidthDirty();
-		}
-#endif
 		m_pPrev = p;
 	}
 }
@@ -3546,9 +3522,6 @@ fp_ImageRun::fp_ImageRun(fl_BlockLayout* pBL,
 	m_bImageForPrinter (false),
 	m_OH(oh)
 {
-#if 0	// put this back later
-	UT_ASSERT(pImage);
-#endif
 
 	m_pImage = m_pFGraphic->generateImage(getGraphics(), nullptr, 0, 0);
 	m_sCachedWidthProp = m_pFGraphic->getWidthProp();
@@ -6009,38 +5982,6 @@ void fp_Run::setVisDirection(UT_BidiCharType iDir)
 	m_iVisDirection = iDir;
 }
 
-#if 0
-void fp_Run::setDirectionProperty(UT_BidiCharType dir)
-{
-	const gchar * prop[] = {nullptr, nullptr, 0};
-	const gchar direction[] = "dir";
-	const gchar rtl[] = "rtl";
-	const gchar ltr[] = "ltr";
-	UT_String other;
-
-	prop[0] = static_cast<const gchar*>(&direction);
-
-	switch(dir)
-	{
-		case UT_BIDI_LTR:  prop[1] = static_cast<const gchar*>(&ltr);     break;
-		case UT_BIDI_RTL:  prop[1] = static_cast<const gchar*>(&rtl);     break;
-		default:
-		 {
-		 	// for anything other we will print the UT_BidiCharType value
-		 	// this will allow us to coallesce runs of same type without
-		 	// having to list here tons of possible strings
-		 	// (we could do this for rtl and ltr as well, but "rtl" and "ltr"
-		 	// are much more informative.)
-		 	UT_String_sprintf(other,"fbt%d",static_cast<UT_uint32>(dir));
-		 	prop[1] = static_cast<const gchar*>(other.c_str()); break;
-		 }
-	};
-
-	UT_uint32 offset = getBlock()->getPosition() + getBlockOffset();
-	getBlock()->getDocument()->changeSpanFmt(PTC_AddFmt,offset,offset + getLength(),nullptr,prop);
-	UT_DEBUGMSG(("fp_Run::setDirectionProperty: offset=%d, len=%d, dir=\"%s\"\n", offset,getLength(),prop[1]));
-}
-#endif
 
 /*!
     The following function allows us to respond to deletion of part of

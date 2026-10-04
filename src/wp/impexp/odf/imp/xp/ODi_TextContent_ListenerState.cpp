@@ -1219,13 +1219,6 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
             m_bPendingAnnotation = false;
         }
 
-#if 0
-        const gchar* pPropsArray[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
-	std::string id = UT_std_string_sprintf("%d", m_iAnnotation);
-        UT_DEBUGMSG(("closing tag for id:%s\n", id.c_str() ));
-        pPropsArray[0] = "annotation-id";
-        pPropsArray[1] = id.c_str();
-#endif
         
         m_pAbiDocument->appendStrux(PTX_EndAnnotation, PP_NOPROPS );
         //
@@ -1309,24 +1302,6 @@ void ODi_TextContent_ListenerState::endElement (const gchar* pName,
     m_elementParsingLevel--;
 }
 
-#if 0 // not used yet. Suppress the warning.
-/**
- * 6.1.2 of the ODF spec "What space Characters" lists these as
- * characters to normalize to a SPACE char in certain cases.
- * 
- * HORIZONTAL TABULATION (U+0009)
- * CARRIAGE RETURN (U+000D)
- * LINE FEED (U+000A)
- * SPACE (U+0020)
- *
- * UT_UCS4_isspace() uses whitespace_table which itself does not consider
- * U+000A as whitespace.
- */
-static bool ODi_UCS4_whitespace( UT_UCS4Char c )
-{
-    return c == 0x000A || UT_UCS4_isspace(c);
-}
-#endif
 
 /**
  * It seems from "6.1.2 White Space Characters" of the spec [2], in

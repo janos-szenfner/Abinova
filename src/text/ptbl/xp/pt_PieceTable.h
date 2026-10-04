@@ -113,13 +113,6 @@ protected:
 											bool bDeleteTableStruxes,
 											bool bDontGlob=false);
 
-#if 0
-	// this is for fields and so should not be needed with revisions
-	bool					_realInsertSpan_norec(PT_DocPosition dpos,
-											 const UT_UCS4Char * p,
-											 UT_uint32 length, fd_Field * pField = nullptr);
-	bool                	_realDeleteFieldFrag(pf_Frag * pf);
-#endif
 
 	// this one I am not sure about
 	void                	_realDeleteHdrFtrStrux(pf_Frag_Strux * pfs);

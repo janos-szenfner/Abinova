@@ -885,13 +885,6 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 	buildTabStops(pszTabStops, m_vecTabs);
 
 
-#if 0
-	UT_DEBUGMSG(("XXXX: [default-tab-interval:%s][yields %d][resolution %d][zoom %d]\n",
-				 getProperty("default-tab-interval"),
-				 UT_convertToLogicalUnits(getProperty("default-tab-interval")),
-				 pG->getResolution(),
-				 pG->getZoomPercentage()));
-#endif
 
 	auto prop = getPropertyType("default-tab-interval", Property_type_size);
 	const PP_PropertyTypeSize * pProp = dynamic_cast<const PP_PropertyTypeSize *>(prop.get());
@@ -1995,16 +1988,6 @@ UT_sint32 fl_BlockLayout::getMaxNonBreakableRun(void) const
 	UT_sint32 iMax = 6; // this is the pixel width of a typical 12 point char
 	if(pRun)
 	{
-#if 0
-		if(pRun->getGraphics())
-		{
-			GR_Font *pFont = pRun->getGraphics()->getGUIFont();
-			if(pFont)
-			{
-				iMax = pRun->getGraphics()->measureUnRemappedChar(static_cast<UT_UCS4Char>('i'));
-			}
-		}
-#endif
 	}
 	while(pRun)
 	{
@@ -3722,35 +3705,6 @@ fp_Line *  fl_BlockLayout::getNextWrappedLine(UT_sint32 iX,
 			return pLine2;
 		}
 		xxx_UT_DEBUGMSG(("Max width 6 set to %d \n",20));
-#if 0
-		pLine->setMaxWidth(61);
-		pLine->setX(iMinLeft-xoff);
-		pLine->setBlock(this);
-		pLine->setSameYAsPrevious(false);
-		pLine->setWrapped((iMaxW != iMinWidth));
-		pOldLastLine = static_cast<fp_Line *>(getLastContainer());
-		if(pOldLastLine)
-		{
-			pLine->setPrev(getLastContainer());
-			getLastContainer()->setNext(pLine);
-			setLastContainer(pLine);
-			fp_VerticalContainer * pContainer = static_cast<fp_VerticalContainer *>(pOldLastLine->getContainer());
-			if(pContainer)
-			{
-   				pContainer->insertContainerAfter(static_cast<fp_Container *>(pLine), static_cast<fp_Container *>(pOldLastLine));
-				m_iLinePosInContainer = pContainer->findCon(pLine)+1;
-				pLine->setContainer(pContainer);
-			}
-		}
-		else
-		{
-			setFirstContainer(pLine);
-			setLastContainer(pLine);
-   			m_pVertContainer->insertConAt(pLine,m_iLinePosInContainer);
-			m_iLinePosInContainer++;
-			pLine->setContainer(m_pVertContainer);
-		}
-#endif
 		m_bSameYAsPrevious = false;
 		delete pLine;
 		iX = getLeftMargin();
@@ -3787,18 +3741,6 @@ void fl_BlockLayout::format()
 		xxx_UT_DEBUGMSG(("Don't format coz I'm hidden! \n"));
 		return;
 	}
-#if 0
-	if(m_pLayout->isLayoutFilling())
-	{
-		if(!m_bIsTOC)
-		{
-			if(!isNotTOCable())
-			{
-				m_bStyleInTOC = m_pLayout->addOrRemoveBlockFromTOC(this);
-			}
-		}
-	}
-#endif
 	bool bJustifyStuff = false;
 	xxx_UT_DEBUGMSG(("Format block %x needsreformat %d m_pFirstRun %x \n",this,m_iNeedsReformat,m_pFirstRun));
 	fl_ContainerLayout * pCL2 = myContainingLayout();
@@ -4079,26 +4021,6 @@ void fl_BlockLayout::format()
 		pRun = pRun->getNextRun();
 	}
 
-#if 0
-	// we need to coalesce runs *before* we do justification (coalescing might require
-	// that the whole run is reshaped, and that can lead to loss of the justification
-	// information for the run).
-	
-    	// was previously after breakParagraph. Idea is to make this a less
-		// frequent occurrence. So the paragraph gets lines coalessed
-        // whenever the height changes. So we don't do this on every key press
-        // but on average the paragraph gets coalessed.
-
-		// the down-side of this is that on the active line we keep
-		// spliting/merging if the editing position is not at either
-		// end; the up-side is that at any given time our document
-		// is represented by the minimal number of runs necessary,
-		// which not only means that we use less memory, but more
-		// importantly, we draw faster since any line with uniform
-		// formatting is drawn by a single call to OS text drawing
-		// routine
-		coalesceRuns();
-#endif
 
 	m_bIsCollapsed = false;
 	xxx_UT_DEBUGMSG(("Block Uncollapsed in format \n"));
@@ -5141,37 +5063,11 @@ fl_BlockLayout::_checkMultiWord(UT_sint32 iStart,
 		fl_PartOfBlockPtr pPOB(new fl_PartOfBlock(iBlockPos, iPTLength));
 		UT_ASSERT(pPOB);
 
-#if 0 // TODO: turn this code on someday
-		FV_View* pView = getView();
-		XAP_App * pApp = XAP_App::getApp();
-		XAP_Prefs *pPrefs = pApp->getPrefs();
-		UT_ASSERT(pPrefs);
-
-		bool b;
-
-		// possibly auto-replace the squiggled word with a suggestion
-		if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellAutoReplace, &b))
-		{
-			if (b && !bIsIgnored)
-			{
-				// todo: better cursor movement
-				pView->cmdContextSuggest(1, this, pPOB);
-				pView->moveInsPtTo(FV_DOCPOS_EOW_MOVE);
-				DELETEP(pPOB);
-			}
-		}
-#endif
 
 		if (pPOB)
 		{
 			bool bwrong = false;
 			bwrong = _doCheckWord(pPOB, pWord, iLength, true, bToggleIP);
-#if 0
-			if(bwrong)
-			{
-				UT_DEBUGMSG(("Found misspelt word in block %x \n",this));
-			}
-#endif
 			bScreenUpdated |= bwrong;
 		}
 	}
@@ -5530,70 +5426,9 @@ bool    fl_BlockLayout::_doInsertDirectionMarkerRun(PT_BlockOffset blockOffset, 
 	UT_ASSERT( pNewRun );
 
 	bool bResult = _doInsertRun(pNewRun);
-#if 0
-	if (bResult)
-		_breakLineAfterRun(pNewRun);
-#endif
 	return bResult;
 }
 
-#if 0
-bool	fl_BlockLayout::_deleteBookmarkRun(PT_BlockOffset blockOffset)
-{
-	UT_DEBUGMSG(("fl_BlockLayout::_deleteBookmarkRun: blockOffset %d\n",blockOffset));
-	_assertRunListIntegrity();
-
-	fp_BookmarkRun *pB1;
-
-	fp_Run* pRun = m_pFirstRun;
-
-	/*
-		we have to deal with FmtMarks, which are special case since they
-		have width 0 and so can share block offset with our book mark
-	*/
-	while (pRun->getNextRun() && (pRun->getBlockOffset() != blockOffset || pRun->getType() == FPRUN_FMTMARK))
-	{
-		pRun = pRun->getNextRun();
-	}
-
-	UT_ASSERT(pRun && pRun->getType() == FPRUN_BOOKMARK);
-	if(!pRun || pRun->getType() != FPRUN_BOOKMARK)
-		return false;
-
-	pB1 = static_cast<fp_BookmarkRun *>(pRun);
-
-	// Remove Run from line
-	fp_Line* pLine = pB1->getLine();
-	UT_ASSERT(pLine);
-	if(pLine)
-	{
-		pLine->removeRun(pB1, true);
-	}
-	// Unlink Run and delete it
-	if (m_pFirstRun == pB1)
-	{
-		m_pFirstRun = pB1->getNextRun();
-	}
-
-	pRun = pB1->getNextRun();
-	pB1->unlinkFromRunList();
-	delete pB1;
-
-	fp_Run * pLastRun = static_cast<fp_Line *>(getLastContainer())->getLastRun();
-	while(pRun )
-	{
-		pRun->setBlockOffset(pRun->getBlockOffset() - 1);
-		if(pRun == pLastRun)
-			break;
-		pRun = pRun->getNextRun();
-	}
-
-	xxx_UT_DEBUGMSG(("fl_BlockLayout::_deleteBookmarkRun: assert integrity (1)\n"));
-	_assertRunListIntegrity();
-
-	return true;
-}
-#endif
 
 bool	fl_BlockLayout::_doInsertBookmarkRun(PT_BlockOffset blockOffset)
 {
@@ -5610,12 +5445,6 @@ bool	fl_BlockLayout::_doInsertBookmarkRun(PT_BlockOffset blockOffset)
 	
 	UT_ASSERT(pNewRun);
 	bool bResult = _doInsertRun(pNewRun);
-#if 0
-	if (bResult)
-	{
-		_breakLineAfterRun(pNewRun);
-	}
-#endif
 	return bResult;
 
 }
@@ -5948,15 +5777,9 @@ bool	fl_BlockLayout::_doInsertFieldRun(PT_BlockOffset blockOffset, const PX_Chan
 	// Get the field type.
 	const PP_AttrProp * pSpanAP = nullptr;
 
-#if 0
-	// this is unnecessarily involved, just use the index from the pcro
-	getSpanAttrProp(blockOffset, false, &pSpanAP);
-	UT_ASSERT(pSpanAP);
-#else
 	UT_return_val_if_fail(pcro, false);
 	PT_AttrPropIndex iAP = pcro->getIndexAP();
 	m_pLayout->getDocument()->getAttrProp(iAP, &pSpanAP);
-#endif
 	
 	const gchar* pszType = nullptr;
 	pSpanAP->getAttribute("type", pszType);
@@ -6473,29 +6296,6 @@ bool	fl_BlockLayout::_doInsertRun(fp_Run* pNewRun)
 	pNewRun->markWidthDirty();
 	_assertRunListIntegrity();
 
-#if 0
-	// now that the run is in place and the context has been set, we
-	// calculate character widths
-
-	// actually, we are not in position to calculate widths at this
-	// point, because the insertion of this run invalidated the draw
-	// buffers of un unspecified number of runs on either side, and in
-	// order for the width calculation to be correct, the widths of
-	// the runs that precede it would need to be recalculated first,
-	// otherwise we get wrong results with ligatures (when our run
-	// starts with a ligature placeholder, its with gets set to 1/2 of
-	// the width of the previous glyph; this assumes that the previous
-	// glyph is already the ligature glyph which it is not)
-	// There seems to be no reason why we would need to calculate the widths
-	// here, so we will leave it for now, and when the widths are needed,
-	// i.e., when we attempt to draw, we will have all the right
-	// values in place
-	if (pNewRun->getType() == FPRUN_TEXT)
-	{
-		fp_TextRun* pNewTextRun = static_cast<fp_TextRun*>(pNewRun);
-		pNewTextRun->recalcWidth();
-	}
-#endif
 	return true;
 }
 
@@ -6741,20 +6541,6 @@ bool fl_BlockLayout::doclistener_insertSpan(const PX_ChangeRecord_Span * pcrs)
 	if (sqlist != _sqlist) delete[] sqlist;
 
 	_assertRunListIntegrity();
-#if 0
-#if DEBUG
-	fp_Run * ppRun = getFirstRun();
-	while(ppRun)
-	{
-		if(ppRun->getType() == FPRUN_TEXT)
-		{
-			fp_TextRun * pTRun = static_cast<fp_TextRun *>(ppRun);
-			pTRun->printText();
-		}
-		ppRun = ppRun->getNextRun();
-	}
-#endif
-#endif
 	//
 	// OK Now do the insertSpan for any TOC's that shadow this block.
 	//
@@ -6804,14 +6590,6 @@ fl_BlockLayout::_assertRunListIntegrityImpl(void) const
 			UT_ASSERT(m_pFirstRun->getPrevRun()->getType() == FPRUN_DUMMY);
 		}
 	}
-#if 0
-	//
-	// This can legitmately be non zero while deleting a block with an
-	// embedded footnote
-	//
-	UT_ASSERT(m_pFirstRun->getBlockOffset() == 0);
-	// Verify that offset of this block is correct.
-#endif
 	UT_sint32 icnt = -1;
 	//	PT_DocPosition posAtStartOfBlock = getPosition();
 	while (pRun)
@@ -6819,14 +6597,6 @@ fl_BlockLayout::_assertRunListIntegrityImpl(void) const
 		icnt++;
 		xxx_UT_DEBUGMSG(("!!Assert run %d runType %d posindoc %d end run %d \n",icnt,pRun->getType(),posAtStartOfBlock+pRun->getBlockOffset(),posAtStartOfBlock+pRun->getBlockOffset()+pRun->getLength()));
 		xxx_UT_DEBUGMSG(("run %d %p Type %d offset %d length %d \n",icnt,pRun,pRun->getType(),pRun->getBlockOffset(), pRun->getLength()));
-#if 0
-//
-// FIXME: Invent a clever way to account for embedded hidden stuff
-//        in blocks (like footnotes).
-//        Maybe detect this sort of anomaly can verify it matches
-//        what is in the piecetable
-		UT_ASSERT( iOffset == pRun->getBlockOffset() );
-#endif
 		iOffset += pRun->getLength();
 
 		// Verify that we don't have two adjacent FmtMarks.
@@ -7717,22 +7487,6 @@ bool fl_BlockLayout::doclistener_changeStrux(const PX_ChangeRecord_StruxChange *
 	}
 
 	format();
-#if 0
-//	This was...
-	if(m_pDoc->isDoingPaste())
-	{
-		format();
-	}
-
-
-	// if we were on screen we need to reformat immediately, since the ruler will be
-	// calling the findPointCoords() chain and if we are collapsed (as
-	// we are now) and contain the point, it will fail
-	if(bWasOnScreen)
-		format();
-	else
-		setNeedsReformat(this);
-#endif
 	updateEnclosingBlockIfNeeded();
 	//
 	// Need this to find where to break section in the document.
@@ -11366,32 +11120,6 @@ void fl_BlockLayout::setDominantDirection(UT_BidiCharType iDirection)
 void
 fl_BlockLayout::debugFlashing(void)
 {
-#if 0
-	xxx_UT_DEBUGMSG(("fl_BlockLayout::debugFlashing() was called\n"));
-
-	UT_GrowBuf pgb(1024);
-	bool bRes = getBlockBuf(&pgb);
-	UT_ASSERT(bRes);
-
-	UT_uint32 eor = pgb.getLength(); // end of region
-	FV_View* pView = getView();
-
-	fl_PartOfBlock* pPOB = new fl_PartOfBlock(0, eor);
-	UT_ASSERT(pPOB);
-	if (pPOB) {
-		m_pSpellSquiggles->add(pPOB);
-		m_pSpellSquiggles->clear(pPOB);
-
-		pView->updateScreen();
-		UT_usleep(250000);
-
-		//_deleteSquiggles(0, eor);
-
-		pView->updateScreen();
-	}
-
-	pView->updateScreen();
-#endif
 }
 
 

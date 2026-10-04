@@ -1035,14 +1035,6 @@ void   AP_UnixDialog_Styles::_constructGnomeModifyButtons()
                                 pSS->getValue(XAP_STRING_ID_DLG_OK),
                                 BUTTON_MODIFY_OK);
 
-#if 0
-	shortCutButton = gtk_button_new_with_label (pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ModifyShortCut).c_str());
-	gtk_widget_set_visible(shortCutButton, TRUE);
-	gtk_widget_set_sensitive ( shortCutButton, FALSE );
-	gtk_box_append(GTK_BOX(bottomButtons), shortCutButton);
-			gtk_widget_set_hexpand(shortCutButton, TRUE);
-			gtk_widget_set_vexpand(shortCutButton, TRUE);
-#endif
 
 	m_wModifyOk = buttonOK;
 	m_wModifyCancel = cancelButton;
@@ -1379,21 +1371,6 @@ void AP_UnixDialog_Styles::event_ModifyClicked(void)
 //
 // Allow built-ins to be modified
 //
-#if 0
-	if (!pStyle->isUserDefined ())
-	{
-		// can't change builtin, error message
-		const XAP_StringSet * pSS = m_pApp->getStringSet();
-		std::string s;
-		pSS->getValueUTF8 (AP_STRING_ID_DLG_Styles_ErrStyleBuiltin,s);
-		const gchar * msg = s.c_str();
-
-		getFrame()->showMessageBox (static_cast<const char *>(msg),
-									XAP_Dialog_MessageBox::b_O,
-									XAP_Dialog_MessageBox::a_OK);
-		return;
-	}
-#endif
 
 #if HIDE_MAIN_DIALOG
 //

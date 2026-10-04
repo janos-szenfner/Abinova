@@ -6,6 +6,5 @@ EXTRA_DIST = \
 	xap_EncodingManager.t.cpp \
 	xap_Misc.t.cpp \
 	xap_Prefs.t.cpp \
-	xap_Resource.t.cpp \
 	xap_UpdateCheck.t.cpp \
 	$(NULL)

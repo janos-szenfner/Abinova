@@ -626,30 +626,6 @@ static const _rmap langcode_to_wincharsetcode[]=
 	{nullptr, nullptr}
 };
 
-#if 0
-static const UT_Bijection::pair_data zh_TW_big5[]=
-{
-/*
-    This data was constructed from the HJ's patch for support  of Big5 to 
-    AW-0.7.10 - VH
-*/
-    {"song","\xe5\xae\x8b\xe4\xbd\x93"},
-    {"fangsong","\xe4\xbb\xbf\xe5\xae\x8b"},
-    {"hei","\xe9\xbb\x91\xe4\xbd\x93"},
-    {"kai","\xe6\xa5\xb7\xe4\xbd\x93"},
-    {nullptr,nullptr}
-};
-
-static const char* zh_TW_big5_keys[]=
-{  "zh_TW.BIG5", nullptr };
-
-static const _rmap cjk_word_fontname_mapping_data[]=
-{
-    {nullptr, nullptr},
-    {reinterpret_cast<const char*>(zh_TW_big5),zh_TW_big5_keys},
-    {nullptr, nullptr}
-};
-#endif
 
 
 /*all CJK language codes should be listed here to be marked as CJK*/

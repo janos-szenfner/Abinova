@@ -1100,16 +1100,6 @@ void fp_VerticalContainer::draw(dg_DrawArgs* pDA)
 		}
 		xxx_UT_DEBUGMSG(("Draw container %x yoff %d\n",pContainer,da.yoff));
 		xxx_UT_DEBUGMSG(("Draw container %x xoff %d\n",pContainer,da.xoff));
-#if 0
-		if(pContainer->getContainerType() == FP_CONTAINER_LINE)
-		{
-			fp_Line * pLine = static_cast<fp_Line *>(pContainer);
-			if(pLine->isSameYAsPrevious())
-			{
-				UT_DEBUGMSG((" !!!!!! Same previous!!!!!!!!\n"));
-			}
-		}
-#endif
 		if(pContainer->getContainerType() == FP_CONTAINER_TABLE)
 		{
 			fp_TableContainer * pTab = static_cast<fp_TableContainer *>(pContainer);
@@ -1429,21 +1419,9 @@ void fp_VerticalContainer::mapXYToPosition(UT_sint32 x, UT_sint32 y, PT_DocPosit
 
 					if(pVisibleLine)
 					{
-#if 0
-						// !!! This results in an endless loop (bug 7420)
-						// get the container that holds this line, so we deal with wrapped
-						// lines, etc.
-						fp_Container * pVisibleContainer = pVisibleLine->getContainer();
-
-						pVisibleContainer->mapXYToPosition(x - pContainer->getX(),
-													  y - pContainer->getY() ,
-													  pos, bBOL, bEOL,isTOC);
-
-#else
 						pVisibleLine->mapXYToPosition(x - pVisibleLine->getX(),
 													  y - pVisibleLine->getY() ,
 													  pos, bBOL, bEOL,isTOC);
-#endif
 						return;
 					}
 
@@ -1976,12 +1954,6 @@ void fp_Column::layout(void)
 			{
 				addWrappedLine(pLine);
 			}
-#if 0
-			else if((pLine->getMaxWidth() > 0) && (pLine->getMaxWidth() < getWidth()))
-			{
-				addWrappedLine(pLine);
-			}
-#endif
 			if(pLine->isSameYAsPrevious() && pLine->getPrev())
 			{
 				UT_sint32 iPrevY = static_cast<fp_Line *>(pLine->getPrev())->getY();

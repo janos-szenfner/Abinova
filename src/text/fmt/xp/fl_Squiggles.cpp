@@ -516,9 +516,6 @@ fl_Squiggles::textInserted(UT_sint32 iOffset, UT_sint32 iLength)
 			if (pPending->getOffset() > iOffset)
 				pPending->setOffset(pPending->getOffset() + chg);
 
-#if 0
-			m_pOwner->getDocLayout()->checkPendingWordForSpell();
-#else
 //
 // Remove the pending word. Trying to spellcheck it is giving us troubles
 //
@@ -527,7 +524,6 @@ fl_Squiggles::textInserted(UT_sint32 iOffset, UT_sint32 iLength)
 // disabling code like this... Also see Bug 4453    jskov 2003.01.05
 
 		m_pOwner->getDocLayout()->setPendingWordForSpell(nullptr,nullptr);
-#endif 
 		}
 	}
 
@@ -583,16 +579,6 @@ fl_Squiggles::textDeleted(UT_sint32 iOffset, UT_sint32 iLength)
 			if (pPending->getOffset() > iOffset)
 				pPending->setOffset(pPending->getOffset() + chg);
 
-#if 0
-			m_pOwner->getDocLayout()->checkPendingWordForSpell();
-//
-// Remove the pending word. Trying to spellcheck it is giving us troubles
-//
-
-// What kind of trouble? Please refer a Bug # or symptom when
-// disabling code like this... Also see Bug 4453    jskov 2003.01.05
-		m_pOwner->getDocLayout()->setPendingWordForSpell(nullptr,nullptr);
-#endif
 		}
 	}
 

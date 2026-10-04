@@ -463,11 +463,6 @@ bool RTF_msword97_level::ParseLevelText(const std::string & szLevelText,const st
 		if (iLevelText[icurrent]<=0 && !bFound)
 		{
 
-#if 0
-// Matti's code
-			m_listDelim += "%L";
-			UT_return_val_if_fail(-iLevelText[icurrent] == static_cast<UT_sint32>(iLevel), false);
-#endif
 			if(-iLevelText[icurrent] == static_cast<UT_sint32>(iLevel))
 			{
 				m_listDelim += "%L";
@@ -2717,10 +2712,6 @@ UT_Error IE_Imp_RTF::_parseFile(GsfInput* fp)
 	m_currentFtrFirstID = 0;
 	m_currentHdrLastID = 0;
 	m_currentFtrLastID = 0;
-#if 0
-	if(m_pImportFile && UT_OK != _isBidiDocument())
-		return UT_ERROR;
-#endif
 	if(m_pImportFile && !getLoadStylesOnly())
 	{
 		// need to init docs Attributes and props
@@ -7924,14 +7915,6 @@ bool IE_Imp_RTF::ApplySectionAttributes()
 		double inch = static_cast<double>(sheader)/1440.;
 		propBuffer += UT_std_string_sprintf("; page-margin-header:%fin",inch);
 	}
-#if 0
-	if(m_currentRTFState.m_sectionProps.m_gutterTwips != 0)
-	{
-		double inch = static_cast<double>( m_currentRTFState.m_sectionProps.m_gutterTwips)/1440.;
-		propBuffer += UT_std_string_sprintf("; page-margin-footer:%fin",inch);
-	}
-	UT_DEBUGMSG(("SEVIOR: propBuffer = %s \n",propBuffer.c_str()));
-#endif
 	if(m_currentRTFState.m_sectionProps.m_footerYTwips != 0)
 	{
 		double inch = static_cast<double>( m_currentRTFState.m_sectionProps.m_footerYTwips)/1440.;
@@ -10799,18 +10782,6 @@ bool IE_Imp_RTF::HandleRevisedText(PP_RevisionType eType, UT_uint32 iId)
 	m_currentRTFState.m_charProps.m_iCurrentRevisionId = iId;
 	m_currentRTFState.m_charProps.m_eRevision = eType;
 	
-#if 0
-	switch(eType)
-	{
-		case PP_REVISION_ADDITION:
-		case PP_REVISION_ADDITION_AND_FMT:
-
-		case PP_REVISION_DELETION:
-
-		case PP_REVISION_FMT_CHANGE:
-			;
-	}
-#endif
 	return true;
 }
 
@@ -11382,10 +11353,6 @@ void IE_Imp_RTF::_appendHdrFtr ()
 		getDoc()->appendStrux (PTX_SectionHdrFtr, propsArray);
 		// actually it appears that we have to append a block for some cases.
 		UT_DEBUGMSG(("Append block 4 with props \n"));
-#if 0 //#TF
-		propsArray[0] = nullptr;
-		getDoc()->appendStrux(PTX_Block, propsArray);
-#endif
 		// tell that we are parsing headers and footers
 		m_parsingHdrFtr = true;
 		m_newParaFlagged = true;

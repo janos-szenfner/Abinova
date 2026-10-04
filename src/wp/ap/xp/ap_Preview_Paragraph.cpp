@@ -305,19 +305,6 @@ AP_Preview_Paragraph::AP_Preview_Paragraph(GR_Graphics * gc,
 													   AP_Dialog_Paragraph::align_LEFT,
 													   m_fontHeight);
 		// read these from the dialog's members
-#if 0
-		m_activeBlock->setFormat(nullptr,
-									nullptr,
-									static_cast<AP_Dialog_Paragraph::tAlignState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_ALIGNMENT)),
-									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_SPECIAL_INDENT),
-									static_cast<AP_Dialog_Paragraph::tIndentState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_INDENT)),
-									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_LEFT_INDENT),
-									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_RIGHT_INDENT),
-									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_BEFORE_SPACING),
-									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_AFTER_SPACING),
-									dlg->_getSpinItemValue(AP_Dialog_Paragraph::id_SPIN_SPECIAL_SPACING),
-									static_cast<AP_Dialog_Paragraph::tSpacingState>( dlg->_getMenuItemValue(AP_Dialog_Paragraph::id_MENU_SPECIAL_SPACING)));
-#endif
 	}
 
 	{

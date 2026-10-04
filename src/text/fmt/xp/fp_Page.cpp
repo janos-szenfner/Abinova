@@ -269,15 +269,6 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 		return nullptr;
 	}
 	m_iCountWrapPasses++;
-#if 0
-	UT_sint32 iPage = getDocLayout()->findPage(this);
-	UT_DEBUGMSG(("Wrap passes = %d page %x page number %d \n",m_iCountWrapPasses,this,iPage ));
-	if(getPrev())
-		{
-			iPage = getDocLayout()->findPage(getPrev());
-			UT_DEBUGMSG(("Prev page %x Prev page number %d Number Frames %d \n",getPrev(),iPage,getPrev()->countAboveFrameContainers() ));
-		}
-#endif
 	if(m_iCountWrapPasses > 10)
     {
 		UT_DEBUGMSG(("Number of wrapped passed = %d \n",m_iCountWrapPasses));
@@ -1693,15 +1684,6 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 			pFC->setOverWrote();
 		}
 		dg_DrawArgs da = *pDA;
-#if 0
-		if(m_pView && (m_pView->getViewMode() != VIEW_PRINT) &&
-		   !pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))
-		{
-			fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-			fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
-			da.yoff -= pFirstSectionLayout->getTopMargin();
-		}
-#endif
 		da.xoff += pFC->getX();
 		da.yoff += pFC->getY();
 		pFC->draw(&da);
@@ -1769,15 +1751,6 @@ void   fp_Page::redrawDamagedFrames(dg_DrawArgs* pDA)
 			pFC->setOverWrote();
 		}
 		dg_DrawArgs da = *pDA;
-#if 0
-		if(m_pView && (m_pView->getViewMode() != VIEW_PRINT) &&
-		   !pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))
-		{
-			fp_Column* pFirstColumnLeader = getNthColumnLeader(0);
-			fl_DocSectionLayout* pFirstSectionLayout = (pFirstColumnLeader->getDocSectionLayout());
-			da.yoff -= pFirstSectionLayout->getTopMargin();
-		}
-#endif
 		da.xoff += pFC->getX();
 		da.yoff += pFC->getY();
 		pFC->draw(&da);
@@ -2070,73 +2043,6 @@ bool fp_Page::breakPage(void)
 	return false;
 }
 
-#if 0
-/*!
- * Return true if a column on the page has a docsectionlayout as given.
- */
-bool fp_Page::isDSLOnPage(fl_DocSectionLayout * pDSLToFind)
-{
-	int count = countColumnLeaders();
-	if (count <= 0)
-	{
-		return;
-	}
-	UT_uint32 i = 0;
-	for(i=0; i< count)
-	{
-		fl_DocSectionLayout * pDSL = getNthColumnLeader(i)->getDocSectionLayout();
-		if(pDSL ==  pDSLToFind)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-/*!
- * Return the column previous to this one
- */
-fp_Column * fp_Page::getPrevColOnPages(fp_Column * pCol, fp_Page * pPage)
-{
-	UT_sint32 count = pPage->countColumnLeaders();
-	UT_sint32 i=0;
-	fp_Column * pFound = nullptr;
-	for(i=0; i< count: i++)
-	{
-		pFound = static_cast<fp_Column *>(pPage->getNthColumn(i));
-		if(pFound == pCol)
-		{
-			break;
-		}
-	}
-	if( i == count)
-	{
-		return nullptr;
-	}
-	if(i>0)
-	{
-		pFound = pPage->getNthColumn(i-1);
-		return pFound;
-	}
-	else
-	{
-		fp_Page * pPrev = pPage->getPrev();
-		if(pPrev == nullptr)
-		{
-			return nullptr;
-		}
-		count = pPage->countColumnLeaders();
-		if(count <1 )
-		{
-			return nullptr;
-		}
-	    else
-		{
-			pFound = pPrev->getNthColumn(count-1);
-		}
-	}
-}
-#endif
 
 /*!
     This function updates the x-offset of all columns without changing any of their
@@ -2268,21 +2174,6 @@ void fp_Page::_reformatColumns(void)
 	UT_uint32 iAnnotationHeight = getAnnotationHeight();
 	for (i = 0; i < count; i++)
 	{
-#if 0
-		if (iY >= (static_cast<UT_sint32>(getHeight() - iBottomMargin - iFootnoteHeight -AnnotationHeight)))
-		{
-			xxx_UT_DEBUGMSG(("SEVIOR: Page incorrectly laid out iYlayoutuints= %d  \n",iY));
-//			m_pOwner->markForRebuild();
-//
-// FIXME see if this code works instead
-//
-//		m_pOwner->setNeedsSectionBreak(true,getPrev());
-			// this triggers in docs with lot of footnotes, not sure why it is here, Tomas
-			// UT_ASSERT(0); 
-			return;
-//			break;
-		}
-#endif
 
 		fp_Column* pLeader = getNthColumnLeader(i);
 		if (!pLeader || pLeader->getContainerType() != FP_CONTAINER_COLUMN)
@@ -2407,21 +2298,6 @@ void fp_Page::_reformatColumns(void)
 // OK now look to see if there are some endnote that should really be on this 
 // page
 //
-#if 0
-			UT_sint32 iRemainingSpace = getHeight() - getFootnoteHeight() - iBottomMargin;
-			if(pFirstNextContainer  && (pFirstNextContainer->getContainerType() == FP_CONTAINER_ENDNOTE) && (iYNext < iRemainingSpace))
-			{
-				while(pFirstNextContainer  && (pFirstNextContainer->getContainerType() == FP_CONTAINER_ENDNOTE))
-				{
-					fl_EndnoteLayout * pECL = static_cast<fl_EndnoteLayout *>(pFirstNextContainer->getSectionLayout());
-					pFirstNextContainer = pFirstNextContainer->getNextContainerInSection();
-//
-// Remove old Container from the next page
-//
-					pECL->collapse();
-				}
-			}
-#endif				
 		}
 	}
 	return;
@@ -2605,11 +2481,6 @@ void fp_Page::removeColumnLeader(fp_Column* pLeader)
 	// actually doesn't contain any columns (see bug 1385). So we have
 	// to leave the pointer here, even if the page doesn't actually
 	// have an owner at this time...
-#if 0
-	// Deassociate this page from the old owner
-	m_pOwner->deleteOwnedPage(this);
-	m_pOwner = nullptr;
-#endif
 
 	// The row of columns are not on this page anymore
 	fp_Column* pTmpCol = pLeader;

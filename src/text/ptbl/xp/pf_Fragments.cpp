@@ -270,48 +270,6 @@ pf_Fragments::Iterator::value()
 ///////////////////////////////////////////
 
 
-#if 0
-void
-pf_Fragments::_insertBST(Node* pNewNode, PT_DocPosition pos)
-{
-	Node* pNode = m_pRoot;
-	
-	UT_ASSERT(pNewNode);
-
-	while (pNode != m_pLeaf)
-	{
-		if (m_comp(pNewNode->item, pNode->item))
-		{
-			if (pNode->left != m_pLeaf)
-				pNode = pNode->left;
-			else
-			{
-				pNewNode->parent = pNode;
-				pNode->left = pNewNode;
-				break;
-			}
-		}
-		else
-		{
-			if (pNode->right != m_pLeaf)
-				pNode = pNode->right;
-			else
-			{
-				pNewNode->parent = pNode;
-				pNode->right = pNewNode;
-				break;
-			}
-		}
-	}
-
-	if (pNode == m_pLeaf)
-	{
-	  
-		m_pRoot = pNewNode;
-		m_pRoot->color = Node::black;
-	}
-}
-#endif
 
 void
 pf_Fragments::_insertFixup(Node* x)
@@ -402,20 +360,6 @@ pf_Fragments::_insertFixup(Node* x)
 	m_pRoot->color = Node::black;
 }
 
-#if 0
-Iterator
-pf_Fragments::insert(pf_Frag* new_piece)
-{
-	Node* pNode = it.getNode();
-	Node* pNewNode = new Node(Node::red, new_piece, m_pLeaf, m_pLeaf, 0);
-
-	++m_nSize;
-	_insertBST(pNewNode);
-	_insertFixup(pNewNode);
-
-	return Iterator(this, pNewNode);
-}
-#endif
 
 /**
  * Insert a new piece as the root of the tree.  The tree should be empty before performing

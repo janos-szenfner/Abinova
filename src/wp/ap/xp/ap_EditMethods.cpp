@@ -1965,28 +1965,7 @@ Defun0(fileNew)
 	XAP_App * pApp = XAP_App::getApp();
 	UT_return_val_if_fail (pApp, false);
 	
-#if 0 //def HAVE_HILDON	
-	
-	XAP_Frame * pNewFrame;
-	if (pApp->getFrameCount() == 0)
-		pNewFrame = pApp->newFrame();
-	else
-	{
-		//fileSave(nullptr, nullptr);
-		pNewFrame = pApp->getFrame(0);
-		if (pNewFrame->isDirty())
-		{
-			if(!fileSave(pAV_View, nullptr))
-			{
-				// we cannot just close the dirty file when the user clicked cancel -- if
-				// she really want to loose unsaved changes, let her close it manually
-				return false;
-			}
-		}
-	}
-#else
 	XAP_Frame * pNewFrame = pApp->newFrame();
-#endif
 
 	// the IEFileType here doesn't really matter, since the name is nullptr
 	UT_Error error = pNewFrame->loadDocument(static_cast<const char *>(nullptr), IEFT_Unknown);
@@ -2302,39 +2281,8 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 
 		if (pDoc->getMetaDataProp (PD_META_KEY_TITLE, title) && !title.empty())
 		{
-#if 0
-			// the metadata is returned to us in utf8; we have to convert it to whatever
-			// the c-lib library uses
-			const char * encoding;
-			bool bSet = false;
-			
-			if(g_ascii_strcasecmp(l.getEncoding(), "UTF-8") != 0)
-			{
-				UT_iconv_t  cd = UT_iconv_open(l.getEncoding(), "UTF-8");
-
-				if(UT_iconv_isValid(cd));
-				{
-					const char * pTitle = title.c_str();
-					int bytes = title.size();
-					int left;
-					char out[500];
-					char *out_ptr = out;
-					int res = UT_iconv(cd, &pTitle, &bytes, &out,&left);
-					if (res != static_cast<size_t>( -1 )&& bytes == 0)
-					{
-						out[500 - outbytes] = '\0';
-						pDialog->setCurrentPathname(out);
-						bSet = true;
-					}
-				}
-			}
-
-			if(!bSet)
-				pDialog->setCurrentPathname(title);
-#else
 			UT_legalizeFileName(title);
 			pDialog->setCurrentPathname(title);
-#endif
 			pDialog->setSuggestFilename(true);
 		} else {
 			pDialog->setCurrentPathname(pFrame->getFilename());
@@ -2774,39 +2722,6 @@ UT_Error fileOpen(XAP_Frame * pFrame, const char * pNewFile, IEFileType ieft)
 		{
 			pNewFrame->show();
 		}
-#if 0
-		else
-		{
-			// TODO there is a problem with the way we create a
-			// TODO new frame and then load a documentent into
-			// TODO it.  if we try to load pNewFile and fail,
-			// TODO and then destroy the window, and raise a
-			// TODO message box (on the original window) we get
-			// TODO nasty race on UNIX.  raising the dialog and
-			// TODO waiting for input flushes out the show-windows
-			// TODO on the new (and not yet completely instantiated)
-			// TODO window.  this causes a view-less top-level
-			// TODO window to appear -- which causes lots of
-			// TODO expose-related problems... and then other
-			// TODO problems which appear to be related to having
-			// TODO multiple gtk_main()'s on the stack....
-			// TODO
-			// TODO for now, we force a new untitled document into
-			// TODO the new window and then raise the message on
-			// TODO this new window.
-			// TODO
-			// TODO long term, we may want to modified pApp->newFrame()
-			// TODO to take an 'bool bShowWindow' argument....
-
-			// the IEFileType here doesn't really matter since the file name is nullptr
-			errorCode = pNewFrame->loadDocument(static_cast<const char *>(nullptr), IEFT_Unknown);
-			if (UT_IS_IE_SUCCESS(errorCode)) {
-				pNewFrame->updateZoom();
-				pNewFrame->show();
-			}
-			s_CouldNotLoadFileMessage(pNewFrame,pNewFile, errorCode);
-		}
-#endif
 		s_StartStopLoadingCursor( false,nullptr);
 		return errorCode;
 	}
@@ -3610,17 +3525,6 @@ static bool s_doToggleCase(XAP_Frame * pFrame, FV_View * pView, XAP_Dialog_Id id
 
 	pFrame->raise();
 
-#if 0
-	// we do not need selection (if there is none, we will try to apply
-	// the case to the word at editing position)
-	if (pView->isSelectionEmpty())
-	  {
-		pFrame->showMessageBox(AP_STRING_ID_MSG_EmptySelection,
-				   XAP_Dialog_MessageBox::b_O,
-				   XAP_Dialog_MessageBox::a_OK);
-		return false;
-	  }
-#endif
 
 	XAP_DialogFactory * pDialogFactory
 		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
@@ -3931,20 +3835,9 @@ Defun1(fileNewUsingTemplate)
 	return bOK;
 }
 
-static bool _helpOpenURL(const char* helpURL)
-{
-	return XAP_App::getApp()->openHelpURL(helpURL);
-}
-
 static bool _openURL(const char* url)
 {
 	return XAP_App::getApp()->openURL(url);
-}
-	
-bool helpLocalizeAndOpenURL(const char* pathBeforeLang, const char* pathAfterLang, const char *remoteURLbase)
-{
-	UT_String url (XAP_App::getApp()->localizeHelpUrl (pathBeforeLang, pathAfterLang, remoteURLbase));
-	return _helpOpenURL(url.c_str());
 }
 
 static bool _openHelpWindow(AV_View * pAV_View, const char * page,
@@ -6369,79 +6262,13 @@ Defun1(delEOD)
 	return true;
 }
 
-#if 0
-static bool pView->cmdCharInsert(const UT_UCS4Char * pText, UT_uint32 iLen,
-						XAP_Frame * pFrame, FV_View * pView,
-						bool bForce = false)
-{
-	// handle automatic language formatting
-	XAP_App * pApp = XAP_App::getApp();
-	UT_return_val_if_fail(pApp, false);
-	XAP_Prefs * pPrefs = pApp->getPrefs();
-	UT_return_val_if_fail(pPrefs, false);
 
-	bool b = false;
-
-	pPrefs->getPrefsValueBool(XAP_PREF_KEY_ChangeLanguageWithKeyboard,
-							  &b);
-	if(b)
-	{
-		const UT_LangRecord * pLR = pApp->getKbdLanguage();
-
-		if (pLR)
-		{
-			const gchar * props_out[] = {"lang", nullptr, nullptr};
-			props_out[1] = pLR->m_szLangCode;
-			pView->setCharFormat(props_out);
-		}
-	}
-	
-	pView->cmdCharInsert(pText, iLen, bForce);
-	return true;
-}
-#endif
-
-#if 0 // disabled because of conditionnal below
-static void sActualInsertData(AV_View *  pAV_View, EV_EditMethodCallData * pCallData)
-{
-	ABIWORD_VIEW;
-	UT_return_val_if_fail (pView, false);
-	pView->cmdCharInsert(pCallData->m_pData, pCallData->m_dataLength);
-	return;
-}
-#endif
 Defun(insertData)
 {
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail (pView, false);
 	pView->cmdCharInsert(pCallData->m_pData, pCallData->m_dataLength);
-#if 0
-//
-// Do this operation in an idle loop so when can reject queued events
-//
-//
-// This code sets things up to handle the warp right in an idle loop.
-//
-	int inMode = UT_WorkerFactory::IDLE | UT_WorkerFactory::TIMER;
-	UT_WorkerFactory::ConstructMode outMode = UT_WorkerFactory::NONE;
-	GR_Graphics * pG = pView->getGraphics();
-	EV_EditMethodCallData * pNewData = new  EV_EditMethodCallData(pCallData->m_pData,pCallData->m_dataLength);
-	_Freq * pFreq = new _Freq(pView,pNewData,sActualInsertData);
-	s_pFrequentRepeat = UT_WorkerFactory::static_constructor (_sFrequentRepeat,pFreq, inMode, outMode, pG);
-
-	UT_ASSERT(s_pFrequentRepeat);
-	UT_ASSERT(outMode != UT_WorkerFactory::NONE);
-
-	// If the worker is working on a timer instead of in the idle
-	// time, set the frequency of the checks.
-	if ( UT_WorkerFactory::TIMER == outMode )
-	{
-		// this is really a timer, so it's safe to static_cast it
-		static_cast<UT_Timer*>(s_pFrequentRepeat)->set(50);
-	}
-	s_pFrequentRepeat->start();
-#endif
 	return true;
 }
 
@@ -10820,13 +10647,6 @@ static bool s_doPageSetupDlg (FV_View * pView)
 			"units", sUnits.utf8_str(),
 			"page-scale", sScale.utf8_str()
 		};
-#if 0 //def DEBUG
-		for (const gchar ** a = szAttr; (*a); a++)
-			{
-				UT_DEBUGMSG(("apEditMethods attrib %s value %s \n",a[0],a[1]));
-				a++;
-			}
-#endif
 		pDoc->setPageSizeFromFile(attr);
 	}
 
@@ -16776,20 +16596,6 @@ UT_return_val_if_fail(pDialog, false);
 	else if(bOK)
 	{
 		pDialog->addRevision();
-#if 0
-		// cannot remember at all why I thought this was needed and it has been marked as
-		// bug 7700, so I am going to disable this. Tomas, May 10, 2005
-		
-		// we also want to have paragraph marks and etc visible
-		AP_FrameData *pFrameData = static_cast<AP_FrameData *>(pFrame->getFrameData());
-		UT_return_val_if_fail(pFrameData, false);
-		if(!pFrameData->m_bShowPara)
-		{
-			pFrameData->m_bShowPara = true;
-			pView->setShowPara(true);
-			pView->notifyListeners(AV_CHG_FRAMEDATA);	// to update toolbar
-		}
-#endif
 	}
 
 

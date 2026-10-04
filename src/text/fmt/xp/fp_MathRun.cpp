@@ -409,10 +409,6 @@ const char * fp_MathRun::getDataID(void) const
 void fp_MathRun::_draw(dg_DrawArgs* pDA)
 {
 	GR_Graphics *pG = pDA->pG;
-#if 0
-	UT_DEBUGMSG(("Draw with class %x \n",pG));
-	UT_DEBUGMSG(("Contents of fp MathRun \n %s \n",m_sMathML.utf8_str()));
-#endif
 	FV_View* pView = _getView();
 	UT_return_if_fail(pView);
 

@@ -102,16 +102,7 @@ public:
 
     virtual const char* getLanguageISOTerritory() const;
 
-#if 0
-    /*
-	for exporting to Tex - in order to provide proper argument for
-	{inputenc}, e.g. \usepackage[koi8-r]{inputenc}
-	If nullptr is returned, then package 'inputenc' is not used at all.
-    */
-    virtual const char* getNativeTexEncodingName() const;
-#else
     virtual void placeholder() {};//to be removed
-#endif
     /*
 	Should return "\n"-terminated prologue that loads required packages,
 	etc.

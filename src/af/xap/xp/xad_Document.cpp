@@ -45,16 +45,8 @@
 
 const std::string AD_Document::m_sEmptyUserName;
 
-#ifdef ENABLE_RESOURCE_MANAGER
-#include "xap_ResourceManager.h"
-#endif
 
 AD_Document::AD_Document() :
-#ifdef ENABLE_RESOURCE_MANAGER
-	m_pResourceManager(new XAP_ResourceManager),
-#else
-	m_pResourceManager(nullptr),
-#endif
 	m_iRefCount(1),
 	m_szEncodingName(""), // Should this have a default? UTF-8, perhaps?
     m_bPieceTableChanging(false),
@@ -110,9 +102,6 @@ AD_Document::~AD_Document()
    	// NOTE: let subclass clean up m_szFilename, so it matches the alloc mechanism
 
 	// & finally...
-#ifdef ENABLE_RESOURCE_MANAGER
-	DELETEP(m_pResourceManager);
-#endif
 
 	DELETEP(m_pUUID);
 	DELETEP(m_pOrigUUID);
@@ -172,15 +161,10 @@ UT_UUIDPtr AD_Document::getNewUUID() const
 */
 UT_uint32 AD_Document::getNewUUID32() const
 {
-#if 0
-	UT_return_val_if_fail(XAP_App::getApp() && XAP_App::getApp()->getUUIDGenerator(),0);
-	return XAP_App::getApp()->getUUIDGenerator()->getNewUUID32();
-#else
 	UT_UUIDPtr pUUID = getNewUUID();
 	UT_return_val_if_fail(pUUID, 0);
 	UT_uint32 iRet = pUUID->hash32();
 	return iRet;
-#endif
 }
 
 /*!
@@ -188,15 +172,10 @@ UT_uint32 AD_Document::getNewUUID32() const
 */
 UT_uint64 AD_Document::getNewUUID64() const
 {
-#if 0
-	UT_return_val_if_fail(XAP_App::getApp() && XAP_App::getApp()->getUUIDGenerator(),0);
-	return XAP_App::getApp()->getUUIDGenerator()->getNewUUID64();
-#else
 	UT_UUIDPtr pUUID = getNewUUID();
 	UT_return_val_if_fail(pUUID, 0);
 	UT_uint32 iRet = pUUID->hash32();
 	return iRet;
-#endif
 }
 
 

@@ -301,9 +301,6 @@ bool pt_PieceTable::insertStruxNoUpdateBefore(const pf_Frag_Strux* pfs, PTStruxT
 		_insertNoteInEmbeddedStruxList(pNewStrux);
 	}
 
-#if 0
-	m_pDocument->miniDump(sdh,8);
-#endif
 	return true;
 }
 
@@ -483,73 +480,6 @@ bool pt_PieceTable::getSpanAttrProp(const pf_Frag_Strux* pfsBlock, UT_uint32 off
 	return false;
 }
 
-#if 0
-// I will leave the code here for now to aid in debugging any problems
-// with the new iterator (should there be any, that is) Tomas, Nov 15, 2003
-bool pt_PieceTable::getSpanPtr(const pf_Frag_Strux* pfsBlock, UT_uint32 offset,
-								  const UT_UCS4Char ** ppSpan, UT_uint32 * pLength) const
-{
-	// note: offset zero refers to the strux.  the first character is at
-	// note: (0 + pfsBlock->getLength()).
-
-	*ppSpan = nullptr;
-	*pLength = 0;
-
-	UT_return_val_if_fail (pfsBlock->getType() == pf_Frag::PFT_Strux,false);
-	UT_return_val_if_fail (pfsBlock->getStruxType() == PTX_Block,false);
-	xxx_UT_DEBUGMSG(("getSpanPtr: Requested offset %d \n",offset));
-	
-	UT_uint32 cumOffset = pfsBlock->getLength();
-	for (pf_Frag * pfTemp=pfsBlock->getNext(); (pfTemp); pfTemp=pfTemp->getNext())
-	{
-		xxx_UT_DEBUGMSG(("getSpanPtr: offset %d cumOffset %d \n",offset,cumOffset));
-		if (offset == cumOffset)
-		{
-			if (pfTemp->getType() == pf_Frag::PFT_FmtMark)
-				continue;
-			if(isFootnote(pfTemp) || isEndFootnote(pfTemp))
-			{
-				cumOffset += pfTemp->getLength();
-				continue;
-			}
-			if (pfTemp->getType() != pf_Frag::PFT_Text)
-			{
-				xxx_UT_DEBUGMSG(("getSpanPtr: Error 1 offset %d cumOffset %d \n",offset,cumOffset));
-//				UT_ASSERT_HARMLESS(0);
-				return false;
-			}
-
-			pf_Frag_Text * pfText = static_cast<pf_Frag_Text *> (pfTemp);
-			*ppSpan = getPointer(pfText->getBufIndex());
-			*pLength = pfText->getLength();
-			return true;
-		}
-		if (offset < cumOffset+pfTemp->getLength())
-		{
-			if(isFootnote(pfTemp) || isEndFootnote(pfTemp))
-			{
-				cumOffset += pfTemp->getLength();
-				continue;
-			}
-			if (pfTemp->getType() != pf_Frag::PFT_Text)
-			{
-				xxx_UT_DEBUGMSG(("getSpanPtr: Error 2 offset %d cumOffset %d \n",offset,cumOffset));
-				return false;
-			}
-			auto pfText = static_cast<const pf_Frag_Text *>(pfTemp);
-			const UT_UCS4Char * p = getPointer(pfText->getBufIndex());
-			UT_uint32 delta = offset - cumOffset;
-			*ppSpan = p + delta;
-			*pLength = pfText->getLength() - delta;
-			return true;
-		}
-
-		cumOffset += pfTemp->getLength();
-	}
-	xxx_UT_DEBUGMSG(("getSpanPtr: Error 3 offset %d cumOffset %d \n",offset,cumOffset));
-	return false;
-}
-#endif
 
 PD_Document * pt_PieceTable::getDocument(void)
 {

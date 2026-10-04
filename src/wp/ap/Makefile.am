@@ -29,7 +29,6 @@ libap_la_SOURCES = \
 	xp/ap_App.h \
 	xp/ap_Args.cpp \
 	xp/ap_Args.h \
-	xp/ap_Clipboard.h \
 	xp/ap_Convert.cpp \
 	xp/ap_Convert.h \
 	xp/ap_Dialog_Modeless.h \
@@ -168,6 +167,7 @@ libap_la_SOURCES = \
 	xp/ap_ML_ContextPosObject.h \
 	xp/ap_ML_ContextRevision.h \
 	xp/ap_ML_ContextSquiggle.h \
+	xp/ap_ML_ContextTable.h \
 	xp/ap_ML_ContextText.h \
 	xp/ap_ML_ContextTOC.h \
 	xp/ap_Prefs.cpp \
@@ -179,6 +179,7 @@ libap_la_SOURCES = \
 	xp/ap_Preview_Annotation.h \
 	xp/ap_Preview_Paragraph.cpp \
 	xp/ap_Preview_Paragraph.h \
+	xp/ap_Ribbon_Layouts.h \
 	xp/ap_Ruler.cpp \
 	xp/ap_Ruler.h \
 	xp/ap_StatusBar.h \

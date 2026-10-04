@@ -577,7 +577,6 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		and text-align)
 	*/
 
-#ifndef BIDI_RTL_DOMINANT
 	if(m_bDefaultDirectionRtl)
 	{
 		const PP_PropertyVector bidi_props = {
@@ -588,18 +587,6 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		m_pDoc->addStyleProperties("Normal", bidi_props);
 		PP_resetInitialBiDiValues("rtl");
 	}
-#else
-	if(!m_bDefaultDirectionRtl)
-	{
-		const PP_PropertyVector bidi_props = {
-			"dom-dir", "ltr",
-			"text-align", "left"
-		};
-
-		m_pDoc->addStyleProperties("Normal", bidi_props);
-		PP_resetInitialBiDiValues("ltr");
-	}
-#endif
 
 	UT_UTF8String s = XAP_EncodingManager::get_instance()->getLanguageISOName();
 
@@ -2425,32 +2412,6 @@ UT_RGBColor FV_View::getColorSelForeground () const
 // TODO i18n Some ligatures have special versions with just the first letter
 // TODO i18n uppercase
 
-#if 0
-// the code is not directly in the case function, as passing the
-// arguments is too awkward
-static void _toggleSentence (const UT_UCS4Char * src,
-				 UT_UCS4Char * dest, UT_uint32 len, const UT_UCS4Char * prev)
-{
-	if(!prev || (UT_UCS4_isSentenceSeparator(prev[0]) && UT_UCS4_isspace (prev[1])))
-	{
-		dest[0] = UT_UCS4_toupper (src[0]);
-		dest[1] = src[1];
-	}
-	else
-	{
-		dest[0] = src[0];
-		dest[1] = src[1];
-	}
-
-	for (UT_uint32 i = 2; i < len; i++)
-	{
-		if(UT_UCS4_isSentenceSeparator(src[i-2]) && UT_UCS4_isspace (src[i-1]))
-			dest[i] = UT_UCS4_toupper (src[i]);
-		else
-			dest[i] = src[i];
-	}
-}
-#endif
 
 static void _toggleFirstCapital(const UT_UCS4Char * src,
 				 UT_UCS4Char * dest, UT_uint32 len, const UT_UCS4Char * prev)
@@ -2499,35 +2460,6 @@ static void _toggleUpper (const UT_UCS4Char * src,
 // language-dependent word lists to handle this correctly
 // and I see little need for it; so for now it is going to
 // be turned off
-#if 0
-static void _toggleTitle (const UT_UCS4Char * src,
-			  UT_UCS4Char * dest, UT_uint32 len,
-						  bool spaceBeforeFirstChar)
-{
-	bool wasSpace = spaceBeforeFirstChar;
-
-	UT_UCS4Char ch;
-
-	for (UT_uint32 i = 0; i < len; i++)
-	{
-		ch = src[i];
-		if (wasSpace && !UT_UCS4_isspace (ch))
-		{
-			dest[i] = UT_UCS4_toupper (ch);
-			wasSpace = false;
-		}
-		else if (UT_UCS4_isspace (ch))
-		{
-			dest[i] = ch;
-			wasSpace = true;
-		}
-		else
-		{
-			dest[i] = ch;
-		}
-	}
-}
-#endif
 
 // all gets set to its opposite
 // I have my doubts about usufulness of this, but the concensus on
@@ -2786,13 +2718,6 @@ void FV_View::toggleCase (ToggleCase c)
 						break;
 
 					case CASE_SENTENCE:
-#if 0
-						if(offset < 2)
-							prev = nullptr;
-						else
-							prev = buffer.getPointer(offset - 2);
-						_toggleSentence (pTemp, pTemp, iLen, prev);
-#endif
 				   {
 					   UT_uint32 iOffset = offset;
 					   UT_UCS4Char * text = reinterpret_cast<UT_UCS4Char*>(buffer.getPointer(0));
@@ -2861,12 +2786,6 @@ void FV_View::toggleCase (ToggleCase c)
 					case CASE_UPPER:
 						_toggleUpper (pTemp, pTemp, iLen);
 						break;
-#if 0
-// see comments before _toggleTitle()
-					case CASE_TITLE:
-						_toggleTitle (pTemp, pTemp, iLen, _isSpaceBefore(low));
-						break;
-#endif
 					case CASE_TOGGLE:
 						_toggleToggle (pTemp, pTemp, iLen);
 						break;
@@ -2879,12 +2798,6 @@ void FV_View::toggleCase (ToggleCase c)
 				pBL->getSpanAP(offset+iLen,false,pSpanAPAfter);
 				xxx_UT_DEBUGMSG(("fv_View::toggleCase: delete/insert: low %d, iLen %d, pSpanAPAfter 0x%x, pSpanAPNow 0x%x\n", low, iLen,pSpanAPAfter,pSpanAPNow));
 
-#if 0
-				UT_DEBUGMSG(("AP Now\n"));
-				pSpanAPNow->miniDump(getDocument());
-				UT_DEBUGMSG(("---------------------------------- \nAP After\n"));
-				pSpanAPAfter->miniDump(getDocument());
-#endif
 				UT_uint32 iRealDeleteCount;
 				m_pDoc->tellPTDoNotTweakPosition(true); // stop surrounding hyperlinks,
 														// bookmarks, etc. getting deleted
@@ -5677,9 +5590,6 @@ const PP_AttrProp * FV_View::getAttrPropForPoint() const
 	
 	const PP_AttrProp * pAP = nullptr;
 	getDocument()->getSpanAttrProp(pBL->getStruxDocHandle(), blockOffset, bLeftSide, &pAP);
-#if 0
-	if(pAP) pAP->miniDump(getDocument());
-#endif
 	return pAP;
 }
 
@@ -11901,17 +11811,6 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 		return EV_EMC_UNKNOWN;
 	}
 
-#if 0 //defined(DEBUG)
-	xxx_UT_DEBUGMSG(("fv_View::getMouseContext: () Run.type:%d\n", pRun->getType() ));
-	if( fp_Run* t = pRun->getNextRun() )
-	{
-		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: () next.type:%d\n", t->getType() ));
-	}
-	if( fp_Run* t = pRun->getPrevRun() )
-	{
-		xxx_UT_DEBUGMSG(("fv_View::getMouseContext: () prev.type:%d\n", t->getType() ));
-	}
-#endif
 
 	if( pRun )
 	{

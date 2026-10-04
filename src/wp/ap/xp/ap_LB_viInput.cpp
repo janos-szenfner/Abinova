@@ -144,18 +144,6 @@ const ap_bs_NVK viIn_NVKTable[] =
 extern ap_bs_NVK_Prefix NVKTable_P[];
 extern ap_bs_Char CharTable[];
 
-#if 0
-/*****************************************************************
- ** non-nvk table of prefix keys
- ****************************************************************/
-
-const ap_bs_Char_Prefix s_CharPrefixTable[] =
-{
-//  Warning: case is significant here Ctrl-x and Ctrl-X are different :-)	
-//	{char, /* desc   */ { none,					_C,					_A,				_A_C				}},
-//	{0x78, /* x      */ { "",					"",					"",				""					}},
-};
-#endif
 
 /*****************************************************************
 ******************************************************************

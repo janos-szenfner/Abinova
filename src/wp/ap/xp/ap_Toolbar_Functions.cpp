@@ -64,27 +64,7 @@
 
 #define ABIWORD_VIEW  	FV_View * pView = static_cast<FV_View *>(pAV_View)
 
-#if 0
-
-static bool s_ToolbarFunctions_check_inc_load(FV_View * pView)
-{
-  // todo: we probably need to make this function smarter.
-  // see ap_EditMethods.cpp around line 1024
-
-  //XAP_Frame * pFrame = XAP_App::getApp()->getLastFocussedFrame();
-	UT_DEBUGMSG(("pView = %x \n",pView));
-	if(pView && ((pView->getPoint() == 0) || pView->isLayoutFilling()))
-    {
-		return true;
-    }
-
-	return false ;
-}
-
-#define CHECK_INC_LOAD if(s_ToolbarFunctions_check_inc_load(pView)) return EV_TIS_Gray;
-#else
 #define CHECK_INC_LOAD
-#endif
 
 /****************************************************************/
 

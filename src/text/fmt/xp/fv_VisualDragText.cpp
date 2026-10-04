@@ -170,11 +170,6 @@ void FV_VisualDragText::_actuallyScroll(UT_Worker * pWorker)
 			pView->cmdScroll(AV_SCROLLCMD_LINERIGHT, static_cast<UT_uint32>(x -pView->getWindowWidth()));
 		}
 		pVis->drawImage();
-#if 0
-		PT_DocPosition posAtXY = pVis->getPosFromXY(x,y);
-		pView->_setPoint(posAtXY);
-		pVis->drawCursor(posAtXY);
-#endif
 		iExtra = 0;
 		return;
 	}

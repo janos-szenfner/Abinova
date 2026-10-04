@@ -82,9 +82,6 @@ protected:
     static std::string 	_getDataItemMimeType(const PP_PropertyVector & atts);
     static bool			_getDataItemEncoded(const PP_PropertyVector & atts);
 
-    bool				_handleImage(const gchar ** atts);
-    bool				_handleResource(const gchar ** atts, bool isResource);
-
  private:
     bool				m_bWroteSection;
     bool				m_bWroteParagraph;
@@ -93,7 +90,6 @@ protected:
 
     UT_uint32			m_iInlineStart;
 
-	std::map<std::string, UT_UTF8String *> *	m_refMap;
 	bool                m_bAutoRevisioning;
 	bool                m_bInMath;
 	bool                m_bInEmbed;

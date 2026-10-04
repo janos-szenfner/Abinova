@@ -155,28 +155,10 @@ void fp_FmtMarkRun::findPointCoords(UT_uint32 /*iOffset*/, UT_sint32& x, UT_sint
 
 void fp_FmtMarkRun::_clearScreen(bool /* bFullLineHeightRect */)
 {
-#if 0
-#ifdef DEBUG
-	UT_sint32 xoff = 0, yoff = 0;
-	getLine()->getScreenOffsets(this, xoff, yoff);
-
-	getGraphics()->fillRect(m_ColorBG,xoff,yoff, 1,m_iHeight);
-#endif
-#endif
 }
 
 void fp_FmtMarkRun::_draw(dg_DrawArgs* /*pDA */)
 {
-#if 0
-#ifdef DEBUG
-	UT_sint32 yTopOfRun = pDA->yoff - getAscent();
-	UT_sint32 xOrigin = pDA->xoff;
-
-	UT_RGBColor clrBlue(0,0,255); // debug color only
-	getGraphics()->setColor(clrBlue);
-	getGraphics()->drawLine(xOrigin,yTopOfRun, xOrigin,yTopOfRun+getHeight());
-#endif
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////

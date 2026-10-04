@@ -81,31 +81,6 @@ PX_ChangeRecord::__dump(FILE* fp) const
 	fprintf(fp, "\n");
 }
 
-#if 0
-void
-PX_ChangeRecord::__dump_buf(FILE* fp) const
-{
-	__dump_type(fp);
-	fprintf(fp, "b[%08lx,%ld@%08lx]\n", 
-			static_cast<long>(m_bufIndex), static_cast<long>(m_length), static_cast<long>(m_blockOffset));
-
-	const UT_UCS4Char * ptr = m_pPieceTable->getPointer(m_bufIndex);
-	char c;
-	UT_uint32 k;
-
-	fprintf(fp,"\t[");
-	for (k=0; k<m_length; k++)
-	{
-		// note: this is a cheap unicode to ascii conversion for
-		// note: debugging purposes only.
-		c = (  ((ptr[k] < 20) || (ptr[k] > 0x7f))
-			   ? '@'
-			   : static_cast<char>(ptr[k]));
-		fprintf(fp,"%c",c);
-	}
-	fprintf(fp,"]\n");
-}
-#endif
 
 void
 PX_ChangeRecord_SpanChange::__dump(FILE* fp) const
@@ -124,23 +99,6 @@ PX_ChangeRecord_Span::__dump(FILE* fp) const
 	fprintf(fp, "b[%08lx,%ld@%08lx]\n",
 			static_cast<long>( m_bufIndex), static_cast<long>(m_length), static_cast<long>(m_blockOffset));
 
-#if 0
-	const UT_UCS4Char * ptr = m_pPieceTable->getPointer(m_bufIndex);
-	char c;
-	UT_uint32 k;
-
-	fprintf(fp,"\t[");
-	for (k=0; k<m_length; k++)
-	{
-		// note: this is a cheap unicode to ascii conversion for
-		// note: debugging purposes only.
-		c = (  ((ptr[k] < 20) || (ptr[k] > 0x7f))
-			   ? '@'
-			   : static_cast<char>(ptr[k]));
-		fprintf(fp,"%c",c);
-	}
-	fprintf(fp,"]\n");
-#endif
 }
 
 void

@@ -1047,17 +1047,6 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 		if (m_bSuggestName)
 		{
 			xxx_UT_DEBUGMSG(("Iniitial filename is %s \n",m_szInitialPathname));
-#if 0
-			if (!g_path_is_absolute (m_szInitialPathname)) { // DAL: todo: is this correct?
-				gchar *dir = g_get_current_dir ();
-				gchar *file = m_szInitialPathname;
-				gchar *filename = g_build_filename (dir, file, static_cast<gchar *>(nullptr));
-				m_szInitialPathname = UT_go_filename_to_uri(filename);
-				g_free(filename);
-				g_free (dir);
-				g_free (file);
-			}
-#endif
 			if(m_id == XAP_DIALOG_ID_FILE_SAVEAS)
 			{
 				std::string szInitialSuffix = UT_pathSuffix(m_initialPathname);

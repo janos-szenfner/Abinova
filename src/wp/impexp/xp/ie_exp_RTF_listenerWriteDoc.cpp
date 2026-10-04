@@ -301,12 +301,6 @@ void s_RTF_ListenerWriteDoc::_writeTOC(PT_AttrPropIndex apiTOC)
 	else
 	{
 	}
-#if 0
-	m_sNumOff1 = "0.5in";
-	m_sNumOff2 = "0.5in";
-	m_sNumOff3 = "0.5in";
-	m_sNumOff4 = "0.5in";
-#endif
 
 
 	const gchar *pszINDENT = nullptr;
@@ -3749,19 +3743,6 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 	double cellpos = cellLeftPos + dColSpace*0.5;
 	double colwidth = 0.0;
 	double dcells = static_cast<double>(m_Table.getNumCols());
-#if 0
-//
-// fixme. Write this function to determine the width of a nested cell
-//
-	if(m_Table.getNestDepth() < 2)
-	{
-		colwidth = (_getColumnWidthInches() - dColSpace*0.5)/dcells;
-	}
-	else
-	{
-		colwidth = m_Table.findThisColWidth();
-	}
-#endif
 	colwidth = (_getColumnWidthInches() - dColSpace*0.5)/dcells;
 
 	UT_sint32 iNext = 1;
@@ -3808,22 +3789,6 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 		{
 			m_pie->_rtf_keyword("clvmgf");
 		}
-#if 0
-//
-// Look to see if we have a horizontally merged cell.
-//
-		if(m_bNewTable && (m_Table.getLeft() < i))
-		{
-			m_pie->_rtf_keyword("clmrg");
-		}
-//
-// Look to see if this is the first of a group of horizonatally merged cells.
-//
-		if(m_bNewTable && (m_Table.getRight() > i +1))
-		{
-			m_pie->_rtf_keyword("clmrgf");
-		}
-#endif
 //
 // output cellx for each cell
 //
@@ -4382,10 +4347,6 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 			bool bHeaderFirst = false;
 			const gchar* pszFooterFirstID = nullptr;
 			bool bFooterFirst = false;
-#if 0
-			const gchar* pszHeaderLastID = nullptr;
-			const gchar* pszFooterLastID = nullptr;
-#endif
 			
 // header,headerl (odd) ,headerr(even) ,headerf(first) ,footer,footerl,footerr,footerf
 
@@ -4421,19 +4382,6 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 			{
 				bFooterFirst = true;
 			}
-#if 0
-			pAP->getAttribute("header-last", pszHeaderLastID);
-			if(pszHeaderLastID != nullptr)
-			{
-				bHeaderLast = true;
-			}
-
-			pAP->getAttribute("footer-last", pszFooterLastID);
-			if(pszFooterLastID != nullptr)
-			{
-				bFooterLast = true;
-			}
-#endif
 			if(bHeader && !bHeaderEven)
 			{
 			        m_bInBlock = false;
@@ -4475,9 +4423,6 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 				m_pie->exportHdrFtr("footer-first",pszFooterFirstID,"footerf");
 			}
 			_closeSpan();
-#if 0 // #TF
-			_closeBlock();
-#endif
 			_closeSection();
 			_setTabEaten(false);
 
@@ -4491,9 +4436,6 @@ bool s_RTF_ListenerWriteDoc::populateStrux(pf_Frag_Strux* sdh,
 	case PTX_SectionHdrFtr:
 		{
 			_closeSpan();
-#if 0 //#TF
-			_closeBlock();
-#endif
 			_closeSection();
 			_setTabEaten(false);
 			return false;

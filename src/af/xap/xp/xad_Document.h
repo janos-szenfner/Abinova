@@ -33,7 +33,6 @@
 #include "time.h"
 
 // fwd. decl.
-class XAP_ResourceManager;
 class XAP_Frame;
 class AV_View;
 
@@ -136,8 +135,6 @@ public:
 	void				unref(void);
 
 	virtual AD_DOCUMENT_TYPE getType() const = 0;
-
-	XAP_ResourceManager &	resourceManager () const { return *m_pResourceManager; }
 
 	const std::string     & getFilename(void) const;
 	const std::string     & getPrintFilename(void) const;
@@ -315,8 +312,6 @@ public:
 	virtual ~AD_Document();		//  Use unref() instead.
 
 private:
-	XAP_ResourceManager *	m_pResourceManager;
-
 	int				m_iRefCount;
 	std::string	    m_szFilename;
 	std::string		m_szEncodingName;

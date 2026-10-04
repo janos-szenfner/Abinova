@@ -1096,16 +1096,6 @@ UT_sint32 ie_imp_table::NewRow(void)
 		{
 			return +1;
 		}
-#if 0
-		if(dMatch/dPrev > 1.1)
-		{
-			return +1;
-		}
-		if(szCurRow != szPrevRow)
-		{
-			return +1;
-		}
-#endif
 	}
 	m_pCurImpCell = nullptr;
 	m_iRowCounter++;
@@ -2533,15 +2523,6 @@ bool IE_Imp_TableHelper::Inline (const UT_UCS4Char * ucs4_str, UT_sint32 length)
 			pf = static_cast<pf_Frag *>(m_pfsInsertionPoint);
 		}
 #if DEBUG
-#if 0
-	UT_uint32 ii = 0;
-	std::string sStr;
-	for(ii=0; ii<(length);ii++)
-	{
-		sStr += static_cast<const char>(ucs4_str[ii]);
-	}
-	UT_DEBUGMSG(("Append span in cell %s \n",sStr.c_str()));
-#endif
 #endif
 
 	UT_DEBUGMSG(("Insert Text of length %d in cell \n",length));

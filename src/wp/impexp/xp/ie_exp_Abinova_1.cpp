@@ -1273,13 +1273,6 @@ void s_Abinova_1_Listener::_handleMetaData(void)
   m_pDocument->setMetaDataProp ( PD_META_KEY_GENERATOR, "Abinova" ) ;
   m_pDocument->setMetaDataProp ( PD_META_KEY_FORMAT,    IE_MIMETYPE_ABINOVA ) ;
 
-#if 0
-  // get the saved time, remove trailing newline
-  time_t now = time ( nullptr ) ;
-  std::string now_str(ctime(&now));
-  now_str = now_str.substr ( 0, now_str.size() -1 ) ;
-  m_pDocument->setMetaDataProp ( PD_META_KEY_DATE_LAST_CHANGED, UT_UTF8String(now_str.c_str()) ) ;
-#endif
 
   // TODO: set dc.date and abiword.date_created if document is new (i.e. first save)
 

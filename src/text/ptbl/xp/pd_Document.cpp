@@ -1325,15 +1325,6 @@ bool PD_Document::insertSpan(PT_DocPosition dpos, const UT_UCS4Char * pbuf,
 		m_pPieceTable->insertFmtMark(PTC_SetExactly, dpos, p_AttrProp);
 	}
 #if DEBUG
-#if 0
-	UT_uint32 ii = 0;
-	std::string sStr;
-	for(ii=0; ii<length;ii++)
-	{
-		sStr += static_cast<char>(pbuf[ii]);
-	}
-	UT_DEBUGMSG(("PD_Document Insert span |%s| pos %d \n",sStr.c_str(),dpos));
-#endif
 #endif
 	// REMOVE UNDESIRABLE CHARACTERS ...
 	// we will remove all LRO, RLO, LRE, RLE, and PDF characters
@@ -2225,15 +2216,6 @@ bool PD_Document::appendSpan(const UT_UCS4Char * pbuf, UT_uint32 length)
 	if(length - (pStart-pbuf))
 		{
 #if DEBUG
-#if 0
-	UT_uint32 ii = 0;
-	std::string sStr;
-	for(ii=0; ii<(length -(pStart-pbuf));ii++)
-	{
-		sStr += static_cast<const char>(pStart[ii]);
-	}
-	UT_DEBUGMSG(("Append span %s \n",sStr.c_str()));
-#endif
 #endif
 
 			result &= m_pPieceTable->appendSpan(pStart,length - (pStart-pbuf));
@@ -2366,10 +2348,6 @@ bool  PD_Document::changeStruxAttsNoUpdate(pf_Frag_Strux* pfStrux, const char * 
  */
 bool PD_Document::insertStruxNoUpdateBefore(const pf_Frag_Strux* sdh, PTStruxType pts, const PP_PropertyVector & attributes )
 {
-#if 0
-	pf_Frag_Strux * pfStrux = sdh;
-	T_ASSERT(pfStrux->getStruxType() != PTX_Section);
-#endif
 	return m_pPieceTable->insertStruxNoUpdateBefore(sdh, pts, attributes);
 }
 
@@ -2440,17 +2418,6 @@ bool PD_Document::changeDocPropeties(const PP_PropertyVector & pAtts, const PP_P
 	}
 	else if(strcmp(szLCValue,"pagesize") == 0)
     {
-#if 0 // some debug code. XXX remove this
-		UT_sint32 i = 0;
-		UT_DEBUGMSG(("pagesize docprop received \n"));
-		const gchar * szP = pProps ? pProps[i] : nullptr;
-		while(szP != nullptr)
-		{
-			UT_DEBUGMSG(("property %s value %s \n",pProps[i],pProps[i+1]));
-			i += 2;
-			szP = pProps[i];
-		}
-#endif
 		setPageSizeFromFile(pProps);
 	}
 	else if(strcmp(szLCValue,"metadata") == 0)

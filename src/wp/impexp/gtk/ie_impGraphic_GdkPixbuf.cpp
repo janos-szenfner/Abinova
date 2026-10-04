@@ -571,10 +571,6 @@ _gdk_pixbuf_get_module (const guchar *buffer, guint size)
 	for (formats = format_ptr; formats; formats = g_slist_next (formats)) {
 		GdkPixbufFormat *info = static_cast<GdkPixbufFormat *>(formats->data);
 
-#if 0
-		if (info->disabled)
-			continue;
-#endif
 
 		score = format_check (info, buffer, size);
 		if (score > best) {

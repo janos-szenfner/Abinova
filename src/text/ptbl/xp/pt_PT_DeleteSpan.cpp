@@ -189,43 +189,6 @@ bool pt_PieceTable::dumpDoc(
 
 
 
-#ifdef BUILD_ODT_GCT
-/**
- * Given a pointer to the start of a block, find the last PFT_Text
- * contained in that block or null.
- *
- */
-static pf_Frag_Text* findLastTextFragOfBlock( pf_Frag_Strux* pfblock )
-{
-    UT_DEBUGMSG(("ODTCT: findLastTxt() start:%p\n", pfblock ));
-    if( !pfblock )
-        return 0;
-
-    pf_Frag* pf = pfblock->getNext();
-    pf_Frag_Text* ret = 0;
-    while( pf )
-    {
-        UT_DEBUGMSG(("ODTCT: findLastTxt() pftype:%d offset:%d len:%d\n", pf->getType(), pf->getPos(), pf->getLength() ));
-
-        if( pf->getType() == pf_Frag::PFT_Text )
-        {
-			ret = static_cast<pf_Frag_Text*>(pf);
-        }
-        if( tryDownCastStrux( pf, PTX_Block ))
-        {
-            //
-            // we have hit another block so return the
-            // "ret" which is a cache of the last PFT_Text
-            return ret;
-        }
-        
-        pf = pf->getNext();
-    }
-    
-    // we might have a ret!=0 if we started in the last block...
-    return ret;
-}
-#endif
 
 /**
  * Return the strux PTX_Block if both startpos and endpos are
@@ -429,157 +392,6 @@ pf_Frag_Strux* pt_PieceTable::inSameBlock( PT_DocPosition startpos, PT_DocPositi
  *
  * [1]  http://monkeyiq.blogspot.com/2011/04/change-tracking-why.html
  */
-#ifdef BUILD_ODT_GCT
-bool pt_PieceTable::deleteSpanChangeTrackingAreWeMarkingDeltaMerge( PT_DocPosition startpos,
-                                                                    PT_DocPosition endpos )
-{
-    bool ret = false;
-
-#if DEBUG
-    dumpDoc( "areWeMarkingDM(top)", 0, 0 );
-    UT_DEBUGMSG(("ODTCT: areWeMarkingDM() startpos:%d endpos:%d\n", startpos, endpos ));
-#endif
-    
-    pf_Frag *startFrag, *endFrag;
-    PT_BlockOffset os,oe;
-    
-    if(!getFragFromPosition( startpos, &startFrag, &os ))
-    {
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM() can not get start, startpos:%d endpos:%d\n", startpos, endpos ));
-        return ret;
-    }
-
-    if(!getFragFromPosition( endpos, &endFrag, &oe ))
-    {
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM() can not get end, startpos:%d endpos:%d\n", startpos, endpos ));
-        return ret;
-    }
-    pf_Frag_Strux *startBlock, *endBlock;
-    if( pf_Frag_Strux* pfs = tryDownCastStrux( startFrag, PTX_Block ))
-    {
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM() deleting right from start of para block...\n" ));
-        startBlock = pfs;
-    }
-    else if(!_getStruxOfTypeFromPosition( startpos, PTX_Block, &startBlock ))
-    {
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM() can not get start block, startpos:%d endpos:%d\n", startpos, endpos ));
-        return ret;
-    }
-
-    
-    if(!_getStruxOfTypeFromPosition( endpos, PTX_Block, &endBlock ))
-    {
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM() can not get end block, startpos:%d endpos:%d\n", startpos, endpos ));
-        return ret;
-    }
-
-#if DEBUG
-    UT_DEBUGMSG(("ODTCT: areWeMarkingDM(starting work...) startpos:%d endpos:%d\n", startpos, endpos ));
-    UT_DEBUGMSG(("ODTCT: areWeMarkingDM(soffset) pos:%d len:%d\n", startFrag->getPos(), startFrag->getLength() ));
-    UT_DEBUGMSG(("ODTCT: areWeMarkingDM(eoffset) pos:%d len:%d\n", endFrag->getPos(), endFrag->getLength() ));
-    UT_DEBUGMSG(("ODTCT: areWeMarkingDM(sblock ) pos:%d len:%d\n", startBlock->getPos(), startBlock->getLength() ));
-    UT_DEBUGMSG(("ODTCT: areWeMarkingDM(eblock ) pos:%d len:%d\n", endBlock->getPos(), endBlock->getLength() ));
-#endif
-    
-    /*
-     * Very likely not a delta:merge if we are in the same block.
-     */
-    if( startBlock && startBlock == endBlock )
-    {
-        /*
-         * The special case here is merging of two paragraphs using
-         * the delete or backspace key or a selection which causes
-         * merge. In this case the startBlock is right on the
-         * PTX_Block and the endBlock should be the start of the
-         * PFT_Text (for delete or backspace). However, if the
-         * selection extends into the para more than 1 char we are
-         * still wanting to merge.
-         */
-        if( tryDownCastStrux( startFrag, PTX_Block ) )
-        {
-            pf_Frag* lastFragOfEnd = findLastTextFragOfBlock( endBlock );
-            if( lastFragOfEnd->getPos() + lastFragOfEnd->getLength() == endpos )
-            {
-                UT_DEBUGMSG(("ODTCT: areWeMarkingDM() start and end are the same block and you are deleting the whole para.\n" ));
-                return false;
-            }
-            
-            UT_DEBUGMSG(("ODTCT: areWeMarkingDM() start and end are the same block BUT we are merging two paras with delete or backspace\n" ));
-            return true;
-        }
-        
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM() start and end are the same block... not a delta:merge\n" ));
-        return false;
-    }
-    
-    
-    pf_Frag* lastFragOfEnd = findLastTextFragOfBlock( endBlock );
-    if( lastFragOfEnd )
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM(elastB ) pos:%d len:%d\n", lastFragOfEnd->getPos(), lastFragOfEnd->getLength() ));
-    
-    PTStruxType stopCondition[] = { PTX_EndCell, PTX_EndTable, PTX_StruxDummy };
-    bool bSkipEmbededSections = true;
-    pf_Frag_Strux *startCell = _findLastStruxOfType( startBlock, PTX_SectionCell, stopCondition, bSkipEmbededSections );
-    pf_Frag_Strux *endCell   = _findLastStruxOfType( endBlock,   PTX_SectionCell, stopCondition, bSkipEmbededSections );
-
-#if DEBUG
-    UT_DEBUGMSG(("ODTCT: areWeMarkingDM(cells ) start:%p end:%p\n", startCell, endCell ));
-    if( startCell )
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM(scell ) pos:%d len:%d\n", startCell->getPos(), startCell->getLength() ));
-    if( endCell )
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM(ecell ) pos:%d len:%d\n", endCell->getPos(), endCell->getLength() ));
-    if( lastFragOfEnd )
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM(elast ) pos:%d len:%d\n", lastFragOfEnd->getPos(), lastFragOfEnd->getLength() ));
-    if( endBlock )
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM(block ) pos:%d len:%d\n", endBlock->getPos(), endBlock->getLength() ));
-#endif
-    
-    // no cell or same cell.
-    if( (!startCell && !endCell) || (startCell == endCell) )
-    {
-        /*
-        * If we are deleting through to the middle of another
-        * paragraph then we need to use delta:merge to join them.
-        */
-        ret = true;
-        UT_DEBUGMSG(("ODTCT: areWeMarkingDM(ret) in same or no cell, startBlock:%d startpos:%d\n",
-                     startBlock->getPos(), startpos ));
-
-        /*
-        * On the other hand, if we are deleting from a paragraph
-        * through to the end of another paragraph then we prefer
-        * instead to mark the end content of the first paragraph as
-        * deleted and use delta:removed-content to mark the other
-        * paragraph(s) as deleted. Simpler markup this way.
-        *
-        * lastFragOfEnd is the last fragment contained in the last block.
-        * if it has an ending that is exactly the deletion endpos
-        * then we are not deleting *into* the paragraph but to the end of it.
-        */
-        if( lastFragOfEnd &&
-            ( lastFragOfEnd->getPos() + lastFragOfEnd->getLength() == endpos ))
-        {
-            UT_DEBUGMSG(("ODTCT: areWeMarkingDM(ret) deletion is right to end of last paragraph!\n" ));
-            ret = false;
-        }
-
-        
-        /*
-         * Likewise, if we are deleting from the very start of a paragraph through
-         * to another para then we mark the entire first para as delta:removed-content
-         * and just remove the leading content in the last para as deleted.
-         */
-        if( startBlock && startBlock->getPos() == startpos )
-        {
-            UT_DEBUGMSG(("ODTCT: areWeMarkingDM(ret) deletion from right at start of first paragraph!\n" ));
-            ret = false;
-        }
-        
-    }
-    
-    return ret;
-}
-#endif
 
 /**
  * Get the first strux that marks the end of the block containing
@@ -644,127 +456,12 @@ pf_Frag* pt_PieceTable::getEndOfBlock( PT_DocPosition currentpos, PT_DocPosition
  * Add a change tracking attribute/value to the given fragment. If the
  * attribute already exists on the fragment then it is not modified.
  */
-#ifdef BUILD_ODT_GCT
-bool pt_PieceTable::changeTrackingAddParaAttribute( pf_Frag_Strux* pfs,
-                                                    const char* attr,
-                                                    std::string v )
-{
-    const PP_AttrProp * pAP2;
-    if(!getAttrProp(pfs->getIndexAP(),&pAP2))
-    {
-        UT_DEBUGMSG(("Can not get the attrProp for a fragment when adding change tracking information!\n" ));
-        return false;
-    }
-    else
-    {
-        const gchar name[] = "revision";
-        const gchar * pRevision = nullptr;
-                    
-        if(!pAP2->getAttribute(name, pRevision))
-            pRevision = nullptr;
-        PP_RevisionAttr Revisions(pRevision);
-        if( pRevision && strstr(pRevision, attr ))
-        {
-            // already have that attribute..
-            return true;
-        }
-        else
-        {
-            Revisions.mergeAttr( 1, PP_REVISION_ADDITION_AND_FMT,
-                                 attr, v.c_str() );
-            
-            const gchar * ppRevAttrib[3];
-            ppRevAttrib[0] = name;
-            ppRevAttrib[1] = Revisions.getXMLstring();
-            ppRevAttrib[2] = nullptr;
-
-            UT_DEBUGMSG(("ODTCT: changeTrackingAddParaAttribute() adding attr:%s v:%s for block at:%d\n",
-                         attr, v.c_str(), pfs->getPos() ));
-                    
-            int iLen = pf_FRAG_STRUX_BLOCK_LENGTH;
-            PTStruxType eStruxType = pfs->getStruxType();
-
-            if(! _realChangeStruxFmt(PTC_AddFmt, pfs->getPos() + iLen, pfs->getPos() + iLen,
-                                     ppRevAttrib, nullptr,
-                                     eStruxType, true))
-            {
-                return false;
-            }
-        }
-    }
-    
-    return true;
-}
-#endif
                                                     
 /*
  * If we are deleting a selection for which a delta:merge is in
  * progress, this method adds ABIATTR_PARA_END_DELETED_REVISION to the
  * block only if the block ends before endpos
  */
-#ifdef BUILD_ODT_GCT
-bool pt_PieceTable::deleteSpanChangeTrackingMaybeMarkParagraphEndDeletion( PT_DocPosition currentpos,
-                                                                           PT_DocPosition endpos )
-{
-#if DEBUG
-    dumpDoc( "deleteSpanChangeTrackingMaybeMarkParagraphEndDeletion(top)", 0, 0 );
-    UT_DEBUGMSG(("ODTCT: deleteSpanChangeTrackingMaybeMarkParagraphEndDeletion() cpos:%d endpos:%d\n", currentpos, endpos ));
-#endif
-    
-    //
-    // MIQ11: If we are deleting from the middle through the end of
-    // a paragraph then we want to record when the end of the
-    // paragraph was deleted. We need to get the PTX_Block, say
-    // (a), containing the start marker currentpos and make sure that
-    // (a) is closed before endpos is reached.
-    //
-    // First, walk forwards to see if the block will end before
-    // endpos is reached. If so, find the strux (a) that contains
-    // currentpos and mark it as having it's end of block at this
-    // revision.
-    {
-        //
-        // Find the first end-of-block condition that is yonder of
-        // currentpos
-        //
-        UT_DEBUGMSG(("ODTCT: deleteSpan(revisionsEP) searching for eob from:%d\n", currentpos ));
-        pf_Frag *pf = getEndOfBlock( currentpos, endpos );
-        if( !pf )
-        {
-            UT_DEBUGMSG(("ODTCT: deleteSpan(revisionsEP) no end of block!\n" ));
-            return false;
-        }
-        
-        UT_DEBUGMSG(("ODTCT: deleteSpan(revisionsEP) block that ends the currentpos starter is %p at offset:%d len:%d\n",
-                     pf, pf->getPos(), pf->getLength() ));
-            
-            
-        //
-        // find and mark the block containing currentpos as having its
-        // ending deleted in this revision.
-        //
-        pf_Frag_Strux * pfs;
-        PTStruxType eStruxType = PTX_Block;
-        if(!_getStruxOfTypeFromPosition( currentpos, eStruxType, &pfs ))
-        {
-            // failed
-            UT_DEBUGMSG(("ODTCT: deleteSpan(revisionsEP) delete started not inside a ptx_block! currentpos:%d\n", currentpos ));
-            return false;
-        }
-        else
-        {
-            UT_DEBUGMSG(("ODTCT: deleteSpan(revisionsEP) TOP currentpos:%d\n", currentpos ));
-            UT_DEBUGMSG(("ODTCT: deleteSpan(revisionsEP) TOP text strux:%p\n", pfs ));
-
-            changeTrackingAddParaAttribute( pfs,
-                                            ABIATTR_PARA_END_DELETED_REVISION,
-                                            tostr(m_pDocument->getRevisionId()));
-        }
-    }
-
-    return true;
-}
-#endif
 
 
 
@@ -776,9 +473,6 @@ bool pt_PieceTable::deleteSpan(PT_DocPosition dpos1,
 							   bool bDeleteTableStruxes,
 							   bool bDontGlob)
 {
-#ifdef BUILD_ODT_GCT
-    PT_DocPosition startOfRange = dpos1;
-#endif
     
   //        getFragments().verifyDoc();
 	if(m_pDocument->isMarkRevisions())
@@ -810,36 +504,6 @@ bool pt_PieceTable::deleteSpan(PT_DocPosition dpos1,
 		const gchar * pRevision = nullptr;
 
 
-#ifdef BUILD_ODT_GCT
-        bool MarkingDeltaMerge = deleteSpanChangeTrackingAreWeMarkingDeltaMerge( dpos1, dpos2 );
-        UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) TOP2 dpos1:%d dpos2:%d\n", dpos1, dpos2 ));
-        UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) TOP3 MarkingDeltaMerge:%d\n", MarkingDeltaMerge ));
-
-        if( MarkingDeltaMerge )
-        {
-            deleteSpanChangeTrackingMaybeMarkParagraphEndDeletion( dpos1, dpos2 );
-
-            /*
-             * For merging paragraphs by pressing delete when the carrot is on
-             * the end of the last line of a paragraph. So dpos1 is the PTX_Block itself
-             * and we need to grab the previous block to dpos1 and mark it's end deleted.
-             */
-            if(pf_Frag_Strux* pfs = inSameBlock( dpos1, dpos2 ))
-            {
-                UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) isSameBlock at:%d\n", pfs->getPos() ));
-                bool bSkipEmbededSections = true;
-                pf_Frag_Strux* prevBlock = _findLastStruxOfType( pfs->getPrev(), PTX_Block, bSkipEmbededSections );
-                if( prevBlock )
-                {
-                    UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) prevBlock at:%d\n", prevBlock->getPos() ));
-
-                    changeTrackingAddParaAttribute( prevBlock,
-                                                    ABIATTR_PARA_END_DELETED_REVISION,
-                                                    tostr(m_pDocument->getRevisionId()));
-                }
-            }
-        }
-#endif
     
         
 		// we cannot retrieve the start and end fragments here and
@@ -888,29 +552,6 @@ bool pt_PieceTable::deleteSpan(PT_DocPosition dpos1,
 
 				eStruxType = static_cast<pf_Frag_Strux*>(pf1)->getStruxType();
 
-#ifdef BUILD_ODT_GCT
-                UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) while... eStruxType:%d\n", eStruxType ));
-
-                if( dpos1 > startOfRange )
-                {
-                    // Mark close of block
-                    switch (eStruxType)
-                    {
-                        case PTX_SectionFootnote: 
-                        case PTX_SectionEndnote: 
-                        case PTX_SectionAnnotation:
-                            break;
-                        default:
-                            // If this block ends before dpos2,
-                            // we should also explicitly mark that it's end is deleted.
-                            if( MarkingDeltaMerge )
-                            {
-                                deleteSpanChangeTrackingMaybeMarkParagraphEndDeletion( dpos1-1, dpos2 );
-                            }
-                            break;
-                    }
-                }
-#endif
 
                 
 				switch (eStruxType)
@@ -1016,19 +657,6 @@ bool pt_PieceTable::deleteSpan(PT_DocPosition dpos1,
 
 			PT_DocPosition dposEnd = UT_MIN(dpos2,dpos1 + pf1->getLength());
 
-#ifdef BUILD_ODT_GCT
-#if DEBUG
-            {
-                UT_uint32 gid = 100;
-                if( pRev )
-                {
-                    UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) while.5 have pRev, iId:%d pRev->id::%d\n", iId, pRev->getId() ));
-                    gid = pRev->getId();
-                }
-                UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) while.4 pRev:%d iId:%d getId:%d dposEnd:%d\n", pRev!=0, iId, gid, dposEnd ));
-            }
-#endif
-#endif            
             
 			if(pRev && iId == pRev->getId())
 			{
@@ -1154,38 +782,6 @@ bool pt_PieceTable::deleteSpan(PT_DocPosition dpos1,
 				}
 			}
 
-#ifdef BUILD_ODT_GCT
-            //
-            // handle the marking of DELETED and START_DELETED
-            //
-            if( eStruxType == PTX_Block )
-            {
-                std::string idstr = tostr(iId);
-                UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) old:%s\n", Revisions.getXMLstring() ));
-                UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) finding eob...\n" ));
-
-                if( pf_Frag *endOfblock = getEndOfBlock( dpos1, dpos2 ) )
-                {
-                    UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) eob pos:%d len:%d dpos1:%d dpos2:%d\n",
-                                 endOfblock->getPos(), endOfblock->getLength(), dpos1, dpos2 ));
-
-                    Revisions.mergeAttrIfNotAlreadyThere( 1, PP_REVISION_ADDITION_AND_FMT,
-                                                          ABIATTR_PARA_DELETED_REVISION,
-                                                          idstr.c_str() );
-                }
-    
-                if( MarkingDeltaMerge )
-                {
-                    UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) marking delta:merge...\n" ));
-
-                    Revisions.mergeAttrIfNotAlreadyThere( 1, PP_REVISION_ADDITION_AND_FMT,
-                                                          ABIATTR_PARA_START_DELETED_REVISION,
-                                                          idstr.c_str() );
-                }
-
-                UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) DONE adding, revs:%s\n", Revisions.getXMLstring() ));
-            }
-#endif
 
 			Revisions.addRevision(iId, PP_REVISION_DELETION, PP_NOPROPS, PP_NOPROPS);
 			// UT_DEBUGMSG(("ODTCT: deleteSpan(revisions) 2...\n" ));
@@ -3253,11 +2849,6 @@ bool pt_PieceTable::_realDeleteSpan(PT_DocPosition dpos1,
 //
 // FIXME this code should be removed if undo/redo on table manipulations
 //       works fine.
-#if 0
-//					_deleteFormatting(myPos - pfs->getLength(), myPos);
-//					bSuccess = _deleteStruxWithNotify(myPos - pfs->getLength(), pfs,
-//													  &pf, &dp);
-#endif
 
 					PT_DocPosition myPos = pfs->getPos();
 					bSuccess = _deleteStruxWithNotify(myPos, pfs, &pf, &dp);

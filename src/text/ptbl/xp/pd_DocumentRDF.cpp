@@ -1936,38 +1936,6 @@ extern "C" {
 };
 
 
-#if 0
-// static std::string tostr( time_t v )
-// {
-//     std::stringstream ss;
-//     ss << v;
-//     return ss.str();
-// }
-
-
-static void addCalProp( PD_DocumentRDFMutationHandle m,
-                        const PD_URI& uuidnode,
-                        const std::string& predend,
-                        const std::string& value )
-{
-    std::string predBase = "http://www.w3.org/2002/12/cal/icaltzd#";
-    m->add( uuidnode,
-            PD_URI(predBase + predend),
-            PD_Literal( value ) );
-}
-static void addCalPropSZ( PD_DocumentRDFMutationHandle m,
-                          const PD_URI& uuidnode,
-                          const std::string& predend,
-                          const char* value )
-{
-    std::string predBase = "http://www.w3.org/2002/12/cal/icaltzd#";
-    if( value )
-    {
-        addCalProp( m, uuidnode, predend, static_cast<std::string>(value ));
-    }
-}
-
-#endif
 #endif
 
 
@@ -3703,11 +3671,6 @@ PD_DocumentRDF::addXMLIDsForBlockAndTableCellForPosition( std::set< std::string 
             {
                 xxx_UT_DEBUGMSG(("PD_DocumentRDF::priv_addRelevantIDsForPosition() xmlid:%s \n",v));
                 col.insert(v);
-#if 0
-                if(AP->getAttribute("props", v)) {
-                    xxx_UT_DEBUGMSG(("PD_DocumentRDF::priv_addRelevantIDsForPosition() props:%s \n",v));
-				}
-#endif
             }
         }
     }
@@ -4170,22 +4133,6 @@ void PD_DocumentRDF::runMilestone2Test()
 #endif
 }
 
-#if 0
-#ifdef DEBUG
-static void dump( const std::string& msg, PD_RDFModelIterator iter, PD_RDFModelIterator e )
-{
-    int count = 0;
-    UT_DEBUGMSG(("dump(top) msg::%s\n", msg.c_str() ));
-    for( ; iter != e; ++iter )
-    {
-        const PD_RDFStatement& st(*iter);
-        UT_DEBUGMSG((" st:%s\n", st.toString().c_str() ));
-        ++count;
-    }
-    UT_DEBUGMSG(("dump(end) count:%d msg::%s\n", count, msg.c_str() ));
-}
-#endif
-#endif
 
 
 void PD_DocumentRDF::updateHaveSemItemsCache()

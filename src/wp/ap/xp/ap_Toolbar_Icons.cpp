@@ -136,30 +136,6 @@ XAP_Toolbar_Icons::XAP_Toolbar_Icons(void)
 	
 */
 
-#ifdef EXPORT_XPM_TO_BMP
-	char szID[1024];
-	char szIDlow[1024];
-
-	for (i = 0; i < range; i++)	{
-		strcpy (szID, s_imTable[i].m_id);
-		strcpy (szIDlow, s_imTable[i].m_id);
-		strlwr (szIDlow);
-		
-		if (XAP_Win32Toolbar_Icons::saveBitmap (s_imTable[i].m_id)) {
-			UT_DEBUGMSG(("AP_RID_TI_%s BITMAP DISCARDABLE \"../../../wp/ap/win/ToolbarIcons/%s.bmp\"\n",
-				szID, szIDlow));
-		}		
-	}
-	
-	UT_DEBUGMSG(("Identifiers ---\n"));
-	for (i = 0; i < range; i++)
-		UT_DEBUGMSG(("#define AP_RID_TI_%s %u\n",  s_imTable[i].m_id, 3000 + i));
-	
-	UT_DEBUGMSG(("Mapping structure ---\n"));
-	for (i = 0; i < range; i++)
-			UT_DEBUGMSG(("\"%s\", AP_RID_TI_%s,\n",   s_imTable[i].m_id, s_imTable[i].m_id));	
-
-#endif
 
 }
 

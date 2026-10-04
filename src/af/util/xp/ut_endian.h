@@ -25,13 +25,6 @@
 #define UT_ENDIAN_H
 
 /* autoconf checks */
-#ifdef CHECKED_ENDIANNESS
-#  if defined(WORDS_BIGENDIAN)
-#    define UT_BIG_ENDIAN
-#  else
-#    define UT_LITTLE_ENDIAN
-#  endif
-#else
 
 #if defined(__hpux)
 	/* #define UT_BIG_ENDIAN */
@@ -109,7 +102,6 @@
 	#else
 		#define UT_BIG_ENDIAN
 	#endif
-#endif
 #endif
 
 /*  Make sure we got a definition for our platform:  */

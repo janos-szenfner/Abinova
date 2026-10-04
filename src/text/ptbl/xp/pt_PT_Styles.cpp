@@ -201,11 +201,7 @@ bool pt_PieceTable::_loadBuiltinStyles(void)
 	// used to set the dom-dir of the style here, but we do not want to do that. The
 	// dom-dir property should be inherited from the section or document (the user can, of
 	// course, modify the style, but that is up to them).
-#	ifdef BIDI_RTL_DOMINANT
-	stTmp += "; text-align:right";
-#	else
 	stTmp += "; text-align:left";
-#	endif
 
 	_s("Normal", true,	"P", "",       "Current Settings", stTmp.c_str());
 	
@@ -487,24 +483,6 @@ size_t pt_PieceTable::getStyleCount (void) const
   return static_cast<size_t>( m_hashStyles.size());
 }
 
-#if 0 // currentl unused. suppress warning
-///////////////////////////////////////////////////////////////////////
-/*!
- * compareStyleNames this function is used to compare the char * strings names
- * of the styles with the sort method on UT_Vector.
-\param const void * vS1  - pointer to a PD_Style pointer
-\param const void * vS2  - pointer to a PD_Style pointer
-\returns -ve if sz1 < sz2, 0 if sz1 == sz2, +ve if sz1 > sz2
-*/
-static UT_sint32 compareStyleNames(const void * vS1, const void * vS2)
-{
-	const PD_Style ** pS1 = static_cast<const PD_Style **>( vS1);
-	const PD_Style ** pS2 = static_cast<const PD_Style **>( vS2);
-	const char * sz1 = (*pS1)->getName();
-	const char * sz2 = (*pS2)->getName();
-	return g_ascii_strcasecmp(sz1, sz2);
-}
-#endif
 
 /*!
     Do not use this function inside loops, used the other enumStyles() instead !!!

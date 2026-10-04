@@ -622,69 +622,6 @@ bool fp_TextRun::findFirstNonBlankSplitPoint(fp_RunSplitInfo& /*si*/ )
 	// Why do we want to keep around for future reference?
 	//
 	return false;
-#if 0 // if turning this back on, replace the while loop with PD_StruxIterator
-	UT_GrowBuf * pgbCharWidths = getBlock()->getCharWidths()->getCharWidths();
-	UT_sint32 iRightWidth = getWidth();
-	UT_GrowBufElement* pCharWidths = pgbCharWidths->getPointer(0);
-	if(pCharWidths == nullptr)
-	{
-		return false;
-	}
-	UT_sint32 iLeftWidth = 0;
-
-	si.iOffset = -1;
-
-	const UT_UCS4Char* pSpan;
-	UT_uint32 lenSpan;
-	UT_uint32 offset = getBlockOffset();
-	UT_uint32 len = getLength();
-	bool bContinue = true;
-	bool bFound = false;
-	while (bContinue)
-	{
-		bContinue = getBlock()->getSpanPtr(offset, &pSpan, &lenSpan);
-
-		if(!bContinue)
-		{
-			// this block has got a text run but no span in the PT,
-			// this is clearly a bug
-			UT_ASSERT( UT_SHOULD_NOT_HAPPEN );
-			return false;
-		}
-
-		UT_ASSERT(lenSpan>0);
-
-		if (lenSpan > len)
-		{
-			lenSpan = len;
-		}
-
-		for (UT_uint32 i=0; i<lenSpan; i++)
-		{
-			UT_sint32 iCW = pCharWidths[i + offset] > 0 ? pCharWidths[i + offset] : 0;
-			iLeftWidth += iCW;
-			iRightWidth -= iCW;
-			if (
-				(!XAP_EncodingManager::get_instance()->can_break_at(pSpan[i])
-					&& ((i + offset) != (getBlockOffset() + getLength() - 1))
-					)
-				)
-			{
-				si.iLeftWidth = iLeftWidth-iCW;
-				si.iRightWidth = iRightWidth + iCW;
-				si.iOffset = i + offset -1;
-				if((i + offset - 1) < 0)
-				{
-					si.iOffset = 0;
-				}
-				bFound = true;
-				break;
-			}
-		}
-		bContinue = false;
-	}
-	return bFound;
-#endif
 }
 
 /*!
@@ -1462,11 +1399,6 @@ bool fp_TextRun::canMergeWithNext(void) const
 		|| (pNext->getAuthorNum() != getAuthorNum())
 		// The merge must make just one item
 		|| (!isOneItem(pNext))
-#if 0
-		// I do not think this should happen at all
-		|| ((pNext->m_bRenderInfo->isJustified() && m_bRenderInfo->isJustified())
-			&& (pNext->m_iSpaceWidthBeforeJustification != m_iSpaceWidthBeforeJustification))
-#endif
 		)
 	{
 		xxx_UT_DEBUGMSG(("Falied to merge full test! \n"));
@@ -1480,19 +1412,6 @@ bool fp_TextRun::canMergeWithNext(void) const
 // Don't coalese past word boundaries
 // This improves lots of flicker issues
 //
-#if 0
-	PD_StruxIterator text(getBlock()->getStruxDocHandle(),
-						  getBlockOffset() + fl_BLOCK_STRUX_OFFSET);
-	text.setPosition(getLength()-1); 
-	if(UT_UCS4_isspace(text.getChar()))
-	{
-		UT_DEBUGMSG(("Failed to merge space! length %d char |%d| \n",getLength(),text.getChar()));
-#ifdef DEBUG
-		//		printText();
-#endif
-		return false;
-	}
-#endif
 	return true;
 }
 
@@ -1920,24 +1839,9 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 	xxx_UT_DEBUGMSG(("fp_TextRun::_draw (0x%x): m_iVisDirection %d, _getDirection() %d\n",
 					 this, m_iVisDirection, _getDirection()));
 
-#if 0
-	// BAD, BAD HACK, please do not re-enable this.
-	//
-	// This causes bad pixed dirt with characters that fill the entire glyph box. We
-	// really cannot, under any circumstances, adjust the y coords -- the y coordinance is
-	// the base coordinace of the text, from which everything else derives (if we adust
-	// it, it means that the text gets drawn at wrong position !).
-	//
-	// Also, the comment that accompanies this hack makes no sense: how does adjusting y
-	// coordinance remove final character dirt?
-	// Tomas, Christmas Eve, 2004 (I know, I should get life)
-	UT_sint32 yTopOfRun = pDA->yoff - getAscent() - pG->tlu(1); // Hack to remove
-	UT_sint32 yTopOfSel = yTopOfRun + pG->tlu(1); // final character dirt
-#else
   	UT_sint32 yTopOfRun = pDA->yoff - getAscent();
 	//	UT_sint32 yTopOfRun = pDA->yoff - pG->getFontAscent(_getFont());
 	UT_sint32 yTopOfSel = yTopOfRun;
-#endif
 	xxx_UT_DEBUGMSG(("_draw Text: yoff %d \n",pDA->yoff));
 	xxx_UT_DEBUGMSG(("_draw Text: getAscent %d fontAscent-1 %d fontAscent-2 %d \n",getAscent(),pG->getFontAscent(_getFont()),pG->getFontAscent()));
 	/*
@@ -2339,22 +2243,6 @@ void fp_TextRun::_draw(dg_DrawArgs* pDA)
 		xxx_UT_DEBUGMSG(("_drawText segment %d off %d length %d width %d \n",iSegment,iMyOffset,m_pRenderInfo->m_iLength ,iSegmentWidth[iSegment]));
 		painter.renderChars(*m_pRenderInfo);
 		
-#if 0 
-		//DEBUG
-		const GR_Font * f = _getFont();
-		UT_uint32 _ascent, _descent, _height;
-		
-		_ascent = pG->getFontAscent(f);
-		_descent = pG->getFontDescent(f);
-		_height = pG->getFontHeight(f);
-		
-		UT_DEBUGMSG(("_drawText font %s ascent = %u height = %u descent = %u\n", f->hashKey().c_str(),
-			_ascent, _height, _descent));
-		painter.drawLine(iX, pDA->yoff - _ascent, iX + iSegmentWidth[iSegment], pDA->yoff - _ascent);
-		painter.drawLine(iX, pDA->yoff, iX + iSegmentWidth[iSegment], pDA->yoff);
-		painter.drawLine(iX, pDA->yoff + _descent, iX + iSegmentWidth[iSegment], pDA->yoff + _descent);
-		//end DEBUG
-#endif		
 		if(iVisDir == UT_BIDI_LTR)
 			iX += iSegmentWidth[iSegment];
 	}
@@ -2629,57 +2517,6 @@ void fp_TextRun::_drawLastChar(bool /*bSelection*/)
 // MES 28/8/2004
 //
 	return;
-#if 0
-	UT_return_if_fail(m_pRenderInfo);
-	
-	if(!getLength())
-		return;
-	//	return;
-	// have to set font (and colour!), since we were called from a run
-	// using different font
-	GR_Graphics * pG = getGraphics();
-	UT_return_if_fail(pG);
-	
-	pG->setFont(_getFont());
-
-	UT_RGBColor pForeCol(255,255,255);
-	UT_RGBColor cWhite(255,255,255);
-//
-// Draw character in white then foreground to minimize "bolding" the
-// character.
-//
-	if(bSelection)
-	{
-		pForeCol= _getView()->getColorSelForeground();
-	}
-	else
-	   pForeCol = getFGColor();
-
-	GR_Painter painter(pG);
-
-	PD_StruxIterator text(getBlock()->getStruxDocHandle(),
-						  getBlockOffset() + fl_BLOCK_STRUX_OFFSET);
-
-	m_pRenderInfo->m_pText = &text;
-
-	// getTextWidth() takes LOGICAL offset
-	m_pRenderInfo->m_iOffset = getLength() - 1;
-	text.setPosition(getBlockOffset() + fl_BLOCK_STRUX_OFFSET + getLength() - 1);
-
-	m_pRenderInfo->m_iLength = 1;
-	m_pRenderInfo->m_xoff -= getGraphics()->getTextWidth(*m_pRenderInfo);
-	m_pRenderInfo->m_pFont = _getFont();
-
-	// renderChars() takes VISUAL offset
-	UT_BidiCharType iVisDirection = getVisDirection();
-	UT_uint32 iVisOffset = iVisDirection == UT_BIDI_LTR ? getLength() - 1 : 0;
-	m_pRenderInfo->m_iOffset = iVisOffset;
-	pG->prepareToRenderChars(*m_pRenderInfo);
-	pG->setColor(cWhite);
-	painter.renderChars(*m_pRenderInfo);
-	pG->setColor(pForeCol);
-	painter.renderChars(*m_pRenderInfo);
-#endif
 }
 
 /*

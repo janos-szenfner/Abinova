@@ -283,25 +283,8 @@ bool IE_Imp_RTF::InsertImage (const FG_ConstGraphicPtr& pFG, const char * image_
 		// Get a unique name for image.
 		UT_ASSERT_HARMLESS(image_name);
 		std::string szName;
-#if 0
-		if( !image_name)
-		{
-			image_name = "image_z";
-		}
-		UT_uint32 ndx = 0;
-		for (;;)
-		{
-			szName = UT_std_string_sprintf("%s_%d", image_name, ndx);
-			if (!getDoc()->getDataItemDataByName(szName.c_str(), nullptr, nullptr, nullptr))
-			{
-				break;
-			}
-			ndx++;
-		}
-#else
 		UT_uint32 iid = getDoc()->getUID(UT_UniqueId::Image);
 		szName = UT_std_string_sprintf("%d", iid);
-#endif
 //
 // Code from fg_GraphicsRaster.cpp
 //

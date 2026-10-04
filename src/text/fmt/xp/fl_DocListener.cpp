@@ -193,30 +193,6 @@ bool fl_DocListener::populate(fl_ContainerLayout* sfh,
 		else
 			bResult = pCLSL->bl_doclistener_populateObject(pCL, blockOffset,pcro);
 
-#if 0
-		// if the inserted object is a bookmark, we have to notify TOCs of bookmark change in case
-		// any of them is restricted by the given bookmark
-		if(pcro->getObjectType() == PTO_Bookmark)
-		{
-			if(pL->getType() == PTX_Block)
-			{
-				fl_BlockLayout * pBL = static_cast<fl_BlockLayout *>(pL);
-				fp_Run * pRun = pBL->findRunAtOffset(pcro->getBlockOffset());
-				if(pRun && pRun->getType() == FPRUN_BOOKMARK)
-				{
-					fp_BookmarkRun * pB = static_cast<fp_BookmarkRun*>(pRun);
-
-					// only do this when the end-object is inserted ...
-					if(!pB->isStartOfBookmark())
-						m_pLayout->updateTOCsOnBookmarkChange(pB->getName());
-				}
-				else if(pRun && pRun->getType() != FPRUN_BOOKMARK)
-				{
-					UT_ASSERT_HARMLESS( UT_SHOULD_NOT_HAPPEN );
-				}
-			}
-		}
-#endif
 		break;
 	}
 
@@ -1767,26 +1743,6 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 
 		break;
 	}
-#if 0 //###TF
-	case PX_ChangeRecord::PXT_InsertBookmark:
-	{
-		const PX_ChangeRecord_Bookmark * pcrfm = static_cast<const PX_ChangeRecord_Bookmark *>(pcr);
-
-		fl_Layout * pL = static_cast<fl_Layout *>(sfh);
-		UT_DEBUGMSG(("DocListener: InsertBookmark strux type = %d \n",pL->getType()));
-		//UT_ASSERT(pL->getType() == PTX_Block);
-		//fl_ContainerLayout * pCL = static_cast<fl_ContainerLayout *>(pL);
-		//fl_SectionLayout* pCLSL = pCL->getSectionLayout();
-		//if(pCLSL->getType() == FL_SECTION_SHADOW)
-		//{
-		//	fl_HdrFtrSectionLayout * pHdr = pCLSL->getHdrFtrSectionLayout();
-		//	bResult = pHdr->bl_doclistener_insertFmtMark(pCL, pcrfm);
-		//}
-		//else
-		//	bResult = pCLSL->bl_doclistener_insertFmtMark(pCL, pcrfm);
-		break;
-	}
-#endif
 	case PX_ChangeRecord::PXT_CreateDataItem:
 	{
 	        bResult = true;

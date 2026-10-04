@@ -4072,6 +4072,14 @@ below are on `main` but the release has not been cut yet.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.
+- **Dead-code elimination pass** (~6.3k lines) — removed all `#if 0`
+  regions, never-enabled feature toggles
+  (`ENABLE_RESOURCE_MANAGER`, `BUILD_ODT_GCT`, `ENABLE_UCS2_STRINGS`,
+  `BIDI_RTL_DOMINANT`, `ABI_GRAPHICS_PLUGIN`, `EXPORT_XPM_TO_BMP`,
+  `CHECKED_ENDIANNESS`), the unused `UT_Mutex` wrapper and
+  `XAP_Resource`/`XAP_ResourceManager` classes (zero call sites),
+  three orphan headers, and a handful of uncalled helper functions
+  and dead stores — no behavior change.
 - **`Old-Doc/` removed** — the folder holding historical pre-experiment
   documentation (old README/NEWS/ChangeLog/INSTALL/AUTHORS, design
   notes) deleted along with its `EXTRA_DIST` entries.

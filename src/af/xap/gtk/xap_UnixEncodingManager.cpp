@@ -324,17 +324,11 @@ g_i18n_get_language_list (const gchar *category_name)
 
 	if (category_table)
     {
-#if 0
-		// we want a fresh reading of the LANG variable every time so we can
-		// work out the non-Unicode encoding under UTF-8 locale
-		list= static_cast<GList *>(g_hash_table_lookup (category_table, const_cast<const gpointer>(category_name)));
-#else
 		xxx_UT_DEBUGMSG(("recreating hash table\n"));
 		g_hash_table_destroy (category_table);
         category_table= g_hash_table_new (g_str_hash, g_str_equal);
         list = nullptr;
 
-#endif
     }
 	else
     {

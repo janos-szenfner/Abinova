@@ -1108,12 +1108,6 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 				if(pCurContainer->getContainer() && pCurContainer->getContainer()->findCon(pCurContainer) >= 0)
 				{
 					fp_VerticalContainer *pVert = static_cast<fp_VerticalContainer *>(pCurContainer->getContainer());
-#if 0
-					if(pCurContainer->getContainer() != pCurColumn)
-					{
-						pCurColumn->addContainer(pCurContainer);
-					}
-#endif
 					pVert->removeContainer(pCurContainer,true);
 				}
 				if((pCurContainer->getContainer() != pCurColumn) && (pCurContainer->getDocSectionLayout() == pCurColumn->getDocSectionLayout()))

@@ -32,9 +32,6 @@
 #include "ut_bytebuf.h"
 #include "ut_string_class.h"
 
-#ifdef ENABLE_RESOURCE_MANAGER
-#include "xap_ResourceManager.h"
-#endif
 
 #include "pd_Document.h"
 #include "pd_DocumentRDF.h"
@@ -373,24 +370,6 @@ void IE_Imp_XML::charData(const gchar *s, int len)
 			
 		case _PS_DataItem:
 			{
-#ifdef ENABLE_RESOURCE_MANAGER
-				XAP_ResourceManager & RM = getDoc()->resourceManager ();
-				XAP_Resource * resource = RM.current ();
-				if (resource == 0) break;
-				if (!resource->bInternal) break;
-				XAP_InternalResource * ri = dynamic_cast<XAP_InternalResource *>(resource);
-				
-				if (m_currentDataItemEncoded) // base64-encoded data
-						ri->buffer (s, len, true);
-				else // old file-format keeping MathML & SVG in CDATA section :-(
-					{
-						/* since SVG import was only ever a DEBUG option, and is currently disabled (why?),
-						 * since MathML was never supported except in principle, and since this CDATA stuff
-						 * (unencoded) is pretty unsafe anyway, I'm going to postpone import support
-						 * indefinitely...                                              - fjf Aug. 19th '02
-						 */
-					}
-#else /* ENABLE_RESOURCE_MANAGER */
 				
 #define MyIsWhite(c)			(((c)==' ') || ((c)=='\t') || ((c)=='\n') || ((c)=='\r'))
 				
@@ -429,7 +408,6 @@ void IE_Imp_XML::charData(const gchar *s, int len)
 				else
 						m_currentDataItem->append(reinterpret_cast<const UT_Byte*>(s), len);
 #undef MyIsWhite
-#endif /* ENABLE_RESOURCE_MANAGER */
 			}
 			
 		default:

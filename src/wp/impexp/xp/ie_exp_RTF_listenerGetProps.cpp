@@ -149,26 +149,6 @@ bool s_RTF_ListenerGetProps::populate(fl_ContainerLayout* /*sfh*/,
 
 	case PX_ChangeRecord::PXT_InsertObject:
 		{
-#if 0
-			const PX_ChangeRecord_Object * pcro = static_cast<const PX_ChangeRecord_Object *> (pcr);
-			PT_AttrPropIndex api = pcr->getIndexAP();
-			switch (pcro->getObjectType())
-			{
-			case PTO_Image:
-				_closeSpan();
-				_openTag("image",api);
-				return true;
-
-			case PTO_Field:
-				_closeSpan();
-				_openTag("field",api);
-				return true;
-
-			default:
-				UT_ASSERT_NOT_REACHED();
-				return false;
-			}
-#endif
 		}
 
 	case PX_ChangeRecord::PXT_InsertFmtMark:

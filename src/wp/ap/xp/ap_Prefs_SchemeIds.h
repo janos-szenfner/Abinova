@@ -160,11 +160,7 @@
 #define AP_PREF_DEFAULT_AlwaysPromptEncoding		"0"
 
 #define AP_PREF_KEY_DefaultDirectionRtl             "DefaultDirectionRtl"       /* the deafault direction of text is rtl */
-#ifndef BIDI_RTL_DOMINANT
 #define AP_PREF_DEFAULT_DefaultDirectionRtl         "0"
-#else
-#define AP_PREF_DEFAULT_DefaultDirectionRtl         "1"
-#endif
 
 #define AP_PREF_KEY_DefaultSaveFormat "DefaultSaveFormat"
 #define AP_PREF_DEFAULT_DefaultSaveFormat ".abwn"

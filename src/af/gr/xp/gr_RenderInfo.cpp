@@ -62,27 +62,6 @@ GR_XPRenderInfo::GR_XPRenderInfo(GR_ScriptType type)
 {
 	_constructorCommonCode();
 }
-#if 0 
-GR_XPRenderInfo::GR_XPRenderInfo(UT_UCS4Char *pChar,
-				  UT_sint32 * pAdv,
-				  UT_uint32 offset,
-				  UT_uint32 len,
-				  UT_uint32 iBufferSize,
-				  GR_ScriptType type)
-		:GR_RenderInfo(type),
-		 m_pChars(pChar),
-		 m_pWidths(nullptr),
-		 m_iBufferSize(iBufferSize),
-		 m_pSegmentOffset(nullptr),
-		 m_iSegmentCount(0),
-		 m_iSpaceWidthBeforeJustification(0xfffffff) // not one less 'f'
-{
-	m_iOffset = offset;
-	m_iLength = len;
-	xxx_UT_DEBUGMSG(("GR_XPRender %x constructed \n"));
-	_constructorCommonCode();
-};
-#endif
 void GR_XPRenderInfo::_constructorCommonCode()
 {
 	if(!s_iClassInstanceCount)

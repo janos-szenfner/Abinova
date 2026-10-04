@@ -501,19 +501,6 @@ AP_StatusBarField_ProgressBar::~AP_StatusBarField_ProgressBar(void)
 {
 }
 
-#if 0
-static void updateProgress(UT_Worker * pWorker)
-{
-    UT_return_if_fail (pWorker);
-
-    AP_StatusBarField_ProgressBar *pfspb;
-    pfspb = static_cast<AP_StatusBarField_ProgressBar *>(pWorker->getInstanceData());
-    UT_return_if_fail (pfspb);
-
-    if(pfspb->getListener())
-	pfspb->getListener()->notify();
-}
-#endif
 
 void AP_StatusBarField_ProgressBar::notify(AV_View * /*pView*/, const AV_ChangeMask /*mask*/)
 {
@@ -528,16 +515,6 @@ void AP_StatusBarField_ProgressBar::setStatusProgressType(int start, int end, in
     m_ProgressFlags = flags;
     m_ProgressStartPoint = 0;
 
-#if 0
-    DELETEP(m_ProgressTimer);
-
-    if (m_ProgressStart == m_ProgressEnd &&
-	(m_ProgressFlags & PROGRESS_CMD_MASK) == PROGRESS_STARTBAR) {  
-	m_ProgressTimer = UT_Timer::static_constructor(updateProgress, this);
-	m_ProgressTimer->stop();
-	m_ProgressTimer->set(50);	//Milliseconds
-    }
-#endif
 }
 
 void AP_StatusBarField_ProgressBar::setStatusProgressValue(int value)

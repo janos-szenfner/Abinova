@@ -293,47 +293,11 @@ void fp_EmbedRun::_lookupLocalProperties()
 
 void fp_EmbedRun::updateVerticalMetric()
 {
-#if 0
-	// do something here to make the embedded view to redo its layout ...
-	// there might be a more efficient way, but this should work
-	if(m_iEmbedUID >= 0 )
-	{
-		getEmbedManager()->releaseEmbedView(m_iEmbedUID);
-		m_iEmbedUID = -1;
-	}
-
-	// now lookup local properties which will create a new embedded view for us
-	_lookupLocalProperties();
-
-	// _lookupProperties() fixed also our width, so if width was marked as dirty, clear
-	// that flag
-	_setRecalcWidth(false);
-#endif
 }
 
 bool fp_EmbedRun::_recalcWidth(void)
 {
-#if 0
-	if(!_getRecalcWidth())
-		return false;
-	
-	UT_sint32 iWidth = getWidth();
-
-	// do something here to make the embedded view to redo its layout ...
-	// there might be a more efficient way, but this should work
-	if(m_iEmbedUID >= 0 )
-	{
-		getEmbedManager()->releaseEmbedView(m_iEmbedUID);
-		m_iEmbedUID = -1;
-	}
-
-	// now lookup local properties which will create a new embedded view for us
-	_lookupLocalProperties();
-	
-	return (iWidth != getWidth());
-#else
 	return false;
-#endif
 }
 
 void fp_EmbedRun::mapXYToPosition(UT_sint32 x, UT_sint32 /*y*/, PT_DocPosition& pos, bool& bBOL, bool& bEOL, bool & /*isTOC*/)
@@ -409,10 +373,6 @@ bool fp_EmbedRun::isResizeable(void)
 void fp_EmbedRun::_draw(dg_DrawArgs* pDA)
 {
 	GR_Graphics *pG = pDA->pG;
-#if 0
-	UT_DEBUGMSG(("Draw with class %x \n",pG));
-	UT_DEBUGMSG(("Contents of fp EmbedRun \n %s \n",m_sEmbedML.utf8_str()));
-#endif
 	FV_View* pView = _getView();
 	UT_return_if_fail(pView);
 

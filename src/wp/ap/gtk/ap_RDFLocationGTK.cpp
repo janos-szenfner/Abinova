@@ -45,14 +45,6 @@ AP_RDFLocationGTK_OnMouseClick_cb( ClutterActor *actor, ClutterButtonEvent *even
 	return true;
 }
 
-#if 0
-static void
-AP_RDFLocationGTK_AnimationCompleted_cb( ChamplainView * /*view*/,
-										 AP_RDFLocationGTK* obj )
-{
-    obj->OnMouseClick(nullptr, nullptr);
-}
-#endif
 
 static void
 AP_RDFLocationGTK_LatLon_cb( ChamplainView * /*view*/, 

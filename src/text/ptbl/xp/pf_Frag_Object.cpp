@@ -360,25 +360,6 @@ pf_Frag_Object::pf_Frag_Object(pt_PieceTable * pPT,
 		            fieldType = fd_Field::FD_None;
         		}
 				break;
-#if 0
-// When adding new fields under any of these characters, please move
-// the label up where it belongs
-    		case 'b':
-    		case 'g':
-    		case 'h':
-    		case 'i':
-    		case 'j':
-    		case 'k':
-    		case 'o':
-    		case 'q':
-    		case 'r':
-    		case 's':
-    		case 'u':
-    		case 'v':
-    		case 'x':
-    		case 'y':
-    		case 'z':
-#endif
     		default:
     			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
        		    //Better than segfaulting I figure

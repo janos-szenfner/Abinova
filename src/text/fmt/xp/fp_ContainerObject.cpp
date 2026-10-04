@@ -492,24 +492,6 @@ fp_Page * fp_Container::getPage(void) const
 
 void fp_Container::insertConAt(fp_ContainerObject * pCon, UT_sint32 i)
 {
-#if 0 // DEBUG
-	if(pCon->getContainerType() == FP_CONTAINER_LINE)
-	{
-		fp_Line * pLine = static_cast<fp_Line *>(pCon);
-		UT_ASSERT(pLine->getBlock() != nullptr);
-		if(countCons() > 0)
-		{
-			fp_ContainerObject * pNext = 	m_vecContainers[i];
-			if(pNext && pNext->getContainerType() == FP_CONTAINER_LINE)
-			{
-				fl_BlockLayout * pBL = pLine->getBlock();
-				fl_BlockLayout * pNextBL = static_cast<fp_Line *>(pNext)->getBlock();
-				if(pBL->canContainPoint() && pNextBL->canContainPoint())
-					UT_ASSERT(pNextBL->getPosition() >= pBL->getPosition());
-			}
-		}
-	}
-#endif
         UT_ASSERT(pCon != this);
 	m_vecContainers.insert(m_vecContainers.begin() + i, pCon);
 	pCon->ref();
@@ -517,24 +499,6 @@ void fp_Container::insertConAt(fp_ContainerObject * pCon, UT_sint32 i)
 
 void fp_Container::addCon(fp_ContainerObject * pCon)
 {
-#if 0 // DEBUG
-	if(pCon->getContainerType() == FP_CONTAINER_LINE)
-	{
-		fp_Line * pLine = static_cast<fp_Line *>(pCon);
-		UT_ASSERT(pLine->getBlock() != nullptr);
-		UT_sint32 i = countCons();
-		if(i>0)
-		{
-			fp_ContainerObject * pPrev = 	m_vecContainers[i-1];
-			if(pPrev && pPrev->getContainerType() == FP_CONTAINER_LINE)
-			{
-				fl_BlockLayout * pBL = pLine->getBlock();
-				fl_BlockLayout * pPrevBL = static_cast<fp_Line *>(pPrev)->getBlock();
-				UT_ASSERT(pPrevBL->getPosition() <= pBL->getPosition());
-			}
-		}
-	}
-#endif
         UT_ASSERT(pCon != this);
 	m_vecContainers.push_back(pCon);
 	pCon->ref();
