@@ -481,7 +481,12 @@ void fp_TextRun::appendTextToBuf(UT_GrowBuf & buf) const
 	UT_GrowBuf myBuf;
 	getBlock()->getBlockBuf(&myBuf);
 	UT_uint32 len = getLength();
-	buf.append(myBuf.getPointer(getBlockOffset()),len);
+	UT_uint32 offset = getBlockOffset();
+	if(offset >= myBuf.getLength())
+		return;
+	if(len > myBuf.getLength() - offset)
+		len = myBuf.getLength() - offset;
+	buf.append(myBuf.getPointer(offset),len);
 }
 
 

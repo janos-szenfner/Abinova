@@ -261,6 +261,7 @@ libtext_la_SOURCES += \
 EXTRA_DIST = \
 	fmt/xp/t/fl_AutoNum.t.cpp \
 	fmt/xp/t/fl_TableStyles.t.cpp \
+	fmt/xp/t/fv_EditOps.t.cpp \
 	fmt/xp/t/fv_FieldContext.t.cpp \
 	fmt/xp/t/fv_FrameContext.t.cpp \
 	fmt/xp/t/fv_FootnoteDelete.t.cpp \
@@ -270,7 +271,9 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_MouseContext.t.cpp \
 	fmt/xp/t/fv_PasteTag.t.cpp \
 	fmt/xp/t/fv_PosObjectContext.t.cpp \
+	fmt/xp/t/fv_RefsTOC.t.cpp \
 	fmt/xp/t/fv_SignatureLine.t.cpp \
+	fmt/xp/t/fv_TableOps.t.cpp \
 	fmt/xp/t/fv_TOCContext.t.cpp \
 	fmt/xp/t/fv_ViewModes.t.cpp \
 	ptbl/xp/t/pf_Fragments.t.cpp \
