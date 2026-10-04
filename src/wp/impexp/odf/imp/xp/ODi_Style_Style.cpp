@@ -1309,7 +1309,7 @@ void ODi_Style_Style::_stripColorLength(std::string& rColor,
     while (pString[i] != 0) {
 
         if (hasWord) {
-            if (isspace(pString[i])) {
+            if (isspace(static_cast<unsigned char>(pString[i]))) {
                 if (_isValidDimensionString(&(pString[start]), i-start)) {
                     rLength.assign(&(pString[start]), i-start);
                 } else if (pString[start] == '#') {
@@ -1328,7 +1328,7 @@ void ODi_Style_Style::_stripColorLength(std::string& rColor,
                 hasWord = false;
             }
         } else {
-            if (!isspace(pString[i])) {
+            if (!isspace(static_cast<unsigned char>(pString[i]))) {
                 start = i;
                 hasWord = true;
             }
@@ -1380,7 +1380,7 @@ bool ODi_Style_Style::_isValidDimensionString(const gchar* pString,
     }
     
     for (i=0; i<length; i++) {
-        if ( !isdigit(pString[i]) ) {
+        if ( !isdigit(static_cast<unsigned char>(pString[i])) ) {
             if (gotDecimalSeparator) {
                 // Already have a decimal separator.
                 // It should be the start of the dimension specifier.

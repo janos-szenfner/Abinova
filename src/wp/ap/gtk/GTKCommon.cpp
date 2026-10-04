@@ -97,7 +97,7 @@ void setEntry( GtkEntry* w, const std::string& v )
 }
 void setEntry( GtkEntry* w, time_t v )
 {
-    UT_DEBUGMSG(("setEntry(time) v:%ld str:%s\n", v, toTimeString(v).c_str()));
+    UT_DEBUGMSG(("setEntry(time) v:%lld str:%s\n", static_cast<long long>(v), toTimeString(v).c_str()));
     XAP_gtk_entry_set_text(GTK_EDITABLE(w), toTimeString(v).c_str());
 }
 void setEntry( GtkEntry* w, double v )

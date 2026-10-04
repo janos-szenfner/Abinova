@@ -660,7 +660,7 @@ const char * EV_EditBindingMap::getShortcutFor(const EV_EditMethod * pEM) const
 			}
 		}
 		 else
-			shortcut = toupper (shortcut); 
+			shortcut = static_cast<char>(toupper (static_cast<unsigned char>(shortcut))); 
 	            
 		int len = strlen(buf);
 		buf[len] = shortcut;

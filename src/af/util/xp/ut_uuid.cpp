@@ -126,7 +126,7 @@ bool  UT_UUID::_parse(const char * in, struct uuid &uuid) const
             if(*cp == 0)
                 continue;
 		
-        if(!isxdigit(*cp))
+        if(!isxdigit(static_cast<unsigned char>(*cp)))
             return false;
     }
 

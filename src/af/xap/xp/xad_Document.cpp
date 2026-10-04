@@ -650,7 +650,7 @@ bool AD_Document::addRevision(AD_Revision&& rev, bool bGenCR)
 	UT_UTF8String sDesc;
 	if (bGenCR) {
 		sID = UT_std_string_sprintf("%d", rev.getId());
-		sTime = UT_std_string_sprintf("%ld", rev.getStartTime());
+		sTime = UT_std_string_sprintf("%lld", static_cast<long long>(rev.getStartTime()));
 		sVer = UT_std_string_sprintf("%d", rev.getVersion());
 		sDesc = UT_UTF8String(rev.getDescription());
 	}

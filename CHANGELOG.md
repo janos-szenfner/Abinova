@@ -4552,6 +4552,20 @@ below are on `main` but the release has not been cut yet.
   `_configthreadlocale(_ENABLE_PER_THREAD_LOCALE)` so the existing
   `setlocale()` calls become per-thread. Behavior inside the scope is
   unchanged — only the process-wide side effect is gone.
+- **ARM/LLP64 portability audit** — a sweep for constructs that break
+  where `char` is unsigned (ARM Linux, Apple Silicon, Windows on ARM)
+  or `long` is 32-bit (Windows LLP64). Byte-oriented code already uses
+  `UT_Byte`/`U8` correctly, but two classes of real defects were
+  fixed: `ctype.h` calls (`isdigit`, `isspace`, `tolower`, …) that
+  received raw `char` — undefined behavior for bytes ≥ 0x80 on
+  signed-`char` platforms and sign-sensitive on ARM — now pass
+  `unsigned char` values across ~30 sites in the importers and utility
+  code, and the ODF manifest parser no longer reads its 64-bit
+  `manifest:size` through 32-bit `atol` on Windows (`strtoll` now).
+  `time_t` values are printed/parsed at full width (`%lld`/`strtoll`),
+  fixing document revision timestamps on Win64 and post-2038 on all
+  platforms. No page-size or unaligned-access defects found; no
+  functional change on x86-64 Linux.
 
 ### Resolved root causes worth noting
 

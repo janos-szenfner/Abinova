@@ -296,9 +296,9 @@ UT_strptime_internal (const char *buf, const char *format, struct tm *tm, enum l
 	{
 		/* A white space in the format string matches 0 more or white
 		space in the input string.  */
-		if (isspace (*fmt))
+		if (isspace ((unsigned char) *fmt))
 		{
-			while (isspace (*rp))
+			while (isspace ((unsigned char) *rp))
 				++rp;
 			++fmt;
 			continue;
@@ -508,7 +508,7 @@ start_over:
 		case 'n':
 		case 't':
 			/* Match any white space.  */
-			while (isspace (*rp))
+			while (isspace ((unsigned char) *rp))
 				++rp;
 			break;
 		case 'p':

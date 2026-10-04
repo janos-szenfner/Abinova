@@ -1334,7 +1334,7 @@ void s_LaTeX_Listener::_outputBabelPackage(void)
 		    m_pie->write(strLangName);
 		    m_pie->write("\n");
 		    
-		    *strLangName = tolower(*strLangName);
+		    *strLangName = static_cast<char>(tolower(static_cast<unsigned char>(*strLangName)));
 		    
 		    const char *q = strtok(strLangName, "-@"); // retrieve the "significant" part
 		    if (strcmp(q, "fr") == 0)

@@ -956,7 +956,7 @@ void XAP_Frame::_writeBackupInfo(const std::string &backupPath)
 	FILE *f = g_fopen((backupPath + ".info").c_str(), "w");
 	if (!f)
 		return; // non-fatal: recovery just falls back to an untitled name
-	fprintf(f, "%s\n%ld\n", m_pDoc ? m_pDoc->getFilename().c_str() : "", static_cast<long>(time(nullptr)));
+	fprintf(f, "%s\n%lld\n", m_pDoc ? m_pDoc->getFilename().c_str() : "", static_cast<long long>(time(nullptr)));
 	fclose(f);
 }
 

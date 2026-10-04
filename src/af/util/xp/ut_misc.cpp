@@ -491,7 +491,7 @@ const gchar ** UT_splitPropsToArray(gchar * pProps)
 					break;
 				
 				pStart = pProps + i + 1;
-				while(isspace(*pStart))
+				while(isspace(static_cast<unsigned char>(*pStart)))
 					pStart++;
 			}
 		}

@@ -241,7 +241,7 @@ UT_UTF8String ConvertToClean(const UT_UTF8String & str)
                 break;
             }
 
-            if (isalnum(*pCurrent) || (*pCurrent == '-') || (*pCurrent == '_'))
+            if (isalnum(static_cast<unsigned char>(*pCurrent)) || (*pCurrent == '-') || (*pCurrent == '_'))
             {
                 result += *pCurrent;
             }

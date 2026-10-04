@@ -175,7 +175,7 @@ bool	PP_AttrProp::setAttribute(const gchar * szName, const gchar * szValue)
 			char *p = z;
 			char *q = p;
 			// skip the whitespace before the property name
-			while (isspace(*p))
+			while (isspace(static_cast<unsigned char>(*p)))
 				p++;
 
 			// skip to the colon to find the value
@@ -210,7 +210,7 @@ bool	PP_AttrProp::setAttribute(const gchar * szName, const gchar * szValue)
 			}
 
 			// skip the whitespace before the property value
-			while ((*q > 0) && isspace(*q))
+			while (*q && isspace(static_cast<unsigned char>(*q)))
 				q++;
 
 			setProperty(p, q);

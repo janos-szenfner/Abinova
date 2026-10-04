@@ -1667,7 +1667,7 @@ pt_PieceTable::_deleteComplexSpanHAR( pf_Frag_Object *pO,
     std::string startAttr = startAttrCSTR;
     std::string startAttrInitialCap = startAttr;
     if( !startAttrInitialCap.empty() )
-        startAttrInitialCap[0] = toupper( startAttrInitialCap[0] );
+        startAttrInitialCap[0] = static_cast<char>(toupper( static_cast<unsigned char>(startAttrInitialCap[0]) ));
 
     const PP_AttrProp * pAP = nullptr;
     pO->getPieceTable()->getAttrProp(pO->getIndexAP(),&pAP);

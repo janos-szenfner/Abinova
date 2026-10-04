@@ -55,7 +55,7 @@ static double dGetVal(UT_UTF8String sVal)
 		do
 		{
 			iStream.get(c);
-			if(!isspace(c))
+			if(!isspace(static_cast<unsigned char>(c)))
 			{
 				return 0;
 			}

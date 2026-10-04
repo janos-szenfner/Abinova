@@ -339,7 +339,7 @@ static int parseColorToNextDelim ( const char * p, UT_uint32 & index )
   char buffer[7] = "" ;
   index = 0 ;
 
-  while (isdigit(*p))
+  while (isdigit(static_cast<unsigned char>(*p)))
     {
       buffer[index++] = *p++;
     }

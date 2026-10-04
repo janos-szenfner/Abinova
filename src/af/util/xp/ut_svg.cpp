@@ -527,7 +527,7 @@ static bool BNF_wsp_star (const char ** pptr) // wsp*
   while (*ptr)
     {
       int ic = static_cast<int>( *ptr);
-      if (ic < 0) ic += 0xff;
+      if (ic < 0) ic += 0x100;
 
       if (!isspace (ic)) break;
       ptr++;
@@ -550,7 +550,7 @@ static bool BNF_comma_wsp (const char ** pptr) // comma-wsp
   if (*ptr == 0) return bValid;
 
   int ic = static_cast<int>( *ptr);
-  if (ic < 0) ic += 0xff;
+  if (ic < 0) ic += 0x100;
 
   if (isspace (ic))
     {
@@ -622,7 +622,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 		while (*ptr)
 		{
 			int ic = static_cast<int>( *ptr);
-			if (ic < 0) ic += 0xff;
+			if (ic < 0) ic += 0x100;
 
 			if (!isdigit (ic)) break;
 			digit_count++;
@@ -638,7 +638,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 				while (*ptr)
 				{
 					int ic = static_cast<int>( *ptr);
-					if (ic < 0) ic += 0xff;
+					if (ic < 0) ic += 0x100;
 
 					if (!isdigit (ic)) break;
 					digit_count2++;
@@ -659,7 +659,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 		while (*ptr)
 		{
 			int ic = static_cast<int>( *ptr);
-			if (ic < 0) ic += 0xff;
+			if (ic < 0) ic += 0x100;
 
 			if (!isdigit (ic)) break;
 			digit_count++;
@@ -673,7 +673,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 				while (*ptr)
 				{
 					int ic = static_cast<int>( *ptr);
-					if (ic < 0) ic += 0xff;
+					if (ic < 0) ic += 0x100;
 
 					if (!isdigit (ic)) break;
 					ptr++;
@@ -687,7 +687,7 @@ static bool BNF_number (const char ** pptr, float * number) // number
 				while (*ptr)
 				{
 					int ic = static_cast<int>( *ptr);
-					if (ic < 0) ic += 0xff;
+					if (ic < 0) ic += 0x100;
 
 					if (!isdigit (ic)) break;
 					digit_count2++;

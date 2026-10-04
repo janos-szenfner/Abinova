@@ -2407,7 +2407,7 @@ bool PD_Document::changeDocPropeties(const PP_PropertyVector & pAtts, const PP_P
 		UT_DEBUGMSG(("Received revision ID %s szDesc %s time %s ver %s author %s\n",szID,szDesc,szTime,szVersion,szAuthor));
 		UT_uint32 id = atoi(szID);
 		UT_UTF8String sDesc = szDesc ? szDesc : "";
-		time_t iTime = atoi(szTime);
+		time_t iTime = szTime ? static_cast<time_t>(strtoll(szTime, nullptr, 10)) : 0;
 		UT_uint32 iVer = atoi(szVersion);
 		UT_UCS4Char * pD = nullptr;
 		UT_uint32 iLen = sDesc.ucs4_str().size();

@@ -6077,7 +6077,7 @@ void IE_Imp_MsWord_97::_table_close (const wvParseStruct * /*ps*/,
   {
 	  size_t nProps = props.size();
 	  while (nProps > 0 &&
-			 (props[nProps-1] == ';' || isspace(props[nProps-1])))
+			 (props[nProps-1] == ';' || isspace(static_cast<unsigned char>(props[nProps-1]))))
 		  nProps--;
 	  props = props.substr(0, nProps);
   }
@@ -6482,7 +6482,7 @@ void IE_Imp_MsWord_97::_cell_open (MsTableCtx * ctx,
 	  size_t nProps = propBuffer.size();
 	  while (nProps > 0 &&
 			 (propBuffer[nProps-1] == ';' ||
-			  isspace(propBuffer[nProps-1])))
+			  isspace(static_cast<unsigned char>(propBuffer[nProps-1]))))
 		  nProps--;
 	  propBuffer = propBuffer.substr(0, nProps);
   }

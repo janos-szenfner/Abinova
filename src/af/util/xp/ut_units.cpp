@@ -99,7 +99,7 @@ UT_Dimension UT_determineDimension(const char * sz, UT_Dimension fallback)
   if (p && *p)
     {
       // trim off leading spaces
-      while (*p && isspace(*p))
+      while (*p && isspace(static_cast<unsigned char>(*p)))
 	p++;
 
       if (g_ascii_strcasecmp(p,"in") == 0 || g_ascii_strcasecmp(p, "inch") == 0)
@@ -558,7 +558,7 @@ bool UT_isValidDimensionString(const char * sz, size_t max_length)
 	int valChars = 0;
 	while (*p && valid)
 	{
-		valid = isdigit(*p) || ((*p == '.') && seenDecSep == false);
+		valid = isdigit(static_cast<unsigned char>(*p)) || ((*p == '.') && seenDecSep == false);
 		if (*p == '.') seenDecSep = true;
 		if (valid) valChars++;
 		p++;

@@ -1016,7 +1016,7 @@ UT_UTF8String ODe_Style_Style::convertStyleToNCName(const UT_UTF8String& name) {
 
     std::string nc_name = name.utf8_str();
     for (UT_uint32 i = 0; i < nc_name.size(); i++) {
-        if (isalnum(nc_name[i]))
+        if (isalnum(static_cast<unsigned char>(nc_name[i])))
             continue;
         nc_name[i] = '-';
     }

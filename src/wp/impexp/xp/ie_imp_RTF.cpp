@@ -1619,11 +1619,11 @@ bool IE_Imp_RTF::hexVal(char c, int& value)
 {
 	bool ok = true;
 
-	if (isdigit(c))
+	if (isdigit(static_cast<unsigned char>(c)))
 	{
 		ok = digVal(c, value, 10);
 	}
-	else if (islower(c))
+	else if (islower(static_cast<unsigned char>(c)))
 	{
 		ok = (c >= 'a' && c <= 'f');
 		value = c - 'a' + 10;
@@ -9304,7 +9304,7 @@ bool IE_Imp_RTF::PostProcessAndValidatePanose(UT_UTF8String &Panose)
 		}
 		// Only hex digits are allowed so we bail if we see anything
 		// else.
-		if (!isxdigit(*pUTF))
+		if (!isxdigit(static_cast<unsigned char>(*pUTF)))
 		{
 			UT_DEBUGMSG(("RTF: Invalid character in panose string.\n"));
 			return false;

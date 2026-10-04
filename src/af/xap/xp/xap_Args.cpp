@@ -44,11 +44,11 @@ char *XX_encode(const char *str)
 	char *d;
 	char *result;
 	for (c=str;*c;c++) {
-		if (*c<0 || *c=='%') l+=2;
+		if (static_cast<unsigned char>(*c)>=0x80 || *c=='%') l+=2;
 	}
 	result=static_cast<char*>(g_malloc(l));
 	for (c=str,d=result; *c; c++) {
-		if (*c<0 || *c=='%') {
+		if (static_cast<unsigned char>(*c)>=0x80 || *c=='%') {
 			sprintf(d,"%%%02X",static_cast<unsigned char>(*c));
 			d+=3;
 		} else {

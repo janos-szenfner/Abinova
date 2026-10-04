@@ -4870,7 +4870,7 @@ bool fp_FieldTimeEpochRun::calculateValue(void)
 	UT_UTF8String szFieldValue;
 
 	time_t	tim = time(nullptr);
-	UT_UTF8String_sprintf(szFieldValue, "%ld", static_cast<long>(tim));
+	UT_UTF8String_sprintf(szFieldValue, "%lld", static_cast<long long>(tim));
 	if (getField())
 		getField()->setValue(static_cast<const gchar*>(szFieldValue.utf8_str()));
 

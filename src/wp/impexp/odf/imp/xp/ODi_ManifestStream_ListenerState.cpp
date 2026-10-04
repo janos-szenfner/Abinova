@@ -21,6 +21,7 @@
  */
 
 // Class definition include
+#include <cstdlib>
 #include "ODi_ManifestStream_ListenerState.h"
 
 // Internal includes
@@ -66,7 +67,7 @@ void ODi_ManifestStream_ListenerState::startElement (const gchar* pName,
 		m_sFullPath = pVal ? pVal : "";
 
         pVal = UT_getAttribute ("manifest:size", ppAtts);
-		m_iSize = pVal ? atol(pVal) : -1;
+		m_iSize = pVal ? static_cast<UT_sint64>(strtoll(pVal, nullptr, 10)) : -1;
 	}
 	
     if (!strcmp(pName, "manifest:encryption-data")) {

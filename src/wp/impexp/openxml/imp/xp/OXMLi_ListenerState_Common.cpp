@@ -1138,7 +1138,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				else if (!strcmp(val, "none")) val = "black"; //bypass inherited color value when "none"
 				std::string hex = "";
 				for (UT_uint32 i = 0; i <= strlen(val); i++) {
-					hex += tolower(val[i]);
+					hex += static_cast<char>(tolower(static_cast<unsigned char>(val[i])));
 				}
 				UT_HashColor conv;
 				val = conv.setColor(hex.c_str());

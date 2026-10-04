@@ -51,13 +51,13 @@ static void _png_read(png_structp png_ptr, png_bytep data, png_size_t length)
 			: 0;
 	if (length > remaining) {
 		UT_WARNINGMSG(("PNG: Reading past buffer bounds. cur = %u, buflen = %u, length = %lu\n",
-					   p->iCurPos, p->pBB->getLength(), length));
+					   p->iCurPos, p->pBB->getLength(), static_cast<unsigned long>(length)));
 		if (remaining == 0) {
 			UT_WARNINGMSG(("PNG: Truncating to ZERO length.\n"));
 			png_error(png_ptr, "Premature end of buffer");
 			return;
 		}
-		UT_WARNINGMSG(("PNG: Truncating to %lu.\n", remaining));
+		UT_WARNINGMSG(("PNG: Truncating to %lu.\n", static_cast<unsigned long>(remaining)));
 		length = remaining;
 	}
 	memcpy(data, pBytes + p->iCurPos, length);

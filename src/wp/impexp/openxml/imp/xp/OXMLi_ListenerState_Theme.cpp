@@ -387,7 +387,7 @@ std::string OXMLi_ListenerState_Theme::_getHexFromPreset(std::string preset)
 	//must not have capital letters
 	std::string::iterator it;
 	for (it = preset.begin(); it != preset.end(); it++) {
-		(*it) = tolower((*it));
+		(*it) = static_cast<char>(tolower(static_cast<unsigned char>(*it)));
 	}
 
 	//Get the hex value and return as string
