@@ -3702,7 +3702,7 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 		while(i < sizes)
 		{
 			for (j=i; (j<sizes) && (sProps[j] != '/') ; j++) {}
-			if((j+1)>i && sProps[j] == '/')
+			if(j<sizes && (j+1)>i)
 			{
 				UT_String sSub = sProps.substr(i,(j-i));
 				double colWidth = UT_convertToInches(sSub.c_str())* 10000.0;
@@ -3710,6 +3710,10 @@ void s_RTF_ListenerWriteDoc::_newRow(void)
 				fl_ColProps * pColP = new fl_ColProps;
 				pColP->m_iColWidth = static_cast<UT_sint32>(colWidth);
 				vecColProps.push_back(pColP);
+			}
+			else
+			{
+				break;
 			}
 		}
 	}

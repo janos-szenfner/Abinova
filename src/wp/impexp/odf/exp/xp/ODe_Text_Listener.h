@@ -92,8 +92,8 @@ public:
     virtual void openEndnote(const PP_AttrProp* pAP, ODe_ListenerAction& rAction) override;
     virtual void closeEndnote(ODe_ListenerAction& rAction) override;
 
-    virtual void openAnnotation(const PP_AttrProp* pAP, const std::string& name, PD_Document* doc = nullptr) override;
-    virtual void closeAnnotation(const std::string& name) override;
+    virtual void openAnnotation(const PP_AttrProp* pAP, const std::string& name, PD_Document* doc, ODe_ListenerAction& rAction) override;
+    virtual void closeAnnotation(const std::string& name, ODe_ListenerAction& rAction) override;
     virtual void endAnnotation(const std::string& name) override;
 
     virtual void openTOC(const PP_AttrProp* pAP) override;
@@ -128,6 +128,8 @@ public:
     { m_openedODNote = b;}
     void setIgnoreFirstTab(bool b)
     { m_bIgoreFirstTab = b;}
+    void setAnnotationBody(bool b)
+    { m_bAnnotationBody = b;}
 
 private:
     void _initDefaultHeadingStyles();
@@ -152,6 +154,10 @@ private:
     bool m_openedODTextboxFrame;
     bool m_openedODNote;
     bool m_bIgoreFirstTab;
+    /* True when this listener was pushed to render an
+     * office:annotation's body blocks — its paragraph state is then
+     * independent of the host paragraph the annotation anchors in. */
+    bool m_bAnnotationBody;
 
     // Content of the current paragraph.
     GsfOutput* m_pParagraphContent;

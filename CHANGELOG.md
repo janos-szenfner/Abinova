@@ -4443,6 +4443,24 @@ below are on `main` but the release has not been cut yet.
 - **Remaining hard-coded temp paths removed** — the RTF importer's
   fallback directory and the clipboard-dump debug path now use
   `g_get_tmp_dir()` instead of a literal `/tmp`.
+- **ODF export writes well-formed comment bodies** — a comment's body
+  paragraphs used to be serialized across the open tags of the
+  paragraph the comment was anchored in, producing malformed
+  `content.xml`; they now nest inside `office:annotation`.
+- **`.abwn` export declares the `text:` namespace** — documents
+  imported from ODF keep `text:note-citation` attributes on footnote
+  fields; saving them to `.abwn` used to emit an unbound prefix,
+  producing malformed XML.
+- **RTF export table-cell parse bounded** — a table row whose
+  cell-width property lacked a `/` separator could read past the end
+  of the property list and never advance, hanging the export.
+- **Full-format round-trip matrix in `make check`** — `rt-check.sh`
+  gained export-only and import-only legs plus whole-directory
+  conversion sweeps, and its matrix now covers every importer and
+  exporter (docx, odt, rtf, doc, abw/abwn/zabw, epub, mht, xhtml/html,
+  tex/latex, md, txt, wpd, psitext/psiword) with a feature-complete
+  fixture exercising styles, lists, notes, comments, tables, images,
+  math, TOC, fields, links, headers/footers and sections.
 
 ### Resolved root causes worth noting
 

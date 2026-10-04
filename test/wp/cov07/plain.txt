@@ -1,0 +1,3 @@
+Plain text coverage fixture.
+Second line with tabs	and spaces.
+Third line ends here.

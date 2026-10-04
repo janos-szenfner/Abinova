@@ -545,7 +545,11 @@ s_Abinova_1_Listener::s_Abinova_1_Listener(PD_Document * pDocument,
 		"xid-max", UT_std_string_sprintf("%d", pDocument->getTopXID()),
 		"xmlns", ABINOVA_XMLNS,
 		"xmlns:awml", ABINOVA_XMLNS,
-		"xmlns:ct", ABINOVA_XMLNS_CT
+		"xmlns:ct", ABINOVA_XMLNS_CT,
+		/* ODF imports keep "text:note-citation" as an internal
+		 * field attribute; declaring the prefix keeps the
+		 * serialized field element well-formed. */
+		"xmlns:text", "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
 	};
 	pDocument->setAttributes(attr);
 

@@ -1138,7 +1138,15 @@ void ODe_AbiDocListener::_openAnnotation(PT_AttrPropIndex api, const std::string
         UT_DEBUGMSG(("_openAnnotation() api:%d name:%s\n", api, name.c_str() ));
     }
     
-    m_pCurrentImpl->openAnnotation( pAP, name, m_pDocument );
+    m_listenerImplAction.reset();
+    m_pCurrentImpl->openAnnotation( pAP, name, m_pDocument, m_listenerImplAction );
+
+    if (m_listenerImplAction.getAction() != m_listenerImplAction.ACTION_NONE) {
+        // A body-block listener was pushed for the annotation's
+        // content (see ODe_Text_Listener::openAnnotation).
+        _handleListenerImplAction();
+    }
+
     m_bInAnnotation = true;
     m_bPendingAnnotationEnd = true;
     m_currentAnnotationName = name;
@@ -1155,7 +1163,24 @@ void ODe_AbiDocListener::_closeAnnotation()
         return;
     }
 
-    m_pCurrentImpl->closeAnnotation( m_currentAnnotationName );
+    m_listenerImplAction.reset();
+    m_pCurrentImpl->closeAnnotation( m_currentAnnotationName, m_listenerImplAction );
+
+    if (m_listenerImplAction.getAction() != m_listenerImplAction.ACTION_NONE) {
+        ODe_AbiDocListenerImpl* pPreviousImpl;
+
+        pPreviousImpl = m_pCurrentImpl;
+        _handleListenerImplAction();
+
+        if (m_pCurrentImpl != nullptr && pPreviousImpl != m_pCurrentImpl) {
+            // The implementation has changed (annotation body
+            // listener popped): let the restored listener finish
+            // the close if it needs to.
+            this->_closeAnnotation();
+            return;
+        }
+    }
+
     m_bInAnnotation = false;
     m_bInBlock = true;
 }

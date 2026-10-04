@@ -70,6 +70,7 @@ ODe_Text_Listener::ODe_Text_Listener(ODe_Styles& rStyles,
                         m_openedODTextboxFrame(false),
                         m_openedODNote(false),
                         m_bIgoreFirstTab(false),
+                        m_bAnnotationBody(false),
                         m_pParagraphContent(nullptr),
                         m_pChangeCapture(nullptr),
                         m_currentListLevel(0),
@@ -115,6 +116,7 @@ ODe_Text_Listener::ODe_Text_Listener(ODe_Styles& rStyles,
                         m_openedODTextboxFrame(false),
                         m_openedODNote(false),
 			m_bIgoreFirstTab(false),
+                        m_bAnnotationBody(false),
                         m_pParagraphContent(nullptr),
                         m_pChangeCapture(nullptr),
                         m_currentListLevel(0),
@@ -479,7 +481,7 @@ void ODe_Text_Listener::closeEndnote(ODe_ListenerAction& rAction) {
 /**
  * 
  */
-void ODe_Text_Listener::openAnnotation(const PP_AttrProp* pAP, const std::string& name, PD_Document* doc )
+void ODe_Text_Listener::openAnnotation(const PP_AttrProp* pAP, const std::string& name, PD_Document* doc, ODe_ListenerAction& rAction )
 {
     UT_UTF8String output = "<office:annotation";
     UT_UTF8String escape;
@@ -554,15 +556,38 @@ void ODe_Text_Listener::openAnnotation(const PP_AttrProp* pAP, const std::string
 
 
     ODe_writeUTF8String(_contentSink(), output);
+
+    /* The annotation's body lives in separate blocks inside the
+     * office:annotation element.  Push a fresh listener for it so its
+     * paragraph open/close tags nest inside the annotation instead of
+     * crossing the enclosing paragraph's tags. */
+    ODe_Text_Listener* pBodyListener =
+        new ODe_Text_Listener(m_rStyles,
+                              m_rAutomatiStyles,
+                              _contentSink(),
+                              m_rAuxiliaryData,
+                              0,
+                              m_spacesOffset);
+    pBodyListener->setAnnotationBody(true);
+    rAction.pushListenerImpl(pBodyListener, true);
 }
 
 /**
  * 
  */
-void ODe_Text_Listener::closeAnnotation( const std::string& /*name*/ )
+void ODe_Text_Listener::closeAnnotation( const std::string& /*name*/, ODe_ListenerAction& rAction )
 {
-    UT_UTF8String output = "</office:annotation>";
-    ODe_writeUTF8String(_contentSink(), output);
+    if (m_bAnnotationBody) {
+        // We were pushed to render the annotation's body blocks.
+        // The paragraph close flushes its buffered content into
+        // m_pTextOutput, so the close tag must go there too.
+        _closeODParagraph();
+        _closeODList();
+        ODe_writeUTF8String(m_pTextOutput, "</office:annotation>");
+        rAction.popListenerImpl();
+    }
+    // The annotation's host listener emitted the open tag in
+    // openAnnotation(); nothing further to do here.
 }
 
 void ODe_Text_Listener::endAnnotation( const std::string& name )

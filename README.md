@@ -2008,15 +2008,22 @@ replays it to report whether the crash still reproduces.
 
 Besides the `Abinova-test` unit suite, `make check` also runs
 `tools/rt-check.sh` (as `unix/rtwrap.sh`): every fixture in its
-matrix — `.abw`, `.docx`, `.odt`, `.rtf`, `.doc`, `.wpd`, `.md`,
-`.txt`, `.mht` — is exported through the docx/odt/rtf/doc/abwn/
-html/txt/md writers, the output is structurally validated (zip
-members + stored mimetype for containers, XML well-formedness for
-`.abwn`, `{\rtf` magic, …), re-imported, and the normalized text must
-survive the round-trip; image fixtures additionally assert the image
-data-item count. A failed export, structural defect, text difference
-or dropped image fails the suite. Run it standalone with
-`tools/rt-check.sh src/abinova $PWD`.
+matrix — `.abw`/`.abwn`/`.zabw`, `.docx`, `.odt`, `.rtf`, `.doc`,
+`.wpd`, `.epub`, `.mht`, `.xhtml`/`.html`, `.tex`, `.md`, `.txt`,
+`.psitext`/`.psiword` — is exported through the docx/odt/rtf/doc/
+abwn/xhtml/tex/mht/epub/md/txt/pdf writers, the output is
+structurally validated (zip members + stored mimetype for containers,
+XML well-formedness for `.abwn`/`.xhtml`, `{\rtf` magic, `%PDF`
+header, …), re-imported, and the normalized text must survive the
+round-trip; image fixtures additionally assert the image data-item
+count. Formats with known text drift run export-only legs (structure
+checked, no text compare), and whole-directory sweeps convert every
+fixture in the test corpora (`test/wp/suite`, `bugs`, `odt`, `tst04`,
+`tst07`, `cov07`) plus the fuzz seed corpus and crash regression
+files to `.abwn`, tolerating only clean conversions or clean
+rejects. A failed export, structural
+defect, text difference, dropped image or crash fails the suite.
+Run it standalone with `tools/rt-check.sh src/abinova $PWD`.
 
 `make check` also runs two more wrappers:
 

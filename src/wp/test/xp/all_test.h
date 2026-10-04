@@ -173,3 +173,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_math.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_sniffers.t.cpp"
+#undef TFSUITE

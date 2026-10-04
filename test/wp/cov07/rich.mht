@@ -1,0 +1,278 @@
+From: <Saved by Abinova>
+Subject: 
+Date: Sun, 04 Oct 2026 11:40:08 +0200
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	boundary="AbiWord_multipart_boundary____________";
+	type="application/xhtml+xml"
+
+--AbiWord_multipart_boundary____________
+Content-Type: application/xhtml+xml;charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<?xml version=3D"1.0" encoding=3D"UTF-8" ?>=0A<!DOCTYPE html PUBLIC "-=
+//ABISOURCE//DTD XHTML plus AWML 2.2//EN" "http://www.abisource.com/20=
+04/xhtml-awml/xhtml-awml.mod"><div>=0A    <html xmlns=3D"http://www.w3=
+.org/1999/xhtml" xmlns:awml=3D"http://www.abisource.com/2004/xhtml-awm=
+l/">=0A        <head>=0A            <meta http-equiv=3D"Content-Type" =
+content=3D"application/xhtml+xml; charset=3DUTF-8"/>=0A            <ti=
+tle>=0ACoverage Fixture=0A            </title>=0A            <meta nam=
+e=3D"title" content=3D"Coverage Fixture"/>=0A            <meta name=3D=
+"author" content=3D"Abinova Tests"/>=0A            <meta name=3D"subje=
+ct" content=3D"importer/exporter coverage"/>=0A            <style type=
+=3D"text/css">=0A<!-- #toc,=0A.toc,=0A.mw-warning {=0A	border: 1px sol=
+id #aaa;=0A	background-color: #f9f9f9;=0A	padding: 5px;=0A	font-size: =
+95%;=0A}=0A#toc h2,=0A.toc h2 {=0A	display: inline;=0A	border: none;=0A=
+	padding: 0;=0A	font-size: 100%;=0A	font-weight: bold;=0A}=0A#toc #toc=
+title,=0A.toc #toctitle,=0A#toc .toctitle,=0A.toc .toctitle {=0A	text-=
+align: center;=0A}=0A#toc ul,=0A.toc ul {=0A	list-style-type: none;=0A=
+	list-style-image: none;=0A	margin-left: 0;=0A	padding-left: 0;=0A	tex=
+t-align: left;=0A}=0A#toc ul ul,=0A.toc ul ul {=0A	margin: 0 0 0 2em;=0A=
+}=0A#toc .toctoggle,=0A.toc .toctoggle {=0A	font-size: 94%;=0A}p, h1, =
+h2, h3, li {=0A	color:#000000;=0A	font-family:'Times New Roman';=0A	fo=
+nt-size:12pt;=0A	text-align:left;=0A	vertical-align:normal;=0A}=0A*.bl=
+ock_text {=0A	font-style:italic;=0A	margin-bottom:6pt;=0A	margin-left:=
+0.5in;=0A	margin-right:0.5in;=0A}=0Ah1 {=0A	color:#000080;=0A	font-fam=
+ily:'Arial';=0A	font-size:16pt;=0A	font-weight:bold;=0A	margin-bottom:=
+6pt;=0A	margin-top:12pt;=0A	page-break-after:avoid;=0A}=0A*.numbered_h=
+eading_1 {=0A	margin-left:0.0in;=0A	text-indent:0.0in;=0A}=0Ah2 {=0A	c=
+olor:#004080;=0A	font-family:'Carlito';=0A	font-size:13pt;=0A	margin-b=
+ottom:4pt;=0A	margin-top:10pt;=0A	page-break-after:avoid;=0A}=0A*.foot=
+note_text {=0A	font-size:10pt;=0A}=0A*.footnote_reference {=0A	font-si=
+ze:10pt;=0A	vertical-align:super;=0A}=0Abody{=0Apadding-top : 1in;=0Ap=
+adding-bottom : 1in;=0Apadding-left : 1in;=0Apadding-right : 1in;=0Ate=
+xt-indent:0in;=0Afont-family:'Times New Roman';=0Afont-style:normal;=0A=
+color:#000000;=0Atext-align:left;=0Awidows:2;=0Afont-weight:normal;=0A=
+font-variant:normal;=0Atext-decoration:none;=0Afont-size:12pt;=0A} -->=
+=0A            </style>=0A            <script type=3D"text/javascript"=
+>=0A<!--  /* =0D=0A MIT License=0D=0A Copyright (c) 2006 Sam Ruby =0D=0A=
+ =0D=0A Permission is hereby granted, free of charge, to any person ob=
+taining a copy=0D=0A of this software and associated documentation fil=
+es (the 'Software'), to deal=0D=0A in the Software without restriction=
+, including without limitation the rights=0D=0A to use, copy, modify, =
+merge, publish, distribute, sublicense, and/or sell=0D=0A copies of th=
+e Software, and to permit persons to whom the Software is=0D=0A furnis=
+hed to do so, subject to the following conditions: =0D=0A =0D=0A The a=
+bove copyright notice and this permission notice shall be included in =
+all=0D=0A copies or substantial portions of the Software.=0D=0A THE SO=
+FTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR=0D=
+=0A IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTAB=
+ILITY, =0D=0A FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN=
+ NO EVENT SHALL THE=0D=0A AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR A=
+NY CLAIM, DAMAGES OR OTHER=0D=0A LIABILITY, WHETHER IN AN ACTION OF CO=
+NTRACT, TORT OR OTHERWISE, ARISING FROM,=0D=0A OUT OF OR IN CONNECTION=
+ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE=0D=0A SOFTWARE.=
+=0D=0A */ =0D=0A =0D=0A window.onload =3D function() {=0D=0A   var Mat=
+hML =3D {=0D=0A     // Jacques Distler subset of Presentational MathML=
+=0D=0A     root: 'math',=0D=0A     ns: 'http://www.w3.org/1998/Math/Ma=
+thML',=0D=0A     elements: ['maction', 'math', 'merror', 'mfrac', 'mi'=
+,=0D=0A       'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphant=
+om',=0D=0A       'mprescripts', 'mroot', 'mrow', 'mspace', 'msqrt', 'm=
+style', 'msub',=0D=0A       'msubsup', 'msup', 'mtable', 'mtd', 'mtext=
+', 'mtr', 'munder',=0D=0A       'munderover', 'none'], =0D=0A     attr=
+ibutes: ['actiontype', 'align', 'columnalign', 'columnalign', =0D=0A  =
+     'columnalign', 'columnlines', 'columnspacing', 'columnspan', 'dep=
+th', =0D=0A       'display', 'displaystyle', 'equalcolumns', 'equalrow=
+s', 'fence', =0D=0A       'fontstyle', 'fontweight', 'frame', 'height'=
+, 'linethickness', 'lspace', =0D=0A       'mathbackground', 'mathcolor=
+', 'mathvariant', 'mathvariant', 'maxsize',  =0D=0A       'minsize', '=
+other', 'rowalign', 'rowalign', 'rowalign', 'rowlines', =0D=0A       '=
+rowspacing', 'rowspan', 'rspace', 'scriptlevel', 'selection',=0D=0A   =
+    'separator', 'stretchy', 'width', 'width'] =0D=0A   } =0D=0A  =0D=0A=
+   var SVG =3D { =0D=0A     // svgtiny + class + opacity + offset + st=
+yle =0D=0A     root: 'svg', =0D=0A     ns: 'http://www.w3.org/2000/svg=
+',=0D=0A     elements: ['a', 'animate', 'animateColor', 'animateMotion=
+', =0D=0A       'animateTransform', 'circle', 'defs', 'desc', 'ellipse=
+', 'font-face', =0D=0A       'font-face-name', 'font-face-src', 'g', '=
+glyph', 'hkern', 'image', =0D=0A       'linearGradient', 'line', 'meta=
+data', 'missing-glyph', 'mpath', 'path', =0D=0A       'polygon', 'poly=
+line', 'radialGradient', 'rect', 'set', 'stop',=0D=0A       'switch', =
+'text', 'title', 'use'], =0D=0A     attributes: ['accent-height', 'acc=
+umulate', 'additive', 'alphabetic', =0D=0A       'arabic-form', 'ascen=
+t', 'attributeName', 'attributeType', =0D=0A       'baseProfile', 'bbo=
+x', 'begin', 'by', 'calcMode', 'cap-height', =0D=0A       'class', 'co=
+lor', 'color-rendering', 'content', 'cx', 'cy', 'd', =0D=0A       'des=
+cent', 'display', 'dur', 'end', 'fill', 'fill-rule', 'font-family', =0D=
+=0A       'font-size', 'font-stretch', 'font-style', 'font-variant', =0D=
+=0A       'font-weight', 'from', 'fx', 'fy', 'g1', 'g2', 'glyph-name',=
+ 'hanging', =0D=0A       'height', 'horiz-adv-x', 'horiz-origin-x', 'i=
+d', 'ideographic', 'k', =0D=0A       'keyPoints', 'keySplines', 'keyTi=
+mes', 'lang', 'mathematical', 'max', =0D=0A       'min', 'name', 'offs=
+et', 'opacity', 'origin', 'overline-position',=0D=0A       'overline-t=
+hickness', 'panose-1', 'path', 'pathLength', 'points',=0D=0A       'pr=
+eserveAspectRatio', 'r', 'repeatCount', 'repeatDur',=0D=0A       'requ=
+iredExtensions', 'requiredFeatures', 'restart', 'rotate', 'rx',=0D=0A =
+      'ry', 'slope', 'stemh', 'stemv', 'stop-color', 'stop-opacity',=0D=
+=0A       'strikethrough-position', 'strikethrough-thickness', 'stroke=
+',=0D=0A       'stroke-dasharray', 'stroke-dashoffset', 'stroke-lineca=
+p',=0D=0A       'stroke-linejoin', 'stroke-miterlimit', 'stroke-width'=
+, 'style',=0D=0A       'systemLanguage', 'target', 'text-anchor', 'to'=
+, 'transform', 'type',=0D=0A       'u1', 'u2', 'underline-position', '=
+underline-thickness', 'unicode',=0D=0A       'unicode-range', 'units-p=
+er-em', 'values', 'version', 'viewBox',=0D=0A       'visibility', 'wid=
+th', 'widths', 'x', 'x-height', 'x1', 'x2',=0D=0A       'y', 'y1', 'y2=
+', 'zoomAndPan'] =0D=0A   } =0D=0A  =0D=0A   // clone a DOM subtree =0D=
+=0A   function deepcopy(module, source, dest, nsmap) { =0D=0A     // c=
+opy attributes =0D=0A     for (var i=3D0; i<source.attributes.length; =
+i++) { =0D=0A       var oldattr =3D source.attributes[i];=0D=0A       =
+var colon =3D oldattr.name.indexOf(':');=0D=0A       if (colon =3D=3D =
+-1) {=0D=0A         for (var j=3D0; j<module.attributes.length; j++) {=
+=0D=0A           if (module.attributes[j].toLowerCase() !=3D oldattr.n=
+ame) continue;=0D=0A           dest.setAttribute(module.attributes[j],=
+ oldattr.value);=0D=0A           break;=0D=0A         }=0D=0A       } =
+else { // namespace prefixed attribute=0D=0A         var prefix =3D ol=
+dattr.name.slice(0,colon);=0D=0A         var name =3D oldattr.name.sli=
+ce(colon+1);=0D=0A         if (prefix =3D=3D 'xmlns') {=0D=0A         =
+  var oldmap =3D nsmap;=0D=0A           nsmap =3D {};=0D=0A           =
+for (var property in oldmap) nsmap[property] =3D oldmap[property];=0D=0A=
+           nsmap[name] =3D oldattr.value;=0D=0A         } else {=0D=0A=
+           for (var ns in nsmap) {=0D=0A             if (ns =3D=3D pre=
+fix) {=0D=0A               dest.setAttributeNS(nsmap[prefix], name, ol=
+dattr.value);=0D=0A             }=0D=0A           }=0D=0A         }=0D=
+=0A       }=0D=0A     }=0D=0A =0D=0A     // copy children=0D=0A     fo=
+r (var i=3D0; i<source.childNodes.length; i++) {=0D=0A       var oldch=
+ild =3D source.childNodes[i];=0D=0A       if (oldchild.nodeType =3D=3D=
+ 1) { // element=0D=0A         for (var j=3D0; j<module.elements.lengt=
+h; j++) {=0D=0A           if (module.elements[j].toUpperCase() !=3D ol=
+dchild.nodeName) continue;=0D=0A           var newchild =3D document.c=
+reateElementNS(module.ns,module.elements[j]);=0D=0A           deepcopy=
+(module, oldchild, newchild, nsmap);=0D=0A           dest.appendChild(=
+newchild);=0D=0A           break;=0D=0A         }=0D=0A       } else i=
+f (oldchild.nodeType =3D=3D 3) { // text=0D=0A         var newchild =3D=
+ document.createTextNode(oldchild.nodeValue);=0D=0A         dest.appen=
+dChild(newchild); =0D=0A       } =0D=0A     } =0D=0A   } =0D=0A =0D=0A=
+   // copy modules into their appropriate namespaces=0D=0A   var modul=
+es =3D [MathML, SVG];=0D=0A   for (var i=3D0; i<modules.length; i++) {=
+ =0D=0A     var module =3D modules[i];=0D=0A     var roots =3D documen=
+t.getElementsByTagName(module.root); =0D=0A     for (var j=3D0; j<root=
+s.length; j++) { =0D=0A       var source =3D roots[j]; =0D=0A       if=
+ (document.createElementNS) { =0D=0A         if (source.__proto__ !=3D=
+ HTMLUnknownElement.prototype) continue; =0D=0A         if (source.get=
+Attribute('xmlns') !=3D module.ns) continue; =0D=0A         var dest =3D=
+ document.createElementNS(module.ns, module.root); =0D=0A         deep=
+copy(module, source, dest, {}); =0D=0A         source.parentNode.inser=
+tBefore(dest, source); =0D=0A         source.parentNode.removeChild(so=
+urce); =0D=0A       } else {  =0D=0A         // fallback browsers that=
+ don't support DOM namespaces =0D=0A         var img =3D document.crea=
+teElement('img'); =0D=0A         img.src =3D module.root + ' image'; =0D=
+=0A         img.title =3D module.root + ' image'; =0D=0A         sourc=
+e.parentNode.insertBefore(img, source) ;=0D=0A       } =0D=0A     } =0D=
+=0A   } =0D=0A } =0D=0A -->=0A            </script>=0A=0A        </hea=
+d>=0A<body><p style=3D"text-align:center"><span style=3D"font-size:9pt=
+;color:#888888">Coverage header</span></p><p style=3D"text-align:cente=
+r"></p></body>        <div>=0A            <h1 id=3D"AbiTOC0" awml:styl=
+e=3D"Heading 1">=0ARich Coverage Document=0A            </h1>=0A<p>Thi=
+s paragraph has <span style=3D"font-weight:bold">bold</span>, <span st=
+yle=3D"font-style:italic">italic</span>, <span style=3D"text-decoratio=
+n:underline">underline</span>, <span style=3D"text-decoration:line-thr=
+ough">strike</span>, <span style=3D"text-decoration:overline">overline=
+</span>, <span style=3D"vertical-align:super">super</span> and <span s=
+tyle=3D"vertical-align:sub">sub</span> runs, plus <span style=3D"font-=
+size:14pt;font-family:'Courier New';color:#aa0000">colored mono</span>=
+ text.</p><p style=3D"text-align:center"><span style=3D"background:#ff=
+ff00">Centered and highlighted. A bookmark sits </span>               =
+ <a name=3D"covmark">=0Ahere=0A                </a>=0A.</p><p>Visit <a=
+ href=3D"https://example.com/">the example site</a> for more. Page <sp=
+an></span> of <span></span>; today is <span></span> at <span></span>.<=
+/p>            <h2 id=3D"AbiTOC1" awml:style=3D"Heading 2">=0ALists=0A=
+            </h2>=0A            <ol awml:style=3D"Numbered Heading 1">=
+=0A                <li>=0A<span></span>Numbered item one=0A           =
+     </li>=0A                <li>=0A<span></span>Numbered item two    =
+                <ol>=0A                        <li>=0A<span></span>Nes=
+ted number=0A                        </li>=0A=0A                    </=
+ol>=0A                    <ul>=0A                        <li>=0A<span>=
+</span>Bullet item=0A                        </li>=0A=0A              =
+      </ul>=0A=0A                </li>=0A=0A            </ol>=0A<p>Foo=
+tnote<a href=3D"#footnote-1">1</a> and endnote<a href=3D"#endnote-1">1=
+</a> anchors.</p><p>An annotated span<a href=3D"#annotation-1"> right =
+here</a> continues normally.</p>            <h2 id=3D"AbiTOC2" awml:st=
+yle=3D"Heading 2">=0ATable=0A            </h2>=0A            <table bo=
+rder=3D"0" cellpadding=3D"0" style=3D"width:100%;border:1pt;border-col=
+lapse:collapse;empty-cells:show;table-layout:fixed;border-style:solid"=
+>=0A                <tr>=0A                    <td rowspan=3D"" colspa=
+n=3D"" style=3D"padding: 0.00pt;background-color:#eeeeee;border:inheri=
+t inherit inherit">=0A<p><span style=3D"font-weight:bold">A1</span></p=
+>=0A                    </td>=0A                    <td rowspan=3D"" c=
+olspan=3D"" style=3D"padding: 0.00pt;background-color:#eeeeee;border:i=
+nherit inherit inherit">=0A<p><span style=3D"font-weight:bold">B1</spa=
+n></p>=0A                    </td>=0A                    <td rowspan=3D=
+"" colspan=3D"" style=3D"padding: 0.00pt;background-color:#eeeeee;bord=
+er:inherit inherit inherit">=0A<p><span style=3D"font-weight:bold">C1<=
+/span></p>=0A                    </td>=0A=0A                </tr>=0A  =
+              <tr>=0A                    <td rowspan=3D"" colspan=3D"2=
+" style=3D"padding: 0.00pt;border:inherit inherit inherit">=0A<p>merge=
+d A2:B2</p>=0A                    </td>=0A                    <td rows=
+pan=3D"" colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit =
+inherit">=0A<p>C2</p>=0A                    </td>=0A=0A               =
+ </tr>=0A                <tr>=0A                    <td rowspan=3D"" c=
+olspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit inherit">=0A=
+<p>A3</p>=0A                    </td>=0A                    <td rowspa=
+n=3D"" colspan=3D"" style=3D"padding: 0.00pt;border:inherit inherit in=
+herit">=0A<p>B3 with an image <img style=3D"width:8.4mm; height:6.3mm"=
+ src=3D"rich.mht_files/red.png.png" title=3D"" alt=3D"" align=3D""/></=
+p></td>=0A                    <td rowspan=3D"" colspan=3D"" style=3D"p=
+adding: 0.00pt;border:inherit inherit inherit">=0A<p>C3</p>=0A        =
+            </td>=0A=0A                </tr>=0A=0A            </table>=
+=0A            <h2 id=3D"AbiTOC3" awml:style=3D"Heading 2">=0AObjects=0A=
+            </h2>=0A<p>Inline image: <img style=3D"width:11.2mm; heigh=
+t:8.4mm" src=3D"rich.mht_files/red.png.png" title=3D"Red" alt=3D"red s=
+quare" align=3D""/>; math: .</p>            <div style=3D"background-c=
+olor: #DDEEFF;  border: solid; clear: none; z-index: 999;">=0A<p><span=
+ style=3D"font-size:10pt">Textbox frame content.</span></p>=0A        =
+    </div>=0A<p><img src=3D"rich.mht_files/red.png.png" title=3D"" alt=
+=3D"" align=3D""/></p>            <h2 id=3D"AbiTOC4" awml:style=3D"Hea=
+ding 2">=0AContents=0A            </h2>=0A            <ul class=3D"tab=
+le-of-contents">=0A                <li>=0A                    <a class=
+=3D"toc-item" href=3D"#AbiTOC0">=0ARich Coverage Document=0A          =
+          </a>=0A=0A                </li>=0A                <li>=0A   =
+                 <a class=3D"toc-item" href=3D"#AbiTOC1">=0ALists=0A  =
+                  </a>=0A=0A                </li>=0A                <l=
+i>=0A                    <a class=3D"toc-item" href=3D"#AbiTOC2">=0A	N=
+umbered item one=0A                    </a>=0A=0A                </li>=
+=0A                <li>=0A                    <a class=3D"toc-item" hr=
+ef=3D"#AbiTOC3">=0ATable=0A                    </a>=0A=0A             =
+   </li>=0A                <li>=0A                    <a class=3D"toc-=
+item" href=3D"#AbiTOC4">=0AObjects=0A                    </a>=0A=0A   =
+             </li>=0A                <li>=0A                    <a cla=
+ss=3D"toc-item" href=3D"#AbiTOC5">=0AContents=0A                    </=
+a>=0A=0A                </li>=0A=0A            </ul>=0A<p>Rich Coverag=
+e Document1</p><p awml:style=3D"Block Text">Indented block quote parag=
+raph with a tabstop.</p>            <ol>=0A                <li class=3D=
+"endnote_anchor" id=3D"endnote-1">=0A Endnote body text.=0A           =
+     </li>=0A=0A            </ol>=0A=0A        </div>=0A        <div>=0A=
+<p><span style=3D"font-weight:bold">Second section (two columns).</spa=
+n> Column text flows here; a page break follows.</p><p>After the page =
+break in section two.</p><p style=3D"text-align:center"></p><p style=3D=
+"text-align:center">                <div>=0A</div>=0A<p style=3D"text-=
+align:center"></p></p></div>=0A        <ol>=0A            <li class=3D=
+"footnote_anchor" id=3D"footnote-1">=0A Footnote body text.=0A        =
+    </li>=0A=0A        </ol>=0A        <div class=3D"annotation-sectio=
+n">=0A            <p class=3D"annotation" id=3D"annotation-1">=0A     =
+           <span class=3D"annotation-author">=0ACoverage Tester=0A    =
+            </span>=0A                <br/>=0A                <blockqu=
+ote class=3D"annotation-content">=0AAnnotation body text.=0A          =
+      </blockquote>=0A=0A            </p>=0A=0A        </div>=0A=0A   =
+ </html>=0A=0A</div>=0A=
+
+--AbiWord_multipart_boundary____________
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Location: rich.mht_files/red.png.png
+
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJElEQVR4nGM4ISdHU8QwasGo
+BaMWjFowasGoBaMWjFowNCwAAGcLDC4DZjluAAAAAElFTkSuQmCC
+--AbiWord_multipart_boundary____________
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Location: rich.mht_files/red.png.png
+
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJElEQVR4nGM4ISdHU8QwasGo
+BaMWjFowasGoBaMWjFowNCwAAGcLDC4DZjluAAAAAElFTkSuQmCC
+--AbiWord_multipart_boundary____________
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Location: rich.mht_files/red.png.png
+
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJElEQVR4nGM4ISdHU8QwasGo
+BaMWjFowasGoBaMWjFowNCwAAGcLDC4DZjluAAAAAElFTkSuQmCC
+--AbiWord_multipart_boundary____________--

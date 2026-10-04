@@ -32,7 +32,7 @@ trap 'rm -rf "$TMPD"' EXIT
 FAIL=0
 PASS=0
 
-norm() { tr -s '[:space:]' ' ' <"$1" | sed 's/[0-9]\{1,\}/#/g; s/^ *//; s/ *$//'; }
+norm() { tr -s '[:space:]' ' ' <"$1" | sed 's/[0-9]\{1,\}/#/g; s/^ *//; s/ *$//; s|file://[^ ]*|<FILE>|g'; }
 imgcount() { grep -o 'mime-type="image/' "$1" | wc -l; }
 
 validate() { # $1=exported file $2=format
@@ -67,8 +67,24 @@ PYEOF
         ;;
     rtf|doc)
         head -c5 "$1" | grep -q '^{\\rtf' ;;
-    html)
+    html|xhtml)
         grep -qi '<html' "$1" ;;
+    tex|latex)
+        grep -q '\\begin{document}\|\\end{' "$1" ;;
+    mht)
+        grep -qi 'MIME-Version\|multipart/related' "$1" ;;
+    pdf)
+        head -c4 "$1" | grep -q '%PDF' ;;
+    epub)
+        python3 - "$1" <<'PYEOF'
+import sys, zipfile
+zf = zipfile.ZipFile(sys.argv[1])
+assert zf.namelist()[0] == 'mimetype', 'mimetype member not first'
+assert zf.getinfo('mimetype').compress_type == zipfile.ZIP_STORED
+assert zf.read('mimetype') == b'application/epub+zip', 'wrong mimetype'
+assert 'META-INF/container.xml' in zf.namelist()
+PYEOF
+        ;;
     txt|md)
         [ -s "$1" ] && grep -q '[^[:space:]]' "$1" ;;
     *)
@@ -112,11 +128,58 @@ leg() { # $1=fixture path (relative to $SRC) $2=export format $3="img"|"-"
     PASS=$((PASS + 1))
 }
 
-run() { # $1=fixture (relative to $SRC); rest = legs ('img:' prefix = image assert)
+# exp:FMT leg — export + structural validation only; use where the
+# format's reimport fidelity is a known gap (annotation/field/TOC text
+# drift, html export embedding MathJax JS, markdown losing fields).
+expleg() { # $1=fixture $2=format
+    local name="$1" fmt="$2" out="$TMPD/out.$2"
+    echo "=== $name -> $fmt (export only)"
+    if ! "$BIN" --to="$fmt" --to-name="$out" "$SRC/$name" >/dev/null 2>&1; then
+        echo "  FAIL: export"; FAIL=$((FAIL + 1)); return
+    fi
+    if ! validate "$out" "$fmt"; then
+        echo "  FAIL: structure"; FAIL=$((FAIL + 1)); return
+    fi
+    echo "  export+structure OK"
+    PASS=$((PASS + 1))
+}
+
+# imp:FILE leg — import + txt convert only; asserts the importer accepts
+# the fixture and produces text.  For generated/foreign fixtures whose
+# normalized text can't equal a .abw source's.
+impleg() { # $1=fixture
+    local name="$1"
+    echo "=== import $name"
+    if ! "$BIN" --to=txt --to-name="$TMPD/imp.txt" "$SRC/$name" >/dev/null 2>&1; then
+        echo "  FAIL: import"; FAIL=$((FAIL + 1)); return
+    fi
+    echo "  import OK"
+    PASS=$((PASS + 1))
+}
+
+# sweep <dir> — convert every file in the directory (recursively) to
+# abwn; exercises importer + abwn exporter on each.  rc==255 (clean
+# reject) is allowed — corrupt fixtures must degrade, not crash or hang.
+sweep() { # $1=dir (relative to $SRC)
+    local d="$1" f rc
+    while IFS= read -r f; do
+        timeout 60 "$BIN" --to=abwn --to-name="$TMPD/sweep.abwn" "$f" >/dev/null 2>&1
+        rc=$?
+        if [ $rc -eq 0 ] || [ $rc -eq 255 ]; then
+            PASS=$((PASS + 1))
+        else
+            echo "=== sweep $f CRASH rc=$rc"; FAIL=$((FAIL + 1))
+        fi
+    done < <(find "$SRC/$d" -type f | sort)
+    echo "=== sweep $d done"
+}
+
+run() { # $1=fixture (relative to $SRC); rest = legs ('img:'/'exp:'/'imp:' prefixes)
     local file="$1"; shift
     for spec in "$@"; do
         case "$spec" in
         img:*) leg "$file" "${spec#img:}" img ;;
+        exp:*) expleg "$file" "${spec#exp:}" ;;
         *)     leg "$file" "$spec" - ;;
         esac
     done
@@ -158,6 +221,75 @@ run fuzz/corpus/wpd/seed_groups.wpd     abwn
 run fuzz/corpus/wpd/seed_prefixidx.wpd  abwn
 # MHTML input
 run fuzz/corpus/mht/seed_gettysburg.mht abwn docx
+
+# ---- COV07: full-format coverage matrix ------------------------------
+# Mega-fixture with every construct (styles, lists, foot+endnote,
+# annotation, table w/ merged cells + in-cell image, inline + framed
+# image, math, TOC, fields, links, bookmark, hdr/ftr, 2-col section,
+# page break) exported through every format.  Lossy formats get
+# export-only legs; the committed rich.* conversions below exercise the
+# matching importers.
+run test/wp/cov07/rich.abw        abwn txt \
+    exp:docx exp:odt exp:rtf exp:doc exp:xhtml exp:tex exp:latex \
+    exp:mht exp:epub exp:md exp:pdf
+# Generated-format fixtures back through the importers
+run test/wp/cov07/rich.rtf        abwn
+run test/wp/cov07/rich.docx       abwn
+run test/wp/cov07/rich.odt        abwn
+run test/wp/cov07/rich.xhtml      abwn
+run test/wp/cov07/rich.mht        abwn
+run test/wp/cov07/rich.epub       abwn
+run test/wp/cov07/rich.zabw       abwn txt
+# Hand-written format fixtures
+run test/wp/cov07/full.tex        abwn exp:tex
+run test/wp/cov07/full.md         abwn txt
+run test/wp/cov07/full.html       abwn txt
+run test/wp/cov07/plain.txt       abwn txt
+impleg test/wp/cov07/utf16.txt
+impleg test/wp/cov07/latin1.txt
+impleg test/wp/cov07/red.png
+impleg test/wp/example.psitext
+impleg test/wp/example.psiword
+impleg test/wp/mr18-empty-props.html
+# Broader abw/doc/rtf corpus legs
+run test/wp/fields.abw            abwn docx exp:rtf
+run test/wp/frame.abw             abwn exp:docx
+run test/wp/footer.abw            abwn docx
+run test/wp/Styles.abw            abwn docx
+run test/wp/tabs.abw              abwn
+run test/wp/abi_memo.abw          abwn docx
+run test/wp/abi_memo-new.abw      abwn
+run test/wp/accents.abw           abwn docx
+run test/wp/Unicode1.abw          abwn docx
+run test/wp/World.abw             abwn
+run test/wp/Bazaar.abw            abwn
+run test/wp/Interview.abw         abwn docx exp:html
+run test/wp/fields.rtf            abwn
+run test/wp/rtftest.rtf           abwn docx
+run test/wp/fields.doc            abwn exp:docx
+run test/wp/toc.abw               rtf exp:html exp:tex
+run test/wp/image_props.abw       rtf exp:mht exp:epub
+run test/wp/posimage.abw          exp:odt
+run test/wp/BillOfRights.abw      exp:rtf exp:tex exp:xhtml exp:epub exp:mht
+run test/wp/table.abw             exp:tex exp:xhtml exp:epub
+run test/wp/Gettysburg.abw        abwn exp:html
+run test/wp/markdown-formatting.md abwn exp:md
+run test/auto/hello.dat.1.abw     abwn
+# Import sweeps: every fixture file -> abwn (rc 0 or clean 255).
+sweep test/wp/suite
+sweep test/wp/bugs
+sweep test/wp/odt
+sweep test/wp/tst04
+sweep test/wp/tst07
+sweep test/wp/cov07
+sweep fuzz/corpus/abw
+sweep fuzz/corpus/doc
+sweep fuzz/corpus/docx
+sweep fuzz/corpus/rtf
+sweep fuzz/corpus/mht
+sweep fuzz/corpus/odt
+sweep fuzz/corpus/wpd
+sweep fuzz/regress/doc
 
 echo "rt-check: $PASS leg(s) passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

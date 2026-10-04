@@ -81,8 +81,8 @@ public:
     virtual void openEndnote(const PP_AttrProp* /*pAP*/, ODe_ListenerAction& /*rAction*/) {}
     virtual void closeEndnote(ODe_ListenerAction& /*rAction*/) {}
 
-    virtual void openAnnotation(const PP_AttrProp* /*pAP*/, const std::string& /*name*/, PD_Document* doc = nullptr) { UT_UNUSED(doc); }
-    virtual void closeAnnotation( const std::string& /*name*/ ) {}
+    virtual void openAnnotation(const PP_AttrProp* /*pAP*/, const std::string& /*name*/, PD_Document* doc, ODe_ListenerAction& /*rAction*/) { UT_UNUSED(doc); }
+    virtual void closeAnnotation( const std::string& /*name*/, ODe_ListenerAction& /*rAction*/ ) {}
     virtual void endAnnotation( const std::string& /*name*/ ) {}
 
     virtual void openFrame(const PP_AttrProp* /*pAP*/, ODe_ListenerAction& /*rAction*/) {}

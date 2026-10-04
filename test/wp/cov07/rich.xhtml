@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//ABISOURCE//DTD XHTML plus AWML 2.2//EN" "http://www.abisource.com/2004/xhtml-awml/xhtml-awml.mod"><div>
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:awml="http://www.abisource.com/2004/xhtml-awml/">
+        <head>
+            <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8"/>
+            <title>
+Coverage Fixture
+            </title>
+            <meta name="title" content="Coverage Fixture"/>
+            <meta name="author" content="Abinova Tests"/>
+            <meta name="subject" content="importer/exporter coverage"/>
+            <style type="text/css">
+<!-- #toc,
+.toc,
+.mw-warning {
+	border: 1px solid #aaa;
+	background-color: #f9f9f9;
+	padding: 5px;
+	font-size: 95%;
+}
+#toc h2,
+.toc h2 {
+	display: inline;
+	border: none;
+	padding: 0;
+	font-size: 100%;
+	font-weight: bold;
+}
+#toc #toctitle,
+.toc #toctitle,
+#toc .toctitle,
+.toc .toctitle {
+	text-align: center;
+}
+#toc ul,
+.toc ul {
+	list-style-type: none;
+	list-style-image: none;
+	margin-left: 0;
+	padding-left: 0;
+	text-align: left;
+}
+#toc ul ul,
+.toc ul ul {
+	margin: 0 0 0 2em;
+}
+#toc .toctoggle,
+.toc .toctoggle {
+	font-size: 94%;
+}p, h1, h2, h3, li {
+	color:#000000;
+	font-family:'Times New Roman';
+	font-size:12pt;
+	text-align:left;
+	vertical-align:normal;
+}
+*.block_text {
+	font-style:italic;
+	margin-bottom:6pt;
+	margin-left:0.5in;
+	margin-right:0.5in;
+}
+h1 {
+	color:#000080;
+	font-family:'Arial';
+	font-size:16pt;
+	font-weight:bold;
+	margin-bottom:6pt;
+	margin-top:12pt;
+	page-break-after:avoid;
+}
+*.numbered_heading_1 {
+	margin-left:0.0in;
+	text-indent:0.0in;
+}
+h2 {
+	color:#004080;
+	font-family:'Carlito';
+	font-size:13pt;
+	margin-bottom:4pt;
+	margin-top:10pt;
+	page-break-after:avoid;
+}
+*.footnote_text {
+	font-size:10pt;
+}
+*.footnote_reference {
+	font-size:10pt;
+	vertical-align:super;
+}
+body{
+padding-top : 1in;
+padding-bottom : 1in;
+padding-left : 1in;
+padding-right : 1in;
+text-indent:0in;
+font-family:'Times New Roman';
+font-style:normal;
+color:#000000;
+text-align:left;
+widows:2;
+font-weight:normal;
+font-variant:normal;
+text-decoration:none;
+font-size:12pt;
+} -->
+            </style>
+            <script type="text/javascript">
+<!--  /* 
+ MIT License
+ Copyright (c) 2006 Sam Ruby 
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the 'Software'), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions: 
+ 
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ */ 
+ 
+ window.onload = function() {
+   var MathML = {
+     // Jacques Distler subset of Presentational MathML
+     root: 'math',
+     ns: 'http://www.w3.org/1998/Math/MathML',
+     elements: ['maction', 'math', 'merror', 'mfrac', 'mi',
+       'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphantom',
+       'mprescripts', 'mroot', 'mrow', 'mspace', 'msqrt', 'mstyle', 'msub',
+       'msubsup', 'msup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder',
+       'munderover', 'none'], 
+     attributes: ['actiontype', 'align', 'columnalign', 'columnalign', 
+       'columnalign', 'columnlines', 'columnspacing', 'columnspan', 'depth', 
+       'display', 'displaystyle', 'equalcolumns', 'equalrows', 'fence', 
+       'fontstyle', 'fontweight', 'frame', 'height', 'linethickness', 'lspace', 
+       'mathbackground', 'mathcolor', 'mathvariant', 'mathvariant', 'maxsize',  
+       'minsize', 'other', 'rowalign', 'rowalign', 'rowalign', 'rowlines', 
+       'rowspacing', 'rowspan', 'rspace', 'scriptlevel', 'selection',
+       'separator', 'stretchy', 'width', 'width'] 
+   } 
+  
+   var SVG = { 
+     // svgtiny + class + opacity + offset + style 
+     root: 'svg', 
+     ns: 'http://www.w3.org/2000/svg',
+     elements: ['a', 'animate', 'animateColor', 'animateMotion', 
+       'animateTransform', 'circle', 'defs', 'desc', 'ellipse', 'font-face', 
+       'font-face-name', 'font-face-src', 'g', 'glyph', 'hkern', 'image', 
+       'linearGradient', 'line', 'metadata', 'missing-glyph', 'mpath', 'path', 
+       'polygon', 'polyline', 'radialGradient', 'rect', 'set', 'stop',
+       'switch', 'text', 'title', 'use'], 
+     attributes: ['accent-height', 'accumulate', 'additive', 'alphabetic', 
+       'arabic-form', 'ascent', 'attributeName', 'attributeType', 
+       'baseProfile', 'bbox', 'begin', 'by', 'calcMode', 'cap-height', 
+       'class', 'color', 'color-rendering', 'content', 'cx', 'cy', 'd', 
+       'descent', 'display', 'dur', 'end', 'fill', 'fill-rule', 'font-family', 
+       'font-size', 'font-stretch', 'font-style', 'font-variant', 
+       'font-weight', 'from', 'fx', 'fy', 'g1', 'g2', 'glyph-name', 'hanging', 
+       'height', 'horiz-adv-x', 'horiz-origin-x', 'id', 'ideographic', 'k', 
+       'keyPoints', 'keySplines', 'keyTimes', 'lang', 'mathematical', 'max', 
+       'min', 'name', 'offset', 'opacity', 'origin', 'overline-position',
+       'overline-thickness', 'panose-1', 'path', 'pathLength', 'points',
+       'preserveAspectRatio', 'r', 'repeatCount', 'repeatDur',
+       'requiredExtensions', 'requiredFeatures', 'restart', 'rotate', 'rx',
+       'ry', 'slope', 'stemh', 'stemv', 'stop-color', 'stop-opacity',
+       'strikethrough-position', 'strikethrough-thickness', 'stroke',
+       'stroke-dasharray', 'stroke-dashoffset', 'stroke-linecap',
+       'stroke-linejoin', 'stroke-miterlimit', 'stroke-width', 'style',
+       'systemLanguage', 'target', 'text-anchor', 'to', 'transform', 'type',
+       'u1', 'u2', 'underline-position', 'underline-thickness', 'unicode',
+       'unicode-range', 'units-per-em', 'values', 'version', 'viewBox',
+       'visibility', 'width', 'widths', 'x', 'x-height', 'x1', 'x2',
+       'y', 'y1', 'y2', 'zoomAndPan'] 
+   } 
+  
+   // clone a DOM subtree 
+   function deepcopy(module, source, dest, nsmap) { 
+     // copy attributes 
+     for (var i=0; i<source.attributes.length; i++) { 
+       var oldattr = source.attributes[i];
+       var colon = oldattr.name.indexOf(':');
+       if (colon == -1) {
+         for (var j=0; j<module.attributes.length; j++) {
+           if (module.attributes[j].toLowerCase() != oldattr.name) continue;
+           dest.setAttribute(module.attributes[j], oldattr.value);
+           break;
+         }
+       } else { // namespace prefixed attribute
+         var prefix = oldattr.name.slice(0,colon);
+         var name = oldattr.name.slice(colon+1);
+         if (prefix == 'xmlns') {
+           var oldmap = nsmap;
+           nsmap = {};
+           for (var property in oldmap) nsmap[property] = oldmap[property];
+           nsmap[name] = oldattr.value;
+         } else {
+           for (var ns in nsmap) {
+             if (ns == prefix) {
+               dest.setAttributeNS(nsmap[prefix], name, oldattr.value);
+             }
+           }
+         }
+       }
+     }
+ 
+     // copy children
+     for (var i=0; i<source.childNodes.length; i++) {
+       var oldchild = source.childNodes[i];
+       if (oldchild.nodeType == 1) { // element
+         for (var j=0; j<module.elements.length; j++) {
+           if (module.elements[j].toUpperCase() != oldchild.nodeName) continue;
+           var newchild = document.createElementNS(module.ns,module.elements[j]);
+           deepcopy(module, oldchild, newchild, nsmap);
+           dest.appendChild(newchild);
+           break;
+         }
+       } else if (oldchild.nodeType == 3) { // text
+         var newchild = document.createTextNode(oldchild.nodeValue);
+         dest.appendChild(newchild); 
+       } 
+     } 
+   } 
+ 
+   // copy modules into their appropriate namespaces
+   var modules = [MathML, SVG];
+   for (var i=0; i<modules.length; i++) { 
+     var module = modules[i];
+     var roots = document.getElementsByTagName(module.root); 
+     for (var j=0; j<roots.length; j++) { 
+       var source = roots[j]; 
+       if (document.createElementNS) { 
+         if (source.__proto__ != HTMLUnknownElement.prototype) continue; 
+         if (source.getAttribute('xmlns') != module.ns) continue; 
+         var dest = document.createElementNS(module.ns, module.root); 
+         deepcopy(module, source, dest, {}); 
+         source.parentNode.insertBefore(dest, source); 
+         source.parentNode.removeChild(source); 
+       } else {  
+         // fallback browsers that don't support DOM namespaces 
+         var img = document.createElement('img'); 
+         img.src = module.root + ' image'; 
+         img.title = module.root + ' image'; 
+         source.parentNode.insertBefore(img, source) ;
+       } 
+     } 
+   } 
+ } 
+ -->
+            </script>
+
+        </head>
+<body><p style="text-align:center"><span style="font-size:9pt;color:#888888">Coverage header</span></p><p style="text-align:center"></p></body>        <div>
+            <h1 id="AbiTOC0" awml:style="Heading 1">
+Rich Coverage Document
+            </h1>
+<p>This paragraph has <span style="font-weight:bold">bold</span>, <span style="font-style:italic">italic</span>, <span style="text-decoration:underline">underline</span>, <span style="text-decoration:line-through">strike</span>, <span style="text-decoration:overline">overline</span>, <span style="vertical-align:super">super</span> and <span style="vertical-align:sub">sub</span> runs, plus <span style="font-size:14pt;font-family:'Courier New';color:#aa0000">colored mono</span> text.</p><p style="text-align:center"><span style="background:#ffff00">Centered and highlighted. A bookmark sits </span>                <a name="covmark">
+here
+                </a>
+.</p><p>Visit <a href="https://example.com/">the example site</a> for more. Page <span></span> of <span></span>; today is <span></span> at <span></span>.</p>            <h2 id="AbiTOC1" awml:style="Heading 2">
+Lists
+            </h2>
+            <ol awml:style="Numbered Heading 1">
+                <li>
+<span></span>Numbered item one
+                </li>
+                <li>
+<span></span>Numbered item two                    <ol>
+                        <li>
+<span></span>Nested number
+                        </li>
+
+                    </ol>
+                    <ul>
+                        <li>
+<span></span>Bullet item
+                        </li>
+
+                    </ul>
+
+                </li>
+
+            </ol>
+<p>Footnote<a href="#footnote-1">1</a> and endnote<a href="#endnote-1">1</a> anchors.</p><p>An annotated span<a href="#annotation-1"> right here</a> continues normally.</p>            <h2 id="AbiTOC2" awml:style="Heading 2">
+Table
+            </h2>
+            <table border="0" cellpadding="0" style="width:100%;border:1pt;border-collapse:collapse;empty-cells:show;table-layout:fixed;border-style:solid">
+                <tr>
+                    <td rowspan="" colspan="" style="padding: 0.00pt;background-color:#eeeeee;border:inherit inherit inherit">
+<p><span style="font-weight:bold">A1</span></p>
+                    </td>
+                    <td rowspan="" colspan="" style="padding: 0.00pt;background-color:#eeeeee;border:inherit inherit inherit">
+<p><span style="font-weight:bold">B1</span></p>
+                    </td>
+                    <td rowspan="" colspan="" style="padding: 0.00pt;background-color:#eeeeee;border:inherit inherit inherit">
+<p><span style="font-weight:bold">C1</span></p>
+                    </td>
+
+                </tr>
+                <tr>
+                    <td rowspan="" colspan="2" style="padding: 0.00pt;border:inherit inherit inherit">
+<p>merged A2:B2</p>
+                    </td>
+                    <td rowspan="" colspan="" style="padding: 0.00pt;border:inherit inherit inherit">
+<p>C2</p>
+                    </td>
+
+                </tr>
+                <tr>
+                    <td rowspan="" colspan="" style="padding: 0.00pt;border:inherit inherit inherit">
+<p>A3</p>
+                    </td>
+                    <td rowspan="" colspan="" style="padding: 0.00pt;border:inherit inherit inherit">
+<p>B3 with an image <img style="width:8.4mm; height:6.3mm" src="rich.xhtml_files/red.png.png" title="" alt="" align=""/></p></td>
+                    <td rowspan="" colspan="" style="padding: 0.00pt;border:inherit inherit inherit">
+<p>C3</p>
+                    </td>
+
+                </tr>
+
+            </table>
+            <h2 id="AbiTOC3" awml:style="Heading 2">
+Objects
+            </h2>
+<p>Inline image: <img style="width:11.2mm; height:8.4mm" src="rich.xhtml_files/red.png.png" title="Red" alt="red square" align=""/>; math: .</p>            <div style="background-color: #DDEEFF;  border: solid; clear: none; z-index: 999;">
+<p><span style="font-size:10pt">Textbox frame content.</span></p>
+            </div>
+<p><img src="rich.xhtml_files/red.png.png" title="" alt="" align=""/></p>            <h2 id="AbiTOC4" awml:style="Heading 2">
+Contents
+            </h2>
+            <ul class="table-of-contents">
+                <li>
+                    <a class="toc-item" href="#AbiTOC0">
+Rich Coverage Document
+                    </a>
+
+                </li>
+                <li>
+                    <a class="toc-item" href="#AbiTOC1">
+Lists
+                    </a>
+
+                </li>
+                <li>
+                    <a class="toc-item" href="#AbiTOC2">
+	Numbered item one
+                    </a>
+
+                </li>
+                <li>
+                    <a class="toc-item" href="#AbiTOC3">
+Table
+                    </a>
+
+                </li>
+                <li>
+                    <a class="toc-item" href="#AbiTOC4">
+Objects
+                    </a>
+
+                </li>
+                <li>
+                    <a class="toc-item" href="#AbiTOC5">
+Contents
+                    </a>
+
+                </li>
+
+            </ul>
+<p>Rich Coverage Document1</p><p awml:style="Block Text">Indented block quote paragraph with a tabstop.</p>            <ol>
+                <li class="endnote_anchor" id="endnote-1">
+ Endnote body text.
+                </li>
+
+            </ol>
+
+        </div>
+        <div>
+<p><span style="font-weight:bold">Second section (two columns).</span> Column text flows here; a page break follows.</p><p>After the page break in section two.</p><p style="text-align:center"></p><p style="text-align:center">                <div>
+</div>
+<p style="text-align:center"></p></p></div>
+        <ol>
+            <li class="footnote_anchor" id="footnote-1">
+ Footnote body text.
+            </li>
+
+        </ol>
+        <div class="annotation-section">
+            <p class="annotation" id="annotation-1">
+                <span class="annotation-author">
+Coverage Tester
+                </span>
+                <br/>
+                <blockquote class="annotation-content">
+Annotation body text.
+                </blockquote>
+
+            </p>
+
+        </div>
+
+    </html>
+
+</div>

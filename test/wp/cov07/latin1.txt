@@ -1,0 +1,2 @@
+Latin-1 text fixture.
+Second line é ü ß.

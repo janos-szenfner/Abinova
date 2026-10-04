@@ -1,0 +1,55 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\title{Coverage \LaTeX{} Fixture}
+\author{Abinova Tests}
+\date{October 2026}
+\begin{document}
+\maketitle
+
+\section{Introduction}
+This fixture exercises the \textbf{LaTeX} importer with \emph{emphasis},
+\textit{italic}, \texttt{monospace} and \textsc{Small Caps} runs.
+Accents like \'{e} \`{a} \"{o} \^{o} \~{n} \c{c} and symbols --- dashes ---
+plus \ldots{} appear inline.
+
+A footnote\footnote{Note body text here.} marker and a
+reference to Section~\ref{sec:lists}.
+
+\section{Lists}
+\label{sec:lists}
+\begin{itemize}
+\item First bullet
+\item Second bullet with \textbf{bold}
+  \begin{itemize}
+  \item Nested bullet
+  \end{itemize}
+\end{itemize}
+\begin{enumerate}
+\item Numbered one
+\item Numbered two
+\end{enumerate}
+\begin{description}
+\item[Term] Definition text
+\end{description}
+
+\section{Table}
+\begin{tabular}{lcr}
+Left & Center & Right \\
+\hline
+a & b & c \\
+d & e & f \\
+\end{tabular}
+
+\section{Math}
+Inline $x^2 + y_i = z$ math and display math:
+\begin{equation}
+\frac{1}{2} + \sqrt{x}
+\end{equation}
+\[ e^{i\pi} + 1 = 0 \]
+
+\begin{verbatim}
+verbatim   text
+  keeps  spacing
+\end{verbatim}
+
+\end{document}
