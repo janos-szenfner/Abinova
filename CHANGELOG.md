@@ -4522,6 +4522,19 @@ below are on `main` but the release has not been cut yet.
   `myspell` dirs, `~/Library/Spelling` + `/Library/Spelling` on
   macOS, and `%APPDATA%\hunspell`, `%LOCALAPPDATA%\hunspell` and a
   `hunspell` dir next to the install location on Windows.
+- **Opening links/help in a browser is portable** —
+  `UT_go_url_show()` now goes through GLib's
+  `g_app_info_launch_default_for_uri()` on every platform (the system
+  URI handler: mimeapps/xdg-open on Linux, LaunchServices on macOS,
+  registry protocol handlers on Windows) instead of a Unix-only
+  browser search. On Unix an explicit `$BROWSER` still wins for
+  `http(s)` links and is now parsed as the conventional
+  colon-separated command list (with `%s`/`%1` placeholders and
+  command arguments); the previous implementation treated the whole
+  variable as a single program name, so it could never honor entries
+  like `firefox -new-tab` or `firefox:chromium`. ShellExecute remains
+  as a Windows fallback and now reports failures instead of always
+  claiming success.
 
 ### Resolved root causes worth noting
 

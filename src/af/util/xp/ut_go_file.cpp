@@ -1687,112 +1687,147 @@ UT_go_file_get_date_changed (char const *uri)
 }
 
 /* ------------------------------------------------------------------------- */
-// We need this for systems where gtk_show_uri() is broken
-// Don't get me started.
-// Note that if gtk_show_uri() fails but returns true, then
-// there is nothing that can be done.
-static char *
-check_program (char const *prog)
+// Fallback for systems where the default URI handler is missing or broken.
+// `spec` is a shell-like command line that may embed a %s or %1 placeholder
+// for the URL; without one the URL is appended as the last argument.
+static gboolean
+browser_spawn (char const *spec, gchar const *url, GError **err)
 {
-	if (nullptr == prog)
-		return nullptr;
-	if (g_path_is_absolute (prog)) {
-		if (!g_file_test (prog, G_FILE_TEST_IS_EXECUTABLE))
-			return nullptr;
-	} else if (!g_find_program_in_path (prog))
-		return nullptr;
-	return g_strdup (prog);
+	gint    argc = 0;
+	gchar **argv = nullptr;
+
+	if (nullptr == spec || !*spec)
+		return FALSE;
+	if (!g_shell_parse_argv (spec, &argc, &argv, nullptr) || argc < 1) {
+		g_strfreev (argv);
+		return FALSE;
+	}
+
+	/* the program must exist (absolute path) or be found on PATH */
+	if (g_path_is_absolute (argv[0])) {
+		if (!g_file_test (argv[0], G_FILE_TEST_IS_EXECUTABLE)) {
+			g_strfreev (argv);
+			return FALSE;
+		}
+	} else if (nullptr == g_find_program_in_path (argv[0])) {
+		g_strfreev (argv);
+		return FALSE;
+	}
+
+	gint  i;
+	char *tmp;
+	for (i = 1 ; i < argc ; i++) {
+		tmp = strstr (argv[i], "%s");
+		if (nullptr == tmp)
+			tmp = strstr (argv[i], "%1");
+		if (nullptr != tmp) {
+			*tmp = '\0';
+			tmp = g_strconcat (argv[i], url, tmp + 2, nullptr);
+			g_free (argv[i]);
+			argv[i] = tmp;
+			break;
+		}
+	}
+	if (i == argc) {
+		argv = static_cast<gchar **> (g_realloc (argv, (argc + 2) * sizeof (gchar *)));
+		argv[argc]     = g_strdup (url);
+		argv[argc + 1] = nullptr;
+	}
+
+	gboolean spawned = g_spawn_async (nullptr, argv, nullptr,
+	                                  G_SPAWN_SEARCH_PATH,
+	                                  nullptr, nullptr, nullptr, err);
+	g_strfreev (argv);
+	return spawned;
 }
 
-static void 
+/* The $BROWSER convention is a colon-separated list of command specs,
+   each tried in order (same precedence xdg-open's generic path gives it). */
+static gboolean
+browser_from_env (gchar const *url, GError **err)
+{
+	char const *env = getenv ("BROWSER");
+	if (nullptr == env || !*env)
+		return FALSE;
+
+	gboolean ok = FALSE;
+	gchar **entries = g_strsplit (env, ":", -1);
+	for (gint i = 0 ; entries[i] && !ok ; i++)
+		ok = browser_spawn (entries[i], url, err);
+	g_strfreev (entries);
+	return ok;
+}
+
+static void
 fallback_open_uri(const gchar* url, GError** err)
 {
-	gchar *browser = nullptr;
-	gchar *clean_url = nullptr;
+	if (browser_from_env (url, err))
+		return;
 
-	/* 1) Check BROWSER env var */
-	browser = check_program (getenv ("BROWSER"));
+	static char const * const browsers[] = {
+		"xdg-open",		/* XDG. you shouldn't need anything else */
+		"sensible-browser",	/* debian */
+		"epiphany",		/* primary gnome */
+		"galeon",		/* secondary gnome */
+		"encompass",
+		"firefox",
+		"mozilla-firebird",
+		"mozilla",
+		"netscape",
+		"konqueror",
+		"xterm -e w3m",
+		"xterm -e lynx",
+		"xterm -e links"
+	};
+	for (unsigned i = 0 ; i < G_N_ELEMENTS (browsers) ; i++)
+		if (browser_spawn (browsers[i], url, err))
+			return;
 
-	if (browser == nullptr) {
-		static char const * const browsers[] = {
-			"xdg-open",             /* XDG. you shouldn't need anything else */
-			"sensible-browser",	/* debian */
-			"epiphany",		/* primary gnome */
-			"galeon",		/* secondary gnome */
-			"encompass",
-			"firefox",
-			"mozilla-firebird",
-			"mozilla",
-			"netscape",
-			"konqueror",
-			"xterm -e w3m",
-			"xterm -e lynx",
-			"xterm -e links"
-		};
-		unsigned i;
-		for (i = 0 ; i < G_N_ELEMENTS (browsers) ; i++)
-			if (nullptr != (browser = check_program (browsers[i])))
-				break;
-  	}
-
-	if (browser != nullptr) {
-		gint    argc;
-		gchar **argv = nullptr;
-		char   *cmd_line = g_strconcat (browser, " %1", nullptr);
-
-		if (g_shell_parse_argv (cmd_line, &argc, &argv, err)) {
-			/* check for '%1' in an argument and substitute the url
-			 * otherwise append it */
-			gint i;
-			char *tmp;
-
-			for (i = 1 ; i < argc ; i++)
-				if (nullptr != (tmp = strstr (argv[i], "%1"))) {
-					*tmp = '\0';
-					tmp = g_strconcat (argv[i],
-						(clean_url != nullptr) ? static_cast<char const *>(clean_url ): url,
-						tmp+2, nullptr);
-					g_free (argv[i]);
-					argv[i] = tmp;
-					break;
-				}
-
-			/* there was actually a %1, drop the one we added */
-			if (i != argc-1) {
-				g_free (argv[argc-1]);
-				argv[argc-1] = nullptr;
-			}
-			g_spawn_async (nullptr, argv, nullptr, G_SPAWN_SEARCH_PATH,
-				nullptr, nullptr, nullptr, err);
-			g_strfreev (argv);
-		}
-		g_free (cmd_line);
-	}
-	g_free (browser);
-	g_free (clean_url);
+	if (err && nullptr == *err)
+		*err = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+		                            "no usable browser found");
 }
-
-#ifdef G_OS_WIN32
-#undef _
-#include "ut_Win32LocaleString.h"
-#endif
 
 GError *
 UT_go_url_show (gchar const *url)
 {
-#ifdef G_OS_WIN32
-	UT_Win32LocaleString str;
-	str.fromUTF8 (url);
-	ShellExecuteW (nullptr, L"open", str.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-	return nullptr;
-#else
 	GError *err = nullptr;
-	if (!g_app_info_launch_default_for_uri(url, nullptr, &err)) {
-		g_clear_error(&err);
-		fallback_open_uri(url, &err);
-	}
-	return err;
+
+#ifdef G_OS_UNIX
+	/* An explicit $BROWSER choice wins for web URLs on Unix — the schemes
+	   the variable is meant for.  Other schemes (mailto:, file:, ...) go
+	   straight to the system handler below. */
+	if ((g_str_has_prefix (url, "http://") ||
+	     g_str_has_prefix (url, "https://")) &&
+	    browser_from_env (url, &err))
+		return nullptr;
+	g_clear_error (&err);
 #endif
+
+	/* Portable default-handler path: mimeapps/xdg-open on Linux,
+	   LaunchServices on macOS, registry protocol handlers on Windows. */
+	if (g_app_info_launch_default_for_uri(url, nullptr, &err))
+		return nullptr;
+	g_clear_error (&err);
+
+#ifdef G_OS_UNIX
+	fallback_open_uri(url, &err);
+#elif defined(G_OS_WIN32)
+	/* ShellExecute resolves file/protocol associations through the shell
+	   even where GLib's registry lookup came up empty. */
+	gunichar2 *wurl = g_utf8_to_utf16 (url, -1, nullptr, nullptr, nullptr);
+	if (wurl) {
+		if (reinterpret_cast<INT_PTR>(ShellExecuteW (nullptr, L"open",
+				reinterpret_cast<LPCWSTR>(wurl), nullptr, nullptr,
+				SW_SHOWNORMAL)) <= 32)
+			err = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+			                           "ShellExecute failed to open the URL");
+		g_free (wurl);
+	} else
+		err = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+		                           "could not convert URL to UTF-16");
+#endif
+	return err;
 }
 
 gchar *
