@@ -2004,6 +2004,20 @@ tools/fuzz-add-reproducer.sh doc fuzz-build/artifacts/crash-<sha>
 which copies the artifact into `fuzz/regress/doc/` and immediately
 replays it to report whether the crash still reproduces.
 
+### Round-trip corpus (`make check`)
+
+Besides the `Abinova-test` unit suite, `make check` also runs
+`tools/rt-check.sh` (as `unix/rtwrap.sh`): every fixture in its
+matrix — `.abw`, `.docx`, `.odt`, `.rtf`, `.doc`, `.wpd`, `.md`,
+`.txt`, `.mht` — is exported through the docx/odt/rtf/doc/abwn/
+html/txt/md writers, the output is structurally validated (zip
+members + stored mimetype for containers, XML well-formedness for
+`.abwn`, `{\rtf` magic, …), re-imported, and the normalized text must
+survive the round-trip; image fixtures additionally assert the image
+data-item count. A failed export, structural defect, text difference
+or dropped image fails the suite. Run it standalone with
+`tools/rt-check.sh src/abinova $PWD`.
+
 ### Code coverage (gcov/lcov)
 
 Configure the tree with `--enable-coverage` to compile `src/` with

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Round-trip corpus harness: convert each fixture to its export
+# formats, structurally validate the output, reimport it, and compare
+# normalized text (+ image data-item counts for image fixtures).
+# See tools/rt-check.sh for the matrix and check details.
+
+exec @abs_top_srcdir@/tools/rt-check.sh \
+	@abs_top_builddir@/src/abinova @abs_top_srcdir@

@@ -8,6 +8,8 @@ EXTRA_DIST = \
 	clang-fmt.py \
 	release.sh \
 	changelog2html.sh \
+	epub-rt-check.sh \
+	rt-check.sh \
 	build-macos.sh \
 	build-windows-msys2.sh \
 	build-gtk-prefix.sh \

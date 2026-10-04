@@ -55,6 +55,7 @@ src/plugins/abi-builtin-plugins-decls.inc
 src/plugins/builtin-stamp
 src/wp/ap/ap_wp_sidebar.cpp
 src/wp/test/unix/testwrap.sh
+src/wp/test/unix/rtwrap.sh
 
 # Build outputs
 *.o
@@ -96,8 +97,11 @@ src/wp/test/AbiWord-test
 src/wp/test/supp.txt
 src/wp/test/test-suite.log
 src/wp/test/testwrap.sh-stamp
+src/wp/test/rtwrap.sh-stamp
 src/wp/test/unix/testwrap.sh.log
 src/wp/test/unix/testwrap.sh.trs
+src/wp/test/unix/rtwrap.sh.log
+src/wp/test/unix/rtwrap.sh.trs
 __pycache__/
 *~
 *.saved

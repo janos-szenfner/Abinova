@@ -18,9 +18,9 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301 USA.
 
-TESTS = unix/testwrap.sh
+TESTS = unix/testwrap.sh unix/rtwrap.sh
 
-check_SCRIPTS = testwrap.sh-stamp unix/testwrap.sh
+check_SCRIPTS = testwrap.sh-stamp rtwrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh
 check_PROGRAMS = Abinova-test
 
 Abinova_test_CPPFLAGS = $(WP_CPPFLAGS) \
@@ -39,9 +39,14 @@ testwrap.sh-stamp: unix/testwrap.sh
 	chmod a+x unix/testwrap.sh
 	touch $@
 
+rtwrap.sh-stamp: unix/rtwrap.sh
+	chmod a+x unix/rtwrap.sh
+	touch $@
+
 CLEANFILES = vgcore.* \
 	supp.txt \
 	testwrap.sh-stamp \
+	rtwrap.sh-stamp \
 	tf-vgdump
 
 EXTRA_DIST = \

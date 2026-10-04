@@ -4266,6 +4266,17 @@ below are on `main` but the release has not been cut yet.
   of being dropped; documents without a stored LaTeX source fall
   back to converting the MathML, so equations round-trip through
   Markdown.
+- **Round-trip corpus harness in `make check`** —
+  `tools/rt-check.sh` (run as the new `unix/rtwrap.sh` automake test)
+  converts a curated matrix of fixtures — native `.abw`, `.docx`,
+  `.odt`, `.rtf`, `.doc`, `.wpd`, `.md`, `.txt`, `.mht` — through the
+  docx/odt/rtf/doc/abwn/html/txt/md exporters, validates each output's
+  structure (zip members + stored mimetype for containers, XML
+  well-formedness for `.abwn`, magic bytes for RTF), re-imports it and
+  asserts the normalized text survives the round-trip; image fixtures
+  additionally assert the image data-item count is preserved. Any
+  failed export, structural defect, text difference or lost image
+  fails `make check`.
 
 ### Resolved root causes worth noting
 
