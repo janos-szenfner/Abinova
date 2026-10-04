@@ -32,9 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 
 #include "ut_assert.h"
 #include "ut_types.h"
@@ -335,11 +332,11 @@ UT_Error IE_Exp::writeFile(const char * szFilename)
 
 	m_bCancelled = false;
 
-	/* Write to a sibling temporary file and rename it over the target
-	 * so that an export, disk or encryption failure - or a crash
-	 * mid-write - can never destroy the previously saved document.
-	 * Non-local targets (gvfs URIs) keep the old direct behaviour
-	 * since rename() does not apply to them. */
+	/* Write to a sibling temporary file and atomically move it over the
+	 * target (UT_go_file_atomic_replace) so that an export, disk or
+	 * encryption failure - or a crash mid-write - can never destroy the
+	 * previously saved document. Non-local targets (gvfs URIs) keep the
+	 * old direct behaviour since rename() does not apply to them. */
 	char * localFinal = nullptr;
 	char * localTmp = nullptr;
 	const char * writeName = szFilename;
@@ -353,7 +350,7 @@ UT_Error IE_Exp::writeFile(const char * szFilename)
 					   : g_strdup(szFilename);
 		if (localFinal)
 		{
-			localTmp = g_strconcat(localFinal, ".part", nullptr);
+			localTmp = UT_go_file_atomic_temp_name(localFinal);
 			writeName = localTmp;
 		}
 	}
@@ -384,41 +381,13 @@ UT_Error IE_Exp::writeFile(const char * szFilename)
 	{
 		if (UT_OK == error)
 		{
-			// keep the old file's permissions if it already existed
-			struct stat st;
-			const bool bHadOld = (::stat(localFinal, &st) == 0);
-
-			if (::rename(localTmp, localFinal) != 0)
-			{
-				(void)::unlink(localTmp);
+			if (!UT_go_file_atomic_replace(localTmp, localFinal, nullptr))
 				error = UT_IE_COULDNOTWRITE;
-			}
-			else
-			{
-				if (bHadOld)
-					(void)::chmod(localFinal, st.st_mode);
-				// fsync the file and its directory so the rename
-				// is durable across a power loss
-				int fd = ::open(localFinal, O_RDONLY | O_CLOEXEC);
-				if (fd >= 0)
-				{
-					(void)::fsync(fd);
-					::close(fd);
-				}
-				char * dir = g_path_get_dirname(localFinal);
-				int dfd = ::open(dir, O_RDONLY | O_CLOEXEC);
-				if (dfd >= 0)
-				{
-					(void)::fsync(dfd);
-					::close(dfd);
-				}
-				g_free(dir);
-			}
 		}
 		else
 		{
 			// export failed: leave the original untouched, drop the temp
-			(void)::unlink(localTmp);
+			UT_go_file_atomic_abort(localTmp);
 		}
 	}
 	g_free(localFinal);

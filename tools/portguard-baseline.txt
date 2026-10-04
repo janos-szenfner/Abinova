@@ -4,13 +4,5 @@
 # it removes the call sites (a stale entry fails the guard).
 src/wp/impexp/odf/common/xp/ODc_Crypto.cpp: getrandom
 src/wp/impexp/odf/common/xp/ODc_Crypto.cpp: #include <unistd.h>
-src/wp/impexp/xp/ie_exp.cpp: ::chmod
-src/wp/impexp/xp/ie_exp.cpp: ::close
-src/wp/impexp/xp/ie_exp.cpp: ::fsync
-src/wp/impexp/xp/ie_exp.cpp: #include <unistd.h>
-src/wp/impexp/xp/ie_exp.cpp: ::open
-src/wp/impexp/xp/ie_exp.cpp: ::rename
-src/wp/impexp/xp/ie_exp.cpp: ::stat
-src/wp/impexp/xp/ie_exp.cpp: ::unlink
 src/wp/impexp/xp/ut_abwncrypt.cpp: getrandom
 src/wp/impexp/xp/ut_abwncrypt.cpp: #include <unistd.h>

@@ -76,6 +76,12 @@ ABI_EXPORT GsfOutput *UT_go_file_create	(char const *uri, GError **err);
 ABI_EXPORT gboolean UT_go_file_remove (char const *uri, GError **err);
 ABI_EXPORT gboolean UT_go_file_remove_recursive (char const *uri, GError **err);
 
+ABI_EXPORT gchar	*UT_go_file_atomic_temp_name (const gchar *final_path);
+ABI_EXPORT gboolean	 UT_go_file_atomic_replace  (const gchar *tmp_path,
+												const gchar *final_path,
+												GError **err);
+ABI_EXPORT void		 UT_go_file_atomic_abort   (const gchar *tmp_path);
+
 ABI_EXPORT gboolean UT_go_file_exists (char const *uri);
 
 ABI_EXPORT UT_GOFilePermissions *UT_go_get_file_permissions (char const *uri);

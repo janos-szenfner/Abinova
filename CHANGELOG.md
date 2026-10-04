@@ -4487,6 +4487,15 @@ below are on `main` but the release has not been cut yet.
   the floor). The `ap_KeyBindings` test suite now also loads the
   emacs and vi compatibility key maps plus their operator-prefixed
   sub-maps, pinning representative bindings and the dead-key tables.
+- **Atomic save moved behind a portable helper** — the
+  write-temp-then-rename sequence in the exporter core
+  (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as
+  `UT_go_file_atomic_temp_name` / `UT_go_file_atomic_replace` /
+  `UT_go_file_atomic_abort`, with the POSIX implementation
+  (rename + permission restore + file/directory fsync) preserved
+  and a `g_file_set_contents()` fallback for non-POSIX platforms.
+  Linux behavior is unchanged; the split unblocks the Windows
+  (MoveFileEx) and macOS port work.
 
 ### Resolved root causes worth noting
 

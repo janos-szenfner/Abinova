@@ -58,7 +58,11 @@
   #endif
 #else
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #endif
+
+#include <errno.h>
 
 #include "ut_types.h"
 
@@ -1264,6 +1268,114 @@ UT_go_file_remove_recursive (char const *uri, GError ** err)
 	g_object_unref (G_OBJECT (f));
 
 	return res;
+}
+
+/**
+ * UT_go_file_atomic_temp_name:
+ * @final_path: local filesystem path of the file to be replaced
+ *
+ * Returns the sibling scratch path a caller writes to before calling
+ * UT_go_file_atomic_replace(): @final_path with ".part" appended.
+ * Free with g_free().
+ */
+gchar *
+UT_go_file_atomic_temp_name (const gchar *final_path)
+{
+	g_return_val_if_fail (final_path != nullptr, nullptr);
+	return g_strconcat (final_path, ".part", nullptr);
+}
+
+/**
+ * UT_go_file_atomic_replace:
+ * @tmp_path: fully written + closed sibling temp path (see
+ *            UT_go_file_atomic_temp_name())
+ * @final_path: the local filesystem path @tmp_path replaces
+ * @err: (allow-none): #GError
+ *
+ * Commits an atomic save: moves @tmp_path over @final_path so that an
+ * export, disk or encryption failure - or a crash mid-write - can
+ * never destroy the previously saved document. On POSIX this is a
+ * rename(2) that keeps the old file's permission bits and fsync()s
+ * both the file and its directory so the swap survives a power loss;
+ * @tmp_path is unlinked if the rename fails. On platforms without
+ * POSIX rename semantics the staged contents replace the target via
+ * g_file_set_contents() - weaker (the fallback is not crash-atomic
+ * on every backend), but the target is never truncated in place by
+ * callers writing to it directly. @tmp_path is consumed either way.
+ *
+ * Returns: TRUE if @final_path now holds the staged contents.
+ */
+gboolean
+UT_go_file_atomic_replace (const gchar *tmp_path,
+						   const gchar *final_path,
+						   GError **err)
+{
+	g_return_val_if_fail (tmp_path != nullptr, FALSE);
+	g_return_val_if_fail (final_path != nullptr, FALSE);
+
+#if defined(G_OS_WIN32) || defined(UT_GO_NO_POSIX)
+	/* No POSIX rename/fsync semantics: replace the target with the
+	 * staged contents in one shot. g_file_set_contents() itself
+	 * stages through a temp file where the platform allows.
+	 * PORT02 swaps in a real MoveFileEx() implementation for _WIN32. */
+	gchar *contents = nullptr;
+	gsize length = 0;
+	if (!g_file_get_contents (tmp_path, &contents, &length, err)) {
+		(void)g_remove (tmp_path);
+		return FALSE;
+	}
+	gboolean ok = g_file_set_contents (final_path, contents,
+									   (gssize) length, err);
+	g_free (contents);
+	(void)g_remove (tmp_path);
+	return ok;
+#else
+	/* keep the old file's permissions if it already existed */
+	struct stat st;
+	const bool bHadOld = (::stat (final_path, &st) == 0);
+
+	if (::rename (tmp_path, final_path) != 0) {
+		(void)::unlink (tmp_path);
+		g_set_error (err, G_FILE_ERROR,
+					 g_file_error_from_errno (errno),
+					 "cannot replace '%s': %s",
+					 final_path, g_strerror (errno));
+		return FALSE;
+	}
+
+	if (bHadOld)
+		(void)::chmod (final_path, st.st_mode);
+
+	/* fsync the file and its directory so the rename is durable
+	 * across a power loss */
+	int fd = ::open (final_path, O_RDONLY | O_CLOEXEC);
+	if (fd >= 0) {
+		(void)::fsync (fd);
+		::close (fd);
+	}
+	char *dir = g_path_get_dirname (final_path);
+	int dfd = ::open (dir, O_RDONLY | O_CLOEXEC);
+	if (dfd >= 0) {
+		(void)::fsync (dfd);
+		::close (dfd);
+	}
+	g_free (dir);
+	return TRUE;
+#endif
+}
+
+/**
+ * UT_go_file_atomic_abort:
+ * @tmp_path: sibling temp path from UT_go_file_atomic_temp_name()
+ *
+ * Drops a staged temp file whose export failed or was cancelled,
+ * leaving the original target untouched.
+ */
+void
+UT_go_file_atomic_abort (const gchar *tmp_path)
+{
+	if (tmp_path)
+		(void)g_remove (tmp_path);
 }
 
 gboolean
