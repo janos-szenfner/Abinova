@@ -4266,6 +4266,15 @@ below are on `main` but the release has not been cut yet.
   `tools/coverage-dirs.sh coverage.info --worklog .devin/WORKLOG.md`
   records a dated baseline table. Baseline measured on this tree:
   45.2% lines / 54.4% functions from `make check` alone.
+- **af/xap framework glue covered by the headless test suite** — new
+  `TF_Test` suites exercise `xap_Prefs` (schemes, typed values,
+  recent/geometry/font/log handling, XML load-save round-trips),
+  `xap_EncodingManager` (iconv conversion, locale/codepage/charset
+  tables, CJK and smart-quote paths), `XAP_Dictionary`, `XAP_Log`,
+  `XAP_Args`, status-bar and fake-clipboard plumbing, resource
+  managers, the dialog factory plus the xp-side dialog state
+  containers, `XAP_App` and `AD_Document`. `af/xap/xp` line coverage
+  rose from ~46.8% to 68.7%.
 
 - **Legacy pre-Word97 pictures import from `.doc`** — the
   `SUPPORTS_OLD_IMAGES` path now actually works end to end:
