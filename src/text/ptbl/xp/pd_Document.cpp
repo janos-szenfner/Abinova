@@ -2380,7 +2380,7 @@ bool PD_Document::insertStruxNoUpdateBefore(const pf_Frag_Strux* sdh, PTStruxTyp
 bool PD_Document::isStruxBeforeThis(const pf_Frag_Strux* pfs,  PTStruxType pts) const
 {
 	const pf_Frag * pfb = pfs->getPrev();
-	if(pfb->getType() != pf_Frag::PFT_Strux)
+	if(!pfb || pfb->getType() != pf_Frag::PFT_Strux)
 		return false;
 	auto pfsb = static_cast<const pf_Frag_Strux *>(pfb);
 	if(pfsb->getStruxType() == pts)
@@ -5591,12 +5591,15 @@ const pf_Frag_Strux* PD_Document::findPreviousStyleStrux(const gchar * szStyle, 
 			PT_AttrPropIndex indexAP = pfs->getIndexAP();
 			const PP_AttrProp * pAP = nullptr;
 			m_pPieceTable->getAttrProp(indexAP,&pAP);
-			UT_return_val_if_fail(pAP, nullptr);
-			const gchar * pszStyleName = nullptr;
-			(pAP)->getAttribute(PT_STYLE_ATTRIBUTE_NAME, pszStyleName);
-			if(pszStyleName != nullptr && strcmp(pszStyleName,szStyle)==0)
+			// a strux without an attr/prop set cannot carry a style
+			if(pAP)
 			{
-				bFound = true;
+				const gchar * pszStyleName = nullptr;
+				(pAP)->getAttribute(PT_STYLE_ATTRIBUTE_NAME, pszStyleName);
+				if(pszStyleName != nullptr && strcmp(pszStyleName,szStyle)==0)
+				{
+					bFound = true;
+				}
 			}
 		}
 		if(!bFound)
@@ -5627,9 +5630,13 @@ const pf_Frag_Strux* PD_Document::findForwardStyleStrux(const gchar * szStyle, P
 	const pf_Frag_Strux* sdh = nullptr;
 	getStruxOfTypeFromPosition(pos,PTX_Block, &sdh);
 	const pf_Frag_Strux * pfs = nullptr;
-	const pf_Frag * currentFrag = sdh;
+	// pos may sit on a strux that has no enclosing block (e.g. the
+	// section at position 0); a forward scan should then start at the
+	// first fragment rather than nowhere
+	const pf_Frag * currentFrag = sdh ? static_cast<const pf_Frag *>(sdh)
+		: m_pPieceTable->getFragments().getFirst();
 	bool bFound = false;
-    while (currentFrag != m_pPieceTable->getFragments().getLast() && !bFound)
+    while (currentFrag && currentFrag != m_pPieceTable->getFragments().getLast() && !bFound)
 	{
 		if (currentFrag->getType()==pf_Frag::PFT_Strux)
 		{
@@ -5640,12 +5647,15 @@ const pf_Frag_Strux* PD_Document::findForwardStyleStrux(const gchar * szStyle, P
 			PT_AttrPropIndex indexAP = pfs->getIndexAP();
 			const PP_AttrProp * pAP = nullptr;
 			m_pPieceTable->getAttrProp(indexAP,&pAP);
-			UT_return_val_if_fail(pAP, nullptr);
-			const gchar * pszStyleName = nullptr;
-			(pAP)->getAttribute(PT_STYLE_ATTRIBUTE_NAME, pszStyleName);
-			if(pszStyleName != nullptr && strcmp(pszStyleName,szStyle)==0)
+			// a strux without an attr/prop set cannot carry a style
+			if(pAP)
 			{
-				bFound = true;
+				const gchar * pszStyleName = nullptr;
+				(pAP)->getAttribute(PT_STYLE_ATTRIBUTE_NAME, pszStyleName);
+				if(pszStyleName != nullptr && strcmp(pszStyleName,szStyle)==0)
+				{
+					bFound = true;
+				}
 			}
 		}
 		if(!bFound)

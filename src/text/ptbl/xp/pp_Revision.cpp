@@ -1004,25 +1004,16 @@ void PP_RevisionAttr::addRevision(UT_uint32 iId, PP_RevisionType eType )
 void
 PP_RevisionAttr::addRevision( const PP_Revision* r )
 {
-    std::stringstream ss;
-    if(r->getType() & PP_REVISION_FMT_CHANGE)
-        ss << "!";
-    
-    ss << (r->getId() * ((r->getType() == PP_REVISION_DELETION)?-1:1));
+    UT_return_if_fail(r);
 
-    if(r->hasProperties())
-    {
-        ss << "{" << r->getPropsString() << "}";
-    }
-    if(r->hasAttributes())
-    {
-        ss << "{" << r->getAttrsString() << "}";
-    }
-
-    PP_RevisionAttr us( getXMLstring() );
-    m_vRev.clear();
-    std::string tmp = static_cast<std::string>(us.getXMLstring() )+ "," + ss.str();
-    setRevision(tmp);
+    // copy the revision record directly; routing through the XML
+    // string round-trip corrupts deletion ids (unsigned negation)
+    // and cannot represent their payloads
+    m_vRev.push_back(std::make_unique<PP_Revision>(r->getId(), r->getType(),
+                                                 r->getPropsString(),
+                                                 r->getAttrsString()));
+    m_iSuperfluous = 0;
+    _markDirty();
 }
 
 void PP_RevisionAttr::mergeAttr( UT_uint32 iId, PP_RevisionType t,
@@ -1140,20 +1131,9 @@ void PP_RevisionAttr::mergeAll( const PP_RevisionAttr& ra )
         else
         {
             /*
-             * disregard entries without anything to tell
-             */
-            if( r->getType() != PP_REVISION_DELETION
-                && !strlen(r->getAttrsString())
-                && !strlen(r->getPropsString()) )
-            {
-                // UT_DEBUGMSG(("ODTCT ra::merge() rev as no attr/props, skipping old id:%d type:%d\n",
-                //              r->getId(), r->getType() ));
-                
-                continue;
-            }
-
-            /*
-             * no matching entry in the newidx, just copy the data
+             * no matching entry in the newidx, just copy the data;
+             * a bare revision mark still has to be preserved or the
+             * merge would silently drop it
              */
             output[ iter->first ] = new PP_Revision( iter->first.first,
                                                      iter->first.second,
@@ -1541,7 +1521,7 @@ PP_RevisionAttr::getLowestDeletionRevision() const
         }
         last = p;
     }
-    return nullptr;
+    return last;
 }
 
 

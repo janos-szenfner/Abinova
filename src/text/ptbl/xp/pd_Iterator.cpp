@@ -332,8 +332,8 @@ UT_uint32 PD_DocIterator::find(UT_TextIterator & text, UT_uint32 iLen, bool bFor
 			i++;
 		}
 
-		if(i == iLen) // that was the last char, return ...
-			return getPosition() - iLen + 1;
+		if(i == iLen) // that was the last char, return the match start
+			return bForward ? getPosition() - iLen + 1 : getPosition();
 
 		// too bad, start over again
 		UT_return_val_if_fail ( i < iLen,0 );
@@ -386,8 +386,8 @@ UT_uint32 PD_DocIterator::find(UT_UCS4Char * what, UT_uint32 iLen, bool bForward
 			i++;
 		}
 
-		if(i == iLen) // that was the last char, return ...
-			return getPosition() - iLen + 1;
+		if(i == iLen) // that was the last char, return the match start
+			return bForward ? getPosition() - iLen + 1 : getPosition();
 
 		// too bad, start over again
 		UT_return_val_if_fail ( i < iLen, 0 );

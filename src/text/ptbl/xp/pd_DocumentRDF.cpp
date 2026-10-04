@@ -4630,7 +4630,7 @@ RDFModel_XMLIDLimited::update()
         std::string xmlid = *(xmlids.begin());
         PP_AttrProp* AP = new PP_AttrProp();
 
-        PD_URI     idref(  "http://docs.oasis-open.org/opendocument/meta/package/common#pkg:idref" );
+        PD_URI     idref(  "http://docs.oasis-open.org/opendocument/meta/package/common#idref" );
         PD_Literal rdflink( xmlid );
         PD_URI s = m_delegate->getSubject( idref, rdflink );
         POCol polist = m_delegate->getArcsOut( s );

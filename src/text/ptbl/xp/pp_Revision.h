@@ -228,12 +228,12 @@ class ABI_EXPORT PP_RevisionAttr
 	std::vector<std::unique_ptr<PP_Revision>>    m_vRev;
 	// these next 2 are a cache, hence mutable
 	mutable std::string         m_sXMLstring;
-	mutable bool                m_bDirty; // indicates whether m_sXMLstring corresponds
+	mutable bool                m_bDirty = true; // indicates whether m_sXMLstring corresponds
 						          // to current state of the instance
-	UT_uint32           m_iSuperfluous;
+	UT_uint32           m_iSuperfluous = 0;
 	// index cache for getLastRevision: >=0 is a valid index into
 	// m_vRev, -1 means there is no last revision; only meaningful
 	// while !m_bLastRevisionDirty
-	mutable int                 m_iLastRevision;
-	mutable bool                m_bLastRevisionDirty;
+	mutable int                 m_iLastRevision = -1;
+	mutable bool                m_bLastRevisionDirty = true;
 };

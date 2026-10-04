@@ -3727,6 +3727,23 @@ below are on `main` but the release has not been cut yet.
   double-freed; the vector is now cleared after the points are
   deleted, which also fixes `isOutLinePresent()` reporting stale
   state after a destroy.
+- **Piece-table correctness fixes from the new text/ptbl test
+  suite** — `PD_Document::findForwardStyleStrux` and
+  `isStruxBeforeThis` no longer dereference a missing fragment when
+  called at document position 0 or on the first strux;
+  `PD_DocIterator::find` reports the correct position for backward
+  matches instead of the forward-search offset; the ODF package
+  id-reference URI constant was corrected
+  (`.../common#idref`); `PP_RevisionAttr` records added via
+  `addRevision(const PP_Revision*)` keep their deletion id and
+  payload instead of round-tripping through an unsigned-negated
+  string that both wrapped the id and dropped the revision's
+  properties; `getLowestDeletionRevision` answers correctly when
+  every mark is a deletion; and `mergeAll`/`mergeAttr` no longer
+  silently drop bare revision marks during a merge. Two new
+  `TF_Test` suites (`pt_DocEdits.t.cpp`, `pd_RDFDoc.t.cpp`) plus a
+  large `pp_Revision.t.cpp` extension raise `text/ptbl` line
+  coverage to ~65%.
 
 ### GTK4 port (core migration)
 
