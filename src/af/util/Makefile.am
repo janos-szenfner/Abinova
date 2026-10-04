@@ -145,19 +145,36 @@ libutil_la_SOURCES += \
 	$(NULL)
 
 EXTRA_DIST = \
+	xp/t/ut_base64.t.cpp \
 	xp/t/ut_bijection.t.cpp \
 	xp/t/ut_bytebuf.t.cpp \
+	xp/t/ut_color.t.cpp \
+	xp/t/ut_conversion.t.cpp \
+	xp/t/ut_crc32.t.cpp \
+	xp/t/ut_decompress.t.cpp \
 	xp/t/ut_encoding.t.cpp \
+	xp/t/ut_go_file.t.cpp \
 	xp/t/ut_growbuf.t.cpp \
 	xp/t/ut_hash.t.cpp \
 	xp/t/ut_hyphen.t.cpp \
+	xp/t/ut_iconv.t.cpp \
+	xp/t/ut_jpeg.t.cpp \
+	xp/t/ut_Language.t.cpp \
 	xp/t/ut_locale.t.cpp \
+	xp/t/ut_math.t.cpp \
+	xp/t/ut_mbtowc.t.cpp \
 	xp/t/ut_misc.t.cpp \
+	xp/t/ut_mutex.t.cpp \
+	xp/t/ut_OverstrikingChars.t.cpp \
 	xp/t/ut_path.t.cpp \
 	xp/t/ut_raii.t.cpp \
+	xp/t/ut_Script.t.cpp \
 	xp/t/ut_std_string.t.cpp \
 	xp/t/ut_string.t.cpp \
 	xp/t/ut_string_class.t.cpp \
+	xp/t/ut_stringbuf.t.cpp \
+	xp/t/ut_svg.t.cpp \
+	xp/t/ut_timer.t.cpp \
 	xp/t/ut_types.t.cpp \
 	xp/t/ut_units.t.cpp \
 	xp/t/ut_uuid.t.cpp \

@@ -85,6 +85,7 @@ UT_UUID::UT_UUID(const char * in)
 UT_UUID::UT_UUID(const struct uuid &u)
 {
     memcpy(&m_uuid, &u, sizeof(u));
+	m_bIsValid = true; // satisfy isNull()'s validity guard
 	m_bIsValid = !isNull();
 }
 
@@ -226,6 +227,7 @@ bool UT_UUID::setUUID(const char *s)
 bool UT_UUID::setUUID(const struct uuid &u)
 {
 	memcpy(&m_uuid, &u, sizeof(u));
+	m_bIsValid = true; // satisfy isNull()'s validity guard
 	m_bIsValid = !isNull();
 
 	return m_bIsValid;
@@ -479,42 +481,36 @@ bool UT_UUID::operator !=(const UT_UUID &u) const
 
 bool UT_UUID::operator <(const UT_UUID &u) const
 {
-	if(m_uuid.time_low < u.m_uuid.time_low)
-		return true;
+	if(m_uuid.time_low != u.m_uuid.time_low)
+		return m_uuid.time_low < u.m_uuid.time_low;
 
-	if(m_uuid.time_mid < u.m_uuid.time_mid)
-		return true;
-	
-	if(m_uuid.time_high_and_version < u.m_uuid.time_high_and_version)
-		return true;
+	if(m_uuid.time_mid != u.m_uuid.time_mid)
+		return m_uuid.time_mid < u.m_uuid.time_mid;
 
-	if(m_uuid.clock_seq < u.m_uuid.clock_seq)
-		return true;
+	if(m_uuid.time_high_and_version != u.m_uuid.time_high_and_version)
+		return m_uuid.time_high_and_version < u.m_uuid.time_high_and_version;
 
-	if(memcmp(m_uuid.node, u.m_uuid.node, 6) < 0)
-		return true;
+	if(m_uuid.clock_seq != u.m_uuid.clock_seq)
+		return m_uuid.clock_seq < u.m_uuid.clock_seq;
 
-	return false;
+	return memcmp(m_uuid.node, u.m_uuid.node, 6) < 0;
 }
 
 bool UT_UUID::operator >(const UT_UUID &u) const
 {
-	if(m_uuid.time_low > u.m_uuid.time_low)
-		return true;
+	if(m_uuid.time_low != u.m_uuid.time_low)
+		return m_uuid.time_low > u.m_uuid.time_low;
 
-	if(m_uuid.time_mid > u.m_uuid.time_mid)
-		return true;
-	
-	if(m_uuid.time_high_and_version > u.m_uuid.time_high_and_version)
-		return true;
+	if(m_uuid.time_mid != u.m_uuid.time_mid)
+		return m_uuid.time_mid > u.m_uuid.time_mid;
 
-	if(m_uuid.clock_seq > u.m_uuid.clock_seq)
-		return true;
+	if(m_uuid.time_high_and_version != u.m_uuid.time_high_and_version)
+		return m_uuid.time_high_and_version > u.m_uuid.time_high_and_version;
 
-	if(memcmp(m_uuid.node, u.m_uuid.node, 6) > 0)
-		return true;
+	if(m_uuid.clock_seq != u.m_uuid.clock_seq)
+		return m_uuid.clock_seq > u.m_uuid.clock_seq;
 
-	return false;
+	return memcmp(m_uuid.node, u.m_uuid.node, 6) > 0;
 }
 
 /*!

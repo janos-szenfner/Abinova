@@ -347,6 +347,9 @@ bool ABI_EXPORT UT_UTF8_Base64Decode(char *& binptr, size_t & binlen, const char
 						}
 					else if (c == s_UTF8_B64Pad)
 						{
+							/* padding terminates the quad; the leftover
+							   bits in byte1 are sub-byte residue and must
+							   not be emitted */
 							switch (i)
 								{
 								case 0:
@@ -354,26 +357,11 @@ bool ABI_EXPORT UT_UTF8_Base64Decode(char *& binptr, size_t & binlen, const char
 									decoded = false;
 									break;
 								case 2:
-									if (binlen == 0) decoded = false;
-									else
-										{
-											*binptr++ = static_cast<char>(byte1);
-											binlen--;
-											padding = true;
-										}
+									padding = true;
 									i++;
 									break;
 								default:
-									if (!padding)
-										{
-											if (binlen == 0) decoded = false;
-											else
-												{
-													*binptr++ = static_cast<char>(byte1);
-													binlen--;
-													padding = true;
-												}
-										}
+									padding = true;
 									i = 0;
 									break;
 								}

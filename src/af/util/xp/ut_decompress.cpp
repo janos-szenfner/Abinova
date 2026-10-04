@@ -112,6 +112,7 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 	UT_FilePtr outfile;
 	std::string outfilename;
 	int    fileSize = 0;
+	bool   wanted = false;	// current tar entry is the wanted file
 	
 	if (retBuf)
 		FREEP(*retBuf);
@@ -165,6 +166,7 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 				if ((remaining) && (g_ascii_strcasecmp(fname, szWantedFile) == 0))
 				{
 					fileSize = remaining;
+					wanted = true;
 					
 					if (retBuf)
 					{
@@ -188,7 +190,10 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 						outfile.reset();
 				}
 				else
+				{
 					outfile.reset();
+					wanted = false;
+				}
 
 				/*
 				 * could have no contents
@@ -200,7 +205,7 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 		{
 			unsigned int bytes = (remaining > TGZ_BLOCKSIZE) ? TGZ_BLOCKSIZE : remaining;
 			
-			if (retBuf && *retBuf)
+			if (wanted && retBuf && *retBuf)
 			{
 				memcpy(*retBuf + (fileSize - remaining), buffer.buffer, bytes);
 			}

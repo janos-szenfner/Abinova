@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <algorithm>
 
-#include <libxml/uri.h>
 #include <libxml/xmlmemory.h>
 
 #include <glib.h>
@@ -296,6 +295,14 @@ void UT_UTF8Stringbuf::append (const UT_UTF8Stringbuf & rhs)
 	}
 }
 
+/* g_unichar_to_utf8 (via UT_Unicode::UTF8_ByteLength) does not validate
+   its input: it emits byte sequences for surrogate halves and values
+   beyond U+10FFFF, so seql alone cannot detect non-UCS-4 input. */
+static bool s_is_valid_ucs4 (UT_UCS4Char u)
+{
+	return (u <= 0x10FFFF) && !(u >= 0xD800 && u <= 0xDFFF);
+}
+
 void UT_UTF8Stringbuf::appendUCS4 (const UT_UCS4Char * sz, size_t n /* == 0 => null-termination */)
 {
 	size_t bytelength = 0;
@@ -317,10 +324,8 @@ void UT_UTF8Stringbuf::appendUCS4 (const UT_UCS4Char * sz, size_t n /* == 0 => n
 		if(i == 0)
 			iCache = seql;
 
-		if (seql < 0) 
+		if (seql <= 0 || !s_is_valid_ucs4(sz[i]))
 			continue; // not UCS-4 !!
-		if (seql == 0) 
-			break; // end-of-string?
 		bytelength += static_cast<size_t>(seql);
 	}
 	if(bytelength == 0)
@@ -337,10 +342,8 @@ void UT_UTF8Stringbuf::appendUCS4 (const UT_UCS4Char * sz, size_t n /* == 0 => n
 		else
 			seql = UT_Unicode::UTF8_ByteLength (sz[i]);
 
-		if (seql < 0) 
+		if (seql <= 0 || !s_is_valid_ucs4(sz[i]))
 			continue; // not UCS-4 !!
-		if (seql == 0) 
-			break; // end-of-string?
 		UT_Unicode::UCS4_to_UTF8 (m_pEnd, bytelength, sz[i]);
 		m_strlen++;
 	}
@@ -354,11 +357,10 @@ void UT_UTF8Stringbuf::appendUCS2 (const UT_UCS2Char * sz, size_t n /* == 0 => n
 	for (i = 0; (i < n) || (n == 0); i++)
 	{
 		if (sz[i]==0 && n==0) break;
-		int seql = UT_Unicode::UTF8_ByteLength (static_cast<UT_UCS4Char>(sz[i]));
-		if (seql < 0) 
+		UT_UCS4Char u = static_cast<UT_UCS4Char>(sz[i]);
+		int seql = UT_Unicode::UTF8_ByteLength (u);
+		if (seql <= 0 || !s_is_valid_ucs4(u))
 			continue; // not UCS-4 !!
-		if (seql == 0) 
-			break; // end-of-string?
 		bytelength += static_cast<size_t>(seql);
 	}
 
@@ -367,12 +369,11 @@ void UT_UTF8Stringbuf::appendUCS2 (const UT_UCS2Char * sz, size_t n /* == 0 => n
 	for (i = 0; (i < n) || (n == 0); i++)
 	{
 		if (sz[i]==0 && n==0) break;
-		int seql = UT_Unicode::UTF8_ByteLength (static_cast<UT_UCS4Char>(sz[i]));
-		if (seql < 0) 
+		UT_UCS4Char u = static_cast<UT_UCS4Char>(sz[i]);
+		int seql = UT_Unicode::UTF8_ByteLength (u);
+		if (seql <= 0 || !s_is_valid_ucs4(u))
 			continue; // not UCS-4 !!
-		if (seql == 0) 
-			break; // end-of-string?
-		UT_Unicode::UCS4_to_UTF8 (m_pEnd, bytelength, static_cast<UT_UCS4Char>(sz[i]));
+		UT_Unicode::UCS4_to_UTF8 (m_pEnd, bytelength, u);
 		m_strlen++;
 	}
 	*m_pEnd = 0;
@@ -570,16 +571,48 @@ void UT_UTF8Stringbuf::escapeXML ()
 
    Just use libxml and hope for the best.
 */
+/* RFC 1738: within a URL only alphanumerics, the special characters
+   "$-_.+!*'()," and reserved characters (";/?:@=&") may be used
+   unencoded. '%' (the escape introducer), '#' and '~' are also kept
+   so already-escaped URLs, fragments and IPv6 literals pass through. */
+static bool s_url_byte_is_safe(unsigned char u)
+{
+	if ((u >= 'A' && u <= 'Z') || (u >= 'a' && u <= 'z') ||
+		(u >= '0' && u <= '9'))
+		return true;
+	switch (u)
+	{
+	case '$': case '-': case '_': case '.': case '+':
+	case '!': case '*': case '\'': case '(': case ')': case ',':
+	case ';': case '/': case '?': case ':': case '@': case '&':
+	case '=': case '%': case '#': case '~': case '[': case ']':
+		return true;
+	}
+	return false;
+}
+
 void UT_UTF8Stringbuf::escapeURL ()
 {
 	if(!m_psz || !*m_psz)
 		return;
 
-	xmlChar * uri = xmlURIEscape(BAD_CAST m_psz);
-	if(uri) {
-		assign(reinterpret_cast<gchar*>(uri));
-		xmlFree(uri);
+	static const char hex[16] = { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
+
+	std::string out;
+	out.reserve(byteLength() + 8);
+	for (const char * p = m_psz; *p; ++p)
+	{
+		unsigned char u = static_cast<unsigned char>(*p);
+		if (s_url_byte_is_safe(u))
+			out += *p;
+		else
+		{
+			out += '%';
+			out += hex[(u >> 4) & 0x0f];
+			out += hex[ u       & 0x0f];
+		}
 	}
+	assign(out.c_str());
 }
 
 /* decode %xx encoded characters
@@ -619,14 +652,27 @@ void UT_UTF8Stringbuf::decodeURL()
 	{
 		if(c == '%')
 		{
-			J.advance();
-			UT_UCS4Char b1 = charCode(J.current());
-			J.advance();
-			UT_UCS4Char b2 = charCode(J.current());
-			J.advance();
-
-			if(isalnum(b1) && isalnum(b2))
+			/* peek the two bytes after '%' before consuming them:
+			   % escapes are ASCII-only so raw bytes suffice, and a
+			   '%' not followed by two hex digits must pass through
+			   literally instead of being swallowed */
+			const char * pp = J.current();
+			UT_UCS4Char b1 = 0, b2 = 0;
+			bool bIsEscape = false;
+			if (pp && pp[1])
 			{
+				b1 = static_cast<unsigned char>(pp[1]);
+				b2 = static_cast<unsigned char>(pp[2]);
+				bIsEscape = (isxdigit(b1) != 0) && (b2 != 0) &&
+							(isxdigit(b2) != 0);
+			}
+
+			if(bIsEscape)
+			{
+				J.advance();
+				J.advance();
+				J.advance();
+
 				b1 = s_charCode_to_hexval(b1);
 				b2 = s_charCode_to_hexval(b2);
 					
@@ -683,9 +729,11 @@ void UT_UTF8Stringbuf::decodeURL()
 			}
 			else
 			{
-				// this should not happen in encoded url and so we will ignore this token;
-				// if we are in the middle of utf8 sequence; we will reset it
+				// not a valid %XX escape: emit the '%' literally; if we
+				// are in the middle of a utf8 sequence, reset it
 				iCacheNeeded = iCachePos = 0;
+				J.advance();
+				strncat(buff, "%", 1);
 			}
 		}
 		else

@@ -3695,6 +3695,31 @@ below are on `main` but the release has not been cut yet.
   suite now pins the containers' sparse-slot, ownership, bounds and
   shallow-copy semantics (3946 assertions) as the contract for the
   CPP06-09 `std::` migration.
+- **URL escaping actually escapes now** — `UT_UTF8Stringbuf::escapeURL`
+  and `UT_escapeURL` delegated to libxml2's `xmlURIEscape`, which
+  refuses strings that are not already valid URIs — so any href or
+  file path containing a space or non-ASCII byte was emitted
+  completely unescaped (and `UT_escapeURL` returned an empty string).
+  Both now percent-encode per RFC 1738 themselves, so links and
+  relationship targets with spaces or UTF-8 names survive export.
+  The matching decoder also swallowed a `%` that was not followed by
+  two hex digits (`"100%sure"` decoded to `"100re"`); non-escape `%`
+  sequences now pass through literally.
+- **Utility correctness fixes from the new af/util test suite** —
+  `UT_UTF8Stringbuf::appendUCS4/appendUCS2` now skip invalid Unicode
+  scalars (surrogates, > U+10FFFF) instead of encoding them as
+  garbage bytes or truncating the rest of the buffer;
+  `UT_UTF8_Base64Decode` no longer emits a phantom byte when input
+  ends in `=` padding; `UT_XML_cloneConvAmpersands` consumes both
+  characters of a literal `&&`; `UT_parse_attributes` no longer
+  copies past freshly-cleared buffers; `UT_untgz` only copies the
+  requested archive member into the caller's buffer;
+  `UT_URI`-relative paths count the `../`s in the reference URI, not
+  the target; `UT_UUID` comparisons are properly lexicographic and
+  UUIDs built from a raw `struct uuid` validate correctly;
+  `UT_ScriptLibrary` no longer seeds its sniffer list with five null
+  entries; and `UT_XML::sniff` reports invalid XML when a parse
+  produced no content instead of always claiming success.
 
 ### GTK4 port (core migration)
 

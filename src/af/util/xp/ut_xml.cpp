@@ -345,7 +345,7 @@ bool UT_XML::sniff (const char * buffer, UT_uint32 length, const char * xml_type
     return false;
 
   m_bSniffing = true; // This *must* be reset to false before returning
-  m_bValid = true;
+  m_bValid = false;
 
   m_xml_type = xml_type;
 

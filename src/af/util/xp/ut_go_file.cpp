@@ -840,9 +840,11 @@ make_rel (const char *uri, const char *ref_uri,
 	}
 	/* URI components agree until slash.  */
 
-	/* Find out the number of '/' in uri after slash.  */
+	/* The number of "../" needed equals the number of '/' in the
+	   reference URI after the shared component (its directory depth),
+	   not in the target URI.  */
 	n = 0;
-	q = slash;
+	q = ref_uri + (slash - uri);
 	while (1) {
 		q = strchr (q + 1, '/');
 		if (q)

@@ -94,7 +94,8 @@ bool UT_XML_cloneConvAmpersands(gchar *& rszDest, const gchar * szSource)
 			*n = *o;
 		} else {
 			if (o[1] == '&') {
-				*n++ = '&';
+				*n = '&';
+				o++; // consume the second '&' of the escape
 			}
 			else *n = '_';
 		}
@@ -1407,10 +1408,10 @@ void UT_parse_attributes(const char * attributes,
 		
 		if (*atstr != '=') 
 			break; // whatever we have, it's not a name="value" pair
-		if (name_start == name_end) 
+		if (name_start == name_end)
 			break; // ?? stray equals?
 
-		name.clear();
+		name.resize(name_end - name_start);
 		std::copy(name_start, name_end, name.begin());
 
 		atstr++;
@@ -1426,7 +1427,7 @@ void UT_parse_attributes(const char * attributes,
 
 		value_start++;
 
-		value.clear();
+		value.resize(value_end - value_start);
 		std::copy(value_start, value_end, value.begin());
 
 		map[name] = value;

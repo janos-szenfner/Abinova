@@ -26,12 +26,12 @@
 #include <sstream>
 #include <list>
 
-#include <libxml/uri.h>
 #include <libxml/xmlmemory.h>
 
 #include "ut_assert.h"
 #include "ut_std_string.h"
 #include "ut_string.h"
+#include "ut_stringbuf.h"
 #include "ut_debugmsg.h"
 #include "ut_iconv.h"
 
@@ -116,13 +116,13 @@ std::string UT_escapeURL(const std::string &s)
         return s;
     }
 
-    std::string rs;
-    xmlChar * uri = xmlURIEscape(BAD_CAST s.c_str());
-    if(uri) {
-        rs = reinterpret_cast<const char*>(uri);
-        xmlFree(uri);
-    }
-    return rs;
+    /* UT_UTF8Stringbuf::escapeURL percent-encodes per RFC 1738; the old
+       xmlURIEscape call returned NULL for strings that were not already
+       valid URIs — exactly the inputs that needed escaping. */
+    UT_UTF8Stringbuf buf(s.c_str());
+    buf.escapeURL();
+    const char * data = buf.data();
+    return std::string(data ? data : "");
 }
 
 std::string& UT_std_string_vprintf (std::string & inStr, const char *format,

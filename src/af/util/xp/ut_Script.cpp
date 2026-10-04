@@ -56,9 +56,10 @@ UT_Script::~UT_Script()
 UT_ScriptLibrary * UT_ScriptLibrary::m_pInstance = nullptr;
 
 UT_ScriptLibrary::UT_ScriptLibrary ()
-  :     mSniffers (new std::vector<UT_ScriptSniffer *>(5)),
+  :     mSniffers (new std::vector<UT_ScriptSniffer *>()),
     m_stErrMsg("")
 {
+	mSniffers->reserve(5);
   m_pInstance = this;
   UT_DEBUGMSG(("Construct a scriptlibrary %p \n", static_cast<void*>(this)));
 }
