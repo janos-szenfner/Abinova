@@ -40,7 +40,10 @@ class ABI_EXPORT UT_LocaleTransactor
   UT_LocaleTransactor& operator=(const UT_LocaleTransactor & rhs);
 
   int mCategory;
-  std::string mOldLocale;
+  std::string mOldLocale;  // saved locale on the setlocale() path
+  void * mPrevLocale;      // locale_t saved by uselocale() (may hold LC_GLOBAL_LOCALE)
+  void * mNewLocale;       // owned locale_t, freed in the dtor
+  bool mUseSetlocale;      // true when the process-wide setlocale() path is active
 };
 
 class ABI_EXPORT UT_LocaleInfo

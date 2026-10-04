@@ -4542,6 +4542,16 @@ below are on `main` but the release has not been cut yet.
   the old `long` was 32-bit on Win64, wrong for enchant's `ssize_t`
   API), and a leftover `off_t` in the RDF debug path became
   `std::streamoff`. No `/tmp` literals remain in shipped code.
+- **`UT_LocaleTransactor` is now thread-local** — the RAII guard used
+  by every importer/exporter to pin `LC_NUMERIC=C` previously mutated
+  the *process-wide* locale via `setlocale()`, which would race with
+  locale-sensitive C calls on any other thread once an import ever
+  runs off the main thread. On POSIX it now uses
+  `newlocale()`/`uselocale()`/`freelocale()`, confining the change to
+  the calling thread; on Windows it enables
+  `_configthreadlocale(_ENABLE_PER_THREAD_LOCALE)` so the existing
+  `setlocale()` calls become per-thread. Behavior inside the scope is
+  unchanged — only the process-wide side effect is gone.
 
 ### Resolved root causes worth noting
 
