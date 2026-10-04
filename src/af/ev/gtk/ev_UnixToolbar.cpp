@@ -56,6 +56,7 @@
 #include "ev_EditEventMapper.h"
 #include "xap_UnixTableWidget.h"
 #include "ev_UnixToolbar_ViewListener.h"
+#include "xap_GtkUtils.h"
 #include "xav_View.h"
 #include "xap_Prefs.h"
 #include "fv_View.h"
@@ -88,6 +89,7 @@ toolbar_append_item (GtkBox *toolbar,
 	UT_ASSERT(widget != nullptr);
 
 	gtk_widget_set_tooltip_text(widget, text);
+	XAP_gtk_a11y_name_from_tooltip(widget);
 
 	gtk_box_append(GTK_BOX(toolbar), widget);
 	if (show) {

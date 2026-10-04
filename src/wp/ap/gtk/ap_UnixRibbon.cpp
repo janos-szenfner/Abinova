@@ -352,6 +352,14 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	m_wNotebook = gtk_notebook_new();
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(m_wNotebook), TRUE);
 	gtk_widget_add_css_class(m_wNotebook, "abinova-ribbon");
+	{
+		const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+		std::string sRibbon;
+		if (pSS)
+			pSS->getValueUTF8(XAP_STRING_ID_A11Y_Ribbon, sRibbon);
+		XAP_gtk_a11y_name(m_wNotebook,
+						  sRibbon.empty() ? "Ribbon" : sRibbon.c_str());
+	}
 	gtk_widget_set_vexpand(m_wNotebook, FALSE);
 	gtk_widget_set_hexpand(m_wNotebook, TRUE);
 	gtk_widget_set_valign(m_wNotebook, GTK_ALIGN_START);
@@ -439,6 +447,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	{
 		GtkWidget * page = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_widget_set_valign(page, GTK_ALIGN_START);
+		g_object_set(G_OBJECT(page), "accessible-role",
+					 GTK_ACCESSIBLE_ROLE_TOOLBAR, nullptr);
+		XAP_gtk_a11y_name(page, _ribbon_label(tab->szTabKey,
+											s_ribbon_tab_labels));
 
 		for (const AP_RibbonGroup * group = tab->groups; group->szGroupKey; ++group)
 		{
@@ -446,6 +458,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			 * title centered at the bottom */
 			GtkWidget * frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 			gtk_widget_add_css_class(frame, "ribbon-group");
+			g_object_set(G_OBJECT(frame), "accessible-role",
+						 GTK_ACCESSIBLE_ROLE_GROUP, nullptr);
+			XAP_gtk_a11y_name(frame, _ribbon_label(group->szGroupKey,
+												 s_ribbon_group_labels));
 			/* LibreOffice-style columns of 3 rows: group height stays
 			 * constant, extra items wrap into more columns */
 			GtkWidget * grid = gtk_grid_new();
@@ -824,6 +840,9 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			const char * szStatus2 = pLabel->getMenuStatusMessage();
 			if (szStatus2 && *szStatus2 && strcmp(szStatus2, " ") != 0)
 				gtk_widget_set_tooltip_text(btn, szStatus2);
+			/* glyph buttons draw "B"/"I"/"x²" — the accessible name
+			 * must be the real menu label, not the glyph */
+			XAP_gtk_a11y_name(btn, label);
 			return btn;
 		}
 		/* unknown glyph id - fall through to the icon/label path */
@@ -992,6 +1011,10 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	const char * szStatus = pLabel->getMenuStatusMessage();
 	if (szStatus && *szStatus && strcmp(szStatus, " ") != 0)
 		gtk_widget_set_tooltip_text(btn, szStatus);
+
+	/* icon-only buttons get their name from the menu label (labelled
+	 * buttons derive the same name from their text anyway) */
+	XAP_gtk_a11y_name(btn, label);
 
 	return btn;
 }
@@ -2487,6 +2510,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		const char * szStatus = pLabel->getMenuStatusMessage();
 		if (szStatus && *szStatus && strcmp(szStatus, " ") != 0)
 			gtk_widget_set_tooltip_text(mb, szStatus);
+		if (pLabel->getMenuLabel())
+		{
+			char nm[256];
+			_ribbon_strip_mnemonic(pLabel->getMenuLabel(), nm, sizeof(nm));
+			XAP_gtk_a11y_name(mb, nm);
+		}
 	}
 	return mb;
 }
@@ -10655,6 +10684,8 @@ GtkWidget * AP_UnixRibbon::_wrapSplit(GtkWidget * w, GtkWidget * popover,
 	GtkWidget * arrow = gtk_menu_button_new();
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(arrow),
 								  GTK_ARROW_DOWN);
+	gtk_widget_set_tooltip_text(arrow, "More options");
+	XAP_gtk_a11y_name_from_tooltip(arrow);
 	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(arrow), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(arrow), popover);
 	/* slim the drop-arrow: zero padding on the button and its
@@ -10847,6 +10878,12 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 		w = _tb_make_combo(ctx);
 		if (w)
 		{
+			/* the combo is a wrapper box: its tooltip is set on the
+			 * outer widget and never reaches the inner entry and
+			 * arrow button — propagate it as their accessible name */
+			const char * szTip3 = pLabel->getToolTip();
+			if (szTip3 && *szTip3)
+				XAP_gtk_a11y_name_descendants(w, szTip3);
 			GtkWidget * drop = GTK_WIDGET(
 				g_object_get_data(G_OBJECT(w), "abi-size-drop"));
 			if (ABI_IS_FONT_COMBO(w))
@@ -10885,6 +10922,13 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 		w = _tb_color_button_new(
 			szThemeIcon ? szThemeIcon : "preferences-color-symbolic",
 			sClear.c_str(), ctx, szGlyph);
+		/* the "A"/"ab" glyph child would otherwise become the
+		 * accessible name */
+		{
+			const char * szName = pLabel->getToolTip();
+			if (szName && *szName)
+				XAP_gtk_a11y_name(w, szName);
+		}
 		break;
 	}
 
@@ -10957,6 +11001,8 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 
 	m_wStylePrev = gtk_button_new_from_icon_name(
 		"go-previous-symbolic");
+	gtk_widget_set_tooltip_text(m_wStylePrev, "Scroll styles back");
+	XAP_gtk_a11y_name_from_tooltip(m_wStylePrev);
 	gtk_widget_add_css_class(m_wStylePrev, "flat");
 	gtk_widget_add_css_class(m_wStylePrev, "ribbon-nav");
 	gtk_widget_set_size_request(m_wStylePrev, 16, -1);
@@ -10968,6 +11014,8 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 
 	m_wStyleNext = gtk_button_new_from_icon_name(
 		"go-next-symbolic");
+	gtk_widget_set_tooltip_text(m_wStyleNext, "Scroll styles forward");
+	XAP_gtk_a11y_name_from_tooltip(m_wStyleNext);
 	gtk_widget_add_css_class(m_wStyleNext, "flat");
 	gtk_widget_add_css_class(m_wStyleNext, "ribbon-nav");
 	gtk_widget_set_size_request(m_wStyleNext, 16, -1);

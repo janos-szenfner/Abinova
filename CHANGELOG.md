@@ -1873,6 +1873,17 @@ below are on `main` but the release has not been cut yet.
   before. The stale "stored but not rendered" tooltip is gone,
   and switching the mode in the popover now reflows the document
   immediately.
+- **Accessibility baseline (AT-SPI)** — the app finally exports an
+  accessible tree. The document canvas is exposed with the
+  `document` role and a real name; ribbon tabs and groups, both
+  rulers, the scrollbars and the status bar carry proper roles and
+  accessible names; every icon-only ribbon/toolbar button — including
+  the "A"/"ab" color glyphs, split-button drop arrows, style-gallery
+  controls and the font/size entries — is named from its menu label
+  or tooltip; and every modal and modeless dialog auto-names its
+  unlabelled controls on map, as do popovers when they attach their
+  children. Screen readers and other AT-SPI clients can now announce
+  the UI.
 
 ### Tables (Word-style creation and context menus)
 

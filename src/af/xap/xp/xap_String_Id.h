@@ -226,6 +226,14 @@ dcl(SB_Zoom_Out,						"Zoom Out")
 dcl(SB_Zoom_Slider,						"Zoom")
 dcl(SB_Zoom_Level,						"Zoom level")
 
+/* Accessible names for the main-window chrome (AT-SPI) */
+dcl(A11Y_Ribbon,						"Ribbon")
+dcl(A11Y_Document,						"Document")
+dcl(A11Y_TopRuler,						"Top ruler")
+dcl(A11Y_LeftRuler,						"Left ruler")
+dcl(A11Y_ScrollHoriz,					"Horizontal scroll bar")
+dcl(A11Y_ScrollVert,					"Vertical scroll bar")
+
 /* Font tool bar*/
 dcl(TB_Font_Symbol,						"Symbols")
 

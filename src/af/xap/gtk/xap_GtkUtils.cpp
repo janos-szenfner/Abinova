@@ -219,6 +219,124 @@ static void s_popover_map_cb(GtkWidget * pop, gpointer)
                   reinterpret_cast<GDestroyNotify>(g_object_unref));
 }
 
+void XAP_gtk_a11y_name(GtkWidget* w, const char* name)
+{
+  if (!w || !name || !*name)
+    return;
+  gtk_accessible_update_property(GTK_ACCESSIBLE(w),
+                                 GTK_ACCESSIBLE_PROPERTY_LABEL,
+                                 name, -1);
+}
+
+/* TRUE when the widget's subtree contains a GtkLabel with real text —
+ * GTK derives the accessible name of a button from its label child,
+ * so such a control is already named and must not be overridden. */
+static gboolean s_has_text_label(GtkWidget* w)
+{
+  if (GTK_IS_LABEL(w))
+    {
+      const gchar * t = gtk_label_get_text(GTK_LABEL(w));
+      if (t && *t)
+        return TRUE;
+    }
+  for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+       c = gtk_widget_get_next_sibling(c))
+    {
+      if (s_has_text_label(c))
+        return TRUE;
+    }
+  return FALSE;
+}
+
+/* TRUE when the control already has a visible text label of its own
+ * (button/menu-button label property or a label descendant). */
+static gboolean s_has_own_label(GtkWidget* w)
+{
+  if (GTK_IS_MENU_BUTTON(w))
+    {
+      const gchar * l = gtk_menu_button_get_label(GTK_MENU_BUTTON(w));
+      if (l && *l)
+        return TRUE;
+    }
+  if (GTK_IS_BUTTON(w))
+    {
+      const gchar * l = gtk_button_get_label(GTK_BUTTON(w));
+      if (l && *l)
+        return TRUE;
+    }
+  if (GTK_IS_CHECK_BUTTON(w))
+    {
+      const gchar * l = gtk_check_button_get_label(GTK_CHECK_BUTTON(w));
+      if (l && *l)
+        return TRUE;
+    }
+  return s_has_text_label(w);
+}
+
+/* widgets that announce themselves with a visible label: name them
+ * from the tooltip only when they carry no text label. */
+static gboolean s_is_labelled_control(GtkWidget* w)
+{
+  return GTK_IS_BUTTON(w) || GTK_IS_MENU_BUTTON(w) ||
+    GTK_IS_CHECK_BUTTON(w);
+}
+
+/* widgets that never carry a visible label of their own: the tooltip
+ * is the only name source, so use it unconditionally. */
+static gboolean s_is_unlabelled_control(GtkWidget* w)
+{
+  return GTK_IS_DROP_DOWN(w) || GTK_IS_SPIN_BUTTON(w) ||
+    GTK_IS_EDITABLE(w) || GTK_IS_TEXT_VIEW(w) ||
+    GTK_IS_RANGE(w) || GTK_IS_SWITCH(w);
+}
+
+void XAP_gtk_a11y_name_from_tooltip(GtkWidget* w)
+{
+  if (!w)
+    return;
+  const gchar * tip = gtk_widget_get_tooltip_text(w);
+  if (!tip || !*tip)
+    return;
+  if ((s_is_labelled_control(w) && !s_has_own_label(w)) ||
+      s_is_unlabelled_control(w))
+    gtk_accessible_update_property(GTK_ACCESSIBLE(w),
+                                   GTK_ACCESSIBLE_PROPERTY_LABEL,
+                                   tip, -1);
+}
+
+void XAP_gtk_a11y_auto_name(GtkWidget* root)
+{
+  if (!root)
+    return;
+  XAP_gtk_a11y_name_from_tooltip(root);
+  for (GtkWidget * c = gtk_widget_get_first_child(root); c;
+       c = gtk_widget_get_next_sibling(c))
+    XAP_gtk_a11y_auto_name(c);
+}
+
+void XAP_gtk_a11y_name_descendants(GtkWidget* root, const char* name)
+{
+  if (!root || !name || !*name)
+    return;
+  for (GtkWidget * c = gtk_widget_get_first_child(root); c;
+       c = gtk_widget_get_next_sibling(c))
+    {
+      if ((s_is_labelled_control(c) && !s_has_own_label(c)) ||
+          s_is_unlabelled_control(c))
+        gtk_accessible_update_property(GTK_ACCESSIBLE(c),
+                                       GTK_ACCESSIBLE_PROPERTY_LABEL,
+                                       name, -1);
+      XAP_gtk_a11y_name_descendants(c, name);
+    }
+}
+
+static void s_popover_a11y_cb(GtkWidget * pop, gpointer)
+{
+  /* popover children are attached lazily and live on their own
+   * surface — name them when the popover first maps */
+  XAP_gtk_a11y_auto_name(pop);
+}
+
 static void s_pixbuf_cap_prepared_size(GdkPixbufLoader* ldr,
                                        gint width, gint height,
                                        gpointer /*user_data*/)
@@ -265,5 +383,6 @@ GtkWidget* xap_gtk_popover_new(void)
   gtk_popover_set_autohide(GTK_POPOVER(pop), FALSE);
   g_signal_connect(pop, "map", G_CALLBACK(s_popover_map_cb), nullptr);
   g_signal_connect(pop, "unmap", G_CALLBACK(s_popover_unmap_cb), nullptr);
+  g_signal_connect(pop, "map", G_CALLBACK(s_popover_a11y_cb), nullptr);
   return pop;
 }

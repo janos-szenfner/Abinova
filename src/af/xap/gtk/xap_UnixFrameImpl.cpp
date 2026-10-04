@@ -67,6 +67,7 @@
 #include "gr_UnixCairoGraphics.h"
 #include "xap_UnixDialogHelper.h"
 #include "xap_UnixClipboard.h"
+#include "xap_GtkUtils.h"
 #include "xap_Strings.h"
 #include "xap_Prefs.h"
 #include "ap_FrameData.h"
@@ -1565,6 +1566,11 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 	}
 
 	gtk_widget_set_visible(m_wVBox, TRUE);
+
+	// baseline a11y: give every nameless interactive control in the
+	// chrome (icon-only ribbon/toolbar buttons, dropdowns, sliders)
+	// an accessible name derived from its tooltip.
+	XAP_gtk_a11y_auto_name(m_wTopLevelWindow);
 
 	// set the icon
 	if(m_iFrameMode == XAP_NormalFrame)

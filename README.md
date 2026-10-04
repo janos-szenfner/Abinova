@@ -916,6 +916,15 @@ not exist remain unbound on all platforms.
   cells stayed invisible. Cells now render through `.view` style
   donors — a normal one plus a permanent `GTK_STATE_FLAG_SELECTED`
   one — giving a visible grid and a theme-accent selection highlight.
+- **Accessibility baseline**: the app previously exported no AT-SPI
+  markup at all. The document canvas now carries the `document` role
+  and an accessible name; ribbon tabs/groups, rulers, scrollbars and
+  the status bar get proper roles and names; every icon-only button
+  is named from its menu label or tooltip (color glyphs, split
+  arrows, combo entries included); and dialogs auto-name unlabelled
+  controls when they map. Note that a GTK4 widget with the default
+  `generic` role is name-prohibited — naming a custom drawing area
+  also requires giving it a naming-capable `accessible-role` first.
 
 ### Autosave and crash recovery
 

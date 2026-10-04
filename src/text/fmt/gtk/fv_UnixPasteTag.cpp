@@ -19,6 +19,7 @@
 
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
+#include "xap_GtkUtils.h"
 #include "ap_UnixFrameImpl.h"
 #include "ap_UnixRibbon.h"
 #include "fv_UnixPasteTag.h"
@@ -108,6 +109,7 @@ void FV_UnixPasteTag::_ensureButton()
 	gtk_menu_button_set_always_show_arrow(GTK_MENU_BUTTON(m_pButton),
 										  TRUE);
 	gtk_widget_set_tooltip_text(m_pButton, "Paste Options (Ctrl)");
+	XAP_gtk_a11y_name_from_tooltip(m_pButton);
 	gtk_widget_set_halign(m_pButton, GTK_ALIGN_START);
 	gtk_widget_set_valign(m_pButton, GTK_ALIGN_START);
 	/* force LTR so that margin-start always means the left edge */

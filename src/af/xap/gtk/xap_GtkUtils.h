@@ -47,6 +47,32 @@ void XAP_gtk_widget_set_margin(GtkWidget* w, gint margin);
 /// XWayland, so the dismissal is handled manually.
 GtkWidget* xap_gtk_popover_new(void);
 
+/// Baseline accessibility helpers (GTK4 GtkAccessible).
+///
+/// XAP_gtk_a11y_name gives a widget an accessible name: the string a
+/// screen reader announces for it.  Use it on controls that have no
+/// visible text label (icon-only buttons, the document canvas, chrome
+/// containers).
+void XAP_gtk_a11y_name(GtkWidget* w, const char* name);
+
+/// Name a widget from its own tooltip text.  Only applies to
+/// interactive widgets that have no visible text label GTK can derive
+/// a name from (icon-only buttons) or no name at all (entries,
+/// dropdowns, ranges, switches), and only when a tooltip is set.
+void XAP_gtk_a11y_name_from_tooltip(GtkWidget* w);
+
+/// Walk the widget subtree under root and apply
+/// XAP_gtk_a11y_name_from_tooltip to every interactive descendant.
+/// Cheap enough to re-run whenever the tree is populated or shown.
+void XAP_gtk_a11y_auto_name(GtkWidget* root);
+
+/// Give every interactive descendant of root that has no visible
+/// text label (entries, dropdowns, icon-only buttons) the accessible
+/// name @name.  Used for composite controls such as the font combo,
+/// where the tooltip/label lives on the wrapper box and the inner
+/// entry and arrow button would otherwise stay anonymous to ATs.
+void XAP_gtk_a11y_name_descendants(GtkWidget* root, const char* name);
+
 /// Creates a GdkPixbufLoader that bounds the decoded image size to
 /// the sane UT_IMAGE_MAX_* limits: images declared larger are asked
 /// to scale down during the load itself (honored by loaders with

@@ -58,6 +58,7 @@
 #include "xap_UnixDialogHelper.h"
 #include "xap_Dialog.h"
 #include "xap_Strings.h"
+#include "xap_GtkUtils.h"
 
 /*****************************************************************/
 /*****************************************************************/
@@ -516,6 +517,10 @@ gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole rol
 		g_object_set (G_OBJECT (me), "accessible-role", role, nullptr);
 	}
 
+	/* baseline a11y: name any icon-only buttons / unlabelled inputs
+	 * in the dialog from their tooltips */
+	XAP_gtk_a11y_auto_name (GTK_WIDGET (me));
+
 	/* Callers of this overload skip abiSetupModalDialog, so no transient
 	 * parent was set; GTK4 warns when a GtkDialog maps without one. */
 	if (!gtk_window_get_transient_for (GTK_WINDOW (me))) {
@@ -630,6 +635,7 @@ void abiSetupModelessDialog(GtkDialog * me, XAP_Frame * pFrame, XAP_Dialog * pDl
 	if (gtk_accessible_get_accessible_role (GTK_ACCESSIBLE (me)) == GTK_ACCESSIBLE_ROLE_NONE) {
 		g_object_set (G_OBJECT (me), "accessible-role", GTK_ACCESSIBLE_ROLE_ALERT, nullptr);
 	}
+	XAP_gtk_a11y_auto_name (GTK_WIDGET (me));
 
     pDlg->maybeClosePopupPreviewBubbles();
         

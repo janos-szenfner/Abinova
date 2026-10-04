@@ -33,6 +33,7 @@
 #include "ev_EditMethod.h"
 #include "ap_UnixStatusBar.h"
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkUtils.h"
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
@@ -221,6 +222,10 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 	
 	// probably should make this into an event box (if we want the user to be able to interact with the status bar)
 	m_wStatusBar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	/* the status role is itself the announcement: GTK marks it
+	 * name-prohibited, so no accessible name is set (or exported) */
+	g_object_set(G_OBJECT(m_wStatusBar), "accessible-role",
+				 GTK_ACCESSIBLE_ROLE_STATUS, nullptr);
 
 	gtk_widget_set_visible(m_wStatusBar, TRUE);
 

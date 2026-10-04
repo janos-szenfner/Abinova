@@ -22,10 +22,15 @@
 
 #include <gtk/gtk.h>
 
+#include <string>
+
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
+#include "xap_App.h"
 #include "xap_Frame.h"
+#include "xap_Strings.h"
+#include "xap_GtkUtils.h"
 #include "xap_UnixFrameImpl.h"
 #include "ap_UnixLeftRuler.h"
 #include "gr_UnixCairoGraphics.h"
@@ -48,7 +53,15 @@ AP_UnixLeftRuler::~AP_UnixLeftRuler(void)
 GtkWidget * AP_UnixLeftRuler::createWidget(void)
 {
 	UT_ASSERT(!m_pG);
-	return _createWidget(s_iFixedWidth, -1);
+	GtkWidget * w = _createWidget(s_iFixedWidth, -1);
+	g_object_set(G_OBJECT(w), "accessible-role",
+				 GTK_ACCESSIBLE_ROLE_GROUP, nullptr);
+	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+	std::string sName;
+	if (pSS)
+		pSS->getValueUTF8(XAP_STRING_ID_A11Y_LeftRuler, sName);
+	XAP_gtk_a11y_name(w, sName.empty() ? "Left ruler" : sName.c_str());
+	return w;
 }
 
 void AP_UnixLeftRuler::setView(AV_View * pView)

@@ -39,6 +39,8 @@
 #include "xap_UnixApp.h"
 #include "xap_UnixDialogHelper.h"
 #include "ap_UnixStatusBar.h"
+#include "xap_GtkUtils.h"
+#include "xap_Strings.h"
 #include "ut_debugmsg.h"
 #include "ut_assert.h"
 #include "ev_UnixMenuBar.h"
@@ -258,11 +260,21 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	static_cast<AP_FrameData*>(pFrame->getFrameData())->m_pLeftRuler = pUnixLeftRuler;
 
 	// set up for scroll bars.
+	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+	std::string sDoc, sHScroll, sVScroll;
+	if (pSS)
+	{
+		pSS->getValueUTF8(XAP_STRING_ID_A11Y_Document, sDoc);
+		pSS->getValueUTF8(XAP_STRING_ID_A11Y_ScrollHoriz, sHScroll);
+		pSS->getValueUTF8(XAP_STRING_ID_A11Y_ScrollVert, sVScroll);
+	}
+
 	m_pHadj = reinterpret_cast<GtkAdjustment *>(gtk_adjustment_new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 	m_hScroll = gtk_scrollbar_new(GTK_ORIENTATION_HORIZONTAL, m_pHadj);
 	g_object_set_data(G_OBJECT(m_pHadj), "user_data", this);
 	g_object_set_data(G_OBJECT(m_hScroll), "user_data", this);
 	gtk_widget_set_hexpand(m_hScroll, TRUE);
+	XAP_gtk_a11y_name(m_hScroll, sHScroll.empty() ? "Horizontal scroll bar" : sHScroll.c_str());
 
 	m_iHScrollSignal = g_signal_connect(G_OBJECT(m_pHadj), "value_changed", G_CALLBACK(XAP_UnixFrameImpl::_fe::hScrollChanged), nullptr);
 
@@ -271,6 +283,7 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	g_object_set_data(G_OBJECT(m_pVadj), "user_data", this);
 	g_object_set_data(G_OBJECT(m_vScroll), "user_data", this);
 	gtk_widget_set_vexpand(m_vScroll, TRUE);
+	XAP_gtk_a11y_name(m_vScroll, sVScroll.empty() ? "Vertical scroll bar" : sVScroll.c_str());
 
 	m_iVScrollSignal = g_signal_connect(G_OBJECT(m_pVadj), "value_changed", G_CALLBACK(XAP_UnixFrameImpl::_fe::vScrollChanged), nullptr);
 
@@ -282,6 +295,10 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	m_dArea = ap_DocView_new();
 	g_object_set_data(G_OBJECT(m_dArea), "user_data", this);
 	UT_DEBUGMSG(("!!! drawing area m_dArea created! %p for %p \n",m_dArea,this));
+	/* the canvas is the document surface: expose it as such to ATs */
+	g_object_set(G_OBJECT(m_dArea), "accessible-role",
+				 GTK_ACCESSIBLE_ROLE_DOCUMENT, nullptr);
+	XAP_gtk_a11y_name(m_dArea, sDoc.empty() ? "Document" : sDoc.c_str());
 	gtk_widget_set_can_focus(m_dArea, true);	// allow it to be focussed
 	/* GTK4: keyboard focus requires 'focusable' (separate from
 	 * can-focus); without it grab_focus silently fails and the
@@ -1092,6 +1109,13 @@ void AP_UnixFrameImpl::setSplitView(bool bSplit)
 	m_vScroll2 = gtk_scrollbar_new(GTK_ORIENTATION_VERTICAL, m_pVadj2);
 	g_object_set_data(G_OBJECT(m_vScroll2), "user_data", this);
 	gtk_widget_set_vexpand(m_vScroll2, TRUE);
+	{
+		const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+		std::string sVScroll;
+		if (pSS)
+			pSS->getValueUTF8(XAP_STRING_ID_A11Y_ScrollVert, sVScroll);
+		XAP_gtk_a11y_name(m_vScroll2, sVScroll.empty() ? "Vertical scroll bar" : sVScroll.c_str());
+	}
 	gtk_widget_set_can_focus(m_vScroll2, false);
 	m_iVScrollSignal2 = g_signal_connect(
 		G_OBJECT(m_pVadj2), "value_changed",
@@ -1099,6 +1123,15 @@ void AP_UnixFrameImpl::setSplitView(bool bSplit)
 
 	m_dArea2 = ap_DocView_new();
 	g_object_set_data(G_OBJECT(m_dArea2), "user_data", this);
+	g_object_set(G_OBJECT(m_dArea2), "accessible-role",
+				 GTK_ACCESSIBLE_ROLE_DOCUMENT, nullptr);
+	{
+		const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+		std::string sDoc;
+		if (pSS)
+			pSS->getValueUTF8(XAP_STRING_ID_A11Y_Document, sDoc);
+		XAP_gtk_a11y_name(m_dArea2, sDoc.empty() ? "Document" : sDoc.c_str());
+	}
 	gtk_widget_set_can_focus(m_dArea2, true);
 	gtk_widget_set_focusable(m_dArea2, true);
 	gtk_widget_set_hexpand(m_dArea2, TRUE);
