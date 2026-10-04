@@ -3720,6 +3720,13 @@ below are on `main` but the release has not been cut yet.
   `UT_ScriptLibrary` no longer seeds its sniffer list with five null
   entries; and `UT_XML::sniff` reports invalid XML when a parse
   produced no content instead of always claiming success.
+- **Image transparency outlines no longer double-free** —
+  `GR_Image::DestroyOutline()` deleted every outline point but left
+  the pointers in `m_vecOutLine`, so a second destroy (or the
+  `GenerateOutline` reuse path) walked dangling pointers and
+  double-freed; the vector is now cleared after the points are
+  deleted, which also fixes `isOutLinePresent()` reporting stale
+  state after a destroy.
 
 ### GTK4 port (core migration)
 

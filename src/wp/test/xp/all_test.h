@@ -87,6 +87,10 @@
 #undef TFSUITE
 #include "src/af/util/xp/t/ut_timer.t.cpp"
 #undef TFSUITE
+#include "src/af/ev/xp/t/ev_Tables.t.cpp"
+#undef TFSUITE
+#include "src/af/gr/xp/t/gr_Primitives.t.cpp"
+#undef TFSUITE
 #include "src/af/xap/xp/t/xap_Prefs.t.cpp"
 #undef TFSUITE
 #include "src/af/xap/xp/t/xap_UpdateCheck.t.cpp"

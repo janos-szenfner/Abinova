@@ -54,3 +54,6 @@ libgr_la_SOURCES += \
 
 
 
+
+EXTRA_DIST = \
+	xp/t/gr_Primitives.t.cpp

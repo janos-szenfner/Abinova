@@ -304,6 +304,7 @@ void GR_Image::GenerateOutline(void)
 void GR_Image::DestroyOutline(void)
 {
   for (GR_Image_Point * _utv_p : m_vecOutLine) { if (_utv_p) delete(_utv_p); };
+  m_vecOutLine.clear();
 }
 
 void GR_Image::setName ( const UT_String & name )

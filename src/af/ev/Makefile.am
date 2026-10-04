@@ -59,3 +59,6 @@ libev_la_SOURCES += \
 
 
 
+
+EXTRA_DIST = \
+	xp/t/ev_Tables.t.cpp
