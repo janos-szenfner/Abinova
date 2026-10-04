@@ -4461,6 +4461,16 @@ below are on `main` but the release has not been cut yet.
   tex/latex, md, txt, wpd, psitext/psiword) with a feature-complete
   fixture exercising styles, lists, notes, comments, tables, images,
   math, TOC, fields, links, headers/footers and sections.
+- **wp/ap/xp app layer covered by the headless test suite** — new
+  `TF_Test` suites sweep the full registered edit-method table
+  (~630 methods invoked in-process against a real widget-less
+  document/view under a signal+watchdog guard, with headless-only
+  failures pinned by name), every menu action's state/dynamic-label
+  hook and every toolbar action's state hook in both unselected and
+  selected views, the toolbar icon ID/name/data lookup tables,
+  `AP_Convert` headless file conversion, and `AP_Preview_Abi`
+  construction/drawing across the non-scroll preview modes.
+  `wp/ap/xp` line coverage rose from ~25% to ~47%.
 
 ### Resolved root causes worth noting
 

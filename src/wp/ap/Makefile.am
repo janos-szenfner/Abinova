@@ -618,7 +618,12 @@ EXTRA_DIST = \
 	xp/ToolbarIcons/tb_semitem_next.xpm \
 	xp/ToolbarIcons/tb_semitem_prev.xpm \
 	xp/ToolbarIcons/tb_semitem_edit.xpm \
-	xp/ToolbarIcons/tb_semitem_stylesheet_apply.xpm
+	xp/ToolbarIcons/tb_semitem_stylesheet_apply.xpm \
+	xp/t/ap_KeyBindings.t.cpp \
+	xp/t/ap_TopRuler.t.cpp \
+	xp/t/ap_EditMethods.t.cpp \
+	xp/t/ap_MenuFns.t.cpp \
+	xp/t/em_guard.h
 
 ap_wp_sidebar.cpp: $(srcdir)/xp/sidebar.png
 	$(CDUMPAPP) $(srcdir)/xp/sidebar.png g_pngSidebar > ap_wp_sidebar.cpp

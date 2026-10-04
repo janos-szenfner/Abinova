@@ -45,7 +45,7 @@ void init_platform(void);
 void terminate_platform(void);
 
 
-int main (int, char**)
+int main (int argc, char** argv)
 {
 	XAP_App::s_szBuild_ID = "TEST";
 	XAP_App::s_szAbiSuite_Home = "/tmp";
@@ -55,7 +55,10 @@ int main (int, char**)
 
 	init_platform();
 
-	int retval = TF_Test::run_all();
+	/* optional args are idstr/description prefixes — passing none
+	 * runs everything, as before */
+	int retval = TF_Test::run_all(
+		argc > 1 ? (const char * const *)(argv + 1) : nullptr);
 
 	terminate_platform();
 
