@@ -3668,6 +3668,25 @@ below are on `main` but the release has not been cut yet.
   `size-prepared` hint where the codec supports it, and any
   still-oversized result is downscaled after load, so a
   20000x20000 image can no longer allocate unbounded memory.
+- **Temporary files are created again** — `UT_createTmpFile` passed a
+  full `/tmp/...` path to `g_file_open_tmp`, which only accepts a
+  basename template and failed every call, so features that spill
+  data to a temp file (e.g. embedded media for external handlers)
+  silently did nothing. It now passes the basename and lets GLib
+  place the file in the temp directory itself.
+- **Property strings with a trailing `;` parse again** —
+  `UT_splitPropsToArray` was meant to tolerate a trailing semicolon
+  but the segment walk choked on the empty tail and returned
+  `nullptr`, dropping every property; the separator is now trimmed
+  up front.
+- **Container edge-case fixes** — `UT_GenericVector::insertItemAt`
+  accepted index `count+1`, which slipped a wrapped-huge length into
+  `memmove` (heap corruption); `copy()` returned `true` on failure
+  and `false` on success; `UT_Bijection::nth1/nth2` dereferenced a
+  null array on an empty map. All three are fixed, and the test
+  suite now pins the containers' sparse-slot, ownership, bounds and
+  shallow-copy semantics (3946 assertions) as the contract for the
+  CPP06-09 `std::` migration.
 
 ### GTK4 port (core migration)
 

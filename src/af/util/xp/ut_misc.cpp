@@ -451,12 +451,13 @@ const gchar ** UT_splitPropsToArray(gchar * pProps)
 	
 		UT_uint32 iLen = strlen(pProps);
 	
+		// a trailing ';' terminates the last pair rather than
+		// starting a phantom empty one - trim it up front or the
+		// walk below chokes on the empty segment
+		if(iLen && pProps[iLen-1] == ';')
+			pProps[--iLen] = 0;
+
 		UT_uint32 i = 1; // *props != 0 => at least one
-		if(pProps[iLen-1] == ';')
-		{
-			// trailing ;
-			--i;
-		}
 
 		char * semi = nullptr;
 		const char * p = pProps;

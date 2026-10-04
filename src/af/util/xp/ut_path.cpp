@@ -40,10 +40,10 @@ std::string UT_createTmpFile(const std::string& prefix, const std::string& exten
 {
 	// g_file_open_tmp creates the file O_EXCL under an unpredictable
 	// name - the old UT_rand-based name was guessable and fopen("w+")
-	// follows pre-planted symlinks in the shared tmp dir
-	std::string tmpl = g_get_tmp_dir();
-	tmpl += G_DIR_SEPARATOR;
-	tmpl += prefix;
+	// follows pre-planted symlinks in the shared tmp dir.
+	// NB the template is a BASENAME (a '/' makes it fail outright);
+	// g_file_open_tmp puts the file in g_get_tmp_dir() itself.
+	std::string tmpl = prefix;
 	if (!tmpl.empty() && tmpl.back() != '-')
 		tmpl += '-';
 	tmpl += "XXXXXX";

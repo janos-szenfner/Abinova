@@ -30,7 +30,6 @@
 class FL_DocLayout;
 class PD_Document;
 class fl_SectionLayout;
-class UT_Stack;
 class fl_ContainerLayout;
 class AP_StatusBar;
 

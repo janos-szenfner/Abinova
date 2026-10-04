@@ -145,15 +145,21 @@ libutil_la_SOURCES += \
 	$(NULL)
 
 EXTRA_DIST = \
+	xp/t/ut_bijection.t.cpp \
 	xp/t/ut_bytebuf.t.cpp \
+	xp/t/ut_encoding.t.cpp \
+	xp/t/ut_growbuf.t.cpp \
+	xp/t/ut_hash.t.cpp \
 	xp/t/ut_hyphen.t.cpp \
 	xp/t/ut_locale.t.cpp \
 	xp/t/ut_misc.t.cpp \
-	xp/t/ut_stack.t.cpp \
+	xp/t/ut_path.t.cpp \
+	xp/t/ut_raii.t.cpp \
 	xp/t/ut_std_string.t.cpp \
 	xp/t/ut_string.t.cpp \
 	xp/t/ut_string_class.t.cpp \
 	xp/t/ut_types.t.cpp \
 	xp/t/ut_units.t.cpp \
 	xp/t/ut_uuid.t.cpp \
-	xp/t/ut_vector.t.cpp
+	xp/t/ut_vector.t.cpp \
+	xp/t/ut_xml.t.cpp

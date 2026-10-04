@@ -82,10 +82,10 @@ size_t UT_Bijection::size() const
 
 const char* UT_Bijection::nth1(size_t idx) const
 {
-    return ( idx>(size()-1) ) ? nullptr : m_first[idx];
+    return ( idx >= size() ) ? nullptr : m_first[idx];
 }
 
 const char* UT_Bijection::nth2(size_t idx) const
 {
-    return ( idx>(size()-1) ) ? nullptr : m_second[idx];
+    return ( idx >= size() ) ? nullptr : m_second[idx];
 }

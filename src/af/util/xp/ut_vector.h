@@ -260,7 +260,7 @@ UT_sint32 UT_GenericVector<T>::grow(UT_sint32 ndx)
 template <class T>
 UT_sint32 UT_GenericVector<T>::insertItemAt(const T p, UT_sint32 ndx)
 {
-	if (ndx < 0 || ndx > m_iCount + 1)
+	if (ndx < 0 || ndx > m_iCount)
 		return -1;
 
 	if ((m_iCount+1) > m_iSpace)
@@ -480,10 +480,10 @@ bool UT_GenericVector<T>::copy(const UT_GenericVector<T> *pVec)
 
 		err = addItem(pVec->m_pEntries[i]);
 		if(err == -1)
-			return (err ? true : false);
+			return false;
 	}
 
-	return false;
+	return true;
 }
 
 template <class T>
