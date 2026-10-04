@@ -271,7 +271,8 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 	/* Dom says we just use that dir for now and hope for someone to build an openclipart client */
 	this->dir_path = getInitialDir ();
 
-	if (!g_file_test (this->dir_path, G_FILE_TEST_IS_DIR)) {
+	if (!this->dir_path ||
+		!g_file_test (this->dir_path, G_FILE_TEST_IS_DIR)) {
 		// Running uninstalled: try the clipart dir from the source
 		// tree, relative to the executable (src/abiword ->
 		// ../user/wp/clipart).
@@ -334,7 +335,8 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 	GError		*error;
 	gint		 _count;
 
-	if (!g_file_test (this->dir_path, G_FILE_TEST_IS_DIR)) {
+	if (!this->dir_path ||
+		!g_file_test (this->dir_path, G_FILE_TEST_IS_DIR)) {
 		return FALSE;
 	}
 
@@ -404,7 +406,8 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 
 	gtk_widget_set_visible(this->progress, FALSE);
 
-	return TRUE;
+	this->fill_idle_id = 0;
+	return FALSE; /* one-shot: TRUE would re-run and re-fill forever */
 }
 
 /**

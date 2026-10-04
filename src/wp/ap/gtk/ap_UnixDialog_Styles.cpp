@@ -357,10 +357,15 @@ void AP_UnixDialog_Styles::runModal(XAP_Frame * pFrame)
 		}
 	}
 
-	DELETEP (m_pParaPreviewWidget);
-	DELETEP (m_pCharPreviewWidget);
+	/* window teardown can fire "notify::selected" while the model is
+	 * being disposed; stop the handler before it reads dead rows */
+	g_signal_handlers_disconnect_by_data(G_OBJECT(m_selStyles),
+										 reinterpret_cast<gpointer>(this));
 
 	abiDestroyWidget(m_windowMain);
+
+	DELETEP (m_pParaPreviewWidget);
+	DELETEP (m_pCharPreviewWidget);
 }
 
 /*****************************************************************/

@@ -3890,6 +3890,26 @@ below are on `main` but the release has not been cut yet.
   champlain headers is documented as covering their own deprecated
   decls only; and a write-only "deprecated" incremental AttrProp in
   the RDF mutation class was removed rather than maintained.
+- **File-open/save-as preview tracks the selection again** — the GTK4
+  `GtkFileChooserWidget` no longer emits `selection-changed` itself,
+  so connecting to it logged a critical and the live preview never
+  updated; the dialog now finds the browse view's embedded
+  `GtkSelectionModel` and hooks the signal there.
+- **Options dialog opens without criticals** — `GtkStackPage`
+  objects fetched from the builder were run through a `GtkWidget`
+  cast and every `gtk_stack_page_set_title` logged an invalid-cast
+  critical.
+- **Background dialog builds clean on GTK4** — the removed
+  `xalign`/`yalign` button properties are replaced with widget-level
+  `halign`/`valign`.
+- **ClipArt dialog no longer spins or asserts** — it scanned its
+  clip-art directory on a self-rescheduling idle source (unbounded
+  memory growth, never-idle dialog) and called `g_file_test` on a
+  possibly-null path when no directory was configured; the fill is
+  now one-shot and null-safe.
+- **Styles dialog disconnects its selection handler before
+  teardown** — `notify::selected` could fire while the list model
+  was being disposed and read dying rows.
 
 ### Performance
 
@@ -4330,6 +4350,22 @@ below are on `main` but the release has not been cut yet.
   additionally assert the image data-item count is preserved. Any
   failed export, structural defect, text difference or lost image
   fails `make check`.
+- **GTK dialog smoke test in `make check`** — the new
+  `unix/dlgswrap.sh` test drives `dialog-smoke`, which walks every
+  dialog registered in the dialog-factory table, opens it on a
+  display (`xvfb-run` when available, otherwise the live
+  `DISPLAY`/`WAYLAND_DISPLAY`, skipping when neither exists) and
+  fails on GTK/GLib criticals, crashes or hangs; each dialog runs in
+  its own process under `timeout` so failures are attributed per
+  id. Known-defect dialogs are listed explicitly as expected
+  failures, not silently tolerated.
+- **Portability guard in `make check`** — `tools/portguard.sh` (run
+  as `unix/portwrap.sh`) asserts no `/tmp` string literals in
+  shipped code and no new Unix-only API calls (`unistd.h` functions)
+  in cross-platform `xp` sources beyond a checked-in baseline.
+- **Remaining hard-coded temp paths removed** — the RTF importer's
+  fallback directory and the clipboard-dump debug path now use
+  `g_get_tmp_dir()` instead of a literal `/tmp`.
 
 ### Resolved root causes worth noting
 

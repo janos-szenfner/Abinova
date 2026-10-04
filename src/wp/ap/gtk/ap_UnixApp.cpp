@@ -529,7 +529,9 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
 #ifdef DUMP_CLIPBOARD_PASTE
     if (bFoundOne)
     {
-        std::ofstream oss("/tmp/clips");
+        char * clipsPath = g_build_filename(g_get_tmp_dir(), "clips", nullptr);
+        std::ofstream oss(clipsPath);
+        g_free(clipsPath);
         oss.write( static_cast<const char*>(pData), iLen );
         oss.close();
     }

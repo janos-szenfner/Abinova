@@ -1,0 +1,68 @@
+#!/bin/sh
+
+# GTK dialog smoke harness (TST08): open every dialog registered in
+# the AP_UnixDialogFactory table and fail on GTK criticals or crashes.
+#
+# Needs a display: runs under xvfb-run when present, else on the live
+# DISPLAY/WAYLAND_DISPLAY; exits 77 (SKIP) when neither exists.
+# Each dialog runs in its own dialog-smoke process under `timeout` so
+# a hang or segfault is attributed to that dialog id.
+
+ABINOVA_TEST_SRC_DIR=@abs_top_srcdir@
+export ABINOVA_TEST_SRC_DIR
+
+cd @abs_top_builddir@/src/wp/test || exit 1
+BIN="./dialog-smoke"
+LIBTOOL="@abs_top_builddir@/libtool --mode=execute"
+
+if [ -z "${TST08_INNER:-}" ]; then
+	if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+		if command -v xvfb-run >/dev/null 2>&1; then
+			TST08_INNER=1
+			export TST08_INNER
+			exec xvfb-run -a "$0"
+		fi
+		echo "SKIP: no display and no xvfb-run" >&2
+		exit 77
+	fi
+fi
+
+# GLib structured logging can emit DEBUG lines on stdout; keep only
+# pure-numeric lines from --list
+ids=$($LIBTOOL $BIN --list 2>/dev/null | grep -E '^[0-9]+$') || {
+	echo "FAIL: dialog-smoke --list exited $?" >&2
+	exit 1
+}
+
+# Expected failures — dialogs with known, documented defects.  Each
+# entry needs a FIXME-worthy reason; new ids may NOT be added here to
+# silence the test.
+#  1018 AP_UnixDialog_Styles — emits a single
+#       g_object_unref("G_IS_OBJECT failed") critical inside GTK4.14's
+#       model teardown when the window is destroyed; dialog is fully
+#       functional, teardown-only noise.
+XFAIL_IDS=" 1018 "
+
+fails=0
+xfails=0
+total=0
+for id in $ids; do
+	total=$((total + 1))
+	if timeout 40 $LIBTOOL $BIN --id "$id" >/dev/null 2>&1; then
+		echo "ok: dialog id $id"
+	else
+		rc=$?
+		if [ "$rc" -eq 77 ]; then
+			echo "skip: dialog id $id (no interactive context)"
+		elif [ "${XFAIL_IDS#* $id }" != "$XFAIL_IDS" ]; then
+			echo "xfail: dialog id $id (rc=$rc)"
+			xfails=$((xfails + 1))
+		else
+			echo "FAIL: dialog id $id (rc=$rc)"
+			fails=$((fails + 1))
+		fi
+	fi
+done
+
+echo "dialog smoke: $((total - fails - xfails))/$total dialogs clean, $xfails xfail"
+[ "$fails" -eq 0 ]

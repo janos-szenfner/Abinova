@@ -18,10 +18,12 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301 USA.
 
-TESTS = unix/testwrap.sh unix/rtwrap.sh
+TESTS = unix/testwrap.sh unix/rtwrap.sh unix/portwrap.sh unix/dlgswrap.sh
 
-check_SCRIPTS = testwrap.sh-stamp rtwrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh
-check_PROGRAMS = Abinova-test
+check_SCRIPTS = testwrap.sh-stamp rtwrap.sh-stamp portwrap.sh-stamp \
+	dlgswrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh \
+	unix/portwrap.sh unix/dlgswrap.sh
+check_PROGRAMS = Abinova-test dialog-smoke
 
 Abinova_test_CPPFLAGS = $(WP_CPPFLAGS) \
 	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\"" \
@@ -35,6 +37,15 @@ Abinova_test_LDADD =  $(DEPS_LIBS)
 Abinova_test_SOURCES = unix/test_main.cpp \
 	unix/all_test_unix.h
 
+dialog_smoke_CPPFLAGS = $(WP_CPPFLAGS) \
+	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\""
+
+dialog_smoke_LDFLAGS =  -L$(top_builddir)/src -labinova-@ABINOVA_SERIES@
+
+dialog_smoke_LDADD =  $(DEPS_LIBS)
+
+dialog_smoke_SOURCES = unix/dialog_smoke.cpp
+
 testwrap.sh-stamp: unix/testwrap.sh
 	chmod a+x unix/testwrap.sh
 	touch $@
@@ -43,12 +54,23 @@ rtwrap.sh-stamp: unix/rtwrap.sh
 	chmod a+x unix/rtwrap.sh
 	touch $@
 
+portwrap.sh-stamp: unix/portwrap.sh
+	chmod a+x unix/portwrap.sh
+	touch $@
+
+dlgswrap.sh-stamp: unix/dlgswrap.sh
+	chmod a+x unix/dlgswrap.sh
+	touch $@
+
 CLEANFILES = vgcore.* \
 	supp.txt \
 	testwrap.sh-stamp \
 	rtwrap.sh-stamp \
+	portwrap.sh-stamp \
+	dlgswrap.sh-stamp \
 	tf-vgdump
 
 EXTRA_DIST = \
 	xp/main.cpp \
-	xp/all_test.h
+	xp/all_test.h \
+	unix/dialog_smoke.cpp

@@ -936,6 +936,8 @@ AC_CONFIG_FILES([libabinova.pc
   src/wp/test/Makefile
   src/wp/test/unix/testwrap.sh
   src/wp/test/unix/rtwrap.sh
+  src/wp/test/unix/portwrap.sh
+  src/wp/test/unix/dlgswrap.sh
   src/wp/main/Makefile
   user/Makefile
   user/wp/Makefile

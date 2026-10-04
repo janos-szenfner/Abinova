@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Portability leak guard: no /tmp literals in shipped code, no new
+# unistd-only API in xp code beyond the recorded baseline.
+# See tools/portguard.sh for the checks and exemptions.
+
+exec @abs_top_srcdir@/tools/portguard.sh @abs_top_srcdir@

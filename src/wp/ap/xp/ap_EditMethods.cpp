@@ -28,9 +28,6 @@
 #include "config.h"
 #endif
 
-// this ansi header is not available on Windows.
-// needed for close()
-#include <unistd.h>
 #include <signal.h>
 
 #include <stdio.h>

@@ -74,6 +74,13 @@ public:
 	XAP_Dialog *		requestDialog(XAP_Dialog_Id id);
 	XAP_Dialog *		justMakeTheDialog(XAP_Dialog_Id id);
 	void				releaseDialog(XAP_Dialog * pDialog) ABI_NONNULL(2);
+
+	/* read-only enumeration of the static dialog table (the
+	 * dialog-smoke test iterates every registered dialog) */
+	UT_uint32			getDialogTableSize(void) const
+		{ return static_cast<UT_uint32>(m_vec_dlg_table.size()); }
+	const _dlg_table *	getDialogTableEntry(UT_uint32 i) const
+		{ return i < m_vec_dlg_table.size() ? m_vec_dlg_table[i] : nullptr; }
 	XAP_Dialog_Id getNextId(void) const;
 	XAP_Dialog_Id		registerDialog(XAP_Dialog *(*pStaticConstructor)(XAP_DialogFactory *, XAP_Dialog_Id id),XAP_Dialog_Type iDialogType);
 	void				unregisterDialog(XAP_Dialog_Id id);

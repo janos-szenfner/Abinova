@@ -232,13 +232,43 @@ static gboolean s_fc_key_pressed(GtkEventControllerKey * /*controller*/,
 	return TRUE;
 }
 
-static void file_selection_changed  (GtkFileChooser  * /*chooser*/,
-                                    gpointer           ptr)
+static void file_selection_changed  (GtkSelectionModel * /*model*/,
+									guint /*position*/,
+									guint /*n_items*/,
+									gpointer           ptr)
 {
   XAP_UnixDialog_FileOpenSaveAs * dlg = static_cast<XAP_UnixDialog_FileOpenSaveAs *> (ptr);
 
   UT_ASSERT(dlg);
   dlg->previewPicture();
+}
+
+/* GTK4's GtkFileChooserWidget no longer emits "selection-changed"
+ * itself, but the model of its embedded browse view is a
+ * GtkSelectionModel that still does — find it so the preview keeps
+ * tracking the selection. */
+static GtkSelectionModel *
+s_fc_find_selection_model (GtkWidget * w)
+{
+	if (!w)
+		return nullptr;
+	GtkSelectionModel * model = nullptr;
+	if (GTK_IS_COLUMN_VIEW(w))
+		model = gtk_column_view_get_model(GTK_COLUMN_VIEW(w));
+	else if (GTK_IS_GRID_VIEW(w))
+		model = gtk_grid_view_get_model(GTK_GRID_VIEW(w));
+	else if (GTK_IS_LIST_VIEW(w))
+		model = gtk_list_view_get_model(GTK_LIST_VIEW(w));
+	if (model)
+		return model;
+	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+	{
+		model = s_fc_find_selection_model(c);
+		if (model)
+			return model;
+	}
+	return nullptr;
 }
 
 bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
@@ -790,8 +820,11 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 		gtk_box_append(GTK_BOX(chooser_hbox), preview_hbox);
 
 		// connect some signals
-		g_signal_connect (m_FC, "selection-changed",
-								G_CALLBACK (file_selection_changed), static_cast<gpointer>(this));
+		GtkSelectionModel * selModel =
+			s_fc_find_selection_model(GTK_WIDGET(m_FC));
+		if (selModel)
+			g_signal_connect (selModel, "selection-changed",
+									G_CALLBACK (file_selection_changed), static_cast<gpointer>(this));
 		gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(preview),
 									   s_preview_draw, static_cast<gpointer>(this), nullptr);
 	}

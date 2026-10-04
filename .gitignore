@@ -102,6 +102,15 @@ src/wp/test/unix/testwrap.sh.log
 src/wp/test/unix/testwrap.sh.trs
 src/wp/test/unix/rtwrap.sh.log
 src/wp/test/unix/rtwrap.sh.trs
+src/wp/test/dialog-smoke
+src/wp/test/dlgswrap.sh-stamp
+src/wp/test/portwrap.sh-stamp
+src/wp/test/unix/dlgswrap.sh
+src/wp/test/unix/dlgswrap.sh.log
+src/wp/test/unix/dlgswrap.sh.trs
+src/wp/test/unix/portwrap.sh
+src/wp/test/unix/portwrap.sh.log
+src/wp/test/unix/portwrap.sh.trs
 __pycache__/
 *~
 *.saved

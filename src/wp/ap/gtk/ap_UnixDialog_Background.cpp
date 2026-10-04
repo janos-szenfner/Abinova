@@ -182,8 +182,8 @@ void AP_UnixDialog_Background::_constructWindowContents (GtkWidget * parent)
 			pSS->getValueUTF8 (AP_STRING_ID_DLG_Background_ClearClr,s);
 		}
 		clearColor = gtk_button_new_with_label(s.c_str());
-		g_object_set(G_OBJECT(clearColor),
-				   "xalign", 1.0, "yalign", 0.5, nullptr);
+		gtk_widget_set_halign(clearColor, GTK_ALIGN_END);
+		gtk_widget_set_valign(clearColor, GTK_ALIGN_CENTER);
 		GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_box_append(GTK_BOX(hbox), clearColor);
 		gtk_box_append(GTK_BOX(vbox), hbox);

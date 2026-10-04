@@ -233,16 +233,16 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     // not the .ui, so they track the app language
     std::string stTitle;
     pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_Interface, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageInterface" ) ),
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageInterface" ) ),
                                stTitle.c_str() );
     pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_Label_Documents, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageDocuments" ) ),
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageDocuments" ) ),
                                stTitle.c_str() );
     pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_SmartQuotes, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageSmartQuotes" ) ),
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageSmartQuotes" ) ),
                                stTitle.c_str() );
     pSS->getValueUTF8 ( AP_STRING_ID_DLG_Spell_SpellTitle, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( WID ( "pageSpelling" ) ),
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageSpelling" ) ),
                                stTitle.c_str() );
 
     m_buttonDefaults = WID ( "btnDefaults" );

@@ -2018,6 +2018,20 @@ data-item count. A failed export, structural defect, text difference
 or dropped image fails the suite. Run it standalone with
 `tools/rt-check.sh src/abinova $PWD`.
 
+`make check` also runs two more wrappers:
+
+- `unix/dlgswrap.sh` drives `dialog-smoke`, which opens every dialog
+  registered in the dialog factory on a display — `xvfb-run` when
+  available, otherwise the live `DISPLAY`/`WAYLAND_DISPLAY` (the test
+  skips when neither exists) — and fails on GTK/GLib criticals,
+  crashes or hangs. Each dialog runs in its own process under
+  `timeout` so failures attribute to a single id; a small explicit
+  expected-failure list documents known GTK-level defects.
+- `unix/portwrap.sh` runs `tools/portguard.sh`, which asserts no
+  `/tmp` string literals in shipped code and no new Unix-only API
+  calls in cross-platform `xp` sources beyond the checked-in
+  `tools/portguard-baseline.txt`.
+
 ### Code coverage (gcov/lcov)
 
 Configure the tree with `--enable-coverage` to compile `src/` with
