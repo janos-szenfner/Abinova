@@ -113,6 +113,8 @@ src/wp/test/Abinova-test
 
 # libFuzzer instrumented build tree + crash artifacts (tools/build-fuzz.sh)
 /fuzz-build/
+# sanitizer instrumented build tree + valgrind logs (tools/check-san.sh)
+/san-build/
 crash-*
 oom-*
 timeout-*

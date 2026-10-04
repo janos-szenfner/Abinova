@@ -84,6 +84,27 @@ coverage:
 	@exit 1
 endif
 
+# AddressSanitizer + UndefinedBehaviorSanitizer gate: tools/check-san.sh
+# keeps a separate instrumented copy of the tree under san-build/ (the
+# same scratch-tree pattern as fuzz-build/) configured
+# --with-sanitizer=address,undefined, builds it and runs the make-check
+# suite inside it.  One combined build backs both targets; each run
+# reports every sanitizer error class.  EXPENSIVE: a full tree rebuild
+# on first run plus an instrumented suite run — opt-in only, the
+# normal build stays sanitizer-free.
+.PHONY: check-asan check-ubsan
+check-asan:
+	$(srcdir)/tools/check-san.sh asan
+check-ubsan:
+	$(srcdir)/tools/check-san.sh ubsan
+
+# Bounded corpus of headless ->pdf conversions under valgrind
+# (--errors-for-leak-kinds=definite): guards the DOC15/DOC20/UB
+# hardening.  Uses the normal uninstrumented build.
+.PHONY: check-valgrind
+check-valgrind:
+	$(srcdir)/tools/check-valgrind.sh
+
 
 # the Changelog help page is generated from CHANGELOG.md so the
 # in-app viewer never drifts out of sync with the repository file

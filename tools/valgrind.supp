@@ -1,0 +1,82 @@
+# valgrind suppressions for tools/check-valgrind.sh
+#
+# Third-party-owned definite leaks observed at startup / font setup.
+# The allocation site and ownership are inside the library in every
+# entry; first-party frames may appear lower in the stack but only as
+# callers of the library API.  Anything allocated by our own code
+# still counts as an error.
+#
+# Each entry is keyed on the library frames so call-site changes on
+# our side cannot break the match.
+
+# GIO module objects are process-lifetime singletons created by
+# gtk_init_check scanning GIO module dirs (no release API).
+{
+   gio-module-singleton
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   fun:g_malloc0
+   fun:g_type_create_instance
+   ...
+   fun:g_io_module_new
+}
+
+# fontconfig parses its XML config through libexpat at first use and
+# keeps dropped intermediate allocations (fontconfig-owned).
+{
+   fontconfig-expat-config
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   obj:*libfontconfig.so*
+   ...
+   obj:*libexpat.so*
+}
+
+# fontconfig FcFontSetList internals, reached via
+# pango_font_map_list_families (pango owns the FcFontSet lifecycle).
+{
+   fontconfig-fontsetlist
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:FcFontSetList
+}
+
+# fontconfig match/substitute internals (FcDefaultSubstitute,
+# FcFontRenderPrepare/FcFontSetMatch) inside pango/cairo font loads —
+# including font work on pango worker threads.
+{
+   fontconfig-match-substitute
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   ...
+   fun:FcDefaultSubstitute
+}
+{
+   fontconfig-fontsetmatch
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   ...
+   fun:FcFontSetMatch
+}
+
+# cairo 1.18.0 toy font faces resolve through fontconfig and leak one
+# FcPattern per created face (cairo-owned; fixed in later cairo
+# releases).  Reached via cairo_select_font_face from the math
+# typesetter and the mermaid PNG renderer.
+{
+   cairo-toy-face-fcpattern
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:FcPatternDuplicate
+   ...
+   fun:cairo_select_font_face
+}

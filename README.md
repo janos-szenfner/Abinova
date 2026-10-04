@@ -2038,6 +2038,29 @@ vendored `thirdparty/` code, the `fuzz-build/` scratch tree, test
 drivers and generated sources. All coverage artifacts are gitignored;
 reconfiguring without `--enable-coverage` returns to a normal build.
 
+### Sanitizer + valgrind gates (`make check-asan` / `check-ubsan` / `check-valgrind`)
+
+`make check-asan` and `make check-ubsan` run the whole `make check`
+suite (unit tests + the `rt-check` corpus) inside a separate
+instrumented copy of the tree: `tools/check-san.sh` rsyncs the sources
+into `san-build/tree/`, configures it `--with-sanitizer=address,undefined`,
+builds with the normal compiler, and runs the suite with ASan/UBSan
+errors made fatal. One combined build backs both targets — any memory
+error, leak (unit suite) or UB report fails `make check`. This is the
+permanent gate guarding the memory/UB hardening work; it is strictly
+opt-in because the first run pays for a full instrumented rebuild
+(subsequent runs are incremental). To instrument the main tree
+directly instead, configure `--with-sanitizer=address,undefined` and
+run `make check` as usual. Knobs: `SAN_JOBS`, `SAN_BUILDDIR`,
+`SAN_SANITIZERS`, `SAN_DETECT_LEAKS`, `SAN_CHECK_CORPUS`,
+`SAN_RECONFIGURE` — see the script header.
+
+`make check-valgrind` (`tools/check-valgrind.sh`) converts a bounded
+corpus — one representative fixture per importer — to PDF under
+`valgrind --leak-check=full --errors-for-leak-kinds=definite` on the
+normal build, so any memcheck error or definite leak fails. It skips
+cleanly when valgrind or the built binary is absent.
+
 ## Known issues
 
 - The GTK4 dialog migration is in progress — `.ui` files were

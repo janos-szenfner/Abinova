@@ -111,3 +111,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_fixtures.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_math.t.cpp"
+#undef TFSUITE

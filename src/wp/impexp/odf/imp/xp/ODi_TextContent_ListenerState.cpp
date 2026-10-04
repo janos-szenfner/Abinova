@@ -96,6 +96,7 @@ ODi_TextContent_ListenerState::ODi_TextContent_ListenerState (
                   m_pCurrentListStyle(nullptr),
                   m_listLevel(0),
                   m_alreadyDefinedAbiParagraphForList(false),
+                  m_bPendingNoteCitation(false),
                   m_pendingNoteAnchorInsertion(false),
                   m_bPendingAnnotation(false),
                   m_bPendingAnnotationAuthor(false),

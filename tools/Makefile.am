@@ -15,6 +15,9 @@ EXTRA_DIST = \
 	build-gtk-prefix.sh \
 	build-fuzz.sh \
 	check-fuzz.sh \
+	check-san.sh \
+	check-valgrind.sh \
+	valgrind.supp \
 	fuzz-add-reproducer.sh \
 	coverage.sh \
 	lcov/README \

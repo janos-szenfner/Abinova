@@ -3511,6 +3511,14 @@ below are on `main` but the release has not been cut yet.
   `text:tracked-changes` round-trip, WordPerfect headers/footers,
   embedded images, hyperlinks, fields, comments and text boxes, and
   Markdown/LaTeX math becoming real equation objects.
+- **Equation import/export round-trips now regression-tested** — a new
+  `make check` suite (`ie_math.t.cpp`, 6 tests) pins the Markdown and
+  LaTeX math pipelines end to end: `.tex` equation environments and
+  `.md` `$…$`/`$$…$$` must arrive as real equation objects — the suite
+  fails if raw LaTeX source ever leaks back into the document text as
+  the old centered-text fallback — Markdown export must re-emit the
+  stored source dollar-delimited, and full `.md`→`.abwn`→`.md` and
+  `.tex`→`.abwn`→`.md` round-trips must keep every equation intact.
 - **WordPerfect importer hardened** — `.wpd`/`.wps` import leaked the
   current list definition on every document (it was `new`ed per list
   and never freed), crashed in release builds when a malformed file

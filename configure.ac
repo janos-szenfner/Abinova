@@ -426,14 +426,15 @@ dnl ***********************************************************************
 dnl GCC/Clang sanitizer support
 dnl ***********************************************************************
 AC_ARG_WITH([sanitizer],
-            [AS_HELP_STRING([--with-sanitizer=@<:@address/undefined/no@:>@],
-                            [Use specific GCC/Clang analyzer])],
+            [AS_HELP_STRING([--with-sanitizer=@<:@address,undefined,no@:>@],
+                            [build with GCC/Clang -fsanitize instrumentation (comma-separated list); `make check-asan`/`make check-ubsan` manage their own instrumented build])],
             [with_sanitizer=$withval],
             [with_sanitizer=no])
 AS_IF([test "x$with_sanitizer" != "xno"],[
 	AX_CHECK_COMPILE_FLAG([-fsanitize=$withval],
 	                      [CFLAGS="$CFLAGS -fsanitize=$withval"
-			       CXXFLAGS="$CXXFLAGS -fsanitize=$withval"],
+			       CXXFLAGS="$CXXFLAGS -fsanitize=$withval"
+			       LDFLAGS="$LDFLAGS -fsanitize=$withval"],
 	                      [AC_MSG_ERROR([-fsanitize=$withval is not supported])])
         AX_APPEND_COMPILE_FLAGS([-fno-omit-frame-pointer])
         AC_LANG_PUSH(C++)
@@ -960,6 +961,7 @@ Configuration:
   toolkit               ${TOOLKIT}
   debug                 ${abi_cv_debug}
   coverage              ${abi_cv_coverage}
+  sanitizer             ${with_sanitizer}
 
 Optional features:
   printing              ${abi_cv_print}
