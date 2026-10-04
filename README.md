@@ -378,8 +378,14 @@ all.
   `thirdparty/` and the sentence walker now flags each
   misspelled word with the existing grammar-squiggle path. The
   `link-grammar-5.12.5` third-party tree (~43 MB) was removed.
-  English dictionaries are found under `/usr/share/hunspell`,
-  `/usr/share/myspell` and the `/usr/local` equivalents.
+  English dictionaries are searched for in `$DICPATH` first, then
+  the XDG locations (`$XDG_DATA_HOME/hunspell`, i.e.
+  `~/.local/share/hunspell` by default, plus `hunspell` under each
+  `$XDG_DATA_DIRS` entry), the legacy `/usr/share/myspell`,
+  `/usr/share/myspell/dicts` and `/usr/local/share/myspell` dirs,
+  `~/Library/Spelling` + `/Library/Spelling` on macOS, and
+  `%APPDATA%\hunspell`, `%LOCALAPPDATA%\hunspell` and `hunspell`
+  next to the install dir on Windows.
 - **LibreOffice-style status bar**: the bottom bar now shows, left
   to right, page `Page: n/m`, live `N words, N characters` (via
   `FV_View::countWords`), the current paragraph style, insert /

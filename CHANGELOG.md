@@ -4513,6 +4513,15 @@ below are on `main` but the release has not been cut yet.
   available, encryption fails rather than emit a predictable key.
   Document encryption previously could not work at all on
   macOS/Windows builds.
+- **Hunspell dictionaries found on every OS** — the grammar
+  checker's dictionary search (`src/wp/ap/grammar/HunspellWrap.cpp`)
+  previously looked only in `/usr/share` and `/usr/local/share`, so
+  grammar checking silently did nothing off-Linux. The search now
+  honors `$DICPATH`, the XDG data dirs (`$XDG_DATA_HOME/hunspell`
+  and `hunspell` under each `$XDG_DATA_DIRS` entry), the legacy
+  `myspell` dirs, `~/Library/Spelling` + `/Library/Spelling` on
+  macOS, and `%APPDATA%\hunspell`, `%LOCALAPPDATA%\hunspell` and a
+  `hunspell` dir next to the install location on Windows.
 
 ### Resolved root causes worth noting
 

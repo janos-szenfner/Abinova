@@ -29,11 +29,15 @@
 #include "ut_string.h"
 #include "AbiGrammarUtil.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
 #include <ctype.h>
+#include <algorithm>
 #include <string>
+#include <vector>
+
+#include <glib.h>
+#ifdef G_OS_WIN32
+#include <glib/gwin32.h>
+#endif
 
 #include <hunspell.hxx>
 
@@ -41,8 +45,7 @@
 
 static bool fileExists(const std::string & path)
 {
-  struct stat st;
-  return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+  return g_file_test(path.c_str(), G_FILE_TEST_IS_REGULAR);
 }
 
 static bool loadDictionaryFrom(Hunspell ** ppHS, const std::string & base)
@@ -55,48 +58,122 @@ static bool loadDictionaryFrom(Hunspell ** ppHS, const std::string & base)
   return true;
 }
 
+/*!
+ * Ordered list of directories searched for hunspell dictionaries,
+ * mirroring the search path hunspell 1.7.4 itself uses:
+ *
+ *   1. $DICPATH entries (platform search-path separator)
+ *   2. $XDG_DATA_HOME/hunspell (default ~/.local/share/hunspell)
+ *   3. <each $XDG_DATA_DIRS entry>/hunspell
+ *      (default /usr/local/share:/usr/share, relative entries ignored)
+ *   4. legacy distro dirs (/usr/{share,local/share}/myspell*)
+ *   5. macOS: ~/Library/Spelling, /Library/Spelling
+ *   6. Windows: %APPDATA%\hunspell, %LOCALAPPDATA%\hunspell and
+ *      <install-dir>\hunspell + <install-dir>\share\hunspell
+ */
+static std::vector<std::string> dictionaryDirs(void)
+{
+  std::vector<std::string> dirs;
+  auto addDir = [&dirs](const std::string & dir) {
+    if(!dir.empty() &&
+       std::find(dirs.begin(), dirs.end(), dir) == dirs.end())
+    {
+      dirs.push_back(dir);
+    }
+  };
+
+  const char * dicpath = getenv("DICPATH");
+  if(dicpath && *dicpath)
+  {
+    gchar ** pPaths = g_strsplit(dicpath, G_SEARCHPATH_SEPARATOR_S, -1);
+    for(gchar ** pp = pPaths; pp && *pp; pp++)
+    {
+      addDir(*pp);
+    }
+    g_strfreev(pPaths);
+  }
+
+#ifdef G_OS_WIN32
+  const char * appdata = getenv("APPDATA");
+  if(appdata && *appdata)
+  {
+    addDir(std::string(appdata) + "/hunspell");
+  }
+  const char * localappdata = getenv("LOCALAPPDATA");
+  if(localappdata && *localappdata)
+  {
+    addDir(std::string(localappdata) + "/hunspell");
+  }
+  gchar * pInstallDir = g_win32_get_package_installation_directory_of_module(nullptr);
+  if(pInstallDir)
+  {
+    addDir(std::string(pInstallDir) + "/hunspell");
+    addDir(std::string(pInstallDir) + "/share/hunspell");
+    g_free(pInstallDir);
+  }
+#else
+  addDir(std::string(g_get_user_data_dir()) + "/hunspell");
+
+  for(const gchar * const * pp = g_get_system_data_dirs(); pp && *pp; pp++)
+  {
+    if(**pp == '/')
+    {
+      addDir(std::string(*pp) + "/hunspell");
+    }
+  }
+
+  addDir("/usr/share/myspell");
+  addDir("/usr/share/myspell/dicts");
+  addDir("/usr/local/share/myspell");
+
+#ifdef __APPLE__
+  const gchar * home = g_get_home_dir();
+  if(home)
+  {
+    addDir(std::string(home) + "/Library/Spelling");
+  }
+  addDir("/Library/Spelling");
+#endif
+#endif
+
+  return dirs;
+}
+
 static bool findEnglishDictionary(Hunspell ** ppHS)
 {
-  static const char * dirs[] = {
-    "/usr/share/hunspell",
-    "/usr/share/myspell",
-    "/usr/local/share/hunspell",
-    "/usr/local/share/myspell",
-    nullptr
-  };
+  const std::vector<std::string> dirs = dictionaryDirs();
   static const char * langs[] = {
     "en_US", "en_GB", "en", nullptr
   };
 
-  for(int d = 0; dirs[d]; d++)
+  for(const std::string & dir : dirs)
   {
     for(int l = 0; langs[l]; l++)
     {
-      std::string base = std::string(dirs[d]) + "/" + langs[l];
-      if(loadDictionaryFrom(ppHS, base))
+      if(loadDictionaryFrom(ppHS, dir + "/" + langs[l]))
         return true;
     }
   }
 
-  /* Fall back to the first en_* dictionary in the standard dirs */
-  for(int d = 0; dirs[d]; d++)
+  /* Fall back to the first en_* dictionary in the search dirs */
+  for(const std::string & dir : dirs)
   {
-    DIR * pDir = opendir(dirs[d]);
+    GDir * pDir = g_dir_open(dir.c_str(), 0, nullptr);
     if(!pDir)
       continue;
-    struct dirent * pEnt = nullptr;
     std::string found;
-    while((pEnt = readdir(pDir)) != nullptr)
+    const gchar * pEnt = nullptr;
+    while((pEnt = g_dir_read_name(pDir)) != nullptr)
     {
-      std::string name = pEnt->d_name;
+      std::string name = pEnt;
       if(name.size() > 7 && name.compare(0, 3, "en_") == 0 &&
          name.compare(name.size() - 4, 4, ".dic") == 0)
       {
-        found = std::string(dirs[d]) + "/" + name.substr(0, name.size() - 4);
+        found = dir + "/" + name.substr(0, name.size() - 4);
         break;
       }
     }
-    closedir(pDir);
+    g_dir_close(pDir);
     if(!found.empty() && loadDictionaryFrom(ppHS, found))
       return true;
   }
