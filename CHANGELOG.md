@@ -4524,6 +4524,14 @@ below are on `main` but the release has not been cut yet.
   the floor). The `ap_KeyBindings` test suite now also loads the
   emacs and vi compatibility key maps plus their operator-prefixed
   sub-maps, pinning representative bindings and the dead-key tables.
+- **GTK dialog instantiation smoke carries `wp/ap/gtk` coverage** —
+  measured with gcov counters reset between runs: the headless suite
+  alone covers just 1.5% of `wp/ap/gtk` lines, and adding the
+  `dialog-smoke` instantiation pass (every factory-registered dialog
+  constructed, presented and dismissed on a display) lifts the
+  directory to 49.4% and total first-party coverage from 49.3% to
+  59.6% — the on-display smoke is what keeps every dialog's
+  constructor and `.ui` load path under test.
 - **Atomic save moved behind a portable helper** — the
   write-temp-then-rename sequence in the exporter core
   (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as
