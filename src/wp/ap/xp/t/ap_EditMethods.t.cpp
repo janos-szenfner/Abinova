@@ -57,6 +57,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -266,7 +267,7 @@ std::string em_doc_text(FV_View * v)
 
 TFTEST_MAIN("edit-method table sweep (guarded in-process)")
 {
-	EV_EditMethodContainer * pemc = AP_GetEditMethods();
+	std::unique_ptr<EV_EditMethodContainer> pemc(AP_GetEditMethods());
 	TFPASS(pemc != nullptr);
 	const UT_uint32 count = pemc->countEditMethods();
 	TFPASS(count > 500);
@@ -318,7 +319,7 @@ TFTEST_MAIN("edit-method table sweep (guarded in-process)")
 
 TFTEST_MAIN("edit-method behavior spot checks")
 {
-	EV_EditMethodContainer * pemc = AP_GetEditMethods();
+	std::unique_ptr<EV_EditMethodContainer> pemc(AP_GetEditMethods());
 	TFPASS(pemc != nullptr);
 
 	EMView hv;

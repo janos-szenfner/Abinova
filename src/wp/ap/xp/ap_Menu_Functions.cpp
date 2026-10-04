@@ -657,6 +657,7 @@ Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Suggest)
 	XAP_App * pApp = XAP_App::getApp();
 	UT_return_val_if_fail (pApp && pLabel, nullptr);
 	XAP_Frame * frame = pApp->getLastFocussedFrame();
+	UT_return_val_if_fail (frame, nullptr);
 
 	AV_View * pAV_View = frame->getCurrentView();
 	ABIWORD_VIEW;

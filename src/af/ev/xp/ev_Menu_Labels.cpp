@@ -151,6 +151,8 @@ bool EV_Menu_LabelSet::addLabel(EV_Menu_Label* pLabel) const
 	// the real fix is to erase AP_MENU_ID__BOGUS2__
 	if (pLabel->getMenuId() == size_table + m_first - 1)
 	{
+		// the popped slot owned its label
+		delete m_labelTable.back();
 		m_labelTable.pop_back();
 		size_table = static_cast<XAP_Menu_Id>(m_labelTable.size());
 	}

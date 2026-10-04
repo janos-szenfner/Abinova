@@ -139,7 +139,7 @@ void AP_Dialog_Spell::runModal(XAP_Frame * pFrame)
    if (m_pView->isSelectionEmpty())
    {
 	   m_pCurrSection = frameData->m_pDocLayout->getFirstSection();
-	   m_pCurrBlock = static_cast<fl_BlockLayout *>(m_pCurrSection->getFirstLayout());
+	   m_pCurrBlock = m_pCurrSection->getNextBlockInDocument();
    }
    else
    {

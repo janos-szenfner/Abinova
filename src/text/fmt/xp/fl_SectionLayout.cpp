@@ -4867,7 +4867,11 @@ bool fl_HdrFtrSectionLayout::bl_doclistener_insertBlock(fl_ContainerLayout* pBL,
 //
 // Mark the Block as HdrFtr
 //
-		  static_cast<fl_BlockLayout *>(ppBL->getNext())->setHdrFtr();
+		  fl_ContainerLayout * pNextL = ppBL->getNext();
+		  if(pNextL && pNextL->getContainerType() == FL_CONTAINER_BLOCK)
+		  {
+		      static_cast<fl_BlockLayout *>(pNextL)->setHdrFtr();
+		  }
 		}
 		setNeedsReformat(this);
 	}

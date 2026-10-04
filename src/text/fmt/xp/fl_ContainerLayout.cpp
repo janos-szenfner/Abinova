@@ -827,7 +827,10 @@ fl_ContainerLayout * fl_ContainerLayout::insert(pf_Frag_Strux* sdh, fl_Container
 		}
 		else
 		{
-			pL = static_cast<fl_ContainerLayout *>(new fl_BlockLayout(sdh, static_cast<fl_BlockLayout *>(pPrev), static_cast<fl_SectionLayout *>(this), indexAP));
+			// pPrev can be any fl_ContainerLayout subclass (e.g.
+			// fl_FrameLayout); the ctor takes fl_ContainerLayout*, so
+			// a fl_BlockLayout downcast here would be UB
+			pL = static_cast<fl_ContainerLayout *>(new fl_BlockLayout(sdh, pPrev, static_cast<fl_SectionLayout *>(this), indexAP));
 		}
 		break;
 	case FL_CONTAINER_TABLE:

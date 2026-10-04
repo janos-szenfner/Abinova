@@ -46,6 +46,23 @@ dialog_smoke_LDADD =  $(DEPS_LIBS)
 
 dialog_smoke_SOURCES = unix/dialog_smoke.cpp
 
+# The wrapper scripts are config.status outputs living in a
+# subdirectory of this Makefile — automake gives them no
+# regeneration rule, so a .in edit would never reach an already
+# configured build tree (e.g. san-build).  Re-run config.status
+# ourselves when the .in is newer.
+unix/testwrap.sh: $(top_builddir)/config.status $(srcdir)/unix/testwrap.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status src/wp/test/$@
+
+unix/rtwrap.sh: $(top_builddir)/config.status $(srcdir)/unix/rtwrap.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status src/wp/test/$@
+
+unix/portwrap.sh: $(top_builddir)/config.status $(srcdir)/unix/portwrap.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status src/wp/test/$@
+
+unix/dlgswrap.sh: $(top_builddir)/config.status $(srcdir)/unix/dlgswrap.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status src/wp/test/$@
+
 testwrap.sh-stamp: unix/testwrap.sh
 	chmod a+x unix/testwrap.sh
 	touch $@

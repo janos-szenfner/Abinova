@@ -1335,7 +1335,10 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 		case PTX_SectionAnnotation:
 		case PTX_SectionFootnote:
 		{
-			fl_DocSectionLayout* pSL = static_cast<fl_DocSectionLayout*>(pL2);
+			// only PTX_Section maps to fl_DocSectionLayout; the note
+			// sections are fl_EmbedLayout subclasses, so the common
+			// base here is fl_SectionLayout
+			fl_SectionLayout* pSL = static_cast<fl_SectionLayout*>(pL2);
 			
 			PT_AttrPropIndex indexAP = pcr->getIndexAP();
 			const PP_AttrProp* pAP = nullptr;
@@ -1362,7 +1365,9 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			// new header/footer and format just the shadows
 			//
 			HdrFtrType hfType = s_convertToHdrFtrType(pszSectionType);
-			if(hfType != FL_HDRFTR_NONE)
+			// only a real document section (fl_DocSectionLayout) can
+			// be converted into a header/footer
+			if(hfType != FL_HDRFTR_NONE && pL2->getType() == PTX_Section)
 			{
 				//
 				//  OK first we need a previous section with a
@@ -1393,7 +1398,7 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 				// OK now clean up the old section and transfer
 				// blocks into this header section.
 				
-				pHeadSL->changeIntoHdrFtrSection(pSL);
+				pHeadSL->changeIntoHdrFtrSection(static_cast<fl_DocSectionLayout *>(pSL));
 
 				bResult = true;
 				break;

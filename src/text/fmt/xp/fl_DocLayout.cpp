@@ -1563,9 +1563,9 @@ bool  FL_DocLayout::collapseAnnotations(void)
 	  {
 	      pBL->collapse();
 	  }
-	  pBL = static_cast<fl_BlockLayout *>(pFL->getFirstLayout());
-	  if(pBL)
-	      pBL->collapse();
+	  fl_ContainerLayout * pFirstL = pFL->getFirstLayout();
+	  if(pFirstL && pFirstL->getContainerType() == FL_CONTAINER_BLOCK)
+	      static_cast<fl_BlockLayout *>(pFirstL)->collapse();
 
 	  pFL->collapse();
       }
@@ -4637,7 +4637,9 @@ void FL_DocLayout::considerSmartQuoteCandidateAt(fl_BlockLayout *block, UT_uint3
 		{
 			// candidate was the first character in the block, so
 			// see what was at the end of the previous block, if any
-			fl_BlockLayout *ob = static_cast<fl_BlockLayout *>(block->getPrev());
+			fl_ContainerLayout *pPrevL = block->getPrev();
+			fl_BlockLayout *ob = (pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+				? static_cast<fl_BlockLayout *>(pPrevL) : nullptr;
 			if (ob)
 			{
 				fp_Run *last, *r = ob->getFirstRun();
@@ -4676,7 +4678,9 @@ void FL_DocLayout::considerSmartQuoteCandidateAt(fl_BlockLayout *block, UT_uint3
 		{
 			// candidate was the last character in a block, so see
 			// what's at the beginning of the next block, if any
-			fl_BlockLayout *ob = static_cast<fl_BlockLayout *>(block->getNext());
+			fl_ContainerLayout *pNextL = block->getNext();
+			fl_BlockLayout *ob = (pNextL && pNextL->getContainerType() == FL_CONTAINER_BLOCK)
+				? static_cast<fl_BlockLayout *>(pNextL) : nullptr;
 			if (ob)
 			{
 				fp_Run *r = ob->getFirstRun();

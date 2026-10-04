@@ -33,6 +33,7 @@
 #include "ap_LoadBindings.h"
 
 #include <cstring>
+#include <memory>
 
 #define TFSUITE "core.wp.ap.keybindings"
 
@@ -66,10 +67,10 @@ static bool expectNVK(EV_EditBits nvk, EV_EditModifierState ems,
 
 TFTEST_MAIN("ap_KeyBindings")
 {
-	EV_EditMethodContainer * pemc = AP_GetEditMethods();
+	std::unique_ptr<EV_EditMethodContainer> pemc(AP_GetEditMethods());
 	TFPASS(pemc != nullptr);
 
-	AP_BindingSet bs(pemc);
+	AP_BindingSet bs(pemc.get());
 	s_pMap = bs.getMap("default");
 	TFPASS(s_pMap != nullptr);
 
@@ -210,10 +211,10 @@ static EV_EditBindingMap * expectPrefix(UT_uint32 c, EV_EditModifierState ems)
  * pin a representative binding per map plus the prefix-map chains. */
 TFTEST_MAIN("ap_KeyBindings alt maps")
 {
-	EV_EditMethodContainer * pemc = AP_GetEditMethods();
+	std::unique_ptr<EV_EditMethodContainer> pemc(AP_GetEditMethods());
 	TFPASS(pemc != nullptr);
 
-	AP_BindingSet bs(pemc);
+	AP_BindingSet bs(pemc.get());
 
 	/* ---- emacs ---- */
 	s_pMap = bs.getMap("emacs");

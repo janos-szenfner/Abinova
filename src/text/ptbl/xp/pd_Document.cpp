@@ -4770,7 +4770,6 @@ bool PD_Document::getField(const pf_Frag_Strux* pfsBlock, UT_uint32 offset,
 	UT_return_val_if_fail (pfsBlock->getStruxType() == PTX_Block, false);
 
 	UT_uint32 cumOffset = 0;
-	const pf_Frag_Text * pft = nullptr;
 	for (const pf_Frag * pfTemp = pfsBlock->getNext(); (pfTemp); pfTemp = pfTemp->getNext())
 	{
 		cumOffset += pfTemp->getLength();
@@ -4780,8 +4779,8 @@ bool PD_Document::getField(const pf_Frag_Strux* pfsBlock, UT_uint32 offset,
 			{
 			case pf_Frag::PFT_Text:
 			case pf_Frag::PFT_Object:
-				pft = static_cast<const pf_Frag_Text *>(pfTemp);
-				pField = pft->getField();
+				// getField() lives on pf_Frag — no downcast needed
+				pField = pfTemp->getField();
 				return true; // break out of loop
 				break;
 			default:
@@ -6982,6 +6981,13 @@ bool PD_Document::_acceptRejectRevision(bool bReject, UT_uint32 iStart, UT_uint3
 	UT_uint32 iEndDelete = iEnd;
 	PP_RevisionType iRevType = pRev->getType();
 
+	// the changeSpanFmt/changeStruxFmt calls below can delete and
+	// re-create pf; cache its kind up front (invariant across a fmt
+	// change) so we never touch a dangling fragment afterwards
+	const bool bStruxFrag = (pf->getType() == pf_Frag::PFT_Strux);
+	const PTStruxType eStruxType = bStruxFrag
+		? static_cast<pf_Frag_Strux *>(pf)->getStruxType() : PTX_Block;
+
 	if(pf->getType() == pf_Frag::PFT_Strux &&
 	   (   (bReject &&  (iRevType == PP_REVISION_ADDITION_AND_FMT || iRevType == PP_REVISION_ADDITION))
 		|| (!bReject && (iRevType == PP_REVISION_DELETION))))
@@ -7202,13 +7208,12 @@ bool PD_Document::_acceptRejectRevision(bool bReject, UT_uint32 iStart, UT_uint3
 
 				UT_ASSERT_HARMLESS( !ppAttr2.empty() || !ppProps.empty() );
 
-				if(pf->getType() == pf_Frag::PFT_Strux)
+				if(bStruxFrag)
 				{
-					pf_Frag_Strux * pfs = static_cast<pf_Frag_Strux *>(pf);
 					// the changeStrux function tries to locate the strux which _contains_ the
 					// position we pass into it; however, iStart is the doc position of the actual
 					// strux, so we have to skip over the strux
-					bRet &= changeStruxFmt(PTC_AddFmt,iStart+1,iEnd,ppAttr2,ppProps, pfs->getStruxType());
+					bRet &= changeStruxFmt(PTC_AddFmt,iStart+1,iEnd,ppAttr2,ppProps, eStruxType);
 				}
 				else
 					bRet &= changeSpanFmt(PTC_AddFmt,iStart,iEnd,ppAttr2,ppProps);

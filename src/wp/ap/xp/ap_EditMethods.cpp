@@ -8959,7 +8959,8 @@ static bool s_doLangDlg(FV_View * pView)
 	// the selection, or the text around the caret
 	{
 		UT_UCS4Char * pSample = nullptr;
-		if (!pView->isSelectionEmpty())
+		const bool bFromSelection = !pView->isSelectionEmpty();
+		if (bFromSelection)
 		{
 			pView->getSelectionText(pSample);
 		}
@@ -8978,7 +8979,12 @@ static bool s_doLangDlg(FV_View * pView)
 		{
 			UT_UCS4String sSample(pSample);
 			pDialog->setSampleText(sSample.utf8_str());
-			delete [] pSample;
+			// getSelectionText() is g_malloc-family,
+			// getTextBetweenPos() is new[]
+			if (bFromSelection)
+				FREEP(pSample);
+			else
+				DELETEPV(pSample);
 		}
 	}
 

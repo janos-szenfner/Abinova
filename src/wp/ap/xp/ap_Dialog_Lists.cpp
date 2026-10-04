@@ -428,7 +428,9 @@ void AP_Dialog_Lists::Apply(void)
 				else
 				{
 					fl_BlockLayout * pBlock = vBlock[i];
-					fl_BlockLayout * rBlock = static_cast<fl_BlockLayout *>( pBlock->getPrev());
+					fl_ContainerLayout * pPrevL = pBlock->getPrev();
+					fl_BlockLayout * rBlock = (pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+						? static_cast<fl_BlockLayout *>(pPrevL) : nullptr;
 					if(rBlock != nullptr)
 					{
 						pBlock->resumeList(rBlock);
@@ -462,7 +464,9 @@ void AP_Dialog_Lists::Apply(void)
 				else
 				{
 					fl_BlockLayout * pBlock = vBlock[i];
-					fl_BlockLayout * rBlock = static_cast<fl_BlockLayout *>( pBlock->getPrev());
+					fl_ContainerLayout * pPrevL = pBlock->getPrev();
+					fl_BlockLayout * rBlock = (pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+						? static_cast<fl_BlockLayout *>(pPrevL) : nullptr;
 					if(rBlock != nullptr)
 					{
 						pBlock->resumeList(rBlock);

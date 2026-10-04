@@ -237,7 +237,7 @@ TFTEST_MAIN("selection, clipboard copy/cut/paste and undo/redo")
 			if (*p < 0x80)
 				sel += static_cast<char>(*p);
 	}
-	delete [] selText;
+	FREEP(selText); /* getSelectionText() is g_malloc-family */
 	v->cmdUnselectSelection();
 	TFPASS(v->isSelectionEmpty());
 

@@ -79,6 +79,18 @@ public:
 			memset(m_peb,0,sizeof(m_peb));
 		}
 
+	void purge()
+		{
+			for (UT_uint32 i=0; i < EV_COUNT_EMO; i++)
+				for (UT_uint32 j=0; j < EV_COUNT_EMS; j++)
+					for (UT_uint32 k=0; k< EV_COUNT_EMC; k++)
+						if (m_peb[i][j][k])
+						{
+							delete m_peb[i][j][k];
+							m_peb[i][j][k] = nullptr;
+						}
+		}
+
 	~ev_EB_MouseTable()
 		{
 			for (UT_uint32 i=0; i < EV_COUNT_EMO; i++)
@@ -102,6 +114,16 @@ public:
 		{
 			memset(m_peb,0,sizeof(m_peb));
 		}
+	void purge()
+		{
+			for (UT_sint32 i=0; i < static_cast<UT_sint32>(EV_COUNT_NVK); i++)
+				for (UT_sint32 j=0; j < EV_COUNT_EMS; j++)
+					if (m_peb[i][j])
+					{
+						delete m_peb[i][j];
+						m_peb[i][j] = nullptr;
+					}
+		}
 	~ev_EB_NVK_Table()
 		{
 			for (UT_sint32 i=0; i < static_cast<UT_sint32>(EV_COUNT_NVK); i++)
@@ -123,6 +145,16 @@ public:
 	void reset()
 		{
 			memset(m_peb,0,sizeof(m_peb));
+		}
+	void purge()
+		{
+			for (UT_sint32 i=0; i < 256; i++)
+				for (UT_sint32 j=0; j < EV_COUNT_EMS_NoShift; j++)
+					if (m_peb[i][j])
+					{
+						delete m_peb[i][j];
+						m_peb[i][j] = nullptr;
+					}
 		}
 	~ev_EB_Char_Table()
 		{
@@ -504,8 +536,7 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 	// this handles keyboard (nvk and char) and mouse.
 	// remove the binding from the map.
 	// return true if binding updated.
-	// we do not g_free the unreferenced binding.
-	
+
 	if (EV_IsMouse(eb))					// mouse
 	{
 		UT_uint32 n_emb = EV_EMB_ToNumber(eb)-1;
@@ -515,6 +546,7 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 		UT_uint32 n_emo = EV_EMO_ToNumber(eb)-1;
 		UT_uint32 n_ems = EV_EMS_ToNumber(eb);
 		UT_uint32 n_emc = EV_EMC_ToNumber(eb);
+		delete p->m_peb[n_emo][n_ems][n_emc];
 		p->m_peb[n_emo][n_ems][n_emc] = nullptr;
 		return true;
 	}
@@ -526,6 +558,7 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 				return false;
 			UT_uint32 n_nvk = EV_NVK_ToNumber(eb);
 			UT_uint32 n_ems = EV_EMS_ToNumber(eb);
+			delete m_pebNVK->m_peb[n_nvk][n_ems];
 			m_pebNVK->m_peb[n_nvk][n_ems] = nullptr;
 			return true;
 		}
@@ -542,6 +575,7 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 					return false;
 			}
 			UT_uint32 n_ems = EV_EMS_ToNumberNoShift(eb);
+			delete m_pebChar->m_peb[n_evk][n_ems];
 			m_pebChar->m_peb[n_evk][n_ems] = nullptr;
 			return true;
 		}
@@ -552,14 +586,14 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 
 void EV_EditBindingMap::resetAll()
 {
-	// NOTE: this to me seems like a memory leak,
-	// but since removeBinding is so seemingly easy with leaking
-	// memory as well, I just copy it's MO.
 	for (size_t i=0; i<sizeof(m_pebMT)/sizeof(m_pebMT[0]); ++i) {
-		m_pebMT[i]->reset();
+		if (m_pebMT[i])
+			m_pebMT[i]->purge();
 	}
-	m_pebNVK->reset();
-	m_pebChar->reset();
+	if (m_pebNVK)
+		m_pebNVK->purge();
+	if (m_pebChar)
+		m_pebChar->purge();
 }
 
 const char * EV_EditBindingMap::getShortcutFor(const EV_EditMethod * pEM) const

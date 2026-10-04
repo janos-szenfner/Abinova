@@ -394,20 +394,21 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 						UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 						UT_DEBUGMSG(("-ve width here!!!! %p left %d right %d \n", static_cast<void*>(pLine), recLeft.width, recRight.width));
 						vecBL.clear();
-						fl_BlockLayout * pBL = pLine->getBlock();
-						fl_BlockLayout * pFirst = pBL;
+						fl_ContainerLayout * pBL = pLine->getBlock();
+						fl_BlockLayout * pFirst = static_cast<fl_BlockLayout *>(pBL);
 						fp_Column * pCol = static_cast<fp_Column *>(pLine->getColumn());
 						bool bLoop = true;
 						while(bLoop)
 						{
 							if(pBL && pBL->getContainerType() == FL_CONTAINER_BLOCK)
 							{
-								if(pBL->getFirstContainer() && (pBL->getFirstContainer()->getColumn() == pCol))
+								fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pBL);
+								if(pBlock->getFirstContainer() && (pBlock->getFirstContainer()->getColumn() == pCol))
 								{
 									bLoop = true;
-									pFirst = pBL;
+									pFirst = pBlock;
 								}
-								pBL = static_cast<fl_BlockLayout *>(pBL->getPrev());
+								pBL = pBL->getPrev();
 							}
 							else
 							{
@@ -417,18 +418,19 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 						fp_Column * pFirstCol = static_cast<fp_Column *>(pFirst->getFirstContainer()->getColumn());
 						pBL = pFirst;
 						std::vector<fl_BlockLayout *> vecCollapse;
-						vecCollapse.push_back(pBL);
+						vecCollapse.push_back(static_cast<fl_BlockLayout *>(pBL));
 						bLoop = true;
 						while(bLoop)
 						{
 							if(pBL && pBL->getContainerType() == FL_CONTAINER_BLOCK)
 							{
-								if(pBL->getFirstContainer() && (pBL->getFirstContainer()->getColumn() == pCol))
+								fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pBL);
+								if(pBlock->getFirstContainer() && (pBlock->getFirstContainer()->getColumn() == pCol))
 								{
 									bLoop = true;
-									vecCollapse.push_back(pBL);
+									vecCollapse.push_back(pBlock);
 								}
-								pBL = static_cast<fl_BlockLayout *>(pBL->getNext());
+								pBL = pBL->getNext();
 							}
 							else
 							{

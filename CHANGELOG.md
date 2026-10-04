@@ -4294,6 +4294,22 @@ below are on `main` but the release has not been cut yet.
   (truncated/corrupt/garbage variants) per format, and the known
   `doc07_float.doc` layout hang is pinned under
   `fuzz/regress/doc/` until DOC19 fixes it.
+- **Sanitizer suite gate (`make check-asan` / `make check-ubsan`)** —
+  `tools/check-san.sh` maintains a scratch
+  `-fsanitize=address,undefined` build under `san-build/tree/`
+  (rsync'd sources, configured `--with-sanitizer`, incremental
+  rebuilds thereafter) and runs the whole `make check` suite inside
+  it: the unit suite under ASan+UBSan+LSan and the `rt-check`
+  round-trip corpus through the instrumented binary. It is opt-in and
+  the gate is real — bringing it green surfaced and fixed an
+  uninitialized `m_bSplitDocument` read on the MHT export path, bound
+  edit-bindings dropped unfreed by `EV_EditBindingMap::removeBinding`
+  and `resetAll`, a menu label leaked by `EV_Menu_LabelSet::addLabel`,
+  a `PP_AttrProp` leaked per footnote/endnote insert, unchecked
+  `fl_BlockLayout*` downcasts on non-block layout siblings,
+  `free`/`delete[]` allocator mismatches on document buffers, a
+  dangling broken-cell cache in split table containers, and a
+  use-after-free of a fragment whose format change could recreate it.
 - **Code coverage tooling (`--enable-coverage` + `make coverage`)** —
   configuring with `--enable-coverage` compiles the `src/` tree with
   gcov instrumentation (`--coverage` on the AF/TEXT/IMPEXP/WP

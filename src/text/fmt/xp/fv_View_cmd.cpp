@@ -7419,11 +7419,18 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 					sdh ? sdh->getPos()
 						: static_cast<PT_DocPosition>(imp.getDocPos());
 				bool bEmptyTail = true;
-				for(fl_BlockLayout * pB =
+				// layout siblings are not all blocks — the cover
+				// markup inserts frames into the same chain
+				for(fl_ContainerLayout * pL =
 						_findBlockAtPosition(posShell + 1);
-					pB;
-					pB = static_cast<fl_BlockLayout *>(pB->getNext()))
+					pL;
+					pL = pL->getNext())
 				{
+					if(pL->getContainerType() != FL_CONTAINER_BLOCK)
+					{
+						continue;
+					}
+					fl_BlockLayout * pB = static_cast<fl_BlockLayout *>(pL);
 					UT_GrowBuf gb;
 					pB->getBlockBuf(&gb);
 					if(gb.getLength() > 0)
@@ -7537,9 +7544,16 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 	if(!bPasted)
 	{
 		bool bEmptyTail = true;
-		for(fl_BlockLayout * pB = _findBlockAtPosition(getPoint());
-			pB; pB = static_cast<fl_BlockLayout *>(pB->getNext()))
+		// layout siblings are not all blocks — the cover markup
+		// inserts frames into the same chain
+		for(fl_ContainerLayout * pL = _findBlockAtPosition(getPoint());
+			pL; pL = pL->getNext())
 		{
+			if(pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pB = static_cast<fl_BlockLayout *>(pL);
 			UT_GrowBuf gb;
 			pB->getBlockBuf(&gb);
 			if(gb.getLength() > 0)
@@ -8347,9 +8361,16 @@ bool FV_View::_findBookmarkSpan(const char * szName, FV_BookmarkSpan & span) con
 	fl_SectionLayout * pSection = m_pLayout ? m_pLayout->getFirstSection() : nullptr;
 	while(pSection && !pEnd)
 	{
-		fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pSection->getFirstLayout());
-		while(pBlock && !pEnd)
+		// layout siblings are not all blocks — frames, tables and
+		// other container types appear in the same chain
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL && !pEnd;
+		     pL = pL->getNext())
 		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
 			for(fp_Run * pRun = pBlock->getFirstRun(); pRun; pRun = pRun->getNextRun())
 			{
 				if(pRun->getType() != FPRUN_BOOKMARK)
@@ -8370,7 +8391,6 @@ bool FV_View::_findBookmarkSpan(const char * szName, FV_BookmarkSpan & span) con
 					pEnd = pB;
 				}
 			}
-			pBlock = static_cast<fl_BlockLayout *>(pBlock->getNext());
 		}
 		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
 	}
@@ -8402,7 +8422,7 @@ bool FV_View::_getBookmarkText(const char * szName, UT_UTF8String & sText) const
 		return false;
 	}
 	sText = UT_UCS4String(pText).utf8_str();
-	FREEP(pText);
+	DELETEPV(pText);
 	return true;
 }
 
@@ -8654,9 +8674,15 @@ UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove)
 	fl_SectionLayout * pSection = m_pLayout->getFirstSection();
 	while(pSection)
 	{
-		fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pSection->getFirstLayout());
-		while(pBlock)
+		// layout siblings are not all blocks — skip the rest
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL;
+		     pL = pL->getNext())
 		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
 			UT_UTF8String sBlockStyle;
 			pBlock->getStyle(sBlockStyle);
 			if(0 == strcmp(sBlockStyle.utf8_str(), sStyle.utf8_str()))
@@ -8667,7 +8693,7 @@ UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove)
 				if(pText)
 				{
 					const UT_UTF8String s(UT_UCS4String(pText).utf8_str());
-					FREEP(pText);
+					DELETEPV(pText);
 					const char * p = s.utf8_str() + strlen(szLabel);
 					while(*p == ' ')
 					{
@@ -8680,7 +8706,6 @@ UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove)
 					}
 				}
 			}
-			pBlock = static_cast<fl_BlockLayout *>(pBlock->getNext());
 		}
 		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
 	}
@@ -10061,19 +10086,20 @@ void FV_View::cmdContextAdd(void)
 		fl_DocSectionLayout * pSL = m_pLayout->getFirstSection();
 		if(pSL)
 		{
-			fl_BlockLayout* b = pSL->getNextBlockInDocument();
+			fl_ContainerLayout* b = pSL->getNextBlockInDocument();
 			while (b)
 			{
 				// TODO: just check and remove matching squiggles
 				// for now, destructively recheck the whole thing
 				if(b->getContainerType() == FL_CONTAINER_BLOCK)
 				{
-					m_pLayout->queueBlockForBackgroundCheck(FL_DocLayout::bgcrSpelling, b);
-					b = static_cast<fl_BlockLayout *>(b->getNextBlockInDocument());
+					m_pLayout->queueBlockForBackgroundCheck(FL_DocLayout::bgcrSpelling,
+						static_cast<fl_BlockLayout *>(b));
+					b = b->getNextBlockInDocument();
 				}
 				else
 				{
-					b = static_cast<fl_BlockLayout *>(b->getNext());
+					b = b->getNext();
 				}
 			}
 		}
@@ -10518,7 +10544,7 @@ bool FV_View::cmdSortParagraphs(bool bAscending)
 			origText.emplace_back(pText);
 		else
 			origText.emplace_back();
-		FREEP(pText);
+		DELETEPV(pText);
 	}
 
 	/* sorted copy - stable so equal lines keep their original order */

@@ -795,6 +795,7 @@ Defun_EV_GetToolbarItemState_Fn(ap_ToolbarGetState_Zoom)
 	UT_return_val_if_fail (pView, EV_TIS_Gray);
 
 	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
+	UT_return_val_if_fail (pFrame, EV_TIS_Gray);
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 
 	EV_Toolbar_ItemState s = EV_TIS_UseString;

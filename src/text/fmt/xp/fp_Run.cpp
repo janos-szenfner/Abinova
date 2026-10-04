@@ -5384,10 +5384,15 @@ bool fp_FieldPageReferenceRun::calculateValue(void)
 
 	while (pSection)
 	{
-		pBlock = static_cast<fl_BlockLayout *>(pSection->getFirstLayout());
-
-		while (pBlock)
+		// layout siblings are not all blocks — skip the rest
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL && !bFound;
+		     pL = pL->getNext())
 		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			pBlock = static_cast<fl_BlockLayout *>(pL);
 			pRun = pBlock->getFirstRun();
 			while (pRun)
 			{
@@ -5403,10 +5408,6 @@ bool fp_FieldPageReferenceRun::calculateValue(void)
 				}
 				pRun = pRun->getNextRun();
 			}
-			if(bFound)
-				break;
-
-			pBlock = static_cast<fl_BlockLayout *>(pBlock->getNext());
 		}
 		if(bFound)
 			break;

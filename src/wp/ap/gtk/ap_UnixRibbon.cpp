@@ -9644,7 +9644,7 @@ std::string AP_UnixRibbon::_refSelectionText() const
 	if (!pText)
 		return "";
 	const std::string s = UT_UCS4String(pText).utf8_str();
-	FREEP(pText);
+	DELETEPV(pText);
 	return s;
 }
 

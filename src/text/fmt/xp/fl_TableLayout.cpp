@@ -2843,6 +2843,9 @@ void fl_CellLayout::collapse(void)
 		fp_TableContainer * pTabCon = static_cast<fp_TableContainer *>(pCell->getContainer());
 		if(pTabCon)
 		{
+			// broken-table fragments cache their first visible cell;
+			// drop the stale entry before the cell is deleted
+			pTabCon->clearBrokenCellCache(pCell);
 			pTabCon->removeContainer(pCell);
 		}
 //

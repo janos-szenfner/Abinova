@@ -4783,8 +4783,12 @@ fp_Line* fl_BlockLayout::findPrevLineInDocument(fp_Line* pLine) const
 			// is this cast safe? Could not some other layout class be returned?
 			// if this assert fails, then this code needs to be fixed up. Tomas
 			UT_ASSERT_HARMLESS( pSL->getLastLayout() && pSL->getLastLayout()->getContainerType() == FL_CONTAINER_BLOCK );
-			auto pBlock = static_cast<const fl_BlockLayout *>(pSL->getLastLayout());
-			UT_return_val_if_fail(pBlock, nullptr);
+			fl_ContainerLayout * pLastL = pSL->getLastLayout();
+			if (!pLastL || pLastL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				return nullptr;
+			}
+			auto pBlock = static_cast<const fl_BlockLayout *>(pLastL);
 			return static_cast<fp_Line *>(pBlock->getLastContainer());
 		}
 	}
@@ -4818,10 +4822,14 @@ fp_Line* fl_BlockLayout::findNextLineInDocument(fp_Line* pLine) const
 
 		// is this cast safe? Could not some other layout class be returned?
 		// if this assert fails, then this code needs to be fixed up. Tomas
-		UT_ASSERT_HARMLESS( pSL->getLastLayout() && pSL->getLastLayout()->getContainerType() == FL_CONTAINER_BLOCK );
-			
-		auto pBlock = static_cast<const fl_BlockLayout*>(pSL->getFirstLayout());
-		UT_return_val_if_fail(pBlock, nullptr);
+		UT_ASSERT_HARMLESS( pSL->getFirstLayout() && pSL->getFirstLayout()->getContainerType() == FL_CONTAINER_BLOCK );
+
+		fl_ContainerLayout * pFirstL = pSL->getFirstLayout();
+		if (!pFirstL || pFirstL->getContainerType() != FL_CONTAINER_BLOCK)
+		{
+			return nullptr;
+		}
+		auto pBlock = static_cast<const fl_BlockLayout*>(pFirstL);
 		return static_cast<fp_Line *>(pBlock->getFirstContainer());
 	}
 
@@ -7512,19 +7520,19 @@ bool fl_BlockLayout::doclistener_changeStrux(const PX_ChangeRecord_StruxChange *
 		if ((b_bordersMergedWithPrev && !b_bordersMergedWithPrevUpdate) ||
 			(!b_bordersMergedWithPrev && b_bordersMergedWithPrevUpdate))
 		{
-			fl_BlockLayout * pPrev = static_cast<fl_BlockLayout *>(getPrev());
-			if (pPrev)
+			fl_ContainerLayout * pPrevL = getPrev();
+			if (pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
 			{
-				pPrev->setLineHeightBlockWithBorders(-1);
+				static_cast<fl_BlockLayout *>(pPrevL)->setLineHeightBlockWithBorders(-1);
 			}
 		}
 		if ((b_bordersMergedWithNext && !b_bordersMergedWithNextUpdate) ||
 			(!b_bordersMergedWithNext && b_bordersMergedWithNextUpdate))
 		{
-			fl_BlockLayout * pNext = static_cast<fl_BlockLayout *>(getNext());
-			if (pNext)
+			fl_ContainerLayout * pNextL = getNext();
+			if (pNextL && pNextL->getContainerType() == FL_CONTAINER_BLOCK)
 			{
-				pNext->setLineHeightBlockWithBorders(1);
+				static_cast<fl_BlockLayout *>(pNextL)->setLineHeightBlockWithBorders(1);
 			}
 		}
 	}

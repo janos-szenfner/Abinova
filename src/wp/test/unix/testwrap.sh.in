@@ -7,13 +7,18 @@ export G_SLICE
 ABINOVA_TEST_SRC_DIR=@abs_top_srcdir@
 export ABINOVA_TEST_SRC_DIR
 
-# Suppressions, mostly fontconfig
+# Suppressions, mostly fontconfig — the init-time caches surface as
+# LSan reports whose innermost frames do not symbolize, so the
+# module-level patterns are what actually match
 cat <<EOF > supp.txt
 leak:FcConfig
 leak:FcPattern
 leak:FcValue
 leak:FcFont
 leak:FcLang
+leak:FcInit
+leak:libfontconfig
+leak:libexpat
 EOF
 
 LSAN_OPTIONS=suppressions=./supp.txt

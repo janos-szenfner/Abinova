@@ -5350,7 +5350,7 @@ UT_Error FV_View::_deleteBookmark(const char* szName, bool bSignal, PT_DocPositi
 		fl_BlockLayout * pBlock[2];
 		UT_uint32 i = 0;
 
-		fl_BlockLayout *pBL;
+		fl_ContainerLayout *pL;
 		fl_SectionLayout *pSL = m_pLayout->getFirstSection();
 		fp_Run * pRun = nullptr;
 		bool bFound = false;
@@ -5358,10 +5358,16 @@ UT_Error FV_View::_deleteBookmark(const char* szName, bool bSignal, PT_DocPositi
 		//find the first of the two bookmarks
 		while(pSL)
 		{
-			pBL = pSL->getNextBlockInDocument();
+			pL = pSL->getNextBlockInDocument();
 
-			while(pBL)
+			while(pL)
 			{
+				if(pL->getContainerType() != FL_CONTAINER_BLOCK)
+				{
+					pL = pL->getNext();
+					continue;
+				}
+				fl_BlockLayout *pBL = static_cast<fl_BlockLayout *>(pL);
 				pRun = pBL->getFirstRun();
 
 				while(pRun)
@@ -5387,7 +5393,7 @@ UT_Error FV_View::_deleteBookmark(const char* szName, bool bSignal, PT_DocPositi
 				}
 				if(bFound)
 					break;
-				pBL = static_cast<fl_BlockLayout *>(pBL->getNext());
+				pL = pL->getNext();
 			}
 			if(bFound)
 				break;
@@ -5917,13 +5923,16 @@ void FV_View::_populateThisHdrFtr(fl_HdrFtrSectionLayout * pHdrFtrSrc, fl_HdrFtr
 	UT_return_if_fail(pHdrFtrSrc->getFirstLayout());
 	iPos1 = m_pDoc->getStruxPosition(pHdrFtrSrc->getFirstLayout()->getStruxDocHandle());
 
-	fl_BlockLayout * pLast = static_cast<fl_BlockLayout *>(pHdrFtrSrc->getLastLayout());
+	fl_ContainerLayout * pLastL = pHdrFtrSrc->getLastLayout();
+	UT_return_if_fail(pLastL && pLastL->getContainerType() == FL_CONTAINER_BLOCK);
+	fl_BlockLayout * pLast = static_cast<fl_BlockLayout *>(pLastL);
 	iPos2 = pLast->getPosition(false);
 //
 // This code assumes there is an End of Block run at the end of the Block.
 // Thanks to Jesper, there always is!
 //
-	while(pLast->getNext() != nullptr)
+	while(pLast->getNext() != nullptr &&
+	      pLast->getNext()->getContainerType() == FL_CONTAINER_BLOCK)
 	{
 		pLast = static_cast<fl_BlockLayout *>(pLast->getNext());
 	}

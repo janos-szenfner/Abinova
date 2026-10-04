@@ -227,7 +227,10 @@ fp_VerticalContainer * fp_CellContainer::getColumn(const fp_Container * _pCon) c
 
 	bool bStop = false;
 	fp_CellContainer * pCell = nullptr;
-	fp_Column * pCol = nullptr;
+	// "column" here is any column-type container (isColumnType());
+	// all of those are fp_VerticalContainer subclasses, not
+	// necessarily fp_Column
+	fp_VerticalContainer * pCol = nullptr;
 	//
 	// Now FIXED for nested tables off first page
 	//
@@ -242,7 +245,7 @@ fp_VerticalContainer * fp_CellContainer::getColumn(const fp_Container * _pCon) c
 		{
 			if(pCon->getContainerType() == FP_CONTAINER_COLUMN)
 			{
-				pCol = static_cast<fp_Column *>(pCon);
+				pCol = static_cast<fp_VerticalContainer *>(pCon);
 			}
 			else if(pCon->getContainerType() == FP_CONTAINER_COLUMN_SHADOW)
 			{
@@ -250,7 +253,7 @@ fp_VerticalContainer * fp_CellContainer::getColumn(const fp_Container * _pCon) c
 			}
 			else
 			{
-				pCol = static_cast<fp_Column *>(pCon->getColumn());
+				pCol = static_cast<fp_VerticalContainer *>(pCon->getColumn());
 			}
 			bStop = true;
 		}
@@ -263,7 +266,7 @@ fp_VerticalContainer * fp_CellContainer::getColumn(const fp_Container * _pCon) c
 	}
 	if(pCell && (pBroke == nullptr))
 	{
-		return static_cast<fp_Column *>(static_cast<fp_Container *>(pCell)->getColumn());
+		return static_cast<fp_VerticalContainer *>(static_cast<fp_Container *>(pCell)->getColumn());
 	}
 	else if(pBroke == nullptr)
 	{
@@ -271,7 +274,7 @@ fp_VerticalContainer * fp_CellContainer::getColumn(const fp_Container * _pCon) c
 	}
 	if(!bStop)
 	{
-		pCol = static_cast<fp_Column *>(pBroke->getContainer());
+		pCol = static_cast<fp_VerticalContainer *>(pBroke->getContainer());
 		if (!pCol)
 		{
 			return nullptr;
@@ -285,17 +288,10 @@ fp_VerticalContainer * fp_CellContainer::getColumn(const fp_Container * _pCon) c
 		{
 			pCon = pCon->getContainer();
 		}
-		if(pCon)
-		{
-			pCol = static_cast<fp_Column *>(pCon);
-		}
-		else
-		{
-			pCol = nullptr;
-		}
+		pCol = static_cast<fp_VerticalContainer *>(pCon);
 	}
 
-	return static_cast<fp_VerticalContainer *>(pCol);
+	return pCol;
 }
 
 bool fp_CellContainer::containsNestedTables(void) const
@@ -2606,7 +2602,10 @@ void fp_CellContainer::sizeRequest(fp_Requisition * pRequest)
 		pRequest->height = height;
 	}
 
-	fp_Column * pCol = static_cast<fp_Column *>(fp_Container::getColumn());
+	// the containing "column" can be any fp_VerticalContainer (frame,
+	// cell, ...); getWidth() is virtual on fp_Container, so no
+	// fp_Column downcast is needed (and would be UB)
+	fp_Container * pCol = fp_Container::getColumn();
 	if(pCol && (width == 0))
 	{
 		width = pCol->getWidth();
@@ -3045,6 +3044,36 @@ fp_CellContainer *  fp_TableContainer::getFirstBrokenCell(bool bCacheResultOnly)
 	}
 
 	return static_cast<fp_CellContainer *>(getMasterTable()->getNthCon(0));
+}
+
+/*!
+ * Drop pCell from the m_pFirstBrokenCell cache of this table's master
+ * and every broken fragment.  Must be called before a cell container
+ * is deleted or the next _brokenDraw() dereferences a dangling cell.
+ */
+void fp_TableContainer::clearBrokenCellCache(const fp_CellContainer * pCell)
+{
+	fp_TableContainer * pMaster = getMasterTable() ? getMasterTable() : this;
+	if (pMaster->m_pFirstBrokenCell == pCell)
+	{
+		pMaster->m_pFirstBrokenCell = nullptr;
+	}
+	// the broken family hangs off the master's m_pFirstBrokenTable and
+	// is chained via getNext() — the master's own getNext() is only
+	// wired for the second fragment, so it is not a reliable entry
+	for (fp_TableContainer * pT = pMaster->getFirstBrokenTable(); pT;)
+	{
+		fp_ContainerObject * pNext = pT->getNext();
+		if (pNext && pNext->getContainerType() != FP_CONTAINER_TABLE)
+		{
+			pNext = nullptr;
+		}
+		if (pT->m_pFirstBrokenCell == pCell)
+		{
+			pT->m_pFirstBrokenCell = nullptr;
+		}
+		pT = static_cast<fp_TableContainer *>(pNext);
+	}
 }
 
 

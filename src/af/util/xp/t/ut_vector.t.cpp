@@ -333,16 +333,17 @@ TFTEST_MAIN("ownership stays with the caller")
 	struct Tracked { ~Tracked() { --s_alive; } };
 
 	UT_GenericVector<Tracked *> v;
-	v.addItem(new Tracked); ++s_alive;
-	v.addItem(new Tracked); ++s_alive;
-	v.addItem(new Tracked); ++s_alive;
+	Tracked * dropped[4];
+	v.addItem(dropped[0] = new Tracked); ++s_alive;
+	v.addItem(dropped[1] = new Tracked); ++s_alive;
+	v.addItem(dropped[2] = new Tracked); ++s_alive;
 
 	v.deleteNthItem(1);
 	v.pop_back();
 	TFPASS(s_alive == 3);          // nothing destroyed
 	v.clear();
 	TFPASS(s_alive == 3);
-	v.addItem(new Tracked); ++s_alive;
+	v.addItem(dropped[3] = new Tracked); ++s_alive;
 	v.clear();
 	TFPASS(s_alive == 4);
 
@@ -356,5 +357,10 @@ TFTEST_MAIN("ownership stays with the caller")
 	// the slots still hold dangling pointers - callers are expected
 	// to clear or destroy the vector afterwards
 	TFPASS(w.getItemCount() == 2);
+
+	// dropped pointers are still the caller's to reclaim
+	for (Tracked * p : dropped)
+		delete p;
+	TFPASS(s_alive == 0);
 }
 

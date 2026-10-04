@@ -901,11 +901,11 @@ void fl_TOCLayout::_removeBlockInVec(fl_BlockLayout * pBlock, bool /*bDontRecurs
 	// unlink it from the TOCLayout
 	//
 	
-	if(static_cast<fl_BlockLayout *>(getFirstLayout()) == pThisBL)
+	if(getFirstLayout() == pThisBL)
 	{
 		setFirstLayout(pThisBL->getNext());
 	}
-	if(static_cast<fl_BlockLayout *>(getLastLayout()) == pThisBL)
+	if(getLastLayout() == pThisBL)
 	{
 		setLastLayout(pThisBL->getPrev());
 	}

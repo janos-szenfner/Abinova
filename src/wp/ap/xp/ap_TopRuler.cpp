@@ -3385,7 +3385,7 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 				}
 				return;
 			}
-			fl_BlockLayout * pBL = static_cast<fl_BlockLayout *>(pSL->getFirstLayout());
+			fl_ContainerLayout * pBL = pSL->getFirstLayout();
 			PT_DocPosition pos = pBL->getPosition();
 			pView->setTableFormat(pos, props);
 			if(pView->getDragTableLine() && !pView->isInTable())

@@ -761,7 +761,7 @@ void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton
 			else
 			{
 				fl_SectionLayout * pSL = pCell->getSectionLayout();
-				fl_BlockLayout * pBL = static_cast<fl_BlockLayout *>(pSL->getFirstLayout());
+				fl_ContainerLayout * pBL = pSL->getFirstLayout();
 				PT_DocPosition pos = pBL->getPosition();
 				if(!pView1->isInTable())
 				{

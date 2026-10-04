@@ -442,6 +442,7 @@ public:
 	fp_TableContainer * getFirstBrokenTable(void) const;
 	fp_TableContainer * getLastBrokenTable(void) const;
 	fp_CellContainer *  getFirstBrokenCell(bool bCacheResultOnly = false) const;
+	void                clearBrokenCellCache(const fp_CellContainer * pCell);
 	void                setFirstBrokenTable(fp_TableContainer * pBroke);
 	void                setLastBrokenTable(fp_TableContainer * pBroke);
 	void                deleteBrokenTables(bool bClearFirst, bool bRecurseUp = true);

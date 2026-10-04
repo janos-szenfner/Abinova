@@ -3861,7 +3861,11 @@ bool FV_View::isCurrentListBlockEmpty(void) const
 	// If the current block is a list and is otherwise empty return true
 	//
 	fl_BlockLayout * pBlock = getCurrentBlock();
-	fl_BlockLayout * nBlock = static_cast<fl_BlockLayout *>(pBlock->getNext());
+	// the next layout sibling can be any container type (e.g. a
+	// fl_TableLayout); only blocks can be list items
+	fl_ContainerLayout * pNextL = pBlock->getNext();
+	fl_BlockLayout * nBlock = (pNextL && pNextL->getContainerType() == FL_CONTAINER_BLOCK)
+		? static_cast<fl_BlockLayout *>(pNextL) : nullptr;
 	bool bEmpty = true;
 	if(pBlock->isListItem() == false || (nBlock!= nullptr && nBlock->isListItem()==true))
 	{
@@ -4126,11 +4130,12 @@ void FV_View::processSelectedBlocks(FL_ListType listType,
 	{
 		UT_DEBUGMSG(("Doing Block %d of %d \n",i,static_cast<UT_sint32>(vNoListBlocks.size())));
 		fl_BlockLayout * pBlock = vNoListBlocks[i];
-		fl_BlockLayout * pPrev = static_cast<fl_BlockLayout *>(pBlock->getPrev());
-		while(pPrev && (pPrev->getContainerType() != FL_CONTAINER_BLOCK))
+		fl_ContainerLayout * pPrevL = pBlock->getPrev();
+		while(pPrevL && (pPrevL->getContainerType() != FL_CONTAINER_BLOCK))
 		{
-			pPrev = static_cast<fl_BlockLayout *>(pPrev->getPrev());
+			pPrevL = pPrevL->getPrev();
 		}
+		fl_BlockLayout * pPrev = static_cast<fl_BlockLayout *>(pPrevL);
 //
 // Only attach block to previous list if the margin of the current block < the
 // previous block.
@@ -4633,9 +4638,12 @@ void FV_View::insertParagraphBreak(void)
 		m_pDoc->insertStrux(getPoint(), PTX_Block);
 	if(bBefore == true)
 	{
-		fl_BlockLayout * pPrev = static_cast<fl_BlockLayout *>(getCurrentBlock()->getPrev());
-		sdh = pPrev->getStruxDocHandle();
-		m_pDoc->StopList(sdh);
+		fl_ContainerLayout * pPrevL = getCurrentBlock()->getPrev();
+		if(pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+		{
+			sdh = pPrevL->getStruxDocHandle();
+			m_pDoc->StopList(sdh);
+		}
 		_setPoint(getCurrentBlock()->getPosition());
 	}
 
@@ -5074,9 +5082,17 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 						{
 							pBL = vBlock[i];
 							if(i == 0)
+							{
 								pBL->StartList(style,prevSDH);
+							}
 							else
-								pBL->resumeList(static_cast<fl_BlockLayout *>(pBL->getPrev()));
+							{
+								fl_ContainerLayout * pPrevL = pBL->getPrev();
+								if(pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+								{
+									pBL->resumeList(static_cast<fl_BlockLayout *>(pPrevL));
+								}
+							}
 						}
 					}
 					bAttach = true;
@@ -5099,8 +5115,9 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 //
 // Start looking from the block following and skip through to end of Doc.
 //
-				fl_BlockLayout * pNext = vBlock.back();
-				pNext = static_cast<fl_BlockLayout *>(pNext->getNext());
+				// the next layout sibling need not be a block —
+				// getPosition is a fl_ContainerLayout method
+				fl_ContainerLayout * pNext = vBlock.back()->getNext();
 				if(pNext)
 				{
 					PT_DocPosition nextPos = pNext->getPosition(false)+1;
@@ -5141,10 +5158,16 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 				{
 					pBL = vBlock[j];
 					if(j == 0)
-						pBL->resumeList(pBlock);
-					else if(pBL->getPrev())
 					{
-						pBL->resumeList(static_cast<fl_BlockLayout *>(pBL->getPrev()));
+						pBL->resumeList(pBlock);
+					}
+					else
+					{
+						fl_ContainerLayout * pPrevL = pBL->getPrev();
+						if(pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+						{
+							pBL->resumeList(static_cast<fl_BlockLayout *>(pPrevL));
+						}
 					}
 				}
 			}
@@ -5161,10 +5184,16 @@ bool FV_View::setStyleAtPos(const gchar * style, PT_DocPosition posStart1, PT_Do
 				{
 					pBL = vBlock[j];
 					if (j == 0)
-						pBL->prependList(pBlock);
-					else if(pBL->getPrev())
 					{
-						pBL->resumeList(static_cast<fl_BlockLayout *>(pBL->getPrev()));
+						pBL->prependList(pBlock);
+					}
+					else
+					{
+						fl_ContainerLayout * pPrevL = pBL->getPrev();
+						if(pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+						{
+							pBL->resumeList(static_cast<fl_BlockLayout *>(pPrevL));
+						}
 					}
 				}
 			}
@@ -6604,11 +6633,11 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 //
 // Scan the layout for a pre-existing page number.
 //
-	fl_BlockLayout * pBL = pHFSL->getNextBlockInDocument();
+	fl_ContainerLayout * pBL = pHFSL->getNextBlockInDocument();
 	bool bFoundPageNumber = false;
 	while(pBL != nullptr && !bFoundPageNumber)
 	{
-		fp_Run * pRun = pBL->getFirstRun();
+		fp_Run * pRun = static_cast<fl_BlockLayout *>(pBL)->getFirstRun();
 		while(pRun != nullptr && !bFoundPageNumber)
 		{
 			if(pRun->getType() == FPRUN_FIELD)
@@ -6619,7 +6648,14 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 			pRun = pRun->getNextRun();
 		}
 		if(!bFoundPageNumber)
-			pBL = static_cast<fl_BlockLayout *>(pBL->getNext());
+		{
+			// layout siblings are not all blocks
+			pBL = pBL->getNext();
+			while(pBL && pBL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				pBL = pBL->getNext();
+			}
+		}
 	}
 
 	// Signal PieceTable Change
@@ -6726,23 +6762,28 @@ bool FV_View::removePageNumbers(void)
 			{
 				if(!pHFSL || pFound)
 					continue;
-				fl_BlockLayout * pB = pHFSL->getNextBlockInDocument();
+				fl_ContainerLayout * pB = pHFSL->getNextBlockInDocument();
 				while(pB && !pFound)
 				{
-					fp_Run * pRun = pB->getFirstRun();
+					fp_Run * pRun = static_cast<fl_BlockLayout *>(pB)->getFirstRun();
 					while(pRun)
 					{
 						if(pRun->getType() == FPRUN_FIELD &&
 						   static_cast<fp_FieldRun *>(pRun)->getFieldType()
 							   == FPFIELD_page_number)
 						{
-							pBL = pB;
+							pBL = static_cast<fl_BlockLayout *>(pB);
 							pFound = static_cast<fp_FieldRun *>(pRun);
 							break;
 						}
 						pRun = pRun->getNextRun();
 					}
-					pB = static_cast<fl_BlockLayout *>(pB->getNext());
+					// layout siblings are not all blocks
+					pB = pB->getNext();
+					while(pB && pB->getContainerType() != FL_CONTAINER_BLOCK)
+					{
+						pB = pB->getNext();
+					}
 				}
 			}
 		}
@@ -8809,40 +8850,41 @@ bool FV_View::gotoTarget(AP_JumpTarget type, const char *numberString)
 			if(!m_pDoc->isBookmarkUnique(static_cast<const gchar *>(numberString)))
 			{
 			// TODO: Make this work inside tables
-			while(pSL)
+			while(pSL && !bFound)
 			{
-				pBL = pSL->getNextBlockInDocument();
+				fl_ContainerLayout * pL = pSL->getNextBlockInDocument();
 
-				while(pBL)
+				while(pL && !bFound)
 				{
-					pRun = pBL->getFirstRun();
-
-					while(pRun)
+					// layout siblings are not all blocks
+					if(pL->getContainerType() == FL_CONTAINER_BLOCK)
 					{
-						if(pRun->getType()== FPRUN_BOOKMARK)
+						pBL = static_cast<fl_BlockLayout *>(pL);
+						pRun = pBL->getFirstRun();
+
+						while(pRun)
 						{
-							fp_BookmarkRun * pBR = static_cast<fp_BookmarkRun*>(pRun);
-							if(!strcmp(pBR->getName(),numberString))
+							if(pRun->getType()== FPRUN_BOOKMARK)
 							{
-								pB[i] = pBR;
-								i++;
-								if(i>1)
+								fp_BookmarkRun * pBR = static_cast<fp_BookmarkRun*>(pRun);
+								if(!strcmp(pBR->getName(),numberString))
 								{
-									bFound = true;
-									break;
+									pB[i] = pBR;
+									i++;
+									if(i>1)
+									{
+										bFound = true;
+										break;
+									}
 								}
 							}
+							if(bFound)
+								break;
+							pRun = pRun->getNextRun();
 						}
-						if(bFound)
-							break;
-						pRun = pRun->getNextRun();
 					}
-					if(bFound)
-						break;
-					pBL = static_cast<fl_BlockLayout *>(pBL->getNext());
+					pL = pL->getNext();
 				}
-				if(bFound)
-					break;
 				pSL = static_cast<fl_SectionLayout *>(pSL->getNext());
 			}
 			}
@@ -11683,7 +11725,7 @@ EV_EditMouseContext FV_View::_getMouseContext(UT_sint32 xPos, UT_sint32 yPos)
 				UT_sint32 iTopAttach = pCell->getTopAttach();
 				UT_sint32 offy =0;
 				UT_sint32 offx =0;
-				fp_VerticalContainer * pCol = static_cast<fp_Column *>(pCell->getColumn(pLine));
+				fp_VerticalContainer * pCol = pCell->getColumn(pLine);
 				UT_sint32 col_x =0;
 				UT_sint32 col_y =0;
 				pPage->getScreenOffsets(pCol, col_x,col_y);
@@ -13754,8 +13796,9 @@ bool FV_View::getEditableBounds(bool isEnd, PT_DocPosition &posEOD, bool bOverid
 		posEOD = m_pEditShadow->getFirstLayout()->getPosition();
 		return true;
 	}
-	pBL = static_cast<fl_BlockLayout *>(m_pEditShadow->getLastLayout());
-	UT_return_val_if_fail(pBL, false);
+	fl_ContainerLayout * pLastCL = m_pEditShadow->getLastLayout();
+	UT_return_val_if_fail(pLastCL && pLastCL->getContainerType() == FL_CONTAINER_BLOCK, false);
+	pBL = static_cast<fl_BlockLayout *>(pLastCL);
 	posEOD = pBL->getPosition(false);
 	fp_Run * pRun = pBL->getFirstRun();
 	while( pRun && pRun->getNextRun() != nullptr)
@@ -15486,6 +15529,8 @@ bool FV_View::insertFootnote(bool bFootnote)
 	if (pAP_in) {
 		PP_AttrProp * pAP_after = pAP_in->createExactly(pAP_in->getAttributes(),pAP_in->getProperties());
 		bRet = m_pDoc->insertFmtMark(PTC_AddFmt,FanchEnd+2,pAP_after);
+		// insertFmtMark reads the AP but does not adopt it
+		DELETEP(pAP_after);
 		UT_ASSERT(bRet);
 	}
 

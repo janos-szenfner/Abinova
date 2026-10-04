@@ -575,8 +575,10 @@ void fp_Line::calcBorderThickness(void)
 
     if (isFirstLineInBlock() && !canDrawTopBorder())
     {
-	fl_BlockLayout *pBl = static_cast < fl_BlockLayout * > (getBlock()->getPrev());
-	fp_Line *pLine = static_cast < fp_Line * > (pBl->getLastContainer());
+	fl_ContainerLayout *pPrevL = getBlock()->getPrev();
+	fl_BlockLayout *pBl = (pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+	    ? static_cast < fl_BlockLayout * > (pPrevL) : nullptr;
+	fp_Line *pLine = pBl ? static_cast < fp_Line * > (pBl->getLastContainer()) : nullptr;
 	if(pLine && pLine->isAlongBotBorder())
 	{
 	    pBl->setLineHeightBlockWithBorders(-1);

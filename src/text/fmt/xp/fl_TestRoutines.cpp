@@ -110,8 +110,11 @@ void __dump_sq(void)
 	{
 		fprintf(stdout,"Section: %p [type %d]\n",static_cast<void*>(psl),psl->getType());
 #ifdef ENABLE_SPELL
-		for (fl_BlockLayout * pBL=static_cast<fl_BlockLayout *>( psl->getFirstLayout()); (pBL); pBL= static_cast<fl_BlockLayout *>( pBL->getNext()))
-			pBL->getSpellSquiggles()->__dump(stdout);
+		for (fl_ContainerLayout * pL=psl->getFirstLayout(); (pL); pL= pL->getNext())
+		{
+			if (pL->getContainerType() == FL_CONTAINER_BLOCK)
+				static_cast<fl_BlockLayout *>(pL)->getSpellSquiggles()->__dump(stdout);
+		}
 #endif
 	}
 }
@@ -146,8 +149,11 @@ void FL_DocLayout::__dump(FILE * fp) const
 void fl_SectionLayout::__dump(FILE * fp) const
 {
 	fprintf(fp,"Section: %p [type %d]\n",static_cast<void*>(this),getType());
-	for (fl_BlockLayout * pBL=static_cast<fl_BlockLayout *>( getFirstLayout()); (pBL); pBL= static_cast<fl_BlockLayout *>( pBL->getNext()))
-		pBL->__dump(fp);
+	for (fl_ContainerLayout * pL= getFirstLayout(); (pL); pL= pL->getNext())
+	{
+		if (pL->getContainerType() == FL_CONTAINER_BLOCK)
+			static_cast<fl_BlockLayout *>(pL)->__dump(fp);
+	}
 }
 
 
@@ -182,7 +188,7 @@ void fl_CellLayout::__dump(FILE * fp) const
 void fl_TableLayout::__dump(FILE * fp) const
 {
 	fprintf(fp,"TableLayout: %p [Containertype %d]\n",static_cast<void*>(this),getContainerType());
-	for (fl_ContainerLayout * pBL=static_cast<fl_ContainerLayout *>( getFirstLayout()); (pBL); pBL= static_cast<fl_BlockLayout *>( pBL->getNext()))
+	for (fl_ContainerLayout * pBL=static_cast<fl_ContainerLayout *>( getFirstLayout()); (pBL); pBL= pBL->getNext())
 		pBL->__dump(fp);
 }
 
@@ -201,7 +207,9 @@ void fl_BlockLayout::__dump(FILE * fp) const
 	fp_Line* pLine;
 
 	// Get last line of previous block and its container.
-	fl_BlockLayout* pPrev = static_cast<fl_BlockLayout *>( getPrev());
+	fl_ContainerLayout* pPrevL = getPrev();
+	fl_BlockLayout* pPrev = (pPrevL && pPrevL->getContainerType() == FL_CONTAINER_BLOCK)
+		? static_cast<fl_BlockLayout *>(pPrevL) : nullptr;
 	if (pPrev)
 	{
 		pLine = static_cast<fp_Line *>( pPrev->getLastContainer());
