@@ -144,7 +144,9 @@ class ABI_EXPORT GR_Itemization
 						  return m_vOffsets[i+1] - m_vOffsets[i];
 					   }
 
-	GR_Item *       getNthItem(UT_sint32 i) const {return m_vItems[i];}
+	GR_Item *       getNthItem(UT_sint32 i) const
+	                    { return (i >= 0 && i < static_cast<UT_sint32>(m_vItems.size()))
+	                             ? m_vItems[i] : nullptr; }
 
 	void            addItem(UT_sint32 offset, GR_Item *item)
 	                    { m_vOffsets.push_back(offset); m_vItems.push_back(item);}

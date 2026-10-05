@@ -203,7 +203,10 @@ bool IE_Imp::appendLatexMath(const std::string & tex, bool display)
 		return false;
 
 	GR_MathTypesetter ts;
-	ts.parseLaTeX(sEqn.utf8_str());
+	/* false on hard failure — including tripped parse limits on
+	 * pathological input — so the caller falls back to styled text */
+	if (!ts.parseLaTeX(sEqn.utf8_str()))
+		return false;
 	UT_UTF8String sMathML = ts.toMathML();
 	/* toMathML() on an empty/garbage parse yields a bare mrow body —
 	 * don't mint an equation object that renders as an empty box */
@@ -237,6 +240,19 @@ bool IE_Imp::appendLatexMath(const std::string & tex, bool display)
 		"latexid", lID
 	};
 	return appendObject(PTO_Math, atts);
+}
+
+std::string IE_Imp::shortenMathFallback(const std::string & tex)
+{
+	const size_t kMaxFallback = 4096;
+	if (tex.size() <= kMaxFallback)
+		return tex;
+	size_t cut = kMaxFallback;
+	/* don't sever a UTF-8 multi-byte sequence */
+	while (cut > 0 &&
+	       (static_cast<unsigned char>(tex[cut]) & 0xC0) == 0x80)
+		--cut;
+	return tex.substr(0, cut) + "\xe2\x80\xa6";   /* … */
 }
 
 /*****************************************************************/

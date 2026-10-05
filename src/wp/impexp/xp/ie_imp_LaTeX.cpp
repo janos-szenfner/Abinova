@@ -1019,7 +1019,7 @@ bool IE_Imp_LaTeX::_emitMathEnv(const std::string & tex)
 			PT_PROPS_ATTRIBUTE_NAME, "font-style:italic"
 		};
 		appendFmt(fatts);
-		appendSpan(tex);
+		appendSpan(shortenMathFallback(tex));
 	}
 	return true;
 }

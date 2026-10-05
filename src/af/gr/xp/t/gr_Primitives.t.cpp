@@ -1097,6 +1097,65 @@ TFTEST_MAIN("GR_MathTypesetter")
 	TFPASS(!ts3.parseMathML(nullptr));
 	TFPASS(!ts3.hasError());
 
+	/* parser resource limits: pathological input must fail cleanly
+	 * instead of exhausting the stack or memory */
+	{
+		/* brace nesting far beyond the depth cap */
+		GR_MathTypesetter tsd;
+		std::string deep(4096, '{');
+		deep += 'x';
+		deep.append(4096, '}');
+		TFPASS(!tsd.parseLaTeX(deep.c_str()));
+		TFPASS(tsd.hasError());
+	}
+	{
+		/* nested \frac chains trip the same depth cap */
+		GR_MathTypesetter tsf;
+		std::string frac;
+		for (int k = 0; k < 512; ++k) frac += "\\frac{";
+		frac += 'x';
+		for (int k = 0; k < 512; ++k) frac += "}{y}";
+		TFPASS(!tsf.parseLaTeX(frac.c_str()));
+		TFPASS(tsf.hasError());
+	}
+	{
+		/* deep MathML nesting trips the cap too */
+		GR_MathTypesetter tsm;
+		std::string mmlDeep = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">";
+		for (int k = 0; k < 400; ++k) mmlDeep += "<mrow>";
+		mmlDeep += "<mi>x</mi>";
+		for (int k = 0; k < 400; ++k) mmlDeep += "</mrow>";
+		mmlDeep += "</math>";
+		TFPASS(!tsm.parseMathML(mmlDeep.c_str(), -1));
+		TFPASS(tsm.hasError());
+	}
+	{
+		/* huge flat input trips the node budget */
+		GR_MathTypesetter tsw;
+		std::string wide;
+		wide.reserve(140000);
+		for (int k = 0; k < 70000; ++k) wide += "x ";
+		TFPASS(!tsw.parseLaTeX(wide.c_str()));
+		TFPASS(tsw.hasError());
+	}
+	{
+		/* sane nesting stays well under the caps and still parses */
+		GR_MathTypesetter tsn;
+		std::string nest(64, '{');
+		nest += "\\frac{a}{b}";
+		nest.append(64, '}');
+		TFPASS(tsn.parseLaTeX(nest.c_str()));
+		TFPASS(!tsn.empty());
+	}
+	{
+		/* a real document-size expression is unaffected */
+		GR_MathTypesetter tsnorm;
+		TFPASS(tsnorm.parseLaTeX(
+			"\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2} + "
+			"\\int_0^1 x^2\\,dx - \\sqrt[3]{27}"));
+		TFPASS(!tsnorm.hasError());
+	}
+
 	/* layout + render against an in-memory image surface */
 	cairo_surface_t * surf =
 		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 200, 100);

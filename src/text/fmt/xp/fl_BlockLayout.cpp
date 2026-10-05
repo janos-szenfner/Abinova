@@ -5358,8 +5358,7 @@ bool   fl_BlockLayout::itemizeSpan(PT_BlockOffset blockOffset, UT_uint32 len,GR_
 	I.setLang(szLang);
 	I.setFont(pFont);
 	
-	m_pLayout->getGraphics()->itemize(text, I);
-	return true;
+	return m_pLayout->getGraphics()->itemize(text, I);
 }
 
 bool	fl_BlockLayout::_doInsertTextSpan(PT_BlockOffset blockOffset, UT_uint32 len)

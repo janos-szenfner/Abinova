@@ -3891,6 +3891,17 @@ below are on `main` but the release has not been cut yet.
   result is cached per URI so repaints are free, files over 64 MiB
   are skipped (they remain insertable, just not previewed), and the
   preview visibly renders again.
+- **Equation import hardened against hostile math source** — the
+  built-in typesetter's LaTeX/MathML parsers now enforce a nesting-depth
+  cap and a node budget, so a document containing thousands of nested
+  braces or an oversized equation can no longer overflow the stack or
+  grow an unbounded parse tree; such input now reports a parse error and
+  the importer falls back to displaying the raw source as italic text
+  (truncated with an ellipsis instead of emitting megabytes verbatim).
+  The same change fixed a latent segfault where a text run split to
+  zero length during line breaking dereferenced an empty itemization —
+  visible previously as a crash on paragraphs of repeated `{`/`}`.
+  Normal equations are unaffected.
 
 ### GTK4 port (core migration)
 

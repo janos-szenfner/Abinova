@@ -223,7 +223,8 @@ all.
   - Inline `$...$` and fenced `$$...$$`/`math` blocks are imported
     as real equation objects — the LaTeX source is converted to
     MathML by the built-in typesetter and rendered live; sources
-    that fail conversion keep their TeX source as italic text.
+    that fail conversion keep their TeX source as italic text
+    (truncated with an ellipsis for pathologically large input).
     Export writes equation objects back as `$...$`/`$$...$$`.
   - Mermaid fenced blocks are rendered to a PNG diagram by the
     built-in renderer (`ut_mermaid`) and embedded as an image;

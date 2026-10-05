@@ -1283,7 +1283,7 @@ bool IE_Imp_Markdown::_emitMathBlock(const std::string & tex)
 			PT_PROPS_ATTRIBUTE_NAME, "font-style:italic"
 		};
 		appendFmt(fatts);
-		appendSpan(tex);
+		appendSpan(shortenMathFallback(tex));
 	}
 	return true;
 }
@@ -1705,7 +1705,8 @@ static void s_emitInlineRec(IE_Imp_Markdown * imp, PD_Document * doc,
 				{
 					MDFmt f = fmt;
 					f.italic = true;
-					s_emitSegment(imp, doc, tex, f);
+					s_emitSegment(imp, doc,
+					              IE_Imp::shortenMathFallback(tex), f);
 				}
 				i += len;
 				continue;

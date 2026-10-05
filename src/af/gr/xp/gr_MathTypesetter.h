@@ -122,6 +122,10 @@ private:
 	double m_baseSize;
 	bool m_display;
 
+	/* counted-allocation partner for the parsers' mkNode: the
+	 * typesetter's own root allocations don't need a budget */
+	MNode *mkNode(MNode::Kind k) { return new MNode(k); }
+
 	/* layout helpers */
 	void   _measure(MNode *n, double size, unsigned inherit);
 	void   _atomExtents(const char *txt, double size, bool italic, bool bold,

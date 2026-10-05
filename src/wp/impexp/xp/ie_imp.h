@@ -228,6 +228,12 @@ public:
 		return m_props_map[key];
 	}
 
+	/*! bound a rejected math source before emitting it as styled
+	 *  fallback text: a hostile source can be megabytes, and a giant
+	 *  unbreakable span is pathological to lay out while adding no
+	 *  diagnostic value. Truncates on a UTF-8 boundary + ellipsis. */
+	static std::string shortenMathFallback(const std::string & tex);
+
  private:
 	PD_Document * m_pDocument;
 	bool m_isPaste;

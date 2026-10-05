@@ -227,15 +227,42 @@ static const char *_bbChar(char c)
 /* LaTeX parser                                                        */
 /* ------------------------------------------------------------------ */
 
+/* Pathological-input limits: document-fed math is parsed by recursive
+ * descent — every group/construct pushes a C++ frame and every token
+ * allocates a node — so a hostile or degenerate source could exhaust
+ * the stack or memory. Cap both; a tripped limit sets the parser's
+ * 'limited' flag, the parse unwinds, parse*() reports failure and the
+ * caller falls back to styled plain text. */
+static constexpr unsigned MATH_MAX_DEPTH = 256;
+static constexpr unsigned MATH_MAX_NODES = 65536;
+
+/* RAII bound on the mutually-recursive parse entries below. */
+struct MDGuard {
+	unsigned &depth;
+	bool &limited;
+	const bool ok;
+	MDGuard(unsigned &d, bool &l)
+		: depth(d), limited(l), ok(!l && d < MATH_MAX_DEPTH)
+	{
+		if (ok) ++depth;
+		else limited = true;
+	}
+	~MDGuard() { if (ok) --depth; }
+};
+
 struct MLatexParser {
 	const char *s;
 	size_t n, i;
 	GR_MathTypesetter *ts;
 	unsigned style;         /*!< inherited MF_ flags (BOLD/UPRIGHT/ITALIC) */
+	unsigned depth;         /*!< live parse-recursion depth (MDGuard) */
+	unsigned nodes;         /*!< nodes allocated so far */
+	bool limited;           /*!< a parser limit tripped; unwind quickly */
 	std::string err;
 
 	MLatexParser(const char *str, GR_MathTypesetter *t)
-		: s(str), n(str ? strlen(str) : 0), i(0), ts(t), style(0) {}
+		: s(str), n(str ? strlen(str) : 0), i(0), ts(t), style(0),
+		  depth(0), nodes(0), limited(false) {}
 
 	char peek()  { return i < n ? s[i] : 0; }
 	char get()   { return i < n ? s[i++] : 0; }
@@ -260,8 +287,17 @@ struct MLatexParser {
 		return nm;
 	}
 
+	/* counted node allocation — every node the parse builds funnels
+	 * through here so a huge input can't grow the tree without bound */
+	MNode *mkNode(MNode::Kind k) {
+		if (++nodes > MATH_MAX_NODES) limited = true;
+		return new MNode(k);
+	}
+
 	/* parse a {...} group or a single token into a node */
 	MNode *arg() {
+		MDGuard g(depth, limited);
+		if (!g.ok) return mkNode(MNode::ROW);
 		skipws();
 		if (peek() == '{') {
 			++i;
@@ -275,11 +311,11 @@ struct MLatexParser {
 		if (peek()) {
 			return charAtom(get());
 		}
-		return new MNode(MNode::ROW);
+		return mkNode(MNode::ROW);
 	}
 
 	MNode *charAtom(char c) {
-		MNode *a = new MNode(MNode::ATOM);
+		MNode *a = mkNode(MNode::ATOM);
 		char buf[8];
 		buf[0] = c; buf[1] = 0; /* raw byte; latex input is utf-8 so copy through */
 		a->t = buf;
@@ -289,36 +325,38 @@ struct MLatexParser {
 	}
 
 	MNode *command() {
+		MDGuard g(depth, limited);
+		if (!g.ok) return mkNode(MNode::ROW);
 		std::string nm = cmdName();
-		if (nm.empty()) return new MNode(MNode::ROW);
+		if (nm.empty()) return mkNode(MNode::ROW);
 
 		const MSym *sym = _findSym(nm);
 		if (sym) {
-			MNode *a = new MNode(MNode::ATOM);
+			MNode *a = mkNode(MNode::ATOM);
 			a->t = sym->utf8;
 			a->fl = sym->fl | style;
 			return a;
 		}
 
 		if (nm == "frac" || nm == "dfrac" || nm == "tfrac" || nm == "cfrac") {
-			MNode *f = new MNode(MNode::FRAC);
+			MNode *f = mkNode(MNode::FRAC);
 			f->k.push_back(arg());
 			f->k.push_back(arg());
 			f->fl = style;
 			return f;
 		}
 		if (nm == "binom" || nm == "dbinom" || nm == "tbinom") {
-			MNode *f = new MNode(MNode::FRAC);
+			MNode *f = mkNode(MNode::FRAC);
 			f->fl = MF_NOBAR | style;
 			f->k.push_back(arg());
 			f->k.push_back(arg());
-			MNode *d = new MNode(MNode::FENCE);
+			MNode *d = mkNode(MNode::FENCE);
 			d->t = "("; d->t2 = ")";
 			d->k.push_back(f);
 			return d;
 		}
 		if (nm == "sqrt") {
-			MNode *r = new MNode(MNode::RADICAL);
+			MNode *r = mkNode(MNode::RADICAL);
 			skipws();
 			if (peek() == '[') {
 				++i;
@@ -336,14 +374,14 @@ struct MLatexParser {
 		}
 		if (nm == "right") {      /* stray \right: skip it */
 			skipws(); get();
-			return new MNode(MNode::ROW);
+			return mkNode(MNode::ROW);
 		}
 		if (nm == "overline" || nm == "underline" || nm == "bar" ||
 		    nm == "vec" || nm == "hat" || nm == "widehat" ||
 		    nm == "tilde" || nm == "widetilde" || nm == "dot" ||
 		    nm == "ddot" || nm == "breve" || nm == "check" ||
 		    nm == "acute" || nm == "grave") {
-			MNode *ac = new MNode(MNode::ACCENT);
+			MNode *ac = mkNode(MNode::ACCENT);
 			if (nm == "widehat") nm = "hat";
 			if (nm == "widetilde") nm = "tilde";
 			ac->t = nm.c_str();
@@ -351,7 +389,7 @@ struct MLatexParser {
 			return ac;
 		}
 		if (nm == "overset" || nm == "stackrel") {
-			MNode *l = new MNode(MNode::LIMITS);
+			MNode *l = mkNode(MNode::LIMITS);
 			MNode *over = arg();
 			l->k.push_back(arg());   /* base */
 			l->k.push_back(over);
@@ -359,7 +397,7 @@ struct MLatexParser {
 			return l;
 		}
 		if (nm == "underset") {
-			MNode *l = new MNode(MNode::LIMITS);
+			MNode *l = mkNode(MNode::LIMITS);
 			MNode *under = arg();
 			l->k.push_back(arg());
 			l->k.push_back(under);
@@ -367,7 +405,7 @@ struct MLatexParser {
 			return l;
 		}
 		if (nm == "boxed") {
-			MNode *d = new MNode(MNode::FENCE);
+			MNode *d = mkNode(MNode::FENCE);
 			d->aux = 1;
 			d->k.push_back(arg());
 			return d;
@@ -400,7 +438,7 @@ struct MLatexParser {
 		    nm == "scriptstyle" || nm == "scriptscriptstyle" ||
 		    nm == "limits" || nm == "nolimits" || nm == "nonumber" ||
 		    nm == "displaystyle" || nm == "medspace" || nm == "thickspace") {
-			return new MNode(MNode::ROW);   /* styling hint: ignore */
+			return mkNode(MNode::ROW);   /* styling hint: ignore */
 		}
 		if (nm == "," || nm == "thinspace")  return spaceNode(17);
 		if (nm == ";" || nm == "thickspace") return spaceNode(22);
@@ -415,16 +453,16 @@ struct MLatexParser {
 		    nm == "definecolor" || nm == "pagecolor") {
 			arg();                    /* swallow the colour spec */
 			if (nm == "colorbox" || nm == "fcolorbox") return arg();
-			return new MNode(MNode::ROW);
+			return mkNode(MNode::ROW);
 		}
 		if (nm == "phantom") {       /* reserve space, draw nothing */
 			MNode *in = arg();
-			MNode *sp = new MNode(MNode::SPACE);
+			MNode *sp = mkNode(MNode::SPACE);
 			sp->k.push_back(in);     /* measured via child, not drawn */
 			return sp;
 		}
 		if (nm == "over") {          /* infix fraction */
-			MNode *a = new MNode(MNode::ATOM);
+			MNode *a = mkNode(MNode::ATOM);
 			a->t = "/"; a->fl = MF_BIN | style;
 			return a;
 		}
@@ -436,43 +474,45 @@ struct MLatexParser {
 			MNode *a = charAtom('|'); a->fl = style; return a;
 		}
 		if (nm == "lVert" || nm == "Vert" || nm == "rVert" || nm == "parallel") {
-			MNode *a = new MNode(MNode::ATOM); a->t = "\xe2\x88\xa5"; a->fl = style; return a;
+			MNode *a = mkNode(MNode::ATOM); a->t = "\xe2\x88\xa5"; a->fl = style; return a;
 		}
-		if (nm == "langle") { MNode *a = new MNode(MNode::ATOM); a->t = "\xe2\x9f\xa8"; a->fl = MF_OPEN | style; return a; }
-		if (nm == "rangle") { MNode *a = new MNode(MNode::ATOM); a->t = "\xe2\x9f\xa9"; a->fl = MF_CLOSE | style; return a; }
-		if (nm == "lceil")  { MNode *a = new MNode(MNode::ATOM); a->t = "\xe2\x8c\x88"; a->fl = MF_OPEN | style; return a; }
-		if (nm == "rceil")  { MNode *a = new MNode(MNode::ATOM); a->t = "\xe2\x8c\x89"; a->fl = MF_CLOSE | style; return a; }
-		if (nm == "lfloor") { MNode *a = new MNode(MNode::ATOM); a->t = "\xe2\x8c\x8a"; a->fl = MF_OPEN | style; return a; }
-		if (nm == "rfloor") { MNode *a = new MNode(MNode::ATOM); a->t = "\xe2\x8c\x8b"; a->fl = MF_CLOSE | style; return a; }
+		if (nm == "langle") { MNode *a = mkNode(MNode::ATOM); a->t = "\xe2\x9f\xa8"; a->fl = MF_OPEN | style; return a; }
+		if (nm == "rangle") { MNode *a = mkNode(MNode::ATOM); a->t = "\xe2\x9f\xa9"; a->fl = MF_CLOSE | style; return a; }
+		if (nm == "lceil")  { MNode *a = mkNode(MNode::ATOM); a->t = "\xe2\x8c\x88"; a->fl = MF_OPEN | style; return a; }
+		if (nm == "rceil")  { MNode *a = mkNode(MNode::ATOM); a->t = "\xe2\x8c\x89"; a->fl = MF_CLOSE | style; return a; }
+		if (nm == "lfloor") { MNode *a = mkNode(MNode::ATOM); a->t = "\xe2\x8c\x8a"; a->fl = MF_OPEN | style; return a; }
+		if (nm == "rfloor") { MNode *a = mkNode(MNode::ATOM); a->t = "\xe2\x8c\x8b"; a->fl = MF_CLOSE | style; return a; }
 		if (nm == "backslash") { MNode *a = charAtom('\\'); a->fl = style; return a; }
 		if (nm == "%") { MNode *a = charAtom('%'); a->fl = style; return a; }
 		if (nm == "$") { MNode *a = charAtom('$'); a->fl = style; return a; }
 		if (nm == "#") { MNode *a = charAtom('#'); a->fl = style; return a; }
 		if (nm == "&") { MNode *a = charAtom('&'); a->fl = style; return a; }
 		if (nm == "_") { MNode *a = charAtom('_'); a->fl = style; return a; }
-		if (nm == "newline" || nm == "\\" ) return new MNode(MNode::ROW);
-		if (nm == "leftroot" || nm == "uproot") { arg(); return new MNode(MNode::ROW); }
+		if (nm == "newline" || nm == "\\" ) return mkNode(MNode::ROW);
+		if (nm == "leftroot" || nm == "uproot") { arg(); return mkNode(MNode::ROW); }
 
 		/* unknown command: render its name so nothing silently vanishes */
-		MNode *a = new MNode(MNode::ATOM);
+		MNode *a = mkNode(MNode::ATOM);
 		a->t = nm.c_str();
 		a->fl = MF_UPRIGHT | style;
 		return a;
 	}
 
 	MNode *spaceNode(int em100) {
-		MNode *sp = new MNode(MNode::SPACE);
+		MNode *sp = mkNode(MNode::SPACE);
 		sp->aux = em100;
 		return sp;
 	}
 
 	/* group whose atoms get the given style flags instead of defaults */
 	MNode *styledGroup(unsigned st, bool bb) {
+		MDGuard g(depth, limited);
+		if (!g.ok) return mkNode(MNode::ROW);
 		skipws();
 		if (peek() != '{') return arg();
 		++i;
-		MNode *r = new MNode(MNode::ROW);
-		while (i < n && peek() != '}') {
+		MNode *r = mkNode(MNode::ROW);
+		while (i < n && !limited && peek() != '}') {
 			char c = peek();
 			if (c == ' ' || c == '\t' || c == '\n') {
 				++i;
@@ -487,7 +527,7 @@ struct MLatexParser {
 				continue;
 			}
 			if (!c) break;
-			MNode *a = new MNode(MNode::ATOM);
+			MNode *a = mkNode(MNode::ATOM);
 			if (bb && isalpha(static_cast<unsigned char>(c)) && _bbChar(c)) {
 				a->t = _bbChar(c);
 			} else {
@@ -504,6 +544,8 @@ struct MLatexParser {
 
 	/* \left X <row> \right Y */
 	MNode *fence() {
+		MDGuard g(depth, limited);
+		if (!g.ok) return mkNode(MNode::ROW);
 		skipws();
 		char open = get();            /* delimiter char or '.' */
 		if (open == '\\') {           /* \{, \langle, \| ... */
@@ -535,7 +577,7 @@ struct MLatexParser {
 				else close = ')';
 			}
 		}
-		MNode *d = new MNode(MNode::FENCE);
+		MNode *d = mkNode(MNode::FENCE);
 		char b[2] = { open, 0 };
 		d->t = b;
 		b[0] = close; b[1] = 0;
@@ -546,6 +588,8 @@ struct MLatexParser {
 
 	/* \begin{env} rows & cols \end{env} */
 	MNode *matrix() {
+		MDGuard g(depth, limited);
+		if (!g.ok) return mkNode(MNode::ROW);
 		skipws();
 		std::string env;
 		if (peek() == '{') {
@@ -562,7 +606,7 @@ struct MLatexParser {
 				if (peek() == '}') ++i;
 			}
 		}
-		MNode *m = new MNode(MNode::MATRIX);
+		MNode *m = mkNode(MNode::MATRIX);
 		if (env == "pmatrix")      { m->t = "("; m->t2 = ")"; }
 		else if (env == "bmatrix") { m->t = "["; m->t2 = "]"; }
 		else if (env == "Bmatrix") { m->t = "{"; m->t2 = "}"; }
@@ -575,14 +619,14 @@ struct MLatexParser {
 
 		/* parse cells: rows separated by \\, cols by & */
 		int ncol = 0, cur = 0;
-		while (i < n) {
+		while (i < n && !limited) {
 			skipws();
 			if (atCmd("end")) break;
 			if (peek() == '&') { ++i; continue; }
 			if (atCmd("\\") || atCmd("newline")) { eatCmd("\\"); cur = 0;
 				continue; }
-			MNode *cell = new MNode(MNode::ROW);
-			while (i < n && peek() != '&' && !atCmd("\\") && !atCmd("end")) {
+			MNode *cell = mkNode(MNode::ROW);
+			while (i < n && !limited && peek() != '&' && !atCmd("\\") && !atCmd("end")) {
 				skipws();
 				if (peek() == '&' || atCmd("\\") || atCmd("end")) break;
 				cell->k.push_back(atomWithScripts());
@@ -604,6 +648,8 @@ struct MLatexParser {
 
 	/* atom + following ^ _ scripts */
 	MNode *atomWithScripts() {
+		MDGuard g(depth, limited);
+		if (!g.ok) return mkNode(MNode::ROW);
 		skipws();
 		MNode *base;
 		if (peek() == '{') { ++i; base = row('}'); if (peek() == '}') ++i; }
@@ -615,14 +661,15 @@ struct MLatexParser {
 			base = charAtom(get()); base->fl |= MF_CLOSE;
 		}
 		else if (peek() == '^' || peek() == '_') {
-			base = new MNode(MNode::ROW);   /* scripts with empty base */
+			base = mkNode(MNode::ROW);   /* scripts with empty base */
 		}
 		else if (peek()) base = charAtom(get());
-		else return new MNode(MNode::ROW);
+		else return mkNode(MNode::ROW);
 
 		MNode *sup = nullptr, *sub = nullptr;
 		for (;;) {
 			skipws();
+			if (limited) break;
 			if (peek() == '^') { ++i; if (!sup) sup = arg(); else delete arg(); }
 			else if (peek() == '_') { ++i; if (!sub) sub = arg(); else delete arg(); }
 			else break;
@@ -632,13 +679,13 @@ struct MLatexParser {
 		bool lim = (base->kind == MNode::ATOM) && (base->fl & MF_LIMITS) &&
 		           !(base->fl & MF_INNER);
 		if (lim) {
-			MNode *l = new MNode(MNode::LIMITS);
+			MNode *l = mkNode(MNode::LIMITS);
 			l->k.push_back(base);
 			if (sup) { l->k.push_back(sup); l->aux |= 1; }
 			if (sub) { l->k.push_back(sub); l->aux |= 2; }
 			return l;
 		}
-		MNode *sc = new MNode(MNode::SCRIPT);
+		MNode *sc = mkNode(MNode::SCRIPT);
 		sc->k.push_back(base);
 		if (sup) { sc->k.push_back(sup); sc->aux |= 1; }
 		if (sub) { sc->k.push_back(sub); sc->aux |= 2; }
@@ -647,8 +694,10 @@ struct MLatexParser {
 
 	/* parse a row until 'stop' char, or -1 for \right, or EOF */
 	MNode *row(int stop) {
-		MNode *r = new MNode(MNode::ROW);
-		while (i < n) {
+		MDGuard guard(depth, limited);
+		if (!guard.ok) return mkNode(MNode::ROW);
+		MNode *r = mkNode(MNode::ROW);
+		while (i < n && !limited) {
 			skipws();
 			char c = peek();
 			if (!c) break;
@@ -663,15 +712,18 @@ struct MLatexParser {
 	}
 
 	MNode *attachScripts(MNode *base) {
+		MDGuard g(depth, limited);
+		if (!g.ok) return base;   /* limited: keep the base, drop scripts */
 		MNode *sup = nullptr, *sub = nullptr;
 		for (;;) {
 			skipws();
+			if (limited) break;
 			if (peek() == '^') { ++i; if (!sup) sup = arg(); else delete arg(); }
 			else if (peek() == '_') { ++i; if (!sub) sub = arg(); else delete arg(); }
 			else break;
 		}
 		if (!sup && !sub) return base;
-		MNode *sc = new MNode(MNode::SCRIPT);
+		MNode *sc = mkNode(MNode::SCRIPT);
 		sc->k.push_back(base);
 		if (sup) { sc->k.push_back(sup); sc->aux |= 1; }
 		if (sub) { sc->k.push_back(sub); sc->aux |= 2; }
@@ -686,12 +738,22 @@ struct MLatexParser {
 struct MMLParser {
 	GR_MathTypesetter *ts;
 	unsigned style;
+	unsigned depth;         /*!< live elem() recursion depth (MDGuard) */
+	unsigned nodes;         /*!< nodes allocated so far */
+	bool limited;           /*!< a parser limit tripped; unwind quickly */
 
-	MMLParser(GR_MathTypesetter *t) : ts(t), style(0) {}
+	MMLParser(GR_MathTypesetter *t)
+		: ts(t), style(0), depth(0), nodes(0), limited(false) {}
 
-	static std::string text(xmlNode *e) {
+	/* counted node allocation — see MLatexParser::mkNode */
+	MNode *mkNode(MNode::Kind k) {
+		if (++nodes > MATH_MAX_NODES) limited = true;
+		return new MNode(k);
+	}
+
+	std::string text(xmlNode *e) {
 		std::string out;
-		for (xmlNode *c = e->children; c; c = c->next) {
+		for (xmlNode *c = e->children; c && !limited; c = c->next) {
 			if (c->type == XML_TEXT_NODE || c->type == XML_CDATA_SECTION_NODE)
 				out += reinterpret_cast<const char *>(c->content);
 		}
@@ -716,7 +778,7 @@ struct MMLParser {
 	}
 
 	MNode *atom(xmlNode *e, unsigned fl) {
-		MNode *a = new MNode(MNode::ATOM);
+		MNode *a = mkNode(MNode::ATOM);
 		std::string t = text(e);
 		a->t = t.c_str();
 		a->fl = fl | style;
@@ -742,7 +804,9 @@ struct MMLParser {
 	}
 
 	MNode *elem(xmlNode *e) {
-		if (!e || e->type != XML_ELEMENT_NODE) return new MNode(MNode::ROW);
+		MDGuard g(depth, limited);
+		if (!g.ok) return mkNode(MNode::ROW);
+		if (!e || e->type != XML_ELEMENT_NODE) return mkNode(MNode::ROW);
 		const char *nm = reinterpret_cast<const char *>(e->name);
 
 		if (!strcmp(nm, "math") || !strcmp(nm, "mrow") ||
@@ -754,8 +818,8 @@ struct MMLParser {
 				const char *mv = attr(e, "mathvariant");
 				if (mv && !strcmp(mv, "bold")) style |= MF_BOLD;
 			}
-			MNode *r = new MNode(MNode::ROW);
-			for (xmlNode *c = e->children; c; c = c->next)
+			MNode *r = mkNode(MNode::ROW);
+			for (xmlNode *c = e->children; c && !limited; c = c->next)
 				if (c->type == XML_ELEMENT_NODE)
 					r->k.push_back(elem(c));
 			style = old;
@@ -798,9 +862,9 @@ struct MMLParser {
 			return a;
 		}
 		if (!strcmp(nm, "msub") || !strcmp(nm, "msup") || !strcmp(nm, "msubsup")) {
-			MNode *sc = new MNode(MNode::SCRIPT);
+			MNode *sc = mkNode(MNode::SCRIPT);
 			std::vector<MNode*> ch;
-			for (xmlNode *c = e->children; c; c = c->next)
+			for (xmlNode *c = e->children; c && !limited; c = c->next)
 				if (c->type == XML_ELEMENT_NODE) ch.push_back(elem(c));
 			if (ch.empty()) return sc;
 			sc->k.push_back(ch[0]);
@@ -816,7 +880,7 @@ struct MMLParser {
 			for (size_t i = sc->k.size(); i < ch.size(); ++i) delete ch[i];
 			/* upgrade to limits for bigops */
 			if (sc->k[0]->kind == MNode::ATOM && (sc->k[0]->fl & MF_LIMITS)) {
-				MNode *l = new MNode(MNode::LIMITS);
+				MNode *l = mkNode(MNode::LIMITS);
 				l->k = sc->k; l->aux = sc->aux;
 				sc->k.clear(); sc->aux = 0;
 				delete sc;
@@ -826,9 +890,9 @@ struct MMLParser {
 		}
 		if (!strcmp(nm, "munder") || !strcmp(nm, "mover") || !strcmp(nm, "munderover")) {
 			std::vector<MNode*> ch;
-			for (xmlNode *c = e->children; c; c = c->next)
+			for (xmlNode *c = e->children; c && !limited; c = c->next)
 				if (c->type == XML_ELEMENT_NODE) ch.push_back(elem(c));
-			if (ch.empty()) return new MNode(MNode::ROW);
+			if (ch.empty()) return mkNode(MNode::ROW);
 			/* accent? */
 			if (!strcmp(nm, "mover") && ch.size() > 1 &&
 			    ch[1]->kind == MNode::ATOM) {
@@ -841,14 +905,14 @@ struct MMLParser {
 				else if (t == "\xcb\x99" || t == ".") id = "dot";
 				else if (t == "\xc2\xa8") id = "ddot";
 				if (id) {
-					MNode *ac = new MNode(MNode::ACCENT);
+					MNode *ac = mkNode(MNode::ACCENT);
 					ac->t = id;
 					ac->k.push_back(ch[0]);
 					for (size_t i = 1; i < ch.size(); ++i) delete ch[i];
 					return ac;
 				}
 			}
-			MNode *l = new MNode(MNode::LIMITS);
+			MNode *l = mkNode(MNode::LIMITS);
 			l->k.push_back(ch[0]);
 			if (!strcmp(nm, "munder")) {
 				if (ch.size() > 1) { l->k.push_back(ch[1]); l->aux |= 2; }
@@ -863,18 +927,18 @@ struct MMLParser {
 			return l;
 		}
 		if (!strcmp(nm, "mfrac")) {
-			MNode *f = new MNode(MNode::FRAC);
+			MNode *f = mkNode(MNode::FRAC);
 			const char *lt = attr(e, "linethickness");
 			if (lt && (!strcmp(lt, "0") || !strcmp(lt, "0pt"))) f->fl |= MF_NOBAR;
-			for (xmlNode *c = e->children; c; c = c->next)
+			for (xmlNode *c = e->children; c && !limited; c = c->next)
 				if (c->type == XML_ELEMENT_NODE && f->k.size() < 2)
 					f->k.push_back(elem(c));
 			return f;
 		}
 		if (!strcmp(nm, "msqrt") || !strcmp(nm, "mroot")) {
-			MNode *r = new MNode(MNode::RADICAL);
+			MNode *r = mkNode(MNode::RADICAL);
 			std::vector<MNode*> ch;
-			for (xmlNode *c = e->children; c; c = c->next)
+			for (xmlNode *c = e->children; c && !limited; c = c->next)
 				if (c->type == XML_ELEMENT_NODE) ch.push_back(elem(c));
 			/* radicand = all children for msqrt, all but last for mroot
 			 * (implicit mrow when more than one) */
@@ -883,7 +947,7 @@ struct MMLParser {
 			if (nrad == 1)
 				r->k.push_back(ch[0]);
 			else if (nrad > 1) {
-				MNode *row = new MNode(MNode::ROW);
+				MNode *row = mkNode(MNode::ROW);
 				row->k.assign(ch.begin(), ch.begin() + nrad);
 				r->k.push_back(row);
 			}
@@ -893,38 +957,38 @@ struct MMLParser {
 		}
 		if (!strcmp(nm, "mfenced")) {
 			const char *o = attr(e, "open"), *c = attr(e, "close");
-			MNode *d = new MNode(MNode::FENCE);
+			MNode *d = mkNode(MNode::FENCE);
 			d->t = (o && *o) ? o : "(";
 			d->t2 = (c && *c) ? c : ")";
 			/* map utf8 delimiters back to our drawn ids */
 			mapDelim(d->t); mapDelim(d->t2);
-			MNode *inner = new MNode(MNode::ROW);
-			for (xmlNode *x = e->children; x; x = x->next)
+			MNode *inner = mkNode(MNode::ROW);
+			for (xmlNode *x = e->children; x && !limited; x = x->next)
 				if (x->type == XML_ELEMENT_NODE) inner->k.push_back(elem(x));
 			d->k.push_back(inner);
 			return d;
 		}
 		if (!strcmp(nm, "menclose")) {
-			MNode *d = new MNode(MNode::FENCE);
+			MNode *d = mkNode(MNode::FENCE);
 			d->aux = 1;
-			MNode *inner = new MNode(MNode::ROW);
-			for (xmlNode *x = e->children; x; x = x->next)
+			MNode *inner = mkNode(MNode::ROW);
+			for (xmlNode *x = e->children; x && !limited; x = x->next)
 				if (x->type == XML_ELEMENT_NODE) inner->k.push_back(elem(x));
 			d->k.push_back(inner);
 			return d;
 		}
 		if (!strcmp(nm, "mtable") || !strcmp(nm, "mlabeledtr")) {
-			MNode *m = new MNode(MNode::MATRIX);
+			MNode *m = mkNode(MNode::MATRIX);
 			int ncol = 0;
-			for (xmlNode *r = e->children; r; r = r->next) {
+			for (xmlNode *r = e->children; r && !limited; r = r->next) {
 				if (r->type != XML_ELEMENT_NODE || strcmp(reinterpret_cast<const char *>(r->name), "mtr"))
 					continue;
 				int cur = 0;
-				for (xmlNode *c = r->children; c; c = c->next) {
+				for (xmlNode *c = r->children; c && !limited; c = c->next) {
 					if (c->type != XML_ELEMENT_NODE ||
 					    strcmp(reinterpret_cast<const char *>(c->name), "mtd")) continue;
-					MNode *cell = new MNode(MNode::ROW);
-					for (xmlNode *x = c->children; x; x = x->next)
+					MNode *cell = mkNode(MNode::ROW);
+					for (xmlNode *x = c->children; x && !limited; x = x->next)
 						if (x->type == XML_ELEMENT_NODE) cell->k.push_back(elem(x));
 					m->k.push_back(cell);
 					++cur;
@@ -935,7 +999,7 @@ struct MMLParser {
 			return m;
 		}
 		if (!strcmp(nm, "mspace")) {
-			MNode *sp = new MNode(MNode::SPACE);
+			MNode *sp = mkNode(MNode::SPACE);
 			const char *w = attr(e, "width");
 			sp->aux = 30;
 			if (w) {
@@ -946,16 +1010,16 @@ struct MMLParser {
 			return sp;
 		}
 		if (!strcmp(nm, "mphantom")) {
-			MNode *sp = new MNode(MNode::SPACE);
-			MNode *inner = new MNode(MNode::ROW);
-			for (xmlNode *x = e->children; x; x = x->next)
+			MNode *sp = mkNode(MNode::SPACE);
+			MNode *inner = mkNode(MNode::ROW);
+			for (xmlNode *x = e->children; x && !limited; x = x->next)
 				if (x->type == XML_ELEMENT_NODE) inner->k.push_back(elem(x));
 			sp->k.push_back(inner);
 			return sp;
 		}
 		/* unknown element: wrap children */
-		MNode *r = new MNode(MNode::ROW);
-		for (xmlNode *c = e->children; c; c = c->next)
+		MNode *r = mkNode(MNode::ROW);
+		for (xmlNode *c = e->children; c && !limited; c = c->next)
 			if (c->type == XML_ELEMENT_NODE) r->k.push_back(elem(c));
 		return r;
 	}
@@ -997,7 +1061,15 @@ bool GR_MathTypesetter::parseLaTeX(const char *sz)
 	delete m_root; m_root = nullptr; m_bError = false; m_sErr.clear();
 	MLatexParser p(sz, this);
 	m_root = p.row(-2);
-	if (!m_root) m_root = new MNode(MNode::ROW);
+	if (!m_root) m_root = mkNode(MNode::ROW);
+	if (p.limited) {
+		/* depth or node budget tripped: keep the partial tree (it is
+		 * still a valid, finite MNode tree) but report failure so the
+		 * caller can fall back to styled plain text */
+		m_bError = true;
+		m_sErr = "math source exceeds parser limits";
+		return false;
+	}
 	return true;
 }
 
@@ -1005,7 +1077,7 @@ bool GR_MathTypesetter::parseMathML(const char *sz, int len)
 {
 	delete m_root; m_root = nullptr; m_bError = false; m_sErr.clear();
 	if (!sz || !*sz) {
-		m_root = new MNode(MNode::ROW);
+		m_root = mkNode(MNode::ROW);
 		return false;
 	}
 	if (len < 0) len = static_cast<int>(strlen(sz));
@@ -1020,7 +1092,7 @@ bool GR_MathTypesetter::parseMathML(const char *sz, int len)
 	if (!doc) {
 		m_bError = true;
 		m_sErr = "unparsable MathML";
-		m_root = new MNode(MNode::ROW);
+		m_root = mkNode(MNode::ROW);
 		return false;
 	}
 	MMLParser p(this);
@@ -1039,7 +1111,12 @@ bool GR_MathTypesetter::parseMathML(const char *sz, int len)
 		m_root = p.elem(rootEl);
 	}
 	xmlFreeDoc(doc);
-	if (!m_root) m_root = new MNode(MNode::ROW);
+	if (!m_root) m_root = mkNode(MNode::ROW);
+	if (p.limited) {
+		m_bError = true;
+		m_sErr = "math document exceeds parser limits";
+		return false;
+	}
 	return true;
 }
 
