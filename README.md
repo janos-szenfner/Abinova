@@ -1976,6 +1976,28 @@ safe-system) and lists the runtime-loaded modules `ldd` cannot see
 (enchant backends, gdk-pixbuf loaders, GIO/GTK4 modules incl. the
 gstreamer media backend, schemas, dictionaries, `artwork/`).
 
+### Self-contained Linux bundle
+
+`dist/linux-bundle.sh` assembles a relocatable
+`dist/abinova-<ver>-linux-<arch>/` directory: it stages
+`make install`, copies the manifest's `bundle` set into `lib/`, sets
+`RUNPATH=$ORIGIN/../lib` on the binary and every bundled lib (needs
+`patchelf`), and ships `gschemas.compiled` plus the gdk-pixbuf loaders
+and cache.  The datadir contents land at the bundle root, which the
+app's executable-path walk-up finds on its own — no wrapper or
+`LD_LIBRARY_PATH` needed:
+
+```bash
+dist/linux-bundle.sh                 # build + bundle + self-verify
+dist/linux-bundle.sh --print-libs    # show the resolved closure only
+abinova-4.0.0-linux-x86_64/bin/abinova --version
+```
+
+The script's verify step fails if `ldd` on the bundled binary resolves
+anything outside the bundle other than the declared system set
+(libc/libm/ld.so).  Enchant backends, GIO modules and GStreamer are
+deliberately left for the runtime-module layer (PACK06).
+
 ### Building on FreeBSD
 
 ports/pkg provides the whole dependency set, so

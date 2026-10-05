@@ -4098,6 +4098,15 @@ below are on `main` but the release has not been cut yet.
   the binary's only library dependency besides libc is libabinova
   itself, and boost is used header-only so no compiled boost library
   needs bundling.
+- **Self-contained Linux bundle script** — `dist/linux-bundle.sh`
+  assembles a relocatable `abinova-<ver>-linux-<arch>/` directory:
+  staged `make install`, the manifest's `bundle` shared-lib closure
+  copied into `lib/`, `RUNPATH=$ORIGIN/../lib` set on the binary and
+  every bundled lib via `patchelf`, gdk-pixbuf loaders + cache and a
+  compiled `gschemas.compiled` shipped, and the datadir flattened to
+  the bundle root so the app locates `artwork/`/`fonts/`/`help/` by
+  walking up from its own path — the bundled `bin/abinova` runs with
+  no `LD_LIBRARY_PATH`, wrapper, or system GTK.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

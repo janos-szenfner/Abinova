@@ -129,6 +129,9 @@ src/wp/test/Abinova-test
 /fuzz-build/
 # sanitizer instrumented build tree + valgrind logs (tools/check-san.sh)
 /san-build/
+# self-contained bundle output + staging (dist/linux-bundle.sh)
+/dist/abinova-*-linux-*/
+/dist/abinova-*-linux-*.stage*
 crash-*
 oom-*
 timeout-*
