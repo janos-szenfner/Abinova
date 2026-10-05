@@ -337,6 +337,12 @@ all.
     `w:altName` is used if it resolves to an installed font (e.g.
     Droid Serif → Times New Roman).  Export writes a `fontTable.xml`
     listing the fonts the document uses.
+  - Embedded DOCX fonts (`w:embedRegular`/`w:embedBold`/etc., the
+    XOR-obfuscated `.odttf` parts) are deliberately *not* loaded —
+    de-obfuscating them would feed attacker-controlled font binaries
+    to FreeType.  Missing faces are substituted via `w:altName` and
+    the bundled font collection instead, and re-exported documents
+    do not carry the embedded payloads.
   - `w:contextualSpacing` is honoured: consecutive same-style
     paragraphs (e.g. list items) collapse their inter-paragraph
     margins instead of summing them.

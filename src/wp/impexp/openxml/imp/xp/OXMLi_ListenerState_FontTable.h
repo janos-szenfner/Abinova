@@ -35,7 +35,11 @@
  * substitution metadata (w:altName, w:panose1, w:charset, w:family,
  * w:pitch) is recorded in the document's OXML_FontManager so
  * getValidFont() can pick the declared substitute when a referenced
- * family is not installed.
+ * family is not installed.  Embedded font payloads (w:embedRegular/
+ * w:embedBold/w:embedItalic/w:embedBoldItalic -> odttf parts) are
+ * deliberately never loaded: an attacker-controlled sfnt binary is a
+ * FreeType attack surface, and the fidelity loss is covered by
+ * w:altName substitution plus the bundled font collection.
 */
 class OXMLi_ListenerState_FontTable : public OXMLi_ListenerState
 {
@@ -46,6 +50,7 @@ public:
 private:
 	std::string m_curName;
 	OXML_FontTableEntry m_curEntry;
+	bool m_bWarnedEmbed = false;
 };
 
 #endif //_OXMLI_LISTENERSTATE_FONTTABLE_H_

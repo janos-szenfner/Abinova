@@ -637,6 +637,13 @@ below are on `main` but the release has not been cut yet.
   `altName` keep their declared name so the bundled
   `abinova-fonts.conf` aliases still apply.  The exporter also writes
   a minimal `fontTable.xml` listing the families actually used.
+- **Embedded DOCX fonts (`.odttf`) are deliberately not loaded** —
+  audited the `w:embedRegular`/`w:embedBold`/`w:embedItalic`/
+  `w:embedBoldItalic` path: the fontTable listener consumes the
+  elements but never resolves their `r:id`, so no attacker-controlled
+  font binary ever reaches FreeType.  Embedded payloads stay ignored
+  by design — missing faces substitute via `w:altName` and the
+  bundled font collection instead.
 - **White strip over dark textboxes fixed** — every paragraph was
   treated as shaded because `shading-background-color` has a registry
   default of `white` and `PP_evalProperty()` returns table defaults;

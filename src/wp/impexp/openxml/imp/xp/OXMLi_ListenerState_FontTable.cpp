@@ -30,6 +30,7 @@
 
 // Abinova includes
 #include "ut_assert.h"
+#include "ut_debugmsg.h"
 #include "ut_misc.h"
 
 // External includes
@@ -70,8 +71,28 @@ void OXMLi_ListenerState_FontTable::startElement (OXMLi_StartElementRequest * rq
 		else if (nameMatches(rqst->pName, NS_W_KEY, "pitch")) {
 			m_curEntry.pitch = val;
 		}
-		/* w:sig, w:embed*, w:notTrueType are valid children too;
-		 * embedded font payloads and signature bits are not used yet */
+		else if (nameMatches(rqst->pName, NS_W_KEY, "embedRegular") ||
+				 nameMatches(rqst->pName, NS_W_KEY, "embedBold") ||
+				 nameMatches(rqst->pName, NS_W_KEY, "embedItalic") ||
+				 nameMatches(rqst->pName, NS_W_KEY, "embedBoldItalic")) {
+			/* Deliberately ignored: the r:id references an odttf
+			 * (XOR-obfuscated per w:fontKey, ECMA-376 17.8.3.4)
+			 * font payload.  De-obfuscating and registering it
+			 * with fontconfig would hand an attacker-controlled
+			 * sfnt binary to FreeType — a real CVE surface — for
+			 * a nice-to-have fidelity gain.  Substitution via
+			 * w:altName plus the bundled font collection covers
+			 * the missing face instead. */
+			if (!m_bWarnedEmbed) {
+				m_bWarnedEmbed = true;
+				UT_DEBUGMSG(("fontTable: embedded font for '%s' "
+							 "ignored (odttf payloads are never "
+							 "loaded); substituting\n",
+							 m_curName.c_str()));
+			}
+		}
+		/* w:sig and w:notTrueType are valid children too;
+		 * signature bits are not used */
 		rqst->handled = true;
 	}
 	else if (nameMatches(rqst->pName, NS_W_KEY, "fonts")) {
