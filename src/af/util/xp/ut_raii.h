@@ -152,6 +152,27 @@ struct UT_secure_wipe
  */
 using UT_SecureStringGuard = std::unique_ptr<std::string, UT_secure_wipe>;
 
+/*!
+ * UT_SecureBufferGuard - securely wipes a function-local byte buffer
+ * holding key material on scope exit, on every return AND unwinding
+ * path (a throwing vector resize between KDF and use must not leave
+ * the derived key live on the stack):
+ *
+ *   unsigned char key[32];
+ *   UT_SecureBufferGuard wipe(key, sizeof(key));
+ */
+class UT_SecureBufferGuard
+{
+public:
+	UT_SecureBufferGuard(void * p, size_t n) noexcept : m_p(p), m_n(n) {}
+	~UT_SecureBufferGuard() { UT_secureZero(m_p, m_n); }
+	UT_SecureBufferGuard(const UT_SecureBufferGuard &) = delete;
+	UT_SecureBufferGuard & operator=(const UT_SecureBufferGuard &) = delete;
+private:
+	void * m_p;
+	size_t m_n;
+};
+
 /* scoped POSIX fd (-1 = empty) */
 class UT_ScopedFD
 {

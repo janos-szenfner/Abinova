@@ -3828,6 +3828,26 @@ below are on `main` but the release has not been cut yet.
   of the same class accumulate instead of leaking the overwritten
   ranges; and a header/footer record with no `type` attribute no
   longer crashes the exporter.
+- **Crypto secret-lifetime audit (`.abwn` encryption)** — the
+  AES-256-GCM helper no longer relies on end-of-path wipes for its
+  derived key. `UT_abwn_encrypt`/`UT_abwn_decrypt` derived the PBKDF2
+  key into a stack buffer that was only zeroed on the normal return
+  path, so a `std::bad_alloc` from the `std::vector` header/output
+  work between derivation and the wipe would leave the key live on
+  the unwound stack. The key now sits under a scoped
+  `UT_SecureBufferGuard` (new in `ut_raii.h`) that wipes on every
+  exit including exception unwinding, and the crypto file's last
+  plain `memset` (the EVP symbol-table reset) uses `UT_secureZero`
+  as well. The wider passphrase chain was re-audited and is already
+  covered: password entry flows through `UT_UTF8String` (wiped when
+  its buffer is freed) into `PD_Document::m_savePassword` and the
+  save-dialog member (both wiped on overwrite/destruction), plus a
+  guarded export-time copy; HMAC/PBKDF2 intermediates, the
+  wrong-password partial plaintext and the decrypted vector all get
+  `UT_secureZero`. KDF parameters verified sound: PBKDF2-HMAC-SHA256
+  at 600,000 iterations matches current OWASP guidance, with a
+  20-million-iteration sanity cap against crafted files, 16-byte
+  salt and a 12-byte GCM nonce.
 
 ### GTK4 port (core migration)
 

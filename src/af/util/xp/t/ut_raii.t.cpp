@@ -123,3 +123,39 @@ TFTEST_MAIN("UT_SecureStringGuard wipes the secret")
 	TFPASS(secret.empty());
 	TFPASS(secret.size() == 0);
 }
+
+static bool s_allZero(const unsigned char * p, size_t n)
+{
+	for (size_t i = 0; i < n; i++)
+		if (p[i])
+			return false;
+	return true;
+}
+
+TFTEST_MAIN("UT_SecureBufferGuard wipes the key buffer")
+{
+	unsigned char key[32];
+	memset(key, 0xA5, sizeof(key));
+	{
+		UT_SecureBufferGuard wipe(key, sizeof(key));
+		TFPASS(!s_allZero(key, sizeof(key)));
+	} // scope exit zeroes
+	TFPASS(s_allZero(key, sizeof(key)));
+
+	// the guard must also fire on exception unwinding — the whole point
+	// of wrapping key material (a throwing vector op between KDF and
+	// use must not leave the key live on the stack)
+	memset(key, 0x5A, sizeof(key));
+	bool caught = false;
+	try
+	{
+		UT_SecureBufferGuard wipe(key, sizeof(key));
+		throw 7;
+	}
+	catch (int)
+	{
+		caught = true;
+	}
+	TFPASS(caught);
+	TFPASS(s_allZero(key, sizeof(key)));
+}

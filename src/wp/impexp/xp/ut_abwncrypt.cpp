@@ -22,6 +22,7 @@
 #include "ut_debugmsg.h"
 #include "ut_go_file.h"
 #include "ut_misc.h"
+#include "ut_raii.h"
 
 #include <glib.h>
 #if defined(G_OS_WIN32)
@@ -295,7 +296,7 @@ static const UT_EvpApi * ut_evp()
 		if (ut_evp_resolve(a, libs[i]))
 			return &a;
 		ut_dlclose(a.lib);
-		memset(&a, 0, sizeof(a));
+		UT_secureZero(&a, sizeof(a));
 	}
 	return nullptr;
 }
@@ -436,6 +437,8 @@ UT_AbwnCrypt UT_abwn_encrypt(const void * plain, size_t plainLen,
 	unsigned char salt[UT_ABWN_SALT_LEN];
 	unsigned char nonce[UT_ABWN_NONCE_LEN];
 	unsigned char key[UT_ABWN_KEY_LEN];
+	// wipe on every exit path incl. a throwing vector op below
+	UT_SecureBufferGuard keyWipe(key, sizeof(key));
 	if (!UT_go_random_bytes(salt, sizeof(salt)) ||
 		!UT_go_random_bytes(nonce, sizeof(nonce)))
 		return UT_AbwnCrypt::Unavailable;
@@ -464,7 +467,6 @@ UT_AbwnCrypt UT_abwn_encrypt(const void * plain, size_t plainLen,
 					 header.data(), header.size(),
 					 static_cast<const unsigned char *>(plain), plainLen,
 					 out.data() + header.size(), tag);
-	UT_secureZero(key, sizeof(key));
 	if (!ok)
 	{
 		out.clear();
@@ -524,13 +526,14 @@ UT_AbwnCrypt UT_abwn_decrypt(const void * blob, size_t blobLen,
 	size_t aadLen = static_cast<size_t>((ciphertext - aad));
 
 	unsigned char key[UT_ABWN_KEY_LEN];
+	// wipe on every exit path incl. a throwing out.resize below
+	UT_SecureBufferGuard keyWipe(key, sizeof(key));
 	ut_pbkdf2_sha256(password.c_str(), salt, saltLen, iters, key);
 
 	out.resize(cipherLen);
 	bool ok = ut_gcm(false, key, nonce, nonceLen,
 					 aad, aadLen, ciphertext, cipherLen,
 					 out.data(), tag);
-	UT_secureZero(key, sizeof(key));
 	if (!ok)
 	{
 		// out may hold partial plaintext
