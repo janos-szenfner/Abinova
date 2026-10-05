@@ -3,8 +3,12 @@
 # GTK dialog smoke harness (TST08): open every dialog registered in
 # the AP_UnixDialogFactory table and fail on GTK criticals or crashes.
 #
-# Needs a display: runs under xvfb-run when present, else on the live
-# DISPLAY/WAYLAND_DISPLAY; exits 77 (SKIP) when neither exists.
+# Needs a display: prefers xvfb-run whenever it is installed so the
+# suite never pops windows on the user's real session, and falls back
+# to the live DISPLAY/WAYLAND_DISPLAY only when xvfb-run is absent.
+# Set ABINOVA_TEST_LIVE_DISPLAY=1 to force the live display for legs
+# that genuinely need a real session.  Exits 77 (SKIP) when no usable
+# display exists.
 # Each dialog runs in its own dialog-smoke process under `timeout` so
 # a hang or segfault is attributed to that dialog id.
 
@@ -16,13 +20,21 @@ BIN="./dialog-smoke"
 LIBTOOL="@abs_top_builddir@/libtool --mode=execute"
 
 if [ -z "${TST08_INNER:-}" ]; then
+	if [ -n "${ABINOVA_TEST_LIVE_DISPLAY:-}" ]; then
+		: # caller asked for the real session display
+	elif command -v xvfb-run >/dev/null 2>&1; then
+		# Strip Wayland/GDK backend hints first: GTK would honour
+		# them over xvfb's DISPLAY and open on the real session.
+		unset WAYLAND_DISPLAY
+		unset GDK_BACKEND
+		TST08_INNER=1
+		export TST08_INNER
+		# Absolute path: the cd above already moved us off the
+		# caller's CWD, so a relative $0 would not resolve here.
+		exec xvfb-run -a "@abs_top_builddir@/src/wp/test/unix/dlgswrap.sh"
+	fi
 	if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
-		if command -v xvfb-run >/dev/null 2>&1; then
-			TST08_INNER=1
-			export TST08_INNER
-			exec xvfb-run -a "$0"
-		fi
-		echo "SKIP: no display and no xvfb-run" >&2
+		echo "SKIP: no usable display" >&2
 		exit 77
 	fi
 fi

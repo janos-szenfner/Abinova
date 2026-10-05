@@ -4922,6 +4922,17 @@ below are on `main` but the release has not been cut yet.
   machine. The wrapper prefers `GDK_BACKEND=wayland` on a live
   compositor and falls back to the default backend; `text/fmt/gtk`
   line coverage rose from 22.2% to 87.3%.
+- **`make check` no longer pops test windows on your desktop** — the
+  display-driving test wrappers (`unix/dlgswrap.sh`,
+  `unix/drvwrap.sh`) now prefer `xvfb-run` whenever it is installed,
+  falling back to the live `DISPLAY`/`WAYLAND_DISPLAY` only when it
+  is absent. Running the suite on a logged-in desktop used to open
+  dozens of real dialog windows on screen. Wayland and GDK backend
+  hints are stripped before re-entering under Xvfb so GTK cannot
+  redirect the windows back to the real session, and
+  `ABINOVA_TEST_LIVE_DISPLAY=1` forces the live display for legs that
+  genuinely need it (portal-mediated file choosers, the `--fmt`
+  leg's Wayland-backend paths).
 - **Coverage ratchet raised to a 65% floor (measured 67.7%)** —
   `tools/coverage-gate.sh` and the `make check-coverage` target now
   fail when total first-party line coverage regresses below 65%

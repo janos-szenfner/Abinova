@@ -2305,8 +2305,9 @@ Run it standalone with `tools/rt-check.sh src/abinova $PWD`.
 `make check` also runs three more wrappers:
 
 - `unix/dlgswrap.sh` drives `dialog-smoke`, which opens every dialog
-  registered in the dialog factory on a display — `xvfb-run` when
-  available, otherwise the live `DISPLAY`/`WAYLAND_DISPLAY` (the test
+  registered in the dialog factory on a display — `xvfb-run` whenever
+  it is installed so the suite never pops windows on the user's real
+  session, otherwise the live `DISPLAY`/`WAYLAND_DISPLAY` (the test
   skips when neither exists) — and fails on GTK/GLib criticals,
   crashes or hangs. Each dialog runs in its own process under
   `timeout` so failures attribute to a single id; a small explicit
@@ -2326,6 +2327,12 @@ Run it standalone with `tools/rt-check.sh src/abinova $PWD`.
   `/tmp` string literals in shipped code and no new Unix-only API
   calls in cross-platform `xp` sources beyond the checked-in
   `tools/portguard-baseline.txt`.
+
+Both display wrappers prefer `xvfb-run` over a live display even when
+one is set, so `make check` never opens windows on the user's
+desktop. Set `ABINOVA_TEST_LIVE_DISPLAY=1` to force the real session
+display for legs that genuinely need it (e.g. portal-mediated file
+choosers, or the `--fmt` leg's Wayland-backend paths).
 
 ### Code coverage (gcov/lcov)
 
