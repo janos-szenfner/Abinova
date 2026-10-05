@@ -151,6 +151,8 @@ static void s_customChanged(GtkWidget * /*widget*/, AP_UnixDialog_Lists * me)
 
 static void s_FoldCheck_changed(GtkWidget * widget, AP_UnixDialog_Lists * me)
 {
+	if (me->dontUpdate())
+		return;
 	if (gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)))
 	{
 		UT_sint32 iLevel = GPOINTER_TO_INT(
@@ -211,6 +213,18 @@ static void s_valueChanged(GtkWidget * /*widget*/, AP_UnixDialog_Lists * me)
 	me->setDirty();
 	me->setXPFromLocal();
 	me->previewInvalidate();
+}
+
+/*!
+ * "notify::selected" on the font drop-down carries the GParamSpec as
+ * its second argument — it cannot share the (widget, me) signature
+ * used for "changed"/"value-changed" or `me` arrives as a
+ * GParamSpec* and every subsequent member access is a wild read.
+ */
+static void s_fontChanged(GObject * /*w*/, GParamSpec * /*pspec*/,
+						  AP_UnixDialog_Lists * me)
+{
+	s_valueChanged(nullptr, me);
 }
 
 static void s_applyClicked(GtkWidget * /*widget*/, AP_UnixDialog_Lists * me)
@@ -377,6 +391,10 @@ void AP_UnixDialog_Lists::runModal(XAP_Frame * pFrame)
 	} while (response == BUTTON_RESET);
 	AP_Dialog_Lists::tAnswer res = getAnswer();
 	teardown();
+	/* Silence the change handlers while the widget tree dies —
+	 * dropdowns emit notify::selected from dispose which would
+	 * re-enter _gatherData on already-finalized siblings. */
+	m_bDontUpdate = true;
 	abiDestroyWidget(mainWindow);
 	setAnswer(res);
 	DELETEP(m_pPreviewWidget);
@@ -510,6 +528,13 @@ void AP_UnixDialog_Lists::destroy(void)
 			// during gtk_window_destroy must see a null window
 			GtkWidget * w = m_windowMain;
 			m_windowMain = nullptr;
+			/* Silence the change handlers while the widget tree
+			 * dies — a dropdown emitting notify::selected from
+			 * dispose re-enters _gatherData on already-finalized
+			 * sibling widgets (observed SEGV on the align spin
+			 * cast when a stray dropdown was driven during
+			 * teardown). */
+			m_bDontUpdate = true;
 			abiDestroyWidget(w);
 		}
 		DELETEP(m_pAutoUpdateLists);
@@ -854,9 +879,8 @@ GtkWidget * AP_UnixDialog_Lists::_constructListsPage(void)
 	pSS->getValueUTF8(AP_STRING_ID_DLG_Lists_Type, s);
 	s_gridRow(GTK_GRID(grid1), 0, s.c_str(), m_wTypeDrop);
 
-	// Style drop-down — the model is rebuilt fresh on each type
-	// switch; see _setStyleModel for why every model must come
-	// through gtk_drop_down_set_model() rather than the constructor.
+	// Style drop-down — one persistent GtkStringList whose contents
+	// are spliced on each type switch; see _setStyleModel.
 	m_wStyleDrop = gtk_drop_down_new(nullptr, nullptr);
 	{
 		GListModel * numbered = G_LIST_MODEL(
@@ -1029,19 +1053,15 @@ GtkWidget * AP_UnixDialog_Lists::_constructPreview(void)
 /* Data flow                                                      */
 /*****************************************************************/
 
-/* Swap the style drop-down's model + parallel type table.
+/* Swap the style drop-down's model contents + parallel type table.
  *
- * GTK 4.14's GtkDropDown has two defects that shape this code:
- *
- * 1. A model installed via gtk_drop_down_new() gets fewer internal
- *    references than one installed via gtk_drop_down_set_model(),
- *    so swapping out a constructor-installed model over-unrefs it
- *    and corrupts the next model. Every model must therefore be
- *    installed via set_model() on a drop-down created with NULL.
- * 2. Re-setting a GListModel instance that was previously attached
- *    to the drop-down crashes in stale selection/factory state, so
- *    a fresh GtkStringList is built on every swap rather than
- *    caching and reusing models.
+ * The drop-down keeps one persistent GtkStringList installed via
+ * gtk_drop_down_set_model() at construction time; swaps are done by
+ * splicing that model's contents rather than re-setting the model.
+ * Re-setting inside a "notify::selected" emission — this function
+ * is reached from notify handlers via styleChanged() — deadlocks
+ * GTK 4.14's signal machinery in the synchronous list-view teardown
+ * and can corrupt an open popover.
  */
 void AP_UnixDialog_Lists::_setStyleModel(gint which)
 {
@@ -1070,12 +1090,46 @@ void AP_UnixDialog_Lists::_setStyleModel(gint which)
 
 	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 	UT_return_if_fail(pSS);
-	GListModel * model = G_LIST_MODEL(s_stringListFor(pSS, ids, count));
 
 	XAP_GtkSignalBlocker b(G_OBJECT(m_wStyleDrop), m_idStyleChanged);
-	gtk_drop_down_set_model(GTK_DROP_DOWN(m_wStyleDrop), model);
-	/* GTK refs the model internally; release our reference. */
-	g_object_unref(model);
+	GListModel * cur =
+		gtk_drop_down_get_model(GTK_DROP_DOWN(m_wStyleDrop));
+	if (GTK_IS_STRING_LIST(cur))
+	{
+		/* Swap the contents of the existing model in place.
+		 * gtk_drop_down_set_model() synchronously tears down the
+		 * popover's GtkListView bindings, which deadlocks GTK's
+		 * signal machinery when it happens inside a
+		 * "notify::selected" emission (this function is reached
+		 * from those handlers via styleChanged/loadXPDataIntoLocal)
+		 * and can corrupt an open popover.  Splicing the attached
+		 * GtkStringList only emits items-changed, which is safe
+		 * mid-emission. */
+		std::vector<std::string> strs;
+		strs.reserve(count);
+		for (UT_sint32 i = 0; i < count; i++)
+		{
+			std::string str;
+			pSS->getValueUTF8(ids[i], str);
+			strs.push_back(str);
+		}
+		std::vector<const char *> items;
+		items.reserve(count + 1);
+		for (const std::string & str : strs)
+			items.push_back(str.c_str());
+		items.push_back(nullptr); /* splice takes a NULL-terminated array */
+		gtk_string_list_splice(GTK_STRING_LIST(cur), 0,
+							   g_list_model_get_n_items(cur),
+							   items.data());
+	}
+	else
+	{
+		GListModel * model =
+			G_LIST_MODEL(s_stringListFor(pSS, ids, count));
+		gtk_drop_down_set_model(GTK_DROP_DOWN(m_wStyleDrop), model);
+		/* GTK refs the model internally; release our reference. */
+		g_object_unref(model);
+	}
 	m_curStyleTypes = types;
 	m_curStyleTypeCount = count;
 }
@@ -1160,7 +1214,7 @@ void AP_UnixDialog_Lists::_connectSignals(void)
 										G_CALLBACK(s_styleChanged), this);
 	m_idFontChanged = g_signal_connect(G_OBJECT(m_wFontDrop),
 									   "notify::selected",
-									   G_CALLBACK(s_valueChanged), this);
+									   G_CALLBACK(s_fontChanged), this);
 
 	m_idStartChanged = g_signal_connect(
 		G_OBJECT(gtk_spin_button_get_adjustment(

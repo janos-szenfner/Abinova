@@ -113,12 +113,19 @@ void  AP_Dialog_Goto::setActiveFrame(XAP_Frame * /*pFrame*/)
 void AP_Dialog_Goto::performGoto(AP_JumpTarget target, const char * value) const
 {
 	UT_DEBUGMSG (("performGoto target='%d' number='%s'\n", target, value));
+	/* m_pView is null when the dialog's frame has no view (stub
+	 * frames, headless drivers, or a frame mid-teardown) — jumping
+	 * is meaningless then, so bail instead of dereferencing it. */
+	if (!m_pView)
+		return;
 	m_pView->gotoTarget (target, value);
 }
 
 std::string AP_Dialog_Goto::performGotoNext(AP_JumpTarget target, UT_sint32 idx) const
 {
 	std::string dest;
+	if (!m_pView)
+		return dest;
 	if(target == AP_JUMPTARGET_BOOKMARK) {
 		if(!getExistingBookmarksCount()) {
 			return dest;
@@ -146,6 +153,8 @@ std::string AP_Dialog_Goto::performGotoNext(AP_JumpTarget target, UT_sint32 idx)
 std::string AP_Dialog_Goto::performGotoPrev(AP_JumpTarget target, UT_sint32 idx) const
 {
 	std::string dest;
+	if (!m_pView)
+		return dest;
 	if(target == AP_JUMPTARGET_BOOKMARK) {
 		if(!getExistingBookmarksCount()) {
 			return dest;
@@ -172,6 +181,8 @@ PD_DocumentRDFHandle
 AP_Dialog_Goto::getRDF()
 {
     FV_View* view = getView();
+    if (!view)
+        return PD_DocumentRDFHandle();
     PD_Document* doc = view->getDocument();
     PD_DocumentRDFHandle rdf = doc->getDocumentRDF();
     return rdf;
@@ -181,13 +192,17 @@ AP_Dialog_Goto::getRDF()
 // --------------------------- Setup Functions -----------------------------
 bool AP_Dialog_Goto::setView(FV_View * /*view*/)
 {
-	m_pView =  static_cast<FV_View *>( getActiveFrame()->getCurrentView());
+	XAP_Frame * pFrame = getActiveFrame();
+	m_pView = pFrame ? static_cast<FV_View *>(pFrame->getCurrentView())
+					 : nullptr;
 	return true;
 }
 
 FV_View * AP_Dialog_Goto::getView(void) const
 {
 	XAP_Frame * pFrame =  getActiveFrame();
+	if (!pFrame)
+		return nullptr;
 	return  static_cast<FV_View *>( pFrame->getCurrentView());
 }
 

@@ -120,6 +120,48 @@ static volatile sig_atomic_t g_rescued = 0;
 static int g_wedged_widgets = 0;
 static int g_crashed_widgets = 0;
 
+/* FRZ05 spin diagnostics: a fixed-size record of what the drive is
+ * doing right now — safe to poke from signal context.  Set it before
+ * every phase that runs OUTSIDE interact()'s alarm (modal loops,
+ * pump_for, runModal, releaseDialog) so a leg that freezes without
+ * tripping a guarded wedge still reports where it died — either via
+ * the SIGQUIT probe or the fatal path below. */
+static char g_phase[192] = "init";
+static void set_phase(const char *phase)
+{
+	if (!phase)
+		phase = "?";
+	strncpy(g_phase, phase, sizeof(g_phase) - 1);
+	g_phase[sizeof(g_phase) - 1] = 0;
+}
+static void set_phase_widget(const char *prefix, GtkWidget *w)
+{
+	const char *tn = w ? G_OBJECT_TYPE_NAME(w) : "-";
+	const char *nm = w ? gtk_widget_get_name(w) : nullptr;
+	snprintf(g_phase, sizeof(g_phase), "%s %s name=%s",
+			 prefix ? prefix : "widget", tn, nm ? nm : "-");
+}
+
+static void dump_diag(int sig)
+{
+	char buf[256];
+	int n = snprintf(buf, sizeof(buf),
+					 "drive: signal %d in phase: %s\n", sig, g_phase);
+	(void)!write(STDERR_FILENO, buf, n);
+	/* best-effort fault stack — async-unsafe but only diagnostic;
+	 * if it wedges the watchdog covers us */
+	void *bt[32];
+	int nb = backtrace(bt, 32);
+	backtrace_symbols_fd(bt, nb, STDERR_FILENO);
+}
+
+/* SIGQUIT probe: dump the current phase + stack but keep running —
+ * `kill -QUIT <pid>` on a spun leg shows exactly where it is stuck. */
+static void drive_probe(int sig)
+{
+	dump_diag(sig);
+}
+
 static void drive_fatal(int sig)
 {
 	/* a fault inside a toplevel scan is not the driven widget's
@@ -137,15 +179,15 @@ static void drive_fatal(int sig)
 		g_rescued++;
 		g_in_interact = 0;
 		alarm(0);
-		/* best-effort fault stack — async-unsafe but only diagnostic;
-		 * if it wedges the watchdog covers us */
-		void *bt[32];
-		int n = backtrace(bt, 32);
-		backtrace_symbols_fd(bt, n, STDERR_FILENO);
+		dump_diag(sig);
 		siglongjmp(g_jmp, sig == SIGALRM ? 2 : 1);
 	}
 	static const char msg[] = "drive: fatal signal, counters kept\n";
 	(void)!write(STDERR_FILENO, msg, sizeof(msg) - 1);
+	/* the wedge is somewhere outside every guard (a pump, a nested
+	 * modal loop, runModal itself) — the phase + stack are the only
+	 * diagnosis a wrapper timeout gets */
+	dump_diag(sig);
 	__gcov_dump();
 	_exit(sig == SIGSEGV ? 139 : sig == SIGABRT ? 134 : 124);
 }
@@ -332,6 +374,7 @@ static bool call_guard(F &&f, const char *what)
 		return false;
 	}
 	g_in_interact = 1;
+	set_phase(what);
 	/* generous: legit calls are slow under gcov (a doc save or a
 	 * header/footer relayout can take tens of seconds) — the alarm
 	 * is only for a truly wedged call */
@@ -487,6 +530,7 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 		(ctx.deadline && g_get_monotonic_time() > ctx.deadline))
 		return;
 
+	set_phase_widget("interact", w);
 	if (g_trace) {
 		const char *id = gtk_widget_get_name(w);
 		if (GTK_IS_BUTTON(w)) {
@@ -792,6 +836,7 @@ static gboolean modal_drive_cb(gpointer data)
 	ModalDriveCtx *m = static_cast<ModalDriveCtx *>(data);
 	if (!m->driven) {
 		/* the dialog toplevel may take a tick to appear — retry */
+		set_phase("modal: attach stray");
 		m->dlg = nullptr;
 		sweep_guard([&m] {
 			attach_live_stray(m->ctx->preexisting, &m->dlg);
@@ -823,10 +868,12 @@ static gboolean modal_drive_cb(gpointer data)
 		if (g_trace)
 			fprintf(stderr, "driving toplevel %s\n",
 					G_OBJECT_TYPE_NAME(m->dlg));
+		set_phase("modal: drive widgets");
 		drive_widget(m->dlg, *m->ctx, 0);
 		return G_SOURCE_CONTINUE;
 	}
 	if (!m->answered) {
+		set_phase("modal: answer OK");
 		m->answered = true;
 		if (m->dlg) {
 			if (GTK_IS_DIALOG(m->dlg))
@@ -840,6 +887,7 @@ static gboolean modal_drive_cb(gpointer data)
 	}
 	/* still up (validation rejected OK, or a nested stray is on top):
 	 * emit DELETE_EVENT on the dialog and any stray toplevels */
+	set_phase("modal: drain (dialog still up)");
 	if (m->dlg) {
 		if (GTK_IS_DIALOG(m->dlg))
 			g_signal_emit_by_name(m->dlg, "response",
@@ -859,6 +907,7 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 	g_criticals = 0;
 	g_warnings = 0;
 
+	set_phase("dialog: request");
 	XAP_Dialog *dlg = factory->requestDialog(id);
 	if (!dlg) {
 		g_print("drive: id %d — factory returned no dialog\n",
@@ -903,6 +952,7 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
 
 	if (XAP_Dialog_Modeless *ml = dynamic_cast<XAP_Dialog_Modeless *>(dlg)) {
+		set_phase("dialog: runModeless");
 		ml->runModeless(frame);
 		pump_for(200);
 		GtkWidget *w = nullptr;
@@ -934,7 +984,9 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 	} else {
 		ModalDriveCtx md {&ctx, nullptr, false, false, 0};
 		g_timeout_add(300, modal_drive_cb, &md);
+		set_phase("dialog: runModal");
 		dlg->runModal(frame);
+		set_phase("dialog: runModal returned");
 		if (md.dlg)
 			g_object_remove_weak_pointer(
 				G_OBJECT(md.dlg), reinterpret_cast<gpointer *>(&md.dlg));
@@ -942,10 +994,12 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 	}
 
 	g_source_remove(sweeper);
+	set_phase("dialog: final stray sweep");
 	sweep_guard([&ctx] { sweep_strays(ctx); });
 	if (g_trace)
 		fprintf(stderr, "post-drive: release\n");
 
+	set_phase("dialog: release");
 	call_guard([&] {
 		factory->releaseDialog(dlg);
 		pump();
@@ -971,15 +1025,18 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 	std::vector<GtkWidget *> before;
 	sweep_guard([&before] { before = toplevels(); });
 
+	set_phase("frame: newFrame");
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {
 		g_printerr("drive: no frame\n");
 		return 1;
 	}
+	set_phase("frame: loadDocument");
 	char *uri = g_strdup_printf("file://%s", scratch);
 	UT_Error err = frame->loadDocument(uri, IEFT_Unknown, true);
 	g_free(uri);
 	frame->show();
+	set_phase("frame: settle pump");
 	pump_for(600);
 
 	GtkWidget *win = nullptr;
@@ -1011,6 +1068,7 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 		return 1;
 	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
 
+	set_phase("frame: drive widgets");
 	drive_widget(win, ctx, 0);
 	if (g_trace)
 		fprintf(stderr, "frame drive tail\n");
@@ -2266,6 +2324,12 @@ int main(int argc, char **argv)
 	 * watchdog so a hung leg still leaves its counters behind */
 	sigaction(SIGTERM, &sa, nullptr);
 	sigaction(SIGINT, &sa, nullptr);
+	/* SIGQUIT is the live probe: dump phase+stack, keep running */
+	struct sigaction sq;
+	memset(&sq, 0, sizeof(sq));
+	sq.sa_handler = drive_probe;
+	sq.sa_flags = SA_RESTART;
+	sigaction(SIGQUIT, &sq, nullptr);
 	alarm(120); /* last-resort watchdog; drvwrap wraps us in `timeout` */
 
 	bool wantList = false, wantFrame = false, wantAbi = false,

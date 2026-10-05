@@ -122,7 +122,20 @@ bool AP_Dialog_Modeless::setView(FV_View * /*view*/)
 
 FV_View * AP_Dialog_Modeless::getView(void) const
 {
+	XAP_App * pApp = XAP_App::getApp();
+
+	// A modeless dialog can outlive the frame it was raised on (or hold a
+	// stale app pointer after scripted teardown). XAP_App is a singleton, so
+	// a mismatched m_pApp means this dialog object is no longer trustworthy.
+	if (!pApp || m_pApp != pApp)
+		return nullptr;
+
 	XAP_Frame * pFrame = getActiveFrame();
+
+	// Verify the frame is still registered with the app before
+	// dereferencing it.
+	if (pFrame && pApp->safefindFrame(pFrame) < 0)
+		pFrame = nullptr;
 
 	if (pFrame)
 		return static_cast<FV_View *>( pFrame->getCurrentView());

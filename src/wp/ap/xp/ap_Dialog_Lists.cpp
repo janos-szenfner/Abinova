@@ -218,7 +218,10 @@ fl_AutoNumPtr AP_Dialog_Lists::getAutoNum(void) const
  */
 fl_BlockLayout * AP_Dialog_Lists::getBlock(void) const
 {
-	return getView()->getCurrentBlock();
+	FV_View * pView = getView();
+	if (!pView)
+		return nullptr;
+	return pView->getCurrentBlock();
 }
 
 /*!

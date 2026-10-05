@@ -91,8 +91,21 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 		pLine->resetJustification(true); // permanent reset
 	}
 
+	/* A real paragraph breaks into at most one line per run; the
+	 * line count is likewise bounded by the block's contents.  A
+	 * corrupt run chain can otherwise push the same batch of runs
+	 * onto fresh lines forever (observed: caption insertion into an
+	 * endnote block generated 30k+ lines and pinned a core) — bail
+	 * out well past any legitimate bound. */
+	UT_sint32 iLinesLeft = 8192;
 	while (pLine)
 	{
+		if (--iLinesLeft <= 0)
+		{
+			UT_DEBUGMSG(("fb_LineBreaker: gave up breaking paragraph for block %p\n",
+						 (void*)pBlock));
+			break;
+		}
 #if DEBUG
 //		pLine->assertLineListIntegrity();
 		xxx_UT_DEBUGMSG(("Initial width of line %x is  %d \n",pLine,pLine->getFilledWidth()));
@@ -653,8 +666,27 @@ void fb_LineBreaker::_breakTheLineAtLastRunToKeep(fp_Line *pLine,
 		UT_ASSERT(pRunToBump);
 		xxx_UT_DEBUGMSG(("!!!RunToBump %x Type %d Offset %d Length %d \n",pRunToBump,pRunToBump->getType(),pRunToBump->getBlockOffset(),pRunToBump->getLength()));
 
+		UT_sint32 iBumpsLeft = pLine->getNumRunsInLine() + 8;
 		while (pRunToBump && pLine->getNumRunsInLine() && (pLine->getLastRun() != m_pLastRunToKeep))
 		{
+			if (pRunToBump == m_pLastRunToKeep)
+			{
+				/* The keep-run may not sit at the line's tail when the
+				 * run chain and the line's run list have diverged —
+				 * never bump it forward or the same batch of runs
+				 * shuttles onto a fresh line forever. */
+				break;
+			}
+			if (--iBumpsLeft <= 0)
+			{
+				/* removeRun() failures can leave the run count
+				 * unchanged while the prev-chain keeps walking —
+				 * bound the bump loop so a corrupt chain can't
+				 * spin forever. */
+				UT_DEBUGMSG(("fb_LineBreaker: bump loop gave up after %d runs\n",
+							 pLine->getNumRunsInLine()));
+				break;
+			}
 			UT_ASSERT(pRunToBump->getLine() == pLine);
 			xxx_UT_DEBUGMSG(("RunToBump %x Type %d Offset %d Length %d \n",pRunToBump,pRunToBump->getType(),pRunToBump->getBlockOffset(),pRunToBump->getLength()));
 			if(!pLine->removeRun(pRunToBump))
