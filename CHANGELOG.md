@@ -4661,6 +4661,16 @@ below are on `main` but the release has not been cut yet.
   macOS, `sysctl(KERN_PROC_PATHNAME)` on FreeBSD/DragonFly (which
   works without procfs), and keeps `/proc/self/exe` on Linux and
   other POSIX systems. No functional change on Linux.
+- **Encrypted `.abwn` backend discovery is multi-OS** — the
+  AES-256-GCM helper's `dlopen` candidate list now covers macOS
+  (`libcrypto.3.dylib`/`libcrypto.dylib`, Homebrew openssl@3 on
+  arm64 + intel, MacPorts, and the system LibreSSL — LibreSSL has
+  shipped the full EVP GCM API since 2.x), and a candidate that
+  opens but lacks an EVP symbol now falls through to the next
+  instead of failing outright. New `dist/RUNTIME-DEPS.md` seeds the
+  packaging manifest with runtime-loaded dependencies (libcrypto,
+  enchant backends, pixbuf loaders, GIO/TLS modules, schemas) that
+  `ldd`/`otool` cannot see. No functional change on Linux.
 
 ### Resolved root causes worth noting
 

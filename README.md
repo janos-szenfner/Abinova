@@ -986,8 +986,10 @@ AES-256-GCM ciphertext. The key is derived with PBKDF2-HMAC-SHA-256
 (600,000 iterations); AES-256 still leaves ~128-bit security under
 Grover's algorithm, so the format is post-quantum-safe for
 password-based use. AES is used via the system `libcrypto` at
-runtime (dlopen, no extra build dependency); PBKDF2/HMAC uses GLib
-checksums; nothing else is vendored.
+runtime (dlopen — OpenSSL or LibreSSL, searched across the usual
+sonames plus Homebrew/MacPorts `.dylib` paths on macOS — so there is
+no extra build dependency); PBKDF2/HMAC uses GLib checksums; nothing
+else is vendored.
 
 ### Atomic save
 

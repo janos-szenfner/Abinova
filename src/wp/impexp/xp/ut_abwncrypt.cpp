@@ -145,21 +145,8 @@ static void * ut_dlsym(void * lib, const char * name)
 	return dlsym(lib, name);
 }
 
-static const UT_EvpApi * ut_evp()
+static bool ut_evp_resolve(UT_EvpApi & a, const char * libname)
 {
-	static UT_EvpApi a = {};
-	static int tried = 0;
-	if (tried)
-		return a.lib ? &a : nullptr;
-	tried = 1;
-
-	const char * libs[] = {"libcrypto.so.3", "libcrypto.so.1.1",
-						   "libcrypto.so", nullptr};
-	for (int i = 0; libs[i] && !a.lib; i++)
-		a.lib = dlopen(libs[i], RTLD_NOW | RTLD_LOCAL);
-	if (!a.lib)
-		return nullptr;
-
 	static_assert(sizeof(void *) == sizeof(a.aes_256_gcm),
 				  "POSIX function pointers must fit in void *");
 	struct { const char * name; void * slot; } syms[] = {
@@ -179,14 +166,74 @@ static const UT_EvpApi * ut_evp()
 		void * fn = ut_dlsym(a.lib, syms[i].name);
 		if (!fn)
 		{
-			UT_DEBUGMSG(("abwncrypt: %s missing in libcrypto\n", syms[i].name));
-			dlclose(a.lib);
-			memset(&a, 0, sizeof(a));
-			return nullptr;
+			UT_DEBUGMSG(("abwncrypt: %s missing in %s\n",
+						 syms[i].name, libname));
+			return false;
 		}
 		memcpy(syms[i].slot, &fn, sizeof(fn));
 	}
-	return &a;
+	return true;
+}
+
+/* Candidate library names, tried in order.
+ *
+ * PACKAGING NOTE: libcrypto is dlopen()d at runtime, so it does NOT
+ * appear in the binary's NEEDED list and is invisible to ldd/otool —
+ * PACK01's bundle manifest must ship a libcrypto in the bundle
+ * explicitly or encrypted .abwn files cannot be opened.
+ *
+ * LibreSSL note: EVP_aes_256_gcm + EVP_CIPHER_CTX_ctrl GCM ops have
+ * existed since LibreSSL 2.x (OpenBSD 5.3 era) with the same
+ * EVP_CTRL_GCM_* constants, so the macOS system libcrypto (LibreSSL
+ * 2.8+ on every supported macOS) is a usable backend. A candidate
+ * that opens but lacks a symbol falls through to the next one, so an
+ * ancient OpenSSL 0.9.8-era libcrypto.dylib can't block a working
+ * OpenSSL later in the list.
+ *
+ * The Windows side (LoadLibrary + GetProcAddress on
+ * libcrypto-3-x64.dll, or CNG BCryptEncrypt) is PORT13's job. */
+static const UT_EvpApi * ut_evp()
+{
+	static UT_EvpApi a = {};
+	static int tried = 0;
+	if (tried)
+		return a.lib ? &a : nullptr;
+	tried = 1;
+
+	const char * libs[] = {
+#if defined(__APPLE__)
+		/* bare sonames first — dyld searches the app bundle
+		 * (@rpath/Frameworks) and DYLD paths, so a bundled or
+		 * Homebrew-linked OpenSSL 3 wins before the system lib */
+		"libcrypto.3.dylib",
+		"libcrypto.dylib",
+		/* keg-only Homebrew openssl@3 (arm64, then intel) and
+		 * MacPorts — not in the default search path */
+		"/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib",
+		"/usr/local/opt/openssl@3/lib/libcrypto.3.dylib",
+		"/opt/local/lib/libcrypto.3.dylib",
+		"/opt/local/lib/libcrypto.dylib",
+		/* system LibreSSL last (resolved from the dyld shared
+		 * cache on modern macOS where the file isn't on disk) */
+		"/usr/lib/libcrypto.dylib",
+#else
+		/* ELF platforms: versioned sonames first, dev-symlink last */
+		"libcrypto.so.3",
+		"libcrypto.so.1.1",
+		"libcrypto.so",
+#endif
+		nullptr};
+	for (int i = 0; libs[i]; i++)
+	{
+		a.lib = dlopen(libs[i], RTLD_NOW | RTLD_LOCAL);
+		if (!a.lib)
+			continue;
+		if (ut_evp_resolve(a, libs[i]))
+			return &a;
+		dlclose(a.lib);
+		memset(&a, 0, sizeof(a));
+	}
+	return nullptr;
 }
 
 bool UT_abwn_cryptoAvailable()
