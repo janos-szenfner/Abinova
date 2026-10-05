@@ -73,9 +73,15 @@ void XAP_UnixDialog_MessageBox::runModal(XAP_Frame * pFrame)
     UT_return_if_fail(pApp);
 
     GtkWidget * message = nullptr;
-    GtkWindow * toplevel;
+    GtkWindow * toplevel = nullptr;
 
-    toplevel = GTK_WINDOW(pUnixFrameImpl->getTopLevelWindow());
+    /* in embedded/AbiWidget mode the frame's toplevel is the AbiWidget,
+     * not a GtkWindow — an unchecked cast makes gtk_message_dialog_new
+     * return NULL and abiRunModalDialog then spins forever on a dialog
+     * that never existed */
+    GtkWidget * topw = pUnixFrameImpl->getTopLevelWindow();
+    if (GTK_IS_WINDOW(topw))
+        toplevel = GTK_WINDOW(topw);
 
     GtkDialogFlags dflFlags = GtkDialogFlags(GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT);
     int dflResponse = GTK_RESPONSE_OK;

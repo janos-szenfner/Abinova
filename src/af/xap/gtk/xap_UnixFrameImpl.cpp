@@ -1495,8 +1495,11 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 					 G_CALLBACK(s_drop_cb), this);
 	gtk_widget_add_controller(m_wTopLevelWindow, dropTarget);
 
-	g_signal_connect(G_OBJECT(m_wTopLevelWindow), "close-request",
-					   G_CALLBACK(_fe::close_request), nullptr);
+	/* embedded frames (AbiWidget, XAP_NoMenusWindowLess) use a plain
+	 * widget as their toplevel — close-request only exists on GtkWindow */
+	if (GTK_IS_WINDOW(m_wTopLevelWindow))
+		g_signal_connect(G_OBJECT(m_wTopLevelWindow), "close-request",
+						   G_CALLBACK(_fe::close_request), nullptr);
 
 	// GTK3 attached the accel group to the toplevel window. The canvas
 	// has its own key controller; this one catches shortcuts that bubble
@@ -1511,7 +1514,10 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 	m_wVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
 	g_object_set_data(G_OBJECT(m_wTopLevelWindow), "vbox", m_wVBox);
 	g_object_set_data(G_OBJECT(m_wVBox),"user_data", this);
-	gtk_window_set_child(GTK_WINDOW(m_wTopLevelWindow), m_wVBox);
+	if (GTK_IS_WINDOW(m_wTopLevelWindow))
+		gtk_window_set_child(GTK_WINDOW(m_wTopLevelWindow), m_wVBox);
+	else
+		gtk_widget_set_parent(m_wVBox, m_wTopLevelWindow);
 
 	if (m_iFrameMode != XAP_NoMenusWindowLess) {
 		// synthesize the menu model and its action group; no menubar

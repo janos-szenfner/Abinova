@@ -18,12 +18,13 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301 USA.
 
-TESTS = unix/testwrap.sh unix/rtwrap.sh unix/portwrap.sh unix/dlgswrap.sh
+TESTS = unix/testwrap.sh unix/rtwrap.sh unix/portwrap.sh unix/dlgswrap.sh \
+	unix/drvwrap.sh
 
 check_SCRIPTS = testwrap.sh-stamp rtwrap.sh-stamp portwrap.sh-stamp \
-	dlgswrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh \
-	unix/portwrap.sh unix/dlgswrap.sh
-check_PROGRAMS = Abinova-test dialog-smoke
+	dlgswrap.sh-stamp drvwrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh \
+	unix/portwrap.sh unix/dlgswrap.sh unix/drvwrap.sh
+check_PROGRAMS = Abinova-test dialog-smoke ui-drive
 
 Abinova_test_CPPFLAGS = $(WP_CPPFLAGS) \
 	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\"" \
@@ -46,6 +47,15 @@ dialog_smoke_LDADD =  $(DEPS_LIBS)
 
 dialog_smoke_SOURCES = unix/dialog_smoke.cpp
 
+ui_drive_CPPFLAGS = $(WP_CPPFLAGS) \
+	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\""
+
+ui_drive_LDFLAGS =  -L$(top_builddir)/src -labinova-@ABINOVA_SERIES@
+
+ui_drive_LDADD =  $(DEPS_LIBS)
+
+ui_drive_SOURCES = unix/ui_drive.cpp
+
 # The wrapper scripts are config.status outputs living in a
 # subdirectory of this Makefile — automake gives them no
 # regeneration rule, so a .in edit would never reach an already
@@ -61,6 +71,9 @@ unix/portwrap.sh: $(top_builddir)/config.status $(srcdir)/unix/portwrap.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status src/wp/test/$@
 
 unix/dlgswrap.sh: $(top_builddir)/config.status $(srcdir)/unix/dlgswrap.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status src/wp/test/$@
+
+unix/drvwrap.sh: $(top_builddir)/config.status $(srcdir)/unix/drvwrap.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status src/wp/test/$@
 
 testwrap.sh-stamp: unix/testwrap.sh
@@ -79,15 +92,22 @@ dlgswrap.sh-stamp: unix/dlgswrap.sh
 	chmod a+x unix/dlgswrap.sh
 	touch $@
 
+drvwrap.sh-stamp: unix/drvwrap.sh
+	chmod a+x unix/drvwrap.sh
+	touch $@
+
 CLEANFILES = vgcore.* \
 	supp.txt \
 	testwrap.sh-stamp \
 	rtwrap.sh-stamp \
 	portwrap.sh-stamp \
 	dlgswrap.sh-stamp \
+	drvwrap.sh-stamp \
 	tf-vgdump
 
 EXTRA_DIST = \
 	xp/main.cpp \
 	xp/all_test.h \
-	unix/dialog_smoke.cpp
+	unix/dialog_smoke.cpp \
+	unix/ui_drive.cpp \
+	unix/drvwrap.sh.in

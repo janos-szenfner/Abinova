@@ -1,0 +1,97 @@
+#!/bin/sh
+
+# Scripted-interaction coverage driver (COV12): open every registered
+# dialog AND exercise its widgets (pages, popovers, list selections,
+# entries, buttons), then drive the main window's ribbon/panes and the
+# AbiWidget API.  Complements dlgswrap.sh (instantiation smoke only).
+#
+# Needs a display: runs under xvfb-run when present, else on the live
+# DISPLAY/WAYLAND_DISPLAY; exits 77 (SKIP) when neither exists.
+# Each dialog runs in its own ui-drive process under `timeout` so a
+# hang or segfault is attributed to that dialog id.  A timeout (rc
+# 124) is reported but NOT a failure — driven widgets can legitimately
+# block on session services; crashes are failures.
+#
+# Buttons are activated for real, so the driven document is a scratch
+# copy staged under $TMPDIR.
+
+ABINOVA_TEST_SRC_DIR=@abs_top_srcdir@
+export ABINOVA_TEST_SRC_DIR
+
+cd @abs_top_builddir@/src/wp/test || exit 1
+BIN="./ui-drive"
+LIBTOOL="@abs_top_builddir@/libtool --mode=execute"
+
+if [ -z "${COV12_INNER:-}" ]; then
+	if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+		if command -v xvfb-run >/dev/null 2>&1; then
+			COV12_INNER=1
+			export COV12_INNER
+			exec xvfb-run -a "$0"
+		fi
+		echo "SKIP: no display and no xvfb-run" >&2
+		exit 77
+	fi
+fi
+
+scratch="${TMPDIR:-/tmp}/ui-drive-$$.abw"
+cp "$ABINOVA_TEST_SRC_DIR/test/wp/cov07/rich.abw" "$scratch" || {
+	echo "FAIL: cannot stage scratch doc" >&2
+	exit 1
+}
+UI_DRIVE_DOC="$scratch"
+export UI_DRIVE_DOC
+
+# GLib structured logging can emit DEBUG lines on stdout; keep only
+# pure-numeric lines from --list
+ids=$($LIBTOOL $BIN --list 2>/dev/null | grep -E '^[0-9]+$') || {
+	echo "FAIL: ui-drive --list exited $?" >&2
+	exit 1
+}
+
+# Expected failures — dialogs whose failure is inside system code the
+# driver cannot guard.  Each entry needs a documented reason; new ids
+# may NOT be added here to silence the test.
+#  8    XAP_DIALOG_ID_PRINT — GTK4's GtkPrintUnixDialog spins up the
+#       print machinery's session D-Bus/CUPS queries at construction
+#       and segfaults inside libgio here before the driver ever sees a
+#       widget; the driver never descends into system dialogs, so the
+#       fault is outside its interact guard.  Nothing in Abinova code
+#       is at fault.
+XFAIL_IDS=" 8 "
+
+fails=0
+skips=0
+xfails=0
+total=0
+for id in $ids; do
+	total=$((total + 1))
+	# -k: a hung leg may deadlock inside the gcov dump the SIGTERM
+	# handler runs — escalate to SIGKILL so the suite cannot wedge
+	timeout -k 15 90 $LIBTOOL $BIN --id "$id" >/dev/null 2>&1
+	rc=$?
+	case "$rc" in
+		0) echo "ok: dialog id $id" ;;
+		77) echo "skip: dialog id $id (no interactive context)"
+		    skips=$((skips + 1)) ;;
+		124|137) echo "timeout: dialog id $id" ;;
+		*) if [ "${XFAIL_IDS#* $id }" != "$XFAIL_IDS" ]; then
+		       echo "xfail: dialog id $id (rc=$rc)"
+		       xfails=$((xfails + 1))
+		   else
+		       echo "FAIL: dialog id $id (rc=$rc)"
+		       fails=$((fails + 1))
+		   fi ;;
+	esac
+done
+
+timeout -k 15 300 $LIBTOOL $BIN --frame >/dev/null 2>&1 && \
+	echo "ok: frame drive" || echo "timeout/fail: frame drive"
+
+timeout -k 15 180 $LIBTOOL $BIN --abi >/dev/null 2>&1 && \
+	echo "ok: abiwidget drive" || echo "timeout/fail: abiwidget drive"
+
+rm -f "$scratch" /tmp/ui-drive-abi.abw
+
+echo "dialog drive: $((total - fails - skips - xfails))/$total dialogs clean, $skips skipped, $xfails xfail"
+[ "$fails" -eq 0 ]

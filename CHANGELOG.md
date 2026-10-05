@@ -4532,6 +4532,18 @@ below are on `main` but the release has not been cut yet.
   directory to 49.4% and total first-party coverage from 49.3% to
   59.6% — the on-display smoke is what keeps every dialog's
   constructor and `.ui` load path under test.
+- **Scripted-interaction driver pushes `wp/ap/gtk` coverage past
+  60%** — the new `unix/drvwrap.sh` test drives `ui-drive`: every
+  factory-registered dialog gets its widget tree exercised for real
+  (notebook/stack pages, popovers, list rows, entries, buttons), a
+  main window's ribbon/panes are walked, and the `AbiWidget` public
+  API is driven on a staged scratch document — `wp/ap/gtk` line
+  coverage rose from ~50% to ~67%. The pass surfaced and fixed real
+  bugs: message boxes and the frame impl assumed the frame toplevel
+  is always a `GtkWindow` (it is a plain widget under `AbiWidget`
+  embedding), and the `AbiWidget` change-listener cast every top
+  change record to a span record even when the record was another
+  type, reading past the allocation.
 - **Atomic save moved behind a portable helper** — the
   write-temp-then-rename sequence in the exporter core
   (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as

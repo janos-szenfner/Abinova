@@ -668,14 +668,21 @@ public:
 				if (pcr_ != pcr)
 				{
 					pcr_ = pcr;
-					if (pcr_)
+					if (pcr_ &&
+						(pcr_->getType() == PX_ChangeRecord::PXT_InsertSpan ||
+						 pcr_->getType() == PX_ChangeRecord::PXT_DeleteSpan))
 					{
+						/* only span records carry these members —
+						 * the top record can be any change type
+						 * (e.g. a glob from beginUserAtomicGlob),
+						 * so casting unconditionally reads past
+						 * the allocation */
 						PX_ChangeRecord_Span * pcrs_ = static_cast<PX_ChangeRecord_Span *>(pcr_);
 						pcrlen_ = pcrs_->getLength();
 						pcrpos_ = pcrs_->getPosition();
 						pcrbi_ = pcrs_->getBufIndex();
 						pcrbo_ = pcrs_->getBlockOffset();
-					}	
+					}
 					changed();
 				}
 				else if (pcr_ == pcr && pcr_ && pcr)

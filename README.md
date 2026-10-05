@@ -2033,7 +2033,7 @@ rejects. A failed export, structural
 defect, text difference, dropped image or crash fails the suite.
 Run it standalone with `tools/rt-check.sh src/abinova $PWD`.
 
-`make check` also runs two more wrappers:
+`make check` also runs three more wrappers:
 
 - `unix/dlgswrap.sh` drives `dialog-smoke`, which opens every dialog
   registered in the dialog factory on a display — `xvfb-run` when
@@ -2042,6 +2042,13 @@ Run it standalone with `tools/rt-check.sh src/abinova $PWD`.
   crashes or hangs. Each dialog runs in its own process under
   `timeout` so failures attribute to a single id; a small explicit
   expected-failure list documents known GTK-level defects.
+- `unix/drvwrap.sh` drives `ui-drive`, which goes further than the
+  smoke pass: it walks each dialog's widget tree and exercises it for
+  real — notebook/stack pages, popovers, list selections, entries,
+  buttons — then drives a main window (ribbon popovers, side panes)
+  and the `AbiWidget` public API on a staged scratch document. It
+  needs a display and skips without one; per-widget fault/watchdog
+  guards keep a single bad interaction from aborting the leg.
 - `unix/portwrap.sh` runs `tools/portguard.sh`, which asserts no
   `/tmp` string literals in shipped code and no new Unix-only API
   calls in cross-platform `xp` sources beyond the checked-in
