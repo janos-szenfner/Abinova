@@ -1970,6 +1970,11 @@ tools/build-windows-msys2.sh
 
 The resulting `abinova.exe` needs the MSYS2 runtime DLLs on PATH;
 bundle them (e.g. via `ldd`) when packaging for distribution.
+`dist/BUNDLED-DEPS.md` is the packaging manifest — it classifies the
+whole `libabinova` link closure (vendored-in / bundle-as-shared /
+safe-system) and lists the runtime-loaded modules `ldd` cannot see
+(enchant backends, gdk-pixbuf loaders, GIO/GTK4 modules incl. the
+gstreamer media backend, schemas, dictionaries, `artwork/`).
 
 ### Building on FreeBSD
 

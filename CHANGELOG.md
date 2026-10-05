@@ -4083,6 +4083,14 @@ below are on `main` but the release has not been cut yet.
   `/etc/os-release` (`ID`, then `ID_LIKE` for derivatives like
   Zorin/Mint), plus a `--print-deps` dry-run mode that lists the
   resolved packages without needing root.
+- **Packaging dependency manifest** — `dist/BUNDLED-DEPS.md`
+  classifies the entire `libabinova-4.0.so` link closure (78 `ldd`
+  entries: 27 direct + 50 transitive) into vendored-in /
+  bundle-as-shared / safe-system, and enumerates the runtime-loaded
+  modules a bundle must still locate — enchant backends, gdk-pixbuf
+  loaders, GIO modules incl. the GnuTLS TLS backend, GTK4
+  print/input/media modules (gstreamer powers embedded media),
+  GSettings schemas, dictionaries, CA certs and `artwork/`.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

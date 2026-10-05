@@ -51,6 +51,7 @@ EXTRA_DIST = \
 	abinova.keys \
 	libabinova.pc.in \
 	artwork \
+	dist \
 	fuzz \
 	$(xsltml_DATA)
 
