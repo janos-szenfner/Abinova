@@ -48,6 +48,7 @@ EXTRA_DIST = \
 	COPYRIGHT.TXT \
 	README.md \
 	io.github.janos_szenfner.Abinova.desktop \
+	io.github.janos_szenfner.Abinova.yml \
 	abinova.keys \
 	libabinova.pc.in \
 	artwork \

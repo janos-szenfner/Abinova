@@ -14,6 +14,7 @@ EXTRA_DIST = \
 	build-windows-msys2.sh \
 	build-freebsd.sh \
 	build-linux.sh \
+	build-flatpak.sh \
 	build-gtk-prefix.sh \
 	build-fuzz.sh \
 	check-fuzz.sh \

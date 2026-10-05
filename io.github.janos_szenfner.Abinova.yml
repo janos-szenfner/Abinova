@@ -1,0 +1,129 @@
+# Flatpak manifest for Abinova.
+#
+# Build with the wrapper:
+#   tools/build-flatpak.sh                # build + smoke test
+#   tools/build-flatpak.sh --install      # also install user-level
+#   tools/build-flatpak.sh --bundle       # also write a .flatpak bundle
+#
+# or bare flatpak-builder:
+#   flatpak-builder --user --force-clean --install-deps-from=flathub \
+#       --repo=build-flatpak-repo build-flatpak \
+#       io.github.janos_szenfner.Abinova.yml
+#
+# For a Flathub submission, replace the abinova module's `dir` source
+# with a pinned git source (see the comment in that module).
+
+app-id: io.github.janos_szenfner.Abinova
+runtime: org.gnome.Platform
+# GNOME 51 = current stable.  Any 49+ satisfies the tree's floors
+# (glib 2.80, gtk4 4.14.5, cairo 1.18, pango 1.52.1, librsvg 2.58).
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: abinova
+separate-locales: false  # English-only UI; no locale files exist to split
+
+# org.gnome.Platform already ships every link-time dependency except the
+# two modules below: gtk4 + gtk4-unix-print, glib/gio 2.8x, cairo, pango,
+# fribidi, librsvg, gdk-pixbuf, libxml2 + libxslt, zlib, libpng/jpeg/tiff,
+# enchant-2 (built --with-hunspell against the runtime's hunspell +
+# dictionaries), glib-networking (TLS), CA certs, and the freedesktop
+# gstreamer stack (gst-plugins-base/good/bad/ugly + libav via the
+# codecs-extra extension) behind GtkMediaFile playback of embedded media.
+# The vendored libs (librevenge, libwpd, libwpg, libwps, wv,
+# hunspell-1.7.4) are noinst convenience archives folded statically into
+# libabinova by the tree's own build (top-level SUBDIRS is thirdparty
+# first), so they need no modules of their own.
+#
+# `make install` in the abinova module already delivers everything the
+# desktop needs: /app/bin/abinova, libabinova-4.0.so, the .desktop file,
+# appstream metainfo, hicolor icons (16-512px PNGs + scalable SVG),
+# abinova.keys, the xsltml stylesheets, fonts/ and artwork/.
+
+finish-args:
+  # Wayland first; X11 only when the session lacks Wayland.  IPC
+  # sharing is only needed so the X11 path keeps MIT-SHM.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # Documents live in the user's home.
+  - --filesystem=home
+  # dconf persistence for GTK/GSettings state (print settings, file
+  # chooser history and friends).
+  - --filesystem=xdg-run/dconf
+  - --filesystem=~/.config/dconf:ro
+  - --talk-name=ca.desrt.dconf
+  - --env=DCONF_USER_CONFIG_DIR=.config/dconf
+  # Deliberately NOT granted:
+  #   --share=network — nothing core needs it; Help > Check for Updates
+  #     degrades to a "could not check" message (the TLS backend and CA
+  #     certs are in the runtime, so flipping this on just works).
+  #   --socket=cups — printing goes through org.freedesktop.portal.Print
+  #     automatically when GTK4 detects the flatpak sandbox.
+  # Insert > Screenshot uses org.freedesktop.portal.Screenshot, and the
+  # document portal mediates any file outside $HOME; portals need no
+  # finish-args entries.
+
+modules:
+  # boost: configure's AX_BOOST_BASE requires >= 1.83, but the tree's
+  # only use is boost/algorithm/string.hpp — header-only.  The
+  # freedesktop SDK ships no boost, so stage the headers; the top-level
+  # cleanup keeps them out of the runtime image.
+  - name: boost-headers
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/include
+      - cp -a boost /app/include/
+    sources:
+      - type: archive
+        url: https://archives.boost.io/release/1.89.0/source/boost_1_89_0.tar.bz2
+        sha256: 85a33fa22621b4f314f8e85e1a5e2a9363d22e4f4992925d4bb3bc631b5a0c7a
+
+  # libgsf: OLE2/zip structured storage (the .doc importer, among
+  # others).  A gnome-build-meta core-dep — NOT part of the Flatpak
+  # org.gnome.Platform.
+  - name: libgsf
+    buildsystem: autotools
+    config-opts:
+      - --disable-static
+      - --disable-introspection
+      - --without-gdk-pixbuf  # the gsf office thumbnailer is unused here
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /share/gtk-doc
+      - '*.la'
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/libgsf/1.14/libgsf-1.14.60.tar.xz
+        sha256: 83e12c36a099a8a7019bf425e2c24af66eeb2ef5874251e694431a07d9805dae
+
+  - name: abinova
+    buildsystem: autotools
+    builddir: true  # the tree builds VPATH (tools/build-linux.sh style)
+    config-opts:
+      - --disable-maintainer-mode
+    sources:
+      # This manifest lives at the repository root, so '.' is the whole
+      # tree.  flatpak-builder copies the directory verbatim — run from a
+      # clean checkout so local build trees (build-*/, fuzz-build/,
+      # san-build/, dist/ staging dirs) are not dragged into the build.
+      # For a pinned release build (e.g. a Flathub submission) replace
+      # this with:
+      #   - type: git
+      #     url: https://github.com/janos-szenfner/Abinova.git
+      #     tag: v4.0.0           # release tag
+      #     commit: <full sha>
+      - type: dir
+        path: .
+
+# Devel artifacts — boost headers, libabinova headers/.pc, man pages —
+# are build-time only; nothing in the app needs them at runtime.
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/aclocal
+  - /share/doc
+  - /share/gtk-doc
+  - /share/man
+  - '*.la'
+  - '*.a'

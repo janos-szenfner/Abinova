@@ -1905,7 +1905,8 @@ Older upstream history is not listed here.
 
 The deleted `plugins/` and `src/plugins/` trees, the old `po/`
 catalogs and the upstream `flatpak/` manifest are gone entirely —
-see *Plugin cleanup* above.
+see *Plugin cleanup* above.  A new flatpak-builder manifest lives at
+`io.github.janos_szenfner.Abinova.yml` (see *Flatpak package*).
 
 ## Building
 
@@ -2117,6 +2118,33 @@ Windows folder, a built-binary check on FreeBSD); elsewhere they print
 their runner steps — note the macOS leg needs an **arm64** machine
 (GitHub `macos-14` or later), because an x86_64 run cannot catch the
 unsigned-char/alignment issues the port hardening targeted.
+
+### Flatpak package
+
+`io.github.janos_szenfner.Abinova.yml` at the repository root is a
+flatpak-builder manifest on `org.gnome.Platform`//51 with a tight
+permission set: Wayland + X11-fallback sockets, `home` filesystem
+access for documents, and dconf persistence.  There is deliberately
+no `--share=network` (nothing core needs it — Help > Check for
+Updates just reports it could not check) and no CUPS socket (GTK4
+printing goes through `org.freedesktop.portal.Print` inside a
+sandbox, and Insert > Screenshot through the screenshot portal).
+The runtime already ships gtk4, enchant-2 built with hunspell,
+glib-networking + CA certs and the gstreamer stack, so the manifest
+adds only two modules — libgsf (OLE2/zip structured storage, not in
+the Platform) and boost headers — before building Abinova itself via
+autotools:
+
+```bash
+tools/build-flatpak.sh              # build + abinova --version smoke
+tools/build-flatpak.sh --install    # then: flatpak run io.github.janos_szenfner.Abinova
+tools/build-flatpak.sh --bundle     # also write dist/*.flatpak
+```
+
+The wrapper needs `flatpak-builder` installed and a flathub remote
+(added automatically if missing).  For a Flathub submission, swap the
+manifest's in-tree `dir` source for a pinned git tag — see the comment
+in the manifest.
 
 ### Signing and installers
 

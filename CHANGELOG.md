@@ -4210,6 +4210,20 @@ below are on `main` but the release has not been cut yet.
   shared-mime-info package and the AppStream metainfo per-user under
   `~/.local/share` or system-wide under `/usr/local/share`.  See
   `dist/SIGNING.md` for the certificate setup.
+- **Flatpak package** — a new flatpak-builder manifest at
+  `io.github.janos_szenfner.Abinova.yml` (repo root) builds Abinova
+  on `org.gnome.Platform`//51 with a tight permission set: Wayland +
+  X11-fallback sockets, `home` filesystem access for documents, and
+  dconf persistence — deliberately no `--share=network` and no CUPS
+  socket (printing goes through `org.freedesktop.portal.Print`).
+  The runtime already ships gtk4, enchant-2-with-hunspell,
+  glib-networking + CA certs and the gstreamer stack, so the manifest
+  only adds two modules — libgsf (OLE2/zip structured storage) and
+  boost headers — before building Abinova itself via autotools.
+  `tools/build-flatpak.sh` wraps the flow: it fetches the
+  Platform/Sdk from flathub, builds, smoke-tests `abinova --version`
+  inside the build sandbox, `--install` installs user-level, and
+  `--bundle` writes `dist/abinova-<ver>-<arch>.flatpak`.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

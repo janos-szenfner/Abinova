@@ -141,6 +141,11 @@ src/wp/test/Abinova-test
 # Windows build tree, staged install + bundle output (tools/build-windows-msys2.sh)
 /build-windows/
 /dist/abinova-*-windows-*/
+# flatpak-builder build tree, repo and state dir (tools/build-flatpak.sh)
+/build-flatpak/
+/build-flatpak-repo/
+/.flatpak-builder/
+/dist/*.flatpak
 crash-*
 oom-*
 timeout-*
