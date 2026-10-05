@@ -1982,8 +1982,22 @@ configures and builds:
 tools/build-windows-msys2.sh
 ```
 
-The resulting `abinova.exe` needs the MSYS2 runtime DLLs on PATH;
-bundle them (e.g. via `ldd`) when packaging for distribution.
+`tools/build-windows-msys2.sh --bundle` (or `--bundle-only` after a
+build) collects a self-contained folder
+`dist/abinova-<ver>-windows-<arch>/`: `bin/abinova.exe` beside its
+whole non-system DLL closure (resolved by an `objdump -p` fixpoint
+walk), a side-by-side `abinova.exe.manifest` declaring Windows 10
+compat and `longPathAware`, the datadir contents at the root, compiled
+glib schemas, gdk-pixbuf loaders+cache and the enchant backends.  The
+process start also removes the current directory from the DLL search
+path (`SetDllDirectory`/`SetDefaultDllDirectories`) so a stray DLL
+next to a document cannot shadow a bundled dependency.
+
+For CI without a Windows box, MXE (mxe.cc) is a documented
+alternative — the collection stage is POSIX sh + objdump and also runs
+under Linux: stage the install yourself and pass the MXE sysroot DLL
+dirs via `--stage DIR --dll-dirs D1:D2`.
+
 `dist/BUNDLED-DEPS.md` is the packaging manifest — it classifies the
 whole `libabinova` link closure (vendored-in / bundle-as-shared /
 safe-system) and lists the runtime-loaded modules `ldd` cannot see

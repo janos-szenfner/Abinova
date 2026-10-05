@@ -4122,6 +4122,22 @@ below are on `main` but the release has not been cut yet.
   Developer-ID signing and notarization remain a later packaging
   step).  `--universal` merges an x86_64 slice via `lipo` on Apple
   Silicon.
+- **Windows one-folder bundle stage** —
+  `tools/build-windows-msys2.sh --bundle` assembles a relocatable
+  `abinova-<ver>-windows-<arch>/` folder: `bin/abinova.exe` beside its
+  entire non-system DLL closure (an `objdump -p` import walk to a
+  fixpoint, with a Windows system-DLL allowlist), a side-by-side
+  `abinova.exe.manifest` declaring Windows 10 compat plus
+  `longPathAware`, the datadir contents at the bundle root, compiled
+  GSettings schemas, gdk-pixbuf loaders with a relocatable
+  `loaders.cache`, and the enchant spellcheck backends.  A verify
+  pass fails the build on any import left unresolved outside the
+  bundle.  The process start also drops the current directory from
+  the DLL search path (`SetDllDirectory` +
+  `SetDefaultDllDirectories`), so a stray DLL beside a document can
+  no longer shadow a bundled dependency.  The collection logic is
+  plain POSIX sh + objdump and equally collects an MXE
+  cross-compiled tree via `--stage DIR --dll-dirs`.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

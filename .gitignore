@@ -136,6 +136,9 @@ src/wp/test/Abinova-test
 /build-macos/
 /build-macos-*/
 /Abinova.app/
+# Windows build tree, staged install + bundle output (tools/build-windows-msys2.sh)
+/build-windows/
+/dist/abinova-*-windows-*/
 crash-*
 oom-*
 timeout-*
