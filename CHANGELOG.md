@@ -5085,6 +5085,19 @@ below are on `main` but the release has not been cut yet.
   enchant backends, pixbuf loaders, GIO/TLS modules, schemas) that
   `ldd`/`otool`/`dumpbin` cannot see. No functional change on Linux.
 
+- **Windows/macOS `#ifdef` branches compile-checked** — every
+  `_WIN32`/`_MSC_VER`/`__MINGW32__`/`G_OS_WIN32`/`__APPLE__`-gated code
+  path in `src/` (110 preprocessor sites across 49 files) was run
+  through a `g++ -fsyntax-only` battery against minimal SDK decl
+  shims, covering the MinGW, MSVC, and macOS configurations this
+  Linux tree never compiles. Two latent Windows build breakers were
+  found and fixed: the `_MSC_VER` dictionary-path setup in the spell
+  checker still called enchant-1's `enchant_broker_set_param()` —
+  removed, since enchant-2 providers locate their own dictionaries —
+  and the `_WIN32` URI argument decoder used a `static_cast` that
+  illegally strips `const` (now `const_cast`). No functional change
+  on Linux.
+
 - **Spellcheck, print, and embedded-object hardening sweep** —
   dictionary switching in the Enchant backend now releases the old
   dictionary through its owning provider instead of leaking it, and the

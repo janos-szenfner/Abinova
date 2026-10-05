@@ -188,20 +188,8 @@ EnchantChecker::EnchantChecker()
 				abi_enchant_scan_bundled_providers();
 		}
 #endif
-#ifdef _MSC_VER
-		// hack: the old dictionary installers download to the "dictionary" path...
-		gchar* ispell_path1 = g_build_filename (XAP_App::getApp()->getAbiSuiteLibDir(), "dictionary", nullptr);
-		// ... while in the new situation we support multiple types of dictionaries
-		gchar* ispell_path2 = g_build_filename (XAP_App::getApp()->getAbiSuiteLibDir(), "dictionary", "ispell", nullptr);
-		std::string ispell_path = std::string(ispell_path1) + ";" + std::string(ispell_path2);
-		enchant_broker_set_param(s_enchant_broker,  "enchant.ispell.dictionary.path", ispell_path.c_str());
-		g_free(ispell_path1);
-		g_free(ispell_path2);
-
-		gchar* myspell_path = g_build_filename (XAP_App::getApp()->getAbiSuiteLibDir(), "dictionary", "myspell", nullptr);
-		enchant_broker_set_param(s_enchant_broker,  "enchant.myspell.dictionary.path", myspell_path);
-		g_free(myspell_path);
-#endif
+		/* enchant-2 providers locate their own dictionaries; the
+		 * enchant-1 broker_set_param() hack that lived here is gone */
 	}
 	s_enchant_broker_count++;
 }
