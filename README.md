@@ -562,7 +562,10 @@ labels, like Word's ribbon.
   embeds any file with system-handler activation.
 - **Links**: the hyperlink dialog always opens; with no
   selection its "Text to display" field creates the link text,
-  matching Word.
+  matching Word. Clicking a link passes its target through a scheme
+  allowlist — `http`/`https`/`ftp`/`mailto` and non-runnable local
+  files open normally, while `javascript:`, `data:` and other
+  executable-handler schemes are refused.
 - **Comments**: insert comment (see the Review tab).
 - **Header & Footer**: Word-style built-in galleries — 21 header
   designs and 20 footer designs (Blank, Austin, Badge, Banded,

@@ -1896,10 +1896,134 @@ fallback_open_uri(const gchar* url, GError** err)
 		                            "no usable browser found");
 }
 
+/* Return a pointer to the ':' terminating an RFC 3986 scheme at the
+   start of @url, or NULL when @url does not begin with one
+   (scheme = ALPHA *(ALPHA / DIGIT / "+" / "-" / ".") ":"). */
+static const char *
+url_scheme_end (const char *url)
+{
+	const char * p = url;
+
+	if (!g_ascii_isalpha (p[0]))
+		return nullptr;
+	for (p++; g_ascii_isalnum (p[0]) || p[0] == '+' ||
+	     p[0] == '-' || p[0] == '.'; p++)
+		;
+	return (p[0] == ':') ? p : nullptr;
+}
+
+static gboolean
+url_scheme_is (const char *url, const char *scheme, const char *end)
+{
+	return strlen (scheme) == (gsize)(end - url) &&
+	       g_ascii_strncasecmp (url, scheme, end - url) == 0;
+}
+
+/* A local target is only safe to show when the handler would *open* it
+   rather than run it: no executable bit, and not a launcher file
+   (.desktop / .lnk / .url are programs in file form).  Directories are
+   fine - they carry the search bit but open in a file manager.
+   Unresolvable targets pass: they cannot run, and the handler reports
+   the failure. */
+static gboolean
+local_target_is_safe (const char *path)
+{
+	static const char * const launcher_exts[] = {
+		".desktop", ".lnk", ".url"
+	};
+	size_t len = strlen (path);
+	for (unsigned i = 0; i < G_N_ELEMENTS (launcher_exts); i++)
+	{
+		size_t elen = strlen (launcher_exts[i]);
+		if (len > elen &&
+		    g_ascii_strcasecmp (path + len - elen,
+					launcher_exts[i]) == 0)
+			return FALSE;
+	}
+
+	GFile * file = g_file_new_for_path (path);
+	GFileInfo * info = g_file_query_info
+		(file, G_FILE_ATTRIBUTE_STANDARD_TYPE ","
+		 G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE,
+		 G_FILE_QUERY_INFO_NONE, nullptr, nullptr);
+	g_object_unref (file);
+	if (!info)
+		return TRUE;
+	gboolean safe =
+		g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY ||
+		!g_file_info_get_attribute_boolean
+		(info, G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE);
+	g_object_unref (info);
+	return safe;
+}
+
+/*
+ * UT_go_url_is_safe :
+ * @url : a URI or plain path a document or UI link wants to open.
+ *
+ * TRUE when @url may be handed to the system "open this URI" handler.
+ * The handler treats some schemes as app-launchers rather than
+ * document openers: javascript:/data: run script inside the browser
+ * context, file:// to an executable (or a .desktop/.lnk/.url launcher
+ * file) runs arbitrary code, and any registered scheme (smb:,
+ * ms-word:, steam:, ...) invokes whatever owns it.  Since documents
+ * carry links, only a small allowlist is safe to launch on a click,
+ * and file:// additionally refuses runnable targets.
+ */
+gboolean
+UT_go_url_is_safe (const char *url)
+{
+	if (!url || !*url)
+		return FALSE;
+
+	const char * scheme_end = url_scheme_end (url);
+
+#ifdef G_OS_WIN32
+	/* "C:\..." (and "C:/...") is a drive path, not a "c:" scheme */
+	if (scheme_end && scheme_end - url == 1 &&
+	    (scheme_end[1] == '\\' || scheme_end[1] == '/'))
+		scheme_end = nullptr;
+#endif
+
+	if (!scheme_end)
+		/* no scheme: a plain path, same rules as file:// */
+		return local_target_is_safe (url);
+
+	if (url_scheme_is (url, "file", scheme_end))
+	{
+		/* GIO file URIs are always local (the authority field is
+		   ignored); a malformed URI yields NULL and cannot be
+		   opened anyway */
+		char * path = g_filename_from_uri (url, nullptr, nullptr);
+		if (!path)
+			return FALSE;
+		gboolean safe = local_target_is_safe (path);
+		g_free (path);
+		return safe;
+	}
+
+	/* schemes whose handler opens a resource rather than running
+	   a payload */
+	static const char * const safe_schemes[] = {
+		"http", "https", "ftp", "ftps", "mailto"
+	};
+	for (unsigned i = 0; i < G_N_ELEMENTS (safe_schemes); i++)
+		if (url_scheme_is (url, safe_schemes[i], scheme_end))
+			return TRUE;
+
+	return FALSE;
+}
+
 GError *
 UT_go_url_show (gchar const *url)
 {
 	GError *err = nullptr;
+
+	if (!UT_go_url_is_safe (url))
+		return g_error_new (G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+				    "refusing to open '%s': the URI scheme "
+				    "or target is not launchable",
+				    url ? url : "(null)");
 
 #ifdef G_OS_UNIX
 	/* An explicit $BROWSER choice wins for web URLs on Unix — the schemes

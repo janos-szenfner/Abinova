@@ -3309,6 +3309,24 @@ below are on `main` but the release has not been cut yet.
   are skipped (the user-invoked "Insert Online Picture" feature is
   unaffected).  ODF embedded images (package-internal) and OOXML
   external relationships (already rejected) needed no change.
+- **Hyperlink scheme allowlist (URI01)** — clicking a document link
+  previously handed whatever scheme it carried to the system
+  "open this URI" handler (`UT_go_url_show`), and several schemes are
+  app-launchers rather than document openers: `javascript:`/`data:`
+  run content inside the browser context, `file://` pointing at an
+  executable or a `.desktop`/`.lnk`/`.url` launcher file runs code,
+  and any registered scheme (`smb:`, vendor protocols, ...) invokes
+  whatever owns it.  Since documents carry links, the new
+  `UT_go_url_is_safe()` gate inside `UT_go_url_show` — the single
+  point every hyperlink jump, help window, About dialog and embedded
+  object activation funnels through — now permits only `http`,
+  `https`, `ftp`, `ftps` and `mailto`, resolves `file:` URIs and bare
+  paths locally and refuses them when the target is executable or a
+  launcher file (directories and missing files still open/report as
+  before).  The check runs before `$BROWSER`, the GLib default
+  handler, the Unix fallback spawner and Windows `ShellExecuteW`, so
+  a hostile `javascript:`/`data:`/`smb:` link produces a refused
+  `GError` and no process is ever spawned.
 - **Exception-safety audit of destructors (EX01)** — C++ destructors
   are implicitly `noexcept`, so any allocation or throwing call that
   escapes one is an immediate `std::terminate` (crash on close,

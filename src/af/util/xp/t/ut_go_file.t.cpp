@@ -191,6 +191,83 @@ TFTEST_MAIN("UT_go_url_is_local")
 	TFPASS(UT_go_url_is_local("mailto:a@b") == TRUE);
 }
 
+TFTEST_MAIN("UT_go_url_is_safe / UT_go_url_show scheme allowlist")
+{
+	// degenerate inputs
+	TFPASS(UT_go_url_is_safe(nullptr) == FALSE);
+	TFPASS(UT_go_url_is_safe("") == FALSE);
+
+	// allowed schemes (case-insensitive)
+	TFPASS(UT_go_url_is_safe("http://example.com/x") == TRUE);
+	TFPASS(UT_go_url_is_safe("HTTPS://EXAMPLE.COM/") == TRUE);
+	TFPASS(UT_go_url_is_safe("ftp://ftp.example.com/f") == TRUE);
+	TFPASS(UT_go_url_is_safe("mailto:a@b.c?subject=x") == TRUE);
+
+	// executable-in-disguise and app-launcher schemes
+	TFPASS(UT_go_url_is_safe("javascript:alert(1)") == FALSE);
+	TFPASS(UT_go_url_is_safe("javascript://host/x") == FALSE);
+	TFPASS(UT_go_url_is_safe("data:text/html,<h1>x</h1>") == FALSE);
+	TFPASS(UT_go_url_is_safe("smb://srv/share/doc") == FALSE);
+	TFPASS(UT_go_url_is_safe("ms-word:ofe|u|http://h/d") == FALSE);
+	TFPASS(UT_go_url_is_safe("tel:+1234") == FALSE);
+	TFPASS(UT_go_url_is_safe("foo:bar") == FALSE);
+
+	// a partially-matching scheme is still rejected
+	TFPASS(UT_go_url_is_safe("httpfoo://example.com") == FALSE);
+	TFPASS(UT_go_url_is_safe("nothttp://example.com") == FALSE);
+
+	// malformed file URIs resolve to nothing -> rejected
+	TFPASS(UT_go_url_is_safe("file://x") == FALSE);
+
+	// file:// and plain paths share the runnable-target rule
+	TFPASS(UT_go_url_is_safe("/tmp/definitely-not-here-XYZ") == TRUE);
+
+	gchar * dir = g_dir_make_tmp("ut_go_url_XXXXXX", nullptr);
+	TFPASS(dir != nullptr);
+	if (dir)
+	{
+		std::string p = std::string(dir) + "/payload";
+
+		// regular non-executable file -> openable
+		TFPASS(g_file_set_contents(p.c_str(), "x", 1, nullptr) == TRUE);
+		g_chmod(p.c_str(), 0644);
+		TFPASS(UT_go_url_is_safe((std::string("file://") + p).c_str())
+			   == TRUE);
+		TFPASS(UT_go_url_is_safe(p.c_str()) == TRUE);
+
+		// executable bit -> the handler would run it
+		g_chmod(p.c_str(), 0755);
+		TFPASS(UT_go_url_is_safe((std::string("file://") + p).c_str())
+			   == FALSE);
+		TFPASS(UT_go_url_is_safe(p.c_str()) == FALSE);
+
+		// a .desktop launcher is unsafe even without the exec bit
+		g_chmod(p.c_str(), 0644);
+		std::string dpath = std::string(dir) + "/runme.desktop";
+		TFPASS(g_file_set_contents(dpath.c_str(), "x", 1, nullptr)
+			   == TRUE);
+		TFPASS(UT_go_url_is_safe(dpath.c_str()) == FALSE);
+
+		// directories carry the search bit but are just openable
+		TFPASS(UT_go_url_is_safe((std::string("file://") + dir).c_str())
+			   == TRUE);
+
+		// UT_go_url_show refuses disallowed schemes without launching
+		GError * err = UT_go_url_show("javascript:alert(1)");
+		TFPASS(err != nullptr);
+		if (err)
+		{
+			TFPASS(err->domain == G_IO_ERROR);
+			g_error_free(err);
+		}
+
+		g_remove(dpath.c_str());
+		g_remove(p.c_str());
+		g_rmdir(dir);
+		g_free(dir);
+	}
+}
+
 TFTEST_MAIN("UT_go_shell_arg_to_uri / basename / dirname")
 {
 	TFPASS(take(UT_go_shell_arg_to_uri("/tmp/x")) == "file:///tmp/x");
