@@ -69,11 +69,12 @@ EV_Toolbar_Layout::EV_Toolbar_Layout(EV_Toolbar_Layout * pTB)
 	UT_ASSERT(m_layoutTable);
 	m_szName = g_strdup(pTB->getName());
 	UT_uint32 i = 0;
-	for(i=0; i < m_nrLayoutItems; i++)
+	for(i=0; i < m_nrLayoutItems && m_layoutTable; i++)
 	{
 		EV_Toolbar_LayoutItem * pLayItem = pTB->getLayoutItem(i);
-		m_layoutTable[i] = new EV_Toolbar_LayoutItem(pLayItem->getToolbarId(),
-													 pLayItem->getToolbarLayoutFlags());
+		if (pLayItem)
+			m_layoutTable[i] = new EV_Toolbar_LayoutItem(pLayItem->getToolbarId(),
+														 pLayItem->getToolbarLayoutFlags());
 	}
 }
 
@@ -89,7 +90,8 @@ EV_Toolbar_Layout::~EV_Toolbar_Layout(void)
 
 bool EV_Toolbar_Layout::setLayoutItem(UT_uint32 indexLayoutItem, XAP_Toolbar_Id id, EV_Toolbar_LayoutFlags flags)
 {
-	UT_ASSERT(indexLayoutItem < m_nrLayoutItems);
+	if (!m_layoutTable || indexLayoutItem >= m_nrLayoutItems)
+		return false;
 	DELETEP(m_layoutTable[indexLayoutItem]);
 	m_layoutTable[indexLayoutItem] = new EV_Toolbar_LayoutItem(id,flags);
 	return (m_layoutTable[indexLayoutItem] != nullptr);
@@ -97,7 +99,8 @@ bool EV_Toolbar_Layout::setLayoutItem(UT_uint32 indexLayoutItem, XAP_Toolbar_Id 
 
 EV_Toolbar_LayoutItem * EV_Toolbar_Layout::getLayoutItem(UT_uint32 indexLayoutItem) const
 {
-	UT_ASSERT(indexLayoutItem < m_nrLayoutItems);
+	if (!m_layoutTable || indexLayoutItem >= m_nrLayoutItems)
+		return nullptr;
 	return m_layoutTable[indexLayoutItem];
 }
 

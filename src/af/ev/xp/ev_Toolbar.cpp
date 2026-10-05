@@ -73,7 +73,7 @@ bool EV_Toolbar::invokeToolbarMethod(AV_View * pView,
 									 const UT_UCS4Char * pData,
 									 UT_uint32 dataLength)
 {
-	UT_ASSERT(pView);
+	UT_return_val_if_fail(pView, false);
 	UT_return_val_if_fail(pEM, false);
 
 	//UT_DEBUGMSG(("invokeToolbarMethod: %s\n",pEM->getName()));

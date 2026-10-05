@@ -108,7 +108,7 @@ bool EV_Toolbar_ActionSet::setAction(XAP_Toolbar_Id id,
 										AV_ChangeMask maskOfInterest,
 										EV_GetToolbarItemState_pFn pfnGetState)
 {
-	if ((id < m_first) || (id > m_last))
+	if (!m_actionTable || (id < m_first) || (id > m_last))
 		return false;
 
 	UT_uint32 index = (id - m_first);
@@ -119,7 +119,7 @@ bool EV_Toolbar_ActionSet::setAction(XAP_Toolbar_Id id,
 
 EV_Toolbar_Action * EV_Toolbar_ActionSet::getAction(XAP_Toolbar_Id id) const
 {
-	if ((id < m_first) || (id > m_last))
+	if (!m_actionTable || (id < m_first) || (id > m_last))
 		return nullptr;
 
 	UT_uint32 index = (id - m_first);

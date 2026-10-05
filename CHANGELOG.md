@@ -3773,6 +3773,22 @@ below are on `main` but the release has not been cut yet.
   underflow into bogus offsets; and annotation struxes were missing
   from the begin/end pairing table used by exporters. New
   `pt_DocEdits.t.cpp` cases lock each invariant down.
+- **Input-dispatch machinery audited** — the key/mouse/toolbar event
+  layer (`ev_*`): binding lookups in `EV_EditBindingMap` now clamp the
+  mouse-button/mouse-op/mouse-context and named-key table indices that
+  could address outside their fixed arrays (a named-key code above
+  `EV_COUNT_NVK`, or an event word with no button/op/context bits,
+  wrapped the index into unbounded territory); `EV_EditBindingMap`,
+  `EV_EditEventMapper`, `EV_Toolbar_Layout` and
+  `EV_Toolbar_ActionSet` gained real bounds/null checks where
+  assert-only guards could crash a release build. Mouse release now
+  reports the button actually released instead of the lowest-numbered
+  held button, and `EV_Mouse::signal` iterates a size snapshot so a
+  listener registering mid-signal can no longer invalidate the
+  walk. The GTK toolbar's widget vector now stays index-aligned with
+  the layout even when a slot is skipped, and the dead 856-line
+  `keysym2ucs` X11 table was dropped — GTK4 does the translation via
+  `gdk_keyval_to_unicode`.
 
 ### GTK4 port (core migration)
 

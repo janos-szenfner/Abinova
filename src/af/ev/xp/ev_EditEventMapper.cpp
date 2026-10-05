@@ -40,6 +40,8 @@ EV_EditEventMapperResult EV_EditEventMapper::Mouse(EV_EditBits eb,
 
 	if (!m_pebmInProgress)
 		m_pebmInProgress = m_pebmTopLevel;
+	if (!m_pebmInProgress)
+		return EV_EEMR_BOGUS_START;
 
 	EV_EditBinding * peb = m_pebmInProgress->findEditBinding(eb);
 	if (!peb)							// bogus key
@@ -78,6 +80,8 @@ EV_EditEventMapperResult EV_EditEventMapper::Keystroke(EV_EditBits eb,
 
 	if (!m_pebmInProgress)
 		m_pebmInProgress = m_pebmTopLevel;
+	if (!m_pebmInProgress)
+		return EV_EEMR_BOGUS_START;
 
 	EV_EditBinding * peb = m_pebmInProgress->findEditBinding(eb);
 	if (!peb)							// bogus key
@@ -111,7 +115,8 @@ EV_EditEventMapperResult EV_EditEventMapper::Keystroke(EV_EditBits eb,
 
 const char * EV_EditEventMapper::getShortcutFor(const EV_EditMethod * pEM) const
 {
-	UT_ASSERT(pEM);
+	UT_return_val_if_fail(pEM, nullptr);
+	UT_return_val_if_fail(m_pebmTopLevel, nullptr);
 
 	// lookup the keyboard shortcut bound to pEM, if any
 

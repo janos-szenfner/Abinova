@@ -57,19 +57,17 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev
 	if (ev_state & GDK_ALT_MASK)
 		ems |= EV_EMS_ALT;
 
-	if (ev_state & GDK_BUTTON1_MASK)
-		emb = EV_EMB_BUTTON1;
-	else if (ev_state & GDK_BUTTON2_MASK)
-		emb = EV_EMB_BUTTON2;
-	else if (ev_state & GDK_BUTTON3_MASK)
-		emb = EV_EMB_BUTTON3;
-	// these are often used for X scrolling mice, 4 is down, 5 is up
-	else if (ev_state & GDK_BUTTON4_MASK)
-		emb = EV_EMB_BUTTON4;
-	else if (ev_state & GDK_BUTTON5_MASK)
-		emb = EV_EMB_BUTTON5;
-	else
+	// report the release under the button that was actually released;
+	// the state mask still holds every other button that is down.
+	switch (gdk_button_event_get_button(e))
 	{
+	case 1: emb = EV_EMB_BUTTON1; break;
+	case 2: emb = EV_EMB_BUTTON2; break;
+	case 3: emb = EV_EMB_BUTTON3; break;
+	// these are often used for X scrolling mice, 4 is down, 5 is up
+	case 4: emb = EV_EMB_BUTTON4; break;
+	case 5: emb = EV_EMB_BUTTON5; break;
+	default:
 		// TODO decide something better to do here....
 		UT_DEBUGMSG(("EV_UnixMouse::mouseUp: unknown button %d\n", gdk_button_event_get_button(e)));
 		return;
@@ -194,7 +192,7 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble
 		signal(emc|mop|emb|state, static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 					 static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));
 
-		if (gdk_device_get_source (device) == GDK_SOURCE_TOUCHSCREEN || getenv ("ABI_TEST_TOUCH")) {
+		if ((device && gdk_device_get_source (device) == GDK_SOURCE_TOUCHSCREEN) || getenv ("ABI_TEST_TOUCH")) {
 			pView->setVisualSelectionEnabled(true);
 		} else {
 			pView->setVisualSelectionEnabled(false);

@@ -62,8 +62,8 @@ bool EV_Mouse::invokeMouseMethod(AV_View * pView,
 									UT_sint32 xPos,
 									UT_sint32 yPos)
 {
-	UT_ASSERT(pView);
-	UT_ASSERT(pEM);
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pEM, false);
 
 //	UT_DEBUGMSG(("invokeMouseMethod: %s at (%d %d)\n",pEM->getName(),xPos,yPos));
 	
@@ -87,9 +87,13 @@ bool EV_Mouse::invokeMouseMethod(AV_View * pView,
 
 void EV_Mouse::signal(EV_EditBits eb, UT_sint32 xPos, UT_sint32 yPos)
 {
-	for (std::vector<EV_MouseListener*>::iterator it = m_listeners.begin(); it != m_listeners.end(); it++)
+	// index over a size snapshot: a listener that registers a new
+	// listener from signalMouse would invalidate vector iterators,
+	// and unregister mid-signal just nulls a slot.
+	const size_t nListeners = m_listeners.size();
+	for (size_t i = 0; i < nListeners; i++)
 	{
-		EV_MouseListener* pListener = *it;
+		EV_MouseListener* pListener = m_listeners[i];
 		if (pListener)
 			pListener->signalMouse(eb, xPos, yPos);
 	}
@@ -104,8 +108,7 @@ UT_sint32 EV_Mouse::registerListener(EV_MouseListener* pListener)
 
 void EV_Mouse::unregisterListener(UT_sint32 iListenerId)
 {
-	UT_return_if_fail(iListenerId >= 0);
-	UT_return_if_fail(iListenerId >= 0 && iListenerId < static_cast<UT_sint32>(m_listeners.size()));	
+	UT_return_if_fail(iListenerId >= 0 && iListenerId < static_cast<UT_sint32>(m_listeners.size()));
 	m_listeners[iListenerId] = nullptr;
 }
 

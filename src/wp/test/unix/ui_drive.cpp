@@ -1269,7 +1269,7 @@ static int drive_abiwidget(const char *scratch_uri)
  * image data.  Two prongs:
  *
  *  - direct calls on exported product APIs (menu action creation /
- *    activation / state changes, charDataEvent, keysym2ucs, image
+ *    activation / state changes, charDataEvent, image
  *    codec + blip effects, print graphics, cursor name table) and
  *    media/blip-effect fixtures loaded into a live frame;
  *  - the input plumbing itself: the GTK event controllers hand their
@@ -1284,7 +1284,6 @@ static int drive_abiwidget(const char *scratch_uri)
 
 #include "ev_UnixKeyboard.h"
 #include "ev_UnixMouse.h"
-#include "ev_UnixKeysym2ucs.h"
 #include "ev_UnixMenuPopup.h"
 #include "ev_EditEventMapper.h"
 #include "ap_Prefs_SchemeIds.h"
@@ -1427,20 +1426,6 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 	/* the fixture-loaded views: captured so later sections can reach
 	 * the fixture's layout/embed managers */
 	AV_View *mediaView = nullptr;
-
-	/* ---- keysym2ucs: Latin-1 direct, >255 table hit, table miss,
-	 * direct-UCS encoded form, FF00 keypad range ---- */
-	EV_SECTION("keysym2ucs",
-		volatile UT_sint32 sink = 0;
-		sink += keysym2ucs(0x61);          /* 'a'       */
-		sink += keysym2ucs(0x0e9);         /* eacute    */
-		sink += keysym2ucs(0x20ac);        /* EuroSign  */
-		sink += keysym2ucs(0x0394);        /* Delta     */
-		sink += keysym2ucs(0x01000041);    /* UCS form  */
-		sink += keysym2ucs(0xff08);        /* BackSpace */
-		sink += keysym2ucs(0xfdfdfd);      /* miss      */
-		sink += keysym2ucs(0x00);          /* edge      */
-		(void)sink);
 
 	/* ---- input-event plumbing: EV_UnixMouse + ev_UnixKeyboard
 	 * entry paths and mapper dispatch via a null current event —

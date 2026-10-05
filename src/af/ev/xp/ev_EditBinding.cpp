@@ -376,12 +376,16 @@ EV_EditBinding * EV_EditBindingMap::findEditBinding(EV_EditBits eb)
 				n_emb = m_iLastMouseNo;
 		} 
 		m_iLastMouseNo = n_emb;
+		if (n_emb >= EV_COUNT_EMB)
+			return nullptr;
 		class ev_EB_MouseTable * p = m_pebMT[n_emb];
 		if (!p)
 			return nullptr;				// no bindings of anykind for this mouse button
 		UT_uint32 n_emo = EV_EMO_ToNumber(eb)-1;
 		UT_uint32 n_ems = EV_EMS_ToNumber(eb);
 		UT_uint32 n_emc = EV_EMC_ToNumber(eb);
+		if (n_emo >= EV_COUNT_EMO || n_emc >= EV_COUNT_EMC)
+			return nullptr;
 		return p->m_peb[n_emo][n_ems][n_emc];
 
 	}
@@ -393,6 +397,8 @@ EV_EditBinding * EV_EditBindingMap::findEditBinding(EV_EditBits eb)
 				return nullptr;			// no bindings of anykind for nvk keys
 			
 			UT_uint32 n_nvk = EV_NVK_ToNumber(eb);
+			if (n_nvk >= EV_COUNT_NVK)
+				return nullptr;
 			UT_uint32 n_ems = EV_EMS_ToNumber(eb);
 			return m_pebNVK->m_peb[n_nvk][n_ems];
 		}
@@ -454,6 +460,11 @@ bool EV_EditBindingMap::setBinding(EV_EditBits eb, EV_EditBinding * peb)
 	if (EV_IsMouse(eb))					// mouse
 	{
 		UT_uint32 n_emb = EV_EMB_ToNumber(eb)-1;
+		if (n_emb >= EV_COUNT_EMB)
+		{
+			delete peb;
+			return false;
+		}
 		class ev_EB_MouseTable * p = m_pebMT[n_emb];
 		if (!p)
 		{
@@ -467,6 +478,10 @@ bool EV_EditBindingMap::setBinding(EV_EditBits eb, EV_EditBinding * peb)
 		UT_uint32 n_emo = EV_EMO_ToNumber(eb)-1;
 		UT_uint32 n_ems = EV_EMS_ToNumber(eb);
 		UT_uint32 n_emc = EV_EMC_ToNumber(eb);
+		if (n_emo >= EV_COUNT_EMO || n_emc >= EV_COUNT_EMC) {
+			delete peb;
+			return false;
+		}
 		if (p->m_peb[n_emo][n_ems][n_emc]) {
 			delete peb;
 			return false;
@@ -487,6 +502,10 @@ bool EV_EditBindingMap::setBinding(EV_EditBits eb, EV_EditBinding * peb)
 				}
 			}
 			UT_uint32 n_nvk = EV_NVK_ToNumber(eb);
+			if (n_nvk >= EV_COUNT_NVK) {
+				delete peb;
+				return false;
+			}
 			UT_uint32 n_ems = EV_EMS_ToNumber(eb);
 			if (m_pebNVK->m_peb[n_nvk][n_ems]) {
 				delete peb;
@@ -540,12 +559,16 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 	if (EV_IsMouse(eb))					// mouse
 	{
 		UT_uint32 n_emb = EV_EMB_ToNumber(eb)-1;
+		if (n_emb >= EV_COUNT_EMB)
+			return false;
 		class ev_EB_MouseTable * p = m_pebMT[n_emb];
 		if (!p)
 			return false;
 		UT_uint32 n_emo = EV_EMO_ToNumber(eb)-1;
 		UT_uint32 n_ems = EV_EMS_ToNumber(eb);
 		UT_uint32 n_emc = EV_EMC_ToNumber(eb);
+		if (n_emo >= EV_COUNT_EMO || n_emc >= EV_COUNT_EMC)
+			return false;
 		delete p->m_peb[n_emo][n_ems][n_emc];
 		p->m_peb[n_emo][n_ems][n_emc] = nullptr;
 		return true;
@@ -557,6 +580,8 @@ bool EV_EditBindingMap::removeBinding(EV_EditBits eb)
 			if (!m_pebNVK)
 				return false;
 			UT_uint32 n_nvk = EV_NVK_ToNumber(eb);
+			if (n_nvk >= EV_COUNT_NVK)
+				return false;
 			UT_uint32 n_ems = EV_EMS_ToNumber(eb);
 			delete m_pebNVK->m_peb[n_nvk][n_ems];
 			m_pebNVK->m_peb[n_nvk][n_ems] = nullptr;

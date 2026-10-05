@@ -221,7 +221,8 @@ public:									// we create...
 		if (!wd->m_blockSignal && (rows > 0) && (cols > 0))
 		{
 			FV_View * pView = static_cast<FV_View *>(wd->m_pUnixToolbar->getFrame()->getCurrentView());
-			pView->cmdInsertTable(rows, cols, PP_NOPROPS);
+			if (pView)
+				pView->cmdInsertTable(rows, cols, PP_NOPROPS);
 		}
 	}
 
@@ -236,6 +237,10 @@ public:									// we create...
 	{
 		gchar		*iter;
 		gunichar	 c;
+
+		// insert-text may report -1 when new_text is NUL-terminated
+		if (new_text_length < 0)
+			new_text_length = strlen(new_text);
 
 		iter = new_text;
 		while (iter < (new_text + new_text_length)) {
@@ -359,6 +364,9 @@ public:									// we create...
 			buffer = g_strdup (XAP_dropDownGetSelectedText (
 								   GTK_DROP_DOWN (combo)).c_str());
 		}
+		if (!buffer) {
+			return;
+		}
 
 		if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_FONT)) {
 			const gchar *font;
@@ -413,7 +421,8 @@ s_fore_color_changed (GtkColorChooser *cc,
 								 static_cast<int>(color->green * 255),
 								 static_cast<int>(color->blue  * 255));
 	s_popdown_color_popover(GTK_WIDGET(cc));
-	wd->m_pUnixToolbar->toolbarEvent(wd, str.ucs4_str().ucs4_str(), str.size());
+	UT_UCS4String ucs = str.ucs4_str();
+	wd->m_pUnixToolbar->toolbarEvent(wd, ucs.ucs4_str(), str.size());
 }
 
 static void
@@ -431,7 +440,8 @@ s_back_color_changed (GtkColorChooser *cc,
 								 static_cast<int>(color->green * 255),
 								 static_cast<int>(color->blue  * 255));
 	s_popdown_color_popover(GTK_WIDGET(cc));
-	wd->m_pUnixToolbar->toolbarEvent(wd, str.ucs4_str().ucs4_str(), str.size());
+	UT_UCS4String ucs = str.ucs4_str();
+	wd->m_pUnixToolbar->toolbarEvent(wd, ucs.ucs4_str(), str.size());
 }
 
 // the "automatic"/default entry of the color dropdown
@@ -540,9 +550,10 @@ bool EV_UnixToolbar::toolbarEvent(_wd 				* wd,
 	UT_return_val_if_fail(pToolbarActionSet, false);
 
 	const EV_Toolbar_Action * pAction = pToolbarActionSet->getAction(id);
-	UT_ASSERT(pAction);
+	UT_return_val_if_fail(pAction, false);
 
 	AV_View * pView = m_pFrame->getCurrentView();
+	UT_return_val_if_fail(pView, false);
 
 	// make sure we ignore presses on "down" group buttons
 	if (pAction->getItemType() == EV_TBIT_GroupButton)
@@ -577,7 +588,7 @@ bool EV_UnixToolbar::toolbarEvent(_wd 				* wd,
 	UT_return_val_if_fail(pEMC, false);
 
 	EV_EditMethod * pEM = pEMC->findEditMethodByName(szMethodName);
-	UT_ASSERT(pEM);						// make sure it's bound to something
+	UT_return_val_if_fail(pEM, false);	// make sure it's bound to something
 
 	invokeToolbarMethod(pView,pEM,pData,dataLength);
 	return true;
@@ -614,7 +625,8 @@ UT_sint32 EV_UnixToolbar::destroy(void)
 // Now remove the view listener
 //
 	AV_View * pView = getFrame()->getCurrentView();
-	pView->removeListener(m_lid);
+	if (pView)
+		pView->removeListener(m_lid);
 	_releaseListener();
 //
 // Finally destroy the old toolbar widget
@@ -656,17 +668,18 @@ void EV_UnixToolbar::rebuildToolbar(UT_sint32 oldpos)
 // bind  view listener
 //
 	AV_View * pView = getFrame()->getCurrentView();
-	bindListenerToView(pView);
+	if (pView)
+		bindListenerToView(pView);
 }
 
 bool EV_UnixToolbar::synthesize(void)
 {
 	// create a GTK toolbar from the info provided.
 	const EV_Toolbar_ActionSet * pToolbarActionSet = m_pUnixApp->getToolbarActionSet();
-	UT_ASSERT(pToolbarActionSet);
+	UT_return_val_if_fail(pToolbarActionSet, false);
 
 	XAP_Toolbar_ControlFactory * pFactory = m_pUnixApp->getControlFactory();
-	UT_ASSERT(pFactory);
+	UT_return_val_if_fail(pFactory, false);
 
 	UT_uint32 nrLabelItemsInLayout = m_pToolbarLayout->getLayoutItemCount();
 	UT_ASSERT(nrLabelItemsInLayout > 0);
@@ -686,18 +699,28 @@ bool EV_UnixToolbar::synthesize(void)
 
 	for (UT_uint32 k=0; (k < nrLabelItemsInLayout); k++)
 	{
+		/* The widget vector must stay index-aligned with the layout:
+		 * refreshToolbar()/repopulateStyles() look entries up by layout
+		 * index, so every slot pushes exactly one entry (nullptr for a
+		 * slot that has no layout item). */
 		EV_Toolbar_LayoutItem * pLayoutItem = m_pToolbarLayout->getLayoutItem(k);
-		UT_continue_if_fail(pLayoutItem);
+		if (!pLayoutItem)
+		{
+			m_vecToolbarWidgets.push_back(nullptr);
+			continue;
+		}
 
 		XAP_Toolbar_Id id = pLayoutItem->getToolbarId();
 		EV_Toolbar_Action * pAction = pToolbarActionSet->getAction(id);
-		UT_ASSERT(pAction);
 		EV_Toolbar_Label * pLabel = m_pToolbarLabelSet->getLabel(id);
-		UT_ASSERT(pLabel);
 
-		const char * szToolTip = pLabel->getToolTip();
-		if (!szToolTip || !*szToolTip)
-			szToolTip = pLabel->getStatusMsg();		
+		const char * szToolTip = nullptr;
+		if (pLabel)
+		{
+			szToolTip = pLabel->getToolTip();
+			if (!szToolTip || !*szToolTip)
+				szToolTip = pLabel->getStatusMsg();
+		}
 
 		switch (pLayoutItem->getToolbarLayoutFlags())
 		{
@@ -706,6 +729,7 @@ bool EV_UnixToolbar::synthesize(void)
 			_wd * wd = new _wd(this,id);
 			UT_ASSERT(wd);
 
+			if (pAction && pLabel)
 			switch (pAction->getItemType())
 			{
 			case EV_TBIT_PushButton:
@@ -997,6 +1021,7 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 		XAP_Toolbar_Id id = pLayoutItem->getToolbarId();
 		EV_Toolbar_Action * pAction = pToolbarActionSet->getAction(id);
 		UT_continue_if_fail(pAction);
+		UT_continue_if_fail(k < m_vecToolbarWidgets.size());
 
 		AV_ChangeMask maskOfInterest = pAction->getChangeMaskOfInterest();
 		if ((maskOfInterest & mask) == 0)					// if this item doesn't care about
@@ -1221,12 +1246,14 @@ bool EV_UnixToolbar::repopulateStyles(void)
 	for(i=0; i < count; i++)
 	{
 		pLayoutItem = m_pToolbarLayout->getLayoutItem(i);
+		if (!pLayoutItem || i >= m_vecToolbarWidgets.size())
+			continue;
 		id = pLayoutItem->getToolbarId();
 		wd = m_vecToolbarWidgets[i];
 		if(id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE))
 			break;
 	}
-	if(i>=count || !wd)
+	if(i>=count || !wd || !wd->m_widget)
 		return false;
 //
 // GOT IT!

@@ -44,8 +44,6 @@ libev_la_SOURCES += \
 	gtk/ev_UnixFontCombo.h \
 	gtk/ev_UnixKeyboard.cpp \
 	gtk/ev_UnixKeyboard.h \
-	gtk/ev_UnixKeysym2ucs.cpp \
-	gtk/ev_UnixKeysym2ucs.h \
 	gtk/ev_UnixMenuBar.h \
 	gtk/ev_UnixMenu.cpp \
 	gtk/ev_UnixMenu.h \
