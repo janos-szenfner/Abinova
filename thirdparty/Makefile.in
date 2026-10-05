@@ -136,6 +136,9 @@ am_librevenge_la_OBJECTS =  \
 	librevenge-0.0.6/src/lib/librevenge_la-RVNGBinaryData.lo \
 	librevenge-0.0.6/src/lib/librevenge_la-RVNGCSVSpreadsheetGenerator.lo \
 	librevenge-0.0.6/src/lib/librevenge_la-RVNGDirectoryStream.lo \
+	librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyDrawingGenerator.lo \
+	librevenge-0.0.6/src/lib/librevenge_la-RVNGDummySpreadsheetGenerator.lo \
+	librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyTextGenerator.lo \
 	librevenge-0.0.6/src/lib/librevenge_la-RVNGHTMLTextGenerator.lo \
 	librevenge-0.0.6/src/lib/librevenge_la-RVNGHTMLTextTableStyle.lo \
 	librevenge-0.0.6/src/lib/librevenge_la-RVNGHTMLTextTextStyle.lo \
@@ -501,6 +504,9 @@ am__depfiles_remade = hunspell-1.7.4/src/hunspell/$(DEPDIR)/libhunspell_la-affen
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo \
+	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyDrawingGenerator.Plo \
+	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummySpreadsheetGenerator.Plo \
+	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyTextGenerator.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextGenerator.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTableStyle.Plo \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTextStyle.Plo \
@@ -1125,6 +1131,9 @@ librevenge_la_SOURCES = \
 	librevenge-0.0.6/src/lib/RVNGBinaryData.cpp \
 	librevenge-0.0.6/src/lib/RVNGCSVSpreadsheetGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGDirectoryStream.cpp \
+	librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp \
+	librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp \
+	librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGHTMLTextGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGHTMLTextTableStyle.cpp \
 	librevenge-0.0.6/src/lib/RVNGHTMLTextTextStyle.cpp \
@@ -1647,6 +1656,15 @@ librevenge-0.0.6/src/lib/librevenge_la-RVNGCSVSpreadsheetGenerator.lo:  \
 	librevenge-0.0.6/src/lib/$(am__dirstamp) \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/$(am__dirstamp)
 librevenge-0.0.6/src/lib/librevenge_la-RVNGDirectoryStream.lo:  \
+	librevenge-0.0.6/src/lib/$(am__dirstamp) \
+	librevenge-0.0.6/src/lib/$(DEPDIR)/$(am__dirstamp)
+librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyDrawingGenerator.lo:  \
+	librevenge-0.0.6/src/lib/$(am__dirstamp) \
+	librevenge-0.0.6/src/lib/$(DEPDIR)/$(am__dirstamp)
+librevenge-0.0.6/src/lib/librevenge_la-RVNGDummySpreadsheetGenerator.lo:  \
+	librevenge-0.0.6/src/lib/$(am__dirstamp) \
+	librevenge-0.0.6/src/lib/$(DEPDIR)/$(am__dirstamp)
+librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyTextGenerator.lo:  \
 	librevenge-0.0.6/src/lib/$(am__dirstamp) \
 	librevenge-0.0.6/src/lib/$(DEPDIR)/$(am__dirstamp)
 librevenge-0.0.6/src/lib/librevenge_la-RVNGHTMLTextGenerator.lo:  \
@@ -2709,6 +2727,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyDrawingGenerator.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummySpreadsheetGenerator.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyTextGenerator.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextGenerator.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTableStyle.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTextStyle.Plo@am__quote@ # am--include-marker
@@ -3878,6 +3899,27 @@ librevenge-0.0.6/src/lib/librevenge_la-RVNGDirectoryStream.lo: librevenge-0.0.6/
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='librevenge-0.0.6/src/lib/RVNGDirectoryStream.cpp' object='librevenge-0.0.6/src/lib/librevenge_la-RVNGDirectoryStream.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGDirectoryStream.lo `test -f 'librevenge-0.0.6/src/lib/RVNGDirectoryStream.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGDirectoryStream.cpp
+
+librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyDrawingGenerator.lo: librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyDrawingGenerator.lo -MD -MP -MF librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyDrawingGenerator.Tpo -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyDrawingGenerator.lo `test -f 'librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyDrawingGenerator.Tpo librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyDrawingGenerator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp' object='librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyDrawingGenerator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyDrawingGenerator.lo `test -f 'librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp
+
+librevenge-0.0.6/src/lib/librevenge_la-RVNGDummySpreadsheetGenerator.lo: librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librevenge-0.0.6/src/lib/librevenge_la-RVNGDummySpreadsheetGenerator.lo -MD -MP -MF librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummySpreadsheetGenerator.Tpo -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGDummySpreadsheetGenerator.lo `test -f 'librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummySpreadsheetGenerator.Tpo librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummySpreadsheetGenerator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp' object='librevenge-0.0.6/src/lib/librevenge_la-RVNGDummySpreadsheetGenerator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGDummySpreadsheetGenerator.lo `test -f 'librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp
+
+librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyTextGenerator.lo: librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyTextGenerator.lo -MD -MP -MF librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyTextGenerator.Tpo -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyTextGenerator.lo `test -f 'librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyTextGenerator.Tpo librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyTextGenerator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp' object='librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyTextGenerator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGDummyTextGenerator.lo `test -f 'librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp
 
 librevenge-0.0.6/src/lib/librevenge_la-RVNGHTMLTextGenerator.lo: librevenge-0.0.6/src/lib/RVNGHTMLTextGenerator.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librevenge_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librevenge-0.0.6/src/lib/librevenge_la-RVNGHTMLTextGenerator.lo -MD -MP -MF librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextGenerator.Tpo -c -o librevenge-0.0.6/src/lib/librevenge_la-RVNGHTMLTextGenerator.lo `test -f 'librevenge-0.0.6/src/lib/RVNGHTMLTextGenerator.cpp' || echo '$(srcdir)/'`librevenge-0.0.6/src/lib/RVNGHTMLTextGenerator.cpp
@@ -5927,6 +5969,9 @@ distclean: distclean-am
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo
+	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyDrawingGenerator.Plo
+	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummySpreadsheetGenerator.Plo
+	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyTextGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTableStyle.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTextStyle.Plo
@@ -6345,6 +6390,9 @@ maintainer-clean: maintainer-clean-am
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGBinaryData.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGCSVSpreadsheetGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDirectoryStream.Plo
+	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyDrawingGenerator.Plo
+	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummySpreadsheetGenerator.Plo
+	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGDummyTextGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextGenerator.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTableStyle.Plo
 	-rm -f librevenge-0.0.6/src/lib/$(DEPDIR)/librevenge_la-RVNGHTMLTextTextStyle.Plo

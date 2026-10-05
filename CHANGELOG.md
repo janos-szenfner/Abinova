@@ -4591,6 +4591,21 @@ below are on `main` but the release has not been cut yet.
   (truncated/corrupt/garbage variants) per format, and the known
   `doc07_float.doc` layout hang is pinned under
   `fuzz/regress/doc/` until DOC19 fixes it.
+- **Vendored-library CVE inventory + direct-parser fuzz targets** —
+  `thirdparty/VENDORED.json` now records a per-library CVE review
+  (`advisories`/`advisory_note` with affected ranges and fixed-in
+  versions, checked against NVD and Debian OSV): every vendored
+  version is currently past all published CVEs, and wv-1.2.9 is
+  documented as effectively maintained in-tree given its dead
+  upstream and local hardening patch set. New fuzz targets
+  `fuzz_libwpd`, `fuzz_libwpg` and `fuzz_libwps` feed bytes straight
+  into the vendored parsers' public APIs (bypassing the importer
+  glue, at parity with upstream's own `*fuzzer.cpp` drivers) using
+  the librevenge dummy generator sinks — the dummy generators are
+  now compiled into `librevenge.la`. Seed corpora live in
+  `fuzz/corpus/{libwpd,libwpg,libwps}` (regenerate with
+  `tools/mkvendseeds.py`); all three replay clean and survived 15s
+  bounded runs with zero crashes.
 - **Sanitizer suite gate (`make check-asan` / `make check-ubsan`)** —
   `tools/check-san.sh` maintains a scratch
   `-fsanitize=address,undefined` build under `san-build/tree/`

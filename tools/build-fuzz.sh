@@ -146,7 +146,15 @@ __fuzz_libs:
 	@echo $(DEPS_LIBS)
 EOF
 )
-FUZZ_CPPFLAGS=$FUZZ_FLAGS
+# vendored-lib fuzz targets include libwpd/libwps/libwpg/librevenge
+# headers — those -I paths live in src/wp/impexp's AM_CPPFLAGS, not in
+# the ap dir's flag set, so append them (relative to src/wp/ap where
+# the target compile runs, like the WP_CPPFLAGS -I../../.. entries)
+FUZZ_CPPFLAGS="$FUZZ_FLAGS \
+    -I../../../thirdparty/libwpd-0.10.3/inc \
+    -I../../../thirdparty/libwps-0.4.14/inc \
+    -I../../../thirdparty/libwpg-0.3.4/inc \
+    -I../../../thirdparty/librevenge-0.0.6/inc"
 
 targets="$*"
 if [ -z "$targets" ]; then

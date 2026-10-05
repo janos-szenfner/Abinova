@@ -14,6 +14,9 @@ librevenge_la_SOURCES = \
 	librevenge-0.0.6/src/lib/RVNGBinaryData.cpp \
 	librevenge-0.0.6/src/lib/RVNGCSVSpreadsheetGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGDirectoryStream.cpp \
+	librevenge-0.0.6/src/lib/RVNGDummyDrawingGenerator.cpp \
+	librevenge-0.0.6/src/lib/RVNGDummySpreadsheetGenerator.cpp \
+	librevenge-0.0.6/src/lib/RVNGDummyTextGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGHTMLTextGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGHTMLTextTableStyle.cpp \
 	librevenge-0.0.6/src/lib/RVNGHTMLTextTextStyle.cpp \

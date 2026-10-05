@@ -25,7 +25,16 @@
         "src/tools/.gitignore": "upstream gitignore (release tarballs omit .gitignore)"
       },
       "flags": "-DHUNSPELL_STATIC -DBUILDING_LIBHUNSPELL",
-      "advisories": []
+      "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
+      "advisories": [
+        {
+          "id": "CVE-2019-16707",
+          "summary": "invalid read in SuggestMgr::leftcommonsubstring (suggestmgr.cxx)",
+          "affects": "hunspell 1.7.0",
+          "vendored_status": "not-affected",
+          "fixed_in": "1.7.0-3 (Debian) / upstream fix landed before 1.7.4"
+        }
+      ]
     },
     "librevenge": {
       "dir": "librevenge-0.0.6",
@@ -41,7 +50,9 @@
       "patched_files": {},
       "local_files": {},
       "flags": "-DLIBREVENGE_BUILD",
-      "advisories": []
+      "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
+      "advisories": [],
+      "advisory_note": "No published CVEs against librevenge at any version. Latest upstream release is 0.0.6 — vendored copy is current."
     },
     "libwpd": {
       "dir": "libwpd-0.10.3",
@@ -57,7 +68,45 @@
       "patched_files": {},
       "local_files": {},
       "flags": "-DLIBWPD_BUILD -DLIBWPD_STREAMS",
-      "advisories": []
+      "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
+      "advisories": [
+        {
+          "id": "CVE-2007-0002",
+          "summary": "heap buffer overflows in WP3TablesGroup/_readContents + WP5DefinitionGroup_DefineTablesSubGroup",
+          "affects": "libwpd <0.8.9",
+          "vendored_status": "not-affected",
+          "fixed_in": "0.8.9"
+        },
+        {
+          "id": "CVE-2007-1466",
+          "summary": "integer overflow summing operand values in WP6GeneralTextPacket::_readContents -> heap overflow",
+          "affects": "libwpd <=0.8.7 (iDefense 2007-03-16)",
+          "vendored_status": "not-affected",
+          "fixed_in": "0.8.9"
+        },
+        {
+          "id": "CVE-2012-2149",
+          "summary": "negative array index in WPXContentListener::_closeTableRow -> memory overwrite (was OpenOffice.org's bundled 0.8.8)",
+          "affects": "libwpd 0.8.8 and earlier",
+          "vendored_status": "not-affected",
+          "fixed_in": "0.8.14-1 (Debian) / upstream 0.9.x"
+        },
+        {
+          "id": "CVE-2017-14226",
+          "summary": "WP1/WP5/WP42StylesListener mishandle iterators -> heap over-read in WPXTableList (DoS)",
+          "affects": "libwpd 0.10.1",
+          "vendored_status": "not-affected",
+          "fixed_in": "0.10.2"
+        },
+        {
+          "id": "CVE-2018-19208",
+          "summary": "NULL pointer dereference in WP6ContentListener::defineTable (WPXTable.h) -> DoS",
+          "affects": "libwpd 0.10.2",
+          "vendored_status": "not-affected — bounds+null checks present in vendored WP6ContentListener.cpp:defineTable",
+          "fixed_in": "0.10.2-3 (Debian) / upstream 0.10.3"
+        }
+      ],
+      "advisory_note": "Upstream latest is 0.10.3 (2019) — vendored copy is current and past all five published libwpd CVEs."
     },
     "libwpg": {
       "dir": "libwpg-0.3.4",
@@ -73,7 +122,9 @@
       "patched_files": {},
       "local_files": {},
       "flags": "-DLIBWPG_BUILD -DLIBWPG_STREAMS",
-      "advisories": []
+      "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
+      "advisories": [],
+      "advisory_note": "No published CVEs against libwpg at any version. Latest upstream release is 0.3.4 — vendored copy is current."
     },
     "libwps": {
       "dir": "libwps-0.4.14",
@@ -89,7 +140,9 @@
       "patched_files": {},
       "local_files": {},
       "flags": "-DLIBWPS_BUILD -DLIBWPS_STREAMS",
-      "advisories": []
+      "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
+      "advisories": [],
+      "advisory_note": "No published CVEs against libwps at any version (the MS08-011/CVE-2009-1533 Works-converter CVEs are Microsoft's own converter, not libwps). Latest upstream release is 0.4.14 — vendored copy is current."
     },
     "wv": {
       "dir": "wv-1.2.9",
@@ -163,7 +216,24 @@
         "wvConfig.c": "SAX handler callback casts",
         "wvparse.c": "core parse: story walks, escher/blip hookup, stream bounds (DOC01-23)"
       },
-      "advisories": []
+      "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
+      "advisories": [
+        {
+          "id": "CVE-2004-0645",
+          "summary": "buffer overflow in wvHandleDateTimePicture via long DateTime field",
+          "affects": "wvWare 0.7.4-0.7.6, 1.0.0",
+          "vendored_status": "not-affected",
+          "fixed_in": "1.0.2"
+        },
+        {
+          "id": "CVE-2006-4513",
+          "summary": "integer overflows via large LFO clfolvl/nolfo values in wvGetLFO_records/wvGetFLO_PLF",
+          "affects": "wvWare before 1.2.3",
+          "vendored_status": "not-affected",
+          "fixed_in": "1.2.4"
+        }
+      ],
+      "advisory_note": "No CVEs affect 1.2.9, but upstream is dead (~2010) so new findings will never be assigned a fix release: the vendored tree carries a 53-file local hardening patch set (DOC01-23 + UB/SEC/MEM audits) that already closed whole classes of unpatched memory bugs — treat wv as maintained in-tree, not upstream-tracked. Fuzz coverage: fuzz_doc (through the importer) + the regression corpus in fuzz/regress/doc."
     }
   }
 }

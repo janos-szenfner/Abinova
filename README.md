@@ -84,7 +84,11 @@ Legacy `.doc` import is likewise built in via bundled `wv-1.2.9`
 of these appear in the plugin list any more. The vendored libraries
 are inventoried in `thirdparty/VENDORED.json` (per-file local deltas
 vs upstream, verified by `tools/vendor-check.py`) with the upgrade
-procedure in `thirdparty/UPGRADING.md`.
+procedure in `thirdparty/UPGRADING.md`. The manifest also records a
+per-library CVE review (`advisories` / `advisory_note`): every
+vendored version is currently past all published CVEs — wv-1.2.9's
+old ones are fixed before its version, and its unpatched-bug class is
+covered by the in-tree hardening patch set.
 
 ### Removed plugins
 
@@ -2239,7 +2243,15 @@ Each `fuzz/fuzz_<fmt>.cpp` harness feeds bytes through the
 (native `.abw`/`.abwn`), `fuzz_doc` (legacy Word `.doc` via wv),
 `fuzz_rtf` and `fuzz_wpd` (WordPerfect via libwpd), `fuzz_odt` and
 `fuzz_docx` (zip+XML containers) and `fuzz_mht` (MHTML). Seed corpora live
-in `fuzz/corpus/<fmt>/`. `tools/build-fuzz.sh` maintains an
+in `fuzz/corpus/<fmt>/`. A second trio — `fuzz_libwpd`, `fuzz_libwpg`
+and `fuzz_libwps` — bypasses the importer glue entirely and feeds
+bytes straight into the vendored parsers' public APIs
+(`WPDocument::parse`, `WPGraphics::parse`, `WPSDocument::parse`) with
+dummy librevenge sinks, so hostile `.wpd`/`.wpg`/`.wps` exercise the
+libraries' own record parsers the way upstream's dropped
+`src/fuzz/*fuzzer.cpp` drivers did; their corpora live in
+`fuzz/corpus/libwpd|libwpg|libwps/` (regenerate with
+`tools/mkvendseeds.py`). `tools/build-fuzz.sh` maintains an
 instrumented copy of the tree under `fuzz-build/tree` (see its
 header comment for bounded-run usage and why `detect_leaks=0` is
 used for smoke runs). Crash reproducers land in the directory given
