@@ -24,7 +24,11 @@
 #include "ut_misc.h"
 
 #include <glib.h>
+#if defined(G_OS_WIN32)
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 #include <string.h>
 
 #define UT_ABWN_MAGIC "ABWNCRP1"
@@ -140,15 +144,52 @@ struct UT_EvpApi {
 	int (*ctx_ctrl)(UT_EVP_CIPHER_CTX *, int, int, void *);
 };
 
+static void * ut_dlopen(const char * name)
+{
+#if defined(G_OS_WIN32)
+	/* Hardened search first: the directory the exe lives in (where a
+	 * one-folder bundle drops the dll) and System32 only — PATH and
+	 * the CWD stay out so a planted libcrypto cannot preload.  Fall
+	 * back to the standard search order so a PATH-installed OpenSSL
+	 * (MSYS2 /ucrt64/bin, slproweb's system install) still resolves;
+	 * also covers LoadLibraryEx flag rejection on ancient targets. */
+	HMODULE h = LoadLibraryExA(name, nullptr,
+		LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
+	if (!h)
+		h = LoadLibraryA(name);
+	return h;
+#else
+	return dlopen(name, RTLD_NOW | RTLD_LOCAL);
+#endif
+}
+
+static void ut_dlclose(void * lib)
+{
+#if defined(G_OS_WIN32)
+	FreeLibrary(static_cast<HMODULE>(lib));
+#else
+	dlclose(lib);
+#endif
+}
+
 static void * ut_dlsym(void * lib, const char * name)
 {
+#if defined(G_OS_WIN32)
+	FARPROC fp = GetProcAddress(static_cast<HMODULE>(lib), name);
+	void * fn = nullptr;
+	static_assert(sizeof(fn) == sizeof(fp),
+				  "Win32 function pointers must fit in void *");
+	memcpy(&fn, &fp, sizeof(fn));
+	return fn;
+#else
 	return dlsym(lib, name);
+#endif
 }
 
 static bool ut_evp_resolve(UT_EvpApi & a, const char * libname)
 {
 	static_assert(sizeof(void *) == sizeof(a.aes_256_gcm),
-				  "POSIX function pointers must fit in void *");
+				  "platform function pointers must fit in void *");
 	struct { const char * name; void * slot; } syms[] = {
 		{"EVP_aes_256_gcm",   &a.aes_256_gcm},
 		{"EVP_CIPHER_CTX_new",&a.ctx_new},
@@ -177,10 +218,12 @@ static bool ut_evp_resolve(UT_EvpApi & a, const char * libname)
 
 /* Candidate library names, tried in order.
  *
- * PACKAGING NOTE: libcrypto is dlopen()d at runtime, so it does NOT
- * appear in the binary's NEEDED list and is invisible to ldd/otool —
+ * PACKAGING NOTE: libcrypto is loaded at runtime (dlopen on POSIX,
+ * LoadLibrary on Windows), so it does NOT appear in the binary's
+ * NEEDED/imports list and is invisible to ldd/otool/dumpbin —
  * PACK01's bundle manifest must ship a libcrypto in the bundle
- * explicitly or encrypted .abwn files cannot be opened.
+ * explicitly (on Windows: libcrypto-3-x64.dll beside the exe) or
+ * encrypted .abwn files cannot be opened.
  *
  * LibreSSL note: EVP_aes_256_gcm + EVP_CIPHER_CTX_ctrl GCM ops have
  * existed since LibreSSL 2.x (OpenBSD 5.3 era) with the same
@@ -190,8 +233,14 @@ static bool ut_evp_resolve(UT_EvpApi & a, const char * libname)
  * ancient OpenSSL 0.9.8-era libcrypto.dylib can't block a working
  * OpenSSL later in the list.
  *
- * The Windows side (LoadLibrary + GetProcAddress on
- * libcrypto-3-x64.dll, or CNG BCryptEncrypt) is PORT13's job. */
+ * Windows note: the same EVP table is reached via LoadLibrary +
+ * GetProcAddress.  Windows' own CNG backend (bcrypt.dll AES-GCM via
+ * BCryptEncrypt + BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO) was
+ * evaluated and rejected: it would drop the bundled-dll requirement
+ * but needs a parallel crypto implementation whose call sequence is
+ * untestable off-Windows, while the EVP path below is the identical,
+ * already-verified GCM flow used on every other platform — and the
+ * MSYS2/one-folder bundle ships the dll regardless (PACK05). */
 static const UT_EvpApi * ut_evp()
 {
 	static UT_EvpApi a = {};
@@ -201,7 +250,22 @@ static const UT_EvpApi * ut_evp()
 	tried = 1;
 
 	const char * libs[] = {
-#if defined(__APPLE__)
+#if defined(G_OS_WIN32)
+		/* OpenSSL 3 names carry the target arch (MSYS2 UCRT64/
+		 * CLANGARM64, vcpkg and slproweb all agree on them); a
+		 * one-folder bundle drops the dll beside the exe.  OpenSSL
+		 * <1.1.0 lacks EVP_CIPHER_CTX_new, so libeay32-era names
+		 * would fail symbol resolution anyway and are omitted. */
+#  if defined(_M_ARM64) || defined(__aarch64__)
+		"libcrypto-3-arm64.dll",
+#  elif defined(_WIN64) || defined(__x86_64__) || defined(_M_X64)
+		"libcrypto-3-x64.dll",
+#  endif
+		"libcrypto-3.dll",		/* x86 name; also generic 3.x builds */
+		"libcrypto-1_1-x64.dll",	/* OpenSSL 1.1.x — same EVP surface */
+		"libcrypto-1_1.dll",
+		"libcrypto.dll",		/* LibreSSL / unversioned builds */
+#elif defined(__APPLE__)
 		/* bare sonames first — dyld searches the app bundle
 		 * (@rpath/Frameworks) and DYLD paths, so a bundled or
 		 * Homebrew-linked OpenSSL 3 wins before the system lib */
@@ -225,12 +289,12 @@ static const UT_EvpApi * ut_evp()
 		nullptr};
 	for (int i = 0; libs[i]; i++)
 	{
-		a.lib = dlopen(libs[i], RTLD_NOW | RTLD_LOCAL);
+		a.lib = ut_dlopen(libs[i]);
 		if (!a.lib)
 			continue;
 		if (ut_evp_resolve(a, libs[i]))
 			return &a;
-		dlclose(a.lib);
+		ut_dlclose(a.lib);
 		memset(&a, 0, sizeof(a));
 	}
 	return nullptr;

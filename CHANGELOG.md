@@ -4665,12 +4665,17 @@ below are on `main` but the release has not been cut yet.
   AES-256-GCM helper's `dlopen` candidate list now covers macOS
   (`libcrypto.3.dylib`/`libcrypto.dylib`, Homebrew openssl@3 on
   arm64 + intel, MacPorts, and the system LibreSSL — LibreSSL has
-  shipped the full EVP GCM API since 2.x), and a candidate that
-  opens but lacks an EVP symbol now falls through to the next
+  shipped the full EVP GCM API since 2.x) and Windows, where the
+  same EVP table is reached via `LoadLibrary`/`GetProcAddress` on
+  `libcrypto-3-x64.dll`/`libcrypto-3-arm64.dll`/`libcrypto-3.dll`/
+  `libcrypto-1_1*.dll`/`libcrypto.dll` — the exe's own directory and
+  System32 are searched first so a bundled dll wins, then the
+  standard search order for PATH-installed OpenSSL. A candidate that
+  opens but lacks an EVP symbol falls through to the next
   instead of failing outright. New `dist/RUNTIME-DEPS.md` seeds the
   packaging manifest with runtime-loaded dependencies (libcrypto,
   enchant backends, pixbuf loaders, GIO/TLS modules, schemas) that
-  `ldd`/`otool` cannot see. No functional change on Linux.
+  `ldd`/`otool`/`dumpbin` cannot see. No functional change on Linux.
 
 ### Resolved root causes worth noting
 
