@@ -185,6 +185,7 @@ void AP_Dialog_MergeCells::setAllSensitivities(void)
 // get from the table container
 //
 	fl_BlockLayout * pBL =	pView->getLayout()->findBlockAtPosition(iCurPos);
+	UT_return_if_fail(pBL);
 	fp_Run * pRun;
 	UT_sint32 xPoint,yPoint,xPoint2,yPoint2,iPointHeight;
 	bool bDirection;
@@ -271,7 +272,12 @@ void AP_Dialog_MergeCells::setMergeType( mergeWithCell iMergeType)
 void AP_Dialog_MergeCells::_generateSrcDest(void)
 {
 	PT_DocPosition swap = 0;
-	FV_View * pView = static_cast<FV_View *>(m_pApp->getLastFocussedFrame()->getCurrentView());
+	FV_View * pView = nullptr;
+	if (XAP_Frame * pFrame = m_pApp->getLastFocussedFrame())
+	{
+		pView = static_cast<FV_View *>(pFrame->getCurrentView());
+	}
+	UT_return_if_fail(pView);
 	if(m_mergeType == radio_left)
 	{
 		m_iCellDestination = pView->findCellPosAt(m_iCellSource,m_iTop,m_iLeft-1)+1;

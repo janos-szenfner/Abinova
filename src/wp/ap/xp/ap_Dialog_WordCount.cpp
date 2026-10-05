@@ -84,7 +84,10 @@ void AP_Dialog_WordCount::updateDialogData(void)
 	setWidgetValueInt(LINES_VAL_WID, m_count.line);
 	setWidgetValueInt(PAGES_VAL_WID, m_count.page);
 
-	setWidgetLabel (TITLE_LBL_WID, getActiveFrame()->getTitle());
+	if (XAP_Frame * pFrame = getActiveFrame())
+	{
+		setWidgetLabel (TITLE_LBL_WID, pFrame->getTitle());
+	}
 }
 
 
@@ -110,7 +113,7 @@ void AP_Dialog_WordCount::setCountFromActiveFrame(void)
 		return;
 
 	FV_View * pview = static_cast<FV_View *>(getActiveFrame()->getCurrentView());
-	if(!pview->isLayoutFilling())
+	if(pview && !pview->isLayoutFilling())
 	{
 		setCount(pview->countWords(true));
 	}

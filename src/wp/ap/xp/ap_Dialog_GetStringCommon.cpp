@@ -21,11 +21,13 @@
 #include "xap_Dialog_Id.h"
 #include "xap_DialogFactory.h"
 #include "ap_Dialog_GetStringCommon.h"
+#include "ut_assert.h"
 
 AP_Dialog_GetStringCommon::AP_Dialog_GetStringCommon( XAP_DialogFactory * pDlgFactory,
                                                       XAP_Dialog_Id id,
                                                       const char* dialogfile )
   : XAP_Dialog_NonPersistent(pDlgFactory,id, dialogfile)
+  , m_pDoc(nullptr)
   , m_string("")
   , m_answer(a_CANCEL)
 {
@@ -60,5 +62,6 @@ void AP_Dialog_GetStringCommon::setString( const std::string& s )
 
 void AP_Dialog_GetStringCommon::setDoc(FV_View * pView)
 {
+	UT_return_if_fail(pView);
 	m_pDoc = pView->getDocument();
 }

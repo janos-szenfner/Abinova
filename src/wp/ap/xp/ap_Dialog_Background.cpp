@@ -33,7 +33,7 @@ AP_Dialog_Background::AP_Dialog_Background(XAP_DialogFactory * pDlgFactory, XAP_
 	m_bDoForeground(false),
 	m_bDoHighlight(false)
 {
-	sprintf(m_pszColor,"%s","transparent");
+	snprintf(m_pszColor, sizeof(m_pszColor), "%s", "transparent");
 	UT_setColor(m_color, 0xff, 0xff, 0xff);
 }
 
@@ -72,12 +72,12 @@ void  AP_Dialog_Background::setColor (const gchar * pszColor)
 	if(pszColor && strcmp(pszColor,"transparent") != 0)
 	{
 		UT_parseColor(pszColor,m_color);
-		sprintf(m_pszColor, "%02x%02x%02x", m_color.m_red, m_color.m_grn, m_color.m_blu);
+		snprintf(m_pszColor, sizeof(m_pszColor), "%02x%02x%02x", m_color.m_red, m_color.m_grn, m_color.m_blu);
 	}
 	else
 	{
 		UT_setColor(m_color, 255, 255, 255);
-		sprintf(m_pszColor,"%s","transparent");
+		snprintf(m_pszColor, sizeof(m_pszColor), "%s", "transparent");
 	}
 }
 
@@ -85,5 +85,5 @@ void  AP_Dialog_Background::setColor (const gchar * pszColor)
 void  AP_Dialog_Background::setColor (UT_RGBColor & col)
 {
 	UT_setColor(m_color, col.m_red, col.m_grn, col.m_blu);
-	sprintf(m_pszColor, "%02x%02x%02x", m_color.m_red, m_color.m_grn, m_color.m_blu);
+	snprintf(m_pszColor, sizeof(m_pszColor), "%02x%02x%02x", m_color.m_red, m_color.m_grn, m_color.m_blu);
 }

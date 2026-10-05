@@ -38,9 +38,14 @@ AP_Preview_Annotation::AP_Preview_Annotation(XAP_DialogFactory * pDlgFactory,XAP
 	m_top(0),
 	m_Offset(0),
 	m_clrBackground(255, 247, 177),
+	m_iAID(0),
 	m_sTitle("n/a"),
 	m_sAuthor("n/a"),
-	m_sDescription("n/a")
+	m_sDescription("n/a"),
+	m_pFont(nullptr),
+	m_iAscent(0),
+	m_iDescent(0),
+	m_iHeight(0)
 {
 	m_gc = nullptr;
 }
@@ -89,7 +94,9 @@ void AP_Preview_Annotation::_createAnnotationPreviewFromGC(GR_Graphics * gc, UT_
  */
 void AP_Preview_Annotation::setSizeFromAnnotation(void)
 {
-	FV_View * pView = static_cast<FV_View *>(getActiveFrame()->getCurrentView());
+	XAP_Frame * pFrame = getActiveFrame();
+	UT_return_if_fail(pFrame);
+	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
 	GR_Graphics * pG = nullptr;
 	UT_return_if_fail(pView);
 	pG = pView->getGraphics();

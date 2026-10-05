@@ -3789,6 +3789,20 @@ below are on `main` but the release has not been cut yet.
   the layout even when a slot is skipped, and the dead 856-line
   `keysym2ucs` X11 table was dropped — GTK4 does the translation via
   `gdk_keyval_to_unicode`.
+- **Dialog and preview base classes audited** — the untouched
+  `ap_Dialog_*`/`xap_*` utility layer: the Background dialog's color
+  buffer is now written with `snprintf` instead of `sprintf` (the
+  `"transparent"` case only fit by luck); the Zoom dialog's zoom-type
+  member was never initialized and its page-width/whole-page paths
+  could dereference a missing view; `XAP_Preview`'s protected
+  constructor left its graphics pointer indeterminate so a queued
+  redraw was undefined behaviour; `XAP_CustomWidget` and
+  `XAP_FontPreview` now tolerate being asked to draw before a
+  graphics context exists; the annotation preview's uninitialized
+  font/metric members and null-active-frame dereference are fixed;
+  and the WordCount, LaTeX, Merge Cells and Split Cells dialogs no
+  longer crash when invoked while no document frame or table block
+  is available.
 
 ### GTK4 port (core migration)
 

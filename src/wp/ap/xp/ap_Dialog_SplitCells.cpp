@@ -190,6 +190,7 @@ void AP_Dialog_SplitCells::setAllSensitivities(void)
 // get from the table container
 //
 	fl_BlockLayout * pBL =	pView->getLayout()->findBlockAtPosition(iCurPos);
+	UT_return_if_fail(pBL);
 	fp_Run * pRun;
 	UT_sint32 xPoint,yPoint,xPoint2,yPoint2,iPointHeight;
 	bool bDirection;

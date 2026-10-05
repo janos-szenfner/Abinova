@@ -64,11 +64,15 @@ bool AP_Dialog_Latex::convertLatexToMathML(void)
 
 	From->ins(0, reinterpret_cast<const UT_Byte *>(m_sLatex.utf8_str()), static_cast<UT_uint32>(m_sLatex.size()));
 	XAP_Frame * pFrame = getActiveFrame();
-	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
+	FV_View * pView = pFrame ? static_cast<FV_View *>(pFrame->getCurrentView()) : nullptr;
+	if (!pView)
+	{
+		return false;
+	}
 	FL_DocLayout * pLayout = pView->getLayout();
-	GR_EmbedManager * pEmbed = pLayout->getEmbedManager("mathml");
-	
-	if (pEmbed->isDefault())
+	GR_EmbedManager * pEmbed = pLayout ? pLayout->getEmbedManager("mathml") : nullptr;
+
+	if (!pEmbed || pEmbed->isDefault())
 	{
 		return false;
 	}
@@ -111,6 +115,9 @@ void  AP_Dialog_Latex::fillLatex(UT_UTF8String & sLatex)
 void AP_Dialog_Latex::insertIntoDoc(void)
 {
 	XAP_Frame * pFrame = getActiveFrame();
-	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
-	pView->cmdInsertLatexMath(m_sLatex,m_sMathML, m_compact);
+	FV_View * pView = pFrame ? static_cast<FV_View *>(pFrame->getCurrentView()) : nullptr;
+	if (pView)
+	{
+		pView->cmdInsertLatexMath(m_sLatex,m_sMathML, m_compact);
+	}
 }

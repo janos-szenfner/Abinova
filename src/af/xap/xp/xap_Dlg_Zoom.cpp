@@ -38,6 +38,9 @@ XAP_Dialog_Zoom::XAP_Dialog_Zoom(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id 
 {
 	m_answer = a_OK;
 
+	// default zoom type; runModal() overrides it via setZoomType()
+	m_zoomType = XAP_Frame::z_100;
+
 	// this should really never appear, since setZoomPercent()
 	// should always be called before the dialog is shown
 	m_zoomPercent = 100;
@@ -83,11 +86,11 @@ UT_uint32 XAP_Dialog_Zoom::getZoomPercent(void)
 	case XAP_Frame::z_75:
 		return 75;
 	case XAP_Frame::z_PAGEWIDTH:
-	  if ( m_pFrame )
+	  if ( m_pFrame && m_pFrame->getCurrentView () )
 	    return m_pFrame->getCurrentView ()->calculateZoomPercentForPageWidth () ;
           break;
 	case XAP_Frame::z_WHOLEPAGE:
-	  if ( m_pFrame )
+	  if ( m_pFrame && m_pFrame->getCurrentView () )
 	    return m_pFrame->getCurrentView ()->calculateZoomPercentForWholePage () ;
           break;
 	case XAP_Frame::z_PERCENT:

@@ -33,7 +33,7 @@ XAP_Preview::XAP_Preview(GR_Graphics * gc) :
 
 // protected constructor
 XAP_Preview::XAP_Preview() :
-m_iWindowHeight(0), m_iWindowWidth(0)
+m_gc(nullptr), m_iWindowHeight(0), m_iWindowWidth(0)
 {
 	//UT_ASSERT(gc); -> requires setting of gc after creation
 }
@@ -45,7 +45,9 @@ XAP_Preview::~XAP_Preview()
 void XAP_Preview::queueDraw(const UT_Rect* clip)
 {
     m_drawQueue.push(clip ? std::optional<UT_Rect>(*clip) : std::nullopt);
-    getGraphics()->queueDraw(clip);
+    GR_Graphics * gr = getGraphics();
+    if (gr)
+        gr->queueDraw(clip);
 }
 
 /************************************************************************/

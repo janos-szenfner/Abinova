@@ -316,3 +316,4 @@ queue and `.devin/RUNNER_PROMPT.md` for the per-run contract.
   dead keysym2ucs table + ui_drive section dropped (GTK4 uses
   gdk_keyval_to_unicode) — verified: make -j2 clean, make check 5/5
   PASS (incl. drvwrap ui-drive), Austin.docx ->pdf renders correct
+- 2026-10-05 AUD03: audited 51 untouched dialog/util bases — ap_Dialog_Background sprintf->snprintf, zoom-type/preview-gc/annotation member inits, null-guards on frame/view/gc chains in Zoom/FontPreview/CustomWidget/WordCount/Latex/MergeCells/SplitCells/GetStringCommon — make -j2 clean, make check 5/5 PASS, dlgswrap ok on all 8 named dialogs

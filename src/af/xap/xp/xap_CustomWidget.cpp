@@ -26,7 +26,10 @@
 void XAP_CustomWidget::queueDraw(const UT_Rect *clip)
 {
 	m_drawQueue.push(clip ? std::optional<UT_Rect>(*clip) : std::nullopt);
-	getGraphics()->queueDraw(clip);
+	GR_Graphics *gr = getGraphics();
+	if (gr) {
+		gr->queueDraw(clip);
+	}
 }
 
 void XAP_CustomWidget::queueDrawLU(const UT_Rect *clip)
@@ -55,6 +58,9 @@ void XAP_CustomWidget::drawImmediate(const UT_Rect* clip)
 {
 	GR_Graphics *gr = getGraphics();
 	UT_ASSERT(gr);
+	if (!gr) {
+		return;
+	}
 
 	if (clip == nullptr) {
 		drawImmediateLU(nullptr);
