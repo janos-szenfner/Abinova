@@ -108,6 +108,10 @@ void pt_PieceTable::beginUserAtomicGlob(void)
 
 void pt_PieceTable::endUserAtomicGlob(void)
 {
+  // m_atomicGlobCount is unsigned: an unbalanced end used to wrap it
+  // to UINT32_MAX, after which no begin/end pair could ever nest back
+  // to zero and every subsequent edit globbed into one undo unit.
+  UT_return_if_fail (m_atomicGlobCount > 0);
   m_atomicGlobCount--;
   xxx_UT_DEBUGMSG(("End Glob count %d \n", m_atomicGlobCount));
   if (m_atomicGlobCount != 0)

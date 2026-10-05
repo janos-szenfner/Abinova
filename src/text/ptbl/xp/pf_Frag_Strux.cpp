@@ -95,6 +95,7 @@ bool pf_Frag_Strux::usesXID() const
 		case PTX_SectionCell:
 		case PTX_SectionFootnote:
 		case PTX_SectionMarginnote:
+		case PTX_SectionAnnotation:
 		case PTX_SectionFrame:
 		case PTX_SectionTOC:
 			return true;
@@ -133,6 +134,7 @@ bool pf_Frag_Strux::isMatchingType(PTStruxType eType) const
 		case PTX_SectionCell:       return eType == PTX_EndCell;
 		case PTX_SectionFootnote:   return eType == PTX_EndFootnote;
 		case PTX_SectionMarginnote: return eType == PTX_EndMarginnote;
+		case PTX_SectionAnnotation: return eType == PTX_EndAnnotation;
 		case PTX_SectionFrame:      return eType == PTX_EndFrame;
 		case PTX_SectionTOC:        return eType == PTX_EndTOC;
 		case PTX_EndCell:           return eType == PTX_SectionCell;
@@ -140,6 +142,7 @@ bool pf_Frag_Strux::isMatchingType(PTStruxType eType) const
 		case PTX_EndFootnote:       return eType == PTX_SectionFootnote;
 		case PTX_EndMarginnote:     return eType == PTX_SectionMarginnote;
 		case PTX_EndEndnote:        return eType == PTX_SectionEndnote;
+		case PTX_EndAnnotation:     return eType == PTX_SectionAnnotation;
 		case PTX_EndFrame:          return eType == PTX_SectionFrame;
 		case PTX_EndTOC:            return eType == PTX_SectionTOC;
 

@@ -88,8 +88,8 @@ bool fd_Field::update(void)
        {
               UT_UCS4Char testUCSFieldText[256];
 	      char testChars[256];
-	      sprintf(testChars,
-		      "test field text (%d updates)",
+	      snprintf(testChars, sizeof(testChars),
+		      "test field text (%u updates)",
 		      m_updateCount);
 
 	      UT_UCS4_strcpy_char(testUCSFieldText,
@@ -124,13 +124,13 @@ bool fd_Field::update(void)
 
               UT_UCS4Char testUCSFieldText[1024];
 	      char testChars[256];
-	      sprintf(testChars,
-		      "test field text (%d updates)",
+	      snprintf(testChars, sizeof(testChars),
+		      "test field text (%u updates)",
 		      m_updateCount);
 
 	      char martintestChar[256];
-	      sprintf(martintestChar,
-		      "Martin field text (%d updates)",
+	      snprintf(martintestChar, sizeof(martintestChar),
+		      "Martin field text (%u updates)",
 		      m_updateCount);
 
               //UT_UCS4Char * curpos;
@@ -145,7 +145,7 @@ bool fd_Field::update(void)
               UT_uint32 i;
 	      for(i=1; i<=5; i++)
 	      {
-		      sprintf(lineno," line number %d ",i);
+		      snprintf(lineno, sizeof(lineno), " line number %u ", i);
 		      UT_UCS4_strcpy_char( &testUCSFieldText[len],
 				 lineno);
 		      len =  UT_UCS4_strlen(testUCSFieldText);

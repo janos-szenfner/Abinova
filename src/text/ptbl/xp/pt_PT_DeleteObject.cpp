@@ -63,6 +63,9 @@ bool pt_PieceTable::_deleteObjectWithNotify(PT_DocPosition dpos,
 	// actually remove the fragment from the list and delete it.
 
 	_deleteObject(pfo,ppfEnd,pfragOffsetEnd);
+	// the frag no longer exists; the record's object handle must not
+	// dangle (it is only meaningful on insert records)
+	pcr->setObjectHandle(nullptr);
 
 	if (bAddChangeRec)
 		m_history.addChangeRecord(pcr);

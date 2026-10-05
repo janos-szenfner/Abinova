@@ -36,12 +36,15 @@
 #include "pf_Frag.h"
 #include "pf_Frag_Object.h"
 #include "pf_Frag_Strux.h"
+#include "pf_Frag_Strux_Section.h"
 #include "pl_Listener.h"
 #include "pl_ListenerCoupleCloser.h"
 #include "pp_AttrProp.h"
 #include "pp_PropertyMap.h"
 #include "pt_PieceTable.h"
 #include "pt_Types.h"
+#include "px_ChangeRecord.h"
+#include "px_CR_Span.h"
 #include "ut_growbuf.h"
 #include "xad_Document.h"
 
@@ -1160,4 +1163,139 @@ TFTEST_MAIN("listener subset walk and misc document queries")
 	TFPASS(d.doc->signalListeners(0));
 	d.doc->deferNotifications();
 	d.doc->processDeferredNotifications();
+}
+
+TFTEST_MAIN("undo/redo leave the piece table editable")
+{
+	EditDoc d;
+	TFPASS(d.build());
+	pf_Frag_Strux *b1 = nullptr;
+	TFPASS(d.para("keep going", PP_NOPROPS, &b1));
+	d.finish();
+
+	const PT_DocPosition s = blockText(d.doc, b1) + 2;
+
+	/* a second fmtmark at the same spot folds into a ChangeFmtMark
+	 * record; undoing it replays PXT_ChangeFmtMark through _doTheDo.
+	 * m_bDoingTheDo must be reset on every exit path — a leak leaves
+	 * isDoingTheDo() stuck and every PD_Document edit entry point
+	 * refuses work from then on. */
+	PP_AttrProp ap1, ap2;
+	ap1.setProperty("font-style", "italic");
+	ap2.setProperty("font-weight", "bold");
+	TFPASS(d.doc->insertFmtMark(PTC_AddFmt, s, &ap1));
+	TFPASS(d.doc->insertFmtMark(PTC_AddFmt, s, &ap2));
+	TFPASS(d.doc->undoCmd(1));
+	TFPASS(!d.doc->isDoingTheDo());
+	UT_UCS4String more("!");
+	TFPASS(d.doc->insertSpan(s, more.ucs4_str(), 1));
+	TFPASS(editDocText(d.doc) == "ke!ep going");
+
+	/* undoing a block-strux delete replays PXT_InsertStrux — the
+	 * other exit that used to leak the flag */
+	pf_Frag_Strux *b2 = nullptr;
+	TFPASS(d.doc->insertStrux(s, PTX_Block, &b2));
+	TFPASS(b2 != nullptr);
+	TFPASS(d.doc->deleteStrux(d.doc->getStruxPosition(b2),
+							  PTX_Block, true));
+	TFPASS(d.doc->undoCmd(1));
+	TFPASS(!d.doc->isDoingTheDo());
+	TFPASS(d.doc->insertSpan(blockText(d.doc, b1),
+							 more.ucs4_str(), 1));
+	TFPASS(!d.doc->isDoingTheDo());
+}
+
+TFTEST_MAIN("annotation strux pairing and record position clamp")
+{
+	EditDoc d;
+	TFPASS(d.build());
+	TFPASS(d.para("aa"));
+	d.finish();
+	pt_PieceTable * pt = d.doc->getPieceTable();
+
+	/* unattached frags are enough: these queries only look at the
+	 * strux type, never at tree membership */
+	pf_Frag_Strux_SectionAnnotation annBeg(pt, 0);
+	pf_Frag_Strux_SectionEndAnnotation annEnd(pt, 0);
+	TFPASS(annBeg.isMatchingType(PTX_EndAnnotation));
+	TFPASS(annEnd.isMatchingType(PTX_SectionAnnotation));
+	TFPASS(!annBeg.isMatchingType(PTX_Block));
+	TFPASS(!annEnd.isMatchingType(PTX_EndMarginnote));
+	/* every begin-section strux participates in the fixMissingXIDs
+	 * safety net used by exporters */
+	TFPASS(annBeg.usesXID());
+	TFPASS(!annEnd.usesXID());
+
+	/* getPosition must saturate instead of wrapping when the collab
+	 * adjustment would take the position out of range */
+	PX_ChangeRecord crPos(PX_ChangeRecord::PXT_ChangePoint, 100, 0, 0);
+	crPos.setAdjustment(-200);
+	TFPASS(crPos.getPosition() == 0);
+	crPos.setAdjustment(0);
+	TFPASS(crPos.getPosition() == 100);
+}
+
+TFTEST_MAIN("strux downcast on unattached frag and ctor types")
+{
+	EditDoc d;
+	TFPASS(d.build());
+	TFPASS(d.para("aa"));
+	d.finish();
+	pt_PieceTable * pt = d.doc->getPieceTable();
+
+	/* a frag that was never linked into the tree has no node;
+	 * tryDownCastStrux must answer nullptr instead of dereferencing
+	 * the null iterator value */
+	pf_Frag_Strux_SectionAnnotation loose(pt, 0);
+	TFPASS(loose.tryDownCastStrux(PTX_SectionAnnotation) == nullptr);
+	TFPASS(tryDownCastStrux(&loose, PTX_SectionAnnotation) == nullptr);
+
+	/* on an attached strux the same query resolves the frag itself,
+	 * and a wrong type still misses */
+	pf_Frag * first = pt->getFragments().getFirst();
+	TFPASS(first != nullptr);
+	TFPASS(first->tryDownCastStrux(PTX_Section) ==
+		   static_cast<pf_Frag_Strux *>(first));
+	TFPASS(first->tryDownCastStrux(PTX_Block) == nullptr);
+
+	/* the section-strux constructors used to pass a copy-pasted
+	 * PTX_SectionHdrFtr to the base and patch m_struxType afterwards —
+	 * getStruxType must report the real type from the start */
+	pf_Frag_Strux_SectionMarginnote mn(pt, 0);
+	TFPASS(mn.getStruxType() == PTX_SectionMarginnote);
+	pf_Frag_Strux_SectionFrame fr(pt, 0);
+	TFPASS(fr.getStruxType() == PTX_SectionFrame);
+	pf_Frag_Strux_SectionEndCell ec(pt, 0);
+	TFPASS(ec.getStruxType() == PTX_EndCell);
+	pf_Frag_Strux_SectionTOC toc(pt, 0);
+	TFPASS(toc.getStruxType() == PTX_SectionTOC);
+}
+
+TFTEST_MAIN("unbalanced glob end and degenerate span record")
+{
+	EditDoc d;
+	TFPASS(d.build());
+	TFPASS(d.para("aa"));
+	d.finish();
+
+	/* endUserAtomicGlob with no matching begin used to wrap the
+	 * unsigned nesting counter to UINT32_MAX; after that no begin/end
+	 * pair could ever reach zero again, so the next balanced pair
+	 * silently lost its end marker and every later edit globbed into
+	 * one giant undo unit */
+	const UT_uint32 n0 = d.doc->undoCount(true);
+	d.doc->endUserAtomicGlob();		/* unbalanced: must be a no-op */
+	TFPASS(d.doc->undoCount(true) == n0);
+	d.doc->beginUserAtomicGlob();
+	d.doc->endUserAtomicGlob();		/* balanced: start + end markers */
+	TFPASS(d.doc->undoCount(true) == n0 + 2);
+
+	/* a zero-length span record is bogus but must still come out of
+	 * the ctor fully initialised — the early return used to skip the
+	 * member assignments entirely */
+	PX_ChangeRecord_Span crZero(PX_ChangeRecord::PXT_InsertSpan,
+							  7, 0, 3, 0, 0, nullptr);
+	TFPASS(crZero.getLength() == 0);
+	TFPASS(crZero.getBufIndex() == 3);
+	TFPASS(crZero.getField() == nullptr);
 }

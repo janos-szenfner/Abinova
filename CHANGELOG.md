@@ -3758,6 +3758,21 @@ below are on `main` but the release has not been cut yet.
   cross-references, index/citation/bibliography sections, cover
   pages, header/footer presets and footnotes — and raise `text/fmt`
   line coverage from ~41% to ~55%.
+- **Piece-table core audit closed out** — a sweep of the fragment/
+  change-record layer (`pf_Frag*`, `pt_PT_*`, `px_CR_*`) fixed a set
+  of latent wedge/corruption bugs: several undo/redo early-return
+  paths leaked the "undo in progress" flag, which made every later
+  edit silently refuse to run; an unbalanced `endUserAtomicGlob`
+  wrapped the unsigned nesting counter so all subsequent edits fused
+  into one giant undo unit; delete-object change records kept
+  dangling fragment handles; `tryDownCastStrux` dereferenced a null
+  tree node on unattached fragments; ten `pf_Frag_Strux_Section*`
+  constructors initialized the base with a copy-pasted wrong strux
+  type; a degenerate zero-length span record could carry
+  uninitialized fields; block-offset math on undo records could
+  underflow into bogus offsets; and annotation struxes were missing
+  from the begin/end pairing table used by exporters. New
+  `pt_DocEdits.t.cpp` cases lock each invariant down.
 
 ### GTK4 port (core migration)
 

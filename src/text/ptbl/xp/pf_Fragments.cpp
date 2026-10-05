@@ -114,6 +114,8 @@ void pf_Fragments::purgeFrags()
 		delete_and_purge_tree(m_pRoot);
 	}
 	m_pRoot = m_pLeaf;
+	m_nSize = 0;
+	m_nDocumentSize = 0;
 }
 
 void pf_Fragments::appendFrag(pf_Frag * pf)

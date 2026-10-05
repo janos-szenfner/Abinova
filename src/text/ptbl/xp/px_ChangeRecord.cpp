@@ -35,6 +35,7 @@
 */
 
 #include "ut_types.h"
+#include "ut_assert.h"
 #include "ut_debugmsg.h"
 #include "pt_Types.h"
 #include "px_ChangeRecord.h"
@@ -92,6 +93,7 @@ const PD_Document* PX_ChangeRecord::getDocument(void) const
 
 void PX_ChangeRecord::setDocument(const PD_Document* pDoc)
 {
+  UT_return_if_fail(pDoc);
   m_pDoc = pDoc;
   m_pDoc->getMyUUID()->toBinary(m_MyDocUUID);
 }
@@ -146,7 +148,14 @@ PX_ChangeRecord::PXType PX_ChangeRecord::getType(void) const
 */
 PT_DocPosition PX_ChangeRecord::getPosition(void) const
 {
-  return static_cast<PT_DocPosition>(static_cast<UT_sint32>(m_position) + m_iAdjust);
+  // the collab adjustment can push the position below zero or past the
+  // representable range; saturate rather than wrap into a bogus spot
+  const UT_sint64 iPos = static_cast<UT_sint64>(m_position) + m_iAdjust;
+  if (iPos < 0)
+	return 0;
+  if (iPos > 0xffffffffLL)
+	return 0xffffffff;
+  return static_cast<PT_DocPosition>(iPos);
 }
 
 /*!

@@ -217,11 +217,15 @@ pf_Frag_Strux* pf_Frag::getNextStrux(PTStruxType t) const
 pf_Frag_Strux*
 pf_Frag::tryDownCastStrux(PTStruxType t) const
 {
-    if( getType() == pf_Frag::PFT_Strux )
+    if( getType() == pf_Frag::PFT_Strux && m_pMyNode )
     {
         pf_Fragments& fragments = m_pPieceTable->getFragments();
         pf_Fragments::Iterator it(&(fragments),m_pMyNode);
         pf_Frag* pf = it.value();
+        // an unattached frag has no node and value() is nullptr —
+        // dereferencing it here used to crash
+        if( !pf )
+            return nullptr;
         pf_Frag_Strux* pfs = static_cast<pf_Frag_Strux*>(pf);
         PTStruxType eStruxType = pfs->getStruxType();
         if( eStruxType == t )

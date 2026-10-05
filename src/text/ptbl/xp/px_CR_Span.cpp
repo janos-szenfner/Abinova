@@ -32,13 +32,14 @@ PX_ChangeRecord_Span::PX_ChangeRecord_Span(PXType type,
 										   PT_BlockOffset blockOffset,
                                            fd_Field * pField)
 	: PX_ChangeRecord(type, position, indexNewAP, 0)
+	, m_bufIndex(bufIndex)
+	, m_length(length)
+	, m_blockOffset(blockOffset)
+	, m_pField(pField)
 {
+	// a zero-length span is bogus, but the members must still be
+	// initialized — an early return used to leave them undefined
 	UT_return_if_fail (length > 0);
-	
-	m_bufIndex = bufIndex;
-	m_length = length;
-	m_blockOffset = blockOffset;
-    m_pField = pField;
 }
 
 PX_ChangeRecord_Span::~PX_ChangeRecord_Span()
