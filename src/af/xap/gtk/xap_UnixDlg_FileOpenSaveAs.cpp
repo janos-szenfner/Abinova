@@ -79,6 +79,11 @@
 #define PREVIEW_WIDTH  100
 #define PREVIEW_HEIGHT 100
 
+/* The preview decodes the selected file synchronously on the UI
+ * thread; files past this size are not previewed so that choosing a
+ * huge image cannot freeze the dialog. */
+#define PREVIEW_MAX_FILE_SIZE (64 * 1024 * 1024)
+
 
 
 /*****************************************************************/
@@ -97,6 +102,8 @@ XAP_UnixDialog_FileOpenSaveAs::XAP_UnixDialog_FileOpenSaveAs(XAP_DialogFactory *
 
 XAP_UnixDialog_FileOpenSaveAs::~XAP_UnixDialog_FileOpenSaveAs(void)
 {
+	g_clear_object(&m_previewPixbuf);
+	DELETEP(m_previewGC);
 }
 
 /*****************************************************************/
@@ -136,7 +143,7 @@ static gboolean s_delete_clicked(GtkWindow 	* /*widget*/,
 }
 
 static void s_preview_draw(GtkDrawingArea * /* area */,
-			      cairo_t * /* cr */,
+			      cairo_t * cr,
 			      int /* width */,
 			      int /* height */,
 			      gpointer ptr)
@@ -144,7 +151,7 @@ static void s_preview_draw(GtkDrawingArea * /* area */,
 	XAP_UnixDialog_FileOpenSaveAs * dlg = static_cast<XAP_UnixDialog_FileOpenSaveAs *> (ptr);
 	UT_ASSERT(dlg);
 	if (dlg) {
-		dlg->previewPicture();
+		dlg->previewPicture(cr);
 	}
 }
 
@@ -241,7 +248,10 @@ static void file_selection_changed  (GtkSelectionModel * /*model*/,
   XAP_UnixDialog_FileOpenSaveAs * dlg = static_cast<XAP_UnixDialog_FileOpenSaveAs *> (ptr);
 
   UT_ASSERT(dlg);
-  dlg->previewPicture();
+  /* don't decode the image here: the draw callback picks the new
+   * selection up on the next repaint and caches the result */
+  if (dlg)
+    dlg->previewInvalidate();
 }
 
 /* GTK4's GtkFileChooserWidget no longer emits "selection-changed"
@@ -805,6 +815,13 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 
 	if (m_id == XAP_DIALOG_ID_INSERT_PICTURE)
 	{
+		// a pooled dialog instance may carry the cache from a previous
+		// run — drop it so a re-edited file previews fresh; the old
+		// graphics is bound to the previous preview widget, recreate it
+		g_clear_object(&m_previewPixbuf);
+		m_previewUri.clear();
+		DELETEP(m_previewGC);
+
 		GtkWidget * preview = gtk_drawing_area_new();
 		gtk_widget_set_visible(preview, TRUE);
 		m_preview = preview;
@@ -1120,9 +1137,74 @@ void XAP_UnixDialog_FileOpenSaveAs::runModal(XAP_Frame * pFrame)
 	return;
 }
 
-gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
+void XAP_UnixDialog_FileOpenSaveAs::previewInvalidate (void)
 {
-	UT_ASSERT (m_FC && m_preview);
+	if (m_preview)
+		gtk_widget_queue_draw (m_preview);
+}
+
+/* Read + decode file_name into a pixbuf for the preview, or nullptr
+ * when the file is unusable.  This runs on the UI thread, so it is
+ * deliberately bounded: non-regular files, unreadable files, files
+ * whose declared size exceeds PREVIEW_MAX_FILE_SIZE, and buffers the
+ * image sniffers do not recognize all bail out before the decode. */
+GdkPixbuf * XAP_UnixDialog_FileOpenSaveAs::decodePreview (const char * file_name)
+{
+	// are we dealing with a file or directory here?
+	GStatBuf st;
+	if (!g_stat (file_name, &st) && !S_ISREG(st.st_mode))
+		return nullptr;
+
+	GsfInput * input = UT_go_file_open (file_name, nullptr);
+	if (!input)
+		return nullptr;
+
+	// gsf_input_size is a signed gsf_off_t and can be -1 on error;
+	// clamping that through UT_MIN into UT_uint32 would wrap huge and
+	// overflow Buf.
+	const gsf_off_t inputSize = gsf_input_size(input);
+	if (inputSize <= 0 || inputSize > PREVIEW_MAX_FILE_SIZE)
+	{
+		g_object_unref (G_OBJECT (input));
+		return nullptr;
+	}
+	const UT_uint32 num_bytes = static_cast<UT_uint32>(inputSize);
+
+	char Buf[4097] = "";  // 4096+nul ought to be enough
+	UT_uint32 iNumbytes = static_cast<UT_uint32>(UT_MIN(inputSize, static_cast<gsf_off_t>(4096)));
+	gsf_input_read(input, iNumbytes, reinterpret_cast<guint8 *>((Buf)));
+	Buf[iNumbytes] = '\0';
+
+	IEGraphicFileType ief = IE_ImpGraphic::fileTypeForContents(Buf,4096);
+	if((ief == IEGFT_Unknown) || (ief == IEGFT_Bogus))
+	{
+		g_object_unref (G_OBJECT (input));
+		return nullptr;
+	}
+	g_object_unref (G_OBJECT (input));
+	input = UT_go_file_open (file_name, nullptr);
+	if (!input)
+		return nullptr;
+	const UT_Byte * bytes = reinterpret_cast<const UT_Byte*>(gsf_input_read(input, num_bytes, nullptr));
+	if(bytes == nullptr)
+	{
+		g_object_unref (G_OBJECT (input));
+		return nullptr;
+	}
+	UT_ByteBuf * pBB = new UT_ByteBuf();
+	pBB->append(bytes,num_bytes);
+	g_object_unref (G_OBJECT (input));
+	//
+	// OK load the data into a GdkPixbuf
+	//
+	GdkPixbuf * pixbuf = pixbufForByteBuf ( pBB);
+	delete pBB;
+	return pixbuf;
+}
+
+gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (cairo_t * cr)
+{
+	UT_return_val_if_fail (m_FC && m_preview && cr, 0);
 
 	UT_ASSERT(XAP_App::getApp());
 
@@ -1132,18 +1214,24 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	/* do not try to scale an image to a 1x1 pibuf, this might happen when
 	   the widget size has notbeen allocated or if there is no room for it,
 	   that might freeze gdk_pixbuf */
-	GtkAllocation allocation;
-	gtk_widget_get_allocation (m_preview, &allocation);
-	if (allocation.width <= 1)
+	GtkAllocation alloc;
+	gtk_widget_get_allocation (m_preview, &alloc);
+	if (alloc.width <= 1 || alloc.height <= 1)
 		return 0;
-	
-	// attach and clear the area immediately
-	GR_UnixCairoAllocInfo ai(m_preview);
-	GR_CairoGraphics* pGr =
-		static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
-	const gchar * file_name = xap_gtk_file_chooser_get_uri(m_FC);
-	
+	/* The GTK4 draw callback hands us the widget's cairo_t: painting
+	 * must land on it.  Keep one persistent graphics for the preview —
+	 * the old code built a scratch graphics per call whose backing
+	 * surface was deleted on return, so the preview never reached the
+	 * screen at all (the decode still ran on every repaint). */
+	if (!m_previewGC)
+	{
+		GR_UnixCairoAllocInfo ai(m_preview);
+		m_previewGC =
+			static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
+	}
+	GR_CairoGraphics* pGr = m_previewGC;
+
 	GR_Font * fnt = pGr->findFont("Times New Roman",
 								  "normal", "", "normal",
 								  "", "12pt",
@@ -1154,120 +1242,55 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (void)
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_IP_No_Picture_Label, s);
 	UT_UTF8String str(s);
 
-	int answer = 0;
-
-	FG_ConstGraphicPtr pGraphic;
-	GR_Image *pImage = nullptr;
-
-	double		scale_factor = 0.0;
-	UT_sint32     scaled_width,scaled_height;
-	UT_sint32     iImageWidth,iImageHeight;
-
-	const auto paint = [&]()
+	/* Decode at most once per selected file; subsequent repaints of
+	 * the preview area reuse the cached pixbuf. */
+	gchar * file_name = xap_gtk_file_chooser_get_uri(m_FC);
+	if (!file_name || m_previewUri != file_name)
 	{
-	GR_Painter painter(pGr);
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(m_preview, &alloc);
-	painter.clearArea(0, 0, pGr->tlu(alloc.width), pGr->tlu(alloc.height));
-
-	if (!file_name)
-	{
-		painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
-	    return;
-	}
-
-	// are we dealing with a file or directory here?
-	GStatBuf st;
-	if (!g_stat (file_name, &st))
-	{
-		if (!S_ISREG(st.st_mode))
+		UT_DEBUGMSG(("file_name %s \n", file_name ? file_name : "(null)"));
+		g_clear_object(&m_previewPixbuf);
+		m_previewUri.clear();
+		if (file_name)
 		{
-			painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
-			return;
+			m_previewPixbuf = decodePreview(file_name);
+			m_previewUri = file_name;
 		}
 	}
+	g_free(file_name);
 
-	GsfInput * input = nullptr;
-	UT_DEBUGMSG(("file_name %s \n",file_name));
-	input = UT_go_file_open (file_name, nullptr);
-	if (!input)
-		return;
-	char Buf[4097] = "";  // 4096+nul ought to be enough
-	// gsf_input_size is a signed gsf_off_t and can be -1 on error;
-	// clamping that through UT_MIN into UT_uint32 would wrap huge and
-	// overflow Buf.
-	const gsf_off_t inputSize = gsf_input_size(input);
-	UT_uint32 iNumbytes = (inputSize > 0)
-		? static_cast<UT_uint32>(UT_MIN(inputSize, static_cast<gsf_off_t>(4096))) : 0;
-	gsf_input_read(input, iNumbytes, reinterpret_cast<guint8 *>((Buf)));
-	Buf[iNumbytes] = '\0';
+	int answer = 0;
 
-	IEGraphicFileType ief = IE_ImpGraphic::fileTypeForContents(Buf,4096);
-	if((ief == IEGFT_Unknown) || (ief == IEGFT_Bogus))
+	pGr->setCairo(cr);
 	{
-		    painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
-			g_object_unref (G_OBJECT (input));
-			return;
+		GR_Painter painter(pGr);
+		painter.clearArea(0, 0, pGr->tlu(alloc.width), pGr->tlu(alloc.height));
+
+		if (!m_previewPixbuf)
+		{
+			painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
+		}
+		else
+		{
+			UT_sint32 iImageWidth  = gdk_pixbuf_get_width (m_previewPixbuf);
+			UT_sint32 iImageHeight = gdk_pixbuf_get_height (m_previewPixbuf);
+			double scale_factor = 1.0;
+			if (alloc.width < iImageWidth || alloc.height < iImageHeight)
+				scale_factor = MIN( static_cast<double>(alloc.width)/iImageWidth,
+									static_cast<double>(alloc.height)/iImageHeight);
+
+			UT_sint32 scaled_width  = static_cast<int>(scale_factor * iImageWidth);
+			UT_sint32 scaled_height = static_cast<int>(scale_factor * iImageHeight);
+
+			GR_UnixImage image(nullptr, static_cast<GdkPixbuf*>(g_object_ref(m_previewPixbuf)));
+			image.scale(scaled_width,scaled_height);
+			painter.drawImage(&image,
+							  pGr->tlu(static_cast<int>((alloc.width  - scaled_width ) / 2)),
+							  pGr->tlu(static_cast<int>((alloc.height - scaled_height) / 2)));
+
+			answer = 1;
+		}
 	}
-	g_object_unref (G_OBJECT (input));
-	input = UT_go_file_open (file_name, nullptr);
-	if (!input)
-		return;
-	size_t num_bytes = gsf_input_size(input);
-	UT_Byte * bytes = const_cast<UT_Byte *>(reinterpret_cast<const UT_Byte*>( gsf_input_read(input, num_bytes,nullptr )));
-	if(bytes == nullptr)
-	{
-		    painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
-			g_object_unref (G_OBJECT (input));
-			return;
-	}
-	UT_ByteBuf * pBB = new UT_ByteBuf();
-	pBB->append(bytes,num_bytes);
-	g_object_unref (G_OBJECT (input));
-	//
-	// OK load the data into a GdkPixbuf
-	//
-	// Jean: comented out next line (and an other one below), we don't use it
-	// bool bLoadFailed = false;
-	//
-	GdkPixbuf * pixbuf = pixbufForByteBuf ( pBB);
-	delete pBB;
-	if(pixbuf == nullptr)
-	{
-		//
-		// Try a fallback loader here.
-		//
-		painter.drawChars (str.ucs4_str().ucs4_str(), 0, str.size(), pGr->tlu(12), pGr->tlu(static_cast<int>(alloc.height / 2)) - pGr->getFontHeight(fnt)/2);
-		// bLoadFailed = true;
-	    return;
-	}
-
-	pImage = new GR_UnixImage(nullptr,pixbuf);
-
-	iImageWidth = gdk_pixbuf_get_width (pixbuf);
-	iImageHeight = gdk_pixbuf_get_height (pixbuf);
-	if (alloc.width >= iImageWidth && alloc.height >= iImageHeight)
-		scale_factor = 1.0;
-	else
-		scale_factor = MIN( static_cast<double>(alloc.width)/iImageWidth,
-							static_cast<double>(alloc.height)/iImageHeight);
-		
-	scaled_width  = static_cast<int>(scale_factor * iImageWidth);
-	scaled_height = static_cast<int>(scale_factor * iImageHeight);
-
-	static_cast<GR_UnixImage *>(pImage)->scale(scaled_width,scaled_height);	
-	painter.drawImage(pImage,
-					  pGr->tlu(static_cast<int>((alloc.width  - scaled_width ) / 2)),
-					  pGr->tlu(static_cast<int>((alloc.height - scaled_height) / 2)));
-		
-	answer = 1;
-	};
-
-	paint();
-
-	FREEP(file_name);
-	DELETEP(pImage);
-	DELETEP(pGr);
+	pGr->setCairo(nullptr);
 
 	return answer;
 }

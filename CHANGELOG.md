@@ -3880,6 +3880,17 @@ below are on `main` but the release has not been cut yet.
   at 600,000 iterations matches current OWASP guidance, with a
   20-million-iteration sanity cap against crafted files, 16-byte
   salt and a 12-byte GCM nonce.
+- **Insert Picture preview rework (dialog freeze)** — the file
+  chooser's preview pane read and decoded the whole selected file
+  synchronously on the UI thread on *every* selection change and
+  *every* repaint of the preview widget, and then discarded the
+  result into a scratch backing surface that never reached the
+  screen — selecting a large image stalled the dialog repeatedly
+  while the preview stayed blank. The decode now runs once per
+  selected file inside the draw callback onto GTK's `cairo_t`, the
+  result is cached per URI so repaints are free, files over 64 MiB
+  are skipped (they remain insertable, just not previewed), and the
+  preview visibly renders again.
 
 ### GTK4 port (core migration)
 

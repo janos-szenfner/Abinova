@@ -31,6 +31,7 @@
 
 class XAP_Frame;
 class UT_ByteBuf;
+class GR_CairoGraphics;
 /*****************************************************************/
 
 class XAP_UnixDialog_FileOpenSaveAs : public XAP_Dialog_FileOpenSaveAs
@@ -42,7 +43,8 @@ public:
 	virtual void			runModal(XAP_Frame * pFrame) override;
 
 	static XAP_Dialog *		static_constructor(XAP_DialogFactory *, XAP_Dialog_Id id);
-	gint previewPicture ();
+	gint previewPicture (cairo_t * cr);
+	void previewInvalidate (void);
 
 	void fileTypeChanged(GtkWidget * w);
 	void onDeleteCancel (void);
@@ -50,6 +52,7 @@ public:
 
 protected:
 	GdkPixbuf *            pixbufForByteBuf (UT_ByteBuf * pBB);
+	GdkPixbuf *            decodePreview (const char * file_name);
 
 	bool					_run_main_loop(XAP_Frame * pFrame,
 										  GtkWidget * filetypes_pulldown);
@@ -65,6 +68,12 @@ protected:
 	GtkFileChooser * m_FC;
 	GtkWidget * m_dialog;
 	GtkWidget * m_preview;
+	/* decoded preview for the current selection — the draw callback
+	 * reuses it instead of re-reading/re-decoding the file on every
+	 * repaint */
+	GdkPixbuf *          m_previewPixbuf = nullptr;
+	GR_CairoGraphics *   m_previewGC = nullptr;
+	std::string          m_previewUri;
 private:
 	bool				m_bSave;
 protected:
