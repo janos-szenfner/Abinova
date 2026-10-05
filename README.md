@@ -1955,6 +1955,20 @@ tools/build-macos.sh            # deps + configure + make
 tools/build-macos.sh --skip-deps -j8
 ```
 
+Add `--bundle` to also assemble a self-contained `Abinova.app`
+(default `dist/Abinova.app`, override with `--bundle=DIR`; rebuild
+just the bundle with `--bundle-only`).  It stages `make install`,
+copies the Homebrew dylib closure into `Contents/Frameworks`,
+rewrites every install name to `@executable_path/../Frameworks`,
+bundles the gdk-pixbuf loaders + cache, the compiled GSettings
+schemas and `abinova.icns`, writes an `Info.plist` registering
+`.abwn`/`.abw` UTIs plus `.docx`/`.doc`/`.odt`/`.rtf` associations,
+verifies no non-system dep is left dangling, and ad-hoc codesigns
+(arm64 binaries refuse to launch unsigned; Developer-ID signing is a
+later packaging step).  `--universal` on Apple Silicon merges an
+x86_64 build via `lipo` (needs Rosetta + a second brew at
+`/usr/local`), `--no-sign`/`--no-verify` skip those gates.
+
 ### Building on Windows
 
 On Windows the build runs inside MSYS2 (MINGW64/UCRT64) on GDK's

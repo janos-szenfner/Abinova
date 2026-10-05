@@ -4107,6 +4107,21 @@ below are on `main` but the release has not been cut yet.
   the bundle root so the app locates `artwork/`/`fonts/`/`help/` by
   walking up from its own path — the bundled `bin/abinova` runs with
   no `LD_LIBRARY_PATH`, wrapper, or system GTK.
+- **macOS `.app` bundle stage** — `tools/build-macos.sh --bundle`
+  assembles a self-contained `Abinova.app`: the Homebrew dylib
+  closure is copied into `Contents/Frameworks` with every install
+  name (and each dylib's own `-id`) rewritten to
+  `@executable_path/../Frameworks`, gdk-pixbuf loaders ship with a
+  relocatable `loaders.cache`, GSettings schemas are compiled in, and
+  `Info.plist` exports the `.abwn`/`.abw` document types and
+  registers `.docx`/`.doc`/`.odt`/`.rtf` associations.  A small
+  launcher pins `ABINOVA_DATADIR`, `GDK_BACKEND=quartz` and the
+  module/schema paths; a verify pass fails the build on any
+  non-system dep left outside the bundle, and everything is ad-hoc
+  codesigned (arm64 binaries refuse to launch unsigned —
+  Developer-ID signing and notarization remain a later packaging
+  step).  `--universal` merges an x86_64 slice via `lipo` on Apple
+  Silicon.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

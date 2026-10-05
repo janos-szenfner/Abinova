@@ -132,6 +132,10 @@ src/wp/test/Abinova-test
 # self-contained bundle output + staging (dist/linux-bundle.sh)
 /dist/abinova-*-linux-*/
 /dist/abinova-*-linux-*.stage*
+# macOS build trees, staged installs + .app output (tools/build-macos.sh)
+/build-macos/
+/build-macos-*/
+/Abinova.app/
 crash-*
 oom-*
 timeout-*
