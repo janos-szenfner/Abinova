@@ -2046,9 +2046,13 @@ Run it standalone with `tools/rt-check.sh src/abinova $PWD`.
   smoke pass: it walks each dialog's widget tree and exercises it for
   real — notebook/stack pages, popovers, list selections, entries,
   buttons — then drives a main window (ribbon popovers, side panes)
-  and the `AbiWidget` public API on a staged scratch document. It
-  needs a display and skips without one; per-widget fault/watchdog
-  guards keep a single bad interaction from aborting the leg.
+  and the `AbiWidget` public API on a staged scratch document. A
+  `--fmt` leg exercises the gtk half of the view layer — selection
+  handles, the paste options tag, and text/image/frame drags —
+  preferring `GDK_BACKEND=wayland` on a live Wayland session so the
+  GDK Wayland drag and clipboard paths run for real. It needs a
+  display and skips without one; per-widget fault/watchdog guards
+  keep a single bad interaction from aborting the leg.
 - `unix/portwrap.sh` runs `tools/portguard.sh`, which asserts no
   `/tmp` string literals in shipped code and no new Unix-only API
   calls in cross-platform `xp` sources beyond the checked-in

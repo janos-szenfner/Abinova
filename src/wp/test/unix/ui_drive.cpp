@@ -32,6 +32,10 @@
  *   ui-drive --abi           exercise the AbiWidget embeddable API
  *   ui-drive --ev            COV13: menu action layer, real input
  *                            events (XTest), image/media graphics
+ *   ui-drive --fmt           COV14: text/fmt/gtk — selection handles,
+ *                            paste-options tag, text/image/frame
+ *                            drags (GDK wayland paths when a wayland
+ *                            compositor is live)
  *
  * Exit codes: 0 ok, 1 failure, 77 no display / interactive prerequisite.
  * drvwrap.sh runs one process per dialog under `timeout` so a hang or
@@ -82,6 +86,8 @@
 #include "ap_Dialog_ListRevisions.h"
 #include "ap_Dialog_MarkRevisions.h"
 #include "xap_Dlg_HTMLOptions.h"
+#include "gtktexthandleprivate.h"
+#include "fv_FrameEdit.h"
 
 extern "C" void __gcov_dump(void); /* checkpoint coverage counters */
 
@@ -1341,7 +1347,20 @@ static bool load_fixture_frame(AP_UnixApp *app, DriveCtx &ctx,
 	UT_Error err = frame->loadDocument(uri, IEFT_Unknown, true);
 	g_free(uri);
 	frame->show();
+	/* register the new toplevel BEFORE pumping: the stray sweep ticks
+	 * every 150 ms inside the layout pump below, and a window it
+	 * doesn't know is a stray it closes — leaving the returned view
+	 * dangling */
+	{
+		std::vector<GtkWidget *> tops;
+		sweep_guard([&tops] { tops = toplevels(); });
+		for (GtkWidget *w : tops)
+			if (!contains(ctx.preexisting, w))
+				ctx.preexisting.push_back(w);
+	}
 	pump_for(1200);
+	/* any toplevel that appeared during layout gets the same
+	 * protection */
 	std::vector<GtkWidget *> tops;
 	sweep_guard([&tops] { tops = toplevels(); });
 	for (GtkWidget *w : tops)
@@ -1745,6 +1764,440 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 	return 0;
 }
 
+/* ---------------- COV14: text/fmt/gtk drive ----------------
+ *
+ * The --fmt leg exercises the gtk half of the view layer:
+ *  - FvTextHandle / FV_UnixSelectionHandles: the cursor and
+ *    selection handles that live in the frame's document GtkOverlay
+ *    — driven through the real view (visual selection on, selection
+ *    extension, scroll re-updates) plus a standalone handle where the
+ *    whole mode/position/visibility/drag API runs deterministically;
+ *  - FV_UnixPasteTag: a real copy+paste through the session clipboard
+ *    arms the floating paste-options button, whose popover entries
+ *    are clicked for real;
+ *  - FV_UnixVisualDrag / FV_UnixVisualInlineImage / FV_UnixFrameEdit:
+ *    the button/drag/release entry points plus the drag-out-of-window
+ *    paths — local drag buffer, temp file, content providers and
+ *    gdk_drag_begin, which with a live wayland compositor runs
+ *    through GDK's wayland drag/surface code.
+ */
+
+/* collect widgets carrying a CSS class anywhere below w */
+static void find_css_class(GtkWidget *w, const char *cls,
+						   std::vector<GtkWidget *> &out)
+{
+	if (gtk_widget_has_css_class(w, cls))
+		out.push_back(w);
+	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+		find_css_class(c, cls, out);
+}
+
+/* every GtkButton below w */
+static void find_buttons(GtkWidget *w, std::vector<GtkWidget *> &out)
+{
+	if (GTK_IS_BUTTON(w))
+		out.push_back(w);
+	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+		find_buttons(c, out);
+}
+
+static int g_handle_dragged = 0;
+static int g_handle_finished = 0;
+static void count_handle_dragged(FvTextHandle *, FvTextHandlePosition,
+								 gint, gint, gpointer)
+{
+	g_handle_dragged++;
+}
+static void count_handle_finished(FvTextHandle *, FvTextHandlePosition,
+								  gpointer)
+{
+	g_handle_finished++;
+}
+
+/* emit the GtkGestureDrag signal sequence on every drag gesture
+ * attached to w — GTK4 hands us no synthetic event constructors, but
+ * the gesture's own signals may be emitted directly, which runs the
+ * handle's drag-begin/update/end handlers (and its handle-dragged /
+ * drag-finished emissions) exactly as a real finger-drag would */
+static void emit_drag_gestures(GtkWidget *w)
+{
+	GListModel *ctrls = gtk_widget_observe_controllers(w);
+	guint n = g_list_model_get_n_items(ctrls);
+	for (guint i = 0; i < n; i++) {
+		GtkEventController *c = GTK_EVENT_CONTROLLER(
+			g_list_model_get_item(ctrls, i));
+		if (GTK_IS_GESTURE_DRAG(c)) {
+			g_signal_emit_by_name(c, "drag-begin", 10.0, 10.0);
+			g_signal_emit_by_name(c, "drag-update", 6.0, 4.0);
+			g_signal_emit_by_name(c, "drag-update", 9.0, 7.0);
+			g_signal_emit_by_name(c, "drag-end", 9.0, 7.0);
+		}
+		g_object_unref(c);
+	}
+	g_object_unref(ctrls);
+}
+
+/* run a widget's draw callback synchronously, whether or not the
+ * compositor ever presents our window — snapshot_child walks the
+ * widget's own snapshot vfunc, which for a GtkDrawingArea runs its
+ * draw func */
+static void snapshot_widget(GtkWidget *w)
+{
+	GtkWidget *p = gtk_widget_get_parent(w);
+	if (!p)
+		return;
+	GtkSnapshot *snap = gtk_snapshot_new();
+	gtk_widget_snapshot_child(p, w, snap);
+	GskRenderNode *node = gtk_snapshot_free_to_node(snap);
+	if (node)
+		gsk_render_node_unref(node);
+}
+
+static int drive_fmt(AP_UnixApp *app, const char *scratch)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0};
+	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+
+	GdkDisplay *disp = gdk_display_get_default();
+	g_print("drive: fmt — gdk backend %s\n",
+			disp ? G_OBJECT_TYPE_NAME(disp) : "none");
+
+	XAP_Frame *frame = app->newFrame();
+	if (!frame) {
+		g_printerr("drive: no frame\n");
+		return 1;
+	}
+	char *uri = g_strdup_printf("file://%s", scratch);
+	frame->loadDocument(uri, IEFT_Unknown, true);
+	g_free(uri);
+	frame->show();
+	pump_for(800);
+
+	FV_View *view = static_cast<FV_View *>(frame->getCurrentView());
+	GtkWidget *win = nullptr;
+	{
+		std::vector<GtkWidget *> after;
+		sweep_guard([&after] { after = toplevels(); });
+		for (GtkWidget *w : after)
+			if (!contains(ctx.preexisting, w)) {
+				win = w;
+				break;
+			}
+	}
+	ctx.root = win;
+	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
+
+#define FMT_SECTION(name, ...) call_guard([&] { __VA_ARGS__; }, name)
+
+	/* ---- standalone FvTextHandle: the whole mode/position/
+	 * visibility/drag API runs deterministically; a direct snapshot
+	 * fires the handle's draw callbacks even if the compositor never
+	 * presents the window.  Runs first — a rescued fault in a later
+	 * section can strand state, so the reliable coverage goes early. */
+	FMT_SECTION("texthandle",
+		GtkWidget *hwin = gtk_window_new();
+		GtkWidget *ovl = gtk_overlay_new();
+		gtk_overlay_set_child(GTK_OVERLAY(ovl),
+							  gtk_label_new("anchor"));
+		gtk_window_set_child(GTK_WINDOW(hwin), ovl);
+		gtk_window_set_default_size(GTK_WINDOW(hwin), 400, 300);
+		gtk_window_present(GTK_WINDOW(hwin));
+		ctx.preexisting.push_back(hwin); /* keep the stray sweep off */
+		pump_for(200);
+
+		FvTextHandle *h = _fv_text_handle_new(ovl);
+		g_signal_connect(h, "handle-dragged",
+						 G_CALLBACK(count_handle_dragged), nullptr);
+		g_signal_connect(h, "drag-finished",
+						 G_CALLBACK(count_handle_finished), nullptr);
+		GdkRectangle r {60, 40, 1, 16};
+		_fv_text_handle_set_mode(h, FV_TEXT_HANDLE_MODE_CURSOR);
+		/* selection positions are rejected in cursor mode */
+		_fv_text_handle_set_position(
+			h, FV_TEXT_HANDLE_POSITION_SELECTION_START, &r);
+		_fv_text_handle_set_position(h, FV_TEXT_HANDLE_POSITION_CURSOR,
+									 &r);
+		_fv_text_handle_set_visible(h, FV_TEXT_HANDLE_POSITION_CURSOR,
+									TRUE);
+		(void)_fv_text_handle_get_mode(h);
+		(void)_fv_text_handle_get_is_dragged(
+			h, FV_TEXT_HANDLE_POSITION_CURSOR);
+		_fv_text_handle_set_mode(h, FV_TEXT_HANDLE_MODE_SELECTION);
+		GdkRectangle r2 {140, 90, 1, 16};
+		_fv_text_handle_set_position(
+			h, FV_TEXT_HANDLE_POSITION_SELECTION_START, &r2);
+		_fv_text_handle_set_position(
+			h, FV_TEXT_HANDLE_POSITION_SELECTION_END, &r);
+		_fv_text_handle_set_visible(
+			h, FV_TEXT_HANDLE_POSITION_SELECTION_START, TRUE);
+		pump_for(250);
+		/* gestures + draw callbacks on the real handle widgets */
+		{
+			std::vector<GtkWidget *> hw;
+			find_css_class(ovl, "cursor-handle", hw);
+			for (GtkWidget *d : hw) {
+				emit_drag_gestures(d);
+				snapshot_widget(d);
+			}
+		}
+		pump_for(200);
+		/* a dragged handle ignores set_visible, an undragged one takes
+		 * it — both arms of the guard */
+		_fv_text_handle_set_visible(
+			h, FV_TEXT_HANDLE_POSITION_SELECTION_END, FALSE);
+		/* mode NONE hides both handles; positions are rejected in it */
+		_fv_text_handle_set_mode(h, FV_TEXT_HANDLE_MODE_NONE);
+		_fv_text_handle_set_position(h, FV_TEXT_HANDLE_POSITION_CURSOR,
+									 &r);
+		(void)_fv_text_handle_get_mode(h);
+		g_object_unref(h);          /* finalize: widgets + gestures */
+		gtk_window_destroy(GTK_WINDOW(hwin));
+		pump_for(200));
+
+	/* ---- selection handles through the real view: visual selection
+	 * on, then empty → non-empty selections so _updateSelectionHandles
+	 * walks the cursor and the two-selection-handle modes on the
+	 * frame's own overlay ---- */
+	FMT_SECTION("selhandles",
+		if (view) {
+			view->setVisualSelectionEnabled(true);
+			view->warpInsPtToXY(80, 100, true);
+			pump_for(250);
+			/* extend → both handles in selection mode */
+			view->extSelToXY(220, 180, false);
+			pump_for(250);
+			/* scrolls re-run the handle update */
+			view->setXScrollOffset(40);
+			view->setYScrollOffset(40);
+			view->setXScrollOffset(0);
+			view->setYScrollOffset(0);
+			pump_for(200);
+			/* drag gestures on the frame's real handles feed the
+			 * view's updateSelection* callbacks */
+			if (win) {
+				std::vector<GtkWidget *> hw;
+				find_css_class(win, "cursor-handle", hw);
+				for (GtkWidget *d : hw)
+					emit_drag_gestures(d);
+			}
+			pump_for(250);
+			view->setVisualSelectionEnabled(false); /* hide() path */
+			view->setVisualSelectionEnabled(true);
+			pump_for(200);
+		});
+
+	/* ---- paste options tag: a real copy + paste through the session
+	 * clipboard arms the floating tag; each popover entry then runs
+	 * _optionPicked → applyPasteTagOption for real ---- */
+	FMT_SECTION("paste tag",
+		if (view && win) {
+			view->cmdSelect(0, 0, FV_DOCPOS_BOD, FV_DOCPOS_EOD);
+			view->cmdCopy();
+			pump_for(250);
+			/* paste at a known body position: the tag is suppressed
+			 * inside tables/headers/frames, and much of rich.abw is
+			 * one — just past BOD is guaranteed body text.  Copy and
+			 * paste back to back with no pumping: on a live session a
+			 * clipboard manager can steal ownership within a tick,
+			 * flipping gdk_clipboard_is_local off and forcing the
+			 * async server read path */
+			PT_DocPosition body = view->mapDocPos(FV_DOCPOS_BOD) + 2;
+			auto paste_mid = [&] {
+				view->cmdSelect(0, 0, FV_DOCPOS_BOD, FV_DOCPOS_EOD);
+				view->cmdCopy();
+				if (g_trace) {
+					GdkClipboard *cb = gdk_display_get_clipboard(disp);
+					XAP_UnixClipboard *clip =
+						static_cast<XAP_UnixApp *>(app)->getClipboard();
+					fprintf(stderr,
+							"fmt: is_local %d canPaste %d sel %d\n",
+							cb ? gdk_clipboard_is_local(cb) : -1,
+							clip ? clip->canPaste(
+								XAP_UnixClipboard::TAG_ClipboardOnly) : -1,
+							!view->isSelectionEmpty());
+				}
+				view->cmdSelect(body, body);
+				view->cmdPaste();
+				if (g_trace)
+					fprintf(stderr, "fmt: point %d\n",
+							static_cast<int>(view->getPoint()));
+				pump_for(400);
+			};
+			paste_mid();
+			if (g_trace)
+				fprintf(stderr, "fmt: tag armed %d point %d intable %d\n",
+						view->hasPasteTag(),
+						static_cast<int>(view->getPoint()),
+						view->isInTable(view->getPoint()));
+			view->popupPasteTagMenu();
+			pump_for(300);
+
+			std::vector<GtkWidget *> tags;
+			find_css_class(win, "paste-tag", tags);
+			GtkPopover *pop = nullptr;
+			if (!tags.empty())
+				pop = gtk_menu_button_get_popover(
+					GTK_MENU_BUTTON(tags.front()));
+			auto tag_click = [&](const char *label) {
+				if (!pop)
+					return;
+				std::vector<GtkWidget *> btns;
+				find_buttons(GTK_WIDGET(pop), btns);
+				for (GtkWidget *b : btns)
+					if (g_strcmp0(gtk_button_get_label(GTK_BUTTON(b)),
+								  label) == 0)
+						g_signal_emit_by_name(b, "clicked");
+			};
+			tag_click("Merge Formatting"); /* delete + re-paste path */
+			pump_for(400);
+			/* applying disarms the tag — re-arm for each option */
+			paste_mid();
+			tag_click("Keep Text Only");
+			pump_for(400);
+			paste_mid();
+			tag_click("Keep Source Formatting");
+			pump_for(300);
+			paste_mid();
+			view->popupPasteTagMenu();
+			pump_for(250);
+			/* opens the Paste Special dialog; the stray sweep answers
+			 * it on the next tick */
+			tag_click("Paste Special…");
+			pump_for(500);
+			paste_mid();
+			view->dismissPasteTag();      /* hide() path */
+			pump_for(200);
+		});
+
+	/* ---- visual text drag: copyToLocal builds the local drag
+	 * buffer, an in-window drag runs _mouseDrag, an out-of-window one
+	 * builds the drag document + temp file + content providers and
+	 * calls gdk_drag_begin — on a live wayland session that is GDK's
+	 * wayland drag path ---- */
+	FMT_SECTION("visualdrag",
+		if (view) {
+			/* out-of-window with an empty local buffer: early out */
+			view->dragVisualText(-50, 100);
+			view->cmdSelect(0, 0, FV_DOCPOS_BOD, FV_DOCPOS_EOD);
+			PT_DocPosition a = view->getSelectionLeftAnchor();
+			PT_DocPosition b = view->getSelectionRightAnchor();
+			view->copyToLocal(a, b);
+			view->dragVisualText(100, 100);  /* in-window: _mouseDrag */
+			view->dragVisualText(-50, 100);  /* drag out of window   */
+			pump_for(350);
+		});
+
+	/* ---- inline-image drag: a fixture carrying an embedded image;
+	 * btn0/btn1/drag/release entry points plus out-of-window drag
+	 * attempts ---- */
+	FMT_SECTION("inline image",
+		const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+		std::string png = std::string(top ? top : ".") +
+			"/test/wp/cov07/red.png";
+		gchar *b64 = file_b64(png.c_str());
+		if (b64) {
+			std::string blip =
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				"<abiword template=\"false\" fileformat=\"1.0\" "
+				"xmlns=\"http://www.abisource.com/awml.dtd\" "
+				"version=\"0.99.2\" xml:space=\"preserve\" "
+				"props=\"lang:en-US\">\n<data>\n"
+				"<d name=\"red.png\" mime-type=\"image/png\" "
+				"base64=\"yes\">" + std::string(b64) + "</d>\n"
+				"</data>\n<section>\n"
+				"<p>a<image dataid=\"red.png\" props=\""
+				"width:1.0in; height:1.0in\"/></p>\n"
+				"</section>\n</abiword>\n";
+			std::string bp = write_fixture("fmt-blip.abw", blip);
+			g_free(b64);
+			AV_View *v2 = nullptr;
+			if (!bp.empty() && load_fixture_frame(app, ctx, bp, &v2)) {
+				FV_View *fv2 = static_cast<FV_View *>(v2);
+				if (fv2) {
+					/* locate the image object by doc position, then
+					 * probe the window for a pixel that maps to it —
+					 * press there (edge hits arm RESIZE, center arms
+					 * DRAGGING), drag in-window, then out for the
+					 * getPNGImage/dragImageToFile path */
+					PT_DocPosition imgpos = 0;
+					for (PT_DocPosition p = 2; p < 15 && !imgpos; p++) {
+						fv2->cmdSelect(p, p + 1);
+						if (fv2->isImageSelected())
+							imgpos = p;
+					}
+					int ix = -1, iy = -1;
+					for (int px = 20; px < 700 && ix < 0; px += 12)
+						for (int py = 40; py < 600; py += 12)
+							if (imgpos &&
+								fv2->getDocPositionFromXY(px, py)
+									== imgpos) {
+								ix = px;
+								iy = py;
+								break;
+							}
+					if (ix >= 0) {
+						fv2->btn0InlineImage(ix, iy);
+						fv2->btn1InlineImage(ix, iy);
+						fv2->dragInlineImage(ix + 10, iy);
+						fv2->dragInlineImage(ix + 30, iy);
+						fv2->dragInlineImage(-60, iy);
+						fv2->releaseInlineImage(ix + 10, iy);
+						fv2->btn0InlineImage(ix, iy);
+						fv2->btn1InlineImage(ix, iy);
+						fv2->btn1CopyImage(ix, iy);
+						fv2->dragInlineImage(-60, iy);
+					}
+					pump_for(350);
+				}
+			}
+		});
+
+	/* ---- frame drag: the posimage fixture carries a positioned
+	 * image frame; btn0/btn1 near it arm frame-edit state and an
+	 * out-of-window drag runs the image-wrapper → dragImageToFile
+	 * path (getPNGImage + gdk_drag_begin) ---- */
+	FMT_SECTION("frame edit",
+		const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+		std::string fp = std::string(top ? top : ".") +
+			"/test/wp/posimage.abw";
+		AV_View *v3 = nullptr;
+		if (load_fixture_frame(app, ctx, fp, &v3)) {
+			FV_View *fv3 = static_cast<FV_View *>(v3);
+			if (fv3) {
+				/* frame is positioned ~3in from the column edge, ~2.5in
+				 * from the paragraph → sweep a grid of grabs; the first
+				 * press selects it (EXISTING_SELECTED), the second arms
+				 * DRAG_EXISTING, then the out-of-window drag reaches
+				 * the image-wrapper/dragImageToFile path */
+				FV_FrameEdit *fe = fv3->getFrameEdit();
+				for (int px = 200; px <= 500 && fe; px += 30)
+					for (int py = 180; py <= 400; py += 30) {
+						fv3->btn0Frame(px, py);
+						fv3->btn1Frame(px, py);
+						fv3->btn1Frame(px, py);
+						fv3->dragFrame(px + 10, py + 10);
+						fv3->dragFrame(-60, py + 10);
+					}
+				pump_for(350);
+				if (fe && fe->isActive())
+					fe->setMode(FV_FrameEdit_NOT_ACTIVE);
+				pump_for(200);
+			}
+		});
+
+	g_source_remove(sweeper);
+	call_guard([&] { pump_for(300); }, "tail");
+	__gcov_dump();
+	g_print("drive: fmt done — %d criticals, %d crashed, %d wedged, "
+			"%d handle drags, %d finishes\n",
+			g_criticals, g_crashed_widgets, g_wedged_widgets,
+			g_handle_dragged, g_handle_finished);
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -1764,7 +2217,7 @@ int main(int argc, char **argv)
 	alarm(120); /* last-resort watchdog; drvwrap wraps us in `timeout` */
 
 	bool wantList = false, wantFrame = false, wantAbi = false,
-		 wantEv = false;
+		 wantEv = false, wantFmt = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -1775,12 +2228,15 @@ int main(int argc, char **argv)
 			wantAbi = true;
 		else if (strcmp(argv[i], "--ev") == 0)
 			wantEv = true;
+		else if (strcmp(argv[i], "--fmt") == 0)
+			wantFmt = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
-	if (!wantList && !wantFrame && !wantAbi && !wantEv && wantId < 0) {
-		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev\n",
-				   argv[0]);
+	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
+		wantId < 0) {
+		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
+				   " | --fmt\n", argv[0]);
 		return 2;
 	}
 
@@ -1835,6 +2291,8 @@ int main(int argc, char **argv)
 		return drive_frame(app, src);
 	if (wantEv)
 		return drive_ev(app, src);
+	if (wantFmt)
+		return drive_fmt(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

@@ -4558,6 +4558,22 @@ below are on `main` but the release has not been cut yet.
   fixtures that drive the GtkMediaManager path. `af/ev/gtk` line
   coverage rose from 38.3% to 64.6% and `af/gr/gtk` from 43.8% to
   71.1%.
+- **`ui-drive --fmt` leg carries `text/fmt/gtk` coverage past
+  40%** — the scripted-interaction driver gained a Wayland-focused
+  leg for the gtk half of the view layer: the full `FvTextHandle`
+  mode/position/visibility/drag API with real gesture emissions and
+  draw-callback snapshots, in-view selection handles driven through
+  `setVisualSelectionEnabled`, `extSelToXY` and scroll re-updates,
+  the paste options tag end to end (a real copy→paste through the
+  live Wayland clipboard arms the floating tag and every popover
+  entry — Merge, Keep Text Only, Keep Source, Paste Special, dismiss
+  — runs the actual apply-paste-option path), visual text drags that
+  build the GDK drag content providers out to `gdk_drag_begin`,
+  inline-image drags located by probing the document-position→pixel
+  map, and positioned-frame drags through the frame-edit state
+  machine. The wrapper prefers `GDK_BACKEND=wayland` on a live
+  compositor and falls back to the default backend; `text/fmt/gtk`
+  line coverage rose from 22.2% to 87.3%.
 - **Atomic save moved behind a portable helper** — the
   write-temp-then-rename sequence in the exporter core
   (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as
