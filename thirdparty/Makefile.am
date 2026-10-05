@@ -297,7 +297,7 @@ libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.14/inc -I$(srcdir)/librevenge-0.0.6/
 
 
 
-EXTRA_DIST = README
+EXTRA_DIST = README UPGRADING.md VENDORED.json
 
 
 # vendored, security-patched wv (libwv) for .doc import --

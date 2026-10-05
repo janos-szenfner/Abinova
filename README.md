@@ -81,7 +81,10 @@ compiled into `libabinova` and are always available:
 
 Legacy `.doc` import is likewise built in via bundled `wv-1.2.9`
 (`thirdparty/`), and Hunspell grammar checking is compiled in — none
-of these appear in the plugin list any more.
+of these appear in the plugin list any more. The vendored libraries
+are inventoried in `thirdparty/VENDORED.json` (per-file local deltas
+vs upstream, verified by `tools/vendor-check.py`) with the upgrade
+procedure in `thirdparty/UPGRADING.md`.
 
 ### Removed plugins
 

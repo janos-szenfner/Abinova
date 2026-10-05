@@ -1402,7 +1402,7 @@ libwps_la_SOURCES = \
 	libwps-0.4.14/src/lib/XYWrite.cpp
 
 libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.14/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwps-0.4.14/src/lib -DLIBWPS_BUILD
-EXTRA_DIST = README wv-1.2.9/config.h
+EXTRA_DIST = README UPGRADING.md VENDORED.json wv-1.2.9/config.h
 libwv_la_SOURCES = \
 	wv-1.2.9/anld.c \
 	wv-1.2.9/anlv.c \

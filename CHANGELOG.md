@@ -4231,6 +4231,15 @@ below are on `main` but the release has not been cut yet.
   the binary's only library dependency besides libc is libabinova
   itself, and boost is used header-only so no compiled boost library
   needs bundling.
+- **Vendored-library upgrade procedure** —
+  `thirdparty/VENDORED.json` inventories all six vendored libraries
+  (upstream URL, tarball + sha256, vendored paths, per-file local
+  deltas vs pristine upstream): the five librevenge-family libs and
+  hunspell are byte-identical to upstream, while `wv-1.2.9` carries
+  53 patched files + 2 local files documented per-file. The
+  `tools/vendor-check.py` checker re-verifies the manifest against
+  the real trees and can regenerate wv's local patch series, and
+  `thirdparty/UPGRADING.md` documents the drop-in upgrade recipe.
 - **Self-contained Linux bundle script** — `dist/linux-bundle.sh`
   assembles a relocatable `abinova-<ver>-linux-<arch>/` directory:
   staged `make install`, the manifest's `bundle` shared-lib closure

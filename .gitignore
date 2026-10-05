@@ -158,3 +158,6 @@ coverage.info
 coverage-summary.txt
 coverage-dirs.txt
 coverage-html/
+
+# vendored-lib upstream tarball cache (tools/vendor-check.py)
+/.vendor-cache/

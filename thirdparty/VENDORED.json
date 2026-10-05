@@ -1,0 +1,169 @@
+{
+  "format": 1,
+  "generated": "2026-10-05",
+  "purpose": "Inventory of the libraries vendored under thirdparty/ so that a future upgrade is 'fetch tarball, drop subset, rebuild' rather than archaeology. Verify with tools/vendor-check.py (classifies every tracked file as unmodified/patched/local and fails if the manifest disagrees). See UPGRADING.md for the recipe.",
+  "build": "Each lib is a libtool noinst convenience archive built by thirdparty/Makefile.am (explicit _SOURCES lists, -fPIC, folded into libabinova). Upstream build systems are NOT vendored; on upgrade, refresh the _SOURCES list and _CPPFLAGS -I paths in Makefile.am.",
+  "libraries": {
+    "hunspell": {
+      "dir": "hunspell-1.7.4",
+      "version": "1.7.4",
+      "upstream": "https://github.com/hunspell/hunspell",
+      "tarball": {
+        "url": "https://github.com/hunspell/hunspell/releases/download/v1.7.4/hunspell-1.7.4.tar.gz",
+        "sha256": "66ec82a577395fe9d471504267e6dd04615c76517c61af7c6b9c19e5e34e73c8"
+      },
+      "license": "MPL-1.1 / GPL-2.0 / LGPL-2.1 tri-license (COPYING, COPYING.LESSER, COPYING.MPL, license.hunspell, license.myspell vendored)",
+      "vendored_paths": [
+        "AUTHORS", "COPYING", "COPYING.LESSER", "COPYING.MPL",
+        "license.hunspell", "license.myspell", "NEWS", "README", "THANKS",
+        "src/hunspell/", "src/parsers/", "src/tools/"
+      ],
+      "dropped": "upstream autotools machinery (configure.ac/Makefile.am|in/m4/), po/, man/, tests/, hunspell.pc.in; per-dir Makefile.in",
+      "patched_files": {},
+      "local_files": {
+        "src/parsers/.gitignore": "upstream gitignore (release tarballs omit .gitignore)",
+        "src/tools/.gitignore": "upstream gitignore (release tarballs omit .gitignore)"
+      },
+      "flags": "-DHUNSPELL_STATIC -DBUILDING_LIBHUNSPELL",
+      "advisories": []
+    },
+    "librevenge": {
+      "dir": "librevenge-0.0.6",
+      "version": "0.0.6",
+      "upstream": "https://sourceforge.net/projects/libwpd/ (librevenge lives under the libwpd project)",
+      "tarball": {
+        "url": "https://sourceforge.net/projects/libwpd/files/librevenge/librevenge-0.0.6/librevenge-0.0.6.tar.xz",
+        "sha256": "19eacf5ce55d7fe6a990a45142589cdf7da0c7b68701797f133482cb44f189fa"
+      },
+      "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
+      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "dropped": "upstream autotools machinery, docs/, data/, src/{conv,fuzz,test}, *.pc.in, *.rc.in, ChangeLog/NEWS/AUTHORS/HACKING, per-dir Makefile.am|in",
+      "patched_files": {},
+      "local_files": {},
+      "flags": "-DLIBREVENGE_BUILD",
+      "advisories": []
+    },
+    "libwpd": {
+      "dir": "libwpd-0.10.3",
+      "version": "0.10.3",
+      "upstream": "https://sourceforge.net/projects/libwpd/",
+      "tarball": {
+        "url": "https://sourceforge.net/projects/libwpd/files/libwpd/libwpd-0.10.3/libwpd-0.10.3.tar.xz",
+        "sha256": "2465b0b662fdc5d4e3bebcdc9a79027713fb629ca2bff04a3c9251fdec42dd09"
+      },
+      "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
+      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "dropped": "upstream autotools machinery, docs/, src/{conv,fuzz,test}, *.pc.in, *.rc(.in), ChangeLog/NEWS/AUTHORS/HACKING/CREDITS/TODO, per-dir Makefile.am|in",
+      "patched_files": {},
+      "local_files": {},
+      "flags": "-DLIBWPD_BUILD -DLIBWPD_STREAMS",
+      "advisories": []
+    },
+    "libwpg": {
+      "dir": "libwpg-0.3.4",
+      "version": "0.3.4",
+      "upstream": "https://sourceforge.net/projects/libwpg/",
+      "tarball": {
+        "url": "https://sourceforge.net/projects/libwpg/files/libwpg/libwpg-0.3.4/libwpg-0.3.4.tar.xz",
+        "sha256": "b55fda9440d1e070630eb2487d8b8697cf412c214a27caee9df69cec7c004de3"
+      },
+      "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
+      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "dropped": "upstream autotools machinery, docs/, src/{conv,fuzz}, *.pc.in, *.rc(.in), ChangeLog/NEWS/AUTHORS, per-dir Makefile.am|in",
+      "patched_files": {},
+      "local_files": {},
+      "flags": "-DLIBWPG_BUILD -DLIBWPG_STREAMS",
+      "advisories": []
+    },
+    "libwps": {
+      "dir": "libwps-0.4.14",
+      "version": "0.4.14",
+      "upstream": "https://sourceforge.net/projects/libwps/",
+      "tarball": {
+        "url": "https://sourceforge.net/projects/libwps/files/libwps/libwps-0.4.14/libwps-0.4.14.tar.xz",
+        "sha256": "365b968e270e85a8469c6b160aa6af5619a4e6c995dbb04c1ecc1b4dd13e80de"
+      },
+      "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
+      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "dropped": "upstream autotools machinery, docs/, src/{conv,fuzz,test}, *.pc.in, *.rc(.in), ChangeLog/NEWS/AUTHORS/HACKING/CREDITS, per-dir Makefile.am|in",
+      "patched_files": {},
+      "local_files": {},
+      "flags": "-DLIBWPS_BUILD -DLIBWPS_STREAMS",
+      "advisories": []
+    },
+    "wv": {
+      "dir": "wv-1.2.9",
+      "version": "1.2.9",
+      "upstream": "http://wvware.sourceforge.net/ (dead since ~2010; original abisource.com downloads are gone — tarball below is the canonical bits via a distro mirror)",
+      "tarball": {
+        "url": "https://sources.voidlinux.org/wv-1.2.9/wv-1.2.9.tar.gz",
+        "sha256": "4c730d3b325c0785450dd3a043eeb53e1518598c4f41f155558385dd2635c19d",
+        "alternates": ["https://fossies.org/linux/misc/old/wv-1.2.9.tar.gz"]
+      },
+      "license": "GPL-2.0+ (upstream COPYING is NOT vendored — LIC01 adds it)",
+      "vendored_paths": ["<flat library sources only: *.c/*.h at the dir root>"],
+      "dropped": "converter mains (wvWare.c, wvText.in, wvConvert.c, wvRTF.c, wvSummary.c, wvVersion.c), helper scripts (wvHtml.in, wvLatex.in, wvPDF.in, wvPS.in, wvDVI.in, wvAbw.in, wvCleanLatex.in, wvDocBook.in, wvWml.in, wvMime), getopt.c/getopt1.c, patterns/, wingdingfont/, xml/, help/, GNUmakefile.*, autotools machinery, version.c.in, wv-1.0.pc.in, COPYING, README, NEWS",
+      "notes": "Upstream is dead; this tree carries a large local security/correctness patch set from the DOC01-23 + UB/SEC/MEM audit series (see git history, task notes in .devin/TASKS.md). 'Upgrading' means a 3-way merge: regenerate the patch series with `tools/vendor-check.py --patch-out DIR wv` against a new upstream drop, or treat the vendored tree as effectively maintained in-tree.",
+      "local_files": {
+        "config.h": "hand-written static config (no autoconf); defines MATCHED_TYPE on little-endian hosts — REQUIRED for correct read_*ubit/write_*ubit endianness",
+        "wvblip.c": "local noinst debug tool (DOC22): lists/dumps BlipStore + --picf inline blips"
+      },
+      "patched_files": {
+        "atrd.c": "annotation ATRD/ATNBE bounds + PlcfandRef len guard (DOC02/DOC10)",
+        "bkd.c": "Plcfbkd len<4 guard + wvFree(*pos) ownership fix (DOC15/DOC21)",
+        "bkf.c": "Plcfbkf len<4 guard + wvFree(*pos) ownership fix (DOC15/DOC21)",
+        "bkl.c": "Plcfbkl len<4 guard + wvFree(*pos) ownership fix (DOC15/DOC21)",
+        "blip.c": "OfficeArtBlip/BlipStore extraction API (wvGetStoreBlip/wvExtractBlipData) + record bounds (DOC22)",
+        "brc.c": "BrcOperand decode for full-COLORREF borders (DOC03)",
+        "bte.c": "BTE bounds + wvFree(*pos) fix (DOC01/DOC15)",
+        "chp.c": "CHP sprm audit: Word2000+ opcodes, operand bounds, CHP field fixes, stylename NUL (DOC04/SEC02/DOC21)",
+        "clx.c": "CLX/piece-table bounds: grpprl cb + plcfpcd lcb clamped, fc-range guards (DOC01/DOC21)",
+        "decode_complex.c": "bounded grpprl/char walks, Sttbfbkmk release, wvEatSprm ends (DOC01/DOC15/DOC21)",
+        "decode_simple.c": "bounded char walk by piece byte extent (DOC21)",
+        "decrypt95.c": "XOR-obfuscation decryption per MS-OFFCRYPTO + secret wiping (DOC13/SEC05)",
+        "decrypt97.c": "RC4 decrypt rewrite: EncryptionVersionInfo check, per-512B rekey, memory streams (DOC13)",
+        "dop.c": "uninit DOP reserved fields (UB01)",
+        "error.c": "vsprintf -> vsnprintf (SEC01)",
+        "escher.c": "escher record/DggInfo bounds + FIDCL/size clamps (DOC21/DOC22)",
+        "fbse.c": "FBSE/blip-store bounds (DOC22)",
+        "fdoa.c": "Plcffdoa len<4 guard + wvFree(*pos) fix (DOC15/DOC21)",
+        "ffn.c": "FFN bounds + termination (DOC15/UB04)",
+        "fib.c": "FibBase validation + wvClampFIBFcLcb clamps all 93 fc/lcb pairs (DOC02)",
+        "field.c": "field instruction/char bounds (DOC09)",
+        "filetime.c": "FILETIME->time_t in unsigned 64-bit (UB02)",
+        "fkp.c": "FKP deep-copy caches so release fns actually free + page/bounds guards (DOC15/DOC21/UB04)",
+        "fld.c": "FLD PLCF bounds + wvFree(*pos) fix (DOC09/DOC15/DOC21)",
+        "fopt.c": "OfficeArt OPT prop bounds (DOC11/DOC21)",
+        "frd.c": "Plcffrd len<4 guard + wvFree(*pos) fix (DOC15/DOC21)",
+        "fspa.c": "FSPA parse guards + wvFree(*pos) fix (DOC11/DOC15)",
+        "ftxbxs.c": "PlcftxbxTxt FTXBXS bounds (DOC11/DOC21)",
+        "isbidi.c": "bounded char walk (DOC21)",
+        "lfo.c": "LFOLVL startAt/override bounds (DOC05)",
+        "list.c": "list assembly: style links, LFOLVL overrides, multilevel (DOC05)",
+        "lst.c": "PlcfLst bounds (DOC05/DOC21)",
+        "lvl.c": "LVLF bounds (DOC05)",
+        "md5.h": "UINT4 was 64-bit on LP64 — broke RC4 key derivation (DOC13)",
+        "pap.c": "PAP sprm audit: Word2000+ opcodes, tab/border/indent decode, stylename NUL (DOC03/SEC02)",
+        "pcd.c": "PCD bounds + wvFree(*pos) fix (DOC01/DOC15)",
+        "picf.c": "PICF BMP palette clamp + U32 shifts (UB02/DOC17)",
+        "plcf.c": "PLCF bounds guards",
+        "sed.c": "len<4 underflow guard (DOC12/DOC21)",
+        "sep.c": "SEP sprm completeness: Word2000+ opcodes, pgbProp, page borders (DOC12)",
+        "shd.c": "SHDOperand decode (DOC03)",
+        "sprm.c": "sprm operand table + wvEatSprm end-bound + Word2000+ opcode coverage (DOC03/DOC04/DOC21)",
+        "sttbf.c": "STTBF bounds: nostrings/strlen/extradata vs table len (DOC02/DOC21)",
+        "stylesheet.c": "xstzName NUL-force + istd/cbUPX/grupe/grupxf guards (DOC21)",
+        "support.c": "wvSecureClear secret wipe + short-read clamp/zero-fill + memory-stream bounds (SEC05/DOC02/UB01)",
+        "table.c": "per-depth wvTableLevel state + nested-table detection (DOC06)",
+        "tap.c": "TAP decode: positioning/width/padding/spacing/shading (DOC06)",
+        "tc.c": "TAP cell props + bounds (DOC06)",
+        "text.c": "codepage/iconv deterministic '?' on failure + U16 aliasing fix (DOC01/UB07)",
+        "tlp.c": "uninit pad bit (UB01)",
+        "wv.h": "struct field widenings (kul, hpsPos, cv, ...) + new API decls (cross-cutting)",
+        "wvConfig.c": "SAX handler callback casts",
+        "wvparse.c": "core parse: story walks, escher/blip hookup, stream bounds (DOC01-23)"
+      },
+      "advisories": []
+    }
+  }
+}

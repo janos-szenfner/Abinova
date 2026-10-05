@@ -32,4 +32,6 @@ the upstream build systems.
 To update a vendored library: drop in the new upstream tree, keep the
 same directory layout (inc/, src/lib/ — or src/hunspell/ for
 hunspell), refresh the _SOURCES list in Makefile.am, and check the
-license header list above is still accurate.
+license header list above is still accurate. See UPGRADING.md for the
+full recipe and VENDORED.json for the per-file upstream-delta
+inventory (verify either with tools/vendor-check.py).
