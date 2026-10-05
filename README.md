@@ -1974,7 +1974,12 @@ GTK4 im/media/print modules and the GStreamer plugins — writes an
 `Info.plist` registering `.abwn`/`.abw` UTIs plus
 `.docx`/`.doc`/`.odt`/`.rtf` associations, verifies no non-system dep
 is left dangling, and ad-hoc codesigns (arm64 binaries refuse to
-launch unsigned; Developer-ID signing is a later packaging step).
+launch unsigned).  `--sign-identity "Developer ID Application: …"`
+(or `ABINOVA_CODESIGN_IDENTITY`) upgrades to a real Developer-ID
+signature with hardened runtime + secure timestamp, and
+`--notarize-profile <profile>` (`ABINOVA_NOTARY_PROFILE`) additionally
+submits to Apple's notary service and staples the ticket — see
+`dist/SIGNING.md`.
 `Resources/hunspell` + `Resources/hyphen` carry whatever spell and
 hyphenation dictionaries the build host provides, and
 `Resources/fontconfig/` holds a private `fonts.conf` (+ resolved
@@ -2079,6 +2084,18 @@ The script's verify step fails if `ldd` on the bundled binary — or on
 any bundled module `.so` — resolves anything outside the bundle other
 than the declared system set (libc/libm/ld.so).
 
+Desktop integration is a separate, opt-in step so the bundle stays a
+plain relocatable directory: `install-desktop.sh` inside the bundle
+installs the `.desktop` launcher (its `Exec=` rewritten to wherever
+the bundle actually sits), the hicolor icon set, an
+`application/x-abinova` shared-mime-info package and the AppStream
+metainfo into `${XDG_DATA_HOME:-~/.local/share}` — `--system` targets
+`/usr/local/share`, and `uninstall-desktop.sh` removes the same set:
+
+```bash
+abinova-4.0.0-linux-x86_64/install-desktop.sh
+```
+
 `dist/bundle-verify.sh` is the per-OS smoke matrix for packed output.
 Its Linux legs run the bundle inside real clean distro containers —
 Debian stable-slim, Ubuntu 24.04 and openSUSE Leap 15.6 — asserting
@@ -2100,6 +2117,29 @@ Windows folder, a built-binary check on FreeBSD); elsewhere they print
 their runner steps — note the macOS leg needs an **arm64** machine
 (GitHub `macos-14` or later), because an x86_64 run cannot catch the
 unsigned-char/alignment issues the port hardening targeted.
+
+### Signing and installers
+
+Bundles are produced unsigned; release signing needs real
+certificates and is layered on top (`dist/SIGNING.md` has the full
+recipes):
+
+- **macOS** — `dist/sign-macos.sh <Abinova.app>` ad-hoc-signs every
+  Mach-O inside-out (the minimum Apple Silicon needs to launch at
+  all); `--identity "Developer ID Application: …"` produces a
+  hardened-runtime release signature and `--notarize-profile <prof>`
+  submits to `notarytool` and staples the ticket.  The same options
+  exist on `build-macos.sh`.
+- **Windows** — `dist/sign-windows.sh <bundle>` Authenticode-signs
+  every PE in the bundle via `signtool` (configure with
+  `ABINOVA_SIGN_SHA1` or `ABINOVA_SIGN_PFX`; run automatically by the
+  build script when set).  `dist/abinova-setup.nsi` compiles the
+  one-folder bundle into a real installer under `makensis`: Start
+  Menu/desktop shortcuts, Add/Remove Programs entry, owned
+  `.abwn`/`.abw` associations plus "Open with" registration for
+  `.docx`/`.doc`/`.odt` and friends, and a matching uninstaller.
+- **Linux** — no signing step; the bundle's `install-desktop.sh`
+  wires up launcher/icons/MIME info (above).
 
 ### Building on FreeBSD
 

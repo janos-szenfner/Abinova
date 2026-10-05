@@ -11,6 +11,7 @@
 # Usage:
 #   tools/build-macos.sh [--prefix DIR] [--jobs N] [--skip-deps]
 #                        [--bundle[=DIR]] [--universal] [--no-sign]
+#                        [--sign-identity NAME] [--notarize-profile P]
 #                        [--bundle-only] [--no-verify]
 #
 # Bundle stage (--bundle):
@@ -62,9 +63,16 @@
 #
 #   Apple Silicon notes:
 #   * arm64 Mach-O refuses to launch unsigned, so the bundle stage
-#     ad-hoc codesigns every dylib/binary and the .app itself
-#     (codesign -s -).  Real Developer-ID signing + notarization is
-#     PACK09.
+#     codesigns every dylib/binary and the .app itself (ad-hoc
+#     `codesign -s -` by default; a real release signature comes from
+#     --sign-identity "Developer ID Application: ..." or the
+#     ABINOVA_CODESIGN_IDENTITY env var, which also enables hardened
+#     runtime + timestamp).  --notarize-profile P (env
+#     ABINOVA_NOTARY_PROFILE) additionally submits the app to Apple's
+#     notarytool and staples the ticket — needs the Developer-ID
+#     identity; see dist/SIGNING.md.  Signing/notarization live in
+#     dist/sign-macos.sh so they can also be run standalone on an
+#     already-assembled .app.
 #   * --universal produces a universal2 app on Apple Silicon: it needs
 #     Rosetta 2 plus a second (x86_64) Homebrew at /usr/local —
 #     i.e. 'arch -x86_64 /usr/local/bin/brew' installed.  Both archs
@@ -83,6 +91,8 @@ bundle=0
 appdir=""
 universal=0
 sign=1
+sign_identity=${ABINOVA_CODESIGN_IDENTITY:-}
+notary_profile=${ABINOVA_NOTARY_PROFILE:-}
 verify=1
 
 while [ $# -gt 0 ]; do
@@ -96,6 +106,10 @@ while [ $# -gt 0 ]; do
 	--bundle=*)  bundle=1; appdir=${1#*=}; shift ;;
 	--universal) universal=1; shift ;;
 	--no-sign)   sign=0; shift ;;
+	--sign-identity)    sign_identity=$2; shift 2 ;;
+	--sign-identity=*)  sign_identity=${1#*=}; shift ;;
+	--notarize-profile)    notary_profile=$2; shift 2 ;;
+	--notarize-profile=*)  notary_profile=${1#*=}; shift ;;
 	--bundle-only) bundle=1; skip_deps=1; skip_build=1; shift ;;
 	--no-verify) verify=0; shift ;;
 	-h|--help)
@@ -883,16 +897,30 @@ if [ $verify -eq 1 ]; then
 fi
 
 # ------------------------------------------------------------- codesign
-# arm64 Mach-O refuses to launch unsigned at all — ad-hoc sign every
-# Mach-O inside-out, then the bundle.  Developer-ID + notarization is
-# PACK09's layer.
+# arm64 Mach-O refuses to launch unsigned at all — sign every Mach-O
+# inside-out, then the bundle.  Default is ad-hoc (-s -); a
+# Developer-ID identity (--sign-identity / ABINOVA_CODESIGN_IDENTITY)
+# switches to hardened-runtime + timestamp release signing, and
+# --notarize-profile / ABINOVA_NOTARY_PROFILE submits to Apple's
+# notary service + staples the ticket.  The mechanics live in
+# dist/sign-macos.sh so they can also run standalone.
+signhelper="$top/dist/sign-macos.sh"
 if [ $sign -eq 1 ]; then
-	if command -v codesign >/dev/null 2>&1; then
+	if [ -x "$signhelper" ]; then
+		set -- "$appdir"
+		[ -n "$sign_identity" ] && set -- --identity "$sign_identity" "$@"
+		[ -n "$notary_profile" ] && \
+			set -- --notarize-profile "$notary_profile" "$@"
+		"$signhelper" "$@"
+	elif command -v codesign >/dev/null 2>&1; then
+		# helper missing (script copied standalone?) — inline
+		# ad-hoc fallback so the bundle still launches on arm64
 		find "$fw" "$macos" -type f | while read -r f; do
 			is_macho "$f" && codesign -s - --force "$f" 2>/dev/null || true
 		done
 		codesign -s - --force "$appdir" 2>/dev/null || true
-		echo "build-macos: ad-hoc codesigned (PACK09 adds Developer-ID)"
+		echo "build-macos: ad-hoc codesigned (dist/sign-macos.sh" >&2
+		echo "  missing — no Developer-ID/notarize path available)" >&2
 	else
 		echo "build-macos: WARNING codesign not found —" >&2
 		echo "  the bundle will not launch on Apple Silicon" >&2

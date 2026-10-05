@@ -65,8 +65,11 @@
 #   section below; the app's runtime-module setup points GIO_EXTRA_
 #   MODULES / GTK_PATH / GST_PLUGIN_SYSTEM_PATH_1_0 at them and loads
 #   certs/ca-certificates.crt for the update check.  hunspell/hyph
-#   dictionaries and fontconfig/fonts are PACK07's layer; signing +
-#   installer are PACK09.
+#   dictionaries and fontconfig/fonts are PACK07's layer.  PACK09:
+#   Authenticode-sign the bundle via dist/sign-windows.sh (runs when
+#   ABINOVA_SIGN_SHA1 or ABINOVA_SIGN_PFX is set) and build a real
+#   installer with dist/abinova-setup.nsi under makensis (auto-run
+#   when makensis is on PATH).
 #
 #   Cross-compile note: MXE (mxe.cc) is a viable CI alternative for
 #   producing abinova.exe without a Windows box
@@ -618,6 +621,51 @@ if [ $verify -eq 1 ]; then
 		echo "build-windows: verification FAILED (see above)" >&2
 		exit 1
 	fi
+fi
+
+# --------------------------------------------- signing + installer
+# PACK09 layer.  Authenticode signing is opt-in (real certs needed):
+# set ABINOVA_SIGN_SHA1=<thumbprint> or ABINOVA_SIGN_PFX=<file>
+# (+ABINOVA_SIGN_PFX_PASSWORD) and dist/sign-windows.sh signs every PE
+# in the bundle via signtool.  dist/abinova-setup.nsi turns the folder
+# into a proper installer (file associations, shortcuts, Add/Remove
+# Programs, uninstaller); it runs automatically when makensis is on
+# PATH, or manually:
+#   makensis -DVERSION=$version -DARCH=$arch -DSRCDIR=<bundle> \
+#     dist/abinova-setup.nsi
+# See dist/SIGNING.md for the full signing recipe.
+winout=$(cygpath -w "$outdir" 2>/dev/null || echo "$outdir")
+if [ -n "${ABINOVA_SIGN_SHA1:-}${ABINOVA_SIGN_PFX:-}" ]; then
+	sh "$top/dist/sign-windows.sh" "$outdir"
+else
+	echo "build-windows: bundle left unsigned — set ABINOVA_SIGN_SHA1" >&2
+	echo "  or ABINOVA_SIGN_PFX(+_PASSWORD) for Authenticode signing" >&2
+	echo "  (dist/sign-windows.sh; see dist/SIGNING.md)" >&2
+fi
+if command -v makensis >/dev/null 2>&1; then
+	signcmd=""
+	if [ -n "${ABINOVA_SIGN_SHA1:-}${ABINOVA_SIGN_PFX:-}" ]; then
+		# let NSIS !finalize/!uninstfinalize sign the installer and
+		# the embedded uninstaller with the same certificate
+		_signtool=${ABINOVA_SIGNTOOL:-signtool.exe}
+		signcmd="$_signtool sign /fd sha256 /td sha256 /tr \
+${ABINOVA_SIGN_TSA:-http://timestamp.digicert.com}"
+		if [ -n "${ABINOVA_SIGN_SHA1:-}" ]; then
+			signcmd="$signcmd /sha1 $ABINOVA_SIGN_SHA1"
+		else
+			signcmd="$signcmd /f $ABINOVA_SIGN_PFX"
+			[ -n "${ABINOVA_SIGN_PFX_PASSWORD:-}" ] && \
+				signcmd="$signcmd /p $ABINOVA_SIGN_PFX_PASSWORD"
+		fi
+		signcmd="$signcmd /d Abinova"
+	fi
+	makensis -DVERSION="$version" -DARCH="$arch" \
+		-DSRCDIR="$winout" ${signcmd:+-DSIGNCMD="$signcmd"} \
+		"$top/dist/abinova-setup.nsi"
+else
+	echo "build-windows: no makensis — to build the installer run:" >&2
+	echo "  makensis -DVERSION=$version -DARCH=$arch \\" >&2
+	echo "    -DSRCDIR=\"$winout\" dist/abinova-setup.nsi" >&2
 fi
 
 cat <<EOF

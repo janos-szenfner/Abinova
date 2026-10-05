@@ -41,7 +41,15 @@
 #                                          PORT04's dictionaryDirs()
 #   hyphen/hyph_*.dic                      hyphenation patterns for RBN06's
 #                                          auto-hyphenation (ut_hyphen.cpp)
-#   share/applications + share/icons       desktop files, kept for PACK09
+#   share/applications + share/icons +     desktop integration assets +
+#     share/metainfo + share/mime          AppStream metainfo + the
+#                                          generated abinova.xml MIME
+#                                          package for .abwn
+#   install-desktop.sh /                   PACK09: installer scripts that
+#     uninstall-desktop.sh                 wire the bundle into the
+#                                          desktop (launcher, icons,
+#                                          MIME type) per-user or
+#                                          system-wide
 #   artwork/ fonts/ help/ mime-info/ omml_xslt/ system.profile templates/ xsltml/
 #                                          the datadir is flattened to the
 #                                          bundle root so the app's existing
@@ -285,11 +293,168 @@ cp -a "$datasrc/." "$outdir/"
 
 # desktop integration files ride along for the installer layer (PACK09)
 mkdir -p "$outdir/share"
-for d in applications icons; do
+for d in applications icons metainfo; do
 	if [ -d "$prefix_dir/share/$d" ]; then
 		cp -a "$prefix_dir/share/$d" "$outdir/share/"
 	fi
 done
+
+# shared-mime-info package for application/x-abinova — the .abwn type
+# is new (shared-mime-info only knows application/x-abiword), and the
+# .desktop file's MimeType= list references it
+mkdir -p "$outdir/share/mime/packages"
+cat > "$outdir/share/mime/packages/abinova.xml" <<'MIMEXML'
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-abinova">
+    <comment>Abinova document</comment>
+    <icon name="abinova"/>
+    <glob pattern="*.abwn"/>
+    <glob pattern="*.zabwn"/>
+    <glob pattern="*.abwn.gz"/>
+    <glob pattern="*.bzabwn"/>
+    <glob pattern="*.abwn.bz2"/>
+  </mime-type>
+</mime-info>
+MIMEXML
+
+# ------------------------------------------------ desktop installer
+# PACK09: relocatable bundles cannot hardcode an absolute Exec path at
+# bundle time, so the installer rewrites it for wherever the bundle
+# actually sits when the user runs it.  Per-user install (default)
+# needs no root; --system targets /usr/local/share.
+cat > "$outdir/install-desktop.sh" <<'INSTALLER'
+#!/bin/sh
+# install-desktop.sh — wire this Abinova bundle into the desktop
+# environment: .desktop launcher (Exec rewritten to this copy's
+# bin/abinova), hicolor icons, application/x-abinova MIME info and
+# AppStream metainfo.
+#
+#   ./install-desktop.sh           per-user install into
+#                                  ${XDG_DATA_HOME:-~/.local/share}
+#   ./install-desktop.sh --system  system-wide install into
+#                                  /usr/local/share (needs root/sudo)
+#   sudo ./install-desktop.sh --system
+#
+# Nothing outside the chosen data dir is touched.  Moving the bundle
+# afterwards requires re-running this script (the Exec path is
+# absolute).  uninstall-desktop.sh reverses the install.
+
+set -e
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+scope=user
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--user)   scope=user; shift ;;
+	--system) scope=system; shift ;;
+	-h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+	*) echo "install-desktop: unknown option $1" >&2; exit 1 ;;
+	esac
+done
+
+case $scope in
+system) base=/usr/local/share ;;
+*)      base=${XDG_DATA_HOME:-"$HOME/.local/share"} ;;
+esac
+
+mkdir -p "$base" 2>/dev/null || true
+[ -d "$base" ] && [ -w "$base" ] || {
+	echo "install-desktop: $base is not writable —" >&2
+	echo "  re-run under sudo for a --system install" >&2
+	exit 1; }
+
+exe="$here/bin/abinova"
+[ -x "$exe" ] || {
+	echo "install-desktop: $exe missing or not executable" >&2
+	exit 1; }
+
+# .desktop launcher — Exec must point at THIS bundle's binary
+src="$here/share/applications/io.github.janos_szenfner.Abinova.desktop"
+[ -f "$src" ] || {
+	echo "install-desktop: $src missing from bundle" >&2; exit 1; }
+apps_dir="$base/applications"
+mkdir -p "$apps_dir"
+esc=$(printf '%s' "$exe" | sed 's/[&|\\]/\\&/g')
+sed "s|^Exec=.*|Exec=$esc %U|" "$src" \
+	> "$apps_dir/io.github.janos_szenfner.Abinova.desktop"
+
+# hicolor icons
+if [ -d "$here/share/icons/hicolor" ]; then
+	(cd "$here/share/icons" && find hicolor -type f) | \
+	while IFS= read -r f; do
+		mkdir -p "$base/icons/$(dirname "$f")"
+		cp -a "$here/share/icons/$f" "$base/icons/$f"
+	done
+fi
+
+# application/x-abinova MIME package
+if [ -f "$here/share/mime/packages/abinova.xml" ]; then
+	mkdir -p "$base/mime/packages"
+	cp -a "$here/share/mime/packages/abinova.xml" "$base/mime/packages/"
+fi
+
+# AppStream metainfo
+m="$here/share/metainfo/io.github.janos_szenfner.Abinova.metainfo.xml"
+if [ -f "$m" ]; then
+	mkdir -p "$base/metainfo"
+	cp -a "$m" "$base/metainfo/"
+fi
+
+# refresh caches where the tools exist
+command -v update-desktop-database >/dev/null 2>&1 && \
+	update-desktop-database "$apps_dir" || true
+command -v update-mime-database >/dev/null 2>&1 && \
+	update-mime-database "$base/mime" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && \
+	gtk-update-icon-cache -f -t "$base/icons/hicolor" \
+		>/dev/null 2>&1 || true
+
+echo "Abinova desktop integration installed into $base"
+echo "  (bundle: $here)"
+INSTALLER
+chmod 755 "$outdir/install-desktop.sh"
+
+cat > "$outdir/uninstall-desktop.sh" <<'UNINSTALLER'
+#!/bin/sh
+# uninstall-desktop.sh — remove what install-desktop.sh installed.
+#
+#   ./uninstall-desktop.sh           reverse the per-user install
+#   sudo ./uninstall-desktop.sh --system
+
+set -e
+scope=user
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--user)   scope=user; shift ;;
+	--system) scope=system; shift ;;
+	-h|--help) sed -n '2,6p' "$0"; exit 0 ;;
+	*) echo "uninstall-desktop: unknown option $1" >&2; exit 1 ;;
+	esac
+done
+
+case $scope in
+system) base=/usr/local/share ;;
+*)      base=${XDG_DATA_HOME:-"$HOME/.local/share"} ;;
+esac
+
+rm -f "$base/applications/io.github.janos_szenfner.Abinova.desktop"
+rm -f "$base/mime/packages/abinova.xml"
+rm -f "$base/metainfo/io.github.janos_szenfner.Abinova.metainfo.xml"
+find "$base/icons/hicolor" -name 'abinova.*' -type f -delete \
+	2>/dev/null || true
+
+command -v update-desktop-database >/dev/null 2>&1 && \
+	update-desktop-database "$base/applications" 2>/dev/null || true
+command -v update-mime-database >/dev/null 2>&1 && \
+	update-mime-database "$base/mime" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && \
+	gtk-update-icon-cache -f -t "$base/icons/hicolor" \
+		>/dev/null 2>&1 || true
+
+echo "Abinova desktop integration removed from $base"
+UNINSTALLER
+chmod 755 "$outdir/uninstall-desktop.sh"
 
 # ------------------------------------------- gdk-pixbuf loaders+cache
 if [ -n "$pixdir" ]; then
@@ -543,6 +708,15 @@ fi
 	echo "                              ships no private fonts.conf)"
 	echo "  (no locale files exist — the UI is English-only, strings"
 	echo "   are compiled in)"
+	echo
+	echo "desktop integration (PACK09):"
+	echo "  install-desktop.sh          .desktop launcher + hicolor icons +"
+	echo "                              x-abinova MIME + metainfo into"
+	echo "                              ~/.local/share (--system for"
+	echo "                              /usr/local/share); re-run after"
+	echo "                              moving the bundle"
+	echo "  uninstall-desktop.sh        removes the same files"
+	echo "  share/applications|icons|metainfo|mime — staged assets"
 } > "$outdir/BUNDLE-INFO.txt"
 
 # ------------------------------------------------------------ verify
@@ -640,4 +814,6 @@ cat <<EOF
 Bundle ready: $outdir
   run:   $outdir/bin/abinova
   size:  $(du -sh "$outdir" 2>/dev/null | cut -f1)
+  desktop: $outdir/install-desktop.sh  (launcher+icons+MIME; --system
+           for /usr/local/share; uninstall-desktop.sh reverses it)
 EOF

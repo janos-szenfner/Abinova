@@ -4187,6 +4187,29 @@ below are on `main` but the release has not been cut yet.
   `windows` and `freebsd` legs print their runner steps on foreign
   hosts and run real `otool`/`objdump`/`ldd` gates on matching ones;
   the macOS leg requires an arm64 machine (GitHub `macos-14` or later).
+- **Signing + installer layer for the bundles** — macOS:
+  `dist/sign-macos.sh` ad-hoc-codesigns every Mach-O inside-out by
+  default (mandatory for the binary to launch at all on Apple
+  Silicon), upgrades to a hardened-runtime Developer-ID signature
+  with `--identity`/`ABINOVA_CODESIGN_IDENTITY`, and submits to
+  `notarytool` + staples the ticket with
+  `--notarize-profile`/`ABINOVA_NOTARY_PROFILE`; the same flags are on
+  `tools/build-macos.sh`.  Windows: `dist/sign-windows.sh`
+  Authenticode-signs every PE file in the bundle via `signtool`
+  (cert from `ABINOVA_SIGN_SHA1`/`ABINOVA_SIGN_PFX`, RFC3161
+  timestamped), and `dist/abinova-setup.nsi` builds a real NSIS
+  installer — Start Menu/desktop shortcuts, Add/Remove Programs
+  entry, owned `.abwn`/`.abw`/`.zabw`/`.zabwn`/`.awt` associations,
+  "Open with"/Default-Apps registration for `.docx`/`.doc`/`.odt`/
+  `.rtf` and friends without stealing existing handlers, and a full
+  uninstaller; the build script runs both automatically when the
+  tools/credentials exist.  Linux: each bundle now ships
+  `install-desktop.sh`/`uninstall-desktop.sh`, which install the
+  `.desktop` launcher (with `Exec=` resolved to the bundle's actual
+  location), the hicolor icons, an `application/x-abinova`
+  shared-mime-info package and the AppStream metainfo per-user under
+  `~/.local/share` or system-wide under `/usr/local/share`.  See
+  `dist/SIGNING.md` for the certificate setup.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.
