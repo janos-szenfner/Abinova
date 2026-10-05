@@ -30,6 +30,8 @@
  *   ui-drive --id N          construct dialog N, drive it, dismiss it
  *   ui-drive --frame         drive a fresh main window end to end
  *   ui-drive --abi           exercise the AbiWidget embeddable API
+ *   ui-drive --ev            COV13: menu action layer, real input
+ *                            events (XTest), image/media graphics
  *
  * Exit codes: 0 ok, 1 failure, 77 no display / interactive prerequisite.
  * drvwrap.sh runs one process per dialog under `timeout` so a hang or
@@ -50,6 +52,7 @@
 #include <cstring>
 #include <execinfo.h>
 #include <unistd.h>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -1251,6 +1254,497 @@ static int drive_abiwidget(const char *scratch_uri)
 	return 0;
 }
 
+/* ---------------- COV13: event plumbing + graphics drive ----------------
+ *
+ * The --ev leg targets af/ev/gtk and af/gr/gtk, which sit below the
+ * reach of the dialog sweep: EV_UnixMouse / ev_UnixKeyboard only run
+ * on real GdkEvent input, the EV_UnixMenu action layer only runs on
+ * menu dispatch, and the cairo image/media classes only run on real
+ * image data.  Two prongs:
+ *
+ *  - direct calls on exported product APIs (menu action creation /
+ *    activation / state changes, charDataEvent, keysym2ucs, image
+ *    codec + blip effects, print graphics, cursor name table) and
+ *    media/blip-effect fixtures loaded into a live frame;
+ *  - the input plumbing itself: the GTK event controllers hand their
+ *    current GdkEvent to EV_UnixMouse / ev_UnixKeyboard, which is
+ *    null whenever the handler runs outside a real GDK dispatch —
+ *    and GTK4 exports no event constructors, so in-process
+ *    fabrication is impossible anyway.  Calling the same methods
+ *    with a null event runs every entry path, modifier map and
+ *    edit-event-mapper dispatch they contain; the gdk_*_event_get_*
+ *    getters are g_return_val_if_fail'd, so they log a critical and
+ *    return defaults rather than crashing. */
+
+#include "ev_UnixKeyboard.h"
+#include "ev_UnixMouse.h"
+#include "ev_UnixKeysym2ucs.h"
+#include "ev_UnixMenuPopup.h"
+#include "ev_EditEventMapper.h"
+#include "ap_Prefs_SchemeIds.h"
+#include "gr_Graphics.h"
+#include "gr_UnixImage.h"
+#include "gr_CairoImage.h"
+#include "gr_CairoPrintGraphics.h"
+#include "gr_GtkMediaManager.h"
+#include "fl_DocLayout.h"
+#include "ut_bytebuf.h"
+
+/* find a widget of a given GType anywhere below w (used for the doc
+ * drawing area and for the context-menu popover) */
+static GtkWidget *find_type(GtkWidget *w, GType t)
+{
+	if (g_type_check_instance_is_a(
+			reinterpret_cast<GTypeInstance *>(w), t))
+		return w;
+	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c)) {
+		if (GtkWidget *f = find_type(c, t))
+			return f;
+	}
+	return nullptr;
+}
+
+/* drive the input-event classes the way the frame's _fe handlers do:
+ * they forward gtk_event_controller_get_current_event() — null
+ * outside a real GDK dispatch — so the same methods run with a null
+ * event here.  The gdk_*_event_get_* getters are g_return_val_if
+ * fail'd, so they log a critical and return defaults while every
+ * entry path, modifier map and mapper dispatch still executes. */
+static void drive_input_events(AV_View *view, EV_EditEventMapper *eem)
+{
+	if (!view || !eem)
+		return;
+	EV_UnixMouse mouse(eem);
+	mouse.mouseClick(view, nullptr, 100.0, 120.0, 1);
+	mouse.mouseClick(view, nullptr, 100.0, 120.0, 2);
+	mouse.mouseUp(view, nullptr, 100.0, 120.0);
+	mouse.mouseMotion(view, nullptr, 110.0, 125.0);
+	mouse.mouseMotion(view, nullptr, 130.0, 140.0);
+	mouse.mouseScroll(view, nullptr, 100.0, 120.0);
+	ev_UnixKeyboard kbd(eem);
+	kbd.keyPressEvent(view, nullptr);
+}
+
+/* load a small xml fixture into its own frame; the window is added to
+ * preexisting so the stray sweep does not answer it like a dialog.
+ * Returns the new frame's view via view_out. */
+static bool load_fixture_frame(AP_UnixApp *app, DriveCtx &ctx,
+							   const std::string &path, AV_View **view_out)
+{
+	if (view_out)
+		*view_out = nullptr;
+	XAP_Frame *frame = app->newFrame();
+	if (!frame)
+		return false;
+	char *uri = g_strdup_printf("file://%s", path.c_str());
+	UT_Error err = frame->loadDocument(uri, IEFT_Unknown, true);
+	g_free(uri);
+	frame->show();
+	pump_for(1200);
+	std::vector<GtkWidget *> tops;
+	sweep_guard([&tops] { tops = toplevels(); });
+	for (GtkWidget *w : tops)
+		if (!contains(ctx.preexisting, w))
+			ctx.preexisting.push_back(w);
+	if (view_out)
+		*view_out = frame->getCurrentView();
+	return err == UT_OK;
+}
+
+static std::string write_fixture(const char *name, const std::string &xml)
+{
+	std::string path = std::string(g_get_tmp_dir()) + "/ui-drive-" + name;
+	if (!g_file_set_contents(path.c_str(), xml.data(),
+							 static_cast<gssize>(xml.size()), nullptr))
+		return "";
+	return path;
+}
+
+static gchar *file_b64(const char *path)
+{
+	gchar *buf = nullptr;
+	gsize len = 0;
+	if (!g_file_get_contents(path, &buf, &len, nullptr))
+		return nullptr;
+	gchar *b64 = g_base64_encode(reinterpret_cast<const guchar *>(buf), len);
+	g_free(buf);
+	return b64;
+}
+
+static int drive_ev(AP_UnixApp *app, const char *scratch)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0};
+	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+
+	XAP_Frame *frame = app->newFrame();
+	if (!frame) {
+		g_printerr("drive: no frame\n");
+		return 1;
+	}
+	char *uri = g_strdup_printf("file://%s", scratch);
+	frame->loadDocument(uri, IEFT_Unknown, true);
+	g_free(uri);
+	frame->show();
+	pump_for(800);
+
+	AV_View *view = frame->getCurrentView();
+	GtkWidget *win = nullptr;
+	{
+		std::vector<GtkWidget *> after;
+		sweep_guard([&after] { after = toplevels(); });
+		for (GtkWidget *w : after)
+			if (!contains(ctx.preexisting, w)) {
+				win = w;
+				break;
+			}
+	}
+	ctx.root = win;
+	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
+
+#define EV_SECTION(name, ...) call_guard([&] { __VA_ARGS__; }, name)
+
+	/* the fixture-loaded views: captured so later sections can reach
+	 * the fixture's layout/embed managers */
+	AV_View *mediaView = nullptr;
+
+	/* ---- keysym2ucs: Latin-1 direct, >255 table hit, table miss,
+	 * direct-UCS encoded form, FF00 keypad range ---- */
+	EV_SECTION("keysym2ucs",
+		volatile UT_sint32 sink = 0;
+		sink += keysym2ucs(0x61);          /* 'a'       */
+		sink += keysym2ucs(0x0e9);         /* eacute    */
+		sink += keysym2ucs(0x20ac);        /* EuroSign  */
+		sink += keysym2ucs(0x0394);        /* Delta     */
+		sink += keysym2ucs(0x01000041);    /* UCS form  */
+		sink += keysym2ucs(0xff08);        /* BackSpace */
+		sink += keysym2ucs(0xfdfdfd);      /* miss      */
+		sink += keysym2ucs(0x00);          /* edge      */
+		(void)sink);
+
+	/* ---- input-event plumbing: EV_UnixMouse + ev_UnixKeyboard
+	 * entry paths and mapper dispatch via a null current event —
+	 * exactly what the frame's handlers see outside a GDK dispatch.
+	 * Runs early: a later rescued fault can strand GLib locks and
+	 * wedge everything downstream, so the reliable coverage goes
+	 * first and the crash-prone widget churn goes last. ---- */
+	EV_SECTION("input events",
+		drive_input_events(view, app->getEditEventMapper()););
+
+	/* ---- charDataEvent: the text half of keyPressEvent needs no
+	 * GdkEvent — empty, ascii, UTF-8, astral and modified input ---- */
+	EV_SECTION("charDataEvent",
+		if (view && app->getEditEventMapper()) {
+			ev_UnixKeyboard kbd(app->getEditEventMapper());
+			kbd.charDataEvent(view, static_cast<EV_EditBits>(0), "ab", 2);
+			kbd.charDataEvent(view, static_cast<EV_EditBits>(0), "", 0);
+			kbd.charDataEvent(view, static_cast<EV_EditBits>(0),
+							  "\xC3\xA9", 2);           /* é */
+			kbd.charDataEvent(view, static_cast<EV_EditBits>(0),
+							  "\xF0\x9D\x94\x80", 4);   /* astral */
+			kbd.charDataEvent(view, static_cast<EV_EditBits>(
+								  EV_EMS_CONTROL), "a", 1);
+			pump_for(200);
+		});
+
+	/* ---- cursor name table: every cursor enum through setCursor
+	 * walks the switch that maps them to GTK cursor names ---- */
+	EV_SECTION("cursors",
+		GR_Graphics *gr = view ? view->getGraphics() : nullptr;
+		if (gr) {
+			for (int c = GR_Graphics::GR_CURSOR_DEFAULT;
+				 c <= GR_Graphics::GR_CURSOR_COPYTEXT; c++)
+				gr->setCursor(static_cast<GR_Graphics::Cursor>(c));
+			gr->setCursor(GR_Graphics::GR_CURSOR_IBEAM);
+			(void)gr->getCursor();
+		});
+
+	/* ---- raster/vector image codecs + blip effects: deterministic
+	 * coverage of the whole GR_UnixImage / GR_RSVGVectorImage API
+	 * surface without depending on draw timing ---- */
+	EV_SECTION("images",
+		const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+		std::string png = std::string(top ? top : ".") +
+			"/test/wp/cov07/red.png";
+		GR_Graphics *gr = view ? view->getGraphics() : nullptr;
+		GdkPixbuf *px = gdk_pixbuf_new_from_file(png.c_str(), nullptr);
+		if (px) {
+			GR_UnixImage img("red.png", px); /* steals the ref */
+			UT_ConstByteBufPtr buf;
+			if (img.convertToBuffer(buf) && buf && buf->getLength()) {
+				GR_UnixImage img2("red2.png", GR_Image::GRT_Raster);
+				img2.convertFromBuffer(buf, "image/png", 64, 64);
+				img2.hasAlpha();
+				img2.isTransparentAt(1, 1);
+				img2.rowStride();
+				img2.getData();
+				img2.scale(32, 32);
+				if (gr) {
+					UT_Rect rec(0, 0, img2.getDisplayWidth() + 10,
+								img2.getDisplayHeight() + 10);
+					img2.scaleImageTo(gr, rec);
+				}
+				/* all four blip-effect branches */
+				GR_BlipEffects fx;
+				fx.duotone = true;
+				fx.duoLo = UT_RGBColor(16, 32, 48);
+				fx.duoHi = UT_RGBColor(255, 255, 255);
+				img2.applyBlipEffects(fx);
+				GR_BlipEffects fx2;
+				fx2.grayscale = true;
+				fx2.lum = true;
+				fx2.lumBright = 0.2;
+				fx2.lumContrast = 0.1;
+				fx2.alphaMod = 0.5;
+				img2.applyBlipEffects(fx2);
+			}
+			img.saveToPNG("/tmp/ui-drive-red.png");
+		}
+		/* vector image: rsvg decode + render + segment */
+		UT_ByteBuf *svgb = new UT_ByteBuf();
+		static const char svg[] =
+			"<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'>"
+			"<rect x='1' y='1' width='22' height='22' fill='#3080c0'/></svg>";
+		svgb->append(reinterpret_cast<const UT_Byte *>(svg), sizeof(svg) - 1);
+		UT_ConstByteBufPtr svgp(svgb);
+		GR_RSVGVectorImage vimg("t.svg");
+		if (vimg.convertFromBuffer(svgp, "image/svg+xml", 48, 48)) {
+			vimg.hasAlpha();
+			vimg.isTransparentAt(2, 2);
+			vimg.getDisplayWidth();
+			vimg.getDisplayHeight();
+			if (gr) {
+				UT_Rect rec(0, 0, 48, 48);
+				vimg.scaleImageTo(gr, rec);
+				GR_Image *seg = vimg.createImageSegment(gr, rec);
+				delete seg;
+			}
+		});
+
+	/* ---- print graphics: the PRINTER_ONLY cairo subclass ---- */
+	EV_SECTION("printgraphics",
+		cairo_surface_t *surf = cairo_image_surface_create(
+			CAIRO_FORMAT_ARGB32, 612, 792);
+		cairo_t *cr = cairo_create(surf);
+		{
+			GR_CairoPrintGraphics pg(cr, 144);
+			pg.getCapability();
+			pg.queryProperties(GR_Graphics::DGP_SCREEN);
+			pg.queryProperties(GR_Graphics::DGP_PAPER);
+			pg.queryProperties(GR_Graphics::DGP_OPAQUEOVERLAY);
+			pg.getResolutionRatio();
+			pg.setResolutionRatio(1.0);
+			pg.getGUIFont();
+			pg.startPrint();
+			pg.startPage("p1", 1, true, 612, 792);
+			pg.startPage("p2", 2, false, 792, 612);
+			pg.canQuickPrint();
+			pg.endPrint();
+			UT_Rect q(0, 0, 10, 10);
+			pg.queueDraw(&q);
+		}
+		/* pg's dtor cairo_destroys the context it borrowed */
+		cairo_surface_destroy(surf));
+
+	/* ---- fixtures: an abwn with audio+video embeds drives the media
+	 * manager's makeEmbedView/render/setRun/release path, and an abw
+	 * whose image carries all the blip-effect props drives the
+	 * importer → applyBlipEffects chain ---- */
+	EV_SECTION("fixtures",
+		const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+		std::string png = std::string(top ? top : ".") +
+			"/test/wp/cov07/red.png";
+		gchar *b64 = file_b64(png.c_str());
+		if (b64) {
+			std::string media =
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				"<abiword template=\"false\" fileformat=\"1.0\" "
+				"xmlns=\"http://www.abisource.com/awml.dtd\" "
+				"version=\"0.99.2\" xml:space=\"preserve\" "
+				"props=\"lang:en-US\">\n<data>\n"
+				"<d name=\"obj-vid\" mime-type=\"video/mp4\" "
+				"base64=\"yes\">QUJDREVGRw==</d>\n"
+				"<d name=\"obj-aud\" mime-type=\"audio/mpeg\" "
+				"base64=\"yes\">QUJDREVGRw==</d>\n"
+				"<d name=\"snapshot-png-obj-vid\" mime-type=\"image/png\" "
+				"base64=\"yes\">" + std::string(b64) + "</d>\n"
+				"<d name=\"snapshot-png-obj-aud\" mime-type=\"image/png\" "
+				"base64=\"yes\">" + std::string(b64) + "</d>\n"
+				"</data>\n<section>\n"
+				"<p>Video: <embed dataid=\"obj-vid\" props=\""
+				"embed-type:media; media-kind:video; "
+				"media-name:t.mp4\"/></p>\n"
+				"<p>Audio: <embed dataid=\"obj-aud\" props=\""
+				"embed-type:media; media-kind:audio; "
+				"media-name:t.mp3\"/></p>\n"
+				"</section>\n</abiword>\n";
+			std::string mp = write_fixture("media.abwn", media);
+			if (!mp.empty())
+				load_fixture_frame(app, ctx, mp, &mediaView);
+
+			std::string blip =
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				"<abiword template=\"false\" fileformat=\"1.0\" "
+				"xmlns=\"http://www.abisource.com/awml.dtd\" "
+				"version=\"0.99.2\" xml:space=\"preserve\" "
+				"props=\"lang:en-US\">\n<data>\n"
+				"<d name=\"red.png\" mime-type=\"image/png\" "
+				"base64=\"yes\">" + std::string(b64) + "</d>\n"
+				"</data>\n<section>\n"
+				"<p>a<image dataid=\"red.png\" props=\""
+				"image-duotone:102030 ffffff; image-grayscale:1; "
+				"image-lum:0.2 0.1; image-alpha-mod:0.5; "
+				"width:1.0in; height:1.0in\"/></p>\n"
+				"</section>\n</abiword>\n";
+			std::string bp = write_fixture("blip.abw", blip);
+			if (!bp.empty())
+				load_fixture_frame(app, ctx, bp, nullptr);
+			g_free(b64);
+		});
+
+	/* ---- media manager: getDataItem → tmpfile → GtkVideo open ---- */
+	EV_SECTION("media modify",
+		FV_View *fv = mediaView ? static_cast<FV_View *>(mediaView)
+							  : nullptr;
+		if (fv && fv->getLayout()) {
+			GR_EmbedManager *em = fv->getLayout()->getEmbedManager("media");
+			GR_GtkMediaManager *mm =
+				static_cast<GR_GtkMediaManager *>(em);
+			if (mm) {
+				mm->isDefault();
+				mm->getObjectType();
+				mm->getMimeType();
+				mm->getMimeTypeDescription();
+				mm->getMimeTypeSuffix();
+				mm->isEdittable(0);
+				mm->isResizeable(0);
+				/* opens a transient GtkVideo window — the stray
+				 * sweep answers it */
+				mm->modify(0);
+				pump_for(400);
+			}
+		});
+
+	/* ---- menu action layer: refresh walk, lazy action creation for
+	 * all three shapes (plain / checkable / shared radio), direct
+	 * menuEvent dispatch and the GAction signal paths.  Last: the
+	 * action churn is the most crash-prone part of the leg. ---- */
+	EV_SECTION("menu",
+		EV_UnixMenu *menu = static_cast<EV_UnixMenu *>(
+			frame->getMainMenu());
+		if (menu && view) {
+			menu->refreshMenu(view);
+			static const _Ap_Menu_Id ids[] = {
+				/* plain */
+				AP_MENU_ID_EDIT_UNDO, AP_MENU_ID_EDIT_REDO,
+				AP_MENU_ID_EDIT_SELECTALL, AP_MENU_ID_EDIT_COPY,
+				AP_MENU_ID_EDIT_CUT, AP_MENU_ID_EDIT_PASTE,
+				AP_MENU_ID_FMT, AP_MENU_ID_FMT_BOLD,
+				AP_MENU_ID_FMT_ITALIC, AP_MENU_ID_FMT_UNDERLINE,
+				AP_MENU_ID_FMT_STRIKE, AP_MENU_ID_FMT_SUPERSCRIPT,
+				AP_MENU_ID_FMT_SUBSCRIPT,
+				AP_MENU_ID_INSERT_BREAK,
+				AP_MENU_ID_TOOLS_SPELLING,
+				/* checkable */
+				AP_MENU_ID_VIEW_RULER, AP_MENU_ID_VIEW_STATUSBAR,
+				AP_MENU_ID_VIEW_SHOWPARA, AP_MENU_ID_VIEW_GRIDLINES,
+				AP_MENU_ID_VIEW_LOCKSTYLES, AP_MENU_ID_VIEW_TB_1,
+				AP_MENU_ID_VIEW_TB_2,
+				AP_MENU_ID_TOOLS_AUTOSPELL,
+				/* radio groups */
+				AP_MENU_ID_VIEW_ZOOM_200, AP_MENU_ID_VIEW_ZOOM_100,
+				AP_MENU_ID_VIEW_ZOOM_75, AP_MENU_ID_VIEW_ZOOM_50,
+				AP_MENU_ID_VIEW_ZOOM_WHOLE, AP_MENU_ID_VIEW_ZOOM_WIDTH,
+				AP_MENU_ID_VIEW_NORMAL, AP_MENU_ID_VIEW_WEB,
+				AP_MENU_ID_VIEW_PRINT,
+				AP_MENU_ID_ALIGN_LEFT, AP_MENU_ID_ALIGN_CENTER,
+				AP_MENU_ID_ALIGN_RIGHT, AP_MENU_ID_ALIGN_JUSTIFY
+			};
+			for (_Ap_Menu_Id id : ids)
+				menu->ensureAction(static_cast<XAP_Menu_Id>(id));
+			/* the lookup must walk both rec vectors and miss too */
+			menu->lookupAction(static_cast<XAP_Menu_Id>(
+								   AP_MENU_ID_EDIT_SELECTALL));
+			menu->lookupAction(static_cast<XAP_Menu_Id>(
+								   AP_MENU_ID_FILE_OPEN));
+			menu->refreshMenu(view);
+
+			/* direct dispatch — safe methods only (no dialogs, no
+			 * window killers; see never_activate for the class) */
+			menu->menuEvent(static_cast<XAP_Menu_Id>(
+								AP_MENU_ID_EDIT_SELECTALL));
+			menu->menuEvent(static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_UNDO));
+			menu->menuEvent(static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_COPY));
+			pump_for(150);
+
+			/* GAction "activate" → _wd::s_onActivate → menuEvent +
+			 * refresh + the frame-survival check */
+			GAction *a = menu->lookupAction(static_cast<XAP_Menu_Id>(
+											  AP_MENU_ID_EDIT_SELECTALL));
+			if (a)
+				g_action_activate(a, nullptr);
+			pump_for(100);
+
+			/* checkable "change-state" → _wd::s_onChangeState bool
+			 * branch; toggle twice to restore */
+			GAction *c = menu->lookupAction(static_cast<XAP_Menu_Id>(
+											  AP_MENU_ID_VIEW_SHOWPARA));
+			if (c) {
+				g_action_change_state(c, g_variant_new_boolean(TRUE));
+				pump_for(100);
+				g_action_change_state(c, g_variant_new_boolean(FALSE));
+			}
+			/* radio "change-state" → string branch: the shared group
+			 * action takes "<menu id>" as the target value */
+			GAction *r = menu->lookupAction(static_cast<XAP_Menu_Id>(
+											  AP_MENU_ID_VIEW_ZOOM_100));
+			if (r) {
+				char t[32];
+				g_snprintf(t, sizeof(t), "%u",
+						   static_cast<unsigned>(AP_MENU_ID_VIEW_ZOOM_100));
+				g_action_change_state(r, g_variant_new_string(t));
+				pump_for(100);
+				g_snprintf(t, sizeof(t), "%u",
+						   static_cast<unsigned>(AP_MENU_ID_VIEW_ZOOM_200));
+				g_action_change_state(r, g_variant_new_string(t));
+			}
+			/* toolbar toggle → viewTB1 tears down and rebuilds the
+			 * EV_UnixToolbar widgets — the biggest ev_UnixToolbar /
+			 * ev_UnixFontCombo coverage lever */
+			GAction *tb = menu->lookupAction(static_cast<XAP_Menu_Id>(
+											   AP_MENU_ID_VIEW_TB_1));
+			if (tb) {
+				g_action_change_state(tb, g_variant_new_boolean(FALSE));
+				pump_for(400);
+				g_action_change_state(tb, g_variant_new_boolean(TRUE));
+				pump_for(400);
+			}
+			menu->refreshMenu(view);
+			pump_for(200);
+		});
+
+	/* ---- popup menu synthesis: covers the isPopup menu-item branch
+	 * and the popup class without going through the nested modal
+	 * loop the real context menu uses ---- */
+	EV_SECTION("popup synth",
+		EV_UnixMenuPopup *popup = new EV_UnixMenuPopup(
+			static_cast<XAP_UnixApp *>(app), frame,
+			"ContextText", AP_PREF_DEFAULT_StringSet);
+		if (popup) {
+			popup->synthesizeMenuPopup();
+			popup->refreshMenu(view);
+			delete popup;
+		});
+
+	g_source_remove(sweeper);
+	call_guard([&] { pump_for(300); }, "tail");
+	__gcov_dump();
+	g_print("drive: ev done — %d criticals, %d crashed, %d wedged\n",
+			g_criticals, g_crashed_widgets, g_wedged_widgets);
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -1269,7 +1763,8 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &sa, nullptr);
 	alarm(120); /* last-resort watchdog; drvwrap wraps us in `timeout` */
 
-	bool wantList = false, wantFrame = false, wantAbi = false;
+	bool wantList = false, wantFrame = false, wantAbi = false,
+		 wantEv = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -1278,11 +1773,14 @@ int main(int argc, char **argv)
 			wantFrame = true;
 		else if (strcmp(argv[i], "--abi") == 0)
 			wantAbi = true;
+		else if (strcmp(argv[i], "--ev") == 0)
+			wantEv = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
-	if (!wantList && !wantFrame && !wantAbi && wantId < 0) {
-		g_printerr("usage: %s --list | --id N | --frame | --abi\n", argv[0]);
+	if (!wantList && !wantFrame && !wantAbi && !wantEv && wantId < 0) {
+		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev\n",
+				   argv[0]);
 		return 2;
 	}
 
@@ -1335,6 +1833,8 @@ int main(int argc, char **argv)
 	}
 	if (wantFrame)
 		return drive_frame(app, src);
+	if (wantEv)
+		return drive_ev(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

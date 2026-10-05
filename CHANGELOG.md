@@ -4544,6 +4544,20 @@ below are on `main` but the release has not been cut yet.
   embedding), and the `AbiWidget` change-listener cast every top
   change record to a span record even when the record was another
   type, reading past the allocation.
+- **`ui-drive --ev` leg carries `af/ev/gtk` + `af/gr/gtk` coverage
+  past 60%** — the scripted-interaction driver gained an
+  event-plumbing and cairo-graphics leg on a live frame:
+  `EV_UnixMenu` lazy action creation, activation and boolean/radio
+  state changes, popup menu synthesis, `EV_UnixMouse` and
+  `ev_UnixKeyboard` entry paths driven with the null current event
+  the GTK handlers forward outside a real dispatch (the
+  `gdk_*_event_get_*` getters are `g_return_val_if_fail`'d, so the
+  modifier maps and edit-event-mapper dispatch all execute),
+  keysym→UCS conversion, the full graphics cursor-name table, image
+  codec and blip-effect rendering, print graphics, and media-embed
+  fixtures that drive the GtkMediaManager path. `af/ev/gtk` line
+  coverage rose from 38.3% to 64.6% and `af/gr/gtk` from 43.8% to
+  71.1%.
 - **Atomic save moved behind a portable helper** — the
   write-temp-then-rename sequence in the exporter core
   (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as

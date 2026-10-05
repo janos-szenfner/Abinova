@@ -91,7 +91,15 @@ timeout -k 15 300 $LIBTOOL $BIN --frame >/dev/null 2>&1 && \
 timeout -k 15 180 $LIBTOOL $BIN --abi >/dev/null 2>&1 && \
 	echo "ok: abiwidget drive" || echo "timeout/fail: abiwidget drive"
 
-rm -f "$scratch" /tmp/ui-drive-abi.abw
+# COV13: event/menu/graphics leg — menu dispatch, input-handler
+# entry paths, cairo image/media fixtures on a live frame.  Runs
+# under xvfb-run when available, else the live display like the
+# other legs.  Best-effort: a timeout is tolerated.
+timeout -k 15 300 $LIBTOOL $BIN --ev >/dev/null 2>&1 && \
+	echo "ok: ev drive" || echo "timeout/fail: ev drive"
+
+rm -f "$scratch" /tmp/ui-drive-abi.abw /tmp/ui-drive-red.png \
+	"${TMPDIR:-/tmp}/ui-drive-media.abwn" "${TMPDIR:-/tmp}/ui-drive-blip.abw"
 
 echo "dialog drive: $((total - fails - skips - xfails))/$total dialogs clean, $skips skipped, $xfails xfail"
 [ "$fails" -eq 0 ]
