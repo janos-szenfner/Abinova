@@ -4075,6 +4075,14 @@ below are on `main` but the release has not been cut yet.
   `/usr/local`/`libdata/pkgconfig` paths the base toolchain doesn't
   search by default, then configures and builds with `gmake` (BSD
   `make` cannot run automake output).
+- **Linux build script with distro detection** —
+  `tools/build-linux.sh` completes the per-OS script set: apt
+  (Debian/Ubuntu + derivatives) and zypper (openSUSE/SLES) package
+  maps covering the full configure dependency set, picked by
+  `--distro debian|ubuntu|suse` or autodetected from
+  `/etc/os-release` (`ID`, then `ID_LIKE` for derivatives like
+  Zorin/Mint), plus a `--print-deps` dry-run mode that lists the
+  resolved packages without needing root.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

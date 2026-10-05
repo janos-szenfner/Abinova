@@ -13,6 +13,7 @@ EXTRA_DIST = \
 	build-macos.sh \
 	build-windows-msys2.sh \
 	build-freebsd.sh \
+	build-linux.sh \
 	build-gtk-prefix.sh \
 	build-fuzz.sh \
 	check-fuzz.sh \

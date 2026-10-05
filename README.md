@@ -1922,6 +1922,27 @@ ABIWORD_DATADIR=$PWD src/.libs/abinova --to=odt input.abwn -o out.odt
 ABINOVA_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
 ```
 
+### Building on Linux
+
+On Linux the UI runs on GDK's Wayland or X11 backend with no extra
+port work. `tools/build-linux.sh` installs the dependency set and
+builds; it supports the apt (Debian/Ubuntu + derivatives) and zypper
+(openSUSE/SLES) package maps, picked by `--distro` or autodetected
+from `/etc/os-release` (`ID`, falling back to `ID_LIKE` so derivatives
+like Zorin/Mint resolve to their upstream family's map):
+
+```bash
+tools/build-linux.sh                  # deps + configure + make
+tools/build-linux.sh --distro suse    # force the openSUSE package map
+tools/build-linux.sh --print-deps     # list the resolved packages only
+tools/build-linux.sh --skip-deps -j8
+```
+
+`--print-deps` prints the package list without installing — useful on
+a machine where you cannot sudo. Hunspell itself is vendored; the
+distro package is installed only for the CLI and an `en_US`
+dictionary for the grammar checker.
+
 ### Building on macOS
 
 The UI is pure GTK4, so on macOS it runs on GTK's Quartz backend —
