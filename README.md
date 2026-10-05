@@ -988,6 +988,22 @@ Autosave was rebuilt so that unsaved work survives an unclean exit:
   crash was heap corruption. The parent then dies with the original
   signal, preserving the real core dump and exit status. The child is
   bounded by a watchdog alarm, so a wedge cannot block the crash exit.
+- **Crash-time recovery (Windows)**: Windows has no `fork()`, so a
+  child process cannot inherit a serializable copy of the open
+  documents, and serializing in the dying process could deadlock on a
+  heap lock the faulting thread still holds. Instead
+  `SetUnhandledExceptionFilter` respawns `abinova.exe` in a hidden
+  `--abinova-crash-recover` mode: the clean child promotes each
+  periodic-autosave checkpoint in the recovery directory to the
+  `.saved` name (moving the `.info` sidecar along, so startup
+  recovery still restores the original filename) and writes a
+  `abinova-crash-<pid>.dmp` minidump of the still-alive parent via a
+  delay-loaded `dbghelp.dll`. The handler itself only builds a
+  command line, spawns the helper, and waits a bounded 15 s before
+  the process exits with the real exception code (WER still sees the
+  crash). Recovery content is the last autosave checkpoint rather
+  than a fresh snapshot — with autosave disabled only the minidump is
+  written.
 - **Autosave settings** (enable/disable and the interval in minutes)
   remain on the Documents tab of Preferences.
 

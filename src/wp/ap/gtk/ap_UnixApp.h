@@ -50,6 +50,15 @@ class GR_Image;
 class AP_Args;
 class AP_BuiltinStringSet;
 
+/* WIN01: hidden argv[1] mode flag — a crashing Windows process
+ * respawns this exe as "abinova --abinova-crash-recover <pid> <tid>
+ * <exception-pointers-VA>" so the child can write the .saved recovery
+ * files and a minidump from a clean process (see the WIN01 block in
+ * ap_UnixApp.cpp). Narrow and wide spellings for CRT argv and the
+ * wide CreateProcess command line. */
+#define AP_WIN_CRASH_ARG   "--abinova-crash-recover"
+#define AP_WIN_CRASH_ARG_W L"--abinova-crash-recover"
+
 class ABI_EXPORT AP_UnixApp : public AP_App
 {
 public:
@@ -105,6 +114,13 @@ public:
 	virtual void					cacheCurrentSelection(AV_View *) override;
 
 	static int main (const char * szAppName, int argc, char ** argv);
+
+	/* WIN01: Windows-only (defined under G_OS_WIN32) — entry point of
+	 * the hidden "--abinova-crash-recover" helper mode a dying process
+	 * respawns so a clean child can write the .saved recovery files and
+	 * a minidump. Declared unconditionally so UnixMain.cpp's intercept
+	 * needs no ifdef on the symbol itself. */
+	static int crashRecoveryHelper(int argc, char ** argv);
 
 	virtual void	catchSignals(int sig_num) override ABI_NORETURN;
 

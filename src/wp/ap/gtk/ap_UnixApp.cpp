@@ -53,6 +53,25 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#ifdef G_OS_WIN32
+/* WIN01: Windows crash recovery — see the block above catchSignals().
+ * windows.h comes after glib.h so G_OS_WIN32 is defined; nothing else
+ * in this TU pulls in the Win32 headers. dbghelp.h only supplies the
+ * MINIDUMP_* types — dbghelp.dll itself is delay-loaded so the helper
+ * degrades cleanly when it is absent. */
+#if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0601
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
+#endif
+#include <windows.h>
+#include <dbghelp.h>
+#include <wchar.h>
+
+/* defined with the rest of the WIN01 machinery near the bottom of
+ * this file */
+static void s_installWinCrashHandler();
+#endif
+
 #include "ut_compiler.h"
 
 #include <gsf/gsf.h>
@@ -1211,6 +1230,15 @@ int AP_UnixApp::main(const char * szAppName, int argc, char ** argv)
 		signal(SIGFPE,  &XAP_App::signalWrapper);
 #endif
 
+#ifdef G_OS_WIN32
+		/* WIN01: hardware faults on Windows are SEH exceptions, not
+		 * CRT signals — the signal() hooks above only see software
+		 * raise()s. Install the unhandled-exception filter that
+		 * spawns the recovery helper (see the WIN01 block above
+		 * catchSignals for the design). */
+		s_installWinCrashHandler();
+#endif
+
 		// TODO: handle SIGABRT
 	
 		// Step 2: Handle all non-window args.
@@ -1320,6 +1348,298 @@ bool AP_UnixApp::doWindowlessArgs(const AP_Args *Args, bool & bSuccess)
 
 	return true;
 }
+
+#ifdef G_OS_WIN32
+/*
+ * WIN01 — Windows crash recovery.
+ *
+ * The POSIX path fork()s in the signal handler so a child with a
+ * private, malloc-lock-reset copy of the address space can serialize
+ * the open documents. Windows has no fork(): a spawned process gets
+ * an empty address space, so it cannot re-serialize the live
+ * documents, and running the serialize in the dying process can
+ * deadlock on a heap lock the faulting thread still holds — exactly
+ * the crash case recovery exists for.
+ *
+ * The split used here instead:
+ *
+ * - The state the recovery needs already lives outside the process
+ *   boundary: the autosave timer continuously maintains one
+ *   serialized .abwn copy per open document in the autosave
+ *   directory, each with an ".info" sidecar carrying the original
+ *   URI. Those checkpoints are the freshest state a new process can
+ *   ever reach.
+ * - On a crash (SetUnhandledExceptionFilter for hardware faults, the
+ *   CRT signal() hook for raised signals) the handler only respawns
+ *   this exe as "abinova --abinova-crash-recover <pid> <tid>
+ *   <exception-pointers-VA>" and waits a bounded 15s. Everything the
+ *   child needs fits on the command line — no heap, no GIO, same
+ *   constraint as the POSIX handler.
+ * - The helper runs in a clean process: it promotes each autosave
+ *   checkpoint to the ".saved" name saveRecoveryFiles() would have
+ *   used (moving the .info sidecar along so startup recovery still
+ *   restores the original filename), then MiniDumpWriteDump()s the
+ *   still-alive parent into <autosave>/abinova-crash-<pid>.dmp.
+ * - EXCEPTION_CONTINUE_SEARCH hands the fault back to the OS, so the
+ *   process exits with the real exception code and WER still sees the
+ *   crash — the analog of re-raising the original signal.
+ *
+ * If autosave is disabled no checkpoint exists and only the dump is
+ * written; that is inherent to a no-fork platform and is documented
+ * in README's "Autosave and crash recovery" section.
+ */
+
+/* Captured at handler-install time so the filter needs no
+ * GetModuleFileName (kernel-side, but kept out anyway). */
+static wchar_t s_szCrashExe[MAX_PATH];
+static volatile LONG s_lInCrash = 0;
+
+/*!
+ * Respawn this exe in --abinova-crash-recover mode and wait for it,
+ * bounded. Runs from the SEH filter and the CRT signal handler:
+ * stack buffer only, no CRT heap — CreateProcess does its
+ * bookkeeping inside the OS and the child. pep may be nullptr (the
+ * signal path has no exception context).
+ */
+static bool s_spawnCrashHelper(EXCEPTION_POINTERS * pep)
+{
+	if (!s_szCrashExe[0])
+		return false;
+
+	wchar_t cmd[MAX_PATH + 128];
+	int n = swprintf(cmd, sizeof(cmd) / sizeof(cmd[0]),
+					 L"\"%s\" " AP_WIN_CRASH_ARG_W L" %lu %lu %p",
+					 s_szCrashExe,
+					 static_cast<unsigned long>(GetCurrentProcessId()),
+					 static_cast<unsigned long>(GetCurrentThreadId()),
+					 static_cast<void *>(pep));
+	if (n <= 0)
+		return false;
+
+	STARTUPINFOW si;
+	PROCESS_INFORMATION pi;
+	memset(&si, 0, sizeof(si));
+	si.cb = sizeof(si);
+	memset(&pi, 0, sizeof(pi));
+
+	if (!CreateProcessW(nullptr, cmd, nullptr, nullptr, FALSE,
+						CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
+	{
+		static const char msg[] =
+			"Abinova: crash helper could not be spawned, "
+			"no recovery files written\n";
+		DWORD w = 0;
+		WriteFile(GetStdHandle(STD_ERROR_HANDLE), msg,
+				  static_cast<DWORD>(sizeof(msg) - 1), &w, nullptr);
+		return false;
+	}
+
+	/* The helper's work is a handful of renames plus a minidump;
+	 * 15s parallels the POSIX ~10s waitpid bound — if the child
+	 * wedges we still die on schedule rather than hanging the
+	 * crashed process. */
+	WaitForSingleObject(pi.hProcess, 15000);
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+	return true;
+}
+
+/*!
+ * Top-level SEH filter installed on Windows builds. Hardware faults
+ * (access violations, illegal instructions, stack overflow, ...)
+ * land here before WER; once our filter is installed it replaces the
+ * CRT's, so CRT signal() hooks no longer see hardware exceptions —
+ * they keep covering software raise() calls and funnel into the same
+ * helper spawn through catchSignals().
+ */
+static LONG WINAPI s_winCrashFilter(EXCEPTION_POINTERS * pep)
+{
+	/* a second fault inside the filter must not recurse */
+	if (InterlockedCompareExchange(&s_lInCrash, 1, 0) != 0)
+		return EXCEPTION_CONTINUE_SEARCH;
+	s_spawnCrashHelper(pep);
+	/* EXCEPTION_CONTINUE_SEARCH (not EXECUTE_HANDLER or a direct
+	 * TerminateProcess): the OS then terminates the process with the
+	 * REAL exception code and WER can still record the crash. */
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
+static void s_installWinCrashHandler()
+{
+	if (GetModuleFileNameW(nullptr, s_szCrashExe,
+						   static_cast<DWORD>(sizeof(s_szCrashExe)
+											  / sizeof(s_szCrashExe[0]))))
+		SetUnhandledExceptionFilter(&s_winCrashFilter);
+}
+
+/*!
+ * The autosave directory, recomputed the same way
+ * XAP_UnixApp::getUserPrivateDirectory() +
+ * XAP_Frame::getAutosaveDirectory() do — the helper runs before any
+ * app object exists, so it rebuilds the path from the same inputs.
+ */
+static std::string s_helperAutosaveDir()
+{
+	std::string dir = g_get_user_config_dir();
+	dir += "/abinova/autosave/";
+	return dir;
+}
+
+/*!
+ * Promote every autosave checkpoint in dir to the ".saved" name the
+ * crash path would have used, moving the ".info" sidecar along. A
+ * rename (not copy) keeps the recovery scan from finding the same
+ * document twice under two suffixes. Checkpoint files always carry
+ * an extension, so extensionless foreign files are left alone.
+ */
+static int s_helperPromoteAutosaves(const std::string & dir)
+{
+	GDir *d = g_dir_open(dir.c_str(), 0, nullptr);
+	if (!d)
+		return 0;
+
+	int promoted = 0;
+	const gchar * name;
+	while ((name = g_dir_read_name(d)) != nullptr)
+	{
+		/* skip recovery-final names and leftovers/sidecars */
+		if (g_str_has_suffix(name, ".saved") ||
+			g_str_has_suffix(name, ".info")  ||
+			g_str_has_suffix(name, ".part")  ||
+			g_str_has_suffix(name, ".dmp"))
+			continue;
+		std::string src = dir + name;
+		if (!UT_isRegularFile(src.c_str()))
+			continue;
+		std::string base = name;
+		size_t dot = base.find_last_of('.');
+		if (dot == std::string::npos)
+			continue;
+		base.erase(dot);
+		std::string dst = dir + base + ".saved";
+		if (g_rename(src.c_str(), dst.c_str()) == 0)
+		{
+			promoted++;
+			/* sidecar is best-effort: it may not exist */
+			std::string srcInfo = src + ".info";
+			std::string dstInfo = dst + ".info";
+			g_rename(srcInfo.c_str(), dstInfo.c_str());
+		}
+	}
+	g_dir_close(d);
+	return promoted;
+}
+
+/*!
+ * Write a minidump of the crashed parent next to the recovery files.
+ * dbghelp.dll is delay-loaded (System32 only — no CWD planting
+ * window) so a missing/renamed dbghelp degrades to "no dump" instead
+ * of a failed recovery. exVA is the parent's EXCEPTION_POINTERS
+ * virtual address; with ClientPointers=TRUE it stays valid while the
+ * parent waits on us, giving the dump the real faulting context.
+ */
+static void s_helperWriteDump(DWORD pid, DWORD tid, ULONG_PTR exVA,
+							  const std::string & dir)
+{
+	HMODULE hDbg = LoadLibraryExW(L"dbghelp.dll", nullptr,
+								  LOAD_LIBRARY_SEARCH_SYSTEM32);
+	if (!hDbg)
+		return;
+	typedef BOOL (WINAPI *WriteDump_t)(HANDLE, DWORD, HANDLE,
+									 MINIDUMP_TYPE,
+									 PMINIDUMP_EXCEPTION_INFORMATION,
+									 PMINIDUMP_USER_STREAM_INFORMATION,
+									 PMINIDUMP_CALLBACK_INFORMATION);
+	WriteDump_t pWrite = reinterpret_cast<WriteDump_t>(
+		GetProcAddress(hDbg, "MiniDumpWriteDump"));
+	if (!pWrite)
+	{
+		FreeLibrary(hDbg);
+		return;
+	}
+
+	HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION |
+							   PROCESS_VM_READ |
+							   PROCESS_DUP_HANDLE,
+							   FALSE, pid);
+	if (!hProc)
+	{
+		FreeLibrary(hDbg);
+		return;
+	}
+
+	std::string path8 = dir + "abinova-crash-" +
+		std::to_string(static_cast<unsigned long>(pid)) + ".dmp";
+	gunichar2 * wpath = g_utf8_to_utf16(path8.c_str(), -1,
+									  nullptr, nullptr, nullptr);
+	HANDLE hFile = wpath
+		? CreateFileW(reinterpret_cast<LPCWSTR>(wpath), GENERIC_WRITE,
+					  0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
+					  nullptr)
+		: INVALID_HANDLE_VALUE;
+	g_free(wpath);
+
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		MINIDUMP_EXCEPTION_INFORMATION mei;
+		memset(&mei, 0, sizeof(mei));
+		PMINIDUMP_EXCEPTION_INFORMATION pmei = nullptr;
+		if (exVA && tid)
+		{
+			mei.ThreadId = tid;
+			mei.ExceptionPointers =
+				reinterpret_cast<PEXCEPTION_POINTERS>(exVA);
+			mei.ClientPointers = TRUE; /* VAs live in the parent */
+			pmei = &mei;
+		}
+		pWrite(hProc, pid, hFile,
+			   static_cast<MINIDUMP_TYPE>(MiniDumpWithThreadInfo |
+							   MiniDumpWithUnloadedModules |
+							   MiniDumpWithProcessThreadData |
+							   MiniDumpWithIndirectlyReferencedMemory),
+			   pmei, nullptr, nullptr);
+		CloseHandle(hFile);
+	}
+	CloseHandle(hProc);
+	FreeLibrary(hDbg);
+}
+
+/*!
+ * Entry point of the hidden "abinova --abinova-crash-recover"
+ * helper mode (invoked from main() before any toolkit init).
+ * argv: <parentPid> <parentTid> <exceptionPointersVA-hex>.
+ *
+ * Runs in a fresh process with a healthy heap, so ordinary glib/CRT
+ * calls are fine here — the no-heap constraint applies to the
+ * crashing parent, not to us.
+ */
+int AP_UnixApp::crashRecoveryHelper(int argc, char ** argv)
+{
+	DWORD pid = 0, tid = 0;
+	ULONG_PTR exVA = 0;
+	if (argc >= 1)
+		pid = static_cast<DWORD>(strtoul(argv[0], nullptr, 10));
+	if (argc >= 2)
+		tid = static_cast<DWORD>(strtoul(argv[1], nullptr, 10));
+	if (argc >= 3)
+		exVA = static_cast<ULONG_PTR>(strtoull(argv[2], nullptr, 16));
+
+	std::string dir = s_helperAutosaveDir();
+
+	/* recovery payload first: the dump can outlive the parent's
+	 * bounded wait, so it must not starve the renames */
+	s_helperPromoteAutosaves(dir);
+	if (pid)
+	{
+		/* no checkpoint files means autosave never ran, which also
+		 * means the directory may not exist yet — create it so the
+		 * minidump still lands */
+		g_mkdir_with_parents(dir.c_str(), 0700);
+		s_helperWriteDump(pid, tid, exVA, dir);
+	}
+	return 0;
+}
+#endif /* G_OS_WIN32 */
 
 static volatile sig_atomic_t s_signal_count = 0;
 
@@ -1438,10 +1758,32 @@ void AP_UnixApp::catchSignals(int sig_num)
 	}
 	raise(sig_num);
 	abort(); // unreachable backstop
+#elif defined(G_OS_WIN32)
+	/* Windows (MinGW) has signal() but no sigaction()/fork(). The
+	 * previous in-process saveRecoveryFiles() call could deadlock on
+	 * a heap lock held by the faulting thread — the exact crash case
+	 * recovery exists for — so this path shares the SEH filter's
+	 * design: spawn the --abinova-crash-recover helper (it promotes
+	 * the autosave checkpoints into .saved files and writes a
+	 * minidump), wait bounded, then die. This entry only sees
+	 * software raise()d signals — hardware faults go straight to the
+	 * SEH filter — so there is no exception context to pass. */
+	{
+		UINT code = EXCEPTION_ACCESS_VIOLATION;
+		switch (sig_num)
+		{
+		case SIGILL: code = EXCEPTION_ILLEGAL_INSTRUCTION; break;
+		case SIGFPE: code = EXCEPTION_FLT_INVALID_OPERATION; break;
+		default: break;
+		}
+		s_spawnCrashHelper(nullptr);
+		TerminateProcess(GetCurrentProcess(), code);
+	}
+	abort(); // unreachable backstop
 #else
-	/* No fork()/sigaction (MinGW): keep the legacy in-process attempt.
-	 * It deadlocks if the crash held a heap lock, but there is no
-	 * better option in this environment. */
+	/* No fork()/sigaction and no Win32 process model either: keep the
+	 * legacy in-process attempt. It deadlocks if the crash held a
+	 * heap lock, but there is no better option in this environment. */
     saveRecoveryFiles();
 
     fflush(stdout);

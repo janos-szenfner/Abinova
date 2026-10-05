@@ -33,6 +33,15 @@
 
 int main(int argc, char ** argv)
 {
+#ifdef G_OS_WIN32
+	/* WIN01: crash-recovery helper mode — a dying process respawns
+	 * this exe with --abinova-crash-recover so the .saved recovery
+	 * files and a minidump get written by a process with a healthy
+	 * heap. Runs before any toolkit/console setup: the helper is
+	 * headless and must not recurse into the normal app path. */
+	if (argc >= 2 && g_strcmp0(argv[1], AP_WIN_CRASH_ARG) == 0)
+		return AP_UnixApp::crashRecoveryHelper(argc - 2, argv + 2);
+#endif
 	UT_Debug_Init();
 #ifdef G_OS_WIN32
 	/* abinova.exe stays a console-subsystem binary: --to=pdf and friends

@@ -23,6 +23,7 @@ each one findable at runtime.
 | fontconfig config | fontconfig/pango | file read | Windows: `etc/fonts/` staged from the MSYS2 prefix (relocates via tokens); macOS: generated `Resources/fontconfig/fonts.conf` + resolved `conf.d`, exported as `FONTCONFIG_FILE` by the launcher and probed by `_setBundleModulePaths`. **Linux deliberately ships none** — the bundle relies on the host fontconfig and only registers `fonts/` via `FcConfigAppFontAddDir` | fonts resolve but only fontconfig built-ins are used (no aliases/rules) |
 | bundled font set | `FcConfigAppFontAddDir` in `XAP_UnixApp` | fontconfig scan | `fonts/` inside the datadir — already flattened to the bundle root; `fonts/abinova-fonts.conf` holds the MS-metric substitution rules | documents render with substituted system fonts (metric drift) |
 | `artwork/` galleries | ribbon Shapes / 3D Illustrations / Icons | file read | `artwork/` inside the datadir — flattened to the bundle root; the exe-path walk-up locates it | galleries render empty |
+| dbghelp.dll (Windows only) | `--abinova-crash-recover` helper (`s_helperWriteDump` in `ap_UnixApp.cpp`, WIN01) | `LoadLibraryExW` with `LOAD_LIBRARY_SEARCH_SYSTEM32` | none needed — Windows system DLL, always in System32; deliberately not bundled | crash-time `.saved` promotion still runs; only the minidump is skipped |
 
 Translations: the UI is English-only (strings are compiled in —
 there is no `po/` or `*.strings` set), so there are no locale files

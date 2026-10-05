@@ -2691,6 +2691,22 @@ below are on `main` but the release has not been cut yet.
   no longer suppresses the recovery write, and a document caught
   mid-edit keeps its last consistent backup instead of writing a
   corrupt snapshot.
+- **Crash-time recovery on Windows** — the MinGW build previously
+  tried to serialize recovery files inside the crashing process,
+  which can deadlock on a heap lock held by the faulting thread, and
+  hardware faults bypass the CRT `signal()` hooks entirely once a
+  top-level filter exists. Windows now installs a
+  `SetUnhandledExceptionFilter` handler that respawns `abinova.exe`
+  in a hidden `--abinova-crash-recover` mode: the clean child
+  promotes each periodic-autosave checkpoint in the recovery
+  directory to the `.saved` name (carrying the `.info` sidecar along
+  so startup recovery restores the original filename) and writes an
+  `abinova-crash-<pid>.dmp` minidump of the still-alive parent via a
+  delay-loaded `dbghelp.dll`. The crashed process itself only builds
+  a command line, spawns the helper, and waits a bounded 15 s before
+  exiting with the real exception code, so WER still records the
+  crash. Windows has no `fork()`, so recovery content is the last
+  autosave checkpoint rather than a fresh in-memory snapshot.
 - **Recovery-directory scan hardened** — startup recovery now only
   auto-opens entries carrying a suffix the autosave machinery writes
   (`.saved`, `.abw.saved`, or the configured autosave extension);
