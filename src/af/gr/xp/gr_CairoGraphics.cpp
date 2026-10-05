@@ -1439,12 +1439,19 @@ cairo_surface_t * GR_CairoGraphics::_getCairoSurfaceFromContext(cairo_t *cr,
 	 * recording over the full widget area. Always rasterize into a real
 	 * image surface instead; painting a recording-surface source into an
 	 * image surface resolves it to actual pixels at capture time. */
-	cairo_surface_t * surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
-	                                       static_cast<int>(ceil(rect.width)),
-	                                       static_cast<int>(ceil(rect.height)));
-
 	cairo_surface_t * source = cairo_get_target(cr);
 	cairo_surface_flush(source);
+
+	/* Sample the source at its own device scale: on a HiDPI backing
+	 * surface a capture of ceil(rect) logical pixels would blit back
+	 * upscaled and blurry, and would misalign against the live 2x
+	 * pixels when restoreRectangle() replays it. */
+	double dsx = 1.0, dsy = 1.0;
+	cairo_surface_get_device_scale(source, &dsx, &dsy);
+	cairo_surface_t * surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+	                                       static_cast<int>(ceil(rect.width * dsx)),
+	                                       static_cast<int>(ceil(rect.height * dsy)));
+	cairo_surface_set_device_scale(surface, dsx, dsy);
 
 	cairo_t * dest = cairo_create(surface);
 	cairo_set_source_surface(dest, source, rect.x, rect.y);

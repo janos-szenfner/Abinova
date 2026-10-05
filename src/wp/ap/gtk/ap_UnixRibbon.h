@@ -136,6 +136,7 @@ private:
 								  const char * szCaption,
 								  const void * items, unsigned n);
 	GtkWidget *		_equationPreview(const char * szLatex, int w, int h);
+	int				_uiScale() const;
 	GtkWidget *		_makeTextBoxPopover();
 	GtkWidget *		_makeObjectPopover();
 	GtkWidget *		_makeHdrFtrPopover(bool bFooter);

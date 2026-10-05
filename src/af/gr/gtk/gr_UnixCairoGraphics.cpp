@@ -80,6 +80,7 @@ GR_UnixCairoGraphics::GR_UnixCairoGraphics(GtkWidget * win)
 	  m_frameCr(nullptr),
 	  m_backW(0),
 	  m_backH(0),
+	  m_backScale(1),
 	  m_CairoCreated(false),
 	  m_Painting(false),
 	  m_Signal(0),
@@ -476,8 +477,14 @@ GR_Image * GR_UnixCairoGraphics::genImageFromRectangle(const UT_Rect &rec)
 	int widget_h = gtk_widget_get_height (m_Widget);
 	UT_return_val_if_fail (widget_w > 0 && widget_h > 0, nullptr);
 
+	/* Render the snapshot at the surface's device scale so the
+	 * returned image is native-resolution on HiDPI screens rather
+	 * than an upscaled logical-pixel capture. */
+	int scale = MAX(1, gtk_widget_get_scale_factor (m_Widget));
 	GdkPaintable *wp = gtk_widget_paintable_new (m_Widget);
 	GtkSnapshot *snapshot = gtk_snapshot_new ();
+	if (scale > 1)
+		gtk_snapshot_scale (snapshot, scale, scale);
 	gdk_paintable_snapshot (wp, snapshot, widget_w, widget_h);
 	g_object_unref (wp);
 	GskRenderNode *node = gtk_snapshot_free_to_node (snapshot);
@@ -507,7 +514,9 @@ GR_Image * GR_UnixCairoGraphics::genImageFromRectangle(const UT_Rect &rec)
 	g_object_unref (texture);
 	UT_return_val_if_fail(full, nullptr);
 
-	GdkPixbuf * pix = gdk_pixbuf_new_subpixbuf (full, idx, idy, idw, idh);
+	GdkPixbuf * pix = gdk_pixbuf_new_subpixbuf (full, idx * scale,
+											  idy * scale,
+											  idw * scale, idh * scale);
 	g_object_unref (full);
 	UT_return_val_if_fail(pix, nullptr);
 
@@ -521,13 +530,27 @@ void GR_UnixCairoGraphics::ensureBackSurface()
 {
 	int w = m_Widget ? MAX(1, gtk_widget_get_width (m_Widget)) : 1;
 	int h = m_Widget ? MAX(1, gtk_widget_get_height (m_Widget)) : 1;
-	if (m_backSurface && w == m_backW && h == m_backH)
+	/* HiDPI: rasterize at the output device resolution, not the
+	 * logical widget size. gtk_widget_get_scale_factor() reports the
+	 * toplevel surface's integer scale (2 on a macOS Retina monitor);
+	 * giving the backing surface a matching cairo device scale keeps
+	 * every painter in logical coordinates, and endFrame()'s
+	 * cairo_set_source_surface() then maps the pixels 1:1 onto the
+	 * display. Tracked per-call so dragging the window to a monitor
+	 * with a different scale recreates the surface. */
+	int scale = m_Widget ? MAX(1, gtk_widget_get_scale_factor (m_Widget)) : 1;
+	if (m_backSurface && w == m_backW && h == m_backH &&
+		scale == m_backScale)
 		return;
 	if (m_backSurface)
 		cairo_surface_destroy (m_backSurface);
-	m_backSurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, w, h);
+	m_backSurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+												w * scale, h * scale);
+	cairo_surface_set_device_scale (m_backSurface, scale, scale);
 	m_backW = w;
 	m_backH = h;
+	m_backScale = scale;
+	m_clipRectDirty = TRUE;
 }
 
 cairo_t * GR_UnixCairoGraphics::beginFrame()

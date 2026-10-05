@@ -2032,6 +2032,11 @@ app can point the toolkit module loaders at the bundled dirs.
 (needs Rosetta + a second brew at `/usr/local`),
 `--no-sign`/`--no-verify` skip those gates.
 
+Retina displays render at native resolution: the canvas and all
+custom-drawn widgets (rulers, symbol map, ribbon previews) rasterize
+their cairo backing surfaces at the toplevel's device scale factor,
+so text and shapes stay crisp at 2x instead of upscaling a 1x image.
+
 ### Building on Windows
 
 On Windows the build runs inside MSYS2 (MINGW64/UCRT64) on GDK's

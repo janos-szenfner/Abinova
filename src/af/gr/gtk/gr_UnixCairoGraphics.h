@@ -132,6 +132,7 @@ private:
 	cairo_t* m_frameCr;
 	int m_backW;
 	int m_backH;
+	int m_backScale;
 	bool m_CairoCreated;
 	bool m_Painting;
 	gulong m_Signal;

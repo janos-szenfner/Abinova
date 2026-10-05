@@ -7387,14 +7387,19 @@ static void s_wp_set_rgb(cairo_t * cr, const UT_RGBColor & c)
 						 c.m_blu / 255.0);
 }
 
-static GtkWidget * s_wp_preview(const std::string & spec, int w, int h)
+/* scale = UI device scale: the tile is baked at w*scale x h*scale
+ * pixels so the texture stays sharp on HiDPI; the picture's size
+ * request pins it back to w x h logical pixels */
+static GtkWidget * s_wp_preview(const std::string & spec, int w, int h,
+								int scale)
 {
 	WPArtSpec a;
 	s_wp_parse(spec, a);
 	const GR_TextEffects & fx = a.fx;
 
 	cairo_surface_t * sf = cairo_image_surface_create(
-		CAIRO_FORMAT_ARGB32, w, h);
+		CAIRO_FORMAT_ARGB32, w * scale, h * scale);
+	cairo_surface_set_device_scale(sf, scale, scale);
 	cairo_t * cr = cairo_create(sf);
 	cairo_set_source_rgba(cr, 0, 0, 0, 0);
 	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
@@ -7523,7 +7528,7 @@ static GtkWidget * s_wp_preview(const std::string & spec, int w, int h)
 			cairo_image_surface_get_stride(sf),
 		reinterpret_cast<GDestroyNotify>(cairo_surface_destroy), sf);
 	GdkTexture * tex = gdk_memory_texture_new(
-		w, h,
+		w * scale, h * scale,
 #ifdef G_LITTLE_ENDIAN
 		GDK_MEMORY_B8G8R8A8_PREMULTIPLIED,
 #else
@@ -7534,7 +7539,39 @@ static GtkWidget * s_wp_preview(const std::string & spec, int w, int h)
 	GtkWidget * pic = gtk_picture_new_for_paintable(GDK_PAINTABLE(tex));
 	g_object_unref(tex);
 	gtk_picture_set_content_fit(GTK_PICTURE(pic), GTK_CONTENT_FIT_CONTAIN);
+	gtk_widget_set_size_request(pic, w, h);
 	return pic;
+}
+
+/* HiDPI scale for baked preview tiles: the frame surface's scale when
+ * the view widget is realized, else the largest monitor scale so art
+ * baked before the window maps stays sharp on a Retina display. */
+int AP_UnixRibbon::_uiScale() const
+{
+	GtkWidget * w = nullptr;
+	if (m_pFrame)
+	{
+		XAP_UnixFrameImpl * impl = static_cast<XAP_UnixFrameImpl *>(
+			m_pFrame->getFrameImpl());
+		if (impl)
+			w = impl->getViewWidget();
+	}
+	if (w && gtk_widget_get_root(w))
+		return MAX(1, gtk_widget_get_scale_factor(w));
+	GdkDisplay * d = gdk_display_get_default();
+	if (!d)
+		return 1;
+	GListModel * mons = gdk_display_get_monitors(d);
+	int s = 1;
+	for (guint i = 0, n = g_list_model_get_n_items(mons); i < n; ++i)
+	{
+		GdkMonitor * m = GDK_MONITOR(g_list_model_get_item(mons, i));
+		if (!m)
+			continue;
+		s = MAX(s, gdk_monitor_get_scale_factor(m));
+		g_object_unref(m);
+	}
+	return s;
 }
 
 GtkWidget * AP_UnixRibbon::_makeWordArtPopover()
@@ -7573,7 +7610,7 @@ GtkWidget * AP_UnixRibbon::_makeWordArtPopover()
 	for (unsigned i = 0; i < G_N_ELEMENTS(s_presets); i++)
 	{
 		GtkWidget * btn = gtk_button_new();
-		GtkWidget * pic = s_wp_preview(s_presets[i], 64, 52);
+		GtkWidget * pic = s_wp_preview(s_presets[i], 64, 52, _uiScale());
 		gtk_button_set_child(GTK_BUTTON(btn), pic);
 		gtk_widget_add_css_class(btn, "flat");
 
@@ -8439,8 +8476,11 @@ GtkWidget * AP_UnixRibbon::_equationPreview(const char * szLatex,
 	if (ew > w - 8) scale = (w - 8) / ew;
 	if (eh * scale > h - 4) scale = (h - 4) / eh;
 
+	/* bake at the UI device scale so the tile is sharp on HiDPI */
+	int ds = _uiScale();
 	cairo_surface_t * sf = cairo_image_surface_create(
-		CAIRO_FORMAT_ARGB32, w, h);
+		CAIRO_FORMAT_ARGB32, w * ds, h * ds);
+	cairo_surface_set_device_scale(sf, ds, ds);
 	cairo_t * cr = cairo_create(sf);
 	cairo_set_source_rgba(cr, 0, 0, 0, 0);
 	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
@@ -8459,7 +8499,7 @@ GtkWidget * AP_UnixRibbon::_equationPreview(const char * szLatex,
 			cairo_image_surface_get_stride(sf),
 		reinterpret_cast<GDestroyNotify>(cairo_surface_destroy), sf);
 	GdkTexture * tex = gdk_memory_texture_new(
-		w, h,
+		w * ds, h * ds,
 #ifdef G_LITTLE_ENDIAN
 		GDK_MEMORY_B8G8R8A8_PREMULTIPLIED,
 #else
@@ -8470,6 +8510,7 @@ GtkWidget * AP_UnixRibbon::_equationPreview(const char * szLatex,
 	GtkWidget * pic = gtk_picture_new_for_paintable(GDK_PAINTABLE(tex));
 	g_object_unref(tex);
 	gtk_picture_set_content_fit(GTK_PICTURE(pic), GTK_CONTENT_FIT_CONTAIN);
+	gtk_widget_set_size_request(pic, w, h);
 	return pic;
 }
 

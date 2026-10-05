@@ -1015,13 +1015,23 @@ static bool s_paintFrameImageFill(GR_Graphics * pG,
 		int ny = strchr(flip, 'y') ? 2 : 1;
 		int tw = static_cast<int>(cellW + 0.5);
 		int th = static_cast<int>(cellH + 0.5);
-		if (tw < 1 || th < 1 || tw * nx > 0x8000 || th * ny > 0x8000)
+		/* bake the tile at the paint target's device scale so the
+		 * REPEAT pattern stays sharp on HiDPI backing surfaces
+		 * instead of tiling upscaled 1x pixels */
+		double dsx = 1.0, dsy = 1.0;
+		cairo_surface_get_device_scale(cairo_get_target(cr),
+									   &dsx, &dsy);
+		if (tw < 1 || th < 1 || tw * nx * dsx > 0x8000 ||
+			th * ny * dsy > 0x8000)
 		{
 			cairo_restore(cr);
 			return true;
 		}
 		cairo_surface_t * surf = cairo_image_surface_create(
-			CAIRO_FORMAT_ARGB32, tw * nx, th * ny);
+			CAIRO_FORMAT_ARGB32,
+			static_cast<int>(tw * nx * dsx + 0.5),
+			static_cast<int>(th * ny * dsy + 0.5));
+		cairo_surface_set_device_scale(surf, dsx, dsy);
 		cairo_t * tcr = cairo_create(surf);
 		for (int j = 0; j < ny; ++j)
 			for (int i = 0; i < nx; ++i)
@@ -1959,10 +1969,18 @@ static void s_paintFrameShadow(GR_Graphics * pG,
 	double margin = blurDev * 3.0 + 2.0;
 	int sw = static_cast<int>(ceil(dw + 2.0 * margin));
 	int sh = static_cast<int>(ceil(dh + 2.0 * margin));
-	if (sw <= 0 || sh <= 0 || sw > 8192 || sh > 8192)
+	/* rasterize the silhouette at the paint target's device scale so
+	 * the blurred edge is native-resolution on HiDPI; the box-blur
+	 * radius is in device pixels, so it scales along */
+	double dsx = 1.0, dsy = 1.0;
+	cairo_surface_get_device_scale(cairo_get_target(cr), &dsx, &dsy);
+	if (sw <= 0 || sh <= 0 || sw * dsx > 8192 || sh * dsy > 8192)
 		return;
 	cairo_surface_t * mask =
-		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, sw, sh);
+		cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+								   static_cast<int>(sw * dsx + 0.5),
+								   static_cast<int>(sh * dsy + 0.5));
+	cairo_surface_set_device_scale(mask, dsx, dsy);
 	cairo_t * mcr = cairo_create(mask);
 	cairo_translate(mcr, margin, margin);
 	cairo_new_path(mcr);
@@ -1973,7 +1991,7 @@ static void s_paintFrameShadow(GR_Graphics * pG,
 	cairo_set_source_rgba(mcr, 0.0, 0.0, 0.0, 1.0);
 	cairo_fill(mcr);
 	cairo_destroy(mcr);
-	s_blurShadowAlpha(mask, static_cast<int>(blurDev + 0.5));
+	s_blurShadowAlpha(mask, static_cast<int>(blurDev * dsx + 0.5));
 
 	cairo_set_source_rgba(cr,
 						  rv / 255.0, gv / 255.0, bv / 255.0, alpha);

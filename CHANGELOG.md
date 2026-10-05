@@ -4344,6 +4344,14 @@ below are on `main` but the release has not been cut yet.
   `GtkIMMulticontext` picks up automatically when the active
   keyboard layout is an IME; composition/candidate UI is the IME's
   own window (in-document preedit is off by design).
+- **HiDPI/Retina rendering is native-resolution** — the canvas,
+  rulers, symbol map and every other custom-drawn widget rasterize
+  their backing surface at the monitor's real device scale (2x on a
+  Retina Mac) instead of painting a logical-pixel image that GTK
+  then upscaled blurry.  Caret save/restore scrapes, DrawingML
+  image-tile fills, frame drop shadows, drag thumbnails and the
+  ribbon's baked WordArt/equation preview tiles follow the same
+  scale; PDF export was always vector and is unchanged.
 - **Runtime-module bundling** — all three bundle scripts now ship
   the parts `ldd`/`otool`/`objdump` cannot see: enchant-2 spellcheck
   backends, GIO modules (incl. the libgiognutls TLS backend) with a
