@@ -1950,6 +1950,20 @@ tools/build-windows-msys2.sh
 The resulting `abinova.exe` needs the MSYS2 runtime DLLs on PATH;
 bundle them (e.g. via `ldd`) when packaging for distribution.
 
+### Building on FreeBSD
+
+ports/pkg provides the whole dependency set, so
+`tools/build-freebsd.sh` mirrors the macOS script: it installs the
+packages (gtk4, libgsf, enchant2, hunspell, boost, …), exports the
+`/usr/local` include/lib/pkg-config paths the base toolchain doesn't
+search by default, then configures and builds with `gmake` (FreeBSD's
+own `make` is BSD make and cannot run automake output):
+
+```bash
+tools/build-freebsd.sh            # deps + configure + gmake
+tools/build-freebsd.sh --skip-deps -j8
+```
+
 ### Building against a newer GTK (sandboxed)
 
 `tools/build-gtk-prefix.sh` builds a modern GTK4 — plus only the

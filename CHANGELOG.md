@@ -4069,6 +4069,12 @@ below are on `main` but the release has not been cut yet.
   calls are guarded by `GDK_WINDOWING_X11`/`HAVE_SIGACTION`/
   `HAVE_EXECINFO_H`, and `XParseGeometry` was replaced by a portable
   parser (`s_parseGeometry`) so `--geometry` still works everywhere.
+- **FreeBSD build support** — `tools/build-freebsd.sh` parallels the
+  macOS/MSYS2 scripts: installs the `pkg` dependency set (gtk4,
+  libgsf, enchant2, hunspell, boost, …), exports the
+  `/usr/local`/`libdata/pkgconfig` paths the base toolchain doesn't
+  search by default, then configures and builds with `gmake` (BSD
+  `make` cannot run automake output).
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.
