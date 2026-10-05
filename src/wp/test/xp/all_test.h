@@ -155,6 +155,8 @@
 #undef TFSUITE
 #include "src/wp/ap/xp/t/ap_MenuFns.t.cpp"
 #undef TFSUITE
+#include "src/wp/ap/xp/t/ap_Autosave.t.cpp"
+#undef TFSUITE
 #include "src/wp/impexp/xp/t/ut_abwncrypt.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_abinova.t.cpp"

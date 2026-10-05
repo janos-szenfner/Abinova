@@ -2667,6 +2667,21 @@ below are on `main` but the release has not been cut yet.
   no longer suppresses the recovery write, and a document caught
   mid-edit keeps its last consistent backup instead of writing a
   corrupt snapshot.
+- **Recovery-directory scan hardened** — startup recovery now only
+  auto-opens entries carrying a suffix the autosave machinery writes
+  (`.saved`, `.abw.saved`, or the configured autosave extension);
+  unrelated files dropped into the autosave directory are ignored.
+  Candidates must be regular files, so a planted FIFO or device can no
+  longer block startup on `open()`. A recovery `.info` sidecar's stored
+  filename is only adopted when it names a local file, so a crafted
+  sidecar cannot redirect the recovered document's next Save to a
+  remote share. Malformed recovery files are still left in place for
+  inspection instead of being deleted.
+- **`LANG` no longer mutated during startup** — the Unix encoding
+  manager used to temporarily rewrite the process-wide `LANG`
+  environment variable while deriving the legacy non-Unicode encoding
+  name. The probe that needed the mutation is long gone, so the
+  setenv/restore pair has been removed; `LANG` is never touched.
 - **Static-analysis sweep (GCC `-fanalyzer`, full tree)** — the whole
   codebase was rebuilt under the GCC static analyzer and every
   high-signal finding triaged and fixed:

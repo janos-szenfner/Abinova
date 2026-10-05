@@ -63,6 +63,11 @@ class ABI_EXPORT AP_App : public XAP_App_BaseClass
 	bool openCmdLineFiles(const AP_Args * args);
 	/* Open leftover autosave recovery files from a previous session. */
 	void recoverAutosavedDocs();
+
+	/* recovery-scan guards — pure functions, exposed for the unit tests */
+	static bool	isAutosaveCandidateName(const char * name,
+										const char * configuredExt);
+	static bool	isAutosaveSidecarUriSafe(const char * uri);
 protected:
 	virtual void saveRecoveryFiles() override;
  private:

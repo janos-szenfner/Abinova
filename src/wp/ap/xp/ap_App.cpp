@@ -39,9 +39,11 @@
 #include "ap_Prefs_SchemeIds.h"
 #include "ap_Strings.h"
 #include "xap_Frame.h"
+#include "xap_Prefs_SchemeIds.h"
 #include "pd_Document.h"
 #include "ie_imp.h"
 #include "ut_go_file.h"
+#include "ut_path.h"
 
 AP_App::AP_App (const char * szAppName)
   : XAP_App_BaseClass(szAppName, "io.github.janos_szenfner.Abinova")
@@ -138,12 +140,54 @@ bool AP_App::doWindowlessArgs (const AP_Args *, bool & /*bSuccess*/)
 }
 
 /*!
+ * A directory entry counts as a recovery candidate only if it carries a
+ * suffix the autosave machinery itself writes: ".saved" (the
+ * crash-recovery copies written by saveRecoveryFiles) or the configured
+ * periodic-autosave extension (default ".bak~"). ".part"/".info"
+ * sidecars and any other file dropped into the directory are never
+ * imported unprompted.
+ */
+bool AP_App::isAutosaveCandidateName(const char * name,
+								   const char * configuredExt)
+{
+	if (!name || !*name)
+		return false;
+	if (g_str_has_suffix(name, ".part") || g_str_has_suffix(name, ".info"))
+		return false;
+	if (g_str_has_suffix(name, ".saved"))
+		return true;
+	return configuredExt && *configuredExt
+		&& g_str_has_suffix(name, configuredExt);
+}
+
+/*!
+ * The ".info" sidecar's first line is applied verbatim as the recovered
+ * document's filename, so it is only trusted when it names a local
+ * file: a "file://" URI or an absolute path. A planted remote URI
+ * (sftp://, davs://, ...) would silently redirect the user's next Save
+ * of the recovered document to a remote share.
+ */
+bool AP_App::isAutosaveSidecarUriSafe(const char * uri)
+{
+	return uri
+		&& (g_str_has_prefix(uri, "file://")
+			|| g_path_is_absolute(uri));
+}
+
+/*!
  * Scans the autosave directory for recovery files left behind by an
  * unclean shutdown and opens each one for review. A ".info" sidecar
  * written next to each backup carries the document's original URI, so
  * recovered documents get their filename back and only need a normal
  * Save to be restored in place. Successfully recovered backups are
  * removed; files that fail to load are left alone.
+ *
+ * The candidates go through the exact same pinned-importer load path
+ * (loadDocument + readFromFile) a user-opened .abwn gets, so a hostile
+ * recovery file gets no more trust than a hostile document the user
+ * opened. The gates in front — filename suffix, regular-file check,
+ * sidecar URI validation — just limit WHICH local bytes get fed to
+ * that importer without a user gesture.
  */
 void AP_App::recoverAutosavedDocs()
 {
@@ -152,12 +196,16 @@ void AP_App::recoverAutosavedDocs()
 	if (!d)
 		return;
 
+	std::string cfgExt;
+	if (!getPrefsValue(XAP_PREF_KEY_AutoSaveFileExt, cfgExt)
+		|| cfgExt.empty())
+		cfgExt = XAP_PREF_DEFAULT_AutoSaveFileExt;
+
 	std::vector<std::string> files;
 	const gchar *name;
 	while ((name = g_dir_read_name(d)) != nullptr) {
-		if (g_str_has_suffix(name, ".part") || g_str_has_suffix(name, ".info"))
-			continue;
-		files.push_back(name);
+		if (isAutosaveCandidateName(name, cfgExt.c_str()))
+			files.push_back(name);
 	}
 	g_dir_close(d);
 	if (files.empty())
@@ -168,17 +216,27 @@ void AP_App::recoverAutosavedDocs()
 	for (const std::string &nm : files) {
 		std::string path = dir + nm;
 
+		// a planted FIFO/device would block the open() below forever
+		if (!UT_isRegularFile(path.c_str()))
+			continue;
+
 		// the sidecar holds the original URI, if any
 		std::string orig;
-		FILE *info = g_fopen((path + ".info").c_str(), "r");
-		if (info) {
-			char buf[4096];
-			if (fgets(buf, sizeof(buf), info)) {
-				buf[strcspn(buf, "\r\n")] = 0;
-				orig = buf;
+		std::string infoPath = path + ".info";
+		if (UT_isRegularFile(infoPath.c_str()))
+		{
+			FILE *info = g_fopen(infoPath.c_str(), "r");
+			if (info) {
+				char buf[4096];
+				if (fgets(buf, sizeof(buf), info)) {
+					buf[strcspn(buf, "\r\n")] = 0;
+					orig = buf;
+				}
+				fclose(info);
 			}
-			fclose(info);
 		}
+		if (!isAutosaveSidecarUriSafe(orig.c_str()))
+			orig.clear();
 
 		gchar *uri = UT_go_filename_to_uri(path.c_str());
 		if (!uri)

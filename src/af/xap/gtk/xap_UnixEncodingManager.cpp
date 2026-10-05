@@ -533,12 +533,16 @@ void  XAP_UnixEncodingManager::initialize()
 				// we want to get the encoding that would be used for the given
 				// language/territory if the UTF-8 encoding was not specified
 				// by LANG
-				
-				UT_UTF8String OLDLANG (getenv("LANG"));
-				UT_UTF8String MYLANG (LanguageISOName);
-				MYLANG += "_";
-				MYLANG += LanguageISOTerritory;
-				g_setenv ("LANG", MYLANG.utf8_str(), TRUE);
+
+				/* NOTE: upstream gnome-i18n temporarily g_setenv()'d LANG
+				 * around a setlocale/nl_langinfo(CODESET) probe here. The
+				 * probe call is long gone from this copy, so the only thing
+				 * left was a process-wide mutation of environ on the (very
+				 * small) off chance a locale name contained a codeset the
+				 * probe could see. Nothing reads LANG between a set and its
+				 * restore, and a crash or early exit inside the window would
+				 * leave a synthesized LANG behind — the pair is removed and
+				 * the fallback name is derived from the codeset token only. */
 				if (mask & COMPONENT_CODESET)
 				{
 					NativeNonUnicodeEncodingName = cs+1;
@@ -551,7 +555,6 @@ void  XAP_UnixEncodingManager::initialize()
 					}
 					xxx_UT_DEBUGMSG(("NativeNonUnicodeEncodingName (2) %s\n", NativeNonUnicodeEncodingName));
 				}
-				g_setenv("LANG", OLDLANG.utf8_str(), TRUE);
 			}
 			
 		}

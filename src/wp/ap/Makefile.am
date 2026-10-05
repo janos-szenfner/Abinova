@@ -624,6 +624,7 @@ EXTRA_DIST = \
 	xp/t/ap_TopRuler.t.cpp \
 	xp/t/ap_EditMethods.t.cpp \
 	xp/t/ap_MenuFns.t.cpp \
+	xp/t/ap_Autosave.t.cpp \
 	xp/t/em_guard.h
 
 ap_wp_sidebar.cpp: $(srcdir)/xp/sidebar.png
