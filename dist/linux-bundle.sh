@@ -34,6 +34,13 @@
 #   certs/ca-certificates.crt              CA bundle for the update check —
 #                                          xap_UpdateCheck loads it via a
 #                                          GTlsFileDatabase on each connection
+#   hunspell/*.aff,*.dic                   spelling dictionaries copied from the
+#                                          host's hunspell/myspell dirs; the app
+#                                          appends the bundle root to
+#                                          XDG_DATA_DIRS and probes this dir in
+#                                          PORT04's dictionaryDirs()
+#   hyphen/hyph_*.dic                      hyphenation patterns for RBN06's
+#                                          auto-hyphenation (ut_hyphen.cpp)
 #   share/applications + share/icons       desktop files, kept for PACK09
 #   artwork/ fonts/ help/ mime-info/ omml_xslt/ system.profile templates/ xsltml/
 #                                          the datadir is flattened to the
@@ -374,6 +381,50 @@ else
 	echo "linux-bundle: WARNING no CA certificate bundle found" >&2
 fi
 
+# ------------------------------------------------- PACK07 dictionaries
+# Spellcheck needs real dictionaries, not just the enchant backends
+# staged above.  Whatever hunspell dictionaries the host has land at
+# <root>/hunspell — found via the app's XDG_DATA_DIRS append and the
+# PORT04 search-path list — and hyphenation patterns land at
+# <root>/hyphen for ut_hyphen.  First occurrence wins on name
+# collisions (earlier dirs shadow later ones).
+copy_dicts() { # $1 = dest dir, $2 = name filter; rest = src dirs (first wins)
+	dictdst=$1; filt=$2; shift 2
+	mkdir -p "$dictdst"
+	for src in "$@"; do
+		[ -d "$src" ] || continue
+		for f in "$src"/*.aff "$src"/*.dic; do
+			[ -f "$f" ] || continue
+			base=${f##*/}
+			case "$filt:$base" in
+			spell:hyph_*.dic) ;;	# patterns belong to the hyphen dir
+			hyph:hyph_*.dic)
+				[ -f "$dictdst/$base" ] || cp -aL "$f" "$dictdst/$base" ;;
+			hyph:*) ;;
+			*) [ -f "$dictdst/$base" ] || cp -aL "$f" "$dictdst/$base" ;;
+			esac
+		done
+	done
+}
+
+# hyph_*.dic kept OUT of the hunspell dir so enchant's *.dic
+# enumeration does not advertise pattern files as dictionaries —
+# they get their own <root>/hyphen either way
+dictsrcs="/usr/share/hunspell /usr/local/share/hunspell
+/usr/share/myspell /usr/share/myspell/dicts /usr/local/share/myspell"
+copy_dicts "$outdir/hunspell" spell $dictsrcs
+copy_dicts "$outdir/hyphen" hyph \
+	/usr/share/hyphen /usr/local/share/hyphen $dictsrcs
+if [ ! -f "$outdir/hunspell/en_US.dic" ] && \
+   [ ! -f "$outdir/hunspell/en_GB.dic" ]; then
+	echo "linux-bundle: WARNING no English hunspell dictionary" >&2
+	echo "  staged — bundled spellcheck needs the hunspell-en-us" >&2
+	echo "  package (or equivalent) on the build host" >&2
+fi
+[ -z "$(find "$outdir/hyphen" -name 'hyph_*.dic' -print -quit)" ] && \
+	echo "linux-bundle: WARNING no hyphenation patterns staged" \
+		"(libhyphen-dev / hyphen-en package)" >&2
+
 # --------------------------------------------------- GTK4 modules
 # immodules / media / printbackends dirs, incl. their giomodule.cache
 # files (the caches list bare module names — already relocatable).
@@ -478,6 +529,20 @@ fi
 	echo "                            (GST_PLUGIN_SYSTEM_PATH_1_0 set by app)"
 	echo "  certs/ca-certificates.crt CA store for the update check"
 	echo "                            (GTlsFileDatabase per connection)"
+	echo
+	echo "data files (PACK07):"
+	echo "  hunspell/                   spelling dictionaries — app"
+	echo "                              appends the bundle root to"
+	echo "                              XDG_DATA_DIRS so enchant's"
+	echo "                              hunspell provider, the grammar"
+	echo "                              checker and ut_hyphen all see"
+	echo "                              them"
+	echo "  hyphen/                     hyphenation patterns (hyph_*.dic)"
+	echo "  artwork/ fonts/             galleries + bundled font set"
+	echo "                              (system fontconfig used — Linux"
+	echo "                              ships no private fonts.conf)"
+	echo "  (no locale files exist — the UI is English-only, strings"
+	echo "   are compiled in)"
 } > "$outdir/BUNDLE-INFO.txt"
 
 # ------------------------------------------------------------ verify

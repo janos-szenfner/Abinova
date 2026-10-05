@@ -469,7 +469,50 @@ else
 	echo "build-windows: WARNING no gstreamer-1.0 dir found" >&2
 fi
 
-# PACK07: hunspell/hyph dictionaries + fontconfig/fonts go here.
+# ------------------------------------------------- PACK07 data files
+# hunspell dictionaries + hyphenation patterns -> <root>/hunspell and
+# <root>/hyphen.  The app appends the bundle root to XDG_DATA_DIRS,
+# PORT04's dictionaryDirs() and ut_hyphen's s_candidateDirs() probe
+# <install-dir>/{hunspell,hyphen,share/*} explicitly, and the enchant
+# provider sees them via its own XDG/prefix-dir walk.
+copy_dicts() { # $1 = dest dir, $2 = name filter; rest = src dirs (first wins)
+	dictdst=$1; filt=$2; shift 2
+	mkdir -p "$dictdst"
+	for src in "$@"; do
+		[ -d "$src" ] || continue
+		for f in "$src"/*.aff "$src"/*.dic; do
+			[ -f "$f" ] || continue
+			base=${f##*/}
+			case "$filt:$base" in
+			spell:hyph_*.dic) ;;	# patterns belong to the hyphen dir
+			hyph:hyph_*.dic)
+				[ -f "$dictdst/$base" ] || cp -aL "$f" "$dictdst/$base" ;;
+			hyph:*) ;;
+			*) [ -f "$dictdst/$base" ] || cp -aL "$f" "$dictdst/$base" ;;
+			esac
+		done
+	done
+}
+hdir="${MINGW_PREFIX:-/nonexistent}/share/hunspell"
+yd="${MINGW_PREFIX:-/nonexistent}/share/hyphen"
+copy_dicts "$outdir/hunspell" spell "$hdir"
+copy_dicts "$outdir/hyphen" hyph "$yd" "$hdir"
+[ -f "$outdir/hunspell/en_US.dic" ] || \
+	echo "build-windows: WARNING no English hunspell dictionary" >&2
+	echo "  staged (pacman ${pkgpfx:-<prefix>}-hunspell-en provides it)" >&2
+
+# fontconfig — the DLL finds <root>/etc/fonts relative to its own
+# module path on Windows, and the app exports FONTCONFIG_FILE when a
+# bundled fonts.conf exists; MSYS2's stock config uses the
+# WINDOWSFONTDIR/USER/CACHEDIR tokens so it relocates cleanly
+if [ -d "${MINGW_PREFIX:-/nonexistent}/etc/fonts" ]; then
+	mkdir -p "$outdir/etc/fonts"
+	# cp -aL resolves conf.d's symlinks into real files
+	cp -aL "${MINGW_PREFIX}/etc/fonts/." "$outdir/etc/fonts/"
+else
+	echo "build-windows: WARNING no ${MINGW_PREFIX:-<prefix>}/etc/fonts" >&2
+	echo "  — bundled fontconfig falls back to its built-in defaults" >&2
+fi
 
 # --------------------------------------------- DLL closure walk
 # Iterate to a fixpoint: every PE already in the bundle feeds its
@@ -544,6 +587,8 @@ EOF
 	echo "lib/      gdk-pixbuf-2.0 loaders+cache, enchant-2 backends,"
 	echo "          gio/modules (TLS), gtk-4.0 modules, gstreamer-1.0"
 	echo "certs/    ca-certificates.crt (update-check CA store)"
+	echo "hunspell/ spelling dictionaries; hyphen/ hyph_*.dic patterns"
+	echo "etc/fonts/ private fontconfig (FONTCONFIG_FILE at startup)"
 	echo "root      datadir contents (artwork/, fonts/, ...)"
 	echo
 	echo "Bundled DLLs:"

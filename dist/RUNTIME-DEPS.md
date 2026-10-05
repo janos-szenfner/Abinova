@@ -18,7 +18,16 @@ each one findable at runtime.
 | glib schemas (gschemas.compiled) | GSettings | `g_settings` schema lookup | `share/glib-2.0/schemas/`; app exports `GSETTINGS_SCHEMA_DIR` when the compiled cache exists (Windows GLib also finds it via its own prefix probe) | settings-backed prefs/dialogs misbehave |
 | GTK4 module dirs | gtk | `g_module_open` under `GTK_PATH`/`GTK_EXE_PREFIX`-derived dirs | `lib/gtk-4.0/<ver>/{immodules,media,printbackends}` + their `giomodule.cache`; app exports `GTK_PATH=<root>/lib/gtk-4.0` | no CUPS/file print backends, no IM context modules, no media playback backend |
 | GStreamer plugins | libmedia-gstreamer | gst registry scan of `GST_PLUGIN_SYSTEM_PATH_1_0` | `lib/gstreamer-1.0/*.so`; app exports `GST_PLUGIN_SYSTEM_PATH_1_0` (replaces the default scan — keeps a bundle self-contained) | embedded media silently unplayable |
-| hunspell dictionaries | HunspellWrap (PORT04 path list) | file read | PACK07 | no spell dictionaries found |
+| hunspell dictionaries | enchant hunspell provider (spellcheck) + `HunspellWrap` grammar checker (PORT04 path list) | file read | `hunspell/*.aff,*.dic` at the bundle root (`Resources/hunspell` on macOS). The app appends the bundle root to `XDG_DATA_DIRS` at startup — the provider, `dictionaryDirs()` and `ut_hyphen` all resolve through `g_get_system_data_dirs()` — plus explicit `<AbiSuiteLibDir>/hunspell` fallbacks in both path lists. hyph_*.dic are kept out of this dir so enchant's `*.dic` enumeration never advertises pattern files as dictionaries | spellcheck/grammar check reports no dictionaries |
+| hyphenation patterns (`hyph_*.dic`) | `ut_hyphen.cpp` (RBN06 auto-hyphenation) | file read | `hyphen/` at the bundle root (`Resources/hyphen` on macOS); same XDG_DATA_DIRS append + `<AbiSuiteLibDir>/hyphen` fallback | auto-hyphenation silently degrades to none |
+| fontconfig config | fontconfig/pango | file read | Windows: `etc/fonts/` staged from the MSYS2 prefix (relocates via tokens); macOS: generated `Resources/fontconfig/fonts.conf` + resolved `conf.d`, exported as `FONTCONFIG_FILE` by the launcher and probed by `_setBundleModulePaths`. **Linux deliberately ships none** — the bundle relies on the host fontconfig and only registers `fonts/` via `FcConfigAppFontAddDir` | fonts resolve but only fontconfig built-ins are used (no aliases/rules) |
+| bundled font set | `FcConfigAppFontAddDir` in `XAP_UnixApp` | fontconfig scan | `fonts/` inside the datadir — already flattened to the bundle root; `fonts/abinova-fonts.conf` holds the MS-metric substitution rules | documents render with substituted system fonts (metric drift) |
+| `artwork/` galleries | ribbon Shapes / 3D Illustrations / Icons | file read | `artwork/` inside the datadir — flattened to the bundle root; the exe-path walk-up locates it | galleries render empty |
+
+Translations: the UI is English-only (strings are compiled in —
+there is no `po/` or `*.strings` set), so there are no locale files
+to bundle.  If translations are ever added they should land under
+`share/locale` per gettext convention.
 
 See PACK01 (manifest), PACK06 (runtime-module bundling), PACK07
-(dictionaries/artwork) in `.devin/TASKS.md`.
+(dictionaries/artwork/fontconfig) in `.devin/TASKS.md`.

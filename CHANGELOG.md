@@ -4153,6 +4153,28 @@ below are on `main` but the release has not been cut yet.
   distro enchant builds whose compiled-in provider dir is not
   relocatable — self-loads the bundled `enchant-2` backends through
   the `EnchantProvider` ABI when the broker finds no providers.
+- **Bundled dictionaries + fontconfig** — all three bundles now ship
+  real data files: the build host's hunspell spelling dictionaries
+  land at `<bundle>/hunspell` and hyphenation patterns at
+  `<bundle>/hyphen` (pattern files are kept out of the hunspell dir
+  so enchant never advertises one as a language).  At startup the
+  app appends the bundle root to `XDG_DATA_DIRS` — putting the
+  dictionaries in reach of the enchant backends, the grammar
+  checker's search-path list and the hyphenator at once — while
+  `HunspellWrap` and `ut_hyphen` also probe
+  `<AbiSuiteLibDir>/{hunspell,hyphen}` explicitly.  A machine with
+  no system hunspell still gets spellcheck; user and system
+  dictionaries keep precedence over the bundled baseline.  The
+  Windows bundle stages the MSYS2 `etc/fonts` fontconfig tree
+  (relocatable via fontconfig's Windows tokens) and the macOS
+  bundle a generated `Resources/fontconfig/fonts.conf` plus the
+  resolved `conf.d` rules — both export `FONTCONFIG_FILE` unless
+  the user already set one.  Linux deliberately relies on the
+  host's fontconfig and only registers the bundled `fonts/`
+  collection through `FcConfigAppFontAddDir`.  Bundled `artwork/`
+  (Shapes, 3D Models and Icons galleries) and the `fonts/` set are
+  confirmed inside every bundle — the UI is English-only, so no
+  locale files are needed.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

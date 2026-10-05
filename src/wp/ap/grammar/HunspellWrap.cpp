@@ -136,6 +136,22 @@ static std::vector<std::string> dictionaryDirs(void)
 #endif
 #endif
 
+  /* PACK07: dictionaries staged inside a relocatable bundle land at
+   * <AbiSuiteLibDir>/hunspell (the bundle root on Linux/Windows,
+   * Contents/Resources on macOS).  _setBundleModulePaths also appends
+   * the bundle root to XDG_DATA_DIRS, which already reaches this list
+   * via the loop above — these explicit entries keep the fallback
+   * alive where that setup never ran (tests, embedded AbiWidget).
+   * Appended last: a system or user dictionary still wins, the bundle
+   * only guarantees a baseline. */
+  if(XAP_App * app = XAP_App::getApp())
+  {
+    const std::string libdir = app->getAbiSuiteLibDir();
+    addDir(libdir + "/hunspell");
+    addDir(libdir + "/share/hunspell");
+    addDir(libdir + "/dictionary/myspell");
+  }
+
   return dirs;
 }
 

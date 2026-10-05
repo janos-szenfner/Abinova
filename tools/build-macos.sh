@@ -44,6 +44,8 @@
 #       Frameworks/gstreamer-1.0/           media plugins
 #       Resources/                          datadir contents (artwork/,
 #                                           fonts/, help/, ...)
+#       Resources/hunspell|hyphen/          PACK07 dictionaries
+#       Resources/fontconfig/               private fonts.conf + conf.d
 #       Resources/glib-2.0/schemas/         gschemas.compiled
 #       Resources/certs/ca-certificates.crt CA store for the update check
 #       Resources/abinova.icns              bundle icon
@@ -491,6 +493,68 @@ fi
 bundle_modules "$brew_prefix/lib/gstreamer-1.0" "gstreamer-1.0" || \
 	echo "build-macos: WARNING no gstreamer-1.0 plugins dir found" >&2
 
+# -------------------------------------------------- PACK07 data files
+# hunspell dictionaries + hyphenation patterns -> Resources/hunspell +
+# Resources/hyphen.  The app appends the bundle root to XDG_DATA_DIRS
+# and probes <AbiSuiteLibDir>/{hunspell,hyphen} directly, so both the
+# enchant providers and the grammar/hyphenation paths find them.
+# Brew ships no dictionaries of its own — whatever the host has under
+# share/hunspell (a hunspell-* formula or a manual drop) is what lands.
+copy_dicts() { # $1 = dest dir, $2 = name filter; rest = src dirs (first wins)
+	dictdst=$1; filt=$2; shift 2
+	mkdir -p "$dictdst"
+	for src in "$@"; do
+		[ -d "$src" ] || continue
+		for f in "$src"/*.aff "$src"/*.dic; do
+			[ -f "$f" ] || continue
+			base=${f##*/}
+			case "$filt:$base" in
+			spell:hyph_*.dic) ;;	# patterns belong to the hyphen dir
+			hyph:hyph_*.dic)
+				[ -f "$dictdst/$base" ] || cp -aL "$f" "$dictdst/$base" ;;
+			hyph:*) ;;
+			*) [ -f "$dictdst/$base" ] || cp -aL "$f" "$dictdst/$base" ;;
+			esac
+		done
+	done
+}
+copy_dicts "$res/hunspell" spell \
+	"$brew_prefix/share/hunspell" /Library/Spelling ~/Library/Spelling
+copy_dicts "$res/hyphen" hyph \
+	"$brew_prefix/share/hyphen" "$brew_prefix/share/hunspell" \
+	/Library/Spelling ~/Library/Spelling
+[ -f "$res/hunspell/en_US.dic" ] || [ -f "$res/hunspell/en_GB.dic" ] || \
+	echo "build-macos: WARNING no English hunspell dictionary staged —" >&2
+	echo "  install one on the build host (e.g. drop en_US.aff/.dic" >&2
+	echo "  into $brew_prefix/share/hunspell) for bundled spellcheck" >&2
+
+# fontconfig — macOS has no system fontconfig configuration at all
+# (brew's lives under its prefix, outside the bundle), so ship a
+# private config the launcher points FONTCONFIG_FILE at.  The bundled
+# fonts/ collection itself is registered by the app via
+# FcConfigAppFontAddDir; this file only has to supply the system
+# font dirs, a writable cache dir and the generic conf.d rules.
+mkdir -p "$res/fontconfig"
+cat > "$res/fontconfig/fonts.conf" <<'FC'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+	<dir>/System/Library/Fonts</dir>
+	<dir>/Library/Fonts</dir>
+	<dir>~/Library/Fonts</dir>
+	<include ignore_missing="yes">conf.d</include>
+	<cachedir>~/Library/Caches/fontconfig</cachedir>
+</fontconfig>
+FC
+if [ -d "$brew_prefix/etc/fonts/conf.d" ]; then
+	# cp -aL resolves the conf.d symlinks into real files — their
+	# targets in share/fontconfig/conf.avail stay outside otherwise
+	cp -aL "$brew_prefix/etc/fonts/conf.d" "$res/fontconfig/"
+else
+	echo "build-macos: WARNING no brew fontconfig conf.d —" >&2
+	echo "  fontconfig runs on the minimal fonts.conf alone" >&2
+fi
+
 # CA bundle for the update check — Resources/certs/ca-certificates.crt
 # is probed by xap_UpdateCheck.cpp (app-relative; the host trust
 # store stays the fallback).
@@ -648,7 +712,11 @@ export GDK_BACKEND="${GDK_BACKEND:-quartz}"
 export ABINOVA_MODULE_ROOT="$fw"
 export GDK_PIXBUF_MODULE_FILE="$fw/gdk-pixbuf-2.0/loaders.cache"
 export GSETTINGS_SCHEMA_DIR="$res/glib-2.0/schemas"
-# PACK07 will add: fontconfig + bundled font set.
+# PACK07: private fontconfig (macOS has none system-wide) — the app
+# probes $res/fontconfig/fonts.conf itself, the export just makes
+# the intent explicit and lets a user override win.
+[ -f "$res/fontconfig/fonts.conf" ] && \
+	export FONTCONFIG_FILE="${FONTCONFIG_FILE:-$res/fontconfig/fonts.conf}"
 
 exec "$here/abinova-bin" "$@"
 LAUNCHER

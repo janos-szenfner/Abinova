@@ -76,14 +76,16 @@ XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
 	  // XXX maybe we need better flags as we handle command line
 	  m_gtkApp(gtk_application_new(app_id, G_APPLICATION_DEFAULT_FLAGS))
 {
+	_setAbiSuiteLibDir();
+
+	// Runtime-loaded modules bundled next to the binary (PACK06) —
+	// also exports the bundle fontconfig/dictionary env (PACK07), so
+	// it must run before FcInit reads its config.
+	_setBundleModulePaths();
+
 	int fc_inited = FcInit();
 	UT_UNUSED(fc_inited); // TODO actually deal with the error here
 	UT_ASSERT(fc_inited);
-
-	_setAbiSuiteLibDir();
-
-	// Runtime-loaded modules bundled next to the binary (PACK06)
-	_setBundleModulePaths();
 
 	// Make the bundled font collection (installed under
 	// <AbiSuiteLibDir>/fonts) visible to fontconfig so documents
@@ -539,6 +541,51 @@ void XAP_UnixApp::_setBundleModulePaths(void)
 		g_file_test((schemas + "/gschemas.compiled").c_str(),
 					G_FILE_TEST_IS_REGULAR))
 		g_setenv("GSETTINGS_SCHEMA_DIR", schemas.c_str(), TRUE);
+
+	// PACK07 — bundled data files: dictionaries + fontconfig.
+	//
+	// Appending the bundle root to XDG_DATA_DIRS puts <root>/hunspell
+	// and <root>/hyphen on every consumer that walks
+	// g_get_system_data_dirs(): the enchant hunspell provider
+	// (bundled or system), PORT04's dictionaryDirs() and ut_hyphen's
+	// s_candidateDirs().  Appended, not prepended — a system or user
+	// dictionary still wins, the bundle only guarantees a baseline.
+	if (g_file_test((libdir + "/hunspell").c_str(), G_FILE_TEST_IS_DIR) ||
+		g_file_test((libdir + "/hyphen").c_str(), G_FILE_TEST_IS_DIR))
+	{
+		const char * xdg = g_getenv("XDG_DATA_DIRS");
+		// the glib default is /usr/local/share:/usr/share when unset
+		std::string val = (xdg && *xdg)
+			? std::string(xdg) + G_SEARCHPATH_SEPARATOR_S + libdir
+			: "/usr/local/share" G_SEARCHPATH_SEPARATOR_S
+			  "/usr/share" G_SEARCHPATH_SEPARATOR_S + libdir;
+		g_setenv("XDG_DATA_DIRS", val.c_str(), TRUE);
+	}
+
+	// A bundle may ship its own fonts.conf — Windows and macOS have
+	// no reliable system fontconfig config, so the pack scripts
+	// stage one under the bundle root / Contents/Resources.  Linux
+	// bundles deliberately rely on the host fontconfig (the bundled
+	// fonts/ collection is registered via FcConfigAppFontAddDir
+	// regardless).  FONTCONFIG_FILE is read at first FcInit, which is
+	// why _setBundleModulePaths runs before it in the ctor.
+	if (!g_getenv("FONTCONFIG_FILE") && !g_getenv("FONTCONFIG_PATH"))
+	{
+		static const char * const fcTails[] = {
+			"/etc/fonts/fonts.conf",	// Windows <root>/etc/fonts
+			"/fontconfig/fonts.conf",	// macOS Resources/fontconfig
+			"/share/fontconfig/fonts.conf",
+		};
+		for (const char * tail : fcTails)
+		{
+			const std::string cand = libdir + tail;
+			if (g_file_test(cand.c_str(), G_FILE_TEST_IS_REGULAR))
+			{
+				g_setenv("FONTCONFIG_FILE", cand.c_str(), TRUE);
+				break;
+			}
+		}
+	}
 
 	// gdk-pixbuf loaders.cache — honour an existing env pointing at a
 	// bundle cache (the macOS launcher pre-sets one), else probe.

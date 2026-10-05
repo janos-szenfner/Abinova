@@ -385,7 +385,13 @@ all.
   `/usr/share/myspell/dicts` and `/usr/local/share/myspell` dirs,
   `~/Library/Spelling` + `/Library/Spelling` on macOS, and
   `%APPDATA%\hunspell`, `%LOCALAPPDATA%\hunspell` and `hunspell`
-  next to the install dir on Windows.
+  next to the install dir on Windows.  Relocatable bundles stage
+  dictionaries at `<bundle-root>/hunspell`; the app appends the
+  bundle root to `XDG_DATA_DIRS` at startup and probes
+  `<AbiSuiteLibDir>/hunspell` directly, so the enchant backends,
+  the grammar checker and the hyphenator all find them even with
+  no system dictionary install.  User and system dictionaries keep
+  precedence — the bundled ones are a guaranteed baseline.
 - **LibreOffice-style status bar**: the bottom bar now shows, left
   to right, page `Page: n/m`, live `N words, N characters` (via
   `FV_View::countWords`), the current paragraph style, insert /
@@ -1969,7 +1975,12 @@ GTK4 im/media/print modules and the GStreamer plugins — writes an
 `.docx`/`.doc`/`.odt`/`.rtf` associations, verifies no non-system dep
 is left dangling, and ad-hoc codesigns (arm64 binaries refuse to
 launch unsigned; Developer-ID signing is a later packaging step).
-The launcher exports `ABINOVA_MODULE_ROOT=Contents/Frameworks` so the
+`Resources/hunspell` + `Resources/hyphen` carry whatever spell and
+hyphenation dictionaries the build host provides, and
+`Resources/fontconfig/` holds a private `fonts.conf` (+ resolved
+`conf.d`) — macOS has no system-wide fontconfig setup, so the
+launcher exports `FONTCONFIG_FILE` at it.  The launcher also exports
+`ABINOVA_MODULE_ROOT=Contents/Frameworks` so the
 app can point the toolkit module loaders at the bundled dirs.
 `--universal` on Apple Silicon merges an x86_64 build via `lipo`
 (needs Rosetta + a second brew at `/usr/local`),
@@ -1996,7 +2007,11 @@ walk), a side-by-side `abinova.exe.manifest` declaring Windows 10
 compat and `longPathAware`, the datadir contents at the root, compiled
 glib schemas, gdk-pixbuf loaders+cache, the enchant backends, the GIO
 modules (incl. the libgiognutls TLS backend), a CA-cert bundle for the
-update check, GTK4 module dirs and the GStreamer plugins.  The
+update check, GTK4 module dirs and the GStreamer plugins — plus
+`hunspell/` + `hyphen/` dictionaries from the MSYS2 prefix and the
+prefix's `etc/fonts/` fontconfig tree, which relocates via fontconfig's
+Windows tokens (the app exports `FONTCONFIG_FILE` at the bundled
+`fonts.conf` unless the user already set one).  The
 process start also removes the current directory from the DLL search
 path (`SetDllDirectory`/`SetDefaultDllDirectories`) so a stray DLL
 next to a document cannot shadow a bundled dependency.
@@ -2045,6 +2060,20 @@ bundled `enchant-2` backends through the `EnchantProvider` ABI when
 the broker reports no providers.  Spellcheck's session/personal
 wordlists degrade gracefully in that self-loaded mode (providers do
 not expose them without the broker); plain check/suggest work.
+
+Dictionaries are data, not modules: the build host's hunspell and
+hyphen dictionaries are copied into `hunspell/` and `hyphen/` at the
+bundle root (`hyph_*.dic` kept out of `hunspell/` so enchant never
+advertises a pattern file as a language).  At startup the app appends
+the bundle root to `XDG_DATA_DIRS`, so the enchant provider, the
+grammar checker's path list and the hyphenator all resolve them —
+a machine with no system hunspell still gets spellcheck.  The UI is
+English-only, so there are no locale files to ship.  On fontconfig:
+the Linux bundle deliberately relies on the host's fontconfig (unlike
+the Windows/macOS bundles, which stage a private config) and only
+registers the bundled `fonts/` collection via
+`FcConfigAppFontAddDir` — the host keeps its font rules, aliases and
+caches.
 
 The script's verify step fails if `ldd` on the bundled binary — or on
 any bundled module `.so` — resolves anything outside the bundle other

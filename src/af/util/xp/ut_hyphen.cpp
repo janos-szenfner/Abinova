@@ -31,6 +31,7 @@
 
 #include "ut_debugmsg.h"
 #include "ut_hyphen.h"
+#include "xap_App.h"
 
 namespace {
 
@@ -315,6 +316,19 @@ void s_candidateDirs(std::vector<std::string> & dirs)
 	dirs.push_back("/Library/Spelling");
 #endif
 #endif
+
+	/* PACK07: hyph files staged inside a relocatable bundle land at
+	   <AbiSuiteLibDir>/hyphen (bundle root on Linux/Windows,
+	   Contents/Resources on macOS).  Appended last so a system or
+	   user dictionary still wins. */
+	if (XAP_App * app = XAP_App::getApp())
+	{
+		const std::string libdir = app->getAbiSuiteLibDir();
+		dirs.push_back(libdir + "/hyphen");
+		dirs.push_back(libdir + "/hunspell");
+		dirs.push_back(libdir + "/share/hyphen");
+		dirs.push_back(libdir + "/share/hunspell");
+	}
 }
 
 } // anonymous namespace
