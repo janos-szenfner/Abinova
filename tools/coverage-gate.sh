@@ -7,7 +7,7 @@
 #   tracefile    lcov tracefile to measure (default: coverage.info) —
 #                pass the FILTERED first-party file produced by
 #                tools/coverage.sh, not coverage.raw.info
-#   min-percent  minimum total line coverage required (default: 50,
+#   min-percent  minimum total line coverage required (default: 65,
 #                also settable via COVERAGE_MIN_PCT)
 #
 # Exit status: 0 when coverage >= threshold, 1 when below or the
@@ -22,7 +22,7 @@ LC_ALL=C
 export LC_ALL
 
 info=coverage.info
-min=${COVERAGE_MIN_PCT:-50}
+min=${COVERAGE_MIN_PCT:-65}
 
 if [ $# -ge 1 ]; then info=$1; fi
 if [ $# -ge 2 ]; then min=$2; fi

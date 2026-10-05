@@ -2019,11 +2019,11 @@ UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, c
 	std::string y("");
 	std::string wm("bothSides"); // default wrap mode
 
-	if(!strcmp(wrapMode, "wrapped-to-right"))
+	if(wrapMode && !strcmp(wrapMode, "wrapped-to-right"))
 	{
 		wm = "right";
 	}
-	else if(!strcmp(wrapMode, "wrapped-to-left"))
+	else if(wrapMode && !strcmp(wrapMode, "wrapped-to-left"))
 	{
 		wm = "left";
 	}

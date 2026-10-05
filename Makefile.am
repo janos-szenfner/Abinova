@@ -88,7 +88,7 @@ endif
 
 # Coverage ratchet (COV10): `make check-coverage` runs the whole test
 # suite in the instrumented build, captures the report, and fails if
-# total first-party line coverage regresses below the 50% floor
+# total first-party line coverage regresses below the 65% floor
 # (tools/coverage-gate.sh; COVERAGE_MIN_PCT overrides).  Requires
 # --enable-coverage like `make coverage`.
 .PHONY: check-coverage

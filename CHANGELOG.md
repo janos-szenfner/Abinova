@@ -4729,6 +4729,27 @@ below are on `main` but the release has not been cut yet.
   machine. The wrapper prefers `GDK_BACKEND=wayland` on a live
   compositor and falls back to the default backend; `text/fmt/gtk`
   line coverage rose from 22.2% to 87.3%.
+- **Coverage ratchet raised to a 65% floor (measured 67.7%)** —
+  `tools/coverage-gate.sh` and the `make check-coverage` target now
+  fail when total first-party line coverage regresses below 65%
+  (was 50%). The push over the bar came from a new kitchen-sink
+  corpus: `tools/mkcov11.py` generates `test/wp/cov11/cov11.docx` —
+  exercising the OOXML importer's full element matrix
+  (paragraph/run properties, tabs, fields, hyperlinks, bookmarks,
+  `sdt`, `proofErr`, ruby, smartTag, move/perm ranges, notes,
+  comments, numbering, inline and every anchor-wrap DrawingML mode,
+  WPS and VML textboxes, OLE objects, merged/nested/floating
+  tables, OMML math, two `sectPr` sections) plus its
+  styles/numbering/fontTable/footnotes/endnotes/comments/theme/
+  header/footer parts — `cov11.odt` (automatic styles, fields,
+  notes, frames, lists, sections, index marks) and a placeable
+  `cov11.wmf`, all wired into `tools/rt-check.sh` alongside a new
+  `enc:` leg that drives the `ABINOVA_PASSWORD` encrypted-ODT
+  export path (`ODc_Crypto`) headlessly. The new corpus surfaced
+  and fixed a real crash: exporting a positioned image with no
+  wrap-mode property crashed the DOCX exporter on a NULL `strcmp`.
+  Per-directory gains include `wp/impexp/openxml` 57.5% -> 73.2%
+  and `wp/impexp/odf` 68.5% -> 79.9%.
 - **Atomic save moved behind a portable helper** — the
   write-temp-then-rename sequence in the exporter core
   (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as

@@ -174,12 +174,38 @@ sweep() { # $1=dir (relative to $SRC)
     echo "=== sweep $d done"
 }
 
+# enc leg — export the fixture to password-encrypted ODT.  The
+# ABINOVA_PASSWORD env var drives the plaintext->encrypted package path
+# (ODc_Crypto) in headless mode; validate that manifest.xml gained
+# per-entry encryption-data and that the mimetype member stays plain.
+encleg() { # $1=fixture
+    local name="$1" out="$TMPD/enc.odt"
+    echo "=== $name -> encrypted odt"
+    if ! ABINOVA_PASSWORD=cov11-pass "$BIN" --to=odt --to-name="$out" "$SRC/$name" >/dev/null 2>&1; then
+        echo "  FAIL: export"; FAIL=$((FAIL + 1)); return
+    fi
+    if ! python3 - "$out" <<'PYEOF'
+import sys, zipfile
+zf = zipfile.ZipFile(sys.argv[1])
+assert zf.namelist()[0] == 'mimetype', 'mimetype member not first'
+assert zf.read('mimetype') == b'application/vnd.oasis.opendocument.text'
+m = zf.read('META-INF/manifest.xml')
+assert b'encryption-data' in m, 'manifest lacks encryption-data'
+PYEOF
+    then
+        echo "  FAIL: not encrypted"; FAIL=$((FAIL + 1)); return
+    fi
+    echo "  encrypted export OK"
+    PASS=$((PASS + 1))
+}
+
 run() { # $1=fixture (relative to $SRC); rest = legs ('img:'/'exp:'/'imp:' prefixes)
     local file="$1"; shift
     for spec in "$@"; do
         case "$spec" in
         img:*) leg "$file" "${spec#img:}" img ;;
         exp:*) expleg "$file" "${spec#exp:}" ;;
+        enc:*) encleg "$file" ;;
         *)     leg "$file" "$spec" - ;;
         esac
     done
@@ -275,6 +301,23 @@ run test/wp/table.abw             exp:tex exp:xhtml exp:epub
 run test/wp/Gettysburg.abw        abwn exp:html
 run test/wp/markdown-formatting.md abwn exp:md
 run test/auto/hello.dat.1.abw     abwn
+
+# ---- COV11: broad importer coverage ----------------------------------
+# Kitchen-sink packages from tools/mkcov11.py: one docx covering the
+# OXMLi_ListenerState_Valid element matrix (pPr/rPr variants, tabs,
+# fields, hyperlinks, bookmarks, sdt, proofErr, ruby, smartTag,
+# moveFrom/To + customXml + perm ranges, notes/comments, numbering,
+# DrawingML inline + every anchor wrap mode, wps + VML textboxes,
+# OLE objects, merged/nested/floating tables, oMath, two sectPr) with
+# styles/numbering/settings/fontTable/footnotes/endnotes/comments/
+# theme/header/footer parts; one ODF package with automatic styles,
+# fields, notes, frames, lists, sections, index marks; one placeable
+# WMF.  docx->docx text round-trip hits a pre-existing importer crash
+# on the re-exported package, so foreign formats get export-only legs.
+run test/wp/cov11/cov11.docx        abwn exp:docx exp:odt enc:abwn
+run test/wp/cov11/cov11.odt         abwn exp:odt exp:docx
+impleg test/wp/cov11/cov11.wmf
+
 # Import sweeps: every fixture file -> abwn (rc 0 or clean 255).
 sweep test/wp/suite
 sweep test/wp/bugs
@@ -282,6 +325,7 @@ sweep test/wp/odt
 sweep test/wp/tst04
 sweep test/wp/tst07
 sweep test/wp/cov07
+sweep test/wp/cov11
 sweep fuzz/corpus/abw
 sweep fuzz/corpus/doc
 sweep fuzz/corpus/docx
