@@ -964,6 +964,13 @@ Autosave was rebuilt so that unsaved work survives an unclean exit:
 - **Self-cleaning**: a successful regular Save drops the pending
   recovery copy at the next autosave tick, and a clean window close
   removes it immediately — recovery files only survive real crashes.
+- **Crash-time recovery (Unix)**: on `SIGSEGV`/`SIGBUS`/`SIGILL`/
+  `SIGQUIT`/`SIGFPE` the signal handler `fork()`s and writes the
+  recovery copies in the child process — serialization is not
+  async-signal-safe, so doing it in-process could deadlock when the
+  crash was heap corruption. The parent then dies with the original
+  signal, preserving the real core dump and exit status. The child is
+  bounded by a watchdog alarm, so a wedge cannot block the crash exit.
 - **Autosave settings** (enable/disable and the interval in minutes)
   remain on the Documents tab of Preferences.
 

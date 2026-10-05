@@ -42,6 +42,10 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_SIGACTION
+#include <sys/wait.h>
+#endif
+#include <time.h>
 #include <signal.h>
 #ifdef HAVE_EXECINFO_H
 #include <execinfo.h>
@@ -1323,10 +1327,22 @@ static volatile sig_atomic_t s_signal_count = 0;
   This function actually handles signals.  The most commonly recieved
   one is SIGSEGV, the segfault signal.  We want to clean up, save the
   user's files to backup locations (currently <filename>.saved) and then
-  call abort, so we still get a core dump that we can debug.
+  die with the original signal, so we still get a core dump that we can
+  debug.
+
+  The save runs in a forked child, NOT in this handler: serialization
+  does heap allocation, C++ exception handling and GIO I/O, none of which
+  is async-signal-safe. If the crash happened while a heap lock was held
+  (the case this feature mainly exists for), running the save in-process
+  deadlocks on the malloc lock and no recovery file is ever written.
+  fork() gives the child a private copy of the address space where
+  glibc's malloc atfork handlers have reset the arena locks; non-malloc
+  locks held by now-dead threads can still wedge the save, so the child
+  runs under a hard alarm bound and dies on a second fault — a lost
+  recovery file is better than a wedged process that never dumps core.
   \param sig_num the integer representing which signal we recieved
 */
-void AP_UnixApp::catchSignals(int /*sig_num*/)
+void AP_UnixApp::catchSignals(int sig_num)
 {
     // Reset the signal handler
     // (not that it matters - this is mostly for race conditions)
@@ -1356,11 +1372,81 @@ void AP_UnixApp::catchSignals(int /*sig_num*/)
 	fclose(logfile);
 #endif
 
+#ifdef HAVE_SIGACTION
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		/* Child: a copy of the crashed address space on a single
+		 * (forking) thread. Never recurse into this handler on a
+		 * second fault — die with the default disposition instead. */
+		signal(SIGSEGV, SIG_DFL);
+		signal(SIGBUS,  SIG_DFL);
+		signal(SIGILL,  SIG_DFL);
+		signal(SIGQUIT, SIG_DFL);
+		signal(SIGFPE,  SIG_DFL);
+		signal(SIGALRM, SIG_DFL);
 
+		/* the handler's sa_mask blocked every signal; a blocked
+		 * SIGALRM would silently disarm the bound below */
+		sigset_t empty;
+		sigemptyset(&empty);
+		sigprocmask(SIG_SETMASK, &empty, nullptr);
+
+#ifdef HAVE_ALARM
+		alarm(30); // a wedged child is killed by the default SIGALRM
+#endif
+		saveRecoveryFiles();
+		_exit(0); // _exit, not exit — no atexit handlers in signal context
+	}
+
+	if (pid < 0)
+	{
+		static const char nofork[] =
+			"Abinova: fork() failed, crash recovery files not written\n";
+		ssize_t w = write(STDERR_FILENO, nofork, sizeof(nofork) - 1);
+		(void)w;
+	}
+	else
+	{
+		/* Wait briefly so the .saved files are on disk before the
+		 * process exits; the child is bounded by its own alarm if it
+		 * wedges, so a capped poll is enough here. waitpid+nanosleep
+		 * are both async-signal-safe. */
+		struct timespec ts = {0, 50 * 1000 * 1000}; // 50ms
+		for (int i = 0; i < 200; i++) // <= ~10s
+		{
+			/* == pid: child reaped. < 0: ECHILD (SIGCHLD auto-reap)
+			 * or EINTR — stop waiting either way */
+			if (waitpid(pid, nullptr, WNOHANG) != 0)
+				break;
+			nanosleep(&ts, nullptr);
+		}
+	}
+
+	/* Die with the original signal rather than abort() so the core
+	 * dump and the shell's wait status report the real fault.
+	 * SA_RESETHAND already restored SIG_DFL where supported; this
+	 * signal() covers platforms without it. The signal stays in the
+	 * handler's blocked mask on some kernels despite SA_NODEFER, so
+	 * unblock it explicitly or the raise below only pends it. */
+	signal(sig_num, SIG_DFL);
+	{
+		sigset_t one;
+		sigemptyset(&one);
+		sigaddset(&one, sig_num);
+		sigprocmask(SIG_UNBLOCK, &one, nullptr);
+	}
+	raise(sig_num);
+	abort(); // unreachable backstop
+#else
+	/* No fork()/sigaction (MinGW): keep the legacy in-process attempt.
+	 * It deadlocks if the crash held a heap lock, but there is no
+	 * better option in this environment. */
     saveRecoveryFiles();
 
     fflush(stdout);
 
     // Abort and dump core
     abort();
+#endif
 }

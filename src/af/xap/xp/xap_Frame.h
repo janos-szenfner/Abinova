@@ -220,6 +220,9 @@ public:
 	XAP_Dialog_MessageBox::tAnswer		showMessageBox(XAP_Dialog_MessageBox * pDialog);
 
 	UT_Error	    backup(const char* stExt = nullptr, UT_sint32 iEFT = -1);
+	// clears the re-entrancy guard — crash-recovery path only: a crash
+	// inside backup() leaves it set and would silently skip the frame
+	void clearBackupInProgress() { m_bBackupInProgress = false; }
 	// returns the backup path in the autosave directory (local fs path)
 	std::string       makeBackupName(const char * szExt = nullptr);
 	// one autosave cycle: save if dirty, drop the backup if the doc is clean

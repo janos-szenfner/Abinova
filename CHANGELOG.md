@@ -2655,6 +2655,18 @@ below are on `main` but the release has not been cut yet.
   and then exported anyway; the tick now defers to the next period.
 - **Backup filetype pinned to `.abwn`** — the recovery copy no longer
   relies on a hardcoded integer filetype index.
+- **Crash recovery now survives heap-corruption crashes** — the Unix
+  signal handler used to serialize recovery files in the crashing
+  process, which deadlocked on the malloc lock exactly when the crash
+  was heap corruption. On `SIGSEGV`/`SIGBUS`/`SIGILL`/`SIGQUIT`/`SIGFPE`
+  the handler now `fork()`s and serializes `.saved` files in the child
+  (bounded by a watchdog alarm); the parent waits briefly, then dies
+  with the original signal so core dumps and the reported exit status
+  still reflect the real fault. A recovery file is now written even
+  when the fault happens inside `malloc` itself. A crash mid-autosave
+  no longer suppresses the recovery write, and a document caught
+  mid-edit keeps its last consistent backup instead of writing a
+  corrupt snapshot.
 - **Static-analysis sweep (GCC `-fanalyzer`, full tree)** — the whole
   codebase was rebuilt under the GCC static analyzer and every
   high-signal finding triaged and fixed:

@@ -230,6 +230,14 @@ void AP_App::saveRecoveryFiles()
 			continue;
 		}
 		try {
+			AD_Document *pDoc = curFrame->getCurrentDoc();
+			if (!pDoc || pDoc->isPieceTableChanging()) {
+				/* crashed mid-mutation: a snapshot export could be
+				 * corrupt — keep the last consistent autosave instead
+				 * of overwriting it */
+				continue;
+			}
+			curFrame->clearBackupInProgress();
 			if (nullptr == curFrame->getFilename()) {
 				curFrame->backup(".abw.saved",abiType);
 			}
