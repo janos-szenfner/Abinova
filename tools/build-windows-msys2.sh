@@ -25,10 +25,13 @@
 #   folder (default dist/abinova-<ver>-windows-<arch>):
 #
 #     bin/abinova.exe                entry point (console subsystem —
-#     bin/abinova.exe.manifest       keeps --to=pdf working in cmd;
-#                                    declares Win10 compat +
+#     bin/abinova.exe.manifest       declares Win10 compat,
 #                                    longPathAware for >MAX_PATH
-#                                    document paths)
+#                                    document paths, PerMonitorV2
+#                                    DPI awareness (no blurry
+#                                    bitmap scaling on >100%
+#                                    displays) and a UTF-8
+#                                    activeCodePage)
 #     bin/*.dll                      every non-system DLL in the
 #                                    import closure of the exe,
 #                                    libabinova, the pixbuf loaders
@@ -79,6 +82,19 @@
 #   targets too, so the same stage can collect an MXE-produced tree:
 #   stage the install yourself (or point --stage at it) and pass the
 #   sysroot bin dirs via --dll-dirs.
+#
+# Input methods (CJK): GTK >=4.x ships a real Win32 IME module —
+# gtkimcontextime.c, built INTO libgtk (g_type_ensure, not a
+# loadable DLL, so the bundle needs no immodules file for it).
+# The win32 backend reports gtk-im-module=ime while the active
+# keyboard layout is an IME (tracked via its TSF language-profile
+# notification sink), and the app's GtkIMMulticontext on the frame
+# toplevel resolves to it automatically — IME composition and the
+# candidate window work, committed text lands in the document.
+# Limitations of the IMM32 path: the app disables in-document
+# preedit (gtk_im_context_set_use_preedit FALSE), so the preedit UX
+# is the IME's own composition window; and TSF-only text services
+# / the touch OSK are outside IMM32's scope.
 #
 # Tested against: MSYS2 UCRT64 (x86_64), GTK 4.x.  A real Windows
 # run leg is a PACK08 runner item.
@@ -553,7 +569,14 @@ echo "build-windows: $(find "$bbin" -maxdepth 1 -name '*.dll' | wc -l | tr -d ' 
 # into abinova.exe, so Windows honours this <exe>.manifest file.
 # supportedOS = Windows 10/11 compat GUID; longPathAware lifts the
 # 260-char path cap for document locations (matches the Win10 floor
-# _WIN32_WINNT=0x0A00 that PORT09 pinned).
+# _WIN32_WINNT=0x0A00 that PORT09 pinned).  dpiAwareness=PerMonitorV2
+# (1703+) stops Windows bitmap-scaling the UI on >100% displays —
+# GTK tracks monitor scale itself once the process claims awareness;
+# dpiAware=true/pm is the legacy fallback for pre-1703 builds (system
+# DPI aware, per-monitor on 8.1).  activeCodePage=UTF-8 (1903+)
+# makes the ANSI *A APIs UTF-8, insuring any narrow-API stragglers
+# the PORT09 gstdio sweep missed; unknown elements are skipped on
+# older builds, so none of this breaks earlier Windows.
 cat > "$bbin/abinova.exe.manifest" <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
@@ -568,7 +591,10 @@ cat > "$bbin/abinova.exe.manifest" <<EOF
 	</compatibility>
 	<application xmlns="urn:schemas-microsoft-com:asm.v3">
 		<windowsSettings>
+			<dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+			<dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
 			<longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
+			<activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
 		</windowsSettings>
 	</application>
 </assembly>

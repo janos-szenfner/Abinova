@@ -2050,7 +2050,11 @@ build) collects a self-contained folder
 `dist/abinova-<ver>-windows-<arch>/`: `bin/abinova.exe` beside its
 whole non-system DLL closure (resolved by an `objdump -p` fixpoint
 walk), a side-by-side `abinova.exe.manifest` declaring Windows 10
-compat and `longPathAware`, the datadir contents at the root, compiled
+compat, `longPathAware`, PerMonitorV2 DPI awareness (with a
+`dpiAware` `true/pm` fallback for pre-1703 builds — no blurry
+bitmap scaling on high-DPI displays) and a UTF-8 `activeCodePage`
+(Windows 10 1903+, so any ANSI API a straggler calls still treats
+document paths as UTF-8), the datadir contents at the root, compiled
 glib schemas, gdk-pixbuf loaders+cache, the enchant backends, the GIO
 modules (incl. the libgiognutls TLS backend), a CA-cert bundle for the
 update check, GTK4 module dirs and the GStreamer plugins — plus
@@ -2061,6 +2065,16 @@ Windows tokens (the app exports `FONTCONFIG_FILE` at the bundled
 process start also removes the current directory from the DLL search
 path (`SetDllDirectory`/`SetDefaultDllDirectories`) so a stray DLL
 next to a document cannot shadow a bundled dependency.
+
+CJK input methods work on Windows: GTK ships a built-in IMM32 `ime`
+module (compiled into libgtk — the bundle needs nothing extra for
+it) that the app's `GtkIMMulticontext` resolves to automatically
+whenever the active keyboard layout is an IME, so composition and
+the candidate window work and committed text lands in the document.
+Two caveats of the IMM32 path: the app disables in-document preedit
+(`use_preedit` off), so composing text lives in the IME's own
+composition window until commit; and TSF-only text services plus
+the touch OSK are outside IMM32's scope.
 
 For CI without a Windows box, MXE (mxe.cc) is a documented
 alternative — the collection stage is POSIX sh + objdump and also runs

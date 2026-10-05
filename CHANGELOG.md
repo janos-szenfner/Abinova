@@ -4332,6 +4332,18 @@ below are on `main` but the release has not been cut yet.
   no longer shadow a bundled dependency.  The collection logic is
   plain POSIX sh + objdump and equally collects an MXE
   cross-compiled tree via `--stage DIR --dll-dirs`.
+- **Windows manifest: high-DPI + UTF-8 codepage** — the generated
+  `abinova.exe.manifest` now also declares `dpiAwareness` =
+  `PerMonitorV2` (with a `dpiAware` `true/pm` fallback for pre-1703
+  builds), so Windows no longer bitmap-scales the app into a blurry
+  window on >100% display scaling, and `activeCodePage` = UTF-8
+  (Windows 10 1903+), so any narrow `*A` API a straggler calls still
+  sees document paths as UTF-8.  CJK input-method support is
+  confirmed: GTK 4.14 ships a built-in IMM32 `ime` module (compiled
+  into libgtk, so bundles need no extra file) that the app's
+  `GtkIMMulticontext` picks up automatically when the active
+  keyboard layout is an IME; composition/candidate UI is the IME's
+  own window (in-document preedit is off by design).
 - **Runtime-module bundling** — all three bundle scripts now ship
   the parts `ldd`/`otool`/`objdump` cannot see: enchant-2 spellcheck
   backends, GIO modules (incl. the libgiognutls TLS backend) with a

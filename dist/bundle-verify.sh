@@ -408,8 +408,14 @@ leg_windows() {
 	fi
 	exe="$bundle/bin/abinova.exe"
 	[ -x "$exe" ] || { leg_fail windows "no $exe"; return; }
-	[ -f "$bundle/bin/abinova.exe.manifest" ] ||
+	if [ -f "$bundle/bin/abinova.exe.manifest" ]; then
+		grep -q 'PerMonitorV2' "$bundle/bin/abinova.exe.manifest" ||
+			echo "    warn: manifest lacks dpiAwareness=PerMonitorV2"
+		grep -q 'activeCodePage' "$bundle/bin/abinova.exe.manifest" ||
+			echo "    warn: manifest lacks activeCodePage"
+	else
 		echo "    warn: no exe manifest sidecar"
+	fi
 	bad=$(objdump -p "$exe" | awk '/DLL Name/{print $3}' | while read -r d; do
 		case $d in
 		KERNEL32.dll|USER32.dll|GDI32.dll|ADVAPI32.dll|SHELL32.dll|\
