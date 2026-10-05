@@ -1884,6 +1884,14 @@ below are on `main` but the release has not been cut yet.
   unlabelled controls on map, as do popovers when they attach their
   children. Screen readers and other AT-SPI clients can now announce
   the UI.
+- **RDF Editor dialog fixes** — the "Edit document RDF" menubar no
+  longer shows literal `&File`/`&Triple` labels: the string table's
+  `&` mnemonic markers are converted to GMenu's `_` form, so the
+  menus read File/Triple with working mnemonics. The dynamically
+  added Help button now sits in the same action row as Update and
+  Close instead of stacking alone in a second row below; the helper
+  reparents it into the dialog's own declared action row at the
+  conventional secondary-action slot.
 
 ### Tables (Word-style creation and context menus)
 

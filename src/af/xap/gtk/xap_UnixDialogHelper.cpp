@@ -358,6 +358,31 @@ static void help_button_cb (GObject * /*button*/, XAP_Dialog * pDlg)
     }
 }
 
+/* Depth-first search for the last builder-declared action widget of
+ * \me outside \skip (the dialog's internal action area).  Action
+ * widgets declared in .ui files live inside the content child - GTK4's
+ * builder has no way to target the internal action area - so they are
+ * found by response id, not by position.  The last hit sits in the
+ * bottom-most declared row, which is the action row. */
+static GtkWidget * s_find_declared_action_widget (GtkDialog * me,
+                                                  GtkWidget * w,
+                                                  GtkWidget * skip)
+{
+    GtkWidget * last = nullptr;
+    if (w == skip)
+        return nullptr;
+    if (gtk_dialog_get_response_for_widget (me, w) != GTK_RESPONSE_NONE)
+        last = w;
+    for (GtkWidget * c = gtk_widget_get_first_child (w); c;
+         c = gtk_widget_get_next_sibling (c))
+    {
+        GtkWidget * hit = s_find_declared_action_widget (me, c, skip);
+        if (hit)
+            last = hit;
+    }
+    return last;
+}
+
 static void sAddHelpButton (GtkDialog * me, XAP_Dialog * pDlg)
 {
   // prevent help button from being added twice
@@ -378,6 +403,27 @@ static void sAddHelpButton (GtkDialog * me, XAP_Dialog * pDlg)
         g_signal_connect (G_OBJECT (button), "clicked",
                           G_CALLBACK(help_button_cb), pDlg);
         g_object_set_data (G_OBJECT (me), "has-help-button", GINT_TO_POINTER (1));
+
+        /* gtk_dialog_add_button() always lands in the internal action
+         * area, which abiFixupBuilderDialog re-attached EMPTY below the
+         * content; a dialog that declares its own action widgets in .ui
+         * (they live inside the content child) would otherwise show
+         * e.g. Close in one row and Help alone in a second row below.
+         * Move the button into the declared row instead, at its head -
+         * the conventional secondary-action slot. */
+        GtkWidget * action_area = gtk_widget_get_parent (button);
+        GtkWidget * anchor = s_find_declared_action_widget (
+            me, gtk_window_get_child (GTK_WINDOW (me)), action_area);
+        GtkWidget * row = anchor ? gtk_widget_get_parent (anchor) : nullptr;
+        if (GTK_IS_BOX (row) && GTK_IS_BOX (action_area) && row != action_area)
+        {
+            /* the action area owns the only ref; removing the button
+             * would destroy it, so keep one alive across the reparent */
+            g_object_ref (button);
+            gtk_box_remove (GTK_BOX (action_area), button);
+            gtk_box_insert_child_after (GTK_BOX (row), button, nullptr);
+            g_object_unref (button);
+        }
     }
 }
 

@@ -772,6 +772,10 @@ AP_UnixDialog_RDFEditor::_constructWindow (XAP_Frame * /*pFrame*/)
                 GMenuItem *it = g_menu_item_new_from_model(G_MENU_MODEL(menu), pos);
                 if (!it)
                     return;
+                /* GMenu labels show literal text; convert the string
+                 * table's '&' mnemonic marker to the '_' form the menu
+                 * items interpret, like _ev_convert for the main menus */
+                convertMnemonics(s);
                 g_menu_item_set_label(it, s.c_str());
                 g_menu_remove(menu, pos);
                 g_menu_insert_item(menu, pos, it);
