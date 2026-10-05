@@ -132,6 +132,8 @@ src/wp/test/Abinova-test
 # self-contained bundle output + staging (dist/linux-bundle.sh)
 /dist/abinova-*-linux-*/
 /dist/abinova-*-linux-*.stage*
+# bundle-verify.sh rootfs cache + per-leg work dirs
+/dist/.bundle-verify-cache/
 # macOS build trees, staged installs + .app output (tools/build-macos.sh)
 /build-macos/
 /build-macos-*/

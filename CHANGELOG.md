@@ -4175,6 +4175,18 @@ below are on `main` but the release has not been cut yet.
   (Shapes, 3D Models and Icons galleries) and the `fonts/` set are
   confirmed inside every bundle — the UI is English-only, so no
   locale files are needed.
+- **Bundle verification matrix** — `dist/bundle-verify.sh` smoke-tests
+  the packed output per OS.  Its Linux legs run the bundle inside real
+  clean distro containers (Debian stable-slim, Ubuntu 24.04, openSUSE
+  Leap 15.6) and assert that the binary starts, a `.docx` exports to a
+  valid PDF, and `ldd` resolves nothing outside the bundle except the
+  libc family.  The legs use docker/podman when present and otherwise
+  pull the same Docker Hub image rootfs through the anonymous OCI
+  registry API and run it under `bwrap` — no daemon needed, and the
+  host's `/usr` cannot mask a missing bundled library.  The `macos`,
+  `windows` and `freebsd` legs print their runner steps on foreign
+  hosts and run real `otool`/`objdump`/`ldd` gates on matching ones;
+  the macOS leg requires an arm64 machine (GitHub `macos-14` or later).
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

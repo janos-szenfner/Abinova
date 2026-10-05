@@ -624,10 +624,13 @@ if [ $verify -eq 1 ]; then
 				/opt/abinova/bin/abinova --version' || {
 			echo "linux-bundle: container self-test FAILED" >&2; exit 1; }
 	else
-		echo "linux-bundle: no docker/podman — clean-container check"
-		echo "  skipped (needs:tool:docker). On a docker host run:"
-		echo "  docker run --rm -v '$outdir':/opt/abinova:ro \\"
-		echo "    debian:stable-slim /opt/abinova/bin/abinova --version"
+		echo "linux-bundle: no docker/podman — in-build clean-container"
+		echo "  check skipped. The full matrix in dist/bundle-verify.sh"
+		echo "  runs without docker (OCI rootfs pull + bwrap):"
+		echo "    dist/bundle-verify.sh --bundle '$outdir'"
+		echo "  or on a docker host:"
+		echo "    docker run --rm -v '$outdir':/opt/abinova:ro \\"
+		echo "      debian:stable-slim /opt/abinova/bin/abinova --version"
 	fi
 	rm -rf "$tmp"
 fi

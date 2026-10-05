@@ -2079,6 +2079,28 @@ The script's verify step fails if `ldd` on the bundled binary — or on
 any bundled module `.so` — resolves anything outside the bundle other
 than the declared system set (libc/libm/ld.so).
 
+`dist/bundle-verify.sh` is the per-OS smoke matrix for packed output.
+Its Linux legs run the bundle inside real clean distro containers —
+Debian stable-slim, Ubuntu 24.04 and openSUSE Leap 15.6 — asserting
+that the binary starts, converts a test `.docx` to a valid PDF, and
+that `ldd` resolves nothing outside the bundle except the libc family.
+The legs use docker/podman when installed; otherwise the script
+anonymously pulls the same Docker Hub image's rootfs through the OCI
+registry API (curl+tar only, no daemon) and runs it under `bwrap`, so
+the host's `/usr` can never mask a missing bundled library:
+
+```bash
+dist/bundle-verify.sh                 # debian + ubuntu + suse legs
+dist/bundle-verify.sh --os all        # + macos/windows/freebsd steps
+```
+
+On a matching platform the `macos`/`windows`/`freebsd` legs run real
+checks (an `otool -L` gate on the `.app`, an `objdump` DLL gate on the
+Windows folder, a built-binary check on FreeBSD); elsewhere they print
+their runner steps — note the macOS leg needs an **arm64** machine
+(GitHub `macos-14` or later), because an x86_64 run cannot catch the
+unsigned-char/alignment issues the port hardening targeted.
+
 ### Building on FreeBSD
 
 ports/pkg provides the whole dependency set, so
