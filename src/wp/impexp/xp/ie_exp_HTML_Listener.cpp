@@ -324,11 +324,22 @@ bool IE_Exp_HTML_Listener::populateStrux(pf_Frag_Strux* sdh,
 
     if (m_bFirstWrite)
         _beginOfDocument(api);
+
+    /* header/footer stories live at document scope and are exported
+     * separately via a document-range subset walk; in the main body
+     * walk their strux and everything that follows them (their
+     * content) is skipped — including blocks and tables, not just
+     * spans */
+    if (pcrx->getStruxType() == PTX_SectionHdrFtr)
+    {
+        m_bSkipSection = true;
+        return true;
+    }
+    if (m_bSkipSection)
+        return true;
+
     switch (pcrx->getStruxType())
     {
-    case PTX_SectionHdrFtr:
-        m_bSkipSection = true;
-        break;
     case PTX_Section:
     {
         m_bSkipSection = false;
@@ -702,6 +713,23 @@ bool IE_Exp_HTML_Listener::_beginOfDocument(const PT_AttrPropIndex& api)
     _openBody();
     
     return true;
+}
+
+void IE_Exp_HTML_Listener::ensureDocumentStarted(const PT_AttrPropIndex& api)
+{
+    if (m_bFirstWrite)
+        _beginOfDocument(api);
+}
+
+void IE_Exp_HTML_Listener::closeOpenParagraphState()
+{
+    _closeSpan();
+    _closeField();
+    _closeBookmark();
+    _closeHyperlink();
+    _closeBlock();
+    _closeHeading();
+    _closeLists();
 }
 
 bool IE_Exp_HTML_Listener::endOfDocument()
@@ -3071,7 +3099,9 @@ void IE_Exp_HTML_Listener::_makeStylesheet(PT_AttrPropIndex api)
 	for (unsigned short int propIdx = 0; propIdx < 8; propIdx += 2) {
 		szValue = PP_evalProperty(marginProps[propIdx], nullptr, nullptr, pAP,
 								 m_pDocument, true);
-		bodyStyle += UT_UTF8String_sprintf("%s : %s;\n", 
+		if (!szValue)
+			szValue = "";
+		bodyStyle += UT_UTF8String_sprintf("%s : %s;\n",
 										 marginProps[propIdx + 1], szValue);
 	}
 
@@ -3080,7 +3110,7 @@ void IE_Exp_HTML_Listener::_makeStylesheet(PT_AttrPropIndex api)
 	PD_Style * pStyle = nullptr;
 	m_pDocument->getStyle("Normal", &pStyle);
 	UT_UTF8String value;
-	for (UT_uint32 i = 0; i < pStyle->getPropertyCount(); i++) {
+	for (UT_uint32 i = 0; pStyle && i < pStyle->getPropertyCount(); i++) {
 		pStyle->getNthProperty(i, szName, szValue);
 
 		if ((szName == nullptr) || (szValue == nullptr))

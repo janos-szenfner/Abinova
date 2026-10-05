@@ -207,6 +207,22 @@ public:
      * none, or when images are embedded as data: URIs) */
     const UT_UTF8String & getFirstImageURI() const
 		{ return m_firstImageURI; }
+    /* header/footer content is exported by re-walking this listener
+     * over a document-range subset outside the main body walk:
+     * ensureDocumentStarted() forces the document preamble out first
+     * (so the header/footer div lands inside <body>), and
+     * set_SkipSection() resets the story-skip state that the body
+     * walk leaves set behind it */
+    void ensureDocumentStarted(const PT_AttrPropIndex& api);
+    void set_SkipSection(bool bSkip = true)
+		{ m_bSkipSection = bSkip; }
+    /* close open paragraph-level markup (span, field, bookmark,
+     * hyperlink, block, heading, lists) without closing the
+     * section — the tag stack is strictly nested, so this must run
+     * before/after a header/footer subset walk or the walk's first
+     * block would pop the freshly opened header/footer div instead
+     * of the stale <p> left behind by the body walk */
+    void closeOpenParagraphState();
 private:
     const gchar* _getObjectKey(const PT_AttrPropIndex& api,
             const gchar* key);

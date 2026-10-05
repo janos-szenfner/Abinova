@@ -34,41 +34,51 @@
 IE_Exp_HTML_HeaderFooterListener::IE_Exp_HTML_HeaderFooterListener(
     PD_Document * pDocument, IE_Exp_HTML_DocumentWriter* pDocumentWriter,
     IE_Exp_HTML_Listener *pListener) :
-m_pHdrDocRange(nullptr),
-m_pFtrDocRange(nullptr),
 m_pDocument(pDocument),
 m_pDocumentWriter(pDocumentWriter),
 m_pListener(pListener),
-m_bHaveHeader(false),
-m_bHaveFooter(false)
+m_apiFirstSection(0),
+m_bHaveSectionApi(false)
 {
 }
 
 IE_Exp_HTML_HeaderFooterListener::~IE_Exp_HTML_HeaderFooterListener()
 {
+    /* free any ranges that were collected but never emitted (e.g. an
+     * aborted export) */
+    for (PD_DocumentRange * pDocRange : m_vecHdrDocRanges)
+        delete pDocRange;
+    for (PD_DocumentRange * pDocRange : m_vecFtrDocRanges)
+        delete pDocRange;
 }
 
 void IE_Exp_HTML_HeaderFooterListener::doHdrFtr(bool bHeader)
 {
-    if (bHeader && m_bHaveHeader)
+    std::vector<PD_DocumentRange *> & vecRanges =
+            bHeader ? m_vecHdrDocRanges : m_vecFtrDocRanges;
+
+    if (!vecRanges.empty())
     {
-        m_pDocumentWriter->openSection("header");
-        m_pDocument->tellListenerSubset(m_pListener, m_pHdrDocRange);
+        /* emit the document preamble first so that the header/footer
+         * div ends up inside <body> rather than wrapping the whole
+         * document, and clear the shared listener's story-skip state
+         * in case a previous walk left it set */
+        m_pListener->ensureDocumentStarted(m_apiFirstSection);
+        m_pListener->set_SkipSection(false);
+
+        /* a previous walk may have left a paragraph open; close it so
+         * the header/footer div nests correctly */
+        m_pListener->closeOpenParagraphState();
+        m_pDocumentWriter->openSection(bHeader ? "header" : "footer");
+        for (PD_DocumentRange * pDocRange : vecRanges)
+            m_pDocument->tellListenerSubset(m_pListener, pDocRange);
+        m_pListener->closeOpenParagraphState();
         m_pDocumentWriter->closeSection();
     }
 
-    if (!bHeader && m_bHaveFooter)
-    {
-        m_pDocumentWriter->openSection("footer");
-        ;
-        m_pDocument->tellListenerSubset(m_pListener, m_pFtrDocRange);
-        m_pDocumentWriter->closeSection();
-    }
-
-    if (bHeader)
-        DELETEP(m_pHdrDocRange);
-    else
-        DELETEP(m_pFtrDocRange);
+    for (PD_DocumentRange * pDocRange : vecRanges)
+        delete pDocRange;
+    vecRanges.clear();
 }
 
 bool IE_Exp_HTML_HeaderFooterListener::populateStrux(pf_Frag_Strux* sdh,
@@ -82,6 +92,17 @@ bool IE_Exp_HTML_HeaderFooterListener::populateStrux(pf_Frag_Strux* sdh,
     PT_AttrPropIndex api = pcr->getIndexAP();
     switch (pcrx->getStruxType())
     {
+    case PTX_Section:
+        /* remember the first body section's attr-prop index so the
+         * document preamble (which carries the page styles) can be
+         * emitted before the header content */
+        if (!m_bHaveSectionApi)
+        {
+            m_apiFirstSection = api;
+            m_bHaveSectionApi = true;
+        }
+        return true;
+
     case PTX_SectionHdrFtr:
     {
         const PP_AttrProp * pAP = nullptr;
@@ -92,30 +113,44 @@ bool IE_Exp_HTML_HeaderFooterListener::populateStrux(pf_Frag_Strux* sdh,
 
         const gchar * szType = nullptr;
         pAP->getAttribute("type", szType);
-        /* // */
+        /* hdrftr type values are "header"/"footer" plus the
+         * "-even"/"-first"/"-last" variants; anything else (or a
+         * missing attribute on malformed input) is ignored */
+        const bool bIsHeader = szType && !strncmp(szType, "header", 6);
+        const bool bIsFooter = szType && !strncmp(szType, "footer", 6);
+        if (!bIsHeader && !bIsFooter)
+            return true;
 
-        PT_DocPosition m_iHdrFtrStartPos = m_pDocument->getStruxPosition(sdh) + 1;
-        PT_DocPosition m_iHdrFtrStopPos = 0;
+        PT_DocPosition iHdrFtrStartPos = m_pDocument->getStruxPosition(sdh) + 1;
+        /* the story ends at the next hdrftr strux, the next section,
+         * or the end of the document, whichever comes first; hdrftr
+         * stories live at document scope at the end of the piece
+         * table, so bounding by PTX_Section alone would run past any
+         * subsequent header/footer stories */
+        PT_DocPosition iHdrFtrStopPos = 0;
         const pf_Frag_Strux* nextSDH = nullptr;
-        bool bHaveNextSection = m_pDocument->getNextStruxOfType(sdh, PTX_Section, &nextSDH);
-        if (bHaveNextSection)
+        if (m_pDocument->getNextStruxOfType(sdh, PTX_SectionHdrFtr, &nextSDH))
         {
-            m_iHdrFtrStopPos = m_pDocument->getStruxPosition(nextSDH);
+            iHdrFtrStopPos = m_pDocument->getStruxPosition(nextSDH);
+        }
+        if (m_pDocument->getNextStruxOfType(sdh, PTX_Section, &nextSDH))
+        {
+            PT_DocPosition iSecPos = m_pDocument->getStruxPosition(nextSDH);
+            if (!iHdrFtrStopPos || iSecPos < iHdrFtrStopPos)
+                iHdrFtrStopPos = iSecPos;
+        }
+        if (!iHdrFtrStopPos)
+        {
+            m_pDocument->getBounds(true, iHdrFtrStopPos);
+        }
+        PD_DocumentRange * pDocRange = new PD_DocumentRange(m_pDocument, iHdrFtrStartPos, iHdrFtrStopPos);
+        if (bIsHeader)
+        {
+            m_vecHdrDocRanges.push_back(pDocRange);
         }
         else
         {
-            m_pDocument->getBounds(true, m_iHdrFtrStopPos);
-        }
-        PD_DocumentRange * pDocRange = new PD_DocumentRange(m_pDocument, m_iHdrFtrStartPos, m_iHdrFtrStopPos);
-        if (!strcmp(szType, "header"))
-        {
-            m_pHdrDocRange = pDocRange;
-            m_bHaveHeader = true;
-        }
-        else
-        {
-            m_pFtrDocRange = pDocRange;
-            m_bHaveFooter = true;
+            m_vecFtrDocRanges.push_back(pDocRange);
         }
         return true;
     }

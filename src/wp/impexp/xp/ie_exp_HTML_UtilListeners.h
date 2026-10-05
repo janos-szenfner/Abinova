@@ -110,14 +110,17 @@ public:
     virtual bool signal(UT_uint32 iSignal) override;
     void doHdrFtr(bool bHeader);
 private:
-    PD_DocumentRange * m_pHdrDocRange;
-    PD_DocumentRange * m_pFtrDocRange;
+    /* A document may carry several header stories (header,
+     * header-even, header-first, header-last) and likewise for
+     * footers; all ranges of a class are emitted into that class's
+     * div. */
+    std::vector<PD_DocumentRange *> m_vecHdrDocRanges;
+    std::vector<PD_DocumentRange *> m_vecFtrDocRanges;
     PD_Document * m_pDocument;
     IE_Exp_HTML_DocumentWriter *m_pDocumentWriter;
     IE_Exp_HTML_Listener *m_pListener;
-
-    bool m_bHaveHeader;
-    bool m_bHaveFooter;
+    PT_AttrPropIndex m_apiFirstSection;
+    bool m_bHaveSectionApi;
 };
 
 #endif	/* IE_EXP_HTML_UTILLISTENERS_H */

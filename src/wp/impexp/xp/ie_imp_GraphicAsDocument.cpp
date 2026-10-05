@@ -52,26 +52,39 @@ UT_Error IE_Imp_GraphicAsDocument::_loadFile(GsfInput * input)
 	if (!getDoc()->appendStrux(PTX_Section, PP_NOPROPS) ||
 	    !getDoc()->appendStrux(PTX_Block, PP_NOPROPS))
      		return UT_IE_NOMEMORY;
-   
+
+	/* the factory is expected to install a graphic importer before
+	 * loading, but don't crash if this importer is ever driven
+	 * without one */
+	if (!m_pGraphicImporter)
+		return UT_IE_BOGUSDOCUMENT;
+
    	FG_ConstGraphicPtr pFG;
    	error = m_pGraphicImporter->importGraphic(input, pFG);
 
-   	if (error != UT_OK) {
-          return error;
-        }
-   
+   	if (error != UT_OK)
+     		return error;
+
+	if (!pFG)
+		return UT_IE_NOMEMORY;
+
    	const UT_ConstByteBufPtr & buf = pFG->getBuffer();
+	if (!buf)
+		return UT_IE_NOMEMORY;
+
+	/* create the data item before the object that references it, so
+	 * a failed createDataItem() cannot leave an image object pointing
+	 * at a nonexistent "image_0" item */
+   	if (!getDoc()->createDataItem("image_0", false,
+					buf, pFG->getMimeType(), nullptr)) {
+	   return UT_IE_NOMEMORY;
+	}
 
    	const PP_PropertyVector propsArray = {
           "dataid", "image_0"
         };
-   
-   	if (!getDoc()->appendObject(PTO_Image, propsArray)) {
-	   return UT_IE_NOMEMORY;
-	}
 
-   	if (!getDoc()->createDataItem("image_0", false,
-					buf, pFG->getMimeType(), nullptr)) {
+   	if (!getDoc()->appendObject(PTO_Image, propsArray)) {
 	   return UT_IE_NOMEMORY;
 	}
 

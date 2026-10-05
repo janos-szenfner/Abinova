@@ -3803,6 +3803,19 @@ below are on `main` but the release has not been cut yet.
   and the WordCount, LaTeX, Merge Cells and Split Cells dialogs no
   longer crash when invoked while no document frame or table block
   is available.
+- **HTML export headers and footers rewritten** — documents with
+  headers/footers previously exported malformed HTML in which the
+  header `<div>` wrapped the whole document (it was opened before the
+  `<html>`/`<body>` preamble) and the footer text was silently
+  dropped because the body walk's internal "skip this story" flag was
+  still set when the footer was re-walked. Header/footer stories are
+  now emitted as properly nested `<div>`s inside `<body>` with their
+  content intact; stray empty paragraphs leaked from skipped stories
+  are gone; `header-even`/`-first`/`-last` story types are recognised
+  as headers instead of being misfiled as footers; multiple stories
+  of the same class accumulate instead of leaking the overwritten
+  ranges; and a header/footer record with no `type` attribute no
+  longer crashes the exporter.
 
 ### GTK4 port (core migration)
 

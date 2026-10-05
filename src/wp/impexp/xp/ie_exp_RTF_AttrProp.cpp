@@ -29,25 +29,40 @@ std::string eraseAP( const std::string& retvalue, const std::string& name )
 {
     std::string ret = retvalue;
     UT_DEBUGMSG(("eraseAP() TOP:%s\n", ret.c_str() ));
-    
-    std::string::size_type start = ret.find( name );
-    if( start == std::string::npos )
-    {
-        UT_DEBUGMSG(("eraseAP() NOT FOUND:%s\n", ret.c_str() ));
-        return ret;
-    }
-    
 
-    std::string::iterator first = ret.begin() + start;
-    std::string::iterator last = first;
-    std::string::iterator end  = ret.end();
-
-    while( last != end && *last != ';' && *last != '}' )
+    /* the revision attribute carries "name:value" pairs inside '{'
+     * '}' groups; only strip the marker where it appears in pair-name
+     * position (at the start or right after '{' or ';'), so a value
+     * that merely contains the marker text is not corrupted, and keep
+     * stripping until every occurrence is gone */
+    std::string::size_type start = 0;
+    while( ( start = ret.find( name, start ) ) != std::string::npos )
     {
-        ++last;
+        std::string::size_type prev = start;
+        while( prev > 0 && ret[prev - 1] == ' ' )
+        {
+            --prev;
+        }
+        if( prev != 0 && ret[prev - 1] != '{' && ret[prev - 1] != ';' )
+        {
+            ++start;
+            continue;
+        }
+
+        std::string::size_type last = start + name.size();
+        while( last < ret.size() && ret[last] != ';' && ret[last] != '}' )
+        {
+            ++last;
+        }
+        /* consume the ';' pair terminator too so a doubled ';;' is
+         * not left behind; '}' closes the group and must stay */
+        if( last < ret.size() && ret[last] == ';' )
+        {
+            ++last;
+        }
+        ret.erase( start, last - start );
+        UT_DEBUGMSG(("eraseAP() END:%s\n", ret.c_str() ));
     }
-    ret.erase( first, last );
-    UT_DEBUGMSG(("eraseAP() END:%s\n", ret.c_str() ));
     return ret;
 }
 
@@ -56,7 +71,7 @@ struct APFilterDropParaDeleteMarkers
 {
     std::string operator()( const gchar * szName, const std::string& value ) const
     {
-        if( !strcmp( szName, PT_REVISION_ATTRIBUTE_NAME ))
+        if( szName && !strcmp( szName, PT_REVISION_ATTRIBUTE_NAME ))
         {
             UT_DEBUGMSG(("APFilterDropParaDeleteMarkers::op() have rev:%s\n", value.c_str() ));
             if( std::string::npos != value.find( ABIATTR_PARA_START_DELETED_REVISION )
