@@ -34,7 +34,9 @@
 /******************************************************************/
 
 XAP_Dialog_Print::XAP_Dialog_Print(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
-	: XAP_Dialog_AppPersistent(pDlgFactory,id, "interface/dialogprint")
+	// The GTK print dialog is hosted by GtkPrintOperation and cannot
+	// carry our Help button, so do not advertise a help anchor.
+	: XAP_Dialog_AppPersistent(pDlgFactory,id)
 {
 	m_bPersistValid = false;
 	m_persistNrCopies = 1;

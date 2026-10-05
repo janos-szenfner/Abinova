@@ -129,6 +129,14 @@ void AP_UnixDialog_PageNumbers::runModal(XAP_Frame * pFrame)
 	XAP_UnixApp * unixapp = static_cast<XAP_UnixApp *> (m_pApp);
 
 	UT_return_if_fail(unixapp);
+
+	// The preview drawing area only gets a native surface and an
+	// allocation once the toplevel is shown — do the setup half of the
+	// modal run first so the window materializes, then enter the
+	// response loop below.
+	abiSetupModalDialog(GTK_DIALOG(m_window), pFrame, this,
+						CUSTOM_RESPONSE_INSERT);
+
 	UT_return_if_fail(m_previewArea && XAP_HAS_NATIVE_WINDOW(m_previewArea));
 	DELETEP (m_unixGraphics);
 
@@ -152,8 +160,7 @@ void AP_UnixDialog_PageNumbers::runModal(XAP_Frame * pFrame)
 	// hack in a quick draw here
 	_updatePreview(m_recentAlign, m_recentControl);
 
-	switch ( abiRunModalDialog ( GTK_DIALOG(m_window), pFrame, this,
-								 CUSTOM_RESPONSE_INSERT, false ) )
+	switch ( abiRunModalDialog ( GTK_DIALOG(m_window), false ) )
 	{
 		case CUSTOM_RESPONSE_INSERT:
 			m_answer = AP_Dialog_PageNumbers::a_OK;

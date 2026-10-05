@@ -108,7 +108,43 @@ struct DismissCtx {
 	std::vector<GtkWidget *> preexisting;
 	int tries;
 	bool dismissed;
+	int help_seen;	/* a new toplevel carried a Help button */
+	int help_bad;	/* ...but it sat alone in its own row */
 };
+
+/* UI03: the dynamically added Help button must share an existing
+ * action row with the dialog's other buttons — never land alone in a
+ * second row below the declared ones (that was the reported bug).
+ * Returns 0 when the toplevel has no Help button, 1 when it sits in a
+ * row with at least one other button, -1 when stranded alone. */
+static int help_button_row_ok(GtkWidget *top)
+{
+	if (!GTK_IS_DIALOG(top))
+		return 0;
+	std::vector<GtkWidget *> stack{top};
+	GtkWidget *help = nullptr;
+	while (!stack.empty() && !help) {
+		GtkWidget *w = stack.back();
+		stack.pop_back();
+		if (gtk_dialog_get_response_for_widget(GTK_DIALOG(top), w)
+			== GTK_RESPONSE_HELP)
+			help = w;
+		for (GtkWidget *c = gtk_widget_get_first_child(w); c;
+			 c = gtk_widget_get_next_sibling(c))
+			stack.push_back(c);
+	}
+	if (!help)
+		return 0;
+	GtkWidget *row = gtk_widget_get_parent(help);
+	if (!GTK_IS_BOX(row))
+		return -1;
+	int buttons = 0;
+	for (GtkWidget *c = gtk_widget_get_first_child(row); c;
+		 c = gtk_widget_get_next_sibling(c))
+		if (GTK_IS_BUTTON(c))
+			buttons++;
+	return buttons > 1 ? 1 : -1;
+}
 
 /* finds a toplevel that did not exist before the dialog ran and
  * dismisses it: "response" DELETE_EVENT for GtkDialogs (that is how
@@ -136,6 +172,13 @@ static gboolean dismiss_new_toplevel(gpointer data)
 		}
 		anyNew = true;
 		if (GTK_IS_DIALOG(w)) {
+			/* UI03: check Help-button adjacency while the dialog is
+			 * still presented */
+			int row = help_button_row_ok(w);
+			if (row > 0)
+				ctx->help_seen = 1;
+			else if (row < 0)
+				ctx->help_bad = 1;
 			g_signal_emit_by_name(w, "response",
 								  GTK_RESPONSE_DELETE_EVENT);
 		} else if (GTK_IS_WINDOW(w)) {
@@ -198,7 +241,7 @@ static int run_one(XAP_DialogFactory *factory, XAP_Frame *frame,
 		d->setHTMLOptions(&html_opt, XAP_App::getApp());
 	}
 
-	DismissCtx ctx{toplevels(), 0, false};
+	DismissCtx ctx{toplevels(), 0, false, 0, 0};
 
 	if (XAP_Dialog_Modeless *ml = dynamic_cast<XAP_Dialog_Modeless *>(dlg)) {
 		ml->runModeless(frame);
@@ -224,8 +267,15 @@ static int run_one(XAP_DialogFactory *factory, XAP_Frame *frame,
 
 	/* persistent dialogs live in the factory; releaseDialog ends the
 	 * use (useEnd) for them and deletes non-persistent ones */
+	const bool had_help_url = dlg->getHelpUrl().size() > 0;
 	factory->releaseDialog(dlg);
 	pump();
+
+	/* UI03: a dialog advertising a help url must have presented its
+	 * Help button inside an existing action row */
+	if (had_help_url && (!ctx.help_seen || ctx.help_bad))
+		g_critical("smoke: id %d — Help button missing or stranded in "
+				   "its own row\n", static_cast<int>(id));
 
 	g_print("smoke: id %d (type %d) — %d criticals, %d warnings\n",
 			static_cast<int>(id), static_cast<int>(type),

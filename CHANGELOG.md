@@ -1892,6 +1892,15 @@ below are on `main` but the release has not been cut yet.
   Close instead of stacking alone in a second row below; the helper
   reparents it into the dialog's own declared action row at the
   conventional secondary-action slot.
+- **Page Numbers dialog opens again** — its `runModal` checked for a
+  native surface on the preview drawing area before the dialog window
+  had ever been shown, so it bailed out every time and the dialog
+  never appeared. The modal run is now split so the window is
+  presented first (as other preview dialogs already do). The dialog
+  smoke test now also asserts that every dialog advertising a help
+  page shows its Help button inside an existing action row, and the
+  Print dialog no longer advertises a help anchor that GTK's native
+  print dialog cannot host.
 
 ### Tables (Word-style creation and context menus)
 
