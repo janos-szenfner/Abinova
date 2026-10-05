@@ -431,6 +431,24 @@ EnchantChecker::_requestDictionary (const char * szLang)
 	UT_return_val_if_fail (szLang, false);
 	UT_return_val_if_fail (s_enchant_broker, false);
 
+	/* switching dictionaries: release the old one through whichever
+	 * channel provided it before requesting the new one — leaking it
+	 * would strand the broker session, and a stale m_bundledProvider
+	 * would free a broker dict through provider->dispose_dict */
+	if (m_dict)
+	{
+#if !defined(_WIN32)
+		if (m_bundledProvider)
+			m_bundledProvider->dispose_dict(m_bundledProvider, m_dict);
+		else
+#endif
+			enchant_broker_free_dict (s_enchant_broker, m_dict);
+		m_dict = nullptr;
+#if !defined(_WIN32)
+		m_bundledProvider = nullptr;
+#endif
+	}
+
 	// Convert the language tag from en-US to en_US form
 	char * lang = g_strdup (szLang);
 	char * hyphen = strchr (lang, '-');

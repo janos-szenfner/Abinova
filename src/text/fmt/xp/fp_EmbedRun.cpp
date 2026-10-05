@@ -57,11 +57,17 @@ fp_EmbedRun::fp_EmbedRun(fl_BlockLayout* pBL,
 
 fp_EmbedRun::~fp_EmbedRun(void)
 {
-  getEmbedManager()->releaseEmbedView(m_iEmbedUID);
+  if (m_pEmbedManager && m_iEmbedUID >= 0)
+    m_pEmbedManager->releaseEmbedView(m_iEmbedUID);
 }
 
 GR_EmbedManager * fp_EmbedRun::getEmbedManager(void) const
 {
+  /* _lookupProperties can bail early (missing span AP) leaving no
+   * manager bound — resolve the default one lazily so callers never
+   * dereference nullptr */
+  if (!m_pEmbedManager && m_pDocLayout)
+    m_pEmbedManager = m_pDocLayout->getEmbedManager("default");
   return m_pEmbedManager;
 }
 
@@ -78,7 +84,10 @@ void fp_EmbedRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	pSpanAP->getAttribute("dataid", m_pszDataID);
 	const gchar * pszEmbedType = nullptr;
 	pSpanAP->getProperty("embed-type", pszEmbedType);
-	UT_ASSERT(pszEmbedType);
+	/* the property is document-controlled — an <embed>/<oembed> with
+	 * no embed-type must not propagate null into manager lookups */
+	if (!pszEmbedType || !*pszEmbedType)
+		pszEmbedType = "default";
 	UT_DEBUGMSG(("Embed Type %s \n",pszEmbedType));
 	bool bFontChanged = false;
 
@@ -92,23 +101,23 @@ void fp_EmbedRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	if(pG == nullptr && pLayout->isQuickPrint() )
 	{
 	     pG = getGraphics();
-	     if((m_iEmbedUID >= 0) && getEmbedManager())
+	     if((m_iEmbedUID >= 0) && m_pEmbedManager)
 	     {
-		 getEmbedManager()->releaseEmbedView(m_iEmbedUID);
+		 m_pEmbedManager->releaseEmbedView(m_iEmbedUID);
 		 m_iEmbedUID = -1;
 	     }
 	     m_iEmbedUID = -1;
 	}
-	
+
 	getBlockAP(pBlockAP);
 
 	const GR_Font * pFont = pLayout->findFont(pSpanAP,pBlockAP,pSectionAP,pG);
-	if(pLayout->isQuickPrint() && pG->queryProperties(GR_Graphics::DGP_PAPER))
+	if(pG && pLayout->isQuickPrint() && pG->queryProperties(GR_Graphics::DGP_PAPER))
 
 	{
-	     if(m_iEmbedUID >= 0 )
+	     if(m_iEmbedUID >= 0 && m_pEmbedManager)
 	     {
-		 getEmbedManager()->releaseEmbedView(m_iEmbedUID);
+		 m_pEmbedManager->releaseEmbedView(m_iEmbedUID);
 		 m_iEmbedUID = -1;
 	     }
 	     m_iEmbedUID = - 1;
@@ -118,6 +127,7 @@ void fp_EmbedRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	{
 	    m_pEmbedManager = m_pDocLayout->getEmbedManager(pszEmbedType);
 	}
+	UT_return_if_fail(m_pEmbedManager);
 	if (pFont != _getFont())
 	{
 		_setFont(pFont);
@@ -125,7 +135,8 @@ void fp_EmbedRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	}
 	if(pG == nullptr)
 	  pG = getGraphics();
-	m_iPointHeight = pG->getFontAscent(pFont) + pG->getFontDescent(pFont);
+	m_iPointHeight = (pG && pFont) ?
+		pG->getFontAscent(pFont) + pG->getFontDescent(pFont) : 0;
 	const char* pszSize = PP_evalProperty("font-size",pSpanAP,pBlockAP,pSectionAP,
 					      getBlock()->getDocument(), true);
 
@@ -136,13 +147,16 @@ void fp_EmbedRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	if(m_iEmbedUID < 0)
 	{
 	  PD_Document * pDoc = getBlock()->getDocument();
-	  m_iEmbedUID = getEmbedManager()->makeEmbedView(pDoc,m_iIndexAP,m_pszDataID);
+	  m_iEmbedUID = m_pEmbedManager->makeEmbedView(pDoc,m_iIndexAP,m_pszDataID);
 	  UT_DEBUGMSG((" EmbedRun %p UID is %d \n", static_cast<void*>(this), m_iEmbedUID));
-	  getEmbedManager()->initializeEmbedView(m_iEmbedUID);
-	  getEmbedManager()->setRun (m_iEmbedUID, this);
-	  getEmbedManager()->loadEmbedData(m_iEmbedUID);
+	  m_pEmbedManager->initializeEmbedView(m_iEmbedUID);
+	  m_pEmbedManager->setRun (m_iEmbedUID, this);
+	  m_pEmbedManager->loadEmbedData(m_iEmbedUID);
 	}
-	getEmbedManager()->setDefaultFontSize(m_iEmbedUID,atoi(pszSize));
+	/* a document may carry an <oembed> with no font-size prop at all —
+	 * atoi(nullptr) is UB; default to 12pt */
+	m_pEmbedManager->setDefaultFontSize(m_iEmbedUID,
+										pszSize ? atoi(pszSize) : 12);
 	if (bFontChanged)
 		bFontChanged = getEmbedManager()->setFont(m_iEmbedUID,pFont);
 	if(getEmbedManager()->isDefault())
@@ -203,6 +217,7 @@ void fp_EmbedRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	UT_DEBUGMSG(("Width = %d Ascent = %d Descent = %d \n",iWidth,iAscent,iDescent)); 
 
 	fl_DocSectionLayout * pDSL = getBlock()->getDocSectionLayout();
+	UT_return_if_fail(pDSL);
 	fp_Page * p = nullptr;
 	if(pDSL->getFirstContainer())
 	{
@@ -212,10 +227,18 @@ void fp_EmbedRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 	{
 		p = pDSL->getDocLayout()->getNthPage(0);
 	}
-	UT_sint32 maxW = p->getWidth() - UT_convertToLogicalUnits("0.1in"); 
-	UT_sint32 maxH = p->getHeight() - UT_convertToLogicalUnits("0.1in");
-	maxW -= pDSL->getLeftMargin() + pDSL->getRightMargin();
-	maxH -= pDSL->getTopMargin() + pDSL->getBottomMargin();
+	/* a not-yet-paginated document has no pages at all — the metrics
+	 * below stay unused, matching the previous behavior when the
+	 * computed bounds were never applied */
+	if (p)
+	{
+		UT_sint32 maxW = p->getWidth() - UT_convertToLogicalUnits("0.1in");
+		UT_sint32 maxH = p->getHeight() - UT_convertToLogicalUnits("0.1in");
+		maxW -= pDSL->getLeftMargin() + pDSL->getRightMargin();
+		maxH -= pDSL->getTopMargin() + pDSL->getBottomMargin();
+		UT_UNUSED(maxW);
+		UT_UNUSED(maxH);
+	}
 	markAsDirty();
 	if(getLine())
 	{
@@ -362,12 +385,16 @@ const char * fp_EmbedRun::getDataID(void) const
  */
 bool fp_EmbedRun::isEdittable(void)
 {
-  return getEmbedManager()->isEdittable(m_iEmbedUID);
+  GR_EmbedManager * mgr = getEmbedManager();
+  UT_return_val_if_fail(mgr, false);
+  return mgr->isEdittable(m_iEmbedUID);
 }
 
 bool fp_EmbedRun::isResizeable(void)
 {
-  return getEmbedManager()->isResizeable(m_iEmbedUID);
+  GR_EmbedManager * mgr = getEmbedManager();
+  UT_return_val_if_fail(mgr, false);
+  return mgr->isResizeable(m_iEmbedUID);
 }
 
 void fp_EmbedRun::_draw(dg_DrawArgs* pDA)
@@ -375,6 +402,8 @@ void fp_EmbedRun::_draw(dg_DrawArgs* pDA)
 	GR_Graphics *pG = pDA->pG;
 	FV_View* pView = _getView();
 	UT_return_if_fail(pView);
+	GR_EmbedManager * pEmbedMgr = getEmbedManager();
+	UT_return_if_fail(pEmbedMgr);
 
 	// need to draw to the full height of line to join with line above.
 	UT_sint32 xoff= 0, yoff=0, DA_xoff = pDA->xoff;
@@ -550,11 +579,15 @@ bool fp_EmbedRun::_updatePropValuesIfNeeded(void)
 void fp_EmbedRun::update()
 {
 	m_iIndexAP = getBlock()->getDocument()->getAPIFromSOH(m_OH);
-	m_pEmbedManager->updateData(m_iEmbedUID, m_iIndexAP);
-	m_pEmbedManager->loadEmbedData(m_iEmbedUID);
+	GR_EmbedManager * mgr = getEmbedManager();
+	UT_return_if_fail(mgr);
+	mgr->updateData(m_iEmbedUID, m_iIndexAP);
+	mgr->loadEmbedData(m_iEmbedUID);
 }
 
 EV_EditMouseContext fp_EmbedRun::getContextualMenu(void) const
 {
-	return m_pEmbedManager->getContextualMenu();
+	GR_EmbedManager * mgr = getEmbedManager();
+	UT_return_val_if_fail(mgr, EV_EMC_EMBED);
+	return mgr->getContextualMenu();
 }

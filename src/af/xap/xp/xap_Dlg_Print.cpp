@@ -53,6 +53,13 @@ XAP_Dialog_Print::XAP_Dialog_Print(XAP_DialogFactory * pDlgFactory, XAP_Dialog_I
 	m_nFirstPage = 0;
 	m_nLastPage = 0;
 
+	m_bDoPrintRange = false;
+	m_bDoPrintSelection = false;
+	m_bDoPrintToFile = false;
+	m_nCopies = 1;
+	m_bCollate = true;
+	m_cColorSpace = GR_Graphics::GR_COLORSPACE_COLOR;
+
 	m_pageSize = nullptr;
 	m_answer = a_VOID;
 }
@@ -76,6 +83,11 @@ void XAP_Dialog_Print::useStart(void)
 	m_bEnablePrintToFile = false;
 	m_nFirstPage = 0;
 	m_nLastPage = 0;
+
+	/* outputs: never leave them indeterminate between uses — the
+	 * getters hand them to callers before any subclass sets them */
+	m_bDoPrintRange = false;
+	m_bDoPrintSelection = false;
 
 	m_nCopies = ((m_bPersistValid) ? m_persistNrCopies : 1);
 	m_bCollate = ((m_bPersistValid) ? m_persistCollate : true);

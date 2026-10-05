@@ -4958,6 +4958,24 @@ below are on `main` but the release has not been cut yet.
   enchant backends, pixbuf loaders, GIO/TLS modules, schemas) that
   `ldd`/`otool`/`dumpbin` cannot see. No functional change on Linux.
 
+- **Spellcheck, print, and embedded-object hardening sweep** —
+  dictionary switching in the Enchant backend now releases the old
+  dictionary through its owning provider instead of leaking it, and the
+  missing-dictionary cache matches language tags exactly rather than by
+  substring, so a failed tag like `xen_NOPE` can no longer shadow a
+  valid `en` lookup. Context-menu spell suggestions guard against
+  missing squiggles, stale block text, and absent dictionaries, and two
+  busy-wait loops that could hang spell-check layout were removed.
+  Print dialog and GTK print-operation paths initialize their
+  range/selection/output state and guard frame/view/cairo pointers, so
+  printing to file on a printerless or headless system no longer
+  dereferences null state. Double-clicking an embedded object now
+  spills its payload to a sanitized, owner-only (`0600`) temp file —
+  hostile document-controlled names like `../../evil.sh` cannot escape
+  the temp dir or produce an executable file — and embed managers,
+  runs, and the DOCX image-name path reject null or out-of-range
+  embeds instead of crashing.
+
 ### Resolved root causes worth noting
 
 - **"double free or corruption" after ODF export** — was a stale

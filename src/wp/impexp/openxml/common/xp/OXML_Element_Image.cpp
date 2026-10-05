@@ -108,8 +108,21 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 					const gchar * szMName = nullptr;
 					if (getProperty("media-name", szMName) == UT_OK && szMName)
 					{
+						/* media-name is document-controlled: only a
+						 * short ".alnum" tail is a plausible extension;
+						 * anything else could smuggle '/', quotes or
+						 * markup into the zip member name and the
+						 * .rels Target attribute */
 						const char * dot = strrchr(szMName, '.');
+						bool bSafeExt = false;
 						if (dot && dot[1])
+						{
+							size_t el = strlen(dot);
+							bSafeExt = (el >= 2 && el <= 8);
+							for (size_t k = 1; bSafeExt && dot[k]; ++k)
+								bSafeExt = g_ascii_isalnum(dot[k]);
+						}
+						if (bSafeExt)
 							mExt = dot;
 					}
 				}
@@ -475,8 +488,15 @@ UT_Error OXML_Element_Image::_addMediaEmbedToPT(
 	if (!partPath.empty())
 	{
 		const char * base = UT_basename(partPath.c_str());
-		if (base && *base)
-			PP_addOrSetAttribute("media-name", base, keep);
+		/* the OPC part name is document-controlled — ':'/';' would be
+		 * re-parsed as prop separators when keep is serialized below
+		 * (same scrub s_embedFileInDoc applies to user filenames) */
+		std::string sBase(base ? base : "");
+		for (auto & c : sBase)
+			if (c == ';' || c == ':')
+				c = ' ';
+		if (!sBase.empty())
+			PP_addOrSetAttribute("media-name", sBase, keep);
 	}
 	std::string pstr;
 	for (size_t i = 0; i + 1 < keep.size(); i += 2)

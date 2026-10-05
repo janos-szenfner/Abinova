@@ -76,7 +76,7 @@ protected:
 	UT_uint32               m_iGraphicTick;
 	const gchar *        m_pszDataID;
 	UT_UTF8String           m_sEmbedML;
-	GR_EmbedManager * 	    m_pEmbedManager;
+	mutable GR_EmbedManager * 	    m_pEmbedManager;
 	UT_sint32               m_iEmbedUID;
 	PT_AttrPropIndex        m_iIndexAP;
 	FL_DocLayout *          m_pDocLayout;

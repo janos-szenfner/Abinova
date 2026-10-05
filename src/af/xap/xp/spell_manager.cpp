@@ -60,6 +60,8 @@ typedef ISpellChecker SpellCheckerClass;
 
 bool SpellChecker::requestDictionary (const char * szLang)
 {
+	UT_return_val_if_fail(szLang, false);
+
 	bool bSuccess = _requestDictionary(szLang);
 
 	m_BarbarismChecker.load(szLang);
@@ -160,10 +162,13 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
 	XAP_Frame           * pFrame = pApp->getLastFocussedFrame ();
 	char				szLangName[255];
 	UT_Language			lang;
-	
+
+	if (!szLang)
+		szLang = "?";
 	UT_uint32 id = lang.getIndxFromCode(szLang);
-	const gchar* pLang  = lang.getNthLangName(id);	
-	snprintf(szLangName, sizeof(szLangName), "%s [%s]", pLang, szLang); // language name [language_code]
+	const gchar* pLang  = lang.getNthLangName(id);
+	snprintf(szLangName, sizeof(szLangName), "%s [%s]",
+			 pLang ? pLang : "?", szLang); // language name [language_code]
 
 	const char * szMsgFmt =
 		pApp->getStringSet ()->getValue (XAP_STRING_ID_SPELL_CANTLOAD_DICT);
@@ -194,7 +199,7 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
 /* private */ SpellManager::SpellManager ()
   : m_lastDict(nullptr), m_nLoadedDicts(0)
 {
-	m_missingHashs += "-none-";
+	m_missingHashs.insert("-none-");
 }
 
 /*!
@@ -233,8 +238,12 @@ SpellManager::requestDictionary (const char * szLang)
 {
 	SpellCheckerClass * checker = nullptr;
 
-	// Don't try to load hashes we know are missing
-	if (strstr(m_missingHashs.c_str(), szLang))
+	UT_return_val_if_fail(szLang && *szLang, nullptr);
+
+	// Don't try to load hashes we know are missing — exact-match
+	// entries so a tag can't be shadowed by a longer one ("en"
+	// must not be rejected because "en-US" failed)
+	if (m_missingHashs.count(szLang))
 		return nullptr;
 
 	// first look up the entry in the map
@@ -259,7 +268,7 @@ SpellManager::requestDictionary (const char * szLang)
 	else
     {
 		checker->setDictionaryFound(false);
-		m_missingHashs += szLang;
+		m_missingHashs.insert(szLang);
 		delete checker;
 		checker = nullptr;
     }

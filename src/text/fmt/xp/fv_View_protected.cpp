@@ -5710,17 +5710,27 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 		UT_UCS4String stMisspelledWord;
 		// convert smart quote apostrophe to ASCII single quote to be
 		// compatible with ispell
-		const UT_UCS4Char * pWord;
-		UT_sint32 iLength, iPTLength, iBlockPos;
+		const UT_UCS4Char * pWord = nullptr;
+		UT_sint32 iLength = 0, iPTLength = 0, iBlockPos = 0;
 
 		fl_BlockSpellIterator BSI(pBL, pPOB->getOffset());
-		BSI.nextWordForSpellChecking(pWord, iLength, iBlockPos, iPTLength);
-		
-		UT_uint32 len = iLength;
-		for (UT_uint32 ldex=0; ldex < len && ldex < INPUTWORDLEN; ldex++)
+		bool bFoundWord =
+			BSI.nextWordForSpellChecking(pWord, iLength, iBlockPos, iPTLength);
+		if (bFoundWord && iLength > 0)
 		{
-			stMisspelledWord += *pWord == UCS_RQUOTE ? '\'' : *pWord;
-			++pWord;
+			UT_uint32 len = iLength;
+			for (UT_uint32 ldex=0; ldex < len && ldex < INPUTWORDLEN; ldex++)
+			{
+				stMisspelledWord += *pWord == UCS_RQUOTE ? '\'' : *pWord;
+				++pWord;
+			}
+		}
+		else
+		{
+			/* the squiggle is stale (block text changed since the menu
+			 * was built) — no word to suggest on */
+			bFoundWord = false;
+			iLength = 0;
 		}
 
 		// get language code for misspelled word
@@ -5754,7 +5764,7 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 		std::vector<UT_UCS4Char*>* pvFreshSuggestions = new std::vector<UT_UCS4Char*>();
 		UT_ASSERT(pvFreshSuggestions);
 
-		if (checker && (checker->checkWord(stMisspelledWord.ucs4_str(), iLength) == SpellChecker::LOOKUP_FAILED))
+		if (bFoundWord && checker && (checker->checkWord(stMisspelledWord.ucs4_str(), iLength) == SpellChecker::LOOKUP_FAILED))
 		{
 			// get suggestions from spelling engine
 			std::vector<UT_UCS4Char*> vEngineSuggestions =
@@ -5777,9 +5787,11 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 		s_pLastPOB = pPOB;
 	}
 
-	// return the indexed suggestion from the cache
+	// return the indexed suggestion from the cache; ndx is 1-based —
+	// an out-of-range index (or 0) must not index the vector at all
 	if (s_pvCachedSuggestions &&
 		(!s_pvCachedSuggestions->empty()) &&
+		(ndx >= 1) &&
 		( ndx <= static_cast<UT_uint32>(s_pvCachedSuggestions->size())))
 	{
 		UT_UCS4_cloneString(&szSuggest, (*s_pvCachedSuggestions)[ndx-1]);

@@ -12694,6 +12694,7 @@ UT_UCS4Char * FV_View::getContextSuggest(UT_uint32 ndx)
 	PT_DocPosition epos = 0;
 	getDocument()->getBounds(true, epos);
 	UT_DEBUGMSG(("end bound is %d\n", epos));
+	UT_return_val_if_fail(pBL->getSpellSquiggles(), nullptr);
 	const fl_PartOfBlockPtr& pPOB = pBL->getSpellSquiggles()->get(pos - pBL->getPosition());
 	UT_return_val_if_fail(pPOB, nullptr);
 

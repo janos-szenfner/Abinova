@@ -153,7 +153,12 @@ std::string GR_GtkMediaManager::_writeTempFile(const std::string & dataID,
                                                const UT_ConstByteBufPtr & buf,
                                                const std::string & mime)
 {
-	std::string path = UT_createTmpFile("abinova-embed-" + dataID,
+	/* the dataid is document-controlled — a '/' in it makes
+	 * g_file_open_tmp reject the template outright (fails safe), but
+	 * sanitize anyway so hostile ids still produce a launchable file
+	 * that can never escape the temp dir */
+	std::string safeID = UT_sanitizeFileName(dataID.c_str());
+	std::string path = UT_createTmpFile("abinova-embed-" + safeID,
 	                                    _suffixForMime(mime));
 	if (path.empty())
 		return "";
@@ -169,6 +174,10 @@ std::string GR_GtkMediaManager::_writeTempFile(const std::string & dataID,
 		g_unlink(path.c_str());
 		return "";
 	}
+	/* the payload may itself be an executable — it must be openable
+	 * by a handler but never directly runnable: force owner-only,
+	 * non-executable permissions */
+	g_chmod(path.c_str(), 0600);
 	m_tempFiles.push_back(path);
 	return path;
 }

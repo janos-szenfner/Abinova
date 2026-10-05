@@ -3286,6 +3286,8 @@ Defun1(fileSaveEmbed)
 	FV_View * pView = static_cast<FV_View *>(pAV_View);
 	fp_EmbedRun *pRun = dynamic_cast <fp_EmbedRun*> (pView->getSelectedObject ());
 	UT_return_val_if_fail(pRun, false);
+	GR_EmbedManager * pEmbedMgr = pRun->getEmbedManager();
+	UT_return_val_if_fail(pEmbedMgr, false);
 
 	XAP_DialogFactory * pDialogFactory
 		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
@@ -3316,8 +3318,8 @@ Defun1(fileSaveEmbed)
 	}
 
 	// we only support saving objects to their default format
-	szDescList[0] =  pRun->getEmbedManager()->getMimeTypeDescription();
-	szSuffixList[0] = pRun->getEmbedManager()->getMimeTypeSuffix();
+	szDescList[0] =  pEmbedMgr->getMimeTypeDescription();
+	szSuffixList[0] = pEmbedMgr->getMimeTypeSuffix();
 	nTypeList[0] = static_cast<IEFileType>(1);
 
 	pDialog->setFileTypeList(szDescList, szSuffixList,
@@ -5800,7 +5802,8 @@ Defun1(editEmbed)
 			      UT_DEBUGMSG(("About to edit the object \n"));
 			      GR_EmbedManager * pEmbed = pEmbedRun->getEmbedManager();
 			      UT_sint32 uid = pEmbedRun->getUID();
-			      pEmbed->modify(uid);
+			      if (pEmbed)
+				  pEmbed->modify(uid);
 			}
 		}
 	}
@@ -9578,6 +9581,7 @@ Defun1(cairoPrint)
 
 	XAP_Dialog_Print * pDialog
 		= static_cast<XAP_Dialog_Print *>(pDialogFactory->requestDialog(XAP_DIALOG_ID_PRINT));
+	UT_return_val_if_fail(pDialog, false);
 	pView->setCursorWait();
 	pDialog->setPreview(false);
 	pDialog->runModal(pFrame);
@@ -9608,6 +9612,7 @@ Defun1(cairoPrintPreview)
 
 	XAP_Dialog_Print * pDialog
 		= static_cast<XAP_Dialog_Print *>(pDialogFactory->requestDialog(XAP_DIALOG_ID_PRINT));
+	UT_return_val_if_fail(pDialog, false);
 	pView->setCursorWait();
 	pDialog->setPreview(true);
 	pDialog->runModal(pFrame);
@@ -9638,6 +9643,7 @@ Defun1(cairoPrintDirectly)
 
 	XAP_Dialog_Print * pDialog
 		= static_cast<XAP_Dialog_Print *>(pDialogFactory->requestDialog(XAP_DIALOG_ID_PRINT));
+	UT_return_val_if_fail(pDialog, false);
 	pView->setCursorWait();
 	pDialog->setPreview(false);
 	//

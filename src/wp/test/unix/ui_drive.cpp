@@ -1294,6 +1294,7 @@ static int drive_abiwidget(const char *scratch_uri)
 #include "gr_GtkMediaManager.h"
 #include "fl_DocLayout.h"
 #include "ut_bytebuf.h"
+#include "xap_Dlg_Print.h"
 
 /* find a widget of a given GType anywhere below w (used for the doc
  * drawing area and for the context-menu popover) */
@@ -1551,6 +1552,42 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 		/* pg's dtor cairo_destroys the context it borrowed */
 		cairo_surface_destroy(surf));
 
+	/* ---- printerless printing: the export path needs no printer at
+	 * all (ACTION_EXPORT writes a PDF through the full
+	 * BeginPrint/PrintPage/EndPrint pipeline) and the own-drawn
+	 * preview window is stray-swept.  The real GtkPrintUnixDialog is
+	 * NOT invoked here — its queued sync D-Bus sources crash under
+	 * our nested sweeps; the --id 8 leg covers it.  Runs early: the
+	 * media-fixture leg is the flakiest on this box and a fatal there
+	 * must not starve this coverage ---- */
+	EV_SECTION("print export",
+		XAP_DialogFactory *df = static_cast<XAP_DialogFactory *>(
+			frame->getDialogFactory());
+		if (df && view) {
+			XAP_Dialog_Print *pd = static_cast<XAP_Dialog_Print *>(
+				df->requestDialog(XAP_DIALOG_ID_PRINT));
+			if (pd) {
+				pd->PrintDirectly(frame, "/tmp/ui-drive-print.pdf",
+								  nullptr);
+				pump_for(300);
+				df->releaseDialog(pd);
+			}
+		});
+
+	EV_SECTION("print preview",
+		const EV_EditMethodContainer *emc =
+			XAP_App::getApp()->getEditMethodContainer();
+		AV_View *av = frame->getCurrentView();
+		if (emc && av) {
+			EV_EditMethodCallData emcd;
+			/* own preview window — stray-swept */
+			EV_EditMethod *em =
+				emc->findEditMethodByName("printPreview");
+			if (em)
+				em->Fn(av, &emcd);
+			pump_for(400);
+		});
+
 	/* ---- fixtures: an abwn with audio+video embeds drives the media
 	 * manager's makeEmbedView/render/setRun/release path, and an abw
 	 * whose image carries all the blip-effect props drives the
@@ -1575,6 +1612,13 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 				"base64=\"yes\">" + std::string(b64) + "</d>\n"
 				"<d name=\"snapshot-png-obj-aud\" mime-type=\"image/png\" "
 				"base64=\"yes\">" + std::string(b64) + "</d>\n"
+				/* hostile: traversal in both the dataid and the
+				 * media-name — neither may escape the temp dir or
+				 * the export member name */
+				"<d name=\"obj-../evil\" mime-type=\"video/mp4\" "
+				"base64=\"yes\">QUJDREVGRw==</d>\n"
+				"<d name=\"obj-plain\" mime-type=\"application/octet-stream\" "
+				"base64=\"yes\">QUJDREVGRw==</d>\n"
 				"</data>\n<section>\n"
 				"<p>Video: <embed dataid=\"obj-vid\" props=\""
 				"embed-type:media; media-kind:video; "
@@ -1582,6 +1626,12 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 				"<p>Audio: <embed dataid=\"obj-aud\" props=\""
 				"embed-type:media; media-kind:audio; "
 				"media-name:t.mp3\"/></p>\n"
+				"<p>Evil: <embed dataid=\"obj-../evil\" props=\""
+				"embed-type:media; media-kind:video; "
+				"media-name:../../evil.sh\"/></p>\n"
+				/* no props at all → missing embed-type → the
+				 * \"default\" manager, not std::string(nullptr) */
+				"<p>Plain: <embed dataid=\"obj-plain\"/></p>\n"
 				"</section>\n</abiword>\n";
 			std::string mp = write_fixture("media.abwn", media);
 			if (!mp.empty())
@@ -1627,7 +1677,24 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 				 * sweep answers it */
 				mm->modify(0);
 				pump_for(400);
+				/* uid 2 is the "obj-../evil" item — its dataid is
+				 * sanitized into a flat tmpfile prefix, so this
+				 * must still launch (and get swept) rather than
+				 * traverse out of the temp dir */
+				mm->modify(2);
+				pump_for(300);
+				/* bounds guards on the embed-view vector */
+				UT_Rect r(0, 0, 10, 10);
+				mm->getWidth(-1);
+				mm->getAscent(-1);
+				mm->render(-1, r);
 			}
+			/* the prop-less embed landed on the "default" manager —
+			 * its modify is a no-op but must not crash */
+			GR_EmbedManager *dm =
+				fv->getLayout()->getEmbedManager("default");
+			if (dm)
+				dm->modify(0);
 		});
 
 	/* ---- menu action layer: refresh walk, lazy action creation for

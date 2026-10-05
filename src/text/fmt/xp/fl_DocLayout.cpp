@@ -329,6 +329,11 @@ GR_Graphics * FL_DocLayout::getQuickPrintGraphics(void) const
  */
 GR_EmbedManager * FL_DocLayout::getQuickPrintEmbedManager(const char * szEmbedType)
 {
+  /* a document may carry an <oembed>/<embed> object with no usable
+   * embed-type property — fall back to the default manager rather
+   * than keying the map on a null pointer */
+  if (!szEmbedType || !*szEmbedType)
+    szEmbedType = "default";
   // Look in the current collection first.
    GR_EmbedManager * pEmbed = nullptr;
   std::map<std::string, GR_EmbedManager *>::iterator i;
@@ -363,6 +368,11 @@ GR_EmbedManager * FL_DocLayout::getQuickPrintEmbedManager(const char * szEmbedTy
  */
 GR_EmbedManager * FL_DocLayout::getEmbedManager(const char * szEmbedType)
 {
+  /* a document may carry an <oembed>/<embed> object with no usable
+   * embed-type property — fall back to the default manager rather
+   * than keying the map on a null pointer */
+  if (!szEmbedType || !*szEmbedType)
+    szEmbedType = "default";
   // Look in the current collection first.
   GR_EmbedManager * pEmbed = nullptr;
   std::map<std::string, GR_EmbedManager *>::iterator i;
@@ -3514,11 +3524,9 @@ void FL_DocLayout::dequeueAll(void)
 	if(m_pBackgroundCheckTimer)
 	{
 		m_pBackgroundCheckTimer->stop();
-		// Wait for checking to complete before returning.
-		while(m_bImSpellCheckingNow == true)
-		{
-			// TODO shouldn't we have a little sleep here?
-		}
+		/* the worker runs on this same thread: if we got here
+		 * reentrantly (a block died mid-check), spinning on
+		 * m_bImSpellCheckingNow could never terminate — just stop */
 	}
 }
 
@@ -3638,11 +3646,9 @@ FL_DocLayout::dequeueBlockForBackgroundCheck(fl_BlockLayout *pBlock)
 		if(m_pBackgroundCheckTimer)
 		{
 			m_pBackgroundCheckTimer->stop();
-			// Wait for checking to complete before returning.
-			while(m_bImSpellCheckingNow == true)
-			{
-				// TODO shouldn't we have a little sleep here?
-			}
+			/* same-thread worker: no point spinning on
+			 * m_bImSpellCheckingNow — a reentrant call would
+			 * hang forever waiting for the flag it can't clear */
 		}
 	}
 

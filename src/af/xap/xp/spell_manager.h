@@ -21,6 +21,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include <string>
@@ -128,7 +129,7 @@ private:
 
 
 	std::map<std::string, SpellChecker *> m_map;
-	std::string m_missingHashs;
+	std::set<std::string> m_missingHashs;
 	SpellChecker * m_lastDict;
 	UT_uint32 m_nLoadedDicts;
 };

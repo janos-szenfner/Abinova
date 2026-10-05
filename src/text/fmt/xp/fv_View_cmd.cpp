@@ -9975,13 +9975,13 @@ void FV_View::cmdContextSuggest(UT_uint32 ndx, fl_BlockLayout * ppBL,
 		pBL = _findBlockAtPosition(pos);
 	else
 		pBL = ppBL;
-	UT_ASSERT(pBL);
+	UT_return_if_fail(pBL);
 
-	if (!ppPOB)
+	if (!ppPOB && pBL->getSpellSquiggles())
 		pPOB = pBL->getSpellSquiggles()->get(pos - pBL->getPosition());
 	else
 		pPOB = ppPOB;
-	UT_ASSERT(pPOB);
+	UT_return_if_fail(pPOB);
 
 	// grab the suggestion
 	UT_UCS4Char * replace = _lookupSuggestion(pBL, pPOB, ndx);
@@ -9995,10 +9995,15 @@ void FV_View::cmdContextSuggest(UT_uint32 ndx, fl_BlockLayout * ppBL,
 	moveInsPtTo(static_cast<PT_DocPosition>(pBL->getPosition() + pPOB->getOffset()));
 	extSelHorizontal(true, pPOB->getPTLength());
 
-	UT_UCS4Char * selection;
+	UT_UCS4Char * selection = nullptr;
 	getSelectionText(selection);
-	getDictForSelection ()->correctWord (selection, UT_UCS4_strlen (selection),
-										 replace, UT_UCS4_strlen (replace));
+	/* no dictionary can legitimately be absent here (a multilingual doc
+	 * can put the caret in a language with none, or none may be
+	 * installed at all) — the replacement itself still applies */
+	SpellChecker * checker = getDictForSelection();
+	if (checker && selection)
+		checker->correctWord (selection, UT_UCS4_strlen (selection),
+							  replace, UT_UCS4_strlen (replace));
 	cmdCharInsert(replace, UT_UCS4_strlen(replace));
 	FREEP(selection);
 	FREEP(replace);
@@ -10010,6 +10015,8 @@ void FV_View::cmdContextIgnoreAll(void)
 	PT_DocPosition pos = getPoint();
 	fl_BlockLayout* pBL = _findBlockAtPosition(pos);
 	UT_return_if_fail(pBL);
+	if (!pBL->getSpellSquiggles())
+		return;
 	const fl_PartOfBlockPtr& pPOB = pBL->getSpellSquiggles()->get(pos - pBL->getPosition());
 	if(!pPOB) // this can happen with very rapid right-clicks
 	{
@@ -10020,20 +10027,28 @@ void FV_View::cmdContextIgnoreAll(void)
 	UT_GrowBuf pgb(1024);
 	bool bRes = pBL->getBlockBuf(&pgb);
 	UT_ASSERT(bRes);
-	if(!bRes) 
+	if(!bRes)
 	{
 		UT_WARNINGMSG(("getBlockBuf() failed in %s:%d",
 					   __FILE__, __LINE__));
 	}
 
-	const UT_UCS4Char * pBuf;
-	UT_sint32 iLength, iPTLength, iBlockPos;
+	const UT_UCS4Char * pBuf = nullptr;
+	UT_sint32 iLength = 0, iPTLength = 0, iBlockPos = 0;
 
 	fl_BlockSpellIterator BSI(pBL, pPOB->getOffset());
-	BSI.nextWordForSpellChecking(pBuf, iLength, iBlockPos, iPTLength);
-	
+	// the squiggle may be stale if the block text changed since
+	if (!BSI.nextWordForSpellChecking(pBuf, iLength, iBlockPos, iPTLength) ||
+		!pBuf || iLength <= 0)
+	{
+		return;
+	}
+
+	SpellChecker * checker = getDictForSelection();
+	UT_return_if_fail(checker);
+
 	// make the change
-	getDictForSelection ()->ignoreWord (static_cast<const UT_UCS4Char *>(pBuf), static_cast<size_t>(iLength));
+	checker->ignoreWord (static_cast<const UT_UCS4Char *>(pBuf), static_cast<size_t>(iLength));
 	{
 		// remove the squiggles, too
 		fl_DocSectionLayout * pSL = m_pLayout->getFirstSection();
@@ -10057,6 +10072,8 @@ void FV_View::cmdContextAdd(void)
 	PT_DocPosition pos = getPoint();
 	fl_BlockLayout* pBL = _findBlockAtPosition(pos);
 	UT_return_if_fail(pBL);
+	if (!pBL->getSpellSquiggles())
+		return;
 	const fl_PartOfBlockPtr& pPOB = pBL->getSpellSquiggles()->get(pos - pBL->getPosition());
 	if(!pPOB) // this can happen with very rapid right-clicks
 	{
@@ -10067,20 +10084,28 @@ void FV_View::cmdContextAdd(void)
 	UT_GrowBuf pgb(1024);
 	bool bRes = pBL->getBlockBuf(&pgb);
 	UT_ASSERT(bRes);
-	if(!bRes) 
+	if(!bRes)
 	{
 		UT_WARNINGMSG(("getBlockBuf() failed in %s:%d",
 					   __FILE__, __LINE__));
 	}
 
-	const UT_UCS4Char * pBuf;
-	UT_sint32 iLength, iPTLength, iBlockPos;
+	const UT_UCS4Char * pBuf = nullptr;
+	UT_sint32 iLength = 0, iPTLength = 0, iBlockPos = 0;
 
 	fl_BlockSpellIterator BSI(pBL, pPOB->getOffset());
-	BSI.nextWordForSpellChecking(pBuf, iLength, iBlockPos, iPTLength);
+	// the squiggle may be stale if the block text changed since
+	if (!BSI.nextWordForSpellChecking(pBuf, iLength, iBlockPos, iPTLength) ||
+		!pBuf || iLength <= 0)
+	{
+		return;
+	}
+
+	SpellChecker * checker = getDictForSelection();
+	UT_return_if_fail(checker);
 
 	// make the change
-	if (getDictForSelection ()->addToCustomDict (pBuf, iLength))
+	if (checker->addToCustomDict (pBuf, iLength))
 	{
 		// remove the squiggles, too
 		fl_DocSectionLayout * pSL = m_pLayout->getFirstSection();

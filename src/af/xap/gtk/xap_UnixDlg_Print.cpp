@@ -121,11 +121,14 @@ void XAP_UnixDialog_Print::releasePrinterGraphicsContext(GR_Graphics * pGraphics
 
 void XAP_UnixDialog_Print::BeginPrint(GtkPrintContext   *context)
 {
+	UT_return_if_fail(context);
+	UT_return_if_fail(m_pPO && m_pFrame && m_pView);
     // Note: Help landscape printing survive, don't do anything on the cairo
     // context in this function.  Any transformations etc. shall take place in
     // PrintPage, because GtkPrint may do some transformations itself (which
     // will come out differently if we scale here).
 	cairo_t* cr = gtk_print_context_get_cairo_context (context);
+	UT_return_if_fail(cr);
 	//
 	// The cairo context is automatically unref'd at the end of the print
 	// so we need to reference it to allow it to be deleted by the PrintGraphics
@@ -133,6 +136,7 @@ void XAP_UnixDialog_Print::BeginPrint(GtkPrintContext   *context)
 	cairo_reference(cr);
 	gtk_print_operation_set_n_pages (m_pPO,m_iNumberPages);
 	AP_FrameData *pFrameData = static_cast<AP_FrameData *>(m_pFrame->getFrameData());
+	UT_return_if_fail(pFrameData);
 
 	xxx_UT_DEBUGMSG(("Initial Cairo Context %x \n",cr));
 	m_pPrintGraphics = static_cast<GR_Graphics *>( new GR_CairoPrintGraphics(cr, gr_PRINTRES));
@@ -141,7 +145,7 @@ void XAP_UnixDialog_Print::BeginPrint(GtkPrintContext   *context)
 	static_cast<GR_CairoPrintGraphics *>(m_pPrintGraphics)
         ->setResolutionRatio(gr_PRINTRES/ScreenRes);
 
-	if(m_pView->getViewMode() == VIEW_PRINT )
+	if(m_pView->getViewMode() == VIEW_PRINT && m_pDL)
 	{
 			m_pPrintLayout = m_pDL;
 			m_pPrintView = m_pView;
@@ -170,6 +174,10 @@ void XAP_UnixDialog_Print::PrintPage(gint page_nr)
 {
 	xxx_UT_DEBUGMSG(("Print Page %d \n",page_nr));
 
+	/* draw_page can fire after begin_print bailed (no print view or
+	 * graphics was produced) — emit nothing rather than crash */
+	UT_return_if_fail(m_pPrintGraphics && m_pPrintView);
+
 	m_pPrintGraphics->beginPaint();
 	cairo_t *cr = static_cast<GR_CairoPrintGraphics *>(m_pPrintGraphics)->getCairo();
 
@@ -192,14 +200,14 @@ void XAP_UnixDialog_Print::PrintPage(gint page_nr)
 	da.xoff = 0;
 	da.yoff = 0;
 	const XAP_StringSet *pSS = XAP_App::getApp()->getStringSet ();
-	const gchar * msgTmpl = pSS->getValue (AP_STRING_ID_MSG_PrintStatus);
+	const gchar * msgTmpl = pSS ? pSS->getValue (AP_STRING_ID_MSG_PrintStatus) : nullptr;
 	gchar msgBuf [1024];
 	/* msgTmpl is a localized format string; only substitute when it
 	   takes exactly the two integer conversions we pass */
-	if(UT_checkedPrintfArgCount(msgTmpl, "diuxX") == 2)
+	if(msgTmpl && UT_checkedPrintfArgCount(msgTmpl, "diuxX") == 2)
 		snprintf (msgBuf, sizeof(msgBuf), msgTmpl, page_nr+1, m_iNumberPages);
 	else
-		snprintf (msgBuf, sizeof(msgBuf), "%s", msgTmpl);
+		snprintf (msgBuf, sizeof(msgBuf), "%s", msgTmpl ? msgTmpl : "");
 	if(m_pFrame) 
 	{
 		m_pFrame->setStatusMessage ( msgBuf );
@@ -220,7 +228,12 @@ void XAP_UnixDialog_Print::setupPrint()
 	double width, height;
 	bool portrait;
 
+	/* printerless/headless-safe entry: a frame mid-teardown can have
+	 * no current view; bail leaving m_pPO null so runModal skips */
+	UT_return_if_fail(m_pFrame);
 	m_pView = static_cast<FV_View*>(m_pFrame->getCurrentView());
+	UT_return_if_fail(m_pView);
+	UT_return_if_fail(m_pView->getDocument());
 	m_pPO = gtk_print_operation_new();
 	//
 	// Set filename if it's not present already
@@ -404,25 +417,28 @@ void XAP_UnixDialog_Print::setupPrint()
 	gtk_print_operation_set_default_page_setup(m_pPO,m_pPageSetup);
 	gtk_print_operation_set_use_full_page (m_pPO, true);
 	m_pDL = m_pView->getLayout();
-	m_iCurrentPage = m_pDL->findPage(m_pView->getCurrentPage());
-	m_iNumberPages = static_cast<gint>( m_pDL->countPages());
+	m_iCurrentPage = m_pDL ? m_pDL->findPage(m_pView->getCurrentPage()) : 0;
+	m_iNumberPages = static_cast<gint>( m_pDL ? m_pDL->countPages() : 0);
 	gtk_print_operation_set_current_page(m_pPO,m_iCurrentPage);
 
 	g_signal_connect (m_pPO, "begin_print", G_CALLBACK (s_Begin_Print), this);
 	g_signal_connect (m_pPO, "draw_page", G_CALLBACK (s_Print_Page), this);
 }
 
-void XAP_UnixDialog_Print::runModal(XAP_Frame * pFrame) 
+void XAP_UnixDialog_Print::runModal(XAP_Frame * pFrame)
 {
 	m_pFrame = pFrame;
 	setupPrint();
+	UT_return_if_fail(m_pPO);
     gtk_print_operation_set_show_progress(m_pPO, TRUE);
 
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(m_pFrame->getFrameImpl());
-	
-	// Get the GtkWindow of the parent frame
-	GtkWidget * parent = pUnixFrameImpl->getTopLevelWindow();
-	GtkWindow * pPWindow = GTK_WINDOW(parent);
+
+	// Get the GtkWindow of the parent frame; a frame without a
+	// toplevel (headless test, mid-teardown) still gets a working
+	// dialog — gtk_print_operation_run accepts a null parent
+	GtkWidget * parent = pUnixFrameImpl ? pUnixFrameImpl->getTopLevelWindow() : nullptr;
+	GtkWindow * pPWindow = parent ? GTK_WINDOW(parent) : nullptr;
 	//	const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
 	//	const gchar * szDialogName = einterpret_cast<const gchar *>(pSS->getValue(XAP_STRING_ID_DLG_UP_PrintTitle);
 
@@ -439,14 +455,27 @@ void XAP_UnixDialog_Print::cleanup(void)
 	//
 	// Get the filename we printed to
 	//
-	GtkPrintSettings *  pSettings = gtk_print_operation_get_print_settings(m_pPO);
-	const gchar * szFname =  gtk_print_settings_get(pSettings,GTK_PRINT_SETTINGS_OUTPUT_URI);
-	if((szFname != nullptr) && (strcmp(szFname, "output.pdf") != 0))
+	GtkPrintSettings *  pSettings = m_pPO ? gtk_print_operation_get_print_settings(m_pPO) : nullptr;
+	const gchar * szFname =  pSettings ? gtk_print_settings_get(pSettings,GTK_PRINT_SETTINGS_OUTPUT_URI) : nullptr;
+	if((szFname != nullptr) && (strcmp(szFname, "output.pdf") != 0) &&
+		m_pView && m_pView->getDocument())
 	{
 		m_pView->getDocument()->setPrintFilename(szFname);
 	}
-	g_object_unref(m_pPO);
-	m_pPO = nullptr;
+	if (m_pPO) {
+		g_object_unref(m_pPO);
+		m_pPO = nullptr;
+	}
+	/* created in setupPrint — owned by the dialog, freed here rather
+	 * than relying on callers to reach releasePrinterGraphicsContext */
+	if (m_pPageSetup) {
+		g_object_unref(m_pPageSetup);
+		m_pPageSetup = nullptr;
+	}
+	if (m_pGtkPageSize) {
+		gtk_paper_size_free(m_pGtkPageSize);
+		m_pGtkPageSize = nullptr;
+	}
 	if(!m_bDidQuickPrint)
 	{
 		UT_DEBUGMSG(("Deleting PrintView %p \n",m_pPrintView));
@@ -461,23 +490,28 @@ void XAP_UnixDialog_Print::cleanup(void)
 		m_pPrintLayout = nullptr;
 		m_pPrintView = nullptr;
 
-		if(m_bShowParagraphs)
+		if(m_bShowParagraphs && m_pView)
 			m_pView->setShowPara(true);
-		m_pDL->incrementGraphicTick();
+		if (m_pDL)
+			m_pDL->incrementGraphicTick();
 	}
-	UT_DEBUGMSG(("Reset fontmap m_pView %p Graphics %p \n",m_pView,m_pView->getGraphics()));
-	static_cast<GR_CairoGraphics *>(m_pView->getGraphics())->resetFontMapResolution();
+	if (m_pView && m_pView->getGraphics()) {
+		UT_DEBUGMSG(("Reset fontmap m_pView %p Graphics %p \n",m_pView,m_pView->getGraphics()));
+		static_cast<GR_CairoGraphics *>(m_pView->getGraphics())->resetFontMapResolution();
+	}
 	DELETEP(m_pPrintGraphics);
 	//
 	// Finish pending expose events.
 	//
-	m_pFrame->nullUpdate();
+	if (m_pFrame)
+		m_pFrame->nullUpdate();
 }
 
 void XAP_UnixDialog_Print::PrintDirectly(XAP_Frame * pFrame, const char * szFilename, const char * szPrinter)
 {
 	m_pFrame = pFrame;
 	setupPrint();
+	UT_return_if_fail(m_pPO);
 	if(szFilename)
     {
 		 gtk_print_operation_set_export_filename(m_pPO, szFilename);
@@ -487,6 +521,15 @@ void XAP_UnixDialog_Print::PrintDirectly(XAP_Frame * pFrame, const char * szFile
 	else
 	{
 		GtkPrintSettings *  pSettings = gtk_print_operation_get_print_settings(m_pPO);
+		bool bOwnSettings = false;
+		/* no settings object exists until one is assigned (setupPrint
+		 * only sets it for a remembered output URI) — printerless
+		 * direct-print must not set_printer on null */
+		if (!pSettings)
+		{
+			pSettings = gtk_print_settings_new();
+			bOwnSettings = true;
+		}
 		if(szPrinter)
 		{
 			gtk_print_settings_set_printer(pSettings, szPrinter);
@@ -494,6 +537,8 @@ void XAP_UnixDialog_Print::PrintDirectly(XAP_Frame * pFrame, const char * szFile
 		/* no explicit printer: leave the default; GTK_PRINT_SETTINGS_PRINTER
 		 * is the settings key name, not a printer name */
 		gtk_print_operation_set_print_settings(m_pPO,pSettings);
+		if (bOwnSettings)
+			g_object_unref(pSettings);
 		gtk_print_operation_run (m_pPO,GTK_PRINT_OPERATION_ACTION_PRINT,
 								 nullptr,nullptr);
 	}
