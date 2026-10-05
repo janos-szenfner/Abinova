@@ -1961,13 +1961,19 @@ just the bundle with `--bundle-only`).  It stages `make install`,
 copies the Homebrew dylib closure into `Contents/Frameworks`,
 rewrites every install name to `@executable_path/../Frameworks`,
 bundles the gdk-pixbuf loaders + cache, the compiled GSettings
-schemas and `abinova.icns`, writes an `Info.plist` registering
-`.abwn`/`.abw` UTIs plus `.docx`/`.doc`/`.odt`/`.rtf` associations,
-verifies no non-system dep is left dangling, and ad-hoc codesigns
-(arm64 binaries refuse to launch unsigned; Developer-ID signing is a
-later packaging step).  `--universal` on Apple Silicon merges an
-x86_64 build via `lipo` (needs Rosetta + a second brew at
-`/usr/local`), `--no-sign`/`--no-verify` skip those gates.
+schemas and `abinova.icns`, plus the runtime-loaded module layer —
+enchant spellcheck backends, the GIO modules (incl. the
+libgiognutls TLS backend) and a CA bundle the update check needs,
+GTK4 im/media/print modules and the GStreamer plugins — writes an
+`Info.plist` registering `.abwn`/`.abw` UTIs plus
+`.docx`/`.doc`/`.odt`/`.rtf` associations, verifies no non-system dep
+is left dangling, and ad-hoc codesigns (arm64 binaries refuse to
+launch unsigned; Developer-ID signing is a later packaging step).
+The launcher exports `ABINOVA_MODULE_ROOT=Contents/Frameworks` so the
+app can point the toolkit module loaders at the bundled dirs.
+`--universal` on Apple Silicon merges an x86_64 build via `lipo`
+(needs Rosetta + a second brew at `/usr/local`),
+`--no-sign`/`--no-verify` skip those gates.
 
 ### Building on Windows
 
@@ -1988,7 +1994,9 @@ build) collects a self-contained folder
 whole non-system DLL closure (resolved by an `objdump -p` fixpoint
 walk), a side-by-side `abinova.exe.manifest` declaring Windows 10
 compat and `longPathAware`, the datadir contents at the root, compiled
-glib schemas, gdk-pixbuf loaders+cache and the enchant backends.  The
+glib schemas, gdk-pixbuf loaders+cache, the enchant backends, the GIO
+modules (incl. the libgiognutls TLS backend), a CA-cert bundle for the
+update check, GTK4 module dirs and the GStreamer plugins.  The
 process start also removes the current directory from the DLL search
 path (`SetDllDirectory`/`SetDefaultDllDirectories`) so a stray DLL
 next to a document cannot shadow a bundled dependency.
@@ -2021,10 +2029,26 @@ dist/linux-bundle.sh --print-libs    # show the resolved closure only
 abinova-4.0.0-linux-x86_64/bin/abinova --version
 ```
 
-The script's verify step fails if `ldd` on the bundled binary resolves
-anything outside the bundle other than the declared system set
-(libc/libm/ld.so).  Enchant backends, GIO modules and GStreamer are
-deliberately left for the runtime-module layer (PACK06).
+It also bundles the runtime-loaded layer that `ldd` cannot see:
+enchant-2 spellcheck backends, the GIO modules (incl. the
+libgiognutls TLS backend) with a regenerated `giomodule.cache`, a
+`certs/ca-certificates.crt` CA store for the update check, the GTK4
+im/media/printbackends module dirs, and the GStreamer plugins.  The
+binary discovers them itself: at startup the app exports
+`GIO_EXTRA_MODULES`/`GTK_PATH`/`GST_PLUGIN_SYSTEM_PATH_1_0`/
+`GSETTINGS_SCHEMA_DIR` pointing at the bundle dirs (user-set values
+always win), rewrites the cache-relative `loaders.cache` to absolute
+paths under `$XDG_CACHE_HOME`, loads the CA bundle into a
+`GTlsFileDatabase` per TLS connection, and — because distro enchant
+builds do not honour their compiled-in provider dir — self-loads the
+bundled `enchant-2` backends through the `EnchantProvider` ABI when
+the broker reports no providers.  Spellcheck's session/personal
+wordlists degrade gracefully in that self-loaded mode (providers do
+not expose them without the broker); plain check/suggest work.
+
+The script's verify step fails if `ldd` on the bundled binary — or on
+any bundled module `.so` — resolves anything outside the bundle other
+than the declared system set (libc/libm/ld.so).
 
 ### Building on FreeBSD
 

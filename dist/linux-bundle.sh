@@ -11,8 +11,29 @@
 #                                          plus extra deps of the pixbuf
 #                                          loaders, all RUNPATH=$ORIGIN/../lib
 #   lib/gdk-pixbuf-2.0/<ver>/loaders/*.so  pixbuf modules, RUNPATH back to lib/
-#   lib/gdk-pixbuf-2.0/<ver>/loaders.cache
+#   lib/gdk-pixbuf-2.0/<ver>/loaders.cache (cache-relative module paths —
+#                                          the app rewrites them absolute in
+#                                          $XDG_CACHE_HOME at startup)
+#   lib/gio/modules/*.so + giomodule.cache PACK06: GIO modules incl. the
+#                                          libgiognutls TLS backend; the app
+#                                          exports GIO_EXTRA_MODULES at startup
+#   lib/gtk-4.0/<ver>/{immodules,media,printbackends}/
+#                                          GTK4 runtime modules; located via
+#                                          the app's GTK_PATH export
+#   lib/gstreamer-1.0/*.so                 plugins for GTK4's media module;
+#                                          located via GST_PLUGIN_SYSTEM_PATH_1_0
+#   lib/enchant-2/*.so                     spellcheck backends; the app
+#                                          self-loads them when the enchant
+#                                          broker finds none (its compiled-in
+#                                          provider dir is not relocatable on
+#                                          this distro). A copy also lands in
+#                                          lib/<multiarch>/enchant-2 for
+#                                          relocatable enchant builds
+#   share/enchant-2/enchant.ordering       provider priorities, where present
 #   share/glib-2.0/schemas/gschemas.compiled
+#   certs/ca-certificates.crt              CA bundle for the update check —
+#                                          xap_UpdateCheck loads it via a
+#                                          GTlsFileDatabase on each connection
 #   share/applications + share/icons       desktop files, kept for PACK09
 #   artwork/ fonts/ help/ mime-info/ omml_xslt/ system.profile templates/ xsltml/
 #                                          the datadir is flattened to the
@@ -27,12 +48,6 @@
 #
 # Only libc/libm/ld.so/vdso (+ glibc-family stub sonames) are treated as
 # system; everything else is copied per the PACK01 manifest.
-#
-# Enchant backends, GIO modules (libgiognutls + CA certs), GTK4
-# print/im/media modules and GStreamer are intentionally NOT bundled
-# here — that is PACK06's runtime-module layer. This script ships the
-# pieces PACK03 owns: shared-lib closure, rpath, schemas, pixbuf
-# loaders+cache.
 #
 # Usage:
 #   dist/linux-bundle.sh [--output DIR] [--patchelf PATH] [--stage DIR]
@@ -162,8 +177,58 @@ is_system_lib() {
 pixdir=$(find /usr/lib /usr/lib64 -type d -path '*gdk-pixbuf-2.0/*/loaders' \
 	2>/dev/null | sort | tail -n1)
 
+# PACK06 runtime modules — loaded via dlopen/g_io_modules_* at runtime,
+# invisible to ldd.  Their own NEEDED deps are folded into the closure
+# below so the bundle keeps its "system = libc family only" property.
+encdir=$(find /usr/lib /usr/lib64 -type d -name 'enchant-2' \
+	2>/dev/null | sort | tail -n1)
+giodir=$(find /usr/lib /usr/lib64 -type d -path '*/gio/modules' \
+	2>/dev/null | sort | tail -n1)
+# the gtk-4.0/<binary-version> dir carries immodules/media/printbackends
+gtkdir=$(find /usr/lib /usr/lib64 -type d -name printbackends \
+	-path '*gtk-4.0*' 2>/dev/null | sort | tail -n1)
+[ -n "$gtkdir" ] && gtkdir=$(dirname "$gtkdir")
+gstdir=""
+for d in $(find /usr/lib /usr/lib64 -type d -name 'gstreamer-1.0' \
+	2>/dev/null | sort); do
+	# the plugin dir holds *.so; a gstreamer1.0/gstreamer-1.0 dir seen
+	# on some distros carries only helper files — skip those
+	if ls "$d"/*.so >/dev/null 2>&1; then gstdir=$d; break; fi
+done
+
+# gstreamer plugins to bundle — sinks/test plugins irrelevant to
+# embedded-document playback are skipped so they can't drag whole
+# toolkits (libgtk-3) or niche hw/audio libs into the dep closure
+gst_plugins() {
+	[ -n "$gstdir" ] || return 0
+	for gst in "$gstdir"/*.so; do
+		[ -f "$gst" ] || continue
+		case ${gst##*/} in
+		libgst1394.so|libgstaasink.so|libgstcacasink.so|libgstgtk.so|\
+		libgstnavigationtest.so|libgstximagesink.so|libgstxvimagesink.so)
+			continue ;;
+		esac
+		echo "$gst"
+	done
+}
+
+# libcrypto is dlopen()'d by the .abwn crypto code (ut_abwncrypt.cpp);
+# it never shows up in NEEDED, so seed it into the closure explicitly
+# and copy it by hand below (ldd only lists a file's deps, not itself).
+cryptosrc=""
+for c in libcrypto.so.3 libcrypto.so.1.1 libcrypto.so.1.0.2 libcrypto.so; do
+	cryptosrc=$(find /usr/lib /usr/lib64 -name "$c" \
+		2>/dev/null | head -n1)
+	[ -n "$cryptosrc" ] && break
+done
+
 all_libs=$(ldd_libs "$libsrc"/libabinova-*.so \
-	${pixdir:+"$pixdir"/*.so} 2>/dev/null)
+	${pixdir:+"$pixdir"/*.so} \
+	${encdir:+"$encdir"/*.so} \
+	${giodir:+"$giodir"/*.so} \
+	${gtkdir:+$(find "$gtkdir" -type f -name '*.so' 2>/dev/null)} \
+	$(gst_plugins) \
+	${cryptosrc:+"$cryptosrc"} 2>/dev/null)
 notfound=$(echo "$all_libs" | awk '/^NOTFOUND/ {print $2}')
 if [ -n "$notfound" ]; then
 	echo "linux-bundle: unresolved deps before bundling:" >&2
@@ -172,7 +237,9 @@ if [ -n "$notfound" ]; then
 fi
 
 if [ $print_libs -eq 1 ]; then
-	echo "linux-bundle: closure for libabinova-$series.so + pixbuf loaders"
+	echo "linux-bundle: closure for libabinova-$series.so + runtime" \
+		"modules (pixbuf loaders, enchant backends, gio/gtk4/gstreamer" \
+		"modules, dlopen'd libcrypto)"
 	echo "$all_libs" | while read -r name path; do
 		if is_system_lib "$name"; then
 			echo "  system  $name -> $path"
@@ -199,6 +266,11 @@ echo "$all_libs" | while read -r name path; do
 done
 count=$(find "$outdir/lib" -maxdepth 1 -type f -name '*.so*' | wc -l)
 echo "linux-bundle: $count shared libs collected into lib/"
+
+# dlopen()'d, never a NEEDED entry — copy by hand under its soname
+if [ -n "$cryptosrc" ] && [ ! -f "$outdir/lib/${cryptosrc##*/}" ]; then
+	cp -aL "$cryptosrc" "$outdir/lib/${cryptosrc##*/}"
+fi
 
 # datadir contents at bundle root — the app's exe-path walk-up
 # (xap_UnixApp::_setAbiSuiteLibDir) discovers <root>/artwork itself
@@ -236,6 +308,97 @@ if [ -n "$pixdir" ]; then
 	fi
 else
 	echo "linux-bundle: WARNING no gdk-pixbuf loaders dir found" >&2
+fi
+
+# -------------------------------------------------- enchant backends
+# Enchant dlopen()s providers from a compiled-in dir that is NOT
+# relocatable on most distro builds; the app self-loads whatever sits
+# in <root>/lib/enchant-2 when the broker finds nothing
+# (enchant_checker.cpp).  A second copy under the host's multiarch
+# libdir tail (lib/<triplet>/enchant-2) covers gnulib-style relocatable
+# enchant builds, which resolve <prefix>/<libdir-tail>/enchant-2.
+if [ -n "$encdir" ]; then
+	mkdir -p "$outdir/lib/enchant-2"
+	cp -aL "$encdir"/*.so "$outdir/lib/enchant-2/"
+	mlib=$(dirname "$encdir")
+	case "$mlib" in
+	/usr/local/*) mlib=${mlib#/usr/local/} ;;	# /usr/local/lib -> lib
+	/usr/*)       mlib=${mlib#/usr/} ;;		# /usr/lib/<t> -> lib/<t>
+	*)            mlib="" ;;				# non-/usr prefix: skip mirror
+	esac
+	if [ -n "$mlib" ] && [ "$mlib" != "lib" ]; then
+		mkdir -p "$outdir/$mlib/enchant-2"
+		cp -aL "$encdir"/*.so "$outdir/$mlib/enchant-2/"
+	fi
+	if [ -f /usr/share/enchant-2/enchant.ordering ]; then
+		mkdir -p "$outdir/share/enchant-2"
+		cp -a /usr/share/enchant-2/enchant.ordering \
+			"$outdir/share/enchant-2/"
+	fi
+else
+	echo "linux-bundle: WARNING no enchant-2 backends dir found" >&2
+fi
+
+# ------------------------------------------------------ GIO modules
+# libgiognutls.so is the TLS backend the update check needs; the app
+# exports GIO_EXTRA_MODULES=<root>/lib/gio/modules at startup.
+if [ -n "$giodir" ]; then
+	bgio="$outdir/lib/gio/modules"
+	mkdir -p "$bgio"
+	cp -aL "$giodir"/*.so "$bgio/"
+	if command -v gio-querymodules >/dev/null 2>&1; then
+		gio-querymodules "$bgio" 2>/dev/null || \
+			echo "linux-bundle: WARNING gio-querymodules failed" >&2
+	else
+		echo "linux-bundle: WARNING no gio-querymodules —" >&2
+		echo "  gio modules copied but no giomodule.cache generated" >&2
+	fi
+else
+	echo "linux-bundle: WARNING no gio modules dir found" >&2
+fi
+
+# ------------------------------------------------------- CA bundle
+# xap_UpdateCheck loads certs/ca-certificates.crt into a
+# GTlsFileDatabase per connection — the pack must not depend on the
+# host's trust store.
+cabundle=""
+for c in /etc/ssl/certs/ca-certificates.crt \
+	/etc/pki/tls/certs/ca-bundle.crt \
+	/etc/ssl/ca-bundle.pem /etc/ssl/cert.pem; do
+	if [ -f "$c" ]; then cabundle=$c; break; fi
+done
+if [ -n "$cabundle" ]; then
+	mkdir -p "$outdir/certs"
+	cp -aL "$cabundle" "$outdir/certs/ca-certificates.crt"
+else
+	echo "linux-bundle: WARNING no CA certificate bundle found" >&2
+fi
+
+# --------------------------------------------------- GTK4 modules
+# immodules / media / printbackends dirs, incl. their giomodule.cache
+# files (the caches list bare module names — already relocatable).
+# The app exports GTK_PATH=<root>/lib/gtk-4.0 at startup.
+if [ -n "$gtkdir" ]; then
+	relgtk=$(echo "$gtkdir" | sed 's|.*/\(gtk-4.0/.*\)|\1|')
+	mkdir -p "$outdir/lib/$relgtk"
+	for sub in "$gtkdir"/*; do
+		[ -d "$sub" ] || continue
+		cp -aL "$sub" "$outdir/lib/$relgtk/"
+	done
+else
+	echo "linux-bundle: WARNING no gtk-4.0 module dir found" >&2
+fi
+
+# ---------------------------------------------------- GStreamer
+# plugins for GTK4's libmedia-gstreamer.so; the app exports
+# GST_PLUGIN_SYSTEM_PATH_1_0=<root>/lib/gstreamer-1.0 at startup.
+if [ -n "$gstdir" ]; then
+	mkdir -p "$outdir/lib/gstreamer-1.0"
+	gst_plugins | while IFS= read -r gst; do
+		cp -aL "$gst" "$outdir/lib/gstreamer-1.0/" 2>/dev/null || true
+	done
+else
+	echo "linux-bundle: WARNING no gstreamer-1.0 plugins dir found" >&2
 fi
 
 # ------------------------------------------------ gschemas.compiled
@@ -301,9 +464,20 @@ fi
 		if is_system_lib "$name"; then echo "  $name -> $path"; fi
 	done
 	echo
-	echo "runtime modules intentionally NOT bundled (PACK06):"
-	echo "  enchant-2 backends, GIO modules (libgiognutls TLS + CA certs),"
-	echo "  GTK4 print/im/media modules, GStreamer"
+	echo "runtime modules (PACK06):"
+	echo "  lib/enchant-2/            spellcheck backends (self-loaded by"
+	echo "                            the app when the enchant broker's"
+	echo "                            compiled-in provider dir is absent)"
+	[ -n "$mlib" ] && [ "$mlib" != "lib" ] && [ -d "$outdir/$mlib/enchant-2" ] && \
+		echo "  $mlib/enchant-2/  mirror for relocatable enchant builds"
+	echo "  lib/gio/modules/          GIO modules incl. TLS backend"
+	echo "                            (GIO_EXTRA_MODULES set by the app)"
+	echo "  lib/gtk-4.0/<ver>/        immodules, media, printbackends"
+	echo "                            (GTK_PATH set by the app)"
+	echo "  lib/gstreamer-1.0/        plugins for the GTK4 media module"
+	echo "                            (GST_PLUGIN_SYSTEM_PATH_1_0 set by app)"
+	echo "  certs/ca-certificates.crt CA store for the update check"
+	echo "                            (GTlsFileDatabase per connection)"
 } > "$outdir/BUNDLE-INFO.txt"
 
 # ------------------------------------------------------------ verify
@@ -329,6 +503,28 @@ if [ $verify -eq 1 ]; then
 				echo "leak" >> "$tmp/leaks"
 			fi ;;
 		esac
+	done
+	[ -f "$tmp/leaks" ] && bad=1
+
+	# PACK06: the runtime-loaded modules (dlopen'd — invisible to the
+	# binary's own ldd) get the same resolution gate
+	find "$outdir/lib" -type f -name '*.so*' | while read -r f; do
+		is_elf "$f" || continue
+		LC_ALL=C ldd "$f" 2>/dev/null | awk -v f="$f" -v out="$outdir" \
+			-v leaks="$tmp/leaks" '
+			/=> *not found/ {
+				print "  FAIL: " f ": " $1 " not found" > "/dev/stderr";
+				print "x" >> leaks; next }
+			/=>/ {
+				p = $3
+				if (p ~ "^" out "/") next
+				split($1, a, ".")
+				# system-soname check duplicated from is_system_lib()
+				if ($1 ~ /^(libc|libm|libdl|libpthread|librt|libutil|libresolv|libnsl|libanl|ld-linux-|ld-musl-|linux-vdso|linux-gate)/) next
+				print "  FAIL: " f ": " $1 " -> " p " (outside bundle)" \
+					> "/dev/stderr"
+				print "x" >> leaks
+			}'
 	done
 	[ -f "$tmp/leaks" ] && bad=1
 

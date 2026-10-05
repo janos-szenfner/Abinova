@@ -4138,6 +4138,21 @@ below are on `main` but the release has not been cut yet.
   no longer shadow a bundled dependency.  The collection logic is
   plain POSIX sh + objdump and equally collects an MXE
   cross-compiled tree via `--stage DIR --dll-dirs`.
+- **Runtime-module bundling** — all three bundle scripts now ship
+  the parts `ldd`/`otool`/`objdump` cannot see: enchant-2 spellcheck
+  backends, GIO modules (incl. the libgiognutls TLS backend) with a
+  regenerated `giomodule.cache`, a `certs/ca-certificates.crt` trust
+  store for the update check, the GTK4 `immodules`/`media`/
+  `printbackends` dirs, the GStreamer plugins, and the `dlopen`'d
+  `libcrypto`.  At startup the app locates them itself: it exports
+  `GIO_EXTRA_MODULES`, `GTK_PATH`, `GST_PLUGIN_SYSTEM_PATH_1_0` and
+  `GSETTINGS_SCHEMA_DIR` pointing at the bundle (user-set values win),
+  rewrites the cache-relative pixbuf `loaders.cache` to absolute
+  paths under `$XDG_CACHE_HOME`, loads the bundled CA bundle into a
+  `GTlsFileDatabase` for each update-check TLS connection, and — for
+  distro enchant builds whose compiled-in provider dir is not
+  relocatable — self-loads the bundled `enchant-2` backends through
+  the `EnchantProvider` ABI when the broker finds no providers.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

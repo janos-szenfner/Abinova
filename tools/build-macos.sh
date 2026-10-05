@@ -22,6 +22,7 @@
 #                                           public UTIs)
 #       MacOS/abinova                       launcher: pins
 #                                           ABINOVA_DATADIR,
+#                                           ABINOVA_MODULE_ROOT,
 #                                           GDK_BACKEND=quartz,
 #                                           GDK_PIXBUF_MODULE_FILE,
 #                                           GSETTINGS_SCHEMA_DIR,
@@ -34,11 +35,17 @@
 #                                           manual otool/install_name_tool —
 #                                           no dylibbundler dep needed)
 #       Frameworks/gdk-pixbuf-2.0/loaders/  pixbuf loaders + loaders.cache
-#                                           (cache paths relative to the
-#                                           cache dir — relocatable)
+#                                           (cache paths relative — the app
+#                                           rewrites them absolute at startup)
+#       Frameworks/gio/modules/             GIO modules incl. the libgiognutls
+#                                           TLS backend + giomodule.cache
+#       Frameworks/enchant-2/               spellcheck backends (self-loaded)
+#       Frameworks/gtk-4.0/<ver>/           immodules/media/printbackends
+#       Frameworks/gstreamer-1.0/           media plugins
 #       Resources/                          datadir contents (artwork/,
 #                                           fonts/, help/, ...)
 #       Resources/glib-2.0/schemas/         gschemas.compiled
+#       Resources/certs/ca-certificates.crt CA store for the update check
 #       Resources/abinova.icns              bundle icon
 #
 #   The verify pass re-walks every Mach-O file in the bundle and fails
@@ -47,9 +54,9 @@
 #   backend is compiled into libgtk-4 itself (brew builds
 #   -Dmacos-backend=true), so bundling the lib covers it — the
 #   launcher pins GDK_BACKEND=quartz as a belt-and-braces default.
-#   Enchant backends, GIO modules (incl. the libgiognutls TLS module
-#   the update check needs) and GStreamer are PACK06's runtime-module
-#   layer, not bundled here.
+#   The dlopen'd runtime modules (enchant backends, GIO modules incl.
+#   the libgiognutls TLS backend + CA bundle, GTK4 module dirs,
+#   GStreamer plugins) are staged by the PACK06 section below.
 #
 #   Apple Silicon notes:
 #   * arm64 Mach-O refuses to launch unsigned, so the bundle stage
@@ -146,6 +153,7 @@ if [ $skip_deps -eq 0 ]; then
 		gtk4 cairo pango librsvg fribidi \
 		libgsf libxslt zlib libpng jpeg-turbo \
 		enchant hunspell \
+		glib-networking ca-certificates gstreamer \
 		boost \
 		perl make
 	if [ $universal -eq 1 ]; then
@@ -154,6 +162,7 @@ if [ $skip_deps -eq 0 ]; then
 			gtk4 cairo pango librsvg fribidi \
 			libgsf libxslt zlib libpng jpeg-turbo \
 			enchant hunspell \
+			glib-networking ca-certificates gstreamer \
 			boost \
 			perl make
 	fi
@@ -402,6 +411,102 @@ else
 	echo "build-macos: WARNING glib schemas/compiler missing" >&2
 fi
 
+# ---------------------------------------- PACK06 runtime modules
+# dlopen'd modules — invisible to otool -L of the binary, so they are
+# staged explicitly; the closure walk below picks up THEIR deps.
+# The launcher exports ABINOVA_MODULE_ROOT=Frameworks and the app's
+# runtime-module setup (xap_UnixApp::_setBundleModulePaths) maps the
+# GIO/GTK/GStreamer dirs plus the enchant backends under it.
+bundle_modules() { # $1 = brew srcdir, $2 = dest dir under $fw
+	src=$1
+	dst="$fw/$2"
+	[ -d "$src" ] || return 1
+	mkdir -p "$dst"
+	for so in "$src"/*.so; do
+		[ -f "$so" ] || continue
+		base=${so##*/}
+		if [ $universal -eq 1 ]; then
+			so2=$(echo "$so" | sed "s|^$brew_prefix|$otherbrew|")
+			if [ -f "$so2" ]; then
+				lipo -create "$so" "$so2" -output "$dst/$base" || \
+					cp -aL "$so" "$dst/$base"
+			else
+				cp -aL "$so" "$dst/$base"
+				echo "$so" >> "$thinfile"
+			fi
+		else
+			cp -aL "$so" "$dst/$base"
+		fi
+	done
+	return 0
+}
+
+# GIO modules — libgiognutls is the TLS backend the update check needs
+if bundle_modules "$brew_prefix/lib/gio/modules" "gio/modules"; then
+	query=$(command -v gio-querymodules 2>/dev/null || true)
+	[ -n "$query" ] || query=$(find "$brew_prefix" -type f \
+		-name 'gio-querymodules*' 2>/dev/null | head -n1)
+	[ -n "$query" ] && "$query" "$fw/gio/modules" 2>/dev/null || true
+else
+	echo "build-macos: WARNING no gio modules dir (brew glib-networking?)" >&2
+fi
+
+# enchant spellcheck backends — the app self-loads
+# $ABINOVA_MODULE_ROOT/enchant-2 when the broker's compiled-in dir
+# has no providers (brew enchant is not built --enable-relocatable)
+bundle_modules "$brew_prefix/lib/enchant-2" "enchant-2" || \
+	echo "build-macos: WARNING no enchant backends dir found" >&2
+
+# GTK4 module dirs (immodules/media/printbackends, incl. their
+# giomodule.cache — bare module names, already relocatable)
+gtkroot=$(find "$brew_prefix/lib" -type d -name printbackends \
+	-path '*gtk-4.0*' 2>/dev/null | sort | tail -n1)
+if [ -n "$gtkroot" ]; then
+	gtkroot=$(dirname "$gtkroot")	# gtk-4.0/<binary-version>
+	relgtk=${gtkroot##*/lib/}
+	# copy whole subdirs — they carry giomodule.cache files as well as
+	# modules — then lipo-merge each .so for the universal case
+	for sub in "$gtkroot"/*/; do
+		[ -d "$sub" ] || continue
+		sub=${sub%/}
+		mkdir -p "$fw/$relgtk/${sub##*/}"
+		cp -aL "$sub/." "$fw/$relgtk/${sub##*/}/"
+		for so in "$sub"/*.so; do
+			[ -f "$so" ] || continue
+			base=${so##*/}
+			if [ $universal -eq 1 ]; then
+				so2=$(echo "$so" | sed "s|^$brew_prefix|$otherbrew|")
+				if [ -f "$so2" ]; then
+					lipo -create "$so" "$so2" \
+						-output "$fw/$relgtk/${sub##*/}/$base" || true
+				fi
+			fi
+		done
+	done
+else
+	echo "build-macos: WARNING no gtk-4.0 module dir found" >&2
+fi
+
+# GStreamer plugins for GTK4's libmedia-gstreamer.so
+bundle_modules "$brew_prefix/lib/gstreamer-1.0" "gstreamer-1.0" || \
+	echo "build-macos: WARNING no gstreamer-1.0 plugins dir found" >&2
+
+# CA bundle for the update check — Resources/certs/ca-certificates.crt
+# is probed by xap_UpdateCheck.cpp (app-relative; the host trust
+# store stays the fallback).
+capfx=$(brew --prefix ca-certificates 2>/dev/null || echo "$brew_prefix")
+for c in "$capfx/share/ca-certificates/cacert.pem" \
+	"$brew_prefix/etc/ca-certificates/cert.pem" \
+	"$brew_prefix/etc/openssl@3/cert.pem"; do
+	if [ -f "$c" ]; then
+		mkdir -p "$res/certs"
+		cp -aL "$c" "$res/certs/ca-certificates.crt"
+		break
+	fi
+done
+[ -f "$res/certs/ca-certificates.crt" ] || \
+	echo "build-macos: WARNING no CA bundle found" >&2
+
 # ------------------------------------------------ dylib closure walk
 # Iterate to a fixpoint: every Mach-O already in the bundle feeds its
 # dep list; each copied dylib may pull more deps.
@@ -535,10 +640,15 @@ fw="$contents/Frameworks"
 
 export ABINOVA_DATADIR="$res"
 export GDK_BACKEND="${GDK_BACKEND:-quartz}"
+# PACK06: tell the app's runtime-module setup where the Frameworks
+# module dirs live — it exports GIO_EXTRA_MODULES / GTK_PATH /
+# GST_PLUGIN_SYSTEM_PATH_1_0 and fixes GDK_PIXBUF_MODULE_FILE itself.
+# enchant backends under $fw/enchant-2 are self-loaded via the
+# provider ABI; the CA bundle is probed at $res/certs/.
+export ABINOVA_MODULE_ROOT="$fw"
 export GDK_PIXBUF_MODULE_FILE="$fw/gdk-pixbuf-2.0/loaders.cache"
 export GSETTINGS_SCHEMA_DIR="$res/glib-2.0/schemas"
-# PACK06 will add: GIO_MODULE_DIR (glib-networking TLS), enchant
-# backend dir, CA-cert bundle env, fontconfig (PACK07).
+# PACK07 will add: fontconfig + bundled font set.
 
 exec "$here/abinova-bin" "$@"
 LAUNCHER

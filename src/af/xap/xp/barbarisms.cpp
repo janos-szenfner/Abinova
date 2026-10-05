@@ -69,7 +69,8 @@ bool BarbarismChecker::load(const char * szLang)
 
 	bool bLoaded = false;
 
-	if (XAP_App::getApp()->findAbiSuiteLibFile(fullPath, fileName.c_str(), "dictionary"))
+	XAP_App * app = XAP_App::getApp();
+	if (app && app->findAbiSuiteLibFile(fullPath, fileName.c_str(), "dictionary"))
 	{
 		UT_XML parser;
 

@@ -25,7 +25,63 @@
 
 #include <gio/gio.h>
 
+#include "xap_App.h"
 #include "xap_UpdateCheck.h"
+
+/* Bundled CA store (PACK06): a relocatable bundle ships
+ * <AbiSuiteLibDir>/certs/ca-certificates.crt — the host may have no
+ * system trust store at all, and the update check is exactly the kind
+ * of connection that must not fail open.  ABINOVA_CA_BUNDLE overrides
+ * the location (tests, distro-specific file names); when neither is
+ * present the backend's default trust is used unchanged. */
+static GTlsDatabase *
+abi_update_tls_database(void)
+{
+	static GTlsDatabase * db = nullptr;
+	static bool checked = false;
+	if (checked)
+		return db;
+	checked = true;
+
+	const char * env = g_getenv("ABINOVA_CA_BUNDLE");
+	std::string ca = (env && *env) ? env : "";
+	if (ca.empty())
+	{
+		const char * mr = g_getenv("ABINOVA_MODULE_ROOT");
+		if (mr && *mr)
+		{
+			ca = mr;
+			ca += "/certs/ca-certificates.crt";
+		}
+		if (!g_file_test(ca.c_str(), G_FILE_TEST_IS_REGULAR))
+		{
+			if (XAP_App * app = XAP_App::getApp())
+			{
+				ca = app->getAbiSuiteLibDir();
+				ca += "/certs/ca-certificates.crt";
+			}
+			else
+				ca.clear();
+		}
+	}
+	if (!ca.empty() && g_file_test(ca.c_str(), G_FILE_TEST_IS_REGULAR))
+		db = G_TLS_DATABASE(g_tls_file_database_new(ca.c_str(), nullptr));
+	return db;
+}
+
+/* GSocketClient emits TLS_HANDSHAKING right before it drives the
+ * handshake — our last chance to give the fresh GTlsConnection the
+ * bundled CA store. */
+static void
+abi_tls_event(GSocketClient *, GSocketClientEvent event,
+			  GSocketConnectable *, GIOStream * iostream,
+			  gpointer db)
+{
+	if (event == G_SOCKET_CLIENT_TLS_HANDSHAKING &&
+		G_IS_TLS_CONNECTION(iostream))
+		g_tls_connection_set_database(G_TLS_CONNECTION(iostream),
+									  G_TLS_DATABASE(db));
+}
 
 /* blocking HTTPS GET; true when the server gave a 2xx response (body
  * may still be empty, e.g. an empty JSON list), false on any
@@ -53,6 +109,10 @@ bool XAP_httpsGet(const char * host, const char * path,
 	GSocketClient * client = g_socket_client_new();
 	g_socket_client_set_tls(client, TRUE);
 	g_socket_client_set_timeout(client, 15);
+
+	// give the TLS connection the bundled CA store, when there is one
+	if (GTlsDatabase * db = abi_update_tls_database())
+		g_signal_connect(client, "event", G_CALLBACK(abi_tls_event), db);
 
 	GSocketConnection * conn = g_socket_client_connect_to_host(
 		client, host, 443, nullptr, &err);

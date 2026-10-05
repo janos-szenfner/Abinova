@@ -29,6 +29,10 @@
 typedef std::intptr_t ssize_t;
 #endif
 #include <enchant.h>
+#if !defined(_WIN32)
+/* PACK06: bundled-provider fallback drives the provider ABI directly */
+#include <enchant-provider.h>
+#endif
 
 class ABI_EXPORT EnchantChecker : public SpellChecker
 {
@@ -58,6 +62,10 @@ private:
 	virtual std::vector<UT_UCS4Char*> _suggestWord (const UT_UCS4Char * word, size_t len) override;
 
 	EnchantDict *m_dict;
+#if !defined(_WIN32)
+	EnchantProvider *m_bundledProvider;	// non-null when m_dict came
+										// from a self-loaded backend
+#endif
 };
 
 #endif

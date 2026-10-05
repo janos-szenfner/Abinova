@@ -128,6 +128,12 @@ binary NEEDs only `libabinova-4.0.so` + `libc`, `make install` in
 
 ## 4. Runtime-loaded modules (invisible to ldd — copy + locate)
 
+Shipped by PACK06 in all three bundle scripts; `dist/RUNTIME-DEPS.md`
+records how each is located at runtime (`GIO_EXTRA_MODULES`, `GTK_PATH`,
+`GST_PLUGIN_SYSTEM_PATH_1_0`, `GSETTINGS_SCHEMA_DIR`, a per-user
+absolute `loaders.cache`, bundled-provider self-loading for enchant,
+and a `GTlsFileDatabase` CA store for the update check).
+
 | Module | Found at (this box) | Needed for |
 |---|---|---|
 | enchant-2 backends | /usr/lib/x86_64-linux-gnu/enchant-2/{hunspell,aspell,hspell}.so | spellcheck |

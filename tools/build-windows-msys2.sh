@@ -47,6 +47,11 @@
 #                                    (cache paths made cache-relative —
 #                                    relocatable)
 #     lib/enchant-2/*.dll            spellcheck backends
+#     lib/gio/modules/*.dll          GIO modules incl. the libgiognutls
+#                                    TLS backend (PACK06)
+#     lib/gtk-4.0/<ver>/             immodules/media/printbackends
+#     lib/gstreamer-1.0/*.dll        media plugins
+#     certs/ca-certificates.crt      CA store for the update check
 #     BUNDLE-INFO.txt                provenance + bundled-dll list
 #
 #   The verify pass re-walks every PE file in the bundle and fails if
@@ -55,10 +60,13 @@
 #   friends locate share/ and lib/ relative to their own DLL's prefix
 #   (bin/ -> <bundle>/), so the structure mirrors an MSYS2 prefix.
 #
-#   GIO modules (libgiognutls TLS + CA certs — the update check needs
-#   them), hunspell/hyph dictionaries and the fontconfig/font set are
-#   PACK06/PACK07's layer, not bundled here; signing + installer are
-#   PACK09.
+#   GIO modules (the libgiognutls TLS backend), the CA-cert bundle,
+#   GTK4 module dirs and GStreamer plugins are staged by the PACK06
+#   section below; the app's runtime-module setup points GIO_EXTRA_
+#   MODULES / GTK_PATH / GST_PLUGIN_SYSTEM_PATH_1_0 at them and loads
+#   certs/ca-certificates.crt for the update check.  hunspell/hyph
+#   dictionaries and fontconfig/fonts are PACK07's layer; signing +
+#   installer are PACK09.
 #
 #   Cross-compile note: MXE (mxe.cc) is a viable CI alternative for
 #   producing abinova.exe without a Windows box
@@ -145,6 +153,10 @@ if [ $skip_deps -eq 0 ]; then
 		"${pkgpfx}-libjpeg-turbo" \
 		"${pkgpfx}-enchant" \
 		"${pkgpfx}-hunspell" \
+		"${pkgpfx}-glib-networking" \
+		"${pkgpfx}-ca-certificates" \
+		"${pkgpfx}-gst-plugins-base" \
+		"${pkgpfx}-gst-plugins-good" \
 		"${pkgpfx}-boost" \
 		"${pkgpfx}-glib2-devel" \
 		perl make
@@ -390,8 +402,73 @@ else
 	echo "build-windows: WARNING no enchant backends dir found" >&2
 fi
 
-# PACK06: GIO modules dir (lib/gio/modules — libgiognutls TLS for the
-# update check) + CA-cert bundle go here.
+# ----------------------------------------------------- GIO modules
+# libgiognutls is the TLS backend the update check needs.  The app's
+# runtime-module setup exports GIO_EXTRA_MODULES=<root>/lib/gio/modules;
+# on Windows glib would also auto-probe <prefix>/lib/gio/modules via
+# its own DLL location, so the layout matters either way.
+giodir=$(find "${MINGW_PREFIX:-/nonexistent}/lib" -type d \
+	-path '*/gio/modules' 2>/dev/null | sort | tail -n1)
+if [ -n "$giodir" ]; then
+	bgio="$outdir/lib/gio/modules"
+	mkdir -p "$bgio"
+	for dll in "$giodir"/*.dll; do
+		[ -f "$dll" ] || continue
+		cp -aL "$dll" "$bgio/${dll##*/}"
+	done
+	query=$(command -v gio-querymodules 2>/dev/null || true)
+	[ -n "$query" ] && "$query" "$bgio" >/dev/null 2>&1 || true
+else
+	echo "build-windows: WARNING no gio modules dir found" >&2
+	echo "  (pacman ${pkgpfx}-glib-networking provides the TLS backend)" >&2
+fi
+
+# -------------------------------------------------------- CA bundle
+# xap_UpdateCheck loads certs/ca-certificates.crt relative to the
+# datadir root into a GTlsFileDatabase per connection.
+for c in "${MINGW_PREFIX:-/nonexistent}/etc/ssl/certs/ca-bundle.crt" \
+	"${MINGW_PREFIX:-/nonexistent}/etc/ssl/cert.pem"; do
+	if [ -f "$c" ]; then
+		mkdir -p "$outdir/certs"
+		cp -aL "$c" "$outdir/certs/ca-certificates.crt"
+		break
+	fi
+done
+[ -f "$outdir/certs/ca-certificates.crt" ] || \
+	echo "build-windows: WARNING no CA bundle found" >&2
+
+# --------------------------------------------------- GTK4 modules
+# immodules/media/printbackends subdirs of lib/gtk-4.0/<ver>; the app
+# exports GTK_PATH=<root>/lib/gtk-4.0.
+gtkdir=$(find "${MINGW_PREFIX:-/nonexistent}/lib" -type d \
+	-name printbackends -path '*gtk-4.0*' 2>/dev/null | sort | tail -n1)
+if [ -n "$gtkdir" ]; then
+	gtkdir=$(dirname "$gtkdir")
+	relgtk=$(echo "$gtkdir" | sed 's|.*/\(gtk-4.0/.*\)|\1|')
+	for sub in "$gtkdir"/*/; do
+		[ -d "$sub" ] || continue
+		mkdir -p "$outdir/lib/$relgtk"
+		cp -aL "${sub%/}" "$outdir/lib/$relgtk/"
+	done
+else
+	echo "build-windows: WARNING no gtk-4.0 module dir found" >&2
+fi
+
+# ---------------------------------------------------- GStreamer
+# plugins for GTK4's libmedia-gstreamer.dll; the app exports
+# GST_PLUGIN_SYSTEM_PATH_1_0=<root>/lib/gstreamer-1.0.
+gstdir=$(find "${MINGW_PREFIX:-/nonexistent}/lib" -type d \
+	-name 'gstreamer-1.0' 2>/dev/null | sort | tail -n1)
+if [ -n "$gstdir" ]; then
+	mkdir -p "$outdir/lib/gstreamer-1.0"
+	for dll in "$gstdir"/*.dll; do
+		[ -f "$dll" ] || continue
+		cp -aL "$dll" "$outdir/lib/gstreamer-1.0/${dll##*/}"
+	done
+else
+	echo "build-windows: WARNING no gstreamer-1.0 dir found" >&2
+fi
+
 # PACK07: hunspell/hyph dictionaries + fontconfig/fonts go here.
 
 # --------------------------------------------- DLL closure walk
@@ -464,7 +541,9 @@ EOF
 	echo
 	echo "bin/      abinova.exe + abinova.exe.manifest + DLL closure"
 	echo "share/    glib-2.0/schemas/gschemas.compiled"
-	echo "lib/      gdk-pixbuf-2.0 loaders+cache, enchant-2 backends"
+	echo "lib/      gdk-pixbuf-2.0 loaders+cache, enchant-2 backends,"
+	echo "          gio/modules (TLS), gtk-4.0 modules, gstreamer-1.0"
+	echo "certs/    ca-certificates.crt (update-check CA store)"
 	echo "root      datadir contents (artwork/, fonts/, ...)"
 	echo
 	echo "Bundled DLLs:"

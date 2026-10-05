@@ -116,6 +116,7 @@ public:
 	{ return m_gtkApp; }
 protected:
 	void							_setAbiSuiteLibDir();
+	void							_setBundleModulePaths();
 
 	AP_UnixDialogFactory* m_dialogFactory;
 	AP_UnixToolbar_ControlFactory* m_controlFactory;

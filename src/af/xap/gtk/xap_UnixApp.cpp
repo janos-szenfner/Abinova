@@ -40,6 +40,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <vector>
 
 #include <sys/stat.h>
 
@@ -80,6 +81,9 @@ XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
 	UT_ASSERT(fc_inited);
 
 	_setAbiSuiteLibDir();
+
+	// Runtime-loaded modules bundled next to the binary (PACK06)
+	_setBundleModulePaths();
 
 	// Make the bundled font collection (installed under
 	// <AbiSuiteLibDir>/fonts) visible to fontconfig so documents
@@ -412,6 +416,172 @@ void XAP_UnixApp::_setAbiSuiteLibDir()
 	}
 
 	return;
+}
+
+/*****************************************************************/
+/* PACK06 — relocatable-bundle runtime modules.
+ *
+ * GIO modules (the TLS backend the update check needs), GTK4 module
+ * dirs (print/input/media), GStreamer plugins, gdk-pixbuf loaders and
+ * GSettings schemas are all located via paths compiled into the
+ * toolkit libraries; dist/linux-bundle.sh ships them under the bundle
+ * root and tools/build-macos.sh under Contents/Frameworks, where the
+ * compiled-in prefixes never look.  This routine exports the
+ * discovery variables — but ONLY when the target actually exists, so
+ * a normal install or a build-tree run keeps working untouched, and
+ * only when the user has not set the variable already.
+ *
+ * The module root defaults to getAbiSuiteLibDir() (Linux/Windows
+ * bundle root); the macOS launcher exports ABINOVA_MODULE_ROOT to
+ * Contents/Frameworks because there the modules sit beside the dylibs.
+ */
+
+static void
+abi_bundle_env_dir(const char * name, const std::vector<std::string> & dirs)
+{
+	if (g_getenv(name))
+		return;	// user-specified env always wins
+	for (const auto & d : dirs)
+	{
+		if (g_file_test(d.c_str(), G_FILE_TEST_IS_DIR))
+		{
+			g_setenv(name, d.c_str(), TRUE);
+			return;
+		}
+	}
+}
+
+// The bundle scripts emit a loaders.cache whose module paths are
+// relative to the cache's own directory ("loaders/libpixbufloader-
+// png.so").  Non-relocatable gdk-pixbuf builds (everywhere except
+// Windows upstream) use those paths verbatim — i.e. resolved against
+// the process CWD — so rewrite the cache into a per-user file with
+// absolute paths.  Returns the path that GDK_PIXBUF_MODULE_FILE
+// should point at (the source cache itself if the rewrite fails).
+static std::string
+abi_abs_pixbuf_cache(const std::string & cache)
+{
+	gchar * text = nullptr;
+	gsize len = 0;
+	if (!g_file_get_contents(cache.c_str(), &text, &len, nullptr))
+		return cache;
+	std::string content(text, len);
+	g_free(text);
+
+	std::string dir = cache.substr(0, cache.find_last_of(G_DIR_SEPARATOR));
+	std::string out;
+	out.reserve(content.size() + dir.size() + 16);
+	size_t pos = 0;
+	while (pos < content.size())
+	{
+		size_t nl = content.find('\n', pos);
+		size_t linelen = (nl == std::string::npos)
+			? content.size() - pos : nl - pos + 1;
+		// module lines are the only quoted line starting a line:
+		//   "loaders/libpixbufloader-bmp.so"
+		static constexpr char kModPfx[] = "\"loaders/";
+		constexpr size_t kModPfxLen = sizeof(kModPfx) - 1;
+		if (linelen > kModPfxLen + 1 &&
+			content.compare(pos, kModPfxLen, kModPfx) == 0)
+		{
+			out += '"';
+			out += dir;
+			out += '/';
+			out += content.substr(pos + 1, linelen - 1);
+		}
+		else
+			out += content.substr(pos, linelen);
+		pos += linelen;
+	}
+	if (out == content)
+		return cache;	// nothing relative to fix
+
+	std::string udir = g_get_user_cache_dir();
+	udir += "/abinova";
+	g_mkdir_with_parents(udir.c_str(), 0700);
+	char namebuf[64];
+	g_snprintf(namebuf, sizeof(namebuf), "loaders-%08x.cache",
+			   g_str_hash(cache.c_str()));
+	std::string outpath = udir + "/" + namebuf;
+
+	gchar * old = nullptr;
+	if (g_file_get_contents(outpath.c_str(), &old, nullptr, nullptr))
+	{
+		bool same = (out == old);
+		g_free(old);
+		if (same)
+			return outpath;
+	}
+	if (g_file_set_contents(outpath.c_str(), out.c_str(),
+							(gssize)out.size(), nullptr))
+		return outpath;
+	return cache;
+}
+
+void XAP_UnixApp::_setBundleModulePaths(void)
+{
+	const std::string libdir = getAbiSuiteLibDir();
+	const char * mr = g_getenv("ABINOVA_MODULE_ROOT");
+	const std::string modroot = (mr && *mr) ? mr : libdir;
+
+	// module dir candidates — Linux/Windows keep a <root>/lib/...
+	// tree, the macOS .app drops the lib level (Frameworks/<dir>)
+	abi_bundle_env_dir("GIO_EXTRA_MODULES",
+		{ modroot + "/lib/gio/modules", modroot + "/gio/modules" });
+	abi_bundle_env_dir("GTK_PATH",
+		{ modroot + "/lib/gtk-4.0", modroot + "/gtk-4.0" });
+	abi_bundle_env_dir("GST_PLUGIN_SYSTEM_PATH_1_0",
+		{ modroot + "/lib/gstreamer-1.0",
+		  modroot + "/gstreamer-1.0" });
+
+	const std::string schemas = libdir + "/share/glib-2.0/schemas";
+	if (!g_getenv("GSETTINGS_SCHEMA_DIR") &&
+		g_file_test((schemas + "/gschemas.compiled").c_str(),
+					G_FILE_TEST_IS_REGULAR))
+		g_setenv("GSETTINGS_SCHEMA_DIR", schemas.c_str(), TRUE);
+
+	// gdk-pixbuf loaders.cache — honour an existing env pointing at a
+	// bundle cache (the macOS launcher pre-sets one), else probe.
+	std::string cache;
+	const char * envcache = g_getenv("GDK_PIXBUF_MODULE_FILE");
+	if (envcache && *envcache &&
+		g_file_test(envcache, G_FILE_TEST_IS_REGULAR))
+		cache = envcache;
+	else
+	{
+		const std::vector<std::string> bases = {
+			modroot + "/lib/gdk-pixbuf-2.0",
+			modroot + "/gdk-pixbuf-2.0",
+			libdir + "/lib/gdk-pixbuf-2.0",
+			libdir + "/gdk-pixbuf-2.0" };
+		for (const auto & base : bases)
+		{
+			GDir * d = g_dir_open(base.c_str(), 0, nullptr);
+			if (!d)
+				continue;
+			std::string cand = base + "/loaders.cache";	// flat layout
+			bool found = g_file_test(cand.c_str(), G_FILE_TEST_IS_REGULAR);
+			const gchar * name;
+			while (!found && (name = g_dir_read_name(d)) != nullptr)
+			{
+				cand = base + "/" + name + "/loaders.cache";
+				found = g_file_test(cand.c_str(), G_FILE_TEST_IS_REGULAR);
+			}
+			g_dir_close(d);
+			if (found)
+			{
+				cache = cand;
+				break;
+			}
+		}
+	}
+	if (!cache.empty() &&
+		(g_str_has_prefix(cache.c_str(), modroot.c_str()) ||
+		 g_str_has_prefix(cache.c_str(), libdir.c_str())))
+	{
+		std::string abs = abi_abs_pixbuf_cache(cache);
+		g_setenv("GDK_PIXBUF_MODULE_FILE", abs.c_str(), TRUE);
+	}
 }
 
 //////////////////////////////////////////////////////////////////
