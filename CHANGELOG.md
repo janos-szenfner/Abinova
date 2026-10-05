@@ -4091,6 +4091,13 @@ below are on `main` but the release has not been cut yet.
   loaders, GIO modules incl. the GnuTLS TLS backend, GTK4
   print/input/media modules (gstreamer powers embedded media),
   GSettings schemas, dictionaries, CA certs and `artwork/`.
+- **Vendored libraries confirmed built-in** — hunspell, wv, libwpd,
+  libwpg, libwps and librevenge compile as `noinst` convenience
+  archives folded statically into `libabinova-4.0.so`: a staged
+  install ships only `libabinova` (no vendored `.so`/`.a`/`.la`),
+  the binary's only library dependency besides libc is libabinova
+  itself, and boost is used header-only so no compiled boost library
+  needs bundling.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

@@ -106,9 +106,19 @@ known-risky candidate).
 
 ## 3. Vendored into libabinova (nothing to ship)
 
+All vendored libraries build as libtool convenience archives
+(`noinst_LTLIBRARIES`, `-fPIC`) in `thirdparty/` and are folded into
+`libabinova-4.0.so` at link time via `$(top_builddir)/thirdparty/lib*.la`
+in `src/Makefile.am`. PACK02 verified: `readelf -d` on the installed
+lib shows zero NEEDED entries for these libs (symbols like
+`Hunspell_create`/`WPSColor` are statically present), the `abinova`
+binary NEEDs only `libabinova-4.0.so` + `libc`, `make install` in
+`thirdparty/` installs nothing, and a staged DESTDIR install ships only
+`libabinova-4.0{,-test}.so` + `.la` in libdir.
+
 | Library | Source dir | Notes |
 |---|---|---|
-| hunspell 1.7.4 | thirdparty/hunspell-1.7.4 | libhunspell.la, noinst (the `hunspell-1.7.0/` dir is stale leftover — unreferenced by Makefile.am) |
+| hunspell 1.7.4 | thirdparty/hunspell-1.7.4 | libhunspell.la, noinst |
 | libwv (wvWare 1.2.9) | thirdparty/wv-1.2.9 | libwv.la, noinst — .doc import |
 | librevenge 0.0.6 | thirdparty/librevenge-0.0.6 | noinst — libwpd/libwps base |
 | libwpd 0.10.3 | thirdparty/libwpd-0.10.3 | noinst — .wpd import |
