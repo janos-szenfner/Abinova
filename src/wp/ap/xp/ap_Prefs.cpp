@@ -161,14 +161,10 @@ void AP_Prefs::overlaySystemPrefs(void)
 	{
 		const XAP_EncodingManager * pEM = XAP_EncodingManager::get_instance();
 		const char * lang = pEM->getLanguageISOName();
-		const char * terr = pEM->getLanguageISOTerritory();
 		const char * enc  = pEM->getNativeEncodingName();
 
-		// Ruler units: en-US historically shipped inches, every
-		// other shipped profile used centimetres.
-		pScheme->setValue(AP_PREF_KEY_RulerUnits,
-			(lang && terr && !strcmp(lang, "en") && !strcmp(terr, "US"))
-				? "in" : "cm");
+		// Ruler units: centimetres by default on every locale.
+		pScheme->setValue(AP_PREF_KEY_RulerUnits, "cm");
 
 		// Default text direction for RTL languages.
 		static const char * rtlLangs[] =
